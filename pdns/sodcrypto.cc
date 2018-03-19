@@ -30,30 +30,48 @@
 
 string newKey()
 {
-  unsigned char key[crypto_secretbox_KEYBYTES];
-  randombytes_buf(key, sizeof key);
-  return "\""+Base64Encode(string((char*)key, sizeof key))+"\"";
+  std::string key;
+  key.resize(crypto_secretbox_KEYBYTES);
+
+  randombytes_buf(reinterpret_cast<unsigned char*>(&key.at(0)), key.size());
+
+  return "\""+Base64Encode(key)+"\"";
 }
 
 std::string sodEncryptSym(const std::string& msg, const std::string& key, SodiumNonce& nonce)
 {
-  unsigned char ciphertext[msg.length() + crypto_secretbox_MACBYTES];
-  crypto_secretbox_easy(ciphertext, (unsigned char*)msg.c_str(), msg.length(), nonce.value, (unsigned char*)key.c_str());
+  std::string ciphertext;
+  ciphertext.resize(msg.length() + crypto_secretbox_MACBYTES);
+  crypto_secretbox_easy(reinterpret_cast<unsigned char*>(&ciphertext.at(0)),
+                        reinterpret_cast<const unsigned char*>(msg.c_str()),
+                        msg.length(),
+                        nonce.value,
+                        reinterpret_cast<const unsigned char*>(key.c_str()));
 
   nonce.increment();
-  return string((char*)ciphertext, sizeof(ciphertext));
+  return ciphertext;
 }
 
 std::string sodDecryptSym(const std::string& msg, const std::string& key, SodiumNonce& nonce)
 {
-  unsigned char decrypted[msg.length() - crypto_secretbox_MACBYTES];
+  std::string decrypted;
 
-  if (crypto_secretbox_open_easy(decrypted, (const unsigned char*)msg.c_str(), 
-				 msg.length(), nonce.value, (const unsigned char*)key.c_str()) != 0) {
+  if (msg.length() < crypto_secretbox_MACBYTES) {
+    throw std::runtime_error("Could not decrypt message of size " + msg.length());
+  }
+
+  decrypted.resize(msg.length() - crypto_secretbox_MACBYTES);
+
+  if (crypto_secretbox_open_easy(reinterpret_cast<unsigned char*>(&decrypted.at(0)),
+                                 reinterpret_cast<const unsigned char*>(msg.c_str()),
+                                 msg.length(),
+                                 nonce.value,
+                                 reinterpret_cast<const unsigned char*>(key.c_str())) != 0) {
     throw std::runtime_error("Could not decrypt message");
   }
+
   nonce.increment();
-  return string((char*)decrypted, sizeof(decrypted));
+  return decrypted;
 }
 #else
 std::string sodEncryptSym(const std::string& msg, const std::string& key, SodiumNonce& nonce)
