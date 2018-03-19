@@ -1279,6 +1279,42 @@ class TestAdvancedLuaRefused(DNSDistTest):
         refusedResponse.id = receivedResponse.id
         self.assertEquals(receivedResponse, refusedResponse)
 
+class TestAdvancedLuaActionReturnSyntax(DNSDistTest):
+
+    _config_template = """
+    function refuse(dq)
+        return DNSAction.Refused
+    end
+    addAction(AllRule(), LuaAction(refuse))
+    newServer{address="127.0.0.1:%s"}
+    """
+
+    def testRefusedWithEmptyRule(self):
+        """
+        Advanced: Short syntax for LuaAction return values
+        """
+        name = 'refused.advanced.tests.powerdns.com.'
+        query = dns.message.make_query(name, 'A', 'IN')
+        response = dns.message.make_response(query)
+        rrset = dns.rrset.from_text(name,
+                                    3600,
+                                    dns.rdataclass.IN,
+                                    dns.rdatatype.AAAA,
+                                    '::1')
+        response.answer.append(rrset)
+        refusedResponse = dns.message.make_response(query)
+        refusedResponse.set_rcode(dns.rcode.REFUSED)
+
+        (_, receivedResponse) = self.sendUDPQuery(query, response=None, useQueue=False)
+        self.assertTrue(receivedResponse)
+        refusedResponse.id = receivedResponse.id
+        self.assertEquals(receivedResponse, refusedResponse)
+
+        (_, receivedResponse) = self.sendTCPQuery(query, response=None, useQueue=False)
+        self.assertTrue(receivedResponse)
+        refusedResponse.id = receivedResponse.id
+        self.assertEquals(receivedResponse, refusedResponse)
+
 class TestAdvancedLuaTruncated(DNSDistTest):
 
     _config_template = """
