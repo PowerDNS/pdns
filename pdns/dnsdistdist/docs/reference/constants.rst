@@ -73,7 +73,7 @@ DNS Section
 DNSAction
 ---------
 
-These constants represent an Action that can be returned from the functions invoked by :func:`addLuaAction` and :func:`addLuaResponseAction`.
+These constants represent an Action that can be returned from the functions invoked by :func:`addLuaAction`.
 
  * ``DNSAction.Allow``: let the query pass, skipping other rules
  * ``DNSAction.Delay``: delay the response for the specified milliseconds (UDP-only), continue to the next rule
@@ -83,4 +83,21 @@ These constants represent an Action that can be returned from the functions invo
  * ``DNSAction.Nxdomain``: return a response with a NXDomain rcode
  * ``DNSAction.Pool``: use the specified pool to forward this query
  * ``DNSAction.Refused``: return a response with a Refused rcode
+ * ``DNSAction.ServFail``: return a response with a ServFail rcode
  * ``DNSAction.Spoof``: spoof the response using the supplied IPv4 (A), IPv6 (AAAA) or string (CNAME) value
+ * ``DNSAction.Truncate``: truncate the response
+
+
+.. _DNSResponseAction:
+
+DNSResponseAction
+-----------------
+
+These constants represent an Action that can be returned from the functions invoked by :func:`addLuaResponseAction`.
+
+ * ``DNSResponseAction.Allow``: let the query pass, skipping other rules
+ * ``DNSResponseAction.Delay``: delay the response for the specified milliseconds (UDP-only), continue to the next rule
+ * ``DNSResponseAction.Drop``: drop the query
+ * ``DNSResponseAction.HeaderModify``: indicate that the query has been turned into a response
+ * ``DNSResponseAction.None``: continue to the next rule
+ * ``DNSResponseAction.ServFail``: return a response with a ServFail rcode
