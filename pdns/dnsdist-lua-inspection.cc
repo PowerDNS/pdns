@@ -24,10 +24,10 @@
 
 #include "statnode.hh"
 
-static std::unordered_map<int, vector<boost::variant<string,double>>> getGenResponses(unsigned int top, boost::optional<int> labels, std::function<bool(const Rings::Response&)> pred)
+static std::unordered_map<unsigned int, vector<boost::variant<string,double>>> getGenResponses(unsigned int top, boost::optional<int> labels, std::function<bool(const Rings::Response&)> pred)
 {
   setLuaNoSideEffect();
-  map<DNSName, int> counts;
+  map<DNSName, unsigned int> counts;
   unsigned int total=0;
   {
     std::lock_guard<std::mutex> lock(g_rings.respMutex);
@@ -53,7 +53,7 @@ static std::unordered_map<int, vector<boost::variant<string,double>>> getGenResp
     }
   }
   //      cout<<"Looked at "<<total<<" responses, "<<counts.size()<<" different ones"<<endl;
-  vector<pair<int, DNSName>> rcounts;
+  vector<pair<unsigned int, DNSName>> rcounts;
   rcounts.reserve(counts.size());
   for(const auto& c : counts)
     rcounts.push_back(make_pair(c.second, c.first.makeLowerCase()));
@@ -63,7 +63,7 @@ static std::unordered_map<int, vector<boost::variant<string,double>>> getGenResp
          return b.first < a.first;
        });
 
-  std::unordered_map<int, vector<boost::variant<string,double>>> ret;
+  std::unordered_map<unsigned int, vector<boost::variant<string,double>>> ret;
   unsigned int count=1, rest=0;
   for(const auto& rc : rcounts) {
     if(count==top+1)
@@ -75,19 +75,20 @@ static std::unordered_map<int, vector<boost::variant<string,double>>> getGenResp
   return ret;
 }
 
-static map<ComboAddress,int> filterScore(const map<ComboAddress, unsigned int,ComboAddress::addressOnlyLessThan >& counts,
-				  double delta, int rate)
-{
-  std::multimap<unsigned int,ComboAddress> score;
-  for(const auto& e : counts)
-    score.insert({e.second, e.first});
+typedef std::unordered_map<ComboAddress, unsigned int, ComboAddress::addressOnlyHash, ComboAddress::addressOnlyEqual> counts_t;
 
-  map<ComboAddress,int> ret;
+static counts_t filterScore(const counts_t& counts,
+                        double delta, unsigned int rate)
+{
+  counts_t ret;
 
   double lim = delta*rate;
-  for(auto s = score.crbegin(); s != score.crend() && s->first > lim; ++s) {
-    ret[s->second]=s->first;
+  for(const auto& c : counts) {
+    if (c.second > lim) {
+      ret[c.first] = c.second;
+    }
   }
+
   return ret;
 }
 
@@ -103,23 +104,23 @@ static void statNodeRespRing(statvisitor_t visitor, unsigned int seconds)
     cutoff.tv_sec -= seconds;
   }
 
-  std::lock_guard<std::mutex> lock(g_rings.respMutex);
-
   StatNode root;
-  for(const auto& c : g_rings.respRing) {
-    if (now < c.when)
-      continue;
+  {
+    std::lock_guard<std::mutex> lock(g_rings.respMutex);
+    for(const auto& c : g_rings.respRing) {
+      if (now < c.when)
+        continue;
 
-    if (seconds && c.when < cutoff)
-      continue;
+      if (seconds && c.when < cutoff)
+        continue;
 
-    root.submit(c.name, c.dh.rcode, c.requestor);
+      root.submit(c.name, c.dh.rcode, boost::none);
+    }
   }
+
   StatNode::Stat node;
-
-  root.visit([&visitor](const StatNode* node_, const StatNode::Stat& self, const StatNode::Stat& children) {
+  root.visit([visitor](const StatNode* node_, const StatNode::Stat& self, const StatNode::Stat& children) {
       visitor(*node_, self, children);},  node);
-
 }
 
 static vector<pair<unsigned int, std::unordered_map<string,string> > > getRespRing(boost::optional<int> rcode)
@@ -141,8 +142,7 @@ static vector<pair<unsigned int, std::unordered_map<string,string> > > getRespRi
   return ret;
 }
 
-typedef   map<ComboAddress, unsigned int,ComboAddress::addressOnlyLessThan > counts_t;
-static map<ComboAddress,int> exceedRespGen(int rate, int seconds, std::function<void(counts_t&, const Rings::Response&)> T)
+static counts_t exceedRespGen(unsigned int rate, int seconds, std::function<void(counts_t&, const Rings::Response&)> T)
 {
   counts_t counts;
   struct timespec cutoff, mintime, now;
@@ -150,22 +150,26 @@ static map<ComboAddress,int> exceedRespGen(int rate, int seconds, std::function<
   cutoff = mintime = now;
   cutoff.tv_sec -= seconds;
 
-  std::lock_guard<std::mutex> lock(g_rings.respMutex);
-  for(const auto& c : g_rings.respRing) {
-    if(seconds && c.when < cutoff)
-      continue;
-    if(now < c.when)
-      continue;
+  {
+    std::lock_guard<std::mutex> lock(g_rings.respMutex);
+    counts.reserve(g_rings.respRing.size());
+    for(const auto& c : g_rings.respRing) {
+      if(seconds && c.when < cutoff)
+        continue;
+      if(now < c.when)
+        continue;
 
-    T(counts, c);
-    if(c.when < mintime)
-      mintime = c.when;
+      T(counts, c);
+      if(c.when < mintime)
+        mintime = c.when;
+    }
   }
+
   double delta = seconds ? seconds : DiffTime(now, mintime);
   return filterScore(counts, delta, rate);
 }
 
-static map<ComboAddress,int> exceedQueryGen(int rate, int seconds, std::function<void(counts_t&, const Rings::Query&)> T)
+static counts_t exceedQueryGen(unsigned int rate, int seconds, std::function<void(counts_t&, const Rings::Query&)> T)
 {
   counts_t counts;
   struct timespec cutoff, mintime, now;
@@ -173,22 +177,26 @@ static map<ComboAddress,int> exceedQueryGen(int rate, int seconds, std::function
   cutoff = mintime = now;
   cutoff.tv_sec -= seconds;
 
-  ReadLock rl(&g_rings.queryLock);
-  for(const auto& c : g_rings.queryRing) {
-    if(seconds && c.when < cutoff)
-      continue;
-    if(now < c.when)
-      continue;
-    T(counts, c);
-    if(c.when < mintime)
-      mintime = c.when;
+  {
+    ReadLock rl(&g_rings.queryLock);
+    counts.reserve(g_rings.respRing.size());
+    for(const auto& c : g_rings.queryRing) {
+      if(seconds && c.when < cutoff)
+        continue;
+      if(now < c.when)
+        continue;
+      T(counts, c);
+      if(c.when < mintime)
+        mintime = c.when;
+    }
   }
+
   double delta = seconds ? seconds : DiffTime(now, mintime);
   return filterScore(counts, delta, rate);
 }
 
 
-static map<ComboAddress,int> exceedRCode(int rate, int seconds, int rcode)
+static counts_t exceedRCode(unsigned int rate, int seconds, int rcode)
 {
   return exceedRespGen(rate, seconds, [rcode](counts_t& counts, const Rings::Response& r)
 		   {
@@ -197,7 +205,7 @@ static map<ComboAddress,int> exceedRCode(int rate, int seconds, int rcode)
 		   });
 }
 
-static map<ComboAddress,int> exceedRespByterate(int rate, int seconds)
+static counts_t exceedRespByterate(unsigned int rate, int seconds)
 {
   return exceedRespGen(rate, seconds, [](counts_t& counts, const Rings::Response& r)
 		   {
@@ -210,7 +218,7 @@ void setupLuaInspection()
   g_lua.writeFunction("topClients", [](boost::optional<unsigned int> top_) {
       setLuaNoSideEffect();
       auto top = top_.get_value_or(10);
-      map<ComboAddress, int,ComboAddress::addressOnlyLessThan > counts;
+      map<ComboAddress, unsigned int,ComboAddress::addressOnlyLessThan > counts;
       unsigned int total=0;
       {
         ReadLock rl(&g_rings.queryLock);
@@ -219,7 +227,7 @@ void setupLuaInspection()
           total++;
         }
       }
-      vector<pair<int, ComboAddress>> rcounts;
+      vector<pair<unsigned int, ComboAddress>> rcounts;
       rcounts.reserve(counts.size());
       for(const auto& c : counts)
 	rcounts.push_back(make_pair(c.second, c.first));
@@ -241,7 +249,7 @@ void setupLuaInspection()
 
   g_lua.writeFunction("getTopQueries", [](unsigned int top, boost::optional<int> labels) {
       setLuaNoSideEffect();
-      map<DNSName, int> counts;
+      map<DNSName, unsigned int> counts;
       unsigned int total=0;
       if(!labels) {
 	ReadLock rl(&g_rings.queryLock);
@@ -260,7 +268,7 @@ void setupLuaInspection()
 	}
       }
       // cout<<"Looked at "<<total<<" queries, "<<counts.size()<<" different ones"<<endl;
-      vector<pair<int, DNSName>> rcounts;
+      vector<pair<unsigned int, DNSName>> rcounts;
       rcounts.reserve(counts.size());
       for(const auto& c : counts)
 	rcounts.push_back(make_pair(c.second, c.first.makeLowerCase()));
@@ -270,7 +278,7 @@ void setupLuaInspection()
 	     return b.first < a.first;
 	   });
 
-      std::unordered_map<int, vector<boost::variant<string,double>>> ret;
+      std::unordered_map<unsigned int, vector<boost::variant<string,double>>> ret;
       unsigned int count=1, rest=0;
       for(const auto& rc : rcounts) {
 	if(count==top+1)
