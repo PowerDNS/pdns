@@ -404,8 +404,9 @@ bool DNSDistSNMPAgent::sendBackendStatusChangeTrap(const std::shared_ptr<Downstr
                             backendStatus.size());
 
   return sendTrap(d_trapPipe[1], varList);
-#endif /* HAVE_NET_SNMP */
+#else
   return true;
+#endif /* HAVE_NET_SNMP */
 }
 
 bool DNSDistSNMPAgent::sendCustomTrap(const std::string& reason)
@@ -428,8 +429,9 @@ bool DNSDistSNMPAgent::sendCustomTrap(const std::string& reason)
                             reason.size());
 
   return sendTrap(d_trapPipe[1], varList);
-#endif /* HAVE_NET_SNMP */
+#else
   return true;
+#endif /* HAVE_NET_SNMP */
 }
 
 bool DNSDistSNMPAgent::sendDNSTrap(const DNSQuestion& dq, const std::string& reason)
@@ -533,8 +535,9 @@ bool DNSDistSNMPAgent::sendDNSTrap(const DNSQuestion& dq, const std::string& rea
                             reason.size());
 
   return sendTrap(d_trapPipe[1], varList);
-#endif /* HAVE_NET_SNMP */
+#else
   return true;
+#endif /* HAVE_NET_SNMP */
 }
 
 DNSDistSNMPAgent::DNSDistSNMPAgent(const std::string& name, const std::string& masterSocket): SNMPAgent(name, masterSocket)
