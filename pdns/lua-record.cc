@@ -732,7 +732,7 @@ std::vector<shared_ptr<DNSRecordContent>> luaSynth(const std::string& code, cons
   lua.writeFunction("report", [&counter](string event, boost::optional<string> line){
       throw std::runtime_error("Script took too long");
     });
-  lua.executeCode("debug.sethook(report, '', 1000)");
+  lua.executeCode("debug.sethook(report, '', 1000000)");
 
   // TODO: make this better. Accept netmask/CA objects; provide names for the attr constants
   lua.writeFunction("geoiplookup", [](const string &ip, const GeoIPInterface::GeoIPQueryAttribute attr) {
