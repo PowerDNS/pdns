@@ -475,6 +475,7 @@ struct Rings {
       std::unique_lock<std::mutex> wl(d_shards[shardId]->respLock, std::try_to_lock);
       if (wl.owns_lock()) {
         d_shards[shardId]->respRing.push_back({when, requestor, name, qtype, usec, size, dh, backend});
+        return;
       }
     }
 
