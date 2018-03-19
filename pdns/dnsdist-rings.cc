@@ -22,12 +22,15 @@
 #include "dnsdist.hh"
 #include "lock.hh"
 
+std::atomic<size_t> Rings::s_queryInserterId;
+std::atomic<size_t> Rings::s_responseInserterId;
+
 size_t Rings::numDistinctRequestors()
 {
   std::set<ComboAddress, ComboAddress::addressOnlyLessThan> s;
   for (size_t idx = 0; idx < getNumberOfShards(); idx++) {
-    ReadLock rl(&d_shards[idx].queryLock);
-    for(const auto& q : d_shards[idx].queryRing) {
+    std::lock_guard<std::mutex> rl(d_shards[idx]->queryLock);
+    for(const auto& q : d_shards[idx]->queryRing) {
       s.insert(q.requestor);
     }
   }
@@ -40,15 +43,15 @@ std::unordered_map<int, vector<boost::variant<string,double>>> Rings::getTopBand
   uint64_t total=0;
   for (size_t idx = 0; idx < getNumberOfShards(); idx++) {
     {
-      ReadLock rl(&d_shards[idx].queryLock);
-      for(const auto& q : d_shards[idx].queryRing) {
+      std::lock_guard<std::mutex> rl(d_shards[idx]->queryLock);
+      for(const auto& q : d_shards[idx]->queryRing) {
         counts[q.requestor]+=q.size;
         total+=q.size;
       }
     }
     {
-      ReadLock rl(&d_shards[idx].respLock);
-      for(const auto& r : d_shards[idx].respRing) {
+      std::lock_guard<std::mutex> rl(d_shards[idx]->respLock);
+      for(const auto& r : d_shards[idx]->respRing) {
         counts[r.requestor]+=r.size;
         total+=r.size;
       }

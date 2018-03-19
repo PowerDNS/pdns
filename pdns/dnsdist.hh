@@ -401,8 +401,8 @@ struct Rings {
   {
     boost::circular_buffer<Query> queryRing;
     boost::circular_buffer<Response> respRing;
-    pthread_rwlock_t queryLock;
-    pthread_rwlock_t respLock;
+    std::mutex queryLock;
+    std::mutex respLock;
   };
 
   Rings(size_t capacity=10000, size_t numberOfShards=1): d_numberOfShards(numberOfShards)
@@ -418,35 +418,32 @@ struct Rings {
     }
 
     d_shards.resize(numberOfShards);
-
-    /* set up the locks for the new shards */
-    for (size_t idx = d_numberOfShards; idx < numberOfShards; idx++) {
-      pthread_rwlock_init(&d_shards[idx].queryLock, 0);
-      pthread_rwlock_init(&d_shards[idx].respLock, 0);
-    }
-
     d_numberOfShards = numberOfShards;
 
     /* resize all the rings */
     for (size_t idx = 0; idx < numberOfShards; idx++) {
+      d_shards[idx] = std::unique_ptr<Shard>(new Shard());
       {
-        WriteLock wl(&d_shards[idx].queryLock);
-        d_shards[idx].queryRing.set_capacity(newCapacity / numberOfShards);
+        std::lock_guard<std::mutex> wl(d_shards[idx]->queryLock);
+        d_shards[idx]->queryRing.set_capacity(newCapacity / numberOfShards);
       }
       {
-        WriteLock wl(&d_shards[idx].respLock);
-        d_shards[idx].respRing.set_capacity(newCapacity / numberOfShards);
+        std::lock_guard<std::mutex> wl(d_shards[idx]->respLock);
+        d_shards[idx]->respRing.set_capacity(newCapacity / numberOfShards);
       }
     }
   }
-  size_t getQueryInserterId()
+
+  static size_t getQueryInserterId()
   {
     return s_queryInserterId++;
   }
-  size_t getResponseInserterId()
+
+  static size_t getResponseInserterId()
   {
     return s_responseInserterId++;
   }
+
   size_t getNumberOfShards() const
   {
     return d_numberOfShards;
@@ -455,18 +452,18 @@ struct Rings {
   void insertQuery(const struct timespec& when, const ComboAddress& requestor, const DNSName& name, uint16_t qtype, uint16_t size, const struct dnsheader& dh, size_t queryInserterId)
   {
     auto shardId = getShardId(queryInserterId);
-    WriteLock wl(&d_shards[shardId].queryLock);
-    d_shards[shardId].queryRing.push_back({when, requestor, name, size, qtype, dh});
+    std::lock_guard<std::mutex> wl(d_shards[shardId]->queryLock);
+    d_shards[shardId]->queryRing.push_back({when, requestor, name, size, qtype, dh});
   }
 
   void insertResponse(const struct timespec& when, const ComboAddress& requestor, const DNSName& name, uint16_t qtype, unsigned int usec, unsigned int size, const struct dnsheader& dh, const ComboAddress& backend, size_t responseInserterId)
   {
     auto shardId = getShardId(responseInserterId);
-    WriteLock wl(&d_shards[shardId].respLock);
-    d_shards[shardId].respRing.push_back({when, requestor, name, qtype, usec, size, dh, backend});
+    std::lock_guard<std::mutex> wl(d_shards[shardId]->respLock);
+    d_shards[shardId]->respRing.push_back({when, requestor, name, qtype, usec, size, dh, backend});
   }
 
-  std::vector<Shard> d_shards;
+  std::vector<std::unique_ptr<Shard> > d_shards;
 
 private:
   size_t getShardId(size_t id) const
@@ -474,8 +471,9 @@ private:
     return (id % d_numberOfShards);
   }
 
-  std::atomic<size_t> s_queryInserterId{0};
-  std::atomic<size_t> s_responseInserterId{0};
+  static std::atomic<size_t> s_queryInserterId;
+  static std::atomic<size_t> s_responseInserterId;
+
   size_t d_numberOfShards;
 };
 
