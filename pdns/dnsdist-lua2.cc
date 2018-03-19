@@ -145,6 +145,7 @@ static counts_t exceedRespGen(unsigned int rate, int seconds, std::function<void
 
   {
     std::lock_guard<std::mutex> lock(g_rings.respMutex);
+    counts.reserve(g_rings.respRing.size());
     for(const auto& c : g_rings.respRing) {
       if(seconds && c.when < cutoff)
         continue;
@@ -171,6 +172,7 @@ static counts_t exceedQueryGen(unsigned int rate, int seconds, std::function<voi
 
   {
     ReadLock rl(&g_rings.queryLock);
+    counts.reserve(g_rings.queryRing.size());
     for(const auto& c : g_rings.queryRing) {
       if(seconds && c.when < cutoff)
         continue;
