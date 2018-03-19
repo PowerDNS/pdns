@@ -23,7 +23,7 @@
 
 void setupLuaVars()
 {
-    g_lua.writeVariable("DNSAction", std::unordered_map<string,int>{
+  g_lua.writeVariable("DNSAction", std::unordered_map<string,int>{
       {"Drop", (int)DNSAction::Action::Drop},
       {"Nxdomain", (int)DNSAction::Action::Nxdomain},
       {"Refused", (int)DNSAction::Action::Refused},
@@ -40,6 +40,7 @@ void setupLuaVars()
   g_lua.writeVariable("DNSResponseAction", std::unordered_map<string,int>{
       {"Allow",        (int)DNSResponseAction::Action::Allow        },
       {"Delay",        (int)DNSResponseAction::Action::Delay        },
+      {"Drop",         (int)DNSResponseAction::Action::Drop         },
       {"HeaderModify", (int)DNSResponseAction::Action::HeaderModify },
       {"ServFail",     (int)DNSResponseAction::Action::ServFail     },
       {"None",         (int)DNSResponseAction::Action::None         }
