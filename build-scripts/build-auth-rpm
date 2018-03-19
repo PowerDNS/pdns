@@ -340,6 +340,15 @@ Requires: %{name}%{?_isa} = %{version}-%{release}
 %description backend-lua
 This package contains the lua backend for %{name}
 
+%package backend-lua2
+Summary: New Lua backend for %{name}
+Group: System Environment/Daemons
+Requires: %{name}%{?_isa} = %{version}-%{release}
+%global backends %{backends} lua2
+
+%description backend-lua2
+This package contains the new lua backend for %{name}
+
 %package backend-sqlite
 Summary: SQLite backend for %{name}
 Group: System Environment/Daemons
@@ -497,6 +506,9 @@ fi
 %files backend-lua
 %{_libdir}/%{name}/libluabackend.so
 
+%files backend-lua2
+%{_libdir}/%{name}/liblua2backend.so
+
 %files backend-sqlite
 %doc %{_defaultdocdir}/%{name}/schema.sqlite3.sql
 %doc %{_defaultdocdir}/%{name}/nodnssec-3.x_to_3.4.0_schema.sqlite3.sql
@@ -633,6 +645,15 @@ Requires: %{name}%{?_isa} = %{version}-%{release}
 
 %description backend-lua
 This package contains the lua backend for %{name}
+
+%package backend-lua2
+Summary: New Lua backend for %{name}
+Group: System Environment/Daemons
+Requires: %{name}%{?_isa} = %{version}-%{release}
+%global backends %{backends} lua2
+
+%description backend-lua2
+This package contains the new lua backend for %{name}
 
 %package backend-sqlite
 Summary: SQLite backend for %{name}
@@ -818,6 +839,9 @@ exit 0
 %files backend-lua
 %{_libdir}/%{name}/libluabackend.so
 
+%files backend-lua2
+%{_libdir}/%{name}/liblua2backend.so
+
 %files backend-sqlite
 %doc modules/gsqlite3backend/schema.sqlite3.sql
 %doc modules/gsqlite3backend/dnssec-3.x_to_3.4.0_schema.sqlite3.sql
@@ -916,6 +940,15 @@ Requires: %{name}%{?_isa} = %{version}-%{release}
 
 %description backend-lua
 This package contains the lua backend for %{name}
+
+%package backend-lua2
+Summary: New Lua backend for %{name}
+Group: System Environment/Daemons
+Requires: %{name}%{?_isa} = %{version}-%{release}
+%global backends %{backends} lua2
+
+%description backend-lua2
+This package contains the new lua backend for %{name}
 
 %package backend-sqlite
 Summary: SQLite backend for %{name}
@@ -1068,6 +1101,9 @@ exit 0
 
 %files backend-lua
 %{_libdir}/%{name}/libluabackend.so
+
+%files backend-lua2
+%{_libdir}/%{name}/liblua2backend.so
 
 %files backend-sqlite
 %doc modules/gsqlite3backend/schema.sqlite3.sql
