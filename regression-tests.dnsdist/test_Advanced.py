@@ -1293,7 +1293,7 @@ class TestAdvancedLuaActionReturnSyntax(DNSDistTest):
         """
         Advanced: Short syntax for LuaAction return values
         """
-        name = 'refused.advanced.tests.powerdns.com.'
+        name = 'short.refused.advanced.tests.powerdns.com.'
         query = dns.message.make_query(name, 'A', 'IN')
         response = dns.message.make_response(query)
         rrset = dns.rrset.from_text(name,

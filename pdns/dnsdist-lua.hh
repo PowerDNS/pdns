@@ -24,7 +24,7 @@
 class LuaAction : public DNSAction
 {
 public:
-  typedef std::function<std::tuple<int, boost::optional<string> >(DNSQuestion* dr)> func_t;
+  typedef std::function<std::tuple<int, boost::optional<string> >(DNSQuestion* dq)> func_t;
   LuaAction(LuaAction::func_t func) : d_func(func)
   {}
   Action operator()(DNSQuestion* dq, string* ruleresult) const override;

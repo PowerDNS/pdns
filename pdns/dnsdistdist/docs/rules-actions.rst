@@ -152,7 +152,7 @@ Rule Generators
   This function works similar to using :func:`LuaAction`.
   The ``function`` should return both a :ref:`DNSAction` and its argument `rule`. The `rule` is used as an argument
   of the following :ref:`DNSAction`: `DNSAction.Spoof`, `DNSAction.Pool` and `DNSAction.Delay`. As of version `1.3.0`, you can
-  ommit the argument. For earlier releases, simply return an empty string. If the Lua code fails, ServFail is returned.
+  omit the argument. For earlier releases, simply return an empty string. If the Lua code fails, ServFail is returned.
 
   :param DNSRule: match queries based on this rule
   :param string function: the name of a Lua function
@@ -165,7 +165,7 @@ Rule Generators
   ::
 
     function luarule(dq)
-      if(dq.qtype==35) -- NAPTR
+      if(dq.qtype==dnsdist.NAPTR)
       then
         return DNSAction.Pool, "abuse" -- send to abuse pool
       else
@@ -184,7 +184,7 @@ Rule Generators
   Invoke a Lua function that accepts a :class:`DNSResponse`.
   This function works similar to using :func:`LuaResponseAction`.
   The ``function`` should return both a :ref:`DNSResponseAction` and its argument `rule`. The `rule` is used as an argument
-  of the `DNSResponseAction.Delay`. As of version `1.3.0`, you can ommit the argument (see :func:`addLuaAction`). For earlier
+  of the `DNSResponseAction.Delay`. As of version `1.3.0`, you can omit the argument (see :func:`addLuaAction`). For earlier
   releases, simply return an empty string. If the Lua code fails, ServFail is returned.
 
   :param DNSRule: match queries based on this rule
