@@ -1180,8 +1180,8 @@ void setupLuaConfig(bool client)
       setLuaNoSideEffect();
       std::unordered_map<string,uint64_t> res;
       for(const auto& entry : g_stats.entries) {
-        if(const auto& val = boost::get<DNSDistStats::stat_t*>(&entry.second))
-          res[entry.first] = (*val)->load();
+        if(const auto& val = boost::get<DNSDistStats::stat_t*>(&std::get<1>(entry)))
+          res[std::get<0>(entry)] = (*val)->load();
       }
       return res;
     });
