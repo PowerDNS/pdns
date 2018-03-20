@@ -29,6 +29,7 @@
 #include "ednsoptions.hh"
 #include "fstrm_logger.hh"
 #include "remote_logger.hh"
+#include "boost/optional/optional_io.hpp"
 
 class DropAction : public DNSAction
 {
@@ -311,8 +312,15 @@ DNSAction::Action LuaAction::operator()(DNSQuestion* dq, string* ruleresult) con
   std::lock_guard<std::mutex> lock(g_luamutex);
   try {
     auto ret = d_func(dq);
-    if(ruleresult)
-      *ruleresult=std::get<1>(ret);
+    if (ruleresult) {
+      if (boost::optional<string> rule = std::get<1>(ret)) {
+        *ruleresult = *rule;
+      }
+      else {
+        // default to empty string
+        ruleresult->clear();
+      }
+    }
     return (Action)std::get<0>(ret);
   } catch (std::exception &e) {
     warnlog("LuaAction failed inside lua, returning ServFail: %s", e.what());
@@ -327,8 +335,15 @@ DNSResponseAction::Action LuaResponseAction::operator()(DNSResponse* dr, string*
   std::lock_guard<std::mutex> lock(g_luamutex);
   try {
     auto ret = d_func(dr);
-    if(ruleresult)
-      *ruleresult=std::get<1>(ret);
+    if(ruleresult) {
+      if (boost::optional<string> rule = std::get<1>(ret)) {
+        *ruleresult = *rule;
+      }
+      else {
+        // default to empty string
+        ruleresult->clear();
+      }
+    }
     return (Action)std::get<0>(ret);
   } catch (std::exception &e) {
     warnlog("LuaResponseAction failed inside lua, returning ServFail: %s", e.what());
