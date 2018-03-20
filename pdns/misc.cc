@@ -1058,8 +1058,9 @@ bool setSocketTimestamps(int fd)
 #ifdef SO_TIMESTAMP
   int on=1;
   return setsockopt(fd, SOL_SOCKET, SO_TIMESTAMP, (char*)&on, sizeof(on)) == 0;
-#endif
+#else
   return true; // we pretend this happened.
+#endif
 }
 
 bool setTCPNoDelay(int sock)
@@ -1402,6 +1403,7 @@ int mapThreadToCPUList(pthread_t tid, const std::set<int>& cpus)
                                 sizeof(cpuset),
                                 &cpuset);
 #  endif
-#endif /* HAVE_PTHREAD_SETAFFINITY_NP */
+#else
   return ENOSYS;
+#endif /* HAVE_PTHREAD_SETAFFINITY_NP */
 }
