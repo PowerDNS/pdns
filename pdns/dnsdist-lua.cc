@@ -822,6 +822,9 @@ void setupLuaConfig(bool client)
 
   g_lua.writeFunction("addDynBlocks",
                       [](const std::unordered_map<ComboAddress,unsigned int, ComboAddress::addressOnlyHash, ComboAddress::addressOnlyEqual>& m, const std::string& msg, boost::optional<int> seconds, boost::optional<DNSAction::Action> action) {
+                           if (m.empty()) {
+                             return;
+                           }
                            setLuaSideEffect();
 			   auto slow = g_dynblockNMG.getCopy();
 			   struct timespec until, now;
@@ -852,6 +855,9 @@ void setupLuaConfig(bool client)
 
   g_lua.writeFunction("addDynBlockSMT",
                       [](const vector<pair<unsigned int, string> >&names, const std::string& msg, boost::optional<int> seconds, boost::optional<DNSAction::Action> action) {
+                           if (names.empty()) {
+                             return;
+                           }
                            setLuaSideEffect();
 			   auto slow = g_dynblockSMT.getCopy();
 			   struct timespec until, now;
