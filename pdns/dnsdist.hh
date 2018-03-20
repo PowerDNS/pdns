@@ -90,12 +90,12 @@ struct DNSResponse : DNSQuestion
     DNSQuestion(name, type, class_, lc, rem, header, bufferSize, responseLen, isTcp, queryTime_) { }
 };
 
-/* so what could you do: 
-   drop, 
-   fake up nxdomain, 
-   provide actual answer, 
-   allow & and stop processing, 
-   continue processing, 
+/* so what could you do:
+   drop,
+   fake up nxdomain,
+   provide actual answer,
+   allow & and stop processing,
+   continue processing,
    modify header:    (servfail|refused|notimp), set TC=1,
    send to pool */
 
@@ -172,7 +172,7 @@ struct DNSDistStats
   stat_t cacheHits{0};
   stat_t cacheMisses{0};
   stat_t latency0_1{0}, latency1_10{0}, latency10_50{0}, latency50_100{0}, latency100_1000{0}, latencySlow{0};
-  
+
   double latencyAvg100{0}, latencyAvg1000{0}, latencyAvg10000{0}, latencyAvg1000000{0};
   typedef std::function<uint64_t(const std::string&)> statfunction_t;
   typedef boost::variant<stat_t*, double*, statfunction_t> entry_t;
@@ -187,7 +187,7 @@ struct DNSDistStats
     {"rule-servfail", &ruleServFail},
     {"self-answered", &selfAnswered},
     {"downstream-timeouts", &downstreamTimeouts},
-    {"downstream-send-errors", &downstreamSendErrors}, 
+    {"downstream-send-errors", &downstreamSendErrors},
     {"trunc-failures", &truncFail},
     {"no-policy", &noPolicy},
     {"latency0-1", &latency0_1},
@@ -211,7 +211,7 @@ struct DNSDistStats
     {"cpu-user-msec", getCPUTimeUser},
     {"cpu-sys-msec", getCPUTimeSystem},
     {"fd-usage", getOpenFileDescriptors},
-    {"dyn-blocked", &dynBlocked}, 
+    {"dyn-blocked", &dynBlocked},
     {"dyn-block-nmg-size", [](const std::string&) { return g_dynblockNMG.getLocal()->size(); }}
   };
 };
@@ -229,21 +229,21 @@ struct StopWatch
   struct timespec d_start{0,0};
   bool d_needRealTime{false};
 
-  void start() {  
+  void start() {
     if(gettime(&d_start, d_needRealTime) < 0)
       unixDie("Getting timestamp");
-    
+
   }
 
   void set(const struct timespec& from) {
     d_start = from;
   }
-  
+
   double udiff() const {
     struct timespec now;
     if(gettime(&now, d_needRealTime) < 0)
       unixDie("Getting timestamp");
-    
+
     return 1000000.0*(now.tv_sec - d_start.tv_sec) + (now.tv_nsec - d_start.tv_nsec)/1000.0;
   }
 
@@ -251,7 +251,7 @@ struct StopWatch
     struct timespec now;
     if(gettime(&now, d_needRealTime) < 0)
       unixDie("Getting timestamp");
-    
+
     auto ret= 1000000.0*(now.tv_sec - d_start.tv_sec) + (now.tv_nsec - d_start.tv_nsec)/1000.0;
     d_start = now;
     return ret;
@@ -291,7 +291,7 @@ public:
     if(d_passthrough)
       return true;
     auto delta = d_prev.udiffAndSet();
-  
+
     d_tokens += 1.0*d_rate * (delta/1000000.0);
 
     if(d_tokens > d_burst)
@@ -306,7 +306,7 @@ public:
     else
       d_blocked++;
 
-    return ret; 
+    return ret;
   }
 private:
   bool d_passthrough{true};
@@ -397,7 +397,7 @@ struct Rings {
 
   std::unordered_map<int, vector<boost::variant<string,double> > > getTopBandwidth(unsigned int numentries);
   size_t numDistinctRequestors();
-  void setCapacity(size_t newCapacity) 
+  void setCapacity(size_t newCapacity)
   {
     {
       WriteLock wl(&queryLock);
@@ -646,6 +646,16 @@ struct ServerPool
   NumberedVector<shared_ptr<DownstreamState>> servers;
   std::shared_ptr<DNSDistPacketCache> packetCache{nullptr};
   std::shared_ptr<ServerPolicy> policy{nullptr};
+
+  size_t countServersUp() const {
+    size_t upFound = 0;
+    for (const auto& server : servers) {
+      if (std::get<1>(server)->isUp() ) {
+        upFound++;
+      };
+    };
+    return upFound;
+  };
 };
 using pools_t=map<std::string,std::shared_ptr<ServerPool>>;
 void setPoolPolicy(pools_t& pools, const string& poolName, std::shared_ptr<ServerPolicy> policy);
