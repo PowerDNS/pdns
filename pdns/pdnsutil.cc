@@ -223,7 +223,7 @@ bool rectifyAllZones(DNSSECKeeper &dk, bool quiet = false)
   if (!quiet) {
     cout<<"Rectified "<<domainInfo.size()<<" zones."<<endl;
   }
-  return (result);
+  return result;
 }
 
 int checkZone(DNSSECKeeper &dk, UeberBackend &B, const DNSName& zone, const vector<DNSResourceRecord>* suppliedrecords=0)
@@ -1916,7 +1916,7 @@ try
     cout<<"                                   List all zone names"<<endl;;
     cout<<"list-tsig-keys                     List all TSIG keys"<<endl;
     cout<<"rectify-zone ZONE [ZONE ..]        Fix up DNSSEC fields (order, auth)"<<endl;
-    cout<<"rectify-all-zones [quiet]          Rectify all zones. Optionnaly quiet output with errors only"<<endl;
+    cout<<"rectify-all-zones [quiet]          Rectify all zones. Optionally quiet output with errors only"<<endl;
     cout<<"remove-zone-key ZONE KEY-ID        Remove key with KEY-ID from ZONE"<<endl;
     cout<<"replace-rrset ZONE NAME TYPE [ttl] Replace named RRSET from zone"<<endl;
     cout<<"       content [content..]"<<endl;
