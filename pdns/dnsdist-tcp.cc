@@ -21,6 +21,8 @@
  */
 #include "dnsdist.hh"
 #include "dnsdist-ecs.hh"
+#include "dnsdist-rings.hh"
+
 #include "dnsparser.hh"
 #include "ednsoptions.hh"
 #include "dolog.hh"
