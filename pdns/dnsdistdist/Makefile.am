@@ -210,6 +210,7 @@ testrunner_SOURCES = \
 	test-base64_cc.cc \
 	test-dnsdist_cc.cc \
 	test-dnsdistpacketcache_cc.cc \
+	test-dnsdistrings_cc.cc \
 	test-dnscrypt_cc.cc \
 	test-iputils_hh.cc \
 	dnsdist.hh \

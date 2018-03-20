@@ -124,16 +124,10 @@ public:
 
     size_t entriesCount = 0;
     if (hasQueryRules()) {
-      for (const auto& shard : g_rings.d_shards) {
-        std::lock_guard<std::mutex> rl(shard->queryLock);
-        entriesCount += shard->queryRing.size();
-      }
+      entriesCount += g_rings.getNumberOfQueryEntries();
     }
     if (hasResponseRules()) {
-      for (const auto& shard : g_rings.d_shards) {
-        std::lock_guard<std::mutex> rl(shard->respLock);
-        entriesCount += shard->respRing.size();
-      }
+      entriesCount += g_rings.getNumberOfResponseEntries();
     }
     counts.reserve(entriesCount);
 
