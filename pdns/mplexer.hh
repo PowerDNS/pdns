@@ -30,7 +30,6 @@
 #include <map>
 #include <stdexcept>
 #include <string>
-#include "utility.hh"
 #include <sys/time.h>
 
 class FDMultiplexerException : public std::runtime_error
@@ -69,7 +68,12 @@ public:
   virtual ~FDMultiplexer()
   {}
 
+  static FDMultiplexer* getMultiplexerSilent();
+
   virtual int run(struct timeval* tv) = 0;
+
+  /* timeout is in ms, 0 will return immediatly, -1 will block until at least one FD is ready */
+  virtual void getAvailableFDs(std::vector<int>& fds, int timeout) = 0;
 
   //! Add an fd to the read watch list - currently an fd can only be on one list at a time!
   virtual void addReadFD(int fd, callbackfunc_t toDo, const funcparam_t& parameter=funcparam_t())
@@ -130,7 +134,7 @@ public:
     return theMap;
   }
   
-  virtual std::string getName() = 0;
+  virtual std::string getName() const = 0;
 
 
 protected:
@@ -158,24 +162,6 @@ protected:
   {
     if(!cbmap.erase(fd)) 
       throw FDMultiplexerException("Tried to remove unlisted fd "+std::to_string(fd)+ " from multiplexer");
-  }
-};
-
-class SelectFDMultiplexer : public FDMultiplexer
-{
-public:
-  SelectFDMultiplexer()
-  {}
-  virtual ~SelectFDMultiplexer()
-  {}
-
-  virtual int run(struct timeval* tv);
-
-  virtual void addFD(callbackmap_t& cbmap, int fd, callbackfunc_t toDo, const funcparam_t& parameter);
-  virtual void removeFD(callbackmap_t& cbmap, int fd);
-  std::string getName()
-  {
-    return "select";
   }
 };
 

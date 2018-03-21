@@ -11,9 +11,7 @@
 #include <iostream>
 
 #include "misc.hh"
-#include "syncres.hh"
 
-#include "namespaces.hh"
 #include "namespaces.hh"
 
 class PortsFDMultiplexer : public FDMultiplexer

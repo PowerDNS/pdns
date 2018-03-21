@@ -236,6 +236,7 @@ Servers
                              --   "address", e.g. "192.0.2.2"
                              --   "interface name", e.g. "eth0"
                              --   "address@interface", e.g. "192.0.2.2@eth0"
+      sockets=NUM            -- Number of sockets (and thus source ports) used toward the backend server, defaults to a single one
     })
 
   :param str server_string: A simple IP:PORT string.

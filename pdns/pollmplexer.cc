@@ -6,11 +6,47 @@
 #include <iostream>
 #include <poll.h>
 #include "misc.hh"
-#include "syncres.hh"
-#include "utility.hh" 
-#include "namespaces.hh"
 #include "namespaces.hh"
 
+FDMultiplexer* FDMultiplexer::getMultiplexerSilent()
+{
+  FDMultiplexer* ret = nullptr;
+  for(const auto& i : FDMultiplexer::getMultiplexerMap()) {
+    try {
+      ret = i.second();
+      return ret;
+    }
+    catch(const FDMultiplexerException& fe) {
+    }
+    catch(...) {
+    }
+  }
+  return ret;
+}
+
+
+class PollFDMultiplexer : public FDMultiplexer
+{
+public:
+  PollFDMultiplexer()
+  {}
+  virtual ~PollFDMultiplexer()
+  {
+  }
+
+  virtual int run(struct timeval* tv) override;
+  virtual void getAvailableFDs(std::vector<int>& fds, int timeout) override;
+
+  virtual void addFD(callbackmap_t& cbmap, int fd, callbackfunc_t toDo, const funcparam_t& parameter) override;
+  virtual void removeFD(callbackmap_t& cbmap, int fd) override;
+
+  string getName() const override
+  {
+    return "poll";
+  }
+private:
+  vector<struct pollfd> preparePollFD() const;
+};
 
 static FDMultiplexer* make()
 {
@@ -44,9 +80,40 @@ void PollFDMultiplexer::removeFD(callbackmap_t& cbmap, int fd)
     throw FDMultiplexerException("Tried to remove unlisted fd "+std::to_string(fd)+ " from multiplexer");
 }
 
-bool pollfdcomp(const struct pollfd& a, const struct pollfd& b)
+vector<struct pollfd> PollFDMultiplexer::preparePollFD() const
 {
-  return a.fd < b.fd;
+  vector<struct pollfd> pollfds;
+  pollfds.reserve(d_readCallbacks.size() + d_writeCallbacks.size());
+
+  struct pollfd pollfd;
+  for(const auto& cb : d_readCallbacks) {
+    pollfd.fd = cb.first;
+    pollfd.events = POLLIN;
+    pollfds.push_back(pollfd);
+  }
+
+  for(const auto& cb : d_writeCallbacks) {
+    pollfd.fd = cb.first;
+    pollfd.events = POLLOUT;
+    pollfds.push_back(pollfd);
+  }
+
+  return pollfds;
+}
+
+void PollFDMultiplexer::getAvailableFDs(std::vector<int>& fds, int timeout)
+{
+  auto pollfds = preparePollFD();
+  int ret = poll(&pollfds[0], pollfds.size(), timeout);
+
+  if (ret < 0 && errno != EINTR)
+    throw FDMultiplexerException("poll returned error: " + stringerror());
+
+  for(const auto& pollfd : pollfds) {
+    if (pollfd.revents == POLLIN || pollfd.revents == POLLOUT) {
+      fds.push_back(pollfd.fd);
+    }
+  }
 }
 
 int PollFDMultiplexer::run(struct timeval* now)
@@ -54,42 +121,29 @@ int PollFDMultiplexer::run(struct timeval* now)
   if(d_inrun) {
     throw FDMultiplexerException("FDMultiplexer::run() is not reentrant!\n");
   }
-  
-  vector<struct pollfd> pollfds;
-  
-  struct pollfd pollfd;
-  for(callbackmap_t::const_iterator i=d_readCallbacks.begin(); i != d_readCallbacks.end(); ++i) {
-    pollfd.fd = i->first;
-    pollfd.events = POLLIN;
-    pollfds.push_back(pollfd);
-  }
 
-  for(callbackmap_t::const_iterator i=d_writeCallbacks.begin(); i != d_writeCallbacks.end(); ++i) {
-    pollfd.fd = i->first;
-    pollfd.events = POLLOUT;
-    pollfds.push_back(pollfd);
-  }
+  auto pollfds = preparePollFD();
 
   int ret=poll(&pollfds[0], pollfds.size(), 500);
-  Utility::gettimeofday(now, 0); // MANDATORY!
+  gettimeofday(now, 0); // MANDATORY!
   
   if(ret < 0 && errno!=EINTR)
     throw FDMultiplexerException("poll returned error: "+stringerror());
 
   d_iter=d_readCallbacks.end();
   d_inrun=true;
-  
-  for(unsigned int n = 0; n < pollfds.size(); ++n) {  
-    if(pollfds[n].revents == POLLIN) {
-      d_iter=d_readCallbacks.find(pollfds[n].fd);
+
+  for(const auto& pollfd : pollfds) {
+    if(pollfd.revents == POLLIN) {
+      d_iter=d_readCallbacks.find(pollfd.fd);
     
       if(d_iter != d_readCallbacks.end()) {
         d_iter->second.d_callback(d_iter->first, d_iter->second.d_parameter);
         continue; // so we don't refind ourselves as writable!
       }
     }
-    else if(pollfds[n].revents == POLLOUT) {
-      d_iter=d_writeCallbacks.find(pollfds[n].fd);
+    else if(pollfd.revents == POLLOUT) {
+      d_iter=d_writeCallbacks.find(pollfd.fd);
     
       if(d_iter != d_writeCallbacks.end()) {
         d_iter->second.d_callback(d_iter->first, d_iter->second.d_parameter);
