@@ -5,7 +5,10 @@ AM_CPPFLAGS += \
 	$(YAHTTP_CFLAGS) \
 	$(LIBEDIT_CFLAGS) \
 	$(LIBCRYPTO_INCLUDES) \
-	$(SYSTEMD_CFLAGS)
+	$(SYSTEMD_CFLAGS) \
+	-DSYSCONFDIR=\"$(sysconfdir)\" \
+	-DPKGLIBDIR=\"$(pkglibdir)\" \
+	-DLOCALSTATEDIR=\"$(socketdir)\"
 
 AM_CXXFLAGS = \
 	-DSYSCONFDIR=\"$(sysconfdir)\" \
@@ -1376,5 +1379,20 @@ ixfrdist.service: ixfrdist.service.in
 systemdsystemunit_DATA += \
 	ixfrdist.service
 endif # TOOLS
-
 endif # HAVE_SYSTEMD
+
+analyze_srcs = $(filter %.cc, $(pdns_server_SOURCES))
+analyze_plists = $(analyze_srcs:%.cc=%.plist)
+
+if HAVE_STATIC_ANALYSIS
+AM_LDFLAGS += \
+	-export-symbols
+
+analyze_verbose = $(analyze_verbose_$(V))
+analyze_verbose_ = $(analyze_verbose_$(AM_DEFAULT_VERBOSITY))
+analyze_verbose_0 = @echo "  CCSA    " $@;
+$(analyze_plists): %.plist: %.cc
+	$(analyze_verbose)$(COMPILE) -std=gnu++11 --analyze $< -o $@
+
+analyze: $(BUILT_SOURCES) $(analyze_plists)
+endif # HAVE_STATIC_ANALYSIS

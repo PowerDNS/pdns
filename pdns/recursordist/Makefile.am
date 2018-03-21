@@ -1,6 +1,6 @@
 JSON11_LIBS = $(top_srcdir)/ext/json11/libjson11.la
 
-AM_CPPFLAGS = $(LUA_CFLAGS) $(YAHTTP_CFLAGS) $(BOOST_CPPFLAGS) $(BOTAN_CFLAGS) $(LIBSODIUM_CFLAGS) $(NET_SNMP_CFLAGS) $(SANITIZER_FLAGS) -O3 -Wall -pthread -DSYSCONFDIR=\"${sysconfdir}\" $(SYSTEMD_CFLAGS)
+AM_CPPFLAGS = $(LUA_CFLAGS) $(YAHTTP_CFLAGS) $(BOOST_CPPFLAGS) $(BOTAN_CFLAGS) $(LIBSODIUM_CFLAGS) $(NET_SNMP_CFLAGS) $(SANITIZER_FLAGS) -O3 -Wall -pthread -DSYSCONFDIR=\"${sysconfdir}\" $(SYSTEMD_CFLAGS) -DLOCALSTATEDIR=\"$(socketdir)\"
 
 AM_CPPFLAGS += \
 	-I$(top_srcdir)/ext/json11 \
@@ -33,6 +33,25 @@ SUBDIRS=ext
 if LUA
 AM_CPPFLAGS +=$(LUA_CFLAGS)
 endif
+
+analyze_srcs = $(filter %.cc, $(pdns_recursor_SOURCES) $(nodist_pdns_recursor_SOURCES))
+analyze_plists = $(analyze_srcs:%.cc=%.plist)
+
+MOSTLYCLEANFILES = $(analyze_plists)
+
+if HAVE_STATIC_ANALYSIS
+AM_LDFLAGS += \
+	-export-symbols
+
+analyze_verbose = $(analyze_verbose_$(V))
+analyze_verbose_ = $(analyze_verbose_$(AM_DEFAULT_VERBOSITY))
+analyze_verbose_0 = @echo "  CCSA    " $@;
+$(analyze_plists): %.plist: %.cc
+	$(analyze_verbose)$(COMPILE) -std=gnu++11 --analyze $< -o $@
+
+analyze: $(BUILT_SOURCES) $(analyze_plists)
+endif # HAVE_STATIC_ANALYSIS
+
 
 EXTRA_DIST = \
 	NOTICE \

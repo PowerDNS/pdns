@@ -52,3 +52,4 @@ html-docs
 doctrees
 latex
 PowerDNS-Recursor.pdf
+*.plist

@@ -61,3 +61,4 @@ effective_tld_names.dat
 /*.service
 /pdns.conf-dist
 /stubquery
+*.plist

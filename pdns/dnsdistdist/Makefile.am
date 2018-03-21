@@ -313,3 +313,21 @@ endif
 if !HAVE_LUA_HPP
 include lua_hpp.mk
 endif
+
+analyze_srcs = $(filter %.cc, $(dnsdist_SOURCES) $(nodist_dnsdist_SOURCES))
+analyze_plists = $(analyze_srcs:%.cc=%.plist)
+
+MOSTLYCLEANFILES = $(analyze_plists)
+
+if HAVE_STATIC_ANALYSIS
+AM_LDFLAGS = \
+	-export-symbols
+
+analyze_verbose = $(analyze_verbose_$(V))
+analyze_verbose_ = $(analyze_verbose_$(AM_DEFAULT_VERBOSITY))
+analyze_verbose_0 = @echo "  CCSA    " $@;
+$(analyze_plists): %.plist: %.cc
+	$(analyze_verbose)$(COMPILE) -std=gnu++11 --analyze $< -o $@
+
+analyze: $(BUILT_SOURCES) $(analyze_plists)
+endif # HAVE_STATIC_ANALYSIS
