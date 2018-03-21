@@ -90,7 +90,6 @@ extern TCPNameserver *TN;
 bool DNSProxy::completePacket(DNSPacket *r, const DNSName& target,const DNSName& aname)
 {
   if(r->d_tcp) {
-    cerr<<"qtype="<<r->qtype.getCode()<<endl;
     vector<DNSZoneRecord> ips;
     int ret1 = 0, ret2 = 0;
 
