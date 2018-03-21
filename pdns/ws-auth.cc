@@ -1169,9 +1169,7 @@ static void gatherRecordsFromZone(const std::string& zonestring, vector<DNSResou
 static void checkDuplicateRecords(vector<DNSResourceRecord>& records) {
   sort(records.begin(), records.end(),
     [](const DNSResourceRecord& rec_a, const DNSResourceRecord& rec_b) -> bool {
-      return rec_a.qname.toString() > rec_b.qname.toString() || \
-        rec_a.qtype.getCode() > rec_b.qtype.getCode() || \
-        rec_a.content < rec_b.content;
+      return tie(rec_a.qname, rec_a.qtype, rec_a.content) < tie(rec_b.qname, rec_b.qtype, rec_b.content);
     }
   );
   DNSResourceRecord previous;
