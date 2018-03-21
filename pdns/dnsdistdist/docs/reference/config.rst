@@ -711,6 +711,83 @@ Getting addresses that exceeded parameters
   :param int rate: Number of QType queries per second to exceed
   :param int seconds: Number of seconds the rate has been exceeded
 
+DynBlockRulesGroup
+~~~~~~~~~~~~~~~~~~
+
+Instead of using several `exceed*()` lines, dnsdist 1.3.0 introduced a new `DynBlockRulesGroup` object
+which can be used to group dynamic block rules.
+
+See :doc:`../guides/dynblocks` for more information about the case where using a `DynBlockRulesGroup` might be
+faster than the existing rules.
+
+.. function:: dynBlockRulesGroup() -> DynBlockRulesGroup
+
+  .. versionaddeded:: 1.3.0
+
+  Creates a new :class:`DynBlockRulesGroup` object.
+
+.. class:: DynBlockRulesGroup
+
+  Represents a group of dynamic block rules.
+
+  .. method:: DynBlockRulesGroup:setQueryRate(rate, seconds, reason, blockingTime [, action])
+
+    Adds a query rate-limiting rule, equivalent to:
+    ```
+    addDynBlocks(exceedQRate(rate, seconds), reason, blockingTime, action)
+    ```
+
+    :param int rate: Number of queries per second to exceed
+    :param int seconds: Number of seconds the rate has been exceeded
+    :param string reason: The message to show next to the blocks
+    :param int blockingTime: The number of seconds this block to expire
+    :param int action: The action to take when the dynamic block matches, see :ref:`here <DNSAction>`. (default to the one set with :func:`setDynBlocksAction`)
+
+  .. method:: DynBlockRulesGroup:setRCodeRate(rcode, rate, seconds, reason, blockingTime [, action])
+
+    Adds a rate-limiting rule for responses of code ``rcode``, equivalent to:
+    ```
+    addDynBlocks(exceedServfails(rcode, rate, seconds), reason, blockingTime, action)
+    ```
+
+    :param int rcode: The response code
+    :param int rate: Number of responses per second to exceed
+    :param int seconds: Number of seconds the rate has been exceeded
+    :param string reason: The message to show next to the blocks
+    :param int blockingTime: The number of seconds this block to expire
+    :param int action: The action to take when the dynamic block matches, see :ref:`here <DNSAction>`. (default to the one set with :func:`setDynBlocksAction`)
+
+  .. method:: DynBlockRulesGroup:setQTypeRate(qtype, rate, seconds, reason, blockingTime [, action])
+
+    Adds a rate-limiting rule for queries of type ``qtype``, equivalent to:
+    ```
+    addDynBlocks(exceedQTypeRate(type, rate, seconds), reason, blockingTime, action)
+    ```
+
+    :param int qtype: The qtype
+    :param int rate: Number of queries per second to exceed
+    :param int seconds: Number of seconds the rate has been exceeded
+    :param string reason: The message to show next to the blocks
+    :param int blockingTime: The number of seconds this block to expire
+    :param int action: The action to take when the dynamic block matches, see :ref:`here <DNSAction>`. (default to the one set with :func:`setDynBlocksAction`)
+
+  .. method:: DynBlockRulesGroup:setRespByteRate(rate, seconds, reason, blockingTime [, action])
+
+    Adds a bandwidth rate-limiting rule for responses, equivalent to:
+    ```
+    addDynBlocks(exceedRespByterate(rate, seconds), reason, blockingTime, action)
+    ```
+
+    :param int rate: Number of bytes per second to exceed
+    :param int seconds: Number of seconds the rate has been exceeded
+    :param string reason: The message to show next to the blocks
+    :param int blockingTime: The number of seconds this block to expire
+    :param int action: The action to take when the dynamic block matches, see :ref:`here <DNSAction>`. (default to the one set with :func:`setDynBlocksAction`)
+
+  .. method:: DynBlockRulesGroup:apply()
+
+    Walk the in-memory query and response ring buffers and apply the configured rate-limiting rules, adding dynamic blocks when the limits have been exceeded.
+
 Other functions
 ---------------
 
