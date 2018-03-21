@@ -26,7 +26,8 @@ DNSCrypt objects and functions
   :param string publicKey: path to write the public key to
   :param string privateKey: path to write the private key to
 
-.. function:: generateDNSCryptCertificate(privatekey, certificate, keyfile, serial, validFrom, validUntil, version)
+.. function:: generateDNSCryptCertificate(privatekey, certificate, keyfile, serial, validFrom, validUntil[, version])
+
   .. versionchanged:: 1.3.0
     ``version`` optional parameter added.
 
@@ -143,6 +144,27 @@ Context
     :param int begin: Unix timestamp from when the certificate is valid
     :param int end: Unix timestamp from until the certificate is valid
     :param DNSCryptExchangeVersion version: The exchange version to use. Possible values are ``DNSCryptExchangeVersion::VERSION1`` (default, X25519-XSalsa20Poly1305) and ``DNSCryptExchangeVersion::VERSION2`` (X25519-XChacha20Poly1305)
+
+  .. method:: DNSCryptContext:getCurrentCertificate() -> DNSCryptCert
+
+    .. deprecated:: 1.3.0
+      Removed as it relied on one certificate. See :meth:`DNSCryptContext:getCertificate`.
+
+   Return the current certificate.
+
+  .. method:: DNSCryptContext:getOldCertificate() -> DNSCryptCert
+
+    .. deprecated:: 1.3.0
+      Removed as it relied on one certificate.
+
+   Return the previous certificate.
+
+  .. method:: DNSCryptContext:hasOldCertificate() -> bool
+
+    .. deprecated:: 1.3.0
+      Removed as it relied on one certificate.
+
+    Whether or not the context has a previous certificate, from a certificate rotation.
 
   .. method:: DNSCryptContext:getCertificate(index) -> DNSCryptCert
 
