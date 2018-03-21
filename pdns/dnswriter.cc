@@ -110,7 +110,7 @@ void DNSPacketWriter::addOpt(uint16_t udpsize, int extRCode, int Z, const vector
    *        indicates that an unextended RCODE is in use (values 0 through 15).
    */
   stuff.extRCode = extRCode>>4;
-  if (extRCode != 0) { // As this trumps the existing RCODE
+  if (extRCode > 15) { // As this trumps the existing RCODE
     getHeader()->rcode = extRCode;
   }
 
