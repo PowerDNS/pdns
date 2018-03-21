@@ -539,7 +539,7 @@ test_recursor() {
   run "./build-scripts/test-recursor"
   export RECURSOR="${PDNSRECURSOR}"
   run "cd regression-tests"
-  run "THRESHOLD=95 TRACE=no ./timestamp ./recursor-test 5300 50000"
+  run "THRESHOLD=50 TRACE=no ./timestamp ./recursor-test 5300 50000"
   run "cd .."
 
   run "cd regression-tests.api"
