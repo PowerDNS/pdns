@@ -67,19 +67,20 @@ void resetLuaSideEffect()
   g_noLuaSideEffect = boost::logic::indeterminate;
 }
 
-map<ComboAddress,int> filterScore(const map<ComboAddress, unsigned int,ComboAddress::addressOnlyLessThan >& counts, 
-				  double delta, int rate)
-{
-  std::multimap<unsigned int,ComboAddress> score;
-  for(const auto& e : counts) 
-    score.insert({e.second, e.first});
+typedef std::unordered_map<ComboAddress, unsigned int, ComboAddress::addressOnlyHash, ComboAddress::addressOnlyEqual> counts_t;
 
-  map<ComboAddress,int> ret;
-  
+static counts_t filterScore(const counts_t& counts,
+                            double delta, int rate)
+{
+  counts_t ret;
+
   double lim = delta*rate;
-  for(auto s = score.crbegin(); s != score.crend() && s->first > lim; ++s) {
-    ret[s->second]=s->first;
+  for(const auto& c : counts) {
+    if (c.second > lim) {
+      ret[c.first] = c.second;
+    }
   }
+
   return ret;
 }
 
@@ -95,20 +96,21 @@ static void statNodeRespRing(statvisitor_t visitor, unsigned int seconds)
     cutoff.tv_sec -= seconds;
   }
 
-  std::lock_guard<std::mutex> lock(g_rings.respMutex);
-  
   StatNode root;
-  for(const auto& c : g_rings.respRing) {
-    if (now < c.when)
-      continue;
+  {
+    std::lock_guard<std::mutex> lock(g_rings.respMutex);
+    for(const auto& c : g_rings.respRing) {
+      if (now < c.when)
+        continue;
 
-    if (seconds && c.when < cutoff)
-      continue;
+      if (seconds && c.when < cutoff)
+        continue;
 
-    root.submit(c.name, c.dh.rcode, c.requestor);
+      root.submit(c.name, c.dh.rcode, boost::none);
+    }
   }
-  StatNode::Stat node;
 
+  StatNode::Stat node;
   root.visit([&visitor](const StatNode* node_, const StatNode::Stat& self, const StatNode::Stat& children) {
       visitor(*node_, self, children);},  node);
 
@@ -133,8 +135,7 @@ vector<pair<unsigned int, std::unordered_map<string,string> > > getRespRing(boos
   return ret;
 }
 
-typedef   map<ComboAddress, unsigned int,ComboAddress::addressOnlyLessThan > counts_t;
-map<ComboAddress,int> exceedRespGen(int rate, int seconds, std::function<void(counts_t&, const Rings::Response&)> T) 
+static counts_t exceedRespGen(unsigned int rate, int seconds, std::function<void(counts_t&, const Rings::Response&)> T)
 {
   counts_t counts;
   struct timespec cutoff, mintime, now;
@@ -142,22 +143,26 @@ map<ComboAddress,int> exceedRespGen(int rate, int seconds, std::function<void(co
   cutoff = mintime = now;
   cutoff.tv_sec -= seconds;
 
-  std::lock_guard<std::mutex> lock(g_rings.respMutex);
-  for(const auto& c : g_rings.respRing) {
-    if(seconds && c.when < cutoff)
-      continue;
-    if(now < c.when)
-      continue;
+  {
+    std::lock_guard<std::mutex> lock(g_rings.respMutex);
+    counts.reserve(g_rings.respRing.size());
+    for(const auto& c : g_rings.respRing) {
+      if(seconds && c.when < cutoff)
+        continue;
+      if(now < c.when)
+        continue;
 
-    T(counts, c);
-    if(c.when < mintime)
-      mintime = c.when;
+      T(counts, c);
+      if(c.when < mintime)
+        mintime = c.when;
+    }
   }
+
   double delta = seconds ? seconds : DiffTime(now, mintime);
   return filterScore(counts, delta, rate);
 }
 
-map<ComboAddress,int> exceedQueryGen(int rate, int seconds, std::function<void(counts_t&, const Rings::Query&)> T) 
+static counts_t exceedQueryGen(unsigned int rate, int seconds, std::function<void(counts_t&, const Rings::Query&)> T)
 {
   counts_t counts;
   struct timespec cutoff, mintime, now;
@@ -165,22 +170,26 @@ map<ComboAddress,int> exceedQueryGen(int rate, int seconds, std::function<void(c
   cutoff = mintime = now;
   cutoff.tv_sec -= seconds;
 
-  ReadLock rl(&g_rings.queryLock);
-  for(const auto& c : g_rings.queryRing) {
-    if(seconds && c.when < cutoff)
-      continue;
-    if(now < c.when)
-      continue;
-    T(counts, c);
-    if(c.when < mintime)
-      mintime = c.when;
+  {
+    ReadLock rl(&g_rings.queryLock);
+    counts.reserve(g_rings.queryRing.size());
+    for(const auto& c : g_rings.queryRing) {
+      if(seconds && c.when < cutoff)
+        continue;
+      if(now < c.when)
+        continue;
+      T(counts, c);
+      if(c.when < mintime)
+        mintime = c.when;
+    }
   }
+
   double delta = seconds ? seconds : DiffTime(now, mintime);
   return filterScore(counts, delta, rate);
 }
 
 
-map<ComboAddress,int> exceedRCode(int rate, int seconds, int rcode) 
+static counts_t exceedRCode(unsigned int rate, int seconds, int rcode)
 {
   return exceedRespGen(rate, seconds, [rcode](counts_t& counts, const Rings::Response& r) 
 		   {
@@ -189,7 +198,7 @@ map<ComboAddress,int> exceedRCode(int rate, int seconds, int rcode)
 		   });
 }
 
-map<ComboAddress,int> exceedRespByterate(int rate, int seconds) 
+static counts_t exceedRespByterate(unsigned int rate, int seconds)
 {
   return exceedRespGen(rate, seconds, [](counts_t& counts, const Rings::Response& r) 
 		   {
@@ -280,7 +289,7 @@ void moreLua(bool client)
     });
 
   g_lua.writeFunction("addDynBlocks", 
-                      [](const map<ComboAddress,int>& m, const std::string& msg, boost::optional<int> seconds, boost::optional<DNSAction::Action> action) { 
+                      [](const counts_t& m, const std::string& msg, boost::optional<int> seconds, boost::optional<DNSAction::Action> action) {
                            setLuaSideEffect();
 			   auto slow = g_dynblockNMG.getCopy();
 			   struct timespec until, now;

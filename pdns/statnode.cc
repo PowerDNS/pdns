@@ -54,7 +54,7 @@ void  StatNode::visit(visitor_t visitor, Stat &newstat, unsigned int depth) cons
 }
 
 
-void StatNode::submit(const DNSName& domain, int rcode, const ComboAddress& remote)
+void StatNode::submit(const DNSName& domain, int rcode, boost::optional<const ComboAddress&> remote)
 {
   //  cerr<<"FIRST submit called on '"<<domain<<"'"<<endl;
   vector<string> tmp = domain.getRawLabels();
@@ -75,7 +75,7 @@ void StatNode::submit(const DNSName& domain, int rcode, const ComboAddress& remo
    www.powerdns.com. 
 */
 
-void StatNode::submit(deque<string>& labels, const std::string& domain, int rcode, const ComboAddress& remote, unsigned int count)
+void StatNode::submit(deque<string>& labels, const std::string& domain, int rcode, boost::optional<const ComboAddress&> remote, unsigned int count)
 {
   if(labels.empty())
     return;
@@ -106,7 +106,10 @@ void StatNode::submit(deque<string>& labels, const std::string& domain, int rcod
       s.servfails++;
     else if(rcode==3)
       s.nxdomains++;
-    s.remotes[remote]++;
+
+    if (remote) {
+      s.remotes[*remote]++;
+    }
   }
   else {
     if (fullname.empty()) {
