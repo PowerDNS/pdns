@@ -145,16 +145,19 @@ void loadMainConfig(const std::string& configdir)
   UeberBackend::go();
 }
 
-bool rectifyZone(DNSSECKeeper& dk, const DNSName& zone)
+bool rectifyZone(DNSSECKeeper& dk, const DNSName& zone, bool quiet = false)
 {
   string output;
   string error;
   bool ret = dk.rectifyZone(zone, error, output, true);
-  if (!output.empty()) {
-    cerr<<output<<endl;
-  }
-  if (!ret && !error.empty()) {
-    cerr<<error<<endl;
+  if (!quiet || !ret) {
+    // When quiet, only print output if there was an error
+    if (!output.empty()) {
+      cerr<<output<<endl;
+    }
+    if (!ret && !error.empty()) {
+      cerr<<error<<endl;
+    }
   }
   return ret;
 }
@@ -202,17 +205,25 @@ void dbBench(const std::string& fname)
   cout<<"Packet cache reports: "<<S.read("query-cache-hit")<<" hits (should be 0) and "<<S.read("query-cache-miss") <<" misses"<<endl;
 }
 
-void rectifyAllZones(DNSSECKeeper &dk) 
+bool rectifyAllZones(DNSSECKeeper &dk, bool quiet = false)
 {
   UeberBackend B("default");
   vector<DomainInfo> domainInfo;
+  bool result = true;
 
   B.getAllDomains(&domainInfo);
   for(DomainInfo di :  domainInfo) {
-    cerr<<"Rectifying "<<di.zone<<": ";
-    rectifyZone(dk, di.zone);
+    if (!quiet) {
+      cerr<<"Rectifying "<<di.zone<<": ";
+    }
+    if (!rectifyZone(dk, di.zone, quiet)) {
+      result = false;
+    }
   }
-  cout<<"Rectified "<<domainInfo.size()<<" zones."<<endl;
+  if (!quiet) {
+    cout<<"Rectified "<<domainInfo.size()<<" zones."<<endl;
+  }
+  return result;
 }
 
 int checkZone(DNSSECKeeper &dk, UeberBackend &B, const DNSName& zone, const vector<DNSResourceRecord>* suppliedrecords=0)
@@ -1905,7 +1916,7 @@ try
     cout<<"                                   List all zone names"<<endl;;
     cout<<"list-tsig-keys                     List all TSIG keys"<<endl;
     cout<<"rectify-zone ZONE [ZONE ..]        Fix up DNSSEC fields (order, auth)"<<endl;
-    cout<<"rectify-all-zones                  Rectify all zones."<<endl;
+    cout<<"rectify-all-zones [quiet]          Rectify all zones. Optionally quiet output with errors only"<<endl;
     cout<<"remove-zone-key ZONE KEY-ID        Remove key with KEY-ID from ZONE"<<endl;
     cout<<"replace-rrset ZONE NAME TYPE [ttl] Replace named RRSET from zone"<<endl;
     cout<<"       content [content..]"<<endl;
@@ -2017,7 +2028,10 @@ try
     return exitCode;
   }
   else if (cmds[0] == "rectify-all-zones") {
-    rectifyAllZones(dk);
+    bool quiet = (cmds.size() >= 2 && cmds[1] == "quiet");
+    if (!rectifyAllZones(dk, quiet)) {
+      return 1;
+    }
   }
   else if(cmds[0] == "check-zone") {
     if(cmds.size() != 2) {
