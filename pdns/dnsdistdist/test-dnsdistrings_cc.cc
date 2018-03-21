@@ -220,14 +220,17 @@ BOOST_AUTO_TEST_CASE(test_Rings_Threaded) {
   readerThread.join();
 
   BOOST_CHECK_EQUAL(rings.getNumberOfShards(), numberOfShards);
-  BOOST_CHECK_EQUAL(rings.getNumberOfQueryEntries(), numberOfEntries);
-  BOOST_CHECK_EQUAL(rings.getNumberOfResponseEntries(), numberOfEntries);
   BOOST_CHECK_EQUAL(rings.d_shards.size(), rings.getNumberOfShards());
+  BOOST_CHECK_LE(rings.getNumberOfQueryEntries(), numberOfEntries);
+  BOOST_CHECK_GT(rings.getNumberOfQueryEntries(), numberOfEntries * 0.99);
+  BOOST_CHECK_LE(rings.getNumberOfResponseEntries(), numberOfEntries);
+  BOOST_CHECK_GT(rings.getNumberOfResponseEntries(), numberOfEntries * 0.99);
 
   size_t totalQueries = 0;
   size_t totalResponses = 0;
   for (const auto& shard : rings.d_shards) {
-    BOOST_CHECK_EQUAL(shard->queryRing.size(), entriesPerShard);
+    BOOST_CHECK_LE(shard->queryRing.size(), entriesPerShard);
+    BOOST_CHECK_GT(shard->queryRing.size(), entriesPerShard * 0.95);
     totalQueries += shard->queryRing.size();
     for (const auto& entry : shard->queryRing) {
       BOOST_CHECK_EQUAL(entry.name, qname);
@@ -236,7 +239,8 @@ BOOST_AUTO_TEST_CASE(test_Rings_Threaded) {
       BOOST_CHECK_EQUAL(entry.when.tv_sec, now.tv_sec);
       BOOST_CHECK_EQUAL(entry.requestor.toStringWithPort(), requestor.toStringWithPort());
     }
-    BOOST_CHECK_EQUAL(shard->respRing.size(), entriesPerShard);
+    BOOST_CHECK_LE(shard->respRing.size(), entriesPerShard);
+    BOOST_CHECK_GT(shard->respRing.size(), entriesPerShard * 0.95);
     totalResponses += shard->respRing.size();
     for (const auto& entry : shard->respRing) {
       BOOST_CHECK_EQUAL(entry.name, qname);
