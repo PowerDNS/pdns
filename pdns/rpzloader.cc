@@ -250,16 +250,6 @@ void loadRPZFromFile(const std::string& fname, std::shared_ptr<DNSFilterEngine::
   }
 }
 
-struct rpzStats
-{
-  std::atomic<uint64_t> d_failedTransfers;
-  std::atomic<uint64_t> d_successfulTransfers;
-  std::atomic<uint64_t> d_fullTransfers;
-  std::atomic<uint64_t> d_numberOfRecords;
-  std::atomic<time_t> d_lastUpdate;
-  std::atomic<uint32_t> d_serial;
-};
-
 static std::unordered_map<std::string, rpzStats> s_rpzStats;
 static std::mutex s_rpzStatsMutex;
 
