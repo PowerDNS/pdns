@@ -1,0 +1,2 @@
+#!/bin/sh
+cleandig phil.mb.example.com MB
