@@ -81,15 +81,15 @@ struct Rings {
     d_numberOfShards = numberOfShards;
 
     /* resize all the rings */
-    for (size_t idx = 0; idx < numberOfShards; idx++) {
-      d_shards[idx] = std::unique_ptr<Shard>(new Shard());
+    for (auto& shard : d_shards) {
+      shard = std::unique_ptr<Shard>(new Shard());
       {
-        std::lock_guard<std::mutex> wl(d_shards[idx]->queryLock);
-        d_shards[idx]->queryRing.set_capacity(newCapacity / numberOfShards);
+        std::lock_guard<std::mutex> wl(shard->queryLock);
+        shard->queryRing.set_capacity(newCapacity / numberOfShards);
       }
       {
-        std::lock_guard<std::mutex> wl(d_shards[idx]->respLock);
-        d_shards[idx]->respRing.set_capacity(newCapacity / numberOfShards);
+        std::lock_guard<std::mutex> wl(shard->respLock);
+        shard->respRing.set_capacity(newCapacity / numberOfShards);
       }
     }
   }

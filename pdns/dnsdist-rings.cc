@@ -25,9 +25,9 @@
 size_t Rings::numDistinctRequestors()
 {
   std::set<ComboAddress, ComboAddress::addressOnlyLessThan> s;
-  for (size_t idx = 0; idx < getNumberOfShards(); idx++) {
-    std::lock_guard<std::mutex> rl(d_shards[idx]->queryLock);
-    for(const auto& q : d_shards[idx]->queryRing) {
+  for (auto& shard : d_shards) {
+    std::lock_guard<std::mutex> rl(shard->queryLock);
+    for(const auto& q : shard->queryRing) {
       s.insert(q.requestor);
     }
   }
@@ -38,17 +38,17 @@ std::unordered_map<int, vector<boost::variant<string,double>>> Rings::getTopBand
 {
   map<ComboAddress, unsigned int, ComboAddress::addressOnlyLessThan> counts;
   uint64_t total=0;
-  for (size_t idx = 0; idx < getNumberOfShards(); idx++) {
+  for (auto& shard : d_shards) {
     {
-      std::lock_guard<std::mutex> rl(d_shards[idx]->queryLock);
-      for(const auto& q : d_shards[idx]->queryRing) {
+      std::lock_guard<std::mutex> rl(shard->queryLock);
+      for(const auto& q : shard->queryRing) {
         counts[q.requestor]+=q.size;
         total+=q.size;
       }
     }
     {
-      std::lock_guard<std::mutex> rl(d_shards[idx]->respLock);
-      for(const auto& r : d_shards[idx]->respRing) {
+      std::lock_guard<std::mutex> rl(shard->respLock);
+      for(const auto& r : shard->respRing) {
         counts[r.requestor]+=r.size;
         total+=r.size;
       }
