@@ -45,15 +45,16 @@ void setupLuaBindings(bool client)
     });
 
   /* ServerPolicy */
-  g_lua.writeFunction("newServerPolicy", [](string name, policyfunc_t policy) { return ServerPolicy{name, policy};});
+  g_lua.writeFunction("newServerPolicy", [](string name, policyfunc_t policy, boost::optional<bool> isReadOnly) { return ServerPolicy{name, policy, isReadOnly ? *isReadOnly : false};});
+  g_lua.registerMember("isReadOnly", &ServerPolicy::isReadOnly);
   g_lua.registerMember("name", &ServerPolicy::name);
   g_lua.registerMember("policy", &ServerPolicy::policy);
 
-  g_lua.writeVariable("firstAvailable", ServerPolicy{"firstAvailable", firstAvailable});
-  g_lua.writeVariable("roundrobin", ServerPolicy{"roundrobin", roundrobin});
-  g_lua.writeVariable("wrandom", ServerPolicy{"wrandom", wrandom});
-  g_lua.writeVariable("whashed", ServerPolicy{"whashed", whashed});
-  g_lua.writeVariable("leastOutstanding", ServerPolicy{"leastOutstanding", leastOutstanding});
+  g_lua.writeVariable("firstAvailable", ServerPolicy{"firstAvailable", firstAvailable, true});
+  g_lua.writeVariable("roundrobin", ServerPolicy{"roundrobin", roundrobin, true});
+  g_lua.writeVariable("wrandom", ServerPolicy{"wrandom", wrandom, true});
+  g_lua.writeVariable("whashed", ServerPolicy{"whashed", whashed, true});
+  g_lua.writeVariable("leastOutstanding", ServerPolicy{"leastOutstanding", leastOutstanding, true});
 
   /* ServerPool */
   g_lua.registerFunction<void(std::shared_ptr<ServerPool>::*)(std::shared_ptr<DNSDistPacketCache>)>("setCache", [](std::shared_ptr<ServerPool> pool, std::shared_ptr<DNSDistPacketCache> cache) {

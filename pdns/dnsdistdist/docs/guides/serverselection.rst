@@ -99,13 +99,17 @@ ServerPolicy Objects
 Functions
 ---------
 
-.. function:: newServerPolicy(name, function) -> ServerPolicy
+.. function:: newServerPolicy(name, function [, isReadOnly]) -> ServerPolicy
+
+.. versionchanged:: 1.3.0
+    ``read-only`` optional parameter added.
 
   Create a policy object from a Lua function.
   ``function`` must match the prototype for :func:`ServerPolicy.policy`.
 
   :param string name: Name of the policy
   :param string function: The function to call for this policy
+  :param bool isReadOnly: whether the policy needs a write-lock (false, the default) or a read-only one, to reduce contention
 
 .. function:: setServerPolicy(policy)
 
@@ -113,12 +117,16 @@ Functions
 
   :param ServerPolicy policy: The policy to use
 
-.. function:: setServerPolicyLua(name, function)
+.. function:: setServerPolicyLua(name, function [, isReadOnly])
+
+.. versionchanged:: 1.3.0
+    ``isReadOnly`` optional parameter added.
 
   Set server selection policy to one named `name`` and provided by ``function``.
 
   :param string name: name for this policy
   :param string function: name of the function
+  :param bool isReadOnly: whether the policy needs a write-lock (false, the default) or a read-only one, to reduce contention
 
 .. function:: setServFailWhenNoServer(value)
 
@@ -133,13 +141,17 @@ Functions
   :param ServerPolicy policy: The policy to apply
   :param string pool: Name of the pool
 
-.. function:: setPoolServerPolicyLua(name, function, pool)
+.. function:: setPoolServerPolicyLua(name, function, pool [, isReadOnly])
+
+.. versionchanged:: 1.3.0
+    ``isReadOnly`` optional parameter added.
 
   Set the server selection policy for ``pool`` to one named ``name`` and provided by ``function``.
 
   :param string name: name for this policy
   :param string function: name of the function
   :param string pool: Name of the pool
+  :param bool isReadOnly: whether the policy needs a write-lock (false, the default) or a read-only one, to reduce contention
 
 .. function:: showPoolServerPolicy(pool)
 

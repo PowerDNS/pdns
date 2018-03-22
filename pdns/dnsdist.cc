@@ -573,7 +573,7 @@ DownstreamState::DownstreamState(const ComboAddress& remote_, const ComboAddress
   }
 }
 
-std::mutex g_luamutex;
+pthread_rwlock_t g_lualock;
 LuaContext g_lua;
 
 GlobalStateHolder<ServerPolicy> g_policy;
@@ -791,6 +791,22 @@ std::shared_ptr<ServerPool> getPool(const pools_t& pools, const std::string& poo
   return it->second;
 }
 
+std::shared_ptr<DownstreamState> getBackendFromPolicy(const ServerPolicy& policy, const NumberedServerVector& servers, const DNSQuestion& dq)
+{
+  std::shared_ptr<DownstreamState> backend = nullptr;
+
+  if (policy.isReadOnly) {
+    ReadLock rl(&g_lualock);
+    backend = policy.policy(servers, &dq);
+  }
+  else {
+    WriteLock wl(&g_lualock);
+    backend = policy.policy(servers, &dq);
+  }
+
+  return backend;
+}
+
 const NumberedServerVector& getDownstreamCandidates(const pools_t& pools, const std::string& poolName)
 {
   std::shared_ptr<ServerPool> pool = getPool(pools, poolName);
@@ -872,7 +888,7 @@ bool processQuery(LocalHolders& holders, DNSQuestion& dq, string& poolname, int*
     string qname = (*dq.qname).toString(".");
     bool countQuery{true};
     if(g_qcount.filter) {
-      std::lock_guard<std::mutex> lock(g_luamutex);
+      WriteLock wl(&g_lualock);
       std::tie (countQuery, qname) = g_qcount.filter(dq);
     }
 
@@ -1062,7 +1078,7 @@ bool processResponse(LocalStateHolder<vector<DNSDistResponseRuleAction> >& local
   return true;
 }
 
-static ssize_t udpClientSendRequestToBackend(DownstreamState* ss, const int sd, const char* request, const size_t requestLen)
+static ssize_t udpClientSendRequestToBackend(shared_ptr<DownstreamState>& ss, const int sd, const char* request, const size_t requestLen)
 {
   ssize_t result;
 
@@ -1298,18 +1314,14 @@ static void processUDPQuery(ClientState& cs, LocalHolders& holders, const struct
       return;
     }
 
-    DownstreamState* ss = nullptr;
     std::shared_ptr<ServerPool> serverPool = getPool(*holders.pools, poolname);
-    std::shared_ptr<DNSDistPacketCache> packetCache = nullptr;
-    auto policy = holders.policy->policy;
+    std::shared_ptr<DNSDistPacketCache> packetCache = serverPool->packetCache;
+    auto policy = *(holders.policy);
     if (serverPool->policy != nullptr) {
-      policy = serverPool->policy->policy;
+      policy = *(serverPool->policy);
     }
-    {
-      std::lock_guard<std::mutex> lock(g_luamutex);
-      ss = policy(serverPool->servers, &dq).get();
-      packetCache = serverPool->packetCache;
-    }
+
+    std::shared_ptr<DownstreamState> ss = getBackendFromPolicy(policy, serverPool->servers, dq);
 
     bool ednsAdded = false;
     bool ecsAdded = false;
@@ -1618,29 +1630,29 @@ catch(...)
   return nullptr;
 }
 
-static bool upCheck(DownstreamState& ds)
+static bool upCheck(std::shared_ptr<DownstreamState>& ds)
 try
 {
   vector<uint8_t> packet;
-  DNSPacketWriter dpw(packet, ds.checkName, ds.checkType.getCode(), ds.checkClass);
+  DNSPacketWriter dpw(packet, ds->checkName, ds->checkType.getCode(), ds->checkClass);
   dnsheader * requestHeader = dpw.getHeader();
   requestHeader->rd=true;
-  if (ds.setCD) {
+  if (ds->setCD) {
     requestHeader->cd = true;
   }
 
-  Socket sock(ds.remote.sin4.sin_family, SOCK_DGRAM);
+  Socket sock(ds->remote.sin4.sin_family, SOCK_DGRAM);
   sock.setNonBlocking();
-  if (!IsAnyAddress(ds.sourceAddr)) {
+  if (!IsAnyAddress(ds->sourceAddr)) {
     sock.setReuseAddr();
-    sock.bind(ds.sourceAddr);
+    sock.bind(ds->sourceAddr);
   }
-  sock.connect(ds.remote);
-  ssize_t sent = udpClientSendRequestToBackend(&ds, sock.getHandle(), (char*)&packet[0], packet.size());
+  sock.connect(ds->remote);
+  ssize_t sent = udpClientSendRequestToBackend(ds, sock.getHandle(), (char*)&packet[0], packet.size());
   if (sent < 0) {
     int ret = errno;
     if (g_verboseHealthChecks)
-      infolog("Error while sending a health check query to backend %s: %d", ds.getNameWithAddr(), ret);
+      infolog("Error while sending a health check query to backend %s: %d", ds->getNameWithAddr(), ret);
     return false;
   }
 
@@ -1649,47 +1661,47 @@ try
     if (ret < 0) {
       ret = errno;
       if (g_verboseHealthChecks)
-        infolog("Error while waiting for the health check response from backend %s: %d", ds.getNameWithAddr(), ret);
+        infolog("Error while waiting for the health check response from backend %s: %d", ds->getNameWithAddr(), ret);
     }
     else {
       if (g_verboseHealthChecks)
-        infolog("Timeout while waiting for the health check response from backend %s", ds.getNameWithAddr());
+        infolog("Timeout while waiting for the health check response from backend %s", ds->getNameWithAddr());
     }
     return false;
   }
 
   string reply;
-  sock.recvFrom(reply, ds.remote);
+  sock.recvFrom(reply, ds->remote);
 
   const dnsheader * responseHeader = (const dnsheader *) reply.c_str();
 
   if (reply.size() < sizeof(*responseHeader)) {
     if (g_verboseHealthChecks)
-      infolog("Invalid health check response of size %d from backend %s, expecting at least %d", reply.size(), ds.getNameWithAddr(), sizeof(*responseHeader));
+      infolog("Invalid health check response of size %d from backend %s, expecting at least %d", reply.size(), ds->getNameWithAddr(), sizeof(*responseHeader));
     return false;
   }
 
   if (responseHeader->id != requestHeader->id) {
     if (g_verboseHealthChecks)
-      infolog("Invalid health check response id %d from backend %s, expecting %d", responseHeader->id, ds.getNameWithAddr(), requestHeader->id);
+      infolog("Invalid health check response id %d from backend %s, expecting %d", responseHeader->id, ds->getNameWithAddr(), requestHeader->id);
     return false;
   }
 
   if (!responseHeader->qr) {
     if (g_verboseHealthChecks)
-      infolog("Invalid health check response from backend %s, expecting QR to be set", ds.getNameWithAddr());
+      infolog("Invalid health check response from backend %s, expecting QR to be set", ds->getNameWithAddr());
     return false;
   }
 
   if (responseHeader->rcode == RCode::ServFail) {
     if (g_verboseHealthChecks)
-      infolog("Backend %s responded to health check with ServFail", ds.getNameWithAddr());
+      infolog("Backend %s responded to health check with ServFail", ds->getNameWithAddr());
     return false;
   }
 
-  if (ds.mustResolve && (responseHeader->rcode == RCode::NXDomain || responseHeader->rcode == RCode::Refused)) {
+  if (ds->mustResolve && (responseHeader->rcode == RCode::NXDomain || responseHeader->rcode == RCode::Refused)) {
     if (g_verboseHealthChecks)
-      infolog("Backend %s responded to health check with %s while mustResolve is set", ds.getNameWithAddr(), responseHeader->rcode == RCode::NXDomain ? "NXDomain" : "Refused");
+      infolog("Backend %s responded to health check with %s while mustResolve is set", ds->getNameWithAddr(), responseHeader->rcode == RCode::NXDomain ? "NXDomain" : "Refused");
     return false;
   }
 
@@ -1699,13 +1711,13 @@ try
 catch(const std::exception& e)
 {
   if (g_verboseHealthChecks)
-    infolog("Error checking the health of backend %s: %s", ds.getNameWithAddr(), e.what());
+    infolog("Error checking the health of backend %s: %s", ds->getNameWithAddr(), e.what());
   return false;
 }
 catch(...)
 {
   if (g_verboseHealthChecks)
-    infolog("Unknown exception while checking the health of backend %s", ds.getNameWithAddr());
+    infolog("Unknown exception while checking the health of backend %s", ds->getNameWithAddr());
   return false;
 }
 
@@ -1723,7 +1735,7 @@ void* maintThread()
     sleep(interval);
 
     {
-      std::lock_guard<std::mutex> lock(g_luamutex);
+      WriteLock wl(&g_lualock);
       auto f = g_lua.readVariable<boost::optional<std::function<void()> > >("maintenance");
       if(f) {
         try {
@@ -1745,10 +1757,7 @@ void* maintThread()
       const auto localPools = g_pools.getCopy();
       std::shared_ptr<DNSDistPacketCache> packetCache = nullptr;
       for (const auto& entry : localPools) {
-        {
-          std::lock_guard<std::mutex> lock(g_luamutex);
-          packetCache = entry.second->packetCache;
-        }
+        packetCache = entry.second->packetCache;
         if (packetCache) {
           size_t upTo = (packetCache->getMaxEntries()* (100 - g_cacheCleaningPercentage)) / 100;
           packetCache->purgeExpired(upTo);
@@ -1774,7 +1783,7 @@ void* healthChecksThread()
 
     for(auto& dss : g_dstates.getCopy()) { // this points to the actual shared_ptrs!
       if(dss->availability==DownstreamState::Availability::Auto) {
-        bool newState=upCheck(*dss);
+        bool newState=upCheck(dss);
         if (newState) {
           if (dss->currentCheckFailures != 0) {
             dss->currentCheckFailures = 0;
@@ -2027,6 +2036,8 @@ try
   rl_attempted_completion_function = my_completion;
   rl_completion_append_character = 0;
 
+  pthread_rwlock_init(&g_lualock, nullptr);
+
   signal(SIGPIPE, SIG_IGN);
   signal(SIGCHLD, SIG_IGN);
   openlog("dnsdist", LOG_PID, LOG_DAEMON);
@@ -2201,7 +2212,7 @@ try
     }
   }
 
-  ServerPolicy leastOutstandingPol{"leastOutstanding", leastOutstanding};
+  ServerPolicy leastOutstandingPol{"leastOutstanding", leastOutstanding, true};
 
   g_policy.setState(leastOutstandingPol);
   if(g_cmdLine.beClient || !g_cmdLine.command.empty()) {
@@ -2585,7 +2596,7 @@ try
 
   for(auto& dss : g_dstates.getCopy()) { // it is a copy, but the internal shared_ptrs are the real deal
     if(dss->availability==DownstreamState::Availability::Auto) {
-      bool newState=upCheck(*dss);
+      bool newState=upCheck(dss);
       warnlog("Marking downstream %s as '%s'", dss->getNameWithAddr(), newState ? "up" : "down");
       dss->upStatus = newState;
     }

@@ -204,7 +204,7 @@ void doConsole()
       bool withReturn=true;
     retry:;
       try {
-        std::lock_guard<std::mutex> lock(g_luamutex);
+        WriteLock wl(&g_lualock);
         g_outputBuffer.clear();
         resetLuaSideEffect();
         auto ret=g_lua.executeCode<
@@ -350,7 +350,7 @@ const std::vector<ConsoleKeyword> g_consoleKeywords{
   { "newRemoteLogger", true, "address:port [, timeout=2, maxQueuedEntries=100, reconnectWaitTime=1]", "create a Remote Logger object, to use with `RemoteLogAction()` and `RemoteLogResponseAction()`" },
   { "newRuleAction", true, "DNS rule, DNS action [, {uuid=\"UUID\"}]", "return a pair of DNS Rule and DNS Action, to be used with `setRules()`" },
   { "newServer", true, "{address=\"ip:port\", qps=1000, order=1, weight=10, pool=\"abuse\", retries=5, tcpConnectTimeout=5, tcpSendTimeout=30, tcpRecvTimeout=30, checkName=\"a.root-servers.net.\", checkType=\"A\", maxCheckFailures=1, mustResolve=false, useClientSubnet=true, source=\"address|interface name|address@interface\"}", "instantiate a server" },
-  { "newServerPolicy", true, "name, function", "create a policy object from a Lua function" },
+  { "newServerPolicy", true, "name, function [, isReadOnly=false]", "create a policy object from a Lua function" },
   { "newSuffixMatchNode", true, "", "returns a new SuffixMatchNode" },
   { "NoRecurseAction", true, "", "strip RD bit from the question, let it go through" },
   { "PoolAction", true, "poolname", "set the packet into the specified pool" },
@@ -389,13 +389,13 @@ const std::vector<ConsoleKeyword> g_consoleKeywords{
   { "setMaxTCPQueuedConnections", true, "n", "set the maximum number of TCP connections queued (waiting to be picked up by a client thread)" },
   { "setMaxUDPOutstanding", true, "n", "set the maximum number of outstanding UDP queries to a given backend server. This can only be set at configuration time and defaults to 10240" },
   { "setPoolServerPolicy", true, "policy, pool", "set the server selection policy for this pool to that policy" },
-  { "setPoolServerPolicy", true, "name, func, pool", "set the server selection policy for this pool to one named 'name' and provided by 'function'" },
+  { "setPoolServerPolicyLua", true, "name, func, pool, isReadOnly", "set the server selection policy for this pool to one named 'name' and provided by 'function'. If 'isReadOnly' is set to true a read-lock will be acquired instead of a write one, reducing contention" },
   { "setQueryCount", true, "bool", "set whether queries should be counted" },
   { "setQueryCountFilter", true, "func", "filter queries that would be counted, where `func` is a function with parameter `dq` which decides whether a query should and how it should be counted" },
   { "setRingBuffersSize", true, "n", "set the capacity of the ringbuffers used for live traffic inspection to `n`" },
   { "setRules", true, "list of rules", "replace the current rules with the supplied list of pairs of DNS Rules and DNS Actions (see `newRuleAction()`)" },
   { "setServerPolicy", true, "policy", "set server selection policy to that policy" },
-  { "setServerPolicyLua", true, "name, function", "set server selection policy to one named 'name' and provided by 'function'" },
+  { "setServerPolicyLua", true, "name, function [, isReadOnly=false]", "set server selection policy to one named 'name' and provided by 'function'. If 'isReadOnly' is set to true a read-lock will be acquired instead of a write one, reducing contention" },
   { "setServFailWhenNoServer", true, "bool", "if set, return a ServFail when no servers are available, instead of the default behaviour of dropping the query" },
   { "setStaleCacheEntriesTTL", true, "n", "allows using cache entries expired for at most n seconds when there is no backend available to answer for a query" },
   { "setTCPDownstreamCleanupInterval", true, "interval", "minimum interval in seconds between two cleanups of the idle TCP downstream connections" },
@@ -526,7 +526,7 @@ try
       bool withReturn=true;
     retry:;
       try {
-        std::lock_guard<std::mutex> lock(g_luamutex);
+        WriteLock wl(&g_lualock);
         
         g_outputBuffer.clear();
         resetLuaSideEffect();

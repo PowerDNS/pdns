@@ -309,8 +309,8 @@ public:
 
 DNSAction::Action LuaAction::operator()(DNSQuestion* dq, string* ruleresult) const
 {
-  std::lock_guard<std::mutex> lock(g_luamutex);
   try {
+    WriteLock wl(&g_lualock);
     auto ret = d_func(dq);
     if (ruleresult) {
       if (boost::optional<string> rule = std::get<1>(ret)) {
@@ -332,8 +332,8 @@ DNSAction::Action LuaAction::operator()(DNSQuestion* dq, string* ruleresult) con
 
 DNSResponseAction::Action LuaResponseAction::operator()(DNSResponse* dr, string* ruleresult) const
 {
-  std::lock_guard<std::mutex> lock(g_luamutex);
   try {
+    WriteLock wl(&g_lualock);
     auto ret = d_func(dr);
     if(ruleresult) {
       if (boost::optional<string> rule = std::get<1>(ret)) {
@@ -660,7 +660,7 @@ public:
     DnstapMessage message(d_identity, dq->remote, dq->local, dq->tcp, reinterpret_cast<const char*>(dq->dh), dq->len, dq->queryTime, nullptr);
     {
       if (d_alterFunc) {
-        std::lock_guard<std::mutex> lock(g_luamutex);
+        WriteLock wl(&g_lualock);
         (*d_alterFunc)(*dq, &message);
       }
     }
@@ -696,7 +696,7 @@ public:
     DNSDistProtoBufMessage message(*dq);
     {
       if (d_alterFunc) {
-        std::lock_guard<std::mutex> lock(g_luamutex);
+        WriteLock wl(&g_lualock);
         (*d_alterFunc)(*dq, &message);
       }
     }
@@ -776,7 +776,7 @@ public:
     DnstapMessage message(d_identity, dr->remote, dr->local, dr->tcp, reinterpret_cast<const char*>(dr->dh), dr->len, dr->queryTime, &now);
     {
       if (d_alterFunc) {
-        std::lock_guard<std::mutex> lock(g_luamutex);
+        WriteLock wl(&g_lualock);
         (*d_alterFunc)(*dr, &message);
       }
     }
@@ -812,7 +812,7 @@ public:
     DNSDistProtoBufMessage message(*dr, d_includeCNAME);
     {
       if (d_alterFunc) {
-        std::lock_guard<std::mutex> lock(g_luamutex);
+        WriteLock wl(&g_lualock);
         (*d_alterFunc)(*dr, &message);
       }
     }
