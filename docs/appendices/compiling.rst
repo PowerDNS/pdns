@@ -24,7 +24,7 @@ Getting the sources
 
 There are 3 ways of getting the source.
 
-If you want the bleeding edge, you can clone the `repository at GitHub <https://github.com/PowerDNS/pdns>`__ and run ``./bootstrap`` in the clone.
+If you want the bleeding edge, you can clone the `repository at GitHub <https://github.com/PowerDNS/pdns>`__ and run ``autoreconf -vi`` in the clone.
 
 You can also download snapshot tarballs `here <https://downloads.powerdns.com/autobuilt_browser/#/auth>`__.
 
