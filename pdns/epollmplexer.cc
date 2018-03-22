@@ -42,11 +42,12 @@ public:
     close(d_epollfd);
   }
 
-  virtual int run(struct timeval* tv, int timeout=500);
+  virtual int run(struct timeval* tv, int timeout=500) override;
+  virtual void getAvailableFDs(std::vector<int>& fds, int timeout) override;
 
-  virtual void addFD(callbackmap_t& cbmap, int fd, callbackfunc_t toDo, const funcparam_t& parameter);
-  virtual void removeFD(callbackmap_t& cbmap, int fd);
-  string getName()
+  virtual void addFD(callbackmap_t& cbmap, int fd, callbackfunc_t toDo, const funcparam_t& parameter) override;
+  virtual void removeFD(callbackmap_t& cbmap, int fd) override;
+  string getName() const override
   {
     return "epoll";
   }
@@ -69,8 +70,8 @@ static struct EpollRegisterOurselves
   }
 } doItEpoll;
 
-
 int EpollFDMultiplexer::s_maxevents=1024;
+
 EpollFDMultiplexer::EpollFDMultiplexer() : d_eevents(new epoll_event[s_maxevents])
 {
   d_epollfd=epoll_create(s_maxevents); // not hard max
@@ -123,6 +124,18 @@ void EpollFDMultiplexer::removeFD(callbackmap_t& cbmap, int fd)
     throw FDMultiplexerException("Removing fd from epoll set: "+stringerror());
 }
 
+void EpollFDMultiplexer::getAvailableFDs(std::vector<int>& fds, int timeout)
+{
+  int ret=epoll_wait(d_epollfd, d_eevents.get(), s_maxevents, timeout);
+
+  if(ret < 0 && errno!=EINTR)
+    throw FDMultiplexerException("epoll returned error: "+stringerror());
+
+  for(int n=0; n < ret; ++n) {
+    fds.push_back(d_eevents[n].data.fd);
+  }
+}
+
 int EpollFDMultiplexer::run(struct timeval* now, int timeout)
 {
   if(d_inrun) {
@@ -131,7 +144,7 @@ int EpollFDMultiplexer::run(struct timeval* now, int timeout)
   
   int ret=epoll_wait(d_epollfd, d_eevents.get(), s_maxevents, timeout);
   gettimeofday(now,0); // MANDATORY
-  
+
   if(ret < 0 && errno!=EINTR)
     throw FDMultiplexerException("epoll returned error: "+stringerror());
 

@@ -46,11 +46,12 @@ public:
     close(d_devpollfd);
   }
 
-  virtual int run(struct timeval* tv, int timeout=500);
+  virtual int run(struct timeval* tv, int timeout=500) override;
+  virtual void getAvailableFDs(std::vector<int>& fds, int timeout) override;
 
-  virtual void addFD(callbackmap_t& cbmap, int fd, callbackfunc_t toDo, const funcparam_t& parameter);
-  virtual void removeFD(callbackmap_t& cbmap, int fd);
-  string getName()
+  virtual void addFD(callbackmap_t& cbmap, int fd, callbackfunc_t toDo, const funcparam_t& parameter) override;
+  virtual void removeFD(callbackmap_t& cbmap, int fd) override;
+  string getName() const override
   {
     return "/dev/poll";
   }
@@ -112,6 +113,26 @@ void DevPollFDMultiplexer::removeFD(callbackmap_t& cbmap, int fd)
   }
 }
 
+void DevPollFDMultiplexer::getAvailableFDs(std::vector<int>& fds, int timeout)
+{
+  struct dvpoll dvp;
+  dvp.dp_nfds = d_readCallbacks.size() + d_writeCallbacks.size();
+  dvp.dp_fds = new pollfd[dvp.dp_nfds];
+  dvp.dp_timeout = timeout;
+  int ret=ioctl(d_devpollfd, DP_POLL, &dvp);
+
+  if(ret < 0 && errno!=EINTR) {
+    delete[] dvp.dp_fds;
+    throw FDMultiplexerException("/dev/poll returned error: "+stringerror());
+  }
+
+  for(int n=0; n < ret; ++n) {
+    fds.push_back(dvp.dp_fds[n].fd);
+  }
+
+  delete[] dvp.dp_fds;
+}
+
 int DevPollFDMultiplexer::run(struct timeval* now, int timeout)
 {
   if(d_inrun) {
@@ -121,9 +142,9 @@ int DevPollFDMultiplexer::run(struct timeval* now, int timeout)
   dvp.dp_nfds = d_readCallbacks.size() + d_writeCallbacks.size();
   dvp.dp_fds = new pollfd[dvp.dp_nfds];
   dvp.dp_timeout = timeout;
-  int ret=ioctl(d_devpollfd, DP_POLL, &dvp); 
+  int ret=ioctl(d_devpollfd, DP_POLL, &dvp);
   gettimeofday(now,0); // MANDATORY!
-  
+
   if(ret < 0 && errno!=EINTR) {
     delete[] dvp.dp_fds;
     throw FDMultiplexerException("/dev/poll returned error: "+stringerror());
