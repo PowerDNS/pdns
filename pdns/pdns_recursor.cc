@@ -889,6 +889,7 @@ static void startDoResolve(void *p)
       }
       ednsOpts = edo.d_options;
       haveEDNS=true;
+      maxanswersize -= 11; // EDNS header size
 
       for (const auto& o : edo.d_options) {
         if (o.first == EDNSOptionCode::ECS && g_useIncomingECS && !dc->d_ecsParsed) {
