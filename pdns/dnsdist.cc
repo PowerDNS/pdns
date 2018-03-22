@@ -1778,9 +1778,9 @@ void* maintThread()
 
     counter++;
     if (counter >= g_cacheCleaningDelay) {
-      const auto localPools = g_pools.getCopy();
+      auto localPools = g_pools.getLocal();
       std::shared_ptr<DNSDistPacketCache> packetCache = nullptr;
-      for (const auto& entry : localPools) {
+      for (const auto& entry : *localPools) {
         packetCache = entry.second->packetCache;
         if (packetCache) {
           size_t upTo = (packetCache->getMaxEntries()* (100 - g_cacheCleaningPercentage)) / 100;
@@ -1805,7 +1805,8 @@ void* healthChecksThread()
     if(g_tcpclientthreads->getQueuedCount() > 1 && !g_tcpclientthreads->hasReachedMaxThreads())
       g_tcpclientthreads->addTCPClientThread();
 
-    for(auto& dss : g_dstates.getCopy()) { // this points to the actual shared_ptrs!
+    auto states = g_dstates.getLocal(); // this points to the actual shared_ptrs!
+    for(auto& dss : *states) {
       if(dss->availability==DownstreamState::Availability::Auto) {
         bool newState=upCheck(*dss);
         if (newState) {
@@ -1971,15 +1972,15 @@ static void checkFileDescriptorsLimits(size_t udpBindsCount, size_t tcpBindsCoun
 {
   /* stdin, stdout, stderr */
   size_t requiredFDsCount = 3;
-  const auto backends = g_dstates.getCopy();
+  auto backends = g_dstates.getLocal();
   /* UDP sockets to backends */
   size_t backendUDPSocketsCount = 0;
-  for (const auto& backend : backends) {
+  for (const auto& backend : *backends) {
     backendUDPSocketsCount += backend->sockets.size();
   }
   requiredFDsCount += backendUDPSocketsCount;
   /* TCP sockets to backends */
-  requiredFDsCount += (backends.size() * g_maxTCPClientThreads);
+  requiredFDsCount += (backends->size() * g_maxTCPClientThreads);
   /* listening sockets */
   requiredFDsCount += udpBindsCount;
   requiredFDsCount += tcpBindsCount;
@@ -2573,7 +2574,7 @@ try
     warnlog("dnsdist %s comes with ABSOLUTELY NO WARRANTY. This is free software, and you are welcome to redistribute it according to the terms of the GPL version 2", VERSION);
     vector<string> vec;
     std::string acls;
-    g_ACL.getCopy().toStringVector(&vec);
+    g_ACL.getLocal()->toStringVector(&vec);
     for(const auto& s : vec) {
       if (!acls.empty())
         acls += ", ";
@@ -2621,7 +2622,7 @@ try
   }
   g_pools.setState(localPools);
 
-  if(g_dstates.getCopy().empty()) {
+  if(g_dstates.getLocal()->empty()) {
     errlog("No downstream servers defined: all packets will get dropped");
     // you might define them later, but you need to know
   }
