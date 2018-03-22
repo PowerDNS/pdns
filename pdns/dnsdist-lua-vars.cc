@@ -95,4 +95,11 @@ void setupLuaVars()
   for(const auto& n : rcodes)
     dd.push_back({n.first, n.second});
   g_lua.writeVariable("dnsdist", dd);
+
+#ifdef HAVE_DNSCRYPT
+    g_lua.writeVariable("DNSCryptExchangeVersion", std::unordered_map<string,int>{
+        { "VERSION1", DNSCryptExchangeVersion::VERSION1 },
+        { "VERSION2", DNSCryptExchangeVersion::VERSION2 },
+    });
+#endif
 }

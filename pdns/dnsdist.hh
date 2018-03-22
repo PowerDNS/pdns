@@ -341,7 +341,7 @@ struct IDState
   StopWatch sentTime;                                         // 16
   DNSName qname;                                              // 80
 #ifdef HAVE_DNSCRYPT
-  std::shared_ptr<DnsCryptQuery> dnsCryptQuery{0};
+  std::shared_ptr<DNSCryptQuery> dnsCryptQuery{nullptr};
 #endif
 #ifdef HAVE_PROTOBUF
   boost::optional<boost::uuids::uuid> uniqueId;
@@ -368,7 +368,7 @@ struct Rings {
   {
     queryRing.set_capacity(capacity);
     respRing.set_capacity(capacity);
-    pthread_rwlock_init(&queryLock, 0);
+    pthread_rwlock_init(&queryLock, nullptr);
   }
   struct Query
   {
@@ -417,7 +417,7 @@ typedef std::function<std::tuple<bool, string>(DNSQuestion dq)> QueryCountFilter
 struct QueryCount {
   QueryCount()
   {
-    pthread_rwlock_init(&queryLock, 0);
+    pthread_rwlock_init(&queryLock, nullptr);
   }
   QueryCountRecords records;
   QueryCountFilter filter;
@@ -432,7 +432,7 @@ struct ClientState
   std::set<int> cpus;
   ComboAddress local;
 #ifdef HAVE_DNSCRYPT
-  DnsCryptContext* dnscryptCtx{0};
+  std::shared_ptr<DNSCryptContext> dnscryptCtx{nullptr};
 #endif
   shared_ptr<TLSFrontend> tlsFrontend;
   std::atomic<uint64_t> queries{0};
@@ -812,10 +812,10 @@ void restoreFlags(struct dnsheader* dh, uint16_t origFlags);
 bool checkQueryHeaders(const struct dnsheader* dh);
 
 #ifdef HAVE_DNSCRYPT
-extern std::vector<std::tuple<ComboAddress,DnsCryptContext,bool,int, std::string, std::set<int>>> g_dnsCryptLocals;
+extern std::vector<std::tuple<ComboAddress, std::shared_ptr<DNSCryptContext>, bool, int, std::string, std::set<int> > > g_dnsCryptLocals;
 
-int handleDnsCryptQuery(DnsCryptContext* ctx, char* packet, uint16_t len, std::shared_ptr<DnsCryptQuery>& query, uint16_t* decryptedQueryLen, bool tcp, std::vector<uint8_t>& response);
-bool encryptResponse(char* response, uint16_t* responseLen, size_t responseSize, bool tcp, std::shared_ptr<DnsCryptQuery> dnsCryptQuery, dnsheader** dh, dnsheader* dhCopy);
+bool encryptResponse(char* response, uint16_t* responseLen, size_t responseSize, bool tcp, std::shared_ptr<DNSCryptQuery> dnsCryptQuery, dnsheader** dh, dnsheader* dhCopy);
+int handleDNSCryptQuery(char* packet, uint16_t len, std::shared_ptr<DNSCryptQuery> query, uint16_t* decryptedQueryLen, bool tcp, time_t now, std::vector<uint8_t>& response);
 #endif
 
 bool addXPF(DNSQuestion& dq, uint16_t optionCode);
