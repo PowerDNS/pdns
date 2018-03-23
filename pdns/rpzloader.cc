@@ -250,31 +250,37 @@ void loadRPZFromFile(const std::string& fname, std::shared_ptr<DNSFilterEngine::
   }
 }
 
-static std::unordered_map<std::string, rpzStats> s_rpzStats;
+static std::unordered_map<std::string, shared_ptr<rpzStats> > s_rpzStats;
 static std::mutex s_rpzStatsMutex;
 
-rpzStats& getRPZZoneStats(const std::string& zone)
+shared_ptr<rpzStats> getRPZZoneStats(const std::string& zone)
 {
   std::lock_guard<std::mutex> l(s_rpzStatsMutex);
+  if (s_rpzStats.find(zone) == s_rpzStats.end()) {
+    s_rpzStats[zone] = std::make_shared<rpzStats>();
+  }
   return s_rpzStats[zone];
 }
 
 static void incRPZFailedTransfers(const std::string& zone)
 {
-  auto& stats = getRPZZoneStats(zone);
-  stats.d_failedTransfers++;
+  auto stats = getRPZZoneStats(zone);
+  if (stats != nullptr)
+    stats->d_failedTransfers++;
 }
 
 static void setRPZZoneNewState(const std::string& zone, uint32_t serial, uint64_t numberOfRecords, bool wasAXFR)
 {
-  auto& stats = getRPZZoneStats(zone);
-  stats.d_successfulTransfers++;
+  auto stats = getRPZZoneStats(zone);
+  if (stats == nullptr)
+    return;
+  stats->d_successfulTransfers++;
   if (wasAXFR) {
-    stats.d_fullTransfers++;
+    stats->d_fullTransfers++;
   }
-  stats.d_lastUpdate = time(nullptr);
-  stats.d_serial = serial;
-  stats.d_numberOfRecords = numberOfRecords;
+  stats->d_lastUpdate = time(nullptr);
+  stats->d_serial = serial;
+  stats->d_numberOfRecords = numberOfRecords;
 }
 
 void RPZIXFRTracker(const ComboAddress& master, boost::optional<DNSFilterEngine::Policy> defpol, uint32_t maxTTL, size_t zoneIdx, const TSIGTriplet& tt, size_t maxReceivedBytes, const ComboAddress& localAddress, std::shared_ptr<DNSFilterEngine::Zone> zone, const uint16_t axfrTimeout)

@@ -397,14 +397,16 @@ static void apiServerRPZ(HttpRequest* req, HttpResponse* resp) {
     if (zone == nullptr)
       continue;
     auto name = zone->getName();
-    auto& stats = getRPZZoneStats(*name);
+    auto stats = getRPZZoneStats(*name);
+    if (stats == nullptr)
+      continue;
     Json::object zoneInfo = {
-      {"transfers_failed", (double)stats.d_failedTransfers},
-      {"transfers_success", (double)stats.d_successfulTransfers},
-      {"transfers_full", (double)stats.d_fullTransfers},
-      {"records", (double)stats.d_numberOfRecords},
-      {"last_update", (double)stats.d_lastUpdate},
-      {"serial", (double)stats.d_serial},
+      {"transfers_failed", (double)stats->d_failedTransfers},
+      {"transfers_success", (double)stats->d_successfulTransfers},
+      {"transfers_full", (double)stats->d_fullTransfers},
+      {"records", (double)stats->d_numberOfRecords},
+      {"last_update", (double)stats->d_lastUpdate},
+      {"serial", (double)stats->d_serial},
     };
     ret[*name] = zoneInfo;
   }

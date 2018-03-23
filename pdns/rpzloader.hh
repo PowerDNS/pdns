@@ -41,4 +41,4 @@ struct rpzStats
   std::atomic<uint32_t> d_serial;
 };
 
-rpzStats& getRPZZoneStats(const std::string& zone);
+shared_ptr<rpzStats> getRPZZoneStats(const std::string& zone);
