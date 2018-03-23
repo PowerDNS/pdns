@@ -274,6 +274,7 @@ static void setRPZZoneNewState(const std::string& zone, uint32_t serial, uint64_
   }
   stats.d_lastUpdate = time(nullptr);
   stats.d_serial = serial;
+  stats.d_numberOfRecords = numberOfRecords;
 }
 
 void RPZIXFRTracker(const ComboAddress& master, boost::optional<DNSFilterEngine::Policy> defpol, uint32_t maxTTL, size_t zoneIdx, const TSIGTriplet& tt, size_t maxReceivedBytes, const ComboAddress& localAddress, std::shared_ptr<DNSFilterEngine::Zone> zone, const uint16_t axfrTimeout)
