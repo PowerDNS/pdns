@@ -369,7 +369,7 @@ install_dnsdist() {
 build_auth() {
   run "autoreconf -vi"
   # Build without --enable-botan, no botan 2.x in Travis CI
-  run "CFLAGS='-O1' CXXFLAGS='-O1' ./configure \
+  run "CFLAGS='-O1 -Werror=vla' CXXFLAGS='-O1 -Werror=vla' ./configure \
     --with-dynmodules='bind gmysql geoip gpgsql gsqlite3 ldap lua mydns opendbx pipe random remote tinydns godbc lua2' \
     --with-modules='' \
     --with-sqlite3 \
@@ -396,7 +396,7 @@ build_recursor() {
   run "rm -f pdns-recursor-*.tar.bz2"
   run "cd pdns-recursor-*"
   # Build without --enable-botan, no botan 2.x in Travis CI
-  run "CFLAGS='-O1' CXXFLAGS='-O1' CXX=${COMPILER} ./configure \
+  run "CFLAGS='-O1 -Werror=vla' CXXFLAGS='-O1 -Werror=vla' CXX=${COMPILER} ./configure \
     --prefix=$PDNS_RECURSOR_DIR \
     --enable-libsodium \
     --enable-unit-tests \
@@ -412,7 +412,7 @@ build_dnsdist(){
   run "cd pdns/dnsdistdist"
   run "tar xf dnsdist*.tar.bz2"
   run "cd dnsdist-*"
-  run "CFLAGS='-O1' CXXFLAGS='-O1' ./configure \
+  run "CFLAGS='-O1 -Werror=vla' CXXFLAGS='-O1 -Werror=vla' ./configure \
     --enable-unit-tests \
     --enable-libsodium \
     --enable-dnscrypt \
