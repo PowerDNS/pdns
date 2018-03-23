@@ -366,6 +366,8 @@ try
   int diff;
   bool logDNSQueries = ::arg().mustDo("log-dns-queries");
   shared_ptr<UDPNameserver> NS;
+  std::string buffer;
+  buffer.resize(DNSPacket::s_udpTruncationThreshold);
 
   // If we have SO_REUSEPORT then create a new port for all receiver threads
   // other than the first one.
@@ -379,7 +381,7 @@ try
   }
 
   for(;;) {
-    if(!(P=NS->receive(&question))) { // receive a packet         inline
+    if(!(P=NS->receive(&question, buffer))) { // receive a packet         inline
       continue;                    // packet was broken, try again
     }
 

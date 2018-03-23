@@ -64,7 +64,7 @@ void PipeConnector::launch() {
   std::vector <std::string> v;
   split(v, command, is_any_of(" "));
 
-  const char *argv[v.size()+1];
+  std::vector<const char *>argv(v.size()+1);
   argv[v.size()]=0;
 
   for (size_t n = 0; n < v.size(); n++)
@@ -107,7 +107,7 @@ void PipeConnector::launch() {
 
     // stdin & stdout are now connected, fire up our coprocess!
 
-    if(execv(argv[0], const_cast<char * const *>(argv))<0) // now what
+    if(execv(argv[0], const_cast<char * const *>(&argv[0]))<0) // now what
       exit(123);
 
     /* not a lot we can do here. We shouldn't return because that will leave a forked process around.

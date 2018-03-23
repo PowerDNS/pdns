@@ -250,7 +250,7 @@ try
   }
 
 
-  pthread_t workers[numworkers];
+  std::vector<pthread_t> workers(numworkers);
 
   FILE* fp;
   if(!g_vm.count("file"))

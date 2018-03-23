@@ -303,12 +303,11 @@ void UDPNameserver::send(DNSPacket *p)
     L<<Logger::Error<<"Error sending reply with sendmsg (socket="<<p->getSocket()<<", dest="<<p->d_remote.toStringWithPort()<<"): "<<strerror(errno)<<endl;
 }
 
-DNSPacket *UDPNameserver::receive(DNSPacket *prefilled)
+DNSPacket *UDPNameserver::receive(DNSPacket *prefilled, std::string& buffer)
 {
   ComboAddress remote;
   extern StatBag S;
   ssize_t len=-1;
-  char mesg[DNSPacket::s_udpTruncationThreshold];
   Utility::sock_t sock=-1;
 
   struct msghdr msgh;
@@ -316,7 +315,7 @@ DNSPacket *UDPNameserver::receive(DNSPacket *prefilled)
   char cbuf[256];
 
   remote.sin6.sin6_family=AF_INET6; // make sure it is big enough
-  fillMSGHdr(&msgh, &iov, cbuf, sizeof(cbuf), mesg, sizeof(mesg), &remote);
+  fillMSGHdr(&msgh, &iov, cbuf, sizeof(cbuf), &buffer.at(0), buffer.size(), &remote);
   
   int err;
   vector<struct pollfd> rfds= d_rfds;
@@ -378,7 +377,7 @@ DNSPacket *UDPNameserver::receive(DNSPacket *prefilled)
   else
     packet->d_dt.set(); // timing    
 
-  if(packet->parse(mesg, (size_t) len)<0) {
+  if(packet->parse(&buffer.at(0), (size_t) len)<0) {
     S.inc("corrupt-packets");
     S.ringAccount("remotes-corrupt", packet->d_remote);
 
