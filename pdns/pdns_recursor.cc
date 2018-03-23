@@ -2543,11 +2543,12 @@ static void handleUDPServerResponse(int fd, FDMultiplexer::funcparam_t& var)
 {
   PacketID pid=any_cast<PacketID>(var);
   ssize_t len;
-  char data[g_outgoingEDNSBufsize];
+  std::string packet;
+  packet.resize(g_outgoingEDNSBufsize);
   ComboAddress fromaddr;
   socklen_t addrlen=sizeof(fromaddr);
 
-  len=recvfrom(fd, data, sizeof(data), 0, (sockaddr *)&fromaddr, &addrlen);
+  len=recvfrom(fd, &packet.at(0), packet.size(), 0, (sockaddr *)&fromaddr, &addrlen);
 
   if(len < (ssize_t) sizeof(dnsheader)) {
     if(len < 0)
@@ -2570,8 +2571,9 @@ static void handleUDPServerResponse(int fd, FDMultiplexer::funcparam_t& var)
     return;
   }
 
+  packet.resize(len);
   dnsheader dh;
-  memcpy(&dh, data, sizeof(dh));
+  memcpy(&dh, &packet.at(0), sizeof(dh));
 
   PacketID pident;
   pident.remote=fromaddr;
@@ -2590,7 +2592,7 @@ static void handleUDPServerResponse(int fd, FDMultiplexer::funcparam_t& var)
   else {
     try {
       if(len > 12)
-        pident.domain=DNSName(data, len, 12, false, &pident.type); // don't copy this from above - we need to do the actual read
+        pident.domain=DNSName(&packet.at(0), len, 12, false, &pident.type); // don't copy this from above - we need to do the actual read
     }
     catch(std::exception& e) {
       g_stats.serverParseError++; // won't be fed to lwres.cc, so we have to increment
@@ -2598,8 +2600,6 @@ static void handleUDPServerResponse(int fd, FDMultiplexer::funcparam_t& var)
       return;
     }
   }
-  string packet;
-  packet.assign(data, len);
 
   MT_t::waiters_t::iterator iter=MT->d_waiters.find(pident);
   if(iter != MT->d_waiters.end()) {
