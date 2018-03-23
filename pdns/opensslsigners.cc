@@ -388,14 +388,14 @@ std::string OpenSSLRSADNSCryptoKeyEngine::getPubKeyHash() const
     throw runtime_error(getName()+" failed to init hash context for generating the public key hash");
   }
 
-  int len = BN_bn2bin(e, &tmp.at(0));
-  res = SHA1_Update(&ctx, &tmp.at(0), len);
+  int len = BN_bn2bin(e, tmp.data());
+  res = SHA1_Update(&ctx, tmp.data(), len);
   if (res != 1) {
     throw runtime_error(getName()+" failed to update hash context for generating the public key hash");
   }
 
-  len = BN_bn2bin(n, &tmp.at(0));
-  res = SHA1_Update(&ctx, &tmp.at(0), len);
+  len = BN_bn2bin(n, tmp.data());
+  res = SHA1_Update(&ctx, tmp.data(), len);
   if (res != 1) {
     throw runtime_error(getName()+" failed to update hash context for generating the public key hash");
   }

@@ -51,7 +51,7 @@ CoProcess::CoProcess(const string &command,int timeout, int infd, int outfd)
   for (size_t n = 0; n < v.size(); n++)
     argv[n]=v[n].c_str();
   // we get away with not copying since nobody resizes v 
-  launch(&argv.at(0), timeout, infd, outfd);
+  launch(argv.data(), timeout, infd, outfd);
 }
 
 void CoProcess::launch(const char **argv, int timeout, int infd, int outfd)

@@ -363,7 +363,7 @@ int waitForMultiData(const set<int>& fds, const int seconds, const int useconds,
   }
 
   std::vector<struct pollfd> pfds(realFDs.size());
-  memset(&pfds.at(0), 0, realFDs.size()*sizeof(struct pollfd));
+  memset(pfds.data(), 0, realFDs.size()*sizeof(struct pollfd));
   int ctr = 0;
   for (const auto& fd : realFDs) {
     pfds[ctr].fd = fd;
@@ -373,9 +373,9 @@ int waitForMultiData(const set<int>& fds, const int seconds, const int useconds,
 
   int ret;
   if(seconds >= 0)
-    ret = poll(&pfds.at(0), realFDs.size(), seconds * 1000 + useconds/1000);
+    ret = poll(pfds.data(), realFDs.size(), seconds * 1000 + useconds/1000);
   else
-    ret = poll(&pfds.at(0), realFDs.size(), -1);
+    ret = poll(pfds.data(), realFDs.size(), -1);
   if(ret <= 0)
     return ret;
 

@@ -561,7 +561,7 @@ void* tcpClientThread(int pipefd)
 #endif
         responseSize += addRoom;
         answerBuffer.resize(responseSize);
-        char* response = &answerBuffer.at(0);
+        char* response = answerBuffer.data();
         readn2WithTimeout(dsock, response, rlen, ds->tcpRecvTimeout);
         uint16_t responseLen = rlen;
         if (outstanding) {

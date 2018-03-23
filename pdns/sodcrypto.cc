@@ -62,7 +62,7 @@ std::string sodDecryptSym(const std::string& msg, const std::string& key, Sodium
 
   decrypted.resize(msg.length() - crypto_secretbox_MACBYTES);
 
-  if (crypto_secretbox_open_easy(reinterpret_cast<unsigned char*>(&decrypted.at(0)),
+  if (crypto_secretbox_open_easy(reinterpret_cast<unsigned char*>(const_cast<char *>(decrypted.data())),
                                  reinterpret_cast<const unsigned char*>(msg.c_str()),
                                  msg.length(),
                                  nonce.value,
