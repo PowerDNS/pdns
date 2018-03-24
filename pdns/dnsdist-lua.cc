@@ -1029,9 +1029,9 @@ void setupLuaConfig(bool client)
 #endif
     });
 
+#ifdef HAVE_DNSCRYPT
   g_lua.writeFunction("generateDNSCryptCertificate", [](const std::string& providerPrivateKeyFile, const std::string& certificateFile, const std::string privateKeyFile, uint32_t serial, time_t begin, time_t end, boost::optional<DNSCryptExchangeVersion> version) {
       setLuaNoSideEffect();
-#ifdef HAVE_DNSCRYPT
       DNSCryptPrivateKey privateKey;
       DNSCryptCert cert;
 
@@ -1045,10 +1045,8 @@ void setupLuaConfig(bool client)
         errlog(e.what());
         g_outputBuffer="Error: "+string(e.what())+"\n";
       }
-#else
-      g_outputBuffer="Error: DNSCrypt support is not enabled.\n";
-#endif
     });
+#endif
 
   g_lua.writeFunction("showPools", []() {
       setLuaNoSideEffect();
