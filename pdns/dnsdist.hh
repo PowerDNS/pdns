@@ -645,25 +645,84 @@ struct ServerPolicy
 {
   string name;
   policyfunc_t policy;
+  bool isLua;
 };
 
 struct ServerPool
 {
+  ServerPool()
+  {
+    pthread_rwlock_init(&d_lock, nullptr);
+  }
+
   const std::shared_ptr<DNSDistPacketCache> getCache() const { return packetCache; };
 
-  NumberedVector<shared_ptr<DownstreamState>> servers;
   std::shared_ptr<DNSDistPacketCache> packetCache{nullptr};
   std::shared_ptr<ServerPolicy> policy{nullptr};
 
-  size_t countServersUp() const {
-    size_t upFound = 0;
-    for (const auto& server : servers) {
-      if (std::get<1>(server)->isUp() ) {
-        upFound++;
+  size_t countServers(bool upOnly)
+  {
+    size_t count = 0;
+    ReadLock rl(&d_lock);
+    for (const auto& server : d_servers) {
+      if (!upOnly || std::get<1>(server)->isUp() ) {
+        count++;
       };
     };
-    return upFound;
-  };
+    return count;
+  }
+
+  NumberedVector<shared_ptr<DownstreamState>> getServers()
+  {
+    NumberedVector<shared_ptr<DownstreamState>> result;
+    {
+      ReadLock rl(&d_lock);
+      result = d_servers;
+    }
+    return result;
+  }
+
+  void addServer(shared_ptr<DownstreamState>& server)
+  {
+    WriteLock wl(&d_lock);
+    unsigned int count = (unsigned int) d_servers.size();
+    d_servers.push_back(make_pair(++count, server));
+    /* we need to reorder based on the server 'order' */
+    std::stable_sort(d_servers.begin(), d_servers.end(), [](const std::pair<unsigned int,std::shared_ptr<DownstreamState> >& a, const std::pair<unsigned int,std::shared_ptr<DownstreamState> >& b) {
+      return a.second->order < b.second->order;
+    });
+    /* and now we need to renumber for Lua (custom policies) */
+    size_t idx = 1;
+    for (auto& serv : d_servers) {
+      serv.first = idx++;
+    }
+  }
+
+  void removeServer(shared_ptr<DownstreamState>& server)
+  {
+    WriteLock wl(&d_lock);
+    size_t idx = 1;
+    bool found = false;
+    for (auto it = d_servers.begin(); it != d_servers.end();) {
+      if (found) {
+        /* we need to renumber the servers placed
+           after the removed one, for Lua (custom policies) */
+        it->first = idx++;
+        it++;
+      }
+      else if (it->second == server) {
+        it = d_servers.erase(it);
+        found = true;
+      } else {
+        idx++;
+        it++;
+      }
+    }
+  }
+
+private:
+  NumberedVector<shared_ptr<DownstreamState>> d_servers;
+  pthread_rwlock_t d_lock;
 };
 using pools_t=map<std::string,std::shared_ptr<ServerPool>>;
 void setPoolPolicy(pools_t& pools, const string& poolName, std::shared_ptr<ServerPolicy> policy);
@@ -786,7 +845,7 @@ void controlThread(int fd, ComboAddress local);
 vector<std::function<void(void)>> setupLua(bool client, const std::string& config);
 std::shared_ptr<ServerPool> getPool(const pools_t& pools, const std::string& poolName);
 std::shared_ptr<ServerPool> createPoolIfNotExists(pools_t& pools, const string& poolName);
-const NumberedServerVector& getDownstreamCandidates(const pools_t& pools, const std::string& poolName);
+NumberedServerVector getDownstreamCandidates(const pools_t& pools, const std::string& poolName);
 
 std::shared_ptr<DownstreamState> firstAvailable(const NumberedServerVector& servers, const DNSQuestion* dq);
 

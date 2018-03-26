@@ -448,7 +448,7 @@ static void connectionThread(int sock, ComboAddress remote, string password, str
         Json::object entry {
           { "id", num++ },
           { "name", pool.first },
-          { "serversCount", (int) pool.second->servers.size() },
+          { "serversCount", (int) pool.second->countServers(false) },
           { "cacheSize", (double) (cache ? cache->getMaxEntries() : 0) },
           { "cacheEntries", (double) (cache ? cache->getEntriesCount() : 0) },
           { "cacheHits", (double) (cache ? cache->getHits() : 0) },

@@ -790,22 +790,12 @@ void setPoolPolicy(pools_t& pools, const string& poolName, std::shared_ptr<Serve
 void addServerToPool(pools_t& pools, const string& poolName, std::shared_ptr<DownstreamState> server)
 {
   std::shared_ptr<ServerPool> pool = createPoolIfNotExists(pools, poolName);
-  unsigned int count = (unsigned int) pool->servers.size();
   if (!poolName.empty()) {
     vinfolog("Adding server to pool %s", poolName);
   } else {
     vinfolog("Adding server to default pool");
   }
-  pool->servers.push_back(make_pair(++count, server));
-  /* we need to reorder based on the server 'order' */
-  std::stable_sort(pool->servers.begin(), pool->servers.end(), [](const std::pair<unsigned int,std::shared_ptr<DownstreamState> >& a, const std::pair<unsigned int,std::shared_ptr<DownstreamState> >& b) {
-      return a.second->order < b.second->order;
-    });
-  /* and now we need to renumber for Lua (custom policies) */
-  size_t idx = 1;
-  for (auto& serv : pool->servers) {
-    serv.first = idx++;
-  }
+  pool->addServer(server);
 }
 
 void removeServerFromPool(pools_t& pools, const string& poolName, std::shared_ptr<DownstreamState> server)
@@ -819,23 +809,7 @@ void removeServerFromPool(pools_t& pools, const string& poolName, std::shared_pt
     vinfolog("Removing server from default pool");
   }
 
-  size_t idx = 1;
-  bool found = false;
-  for (NumberedVector<shared_ptr<DownstreamState> >::iterator it = pool->servers.begin(); it != pool->servers.end();) {
-    if (found) {
-      /* we need to renumber the servers placed
-         after the removed one, for Lua (custom policies) */
-      it->first = idx++;
-      it++;
-    }
-    else if (it->second == server) {
-      it = pool->servers.erase(it);
-      found = true;
-    } else {
-      idx++;
-      it++;
-    }
-  }
+  pool->removeServer(server);
 }
 
 std::shared_ptr<ServerPool> getPool(const pools_t& pools, const std::string& poolName)
@@ -849,10 +823,10 @@ std::shared_ptr<ServerPool> getPool(const pools_t& pools, const std::string& poo
   return it->second;
 }
 
-const NumberedServerVector& getDownstreamCandidates(const pools_t& pools, const std::string& poolName)
+NumberedServerVector getDownstreamCandidates(const pools_t& pools, const std::string& poolName)
 {
   std::shared_ptr<ServerPool> pool = getPool(pools, poolName);
-  return pool->servers;
+  return pool->getServers();
 }
 
 // goal in life - if you send us a reasonably normal packet, we'll get Z for you, otherwise 0
@@ -1358,15 +1332,18 @@ static void processUDPQuery(ClientState& cs, LocalHolders& holders, const struct
 
     DownstreamState* ss = nullptr;
     std::shared_ptr<ServerPool> serverPool = getPool(*holders.pools, poolname);
-    std::shared_ptr<DNSDistPacketCache> packetCache = nullptr;
-    auto policy = holders.policy->policy;
+    std::shared_ptr<DNSDistPacketCache> packetCache = serverPool->packetCache;
+    auto policy = *(holders.policy);
     if (serverPool->policy != nullptr) {
-      policy = serverPool->policy->policy;
+      policy = *(serverPool->policy);
     }
-    {
+    auto servers = serverPool->getServers();
+    if (policy.isLua) {
       std::lock_guard<std::mutex> lock(g_luamutex);
-      ss = policy(serverPool->servers, &dq).get();
-      packetCache = serverPool->packetCache;
+      ss = policy.policy(servers, &dq).get();
+    }
+    else {
+      ss = policy.policy(servers, &dq).get();
     }
 
     bool ednsAdded = false;
@@ -1804,10 +1781,7 @@ void* maintThread()
       const auto localPools = g_pools.getCopy();
       std::shared_ptr<DNSDistPacketCache> packetCache = nullptr;
       for (const auto& entry : localPools) {
-        {
-          std::lock_guard<std::mutex> lock(g_luamutex);
-          packetCache = entry.second->packetCache;
-        }
+        packetCache = entry.second->packetCache;
         if (packetCache) {
           size_t upTo = (packetCache->getMaxEntries()* (100 - g_cacheCleaningPercentage)) / 100;
           packetCache->purgeExpired(upTo);
@@ -2272,7 +2246,7 @@ try
     }
   }
 
-  ServerPolicy leastOutstandingPol{"leastOutstanding", leastOutstanding};
+  ServerPolicy leastOutstandingPol{"leastOutstanding", leastOutstanding, false};
 
   g_policy.setState(leastOutstandingPol);
   if(g_cmdLine.beClient || !g_cmdLine.command.empty()) {

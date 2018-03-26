@@ -411,7 +411,7 @@ void setupLuaConfig(bool client)
     });
   g_lua.writeFunction("setServerPolicyLua", [](string name, policyfunc_t policy)  {
       setLuaSideEffect();
-      g_policy.setState(ServerPolicy{name, policy});
+      g_policy.setState(ServerPolicy{name, policy, true});
     });
 
   g_lua.writeFunction("showServerPolicy", []() {
@@ -1067,7 +1067,7 @@ void setupLuaConfig(bool client)
           }
           string servers;
 
-          for (const auto& server: pool->servers) {
+          for (const auto& server: pool->getServers()) {
             if (!servers.empty()) {
               servers += ", ";
             }
@@ -1351,7 +1351,7 @@ void setupLuaConfig(bool client)
   g_lua.writeFunction("setPoolServerPolicyLua", [](string name, policyfunc_t policy, string pool) {
       setLuaSideEffect();
       auto localPools = g_pools.getCopy();
-      setPoolPolicy(localPools, pool, std::make_shared<ServerPolicy>(ServerPolicy{name, policy}));
+      setPoolPolicy(localPools, pool, std::make_shared<ServerPolicy>(ServerPolicy{name, policy, true}));
       g_pools.setState(localPools);
     });
 
