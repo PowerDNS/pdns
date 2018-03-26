@@ -1171,7 +1171,7 @@ void setupLuaConfig(bool client)
       }
     });
 
-  g_lua.writeFunction("addBPFFilterDynBlocks", [](const map<ComboAddress,int>& m, std::shared_ptr<DynBPFFilter> dynbpf, boost::optional<int> seconds, boost::optional<std::string> msg) {
+  g_lua.writeFunction("addBPFFilterDynBlocks", [](const std::unordered_map<ComboAddress,unsigned int, ComboAddress::addressOnlyHash, ComboAddress::addressOnlyEqual>& m, std::shared_ptr<DynBPFFilter> dynbpf, boost::optional<int> seconds, boost::optional<std::string> msg) {
       setLuaSideEffect();
       struct timespec until, now;
       clock_gettime(CLOCK_MONOTONIC, &now);
