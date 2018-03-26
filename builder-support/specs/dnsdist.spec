@@ -8,6 +8,8 @@ Group: System/DNS
 Source: dnsdist-%{version}.tar.bz2
 BuildRequires: readline-devel
 BuildRequires: libedit-devel
+BuildRequires: openssl-devel
+BuildRequires: gnutls-devel
 
 %if 0%{?el6}
 BuildRequires: boost148-devel
@@ -43,6 +45,7 @@ Requires(pre): shadow
 %endif
 %if 0%{?rhel} >= 7
 Requires(pre): shadow-utils
+BuildRequires: fstrm-devel
 %systemd_requires
 %endif
 
@@ -58,6 +61,8 @@ sed -i '/^ExecStart/ s/dnsdist/dnsdist -u dnsdist -g dnsdist/' dnsdist.service.i
 %build
 %configure \
   --sysconfdir=/etc/dnsdist \
+  --enable-dns-over-tls \
+  --enable-gnutls \
 %if 0%{?el6}
   --disable-dnscrypt \
   --disable-libsodium \
@@ -75,6 +80,7 @@ sed -i '/^ExecStart/ s/dnsdist/dnsdist -u dnsdist -g dnsdist/' dnsdist.service.i
   --without-net-snmp
 %endif
 %if 0%{?rhel} >= 7
+  --enable-fstrm \
   --with-protobuf \
   --with-luajit \
   --enable-libsodium \

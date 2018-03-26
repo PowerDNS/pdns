@@ -8,6 +8,7 @@ Build-Depends: debhelper (>= 9~),
                libedit-dev,
                libluajit-5.1-dev,
                libprotobuf-dev,
+               libssl-dev,
                pkg-config,
                protobuf-compiler,
                ragel
