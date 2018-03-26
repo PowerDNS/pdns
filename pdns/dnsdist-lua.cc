@@ -1171,7 +1171,7 @@ void setupLuaConfig(bool client)
       }
     });
 
-  g_lua.writeFunction("addBPFFilterDynBlocks", [](const map<ComboAddress,int>& m, std::shared_ptr<DynBPFFilter> dynbpf, boost::optional<int> seconds) {
+  g_lua.writeFunction("addBPFFilterDynBlocks", [](const map<ComboAddress,int>& m, std::shared_ptr<DynBPFFilter> dynbpf, boost::optional<int> seconds, boost::optional<std::string> msg) {
       setLuaSideEffect();
       struct timespec until, now;
       clock_gettime(CLOCK_MONOTONIC, &now);
@@ -1179,7 +1179,9 @@ void setupLuaConfig(bool client)
       int actualSeconds = seconds ? *seconds : 10;
       until.tv_sec += actualSeconds;
       for(const auto& capair : m) {
-        dynbpf->block(capair.first, until);
+        if (dynbpf->block(capair.first, until)) {
+          warnlog("Inserting eBPF dynamic block for %s for %d seconds: %s", capair.first.toString(), actualSeconds, msg ? *msg : "");
+        }
       }
     });
 

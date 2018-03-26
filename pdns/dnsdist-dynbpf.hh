@@ -41,7 +41,8 @@ public:
   ~DynBPFFilter()
   {
   }
-  void block(const ComboAddress& addr, const struct timespec& until);
+  /* returns true if the addr wasn't already blocked, false otherwise */
+  bool block(const ComboAddress& addr, const struct timespec& until);
   void purgeExpired(const struct timespec& now);
   std::vector<std::tuple<ComboAddress, uint64_t, struct timespec> > getAddrStats();
 private:

@@ -3,7 +3,10 @@ eBPF functions and objects
 
 These are all the functions, objects and methods related to the :doc:`../advanced/ebpf`.
 
-.. function:: addBPFFilterDynBlocks(addresses, dynbpf[, seconds=10])
+.. function:: addBPFFilterDynBlocks(addresses, dynbpf[[, seconds=10], msg])
+
+  .. versionchanged:: 1.3.0
+    ``msg`` optional parameter added.
 
   This is the eBPF equivalent of :func:`addDynBlocks`, blocking a set of addresses for (optionally) a number of seconds, using an eBPF dynamic filter.
   The default number of seconds to block for is 10.
@@ -11,6 +14,7 @@ These are all the functions, objects and methods related to the :doc:`../advance
   :param addresses: set of Addresses as returned by an :ref:`exceed function <exceedfuncs>`
   :param DynBPFFilter dynbpf: The dynamic eBPF filter to use
   :param int seconds: The number of seconds this block to expire
+  :param str msg: A message to display while inserting the block
 
 .. function:: newBPFFilter(maxV4, maxV6, maxQNames) -> BPFFilter
 
