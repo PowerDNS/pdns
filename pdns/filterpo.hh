@@ -122,14 +122,23 @@ public:
     {
       return d_name;
     }
-    DNSName getDomain()
+
+    DNSName getDomain() const
     {
       return d_domain;
     }
-    uint32_t getRefresh()
+
+    uint32_t getRefresh() const
     {
       return d_refresh;
     }
+
+    size_t size() const
+    {
+      return d_qpolAddr.size() + d_postpolAddr.size() + d_propolName.size() + d_propolNSAddr.size() + d_qpolName.size();
+
+    }
+
     void dump(FILE * fp) const;
 
     void addClientTrigger(const Netmask& nm, Policy pol);
