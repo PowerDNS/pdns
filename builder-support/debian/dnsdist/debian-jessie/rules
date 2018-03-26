@@ -21,7 +21,7 @@ endif
 
 
 %:
-	dh $@
+	dh $@ --with systemd
 
 override_dh_auto_clean:
 	rm -f dnslabeltext.cc
@@ -37,6 +37,8 @@ override_dh_auto_configure:
 	  --infodir=\$${prefix}/share/info \
 	  --libdir='$${prefix}/lib/$(DEB_HOST_MULTIARCH)' \
 	  --libexecdir='$${prefix}/lib' \
+	  --disable-gnutls \
+	  --enable-dns-over-tls \
 	  --enable-dnscrypt \
 	  --enable-libsodium \
 	  --enable-re2 \
@@ -49,7 +51,7 @@ override_dh_auto_build-arch:
 	dh_auto_build -- V=1
 
 override_dh_install:
-	dh_auto_install
+	dh_install
 	echo Patching uid and git into debian/dnsdist/lib/systemd/system/*.service
 	perl -pi -e 's/(^ExecStart=.*)/$$1 -u _dnsdist -g _dnsdist/' debian/dnsdist/lib/systemd/system/*.service
 ifeq ($(DEB_HOST_ARCH_BITS),32)
@@ -64,8 +66,9 @@ override_dh_installexamples:
 	dh_installexamples
 	rm -f dnsdist.conf
 
-override_dh_installinit:
-	# do nothing here. avoids referencing a non-existant init script.
-
 override_dh_strip:
 	dh_strip --dbg-package=dnsdist-dbg
+
+override_dh_installinit:
+	dh_installinit
+	dh_systemd_start -pdnsdist --restart-after-upgrade dnsdist.service
