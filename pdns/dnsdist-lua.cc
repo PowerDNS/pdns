@@ -494,7 +494,7 @@ void setupLuaConfig(bool client)
       setLuaNoSideEffect();
       vector<string> vec;
 
-      g_ACL.getCopy().toStringVector(&vec);
+      g_ACL.getLocal()->toStringVector(&vec);
 
       for(const auto& s : vec)
         g_outputBuffer+=s+"\n";
@@ -529,8 +529,8 @@ void setupLuaConfig(bool client)
 
       uint64_t totQPS{0}, totQueries{0}, totDrops{0};
       int counter=0;
-      auto states = g_dstates.getCopy();
-      for(const auto& s : states) {
+      auto states = g_dstates.getLocal();
+      for(const auto& s : *states) {
 	string status = s->getStatus();
 	string pools;
 	for(auto& p : s->pools) {
