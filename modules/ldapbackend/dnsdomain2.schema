@@ -14,24 +14,6 @@ attributetype ( 1.3.6.1.4.1.2428.20.0.1 NAME 'dNSClass'
 	EQUALITY caseIgnoreIA5Match
 	SYNTAX 1.3.6.1.4.1.1466.115.121.1.26 )
 
-attributetype ( 1.3.6.1.4.1.2428.20.1.7 NAME 'mBRecord'
-	DESC 'Location of a given domain e-mail address, RFC 1035'
-	EQUALITY caseIgnoreIA5Match
-	SUBSTR caseIgnoreIA5SubstringsMatch
-	SYNTAX 1.3.6.1.4.1.1466.115.121.1.26 )
-
-attributetype ( 1.3.6.1.4.1.2428.20.1.8 NAME 'mGRecord'
-	DESC 'Defines mailbox names that are part of a mail group, RFC 1035'
-	EQUALITY caseIgnoreIA5Match
-	SUBSTR caseIgnoreIA5SubstringsMatch
-	SYNTAX 1.3.6.1.4.1.1466.115.121.1.26 )
-
-attributetype ( 1.3.6.1.4.1.2428.20.1.9 NAME 'mRRecord'
-	DESC 'Defines aliased mailbox, RFC 1035'
-	EQUALITY caseIgnoreIA5Match
-	SUBSTR caseIgnoreIA5SubstringsMatch
-	SYNTAX 1.3.6.1.4.1.1466.115.121.1.26 )
-
 attributetype ( 1.3.6.1.4.1.2428.20.1.11 NAME 'wKSRecord'
 	DESC 'a well known service description, RFC 1035'
 	EQUALITY caseIgnoreIA5Match
@@ -297,5 +279,5 @@ objectclass ( 1.3.6.1.4.1.2428.20.2 NAME 'dNSDomain2'
 		TLSARecord $ CDSRecord $ CDNSKEYRecord $ OPENPGPKEYRecord $
 		SPFRecord $ EUI48Record $ EUI64Record $ TKEYRecord $
 		URIRecord $ CAARecord $ DLVRecord $ TYPE65226Record $
-		TYPE65534Record $ MBRecord $ MGRecord $ MRRecord
+		TYPE65534Record
 	) )
