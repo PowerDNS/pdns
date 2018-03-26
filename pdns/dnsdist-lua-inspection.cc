@@ -99,10 +99,8 @@ static void statNodeRespRing(statvisitor_t visitor, unsigned int seconds)
 {
   struct timespec cutoff, now;
   gettime(&now);
-  if (seconds) {
-    cutoff = now;
-    cutoff.tv_sec -= seconds;
-  }
+  cutoff = now;
+  cutoff.tv_sec -= seconds;
 
   StatNode root;
   {
