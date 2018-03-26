@@ -1232,7 +1232,7 @@ void moreLua(bool client)
         }
     });
 
-    g_lua.writeFunction("addBPFFilterDynBlocks", [](const map<ComboAddress,int>& m, std::shared_ptr<DynBPFFilter> dynbpf, boost::optional<int> seconds) {
+    g_lua.writeFunction("addBPFFilterDynBlocks", [](const counts_t& m, std::shared_ptr<DynBPFFilter> dynbpf, boost::optional<int> seconds) {
         setLuaSideEffect();
         struct timespec until, now;
         clock_gettime(CLOCK_MONOTONIC, &now);
