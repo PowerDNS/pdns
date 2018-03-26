@@ -1,8 +1,10 @@
 dnstap Logging Reference
 ========================
 
-http://dnstap.info is a flexible, structured binary log format for DNS software.
+`dnstap <http://dnstap.info>`__ is a flexible, structured binary log format for DNS software.
 Reader implementations in various languages exist.
+
+:program:`dnsdist` supports dnstap since version 1.3.0.
 
 Canonically, dnstap is sent over a FrameStream socket, either a local AF_UNIX (see :func:`newFrameStreamUnixLogger`) or a TCP/IP socket (see :func:`newFrameStreamTcpLogger`).
 As an extension, :program:`dnsdist` can send raw dnstap protobuf messages over a :func:`newRemoteLogger`.
