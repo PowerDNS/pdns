@@ -1367,8 +1367,11 @@ unsigned int pdns_stou(const std::string& str, size_t * idx, int base)
   catch(std::invalid_argument& e) {
     throw std::invalid_argument(string(e.what()) + "; (invalid argument during std::stoul); data was \""+str+"\"");
   }
+  catch(std::out_of_range& e) {
+    throw std::out_of_range(string(e.what()) + "; (out of range during std::stoul); data was \""+str+"\"");
+  }
   if (result > std::numeric_limits<unsigned int>::max()) {
-    throw std::out_of_range("stou");
+    throw std::out_of_range("stoul returned result out of unsigned int range; data was \""+str+"\"");
   }
   return static_cast<unsigned int>(result);
 }
