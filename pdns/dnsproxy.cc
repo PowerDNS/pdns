@@ -33,7 +33,6 @@
 #include "statbag.hh"
 #include "dns_random.hh"
 #include "stubresolver.hh"
-#include "tcpreceiver.hh"
 #include "arguments.hh"
 
 extern StatBag S;
@@ -83,8 +82,6 @@ void DNSProxy::go()
   pthread_t tid;
   pthread_create(&tid,0,&launchhelper,this);
 }
-
-extern TCPNameserver *TN;
 
 //! look up qname aname with r->qtype, plonk it in the answer section of 'r' with name target
 bool DNSProxy::completePacket(DNSPacket *r, const DNSName& target,const DNSName& aname)
