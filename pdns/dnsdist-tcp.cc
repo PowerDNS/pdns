@@ -271,6 +271,7 @@ void* tcpClientThread(int pipefd)
     size_t queriesCount = 0;
     time_t connectionStartTime = time(NULL);
     std::vector<char> queryBuffer;
+    std::vector<char> answerBuffer;
 
     if (getsockname(ci.fd, (sockaddr*)&dest, &len)) {
       dest = ci.cs->local;
@@ -559,9 +560,9 @@ void* tcpClientThread(int pipefd)
         }
 #endif
         responseSize += addRoom;
-        char answerbuffer[responseSize];
-        readn2WithTimeout(dsock, answerbuffer, rlen, ds->tcpRecvTimeout);
-        char* response = answerbuffer;
+        answerBuffer.resize(responseSize);
+        char* response = answerBuffer.data();
+        readn2WithTimeout(dsock, response, rlen, ds->tcpRecvTimeout);
         uint16_t responseLen = rlen;
         if (outstanding) {
           /* might be false for {A,I}XFR */

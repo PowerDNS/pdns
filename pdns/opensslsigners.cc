@@ -294,9 +294,13 @@ DNSCryptoKeyEngine::storvector_t OpenSSLRSADNSCryptoKeyEngine::convertToISCVecto
   storvect.push_back(make_pair("Algorithm", algorithm));
 
   for(outputs_t::value_type value :  outputs) {
-    unsigned char tmp[BN_num_bytes(value.second)];
-    int len = BN_bn2bin(value.second, tmp);
-    storvect.push_back(make_pair(value.first, string((char*) tmp, len)));
+    std::string tmp;
+    tmp.resize(BN_num_bytes(value.second));
+    int len = BN_bn2bin(value.second, reinterpret_cast<unsigned char*>(&tmp.at(0)));
+    if (len >= 0) {
+      tmp.resize(len);
+      storvect.push_back(make_pair(value.first, tmp));
+    }
   }
 
   return storvect;
@@ -344,15 +348,17 @@ std::string OpenSSLRSADNSCryptoKeyEngine::sign(const std::string& msg) const
 {
   string hash = this->hash(msg);
   int hashKind = hashSizeToKind(hash.size());
-  unsigned char signature[RSA_size(d_key)];
+  std::string signature;
+  signature.resize(RSA_size(d_key));
   unsigned int signatureLen = 0;
 
-  int res = RSA_sign(hashKind, (unsigned char*) hash.c_str(), hash.length(), signature, &signatureLen, d_key);
+  int res = RSA_sign(hashKind, reinterpret_cast<unsigned char*>(&hash.at(0)), hash.length(), reinterpret_cast<unsigned char*>(&signature.at(0)), &signatureLen, d_key);
   if (res != 1) {
     throw runtime_error(getName()+" failed to generate signature");
   }
 
-  return string((char*) signature, signatureLen);
+  signature.resize(signatureLen);
+  return signature;
 }
 
 
@@ -371,7 +377,8 @@ std::string OpenSSLRSADNSCryptoKeyEngine::getPubKeyHash() const
 {
   const BIGNUM *n, *e, *d;
   RSA_get0_key(d_key, &n, &e, &d);
-  unsigned char tmp[std::max(BN_num_bytes(e), BN_num_bytes(n))];
+  std::vector<unsigned char> tmp;
+  tmp.resize(std::max(BN_num_bytes(e), BN_num_bytes(n)));
   unsigned char hash[SHA_DIGEST_LENGTH];
   SHA_CTX ctx;
 
@@ -381,14 +388,14 @@ std::string OpenSSLRSADNSCryptoKeyEngine::getPubKeyHash() const
     throw runtime_error(getName()+" failed to init hash context for generating the public key hash");
   }
 
-  int len = BN_bn2bin(e, tmp);
-  res = SHA1_Update(&ctx, tmp, len);
+  int len = BN_bn2bin(e, tmp.data());
+  res = SHA1_Update(&ctx, tmp.data(), len);
   if (res != 1) {
     throw runtime_error(getName()+" failed to update hash context for generating the public key hash");
   }
 
-  len = BN_bn2bin(n, tmp);
-  res = SHA1_Update(&ctx, tmp, len);
+  len = BN_bn2bin(n, tmp.data());
+  res = SHA1_Update(&ctx, tmp.data(), len);
   if (res != 1) {
     throw runtime_error(getName()+" failed to update hash context for generating the public key hash");
   }
@@ -407,9 +414,10 @@ std::string OpenSSLRSADNSCryptoKeyEngine::getPublicKeyString() const
   const BIGNUM *n, *e, *d;
   RSA_get0_key(d_key, &n, &e, &d);
   string keystring;
-  unsigned char tmp[std::max(BN_num_bytes(e), BN_num_bytes(n))];
+  std::string tmp;
+  tmp.resize(std::max(BN_num_bytes(e), BN_num_bytes(n)));
 
-  int len = BN_bn2bin(e, tmp);
+  int len = BN_bn2bin(e, reinterpret_cast<unsigned char*>(&tmp.at(0)));
   if (len < 255) {
     keystring.assign(1, (char) (unsigned int) len);
   } else {
@@ -418,10 +426,10 @@ std::string OpenSSLRSADNSCryptoKeyEngine::getPublicKeyString() const
     tempLen = htons(tempLen);
     keystring.append((char*)&tempLen, 2);
   }
-  keystring.append((char *) tmp, len);
+  keystring.append(&tmp.at(0), len);
 
-  len = BN_bn2bin(n, tmp);
-  keystring.append((char *) tmp, len);
+  len = BN_bn2bin(n, reinterpret_cast<unsigned char*>(&tmp.at(0)));
+  keystring.append(&tmp.at(0), len);
 
   return keystring;
 }
@@ -688,14 +696,15 @@ DNSCryptoKeyEngine::storvector_t OpenSSLECDSADNSCryptoKeyEngine::convertToISCVec
     throw runtime_error(getName()+" private key not set");
   }
 
-  unsigned char tmp[BN_num_bytes(key)];
-  int len = BN_bn2bin(key, tmp);
+  std::string tmp;
+  tmp.resize(BN_num_bytes(key));
+  int len = BN_bn2bin(key, reinterpret_cast<unsigned char*>(&tmp.at(0)));
 
   string prefix;
   if (d_len - len)
     prefix.append(d_len - len, 0x00);
 
-  storvect.push_back(make_pair("PrivateKey", prefix + string((char*) tmp, sizeof(tmp))));
+  storvect.push_back(make_pair("PrivateKey", prefix + tmp));
 
   return storvect;
 }
@@ -728,19 +737,20 @@ std::string OpenSSLECDSADNSCryptoKeyEngine::sign(const std::string& msg) const
   }
 
   string ret;
-  unsigned char tmp[d_len];
+  std::string tmp;
+  tmp.resize(d_len);
 
   const BIGNUM *pr, *ps;
   ECDSA_SIG_get0(signature, &pr, &ps);
-  int len = BN_bn2bin(pr, tmp);
+  int len = BN_bn2bin(pr, reinterpret_cast<unsigned char*>(&tmp.at(0)));
   if (d_len - len)
     ret.append(d_len - len, 0x00);
-  ret.append(string((char*) tmp, len));
+  ret.append(&tmp.at(0), len);
 
-  len = BN_bn2bin(ps, tmp);
+  len = BN_bn2bin(ps, reinterpret_cast<unsigned char*>(&tmp.at(0)));
   if (d_len - len)
     ret.append(d_len - len, 0x00);
-  ret.append(string((char*) tmp, len));
+  ret.append(&tmp.at(0), len);
 
   ECDSA_SIG_free(signature);
 
@@ -800,9 +810,10 @@ std::string OpenSSLECDSADNSCryptoKeyEngine::getPubKeyHash() const
 
 std::string OpenSSLECDSADNSCryptoKeyEngine::getPublicKeyString() const
 {
-  unsigned char binaryPoint[(d_len * 2) + 1];
+  std::string binaryPoint;
+  binaryPoint.resize((d_len * 2) + 1);
 
-  int ret = EC_POINT_point2oct(d_ecgroup, EC_KEY_get0_public_key(d_eckey), POINT_CONVERSION_UNCOMPRESSED, binaryPoint, sizeof(binaryPoint), d_ctx);
+  int ret = EC_POINT_point2oct(d_ecgroup, EC_KEY_get0_public_key(d_eckey), POINT_CONVERSION_UNCOMPRESSED, reinterpret_cast<unsigned char*>(&binaryPoint.at(0)), binaryPoint.size(), d_ctx);
   if (ret == 0) {
     throw runtime_error(getName()+" exporting point to binary failed");
   }
@@ -810,7 +821,8 @@ std::string OpenSSLECDSADNSCryptoKeyEngine::getPublicKeyString() const
   /* we skip the first byte as the other backends use
      raw field elements, as opposed to the format described in
      SEC1: "2.3.3 Elliptic-Curve-Point-to-Octet-String Conversion" */
-  return string((const char *)(binaryPoint + 1), sizeof(binaryPoint) - 1);
+  binaryPoint.erase(0, 1);
+  return binaryPoint;
 }
 
 

@@ -672,8 +672,8 @@ CK_RV Pkcs11Slot::HuntSlot(const string& tokenId, CK_SLOT_ID &slotId, _CK_SLOT_I
   }
 
   // get the actual slot ids
-  CK_SLOT_ID slotIds[slots];
-  err = functions->C_GetSlotList(CK_FALSE, slotIds, &slots);
+  std::vector<CK_SLOT_ID> slotIds(slots);
+  err = functions->C_GetSlotList(CK_FALSE, slotIds.data(), &slots);
   if (err) {
     L<<Logger::Warning<<"C_GetSlotList(CK_FALSE, slotIds, &slots) = " << err << std::endl;
     return err;
