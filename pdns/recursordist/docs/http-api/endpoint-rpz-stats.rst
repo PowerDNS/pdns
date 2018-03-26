@@ -21,14 +21,14 @@ RPZ Statistics endpoint
 
   .. code-block:: json
 
-  {
-    "myRPZ": {
-      "last_update": 1521798212,
-      "records": 1343149,
-      "serial": 5489,
-      "transfers_failed": 0,
-      "transfers_full": 3,
-      "transfers_success": 478
+    {
+      "myRPZ": {
+        "last_update": 1521798212,
+        "records": 1343149,
+        "serial": 5489,
+        "transfers_failed": 0,
+        "transfers_full": 3,
+        "transfers_success": 478
+      }
     }
-  }
 
