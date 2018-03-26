@@ -27,6 +27,7 @@
 #include <sys/stat.h>
 #include <unistd.h>
 
+#include <boost/container/flat_set.hpp>
 #include "ws-recursor.hh"
 #include <pthread.h>
 #include "recpacketcache.hh"
@@ -160,6 +161,9 @@ static bool g_gettagNeedsEDNSOptions{false};
 static time_t g_statisticsInterval;
 static bool g_useIncomingECS;
 std::atomic<uint32_t> g_maxCacheEntries, g_maxPacketCacheEntries;
+static boost::container::flat_set<uint16_t> s_avoidUdpSourcePorts;
+static uint16_t s_minUdpSourcePort;
+static uint16_t s_maxUdpSourcePort;
 
 RecursorControlChannel s_rcc; // only active in thread 0
 RecursorStats g_stats;
@@ -518,8 +522,12 @@ public:
 
       if(tries==1)  // fall back to kernel 'random'
         port = 0;
-      else
-        port = 1025 + dns_random(64510);
+      else {
+        do {
+          port = s_minUdpSourcePort + dns_random(s_maxUdpSourcePort - s_minUdpSourcePort + 1);
+        }
+        while (s_avoidUdpSourcePorts.count(port));
+      }
 
       sin=getQueryLocalAddress(family, port); // does htons for us
 
@@ -3223,6 +3231,30 @@ static int serviceMain(int argc, char*argv[])
     g_snmpAgent->run();
   }
 
+  int port = ::arg().asNum("udp-source-port-min");
+  if(port < 1025 || port > 65535){
+    L<<Logger::Error<<"Unable to launch, udp-source-port-min is not a valid port number"<<endl;
+    exit(99); // this isn't going to fix itself either
+  }
+  s_minUdpSourcePort = port;
+  port = ::arg().asNum("udp-source-port-max");
+  if(port < 1025 || port > 65535 || port < s_minUdpSourcePort){
+    L<<Logger::Error<<"Unable to launch, udp-source-port-max is not a valid port number or is smaller than udp-source-port-min"<<endl;
+    exit(99); // this isn't going to fix itself either
+  }
+  s_maxUdpSourcePort = port;
+  std::vector<string> parts {};
+  stringtok(parts, ::arg()["udp-source-port-avoid"], ", ");
+  for (const auto &part : parts)
+  {
+    port = std::stoi(part);
+    if(port < 1025 || port > 65535){
+      L<<Logger::Error<<"Unable to launch, udp-source-port-avoid contains an invalid port number: "<<part<<endl;
+      exit(99); // this isn't going to fix itself either
+    }
+    s_avoidUdpSourcePorts.insert(port);
+  }
+
   const auto cpusMap = parseCPUMap();
   if(g_numThreads == 1) {
     L<<Logger::Warning<<"Operating unthreaded"<<endl;
@@ -3539,6 +3571,10 @@ int main(int argc, char **argv)
 
     ::arg().set("xpf-allow-from","XPF information is only processed from these subnets")="";
     ::arg().set("xpf-rr-code","XPF option code to use")="0";
+
+    ::arg().set("udp-source-port-min", "Minimum UDP port to bind on")="1025";
+    ::arg().set("udp-source-port-max", "Maximum UDP port to bind on")="65535";
+    ::arg().set("udp-source-port-avoid", "List of comma separated UDP port number to avoid")="11211";
 
     ::arg().setCmd("help","Provide a helpful message");
     ::arg().setCmd("version","Print version string");

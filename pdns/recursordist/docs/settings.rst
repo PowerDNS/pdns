@@ -1067,6 +1067,48 @@ Spawn this number of threads on startup.
 If turned on, output impressive heaps of logging.
 May destroy performance under load.
 
+.. _setting-udp-source-port-min:
+
+``udp-source-port-min``
+-----------------------
+.. versionadded:: 4.2.0
+
+-  Integer
+-  Default: 1025
+
+This option sets the low limit of UDP port number to bind on.
+
+In combination with `udp-source-port-max`_ it configures the UDP
+port range to use. Port numbers are randomized within this range on
+initialization, and exceptions can be configured with `udp-source-port-avoid`_
+
+.. _setting-udp-source-port-max:
+
+``udp-source-port-max``
+-----------------------
+.. versionadded:: 4.2.0
+
+-  Integer
+-  Default: 65535
+
+This option sets the maximum limit of UDP port number to bind on.
+
+See `udp-source-port-min`_.
+
+.. _setting-udp-source-port-avoid:
+
+``udp-source-port-avoid``
+-------------------------
+.. versionadded:: 4.2.0
+
+-  String
+-  Default: 11211
+
+A list of comma-separated UDP port numbers to avoid when binding.
+Ex: `5300,11211`
+
+See `udp-source-port-min`_.
+
 .. _setting-udp-truncation-threshold:
 
 ``udp-truncation-threshold``
