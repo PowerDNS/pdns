@@ -319,11 +319,19 @@ For Rules related to the incoming query:
 
   :param [RuleAction] rules: A list of RuleActions
 
-.. function:: showRules([showUUIDs])
+.. function:: showRules([options])
+
+  .. versionchanged:: 1.3.0
+    ``options`` optional parameter added
 
   Show all defined rules for queries, optionally displaying their UUIDs.
 
-  :param bool showUUIDs: Whether to display the UUIDs, defaults to false
+  :param table options: A table with key: value pairs with display options.
+
+  Options:
+
+  * ``showUUIDs=false``: bool - Whether to display the UUIDs, defaults to false.
+  * ``truncateRuleWidth=-1``: int - Truncate rules output to ``truncateRuleWidth`` size. Defaults to ``-1`` to display the full rule.
 
 .. function:: topRule()
 
@@ -372,11 +380,19 @@ For Rules related to responses:
 
   :param int id: The UUID of the rule to remove if ``id`` is an UUID, its position otherwise
 
-.. function:: showResponseRules([showUUIDs])
+.. function:: showResponseRules([options])
+
+  .. versionchanged:: 1.3.0
+    ``options`` optional parameter added
 
   Show all defined response rules, optionally displaying their UUIDs.
 
-  :param bool showUUIDs: Whether to display the UUIDs, defaults to false
+  :param table options: A table with key: value pairs with display options.
+
+  Options:
+
+  * ``showUUIDs=false``: bool - Whether to display the UUIDs, defaults to false.
+  * ``truncateRuleWidth=-1``: int - Truncate rules output to ``truncateRuleWidth`` size. Defaults to ``-1`` to display the full rule.
 
 .. function:: topResponseRule()
 
@@ -420,13 +436,21 @@ Functions for manipulating Cache Hit Respone Rules:
 
   :param int id: The UUID of the rule to remove if ``id`` is an UUID, its position otherwise
 
-.. function:: showCacheHitResponseRules([showUUIDs])
+.. function:: showCacheHitResponseRules([options])
 
   .. versionadded:: 1.2.0
 
+  .. versionchanged:: 1.3.0
+    ``options`` optional parameter added
+
   Show all defined cache hit response rules, optionally displaying their UUIDs.
 
-  :param bool showUUIDs: Whether to display the UUIDs, defaults to false
+  :param table options: A table with key: value pairs with display options.
+
+  Options:
+
+  * ``showUUIDs=false``: bool - Whether to display the UUIDs, defaults to false.
+  * ``truncateRuleWidth=-1``: int - Truncate rules output to ``truncateRuleWidth`` size. Defaults to ``-1`` to display the full rule.
 
 .. function:: topCacheHitResponseRule()
 
@@ -463,13 +487,18 @@ Functions for manipulating Self-Answered Response Rules:
 
   :param int id: The UUID of the rule to remove if ``id`` is an UUID, its position otherwise
 
-.. function:: showSelfAnsweredResponseRules([showUUIDs])
+.. function:: showSelfAnsweredResponseRules([options])
 
   .. versionadded:: 1.3.0
 
   Show all defined self answered response rules, optionally displaying their UUIDs.
 
-  :param bool showUUIDs: Whether to display the UUIDs, defaults to false
+  :param table options: A table with key: value pairs with display options.
+
+  Options:
+
+  * ``showUUIDs=false``: bool - Whether to display the UUIDs, defaults to false.
+  * ``truncateRuleWidth=-1``: int - Truncate rules output to ``truncateRuleWidth`` size. Defaults to ``-1`` to display the full rule.
 
 .. function:: topSelfAnsweredResponseRule()
 
@@ -504,7 +533,7 @@ These ``DNSRule``\ s be one of the following items:
 
 .. function:: MaxQPSIPRule(qps[, v4Mask[, v6Mask[, burst]]])
 
-  Matches traffic for a subnet specified by ``v4Mask`` or ``v6Mask`` exceeding ``qps`` queries per second up to ``burst`` allowed 
+  Matches traffic for a subnet specified by ``v4Mask`` or ``v6Mask`` exceeding ``qps`` queries per second up to ``burst`` allowed
 
   :param int qps: The number of queries per second allowed, above this number traffic is matched
   :param int v4Mask: The IPv4 netmask to match on. Default is 32 (the whole address)
@@ -523,7 +552,7 @@ These ``DNSRule``\ s be one of the following items:
   Matches traffic from/to the network range specified in ``nmg``.
 
   Set the ``src`` parameter to false to match ``nmg`` against destination address instead of source address.
-  This can be used to differentiate between clients 
+  This can be used to differentiate between clients
 
   :param NetMaskGroup nmg: The NetMaskGroup to match on
   :param bool src: Whether to match source or destination address of the packet. Defaults to true (matches source)

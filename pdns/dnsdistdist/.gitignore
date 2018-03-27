@@ -1,6 +1,7 @@
 *.tar.gz
 *.tar.bz2
 .version
+.venv
 .dnsdist_history
 /stamp-h1
 /compile
