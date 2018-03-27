@@ -401,7 +401,7 @@ void* tcpClientThread(int pipefd)
           ds = policy.policy(servers, &dq);
         }
 
-        if (dq.useECS && ds && ds->useECS) {
+        if (dq.useECS && ((ds && ds->useECS) || (!ds && serverPool->getECS()))) {
           uint16_t newLen = dq.len;
           if (!handleEDNSClientSubnet(query, dq.size, consumed, &newLen, &ednsAdded, &ecsAdded, ci.remote, dq.ecsOverride, dq.ecsPrefixLength)) {
             vinfolog("Dropping query from %s because we couldn't insert the ECS value", ci.remote.toStringWithPort());

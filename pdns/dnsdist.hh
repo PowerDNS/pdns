@@ -657,6 +657,16 @@ struct ServerPool
 
   const std::shared_ptr<DNSDistPacketCache> getCache() const { return packetCache; };
 
+  bool getECS() const
+  {
+    return d_useECS;
+  }
+
+  void setECS(bool useECS)
+  {
+    d_useECS = useECS;
+  }
+
   std::shared_ptr<DNSDistPacketCache> packetCache{nullptr};
   std::shared_ptr<ServerPolicy> policy{nullptr};
 
@@ -723,6 +733,7 @@ struct ServerPool
 private:
   NumberedVector<shared_ptr<DownstreamState>> d_servers;
   pthread_rwlock_t d_lock;
+  bool d_useECS{false};
 };
 using pools_t=map<std::string,std::shared_ptr<ServerPool>>;
 void setPoolPolicy(pools_t& pools, const string& poolName, std::shared_ptr<ServerPolicy> policy);
