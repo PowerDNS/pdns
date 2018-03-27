@@ -57,7 +57,7 @@ std::string sodDecryptSym(const std::string& msg, const std::string& key, Sodium
   std::string decrypted;
 
   if (msg.length() < crypto_secretbox_MACBYTES) {
-    throw std::runtime_error("Could not decrypt message of size " + msg.length());
+    throw std::runtime_error("Could not decrypt message of size " + std::to_string(msg.length()));
   }
 
   decrypted.resize(msg.length() - crypto_secretbox_MACBYTES);
