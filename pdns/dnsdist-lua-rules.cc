@@ -826,7 +826,7 @@ private:
 class TagRule : public DNSRule
 {
 public:
-  TagRule(std::string tag, boost::optional<std::string> value) : d_value(value), d_tag(tag)
+  TagRule(const std::string& tag, boost::optional<std::string> value) : d_value(value), d_tag(tag)
   {
   }
   bool matches(const DNSQuestion* dq) const override

@@ -35,7 +35,7 @@
 class DynBPFFilter
 {
 public:
-  DynBPFFilter(std::shared_ptr<BPFFilter> bpf): d_bpf(bpf)
+  DynBPFFilter(std::shared_ptr<BPFFilter>& bpf): d_bpf(bpf)
   {
   }
   ~DynBPFFilter()
