@@ -314,7 +314,7 @@ static void connectionThread(int sock, ComboAddress remote, string password, str
           else if (const auto& dval = boost::get<double*>(&e.second))
             obj.insert({e.first, (**dval)});
           else
-            obj.insert({e.first, (int)(*boost::get<DNSDistStats::statfunction_t>(&e.second))(e.first)});
+            obj.insert({e.first, (double)(*boost::get<DNSDistStats::statfunction_t>(&e.second))(e.first)});
         }
         Json my_json = obj;
         resp.body=my_json.dump();
@@ -405,16 +405,16 @@ static void connectionThread(int sock, ComboAddress remote, string password, str
 	  {"name", a->name},
           {"address", a->remote.toStringWithPort()},
           {"state", status},
-          {"qps", (int)a->queryLoad},
-          {"qpsLimit", (int)a->qps.getRate()},
-          {"outstanding", (int)a->outstanding},
-          {"reuseds", (int)a->reuseds},
-          {"weight", (int)a->weight},
-          {"order", (int)a->order},
+          {"qps", (double)a->queryLoad},
+          {"qpsLimit", (double)a->qps.getRate()},
+          {"outstanding", (double)a->outstanding},
+          {"reuseds", (double)a->reuseds},
+          {"weight", (double)a->weight},
+          {"order", (double)a->order},
           {"pools", pools},
-          {"latency", (int)(a->latencyUsec/1000.0)},
+          {"latency", (double)(a->latencyUsec/1000.0)},
           {"queries", (double)a->queries},
-          {"sendErrors", (int)a->sendErrors}
+          {"sendErrors", (double)a->sendErrors}
         };
 
         /* sending a latency for a DOWN server doesn't make sense */
@@ -448,7 +448,7 @@ static void connectionThread(int sock, ComboAddress remote, string password, str
         Json::object entry {
           { "id", num++ },
           { "name", pool.first },
-          { "serversCount", (int) pool.second->countServers(false) },
+          { "serversCount", (double) pool.second->countServers(false) },
           { "cacheSize", (double) (cache ? cache->getMaxEntries() : 0) },
           { "cacheEntries", (double) (cache ? cache->getEntriesCount() : 0) },
           { "cacheHits", (double) (cache ? cache->getHits() : 0) },
@@ -536,7 +536,7 @@ static void connectionThread(int sock, ComboAddress remote, string password, str
           doc.push_back(Json::object {
               { "type", "StatisticItem" },
               { "name", item.first },
-              { "value", (int)(*boost::get<DNSDistStats::statfunction_t>(&item.second))(item.first) }
+              { "value", (double)(*boost::get<DNSDistStats::statfunction_t>(&item.second))(item.first) }
             });
         }
       }
