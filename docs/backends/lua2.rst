@@ -1,5 +1,5 @@
-Lua Backend
-===========
+Lua2 Backend
+============
 
 * Native: Yes
 * Master: Yes
@@ -35,7 +35,7 @@ API description (v2)
 If your script supports DNSSEC, set this to true.
 
 ``dns_lookup(qtype, qname, domain_id, ctx)``
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 Perform lookup of given resource record name and type.
 
 INPUT:
