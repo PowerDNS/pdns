@@ -1074,7 +1074,7 @@ May destroy performance under load.
 .. versionadded:: 4.2.0
 
 -  Integer
--  Default: 1025
+-  Default: 1024
 
 This option sets the low limit of UDP port number to bind on.
 
