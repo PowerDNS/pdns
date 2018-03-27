@@ -383,7 +383,7 @@ public:
       else if (item.first == "after")
         after = value;
       else {
-        L<<Logger::Error<<"Invalid result from dns_get_before_and_after_names_absolute, unexpected key "<<item.first;
+        L<<Logger::Error<<"Invalid result from dns_get_before_and_after_names_absolute, unexpected key "<<item.first<<endl;
         return false;
       }
     }
