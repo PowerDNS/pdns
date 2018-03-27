@@ -460,7 +460,7 @@ DSRecordContent makeDSFromDNSKey(const DNSName& qname, const DNSKEYRecordContent
 }
 
 
-static DNSKEYRecordContent makeDNSKEYFromDNSCryptoKeyEngine(const std::shared_ptr<DNSCryptoKeyEngine> pk, uint8_t algorithm, uint16_t flags)
+static DNSKEYRecordContent makeDNSKEYFromDNSCryptoKeyEngine(const std::shared_ptr<DNSCryptoKeyEngine>& pk, uint8_t algorithm, uint16_t flags)
 {
   DNSKEYRecordContent drc;
 
