@@ -46,6 +46,12 @@ Changelogs for 4.1.x
 
     Add :doc:`RPZ statistics endpoint <../http-api/endpoint-rpz-stats>` to the :doc:`API <../http-api/index>`.
 
+  .. change::
+    :tags: New Features
+    :pullreq: 6344
+
+    Add FFI version of :func:`gettag`.
+
 .. changelog::
   :version: 4.1.1
   :released: 22nd of January 2018
