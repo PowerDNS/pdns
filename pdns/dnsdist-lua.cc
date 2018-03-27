@@ -29,6 +29,7 @@
 #include <thread>
 
 #include "dnsdist.hh"
+#include "dnsdist-console.hh"
 #include "dnsdist-lua.hh"
 
 #include "base64.hh"
@@ -607,6 +608,47 @@ void setupLuaConfig(bool client)
       }
     });
 
+  g_lua.writeFunction("addConsoleACL", [](const std::string& netmask) {
+      setLuaSideEffect();
+#ifndef HAVE_LIBSODIUM
+      warnlog("Allowing remote access to the console while libsodium support has not been enabled is not secure, and will result in cleartext communications");
+#endif
+
+      g_consoleACL.modify([netmask](NetmaskGroup& nmg) { nmg.addMask(netmask); });
+    });
+
+  g_lua.writeFunction("setConsoleACL", [](boost::variant<string,vector<pair<int, string>>> inp) {
+      setLuaSideEffect();
+
+#ifndef HAVE_LIBSODIUM
+      warnlog("Allowing remote access to the console while libsodium support has not been enabled is not secure, and will result in cleartext communications");
+#endif
+
+      NetmaskGroup nmg;
+      if(auto str = boost::get<string>(&inp)) {
+	nmg.addMask(*str);
+      }
+      else for(const auto& p : boost::get<vector<pair<int,string>>>(inp)) {
+	nmg.addMask(p.second);
+      }
+      g_consoleACL.setState(nmg);
+  });
+
+  g_lua.writeFunction("showConsoleACL", []() {
+      setLuaNoSideEffect();
+
+#ifndef HAVE_LIBSODIUM
+      warnlog("Allowing remote access to the console while libsodium support has not been enabled is not secure, and will result in cleartext communications");
+#endif
+
+      vector<string> vec;
+      g_consoleACL.getLocal()->toStringVector(&vec);
+
+      for(const auto& s : vec) {
+        g_outputBuffer += s + "\n";
+      }
+    });
+
   g_lua.writeFunction("clearQueryCounters", []() {
       unsigned int size{0};
       {
@@ -647,9 +689,12 @@ void setupLuaConfig(bool client)
     });
 
   g_lua.writeFunction("setKey", [](const std::string& key) {
-      if(!g_configurationDone && ! g_key.empty()) { // this makes sure the commandline -k key prevails over dnsdist.conf
+      if(!g_configurationDone && ! g_consoleKey.empty()) { // this makes sure the commandline -k key prevails over dnsdist.conf
         return;                                     // but later setKeys() trump the -k value again
       }
+#ifndef HAVE_LIBSODIUM
+      warnlog("Calling setKey() while libsodium support has not been enabled is not secure, and will result in cleartext communications");
+#endif
 
       setLuaSideEffect();
       string newkey;
@@ -658,7 +703,7 @@ void setupLuaConfig(bool client)
         errlog("%s", g_outputBuffer);
       }
       else
-	g_key=newkey;
+	g_consoleKey=newkey;
     });
 
   g_lua.writeFunction("testCrypto", [](boost::optional<string> optTestMsg)
@@ -678,14 +723,14 @@ void setupLuaConfig(bool client)
        SodiumNonce sn, sn2;
        sn.init();
        sn2=sn;
-       string encrypted = sodEncryptSym(testmsg, g_key, sn);
-       string decrypted = sodDecryptSym(encrypted, g_key, sn2);
+       string encrypted = sodEncryptSym(testmsg, g_consoleKey, sn);
+       string decrypted = sodDecryptSym(encrypted, g_consoleKey, sn2);
 
        sn.increment();
        sn2.increment();
 
-       encrypted = sodEncryptSym(testmsg, g_key, sn);
-       decrypted = sodDecryptSym(encrypted, g_key, sn2);
+       encrypted = sodEncryptSym(testmsg, g_consoleKey, sn);
+       decrypted = sodDecryptSym(encrypted, g_consoleKey, sn2);
 
        if(testmsg == decrypted)
 	 g_outputBuffer="Everything is ok!\n";

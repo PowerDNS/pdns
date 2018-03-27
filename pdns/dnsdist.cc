@@ -43,6 +43,7 @@
 
 #include "dnsdist.hh"
 #include "dnsdist-cache.hh"
+#include "dnsdist-console.hh"
 #include "dnsdist-ecs.hh"
 #include "dnsdist-lua.hh"
 
@@ -1859,32 +1860,6 @@ void* healthChecksThread()
   return 0;
 }
 
-string g_key;
-
-
-void controlThread(int fd, ComboAddress local)
-try
-{
-  ComboAddress client;
-  int sock;
-  warnlog("Accepting control connections on %s", local.toStringWithPort());
-  while((sock=SAccept(fd, client)) >= 0) {
-    if (g_logConsoleConnections) {
-      warnlog("Got control connection from %s", client.toStringWithPort());
-    }
-
-    thread t(controlClientThread, sock, client);
-    t.detach();
-  }
-}
-catch(std::exception& e) 
-{
-  close(fd);
-  errlog("Control connection died: %s", e.what());
-}
-
-
-
 static void bindAny(int af, int sock)
 {
   __attribute__((unused)) int one = 1;
@@ -2117,7 +2092,7 @@ try
       break;
 #ifdef HAVE_LIBSODIUM
     case 'k':
-      if (B64Decode(string(optarg), g_key) < 0) {
+      if (B64Decode(string(optarg), g_consoleKey) < 0) {
         cerr<<"Unable to decode key '"<<optarg<<"'."<<endl;
         exit(EXIT_FAILURE);
       }
@@ -2217,6 +2192,10 @@ try
       acl.addMask(addr);
     g_ACL.setState(acl);
   }
+
+  auto consoleACL = g_consoleACL.getCopy();
+  consoleACL.addMask("127.0.0.1/8");
+  g_consoleACL.setState(consoleACL);
 
   if (g_cmdLine.checkConfig) {
     setupLua(true, g_cmdLine.config);
@@ -2527,6 +2506,16 @@ try
     acls += s;
   }
   infolog("ACL allowing queries from: %s", acls.c_str());
+  vec.clear();
+  acls.clear();
+  g_consoleACL.getLocal()->toStringVector(&vec);
+  for (const auto& entry : vec) {
+    if (!acls.empty()) {
+      acls += ", ";
+    }
+    acls += entry;
+  }
+  infolog("Console ACL allowing connections from: %s", acls.c_str());
 
   uid_t newgid=0;
   gid_t newuid=0;
