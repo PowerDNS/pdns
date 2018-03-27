@@ -173,9 +173,19 @@ BOOST_AUTO_TEST_CASE(test_RecursorCacheSimple) {
     // QType::ADDR should return both A and AAAA but no TXT, so two entries from the right subnet
     BOOST_CHECK_EQUAL(MRC.get(now, power, QType(QType::ADDR), false, &retrieved, ComboAddress("192.0.2.3"), nullptr), (ttd-now));
     BOOST_CHECK_EQUAL(retrieved.size(), 2);
+    bool gotA = false;
+    bool gotAAAA = false;
     for (const auto& rec : retrieved) {
       BOOST_CHECK(rec.d_type == QType::A || rec.d_type == QType::AAAA);
+      if (rec.d_type == QType::A) {
+        gotA = true;
+      }
+      else if (rec.d_type == QType::AAAA) {
+        gotAAAA = true;
+      }
     }
+    BOOST_CHECK(gotA);
+    BOOST_CHECK(gotAAAA);
     retrieved.clear();
 
     // but only the non-subnet specific one from the another subnet

@@ -39,6 +39,8 @@
 #include "ws-api.hh"
 #include "logger.hh"
 #include "ext/incbin/incbin.h"
+#include "rec-lua-conf.hh"
+#include "rpzloader.hh"
 
 extern thread_local FDMultiplexer* t_fdm;
 
@@ -381,6 +383,36 @@ static void apiServerCacheFlush(HttpRequest* req, HttpResponse* resp) {
   });
 }
 
+static void apiServerRPZStats(HttpRequest* req, HttpResponse* resp) {
+  if(req->method != "GET")
+    throw HttpMethodNotAllowedException();
+
+  auto luaconf = g_luaconfs.getLocal();
+  auto numZones = luaconf->dfe.size();
+
+  Json::object ret;
+
+  for (size_t i=0; i < numZones; i++) {
+    auto zone = luaconf->dfe.getZone(i);
+    if (zone == nullptr)
+      continue;
+    auto name = zone->getName();
+    auto stats = getRPZZoneStats(*name);
+    if (stats == nullptr)
+      continue;
+    Json::object zoneInfo = {
+      {"transfers_failed", (double)stats->d_failedTransfers},
+      {"transfers_success", (double)stats->d_successfulTransfers},
+      {"transfers_full", (double)stats->d_fullTransfers},
+      {"records", (double)stats->d_numberOfRecords},
+      {"last_update", (double)stats->d_lastUpdate},
+      {"serial", (double)stats->d_serial},
+    };
+    ret[*name] = zoneInfo;
+  }
+  resp->setBody(ret);
+}
+
 #include "htmlfiles.h"
 
 static void serveStuff(HttpRequest* req, HttpResponse* resp)
@@ -424,6 +456,7 @@ RecursorWebServer::RecursorWebServer(FDMultiplexer* fdm)
   d_ws->registerApiHandler("/api/v1/servers/localhost/cache/flush", &apiServerCacheFlush);
   d_ws->registerApiHandler("/api/v1/servers/localhost/config/allow-from", &apiServerConfigAllowFrom);
   d_ws->registerApiHandler("/api/v1/servers/localhost/config", &apiServerConfig);
+  d_ws->registerApiHandler("/api/v1/servers/localhost/rpzstatistics", &apiServerRPZStats);
   d_ws->registerApiHandler("/api/v1/servers/localhost/search-log", &apiServerSearchLog);
   d_ws->registerApiHandler("/api/v1/servers/localhost/search-data", &apiServerSearchData);
   d_ws->registerApiHandler("/api/v1/servers/localhost/statistics", &apiServerStatistics);
