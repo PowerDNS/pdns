@@ -523,7 +523,7 @@ bool ZoneParserTNG::getLine()
   if (d_zonedata.size() > 0) {
     if (d_zonedataline != d_zonedata.end()) {
       d_line = *d_zonedataline;
-      d_zonedataline++;
+      ++d_zonedataline;
       return true;
     }
     return false;

@@ -115,7 +115,7 @@ Resolver::Resolver()
 
 Resolver::~Resolver()
 {
-  for(std::map<std::string,int>::iterator iter = locals.begin(); iter != locals.end(); iter++) {
+  for(std::map<std::string,int>::iterator iter = locals.begin(); iter != locals.end(); ++iter) {
     if (iter->second >= 0)
       close(iter->second);
   }
@@ -222,7 +222,7 @@ bool Resolver::tryGetSOASerial(DNSName *domain, ComboAddress* remote, uint32_t *
   size_t i = 0, k;
   int sock;
 
-  for(std::map<string,int>::iterator iter=locals.begin(); iter != locals.end(); iter++, i++) {
+  for(std::map<string,int>::iterator iter=locals.begin(); iter != locals.end(); ++iter, ++i) {
     fds[i].fd = iter->second;
     fds[i].events = POLLIN;
   }
