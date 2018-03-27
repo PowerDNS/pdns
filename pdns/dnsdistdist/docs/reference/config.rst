@@ -142,7 +142,7 @@ Control Socket, Console and Webserver
   .. versionadded:: 1.3.0
 
   Add a netmask to the existing console ACL, allowing remote clients to connect to the console. Please make sure that encryption
-  has been enabled with :func:`setKey` before doing so.
+  has been enabled with :func:`setKey` before doing so. The default is to only allow 127.0.0.1/8 and ::1/128.
 
   :param str netmask: A CIDR netmask, e.g. ``"192.0.2.0/24"``. Without a subnetmask, only the specific address is allowed.
 
@@ -219,19 +219,19 @@ Access Control Lists
 
 .. function:: addACL(netmask)
 
-  Add a netmask to the existing ACL
+  Add a netmask to the existing ACL controlling which clients can send UDP and TCP queries. See :ref:`ACL` for more information.
 
   :param str netmask: A CIDR netmask, e.g. ``"192.0.2.0/24"``. Without a subnetmask, only the specific address is allowed.
 
 .. function:: setACL(netmasks)
 
-  Remove the existing ACL and add the netmasks from the table.
+  Remove the existing ACL and add the netmasks from the table of those allowed to send UDP and TCP queries. See :ref:`ACL` for more information.
 
   :param {str} netmasks: A table of CIDR netmask, e.g. ``{"192.0.2.0/24", "2001:DB8:14::/56"}``. Without a subnetmask, only the specific address is allowed.
 
 .. function:: showACL()
 
-  Print a list of all allowed netmasks.
+  Print a list of all netmasks allowed to send queries over UDP and TCP. See :ref:`ACL` for more information.
 
 EDNS Client Subnet
 ~~~~~~~~~~~~~~~~~~
