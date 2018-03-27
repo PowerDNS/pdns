@@ -407,7 +407,10 @@ try
       else
         remote = P->getRemote().toString();
       L << Logger::Notice<<"Remote "<< remote <<" wants '" << P->qdomain<<"|"<<P->qtype.getName() << 
-            "', do = " <<P->d_dnssecOk <<", bufsize = "<< P->getMaxReplyLen()<<": ";
+        "', do = " <<P->d_dnssecOk <<", bufsize = "<< P->getMaxReplyLen();
+      if(P->d_ednsRawPacketSizeLimit > 0 && P->getMaxReplyLen() != (unsigned int)P->d_ednsRawPacketSizeLimit)
+        L<<" ("<<P->d_ednsRawPacketSizeLimit<<")";
+      L<<": ";
     }
 
     if((P->d.opcode != Opcode::Notify && P->d.opcode != Opcode::Update) && P->couldBeCached()) {
