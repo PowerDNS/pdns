@@ -915,10 +915,10 @@ void parseRuleParams(boost::optional<luaruleparams_t> params, boost::uuids::uuid
   uuid = makeRuleID(uuidStr);
 }
 
-typedef std::unordered_map<std::string, boost::variant<bool, int, std::string, std::vector<std::pair<int,int> > > > localbind_t;
+typedef std::unordered_map<std::string, boost::variant<bool, int, std::string, std::vector<std::pair<int,int> > > > ruleparams_t;
 
 template<typename T>
-static void showRules(GlobalStateHolder<vector<T> > *someRulActions, boost::optional<localbind_t> vars) {
+static void showRules(GlobalStateHolder<vector<T> > *someRulActions, boost::optional<ruleparams_t> vars) {
   setLuaNoSideEffect();
   int num=0;
   bool showUUIDs = false;
@@ -1017,7 +1017,7 @@ void setupLuaRules()
 
   g_lua.registerFunction<string(std::shared_ptr<DNSRule>::*)()>("toString", [](const std::shared_ptr<DNSRule>& rule) { return rule->toString(); });
 
-  g_lua.writeFunction("showResponseRules", [](boost::optional<localbind_t> vars) {
+  g_lua.writeFunction("showResponseRules", [](boost::optional<ruleparams_t> vars) {
       showRules(&g_resprulactions, vars);
     });
 
@@ -1033,7 +1033,7 @@ void setupLuaRules()
       mvRule(&g_resprulactions, from, to);
     });
 
-  g_lua.writeFunction("showCacheHitResponseRules", [](boost::optional<localbind_t> vars) {
+  g_lua.writeFunction("showCacheHitResponseRules", [](boost::optional<ruleparams_t> vars) {
       showRules(&g_cachehitresprulactions, vars);
     });
 
@@ -1049,7 +1049,7 @@ void setupLuaRules()
       mvRule(&g_cachehitresprulactions, from, to);
     });
 
-  g_lua.writeFunction("showSelfAnsweredResponseRules", [](boost::optional<localbind_t> vars) {
+  g_lua.writeFunction("showSelfAnsweredResponseRules", [](boost::optional<ruleparams_t> vars) {
       showRules(&g_selfansweredresprulactions, vars);
     });
 
@@ -1247,7 +1247,7 @@ void setupLuaRules()
       return std::shared_ptr<DNSRule>(new ERCodeRule(rcode));
     });
 
-  g_lua.writeFunction("showRules", [](boost::optional<localbind_t> vars) {
+  g_lua.writeFunction("showRules", [](boost::optional<ruleparams_t> vars) {
       showRules(&g_rulactions, vars);
     });
 

@@ -408,7 +408,7 @@ const std::vector<ConsoleKeyword> g_consoleKeywords{
   { "show", true, "string", "outputs `string`" },
   { "showACL", true, "", "show our ACL set" },
   { "showBinds", true, "", "show listening addresses (frontends)" },
-  { "showCacheHitResponseRules", true, "[{showUUIDs=false, truncateRuleWidth=-1}]", "show all defined cache hit response rules, optionally with their UUID sand optionally truncated to a given width" },
+  { "showCacheHitResponseRules", true, "[{showUUIDs=false, truncateRuleWidth=-1}]", "show all defined cache hit response rules, optionally with their UUIDs and optionally truncated to a given width" },
   { "showDNSCryptBinds", true, "", "display the currently configured DNSCrypt binds" },
   { "showDynBlocks", true, "", "show dynamic blocks in force" },
   { "showPools", true, "", "show the available pools" },
