@@ -276,13 +276,8 @@ protected:
 
 struct DNSRecord
 {
-  DNSRecord() {
-    d_type = 0;
-    d_class = QClass::IN;
-    d_ttl = 0;
-    d_clen = 0;
-    d_place = DNSResourceRecord::ANSWER;
-  }
+  DNSRecord() : d_type(0), d_class(QClass::IN), d_ttl(0), d_clen(0), d_place(DNSResourceRecord::ANSWER)
+  {}
   explicit DNSRecord(const DNSResourceRecord& rr);
   DNSName d_name;
   std::shared_ptr<DNSRecordContent> d_content;
