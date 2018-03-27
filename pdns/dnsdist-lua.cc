@@ -110,66 +110,48 @@ void setupLuaConfig(bool client)
   });
 
   g_lua.writeFunction("newServer",
-		      [client](boost::variant<string,newserver_t> pvars, boost::optional<int> qps) {
-                        setLuaSideEffect();
-			if(client) {
-			  return std::make_shared<DownstreamState>(ComboAddress());
-			}
-			ComboAddress sourceAddr;
-			unsigned int sourceItf = 0;
-                        size_t numberOfSockets = 1;
-                        std::set<int> cpus;
-			if(auto addressStr = boost::get<string>(&pvars)) {
-			  std::shared_ptr<DownstreamState> ret;
-			  try {
-			    ComboAddress address(*addressStr, 53);
-			    if(IsAnyAddress(address)) {
-			      g_outputBuffer="Error creating new server: invalid address for a downstream server.";
-			      errlog("Error creating new server: %s is not a valid address for a downstream server", *addressStr);
-			      return ret;
-			    }
-			    ret=std::make_shared<DownstreamState>(address);
-			  }
-			  catch(const PDNSException& e) {
-			    g_outputBuffer="Error creating new server: "+string(e.reason);
-			    errlog("Error creating new server with address %s: %s", addressStr, e.reason);
-			    return ret;
-			  }
-			  catch(std::exception& e) {
-			    g_outputBuffer="Error creating new server: "+string(e.what());
-			    errlog("Error creating new server with address %s: %s", addressStr, e.what());
-			    return ret;
-			  }
+      [client](boost::variant<string,newserver_t> pvars, boost::optional<int> qps) {
+      setLuaSideEffect();
 
-			  if(qps) {
-			    ret->qps=QPSLimiter(*qps, *qps);
-			  }
-			  g_dstates.modify([ret](servers_t& servers) {
-			      servers.push_back(ret);
-			      std::stable_sort(servers.begin(), servers.end(), [](const decltype(ret)& a, const decltype(ret)& b) {
-				  return a->order < b->order;
-				});
+      std::shared_ptr<DownstreamState> ret = std::make_shared<DownstreamState>(ComboAddress());
+      newserver_t vars;
 
-			    });
+      ComboAddress serverAddr;
+      std::string serverAddressStr;
+      if(auto addrStr = boost::get<string>(&pvars)) {
+        serverAddressStr = *addrStr;
+        if(qps) {
+          vars["qps"] = std::to_string(*qps);
+        }
+      } else {
+        vars = boost::get<newserver_t>(pvars);
+        serverAddressStr = boost::get<string>(vars["address"]);
+      }
 
-			  auto localPools = g_pools.getCopy();
-			  addServerToPool(localPools, "", ret);
-			  g_pools.setState(localPools);
+      try {
+        serverAddr = ComboAddress(serverAddressStr, 53);
+      }
+      catch(const PDNSException& e) {
+        g_outputBuffer="Error creating new server: "+string(e.reason);
+        errlog("Error creating new server with address %s: %s", serverAddressStr, e.reason);
+        return ret;
+      }
+      catch(std::exception& e) {
+        g_outputBuffer="Error creating new server: "+string(e.what());
+        errlog("Error creating new server with address %s: %s", serverAddressStr, e.what());
+        return ret;
+      }
 
-			  if (ret->connected) {
-			    if(g_launchWork) {
-			      g_launchWork->push_back([ret]() {
-			        ret->tid = thread(responderThread, ret);
-			      });
-			    }
-			    else {
-			      ret->tid = thread(responderThread, ret);
-			    }
-			  }
+      if(IsAnyAddress(serverAddr)) {
+        g_outputBuffer="Error creating new server: invalid address for a downstream server.";
+        errlog("Error creating new server: %s is not a valid address for a downstream server", serverAddressStr);
+        return ret;
+      }
 
-			  return ret;
-			}
-			auto vars=boost::get<newserver_t>(pvars);
+      ComboAddress sourceAddr;
+      unsigned int sourceItf = 0;
+      size_t numberOfSockets = 1;
+      std::set<int> cpus;
 
 			if(vars.count("source")) {
 			  /* handle source in the following forms:
@@ -225,26 +207,11 @@ void setupLuaConfig(bool client)
                           }
                         }
 
-			std::shared_ptr<DownstreamState> ret;
-			try {
-			  ComboAddress address(boost::get<string>(vars["address"]), 53);
-			  if(IsAnyAddress(address)) {
-			    g_outputBuffer="Error creating new server: invalid address for a downstream server.";
-			    errlog("Error creating new server: %s is not a valid address for a downstream server", boost::get<string>(vars["address"]));
-			    return ret;
-			  }
-			  ret=std::make_shared<DownstreamState>(address, sourceAddr, sourceItf, numberOfSockets);
-			}
-			catch(const PDNSException& e) {
-			  g_outputBuffer="Error creating new server: "+string(e.reason);
-			  errlog("Error creating new server with address %s: %s", boost::get<string>(vars["address"]), e.reason);
-			  return ret;
-			}
-			catch(std::exception& e) {
-			  g_outputBuffer="Error creating new server: "+string(e.what());
-			  errlog("Error creating new server with address %s: %s", boost::get<string>(vars["address"]), e.what());
-			  return ret;
-			}
+      if(client) {
+        // do not construct DownstreamState now, it would try binding sockets.
+        return ret;
+      }
+      ret=std::make_shared<DownstreamState>(serverAddr, sourceAddr, sourceItf, numberOfSockets);
 
 			if(vars.count("qps")) {
 			  int qpsVal=std::stoi(boost::get<string>(vars["qps"]));
