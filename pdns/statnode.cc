@@ -112,7 +112,7 @@ void StatNode::submit(std::vector<string>::const_iterator end, std::vector<strin
       labelsCount = count;
     }
     //    cerr<<"Not yet end, set our fullname to '"<<fullname<<"', recursing"<<endl;
-    end--;
+    --end;
     children[*end].submit(end, begin, fullname, rcode, remote, count+1);
   }
 }
