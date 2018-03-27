@@ -31,29 +31,31 @@ designed to make the processing of multiple rate-limiting rules faster by walkin
 for each invocation, instead of once per existing `exceed*()` invocation.
 
 For example, instead of having something like:
-```
-function maintenance()
-  addDynBlocks(exceedQRate(30, 10), "Exceeded query rate", 60)
-  addDynBlocks(exceedNXDOMAINs(20, 10), "Exceeded NXD rate", 60)
-  addDynBlocks(exceedServFails(20, 10), "Exceeded ServFail rate", 60)
-  addDynBlocks(exceedQTypeRate(dnsdist.ANY, 5, 10), "Exceeded ANY rate", 60)
-  addDynBlocks(exceedRespByterate(1000000, 10), "Exceeded resp BW rate", 60)
-end
-```
+
+.. code-block:: lua
+
+  function maintenance()
+    addDynBlocks(exceedQRate(30, 10), "Exceeded query rate", 60)
+    addDynBlocks(exceedNXDOMAINs(20, 10), "Exceeded NXD rate", 60)
+    addDynBlocks(exceedServFails(20, 10), "Exceeded ServFail rate", 60)
+    addDynBlocks(exceedQTypeRate(dnsdist.ANY, 5, 10), "Exceeded ANY rate", 60)
+    addDynBlocks(exceedRespByterate(1000000, 10), "Exceeded resp BW rate", 60)
+  end
 
 The new syntax would be:
-```
-local dbr = dynBlockRulesGroup()
-dbr:setQueryRate(30, 10, "Exceeded query rate", 60)
-dbr:setRCodeRate(dnsdist.NXDOMAIN, 20, 10, "Exceeded NXD rate", 60)
-dbr:setRCodeRate(dnsdist.SERVFAIL, 20, 10, "Exceeded ServFail rate", 60)
-dbr:setQTypeRate(dnsdist.ANY, 5, 10, "Exceeded ANY rate", 60)
-dbr:setResponseByteRate(10000, 10, "Exceeded resp BW rate", 60)
 
-function maintenance()
-  dbr:apply()
-end
-```
+.. code-block:: lua
+
+  local dbr = dynBlockRulesGroup()
+  dbr:setQueryRate(30, 10, "Exceeded query rate", 60)
+  dbr:setRCodeRate(dnsdist.NXDOMAIN, 20, 10, "Exceeded NXD rate", 60)
+  dbr:setRCodeRate(dnsdist.SERVFAIL, 20, 10, "Exceeded ServFail rate", 60)
+  dbr:setQTypeRate(dnsdist.ANY, 5, 10, "Exceeded ANY rate", 60)
+  dbr:setResponseByteRate(10000, 10, "Exceeded resp BW rate", 60)
+
+  function maintenance()
+    dbr:apply()
+  end
 
 The old syntax would walk the query buffer 2 times and the response one 3 times, while the new syntax does it only once for each.
 It also reuse the same internal table to keep track of the source IPs, reducing the CPU usage.
