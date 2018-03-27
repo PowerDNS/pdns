@@ -90,6 +90,10 @@ AS_IF([test "x$PROTOBUF_LIBS" != "x" -a x"$PROTOC" != "x"],
 )
 
 BOOST_REQUIRE([$boost_required_version])
+
+# Check against flat_set header that requires boost >= 1.48
+BOOST_FIND_HEADER([boost/container/flat_set.hpp])
+
 PDNS_SELECT_CONTEXT_IMPL
 
 PDNS_ENABLE_UNIT_TESTS

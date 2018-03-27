@@ -26,8 +26,9 @@
 #include <netdb.h>
 #include <sys/stat.h>
 #include <unistd.h>
-
+#ifdef HAVE_BOOST_CONTAINER_FLAT_SET_HPP
 #include <boost/container/flat_set.hpp>
+#endif
 #include "ws-recursor.hh"
 #include <pthread.h>
 #include "recpacketcache.hh"
@@ -161,7 +162,11 @@ static bool g_gettagNeedsEDNSOptions{false};
 static time_t g_statisticsInterval;
 static bool g_useIncomingECS;
 std::atomic<uint32_t> g_maxCacheEntries, g_maxPacketCacheEntries;
+#ifdef HAVE_BOOST_CONTAINER_FLAT_SET_HPP
 static boost::container::flat_set<uint16_t> s_avoidUdpSourcePorts;
+#else
+static std::set<uint16_t> s_avoidUdpSourcePorts;
+#endif
 static uint16_t s_minUdpSourcePort;
 static uint16_t s_maxUdpSourcePort;
 
