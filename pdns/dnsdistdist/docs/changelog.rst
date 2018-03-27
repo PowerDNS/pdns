@@ -141,9 +141,10 @@ Changelog
 
   .. change::
     :tags: Improvements
-    :pullreq: 6375
+    :pullreq: 6375, 5866
+    :tickets: 4845
 
-   Add '?' for providing help() output on ``dnsdist -c`` (Kirill Ponomarev).
+   Add '?' and 'help' for providing help() output on ``dnsdist -c`` (Kirill Ponomarev, Chris Hofstaedtler).
 
   .. change::
     :tags: Improvements
@@ -151,6 +152,37 @@ Changelog
 
     Replace the Lua mutex with a rw lock to limit contention.
     This improves the processing speed and parallelism of the policies.
+
+  .. change::
+    :tags: New Features
+    :pullreq: 6220, 5594
+    :tickets: 5079, 5654
+
+    Add experimental XPF support based on `draft-bellis-dnsop-xpf-04 <https://tools.ietf.org/html/draft-bellis-dnsop-xpf-04>`__.
+
+  .. change::
+    :tags: New Features
+    :pullreq: 6147
+
+    Add :func:`ERCodeRule` to match on extended RCodes (Chris Hofstaedtler).
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 6018
+
+    Fix escaping unusual DNS label octets in DNSName is off by one (Kees Monshouwer).
+
+  .. change::
+    :tags: New Features
+    :pullreq: 6003
+
+    Add :func:`TempFailureCacheTTLAction` (Chris Hofstaedtler).
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 6146
+
+    Ensure :program:`dnsdist` compiles on NetBSD (Tom Ivar Helbekkmo).
 
 .. changelog::
   :version: 1.2.1
