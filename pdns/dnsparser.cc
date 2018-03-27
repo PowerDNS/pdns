@@ -199,9 +199,8 @@ DNSRecordContent::zmakermap_t& DNSRecordContent::getZmakermap()
   return zmakermap;
 }
 
-DNSRecord::DNSRecord(const DNSResourceRecord& rr)
+DNSRecord::DNSRecord(const DNSResourceRecord& rr): d_name(rr.qname)
 {
-  d_name = rr.qname;
   d_type = rr.qtype.getCode();
   d_ttl = rr.ttl;
   d_class = rr.qclass;
