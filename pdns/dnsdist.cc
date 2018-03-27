@@ -2194,7 +2194,9 @@ try
   }
 
   auto consoleACL = g_consoleACL.getCopy();
-  consoleACL.addMask("127.0.0.1/8");
+  for (const auto& mask : { "127.0.0.1/8", "::1/128" }) {
+    consoleACL.addMask(mask);
+  }
   g_consoleACL.setState(consoleACL);
 
   if (g_cmdLine.checkConfig) {
