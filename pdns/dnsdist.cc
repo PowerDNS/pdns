@@ -723,41 +723,6 @@ shared_ptr<DownstreamState> roundrobin(const NumberedServerVector& servers, cons
   return (*res)[(counter++) % res->size()].second;
 }
 
-static void writepid(string pidfile) {
-  if (!pidfile.empty()) {
-    // Clean up possible stale file
-    unlink(pidfile.c_str());
-
-    // Write the pidfile
-    ofstream of(pidfile.c_str());
-    if (of) {
-      of << getpid();
-    } else {
-      errlog("Unable to write PID-file to '%s'.", pidfile);
-    }
-    of.close();
-  }
-}
-
-static void daemonize(void)
-{
-  if(fork())
-    _exit(0); // bye bye
-  /* We are child */
-
-  setsid(); 
-
-  int i=open("/dev/null",O_RDWR); /* open stdin */
-  if(i < 0) 
-    ; // L<<Logger::Critical<<"Unable to open /dev/null: "<<stringerror()<<endl;
-  else {
-    dup2(i,0); /* stdin */
-    dup2(i,1); /* stderr */
-    dup2(i,2); /* stderr */
-    close(i);
-  }
-}
-
 ComboAddress g_serverControl{"127.0.0.1:5199"};
 
 std::shared_ptr<ServerPool> createPoolIfNotExists(pools_t& pools, const string& poolName)
@@ -2019,10 +1984,8 @@ struct
   vector<string> locals;
   vector<string> remotes;
   bool checkConfig{false};
-  bool beDaemon{false};
   bool beClient{false};
   bool beSupervised{false};
-  string pidfile;
   string command;
   string config;
   string uid;
@@ -2034,8 +1997,8 @@ std::atomic<bool> g_configurationDone{false};
 static void usage()
 {
   cout<<endl;
-  cout<<"Syntax: dnsdist [-C,--config file] [-c,--client [IP[:PORT]]] [-d,--daemon]\n";
-  cout<<"[-p,--pidfile file] [-e,--execute cmd] [-h,--help] [-l,--local addr]\n";
+  cout<<"Syntax: dnsdist [-C,--config file] [-c,--client [IP[:PORT]]]\n";
+  cout<<"[-e,--execute cmd] [-h,--help] [-l,--local addr]\n";
   cout<<"[-v,--verbose] [--check-config]\n";
   cout<<"\n";
   cout<<"-a,--acl netmask      Add this netmask to the ACL\n";
@@ -2051,7 +2014,6 @@ static void usage()
   cout<<"--check-config        Validate the configuration file and exit. The exit-code\n";
   cout<<"                      reflects the validation, 0 is OK, 1 means an error.\n";
   cout<<"                      Any errors are printed as well.\n";
-  cout<<"-d,--daemon           Operate as a daemon\n";
   cout<<"-e,--execute cmd      Connect to dnsdist and execute 'cmd'\n";
   cout<<"-g,--gid gid          Change the process group ID after binding sockets\n";
   cout<<"-h,--help             Display this helpful message\n";
@@ -2060,7 +2022,6 @@ static void usage()
   cout<<"                        (use with e.g. systemd and daemontools)\n";
   cout<<"--disable-syslog      Don't log to syslog, only to stdout\n";
   cout<<"                        (use with e.g. systemd)\n";
-  cout<<"-p,--pidfile file     Write a pidfile, works only with --daemon\n";
   cout<<"-u,--uid uid          Change the process user ID after binding sockets\n";
   cout<<"-v,--verbose          Enable verbose mode\n";
 }
@@ -2107,8 +2068,6 @@ try
     {"setkey",  required_argument, 0, 'k'},
 #endif
     {"local",  required_argument, 0, 'l'},
-    {"daemon", 0, 0, 'd'},
-    {"pidfile",  required_argument, 0, 'p'},
     {"supervised", 0, 0, 's'},
     {"disable-syslog", 0, 0, 2},
     {"uid",  required_argument, 0, 'u'},
@@ -2140,9 +2099,6 @@ try
     case 'c':
       g_cmdLine.beClient=true;
       break;
-    case 'd':
-      g_cmdLine.beDaemon=true;
-      break;
     case 'e':
       g_cmdLine.command=optarg;
       break;
@@ -2169,9 +2125,6 @@ try
 #endif
     case 'l':
       g_cmdLine.locals.push_back(trim_copy(string(optarg)));
-      break;
-    case 'p':
-      g_cmdLine.pidfile=optarg;
       break;
     case 's':
       g_cmdLine.beSupervised=true;
@@ -2564,24 +2517,16 @@ try
     }
   }
 
-  if(g_cmdLine.beDaemon) {
-    g_console=false;
-    daemonize();
-    writepid(g_cmdLine.pidfile);
+  warnlog("dnsdist %s comes with ABSOLUTELY NO WARRANTY. This is free software, and you are welcome to redistribute it according to the terms of the GPL version 2", VERSION);
+  vector<string> vec;
+  std::string acls;
+  g_ACL.getLocal()->toStringVector(&vec);
+  for(const auto& s : vec) {
+    if (!acls.empty())
+      acls += ", ";
+    acls += s;
   }
-  else {
-    vinfolog("Running in the foreground");
-    warnlog("dnsdist %s comes with ABSOLUTELY NO WARRANTY. This is free software, and you are welcome to redistribute it according to the terms of the GPL version 2", VERSION);
-    vector<string> vec;
-    std::string acls;
-    g_ACL.getLocal()->toStringVector(&vec);
-    for(const auto& s : vec) {
-      if (!acls.empty())
-        acls += ", ";
-      acls += s;
-    }
-    infolog("ACL allowing queries from: %s", acls.c_str());
-  }
+  infolog("ACL allowing queries from: %s", acls.c_str());
 
   uid_t newgid=0;
   gid_t newuid=0;
@@ -2662,7 +2607,7 @@ try
   
   thread healththread(healthChecksThread);
 
-  if(g_cmdLine.beDaemon || g_cmdLine.beSupervised) {
+  if(g_cmdLine.beSupervised) {
 #ifdef HAVE_SYSTEMD
     sd_notify(0, "READY=1");
 #endif
