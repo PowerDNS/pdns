@@ -128,6 +128,19 @@ public:
 
 struct DynBlock
 {
+  DynBlock(): action(DNSAction::Action::None)
+  {
+  }
+
+  DynBlock(const std::string& reason_, const struct timespec& until_, const DNSName& domain_, DNSAction::Action action_): reason(reason_), until(until_), domain(domain_), action(action_)
+  {
+  }
+
+  DynBlock(const DynBlock& rhs): reason(rhs.reason), until(rhs.until), domain(rhs.domain), action(rhs.action)
+  {
+    blocks.store(rhs.blocks);
+  }
+
   DynBlock& operator=(const DynBlock& rhs)
   {
     reason=rhs.reason;
@@ -324,12 +337,10 @@ struct ClientState;
 struct IDState
 {
   IDState() : origFD(-1), sentTime(true), delayMsec(0), tempFailureTTL(boost::none) { origDest.sin4.sin_family = 0;}
-  IDState(const IDState& orig)
+  IDState(const IDState& orig): origRemote(orig.origRemote), origDest(orig.origDest)
   {
     origFD = orig.origFD;
     origID = orig.origID;
-    origRemote = orig.origRemote;
-    origDest = orig.origDest;
     delayMsec = orig.delayMsec;
     tempFailureTTL = orig.tempFailureTTL;
     age.store(orig.age.load());

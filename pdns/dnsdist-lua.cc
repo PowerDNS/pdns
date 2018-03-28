@@ -1455,7 +1455,7 @@ void setupLuaConfig(bool client)
 #endif
       });
 
-    g_lua.writeFunction("showTLSContexts", [client]() {
+    g_lua.writeFunction("showTLSContexts", []() {
 #ifdef HAVE_DNS_OVER_TLS
         setLuaNoSideEffect();
         try {
@@ -1479,7 +1479,7 @@ void setupLuaConfig(bool client)
 #endif
       });
 
-    g_lua.writeFunction("getTLSContext", [client](size_t index) {
+    g_lua.writeFunction("getTLSContext", [](size_t index) {
         std::shared_ptr<TLSCtx> result = nullptr;
 #ifdef HAVE_DNS_OVER_TLS
         setLuaNoSideEffect();

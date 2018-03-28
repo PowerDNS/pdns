@@ -367,7 +367,7 @@ static int backendStatTable_handler(netsnmp_mib_handler* handler,
 }
 #endif /* HAVE_NET_SNMP */
 
-bool DNSDistSNMPAgent::sendBackendStatusChangeTrap(const std::shared_ptr<DownstreamState> dss)
+bool DNSDistSNMPAgent::sendBackendStatusChangeTrap(const std::shared_ptr<DownstreamState>& dss)
 {
 #ifdef HAVE_NET_SNMP
   const string backendAddress = dss->remote.toStringWithPort();

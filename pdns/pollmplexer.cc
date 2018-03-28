@@ -74,7 +74,7 @@ void PollFDMultiplexer::addFD(callbackmap_t& cbmap, int fd, callbackfunc_t toDo,
 void PollFDMultiplexer::removeFD(callbackmap_t& cbmap, int fd)
 {
   if(d_inrun && d_iter->first==fd)  // trying to remove us!
-    d_iter++;
+    ++d_iter;
 
   if(!cbmap.erase(fd))
     throw FDMultiplexerException("Tried to remove unlisted fd "+std::to_string(fd)+ " from multiplexer");
