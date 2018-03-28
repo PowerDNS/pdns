@@ -54,7 +54,6 @@ public:
   DNSProxy(const string &ip); //!< creates socket
   ~DNSProxy(); //<! dtor for DNSProxy
   void go(); //!< launches the actual thread
-  bool sendPacket(DNSPacket *p);    //!< send out a packet and make a conntrack entry to we can send back the answer
   bool completePacket(DNSPacket *r, const DNSName& target,const DNSName& aname);
 
   void mainloop();                  //!< this is the main loop that receives reply packets and sends them out again
