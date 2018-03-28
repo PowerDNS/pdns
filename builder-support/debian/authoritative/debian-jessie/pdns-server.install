@@ -5,3 +5,4 @@ usr/bin/zone2json
 usr/bin/zone2sql
 usr/lib/*/pdns/librandombackend.so*
 usr/sbin/pdns_server
+lib/systemd/system/pdns*
