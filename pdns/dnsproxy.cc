@@ -32,6 +32,8 @@
 #include "logger.hh"
 #include "statbag.hh"
 #include "dns_random.hh"
+#include "stubresolver.hh"
+#include "arguments.hh"
 
 extern StatBag S;
 
@@ -81,41 +83,36 @@ void DNSProxy::go()
   pthread_create(&tid,0,&launchhelper,this);
 }
 
-/** returns false if p->remote is not allowed to recurse via us */
-bool DNSProxy::sendPacket(DNSPacket *p)
-{
-  uint16_t id;
-  {
-    Lock l(&d_lock);
-    id=getID_locked();
-
-    ConntrackEntry ce;
-    ce.id       = p->d.id;
-    ce.remote = p->d_remote;
-    ce.outsock  = p->getSocket();
-    ce.created  = time( NULL );
-    ce.qtype = p->qtype.getCode();
-    ce.qname = p->qdomain;
-    ce.anyLocal = p->d_anyLocal;
-    ce.complete=0;
-    d_conntrack[id]=ce;
-  }
-  p->d.id=id^d_xor;
-  p->commitD();
-  
-  const string& buffer = p->getString();
-  
-  if(send(d_sock,buffer.c_str(), buffer.length() , 0)<0) { // zoom
-    L<<Logger::Error<<"Unable to send a packet to our recursing backend: "<<stringerror()<<endl;
-  }
-  (*d_resquestions)++;
-  return true;
-
-}
-
 //! look up qname aname with r->qtype, plonk it in the answer section of 'r' with name target
 bool DNSProxy::completePacket(DNSPacket *r, const DNSName& target,const DNSName& aname)
 {
+  if(r->d_tcp) {
+    vector<DNSZoneRecord> ips;
+    int ret1 = 0, ret2 = 0;
+
+    if(r->qtype == QType::A || r->qtype == QType::ANY)
+      ret1 = stubDoResolve(target, QType::A, ips);
+    if(r->qtype == QType::AAAA || r->qtype == QType::ANY)
+      ret2 = stubDoResolve(target, QType::AAAA, ips);
+
+    if(ret1 != RCode::NoError || ret2 != RCode::NoError) {
+      L<<Logger::Error<<"Error resolving for ALIAS "<<target<<", returning SERVFAIL"<<endl;
+    }
+
+    for (auto &ip : ips)
+    {
+      ip.dr.d_name = target;
+      r->addRecord(ip);
+    }
+
+    uint16_t len=htons(r->getString().length());
+    string buffer((const char*)&len, 2);
+    buffer.append(r->getString());
+    writen2WithTimeout(r->getSocket(), buffer.c_str(), buffer.length(), ::arg().asNum("tcp-idle-timeout"));
+
+    return true;
+  }
+
   uint16_t id;
   {
     Lock l(&d_lock);
