@@ -19,9 +19,10 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
-#include "dnsdist.hh"
-#include "sodcrypto.hh"
-#include "pwd.h"
+
+#include <fstream>
+#include <pwd.h>
+#include <thread>
 
 #if defined (__OpenBSD__) || defined(__NetBSD__)
 #include <readline/readline.h>
@@ -30,15 +31,20 @@
 #include <editline/readline.h>
 #endif
 
-#include <fstream>
-#include "dolog.hh"
 #include "ext/json11/json11.hpp"
 
+#include "dolog.hh"
+#include "dnsdist.hh"
+#include "dnsdist-console.hh"
+#include "sodcrypto.hh"
+
+GlobalStateHolder<NetmaskGroup> g_consoleACL;
 vector<pair<struct timeval, string> > g_confDelta;
+std::string g_consoleKey;
 bool g_logConsoleConnections{true};
 
 // MUST BE CALLED UNDER A LOCK - right now the LuaLock
-void feedConfigDelta(const std::string& line)
+static void feedConfigDelta(const std::string& line)
 {
   if(line.empty())
     return;
@@ -47,7 +53,7 @@ void feedConfigDelta(const std::string& line)
   g_confDelta.push_back({now,line});
 }
 
-string historyFile(const bool &ignoreHOME = false)
+static string historyFile(const bool &ignoreHOME = false)
 {
   string ret;
 
@@ -71,6 +77,7 @@ void doClient(ComboAddress server, const std::string& command)
 {
   if(g_verbose)
     cout<<"Connecting to "<<server.toStringWithPort()<<endl;
+
   int fd=socket(server.sin4.sin_family, SOCK_STREAM, 0);
   if (fd < 0) {
     cerr<<"Unable to connect to "<<server.toStringWithPort()<<endl;
@@ -87,7 +94,7 @@ void doClient(ComboAddress server, const std::string& command)
   writingNonce.merge(theirs, ours);
 
   if(!command.empty()) {
-    string msg=sodEncryptSym(command, g_key, writingNonce);
+    string msg=sodEncryptSym(command, g_consoleKey, writingNonce);
     putMsgLen32(fd, (uint32_t) msg.length());
     if(!msg.empty())
       writen2(fd, msg);
@@ -97,7 +104,7 @@ void doClient(ComboAddress server, const std::string& command)
         boost::scoped_array<char> resp(new char[len]);
         readn2(fd, resp.get(), len);
         msg.assign(resp.get(), len);
-        msg=sodDecryptSym(msg, g_key, readingNonce);
+        msg=sodDecryptSym(msg, g_consoleKey, readingNonce);
         cout<<msg;
         cout.flush();
       }
@@ -143,7 +150,7 @@ void doClient(ComboAddress server, const std::string& command)
     if(line.empty())
       continue;
 
-    string msg=sodEncryptSym(line, g_key, writingNonce);
+    string msg=sodEncryptSym(line, g_consoleKey, writingNonce);
     putMsgLen32(fd, (uint32_t) msg.length());
     writen2(fd, msg);
     uint32_t len;
@@ -156,7 +163,7 @@ void doClient(ComboAddress server, const std::string& command)
       boost::scoped_array<char> resp(new char[len]);
       readn2(fd, resp.get(), len);
       msg.assign(resp.get(), len);
-      msg=sodDecryptSym(msg, g_key, readingNonce);
+      msg=sodDecryptSym(msg, g_consoleKey, readingNonce);
       cout<<msg;
       cout.flush();
     }
@@ -285,6 +292,7 @@ const std::vector<ConsoleKeyword> g_consoleKeywords{
   /* keyword, function, parameters, description */
   { "addACL", true, "netmask", "add to the ACL set who can use this server" },
   { "addAction", true, "DNS rule, DNS action [, {uuid=\"UUID\"}]", "add a rule" },
+  { "addConsoleACL", true, "netmask", "add a netmask to the console ACL" },
   { "addDNSCryptBind", true, "\"127.0.0.1:8443\", \"provider name\", \"/path/to/resolver.cert\", \"/path/to/resolver.key\", {reusePort=false, tcpFastOpenSize=0, interface=\"\", cpus={}}", "listen to incoming DNSCrypt queries on 127.0.0.1 port 8443, with a provider name of `provider name`, using a resolver certificate and associated key stored respectively in the `resolver.cert` and `resolver.key` files. The fifth optional parameter is a table of parameters" },
   { "addDynBlocks", true, "addresses, message[, seconds[, action]]", "block the set of addresses with message `msg`, for `seconds` seconds (10 by default), applying `action` (default to the one set with `setDynBlocksAction()`)" },
   { "addLocal", true, "addr [, {doTCP=true, reusePort=false, tcpFastOpenSize=0, interface=\"\", cpus={}}]", "add `addr` to the list of addresses we listen on" },
@@ -375,6 +383,7 @@ const std::vector<ConsoleKeyword> g_consoleKeywords{
   { "sendCustomTrap", true, "str", "send a custom `SNMP` trap from Lua, containing the `str` string"},
   { "setACL", true, "{netmask, netmask}", "replace the ACL set with these netmasks. Use `setACL({})` to reset the list, meaning no one can use us" },
   { "setAPIWritable", true, "bool, dir", "allow modifications via the API. if `dir` is set, it must be a valid directory where the configuration files will be written by the API" },
+  { "setConsoleACL", true, "{netmask, netmask}", "replace the console ACL set with these netmasks" },
   { "setConsoleConnectionsLogging", true, "enabled", "whether to log the opening and closing of console connections" },
   { "setDNSSECPool", true, "pool name", "move queries requesting DNSSEC processing to this pool" },
   { "setDynBlocksAction", true, "action", "set which action is performed when a query is blocked. Only DNSAction.Drop (the default) and DNSAction.Refused are supported" },
@@ -410,6 +419,7 @@ const std::vector<ConsoleKeyword> g_consoleKeywords{
   { "showACL", true, "", "show our ACL set" },
   { "showBinds", true, "", "show listening addresses (frontends)" },
   { "showCacheHitResponseRules", true, "[{showUUIDs=false, truncateRuleWidth=-1}]", "show all defined cache hit response rules, optionally with their UUIDs and optionally truncated to a given width" },
+  { "showConsoleACL", true, "", "show our current console ACL set" },
   { "showDNSCryptBinds", true, "", "display the currently configured DNSCrypt binds" },
   { "showDynBlocks", true, "", "show dynamic blocks in force" },
   { "showPools", true, "", "show the available pools" },
@@ -493,7 +503,7 @@ char** my_completion( const char * text , int start,  int end)
 }
 }
 
-void controlClientThread(int fd, ComboAddress client)
+static void controlClientThread(int fd, ComboAddress client)
 try
 {
   setTCPNoDelay(fd);
@@ -520,7 +530,7 @@ try
     readn2(fd, msg.get(), len);
     
     string line(msg.get(), len);
-    line = sodDecryptSym(line, g_key, readingNonce);
+    line = sodDecryptSym(line, g_consoleKey, readingNonce);
     //    cerr<<"Have decrypted line: "<<line<<endl;
     string response;
     try {
@@ -605,7 +615,7 @@ try
     catch(const LuaContext::SyntaxErrorException& e) {
       response = "Error: " + string(e.what()) + ": ";
     }
-    response = sodEncryptSym(response, g_key, writingNonce);
+    response = sodEncryptSym(response, g_consoleKey, writingNonce);
     putMsgLen32(fd, response.length());
     writen2(fd, response.c_str(), response.length());
   }
@@ -622,3 +632,32 @@ catch(std::exception& e)
     close(fd);
 }
 
+void controlThread(int fd, ComboAddress local)
+try
+{
+  ComboAddress client;
+  int sock;
+  auto localACL = g_consoleACL.getLocal();
+  infolog("Accepting control connections on %s", local.toStringWithPort());
+
+  while ((sock = SAccept(fd, client)) >= 0) {
+
+    if (!localACL->match(client)) {
+      vinfolog("Control connection from %s dropped because of ACL", client.toStringWithPort());
+      close(sock);
+      continue;
+    }
+
+    if (g_logConsoleConnections) {
+      warnlog("Got control connection from %s", client.toStringWithPort());
+    }
+
+    std::thread t(controlClientThread, sock, client);
+    t.detach();
+  }
+}
+catch(const std::exception& e)
+{
+  close(fd);
+  errlog("Control connection died: %s", e.what());
+}
