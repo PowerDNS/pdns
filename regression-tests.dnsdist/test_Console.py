@@ -40,4 +40,4 @@ class TestConsoleNotAllowed(DNSDistTest):
         """
         Console: Not allowed by the ACL
         """
-        self.assertRaises(SocketError, self.sendConsoleCommand('showVersion()'))
+        self.assertRaises(SocketError, self.sendConsoleCommand, 'showVersion()')
