@@ -68,6 +68,8 @@ void setupLuaBindings(bool client)
         pool->packetCache = nullptr;
       }
     });
+  g_lua.registerFunction("getECS", &ServerPool::getECS);
+  g_lua.registerFunction("setECS", &ServerPool::setECS);
 
   /* DownstreamState */
   g_lua.registerFunction<void(DownstreamState::*)(int)>("setQPS", [](DownstreamState& s, int lim) { s.qps = lim ? QPSLimiter(lim, lim) : QPSLimiter(); });

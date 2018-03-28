@@ -421,6 +421,13 @@ Pools are automatically created when a server is added to a pool (with :func:`ne
 
     Returns the :class:`PacketCache` for this pool or nil.
 
+  .. method:: ServerPool:getECS()
+
+    .. versionadded:: 1.3.0
+
+    Whether dnsdist will add EDNS Client Subnet information to the query before looking up into the cache,
+    when all servers from this pool are down. For more information see :meth:`ServerPool:setECS`.
+
   .. method:: ServerPool:setCache(cache)
 
     Adds ``cache`` as the pool's cache.
@@ -430,6 +437,16 @@ Pools are automatically created when a server is added to a pool (with :func:`ne
   .. method:: ServerPool:unsetCache()
 
     Removes the cache from this pool.
+
+  .. method:: ServerPool:setECS()
+
+    .. versionadded:: 1.3.0
+
+    Set to true if dnsdist should add EDNS Client Subnet information to the query before looking up into the cache,
+    when all servers from this pool are down. If at least one server is up, the preference of the
+    selected server is used, this parameter is only useful if all the backends in this pool are down
+    and have EDNS Client Subnet enabled, since the queries in the cache will have been inserted with
+    ECS information. Default is false.
 
 PacketCache
 ~~~~~~~~~~~

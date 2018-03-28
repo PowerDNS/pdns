@@ -1313,7 +1313,7 @@ static void processUDPQuery(ClientState& cs, LocalHolders& holders, const struct
 
     bool ednsAdded = false;
     bool ecsAdded = false;
-    if (dq.useECS && ss && ss->useECS) {
+    if (dq.useECS && ((ss && ss->useECS) || (!ss && serverPool->getECS()))) {
       if (!handleEDNSClientSubnet(query, dq.size, consumed, &dq.len, &(ednsAdded), &(ecsAdded), remote, dq.ecsOverride, dq.ecsPrefixLength)) {
         vinfolog("Dropping query from %s because we couldn't insert the ECS value", remote.toStringWithPort());
         return;
