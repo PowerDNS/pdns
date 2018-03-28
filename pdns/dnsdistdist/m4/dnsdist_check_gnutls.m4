@@ -10,8 +10,8 @@ AC_DEFUN([DNSDIST_CHECK_GNUTLS], [
 
   AS_IF([test "x$enable_gnutls" != "xno"], [
     AS_IF([test "x$enable_gnutls" = "xyes" -o "x$enable_gnutls" = "xauto"], [
-      # we require gnutls_certificate_set_x509_key_file, added in 3.1.11
-      PKG_CHECK_MODULES([GNUTLS], [gnutls >= 3.1.11], [
+      # we require gnutls_memset, added in 3.4.0
+      PKG_CHECK_MODULES([GNUTLS], [gnutls >= 3.4.0], [
         [HAVE_GNUTLS=1]
         AC_DEFINE([HAVE_GNUTLS], [1], [Define to 1 if you have GnuTLS])
       ], [ : ])
