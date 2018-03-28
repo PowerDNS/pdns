@@ -546,19 +546,23 @@ std::atomic<uint64_t> OpenSSLTLSIOCtx::s_users(0);
 #ifndef HAVE_LIBSODIUM
 void safe_memset(void* data, int c, size_t size)
 {
-#ifdef HAVE_GNUTLS_MEMSET
-      gnutls_memset(data, c, size);
-#else
-      /* shamelessly taken from Dovecot's src/lib/safe-memset.c */
-      volatile unsigned int volatile_zero_idx = 0;
-      volatile unsigned char *p = reinterpret_cast<volatile unsigned char *>(data);
+#if defined(HAVE_EXPLICIT_BZERO)
+  explicit_bzero(data, size);
+#elif defined(HAVE_EXPLICIT_MEMSET)
+  explicit_memset(data, c, size);
+#elif defined(HAVE_GNUTLS_MEMSET)
+  gnutls_memset(data, c, size);
+#else /* HAVE_GNUTLS_MEMSET */
+  /* shamelessly taken from Dovecot's src/lib/safe-memset.c */
+  volatile unsigned int volatile_zero_idx = 0;
+  volatile unsigned char *p = reinterpret_cast<volatile unsigned char *>(data);
 
-      if (size == 0)
-        return;
+  if (size == 0)
+    return;
 
-      do {
-        memset(data, c, size);
-      } while (p[volatile_zero_idx] != c);
+  do {
+    memset(data, c, size);
+  } while (p[volatile_zero_idx] != c);
 #endif /* HAVE_GNUTLS_MEMSET */
 }
 #endif /* HAVE_LIBSODIUM */
