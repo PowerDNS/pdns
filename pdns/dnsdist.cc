@@ -1657,13 +1657,37 @@ catch(...)
 static bool upCheck(DownstreamState& ds)
 try
 {
-  vector<uint8_t> packet;
-  DNSPacketWriter dpw(packet, ds.checkName, ds.checkType.getCode(), ds.checkClass);
-  dnsheader * requestHeader = dpw.getHeader();
-  requestHeader->rd=true;
+  DNSName checkName = ds.checkName;
+  uint16_t checkType = ds.checkType.getCode();
+  uint16_t checkClass = ds.checkClass;
+  dnsheader checkHeader;
+  memset(&checkHeader, 0, sizeof(checkHeader));
+
+  checkHeader.qdcount = htons(1);
+#ifdef HAVE_LIBSODIUM
+  checkHeader.id = randombytes_random() % 65536;
+#else
+  checkHeader.id = random() % 65536;
+#endif
+
+  checkHeader.rd = true;
   if (ds.setCD) {
-    requestHeader->cd = true;
+    checkHeader.cd = true;
   }
+
+
+  if (ds.checkFunction) {
+    std::lock_guard<std::mutex> lock(g_luamutex);
+    auto ret = ds.checkFunction(checkName, checkType, checkClass, &checkHeader);
+    checkName = std::get<0>(ret);
+    checkType = std::get<1>(ret);
+    checkClass = std::get<2>(ret);
+  }
+
+  vector<uint8_t> packet;
+  DNSPacketWriter dpw(packet, checkName, checkType, checkClass);
+  dnsheader * requestHeader = dpw.getHeader();
+  *requestHeader = checkHeader;
 
   Socket sock(ds.remote.sin4.sin_family, SOCK_DGRAM);
   sock.setNonBlocking();
@@ -1697,7 +1721,7 @@ try
   string reply;
   sock.recvFrom(reply, ds.remote);
 
-  const dnsheader * responseHeader = (const dnsheader *) reply.c_str();
+  const dnsheader * responseHeader = reinterpret_cast<const dnsheader *>(reply.c_str());
 
   if (reply.size() < sizeof(*responseHeader)) {
     if (g_verboseHealthChecks)
@@ -1729,7 +1753,16 @@ try
     return false;
   }
 
-  // XXX fixme do bunch of checking here etc 
+  uint16_t receivedType;
+  uint16_t receivedClass;
+  DNSName receivedName(reply.c_str(), reply.size(), sizeof(dnsheader), false, &receivedType, &receivedClass);
+
+  if (receivedName != checkName || receivedType != checkType || receivedClass != checkClass) {
+    if (g_verboseHealthChecks)
+      infolog("Backend %s responded to health check with an invalid qname (%s vs %s), qtype (%s vs %s) or qclass (%d vs %d)", ds.getNameWithAddr(), receivedName.toLogString(), checkName.toLogString(), QType(receivedType).getName(), QType(checkType).getName(), receivedClass, checkClass);
+    return false;
+  }
+
   return true;
 }
 catch(const std::exception& e)

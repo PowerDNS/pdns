@@ -21,6 +21,8 @@ These two equivalent configurations give you sane load balancing using a very se
 Many users will simply be done with this configuration.
 It works as well for authoritative as for recursive servers.
 
+.. _Healthcheck:
+
 Healthcheck
 -----------
 dnsdist uses a health check, sent once every second, to determine the availability of a backend server.
@@ -36,6 +38,21 @@ The CD flag can be set on the query by setting ``setCD`` to true.
 e.g.::
 
   newServer({address="192.0.2.1", checkType="AAAA", checkType=DNSClass.CHAOS, checkName="a.root-servers.net.", mustResolve=true})
+
+Since the 1.3.0 release, the ``checkFunction`` option is also supported, taking a ``Lua`` function as parameter. This function receives a DNSName, two integers and a ``DNSHeader`` object (:ref:`DNSHeader`)
+representing the QName, QType and QClass of the health check query as well as the DNS header, as they are defined before the function was called. The function must return a DNSName and two integers
+representing the new QName, QType and QClass, and can directly modify the ``DNSHeader`` object.
+
+The following example sets the CD flag to true and change the QName to "powerdns.com." and the QType to AAAA while keeping the initial QClass.
+.. code-block:: lua
+
+    function myHealthCheck(qname, qtype, qclass, dh)
+      dh:setCD(true)
+
+      return newDNSName("powerdns.com."), dnsdist.AAAA, qclass
+    end
+
+    newServer("2620:0:0ccd::2")
 
 Source address selection
 ------------------------

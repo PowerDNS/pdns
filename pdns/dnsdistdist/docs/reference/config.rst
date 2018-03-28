@@ -21,7 +21,7 @@ Within dnsdist several core object types exist:
 * :class:`NetmaskGroup`: represents a group of netmasks
 * :class:`QPSLimiter`: implements a QPS-based filter
 * :class:`SuffixMatchNode`: represents a group of domain suffixes for rapid testing of membership
-* :class:`DNSHeader`: represents the header of a DNS packet
+* :class:`DNSHeader`: represents the header of a DNS packet, see :ref:`DNSHeader`
 * :class:`ClientState`: sometimes also called Bind or Frontend, represents the addresses and ports dnsdist is listening on
 
 The existence of most of these objects can mostly be ignored, unless you plan to write your own hooks and policies, but it helps to understand an expressions like:
@@ -235,6 +235,9 @@ Servers
 .. function:: newServer(server_string)
               newServer(server_table)
 
+  .. versionchanged:: 1.3.0
+    ``checkFunction`` option added.
+
   Add a new backend server. Call this function with either a string::
 
     newServer(
@@ -259,6 +262,7 @@ Servers
       checkClass=NUM,        -- Use NUM as QCLASS in the health-check query, default: DNSClass.IN
       checkName=STRING,      -- Use STRING as QNAME in the health-check query, default: "a.root-servers.net."
       checkType=STRING,      -- Use STRING as QTYPE in the health-check query, default: "A"
+      checkFunction=FUNCTION -- Use this function to dynamically set the QNAME, QTYPE and QCLASS to use in the health-check query (see :ref:`Healthcheck`)
       setCD=BOOL,            -- Set the CD (Checking Disabled) flag in the health-check query, default: false
       maxCheckFailures=NUM,  -- Allow NUM check failures before declaring the backend down, default: 1
       mustResolve=BOOL,      -- Set to true when the health check MUST return a NOERROR RCODE and an answer
