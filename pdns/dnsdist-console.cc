@@ -314,6 +314,7 @@ const std::vector<ConsoleKeyword> g_consoleKeywords{
   { "DropResponseAction", true, "", "drop these packets" },
   { "dumpStats", true, "", "print all statistics we gather" },
   { "exceedNXDOMAINs", true, "rate, seconds", "get set of addresses that exceed `rate` NXDOMAIN/s over `seconds` seconds" },
+  { "dynBlockRulesGroup", true, "", "return a new DynBlockRulesGroup object" },
   { "exceedQRate", true, "rate, seconds", "get set of address that exceed `rate` queries/s over `seconds` seconds" },
   { "exceedQTypeRate", true, "type, rate, seconds", "get set of address that exceed `rate` queries/s for queries of type `type` over `seconds` seconds" },
   { "exceedRespByterate", true, "rate, seconds", "get set of addresses that exceeded `rate` bytes/s answers over `seconds` seconds" },

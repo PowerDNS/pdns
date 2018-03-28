@@ -88,6 +88,7 @@ dnsdist_SOURCES = \
 	dnsdist-carbon.cc \
 	dnsdist-console.cc \
 	dnsdist-dnscrypt.cc \
+	dnsdist-dynblocks.hh \
 	dnsdist-ecs.cc dnsdist-ecs.hh \
 	dnsdist-lua.hh dnsdist-lua.cc \
 	dnsdist-lua-actions.cc \
