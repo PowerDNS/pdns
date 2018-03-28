@@ -1,6 +1,11 @@
 #!/usr/bin/env bash
 set -exu
 
+# You'll need the following binaries
+# `tcpclient`    : from the `ucspi-tcp` package (https://cr.yp.to/ucspi-tcp.html)
+# `axfr-get`     : https://cr.yp.to/djbdns.html
+# `tinydns-data` : ^ also from the djbdns package
+
 startdir=`pwd`
 TCPCLIENT=${TCPCLIENT:-tcpclient}
 AXFRGET=${AXFRGET:-axfr-get}

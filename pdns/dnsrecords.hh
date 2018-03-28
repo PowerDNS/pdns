@@ -256,6 +256,24 @@ public:
 };
 
 
+class MBRecordContent : public DNSRecordContent
+{
+public:
+  includeboilerplate(MB)
+
+private:
+  DNSName d_madname;
+};
+
+class MGRecordContent : public DNSRecordContent
+{
+public:
+  includeboilerplate(MG)
+
+private:
+  DNSName d_mgmname;
+};
+
 class MRRecordContent : public DNSRecordContent
 {
 public:

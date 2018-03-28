@@ -1,0 +1,4 @@
+0	hostmaster.mb.example.com.	IN	MG	120	phil.mb.example.com.
+0	hostmaster.mb.example.com.	IN	MG	120	sheila.mb.example.com.
+Rcode: 0 (No Error), RD: 0, QR: 1, TC: 0, AA: 1, opcode: 0
+Reply to question for qname='hostmaster.mb.example.com.', qtype=MG
