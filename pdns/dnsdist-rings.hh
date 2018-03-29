@@ -71,6 +71,7 @@ struct Rings {
   }
   std::unordered_map<int, vector<boost::variant<string,double> > > getTopBandwidth(unsigned int numentries);
   size_t numDistinctRequestors();
+  /* This function should only be called at configuration time before any query or response has been inserted */
   void setCapacity(size_t newCapacity, size_t numberOfShards)
   {
     if (numberOfShards < d_numberOfShards) {
@@ -92,6 +93,10 @@ struct Rings {
         shard->respRing.set_capacity(newCapacity / numberOfShards);
       }
     }
+
+    /* we just recreated the shards so they are now empty */
+    d_nbQueryEntries = 0;
+    d_nbResponseEntries = 0;
   }
 
   void setNumberOfLockRetries(size_t retries)
