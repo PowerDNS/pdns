@@ -544,14 +544,14 @@ std::atomic<uint64_t> OpenSSLTLSIOCtx::s_users(0);
 #include <gnutls/x509.h>
 
 #ifndef HAVE_LIBSODIUM
-void safe_memset(void* data, int c, size_t size)
+void safe_memzero(void* data, size_t size)
 {
 #if defined(HAVE_EXPLICIT_BZERO)
   explicit_bzero(data, size);
 #elif defined(HAVE_EXPLICIT_MEMSET)
-  explicit_memset(data, c, size);
+  explicit_memset(data, 0, size);
 #elif defined(HAVE_GNUTLS_MEMSET)
-  gnutls_memset(data, c, size);
+  gnutls_memset(data, 0, size);
 #else /* HAVE_GNUTLS_MEMSET */
   /* shamelessly taken from Dovecot's src/lib/safe-memset.c */
   volatile unsigned int volatile_zero_idx = 0;
@@ -561,8 +561,8 @@ void safe_memset(void* data, int c, size_t size)
     return;
 
   do {
-    memset(data, c, size);
-  } while (p[volatile_zero_idx] != c);
+    memset(data, 0, size);
+  } while (p[volatile_zero_idx] != 0);
 #endif /* HAVE_GNUTLS_MEMSET */
 }
 #endif /* HAVE_LIBSODIUM */
@@ -608,7 +608,7 @@ public:
 #ifdef HAVE_LIBSODIUM
       sodium_munlock(d_key.data, d_key.size);
 #else
-      safe_memset(d_key.data, 0, d_key.size);
+      safe_memzero(d_key.data, d_key.size);
 #endif /* HAVE_LIBSODIUM */
       gnutls_free(d_key.data);
       throw;
@@ -621,7 +621,7 @@ public:
 #ifdef HAVE_LIBSODIUM
       sodium_munlock(d_key.data, d_key.size);
 #else
-      safe_memset(d_key.data, 0, d_key.size);
+      safe_memzero(d_key.data, d_key.size);
 #endif /* HAVE_LIBSODIUM */
     }
     gnutls_free(d_key.data);
