@@ -46,6 +46,7 @@
 #include "dnsdist-console.hh"
 #include "dnsdist-ecs.hh"
 #include "dnsdist-lua.hh"
+#include "dnsdist-rings.hh"
 
 #include "base64.hh"
 #include "delaypipe.hh"
@@ -512,12 +513,9 @@ try {
         double udiff = ids->sentTime.udiff();
         vinfolog("Got answer from %s, relayed to %s, took %f usec", dss->remote.toStringWithPort(), ids->origRemote.toStringWithPort(), udiff);
 
-        {
-          struct timespec ts;
-          gettime(&ts);
-          std::lock_guard<std::mutex> lock(g_rings.respMutex);
-          g_rings.respRing.push_back({ts, ids->origRemote, ids->qname, ids->qtype, (unsigned int)udiff, (unsigned int)got, *dh, dss->remote});
-        }
+        struct timespec ts;
+        gettime(&ts);
+        g_rings.insertResponse(ts, ids->origRemote, ids->qname, ids->qtype, (unsigned int)udiff, (unsigned int)got, *dh, dss->remote);
 
         if(dh->rcode == RCode::ServFail)
           g_stats.servfailResponses++;
@@ -861,10 +859,7 @@ static void spoofResponseFromString(DNSQuestion& dq, const string& spoofContent)
 
 bool processQuery(LocalHolders& holders, DNSQuestion& dq, string& poolname, int* delayMsec, const struct timespec& now)
 {
-  {
-    WriteLock wl(&g_rings.queryLock);
-    g_rings.queryRing.push_back({now,*dq.remote,*dq.qname,dq.len,dq.qtype,*dq.dh});
-  }
+  g_rings.insertQuery(now,*dq.remote,*dq.qname,dq.qtype,dq.len,*dq.dh);
 
   if(g_qcount.enabled) {
     string qname = (*dq.qname).toString(".");
@@ -1884,8 +1879,7 @@ void* healthChecksThread()
           memset(&fake, 0, sizeof(fake));
           fake.id = ids.origID;
 
-          std::lock_guard<std::mutex> lock(g_rings.respMutex);
-          g_rings.respRing.push_back({ts, ids.origRemote, ids.qname, ids.qtype, std::numeric_limits<unsigned int>::max(), 0, fake, dss->remote});
+          g_rings.insertResponse(ts, ids.origRemote, ids.qname, ids.qtype, std::numeric_limits<unsigned int>::max(), 0, fake, dss->remote);
         }          
       }
     }

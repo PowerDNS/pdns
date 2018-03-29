@@ -21,6 +21,8 @@
  */
 #include "dnsdist.hh"
 #include "dnsdist-ecs.hh"
+#include "dnsdist-rings.hh"
+
 #include "dnsparser.hh"
 #include "ednsoptions.hh"
 #include "dolog.hh"
@@ -632,10 +634,7 @@ void* tcpClientThread(int pipefd)
         struct timespec answertime;
         gettime(&answertime);
         unsigned int udiff = 1000000.0*DiffTime(now,answertime);
-        {
-          std::lock_guard<std::mutex> lock(g_rings.respMutex);
-          g_rings.respRing.push_back({answertime, ci.remote, qname, dq.qtype, (unsigned int)udiff, (unsigned int)responseLen, *dh, ds->remote});
-        }
+        g_rings.insertResponse(answertime, ci.remote, qname, dq.qtype, (unsigned int)udiff, (unsigned int)responseLen, *dh, ds->remote);
 
         rewrittenResponse.clear();
       }

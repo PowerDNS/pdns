@@ -22,6 +22,7 @@
 #pragma once
 
 #include "dolog.hh"
+#include "dnsdist-rings.hh"
 
 class DynBlockRulesGroup
 {
@@ -123,12 +124,10 @@ public:
 
     size_t entriesCount = 0;
     if (hasQueryRules()) {
-      ReadLock rl(&g_rings.queryLock);
-      entriesCount += g_rings.queryRing.size();
+      entriesCount += g_rings.getNumberOfQueryEntries();
     }
     if (hasResponseRules()) {
-      std::lock_guard<std::mutex> lock(g_rings.respMutex);
-      entriesCount += g_rings.respRing.size();
+      entriesCount += g_rings.getNumberOfResponseEntries();
     }
     counts.reserve(entriesCount);
 
@@ -263,9 +262,9 @@ private:
       rule.second.d_cutOff.tv_sec -= rule.second.d_seconds;
     }
 
-    {
-      ReadLock rl(&g_rings.queryLock);
-      for(const auto& c : g_rings.queryRing) {
+    for (const auto& shard : g_rings.d_shards) {
+      std::lock_guard<std::mutex> rl(shard->queryLock);
+      for(const auto& c : shard->queryRing) {
         if (now < c.when) {
           continue;
         }
@@ -302,9 +301,9 @@ private:
       rule.second.d_cutOff.tv_sec -= rule.second.d_seconds;
     }
 
-    {
-      std::lock_guard<std::mutex> lock(g_rings.respMutex);
-      for(const auto& c : g_rings.respRing) {
+    for (const auto& shard : g_rings.d_shards) {
+      std::lock_guard<std::mutex> rl(shard->respLock);
+      for(const auto& c : shard->respRing) {
         if (now < c.when) {
           continue;
         }

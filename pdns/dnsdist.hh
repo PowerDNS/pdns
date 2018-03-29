@@ -28,7 +28,6 @@
 #include "iputils.hh"
 #include "dnsname.hh"
 #include <atomic>
-#include <boost/circular_buffer.hpp>
 #include <boost/variant.hpp>
 #include <mutex>
 #include <thread>
@@ -374,55 +373,6 @@ struct IDState
   bool skipCache{false};
   bool destHarvested{false}; // if true, origDest holds the original dest addr, otherwise the listening addr
 };
-
-struct Rings {
-  Rings(size_t capacity=10000)
-  {
-    queryRing.set_capacity(capacity);
-    respRing.set_capacity(capacity);
-    pthread_rwlock_init(&queryLock, nullptr);
-  }
-  struct Query
-  {
-    struct timespec when;
-    ComboAddress requestor;
-    DNSName name;
-    uint16_t size;
-    uint16_t qtype;
-    struct dnsheader dh;
-  };
-  boost::circular_buffer<Query> queryRing;
-  struct Response
-  {
-    struct timespec when;
-    ComboAddress requestor;
-    DNSName name;
-    uint16_t qtype;
-    unsigned int usec;
-    unsigned int size;
-    struct dnsheader dh;
-    ComboAddress ds; // who handled it
-  };
-  boost::circular_buffer<Response> respRing;
-  std::mutex respMutex;
-  pthread_rwlock_t queryLock;
-
-  std::unordered_map<int, vector<boost::variant<string,double> > > getTopBandwidth(unsigned int numentries);
-  size_t numDistinctRequestors();
-  void setCapacity(size_t newCapacity)
-  {
-    {
-      WriteLock wl(&queryLock);
-      queryRing.set_capacity(newCapacity);
-    }
-    {
-      std::lock_guard<std::mutex> lock(respMutex);
-      respRing.set_capacity(newCapacity);
-    }
-  }
-};
-
-extern Rings g_rings;
 
 typedef std::unordered_map<string, unsigned int> QueryCountRecords;
 typedef std::function<std::tuple<bool, string>(DNSQuestion dq)> QueryCountFilter;

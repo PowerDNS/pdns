@@ -251,11 +251,21 @@ EDNS Client Subnet
 Ringbuffers
 ~~~~~~~~~~~
 
-.. function:: setRingBuffersSize(num)
+.. function:: setRingBuffersLockRetries(num)
+  .. versionadded:: 1.3.0
 
-  Set the capacity of the ringbuffers used for live traffic inspection to ``num``
+  Set the number of shards to attempt to lock without blocking before giving up and simply blocking while waiting for the next shard to be available
+
+  :param int num: The maximum number of attempts. Defaults to 5 if there are more than one shard, 0 otherwise.
+
+.. function:: setRingBuffersSize(num [, numberOfShards])
+  .. versionchanged:: 1.3.0
+    ``numberOfShards`` optional parameter added.
+
+  Set the capacity of the ringbuffers used for live traffic inspection to ``num``, and the number of shards to ``numberOfShards`` if specified.
 
   :param int num: The maximum amount of queries to keep in the ringbuffer. Defaults to 10000
+  :param int numberOfShards: the number of shards to use to limit lock contention. Defaults to 1
 
 Servers
 -------

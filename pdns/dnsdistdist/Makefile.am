@@ -98,7 +98,7 @@ dnsdist_SOURCES = \
 	dnsdist-lua-rules.cc \
 	dnsdist-lua-vars.cc \
 	dnsdist-protobuf.cc dnsdist-protobuf.hh \
-	dnsdist-rings.cc \
+	dnsdist-rings.cc dnsdist-rings.hh \
 	dnsdist-snmp.cc dnsdist-snmp.hh \
 	dnsdist-tcp.cc \
 	dnsdist-web.cc \
@@ -210,6 +210,7 @@ testrunner_SOURCES = \
 	test-base64_cc.cc \
 	test-dnsdist_cc.cc \
 	test-dnsdistpacketcache_cc.cc \
+	test-dnsdistrings_cc.cc \
 	test-dnscrypt_cc.cc \
 	test-iputils_hh.cc \
 	dnsdist.hh \
