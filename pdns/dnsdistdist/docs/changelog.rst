@@ -3,7 +3,7 @@ Changelog
 
 .. changelog::
   :version: 1.3.0
-  :released: Unreleased
+  :released: 29th of March 2018
 
   .. change::
     :tags: Improvements, New Features
