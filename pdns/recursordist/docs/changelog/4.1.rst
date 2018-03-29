@@ -2,6 +2,57 @@ Changelogs for 4.1.x
 ====================
 
 .. changelog::
+  :version: 4.1.2
+  :released: 29th of March 2018
+
+  This release improves the stability and resiliency of the RPZ implementation and fixes several issues related to EDNS Client Subnet.
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 6298, 6303, 6290, 6268
+
+    Add the option to set the AXFR timeout for RPZs.
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 6336, 6237, 6293
+    :tickets: 6238
+
+    Retry loading RPZ zones from server when they fail initially.
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 6172
+
+    IXFR: correct behavior of dealing with DNS Name with multiple records and speed up IXFR transaction (Leon Xu).
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 6300
+
+    Fix ECS-based cache entry refresh code.
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 6320
+    :tickets: 6319
+
+    Fix ECS-specific NS AAAA not being returned from the cache.
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 6379
+    :tickets: 6225
+
+    Add :doc:`RPZ statistics endpoint <../http-api/endpoint-rpz-stats>` to the :doc:`API <../http-api/index>`.
+
+  .. change::
+    :tags: New Features
+    :pullreq: 6344
+
+    Add FFI version of :func:`gettag`.
+
+.. changelog::
   :version: 4.1.1
   :released: 22nd of January 2018
 
