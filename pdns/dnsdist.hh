@@ -128,6 +128,19 @@ public:
 
 struct DynBlock
 {
+  DynBlock(): action(DNSAction::Action::None)
+  {
+  }
+
+  DynBlock(const std::string& reason_, const struct timespec& until_, const DNSName& domain_, DNSAction::Action action_): reason(reason_), until(until_), domain(domain_), action(action_)
+  {
+  }
+
+  DynBlock(const DynBlock& rhs): reason(rhs.reason), until(rhs.until), domain(rhs.domain), action(rhs.action)
+  {
+    blocks.store(rhs.blocks);
+  }
+
   DynBlock& operator=(const DynBlock& rhs)
   {
     reason=rhs.reason;
@@ -324,12 +337,10 @@ struct ClientState;
 struct IDState
 {
   IDState() : origFD(-1), sentTime(true), delayMsec(0), tempFailureTTL(boost::none) { origDest.sin4.sin_family = 0;}
-  IDState(const IDState& orig)
+  IDState(const IDState& orig): origRemote(orig.origRemote), origDest(orig.origDest)
   {
     origFD = orig.origFD;
     origID = orig.origID;
-    origRemote = orig.origRemote;
-    origDest = orig.origDest;
     delayMsec = orig.delayMsec;
     tempFailureTTL = orig.tempFailureTTL;
     age.store(orig.age.load());
@@ -657,6 +668,16 @@ struct ServerPool
 
   const std::shared_ptr<DNSDistPacketCache> getCache() const { return packetCache; };
 
+  bool getECS() const
+  {
+    return d_useECS;
+  }
+
+  void setECS(bool useECS)
+  {
+    d_useECS = useECS;
+  }
+
   std::shared_ptr<DNSDistPacketCache> packetCache{nullptr};
   std::shared_ptr<ServerPolicy> policy{nullptr};
 
@@ -723,6 +744,7 @@ struct ServerPool
 private:
   NumberedVector<shared_ptr<DownstreamState>> d_servers;
   pthread_rwlock_t d_lock;
+  bool d_useECS{false};
 };
 using pools_t=map<std::string,std::shared_ptr<ServerPool>>;
 void setPoolPolicy(pools_t& pools, const string& poolName, std::shared_ptr<ServerPolicy> policy);
@@ -773,7 +795,6 @@ extern ComboAddress g_serverControl; // not changed during runtime
 extern std::vector<std::tuple<ComboAddress, bool, bool, int, std::string, std::set<int>>> g_locals; // not changed at runtime (we hope XXX)
 extern std::vector<shared_ptr<TLSFrontend>> g_tlslocals;
 extern vector<ClientState*> g_frontends;
-extern std::string g_key; // in theory needs locking
 extern bool g_truncateTC;
 extern bool g_fixupCase;
 extern int g_tcpRecvTimeout;
@@ -797,25 +818,6 @@ extern uint32_t g_hashperturb;
 extern bool g_useTCPSinglePipe;
 extern std::atomic<uint16_t> g_downstreamTCPCleanupInterval;
 extern size_t g_udpVectorSize;
-
-struct ConsoleKeyword {
-  std::string name;
-  bool function;
-  std::string parameters;
-  std::string description;
-  std::string toString() const
-  {
-    std::string res(name);
-    if (function) {
-      res += "(" + parameters + ")";
-    }
-    res += ": ";
-    res += description;
-    return res;
-  }
-};
-extern const std::vector<ConsoleKeyword> g_consoleKeywords;
-extern bool g_logConsoleConnections;
 
 #ifdef HAVE_EBPF
 extern shared_ptr<BPFFilter> g_defaultBPFFilter;
@@ -860,12 +862,6 @@ bool getMsgLen32(int fd, uint32_t* len);
 bool putMsgLen32(int fd, uint32_t len);
 void* tcpAcceptorThread(void* p);
 
-void doClient(ComboAddress server, const std::string& command);
-void doConsole();
-void controlClientThread(int fd, ComboAddress client);
-extern "C" {
-char** my_completion( const char * text , int start,  int end);
-}
 void setLuaNoSideEffect(); // if nothing has been declared, set that there are no side effects
 void setLuaSideEffect();   // set to report a side effect, cancelling all _no_ side effect calls
 bool getLuaNoSideEffect(); // set if there were only explicit declarations of _no_ side effect

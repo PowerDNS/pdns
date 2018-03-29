@@ -162,7 +162,8 @@ public:
   bool checkForCorrectTSIG(UeberBackend* B, DNSName* keyname, string* secret, TSIGRecordContent* trc) const;
 
   static bool s_doEDNSSubnetProcessing;
-  static uint16_t s_udpTruncationThreshold; //2
+  static uint16_t s_udpTruncationThreshold; 
+  int d_ednsRawPacketSizeLimit; // only used for Lua record
 private:
   void pasteQ(const char *question, int length); //!< set the question of this packet, useful for crafting replies
 
@@ -178,6 +179,7 @@ private:
   EDNSSubnetOpts d_eso;
 
   int d_maxreplylen;
+
   uint8_t d_ednsversion;
   // WARNING! This is really 12 bits
   uint16_t d_ednsrcode;

@@ -613,7 +613,7 @@ class GnuTLSConnection: public TLSConnection
 {
 public:
 
-  GnuTLSConnection(int socket, unsigned int timeout, const gnutls_certificate_credentials_t creds, const gnutls_priority_t priorityCache, std::shared_ptr<GnuTLSTicketsKey> ticketsKey): d_ticketsKey(ticketsKey)
+  GnuTLSConnection(int socket, unsigned int timeout, const gnutls_certificate_credentials_t creds, const gnutls_priority_t priorityCache, std::shared_ptr<GnuTLSTicketsKey>& ticketsKey): d_ticketsKey(ticketsKey)
   {
     d_socket = socket;
 

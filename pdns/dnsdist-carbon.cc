@@ -82,8 +82,8 @@ try
             str<<(*boost::get<DNSDistStats::statfunction_t>(&e.second))(e.first);
           str<<' '<<now<<"\r\n";
         }
-        const auto states = g_dstates.getCopy();
-        for(const auto& state : states) {
+        auto states = g_dstates.getLocal();
+        for(const auto& state : *states) {
           string serverName = state->name.empty() ? (state->remote.toString() + ":" + std::to_string(state->remote.getPort())) : state->getName();
           boost::replace_all(serverName, ".", "_");
           const string base = "dnsdist." + hostname + ".main.servers." + serverName + ".";
@@ -102,8 +102,8 @@ try
           const string base = "dnsdist." + hostname + ".main.frontends." + frontName + ".";
           str<<base<<"queries" << ' ' << front->queries.load() << " " << now << "\r\n";
         }
-        const auto localPools = g_pools.getCopy();
-        for (const auto& entry : localPools) {
+        auto localPools = g_pools.getLocal();
+        for (const auto& entry : *localPools) {
           string poolName = entry.first;
           boost::replace_all(poolName, ".", "_");
           if (poolName.empty()) {

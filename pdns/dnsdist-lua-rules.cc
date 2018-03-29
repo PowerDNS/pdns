@@ -826,7 +826,7 @@ private:
 class TagRule : public DNSRule
 {
 public:
-  TagRule(std::string tag, boost::optional<std::string> value) : d_value(value), d_tag(tag)
+  TagRule(const std::string& tag, boost::optional<std::string> value) : d_value(value), d_tag(tag)
   {
   }
   bool matches(const DNSQuestion* dq) const override
@@ -915,15 +915,30 @@ void parseRuleParams(boost::optional<luaruleparams_t> params, boost::uuids::uuid
   uuid = makeRuleID(uuidStr);
 }
 
+typedef std::unordered_map<std::string, boost::variant<bool, int, std::string, std::vector<std::pair<int,int> > > > ruleparams_t;
+
 template<typename T>
-static void showRules(GlobalStateHolder<vector<T> > *someRulActions, boost::optional<bool> showUUIDs) {
+static void showRules(GlobalStateHolder<vector<T> > *someRulActions, boost::optional<ruleparams_t> vars) {
   setLuaNoSideEffect();
   int num=0;
-  if (showUUIDs.get_value_or(false)) {
+  bool showUUIDs = false;
+  size_t truncateRuleWidth = string::npos;
+
+  if (vars) {
+    if (vars->count("showUUIDs")) {
+      showUUIDs = boost::get<bool>((*vars)["showUUIDs"]);
+    }
+    if (vars->count("truncateRuleWidth")) {
+      truncateRuleWidth = boost::get<int>((*vars)["truncateRuleWidth"]);
+    }
+  }
+
+  auto rules = someRulActions->getLocal();
+  if (showUUIDs) {
     boost::format fmt("%-3d %-38s %9d %-56s %s\n");
     g_outputBuffer += (fmt % "#" % "UUID" % "Matches" % "Rule" % "Action").str();
-    for(const auto& lim : someRulActions->getCopy()) {
-      string name = lim.d_rule->toString();
+    for(const auto& lim : *rules) {
+      string name = lim.d_rule->toString().substr(0, truncateRuleWidth);
       g_outputBuffer += (fmt % num % boost::uuids::to_string(lim.d_id) % lim.d_rule->d_matches % name % lim.d_action->toString()).str();
       ++num;
     }
@@ -931,8 +946,8 @@ static void showRules(GlobalStateHolder<vector<T> > *someRulActions, boost::opti
   else {
     boost::format fmt("%-3d %9d %-56s %s\n");
     g_outputBuffer += (fmt % "#" % "Matches" % "Rule" % "Action").str();
-    for(const auto& lim : someRulActions->getCopy()) {
-      string name = lim.d_rule->toString();
+    for(const auto& lim : *rules) {
+      string name = lim.d_rule->toString().substr(0, truncateRuleWidth);
       g_outputBuffer += (fmt % num % lim.d_rule->d_matches % name % lim.d_action->toString()).str();
       ++num;
     }
@@ -1002,8 +1017,8 @@ void setupLuaRules()
 
   g_lua.registerFunction<string(std::shared_ptr<DNSRule>::*)()>("toString", [](const std::shared_ptr<DNSRule>& rule) { return rule->toString(); });
 
-  g_lua.writeFunction("showResponseRules", [](boost::optional<bool> showUUIDs) {
-      showRules(&g_resprulactions, showUUIDs);
+  g_lua.writeFunction("showResponseRules", [](boost::optional<ruleparams_t> vars) {
+      showRules(&g_resprulactions, vars);
     });
 
   g_lua.writeFunction("rmResponseRule", [](boost::variant<unsigned int, std::string> id) {
@@ -1018,8 +1033,8 @@ void setupLuaRules()
       mvRule(&g_resprulactions, from, to);
     });
 
-  g_lua.writeFunction("showCacheHitResponseRules", [](boost::optional<bool> showUUIDs) {
-      showRules(&g_cachehitresprulactions, showUUIDs);
+  g_lua.writeFunction("showCacheHitResponseRules", [](boost::optional<ruleparams_t> vars) {
+      showRules(&g_cachehitresprulactions, vars);
     });
 
   g_lua.writeFunction("rmCacheHitResponseRule", [](boost::variant<unsigned int, std::string> id) {
@@ -1034,8 +1049,8 @@ void setupLuaRules()
       mvRule(&g_cachehitresprulactions, from, to);
     });
 
-  g_lua.writeFunction("showSelfAnsweredResponseRules", [](boost::optional<bool> showUUIDs) {
-      showRules(&g_selfansweredresprulactions, showUUIDs);
+  g_lua.writeFunction("showSelfAnsweredResponseRules", [](boost::optional<ruleparams_t> vars) {
+      showRules(&g_selfansweredresprulactions, vars);
     });
 
   g_lua.writeFunction("rmSelfAnsweredResponseRule", [](boost::variant<unsigned int, std::string> id) {
@@ -1232,8 +1247,8 @@ void setupLuaRules()
       return std::shared_ptr<DNSRule>(new ERCodeRule(rcode));
     });
 
-  g_lua.writeFunction("showRules", [](boost::optional<bool> showUUIDs) {
-      showRules(&g_rulactions, showUUIDs);
+  g_lua.writeFunction("showRules", [](boost::optional<ruleparams_t> vars) {
+      showRules(&g_rulactions, vars);
     });
 
   g_lua.writeFunction("RDRule", []() {

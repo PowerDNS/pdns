@@ -152,7 +152,7 @@ struct DNSCryptCertificatePair
 class DNSCryptQuery
 {
 public:
-  DNSCryptQuery(std::shared_ptr<DNSCryptContext> ctx): d_ctx(ctx)
+  DNSCryptQuery(const std::shared_ptr<DNSCryptContext>& ctx): d_ctx(ctx)
   {
   }
   ~DNSCryptQuery();
@@ -182,7 +182,7 @@ public:
     return d_encrypted;
   }
 
-  void setCertificatePair(std::shared_ptr<DNSCryptCertificatePair> pair)
+  void setCertificatePair(const std::shared_ptr<DNSCryptCertificatePair>& pair)
   {
     d_pair = pair;
   }
@@ -213,7 +213,7 @@ private:
   std::shared_ptr<DNSCryptCertificatePair> d_pair{nullptr};
   uint16_t d_id{0};
   uint16_t d_len{0};
-  uint16_t d_paddedLen;
+  uint16_t d_paddedLen{0};
   bool d_encrypted{false};
   bool d_valid{false};
 
@@ -246,7 +246,7 @@ public:
   std::vector<std::shared_ptr<DNSCryptCertificatePair>> getCertificates() { return certs; };
   const DNSName& getProviderName() const { return providerName; }
 
-  int encryptQuery(char* query, uint16_t queryLen, uint16_t querySize, const unsigned char clientPublicKey[DNSCRYPT_PUBLIC_KEY_SIZE], const DNSCryptPrivateKey& clientPrivateKey, const unsigned char clientNonce[DNSCRYPT_NONCE_SIZE / 2], bool tcp, uint16_t* encryptedResponseLen, const std::shared_ptr<DNSCryptCert> cert) const;
+  int encryptQuery(char* query, uint16_t queryLen, uint16_t querySize, const unsigned char clientPublicKey[DNSCRYPT_PUBLIC_KEY_SIZE], const DNSCryptPrivateKey& clientPrivateKey, const unsigned char clientNonce[DNSCRYPT_NONCE_SIZE / 2], bool tcp, uint16_t* encryptedResponseLen, const std::shared_ptr<DNSCryptCert>& cert) const;
   bool magicMatchesAPublicKey(DNSCryptQuery& query, time_t now);
   void getCertificateResponse(time_t now, const DNSName& qname, uint16_t qid, std::vector<uint8_t>& response);
 

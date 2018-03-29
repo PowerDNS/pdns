@@ -162,5 +162,5 @@ function dns_get_before_and_after_names_absolute(did, qname)
     end
   end
 
-  return { qname=qname,before=before,after=after }
+  return { unhashed=qname,before=before,after=after }
 end

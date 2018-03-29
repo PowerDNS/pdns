@@ -378,7 +378,7 @@ struct CIStringComparePOSIX
       while(a!=lhs.end()) {
           if (b==rhs.end() || std::tolower(*b,loc)<std::tolower(*a,loc)) return false;
           else if (std::tolower(*a,loc)<std::tolower(*b,loc)) return true;
-          a++;b++;
+          ++a;++b;
       }
       return (b!=rhs.end());
    }
@@ -479,18 +479,18 @@ public:
  
   bool match(string::const_iterator mi, string::const_iterator mend, string::const_iterator vi, string::const_iterator vend)
   {
-    for(;;mi++) {
+    for(;;++mi) {
       if (mi == mend) {
         return vi == vend;
       } else if (*mi == '?') {
         if (vi == vend) return false;
-        vi++;
+        ++vi;
       } else if (*mi == '*') {
-        while(*mi == '*') mi++;
+        while(*mi == '*') ++mi;
         if (mi == d_mask.end()) return true;
         while(vi != vend) {
           if (match(mi,mend,vi,vend)) return true;
-          vi++;
+          ++vi;
         }
         return false;
       } else {
@@ -501,7 +501,7 @@ public:
         } else {
           if (*mi != *vi) return false;
         }
-        vi++;
+        ++vi;
       }
     }
   }

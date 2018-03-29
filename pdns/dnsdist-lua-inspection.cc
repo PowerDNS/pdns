@@ -21,6 +21,7 @@
  */
 #include "dnsdist.hh"
 #include "dnsdist-lua.hh"
+#include "dnsdist-dynblocks.hh"
 
 #include "statnode.hh"
 
@@ -99,10 +100,8 @@ static void statNodeRespRing(statvisitor_t visitor, unsigned int seconds)
 {
   struct timespec cutoff, now;
   gettime(&now);
-  if (seconds) {
-    cutoff = now;
-    cutoff.tv_sec -= seconds;
-  }
+  cutoff = now;
+  cutoff.tv_sec -= seconds;
 
   StatNode root;
   {
@@ -613,4 +612,28 @@ void setupLuaInspection()
   g_lua.writeFunction("statNodeRespRing", [](statvisitor_t visitor, boost::optional<unsigned int> seconds) {
       statNodeRespRing(visitor, seconds ? *seconds : 0);
     });
+
+  /* DynBlockRulesGroup */
+  g_lua.writeFunction("dynBlockRulesGroup", []() { return std::make_shared<DynBlockRulesGroup>(); });
+  g_lua.registerFunction<void(std::shared_ptr<DynBlockRulesGroup>::*)(unsigned int, unsigned int, const std::string&, unsigned int, boost::optional<DNSAction::Action>)>("setQueryRate", [](std::shared_ptr<DynBlockRulesGroup>& group, unsigned int rate, unsigned int seconds, const std::string& reason, unsigned int blockDuration, boost::optional<DNSAction::Action> action) {
+      if (group) {
+        group->setQueryRate(rate, seconds, reason, blockDuration, action ? *action : DNSAction::Action::None);
+      }
+    });
+  g_lua.registerFunction<void(std::shared_ptr<DynBlockRulesGroup>::*)(unsigned int, unsigned int, const std::string&, unsigned int, boost::optional<DNSAction::Action>)>("setResponseByteRate", [](std::shared_ptr<DynBlockRulesGroup>& group, unsigned int rate, unsigned int seconds, const std::string& reason, unsigned int blockDuration, boost::optional<DNSAction::Action> action) {
+      if (group) {
+        group->setResponseByteRate(rate, seconds, reason, blockDuration, action ? *action : DNSAction::Action::None);
+      }
+    });
+  g_lua.registerFunction<void(std::shared_ptr<DynBlockRulesGroup>::*)(uint8_t, unsigned int, unsigned int, const std::string&, unsigned int, boost::optional<DNSAction::Action>)>("setRCodeRate", [](std::shared_ptr<DynBlockRulesGroup>& group, uint8_t rcode, unsigned int rate, unsigned int seconds, const std::string& reason, unsigned int blockDuration, boost::optional<DNSAction::Action> action) {
+      if (group) {
+        group->setRCodeRate(rcode, rate, seconds, reason, blockDuration, action ? *action : DNSAction::Action::None);
+      }
+    });
+  g_lua.registerFunction<void(std::shared_ptr<DynBlockRulesGroup>::*)(uint16_t, unsigned int, unsigned int, const std::string&, unsigned int, boost::optional<DNSAction::Action>)>("setQTypeRate", [](std::shared_ptr<DynBlockRulesGroup>& group, uint16_t qtype, unsigned int rate, unsigned int seconds, const std::string& reason, unsigned int blockDuration, boost::optional<DNSAction::Action> action) {
+      if (group) {
+        group->setQTypeRate(qtype, rate, seconds, reason, blockDuration, action ? *action : DNSAction::Action::None);
+      }
+    });
+  g_lua.registerFunction("apply", &DynBlockRulesGroup::apply);
 }

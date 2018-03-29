@@ -76,6 +76,8 @@ public:
     NS=2,
     CNAME=5,
     SOA=6,
+    MB=7,
+    MG=8,
     MR=9,
     WKS=11,
     PTR=12,
@@ -169,6 +171,8 @@ private:
       qtype_insert("NS", 2);
       qtype_insert("CNAME", 5);
       qtype_insert("SOA", 6);
+      qtype_insert("MB", 7);
+      qtype_insert("MG", 8);
       qtype_insert("MR", 9);
       qtype_insert("PTR", 12);
       qtype_insert("HINFO", 13);

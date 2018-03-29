@@ -43,6 +43,7 @@
 
 #include "dnsdist.hh"
 #include "dnsdist-cache.hh"
+#include "dnsdist-console.hh"
 #include "dnsdist-ecs.hh"
 #include "dnsdist-lua.hh"
 
@@ -723,41 +724,6 @@ shared_ptr<DownstreamState> roundrobin(const NumberedServerVector& servers, cons
   return (*res)[(counter++) % res->size()].second;
 }
 
-static void writepid(string pidfile) {
-  if (!pidfile.empty()) {
-    // Clean up possible stale file
-    unlink(pidfile.c_str());
-
-    // Write the pidfile
-    ofstream of(pidfile.c_str());
-    if (of) {
-      of << getpid();
-    } else {
-      errlog("Unable to write PID-file to '%s'.", pidfile);
-    }
-    of.close();
-  }
-}
-
-static void daemonize(void)
-{
-  if(fork())
-    _exit(0); // bye bye
-  /* We are child */
-
-  setsid(); 
-
-  int i=open("/dev/null",O_RDWR); /* open stdin */
-  if(i < 0) 
-    ; // L<<Logger::Critical<<"Unable to open /dev/null: "<<stringerror()<<endl;
-  else {
-    dup2(i,0); /* stdin */
-    dup2(i,1); /* stderr */
-    dup2(i,2); /* stderr */
-    close(i);
-  }
-}
-
 ComboAddress g_serverControl{"127.0.0.1:5199"};
 
 std::shared_ptr<ServerPool> createPoolIfNotExists(pools_t& pools, const string& poolName)
@@ -1348,7 +1314,7 @@ static void processUDPQuery(ClientState& cs, LocalHolders& holders, const struct
 
     bool ednsAdded = false;
     bool ecsAdded = false;
-    if (dq.useECS && ss && ss->useECS) {
+    if (dq.useECS && ((ss && ss->useECS) || (!ss && serverPool->getECS()))) {
       if (!handleEDNSClientSubnet(query, dq.size, consumed, &dq.len, &(ednsAdded), &(ecsAdded), remote, dq.ecsOverride, dq.ecsPrefixLength)) {
         vinfolog("Dropping query from %s because we couldn't insert the ECS value", remote.toStringWithPort());
         return;
@@ -1778,9 +1744,9 @@ void* maintThread()
 
     counter++;
     if (counter >= g_cacheCleaningDelay) {
-      const auto localPools = g_pools.getCopy();
+      auto localPools = g_pools.getLocal();
       std::shared_ptr<DNSDistPacketCache> packetCache = nullptr;
-      for (const auto& entry : localPools) {
+      for (const auto& entry : *localPools) {
         packetCache = entry.second->packetCache;
         if (packetCache) {
           size_t upTo = (packetCache->getMaxEntries()* (100 - g_cacheCleaningPercentage)) / 100;
@@ -1805,7 +1771,8 @@ void* healthChecksThread()
     if(g_tcpclientthreads->getQueuedCount() > 1 && !g_tcpclientthreads->hasReachedMaxThreads())
       g_tcpclientthreads->addTCPClientThread();
 
-    for(auto& dss : g_dstates.getCopy()) { // this points to the actual shared_ptrs!
+    auto states = g_dstates.getLocal(); // this points to the actual shared_ptrs!
+    for(auto& dss : *states) {
       if(dss->availability==DownstreamState::Availability::Auto) {
         bool newState=upCheck(*dss);
         if (newState) {
@@ -1893,32 +1860,6 @@ void* healthChecksThread()
   return 0;
 }
 
-string g_key;
-
-
-void controlThread(int fd, ComboAddress local)
-try
-{
-  ComboAddress client;
-  int sock;
-  warnlog("Accepting control connections on %s", local.toStringWithPort());
-  while((sock=SAccept(fd, client)) >= 0) {
-    if (g_logConsoleConnections) {
-      warnlog("Got control connection from %s", client.toStringWithPort());
-    }
-
-    thread t(controlClientThread, sock, client);
-    t.detach();
-  }
-}
-catch(std::exception& e) 
-{
-  close(fd);
-  errlog("Control connection died: %s", e.what());
-}
-
-
-
 static void bindAny(int af, int sock)
 {
   __attribute__((unused)) int one = 1;
@@ -1971,15 +1912,15 @@ static void checkFileDescriptorsLimits(size_t udpBindsCount, size_t tcpBindsCoun
 {
   /* stdin, stdout, stderr */
   size_t requiredFDsCount = 3;
-  const auto backends = g_dstates.getCopy();
+  auto backends = g_dstates.getLocal();
   /* UDP sockets to backends */
   size_t backendUDPSocketsCount = 0;
-  for (const auto& backend : backends) {
+  for (const auto& backend : *backends) {
     backendUDPSocketsCount += backend->sockets.size();
   }
   requiredFDsCount += backendUDPSocketsCount;
   /* TCP sockets to backends */
-  requiredFDsCount += (backends.size() * g_maxTCPClientThreads);
+  requiredFDsCount += (backends->size() * g_maxTCPClientThreads);
   /* listening sockets */
   requiredFDsCount += udpBindsCount;
   requiredFDsCount += tcpBindsCount;
@@ -2018,10 +1959,8 @@ struct
   vector<string> locals;
   vector<string> remotes;
   bool checkConfig{false};
-  bool beDaemon{false};
   bool beClient{false};
   bool beSupervised{false};
-  string pidfile;
   string command;
   string config;
   string uid;
@@ -2033,8 +1972,8 @@ std::atomic<bool> g_configurationDone{false};
 static void usage()
 {
   cout<<endl;
-  cout<<"Syntax: dnsdist [-C,--config file] [-c,--client [IP[:PORT]]] [-d,--daemon]\n";
-  cout<<"[-p,--pidfile file] [-e,--execute cmd] [-h,--help] [-l,--local addr]\n";
+  cout<<"Syntax: dnsdist [-C,--config file] [-c,--client [IP[:PORT]]]\n";
+  cout<<"[-e,--execute cmd] [-h,--help] [-l,--local addr]\n";
   cout<<"[-v,--verbose] [--check-config]\n";
   cout<<"\n";
   cout<<"-a,--acl netmask      Add this netmask to the ACL\n";
@@ -2050,7 +1989,6 @@ static void usage()
   cout<<"--check-config        Validate the configuration file and exit. The exit-code\n";
   cout<<"                      reflects the validation, 0 is OK, 1 means an error.\n";
   cout<<"                      Any errors are printed as well.\n";
-  cout<<"-d,--daemon           Operate as a daemon\n";
   cout<<"-e,--execute cmd      Connect to dnsdist and execute 'cmd'\n";
   cout<<"-g,--gid gid          Change the process group ID after binding sockets\n";
   cout<<"-h,--help             Display this helpful message\n";
@@ -2059,7 +1997,6 @@ static void usage()
   cout<<"                        (use with e.g. systemd and daemontools)\n";
   cout<<"--disable-syslog      Don't log to syslog, only to stdout\n";
   cout<<"                        (use with e.g. systemd)\n";
-  cout<<"-p,--pidfile file     Write a pidfile, works only with --daemon\n";
   cout<<"-u,--uid uid          Change the process user ID after binding sockets\n";
   cout<<"-v,--verbose          Enable verbose mode\n";
 }
@@ -2106,8 +2043,6 @@ try
     {"setkey",  required_argument, 0, 'k'},
 #endif
     {"local",  required_argument, 0, 'l'},
-    {"daemon", 0, 0, 'd'},
-    {"pidfile",  required_argument, 0, 'p'},
     {"supervised", 0, 0, 's'},
     {"disable-syslog", 0, 0, 2},
     {"uid",  required_argument, 0, 'u'},
@@ -2139,9 +2074,6 @@ try
     case 'c':
       g_cmdLine.beClient=true;
       break;
-    case 'd':
-      g_cmdLine.beDaemon=true;
-      break;
     case 'e':
       g_cmdLine.command=optarg;
       break;
@@ -2160,7 +2092,7 @@ try
       break;
 #ifdef HAVE_LIBSODIUM
     case 'k':
-      if (B64Decode(string(optarg), g_key) < 0) {
+      if (B64Decode(string(optarg), g_consoleKey) < 0) {
         cerr<<"Unable to decode key '"<<optarg<<"'."<<endl;
         exit(EXIT_FAILURE);
       }
@@ -2168,9 +2100,6 @@ try
 #endif
     case 'l':
       g_cmdLine.locals.push_back(trim_copy(string(optarg)));
-      break;
-    case 'p':
-      g_cmdLine.pidfile=optarg;
       break;
     case 's':
       g_cmdLine.beSupervised=true;
@@ -2263,6 +2192,12 @@ try
       acl.addMask(addr);
     g_ACL.setState(acl);
   }
+
+  auto consoleACL = g_consoleACL.getCopy();
+  for (const auto& mask : { "127.0.0.1/8", "::1/128" }) {
+    consoleACL.addMask(mask);
+  }
+  g_consoleACL.setState(consoleACL);
 
   if (g_cmdLine.checkConfig) {
     setupLua(true, g_cmdLine.config);
@@ -2563,24 +2498,26 @@ try
     }
   }
 
-  if(g_cmdLine.beDaemon) {
-    g_console=false;
-    daemonize();
-    writepid(g_cmdLine.pidfile);
+  warnlog("dnsdist %s comes with ABSOLUTELY NO WARRANTY. This is free software, and you are welcome to redistribute it according to the terms of the GPL version 2", VERSION);
+  vector<string> vec;
+  std::string acls;
+  g_ACL.getLocal()->toStringVector(&vec);
+  for(const auto& s : vec) {
+    if (!acls.empty())
+      acls += ", ";
+    acls += s;
   }
-  else {
-    vinfolog("Running in the foreground");
-    warnlog("dnsdist %s comes with ABSOLUTELY NO WARRANTY. This is free software, and you are welcome to redistribute it according to the terms of the GPL version 2", VERSION);
-    vector<string> vec;
-    std::string acls;
-    g_ACL.getCopy().toStringVector(&vec);
-    for(const auto& s : vec) {
-      if (!acls.empty())
-        acls += ", ";
-      acls += s;
+  infolog("ACL allowing queries from: %s", acls.c_str());
+  vec.clear();
+  acls.clear();
+  g_consoleACL.getLocal()->toStringVector(&vec);
+  for (const auto& entry : vec) {
+    if (!acls.empty()) {
+      acls += ", ";
     }
-    infolog("ACL allowing queries from: %s", acls.c_str());
+    acls += entry;
   }
+  infolog("Console ACL allowing connections from: %s", acls.c_str());
 
   uid_t newgid=0;
   gid_t newuid=0;
@@ -2621,7 +2558,7 @@ try
   }
   g_pools.setState(localPools);
 
-  if(g_dstates.getCopy().empty()) {
+  if(g_dstates.getLocal()->empty()) {
     errlog("No downstream servers defined: all packets will get dropped");
     // you might define them later, but you need to know
   }
@@ -2661,7 +2598,7 @@ try
   
   thread healththread(healthChecksThread);
 
-  if(g_cmdLine.beDaemon || g_cmdLine.beSupervised) {
+  if(g_cmdLine.beSupervised) {
 #ifdef HAVE_SYSTEMD
     sd_notify(0, "READY=1");
 #endif

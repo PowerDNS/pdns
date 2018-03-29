@@ -23,8 +23,9 @@
 
 #ifdef HAVE_EBPF
 
-void DynBPFFilter::block(const ComboAddress& addr, const struct timespec& until)
+bool DynBPFFilter::block(const ComboAddress& addr, const struct timespec& until)
 {
+  bool inserted = false;
   std::unique_lock<std::mutex> lock(d_mutex);
 
   const container_t::iterator it = d_entries.find(addr);
@@ -36,7 +37,9 @@ void DynBPFFilter::block(const ComboAddress& addr, const struct timespec& until)
   else {
     d_bpf->block(addr);
     d_entries.insert(BlockEntry(addr, until));
+    inserted = true;
   }
+  return inserted;
 }
 
 void DynBPFFilter::purgeExpired(const struct timespec& now)
