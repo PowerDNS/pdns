@@ -543,16 +543,24 @@ std::atomic<uint64_t> OpenSSLTLSIOCtx::s_users(0);
 #include <gnutls/gnutls.h>
 #include <gnutls/x509.h>
 
-#ifndef HAVE_LIBSODIUM
-void safe_memzero(void* data, size_t size)
+void safe_memory_lock(void* data, size_t size)
 {
-#if defined(HAVE_EXPLICIT_BZERO)
+#ifdef HAVE_LIBSODIUM
+  sodium_mlock(data, size);
+#endif
+}
+
+void safe_memory_release(void* data, size_t size)
+{
+#ifdef HAVE_LIBSODIUM
+  sodium_munlock(data, size);
+#elif defined(HAVE_EXPLICIT_BZERO)
   explicit_bzero(data, size);
 #elif defined(HAVE_EXPLICIT_MEMSET)
   explicit_memset(data, 0, size);
 #elif defined(HAVE_GNUTLS_MEMSET)
   gnutls_memset(data, 0, size);
-#else /* HAVE_GNUTLS_MEMSET */
+#else
   /* shamelessly taken from Dovecot's src/lib/safe-memset.c */
   volatile unsigned int volatile_zero_idx = 0;
   volatile unsigned char *p = reinterpret_cast<volatile unsigned char *>(data);
@@ -563,9 +571,8 @@ void safe_memzero(void* data, size_t size)
   do {
     memset(data, 0, size);
   } while (p[volatile_zero_idx] != 0);
-#endif /* HAVE_GNUTLS_MEMSET */
+#endif
 }
-#endif /* HAVE_LIBSODIUM */
 
 class GnuTLSTicketsKey
 {
@@ -576,9 +583,7 @@ public:
       throw std::runtime_error("Error generating tickets key for TLS context");
     }
 
-#ifdef HAVE_LIBSODIUM
-    sodium_mlock(d_key.data, d_key.size);
-#endif /* HAVE_LIBSODIUM */
+    safe_memory_lock(d_key.data, d_key.size);
   }
 
   GnuTLSTicketsKey(const std::string& keyFile)
@@ -589,9 +594,7 @@ public:
       throw std::runtime_error("Error generating tickets key (before parsing key file) for TLS context");
     }
 
-#ifdef HAVE_LIBSODIUM
-    sodium_mlock(d_key.data, d_key.size);
-#endif /* HAVE_LIBSODIUM */
+    safe_memory_lock(d_key.data, d_key.size);
 
     try {
       ifstream file(keyFile);
@@ -605,11 +608,7 @@ public:
       file.close();
     }
     catch (const std::exception& e) {
-#ifdef HAVE_LIBSODIUM
-      sodium_munlock(d_key.data, d_key.size);
-#else
-      safe_memzero(d_key.data, d_key.size);
-#endif /* HAVE_LIBSODIUM */
+      safe_memory_release(d_key.data, d_key.size);
       gnutls_free(d_key.data);
       throw;
     }
@@ -618,11 +617,7 @@ public:
   ~GnuTLSTicketsKey()
   {
     if (d_key.data != nullptr && d_key.size > 0) {
-#ifdef HAVE_LIBSODIUM
-      sodium_munlock(d_key.data, d_key.size);
-#else
-      safe_memzero(d_key.data, d_key.size);
-#endif /* HAVE_LIBSODIUM */
+      safe_memory_release(d_key.data, d_key.size);
     }
     gnutls_free(d_key.data);
   }
