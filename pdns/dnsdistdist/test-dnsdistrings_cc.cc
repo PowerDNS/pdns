@@ -127,7 +127,7 @@ static void ringReaderThread(Rings& rings, std::atomic<bool>& done, size_t numbe
     size_t numberOfQueries = 0;
     size_t numberOfResponses = 0;
 
-    for (auto& shard : rings.d_shards) {
+    for (const auto& shard : rings.d_shards) {
       {
         std::lock_guard<std::mutex> rl(shard->queryLock);
         for(const auto& c : shard->queryRing) {
