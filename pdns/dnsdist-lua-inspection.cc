@@ -44,12 +44,13 @@ static std::unordered_map<unsigned int, vector<boost::variant<string,double>>> g
       }
       else {
         unsigned int lab = *labels;
-        for(auto a : shard->respRing) {
+        for(const auto& a : shard->respRing) {
           if(!pred(a))
             continue;
 
-          a.name.trimToLabels(lab);
-          counts[a.name]++;
+          DNSName temp(a.name);
+          temp.trimToLabels(lab);
+          counts[temp]++;
           total++;
         }
       }
