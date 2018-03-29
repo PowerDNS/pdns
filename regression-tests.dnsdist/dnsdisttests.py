@@ -50,6 +50,9 @@ class DNSDistTest(unittest.TestCase):
     _acl = ['127.0.0.1/32']
     _consolePort = 5199
     _consoleKey = None
+    _healthCheckName = 'a.root-servers.net.'
+    _healthCheckCounter = 0
+    _healthCheckAnswerUnexpected = False
 
     @classmethod
     def startResponders(cls):
@@ -144,8 +147,10 @@ class DNSDistTest(unittest.TestCase):
         if len(request.question) != 1:
             print("Skipping query with question count %d" % (len(request.question)))
             return None
-        healthcheck = not str(request.question[0].name).endswith('tests.powerdns.com.')
-        if not healthcheck:
+        healthCheck = str(request.question[0].name).endswith(cls._healthCheckName)
+        if healthCheck:
+            cls._healthCheckCounter += 1
+        else:
             cls._ResponderIncrementCounter()
             if not fromQueue.empty():
                 response = fromQueue.get(True, cls._queueTimeout)
@@ -154,7 +159,7 @@ class DNSDistTest(unittest.TestCase):
                     response.id = request.id
                     toQueue.put(request, True, cls._queueTimeout)
 
-        if not response:
+        if not response and (healthCheck or cls._healthCheckAnswerUnexpected):
             # unexpected query, or health check
             response = dns.message.make_response(request)
 
@@ -193,6 +198,10 @@ class DNSDistTest(unittest.TestCase):
             (conn, _) = sock.accept()
             conn.settimeout(2.0)
             data = conn.recv(2)
+            if not data:
+                conn.close()
+                continue
+
             (datalen,) = struct.unpack("!H", data)
             data = conn.recv(datalen)
             request = dns.message.from_wire(data, ignore_trailing=ignoreTrailing)
@@ -380,6 +389,8 @@ class DNSDistTest(unittest.TestCase):
         # Clear the responses counters
         for key in self._responsesCounter:
             self._responsesCounter[key] = 0
+
+        self._healthCheckCounter = 0
 
         # Make sure the queues are empty, in case
         # a previous test failed

@@ -104,7 +104,7 @@ static void parseLocalBindVars(boost::optional<localbind_t> vars, bool& doTCP, b
 
 void setupLuaConfig(bool client)
 {
-  typedef std::unordered_map<std::string, boost::variant<bool, std::string, vector<pair<int, std::string> > > > newserver_t;
+  typedef std::unordered_map<std::string, boost::variant<bool, std::string, vector<pair<int, std::string> >, DownstreamState::checkfunc_t > > newserver_t;
 
   g_lua.writeFunction("inClientStartup", [client]() {
         return client && !g_configurationDone;
@@ -268,6 +268,10 @@ void setupLuaConfig(bool client)
 
 			if(vars.count("checkClass")) {
 			  ret->checkClass=std::stoi(boost::get<string>(vars["checkClass"]));
+			}
+
+                        if(vars.count("checkFunction")) {
+			  ret->checkFunction= boost::get<DownstreamState::checkfunc_t>(vars["checkFunction"]);
 			}
 
 			if(vars.count("setCD")) {

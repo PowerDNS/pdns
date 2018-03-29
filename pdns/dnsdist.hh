@@ -535,6 +535,8 @@ extern std::shared_ptr<TCPClientCollection> g_tcpclientthreads;
 
 struct DownstreamState
 {
+  typedef std::function<std::tuple<DNSName, uint16_t, uint16_t>(const DNSName&, uint16_t, uint16_t, dnsheader*)> checkfunc_t;
+
   DownstreamState(const ComboAddress& remote_, const ComboAddress& sourceAddr_, unsigned int sourceItf, size_t numberOfSockets);
   DownstreamState(const ComboAddress& remote_): DownstreamState(remote_, ComboAddress(), 0, 1) {}
   ~DownstreamState()
@@ -555,6 +557,7 @@ struct DownstreamState
   QPSLimiter qps;
   vector<IDState> idStates;
   ComboAddress sourceAddr;
+  checkfunc_t checkFunction;
   DNSName checkName{"a.root-servers.net."};
   QType checkType{QType::A};
   uint16_t checkClass{QClass::IN};
