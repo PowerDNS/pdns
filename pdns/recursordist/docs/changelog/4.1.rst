@@ -5,7 +5,7 @@ Changelogs for 4.1.x
   :version: 4.1.2
   :released: Unreleased
 
-  This releases improves the stability and resilency of the RPZ implementation and fixes several issues related to EDNS Client Subnet.
+  This release improves the stability and resilency of the RPZ implementation and fixes several issues related to EDNS Client Subnet.
 
   .. change::
     :tags: Improvements
