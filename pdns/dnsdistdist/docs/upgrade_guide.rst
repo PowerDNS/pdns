@@ -12,6 +12,22 @@ Add the appropriate :func:`setConsoleACL` and :func:`addConsoleACL` statements t
 The ``--daemon`` option is removed from the :program:`dnsdist` binary, meaning that :program:`dnsdist` will not fork to the background anymore.
 Hence, it can only be run on the foreground or under a supervisor like systemd, supervisord and ``daemon(8)``.
 
+Due to changes in the architecture of :program:`dnsdist`, several of the shortcut rules have been removed after deprecating them in 1.2.0.
+All removed functions have their equivalent :func:`addAction` listed.
+Please check the configuration for these statements (or use ``dnsdist --check-config``) and update where needed.
+This removal affects these functions:
+
+- :func:`addAnyTCRule`
+- :func:`addDelay`
+- :func:`addDisableValidationRule`
+- :func:`addDomainBlock`
+- :func:`addDomainCNAMESpoof`
+- :func:`addDomainSpoof`
+- :func:`addNoRecurseRule`
+- :func:`addPoolRule`
+- :func:`addQPSLimit`
+- :func:`addQPSPoolRule`
+
 1.1.0 to 1.2.0
 --------------
 
