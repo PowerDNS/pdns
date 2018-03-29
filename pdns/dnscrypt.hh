@@ -98,7 +98,7 @@ public:
   }
   bool isValid(time_t now) const
   {
-    return ntohl(getTSStart()) <= now && now <= ntohl(getTSEnd());
+    return ntohl(getTSStart()) <= static_cast<uint32_t>(now) && static_cast<uint32_t>(now) <= ntohl(getTSEnd());
   }
   unsigned char magic[DNSCRYPT_CERT_MAGIC_SIZE];
   unsigned char esVersion[2];
