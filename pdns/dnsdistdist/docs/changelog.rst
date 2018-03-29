@@ -184,6 +184,68 @@ Changelog
 
     Ensure :program:`dnsdist` compiles on NetBSD (Tom Ivar Helbekkmo).
 
+  .. change::
+    :tags: Improvements
+    :pullreq: 5845
+    :tickets: 5845
+
+    Also log eBPF dynamic blocks, as regular dynamic block already are.
+
+  .. change::
+    :tags: New Features, Improvements
+    :pullreq: 6391
+
+    Add :ref:`DynBlockRulesGroup` to improve processing speed of the :func:`maintenance` function by reducing memory usage and not walking the ringbuffers multiple times.
+
+  .. change::
+    :tags: Removals
+    :pullreq: 6394
+    :tickets: 6329
+
+    Remove the ``--daemon`` option from :program:`dnsdist`.
+
+  .. change::
+    :tags: New Features
+    :pullreq: 6399
+    :tickets: 4654
+
+    Add :func:`console ACL <addConsoleACL>` functions.
+
+  .. change::
+    :tags: New Features
+    :pullreq: 6400
+    :tickets: 6098
+
+    Allow adding :meth:`EDNS Client Subnet information <ServerPool:setECS>` to a query before looking in the cache.
+    This allows serving ECS enabled answers from the cache when all servers in a pool are down.
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 6401
+    :tickets: 6211
+
+    Ensure large numbers are shown correctly in the API.
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 6402
+    :tickets: 5763
+
+    Add option to :func:`showRules` to truncate the output length.
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 6403
+
+    Avoid assertion errors in :func:`NewServer` (Chris Hofstaedtler).
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 6407
+
+    Fix several warnings reported by clang's analyzer and cppcheck, should lead to small performance increases.
+
+
 .. changelog::
   :version: 1.2.1
   :released: 16th of February 2018
