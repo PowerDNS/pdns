@@ -93,6 +93,12 @@ paths:
           description: '“true” (default) or “false”, whether to include the “rrsets” in the response Zone object.'
           type: boolean
           default: true
+        - name: zone_struct
+          description: The zone struct to patch with
+          required: true
+          in: body
+          schema:
+            $ref: '#/definitions/Zone'
       responses:
         '201':
           description: A zone
@@ -368,6 +374,10 @@ paths:
           schema:
             type: array
             items:
+            # these can be commented because the swagger code generator fails on them
+            # and replaced with
+            # type: string
+            # or something like that
             - $ref: '#/definitions/StatisticItem'
             - $ref: '#/definitions/MapStatisticItem'
             - $ref: '#/definitions/RingStatisticItem'
@@ -864,7 +874,7 @@ definitions:
       account:
         type: string
         description: 'Name of an account that added the comment'
-      modifided_at:
+      modified_at:
         type: integer
         description: 'Timestamp of the last change to the comment'
 
