@@ -3,7 +3,7 @@ Changelogs for 4.1.x
 
 .. changelog::
   :version: 4.1.2
-  :released: Unreleased
+  :released: 29th of March 2018
 
   This release improves the stability and resiliency of the RPZ implementation and fixes several issues related to EDNS Client Subnet.
 
