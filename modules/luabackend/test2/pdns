@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
+PDNS=${PDNS:-${PWD}/../../../pdns/pdns_server}
 
-../../../pdns/pdns_server --no-config --daemon=no --local-port=5300 --socket-dir=./  \
+$PDNS --no-config --daemon=no --local-port=5300 --socket-dir=./  \
 --no-shuffle --launch=lua --loglevel=9 --config-dir=./ \
 --cache-ttl=0 --negquery-cache-ttl=0 --query-cache-ttl=0 \
 --module-dir=../.libs/ --lua-filename=./pdns-luabackend.lua
