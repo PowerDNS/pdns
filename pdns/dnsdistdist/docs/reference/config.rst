@@ -784,7 +784,7 @@ faster than the existing rules.
 
 .. function:: dynBlockRulesGroup() -> DynBlockRulesGroup
 
-  .. versionaddeded:: 1.3.0
+  .. versionadded:: 1.3.0
 
   Creates a new :class:`DynBlockRulesGroup` object.
 
