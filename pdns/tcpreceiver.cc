@@ -439,7 +439,7 @@ bool TCPNameserver::canDoAXFR(shared_ptr<DNSPacket> q)
       }
     }
 
-    DNSSECKeeper dk;
+    DNSSECKeeper dk(s_P->getBackend());
 
     if (q->d_tsig_algo == TSIG_GSS) {
       vector<string> princs;
@@ -577,6 +577,7 @@ int TCPNameserver::doAXFR(const DNSName &target, shared_ptr<DNSPacket> q, int ou
       s_P=new PacketHandler;
     }
 
+    // canDoAXFR does all the ACL checks, and has the if(disable-axfr) shortcut, call it first.
     if (!canDoAXFR(q)) {
       L<<Logger::Error<<"AXFR of domain '"<<target<<"' failed: "<<q->getRemote()<<" cannot request AXFR"<<endl;
       outpacket->setRcode(RCode::NotAuth);
@@ -584,7 +585,6 @@ int TCPNameserver::doAXFR(const DNSName &target, shared_ptr<DNSPacket> q, int ou
       return 0;
     }
 
-    // canDoAXFR does all the ACL checks, and has the if(disable-axfr) shortcut, call it first.
     if(!s_P->getBackend()->getSOAUncached(target, sd)) {
       L<<Logger::Error<<"AXFR of domain '"<<target<<"' failed: not authoritative"<<endl;
       outpacket->setRcode(RCode::NotAuth);
@@ -601,7 +601,7 @@ int TCPNameserver::doAXFR(const DNSName &target, shared_ptr<DNSPacket> q, int ou
     return 0;
   }
 
-  DNSSECKeeper dk;
+  DNSSECKeeper dk(&db);
   dk.clearCaches(target);
   bool securedZone = dk.isSecuredZone(target);
   bool presignedZone = dk.isPresigned(target);
@@ -638,8 +638,7 @@ int TCPNameserver::doAXFR(const DNSName &target, shared_ptr<DNSPacket> q, int ou
     if (algorithm == DNSName("hmac-md5.sig-alg.reg.int"))
       algorithm = DNSName("hmac-md5");
     if (algorithm != DNSName("gss-tsig")) {
-      Lock l(&s_plock);
-      if(!s_P->getBackend()->getTSIGKey(tsigkeyname, &algorithm, &tsig64)) {
+      if(!db.getTSIGKey(tsigkeyname, &algorithm, &tsig64)) {
         L<<Logger::Error<<"TSIG key '"<<tsigkeyname<<"' for domain '"<<target<<"' not found"<<endl;
         return 0;
       }
@@ -650,8 +649,6 @@ int TCPNameserver::doAXFR(const DNSName &target, shared_ptr<DNSPacket> q, int ou
     }
   }
   
-  
-  UeberBackend signatureDB; 
   
   // SOA *must* go out first, our signing pipe might reorder
   DLOG(L<<"Sending out SOA"<<endl);
@@ -668,7 +665,7 @@ int TCPNameserver::doAXFR(const DNSName &target, shared_ptr<DNSPacket> q, int ou
   if(securedZone && !presignedZone) {
     set<DNSName> authSet;
     authSet.insert(target);
-    addRRSigs(dk, signatureDB, authSet, outpacket->getRRS());
+    addRRSigs(dk, db, authSet, outpacket->getRRS());
   }
   
   if(haveTSIGDetails && !tsigkeyname.empty())
