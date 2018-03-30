@@ -730,7 +730,8 @@ RNAME##RecordContent::DNSRecordContent* RNAME##RecordContent::make(const DNSReco
 RNAME##RecordContent::RNAME##RecordContent(const DNSRecord& dr, PacketReader& pr)                  \
 {                                                                                                  \
   doRecordCheck(dr);                                                                               \
-  xfrPacket(pr);                                                                                   \
+  pr.d_bytesout = 0 ;xfrPacket(pr);                                                                                   \
+  d_size_in_bytes = pr.d_bytesout; ; /* d_size_in_bytes = dr.d_clen; */                                                               \
 }                                                                                                  \
                                                                                                    \
 RNAME##RecordContent::DNSRecordContent* RNAME##RecordContent::make(const string& zonedata)         \

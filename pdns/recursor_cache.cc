@@ -32,8 +32,12 @@ unsigned int MemRecursorCache::bytes() const
   for(cache_t::const_iterator i=d_cache.begin(); i!=d_cache.end(); ++i) {
     ret+=sizeof(struct CacheEntry);
     ret+=(unsigned int)i->d_qname.toString().length();
-    for(auto j=i->d_records.begin(); j!= i->d_records.end(); ++j)
+    cerr<<i->d_qname.toString()<<"/"<<QType(i->d_qtype).getName()<<": ";
+    for(auto j=i->d_records.begin(); j!= i->d_records.end(); ++j) {
       ret+= sizeof(*j); // XXX WRONG we don't know the stored size! j->size();
+      cerr<<(*j)->getZoneRepresentation()<<"="<<(*j)->d_size_in_bytes<<" ";
+    }
+    cerr<<endl;
   }
   return ret;
 }

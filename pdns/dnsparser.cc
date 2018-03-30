@@ -526,6 +526,7 @@ try
     blob.clear();
 
   d_pos = d_startrecordpos + d_recordlen;
+  d_bytesout += d_recordlen;
 }
 catch(...)
 {
@@ -545,6 +546,7 @@ void PacketReader::xfrBlob(string& blob, int length)
   }
   else 
     blob.clear();
+  d_bytesout += length;
 }
 
 

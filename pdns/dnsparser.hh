@@ -87,6 +87,7 @@ public:
   void xfr32BitInt(uint32_t& val)
   {
     val=get32BitInt();
+    d_bytesout += 4;
   }
 
   void xfrIP(uint32_t& val)
@@ -139,6 +140,7 @@ public:
   void xfrName(DNSName &name, bool compress=false, bool noDot=false)
   {
     name=getName();
+    d_bytesout += name.wirelength();
   }
 
   void xfrText(string &text, bool multi=false, bool lenField=true)
@@ -166,6 +168,8 @@ public:
   string getUnquotedText(bool lenField);
 
   uint16_t d_pos;
+
+  size_t d_bytesout = 0;
 
   bool eof() { return true; };
   const string getRemaining() const {
@@ -262,6 +266,8 @@ public:
   }
 
   virtual uint16_t getType() const = 0;
+
+  size_t d_size_in_bytes = 0;
 
 protected:
   typedef std::map<std::pair<uint16_t, uint16_t>, makerfunc_t* > typemap_t;

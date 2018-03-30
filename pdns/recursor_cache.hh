@@ -92,6 +92,7 @@ private:
     time_t d_ttd;
     uint16_t d_qtype;
     bool d_auth;
+    size_t d_bytes=0;
   };
 
   /* The ECS Index (d_ecsIndex) keeps track of whether there is any ECS-specific
