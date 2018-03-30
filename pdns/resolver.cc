@@ -115,9 +115,9 @@ Resolver::Resolver()
 
 Resolver::~Resolver()
 {
-  for(std::map<std::string,int>::iterator iter = locals.begin(); iter != locals.end(); ++iter) {
-    if (iter->second >= 0)
-      close(iter->second);
+  for (auto& iter: locals) {
+    if (iter.second >= 0)
+      close(iter.second);
   }
 }
 
@@ -205,11 +205,11 @@ static int parseResult(MOADNSParser& mdp, const DNSName& origQname, uint16_t ori
 
   vector<DNSResourceRecord> ret;
   DNSResourceRecord rr;
-  for(MOADNSParser::answers_t::const_iterator i=mdp.d_answers.begin(); i!=mdp.d_answers.end(); ++i) {
-    rr.qname = i->first.d_name;
-    rr.qtype = i->first.d_type;
-    rr.ttl = i->first.d_ttl;
-    rr.content = i->first.d_content->getZoneRepresentation(true);
+  for (const auto& i: mdp.d_answers) {
+    rr.qname = i.first.d_name;
+    rr.qtype = i.first.d_type;
+    rr.ttl = i.first.d_ttl;
+    rr.content = i.first.d_content->getZoneRepresentation(true);
     result->push_back(rr);
   }
 
@@ -222,9 +222,10 @@ bool Resolver::tryGetSOASerial(DNSName *domain, ComboAddress* remote, uint32_t *
   size_t i = 0, k;
   int sock;
 
-  for(std::map<string,int>::iterator iter=locals.begin(); iter != locals.end(); ++iter, ++i) {
-    fds[i].fd = iter->second;
+  for (const auto& iter: locals) {
+    fds[i].fd = iter.second;
     fds[i].events = POLLIN;
+    ++i;
   }
 
   if (poll(fds.get(), i, 250) < 1) { // wait for 0.25s
