@@ -9,7 +9,6 @@ Source: %{name}-%{getenv:BUILDER_VERSION}.tar.bz2
 BuildRequires: readline-devel
 BuildRequires: libedit-devel
 BuildRequires: openssl-devel
-BuildRequires: gnutls-devel
 
 %if 0%{?el6}
 BuildRequires: boost148-devel
@@ -26,14 +25,15 @@ BuildRequires: systemd-devel
 %endif
 %if 0%{?rhel} >= 7
 BuildRequires: boost-devel
+BuildRequires: gnutls-devel
 BuildRequires: libsodium-devel
 BuildRequires: luajit-devel
 BuildRequires: net-snmp-devel
 BuildRequires: protobuf-compiler
 BuildRequires: protobuf-devel
 BuildRequires: re2-devel
-BuildRequires: systemd-units
 BuildRequires: systemd-devel
+BuildRequires: systemd-units
 %endif
 
 %if 0%{?el6}
@@ -66,7 +66,6 @@ sed -i '/^ExecStart/ s/dnsdist/dnsdist -u dnsdist -g dnsdist/' dnsdist.service.i
 %configure \
   --sysconfdir=/etc/dnsdist \
   --enable-dns-over-tls \
-  --enable-gnutls \
 %if 0%{?el6}
   --disable-dnscrypt \
   --disable-libsodium \
@@ -85,6 +84,7 @@ sed -i '/^ExecStart/ s/dnsdist/dnsdist -u dnsdist -g dnsdist/' dnsdist.service.i
 %endif
 %if 0%{?rhel} >= 7
   --enable-fstrm \
+  --enable-gnutls \
   --with-protobuf \
   --with-luajit \
   --enable-libsodium \
@@ -108,7 +108,8 @@ make %{?_smp_mflags} check || (cat test-suite.log && false)
 %make_install
 install -d %{buildroot}/%{_sysconfdir}/dnsdist
 %if 0%{?el6}
-install -d -m 755 %{buildroot}/%{_initrddir} && install -m 755 contrib/dnsdist.init.centos6 %{buildroot}/%{_initrddir}/dnsdist
+install -d -m 755 %{buildroot}/%{_sysconfdir}/init && install -m 644 contrib/dnsdist.upstart.conf %{buildroot}/%{_sysconfdir}/init/%{name}.conf
+install -d -m 755 %{buildroot}/%{_sysconfdir}/default && install -m 644 contrib/dnsdist.default %{buildroot}/%{_sysconfdir}/default/%{name}
 %else
 # EL7 and SUSE
 sed -i "s,/^\(ExecStart.*\)dnsdist\(.*\)\$,\1dnsdist -u dnsdist -g dnsdist\2," %{buildroot}/lib/systemd/system/dnsdist.service
@@ -124,7 +125,9 @@ exit 0
 
 %post
 %if 0%{?el6}
-/sbin/chkconfig --add %{name}
+if [ -x /sbin/initctl ]; then
+  /sbin/initctl reload-configuration
+fi
 %endif
 %if 0%{?suse_version}
 %service_add_post %{name}.service
@@ -135,10 +138,9 @@ exit 0
 
 %preun
 %if 0%{?el6}
-if [ "\$1" -eq "0" ]; then
-  # Package removal, not upgrade
-  /sbin/service %{name} stop > /dev/null 2>&1 || :
-  /sbin/chkconfig --del %{name}
+if [ $1 -eq 0 ] ; then
+    # This is package removal, not upgrade
+    /sbin/stop %{name} >/dev/null 2>&1 || :
 fi
 %endif
 %if 0%{?suse_version}
@@ -150,8 +152,8 @@ fi
 
 %postun
 %if 0%{?el6}
-if [ "\$1" -ge "1" ] ; then
-  /sbin/service %{name} condrestart >/dev/null 2>&1 || :
+if [ -x /sbin/initctl ] && /sbin/initctl status %{name} 2>/dev/null | grep -q 'running' ; then
+  /sbin/initctl stop %{name} > /dev/null 2>&1 || :
 fi
 %endif
 %if 0%{?suse_version}
@@ -169,7 +171,8 @@ fi
 %{_mandir}/man1/*
 %dir %{_sysconfdir}/dnsdist
 %if 0%{?el6}
-%{_initrddir}/dnsdist
+%{_sysconfdir}/init/%{name}.conf
+%{_sysconfdir}/default/%{name}
 %else
 /lib/systemd/system/dnsdist*
 %endif
