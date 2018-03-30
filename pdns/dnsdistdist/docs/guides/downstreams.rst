@@ -44,6 +44,7 @@ representing the QName, QType and QClass of the health check query as well as th
 representing the new QName, QType and QClass, and can directly modify the ``DNSHeader`` object.
 
 The following example sets the CD flag to true and change the QName to "powerdns.com." and the QType to AAAA while keeping the initial QClass.
+
 .. code-block:: lua
 
     function myHealthCheck(qname, qtype, qclass, dh)
