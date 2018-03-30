@@ -54,6 +54,13 @@ Group: System Environment/Daemons
 %description tools
 This package contains the extra tools for %{name}
 
+%package ixfrdist
+Summary: A progrm to redistribute zones over AXFR and IXFR
+Group: System Environment/Daemons
+
+%description ixfrdist
+This package contains the ixfrdist program.
+
 %package backend-mysql
 Summary: MySQL backend for %{name}
 Group: System Environment/Daemons
@@ -306,7 +313,6 @@ fi
 %{_bindir}/dnsscope
 %{_bindir}/dnswasher
 %{_bindir}/dumresp
-%{_bindir}/ixfrdist
 %{_bindir}/ixplore
 %{_bindir}/pdns_notify
 %{_bindir}/nproxy
@@ -320,7 +326,6 @@ fi
 %{_mandir}/man1/dnsscope.1.gz
 %{_mandir}/man1/dnswasher.1.gz
 %{_mandir}/man1/dumresp.1.gz
-%{_mandir}/man1/ixfrdist.1.gz
 %{_mandir}/man1/ixplore.1.gz
 %{_mandir}/man1/pdns_notify.1.gz
 %{_mandir}/man1/nproxy.1.gz
@@ -334,6 +339,12 @@ fi
 %{_mandir}/man1/dnsbulktest.1.gz
 %{_mandir}/man1/dnspcap2protobuf.1.gz
 %{_mandir}/man1/dnstcpbench.1.gz
+%endif
+
+%files ixfrdist
+%{_bindir}/ixfrdist
+%{_mandir}/man1/ixfrdist.1.gz
+%if 0%{?rhel} >= 7
 %{_unitdir}/ixfrdist.service
 %endif
 
