@@ -97,10 +97,10 @@ void loadMainConfig(const std::string& configdir)
   ::arg().set("max-signature-cache-entries", "Maximum number of signatures cache entries")="";
   ::arg().laxFile(configname.c_str());
 
-  L.toConsole(Logger::Error);   // so we print any errors
+  g_log.toConsole(Logger::Error);   // so we print any errors
   BackendMakers().launch(::arg()["launch"]); // vrooooom!
   if(::arg().asNum("loglevel") >= 3) // so you can't kill our errors
-    L.toConsole((Logger::Urgency)::arg().asNum("loglevel"));  
+    g_log.toConsole((Logger::Urgency)::arg().asNum("loglevel"));  
 
   //cerr<<"Backend: "<<::arg()["launch"]<<", '" << ::arg()["gmysql-dbname"] <<"'" <<endl;
 

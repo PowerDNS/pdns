@@ -17,7 +17,7 @@ BaseLua4::BaseLua4() {
 void BaseLua4::loadFile(const std::string &fname) {
   std::ifstream ifs(fname);
   if(!ifs) {
-    theL()<<Logger::Error<<"Unable to read configuration file from '"<<fname<<"': "<<strerror(errno)<<endl;
+    g_log<<Logger::Error<<"Unable to read configuration file from '"<<fname<<"': "<<strerror(errno)<<endl;
     return;
   }
   loadStream(ifs);
@@ -36,7 +36,6 @@ BaseLua4::~BaseLua4() { }
 
 #else
 
-#undef L
 #include "ext/luawrapper/include/LuaContext.hpp"
 
 void BaseLua4::prepareContext() {
@@ -139,7 +138,7 @@ void BaseLua4::prepareContext() {
       else
         cas.insert(boost::get<ComboAddress>(in));
       }
-      catch(std::exception& e) { theL() <<Logger::Error<<e.what()<<endl; }
+      catch(std::exception& e) { g_log <<Logger::Error<<e.what()<<endl; }
     });
   d_lw->registerFunction<bool(cas_t::*)(const ComboAddress&)>("check",[](const cas_t& cas, const ComboAddress&ca) { return cas.count(ca)>0; });
   d_lw->registerFunction<bool(ComboAddress::*)(const ComboAddress&)>("equal", [](const ComboAddress& lhs, const ComboAddress& rhs) { return ComboAddress::addressOnlyEqual()(lhs, rhs); });
@@ -189,7 +188,7 @@ void BaseLua4::prepareContext() {
   d_lw->registerFunction<void(DNSRecord::*)(const std::string&)>("changeContent", [](DNSRecord& dr, const std::string& newContent) { dr.d_content = shared_ptr<DNSRecordContent>(DNSRecordContent::mastermake(dr.d_type, 1, newContent)); });
 
   // pdnsload
-  d_lw->writeFunction("pdnslog", [](const std::string& msg, boost::optional<int> loglevel) { theL() << (Logger::Urgency)loglevel.get_value_or(Logger::Warning) << msg<<endl; });
+  d_lw->writeFunction("pdnslog", [](const std::string& msg, boost::optional<int> loglevel) { g_log << (Logger::Urgency)loglevel.get_value_or(Logger::Warning) << msg<<endl; });
 
   // certain constants
   d_pd.push_back({"PASS", (int)PolicyDecision::PASS});

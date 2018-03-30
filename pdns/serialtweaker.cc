@@ -66,7 +66,7 @@ uint32_t calculateEditSOA(uint32_t old_serial, const string& kind, const DNSName
     if (old_serial < inception)
       return inception;
   } else if(!kind.empty()) {
-    L<<Logger::Warning<<"SOA-EDIT type '"<<kind<<"' for zone "<<zonename<<" is unknown."<<endl;
+    g_log<<Logger::Warning<<"SOA-EDIT type '"<<kind<<"' for zone "<<zonename<<" is unknown."<<endl;
   }
   return old_serial;
 }
@@ -108,7 +108,7 @@ static uint32_t calculateIncreaseSOA(uint32_t old_serial, const string& increase
     }
     return new_serial;
   } else if(!increaseKind.empty()) {
-    L<<Logger::Warning<<"SOA-EDIT-API/DNSUPDATE type '"<<increaseKind<<"' for zone "<<zonename<<" is unknown."<<endl;
+    g_log<<Logger::Warning<<"SOA-EDIT-API/DNSUPDATE type '"<<increaseKind<<"' for zone "<<zonename<<" is unknown."<<endl;
   }
   return old_serial;
 }

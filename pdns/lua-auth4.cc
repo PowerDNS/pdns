@@ -27,7 +27,6 @@ void AuthLua4::postLoad()
 
 #else
 
-#undef L
 #include "ext/luawrapper/include/LuaContext.hpp"
 
 void AuthLua4::postPrepareContext() {

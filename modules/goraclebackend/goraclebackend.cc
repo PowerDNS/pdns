@@ -64,10 +64,10 @@ gOracleBackend::gOracleBackend(const string &mode, const string &suffix)  : GSQL
   }
 
   catch (SSqlException &e) {
-    L<<Logger::Error << mode << " Connection failed: " << e.txtReason() << endl;
+    g_log<<Logger::Error << mode << " Connection failed: " << e.txtReason() << endl;
     throw PDNSException("Unable to launch " + mode + " connection: " + e.txtReason());
   }
-  L<<Logger::Info << mode << " Connection successful" << endl;
+  g_log<<Logger::Info << mode << " Connection successful" << endl;
 }
 
 class gOracleFactory : public BackendFactory
@@ -177,7 +177,7 @@ public:
   //! This reports us to the main UeberBackend class
   gOracleLoader() {
     BackendMakers().report(new gOracleFactory("goracle"));
-    L << Logger::Info << "[goraclebackend] This is the goracle backend version " VERSION
+    g_log << Logger::Info << "[goraclebackend] This is the goracle backend version " VERSION
 #ifndef REPRODUCIBLE
       << " (" __DATE__ " " __TIME__ ")"
 #endif

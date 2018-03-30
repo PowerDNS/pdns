@@ -32,15 +32,9 @@ extern StatBag S;
 #include "namespaces.hh"
 
 pthread_once_t Logger::s_once;
-pthread_key_t Logger::s_loggerKey;
+pthread_key_t Logger::g_loggerKey;
 
-Logger &theL(const string &pname)
-{
-  static Logger l("", LOG_DAEMON);
-  if(!pname.empty())
-    l.setName(pname);
-  return l;
-}
+Logger g_log("", LOG_DAEMON);
 
 void Logger::log(const string &msg, Urgency u)
 {
@@ -104,7 +98,7 @@ void Logger::setName(const string &_name)
 
 void Logger::initKey()
 {
-  if(pthread_key_create(&s_loggerKey, perThreadDestructor))
+  if(pthread_key_create(&g_loggerKey, perThreadDestructor))
     unixDie("Creating thread key for logger");
 }
 
@@ -139,13 +133,13 @@ void Logger::perThreadDestructor(void* buf)
 
 Logger::PerThread* Logger::getPerThread()
 {
-  void *buf=pthread_getspecific(s_loggerKey);
+  void *buf=pthread_getspecific(g_loggerKey);
   PerThread* ret;
   if(buf)
     ret = (PerThread*) buf;
   else {
     ret = new PerThread();
-    pthread_setspecific(s_loggerKey, (void*)ret);
+    pthread_setspecific(g_loggerKey, (void*)ret);
   }
   return ret;
 }

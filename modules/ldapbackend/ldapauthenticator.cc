@@ -96,11 +96,11 @@ bool LdapGssapiAuthenticator::authenticate( LDAP *conn )
   }
   else if ( code == -2 ) {
     // Here it may be possible to retry after obtainting a fresh ticket
-    L<<Logger::Debug << logPrefix << "No TGT found, trying to acquire a new one" << std::endl;
+    g_log<<Logger::Debug << logPrefix << "No TGT found, trying to acquire a new one" << std::endl;
     code = updateTgt();
 
     if ( attemptAuth( conn ) != 0 ) {
-      L<<Logger::Error << logPrefix << "Failed to acquire a TGT" << std::endl;
+      g_log<<Logger::Error << logPrefix << "Failed to acquire a TGT" << std::endl;
       return false;
     }
   }
@@ -145,7 +145,7 @@ int LdapGssapiAuthenticator::attemptAuth( LDAP *conn )
   int rc = ldap_sasl_interactive_bind_s( conn, "", defaults.mech.c_str(),
                                          NULL, NULL, LDAP_SASL_QUIET,
                                          ldapGssapiAuthenticatorSaslInteractCallback, &defaults );
-  L<<Logger::Debug << logPrefix << "ldap_sasl_interactive_bind_s returned " << rc << std::endl;
+  g_log<<Logger::Debug << logPrefix << "ldap_sasl_interactive_bind_s returned " << rc << std::endl;
 
   if ( rc == LDAP_LOCAL_ERROR ) {
     // This may mean that the ticket has expired, so let the caller know
@@ -171,7 +171,7 @@ int LdapGssapiAuthenticator::updateTgt()
   krb5_get_init_creds_opt *options;
 
   if ( ( code = krb5_init_context( &context ) ) != 0 ) {
-    L<<Logger::Error << logPrefix << "Failed to init krb5 context" << std::endl;
+    g_log<<Logger::Error << logPrefix << "Failed to init krb5 context" << std::endl;
     return code;
   }
 
@@ -184,14 +184,14 @@ int LdapGssapiAuthenticator::updateTgt()
   }
   
   if ( code != 0 ) {
-    L<<Logger::Error << logPrefix << "krb5 error when locating the keytab file: " << std::string( krb5_get_error_message( context, code ) ) << std::endl;
+    g_log<<Logger::Error << logPrefix << "krb5 error when locating the keytab file: " << std::string( krb5_get_error_message( context, code ) ) << std::endl;
     return code;
   }
 
   // Extract the principal name from the keytab
   krb5_kt_cursor cursor;
   if ( ( code = krb5_kt_start_seq_get( context, keytab, &cursor ) ) != 0 ) {
-    L<<Logger::Error << logPrefix << "krb5 error when initiating keytab search: " << std::string( krb5_get_error_message( context, code ) ) << std::endl;
+    g_log<<Logger::Error << logPrefix << "krb5 error when initiating keytab search: " << std::string( krb5_get_error_message( context, code ) ) << std::endl;
     krb5_kt_close( context, keytab );
     return code;
   }
@@ -204,7 +204,7 @@ int LdapGssapiAuthenticator::updateTgt()
 
   krb5_kt_end_seq_get( context, keytab, &cursor );
   if ( code != 0 ) {
-    L<<Logger::Error << logPrefix << "krb5 error when extracting principal information: " << std::string( krb5_get_error_message( context, code ) ) << std::endl;
+    g_log<<Logger::Error << logPrefix << "krb5 error when extracting principal information: " << std::string( krb5_get_error_message( context, code ) ) << std::endl;
     krb5_kt_close( context, keytab );
     krb5_free_principal( context, principal );
     return code;
@@ -220,7 +220,7 @@ int LdapGssapiAuthenticator::updateTgt()
   }
 
   if ( code != 0 ) {
-    L<<Logger::Error << logPrefix << "krb5 error when locating the credentials cache file: " << std::string( krb5_get_error_message( context, code ) ) << std::endl;
+    g_log<<Logger::Error << logPrefix << "krb5 error when locating the credentials cache file: " << std::string( krb5_get_error_message( context, code ) ) << std::endl;
     krb5_kt_close( context, keytab );
     krb5_free_principal( context, principal );
     return code;
@@ -228,14 +228,14 @@ int LdapGssapiAuthenticator::updateTgt()
 
   // Initialize the credentials cache file
   if ( ( code = krb5_cc_initialize( context, ccache, principal ) ) != 0 ) {
-    L<<Logger::Error << logPrefix << "krb5 error when initializing the credentials cache file: " << std::string( krb5_get_error_message( context, code ) ) << std::endl;
+    g_log<<Logger::Error << logPrefix << "krb5 error when initializing the credentials cache file: " << std::string( krb5_get_error_message( context, code ) ) << std::endl;
     krb5_kt_close( context, keytab );
     krb5_free_principal( context, principal );
     return code;
   }
 
   if ( ( code = krb5_get_init_creds_opt_alloc( context, &options ) ) != 0 ) {
-    L<<Logger::Error << logPrefix << "krb5 error when allocating credentials cache structure: " << std::string( krb5_get_error_message( context, code ) ) << std::endl;
+    g_log<<Logger::Error << logPrefix << "krb5 error when allocating credentials cache structure: " << std::string( krb5_get_error_message( context, code ) ) << std::endl;
     krb5_kt_close( context, keytab );
     krb5_free_principal( context, principal );
     return code;
@@ -249,7 +249,7 @@ int LdapGssapiAuthenticator::updateTgt()
   krb5_free_principal( context, principal );
 
   if ( code == 0 ) {
-    L<<Logger::Error << logPrefix << "krb5 error when getting the TGT: " << std::string( krb5_get_error_message( context, code ) ) << std::endl;
+    g_log<<Logger::Error << logPrefix << "krb5 error when getting the TGT: " << std::string( krb5_get_error_message( context, code ) ) << std::endl;
     code = krb5_cc_store_cred( context, ccache, &credentials );
     krb5_free_cred_contents( context, &credentials );
     krb5_cc_close( context, ccache );

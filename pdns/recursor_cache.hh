@@ -30,7 +30,6 @@
 #include <iostream>
 #include "dnsrecords.hh"
 #include <boost/utility.hpp>
-#undef L
 #include <boost/multi_index_container.hpp>
 #include <boost/multi_index/ordered_index.hpp>
 #include <boost/multi_index/hashed_index.hpp>
@@ -42,7 +41,6 @@
 #include "validate.hh"
 #undef max
 
-#define L theL()
 #include "namespaces.hh"
 using namespace ::boost::multi_index;
 

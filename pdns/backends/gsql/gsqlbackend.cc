@@ -340,12 +340,12 @@ bool GSQLBackend::getDomainInfo(const DNSName &domain, DomainInfo &di)
   try {
     SOAData sd;
     if(!getSOA(domain, sd))
-      L<<Logger::Notice<<"No serial for '"<<domain<<"' found - zone is missing?"<<endl;
+      g_log<<Logger::Notice<<"No serial for '"<<domain<<"' found - zone is missing?"<<endl;
     else
       di.serial = sd.serial;
   }
   catch(PDNSException &ae){
-    L<<Logger::Error<<"Error retrieving serial for '"<<domain<<"': "<<ae.reason<<endl;
+    g_log<<Logger::Error<<"Error retrieving serial for '"<<domain<<"': "<<ae.reason<<endl;
   }
 
   di.kind = DomainInfo::stringToKind(type);
@@ -1070,7 +1070,7 @@ void GSQLBackend::lookup(const QType &qtype,const DNSName &qname, DNSPacket *pkt
 
 bool GSQLBackend::list(const DNSName &target, int domain_id, bool include_disabled)
 {
-  DLOG(L<<"GSQLBackend constructing handle for list of domain id '"<<domain_id<<"'"<<endl);
+  DLOG(g_log<<"GSQLBackend constructing handle for list of domain id '"<<domain_id<<"'"<<endl);
 
   try {
     reconnectIfNeeded();
@@ -1114,7 +1114,7 @@ bool GSQLBackend::listSubZone(const DNSName &zone, int domain_id) {
 
 bool GSQLBackend::get(DNSResourceRecord &r)
 {
-  // L << "GSQLBackend get() was called for "<<qtype.getName() << " record: ";
+  // g_log << "GSQLBackend get() was called for "<<qtype.getName() << " record: ";
   SSqlStatement::row_t row;
 
 skiprow:
@@ -1262,7 +1262,7 @@ bool GSQLBackend::deleteDomain(const DNSName &domain)
 
 void GSQLBackend::getAllDomains(vector<DomainInfo> *domains, bool include_disabled)
 {
-  DLOG(L<<"GSQLBackend retrieving all domains."<<endl);
+  DLOG(g_log<<"GSQLBackend retrieving all domains."<<endl);
 
   try {
     reconnectIfNeeded();
@@ -1523,7 +1523,7 @@ bool GSQLBackend::calculateSOASerial(const DNSName& domain, const SOAData& sd, u
       reset();
   }
   catch (const SSqlException& e) {
-    //DLOG(L<<"GSQLBackend unable to calculate SOA serial: " << e.txtReason()<<endl);
+    //DLOG(g_log<<"GSQLBackend unable to calculate SOA serial: " << e.txtReason()<<endl);
     return false;
   }
  

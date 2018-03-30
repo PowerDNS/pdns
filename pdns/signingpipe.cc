@@ -51,7 +51,7 @@ try {
   return nullptr;
 }
 catch(...) {
-  L<<Logger::Error<<"Unknown exception in signing thread occurred"<<endl;
+  g_log<<Logger::Error<<"Unknown exception in signing thread occurred"<<endl;
   return nullptr;
 }
 
@@ -303,12 +303,12 @@ try
 }
 catch(const PDNSException& pe)
 {
-  L<<Logger::Error<<"Signing thread died because of PDNSException: "<<pe.reason<<endl;
+  g_log<<Logger::Error<<"Signing thread died because of PDNSException: "<<pe.reason<<endl;
   close(fd);
 }
 catch(const std::exception& e)
 {
-  L<<Logger::Error<<"Signing thread died because of std::exception: "<<e.what()<<endl;
+  g_log<<Logger::Error<<"Signing thread died because of std::exception: "<<e.what()<<endl;
   close(fd);
 }
 

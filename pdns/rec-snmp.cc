@@ -144,12 +144,12 @@ static int handleCounter64Stats(netsnmp_mib_handler* handler,
 static void registerCounter64Stat(const char* name, const oid statOID[], size_t statOIDLength)
 {
   if (statOIDLength != OID_LENGTH(questionsOID)) {
-    L<<Logger::Error<<"Invalid OID for SNMP Counter64 statistic "<<std::string(name)<<endl;
+    g_log<<Logger::Error<<"Invalid OID for SNMP Counter64 statistic "<<std::string(name)<<endl;
     return;
   }
 
   if (s_statsMap.find(statOID[statOIDLength - 1]) != s_statsMap.end()) {
-    L<<Logger::Error<<"OID for SNMP Counter64 statistic "<<std::string(name)<<" has already been registered"<<endl;
+    g_log<<Logger::Error<<"OID for SNMP Counter64 statistic "<<std::string(name)<<" has already been registered"<<endl;
     return;
   }
 

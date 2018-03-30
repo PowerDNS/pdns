@@ -26,7 +26,7 @@
 
 PipeConnector::PipeConnector(std::map<std::string,std::string> optionsMap) {
   if (optionsMap.count("command") == 0) {
-    L<<Logger::Error<<"Cannot find 'command' option in connection string"<<endl;
+    g_log<<Logger::Error<<"Cannot find 'command' option in connection string"<<endl;
     throw PDNSException();
   }
   this->command = optionsMap.find("command")->second;
@@ -123,7 +123,7 @@ void PipeConnector::launch() {
   this->send(msg);
   msg = nullptr;
   if (this->recv(msg)==false) {
-    L<<Logger::Error<<"Failed to initialize coprocess"<<std::endl;
+    g_log<<Logger::Error<<"Failed to initialize coprocess"<<std::endl;
   }
 }
 

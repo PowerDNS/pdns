@@ -57,7 +57,7 @@ public:
   {
     BackendMakers().report(new LUAFactory);
     
-    L << Logger::Info << "[luabackend] This is the lua backend version " VERSION
+    g_log << Logger::Info << "[luabackend] This is the lua backend version " VERSION
 #ifndef REPRODUCIBLE
       << " (" __DATE__ " " __TIME__ ")"
 #endif

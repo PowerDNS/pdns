@@ -123,14 +123,14 @@ void loadRecursorLuaConfig(const std::string& fname, bool checkOnly)
             zone->reserve(zoneSizeHint);
           }
         }
-        theL()<<Logger::Warning<<"Loading RPZ from file '"<<filename<<"'"<<endl;
+        g_log<<Logger::Warning<<"Loading RPZ from file '"<<filename<<"'"<<endl;
         zone->setName(polName);
         loadRPZFromFile(filename, zone, defpol, maxTTL);
         lci.dfe.addZone(zone);
-        theL()<<Logger::Warning<<"Done loading RPZ from file '"<<filename<<"'"<<endl;
+        g_log<<Logger::Warning<<"Done loading RPZ from file '"<<filename<<"'"<<endl;
       }
       catch(const std::exception& e) {
-        theL()<<Logger::Error<<"Unable to load RPZ zone from '"<<filename<<"': "<<e.what()<<endl;
+        g_log<<Logger::Error<<"Unable to load RPZ zone from '"<<filename<<"': "<<e.what()<<endl;
       }
     });
 
@@ -186,11 +186,11 @@ void loadRecursorLuaConfig(const std::string& fname, bool checkOnly)
         zoneIdx = lci.dfe.addZone(zone);
       }
       catch(const std::exception& e) {
-        theL()<<Logger::Error<<"Problem configuring 'rpzMaster': "<<e.what()<<endl;
+        g_log<<Logger::Error<<"Problem configuring 'rpzMaster': "<<e.what()<<endl;
         exit(1);  // FIXME proper exit code?
       }
       catch(const PDNSException& e) {
-        theL()<<Logger::Error<<"Problem configuring 'rpzMaster': "<<e.reason<<endl;
+        g_log<<Logger::Error<<"Problem configuring 'rpzMaster': "<<e.reason<<endl;
         exit(1);  // FIXME proper exit code?
       }
 
@@ -201,11 +201,11 @@ void loadRecursorLuaConfig(const std::string& fname, bool checkOnly)
           }
       }
       catch(const std::exception& e) {
-        theL()<<Logger::Error<<"Problem starting RPZIXFRTracker thread: "<<e.what()<<endl;
+        g_log<<Logger::Error<<"Problem starting RPZIXFRTracker thread: "<<e.what()<<endl;
         exit(1);  // FIXME proper exit code?
       }
       catch(const PDNSException& e) {
-        theL()<<Logger::Error<<"Problem starting RPZIXFRTracker thread: "<<e.reason<<endl;
+        g_log<<Logger::Error<<"Problem starting RPZIXFRTracker thread: "<<e.reason<<endl;
         exit(1);  // FIXME proper exit code?
       }
     });
@@ -238,7 +238,7 @@ void loadRecursorLuaConfig(const std::string& fname, bool checkOnly)
 			}
 		      }
 		      catch(std::exception& e) {
-			theL()<<Logger::Error<<"Error in addSortList: "<<e.what()<<endl;
+			g_log<<Logger::Error<<"Error in addSortList: "<<e.what()<<endl;
 		      }
 		    });
 
@@ -293,14 +293,14 @@ void loadRecursorLuaConfig(const std::string& fname, bool checkOnly)
           }
         }
         else {
-          theL()<<Logger::Error<<"Only one protobuf server can be configured, we already have "<<lci.protobufServer->toString()<<endl;
+          g_log<<Logger::Error<<"Only one protobuf server can be configured, we already have "<<lci.protobufServer->toString()<<endl;
         }
       }
       catch(std::exception& e) {
-	theL()<<Logger::Error<<"Error while starting protobuf logger to '"<<server_<<": "<<e.what()<<endl;
+	g_log<<Logger::Error<<"Error while starting protobuf logger to '"<<server_<<": "<<e.what()<<endl;
       }
       catch(PDNSException& e) {
-        theL()<<Logger::Error<<"Error while starting protobuf logger to '"<<server_<<": "<<e.reason<<endl;
+        g_log<<Logger::Error<<"Error while starting protobuf logger to '"<<server_<<": "<<e.reason<<endl;
       }
     });
 
@@ -313,14 +313,14 @@ void loadRecursorLuaConfig(const std::string& fname, bool checkOnly)
           }
         }
         else {
-          theL()<<Logger::Error<<"Only one protobuf server can be configured, we already have "<<lci.protobufServer->toString()<<endl;
+          g_log<<Logger::Error<<"Only one protobuf server can be configured, we already have "<<lci.protobufServer->toString()<<endl;
         }
       }
       catch(std::exception& e) {
-	theL()<<Logger::Error<<"Error while starting protobuf logger to '"<<server_<<": "<<e.what()<<endl;
+	g_log<<Logger::Error<<"Error while starting protobuf logger to '"<<server_<<": "<<e.what()<<endl;
       }
       catch(PDNSException& e) {
-        theL()<<Logger::Error<<"Error while starting protobuf logger to '"<<server_<<": "<<e.reason<<endl;
+        g_log<<Logger::Error<<"Error while starting protobuf logger to '"<<server_<<": "<<e.reason<<endl;
       }
     });
 #endif
@@ -330,22 +330,22 @@ void loadRecursorLuaConfig(const std::string& fname, bool checkOnly)
     g_luaconfs.setState(lci);
   }
   catch(const LuaContext::ExecutionErrorException& e) {
-    theL()<<Logger::Error<<"Unable to load Lua script from '"+fname+"': ";
+    g_log<<Logger::Error<<"Unable to load Lua script from '"+fname+"': ";
     try {
       std::rethrow_if_nested(e);
     } catch(const std::exception& exp) {
       // exp is the exception that was thrown from inside the lambda
-      theL() << exp.what() << std::endl;
+      g_log << exp.what() << std::endl;
     }
     catch(const PDNSException& exp) {
       // exp is the exception that was thrown from inside the lambda
-      theL() << exp.reason << std::endl;
+      g_log << exp.reason << std::endl;
     }
     throw;
 
   }
   catch(std::exception& err) {
-    theL()<<Logger::Error<<"Unable to load Lua script from '"+fname+"': "<<err.what()<<endl;
+    g_log<<Logger::Error<<"Unable to load Lua script from '"+fname+"': "<<err.what()<<endl;
     throw;
   }
 

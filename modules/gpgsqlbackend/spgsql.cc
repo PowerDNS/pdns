@@ -78,7 +78,7 @@ public:
   SSqlStatement* execute() {
     prepareStatement();
     if (d_dolog) {
-      L<<Logger::Warning<<"Query: "<<d_query<<endl;
+      g_log<<Logger::Warning<<"Query: "<<d_query<<endl;
     }
     d_res_set = PQexecPrepared(d_db(), d_stmt.c_str(), d_nparams, paramValues, paramLengths, NULL, 0);
     ExecStatusType status = PQresultStatus(d_res_set);
@@ -115,7 +115,7 @@ public:
 #endif
       // execute FETCH
       if (d_dolog)
-         L<<Logger::Warning<<"Query: "<<cmd<<endl;
+         g_log<<Logger::Warning<<"Query: "<<cmd<<endl;
       d_res = PQexec(d_db(),cmd.c_str());
       d_resnum = PQntuples(d_res);
       d_fnum = PQnfields(d_res);

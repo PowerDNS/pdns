@@ -203,7 +203,7 @@ furthermore, only about its A record:
       RandomLoader()
       {
         BackendMakers().report(new RandomFactory);
-        L << Logger::Info << "[randombackend] This is the random backend version " VERSION " reporting" << endl;
+        g_log << Logger::Info << "[randombackend] This is the random backend version " VERSION " reporting" << endl;
       }
     };
 
@@ -625,7 +625,7 @@ The actual code in PowerDNS is currently:
         resolver.axfr(remote,domain.c_str());
 
         db->startTransaction(domain, domain_id);
-        L<<Logger::Error<<"AXFR started for '"<<domain<<"'"<<endl;
+        g_log<<Logger::Error<<"AXFR started for '"<<domain<<"'"<<endl;
         Resolver::res_t recs;
 
         while(resolver.axfrChunk(recs)) {
@@ -635,7 +635,7 @@ The actual code in PowerDNS is currently:
         }
         db->commitTransaction();
         db->setFresh(domain_id);
-        L<<Logger::Error<<"AXFR done for '"<<domain<<"'"<<endl;
+        g_log<<Logger::Error<<"AXFR done for '"<<domain<<"'"<<endl;
 
 Supermaster/Superslave capability
 ---------------------------------
