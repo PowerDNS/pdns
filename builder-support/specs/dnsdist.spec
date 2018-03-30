@@ -1,11 +1,11 @@
 Name: dnsdist
-Version: %{getenv:BUILDER_VERSION}
-Release: %{getenv:BUILDER_RELEASE}
+Version: %{getenv:BUILDER_RPM_VERSION}
+Release: %{getenv:BUILDER_RPM_RELEASE}%{dist}
 Summary: Powerful and scriptable DNS loadbalancer
 License: GPLv2
 Vendor: PowerDNS.COM BV
 Group: System/DNS
-Source: dnsdist-%{version}.tar.bz2
+Source: %{name}-%{getenv:BUILDER_VERSION}.tar.bz2
 BuildRequires: readline-devel
 BuildRequires: libedit-devel
 BuildRequires: openssl-devel
@@ -53,7 +53,11 @@ BuildRequires: fstrm-devel
 dnsdist is a high-performance DNS loadbalancer that is scriptable in Lua.
 
 %prep
-%setup
+%if 0%{?rhel} == 6
+%setup -n %{name}-%{getenv:BUILDER_VERSION}
+%else
+%autosetup -p1 -n %{name}-%{getenv:BUILDER_VERSION}
+%endif
 
 # run as dnsdist user
 sed -i '/^ExecStart/ s/dnsdist/dnsdist -u dnsdist -g dnsdist/' dnsdist.service.in

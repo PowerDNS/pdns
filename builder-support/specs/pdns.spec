@@ -7,13 +7,13 @@ exit 1
 %global backends %{nil}
 
 Name: pdns
-Version: %{getenv:BUILDER_VERSION}
-Release: %{getenv:BUILDER_RELEASE}%{dist}
+Version: %{getenv:BUILDER_RPM_VERSION}
+Release: %{getenv:BUILDER_RPM_RELEASE}%{dist}
 Summary: A modern, advanced and high performance authoritative-only nameserver
 Group: System Environment/Daemons
 License: GPLv2
 URL: https://powerdns.com
-Source0: %{name}-%{version}.tar.bz2
+Source0: %{name}-%{getenv:BUILDER_VERSION}.tar.bz2
 %if 0%{?rhel} < 7
 Source1: pdns.init
 %endif
@@ -175,7 +175,11 @@ This package contains the TinyDNS backend for %{name}
 %endif
 
 %prep
-%setup -q -n %{name}-%{version}
+%if 0%{?rhel} == 6
+%setup -n %{name}-%{getenv:BUILDER_VERSION}
+%else
+%autosetup -p1 -n %{name}-%{getenv:BUILDER_VERSION} 
+%endif
 
 %build
 export CPPFLAGS="-DLDAP_DEPRECATED"
