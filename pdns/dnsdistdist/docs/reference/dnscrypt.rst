@@ -3,6 +3,9 @@ DNSCrypt objects and functions
 
 .. function:: addDNSCryptBind(address, provider, certificate, keyfile[, options])
 
+  .. versionchanged:: 1.3.0
+    ``cpus`` option added.
+
   Adds a DNSCrypt listen socket on ``address``.
 
   :param string address: The address and port to listen on

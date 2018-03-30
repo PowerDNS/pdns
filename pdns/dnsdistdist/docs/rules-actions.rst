@@ -148,11 +148,14 @@ Rule Generators
   .. versionchanged:: 1.3.0
     Added the optional parameter ``options``.
 
+  .. versionchanged:: 1.3.0
+    The second argument returned by the ``function`` can be omitted. For earlier releases, simply return an empty string.
+
   Invoke a Lua function that accepts a :class:`DNSQuestion`.
   This function works similar to using :func:`LuaAction`.
   The ``function`` should return both a :ref:`DNSAction` and its argument `rule`. The `rule` is used as an argument
-  of the following :ref:`DNSAction`: `DNSAction.Spoof`, `DNSAction.Pool` and `DNSAction.Delay`. As of version `1.3.0`, you can
-  omit the argument. For earlier releases, simply return an empty string. If the Lua code fails, ServFail is returned.
+  of the following :ref:`DNSAction`: `DNSAction.Spoof`, `DNSAction.Pool` and `DNSAction.Delay`.
+  If the Lua code fails, ServFail is returned.
 
   :param DNSRule: match queries based on this rule
   :param string function: the name of a Lua function
@@ -181,11 +184,14 @@ Rule Generators
   .. versionchanged:: 1.3.0
     Added the optional parameter ``options``.
 
+  .. versionchanged:: 1.3.0
+    The second argument returned by the ``function`` can be omitted. For earlier releases, simply return an empty string.
+
   Invoke a Lua function that accepts a :class:`DNSResponse`.
   This function works similar to using :func:`LuaResponseAction`.
   The ``function`` should return both a :ref:`DNSResponseAction` and its argument `rule`. The `rule` is used as an argument
-  of the `DNSResponseAction.Delay`. As of version `1.3.0`, you can omit the argument (see :func:`addLuaAction`). For earlier
-  releases, simply return an empty string. If the Lua code fails, ServFail is returned.
+  of the `DNSResponseAction.Delay`.
+  If the Lua code fails, ServFail is returned.
 
   :param DNSRule: match queries based on this rule
   :param string function: the name of a Lua function
@@ -688,6 +694,8 @@ These ``DNSRule``\ s be one of the following items:
 
 .. function:: TagRule(name [, value])
 
+  .. versionadded:: 1.3.0
+
   Matches question or answer with a tag named ``name`` set. If ``value`` is specified, the existing tag value should match too.
 
   :param bool name: The name of the tag that has to be set
@@ -775,7 +783,9 @@ The following actions exist.
 
 .. function:: DnstapLogAction(identity, logger[, alterFunction])
 
-  Send the the current query to a remote logger as a dnstap message.
+  .. versionadded:: 1.3.0
+
+  Send the the current query to a remote logger as a :doc:`dnstap <reference/dnstap>` message.
   ``alterFunction`` is a callback, receiving a :class:`DNSQuestion` and a :class:`DnstapMessage`, that can be used to modify the message.
 
   :param string identity: Server identity to store in the dnstap message
@@ -784,7 +794,9 @@ The following actions exist.
 
 .. function:: DnstapLogResponseAction(identity, logger[, alterFunction])
 
-  Send the the current response to a remote logger as a dnstap message.
+  .. versionadded:: 1.3.0
+
+  Send the the current response to a remote logger as a :doc:`dnstap <reference/dnstap>` message.
   ``alterFunction`` is a callback, receiving a :class:`DNSQuestion` and a :class:`DnstapMessage`, that can be used to modify the message.
 
   :param string identity: Server identity to store in the dnstap message
@@ -943,12 +955,16 @@ The following actions exist.
 
 .. function:: TagAction(name, value)
 
+  .. versionadded:: 1.3.0
+
   Associate a tag named ``name`` with a value of ``value`` to this query, that will be passed on to the response.
 
   :param string name: The name of the tag to set
   :param string cname: The value of the tag
 
 .. function:: TagResponseAction(name, value)
+
+  .. versionadded:: 1.3.0
 
   Associate a tag named ``name`` with a value of ``value`` to this response.
 

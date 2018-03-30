@@ -49,6 +49,9 @@ Listen Sockets
 
   .. versionadded:: 1.2.0
 
+  .. versionchanged:: 1.3.0
+    Added ``cpus`` to the options.
+
   Add to the list of listen addresses.
 
   :param str address: The IP Address with an optional port to listen on.
@@ -274,7 +277,10 @@ Servers
               newServer(server_table)
 
   .. versionchanged:: 1.3.0
-    ``checkFunction`` option added.
+    - Added ``checkClass`` to server_table.
+    - Added ``sockets`` to server_table
+    - Added ``checkFunction`` to server_table
+
 
   Add a new backend server. Call this function with either a string::
 
@@ -498,8 +504,8 @@ See :doc:`../guides/cache` for a how to.
 
 .. function:: newPacketCache(maxEntries[, maxTTL=86400[, minTTL=0[, temporaryFailureTTL=60[, staleTTL=60[, dontAge=false[, numberOfShards=1[, deferrableInsertLock=true]]]]]]]) -> PacketCache
 
-  .. versionchanged:: 1.2.0
-    ``numberOfShard`` and ``deferrableInsertLock`` parameters added.
+  .. versionchanged:: 1.3.0
+    ``numberOfShards`` and ``deferrableInsertLock`` parameters added.
 
   Creates a new :class:`PacketCache` with the settings specified.
 
