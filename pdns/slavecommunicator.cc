@@ -701,15 +701,14 @@ void CommunicatorClass::addSlaveCheckRequest(const DomainInfo& di, const ComboAd
   Lock l(&d_lock);
   DomainInfo ours = di;
   ours.backend = 0;
-  string remote_address = remote.toString();
 
   // When adding a check, if the remote addr from which notification was
   // received is a master, clear all other masters so we can be sure the
   // query goes to that one.
-  for (const auto& master : ours.masters) {
-    if (master == remote_address) {
+  for (const auto& master : di.masters) {
+    if (ComboAddress::addressOnlyEqual()(remote, master)) {
       ours.masters.clear();
-      ours.masters.push_back(remote_address);
+      ours.masters.push_back(master);
       break;
     }
   }
