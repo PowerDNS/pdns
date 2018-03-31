@@ -22,9 +22,12 @@
 
 #include <dirent.h>
 #include <fstream>
-#include <net/if.h>
-#include <sys/types.h>
+
+// for OpenBSD, sys/socket.h needs to come before net/if.h
 #include <sys/socket.h>
+#include <net/if.h>
+
+#include <sys/types.h>
 #include <sys/stat.h>
 #include <thread>
 
