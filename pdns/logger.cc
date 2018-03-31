@@ -102,16 +102,10 @@ void Logger::initKey()
     unixDie("Creating thread key for logger");
 }
 
-Logger::Logger(const string &n, int facility)
+Logger::Logger(const string &n, int facility) :
+  name(n), flags(LOG_PID|LOG_NDELAY), d_facility(facility), d_loglevel(Logger::None),
+  consoleUrgency(Error), opened(false), d_disableSyslog(false)
 {
-  opened=false;
-  flags=LOG_PID|LOG_NDELAY;
-  d_facility=facility;
-  d_loglevel=Logger::None;
-  d_disableSyslog=false;
-  consoleUrgency=Error;
-  name=n;
-
   if(pthread_once(&s_once, initKey))
     unixDie("Creating thread key for logger");
 

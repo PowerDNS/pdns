@@ -31,7 +31,7 @@ struct SortListOrder
 
 struct SortListOrderCmp
 {
-  SortListOrderCmp(SortListOrder slo) : d_slo(slo) {}
+  SortListOrderCmp(const SortListOrder& slo) : d_slo(slo) {}
   bool operator()(const DNSRecord& a, const DNSRecord& b) const;
   const SortListOrder d_slo;
 };

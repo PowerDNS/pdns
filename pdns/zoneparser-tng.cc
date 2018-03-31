@@ -314,7 +314,7 @@ bool ZoneParserTNG::get(DNSResourceRecord& rr, std::string* comment)
       string range=makeString(d_line, parts[1]);
       d_templatestep=1;
       d_templatestop=0;
-      sscanf(range.c_str(),"%d-%d/%d", &d_templatecounter, &d_templatestop, &d_templatestep);
+      sscanf(range.c_str(),"%u-%u/%u", &d_templatecounter, &d_templatestop, &d_templatestep);
       d_templateline=d_line;
       parts.pop_front();
       parts.pop_front();
@@ -523,7 +523,7 @@ bool ZoneParserTNG::getLine()
   if (d_zonedata.size() > 0) {
     if (d_zonedataline != d_zonedata.end()) {
       d_line = *d_zonedataline;
-      d_zonedataline++;
+      ++d_zonedataline;
       return true;
     }
     return false;

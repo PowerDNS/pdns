@@ -92,10 +92,8 @@ public:
 private:
   struct PerThread
   {
-    PerThread() 
-    {
-      d_urgency=Info;
-    }
+    PerThread() : d_urgency(Info)
+    {}
     string d_output;
     Urgency d_urgency;
   };

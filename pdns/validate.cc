@@ -9,10 +9,6 @@ bool g_dnssecLOG{false};
 uint16_t g_maxNSEC3Iterations{0};
 
 #define LOG(x) if(g_dnssecLOG) { g_log <<Logger::Warning << x; }
-void dotEdge(DNSName zone, string type1, DNSName name1, string tag1, string type2, DNSName name2, string tag2, string color="");
-void dotNode(string type, DNSName name, string tag, string content);
-string dotName(string type, DNSName name, string tag);
-string dotEscape(string name);
 
 const char *dStates[]={"nodata", "nxdomain", "nxqtype", "empty non-terminal", "insecure", "opt-out"};
 const char *vStates[]={"Indeterminate", "Bogus", "Insecure", "Secure", "NTA", "TA"};
@@ -51,7 +47,7 @@ static bool nsecProvesENT(const DNSName& name, const DNSName& begin, const DNSNa
   return begin.canonCompare(name) && next != name && next.isPartOf(name);
 }
 
-static std::string getHashFromNSEC3(const DNSName& qname, const std::shared_ptr<NSEC3RecordContent> nsec3)
+static std::string getHashFromNSEC3(const DNSName& qname, const std::shared_ptr<NSEC3RecordContent>& nsec3)
 {
   std::string result;
 
@@ -155,14 +151,14 @@ static DNSName getNSECOwnerName(const DNSName& initialOwner, const std::vector<s
   return result;
 }
 
-static bool isNSECAncestorDelegation(const DNSName& signer, const DNSName& owner, const std::shared_ptr<NSECRecordContent> nsec)
+static bool isNSECAncestorDelegation(const DNSName& signer, const DNSName& owner, const std::shared_ptr<NSECRecordContent>& nsec)
 {
   return nsec->d_set.count(QType::NS) &&
     !nsec->d_set.count(QType::SOA) &&
     signer.countLabels() < owner.countLabels();
 }
 
-static bool isNSEC3AncestorDelegation(const DNSName& signer, const DNSName& owner, const std::shared_ptr<NSEC3RecordContent> nsec3)
+static bool isNSEC3AncestorDelegation(const DNSName& signer, const DNSName& owner, const std::shared_ptr<NSEC3RecordContent>& nsec3)
 {
   return nsec3->d_set.count(QType::NS) &&
     !nsec3->d_set.count(QType::SOA) &&
@@ -737,11 +733,6 @@ bool validateWithKeySet(time_t now, const DNSName& name, const vector<shared_ptr
       else {
         LOG("signature invalid"<<endl);
       }
-      if(signature->d_type != QType::DNSKEY) {
-        dotEdge(signature->d_signer,
-                "DNSKEY", signature->d_signer, std::to_string(signature->d_tag),
-                DNSRecordContent::NumberToType(signature->d_type), name, "", signIsValid ? "green" : "red");
-      }
       if (signIsValid && !validateAllSigs) {
         return true;
       }
@@ -847,16 +838,12 @@ void validateDNSKeysAgainstDS(time_t now, const DNSName& zone, const dsmap_t& ds
         LOG("got valid DNSKEY (it matches the DS) with tag "<<dsrc.d_tag<<" and algorithm "<<std::to_string(dsrc.d_algorithm)<<" for "<<zone<<endl);
 
         validkeys.insert(drc);
-        dotNode("DS", zone, "" /*std::to_string(dsrc.d_tag)*/, (boost::format("tag=%d, digest algo=%d, algo=%d") % dsrc.d_tag % static_cast<int>(dsrc.d_digesttype) % static_cast<int>(dsrc.d_algorithm)).str());
       }
       else {
         if (dsCreated) {
           LOG("DNSKEY did not match the DS, parent DS: "<<dsrc.getZoneRepresentation() << " ! = "<<dsrc2.getZoneRepresentation()<<endl);
         }
       }
-      // cout<<"    subgraph "<<dotEscape("cluster "+zone)<<" { "<<dotEscape("DS "+zone)<<" -> "<<dotEscape("DNSKEY "+zone)<<" [ label = \""<<dsrc.d_tag<<"/"<<static_cast<int>(dsrc.d_digesttype)<<"\" ]; label = \"zone: "<<zone<<"\"; }"<<endl;
-      dotEdge(g_rootdnsname, "DS", zone, "" /*std::to_string(dsrc.d_tag)*/, "DNSKEY", zone, std::to_string(drc->getTag()), isValid ? "green" : "red");
-      // dotNode("DNSKEY", zone, (boost::format("tag=%d, algo=%d") % drc->getTag() % static_cast<int>(drc->d_algorithm)).str());
     }
   }
 
@@ -888,16 +875,9 @@ void validateDNSKeysAgainstDS(time_t now, const DNSName& zone, const dsmap_t& ds
         //          cerr<<"validating : ";
         bool signIsValid = checkSignatureWithKey(now, sig, key, msg);
 
-        for(uint16_t tag : toSignTags) {
-          dotEdge(zone,
-                  "DNSKEY", zone, std::to_string(sig->d_tag),
-                  "DNSKEY", zone, std::to_string(tag), signIsValid ? "green" : "red");
-        }
-
         if(signIsValid)
         {
           LOG("validation succeeded - whole DNSKEY set is valid"<<endl);
-          // cout<<"    "<<dotEscape("DNSKEY "+stripDot(i->d_signer))<<" -> "<<dotEscape("DNSKEY "+zone)<<";"<<endl;
           validkeys = tkeys;
           break;
         }
@@ -995,7 +975,6 @@ vState getKeysFor(DNSRecordOracle& dro, const DNSName& zone, skeyset_t& keyset)
         if(drc) {
           tkeys.insert(drc);
           LOG("Inserting key with tag "<<drc->getTag()<<" and algorithm "<<DNSSECKeeper::algorithm2name(drc->d_algorithm)<<": "<<drc->getZoneRepresentation()<<endl);
-          //          dotNode("DNSKEY", *zoneCutIter, std::to_string(drc->getTag()), (boost::format("tag=%d, algo=%d") % drc->getTag() % static_cast<int>(drc->d_algorithm)).str());
 
           toSign.push_back(rec.d_content);
         }
@@ -1057,10 +1036,6 @@ vState getKeysFor(DNSRecordOracle& dro, const DNSName& zone, skeyset_t& keyset)
         const auto dsrc=std::dynamic_pointer_cast<DSRecordContent>(*j);
         if(dsrc) {
           dsmap.insert(*dsrc);
-          // dotEdge(key*(zoneCutIter+1),
-          //         "DNSKEY", key*(zoneCutIter+1), ,
-          //         "DS", *(zoneCutIter+1), std::to_string(dsrc.d_tag));
-          // cout<<"    "<<dotEscape("DNSKEY "+key*(zoneCutIter+1))<<" -> "<<dotEscape("DS "+*(zoneCutIter+1))<<";"<<endl;
         }
       }
     }
@@ -1094,40 +1069,3 @@ DNSName getSigner(const std::vector<std::shared_ptr<RRSIGRecordContent> >& signa
 
   return DNSName();
 }
-
-string dotEscape(string name)
-{
-  return "\"" + boost::replace_all_copy(name, "\"", "\\\"") + "\"";
-}
-
-string dotName(string type, DNSName name, string tag)
-{
-  if(tag == "")
-    return type+" "+name.toString();
-  else
-    return type+" "+name.toString()+"/"+tag;
-}
-void dotNode(string type, DNSName name, string tag, string content)
-{
-#ifdef GRAPHVIZ
-  cout<<"    "
-      <<dotEscape(dotName(type, name, tag))
-      <<" [ label="<<dotEscape(dotName(type, name, tag)+"\\n"+content)<<" ];"<<endl;
-#endif
-}
-
-void dotEdge(DNSName zone, string type1, DNSName name1, string tag1, string type2, DNSName name2, string tag2, string color)
-{
-#ifdef GRAPHVIZ
-  cout<<"    ";
-  if(zone != g_rootdnsname) cout<<"subgraph "<<dotEscape("cluster "+zone.toString())<<" { ";
-  cout<<dotEscape(dotName(type1, name1, tag1))
-      <<" -> "
-      <<dotEscape(dotName(type2, name2, tag2));
-  if(color != "") cout<<" [ color=\""<<color<<"\" ]; ";
-  else cout<<"; ";
-  if(zone != g_rootdnsname) cout<<"label = "<<dotEscape("zone: "+zone.toString())<<";"<<"}";
-  cout<<endl;
-#endif
-}
-
