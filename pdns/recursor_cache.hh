@@ -143,44 +143,64 @@ private:
     uint16_t d_qtype;
   };
 
+  struct HashedTag {};
+  struct SequencedTag {};
+  struct NameOnlyHashedTag {};
+  struct OrderedTag {};
+
   typedef multi_index_container<
     CacheEntry,
     indexed_by <
-                ordered_unique<
-                      composite_key< 
-                        CacheEntry,
-                        member<CacheEntry,DNSName,&CacheEntry::d_qname>,
-                        member<CacheEntry,uint16_t,&CacheEntry::d_qtype>,
-                        member<CacheEntry,Netmask,&CacheEntry::d_netmask>
-                      >,
-		  composite_key_compare<CanonDNSNameCompare, std::less<uint16_t>, std::less<Netmask> >
+                ordered_unique<tag<OrderedTag>,
+                        composite_key<
+                                CacheEntry,
+                                member<CacheEntry,DNSName,&CacheEntry::d_qname>,
+                                member<CacheEntry,uint16_t,&CacheEntry::d_qtype>,
+                                member<CacheEntry,Netmask,&CacheEntry::d_netmask>
+                          >,
+                          composite_key_compare<CanonDNSNameCompare, std::less<uint16_t>, std::less<Netmask> >
                 >,
-               sequenced<>
+                sequenced<tag<SequencedTag> >,
+                hashed_non_unique<tag<NameOnlyHashedTag>,
+                        member<CacheEntry,DNSName,&CacheEntry::d_qname>
+                >
                >
   > cache_t;
+
+  typedef MemRecursorCache::cache_t::index<MemRecursorCache::OrderedTag>::type::iterator OrderedTagIterator_t;
+  typedef MemRecursorCache::cache_t::index<MemRecursorCache::NameOnlyHashedTag>::type::iterator NameOnlyHashedTagIterator_t;
+
   typedef multi_index_container<
     ECSIndexEntry,
     indexed_by <
-      ordered_unique <
+      hashed_unique <tag<HashedTag>,
         composite_key<
           ECSIndexEntry,
           member<ECSIndexEntry,DNSName,&ECSIndexEntry::d_qname>,
           member<ECSIndexEntry,uint16_t,&ECSIndexEntry::d_qtype>
         >
+      >,
+      ordered_unique<tag<OrderedTag>,
+        composite_key<
+          ECSIndexEntry,
+          member<ECSIndexEntry,DNSName,&ECSIndexEntry::d_qname>,
+          member<ECSIndexEntry,uint16_t,&ECSIndexEntry::d_qtype>
+        >,
+        composite_key_compare<CanonDNSNameCompare, std::less<uint16_t> >
       >
     >
   > ecsIndex_t;
 
   cache_t d_cache;
   ecsIndex_t d_ecsIndex;
-  pair<cache_t::iterator, cache_t::iterator> d_cachecache;
+  std::pair<MemRecursorCache::NameOnlyHashedTagIterator_t, MemRecursorCache::NameOnlyHashedTagIterator_t> d_cachecache;
   DNSName d_cachedqname;
   bool d_cachecachevalid;
 
-  bool entryMatches(cache_t::const_iterator& entry, uint16_t qt, bool requireAuth, const ComboAddress& who);
-  std::pair<cache_t::const_iterator, cache_t::const_iterator> getEntries(const DNSName &qname, const QType& qt);
+  bool entryMatches(OrderedTagIterator_t& entry, uint16_t qt, bool requireAuth, const ComboAddress& who);
+  std::pair<NameOnlyHashedTagIterator_t, NameOnlyHashedTagIterator_t> getEntries(const DNSName &qname, const QType& qt);
   cache_t::const_iterator getEntryUsingECSIndex(time_t now, const DNSName &qname, uint16_t qtype, bool requireAuth, const ComboAddress& who);
-  int32_t handleHit(cache_t::iterator entry, const DNSName& qname, const ComboAddress& who, vector<DNSRecord>* res, vector<std::shared_ptr<RRSIGRecordContent>>* signatures, std::vector<std::shared_ptr<DNSRecord>>* authorityRecs, bool* variable, vState* state, bool* wasAuth);
+  int32_t handleHit(OrderedTagIterator_t& entry, const DNSName& qname, const ComboAddress& who, vector<DNSRecord>* res, vector<std::shared_ptr<RRSIGRecordContent>>* signatures, std::vector<std::shared_ptr<DNSRecord>>* authorityRecs, bool* variable, vState* state, bool* wasAuth);
 
 public:
   void preRemoval(const CacheEntry& entry)

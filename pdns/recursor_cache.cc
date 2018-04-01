@@ -29,16 +29,16 @@ unsigned int MemRecursorCache::bytes() const
 {
   unsigned int ret=0;
 
-  for(cache_t::const_iterator i=d_cache.begin(); i!=d_cache.end(); ++i) {
+  for(const auto& i : d_cache) {
     ret+=sizeof(struct CacheEntry);
-    ret+=(unsigned int)i->d_qname.toString().length();
-    for(auto j=i->d_records.begin(); j!= i->d_records.end(); ++j)
-      ret+= sizeof(*j); // XXX WRONG we don't know the stored size! j->size();
+    ret+=(unsigned int)i.d_qname.toString().length();
+    for(const auto& record : i.d_records)
+      ret+= sizeof(record); // XXX WRONG we don't know the stored size! j->size();
   }
   return ret;
 }
 
-int32_t MemRecursorCache::handleHit(cache_t::iterator entry, const DNSName& qname, const ComboAddress& who, vector<DNSRecord>* res, vector<std::shared_ptr<RRSIGRecordContent>>* signatures, std::vector<std::shared_ptr<DNSRecord>>* authorityRecs, bool* variable, vState* state, bool* wasAuth)
+int32_t MemRecursorCache::handleHit(MemRecursorCache::OrderedTagIterator_t& entry, const DNSName& qname, const ComboAddress& who, vector<DNSRecord>* res, vector<std::shared_ptr<RRSIGRecordContent>>* signatures, std::vector<std::shared_ptr<DNSRecord>>* authorityRecs, bool* variable, vState* state, bool* wasAuth)
 {
   int32_t ttd = entry->d_ttd;
 
@@ -48,6 +48,8 @@ int32_t MemRecursorCache::handleHit(cache_t::iterator entry, const DNSName& qnam
 
   // cerr<<"Looking at "<<entry->d_records.size()<<" records for this name"<<endl;
   if (res) {
+    res->reserve(res->size() + entry->d_records.size());
+
     for(const auto& k : entry->d_records) {
       DNSRecord dr;
       dr.d_name = qname;
@@ -56,7 +58,7 @@ int32_t MemRecursorCache::handleHit(cache_t::iterator entry, const DNSName& qnam
       dr.d_content = k;
       dr.d_ttl = static_cast<uint32_t>(entry->d_ttd);
       dr.d_place = DNSResourceRecord::ANSWER;
-      res->push_back(dr);
+      res->push_back(std::move(dr));
     }
   }
 
@@ -143,21 +145,22 @@ MemRecursorCache::cache_t::const_iterator MemRecursorCache::getEntryUsingECSInde
 }
 
 // returns -1 for no hits
-std::pair<MemRecursorCache::cache_t::const_iterator, MemRecursorCache::cache_t::const_iterator> MemRecursorCache::getEntries(const DNSName &qname, const QType& qt)
+std::pair<MemRecursorCache::NameOnlyHashedTagIterator_t, MemRecursorCache::NameOnlyHashedTagIterator_t> MemRecursorCache::getEntries(const DNSName &qname, const QType& qt)
 {
   //  cerr<<"looking up "<< qname<<"|"+qt.getName()<<"\n";
   if(!d_cachecachevalid || d_cachedqname!= qname) {
     //    cerr<<"had cache cache miss"<<endl;
-    d_cachedqname=qname;
-    d_cachecache=d_cache.equal_range(tie(qname));
-    d_cachecachevalid=true;
+    d_cachedqname = qname;
+    const auto& idx = d_cache.get<NameOnlyHashedTag>();
+    d_cachecache = idx.equal_range(qname);
+    d_cachecachevalid = true;
   }
   //  else cerr<<"had cache cache hit!"<<endl;
 
   return d_cachecache;
 }
 
-bool MemRecursorCache::entryMatches(cache_t::const_iterator& entry, uint16_t qt, bool requireAuth, const ComboAddress& who)
+bool MemRecursorCache::entryMatches(MemRecursorCache::OrderedTagIterator_t& entry, uint16_t qt, bool requireAuth, const ComboAddress& who)
 {
   if (requireAuth && !entry->d_auth)
     return false;
@@ -210,17 +213,18 @@ int32_t MemRecursorCache::get(time_t now, const DNSName &qname, const QType& qt,
   auto entries = getEntries(qname, qt);
 
   if(entries.first!=entries.second) {
-    for(cache_t::const_iterator i=entries.first; i != entries.second; ++i) {
+    for(auto i=entries.first; i != entries.second; ++i) {
 
+      auto firstIndexIterator = d_cache.project<OrderedTag>(i);
       if (i->d_ttd <= now) {
-        moveCacheItemToFront(d_cache, i);
+        moveCacheItemToFront(d_cache, firstIndexIterator);
         continue;
       }
 
-      if (!entryMatches(i, qtype, requireAuth, who))
+      if (!entryMatches(firstIndexIterator, qtype, requireAuth, who))
         continue;
 
-      ttd = handleHit(i, qname, who, res, signatures, authorityRecs, variable, state, wasAuth);
+      ttd = handleHit(firstIndexIterator, qname, who, res, signatures, authorityRecs, variable, state, wasAuth);
 
       if(qt.getCode()!=QType::ANY && qt.getCode()!=QType::ADDR) // normally if we have a hit, we are done
         break;
@@ -320,38 +324,51 @@ int MemRecursorCache::doWipeCache(const DNSName& name, bool sub, uint16_t qtype)
 
   if(!sub) {
     pair<ecsIndex_t::iterator, ecsIndex_t::iterator> ecsIndexRange;
-    if(qtype==0xffff) {
-      range = d_cache.equal_range(tie(name));
-      ecsIndexRange = d_ecsIndex.equal_range(tie(name));
+    auto& idx = d_cache.get<NameOnlyHashedTag>();
+    auto range = idx.equal_range(name);
+    for(auto& i=range.first; i != range.second; ) {
+      if (qtype == 0xffff || i->d_qtype == qtype) {
+        count++;
+        idx.erase(i++);
+      }
+      else {
+        ++i;
+      }
+    }
+    if (qtype == 0xffff) {
+      auto& ecsIdx = d_ecsIndex.get<OrderedTag>();
+      auto ecsIndexRange = ecsIdx.equal_range(name);
+      for(auto i = ecsIndexRange.first; i != ecsIndexRange.second; ) {
+        ecsIdx.erase(i++);
+      }
     }
     else {
-      range=d_cache.equal_range(tie(name, qtype));
-      ecsIndexRange = d_ecsIndex.equal_range(tie(name, qtype));
-    }
-    for(cache_t::const_iterator i=range.first; i != range.second; ) {
-      count++;
-      d_cache.erase(i++);
-    }
-    for(auto i = ecsIndexRange.first; i != ecsIndexRange.second; ) {
-      d_ecsIndex.erase(i++);
+      auto& ecsIdx = d_ecsIndex.get<HashedTag>();
+      auto ecsIndexRange = ecsIdx.equal_range(tie(name, qtype));
+      for(auto i = ecsIndexRange.first; i != ecsIndexRange.second; ) {
+        ecsIdx.erase(i++);
+      }
     }
   }
   else {
-    for(auto iter = d_cache.lower_bound(tie(name)); iter != d_cache.end(); ) {
+    auto& idx = d_cache.get<OrderedTag>();
+    auto& ecsIdx = d_ecsIndex.get<OrderedTag>();
+
+    for(auto iter = idx.lower_bound(name); iter != idx.end(); ) {
       if(!iter->d_qname.isPartOf(name))
 	break;
       if(iter->d_qtype == qtype || qtype == 0xffff) {
 	count++;
-	d_cache.erase(iter++);
+	idx.erase(iter++);
       }
       else 
 	iter++;
     }
-    for(auto iter = d_ecsIndex.lower_bound(tie(name)); iter != d_ecsIndex.end(); ) {
+    for(auto iter = ecsIdx.lower_bound(name); iter != ecsIdx.end(); ) {
       if(!iter->d_qname.isPartOf(name))
 	break;
       if(iter->d_qtype == qtype || qtype == 0xffff) {
-	d_ecsIndex.erase(iter++);
+	ecsIdx.erase(iter++);
       }
       else {
 	iter++;
@@ -406,7 +423,9 @@ bool MemRecursorCache::updateValidationStatus(time_t now, const DNSName &qname, 
   auto entries = getEntries(qname, qt);
 
   for(auto i = entries.first; i != entries.second; ++i) {
-    if (!entryMatches(i, qtype, requireAuth, who))
+    auto firstIndexIterator = d_cache.project<OrderedTag>(i);
+
+    if (!entryMatches(firstIndexIterator, qtype, requireAuth, who))
       continue;
 
     i->d_state = newState;
@@ -426,7 +445,7 @@ uint64_t MemRecursorCache::doDump(int fd)
     return 0;
   }
   fprintf(fp, "; main record cache dump from thread follows\n;\n");
-  const auto& sidx=d_cache.get<1>();
+  const auto& sidx=d_cache.get<SequencedTag>();
 
   uint64_t count=0;
   time_t now=time(0);
