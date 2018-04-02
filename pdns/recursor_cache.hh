@@ -173,6 +173,7 @@ private:
   > ecsIndex_t;
 
   cache_t d_cache;
+  size_t d_bytes=0;
   ecsIndex_t d_ecsIndex;
   pair<cache_t::iterator, cache_t::iterator> d_cachecache;
   DNSName d_cachedqname;
@@ -186,6 +187,7 @@ private:
 public:
   void preRemoval(const CacheEntry& entry)
   {
+    d_bytes -= entry.d_bytes;
     if (entry.d_netmask.empty()) {
       return;
     }

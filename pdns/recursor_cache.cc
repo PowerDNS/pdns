@@ -32,13 +32,14 @@ unsigned int MemRecursorCache::bytes() const
   for(cache_t::const_iterator i=d_cache.begin(); i!=d_cache.end(); ++i) {
     ret+=sizeof(struct CacheEntry);
     ret+=(unsigned int)i->d_qname.toString().length();
-    cerr<<i->d_qname.toString()<<"/"<<QType(i->d_qtype).getName()<<": ";
+    // cerr<<i->d_qname.toString()<<"/"<<QType(i->d_qtype).getName()<<": ";
     for(auto j=i->d_records.begin(); j!= i->d_records.end(); ++j) {
       ret+= sizeof(*j); // XXX WRONG we don't know the stored size! j->size();
-      cerr<<(*j)->getZoneRepresentation()<<"="<<(*j)->d_size_in_bytes<<" ";
+      // cerr<<(*j)->getZoneRepresentation()<<"="<<(*j)->d_size_in_bytes<<" ";
     }
-    cerr<<endl;
+    // cerr<<endl;
   }
+  cerr<<"running size in bytes: "<<d_bytes<<endl;
   return ret;
 }
 
@@ -271,7 +272,7 @@ void MemRecursorCache::replace(time_t now, const DNSName &qname, const QType& qt
   ce.d_signatures=signatures;
   ce.d_authorityRecs=authorityRecs;
   ce.d_state=state;
-  
+
   //  cerr<<"asked to store "<< (qname.empty() ? "EMPTY" : qname.toString()) <<"|"+qt.getName()<<" -> '";
   //  cerr<<(content.empty() ? string("EMPTY CONTENT")  : content.begin()->d_content->getZoneRepresentation())<<"', auth="<<auth<<", ce.auth="<<ce.d_auth;
   //  cerr<<", ednsmask: "  <<  (ednsmask ? ednsmask->toString() : "none") <<endl;
@@ -285,6 +286,7 @@ void MemRecursorCache::replace(time_t now, const DNSName &qname, const QType& qt
       ce.d_auth = false;  // new data won't be auth
     }
   }
+  ce.d_bytes=qname.wirelength();
 
   // refuse any attempt to *raise* the TTL of auth NS records, as it would make it possible
   // for an auth to keep a "ghost" zone alive forever, even after the delegation is gone from
@@ -296,6 +298,7 @@ void MemRecursorCache::replace(time_t now, const DNSName &qname, const QType& qt
   }
 
   if(auth) {
+    ce.d_bytes=qname.wirelength(); //weird, this is the same as above
     ce.d_auth = true;
   }
 
@@ -308,11 +311,15 @@ void MemRecursorCache::replace(time_t now, const DNSName &qname, const QType& qt
     ce.d_ttd=min(maxTTD, static_cast<time_t>(i.d_ttl));   // XXX this does weird things if TTLs differ in the set
     //    cerr<<"To store: "<<i.d_content->getZoneRepresentation()<<" with ttl/ttd "<<i.d_ttl<<", capped at: "<<maxTTD<<endl;
     ce.d_records.push_back(i.d_content);
+    // there was code here that did things with TTL and auth. Unsure if it was good. XXX
+    ce.d_bytes += i.d_content->d_size_in_bytes;
   }
 
   if (!isNew) {
     moveCacheItemToBack(d_cache, stored);
   }
+  d_bytes -= stored->d_bytes;
+  d_bytes += ce.d_bytes;
   d_cache.replace(stored, ce);
 }
 
@@ -334,6 +341,7 @@ int MemRecursorCache::doWipeCache(const DNSName& name, bool sub, uint16_t qtype)
     }
     for(cache_t::const_iterator i=range.first; i != range.second; ) {
       count++;
+      d_bytes -= i->d_bytes;
       d_cache.erase(i++);
     }
     for(auto i = ecsIndexRange.first; i != ecsIndexRange.second; ) {
@@ -346,6 +354,7 @@ int MemRecursorCache::doWipeCache(const DNSName& name, bool sub, uint16_t qtype)
 	break;
       if(iter->d_qtype == qtype || qtype == 0xffff) {
 	count++;
+        d_bytes -= iter->d_bytes;
 	d_cache.erase(iter++);
       }
       else 
@@ -438,7 +447,7 @@ uint64_t MemRecursorCache::doDump(int fd)
     for(const auto j : i.d_records) {
       count++;
       try {
-        fprintf(fp, "%s %" PRId64 " IN %s %s ; (%s) auth=%i %s\n", i.d_qname.toString().c_str(), static_cast<int64_t>(i.d_ttd - now), DNSRecordContent::NumberToType(i.d_qtype).c_str(), j->getZoneRepresentation().c_str(), vStates[i.d_state], i.d_auth, i.d_netmask.empty() ? "" : i.d_netmask.toString().c_str());
+        fprintf(fp, "%s %" PRId64 " IN %s %s ; (%s) auth=%i size=%zu %s\n", i.d_qname.toString().c_str(), static_cast<int64_t>(i.d_ttd - now), DNSRecordContent::NumberToType(i.d_qtype).c_str(), j->getZoneRepresentation().c_str(), vStates[i.d_state], i.d_auth, j->d_size_in_bytes, i.d_netmask.empty() ? "" : i.d_netmask.toString().c_str());
       }
       catch(...) {
         fprintf(fp, "; error printing '%s'\n", i.d_qname.empty() ? "EMPTY" : i.d_qname.toString().c_str());
