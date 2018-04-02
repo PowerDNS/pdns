@@ -2082,9 +2082,9 @@ try
   string optstring;
   for(;;) {
 #ifdef HAVE_LIBSODIUM
-    int c=getopt_long(argc, argv, "a:hcde:C:k:l:vp:g:u:V", longopts, &longindex);
+    int c=getopt_long(argc, argv, "a:hce:C:k:l:vp:g:u:V", longopts, &longindex);
 #else
-    int c=getopt_long(argc, argv, "a:hcde:C:l:vp:g:u:V", longopts, &longindex);
+    int c=getopt_long(argc, argv, "a:hce:C:l:vp:g:u:V", longopts, &longindex);
 #endif
     if(c==-1)
       break;
