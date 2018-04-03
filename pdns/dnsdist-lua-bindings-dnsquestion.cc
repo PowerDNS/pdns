@@ -41,7 +41,18 @@ void setupLuaBindingsDNSQuestion()
   g_lua.registerMember<bool (DNSQuestion::*)>("tcp", [](const DNSQuestion& dq) -> bool { return dq.tcp; }, [](DNSQuestion& dq, bool newTcp) { (void) newTcp; });
   g_lua.registerMember<bool (DNSQuestion::*)>("skipCache", [](const DNSQuestion& dq) -> bool { return dq.skipCache; }, [](DNSQuestion& dq, bool newSkipCache) { dq.skipCache = newSkipCache; });
   g_lua.registerMember<bool (DNSQuestion::*)>("useECS", [](const DNSQuestion& dq) -> bool { return dq.useECS; }, [](DNSQuestion& dq, bool useECS) { dq.useECS = useECS; });
-  g_lua.registerMember<bool (DNSQuestion::*)>("ecsOverride", [](const DNSQuestion& dq) -> bool { return dq.ecsOverride; }, [](DNSQuestion& dq, bool ecsOverride) { dq.ecsOverride = ecsOverride; });
+  g_lua.registerMember<ECSOverrideMethod (DNSQuestion::*)>("ecsOverride",
+      [](const DNSQuestion& dq) -> ECSOverrideMethod {
+        return dq.ecsOverride;
+      },
+      [](DNSQuestion& dq, boost::variant<ECSOverrideMethod, bool>  ecsOverride) {
+        if (bool* boolValue = boost::get<bool>(&ecsOverride)) {
+          dq.ecsOverride = *boolValue ? ECSOverrideMethod::useClientAddr : ECSOverrideMethod::keep;
+        } else {
+          dq.ecsOverride = boost::get<ECSOverrideMethod>(ecsOverride);
+        }
+      }
+    );
   g_lua.registerMember<uint16_t (DNSQuestion::*)>("ecsPrefixLength", [](const DNSQuestion& dq) -> uint16_t { return dq.ecsPrefixLength; }, [](DNSQuestion& dq, uint16_t newPrefixLength) { dq.ecsPrefixLength = newPrefixLength; });
   g_lua.registerMember<boost::optional<uint32_t> (DNSQuestion::*)>("tempFailureTTL",
       [](const DNSQuestion& dq) -> boost::optional<uint32_t> {

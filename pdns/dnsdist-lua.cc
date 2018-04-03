@@ -816,7 +816,13 @@ void setupLuaConfig(bool client)
 
   g_lua.writeFunction("setECSSourcePrefixV6", [](uint16_t prefix) { g_ECSSourcePrefixV6=prefix; });
 
-  g_lua.writeFunction("setECSOverride", [](bool override) { g_ECSOverride=override; });
+  g_lua.writeFunction("setECSOverride", [](boost::variant<ECSOverrideMethod, bool> ecsOverride) {
+    if (bool* boolValue = boost::get<bool>(&ecsOverride)) {
+      g_ECSOverride = *boolValue ? ECSOverrideMethod::useClientAddr : ECSOverrideMethod::keep;
+    } else {
+      g_ECSOverride = boost::get<ECSOverrideMethod>(ecsOverride);
+    }
+  });
 
   g_lua.writeFunction("showDynBlocks", []() {
       setLuaNoSideEffect();

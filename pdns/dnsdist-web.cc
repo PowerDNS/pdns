@@ -553,7 +553,7 @@ static void connectionThread(int sock, ComboAddress remote, string password, str
       std::vector<std::pair<std::string, configentry_t> > configEntries {
         { "acl", g_ACL.getLocal()->toString() },
         { "control-socket", g_serverControl.toStringWithPort() },
-        { "ecs-override", g_ECSOverride },
+        { "ecs-override", std::to_string(g_ECSOverride) },
         { "ecs-source-prefix-v4", (double) g_ECSSourcePrefixV4 },
         { "ecs-source-prefix-v6", (double)  g_ECSSourcePrefixV6 },
         { "fixup-case", g_fixupCase },

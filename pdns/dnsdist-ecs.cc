@@ -34,7 +34,21 @@ size_t g_EdnsUDPPayloadSize = 512;
 uint16_t g_ECSSourcePrefixV4 = 24;
 uint16_t g_ECSSourcePrefixV6 = 56;
 
-bool g_ECSOverride{false};
+ECSOverrideMethod g_ECSOverride{ECSOverrideMethod::keep};
+
+std::string std::to_string(ECSOverrideMethod value) {
+  switch (value) {
+    case ECSOverrideMethod::keep:
+      return "keep";
+    case ECSOverrideMethod::useClientAddr:
+      return "useClientAddr";
+    case ECSOverrideMethod::remove:
+      return "remove";
+  }
+  return "";
+}
+
+static int removeEDNSOptionFromOptions(unsigned char* optionsStart, const uint16_t optionsLen, const uint16_t optionCodeToRemove, uint16_t* newOptionsLen);
 
 int rewriteResponseWithoutEDNS(const char * packet, const size_t len, vector<uint8_t>& newContent)
 {
@@ -299,7 +313,7 @@ static bool replaceEDNSClientSubnetOption(char * const packet, const size_t pack
   return true;
 }
 
-bool handleEDNSClientSubnet(char* const packet, const size_t packetSize, const unsigned int consumed, uint16_t* const len, bool* const ednsAdded, bool* const ecsAdded, const ComboAddress& remote, bool overrideExisting, uint16_t ecsPrefixLength)
+bool handleEDNSClientSubnet(char* const packet, const size_t packetSize, const unsigned int consumed, uint16_t* const len, bool* const ednsAdded, bool* const ecsAdded, const ComboAddress& remote, ECSOverrideMethod overrideExisting, uint16_t ecsPrefixLength)
 {
   assert(packet != NULL);
   assert(len != NULL);
@@ -319,10 +333,21 @@ bool handleEDNSClientSubnet(char* const packet, const size_t packetSize, const u
     
     if (res == 0) {
       /* there is already an ECS value */
-      if (overrideExisting) {
-        return replaceEDNSClientSubnetOption(packet, packetSize, len, remote, ecsOptionStart, ecsOptionSize, optRDLen, ecsPrefixLength);
+      switch (overrideExisting) {
+        case ECSOverrideMethod::keep:
+          break;
+        case ECSOverrideMethod::useClientAddr:
+          return replaceEDNSClientSubnetOption(packet, packetSize, len, remote, ecsOptionStart, ecsOptionSize, optRDLen, ecsPrefixLength);
+        case ECSOverrideMethod::remove:
+        {
+          uint16_t newOptionsLen;
+          if (removeEDNSOptionFromOptions((unsigned char*)ecsOptionStart, ecsOptionSize, EDNSOptionCode::ECS, &newOptionsLen) == 0) {
+            *len -= (ecsOptionSize - newOptionsLen);
+          }
+          return true;
+        }
       }
-    } else {
+    } else if (overrideExisting == ECSOverrideMethod::useClientAddr) {
       /* we need to add one EDNS0 ECS option, fixing the size of EDNS0 RDLENGTH */
       /* getEDNSOptionsStart has already checked that there is exactly one AR,
          no NS and no AN */
@@ -345,7 +370,7 @@ bool handleEDNSClientSubnet(char* const packet, const size_t packetSize, const u
       *ecsAdded = true;
     }
   }
-  else {
+  else if (overrideExisting == ECSOverrideMethod::useClientAddr) {
     /* we need to add a EDNS0 RR with one EDNS0 ECS option, fixing the AR count */
     string EDNSRR;
     struct dnsheader* dh = (struct dnsheader*) packet;

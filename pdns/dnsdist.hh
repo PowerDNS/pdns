@@ -35,6 +35,7 @@
 #include "sholder.hh"
 #include "dnscrypt.hh"
 #include "dnsdist-cache.hh"
+#include "dnsdist-ecs.hh"
 #include "gettime.hh"
 #include "dnsdist-dynbpf.hh"
 #include "bpf-filter.hh"
@@ -51,7 +52,7 @@ uint64_t uptimeOfProcess(const std::string& str);
 
 extern uint16_t g_ECSSourcePrefixV4;
 extern uint16_t g_ECSSourcePrefixV6;
-extern bool g_ECSOverride;
+extern ECSOverrideMethod g_ECSOverride;
 
 extern thread_local boost::uuids::random_generator t_uuidGenerator;
 
@@ -79,7 +80,7 @@ struct DNSQuestion
   const bool tcp;
   const struct timespec* queryTime;
   bool skipCache{false};
-  bool ecsOverride;
+  ECSOverrideMethod ecsOverride{ECSOverrideMethod::keep};
   bool useECS{true};
   bool addXPF{true};
 };

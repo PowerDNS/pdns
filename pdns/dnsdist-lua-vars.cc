@@ -102,4 +102,10 @@ void setupLuaVars()
         { "VERSION2", DNSCryptExchangeVersion::VERSION2 },
     });
 #endif
+
+  g_lua.writeVariable("ECSOverrideMethod", std::unordered_map<string,int>{
+      {std::to_string(ECSOverrideMethod::keep),            (int)ECSOverrideMethod::keep             },
+      {std::to_string(ECSOverrideMethod::useClientAddr),   (int)ECSOverrideMethod::useClientAddr    },
+      {std::to_string(ECSOverrideMethod::remove),          (int)ECSOverrideMethod::remove           }
+    });
 }

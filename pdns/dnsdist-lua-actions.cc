@@ -617,7 +617,7 @@ private:
 class ECSOverrideAction : public DNSAction
 {
 public:
-  ECSOverrideAction(bool ecsOverride) : d_ecsOverride(ecsOverride)
+  ECSOverrideAction(ECSOverrideMethod ecsOverride) : d_ecsOverride(ecsOverride)
   {
   }
   DNSAction::Action operator()(DNSQuestion* dq, string* ruleresult) const override
@@ -630,7 +630,7 @@ public:
     return "set ECS override to " + std::to_string(d_ecsOverride);
   }
 private:
-  bool d_ecsOverride;
+  ECSOverrideMethod d_ecsOverride;
 };
 
 
@@ -1158,8 +1158,15 @@ void setupLuaActions()
       return std::shared_ptr<DNSAction>(new ECSPrefixLengthAction(v4PrefixLength, v6PrefixLength));
     });
 
-  g_lua.writeFunction("ECSOverrideAction", [](bool ecsOverride) {
-      return std::shared_ptr<DNSAction>(new ECSOverrideAction(ecsOverride));
+  g_lua.writeFunction("ECSOverrideAction", [](boost::variant<ECSOverrideMethod, bool> ecsOverride) {
+      ECSOverrideMethod value;
+      if (bool* boolValue = boost::get<bool>(&ecsOverride)) {
+        value = *boolValue ? ECSOverrideMethod::useClientAddr : ECSOverrideMethod::keep;
+      } else {
+        value = boost::get<ECSOverrideMethod>(ecsOverride);
+      }
+
+      return std::shared_ptr<DNSAction>(new ECSOverrideAction(value));
     });
 
   g_lua.writeFunction("DisableECSAction", []() {
