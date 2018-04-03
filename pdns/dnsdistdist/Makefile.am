@@ -4,7 +4,13 @@ ACLOCAL_AMFLAGS = -I m4
 
 SUBDIRS=ext/yahttp
 
-CLEANFILES = dnsmessage.pb.cc dnsmessage.pb.h htmlfiles.h.tmp htmlfiles.h dnstap.pb.cc dnstap.pb.h
+CLEANFILES = \
+	dnsmessage.pb.cc \
+	dnsmessage.pb.h \
+	htmlfiles.h.tmp \
+	htmlfiles.h \
+	dnstap.pb.cc \
+	dnstap.pb.h
 
 dnslabeltext.cc: dnslabeltext.rl
 	$(AM_V_GEN)$(RAGEL) $< -o dnslabeltext.cc
@@ -308,6 +314,10 @@ dnsdist@.service: dnsdist.service
 systemdsystemunitdir = $(SYSTEMD_DIR)
 
 systemdsystemunit_DATA = \
+	dnsdist.service \
+	dnsdist@.service
+
+CLEANFILES += \
 	dnsdist.service \
 	dnsdist@.service
 endif
