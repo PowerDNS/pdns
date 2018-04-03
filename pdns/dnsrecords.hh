@@ -517,9 +517,9 @@ public:
   includeboilerplate(SOA)
   SOARecordContent(const DNSName& mname, const DNSName& rname, const struct soatimes& st);
 
-  struct soatimes d_st;
   DNSName d_mname;
   DNSName d_rname;
+  struct soatimes d_st;
 };
 
 class NSECRecordContent : public DNSRecordContent
