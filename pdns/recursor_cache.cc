@@ -315,6 +315,9 @@ void MemRecursorCache::replace(time_t now, const DNSName &qname, const QType& qt
     ce.d_bytes += i.d_content->d_size_in_bytes;
   }
 
+  for(const auto i : signatures) {
+    ce.d_bytes += i->d_size_in_bytes;
+  }
   if (!isNew) {
     moveCacheItemToBack(d_cache, stored);
   }
