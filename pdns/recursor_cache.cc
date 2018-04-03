@@ -450,7 +450,7 @@ uint64_t MemRecursorCache::doDump(int fd)
     for(const auto j : i.d_records) {
       count++;
       try {
-        fprintf(fp, "%s %" PRId64 " IN %s %s ; (%s) auth=%i size=%zu %s\n", i.d_qname.toString().c_str(), static_cast<int64_t>(i.d_ttd - now), DNSRecordContent::NumberToType(i.d_qtype).c_str(), j->getZoneRepresentation().c_str(), vStates[i.d_state], i.d_auth, j->d_size_in_bytes, i.d_netmask.empty() ? "" : i.d_netmask.toString().c_str());
+        fprintf(fp, "%s %" PRId64 " IN %s %s ; (%s) auth=%i size=%zu/%zu %s\n", i.d_qname.toString().c_str(), static_cast<int64_t>(i.d_ttd - now), DNSRecordContent::NumberToType(i.d_qtype).c_str(), j->getZoneRepresentation().c_str(), vStates[i.d_state], i.d_auth, j->d_size_in_bytes, i.d_bytes, i.d_netmask.empty() ? "" : i.d_netmask.toString().c_str());
       }
       catch(...) {
         fprintf(fp, "; error printing '%s'\n", i.d_qname.empty() ? "EMPTY" : i.d_qname.toString().c_str());
@@ -459,7 +459,7 @@ uint64_t MemRecursorCache::doDump(int fd)
     for(const auto &sig : i.d_signatures) {
       count++;
       try {
-        fprintf(fp, "%s %" PRId64 " IN RRSIG %s ; %s\n", i.d_qname.toString().c_str(), static_cast<int64_t>(i.d_ttd - now), sig->getZoneRepresentation().c_str(), i.d_netmask.empty() ? "" : i.d_netmask.toString().c_str());
+        fprintf(fp, "%s %" PRId64 " IN RRSIG %s ; size=%zu/%zu %s\n", i.d_qname.toString().c_str(), static_cast<int64_t>(i.d_ttd - now), sig->getZoneRepresentation().c_str(), sig->d_size_in_bytes, i.d_bytes, i.d_netmask.empty() ? "" : i.d_netmask.toString().c_str());
       }
       catch(...) {
         fprintf(fp, "; error printing '%s'\n", i.d_qname.empty() ? "EMPTY" : i.d_qname.toString().c_str());
