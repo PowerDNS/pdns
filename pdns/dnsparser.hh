@@ -146,6 +146,7 @@ public:
   void xfrText(string &text, bool multi=false, bool lenField=true)
   {
     text=getText(multi, lenField);
+    d_bytesout += text.length();
   }
 
   void xfrUnquotedText(string &text, bool lenField){
