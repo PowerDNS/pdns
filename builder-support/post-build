@@ -1,0 +1,19 @@
+#!/bin/bash
+
+SRCDIR="${BUILDER_TMP}/${BUILDER_VERSION}/${BUILDER_TARGET}"
+DESTDIR="built_pkgs/"
+
+mkdir -p ${DESTDIR}
+
+for prog in pdns-recursor dnsdist pdns; do
+  if [ $(find ${SRCDIR}/dist -name "${prog}*" 2>/dev/null | wc -l) -ne 0 ]; then
+    dst=${DESTDIR}/${prog}/${BUILDER_VERSION}
+    mkdir -p ${dst}
+    cp ${BUILDER_TMP}/${BUILDER_VERSION}/sdist/${prog}*.tar.bz2 ${dst}
+    if [ "${prog}" = "pdns" ]; then
+      rm -f ${dst}/pdns-recursor*
+    fi
+    tardirname=${prog}-${BUILDER_VERSION}-${BUILDER_TARGET}
+    tar -cjf ${dst}/${tardirname}.tar.bz2 --transform="s,.*/,${tardirname}/,g"  $(find ${SRCDIR} -type f)
+  fi
+done

@@ -21,7 +21,7 @@ RUN for file in /sdist/* ; do ln -s $file /root/rpmbuild/SOURCES/ ; done && ls /
 ADD builder-support/specs/ /pdns/builder-support/specs
 RUN find /pdns/builder-support/specs/ -not -name '*.spec' -exec ln -s {} /root/rpmbuild/SOURCES/ \;
 
-@IF [ ! -z "$M_authoritative" ]
+@IF [ ! -z "$M_authoritative$M_all" ]
 RUN if $(grep -q 'release 6' /etc/redhat-release); then \
       scl enable devtoolset-3 -- builder/helpers/build-specs.sh builder-support/specs/pdns.spec; \
     else \
@@ -29,7 +29,7 @@ RUN if $(grep -q 'release 6' /etc/redhat-release); then \
     fi
 @ENDIF
 
-@IF [ ! -z "$M_recursor" ]
+@IF [ ! -z "$M_recursor$M_all" ]
 RUN if $(grep -q 'release 6' /etc/redhat-release); then \
       scl enable devtoolset-3 -- builder/helpers/build-specs.sh builder-support/specs/pdns-recursor.spec; \
     else \
@@ -37,7 +37,7 @@ RUN if $(grep -q 'release 6' /etc/redhat-release); then \
     fi
 @ENDIF
 
-@IF [ ! -z "$M_dnsdist" ]
+@IF [ ! -z "$M_dnsdist$M_all" ]
 RUN if $(grep -q 'release 6' /etc/redhat-release); then \
       scl enable devtoolset-3 -- builder/helpers/build-specs.sh builder-support/specs/dnsdist.spec; \
     else \
