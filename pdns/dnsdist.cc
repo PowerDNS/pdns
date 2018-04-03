@@ -2147,7 +2147,10 @@ try
 #ifdef HAVE_DNS_OVER_TLS
       cout<<"dns-over-tls(";
 #ifdef HAVE_GNUTLS
-      cout<<"gnutls ";
+      cout<<"gnutls";
+  #ifdef HAVE_LIBSSL
+      cout<<" ";
+  #endif
 #endif
 #ifdef HAVE_LIBSSL
       cout<<"openssl";
@@ -2160,11 +2163,11 @@ try
 #ifdef HAVE_EBPF
       cout<<"ebpf ";
 #endif
-#ifdef HAVE_LIBSODIUM
-      cout<<"libsodium ";
-#endif
 #ifdef HAVE_FSTRM
       cout<<"fstrm ";
+#endif
+#ifdef HAVE_LIBSODIUM
+      cout<<"libsodium ";
 #endif
 #ifdef HAVE_PROTOBUF
       cout<<"protobuf ";
