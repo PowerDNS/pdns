@@ -81,6 +81,20 @@ Description: Tools for DNS debugging by PowerDNS
    * nsec3dig: Calculate the correctness of NSEC3 proofs
    * saxfr: AXFR zones and show extra information
 
+Package: pdns-ixfrdist
+Architecture: any
+Depends: ${misc:Depends},
+         ${shlibs:Depends}
+Description: Redistribute zones via AXFR and IXFR
+ PowerDNS is a versatile nameserver which supports a large number
+ of different backends ranging from simple zonefiles to relational
+ databases and load balancing/failover algorithms.
+ PowerDNS tries to emphasize speed and security.
+ .
+ This package contains the ixfrdist tool that can redistribute multiple versions
+ of zones over AXFR and IXFR. This tool does not require any part of the
+ PowerDNS server components to work.
+
 Package: pdns-backend-bind
 Architecture: any
 Depends: pdns-server (= ${binary:Version}),

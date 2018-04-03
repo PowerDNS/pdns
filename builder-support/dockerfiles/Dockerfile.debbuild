@@ -6,17 +6,17 @@ fi
 
 RUN PDNS_TEST_NO_IPV6=1 builder/helpers/build-debs.sh pdns-${BUILDER_VERSION}
 
-RUN mv pdns*${BUILDER_VERSION}*.deb /dist
+RUN mv pdns*.deb /dist
 @ENDIF
 
 @IF [ ! -z "$M_recursor" ]
 RUN builder/helpers/build-debs.sh pdns-recursor-${BUILDER_VERSION}
 
-RUN mv pdns-recursor*${BUILDER_VERSION}*.deb /dist
+RUN mv pdns-recursor*.deb /dist
 @ENDIF
 
 @IF [ ! -z "$M_dnsdist" ]
 RUN builder/helpers/build-debs.sh dnsdist-${BUILDER_VERSION}
 
-RUN mv dnsdist*${BUILDER_VERSION}*.deb /dist
+RUN mv dnsdist*.deb /dist
 @ENDIF
