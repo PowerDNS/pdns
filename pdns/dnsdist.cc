@@ -2071,9 +2071,7 @@ try
     {"gid", required_argument, 0, 'g'},
     {"help", no_argument, 0, 'h'},
     {"local", required_argument, 0, 'l'},
-#ifdef HAVE_LIBSODIUM
     {"setkey", required_argument, 0, 'k'},
-#endif
     {"supervised", no_argument, 0, 3},
     {"uid", required_argument, 0, 'u'},
     {"verbose", no_argument, 0, 'v'},
@@ -2083,11 +2081,7 @@ try
   int longindex=0;
   string optstring;
   for(;;) {
-#ifdef HAVE_LIBSODIUM
     int c=getopt_long(argc, argv, "a:cC:e:g:hk:l:u:vV", longopts, &longindex);
-#else
-    int c=getopt_long(argc, argv, "a:cC:e:g:hl:u:vV", longopts, &longindex);
-#endif
     if(c==-1)
       break;
     switch(c) {
@@ -2122,14 +2116,17 @@ try
       optstring=optarg;
       g_ACL.modify([optstring](NetmaskGroup& nmg) { nmg.addMask(optstring); });
       break;
-#ifdef HAVE_LIBSODIUM
     case 'k':
+#ifdef HAVE_LIBSODIUM
       if (B64Decode(string(optarg), g_consoleKey) < 0) {
         cerr<<"Unable to decode key '"<<optarg<<"'."<<endl;
         exit(EXIT_FAILURE);
       }
-      break;
+#else
+      cerr<<"dnsdist has been built without libsodium, -k/--setkey is unsupported."<<endl;
+      exit(EXIT_FAILURE);
 #endif
+      break;
     case 'l':
       g_cmdLine.locals.push_back(trim_copy(string(optarg)));
       break;
