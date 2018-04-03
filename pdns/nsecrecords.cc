@@ -84,7 +84,11 @@ void NSECRecordContent::toPacket(DNSPacketWriter& pw)
 NSECRecordContent::DNSRecordContent* NSECRecordContent::make(const DNSRecord &dr, PacketReader& pr) 
 {
   NSECRecordContent* ret=new NSECRecordContent();
+
+  pr.d_bytesout = 0;
   pr.xfrName(ret->d_next);
+  ret->d_size_in_bytes = pr.d_bytesout;
+
   string bitmap;
   pr.xfrBlob(bitmap);
  
@@ -109,6 +113,7 @@ NSECRecordContent::DNSRecordContent* NSECRecordContent::make(const DNSRecord &dr
       for(int bit = 0; bit < 8 ; ++bit , val>>=1)
         if(val & 1) {
           ret->d_set.insert((7-bit) + 8*(k) + 256*window);
+          ret->d_size_in_bytes += 2 + 2*sizeof(void*);
         }
       }
   }
