@@ -2001,7 +2001,7 @@ static void usage()
   cout<<endl;
   cout<<"Syntax: dnsdist [-C,--config file] [-c,--client [IP[:PORT]]]\n";
   cout<<"[-e,--execute cmd] [-h,--help] [-l,--local addr]\n";
-  cout<<"[-v,--verbose] [--check-config]\n";
+  cout<<"[-v,--verbose] [--check-config] [--version]\n";
   cout<<"\n";
   cout<<"-a,--acl netmask      Add this netmask to the ACL\n";
   cout<<"-C,--config file      Load configuration from 'file'\n";
@@ -2026,6 +2026,7 @@ static void usage()
   cout<<"                        (use with e.g. systemd)\n";
   cout<<"-u,--uid uid          Change the process user ID after binding sockets\n";
   cout<<"-v,--verbose          Enable verbose mode\n";
+  cout<<"-V,--version          Show dnsdist version information and exit\n";
 }
 
 int main(int argc, char** argv)
