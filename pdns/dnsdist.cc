@@ -2001,7 +2001,7 @@ static void usage()
   cout<<endl;
   cout<<"Syntax: dnsdist [-C,--config file] [-c,--client [IP[:PORT]]]\n";
   cout<<"[-e,--execute cmd] [-h,--help] [-l,--local addr]\n";
-  cout<<"[-v,--verbose] [--check-config]\n";
+  cout<<"[-v,--verbose] [--check-config] [--version]\n";
   cout<<"\n";
   cout<<"-a,--acl netmask      Add this netmask to the ACL\n";
   cout<<"-C,--config file      Load configuration from 'file'\n";
@@ -2011,7 +2011,8 @@ static void usage()
 #ifdef HAVE_LIBSODIUM
   cout<<"-k,--setkey KEY       Use KEY for encrypted communication to dnsdist. This\n";
   cout<<"                      is similar to setting setKey in the configuration file.\n";
-  cout<<"                      NOTE: this will leak this key in your shell's history!\n";
+  cout<<"                      NOTE: this will leak this key in your shell's history\n";
+  cout<<"                      and in the systems running process list.\n";
 #endif
   cout<<"--check-config        Validate the configuration file and exit. The exit-code\n";
   cout<<"                      reflects the validation, 0 is OK, 1 means an error.\n";
@@ -2026,6 +2027,7 @@ static void usage()
   cout<<"                        (use with e.g. systemd)\n";
   cout<<"-u,--uid uid          Change the process user ID after binding sockets\n";
   cout<<"-v,--verbose          Enable verbose mode\n";
+  cout<<"-V,--version          Show dnsdist version information and exit\n";
 }
 
 int main(int argc, char** argv)
@@ -2059,33 +2061,27 @@ try
 #endif
   ComboAddress clientAddress = ComboAddress();
   g_cmdLine.config=SYSCONFDIR "/dnsdist.conf";
-  struct option longopts[]={ 
+  struct option longopts[]={
     {"acl", required_argument, 0, 'a'},
+    {"check-config", no_argument, 0, 1},
+    {"client", no_argument, 0, 'c'},
     {"config", required_argument, 0, 'C'},
-    {"check-config", 0, 0, 1},
+    {"disable-syslog", no_argument, 0, 2},
     {"execute", required_argument, 0, 'e'},
-    {"client", 0, 0, 'c'},
-    {"gid",  required_argument, 0, 'g'},
-#ifdef HAVE_LIBSODIUM
-    {"setkey",  required_argument, 0, 'k'},
-#endif
-    {"local",  required_argument, 0, 'l'},
-    {"supervised", 0, 0, 's'},
-    {"disable-syslog", 0, 0, 2},
-    {"uid",  required_argument, 0, 'u'},
-    {"verbose", 0, 0, 'v'},
-    {"version", 0, 0, 'V'},
-    {"help", 0, 0, 'h'},
-    {0,0,0,0} 
+    {"gid", required_argument, 0, 'g'},
+    {"help", no_argument, 0, 'h'},
+    {"local", required_argument, 0, 'l'},
+    {"setkey", required_argument, 0, 'k'},
+    {"supervised", no_argument, 0, 3},
+    {"uid", required_argument, 0, 'u'},
+    {"verbose", no_argument, 0, 'v'},
+    {"version", no_argument, 0, 'V'},
+    {0,0,0,0}
   };
   int longindex=0;
   string optstring;
   for(;;) {
-#ifdef HAVE_LIBSODIUM
-    int c=getopt_long(argc, argv, "a:hcde:C:k:l:vp:g:u:V", longopts, &longindex);
-#else
-    int c=getopt_long(argc, argv, "a:hcde:C:l:vp:g:u:V", longopts, &longindex);
-#endif
+    int c=getopt_long(argc, argv, "a:cC:e:g:hk:l:u:vV", longopts, &longindex);
     if(c==-1)
       break;
     switch(c) {
@@ -2094,6 +2090,9 @@ try
       break;
     case 2:
       g_syslog=false;
+      break;
+    case 3:
+      g_cmdLine.beSupervised=true;
       break;
     case 'C':
       g_cmdLine.config=optarg;
@@ -2117,19 +2116,19 @@ try
       optstring=optarg;
       g_ACL.modify([optstring](NetmaskGroup& nmg) { nmg.addMask(optstring); });
       break;
-#ifdef HAVE_LIBSODIUM
     case 'k':
+#ifdef HAVE_LIBSODIUM
       if (B64Decode(string(optarg), g_consoleKey) < 0) {
         cerr<<"Unable to decode key '"<<optarg<<"'."<<endl;
         exit(EXIT_FAILURE);
       }
-      break;
+#else
+      cerr<<"dnsdist has been built without libsodium, -k/--setkey is unsupported."<<endl;
+      exit(EXIT_FAILURE);
 #endif
+      break;
     case 'l':
       g_cmdLine.locals.push_back(trim_copy(string(optarg)));
-      break;
-    case 's':
-      g_cmdLine.beSupervised=true;
       break;
     case 'u':
       g_cmdLine.uid=optarg;
@@ -2147,7 +2146,10 @@ try
 #ifdef HAVE_DNS_OVER_TLS
       cout<<"dns-over-tls(";
 #ifdef HAVE_GNUTLS
-      cout<<"gnutls ";
+      cout<<"gnutls";
+  #ifdef HAVE_LIBSSL
+      cout<<" ";
+  #endif
 #endif
 #ifdef HAVE_LIBSSL
       cout<<"openssl";
@@ -2160,11 +2162,11 @@ try
 #ifdef HAVE_EBPF
       cout<<"ebpf ";
 #endif
-#ifdef HAVE_LIBSODIUM
-      cout<<"libsodium ";
-#endif
 #ifdef HAVE_FSTRM
       cout<<"fstrm ";
+#endif
+#ifdef HAVE_LIBSODIUM
+      cout<<"libsodium ";
 #endif
 #ifdef HAVE_PROTOBUF
       cout<<"protobuf ";
