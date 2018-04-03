@@ -114,8 +114,6 @@ map<string,string> getAllStatsMap()
   }
 
   for(const auto& the64bitmembers :  d_get64bitmembers) { 
-    if(the64bitmembers.first == "cache-bytes" || the64bitmembers.first=="packetcache-bytes")
-      continue; // too slow for 'get-all'
     ret.insert(make_pair(the64bitmembers.first, std::to_string(the64bitmembers.second())));
   }
   Lock l(&d_dynmetricslock);
