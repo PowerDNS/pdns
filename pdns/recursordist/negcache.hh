@@ -52,12 +52,13 @@ class NegCache : public boost::noncopyable {
       recordsAndSignatures authoritySOA;  // The upstream SOA record and RRSIGs
       recordsAndSignatures DNSSECRecords; // The upstream NSEC(3) and RRSIGs
       mutable vState d_validationState{Indeterminate};
+      ssize_t d_bytes=0;
       uint32_t getTTD() const {
         return d_ttd;
       };
     };
 
-    void add(const NegCacheEntry& ne);
+    void add(NegCacheEntry& ne);
     void updateValidationStatus(const DNSName& qname, const QType& qtype, const vState newState);
     bool get(const DNSName& qname, const QType& qtype, const struct timeval& now, NegCacheEntry& ne, bool typeMustMatch=false);
     bool getRootNXTrust(const DNSName& qname, const struct timeval& now, NegCacheEntry& ne);
@@ -74,6 +75,7 @@ class NegCache : public boost::noncopyable {
 
     void preRemoval(const NegCacheEntry& entry)
     {
+      d_bytes -= entry.d_bytes;
     }
 
   private:
@@ -99,4 +101,6 @@ class NegCache : public boost::noncopyable {
 
     // Stores the negative cache entries
     negcache_t d_negcache;
+
+    ssize_t d_bytes;
 };

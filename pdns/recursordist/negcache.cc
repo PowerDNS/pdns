@@ -97,8 +97,21 @@ bool NegCache::get(const DNSName& qname, const QType& qtype, const struct timeva
  *
  * \param ne The NegCacheEntry to add to the cache
  */
-void NegCache::add(const NegCacheEntry& ne) {
-  replacing_insert(d_negcache, ne);
+void NegCache::add(NegCacheEntry& ne) {
+  ne.d_bytes = sizeof(ne);
+  for (const auto& rec : ne.DNSSECRecords.records) {
+    ne.d_bytes+=rec.d_content->d_size_in_bytes;
+  }
+  for (const auto& sig : ne.DNSSECRecords.signatures) {
+    ne.d_bytes+=sig.d_content->d_size_in_bytes;
+  }
+
+  auto ret = d_negcache.insert(ne);
+  if(!ret.second) { // insert was refused, we need to replace
+    d_bytes -= ret.first->d_bytes;
+    d_negcache.replace(ret.first, ne);
+  }
+  d_bytes += ne.d_bytes;
 }
 
 /*!
@@ -148,6 +161,7 @@ uint64_t NegCache::wipe(const DNSName& name, bool subtree) {
     for (auto i = d_negcache.lower_bound(tie(name)); i != d_negcache.end();) {
       if(!i->d_name.isPartOf(name))
         break;
+      d_bytes -= i->d_bytes;
       i = d_negcache.erase(i);
       ret++;
     }
@@ -165,6 +179,7 @@ uint64_t NegCache::wipe(const DNSName& name, bool subtree) {
  */
 void NegCache::clear() {
   d_negcache.clear();
+  d_bytes = 0;
 }
 
 /*!
@@ -189,12 +204,12 @@ uint64_t NegCache::dumpToFile(FILE* fp) {
   negcache_sequence_t& sidx = d_negcache.get<1>();
   for(const NegCacheEntry& ne : sidx) {
     ret++;
-    fprintf(fp, "%s %" PRId64 " IN %s VIA %s ; (%s)\n", ne.d_name.toString().c_str(), static_cast<int64_t>(ne.d_ttd - now.tv_sec), ne.d_qtype.getName().c_str(), ne.d_auth.toString().c_str(), vStates[ne.d_validationState]);
+    fprintf(fp, "%s %" PRId64 " IN %s VIA %s ; (%s) size=%zu\n", ne.d_name.toString().c_str(), static_cast<int64_t>(ne.d_ttd - now.tv_sec), ne.d_qtype.getName().c_str(), ne.d_auth.toString().c_str(), vStates[ne.d_validationState], ne.d_bytes);
     for (const auto& rec : ne.DNSSECRecords.records) {
-      fprintf(fp, "%s %" PRId64 " IN %s %s ; (%s)\n", ne.d_name.toString().c_str(), static_cast<int64_t>(ne.d_ttd - now.tv_sec), DNSRecordContent::NumberToType(rec.d_type).c_str(), rec.d_content->getZoneRepresentation().c_str(), vStates[ne.d_validationState]);
+      fprintf(fp, "%s %" PRId64 " IN %s %s ; (%s) size=%zu/%zu\n", ne.d_name.toString().c_str(), static_cast<int64_t>(ne.d_ttd - now.tv_sec), DNSRecordContent::NumberToType(rec.d_type).c_str(), rec.d_content->getZoneRepresentation().c_str(), vStates[ne.d_validationState], rec.d_content->d_size_in_bytes, ne.d_bytes);
     }
     for (const auto& sig : ne.DNSSECRecords.signatures) {
-      fprintf(fp, "%s %" PRId64 " IN RRSIG %s ;\n", ne.d_name.toString().c_str(), static_cast<int64_t>(ne.d_ttd - now.tv_sec), sig.d_content->getZoneRepresentation().c_str());
+      fprintf(fp, "%s %" PRId64 " IN RRSIG %s ; size=%zu/%zu\n", ne.d_name.toString().c_str(), static_cast<int64_t>(ne.d_ttd - now.tv_sec), sig.d_content->getZoneRepresentation().c_str(), sig.d_content->d_size_in_bytes, ne.d_bytes);
     }
   }
   return ret;
