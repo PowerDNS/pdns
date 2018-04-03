@@ -2072,7 +2072,7 @@ try
     {"setkey",  required_argument, 0, 'k'},
 #endif
     {"local",  required_argument, 0, 'l'},
-    {"supervised", 0, 0, 's'},
+    {"supervised", 0, 0, 3},
     {"disable-syslog", 0, 0, 2},
     {"uid",  required_argument, 0, 'u'},
     {"verbose", 0, 0, 'v'},
@@ -2096,6 +2096,9 @@ try
       break;
     case 2:
       g_syslog=false;
+      break;
+    case 3:
+      g_cmdLine.beSupervised=true;
       break;
     case 'C':
       g_cmdLine.config=optarg;
@@ -2129,9 +2132,6 @@ try
 #endif
     case 'l':
       g_cmdLine.locals.push_back(trim_copy(string(optarg)));
-      break;
-    case 's':
-      g_cmdLine.beSupervised=true;
       break;
     case 'u':
       g_cmdLine.uid=optarg;
