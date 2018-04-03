@@ -286,7 +286,7 @@ void MemRecursorCache::replace(time_t now, const DNSName &qname, const QType& qt
       ce.d_auth = false;  // new data won't be auth
     }
   }
-  ce.d_bytes=qname.wirelength();
+  ce.d_bytes=sizeof(ce)+qname.wirelength();
 
   // refuse any attempt to *raise* the TTL of auth NS records, as it would make it possible
   // for an auth to keep a "ghost" zone alive forever, even after the delegation is gone from
