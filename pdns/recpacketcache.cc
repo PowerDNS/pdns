@@ -30,6 +30,7 @@ int RecursorPacketCache::doWipePacketCache(const DNSName& name, uint16_t qtype, 
     }
 
     if(qtype==0xffff || iter->d_type == qtype) {
+      d_bytes -= iter->d_bytes;
       iter=idx.erase(iter);
       count++;
     }
@@ -154,7 +155,10 @@ void RecursorPacketCache::insertResponsePacket(unsigned int tag, uint32_t qhash,
       continue;
 
     moveCacheItemToBack(d_packetCache, iter);
+    d_bytes -= iter->d_bytes;
+    iter->d_bytes -= iter->d_packet.length();
     iter->d_packet = responsePacket;
+    iter->d_bytes += responsePacket.length();
     iter->d_ttd = now + ttl;
     iter->d_creation = now;
 #ifdef HAVE_PROTOBUF
@@ -163,6 +167,7 @@ void RecursorPacketCache::insertResponsePacket(unsigned int tag, uint32_t qhash,
     }
 #endif
 
+    d_bytes += iter->d_bytes;
     break;
   }
   
@@ -174,12 +179,15 @@ void RecursorPacketCache::insertResponsePacket(unsigned int tag, uint32_t qhash,
     e.d_ttd = now+ttl;
     e.d_creation = now;
     e.d_tag = tag;
+    e.d_bytes = sizeof(e) + qname.wirelength() + responsePacket.length();
 #ifdef HAVE_PROTOBUF
     if (protobufMessage) {
       e.d_protobufMessage = *protobufMessage;
+      // e.d_bytes += FIXME
     }
 #endif
     d_packetCache.insert(e);
+    d_bytes += e.d_bytes;
   }
 }
 
@@ -216,7 +224,7 @@ uint64_t RecursorPacketCache::doDump(int fd)
   for(auto i=sidx.cbegin(); i != sidx.cend(); ++i) {
     count++;
     try {
-      fprintf(fp, "%s %" PRId64 " %s  ; tag %d\n", i->d_name.toString().c_str(), static_cast<int64_t>(i->d_ttd - now), DNSRecordContent::NumberToType(i->d_type).c_str(), i->d_tag);
+      fprintf(fp, "%s %" PRId64 " %s  ; tag %d size=%zu\n", i->d_name.toString().c_str(), static_cast<int64_t>(i->d_ttd - now), DNSRecordContent::NumberToType(i->d_type).c_str(), i->d_tag, i->d_bytes);
     }
     catch(...) {
       fprintf(fp, "; error printing '%s'\n", i->d_name.empty() ? "EMPTY" : i->d_name.toString().c_str());
