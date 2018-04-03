@@ -2061,32 +2061,32 @@ try
 #endif
   ComboAddress clientAddress = ComboAddress();
   g_cmdLine.config=SYSCONFDIR "/dnsdist.conf";
-  struct option longopts[]={ 
+  struct option longopts[]={
     {"acl", required_argument, 0, 'a'},
+    {"check-config", no_argument, 0, 1},
+    {"client", no_argument, 0, 'c'},
     {"config", required_argument, 0, 'C'},
-    {"check-config", 0, 0, 1},
+    {"disable-syslog", no_argument, 0, 2},
     {"execute", required_argument, 0, 'e'},
-    {"client", 0, 0, 'c'},
-    {"gid",  required_argument, 0, 'g'},
+    {"gid", required_argument, 0, 'g'},
+    {"help", no_argument, 0, 'h'},
+    {"local", required_argument, 0, 'l'},
 #ifdef HAVE_LIBSODIUM
-    {"setkey",  required_argument, 0, 'k'},
+    {"setkey", required_argument, 0, 'k'},
 #endif
-    {"local",  required_argument, 0, 'l'},
-    {"supervised", 0, 0, 3},
-    {"disable-syslog", 0, 0, 2},
-    {"uid",  required_argument, 0, 'u'},
-    {"verbose", 0, 0, 'v'},
-    {"version", 0, 0, 'V'},
-    {"help", 0, 0, 'h'},
-    {0,0,0,0} 
+    {"supervised", no_argument, 0, 3},
+    {"uid", required_argument, 0, 'u'},
+    {"verbose", no_argument, 0, 'v'},
+    {"version", no_argument, 0, 'V'},
+    {0,0,0,0}
   };
   int longindex=0;
   string optstring;
   for(;;) {
 #ifdef HAVE_LIBSODIUM
-    int c=getopt_long(argc, argv, "a:hce:C:k:l:vg:u:V", longopts, &longindex);
+    int c=getopt_long(argc, argv, "a:cC:e:g:hk:l:u:vV", longopts, &longindex);
 #else
-    int c=getopt_long(argc, argv, "a:hce:C:l:vg:u:V", longopts, &longindex);
+    int c=getopt_long(argc, argv, "a:cC:e:g:hl:u:vV", longopts, &longindex);
 #endif
     if(c==-1)
       break;
