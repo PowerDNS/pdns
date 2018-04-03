@@ -56,8 +56,9 @@ Options
 -k <key>, --setkey <key>               When operating as a client(**-c**, **--client**), use *key* as
                                        shared secret to connect to dnsdist. This should be the same key
                                        that is used on the server (set with **setKey()**). Note that this
-                                       will leak the key into your shell's history. Only available when
-                                       dnsdist is compiled with libsodium support.
+                                       will leak the key into your shell's history and into the systems
+                                       running process list. Only available when dnsdist is compiled with
+                                       libsodium support.
 -e, --execute <command>                Connect to dnsdist and execute *command*.
 -h, --help                             Display a helpful message and exit.
 -l, --local <address>                  Bind to *address*, Supply as many addresses (using multiple

@@ -2011,7 +2011,8 @@ static void usage()
 #ifdef HAVE_LIBSODIUM
   cout<<"-k,--setkey KEY       Use KEY for encrypted communication to dnsdist. This\n";
   cout<<"                      is similar to setting setKey in the configuration file.\n";
-  cout<<"                      NOTE: this will leak this key in your shell's history!\n";
+  cout<<"                      NOTE: this will leak this key in your shell's history\n";
+  cout<<"                      and in the systems running process list.\n";
 #endif
   cout<<"--check-config        Validate the configuration file and exit. The exit-code\n";
   cout<<"                      reflects the validation, 0 is OK, 1 means an error.\n";
