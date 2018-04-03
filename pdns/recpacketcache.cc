@@ -212,6 +212,7 @@ void RecursorPacketCache::doPruneTo(unsigned int maxCached)
 
 uint64_t RecursorPacketCache::doDump(int fd)
 {
+  size_t bytes=0;
   FILE* fp=fdopen(dup(fd), "w");
   if(!fp) { // dup probably failed
     return 0;
@@ -223,6 +224,7 @@ uint64_t RecursorPacketCache::doDump(int fd)
   time_t now=time(0);
   for(auto i=sidx.cbegin(); i != sidx.cend(); ++i) {
     count++;
+    bytes+=i->d_bytes;
     try {
       fprintf(fp, "%s %" PRId64 " %s  ; tag %d size=%zu\n", i->d_name.toString().c_str(), static_cast<int64_t>(i->d_ttd - now), DNSRecordContent::NumberToType(i->d_type).c_str(), i->d_tag, i->d_bytes);
     }
@@ -230,6 +232,7 @@ uint64_t RecursorPacketCache::doDump(int fd)
       fprintf(fp, "; error printing '%s'\n", i->d_name.empty() ? "EMPTY" : i->d_name.toString().c_str());
     }
   }
+  fprintf(fp, "; running size=%zu, actual size=%zu\n;\n;\n", d_bytes, bytes);
   fclose(fp);
   return count;
 

@@ -437,6 +437,7 @@ bool MemRecursorCache::updateValidationStatus(time_t now, const DNSName &qname, 
 
 uint64_t MemRecursorCache::doDump(int fd)
 {
+  size_t bytes=0;
   FILE* fp=fdopen(dup(fd), "w");
   if(!fp) { // dup probably failed
     return 0;
@@ -447,6 +448,7 @@ uint64_t MemRecursorCache::doDump(int fd)
   uint64_t count=0;
   time_t now=time(0);
   for(const auto i : sidx) {
+    bytes += i.d_bytes;
     for(const auto j : i.d_records) {
       count++;
       try {
@@ -466,6 +468,7 @@ uint64_t MemRecursorCache::doDump(int fd)
       }
     }
   }
+  fprintf(fp, "; running size=%zu, actual size=%zu\n;\n;\n", d_bytes, bytes);
   fclose(fp);
   return count;
 }

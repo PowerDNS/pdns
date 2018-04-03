@@ -199,11 +199,13 @@ void NegCache::prune(unsigned int maxEntries) {
 uint64_t NegCache::dumpToFile(FILE* fp) {
   uint64_t ret(0);
   struct timeval now;
+  size_t bytes = 0;
   Utility::gettimeofday(&now, nullptr);
 
   negcache_sequence_t& sidx = d_negcache.get<1>();
   for(const NegCacheEntry& ne : sidx) {
     ret++;
+    bytes+=ne.d_bytes;
     fprintf(fp, "%s %" PRId64 " IN %s VIA %s ; (%s) size=%zu\n", ne.d_name.toString().c_str(), static_cast<int64_t>(ne.d_ttd - now.tv_sec), ne.d_qtype.getName().c_str(), ne.d_auth.toString().c_str(), vStates[ne.d_validationState], ne.d_bytes);
     for (const auto& rec : ne.DNSSECRecords.records) {
       fprintf(fp, "%s %" PRId64 " IN %s %s ; (%s) size=%zu/%zu\n", ne.d_name.toString().c_str(), static_cast<int64_t>(ne.d_ttd - now.tv_sec), DNSRecordContent::NumberToType(rec.d_type).c_str(), rec.d_content->getZoneRepresentation().c_str(), vStates[ne.d_validationState], rec.d_content->d_size_in_bytes, ne.d_bytes);
@@ -212,5 +214,7 @@ uint64_t NegCache::dumpToFile(FILE* fp) {
       fprintf(fp, "%s %" PRId64 " IN RRSIG %s ; size=%zu/%zu\n", ne.d_name.toString().c_str(), static_cast<int64_t>(ne.d_ttd - now.tv_sec), sig.d_content->getZoneRepresentation().c_str(), sig.d_content->d_size_in_bytes, ne.d_bytes);
     }
   }
+  fprintf(fp, "; running size=%zu, actual size=%zu\n;\n;\n", d_bytes, bytes);
+
   return ret;
 }
