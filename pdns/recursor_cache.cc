@@ -27,20 +27,7 @@ size_t MemRecursorCache::ecsIndexSize() const
 // this function is too slow to poll!
 unsigned int MemRecursorCache::bytes() const
 {
-  unsigned int ret=0;
-
-  for(cache_t::const_iterator i=d_cache.begin(); i!=d_cache.end(); ++i) {
-    ret+=sizeof(struct CacheEntry);
-    ret+=(unsigned int)i->d_qname.toString().length();
-    // cerr<<i->d_qname.toString()<<"/"<<QType(i->d_qtype).getName()<<": ";
-    for(auto j=i->d_records.begin(); j!= i->d_records.end(); ++j) {
-      ret+= sizeof(*j); // XXX WRONG we don't know the stored size! j->size();
-      // cerr<<(*j)->getZoneRepresentation()<<"="<<(*j)->d_size_in_bytes<<" ";
-    }
-    // cerr<<endl;
-  }
-  cerr<<"running size in bytes: "<<d_bytes<<endl;
-  return ret;
+  return d_bytes;
 }
 
 int32_t MemRecursorCache::handleHit(cache_t::iterator entry, const DNSName& qname, const ComboAddress& who, vector<DNSRecord>* res, vector<std::shared_ptr<RRSIGRecordContent>>* signatures, std::vector<std::shared_ptr<DNSRecord>>* authorityRecs, bool* variable, vState* state, bool* wasAuth)
