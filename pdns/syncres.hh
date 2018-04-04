@@ -649,6 +649,11 @@ public:
   {
     d_initialRequestId = initialRequestId;
   }
+
+  void setOutgoingProtobufServer(std::shared_ptr<RemoteLogger>& server)
+  {
+    d_outgoingProtobufServer = server;
+  }
 #endif
 
   void setAsyncCallback(asyncresolve_t func)
@@ -790,6 +795,7 @@ private:
   ostringstream d_trace;
   shared_ptr<RecursorLua4> d_pdl;
   boost::optional<Netmask> d_outgoingECSNetwork;
+  std::shared_ptr<RemoteLogger> d_outgoingProtobufServer{nullptr};
 #ifdef HAVE_PROTOBUF
   boost::optional<const boost::uuids::uuid&> d_initialRequestId;
 #endif
