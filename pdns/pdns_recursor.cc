@@ -3195,6 +3195,11 @@ static int serviceMain(int argc, char*argv[])
     g_quiet=false;
     g_dnssecLOG=true;
   }
+  char myHostname[MAXHOSTNAMELEN];
+  if (gethostname(myHostname, sizeof(myHostname)-1) == 0){
+  } else {
+    g_log<<Logger::Warning<<"Unable to get the hostname, NSID and id.server values will be empty: "<<strerror(errno)<<endl;
+  }
 
   SyncRes::s_minimumTTL = ::arg().asNum("minimum-ttl-override");
 
@@ -3214,12 +3219,7 @@ static int serviceMain(int argc, char*argv[])
   SyncRes::s_maxdepth=::arg().asNum("max-recursion-depth");
   SyncRes::s_rootNXTrust = ::arg().mustDo( "root-nx-trust");
   if(SyncRes::s_serverID.empty()) {
-    char tmp[128];
-    if (gethostname(tmp, sizeof(tmp)-1) == 0){
-      SyncRes::s_serverID = tmp;
-    } else {
-      g_log<<Logger::Warning<<"Unable to get the hostname, NSID and id.server values will be empty: "<<strerror(errno)<<endl;
-    }
+    SyncRes::s_serverID = myHostname;
   }
 
   SyncRes::s_ecsipv4limit = ::arg().asNum("ecs-ipv4-bits");
@@ -3334,9 +3334,7 @@ static int serviceMain(int argc, char*argv[])
   dns_random_init();
 
   if(::arg()["server-id"].empty()) {
-    char tmp[128];
-    gethostname(tmp, sizeof(tmp)-1);
-    ::arg().set("server-id") = tmp;
+    ::arg().set("server-id") = myHostname;
   }
 
   int newgid=0;
