@@ -1369,6 +1369,10 @@ systemdsystemunit_DATA = \
 	pdns.service \
 	pdns@.service
 
+CLEANFILES += \
+	pdns.service \
+	pdns@.service
+
 if TOOLS
 ixfrdist.service: ixfrdist.service.in
 	$(AM_V_GEN)sed -e 's![@]bindir[@]!$(bindir)!' < $< > $@
@@ -1376,5 +1380,8 @@ ixfrdist.service: ixfrdist.service.in
 systemdsystemunit_DATA += \
 	ixfrdist.service
 endif # TOOLS
+
+CLEANFILES += \
+	ixfrdist.service
 
 endif # HAVE_SYSTEMD

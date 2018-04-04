@@ -23,7 +23,8 @@ BUILT_SOURCES=htmlfiles.h \
 
 CLEANFILES = htmlfiles.h \
 	dnsmessage.pb.cc \
-	dnsmessage.pb.h
+	dnsmessage.pb.h \
+	recursor.conf-dist
 
 htmlfiles.h: html/*
 	./incfiles > $@
@@ -429,6 +430,11 @@ systemdsystemunitdir = $(SYSTEMD_DIR)
 systemdsystemunit_DATA = \
 	pdns-recursor.service \
 	pdns-recursor@.service
+
+CLEANFILES += \
+	pdns-recursor.service \
+	pdns-recursor@.service
+
 endif
 
 if !HAVE_LUA_HPP
