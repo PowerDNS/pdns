@@ -528,6 +528,11 @@ public:
     return t_sstorage.negcache.size();
   }
 
+  static uint64_t getNegCacheBytes()
+  {
+    return t_sstorage.negcache.bytes();
+  }
+
   static void pruneNegCache(unsigned int maxEntries, size_t maxBytes)
   {
     t_sstorage.negcache.prune(maxEntries, maxBytes);

@@ -715,9 +715,20 @@ uint64_t* pleaseGetNegCacheSize()
   return new uint64_t(tmp);
 }
 
+uint64_t* pleaseGetNegCacheBytes()
+{
+  uint64_t tmp=(SyncRes::getNegCacheBytes());
+  return new uint64_t(tmp);
+}
+
 uint64_t getNegCacheSize()
 {
   return broadcastAccFunction<uint64_t>(pleaseGetNegCacheSize);
+}
+
+uint64_t getNegCacheBytes()
+{
+  return broadcastAccFunction<uint64_t>(pleaseGetNegCacheBytes);
 }
 
 uint64_t* pleaseGetFailedHostsSize()
@@ -932,6 +943,7 @@ void registerAllStats()
   addGetStat("max-mthread-stack", &g_stats.maxMThreadStackUsage);
   
   addGetStat("negcache-entries", boost::bind(getNegCacheSize));
+  addGetStat("negcache-bytes", boost::bind(getNegCacheBytes));
   addGetStat("throttle-entries", boost::bind(getThrottleSize)); 
 
   addGetStat("nsspeeds-entries", boost::bind(getNsSpeedsSize));
