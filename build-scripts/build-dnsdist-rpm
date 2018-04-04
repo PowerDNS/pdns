@@ -46,7 +46,7 @@ SNMP_CONFIGURE='--with-net-snmp \'
 
 # CentOS 6 has no luajit
 LUA_BUILDREQUIRES='BuildRequires: luajit-devel'
-LUA_CONFIGURE='--with-luajit \'
+LUA_CONFIGURE='--with-lua=luajit \'
 
 # These two are the same for sysv and systemd (we don't install defaults files at the moment)
 DEFAULTS_INSTALL=''
