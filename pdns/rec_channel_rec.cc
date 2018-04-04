@@ -624,6 +624,15 @@ string setMaxCacheEntries(T begin, T end)
 }
 
 template<typename T>
+string setMaxCacheMBytes(T begin, T end)
+{
+  if(end-begin != 1)
+    return "Need to supply new cache size in mbytes\n";
+  g_maxCacheBytes = pdns_stou(*begin)*1024*1024;
+  return "New max cache size in bytes: " + std::to_string(g_maxCacheBytes) + "\n";
+}
+
+template<typename T>
 string setMaxPacketCacheEntries(T begin, T end)
 {
   if(end-begin != 1) 
@@ -632,6 +641,14 @@ string setMaxPacketCacheEntries(T begin, T end)
   return "New max packetcache entries: " + std::to_string(g_maxPacketCacheEntries) + "\n";
 }
 
+template<typename T>
+string setMaxPacketCacheMBytes(T begin, T end)
+{
+  if(end-begin != 1)
+    return "Need to supply new packet cache size in mbytes\n";
+  g_maxPacketCacheBytes = pdns_stou(*begin)*1024*1024;
+  return "New max packetcache size in bytes: " + std::to_string(g_maxPacketCacheBytes) + "\n";
+}
 
 static uint64_t getSysTimeMsec()
 {
@@ -847,7 +864,9 @@ void registerAllStats()
   addGetStat("cache-misses", doGetCacheMisses); 
   addGetStat("cache-entries", doGetCacheSize);
   addGetStat("max-cache-entries", []() { return g_maxCacheEntries.load(); });
+  addGetStat("max-cache-mbytes", []() { return g_maxCacheBytes.load()/1024/1024; });
   addGetStat("max-packetcache-entries", []() { return g_maxPacketCacheEntries.load();}); 
+  addGetStat("max-packetcache-mbytes", []() { return g_maxPacketCacheBytes.load()/1024/1024;});
   addGetStat("cache-bytes", doGetCacheBytes); 
   
   addGetStat("packetcache-hits", doGetPacketCacheHits);
@@ -1389,10 +1408,16 @@ string RecursorControlParser::getAnswer(const string& question, RecursorControlP
   if(cmd=="set-max-cache-entries") {
     return setMaxCacheEntries(begin, end);
   }
+  if(cmd=="set-max-cache-mbytes") {
+    return setMaxCacheMBytes(begin, end);
+  }
   if(cmd=="set-max-packetcache-entries") {
     return setMaxPacketCacheEntries(begin, end);
   }
-  
+  if(cmd=="set-max-packetcache-mbytes") {
+    return setMaxPacketCacheMBytes(begin, end);
+  }
+ 
   if(cmd=="set-minimum-ttl") {
     return setMinimumTTL(begin, end);
   }

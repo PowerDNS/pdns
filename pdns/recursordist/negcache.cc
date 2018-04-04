@@ -187,8 +187,8 @@ void NegCache::clear() {
  *
  * \param maxEntries The maximum number of entries that may exist in the cache.
  */
-void NegCache::prune(unsigned int maxEntries) {
-  pruneCollection(*this, d_negcache, maxEntries, 200);
+void NegCache::prune(unsigned int maxEntries, size_t maxBytes) {
+  pruneCollection(*this, d_negcache, maxEntries, maxBytes, 200);
 }
 
 /*!

@@ -293,6 +293,9 @@ public:
   void preRemoval(const METACacheEntry&)
   {
   }
+  size_t bytes(){
+    return 0;
+  }
 };
 
 class DNSPacket;

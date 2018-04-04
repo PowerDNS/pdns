@@ -460,10 +460,10 @@ uint64_t MemRecursorCache::doDump(int fd)
   return count;
 }
 
-void MemRecursorCache::doPrune(unsigned int keep)
+void MemRecursorCache::doPrune(unsigned int keep, size_t maxBytes)
 {
   d_cachecachevalid=false;
 
-  pruneCollection(*this, d_cache, keep);
+  pruneCollection(*this, d_cache, keep, maxBytes);
 }
 

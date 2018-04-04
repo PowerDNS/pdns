@@ -166,6 +166,7 @@ static bool g_gettagNeedsEDNSOptions{false};
 static time_t g_statisticsInterval;
 static bool g_useIncomingECS;
 std::atomic<uint32_t> g_maxCacheEntries, g_maxPacketCacheEntries;
+std::atomic<size_t> g_maxCacheBytes, g_maxPacketCacheBytes;
 #ifdef HAVE_BOOST_CONTAINER_FLAT_SET_HPP
 static boost::container::flat_set<uint16_t> s_avoidUdpSourcePorts;
 #else
@@ -2328,10 +2329,10 @@ static void houseKeeping(void *)
     if(now.tv_sec - last_prune > (time_t)(5 + t_id)) {
       DTime dt;
       dt.setTimeval(now);
-      t_RC->doPrune(g_maxCacheEntries / g_numThreads); // this function is local to a thread, so fine anyhow
-      t_packetCache->doPruneTo(g_maxPacketCacheEntries / g_numWorkerThreads);
+      t_RC->doPrune(g_maxCacheEntries / g_numThreads, g_maxCacheBytes / g_numThreads); // this function is local to a thread, so fine anyhow
+      t_packetCache->doPruneTo(g_maxPacketCacheEntries / g_numWorkerThreads, g_maxPacketCacheBytes / g_numWorkerThreads);
 
-      SyncRes::pruneNegCache(g_maxCacheEntries / (g_numWorkerThreads * 10));
+      SyncRes::pruneNegCache(g_maxCacheEntries / (g_numWorkerThreads * 10), g_maxCacheBytes / (g_numWorkerThreads * 10));
 
       if(!((cleanCounter++)%40)) {  // this is a full scan!
 	time_t limit=now.tv_sec-300;
@@ -3086,7 +3087,9 @@ static int serviceMain(int argc, char*argv[])
   g_maxNSEC3Iterations = ::arg().asNum("nsec3-max-iterations");
 
   g_maxCacheEntries = ::arg().asNum("max-cache-entries");
+  g_maxCacheBytes = ::arg().asNum("max-cache-mbytes")*1024*1024;
   g_maxPacketCacheEntries = ::arg().asNum("max-packetcache-entries");
+  g_maxPacketCacheBytes = ::arg().asNum("max-packetcache-mbytes")*1024*1024;
   
   try {
     loadRecursorLuaConfig(::arg()["lua-config-file"], ::arg().mustDo("daemon"));
@@ -3598,10 +3601,12 @@ int main(int argc, char **argv)
     ::arg().set("server-down-throttle-time","Number of seconds to throttle all queries to a server after being marked as down")="60";
     ::arg().set("hint-file", "If set, load root hints from this file")="";
     ::arg().set("max-cache-entries", "If set, maximum number of entries in the main cache")="1000000";
+    ::arg().set("max-cache-mbytes", "If set, maximum number of megabytes in the main cache")="1000";
     ::arg().set("max-negative-ttl", "maximum number of seconds to keep a negative cached entry in memory")="3600";
     ::arg().set("max-cache-ttl", "maximum number of seconds to keep a cached entry in memory")="86400";
     ::arg().set("packetcache-ttl", "maximum number of seconds to keep a cached entry in packetcache")="3600";
     ::arg().set("max-packetcache-entries", "maximum number of entries to keep in the packetcache")="500000";
+    ::arg().set("max-packetcache-mbytes", "maximum number of megabytes to keep in the packetcache")="500";
     ::arg().set("packetcache-servfail-ttl", "maximum number of seconds to keep a cached servfail entry in packetcache")="60";
     ::arg().set("server-id", "Returned when queried for 'id.server' TXT or NSID, defaults to hostname")="";
     ::arg().set("stats-ringbuffer-entries", "maximum number of packets to store statistics for")="10000";

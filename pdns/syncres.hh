@@ -528,9 +528,9 @@ public:
     return t_sstorage.negcache.size();
   }
 
-  static void pruneNegCache(unsigned int maxEntries)
+  static void pruneNegCache(unsigned int maxEntries, size_t maxBytes)
   {
-    t_sstorage.negcache.prune(maxEntries);
+    t_sstorage.negcache.prune(maxEntries, maxBytes);
   }
 
   static uint64_t wipeNegCache(const DNSName& name, bool subtree = false)
@@ -971,6 +971,7 @@ extern RecursorStats g_stats;
 extern unsigned int g_numThreads;
 extern uint16_t g_outgoingEDNSBufsize;
 extern std::atomic<uint32_t> g_maxCacheEntries, g_maxPacketCacheEntries;
+extern std::atomic<size_t> g_maxCacheBytes, g_maxPacketCacheBytes;
 extern bool g_lowercaseOutgoing;
 
 
