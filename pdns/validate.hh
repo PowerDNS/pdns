@@ -26,8 +26,15 @@
 #include <vector>
 #include "namespaces.hh"
 #include "dnsrecords.hh"
- 
-extern bool g_dnssecLOG;
+
+/* Off: Do not log DNSSEC validation results
+ * On: Log all DNSSEC validation results
+ * BogusOnly: Log all DNSSEC Bogus validations
+ * Trace: Log all DNSSEC validation steps
+ */
+enum class DNSSECLogMode { Off, On, BogusOnly, Trace };
+extern DNSSECLogMode g_dnssecLogMode;
+
 extern uint16_t g_maxNSEC3Iterations;
 
 // 4033 5

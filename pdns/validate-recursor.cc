@@ -3,15 +3,15 @@
 #include "syncres.hh"
 #include "logger.hh"
 
-DNSSECMode g_dnssecmode{DNSSECMode::ProcessNoValidate};
-bool g_dnssecLogBogus;
+DNSSECValidationMode g_dnssecMode{DNSSECValidationMode::Process};
+DNSSECBogusServfailMode g_dnssecBogusServfailMode{DNSSECBogusServfailMode::Off};
 
 bool checkDNSSECDisabled() {
   return warnIfDNSSECDisabled("");
 }
 
 bool warnIfDNSSECDisabled(const string& msg) {
-  if(g_dnssecmode == DNSSECMode::Off) {
+  if(g_dnssecMode == DNSSECValidationMode::Off) {
     if (!msg.empty())
       g_log<<Logger::Warning<<msg<<endl;
     return true;

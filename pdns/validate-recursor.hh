@@ -24,16 +24,22 @@
 #include "validate.hh"
 #include "logger.hh"
 
-/* Off: 3.x behaviour, we do no DNSSEC, no EDNS
-   ProcessNoValidate: we gather DNSSEC records on all queries, but we will never validate
-   Process: we gather DNSSEC records on all queries, if you do ad=1, we'll validate for you (unless you set cd=1)
-   ValidateForLog: Process + validate all answers, but only log failures
-   ValidateAll: DNSSEC issue -> servfail
-*/
+/* Off: 3.x behaviour, no DNSSEC, no EDNS
+ * Process: Set DO on outgoing queries, return RRSIGs and NSEC(3) on +DO from clients
+ * ClientOnly: Like Process, but validate as well if the client sets +DO or +AD
+ * Validate: Validate all answers
+ */
+enum class DNSSECValidationMode { Off, Process, ClientOnly, Validate };
+extern DNSSECValidationMode g_dnssecMode;
 
-enum class DNSSECMode { Off, Process, ProcessNoValidate, ValidateForLog, ValidateAll };
-extern DNSSECMode g_dnssecmode;
-extern bool g_dnssecLogBogus;
+/* Off: Never send out SERVFAIL on a Bogus
+ * On: Always send out SERVFAIL on a Bogus
+ * ClientOnly: Send SERVFAIL on a bogus if the client query had +AD or +DO set
+ *
+ * note: a +CD from a client will not yield a DNSSEC SERVFAIL
+ */
+enum class DNSSECBogusServfailMode { Off, On, ClientOnly };
+extern DNSSECBogusServfailMode g_dnssecBogusServfailMode;
 
 bool checkDNSSECDisabled();
 bool warnIfDNSSECDisabled(const string& msg);

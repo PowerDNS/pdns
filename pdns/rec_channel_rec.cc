@@ -374,33 +374,42 @@ string doSetCarbonServer(T begin, T end)
 }
 
 template<typename T>
-string doSetDnssecLogBogus(T begin, T end)
+string doSetDnssecLogMode(T begin, T end)
 {
   if(checkDNSSECDisabled())
-    return "DNSSEC is disabled in the configuration, not changing the Bogus logging setting\n";
+    return "DNSSEC is disabled in the configuration, not changing the DNSSEC validation logging setting\n";
 
   if (begin == end)
-    return "No DNSSEC Bogus logging setting specified\n";
+    return "No DNSSEC validation logging setting specified\n";
 
   if (pdns_iequals(*begin, "on") || pdns_iequals(*begin, "yes")) {
-    if (!g_dnssecLogBogus) {
-      g_log<<Logger::Warning<<"Enabling DNSSEC Bogus logging, requested via control channel"<<endl;
-      g_dnssecLogBogus = true;
-      return "DNSSEC Bogus logging enabled\n";
+    if (g_dnssecLogMode != DNSSECLogMode::On) {
+      g_log<<Logger::Warning<<"Enabling DNSSEC validation logging, requested via control channel"<<endl;
+      g_dnssecLogMode = DNSSECLogMode::On;
+      return "DNSSEC logging enabled\n";
     }
-    return "DNSSEC Bogus logging was already enabled\n";
+    return "DNSSEC validation logging was already enabled\n";
   }
 
   if (pdns_iequals(*begin, "off") || pdns_iequals(*begin, "no")) {
-    if (g_dnssecLogBogus) {
-      g_log<<Logger::Warning<<"Disabling DNSSEC Bogus logging, requested via control channel"<<endl;
-      g_dnssecLogBogus = false;
-      return "DNSSEC Bogus logging disabled\n";
+    if (g_dnssecLogMode != DNSSECLogMode::Off) {
+      g_log<<Logger::Warning<<"Disabling DNSSEC validation logging, requested via control channel"<<endl;
+      g_dnssecLogMode = DNSSECLogMode::Off;
+      return "DNSSEC validation logging disabled\n";
     }
-    return "DNSSEC Bogus logging was already disabled\n";
+    return "DNSSEC validation logging was already disabled\n";
   }
 
-  return "Unknown DNSSEC Bogus setting: '" + *begin +"'\n";
+  if (pdns_iequals(*begin, "bogus")) {
+    if (g_dnssecLogMode != DNSSECLogMode::BogusOnly) {
+      g_log<<Logger::Warning<<"Enabling DNSSEC Bogus validation logging, requested via control channel"<<endl;
+      g_dnssecLogMode = DNSSECLogMode::BogusOnly;
+      return "DNSSEC Bogus validation logging enabled\n";
+    }
+    return "DNSSEC Bogus validation logging was already enabled\n";
+  }
+
+  return "Unknown DNSSEC validation logging setting: '" + *begin +"'\n";
 }
 
 template<typename T>
@@ -1428,7 +1437,7 @@ string RecursorControlParser::getAnswer(const string& question, RecursorControlP
   }
 
   if (cmd=="set-dnssec-log-bogus")
-    return doSetDnssecLogBogus(begin, end);
+    return doSetDnssecLogMode(begin, end);
 
   return "Unknown command '"+cmd+"', try 'help'\n";
 }

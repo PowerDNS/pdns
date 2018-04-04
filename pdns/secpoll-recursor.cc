@@ -30,7 +30,7 @@ void doSecPoll(time_t* last_secpoll)
   *last_secpoll=now.tv_sec;
 
   SyncRes sr(now);
-  if (g_dnssecmode != DNSSECMode::Off) {
+  if (g_dnssecMode != DNSSECValidationMode::Off) {
     sr.setDoDNSSEC(true);
     sr.setDNSSECValidationRequested(true);
   }
@@ -50,7 +50,7 @@ void doSecPoll(time_t* last_secpoll)
   DNSName query(qstring);
   int res=sr.beginResolve(query, QType(QType::TXT), 1, ret);
 
-  if (g_dnssecmode != DNSSECMode::Off && res) {
+  if (g_dnssecMode != DNSSECValidationMode::Off && res) {
     state = sr.getValidationState();
   }
 

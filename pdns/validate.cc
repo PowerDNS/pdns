@@ -5,10 +5,10 @@
 #include "rec-lua-conf.hh"
 #include "base32.hh"
 #include "logger.hh"
-bool g_dnssecLOG{false};
+DNSSECLogMode g_dnssecLogMode{DNSSECLogMode::Off};
 uint16_t g_maxNSEC3Iterations{0};
 
-#define LOG(x) if(g_dnssecLOG) { g_log <<Logger::Warning << x; }
+#define DNSSECLOG(x) if(g_dnssecLogMode == DNSSECLogMode::Trace) { g_log <<Logger::Warning << x; }
 
 const char *dStates[]={"nodata", "nxdomain", "nxqtype", "empty non-terminal", "insecure", "opt-out"};
 const char *vStates[]={"Indeterminate", "Bogus", "Insecure", "Secure", "NTA", "TA"};
@@ -167,12 +167,12 @@ static bool isNSEC3AncestorDelegation(const DNSName& signer, const DNSName& owne
 
 static bool provesNoDataWildCard(const DNSName& qname, const uint16_t qtype, const cspmap_t& validrrsets)
 {
-  LOG("Trying to prove that there is no data in wildcard for "<<qname<<"/"<<QType(qtype).getName()<<endl);
+  DNSSECLOG("Trying to prove that there is no data in wildcard for "<<qname<<"/"<<QType(qtype).getName()<<endl);
   for (const auto& v : validrrsets) {
-    LOG("Do have: "<<v.first.first<<"/"<<DNSRecordContent::NumberToType(v.first.second)<<endl);
+    DNSSECLOG("Do have: "<<v.first.first<<"/"<<DNSRecordContent::NumberToType(v.first.second)<<endl);
     if (v.first.second == QType::NSEC) {
       for (const auto& r : v.second.records) {
-        LOG("\t"<<r->getZoneRepresentation()<<endl);
+        DNSSECLOG("\t"<<r->getZoneRepresentation()<<endl);
         auto nsec = std::dynamic_pointer_cast<NSECRecordContent>(r);
         if (!nsec) {
           continue;
@@ -189,12 +189,12 @@ static bool provesNoDataWildCard(const DNSName& qname, const uint16_t qtype, con
         wildcard.chopOff();
 
         if (qname.isPartOf(wildcard)) {
-          LOG("\tWildcard matches");
+          DNSSECLOG("\tWildcard matches");
           if (qtype == 0 || !nsec->d_set.count(qtype)) {
-            LOG(" and proves that the type did not exist"<<endl);
+            DNSSECLOG(" and proves that the type did not exist"<<endl);
             return true;
           }
-          LOG(" BUT the type did exist!"<<endl);
+          DNSSECLOG(" BUT the type did exist!"<<endl);
           return false;
         }
       }
@@ -210,12 +210,12 @@ static bool provesNoDataWildCard(const DNSName& qname, const uint16_t qtype, con
 */
 static bool provesNoWildCard(const DNSName& qname, const uint16_t qtype, const cspmap_t & validrrsets)
 {
-  LOG("Trying to prove that there is no wildcard for "<<qname<<"/"<<QType(qtype).getName()<<endl);
+  DNSSECLOG("Trying to prove that there is no wildcard for "<<qname<<"/"<<QType(qtype).getName()<<endl);
   for (const auto& v : validrrsets) {
-    LOG("Do have: "<<v.first.first<<"/"<<DNSRecordContent::NumberToType(v.first.second)<<endl);
+    DNSSECLOG("Do have: "<<v.first.first<<"/"<<DNSRecordContent::NumberToType(v.first.second)<<endl);
     if (v.first.second == QType::NSEC) {
       for (const auto& r : v.second.records) {
-        LOG("\t"<<r->getZoneRepresentation()<<endl);
+        DNSSECLOG("\t"<<r->getZoneRepresentation()<<endl);
         auto nsec = std::dynamic_pointer_cast<NSECRecordContent>(r);
         if (!nsec) {
           continue;
@@ -234,10 +234,10 @@ static bool provesNoWildCard(const DNSName& qname, const uint16_t qtype, const c
         while (wildcard.chopOff() && wildcardLabelsCount >= commonLabelsCount) {
           DNSName target = g_wildcarddnsname + wildcard;
 
-          LOG("Comparing owner: "<<owner<<" with target: "<<target<<endl);
+          DNSSECLOG("Comparing owner: "<<owner<<" with target: "<<target<<endl);
 
           if (isCoveredByNSEC(target, owner, nsec->d_next)) {
-            LOG("\tWildcard is covered"<<endl);
+            DNSSECLOG("\tWildcard is covered"<<endl);
             return true;
           }
         }
@@ -257,13 +257,13 @@ static bool provesNoWildCard(const DNSName& qname, const uint16_t qtype, const c
 static bool provesNSEC3NoWildCard(DNSName wildcard, uint16_t const qtype, const cspmap_t & validrrsets, bool * wildcardExists=nullptr)
 {
   wildcard = g_wildcarddnsname + wildcard;
-  LOG("Trying to prove that there is no wildcard for "<<wildcard<<"/"<<QType(qtype).getName()<<endl);
+  DNSSECLOG("Trying to prove that there is no wildcard for "<<wildcard<<"/"<<QType(qtype).getName()<<endl);
 
   for (const auto& v : validrrsets) {
-    LOG("Do have: "<<v.first.first<<"/"<<DNSRecordContent::NumberToType(v.first.second)<<endl);
+    DNSSECLOG("Do have: "<<v.first.first<<"/"<<DNSRecordContent::NumberToType(v.first.second)<<endl);
     if (v.first.second == QType::NSEC3) {
       for (const auto& r : v.second.records) {
-        LOG("\t"<<r->getZoneRepresentation()<<endl);
+        DNSSECLOG("\t"<<r->getZoneRepresentation()<<endl);
         auto nsec3 = std::dynamic_pointer_cast<NSEC3RecordContent>(r);
         if (!nsec3) {
           continue;
@@ -277,25 +277,25 @@ static bool provesNSEC3NoWildCard(DNSName wildcard, uint16_t const qtype, const 
         if (h.empty()) {
           return false;
         }
-        LOG("\tWildcard hash: "<<toBase32Hex(h)<<endl);
+        DNSSECLOG("\tWildcard hash: "<<toBase32Hex(h)<<endl);
         string beginHash=fromBase32Hex(v.first.first.getRawLabels()[0]);
-        LOG("\tNSEC3 hash: "<<toBase32Hex(beginHash)<<" -> "<<toBase32Hex(nsec3->d_nexthash)<<endl);
+        DNSSECLOG("\tNSEC3 hash: "<<toBase32Hex(beginHash)<<" -> "<<toBase32Hex(nsec3->d_nexthash)<<endl);
 
         if (beginHash == h) {
-          LOG("\tWildcard hash matches");
+          DNSSECLOG("\tWildcard hash matches");
           if (wildcardExists) {
             *wildcardExists = true;
           }
           if (qtype == 0 || !nsec3->d_set.count(qtype)) {
-            LOG(" and proves that the type did not exist"<<endl);
+            DNSSECLOG(" and proves that the type did not exist"<<endl);
             return true;
           }
-          LOG(" BUT the type did exist!"<<endl);
+          DNSSECLOG(" BUT the type did exist!"<<endl);
           return false;
         }
 
         if (isCoveredByNSEC3Hash(h, beginHash, nsec3->d_nexthash)) {
-          LOG("\tWildcard hash is covered"<<endl);
+          DNSSECLOG("\tWildcard hash is covered"<<endl);
           return true;
         }
       }
@@ -324,11 +324,11 @@ dState getDenial(const cspmap_t &validrrsets, const DNSName& qname, const uint16
   }
 
   for(const auto& v : validrrsets) {
-    LOG("Do have: "<<v.first.first<<"/"<<DNSRecordContent::NumberToType(v.first.second)<<endl);
+    DNSSECLOG("Do have: "<<v.first.first<<"/"<<DNSRecordContent::NumberToType(v.first.second)<<endl);
 
     if(v.first.second==QType::NSEC) {
       for(const auto& r : v.second.records) {
-        LOG("\t"<<r->getZoneRepresentation()<<endl);
+        DNSSECLOG("\t"<<r->getZoneRepresentation()<<endl);
         auto nsec = std::dynamic_pointer_cast<NSECRecordContent>(r);
         if(!nsec)
           continue;
@@ -345,24 +345,24 @@ dState getDenial(const cspmap_t &validrrsets, const DNSName& qname, const uint16
            owner name regardless of type.
         */
         if (qtype != QType::DS && (qname == owner || qname.isPartOf(owner)) && isNSECAncestorDelegation(signer, owner, nsec)) {
-          LOG("type is "<<QType(qtype).getName()<<", NS is "<<std::to_string(nsec->d_set.count(QType::NS))<<", SOA is "<<std::to_string(nsec->d_set.count(QType::SOA))<<", signer is "<<signer<<", owner name is "<<owner<<endl);
+          DNSSECLOG("type is "<<QType(qtype).getName()<<", NS is "<<std::to_string(nsec->d_set.count(QType::NS))<<", SOA is "<<std::to_string(nsec->d_set.count(QType::SOA))<<", signer is "<<signer<<", owner name is "<<owner<<endl);
           /* this is an "ancestor delegation" NSEC RR */
-          LOG("An ancestor delegation NSEC RR can only deny the existence of a DS"<<endl);
+          DNSSECLOG("An ancestor delegation NSEC RR can only deny the existence of a DS"<<endl);
           return NODATA;
         }
 
         /* check if the type is denied */
         if(qname == owner) {
           if (nsec->d_set.count(qtype)) {
-            LOG("Does _not_ deny existence of type "<<QType(qtype).getName()<<endl);
+            DNSSECLOG("Does _not_ deny existence of type "<<QType(qtype).getName()<<endl);
             return NODATA;
           }
 
-          LOG("Denies existence of type "<<QType(qtype).getName()<<endl);
+          DNSSECLOG("Denies existence of type "<<QType(qtype).getName()<<endl);
 
           /* RFC 6840 section 4.3 */
           if (nsec->d_set.count(QType::CNAME)) {
-            LOG("However a CNAME exists"<<endl);
+            DNSSECLOG("However a CNAME exists"<<endl);
             return NODATA;
           }
 
@@ -373,7 +373,7 @@ dState getDenial(const cspmap_t &validrrsets, const DNSName& qname, const uint16
            * RRsets for which the parent zone has authoritative data MUST be set
            */
           if (referralToUnsigned && qtype == QType::DS && !nsec->d_set.count(QType::NS)) {
-            LOG("However, no NS record exists at this level!"<<endl);
+            DNSSECLOG("However, no NS record exists at this level!"<<endl);
             return NODATA;
           }
 
@@ -388,7 +388,7 @@ dState getDenial(const cspmap_t &validrrsets, const DNSName& qname, const uint16
             return NXQTYPE;
           }
 
-          LOG("But the existence of a wildcard is not denied for "<<qname<<"/"<<endl);
+          DNSSECLOG("But the existence of a wildcard is not denied for "<<qname<<"/"<<endl);
           return NODATA;
         }
 
@@ -397,7 +397,7 @@ dState getDenial(const cspmap_t &validrrsets, const DNSName& qname, const uint16
           /* if the name is an ENT and we received a NODATA answer,
              we are fine with a NSEC proving that the name does not exist. */
           if (wantsNoDataProof && nsecProvesENT(qname, owner, nsec->d_next)) {
-            LOG("Denies existence of type "<<qname<<"/"<<QType(qtype).getName()<<" by proving that "<<qname<<" is an ENT"<<endl);
+            DNSSECLOG("Denies existence of type "<<qname<<"/"<<QType(qtype).getName()<<" by proving that "<<qname<<" is an ENT"<<endl);
             return NXQTYPE;
           }
 
@@ -416,35 +416,35 @@ dState getDenial(const cspmap_t &validrrsets, const DNSName& qname, const uint16
             }
           }
 
-          LOG("But the existence of a wildcard is not denied for "<<qname<<"/"<<QType(qtype).getName()<<endl);
+          DNSSECLOG("But the existence of a wildcard is not denied for "<<qname<<"/"<<QType(qtype).getName()<<endl);
           return NODATA;
         }
 
-        LOG("Did not deny existence of "<<QType(qtype).getName()<<", "<<owner<<"?="<<qname<<", "<<nsec->d_set.count(qtype)<<", next: "<<nsec->d_next<<endl);
+        DNSSECLOG("Did not deny existence of "<<QType(qtype).getName()<<", "<<owner<<"?="<<qname<<", "<<nsec->d_set.count(qtype)<<", next: "<<nsec->d_next<<endl);
       }
     } else if(v.first.second==QType::NSEC3) {
       for(const auto& r : v.second.records) {
-        LOG("\t"<<r->getZoneRepresentation()<<endl);
+        DNSSECLOG("\t"<<r->getZoneRepresentation()<<endl);
         auto nsec3 = std::dynamic_pointer_cast<NSEC3RecordContent>(r);
         if(!nsec3)
           continue;
 
         const DNSName signer = getSigner(v.second.signatures);
         if (!v.first.first.isPartOf(signer)) {
-          LOG("Owner "<<v.first.first<<" is not part of the signer "<<signer<<", ignoring"<<endl);
+          DNSSECLOG("Owner "<<v.first.first<<" is not part of the signer "<<signer<<", ignoring"<<endl);
           continue;
         }
 
         string h = getHashFromNSEC3(qname, nsec3);
         if (h.empty()) {
-          LOG("Unsupported hash, ignoring"<<endl);
+          DNSSECLOG("Unsupported hash, ignoring"<<endl);
           return INSECURE;
         }
 
         nsec3Seen = true;
 
         //              cerr<<"Salt length: "<<nsec3->d_salt.length()<<", iterations: "<<nsec3->d_iterations<<", hashed: "<<qname<<endl;
-        LOG("\tquery hash: "<<toBase32Hex(h)<<endl);
+        DNSSECLOG("\tquery hash: "<<toBase32Hex(h)<<endl);
         string beginHash=fromBase32Hex(v.first.first.getRawLabels()[0]);
 
         /* RFC 6840 section 4.1 "Clarifications on Nonexistence Proofs":
@@ -454,24 +454,24 @@ dState getDenial(const cspmap_t &validrrsets, const DNSName& qname, const uint16
            owner name regardless of type.
         */
         if (qtype != QType::DS && beginHash == h && isNSEC3AncestorDelegation(signer, v.first.first, nsec3)) {
-          LOG("type is "<<QType(qtype).getName()<<", NS is "<<std::to_string(nsec3->d_set.count(QType::NS))<<", SOA is "<<std::to_string(nsec3->d_set.count(QType::SOA))<<", signer is "<<signer<<", owner name is "<<v.first.first<<endl);
+          DNSSECLOG("type is "<<QType(qtype).getName()<<", NS is "<<std::to_string(nsec3->d_set.count(QType::NS))<<", SOA is "<<std::to_string(nsec3->d_set.count(QType::SOA))<<", signer is "<<signer<<", owner name is "<<v.first.first<<endl);
           /* this is an "ancestor delegation" NSEC3 RR */
-          LOG("An ancestor delegation NSEC3 RR can only deny the existence of a DS"<<endl);
+          DNSSECLOG("An ancestor delegation NSEC3 RR can only deny the existence of a DS"<<endl);
           return NODATA;
         }
 
         // If the name exists, check if the qtype is denied
         if(beginHash == h) {
           if (nsec3->d_set.count(qtype)) {
-            LOG("Does _not_ deny existence of type "<<QType(qtype).getName()<<" for name "<<qname<<" (not opt-out)."<<endl);
+            DNSSECLOG("Does _not_ deny existence of type "<<QType(qtype).getName()<<" for name "<<qname<<" (not opt-out)."<<endl);
             return NODATA;
           }
 
-          LOG("Denies existence of type "<<QType(qtype).getName()<<" for name "<<qname<<" (not opt-out)."<<endl);
+          DNSSECLOG("Denies existence of type "<<QType(qtype).getName()<<" for name "<<qname<<" (not opt-out)."<<endl);
 
           /* RFC 6840 section 4.3 */
           if (nsec3->d_set.count(QType::CNAME)) {
-            LOG("However a CNAME exists"<<endl);
+            DNSSECLOG("However a CNAME exists"<<endl);
             return NODATA;
           }
 
@@ -483,7 +483,7 @@ dState getDenial(const cspmap_t &validrrsets, const DNSName& qname, const uint16
            * NSEC3 RR.
            */
           if (referralToUnsigned && qtype == QType::DS && !nsec3->d_set.count(QType::NS)) {
-            LOG("However, no NS record exists at this level!"<<endl);
+            DNSSECLOG("However, no NS record exists at this level!"<<endl);
             return NODATA;
           }
 
@@ -506,20 +506,20 @@ dState getDenial(const cspmap_t &validrrsets, const DNSName& qname, const uint16
        RFC 5155 section-7.2.1
        FRC 7129 section-5.5
     */
-    LOG("Now looking for the closest encloser for "<<qname<<endl);
+    DNSSECLOG("Now looking for the closest encloser for "<<qname<<endl);
 
     while (found == false && closestEncloser.chopOff()) {
       for(const auto& v : validrrsets) {
         if(v.first.second==QType::NSEC3) {
           for(const auto& r : v.second.records) {
-            LOG("\t"<<r->getZoneRepresentation()<<endl);
+            DNSSECLOG("\t"<<r->getZoneRepresentation()<<endl);
             auto nsec3 = std::dynamic_pointer_cast<NSEC3RecordContent>(r);
             if(!nsec3)
               continue;
 
             const DNSName signer = getSigner(v.second.signatures);
             if (!v.first.first.isPartOf(signer)) {
-              LOG("Owner "<<v.first.first<<" is not part of the signer "<<signer<<", ignoring"<<endl);
+              DNSSECLOG("Owner "<<v.first.first<<" is not part of the signer "<<signer<<", ignoring"<<endl);
               continue;
             }
 
@@ -530,14 +530,14 @@ dState getDenial(const cspmap_t &validrrsets, const DNSName& qname, const uint16
 
             string beginHash=fromBase32Hex(v.first.first.getRawLabels()[0]);
 
-            LOG("Comparing "<<toBase32Hex(h)<<" ("<<closestEncloser<<") against "<<toBase32Hex(beginHash)<<endl);
+            DNSSECLOG("Comparing "<<toBase32Hex(h)<<" ("<<closestEncloser<<") against "<<toBase32Hex(beginHash)<<endl);
             if(beginHash == h) {
               if (qtype != QType::DS && isNSEC3AncestorDelegation(signer, v.first.first, nsec3)) {
-                LOG("An ancestor delegation NSEC3 RR can only deny the existence of a DS"<<endl);
+                DNSSECLOG("An ancestor delegation NSEC3 RR can only deny the existence of a DS"<<endl);
                 continue;
               }
 
-              LOG("Closest encloser for "<<qname<<" is "<<closestEncloser<<endl);
+              DNSSECLOG("Closest encloser for "<<qname<<" is "<<closestEncloser<<endl);
               found = true;
               break;
             }
@@ -574,12 +574,12 @@ dState getDenial(const cspmap_t &validrrsets, const DNSName& qname, const uint16
     if (labelIdx >= 1) {
       DNSName nextCloser(closestEncloser);
       nextCloser.prependRawLabel(qname.getRawLabel(labelIdx - 1));
-      LOG("Looking for a NSEC3 covering the next closer name "<<nextCloser<<endl);
+      DNSSECLOG("Looking for a NSEC3 covering the next closer name "<<nextCloser<<endl);
 
       for(const auto& v : validrrsets) {
         if(v.first.second==QType::NSEC3) {
           for(const auto& r : v.second.records) {
-            LOG("\t"<<r->getZoneRepresentation()<<endl);
+            DNSSECLOG("\t"<<r->getZoneRepresentation()<<endl);
             auto nsec3 = std::dynamic_pointer_cast<NSEC3RecordContent>(r);
             if(!nsec3)
               continue;
@@ -591,19 +591,19 @@ dState getDenial(const cspmap_t &validrrsets, const DNSName& qname, const uint16
 
             string beginHash=fromBase32Hex(v.first.first.getRawLabels()[0]);
 
-            LOG("Comparing "<<toBase32Hex(h)<<" against "<<toBase32Hex(beginHash)<<" -> "<<toBase32Hex(nsec3->d_nexthash)<<endl);
+            DNSSECLOG("Comparing "<<toBase32Hex(h)<<" against "<<toBase32Hex(beginHash)<<" -> "<<toBase32Hex(nsec3->d_nexthash)<<endl);
             if(isCoveredByNSEC3Hash(h, beginHash, nsec3->d_nexthash)) {
-              LOG("Denies existence of name "<<qname<<"/"<<QType(qtype).getName());
+              DNSSECLOG("Denies existence of name "<<qname<<"/"<<QType(qtype).getName());
               nextCloserFound = true;
 
               if (qtype == QType::DS && nsec3->d_flags & 1) {
-                LOG(" but is opt-out!");
+                DNSSECLOG(" but is opt-out!");
                 isOptOut = true;
               }
-              LOG(endl);
+              DNSSECLOG(endl);
               break;
             }
-            LOG("Did not cover us ("<<qname<<"), start="<<v.first.first<<", us="<<toBase32Hex(h)<<", end="<<toBase32Hex(nsec3->d_nexthash)<<endl);
+            DNSSECLOG("Did not cover us ("<<qname<<"), start="<<v.first.first<<", us="<<toBase32Hex(h)<<", end="<<toBase32Hex(nsec3->d_nexthash)<<endl);
           }
         }
         if (nextCloserFound) {
@@ -618,7 +618,7 @@ dState getDenial(const cspmap_t &validrrsets, const DNSName& qname, const uint16
     /* RFC 7129 section-5.6 */
     if (needWildcardProof && !provesNSEC3NoWildCard(closestEncloser, qtype, validrrsets, &wildcardExists)) {
       if (!isOptOut) {
-        LOG("But the existence of a wildcard is not denied for "<<qname<<"/"<<QType(qtype).getName()<<endl);
+        DNSSECLOG("But the existence of a wildcard is not denied for "<<qname<<"/"<<QType(qtype).getName()<<endl);
         return NODATA;
       }
     }
@@ -690,14 +690,14 @@ static bool checkSignatureWithKey(time_t now, const shared_ptr<RRSIGRecordConten
     if(isRRSIGNotExpired(now, sig)) {
       std::shared_ptr<DNSCryptoKeyEngine> dke = shared_ptr<DNSCryptoKeyEngine>(DNSCryptoKeyEngine::makeFromPublicKeyString(key->d_algorithm, key->d_key));
       result = dke->verify(msg, sig->d_signature);
-      LOG("signature by key with tag "<<sig->d_tag<<" and algorithm "<<DNSSECKeeper::algorithm2name(sig->d_algorithm)<<" was " << (result ? "" : "NOT ")<<"valid"<<endl);
+      DNSSECLOG("signature by key with tag "<<sig->d_tag<<" and algorithm "<<DNSSECKeeper::algorithm2name(sig->d_algorithm)<<" was " << (result ? "" : "NOT ")<<"valid"<<endl);
     }
     else {
-      LOG("Signature is "<<((sig->d_siginception > now) ? "not yet valid" : "expired")<<" (inception: "<<sig->d_siginception<<", expiration: "<<sig->d_sigexpire<<", now: "<<now<<")"<<endl);
+      DNSSECLOG("Signature is "<<((sig->d_siginception > now) ? "not yet valid" : "expired")<<" (inception: "<<sig->d_siginception<<", expiration: "<<sig->d_sigexpire<<", now: "<<now<<")"<<endl);
     }
   }
   catch(const std::exception& e) {
-    LOG("Could not make a validator for signature: "<<e.what()<<endl);
+    DNSSECLOG("Could not make a validator for signature: "<<e.what()<<endl);
   }
   return result;
 }
@@ -709,7 +709,7 @@ bool validateWithKeySet(time_t now, const DNSName& name, const vector<shared_ptr
   for(const auto& signature : signatures) {
     unsigned int labelCount = name.countLabels();
     if (signature->d_labels > labelCount) {
-      LOG(name<<": Discarding invalid RRSIG whose label count is "<<signature->d_labels<<" while the RRset owner name has only "<<labelCount<<endl);
+      DNSSECLOG(name<<": Discarding invalid RRSIG whose label count is "<<signature->d_labels<<" while the RRset owner name has only "<<labelCount<<endl);
     }
 
     vector<shared_ptr<DNSRecordContent> > toSign = records;
@@ -717,7 +717,7 @@ bool validateWithKeySet(time_t now, const DNSName& name, const vector<shared_ptr
     auto r = getByTag(keys, signature->d_tag, signature->d_algorithm);
 
     if(r.empty()) {
-      LOG("No key provided for "<<signature->d_tag<<" and algorithm "<<std::to_string(signature->d_algorithm)<<endl;);
+      DNSSECLOG("No key provided for "<<signature->d_tag<<" and algorithm "<<std::to_string(signature->d_algorithm)<<endl;);
       continue;
     }
 
@@ -726,12 +726,12 @@ bool validateWithKeySet(time_t now, const DNSName& name, const vector<shared_ptr
       bool signIsValid = checkSignatureWithKey(now, signature, l, msg);
       if(signIsValid) {
         isValid = true;
-        LOG("Validated "<<name<<"/"<<DNSRecordContent::NumberToType(signature->d_type)<<endl);
+        DNSSECLOG("Validated "<<name<<"/"<<DNSRecordContent::NumberToType(signature->d_type)<<endl);
         //	  cerr<<"valid"<<endl;
         //	  cerr<<"! validated "<<i->first.first<<"/"<<)<<endl;
       }
       else {
-        LOG("signature invalid"<<endl);
+        DNSSECLOG("signature invalid"<<endl);
       }
       if (signIsValid && !validateAllSigs) {
         return true;
@@ -752,7 +752,7 @@ void validateWithKeySet(const cspmap_t& rrsets, cspmap_t& validated, const skeys
   */
   time_t now = time(nullptr);
   for(auto i=rrsets.cbegin(); i!=rrsets.cend(); i++) {
-    LOG("validating "<<(i->first.first)<<"/"<<DNSRecordContent::NumberToType(i->first.second)<<" with "<<i->second.signatures.size()<<" sigs"<<endl);
+    DNSSECLOG("validating "<<(i->first.first)<<"/"<<DNSRecordContent::NumberToType(i->first.second)<<" with "<<i->second.signatures.size()<<" sigs"<<endl);
     if (validateWithKeySet(now, i->first.first, i->second.records, i->second.signatures, keys, true)) {
       validated[i->first] = i->second;
     }
@@ -831,17 +831,17 @@ void validateDNSKeysAgainstDS(time_t now, const DNSName& zone, const dsmap_t& ds
         isValid = dsrc == dsrc2;
       }
       catch(const std::exception &e) {
-        LOG("Unable to make DS from DNSKey: "<<e.what()<<endl);
+        DNSSECLOG("Unable to make DS from DNSKey: "<<e.what()<<endl);
       }
 
       if(isValid) {
-        LOG("got valid DNSKEY (it matches the DS) with tag "<<dsrc.d_tag<<" and algorithm "<<std::to_string(dsrc.d_algorithm)<<" for "<<zone<<endl);
+        DNSSECLOG("got valid DNSKEY (it matches the DS) with tag "<<dsrc.d_tag<<" and algorithm "<<std::to_string(dsrc.d_algorithm)<<" for "<<zone<<endl);
 
         validkeys.insert(drc);
       }
       else {
         if (dsCreated) {
-          LOG("DNSKEY did not match the DS, parent DS: "<<dsrc.getZoneRepresentation() << " ! = "<<dsrc2.getZoneRepresentation()<<endl);
+          DNSSECLOG("DNSKEY did not match the DS, parent DS: "<<dsrc.getZoneRepresentation() << " ! = "<<dsrc2.getZoneRepresentation()<<endl);
         }
       }
     }
@@ -877,12 +877,12 @@ void validateDNSKeysAgainstDS(time_t now, const DNSName& zone, const dsmap_t& ds
 
         if(signIsValid)
         {
-          LOG("validation succeeded - whole DNSKEY set is valid"<<endl);
+          DNSSECLOG("validation succeeded - whole DNSKEY set is valid"<<endl);
           validkeys = tkeys;
           break;
         }
         else {
-          LOG("Validation did not succeed!"<<endl);
+          DNSSECLOG("Validation did not succeed!"<<endl);
         }
       }
       //        if(validkeys.empty()) cerr<<"did not manage to validate DNSKEY set based on DS-validated KSK, only passing KSK on"<<endl;
@@ -915,7 +915,7 @@ vState getKeysFor(DNSRecordOracle& dro, const DNSName& zone, skeyset_t& keyset)
         lowestNTA = negAnchor.first;
 
     if(!lowestNTA.empty()) {
-      LOG("Found a Negative Trust Anchor for "<<lowestNTA<<", which was added with reason '"<<negAnchors.at(lowestNTA)<<"', ");
+      DNSSECLOG("Found a Negative Trust Anchor for "<<lowestNTA<<", which was added with reason '"<<negAnchors.at(lowestNTA)<<"', ");
 
       /* RFC 7646 section 2.1 tells us that we SHOULD still validate if there
        * is a Trust Anchor below the Negative Trust Anchor for the name we
@@ -923,10 +923,10 @@ vState getKeysFor(DNSRecordOracle& dro, const DNSName& zone, skeyset_t& keyset)
        * Trust Anchor MUST be *below* the name and not the name itself
        */
       if(lowestTA.countLabels() <= lowestNTA.countLabels()) {
-        LOG("marking answer Insecure"<<endl);
+        DNSSECLOG("marking answer Insecure"<<endl);
         return NTA; // Not Insecure, this way validateRecords() can shortcut
       }
-      LOG("but a Trust Anchor for "<<lowestTA<<" is configured, continuing validation."<<endl);
+      DNSSECLOG("but a Trust Anchor for "<<lowestTA<<" is configured, continuing validation."<<endl);
     }
   }
 
@@ -939,10 +939,10 @@ vState getKeysFor(DNSRecordOracle& dro, const DNSName& zone, skeyset_t& keyset)
 
   auto zoneCuts = getZoneCuts(zone, lowestTA, dro);
 
-  LOG("Found the following zonecuts:")
+  DNSSECLOG("Found the following zonecuts:")
   for(const auto& zonecut : zoneCuts)
-    LOG(" => "<<zonecut);
-  LOG(endl);
+    DNSSECLOG(" => "<<zonecut);
+  DNSSECLOG(endl);
 
   for(auto zoneCutIter = zoneCuts.cbegin(); zoneCutIter != zoneCuts.cend(); ++zoneCutIter)
   {
@@ -963,7 +963,7 @@ vState getKeysFor(DNSRecordOracle& dro, const DNSName& zone, skeyset_t& keyset)
       {
         auto rrc=getRR<RRSIGRecordContent> (rec);
         if(rrc) {
-          LOG("Got signature: "<<rrc->getZoneRepresentation()<<" with tag "<<rrc->d_tag<<", for type "<<DNSRecordContent::NumberToType(rrc->d_type)<<endl);
+          DNSSECLOG("Got signature: "<<rrc->getZoneRepresentation()<<" with tag "<<rrc->d_tag<<", for type "<<DNSRecordContent::NumberToType(rrc->d_type)<<endl);
           if(rrc->d_type != QType::DNSKEY)
             continue;
           sigs.push_back(rrc);
@@ -974,13 +974,13 @@ vState getKeysFor(DNSRecordOracle& dro, const DNSName& zone, skeyset_t& keyset)
         auto drc=getRR<DNSKEYRecordContent> (rec);
         if(drc) {
           tkeys.insert(drc);
-          LOG("Inserting key with tag "<<drc->getTag()<<" and algorithm "<<DNSSECKeeper::algorithm2name(drc->d_algorithm)<<": "<<drc->getZoneRepresentation()<<endl);
+          DNSSECLOG("Inserting key with tag "<<drc->getTag()<<" and algorithm "<<DNSSECKeeper::algorithm2name(drc->d_algorithm)<<": "<<drc->getZoneRepresentation()<<endl);
 
           toSign.push_back(rec.d_content);
         }
       }
     }
-    LOG("got "<<tkeys.size()<<" keys and "<<sigs.size()<<" sigs from server"<<endl);
+    DNSSECLOG("got "<<tkeys.size()<<" keys and "<<sigs.size()<<" sigs from server"<<endl);
 
     /*
      * Check all DNSKEY records against all DS records and place all DNSKEY records
@@ -990,19 +990,19 @@ vState getKeysFor(DNSRecordOracle& dro, const DNSName& zone, skeyset_t& keyset)
 
     if(validkeys.empty())
     {
-      LOG("ended up with zero valid DNSKEYs, going Bogus"<<endl);
+      DNSSECLOG("ended up with zero valid DNSKEYs, going Bogus"<<endl);
       return Bogus;
     }
-    LOG("situation: we have one or more valid DNSKEYs for ["<<*zoneCutIter<<"] (want ["<<zone<<"])"<<endl);
+    DNSSECLOG("situation: we have one or more valid DNSKEYs for ["<<*zoneCutIter<<"] (want ["<<zone<<"])"<<endl);
 
     if(zoneCutIter == zoneCuts.cend()-1) {
-      LOG("requested keyset found! returning Secure for the keyset"<<endl);
+      DNSSECLOG("requested keyset found! returning Secure for the keyset"<<endl);
       keyset.insert(validkeys.cbegin(), validkeys.cend());
       return Secure;
     }
 
     // We now have the DNSKEYs, use them to validate the DS records at the next zonecut
-    LOG("next name ["<<*(zoneCutIter+1)<<"], trying to get DS"<<endl);
+    DNSSECLOG("next name ["<<*(zoneCutIter+1)<<"], trying to get DS"<<endl);
 
     dsmap_t tdsmap; // tentative DSes
     dsmap.clear();
@@ -1015,11 +1015,11 @@ vState getKeysFor(DNSRecordOracle& dro, const DNSName& zone, skeyset_t& keyset)
     cspmap_t validrrsets;
     validateWithKeySet(cspmap, validrrsets, validkeys);
 
-    LOG("got "<<cspmap.count(make_pair(*(zoneCutIter+1),QType::DS))<<" records for DS query of which "<<validrrsets.count(make_pair(*(zoneCutIter+1),QType::DS))<<" valid "<<endl);
+    DNSSECLOG("got "<<cspmap.count(make_pair(*(zoneCutIter+1),QType::DS))<<" records for DS query of which "<<validrrsets.count(make_pair(*(zoneCutIter+1),QType::DS))<<" valid "<<endl);
 
     auto r = validrrsets.equal_range(make_pair(*(zoneCutIter+1), QType::DS));
     if(r.first == r.second) {
-      LOG("No DS for "<<*(zoneCutIter+1)<<", now look for a secure denial"<<endl);
+      DNSSECLOG("No DS for "<<*(zoneCutIter+1)<<", now look for a secure denial"<<endl);
       dState res = getDenial(validrrsets, *(zoneCutIter+1), QType::DS, true, true);
       if (res == INSECURE || res == NXDOMAIN)
         return Bogus;
@@ -1047,12 +1047,12 @@ vState getKeysFor(DNSRecordOracle& dro, const DNSName& zone, skeyset_t& keyset)
 bool isSupportedDS(const DSRecordContent& ds)
 {
   if (!DNSCryptoKeyEngine::isAlgorithmSupported(ds.d_algorithm)) {
-    LOG("Discarding DS "<<ds.d_tag<<" because we don't support algorithm number "<<std::to_string(ds.d_algorithm)<<endl);
+    DNSSECLOG("Discarding DS "<<ds.d_tag<<" because we don't support algorithm number "<<std::to_string(ds.d_algorithm)<<endl);
     return false;
   }
 
   if (!DNSCryptoKeyEngine::isDigestSupported(ds.d_digesttype)) {
-    LOG("Discarding DS "<<ds.d_tag<<" because we don't support digest number "<<std::to_string(ds.d_digesttype)<<endl);
+    DNSSECLOG("Discarding DS "<<ds.d_tag<<" because we don't support digest number "<<std::to_string(ds.d_digesttype)<<endl);
     return false;
   }
 
