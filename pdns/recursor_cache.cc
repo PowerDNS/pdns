@@ -344,7 +344,7 @@ int MemRecursorCache::doWipeCache(const DNSName& name, bool sub, uint16_t qtype)
 	break;
       if(iter->d_qtype == qtype || qtype == 0xffff) {
 	count++;
-        d_bytes -= iter->d_bytes;
+	d_bytes -= iter->d_bytes;
 	d_cache.erase(iter++);
       }
       else 
