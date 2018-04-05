@@ -22,7 +22,6 @@
 #ifndef PDNS_RECPACKETCACHE_HH
 #define PDNS_RECPACKETCACHE_HH
 #include <string>
-#include <set>
 #include <inttypes.h>
 #include "dns.hh"
 #include "namespaces.hh"
@@ -72,6 +71,10 @@ private:
   struct NameTag {};
   struct Entry 
   {
+    Entry(const DNSName& qname, const std::string& packet): d_name(qname), d_packet(packet)
+    {
+    }
+
     mutable time_t d_ttd;
     mutable time_t d_creation; // so we can 'age' our packets
     DNSName d_name;
@@ -84,7 +87,7 @@ private:
     uint32_t d_qhash;
     uint32_t d_tag;
     inline bool operator<(const struct Entry& rhs) const;
-    
+
     time_t getTTD() const
     {
       return d_ttd;
