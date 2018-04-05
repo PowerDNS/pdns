@@ -211,6 +211,8 @@ void NSEC3RecordContent::toPacket(DNSPacketWriter& pw)
 NSEC3RecordContent::DNSRecordContent* NSEC3RecordContent::make(const DNSRecord &dr, PacketReader& pr) 
 {
   NSEC3RecordContent* ret=new NSEC3RecordContent();
+
+  pr.d_bytesout = 0;
   pr.xfr8BitInt(ret->d_algorithm);
   pr.xfr8BitInt(ret->d_flags);
   pr.xfr16BitInt(ret->d_iterations);
@@ -220,7 +222,8 @@ NSEC3RecordContent::DNSRecordContent* NSEC3RecordContent::make(const DNSRecord &
 
   pr.xfr8BitInt(len);
   pr.xfrBlob(ret->d_nexthash, len);
-  
+  ret->d_size_in_bytes = pr.d_bytesout;
+
   string bitmap;
   pr.xfrBlob(bitmap);
   
@@ -246,6 +249,7 @@ NSEC3RecordContent::DNSRecordContent* NSEC3RecordContent::make(const DNSRecord &
       for(int bit = 0; bit < 8 ; ++bit , val>>=1)
         if(val & 1) {
           ret->d_set.insert((7-bit) + 8*(k) + 256*window);
+          ret->d_size_in_bytes += 2 + 2*sizeof(void*);
         }
       }
   }
