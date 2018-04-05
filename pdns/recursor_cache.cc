@@ -285,7 +285,7 @@ void MemRecursorCache::replace(time_t now, const DNSName &qname, const QType& qt
   }
 
   if(auth) {
-    ce.d_bytes=qname.wirelength(); //weird, this is the same as above
+    ce.d_bytes=sizeof(ce)+qname.wirelength(); //weird, this is the same as above
     ce.d_auth = true;
   }
 
