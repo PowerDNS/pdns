@@ -22,6 +22,7 @@
 #pragma once
 
 #include <boost/multi_index_container.hpp>
+#include <boost/multi_index/hashed_index.hpp>
 #include "dnsparser.hh"
 #include "dnsname.hh"
 #include "dns.hh"
@@ -90,7 +91,10 @@ class NegCache : public boost::noncopyable {
             CanonDNSNameCompare, std::less<QType>
           >
         >,
-        sequenced<>
+        sequenced<>,
+        hashed_non_unique <
+          member<NegCacheEntry, DNSName, &NegCacheEntry::d_name>
+        >
       >
     > negcache_t;
 
