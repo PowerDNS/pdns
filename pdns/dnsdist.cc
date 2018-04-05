@@ -669,10 +669,18 @@ shared_ptr<DownstreamState> leastOutstanding(const NumberedServerVector& servers
 shared_ptr<DownstreamState> valrandom(unsigned int val, const NumberedServerVector& servers, const DNSQuestion* dq)
 {
   vector<pair<int, shared_ptr<DownstreamState>>> poss;
-  int sum=0;
+  int sum = 0;
+  int max = std::numeric_limits<int>::max();
+
   for(auto& d : servers) {      // w=1, w=10 -> 1, 11
     if(d.second->isUp()) {
-      sum+=d.second->weight;
+      // Don't overflow sum when adding high weights
+      if(d.second->weight > max - sum) {
+        sum = max;
+      } else {
+        sum += d.second->weight;
+      }
+
       poss.push_back({sum, d.second});
     }
   }
