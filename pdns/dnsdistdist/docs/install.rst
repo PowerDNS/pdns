@@ -68,7 +68,7 @@ The release tarballs have detached PGP signatures, signed by on these PGP keys:
 * `B76C D467 1C09 68BA A87D E61C 5E50 715B F2FF E1A7 <https://pgp.mit.edu/pks/lookup?op=get&search=0x5E50715BF2FFE1A7>`_
 * `16E1 2866 B773 8C73 976A 5743 6FFC 3343 9B0D 04DF <https://pgp.mit.edu/pks/lookup?op=get&search=0x6FFC33439B0D04DF>`_
 
-There is a PGP keyblock with these keys available on `http://powerdns.com/powerdns-keyblock.asc <https://powerdns.com/powerdns-keyblock.asc>`_.
+There is a PGP keyblock with these keys available on `https://www.powerdns.com/powerdns-keyblock.asc <https://www.powerdns.com/powerdns-keyblock.asc>`_.
 
 * Untar the tarball and ``cd`` into the source directory
 * Run ``./configure``
