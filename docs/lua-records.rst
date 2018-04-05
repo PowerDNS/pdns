@@ -50,13 +50,13 @@ addresses mentioned in availability rules are, in fact, available.
 
 Another example::
   
-    www    IN    LUA    A    "closest({'192.0.2.1','192.0.2.2','198.51.100.1'})"
+    www    IN    LUA    A    "pickclosest({'192.0.2.1','192.0.2.2','198.51.100.1'})"
 
 This uses the GeoIP backend to find indications of the geographical location of
 the requestor and the listed IP addresses. It will return with one of the closest
 addresses.
 
-``closest`` and ifportup can be combined as follows::
+``pickclosest`` and ifportup can be combined as follows::
 
   www    IN    LUA    A    ("ifportup(443, {'192.0.2.1', '192.0.2.2', '198.51.100.1'}"
                             ", {selector='closest'})                                 ")
@@ -221,7 +221,7 @@ Record creation functions
 
   :param addresses: A list of strings with the possible IP addresses.
 
-.. function:: closest(addresses)
+.. function:: pickclosest(addresses)
 
   Returns IP address deemed closest to the ``bestwho`` IP address.
 
@@ -275,7 +275,7 @@ Record creation functions
 
   This function also works for CNAME or TXT records.
 
-.. function:: whashed(weightparams)
+.. function:: pickwhashed(weightparams)
 
   Based on the hash of ``bestwho``, returns an IP address from the list
   supplied, as weighted by the various ``weight`` parameters.
@@ -289,20 +289,20 @@ Record creation functions
 
   An example::
 
-    mydomain.example.com    IN    LUA    A ("whashed(                                   "
-                                            "        {15, {"192.0.2.1", "203.0.113.2"}, "
-                                            "        {100, {"198.51.100.5"}             "
-                                            ")                                          ")
+    mydomain.example.com    IN    LUA    A ("pickwhashed({                             "
+                                            "        {15,  "192.0.2.1"},               "
+                                            "        {100, "198.51.100.5"}             "
+                                            "})                                        ")
 
 
-.. function:: wrandom(weightparams)
+.. function:: pickwrandom(weightparams)
 
   Returns a random IP address from the list supplied, as weighted by the
   various ``weight`` parameters. Performs no uptime checking.
 
   :param weightparams: table of weight, IP addresses.
 
-  See :func:`whashed` for an example.
+  See :func:`pickwhashed` for an example.
 
 Helper functions
 ~~~~~~~~~~~~~~~~

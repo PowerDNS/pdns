@@ -36,17 +36,25 @@ static string extractHostFromURL(const std::string& url)
 void MiniCurl::setupURL(const std::string& str, const ComboAddress* rem, const ComboAddress* src)
 {
   if(rem) {
-    struct curl_slist *hostlist = NULL; // THIS SHOULD BE FREED
+    struct curl_slist *hostlist = nullptr; // THIS SHOULD BE FREED
 
     // url = http://hostname.enzo/url 
-
     string host4=extractHostFromURL(str);
-    string hcode=(host4+":80:"+rem->toString());
-    //cout<<"Setting hardcoded IP: "<<hcode<<endl;
-    hostlist = curl_slist_append(NULL, hcode.c_str());
-    hcode=(host4+":443:"+rem->toString());
-    //    cout<<"Setting hardcoded IP: "<<hcode<<endl;;
-    hostlist = curl_slist_append(hostlist, hcode.c_str());
+    // doest the host contain port indication
+    std::size_t found = host4.find(':');
+    vector<uint16_t> ports{80, 443};
+    if (found != std::string::npos) {
+      int port = std::stoi(host4.substr(found + 1));
+      if (port <= 0 || port > 65535)
+        throw std::overflow_error("Invalid port number");
+      ports = {(uint16_t)port};
+      host4 = host4.substr(0, found);
+    }
+
+    for (const auto& port : ports) {
+      string hcode = boost::str(boost::format("%s:%u:%s") % host4 % port % rem->toString());
+      hostlist = curl_slist_append(hostlist, hcode.c_str());
+    }
 
     curl_easy_setopt(d_curl, CURLOPT_RESOLVE, hostlist);
   }

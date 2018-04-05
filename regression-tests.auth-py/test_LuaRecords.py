@@ -1,0 +1,459 @@
+#!/usr/bin/env python
+import unittest
+import requests
+import threading
+import dns
+import time
+
+from authtests import AuthTest
+
+from BaseHTTPServer import BaseHTTPRequestHandler, HTTPServer
+
+class FakeHTTPServer(BaseHTTPRequestHandler):
+    def _set_headers(self):
+        self.send_response(200)
+        self.send_header('Content-type', 'text/html')
+        self.end_headers()
+
+    def do_GET(self):
+        self._set_headers()
+        if (self.path == '/ping.json'):
+            self.wfile.write('{"ping":"pong"}')
+        else:
+            self.wfile.write("<html><body><h1>hi!</h1><h2>Programming in Lua !</h2></body></html>")
+
+    def log_message(self, format, *args):
+        return
+
+    def do_HEAD(self):
+        self._set_headers()
+
+class TestLuaRecords(AuthTest):
+    """
+    * ifurlup supports multiple groups of IP addresses, why not ifportup ?
+
+    * pickrandom() can be used with a set of IPs or CNAMES whereas pickwrandom cannot
+      maybe unifying this would be nice
+      Note: there is a comment about that "In C++ this is ComboAddress in,
+      ComboAddress out. In Lua, vector string in, string out"
+
+    * first query to a ifportup/ifurlup looks like returning all records
+
+    * ifurlup with a different port ?
+
+    TODO
+    ----
+    * [x] test pickrandom()
+    * [x] test pickwrandom()
+    * [x] test pickwhashed()
+    * [x] test ifportup()
+    * [ ] test ifportup() with other selectors
+    * [x] test ifurlup()
+    * [x] test latlon()
+    * [x] test latlonloc()
+    * [x] test netmask()
+
+    * [ ] test pickclosest()
+    * [ ] test country()
+    * [ ] test continent()
+    * [ ] test closestMagic()
+    * [x] test view()
+    * [ ] test asnum()
+    * [x] rename pickwhashed() and pickwrandom() ?
+    * [x] unify pickrandom() pickwhashed() and pickwrandom() parameters (ComboAddress vs string)
+    * [x] make lua errors SERVFAIL
+    * [ ] Feature Request: allow both list of ips and string as argument of `pick*()` to return multiple records
+    * [ ] What to do with cases like "LUA AAAA pickrandom('::1', '127.0.0.1')" that will fail only if "127.0.0.1" is returned ?
+    * [ ] ifurlup supports multiple groups of IP addresses, why not ifportup ? (ie: "{{ip1g1, ip2g1}, {ip1g2}}" vs "{ip1, ip2, ip3}")
+    """
+    _zones = {
+        'example.org': """
+example.org.                 3600 IN SOA  {soa}
+example.org.                 3600 IN NS   ns1.example.org.
+example.org.                 3600 IN NS   ns2.example.org.
+ns1.example.org.             3600 IN A    {prefix}.10
+ns2.example.org.             3600 IN A    {prefix}.11
+
+web1.example.org.            3600 IN A    {prefix}.101
+web2.example.org.            3600 IN A    {prefix}.102
+web3.example.org.            3600 IN A    {prefix}.103
+
+all.ifportup                 3600 IN LUA  A     "ifportup(8080, {{'{prefix}.101', '{prefix}.102'}})"
+some.ifportup                3600 IN LUA  A     "ifportup(8080, {{'192.168.42.21', '{prefix}.102'}})"
+none.ifportup                3600 IN LUA  A     "ifportup(8080, {{'192.168.42.21', '192.168.21.42'}})"
+
+whashed.example.org.         3600 IN LUA  A     "pickwhashed({{ {{15, '1.2.3.4'}}, {{42, '4.3.2.1'}} }})"
+rand.example.org.            3600 IN LUA  A     "pickrandom({{'{prefix}.101', '{prefix}.102'}})"
+v6-bogus.rand.example.org.   3600 IN LUA  AAAA  "pickrandom({{'{prefix}.101', '{prefix}.102'}})"
+v6.rand.example.org.         3600 IN LUA  AAAA  "pickrandom({{'2001:db8:a0b:12f0::1', 'fe80::2a1:9bff:fe9b:f268'}})"
+closest                      3600 IN LUA  A     "pickclosest({{'192.0.2.1','192.0.2.2','{prefix}.102', '198.51.100.1'}})"
+empty.rand.example.org.      3600 IN LUA  A     "pickrandom()"
+wrand.example.org.           3600 IN LUA  A     "pickwrandom({{ {{30, '{prefix}.102'}}, {{15, '{prefix}.103'}} }})"
+
+config    IN    LUA    LUA ("settings={{stringmatch='Programming in Lua'}} "
+                            "EUWips={{'{prefix}.101','{prefix}.102'}}      "
+                            "EUEips={{'192.168.42.101','192.168.42.102'}}  "
+                            "NLips={{'{prefix}.111', '{prefix}.112'}}  "
+                            "USAips={{'{prefix}.103'}}                     ")
+
+usa          IN    LUA    A   ( ";include('config')                         "
+                                "return ifurlup('http://www.lua.org:8080/', "
+                                "{{USAips, EUEips}}, settings)              ")
+
+mix.ifurlup  IN    LUA    A   ("ifurlup('http://www.other.org:8080/ping.json', "
+                               "{{ '192.168.42.101', '{prefix}.101' }},        "
+                               "{{ stringmatch='pong' }})                      ")
+
+eu-west      IN    LUA    A   ( ";include('config')                         "
+                                "return ifurlup('http://www.lua.org:8080/', "
+                                "{{EUWips, EUEips, USAips}}, settings)      ")
+
+nl           IN    LUA    A   ( ";include('config')                                "
+                                "return ifportup(8081, NLips) ")
+latlon.geo      IN LUA    TXT "latlon()"
+latlonloc.geo   IN LUA    TXT "latlonloc()"
+
+true.netmask     IN LUA   TXT   ( ";if(netmask({{ '{prefix}.0/24' }})) "
+                                  "then return 'true'                  "
+                                  "else return 'false'             end " )
+false.netmask    IN LUA   TXT   ( ";if(netmask({{ '1.2.3.4/8' }}))     "
+                                  "then return 'true'                  "
+                                  "else return 'false'             end " )
+
+view             IN    LUA    A          ("view({{                                       "
+                                          "{{ {{'192.168.0.0/16'}}, {{'192.168.1.54'}}}},"
+                                          "{{ {{'{prefix}.0/16'}}, {{'{prefix}.54'}}}},  "
+                                          "{{ {{'0.0.0.0/0'}}, {{'192.0.2.1'}}}}         "
+                                          " }})                                          " )
+txt.view         IN    LUA    TXT        ("view({{                                       "
+                                          "{{ {{'192.168.0.0/16'}}, {{'txt'}}}},         "
+                                          "{{ {{'0.0.0.0/0'}}, {{'else'}}}}              "
+                                          " }})                                          " )
+none.view        IN    LUA    A          ("view({{                                     "
+                                          "{{ {{'192.168.0.0/16'}}, {{'192.168.1.54'}}}},"
+                                          "{{ {{'1.2.0.0/16'}}, {{'1.2.3.4'}}}},         "
+                                          " }})                                          " )
+        """,
+    }
+    _web_rrsets = []
+
+    @classmethod
+    def startResponders(cls):
+        webserver = threading.Thread(name='HTTP Listener',
+                                     target=cls.HTTPResponder,
+                                     args=[8080]
+        )
+        webserver.setDaemon(True)
+        webserver.start()
+
+    @classmethod
+    def HTTPResponder(cls, port):
+        server_address = ('', port)
+        httpd = HTTPServer(server_address, FakeHTTPServer)
+        httpd.serve_forever()
+
+    @classmethod
+    def setUpClass(cls):
+
+        super(TestLuaRecords, cls).setUpClass()
+
+        cls._web_rrsets = [dns.rrset.from_text('web1.example.org.', 0, dns.rdataclass.IN, 'A',
+                                               '{prefix}.101'.format(prefix=cls._PREFIX)),
+                           dns.rrset.from_text('web2.example.org.', 0, dns.rdataclass.IN, 'A',
+                                               '{prefix}.102'.format(prefix=cls._PREFIX)),
+                           dns.rrset.from_text('web3.example.org.', 0, dns.rdataclass.IN, 'A',
+                                               '{prefix}.103'.format(prefix=cls._PREFIX))
+        ]
+
+    def testPickRandom(self):
+        """
+        Basic pickrandom() test with a set of A records
+        """
+        expected = [dns.rrset.from_text('rand.example.org.', 0, dns.rdataclass.IN, 'A',
+                                        '{prefix}.101'.format(prefix=self._PREFIX)),
+                    dns.rrset.from_text('rand.example.org.', 0, dns.rdataclass.IN, 'A',
+                                        '{prefix}.102'.format(prefix=self._PREFIX))]
+        query = dns.message.make_query('rand.example.org', 'A')
+
+        res = self.sendUDPQuery(query)
+        self.assertRcodeEqual(res, dns.rcode.NOERROR)
+        self.assertAnyRRsetInAnswer(res, expected)
+
+    def testBogusV6PickRandom(self):
+        """
+        Test a bogus AAAA pickrandom() record  with a set of v4 addr
+        """
+        query = dns.message.make_query('v6-bogus.rand.example.org', 'AAAA')
+
+        res = self.sendUDPQuery(query)
+        self.assertRcodeEqual(res, dns.rcode.SERVFAIL)
+
+    def testV6PickRandom(self):
+        """
+        Test pickrandom() AAAA record
+        """
+        expected = [dns.rrset.from_text('v6.rand.example.org.', 0, dns.rdataclass.IN, 'AAAA',
+                                        '2001:db8:a0b:12f0::1'),
+                    dns.rrset.from_text('v6.rand.example.org.', 0, dns.rdataclass.IN, 'AAAA',
+                                        'fe80::2a1:9bff:fe9b:f268')]
+        query = dns.message.make_query('v6.rand.example.org', 'AAAA')
+
+        res = self.sendUDPQuery(query)
+        self.assertRcodeEqual(res, dns.rcode.NOERROR)
+        self.assertAnyRRsetInAnswer(res, expected)
+
+    def testEmptyRandom(self):
+        """
+        Basic pickrandom() test with an empty set
+        """
+        query = dns.message.make_query('empty.rand.example.org', 'A')
+
+        res = self.sendUDPQuery(query)
+        self.assertRcodeEqual(res, dns.rcode.SERVFAIL)
+
+    def testWRandom(self):
+        """
+        Basic pickwrandom() test with a set of A records
+        """
+        expected = [dns.rrset.from_text('wrand.example.org.', 0, dns.rdataclass.IN, 'A',
+                                        '{prefix}.103'.format(prefix=self._PREFIX)),
+                    dns.rrset.from_text('wrand.example.org.', 0, dns.rdataclass.IN, 'A',
+                                        '{prefix}.102'.format(prefix=self._PREFIX))]
+        query = dns.message.make_query('wrand.example.org', 'A')
+
+        res = self.sendUDPQuery(query)
+        self.assertRcodeEqual(res, dns.rcode.NOERROR)
+        self.assertAnyRRsetInAnswer(res, expected)
+
+    @unittest.skip
+    def testClosest(self):
+        """
+        Basic pickClosest() test with a set of A records
+        """
+        expected = [dns.rrset.from_text('wrand.example.org.', 0, dns.rdataclass.IN, 'A',
+                                        '{prefix}.103'.format(prefix=self._PREFIX)),
+                    dns.rrset.from_text('wrand.example.org.', 0, dns.rdataclass.IN, 'A',
+                                        '{prefix}.102'.format(prefix=self._PREFIX))]
+        query = dns.message.make_query('closest.example.org', 'A')
+
+        res = self.sendUDPQuery(query)
+        self.assertRcodeEqual(res, dns.rcode.NOERROR)
+        self.assertAnyRRsetInAnswer(res, expected)
+
+    def testIfportup(self):
+        """
+        Basic ifportup() test
+        """
+        query = dns.message.make_query('all.ifportup.example.org', 'A')
+        expected = [
+            dns.rrset.from_text('all.ifportup.example.org.', 0, dns.rdataclass.IN, 'A',
+                                '{prefix}.101'.format(prefix=self._PREFIX)),
+            dns.rrset.from_text('all.ifportup.example.org.', 0, dns.rdataclass.IN, 'A',
+                                '{prefix}.102'.format(prefix=self._PREFIX))]
+
+        res = self.sendUDPQuery(query)
+        self.assertRcodeEqual(res, dns.rcode.NOERROR)
+        self.assertAnyRRsetInAnswer(res, expected)
+
+    def testIfportupWithSomeDown(self):
+        """
+        Basic ifportup() test with some ports DOWN
+        """
+        query = dns.message.make_query('some.ifportup.example.org', 'A')
+        expected = [
+            dns.rrset.from_text('some.ifportup.example.org.', 0, dns.rdataclass.IN, 'A',
+                                '192.168.42.21'),
+            dns.rrset.from_text('some.ifportup.example.org.', 0, dns.rdataclass.IN, 'A',
+                                '{prefix}.102'.format(prefix=self._PREFIX))]
+
+        # we first expect any of the IPs as no check has been performed yet
+        res = self.sendUDPQuery(query)
+        self.assertRcodeEqual(res, dns.rcode.NOERROR)
+        self.assertAnyRRsetInAnswer(res, expected)
+
+        # the first IP should not be up so only second shoud be returned
+        expected = [expected[1]]
+        res = self.sendUDPQuery(query)
+        self.assertRcodeEqual(res, dns.rcode.NOERROR)
+        self.assertAnyRRsetInAnswer(res, expected)
+
+    def testIfportupWithAllDown(self):
+        """
+        Basic ifportup() test with all ports DOWN
+        """
+        query = dns.message.make_query('none.ifportup.example.org', 'A')
+        expected = [
+            dns.rrset.from_text('none.ifportup.example.org.', 0, dns.rdataclass.IN, 'A',
+                                '192.168.42.21'),
+            dns.rrset.from_text('none.ifportup.example.org.', 0, dns.rdataclass.IN, 'A',
+                                '192.168.21.42'.format(prefix=self._PREFIX))]
+
+        # we first expect any of the IPs as no check has been performed yet
+        res = self.sendUDPQuery(query)
+        self.assertRcodeEqual(res, dns.rcode.NOERROR)
+        self.assertAnyRRsetInAnswer(res, expected)
+
+        # no port should be up so we expect any
+        res = self.sendUDPQuery(query)
+        self.assertRcodeEqual(res, dns.rcode.NOERROR)
+        self.assertAnyRRsetInAnswer(res, expected)
+
+    def testIfurlup(self):
+        """
+        Basic ifurlup() test
+        """
+        reachable = [
+            '{prefix}.103'.format(prefix=self._PREFIX)
+        ]
+        unreachable = ['192.168.42.101', '192.168.42.102']
+        ips = reachable + unreachable
+        all_rrs = []
+        reachable_rrs = []
+        for ip in ips:
+            rr = dns.rrset.from_text('usa.example.org.', 0, dns.rdataclass.IN, 'A', ip)
+            all_rrs.append(rr)
+            if ip in reachable:
+                reachable_rrs.append(rr)
+
+        query = dns.message.make_query('usa.example.org', 'A')
+        res = self.sendUDPQuery(query)
+        self.assertRcodeEqual(res, dns.rcode.NOERROR)
+        self.assertAnyRRsetInAnswer(res, all_rrs)
+
+        time.sleep(1)
+        res = self.sendUDPQuery(query)
+        self.assertRcodeEqual(res, dns.rcode.NOERROR)
+        self.assertAnyRRsetInAnswer(res, reachable_rrs)
+
+    def testIfurlupSimplified(self):
+        """
+        Basic ifurlup() test with the simplified list of ips
+        Also ensures the correct path is queried
+        """
+        reachable = [
+            '{prefix}.101'.format(prefix=self._PREFIX)
+        ]
+        unreachable = ['192.168.42.101']
+        ips = reachable + unreachable
+        all_rrs = []
+        reachable_rrs = []
+        for ip in ips:
+            rr = dns.rrset.from_text('mix.ifurlup.example.org.', 0, dns.rdataclass.IN, 'A', ip)
+            all_rrs.append(rr)
+            if ip in reachable:
+                reachable_rrs.append(rr)
+
+        query = dns.message.make_query('mix.ifurlup.example.org', 'A')
+        res = self.sendUDPQuery(query)
+        self.assertRcodeEqual(res, dns.rcode.NOERROR)
+        self.assertAnyRRsetInAnswer(res, all_rrs)
+
+        time.sleep(1)
+        res = self.sendUDPQuery(query)
+        self.assertRcodeEqual(res, dns.rcode.NOERROR)
+        self.assertAnyRRsetInAnswer(res, reachable_rrs)
+
+    def testLatlon(self):
+        """
+        Basic latlon() test
+        """
+        expected = dns.rrset.from_text('latlon.geo.example.org.', 0,
+                                       dns.rdataclass.IN, 'TXT',
+                                       '"0.000000 0.000000"')
+        query = dns.message.make_query('latlon.geo.example.org', 'TXT')
+
+        res = self.sendUDPQuery(query)
+        self.assertRcodeEqual(res, dns.rcode.NOERROR)
+        self.assertRRsetInAnswer(res, expected)
+
+    def testLatlonloc(self):
+        """
+        Basic latlonloc() test
+        """
+        expected = dns.rrset.from_text('latlonloc.geo.example.org.', 0,
+                                       dns.rdataclass.IN, 'TXT',
+                                       '"0 0 -0 S 0 0 -0 W 0.00m 1.00m 10000.00m 10.00m"')
+        query = dns.message.make_query('latlonloc.geo.example.org', 'TXT')
+
+        res = self.sendUDPQuery(query)
+        self.assertRcodeEqual(res, dns.rcode.NOERROR)
+        self.assertRRsetInAnswer(res, expected)
+
+    def testNetmask(self):
+        """
+        Basic netmask() test
+        """
+        queries = [
+            {
+                'expected': dns.rrset.from_text('true.netmask.example.org.', 0,
+                                       dns.rdataclass.IN, 'TXT',
+                                       '"true"'),
+                'query': dns.message.make_query('true.netmask.example.org', 'TXT')
+            },
+            {
+                'expected': dns.rrset.from_text('false.netmask.example.org.', 0,
+                                       dns.rdataclass.IN, 'TXT',
+                                       '"false"'),
+                'query': dns.message.make_query('false.netmask.example.org', 'TXT')
+            }
+        ]
+        for query in queries :
+            res = self.sendUDPQuery(query['query'])
+            self.assertRcodeEqual(res, dns.rcode.NOERROR)
+            self.assertRRsetInAnswer(res, query['expected'])
+
+    def testView(self):
+        """
+        Basic view() test
+        """
+        queries = [
+            {
+                'expected': dns.rrset.from_text('view.example.org.', 0,
+                                       dns.rdataclass.IN, 'A',
+                                       '{prefix}.54'.format(prefix=self._PREFIX)),
+                'query': dns.message.make_query('view.example.org', 'A')
+            },
+            {
+                'expected': dns.rrset.from_text('txt.view.example.org.', 0,
+                                       dns.rdataclass.IN, 'TXT',
+                                       '"else"'),
+                'query': dns.message.make_query('txt.view.example.org', 'TXT')
+            }
+        ]
+        for query in queries :
+            res = self.sendUDPQuery(query['query'])
+            self.assertRcodeEqual(res, dns.rcode.NOERROR)
+            self.assertRRsetInAnswer(res, query['expected'])
+
+    def testViewNoMatch(self):
+        """
+        view() test where no netmask match
+        """
+        expected = dns.rrset.from_text('none.view.example.org.', 0,
+                                       dns.rdataclass.IN, 'A')
+        query = dns.message.make_query('none.view.example.org', 'A')
+
+        res = self.sendUDPQuery(query)
+        self.assertRcodeEqual(res, dns.rcode.SERVFAIL)
+        self.assertAnswerEmpty(res)
+
+    def testWHashed(self):
+        """
+        Basic pickwhashed() test with a set of A records
+        As the `bestwho` is hashed, we should always get the same answer
+        """
+        expected = [dns.rrset.from_text('whashed.example.org.', 0, dns.rdataclass.IN, 'A', '1.2.3.4'),
+                    dns.rrset.from_text('whashed.example.org.', 0, dns.rdataclass.IN, 'A', '4.3.2.1')]
+        query = dns.message.make_query('whashed.example.org', 'A')
+
+        first = self.sendUDPQuery(query)
+        self.assertRcodeEqual(first, dns.rcode.NOERROR)
+        self.assertAnyRRsetInAnswer(first, expected)
+        for _ in range(5):
+            res = self.sendUDPQuery(query)
+            self.assertRcodeEqual(res, dns.rcode.NOERROR)
+            self.assertRRsetInAnswer(res, first.answer[0])
+
+if __name__ == '__main__':
+    unittest.main()
+    exit(0)

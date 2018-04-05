@@ -384,12 +384,17 @@ bool PacketHandler::getBestWildcard(DNSPacket *p, SOAData& sd, const DNSName &ta
         if(rec->d_type == QType::CNAME || rec->d_type == p->qtype.getCode()) {
           //    noCache=true;
           DLOG(L<<"Executing Lua: '"<<rec->getCode()<<"'"<<endl);
-          auto recvec=luaSynth(rec->getCode(), target, sd.qname, sd.domain_id, *p, rec->d_type);
-          for(const auto& r : recvec) {
-            rr.dr.d_type = rec->d_type; // might be CNAME
-            rr.dr.d_content = r;
-            rr.scopeMask = p->getRealRemote().getBits(); // this makes sure answer is a specific as your question
-            ret->push_back(rr);
+          try {
+            auto recvec=luaSynth(rec->getCode(), target, sd.qname, sd.domain_id, *p, rec->d_type);
+            for(const auto& r : recvec) {
+              rr.dr.d_type = rec->d_type; // might be CNAME
+              rr.dr.d_content = r;
+              rr.scopeMask = p->getRealRemote().getBits(); // this makes sure answer is a specific as your question
+              ret->push_back(rr);
+            }
+          }
+          catch(std::exception &e) {
+            ;
           }
         }
       }
@@ -1336,20 +1341,26 @@ DNSPacket *PacketHandler::doQuestion(DNSPacket *p)
         auto rec=getRR<LUARecordContent>(rr.dr);
         if(rec->d_type == QType::CNAME || rec->d_type == p->qtype.getCode()) {
           noCache=true;
-          auto recvec=luaSynth(rec->getCode(), target, sd.qname, sd.domain_id, *p, rec->d_type);
-          if(!recvec.empty()) {
-
-            for(const auto& r : recvec) {
-              rr.dr.d_type = rec->d_type; // might be CNAME
-              rr.dr.d_content = r;
-              rr.scopeMask = p->getRealRemote().getBits(); // this makes sure answer is a specific as your question
-
-              rrset.push_back(rr);
+          try {
+            auto recvec=luaSynth(rec->getCode(), target, sd.qname, sd.domain_id, *p, rec->d_type);
+            if(!recvec.empty()) {
+              for(const auto& r : recvec) {
+                rr.dr.d_type = rec->d_type; // might be CNAME
+                rr.dr.d_content = r;
+                rr.scopeMask = p->getRealRemote().getBits(); // this makes sure answer is a specific as your question
+                rrset.push_back(rr);
+              }
+              if(rec->d_type == QType::CNAME && p->qtype.getCode() != QType::CNAME)
+                weRedirected = 1;
+              else
+                weDone = 1;
             }
-            if(rec->d_type == QType::CNAME && p->qtype.getCode() != QType::CNAME)
-              weRedirected = 1;
-            else
-              weDone = 1;
+          }
+          catch(std::exception &e) {
+            r=p->replyPacket();
+            r->setRcode(RCode::ServFail);
+
+            return r;
           }
         }
       }
