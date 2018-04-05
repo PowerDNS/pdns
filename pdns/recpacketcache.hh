@@ -63,8 +63,8 @@ public:
   
   void prune();
   uint64_t d_hits, d_misses;
-  uint64_t size();
-  uint64_t bytes();
+  uint64_t size() const;
+  uint64_t bytes() const;
 
 private:
   struct HashTag {};

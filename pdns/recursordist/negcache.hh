@@ -69,11 +69,11 @@ class NegCache : public boost::noncopyable {
     uint64_t dumpToFile(FILE* fd);
     uint64_t wipe(const DNSName& name, bool subtree = false);
 
-    uint64_t size() {
+    uint64_t size() const {
       return d_negcache.size();
     };
 
-    size_t bytes() {
+    size_t bytes() const {
       return d_bytes;
     }
 

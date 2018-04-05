@@ -191,12 +191,12 @@ void RecursorPacketCache::insertResponsePacket(unsigned int tag, uint32_t qhash,
   }
 }
 
-uint64_t RecursorPacketCache::size()
+uint64_t RecursorPacketCache::size() const
 {
   return d_packetCache.size();
 }
 
-uint64_t RecursorPacketCache::bytes()
+uint64_t RecursorPacketCache::bytes() const
 {
   return d_bytes;
 }
