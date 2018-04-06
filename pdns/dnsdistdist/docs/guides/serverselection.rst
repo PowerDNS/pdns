@@ -30,7 +30,7 @@ For now this is the only policy using the QPS limit.
 
 A further policy, ``wrandom`` assigns queries randomly, but based on the weight parameter passed to :func:`newServer`.
 
-For example, if two servers are available, the first one with a weigth of 2 and the second one with a weight of 1 (the default), the
+For example, if two servers are available, the first one with a weight of 2 and the second one with a weight of 1 (the default), the
 first one should get two thirds of the incoming queries and the second one the remaining third.
 
 ``whashed``

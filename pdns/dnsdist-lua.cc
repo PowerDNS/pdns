@@ -228,7 +228,21 @@ void setupLuaConfig(bool client)
 			}
 
 			if(vars.count("weight")) {
-			  ret->weight=std::stoi(boost::get<string>(vars["weight"]));
+			  try {
+			    int weightVal=std::stoi(boost::get<string>(vars["weight"]));
+
+			    if(weightVal < 1) {
+			      errlog("Error creating new server: downstream weight value must be greater than 0.");
+			      return ret;
+			    }
+
+			    ret->weight=weightVal;
+			  }
+			  catch(std::exception& e) {
+			    // std::stoi will throw an exception if the string isn't in a value int range
+			    errlog("Error creating new server: downstream weight value must be between %s and %s", 1, std::numeric_limits<int>::max());
+			    return ret;
+			  }
 			}
 
 			if(vars.count("retries")) {
