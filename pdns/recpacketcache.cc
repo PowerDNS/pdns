@@ -143,10 +143,11 @@ bool RecursorPacketCache::getResponsePacket(unsigned int tag, const std::string&
 
 void RecursorPacketCache::insertResponsePacket(unsigned int tag, uint32_t qhash, const DNSName& qname, uint16_t qtype, uint16_t qclass, const std::string& responsePacket, time_t now, uint32_t ttl)
 {
-  insertResponsePacket(tag, qhash, qname, qtype, qclass, responsePacket, now, ttl, boost::none);
+  boost::optional<RecProtoBufMessage> pb(boost::none);
+  insertResponsePacket(tag, qhash, qname, qtype, qclass, responsePacket, now, ttl, pb);
 }
 
-void RecursorPacketCache::insertResponsePacket(unsigned int tag, uint32_t qhash, const DNSName& qname, uint16_t qtype, uint16_t qclass, const std::string& responsePacket, time_t now, uint32_t ttl, boost::optional<RecProtoBufMessage> protobufMessage)
+void RecursorPacketCache::insertResponsePacket(unsigned int tag, uint32_t qhash, const DNSName& qname, uint16_t qtype, uint16_t qclass, const std::string& responsePacket, time_t now, uint32_t ttl, const boost::optional<RecProtoBufMessage>& protobufMessage)
 {
   auto& idx = d_packetCache.get<HashTag>();
   auto range = idx.equal_range(tie(tag,qhash));
