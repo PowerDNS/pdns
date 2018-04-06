@@ -813,7 +813,7 @@ static void startDoResolve(void *p)
     auto luaconfsLocal = g_luaconfs.getLocal();
     // Used to tell syncres later on if we should apply NSDNAME and NSIP RPZ triggers for this query
     bool wantsRPZ(true);
-    boost::optional<RecProtoBufMessage> pbMessage;
+    boost::optional<RecProtoBufMessage> pbMessage(boost::none);
 #ifdef HAVE_PROTOBUF
     if (luaconfsLocal->protobufServer) {
       Netmask requestorNM(dc->d_source, dc->d_source.sin4.sin_family == AF_INET ? luaconfsLocal->protobufMaskV4 : luaconfsLocal->protobufMaskV6);
@@ -1794,7 +1794,7 @@ static string* doProcessUDPQuestion(const std::string& question, const ComboAddr
     }
 
     bool cacheHit = false;
-    boost::optional<RecProtoBufMessage> pbMessage = boost::none;
+    boost::optional<RecProtoBufMessage> pbMessage(boost::none);
 #ifdef HAVE_PROTOBUF
     if(luaconfsLocal->protobufServer) {
       pbMessage = RecProtoBufMessage(DNSProtoBufMessage::DNSProtoBufMessageType::Response);
