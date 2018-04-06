@@ -1,4 +1,4 @@
-AM_CPPFLAGS += $(SYSTEMD_CFLAGS) $(LUA_CFLAGS) $(LIBEDIT_CFLAGS) $(LIBSODIUM_CFLAGS) $(FSTRM_CFLAGS) $(YAHTTP_CFLAGS) $(SANITIZER_FLAGS) $(NET_SNMP_CFLAGS) $(LIBCAP_CFLAGS) -DSYSCONFDIR=\"${sysconfdir}\"
+AM_CPPFLAGS += $(SYSTEMD_CFLAGS) $(LUA_CFLAGS) $(LIBEDIT_CFLAGS) $(LIBSODIUM_CFLAGS) $(FSTRM_CFLAGS) $(YAHTTP_CFLAGS) $(SANITIZER_FLAGS) $(NET_SNMP_CFLAGS) $(LIBCAP_CFLAGS) -DSYSCONFDIR=\"${sysconfdir}\" -Iext/h2o-2.2.4/include/
 
 ACLOCAL_AMFLAGS = -I m4
 
@@ -88,6 +88,7 @@ dnsdist_SOURCES = \
 	bpf-filter.cc bpf-filter.hh \
 	cachecleaner.hh \
 	capabilities.cc capabilities.hh \
+	doh.cc doh.hh \
 	dns.cc dns.hh \
 	dnscrypt.cc dnscrypt.hh \
 	dnsdist.cc dnsdist.hh \
@@ -165,6 +166,7 @@ dnsdist_LDADD = \
 	$(SYSTEMD_LIBS) \
 	$(NET_SNMP_LIBS) \
 	$(LIBCAP_LIBS)
+	ext/h2o-2.2.4/libh2o-evloop.a -lz
 
 if HAVE_RE2
 dnsdist_LDADD += $(RE2_LIBS)

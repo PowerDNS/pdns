@@ -30,6 +30,7 @@
 #include <pwd.h>
 #include <sys/resource.h>
 #include <unistd.h>
+#include "doh.hh"
 
 #if defined (__OpenBSD__) || defined(__NetBSD__)
 #include <readline/readline.h>
@@ -2774,6 +2775,9 @@ try
     }
   }
 
+  thread dohthread(dohThread);
+  dohthread.detach();
+  
   thread carbonthread(carbonDumpThread);
   carbonthread.detach();
 
