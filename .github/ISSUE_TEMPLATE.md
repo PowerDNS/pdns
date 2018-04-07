@@ -1,4 +1,5 @@
-<!-- Before filing an issue, please search the existing issues (both open and closed) to see if your report might be duplicate -->
+<!-- Hi! Thanks for filing an issue. It will be read with care by human beings. Can we ask you to please fill out this template and not simply demand new features or send in complaints? Thanks! -->
+<!-- Also please search the existing issues (both open and closed) to see if your report might be duplicate -->
 <!-- Please don't file an issue when you have a support question, send support questions to the mailinglist or ask them on IRC (https://www.powerdns.com/opensource.html) -->
 
 <!-- Tell us what is issue is about -->
