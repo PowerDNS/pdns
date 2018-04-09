@@ -1,4 +1,5 @@
 AC_DEFUN([PDNS_WITH_LUA],[
+  AC_PROG_GREP()dnl Ensure we have grep
   AC_MSG_CHECKING([which Lua implementation to use])
   AC_ARG_WITH([lua], [
     AS_HELP_STRING([--with-lua], [select Lua implementation @<:@default=auto@:>@])
@@ -14,17 +15,21 @@ AC_DEFUN([PDNS_WITH_LUA],[
   ])
 
   LUAPC=""
+  luajit_min_version='2.0.3'
+  lua_min_version='5.1'
 
   AS_IF([test "x$with_lua" != "xno"], [
     AS_IF([test "x$with_lua" != "xauto"], [
-      PKG_CHECK_MODULES([LUA], $with_lua >= 5.1, [
+      with_lua_version=${lua_min_version}
+      AS_IF([echo "x$with_lua" | ${GREP} 'jit' >/dev/null 2>&1], [with_lua_version=${luajit_min_version}])
+      PKG_CHECK_MODULES([LUA], $with_lua >= $with_lua_version, [
         AC_DEFINE([HAVE_LUA], [1], [Define to 1 if you have Lua])
         LUAPC=$with_lua
       ], [
-        AC_MSG_ERROR([Selected Lua not found])
+        AC_MSG_ERROR([Selected Lua ($with_lua) not found])
       ])
     ], [
-      PKG_CHECK_MODULES([LUA], [luajit], [
+      PKG_CHECK_MODULES([LUA], [luajit >= ${luajit_min_version}], [
         LUAPC=luajit
         AC_DEFINE([HAVE_LUA], [1], [Define to 1 if you have Lua])
       ], [ : ])
@@ -32,7 +37,7 @@ AC_DEFUN([PDNS_WITH_LUA],[
         found_lua=n
         m4_foreach_w([luapc], [lua5.3 lua-5.3 lua53 lua5.2 lua-5.2 lua52 lua5.1 lua-5.1 lua51 lua], [
           AS_IF([test "$found_lua" != "y"], [
-            PKG_CHECK_MODULES([LUA], [luapc >= 5.1], [
+            PKG_CHECK_MODULES([LUA], [luapc >= ${lua_min_version}], [
               AC_DEFINE([HAVE_LUA], [1], [Define to 1 if you have lua])
               found_lua=y
               LUAPC=luapc
