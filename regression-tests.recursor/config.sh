@@ -224,12 +224,12 @@ if not newDN then
 end
 function prequery ( dnspacket )
     qname, qtype = dnspacket:getQuestion()
-    if qtype == pdns.A and qname == newDN("www.marvin.example.net.")
+    if qtype == pdns.A and qname == "www.marvin.example.net."
     then
         dnspacket:setRcode(pdns.NXDOMAIN)
         ret = {}
-        ret[1] = {qname=qname, qtype=pdns.CNAME, content="android.marvin.example.net", place=1}
-        ret[2] = {qname=newDN("marvin.example.net"), qtype=pdns.SOA, content="$SOA", place=2}
+        ret[1] = newDR(newDN(qname), "CNAME", 3600, "android.marvin.example.net", 1)
+        ret[2] = newDR(newDN("marvin.example.net"), "SOA", 3600, "$SOA", 2)
         dnspacket:addRecords(ret)
         return true
     end
@@ -254,12 +254,12 @@ if not newDN then
 end
 function prequery ( dnspacket )
     qname, qtype = dnspacket:getQuestion()
-    if qtype == pdns.A and qname == newDN("www.trillian.example.net.")
+    if qtype == pdns.A and qname == "www.trillian.example.net."
     then
         dnspacket:setRcode(pdns.NXDOMAIN)
         ret = {}
-        ret[1] = {qname=qname, qtype=pdns.CNAME, content="www2.arthur.example.net", place=1}
-        ret[2] = {qname=newDN(""), qtype=pdns.SOA, content="$SOA", place=2}
+        ret[1] = newDR(newDN(qname), "CNAME", 3600, "www2.arthur.example.net", 1)
+        ret[2] = newDR(newDN(""), "SOA", 3600, "$SOA", 2)
         dnspacket:addRecords(ret)
         return true
     end
@@ -294,7 +294,7 @@ function prequery ( dnspacket )
     then
         dnspacket:setRcode(pdns.NXDOMAIN)
         ret = {}
-        ret[1] = {qname=newDN("ghost.example.net"), qtype=pdns.SOA, content="$SOA", place=2}
+        ret[1] = newDR(newDN("ghost.example.net"), "SOA", 3600, "$SOA", 2)
         dnspacket:addRecords(ret)
         return true
     end
@@ -327,11 +327,11 @@ function prequery ( dnspacket )
         dnspacket:setRcode(pdns.NOERROR)
         ret = {}
         -- www.1.ghost.example.net. 20  IN  A   192.0.2.7
-        ret[1] = {qname=qname, qtype=pdns.A, content="192.0.2.7", ttl=20, place=1}
+        ret[1] = newDR(newDN(qname), "A", 20, "192.0.2.7", 1)
         -- 1.ghost.example.net. 20  IN  NS  ns.1.ghost.example.net.
-        ret[2] = {qname=newDN("1.ghost.example.net"), qtype=pdns.NS, content="ns"..i..".1.ghost.example.net", ttl=20, place=2}
-        -- ns.1.ghost.example.net.  20  IN  A   10.0.3.18
-        ret[3] = {qname=newDN("ns")..i..".1.ghost.example.net", qtype=pdns.A, content="10.0.3.18", ttl=20, place=3}
+        ret[2] = newDR(newDN("1.ghost.example.net"), "NS", 20, "ns"..i..".1.ghost.example.net", 2)
+        -- ns.1.ghost.example.net.  20  IN  A   $PREFIX.18
+        ret[3] = newDR(newDN("ns"..i..".1.ghost.example.net"), "A", 20, "$PREFIX.18", 3)
         dnspacket:addRecords(ret)
         return true
     end
@@ -359,9 +359,9 @@ function prequery ( dnspacket )
     then
         dnspacket:setRcode(pdns.NOERROR)
         ret = {}
-        ret[1] = {qname=qname, qtype=pdns.A, content="192.0.2.8", ttl=20, place=1}
-        ret[2] = {qname=newDN("2.ghost.example.net"), qtype=pdns.NS, content="ns.2.ghost.example.net", ttl=20, place=2}
-        ret[3] = {qname=newDN("ns.2.ghost.example.net"), qtype=pdns.A, content="10.0.3.19", ttl=20, place=3}
+        ret[1] = newDR(newDN(qname), "A", 20, "192.0.2.8", 1)
+        ret[2] = newDR(newDN("2.ghost.example.net"), "NS", 20, "ns.2.ghost.example.net", 2)
+        ret[3] = newDR(newDN("ns.2.ghost.example.net"), "A", 20, "$PREFIX.19", 3)
         dnspacket:addRecords(ret)
         return true
     end

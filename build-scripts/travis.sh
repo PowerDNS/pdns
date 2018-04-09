@@ -322,12 +322,15 @@ install_auth() {
 
 install_recursor() {
   # recursor test requirements / setup
+  # lua-posix is required for the ghost tests
+  # (used by the prequery script in the auth)
   run "sudo apt-get -qq --no-install-recommends install \
     authbind \
     daemontools \
     jq \
     libfaketime \
     libsnmp-dev \
+    lua-posix \
     moreutils \
     snmpd"
   run "cd .."
