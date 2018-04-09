@@ -3195,10 +3195,10 @@ static int serviceMain(int argc, char*argv[])
     g_quiet=false;
     g_dnssecLOG=true;
   }
-  char myHostname[MAXHOSTNAMELEN];
-  if (gethostname(myHostname, sizeof(myHostname)-1) == 0){
-  } else {
-    g_log<<Logger::Warning<<"Unable to get the hostname, NSID and id.server values will be empty: "<<strerror(errno)<<endl;
+  string myHostname = getHostname();
+  if (myHostname == "UNKNOWN"){
+    g_log<<Logger::Warning<<"Unable to get the hostname, NSID and id.server values will be empty"<<endl;
+    myHostname = "";
   }
 
   SyncRes::s_minimumTTL = ::arg().asNum("minimum-ttl-override");
