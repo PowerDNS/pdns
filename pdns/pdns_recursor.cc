@@ -813,14 +813,15 @@ static void startDoResolve(void *p)
     auto luaconfsLocal = g_luaconfs.getLocal();
     // Used to tell syncres later on if we should apply NSDNAME and NSIP RPZ triggers for this query
     bool wantsRPZ(true);
-    RecProtoBufMessage pbMessage(RecProtoBufMessage::Response);
+    boost::optional<RecProtoBufMessage> pbMessage(boost::none);
 #ifdef HAVE_PROTOBUF
     if (luaconfsLocal->protobufServer) {
       Netmask requestorNM(dc->d_source, dc->d_source.sin4.sin_family == AF_INET ? luaconfsLocal->protobufMaskV4 : luaconfsLocal->protobufMaskV6);
       const ComboAddress& requestor = requestorNM.getMaskedNetwork();
-      pbMessage.update(dc->d_uuid, &requestor, &dc->d_destination, dc->d_tcp, dc->d_mdp.d_header.id);
-      pbMessage.setEDNSSubnet(dc->d_ednssubnet.source, dc->d_ednssubnet.source.isIpv4() ? luaconfsLocal->protobufMaskV4 : luaconfsLocal->protobufMaskV6);
-      pbMessage.setQuestion(dc->d_mdp.d_qname, dc->d_mdp.d_qtype, dc->d_mdp.d_qclass);
+      pbMessage = RecProtoBufMessage(RecProtoBufMessage::Response);
+      pbMessage->update(dc->d_uuid, &requestor, &dc->d_destination, dc->d_tcp, dc->d_mdp.d_header.id);
+      pbMessage->setEDNSSubnet(dc->d_ednssubnet.source, dc->d_ednssubnet.source.isIpv4() ? luaconfsLocal->protobufMaskV4 : luaconfsLocal->protobufMaskV6);
+      pbMessage->setQuestion(dc->d_mdp.d_qname, dc->d_mdp.d_qtype, dc->d_mdp.d_qclass);
     }
 #endif /* HAVE_PROTOBUF */
 
@@ -1191,7 +1192,7 @@ static void startDoResolve(void *p)
 
 #ifdef HAVE_PROTOBUF
         if(luaconfsLocal->protobufServer && (i->d_type == QType::A || i->d_type == QType::AAAA || i->d_type == QType::CNAME)) {
-          pbMessage.addRR(*i);
+          pbMessage->addRR(*i);
         }
 #endif
       }
@@ -1216,17 +1217,17 @@ static void startDoResolve(void *p)
     updateResponseStats(res, dc->d_source, packet.size(), &dc->d_mdp.d_qname, dc->d_mdp.d_qtype);
 #ifdef HAVE_PROTOBUF
     if (luaconfsLocal->protobufServer && (!luaconfsLocal->protobufTaggedOnly || (appliedPolicy.d_name && !appliedPolicy.d_name->empty()) || !dc->d_policyTags.empty())) {
-      pbMessage.setBytes(packet.size());
-      pbMessage.setResponseCode(pw.getHeader()->rcode);
+      pbMessage->setBytes(packet.size());
+      pbMessage->setResponseCode(pw.getHeader()->rcode);
       if (appliedPolicy.d_name) {
-        pbMessage.setAppliedPolicy(*appliedPolicy.d_name);
-        pbMessage.setAppliedPolicyType(appliedPolicy.d_type);
+        pbMessage->setAppliedPolicy(*appliedPolicy.d_name);
+        pbMessage->setAppliedPolicyType(appliedPolicy.d_type);
       }
-      pbMessage.setPolicyTags(dc->d_policyTags);
-      pbMessage.setQueryTime(dc->d_now.tv_sec, dc->d_now.tv_usec);
-      pbMessage.setRequestorId(dq.requestorId);
-      pbMessage.setDeviceId(dq.deviceId);
-      protobufLogResponse(luaconfsLocal->protobufServer, pbMessage);
+      pbMessage->setPolicyTags(dc->d_policyTags);
+      pbMessage->setQueryTime(dc->d_now.tv_sec, dc->d_now.tv_usec);
+      pbMessage->setRequestorId(dq.requestorId);
+      pbMessage->setDeviceId(dq.deviceId);
+      protobufLogResponse(luaconfsLocal->protobufServer, *pbMessage);
     }
 #endif
     if(!dc->d_tcp) {
@@ -1248,7 +1249,7 @@ static void startDoResolve(void *p)
                                             g_now.tv_sec,
                                             pw.getHeader()->rcode == RCode::ServFail ? SyncRes::s_packetcacheservfailttl :
                                             min(minTTL,SyncRes::s_packetcachettl),
-                                            &pbMessage);
+                                            pbMessage);
       }
       //      else cerr<<"Not putting in packet cache: "<<sr.wasVariable()<<endl;
     }
@@ -1793,9 +1794,10 @@ static string* doProcessUDPQuestion(const std::string& question, const ComboAddr
     }
 
     bool cacheHit = false;
-    RecProtoBufMessage pbMessage(DNSProtoBufMessage::DNSProtoBufMessageType::Response);
+    boost::optional<RecProtoBufMessage> pbMessage(boost::none);
 #ifdef HAVE_PROTOBUF
     if(luaconfsLocal->protobufServer) {
+      pbMessage = RecProtoBufMessage(DNSProtoBufMessage::DNSProtoBufMessageType::Response);
       if (!luaconfsLocal->protobufTaggedOnly || !policyTags.empty()) {
         protobufLogQuery(luaconfsLocal->protobufServer, luaconfsLocal->protobufMaskV4, luaconfsLocal->protobufMaskV6, uniqueId, source, destination, ednssubnet.source, false, dh->id, question.size(), qname, qtype, qclass, policyTags, requestorId, deviceId);
       }
@@ -1806,23 +1808,23 @@ static string* doProcessUDPQuestion(const std::string& question, const ComboAddr
        but it means that the hash would not be computed. If some script decides at a later time to mark back the answer
        as cacheable we would cache it with a wrong tag, so better safe than sorry. */
     if (qnameParsed) {
-      cacheHit = (!SyncRes::s_nopacketcache && t_packetCache->getResponsePacket(ctag, question, qname, qtype, qclass, g_now.tv_sec, &response, &age, &qhash, &pbMessage));
+      cacheHit = (!SyncRes::s_nopacketcache && t_packetCache->getResponsePacket(ctag, question, qname, qtype, qclass, g_now.tv_sec, &response, &age, &qhash, pbMessage ? &(*pbMessage) : nullptr));
     }
     else {
-      cacheHit = (!SyncRes::s_nopacketcache && t_packetCache->getResponsePacket(ctag, question, g_now.tv_sec, &response, &age, &qhash, &pbMessage));
+      cacheHit = (!SyncRes::s_nopacketcache && t_packetCache->getResponsePacket(ctag, question, g_now.tv_sec, &response, &age, &qhash, pbMessage ? &(*pbMessage) : nullptr));
     }
 
     if (cacheHit) {
 #ifdef HAVE_PROTOBUF
-      if(luaconfsLocal->protobufServer && (!luaconfsLocal->protobufTaggedOnly || !pbMessage.getAppliedPolicy().empty() || !pbMessage.getPolicyTags().empty())) {
+      if(luaconfsLocal->protobufServer && (!luaconfsLocal->protobufTaggedOnly || !pbMessage->getAppliedPolicy().empty() || !pbMessage->getPolicyTags().empty())) {
         Netmask requestorNM(source, source.sin4.sin_family == AF_INET ? luaconfsLocal->protobufMaskV4 : luaconfsLocal->protobufMaskV6);
         const ComboAddress& requestor = requestorNM.getMaskedNetwork();
-        pbMessage.update(uniqueId, &requestor, &destination, false, dh->id);
-        pbMessage.setEDNSSubnet(ednssubnet.source, ednssubnet.source.isIpv4() ? luaconfsLocal->protobufMaskV4 : luaconfsLocal->protobufMaskV6);
-        pbMessage.setQueryTime(g_now.tv_sec, g_now.tv_usec);
-        pbMessage.setRequestorId(requestorId);
-        pbMessage.setDeviceId(deviceId);
-        protobufLogResponse(luaconfsLocal->protobufServer, pbMessage);
+        pbMessage->update(uniqueId, &requestor, &destination, false, dh->id);
+        pbMessage->setEDNSSubnet(ednssubnet.source, ednssubnet.source.isIpv4() ? luaconfsLocal->protobufMaskV4 : luaconfsLocal->protobufMaskV6);
+        pbMessage->setQueryTime(g_now.tv_sec, g_now.tv_usec);
+        pbMessage->setRequestorId(requestorId);
+        pbMessage->setDeviceId(deviceId);
+        protobufLogResponse(luaconfsLocal->protobufServer, *pbMessage);
       }
 #endif /* HAVE_PROTOBUF */
       if(!g_quiet)
