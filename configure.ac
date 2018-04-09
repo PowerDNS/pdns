@@ -43,10 +43,7 @@ m4_pattern_forbid([^_?PKG_[A-Z_]+$], [*** pkg.m4 missing, please install pkg-con
 
 PDNS_CHECK_OS
 
-PDNS_WITH_LUAJIT
-AS_IF([test "x$with_luajit" = "xno"], [
-  PDNS_WITH_LUA
-])
+PDNS_WITH_LUA
 PDNS_CHECK_LUA_HPP
 
 AX_CXX_COMPILE_STDCXX_11
@@ -207,7 +204,7 @@ for a in $modules $dynmodules; do
       AS_IF([test "x$with_lua" = "xno"],
         AC_MSG_ERROR([Lua backend needs lua, run ./configure --with-lua])
       )
-      AS_IF([test "x$LUAPC" = "x" -a "x$LUAJITPC" = "x"],
+      AS_IF([test "x$LUAPC" = "x"],
         AC_MSG_ERROR([Lua backend needs lua but we cannot find it])
       )
       ;;

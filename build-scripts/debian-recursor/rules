@@ -62,7 +62,7 @@ override_dh_auto_configure:
 		--infodir=\$${prefix}/share/info \
 		--libdir='$${prefix}/lib/$(DEB_HOST_MULTIARCH)' \
 		--libexecdir='$${prefix}/lib' \
-		--with-luajit \
+		--with-lua=luajit \
 		--with-protobuf=yes \
 		$(ENABLE_NETSNMP) \
 		$(ENABLE_SYSTEMD) \

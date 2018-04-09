@@ -696,7 +696,7 @@ export CPPFLAGS="-DLDAP_DEPRECATED"
 	--disable-dependency-tracking \
 	--disable-silent-rules \
 	--with-modules='' \
-	--with-luajit \
+	--with-lua=luajit \
 	--with-dynmodules='%{backends} random' \
 	--enable-tools \
 	--enable-libsodium \
