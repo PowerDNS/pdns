@@ -430,7 +430,7 @@ std::shared_ptr<SyncRes::domainmap_t> parseAuthAndForwards()
     
     ifstream ifs(fname.c_str());
     if(!ifs) {
-      g_log<<Logger::Warning<<"Could not open /etc/hosts for reading"<<endl;
+      g_log<<Logger::Warning<<"Could not open "<<fname<<" for reading"<<endl;
     }
     else {
       string searchSuffix = ::arg()["export-etc-hosts-search-suffix"];
