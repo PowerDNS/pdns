@@ -1064,7 +1064,7 @@ always receive AXFR NOTIFYs.
 
 Do out of zone additional processing. This means that if a malicious
 user adds a '.com' zone to your server, it is not used for other domains
-and will not contaminate answers. Do not enable this setting if you run
+and will not contaminate answers. Do not disable this setting if you run
 a public DNS service with untrusted users.
 
 The docs had previously indicated that the default was "no", but the
