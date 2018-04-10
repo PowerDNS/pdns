@@ -60,6 +60,8 @@ void gPgSQLBackend::reconnect()
 
   if (d_db) {
     d_db->reconnect();
+
+    allocateStatements();
   }
 }
 

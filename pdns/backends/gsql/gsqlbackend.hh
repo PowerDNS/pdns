@@ -52,6 +52,13 @@ public:
     d_db=db;
     if (d_db) {
       d_db->setLog(::arg().mustDo("query-logging"));
+      allocateStatements();
+    }
+  }
+
+  void allocateStatements()
+  {
+    if (d_db) {
       d_NoIdQuery_stmt = d_db->prepare(d_NoIdQuery, 2);
       d_IdQuery_stmt = d_db->prepare(d_IdQuery, 3);
       d_ANYNoIdQuery_stmt = d_db->prepare(d_ANYNoIdQuery, 1);
