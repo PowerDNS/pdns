@@ -401,7 +401,7 @@ void Bind2Backend::getUnfreshSlaveInfos(vector<DomainInfo> *unfreshDomains)
   }
 }
 
-bool Bind2Backend::getDomainInfo(const DNSName& domain, DomainInfo &di)
+bool Bind2Backend::getDomainInfo(const DNSName& domain, DomainInfo &di, bool getSerial)
 {
   BB2DomainInfo bbd;
   if(!safeGetBBDomainInfo(domain, &bbd))
@@ -414,14 +414,16 @@ bool Bind2Backend::getDomainInfo(const DNSName& domain, DomainInfo &di)
   di.backend=this;
   di.kind=bbd.d_kind;
   di.serial=0;
-  try {
-    SOAData sd;
-    sd.serial=0;
-    
-    getSOA(bbd.d_name,sd); // we might not *have* a SOA yet
-    di.serial=sd.serial;
+  if(getSerial) {
+    try {
+      SOAData sd;
+      sd.serial=0;
+
+      getSOA(bbd.d_name,sd); // we might not *have* a SOA yet
+      di.serial=sd.serial;
+    }
+    catch(...){}
   }
-  catch(...){}
   
   return true;
 }
@@ -1213,22 +1215,6 @@ bool Bind2Backend::handle::get_list(DNSResourceRecord &r)
   return false;
 }
 
-bool Bind2Backend::isMaster(const DNSName& name, const string &ip)
-{
-  BB2DomainInfo bbd;
-  if(!safeGetBBDomainInfo(name, &bbd))
-    return false;
-
-  if(bbd.d_kind != DomainInfo::Slave)
-    return false;
-
-  for(vector<string>::const_iterator iter = bbd.d_masters.begin(); iter != bbd.d_masters.end(); ++iter)
-    if(*iter==ip)
-      return true;
-  
-  return false;
-}
-
 bool Bind2Backend::superMasterBackend(const string &ip, const DNSName& domain, const vector<DNSResourceRecord>&nsset, string *nameserver, string *account, DNSBackend **db)
 {
   // Check whether we have a configfile available.
@@ -1313,7 +1299,7 @@ bool Bind2Backend::createSlaveDomain(const string &ip, const DNSName& domain, co
 
   BB2DomainInfo bbd = createDomainEntry(domain, filename);
   bbd.d_kind = DomainInfo::Slave;
-  bbd.d_masters.push_back(ip);
+  bbd.d_masters.push_back(ComboAddress(ip, 53));
   safePutBBDomainInfo(bbd);
   return true;
 }

@@ -233,7 +233,8 @@ public:
        else if (item.first == "last_check")
          di.last_check = static_cast<time_t>(boost::get<long>(item.second));
        else if (item.first == "masters")
-         di.masters = boost::get<vector<string>>(item.second);
+         for(const auto& master: boost::get<vector<string>>(item.second))
+           di.masters.push_back(ComboAddress(master, 53));
        else if (item.first == "id")
          di.id = static_cast<int>(boost::get<long>(item.second));
        else if (item.first == "notified_serial")
@@ -249,7 +250,7 @@ public:
      logResult("zone="<<di.zone<<",serial="<<di.serial<<",kind="<<di.getKindString());
   }
 
-  bool getDomainInfo(const DNSName& domain, DomainInfo& di) override {
+  bool getDomainInfo(const DNSName& domain, DomainInfo& di, bool getSerial=true) override {
     if (f_get_domaininfo == nullptr) {
       // use getAuth instead
       SOAData sd;

@@ -229,12 +229,6 @@ BOOST_AUTO_TEST_CASE(test_method_getAllDomains) {
    BOOST_CHECK_EQUAL(di.backend, be);
 }
 
-BOOST_AUTO_TEST_CASE(test_method_isMaster) {
-   BOOST_TEST_MESSAGE("Testing isMaster method");
-   BOOST_CHECK(be->isMaster(DNSName("ns1.unit.test."), "10.0.0.1"));
-   BOOST_CHECK(!be->isMaster(DNSName("ns2.unit.test."), "10.0.0.2"));
-}
-
 BOOST_AUTO_TEST_CASE(test_method_superMasterBackend) {
    DNSResourceRecord rr;
    std::vector<DNSResourceRecord> nsset; 

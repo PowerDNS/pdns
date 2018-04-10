@@ -109,7 +109,7 @@ public:
 
   void getUnfreshSlaveInfos(vector<DomainInfo>* domains);
   void getUpdatedMasters(vector<DomainInfo>* domains);
-  bool getDomainInfo(const DNSName &domain, DomainInfo &di);
+  bool getDomainInfo(const DNSName &domain, DomainInfo &di, bool getSerial=true);
   bool createDomain(const DNSName &domain);
   
   bool doesDNSSEC();

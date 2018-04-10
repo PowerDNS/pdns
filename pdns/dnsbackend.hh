@@ -42,6 +42,7 @@ class DNSPacket;
 #include "comment.hh"
 #include "dnsname.hh"
 #include "dnsrecords.hh"
+#include "iputils.hh"
 
 class DNSBackend;  
 struct DomainInfo
@@ -51,7 +52,7 @@ struct DomainInfo
   DNSName zone;
   time_t last_check;
   string account;
-  vector<string> masters;
+  vector<ComboAddress> masters; 
   DNSBackend *backend;
 
   uint32_t id;
@@ -84,6 +85,15 @@ struct DomainInfo
       return DomainInfo::Master;
     else
       return DomainInfo::Native;
+  }
+
+  const bool isMaster(const ComboAddress& ip)
+  {
+    for( const auto& master: masters) {
+      if(ComboAddress::addressOnlyEqual()(ip, master))
+        return true;
+    }
+    return false;
   }
 
 };
@@ -236,11 +246,6 @@ public:
   }
 
   //! returns true if master ip is master for domain name.
-  virtual bool isMaster(const DNSName &name, const string &ip)
-  {
-    return false;
-  }
-  
   //! starts the transaction for updating domain qname (FIXME: what is id?)
   virtual bool startTransaction(const DNSName &qname, int id=-1)
   {
@@ -282,7 +287,7 @@ public:
   }
 
   //! if this returns true, DomainInfo di contains information about the domain
-  virtual bool getDomainInfo(const DNSName &domain, DomainInfo &di)
+  virtual bool getDomainInfo(const DNSName &domain, DomainInfo &di, bool getSerial=true)
   {
     return false;
   }

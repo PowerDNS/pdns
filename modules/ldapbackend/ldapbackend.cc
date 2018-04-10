@@ -675,7 +675,7 @@ void LdapBackend::setNotified( uint32_t id, uint32_t serial )
 
 
 
-bool LdapBackend::getDomainInfo( const DNSName& domain, DomainInfo& di )
+bool LdapBackend::getDomainInfo( const DNSName& domain, DomainInfo& di, bool getSerial )
 {
   string filter;
   SOAData sd;
@@ -743,8 +743,10 @@ bool LdapBackend::getDomainInfo( const DNSName& domain, DomainInfo& di )
     else
       di.notified_serial = 0;
 
-    if ( result.count( "PdnsDomainMaster" ) && !result["PdnsDomainMaster"].empty() )
-      di.masters = result["PdnsDomainMaster"];
+    if ( result.count( "PdnsDomainMaster" ) && !result["PdnsDomainMaster"].empty() ) {
+      for(const auto& m : result["PdnsDomainMaster"])
+        di.masters.emplace_back(m, 53);
+    }
 
     if ( result.count( "PdnsDomainType" ) && !result["PdnsDomainType"].empty() ) {
       string kind = result["PdnsDomainType"][0];

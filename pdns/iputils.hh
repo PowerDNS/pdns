@@ -284,11 +284,33 @@ union ComboAddress {
       return "["+toString() + "]:" + std::to_string(ntohs(sin4.sin_port));
   }
 
+  string toStringWithPortExcept(int port) const
+  {
+    if(ntohs(sin4.sin_port) == port)
+      return toString();
+    if(sin4.sin_family==AF_INET)
+      return toString() + ":" + std::to_string(ntohs(sin4.sin_port));
+    else
+      return "["+toString() + "]:" + std::to_string(ntohs(sin4.sin_port));
+  }
+
+  string toLogString() const
+  {
+    return toStringWithPortExcept(53);
+  }
+
   void truncate(unsigned int bits) noexcept;
 
   uint16_t getPort() const
   {
     return ntohs(sin4.sin_port);
+  }
+
+  ComboAddress setPort(uint16_t port) const
+  {
+    ComboAddress ret(*this);
+    ret.sin4.sin_port=htons(port);
+    return ret;
   }
 
 };

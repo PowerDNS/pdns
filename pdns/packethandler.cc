@@ -729,18 +729,18 @@ int PacketHandler::trySuperMaster(DNSPacket *p, const DNSName& tsigkeyname)
   }
 }
 
-int PacketHandler::trySuperMasterSynchronous(DNSPacket *p, const DNSName& tsigkeyname)
+int PacketHandler::trySuperMasterSynchronous(const DNSPacket *p, const DNSName& tsigkeyname)
 {
-  string remote = p->getRemote().toString();
-  if(p->hasEDNSSubnet() && ::arg().contains("trusted-notification-proxy", remote)) {
-    remote = p->getRealRemote().toStringNoMask();
+  ComboAddress remote = p->getRemote().setPort(53);
+  if(p->hasEDNSSubnet() && ::arg().contains("trusted-notification-proxy", remote.toString())) {
+    remote = p->getRealRemote().getNetwork();
   }
 
   Resolver::res_t nsset;
   try {
     Resolver resolver;
     uint32_t theirserial;
-    resolver.getSoaSerial(remote,p->qdomain, &theirserial);
+    resolver.getSoaSerial(remote, p->qdomain, &theirserial);
     resolver.resolve(remote, p->qdomain, QType::NS, &nsset);
   }
   catch(ResolverException &re) {
@@ -768,7 +768,7 @@ int PacketHandler::trySuperMasterSynchronous(DNSPacket *p, const DNSName& tsigke
     return RCode::Refused;
   }
 
-  if(!B.superMasterBackend(remote, p->qdomain, nsset, &nameserver, &account, &db)) {
+  if(!B.superMasterBackend(remote.toString(), p->qdomain, nsset, &nameserver, &account, &db)) {
     g_log<<Logger::Error<<"Unable to find backend willing to host "<<p->qdomain<<" for potential supermaster "<<remote<<". Remote nameservers: "<<endl;
     for(const auto& rr: nsset) {
       if(rr.qtype==QType::NS)
@@ -801,68 +801,69 @@ int PacketHandler::processNotify(DNSPacket *p)
      We determine the SOA at our (known) master
      if master is higher -> do stuff
   */
-  vector<string> meta;
 
   if(!::arg().mustDo("slave") && s_forwardNotify.empty()) {
-    g_log<<Logger::Error<<"Received NOTIFY for "<<p->qdomain<<" from "<<p->getRemote()<<" but slave support is disabled in the configuration"<<endl;
-    return RCode::NotImp;
+    g_log<<Logger::Warning<<"Received NOTIFY for "<<p->qdomain<<" from "<<p->getRemote()<<" but slave support is disabled in the configuration"<<endl;
+    return RCode::Refused;
   }
 
+  // Sender verification
+  //
   if(!s_allowNotifyFrom.match((ComboAddress *) &p->d_remote ) || p->d_havetsig) {
     if (p->d_havetsig && p->getTSIGKeyname().empty() == false) {
-        g_log<<Logger::Notice<<"Received secure NOTIFY for "<<p->qdomain<<" from "<<p->getRemote()<<", allowed by TSIG key '"<<p->getTSIGKeyname()<<"'"<<endl;
+        g_log<<Logger::Notice<<"Received secure NOTIFY for "<<p->qdomain<<" from "<<p->getRemote()<<", with TSIG key '"<<p->getTSIGKeyname()<<"'"<<endl;
     } else {
-      g_log<<Logger::Error<<"Received NOTIFY for "<<p->qdomain<<" from "<<p->getRemote()<<" but remote is not permitted by TSIG or allow-notify-from"<<endl;
+      g_log<<Logger::Warning<<"Received NOTIFY for "<<p->qdomain<<" from "<<p->getRemote()<<" but the remote is not providing a TSIG key or in allow-notify-from (Refused)"<<endl;
       return RCode::Refused;
     }
   }
 
-  DNSBackend *db=0;
-  DomainInfo di;
-  di.serial = 0;
-  if(!B.getDomainInfo(p->qdomain, di) || !(db=di.backend)) {
-    g_log<<Logger::Error<<"Received NOTIFY for "<<p->qdomain<<" from "<<p->getRemote()<<" for which we are not authoritative"<<endl;
-    return trySuperMaster(p, p->getTSIGKeyname());
-  }
-
-  meta.clear();
-  if (B.getDomainMetadata(p->qdomain,"AXFR-MASTER-TSIG",meta) && meta.size() > 0) {
+  if ((!::arg().mustDo("allow-unsigned-notify") && !p->d_havetsig) || p->d_havetsig) {
     if (!p->d_havetsig) {
-      if (::arg().mustDo("allow-unsigned-notify")) {
-        g_log<<Logger::Warning<<"Received unsigned NOTIFY for "<<p->qdomain<<" from "<<p->getRemote()<<": permitted because allow-unsigned-notify";
-      } else {
-        g_log<<Logger::Warning<<"Received unsigned NOTIFY for "<<p->qdomain<<" from "<<p->getRemote()<<": refused"<<endl;
+      g_log<<Logger::Warning<<"Received unsigned NOTIFY for "<<p->qdomain<<" from "<<p->getRemote()<<" while a TSIG key was required (Refused)"<<endl;
+      return RCode::Refused;
+    }
+    vector<string> meta;
+    if (B.getDomainMetadata(p->qdomain,"AXFR-MASTER-TSIG",meta) && meta.size() > 0) {
+      if (!pdns_iequals(meta[0], p->getTSIGKeyname().toStringNoDot())) {
+        g_log<<Logger::Warning<<"Received secure NOTIFY for "<<p->qdomain<<" from "<<p->getRemote()<<": expected TSIG key '"<<meta[0]<<", got '"<<p->getTSIGKeyname()<<"' (Refused)"<<endl;
         return RCode::Refused;
       }
-    } else if (meta[0] != p->getTSIGKeyname().toStringNoDot()) {
-      g_log<<Logger::Error<<"Received secure NOTIFY for "<<p->qdomain<<" from "<<p->getRemote()<<": expected TSIG key '"<<meta[0]<<", got '"<<p->getTSIGKeyname()<<"'"<<endl;
-      return RCode::Refused;
     }
+  }
+
+  // Domain verification
+  //
+  DomainInfo di;
+  if(!B.getDomainInfo(p->qdomain, di, false) || !di.backend) {
+    if(::arg().mustDo("supermaster")) {
+      g_log<<Logger::Warning<<"Received NOTIFY for "<<p->qdomain<<" from "<<p->getRemote()<<" for which we are not authoritative, trying supermaster"<<endl;
+      return trySuperMaster(p, p->getTSIGKeyname());
+    }
+    g_log<<Logger::Notice<<"Received NOTIFY for "<<p->qdomain<<" from "<<p->getRemote()<<" for which we are not authoritative (Refused)"<<endl;
+    return RCode::Refused;
   }
 
   if(::arg().contains("trusted-notification-proxy", p->getRemote().toString())) {
     g_log<<Logger::Error<<"Received NOTIFY for "<<p->qdomain<<" from trusted-notification-proxy "<< p->getRemote()<<endl;
     if(di.masters.empty()) {
-      g_log<<Logger::Error<<"However, "<<p->qdomain<<" does not have any masters defined"<<endl;
+      g_log<<Logger::Error<<"However, "<<p->qdomain<<" does not have any masters defined (Refused)"<<endl;
       return RCode::Refused;
     }
   }
   else if(::arg().mustDo("master") && di.kind == DomainInfo::Master) {
-    g_log<<Logger::Error<<"Received NOTIFY for "<<p->qdomain<<" from "<<p->getRemote()<<" but we are master, rejecting"<<endl;
+    g_log<<Logger::Warning<<"Received NOTIFY for "<<p->qdomain<<" from "<<p->getRemote()<<" but we are master (Refused)"<<endl;
     return RCode::Refused;
   }
-  else if(!db->isMaster(p->qdomain, p->getRemote().toString())) {
-    g_log<<Logger::Error<<"Received NOTIFY for "<<p->qdomain<<" from "<<p->getRemote()<<" which is not a master"<<endl;
+  else if(!di.isMaster(p->getRemote())) {
+    g_log<<Logger::Warning<<"Received NOTIFY for "<<p->qdomain<<" from "<<p->getRemote()<<" which is not a master (Refused)"<<endl;
     return RCode::Refused;
   }
-    
-  // ok, we've done our checks
-  di.backend = 0;
 
   if(!s_forwardNotify.empty()) {
     set<string> forwardNotify(s_forwardNotify);
     for(set<string>::const_iterator j=forwardNotify.begin();j!=forwardNotify.end();++j) {
-      g_log<<Logger::Warning<<"Relaying notification of domain "<<p->qdomain<<" from "<<p->getRemote()<<" to "<<*j<<endl;
+      g_log<<Logger::Notice<<"Relaying notification of domain "<<p->qdomain<<" from "<<p->getRemote()<<" to "<<*j<<endl;
       Communicator.notify(p->qdomain,*j);
     }
   }

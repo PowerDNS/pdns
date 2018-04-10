@@ -49,7 +49,7 @@
 using boost::scoped_ptr;
 
 
-void CommunicatorClass::addSuckRequest(const DNSName &domain, const string &master)
+void CommunicatorClass::addSuckRequest(const DNSName &domain, const ComboAddress& master)
 {
   Lock l(&d_lock);
   SuckRequest sr;
@@ -288,7 +288,7 @@ static vector<DNSResourceRecord> doAxfr(const ComboAddress& raddr, const DNSName
 }   
 
 
-void CommunicatorClass::suck(const DNSName &domain, const string &remote)
+void CommunicatorClass::suck(const DNSName &domain, const ComboAddress& remote)
 {
   {
     Lock l(&d_lock);
@@ -354,7 +354,7 @@ void CommunicatorClass::suck(const DNSName &domain, const string &remote)
 
     vector<string> localaddr;
     ComboAddress laddr;
-    ComboAddress raddr(remote, 53);
+
     if(B.getDomainMetadata(domain, "AXFR-SOURCE", localaddr) && !localaddr.empty()) {
       try {
         laddr = ComboAddress(localaddr[0]);
@@ -365,12 +365,12 @@ void CommunicatorClass::suck(const DNSName &domain, const string &remote)
         return;
       }
     } else {
-      if(raddr.sin4.sin_family == AF_INET && !::arg()["query-local-address"].empty()) {
+      if(remote.sin4.sin_family == AF_INET && !::arg()["query-local-address"].empty()) {
         laddr = ComboAddress(::arg()["query-local-address"]);
-      } else if(raddr.sin4.sin_family == AF_INET6 && !::arg()["query-local-address6"].empty()) {
+      } else if(remote.sin4.sin_family == AF_INET6 && !::arg()["query-local-address6"].empty()) {
         laddr = ComboAddress(::arg()["query-local-address6"]);
       } else {
-        bool isv6 = raddr.sin4.sin_family == AF_INET6;
+        bool isv6 = remote.sin4.sin_family == AF_INET6;
         g_log<<Logger::Error<<"Unable to AXFR, destination address is IPv" << (isv6 ? "6" : "4") << ", but query-local-address"<< (isv6 ? "6" : "") << " is unset!"<<endl;
         return;
       }
@@ -398,10 +398,10 @@ void CommunicatorClass::suck(const DNSName &domain, const string &remote)
       B.getDomainMetadata(domain, "IXFR", meta);
       if(!meta.empty() && meta[0]=="1") {
         vector<DNSRecord> axfr;
-        g_log<<Logger::Warning<<"Starting IXFR of '"<<domain<<"' from remote "<<raddr.toStringWithPort()<<endl;
-        ixfrSuck(domain, tt, laddr, raddr, pdl, zs, &axfr);
+        g_log<<Logger::Warning<<"Starting IXFR of '"<<domain<<"' from remote "<<remote<<endl;
+        ixfrSuck(domain, tt, laddr, remote, pdl, zs, &axfr);
         if(!axfr.empty()) {
-          g_log<<Logger::Warning<<"IXFR of '"<<domain<<"' from remote '"<<raddr.toStringWithPort()<<"' turned into an AXFR"<<endl;
+          g_log<<Logger::Warning<<"IXFR of '"<<domain<<"' from remote '"<<remote<<"' turned into an AXFR"<<endl;
           bool firstNSEC3=true;
           rrs.reserve(axfr.size());
           for(const auto& dr : axfr) {
@@ -426,9 +426,9 @@ void CommunicatorClass::suck(const DNSName &domain, const string &remote)
     }
 
     if(rrs.empty()) {
-      g_log<<Logger::Warning<<"Starting AXFR of '"<<domain<<"' from remote "<<raddr.toStringWithPort()<<endl;
-      rrs = doAxfr(raddr, domain, tt, laddr, pdl, zs);
-      g_log<<Logger::Warning<<"AXFR of '"<<domain<<"' from remote "<<raddr.toStringWithPort()<<" done"<<endl;
+      g_log<<Logger::Warning<<"Starting AXFR of '"<<domain<<"' from remote "<<remote<<endl;
+      rrs = doAxfr(remote, domain, tt, laddr, pdl, zs);
+      g_log<<Logger::Warning<<"AXFR of '"<<domain<<"' from remote "<<remote<<" done"<<endl;
     }
  
     if(zs.isNSEC3) {
@@ -665,10 +665,9 @@ struct SlaveSenderReceiver
   {
     random_shuffle(dni.di.masters.begin(), dni.di.masters.end());
     try {
-      ComboAddress remote(*dni.di.masters.begin(), 53);
       return std::make_tuple(dni.di.zone,
-                             remote,
-                             d_resolver.sendResolve(remote,
+                             *dni.di.masters.begin(),
+                             d_resolver.sendResolve(*dni.di.masters.begin(),
                                                     dni.localaddr,
                                                     dni.di.zone,
                                                     QType::SOA,
@@ -702,15 +701,14 @@ void CommunicatorClass::addSlaveCheckRequest(const DomainInfo& di, const ComboAd
   Lock l(&d_lock);
   DomainInfo ours = di;
   ours.backend = 0;
-  string remote_address = remote.toString();
 
   // When adding a check, if the remote addr from which notification was
   // received is a master, clear all other masters so we can be sure the
   // query goes to that one.
-  for (const auto& master : ours.masters) {
-    if (master == remote_address) {
+  for (const auto& master : di.masters) {
+    if (ComboAddress::addressOnlyEqual()(remote, master)) {
       ours.masters.clear();
-      ours.masters.push_back(remote_address);
+      ours.masters.push_back(master);
       break;
     }
   }
@@ -723,8 +721,8 @@ void CommunicatorClass::addTrySuperMasterRequest(DNSPacket *p)
 {
   Lock l(&d_lock);
   DNSPacket ours = *p;
-  d_potentialsupermasters.push_back(ours);
-  d_any_sem.post(); // kick the loop!
+  if(d_potentialsupermasters.insert(ours).second)
+    d_any_sem.post(); // kick the loop!
 }
 
 void CommunicatorClass::slaveRefresh(PacketHandler *P)
@@ -734,31 +732,23 @@ void CommunicatorClass::slaveRefresh(PacketHandler *P)
 
   UeberBackend *B=P->getBackend();
   vector<DomainInfo> rdomains;
-  vector<DomainNotificationInfo> sdomains; 
-  vector<DNSPacket> trysuperdomains;
-
+  vector<DomainNotificationInfo> sdomains;
+  set<DNSPacket, cmp> trysuperdomains;
   {
     Lock l(&d_lock);
     rdomains.insert(rdomains.end(), d_tocheck.begin(), d_tocheck.end());
     d_tocheck.clear();
-    trysuperdomains.insert(trysuperdomains.end(), d_potentialsupermasters.begin(), d_potentialsupermasters.end());
+
+    trysuperdomains = d_potentialsupermasters;
     d_potentialsupermasters.clear();
   }
 
-  for(DNSPacket& dp :  trysuperdomains) {
+  for(const DNSPacket& dp :  trysuperdomains) {
     // get the TSIG key name
     TSIGRecordContent trc;
     DNSName tsigkeyname;
     dp.getTSIGDetails(&trc, &tsigkeyname);
-    int res;
-    res=P->trySuperMasterSynchronous(&dp, tsigkeyname);
-    if(res>=0) {
-      DNSPacket *r=dp.replyPacket();
-      r->setRcode(res);
-      r->setOpcode(Opcode::Notify);
-      N->send(r);
-      delete r;
-    }
+    P->trySuperMasterSynchronous(&dp, tsigkeyname); // FIXME could use some error loging
   }
   if(rdomains.empty()) { // if we have priority domains, check them first
     B->getUnfreshSlaveInfos(&rdomains);

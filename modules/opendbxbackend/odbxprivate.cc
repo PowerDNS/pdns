@@ -231,7 +231,12 @@ bool OdbxBackend::getDomainList( const string& stmt, vector<DomainInfo>* list, b
         	{
         		if( ( tmp = odbx_field_value( m_result, 2 ) ) != NULL )
         		{
-        			stringtok(di.masters, string( tmp, odbx_field_length( m_result, 2 )), ", \t" );
+        			vector<string> masters;
+        			stringtok(masters, string( tmp, odbx_field_length( m_result, 2 )), ", \t" );
+        			for(const auto& m : masters)
+        			{
+        				di.masters.emplace_back(m, 53);
+        			}
         		}
 
         		if( ( tmp = odbx_field_value( m_result, 1 ) ) != NULL )

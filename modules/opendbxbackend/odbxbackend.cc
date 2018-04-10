@@ -93,7 +93,7 @@ OdbxBackend::~OdbxBackend()
 
 
 
-bool OdbxBackend::getDomainInfo( const DNSName& domain, DomainInfo& di )
+bool OdbxBackend::getDomainInfo( const DNSName& domain, DomainInfo& di, bool getSerial )
 {
         const char* tmp;
 
@@ -119,7 +119,7 @@ bool OdbxBackend::getDomainInfo( const DNSName& domain, DomainInfo& di )
         		di.backend = this;
         		di.serial = 0;
 
-        		if( ( tmp = odbx_field_value( m_result, 6 ) ) != NULL )
+        		if( getSerial && ( tmp = odbx_field_value( m_result, 6 ) ) != NULL )
         		{
         			SOAData sd;
 
@@ -141,7 +141,12 @@ bool OdbxBackend::getDomainInfo( const DNSName& domain, DomainInfo& di )
 
         		if( ( tmp = odbx_field_value( m_result, 3 ) ) != NULL )
         		{
-        			stringtok(di.masters, string( tmp, odbx_field_length( m_result, 3 ) ), ", \t");
+        			vector<string> masters;
+        			stringtok(masters, string( tmp, odbx_field_length( m_result, 3 ) ), ", \t");
+        			for(const auto& m : masters)
+        			{
+        				di.masters.emplace_back(m, 53);
+        			}
         		}
 
         		if( ( tmp = odbx_field_value( m_result, 2 ) ) != NULL )
@@ -492,42 +497,6 @@ void OdbxBackend::setNotified( uint32_t domain_id, uint32_t serial )
         	g_log.log( m_myname + " setNotified: Caught STL exception - " + e.what(),  Logger::Error );
         	throw( DBException( "Error: STL exception" ) );
         }
-}
-
-
-
-bool OdbxBackend::isMaster( const DNSName& domain, const string& ip )
-{
-        try
-        {
-        	DLOG( g_log.log( m_myname + " isMaster()", Logger::Debug ) );
-
-        	string stmt = getArg( "sql-master" );
-        	string& stmtref = strbind( ":name", escape( domain.makeLowerCase().toStringRootDot(), READ ), stmt );
-
-        	if( !execStmt( stmtref.c_str(), stmtref.size(), READ ) ) { return false; }
-        	if( !getRecord( READ ) ) { return false; }
-
-        	do
-        	{
-        		if( odbx_field_value( m_result, 0 ) != NULL )
-        		{
-        			if( !strcmp( odbx_field_value( m_result, 0 ), ip.c_str() ) )
-        			{
-        				while( getRecord( READ ) );
-        				return true;
-        			}
-        		}
-        	}
-        	while( getRecord( READ ) );
-        }
-        catch ( std::exception& e )
-        {
-        	g_log.log( m_myname + " isMaster: Caught STL exception - " + e.what(),  Logger::Error );
-        	return false;
-        }
-
-        return false;
 }
 
 

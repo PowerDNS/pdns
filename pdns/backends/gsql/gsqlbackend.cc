@@ -61,7 +61,6 @@ GSQLBackend::GSQLBackend(const string &mode, const string &suffix)
   d_listQuery=getArg("list-query");
   d_listSubZoneQuery=getArg("list-subzone-query");
 
-  d_MasterOfDomainsZoneQuery=getArg("master-zone-query");
   d_InfoOfDomainsZoneQuery=getArg("info-zone-query");
   d_InfoOfAllSlaveDomainsQuery=getArg("info-all-slaves-query");
   d_SuperMasterInfoQuery=getArg("supermaster-query");
@@ -130,7 +129,6 @@ GSQLBackend::GSQLBackend(const string &mode, const string &suffix)
   d_ANYIdQuery_stmt = NULL;
   d_listQuery_stmt = NULL;
   d_listSubZoneQuery_stmt = NULL;
-  d_MasterOfDomainsZoneQuery_stmt = NULL;
   d_InfoOfDomainsZoneQuery_stmt = NULL;
   d_InfoOfAllSlaveDomainsQuery_stmt = NULL;
   d_SuperMasterInfoQuery_stmt = NULL;
@@ -216,39 +214,6 @@ void GSQLBackend::setFresh(uint32_t domain_id)
   }
 }
 
-bool GSQLBackend::isMaster(const DNSName &domain, const string &ip)
-{
-  try {
-    reconnectIfNeeded();
-
-    d_MasterOfDomainsZoneQuery_stmt->
-      bind("domain", domain)->
-      execute()->
-      getResult(d_result)->
-      reset();
-  }
-  catch (SSqlException &e) {
-    throw PDNSException("GSQLBackend unable to retrieve list of master domains: "+e.txtReason());
-  }
-
-  if(!d_result.empty()) {
-    ASSERT_ROW_COLUMNS("master-zone-query", d_result[0], 1);
-
-    // we can have multiple masters separated by commas
-    vector<string> masters;
-    stringtok(masters, d_result[0][0], " ,\t");
-
-    for(const auto& master: masters) {
-      const ComboAddress caMaster(master);
-      if(ip == caMaster.toString())
-        return true;
-    }
-  }
-
-  // no matching master
-  return false;
-}
-
 bool GSQLBackend::setMaster(const DNSName &domain, const string &ip)
 {
   try {
@@ -300,7 +265,7 @@ bool GSQLBackend::setAccount(const DNSName &domain, const string &account)
   return true;
 }
 
-bool GSQLBackend::getDomainInfo(const DNSName &domain, DomainInfo &di)
+bool GSQLBackend::getDomainInfo(const DNSName &domain, DomainInfo &di, bool getSerial)
 {
   /* fill DomainInfo from database info:
      id,name,master IP(s),last_check,notified_serial,type,account */
@@ -329,7 +294,10 @@ bool GSQLBackend::getDomainInfo(const DNSName &domain, DomainInfo &di)
   } catch (...) {
     return false;
   }
-  stringtok(di.masters, d_result[0][2], " ,\t");
+  vector<string> masters;
+  stringtok(masters, d_result[0][2], " ,\t");
+  for(const auto& m : masters)
+    di.masters.emplace_back(m, 53);
   di.last_check=pdns_stou(d_result[0][3]);
   di.notified_serial = pdns_stou(d_result[0][4]);
   string type=d_result[0][5];
@@ -337,15 +305,17 @@ bool GSQLBackend::getDomainInfo(const DNSName &domain, DomainInfo &di)
   di.backend=this;
 
   di.serial = 0;
-  try {
-    SOAData sd;
-    if(!getSOA(domain, sd))
-      g_log<<Logger::Notice<<"No serial for '"<<domain<<"' found - zone is missing?"<<endl;
-    else
-      di.serial = sd.serial;
-  }
-  catch(PDNSException &ae){
-    g_log<<Logger::Error<<"Error retrieving serial for '"<<domain<<"': "<<ae.reason<<endl;
+  if(getSerial) {
+    try {
+      SOAData sd;
+      if(!getSOA(domain, sd))
+        g_log<<Logger::Notice<<"No serial for '"<<domain<<"' found - zone is missing?"<<endl;
+      else
+        di.serial = sd.serial;
+    }
+    catch(PDNSException &ae){
+      g_log<<Logger::Error<<"Error retrieving serial for '"<<domain<<"': "<<ae.reason<<endl;
+    }
   }
 
   di.kind = DomainInfo::stringToKind(type);
@@ -380,7 +350,12 @@ void GSQLBackend::getUnfreshSlaveInfos(vector<DomainInfo> *unfreshDomains)
     } catch (...) {
       continue;
     }
-    stringtok(sd.masters, d_result[n][2], ", \t");
+
+    vector<string> masters;
+    stringtok(masters, d_result[n][2], ", \t");
+    for(const auto& m : masters)
+      sd.masters.emplace_back(m, 53);
+
     sd.last_check=pdns_stou(d_result[n][3]);
     sd.backend=this;
     sd.kind=DomainInfo::Slave;
@@ -1284,7 +1259,10 @@ void GSQLBackend::getAllDomains(vector<DomainInfo> *domains, bool include_disabl
       }
   
       if (!row[4].empty()) {
-        stringtok(di.masters, row[4], " ,\t");
+        vector<string> masters;
+        stringtok(masters, row[4], " ,\t");
+        for(const auto& m : masters)
+          di.masters.emplace_back(m, 53);
       }
 
       SOAData sd;

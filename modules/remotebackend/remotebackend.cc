@@ -557,7 +557,7 @@ void RemoteBackend::parseDomainInfo(const Json &obj, DomainInfo &di)
    di.id = intFromJson(obj, "id", -1);
    di.zone = DNSName(stringFromJson(obj, "zone"));
    for(const auto& master: obj["masters"].array_items())
-     di.masters.push_back(master.string_value());
+     di.masters.push_back(ComboAddress(master.string_value(), 53));
 
    di.notified_serial = static_cast<unsigned int>(doubleFromJson(obj, "notified_serial", -1));
    di.serial = static_cast<unsigned int>(obj["serial"].number_value());
@@ -577,7 +577,7 @@ void RemoteBackend::parseDomainInfo(const Json &obj, DomainInfo &di)
    di.backend = this;
 }
 
-bool RemoteBackend::getDomainInfo(const DNSName& domain, DomainInfo &di) {
+bool RemoteBackend::getDomainInfo(const DNSName& domain, DomainInfo &di, bool getSerial) {
    if (domain.empty()) return false;
    Json query = Json::object{
      { "method", "getDomainInfo" },
@@ -607,23 +607,6 @@ void RemoteBackend::setNotified(uint32_t id, uint32_t serial) {
    if (this->send(query) == false || this->recv(answer) == false) {
       g_log<<Logger::Error<<kBackendId<<" Failed to execute RPC for RemoteBackend::setNotified("<<id<<","<<serial<<")"<<endl;
    }
-}
-
-bool RemoteBackend::isMaster(const DNSName& name, const string &ip)
-{
-   Json query = Json::object{
-     { "method", "isMaster" },
-     { "parameters", Json::object {
-       { "name", name.toString() },
-       { "ip", ip }
-     }}
-   };
-
-   Json answer;
-   if (this->send(query) == false || this->recv(answer) == false)
-     return false;
-
-   return true;
 }
 
 bool RemoteBackend::superMasterBackend(const string &ip, const DNSName& domain, const vector<DNSResourceRecord>&nsset, string* nameserver, string *account, DNSBackend **ddb)
