@@ -566,7 +566,7 @@ These ``DNSRule``\ s be one of the following items:
 .. function:: OpcodeRule(code)
 
   Matches queries with opcode ``code``.
-  ``code`` can be directly specified as an integer, or one of the `built-in DNSOpcodes <DNSOpcode>`.
+  ``code`` can be directly specified as an integer, or one of the :ref:`built-in DNSOpcodes <DNSOpcode>`.
 
   :param int code: The opcode to match
 
