@@ -26,6 +26,9 @@
 #ifdef HAVE_LIBCRYPTO_ECDSA
 #include <openssl/ecdsa.h>
 #endif
+#if defined(HAVE_LIBCRYPTO_ED25519) || defined(HAVE_LIBCRYPTO_ED448)
+#include <openssl/evp.h>
+#endif
 #include <openssl/sha.h>
 #include <openssl/rand.h>
 #include <openssl/rsa.h>
@@ -910,6 +913,216 @@ void OpenSSLECDSADNSCryptoKeyEngine::fromPublicKeyString(const std::string& inpu
 }
 #endif
 
+#ifdef HAVE_LIBCRYPTO_EDDSA
+class OpenSSLEDDSADNSCryptoKeyEngine : public DNSCryptoKeyEngine
+{
+public:
+  explicit OpenSSLEDDSADNSCryptoKeyEngine(unsigned int algo) : DNSCryptoKeyEngine(algo)
+  {
+
+    int ret = RAND_status();
+    if (ret != 1) {
+      throw runtime_error(getName()+" insufficient entropy");
+    }
+
+    d_edkey = EVP_PKEY_new();
+    if (d_edkey == NULL) {
+      throw runtime_error(getName()+" allocation of key structure failed");
+    }
+
+    if(d_algorithm == 15) {
+      d_len = 32;
+      d_id = NID_ED25519;
+    } else if (d_algorithm == 16) {
+      d_len = 57;
+      d_id = NID_ED448;
+    } else {
+      throw runtime_error(getName()+" unknown algorithm "+std::to_string(d_algorithm));
+    }
+
+    d_edctx = EVP_PKEY_CTX_new_id(d_id, NULL);
+    if (d_edctx == NULL) {
+      throw runtime_error(getName()+" unable to allocate context");
+    }
+  }
+
+  ~OpenSSLEDDSADNSCryptoKeyEngine()
+  {
+    EVP_PKEY_free(d_edkey);
+    EVP_PKEY_CTX_free(d_edctx);
+  }
+
+  string getName() const override { return "OpenSSL EDDSA"; }
+  int getBits() const override { return d_len; }
+
+  void create(unsigned int bits) override;
+  storvector_t convertToISCVector() const override;
+  std::string sign(const std::string& hash) const override;
+  bool verify(const std::string& msg, const std::string& signature) const override;
+  std::string getPubKeyHash() const override;
+  std::string getPublicKeyString() const override;
+  void fromISCMap(DNSKEYRecordContent& drc, std::map<std::string, std::string>& stormap) override;
+  void fromPublicKeyString(const std::string& content) override;
+  bool checkKey() const override;
+
+  static std::shared_ptr<DNSCryptoKeyEngine> maker(unsigned int algorithm)
+  {
+    return std::make_shared<OpenSSLEDDSADNSCryptoKeyEngine>(algorithm);
+  }
+
+private:
+  size_t d_len;
+  int d_id;
+
+  EVP_PKEY *d_edkey = NULL;
+  EVP_PKEY_CTX *d_edctx = NULL;
+};
+
+bool OpenSSLEDDSADNSCryptoKeyEngine::checkKey() const
+{
+  return (d_edkey != NULL);
+}
+
+void OpenSSLEDDSADNSCryptoKeyEngine::create(unsigned int bits)
+{
+  if (EVP_PKEY_keygen_init(d_edctx) < 1) {
+    throw runtime_error(getName()+" context initialization failed");
+  }
+  if (EVP_PKEY_keygen(d_edctx, &d_edkey) < 1) {
+    throw runtime_error(getName()+" key generation failed");
+  }
+}
+
+DNSCryptoKeyEngine::storvector_t OpenSSLEDDSADNSCryptoKeyEngine::convertToISCVector() const
+{
+  storvector_t storvect;
+  string algorithm;
+
+  if(d_algorithm == 15)
+    algorithm = "15 (ED25519)";
+  else if(d_algorithm == 16)
+    algorithm = "16 (ED448)";
+  else
+    algorithm = " ? (?)";
+
+  storvect.push_back(make_pair("Algorithm", algorithm));
+
+  string buf;
+  size_t len = d_len;
+  buf.resize(len);
+  EVP_PKEY_get_raw_private_key(d_edkey, reinterpret_cast<unsigned char*>(&buf.at(0)), &len);
+  storvect.push_back(make_pair("PrivateKey", buf));
+  return storvect;
+}
+
+std::string OpenSSLEDDSADNSCryptoKeyEngine::sign(const std::string& msg) const
+{
+  auto ctx = EVP_MD_CTX_new();
+  auto pctx = d_edctx;
+  if(EVP_DigestSignInit(ctx, &pctx, NULL, NULL, d_edkey) < 1) {
+    throw runtime_error(getName()+" unable to initialize signer");
+  }
+
+  string signature;
+  size_t siglen;
+  string msgToSign = msg;
+  if (EVP_DigestSign(ctx,
+        NULL, &siglen,
+        reinterpret_cast<unsigned char*>(&msgToSign.at(0)), msgToSign.length()) < 1) {
+    throw runtime_error(getName()+" could not determine signature size");
+  }
+
+  signature.resize(siglen);
+
+  if (EVP_DigestSign(ctx,
+        reinterpret_cast<unsigned char*>(&signature.at(0)), &siglen,
+        reinterpret_cast<unsigned char*>(&msgToSign.at(0)), msgToSign.length()) < 1) {
+    throw runtime_error(getName()+" signing error");
+  }
+  return signature;
+}
+
+bool OpenSSLEDDSADNSCryptoKeyEngine::verify(const std::string& msg, const std::string& signature) const
+{
+  auto ctx = EVP_MD_CTX_new();
+  auto pctx = d_edctx;
+  if(EVP_DigestVerifyInit(ctx, &pctx, NULL, NULL, d_edkey) < 1) {
+    throw runtime_error(getName()+" unable to initialize verifyer");
+  }
+
+  string checkSignature = signature;
+  string checkMsg = msg;
+
+  auto r = EVP_DigestVerify(ctx,
+      reinterpret_cast<unsigned char*>(&checkSignature.at(0)), checkSignature.length(),
+      reinterpret_cast<unsigned char*>(&checkMsg.at(0)), checkMsg.length());
+  if (r < 0) {
+    throw runtime_error(getName()+" verification failure");
+  }
+
+  return (r == 1);
+}
+
+std::string OpenSSLEDDSADNSCryptoKeyEngine::getPubKeyHash() const
+{
+  return this->getPublicKeyString();
+}
+
+std::string OpenSSLEDDSADNSCryptoKeyEngine::getPublicKeyString() const
+{
+  string buf;
+  size_t len = d_len;
+  buf.resize(len);
+  if (EVP_PKEY_get_raw_public_key(d_edkey, reinterpret_cast<unsigned char*>(&buf.at(0)), &len) < 1) {
+    throw std::runtime_error("Unable to get public key from key struct");
+  }
+  return buf;
+}
+
+void OpenSSLEDDSADNSCryptoKeyEngine::fromISCMap(DNSKEYRecordContent& drc, std::map<std::string, std::string>& stormap) {
+  drc.d_algorithm = atoi(stormap["algorithm"].c_str());
+  if (drc.d_algorithm != d_algorithm) {
+    throw runtime_error(getName()+" tried to feed an algorithm "+std::to_string(drc.d_algorithm)+" to a "+std::to_string(d_algorithm)+" key");
+  }
+
+  d_edkey = EVP_PKEY_new_raw_private_key(d_id, NULL, reinterpret_cast<unsigned char*>(&stormap["privatekey"].at(0)), stormap["privatekey"].length());
+  if (d_edkey == NULL) {
+    throw std::runtime_error(getName() + " could not create key structure from private key");
+  }
+  // Replace the context for a new one with the key
+  EVP_PKEY_CTX_free(d_edctx);
+  d_edctx = EVP_PKEY_CTX_new(d_edkey, NULL);
+}
+
+void OpenSSLEDDSADNSCryptoKeyEngine::fromPublicKeyString(const std::string& content)
+{
+  const unsigned char* raw = (const unsigned char*)content.c_str();
+  const size_t inputLen = content.length();
+
+  if (inputLen < 1) {
+    throw runtime_error(getName()+" invalid input size for the public key");
+  }
+
+  int type{0};
+
+  if (inputLen == 32) {
+    type = NID_ED25519;
+  } else if (inputLen == 57) {
+    type = NID_ED448;
+  } else {
+    throw runtime_error(getName() + "could not determine EDDSA key type");
+  }
+
+  d_edkey = EVP_PKEY_new_raw_public_key(type, NULL, raw, inputLen);
+  if (d_edkey == NULL) {
+    throw runtime_error(getName()+" allocation of public key structure failed");
+  }
+
+  // Replace the context for a new one with the key
+  EVP_PKEY_CTX_free(d_edctx);
+  d_edctx = EVP_PKEY_CTX_new(d_edkey, NULL);
+}
+#endif // HAVE_LIBCRYPTO_EDDSA
 
 namespace {
   struct LoaderStruct
@@ -923,6 +1136,12 @@ namespace {
 #ifdef HAVE_LIBCRYPTO_ECDSA
       DNSCryptoKeyEngine::report(13, &OpenSSLECDSADNSCryptoKeyEngine::maker);
       DNSCryptoKeyEngine::report(14, &OpenSSLECDSADNSCryptoKeyEngine::maker);
+#endif
+#ifdef HAVE_LIBCRYPTO_ED25519
+      DNSCryptoKeyEngine::report(15, &OpenSSLEDDSADNSCryptoKeyEngine::maker);
+#endif
+#ifdef HAVE_LIBCRYPTO_ED448
+      DNSCryptoKeyEngine::report(16, &OpenSSLEDDSADNSCryptoKeyEngine::maker);
 #endif
     }
   } loaderOpenSSL;
