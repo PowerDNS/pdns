@@ -91,8 +91,38 @@ static void callback_simple( unsigned int domain_id, const DNSName &domain, cons
 
         std::string stripped=stripDot(content);
         std::string rrvalue = stripped + ((stripped.empty() || stripped[stripped.size()-1]==' ') ? "." : "");
-        std::string dn = "dc=";
-        if( host.countLabels() ) { dn += host.toStringNoDot() + ",dc="; }
+        std::string dn;
+        vector<string> parts;
+        stringtok( parts, host.toStringNoDot(), "." );
+
+        if( host.countLabels() ) {
+                DNSName ent = g_zonename;
+
+                for( unsigned int i = parts.size() - 1; i > 0; i-- )
+                {
+                        ent.prependRawLabel(parts[i]);
+                        dn = "dc=" + parts[i] + "," + dn;
+                        std::string fulldn = dn + "dc=" + g_zonename.toStringNoDot() + "," + g_basedn;
+
+                        if( !g_entries[fulldn] )
+                        {
+                                g_entries[fulldn] = true;
+
+                                cout << "dn: " << dn << "dc=" << g_zonename.toStringNoDot() << "," << g_basedn << endl;
+                                cout << "changetype: add" << endl;
+                                cout << "objectclass: dnsdomain2" << endl;
+                                cout << "objectclass: domainrelatedobject" << endl;
+                                cout << "dc: " << parts[i] << endl;
+                                cout << "associateddomain: " << ent.toStringNoDot() << endl << endl;
+                        }
+
+                }
+
+                dn = "dc=" + parts[0] + "," + dn + "dc=";
+        }
+        else {
+                dn = "dc=";
+        }
         dn += g_zonename.toStringNoDot() + "," + g_basedn;
         cout << "dn: " << dn << endl;
 
@@ -111,7 +141,10 @@ static void callback_simple( unsigned int domain_id, const DNSName &domain, cons
                         cout << "objectclass: PdnsDomain" << endl;
                         cout << "PdnsDomainId: " << domain_id << endl;
                 }
-                cout << "dc: " << host.toStringNoDot() << endl;
+                if ( parts.size() )
+                        cout << "dc: " << parts[0] << endl;
+                else
+                        cout << "dc: " << host.toStringNoDot() << endl;
                 if( g_dnsttl ) { cout << "dnsttl: " << ttl << endl; }
                 cout << "associateddomain: " << domain.toStringNoDot() << endl;
         }

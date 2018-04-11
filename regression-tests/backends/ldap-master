@@ -13,7 +13,7 @@ objectClass: organizationalUnit
 $LDAPRELATTR
 __EOF__
 
-		$ZONE2LDAP --dnsttl=yes --basedn=$LDAPBASEDN --layout=$layout --named-conf=named.conf | ldapmodify -D $LDAPUSER -w $LDAPPASSWD -c > /dev/null || true
+		$ZONE2LDAP --dnsttl=yes --basedn=$LDAPBASEDN --layout=$layout --named-conf=named.conf --pdns-info=yes --domainid=1 --metadata-dn=$LDAPMETADATADN | ldapmodify -D $LDAPUSER -w $LDAPPASSWD -c > /dev/null || true
 
 		cat > pdns-ldap.conf << __EOF__
 module-dir=./modules
