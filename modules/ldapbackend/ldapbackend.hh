@@ -105,6 +105,7 @@ __attribute__ ((unused)) static const char* ldap_attrany[] = {
   "PdnsRecordTTL",
   "PdnsRecordNoAuth",
   "PdnsRecordOrdername",
+  "PdnsRecordNoOrdername",
   NULL
 };
 
@@ -204,6 +205,7 @@ class LdapBackend : public DNSBackend
     bool deactivateDomainKey( const DNSName& name, unsigned int id ) override;
     bool removeDomainKey( const DNSName& name, unsigned int id ) override;
 
+    bool getBeforeAndAfterNamesAbsolute( uint32_t domain_id, const DNSName& qname, DNSName& unhashed, DNSName& before, DNSName& after ) override;
     bool updateDNSSECOrderNameAndAuth( uint32_t domain_id, const DNSName& qname, const DNSName& ordername, bool auth, const uint16_t qtype ) override;
 };
 

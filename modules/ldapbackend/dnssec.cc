@@ -647,6 +647,219 @@ bool LdapBackend::removeDomainKey( const DNSName& name, unsigned int id )
   }
 }
  
+ 
+bool LdapBackend::getBeforeAndAfterNamesAbsolute( uint32_t domain_id, const DNSName& qname, DNSName& unhashed, DNSName& before, DNSName& after )
+{
+  if ( !d_dnssec )
+    return false;
+
+  g_log<<Logger::Debug<< d_myname << " Searching for names before and after " << unhashed << ", qname: " << qname << ", domain_id: " << domain_id << std::endl;
+
+  try {
+    // Get the zone first
+    std::string filter = "PdnsDomainId=" + std::to_string( domain_id );
+    const char* zoneAttributes[] = { "associatedDomain", NULL };
+    PowerLDAP::sentry_t result;
+
+    PowerLDAP::SearchResult::Ptr search = d_pldap->search( getArg( "basedn" ), LDAP_SCOPE_SUBTREE, filter, zoneAttributes );
+    if ( !search->getNext( result, true ) ) {
+      g_log<<Logger::Debug<< d_myname << " Can't find the zone for domain ID " << domain_id << std::endl;
+      return false;
+    }
+
+    std::string basedn = getArg( "basedn" );
+    if ( mustDo( "lookup-zone-rebase" ) )
+      basedn = result["dn"][0];
+
+    std::string qnameMatch = ( qname.empty() || qname.isRoot() ) ? " " : qname.labelReverse().toString( " ", false );
+    std::string foundBeforeOrdername, foundBeforeDomain, foundAfter;
+    std::string domainBase = result["associatedDomain"][0];
+    const char* orderAttributes[] = { "associatedDomain", "PdnsRecordOrdername", NULL };
+    filter = "(&(|(associatedDomain="+domainBase+")(associatedDomain=*."+domainBase+"))(PdnsRecordOrdername>="+d_pldap->escape(qnameMatch)+"))";
+
+    search = d_pldap->sorted_search( basedn, LDAP_SCOPE_SUBTREE, filter, std::string( "PdnsRecordOrdername" ), orderAttributes, 2 );
+    if ( search ) {
+      g_log<<Logger::Debug<< d_myname << " Sorting is available on this server" << std::endl;
+
+      // Sorting sometimes fail because the LDAP server cannot honor it.
+      // Retry the search for at most 3 times, and if it works, yay!
+      int retryAttempts = 3;
+      while ( retryAttempts > 0 ) {
+        while ( search->getNext( result, false ) ) {
+          foundAfter = result["PdnsRecordOrdername"][0];
+          if ( foundAfter > qnameMatch )
+            break;
+        }
+
+        search->consumeAll();
+        if ( search->successful() )
+          break;
+
+        g_log<<Logger::Error<< d_myname << " Name after search failed (code '" << search->status() << "'): " << search->error() << std::endl;
+        search = d_pldap->sorted_search( basedn, LDAP_SCOPE_SUBTREE, filter, std::string( "PdnsRecordOrdername" ), orderAttributes, 2 );
+        --retryAttempts;
+      }
+      if ( retryAttempts == 0 && !search->successful() ) {
+        throw PDNSException( "Name after search failed: " + search->error() );
+      }
+
+      if ( foundAfter.empty() ) {
+        // This was the last entry in the zone, get the first
+        filter = "(&(|(associatedDomain="+domainBase+")(associatedDomain=*."+domainBase+"))(PdnsRecordOrdername=*))";
+        search = d_pldap->sorted_search( basedn, LDAP_SCOPE_SUBTREE, filter, std::string( "PdnsRecordOrdername" ), orderAttributes, 1 );
+
+        // Same as above, retry at most 3 times
+        retryAttempts = 3;
+        while ( retryAttempts > 0 ) {
+          if ( search->getNext( result, false ) )
+            foundAfter = result["PdnsRecordOrdername"][0];
+
+          search->consumeAll();
+          if ( search->successful() )
+            break;
+
+          g_log<<Logger::Error<< d_myname << " Name after search failed (zone start): " << search->error() << std::endl;
+          search = d_pldap->sorted_search( basedn, LDAP_SCOPE_SUBTREE, filter, std::string( "PdnsRecordOrdername" ), orderAttributes, 1 );
+          --retryAttempts;
+        }
+        if ( retryAttempts == 0 && !search->successful() ) {
+          throw PDNSException( "Name after search failed (zone start): " + search->error() );
+        }
+      }
+
+      g_log<<Logger::Debug<< d_myname << "     Found after: " << foundAfter << std::endl;
+
+      filter = "(&(|(associatedDomain="+domainBase+")(associatedDomain=*."+domainBase+"))(PdnsRecordOrdername<="+d_pldap->escape(qnameMatch)+"))";
+      search = d_pldap->sorted_search( basedn, LDAP_SCOPE_SUBTREE, filter, std::string( "-PdnsRecordOrdername" ), orderAttributes, 1 );
+      // Same as above, retry at most 3 times
+      retryAttempts = 3;
+      while ( retryAttempts > 0 ) {
+        if ( search->getNext( result, false ) ) {
+          foundBeforeOrdername = result["PdnsRecordOrdername"][0];
+          foundBeforeDomain = result["associatedDomain"][0];
+        }
+
+        search->consumeAll();
+        if ( search->successful() )
+          break;
+
+        g_log<<Logger::Error<< d_myname << " Name before search failed: " << search->error() << std::endl;
+        search = d_pldap->sorted_search( basedn, LDAP_SCOPE_SUBTREE, filter, std::string( "-PdnsRecordOrdername" ), orderAttributes, 1 );
+        --retryAttempts;
+      }
+      if ( retryAttempts == 0 && !search->successful() ) {
+        throw PDNSException( "Name before search failed: " + search->error() );
+      }
+
+      if ( foundBeforeOrdername.empty() ) {
+        // This was the first entry in the zone, get the last
+        filter = "(&(|(associatedDomain="+domainBase+")(associatedDomain=*."+domainBase+"))(PdnsRecordOrdername=*))";
+        search = d_pldap->sorted_search( basedn, LDAP_SCOPE_SUBTREE, filter, std::string( "-PdnsRecordOrdername" ), orderAttributes, 1 );
+
+        // Same old, 3 times
+        retryAttempts = 3;
+        while ( retryAttempts > 0 ) {
+          if ( search->getNext( result, false ) ) {
+            foundBeforeOrdername = result["PdnsRecordOrdername"][0];
+            foundBeforeDomain = result["associatedDomain"][0];
+          }
+
+          search->consumeAll();
+          if ( search->successful() )
+            break;
+
+          g_log<<Logger::Error<< d_myname << " Name before search failed (zone end): " << search->error() << std::endl;
+          search = d_pldap->sorted_search( basedn, LDAP_SCOPE_SUBTREE, filter, std::string( "-PdnsRecordOrdername" ), orderAttributes, 1 );
+          --retryAttempts;
+        }
+        if ( retryAttempts == 0 && !search->successful() ) {
+          throw PDNSException( "Name before search failed: " + search->error() );
+        }
+      }
+
+      g_log<<Logger::Debug<< d_myname << "     Found before: " << foundBeforeOrdername << " (" << foundBeforeDomain << ")" << std::endl;
+    }
+    else {
+      // No sorting available on this server, do it manually
+      std::map<std::string, std::string> ordernames;
+      filter = "(&(|(associatedDomain="+domainBase+")(associatedDomain=*."+domainBase+"))(PdnsRecordOrdername=*))";
+      search = d_pldap->search( basedn, LDAP_SCOPE_SUBTREE, filter, orderAttributes );
+      g_log<<Logger::Debug<< d_myname << " Subdomains search done" << std::endl;
+
+      while ( search->getNext( result, false ) ) {
+        // No need to iterate over associatedDomain as for DNSSEC I doubt that having more
+        // than one value for this attribute is going to work.
+        ordernames[result["PdnsRecordOrdername"][0]] = result["associatedDomain"][0];
+      }
+      g_log<<Logger::Debug<< d_myname << " Subdomains ordernames retrieved" << std::endl;
+
+      for ( const auto& ordername : ordernames ) {
+        if ( ordername.first <= qnameMatch ) {
+          foundBeforeOrdername = ordername.first;
+          foundBeforeDomain = ordername.second;
+        }
+        else if ( foundAfter.empty() && ordername.first > qnameMatch ) {
+          foundAfter = ordername.first;
+        }
+      }
+      g_log<<Logger::Debug<< d_myname << " before / after search done" << std::endl;
+
+      if ( foundAfter.empty() )
+        foundAfter = ordernames.begin()->first;
+
+      if ( foundBeforeDomain.empty() ) {
+        foundBeforeOrdername = ordernames.rbegin()->first;
+        foundBeforeDomain = ordernames.rbegin()->second;
+      }
+    }
+ 
+    if ( foundAfter.empty() )
+      throw PDNSException( "Failed to find the name after '" + qname.toString() + "'" );
+
+    if ( foundBeforeOrdername.empty() )
+      throw PDNSException( "Failed to find the name before '" + qname.toString() + "'" );
+
+    after = DNSName( boost::replace_all_copy( foundAfter, " ", "." ) ).labelReverse();
+
+    // What follows is how the GSQL backend works. I just took the algorithm as-is, but no comments exist,
+    // so I have no idea what I'm doing exactly right now.
+    if ( before.empty() ) {
+      before = DNSName( boost::replace_all_copy( foundBeforeOrdername, " ", "." ) ).labelReverse();
+      unhashed = DNSName( foundBeforeDomain );
+    }
+    else {
+      before = qname;
+    }
+
+    g_log<<Logger::Debug<< d_myname << "     Found before=" << before << ", after=" << after << ", unhashed=" << unhashed << std::endl;
+
+    return true;
+  }
+  catch( LDAPTimeout &lt )
+  {
+    g_log << Logger::Warning << d_myname << " Unable to search LDAP directory: " << lt.what() << endl;
+    throw DBException( "LDAP server timeout" );
+  }
+  catch( LDAPNoConnection &lnc )
+  {
+    g_log << Logger::Warning << d_myname << " Connection to LDAP lost, trying to reconnect" << endl;
+    if ( reconnect() )
+      return this->getBeforeAndAfterNamesAbsolute( domain_id, qname, unhashed, before, after );
+    else
+      throw PDNSException( "Failed to reconnect to LDAP server" );
+  }
+  catch( LDAPException &le )
+  {
+    g_log << Logger::Error << d_myname << " Unable to search LDAP directory: " << le.what() << endl;
+    throw PDNSException( "LDAP server unreachable" );   // try to reconnect to another server
+  }
+  catch( std::exception &e )
+  {
+    g_log << Logger::Error << d_myname << " Caught STL exception getting before and after names for " << qname << ": " << e.what() << endl;
+    throw DBException( "STL exception" );
+  }
+}
+
 
 bool LdapBackend::updateDNSSECOrderNameAndAuth( uint32_t domain_id, const DNSName& qname, const DNSName& ordername, bool auth, const uint16_t qtype )
 {
@@ -657,7 +870,6 @@ bool LdapBackend::updateDNSSECOrderNameAndAuth( uint32_t domain_id, const DNSNam
 
   try {
     // Get the zone first
-    DNSName zonename;
     std::string filter = "PdnsDomainId=" + std::to_string( domain_id );
     const char* zoneAttributes[] = { "associatedDomain", NULL };
     PowerLDAP::sentry_t result;
@@ -667,7 +879,6 @@ bool LdapBackend::updateDNSSECOrderNameAndAuth( uint32_t domain_id, const DNSNam
       g_log<<Logger::Debug<< d_myname << " Can't find the zone for domain ID " << domain_id << std::endl;
       return false;
     }
-    zonename = DNSName( result["associatedDomain"][0] );
 
     std::string basedn = getArg( "basedn" );
     if ( mustDo( "lookup-zone-rebase" ) )
@@ -705,12 +916,12 @@ bool LdapBackend::updateDNSSECOrderNameAndAuth( uint32_t domain_id, const DNSNam
 
     // Now let's extract the relevant information from the entry
     std::set<std::string>              entryRRs,       // The RRs in it
-                                       entryNoAuthRRs; // The RRs on which this entry is not authoritative
-    std::map<std::string, std::string> entryONRRs;     // And the ones with a specific ordername
+                                       entryNoAuthRRs, // The RRs on which this entry is not authoritative
+                                       entryNoONRRs;   // The RRs for which this entry has no ordername
     std::string entryOrdername;
     std::string convertedOrdername;
     if ( !ordername.empty() )
-      convertedOrdername = ordername.makeRelative( zonename ).labelReverse().toString( " ", false );
+      convertedOrdername = ordername.labelReverse().toString( " ", false );
     if ( convertedOrdername.empty() )
       convertedOrdername = " ";
     std::string qtypeName = QType( qtype ).getName();
@@ -724,19 +935,11 @@ bool LdapBackend::updateDNSSECOrderNameAndAuth( uint32_t domain_id, const DNSNam
           entryNoAuthRRs.insert( noauth );
       }
       else if ( attribute.first == "PdnsRecordOrdername" ) {
-        for ( const auto& rrOrdername : attribute.second ) {
-          std::size_t pos = rrOrdername.find_first_of( '|', 0 );
-          if ( pos == std::string::npos ) {
-            entryOrdername = rrOrdername;
-          }
-          else {
-            entryONRRs.insert(
-                std::make_pair(
-                  rrOrdername.substr( 0, pos ),
-                  rrOrdername.substr( pos + 1 )
-                )
-              );
-          }
+        entryOrdername = attribute.second[0];
+      }
+      else if ( attribute.first == "PdnsRecordNoOrdername" ) {
+        for ( const auto& noON : attribute.second ) {
+          entryNoONRRs.insert( noON );
         }
       }
     }
@@ -798,7 +1001,7 @@ bool LdapBackend::updateDNSSECOrderNameAndAuth( uint32_t domain_id, const DNSNam
         // Take the easy way: delete all and recreate the default one.
         g_log<<Logger::Debug<< d_myname << " Setting default entry ordername, deleting others" << std::endl;
 
-        LDAPMod* mods[3];
+        LDAPMod* mods[4];
 
         LDAPMod delMod;
         delMod.mod_op = LDAP_MOD_DELETE;
@@ -811,17 +1014,30 @@ bool LdapBackend::updateDNSSECOrderNameAndAuth( uint32_t domain_id, const DNSNam
         std::string addStr = convertedOrdername;
         char* addValues[] = { (char*)addStr.c_str(), NULL };
         addMod.mod_values = addValues;
+ 
+        LDAPMod delNoONMod;
+        delNoONMod.mod_op = LDAP_MOD_DELETE;
+        delNoONMod.mod_type = (char*)"PdnsRecordNoOrdername";
+        delNoONMod.mod_values = { NULL };
 
-        if ( result.count( "PdnsOrdername" ) ) {
+        if ( result.count( "PdnsRecordOrdername" ) ) {
           mods[0] = &delMod;
           mods[1] = &addMod;
+          if ( !entryNoONRRs.empty() )
+            mods[2] = &delNoONMod;
+          else
+            mods[2] = NULL;
         }
         else {
           mods[0] = &addMod;
-          mods[1] = NULL;
+          if ( !entryNoONRRs.empty() )
+            mods[1] = &delNoONMod;
+          else
+            mods[1] = NULL;
+          mods[2] = NULL;
         }
 
-        mods[2] = NULL;
+        mods[3] = NULL;
 
         d_pldap->modify( result["dn"][0], mods );
       }
@@ -858,63 +1074,58 @@ bool LdapBackend::updateDNSSECOrderNameAndAuth( uint32_t domain_id, const DNSNam
         d_pldap->modify( result["dn"][0], mods );
       }
 
-      // For the ordername, whatever its value, this will override the default entry ordername.
-      // However, setting an empty ordername on all attribute types held by this entry means
-      // that we have to delete all ordernames.
-      std::set<std::string> remainingONs = entryRRs;
-      if ( remainingONs.count( qtypeName ) )
-        remainingONs.erase( qtypeName );
-      for ( const auto& rr : entryONRRs )
-        if ( remainingONs.count( rr.first ) && rr.second.empty() )
-          remainingONs.erase( rr.first );
-
-      if ( ordername.empty() && result.count( "PdnsRecordOrdername" ) && !remainingONs.size() ) {
-          g_log<<Logger::Debug<< d_myname << " Removing PdnsRecordOrdername as the last RR will be deleted" << std::endl;
-
-          LDAPMod mod;
-          mod.mod_op = LDAP_MOD_DELETE;
-          mod.mod_type = (char*)"PdnsRecordOrdername";
-          mod.mod_values = { NULL };
-
-          LDAPMod* mods[2];
-          mods[0] = &mod;
-          mods[1] = NULL;
-
-          d_pldap->modify( result["dn"][0], mods );
+      // Setting a RR-specific non-empty ordername is not supported by this backend
+      if ( !ordername.empty() ) {
+        if ( convertedOrdername != entryOrdername )
+          throw PDNSException( "Unsupported operation: adding a different, non-empty ordername for a RR" );
       }
-      else if ( entryOrdername != convertedOrdername && ( !entryONRRs.count( qtypeName ) || entryONRRs[qtypeName] != convertedOrdername ) && ( entryRRs.count( qtypeName ) ) ) {
-        g_log<<Logger::Debug<< d_myname << " Setting ordername to " << convertedOrdername << " for RR " << qtypeName << std::endl;
-        LDAPMod* mods[3];
+      else {
+        std::set<std::string> remainingONs = entryRRs;
+        if ( remainingONs.count( qtypeName ) )
+          remainingONs.erase( qtypeName );
+        for ( auto rr : entryNoONRRs )
+          remainingONs.erase( rr );
 
-        LDAPMod delMod;
-        delMod.mod_op = LDAP_MOD_DELETE;
-        delMod.mod_type = (char*)"PdnsRecordOrdername";
-        std::string delStr;
-        char* delValues[] = { NULL, NULL };
-        delMod.mod_values = delValues;
+        if ( result.count( "PdnsRecordOrdername" ) ) {
+          if ( !remainingONs.size() ) {
+            g_log<<Logger::Debug<< d_myname << " Removing PdnsRecordOrdername as the last RR will be deleted" << std::endl;
 
-        LDAPMod addMod;
-        addMod.mod_op = LDAP_MOD_ADD;
-        addMod.mod_type = (char*)"PdnsRecordOrdername";
-        std::string rrOrdername = ordername.empty() ? "" : convertedOrdername;
-        std::string addStr = qtypeName + "|" + rrOrdername;
-        char* addValues[] = { (char*)addStr.c_str(), NULL };
-        addMod.mod_values = addValues;
+            LDAPMod mod;
+            mod.mod_op = LDAP_MOD_DELETE;
+            mod.mod_type = (char*)"PdnsRecordOrdername";
+            mod.mod_values = { NULL };
 
-        if ( entryONRRs.count( qtypeName ) && entryONRRs[qtypeName] != rrOrdername ) {
-          delStr = qtypeName + "|" + entryONRRs[qtypeName];
-          delValues[0] = (char*)delStr.c_str();
-          mods[0] = &delMod;
-          mods[1] = &addMod;
+            LDAPMod delNoONMod;
+            delNoONMod.mod_op = LDAP_MOD_DELETE;
+            delNoONMod.mod_type = (char*)"PdnsRecordNoOrdername";
+            delNoONMod.mod_values = { NULL };
+
+            LDAPMod* mods[3];
+            mods[0] = &mod;
+            if ( !entryNoONRRs.empty() )
+              mods[1] = &delNoONMod;
+            else
+              mods[1] = NULL;
+            mods[2] = NULL;
+
+            d_pldap->modify( result["dn"][0], mods );
+          }
+          else if ( !entryNoONRRs.count( qtypeName ) ) {
+            g_log<<Logger::Debug<< d_myname << " Setting PdnsRecordNoOrdername for qtype " << qtypeName << std::endl;
+
+            LDAPMod addMod;
+            addMod.mod_op = LDAP_MOD_ADD;
+            addMod.mod_type = (char*)"PdnsRecordNoOrdername";
+            char* addValues[] = { (char*)qtypeName.c_str(), NULL };
+            addMod.mod_values = addValues;
+
+            LDAPMod* mods[2];
+            mods[0] = &addMod;
+            mods[1] = NULL;
+
+            d_pldap->modify( result["dn"][0], mods );
+          }
         }
-        else {
-          mods[0] = &addMod;
-          mods[1] = NULL;
-        }
-
-        mods[2] = NULL;
-
-        d_pldap->modify( result["dn"][0], mods );
       }
     }
 
