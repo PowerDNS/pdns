@@ -140,10 +140,10 @@ int SyncRes::beginResolve(const DNSName &qname, const QType &qtype, uint16_t qcl
   int res=doResolve(qname, qtype, ret, 0, beenthere, state);
   d_queryValidationState = state;
 
-  if (d_queryValidationState != Indeterminate) {
-    g_stats.dnssecValidations++;
-  }
   if (shouldValidate()) {
+    if (d_queryValidationState != Indeterminate) {
+      g_stats.dnssecValidations++;
+    }
     increaseDNSSECStateCounter(d_queryValidationState);
   }
 
