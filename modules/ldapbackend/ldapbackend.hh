@@ -204,6 +204,11 @@ class LdapBackend : public DNSBackend
     bool activateDomainKey( const DNSName& name, unsigned int id ) override;
     bool deactivateDomainKey( const DNSName& name, unsigned int id ) override;
     bool removeDomainKey( const DNSName& name, unsigned int id ) override;
+ 
+    bool getTSIGKey( const DNSName& name, DNSName* algorithm, string* content ) override;
+    bool setTSIGKey( const DNSName& name, const DNSName& algorithm, const string& content ) override;
+    bool deleteTSIGKey( const DNSName& name ) override;
+    bool getTSIGKeys( std::vector<struct TSIGKey>& keys ) override;
 
     bool getBeforeAndAfterNamesAbsolute( uint32_t domain_id, const DNSName& qname, DNSName& unhashed, DNSName& before, DNSName& after ) override;
     bool updateDNSSECOrderNameAndAuth( uint32_t domain_id, const DNSName& qname, const DNSName& ordername, bool auth, const uint16_t qtype ) override;

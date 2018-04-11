@@ -648,6 +648,236 @@ bool LdapBackend::removeDomainKey( const DNSName& name, unsigned int id )
 }
  
  
+bool LdapBackend::getTSIGKey( const DNSName& name, DNSName* algorithm, string* content )
+{
+  try {
+    std::string filter = "(&(objectClass=PdnsTSIGKey)(cn=" + d_pldap->escape( name.toString( "" ) ) + "))";
+    const char* attributes[] = { (char*)"PdnsKeyAlgorithm", (char*)"PdnsKeyContent", NULL };
+    PowerLDAP::sentry_t result;
+    PowerLDAP::SearchResult::Ptr search = d_pldap->search( "ou=TSIGKeys," + getArg( "metadata-searchdn" ), LDAP_SCOPE_ONELEVEL, filter, attributes );
+
+    if ( !search->getNext( result ) )
+      return false;
+
+    if ( algorithm->empty() || *algorithm == DNSName( result["PdnsKeyAlgorithm"][0] ) ) {
+      *algorithm = DNSName( result["PdnsKeyAlgorithm"][0] );
+      *content = result["PdnsKeyContent"][0];
+    }
+
+    return !content->empty();
+  }
+  catch( LDAPTimeout &lt )
+  {
+    g_log << Logger::Warning << d_myname << " Unable to search LDAP directory: " << lt.what() << endl;
+    throw DBException( "LDAP server timeout" );
+  }
+  catch( LDAPNoConnection &lnc )
+  {
+    g_log << Logger::Warning << d_myname << " Connection to LDAP lost, trying to reconnect" << endl;
+    if ( reconnect() )
+      return this->getTSIGKey( name, algorithm, content );
+    else
+      throw PDNSException( "Failed to reconnect to LDAP server" );
+  }
+  catch( LDAPException &le )
+  {
+    g_log << Logger::Error << d_myname << " Unable to search LDAP directory: " << le.what() << endl;
+    throw PDNSException( "LDAP server unreachable" );   // try to reconnect to another server
+  }
+  catch( std::exception &e )
+  {
+    g_log << Logger::Error << d_myname << " Caught STL exception retrieving TSIG key '" << name << "': " << e.what() << endl;
+    throw DBException( "STL exception" );
+  }
+}
+
+
+bool LdapBackend::setTSIGKey( const DNSName& name, const DNSName& algorithm, const string& content )
+{
+  try {
+    DNSName existingAlgo;
+    std::string existingContent;
+    if ( this->getTSIGKey( name, &existingAlgo, &existingContent ) ) {
+      LDAPMod algoMod;
+      algoMod.mod_op = LDAP_MOD_REPLACE;
+      algoMod.mod_type = (char*)"PdnsKeyAlgorithm";
+      std::string algoStr = algorithm.toString( "" );
+      char* algoValues[] = { (char*)(algoStr.c_str()), NULL };
+      algoMod.mod_values = algoValues;
+
+      LDAPMod contentMod;
+      contentMod.mod_op = LDAP_MOD_REPLACE;
+      contentMod.mod_type = (char*)"PdnsKeyContent";
+      char* contentValues[] = { (char*)(content.c_str()), NULL };
+      contentMod.mod_values = contentValues;
+
+      std::string filter = "(&(objectClass=PdnsTSIGKey)(cn=" + d_pldap->escape( name.toString( "" ) ) + "))";
+      const char* attributes[] = { (char*)"objectClass", NULL };
+      PowerLDAP::sentry_t result;
+      PowerLDAP::SearchResult::Ptr search = d_pldap->search( "ou=TSIGKeys," + getArg( "metadata-searchdn" ), LDAP_SCOPE_ONELEVEL, filter, attributes );
+
+      LDAPMod* mods[3];
+      mods[0] = &algoMod;
+      mods[1] = &contentMod;
+      mods[2] = NULL;
+
+      if ( !search->getNext( result, true ) ) // Whaaaa?
+        return false;
+
+      d_pldap->modify( result["dn"][0], mods );
+    }
+    else {
+      LDAPMod objectClassMod;
+      objectClassMod.mod_op = LDAP_MOD_ADD;
+      objectClassMod.mod_type = (char*)"objectClass";
+      char* objectClassValues[] = { (char*)"top", (char*)"PdnsTSIGKey", NULL };
+      objectClassMod.mod_values = objectClassValues;
+
+      LDAPMod cnMod;
+      cnMod.mod_op = LDAP_MOD_ADD;
+      cnMod.mod_type = (char*)"cn";
+      std::string cnStr = name.toString( "" );
+      char* cnValues[] = { (char*)(cnStr.c_str()), NULL };
+      cnMod.mod_values = cnValues;
+
+      LDAPMod algoMod;
+      algoMod.mod_op = LDAP_MOD_ADD;
+      algoMod.mod_type = (char*)"PdnsKeyAlgorithm";
+      std::string algoStr = algorithm.toString( "" );
+      char* algoValues[] = { (char*)(algoStr.c_str()), NULL };
+      algoMod.mod_values = algoValues;
+
+      LDAPMod contentMod;
+      contentMod.mod_op = LDAP_MOD_ADD;
+      contentMod.mod_type = (char*)"PdnsKeyContent";
+      char* contentValues[] = { (char*)(content.c_str()), NULL };
+      contentMod.mod_values = contentValues;
+
+      LDAPMod* mods[5];
+      mods[0] = &objectClassMod;
+      mods[1] = &cnMod;
+      mods[2] = &algoMod;
+      mods[3] = &contentMod;
+      mods[4] = NULL;
+
+      std::string dn = "cn=" + cnStr + ",ou=TSIGKeys," + getArg( "metadata-searchdn" );
+      g_log<<Logger::Debug<< d_myname << " Adding a TSIG key named '" << cnStr << "' at '" << dn << "'" << std::endl;
+      d_pldap->add( dn, mods );
+    }
+
+    return true;
+  }
+  catch( LDAPTimeout &lt )
+  {
+    g_log << Logger::Warning << d_myname << " Unable to search LDAP directory: " << lt.what() << endl;
+    throw DBException( "LDAP server timeout" );
+  }
+  catch( LDAPNoConnection &lnc )
+  {
+    g_log << Logger::Warning << d_myname << " Connection to LDAP lost, trying to reconnect" << endl;
+    if ( reconnect() )
+      return this->setTSIGKey( name, algorithm, content );
+    else
+      throw PDNSException( "Failed to reconnect to LDAP server" );
+  }
+  catch( LDAPException &le )
+  {
+    g_log << Logger::Error << d_myname << " Unable to set TSIG key in LDAP: " << le.what() << endl;
+    throw PDNSException( "LDAP server unreachable" );   // try to reconnect to another server
+  }
+  catch( std::exception &e )
+  {
+    g_log << Logger::Error << d_myname << " Caught STL exception adding TSIG key '" << name << "': " << e.what() << endl;
+    throw DBException( "STL exception" );
+  }
+}
+
+
+bool LdapBackend::deleteTSIGKey( const DNSName& name )
+{
+  try {
+    std::string filter = "(&(objectClass=PdnsTSIGKey)(cn=" + d_pldap->escape( name.toString( "" ) ) + "))";
+    const char* attributes[] = { (char*)"objectClass", NULL };
+    PowerLDAP::sentry_t result;
+    PowerLDAP::SearchResult::Ptr search = d_pldap->search( "ou=TSIGKeys," + getArg( "metadata-searchdn" ), LDAP_SCOPE_ONELEVEL, filter, attributes );
+
+    if ( !search->getNext( result, true ) )
+      return false;
+
+    d_pldap->del( result["dn"][0] );
+
+    return true;
+  }
+  catch( LDAPTimeout &lt )
+  {
+    g_log << Logger::Warning << d_myname << " Unable to search LDAP directory: " << lt.what() << endl;
+    throw DBException( "LDAP server timeout" );
+  }
+  catch( LDAPNoConnection &lnc )
+  {
+    g_log << Logger::Warning << d_myname << " Connection to LDAP lost, trying to reconnect" << endl;
+    if ( reconnect() )
+      return this->deleteTSIGKey( name );
+    else
+      throw PDNSException( "Failed to reconnect to LDAP server" );
+  }
+  catch( LDAPException &le )
+  {
+    g_log << Logger::Error << d_myname << " Unable to search LDAP directory: " << le.what() << endl;
+    throw PDNSException( "LDAP server unreachable" );   // try to reconnect to another server
+  }
+  catch( std::exception &e )
+  {
+    g_log << Logger::Error << d_myname << " Caught STL exception deleting TSIG key '" << name << "': " << e.what() << endl;
+    throw DBException( "STL exception" );
+  }
+}
+
+
+bool LdapBackend::getTSIGKeys( std::vector<struct TSIGKey>& keys )
+{
+  try {
+    std::string filter = "objectClass=PdnsTSIGKey";
+    const char* attributes[] = { (char*)"cn", (char*)"PdnsKeyAlgorithm", (char*)"PdnsKeyContent", NULL };
+    PowerLDAP::sentry_t result;
+    PowerLDAP::SearchResult::Ptr search = d_pldap->search( "ou=TSIGKeys," + getArg( "metadata-searchdn" ), LDAP_SCOPE_ONELEVEL, filter, attributes );
+
+    while ( search->getNext( result, false ) ) {
+      TSIGKey key;
+      key.name = DNSName( result["cn"][0] );
+      key.algorithm = DNSName( result["PdnsKeyAlgorithm"][0] );
+      key.key = result["PdnsKeyContent"][0];
+      keys.push_back( key );
+    }
+
+    return true;
+  }
+  catch( LDAPTimeout &lt )
+  {
+    g_log << Logger::Warning << d_myname << " Unable to search LDAP directory: " << lt.what() << endl;
+    throw DBException( "LDAP server timeout" );
+  }
+  catch( LDAPNoConnection &lnc )
+  {
+    g_log << Logger::Warning << d_myname << " Connection to LDAP lost, trying to reconnect" << endl;
+    if ( reconnect() )
+      return this->getTSIGKeys( keys );
+    else
+      throw PDNSException( "Failed to reconnect to LDAP server" );
+  }
+  catch( LDAPException &le )
+  {
+    g_log << Logger::Error << d_myname << " Unable to search LDAP directory: " << le.what() << endl;
+    throw PDNSException( "LDAP server unreachable" );   // try to reconnect to another server
+  }
+  catch( std::exception &e )
+  {
+    g_log << Logger::Error << d_myname << " Caught STL exception retrieving all TSIG keys: " << e.what() << endl;
+    throw DBException( "STL exception" );
+  }
+}
+ 
+ 
 bool LdapBackend::getBeforeAndAfterNamesAbsolute( uint32_t domain_id, const DNSName& qname, DNSName& unhashed, DNSName& before, DNSName& after )
 {
   if ( !d_dnssec )
@@ -1083,7 +1313,7 @@ bool LdapBackend::updateDNSSECOrderNameAndAuth( uint32_t domain_id, const DNSNam
         std::set<std::string> remainingONs = entryRRs;
         if ( remainingONs.count( qtypeName ) )
           remainingONs.erase( qtypeName );
-        for ( auto rr : entryNoONRRs )
+        for ( const auto& rr : entryNoONRRs )
           remainingONs.erase( rr );
 
         if ( result.count( "PdnsRecordOrdername" ) ) {

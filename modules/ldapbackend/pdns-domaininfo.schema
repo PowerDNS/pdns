@@ -59,7 +59,7 @@ attributetype ( 1.3.6.1.4.1.27080.1.8 NAME 'PdnsKeyFlags'
     SYNTAX 1.3.6.1.4.1.1466.115.121.1.36 SINGLE-VALUE )
 
 attributetype ( 1.3.6.1.4.1.27080.1.9 NAME 'PdnsKeyContent'
-    DESC 'The content of the domain signing key'
+    DESC 'The content of a key (domain signing or TSIG)'
     EQUALITY caseIgnoreMatch
     SYNTAX 1.3.6.1.4.1.1466.115.121.1.15 SINGLE-VALUE )
 
@@ -94,6 +94,11 @@ attributetype (  1.3.6.1.4.1.27080.1.15 NAME 'ALIASRecord'
     EQUALITY caseIgnoreIA5Match
     SUBSTR caseIgnoreIA5SubstringsMatch
     SYNTAX 1.3.6.1.4.1.1466.115.121.1.26 )
+ 
+attributetype ( 1.3.6.1.4.1.27080.1.16 NAME 'PdnsKeyAlgorithm'
+    DESC 'TSIG key algorithm'
+    EQUALITY caseIgnoreMatch
+    SYNTAX 1.3.6.1.4.1.1466.115.121.1.15 SINGLE-VALUE )
 
 objectclass ( 1.3.6.1.4.1.27080.2.2.1 NAME 'PdnsDomain'
     DESC 'PDNS domain information'
@@ -117,3 +122,8 @@ objectclass ( 1.3.6.1.4.1.27080.2.2.4 NAME 'PdnsRecordData'
     DESC 'Additional record data for PDNS'
     SUP top AUXILIARY
     MAY ( PdnsRecordTTL $ PdnsRecordNoAuth $ PdnsRecordOrdername $ PdnsRecordNoOrdername $ ALIASRecord ) )
+
+objectclass ( 1.3.6.1.4.1.27080.2.2.5 NAME 'PdnsTSIGKey'
+    DESC 'PDNS TSIG key'
+    SUP top STRUCTURAL
+    MUST ( cn $ PdnsKeyAlgorithm $ PdnsKeyContent ) )

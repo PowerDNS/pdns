@@ -246,7 +246,7 @@ void LdapBackend::extract_entry_results( const DNSName& domain, const DNSResult&
           bool hasON = true;
 
           if ( d_result.count( "PdnsRecordNoOrdername" ) ) {
-            for ( auto rdata : d_result["PdnsRecordNoOrdername"] ) {
+            for ( const auto& rdata : d_result["PdnsRecordNoOrdername"] ) {
               if ( rdata == QType( local_result.qtype ).getName() )
                 hasON = false;
             }
