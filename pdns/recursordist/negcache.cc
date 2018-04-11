@@ -35,7 +35,7 @@
  * \param ne       A NegCacheEntry that is filled when there is a cache entry
  * \return         true if ne was filled out, false otherwise
  */
-bool NegCache::getRootNXTrust(const DNSName& qname, const struct timeval& now, NegCacheEntry& ne) {
+bool NegCache::getRootNXTrust(const DNSName& qname, const struct timeval& now, const NegCacheEntry** ne) {
   // Never deny the root.
   if (qname.isRoot())
     return false;
@@ -51,7 +51,7 @@ bool NegCache::getRootNXTrust(const DNSName& qname, const struct timeval& now, N
          ni->d_qtype == qtnull) {
     // We have something
     if ((uint32_t)now.tv_sec < ni->d_ttd) {
-      ne = *ni;
+      *ne = &(*ni);
       moveCacheItemToBack(d_negcache, ni);
       return true;
     }
@@ -70,7 +70,7 @@ bool NegCache::getRootNXTrust(const DNSName& qname, const struct timeval& now, N
  * \param ne       A NegCacheEntry that is filled when there is a cache entry
  * \return         true if ne was filled out, false otherwise
  */
-bool NegCache::get(const DNSName& qname, const QType& qtype, const struct timeval& now, NegCacheEntry& ne, bool typeMustMatch) {
+bool NegCache::get(const DNSName& qname, const QType& qtype, const struct timeval& now, const NegCacheEntry** ne, bool typeMustMatch) {
   const auto& idx = d_negcache.get<2>();
   auto range = idx.equal_range(qname);
   auto ni = range.first;
@@ -83,7 +83,7 @@ bool NegCache::get(const DNSName& qname, const QType& qtype, const struct timeva
 
       if((uint32_t) now.tv_sec < ni->d_ttd) {
         // Not expired
-        ne = *ni;
+        *ne = &(*ni);
         moveCacheItemToBack(d_negcache, firstIndexIterator);
         return true;
       }
