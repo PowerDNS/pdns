@@ -301,7 +301,9 @@ install_auth() {
   run "sudo service slapd restart"
   run "popd"
   run "sudo -u openldap mkdir -p /var/lib/ldap/powerdns"
-  run "sudo ldapadd -Y EXTERNAL -H ldapi:/// -f ./modules/ldapbackend/testfiles/add.ldif"
+  run "sudo ldapmodify -Y EXTERNAL -H ldapi:/// -f ./modules/ldapbackend/testfiles/load-sssvlv.ldif"
+  run "sudo ldapadd -Y EXTERNAL -H ldapi:/// -f ./modules/ldapbackend/testfiles/add-mdb.ldif"
+  run "sudo ldapadd -Y EXTERNAL -H ldapi:/// -f ./modules/ldapbackend/testfiles/add-content.ldif"
 
   # remote-backend tests requirements
   run "sudo apt-get -qq --no-install-recommends install \
@@ -323,6 +325,10 @@ install_auth() {
     faketime"
   run "sudo touch /etc/authbind/byport/53"
   run "sudo chmod 755 /etc/authbind/byport/53"
+}
+ 
+install_auth_ldap() {
+  install_auth
 }
 
 install_recursor() {
@@ -390,6 +396,10 @@ build_auth() {
   run "find /tmp/pdns-install-dir -ls"
 }
 
+build_auth_ldap() {
+  build_auth
+}
+
 build_recursor() {
   export PDNS_RECURSOR_DIR=$HOME/pdns_recursor
   # distribution build
@@ -432,6 +442,13 @@ build_dnsdist(){
 
 }
 
+ldap_clean() {
+  run "sudo service slapd stop"
+  run "sudo rm /var/lib/ldap/powerdns/*"
+  run "sudo service slapd start"
+  run "sudo ldapadd -Y EXTERNAL -H ldapi:/// -f ${TRAVIS_BUILD_DIR}/modules/ldapbackend/testfiles/add-content.ldif"
+}
+
 test_auth() {
   run "make -j3 check || (cat pdns/test-suite.log; false)"
   run "test -f pdns/test-suite.log && cat pdns/test-suite.log || true"
@@ -448,10 +465,6 @@ test_auth() {
 
   #travis unbound is too old for this test (unbound 1.6.0 required)
   run "touch tests/ent-asterisk/fail.nsec"
-
-  run "./timestamp ./start-test-stop 5300 ldap-tree"
-  run "./timestamp ./start-test-stop 5300 ldap-simple"
-  run "./timestamp ./start-test-stop 5300 ldap-strict"
 
   run "./timestamp ./start-test-stop 5300 bind-both"
   run "./timestamp ./start-test-stop 5300 bind-dnssec-both"
@@ -557,6 +570,36 @@ test_auth() {
   run "cd .."
 
   run "rm -f regression-tests/zones/*-slave.*" #FIXME
+}
+
+test_auth_ldap() {
+  run "make -j3 check"
+  run "test -f pdns/test-suite.log && cat pdns/test-suite.log || true"
+  run "test -f modules/remotebackend/test-suite.log && cat modules/remotebackend/test-suite.log || true"
+
+  run 'make -k -j3 -C pdns $(grep "(EXEEXT):" pdns/Makefile | cut -f1 -d\$ | grep -E -v "dnspcap2protobuf|dnsdist|calidns|speedtest")'
+
+  run "cd regression-tests"
+
+  #travis unbound is too old for this test (unbound 1.6.0 required)
+  run "touch tests/ent-asterisk/fail.nsec"
+
+  run "./timestamp ./start-test-stop 5300 ldap-tree"
+  ldap_clean
+  run "./timestamp ./start-test-stop 5300 ldap-simple"
+  ldap_clean
+  run "./timestamp ./start-test-stop 5300 ldap-strict"
+  ldap_clean
+  run "./timestamp ./start-test-stop 5300 ldap-simple-nsec"
+  ldap_clean
+  run "./timestamp ./start-test-stop 5300 ldap-simple-nsec3"
+  ldap_clean
+  run "./timestamp ./start-test-stop 5300 ldap-simple-nsec3-optout"
+  ldap_clean
+  run "./timestamp ./start-test-stop 5300 ldap-simple-nsec3-narrow"
+  ldap_clean
+
+  run "rm tests/ent-asterisk/fail.nsec"
 }
 
 test_recursor() {

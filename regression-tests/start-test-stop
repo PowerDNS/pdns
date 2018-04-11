@@ -188,7 +188,7 @@ remotebackend-pipe-dnssec remotebackend-unix-dnssec remotebackend-http-dnssec re
 #remotebackend-pipe-nsec3 remotebackend-unix-nsec3 remotebackend-http-nsec3
 #remotebackend-pipe-nsec3-narrow remotebackend-unix-nsec3-narrow remotebackend-http-nsec3-narrow
 tinydns
-ldap-tree ldap-simple ldap-strict
+ldap-tree ldap-simple ldap-strict ldap-simple-nsec ldap-simple-nsec3 ldap-simple-nsec3-optout ldap-simple-nsec3-narrow
 lua2 lua2-dnssec lua2-nsec3 lua2-nsec3-narrow
 #ext-nsd ext-nsd-nsec ext-nsd-nsec3 ext-bind ext-bind-nsec ext-bind-nsec3
 

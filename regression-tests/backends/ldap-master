@@ -1,16 +1,31 @@
+submode=$(echo -n $context | sed -re 's/^ldap-[^-]+-?(.*)$/\1/')
+
 case $context in
-	ldap-tree | ldap-simple | ldap-strict)
+	ldap-tree* | ldap-simple* | ldap-strict*)
 		[ -z "$LDAPUSER" ] && LDAPUSER='uid=testuser,o=power'
 		[ -z "$LDAPPASSWD" ] && LDAPPASSWD='secret'
 		[ -z "$LDAPBASEDN" ] && LDAPBASEDN='ou=dns,o=power'
 		[ -z "$LDAPRELATTR" ] && LDAPRELATTR='ou: dns'
+		[ -z "$LDAPMETADATADN" ] && LDAPMETADATADN='ou=metadata,o=power'
+		[ -z "$LDAPMETADATAATTR" ] && LDAPMETADATAATTR='ou: metadata'
+		[ -z "$LDAPTSIGDN" ] && LDAPTSIGDN='ou=TSIGKeys,ou=metadata,o=power'
+		[ -z "$LDAPTSIGATTR" ] && LDAPTSIGATTR='ou: TSIGKeys'
 
-		layout=${context:5}
+		layout=$(echo -n $context | sed -re 's/^ldap-([^-]+).*$/\1/')
 		ldapdelete -D $LDAPUSER -w $LDAPPASSWD -r $LDAPBASEDN || true
+		ldapdelete -D $LDAPUSER -w $LDAPPASSWD -r $LDAPMETADATADN || true
 		ldapadd -D $LDAPUSER -w $LDAPPASSWD << __EOF__
 dn: $LDAPBASEDN
 objectClass: organizationalUnit
 $LDAPRELATTR
+
+dn: $LDAPMETADATADN
+objectClass: organizationalUnit
+$LDAPMETADATAATTR
+
+dn: $LDAPTSIGDN
+objectClass: organizationalUnit
+$LDAPTSIGATTR
 __EOF__
 
 		$ZONE2LDAP --dnsttl=yes --basedn=$LDAPBASEDN --layout=$layout --named-conf=named.conf --pdns-info=yes --domainid=1 --metadata-dn=$LDAPMETADATADN | ldapmodify -D $LDAPUSER -w $LDAPPASSWD -c > /dev/null || true
@@ -22,16 +37,71 @@ ldap-basedn=$LDAPBASEDN
 ldap-binddn=$LDAPUSER
 ldap-secret=$LDAPPASSWD
 ldap-method=$layout
+ldap-dnssec=yes
+ldap-metadata-searchdn=$LDAPMETADATADN
+ldap-lookup-zone-rebase=yes
 __EOF__
+
+		if [ -n "$submode" ]
+		then
+			for zone in $(grep 'zone ' named.conf  | cut -f2 -d\")
+			do
+				if [ $submode = "nsec3" ] || [ $submode = "nsec3-optout" ]
+				then
+					$PDNSUTIL --config-dir=. --config-name=ldap set-nsec3 $zone "1 $optout 1 abcd" 2>&1
+				elif [ $submode = "nsec3-narrow" ]
+				then
+					$PDNSUTIL --config-dir=. --config-name=ldap set-nsec3 $zone '1 1 1 abcd' narrow 2>&1
+				fi
+				echo "Securing zone $zone"
+				securezone $zone ldap
+
+				# Do a dummy search so that indexes are fresh in the ldap server memory
+				# For cname-wildcard-chain this may make the difference between passing and failing
+				ldapsearch -D $LDAPUSER -w $LDAPPASSWD -b $LDAPBASEDN "(|(associatedDomain=$zone)(associatedDomain=*.$zone))" 2>&1 > /dev/null
+
+				if [ "$zone" = "tsig.com" ]; then
+					$PDNSUTIL --config-dir=. --config-name=ldap import-tsig-key test $ALGORITHM $KEY
+					$PDNSUTIL --config-dir=. --config-name=ldap activate-tsig-key tsig.com test master
+				fi
+			done
+		fi
 
 		$RUNWRAPPER $PDNS --daemon=no --local-address=$address --local-port=$port --config-dir=. \
 			--config-name=ldap --socket-dir=./ --no-shuffle \
 			--query-logging --dnsupdate=yes \
-      --expand-alias=yes --outgoing-axfr-expand-alias=yes \
-      --resolver=8.8.8.8 \
+			--expand-alias=yes --outgoing-axfr-expand-alias=yes \
+			--resolver=8.8.8.8 --master \
 			--cache-ttl=$cachettl --dname-processing $lua_prequery &
 
-		skipreasons="nodnssec noent nodyndns nometa noaxfr"
+		skipreasons="nodyndns"
+		extracontexts=""
+
+		if [ $layout = "tree" ]
+		then
+			skipreasons="$skipreasons noaxfr"
+		fi
+
+		if [ -z $submode ]
+		then
+			skipreasons="$skipreasons nodnssec nometa"
+		elif [ $submode = "nsec" ]
+		then
+			extracontexts="dnssec"
+			skipreasons="$skipreasons nsec"
+		elif [ $submode = "nsec3" ]
+		then
+			extracontexts="dnssec nsec3"
+			skipreasons="$skipreasons nsec3"
+		elif [ $submode = "nsec3-optout" ]
+		then
+			extracontexts="dnssec nsec3 nsec3-optout"
+			skipreasons="$skipreasons optout"
+		elif [ $submode = "nsec3-narrow" ]
+		then
+			skipreasons="$skipreasons narrow"
+			extracontexts="dnssec narrow"
+		fi
 
 		;;
 	*)

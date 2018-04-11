@@ -1,0 +1,7 @@
+dn: o=power
+objectClass: organization
+o: power
+
+dn: uid=testuser,o=power
+objectClass: account
+uid: testuser

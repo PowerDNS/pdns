@@ -1,0 +1,5 @@
+dn: cn=module{0},cn=config
+changetype: modify
+add: olcModuleLoad
+olcModuleLoad: sssvlv
+olcModuleLoad: back_mdb
