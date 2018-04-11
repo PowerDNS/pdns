@@ -101,8 +101,9 @@ __attribute__ ((unused)) static const char* ldap_attrany[] = {
   "TYPE65226Record",
   "TYPE65534Record",
   "modifyTimestamp",
+  "objectClass",
   "PdnsRecordTTL",
-  "PdnsRecordAuth",
+  "PdnsRecordNoAuth",
   "PdnsRecordOrdername",
   NULL
 };
@@ -125,6 +126,7 @@ class LdapBackend : public DNSBackend
     std::string d_metadata_searchdn;
 
     struct DNSResult {
+      int domain_id;
       QType qtype;
       DNSName qname;
       uint32_t ttl;
@@ -134,7 +136,7 @@ class LdapBackend : public DNSBackend
       std::string ordername;
 
       DNSResult()
-        : ttl( 0 ), lastmod( 0 ), value( "" ), auth( true ), ordername( "" )
+        : domain_id( -1 ), ttl( 0 ), lastmod( 0 ), value( "" ), auth( true ), ordername( "" )
       {
       }
     };
@@ -190,6 +192,8 @@ class LdapBackend : public DNSBackend
     void setNotified( uint32_t id, uint32_t serial ) override;
 
     // DNSSEC backend
+    bool doesDNSSEC() override;
+
     bool getAllDomainMetadata( const DNSName& name, std::map<std::string, std::vector<std::string> >& meta ) override;
     bool getDomainMetadata( const DNSName& name, const std::string& kind, std::vector<std::string>& meta ) override;
     bool setDomainMetadata( const DNSName& name, const std::string& kind, const std::vector<std::string>& meta ) override;
@@ -199,6 +203,8 @@ class LdapBackend : public DNSBackend
     bool activateDomainKey( const DNSName& name, unsigned int id ) override;
     bool deactivateDomainKey( const DNSName& name, unsigned int id ) override;
     bool removeDomainKey( const DNSName& name, unsigned int id ) override;
+
+    bool updateDNSSECOrderNameAndAuth( uint32_t domain_id, const DNSName& qname, const DNSName& ordername, bool auth, const uint16_t qtype ) override;
 };
 
 #endif /* LDAPBACKEND_HH */
