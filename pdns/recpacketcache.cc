@@ -7,11 +7,7 @@
 #include "recpacketcache.hh"
 #include "cachecleaner.hh"
 #include "dns.hh"
-#include "dnsparser.hh"
 #include "namespaces.hh"
-#include "lock.hh"
-#include "dnswriter.hh"
-#include "ednsoptions.hh"
 
 RecursorPacketCache::RecursorPacketCache()
 {
@@ -171,9 +167,7 @@ void RecursorPacketCache::insertResponsePacket(unsigned int tag, uint32_t qhash,
   }
   
   if(iter == range.second) { // nothing to refresh
-    struct Entry e;
-    e.d_packet = responsePacket;
-    e.d_name = qname;
+    struct Entry e(qname, responsePacket);
     e.d_qhash = qhash;
     e.d_type = qtype;
     e.d_class = qclass;
