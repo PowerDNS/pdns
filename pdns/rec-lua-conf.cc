@@ -92,6 +92,9 @@ void loadRecursorLuaConfig(const std::string& fname, bool checkOnly)
   if(!ifs)
     throw PDNSException("Cannot open file '"+fname+"': "+strerror(errno));
 
+  auto luaconfsLocal = g_luaconfs.getLocal();
+  lci.generation = luaconfsLocal->generation + 1;
+
   Lua.writeFunction("clearSortlist", [&lci]() { lci.sortlist.clear(); });
   
   /* we can get: "1.2.3.4"
@@ -277,9 +280,28 @@ void loadRecursorLuaConfig(const std::string& fname, bool checkOnly)
   Lua.writeFunction("protobufServer", [&lci, checkOnly](const string& server_, const boost::optional<uint16_t> timeout, const boost::optional<uint64_t> maxQueuedEntries, const boost::optional<uint8_t> reconnectWaitTime, const boost::optional<uint8_t> maskV4, boost::optional<uint8_t> maskV6, boost::optional<bool> asyncConnect, boost::optional<bool> taggedOnly) {
       try {
 	ComboAddress server(server_);
-        if (!lci.protobufServer) {
+        if (!lci.protobufExportConfig.enabled) {
+
+          lci.protobufExportConfig.enabled = true;
+
           if (!checkOnly) {
-            lci.protobufServer = std::make_shared<RemoteLogger>(server, timeout ? *timeout : 2, maxQueuedEntries ? *maxQueuedEntries : 100, reconnectWaitTime ? *reconnectWaitTime : 1, asyncConnect ? *asyncConnect : false);
+            lci.protobufExportConfig.server = server;
+
+            if (timeout) {
+              lci.protobufExportConfig.timeout = *timeout;
+            }
+
+            if (maxQueuedEntries) {
+              lci.protobufExportConfig.maxQueuedEntries = *maxQueuedEntries;
+            }
+
+            if (reconnectWaitTime) {
+              lci.protobufExportConfig.reconnectWaitTime = *reconnectWaitTime;
+            }
+
+            if (asyncConnect) {
+              lci.protobufExportConfig.asyncConnect = *asyncConnect;
+            }
           }
 
           if (maskV4) {
@@ -293,7 +315,7 @@ void loadRecursorLuaConfig(const std::string& fname, bool checkOnly)
           }
         }
         else {
-          g_log<<Logger::Error<<"Only one protobuf server can be configured, we already have "<<lci.protobufServer->toString()<<endl;
+          g_log<<Logger::Error<<"Only one protobuf server can be configured, we already have "<<lci.protobufExportConfig.server.toString()<<endl;
         }
       }
       catch(std::exception& e) {
@@ -307,13 +329,32 @@ void loadRecursorLuaConfig(const std::string& fname, bool checkOnly)
   Lua.writeFunction("outgoingProtobufServer", [&lci, checkOnly](const string& server_, const boost::optional<uint16_t> timeout, const boost::optional<uint64_t> maxQueuedEntries, const boost::optional<uint8_t> reconnectWaitTime, boost::optional<bool> asyncConnect) {
       try {
 	ComboAddress server(server_);
-        if (!lci.outgoingProtobufServer) {
+        if (!lci.outgoingProtobufExportConfig.enabled) {
+
+          lci.outgoingProtobufExportConfig.enabled = true;
+
           if (!checkOnly) {
-            lci.outgoingProtobufServer = std::make_shared<RemoteLogger>(server, timeout ? *timeout : 2, maxQueuedEntries ? *maxQueuedEntries : 100, reconnectWaitTime ? *reconnectWaitTime : 1, asyncConnect ? *asyncConnect : false);
+            lci.outgoingProtobufExportConfig.server = server;
+
+            if (timeout) {
+              lci.outgoingProtobufExportConfig.timeout = *timeout;
+            }
+
+            if (maxQueuedEntries) {
+              lci.outgoingProtobufExportConfig.maxQueuedEntries = *maxQueuedEntries;
+            }
+
+            if (reconnectWaitTime) {
+              lci.outgoingProtobufExportConfig.reconnectWaitTime = *reconnectWaitTime;
+            }
+
+            if (asyncConnect) {
+              lci.outgoingProtobufExportConfig.asyncConnect = *asyncConnect;
+            }
           }
         }
         else {
-          g_log<<Logger::Error<<"Only one protobuf server can be configured, we already have "<<lci.protobufServer->toString()<<endl;
+          g_log<<Logger::Error<<"Only one protobuf server can be configured, we already have "<<lci.outgoingProtobufExportConfig.server.toString()<<endl;
         }
       }
       catch(std::exception& e) {

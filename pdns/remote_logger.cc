@@ -75,7 +75,7 @@ void RemoteLogger::worker()
 void RemoteLogger::queueData(const std::string& data)
 {
   {
-    std::unique_lock<std::mutex> lock(d_writeMutex);
+    std::lock_guard<std::mutex> lock(d_writeMutex);
     if (d_writeQueue.size() >= d_maxQueuedEntries) {
       d_writeQueue.pop();
     }

@@ -23,8 +23,17 @@
 #include "sholder.hh"
 #include "sortlist.hh"
 #include "filterpo.hh"
-#include "remote_logger.hh"
 #include "validate.hh"
+
+struct ProtobufExportConfig
+{
+  ComboAddress server;
+  uint64_t maxQueuedEntries{100};
+  uint16_t timeout{2};
+  uint16_t reconnectWaitTime{1};
+  bool asyncConnect{false};
+  bool enabled{false};
+};
 
 class LuaConfigItems 
 {
@@ -34,8 +43,12 @@ public:
   DNSFilterEngine dfe;
   map<DNSName,dsmap_t> dsAnchors;
   map<DNSName,std::string> negAnchors;
-  std::shared_ptr<RemoteLogger> protobufServer{nullptr};
-  std::shared_ptr<RemoteLogger> outgoingProtobufServer{nullptr};
+  /* we need to increment this every time the configuration
+     is reloaded, so we know if we need to reload the protobuf
+     remote loggers */
+  ProtobufExportConfig protobufExportConfig;
+  ProtobufExportConfig outgoingProtobufExportConfig;
+  uint64_t generation{0};
   uint8_t protobufMaskV4{32};
   uint8_t protobufMaskV6{128};
   bool protobufTaggedOnly{false};
