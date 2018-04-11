@@ -360,7 +360,8 @@ AXFRRetriever::AXFRRetriever(const ComboAddress& remote,
                              const DNSName& domain,
                              const TSIGTriplet& tt, 
                              const ComboAddress* laddr,
-                             size_t maxReceivedBytes)
+                             size_t maxReceivedBytes,
+                             uint16_t timeout)
   : d_tsigVerifier(tt, remote, d_trc), d_receivedBytes(0), d_maxReceivedBytes(maxReceivedBytes)
 {
   ComboAddress local;
@@ -380,7 +381,7 @@ AXFRRetriever::AXFRRetriever(const ComboAddress& remote,
       throw ResolverException("Error creating socket for AXFR request to "+d_remote.toStringWithPort());
     d_buf = shared_array<char>(new char[65536]);
     d_remote = remote; // mostly for error reporting
-    this->connect();
+    this->connect(timeout);
     d_soacount = 0;
   
     vector<uint8_t> packet;
@@ -413,7 +414,7 @@ AXFRRetriever::AXFRRetriever(const ComboAddress& remote,
       throw ResolverException("Partial write on AXFR request to "+d_remote.toStringWithPort());
     }
   
-    int res = waitForData(d_sock, 10, 0);
+    int res = waitForData(d_sock, timeout, 0);
     
     if(!res)
       throw ResolverException("Timeout waiting for answer from "+d_remote.toStringWithPort()+" during AXFR");
@@ -502,7 +503,7 @@ void AXFRRetriever::timeoutReadn(uint16_t bytes, uint16_t timeoutsec)
   }
 }
 
-void AXFRRetriever::connect()
+void AXFRRetriever::connect(uint16_t timeout)
 {
   setNonBlocking( d_sock );
 
@@ -523,7 +524,7 @@ void AXFRRetriever::connect()
   if(!err)
     goto done;
 
-  err=waitForRWData(d_sock, false, 10, 0); // wait for writeability
+  err=waitForRWData(d_sock, false, timeout, 0); // wait for writeability
   
   if(!err) {
     try {
@@ -540,7 +541,7 @@ void AXFRRetriever::connect()
     throw ResolverException("Timeout connecting to server");
   }
   else if(err < 0) {
-    throw ResolverException("Error connecting: "+string(strerror(err)));
+    throw ResolverException("Error connecting: "+string(strerror(errno)));
   }
   else {
     Utility::socklen_t len=sizeof(err);
