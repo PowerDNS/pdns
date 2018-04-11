@@ -2,11 +2,11 @@ LDAP backend
 ============
 
 * Native: Yes
-* Master: No
+* Master: Yes
 * Slave: No
 * Superslave: No
 * Autoserial: No
-* DNSSEC: No
+* DNSSEC: Yes
 * Disabled data: No
 * Comments: No
 * Module name: ldap
@@ -24,7 +24,7 @@ as copied in February 2016, and edited from there.
 
 .. warning::
   Host names and the MNAME of a SOA records are NEVER
-  terminated with a '.' in PowerDNS storage! If a trailing '.' is present
+  terminated with a '.' in PowerDNS LDAP storage! If a trailing '.' is present
   it will inevitably cause problems, problems that may be hard to debug.
 
 
@@ -35,8 +35,8 @@ The LDAP backend enables PowerDNS to retrieve DNS information from any
 standard compliant LDAP server. This is extremely handy if information
 about hosts is already stored in an LDAP tree.
 
-Schemas
-^^^^^^^
+Records schema
+^^^^^^^^^^^^^^
 
 The schema is based on the 'uninett' dnszone schema, with a few types
 added by number as designed in that schema:
@@ -47,6 +47,16 @@ The LDAP dnsdomain2 schema contains the additional object descriptions
 which are required by the LDAP server to check the validity of entries
 when they are added. Please consult the documentation of the LDAP server
 to find out how to add this schema to the server.
+
+PowerDNS information schema
+^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+
+Using just the dnsdomain2 schema allows to store DNS records information
+only. To extend the capacities of the LDAP backend, and use master mode
+or DNSSEC, another schema (pdns-domaininfo.schema) must be loaded.
+
+.. literalinclude:: ../../modules/ldapbackend/pdns-domaininfo.schema
 
 Installation
 ------------
@@ -97,7 +107,7 @@ address.
 ``ldap-timeout``
 ^^^^^^^^^^^^^^^^
 
-(default: "5") : The number of seconds to wait for LDAP operations to
+(default "5") : The number of seconds to wait for LDAP operations to
 complete.
 
 .. _setting-ldap-reconnect-attempts:
@@ -105,12 +115,12 @@ complete.
 ``ldap-reconnect-attempts``
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-(default: "5") : The number of attempts to make to re-establish a lost
+(default "5") : The number of attempts to make to re-establish a lost
 connection to the LDAP server.
 
 .. _setting-ldap-authmethod:
 
-``ldap-authmethod``
+``ldap-bindmethod``
 ^^^^^^^^^^^^^^^^^^^
 
 (default: "simple") : How to authenticate to the LDAP server. Actually
@@ -122,8 +132,8 @@ password, or "gssapi", which requires a Kerberos keytab.
 ``ldap-binddn``
 ^^^^^^^^^^^^^^^
 
-(default "") : Path to the object to authenticate against. Should only
-be used, if the LDAP server doesn't support anonymous binds and with the
+(default empty) : Path to the object to authenticate against. Should only
+be used if the LDAP server doesn't support anonymous binds and with the
 "simple" authmethod.
 
 .. _setting-ldap-secret:
@@ -131,7 +141,7 @@ be used, if the LDAP server doesn't support anonymous binds and with the
 ``ldap-secret``
 ^^^^^^^^^^^^^^^
 
-(default "") : Password for authentication against the object specified
+(default empty) : Password for authentication against the object specified
 by ldap-binddn. Only used when "authmethod" is "simple".
 
 .. _setting-ldap-krb5-keytab:
@@ -139,7 +149,7 @@ by ldap-binddn. Only used when "authmethod" is "simple".
 ``ldap-krb5-keytab``
 ^^^^^^^^^^^^^^^^^^^^
 
-(default: "") : Full path to the keytab file to use to authenticate.
+(default empty) : Full path to the keytab file to use to authenticate.
 This is only used when "authmethod" is set to "gssapi". The keytab must,
 ideally, contain only one principal (or to put it otherwise, only the
 first principal found in the keytab will be used).
@@ -149,7 +159,7 @@ first principal found in the keytab will be used).
 ``ldap-krb5-ccache``
 ^^^^^^^^^^^^^^^^^^^^
 
-(default: "") : Full path to the Kerberos credential cache file to use.
+(default empty) : Full path to the Kerberos credential cache file to use.
 Actually only files are supported, and the "FILE:" prefix must not be
 set. The PowerDNS process must be able to write to this file and it
 *must* be the only one able to read it.
@@ -159,12 +169,31 @@ set. The PowerDNS process must be able to write to this file and it
 ``ldap-basedn``
 ^^^^^^^^^^^^^^^
 
-(default "") : The PowerDNS LDAP DNS backend searches below this path
+(default empty) : The PowerDNS LDAP DNS backend searches below this path
 for objects containing the specified DNS information. The retrieval of
 attributes is limited to this subtree. This option must be set to the
 path according to the layout of your LDAP tree, e.g.
 ou=hosts,o=linuxnetworks,c=de is the DN to my objects containing the DNS
 information.
+
+.. _setting-ldap-basedn-axfr-override:
+
+``ldap-basedn-axfr-override``
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+(default "no") : When doing a list lookup for AXFR PowerDNS will search
+for domains in a zone under the DN at which the SOA was found.
+This is not always wanted. Setting this directive to "yes" will let the
+backend use the value of ``ldap-basedn`` as the search base for AFR requests.
+
+.. _setting-ldap-lookup-zone-rebase:
+
+``ldap-lookup-zone-rebase``
+^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+(default "no") : This is the same as the previous entry but for simple
+lookups, not AXFR. This setting must be set to "yes" for DNSSEC to work
+at all.
 
 .. _setting-ldap-method:
 
@@ -175,7 +204,8 @@ information.
 
 -  ``simple``: Search the requested domain by comparing the
    associatedDomain attributes with the domain string in the question.
--  ``tree``: Search entires by translating the domain string into a LDAP
+   Only this method supports DNSSEC, and only in certain conditions.
+-  ``tree``: Search entries by translating the domain string into a LDAP
    dn. Your LDAP tree must be designed in the same way as the DNS LDAP
    tree. The question for "myhost.linuxnetworks.de" would translate into
    "dc=myhost,dc=linuxnetworks,dc=de,ou=hosts=..." and the entry where
@@ -201,6 +231,36 @@ whose attribute "active" is set to "yes".
 (default "(:target:)" ) : LDAP filter for limiting IP or name lookups,
 e.g. (&(:target:)(active=yes)) for returning only entries whose
 attribute "active" is set to "yes".
+ 
+.. _setting-ldap-dnssec:
+
+``ldap-dnssec``
+^^^^^^^^^^^^^^^
+
+(default "no") : If set to "yes" DNSSEC support will be enabled
+in the backend.
+
+.. _setting-ldap-metadata-searchdn:
+
+``ldap-metadata-searchdn``
+^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+(default empty) : For DNSSEC certain extra information must be stored
+that should not be found under the DNS data root. This is because
+PowerDNS must have write access to this subtree to, for example,
+create the zone keys. This setting point to the root DN under which
+the metadata can be stored.
+It is required if ``ldap-dnssec`` is set to "yes".
+
+.. _setting-ldap-metadata-searchfilter:
+
+``ldap-metadata-searchfilter``
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+(default "(&(objectClass=organizationalUnit)(ou=:domain:))") :
+The search filter to use to find the DN under which the metadata
+for a zone is. The special string ":domain:" will be replaced by the
+zone name in the search filter.
 
 Master Mode
 -----------
@@ -208,10 +268,10 @@ Master Mode
 Schema update
 ^^^^^^^^^^^^^
 
-First off adding master support to the LDAP backend needs a schema
-update. This is required as some metadata must be stored by PowerDNS,
-such as the last successful transfer to slaves. The new schema is
-available in schema/pdns-domaininfo.schema.
+First off, adding master support to the LDAP backend requires
+the pdns-domaininfo.schema mentioned earlier. The schema file
+is available in modules/ldapbackend/pdns-domaininfo.schema
+in the source tree.
 
 Once the schema is loaded the zones for which you want to be a master
 must be modified. The dn of the SOA record *must* have the object class
@@ -244,6 +304,98 @@ Here is an example LDIF of a zone that's ready for master operation
 
 You should have one attribute ``PdnsDomainMaster`` per master serving
 this zone.
+ 
+DNSSEC
+------
+
+Schema update
+^^^^^^^^^^^^^
+
+To have DNSSEC working the pdns-domaininfo schema must be loaded,
+as described in the 'Master' section.
+
+As in master mode the attribute 'PdnsDomainId' must be set in the DN
+containing SOA record.
+
+Layout
+^^^^^^
+
+DNSSEC can only work when using the "simple" lookup method (``ldap-method=simple`` in the
+configuration), because of collisions between parent zones and delegated subzones
+in tree mode.
+
+Furthermore the layout under the DN containing the SOA must be done as with the `tree`
+lookup method. This is required to store empty non-terminals, that are in turn required
+for DNSSEC (and other stuff).
+
+For example, assuming a base DN set to 'ou=dns,o=company', the zone 'example.com' would
+have to be stored like that:
+
+::
+
+    dn: dc=example.com,ou=dns,o=company
+    objectclass: dnsdomain2
+    objectclass: domainrelatedobject
+    objectclass: PdnsRecordData
+    objectclass: PdnsDomain
+    PdnsDomainId: 1
+    dc: example.com
+    dnsttl: 100000
+    associateddomain: example.com
+    SOARecord: ns1.example.com ahu.example.com 2847484148 28800 7200 604800 86400
+
+Now a record for host 'x.y.example.com' would be stored at:
+
+::
+
+    dn: dc=x,dc=y,dc=example.com,ou=dns,o=company
+    objectclass: dnsdomain2
+    objectclass: domainrelatedobject
+    objectclass: PdnsRecordData
+    dc: x
+    associateddomain: x.y.example.com
+    aRecord: 1.2.3.4
+
+This means that 'y.example.com' must exist. However the entry at 'dc=y,dc=example.com,ou=dns,o=company'
+*need not* contain any record. If it doesn't then it's an empty non-terminal and the LDAP backend is
+perfectly fine with that.
+
+If you have BIND zone files then ``zone2ldap`` can create a LDIF file ready to serve DNSSEC. You have
+to use the ``--pdns-info`` flag for this though.
+
+Metadata storage
+^^^^^^^^^^^^^^^^
+
+To have DNSSEC work PowerDNS (more specifically ``pdnsutil``) must be able to store some metadata in
+the LDAP tree. We strongly recommend using a separate tree from the zone records, in which the
+PowerDNS user is allowed write access. Furthermore, as this will be used to store sensitive information
+(the various signing keys), only this user should have read access to this tree.
+
+Under the metadata DN pointed at by the configuration option ``ldap-metadatadn`` there's one special OU
+that must be created ahead of time as the backend will not do it. It is used to store TSIG keys and is
+called, quite originally, 'TSIGKeys'. For example, assuming a metadata DN set to 'ou=dns-metadata,o=company'
+you have to manually create the entry 'ou=TSIGKeys,ou=dns-metadata,o=company'.
+
+Enabling DNSSEC
+^^^^^^^^^^^^^^^
+
+The configuration options ``ldap-dnssec``, ``ldap-metadatadn`` and ``ldap-lookup-zone-rebase`` have to be set
+to have DNSSEC working. After that just follow the standard PowerDNS documents and use pdnsutil.
+
+A note on performance
+^^^^^^^^^^^^^^^^^^^^^
+
+For DNSSEC to work the backend must be able to order results. By default, and without any
+overlay enabled on the database, this is done by reading in all entries matching the
+search filter and then sorting them. For large zones this can be inefficient.
+
+The backend is able to use Server Side Sorting and Virtual List Views when these controls
+are detected as available. To enable them with OpenLDAP you have to load the ``sssvlv`` overlay
+and activate it on the database. Note however that you *must* use a MDB backend. Under load HDB
+and BDB showed unreliable. The combination of Server Side Sorting / Virtual List View and HDB or
+BDB are not supported.
+
+See also the section on indices to speed up DNSSEC lookups.
 
 Example
 -------
@@ -563,9 +715,22 @@ performance of the LDAP server:
     indexaAAARecord pres,eq
     indexaRecord pres,eq
 
-All other attributes than associatedDomain, aRecord or aAAARecord are
-only read if the object matches the specified criteria. Thus,
-maintaining an index on these attributes is useless.
+If you use DNSSEC you may also want to indices on the following attributes
+to speed up searches:
+
+::
+
+    index ou eq,pres,sub
+    index cn eq,pres,sub
+    index PdnsDomainId eq,pres
+    index sOARecord pres
+    index nSRecord pres
+    index dNameRecord pres
+    index PdnsRecordOrdername eq,pres
+
+All other attributes than the ones above are only read if the object
+matches the specified criteria. Thus, maintaining an index on these
+attributes is useless.
 
 If the DNS-entries were added before adding these statements to
 ``slapd.conf``, the LDAP server will have to be stopped and
