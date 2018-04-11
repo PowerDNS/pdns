@@ -1,8 +1,8 @@
 # LDAP schema for PowerDNS specific information
 #
 # This schema does not define a way to store DNS
-# data but only metadata relevant only to the
-# PowerDNS implementation of a LDAP backend.
+# data but only metadata and information relevant
+# only to the PowerDNS implementation of a LDAP backend.
 # See dnsdomain2.schema for a schema that contains
 # everything needed to store the zones and RRs.
 #
@@ -43,6 +43,11 @@ attributetype ( 1.3.6.1.4.1.27080.2.1.5 NAME 'PdnsDomainType'
     EQUALITY caseIgnoreIA5Match
     SYNTAX 1.3.6.1.4.1.1466.115.121.1.26 SINGLE-VALUE )
 
+attributetype ( 1.3.6.1.4.1.27080.1.6 NAME 'PdnsMetadataValue'
+    DESC 'The value of a domain metadata'
+    EQUALITY caseIgnoreIA5Match
+    SYNTAX 1.3.6.1.4.1.1466.115.121.1.26 )
+
 attributetype ( 1.3.6.1.4.1.27080.1.11 NAME 'PdnsRecordTTL'
     DESC 'TTL for a RR set. Syntax is RR type, a literal "|", TTL'
     EQUALITY caseIgnoreMatch
@@ -65,11 +70,16 @@ attributetype (  1.3.6.1.4.1.27080.1.15 NAME 'ALIASRecord'
     SYNTAX 1.3.6.1.4.1.1466.115.121.1.26 )
 
 objectclass ( 1.3.6.1.4.1.27080.2.2.1 NAME 'PdnsDomain'
-    DESC 'PDNS domain metadata information'
+    DESC 'PDNS domain information'
     SUP top AUXILIARY
     MUST ( PdnsDomainId )
     MAY ( PdnsDomainNotifiedSerial $ PdnsDomainLastCheck $
           PdnsDomainMaster $ PdnsDomainType ) )
+
+objectclass ( 1.3.6.1.4.1.27080.2.2.2 NAME 'PdnsMetadata'
+    DESC 'PDNS domain metadata'
+    SUP top STRUCTURAL
+    MUST ( cn $ PdnsMetadataValue ) )
  
 objectclass ( 1.3.6.1.4.1.27080.2.2.4 NAME 'PdnsRecordData'
     DESC 'Additional record data for PDNS'
