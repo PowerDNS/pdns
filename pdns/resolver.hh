@@ -85,12 +85,13 @@ class AXFRRetriever : public boost::noncopyable
                   const DNSName& zone,
                   const TSIGTriplet& tt = TSIGTriplet(),
                   const ComboAddress* laddr = NULL,
-                  size_t maxReceivedBytes=0);
+                  size_t maxReceivedBytes=0,
+                  uint16_t timeout=10);
     ~AXFRRetriever();
     int getChunk(Resolver::res_t &res, vector<DNSRecord>* records=0, uint16_t timeout=10);
   
   private:
-    void connect();
+    void connect(uint16_t timeout);
     int getLength(uint16_t timeout);
     void timeoutReadn(uint16_t bytes, uint16_t timeoutsec=10);
 
