@@ -193,6 +193,12 @@ class LdapBackend : public DNSBackend
     bool getAllDomainMetadata( const DNSName& name, std::map<std::string, std::vector<std::string> >& meta ) override;
     bool getDomainMetadata( const DNSName& name, const std::string& kind, std::vector<std::string>& meta ) override;
     bool setDomainMetadata( const DNSName& name, const std::string& kind, const std::vector<std::string>& meta ) override;
+
+    bool getDomainKeys( const DNSName& name, std::vector<KeyData>& keys ) override;
+    bool addDomainKey( const DNSName& name, const KeyData& key, int64_t& id ) override;
+    bool activateDomainKey( const DNSName& name, unsigned int id ) override;
+    bool deactivateDomainKey( const DNSName& name, unsigned int id ) override;
+    bool removeDomainKey( const DNSName& name, unsigned int id ) override;
 };
 
 #endif /* LDAPBACKEND_HH */

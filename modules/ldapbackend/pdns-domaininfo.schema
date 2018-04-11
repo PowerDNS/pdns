@@ -48,6 +48,26 @@ attributetype ( 1.3.6.1.4.1.27080.1.6 NAME 'PdnsMetadataValue'
     EQUALITY caseIgnoreIA5Match
     SYNTAX 1.3.6.1.4.1.1466.115.121.1.26 )
 
+attributetype ( 1.3.6.1.4.1.27080.1.7 NAME 'PdnsKeyId'
+    DESC 'Unique ID of the key for the domain'
+    EQUALITY numericStringMatch
+    SYNTAX 1.3.6.1.4.1.1466.115.121.1.36 SINGLE-VALUE )
+
+attributetype ( 1.3.6.1.4.1.27080.1.8 NAME 'PdnsKeyFlags'
+    DESC 'Flags for this key'
+    EQUALITY numericStringMatch
+    SYNTAX 1.3.6.1.4.1.1466.115.121.1.36 SINGLE-VALUE )
+
+attributetype ( 1.3.6.1.4.1.27080.1.9 NAME 'PdnsKeyContent'
+    DESC 'The content of the domain signing key'
+    EQUALITY caseIgnoreMatch
+    SYNTAX 1.3.6.1.4.1.1466.115.121.1.15 SINGLE-VALUE )
+
+attributetype ( 1.3.6.1.4.1.27080.1.10 NAME 'PdnsKeyActive'
+    DESC 'Whether or not this key is active for the domain. Can be any value, only its presence is used to determine if it is active or not'
+    EQUALITY caseIgnoreIA5Match
+    SYNTAX 1.3.6.1.4.1.1466.115.121.1.26 SINGLE-VALUE )
+
 attributetype ( 1.3.6.1.4.1.27080.1.11 NAME 'PdnsRecordTTL'
     DESC 'TTL for a RR set. Syntax is RR type, a literal "|", TTL'
     EQUALITY caseIgnoreMatch
@@ -80,6 +100,12 @@ objectclass ( 1.3.6.1.4.1.27080.2.2.2 NAME 'PdnsMetadata'
     DESC 'PDNS domain metadata'
     SUP top STRUCTURAL
     MUST ( cn $ PdnsMetadataValue ) )
+
+objectclass ( 1.3.6.1.4.1.27080.2.2.3 NAME 'PdnsDomainKey'
+    DESC 'PDNS domain signing key'
+    SUP top STRUCTURAL
+    MUST ( PdnsKeyId $ PdnsKeyFlags $ PdnsKeyContent )
+    MAY ( PdnsKeyActive ) )
  
 objectclass ( 1.3.6.1.4.1.27080.2.2.4 NAME 'PdnsRecordData'
     DESC 'Additional record data for PDNS'
