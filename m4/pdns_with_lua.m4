@@ -8,6 +8,12 @@ AC_DEFUN([PDNS_WITH_LUA],[
   ], [
     with_lua=auto
   ])
+
+  AS_IF([test "x$with_lua" = "xyes"], [
+    dnl --with-lua was passed, make it auto
+    with_lua=auto
+  ])
+
   AC_MSG_RESULT([$with_lua])
 
   AS_IF([test "x$with_lua" = "xno" -a "$1" = "mandatory"], [
