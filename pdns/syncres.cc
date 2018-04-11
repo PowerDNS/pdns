@@ -124,8 +124,8 @@ int SyncRes::beginResolve(const DNSName &qname, const QType &qtype, uint16_t qcl
   d_wasOutOfBand=false;
 
   if (doSpecialNamesResolve(qname, qtype, qclass, ret)) {
-    d_queryValidationState = Insecure;
-    return 0;
+    d_queryValidationState = Insecure; // this could fool our stats into thinking a validation took place
+    return 0;                          // so do check before updating counters (we do now)
   }
 
   if( (qtype.getCode() == QType::AXFR) || (qtype.getCode() == QType::IXFR) || (qtype.getCode() == QType::RRSIG) || (qtype.getCode() == QType::NSEC3))
