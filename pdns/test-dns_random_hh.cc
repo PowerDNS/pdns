@@ -34,7 +34,7 @@ typedef accumulator_set<
 
 BOOST_AUTO_TEST_SUITE(test_dns_random_hh)
 
-BOOST_AUTO_TEST_CASE(test_dns_random_auto_average, * boost::unit_test::depends_on("test_dns_random_hh/test_dns_random_uninit")) {
+BOOST_AUTO_TEST_CASE(test_dns_random_auto_average) {
 
   ::arg().set("rng")="auto";
   ::arg().set("entropy-source")="/dev/urandom";
@@ -52,7 +52,7 @@ BOOST_AUTO_TEST_CASE(test_dns_random_auto_average, * boost::unit_test::depends_o
   // please add covariance tests, chi-square, Kolmogorov-Smirnov
 }
 
-BOOST_AUTO_TEST_CASE(test_dns_random_urandom_average, * boost::unit_test::depends_on("test_dns_random_hh/test_dns_random_uninit")) {
+BOOST_AUTO_TEST_CASE(test_dns_random_urandom_average) {
 
   ::arg().set("rng")="urandom";
   ::arg().set("entropy-source")="/dev/urandom";
@@ -70,7 +70,7 @@ BOOST_AUTO_TEST_CASE(test_dns_random_urandom_average, * boost::unit_test::depend
   // please add covariance tests, chi-square, Kolmogorov-Smirnov
 }
 
-BOOST_AUTO_TEST_CASE(test_dns_random_garbage, * boost::unit_test::depends_on("test_dns_random_hh/test_dns_random_uninit")) {
+BOOST_AUTO_TEST_CASE(test_dns_random_garbage) {
 
   ::arg().set("rng")="garbage";
   ::arg().set("entropy-source")="/dev/urandom";
@@ -78,25 +78,8 @@ BOOST_AUTO_TEST_CASE(test_dns_random_garbage, * boost::unit_test::depends_on("te
   BOOST_CHECK_THROW(dns_random_init("", true), std::runtime_error);
 }
 
-BOOST_AUTO_TEST_CASE(test_dns_random_uninit) {
-
-  /* should still work without the explicit call to dns_random_init() */
-  ::arg().set("rng")="auto";
-  ::arg().set("entropy-source")="/dev/urandom";
-
-  acc_t acc;
-
-  for(unsigned int n=0; n < 100000; ++n)  {
-    acc(dns_random(100000)/100000.0);
-  }
-  BOOST_CHECK_CLOSE(0.5, median(acc), 2.0); // within 2%
-  BOOST_CHECK_CLOSE(0.5, mean(acc), 2.0);
-
-  // please add covariance tests, chi-square, Kolmogorov-Smirnov
-}
-
 #if defined(HAVE_GETRANDOM)
-BOOST_AUTO_TEST_CASE(test_dns_random_getrandom_average, * boost::unit_test::depends_on("test_dns_random_hh/test_dns_random_uninit")) {
+BOOST_AUTO_TEST_CASE(test_dns_random_getrandom_average) {
 
   ::arg().set("rng")="getrandom";
   ::arg().set("entropy-source")="/dev/urandom";
@@ -116,7 +99,7 @@ BOOST_AUTO_TEST_CASE(test_dns_random_getrandom_average, * boost::unit_test::depe
 #endif
 
 #if defined(HAVE_ARC4RANDOM)
-BOOST_AUTO_TEST_CASE(test_dns_random_getrandom_average, * boost::unit_test::depends_on("test_dns_random_hh/test_dns_random_uninit")) {
+BOOST_AUTO_TEST_CASE(test_dns_random_getrandom_average) {
 
   ::arg().set("rng")="arc4random";
   ::arg().set("entropy-source")="/dev/urandom";
@@ -136,7 +119,7 @@ BOOST_AUTO_TEST_CASE(test_dns_random_getrandom_average, * boost::unit_test::depe
 #endif
 
 #if defined(HAVE_RANDOMBYTES_STIR)
-BOOST_AUTO_TEST_CASE(test_dns_random_sodium_average, * boost::unit_test::depends_on("test_dns_random_hh/test_dns_random_uninit")) {
+BOOST_AUTO_TEST_CASE(test_dns_random_sodium_average) {
 
   ::arg().set("rng")="sodium";
   ::arg().set("entropy-source")="/dev/urandom";
@@ -156,7 +139,7 @@ BOOST_AUTO_TEST_CASE(test_dns_random_sodium_average, * boost::unit_test::depends
 #endif
 
 #if defined(HAVE_RAND_BYTES)
-BOOST_AUTO_TEST_CASE(test_dns_random_openssl_average, * boost::unit_test::depends_on("test_dns_random_hh/test_dns_random_uninit")) {
+BOOST_AUTO_TEST_CASE(test_dns_random_openssl_average) {
 
   ::arg().set("rng")="openssl";
   ::arg().set("entropy-source")="/dev/urandom";
@@ -176,7 +159,7 @@ BOOST_AUTO_TEST_CASE(test_dns_random_openssl_average, * boost::unit_test::depend
 #endif
 
 #if defined(HAVE_KISS_RNG)
-BOOST_AUTO_TEST_CASE(test_dns_random_kiss_average, * boost::unit_test::depends_on("test_dns_random_hh/test_dns_random_uninit")) {
+BOOST_AUTO_TEST_CASE(test_dns_random_kiss_average) {
 
   ::arg().set("rng")="kiss";
   ::arg().set("entropy-source")="/dev/urandom";
