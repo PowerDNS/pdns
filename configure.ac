@@ -64,6 +64,8 @@ AS_IF([test "x$enable_hardening" != "xno"], [
   AC_LD_RELRO
 ])
 
+PDNS_ENABLE_KISS
+
 PDNS_CHECK_NETWORK_LIBS
 
 LT_PREREQ([2.2.2])
@@ -122,7 +124,7 @@ PDNS_CHECK_VIRTUALENV
 PDNS_FROM_GIT
 
 dnl Checks for library functions.
-AC_CHECK_FUNCS_ONCE([strcasestr localtime_r recvmmsg])
+AC_CHECK_FUNCS_ONCE([strcasestr localtime_r recvmmsg getrandom arc4random])
 
 AM_CONDITIONAL([HAVE_RECVMMSG], [test "x$ac_cv_func_recvmmsg" = "xyes"])
 

@@ -103,7 +103,6 @@ int main(int argc, char** argv) {
        Store result in memory, read that best zone in memory, apply deltas, write it out.
 
        Next up, loop this every REFRESH seconds */
-    dns_random_init("0123456789abcdef");
 
     DNSName zone(argv[4]);
     ComboAddress master(argv[2], atoi(argv[3]));

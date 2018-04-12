@@ -195,7 +195,6 @@ pdns_server_SOURCES = \
 	packethandler.cc packethandler.hh \
 	pdnsexception.hh \
 	qtype.cc qtype.hh \
-	randomhelper.cc \
 	rcpgenerator.cc \
 	receiver.cc \
 	resolver.cc resolver.hh \
@@ -312,7 +311,6 @@ pdnsutil_SOURCES = \
 	opensslsigners.cc opensslsigners.hh \
 	pdnsutil.cc \
 	qtype.cc \
-	randomhelper.cc \
 	rcpgenerator.cc rcpgenerator.hh \
 	serialtweaker.cc \
 	signingpipe.cc \
@@ -386,7 +384,7 @@ zone2sql_SOURCES = \
 	bindparser.yy \
 	bindparserclasses.hh \
 	dns.cc \
-	dns_random.cc \
+	dns_random_urandom.cc \
 	dnsname.cc dnsname.hh \
 	dnslabeltext.cc \
 	dnsparser.cc \
@@ -450,7 +448,7 @@ zone2ldap_SOURCES = \
 	bindlexer.l \
 	bindparser.yy \
 	bindparserclasses.hh \
-	dns_random.cc \
+	dns_random_urandom.cc \
 	dnsname.cc dnsname.hh \
 	dnslabeltext.cc \
 	dnsparser.cc \
@@ -498,7 +496,7 @@ calidns_SOURCES = \
 	base32.cc \
 	base64.cc base64.hh \
 	calidns.cc \
-	dns_random.cc dns_random.hh \
+	dns_random_urandom.cc dns_random.hh \
 	dnslabeltext.cc \
 	dnsname.cc dnsname.hh \
 	dnsparser.cc dnsparser.hh \
@@ -545,7 +543,7 @@ stubquery_SOURCES = \
 	arguments.cc arguments.hh \
 	base32.cc \
 	base64.cc \
-	dns_random.cc \
+	dns_random_urandom.cc \
 	dnslabeltext.cc \
 	dnsname.cc \
 	dnsparser.cc \
@@ -568,7 +566,7 @@ stubquery_LDFLAGS = $(AM_LDFLAGS) $(LIBCRYPTO_LDFLAGS)
 saxfr_SOURCES = \
 	base32.cc \
 	base64.cc base64.hh \
-	dns_random.cc dns_random.hh \
+	dns_random_urandom.cc dns_random.hh \
 	dnslabeltext.cc \
 	dnsname.cc dnsname.hh \
 	dnsparser.cc dnsparser.hh \
@@ -604,7 +602,7 @@ ixfrdist_SOURCES = \
 	base32.cc \
 	base64.cc base64.hh \
 	dns.cc \
-	dns_random.cc dns_random.hh \
+	dns_random_urandom.cc dns_random.hh \
 	dnslabeltext.cc \
 	dnsname.cc dnsname.hh \
 	dnsparser.cc dnsparser.hh \
@@ -654,7 +652,7 @@ ixplore_SOURCES = \
 	base32.cc \
 	base64.cc base64.hh \
 	dns.cc \
-	dns_random.cc dns_random.hh \
+	dns_random_urandom.cc dns_random.hh \
 	dnslabeltext.cc \
 	dnsname.cc dnsname.hh \
 	dnsparser.cc dnsparser.hh \
@@ -754,7 +752,7 @@ endif
 toysdig_SOURCES = \
 	base32.cc \
 	base64.cc base64.hh \
-	dns_random.cc \
+	dns_random_urandom.cc \
 	dnsname.cc dnsname.hh \
 	dnslabeltext.cc \
 	dnsparser.cc dnsparser.hh \
@@ -770,7 +768,6 @@ toysdig_SOURCES = \
 	nsecrecords.cc \
 	opensslsigners.cc opensslsigners.hh \
 	qtype.cc \
-	randomhelper.cc \
 	root-dnssec.hh \
 	rcpgenerator.cc rcpgenerator.hh \
 	rec-lua-conf.hh \
@@ -808,7 +805,7 @@ tsig_tests_SOURCES = \
 	base32.cc \
 	base64.cc base64.hh \
 	dns.cc \
-	dns_random.cc dns_random.hh \
+	dns_random_urandom.cc dns_random.hh \
 	dnslabeltext.cc \
 	dnsname.cc dnsname.hh \
 	dnsparser.cc dnsparser.hh \
@@ -820,7 +817,6 @@ tsig_tests_SOURCES = \
 	misc.cc misc.hh \
 	nsecrecords.cc \
 	qtype.cc \
-	randomhelper.cc \
 	rcpgenerator.cc rcpgenerator.hh \
 	resolver.cc \
 	sillyrecords.cc \

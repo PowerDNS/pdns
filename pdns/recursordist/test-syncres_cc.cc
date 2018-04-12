@@ -113,7 +113,6 @@ static void init(bool debug=false)
     g_log.toConsole(Logger::Error);
   }
 
-  seedRandom("/dev/urandom");
   reportAllTypes();
 
   t_RC = std::unique_ptr<MemRecursorCache>(new MemRecursorCache());

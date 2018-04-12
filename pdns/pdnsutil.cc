@@ -95,6 +95,7 @@ void loadMainConfig(const std::string& configdir)
   ::arg().setSwitch("direct-dnskey","Fetch DNSKEY RRs from backend during DNSKEY synthesis")="no";
   ::arg().set("max-nsec3-iterations","Limit the number of NSEC3 hash iterations")="500"; // RFC5155 10.3
   ::arg().set("max-signature-cache-entries", "Maximum number of signatures cache entries")="";
+  ::arg().set("rng", "Specify random number generator to use. Valid values are auto,sodium,openssl,getrandom,arc4random,urandom.")="auto";
   ::arg().laxFile(configname.c_str());
 
   g_log.toConsole(Logger::Error);   // so we print any errors
@@ -124,16 +125,15 @@ void loadMainConfig(const std::string& configdir)
   if (! ::arg().laxFile(configname.c_str()))
     cerr<<"Warning: unable to read configuration file '"<<configname<<"': "<<strerror(errno)<<endl;
 
-  seedRandom(::arg()["entropy-source"]);
-
 #ifdef HAVE_LIBSODIUM
   if (sodium_init() == -1) {
     cerr<<"Unable to initialize sodium crypto library"<<endl;
     exit(99);
   }
 #endif
-
   openssl_seed();
+  /* init rng before chroot */
+  dns_random_init();
 
   if (!::arg()["chroot"].empty()) {
     if (chroot(::arg()["chroot"].c_str())<0 || chdir("/") < 0) {
