@@ -26,6 +26,7 @@
 #include <botan/gost_3410.h>
 #include <botan/gost_3411.h>
 #include <botan/pubkey.h>
+#include <botan/version.h>
 #include "dnssecinfra.hh"
 
 using namespace Botan;
@@ -170,7 +171,11 @@ void GOSTDNSCryptoKeyEngine::fromPublicKeyString(const std::string& input)
   y=decode_le((const byte*)input.c_str() + input.length()/2, input.length()/2);
 
   auto params = getParams();
+#if BOTAN_VERSION_CODE < BOTAN_VERSION_CODE_FOR(2,5,0)
   PointGFp point(params.get_curve(), x,y);
+#else
+  PointGFp point(params.point(x,y));
+#endif
   d_pubkey = std::make_shared<GOST_3410_PublicKey>(params, point);
   d_key.reset();
 }
