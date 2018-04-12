@@ -41,8 +41,17 @@ BOOST_AUTO_TEST_CASE(test_pdns_lock)
   for(auto& pp : g_locks)
     wlocks.emplace_back(&*pp);
 
-  TryReadLock trl(&*g_locks[0]);
-  BOOST_CHECK(!trl.gotIt());
+  // on macOS, this TryReadLock throws (EDEADLK) instead of simply failing
+  // so we catch the exception and consider that success for this test
+  bool gotit = false;
+  try {
+    TryReadLock trl(&*g_locks[0]);
+    gotit = trl.gotIt();
+  }
+  catch(const PDNSException &e) {
+    gotit = false;
+  }
+  BOOST_CHECK(!gotit);
 
   wlocks.clear();
   TryReadLock trl2(&*g_locks[0]);
