@@ -125,8 +125,17 @@ void CommunicatorClass::mainloop(void)
       while(time(0) < next) {
         rc=d_any_sem.tryWait();
 
-        if(rc)
+        if(rc) {
+          bool extraSlaveRefresh = false;
           Utility::sleep(1);
+          {
+            Lock l(&d_lock);
+            if (d_tocheck.size())
+              extraSlaveRefresh = true;
+          }
+          if (extraSlaveRefresh)
+            slaveRefresh(&P);
+        }
         else { 
           break; // something happened
         }
