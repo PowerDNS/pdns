@@ -41,6 +41,7 @@
 #include "mplexer.hh"
 #include "misc.hh"
 #include "iputils.hh"
+#include "logger.hh"
 
 /* BEGIN Needed because of deeper dependencies */
 #include "arguments.hh"
@@ -77,9 +78,6 @@ po::variables_map g_vm;
 string g_workdir;
 ComboAddress g_master;
 
-bool g_verbose = false;
-bool g_debug = false;
-
 bool g_exiting = false;
 
 #define KEEP_DEFAULT 20
@@ -91,18 +89,12 @@ uint16_t g_axfrTimeout = AXFRTIMEOUT_DEFAULT;
 NetmaskGroup g_acl;
 
 void handleSignal(int signum) {
-  if (g_verbose) {
-    cerr<<"[INFO] Got "<<strsignal(signum)<<" signal";
-  }
+  g_log<<Logger::Notice<<"Got "<<strsignal(signum)<<" signal";
   if (g_exiting) {
-    if (g_verbose) {
-      cerr<<", this is the second time we were asked to stop, forcefully exiting"<<endl;
-    }
+    g_log<<Logger::Notice<<", this is the second time we were asked to stop, forcefully exiting"<<endl;
     exit(EXIT_FAILURE);
   }
-  if (g_verbose) {
-    cerr<<", stopping"<<endl;
-  }
+  g_log<<Logger::Notice<<", stopping"<<endl;
   g_exiting = true;
 }
 
@@ -132,18 +124,12 @@ void cleanUpDomain(const DNSName& domain) {
     zoneVersions.push_back(std::stoi(d->d_name));
   }
   closedir(dp);
-  if (g_verbose) {
-    cerr<<"[INFO] Found "<<zoneVersions.size()<<" versions of "<<domain<<", asked to keep "<<g_keep<<", ";
-  }
+  g_log<<Logger::Info<<"Found "<<zoneVersions.size()<<" versions of "<<domain<<", asked to keep "<<g_keep<<", ";
   if (zoneVersions.size() <= g_keep) {
-    if (g_verbose) {
-      cerr<<"not cleaning up"<<endl;
-    }
+    g_log<<Logger::Info<<"not cleaning up"<<endl;
     return;
   }
-  if (g_verbose) {
-    cerr<<"cleaning up the oldest "<<zoneVersions.size() - g_keep<<endl;
-  }
+  g_log<<Logger::Info<<"cleaning up the oldest "<<zoneVersions.size() - g_keep<<endl;
 
   // Sort the versions
   std::sort(zoneVersions.begin(), zoneVersions.end(), sortSOA);
@@ -154,9 +140,7 @@ void cleanUpDomain(const DNSName& domain) {
     std::lock_guard<std::mutex> guard(g_soas_mutex);
     for (auto iter = zoneVersions.cbegin(); iter != zoneVersions.cend() - g_keep; ++iter) {
       string fname = dir + "/" + std::to_string(*iter);
-      if (g_debug) {
-        cerr<<"[DEBUG] Removing "<<fname<<endl;
-      }
+      g_log<<Logger::Debug<<"Removing "<<fname<<endl;
       unlink(fname.c_str());
     }
   }
@@ -196,9 +180,7 @@ void updateThread() {
     lastCheck[domain] = 0;
     string dir = g_workdir + "/" + domain.toString();
     try {
-      if (g_verbose) {
-        cerr<<"[INFO] Trying to initially load domain "<<domain.toString()<<" from disk"<<endl;
-      }
+      g_log<<Logger::Info<<"Trying to initially load domain "<<domain<<" from disk"<<endl;
       auto serial = getSerialsFromDir(dir);
       shared_ptr<SOARecordContent> soa;
       {
@@ -213,33 +195,26 @@ void updateThread() {
         g_soas[domain].soa = soa;
       }
       if (soa != nullptr) {
-        if (g_verbose) {
-          cerr<<"[INFO] Loaded zone "<<domain.toString()<<" with serial "<<soa->d_st.serial<<endl;
-        }
+        g_log<<Logger::Notice<<"Loaded zone "<<domain<<" with serial "<<soa->d_st.serial<<endl;
         // Initial cleanup
         cleanUpDomain(domain);
       }
     } catch (runtime_error &e) {
       // Most likely, the directory does not exist.
-      cerr<<"[INFO] "<<e.what()<<", attempting to create"<<endl;
+      g_log<<Logger::Info<<e.what()<<", attempting to create"<<endl;
       // Attempt to create it, if _that_ fails, there is no hope
       if (mkdir(dir.c_str(), 0777) == -1 && errno != EEXIST) {
-        cerr<<"[ERROR] Could not create '"<<dir<<"': "<<strerror(errno)<<endl;
+        g_log<<Logger::Error<<"Could not create '"<<dir<<"': "<<strerror(errno)<<endl;
         exit(EXIT_FAILURE);
       }
     }
   }
 
-
-  if (g_verbose) {
-    cerr<<"[INFO] Update Thread started"<<endl;
-  }
+  g_log<<Logger::Notice<<"Update Thread started"<<endl;
 
   while (true) {
     if (g_exiting) {
-      if (g_verbose) {
-        cerr<<"[INFO] UpdateThread stopped"<<endl;
-      }
+      g_log<<Logger::Notice<<"UpdateThread stopped"<<endl;
       break;
     }
     time_t now = time(nullptr);
@@ -256,35 +231,25 @@ void updateThread() {
         continue;
       }
       string dir = g_workdir + "/" + domain.toString();
-      if (g_verbose) {
-        cerr<<"[INFO] Attempting to retrieve SOA Serial update for '"<<domain<<"' from '"<<g_master.toStringWithPort()<<"'"<<endl;
-      }
+      g_log<<Logger::Info<<"Attempting to retrieve SOA Serial update for '"<<domain<<"' from '"<<g_master.toStringWithPort()<<"'"<<endl;
       shared_ptr<SOARecordContent> sr;
       try {
         lastCheck[domain] = now;
         auto newSerial = getSerialFromMaster(g_master, domain, sr); // TODO TSIG
         if(current_soa != nullptr) {
-          if (g_verbose) {
-            cerr<<"[INFO] Got SOA Serial for "<<domain<<" from "<<g_master.toStringWithPort()<<": "<< newSerial<<", had Serial: "<<current_soa->d_st.serial;
-          }
+          g_log<<Logger::Info<<"Got SOA Serial for "<<domain<<" from "<<g_master.toStringWithPort()<<": "<< newSerial<<", had Serial: "<<current_soa->d_st.serial;
           if (newSerial == current_soa->d_st.serial) {
-            if (g_verbose) {
-              cerr<<", not updating."<<endl;
-            }
+            g_log<<Logger::Info<<", not updating."<<endl;
             continue;
           }
-          if (g_verbose) {
-            cerr<<", will update."<<endl;
-          }
+          g_log<<Logger::Info<<", will update."<<endl;
         }
       } catch (runtime_error &e) {
-        cerr<<"[WARNING] Unable to get SOA serial update for '"<<domain<<"': "<<e.what()<<endl;
+        g_log<<Logger::Warning<<"Unable to get SOA serial update for '"<<domain<<"': "<<e.what()<<endl;
         continue;
       }
       // Now get the full zone!
-      if (g_verbose) {
-        cerr<<"[INFO] Attempting to receive full zonedata for '"<<domain<<"'"<<endl;
-      }
+      g_log<<Logger::Info<<"Attempting to receive full zonedata for '"<<domain<<"'"<<endl;
       ComboAddress local = g_master.isIPv4() ? ComboAddress("0.0.0.0") : ComboAddress("::");
       TSIGTriplet tt;
 
@@ -315,16 +280,12 @@ void updateThread() {
           }
         }
         if (soa == nullptr) {
-          cerr<<"[WARNING] No SOA was found in the AXFR of "<<domain<<endl;
+          g_log<<Logger::Warning<<"No SOA was found in the AXFR of "<<domain<<endl;
           continue;
         }
-        if (g_verbose) {
-          cerr<<"[INFO] Retrieved all zone data for "<<domain<<". Received "<<nrecords<<" records."<<endl;
-        }
+        g_log<<Logger::Notice<<"Retrieved all zone data for "<<domain<<". Received "<<nrecords<<" records."<<endl;
         writeZoneToDisk(records, domain, dir);
-        if (g_verbose) {
-          cerr<<"[INFO] Wrote zonedata for "<<domain<<" with serial "<<soa->d_st.serial<<" to "<<dir<<endl;
-        }
+        g_log<<Logger::Notice<<"Wrote zonedata for "<<domain<<" with serial "<<soa->d_st.serial<<" to "<<dir<<endl;
         {
           std::lock_guard<std::mutex> guard(g_soas_mutex);
           ixfrdiff_t diff;
@@ -340,9 +301,9 @@ void updateThread() {
           g_soas[domain].soa = soa;
         }
       } catch (PDNSException &e) {
-        cerr<<"[WARNING] Could not retrieve AXFR for '"<<domain<<"': "<<e.reason<<endl;
+        g_log<<Logger::Warning<<"Could not retrieve AXFR for '"<<domain<<"': "<<e.reason<<endl;
       } catch (runtime_error &e) {
-        cerr<<"[WARNING] Could not save zone '"<<domain<<"' to disk: "<<e.what()<<endl;
+        g_log<<Logger::Warning<<"Could not save zone '"<<domain<<"' to disk: "<<e.what()<<endl;
       }
       // Now clean up the directory
       cleanUpDomain(domain);
@@ -351,12 +312,10 @@ void updateThread() {
   } /* while (true) */
 } /* updateThread */
 
-bool checkQuery(const MOADNSParser& mdp, const ComboAddress& saddr, const bool udp = true) {
+bool checkQuery(const MOADNSParser& mdp, const ComboAddress& saddr, const bool udp = true, const string& logPrefix="") {
   vector<string> info_msg;
 
-  if (g_debug) {
-    cerr<<"[DEBUG] Had "<<mdp.d_qname<<"|"<<QType(mdp.d_qtype).getName()<<" query from "<<saddr.toStringWithPort()<<endl;
-  }
+  g_log<<Logger::Debug<<logPrefix<<"Had "<<mdp.d_qname<<"|"<<QType(mdp.d_qtype).getName()<<" query from "<<saddr.toStringWithPort()<<endl;
 
   if (udp && mdp.d_qtype != QType::SOA && mdp.d_qtype != QType::IXFR) {
     info_msg.push_back("QType is unsupported (" + QType(mdp.d_qtype).getName() + " is not in {SOA,IXFR}");
@@ -378,19 +337,17 @@ bool checkQuery(const MOADNSParser& mdp, const ComboAddress& saddr, const bool u
   }
 
   if (!info_msg.empty()) {
-    cerr<<"[WARNING] Ignoring "<<mdp.d_qname<<"|"<<QType(mdp.d_qtype).getName()<<" query from "<<saddr.toStringWithPort();
-    if (g_verbose) {
-      cerr<<": ";
-      bool first = true;
-      for (const auto& s : info_msg) {
-        if (!first) {
-          cerr<<", ";
-          first = false;
-        }
-        cerr<<s;
+    g_log<<Logger::Warning<<logPrefix<<"Ignoring "<<mdp.d_qname<<"|"<<QType(mdp.d_qtype).getName()<<" query from "<<saddr.toStringWithPort();
+    g_log<<Logger::Warning<<": ";
+    bool first = true;
+    for (const auto& s : info_msg) {
+      if (!first) {
+        g_log<<Logger::Warning<<", ";
+        first = false;
       }
+      g_log<<Logger::Warning<<s;
     }
-    cerr<<endl;
+    g_log<<Logger::Warning<<endl;
     return false;
   }
 
@@ -528,7 +485,7 @@ bool makeIXFRPackets(const MOADNSParser& mdp, const shared_ptr<SOARecordContent>
   }
 
   if (toSend.empty()) {
-    cerr<<"[WARNING] No IXFR available from serial "<<clientSOA->d_st.serial<<" for zone "<<mdp.d_qname<<", attempting to send AXFR"<<endl;
+    g_log<<Logger::Warning<<"No IXFR available from serial "<<clientSOA->d_st.serial<<" for zone "<<mdp.d_qname<<", attempting to send AXFR"<<endl;
     return makeAXFRPackets(mdp, packets);
   }
 
@@ -564,23 +521,23 @@ void handleUDPRequest(int fd, boost::any&) {
   int res = recvfrom(fd, buf, sizeof(buf), 0, (struct sockaddr*) &saddr, &fromlen);
 
   if (res == 0) {
-    cerr<<"[WARNING] Got an empty message from "<<saddr.toStringWithPort()<<endl;
+    g_log<<Logger::Warning<<"Got an empty message from "<<saddr.toStringWithPort()<<endl;
     return;
   }
 
   if(res < 0) {
     auto savedErrno = errno;
-    cerr<<"[WARNING] Could not read message from "<<saddr.toStringWithPort()<<": "<<strerror(savedErrno)<<endl;
+    g_log<<Logger::Warning<<"Could not read message from "<<saddr.toStringWithPort()<<": "<<strerror(savedErrno)<<endl;
     return;
   }
 
   if (!allowedByACL(saddr)) {
-    cerr<<"[WARNING] UDP query from "<<saddr.toString()<<" is not allowed, dropping"<<endl;
+    g_log<<Logger::Warning<<"UDP query from "<<saddr.toString()<<" is not allowed, dropping"<<endl;
     return;
   }
 
   if (saddr == ComboAddress("0.0.0.0", 0)) {
-    cerr<<"[WARNING] Could not determine source of message"<<endl;
+    g_log<<Logger::Warning<<"Could not determine source of message"<<endl;
     return;
   }
 
@@ -604,7 +561,7 @@ void handleUDPRequest(int fd, boost::any&) {
   makeSOAPacket(mdp, packet);
   if(sendto(fd, &packet[0], packet.size(), 0, (struct sockaddr*) &saddr, fromlen) < 0) {
     auto savedErrno = errno;
-    cerr<<"[WARNING] Could not send reply for "<<mdp.d_qname<<"|"<<QType(mdp.d_qtype).getName()<<" to "<<saddr.toStringWithPort()<<": "<<strerror(savedErrno)<<endl;
+    g_log<<Logger::Warning<<"Could not send reply for "<<mdp.d_qname<<"|"<<QType(mdp.d_qtype).getName()<<" to "<<saddr.toStringWithPort()<<": "<<strerror(savedErrno)<<endl;
   }
   return;
 }
@@ -617,18 +574,18 @@ void handleTCPRequest(int fd, boost::any&) {
     cfd = SAccept(fd, saddr);
     setBlocking(cfd);
   } catch(runtime_error &e) {
-    cerr<<"[ERROR] "<<e.what()<<endl;
+    g_log<<Logger::Error<<e.what()<<endl;
     return;
   }
 
   if (!allowedByACL(saddr)) {
-    cerr<<"[WARNING] TCP query from "<<saddr.toString()<<" is not allowed, dropping"<<endl;
+    g_log<<Logger::Warning<<"TCP query from "<<saddr.toString()<<" is not allowed, dropping"<<endl;
     close(cfd);
     return;
   }
 
   if (saddr == ComboAddress("0.0.0.0", 0)) {
-    cerr<<"[WARNING] Could not determine source of message"<<endl;
+    g_log<<Logger::Warning<<"Could not determine source of message"<<endl;
     return;
   }
 
@@ -645,20 +602,14 @@ void tcpWorker(int tid) {
   string prefix = "TCP Worker " + std::to_string(tid) + ": ";
 
   while(true) {
-    if (g_debug) {
-      cerr<<"[DEBUG] "<<prefix<<"ready for a new request!"<<endl;
-    }
+    g_log<<Logger::Debug<<prefix<<"ready for a new request!"<<endl;
     std::unique_lock<std::mutex> lk(g_tcpRequestFDsMutex);
     g_tcpHandlerCV.wait(lk, []{return g_tcpRequestFDs.size() || g_exiting ;});
     if (g_exiting) {
-      if (g_debug) {
-        cerr<<"[DEBUG] "<<prefix<<"stopping thread"<<endl;
-      }
+      g_log<<Logger::Debug<<prefix<<"Stopping thread"<<endl;
       break;
     }
-    if (g_debug) {
-      cerr<<"[DEBUG] "<<prefix<<"Going to handle a query"<<endl;
-    }
+    g_log<<Logger::Debug<<prefix<<"Going to handle a query"<<endl;
     auto request = g_tcpRequestFDs.front();
     g_tcpRequestFDs.pop();
     lk.unlock();
@@ -673,8 +624,9 @@ void tcpWorker(int tid) {
       readn2(cfd, &toRead, sizeof(toRead));
       toRead = std::min(ntohs(toRead), static_cast<uint16_t>(sizeof(buf)));
       res = readn2WithTimeout(cfd, &buf, toRead, 2);
+      g_log<<Logger::Debug<<prefix<<"Had message of "<<std::to_string(toRead)<<" bytes from "<<saddr.toStringWithPort()<<endl;
     } catch (runtime_error &e) {
-      cerr<<"[WARNING] "<<prefix<<"Could not read message from "<<saddr.toStringWithPort()<<": "<<e.what()<<endl;
+      g_log<<Logger::Warning<<prefix<<"Could not read message from "<<saddr.toStringWithPort()<<": "<<e.what()<<endl;
       close(cfd);
       continue;
     }
@@ -682,7 +634,7 @@ void tcpWorker(int tid) {
     try {
       MOADNSParser mdp(true, string(buf, res));
 
-      if (!checkQuery(mdp, saddr, false)) {
+      if (!checkQuery(mdp, saddr, false, prefix)) {
         close(cfd);
         continue;
       }
@@ -724,7 +676,7 @@ void tcpWorker(int tid) {
         } /* for (auto const &answer : mdp.d_answers) */
 
         if (clientSOA == nullptr) {
-          cerr<<"[WARNING] "<<prefix<<"IXFR request packet did not contain a SOA record in the AUTHORITY section"<<endl;
+          g_log<<Logger::Warning<<prefix<<"IXFR request packet did not contain a SOA record in the AUTHORITY section"<<endl;
           close(cfd);
           continue;
         }
@@ -735,6 +687,7 @@ void tcpWorker(int tid) {
         }
       } /* if (mdp.d_qtype == QType::IXFR) */
 
+      g_log<<Logger::Debug<<prefix<<"Sending "<<packets.size()<<" packets to "<<saddr.toStringWithPort()<<endl;
       for (const auto& packet : packets) {
         char sendBuf[2];
         sendBuf[0]=packet.size()/256;
@@ -745,9 +698,9 @@ void tcpWorker(int tid) {
       }
       shutdown(cfd, 2);
     } catch (MOADNSException &e) {
-      cerr<<"[WARNING] "<<prefix<<"Could not parse DNS packet from "<<saddr.toStringWithPort()<<": "<<e.what()<<endl;
+      g_log<<Logger::Warning<<prefix<<"Could not parse DNS packet from "<<saddr.toStringWithPort()<<": "<<e.what()<<endl;
     } catch (runtime_error &e) {
-      cerr<<"[WARNING] "<<prefix<<"Could not write reply to "<<saddr.toStringWithPort()<<": "<<e.what()<<endl;
+      g_log<<Logger::Warning<<prefix<<"Could not write reply to "<<saddr.toStringWithPort()<<": "<<e.what()<<endl;
     }
     // bye!
     close(cfd);
@@ -759,6 +712,11 @@ void tcpWorker(int tid) {
 }
 
 int main(int argc, char** argv) {
+  g_log.setLoglevel(Logger::Notice);
+  g_log.toConsole(Logger::Notice);
+  g_log.setPrefixed(true);
+  g_log.disableSyslog(true);
+  g_log.setTimestamps(false);
   try {
     po::options_description desc("IXFR distribution tool");
     desc.add_options()
@@ -798,18 +756,20 @@ int main(int argc, char** argv) {
       return EXIT_SUCCESS;
     }
   } catch (po::error &e) {
-    cerr<<"[ERROR] "<<e.what()<<". See `ixfrdist --help` for valid options"<<endl;
+    g_log<<Logger::Error<<e.what()<<". See `ixfrdist --help` for valid options"<<endl;
     return(EXIT_FAILURE);
   }
 
   bool had_error = false;
 
-  if (g_vm.count("verbose") > 0 || g_vm.count("debug") > 0) {
-    g_verbose = true;
+  if (g_vm.count("verbose")) {
+    g_log.setLoglevel(Logger::Info);
+    g_log.toConsole(Logger::Info);
   }
 
   if (g_vm.count("debug") > 0) {
-    g_debug = true;
+    g_log.setLoglevel(Logger::Debug);
+    g_log.toConsole(Logger::Debug);
   }
 
   if (g_vm.count("keep") > 0) {
@@ -828,7 +788,7 @@ int main(int argc, char** argv) {
       try {
         listen_addresses.push_back(ComboAddress(addr, 53));
       } catch(PDNSException &e) {
-        cerr<<"[ERROR] listen-address '"<<addr<<"' is not an IP address: "<<e.reason<<endl;
+        g_log<<Logger::Error<<"listen-address '"<<addr<<"' is not an IP address: "<<e.reason<<endl;
         had_error = true;
       }
     }
@@ -837,19 +797,19 @@ int main(int argc, char** argv) {
   try {
     g_master = ComboAddress(g_vm["server-address"].as<string>(), 53);
   } catch(PDNSException &e) {
-    cerr<<"[ERROR] server-address '"<<g_vm["server-address"].as<string>()<<"' is not an IP address: "<<e.reason<<endl;
+    g_log<<Logger::Error<<"server-address '"<<g_vm["server-address"].as<string>()<<"' is not an IP address: "<<e.reason<<endl;
     had_error = true;
   }
 
   if (!g_vm.count("domains")) {
-    cerr<<"[ERROR] No domain(s) specified!"<<endl;
+    g_log<<Logger::Error<<"No domain(s) specified!"<<endl;
     had_error = true;
   } else {
     for (const auto &domain : g_vm["domains"].as<vector<string>>()) {
       try {
         g_domains.insert(DNSName(domain));
       } catch (PDNSException &e) {
-        cerr<<"[ERROR] '"<<domain<<"' is not a valid domain name: "<<e.reason<<endl;
+        g_log<<Logger::Error<<"'"<<domain<<"' is not a valid domain name: "<<e.reason<<endl;
         had_error = true;
       }
     }
@@ -857,7 +817,7 @@ int main(int argc, char** argv) {
 
   g_fdm = FDMultiplexer::getMultiplexerSilent();
   if (g_fdm == nullptr) {
-    cerr<<"[ERROR] Could not enable a multiplexer for the listen sockets!"<<endl;
+    g_log<<Logger::Error<<"Could not enable a multiplexer for the listen sockets!"<<endl;
     return EXIT_FAILURE;
   }
 
@@ -869,13 +829,11 @@ int main(int argc, char** argv) {
     try {
       g_acl.addMask(addr);
     } catch (const NetmaskException &e) {
-      cerr<<"[ERROR] "<<e.reason<<endl;
+      g_log<<Logger::Error<<e.reason<<endl;
       had_error = true;
     }
   }
-  if (g_verbose) {
-    cerr<<"[INFO] ACL set to "<<g_acl.toString()<<"."<<endl;
-  }
+  g_log<<Logger::Notice<<"ACL set to "<<g_acl.toString()<<"."<<endl;
 
   set<int> allSockets;
   for (const auto& addr : listen_addresses) {
@@ -891,7 +849,7 @@ int main(int argc, char** argv) {
         g_fdm->addReadFD(s, stype == SOCK_DGRAM ? handleUDPRequest : handleTCPRequest);
         allSockets.insert(s);
       } catch(runtime_error &e) {
-        cerr<<"[ERROR] "<<e.what()<<endl;
+        g_log<<Logger::Error<<e.what()<<endl;
         had_error = true;
         continue;
       }
@@ -907,17 +865,15 @@ int main(int argc, char** argv) {
     if (!(newgid = atoi(gid.c_str()))) {
       struct group *gr = getgrnam(gid.c_str());
       if (gr == nullptr) {
-        cerr<<"[ERROR] Can not determine group-id for gid "<<gid<<endl;
+        g_log<<Logger::Error<<"Can not determine group-id for gid "<<gid<<endl;
         had_error = true;
       } else {
         newgid = gr->gr_gid;
       }
     }
-    if(g_verbose) {
-      cerr<<"[INFO] Dropping effective group-id to "<<newgid<<endl;
-    }
+    g_log<<Logger::Notice<<"Dropping effective group-id to "<<newgid<<endl;
     if (setgid(newgid) < 0) {
-      cerr<<"[ERROR] Could not set group id to "<<newgid<<": "<<stringerror()<<endl;
+      g_log<<Logger::Error<<"Could not set group id to "<<newgid<<": "<<stringerror()<<endl;
       had_error = true;
     }
   }
@@ -929,7 +885,7 @@ int main(int argc, char** argv) {
     if (!(newuid = atoi(uid.c_str()))) {
       struct passwd *pw = getpwnam(uid.c_str());
       if (pw == nullptr) {
-        cerr<<"[ERROR] Can not determine user-id for uid "<<uid<<endl;
+        g_log<<Logger::Error<<"Can not determine user-id for uid "<<uid<<endl;
         had_error = true;
       } else {
         newuid = pw->pw_uid;
@@ -939,21 +895,19 @@ int main(int argc, char** argv) {
     struct passwd *pw = getpwuid(newuid);
     if (pw == nullptr) {
       if (setgroups(0, nullptr) < 0) {
-        cerr<<"[ERROR] Unable to drop supplementary gids: "<<stringerror()<<endl;
+        g_log<<Logger::Error<<"Unable to drop supplementary gids: "<<stringerror()<<endl;
         had_error = true;
       }
     } else {
       if (initgroups(pw->pw_name, newgid) < 0) {
-        cerr<<"[ERROR] Unable to set supplementary groups: "<<stringerror()<<endl;
+        g_log<<Logger::Error<<"Unable to set supplementary groups: "<<stringerror()<<endl;
         had_error = true;
       }
     }
 
-    if(g_verbose) {
-      cerr<<"[INFO] Dropping effective user-id to "<<newuid<<endl;
-    }
+    g_log<<Logger::Notice<<"Dropping effective user-id to "<<newuid<<endl;
     if (setuid(pw->pw_uid) < 0) {
-      cerr<<"[ERROR] Could not set user id to "<<newuid<<": "<<stringerror()<<endl;
+      g_log<<Logger::Error<<"Could not set user id to "<<newuid<<": "<<stringerror()<<endl;
       had_error = true;
     }
   }
@@ -975,7 +929,7 @@ int main(int argc, char** argv) {
   // TODO read from urandom (perhaps getrandom(2)?
   dns_random_init("0123456789abcdef");
 
-  cout<<"[INFO] IXFR distributor starting up!"<<endl;
+  g_log<<Logger::Notice<<"IXFR distributor starting up!"<<endl;
 
   std::thread ut(updateThread);
   std::thread tcpHandlers[g_vm["tcp-out-threads"].as<uint16_t>()];
@@ -988,26 +942,22 @@ int main(int argc, char** argv) {
     gettimeofday(&now, 0);
     g_fdm->run(&now);
     if (g_exiting) {
-      if (g_verbose) {
-        cerr<<"[INFO] Shutting down!"<<endl;
-      }
+      g_log<<Logger::Notice<<"Shutting down!"<<endl;
       for (const int& fd : allSockets) {
         try {
           closesocket(fd);
         } catch(PDNSException &e) {
-          cerr<<"[ERROR] "<<e.reason<<endl;
+          g_log<<Logger::Error<<e.reason<<endl;
         }
       }
       break;
     }
   }
-  ut.join();
   g_tcpHandlerCV.notify_all();
+  ut.join();
   for (int i=0; i<g_vm["tcp-out-threads"].as<uint16_t>(); i++) {
     tcpHandlers[i].join();
   }
-  if (g_verbose) {
-    cerr<<"[INFO] IXFR distributor stopped"<<endl;
-  }
+  g_log<<Logger::Notice<<"IXFR distributor stopped"<<endl;
   return EXIT_SUCCESS;
 }
