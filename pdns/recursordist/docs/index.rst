@@ -25,7 +25,7 @@ Notable features
 - Code is written linearly, sequentially, which means that there are no problems with 'query restart' or anything.
 - The algorithm is simple and quite nifty.
 - Does DNSSEC validation
-- Is highly scriptable in `Lua <http://lualang.org>`_
+- Is highly scriptable in `Lua <http://lua.org>`_
 
 Getting support
 ---------------
