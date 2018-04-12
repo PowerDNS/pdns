@@ -40,7 +40,7 @@
 #include <openssl/rand.h>
 #endif
 #if defined(HAVE_GETRANDOM)
-#include <linux/random.h>
+#include <sys/random.h>
 #endif
 
 static enum DNS_RNG {
@@ -131,7 +131,7 @@ static void dns_random_setup(void)
 #if defined(HAVE_KISS_RNG)
   } else if (rng == "kiss") {
     chosen_rng = RNG_KISS;
-    L<<Logger::Warning<<"kiss rng should not be used in production environment"<<std::endl;
+    g_log<<Logger::Warning<<"kiss rng should not be used in production environment"<<std::endl;
 #endif
   } else {
     throw PDNSException("Unsupported rng '" + rng + "'");
@@ -152,7 +152,7 @@ static void dns_random_setup(void)
     // some systems define getrandom but it does not really work, e.g. because it's
     // not present in kernel.
     if (getrandom(buf, sizeof(buf), 0) == -1) {
-       L<<Logger::Warning<<"getrandom() failed: "<<strerror(errno)<<", falling back to " + rdev<<std::endl;
+       g_log<<Logger::Warning<<"getrandom() failed: "<<strerror(errno)<<", falling back to " + rdev<<std::endl;
        chosen_rng = RNG_URANDOM;
     }
   }
@@ -261,7 +261,7 @@ unsigned int dns_random(unsigned int upper_bound) {
 #if defined(HAVE_GETRANDOM) && !defined(USE_URANDOM_ONLY)
       unsigned int num=0;
       while(num < min) {
-        if (getrandom(&num, sizeof(num), 0) != 0)
+        if (getrandom(&num, sizeof(num), 0) != sizeof(num))
           throw PDNSException("getrandom() failed: " + std::string(strerror(errno)));
       }
       return num % upper_bound;
