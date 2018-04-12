@@ -36,8 +36,11 @@ Options
                                 By default, this is the current working directory.
 --keep <NUM>                    Keep at most *NUM* versions of any zone.
                                 By default, 20 versions are kept.
---uid <UID>                     Drop effective user-id to *UID* after binding the listen sockets
---gid <GID>                     Drop effective group-id to *GID* after binding the listen sockets
+--uid <UID>                     Drop effective user-id to *UID* after binding the listen sockets.
+--gid <GID>                     Drop effective group-id to *GID* after binding the listen sockets.
+--axfr-timeout <NUM>            Stop an inbound AXFR when it is not completed in *NUM* seconds. Defaults to 10 seconds.
+--tcp-out-threads <NUM>         Amount of worker threads to handle TCP traffic.
+                                This limits the number of concurrent AXFR/IXFR, the default is 10.
 
 See also
 --------
