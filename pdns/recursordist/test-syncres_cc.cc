@@ -165,6 +165,8 @@ static void init(bool debug=false)
   g_maxNSEC3Iterations = 2500;
 
   ::arg().set("version-string", "string reported on version.pdns or version.bind")="PowerDNS Unit Tests";
+  ::arg().set("rng")="auto";
+  ::arg().set("entropy-source")="/dev/urandom";
 }
 
 static void initSR(std::unique_ptr<SyncRes>& sr, bool dnssec=false, bool debug=false, time_t fakeNow=0)
