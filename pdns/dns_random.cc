@@ -81,12 +81,12 @@ kiss_rand(void)
 }
 #endif
 
-static void dns_random_setup(void)
+static void dns_random_setup(bool force=false)
 {
   string rdev;
   string rng;
   /* check if selection has been done */
-  if (chosen_rng > RNG_UNINITIALIZED)
+  if (chosen_rng > RNG_UNINITIALIZED && !force)
     return;
 
 /* XXX: A horrible hack to allow using dns_random in places where arguments are not available.
@@ -134,13 +134,13 @@ static void dns_random_setup(void)
     g_log<<Logger::Warning<<"kiss rng should not be used in production environment"<<std::endl;
 #endif
   } else {
-    throw PDNSException("Unsupported rng '" + rng + "'");
+    throw std::runtime_error("Unsupported rng '" + rng + "'");
   }
 
 # if defined(HAVE_RANDOMBYTES_STIR)
   if (chosen_rng == RNG_SODIUM) {
     if (sodium_init() == -1)
-      throw PDNSException("Unable to initialize sodium crypto library");
+      throw std::runtime_error("Unable to initialize sodium crypto library");
     /*  make sure it's set up */
     randombytes_stir();
   }
@@ -163,26 +163,26 @@ static void dns_random_setup(void)
     int ret;
     unsigned char buf[1];
     if ((ret = RAND_bytes(buf, sizeof(buf))) == -1)
-      throw PDNSException("RAND_bytes not supported by current SSL engine");
+      throw std::runtime_error("RAND_bytes not supported by current SSL engine");
     if (ret == 0)
-      throw PDNSException("Openssl RNG was not seeded");
+      throw std::runtime_error("Openssl RNG was not seeded");
   }
 # endif
 #endif /* USE_URANDOM_ONLY */
   if (chosen_rng == RNG_URANDOM) {
     urandom_fd = open(rdev.c_str(), O_RDONLY);
     if (urandom_fd == -1)
-      throw PDNSException("Cannot open " + rdev + ": " + std::string(strerror(errno)));
+      throw std::runtime_error("Cannot open " + rdev + ": " + std::string(strerror(errno)));
   }
 #if defined(HAVE_KISS_RNG)
   if (chosen_rng == RNG_KISS) {
     unsigned int seed;
     urandom_fd = open(rdev.c_str(), O_RDONLY);
     if (urandom_fd == -1)
-      throw PDNSException("Cannot open " + rdev + ": " + std::string(strerror(errno)));
+      throw std::runtime_error("Cannot open " + rdev + ": " + std::string(strerror(errno)));
     if (read(urandom_fd, &seed, sizeof(seed)) < 0) {
       (void)close(urandom_fd);
-      throw PDNSException("Cannot read random device");
+      throw std::runtime_error("Cannot read random device");
     }
     kiss_init(seed);
     (void)close(urandom_fd);
@@ -190,8 +190,8 @@ static void dns_random_setup(void)
 #endif
 }
 
-void dns_random_init(const string& data __attribute__((unused))) {
-  dns_random_setup();
+void dns_random_init(const string& data __attribute__((unused)), bool force) {
+  dns_random_setup(force);
   (void)dns_random(1);
   // init should occur already in dns_random_setup
   // this interface is only for KISS
@@ -200,7 +200,7 @@ void dns_random_init(const string& data __attribute__((unused))) {
   if (chosen_rng != RNG_KISS)
     return;
   if (data.size() != 16)
-    throw PDNSException("invalid seed");
+    throw std::runtime_error("invalid seed");
   seed = (data[0] + (data[1]<<8) + (data[2]<<16) + (data[3]<<24)) ^
          (data[4] + (data[5]<<8) + (data[6]<<16) + (data[7]<<24)) ^
          (data[8] + (data[9]<<8) + (data[10]<<16) + (data[11]<<24)) ^
@@ -238,23 +238,23 @@ unsigned int dns_random(unsigned int upper_bound) {
 
   switch(chosen_rng) {
   case RNG_UNINITIALIZED:
-    throw PDNSException("Unreachable at " __FILE__ ":" + boost::lexical_cast<std::string>(__LINE__)); // cannot be reached
+    throw std::runtime_error("Unreachable at " __FILE__ ":" + boost::lexical_cast<std::string>(__LINE__)); // cannot be reached
   case RNG_SODIUM:
 #if defined(HAVE_RANDOMBYTES_STIR) && !defined(USE_URANDOM_ONLY)
     return static_cast<unsigned int>(randombytes_uniform(static_cast<uint32_t>(upper_bound)));
 #else
-    throw PDNSException("Unreachable at " __FILE__ ":" + boost::lexical_cast<std::string>(__LINE__)); // cannot be reached
+    throw std::runtime_error("Unreachable at " __FILE__ ":" + boost::lexical_cast<std::string>(__LINE__)); // cannot be reached
 #endif /* RND_SODIUM */
   case RNG_OPENSSL: {
 #if defined(HAVE_RAND_BYTES) && !defined(USE_URANDOM_ONLY)
       unsigned int num=0;
       while(num < min) {
         if (RAND_bytes(reinterpret_cast<unsigned char*>(&num), sizeof(num)) < 1)
-          throw PDNSException("Openssl RNG was not seeded");
+          throw std::runtime_error("Openssl RNG was not seeded");
       }
       return num % upper_bound;
 #else
-      throw PDNSException("Unreachable at " __FILE__ ":" + boost::lexical_cast<std::string>(__LINE__)); // cannot be reached
+      throw std::runtime_error("Unreachable at " __FILE__ ":" + boost::lexical_cast<std::string>(__LINE__)); // cannot be reached
 #endif /* RNG_OPENSSL */
      }
   case RNG_GETRANDOM: {
@@ -262,25 +262,25 @@ unsigned int dns_random(unsigned int upper_bound) {
       unsigned int num=0;
       while(num < min) {
         if (getrandom(&num, sizeof(num), 0) != sizeof(num))
-          throw PDNSException("getrandom() failed: " + std::string(strerror(errno)));
+          throw std::runtime_error("getrandom() failed: " + std::string(strerror(errno)));
       }
       return num % upper_bound;
 #else
-      throw PDNSException("Unreachable at " __FILE__ ":" + boost::lexical_cast<std::string>(__LINE__)); // cannot be reached
+      throw std::runtime_error("Unreachable at " __FILE__ ":" + boost::lexical_cast<std::string>(__LINE__)); // cannot be reached
 #endif
       }
   case RNG_ARC4RANDOM:
 #if defined(HAVE_ARC4RANDOM) && !defined(USE_URANDOM_ONLY)
     return static_cast<unsigned int>(arc4random_uniform(static_cast<uint32_t>(upper_bound)));
 #else
-    throw PDNSException("Unreachable at " __FILE__ ":" + boost::lexical_cast<std::string>(__LINE__)); // cannot be reached
+    throw std::runtime_error("Unreachable at " __FILE__ ":" + boost::lexical_cast<std::string>(__LINE__)); // cannot be reached
 #endif
   case RNG_URANDOM: {
       unsigned int num = 0;
       while(num < min) {
         if (read(urandom_fd, &num, sizeof(num)) < 0) {
           (void)close(urandom_fd);
-          throw PDNSException("Cannot read random device");
+          throw std::runtime_error("Cannot read random device");
         }
       }
       return num % upper_bound;
@@ -294,6 +294,6 @@ unsigned int dns_random(unsigned int upper_bound) {
     }
 #endif
   default:
-    throw PDNSException("Unreachable at " __FILE__ ":" + boost::lexical_cast<std::string>(__LINE__)); // cannot be reached
+    throw std::runtime_error("Unreachable at " __FILE__ ":" + boost::lexical_cast<std::string>(__LINE__)); // cannot be reached
   };
 }

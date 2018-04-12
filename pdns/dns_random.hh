@@ -22,7 +22,7 @@
 #ifndef PDNS_DNS_RANDOM
 #define PDNS_DNS_RANDOM
 
-void dns_random_init(const std::string& data = "");
+void dns_random_init(const std::string& data = "", bool force_reinit = false);
 unsigned int dns_random(unsigned int n);
 
 #endif
