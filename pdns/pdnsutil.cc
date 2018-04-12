@@ -2379,6 +2379,7 @@ try
   else if(cmds[0]=="set-kind") {
     if(cmds.size() != 3) {
       cerr<<"Syntax: pdnsutil set-kind ZONE KIND"<<endl;
+      return 0;
     }
     DNSName zone(cmds[1]);
     auto kind=DomainInfo::stringToKind(cmds[2]);
@@ -2387,6 +2388,7 @@ try
   else if(cmds[0]=="set-account") {
     if(cmds.size() != 3) {
       cerr<<"Syntax: pdnsutil set-account ZONE ACCOUNT"<<endl;
+      return 0;
     }
     DNSName zone(cmds[1]);
     exit(setZoneAccount(zone, cmds[2]));
