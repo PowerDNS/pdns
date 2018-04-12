@@ -1007,6 +1007,14 @@ struct SComboAddress
   }
 };
 
+class NetworkError : public runtime_error
+{
+public:
+  NetworkError(const string& why="Network Error") : runtime_error(why.c_str())
+  {}
+  NetworkError(const char *why="Network Error") : runtime_error(why)
+  {}
+};
 
 int SSocket(int family, int type, int flags);
 int SConnect(int sockfd, const ComboAddress& remote);

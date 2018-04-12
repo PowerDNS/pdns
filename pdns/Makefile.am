@@ -578,6 +578,7 @@ saxfr_SOURCES = \
 	dnssecinfra.cc \
 	dnswriter.cc dnswriter.hh \
 	gss_context.cc gss_context.hh \
+	iputils.cc \
 	logger.cc \
 	misc.cc misc.hh \
 	nsecrecords.cc \
@@ -730,6 +731,7 @@ nsec3dig_SOURCES = \
 	dnssecinfra.cc \
 	dnswriter.cc dnswriter.hh \
 	gss_context.cc gss_context.hh \
+	iputils.cc \
 	logger.cc \
 	misc.cc misc.hh \
 	nsec3dig.cc \
