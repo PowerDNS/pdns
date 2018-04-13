@@ -1985,20 +1985,29 @@ static string* doProcessUDPQuestion(const std::string& question, const ComboAddr
 static void handleNewUDPQuestion(int fd, FDMultiplexer::funcparam_t& var)
 {
   ssize_t len;
-  char data[1500];
+  static thread_local std::string data;
   ComboAddress fromaddr;
   struct msghdr msgh;
   struct iovec iov;
   char cbuf[256];
   bool firstQuery = true;
 
+  data.resize(1500);
   fromaddr.sin6.sin6_family=AF_INET6; // this makes sure fromaddr is big enough
-  fillMSGHdr(&msgh, &iov, cbuf, sizeof(cbuf), data, sizeof(data), &fromaddr);
+  fillMSGHdr(&msgh, &iov, cbuf, sizeof(cbuf), &data[0], data.size(), &fromaddr);
 
   for(;;)
   if((len=recvmsg(fd, &msgh, 0)) >= 0) {
 
     firstQuery = false;
+
+    if (static_cast<size_t>(len) < sizeof(dnsheader)) {
+      g_stats.ignoredCount++;
+      if (!g_quiet) {
+        g_log<<Logger::Error<<"Ignoring too-short ("<<std::to_string(len)<<") query from "<<fromaddr.toString()<<endl;
+      }
+      return;
+    }
 
     if(t_remotes)
       t_remotes->push_back(fromaddr);
@@ -2019,7 +2028,8 @@ static void handleNewUDPQuestion(int fd, FDMultiplexer::funcparam_t& var)
       return;
     }
     try {
-      dnsheader* dh=(dnsheader*)data;
+      data.resize(static_cast<size_t>(len));
+      dnsheader* dh=(dnsheader*)&data[0];
 
       if(dh->qr) {
         g_stats.ignoredCount++;
@@ -2032,7 +2042,6 @@ static void handleNewUDPQuestion(int fd, FDMultiplexer::funcparam_t& var)
           g_log<<Logger::Error<<"Ignoring non-query opcode "<<dh->opcode<<" from "<<fromaddr.toString()<<" on server socket!"<<endl;
       }
       else {
-        string question(data, (size_t)len);
 	struct timeval tv={0,0};
 	HarvestTimestamp(&msgh, &tv);
 	ComboAddress dest;
@@ -2054,9 +2063,9 @@ static void handleNewUDPQuestion(int fd, FDMultiplexer::funcparam_t& var)
           }
         }
         if(g_weDistributeQueries)
-          distributeAsyncFunction(question, boost::bind(doProcessUDPQuestion, question, fromaddr, dest, tv, fd));
+          distributeAsyncFunction(data, boost::bind(doProcessUDPQuestion, data, fromaddr, dest, tv, fd));
         else
-          doProcessUDPQuestion(question, fromaddr, dest, tv, fd);
+          doProcessUDPQuestion(data, fromaddr, dest, tv, fd);
       }
     }
     catch(MOADNSException& mde) {
