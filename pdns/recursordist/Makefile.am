@@ -190,7 +190,7 @@ testrunner_SOURCES = \
 	base32.cc \
 	base64.cc base64.hh \
 	dns.cc dns.hh \
-	dns_random_urandom.cc dns_random.hh \
+	dns_random.cc dns_random.hh \
 	dnslabeltext.cc \
 	dnsname.cc dnsname.hh \
 	dnsparser.hh dnsparser.cc \
