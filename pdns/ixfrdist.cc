@@ -580,6 +580,7 @@ void handleTCPRequest(int fd, boost::any&) {
 
   if (saddr == ComboAddress("0.0.0.0", 0)) {
     g_log<<Logger::Warning<<"Could not determine source of message"<<endl;
+    close(cfd);
     return;
   }
 
@@ -641,7 +642,7 @@ void tcpWorker(int tid) {
 
       vector<vector<uint8_t>> packets;
       if (mdp.d_qtype == QType::SOA) {
-      vector<uint8_t> packet;
+        vector<uint8_t> packet;
         bool ret = makeSOAPacket(mdp, packet);
         if (!ret) {
           close(cfd);
@@ -732,7 +733,7 @@ int main(int argc, char** argv) {
       ("work-dir", po::value<string>()->default_value("."), "Directory for storing AXFR and IXFR data")
       ("keep", po::value<uint16_t>()->default_value(KEEP_DEFAULT), "Number of old zone versions to retain")
       ("axfr-timeout", po::value<uint16_t>()->default_value(AXFRTIMEOUT_DEFAULT), "Timeout in seconds for an inbound AXFR to complete")
-      ("tcp-out-threads", po::value<uint16_t>()->default_value(10), "Number of maximum simultaneous outbound TCP connections")
+      ("tcp-in-threads", po::value<uint16_t>()->default_value(10), "Number of maximum simultaneous inbound TCP connections. Limits simultaneous AXFR/IXFR transactions")
       ;
     po::options_description alloptions;
     po::options_description hidden("hidden options");
@@ -933,7 +934,7 @@ int main(int argc, char** argv) {
 
   std::thread ut(updateThread);
   vector<std::thread> tcpHandlers;
-  for (int i = 0; i < g_vm["tcp-out-threads"].as<uint16_t>(); ++i) {
+  for (int i = 0; i < g_vm["tcp-in-threads"].as<uint16_t>(); ++i) {
     tcpHandlers.push_back(std::thread(tcpWorker, i));
   }
 
