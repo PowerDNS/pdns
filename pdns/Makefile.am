@@ -614,7 +614,7 @@ ixfrdist_SOURCES = \
 	ixfr.cc ixfr.hh \
 	ixfrdist.cc \
 	ixfrutils.cc ixfrutils.hh \
-	logger.cc \
+	logger.cc logger.hh\
 	misc.cc misc.hh \
 	mplexer.hh \
 	nsecrecords.cc \

@@ -76,8 +76,12 @@ int main(int argc, char** argv) {
       DNSName zone(argv[2]);
       cout<<"Loading before from "<<argv[3]<<endl;
       loadZoneFromDisk(before, argv[3], zone);
+      cout<<"Parsed "<<before.size()<<" records"<<endl;
+      cout<<"Zone was complete (SOA at end)"<<endl;
       cout<<"Loading after from "<<argv[4]<<endl;
       loadZoneFromDisk(after, argv[4], zone);
+      cout<<"Parsed "<<after.size()<<" records"<<endl;
+      cout<<"Zone was complete (SOA at end)"<<endl;
 
       vector<DNSRecord> diff;
 
@@ -132,6 +136,8 @@ int main(int argc, char** argv) {
       string fname=directory+"/"+std::to_string(ourSerial);
       cout<<"Loading serial number "<<ourSerial<<" from file "<<fname<<endl;
       loadZoneFromDisk(records, fname, zone);
+      cout<<"Parsed "<<records.size()<<" records"<<endl;
+      cout<<"Zone was complete (SOA at end)"<<endl;
     }
     catch(std::exception& e) {
       cout<<"Could not load zone from disk: "<<e.what()<<endl;

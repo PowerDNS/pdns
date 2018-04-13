@@ -51,9 +51,42 @@ void Logger::log(const string &msg, Urgency u)
       strftime(buffer,sizeof(buffer),"%b %d %H:%M:%S ", &tm);
     }
 
+    string prefix;
+    if (d_prefixed) {
+      switch(u) {
+        case All:
+          prefix = "[all] ";
+          break;
+        case Alert:
+          prefix = "[ALERT] ";
+          break;
+        case Critical:
+          prefix = "[CRITICAL] ";
+          break;
+        case Error:
+          prefix = "[ERROR] ";
+          break;
+        case Warning:
+          prefix = "[WARNING] ";
+          break;
+        case Notice:
+          prefix = "[NOTICE] ";
+          break;
+        case Info:
+          prefix = "[INFO] ";
+          break;
+        case Debug:
+          prefix = "[DEBUG] ";
+          break;
+        case None:
+          prefix = "[none] ";
+          break;
+      }
+    }
+
     static pthread_mutex_t m = PTHREAD_MUTEX_INITIALIZER;
     Lock l(&m); // the C++-2011 spec says we need this, and OSX actually does
-    clog << string(buffer) + msg <<endl;
+    clog << string(buffer) + prefix + msg <<endl;
 #ifndef RECURSOR
     mustAccount=true;
 #endif

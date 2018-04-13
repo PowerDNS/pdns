@@ -64,6 +64,10 @@ public:
     d_timestamps = t;
   }
 
+  void setPrefixed(bool p) {
+    d_prefixed = p;
+  }
+
   //! Log to a file.
   void toFile( const string & filename );
   
@@ -110,6 +114,7 @@ private:
   bool opened;
   bool d_disableSyslog;
   bool d_timestamps{true};
+  bool d_prefixed{false};
   static pthread_once_t s_once;
   static pthread_key_t g_loggerKey;
 };
