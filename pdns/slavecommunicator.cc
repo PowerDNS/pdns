@@ -739,11 +739,11 @@ void CommunicatorClass::slaveRefresh(PacketHandler *P)
     set<DomainInfo> requeue;
     for(const auto& di: d_tocheck) {
       if(d_inprogress.count(di.zone)) {
-        g_log<<Logger::Debug<<"Got NOTIFY for "<<di.zone<<" while AXFR in progress, requeueing SOA check"<<endl;
+        L<<Logger::Debug<<"Got NOTIFY for "<<di.zone<<" while AXFR in progress, requeueing SOA check"<<endl;
         requeue.insert(di);
       }
       else {
-        g_log<<Logger::Debug<<"Got NOTIFY for "<<di.zone<<", going to check SOA serial"<<endl;
+        L<<Logger::Debug<<"Got NOTIFY for "<<di.zone<<", going to check SOA serial"<<endl;
         rdomains.push_back(di);
       }
     }
