@@ -932,9 +932,9 @@ int main(int argc, char** argv) {
   g_log<<Logger::Notice<<"IXFR distributor starting up!"<<endl;
 
   std::thread ut(updateThread);
-  std::thread tcpHandlers[g_vm["tcp-out-threads"].as<uint16_t>()];
-  for (int i=0; i<g_vm["tcp-out-threads"].as<uint16_t>(); i++) {
-    tcpHandlers[i] = std::thread(tcpWorker, i);
+  vector<std::thread> tcpHandlers;
+  for (int i = 0; i < g_vm["tcp-out-threads"].as<uint16_t>(); ++i) {
+    tcpHandlers.push_back(std::thread(tcpWorker, i));
   }
 
   struct timeval now;
@@ -955,8 +955,8 @@ int main(int argc, char** argv) {
   }
   g_tcpHandlerCV.notify_all();
   ut.join();
-  for (int i=0; i<g_vm["tcp-out-threads"].as<uint16_t>(); i++) {
-    tcpHandlers[i].join();
+  for (auto &t : tcpHandlers) {
+    t.join();
   }
   g_log<<Logger::Notice<<"IXFR distributor stopped"<<endl;
   return EXIT_SUCCESS;
