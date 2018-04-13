@@ -801,6 +801,8 @@ int PacketHandler::processNotify(DNSPacket *p)
   */
   vector<string> meta;
 
+  L<<Logger::Debug<<"Received NOTIFY for "<<p->qdomain<<" from "<<p->getRemote()<<endl;
+
   if(!::arg().mustDo("slave") && s_forwardNotify.empty()) {
     L<<Logger::Error<<"Received NOTIFY for "<<p->qdomain<<" from "<<p->getRemote()<<" but slave support is disabled in the configuration"<<endl;
     return RCode::NotImp;
@@ -865,8 +867,10 @@ int PacketHandler::processNotify(DNSPacket *p)
     }
   }
 
-  if(::arg().mustDo("slave"))
+  if(::arg().mustDo("slave")) {
+    L<<Logger::Debug<<"Queueing slave check for "<<p->qdomain<<endl;
     Communicator.addSlaveCheckRequest(di, p->d_remote);
+  }
   return 0;
 }
 

@@ -735,8 +735,20 @@ void CommunicatorClass::slaveRefresh(PacketHandler *P)
 
   {
     Lock l(&d_lock);
-    rdomains.insert(rdomains.end(), d_tocheck.begin(), d_tocheck.end());
-    d_tocheck.clear();
+
+    set<DomainInfo> requeue;
+    for(const auto& di: d_tocheck) {
+      if(d_inprogress.count(di.zone)) {
+        L<<Logger::Debug<<"Got NOTIFY for "<<di.zone<<" while AXFR in progress, requeueing SOA check"<<endl;
+        requeue.insert(di);
+      }
+      else {
+        L<<Logger::Debug<<"Got NOTIFY for "<<di.zone<<", going to check SOA serial"<<endl;
+        rdomains.push_back(di);
+      }
+    }
+    d_tocheck.swap(requeue);
+
     trysuperdomains.insert(trysuperdomains.end(), d_potentialsupermasters.begin(), d_potentialsupermasters.end());
     d_potentialsupermasters.clear();
   }
