@@ -531,13 +531,13 @@ void handleUDPRequest(int fd, boost::any&) {
     return;
   }
 
-  if (!allowedByACL(saddr)) {
-    g_log<<Logger::Warning<<"UDP query from "<<saddr.toString()<<" is not allowed, dropping"<<endl;
+  if (saddr == ComboAddress("0.0.0.0", 0)) {
+    g_log<<Logger::Warning<<"Could not determine source of message"<<endl;
     return;
   }
 
-  if (saddr == ComboAddress("0.0.0.0", 0)) {
-    g_log<<Logger::Warning<<"Could not determine source of message"<<endl;
+  if (!allowedByACL(saddr)) {
+    g_log<<Logger::Warning<<"UDP query from "<<saddr.toString()<<" is not allowed, dropping"<<endl;
     return;
   }
 
@@ -578,14 +578,14 @@ void handleTCPRequest(int fd, boost::any&) {
     return;
   }
 
-  if (!allowedByACL(saddr)) {
-    g_log<<Logger::Warning<<"TCP query from "<<saddr.toString()<<" is not allowed, dropping"<<endl;
-    close(cfd);
+  if (saddr == ComboAddress("0.0.0.0", 0)) {
+    g_log<<Logger::Warning<<"Could not determine source of message"<<endl;
     return;
   }
 
-  if (saddr == ComboAddress("0.0.0.0", 0)) {
-    g_log<<Logger::Warning<<"Could not determine source of message"<<endl;
+  if (!allowedByACL(saddr)) {
+    g_log<<Logger::Warning<<"TCP query from "<<saddr.toString()<<" is not allowed, dropping"<<endl;
+    close(cfd);
     return;
   }
 
