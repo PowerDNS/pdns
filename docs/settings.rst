@@ -338,15 +338,18 @@ Use this soa-edit value for all zones if no
 :ref:`metadata-soa-edit` metadata value is set.
 
 
-.. _setting-default-soa-edit-api
+.. _setting-default-soa-edit-api:
+
 ``default-soa-edit-api``
 ------------------------
 
 - String
 - Default 
 
-Sets the default :ref:`metadata-soa-edit-api` metadata on a domain, when it is created via the API.
-
+Sets the default :ref:`metadata-soa-edit-api` metadata on a domain,
+when it is created via the API. If the value is empty, no :ref:`metadata-soa-edit-api`
+will be set. If soa-edit-api is provided in the request body (of the create request), then the 
+provided soa-edit-api is used.
 
 .. _setting-default-soa-edit-signed:
 
