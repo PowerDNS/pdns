@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 #
 # Shell-script style.
+# If you're here to figure out how to run these test, see runtests (without the .py extension)
 
 from __future__ import print_function
 import os

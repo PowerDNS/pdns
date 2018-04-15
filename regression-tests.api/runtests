@@ -1,4 +1,6 @@
 #!/usr/bin/env bash
+# This scripts starts the API tests.
+# To run these tests, you'll need to compile pdns-auth with gsqlite3 and bind module
 
 if [ ! -d .venv ]; then
   if [ -z "$PYTHON" ]; then
