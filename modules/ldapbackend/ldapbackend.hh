@@ -53,7 +53,7 @@ class LdapAuthenticator;
  *  Types which aren't active are currently not supported by PDNS
  */
 
-static const char* ldap_attrany[] = {
+__attribute__ ((unused)) static const char* ldap_attrany[] = {
   "associatedDomain",
   "dNSTTL",
   "ALIASRecord",
