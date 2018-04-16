@@ -199,7 +199,7 @@ void loadRecursorLuaConfig(const std::string& fname, bool checkOnly)
 
       try {
           if (!checkOnly) {
-            std::thread t(RPZIXFRTracker, master, defpol, maxTTL, zoneIdx, tt, maxReceivedXFRMBytes * 1024 * 1024, localAddress, zone, axfrTimeout);
+            std::thread t(RPZIXFRTracker, master, defpol, maxTTL, zoneIdx, tt, maxReceivedXFRMBytes * 1024 * 1024, localAddress, zone, axfrTimeout, lci.generation);
             t.detach();
           }
       }
