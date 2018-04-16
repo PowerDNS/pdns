@@ -779,6 +779,19 @@ This setting artificially raises all TTLs to be at least this long.
 While this is a gross hack, and violates RFCs, under conditions of DoS, it may enable you to continue serving your customers.
 Can be set at runtime using ``rec_control set-minimum-ttl 3600``.
 
+.. _setting-mtasker-stacks-cache-size:
+
+``mtasker-stacks-cache-size``
+------------------------
+.. versionadded:: 4.2.0
+
+-  Integer
+-  Default: 0 (disabled)
+
+This setting enables a cache for the stacks used by the recursor. When enabled, stacks are put into a free-list when
+a context is released until the number of available stacks reaches the configured value, and new contexts will reuse
+available stacks before allocating new ones.
+
 .. _setting-network-timeout:
 
 ``network-timeout``

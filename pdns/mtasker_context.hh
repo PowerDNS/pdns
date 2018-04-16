@@ -29,12 +29,21 @@
 
 struct pdns_ucontext_t {
     pdns_ucontext_t ();
+    pdns_ucontext_t (std::unique_ptr<std::vector<char, lazy_allocator<char>>>&& stack);
     pdns_ucontext_t (pdns_ucontext_t const&) = delete;
     pdns_ucontext_t& operator= (pdns_ucontext_t const&) = delete;
     ~pdns_ucontext_t ();
 
+    std::vector<char, lazy_allocator<char>>& getStack()
+    {
+        if (uc_stack_ptr) {
+          return *uc_stack_ptr;
+        }
+        return uc_stack;
+    }
     void* uc_mcontext;
     pdns_ucontext_t* uc_link;
+    std::unique_ptr<std::vector<char, lazy_allocator<char>>> uc_stack_ptr{nullptr};
     std::vector<char, lazy_allocator<char>> uc_stack;
     std::exception_ptr exception;
 #ifdef PDNS_USE_VALGRIND

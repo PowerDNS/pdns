@@ -92,9 +92,15 @@ threadWrapper (int const ctx0, int const ctx1, int const fun0, int const fun1) {
 }
 } // extern "C"
 
-pdns_ucontext_t::pdns_ucontext_t() {
+pdns_ucontext_t::pdns_ucontext_t(): uc_link(nullptr), uc_stack_ptr(nullptr) {
     uc_mcontext = new ::ucontext_t();
-    uc_link = nullptr;
+#ifdef PDNS_USE_VALGRIND
+    valgrind_id = 0;
+#endif /* PDNS_USE_VALGRIND */
+}
+
+pdns_ucontext_t::pdns_ucontext_t(std::unique_ptr<std::vector<char, lazy_allocator<char>>>&& stack): uc_link(nullptr), uc_stack_ptr(std::move(stack)) {
+    uc_mcontext = new ::ucontext_t();
 #ifdef PDNS_USE_VALGRIND
     valgrind_id = 0;
 #endif /* PDNS_USE_VALGRIND */
@@ -125,7 +131,8 @@ void
 pdns_makecontext
 (pdns_ucontext_t& ctx, boost::function<void(void)>& start) {
     assert (ctx.uc_link);
-    assert (ctx.uc_stack.size());
+    auto& stack = ctx.getStack();
+    assert (stack.size());
 
     auto const mcp = static_cast<ucontext_t*>(ctx.uc_mcontext);
     auto const next = static_cast<ucontext_t*>(ctx.uc_link->uc_mcontext);
@@ -133,8 +140,8 @@ pdns_makecontext
         throw_errno ("getcontext() failed");
     }
     mcp->uc_link = next;
-    mcp->uc_stack.ss_sp = ctx.uc_stack.data();
-    mcp->uc_stack.ss_size = ctx.uc_stack.size();
+    mcp->uc_stack.ss_sp = stack.data();
+    mcp->uc_stack.ss_size = stack.size();
     mcp->uc_stack.ss_flags = 0;
 
     auto ctxarg = splitPointer (&ctx);

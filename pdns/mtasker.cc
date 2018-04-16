@@ -265,14 +265,30 @@ template<class EventKey, class EventVal>int MTasker<EventKey,EventVal>::sendEven
 */
 template<class Key, class Val>void MTasker<Key,Val>::makeThread(tfunc_t *start, void* val)
 {
-  auto uc=std::make_shared<pdns_ucontext_t>();
-  
-  uc->uc_link = &d_kernel; // come back to kernel after dying
-  uc->uc_stack.resize (d_stacksize);
+  std::shared_ptr<pdns_ucontext_t> uc = nullptr;
+
+  if (d_maxFreeStacks > 0) {
+    std::unique_ptr<std::vector<char, lazy_allocator<char>>> stack = nullptr;
+    if (d_freeStacks.empty()) {
+      stack = std::unique_ptr<std::vector<char, lazy_allocator<char>>>(new std::vector<char, lazy_allocator<char>>(d_stacksize));
+    }
+    else {
+      stack = std::move(d_freeStacks.top());
+      d_freeStacks.pop();
+    }
+    uc = std::make_shared<pdns_ucontext_t>(std::move(stack));
+  }
+  else {
+    uc = std::make_shared<pdns_ucontext_t>();
+    uc->uc_stack.resize(d_stacksize);
+  }
+
 #ifdef PDNS_USE_VALGRIND
-  uc->valgrind_id = VALGRIND_STACK_REGISTER(&uc->uc_stack[0],
-                                            &uc->uc_stack[uc->uc_stack.size()]);
+  uc->valgrind_id = VALGRIND_STACK_REGISTER(uc->getStack()[0],
+                                            uc->getStack()[d_stacksize]);
 #endif /* PDNS_USE_VALGRIND */
+
+  uc->uc_link = &d_kernel; // come back to kernel after dying
 
   auto& thread = d_threads[d_maxtid];
   auto mt = this;
@@ -315,7 +331,18 @@ template<class Key, class Val>bool MTasker<Key,Val>::schedule(struct timeval*  n
     return true;
   }
   if(!d_zombiesQueue.empty()) {
-    d_threads.erase(d_zombiesQueue.front());
+    auto zombi = d_zombiesQueue.front();
+    if (d_maxFreeStacks > 0) {
+      auto thread = d_threads.find(zombi);
+      if (thread != d_threads.end()) {
+        if (thread->second.context && thread->second.context->uc_stack_ptr && d_freeStacks.size() < d_maxFreeStacks) {
+          d_freeStacks.push(std::move(thread->second.context->uc_stack_ptr));
+        }
+        d_threads.erase(thread);
+      }
+    } else {
+      d_threads.erase(zombi);
+    }
     d_zombiesQueue.pop();
     return true;
   }

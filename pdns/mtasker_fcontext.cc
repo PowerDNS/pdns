@@ -164,7 +164,14 @@ threadWrapper (transfer_t const t) {
 }
 
 pdns_ucontext_t::pdns_ucontext_t
-(): uc_mcontext(nullptr), uc_link(nullptr) {
+(): uc_mcontext(nullptr), uc_link(nullptr), uc_stack_ptr(nullptr) {
+#ifdef PDNS_USE_VALGRIND
+  valgrind_id = 0;
+#endif /* PDNS_USE_VALGRIND */
+}
+
+pdns_ucontext_t::pdns_ucontext_t
+(std::unique_ptr<std::vector<char, lazy_allocator<char>>>&& stack): uc_mcontext(nullptr), uc_link(nullptr), uc_stack_ptr(std::move(stack)) {
 #ifdef PDNS_USE_VALGRIND
   valgrind_id = 0;
 #endif /* PDNS_USE_VALGRIND */
@@ -214,15 +221,16 @@ void
 pdns_makecontext
 (pdns_ucontext_t& ctx, boost::function<void(void)>& start) {
     assert (ctx.uc_link);
-    assert (ctx.uc_stack.size() >= 8192);
+    auto& stack = ctx.getStack();
+    assert (stack.size() >= 8192);
     assert (!ctx.uc_mcontext);
-    ctx.uc_mcontext = make_fcontext (&ctx.uc_stack[ctx.uc_stack.size()],
-                                     ctx.uc_stack.size(), &threadWrapper);
+    ctx.uc_mcontext = make_fcontext (&stack[stack.size()],
+                                     stack.size(), &threadWrapper);
     args_t args;
     args.self = &ctx;
     args.work = &start;
     /* jumping to threadwrapper */
-    notifyStackSwitch(&ctx.uc_stack[ctx.uc_stack.size()], ctx.uc_stack.size());
+    notifyStackSwitch(&stack[stack.size()], stack.size());
 #if BOOST_VERSION < 106100
     jump_fcontext (reinterpret_cast<fcontext_t*>(&args.prev_ctx),
                    static_cast<fcontext_t>(ctx.uc_mcontext),

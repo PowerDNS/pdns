@@ -25,6 +25,7 @@
 #include <queue>
 #include <vector>
 #include <map>
+#include <stack>
 #include <time.h>
 #include <boost/multi_index_container.hpp>
 #include <boost/multi_index/ordered_index.hpp>
@@ -49,7 +50,10 @@ struct KeyTag {};
 
 template<class EventKey=int, class EventVal=int> class MTasker
 {
+  typedef std::unique_ptr<std::vector<char, lazy_allocator<char>>> pdns_mtasker_stack_t;
+
 private:
+  std::stack<pdns_mtasker_stack_t> d_freeStacks;
   pdns_ucontext_t d_kernel;
   std::queue<int> d_runQueue;
   std::queue<int> d_zombiesQueue;
@@ -71,6 +75,7 @@ private:
   int d_tid;
   int d_maxtid;
   size_t d_stacksize;
+  size_t d_maxFreeStacks;
 
   EventVal d_waitval;
   enum waitstatusenum {Error=-1,TimeOut=0,Answer} d_waitstatus;
@@ -110,7 +115,7 @@ public:
       This limit applies solely to the stack, the heap is not limited in any way. If threads need to allocate a lot of data,
       the use of new/delete is suggested. 
    */
-  MTasker(size_t stacksize=16*8192) : d_tid(0), d_maxtid(0), d_stacksize(stacksize), d_waitstatus(Error)
+  MTasker(size_t stacksize=16*8192, size_t maxFreeStacks=0) : d_tid(0), d_maxtid(0), d_stacksize(stacksize), d_maxFreeStacks(maxFreeStacks), d_waitstatus(Error)
   {
     initMainStackBounds();
   }

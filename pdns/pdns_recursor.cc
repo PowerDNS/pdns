@@ -3413,7 +3413,7 @@ try
     t_servfailqueryring->set_capacity(ringsize);
   }
 
-  MT=std::unique_ptr<MTasker<PacketID,string> >(new MTasker<PacketID,string>(::arg().asNum("stack-size")));
+  MT=std::unique_ptr<MTasker<PacketID,string> >(new MTasker<PacketID,string>(::arg().asNum("stack-size"), ::arg().asNum("mtasker-stacks-cache-size")));
 
 #ifdef HAVE_PROTOBUF
   /* start protobuf export threads if needed */
@@ -3546,6 +3546,7 @@ int main(int argc, char **argv)
 
   try {
     ::arg().set("stack-size","stack size per mthread")="200000";
+    ::arg().set("mtasker-stacks-cache-size", "maximum number of free mthread stacks to keep in cache")="0";
     ::arg().set("soa-minimum-ttl","Don't change")="0";
     ::arg().set("no-shuffle","Don't change")="off";
     ::arg().set("local-port","port to listen on")="53";
