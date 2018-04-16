@@ -144,7 +144,7 @@ bool IsUpOracle::isUp(const ComboAddress& remote, const std::string& url, const 
   std::lock_guard<std::mutex> l(d_mutex);
   auto iter = d_statuses.find(cd);
   if(iter == d_statuses.end()) {
-    //    L<<Logger::Warning<<"Launching HTTP(s) status checker for "<<remote.toStringWithPort()<<" and URL "<<url<<endl;
+    //    g_log<<Logger::Warning<<"Launching HTTP(s) status checker for "<<remote.toStringWithPort()<<" and URL "<<url<<endl;
     std::thread* checker = new std::thread(&IsUpOracle::checkURLThread, this, remote, url, opts);
     d_statuses[cd]=Checker{checker, false};
     return false;
@@ -168,16 +168,16 @@ void IsUpOracle::checkTCPThread(ComboAddress rem, const opts_t& opts)
       }
       s.connect(rem, 1);
       if(!isUp(cd)) {
-        L<<Logger::Warning<<"Lua record monitoring declaring TCP/IP "<<rem.toStringWithPort()<<" ";
+        g_log<<Logger::Warning<<"Lua record monitoring declaring TCP/IP "<<rem.toStringWithPort()<<" ";
         if(opts.count("source"))
-          L<<"(source "<<src.toString()<<") ";
-        L<<"UP!"<<endl;
+          g_log<<"(source "<<src.toString()<<") ";
+        g_log<<"UP!"<<endl;
       }
       setUp(cd);
     }
     catch(NetworkError& ne) {
       if(isUp(rem, opts) || first)
-        L<<Logger::Warning<<"Lua record monitoring declaring TCP/IP "<<rem.toStringWithPort()<<" DOWN: "<<ne.what()<<endl;
+        g_log<<Logger::Warning<<"Lua record monitoring declaring TCP/IP "<<rem.toStringWithPort()<<" DOWN: "<<ne.what()<<endl;
       setDown(cd);
     }
     sleep(1);
@@ -204,12 +204,12 @@ void IsUpOracle::checkURLThread(ComboAddress rem, std::string url, const opts_t&
         throw std::runtime_error(boost::str(boost::format("unable to match content with `%s`") % opts.at("stringmatch")));
       }
       if(!upStatus(rem,url,opts))
-        L<<Logger::Warning<<"LUA record monitoring declaring "<<rem.toString()<<" UP for URL "<<url<<"!"<<endl;
+        g_log<<Logger::Warning<<"LUA record monitoring declaring "<<rem.toString()<<" UP for URL "<<url<<"!"<<endl;
       setUp(rem, url,opts);
     }
     catch(std::exception& ne) {
       if(upStatus(rem,url,opts) || first)
-        L<<Logger::Warning<<"LUA record monitoring declaring "<<rem.toString()<<" DOWN for URL "<<url<<", error: "<<ne.what()<<endl;
+        g_log<<Logger::Warning<<"LUA record monitoring declaring "<<rem.toString()<<" DOWN for URL "<<url<<", error: "<<ne.what()<<endl;
       setDown(rem,url,opts);
     }
     sleep(5);
@@ -241,7 +241,7 @@ std::string getGeo(const std::string& ip, GeoIPInterface::GeoIPQueryAttribute qa
   extern std::function<std::string(const std::string& ip, int)> g_getGeo;
   if(!g_getGeo) {
     if(!initialized) {
-      L<<Logger::Error<<"LUA Record attempted to use GeoIPBackend functionality, but backend not launched"<<endl;
+      g_log<<Logger::Error<<"LUA Record attempted to use GeoIPBackend functionality, but backend not launched"<<endl;
       initialized=true;
     }
     return "unknown";
@@ -402,7 +402,7 @@ static ComboAddress useSelector(const boost::optional<std::unordered_map<string,
   else if(selector=="hashed")
     return hashed(bestwho, candidates);
 
-  L<<Logger::Warning<<"LUA Record called with unknown selector '"<<selector<<"'"<<endl;
+  g_log<<Logger::Warning<<"LUA Record called with unknown selector '"<<selector<<"'"<<endl;
   return pickrandom(candidates);
 }
 
@@ -528,7 +528,7 @@ std::vector<shared_ptr<DNSRecordContent>> luaSynth(const std::string& code, cons
       return fmt.str();
       }
       catch(std::exception& e) {
-        L<<Logger::Error<<"error: "<<e.what()<<endl;
+        g_log<<Logger::Error<<"error: "<<e.what()<<endl;
       }
       return std::string("error");
     });
@@ -621,10 +621,10 @@ std::vector<shared_ptr<DNSRecordContent>> luaSynth(const std::string& code, cons
         return fmt.str();
       }
       catch(std::exception& e) {
-        L<<Logger::Error<<"LUA Record xception: "<<e.what()<<endl;
+        g_log<<Logger::Error<<"LUA Record xception: "<<e.what()<<endl;
       }
       catch(PDNSException& e) {
-        L<<Logger::Error<<"LUA Record exception: "<<e.reason<<endl;
+        g_log<<Logger::Error<<"LUA Record exception: "<<e.reason<<endl;
       }
       return std::string("unknown");
     });
@@ -833,7 +833,7 @@ std::vector<shared_ptr<DNSRecordContent>> luaSynth(const std::string& code, cons
         }
       }
       catch(std::exception& e) {
-        L<<Logger::Error<<"Failed to load include record for LUArecord "<<(DNSName(record)+zone)<<": "<<e.what()<<endl;
+        g_log<<Logger::Error<<"Failed to load include record for LUArecord "<<(DNSName(record)+zone)<<": "<<e.what()<<endl;
       }
     });
 
@@ -860,7 +860,7 @@ std::vector<shared_ptr<DNSRecordContent>> luaSynth(const std::string& code, cons
         ret.push_back(std::shared_ptr<DNSRecordContent>(DNSRecordContent::mastermake(qtype, 1, content )));
     }
   } catch(std::exception &e) {
-    L<<Logger::Error<<"Lua record reported: "<<e.what()<<endl;
+    g_log<<Logger::Error<<"Lua record reported: "<<e.what()<<endl;
     throw ;
   }
 

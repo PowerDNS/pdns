@@ -374,16 +374,16 @@ bool PacketHandler::getBestWildcard(DNSPacket *p, SOAData& sd, const DNSName &ta
     while(B.get(rr)) {
       if(rr.dr.d_type == QType::LUA) {
         if(!doLua) {
-          DLOG(L<<"Have a wildcard LUA match, but not doing LUA record for this zone"<<endl);
+          DLOG(g_log<<"Have a wildcard LUA match, but not doing LUA record for this zone"<<endl);
           continue;
         }
                   
-        DLOG(L<<"Have a wildcard LUA match"<<endl);
+        DLOG(g_log<<"Have a wildcard LUA match"<<endl);
         
         auto rec=getRR<LUARecordContent>(rr.dr);
         if(rec->d_type == QType::CNAME || rec->d_type == p->qtype.getCode()) {
           //    noCache=true;
-          DLOG(L<<"Executing Lua: '"<<rec->getCode()<<"'"<<endl);
+          DLOG(g_log<<"Executing Lua: '"<<rec->getCode()<<"'"<<endl);
           try {
             auto recvec=luaSynth(rec->getCode(), target, sd.qname, sd.domain_id, *p, rec->d_type);
             for(const auto& r : recvec) {
