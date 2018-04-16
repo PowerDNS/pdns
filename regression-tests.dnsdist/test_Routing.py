@@ -348,11 +348,11 @@ class TestRoutingWRandom(DNSDistTest):
         """
         Routing: WRandom
 
-        Send 100 A queries to "rr.routing.tests.powerdns.com.",
+        Send 100 A queries to "wrandom.routing.tests.powerdns.com.",
         check that dnsdist routes less than half to one, more to the other.
         """
         numberOfQueries = 100
-        name = 'rr.routing.tests.powerdns.com.'
+        name = 'wrandom.routing.tests.powerdns.com.'
         query = dns.message.make_query(name, 'A', 'IN')
         response = dns.message.make_response(query)
         rrset = dns.rrset.from_text(name,
@@ -377,12 +377,12 @@ class TestRoutingWRandom(DNSDistTest):
             self.assertEquals(response, receivedResponse)
 
         # The lower weight downstream should receive less than half the queries
-        self.assertTrue(self._responsesCounter['UDP Responder'] < numberOfQueries * 0.50)
-        self.assertTrue(self._responsesCounter['TCP Responder'] < numberOfQueries * 0.50)
+        self.assertLess(self._responsesCounter['UDP Responder'], numberOfQueries * 0.50)
+        self.assertLess(self._responsesCounter['TCP Responder'], numberOfQueries * 0.50)
 
         # The higher weight downstream should receive more than half the queries
-        self.assertTrue(self._responsesCounter['UDP Responder 2'] > numberOfQueries * 0.50)
-        self.assertTrue(self._responsesCounter['TCP Responder 2'] > numberOfQueries * 0.50)
+        self.assertGreater(self._responsesCounter['UDP Responder 2'], numberOfQueries * 0.50)
+        self.assertGreater(self._responsesCounter['TCP Responder 2'], numberOfQueries * 0.50)
 
 
 class TestRoutingHighValueWRandom(DNSDistTest):
@@ -421,14 +421,14 @@ class TestRoutingHighValueWRandom(DNSDistTest):
 
     def testHighValueWRandom(self):
         """
-        Routing: WRandom
+        Routing: WRandom (overflow)
 
-        Send 100 A queries to "rr.routing.tests.powerdns.com.",
+        Send 100 A queries to "wrandom-overflow.routing.tests.powerdns.com.",
         check that dnsdist routes to each downstream, rather than failing with
         no-policy.
         """
         numberOfQueries = 100
-        name = 'rr.routing.tests.powerdns.com.'
+        name = 'wrandom-overflow.routing.tests.powerdns.com.'
         query = dns.message.make_query(name, 'A', 'IN')
         response = dns.message.make_response(query)
         rrset = dns.rrset.from_text(name,
@@ -464,16 +464,16 @@ class TestRoutingHighValueWRandom(DNSDistTest):
         self.assertEquals(stats_dict['no-policy'], '0')
 
         # Each downstream should receive some queries, but it will be unbalanced
+        # because the sum of the weights is higher than INT_MAX.
         # The first downstream will receive more than half the queries
-        self.assertTrue(self._responsesCounter['UDP Responder'] > numberOfQueries / 2)
-        self.assertTrue(self._responsesCounter['TCP Responder'] > numberOfQueries / 2)
+        self.assertGreater(self._responsesCounter['UDP Responder'], numberOfQueries / 2)
+        self.assertGreater(self._responsesCounter['TCP Responder'], numberOfQueries / 2)
 
-        # The second downstream will receive the remainder of the queries, more than 0
-        self.assertTrue(self._responsesCounter['UDP Responder 2'] > 0)
-        self.assertTrue(self._responsesCounter['TCP Responder 2'] > 0)
-        self.assertEquals(self._responsesCounter['UDP Responder 2'], numberOfQueries - self._responsesCounter['UDP Responder'])
-        self.assertEquals(self._responsesCounter['TCP Responder 2'], numberOfQueries - self._responsesCounter['TCP Responder'])
-
+        # The second downstream will receive the remainder of the queries, but it might very well be 0
+        if 'UDP Responder 2' in self._responsesCounter:
+            self.assertEquals(self._responsesCounter['UDP Responder 2'], numberOfQueries - self._responsesCounter['UDP Responder'])
+        if 'TCP Responder 2' in self._responsesCounter:
+            self.assertEquals(self._responsesCounter['TCP Responder 2'], numberOfQueries - self._responsesCounter['TCP Responder'])
 
 class TestRoutingBadWeightWRandom(DNSDistTest):
 
