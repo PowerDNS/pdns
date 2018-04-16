@@ -65,7 +65,7 @@ static bool apiWriteConfigFile(const string& filebasename, const string& content
 static void apiSaveACL(const NetmaskGroup& nmg)
 {
   vector<string> vec;
-  g_ACL.getCopy().toStringVector(&vec);
+  g_ACL.getLocal()->toStringVector(&vec);
 
   string acl;
   for(const auto& s : vec) {
@@ -225,8 +225,8 @@ static json11::Json::array someResponseRulesToJson(GlobalStateHolder<vector<T>>*
   using namespace json11;
   Json::array responseRules;
   int num=0;
-  auto localResponseRules = someResponseRules->getCopy();
-  for(const auto& a : localResponseRules) {
+  auto localResponseRules = someResponseRules->getLocal();
+  for(const auto& a : *localResponseRules) {
     Json::object rule{
       {"id", num++},
       {"uuid", boost::uuids::to_string(a.d_id)},
@@ -314,7 +314,7 @@ static void connectionThread(int sock, ComboAddress remote, string password, str
           else if (const auto& dval = boost::get<double*>(&e.second))
             obj.insert({e.first, (**dval)});
           else
-            obj.insert({e.first, (int)(*boost::get<DNSDistStats::statfunction_t>(&e.second))(e.first)});
+            obj.insert({e.first, (double)(*boost::get<DNSDistStats::statfunction_t>(&e.second))(e.first)});
         }
         Json my_json = obj;
         resp.body=my_json.dump();
@@ -322,10 +322,10 @@ static void connectionThread(int sock, ComboAddress remote, string password, str
       }
       else if(command=="dynblocklist") {
         Json::object obj;
-        auto slow = g_dynblockNMG.getCopy();
+        auto nmg = g_dynblockNMG.getLocal();
         struct timespec now;
         gettime(&now);
-        for(const auto& e: slow) {
+        for(const auto& e: *nmg) {
           if(now < e->second.until ) {
             Json::object thing{
               {"reason", e->second.reason},
@@ -336,8 +336,8 @@ static void connectionThread(int sock, ComboAddress remote, string password, str
           }
         }
 
-        auto slow2 = g_dynblockSMT.getCopy();
-        slow2.visit([&now,&obj](const SuffixMatchTree<DynBlock>& node) {
+        auto smt = g_dynblockSMT.getLocal();
+        smt->visit([&now,&obj](const SuffixMatchTree<DynBlock>& node) {
             if(now <node.d_value.until) {
               string dom("empty");
               if(!node.d_value.domain.empty())
@@ -385,9 +385,9 @@ static void connectionThread(int sock, ComboAddress remote, string password, str
       resp.status=200;
 
       Json::array servers;
-      auto localServers = g_dstates.getCopy();
+      auto localServers = g_dstates.getLocal();
       int num=0;
-      for(const auto& a : localServers) {
+      for(const auto& a : *localServers) {
 	string status;
 	if(a->availability == DownstreamState::Availability::Up) 
 	  status = "UP";
@@ -405,16 +405,16 @@ static void connectionThread(int sock, ComboAddress remote, string password, str
 	  {"name", a->name},
           {"address", a->remote.toStringWithPort()},
           {"state", status},
-          {"qps", (int)a->queryLoad},
-          {"qpsLimit", (int)a->qps.getRate()},
-          {"outstanding", (int)a->outstanding},
-          {"reuseds", (int)a->reuseds},
-          {"weight", (int)a->weight},
-          {"order", (int)a->order},
+          {"qps", (double)a->queryLoad},
+          {"qpsLimit", (double)a->qps.getRate()},
+          {"outstanding", (double)a->outstanding},
+          {"reuseds", (double)a->reuseds},
+          {"weight", (double)a->weight},
+          {"order", (double)a->order},
           {"pools", pools},
-          {"latency", (int)(a->latencyUsec/1000.0)},
+          {"latency", (double)(a->latencyUsec/1000.0)},
           {"queries", (double)a->queries},
-          {"sendErrors", (int)a->sendErrors}
+          {"sendErrors", (double)a->sendErrors}
         };
 
         /* sending a latency for a DOWN server doesn't make sense */
@@ -441,14 +441,14 @@ static void connectionThread(int sock, ComboAddress remote, string password, str
       }
 
       Json::array pools;
-      auto localPools = g_pools.getCopy();
+      auto localPools = g_pools.getLocal();
       num=0;
-      for(const auto& pool :localPools) {
+      for(const auto& pool : *localPools) {
         const auto& cache = pool.second->packetCache;
         Json::object entry {
           { "id", num++ },
           { "name", pool.first },
-          { "serversCount", (int) pool.second->servers.size() },
+          { "serversCount", (double) pool.second->countServers(false) },
           { "cacheSize", (double) (cache ? cache->getMaxEntries() : 0) },
           { "cacheEntries", (double) (cache ? cache->getEntriesCount() : 0) },
           { "cacheHits", (double) (cache ? cache->getHits() : 0) },
@@ -463,9 +463,9 @@ static void connectionThread(int sock, ComboAddress remote, string password, str
       }
 
       Json::array rules;
-      auto localRules = g_rulactions.getCopy();
+      auto localRules = g_rulactions.getLocal();
       num=0;
-      for(const auto& a : localRules) {
+      for(const auto& a : *localRules) {
 	Json::object rule{
           {"id", num++},
           {"uuid", boost::uuids::to_string(a.d_id)},
@@ -484,7 +484,7 @@ static void connectionThread(int sock, ComboAddress remote, string password, str
       string acl;
 
       vector<string> vec;
-      g_ACL.getCopy().toStringVector(&vec);
+      g_ACL.getLocal()->toStringVector(&vec);
 
       for(const auto& s : vec) {
         if(!acl.empty()) acl += ", ";
@@ -536,7 +536,7 @@ static void connectionThread(int sock, ComboAddress remote, string password, str
           doc.push_back(Json::object {
               { "type", "StatisticItem" },
               { "name", item.first },
-              { "value", (int)(*boost::get<DNSDistStats::statfunction_t>(&item.second))(item.first) }
+              { "value", (double)(*boost::get<DNSDistStats::statfunction_t>(&item.second))(item.first) }
             });
         }
       }
@@ -551,7 +551,7 @@ static void connectionThread(int sock, ComboAddress remote, string password, str
       Json::array doc;
       typedef boost::variant<bool, double, std::string> configentry_t;
       std::vector<std::pair<std::string, configentry_t> > configEntries {
-        { "acl", g_ACL.getCopy().toString() },
+        { "acl", g_ACL.getLocal()->toString() },
         { "control-socket", g_serverControl.toStringWithPort() },
         { "ecs-override", g_ECSOverride },
         { "ecs-source-prefix-v4", (double) g_ECSSourcePrefixV4 },
@@ -634,7 +634,7 @@ static void connectionThread(int sock, ComboAddress remote, string password, str
       if (resp.status == 200) {
         Json::array acl;
         vector<string> vec;
-        g_ACL.getCopy().toStringVector(&vec);
+        g_ACL.getLocal()->toStringVector(&vec);
 
         for(const auto& s : vec) {
           acl.push_back(s);

@@ -92,6 +92,9 @@ void loadRecursorLuaConfig(const std::string& fname, bool checkOnly)
   if(!ifs)
     throw PDNSException("Cannot open file '"+fname+"': "+strerror(errno));
 
+  auto luaconfsLocal = g_luaconfs.getLocal();
+  lci.generation = luaconfsLocal->generation + 1;
+
   Lua.writeFunction("clearSortlist", [&lci]() { lci.sortlist.clear(); });
   
   /* we can get: "1.2.3.4"
@@ -123,14 +126,14 @@ void loadRecursorLuaConfig(const std::string& fname, bool checkOnly)
             zone->reserve(zoneSizeHint);
           }
         }
-        theL()<<Logger::Warning<<"Loading RPZ from file '"<<filename<<"'"<<endl;
+        g_log<<Logger::Warning<<"Loading RPZ from file '"<<filename<<"'"<<endl;
         zone->setName(polName);
         loadRPZFromFile(filename, zone, defpol, maxTTL);
         lci.dfe.addZone(zone);
-        theL()<<Logger::Warning<<"Done loading RPZ from file '"<<filename<<"'"<<endl;
+        g_log<<Logger::Warning<<"Done loading RPZ from file '"<<filename<<"'"<<endl;
       }
       catch(const std::exception& e) {
-        theL()<<Logger::Error<<"Unable to load RPZ zone from '"<<filename<<"': "<<e.what()<<endl;
+        g_log<<Logger::Error<<"Unable to load RPZ zone from '"<<filename<<"': "<<e.what()<<endl;
       }
     });
 
@@ -186,11 +189,11 @@ void loadRecursorLuaConfig(const std::string& fname, bool checkOnly)
         zoneIdx = lci.dfe.addZone(zone);
       }
       catch(const std::exception& e) {
-        theL()<<Logger::Error<<"Problem configuring 'rpzMaster': "<<e.what()<<endl;
+        g_log<<Logger::Error<<"Problem configuring 'rpzMaster': "<<e.what()<<endl;
         exit(1);  // FIXME proper exit code?
       }
       catch(const PDNSException& e) {
-        theL()<<Logger::Error<<"Problem configuring 'rpzMaster': "<<e.reason<<endl;
+        g_log<<Logger::Error<<"Problem configuring 'rpzMaster': "<<e.reason<<endl;
         exit(1);  // FIXME proper exit code?
       }
 
@@ -201,11 +204,11 @@ void loadRecursorLuaConfig(const std::string& fname, bool checkOnly)
           }
       }
       catch(const std::exception& e) {
-        theL()<<Logger::Error<<"Problem starting RPZIXFRTracker thread: "<<e.what()<<endl;
+        g_log<<Logger::Error<<"Problem starting RPZIXFRTracker thread: "<<e.what()<<endl;
         exit(1);  // FIXME proper exit code?
       }
       catch(const PDNSException& e) {
-        theL()<<Logger::Error<<"Problem starting RPZIXFRTracker thread: "<<e.reason<<endl;
+        g_log<<Logger::Error<<"Problem starting RPZIXFRTracker thread: "<<e.reason<<endl;
         exit(1);  // FIXME proper exit code?
       }
     });
@@ -238,7 +241,7 @@ void loadRecursorLuaConfig(const std::string& fname, bool checkOnly)
 			}
 		      }
 		      catch(std::exception& e) {
-			theL()<<Logger::Error<<"Error in addSortList: "<<e.what()<<endl;
+			g_log<<Logger::Error<<"Error in addSortList: "<<e.what()<<endl;
 		      }
 		    });
 
@@ -277,9 +280,28 @@ void loadRecursorLuaConfig(const std::string& fname, bool checkOnly)
   Lua.writeFunction("protobufServer", [&lci, checkOnly](const string& server_, const boost::optional<uint16_t> timeout, const boost::optional<uint64_t> maxQueuedEntries, const boost::optional<uint8_t> reconnectWaitTime, const boost::optional<uint8_t> maskV4, boost::optional<uint8_t> maskV6, boost::optional<bool> asyncConnect, boost::optional<bool> taggedOnly) {
       try {
 	ComboAddress server(server_);
-        if (!lci.protobufServer) {
+        if (!lci.protobufExportConfig.enabled) {
+
+          lci.protobufExportConfig.enabled = true;
+
           if (!checkOnly) {
-            lci.protobufServer = std::make_shared<RemoteLogger>(server, timeout ? *timeout : 2, maxQueuedEntries ? *maxQueuedEntries : 100, reconnectWaitTime ? *reconnectWaitTime : 1, asyncConnect ? *asyncConnect : false);
+            lci.protobufExportConfig.server = server;
+
+            if (timeout) {
+              lci.protobufExportConfig.timeout = *timeout;
+            }
+
+            if (maxQueuedEntries) {
+              lci.protobufExportConfig.maxQueuedEntries = *maxQueuedEntries;
+            }
+
+            if (reconnectWaitTime) {
+              lci.protobufExportConfig.reconnectWaitTime = *reconnectWaitTime;
+            }
+
+            if (asyncConnect) {
+              lci.protobufExportConfig.asyncConnect = *asyncConnect;
+            }
           }
 
           if (maskV4) {
@@ -293,34 +315,53 @@ void loadRecursorLuaConfig(const std::string& fname, bool checkOnly)
           }
         }
         else {
-          theL()<<Logger::Error<<"Only one protobuf server can be configured, we already have "<<lci.protobufServer->toString()<<endl;
+          g_log<<Logger::Error<<"Only one protobuf server can be configured, we already have "<<lci.protobufExportConfig.server.toString()<<endl;
         }
       }
       catch(std::exception& e) {
-	theL()<<Logger::Error<<"Error while starting protobuf logger to '"<<server_<<": "<<e.what()<<endl;
+	g_log<<Logger::Error<<"Error while starting protobuf logger to '"<<server_<<": "<<e.what()<<endl;
       }
       catch(PDNSException& e) {
-        theL()<<Logger::Error<<"Error while starting protobuf logger to '"<<server_<<": "<<e.reason<<endl;
+        g_log<<Logger::Error<<"Error while starting protobuf logger to '"<<server_<<": "<<e.reason<<endl;
       }
     });
 
   Lua.writeFunction("outgoingProtobufServer", [&lci, checkOnly](const string& server_, const boost::optional<uint16_t> timeout, const boost::optional<uint64_t> maxQueuedEntries, const boost::optional<uint8_t> reconnectWaitTime, boost::optional<bool> asyncConnect) {
       try {
 	ComboAddress server(server_);
-        if (!lci.outgoingProtobufServer) {
+        if (!lci.outgoingProtobufExportConfig.enabled) {
+
+          lci.outgoingProtobufExportConfig.enabled = true;
+
           if (!checkOnly) {
-            lci.outgoingProtobufServer = std::make_shared<RemoteLogger>(server, timeout ? *timeout : 2, maxQueuedEntries ? *maxQueuedEntries : 100, reconnectWaitTime ? *reconnectWaitTime : 1, asyncConnect ? *asyncConnect : false);
+            lci.outgoingProtobufExportConfig.server = server;
+
+            if (timeout) {
+              lci.outgoingProtobufExportConfig.timeout = *timeout;
+            }
+
+            if (maxQueuedEntries) {
+              lci.outgoingProtobufExportConfig.maxQueuedEntries = *maxQueuedEntries;
+            }
+
+            if (reconnectWaitTime) {
+              lci.outgoingProtobufExportConfig.reconnectWaitTime = *reconnectWaitTime;
+            }
+
+            if (asyncConnect) {
+              lci.outgoingProtobufExportConfig.asyncConnect = *asyncConnect;
+            }
           }
         }
         else {
-          theL()<<Logger::Error<<"Only one protobuf server can be configured, we already have "<<lci.protobufServer->toString()<<endl;
+          g_log<<Logger::Error<<"Only one protobuf server can be configured, we already have "<<lci.outgoingProtobufExportConfig.server.toString()<<endl;
         }
       }
       catch(std::exception& e) {
-	theL()<<Logger::Error<<"Error while starting protobuf logger to '"<<server_<<": "<<e.what()<<endl;
+	g_log<<Logger::Error<<"Error while starting protobuf logger to '"<<server_<<": "<<e.what()<<endl;
       }
       catch(PDNSException& e) {
-        theL()<<Logger::Error<<"Error while starting protobuf logger to '"<<server_<<": "<<e.reason<<endl;
+        g_log<<Logger::Error<<"Error while starting protobuf logger to '"<<server_<<": "<<e.reason<<endl;
       }
     });
 #endif
@@ -330,22 +371,22 @@ void loadRecursorLuaConfig(const std::string& fname, bool checkOnly)
     g_luaconfs.setState(lci);
   }
   catch(const LuaContext::ExecutionErrorException& e) {
-    theL()<<Logger::Error<<"Unable to load Lua script from '"+fname+"': ";
+    g_log<<Logger::Error<<"Unable to load Lua script from '"+fname+"': ";
     try {
       std::rethrow_if_nested(e);
     } catch(const std::exception& exp) {
       // exp is the exception that was thrown from inside the lambda
-      theL() << exp.what() << std::endl;
+      g_log << exp.what() << std::endl;
     }
     catch(const PDNSException& exp) {
       // exp is the exception that was thrown from inside the lambda
-      theL() << exp.reason << std::endl;
+      g_log << exp.reason << std::endl;
     }
     throw;
 
   }
   catch(std::exception& err) {
-    theL()<<Logger::Error<<"Unable to load Lua script from '"+fname+"': "<<err.what()<<endl;
+    g_log<<Logger::Error<<"Unable to load Lua script from '"+fname+"': "<<err.what()<<endl;
     throw;
   }
 

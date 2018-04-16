@@ -32,15 +32,9 @@ extern StatBag S;
 #include "namespaces.hh"
 
 pthread_once_t Logger::s_once;
-pthread_key_t Logger::s_loggerKey;
+pthread_key_t Logger::g_loggerKey;
 
-Logger &theL(const string &pname)
-{
-  static Logger l("", LOG_DAEMON);
-  if(!pname.empty())
-    l.setName(pname);
-  return l;
-}
+Logger g_log("", LOG_DAEMON);
 
 void Logger::log(const string &msg, Urgency u)
 {
@@ -57,9 +51,42 @@ void Logger::log(const string &msg, Urgency u)
       strftime(buffer,sizeof(buffer),"%b %d %H:%M:%S ", &tm);
     }
 
+    string prefix;
+    if (d_prefixed) {
+      switch(u) {
+        case All:
+          prefix = "[all] ";
+          break;
+        case Alert:
+          prefix = "[ALERT] ";
+          break;
+        case Critical:
+          prefix = "[CRITICAL] ";
+          break;
+        case Error:
+          prefix = "[ERROR] ";
+          break;
+        case Warning:
+          prefix = "[WARNING] ";
+          break;
+        case Notice:
+          prefix = "[NOTICE] ";
+          break;
+        case Info:
+          prefix = "[INFO] ";
+          break;
+        case Debug:
+          prefix = "[DEBUG] ";
+          break;
+        case None:
+          prefix = "[none] ";
+          break;
+      }
+    }
+
     static pthread_mutex_t m = PTHREAD_MUTEX_INITIALIZER;
     Lock l(&m); // the C++-2011 spec says we need this, and OSX actually does
-    clog << string(buffer) + msg <<endl;
+    clog << string(buffer) + prefix + msg <<endl;
 #ifndef RECURSOR
     mustAccount=true;
 #endif
@@ -104,20 +131,14 @@ void Logger::setName(const string &_name)
 
 void Logger::initKey()
 {
-  if(pthread_key_create(&s_loggerKey, perThreadDestructor))
+  if(pthread_key_create(&g_loggerKey, perThreadDestructor))
     unixDie("Creating thread key for logger");
 }
 
-Logger::Logger(const string &n, int facility)
+Logger::Logger(const string &n, int facility) :
+  name(n), flags(LOG_PID|LOG_NDELAY), d_facility(facility), d_loglevel(Logger::None),
+  consoleUrgency(Error), opened(false), d_disableSyslog(false)
 {
-  opened=false;
-  flags=LOG_PID|LOG_NDELAY;
-  d_facility=facility;
-  d_loglevel=Logger::None;
-  d_disableSyslog=false;
-  consoleUrgency=Error;
-  name=n;
-
   if(pthread_once(&s_once, initKey))
     unixDie("Creating thread key for logger");
 
@@ -139,13 +160,13 @@ void Logger::perThreadDestructor(void* buf)
 
 Logger::PerThread* Logger::getPerThread()
 {
-  void *buf=pthread_getspecific(s_loggerKey);
+  void *buf=pthread_getspecific(g_loggerKey);
   PerThread* ret;
   if(buf)
     ret = (PerThread*) buf;
   else {
     ret = new PerThread();
-    pthread_setspecific(s_loggerKey, (void*)ret);
+    pthread_setspecific(g_loggerKey, (void*)ret);
   }
   return ret;
 }
@@ -240,7 +261,7 @@ Logger& Logger::operator<<(const DNSName &d)
 
 Logger& Logger::operator<<(const ComboAddress &ca)
 {
-  *this<<ca.toString();
+  *this<<ca.toLogString();
   return *this;
 }
 

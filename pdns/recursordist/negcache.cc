@@ -56,7 +56,7 @@ bool NegCache::getRootNXTrust(const DNSName& qname, const struct timeval& now, N
       return true;
     }
     moveCacheItemToFront(d_negcache, ni);
-    ni++;
+    ++ni;
   }
   return false;
 }
@@ -87,7 +87,7 @@ bool NegCache::get(const DNSName& qname, const QType& qtype, const struct timeva
       // expired
       moveCacheItemToFront(d_negcache, ni);
     }
-    ni++;
+    ++ni;
   }
   return false;
 }

@@ -150,7 +150,7 @@ Semaphore::Semaphore(unsigned int value)
 {
   m_pSemaphore=new sem_t;
   if (sem_init(m_pSemaphore, 0, value) == -1) {
-    theL() << Logger::Error << "Cannot create semaphore: " << stringerror() << endl;
+    g_log << Logger::Error << "Cannot create semaphore: " << stringerror() << endl;
     exit(1);
   }
 }

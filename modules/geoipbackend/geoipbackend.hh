@@ -54,7 +54,7 @@ public:
   bool get(DNSResourceRecord &r) override;
   void reload() override;
   void rediscover(string *status = 0) override;
-  bool getDomainInfo(const DNSName& domain, DomainInfo &di) override;
+  bool getDomainInfo(const DNSName& domain, DomainInfo &di, bool getSerial=true) override;
 
   // dnssec support
   bool doesDNSSEC() override { return d_dnssec; };

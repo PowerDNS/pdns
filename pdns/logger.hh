@@ -64,15 +64,19 @@ public:
     d_timestamps = t;
   }
 
+  void setPrefixed(bool p) {
+    d_prefixed = p;
+  }
+
   //! Log to a file.
   void toFile( const string & filename );
   
   void resetFlags(){flags=0;open();} //!< zero the flags
   /** Use this to stream to your log, like this:
       \code
-      L<<"This is an informational message"<<endl; // logged at default loglevel (Info)
-      L<<Logger::Warning<<"Out of diskspace"<<endl; // Logged as a warning 
-      L<<"This is an informational message"<<endl; // logged AGAIN at default loglevel (Info)
+      g_log<<"This is an informational message"<<endl; // logged at default loglevel (Info)
+      g_log<<Logger::Warning<<"Out of diskspace"<<endl; // Logged as a warning 
+      g_log<<"This is an informational message"<<endl; // logged AGAIN at default loglevel (Info)
       \endcode
   */
   Logger& operator<<(const char *s);
@@ -92,10 +96,8 @@ public:
 private:
   struct PerThread
   {
-    PerThread() 
-    {
-      d_urgency=Info;
-    }
+    PerThread() : d_urgency(Info)
+    {}
     string d_output;
     Urgency d_urgency;
   };
@@ -112,11 +114,12 @@ private:
   bool opened;
   bool d_disableSyslog;
   bool d_timestamps{true};
+  bool d_prefixed{false};
   static pthread_once_t s_once;
-  static pthread_key_t s_loggerKey;
+  static pthread_key_t g_loggerKey;
 };
 
-extern Logger &theL(const string &pname="");
+extern Logger g_log;
 
 #ifdef VERBOSELOG
 #define DLOG(x) x

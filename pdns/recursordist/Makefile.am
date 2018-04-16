@@ -23,7 +23,8 @@ BUILT_SOURCES=htmlfiles.h \
 
 CLEANFILES = htmlfiles.h \
 	dnsmessage.pb.cc \
-	dnsmessage.pb.h
+	dnsmessage.pb.h \
+	recursor.conf-dist
 
 htmlfiles.h: html/*
 	./incfiles > $@
@@ -112,6 +113,7 @@ pdns_recursor_SOURCES = \
 	logger.hh logger.cc \
 	lua-base4.cc lua-base4.hh \
 	lua-recursor4.cc lua-recursor4.hh \
+	lua-recursor4-ffi.hh \
 	lwres.cc lwres.hh \
 	misc.hh misc.cc \
 	mplexer.hh \
@@ -128,7 +130,6 @@ pdns_recursor_SOURCES = \
 	protobuf.cc protobuf.hh \
 	pubsuffix.hh pubsuffix.cc \
 	qtype.hh qtype.cc \
-	randomhelper.cc \
 	rcpgenerator.cc rcpgenerator.hh \
 	rec-carbon.cc \
 	rec-lua-conf.hh rec-lua-conf.cc \
@@ -215,7 +216,6 @@ testrunner_SOURCES = \
 	opensslsigners.cc opensslsigners.hh \
 	protobuf.cc protobuf.hh \
 	qtype.cc qtype.hh \
-	randomhelper.cc \
 	rcpgenerator.cc \
 	rec-protobuf.cc rec-protobuf.hh \
 	recpacketcache.cc recpacketcache.hh \
@@ -428,6 +428,11 @@ systemdsystemunitdir = $(SYSTEMD_DIR)
 systemdsystemunit_DATA = \
 	pdns-recursor.service \
 	pdns-recursor@.service
+
+CLEANFILES += \
+	pdns-recursor.service \
+	pdns-recursor@.service
+
 endif
 
 if !HAVE_LUA_HPP

@@ -22,6 +22,7 @@ PDNS_CHECK_CLOCK_GETTIME
 PDNS_CHECK_OS
 PDNS_CHECK_NETWORK_LIBS
 PDNS_CHECK_PTHREAD_NP
+PDNS_CHECK_SECURE_MEMSET
 
 
 PDNS_WITH_PROTOBUF
@@ -41,13 +42,7 @@ AM_CONDITIONAL([HAVE_SYSTEMD], [ test x"$systemd" = "xy" ])
 AC_SUBST([YAHTTP_CFLAGS], ['-I$(top_srcdir)/ext/yahttp'])
 AC_SUBST([YAHTTP_LIBS], ['$(top_builddir)/ext/yahttp/yahttp/libyahttp.la'])
 
-PDNS_WITH_LUAJIT
-AS_IF([test "x$with_luajit" = "xno"], [
-  PDNS_WITH_LUA
-])
-AS_IF([test "x$LUAPC" = "x" -a "x$LUAJITPC" = "x"], [
-  AC_MSG_ERROR([Neither Lua nor LuaJIT found, Lua support is not optional])
-])
+PDNS_WITH_LUA([mandatory])
 PDNS_CHECK_LUA_HPP
 
 DNSDIST_ENABLE_DNS_OVER_TLS
@@ -124,12 +119,7 @@ AC_MSG_NOTICE([BOOST_CPPFLAGS: $BOOST_CPPFLAGS])
 AC_MSG_NOTICE([])
 AC_MSG_NOTICE([Features enabled])
 AC_MSG_NOTICE([----------------])
-AS_IF([test "x$LUAPC" != "x"],
-  [AC_MSG_NOTICE([Lua: $LUAPC])],
-  [AS_IF([test "x$LUAJITPC" != "x"],
-    [AC_MSG_NOTICE([LuaJit: $LUAJITPC])],
-    [AC_MSG_NOTICE([Lua/LuaJit: no])])
-])
+AC_MSG_NOTICE([Lua: $LUAPC])
 AS_IF([test "x$PROTOBUF_LIBS" != "x" -a x"$PROTOC" != "x"],
   [AC_MSG_NOTICE([Protobuf: yes])],
   [AC_MSG_NOTICE([Protobuf: no])]

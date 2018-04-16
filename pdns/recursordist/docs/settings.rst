@@ -871,6 +871,25 @@ If ``SO_REUSEPORT`` support is available, allows multiple processes to open a li
 
 Since 4.1.0, when ``pdns-distributes-queries`` is set to false and ``reuseport`` is enabled, every thread will open a separate listening socket to let the kernel distribute the incoming queries, avoiding any thundering herd issue as well as the distributor thread being a bottleneck, thus leading to much higher performance on multi-core boxes.
 
+.. _setting-rng:
+``rng``
+-------
+
+- String
+- Default: auto
+
+Specify which random number generator to use. Permissible choises are
+ - auto - choose automatically
+ - sodium - Use libsodium ``randombytes_uniform``
+ - openssl - Use libcrypto ``RAND_bytes``
+ - getrandom - Use libc getrandom, falls back to urandom if it does not really work
+ - arc4random - Use BSD ``arc4random_uniform``
+ - urandom - Use ``/dev/urandom``
+ - kiss - Use simple settable deterministic RNG. **FOR TESTING PURPOSES ONLY!**
+
+.. note::
+  Not all choises are available on all systems.
+
 .. _setting-root-nx-trust:
 
 ``root-nx-trust``
@@ -1066,6 +1085,48 @@ Spawn this number of threads on startup.
 
 If turned on, output impressive heaps of logging.
 May destroy performance under load.
+
+.. _setting-udp-source-port-min:
+
+``udp-source-port-min``
+-----------------------
+.. versionadded:: 4.2.0
+
+-  Integer
+-  Default: 1024
+
+This option sets the low limit of UDP port number to bind on.
+
+In combination with `udp-source-port-max`_ it configures the UDP
+port range to use. Port numbers are randomized within this range on
+initialization, and exceptions can be configured with `udp-source-port-avoid`_
+
+.. _setting-udp-source-port-max:
+
+``udp-source-port-max``
+-----------------------
+.. versionadded:: 4.2.0
+
+-  Integer
+-  Default: 65535
+
+This option sets the maximum limit of UDP port number to bind on.
+
+See `udp-source-port-min`_.
+
+.. _setting-udp-source-port-avoid:
+
+``udp-source-port-avoid``
+-------------------------
+.. versionadded:: 4.2.0
+
+-  String
+-  Default: 11211
+
+A list of comma-separated UDP port numbers to avoid when binding.
+Ex: `5300,11211`
+
+See `udp-source-port-min`_.
 
 .. _setting-udp-truncation-threshold:
 

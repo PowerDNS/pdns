@@ -89,10 +89,6 @@ const char *funnytext=
 
 // start (sys)logging
 
-/** \var Logger L 
-\brief All logging is done via L, a Logger instance
-*/
-
 
 /**
 \file receiver.cc
@@ -110,7 +106,7 @@ void daemonize(void)
 
   int i=open("/dev/null",O_RDWR); /* open stdin */
   if(i < 0) 
-    L<<Logger::Critical<<"Unable to open /dev/null: "<<stringerror()<<endl;
+    g_log<<Logger::Critical<<"Unable to open /dev/null: "<<stringerror()<<endl;
   else {
     dup2(i,0); /* stdin */
     dup2(i,1); /* stderr */
@@ -123,7 +119,7 @@ static int cpid;
 static void takedown(int i)
 {
   if(cpid) {
-    L<<Logger::Error<<"Guardian is killed, taking down children with us"<<endl;
+    g_log<<Logger::Error<<"Guardian is killed, taking down children with us"<<endl;
     kill(cpid,SIGKILL);
     exit(0);
   }
@@ -149,7 +145,7 @@ static void writePid(void)
   if(of)
     of<<getpid()<<endl;
   else
-    L<<Logger::Error<<"Writing pid for "<<getpid()<<" to "<<fname<<" failed: "<<strerror(errno)<<endl;
+    g_log<<Logger::Error<<"Writing pid for "<<getpid()<<" to "<<fname<<" failed: "<<strerror(errno)<<endl;
 }
 
 int g_fd1[2], g_fd2[2];
@@ -223,12 +219,12 @@ static int guardian(int argc, char **argv)
     setStatus("Launching child");
     
     if(pipe(g_fd1)<0 || pipe(g_fd2)<0) {
-      L<<Logger::Critical<<"Unable to open pipe for coprocess: "<<strerror(errno)<<endl;
+      g_log<<Logger::Critical<<"Unable to open pipe for coprocess: "<<strerror(errno)<<endl;
       exit(1);
     }
 
     if(!(g_fp=fdopen(g_fd2[0],"r"))) {
-      L<<Logger::Critical<<"Unable to associate a file pointer with pipe: "<<stringerror()<<endl;
+      g_log<<Logger::Critical<<"Unable to associate a file pointer with pipe: "<<stringerror()<<endl;
       exit(1);
     }
     setbuf(g_fp,0); // no buffering please, confuses select
@@ -245,7 +241,7 @@ static int guardian(int argc, char **argv)
 
       if(::arg()["config-name"]!="") {
         progname+="-"+::arg()["config-name"];
-        L<<Logger::Error<<"Virtual configuration name: "<<::arg()["config-name"]<<endl;
+        g_log<<Logger::Error<<"Virtual configuration name: "<<::arg()["config-name"]<<endl;
       }
 
       newargv[0]=strdup(const_cast<char *>((progname+"-instance").c_str()));
@@ -254,7 +250,7 @@ static int guardian(int argc, char **argv)
       }
       newargv[n]=0;
       
-      L<<Logger::Error<<"Guardian is launching an instance"<<endl;
+      g_log<<Logger::Error<<"Guardian is launching an instance"<<endl;
       close(g_fd1[1]);
       fclose(g_fp); // this closes g_fd2[0] for us
 
@@ -268,14 +264,14 @@ static int guardian(int argc, char **argv)
         close(g_fd2[1]);
       }
       if(execvp(argv[0], newargv)<0) {
-        L<<Logger::Error<<"Unable to execvp '"<<argv[0]<<"': "<<strerror(errno)<<endl;
+        g_log<<Logger::Error<<"Unable to execvp '"<<argv[0]<<"': "<<strerror(errno)<<endl;
         char **p=newargv;
         while(*p)
-          L<<Logger::Error<<*p++<<endl;
+          g_log<<Logger::Error<<*p++<<endl;
 
         exit(1);
       }
-      L<<Logger::Error<<"execvp returned!!"<<endl;
+      g_log<<Logger::Error<<"execvp returned!!"<<endl;
       // never reached
     }
     else if(pid>0) { // parent
@@ -299,8 +295,8 @@ static int guardian(int argc, char **argv)
         int ret=waitpid(pid,&status,WNOHANG);
 
         if(ret<0) {
-          L<<Logger::Error<<"In guardian loop, waitpid returned error: "<<strerror(errno)<<endl;
-          L<<Logger::Error<<"Dying"<<endl;
+          g_log<<Logger::Error<<"In guardian loop, waitpid returned error: "<<strerror(errno)<<endl;
+          g_log<<Logger::Error<<"Dying"<<endl;
           exit(1);
         }
         else if(ret) // something exited
@@ -323,11 +319,11 @@ static int guardian(int argc, char **argv)
         int ret=WEXITSTATUS(status);
 
         if(ret==99) {
-          L<<Logger::Error<<"Child requested a stop, exiting"<<endl;
+          g_log<<Logger::Error<<"Child requested a stop, exiting"<<endl;
           exit(1);
         }
         setStatus("Child died with code "+itoa(ret));
-        L<<Logger::Error<<"Our pdns instance exited with code "<<ret<<", respawning"<<endl;
+        g_log<<Logger::Error<<"Our pdns instance exited with code "<<ret<<", respawning"<<endl;
 
         sleep(1);
         continue;
@@ -335,20 +331,20 @@ static int guardian(int argc, char **argv)
       if(WIFSIGNALED(status)) {
         int sig=WTERMSIG(status);
         setStatus("Child died because of signal "+itoa(sig));
-        L<<Logger::Error<<"Our pdns instance ("<<pid<<") exited after signal "<<sig<<endl;
+        g_log<<Logger::Error<<"Our pdns instance ("<<pid<<") exited after signal "<<sig<<endl;
 #ifdef WCOREDUMP
         if(WCOREDUMP(status)) 
-          L<<Logger::Error<<"Dumped core"<<endl;
+          g_log<<Logger::Error<<"Dumped core"<<endl;
 #endif
 
-        L<<Logger::Error<<"Respawning"<<endl;
+        g_log<<Logger::Error<<"Respawning"<<endl;
         sleep(1);
         continue;
       }
-      L<<Logger::Error<<"No clue what happened! Respawning"<<endl;
+      g_log<<Logger::Error<<"No clue what happened! Respawning"<<endl;
     }
     else {
-      L<<Logger::Error<<"Unable to fork: "<<strerror(errno)<<endl;
+      g_log<<Logger::Error<<"Unable to fork: "<<strerror(errno)<<endl;
       exit(1);
     }
   }
@@ -384,7 +380,7 @@ static void loadModules()
         res=UeberBackend::loadmodule(::arg()["module-dir"]+"/"+module);
       
       if(res==false) {
-        L<<Logger::Error<<"Receiver unable to load module "<<module<<endl;
+        g_log<<Logger::Error<<"Receiver unable to load module "<<module<<endl;
         exit(1);
       }
     }
@@ -395,7 +391,7 @@ static void loadModules()
 #include <execinfo.h>
 static void tbhandler(int num)
 {
-  L<<Logger::Critical<<"Got a signal "<<num<<", attempting to print trace: "<<endl;
+  g_log<<Logger::Critical<<"Got a signal "<<num<<", attempting to print trace: "<<endl;
   void *array[20]; //only care about last 17 functions (3 taken with tracing support)
   size_t size;
   char **strings;
@@ -405,7 +401,7 @@ static void tbhandler(int num)
   strings = backtrace_symbols (array, size); //Need -rdynamic gcc (linker) flag for this to work
   
   for (i = 0; i < size; i++) //skip useless functions
-    L<<Logger::Error<<strings[i]<<endl;
+    g_log<<Logger::Error<<strings[i]<<endl;
   
   
   signal(SIGABRT, SIG_DFL);
@@ -432,7 +428,7 @@ int main(int argc, char **argv)
 
   std::ios_base::sync_with_stdio(false);
 
-  L.toConsole(Logger::Warning);
+  g_log.toConsole(Logger::Warning);
   try {
     declareArguments();
     UNIX_declareArguments();
@@ -448,7 +444,7 @@ int main(int argc, char **argv)
     if(::arg()["config-name"]!="") 
       s_programname+="-"+::arg()["config-name"];
     
-    (void)theL(s_programname);
+    g_log.setName(s_programname);
     
     string configname=::arg()["config-dir"]+"/"+s_programname+".conf";
     cleanSlashes(configname);
@@ -460,15 +456,15 @@ int main(int argc, char **argv)
     if(!::arg()["logging-facility"].empty()) {
       int val=logFacilityToLOG(::arg().asNum("logging-facility") );
       if(val >= 0)
-        theL().setFacility(val);
+        g_log.setFacility(val);
       else
-        L<<Logger::Error<<"Unknown logging facility "<<::arg().asNum("logging-facility") <<endl;
+        g_log<<Logger::Error<<"Unknown logging facility "<<::arg().asNum("logging-facility") <<endl;
     }
 
-    L.setLoglevel((Logger::Urgency)(::arg().asNum("loglevel")));
-    L.disableSyslog(::arg().mustDo("disable-syslog"));
-    L.setTimestamps(::arg().mustDo("log-timestamp"));
-    L.toConsole((Logger::Urgency)(::arg().asNum("loglevel")));  
+    g_log.setLoglevel((Logger::Urgency)(::arg().asNum("loglevel")));
+    g_log.disableSyslog(::arg().mustDo("disable-syslog"));
+    g_log.setTimestamps(::arg().mustDo("log-timestamp"));
+    g_log.toConsole((Logger::Urgency)(::arg().asNum("loglevel")));  
 
     if(::arg().mustDo("help") || ::arg().mustDo("config")) {
       ::arg().set("daemon")="no";
@@ -477,7 +473,7 @@ int main(int argc, char **argv)
 
     if(::arg().mustDo("guardian") && !isGuarded(argv)) {
       if(::arg().mustDo("daemon")) {
-        L.toConsole(Logger::Critical);
+        g_log.toConsole(Logger::Critical);
         daemonize();
       }
       guardian(argc, argv);  
@@ -490,15 +486,13 @@ int main(int argc, char **argv)
 
 #ifdef __GLIBC__
     if(!::arg().mustDo("traceback-handler")) {
-      L<<Logger::Warning<<"Disabling traceback handler"<<endl;
+      g_log<<Logger::Warning<<"Disabling traceback handler"<<endl;
       signal(SIGSEGV,SIG_DFL);
       signal(SIGFPE,SIG_DFL);
       signal(SIGABRT,SIG_DFL);
       signal(SIGILL,SIG_DFL);
     }
 #endif
-
-    seedRandom(::arg()["entropy-source"]);
 
 #ifdef HAVE_LIBSODIUM
       if (sodium_init() == -1) {
@@ -509,6 +503,8 @@ int main(int argc, char **argv)
 
     openssl_thread_setup();
     openssl_seed();
+    /* setup rng */
+    dns_random_init();
 
     loadModules();
     BackendMakers().launch(::arg()["launch"]); // vrooooom!
@@ -539,25 +535,25 @@ int main(int argc, char **argv)
     }
 
     if(!::arg().asNum("local-port")) {
-      L<<Logger::Error<<"Unable to launch, binding to no port or port 0 makes no sense"<<endl;
+      g_log<<Logger::Error<<"Unable to launch, binding to no port or port 0 makes no sense"<<endl;
       exit(99); // this isn't going to fix itself either
     }
     if(!BackendMakers().numLauncheable()) {
-      L<<Logger::Error<<"Unable to launch, no backends configured for querying"<<endl;
+      g_log<<Logger::Error<<"Unable to launch, no backends configured for querying"<<endl;
       exit(99); // this isn't going to fix itself either
     }    
     if(::arg().mustDo("daemon")) {
-      L.toConsole(Logger::None);
+      g_log.toConsole(Logger::None);
       if(!isGuarded(argv))
         daemonize();
     }
 
     if(isGuarded(argv)) {
-      L<<Logger::Warning<<"This is a guarded instance of pdns"<<endl;
+      g_log<<Logger::Warning<<"This is a guarded instance of pdns"<<endl;
       dl=new DynListener; // listens on stdin 
     }
     else {
-      L<<Logger::Warning<<"This is a standalone pdns"<<endl; 
+      g_log<<Logger::Warning<<"This is a standalone pdns"<<endl; 
       
       if(::arg().mustDo("control-console"))
         dl=new DynListener();
@@ -615,7 +611,7 @@ int main(int argc, char **argv)
           g_udpReceivers[idx] = std::make_shared<UDPNameserver>(true);
         }
         catch(const PDNSException& e) {
-          L<<Logger::Error<<"Unable to reuse port, falling back to original bind"<<endl;
+          g_log<<Logger::Error<<"Unable to reuse port, falling back to original bind"<<endl;
           break;
         }
       }
@@ -625,12 +621,12 @@ int main(int argc, char **argv)
       TN=new TCPNameserver; 
   }
   catch(const ArgException &A) {
-    L<<Logger::Error<<"Fatal error: "<<A.reason<<endl;
+    g_log<<Logger::Error<<"Fatal error: "<<A.reason<<endl;
     exit(1);
   }
   
   declareStats();
-  DLOG(L<<Logger::Warning<<"Verbose logging in effect"<<endl);
+  DLOG(g_log<<Logger::Warning<<"Verbose logging in effect"<<endl);
 
   showProductVersion();
 
@@ -640,12 +636,12 @@ int main(int argc, char **argv)
   catch(PDNSException &AE) {
     if(!::arg().mustDo("daemon"))
       cerr<<"Exiting because: "<<AE.reason<<endl;
-    L<<Logger::Error<<"Exiting because: "<<AE.reason<<endl;
+    g_log<<Logger::Error<<"Exiting because: "<<AE.reason<<endl;
   }      
   catch(std::exception &e) {
     if(!::arg().mustDo("daemon"))
       cerr<<"Exiting because of STL error: "<<e.what()<<endl;
-    L<<Logger::Error<<"Exiting because of STL error: "<<e.what()<<endl;
+    g_log<<Logger::Error<<"Exiting because of STL error: "<<e.what()<<endl;
   }
   catch(...) {
     cerr<<"Uncaught exception of unknown type - sorry"<<endl;

@@ -43,10 +43,10 @@ gMySQLBackend::gMySQLBackend(const string &mode, const string &suffix)  : GSQLBa
   }
 
   catch(SSqlException &e) {
-    L<<Logger::Error<<mode<<" Connection failed: "<<e.txtReason()<<endl;
+    g_log<<Logger::Error<<mode<<" Connection failed: "<<e.txtReason()<<endl;
     throw PDNSException("Unable to launch "+mode+" connection: "+e.txtReason());
   }
-  L<<Logger::Info<<mode<<" Connection successful. Connected to database '"<<getArg("dbname")<<"' on '"<<(getArg("host").empty() ? getArg("socket") : getArg("host"))<<"'."<<endl;
+  g_log<<Logger::Info<<mode<<" Connection successful. Connected to database '"<<getArg("dbname")<<"' on '"<<(getArg("host").empty() ? getArg("socket") : getArg("host"))<<"'."<<endl;
 }
 
 void gMySQLBackend::reconnect()
@@ -93,8 +93,6 @@ public:
 
     declare(suffix, "remove-empty-non-terminals-from-zone-query", "remove all empty non-terminals from zone", "delete from records where domain_id=? and type is null");
     declare(suffix, "delete-empty-non-terminal-query", "delete empty non-terminal from zone", "delete from records where domain_id=? and name=? and type is null");
-
-    declare(suffix,"master-zone-query","Data", "select master from domains where name=? and type='SLAVE'");
 
     declare(suffix,"info-zone-query","","select id,name,master,last_check,notified_serial,type,account from domains where name=?");
 
@@ -173,7 +171,7 @@ public:
   gMySQLLoader()
   {
     BackendMakers().report(new gMySQLFactory("gmysql"));
-    L << Logger::Info << "[gmysqlbackend] This is the gmysql backend version " VERSION
+    g_log << Logger::Info << "[gmysqlbackend] This is the gmysql backend version " VERSION
 #ifndef REPRODUCIBLE
       << " (" __DATE__ " " __TIME__ ")"
 #endif

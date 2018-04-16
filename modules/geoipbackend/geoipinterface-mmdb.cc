@@ -47,7 +47,7 @@ public:
     if ((ec = MMDB_open(fname.c_str(), flags, &d_s)) < 0)
       throw PDNSException(string("Cannot open ") + fname + string(": ") + string(MMDB_strerror(ec)));
     d_lang = language;
-    L<<Logger::Debug<<"Opened MMDB database "<<fname<<"(type: "<<d_s.metadata.database_type<<
+    g_log<<Logger::Debug<<"Opened MMDB database "<<fname<<"(type: "<<d_s.metadata.database_type<<
                       " version: "<<d_s.metadata.binary_format_major_version << "." <<
                       d_s.metadata.binary_format_minor_version << ")" << endl;
   }
@@ -242,9 +242,9 @@ private:
     res = MMDB_lookup_string(&d_s, ip.c_str(), &gai_ec, &mmdb_ec);
  
     if (gai_ec != 0)
-      L<<Logger::Warning<<"MMDB_lookup_string("<<ip<<") failed: "<<gai_strerror(gai_ec)<<endl;
+      g_log<<Logger::Warning<<"MMDB_lookup_string("<<ip<<") failed: "<<gai_strerror(gai_ec)<<endl;
     else if (mmdb_ec != MMDB_SUCCESS)
-      L<<Logger::Warning<<"MMDB_lookup_string("<<ip<<") failed: "<<MMDB_strerror(mmdb_ec)<<endl;
+      g_log<<Logger::Warning<<"MMDB_lookup_string("<<ip<<") failed: "<<MMDB_strerror(mmdb_ec)<<endl;
     else if (res.found_entry) {
       gl.netmask = res.netmask;
       /* If it's a IPv6 database, IPv4 netmasks are reduced from 128, so we need to deduct

@@ -338,10 +338,7 @@ int waitForRWData(int fd, bool waitForRead, int seconds, int useconds, bool* err
     pfd.events=POLLOUT;
 
   ret = poll(&pfd, 1, seconds * 1000 + useconds/1000);
-  if ( ret == -1 ) {
-    errno = ETIMEDOUT; // ???
-  }
-  else if (ret > 0) {
+  if (ret > 0) {
     if (error && (pfd.revents & POLLERR)) {
       *error = true;
     }
@@ -362,8 +359,8 @@ int waitForMultiData(const set<int>& fds, const int seconds, const int useconds,
     }
   }
 
-  struct pollfd pfds[realFDs.size()];
-  memset(&pfds[0], 0, realFDs.size()*sizeof(struct pollfd));
+  std::vector<struct pollfd> pfds(realFDs.size());
+  memset(pfds.data(), 0, realFDs.size()*sizeof(struct pollfd));
   int ctr = 0;
   for (const auto& fd : realFDs) {
     pfds[ctr].fd = fd;
@@ -373,9 +370,9 @@ int waitForMultiData(const set<int>& fds, const int seconds, const int useconds,
 
   int ret;
   if(seconds >= 0)
-    ret = poll(pfds, realFDs.size(), seconds * 1000 + useconds/1000);
+    ret = poll(pfds.data(), realFDs.size(), seconds * 1000 + useconds/1000);
   else
-    ret = poll(pfds, realFDs.size(), -1);
+    ret = poll(pfds.data(), realFDs.size(), -1);
   if(ret <= 0)
     return ret;
 
@@ -1058,8 +1055,9 @@ bool setSocketTimestamps(int fd)
 #ifdef SO_TIMESTAMP
   int on=1;
   return setsockopt(fd, SOL_SOCKET, SO_TIMESTAMP, (char*)&on, sizeof(on)) == 0;
-#endif
+#else
   return true; // we pretend this happened.
+#endif
 }
 
 bool setTCPNoDelay(int sock)
@@ -1359,9 +1357,18 @@ gid_t strToGID(const string &str)
 unsigned int pdns_stou(const std::string& str, size_t * idx, int base)
 {
   if (str.empty()) return 0; // compatibility
-  unsigned long result = std::stoul(str, idx, base);
+  unsigned long result;
+  try {
+    result = std::stoul(str, idx, base);
+  }
+  catch(std::invalid_argument& e) {
+    throw std::invalid_argument(string(e.what()) + "; (invalid argument during std::stoul); data was \""+str+"\"");
+  }
+  catch(std::out_of_range& e) {
+    throw std::out_of_range(string(e.what()) + "; (out of range during std::stoul); data was \""+str+"\"");
+  }
   if (result > std::numeric_limits<unsigned int>::max()) {
-    throw std::out_of_range("stou");
+    throw std::out_of_range("stoul returned result out of unsigned int range; data was \""+str+"\"");
   }
   return static_cast<unsigned int>(result);
 }
@@ -1402,6 +1409,7 @@ int mapThreadToCPUList(pthread_t tid, const std::set<int>& cpus)
                                 sizeof(cpuset),
                                 &cpuset);
 #  endif
-#endif /* HAVE_PTHREAD_SETAFFINITY_NP */
+#else
   return ENOSYS;
+#endif /* HAVE_PTHREAD_SETAFFINITY_NP */
 }

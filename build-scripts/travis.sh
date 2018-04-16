@@ -266,7 +266,7 @@ install_auth() {
     alien\
     fakeroot"
   run "cd .."
-  run "wget ftp://ftp.nominum.com/pub/nominum/dnsperf/2.0.0.0/dnsperf-2.0.0.0-1-rhel-6-x86_64.tar.gz"
+  run "wget https://downloads.powerdns.com/tmp/dnsperf-2.0.0.0-1-rhel-6-x86_64.tar.gz"
   run "tar xzvf dnsperf-2.0.0.0-1-rhel-6-x86_64.tar.gz"
   run "fakeroot alien --to-deb dnsperf-2.0.0.0-1/dnsperf-2.0.0.0-1.el6.x86_64.rpm"
   run "sudo dpkg -i dnsperf_2.0.0.0-2_amd64.deb"
@@ -327,12 +327,15 @@ install_auth() {
 
 install_recursor() {
   # recursor test requirements / setup
+  # lua-posix is required for the ghost tests
+  # (used by the prequery script in the auth)
   run "sudo apt-get -qq --no-install-recommends install \
     authbind \
     daemontools \
     jq \
     libfaketime \
     libsnmp-dev \
+    lua-posix \
     moreutils \
     snmpd"
   run "cd .."
@@ -367,9 +370,9 @@ install_dnsdist() {
 }
 
 build_auth() {
-  run "./bootstrap"
+  run "autoreconf -vi"
   # Build without --enable-botan, no botan 2.x in Travis CI
-  run "CFLAGS='-O1' CXXFLAGS='-O1' ./configure \
+  run "CFLAGS='-O1 -Werror=vla' CXXFLAGS='-O1 -Werror=vla' ./configure \
     --with-dynmodules='bind gmysql geoip gpgsql gsqlite3 ldap lua mydns opendbx pipe random remote tinydns godbc lua2' \
     --with-modules='' \
     --with-sqlite3 \
@@ -396,7 +399,7 @@ build_recursor() {
   run "rm -f pdns-recursor-*.tar.bz2"
   run "cd pdns-recursor-*"
   # Build without --enable-botan, no botan 2.x in Travis CI
-  run "CFLAGS='-O1' CXXFLAGS='-O1' CXX=${COMPILER} ./configure \
+  run "CFLAGS='-O1 -Werror=vla' CXXFLAGS='-O1 -Werror=vla' CXX=${COMPILER} ./configure \
     --prefix=$PDNS_RECURSOR_DIR \
     --enable-libsodium \
     --enable-unit-tests \
@@ -412,7 +415,7 @@ build_dnsdist(){
   run "cd pdns/dnsdistdist"
   run "tar xf dnsdist*.tar.bz2"
   run "cd dnsdist-*"
-  run "CFLAGS='-O1' CXXFLAGS='-O1' ./configure \
+  run "CFLAGS='-O1 -Werror=vla' CXXFLAGS='-O1 -Werror=vla' ./configure \
     --enable-unit-tests \
     --enable-libsodium \
     --enable-dnscrypt \
@@ -561,7 +564,7 @@ test_recursor() {
   run "./build-scripts/test-recursor"
   export RECURSOR="${PDNSRECURSOR}"
   run "cd regression-tests"
-  run "THRESHOLD=95 TRACE=no ./timestamp ./recursor-test 5300 50000"
+  run "THRESHOLD=50 TRACE=no ./timestamp ./recursor-test 5300 50000"
   run "cd .."
 
   run "cd regression-tests.api"

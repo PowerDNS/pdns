@@ -11,7 +11,7 @@ The console can be enabled with :func:`controlSocket`:
 
   controlSocket('192.0.2.53:5199')
 
-To enable encryption, first generate a key with :func:`makeKey`::
+Exposing the console to the network without encryption enabled is not recommended. To enable encryption, first generate a key with :func:`makeKey`::
 
   $ ./dnsdist -l 127.0.0.1:5300
   [..]
@@ -37,3 +37,15 @@ Alternatively, you can specify the address and key on the client commandline::
 .. warning::
 
   This will leak the key into your shell's history and is **not** recommended.
+
+Note that encryption requires building dnsdist with libsodium support enabled.
+
+Since 1.3.0, dnsdist supports restricting which client can connect to the console with an ACL:
+
+.. code-block:: lua
+
+  controlSocket('192.0.2.53:5199')
+  setConsoleACL('192.0.2.0/24')
+
+The default value is '127.0.0.1', restricting the use of the console to local users. Please make sure that encryption is enabled
+before using :func:`addConsoleACL` or :func:`setConsoleACL` to allow connection from remote clients.

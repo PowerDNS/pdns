@@ -139,11 +139,7 @@ void loadZoneFromDisk(records_t& records, const string& fname, const DNSName& zo
       seenSOA=true;
     }
   }
-  cout<<"Parsed "<<nrecords<<" records"<<endl;
-  if(rr.qtype.getCode() == QType::SOA && seenSOA) {
-    cout<<"Zone was complete (SOA at end)"<<endl;
-  }
-  else  {
+  if(!(rr.qtype.getCode() == QType::SOA && seenSOA)) {
     records.clear();
     throw runtime_error("Zone not complete!");
   }

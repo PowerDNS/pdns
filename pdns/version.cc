@@ -71,22 +71,22 @@ string productTypeApiType() {
 
 void showProductVersion()
 {
-  theL()<<Logger::Warning<<productName()<<" "<< VERSION << " (C) 2001-2018 "
+  g_log<<Logger::Warning<<productName()<<" "<< VERSION << " (C) 2001-2018 "
     "PowerDNS.COM BV" << endl;
-  theL()<<Logger::Warning<<"Using "<<(sizeof(unsigned long)*8)<<"-bits mode. "
+  g_log<<Logger::Warning<<"Using "<<(sizeof(unsigned long)*8)<<"-bits mode. "
     "Built using " << compilerVersion()
 #ifndef REPRODUCIBLE
     <<" on " __DATE__ " " __TIME__ " by " BUILD_HOST
 #endif
     <<"."<< endl;
-  theL()<<Logger::Warning<<"PowerDNS comes with ABSOLUTELY NO WARRANTY. "
+  g_log<<Logger::Warning<<"PowerDNS comes with ABSOLUTELY NO WARRANTY. "
     "This is free software, and you are welcome to redistribute it "
     "according to the terms of the GPL version 2." << endl;
 }
 
 void showBuildConfiguration()
 {
-  theL()<<Logger::Warning<<"Features: "<<
+  g_log<<Logger::Warning<<"Features: "<<
 #ifdef HAVE_BOTAN
     "botan" << BOTAN_VERSION_MAJOR << "." << BOTAN_VERSION_MINOR  << " " <<
 #endif
@@ -115,12 +115,12 @@ void showBuildConfiguration()
     endl;
 #ifdef PDNS_MODULES
   // Auth only
-  theL()<<Logger::Warning<<"Built-in modules: "<<PDNS_MODULES<<endl;
+  g_log<<Logger::Warning<<"Built-in modules: "<<PDNS_MODULES<<endl;
 #endif
 #ifdef PDNS_CONFIG_ARGS
 #define double_escape(s) #s
 #define escape_quotes(s) double_escape(s)
-  theL()<<Logger::Warning<<"Configured with: "<<escape_quotes(PDNS_CONFIG_ARGS)<<endl;
+  g_log<<Logger::Warning<<"Configured with: "<<escape_quotes(PDNS_CONFIG_ARGS)<<endl;
 #undef escape_quotes
 #undef double_escape
 #endif

@@ -101,7 +101,7 @@ void GeoIPBackend::initialize() {
   }
 
   if (s_geoip_files.empty())
-    L<<Logger::Warning<<"No GeoIP database files loaded!"<<endl;
+    g_log<<Logger::Warning<<"No GeoIP database files loaded!"<<endl;
 
   if(!getArg("zones-file").empty())
     config = YAML::LoadFile(getArg("zones-file"));
@@ -141,14 +141,14 @@ void GeoIPBackend::initialize() {
              } else if (attr == "weight") {
                rr.weight = iter->second.as<int>();
                if (rr.weight < 0) {
-                 L<<Logger::Error<<"Weight cannot be negative for " << rr.qname << endl;
+                 g_log<<Logger::Error<<"Weight cannot be negative for " << rr.qname << endl;
                  throw PDNSException(string("Weight cannot be negative for ") + rr.qname.toLogString());
                }
                rr.has_weight = true;
              } else if (attr == "ttl") {
                rr.ttl = iter->second.as<int>();
              } else {
-               L<<Logger::Error<<"Unsupported record attribute " << attr << " for " << rr.qname << endl;
+               g_log<<Logger::Error<<"Unsupported record attribute " << attr << " for " << rr.qname << endl;
                throw PDNSException(string("Unsupported record attribute ") + attr + string(" for ") + rr.qname.toLogString());
              }
            }
@@ -373,7 +373,7 @@ void GeoIPBackend::lookup(const QType &qtype, const DNSName& qdomain, DNSPacket 
   }
 
   if (!d_result.empty()) {
-    L<<Logger::Error<<
+    g_log<<Logger::Error<<
        "Cannot have static record and CNAME at the same time." <<
        "Please fix your configuration for \"" << qdomain << "\", so that " <<
        "it can be resolved by GeoIP backend directly."<< std::endl;
@@ -623,11 +623,11 @@ void GeoIPBackend::reload() {
   try {
     initialize();
   } catch (PDNSException &pex) {
-    L<<Logger::Error<<"GeoIP backend reload failed: " << pex.reason << endl;
+    g_log<<Logger::Error<<"GeoIP backend reload failed: " << pex.reason << endl;
   } catch (std::exception &stex) {
-    L<<Logger::Error<<"GeoIP backend reload failed: " << stex.what() << endl;
+    g_log<<Logger::Error<<"GeoIP backend reload failed: " << stex.what() << endl;
   } catch (...) {
-    L<<Logger::Error<<"GeoIP backend reload failed" << endl;
+    g_log<<Logger::Error<<"GeoIP backend reload failed" << endl;
   }
 }
 
@@ -635,7 +635,7 @@ void GeoIPBackend::rediscover(string* status) {
   reload();
 }
 
-bool GeoIPBackend::getDomainInfo(const DNSName& domain, DomainInfo &di) {
+bool GeoIPBackend::getDomainInfo(const DNSName& domain, DomainInfo &di, bool getSerial) {
   ReadLock rl(&s_state_lock);
 
   for(GeoIPDomain dom :  s_domains) {
@@ -894,7 +894,7 @@ class GeoIPLoader {
 public:
   GeoIPLoader() {
     BackendMakers().report(new GeoIPFactory);
-    L << Logger::Info << "[geoipbackend] This is the geoip backend version " VERSION
+    g_log << Logger::Info << "[geoipbackend] This is the geoip backend version " VERSION
 #ifndef REPRODUCIBLE
       << " (" __DATE__ " " __TIME__ ")"
 #endif

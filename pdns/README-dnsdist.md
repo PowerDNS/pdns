@@ -9,6 +9,10 @@ interface.
 
 All `dnsdist` features are documented at [dnsdist.org](http://dnsdist.org).
 
+## Compiling from git
+
+Make sure to `autoreconf -vi` before running `configure`.
+
 ## macOS Notes
 
 Install dependencies from Homebrew:
@@ -17,10 +21,9 @@ Install dependencies from Homebrew:
 $ brew install autoconf automake boost libedit libsodium libtool lua pkg-config protobuf
 ```
 
-Bootstrap and let configure know where to find libedit:
+Let configure know where to find libedit:
 
 ```
-$ ./bootstrap
 $ ./configure 'PKG_CONFIG_PATH=/usr/local/opt/libedit/lib/pkgconfig'
 $ make
 ```

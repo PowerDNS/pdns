@@ -27,7 +27,7 @@
 #include "tsigverifier.hh"
 
 vector<pair<vector<DNSRecord>, vector<DNSRecord> > > processIXFRRecords(const ComboAddress& master, const DNSName& zone,
-                                                                        const vector<DNSRecord>& records, const std::shared_ptr<SOARecordContent> masterSOA)
+                                                                        const vector<DNSRecord>& records, const std::shared_ptr<SOARecordContent>& masterSOA)
 {
   vector<pair<vector<DNSRecord>, vector<DNSRecord> > >  ret;
 
@@ -169,6 +169,7 @@ vector<pair<vector<DNSRecord>, vector<DNSRecord> > > getIXFRDeltas(const ComboAd
   vector<DNSRecord> records;
   size_t receivedBytes = 0;
   int8_t ixfrInProgress = -2;
+  std::string reply;
 
   for(;;) {
     // IXFR end
@@ -186,18 +187,18 @@ vector<pair<vector<DNSRecord>, vector<DNSRecord> > > getIXFRDeltas(const ComboAd
     if (maxReceivedBytes > 0 && (maxReceivedBytes - receivedBytes) < (size_t) len)
       throw std::runtime_error("Reached the maximum number of received bytes in an IXFR delta for zone '"+zone.toLogString()+"' from master "+master.toStringWithPort());
 
-    char reply[len]; 
-    readn2(s.getHandle(), reply, len);
+    reply.resize(len);
+    readn2(s.getHandle(), &reply.at(0), len);
     receivedBytes += len;
 
-    MOADNSParser mdp(false, string(reply, len));
+    MOADNSParser mdp(false, reply);
     if(mdp.d_header.rcode) 
       throw std::runtime_error("Got an error trying to IXFR zone '"+zone.toLogString()+"' from master '"+master.toStringWithPort()+"': "+RCode::to_s(mdp.d_header.rcode));
 
     //    cout<<"Got a response, rcode: "<<mdp.d_header.rcode<<", got "<<mdp.d_answers.size()<<" answers"<<endl;
 
     if(!tt.algo.empty()) { // TSIG verify message
-      tsigVerifier.check(std::string(reply, len), mdp);
+      tsigVerifier.check(reply, mdp);
     }
 
     for(auto& r: mdp.d_answers) {

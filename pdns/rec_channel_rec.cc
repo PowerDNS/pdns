@@ -384,7 +384,7 @@ string doSetDnssecLogBogus(T begin, T end)
 
   if (pdns_iequals(*begin, "on") || pdns_iequals(*begin, "yes")) {
     if (!g_dnssecLogBogus) {
-      L<<Logger::Warning<<"Enabling DNSSEC Bogus logging, requested via control channel"<<endl;
+      g_log<<Logger::Warning<<"Enabling DNSSEC Bogus logging, requested via control channel"<<endl;
       g_dnssecLogBogus = true;
       return "DNSSEC Bogus logging enabled\n";
     }
@@ -393,7 +393,7 @@ string doSetDnssecLogBogus(T begin, T end)
 
   if (pdns_iequals(*begin, "off") || pdns_iequals(*begin, "no")) {
     if (g_dnssecLogBogus) {
-      L<<Logger::Warning<<"Disabling DNSSEC Bogus logging, requested via control channel"<<endl;
+      g_log<<Logger::Warning<<"Disabling DNSSEC Bogus logging, requested via control channel"<<endl;
       g_dnssecLogBogus = false;
       return "DNSSEC Bogus logging disabled\n";
     }
@@ -431,7 +431,7 @@ string doAddNTA(T begin, T end)
     if (begin != end)
       why += " ";
   }
-  L<<Logger::Warning<<"Adding Negative Trust Anchor for "<<who<<" with reason '"<<why<<"', requested via control channel"<<endl;
+  g_log<<Logger::Warning<<"Adding Negative Trust Anchor for "<<who<<" with reason '"<<why<<"', requested via control channel"<<endl;
   g_luaconfs.modify([who, why](LuaConfigItems& lci) {
       lci.negAnchors[who] = why;
       });
@@ -449,7 +449,7 @@ string doClearNTA(T begin, T end)
     return "No Negative Trust Anchor specified, doing nothing.\n";
 
   if (begin + 1 == end && *begin == "*"){
-    L<<Logger::Warning<<"Clearing all Negative Trust Anchors, requested via control channel"<<endl;
+    g_log<<Logger::Warning<<"Clearing all Negative Trust Anchors, requested via control channel"<<endl;
     g_luaconfs.modify([](LuaConfigItems& lci) {
         lci.negAnchors.clear();
       });
@@ -477,7 +477,7 @@ string doClearNTA(T begin, T end)
   string removed("");
   bool first(true);
   for (auto const &entry : toRemove) {
-    L<<Logger::Warning<<"Clearing Negative Trust Anchor for "<<entry<<", requested via control channel"<<endl;
+    g_log<<Logger::Warning<<"Clearing Negative Trust Anchor for "<<entry<<", requested via control channel"<<endl;
     g_luaconfs.modify([entry](LuaConfigItems& lci) {
         lci.negAnchors.erase(entry);
       });
@@ -531,17 +531,17 @@ string doAddTA(T begin, T end)
   }
 
   try {
-    L<<Logger::Warning<<"Adding Trust Anchor for "<<who<<" with data '"<<what<<"', requested via control channel";
+    g_log<<Logger::Warning<<"Adding Trust Anchor for "<<who<<" with data '"<<what<<"', requested via control channel";
     g_luaconfs.modify([who, what](LuaConfigItems& lci) {
       auto ds = unique_ptr<DSRecordContent>(dynamic_cast<DSRecordContent*>(DSRecordContent::make(what)));
       lci.dsAnchors[who].insert(*ds);
       });
     broadcastAccFunction<uint64_t>(boost::bind(pleaseWipePacketCache, who, true));
-    L<<Logger::Warning<<endl;
+    g_log<<Logger::Warning<<endl;
     return "Added Trust Anchor for " + who.toStringRootDot() + " with data " + what + "\n";
   }
   catch(std::exception &e) {
-    L<<Logger::Warning<<", failed: "<<e.what()<<endl;
+    g_log<<Logger::Warning<<", failed: "<<e.what()<<endl;
     return "Unable to add Trust Anchor for " + who.toStringRootDot() + ": " + e.what() + "\n";
   }
 }
@@ -576,7 +576,7 @@ string doClearTA(T begin, T end)
   string removed("");
   bool first(true);
   for (auto const &entry : toRemove) {
-    L<<Logger::Warning<<"Removing Trust Anchor for "<<entry<<", requested via control channel"<<endl;
+    g_log<<Logger::Warning<<"Removing Trust Anchor for "<<entry<<", requested via control channel"<<endl;
     g_luaconfs.modify([entry](LuaConfigItems& lci) {
         lci.dsAnchors.erase(entry);
       });
@@ -983,7 +983,7 @@ void registerAllStats()
 
 static void doExitGeneric(bool nicely)
 {
-  L<<Logger::Error<<"Exiting on user request"<<endl;
+  g_log<<Logger::Error<<"Exiting on user request"<<endl;
   extern RecursorControlChannel s_rcc;
   s_rcc.~RecursorControlChannel(); 
 
@@ -1304,7 +1304,7 @@ string RecursorControlParser::getAnswer(const string& question, RecursorControlP
 
     try {
       loadRecursorLuaConfig(::arg()["lua-config-file"], false);
-      L<<Logger::Warning<<"Reloaded Lua configuration file '"<<::arg()["lua-config-file"]<<"', requested via control channel"<<endl;
+      g_log<<Logger::Warning<<"Reloaded Lua configuration file '"<<::arg()["lua-config-file"]<<"', requested via control channel"<<endl;
       return "Reloaded Lua configuration file '"+::arg()["lua-config-file"]+"'\n";
     }
     catch(std::exception& e) {
@@ -1329,7 +1329,7 @@ string RecursorControlParser::getAnswer(const string& question, RecursorControlP
 
   if(cmd=="reload-acls") {
     if(!::arg()["chroot"].empty()) {
-      L<<Logger::Error<<"Unable to reload ACL when chroot()'ed, requested via control channel"<<endl;
+      g_log<<Logger::Error<<"Unable to reload ACL when chroot()'ed, requested via control channel"<<endl;
       return "Unable to reload ACL when chroot()'ed, please restart\n";
     }
 
@@ -1338,12 +1338,12 @@ string RecursorControlParser::getAnswer(const string& question, RecursorControlP
     } 
     catch(std::exception& e) 
     {
-      L<<Logger::Error<<"Reloading ACLs failed (Exception: "<<e.what()<<")"<<endl;
+      g_log<<Logger::Error<<"Reloading ACLs failed (Exception: "<<e.what()<<")"<<endl;
       return e.what() + string("\n");
     }
     catch(PDNSException& ae)
     {
-      L<<Logger::Error<<"Reloading ACLs failed (PDNSException: "<<ae.reason<<")"<<endl;
+      g_log<<Logger::Error<<"Reloading ACLs failed (PDNSException: "<<ae.reason<<")"<<endl;
       return ae.reason + string("\n");
     }
     return "ok\n";
@@ -1382,7 +1382,7 @@ string RecursorControlParser::getAnswer(const string& question, RecursorControlP
 
   if(cmd=="reload-zones") {
     if(!::arg()["chroot"].empty()) {
-      L<<Logger::Error<<"Unable to reload zones and forwards when chroot()'ed, requested via control channel"<<endl;
+      g_log<<Logger::Error<<"Unable to reload zones and forwards when chroot()'ed, requested via control channel"<<endl;
       return "Unable to reload zones and forwards when chroot()'ed, please restart\n";
     }
     return reloadAuthAndForwards();

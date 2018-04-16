@@ -21,39 +21,43 @@
  */
 #include "dnsdist.hh"
 #include "dnsdist-lua.hh"
+#include "dnsdist-dynblocks.hh"
+#include "dnsdist-rings.hh"
 
 #include "statnode.hh"
 
-static std::unordered_map<int, vector<boost::variant<string,double>>> getGenResponses(unsigned int top, boost::optional<int> labels, std::function<bool(const Rings::Response&)> pred)
+static std::unordered_map<unsigned int, vector<boost::variant<string,double>>> getGenResponses(unsigned int top, boost::optional<int> labels, std::function<bool(const Rings::Response&)> pred)
 {
   setLuaNoSideEffect();
-  map<DNSName, int> counts;
+  map<DNSName, unsigned int> counts;
   unsigned int total=0;
   {
-    std::lock_guard<std::mutex> lock(g_rings.respMutex);
-    if(!labels) {
-      for(const auto& a : g_rings.respRing) {
-        if(!pred(a))
-          continue;
-        counts[a.name]++;
-        total++;
+    for (const auto& shard : g_rings.d_shards) {
+      std::lock_guard<std::mutex> rl(shard->respLock);
+      if(!labels) {
+        for(const auto& a : shard->respRing) {
+          if(!pred(a))
+            continue;
+          counts[a.name]++;
+          total++;
+        }
       }
-    }
-    else {
-      unsigned int lab = *labels;
-      for(auto a : g_rings.respRing) {
-        if(!pred(a))
-          continue;
+      else {
+        unsigned int lab = *labels;
+        for(const auto& a : shard->respRing) {
+          if(!pred(a))
+            continue;
 
-        a.name.trimToLabels(lab);
-        counts[a.name]++;
-        total++;
+          DNSName temp(a.name);
+          temp.trimToLabels(lab);
+          counts[temp]++;
+          total++;
+        }
       }
-
     }
   }
   //      cout<<"Looked at "<<total<<" responses, "<<counts.size()<<" different ones"<<endl;
-  vector<pair<int, DNSName>> rcounts;
+  vector<pair<unsigned int, DNSName>> rcounts;
   rcounts.reserve(counts.size());
   for(const auto& c : counts)
     rcounts.push_back(make_pair(c.second, c.first.makeLowerCase()));
@@ -63,7 +67,7 @@ static std::unordered_map<int, vector<boost::variant<string,double>>> getGenResp
          return b.first < a.first;
        });
 
-  std::unordered_map<int, vector<boost::variant<string,double>>> ret;
+  std::unordered_map<unsigned int, vector<boost::variant<string,double>>> ret;
   unsigned int count=1, rest=0;
   for(const auto& rc : rcounts) {
     if(count==top+1)
@@ -75,19 +79,20 @@ static std::unordered_map<int, vector<boost::variant<string,double>>> getGenResp
   return ret;
 }
 
-static map<ComboAddress,int> filterScore(const map<ComboAddress, unsigned int,ComboAddress::addressOnlyLessThan >& counts,
-				  double delta, int rate)
-{
-  std::multimap<unsigned int,ComboAddress> score;
-  for(const auto& e : counts)
-    score.insert({e.second, e.first});
+typedef std::unordered_map<ComboAddress, unsigned int, ComboAddress::addressOnlyHash, ComboAddress::addressOnlyEqual> counts_t;
 
-  map<ComboAddress,int> ret;
+static counts_t filterScore(const counts_t& counts,
+                        double delta, unsigned int rate)
+{
+  counts_t ret;
 
   double lim = delta*rate;
-  for(auto s = score.crbegin(); s != score.crend() && s->first > lim; ++s) {
-    ret[s->second]=s->first;
+  for(const auto& c : counts) {
+    if (c.second > lim) {
+      ret[c.first] = c.second;
+    }
   }
+
   return ret;
 }
 
@@ -98,51 +103,53 @@ static void statNodeRespRing(statvisitor_t visitor, unsigned int seconds)
 {
   struct timespec cutoff, now;
   gettime(&now);
-  if (seconds) {
-    cutoff = now;
-    cutoff.tv_sec -= seconds;
-  }
-
-  std::lock_guard<std::mutex> lock(g_rings.respMutex);
+  cutoff = now;
+  cutoff.tv_sec -= seconds;
 
   StatNode root;
-  for(const auto& c : g_rings.respRing) {
-    if (now < c.when)
-      continue;
+  for (const auto& shard : g_rings.d_shards) {
+    std::lock_guard<std::mutex> rl(shard->respLock);
 
-    if (seconds && c.when < cutoff)
-      continue;
+    for(const auto& c : shard->respRing) {
+      if (now < c.when)
+        continue;
 
-    root.submit(c.name, c.dh.rcode, c.requestor);
+      if (seconds && c.when < cutoff)
+        continue;
+
+      root.submit(c.name, c.dh.rcode, boost::none);
+    }
   }
+
   StatNode::Stat node;
-
-  root.visit([&visitor](const StatNode* node_, const StatNode::Stat& self, const StatNode::Stat& children) {
+  root.visit([visitor](const StatNode* node_, const StatNode::Stat& self, const StatNode::Stat& children) {
       visitor(*node_, self, children);},  node);
-
 }
 
 static vector<pair<unsigned int, std::unordered_map<string,string> > > getRespRing(boost::optional<int> rcode)
 {
   typedef std::unordered_map<string,string>  entry_t;
   vector<pair<unsigned int, entry_t > > ret;
-  std::lock_guard<std::mutex> lock(g_rings.respMutex);
 
-  entry_t e;
-  unsigned int count=1;
-  for(const auto& c : g_rings.respRing) {
-    if(rcode && (rcode.get() != c.dh.rcode))
-      continue;
-    e["qname"]=c.name.toString();
-    e["rcode"]=std::to_string(c.dh.rcode);
-    ret.push_back(std::make_pair(count,e));
-    count++;
+  for (const auto& shard : g_rings.d_shards) {
+    std::lock_guard<std::mutex> rl(shard->respLock);
+
+    entry_t e;
+    unsigned int count=1;
+    for(const auto& c : shard->respRing) {
+      if(rcode && (rcode.get() != c.dh.rcode))
+        continue;
+      e["qname"]=c.name.toString();
+      e["rcode"]=std::to_string(c.dh.rcode);
+      ret.push_back(std::make_pair(count,e));
+      count++;
+    }
   }
+
   return ret;
 }
 
-typedef   map<ComboAddress, unsigned int,ComboAddress::addressOnlyLessThan > counts_t;
-static map<ComboAddress,int> exceedRespGen(int rate, int seconds, std::function<void(counts_t&, const Rings::Response&)> T)
+static counts_t exceedRespGen(unsigned int rate, int seconds, std::function<void(counts_t&, const Rings::Response&)> T)
 {
   counts_t counts;
   struct timespec cutoff, mintime, now;
@@ -150,22 +157,28 @@ static map<ComboAddress,int> exceedRespGen(int rate, int seconds, std::function<
   cutoff = mintime = now;
   cutoff.tv_sec -= seconds;
 
-  std::lock_guard<std::mutex> lock(g_rings.respMutex);
-  for(const auto& c : g_rings.respRing) {
-    if(seconds && c.when < cutoff)
-      continue;
-    if(now < c.when)
-      continue;
+  counts.reserve(g_rings.getNumberOfResponseEntries());
 
-    T(counts, c);
-    if(c.when < mintime)
-      mintime = c.when;
+  for (const auto& shard : g_rings.d_shards) {
+    std::lock_guard<std::mutex> rl(shard->respLock);
+    for(const auto& c : shard->respRing) {
+
+      if(seconds && c.when < cutoff)
+        continue;
+      if(now < c.when)
+        continue;
+
+      T(counts, c);
+      if(c.when < mintime)
+        mintime = c.when;
+    }
   }
+
   double delta = seconds ? seconds : DiffTime(now, mintime);
   return filterScore(counts, delta, rate);
 }
 
-static map<ComboAddress,int> exceedQueryGen(int rate, int seconds, std::function<void(counts_t&, const Rings::Query&)> T)
+static counts_t exceedQueryGen(unsigned int rate, int seconds, std::function<void(counts_t&, const Rings::Query&)> T)
 {
   counts_t counts;
   struct timespec cutoff, mintime, now;
@@ -173,22 +186,27 @@ static map<ComboAddress,int> exceedQueryGen(int rate, int seconds, std::function
   cutoff = mintime = now;
   cutoff.tv_sec -= seconds;
 
-  ReadLock rl(&g_rings.queryLock);
-  for(const auto& c : g_rings.queryRing) {
-    if(seconds && c.when < cutoff)
-      continue;
-    if(now < c.when)
-      continue;
-    T(counts, c);
-    if(c.when < mintime)
-      mintime = c.when;
+  counts.reserve(g_rings.getNumberOfQueryEntries());
+
+  for (const auto& shard : g_rings.d_shards) {
+    std::lock_guard<std::mutex> rl(shard->queryLock);
+    for(const auto& c : shard->queryRing) {
+      if(seconds && c.when < cutoff)
+        continue;
+      if(now < c.when)
+        continue;
+      T(counts, c);
+      if(c.when < mintime)
+        mintime = c.when;
+    }
   }
+
   double delta = seconds ? seconds : DiffTime(now, mintime);
   return filterScore(counts, delta, rate);
 }
 
 
-static map<ComboAddress,int> exceedRCode(int rate, int seconds, int rcode)
+static counts_t exceedRCode(unsigned int rate, int seconds, int rcode)
 {
   return exceedRespGen(rate, seconds, [rcode](counts_t& counts, const Rings::Response& r)
 		   {
@@ -197,7 +215,7 @@ static map<ComboAddress,int> exceedRCode(int rate, int seconds, int rcode)
 		   });
 }
 
-static map<ComboAddress,int> exceedRespByterate(int rate, int seconds)
+static counts_t exceedRespByterate(unsigned int rate, int seconds)
 {
   return exceedRespGen(rate, seconds, [](counts_t& counts, const Rings::Response& r)
 		   {
@@ -210,16 +228,18 @@ void setupLuaInspection()
   g_lua.writeFunction("topClients", [](boost::optional<unsigned int> top_) {
       setLuaNoSideEffect();
       auto top = top_.get_value_or(10);
-      map<ComboAddress, int,ComboAddress::addressOnlyLessThan > counts;
+      map<ComboAddress, unsigned int,ComboAddress::addressOnlyLessThan > counts;
       unsigned int total=0;
       {
-        ReadLock rl(&g_rings.queryLock);
-        for(const auto& c : g_rings.queryRing) {
-          counts[c.requestor]++;
-          total++;
+        for (const auto& shard : g_rings.d_shards) {
+          std::lock_guard<std::mutex> rl(shard->queryLock);
+          for(const auto& c : shard->queryRing) {
+            counts[c.requestor]++;
+            total++;
+          }
         }
       }
-      vector<pair<int, ComboAddress>> rcounts;
+      vector<pair<unsigned int, ComboAddress>> rcounts;
       rcounts.reserve(counts.size());
       for(const auto& c : counts)
 	rcounts.push_back(make_pair(c.second, c.first));
@@ -241,26 +261,30 @@ void setupLuaInspection()
 
   g_lua.writeFunction("getTopQueries", [](unsigned int top, boost::optional<int> labels) {
       setLuaNoSideEffect();
-      map<DNSName, int> counts;
+      map<DNSName, unsigned int> counts;
       unsigned int total=0;
       if(!labels) {
-	ReadLock rl(&g_rings.queryLock);
-	for(const auto& a : g_rings.queryRing) {
-	  counts[a.name]++;
-	  total++;
-	}
+        for (const auto& shard : g_rings.d_shards) {
+          std::lock_guard<std::mutex> rl(shard->queryLock);
+          for(const auto& a : shard->queryRing) {
+            counts[a.name]++;
+            total++;
+          }
+        }
       }
       else {
 	unsigned int lab = *labels;
-	ReadLock rl(&g_rings.queryLock);
-	for(auto a : g_rings.queryRing) {
-	  a.name.trimToLabels(lab);
-	  counts[a.name]++;
-	  total++;
-	}
+        for (const auto& shard : g_rings.d_shards) {
+          std::lock_guard<std::mutex> rl(shard->queryLock);
+          for(auto a : shard->queryRing) {
+            a.name.trimToLabels(lab);
+            counts[a.name]++;
+            total++;
+          }
+        }
       }
       // cout<<"Looked at "<<total<<" queries, "<<counts.size()<<" different ones"<<endl;
-      vector<pair<int, DNSName>> rcounts;
+      vector<pair<unsigned int, DNSName>> rcounts;
       rcounts.reserve(counts.size());
       for(const auto& c : counts)
 	rcounts.push_back(make_pair(c.second, c.first.makeLowerCase()));
@@ -270,7 +294,7 @@ void setupLuaInspection()
 	     return b.first < a.first;
 	   });
 
-      std::unordered_map<int, vector<boost::variant<string,double>>> ret;
+      std::unordered_map<unsigned int, vector<boost::variant<string,double>>> ret;
       unsigned int count=1, rest=0;
       for(const auto& rc : rcounts) {
 	if(count==top+1)
@@ -287,20 +311,27 @@ void setupLuaInspection()
 
   g_lua.writeFunction("getResponseRing", []() {
       setLuaNoSideEffect();
-      decltype(g_rings.respRing) ring;
-      {
-	std::lock_guard<std::mutex> lock(g_rings.respMutex);
-	ring = g_rings.respRing;
+      size_t totalEntries = 0;
+      std::vector<boost::circular_buffer<Rings::Response>> rings;
+      rings.reserve(g_rings.getNumberOfShards());
+      for (const auto& shard : g_rings.d_shards) {
+        {
+          std::lock_guard<std::mutex> rl(shard->respLock);
+          rings.push_back(shard->respRing);
+        }
+        totalEntries += rings.back().size();
       }
       vector<std::unordered_map<string, boost::variant<string, unsigned int> > > ret;
-      ret.reserve(ring.size());
+      ret.reserve(totalEntries);
       decltype(ret)::value_type item;
-      for(const auto& r : ring) {
-	item["name"]=r.name.toString();
-	item["qtype"]=r.qtype;
-	item["rcode"]=r.dh.rcode;
-	item["usec"]=r.usec;
-	ret.push_back(item);
+      for (size_t idx = 0; idx < rings.size(); idx++) {
+        for(const auto& r : rings[idx]) {
+          item["name"]=r.name.toString();
+          item["qtype"]=r.qtype;
+          item["rcode"]=r.dh.rcode;
+          item["usec"]=r.usec;
+          ret.push_back(item);
+        }
       }
       return ret;
     });
@@ -375,19 +406,28 @@ void setupLuaInspection()
         }
       }
 
-      decltype(g_rings.queryRing) qr;
-      decltype(g_rings.respRing) rr;
-      {
-        ReadLock rl(&g_rings.queryLock);
-        qr=g_rings.queryRing;
+      std::vector<Rings::Query> qr;
+      std::vector<Rings::Response> rr;
+      qr.reserve(g_rings.getNumberOfQueryEntries());
+      rr.reserve(g_rings.getNumberOfResponseEntries());
+      for (const auto& shard : g_rings.d_shards) {
+        {
+          std::lock_guard<std::mutex> rl(shard->queryLock);
+          for (const auto& entry : shard->queryRing) {
+            qr.push_back(entry);
+          }
+        }
+        {
+          std::lock_guard<std::mutex> rl(shard->respLock);
+          for (const auto& entry : shard->respRing) {
+            rr.push_back(entry);
+          }
+        }
       }
+
       sort(qr.begin(), qr.end(), [](const decltype(qr)::value_type& a, const decltype(qr)::value_type& b) {
         return b.when < a.when;
       });
-      {
-	std::lock_guard<std::mutex> lock(g_rings.respMutex);
-        rr=g_rings.respRing;
-      }
 
       sort(rr.begin(), rr.end(), [](const decltype(rr)::value_type& a, const decltype(rr)::value_type& b) {
         return b.when < a.when;
@@ -464,20 +504,22 @@ void setupLuaInspection()
       double totlat=0;
       unsigned int size=0;
       {
-	std::lock_guard<std::mutex> lock(g_rings.respMutex);
-	for(const auto& r : g_rings.respRing) {
-          /* skip actively discovered timeouts */
-          if (r.usec == std::numeric_limits<unsigned int>::max())
-            continue;
+        for (const auto& shard : g_rings.d_shards) {
+          std::lock_guard<std::mutex> rl(shard->respLock);
+          for(const auto& r : shard->respRing) {
+            /* skip actively discovered timeouts */
+            if (r.usec == std::numeric_limits<unsigned int>::max())
+              continue;
 
-	  ++size;
-	  auto iter = histo.lower_bound(r.usec);
-	  if(iter != histo.end())
-	    iter->second++;
-	  else
-	    histo.rbegin()++;
-	  totlat+=r.usec;
-	}
+            ++size;
+            auto iter = histo.lower_bound(r.usec);
+            if(iter != histo.end())
+              iter->second++;
+            else
+              histo.rbegin()++;
+            totlat+=r.usec;
+          }
+        }
       }
 
       if (size == 0) {
@@ -605,4 +647,28 @@ void setupLuaInspection()
   g_lua.writeFunction("statNodeRespRing", [](statvisitor_t visitor, boost::optional<unsigned int> seconds) {
       statNodeRespRing(visitor, seconds ? *seconds : 0);
     });
+
+  /* DynBlockRulesGroup */
+  g_lua.writeFunction("dynBlockRulesGroup", []() { return std::make_shared<DynBlockRulesGroup>(); });
+  g_lua.registerFunction<void(std::shared_ptr<DynBlockRulesGroup>::*)(unsigned int, unsigned int, const std::string&, unsigned int, boost::optional<DNSAction::Action>)>("setQueryRate", [](std::shared_ptr<DynBlockRulesGroup>& group, unsigned int rate, unsigned int seconds, const std::string& reason, unsigned int blockDuration, boost::optional<DNSAction::Action> action) {
+      if (group) {
+        group->setQueryRate(rate, seconds, reason, blockDuration, action ? *action : DNSAction::Action::None);
+      }
+    });
+  g_lua.registerFunction<void(std::shared_ptr<DynBlockRulesGroup>::*)(unsigned int, unsigned int, const std::string&, unsigned int, boost::optional<DNSAction::Action>)>("setResponseByteRate", [](std::shared_ptr<DynBlockRulesGroup>& group, unsigned int rate, unsigned int seconds, const std::string& reason, unsigned int blockDuration, boost::optional<DNSAction::Action> action) {
+      if (group) {
+        group->setResponseByteRate(rate, seconds, reason, blockDuration, action ? *action : DNSAction::Action::None);
+      }
+    });
+  g_lua.registerFunction<void(std::shared_ptr<DynBlockRulesGroup>::*)(uint8_t, unsigned int, unsigned int, const std::string&, unsigned int, boost::optional<DNSAction::Action>)>("setRCodeRate", [](std::shared_ptr<DynBlockRulesGroup>& group, uint8_t rcode, unsigned int rate, unsigned int seconds, const std::string& reason, unsigned int blockDuration, boost::optional<DNSAction::Action> action) {
+      if (group) {
+        group->setRCodeRate(rcode, rate, seconds, reason, blockDuration, action ? *action : DNSAction::Action::None);
+      }
+    });
+  g_lua.registerFunction<void(std::shared_ptr<DynBlockRulesGroup>::*)(uint16_t, unsigned int, unsigned int, const std::string&, unsigned int, boost::optional<DNSAction::Action>)>("setQTypeRate", [](std::shared_ptr<DynBlockRulesGroup>& group, uint16_t qtype, unsigned int rate, unsigned int seconds, const std::string& reason, unsigned int blockDuration, boost::optional<DNSAction::Action> action) {
+      if (group) {
+        group->setQTypeRate(qtype, rate, seconds, reason, blockDuration, action ? *action : DNSAction::Action::None);
+      }
+    });
+  g_lua.registerFunction("apply", &DynBlockRulesGroup::apply);
 }

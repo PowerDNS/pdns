@@ -7,11 +7,7 @@
 #include "recpacketcache.hh"
 #include "cachecleaner.hh"
 #include "dns.hh"
-#include "dnsparser.hh"
 #include "namespaces.hh"
-#include "lock.hh"
-#include "dnswriter.hh"
-#include "ednsoptions.hh"
 
 RecursorPacketCache::RecursorPacketCache()
 {
@@ -74,7 +70,12 @@ bool RecursorPacketCache::checkResponseMatches(std::pair<packetCache_t::index<Ha
       moveCacheItemToBack(d_packetCache, iter);
 #ifdef HAVE_PROTOBUF
       if (protobufMessage) {
-        *protobufMessage = iter->d_protobufMessage;
+        if (iter->d_protobufMessage) {
+          *protobufMessage = *(iter->d_protobufMessage);
+        }
+        else {
+          *protobufMessage = RecProtoBufMessage(DNSProtoBufMessage::DNSProtoBufMessageType::Response);
+        }
       }
 #endif
       
@@ -138,10 +139,11 @@ bool RecursorPacketCache::getResponsePacket(unsigned int tag, const std::string&
 
 void RecursorPacketCache::insertResponsePacket(unsigned int tag, uint32_t qhash, const DNSName& qname, uint16_t qtype, uint16_t qclass, const std::string& responsePacket, time_t now, uint32_t ttl)
 {
-  insertResponsePacket(tag, qhash, qname, qtype, qclass, responsePacket, now, ttl, nullptr);
+  boost::optional<RecProtoBufMessage> pb(boost::none);
+  insertResponsePacket(tag, qhash, qname, qtype, qclass, responsePacket, now, ttl, pb);
 }
 
-void RecursorPacketCache::insertResponsePacket(unsigned int tag, uint32_t qhash, const DNSName& qname, uint16_t qtype, uint16_t qclass, const std::string& responsePacket, time_t now, uint32_t ttl, const RecProtoBufMessage* protobufMessage)
+void RecursorPacketCache::insertResponsePacket(unsigned int tag, uint32_t qhash, const DNSName& qname, uint16_t qtype, uint16_t qclass, const std::string& responsePacket, time_t now, uint32_t ttl, const boost::optional<RecProtoBufMessage>& protobufMessage)
 {
   auto& idx = d_packetCache.get<HashTag>();
   auto range = idx.equal_range(tie(tag,qhash));
@@ -165,9 +167,7 @@ void RecursorPacketCache::insertResponsePacket(unsigned int tag, uint32_t qhash,
   }
   
   if(iter == range.second) { // nothing to refresh
-    struct Entry e;
-    e.d_packet = responsePacket;
-    e.d_name = qname;
+    struct Entry e(qname, responsePacket);
     e.d_qhash = qhash;
     e.d_type = qtype;
     e.d_class = qclass;

@@ -21,6 +21,8 @@
  */
 #include "dnsdist.hh"
 #include "dnsdist-ecs.hh"
+#include "dnsdist-rings.hh"
+
 #include "dnsparser.hh"
 #include "ednsoptions.hh"
 #include "dolog.hh"
@@ -271,6 +273,7 @@ void* tcpClientThread(int pipefd)
     size_t queriesCount = 0;
     time_t connectionStartTime = time(NULL);
     std::vector<char> queryBuffer;
+    std::vector<char> answerBuffer;
 
     if (getsockname(ci.fd, (sockaddr*)&dest, &len)) {
       dest = ci.cs->local;
@@ -316,14 +319,21 @@ void* tcpClientThread(int pipefd)
 
         char* query = &queryBuffer[0];
         handler.read(query, qlen, g_tcpRecvTimeout, remainingTime);
+
+        /* we need this one to be accurate ("real") for the protobuf message */
+	struct timespec queryRealTime;
+	struct timespec now;
+	gettime(&now);
+	gettime(&queryRealTime, true);
+
 #ifdef HAVE_DNSCRYPT
-        std::shared_ptr<DnsCryptQuery> dnsCryptQuery = nullptr;
+        std::shared_ptr<DNSCryptQuery> dnsCryptQuery = nullptr;
 
         if (ci.cs->dnscryptCtx) {
-          dnsCryptQuery = std::make_shared<DnsCryptQuery>();
+          dnsCryptQuery = std::make_shared<DNSCryptQuery>(ci.cs->dnscryptCtx);
           uint16_t decryptedQueryLen = 0;
           vector<uint8_t> response;
-          bool decrypted = handleDnsCryptQuery(ci.cs->dnscryptCtx, query, qlen, dnsCryptQuery, &decryptedQueryLen, true, response);
+          bool decrypted = handleDNSCryptQuery(query, qlen, dnsCryptQuery, &decryptedQueryLen, true, queryRealTime.tv_sec, response);
 
           if (!decrypted) {
             if (response.size() > 0) {
@@ -342,11 +352,6 @@ void* tcpClientThread(int pipefd)
 
 	string poolname;
 	int delayMsec=0;
-	/* we need this one to be accurate ("real") for the protobuf message */
-	struct timespec queryRealTime;
-	struct timespec now;
-	gettime(&now);
-	gettime(&queryRealTime, true);
 
 	const uint16_t* flags = getFlagsFromDNSHeader(dh);
 	uint16_t origFlags = *flags;
@@ -383,18 +388,22 @@ void* tcpClientThread(int pipefd)
         }
 
         std::shared_ptr<ServerPool> serverPool = getPool(*holders.pools, poolname);
-        std::shared_ptr<DNSDistPacketCache> packetCache = nullptr;
-        auto policy = holders.policy->policy;
+        std::shared_ptr<DNSDistPacketCache> packetCache = serverPool->packetCache;
+
+        auto policy = *(holders.policy);
         if (serverPool->policy != nullptr) {
-          policy = serverPool->policy->policy;
+          policy = *(serverPool->policy);
         }
-        {
+        auto servers = serverPool->getServers();
+        if (policy.isLua) {
           std::lock_guard<std::mutex> lock(g_luamutex);
-          ds = policy(serverPool->servers, &dq);
-          packetCache = serverPool->packetCache;
+          ds = policy.policy(servers, &dq);
+        }
+        else {
+          ds = policy.policy(servers, &dq);
         }
 
-        if (dq.useECS && ds && ds->useECS) {
+        if (dq.useECS && ((ds && ds->useECS) || (!ds && serverPool->getECS()))) {
           uint16_t newLen = dq.len;
           if (!handleEDNSClientSubnet(query, dq.size, consumed, &newLen, &ednsAdded, &ecsAdded, ci.remote, dq.ecsOverride, dq.ecsPrefixLength)) {
             vinfolog("Dropping query from %s because we couldn't insert the ECS value", ci.remote.toStringWithPort());
@@ -557,9 +566,9 @@ void* tcpClientThread(int pipefd)
         }
 #endif
         responseSize += addRoom;
-        char answerbuffer[responseSize];
-        readn2WithTimeout(dsock, answerbuffer, rlen, ds->tcpRecvTimeout);
-        char* response = answerbuffer;
+        answerBuffer.resize(responseSize);
+        char* response = answerBuffer.data();
+        readn2WithTimeout(dsock, response, rlen, ds->tcpRecvTimeout);
         uint16_t responseLen = rlen;
         if (outstanding) {
           /* might be false for {A,I}XFR */
@@ -625,10 +634,7 @@ void* tcpClientThread(int pipefd)
         struct timespec answertime;
         gettime(&answertime);
         unsigned int udiff = 1000000.0*DiffTime(now,answertime);
-        {
-          std::lock_guard<std::mutex> lock(g_rings.respMutex);
-          g_rings.respRing.push_back({answertime, ci.remote, qname, dq.qtype, (unsigned int)udiff, (unsigned int)responseLen, *dh, ds->remote});
-        }
+        g_rings.insertResponse(answertime, ci.remote, qname, dq.qtype, (unsigned int)udiff, (unsigned int)responseLen, *dh, ds->remote);
 
         rewrittenResponse.clear();
       }

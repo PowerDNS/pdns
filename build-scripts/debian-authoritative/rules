@@ -52,7 +52,7 @@ override_dh_auto_configure:
 		--with-modules="" \
 		--enable-tools \
 		--enable-unit-tests \
-		--with-luajit \
+		--with-lua=luajit \
 		--enable-experimental-pkcs11 \
 		$(ENABLE_SYSTEMD) \
 		$(ENABLE_LIBSODIUM)

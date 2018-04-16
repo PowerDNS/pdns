@@ -6,6 +6,11 @@ from dnsdisttests import DNSDistTest, range
 
 class TestTCPLimits(DNSDistTest):
 
+    # this test suite uses a different responder port
+    # because it uses a different health check configuration
+    _testServerPort = 5395
+    _healthCheckAnswerUnexpected = True
+
     _tcpIdleTimeout = 2
     _maxTCPQueriesPerConn = 5
     _maxTCPConnsPerClient = 3

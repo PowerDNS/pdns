@@ -64,10 +64,10 @@ gOracleBackend::gOracleBackend(const string &mode, const string &suffix)  : GSQL
   }
 
   catch (SSqlException &e) {
-    L<<Logger::Error << mode << " Connection failed: " << e.txtReason() << endl;
+    g_log<<Logger::Error << mode << " Connection failed: " << e.txtReason() << endl;
     throw PDNSException("Unable to launch " + mode + " connection: " + e.txtReason());
   }
-  L<<Logger::Info << mode << " Connection successful" << endl;
+  g_log<<Logger::Info << mode << " Connection successful" << endl;
 }
 
 class gOracleFactory : public BackendFactory
@@ -99,8 +99,6 @@ public:
 
     declare(suffix, "remove-empty-non-terminals-from-zone-query", "remove all empty non-terminals from zone", "delete from records where domain_id=:domain_id and type is null");
     declare(suffix, "delete-empty-non-terminal-query", "delete empty non-terminal from zone", "delete from records where domain_id=:domain_id and name=:qname and type is null");
-
-    declare(suffix, "master-zone-query", "Data", "select master from domains where name=:domain and type='SLAVE'");
 
     declare(suffix, "info-zone-query", "","select id,name,master,last_check,notified_serial,type,account from domains where name=:domain");
 
@@ -177,7 +175,7 @@ public:
   //! This reports us to the main UeberBackend class
   gOracleLoader() {
     BackendMakers().report(new gOracleFactory("goracle"));
-    L << Logger::Info << "[goraclebackend] This is the goracle backend version " VERSION
+    g_log << Logger::Info << "[goraclebackend] This is the goracle backend version " VERSION
 #ifndef REPRODUCIBLE
       << " (" __DATE__ " " __TIME__ ")"
 #endif

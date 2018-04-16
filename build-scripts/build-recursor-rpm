@@ -237,7 +237,7 @@ package if you need a dns cache for your network.
 	--with-protobuf \
 	--enable-libsodium \
 	--with-net-snmp \
-	--with-luajit \
+	--with-lua=luajit \
 	--enable-systemd
 
 make %{?_smp_mflags}

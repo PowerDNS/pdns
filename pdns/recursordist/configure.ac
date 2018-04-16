@@ -90,18 +90,16 @@ AS_IF([test "x$PROTOBUF_LIBS" != "x" -a x"$PROTOC" != "x"],
 )
 
 BOOST_REQUIRE([$boost_required_version])
+
+# Check against flat_set header that requires boost >= 1.48
+BOOST_FIND_HEADER([boost/container/flat_set.hpp], [AC_MSG_NOTICE([boost::container::flat_set not available, will fallback to std::set])])
+
 PDNS_SELECT_CONTEXT_IMPL
 
 PDNS_ENABLE_UNIT_TESTS
 PDNS_ENABLE_REPRODUCIBLE
 
-PDNS_WITH_LUAJIT
-AS_IF([test "x$with_luajit" = "xno"], [
-  PDNS_WITH_LUA
-])
-AS_IF([test "x$LUAPC" = "x" -a "x$LUAJITPC" = "x"], [
-  AC_MSG_ERROR([Neither Lua nor LuaJIT found, Lua support is not optional])
-])
+PDNS_WITH_LUA([mandatory])
 PDNS_CHECK_LUA_HPP
 
 PDNS_ENABLE_VERBOSE_LOGGING
@@ -123,7 +121,7 @@ PDNS_WITH_NET_SNMP
 PDNS_CHECK_RAGEL([pdns/dnslabeltext.cc], [www.powerdns.com])
 PDNS_CHECK_CURL
 
-AC_CHECK_FUNCS([strcasestr])
+AC_CHECK_FUNCS_ONCE([strcasestr getrandom arc4random])
 
 PDNS_CHECK_PTHREAD_NP
 
@@ -202,12 +200,7 @@ AC_MSG_NOTICE([BOOST_CPPFLAGS: $BOOST_CPPFLAGS])
 AC_MSG_NOTICE([])
 AC_MSG_NOTICE([Features enabled])
 AC_MSG_NOTICE([----------------])
-AS_IF([test "x$LUAPC" != "x"],
-  [AC_MSG_NOTICE([Lua: $LUAPC])],
-  [AS_IF([test "x$LUAJITPC" != "x"],
-    [AC_MSG_NOTICE([LuaJit: $LUAJITPC])],
-    [AC_MSG_NOTICE([Lua/LuaJit: no])])
-])
+AC_MSG_NOTICE([Lua: $LUAPC])
 AC_MSG_NOTICE([OpenSSL ECDSA: $libcrypto_ecdsa])
 AS_IF([test "x$LIBSODIUM_LIBS" != "x"],
   [AC_MSG_NOTICE([libsodium ed25519: yes])],

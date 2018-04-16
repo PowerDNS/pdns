@@ -26,7 +26,7 @@
 
 PipeConnector::PipeConnector(std::map<std::string,std::string> optionsMap) {
   if (optionsMap.count("command") == 0) {
-    L<<Logger::Error<<"Cannot find 'command' option in connection string"<<endl;
+    g_log<<Logger::Error<<"Cannot find 'command' option in connection string"<<endl;
     throw PDNSException();
   }
   this->command = optionsMap.find("command")->second;
@@ -64,7 +64,7 @@ void PipeConnector::launch() {
   std::vector <std::string> v;
   split(v, command, is_any_of(" "));
 
-  const char *argv[v.size()+1];
+  std::vector<const char *>argv(v.size()+1);
   argv[v.size()]=0;
 
   for (size_t n = 0; n < v.size(); n++)
@@ -107,7 +107,7 @@ void PipeConnector::launch() {
 
     // stdin & stdout are now connected, fire up our coprocess!
 
-    if(execv(argv[0], const_cast<char * const *>(argv))<0) // now what
+    if(execv(argv[0], const_cast<char * const *>(argv.data()))<0) // now what
       exit(123);
 
     /* not a lot we can do here. We shouldn't return because that will leave a forked process around.
@@ -123,7 +123,7 @@ void PipeConnector::launch() {
   this->send(msg);
   msg = nullptr;
   if (this->recv(msg)==false) {
-    L<<Logger::Error<<"Failed to initialize coprocess"<<std::endl;
+    g_log<<Logger::Error<<"Failed to initialize coprocess"<<std::endl;
   }
 }
 

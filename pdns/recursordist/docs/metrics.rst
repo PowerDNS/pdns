@@ -17,7 +17,7 @@ There are 309 items in the negative cache, items of which it is known that don't
 The outpacket/query ratio means that on average, 0.37 packets were needed to answer a question.
 Initially this ratio may be well over 100% as additional queries may be needed to actually recurse the DNS and figure out the addresses of nameservers.
 
-Finally, 12% of queries were not performed because identical queries had gone out previously, saving load on servers worldwide.
+Finally, 12% of queries were not performed because identical queries had gone out previously and failed, saving load on servers worldwide.
 
 .. _metricscarbon:
 

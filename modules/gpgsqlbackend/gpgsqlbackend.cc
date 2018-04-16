@@ -48,10 +48,10 @@ gPgSQLBackend::gPgSQLBackend(const string &mode, const string &suffix)  : GSQLBa
   }
 
   catch(SSqlException &e) {
-    L<<Logger::Error<<mode<<" Connection failed: "<<e.txtReason()<<endl;
+    g_log<<Logger::Error<<mode<<" Connection failed: "<<e.txtReason()<<endl;
     throw PDNSException("Unable to launch "+mode+" connection: "+e.txtReason());
   }
-  L<<Logger::Info<<mode<<" Connection successful. Connected to database '"<<getArg("dbname")<<"' on '"<<getArg("host")<<"'."<<endl;
+  g_log<<Logger::Info<<mode<<" Connection successful. Connected to database '"<<getArg("dbname")<<"' on '"<<getArg("host")<<"'."<<endl;
 }
 
 void gPgSQLBackend::reconnect()
@@ -60,6 +60,8 @@ void gPgSQLBackend::reconnect()
 
   if (d_db) {
     d_db->reconnect();
+
+    allocateStatements();
   }
 }
 
@@ -100,8 +102,6 @@ public:
 
     declare(suffix,"remove-empty-non-terminals-from-zone-query", "remove all empty non-terminals from zone", "delete from records where domain_id=$1 and type is null");
     declare(suffix,"delete-empty-non-terminal-query", "delete empty non-terminal from zone", "delete from records where domain_id=$1 and name=$2 and type is null");
-
-    declare(suffix,"master-zone-query","Data", "select master from domains where name=$1 and type='SLAVE'");
 
     declare(suffix,"info-zone-query","","select id,name,master,last_check,notified_serial,type,account from domains where name=$1");
 
@@ -181,7 +181,7 @@ public:
   gPgSQLLoader()
   {
     BackendMakers().report(new gPgSQLFactory("gpgsql"));
-    L << Logger::Info << "[gpgsqlbackend] This is the gpgsql backend version " VERSION
+    g_log << Logger::Info << "[gpgsqlbackend] This is the gpgsql backend version " VERSION
 #ifndef REPRODUCIBLE
       << " (" __DATE__ " " __TIME__ ")"
 #endif

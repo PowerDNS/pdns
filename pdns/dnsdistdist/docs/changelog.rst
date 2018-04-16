@@ -2,6 +2,251 @@ Changelog
 =========
 
 .. changelog::
+  :version: 1.3.0
+  :released: 30th of March 2018
+
+  .. change::
+    :tags: Improvements, New Features
+    :pullreq: 5576, 5860
+    :tickets: 5202, 5859
+
+    Add cache sharding, ``recvmmsg`` and CPU pinning support.
+    With these, the scalability of :program:`dnsdist` is drastically improved.
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 5970
+
+    Add burst option to :func:`MaxQPSIPRule` (42wim).
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 5328
+    :tickets: 5327
+
+    Handle SNMP alarms so we can reconnect to the master.
+
+  .. change::
+    :tags: New Features
+    :pullreq: 5625
+
+    Add an optional `status` parameter to :func:`Server:setAuto`.
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 5597
+    :tickets: 5489
+
+    Fix signed/unsigned comparison warnings on ARM.
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 6022
+
+    Add Pools, cacheHitResponseRules to the API.
+
+  .. change::
+    :tags: New Features
+    :pullreq: 6072
+
+    Add :func:`inClientStartup` function.
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 5929
+    :tickets: 5748
+
+    Add a class option to health checks.
+
+  .. change::
+    :tags: New Features
+    :pullreq: 6037
+
+    Add tag-based routing of queries.
+
+  .. change::
+    :tags: New Features
+    :pullreq: 6117, 6175, 6176, 6177, 6189
+
+    Add experimental :doc:`DNS-over-TLS <guides/dns-over-tls>` support.
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 6030
+
+    Add UUIDs to rules, this allows tracking rules through modifications and moving them around.
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 5770
+
+    Keep trying if the first connection to the remote logger failed
+
+  .. change::
+    :tags: New Features
+    :pullreq: 5201, 6170
+
+    Add simple :doc:`dnstap <reference/dnstap>` support (Justin Valentini, Chris Hofstaedtler).
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 6185
+    :tickets: 6182
+
+    Apply ResponseRules to locally generated answers (Chris Hofstaedtler).
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 6283
+
+    Report :func:`LuaAction` and :func:`LuaResponseAction` failures in the log and send SERVFAIL instead of not answering the query (Chris Hofstaedtler).
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 6289
+
+    Unify global statistics accounting (Chris Hofstaedtler).
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 6350, 6366
+
+    Speed up the processing of large ring buffers.
+    This change will make :program:`dnsdist` more scalable with a large number of different clients.
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 6363
+    :tickets: 6346
+
+    Make custom :func:`addLuaAction` and :func:`addLuaResponseAction` callback's second return value optional.
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 6327
+
+    Add "server-up" metric count to Carbon Reporting (Lowell Mower).
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 6045, 6382
+
+    Add xchacha20 support for :doc:`DNSCrypt <guides/dnscrypt>`.
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 6317
+
+    Scalability improvement: Add an option to use several source ports towards a backend.
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 6375, 5866
+    :tickets: 4845
+
+   Add '?' and 'help' for providing help() output on ``dnsdist -c`` (Kirill Ponomarev, Chris Hofstaedtler).
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 6190, 6381
+
+    Replace the Lua mutex with a rw lock to limit contention.
+    This improves the processing speed and parallelism of the policies.
+
+  .. change::
+    :tags: New Features
+    :pullreq: 6220, 5594
+    :tickets: 5079, 5654
+
+    Add experimental XPF support based on `draft-bellis-dnsop-xpf-04 <https://tools.ietf.org/html/draft-bellis-dnsop-xpf-04>`__.
+
+  .. change::
+    :tags: New Features
+    :pullreq: 6147
+
+    Add :func:`ERCodeRule` to match on extended RCodes (Chris Hofstaedtler).
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 6018
+
+    Fix escaping unusual DNS label octets in DNSName is off by one (Kees Monshouwer).
+
+  .. change::
+    :tags: New Features
+    :pullreq: 6003
+
+    Add :func:`TempFailureCacheTTLAction` (Chris Hofstaedtler).
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 6146
+
+    Ensure :program:`dnsdist` compiles on NetBSD (Tom Ivar Helbekkmo).
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 5845
+    :tickets: 5845
+
+    Also log eBPF dynamic blocks, as regular dynamic block already are.
+
+  .. change::
+    :tags: New Features, Improvements
+    :pullreq: 6391
+
+    Add :ref:`DynBlockRulesGroup` to improve processing speed of the :func:`maintenance` function by reducing memory usage and not walking the ringbuffers multiple times.
+
+  .. change::
+    :tags: Removals
+    :pullreq: 6394
+    :tickets: 6329
+
+    Remove the ``--daemon`` option from :program:`dnsdist`.
+
+  .. change::
+    :tags: New Features
+    :pullreq: 6399
+    :tickets: 4654
+
+    Add :func:`console ACL <addConsoleACL>` functions.
+
+  .. change::
+    :tags: New Features
+    :pullreq: 6400
+    :tickets: 6098
+
+    Allow adding :meth:`EDNS Client Subnet information <ServerPool:setECS>` to a query before looking in the cache.
+    This allows serving ECS enabled answers from the cache when all servers in a pool are down.
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 6401
+    :tickets: 6211
+
+    Ensure large numbers are shown correctly in the API.
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 6402
+    :tickets: 5763
+
+    Add option to :func:`showRules` to truncate the output length.
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 6403
+
+    Avoid assertion errors in :func:`NewServer` (Chris Hofstaedtler).
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 6407
+
+    Fix several warnings reported by clang's analyzer and cppcheck, should lead to small performance increases.
+
+
+.. changelog::
   :version: 1.2.1
   :released: 16th of February 2018
 

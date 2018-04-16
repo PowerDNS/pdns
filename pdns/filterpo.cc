@@ -231,31 +231,31 @@ void DNSFilterEngine::Zone::addNSIPTrigger(const Netmask& nm, Policy pol)
   d_propolNSAddr.insert(nm).second = pol;
 }
 
-bool DNSFilterEngine::Zone::rmClientTrigger(const Netmask& nm, Policy pol)
+bool DNSFilterEngine::Zone::rmClientTrigger(const Netmask& nm, Policy& pol)
 {
   d_qpolAddr.erase(nm);
   return true;
 }
 
-bool DNSFilterEngine::Zone::rmResponseTrigger(const Netmask& nm, Policy pol)
+bool DNSFilterEngine::Zone::rmResponseTrigger(const Netmask& nm, Policy& pol)
 {
   d_postpolAddr.erase(nm);
   return true;
 }
 
-bool DNSFilterEngine::Zone::rmQNameTrigger(const DNSName& n, Policy pol)
+bool DNSFilterEngine::Zone::rmQNameTrigger(const DNSName& n, Policy& pol)
 {
   d_qpolName.erase(n); // XXX verify we had identical policy?
   return true;
 }
 
-bool DNSFilterEngine::Zone::rmNSTrigger(const DNSName& n, Policy pol)
+bool DNSFilterEngine::Zone::rmNSTrigger(const DNSName& n, Policy& pol)
 {
   d_propolName.erase(n); // XXX verify policy matched? =pol;
   return true;
 }
 
-bool DNSFilterEngine::Zone::rmNSIPTrigger(const Netmask& nm, Policy pol)
+bool DNSFilterEngine::Zone::rmNSIPTrigger(const Netmask& nm, Policy& pol)
 {
   d_propolNSAddr.erase(nm);
   return true;

@@ -30,7 +30,6 @@
 #include <iostream>
 #include "dnsrecords.hh"
 #include <boost/utility.hpp>
-#undef L
 #include <boost/multi_index_container.hpp>
 #include <boost/multi_index/ordered_index.hpp>
 #include <boost/multi_index/hashed_index.hpp>
@@ -42,7 +41,6 @@
 #include "validate.hh"
 #undef max
 
-#define L theL()
 #include "namespaces.hh"
 using namespace ::boost::multi_index;
 
@@ -74,9 +72,10 @@ private:
 
   struct CacheEntry
   {
-    CacheEntry(const boost::tuple<DNSName, uint16_t, Netmask>& key, const vector<shared_ptr<DNSRecordContent>>& records, bool auth) : 
-      d_records(records), d_qname(key.get<0>()), d_netmask(key.get<2>()), d_state(Indeterminate), d_ttd(0), d_qtype(key.get<1>()), d_auth(auth)
-    {}
+    CacheEntry(const boost::tuple<DNSName, uint16_t, Netmask>& key, bool auth):
+      d_qname(key.get<0>()), d_netmask(key.get<2>()), d_state(Indeterminate), d_ttd(0), d_qtype(key.get<1>()), d_auth(auth)
+    {
+    }
 
     typedef vector<std::shared_ptr<DNSRecordContent>> records_t;
     time_t getTTD() const
@@ -178,7 +177,6 @@ private:
   DNSName d_cachedqname;
   bool d_cachecachevalid;
 
-  bool attemptToRefreshNSTTL(const QType& qt, const vector<DNSRecord>& content, const CacheEntry& stored);
   bool entryMatches(cache_t::const_iterator& entry, uint16_t qt, bool requireAuth, const ComboAddress& who);
   std::pair<cache_t::const_iterator, cache_t::const_iterator> getEntries(const DNSName &qname, const QType& qt);
   cache_t::const_iterator getEntryUsingECSIndex(time_t now, const DNSName &qname, uint16_t qtype, bool requireAuth, const ComboAddress& who);

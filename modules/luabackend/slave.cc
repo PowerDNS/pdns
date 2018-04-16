@@ -36,7 +36,6 @@
    virtual bool feedRecord(const DNSResourceRecord &rr, DNSName &ordername);
 
    virtual bool getDomainInfo(const string &domain, DomainInfo &di);
-   virtual bool isMaster(const string &name, const string &ip);
    virtual void getUnfreshSlaveInfos(vector<DomainInfo>* domains);
    virtual void setFresh(uint32_t id);
 */
@@ -47,7 +46,7 @@ bool LUABackend::startTransaction(const DNSName& qname, int id) {
         return false;
 
     if (logging)
-        L << Logger::Info << backend_name << "(startTransaction) BEGIN" << endl;
+        g_log << Logger::Info << backend_name << "(startTransaction) BEGIN" << endl;
 
     lua_rawgeti(lua, LUA_REGISTRYINDEX, f_lua_starttransaction);
 
@@ -70,7 +69,7 @@ bool LUABackend::startTransaction(const DNSName& qname, int id) {
     lua_pop(lua, 1);
     
     if (logging)
-	L << Logger::Info << backend_name << "(startTransaction) END" << endl;
+	g_log << Logger::Info << backend_name << "(startTransaction) END" << endl;
 	
     return ok;
 }
@@ -81,7 +80,7 @@ bool LUABackend::commitTransaction() {
         return false;
         
     if (logging)
-	L << Logger::Info << backend_name << "(commitTransaction) BEGIN" << endl;
+	g_log << Logger::Info << backend_name << "(commitTransaction) BEGIN" << endl;
 
     lua_rawgeti(lua, LUA_REGISTRYINDEX, f_lua_committransaction);
 
@@ -101,7 +100,7 @@ bool LUABackend::commitTransaction() {
     lua_pop(lua, 1);
     
     if (logging)
-	L << Logger::Info << backend_name << "(commitTransaction) END" << endl;
+	g_log << Logger::Info << backend_name << "(commitTransaction) END" << endl;
 	
     return ok;
 }
@@ -112,7 +111,7 @@ bool LUABackend::abortTransaction() {
         return false;
 
     if (logging)
-	L << Logger::Info << backend_name << "(abortTransaction) BEGIN" << endl;
+	g_log << Logger::Info << backend_name << "(abortTransaction) BEGIN" << endl;
 
     lua_rawgeti(lua, LUA_REGISTRYINDEX, f_lua_aborttransaction);
 
@@ -132,7 +131,7 @@ bool LUABackend::abortTransaction() {
     lua_pop(lua, 1);
 
     if (logging)
-	L << Logger::Info << backend_name << "(abortTransaction) END" << endl;
+	g_log << Logger::Info << backend_name << "(abortTransaction) END" << endl;
     return ok;
 }
 
@@ -142,7 +141,7 @@ bool LUABackend::feedRecord(const DNSResourceRecord &rr, const DNSName &ordernam
         return false;
 
     if (logging)
-	L << Logger::Info << backend_name << "(feedRecord) BEGIN" << endl;
+	g_log << Logger::Info << backend_name << "(feedRecord) BEGIN" << endl;
 
     lua_rawgeti(lua, LUA_REGISTRYINDEX, f_lua_feedrecord);
     dnsrr_to_table(lua, &rr);
@@ -163,7 +162,7 @@ bool LUABackend::feedRecord(const DNSResourceRecord &rr, const DNSName &ordernam
     lua_pop(lua, 1);
 
     if (logging)
-	L << Logger::Info << backend_name << "(feedRecord) END" << endl;
+	g_log << Logger::Info << backend_name << "(feedRecord) END" << endl;
 	
     return ok;
 }
@@ -174,7 +173,7 @@ void LUABackend::setFresh(uint32_t id) {
         return;
 
     if (logging)
-	L << Logger::Info << backend_name << "(setFresh) BEGIN" << endl;
+	g_log << Logger::Info << backend_name << "(setFresh) BEGIN" << endl;
 
     lua_rawgeti(lua, LUA_REGISTRYINDEX, f_lua_setfresh);
 
@@ -189,7 +188,7 @@ void LUABackend::setFresh(uint32_t id) {
     }
 
     if (logging)
-	L << Logger::Info << backend_name << "(setFresh) END" << endl;
+	g_log << Logger::Info << backend_name << "(setFresh) END" << endl;
 
 }
 
@@ -199,7 +198,7 @@ void LUABackend::getUnfreshSlaveInfos(vector<DomainInfo>* domains) {
         return;
 
     if (logging)
-	L << Logger::Info << backend_name << "(getUnfreshSlaveInfos) BEGIN" << endl;
+	g_log << Logger::Info << backend_name << "(getUnfreshSlaveInfos) BEGIN" << endl;
 
     lua_rawgeti(lua, LUA_REGISTRYINDEX, f_lua_getunfreshslaveinfos);
 
@@ -220,50 +219,16 @@ void LUABackend::getUnfreshSlaveInfos(vector<DomainInfo>* domains) {
     domains_from_table(domains, "getUnfreshSlaveInfos");
     
     if (logging)
-	L << Logger::Info << backend_name << "(getUnfreshSlaveInfos) END" << endl;
+	g_log << Logger::Info << backend_name << "(getUnfreshSlaveInfos) END" << endl;
 
 }
 
-bool LUABackend::isMaster(const DNSName& domain, const string &ip) {
-	
-    if (f_lua_ismaster == 0)
-        return false;
-
-    if (logging)
-	L << Logger::Error << backend_name << "(isMaster) BEGIN" << endl;
-
-    lua_rawgeti(lua, LUA_REGISTRYINDEX, f_lua_ismaster);
-
-    lua_pushstring(lua, domain.toString().c_str());
-    lua_pushstring(lua, ip.c_str());
-    
-    if(lua_pcall(lua, 2, 1, f_lua_exec_error) != 0) {
-        string e = backend_name + lua_tostring(lua, -1);
-        lua_pop(lua, 1);
-
-        throw runtime_error(e);
-    }
-
-    size_t returnedwhat = lua_type(lua, -1);
-    bool ok = false;
-    
-    if (returnedwhat == LUA_TBOOLEAN)
-        ok = lua_toboolean(lua, -1);
-    
-    lua_pop(lua, 1);
-    
-    if (logging)
-	L << Logger::Info << backend_name << "(isMaster) END" << endl;
-
-    return ok;
-}
-
-bool LUABackend::getDomainInfo(const DNSName&domain, DomainInfo &di) {
+bool LUABackend::getDomainInfo(const DNSName&domain, DomainInfo &di, bool getSerial) {
     if (f_lua_getdomaininfo == 0)
         return false;
 
     if (logging)
-	L << Logger::Info << backend_name << "(getDomainInfo) BEGIN" << endl;
+	g_log << Logger::Info << backend_name << "(getDomainInfo) BEGIN" << endl;
 
     lua_rawgeti(lua, LUA_REGISTRYINDEX, f_lua_getdomaininfo);
 
@@ -283,7 +248,7 @@ bool LUABackend::getDomainInfo(const DNSName&domain, DomainInfo &di) {
     }
 
     if (logging)
-	L << Logger::Info << backend_name << "(getDomainInfo) END" << endl;
+	g_log << Logger::Info << backend_name << "(getDomainInfo) END" << endl;
 	
     return domaininfo_from_table(&di);
 }

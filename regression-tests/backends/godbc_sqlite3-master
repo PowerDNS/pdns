@@ -51,7 +51,6 @@ godbc-list-comments-query=SELECT domain_id,name,type,modified_at,account,comment
 godbc-list-domain-keys-query=select cryptokeys.id, flags, active, content from domains, cryptokeys where cryptokeys.domain_id=domains.id and name=?
 godbc-list-query=SELECT content,ttl,prio,type,domain_id,disabled,name,auth FROM records WHERE (disabled=0 OR ?) and domain_id=? order by name, type
 godbc-list-subzone-query=SELECT content,ttl,prio,type,domain_id,disabled,name,auth FROM records WHERE disabled=0 and (name=? OR name like ?) and domain_id=?
-godbc-master-zone-query=select master from domains where name=? and type='SLAVE'
 godbc-nullify-ordername-and-update-auth-query=update records set ordername=NULL,auth=? where domain_id=? and name=? and disabled=0
 godbc-nullify-ordername-and-update-auth-type-query=update records set ordername=NULL,auth=? where domain_id=? and name=? and type=? and disabled=0
 godbc-remove-domain-key-query=delete from cryptokeys where domain_id=(select id from domains where name=?) and cryptokeys.id=?

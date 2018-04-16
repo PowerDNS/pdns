@@ -73,8 +73,8 @@ public:
 
   ~Lua2BackendAPIv2();
 
-  #define logCall(func, var) { if (d_debug_log) {  L<<Logger::Debug<<"["<<getPrefix()<<"] Calling "<<func<<"("<<var<<")"<< endl; } }
-  #define logResult(var) { if (d_debug_log) { L<<Logger::Debug<<"["<<getPrefix()<<"] Got result " << "'" << var << "'" << endl; } }
+  #define logCall(func, var) { if (d_debug_log) {  g_log<<Logger::Debug<<"["<<getPrefix()<<"] Calling "<<func<<"("<<var<<")"<< endl; } }
+  #define logResult(var) { if (d_debug_log) { g_log<<Logger::Debug<<"["<<getPrefix()<<"] Got result " << "'" << var << "'" << endl; } }
 
   virtual void postPrepareContext() override {
     AuthLua4::postPrepareContext();
@@ -109,7 +109,7 @@ public:
         throw PDNSException("dns_dnssec is true but dns_get_before_and_after_names_absolute is missing");
       /* domain keys is not strictly speaking necessary for dnssec backend */
       if (f_get_domain_keys == nullptr)
-        L<<Logger::Warning<<"dns_get_domain_keys missing - cannot do live signing"<<endl;
+        g_log<<Logger::Warning<<"dns_get_domain_keys missing - cannot do live signing"<<endl;
     }
   }
 
@@ -150,19 +150,19 @@ public:
         else if (item.first == "scopeMask")
           rec.scopeMask = boost::get<int>(item.second);
         else
-          L<<Logger::Warning<<"Unsupported key '"<<item.first<<"' in lookup or list result"<<endl;
+          g_log<<Logger::Warning<<"Unsupported key '"<<item.first<<"' in lookup or list result"<<endl;
 
       }
       logResult(rec.qname<<" IN "<<rec.qtype.getName()<<" "<<rec.ttl<<" "<<rec.getZoneRepresentation());
       d_result.push_back(rec);
     }
     if (d_result.empty() && d_debug_log)
-      L<<Logger::Debug<<"["<<getPrefix()<<"] Got empty result"<<endl;
+      g_log<<Logger::Debug<<"["<<getPrefix()<<"] Got empty result"<<endl;
   }
 
   bool list(const DNSName &target, int domain_id, bool include_disabled=false) override {
     if (f_list == nullptr) {
-      L<<Logger::Error<<"["<<getPrefix()<<"] dns_list missing - cannot do AXFR"<<endl;
+      g_log<<Logger::Error<<"["<<getPrefix()<<"] dns_list missing - cannot do AXFR"<<endl;
       return false;
     }
 
@@ -233,7 +233,8 @@ public:
        else if (item.first == "last_check")
          di.last_check = static_cast<time_t>(boost::get<long>(item.second));
        else if (item.first == "masters")
-         di.masters = boost::get<vector<string>>(item.second);
+         for(const auto& master: boost::get<vector<string>>(item.second))
+           di.masters.push_back(ComboAddress(master, 53));
        else if (item.first == "id")
          di.id = static_cast<int>(boost::get<long>(item.second));
        else if (item.first == "notified_serial")
@@ -243,13 +244,13 @@ public:
        else if (item.first == "kind")
          di.kind = DomainInfo::stringToKind(boost::get<string>(item.second));
        else
-         L<<Logger::Warning<<"Unsupported key '"<<item.first<<"' in domaininfo result"<<endl;
+         g_log<<Logger::Warning<<"Unsupported key '"<<item.first<<"' in domaininfo result"<<endl;
      }
      di.backend = this;
      logResult("zone="<<di.zone<<",serial="<<di.serial<<",kind="<<di.getKindString());
   }
 
-  bool getDomainInfo(const DNSName& domain, DomainInfo& di) override {
+  bool getDomainInfo(const DNSName& domain, DomainInfo& di, bool getSerial=true) override {
     if (f_get_domaininfo == nullptr) {
       // use getAuth instead
       SOAData sd;
@@ -346,7 +347,7 @@ public:
         else if (item.first == "active")
           key.active = boost::get<bool>(item.second);
         else
-          L<<Logger::Warning<<"["<<getPrefix()<<"] Unsupported key '"<<item.first<<"' in keydata result"<<endl;
+          g_log<<Logger::Warning<<"["<<getPrefix()<<"] Unsupported key '"<<item.first<<"' in keydata result"<<endl;
       }
       logResult("id="<<key.id<<",flags="<<key.flags<<",active="<<(key.active ? "true" : "false"));
       keys.push_back(key);
@@ -367,7 +368,7 @@ public:
 
     before_and_after_names_result_t row = boost::get<before_and_after_names_result_t>(result);
     if (row.size() != 3) {
-      L<<Logger::Error<<"Invalid result from dns_get_before_and_after_names_absolute, expected array with 3 items, got "<<row.size()<<"item(s)"<<endl;
+      g_log<<Logger::Error<<"Invalid result from dns_get_before_and_after_names_absolute, expected array with 3 items, got "<<row.size()<<"item(s)"<<endl;
       return false;
     }
     for(const auto& item: row) {
@@ -383,7 +384,7 @@ public:
       else if (item.first == "after")
         after = value;
       else {
-        L<<Logger::Error<<"Invalid result from dns_get_before_and_after_names_absolute, unexpected key "<<item.first;
+        g_log<<Logger::Error<<"Invalid result from dns_get_before_and_after_names_absolute, unexpected key "<<item.first<<endl;
         return false;
       }
     }

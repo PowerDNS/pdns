@@ -46,7 +46,7 @@ class NAPTRRecordContent : public DNSRecordContent
 public:
   NAPTRRecordContent(uint16_t order, uint16_t preference, string flags, string services, string regexp, DNSName replacement);
 
-  includeboilerplate(NAPTR);
+  includeboilerplate(NAPTR)
   template<class Convertor> void xfrRecordContent(Convertor& conv);
 private:
   uint16_t d_order, d_preference;
@@ -60,7 +60,7 @@ class ARecordContent : public DNSRecordContent
 public:
   explicit ARecordContent(const ComboAddress& ca);
   explicit ARecordContent(uint32_t ip);
-  includeboilerplate(A);
+  includeboilerplate(A)
   void doRecordCheck(const DNSRecord& dr);
   ComboAddress getCA(int port=0) const;
   bool operator==(const DNSRecordContent& rhs) const override
@@ -78,7 +78,7 @@ class AAAARecordContent : public DNSRecordContent
 public:
   AAAARecordContent(std::string &val);
   explicit AAAARecordContent(const ComboAddress& ca);
-  includeboilerplate(AAAA);
+  includeboilerplate(AAAA)
   ComboAddress getCA(int port=0) const;
   bool operator==(const DNSRecordContent& rhs) const override
   {
@@ -265,6 +265,24 @@ public:
   DNSName d_content;
 };
 
+
+class MBRecordContent : public DNSRecordContent
+{
+public:
+  includeboilerplate(MB)
+
+private:
+  DNSName d_madname;
+};
+
+class MGRecordContent : public DNSRecordContent
+{
+public:
+  includeboilerplate(MG)
+
+private:
+  DNSName d_mgmname;
+};
 
 class MRRecordContent : public DNSRecordContent
 {
@@ -509,9 +527,9 @@ public:
   includeboilerplate(SOA)
   SOARecordContent(const DNSName& mname, const DNSName& rname, const struct soatimes& st);
 
-  struct soatimes d_st;
   DNSName d_mname;
   DNSName d_rname;
+  struct soatimes d_st;
 };
 
 class NSECRecordContent : public DNSRecordContent

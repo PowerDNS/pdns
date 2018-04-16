@@ -14,6 +14,14 @@ AC_DEFUN([DNSDIST_CHECK_GNUTLS], [
       PKG_CHECK_MODULES([GNUTLS], [gnutls >= 3.1.11], [
         [HAVE_GNUTLS=1]
         AC_DEFINE([HAVE_GNUTLS], [1], [Define to 1 if you have GnuTLS])
+        save_CFLAGS=$CFLAGS
+        save_LIBS=$LIBS
+        CFLAGS="$GNUTLS_CFLAGS $CFLAGS"
+        LIBS="$GNUTLS_LIBS $LIBS"
+        AC_CHECK_FUNCS([gnutls_memset])
+        CFLAGS=$save_CFLAGS
+        LIBS=$save_LIBS
+
       ], [ : ])
     ])
   ])

@@ -81,7 +81,7 @@ class UDPNameserver
 {
 public:
   UDPNameserver( bool additional_socket = false );  //!< Opens the socket
-  DNSPacket *receive(DNSPacket *prefilled=0); //!< call this in a while or for(;;) loop to get packets
+  DNSPacket *receive(DNSPacket *prefilled, std::string& buffer); //!< call this in a while or for(;;) loop to get packets
   void send(DNSPacket *); //!< send a DNSPacket. Will call DNSPacket::truncate() if over 512 bytes
   inline bool canReusePort() {
 #ifdef SO_REUSEPORT

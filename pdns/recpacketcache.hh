@@ -22,7 +22,6 @@
 #ifndef PDNS_RECPACKETCACHE_HH
 #define PDNS_RECPACKETCACHE_HH
 #include <string>
-#include <set>
 #include <inttypes.h>
 #include "dns.hh"
 #include "namespaces.hh"
@@ -57,7 +56,7 @@ public:
   bool getResponsePacket(unsigned int tag, const std::string& queryPacket, const DNSName& qname, uint16_t qtype, uint16_t qclass, time_t now, std::string* responsePacket, uint32_t* age, uint32_t* qhash);
   bool getResponsePacket(unsigned int tag, const std::string& queryPacket, const DNSName& qname, uint16_t qtype, uint16_t qclass, time_t now, std::string* responsePacket, uint32_t* age, uint32_t* qhash, RecProtoBufMessage* protobufMessage);
   void insertResponsePacket(unsigned int tag, uint32_t qhash, const DNSName& qname, uint16_t qtype, uint16_t qclass, const std::string& responsePacket, time_t now, uint32_t ttl);
-  void insertResponsePacket(unsigned int tag, uint32_t qhash, const DNSName& qname, uint16_t qtype, uint16_t qclass, const std::string& responsePacket, time_t now, uint32_t ttl, const RecProtoBufMessage* protobufMessage);
+  void insertResponsePacket(unsigned int tag, uint32_t qhash, const DNSName& qname, uint16_t qtype, uint16_t qclass, const std::string& responsePacket, time_t now, uint32_t ttl, const boost::optional<RecProtoBufMessage>& protobufMessage);
   void doPruneTo(unsigned int maxSize=250000);
   uint64_t doDump(int fd);
   int doWipePacketCache(const DNSName& name, uint16_t qtype=0xffff, bool subtree=false);
@@ -72,6 +71,10 @@ private:
   struct NameTag {};
   struct Entry 
   {
+    Entry(const DNSName& qname, const std::string& packet): d_name(qname), d_packet(packet)
+    {
+    }
+
     mutable time_t d_ttd;
     mutable time_t d_creation; // so we can 'age' our packets
     DNSName d_name;
@@ -79,12 +82,12 @@ private:
     uint16_t d_class;
     mutable std::string d_packet; // "I know what I am doing"
 #ifdef HAVE_PROTOBUF
-    mutable RecProtoBufMessage d_protobufMessage;
+    mutable boost::optional<RecProtoBufMessage> d_protobufMessage;
 #endif
     uint32_t d_qhash;
     uint32_t d_tag;
     inline bool operator<(const struct Entry& rhs) const;
-    
+
     time_t getTTD() const
     {
       return d_ttd;

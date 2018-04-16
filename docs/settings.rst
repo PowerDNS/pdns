@@ -1005,6 +1005,25 @@ or may not be a good idea. You could use this to enable transparent
 restarts, but it may also mask configuration issues and for this reason
 it is disabled by default.
 
+.. _setting-rng:
+``rng``
+-------
+
+- String
+- Default: auto
+
+Specify which random number generator to use. Permissible choises are
+ - auto - choose automatically
+ - sodium - Use libsodium ``randombytes_uniform``
+ - openssl - Use libcrypto ``RAND_bytes``
+ - getrandom - Use libc getrandom, falls back to urandom if it does not really work
+ - arc4random - Use BSD ``arc4random_uniform``
+ - urandom - Use ``/dev/urandom``
+ - kiss - Use simple settable deterministic RNG. **FOR TESTING PURPOSES ONLY!**
+
+.. note::
+  Not all choises are available on all systems.
+
 .. _setting-security-poll-suffix:
 
 ``security-poll-suffix``
@@ -1324,6 +1343,18 @@ Where the controlsocket will live. The default depends on
 This path will also contain the pidfile for this instance of PowerDNS
 called ``pdns.pid`` by default. See :ref:`setting-config-name`
 and :doc:`Virtual Hosting <guides/virtual-instances>` how this can differ.
+
+.. _setting-supermaster:
+
+``supermaster``
+------------
+
+-  Boolean
+-  Default: no
+
+.. versionadded:: 4.2.0
+
+Turn on supermaster support. See :ref:`supemaster-operation`.
 
 .. _setting-tcp-control-address:
 

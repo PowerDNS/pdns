@@ -54,11 +54,11 @@ gSQLite3Backend::gSQLite3Backend( const std::string & mode, const std::string & 
   }  
   catch( SSqlException & e ) 
   {
-    L << Logger::Error << mode << ": connection failed: " << e.txtReason() << std::endl;
+    g_log << Logger::Error << mode << ": connection failed: " << e.txtReason() << std::endl;
     throw PDNSException( "Unable to launch " + mode + " connection: " + e.txtReason());
   }
 
-  L << Logger::Info << mode << ": connection to '"<<getArg("database")<<"' successful" << std::endl;
+  g_log << Logger::Info << mode << ": connection to '"<<getArg("database")<<"' successful" << std::endl;
 }
 
 
@@ -92,8 +92,6 @@ public:
 
     declare(suffix, "remove-empty-non-terminals-from-zone-query", "remove all empty non-terminals from zone", "delete from records where domain_id=:domain_id and type is null");
     declare(suffix, "delete-empty-non-terminal-query", "delete empty non-terminal from zone", "delete from records where domain_id=:domain_id and name=:qname and type is null");
-    
-    declare(suffix, "master-zone-query", "Data", "select master from domains where name=:domain and type='SLAVE'");
 
     declare(suffix, "info-zone-query", "","select id,name,master,last_check,notified_serial,type,account from domains where name=:domain");
 
@@ -174,7 +172,7 @@ public:
   gSQLite3Loader()
   {
     BackendMakers().report( new gSQLite3Factory( "gsqlite3" ));
-    L << Logger::Info << "[gsqlite3] This is the gsqlite3 backend version " VERSION
+    g_log << Logger::Info << "[gsqlite3] This is the gsqlite3 backend version " VERSION
 #ifndef REPRODUCIBLE
       << " (" __DATE__ " " __TIME__ ")"
 #endif

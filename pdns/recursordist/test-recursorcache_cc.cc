@@ -340,6 +340,46 @@ BOOST_AUTO_TEST_CASE(test_RecursorCacheSimple) {
   }
 }
 
+BOOST_AUTO_TEST_CASE(test_RecursorCacheGhost) {
+  MemRecursorCache MRC;
+
+  std::vector<DNSRecord> records;
+  std::vector<std::shared_ptr<DNSRecord>> authRecords;
+  std::vector<std::shared_ptr<RRSIGRecordContent>> signatures;
+  time_t now = time(nullptr);
+
+  BOOST_CHECK_EQUAL(MRC.size(), 0);
+
+  /* insert NS coming from a delegation */
+  time_t ttd = now + 30;
+  DNSName ghost("ghost.powerdns.com.");
+  DNSRecord ns1;
+  std::string ns1Content("ns1.ghost.powerdns.com.");
+  ns1.d_name = ghost;
+  ns1.d_type = QType::NS;
+  ns1.d_class = QClass::IN;
+  ns1.d_content = std::make_shared<NSRecordContent>(ns1Content);
+  ns1.d_ttl = static_cast<uint32_t>(ttd);
+  ns1.d_place = DNSResourceRecord::ANSWER;
+  records.push_back(ns1);
+  MRC.replace(now, ns1.d_name, QType(ns1.d_type), records, signatures, authRecords, true, boost::none);
+  BOOST_CHECK_EQUAL(MRC.size(), 1);
+
+  /* try to raise the TTL, simulating the delegated authoritative server
+     raising the TTL so the zone stays alive */
+  records.clear();
+  ns1.d_ttl = static_cast<uint32_t>(ttd + 3600);
+  records.push_back(ns1);
+  MRC.replace(now, ns1.d_name, QType(ns1.d_type), records, signatures, authRecords, true, boost::none);
+  BOOST_CHECK_EQUAL(MRC.size(), 1);
+
+  /* the TTL should not have been raisd */
+  std::vector<DNSRecord> retrieved;
+  BOOST_CHECK_EQUAL(MRC.get(now, ghost, QType(QType::NS), false, &retrieved, ComboAddress("192.0.2.2"), nullptr), (ttd-now));
+  BOOST_REQUIRE_EQUAL(retrieved.size(), 1);
+  BOOST_CHECK_EQUAL(retrieved.at(0).d_ttl, static_cast<uint32_t>(ttd));
+}
+
 BOOST_AUTO_TEST_CASE(test_RecursorCache_ExpungingExpiredEntries) {
   MemRecursorCache MRC;
 

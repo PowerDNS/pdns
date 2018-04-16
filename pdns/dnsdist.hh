@@ -24,10 +24,10 @@
 #include "ext/luawrapper/include/LuaContext.hpp"
 #include <time.h>
 #include "misc.hh"
+#include "mplexer.hh"
 #include "iputils.hh"
 #include "dnsname.hh"
 #include <atomic>
-#include <boost/circular_buffer.hpp>
 #include <boost/variant.hpp>
 #include <mutex>
 #include <thread>
@@ -90,12 +90,12 @@ struct DNSResponse : DNSQuestion
     DNSQuestion(name, type, class_, lc, rem, header, bufferSize, responseLen, isTcp, queryTime_) { }
 };
 
-/* so what could you do: 
-   drop, 
-   fake up nxdomain, 
-   provide actual answer, 
-   allow & and stop processing, 
-   continue processing, 
+/* so what could you do:
+   drop,
+   fake up nxdomain,
+   provide actual answer,
+   allow & and stop processing,
+   continue processing,
    modify header:    (servfail|refused|notimp), set TC=1,
    send to pool */
 
@@ -127,6 +127,19 @@ public:
 
 struct DynBlock
 {
+  DynBlock(): action(DNSAction::Action::None)
+  {
+  }
+
+  DynBlock(const std::string& reason_, const struct timespec& until_, const DNSName& domain_, DNSAction::Action action_): reason(reason_), until(until_), domain(domain_), action(action_)
+  {
+  }
+
+  DynBlock(const DynBlock& rhs): reason(rhs.reason), until(rhs.until), domain(rhs.domain), action(rhs.action)
+  {
+    blocks.store(rhs.blocks);
+  }
+
   DynBlock& operator=(const DynBlock& rhs)
   {
     reason=rhs.reason;
@@ -172,7 +185,7 @@ struct DNSDistStats
   stat_t cacheHits{0};
   stat_t cacheMisses{0};
   stat_t latency0_1{0}, latency1_10{0}, latency10_50{0}, latency50_100{0}, latency100_1000{0}, latencySlow{0};
-  
+
   double latencyAvg100{0}, latencyAvg1000{0}, latencyAvg10000{0}, latencyAvg1000000{0};
   typedef std::function<uint64_t(const std::string&)> statfunction_t;
   typedef boost::variant<stat_t*, double*, statfunction_t> entry_t;
@@ -187,7 +200,7 @@ struct DNSDistStats
     {"rule-servfail", &ruleServFail},
     {"self-answered", &selfAnswered},
     {"downstream-timeouts", &downstreamTimeouts},
-    {"downstream-send-errors", &downstreamSendErrors}, 
+    {"downstream-send-errors", &downstreamSendErrors},
     {"trunc-failures", &truncFail},
     {"no-policy", &noPolicy},
     {"latency0-1", &latency0_1},
@@ -211,7 +224,7 @@ struct DNSDistStats
     {"cpu-user-msec", getCPUTimeUser},
     {"cpu-sys-msec", getCPUTimeSystem},
     {"fd-usage", getOpenFileDescriptors},
-    {"dyn-blocked", &dynBlocked}, 
+    {"dyn-blocked", &dynBlocked},
     {"dyn-block-nmg-size", [](const std::string&) { return g_dynblockNMG.getLocal()->size(); }}
   };
 };
@@ -229,21 +242,21 @@ struct StopWatch
   struct timespec d_start{0,0};
   bool d_needRealTime{false};
 
-  void start() {  
+  void start() {
     if(gettime(&d_start, d_needRealTime) < 0)
       unixDie("Getting timestamp");
-    
+
   }
 
   void set(const struct timespec& from) {
     d_start = from;
   }
-  
+
   double udiff() const {
     struct timespec now;
     if(gettime(&now, d_needRealTime) < 0)
       unixDie("Getting timestamp");
-    
+
     return 1000000.0*(now.tv_sec - d_start.tv_sec) + (now.tv_nsec - d_start.tv_nsec)/1000.0;
   }
 
@@ -251,7 +264,7 @@ struct StopWatch
     struct timespec now;
     if(gettime(&now, d_needRealTime) < 0)
       unixDie("Getting timestamp");
-    
+
     auto ret= 1000000.0*(now.tv_sec - d_start.tv_sec) + (now.tv_nsec - d_start.tv_nsec)/1000.0;
     d_start = now;
     return ret;
@@ -291,7 +304,7 @@ public:
     if(d_passthrough)
       return true;
     auto delta = d_prev.udiffAndSet();
-  
+
     d_tokens += 1.0*d_rate * (delta/1000000.0);
 
     if(d_tokens > d_burst)
@@ -306,7 +319,7 @@ public:
     else
       d_blocked++;
 
-    return ret; 
+    return ret;
   }
 private:
   bool d_passthrough{true};
@@ -323,12 +336,10 @@ struct ClientState;
 struct IDState
 {
   IDState() : origFD(-1), sentTime(true), delayMsec(0), tempFailureTTL(boost::none) { origDest.sin4.sin_family = 0;}
-  IDState(const IDState& orig)
+  IDState(const IDState& orig): origRemote(orig.origRemote), origDest(orig.origDest)
   {
     origFD = orig.origFD;
     origID = orig.origID;
-    origRemote = orig.origRemote;
-    origDest = orig.origDest;
     delayMsec = orig.delayMsec;
     tempFailureTTL = orig.tempFailureTTL;
     age.store(orig.age.load());
@@ -341,7 +352,7 @@ struct IDState
   StopWatch sentTime;                                         // 16
   DNSName qname;                                              // 80
 #ifdef HAVE_DNSCRYPT
-  std::shared_ptr<DnsCryptQuery> dnsCryptQuery{0};
+  std::shared_ptr<DNSCryptQuery> dnsCryptQuery{nullptr};
 #endif
 #ifdef HAVE_PROTOBUF
   boost::optional<boost::uuids::uuid> uniqueId;
@@ -363,61 +374,12 @@ struct IDState
   bool destHarvested{false}; // if true, origDest holds the original dest addr, otherwise the listening addr
 };
 
-struct Rings {
-  Rings(size_t capacity=10000)
-  {
-    queryRing.set_capacity(capacity);
-    respRing.set_capacity(capacity);
-    pthread_rwlock_init(&queryLock, 0);
-  }
-  struct Query
-  {
-    struct timespec when;
-    ComboAddress requestor;
-    DNSName name;
-    uint16_t size;
-    uint16_t qtype;
-    struct dnsheader dh;
-  };
-  boost::circular_buffer<Query> queryRing;
-  struct Response
-  {
-    struct timespec when;
-    ComboAddress requestor;
-    DNSName name;
-    uint16_t qtype;
-    unsigned int usec;
-    unsigned int size;
-    struct dnsheader dh;
-    ComboAddress ds; // who handled it
-  };
-  boost::circular_buffer<Response> respRing;
-  std::mutex respMutex;
-  pthread_rwlock_t queryLock;
-
-  std::unordered_map<int, vector<boost::variant<string,double> > > getTopBandwidth(unsigned int numentries);
-  size_t numDistinctRequestors();
-  void setCapacity(size_t newCapacity) 
-  {
-    {
-      WriteLock wl(&queryLock);
-      queryRing.set_capacity(newCapacity);
-    }
-    {
-      std::lock_guard<std::mutex> lock(respMutex);
-      respRing.set_capacity(newCapacity);
-    }
-  }
-};
-
-extern Rings g_rings;
-
 typedef std::unordered_map<string, unsigned int> QueryCountRecords;
 typedef std::function<std::tuple<bool, string>(DNSQuestion dq)> QueryCountFilter;
 struct QueryCount {
   QueryCount()
   {
-    pthread_rwlock_init(&queryLock, 0);
+    pthread_rwlock_init(&queryLock, nullptr);
   }
   QueryCountRecords records;
   QueryCountFilter filter;
@@ -432,7 +394,7 @@ struct ClientState
   std::set<int> cpus;
   ComboAddress local;
 #ifdef HAVE_DNSCRYPT
-  DnsCryptContext* dnscryptCtx{0};
+  std::shared_ptr<DNSCryptContext> dnscryptCtx{nullptr};
 #endif
   shared_ptr<TLSFrontend> tlsFrontend;
   std::atomic<uint64_t> queries{0};
@@ -523,20 +485,29 @@ extern std::shared_ptr<TCPClientCollection> g_tcpclientthreads;
 
 struct DownstreamState
 {
-  DownstreamState(const ComboAddress& remote_, const ComboAddress& sourceAddr_, unsigned int sourceItf);
-  DownstreamState(const ComboAddress& remote_): DownstreamState(remote_, ComboAddress(), 0) {}
+  typedef std::function<std::tuple<DNSName, uint16_t, uint16_t>(const DNSName&, uint16_t, uint16_t, dnsheader*)> checkfunc_t;
+
+  DownstreamState(const ComboAddress& remote_, const ComboAddress& sourceAddr_, unsigned int sourceItf, size_t numberOfSockets);
+  DownstreamState(const ComboAddress& remote_): DownstreamState(remote_, ComboAddress(), 0, 1) {}
   ~DownstreamState()
   {
-    if (fd >= 0)
-      close(fd);
+    for (auto& fd : sockets) {
+      if (fd >= 0) {
+        close(fd);
+        fd = -1;
+      }
+    }
   }
 
-  int fd{-1};
+  std::vector<int> sockets;
+  std::mutex socketsLock;
+  std::unique_ptr<FDMultiplexer> mplexer{nullptr};
   std::thread tid;
   ComboAddress remote;
   QPSLimiter qps;
   vector<IDState> idStates;
   ComboAddress sourceAddr;
+  checkfunc_t checkFunction;
   DNSName checkName{"a.root-servers.net."};
   QType checkType{QType::A};
   uint16_t checkClass{QClass::IN};
@@ -551,6 +522,7 @@ struct DownstreamState
     std::atomic<uint64_t> queries{0};
   } prev;
   string name;
+  size_t socketsOffset{0};
   double queryLoad{0.0};
   double dropRate{0.0};
   double latencyUsec{0.0};
@@ -637,15 +609,95 @@ struct ServerPolicy
 {
   string name;
   policyfunc_t policy;
+  bool isLua;
 };
 
 struct ServerPool
 {
+  ServerPool()
+  {
+    pthread_rwlock_init(&d_lock, nullptr);
+  }
+
   const std::shared_ptr<DNSDistPacketCache> getCache() const { return packetCache; };
 
-  NumberedVector<shared_ptr<DownstreamState>> servers;
+  bool getECS() const
+  {
+    return d_useECS;
+  }
+
+  void setECS(bool useECS)
+  {
+    d_useECS = useECS;
+  }
+
   std::shared_ptr<DNSDistPacketCache> packetCache{nullptr};
   std::shared_ptr<ServerPolicy> policy{nullptr};
+
+  size_t countServers(bool upOnly)
+  {
+    size_t count = 0;
+    ReadLock rl(&d_lock);
+    for (const auto& server : d_servers) {
+      if (!upOnly || std::get<1>(server)->isUp() ) {
+        count++;
+      };
+    };
+    return count;
+  }
+
+  NumberedVector<shared_ptr<DownstreamState>> getServers()
+  {
+    NumberedVector<shared_ptr<DownstreamState>> result;
+    {
+      ReadLock rl(&d_lock);
+      result = d_servers;
+    }
+    return result;
+  }
+
+  void addServer(shared_ptr<DownstreamState>& server)
+  {
+    WriteLock wl(&d_lock);
+    unsigned int count = (unsigned int) d_servers.size();
+    d_servers.push_back(make_pair(++count, server));
+    /* we need to reorder based on the server 'order' */
+    std::stable_sort(d_servers.begin(), d_servers.end(), [](const std::pair<unsigned int,std::shared_ptr<DownstreamState> >& a, const std::pair<unsigned int,std::shared_ptr<DownstreamState> >& b) {
+      return a.second->order < b.second->order;
+    });
+    /* and now we need to renumber for Lua (custom policies) */
+    size_t idx = 1;
+    for (auto& serv : d_servers) {
+      serv.first = idx++;
+    }
+  }
+
+  void removeServer(shared_ptr<DownstreamState>& server)
+  {
+    WriteLock wl(&d_lock);
+    size_t idx = 1;
+    bool found = false;
+    for (auto it = d_servers.begin(); it != d_servers.end();) {
+      if (found) {
+        /* we need to renumber the servers placed
+           after the removed one, for Lua (custom policies) */
+        it->first = idx++;
+        it++;
+      }
+      else if (it->second == server) {
+        it = d_servers.erase(it);
+        found = true;
+      } else {
+        idx++;
+        it++;
+      }
+    }
+  }
+
+private:
+  NumberedVector<shared_ptr<DownstreamState>> d_servers;
+  pthread_rwlock_t d_lock;
+  bool d_useECS{false};
 };
 using pools_t=map<std::string,std::shared_ptr<ServerPool>>;
 void setPoolPolicy(pools_t& pools, const string& poolName, std::shared_ptr<ServerPolicy> policy);
@@ -696,7 +748,6 @@ extern ComboAddress g_serverControl; // not changed during runtime
 extern std::vector<std::tuple<ComboAddress, bool, bool, int, std::string, std::set<int>>> g_locals; // not changed at runtime (we hope XXX)
 extern std::vector<shared_ptr<TLSFrontend>> g_tlslocals;
 extern vector<ClientState*> g_frontends;
-extern std::string g_key; // in theory needs locking
 extern bool g_truncateTC;
 extern bool g_fixupCase;
 extern int g_tcpRecvTimeout;
@@ -720,25 +771,6 @@ extern uint32_t g_hashperturb;
 extern bool g_useTCPSinglePipe;
 extern std::atomic<uint16_t> g_downstreamTCPCleanupInterval;
 extern size_t g_udpVectorSize;
-
-struct ConsoleKeyword {
-  std::string name;
-  bool function;
-  std::string parameters;
-  std::string description;
-  std::string toString() const
-  {
-    std::string res(name);
-    if (function) {
-      res += "(" + parameters + ")";
-    }
-    res += ": ";
-    res += description;
-    return res;
-  }
-};
-extern const std::vector<ConsoleKeyword> g_consoleKeywords;
-extern bool g_logConsoleConnections;
 
 #ifdef HAVE_EBPF
 extern shared_ptr<BPFFilter> g_defaultBPFFilter;
@@ -768,7 +800,7 @@ void controlThread(int fd, ComboAddress local);
 vector<std::function<void(void)>> setupLua(bool client, const std::string& config);
 std::shared_ptr<ServerPool> getPool(const pools_t& pools, const std::string& poolName);
 std::shared_ptr<ServerPool> createPoolIfNotExists(pools_t& pools, const string& poolName);
-const NumberedServerVector& getDownstreamCandidates(const pools_t& pools, const std::string& poolName);
+NumberedServerVector getDownstreamCandidates(const pools_t& pools, const std::string& poolName);
 
 std::shared_ptr<DownstreamState> firstAvailable(const NumberedServerVector& servers, const DNSQuestion* dq);
 
@@ -783,12 +815,6 @@ bool getMsgLen32(int fd, uint32_t* len);
 bool putMsgLen32(int fd, uint32_t len);
 void* tcpAcceptorThread(void* p);
 
-void doClient(ComboAddress server, const std::string& command);
-void doConsole();
-void controlClientThread(int fd, ComboAddress client);
-extern "C" {
-char** my_completion( const char * text , int start,  int end);
-}
 void setLuaNoSideEffect(); // if nothing has been declared, set that there are no side effects
 void setLuaSideEffect();   // set to report a side effect, cancelling all _no_ side effect calls
 bool getLuaNoSideEffect(); // set if there were only explicit declarations of _no_ side effect
@@ -802,10 +828,10 @@ void restoreFlags(struct dnsheader* dh, uint16_t origFlags);
 bool checkQueryHeaders(const struct dnsheader* dh);
 
 #ifdef HAVE_DNSCRYPT
-extern std::vector<std::tuple<ComboAddress,DnsCryptContext,bool,int, std::string, std::set<int>>> g_dnsCryptLocals;
+extern std::vector<std::tuple<ComboAddress, std::shared_ptr<DNSCryptContext>, bool, int, std::string, std::set<int> > > g_dnsCryptLocals;
 
-int handleDnsCryptQuery(DnsCryptContext* ctx, char* packet, uint16_t len, std::shared_ptr<DnsCryptQuery>& query, uint16_t* decryptedQueryLen, bool tcp, std::vector<uint8_t>& response);
-bool encryptResponse(char* response, uint16_t* responseLen, size_t responseSize, bool tcp, std::shared_ptr<DnsCryptQuery> dnsCryptQuery, dnsheader** dh, dnsheader* dhCopy);
+bool encryptResponse(char* response, uint16_t* responseLen, size_t responseSize, bool tcp, std::shared_ptr<DNSCryptQuery> dnsCryptQuery, dnsheader** dh, dnsheader* dhCopy);
+int handleDNSCryptQuery(char* packet, uint16_t len, std::shared_ptr<DNSCryptQuery> query, uint16_t* decryptedQueryLen, bool tcp, time_t now, std::vector<uint8_t>& response);
 #endif
 
 bool addXPF(DNSQuestion& dq, uint16_t optionCode);

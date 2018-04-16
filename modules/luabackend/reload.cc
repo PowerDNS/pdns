@@ -166,7 +166,7 @@ void LUABackend::rediscover(string* status) {
         return;
 
     if (logging)
-	L << Logger::Info << backend_name << "(rediscover) BEGIN" << endl;
+	g_log << Logger::Info << backend_name << "(rediscover) BEGIN" << endl;
 
     lua_rawgeti(lua, LUA_REGISTRYINDEX, f_lua_rediscover);
 
@@ -188,7 +188,7 @@ void LUABackend::rediscover(string* status) {
     *status = s;
     
     if (logging)
-	L << Logger::Info << backend_name << "(rediscover) END" << endl;
+	g_log << Logger::Info << backend_name << "(rediscover) END" << endl;
 	
     return;
 }

@@ -94,7 +94,7 @@ uint16_t DNSPacket::getRemotePort() const
 
 DNSPacket::DNSPacket(const DNSPacket &orig)
 {
-  DLOG(L<<"DNSPacket copy constructor called!"<<endl);
+  DLOG(g_log<<"DNSPacket copy constructor called!"<<endl);
   d_socket=orig.d_socket;
   d_remote=orig.d_remote;
   d_dt=orig.d_dt;
@@ -346,7 +346,7 @@ void DNSPacket::wrapup()
       }
     }
     catch(std::exception& e) {
-      L<<Logger::Warning<<"Exception: "<<e.what()<<endl;
+      g_log<<Logger::Warning<<"Exception: "<<e.what()<<endl;
       throw;
     }
   }
@@ -436,7 +436,7 @@ int DNSPacket::noparse(const char *mesg, size_t length)
 {
   d_rawpacket.assign(mesg,length); 
   if(length < 12) { 
-    L << Logger::Warning << "Ignoring packet: too short ("<<length<<" < 12) from "
+    g_log << Logger::Debug << "Ignoring packet: too short ("<<length<<" < 12) from "
       << d_remote.toStringWithPort()<< endl;
     return -1;
   }
@@ -469,7 +469,7 @@ bool DNSPacket::getTSIGDetails(TSIGRecordContent* trc, DNSName* keyname, uint16_
       // cast can fail, f.e. if d_content is an UnknownRecordContent.
       shared_ptr<TSIGRecordContent> content = std::dynamic_pointer_cast<TSIGRecordContent>(i->first.d_content);
       if (!content) {
-        L<<Logger::Error<<"TSIG record has no or invalid content (invalid packet)"<<endl;
+        g_log<<Logger::Error<<"TSIG record has no or invalid content (invalid packet)"<<endl;
         return false;
       }
       *trc = *content;
@@ -494,7 +494,7 @@ bool DNSPacket::getTKEYRecord(TKEYRecordContent *tr, DNSName *keyname) const
 
   for(MOADNSParser::answers_t::const_iterator i=mdp.d_answers.begin(); i!=mdp.d_answers.end(); ++i) {
     if (gotit) {
-      L<<Logger::Error<<"More than one TKEY record found in query"<<endl;
+      g_log<<Logger::Error<<"More than one TKEY record found in query"<<endl;
       return false;
     }
 
@@ -502,7 +502,7 @@ bool DNSPacket::getTKEYRecord(TKEYRecordContent *tr, DNSName *keyname) const
       // cast can fail, f.e. if d_content is an UnknownRecordContent.
       shared_ptr<TKEYRecordContent> content = std::dynamic_pointer_cast<TKEYRecordContent>(i->first.d_content);
       if (!content) {
-        L<<Logger::Error<<"TKEY record has no or invalid content (invalid packet)"<<endl;
+        g_log<<Logger::Error<<"TKEY record has no or invalid content (invalid packet)"<<endl;
         return false;
       }
       *tr = *content;
@@ -524,7 +524,7 @@ try
   d_rawpacket.assign(mesg,length); 
   d_wrapped=true;
   if(length < 12) { 
-    L << Logger::Warning << "Ignoring packet: too short from "
+    g_log << Logger::Warning << "Ignoring packet: too short from "
       << getRemote() << endl;
     return -1;
   }
@@ -582,7 +582,7 @@ try
 
   if(!ntohs(d.qdcount)) {
     if(!d_tcp) {
-      L << Logger::Warning << "No question section in packet from " << getRemote() <<", error="<<RCode::to_s(d.rcode)<<endl;
+      g_log << Logger::Warning << "No question section in packet from " << getRemote() <<", error="<<RCode::to_s(d.rcode)<<endl;
       return -1;
     }
   }
@@ -655,7 +655,7 @@ bool DNSPacket::checkForCorrectTSIG(UeberBackend* B, DNSName* keyname, string* s
   string secret64;
   if (tt.algo != DNSName("gss-tsig")) {
     if(!B->getTSIGKey(*keyname, &tt.algo, &secret64)) {
-      L<<Logger::Error<<"Packet for domain '"<<this->qdomain<<"' denied: can't find TSIG key with name '"<<*keyname<<"' and algorithm '"<<tt.algo<<"'"<<endl;
+      g_log<<Logger::Error<<"Packet for domain '"<<this->qdomain<<"' denied: can't find TSIG key with name '"<<*keyname<<"' and algorithm '"<<tt.algo<<"'"<<endl;
       return false;
     }
     B64Decode(secret64, *secret);
@@ -668,7 +668,7 @@ bool DNSPacket::checkForCorrectTSIG(UeberBackend* B, DNSName* keyname, string* s
     result = validateTSIG(d_rawpacket, tsigPos, tt, *trc, "", trc->d_mac, false);
   }
   catch(const std::runtime_error& err) {
-    L<<Logger::Error<<"Packet for '"<<this->qdomain<<"' denied: "<<err.what()<<endl;
+    g_log<<Logger::Error<<"Packet for '"<<this->qdomain<<"' denied: "<<err.what()<<endl;
     return false;
   }
 

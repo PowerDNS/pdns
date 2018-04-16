@@ -139,6 +139,8 @@ boilerplate_conv(PTR, QType::PTR, conv.xfrName(d_content, true));
 boilerplate_conv(CNAME, QType::CNAME, conv.xfrName(d_content, true));
 boilerplate_conv(ALIAS, QType::ALIAS, conv.xfrName(d_content, false));
 boilerplate_conv(DNAME, QType::DNAME, conv.xfrName(d_content));
+boilerplate_conv(MB, QType::MB, conv.xfrName(d_madname, true));
+boilerplate_conv(MG, QType::MG, conv.xfrName(d_mgmname, true));
 boilerplate_conv(MR, QType::MR, conv.xfrName(d_alias, true));
 boilerplate_conv(MINFO, QType::MINFO, conv.xfrName(d_rmailbx, true); conv.xfrName(d_emailbx, true));
 boilerplate_conv(TXT, QType::TXT, conv.xfrText(d_text, true));
@@ -278,9 +280,8 @@ boilerplate_conv(SRV, QType::SRV,
                  )
 
 SOARecordContent::SOARecordContent(const DNSName& mname, const DNSName& rname, const struct soatimes& st) 
-: d_mname(mname), d_rname(rname)
+: d_mname(mname), d_rname(rname), d_st(st)
 {
-  d_st=st;
 }
 
 boilerplate_conv(SOA, QType::SOA,
@@ -604,6 +605,9 @@ void reportBasicTypes()
 
 void reportOtherTypes()
 {
+   MBRecordContent::report();
+   MGRecordContent::report();
+   MRRecordContent::report();
    AFSDBRecordContent::report();
    DNAMERecordContent::report();
    ALIASRecordContent::report();

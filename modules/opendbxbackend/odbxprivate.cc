@@ -46,7 +46,7 @@ bool OdbxBackend::connectTo( const vector<string>& hosts, QueryType type )
 
         if( type == WRITE && getArg( "backend" ) == "sqlite" )
         {
-        	L.log( m_myname + " Using same SQLite connection for reading and writing to '" + hosts[odbx_host_index[READ]] + "'", Logger::Notice );
+        	g_log.log( m_myname + " Using same SQLite connection for reading and writing to '" + hosts[odbx_host_index[READ]] + "'", Logger::Notice );
         	m_handle[WRITE] = m_handle[READ];
         	return true;
         }
@@ -59,15 +59,15 @@ bool OdbxBackend::connectTo( const vector<string>& hosts, QueryType type )
         	{
         		if( ( err = odbx_bind( m_handle[type], getArg( "database" ).c_str(), getArg( "username" ).c_str(), getArg( "password" ).c_str(), ODBX_BIND_SIMPLE ) ) == ODBX_ERR_SUCCESS )
         		{
-        			L.log( m_myname + " Database connection (" + (type ? "write" : "read") + ") to '" + hosts[h] + "' succeeded", Logger::Notice );
+        			g_log.log( m_myname + " Database connection (" + (type ? "write" : "read") + ") to '" + hosts[h] + "' succeeded", Logger::Notice );
         			return true;
         		}
 
-        		L.log( m_myname + " Unable to bind to database on host " + hosts[h] + " - " + string( odbx_error( m_handle[type], err ) ),  Logger::Error );
+        		g_log.log( m_myname + " Unable to bind to database on host " + hosts[h] + " - " + string( odbx_error( m_handle[type], err ) ),  Logger::Error );
         		continue;
         	}
 
-        	L.log( m_myname + " Unable to connect to server on host " + hosts[h] + " - " + string( odbx_error( m_handle[type], err ) ),  Logger::Error );
+        	g_log.log( m_myname + " Unable to connect to server on host " + hosts[h] + " - " + string( odbx_error( m_handle[type], err ) ),  Logger::Error );
         }
 
         m_handle[type] = NULL;
@@ -81,13 +81,13 @@ bool OdbxBackend::execStmt( const char* stmt, unsigned long length, QueryType ty
         int err;
 
 
-        DLOG( L.log( m_myname + " execStmt()", Logger::Debug ) );
+        DLOG( g_log.log( m_myname + " execStmt()", Logger::Debug ) );
 
-        if( m_qlog ) { L.log( m_myname + " Query: " + stmt, Logger::Info ); }
+        if( m_qlog ) { g_log.log( m_myname + " Query: " + stmt, Logger::Info ); }
 
         if( ( err = odbx_query( m_handle[type], stmt, length ) ) < 0 )
         {
-        	L.log( m_myname + " execStmt: Unable to execute query - " + string( odbx_error( m_handle[type], err ) ),  Logger::Error );
+        	g_log.log( m_myname + " execStmt: Unable to execute query - " + string( odbx_error( m_handle[type], err ) ),  Logger::Error );
 
         	if( err != -ODBX_ERR_PARAM && odbx_error_type( m_handle[type], err ) > 0 ) { return false; }   // ODBX_ERR_PARAM workaround
         	if( !connectTo( m_hosts[type], type ) ) { return false; }
@@ -106,13 +106,13 @@ bool OdbxBackend::getRecord( QueryType type )
         int err = 3;
 
 
-        DLOG( L.log( m_myname + " getRecord()", Logger::Debug ) );
+        DLOG( g_log.log( m_myname + " getRecord()", Logger::Debug ) );
 
         do
         {
         	if( err < 0 )
         	{
-        		L.log( m_myname + " getRecord: Unable to get next result - " + string( odbx_error( m_handle[type], err ) ),  Logger::Error );
+        		g_log.log( m_myname + " getRecord: Unable to get next result - " + string( odbx_error( m_handle[type], err ) ),  Logger::Error );
         		throw( PDNSException( "Error: odbx_result() failed" ) );
         	}
 
@@ -122,7 +122,7 @@ bool OdbxBackend::getRecord( QueryType type )
         		{
         			if( ( err = odbx_row_fetch( m_result ) ) < 0 )
         			{
-        				L.log( m_myname + " getRecord: Unable to get next row - " + string( odbx_error( m_handle[type], err ) ),  Logger::Error );
+        				g_log.log( m_myname + " getRecord: Unable to get next row - " + string( odbx_error( m_handle[type], err ) ),  Logger::Error );
         				throw( PDNSException( "Error: odbx_row_fetch() failed" ) );
         			}
 
@@ -146,7 +146,7 @@ bool OdbxBackend::getRecord( QueryType type )
         					}
         				}
 
-        				L.log( m_myname + " Values: " + fields,  Logger::Error );
+        				g_log.log( m_myname + " Values: " + fields,  Logger::Error );
 #endif
         				return true;
         			}
@@ -171,11 +171,11 @@ string OdbxBackend::escape( const string& str, QueryType type )
         unsigned long len = sizeof( m_escbuf );
 
 
-        DLOG( L.log( m_myname + " escape(string)", Logger::Debug ) );
+        DLOG( g_log.log( m_myname + " escape(string)", Logger::Debug ) );
 
         if( ( err = odbx_escape( m_handle[type], str.c_str(), str.size(), m_escbuf, &len ) ) < 0 )
         {
-        	L.log( m_myname + " escape(string): Unable to escape string - " + string( odbx_error( m_handle[type], err ) ),  Logger::Error );
+        	g_log.log( m_myname + " escape(string): Unable to escape string - " + string( odbx_error( m_handle[type], err ) ),  Logger::Error );
 
         	if( err != -ODBX_ERR_PARAM && odbx_error_type( m_handle[type], err ) > 0 ) { throw( runtime_error( "odbx_escape() failed" ) ); }   // ODBX_ERR_PARAM workaround
         	if( !connectTo( m_hosts[type], type ) ) { throw( runtime_error( "odbx_escape() failed" ) ); }
@@ -194,7 +194,7 @@ bool OdbxBackend::getDomainList( const string& stmt, vector<DomainInfo>* list, b
 
         SOAData sd;
 
-        DLOG( L.log( m_myname + " getDomainList()", Logger::Debug ) );
+        DLOG( g_log.log( m_myname + " getDomainList()", Logger::Debug ) );
 
         if( !execStmt( stmt.c_str(), stmt.size(), READ ) ) { return false; }
         if( !getRecord( READ ) ) { return false; }
@@ -231,7 +231,12 @@ bool OdbxBackend::getDomainList( const string& stmt, vector<DomainInfo>* list, b
         	{
         		if( ( tmp = odbx_field_value( m_result, 2 ) ) != NULL )
         		{
-        			stringtok(di.masters, string( tmp, odbx_field_length( m_result, 2 )), ", \t" );
+        			vector<string> masters;
+        			stringtok(masters, string( tmp, odbx_field_length( m_result, 2 )), ", \t" );
+        			for(const auto& m : masters)
+        			{
+        				di.masters.emplace_back(m, 53);
+        			}
         		}
 
         		if( ( tmp = odbx_field_value( m_result, 1 ) ) != NULL )

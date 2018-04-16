@@ -44,7 +44,7 @@ Then run
 
 ```
 $ cd pdns/pdns/recursordist/
-$ ./bootstrap
+$ autoreconf -vi
 $ ./configure
 $ make
 ```

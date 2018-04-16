@@ -52,6 +52,13 @@ public:
     d_db=db;
     if (d_db) {
       d_db->setLog(::arg().mustDo("query-logging"));
+      allocateStatements();
+    }
+  }
+
+  void allocateStatements()
+  {
+    if (d_db) {
       d_NoIdQuery_stmt = d_db->prepare(d_NoIdQuery, 2);
       d_IdQuery_stmt = d_db->prepare(d_IdQuery, 3);
       d_ANYNoIdQuery_stmt = d_db->prepare(d_ANYNoIdQuery, 1);
@@ -178,7 +185,6 @@ public:
   bool list(const DNSName &target, int domain_id, bool include_disabled=false) override;
   bool get(DNSResourceRecord &r) override;
   void getAllDomains(vector<DomainInfo> *domains, bool include_disabled=false) override;
-  bool isMaster(const DNSName &domain, const string &ip) override;
   void alsoNotifies(const DNSName &domain, set<string> *ips) override;
   bool startTransaction(const DNSName &domain, int domain_id=-1) override;
   bool commitTransaction() override;
@@ -195,7 +201,7 @@ public:
   void setFresh(uint32_t domain_id) override;
   void getUnfreshSlaveInfos(vector<DomainInfo> *domains) override;
   void getUpdatedMasters(vector<DomainInfo> *updatedDomains) override;
-  bool getDomainInfo(const DNSName &domain, DomainInfo &di) override;
+  bool getDomainInfo(const DNSName &domain, DomainInfo &di, bool getSerial=true) override;
   void setNotified(uint32_t domain_id, uint32_t serial) override;
   bool setMaster(const DNSName &domain, const string &ip) override;
   bool setKind(const DNSName &domain, const DomainInfo::DomainKind kind) override;

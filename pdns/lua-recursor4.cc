@@ -337,7 +337,7 @@ void RecursorLua4::postPrepareContext()
         }
       }
       catch(std::exception& e) {
-        theL() <<Logger::Error<<e.what()<<endl;
+        g_log <<Logger::Error<<e.what()<<endl;
       }
     }
   );
@@ -405,34 +405,35 @@ void RecursorLua4::postLoad() {
 
   d_ipfilter = d_lw->readVariable<boost::optional<ipfilter_t>>("ipfilter").get_value_or(0);
   d_gettag = d_lw->readVariable<boost::optional<gettag_t>>("gettag").get_value_or(0);
+  d_gettag_ffi = d_lw->readVariable<boost::optional<gettag_ffi_t>>("gettag_ffi").get_value_or(0);
 }
 
-bool RecursorLua4::prerpz(DNSQuestion& dq, int& ret)
+bool RecursorLua4::prerpz(DNSQuestion& dq, int& ret) const
 {
   return genhook(d_prerpz, dq, ret);
 }
 
-bool RecursorLua4::preresolve(DNSQuestion& dq, int& ret)
+bool RecursorLua4::preresolve(DNSQuestion& dq, int& ret) const
 {
   return genhook(d_preresolve, dq, ret);
 }
 
-bool RecursorLua4::nxdomain(DNSQuestion& dq, int& ret)
+bool RecursorLua4::nxdomain(DNSQuestion& dq, int& ret) const
 {
   return genhook(d_nxdomain, dq, ret);
 }
 
-bool RecursorLua4::nodata(DNSQuestion& dq, int& ret)
+bool RecursorLua4::nodata(DNSQuestion& dq, int& ret) const
 {
   return genhook(d_nodata, dq, ret);
 }
 
-bool RecursorLua4::postresolve(DNSQuestion& dq, int& ret)
+bool RecursorLua4::postresolve(DNSQuestion& dq, int& ret) const
 {
   return genhook(d_postresolve, dq, ret);
 }
 
-bool RecursorLua4::preoutquery(const ComboAddress& ns, const ComboAddress& requestor, const DNSName& query, const QType& qtype, bool isTcp, vector<DNSRecord>& res, int& ret)
+bool RecursorLua4::preoutquery(const ComboAddress& ns, const ComboAddress& requestor, const DNSName& query, const QType& qtype, bool isTcp, vector<DNSRecord>& res, int& ret) const
 {
   bool variableAnswer = false;
   bool wantsRPZ = false;
@@ -442,14 +443,14 @@ bool RecursorLua4::preoutquery(const ComboAddress& ns, const ComboAddress& reque
   return genhook(d_preoutquery, dq, ret);
 }
 
-bool RecursorLua4::ipfilter(const ComboAddress& remote, const ComboAddress& local, const struct dnsheader& dh)
+bool RecursorLua4::ipfilter(const ComboAddress& remote, const ComboAddress& local, const struct dnsheader& dh) const
 {
   if(d_ipfilter)
     return d_ipfilter(remote, local, dh);
   return false; // don't block
 }
 
-unsigned int RecursorLua4::gettag(const ComboAddress& remote, const Netmask& ednssubnet, const ComboAddress& local, const DNSName& qname, uint16_t qtype, std::vector<std::string>* policyTags, LuaContext::LuaObject& data, const std::map<uint16_t, EDNSOptionView>& ednsOptions, bool tcp, std::string& requestorId, std::string& deviceId)
+unsigned int RecursorLua4::gettag(const ComboAddress& remote, const Netmask& ednssubnet, const ComboAddress& local, const DNSName& qname, uint16_t qtype, std::vector<std::string>* policyTags, LuaContext::LuaObject& data, const std::map<uint16_t, EDNSOptionView>& ednsOptions, bool tcp, std::string& requestorId, std::string& deviceId) const
 {
   if(d_gettag) {
     auto ret = d_gettag(remote, ednssubnet, local, qname, qtype, ednsOptions, tcp);
@@ -479,7 +480,51 @@ unsigned int RecursorLua4::gettag(const ComboAddress& remote, const Netmask& edn
   return 0;
 }
 
-bool RecursorLua4::genhook(luacall_t& func, DNSQuestion& dq, int& ret)
+struct pdns_ffi_param
+{
+public:
+  pdns_ffi_param(const DNSName& qname_, uint16_t qtype_, const ComboAddress& local_, const ComboAddress& remote_, const Netmask& ednssubnet_, std::vector<std::string>& policyTags_, const std::map<uint16_t, EDNSOptionView>& ednsOptions_, std::string& requestorId_, std::string& deviceId_, uint32_t& ttlCap_, bool& variable_, bool tcp_): qname(qname_), local(local_), remote(remote_), ednssubnet(ednssubnet_), policyTags(policyTags_), ednsOptions(ednsOptions_), requestorId(requestorId_), deviceId(deviceId_), ttlCap(ttlCap_), variable(variable_), qtype(qtype_), tcp(tcp_)
+  {
+  }
+
+  std::unique_ptr<std::string> qnameStr{nullptr};
+  std::unique_ptr<std::string> localStr{nullptr};
+  std::unique_ptr<std::string> remoteStr{nullptr};
+  std::unique_ptr<std::string> ednssubnetStr{nullptr};
+  std::vector<pdns_ednsoption_t> ednsOptionsVect;
+
+  const DNSName& qname;
+  const ComboAddress& local;
+  const ComboAddress& remote;
+  const Netmask& ednssubnet;
+  std::vector<std::string>& policyTags;
+  const std::map<uint16_t, EDNSOptionView>& ednsOptions;
+  std::string& requestorId;
+  std::string& deviceId;
+  uint32_t& ttlCap;
+  bool& variable;
+
+  unsigned int tag{0};
+  uint16_t qtype;
+  bool tcp;
+};
+
+unsigned int RecursorLua4::gettag_ffi(const ComboAddress& remote, const Netmask& ednssubnet, const ComboAddress& local, const DNSName& qname, uint16_t qtype, std::vector<std::string>* policyTags, LuaContext::LuaObject& data, const std::map<uint16_t, EDNSOptionView>& ednsOptions, bool tcp, std::string& requestorId, std::string& deviceId, uint32_t& ttlCap, bool& variable) const
+{
+  if (d_gettag_ffi) {
+    pdns_ffi_param_t param(qname, qtype, local, remote, ednssubnet, *policyTags, ednsOptions, requestorId, deviceId, ttlCap, variable, tcp);
+
+    auto ret = d_gettag_ffi(&param);
+    if (ret) {
+      data = *ret;
+    }
+
+    return param.tag;
+  }
+  return 0;
+}
+
+bool RecursorLua4::genhook(const luacall_t& func, DNSQuestion& dq, int& ret) const
 {
   if(!func)
     return false;
@@ -518,7 +563,7 @@ loop:;
         dq.udpAnswer = GenUDPQueryResponse(dq.udpQueryDest, dq.udpQuery);
         auto cbFunc = d_lw->readVariable<boost::optional<luacall_t>>(dq.udpCallback).get_value_or(0);
         if(!cbFunc) {
-          theL()<<Logger::Error<<"Attempted callback for Lua UDP Query/Response which could not be found"<<endl;
+          g_log<<Logger::Error<<"Attempted callback for Lua UDP Query/Response which could not be found"<<endl;
           return false;
         }
         bool result=cbFunc(&dq);
@@ -538,3 +583,146 @@ loop:;
 }
 
 RecursorLua4::~RecursorLua4(){}
+
+const char* pdns_ffi_param_get_qname(pdns_ffi_param_t* ref)
+{
+  if (!ref->qnameStr) {
+    ref->qnameStr = std::unique_ptr<std::string>(new std::string(ref->qname.toStringNoDot()));
+  }
+
+  return ref->qnameStr->c_str();
+}
+
+uint16_t pdns_ffi_param_get_qtype(const pdns_ffi_param_t* ref)
+{
+  return ref->qtype;
+}
+
+const char* pdns_ffi_param_get_remote(pdns_ffi_param_t* ref)
+{
+  if (!ref->remoteStr) {
+    ref->remoteStr = std::unique_ptr<std::string>(new std::string(ref->remote.toString()));
+  }
+
+  return ref->remoteStr->c_str();
+}
+
+uint16_t pdns_ffi_param_get_remote_port(const pdns_ffi_param_t* ref)
+{
+  return ref->remote.getPort();
+}
+
+const char* pdns_ffi_param_get_local(pdns_ffi_param_t* ref)
+{
+  if (!ref->localStr) {
+    ref->localStr = std::unique_ptr<std::string>(new std::string(ref->local.toString()));
+  }
+
+  return ref->localStr->c_str();
+}
+
+uint16_t pdns_ffi_param_get_local_port(const pdns_ffi_param_t* ref)
+{
+  return ref->local.getPort();
+}
+
+const char* pdns_ffi_param_get_edns_cs(pdns_ffi_param_t* ref)
+{
+  if (ref->ednssubnet.empty()) {
+    return nullptr;
+  }
+
+  if (!ref->ednssubnetStr) {
+    ref->ednssubnetStr = std::unique_ptr<std::string>(new std::string(ref->ednssubnet.toStringNoMask()));
+  }
+
+  return ref->ednssubnetStr->c_str();
+}
+
+uint8_t pdns_ffi_param_get_edns_cs_source_mask(const pdns_ffi_param_t* ref)
+{
+  return ref->ednssubnet.getBits();
+}
+
+static void fill_edns_option(const EDNSOptionView& view, pdns_ednsoption_t& option)
+{
+  option.len = view.size;
+  option.data = nullptr;
+
+  if (view.size > 0) {
+    option.data = view.content;
+  }
+}
+
+size_t pdns_ffi_param_get_edns_options(pdns_ffi_param_t* ref, const pdns_ednsoption_t** out)
+{
+  if (ref->ednsOptions.empty()) {
+    return 0;
+  }
+
+  size_t count = ref->ednsOptions.size();
+  ref->ednsOptionsVect.resize(count);
+
+  size_t pos = 0;
+  for (const auto& entry : ref->ednsOptions) {
+    fill_edns_option(entry.second, ref->ednsOptionsVect.at(pos));
+    ref->ednsOptionsVect.at(pos).optionCode = entry.first;
+    pos++;
+  }
+
+  *out = ref->ednsOptionsVect.data();
+
+  return count;
+}
+
+size_t pdns_ffi_param_get_edns_options_by_code(pdns_ffi_param_t* ref, uint16_t optionCode, const pdns_ednsoption_t** out)
+{
+  const auto& it = ref->ednsOptions.find(optionCode);
+  if (it == ref->ednsOptions.cend()) {
+    return 0;
+  }
+
+  /* the current code deals with only one entry per code, but we will fix that */
+  ref->ednsOptionsVect.resize(1);
+  fill_edns_option(it->second, ref->ednsOptionsVect.at(0));
+  ref->ednsOptionsVect.at(0).optionCode = it->first;
+
+  *out = ref->ednsOptionsVect.data();
+
+  return 1;
+}
+
+void pdns_ffi_param_set_tag(pdns_ffi_param_t* ref, unsigned int tag)
+{
+  ref->tag = tag;
+}
+
+void pdns_ffi_param_add_policytag(pdns_ffi_param_t *ref, const char* name)
+{
+  ref->policyTags.push_back(std::string(name));
+}
+
+void pdns_ffi_param_set_requestorid(pdns_ffi_param_t* ref, const char* name)
+{
+  ref->requestorId = std::string(name);
+}
+
+void pdns_ffi_param_set_devicename(pdns_ffi_param_t* ref, const char* name)
+{
+  ref->deviceId = std::string(name);
+}
+
+void pdns_ffi_param_set_deviceid(pdns_ffi_param_t* ref, size_t len, const void* name)
+{
+  ref->deviceId = std::string(reinterpret_cast<const char*>(name), len);
+}
+
+void pdns_ffi_param_set_variable(pdns_ffi_param_t* ref, bool variable)
+{
+  ref->variable = variable;
+}
+
+void pdns_ffi_param_set_ttl_cap(pdns_ffi_param_t* ref, uint32_t ttl)
+{
+  ref->ttlCap = ttl;
+}

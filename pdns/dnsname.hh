@@ -179,9 +179,7 @@ inline bool DNSName::canonCompare(const DNSName& rhs) const
   for(;;) {
     if(ourcount == 0 && rhscount != 0)
       return true;
-    if(ourcount == 0 && rhscount == 0)
-      return false;
-    if(ourcount !=0 && rhscount == 0)
+    if(rhscount == 0)
       return false;
     ourcount--;
     rhscount--;
@@ -235,12 +233,8 @@ struct SuffixMatchTree
   SuffixMatchTree(const std::string& name="", bool endNode_=false) : d_name(name), endNode(endNode_)
   {}
 
-  SuffixMatchTree(const SuffixMatchTree& rhs)
+  SuffixMatchTree(const SuffixMatchTree& rhs): d_name(rhs.d_name), children(rhs.children), endNode(rhs.endNode), d_value(rhs.d_value)
   {
-    d_name = rhs.d_name;
-    children = rhs.children;
-    endNode = rhs.endNode;
-    d_value = rhs.d_value;
   }
   std::string d_name;
   mutable std::set<SuffixMatchTree> children;

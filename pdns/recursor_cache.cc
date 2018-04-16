@@ -232,34 +232,6 @@ int32_t MemRecursorCache::get(time_t now, const DNSName &qname, const QType& qt,
   return -1;
 }
 
-bool MemRecursorCache::attemptToRefreshNSTTL(const QType& qt, const vector<DNSRecord>& content, const CacheEntry& stored)
-{
-  if(!stored.d_auth) {
-    //~ cerr<<"feel free to scribble non-auth data!"<<endl;
-    return false;
-  }
-
-  if(qt.getCode()!=QType::NS) {
-    //~ cerr<<"Not NS record"<<endl;
-    return false;
-  }
-  if(content.size()!=stored.d_records.size()) {
-    //~ cerr<<"Not equal number of records"<<endl;
-    return false;
-  }
-  if(stored.d_records.empty())
-    return false;
-
-  if(stored.d_ttd > content.begin()->d_ttl) {
-    //~ cerr<<"attempt to LOWER TTL - fine by us"<<endl;
-    return false;
-  }
-
-
-//  cerr<<"Returning true - update attempt!\n";
-  return true;
-}
-
 void MemRecursorCache::replace(time_t now, const DNSName &qname, const QType& qt, const vector<DNSRecord>& content, const vector<shared_ptr<RRSIGRecordContent>>& signatures, const std::vector<std::shared_ptr<DNSRecord>>& authorityRecs, bool auth, boost::optional<Netmask> ednsmask, vState state)
 {
   d_cachecachevalid = false;
@@ -268,7 +240,7 @@ void MemRecursorCache::replace(time_t now, const DNSName &qname, const QType& qt
   bool isNew = false;
   cache_t::iterator stored = d_cache.find(key);
   if (stored == d_cache.end()) {
-    stored = d_cache.insert(CacheEntry(key, CacheEntry::records_t(), auth)).first;
+    stored = d_cache.insert(CacheEntry(key, auth)).first;
     isNew = true;
   }
 
@@ -309,22 +281,22 @@ void MemRecursorCache::replace(time_t now, const DNSName &qname, const QType& qt
       ce.d_auth = false;  // new data won't be auth
     }
   }
-  ce.d_records.clear();
 
-  // limit TTL of auth->auth NSset update if needed, except for root 
+  // refuse any attempt to *raise* the TTL of auth NS records, as it would make it possible
+  // for an auth to keep a "ghost" zone alive forever, even after the delegation is gone from
+  // the parent
+  // BUT make sure that we CAN refresh the root
   if(ce.d_auth && auth && qt.getCode()==QType::NS && !isNew && !qname.isRoot()) {
     //    cerr<<"\tLimiting TTL of auth->auth NS set replace to "<<ce.d_ttd<<endl;
     maxTTD = ce.d_ttd;
   }
 
-  // make sure that we CAN refresh the root
-  if(auth && (qname.isRoot() || !attemptToRefreshNSTTL(qt, content, ce) ) ) {
-    // cerr<<"\tGot auth data, and it was not refresh attempt of an unchanged NS set, nuking storage"<<endl;
-    ce.d_records.clear(); // clear non-auth data
+  if(auth) {
     ce.d_auth = true;
   }
-  //else cerr<<"\tNot nuking"<<endl;
 
+  ce.d_records.clear();
+  ce.d_records.reserve(content.size());
 
   for(const auto i : content) {
     /* Yes, we have altered the d_ttl value by adding time(nullptr) to it
@@ -332,7 +304,6 @@ void MemRecursorCache::replace(time_t now, const DNSName &qname, const QType& qt
     ce.d_ttd=min(maxTTD, static_cast<time_t>(i.d_ttl));   // XXX this does weird things if TTLs differ in the set
     //    cerr<<"To store: "<<i.d_content->getZoneRepresentation()<<" with ttl/ttd "<<i.d_ttl<<", capped at: "<<maxTTD<<endl;
     ce.d_records.push_back(i.d_content);
-    // there was code here that did things with TTL and auth. Unsure if it was good. XXX
   }
 
   if (!isNew) {

@@ -22,7 +22,7 @@ bool RemoteLogger::reconnect()
   }
   catch(const std::exception& e) {
 #ifdef WE_ARE_RECURSOR
-    L<<Logger::Warning<<"Error connecting to remote logger "<<d_remote.toStringWithPort()<<": "<<e.what()<<std::endl;
+    g_log<<Logger::Warning<<"Error connecting to remote logger "<<d_remote.toStringWithPort()<<": "<<e.what()<<std::endl;
 #else
     warnlog("Error connecting to remote logger %s: %s", d_remote.toStringWithPort(), e.what());
 #endif
@@ -63,7 +63,7 @@ void RemoteLogger::worker()
     }
     catch(const std::runtime_error& e) {
 #ifdef WE_ARE_RECURSOR
-      L<<Logger::Info<<"Error sending data to remote logger "<<d_remote.toStringWithPort()<<": "<< e.what()<<endl;
+      g_log<<Logger::Info<<"Error sending data to remote logger "<<d_remote.toStringWithPort()<<": "<< e.what()<<endl;
 #else
       vinfolog("Error sending data to remote logger (%s): %s", d_remote.toStringWithPort(), e.what());
 #endif
@@ -75,7 +75,7 @@ void RemoteLogger::worker()
 void RemoteLogger::queueData(const std::string& data)
 {
   {
-    std::unique_lock<std::mutex> lock(d_writeMutex);
+    std::lock_guard<std::mutex> lock(d_writeMutex);
     if (d_writeQueue.size() >= d_maxQueuedEntries) {
       d_writeQueue.pop();
     }

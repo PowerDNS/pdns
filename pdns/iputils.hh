@@ -284,11 +284,33 @@ union ComboAddress {
       return "["+toString() + "]:" + std::to_string(ntohs(sin4.sin_port));
   }
 
+  string toStringWithPortExcept(int port) const
+  {
+    if(ntohs(sin4.sin_port) == port)
+      return toString();
+    if(sin4.sin_family==AF_INET)
+      return toString() + ":" + std::to_string(ntohs(sin4.sin_port));
+    else
+      return "["+toString() + "]:" + std::to_string(ntohs(sin4.sin_port));
+  }
+
+  string toLogString() const
+  {
+    return toStringWithPortExcept(53);
+  }
+
   void truncate(unsigned int bits) noexcept;
 
   uint16_t getPort() const
   {
     return ntohs(sin4.sin_port);
+  }
+
+  ComboAddress setPort(uint16_t port) const
+  {
+    ComboAddress ret(*this);
+    ret.sin4.sin_port=htons(port);
+    return ret;
   }
 
 };
@@ -349,9 +371,8 @@ public:
 	d_bits=0;
   }
   
-  Netmask(const ComboAddress& network, uint8_t bits=0xff)
+  Netmask(const ComboAddress& network, uint8_t bits=0xff): d_network(network)
   {
-    d_network = network;
     d_network.sin4.sin_port=0;
     if(bits > 128)
       bits = (network.sin4.sin_family == AF_INET) ? 32 : 128;
@@ -601,6 +622,7 @@ public:
     // see above.
     for(auto const& node: rhs._nodes)
       insert(node->first).second = node->second;
+    d_cleanup_tree = rhs.d_cleanup_tree;
     return *this;
   }
 

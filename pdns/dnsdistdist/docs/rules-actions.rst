@@ -148,9 +148,14 @@ Rule Generators
   .. versionchanged:: 1.3.0
     Added the optional parameter ``options``.
 
+  .. versionchanged:: 1.3.0
+    The second argument returned by the ``function`` can be omitted. For earlier releases, simply return an empty string.
+
   Invoke a Lua function that accepts a :class:`DNSQuestion`.
   This function works similar to using :func:`LuaAction`.
-  The ``function`` should return a :ref:`DNSAction`. If the Lua code fails, ServFail is returned.
+  The ``function`` should return both a :ref:`DNSAction` and its argument `rule`. The `rule` is used as an argument
+  of the following :ref:`DNSAction`: `DNSAction.Spoof`, `DNSAction.Pool` and `DNSAction.Delay`.
+  If the Lua code fails, ServFail is returned.
 
   :param DNSRule: match queries based on this rule
   :param string function: the name of a Lua function
@@ -160,14 +165,33 @@ Rule Generators
 
   * ``uuid``: string - UUID to assign to the new rule. By default a random UUID is generated for each rule.
 
+  ::
+
+    function luarule(dq)
+      if(dq.qtype==dnsdist.NAPTR)
+      then
+        return DNSAction.Pool, "abuse" -- send to abuse pool
+      else
+        return DNSAction.None, ""      -- no action
+        -- return DNSAction.None       -- as of dnsdist version 1.3.0
+      end
+    end
+
+    addLuaAction(AllRule(), luarule)
+
 .. function:: addLuaResponseAction(DNSrule, function [, options])
 
   .. versionchanged:: 1.3.0
     Added the optional parameter ``options``.
 
+  .. versionchanged:: 1.3.0
+    The second argument returned by the ``function`` can be omitted. For earlier releases, simply return an empty string.
+
   Invoke a Lua function that accepts a :class:`DNSResponse`.
   This function works similar to using :func:`LuaResponseAction`.
-  The ``function`` should return a :ref:`DNSResponseAction`. If the Lua code fails, ServFail is returned.
+  The ``function`` should return both a :ref:`DNSResponseAction` and its argument `rule`. The `rule` is used as an argument
+  of the `DNSResponseAction.Delay`.
+  If the Lua code fails, ServFail is returned.
 
   :param DNSRule: match queries based on this rule
   :param string function: the name of a Lua function
@@ -301,11 +325,19 @@ For Rules related to the incoming query:
 
   :param [RuleAction] rules: A list of RuleActions
 
-.. function:: showRules([showUUIDs])
+.. function:: showRules([options])
+
+  .. versionchanged:: 1.3.0
+    ``options`` optional parameter added
 
   Show all defined rules for queries, optionally displaying their UUIDs.
 
-  :param bool showUUIDs: Whether to display the UUIDs, defaults to false
+  :param table options: A table with key: value pairs with display options.
+
+  Options:
+
+  * ``showUUIDs=false``: bool - Whether to display the UUIDs, defaults to false.
+  * ``truncateRuleWidth=-1``: int - Truncate rules output to ``truncateRuleWidth`` size. Defaults to ``-1`` to display the full rule.
 
 .. function:: topRule()
 
@@ -354,11 +386,19 @@ For Rules related to responses:
 
   :param int id: The UUID of the rule to remove if ``id`` is an UUID, its position otherwise
 
-.. function:: showResponseRules([showUUIDs])
+.. function:: showResponseRules([options])
+
+  .. versionchanged:: 1.3.0
+    ``options`` optional parameter added
 
   Show all defined response rules, optionally displaying their UUIDs.
 
-  :param bool showUUIDs: Whether to display the UUIDs, defaults to false
+  :param table options: A table with key: value pairs with display options.
+
+  Options:
+
+  * ``showUUIDs=false``: bool - Whether to display the UUIDs, defaults to false.
+  * ``truncateRuleWidth=-1``: int - Truncate rules output to ``truncateRuleWidth`` size. Defaults to ``-1`` to display the full rule.
 
 .. function:: topResponseRule()
 
@@ -402,13 +442,21 @@ Functions for manipulating Cache Hit Respone Rules:
 
   :param int id: The UUID of the rule to remove if ``id`` is an UUID, its position otherwise
 
-.. function:: showCacheHitResponseRules([showUUIDs])
+.. function:: showCacheHitResponseRules([options])
 
   .. versionadded:: 1.2.0
 
+  .. versionchanged:: 1.3.0
+    ``options`` optional parameter added
+
   Show all defined cache hit response rules, optionally displaying their UUIDs.
 
-  :param bool showUUIDs: Whether to display the UUIDs, defaults to false
+  :param table options: A table with key: value pairs with display options.
+
+  Options:
+
+  * ``showUUIDs=false``: bool - Whether to display the UUIDs, defaults to false.
+  * ``truncateRuleWidth=-1``: int - Truncate rules output to ``truncateRuleWidth`` size. Defaults to ``-1`` to display the full rule.
 
 .. function:: topCacheHitResponseRule()
 
@@ -445,13 +493,18 @@ Functions for manipulating Self-Answered Response Rules:
 
   :param int id: The UUID of the rule to remove if ``id`` is an UUID, its position otherwise
 
-.. function:: showSelfAnsweredResponseRules([showUUIDs])
+.. function:: showSelfAnsweredResponseRules([options])
 
   .. versionadded:: 1.3.0
 
   Show all defined self answered response rules, optionally displaying their UUIDs.
 
-  :param bool showUUIDs: Whether to display the UUIDs, defaults to false
+  :param table options: A table with key: value pairs with display options.
+
+  Options:
+
+  * ``showUUIDs=false``: bool - Whether to display the UUIDs, defaults to false.
+  * ``truncateRuleWidth=-1``: int - Truncate rules output to ``truncateRuleWidth`` size. Defaults to ``-1`` to display the full rule.
 
 .. function:: topSelfAnsweredResponseRule()
 
@@ -486,7 +539,7 @@ These ``DNSRule``\ s be one of the following items:
 
 .. function:: MaxQPSIPRule(qps[, v4Mask[, v6Mask[, burst]]])
 
-  Matches traffic for a subnet specified by ``v4Mask`` or ``v6Mask`` exceeding ``qps`` queries per second up to ``burst`` allowed 
+  Matches traffic for a subnet specified by ``v4Mask`` or ``v6Mask`` exceeding ``qps`` queries per second up to ``burst`` allowed
 
   :param int qps: The number of queries per second allowed, above this number traffic is matched
   :param int v4Mask: The IPv4 netmask to match on. Default is 32 (the whole address)
@@ -505,7 +558,7 @@ These ``DNSRule``\ s be one of the following items:
   Matches traffic from/to the network range specified in ``nmg``.
 
   Set the ``src`` parameter to false to match ``nmg`` against destination address instead of source address.
-  This can be used to differentiate between clients 
+  This can be used to differentiate between clients
 
   :param NetMaskGroup nmg: The NetMaskGroup to match on
   :param bool src: Whether to match source or destination address of the packet. Defaults to true (matches source)
@@ -513,7 +566,7 @@ These ``DNSRule``\ s be one of the following items:
 .. function:: OpcodeRule(code)
 
   Matches queries with opcode ``code``.
-  ``code`` can be directly specified as an integer, or one of the `built-in DNSOpcodes <DNSOpcode>`.
+  ``code`` can be directly specified as an integer, or one of the :ref:`built-in DNSOpcodes <DNSOpcode>`.
 
   :param int code: The opcode to match
 
@@ -641,6 +694,8 @@ These ``DNSRule``\ s be one of the following items:
 
 .. function:: TagRule(name [, value])
 
+  .. versionadded:: 1.3.0
+
   Matches question or answer with a tag named ``name`` set. If ``value`` is specified, the existing tag value should match too.
 
   :param bool name: The name of the tag that has to be set
@@ -728,7 +783,9 @@ The following actions exist.
 
 .. function:: DnstapLogAction(identity, logger[, alterFunction])
 
-  Send the the current query to a remote logger as a dnstap message.
+  .. versionadded:: 1.3.0
+
+  Send the the current query to a remote logger as a :doc:`dnstap <reference/dnstap>` message.
   ``alterFunction`` is a callback, receiving a :class:`DNSQuestion` and a :class:`DnstapMessage`, that can be used to modify the message.
 
   :param string identity: Server identity to store in the dnstap message
@@ -737,7 +794,9 @@ The following actions exist.
 
 .. function:: DnstapLogResponseAction(identity, logger[, alterFunction])
 
-  Send the the current response to a remote logger as a dnstap message.
+  .. versionadded:: 1.3.0
+
+  Send the the current response to a remote logger as a :doc:`dnstap <reference/dnstap>` message.
   ``alterFunction`` is a callback, receiving a :class:`DNSQuestion` and a :class:`DnstapMessage`, that can be used to modify the message.
 
   :param string identity: Server identity to store in the dnstap message
@@ -896,12 +955,16 @@ The following actions exist.
 
 .. function:: TagAction(name, value)
 
+  .. versionadded:: 1.3.0
+
   Associate a tag named ``name`` with a value of ``value`` to this query, that will be passed on to the response.
 
   :param string name: The name of the tag to set
   :param string cname: The value of the tag
 
 .. function:: TagResponseAction(name, value)
+
+  .. versionadded:: 1.3.0
 
   Associate a tag named ``name`` with a value of ``value`` to this response.
 

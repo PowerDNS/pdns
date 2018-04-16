@@ -8,9 +8,7 @@
 class LuaContext;
 
 #if defined(HAVE_LUA)
-#undef L
 #include "ext/luawrapper/include/LuaContext.hpp"
-#define L theL()
 #endif
 
 class BaseLua4 : public boost::noncopyable

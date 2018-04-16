@@ -43,11 +43,11 @@ gODBCBackend::gODBCBackend (const std::string & mode, const std::string & suffix
   }
   catch( SSqlException & e )
   {
-    L<<Logger::Error<< mode << " Connection failed: " << e.txtReason() << std::endl;
+    g_log<<Logger::Error<< mode << " Connection failed: " << e.txtReason() << std::endl;
     throw PDNSException( "Unable to launch " + mode + " connection: " + e.txtReason());
   }
 
-  L << Logger::Warning << mode << " Connection successful" << std::endl;
+  g_log << Logger::Warning << mode << " Connection successful" << std::endl;
 }
 
 
@@ -80,8 +80,6 @@ public:
 
     declare(suffix, "remove-empty-non-terminals-from-zone-query", "remove all empty non-terminals from zone", "delete from records where domain_id=? and type is null");
     declare(suffix, "delete-empty-non-terminal-query", "delete empty non-terminal from zone", "delete from records where domain_id=? and name=? and type is null");
-
-    declare(suffix,"master-zone-query","Data", "select master from domains where name=? and type='SLAVE'");
 
     declare(suffix,"info-zone-query","","select id,name,master,last_check,notified_serial,type,account from domains where name=?");
 
@@ -165,7 +163,7 @@ public:
   gODBCLoader()
   {
     BackendMakers().report( new gODBCFactory("godbc"));
-    L<<Logger::Warning << "This is module godbcbackend reporting" << std::endl;
+    g_log<<Logger::Warning << "This is module godbcbackend reporting" << std::endl;
   }
 };
 

@@ -39,6 +39,8 @@
 #include "ws-api.hh"
 #include "logger.hh"
 #include "ext/incbin/incbin.h"
+#include "rec-lua-conf.hh"
+#include "rpzloader.hh"
 
 extern thread_local FDMultiplexer* t_fdm;
 
@@ -381,6 +383,36 @@ static void apiServerCacheFlush(HttpRequest* req, HttpResponse* resp) {
   });
 }
 
+static void apiServerRPZStats(HttpRequest* req, HttpResponse* resp) {
+  if(req->method != "GET")
+    throw HttpMethodNotAllowedException();
+
+  auto luaconf = g_luaconfs.getLocal();
+  auto numZones = luaconf->dfe.size();
+
+  Json::object ret;
+
+  for (size_t i=0; i < numZones; i++) {
+    auto zone = luaconf->dfe.getZone(i);
+    if (zone == nullptr)
+      continue;
+    auto name = zone->getName();
+    auto stats = getRPZZoneStats(*name);
+    if (stats == nullptr)
+      continue;
+    Json::object zoneInfo = {
+      {"transfers_failed", (double)stats->d_failedTransfers},
+      {"transfers_success", (double)stats->d_successfulTransfers},
+      {"transfers_full", (double)stats->d_fullTransfers},
+      {"records", (double)stats->d_numberOfRecords},
+      {"last_update", (double)stats->d_lastUpdate},
+      {"serial", (double)stats->d_serial},
+    };
+    ret[*name] = zoneInfo;
+  }
+  resp->setBody(ret);
+}
+
 #include "htmlfiles.h"
 
 static void serveStuff(HttpRequest* req, HttpResponse* resp)
@@ -424,6 +456,7 @@ RecursorWebServer::RecursorWebServer(FDMultiplexer* fdm)
   d_ws->registerApiHandler("/api/v1/servers/localhost/cache/flush", &apiServerCacheFlush);
   d_ws->registerApiHandler("/api/v1/servers/localhost/config/allow-from", &apiServerConfigAllowFrom);
   d_ws->registerApiHandler("/api/v1/servers/localhost/config", &apiServerConfig);
+  d_ws->registerApiHandler("/api/v1/servers/localhost/rpzstatistics", &apiServerRPZStats);
   d_ws->registerApiHandler("/api/v1/servers/localhost/search-log", &apiServerSearchLog);
   d_ws->registerApiHandler("/api/v1/servers/localhost/search-data", &apiServerSearchData);
   d_ws->registerApiHandler("/api/v1/servers/localhost/statistics", &apiServerStatistics);
@@ -551,11 +584,11 @@ void AsyncServerNewConnectionMT(void *p) {
     }
   } catch (NetworkError &e) {
     // we're running in a shared process/thread, so can't just terminate/abort.
-    L<<Logger::Warning<<"Network error in web thread: "<<e.what()<<endl;
+    g_log<<Logger::Warning<<"Network error in web thread: "<<e.what()<<endl;
     return;
   }
   catch (...) {
-    L<<Logger::Warning<<"Unknown error in web thread"<<endl;
+    g_log<<Logger::Warning<<"Unknown error in web thread"<<endl;
 
     return;
   }
@@ -605,18 +638,18 @@ try {
 
   // now send the reply
   if (asendtcp(data, client.get()) == -1 || data.empty()) {
-    L<<Logger::Error<<"Failed sending reply to HTTP client"<<endl;
+    g_log<<Logger::Error<<"Failed sending reply to HTTP client"<<endl;
   }
 }
 catch(PDNSException &e) {
-  L<<Logger::Error<<"HTTP Exception: "<<e.reason<<endl;
+  g_log<<Logger::Error<<"HTTP Exception: "<<e.reason<<endl;
 }
 catch(std::exception &e) {
   if(strstr(e.what(), "timeout")==0)
-    L<<Logger::Error<<"HTTP STL Exception: "<<e.what()<<endl;
+    g_log<<Logger::Error<<"HTTP STL Exception: "<<e.what()<<endl;
 }
 catch(...) {
-  L<<Logger::Error<<"HTTP: Unknown exception"<<endl;
+  g_log<<Logger::Error<<"HTTP: Unknown exception"<<endl;
 }
 
 void AsyncWebServer::go() {

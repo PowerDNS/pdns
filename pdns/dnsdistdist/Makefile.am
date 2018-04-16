@@ -4,7 +4,13 @@ ACLOCAL_AMFLAGS = -I m4
 
 SUBDIRS=ext/yahttp
 
-CLEANFILES = dnsmessage.pb.cc dnsmessage.pb.h htmlfiles.h.tmp htmlfiles.h dnstap.pb.cc dnstap.pb.h
+CLEANFILES = \
+	dnsmessage.pb.cc \
+	dnsmessage.pb.h \
+	htmlfiles.h.tmp \
+	htmlfiles.h \
+	dnstap.pb.cc \
+	dnstap.pb.h
 
 dnslabeltext.cc: dnslabeltext.rl
 	$(AM_V_GEN)$(RAGEL) $< -o dnslabeltext.cc
@@ -86,8 +92,9 @@ dnsdist_SOURCES = \
 	dnsdist-dynbpf.cc dnsdist-dynbpf.hh \
 	dnsdist-cache.cc dnsdist-cache.hh \
 	dnsdist-carbon.cc \
-	dnsdist-console.cc \
+	dnsdist-console.cc dnsdist-console.hh \
 	dnsdist-dnscrypt.cc \
+	dnsdist-dynblocks.hh \
 	dnsdist-ecs.cc dnsdist-ecs.hh \
 	dnsdist-lua.hh dnsdist-lua.cc \
 	dnsdist-lua-actions.cc \
@@ -97,7 +104,7 @@ dnsdist_SOURCES = \
 	dnsdist-lua-rules.cc \
 	dnsdist-lua-vars.cc \
 	dnsdist-protobuf.cc dnsdist-protobuf.hh \
-	dnsdist-rings.cc \
+	dnsdist-rings.cc dnsdist-rings.hh \
 	dnsdist-snmp.cc dnsdist-snmp.hh \
 	dnsdist-tcp.cc \
 	dnsdist-web.cc \
@@ -209,6 +216,7 @@ testrunner_SOURCES = \
 	test-base64_cc.cc \
 	test-dnsdist_cc.cc \
 	test-dnsdistpacketcache_cc.cc \
+	test-dnsdistrings_cc.cc \
 	test-dnscrypt_cc.cc \
 	test-iputils_hh.cc \
 	dnsdist.hh \
@@ -306,6 +314,10 @@ dnsdist@.service: dnsdist.service
 systemdsystemunitdir = $(SYSTEMD_DIR)
 
 systemdsystemunit_DATA = \
+	dnsdist.service \
+	dnsdist@.service
+
+CLEANFILES += \
 	dnsdist.service \
 	dnsdist@.service
 endif

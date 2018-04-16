@@ -277,10 +277,10 @@ bool DNSSECKeeper::getNSEC3PARAM(const DNSName& zname, NSEC3PARAMRecordContent* 
     *ns3p = NSEC3PARAMRecordContent(value);
     if (ns3p->d_iterations > maxNSEC3Iterations) {
       ns3p->d_iterations = maxNSEC3Iterations;
-      L<<Logger::Error<<"Number of NSEC3 iterations for zone '"<<zname<<"' is above 'max-nsec3-iterations'. Value adjusted to: "<<maxNSEC3Iterations<<endl;
+      g_log<<Logger::Error<<"Number of NSEC3 iterations for zone '"<<zname<<"' is above 'max-nsec3-iterations'. Value adjusted to: "<<maxNSEC3Iterations<<endl;
     }
     if (ns3p->d_algorithm != 1) {
-      L<<Logger::Error<<"Invalid hash algorithm for NSEC3: '"<<std::to_string(ns3p->d_algorithm)<<"', setting to 1 for zone '"<<zname<<"'."<<endl;
+      g_log<<Logger::Error<<"Invalid hash algorithm for NSEC3: '"<<std::to_string(ns3p->d_algorithm)<<"', setting to 1 for zone '"<<zname<<"'."<<endl;
       ns3p->d_algorithm = 1;
     }
   }
@@ -486,7 +486,7 @@ DNSSECKeeper::keyset_t DNSSECKeeper::getKeys(const DNSName& zone, bool useCache)
     dpk.d_flags = kd.flags;
     dpk.d_algorithm = dkrc.d_algorithm;
     if(dpk.d_algorithm == DNSSECKeeper::RSASHA1 && getNSEC3PARAM(zone)) {
-      L<<Logger::Warning<<"Zone '"<<zone<<"' has NSEC3 semantics, but the "<< (kd.active ? "" : "in" ) <<"active key with id "<<kd.id<<" has 'Algorithm: 5'. This should be corrected to 'Algorithm: 7' in the database (or NSEC3 should be disabled)."<<endl;
+      g_log<<Logger::Warning<<"Zone '"<<zone<<"' has NSEC3 semantics, but the "<< (kd.active ? "" : "in" ) <<"active key with id "<<kd.id<<" has 'Algorithm: 5'. This should be corrected to 'Algorithm: 7' in the database (or NSEC3 should be disabled)."<<endl;
       dpk.d_algorithm = DNSSECKeeper::RSASHA1NSEC3SHA1;
     }
 
@@ -544,7 +544,7 @@ bool DNSSECKeeper::getPreRRSIGs(UeberBackend& db, const DNSName& signer, const D
   // cerr<<"Doing DB lookup for precomputed RRSIGs for '"<<(wildcardname.empty() ? qname : wildcardname)<<"'"<<endl;
         SOAData sd;
         if(!db.getSOAUncached(signer, sd)) {
-                DLOG(L<<"Could not get SOA for domain"<<endl);
+                DLOG(g_log<<"Could not get SOA for domain"<<endl);
                 return false;
         }
         db.lookup(QType(QType::RRSIG), wildcardname.countLabels() ? wildcardname : qname, NULL, sd.domain_id);
@@ -575,7 +575,7 @@ bool DNSSECKeeper::TSIGGrantsAccess(const DNSName& zone, const DNSName& keyname)
   return false;
 }
 
-bool DNSSECKeeper::getTSIGForAccess(const DNSName& zone, const string& master, DNSName* keyname)
+bool DNSSECKeeper::getTSIGForAccess(const DNSName& zone, const ComboAddress& master, DNSName* keyname)
 {
   vector<string> keynames;
   d_keymetadb->getDomainMetadata(zone, "AXFR-MASTER-TSIG", keynames);
@@ -777,7 +777,7 @@ bool DNSSECKeeper::rectifyZone(const DNSName& zone, string& error, string& info,
           {
             if(!(maxent))
             {
-              L<<Logger::Warning<<"Zone '"<<zone<<"' has too many empty non terminals."<<endl;
+              g_log<<Logger::Warning<<"Zone '"<<zone<<"' has too many empty non terminals."<<endl;
               insnonterm.clear();
               delnonterm.clear();
               doent=false;

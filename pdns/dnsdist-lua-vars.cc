@@ -23,7 +23,7 @@
 
 void setupLuaVars()
 {
-    g_lua.writeVariable("DNSAction", std::unordered_map<string,int>{
+  g_lua.writeVariable("DNSAction", std::unordered_map<string,int>{
       {"Drop", (int)DNSAction::Action::Drop},
       {"Nxdomain", (int)DNSAction::Action::Nxdomain},
       {"Refused", (int)DNSAction::Action::Refused},
@@ -40,6 +40,7 @@ void setupLuaVars()
   g_lua.writeVariable("DNSResponseAction", std::unordered_map<string,int>{
       {"Allow",        (int)DNSResponseAction::Action::Allow        },
       {"Delay",        (int)DNSResponseAction::Action::Delay        },
+      {"Drop",         (int)DNSResponseAction::Action::Drop         },
       {"HeaderModify", (int)DNSResponseAction::Action::HeaderModify },
       {"ServFail",     (int)DNSResponseAction::Action::ServFail     },
       {"None",         (int)DNSResponseAction::Action::None         }
@@ -94,4 +95,11 @@ void setupLuaVars()
   for(const auto& n : rcodes)
     dd.push_back({n.first, n.second});
   g_lua.writeVariable("dnsdist", dd);
+
+#ifdef HAVE_DNSCRYPT
+    g_lua.writeVariable("DNSCryptExchangeVersion", std::unordered_map<string,int>{
+        { "VERSION1", DNSCryptExchangeVersion::VERSION1 },
+        { "VERSION2", DNSCryptExchangeVersion::VERSION2 },
+    });
+#endif
 }

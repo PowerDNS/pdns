@@ -1,3 +1,5 @@
+#include <sys/stat.h>
+
 #ifdef HAVE_CONFIG_H
 #include "config.h"
 #endif
@@ -14,9 +16,18 @@
 #include "statbag.hh"
 #include "stubresolver.hh"
 
+#define LOCAL_RESOLV_CONF_PATH "/etc/resolv.conf"
+// don't stat() for local resolv.conf more than once every INTERVAL secs.
+#define LOCAL_RESOLV_CONF_MAX_CHECK_INTERVAL 60
+
 // s_resolversForStub contains the ComboAddresses that are used by
 // stubDoResolve
 static vector<ComboAddress> s_resolversForStub;
+static pthread_mutex_t s_resolversForStubLock = PTHREAD_MUTEX_INITIALIZER;
+
+// /etc/resolv.conf last modification time
+static time_t s_localResolvConfMtime = 0;
+static time_t s_localResolvConfLastCheck = 0;
 
 /*
  * Returns false if no resolvers are configured, while emitting a warning about this
@@ -24,10 +35,58 @@ static vector<ComboAddress> s_resolversForStub;
 bool resolversDefined()
 {
   if (s_resolversForStub.empty()) {
-    L<<Logger::Warning<<"No upstream resolvers configured, stub resolving (including secpoll and ALIAS) impossible."<<endl;
+    g_log<<Logger::Warning<<"No upstream resolvers configured, stub resolving (including secpoll and ALIAS) impossible."<<endl;
     return false;
   }
   return true;
+}
+
+/*
+ * Parse /etc/resolv.conf and add those nameservers to s_resolversForStub
+ */
+static void parseLocalResolvConf()
+{
+  const time_t now = time(nullptr);
+  struct stat st;
+
+  if ((s_localResolvConfLastCheck + LOCAL_RESOLV_CONF_MAX_CHECK_INTERVAL) >  now)
+    return ;
+  s_localResolvConfLastCheck = now;
+
+  if (stat(LOCAL_RESOLV_CONF_PATH, &st) != -1) {
+    if (st.st_mtime != s_localResolvConfMtime) {
+      ifstream ifs(LOCAL_RESOLV_CONF_PATH);
+      string line;
+      Lock l(&s_resolversForStubLock);
+
+      s_localResolvConfMtime = st.st_mtime;
+      if(!ifs)
+        return;
+
+      s_resolversForStub.clear();
+      while(std::getline(ifs, line)) {
+        boost::trim_right_if(line, is_any_of(" \r\n\x1a"));
+        boost::trim_left(line); // leading spaces, let's be nice
+
+        string::size_type tpos = line.find_first_of(";#");
+        if(tpos != string::npos)
+          line.resize(tpos);
+
+        if(boost::starts_with(line, "nameserver ") || boost::starts_with(line, "nameserver\t")) {
+          vector<string> parts;
+          stringtok(parts, line, " \t,"); // be REALLY nice
+          for(vector<string>::const_iterator iter = parts.begin()+1; iter != parts.end(); ++iter) {
+            try {
+              s_resolversForStub.push_back(ComboAddress(*iter, 53));
+            }
+            catch(...)
+            {
+            }
+          }
+        }
+      }
+    }
+  }
 }
 
 /*
@@ -46,32 +105,7 @@ void stubParseResolveConf()
   }
 
   if (s_resolversForStub.empty()) {
-    ifstream ifs("/etc/resolv.conf");
-    if(!ifs)
-      return;
-
-    string line;
-    while(std::getline(ifs, line)) {
-      boost::trim_right_if(line, is_any_of(" \r\n\x1a"));
-      boost::trim_left(line); // leading spaces, let's be nice
-
-      string::size_type tpos = line.find_first_of(";#");
-      if(tpos != string::npos)
-        line.resize(tpos);
-
-      if(boost::starts_with(line, "nameserver ") || boost::starts_with(line, "nameserver\t")) {
-        vector<string> parts;
-        stringtok(parts, line, " \t,"); // be REALLY nice
-        for(vector<string>::const_iterator iter = parts.begin()+1; iter != parts.end(); ++iter) {
-          try {
-            s_resolversForStub.push_back(ComboAddress(*iter, 53));
-          }
-          catch(...)
-          {
-          }
-        }
-      }
-    }
+    parseLocalResolvConf();
   }
   // Emit a warning if there are no stubs.
   resolversDefined();
@@ -80,6 +114,10 @@ void stubParseResolveConf()
 // s_resolversForStub contains the ComboAddresses that are used to resolve the
 int stubDoResolve(const DNSName& qname, uint16_t qtype, vector<DNSZoneRecord>& ret)
 {
+  // only check if resolvers come from local resolv.conf in the first place
+  if (s_localResolvConfMtime != 0) {
+        parseLocalResolvConf();
+  }
   if (!resolversDefined())
     return RCode::ServFail;
 
@@ -93,7 +131,7 @@ int stubDoResolve(const DNSName& qname, uint16_t qtype, vector<DNSZoneRecord>& r
   for (const auto& server : s_resolversForStub) {
     msg += server.toString() + ", ";
   }
-  L<<Logger::Debug<<msg.substr(0, msg.length() - 2)<<endl;
+  g_log<<Logger::Debug<<msg.substr(0, msg.length() - 2)<<endl;
 
   for(const ComboAddress& dest :  s_resolversForStub) {
     Socket sock(dest.sin4.sin_family, SOCK_DGRAM);
@@ -129,7 +167,7 @@ int stubDoResolve(const DNSName& qname, uint16_t qtype, vector<DNSZoneRecord>& r
         ret.push_back(zrr);
       }
     }
-    L<<Logger::Debug<<"Question got answered by "<<dest.toString()<<endl;
+    g_log<<Logger::Debug<<"Question got answered by "<<dest.toString()<<endl;
     return mdp.d_header.rcode;
   }
   return RCode::ServFail;

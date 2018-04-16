@@ -40,8 +40,8 @@
 #ifndef ENABLE_GSS_TSIG
 
 bool GssContext::supported() { return false; }
-GssContext::GssContext() { d_error = GSS_CONTEXT_UNSUPPORTED; d_type = GSS_CONTEXT_NONE; }
-GssContext::GssContext(const DNSName& label) { d_error = GSS_CONTEXT_UNSUPPORTED; d_type = GSS_CONTEXT_NONE; }
+GssContext::GssContext() : d_error(GSS_CONTEXT_UNSUPPORTED), d_type(GSS_CONTEXT_NONE) {}
+GssContext::GssContext(const DNSName& label) : d_error(GSS_CONTEXT_UNSUPPORTED), d_type(GSS_CONTEXT_NONE) {}
 void GssContext::setLocalPrincipal(const std::string& name) {}
 bool GssContext::getLocalPrincipal(std::string& name) { return false; }
 void GssContext::setPeerPrincipal(const std::string& name) {}
@@ -61,14 +61,9 @@ GssContextError GssContext::getError() { return GSS_CONTEXT_UNSUPPORTED; }
 
 class GssCredential : boost::noncopyable {
 public:
-  GssCredential(const std::string& name, const gss_cred_usage_t usage) {
+  GssCredential(const std::string& name, const gss_cred_usage_t usage) :
+    d_valid(false), d_nameS(name), d_name(GSS_C_NO_NAME), d_cred(GSS_C_NO_CREDENTIAL), d_usage(usage) {
     gss_buffer_desc buffer;
-    d_name = GSS_C_NO_NAME;
-    d_nameS = name;
-    d_cred = GSS_C_NO_CREDENTIAL;
-
-    d_usage = usage;
-    d_valid = false;
     
     if (name.empty() == false) {
       buffer.length = name.size();
@@ -456,17 +451,17 @@ bool gss_add_signature(const DNSName& context, const std::string& message, std::
   string tmp_mac;
   GssContext gssctx(context);
   if (!gssctx.valid()) {
-    L<<Logger::Error<<"GSS context '"<<context<<"' is not valid"<<endl;
+    g_log<<Logger::Error<<"GSS context '"<<context<<"' is not valid"<<endl;
     for(const string& error :  gssctx.getErrorStrings()) {
-       L<<Logger::Error<<"GSS error: "<<error<<endl;;
+       g_log<<Logger::Error<<"GSS error: "<<error<<endl;;
     }
     return false;
   }
 
   if (!gssctx.sign(message, tmp_mac)) {
-    L<<Logger::Error<<"Could not sign message using GSS context '"<<context<<"'"<<endl;
+    g_log<<Logger::Error<<"Could not sign message using GSS context '"<<context<<"'"<<endl;
     for(const string& error :  gssctx.getErrorStrings()) {
-       L<<Logger::Error<<"GSS error: "<<error<<endl;;
+       g_log<<Logger::Error<<"GSS error: "<<error<<endl;;
     }
     return false;
   }
@@ -477,17 +472,17 @@ bool gss_add_signature(const DNSName& context, const std::string& message, std::
 bool gss_verify_signature(const DNSName& context, const std::string& message, const std::string& mac) {
   GssContext gssctx(context);
   if (!gssctx.valid()) {
-    L<<Logger::Error<<"GSS context '"<<context<<"' is not valid"<<endl;
+    g_log<<Logger::Error<<"GSS context '"<<context<<"' is not valid"<<endl;
     for(const string& error :  gssctx.getErrorStrings()) {
-       L<<Logger::Error<<"GSS error: "<<error<<endl;;
+       g_log<<Logger::Error<<"GSS error: "<<error<<endl;;
     }
     return false;
   }
 
   if (!gssctx.verify(message, mac)) {
-    L<<Logger::Error<<"Could not verify message using GSS context '"<<context<<"'"<<endl;
+    g_log<<Logger::Error<<"Could not verify message using GSS context '"<<context<<"'"<<endl;
     for(const string& error :  gssctx.getErrorStrings()) {
-       L<<Logger::Error<<"GSS error: "<<error<<endl;;
+       g_log<<Logger::Error<<"GSS error: "<<error<<endl;;
     }
     return false;
   }

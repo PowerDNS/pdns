@@ -43,10 +43,7 @@ m4_pattern_forbid([^_?PKG_[A-Z_]+$], [*** pkg.m4 missing, please install pkg-con
 
 PDNS_CHECK_OS
 
-PDNS_WITH_LUAJIT
-AS_IF([test "x$with_luajit" = "xno"], [
-  PDNS_WITH_LUA
-])
+PDNS_WITH_LUA
 PDNS_CHECK_LUA_HPP
 
 AX_CXX_COMPILE_STDCXX_11
@@ -66,6 +63,8 @@ AS_IF([test "x$enable_hardening" != "xno"], [
   AC_CC_D_FORTIFY_SOURCE
   AC_LD_RELRO
 ])
+
+PDNS_ENABLE_KISS
 
 PDNS_CHECK_NETWORK_LIBS
 
@@ -116,6 +115,7 @@ AS_IF([test "$boost_cv_lib_program_options" = "no"], [
   AC_MSG_ERROR([Boost Program Options library not found])
 ])
 PDNS_ENABLE_UNIT_TESTS
+PDNS_ENABLE_BACKEND_UNIT_TESTS
 PDNS_ENABLE_REPRODUCIBLE
 
 PDNS_WITH_SQLITE3
@@ -124,7 +124,7 @@ PDNS_CHECK_VIRTUALENV
 PDNS_FROM_GIT
 
 dnl Checks for library functions.
-AC_CHECK_FUNCS_ONCE([strcasestr localtime_r recvmmsg])
+AC_CHECK_FUNCS_ONCE([strcasestr localtime_r recvmmsg getrandom arc4random])
 
 AM_CONDITIONAL([HAVE_RECVMMSG], [test "x$ac_cv_func_recvmmsg" = "xyes"])
 
@@ -206,7 +206,7 @@ for a in $modules $dynmodules; do
       AS_IF([test "x$with_lua" = "xno"],
         AC_MSG_ERROR([Lua backend needs lua, run ./configure --with-lua])
       )
-      AS_IF([test "x$LUAPC" = "x" -a "x$LUAJITPC" = "x"],
+      AS_IF([test "x$LUAPC" = "x"],
         AC_MSG_ERROR([Lua backend needs lua but we cannot find it])
       )
       ;;

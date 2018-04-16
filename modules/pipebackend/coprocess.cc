@@ -45,13 +45,13 @@ CoProcess::CoProcess(const string &command,int timeout, int infd, int outfd)
   vector <string> v;
   split(v, command, is_any_of(" "));
 
-  const char *argv[v.size()+1];
+  std::vector<const char *>argv(v.size()+1);
   argv[v.size()]=0;
 
   for (size_t n = 0; n < v.size(); n++)
     argv[n]=v[n].c_str();
   // we get away with not copying since nobody resizes v 
-  launch(argv, timeout, infd, outfd);
+  launch(argv.data(), timeout, infd, outfd);
 }
 
 void CoProcess::launch(const char **argv, int timeout, int infd, int outfd)

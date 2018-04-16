@@ -94,7 +94,7 @@ UeberBackend *PacketHandler::getBackend()
 PacketHandler::~PacketHandler()
 {
   --s_count;
-  DLOG(L<<Logger::Error<<"PacketHandler destructor called - "<<s_count<<" left"<<endl);
+  DLOG(g_log<<Logger::Error<<"PacketHandler destructor called - "<<s_count<<" left"<<endl);
 }
 
 /**
@@ -324,7 +324,7 @@ vector<DNSZoneRecord> PacketHandler::getBestDNAMESynth(DNSPacket *p, SOAData& sd
   DNSName prefix;
   DNSName subdomain(target);
   do {
-    DLOG(L<<"Attempting DNAME lookup for "<<subdomain<<", sd.qname="<<sd.qname<<endl);
+    DLOG(g_log<<"Attempting DNAME lookup for "<<subdomain<<", sd.qname="<<sd.qname<<endl);
 
     B.lookup(QType(QType::DNAME), subdomain, p, sd.domain_id);
     while(B.get(rr)) {
@@ -410,7 +410,7 @@ bool PacketHandler::getBestWildcard(DNSPacket *p, SOAData& sd, const DNSName &ta
 
     B.lookup(QType(QType::ANY), subdomain, p, sd.domain_id);
     if (B.get(rr)) {
-      DLOG(L<<"No wildcard match, ancestor exists"<<endl);
+      DLOG(g_log<<"No wildcard match, ancestor exists"<<endl);
       while (B.get(rr)) ;
       break;
     }
@@ -458,7 +458,7 @@ int PacketHandler::doAdditionalProcessingAndDropAA(DNSPacket *p, DNSPacket *r, c
         if(rr.dr.d_type != QType::A && rr.dr.d_type!=QType::AAAA)
           continue;
         if(rr.domain_id!=i->domain_id && ::arg()["out-of-zone-additional-processing"]=="no") {
-          DLOG(L<<Logger::Warning<<"Not including out-of-zone additional processing of "<<i->dr.d_name<<" ("<<rr.dr.d_name<<")"<<endl);
+          DLOG(g_log<<Logger::Warning<<"Not including out-of-zone additional processing of "<<i->dr.d_name<<" ("<<rr.dr.d_name<<")"<<endl);
           continue; // not adding out-of-zone additional data
         }
         
@@ -616,11 +616,11 @@ bool getNSEC3Hashes(bool narrow, DNSBackend* db, int id, const std::string& hash
 
 void PacketHandler::addNSEC3(DNSPacket *p, DNSPacket *r, const DNSName& target, const DNSName& wildcard, const DNSName& auth, const NSEC3PARAMRecordContent& ns3rc, bool narrow, int mode)
 {
-  DLOG(L<<"addNSEC3() mode="<<mode<<" auth="<<auth<<" target="<<target<<" wildcard="<<wildcard<<endl);
+  DLOG(g_log<<"addNSEC3() mode="<<mode<<" auth="<<auth<<" target="<<target<<" wildcard="<<wildcard<<endl);
 
   SOAData sd;
   if(!B.getSOAUncached(auth, sd)) {
-    DLOG(L<<"Could not get SOA for domain");
+    DLOG(g_log<<"Could not get SOA for domain");
     return;
   }
 
@@ -638,12 +638,12 @@ void PacketHandler::addNSEC3(DNSPacket *p, DNSPacket *r, const DNSName& target, 
   if (mode != 3) {
     unhashed=(mode == 0 || mode == 1 || mode == 5) ? target : closest;
     hashed=hashQNameWithSalt(ns3rc, unhashed);
-    DLOG(L<<"1 hash: "<<toBase32Hex(hashed)<<" "<<unhashed<<endl);
+    DLOG(g_log<<"1 hash: "<<toBase32Hex(hashed)<<" "<<unhashed<<endl);
 
     getNSEC3Hashes(narrow, sd.db, sd.domain_id,  hashed, false, unhashed, before, after, mode);
 
     if (((mode == 0 && ns3rc.d_flags) ||  mode == 1) && (hashed != before)) {
-      DLOG(L<<"No matching NSEC3, do closest (provable) encloser"<<endl);
+      DLOG(g_log<<"No matching NSEC3, do closest (provable) encloser"<<endl);
 
       bool doBreak = false;
       DNSZoneRecord rr;
@@ -658,13 +658,13 @@ void PacketHandler::addNSEC3(DNSPacket *p, DNSPacket *r, const DNSName& target, 
       doNextcloser = true;
       unhashed=closest;
       hashed=hashQNameWithSalt(ns3rc, unhashed);
-      DLOG(L<<"1 hash: "<<toBase32Hex(hashed)<<" "<<unhashed<<endl);
+      DLOG(g_log<<"1 hash: "<<toBase32Hex(hashed)<<" "<<unhashed<<endl);
 
       getNSEC3Hashes(narrow, sd.db, sd.domain_id,  hashed, false, unhashed, before, after);
     }
 
     if (!after.empty()) {
-      DLOG(L<<"Done calling for matching, hashed: '"<<toBase32Hex(hashed)<<"' before='"<<toBase32Hex(before)<<"', after='"<<toBase32Hex(after)<<"'"<<endl);
+      DLOG(g_log<<"Done calling for matching, hashed: '"<<toBase32Hex(hashed)<<"' before='"<<toBase32Hex(before)<<"', after='"<<toBase32Hex(after)<<"'"<<endl);
       emitNSEC3(r, sd, ns3rc, unhashed, before, after, mode);
     }
   }
@@ -678,10 +678,10 @@ void PacketHandler::addNSEC3(DNSPacket *p, DNSPacket *r, const DNSName& target, 
     while( next.chopOff() && !(next==closest));
 
     hashed=hashQNameWithSalt(ns3rc, unhashed);
-    DLOG(L<<"2 hash: "<<toBase32Hex(hashed)<<" "<<unhashed<<endl);
+    DLOG(g_log<<"2 hash: "<<toBase32Hex(hashed)<<" "<<unhashed<<endl);
 
     getNSEC3Hashes(narrow, sd.db,sd.domain_id,  hashed, true, unhashed, before, after);
-    DLOG(L<<"Done calling for covering, hashed: '"<<toBase32Hex(hashed)<<"' before='"<<toBase32Hex(before)<<"', after='"<<toBase32Hex(after)<<"'"<<endl);
+    DLOG(g_log<<"Done calling for covering, hashed: '"<<toBase32Hex(hashed)<<"' before='"<<toBase32Hex(before)<<"', after='"<<toBase32Hex(after)<<"'"<<endl);
     emitNSEC3( r, sd, ns3rc, unhashed, before, after, mode);
   }
 
@@ -690,21 +690,21 @@ void PacketHandler::addNSEC3(DNSPacket *p, DNSPacket *r, const DNSName& target, 
     unhashed=g_wildcarddnsname+closest;
 
     hashed=hashQNameWithSalt(ns3rc, unhashed);
-    DLOG(L<<"3 hash: "<<toBase32Hex(hashed)<<" "<<unhashed<<endl);
+    DLOG(g_log<<"3 hash: "<<toBase32Hex(hashed)<<" "<<unhashed<<endl);
 
     getNSEC3Hashes(narrow, sd.db, sd.domain_id,  hashed, (mode != 2), unhashed, before, after);
-    DLOG(L<<"Done calling for '*', hashed: '"<<toBase32Hex(hashed)<<"' before='"<<toBase32Hex(before)<<"', after='"<<toBase32Hex(after)<<"'"<<endl);
+    DLOG(g_log<<"Done calling for '*', hashed: '"<<toBase32Hex(hashed)<<"' before='"<<toBase32Hex(before)<<"', after='"<<toBase32Hex(after)<<"'"<<endl);
     emitNSEC3( r, sd, ns3rc, unhashed, before, after, mode);
   }
 }
 
 void PacketHandler::addNSEC(DNSPacket *p, DNSPacket *r, const DNSName& target, const DNSName& wildcard, const DNSName& auth, int mode)
 {
-  DLOG(L<<"addNSEC() mode="<<mode<<" auth="<<auth<<" target="<<target<<" wildcard="<<wildcard<<endl);
+  DLOG(g_log<<"addNSEC() mode="<<mode<<" auth="<<auth<<" target="<<target<<" wildcard="<<wildcard<<endl);
 
   SOAData sd;
   if(!B.getSOAUncached(auth, sd)) {
-    DLOG(L<<"Could not get SOA for domain"<<endl);
+    DLOG(g_log<<"Could not get SOA for domain"<<endl);
     return;
   }
 
@@ -768,22 +768,22 @@ int PacketHandler::trySuperMaster(DNSPacket *p, const DNSName& tsigkeyname)
   }
 }
 
-int PacketHandler::trySuperMasterSynchronous(DNSPacket *p, const DNSName& tsigkeyname)
+int PacketHandler::trySuperMasterSynchronous(const DNSPacket *p, const DNSName& tsigkeyname)
 {
-  string remote = p->getRemote().toString();
-  if(p->hasEDNSSubnet() && ::arg().contains("trusted-notification-proxy", remote)) {
-    remote = p->getRealRemote().toStringNoMask();
+  ComboAddress remote = p->getRemote().setPort(53);
+  if(p->hasEDNSSubnet() && ::arg().contains("trusted-notification-proxy", remote.toString())) {
+    remote = p->getRealRemote().getNetwork();
   }
 
   Resolver::res_t nsset;
   try {
     Resolver resolver;
     uint32_t theirserial;
-    resolver.getSoaSerial(remote,p->qdomain, &theirserial);
+    resolver.getSoaSerial(remote, p->qdomain, &theirserial);
     resolver.resolve(remote, p->qdomain, QType::NS, &nsset);
   }
   catch(ResolverException &re) {
-    L<<Logger::Error<<"Error resolving SOA or NS for "<<p->qdomain<<" at: "<< remote <<": "<<re.reason<<endl;
+    g_log<<Logger::Error<<"Error resolving SOA or NS for "<<p->qdomain<<" at: "<< remote <<": "<<re.reason<<endl;
     return RCode::ServFail;
   }
 
@@ -795,7 +795,7 @@ int PacketHandler::trySuperMasterSynchronous(DNSPacket *p, const DNSName& tsigke
   }
 
   if(!haveNS) {
-    L<<Logger::Error<<"While checking for supermaster, did not find NS for "<<p->qdomain<<" at: "<< remote <<endl;
+    g_log<<Logger::Error<<"While checking for supermaster, did not find NS for "<<p->qdomain<<" at: "<< remote <<endl;
     return RCode::ServFail;
   }
 
@@ -803,15 +803,15 @@ int PacketHandler::trySuperMasterSynchronous(DNSPacket *p, const DNSName& tsigke
   DNSBackend *db;
 
   if (!::arg().mustDo("allow-unsigned-supermaster") && tsigkeyname.empty()) {
-    L<<Logger::Error<<"Received unsigned NOTIFY for "<<p->qdomain<<" from potential supermaster "<<remote<<". Refusing."<<endl;
+    g_log<<Logger::Error<<"Received unsigned NOTIFY for "<<p->qdomain<<" from potential supermaster "<<remote<<". Refusing."<<endl;
     return RCode::Refused;
   }
 
-  if(!B.superMasterBackend(remote, p->qdomain, nsset, &nameserver, &account, &db)) {
-    L<<Logger::Error<<"Unable to find backend willing to host "<<p->qdomain<<" for potential supermaster "<<remote<<". Remote nameservers: "<<endl;
+  if(!B.superMasterBackend(remote.toString(), p->qdomain, nsset, &nameserver, &account, &db)) {
+    g_log<<Logger::Error<<"Unable to find backend willing to host "<<p->qdomain<<" for potential supermaster "<<remote<<". Remote nameservers: "<<endl;
     for(const auto& rr: nsset) {
       if(rr.qtype==QType::NS)
-        L<<Logger::Error<<rr.content<<endl;
+        g_log<<Logger::Error<<rr.content<<endl;
     }
     return RCode::Refused;
   }
@@ -824,10 +824,10 @@ int PacketHandler::trySuperMasterSynchronous(DNSPacket *p, const DNSName& tsigke
     }
   }
   catch(PDNSException& ae) {
-    L<<Logger::Error<<"Database error trying to create "<<p->qdomain<<" for potential supermaster "<<remote<<": "<<ae.reason<<endl;
+    g_log<<Logger::Error<<"Database error trying to create "<<p->qdomain<<" for potential supermaster "<<remote<<": "<<ae.reason<<endl;
     return RCode::ServFail;
   }
-  L<<Logger::Warning<<"Created new slave zone '"<<p->qdomain<<"' from supermaster "<<remote<<endl;
+  g_log<<Logger::Warning<<"Created new slave zone '"<<p->qdomain<<"' from supermaster "<<remote<<endl;
   return RCode::NoError;
 }
 
@@ -840,74 +840,79 @@ int PacketHandler::processNotify(DNSPacket *p)
      We determine the SOA at our (known) master
      if master is higher -> do stuff
   */
-  vector<string> meta;
+
+  g_log<<Logger::Debug<<"Received NOTIFY for "<<p->qdomain<<" from "<<p->getRemote()<<endl;
 
   if(!::arg().mustDo("slave") && s_forwardNotify.empty()) {
-    L<<Logger::Error<<"Received NOTIFY for "<<p->qdomain<<" from "<<p->getRemote()<<" but slave support is disabled in the configuration"<<endl;
-    return RCode::NotImp;
+    g_log<<Logger::Warning<<"Received NOTIFY for "<<p->qdomain<<" from "<<p->getRemote()<<" but slave support is disabled in the configuration"<<endl;
+    return RCode::Refused;
   }
 
+  // Sender verification
+  //
   if(!s_allowNotifyFrom.match((ComboAddress *) &p->d_remote ) || p->d_havetsig) {
     if (p->d_havetsig && p->getTSIGKeyname().empty() == false) {
-        L<<Logger::Notice<<"Received secure NOTIFY for "<<p->qdomain<<" from "<<p->getRemote()<<", allowed by TSIG key '"<<p->getTSIGKeyname()<<"'"<<endl;
+        g_log<<Logger::Notice<<"Received secure NOTIFY for "<<p->qdomain<<" from "<<p->getRemote()<<", with TSIG key '"<<p->getTSIGKeyname()<<"'"<<endl;
     } else {
-      L<<Logger::Error<<"Received NOTIFY for "<<p->qdomain<<" from "<<p->getRemote()<<" but remote is not permitted by TSIG or allow-notify-from"<<endl;
+      g_log<<Logger::Warning<<"Received NOTIFY for "<<p->qdomain<<" from "<<p->getRemote()<<" but the remote is not providing a TSIG key or in allow-notify-from (Refused)"<<endl;
       return RCode::Refused;
     }
   }
 
-  DNSBackend *db=0;
-  DomainInfo di;
-  di.serial = 0;
-  if(!B.getDomainInfo(p->qdomain, di) || !(db=di.backend)) {
-    L<<Logger::Error<<"Received NOTIFY for "<<p->qdomain<<" from "<<p->getRemote()<<" for which we are not authoritative"<<endl;
-    return trySuperMaster(p, p->getTSIGKeyname());
-  }
-
-  meta.clear();
-  if (B.getDomainMetadata(p->qdomain,"AXFR-MASTER-TSIG",meta) && meta.size() > 0) {
+  if ((!::arg().mustDo("allow-unsigned-notify") && !p->d_havetsig) || p->d_havetsig) {
     if (!p->d_havetsig) {
-      if (::arg().mustDo("allow-unsigned-notify")) {
-        L<<Logger::Warning<<"Received unsigned NOTIFY for "<<p->qdomain<<" from "<<p->getRemote()<<": permitted because allow-unsigned-notify";
-      } else {
-        L<<Logger::Warning<<"Received unsigned NOTIFY for "<<p->qdomain<<" from "<<p->getRemote()<<": refused"<<endl;
+      g_log<<Logger::Warning<<"Received unsigned NOTIFY for "<<p->qdomain<<" from "<<p->getRemote()<<" while a TSIG key was required (Refused)"<<endl;
+      return RCode::Refused;
+    }
+    vector<string> meta;
+    if (B.getDomainMetadata(p->qdomain,"AXFR-MASTER-TSIG",meta) && meta.size() > 0) {
+      if (!pdns_iequals(meta[0], p->getTSIGKeyname().toStringNoDot())) {
+        g_log<<Logger::Warning<<"Received secure NOTIFY for "<<p->qdomain<<" from "<<p->getRemote()<<": expected TSIG key '"<<meta[0]<<", got '"<<p->getTSIGKeyname()<<"' (Refused)"<<endl;
         return RCode::Refused;
       }
-    } else if (meta[0] != p->getTSIGKeyname().toStringNoDot()) {
-      L<<Logger::Error<<"Received secure NOTIFY for "<<p->qdomain<<" from "<<p->getRemote()<<": expected TSIG key '"<<meta[0]<<", got '"<<p->getTSIGKeyname()<<"'"<<endl;
-      return RCode::Refused;
     }
+  }
+
+  // Domain verification
+  //
+  DomainInfo di;
+  if(!B.getDomainInfo(p->qdomain, di, false) || !di.backend) {
+    if(::arg().mustDo("supermaster")) {
+      g_log<<Logger::Warning<<"Received NOTIFY for "<<p->qdomain<<" from "<<p->getRemote()<<" for which we are not authoritative, trying supermaster"<<endl;
+      return trySuperMaster(p, p->getTSIGKeyname());
+    }
+    g_log<<Logger::Notice<<"Received NOTIFY for "<<p->qdomain<<" from "<<p->getRemote()<<" for which we are not authoritative (Refused)"<<endl;
+    return RCode::Refused;
   }
 
   if(::arg().contains("trusted-notification-proxy", p->getRemote().toString())) {
-    L<<Logger::Error<<"Received NOTIFY for "<<p->qdomain<<" from trusted-notification-proxy "<< p->getRemote()<<endl;
+    g_log<<Logger::Error<<"Received NOTIFY for "<<p->qdomain<<" from trusted-notification-proxy "<< p->getRemote()<<endl;
     if(di.masters.empty()) {
-      L<<Logger::Error<<"However, "<<p->qdomain<<" does not have any masters defined"<<endl;
+      g_log<<Logger::Error<<"However, "<<p->qdomain<<" does not have any masters defined (Refused)"<<endl;
       return RCode::Refused;
     }
   }
   else if(::arg().mustDo("master") && di.kind == DomainInfo::Master) {
-    L<<Logger::Error<<"Received NOTIFY for "<<p->qdomain<<" from "<<p->getRemote()<<" but we are master, rejecting"<<endl;
+    g_log<<Logger::Warning<<"Received NOTIFY for "<<p->qdomain<<" from "<<p->getRemote()<<" but we are master (Refused)"<<endl;
     return RCode::Refused;
   }
-  else if(!db->isMaster(p->qdomain, p->getRemote().toString())) {
-    L<<Logger::Error<<"Received NOTIFY for "<<p->qdomain<<" from "<<p->getRemote()<<" which is not a master"<<endl;
+  else if(!di.isMaster(p->getRemote())) {
+    g_log<<Logger::Warning<<"Received NOTIFY for "<<p->qdomain<<" from "<<p->getRemote()<<" which is not a master (Refused)"<<endl;
     return RCode::Refused;
   }
-    
-  // ok, we've done our checks
-  di.backend = 0;
 
   if(!s_forwardNotify.empty()) {
     set<string> forwardNotify(s_forwardNotify);
     for(set<string>::const_iterator j=forwardNotify.begin();j!=forwardNotify.end();++j) {
-      L<<Logger::Warning<<"Relaying notification of domain "<<p->qdomain<<" from "<<p->getRemote()<<" to "<<*j<<endl;
+      g_log<<Logger::Notice<<"Relaying notification of domain "<<p->qdomain<<" from "<<p->getRemote()<<" to "<<*j<<endl;
       Communicator.notify(p->qdomain,*j);
     }
   }
 
-  if(::arg().mustDo("slave"))
+  if(::arg().mustDo("slave")) {
+    g_log<<Logger::Debug<<"Queueing slave check for "<<p->qdomain<<endl;
     Communicator.addSlaveCheckRequest(di, p->d_remote);
+  }
   return 0;
 }
 
@@ -1047,7 +1052,7 @@ bool PacketHandler::tryDNAME(DNSPacket *p, DNSPacket*r, SOAData& sd, DNSName &ta
 {
   if(!d_doDNAME)
     return false;
-  DLOG(L<<Logger::Warning<<"Let's try DNAME.."<<endl);
+  DLOG(g_log<<Logger::Warning<<"Let's try DNAME.."<<endl);
   vector<DNSZoneRecord> rrset = getBestDNAMESynth(p, sd, target);
   if(!rrset.empty()) {
     for(auto& rr: rrset) {
@@ -1068,7 +1073,7 @@ bool PacketHandler::tryWildcard(DNSPacket *p, DNSPacket*r, SOAData& sd, DNSName 
     return false;
 
   if(rrset.empty()) {
-    DLOG(L<<"Wildcard matched something, but not of the correct type"<<endl);
+    DLOG(g_log<<"Wildcard matched something, but not of the correct type"<<endl);
     nodata=true;
   }
   else {
@@ -1110,7 +1115,7 @@ DNSPacket *PacketHandler::doQuestion(DNSPacket *p)
   
   if(p->d.qr) { // QR bit from dns packet (thanks RA from N)
     if(d_logDNSDetails)
-      L<<Logger::Error<<"Received an answer (non-query) packet from "<<p->getRemote()<<", dropping"<<endl;
+      g_log<<Logger::Error<<"Received an answer (non-query) packet from "<<p->getRemote()<<", dropping"<<endl;
     S.inc("corrupt-packets");
     S.ringAccount("remotes-corrupt", p->d_remote);
     return 0;
@@ -1118,7 +1123,7 @@ DNSPacket *PacketHandler::doQuestion(DNSPacket *p)
 
   if(p->d.tc) { // truncated query. MOADNSParser would silently parse this packet in an incomplete way.
     if(d_logDNSDetails)
-      L<<Logger::Error<<"Received truncated query packet from "<<p->getRemote()<<", dropping"<<endl;
+      g_log<<Logger::Error<<"Received truncated query packet from "<<p->getRemote()<<", dropping"<<endl;
     S.inc("corrupt-packets");
     S.ringAccount("remotes-corrupt", p->d_remote);
     return 0;
@@ -1138,7 +1143,7 @@ DNSPacket *PacketHandler::doQuestion(DNSPacket *p)
     if(!p->checkForCorrectTSIG(&B, &keyname, &secret, &trc)) {
       r=p->replyPacket();  // generate an empty reply packet
       if(d_logDNSDetails)
-        L<<Logger::Error<<"Received a TSIG signed message with a non-validating key"<<endl;
+        g_log<<Logger::Error<<"Received a TSIG signed message with a non-validating key"<<endl;
       // RFC3007 describes that a non-secure message should be sending Refused for DNS Updates
       if (p->d.opcode == Opcode::Update)
         r->setRcode(RCode::Refused);
@@ -1150,7 +1155,7 @@ DNSPacket *PacketHandler::doQuestion(DNSPacket *p)
       if (p->d_tsig_algo == TSIG_GSS) {
         GssContext gssctx(keyname);
         if (!gssctx.getPeerPrincipal(p->d_peer_principal)) {
-          L<<Logger::Warning<<"Failed to extract peer principal from GSS context with keyname '"<<keyname<<"'"<<endl;
+          g_log<<Logger::Warning<<"Failed to extract peer principal from GSS context with keyname '"<<keyname<<"'"<<endl;
         }
       }
     }
@@ -1171,7 +1176,7 @@ DNSPacket *PacketHandler::doQuestion(DNSPacket *p)
 
     if(!validDNSName(p->qdomain)) {
       if(d_logDNSDetails)
-        L<<Logger::Error<<"Received a malformed qdomain from "<<p->getRemote()<<", '"<<p->qdomain<<"': sending servfail"<<endl;
+        g_log<<Logger::Error<<"Received a malformed qdomain from "<<p->getRemote()<<", '"<<p->qdomain<<"': sending servfail"<<endl;
       S.inc("corrupt-packets");
       S.ringAccount("remotes-corrupt", p->d_remote);
       S.inc("servfail-packets");
@@ -1202,13 +1207,13 @@ DNSPacket *PacketHandler::doQuestion(DNSPacket *p)
         return 0;
       }
       
-      L<<Logger::Error<<"Received an unknown opcode "<<p->d.opcode<<" from "<<p->getRemote()<<" for "<<p->qdomain<<endl;
+      g_log<<Logger::Error<<"Received an unknown opcode "<<p->d.opcode<<" from "<<p->getRemote()<<" for "<<p->qdomain<<endl;
 
       r->setRcode(RCode::NotImp); 
       return r; 
     }
 
-    // L<<Logger::Warning<<"Query for '"<<p->qdomain<<"' "<<p->qtype.getName()<<" from "<<p->getRemote()<< " (tcp="<<p->d_tcp<<")"<<endl;
+    // g_log<<Logger::Warning<<"Query for '"<<p->qdomain<<"' "<<p->qtype.getName()<<" from "<<p->getRemote()<< " (tcp="<<p->d_tcp<<")"<<endl;
     
     if(p->qtype.getCode()==QType::IXFR) {
       r->setRcode(RCode::Refused);
@@ -1245,7 +1250,7 @@ DNSPacket *PacketHandler::doQuestion(DNSPacket *p)
 
   retargeted:;
     if(retargetcount > 10) {    // XXX FIXME, retargetcount++?
-      L<<Logger::Warning<<"Abort CNAME chain resolution after "<<--retargetcount<<" redirects, sending out servfail. Initial query: '"<<p->qdomain<<"'"<<endl;
+      g_log<<Logger::Warning<<"Abort CNAME chain resolution after "<<--retargetcount<<" redirects, sending out servfail. Initial query: '"<<p->qdomain<<"'"<<endl;
       delete r;
       r=p->replyPacket();
       r->setRcode(RCode::ServFail);
@@ -1253,14 +1258,14 @@ DNSPacket *PacketHandler::doQuestion(DNSPacket *p)
     }
     
     if(!B.getAuth(target, p->qtype, &sd)) {
-      DLOG(L<<Logger::Error<<"We have no authority over zone '"<<target<<"'"<<endl);
+      DLOG(g_log<<Logger::Error<<"We have no authority over zone '"<<target<<"'"<<endl);
       if(!retargetcount) {
         r->setA(false); // drop AA if we never had a SOA in the first place
         r->setRcode(RCode::Refused); // send REFUSED - but only on empty 'no idea'
       }
       goto sendit;
     }
-    DLOG(L<<Logger::Error<<"We have authority, zone='"<<sd.qname<<"', id="<<sd.domain_id<<endl);
+    DLOG(g_log<<Logger::Error<<"We have authority, zone='"<<sd.qname<<"', id="<<sd.domain_id<<endl);
     authSet.insert(sd.qname); 
 
     if(!retargetcount) r->qdomainzone=sd.qname;
@@ -1310,16 +1315,16 @@ DNSPacket *PacketHandler::doQuestion(DNSPacket *p)
 
     // this TRUMPS a cname!
     if(p->qtype.getCode() == QType::RRSIG) {
-      L<<Logger::Info<<"Direct RRSIG query for "<<target<<" from "<<p->getRemote()<<endl;
+      g_log<<Logger::Info<<"Direct RRSIG query for "<<target<<" from "<<p->getRemote()<<endl;
       r->setRcode(RCode::Refused);
       goto sendit;
     }
 
-    DLOG(L<<"Checking for referrals first, unless this is a DS query"<<endl);
+    DLOG(g_log<<"Checking for referrals first, unless this is a DS query"<<endl);
     if(p->qtype.getCode() != QType::DS && tryReferral(p, r, sd, target, retargetcount))
       goto sendit;
 
-    DLOG(L<<"Got no referrals, trying ANY"<<endl);
+    DLOG(g_log<<"Got no referrals, trying ANY"<<endl);
 
     // see what we get..
     B.lookup(QType(QType::ANY), target, p, sd.domain_id);
@@ -1382,7 +1387,7 @@ DNSPacket *PacketHandler::doQuestion(DNSPacket *p)
 
       if(DP && rr.dr.d_type == QType::ALIAS && (p->qtype.getCode() == QType::A || p->qtype.getCode() == QType::AAAA || p->qtype.getCode() == QType::ANY)) {
         if (!d_doExpandALIAS) {
-          L<<Logger::Info<<"ALIAS record found for "<<target<<", but ALIAS expansion is disabled."<<endl;
+          g_log<<Logger::Info<<"ALIAS record found for "<<target<<", but ALIAS expansion is disabled."<<endl;
           continue;
         }
         haveAlias=getRR<ALIASRecordContent>(rr.dr)->d_content;
@@ -1408,33 +1413,33 @@ DNSPacket *PacketHandler::doQuestion(DNSPacket *p)
     }
 
 
-    DLOG(L<<"After first ANY query for '"<<target<<"', id="<<sd.domain_id<<": weDone="<<weDone<<", weHaveUnauth="<<weHaveUnauth<<", weRedirected="<<weRedirected<<", haveAlias='"<<haveAlias<<"'"<<endl);
+    DLOG(g_log<<"After first ANY query for '"<<target<<"', id="<<sd.domain_id<<": weDone="<<weDone<<", weHaveUnauth="<<weHaveUnauth<<", weRedirected="<<weRedirected<<", haveAlias='"<<haveAlias<<"'"<<endl);
     if(p->qtype.getCode() == QType::DS && weHaveUnauth &&  !weDone && !weRedirected && d_dk.isSecuredZone(sd.qname)) {
-      DLOG(L<<"Q for DS of a name for which we do have NS, but for which we don't have on a zone with DNSSEC need to provide an AUTH answer that proves we don't"<<endl);
+      DLOG(g_log<<"Q for DS of a name for which we do have NS, but for which we don't have on a zone with DNSSEC need to provide an AUTH answer that proves we don't"<<endl);
       makeNOError(p, r, target, DNSName(), sd, 1);
       goto sendit;
     }
 
     if(!haveAlias.empty() && (!weDone || p->qtype.getCode() == QType::ANY)) {
-      DLOG(L<<Logger::Warning<<"Found nothing that matched for '"<<target<<"', but did get alias to '"<<haveAlias<<"', referring"<<endl);
+      DLOG(g_log<<Logger::Warning<<"Found nothing that matched for '"<<target<<"', but did get alias to '"<<haveAlias<<"', referring"<<endl);
       DP->completePacket(r, haveAlias, target);
       return 0;
     }
 
     if(rrset.empty()) {
-      DLOG(L<<"checking qtype.getCode() ["<<(p->qtype.getCode())<<"] against QType::DS ["<<(QType::DS)<<"]"<<endl);
+      DLOG(g_log<<"checking qtype.getCode() ["<<(p->qtype.getCode())<<"] against QType::DS ["<<(QType::DS)<<"]"<<endl);
       if(p->qtype.getCode() == QType::DS)
       {
-        DLOG(L<<"DS query found no direct result, trying referral now"<<endl);
+        DLOG(g_log<<"DS query found no direct result, trying referral now"<<endl);
         if(tryReferral(p, r, sd, target, retargetcount))
         {
-          DLOG(L<<"got referral for DS query"<<endl);
+          DLOG(g_log<<"got referral for DS query"<<endl);
           goto sendit;
         }
       }
 
 
-      DLOG(L<<Logger::Warning<<"Found nothing in the by-name ANY, but let's try wildcards.."<<endl);
+      DLOG(g_log<<Logger::Warning<<"Found nothing in the by-name ANY, but let's try wildcards.."<<endl);
       bool wereRetargeted(false), nodata(false);
       DNSName wildcard;
       if(tryWildcard(p, r, sd, target, wildcard, wereRetargeted, nodata)) {
@@ -1493,18 +1498,18 @@ DNSPacket *PacketHandler::doQuestion(DNSPacket *p)
       goto sendit;
     }
     else if(weHaveUnauth) {
-      DLOG(L<<"Have unauth data, so need to hunt for best NS records"<<endl);
+      DLOG(g_log<<"Have unauth data, so need to hunt for best NS records"<<endl);
       if(tryReferral(p, r, sd, target, retargetcount))
         goto sendit;
       // check whether this could be fixed easily
       // if (*(rr.dr.d_name.rbegin()) == '.') {
-      //      L<<Logger::Error<<"Should not get here ("<<p->qdomain<<"|"<<p->qtype.getCode()<<"): you have a trailing dot, this could be the problem (or run pdnsutil rectify-zone " <<sd.qname<<")"<<endl;
+      //      g_log<<Logger::Error<<"Should not get here ("<<p->qdomain<<"|"<<p->qtype.getCode()<<"): you have a trailing dot, this could be the problem (or run pdnsutil rectify-zone " <<sd.qname<<")"<<endl;
       // } else {
-           L<<Logger::Error<<"Should not get here ("<<p->qdomain<<"|"<<p->qtype.getCode()<<"): please run pdnsutil rectify-zone "<<sd.qname<<endl;
+           g_log<<Logger::Error<<"Should not get here ("<<p->qdomain<<"|"<<p->qtype.getCode()<<"): please run pdnsutil rectify-zone "<<sd.qname<<endl;
       // }
     }
     else {
-      DLOG(L<<"Have some data, but not the right data"<<endl);
+      DLOG(g_log<<"Have some data, but not the right data"<<endl);
       makeNOError(p, r, target, DNSName(), sd, 0);
     }
     
@@ -1528,7 +1533,7 @@ DNSPacket *PacketHandler::doQuestion(DNSPacket *p)
       PC.insert(p, r, r->getMinTTL()); // in the packet cache
   }
   catch(DBException &e) {
-    L<<Logger::Error<<"Backend reported condition which prevented lookup ("+e.reason+") sending out servfail"<<endl;
+    g_log<<Logger::Error<<"Backend reported condition which prevented lookup ("+e.reason+") sending out servfail"<<endl;
     delete r;
     r=p->replyPacket(); // generate an empty reply packet
     r->setRcode(RCode::ServFail);
@@ -1536,11 +1541,11 @@ DNSPacket *PacketHandler::doQuestion(DNSPacket *p)
     S.ringAccount("servfail-queries",p->qdomain.toLogString());
   }
   catch(PDNSException &e) {
-    L<<Logger::Error<<"Backend reported permanent error which prevented lookup ("+e.reason+"), aborting"<<endl;
+    g_log<<Logger::Error<<"Backend reported permanent error which prevented lookup ("+e.reason+"), aborting"<<endl;
     throw; // we WANT to die at this point
   }
   catch(std::exception &e) {
-    L<<Logger::Error<<"Exception building answer packet for "<<p->qdomain<<"/"<<p->qtype.getName()<<" ("<<e.what()<<") sending out servfail"<<endl;
+    g_log<<Logger::Error<<"Exception building answer packet for "<<p->qdomain<<"/"<<p->qtype.getName()<<" ("<<e.what()<<") sending out servfail"<<endl;
     delete r;
     r=p->replyPacket(); // generate an empty reply packet
     r->setRcode(RCode::ServFail);

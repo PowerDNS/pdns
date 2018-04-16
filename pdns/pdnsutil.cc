@@ -95,12 +95,13 @@ void loadMainConfig(const std::string& configdir)
   ::arg().setSwitch("direct-dnskey","Fetch DNSKEY RRs from backend during DNSKEY synthesis")="no";
   ::arg().set("max-nsec3-iterations","Limit the number of NSEC3 hash iterations")="500"; // RFC5155 10.3
   ::arg().set("max-signature-cache-entries", "Maximum number of signatures cache entries")="";
+  ::arg().set("rng", "Specify random number generator to use. Valid values are auto,sodium,openssl,getrandom,arc4random,urandom.")="auto";
   ::arg().laxFile(configname.c_str());
 
-  L.toConsole(Logger::Error);   // so we print any errors
+  g_log.toConsole(Logger::Error);   // so we print any errors
   BackendMakers().launch(::arg()["launch"]); // vrooooom!
   if(::arg().asNum("loglevel") >= 3) // so you can't kill our errors
-    L.toConsole((Logger::Urgency)::arg().asNum("loglevel"));  
+    g_log.toConsole((Logger::Urgency)::arg().asNum("loglevel"));  
 
   //cerr<<"Backend: "<<::arg()["launch"]<<", '" << ::arg()["gmysql-dbname"] <<"'" <<endl;
 
@@ -124,16 +125,15 @@ void loadMainConfig(const std::string& configdir)
   if (! ::arg().laxFile(configname.c_str()))
     cerr<<"Warning: unable to read configuration file '"<<configname<<"': "<<strerror(errno)<<endl;
 
-  seedRandom(::arg()["entropy-source"]);
-
 #ifdef HAVE_LIBSODIUM
   if (sodium_init() == -1) {
     cerr<<"Unable to initialize sodium crypto library"<<endl;
     exit(99);
   }
 #endif
-
   openssl_seed();
+  /* init rng before chroot */
+  dns_random_init();
 
   if (!::arg()["chroot"].empty()) {
     if (chroot(::arg()["chroot"].c_str())<0 || chdir("/") < 0) {
@@ -145,16 +145,19 @@ void loadMainConfig(const std::string& configdir)
   UeberBackend::go();
 }
 
-bool rectifyZone(DNSSECKeeper& dk, const DNSName& zone)
+bool rectifyZone(DNSSECKeeper& dk, const DNSName& zone, bool quiet = false)
 {
   string output;
   string error;
   bool ret = dk.rectifyZone(zone, error, output, true);
-  if (!output.empty()) {
-    cerr<<output<<endl;
-  }
-  if (!ret && !error.empty()) {
-    cerr<<error<<endl;
+  if (!quiet || !ret) {
+    // When quiet, only print output if there was an error
+    if (!output.empty()) {
+      cerr<<output<<endl;
+    }
+    if (!ret && !error.empty()) {
+      cerr<<error<<endl;
+    }
   }
   return ret;
 }
@@ -202,17 +205,25 @@ void dbBench(const std::string& fname)
   cout<<"Packet cache reports: "<<S.read("query-cache-hit")<<" hits (should be 0) and "<<S.read("query-cache-miss") <<" misses"<<endl;
 }
 
-void rectifyAllZones(DNSSECKeeper &dk) 
+bool rectifyAllZones(DNSSECKeeper &dk, bool quiet = false)
 {
   UeberBackend B("default");
   vector<DomainInfo> domainInfo;
+  bool result = true;
 
   B.getAllDomains(&domainInfo);
   for(DomainInfo di :  domainInfo) {
-    cerr<<"Rectifying "<<di.zone<<": ";
-    rectifyZone(dk, di.zone);
+    if (!quiet) {
+      cerr<<"Rectifying "<<di.zone<<": ";
+    }
+    if (!rectifyZone(dk, di.zone, quiet)) {
+      result = false;
+    }
   }
-  cout<<"Rectified "<<domainInfo.size()<<" zones."<<endl;
+  if (!quiet) {
+    cout<<"Rectified "<<domainInfo.size()<<" zones."<<endl;
+  }
+  return result;
 }
 
 int checkZone(DNSSECKeeper &dk, UeberBackend &B, const DNSName& zone, const vector<DNSResourceRecord>* suppliedrecords=0)
@@ -1405,7 +1416,7 @@ bool showZone(DNSSECKeeper& dk, const DNSName& zone, bool exportDS = false)
     else if(di.kind == DomainInfo::Slave) {
       cout<<"Master"<<addS(di.masters)<<": ";
       for(const auto& m : di.masters)
-        cout<<m<<" ";
+        cout<<m.toStringWithPort()<<" ";
       cout<<endl;
       struct tm tm;
       localtime_r(&di.last_check, &tm);
@@ -1905,7 +1916,7 @@ try
     cout<<"                                   List all zone names"<<endl;;
     cout<<"list-tsig-keys                     List all TSIG keys"<<endl;
     cout<<"rectify-zone ZONE [ZONE ..]        Fix up DNSSEC fields (order, auth)"<<endl;
-    cout<<"rectify-all-zones                  Rectify all zones."<<endl;
+    cout<<"rectify-all-zones [quiet]          Rectify all zones. Optionally quiet output with errors only"<<endl;
     cout<<"remove-zone-key ZONE KEY-ID        Remove key with KEY-ID from ZONE"<<endl;
     cout<<"replace-rrset ZONE NAME TYPE [ttl] Replace named RRSET from zone"<<endl;
     cout<<"       content [content..]"<<endl;
@@ -2017,7 +2028,10 @@ try
     return exitCode;
   }
   else if (cmds[0] == "rectify-all-zones") {
-    rectifyAllZones(dk);
+    bool quiet = (cmds.size() >= 2 && cmds[1] == "quiet");
+    if (!rectifyAllZones(dk, quiet)) {
+      return 1;
+    }
   }
   else if(cmds[0] == "check-zone") {
     if(cmds.size() != 2) {
@@ -2365,6 +2379,7 @@ try
   else if(cmds[0]=="set-kind") {
     if(cmds.size() != 3) {
       cerr<<"Syntax: pdnsutil set-kind ZONE KIND"<<endl;
+      return 0;
     }
     DNSName zone(cmds[1]);
     auto kind=DomainInfo::stringToKind(cmds[2]);
@@ -2373,6 +2388,7 @@ try
   else if(cmds[0]=="set-account") {
     if(cmds.size() != 3) {
       cerr<<"Syntax: pdnsutil set-account ZONE ACCOUNT"<<endl;
+      return 0;
     }
     DNSName zone(cmds[1]);
     exit(setZoneAccount(zone, cmds[2]));
@@ -3091,11 +3107,11 @@ try
       tgt->setAccount(di.zone,di.account);
       string masters="";
       bool first = true;
-      for(const string& master: di.masters) {
+      for(const auto& master: di.masters) {
         if (!first)
           masters += ", ";
         first = false;
-        masters += master;
+        masters += master.toStringWithPortExcept(53);
       }
       tgt->setMaster(di.zone, masters);
       // move records

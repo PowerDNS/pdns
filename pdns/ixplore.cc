@@ -76,8 +76,12 @@ int main(int argc, char** argv) {
       DNSName zone(argv[2]);
       cout<<"Loading before from "<<argv[3]<<endl;
       loadZoneFromDisk(before, argv[3], zone);
+      cout<<"Parsed "<<before.size()<<" records"<<endl;
+      cout<<"Zone was complete (SOA at end)"<<endl;
       cout<<"Loading after from "<<argv[4]<<endl;
       loadZoneFromDisk(after, argv[4], zone);
+      cout<<"Parsed "<<after.size()<<" records"<<endl;
+      cout<<"Zone was complete (SOA at end)"<<endl;
 
       vector<DNSRecord> diff;
 
@@ -103,7 +107,6 @@ int main(int argc, char** argv) {
        Store result in memory, read that best zone in memory, apply deltas, write it out.
 
        Next up, loop this every REFRESH seconds */
-    dns_random_init("0123456789abcdef");
 
     DNSName zone(argv[4]);
     ComboAddress master(argv[2], atoi(argv[3]));
@@ -133,6 +136,8 @@ int main(int argc, char** argv) {
       string fname=directory+"/"+std::to_string(ourSerial);
       cout<<"Loading serial number "<<ourSerial<<" from file "<<fname<<endl;
       loadZoneFromDisk(records, fname, zone);
+      cout<<"Parsed "<<records.size()<<" records"<<endl;
+      cout<<"Zone was complete (SOA at end)"<<endl;
     }
     catch(std::exception& e) {
       cout<<"Could not load zone from disk: "<<e.what()<<endl;

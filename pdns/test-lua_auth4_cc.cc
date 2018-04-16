@@ -38,7 +38,7 @@ BOOST_AUTO_TEST_CASE(test_prequery) {
     try {
      std::rethrow_if_nested(e);
     } catch(const std::exception& exp) {
-     theL()<<"Extra info: "<<exp.what();
+     g_log<<"Extra info: "<<exp.what();
     }
   }
   delete r;

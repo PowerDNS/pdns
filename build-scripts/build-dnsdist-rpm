@@ -46,7 +46,7 @@ SNMP_CONFIGURE='--with-net-snmp \'
 
 # CentOS 6 has no luajit
 LUA_BUILDREQUIRES='BuildRequires: luajit-devel'
-LUA_CONFIGURE='--with-luajit \'
+LUA_CONFIGURE='--with-lua=luajit \'
 
 # These two are the same for sysv and systemd (we don't install defaults files at the moment)
 DEFAULTS_INSTALL=''
@@ -85,8 +85,10 @@ if [ -f /etc/redhat-release ]; then
   case "$OS" in
     CentOS\ *\ 6*)
       INIT_BUILDREQUIRES=''
-      INIT_INSTALL='install -d -m 755 %{buildroot}/%{_initrddir} && install -m 755 contrib/dnsdist.init.centos6 %{buildroot}/%{_initrddir}/dnsdist'
-      INIT_FILES='%{_initrddir}/dnsdist'
+      INIT_INSTALL='install -d -m 755 %{buildroot}%{_sysconfdir}/init && install -m 644 contrib/dnsdist.upstart.conf %{buildroot}%{_sysconfdir}/init/%{name}.conf'
+      INIT_FILES='%{_sysconfdir}/init/dnsdist.conf'
+      DEFAULTS_INSTALL='install -d -m 755 %{buildroot}%{_sysconfdir}/default && install -m 644 contrib/dnsdist.default %{buildroot}%{_sysconfdir}/default/%{name}'
+      DEFAULTS_FILES='%{_sysconfdir}/default/%{name}'
       INIT_CONFIGURE='\'
       SODIUM_BUILDREQUIRES=''
       SODIUM_CONFIGURE='--disable-libsodium \'
@@ -171,7 +173,9 @@ exit 0
 
 %post
 %if 0%{?el6}
-/sbin/chkconfig --add %{name}
+if [ -x /sbin/initctl ]; then
+   /sbin/initctl reload-configuration
+fi
 %elif 0%{?suse_version}
 %service_add_post %{name}.service
 %else
@@ -180,10 +184,9 @@ exit 0
 
 %preun
 %if 0%{?el6}
-if [ "\$1" -eq "0" ]; then
-  # Package removal, not upgrade
-  /sbin/service %{name} stop > /dev/null 2>&1 || :
-  /sbin/chkconfig --del %{name}
+if [ \$1 -eq 0 ] ; then
+    # This is package removal, not upgrade
+    /sbin/stop %{name} >/dev/null 2>&1 || :
 fi
 %elif 0%{?suse_version}
 %service_del_preun %{name}.service
@@ -193,8 +196,8 @@ fi
 
 %postun
 %if 0%{?el6}
-if [ "\$1" -ge "1" ] ; then
-  /sbin/service %{name} condrestart >/dev/null 2>&1 || :
+if [ -x /sbin/initctl ] && /sbin/initctl status %{name} 2>/dev/null | grep -q 'running' ; then
+  /sbin/initctl stop %{name} > /dev/null 2>&1 || :
 fi
 %elif 0%{?suse_version}
 %service_del_postun %{name}.service
