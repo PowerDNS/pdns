@@ -29,7 +29,7 @@ AC_PROG_MAKE_SET
 
 AC_PROG_CXX
 AS_IF([test "x$CXX" = "xno" || test "x$CXX:x$GXX" = "xg++:x"],
-  AC_MSG_ERROR([no C++ compiler found])
+  [AC_MSG_ERROR([no C++ compiler found])]
 )
 
 AC_LANG([C++])
@@ -204,10 +204,10 @@ for a in $modules $dynmodules; do
       ;;
     lua)
       AS_IF([test "x$with_lua" = "xno"],
-        AC_MSG_ERROR([Lua backend needs lua, run ./configure --with-lua])
+        [AC_MSG_ERROR([Lua backend needs lua, run ./configure --with-lua])]
       )
       AS_IF([test "x$LUAPC" = "x"],
-        AC_MSG_ERROR([Lua backend needs lua but we cannot find it])
+        [AC_MSG_ERROR([Lua backend needs lua but we cannot find it])]
       )
       ;;
   esac
