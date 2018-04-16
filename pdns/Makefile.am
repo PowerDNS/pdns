@@ -551,6 +551,7 @@ stubquery_SOURCES = \
 	dnsparser.cc \
 	dnsrecords.cc \
 	dnswriter.cc \
+	iputils.cc \
 	logger.cc \
 	misc.cc \
 	nsecrecords.cc \
@@ -663,6 +664,7 @@ ixplore_SOURCES = \
 	dnssecinfra.cc \
 	dnswriter.cc dnswriter.hh \
 	gss_context.cc gss_context.hh \
+	iputils.cc \
 	logger.cc \
 	misc.cc misc.hh \
 	nsecrecords.cc \
@@ -700,6 +702,7 @@ dnstcpbench_SOURCES = \
 	dnsrecords.cc \
 	dnstcpbench.cc \
 	dnswriter.cc dnswriter.hh \
+	iputils.cc \
 	logger.cc \
 	misc.cc misc.hh \
 	nsecrecords.cc \
