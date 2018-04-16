@@ -149,44 +149,69 @@ void loadRecursorLuaConfig(const std::string& fname, bool checkOnly)
       ComboAddress localAddress;
       ComboAddress master(master_, 53);
       size_t zoneIdx;
+      std::shared_ptr<SOARecordContent> sr = nullptr;
 
       try {
+        std::string seedFile;
         std::string polName(zoneName);
-        if(options) {
+
+        if (options) {
           auto& have = *options;
           size_t zoneSizeHint = 0;
           parseRPZParameters(have, polName, defpol, maxTTL, zoneSizeHint);
           if (zoneSizeHint > 0) {
             zone->reserve(zoneSizeHint);
           }
+
           if(have.count("tsigname")) {
             tt.name=DNSName(toLower(boost::get<string>(constGet(have, "tsigname"))));
             tt.algo=DNSName(toLower(boost::get<string>(constGet(have, "tsigalgo"))));
             if(B64Decode(boost::get<string>(constGet(have, "tsigsecret")), tt.secret))
               throw std::runtime_error("TSIG secret is not valid Base-64 encoded");
           }
+
           if(have.count("refresh")) {
             refresh = boost::get<uint32_t>(constGet(have,"refresh"));
           }
+
           if(have.count("maxReceivedMBytes")) {
             maxReceivedXFRMBytes = static_cast<size_t>(boost::get<uint32_t>(constGet(have,"maxReceivedMBytes")));
           }
+
           if(have.count("localAddress")) {
             localAddress = ComboAddress(boost::get<string>(constGet(have,"localAddress")));
           }
+
           if(have.count("axfrTimeout")) {
             axfrTimeout = static_cast<uint16_t>(boost::get<uint32_t>(constGet(have, "axfrTimeout")));
           }
+
+          if(have.count("seedFile")) {
+            seedFile = boost::get<std::string>(constGet(have, "seedFile"));
+          }
         }
+
         if (localAddress != ComboAddress() && localAddress.sin4.sin_family != master.sin4.sin_family) {
           // We were passed a localAddress, check if its AF matches the master's
           throw PDNSException("Master address("+master.toString()+") is not of the same Address Family as the local address ("+localAddress.toString()+").");
         }
 
-        zone->setDomain(DNSName(zoneName));
+        DNSName domain(zoneName);
+        zone->setDomain(domain);
         zone->setName(polName);
         zone->setRefresh(refresh);
         zoneIdx = lci.dfe.addZone(zone);
+
+        if (!seedFile.empty()) {
+          sr = loadRPZFromFile(seedFile, zone, defpol, maxTTL);
+          if (zone->getDomain() != domain) {
+            throw PDNSException("The RPZ zone " + zoneName + " loaded from the seed file (" + zone->getDomain().toString() + ") does not match the one passed in parameter (" + domain.toString() + ")");
+          }
+
+          if (sr == nullptr) {
+            throw PDNSException("The RPZ zone " + zoneName + " loaded from the seed file (" + zone->getDomain().toString() + ") has no SOA record");
+          }
+        }
       }
       catch(const std::exception& e) {
         g_log<<Logger::Error<<"Problem configuring 'rpzMaster': "<<e.what()<<endl;
@@ -199,7 +224,7 @@ void loadRecursorLuaConfig(const std::string& fname, bool checkOnly)
 
       try {
           if (!checkOnly) {
-            std::thread t(RPZIXFRTracker, master, defpol, maxTTL, zoneIdx, tt, maxReceivedXFRMBytes * 1024 * 1024, localAddress, zone, axfrTimeout, lci.generation);
+            std::thread t(RPZIXFRTracker, master, defpol, maxTTL, zoneIdx, tt, maxReceivedXFRMBytes * 1024 * 1024, localAddress, zone, axfrTimeout, sr, lci.generation);
             t.detach();
           }
       }
