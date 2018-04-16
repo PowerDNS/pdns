@@ -149,6 +149,7 @@ void loadRecursorLuaConfig(const std::string& fname, bool checkOnly)
       ComboAddress localAddress;
       ComboAddress master(master_, 53);
       size_t zoneIdx;
+      std::string dumpFile;
       std::shared_ptr<SOARecordContent> sr = nullptr;
 
       try {
@@ -189,6 +190,10 @@ void loadRecursorLuaConfig(const std::string& fname, bool checkOnly)
           if(have.count("seedFile")) {
             seedFile = boost::get<std::string>(constGet(have, "seedFile"));
           }
+
+          if(have.count("dumpFile")) {
+            dumpFile = boost::get<std::string>(constGet(have, "dumpFile"));
+          }
         }
 
         if (localAddress != ComboAddress() && localAddress.sin4.sin_family != master.sin4.sin_family) {
@@ -203,13 +208,20 @@ void loadRecursorLuaConfig(const std::string& fname, bool checkOnly)
         zoneIdx = lci.dfe.addZone(zone);
 
         if (!seedFile.empty()) {
-          sr = loadRPZFromFile(seedFile, zone, defpol, maxTTL);
-          if (zone->getDomain() != domain) {
-            throw PDNSException("The RPZ zone " + zoneName + " loaded from the seed file (" + zone->getDomain().toString() + ") does not match the one passed in parameter (" + domain.toString() + ")");
-          }
+          g_log<<Logger::Info<<"Pre-loading RPZ zone "<<zoneName<<" from seed file '"<<seedFile<<"'"<<endl;
+          try {
+            sr = loadRPZFromFile(seedFile, zone, defpol, maxTTL);
 
-          if (sr == nullptr) {
-            throw PDNSException("The RPZ zone " + zoneName + " loaded from the seed file (" + zone->getDomain().toString() + ") has no SOA record");
+            if (zone->getDomain() != domain) {
+              throw PDNSException("The RPZ zone " + zoneName + " loaded from the seed file (" + zone->getDomain().toString() + ") does not match the one passed in parameter (" + domain.toString() + ")");
+            }
+
+            if (sr == nullptr) {
+              throw PDNSException("The RPZ zone " + zoneName + " loaded from the seed file (" + zone->getDomain().toString() + ") has no SOA record");
+            }
+          }
+          catch(const std::exception& e) {
+            g_log<<Logger::Warning<<"Unable to pre-load RPZ zone "<<zoneName<<" from seed file '"<<seedFile<<"': "<<e.what()<<endl;
           }
         }
       }
@@ -224,7 +236,7 @@ void loadRecursorLuaConfig(const std::string& fname, bool checkOnly)
 
       try {
           if (!checkOnly) {
-            std::thread t(RPZIXFRTracker, master, defpol, maxTTL, zoneIdx, tt, maxReceivedXFRMBytes * 1024 * 1024, localAddress, zone, axfrTimeout, sr, lci.generation);
+            std::thread t(RPZIXFRTracker, master, defpol, maxTTL, zoneIdx, tt, maxReceivedXFRMBytes * 1024 * 1024, localAddress, zone, axfrTimeout, sr, dumpFile, lci.generation);
             t.detach();
           }
       }
