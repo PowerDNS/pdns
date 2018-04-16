@@ -480,20 +480,20 @@ public:
     template<typename TType>
     void unregisterFunction(const std::string& /*functionName*/)
     {
-        lua_pushlightuserdata(mState, const_cast<std::type_info*>(&typeid(TType)));
+        lua_pushstring(mState, typeid(TType).name());
         lua_pushnil(mState);
         lua_settable(mState, LUA_REGISTRYINDEX);
-        checkTypeRegistration(mState, &typeid(TType));
+        checkTypeRegistration(mState, typeid(TType));
         
-        lua_pushlightuserdata(mState, const_cast<std::type_info*>(&typeid(TType*)));
+        lua_pushstring(mState, typeid(TType*).name());
         lua_pushnil(mState);
         lua_settable(mState, LUA_REGISTRYINDEX);
-        checkTypeRegistration(mState, &typeid(TType*));
+        checkTypeRegistration(mState, typeid(TType*));
         
-        lua_pushlightuserdata(mState, const_cast<std::type_info*>(&typeid(std::shared_ptr<TType>)));
+        lua_pushstring(mState, typeid(std::shared_ptr<TType>).name());
         lua_pushnil(mState);
         lua_settable(mState, LUA_REGISTRYINDEX);
-        checkTypeRegistration(mState, &typeid(std::shared_ptr<TType>));
+        checkTypeRegistration(mState, typeid(std::shared_ptr<TType>));
     }
     
     /**
@@ -1084,9 +1084,9 @@ private:
     }
 
     // checks that the offsets for a type's registrations are set in the registry
-    static void checkTypeRegistration(lua_State* state, const std::type_info* type)
+    static void checkTypeRegistration(lua_State* state, const std::type_info &type)
     {
-        lua_pushlightuserdata(state, const_cast<std::type_info*>(type));
+        lua_pushstring(state, type.name());
         lua_gettable(state, LUA_REGISTRYINDEX);
         if (!lua_isnil(state, -1)) {
             lua_pop(state, 1);
@@ -1094,7 +1094,7 @@ private:
         }
         lua_pop(state, 1);
 
-        lua_pushlightuserdata(state, const_cast<std::type_info*>(type));
+        lua_pushstring(state, type.name());
         lua_newtable(state);
 
         lua_pushinteger(state, 0);
@@ -1139,14 +1139,14 @@ private:
     {
         static_assert(std::is_class<TObject>::value || std::is_pointer<TObject>::value || std::is_union<TObject>::value , "registerFunction can only be used for a class a union or a pointer");
 
-        checkTypeRegistration(mState, &typeid(TObject));
-        setTable<TRetValue(TObject&, TOtherParams...)>(mState, Registry, &typeid(TObject), 0, functionName, function);
+        checkTypeRegistration(mState, typeid(TObject));
+        setTable<TRetValue(TObject&, TOtherParams...)>(mState, Registry, typeid(TObject).name(), 0, functionName, function);
         
-        checkTypeRegistration(mState, &typeid(TObject*));
-        setTable<TRetValue(TObject*, TOtherParams...)>(mState, Registry, &typeid(TObject*), 0, functionName, [=](TObject* obj, TOtherParams... rest) { assert(obj); return function(*obj, std::forward<TOtherParams>(rest)...); });
+        checkTypeRegistration(mState, typeid(TObject*));
+        setTable<TRetValue(TObject*, TOtherParams...)>(mState, Registry, typeid(TObject*).name(), 0, functionName, [=](TObject* obj, TOtherParams... rest) { assert(obj); return function(*obj, std::forward<TOtherParams>(rest)...); });
         
-        checkTypeRegistration(mState, &typeid(std::shared_ptr<TObject>));
-        setTable<TRetValue(std::shared_ptr<TObject>, TOtherParams...)>(mState, Registry, &typeid(std::shared_ptr<TObject>), 0, functionName, [=](const std::shared_ptr<TObject>& obj, TOtherParams... rest) { assert(obj); return function(*obj, std::forward<TOtherParams>(rest)...); });
+        checkTypeRegistration(mState, typeid(std::shared_ptr<TObject>));
+        setTable<TRetValue(std::shared_ptr<TObject>, TOtherParams...)>(mState, Registry, typeid(std::shared_ptr<TObject>).name(), 0, functionName, [=](const std::shared_ptr<TObject>& obj, TOtherParams... rest) { assert(obj); return function(*obj, std::forward<TOtherParams>(rest)...); });
     }
     
     template<typename TFunctionType, typename TRetValue, typename TObject, typename... TOtherParams>
@@ -1154,11 +1154,11 @@ private:
     {
         registerFunctionImpl(functionName, function, tag<TObject>{}, fTypeTag);
 
-        checkTypeRegistration(mState, &typeid(TObject const*));
-        setTable<TRetValue(TObject const*, TOtherParams...)>(mState, Registry, &typeid(TObject const*), 0, functionName, [=](TObject const* obj, TOtherParams... rest) { assert(obj); return function(*obj, std::forward<TOtherParams>(rest)...); });
+        checkTypeRegistration(mState, typeid(TObject const*));
+        setTable<TRetValue(TObject const*, TOtherParams...)>(mState, Registry, typeid(TObject const*).name(), 0, functionName, [=](TObject const* obj, TOtherParams... rest) { assert(obj); return function(*obj, std::forward<TOtherParams>(rest)...); });
         
-        checkTypeRegistration(mState, &typeid(std::shared_ptr<TObject const>));
-        setTable<TRetValue(std::shared_ptr<TObject const>, TOtherParams...)>(mState, Registry, &typeid(std::shared_ptr<TObject const>), 0, functionName, [=](const std::shared_ptr<TObject const>& obj, TOtherParams... rest) { assert(obj); return function(*obj, std::forward<TOtherParams>(rest)...); });
+        checkTypeRegistration(mState, typeid(std::shared_ptr<TObject const>));
+        setTable<TRetValue(std::shared_ptr<TObject const>, TOtherParams...)>(mState, Registry, typeid(std::shared_ptr<TObject const>).name(), 0, functionName, [=](const std::shared_ptr<TObject const>& obj, TOtherParams... rest) { assert(obj); return function(*obj, std::forward<TOtherParams>(rest)...); });
     }
 
     template<typename TFunctionType, typename TRetValue, typename TObject, typename... TOtherParams>
@@ -1191,31 +1191,31 @@ private:
     {
         static_assert(std::is_class<TObject>::value || std::is_pointer<TObject>::value, "registerMember can only be called on a class or a pointer");
         
-        checkTypeRegistration(mState, &typeid(TObject));
-        setTable<TVarType (TObject&)>(mState, Registry, &typeid(TObject), 1, name, [readFunction](TObject const& object) {
+        checkTypeRegistration(mState, typeid(TObject));
+        setTable<TVarType (TObject&)>(mState, Registry, typeid(TObject).name(), 1, name, [readFunction](TObject const& object) {
             return readFunction(object);
         });
         
-        checkTypeRegistration(mState, &typeid(TObject*));
-        setTable<TVarType (TObject*)>(mState, Registry, &typeid(TObject*), 1, name, [readFunction](TObject const* object) {
+        checkTypeRegistration(mState, typeid(TObject*));
+        setTable<TVarType (TObject*)>(mState, Registry, typeid(TObject*).name(), 1, name, [readFunction](TObject const* object) {
             assert(object);
             return readFunction(*object);
         });
         
-        checkTypeRegistration(mState, &typeid(TObject const*));
-        setTable<TVarType (TObject const*)>(mState, Registry, &typeid(TObject const*), 1, name, [readFunction](TObject const* object) {
+        checkTypeRegistration(mState, typeid(TObject const*));
+        setTable<TVarType (TObject const*)>(mState, Registry, typeid(TObject const*).name(), 1, name, [readFunction](TObject const* object) {
             assert(object);
             return readFunction(*object);
         });
         
-        checkTypeRegistration(mState, &typeid(std::shared_ptr<TObject>));
-        setTable<TVarType (std::shared_ptr<TObject>)>(mState, Registry, &typeid(std::shared_ptr<TObject>), 1, name, [readFunction](const std::shared_ptr<TObject>& object) {
+        checkTypeRegistration(mState, typeid(std::shared_ptr<TObject>));
+        setTable<TVarType (std::shared_ptr<TObject>)>(mState, Registry, typeid(std::shared_ptr<TObject>).name(), 1, name, [readFunction](const std::shared_ptr<TObject>& object) {
             assert(object);
             return readFunction(*object);
         });
         
-        checkTypeRegistration(mState, &typeid(std::shared_ptr<TObject const>));
-        setTable<TVarType (std::shared_ptr<TObject const>)>(mState, Registry, &typeid(std::shared_ptr<TObject const>), 1, name, [readFunction](const std::shared_ptr<TObject const>& object) {
+        checkTypeRegistration(mState, typeid(std::shared_ptr<TObject const>));
+        setTable<TVarType (std::shared_ptr<TObject const>)>(mState, Registry, typeid(std::shared_ptr<TObject const>).name(), 1, name, [readFunction](const std::shared_ptr<TObject const>& object) {
             assert(object);
             return readFunction(*object);
         });
@@ -1226,16 +1226,16 @@ private:
     {
         registerMemberImpl<TObject,TVarType>(name, readFunction);
 
-        setTable<void (TObject&, TVarType)>(mState, Registry, &typeid(TObject), 4, name, [writeFunction_](TObject& object, const TVarType& value) {
+        setTable<void (TObject&, TVarType)>(mState, Registry, typeid(TObject).name(), 4, name, [writeFunction_](TObject& object, const TVarType& value) {
             writeFunction_(object, value);
         });
         
-        setTable<void (TObject*, TVarType)>(mState, Registry, &typeid(TObject*), 4, name, [writeFunction_](TObject* object, const TVarType& value) {
+        setTable<void (TObject*, TVarType)>(mState, Registry, typeid(TObject*).name(), 4, name, [writeFunction_](TObject* object, const TVarType& value) {
             assert(object);
             writeFunction_(*object, value);
         });
         
-        setTable<void (std::shared_ptr<TObject>, TVarType)>(mState, Registry, &typeid(std::shared_ptr<TObject>), 4, name, [writeFunction_](std::shared_ptr<TObject> object, const TVarType& value) {
+        setTable<void (std::shared_ptr<TObject>, TVarType)>(mState, Registry, typeid(std::shared_ptr<TObject>).name(), 4, name, [writeFunction_](std::shared_ptr<TObject> object, const TVarType& value) {
             assert(object);
             writeFunction_(*object, value);
         });
@@ -1257,31 +1257,31 @@ private:
     template<typename TObject, typename TVarType, typename TReadFunction>
     void registerMemberImpl(TReadFunction readFunction)
     {
-        checkTypeRegistration(mState, &typeid(TObject));
-        setTable<TVarType (TObject const&, std::string)>(mState, Registry, &typeid(TObject), 2, [readFunction](TObject const& object, const std::string& name) {
+        checkTypeRegistration(mState, typeid(TObject));
+        setTable<TVarType (TObject const&, std::string)>(mState, Registry, typeid(TObject).name(), 2, [readFunction](TObject const& object, const std::string& name) {
             return readFunction(object, name);
         });
         
-        checkTypeRegistration(mState, &typeid(TObject*));
-        setTable<TVarType (TObject*, std::string)>(mState, Registry, &typeid(TObject*), 2, [readFunction](TObject const* object, const std::string& name) {
+        checkTypeRegistration(mState, typeid(TObject*));
+        setTable<TVarType (TObject*, std::string)>(mState, Registry, typeid(TObject*).name(), 2, [readFunction](TObject const* object, const std::string& name) {
             assert(object);
             return readFunction(*object, name);
         });
         
-        checkTypeRegistration(mState, &typeid(TObject const*));
-        setTable<TVarType (TObject const*, std::string)>(mState, Registry, &typeid(TObject const*), 2, [readFunction](TObject const* object, const std::string& name) {
+        checkTypeRegistration(mState, typeid(TObject const*));
+        setTable<TVarType (TObject const*, std::string)>(mState, Registry, typeid(TObject const*).name(), 2, [readFunction](TObject const* object, const std::string& name) {
             assert(object);
             return readFunction(*object, name);
         });
         
-        checkTypeRegistration(mState, &typeid(std::shared_ptr<TObject>));
-        setTable<TVarType (std::shared_ptr<TObject>, std::string)>(mState, Registry, &typeid(std::shared_ptr<TObject>), 2, [readFunction](const std::shared_ptr<TObject>& object, const std::string& name) {
+        checkTypeRegistration(mState, typeid(std::shared_ptr<TObject>));
+        setTable<TVarType (std::shared_ptr<TObject>, std::string)>(mState, Registry, typeid(std::shared_ptr<TObject>).name(), 2, [readFunction](const std::shared_ptr<TObject>& object, const std::string& name) {
             assert(object);
             return readFunction(*object, name);
         });
         
-        checkTypeRegistration(mState, &typeid(std::shared_ptr<TObject const>));
-        setTable<TVarType (std::shared_ptr<TObject const>, std::string)>(mState, Registry, &typeid(std::shared_ptr<TObject const>), 2, [readFunction](const std::shared_ptr<TObject const>& object, const std::string& name) {
+        checkTypeRegistration(mState, typeid(std::shared_ptr<TObject const>));
+        setTable<TVarType (std::shared_ptr<TObject const>, std::string)>(mState, Registry, typeid(std::shared_ptr<TObject const>).name(), 2, [readFunction](const std::shared_ptr<TObject const>& object, const std::string& name) {
             assert(object);
             return readFunction(*object, name);
         });
@@ -1292,16 +1292,16 @@ private:
     {
         registerMemberImpl<TObject,TVarType>(readFunction);
 
-        setTable<void (TObject&, std::string, TVarType)>(mState, Registry, &typeid(TObject), 5, [writeFunction_](TObject& object, const std::string& name, const TVarType& value) {
+        setTable<void (TObject&, std::string, TVarType)>(mState, Registry, typeid(TObject).name(), 5, [writeFunction_](TObject& object, const std::string& name, const TVarType& value) {
             writeFunction_(object, name, value);
         });
         
-        setTable<void (TObject*, std::string, TVarType)>(mState, Registry, &typeid(TObject*), 2, [writeFunction_](TObject* object, const std::string& name, const TVarType& value) {
+        setTable<void (TObject*, std::string, TVarType)>(mState, Registry, typeid(TObject*).name(), 2, [writeFunction_](TObject* object, const std::string& name, const TVarType& value) {
             assert(object);
             writeFunction_(*object, name, value);
         });
         
-        setTable<void (std::shared_ptr<TObject>, std::string, TVarType)>(mState, Registry, &typeid(std::shared_ptr<TObject>), 2, [writeFunction_](const std::shared_ptr<TObject>& object, const std::string& name, const TVarType& value) {
+        setTable<void (std::shared_ptr<TObject>, std::string, TVarType)>(mState, Registry, typeid(std::shared_ptr<TObject>).name(), 2, [writeFunction_](const std::shared_ptr<TObject>& object, const std::string& name, const TVarType& value) {
             assert(object);
             writeFunction_(*object, name, value);
         });
@@ -1489,7 +1489,7 @@ private:
                     assert(lua_isuserdata(lua, 1));
 
                     // searching for a handler
-                    lua_pushlightuserdata(lua, const_cast<std::type_info*>(&typeid(TType)));
+                    lua_pushstring(lua, typeid(TType).name());
                     lua_gettable(lua, LUA_REGISTRYINDEX);
                     assert(!lua_isnil(lua, -1));
                     
@@ -1535,7 +1535,7 @@ private:
                     assert(lua_isuserdata(lua, 1));
 
                     // searching for a handler
-                    lua_pushlightuserdata(lua, const_cast<std::type_info*>(&typeid(TType)));
+                    lua_pushstring(lua, typeid(TType).name());
                     lua_rawget(lua, LUA_REGISTRYINDEX);
                     assert(!lua_isnil(lua, -1));
                     
@@ -1598,7 +1598,7 @@ private:
 
 
             // writing structure for this type into the registry
-            checkTypeRegistration(state, &typeid(TType));
+            checkTypeRegistration(state, typeid(TType));
 
             // creating the object
             // lua_newuserdata allocates memory in the internals of the lua library and returns it so we can fill it
@@ -1623,7 +1623,7 @@ private:
 
             // the _typeid index of the metatable will store the type_info*
             lua_pushstring(state, "_typeid");
-            lua_pushlightuserdata(state, const_cast<std::type_info*>(&typeid(TType)));
+            lua_pushstring(state, typeid(TType).name());
             lua_settable(state, -3);
 
             // using the index function we created above
@@ -1704,12 +1704,12 @@ private:
             // retrieving its _typeid member
             lua_pushstring(state, "_typeid");
             lua_gettable(state, -2);
-            const auto storedTypeID = static_cast<const std::type_info*>(lua_touserdata(state, -1));
-            const auto typeIDToCompare = &typeid(TType);
+            const auto storedTypeID = lua_tostring(state, -1);
+            const auto typeIDToCompare = typeid(TType).name();
 
             // if wrong typeid, returning false
             lua_pop(state, 2);
-            if (storedTypeID != typeIDToCompare)
+            if (strcmp(storedTypeID, typeIDToCompare))
                 return false;
 
             return true;
