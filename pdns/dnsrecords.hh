@@ -22,6 +22,10 @@
 #ifndef PDNS_DNSRECORDS_HH
 #define PDNS_DNSRECORDS_HH
 
+#ifdef HAVE_CONFIG_H
+#include "config.h"
+#endif
+
 #include "dnsparser.hh"
 #include "dnswriter.hh"
 #include "rcpgenerator.hh"
@@ -186,6 +190,7 @@ public:
   string d_text;
 };
 
+#ifdef HAVE_LUA_RECORDS
 class LUARecordContent : public DNSRecordContent
 {
 public:
@@ -194,7 +199,7 @@ public:
   uint16_t d_type;
   string d_code;
 };
-
+#endif
 
 class ENTRecordContent : public DNSRecordContent
 {

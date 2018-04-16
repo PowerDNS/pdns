@@ -6,6 +6,7 @@
 #include "minicurl.hh"
 #include "ueberbackend.hh"
 #include <boost/format.hpp>
+#include "dnsrecords.hh"
 
 #include "../modules/geoipbackend/geoipinterface.hh" // only for the enum
 

@@ -36,7 +36,9 @@
 
 bool g_anyToTcp;
 bool g_8bitDNS;
+#ifdef HAVE_LUA_RECORDS
 bool g_doLuaRecord;
+#endif
 typedef Distributor<DNSPacket,DNSPacket,PacketHandler> DNSDistributor;
 
 ArgvMap theArg;
@@ -489,7 +491,9 @@ void mainthread()
    
    g_anyToTcp = ::arg().mustDo("any-to-tcp");
    g_8bitDNS = ::arg().mustDo("8bit-dns");
+#ifdef HAVE_LUA_RECORDS
    g_doLuaRecord = ::arg().mustDo("enable-lua-record");
+#endif
 
    DNSPacket::s_udpTruncationThreshold = std::max(512, ::arg().asNum("udp-truncation-threshold"));
    DNSPacket::s_doEDNSSubnetProcessing = ::arg().mustDo("edns-subnet-processing");

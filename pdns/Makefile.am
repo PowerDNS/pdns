@@ -184,8 +184,6 @@ pdns_server_SOURCES = \
 	logger.cc logger.hh \
 	lua-base4.cc lua-base4.hh \
 	lua-auth4.cc lua-auth4.hh \
-	lua-record.cc \
-	minicurl.cc minicurl.hh \
 	mastercommunicator.cc \
 	md5.hh \
 	misc.cc misc.hh \
@@ -236,7 +234,12 @@ pdns_server_LDADD = \
 	$(YAHTTP_LIBS) \
 	$(JSON11_LIBS) \
 	$(LIBCRYPTO_LIBS) \
-	$(SYSTEMD_LIBS) -lcurl
+	$(SYSTEMD_LIBS)
+
+if HAVE_LUA_RECORDS
+pdns_server_SOURCES += lua-record.cc minicurl.cc minicurl.hh
+pdns_server_LDADD += $(LIBCURL)
+endif
 
 if BOTAN
 pdns_server_SOURCES += botansigners.cc

@@ -227,6 +227,7 @@ AM_CONDITIONAL([TOOLS], [test "x$enable_tools" != "xno"])
 
 PDNS_WITH_PROTOBUF
 
+PDNS_WITH_LUA_RECORDS
 
 AM_CONDITIONAL([ORACLE], [test "x$needoracle" = "xyes"])
 
