@@ -100,6 +100,13 @@ PDNS_ENABLE_UNIT_TESTS
 PDNS_ENABLE_REPRODUCIBLE
 
 PDNS_WITH_LUA([mandatory])
+AS_IF([test "x$LUAPC" = "xluajit"], [
+  # export all symbols to be able to use the Lua FFI interface
+  AC_MSG_NOTICE([Adding -rdynamic to export all symbols for the Lua FFI interface])
+  CFLAGS="$CFLAGS -rdynamic"
+  CXXFLAGS="$CXXFLAGS -rdynamic"
+])
+
 PDNS_CHECK_LUA_HPP
 
 PDNS_ENABLE_VERBOSE_LOGGING
