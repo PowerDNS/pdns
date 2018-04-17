@@ -94,14 +94,14 @@ void DNSPacketWriter::startRecord(const DNSName& name, uint16_t qtype, uint32_t 
   d_sor=d_content.size(); // this will remind us where to stuff the record size
 }
 
-void DNSPacketWriter::addOpt(uint16_t udpsize, uint16_t extRCode, int Z, const vector<pair<uint16_t,string> >& options, uint8_t version)
+void DNSPacketWriter::addOpt(const uint16_t udpsize, const uint16_t extRCode, const uint16_t ednsFlags, const optvect_t& options, const uint8_t version)
 {
   uint32_t ttl=0;
 
   EDNS0Record stuff;
 
-  stuff.version=version;
-  stuff.Z=htons(Z);
+  stuff.version = version;
+  stuff.extFlags = htons(ednsFlags);
 
   /* RFC 6891 section 4 on the Extended RCode wire format
    *    EXTENDED-RCODE
@@ -109,6 +109,7 @@ void DNSPacketWriter::addOpt(uint16_t udpsize, uint16_t extRCode, int Z, const v
    *        4 bits defined in [RFC1035].  Note that EXTENDED-RCODE value 0
    *        indicates that an unextended RCODE is in use (values 0 through 15).
    */
+  // XXX Should be check for extRCode > 1<<12 ?
   stuff.extRCode = extRCode>>4;
   if (extRCode != 0) { // As this trumps the existing RCODE
     getHeader()->rcode = extRCode;
@@ -120,10 +121,10 @@ void DNSPacketWriter::addOpt(uint16_t udpsize, uint16_t extRCode, int Z, const v
   ttl=ntohl(ttl); // will be reversed later on
 
   startRecord(g_rootdnsname, QType::OPT, ttl, udpsize, DNSResourceRecord::ADDITIONAL, false);
-  for(optvect_t::const_iterator iter = options.begin(); iter != options.end(); ++iter) {
-    xfr16BitInt(iter->first);
-    xfr16BitInt(iter->second.length());
-    xfrBlob(iter->second);
+  for(auto const &option : options) {
+    xfr16BitInt(option.first);
+    xfr16BitInt(option.second.length());
+    xfrBlob(option.second);
   }
 }
 

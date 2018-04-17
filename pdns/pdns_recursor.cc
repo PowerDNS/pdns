@@ -951,7 +951,7 @@ static void startDoResolve(void *p)
       sr.setDoDNSSEC(true);
 
       // Does the requestor want DNSSEC records?
-      if(edo.d_Z & EDNSOpts::DNSSECOK) {
+      if(edo.d_extFlags & EDNSOpts::DNSSECOK) {
         DNSSECOK=true;
         g_stats.dnssecQueries++;
       }
@@ -977,7 +977,7 @@ static void startDoResolve(void *p)
     DNSFilterEngine::Policy appliedPolicy;
     DNSRecord spoofed;
     RecursorLua4::DNSQuestion dq(dc->d_source, dc->d_destination, dc->d_mdp.d_qname, dc->d_mdp.d_qtype, dc->d_tcp, variableAnswer, wantsRPZ);
-    dq.ednsFlags = &edo.d_Z;
+    dq.ednsFlags = &edo.d_extFlags;
     dq.ednsOptions = &ednsOpts;
     dq.tag = dc->d_tag;
     dq.discardedPolicies = &sr.d_discardedPolicies;

@@ -225,7 +225,7 @@ try
 
 	  if(!mdp.d_header.qr && getEDNSOpts(mdp, &edo)) {
 	    edns++;
-	    if(edo.d_Z & EDNSOpts::DNSSECOK)
+	    if(edo.d_extFlags & EDNSOpts::DNSSECOK)
 	      dnssecOK++;
 	    if(mdp.d_header.cd)
 	      dnssecCD++;
