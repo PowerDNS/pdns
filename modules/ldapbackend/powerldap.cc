@@ -32,7 +32,7 @@
 
 
 PowerLDAP::SearchResult::SearchResult( int msgid, LDAP* ld )
-  : d_msgid( msgid ), d_ld( ld ), d_finished( false )
+  : d_ld( ld ), d_msgid( msgid ), d_finished( false )
 {
 }
 
@@ -449,12 +449,12 @@ const string PowerLDAP::escape( const string& str )
   for( i = str.begin(); i != str.end(); i++ )
   {
       // RFC4515 3
-      if( *i == '*' ||
-          *i == '(' ||
-          *i == ')' ||
-          *i == '\\' ||
-          *i == '\0' ||
-          *i > 127)
+      if( (unsigned char)*i == '*' ||
+          (unsigned char)*i == '(' ||
+          (unsigned char)*i == ')' ||
+          (unsigned char)*i == '\\' ||
+          (unsigned char)*i == '\0' ||
+          (unsigned char)*i > 127)
       {
           sprintf(tmp,"\\%02x", (unsigned char)*i);
 
