@@ -871,7 +871,7 @@ static void startDoResolve(void *p)
     uint16_t maxanswersize = dc->d_tcp ? 65535 : min(static_cast<uint16_t>(512), g_udpTruncationThreshold);
     EDNSOpts edo;
     std::vector<pair<uint16_t, string> > ednsOpts;
-    bool variableAnswer = false;
+    bool variableAnswer = dc->d_variable;
     bool haveEDNS=false;
     DNSPacketWriter::optvect_t returnedEdnsOptions; // Here we stuff all the options for the return packet
     uint8_t ednsExtRCode = 0;
@@ -969,7 +969,6 @@ static void startDoResolve(void *p)
     sr.setQuerySource(dc->d_remote, g_useIncomingECS && !dc->d_ednssubnet.source.empty() ? boost::optional<const EDNSSubnetOpts&>(dc->d_ednssubnet) : boost::none);
 
     bool tracedQuery=false; // we could consider letting Lua know about this too
-    variableAnswer = dc->d_variable || variableAnswer;
     bool shouldNotValidate = false;
 
     /* preresolve expects res (dq.rcode) to be set to RCode::NoError by default */
