@@ -87,7 +87,7 @@ struct DomainInfo
       return DomainInfo::Native;
   }
 
-  const bool isMaster(const ComboAddress& ip)
+  bool isMaster(const ComboAddress& ip) const
   {
     for( const auto& master: masters) {
       if(ComboAddress::addressOnlyEqual()(ip, master))
