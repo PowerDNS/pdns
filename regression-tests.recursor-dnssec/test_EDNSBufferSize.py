@@ -37,6 +37,7 @@ class EDNSBufferTest(RecursorTest):
      05  | 1680      | 1680          | 1680           | 1680 (inc EDNS) | 1680 (inc EDNS)  | 1680              |
      06  | 1680      | 1680          | 512 (No EDNS)  | 512 (+EDNS)     | 512 (no EDNS)    | (no EDNS)         |
      07  | 1680      | 1680          | 512 (No EDNS)  | 513 (+EDNS)     | TC (no EDNS)     | (no EDNS)         |
+     08  | 1680      | 1680          | 511            | 501 (+EDNS)     | 512 (inc EDNS)   | 1680              |
 
     The qname is $testnum.edns-tests.example.
     """
@@ -111,7 +112,7 @@ edns-outgoing-bufsize=%d
 
 class EDNSBufferTest16801680(EDNSBufferTest):
     """
-    Runs test cases 1, 2, 5, 6, 7
+    Runs test cases 1, 2, 5, 6, 7, 8
     """
 
     def testEdnsBufferTestCase01(self):
@@ -153,6 +154,14 @@ class EDNSBufferTest16801680(EDNSBufferTest):
             message = self.sendUDPQuery(query)
             self.checkTruncatedResponse(message)
             self.checkEDNS(message, 0)
+
+    def testEdnsBufferTestCase08(self):
+        query = self.getMessage('08', 511)
+        for _ in range(10):
+            raw = self.sendUDPQuery(query, decode=False)
+            self.checkResponseContent(raw, 'H', 512, 181)
+            message = dns.message.from_wire(raw)
+            self.checkEDNS(message, 1680)
 
 class EDNSBufferTest16801681(EDNSBufferTest):
     """
@@ -215,6 +224,8 @@ class UDPLargeResponder(DatagramProtocol):
             packet_size = 512 + 11
         if testnum == 7:
             packet_size = 513 + 11
+        if testnum == 8:
+            packet_size = 501 + 11
 
         # An EDNS(0) RR without options is 11 bytes:
         # NAME:  1
