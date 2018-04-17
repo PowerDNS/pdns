@@ -2294,16 +2294,24 @@ struct LuaContext::Pusher<TReturnType (TParameters...)>
         // when the lua script calls the thing we will push on the stack, we want "fn" to be executed
         // since "fn" doesn't need to be destroyed, we simply push it on the stack
 
+        struct wrap {
+            TReturnType (*fn)(TParameters...);
+        };
+
         // this is the cfunction that is the callback
         const auto function = [](lua_State* state_) -> int
         {
             // the function object is an upvalue
-            const auto toCall = reinterpret_cast<TReturnType (*)(TParameters...)>(lua_touserdata(state_, lua_upvalueindex(1)));
+            auto wrapper = (struct wrap *) lua_touserdata(state_, lua_upvalueindex(1));
+
+            const auto toCall = wrapper->fn;
             return callback(state_, toCall, lua_gettop(state_)).release();
         };
 
-        // we copy the function object onto the stack
-        lua_pushlightuserdata(state, reinterpret_cast<void*>(fn));
+        // we make a userdata to hold the function's address
+        auto wrapper = (struct wrap *) lua_newuserdata(state, sizeof(void*));
+
+        wrapper->fn = fn;
 
         // pushing the function with the function object as upvalue
         lua_pushcclosure(state, function, 1);
