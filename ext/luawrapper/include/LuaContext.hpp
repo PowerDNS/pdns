@@ -1768,24 +1768,24 @@ private:
         // this constructor will clone and hold the value at the specified index (or by default at the top of the stack) in the registry
         ValueInRegistry(lua_State* lua_, int index=-1) : lua{lua_}
         {
-            lua_pushlightuserdata(lua, this);
+            lua_pushvalue(lua, LUA_REGISTRYINDEX);
             lua_pushvalue(lua, -1 + index);
-            lua_settable(lua, LUA_REGISTRYINDEX);
+            ref = luaL_ref(lua, -2);
+            lua_pop(lua, 1);
         }
         
         // removing the function from the registry
         ~ValueInRegistry()
         {
-            lua_pushlightuserdata(lua, this);
-            lua_pushnil(lua);
-            lua_settable(lua, LUA_REGISTRYINDEX);
+            lua_pushvalue(lua, LUA_REGISTRYINDEX);
+            luaL_unref(lua, -1, ref);
+            lua_pop(lua, 1);
         }
 
         // loads the value and puts it at the top of the stack
         PushedObject pop()
         {
-            lua_pushlightuserdata(lua, this);
-            lua_gettable(lua, LUA_REGISTRYINDEX);
+            lua_rawgeti(lua, LUA_REGISTRYINDEX, ref);
             return PushedObject{lua, 1};
         }
 
@@ -1794,6 +1794,7 @@ private:
 
     private:
         lua_State* lua;
+        int ref;
     };
     
     // binds the first parameter of a function object
