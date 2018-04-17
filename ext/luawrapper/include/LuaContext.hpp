@@ -32,12 +32,14 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <array>
 #include <cassert>
 #include <cmath>
+#include <cstdlib>
 #include <cstring>
 #include <functional>
 #include <limits>
 #include <list>
 #include <map>
 #include <memory>
+#include <iostream>
 #include <random>
 #include <set>
 #include <stdexcept>
@@ -97,9 +99,10 @@ public:
         // setting the panic function
         lua_atpanic(mState, [](lua_State* state) -> int {
             const std::string str = lua_tostring(state, -1);
+            std::cerr<<"lua panic: "<<str<<std::endl;
             lua_pop(state, 1);
             assert(false && "lua_atpanic triggered");
-            exit(0);
+            exit(EXIT_FAILURE);
         });
 
         // opening default library if required to do so
