@@ -4,6 +4,7 @@ import requests
 import threading
 import dns
 import time
+import clientsubnetoption
 
 from authtests import AuthTest
 
@@ -52,13 +53,13 @@ class TestLuaRecords(AuthTest):
     * [x] test latlon()
     * [x] test latlonloc()
     * [x] test netmask()
+    * [x] test country()
+    * [x] test continent()
 
-    * [ ] test pickclosest()
-    * [ ] test country()
-    * [ ] test continent()
-    * [ ] test closestMagic()
+    * [x] test pickclosest()
+    * [x] test closestMagic()
     * [x] test view()
-    * [ ] test asnum()
+    * [x] test asnum()
     * [x] rename pickwhashed() and pickwrandom() ?
     * [x] unify pickrandom() pickwhashed() and pickwrandom() parameters (ComboAddress vs string)
     * [x] make lua errors SERVFAIL
@@ -86,7 +87,7 @@ whashed.example.org.         3600 IN LUA  A     "pickwhashed({{ {{15, '1.2.3.4'}
 rand.example.org.            3600 IN LUA  A     "pickrandom({{'{prefix}.101', '{prefix}.102'}})"
 v6-bogus.rand.example.org.   3600 IN LUA  AAAA  "pickrandom({{'{prefix}.101', '{prefix}.102'}})"
 v6.rand.example.org.         3600 IN LUA  AAAA  "pickrandom({{'2001:db8:a0b:12f0::1', 'fe80::2a1:9bff:fe9b:f268'}})"
-closest                      3600 IN LUA  A     "pickclosest({{'192.0.2.1','192.0.2.2','{prefix}.102', '198.51.100.1'}})"
+closest.geo                  3600 IN LUA  A     "pickclosest({{'1.1.1.2','1.2.3.4'}})"
 empty.rand.example.org.      3600 IN LUA  A     "pickrandom()"
 wrand.example.org.           3600 IN LUA  A     "pickwrandom({{ {{30, '{prefix}.102'}}, {{15, '{prefix}.103'}} }})"
 
@@ -111,6 +112,9 @@ eu-west      IN    LUA    A   ( ";include('config')                         "
 nl           IN    LUA    A   ( ";include('config')                                "
                                 "return ifportup(8081, NLips) ")
 latlon.geo      IN LUA    TXT "latlon()"
+continent.geo   IN LUA    TXT ";if(continent('NA')) then return 'true' else return 'false' end"
+asnum.geo       IN LUA    TXT ";if(asnum('4242')) then return 'true' else return 'false' end"
+country.geo     IN LUA    TXT ";if(country('US')) then return 'true' else return 'false' end"
 latlonloc.geo   IN LUA    TXT "latlonloc()"
 
 true.netmask     IN LUA   TXT   ( ";if(netmask({{ '{prefix}.0/24' }})) "
@@ -133,6 +137,8 @@ none.view        IN    LUA    A          ("view({{                              
                                           "{{ {{'192.168.0.0/16'}}, {{'192.168.1.54'}}}},"
                                           "{{ {{'1.2.0.0/16'}}, {{'1.2.3.4'}}}},         "
                                           " }})                                          " )
+*.magic          IN    LUA    A     "closestMagic()"
+www-balanced     IN           CNAME 1-1-1-3.17-1-2-4.1-2-3-5.magic.example.org.
         """,
     }
     _web_rrsets = []
@@ -220,21 +226,6 @@ none.view        IN    LUA    A          ("view({{                              
                     dns.rrset.from_text('wrand.example.org.', 0, dns.rdataclass.IN, 'A',
                                         '{prefix}.102'.format(prefix=self._PREFIX))]
         query = dns.message.make_query('wrand.example.org', 'A')
-
-        res = self.sendUDPQuery(query)
-        self.assertRcodeEqual(res, dns.rcode.NOERROR)
-        self.assertAnyRRsetInAnswer(res, expected)
-
-    @unittest.skip
-    def testClosest(self):
-        """
-        Basic pickClosest() test with a set of A records
-        """
-        expected = [dns.rrset.from_text('wrand.example.org.', 0, dns.rdataclass.IN, 'A',
-                                        '{prefix}.103'.format(prefix=self._PREFIX)),
-                    dns.rrset.from_text('wrand.example.org.', 0, dns.rdataclass.IN, 'A',
-                                        '{prefix}.102'.format(prefix=self._PREFIX))]
-        query = dns.message.make_query('closest.example.org', 'A')
 
         res = self.sendUDPQuery(query)
         self.assertRcodeEqual(res, dns.rcode.NOERROR)
@@ -357,10 +348,12 @@ none.view        IN    LUA    A          ("view({{                              
         """
         Basic latlon() test
         """
-        expected = dns.rrset.from_text('latlon.geo.example.org.', 0,
+        name = 'latlon.geo.example.org.'
+        ecso = clientsubnetoption.ClientSubnetOption('1.2.3.0', 24)
+        query = dns.message.make_query(name, 'TXT', 'IN', use_edns=True, payload=4096, options=[ecso])
+        expected = dns.rrset.from_text(name, 0,
                                        dns.rdataclass.IN, 'TXT',
-                                       '"0.000000 0.000000"')
-        query = dns.message.make_query('latlon.geo.example.org', 'TXT')
+                                       '"47.913000 -122.304200"')
 
         res = self.sendUDPQuery(query)
         self.assertRcodeEqual(res, dns.rcode.NOERROR)
@@ -370,14 +363,116 @@ none.view        IN    LUA    A          ("view({{                              
         """
         Basic latlonloc() test
         """
-        expected = dns.rrset.from_text('latlonloc.geo.example.org.', 0,
-                                       dns.rdataclass.IN, 'TXT',
-                                       '"0 0 -0 S 0 0 -0 W 0.00m 1.00m 10000.00m 10.00m"')
-        query = dns.message.make_query('latlonloc.geo.example.org', 'TXT')
+        name = 'latlonloc.geo.example.org.'
+        expected = dns.rrset.from_text(name, 0,dns.rdataclass.IN, 'TXT',
+                                       '"47 54 46.8 N 122 18 15.12 W 0.00m 1.00m 10000.00m 10.00m"')
+        ecso = clientsubnetoption.ClientSubnetOption('1.2.3.0', 24)
+        query = dns.message.make_query(name, 'TXT', 'IN', use_edns=True, payload=4096, options=[ecso])
 
         res = self.sendUDPQuery(query)
         self.assertRcodeEqual(res, dns.rcode.NOERROR)
         self.assertRRsetInAnswer(res, expected)
+
+    def testClosestMagic(self):
+        """
+        Basic closestMagic() test
+        """
+        name = 'www-balanced.example.org.'
+        cname = '1-1-1-3.17-1-2-4.1-2-3-5.magic.example.org.'
+        queries = [
+            ('1.1.1.0', 24,  '1.1.1.3'),
+            ('1.2.3.0', 24,  '1.2.3.5'),
+            ('17.1.0.0', 16, '17.1.2.4')
+        ]
+                
+        for (subnet, mask, ip) in queries:
+            ecso = clientsubnetoption.ClientSubnetOption(subnet, mask)
+            query = dns.message.make_query(name, 'A', 'IN', use_edns=True, payload=4096, options=[ecso])
+
+            response = dns.message.make_response(query)
+
+            response.answer.append(dns.rrset.from_text(name, 0, dns.rdataclass.IN, dns.rdatatype.CNAME, cname))
+            response.answer.append(dns.rrset.from_text(cname, 0, dns.rdataclass.IN, 'A', ip))
+
+            res = self.sendUDPQuery(query)
+            self.assertRcodeEqual(res, dns.rcode.NOERROR)
+            self.assertEqual(res.answer, response.answer)
+
+    def testAsnum(self):
+        """
+        Basic asnum() test
+        """
+        queries = [
+            ('1.1.1.0', 24,  '"true"'),
+            ('1.2.3.0', 24,  '"false"'),
+            ('17.1.0.0', 16, '"false"')
+        ]
+        name = 'asnum.geo.example.org.'
+        for (subnet, mask, txt) in queries:
+            ecso = clientsubnetoption.ClientSubnetOption(subnet, mask)
+            query = dns.message.make_query(name, 'TXT', 'IN', use_edns=True, payload=4096, options=[ecso])
+            expected = dns.rrset.from_text(name, 0, dns.rdataclass.IN, 'TXT', txt)
+
+            res = self.sendUDPQuery(query)
+            self.assertRcodeEqual(res, dns.rcode.NOERROR)
+            self.assertRRsetInAnswer(res, expected)
+
+    def testCountry(self):
+        """
+        Basic country() test
+        """
+        queries = [
+            ('1.1.1.0', 24,  '"false"'),
+            ('1.2.3.0', 24,  '"true"'),
+            ('17.1.0.0', 16, '"false"')
+        ]
+        name = 'country.geo.example.org.'
+        for (subnet, mask, txt) in queries:
+            ecso = clientsubnetoption.ClientSubnetOption(subnet, mask)
+            query = dns.message.make_query(name, 'TXT', 'IN', use_edns=True, payload=4096, options=[ecso])
+            expected = dns.rrset.from_text(name, 0, dns.rdataclass.IN, 'TXT', txt)
+
+            res = self.sendUDPQuery(query)
+            self.assertRcodeEqual(res, dns.rcode.NOERROR)
+            self.assertRRsetInAnswer(res, expected)
+
+    def testContinent(self):
+        """
+        Basic continent() test
+        """
+        queries = [
+            ('1.1.1.0', 24,  '"false"'),
+            ('1.2.3.0', 24,  '"true"'),
+            ('17.1.0.0', 16, '"false"')
+        ]
+        name = 'continent.geo.example.org.'
+        for (subnet, mask, txt) in queries:
+            ecso = clientsubnetoption.ClientSubnetOption(subnet, mask)
+            query = dns.message.make_query(name, 'TXT', 'IN', use_edns=True, payload=4096, options=[ecso])
+            expected = dns.rrset.from_text(name, 0, dns.rdataclass.IN, 'TXT', txt)
+
+            res = self.sendUDPQuery(query)
+            self.assertRcodeEqual(res, dns.rcode.NOERROR)
+            self.assertRRsetInAnswer(res, expected)
+
+    def testClosest(self):
+        """
+        Basic pickclosest() test
+        """
+        queries = [
+            ('1.1.1.0', 24,  '1.1.1.2'),
+            ('1.2.3.0', 24,  '1.2.3.4'),
+            ('17.1.0.0', 16, '1.1.1.2')
+        ]
+        name = 'closest.geo.example.org.'
+        for (subnet, mask, ip) in queries:
+            ecso = clientsubnetoption.ClientSubnetOption(subnet, mask)
+            query = dns.message.make_query(name, 'A', 'IN', use_edns=True, payload=4096, options=[ecso])
+            expected = dns.rrset.from_text(name, 0, dns.rdataclass.IN, 'A', ip)
+
+            res = self.sendUDPQuery(query)
+            self.assertRcodeEqual(res, dns.rcode.NOERROR)
+            self.assertRRsetInAnswer(res, expected)
 
     def testNetmask(self):
         """

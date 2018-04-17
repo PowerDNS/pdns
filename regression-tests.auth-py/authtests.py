@@ -106,8 +106,8 @@ query-cache-ttl=0
 log-dns-queries=yes
 log-dns-details=yes
 loglevel=9
-geoip-zones-file=../modules/geoipbackend/regression-tests/geo.yaml
-geoip-database-files=../modules/geoipbackend/regression-tests/GeoLiteCity.dat
+geoip-database-files=../modules/geoipbackend/regression-tests/GeoLiteCity.mmdb
+edns-subnet-processing=yes
 distributor-threads=1""".format(confdir=confdir,
                                 bind_dnssec_db=bind_dnssec_db))
 
