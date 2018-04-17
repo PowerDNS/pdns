@@ -94,7 +94,7 @@ void DNSPacketWriter::startRecord(const DNSName& name, uint16_t qtype, uint32_t 
   d_sor=d_content.size(); // this will remind us where to stuff the record size
 }
 
-void DNSPacketWriter::addOpt(uint16_t udpsize, int extRCode, int Z, const vector<pair<uint16_t,string> >& options, uint8_t version)
+void DNSPacketWriter::addOpt(uint16_t udpsize, uint16_t extRCode, int Z, const vector<pair<uint16_t,string> >& options, uint8_t version)
 {
   uint32_t ttl=0;
 
