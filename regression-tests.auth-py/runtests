@@ -17,8 +17,6 @@ mkdir -p configs
 
 export PDNS=${PDNS:-${PWD}/../pdns/pdns_server}
 export PDNSUTIL=${PDNSUTIL:-${PWD}/../pdns/pdnsutil}
-export PDNSRECURSOR=${PDNSRECURSOR:-${PWD}/../pdns/recursordist/pdns_recursor}
-export RECCONTROL=${RECCONTROL:-${PWD}/../pdns/recursordist/rec_control}
 
 export PREFIX=127.0.0
 
@@ -27,7 +25,7 @@ if [ ! -f ${GEOIP_TESTS_DIR}/GeoLiteCity.mmdb ] ; then
     base64 -d ${GEOIP_TESTS_DIR}/GeoLiteCity.mmdb.b64 > ${GEOIP_TESTS_DIR}/GeoLiteCity.mmdb
 fi
 
-for bin in "$PDNS" "$PDNSUTIL" "$PDNSRECURSOR" "$RECCONTROL"; do
+for bin in "$PDNS" "$PDNSUTIL"; do
     if [ -n "$bin" -a ! -e "$bin" ]; then
         echo "E: Required binary $bin not found. Please install the binary and/or edit ./vars."
         exit 1
