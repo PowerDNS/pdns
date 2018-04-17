@@ -238,8 +238,8 @@ AM_CONDITIONAL([SQLITE3], [test "x$needsqlite3" = "xyes"])
 for a in $modules; do
   AC_MSG_CHECKING([whether we can build module "${a}"])
   AS_IF([test "x$a" = "xlua2"], [
-     AS_IF([test "x$with_lua" != "xyes"],
-           AC_MSG_ERROR([Cannot build lua2 module without lua]),[])
+     AS_IF([test "x$LUAPC" = "x"],
+           AC_MSG_ERROR([Cannot build lua2 module without lua (with_lua=$with_lua)]),[])
   ])
   if [[ -d "$srcdir/modules/${a}backend" ]]; then
     AC_MSG_RESULT([yes])
