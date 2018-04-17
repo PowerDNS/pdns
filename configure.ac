@@ -29,7 +29,7 @@ AC_PROG_MAKE_SET
 
 AC_PROG_CXX
 AS_IF([test "x$CXX" = "xno" || test "x$CXX:x$GXX" = "xg++:x"],
-  AC_MSG_ERROR([no C++ compiler found])
+  [AC_MSG_ERROR([no C++ compiler found])]
 )
 
 AC_LANG([C++])
@@ -202,12 +202,12 @@ for a in $modules $dynmodules; do
     geoip)
       PDNS_CHECK_GEOIP
       ;;
-    lua)
+    lua*)
       AS_IF([test "x$with_lua" = "xno"],
-        AC_MSG_ERROR([Lua backend needs lua, run ./configure --with-lua])
+        [AC_MSG_ERROR([${a} backend needs lua, run ./configure --with-lua])]
       )
       AS_IF([test "x$LUAPC" = "x"],
-        AC_MSG_ERROR([Lua backend needs lua but we cannot find it])
+        [AC_MSG_ERROR([${a} backend needs lua but we cannot find it])]
       )
       ;;
   esac
@@ -237,10 +237,6 @@ AM_CONDITIONAL([SQLITE3], [test "x$needsqlite3" = "xyes"])
 
 for a in $modules; do
   AC_MSG_CHECKING([whether we can build module "${a}"])
-  AS_IF([test "x$a" = "xlua2"], [
-     AS_IF([test "x$with_lua" != "xyes"],
-           AC_MSG_ERROR([Cannot build lua2 module without lua]),[])
-  ])
   if [[ -d "$srcdir/modules/${a}backend" ]]; then
     AC_MSG_RESULT([yes])
     moduledirs="$moduledirs ${a}backend"
