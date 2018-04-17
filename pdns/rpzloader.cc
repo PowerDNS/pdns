@@ -283,7 +283,7 @@ static void setRPZZoneNewState(const std::string& zone, uint32_t serial, uint64_
   stats->d_numberOfRecords = numberOfRecords;
 }
 
-void RPZIXFRTracker(const ComboAddress& master, boost::optional<DNSFilterEngine::Policy> defpol, uint32_t maxTTL, size_t zoneIdx, const TSIGTriplet& tt, size_t maxReceivedBytes, const ComboAddress& localAddress, std::shared_ptr<DNSFilterEngine::Zone> zone, const uint16_t axfrTimeout)
+void RPZIXFRTracker(const ComboAddress& master, boost::optional<DNSFilterEngine::Policy> defpol, uint32_t maxTTL, size_t zoneIdx, const TSIGTriplet& tt, size_t maxReceivedBytes, const ComboAddress& localAddress, std::shared_ptr<DNSFilterEngine::Zone> zone, const uint16_t axfrTimeout, uint64_t configGeneration)
 {
   uint32_t refresh = zone->getRefresh();
   DNSName zoneName = zone->getDomain();
@@ -317,11 +317,21 @@ void RPZIXFRTracker(const ComboAddress& master, boost::optional<DNSFilterEngine:
     }
   }
 
+  auto luaconfsLocal = g_luaconfs.getLocal();
+
   for(;;) {
     DNSRecord dr;
     dr.d_content=sr;
 
     sleep(refresh);
+
+    if (luaconfsLocal->generation != configGeneration) {
+      /* the configuration has been reloaded, meaning that a new thread
+         has been started to handle that zone and we are now obsolete.
+      */
+      g_log<<Logger::Info<<"A more recent configuration has been found, stopping the existing RPZ update thread for "<<zoneName<<endl;
+      return;
+    }
 
     g_log<<Logger::Info<<"Getting IXFR deltas for "<<zoneName<<" from "<<master.toStringWithPort()<<", our serial: "<<getRR<SOARecordContent>(dr)->d_st.serial<<endl;
     vector<pair<vector<DNSRecord>, vector<DNSRecord> > > deltas;
@@ -341,7 +351,6 @@ void RPZIXFRTracker(const ComboAddress& master, boost::optional<DNSFilterEngine:
       continue;
     g_log<<Logger::Info<<"Processing "<<deltas.size()<<" delta"<<addS(deltas)<<" for RPZ "<<zoneName<<endl;
 
-    auto luaconfsLocal = g_luaconfs.getLocal();
     const std::shared_ptr<DNSFilterEngine::Zone> oldZone = luaconfsLocal->dfe.getZone(zoneIdx);
     /* we need to make a _full copy_ of the zone we are going to work on */
     std::shared_ptr<DNSFilterEngine::Zone> newZone = std::make_shared<DNSFilterEngine::Zone>(*oldZone);
