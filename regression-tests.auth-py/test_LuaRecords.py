@@ -30,43 +30,6 @@ class FakeHTTPServer(BaseHTTPRequestHandler):
         self._set_headers()
 
 class TestLuaRecords(AuthTest):
-    """
-    * ifurlup supports multiple groups of IP addresses, why not ifportup ?
-
-    * pickrandom() can be used with a set of IPs or CNAMES whereas pickwrandom cannot
-      maybe unifying this would be nice
-      Note: there is a comment about that "In C++ this is ComboAddress in,
-      ComboAddress out. In Lua, vector string in, string out"
-
-    * first query to a ifportup/ifurlup looks like returning all records
-
-    * ifurlup with a different port ?
-
-    TODO
-    ----
-    * [x] test pickrandom()
-    * [x] test pickwrandom()
-    * [x] test pickwhashed()
-    * [x] test ifportup()
-    * [ ] test ifportup() with other selectors
-    * [x] test ifurlup()
-    * [x] test latlon()
-    * [x] test latlonloc()
-    * [x] test netmask()
-    * [x] test country()
-    * [x] test continent()
-
-    * [x] test pickclosest()
-    * [x] test closestMagic()
-    * [x] test view()
-    * [x] test asnum()
-    * [x] rename pickwhashed() and pickwrandom() ?
-    * [x] unify pickrandom() pickwhashed() and pickwrandom() parameters (ComboAddress vs string)
-    * [x] make lua errors SERVFAIL
-    * [ ] Feature Request: allow both list of ips and string as argument of `pick*()` to return multiple records
-    * [ ] What to do with cases like "LUA AAAA pickrandom('::1', '127.0.0.1')" that will fail only if "127.0.0.1" is returned ?
-    * [ ] ifurlup supports multiple groups of IP addresses, why not ifportup ? (ie: "{{ip1g1, ip2g1}, {ip1g2}}" vs "{ip1, ip2, ip3}")
-    """
     _zones = {
         'example.org': """
 example.org.                 3600 IN SOA  {soa}
