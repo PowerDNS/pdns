@@ -102,6 +102,12 @@ AS_IF([test "x$with_luajit" = "xno"], [
 AS_IF([test "x$LUAPC" = "x" -a "x$LUAJITPC" = "x"], [
   AC_MSG_ERROR([Neither Lua nor LuaJIT found, Lua support is not optional])
 ])
+AS_IF([test "x$LUAJITPC" != "x"], [
+  # export all symbols to be able to use the Lua FFI interface
+  AC_MSG_NOTICE([Adding -rdynamic to export all symbols for the Lua FFI interface])
+  CFLAGS="$CFLAGS -rdynamic"
+  CXXFLAGS="$CXXFLAGS -rdynamic"
+])
 PDNS_CHECK_LUA_HPP
 
 PDNS_ENABLE_VERBOSE_LOGGING
