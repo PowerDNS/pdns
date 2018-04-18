@@ -112,6 +112,37 @@ axfrTimeout
 The timeout in seconds of the total initial AXFR transaction.
 20 by default.
 
+dumpFile
+^^^^^^^^
+.. versionadded:: 4.2.0
+
+A path to a file where the recursor will dump the latest version of the RPZ zone after
+each successful update. This can be used to keep track of changes in the RPZ zone, or
+to speed up the initial loading of the zone via the `seedFile`_ parameter.
+The format of the generated zone file is the same than the one used with :func:`rpzFile`,
+and can also be generated via:
+
+  rec_control dump-rpz *zone-name* *output-file*
+
+
+seedFile
+^^^^^^^^
+.. versionadded:: 4.2.0
+
+A path to a file containing an existing dump of the RPZ zone. The recursor will try to load
+the zone from this file on startup, then immediately do an IXFR to retrieve any updates.
+If the file does not exist or is not valid, the normal process of doing a full AXFR will
+be used instead.
+This option allows a faster startup by loading an existing zone from a file instead
+of retrieving it from the network, then retrieving only the needed updates via IXFR.
+The format of the zone file is the same than the one used with :func:`rpzFile`, and can
+for example be generated via:
+
+  rec_control dump-rpz *zone-name* *output-file*
+
+It is also possible to use the `dumpFile`_ parameter in order to dump the latest version
+of the RPZ zone after each update.
+
 Policy Actions
 --------------
 
