@@ -557,9 +557,8 @@ bool getEDNSOpts(const MOADNSParser& mdp, EDNSOpts* eo)
         eo->d_extRCode=stuff.extRCode;
         eo->d_version=stuff.version;
         eo->d_extFlags = ntohs(stuff.extFlags);
-        OPTRecordContent* orc = 
-          dynamic_cast<OPTRecordContent*>(val.first.d_content.get());
-        if(!orc)
+        auto orc = getRR<OPTRecordContent>(val.first);
+        if(orc == nullptr)
           return false;
         orc->getData(eo->d_options);
         return true;
