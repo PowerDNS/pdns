@@ -55,7 +55,10 @@ EXTRA_DIST = \
 	named.conf.parsertest \
 	delaypipe.hh delaypipe.cc \
 	pdns.service.in \
-	ixfrdist.service.in
+	ixfrdist.service.in \
+	lua-record.cc \
+	minicurl.cc \
+	minicurl.hh
 
 BUILT_SOURCES = \
 	bind-dnssec.schema.sqlite3.sql.h \
