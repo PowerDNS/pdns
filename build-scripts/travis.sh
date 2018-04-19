@@ -588,7 +588,7 @@ test_repo(){
 # Add botan 2.x when available in Travis CI
 run "sudo apt-get -qq --no-install-recommends install \
   libboost-all-dev \
-  liblua5.1-dev \
+  libluajit-5.1-dev \
   libedit-dev \
   libprotobuf-dev \
   pandoc\
