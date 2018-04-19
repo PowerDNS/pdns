@@ -101,16 +101,16 @@ LuaConfigItems::LuaConfigItems()
 
 static void init(bool debug=false)
 {
-  L.setName("test");
-  L.disableSyslog(true);
+  g_log.setName("test");
+  g_log.disableSyslog(true);
 
   if (debug) {
-    L.setLoglevel((Logger::Urgency)(6)); // info and up
-    L.toConsole(Logger::Info);
+    g_log.setLoglevel((Logger::Urgency)(6)); // info and up
+    g_log.toConsole(Logger::Info);
   }
   else {
-    L.setLoglevel(Logger::None);
-    L.toConsole(Logger::Error);
+    g_log.setLoglevel(Logger::None);
+    g_log.toConsole(Logger::Error);
   }
 
   seedRandom("/dev/urandom");

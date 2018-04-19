@@ -78,7 +78,7 @@ public:
   SSqlStatement* execute() {
     prepareStatement();
     if (d_dolog)
-      L<<Logger::Warning<< "Query: " << d_query << endl;
+      g_log<<Logger::Warning<< "Query: " << d_query << endl;
     int attempts = d_db->inTransaction(); // try only once
     while(attempts < 2 && (d_rc = sqlite3_step(d_stmt)) == SQLITE_BUSY) attempts++;
 
@@ -159,7 +159,7 @@ private:
       throw SSqlException(string("Unable to compile SQLite statement : '")+d_query+"': "+sqlite3_errmsg(d_db->db()));
     }
     if (pTail && strlen(pTail)>0)
-      L<<Logger::Warning<<"Sqlite3 command partially processed. Unprocessed part: "<<pTail<<endl;
+      g_log<<Logger::Warning<<"Sqlite3 command partially processed. Unprocessed part: "<<pTail<<endl;
     d_prepared = true;
   }
 

@@ -25,7 +25,7 @@
 #include <bitset>
 #include "dnsparser.hh"
 #include "iputils.hh"
-#undef L
+#undef g_log
 #include <boost/program_options.hpp>
 
 #include <boost/format.hpp>

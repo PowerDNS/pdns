@@ -72,7 +72,7 @@ DNSProxy::DNSProxy(const string &remote)
     throw PDNSException("Unable to UDP connect to remote nameserver "+remaddr.toStringWithPort()+": "+stringerror());
 
   d_xor=dns_random(0xffff);
-  L<<Logger::Error<<"DNS Proxy launched, local port "<<ntohs(local.sin4.sin_port)<<", remote "<<remaddr.toStringWithPort()<<endl;
+  g_log<<Logger::Error<<"DNS Proxy launched, local port "<<ntohs(local.sin4.sin_port)<<", remote "<<remaddr.toStringWithPort()<<endl;
 } 
 
 void DNSProxy::go()
@@ -106,7 +106,7 @@ bool DNSProxy::sendPacket(DNSPacket *p)
   const string& buffer = p->getString();
   
   if(send(d_sock,buffer.c_str(), buffer.length() , 0)<0) { // zoom
-    L<<Logger::Error<<"Unable to send a packet to our recursing backend: "<<stringerror()<<endl;
+    g_log<<Logger::Error<<"Unable to send a packet to our recursing backend: "<<stringerror()<<endl;
   }
   (*d_resquestions)++;
   return true;
@@ -140,7 +140,7 @@ bool DNSProxy::completePacket(DNSPacket *r, const DNSName& target,const DNSName&
   pw.getHeader()->id=id ^ d_xor;
 
   if(send(d_sock,&packet[0], packet.size() , 0)<0) { // zoom
-    L<<Logger::Error<<"Unable to send a packet to our recursing backend: "<<stringerror()<<endl;
+    g_log<<Logger::Error<<"Unable to send a packet to our recursing backend: "<<stringerror()<<endl;
   }
 
   return true;
@@ -159,7 +159,7 @@ int DNSProxy::getID_locked()
     }
     else if(i->second.created<time(0)-60) {
       if(i->second.created) {
-        L<<Logger::Warning<<"Recursive query for remote "<<
+        g_log<<Logger::Warning<<"Recursive query for remote "<<
           i->second.remote.toStringWithPort()<<" with internal id "<<n<<
           " was not answered by backend within timeout, reusing id"<<endl;
 	delete i->second.complete;
@@ -184,11 +184,11 @@ void DNSProxy::mainloop(void)
       len=recv(d_sock, buffer, sizeof(buffer),0); // answer from our backend
       if(len<(ssize_t)sizeof(dnsheader)) {
         if(len<0)
-          L<<Logger::Error<<"Error receiving packet from recursor backend: "<<stringerror()<<endl;
+          g_log<<Logger::Error<<"Error receiving packet from recursor backend: "<<stringerror()<<endl;
         else if(len==0)
-          L<<Logger::Error<<"Error receiving packet from recursor backend, EOF"<<endl;
+          g_log<<Logger::Error<<"Error receiving packet from recursor backend, EOF"<<endl;
         else
-          L<<Logger::Error<<"Short packet from recursor backend, "<<len<<" bytes"<<endl;
+          g_log<<Logger::Error<<"Short packet from recursor backend, "<<len<<" bytes"<<endl;
         
         continue;
       }
@@ -204,12 +204,12 @@ void DNSProxy::mainloop(void)
 #endif
         map_t::iterator i=d_conntrack.find(d.id^d_xor);
         if(i==d_conntrack.end()) {
-          L<<Logger::Error<<"Discarding untracked packet from recursor backend with id "<<(d.id^d_xor)<<
+          g_log<<Logger::Error<<"Discarding untracked packet from recursor backend with id "<<(d.id^d_xor)<<
             ". Conntrack table size="<<d_conntrack.size()<<endl;
           continue;
         }
         else if(i->second.created==0) {
-          L<<Logger::Error<<"Received packet from recursor backend with id "<<(d.id^d_xor)<<" which is a duplicate"<<endl;
+          g_log<<Logger::Error<<"Received packet from recursor backend with id "<<(d.id^d_xor)<<" which is a duplicate"<<endl;
           continue;
         }
 	
@@ -221,7 +221,7 @@ void DNSProxy::mainloop(void)
         q.parse(buffer,(size_t)len);
 
         if(p.qtype.getCode() != i->second.qtype || p.qdomain != i->second.qname) {
-          L<<Logger::Error<<"Discarding packet from recursor backend with id "<<(d.id^d_xor)<<
+          g_log<<Logger::Error<<"Discarding packet from recursor backend with id "<<(d.id^d_xor)<<
             ", qname or qtype mismatch ("<<p.qtype.getCode()<<" v " <<i->second.qtype<<", "<<p.qdomain<<" v "<<i->second.qname<<")"<<endl;
           continue;
         }
@@ -269,23 +269,23 @@ void DNSProxy::mainloop(void)
           addCMsgSrcAddr(&msgh, cbuf, i->second.anyLocal.get_ptr(), 0);
         }
         if(sendmsg(i->second.outsock, &msgh, 0) < 0)
-          L<<Logger::Warning<<"dnsproxy.cc: Error sending reply with sendmsg (socket="<<i->second.outsock<<"): "<<strerror(errno)<<endl;
+          g_log<<Logger::Warning<<"dnsproxy.cc: Error sending reply with sendmsg (socket="<<i->second.outsock<<"): "<<strerror(errno)<<endl;
         
         i->second.created=0;
       }
     }
   }
   catch(PDNSException &ae) {
-    L<<Logger::Error<<"Fatal error in DNS proxy: "<<ae.reason<<endl;
+    g_log<<Logger::Error<<"Fatal error in DNS proxy: "<<ae.reason<<endl;
   }
   catch(std::exception &e) {
-    L<<Logger::Error<<"Communicator thread died because of STL error: "<<e.what()<<endl;
+    g_log<<Logger::Error<<"Communicator thread died because of STL error: "<<e.what()<<endl;
   }
   catch( ... )
   {
-    L << Logger::Error << "Caught unknown exception." << endl;
+    g_log << Logger::Error << "Caught unknown exception." << endl;
   }
-  L<<Logger::Error<<"Exiting because DNS proxy failed"<<endl;
+  g_log<<Logger::Error<<"Exiting because DNS proxy failed"<<endl;
   _exit(1);
 }
 

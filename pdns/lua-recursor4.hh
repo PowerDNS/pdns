@@ -43,9 +43,7 @@ unsigned int getRecursorThreadId();
 class LuaContext;
 
 #if defined(HAVE_LUA)
-#undef L
 #include "ext/luawrapper/include/LuaContext.hpp"
-#define L theL()
 #endif
 
 // pdns_ffi_param_t is a lightuserdata

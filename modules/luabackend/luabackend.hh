@@ -36,7 +36,7 @@
 #include <string>
 using std::string;
 
-//#undef L
+//#undef g_log
 
 
 

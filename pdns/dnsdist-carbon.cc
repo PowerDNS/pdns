@@ -27,7 +27,7 @@
 #include "sstuff.hh"
 
 #include "namespaces.hh"
-#undef L
+#undef g_log
 #include "dnsdist.hh"
 
 GlobalStateHolder<vector<CarbonConfig> > g_carbon;

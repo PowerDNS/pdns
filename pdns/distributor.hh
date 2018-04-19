@@ -124,16 +124,16 @@ template<class Answer, class Question, class Backend>Distributor<Answer,Question
 
 template<class Answer, class Question, class Backend>SingleThreadDistributor<Answer,Question,Backend>::SingleThreadDistributor()
 {
-  L<<Logger::Error<<"Only asked for 1 backend thread - operating unthreaded"<<endl;
+  g_log<<Logger::Error<<"Only asked for 1 backend thread - operating unthreaded"<<endl;
   try {
     b=new Backend;
   }
   catch(const PDNSException &AE) {
-    L<<Logger::Error<<"Distributor caught fatal exception: "<<AE.reason<<endl;
+    g_log<<Logger::Error<<"Distributor caught fatal exception: "<<AE.reason<<endl;
     _exit(1);
   }
   catch(...) {
-    L<<Logger::Error<<"Caught an unknown exception when creating backend, probably"<<endl;
+    g_log<<Logger::Error<<"Caught an unknown exception when creating backend, probably"<<endl;
     _exit(1);
   }
 }
@@ -157,16 +157,16 @@ template<class Answer, class Question, class Backend>MultiThreadDistributor<Answ
   }
   
   if (n<1) {
-    L<<Logger::Error<<"Asked for fewer than 1 threads, nothing to do"<<endl;
+    g_log<<Logger::Error<<"Asked for fewer than 1 threads, nothing to do"<<endl;
     _exit(1);
   }
 
-  L<<Logger::Warning<<"About to create "<<n<<" backend threads for UDP"<<endl;
+  g_log<<Logger::Warning<<"About to create "<<n<<" backend threads for UDP"<<endl;
   for(int i=0;i<n;i++) {
     pthread_create(&tid,0,&makeThread,static_cast<void *>(this));
     Utility::usleep(50000); // we've overloaded mysql in the past :-)
   }
-  L<<Logger::Warning<<"Done launching threads, ready to distribute questions"<<endl;
+  g_log<<Logger::Warning<<"Done launching threads, ready to distribute questions"<<endl;
 }
 
 
@@ -211,7 +211,7 @@ retry:
         delete b;
         b=NULL;
         if (!allowRetry) {
-          L<<Logger::Error<<"Backend error: "<<e.reason<<endl;
+          g_log<<Logger::Error<<"Backend error: "<<e.reason<<endl;
           a=QD->Q->replyPacket();
 
           a->setRcode(RCode::ServFail);
@@ -220,7 +220,7 @@ retry:
 
           delete QD->Q;
         } else {
-          L<<Logger::Notice<<"Backend error (retry once): "<<e.reason<<endl;
+          g_log<<Logger::Notice<<"Backend error (retry once): "<<e.reason<<endl;
           goto retry;
         }
       }
@@ -228,7 +228,7 @@ retry:
         delete b;
         b=NULL;
         if (!allowRetry) {
-          L<<Logger::Error<<"Caught unknown exception in Distributor thread "<<(long)pthread_self()<<endl;
+          g_log<<Logger::Error<<"Caught unknown exception in Distributor thread "<<(long)pthread_self()<<endl;
           a=QD->Q->replyPacket();
 
           a->setRcode(RCode::ServFail);
@@ -237,7 +237,7 @@ retry:
 
           delete QD->Q;
         } else {
-          L<<Logger::Warning<<"Caught unknown exception in Distributor thread "<<(long)pthread_self()<<" (retry once)"<<endl;
+          g_log<<Logger::Warning<<"Caught unknown exception in Distributor thread "<<(long)pthread_self()<<" (retry once)"<<endl;
           goto retry;
         }
       }
@@ -249,11 +249,11 @@ retry:
     delete b;
   }
   catch(const PDNSException &AE) {
-    L<<Logger::Error<<"Distributor caught fatal exception: "<<AE.reason<<endl;
+    g_log<<Logger::Error<<"Distributor caught fatal exception: "<<AE.reason<<endl;
     _exit(1);
   }
   catch(...) {
-    L<<Logger::Error<<"Caught an unknown exception when creating backend, probably"<<endl;
+    g_log<<Logger::Error<<"Caught an unknown exception when creating backend, probably"<<endl;
     _exit(1);
   }
   return 0;
@@ -275,14 +275,14 @@ retry:
     delete b;
     b=NULL;
     if (!allowRetry) {
-      L<<Logger::Error<<"Backend error: "<<e.reason<<endl;
+      g_log<<Logger::Error<<"Backend error: "<<e.reason<<endl;
       a=q->replyPacket();
 
       a->setRcode(RCode::ServFail);
       S.inc("servfail-packets");
       S.ringAccount("servfail-queries",q->qdomain.toLogString());
     } else {
-      L<<Logger::Notice<<"Backend error (retry once): "<<e.reason<<endl;
+      g_log<<Logger::Notice<<"Backend error (retry once): "<<e.reason<<endl;
       goto retry;
     }
   }
@@ -290,14 +290,14 @@ retry:
     delete b;
     b=NULL;
     if (!allowRetry) {
-      L<<Logger::Error<<"Caught unknown exception in Distributor thread "<<(unsigned long)pthread_self()<<endl;
+      g_log<<Logger::Error<<"Caught unknown exception in Distributor thread "<<(unsigned long)pthread_self()<<endl;
       a=q->replyPacket();
 
       a->setRcode(RCode::ServFail);
       S.inc("servfail-packets");
       S.ringAccount("servfail-queries",q->qdomain.toLogString());
     } else {
-      L<<Logger::Warning<<"Caught unknown exception in Distributor thread "<<(unsigned long)pthread_self()<<" (retry once)"<<endl;
+      g_log<<Logger::Warning<<"Caught unknown exception in Distributor thread "<<(unsigned long)pthread_self()<<" (retry once)"<<endl;
       goto retry;
     }
   }
@@ -325,7 +325,7 @@ template<class Answer, class Question, class Backend>int MultiThreadDistributor<
 
 
   if(d_queued > d_maxQueueLength) {
-    L<<Logger::Error<< d_queued <<" questions waiting for database/backend attention. Limit is "<<::arg().asNum("max-queue-length")<<", respawning"<<endl;
+    g_log<<Logger::Error<< d_queued <<" questions waiting for database/backend attention. Limit is "<<::arg().asNum("max-queue-length")<<", respawning"<<endl;
     // this will leak the entire contents of all pipes, nothing will be freed. Respawn when this happens!
     throw DistributorFatal();
   }

@@ -156,7 +156,7 @@ public:
     if (!d_stmt) return this;
 
     if (d_dolog) {
-      L<<Logger::Warning<<"Query: " << d_query <<endl;
+      g_log<<Logger::Warning<<"Query: " << d_query <<endl;
     }
 
     if ((err = mysql_stmt_bind_param(d_stmt, d_req_bind))) {
@@ -234,7 +234,7 @@ public:
 
     for(int i=0;i<d_fnum;i++) {
       if (err == MYSQL_DATA_TRUNCATED && *d_res_bind[i].error) {
-        L<<Logger::Warning<<"Result field at row " << d_residx << " column " << i << " has been truncated, we allocated " << d_res_bind[i].buffer_length << " bytes but at least " << *d_res_bind[i].length << " was needed" << endl;
+        g_log<<Logger::Warning<<"Result field at row " << d_residx << " column " << i << " has been truncated, we allocated " << d_res_bind[i].buffer_length << " bytes but at least " << *d_res_bind[i].length << " was needed" << endl;
       }
       if (*d_res_bind[i].is_null) {
         row.push_back("");
@@ -475,7 +475,7 @@ std::unique_ptr<SSqlStatement> SMySQL::prepare(const string& query, int nparams)
 void SMySQL::execute(const string& query)
 {
   if(s_dolog)
-    L<<Logger::Warning<<"Query: "<<query<<endl;
+    g_log<<Logger::Warning<<"Query: "<<query<<endl;
 
   int err;
   if((err=mysql_query(&d_db,query.c_str())))

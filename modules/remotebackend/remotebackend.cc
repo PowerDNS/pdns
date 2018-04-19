@@ -50,7 +50,7 @@ bool Connector::recv(Json& value) {
        if (value["result"].is_bool() && boolFromJson(value, "result", false) == false)
          rv = false;
        for(const auto& message: value["log"].array_items())
-         L<<Logger::Info<<"[remotebackend]: "<< message.string_value() <<std::endl;
+         g_log<<Logger::Info<<"[remotebackend]: "<< message.string_value() <<std::endl;
        return rv;
     }
     return false;
@@ -81,7 +81,7 @@ bool RemoteBackend::send(Json& value) {
    try {
      return connector->send(value);
    } catch (PDNSException &ex) {
-     L<<Logger::Error<<"Exception caught when sending: "<<ex.reason<<std::endl;
+     g_log<<Logger::Error<<"Exception caught when sending: "<<ex.reason<<std::endl;
    }
 
    delete this->connector;
@@ -93,9 +93,9 @@ bool RemoteBackend::recv(Json& value) {
    try {
      return connector->recv(value);
    } catch (PDNSException &ex) {
-     L<<Logger::Error<<"Exception caught when receiving: "<<ex.reason<<std::endl;
+     g_log<<Logger::Error<<"Exception caught when receiving: "<<ex.reason<<std::endl;
    } catch (...) {
-     L<<Logger::Error<<"Exception caught when receiving"<<std::endl;;
+     g_log<<Logger::Error<<"Exception caught when receiving"<<std::endl;;
    }
 
    delete this->connector;
@@ -605,7 +605,7 @@ void RemoteBackend::setNotified(uint32_t id, uint32_t serial) {
 
    Json answer;
    if (this->send(query) == false || this->recv(answer) == false) {
-      L<<Logger::Error<<kBackendId<<" Failed to execute RPC for RemoteBackend::setNotified("<<id<<","<<serial<<")"<<endl;
+      g_log<<Logger::Error<<kBackendId<<" Failed to execute RPC for RemoteBackend::setNotified("<<id<<","<<serial<<")"<<endl;
    }
 }
 
@@ -960,7 +960,7 @@ DNSBackend *RemoteBackend::maker()
       return new RemoteBackend();
    }
    catch(...) {
-      L<<Logger::Error<<kBackendId<<" Unable to instantiate a remotebackend!"<<endl;
+      g_log<<Logger::Error<<kBackendId<<" Unable to instantiate a remotebackend!"<<endl;
       return 0;
    };
 }
@@ -993,7 +993,7 @@ public:
 
 RemoteLoader::RemoteLoader() {
     BackendMakers().report(new RemoteBackendFactory);
-    L << Logger::Info << kBackendId << " This is the remote backend version " VERSION
+    g_log << Logger::Info << kBackendId << " This is the remote backend version " VERSION
 #ifndef REPRODUCIBLE
       << " (" __DATE__ " " __TIME__ ")"
 #endif

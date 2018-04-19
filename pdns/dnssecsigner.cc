@@ -74,7 +74,7 @@ static void fillOutRRSIG(DNSSECPrivateKey& dpk, const DNSName& signQName, RRSIGR
 
     WriteLock l(&g_signatures_lock);
     if(g_cacheweekno < weekno || g_signatures.size() >= (uint) maxcachesize) {  // blunt but effective (C) Habbie, mind04
-      L<<Logger::Warning<<"Cleared signature cache."<<endl;
+      g_log<<Logger::Warning<<"Cleared signature cache."<<endl;
       g_signatures.clear();
       g_cacheweekno = weekno;
     }

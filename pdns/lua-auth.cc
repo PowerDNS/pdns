@@ -41,7 +41,7 @@ DNSPacket* AuthLua::prequery(DNSPacket *p)
 
 
 extern "C" {
-#undef L
+#undef g_log
 /* Include the Lua API header files. */
 #include <lua.h>
 #include <lauxlib.h>
@@ -69,52 +69,52 @@ struct LuaDNSPacket
   DNSPacket *d_p;
 };
 
-static DNSPacket* ldp_checkDNSPacket(lua_State *L) {
-  void *ud = luaL_checkudata(L, 1, "LuaDNSPacket");
-  luaL_argcheck(L, ud != NULL, 1, "`LuaDNSPacket' expected");
+static DNSPacket* ldp_checkDNSPacket(lua_State *g_log) {
+  void *ud = luaL_checkudata(g_log, 1, "LuaDNSPacket");
+  luaL_argcheck(g_log, ud != NULL, 1, "`LuaDNSPacket' expected");
   return ((LuaDNSPacket *)ud)->d_p;
 }
 
-static int ldp_setRcode(lua_State *L) {
-  DNSPacket *p=ldp_checkDNSPacket(L);
+static int ldp_setRcode(lua_State *g_log) {
+  DNSPacket *p=ldp_checkDNSPacket(g_log);
 #if LUA_VERSION_NUM < 503
-  int rcode = luaL_checkint(L, 2);
+  int rcode = luaL_checkint(g_log, 2);
 #else
-  int rcode = (int)luaL_checkinteger(L, 2);
+  int rcode = (int)luaL_checkinteger(g_log, 2);
 #endif
   p->setRcode(rcode);
   return 0;
 }
 
-static int ldp_getQuestion(lua_State *L) {
-  DNSPacket *p=ldp_checkDNSPacket(L);
-  lua_pushstring(L, p->qdomain.toString().c_str());
-  lua_pushnumber(L, p->qtype.getCode());
+static int ldp_getQuestion(lua_State *g_log) {
+  DNSPacket *p=ldp_checkDNSPacket(g_log);
+  lua_pushstring(g_log, p->qdomain.toString().c_str());
+  lua_pushnumber(g_log, p->qtype.getCode());
   return 2;
 }
 
-static int ldp_getWild(lua_State *L) {
-  DNSPacket *p=ldp_checkDNSPacket(L);
+static int ldp_getWild(lua_State *g_log) {
+  DNSPacket *p=ldp_checkDNSPacket(g_log);
   if(p->qdomainwild.empty())
-    lua_pushnil(L);
+    lua_pushnil(g_log);
   else
-    lua_pushstring(L, p->qdomainwild.toString().c_str());
+    lua_pushstring(g_log, p->qdomainwild.toString().c_str());
   return 1;
 }
 
-static int ldp_getZone(lua_State *L) {
-  DNSPacket *p=ldp_checkDNSPacket(L);
+static int ldp_getZone(lua_State *g_log) {
+  DNSPacket *p=ldp_checkDNSPacket(g_log);
   if(p->qdomainzone.empty())
-    lua_pushnil(L);
+    lua_pushnil(g_log);
   else
-    lua_pushstring(L, p->qdomainzone.toString().c_str());
+    lua_pushstring(g_log, p->qdomainzone.toString().c_str());
   return 1;
 }
 
-static int ldp_addRecords(lua_State *L) {
-  DNSPacket *p=ldp_checkDNSPacket(L);
+static int ldp_addRecords(lua_State *g_log) {
+  DNSPacket *p=ldp_checkDNSPacket(g_log);
   vector<DNSRecord> rrs;
-  popResourceRecordsTable(L, DNSName("BOGUS"), rrs);
+  popResourceRecordsTable(g_log, DNSName("BOGUS"), rrs);
   for(const DNSRecord& dr :  rrs) {
     DNSZoneRecord dzr;
     dzr.dr=dr;
@@ -124,41 +124,41 @@ static int ldp_addRecords(lua_State *L) {
   return 0;
 }
 
-static int ldp_getRemote(lua_State *L) {
-  DNSPacket *p=ldp_checkDNSPacket(L);
-  lua_pushstring(L, p->getRemote().toString().c_str());
+static int ldp_getRemote(lua_State *g_log) {
+  DNSPacket *p=ldp_checkDNSPacket(g_log);
+  lua_pushstring(g_log, p->getRemote().toString().c_str());
   return 1;
 }
 
-static int ldp_getRemoteRaw(lua_State *L) {
-  DNSPacket *p=ldp_checkDNSPacket(L);
+static int ldp_getRemoteRaw(lua_State *g_log) {
+  DNSPacket *p=ldp_checkDNSPacket(g_log);
   const ComboAddress& ca=p->getRemote();
   if(ca.sin4.sin_family == AF_INET) {
-    lua_pushlstring(L, (const char*)&ca.sin4.sin_addr.s_addr, 4);
+    lua_pushlstring(g_log, (const char*)&ca.sin4.sin_addr.s_addr, 4);
   }
   else {
-    lua_pushlstring(L, (const char*)&ca.sin6.sin6_addr.s6_addr, 16);
+    lua_pushlstring(g_log, (const char*)&ca.sin6.sin6_addr.s6_addr, 16);
   }
   return 1;
 }
 
-static int ldp_getRcode(lua_State *L) {
-  DNSPacket *p=ldp_checkDNSPacket(L);
-  lua_pushnumber(L, p->d.rcode);
+static int ldp_getRcode(lua_State *g_log) {
+  DNSPacket *p=ldp_checkDNSPacket(g_log);
+  lua_pushnumber(g_log, p->d.rcode);
   return 1;
 }
 
-static int ldp_getSize(lua_State *L) {
-  DNSPacket *p=ldp_checkDNSPacket(L);
-  lua_pushnumber(L, p->getString().size());
+static int ldp_getSize(lua_State *g_log) {
+  DNSPacket *p=ldp_checkDNSPacket(g_log);
+  lua_pushnumber(g_log, p->getString().size());
   return 1;
 }
 
-static int ldp_getRRCounts(lua_State *L) {
-  DNSPacket *p=ldp_checkDNSPacket(L);
-  lua_pushnumber(L, ntohs(p->d.ancount));
-  lua_pushnumber(L, ntohs(p->d.nscount));
-  lua_pushnumber(L, ntohs(p->d.arcount));
+static int ldp_getRRCounts(lua_State *g_log) {
+  DNSPacket *p=ldp_checkDNSPacket(g_log);
+  lua_pushnumber(g_log, ntohs(p->d.ancount));
+  lua_pushnumber(g_log, ntohs(p->d.nscount));
+  lua_pushnumber(g_log, ntohs(p->d.arcount));
   return 3;
 }
 
@@ -230,7 +230,7 @@ DNSPacket* AuthLua::prequery(DNSPacket *p)
 
   if(lua_pcall(d_lua,  1, 1, 0)) { // error 
     string error=string("lua error in prequery: ")+lua_tostring(d_lua, -1);
-    theL()<<Logger::Error<<error<<endl;
+    g_log<<Logger::Error<<error<<endl;
 
     lua_pop(d_lua, 1);
     throw runtime_error(error);
@@ -239,7 +239,7 @@ DNSPacket* AuthLua::prequery(DNSPacket *p)
   lua_pop(d_lua, 1);
   if(res) {
     // prequery created our response, use it
-    theL()<<Logger::Info<<"overriding query from lua prequery result"<<endl;
+    g_log<<Logger::Info<<"overriding query from lua prequery result"<<endl;
     return r;
   }
   else

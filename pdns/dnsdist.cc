@@ -688,7 +688,7 @@ static void daemonize(void)
 
   int i=open("/dev/null",O_RDWR); /* open stdin */
   if(i < 0) 
-    ; // L<<Logger::Critical<<"Unable to open /dev/null: "<<stringerror()<<endl;
+    ; // g_log<<Logger::Critical<<"Unable to open /dev/null: "<<stringerror()<<endl;
   else {
     dup2(i,0); /* stdin */
     dup2(i,1); /* stderr */
@@ -2151,7 +2151,7 @@ try
     bindAny(cs->local.sin4.sin_family, cs->udpFD);
 
     //    if (!setSocketTimestamps(cs->udpFD))
-    //      L<<Logger::Warning<<"Unable to enable timestamp reporting for socket"<<endl;
+    //      g_log<<Logger::Warning<<"Unable to enable timestamp reporting for socket"<<endl;
 
 
     if(IsAnyAddress(cs->local)) {

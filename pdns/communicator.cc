@@ -65,7 +65,7 @@ void CommunicatorClass::loadArgsIntoSet(const char *listname, set<string> &lists
       listset.insert(caIp.toStringWithPort());
     }
     catch(PDNSException &e) {
-      L<<Logger::Error<<"Unparseable IP in "<<listname<<". Error: "<<e.reason<<endl;
+      g_log<<Logger::Error<<"Unparseable IP in "<<listname<<". Error: "<<e.reason<<endl;
       _exit(1);
     }
   }
@@ -77,7 +77,7 @@ void CommunicatorClass::go()
     PacketHandler::s_allowNotifyFrom.toMasks(::arg()["allow-notify-from"] );
   }
   catch(PDNSException &e) {
-    L<<Logger::Error<<"Unparseable IP in allow-notify-from. Error: "<<e.reason<<endl;
+    g_log<<Logger::Error<<"Unparseable IP in allow-notify-from. Error: "<<e.reason<<endl;
     _exit(1);
   }
 
@@ -92,7 +92,7 @@ void CommunicatorClass::go()
     d_onlyNotify.toMasks(::arg()["only-notify"]);
   }
   catch(PDNSException &e) {
-    L<<Logger::Error<<"Unparseable IP in only-notify. Error: "<<e.reason<<endl;
+    g_log<<Logger::Error<<"Unparseable IP in only-notify. Error: "<<e.reason<<endl;
     _exit(1);
   }
 
@@ -105,7 +105,7 @@ void CommunicatorClass::mainloop(void)
 {
   try {
     signal(SIGPIPE,SIG_IGN);
-    L<<Logger::Error<<"Master/slave communicator launching"<<endl;
+    g_log<<Logger::Error<<"Master/slave communicator launching"<<endl;
     PacketHandler P;
     d_tickinterval=::arg().asNum("slave-cycle-interval");
     makeNotifySockets();
@@ -136,17 +136,17 @@ void CommunicatorClass::mainloop(void)
     }
   }
   catch(PDNSException &ae) {
-    L<<Logger::Error<<"Exiting because communicator thread died with error: "<<ae.reason<<endl;
+    g_log<<Logger::Error<<"Exiting because communicator thread died with error: "<<ae.reason<<endl;
     Utility::sleep(1);
     _exit(1);
   }
   catch(std::exception &e) {
-    L<<Logger::Error<<"Exiting because communicator thread died with STL error: "<<e.what()<<endl;
+    g_log<<Logger::Error<<"Exiting because communicator thread died with STL error: "<<e.what()<<endl;
     _exit(1);
   }
   catch( ... )
   {
-    L << Logger::Error << "Exiting because communicator caught unknown exception." << endl;
+    g_log << Logger::Error << "Exiting because communicator caught unknown exception." << endl;
     _exit(1);
   }
 }

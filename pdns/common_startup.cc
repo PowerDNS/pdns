@@ -237,12 +237,12 @@ try
 }
 catch(std::exception& e)
 {
-  L<<Logger::Error<<"Had error retrieving queue sizes: "<<e.what()<<endl;
+  g_log<<Logger::Error<<"Had error retrieving queue sizes: "<<e.what()<<endl;
   return 0;
 }
 catch(PDNSException& e)
 {
-  L<<Logger::Error<<"Had error retrieving queue sizes: "<<e.reason<<endl;
+  g_log<<Logger::Error<<"Had error retrieving queue sizes: "<<e.reason<<endl;
   return 0;
 }
 
@@ -404,7 +404,7 @@ try
         remote = P->getRemote().toString() + "<-" + P->getRealRemote().toString();
       else
         remote = P->getRemote().toString();
-      L << Logger::Notice<<"Remote "<< remote <<" wants '" << P->qdomain<<"|"<<P->qtype.getName() << 
+      g_log << Logger::Notice<<"Remote "<< remote <<" wants '" << P->qdomain<<"|"<<P->qtype.getName() << 
             "', do = " <<P->d_dnssecOk <<", bufsize = "<< P->getMaxReplyLen()<<": ";
     }
 
@@ -412,7 +412,7 @@ try
       bool haveSomething=PC.get(P, &cached); // does the PacketCache recognize this question?
       if (haveSomething) {
         if(logDNSQueries)
-          L<<"packetcache HIT"<<endl;
+          g_log<<"packetcache HIT"<<endl;
         cached.setRemote(&P->d_remote);  // inlined
         cached.setSocket(P->getSocket());                               // inlined
         cached.d_anyLocal = P->d_anyLocal;
@@ -429,13 +429,13 @@ try
 
     if(distributor->isOverloaded()) {
       if(logDNSQueries) 
-        L<<"Dropped query, backends are overloaded"<<endl;
+        g_log<<"Dropped query, backends are overloaded"<<endl;
       overloadDrops++;
       continue;
     }
         
     if(logDNSQueries) 
-      L<<"packetcache MISS"<<endl;
+      g_log<<"packetcache MISS"<<endl;
 
     try {
       distributor->question(P, &sendout); // otherwise, give to the distributor
@@ -448,7 +448,7 @@ try
 }
 catch(PDNSException& pe)
 {
-  L<<Logger::Error<<"Fatal error in question thread: "<<pe.reason<<endl;
+  g_log<<Logger::Error<<"Fatal error in question thread: "<<pe.reason<<endl;
   _exit(1);
 }
 
@@ -494,7 +494,7 @@ void mainthread()
      char *ns;
      ns = getenv("NOTIFY_SOCKET");
      if (ns != nullptr) {
-       L<<Logger::Error<<"Unable to chroot when running from systemd. Please disable chroot= or set the 'Type' for this service to 'simple'"<<endl;
+       g_log<<Logger::Error<<"Unable to chroot when running from systemd. Please disable chroot= or set the 'Type' for this service to 'simple'"<<endl;
        exit(1);
      }
 #endif
@@ -503,11 +503,11 @@ void mainthread()
         gethostbyname("a.root-servers.net"); // this forces all lookup libraries to be loaded
      Utility::dropGroupPrivs(newuid, newgid);
      if(chroot(::arg()["chroot"].c_str())<0 || chdir("/")<0) {
-       L<<Logger::Error<<"Unable to chroot to '"+::arg()["chroot"]+"': "<<strerror(errno)<<", exiting"<<endl; 
+       g_log<<Logger::Error<<"Unable to chroot to '"+::arg()["chroot"]+"': "<<strerror(errno)<<", exiting"<<endl; 
        exit(1);
      }   
      else
-       L<<Logger::Error<<"Chrooted to '"<<::arg()["chroot"]<<"'"<<endl;      
+       g_log<<Logger::Error<<"Chrooted to '"<<::arg()["chroot"]<<"'"<<endl;      
    } else {
      Utility::dropGroupPrivs(newuid, newgid);
    }
@@ -534,9 +534,9 @@ void mainthread()
     algo = DNSSECKeeper::shorthand2algorithm(::arg()["default-"+algotype+"-algorithm"]);
     size = ::arg().asNum("default-"+algotype+"-size");
     if (algo == -1)
-      L<<Logger::Warning<<"Warning: default-"<<algotype<<"-algorithm set to unknown algorithm: "<<::arg()["default-"+algotype+"-algorithm"]<<endl;
+      g_log<<Logger::Warning<<"Warning: default-"<<algotype<<"-algorithm set to unknown algorithm: "<<::arg()["default-"+algotype+"-algorithm"]<<endl;
     else if (algo <= 10 && size == 0)
-      L<<Logger::Warning<<"Warning: default-"<<algotype<<"-algorithm is set to an algorithm ("<<::arg()["default-"+algotype+"-algorithm"]<<") that requires a non-zero default-"<<algotype<<"-size!"<<endl;
+      g_log<<Logger::Warning<<"Warning: default-"<<algotype<<"-algorithm is set to an algorithm ("<<::arg()["default-"+algotype+"-algorithm"]<<") that requires a non-zero default-"<<algotype<<"-size!"<<endl;
   }
 
   // NOW SAFE TO CREATE THREADS!
@@ -578,5 +578,5 @@ void mainthread()
     catch(...){}
   }
   
-  L<<Logger::Error<<"Mainthread exiting - should never happen"<<endl;
+  g_log<<Logger::Error<<"Mainthread exiting - should never happen"<<endl;
 }

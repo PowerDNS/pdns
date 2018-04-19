@@ -55,7 +55,7 @@ void doSecPoll(time_t* last_secpoll)
   }
 
   if(state == Bogus) {
-    L<<Logger::Error<<"Could not retrieve security status update for '" +pkgv+ "' on '"<<query<<"', DNSSEC validation result was Bogus!"<<endl;
+    g_log<<Logger::Error<<"Could not retrieve security status update for '" +pkgv+ "' on '"<<query<<"', DNSSEC validation result was Bogus!"<<endl;
     if(g_security_status == 1) // If we were OK, go to unknown
       g_security_status = 0;
     return;
@@ -79,18 +79,18 @@ void doSecPoll(time_t* last_secpoll)
   }
   else {
     if(pkgv.find("0.0.") != 0)
-      L<<Logger::Warning<<"Could not retrieve security status update for '" +pkgv+ "' on '"<<query<<"', RCODE = "<< RCode::to_s(res)<<endl;
+      g_log<<Logger::Warning<<"Could not retrieve security status update for '" +pkgv+ "' on '"<<query<<"', RCODE = "<< RCode::to_s(res)<<endl;
     else
-      L<<Logger::Warning<<"Ignoring response for security status update, this is a non-release version."<<endl;
+      g_log<<Logger::Warning<<"Ignoring response for security status update, this is a non-release version."<<endl;
 
     if(g_security_status == 1) // it was ok, now it is unknown
       g_security_status = 0;
   }
 
   if(g_security_status == 2) {
-    L<<Logger::Error<<"PowerDNS Security Update Recommended: "<<g_security_message<<endl;
+    g_log<<Logger::Error<<"PowerDNS Security Update Recommended: "<<g_security_message<<endl;
   }
   else if(g_security_status == 3) {
-    L<<Logger::Error<<"PowerDNS Security Update Mandatory: "<<g_security_message<<endl;
+    g_log<<Logger::Error<<"PowerDNS Security Update Mandatory: "<<g_security_message<<endl;
   }
 }
