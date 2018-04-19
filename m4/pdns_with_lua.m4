@@ -21,7 +21,7 @@ AC_DEFUN([PDNS_WITH_LUA],[
   ])
 
   LUAPC=""
-  luajit_min_version='2.0.3'
+  luajit_min_version='2.0.2'
   lua_min_version='5.1'
 
   AS_IF([test "x$with_lua" != "xno"], [
