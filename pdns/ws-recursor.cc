@@ -551,11 +551,11 @@ void AsyncServerNewConnectionMT(void *p) {
     }
   } catch (NetworkError &e) {
     // we're running in a shared process/thread, so can't just terminate/abort.
-    L<<Logger::Warning<<"Network error in web thread: "<<e.what()<<endl;
+    g_log<<Logger::Warning<<"Network error in web thread: "<<e.what()<<endl;
     return;
   }
   catch (...) {
-    L<<Logger::Warning<<"Unknown error in web thread"<<endl;
+    g_log<<Logger::Warning<<"Unknown error in web thread"<<endl;
 
     return;
   }
@@ -605,18 +605,18 @@ try {
 
   // now send the reply
   if (asendtcp(data, client.get()) == -1 || data.empty()) {
-    L<<Logger::Error<<"Failed sending reply to HTTP client"<<endl;
+    g_log<<Logger::Error<<"Failed sending reply to HTTP client"<<endl;
   }
 }
 catch(PDNSException &e) {
-  L<<Logger::Error<<"HTTP Exception: "<<e.reason<<endl;
+  g_log<<Logger::Error<<"HTTP Exception: "<<e.reason<<endl;
 }
 catch(std::exception &e) {
   if(strstr(e.what(), "timeout")==0)
-    L<<Logger::Error<<"HTTP STL Exception: "<<e.what()<<endl;
+    g_log<<Logger::Error<<"HTTP STL Exception: "<<e.what()<<endl;
 }
 catch(...) {
-  L<<Logger::Error<<"HTTP: Unknown exception"<<endl;
+  g_log<<Logger::Error<<"HTTP: Unknown exception"<<endl;
 }
 
 void AsyncWebServer::go() {

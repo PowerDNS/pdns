@@ -44,7 +44,6 @@ PowerDNSLua::~PowerDNSLua()
 #else
 
 extern "C" {
-#undef L
 /* Include the Lua API header files. */
 #include <lua.h>
 #include <lauxlib.h>
@@ -59,7 +58,6 @@ extern "C" {
 #include "logger.hh"
 #include "namespaces.hh"
 #include "dnsparser.hh"
-#undef L
 
 bool netmaskMatchTable(lua_State* lua, const std::string& ip)
 {
@@ -336,11 +334,11 @@ int logLua(lua_State *lua)
   int argc = lua_gettop(lua);
   if(argc == 1) {
     string message=lua_tostring(lua, 1);
-    theL()<<Logger::Error<<"From Lua script: "<<message<<endl;
+    g_log<<Logger::Error<<"From Lua script: "<<message<<endl;
   } else if(argc >= 2) {
     string message=lua_tostring(lua, 1);
     int urgencylevel = lua_tonumber(lua, 2);
-    theL()<<urgencylevel<<" "<<message<<endl;
+    g_log<<urgencylevel<<" "<<message<<endl;
   }
   return 0;
 }

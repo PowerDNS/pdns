@@ -109,7 +109,7 @@ void RPZRecordToPolicy(const DNSRecord& dr, std::shared_ptr<DNSFilterEngine::Zon
     else if(!crcTarget.empty() && !crcTarget.isRoot() && crcTarget.getRawLabel(crcTarget.countLabels() - 1).compare(0, rpzPrefix.length(), rpzPrefix) == 0) {
       /* this is very likely an higher format number or a configuration error,
          let's just ignore it. */
-      L<<Logger::Info<<"Discarding unsupported RPZ entry "<<crcTarget.toString()<<" for "<<dr.d_name<<endl;
+      g_log<<Logger::Info<<"Discarding unsupported RPZ entry "<<crcTarget.toString()<<" for "<<dr.d_name<<endl;
       return;
     }
     else {
@@ -176,9 +176,9 @@ void RPZRecordToPolicy(const DNSRecord& dr, std::shared_ptr<DNSFilterEngine::Zon
 
 shared_ptr<SOARecordContent> loadRPZFromServer(const ComboAddress& master, const DNSName& zoneName, std::shared_ptr<DNSFilterEngine::Zone> zone, boost::optional<DNSFilterEngine::Policy> defpol, uint32_t maxTTL, const TSIGTriplet& tt, size_t maxReceivedBytes, const ComboAddress& localAddress)
 {
-  L<<Logger::Warning<<"Loading RPZ zone '"<<zoneName<<"' from "<<master.toStringWithPort()<<endl;
+  g_log<<Logger::Warning<<"Loading RPZ zone '"<<zoneName<<"' from "<<master.toStringWithPort()<<endl;
   if(!tt.name.empty())
-    L<<Logger::Warning<<"With TSIG key '"<<tt.name<<"' of algorithm '"<<tt.algo<<"'"<<endl;
+    g_log<<Logger::Warning<<"With TSIG key '"<<tt.name<<"' of algorithm '"<<tt.algo<<"'"<<endl;
 
   ComboAddress local(localAddress);
   if (local == ComboAddress())
@@ -206,11 +206,11 @@ shared_ptr<SOARecordContent> loadRPZFromServer(const ComboAddress& master, const
       nrecords++;
     } 
     if(last != time(0)) {
-      L<<Logger::Info<<"Loaded & indexed "<<nrecords<<" policy records so far"<<endl;
+      g_log<<Logger::Info<<"Loaded & indexed "<<nrecords<<" policy records so far"<<endl;
       last=time(0);
     }
   }
-  L<<Logger::Info<<"Done: "<<nrecords<<" policy records active, SOA: "<<sr->getZoneRepresentation()<<endl;
+  g_log<<Logger::Info<<"Done: "<<nrecords<<" policy records active, SOA: "<<sr->getZoneRepresentation()<<endl;
   return sr;
 }
 

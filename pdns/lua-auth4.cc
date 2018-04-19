@@ -16,7 +16,6 @@ AuthLua4::~AuthLua4() { }
 
 #else
 
-#undef L
 #include "ext/luawrapper/include/LuaContext.hpp"
 
 AuthLua4::AuthLua4(const std::string& fname) {
@@ -90,7 +89,7 @@ AuthLua4::AuthLua4(const std::string& fname) {
                                                                                      else
                                                                                        cas.insert(boost::get<ComboAddress>(in));
                                                                                      }
-                                                                                     catch(std::exception& e) { theL() <<Logger::Error<<e.what()<<endl; }
+                                                                                     catch(std::exception& e) { g_log <<Logger::Error<<e.what()<<endl; }
                                                                                    });
 
   d_lw->registerFunction<bool(cas_t::*)(const ComboAddress&)>("check",[](const cas_t& cas, const ComboAddress&ca) {
@@ -145,7 +144,7 @@ AuthLua4::AuthLua4(const std::string& fname) {
   d_lw->registerFunction<void(DNSRecord::*)(const std::string&)>("changeContent", [](DNSRecord& dr, const std::string& newContent) { dr.d_content = DNSRecordContent::mastermake(dr.d_type, 1, newContent); });
 
   d_lw->writeFunction("pdnslog", [](const std::string& msg, boost::optional<int> loglevel) {
-      theL() << (Logger::Urgency)loglevel.get_value_or(Logger::Warning) << msg<<endl;
+      g_log << (Logger::Urgency)loglevel.get_value_or(Logger::Warning) << msg<<endl;
     });
   typedef vector<pair<string, int> > in_t;
   vector<pair<string, boost::variant<int, in_t, struct timeval* > > >  pd{
@@ -218,7 +217,7 @@ AuthLua4::AuthLua4(const std::string& fname) {
 
   ifstream ifs(fname);
   if(!ifs) {
-    theL()<<Logger::Error<<"Unable to read configuration file from '"<<fname<<"': "<<strerror(errno)<<endl;
+    g_log<<Logger::Error<<"Unable to read configuration file from '"<<fname<<"': "<<strerror(errno)<<endl;
     return;
   }
   d_lw->executeCode(ifs);

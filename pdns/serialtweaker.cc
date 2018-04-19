@@ -86,7 +86,7 @@ uint32_t calculateEditSOA(const DNSZoneRecord& rr, const string& kind)
     if (src->d_st.serial < inception)
       return inception;
   } else if(!kind.empty()) {
-    L<<Logger::Warning<<"SOA-EDIT type '"<<kind<<"' for zone "<<rr.dr.d_name<<" is unknown."<<endl;
+    g_log<<Logger::Warning<<"SOA-EDIT type '"<<kind<<"' for zone "<<rr.dr.d_name<<" is unknown."<<endl;
   }
   return src->d_st.serial;
 }

@@ -34,13 +34,7 @@ extern StatBag S;
 pthread_once_t Logger::s_once;
 pthread_key_t Logger::s_loggerKey;
 
-Logger &theL(const string &pname)
-{
-  static Logger l("", LOG_DAEMON);
-  if(!pname.empty())
-    l.setName(pname);
-  return l;
-}
+Logger g_log("", LOG_DAEMON);
 
 void Logger::log(const string &msg, Urgency u)
 {

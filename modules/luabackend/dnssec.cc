@@ -34,14 +34,14 @@ bool LUABackend::updateDNSSECOrderAndAuth(uint32_t domain_id, const DNSName& zon
     if(f_lua_updatednssecorderandauth == 0) {
 
 	if(logging)
-	    L << Logger::Info << backend_name << "(updateDNSSECOrderAndAuth) domain_id: '" << domain_id << "' zonename: '" << zonename << "' qname: '" << qname << "' auth: '" << auth << "'" << endl;
+	    g_log << Logger::Info << backend_name << "(updateDNSSECOrderAndAuth) domain_id: '" << domain_id << "' zonename: '" << zonename << "' qname: '" << qname << "' auth: '" << auth << "'" << endl;
 	    
 	string ins=qname.makeRelative(zonename).makeLowerCase().labelReverse().toString(" ", false);
 	return this->updateDNSSECOrderAndAuthAbsolute(domain_id, qname, ins, auth);
     } 
 
     if(logging)
-        L << Logger::Info << backend_name << "(updateDNSSECOrderAndAuth) BEGIN domain_id: '" << domain_id << "' zonename: '" << zonename << "' qname: '" << qname << "' auth: '" << auth << "'" << endl;
+        g_log << Logger::Info << backend_name << "(updateDNSSECOrderAndAuth) BEGIN domain_id: '" << domain_id << "' zonename: '" << zonename << "' qname: '" << qname << "' auth: '" << auth << "'" << endl;
 
     lua_rawgeti(lua, LUA_REGISTRYINDEX, f_lua_updatednssecorderandauth);
 
@@ -67,7 +67,7 @@ bool LUABackend::updateDNSSECOrderAndAuth(uint32_t domain_id, const DNSName& zon
     lua_pop(lua, 1);
 
     if(logging)
-        L << Logger::Info << backend_name << "(updateDNSSECOrderAndAuth) END" << endl;
+        g_log << Logger::Info << backend_name << "(updateDNSSECOrderAndAuth) END" << endl;
     
     return ok;
 }
@@ -83,7 +83,7 @@ bool LUABackend::updateDNSSECOrderAndAuthAbsolute(uint32_t domain_id, const DNSN
 	return false;
 	
     if(logging)
-        L << Logger::Info << backend_name << "(updateDNSSECOrderAndAuthAbsolute) BEGIN domain_id: '" << domain_id << "' qname: '" << qname << "' ordername: '" << ordername << "' auth: '" << auth << "'" << endl;
+        g_log << Logger::Info << backend_name << "(updateDNSSECOrderAndAuthAbsolute) BEGIN domain_id: '" << domain_id << "' qname: '" << qname << "' ordername: '" << ordername << "' auth: '" << auth << "'" << endl;
 
     lua_rawgeti(lua, LUA_REGISTRYINDEX, f_lua_updatednssecorderandauthabsolute);
 
@@ -109,7 +109,7 @@ bool LUABackend::updateDNSSECOrderAndAuthAbsolute(uint32_t domain_id, const DNSN
     lua_pop(lua, 1);
 
     if(logging)
-        L << Logger::Info << backend_name << "(updateDNSSECOrderAndAuthAbsolute) END" << endl;
+        g_log << Logger::Info << backend_name << "(updateDNSSECOrderAndAuthAbsolute) END" << endl;
 
     return ok;
 }
@@ -124,7 +124,7 @@ bool LUABackend::getBeforeAndAfterNamesAbsolute(uint32_t id, const DNSName& qnam
     after.clear();
 
     if(logging)
-	L << Logger::Info << backend_name << "(getBeforeAndAfterNamesAbsolute) BEGIN id: '" << id << "' qname: '" << qname << "'" << endl;
+	g_log << Logger::Info << backend_name << "(getBeforeAndAfterNamesAbsolute) BEGIN id: '" << id << "' qname: '" << qname << "'" << endl;
 	
     lua_rawgeti(lua, LUA_REGISTRYINDEX, f_lua_updatednssecorderandauthabsolute);
 
@@ -144,7 +144,7 @@ bool LUABackend::getBeforeAndAfterNamesAbsolute(uint32_t id, const DNSName& qnam
     
     if (!ok) {
 	if(logging)
-	    L << Logger::Info << backend_name << "(getBeforeAndAfterNamesAbsolute) ERROR!" << endl;
+	    g_log << Logger::Info << backend_name << "(getBeforeAndAfterNamesAbsolute) ERROR!" << endl;
 	    
 	return false;
     }
@@ -166,7 +166,7 @@ bool LUABackend::getBeforeAndAfterNamesAbsolute(uint32_t id, const DNSName& qnam
     lua_pop(lua, 1);
 
     if(logging)
-        L << Logger::Info << backend_name << "(getBeforeAndAfterNamesAbsolute) END unhashed: '" << unhashed << "' before: '" << before << "' after: '" << after << "' " << endl;
+        g_log << Logger::Info << backend_name << "(getBeforeAndAfterNamesAbsolute) END unhashed: '" << unhashed << "' before: '" << before << "' after: '" << after << "' " << endl;
     
     return ok;
 }
@@ -177,7 +177,7 @@ bool LUABackend::updateDomainKey(const DNSName& name, unsigned int &id, bool too
 	return false;
 
     if(logging)
-	L << Logger::Info << backend_name << "(updateDomainKey) BEGIN name: '" << name << "' id: '" << id << "' toowhat: '" << toowhat << "'" << endl;
+	g_log << Logger::Info << backend_name << "(updateDomainKey) BEGIN name: '" << name << "' id: '" << id << "' toowhat: '" << toowhat << "'" << endl;
 
     lua_rawgeti(lua, LUA_REGISTRYINDEX, f_lua_updatedomainkey);
 
@@ -202,7 +202,7 @@ bool LUABackend::updateDomainKey(const DNSName& name, unsigned int &id, bool too
     lua_pop(lua, 1);
 
     if(logging)
-	L << Logger::Info << backend_name << "(updateDomainKey) END" << endl;
+	g_log << Logger::Info << backend_name << "(updateDomainKey) END" << endl;
 	
     return ok;
 }
@@ -213,7 +213,7 @@ bool LUABackend::activateDomainKey(const DNSName& name, unsigned int id) {
 	return updateDomainKey(name, id, true);
 
     if(logging)
-	L << Logger::Info << backend_name << "(activateDomainKey) BEGIN name: '" << name << "' id: '" << id << endl;
+	g_log << Logger::Info << backend_name << "(activateDomainKey) BEGIN name: '" << name << "' id: '" << id << endl;
 
     lua_rawgeti(lua, LUA_REGISTRYINDEX, f_lua_activatedomainkey);
 
@@ -237,7 +237,7 @@ bool LUABackend::activateDomainKey(const DNSName& name, unsigned int id) {
     lua_pop(lua, 1);
 
     if(logging)
-	L << Logger::Info << backend_name << "(activateDomainKey) END" << endl;
+	g_log << Logger::Info << backend_name << "(activateDomainKey) END" << endl;
 	
     return ok;
 }
@@ -248,7 +248,7 @@ bool LUABackend::deactivateDomainKey(const DNSName& name, unsigned int id) {
 	return updateDomainKey(name, id, false);
 
     if(logging)
-	L << Logger::Info << backend_name << "(deactivateDomainKey) BEGIN name: '" << name << "' id: '" << id << endl;
+	g_log << Logger::Info << backend_name << "(deactivateDomainKey) BEGIN name: '" << name << "' id: '" << id << endl;
 
     lua_rawgeti(lua, LUA_REGISTRYINDEX, f_lua_deactivatedomainkey);
 
@@ -272,7 +272,7 @@ bool LUABackend::deactivateDomainKey(const DNSName& name, unsigned int id) {
     lua_pop(lua, 1);
 
     if(logging)
-	L << Logger::Info << backend_name << "(deactivateDomainKey) END" << endl;
+	g_log << Logger::Info << backend_name << "(deactivateDomainKey) END" << endl;
 	
     return ok;
 }
@@ -283,7 +283,7 @@ bool LUABackend::removeDomainKey(const DNSName& name, unsigned int id) {
 	return false;
 
     if(logging)
-	L << Logger::Info << backend_name << "(removeDomainKey) BEGIN name: '" << name << "' id: '" << id << endl;
+	g_log << Logger::Info << backend_name << "(removeDomainKey) BEGIN name: '" << name << "' id: '" << id << endl;
 
     lua_rawgeti(lua, LUA_REGISTRYINDEX, f_lua_removedomainkey);
 
@@ -307,7 +307,7 @@ bool LUABackend::removeDomainKey(const DNSName& name, unsigned int id) {
     lua_pop(lua, 1);
 
     if(logging)
-	L << Logger::Info << backend_name << "(removeDomainKey) END" << endl;
+	g_log << Logger::Info << backend_name << "(removeDomainKey) END" << endl;
 	
     return ok;
 }
@@ -321,7 +321,7 @@ bool LUABackend::addDomainKey(const DNSName& name, const KeyData& key, int64_t& 
 	return false;
 
     if(logging)
-	//L << Logger::Info << backend_name << "(addDomainKey) BEGIN name: '" << name << "' id: '" << id << endl;
+	//g_log << Logger::Info << backend_name << "(addDomainKey) BEGIN name: '" << name << "' id: '" << id << endl;
 	cerr << backend_name << "(addDomainKey) BEGIN name: '" << name << endl;
 
     lua_rawgeti(lua, LUA_REGISTRYINDEX, f_lua_adddomainkey);
@@ -368,7 +368,7 @@ bool LUABackend::getDomainKeys(const DNSName& name, std::vector<KeyData>& keys) 
 	return false;
 
     if(logging)
-	L << Logger::Info << backend_name << "(getDomainKeys) BEGIN name: '" << name << endl;
+	g_log << Logger::Info << backend_name << "(getDomainKeys) BEGIN name: '" << name << endl;
 
     lua_rawgeti(lua, LUA_REGISTRYINDEX, f_lua_getdomainkeys);
 
@@ -386,7 +386,7 @@ bool LUABackend::getDomainKeys(const DNSName& name, std::vector<KeyData>& keys) 
     if (returnedwhat != LUA_TTABLE) {
 	lua_pop(lua, 1);
 	if(logging)
-	    L << Logger::Info << backend_name << "(getDomainKeys) ERROR!" << endl;
+	    g_log << Logger::Info << backend_name << "(getDomainKeys) ERROR!" << endl;
 	    
 	return false;
     }
@@ -416,7 +416,7 @@ bool LUABackend::getDomainKeys(const DNSName& name, std::vector<KeyData>& keys) 
     }
 
     if(logging)
-	L << Logger::Info << backend_name << "(getDomainKeys) END" << endl;
+	g_log << Logger::Info << backend_name << "(getDomainKeys) END" << endl;
 	
     return j > 0;
 }
@@ -427,7 +427,7 @@ bool LUABackend::getTSIGKey(const DNSName& name, DNSName* algorithm, string* con
 	return false;
 
     if(logging)
-	L << Logger::Info << backend_name << "(getTSIGKey) BEGIN name: '" << name << "'" << endl;
+	g_log << Logger::Info << backend_name << "(getTSIGKey) BEGIN name: '" << name << "'" << endl;
 
     lua_rawgeti(lua, LUA_REGISTRYINDEX, f_lua_gettsigkey);
 
@@ -444,7 +444,7 @@ bool LUABackend::getTSIGKey(const DNSName& name, DNSName* algorithm, string* con
     if ( (lua_type(lua, -1) != LUA_TSTRING) && (lua_type(lua, -2) != LUA_TSTRING) ) {
 	lua_pop(lua, 2);
 	if(logging)
-	    L << Logger::Info << backend_name << "(getTSIGKey) ERROR" << endl;
+	    g_log << Logger::Info << backend_name << "(getTSIGKey) ERROR" << endl;
 	return false;
     }
     
@@ -460,7 +460,7 @@ bool LUABackend::getTSIGKey(const DNSName& name, DNSName* algorithm, string* con
     *content = c;
     
     if(logging)
-	L << Logger::Info << backend_name << "(getTSIGKey) END" << endl;
+	g_log << Logger::Info << backend_name << "(getTSIGKey) END" << endl;
 	
     return true;
 }
@@ -471,7 +471,7 @@ bool LUABackend::setDomainMetadata(const DNSName& name, const std::string& kind,
 	return false;
 
     if(logging)
-	L << Logger::Info << backend_name << "(setDomainMetadata) BEGIN name: '" << name << "' kind: '" << kind << "'" << endl;
+	g_log << Logger::Info << backend_name << "(setDomainMetadata) BEGIN name: '" << name << "' kind: '" << kind << "'" << endl;
 	
     lua_rawgeti(lua, LUA_REGISTRYINDEX, f_lua_setdomainmetadata);
 
@@ -508,7 +508,7 @@ bool LUABackend::setDomainMetadata(const DNSName& name, const std::string& kind,
     lua_pop(lua, 1);
 
     if(logging)
-	L << Logger::Info << backend_name << "(setDomainMetadata) END" << endl;
+	g_log << Logger::Info << backend_name << "(setDomainMetadata) END" << endl;
 	
     return ok;
 
@@ -519,7 +519,7 @@ bool LUABackend::getDomainMetadata(const DNSName& name, const std::string& kind,
 	return false;
 
     if(logging)
-	L << Logger::Info << backend_name << "(getDomainMetadata) BEGIN name: '" << name << "' kind: '" << kind << "'" << endl;
+	g_log << Logger::Info << backend_name << "(getDomainMetadata) BEGIN name: '" << name << "' kind: '" << kind << "'" << endl;
 	
     lua_rawgeti(lua, LUA_REGISTRYINDEX, f_lua_getdomainmetadata);
 
@@ -553,7 +553,7 @@ bool LUABackend::getDomainMetadata(const DNSName& name, const std::string& kind,
     }
 
     if(logging)
-	L << Logger::Info << backend_name << "(getDomainMetadata) END" << endl;
+	g_log << Logger::Info << backend_name << "(getDomainMetadata) END" << endl;
 	
     return j > 0;
 
@@ -565,7 +565,7 @@ void LUABackend::alsoNotifies(const DNSName& domain, set<string> *ips) {
 	return;
 
     if(logging)
-	L << Logger::Info << backend_name << "(alsonotifies) BEGIN domain: '" << domain << "'" << endl;
+	g_log << Logger::Info << backend_name << "(alsonotifies) BEGIN domain: '" << domain << "'" << endl;
 	
     lua_rawgeti(lua, LUA_REGISTRYINDEX, f_lua_alsonotifies);
 
@@ -596,7 +596,7 @@ void LUABackend::alsoNotifies(const DNSName& domain, set<string> *ips) {
     }
 
     if(logging)
-	L << Logger::Info << backend_name << "(alsoNotifies) END" << endl;
+	g_log << Logger::Info << backend_name << "(alsoNotifies) END" << endl;
 	
     return;
 

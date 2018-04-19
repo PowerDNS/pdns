@@ -286,7 +286,7 @@ RecursorLua4::RecursorLua4(const std::string& fname)
           cas.insert(boost::get<ComboAddress>(in));
         }
       }
-      catch(std::exception& e) { theL() <<Logger::Error<<e.what()<<endl; }
+      catch(std::exception& e) { g_log<<Logger::Error<<e.what()<<endl; }
     });
 
   d_lw->registerFunction<bool(cas_t::*)(const ComboAddress&)>("check",[](const cas_t& cas, const ComboAddress&ca) {
@@ -451,7 +451,7 @@ RecursorLua4::RecursorLua4(const std::string& fname)
         }
       }
       catch(std::exception& e) {
-        theL() <<Logger::Error<<e.what()<<endl;
+        g_log <<Logger::Error<<e.what()<<endl;
       }
     }
   );
@@ -461,7 +461,7 @@ RecursorLua4::RecursorLua4(const std::string& fname)
 
 
   d_lw->writeFunction("pdnslog", [](const std::string& msg, boost::optional<int> loglevel) {
-      theL() << (Logger::Urgency)loglevel.get_value_or(Logger::Warning) << msg<<endl;
+      g_log << (Logger::Urgency)loglevel.get_value_or(Logger::Warning) << msg<<endl;
     });
   typedef vector<pair<string, int> > in_t;
   vector<pair<string, boost::variant<int, in_t, struct timeval* > > >  pd{
@@ -674,7 +674,7 @@ loop:;
         dq.udpAnswer = GenUDPQueryResponse(dq.udpQueryDest, dq.udpQuery);
         auto cbFunc = d_lw->readVariable<boost::optional<luacall_t>>(dq.udpCallback).get_value_or(0);
         if(!cbFunc) {
-          theL()<<Logger::Error<<"Attempted callback for Lua UDP Query/Response which could not be found"<<endl;
+          g_log<<Logger::Error<<"Attempted callback for Lua UDP Query/Response which could not be found"<<endl;
           return false;
         }
         bool result=cbFunc(&dq);

@@ -28,8 +28,7 @@
 #include "sstuff.hh"
 #include "anadns.hh"
 
-// this is needed because boost multi_index also uses 'L', as do we (which is sad enough)
-#undef L
+// this is needed because boost multi_index also uses 'g_log', as do we (which is sad enough)
 
 #include <set>
 #include <deque>

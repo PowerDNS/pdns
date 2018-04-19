@@ -13,7 +13,7 @@ bool checkDNSSECDisabled() {
 bool warnIfDNSSECDisabled(const string& msg) {
   if(g_dnssecmode == DNSSECMode::Off) {
     if (!msg.empty())
-      L<<Logger::Warning<<msg<<endl;
+      g_log<<Logger::Warning<<msg<<endl;
     return true;
   }
   return false;

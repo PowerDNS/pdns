@@ -75,7 +75,7 @@ try
 
         writen2WithTimeout(s.getHandle(), msg.c_str(), msg.length(), 2);
       } catch (runtime_error &e){
-        L<<Logger::Warning<<"Unable to write data to carbon server at "<<remote.toStringWithPort()<<": "<<e.what()<<endl;
+        g_log<<Logger::Warning<<"Unable to write data to carbon server at "<<remote.toStringWithPort()<<": "<<e.what()<<endl;
         continue;
       }
     }
@@ -85,16 +85,16 @@ try
 }
 catch(std::exception& e)
 {
-  L<<Logger::Error<<"Carbon thread died: "<<e.what()<<endl;
+  g_log<<Logger::Error<<"Carbon thread died: "<<e.what()<<endl;
   return 0;
 }
 catch(PDNSException& e)
 {
-  L<<Logger::Error<<"Carbon thread died, PDNSException: "<<e.reason<<endl;
+  g_log<<Logger::Error<<"Carbon thread died, PDNSException: "<<e.reason<<endl;
   return 0;
 }
 catch(...)
 {
-  L<<Logger::Error<<"Carbon thread died"<<endl;
+  g_log<<Logger::Error<<"Carbon thread died"<<endl;
   return 0;
 }

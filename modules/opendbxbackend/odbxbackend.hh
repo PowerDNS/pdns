@@ -165,7 +165,7 @@ public:
         OdbxLoader()
         {
         	BackendMakers().report( &factory );
-        	L<< Logger::Info << "[opendbxbackend] This is the opendbx backend version " VERSION
+        	g_log<< Logger::Info << "[opendbxbackend] This is the opendbx backend version " VERSION
 #ifndef REPRODUCIBLE
         		<< " (" __DATE__ " " __TIME__ ")"
 #endif

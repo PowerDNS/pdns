@@ -8,7 +8,7 @@
 bool g_dnssecLOG{false};
 uint16_t g_maxNSEC3Iterations{0};
 
-#define LOG(x) if(g_dnssecLOG) { L <<Logger::Warning << x; }
+#define LOG(x) if(g_dnssecLOG) { g_log <<Logger::Warning << x; }
 void dotEdge(DNSName zone, string type1, DNSName name1, string tag1, string type2, DNSName name2, string tag2, string color="");
 void dotNode(string type, DNSName name, string tag, string content);
 string dotName(string type, DNSName name, string tag);

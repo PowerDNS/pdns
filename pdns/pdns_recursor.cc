@@ -365,12 +365,12 @@ static void setSocketBuffer(int fd, int optname, uint32_t size)
   socklen_t len=sizeof(psize);
 
   if(!getsockopt(fd, SOL_SOCKET, optname, (char*)&psize, &len) && psize > size) {
-    L<<Logger::Error<<"Not decreasing socket buffer size from "<<psize<<" to "<<size<<endl;
+    g_log<<Logger::Error<<"Not decreasing socket buffer size from "<<psize<<" to "<<size<<endl;
     return;
   }
 
   if (setsockopt(fd, SOL_SOCKET, optname, (char*)&size, sizeof(size)) < 0 )
-    L<<Logger::Error<<"Unable to raise socket buffer size to "<<size<<": "<<strerror(errno)<<endl;
+    g_log<<Logger::Error<<"Unable to raise socket buffer size to "<<size<<": "<<strerror(errno)<<endl;
 }
 
 
@@ -413,7 +413,7 @@ public:
         closesocket(*fd);
       }
       catch(const PDNSException& e) {
-        L<<Logger::Error<<"Error closing UDP socket after connect() failed: "<<e.reason<<endl;
+        g_log<<Logger::Error<<"Error closing UDP socket after connect() failed: "<<e.reason<<endl;
       }
 
       if(err==ENETUNREACH) // Seth "My Interfaces Are Like A Yo Yo" Arnold special
@@ -451,7 +451,7 @@ public:
       closesocket(*i);
     }
     catch(const PDNSException& e) {
-      L<<Logger::Error<<"Error closing returned UDP socket: "<<e.reason<<endl;
+      g_log<<Logger::Error<<"Error closing returned UDP socket: "<<e.reason<<endl;
     }
 
     d_socks.erase(i++);
@@ -567,7 +567,7 @@ int arecvfrom(char *data, size_t len, int flags, const ComboAddress& fromaddr, s
     *d_len=packet.size();
     memcpy(data,packet.c_str(),min(len,*d_len));
     if(*nearMissLimit && pident.nearMisses > *nearMissLimit) {
-      L<<Logger::Error<<"Too many ("<<pident.nearMisses<<" > "<<*nearMissLimit<<") bogus answers for '"<<domain<<"' from "<<fromaddr.toString()<<", assuming spoof attempt."<<endl;
+      g_log<<Logger::Error<<"Too many ("<<pident.nearMisses<<" > "<<*nearMissLimit<<") bogus answers for '"<<domain<<"' from "<<fromaddr.toString()<<", assuming spoof attempt."<<endl;
       g_stats.spoofCount++;
       return -1;
     }
@@ -587,7 +587,7 @@ static void writePid(void)
   if(of)
     of<< Utility::getpid() <<endl;
   else
-    L<<Logger::Error<<"Writing pid for "<<Utility::getpid()<<" to "<<s_pidfname<<" failed: "<<strerror(errno)<<endl;
+    g_log<<Logger::Error<<"Writing pid for "<<Utility::getpid()<<" to "<<s_pidfname<<" failed: "<<strerror(errno)<<endl;
 }
 
 TCPConnection::TCPConnection(int fd, const ComboAddress& addr) : d_remote(addr), d_fd(fd)
@@ -600,10 +600,10 @@ TCPConnection::~TCPConnection()
 {
   try {
     if(closesocket(d_fd) < 0)
-      L<<Logger::Error<<"Error closing socket for TCPConnection"<<endl;
+      g_log<<Logger::Error<<"Error closing socket for TCPConnection"<<endl;
   }
   catch(const PDNSException& e) {
-    L<<Logger::Error<<"Error closing TCPConnection socket: "<<e.reason<<endl;
+    g_log<<Logger::Error<<"Error closing TCPConnection socket: "<<e.reason<<endl;
   }
 
   if(t_tcpClientCounts->count(d_remote) && !(*t_tcpClientCounts)[d_remote]--)
@@ -852,12 +852,12 @@ static void startDoResolve(void *p)
 
 
     if(!g_quiet || tracedQuery) {
-      L<<Logger::Warning<<t_id<<" ["<<MT->getTid()<<"/"<<MT->numProcesses()<<"] " << (dc->d_tcp ? "TCP " : "") << "question for '"<<dc->d_mdp.d_qname<<"|"
+      g_log<<Logger::Warning<<t_id<<" ["<<MT->getTid()<<"/"<<MT->numProcesses()<<"] " << (dc->d_tcp ? "TCP " : "") << "question for '"<<dc->d_mdp.d_qname<<"|"
        <<DNSRecordContent::NumberToType(dc->d_mdp.d_qtype)<<"' from "<<dc->getRemote();
       if(!dc->d_ednssubnet.source.empty()) {
-        L<<" (ecs "<<dc->d_ednssubnet.source.toString()<<")";
+        g_log<<" (ecs "<<dc->d_ednssubnet.source.toString()<<")";
       }
-      L<<endl;
+      g_log<<endl;
     }
 
     sr.setId(MT->getTid());
@@ -920,7 +920,7 @@ static void startDoResolve(void *p)
       }
       catch(ImmediateServFailException &e) {
         if(g_logCommonErrors)
-          L<<Logger::Notice<<"Sending SERVFAIL to "<<dc->getRemote()<<" during resolve of '"<<dc->d_mdp.d_qname<<"' because: "<<e.reason<<endl;
+          g_log<<Logger::Notice<<"Sending SERVFAIL to "<<dc->getRemote()<<" during resolve of '"<<dc->d_mdp.d_qname<<"' because: "<<e.reason<<endl;
         res = RCode::ServFail;
       }
 
@@ -1042,7 +1042,7 @@ static void startDoResolve(void *p)
         boost::split(lines, trace, boost::is_any_of("\n"));
         for(const string& line : lines) {
           if(!line.empty())
-            L<<Logger::Warning<< line << endl;
+            g_log<<Logger::Warning<< line << endl;
         }
       }
     }
@@ -1059,14 +1059,14 @@ static void startDoResolve(void *p)
       if(!shouldNotValidate && sr.isDNSSECValidationRequested()) {
         try {
           if(sr.doLog()) {
-            L<<Logger::Warning<<"Starting validation of answer to "<<dc->d_mdp.d_qname<<"|"<<QType(dc->d_mdp.d_qtype).getName()<<" for "<<dc->d_remote.toStringWithPort()<<endl;
+            g_log<<Logger::Warning<<"Starting validation of answer to "<<dc->d_mdp.d_qname<<"|"<<QType(dc->d_mdp.d_qtype).getName()<<" for "<<dc->d_remote.toStringWithPort()<<endl;
           }
 
           auto state = sr.getValidationState();
 
           if(state == Secure) {
             if(sr.doLog()) {
-              L<<Logger::Warning<<"Answer to "<<dc->d_mdp.d_qname<<"|"<<QType(dc->d_mdp.d_qtype).getName()<<" for "<<dc->d_remote.toStringWithPort()<<" validates correctly"<<endl;
+              g_log<<Logger::Warning<<"Answer to "<<dc->d_mdp.d_qname<<"|"<<QType(dc->d_mdp.d_qtype).getName()<<" for "<<dc->d_remote.toStringWithPort()<<" validates correctly"<<endl;
             }
             
             // Is the query source interested in the value of the ad-bit?
@@ -1075,34 +1075,34 @@ static void startDoResolve(void *p)
           }
           else if(state == Insecure) {
             if(sr.doLog()) {
-              L<<Logger::Warning<<"Answer to "<<dc->d_mdp.d_qname<<"|"<<QType(dc->d_mdp.d_qtype).getName()<<" for "<<dc->d_remote.toStringWithPort()<<" validates as Insecure"<<endl;
+              g_log<<Logger::Warning<<"Answer to "<<dc->d_mdp.d_qname<<"|"<<QType(dc->d_mdp.d_qtype).getName()<<" for "<<dc->d_remote.toStringWithPort()<<" validates as Insecure"<<endl;
             }
             
             pw.getHeader()->ad=0;
           }
           else if(state == Bogus) {
             if(g_dnssecLogBogus || sr.doLog() || g_dnssecmode == DNSSECMode::ValidateForLog) {
-              L<<Logger::Warning<<"Answer to "<<dc->d_mdp.d_qname<<"|"<<QType(dc->d_mdp.d_qtype).getName()<<" for "<<dc->d_remote.toStringWithPort()<<" validates as Bogus"<<endl;
+              g_log<<Logger::Warning<<"Answer to "<<dc->d_mdp.d_qname<<"|"<<QType(dc->d_mdp.d_qtype).getName()<<" for "<<dc->d_remote.toStringWithPort()<<" validates as Bogus"<<endl;
             }
             
             // Does the query or validation mode sending out a SERVFAIL on validation errors?
             if(!pw.getHeader()->cd && (g_dnssecmode == DNSSECMode::ValidateAll || dc->d_mdp.d_header.ad || DNSSECOK)) {
               if(sr.doLog()) {
-                L<<Logger::Warning<<"Sending out SERVFAIL for "<<dc->d_mdp.d_qname<<"|"<<QType(dc->d_mdp.d_qtype).getName()<<" because recursor or query demands it for Bogus results"<<endl;
+                g_log<<Logger::Warning<<"Sending out SERVFAIL for "<<dc->d_mdp.d_qname<<"|"<<QType(dc->d_mdp.d_qtype).getName()<<" because recursor or query demands it for Bogus results"<<endl;
               }
               
               pw.getHeader()->rcode=RCode::ServFail;
               goto sendit;
             } else {
               if(sr.doLog()) {
-                L<<Logger::Warning<<"Not sending out SERVFAIL for "<<dc->d_mdp.d_qname<<"|"<<QType(dc->d_mdp.d_qtype).getName()<<" Bogus validation since neither config nor query demands this"<<endl;
+                g_log<<Logger::Warning<<"Not sending out SERVFAIL for "<<dc->d_mdp.d_qname<<"|"<<QType(dc->d_mdp.d_qtype).getName()<<" Bogus validation since neither config nor query demands this"<<endl;
               }
             }
           }
         }
         catch(ImmediateServFailException &e) {
           if(g_logCommonErrors)
-            L<<Logger::Notice<<"Sending SERVFAIL to "<<dc->getRemote()<<" during validation of '"<<dc->d_mdp.d_qname<<"|"<<QType(dc->d_mdp.d_qtype).getName()<<"' because: "<<e.reason<<endl;
+            g_log<<Logger::Notice<<"Sending SERVFAIL to "<<dc->getRemote()<<" during validation of '"<<dc->d_mdp.d_qname<<"|"<<QType(dc->d_mdp.d_qtype).getName()<<"' because: "<<e.reason<<endl;
           pw.getHeader()->rcode=RCode::ServFail;
           goto sendit;
         }
@@ -1189,7 +1189,7 @@ static void startDoResolve(void *p)
 	addCMsgSrcAddr(&msgh, cbuf, &dc->d_local, 0);
       }
       if(sendmsg(dc->d_socket, &msgh, 0) < 0 && g_logCommonErrors) 
-        L<<Logger::Warning<<"Sending UDP reply to client "<<dc->d_remote.toStringWithPort()<<" failed with: "<<strerror(errno)<<endl;
+        g_log<<Logger::Warning<<"Sending UDP reply to client "<<dc->d_remote.toStringWithPort()<<" failed with: "<<strerror(errno)<<endl;
       if(!SyncRes::s_nopacketcache && !variableAnswer && !sr.wasVariable() ) {
         t_packetCache->insertResponsePacket(dc->d_tag, dc->d_qhash, dc->d_mdp.d_qname, dc->d_mdp.d_qtype, dc->d_mdp.d_qclass,
                                             string((const char*)&*packet.begin(), packet.size()),
@@ -1214,11 +1214,11 @@ static void startDoResolve(void *p)
       bool hadError=true;
 
       if(wret == 0)
-        L<<Logger::Error<<"EOF writing TCP answer to "<<dc->getRemote()<<endl;
+        g_log<<Logger::Error<<"EOF writing TCP answer to "<<dc->getRemote()<<endl;
       else if(wret < 0 )
-        L<<Logger::Error<<"Error writing TCP answer to "<<dc->getRemote()<<": "<< strerror(errno) <<endl;
+        g_log<<Logger::Error<<"Error writing TCP answer to "<<dc->getRemote()<<": "<< strerror(errno) <<endl;
       else if((unsigned int)wret != 2 + packet.size())
-        L<<Logger::Error<<"Oops, partial answer sent to "<<dc->getRemote()<<" for "<<dc->d_mdp.d_qname<<" (size="<< (2 + packet.size()) <<", sent "<<wret<<")"<<endl;
+        g_log<<Logger::Error<<"Oops, partial answer sent to "<<dc->getRemote()<<" for "<<dc->d_mdp.d_qname<<" (size="<< (2 + packet.size()) <<", sent "<<wret<<")"<<endl;
       else
         hadError=false;
 
@@ -1243,16 +1243,16 @@ static void startDoResolve(void *p)
     }
     float spent=makeFloat(sr.getNow()-dc->d_now);
     if(!g_quiet) {
-      L<<Logger::Error<<t_id<<" ["<<MT->getTid()<<"/"<<MT->numProcesses()<<"] answer to "<<(dc->d_mdp.d_header.rd?"":"non-rd ")<<"question '"<<dc->d_mdp.d_qname<<"|"<<DNSRecordContent::NumberToType(dc->d_mdp.d_qtype);
-      L<<"': "<<ntohs(pw.getHeader()->ancount)<<" answers, "<<ntohs(pw.getHeader()->arcount)<<" additional, took "<<sr.d_outqueries<<" packets, "<<
+      g_log<<Logger::Error<<t_id<<" ["<<MT->getTid()<<"/"<<MT->numProcesses()<<"] answer to "<<(dc->d_mdp.d_header.rd?"":"non-rd ")<<"question '"<<dc->d_mdp.d_qname<<"|"<<DNSRecordContent::NumberToType(dc->d_mdp.d_qtype);
+      g_log<<"': "<<ntohs(pw.getHeader()->ancount)<<" answers, "<<ntohs(pw.getHeader()->arcount)<<" additional, took "<<sr.d_outqueries<<" packets, "<<
 	sr.d_totUsec/1000.0<<" netw ms, "<< spent*1000.0<<" tot ms, "<<
 	sr.d_throttledqueries<<" throttled, "<<sr.d_timeouts<<" timeouts, "<<sr.d_tcpoutqueries<<" tcp connections, rcode="<< res;
 
       if(!shouldNotValidate && sr.isDNSSECValidationRequested()) {
-	L<< ", dnssec="<<vStates[sr.getValidationState()];
+	g_log<< ", dnssec="<<vStates[sr.getValidationState()];
       }
 	
-      L<<endl;
+      g_log<<endl;
 
     }
 
@@ -1300,28 +1300,28 @@ static void startDoResolve(void *p)
     dc=0;
   }
   catch(PDNSException &ae) {
-    L<<Logger::Error<<"startDoResolve problem "<<makeLoginfo(dc)<<": "<<ae.reason<<endl;
+    g_log<<Logger::Error<<"startDoResolve problem "<<makeLoginfo(dc)<<": "<<ae.reason<<endl;
     delete dc;
   }
   catch(MOADNSException& e) {
-    L<<Logger::Error<<"DNS parser error "<<makeLoginfo(dc) <<": "<<dc->d_mdp.d_qname<<", "<<e.what()<<endl;
+    g_log<<Logger::Error<<"DNS parser error "<<makeLoginfo(dc) <<": "<<dc->d_mdp.d_qname<<", "<<e.what()<<endl;
     delete dc;
   }
   catch(std::exception& e) {
-    L<<Logger::Error<<"STL error "<< makeLoginfo(dc)<<": "<<e.what();
+    g_log<<Logger::Error<<"STL error "<< makeLoginfo(dc)<<": "<<e.what();
 
     // Luawrapper nests the exception from Lua, so we unnest it here
     try {
         std::rethrow_if_nested(e);
     } catch(const std::exception& ne) {
-        L<<". Extra info: "<<ne.what();
+        g_log<<". Extra info: "<<ne.what();
     } catch(...) {}
 
-    L<<endl;
+    g_log<<endl;
     delete dc;
   }
   catch(...) {
-    L<<Logger::Error<<"Any other exception in a resolver context "<< makeLoginfo(dc) <<endl;
+    g_log<<Logger::Error<<"Any other exception in a resolver context "<< makeLoginfo(dc) <<endl;
   }
 
   g_stats.maxMThreadStackUsage = max(MT->getMaxStackUsage(), g_stats.maxMThreadStackUsage);
@@ -1429,7 +1429,7 @@ static void handleRunningTCPQuestion(int fd, FDMultiplexer::funcparam_t& var)
     }
     if(!bytes || bytes < 0) {
       if(g_logCommonErrors)
-        L<<Logger::Error<<"TCP client "<< conn->d_remote.toString() <<" disconnected after first byte"<<endl;
+        g_log<<Logger::Error<<"TCP client "<< conn->d_remote.toString() <<" disconnected after first byte"<<endl;
       t_fdm->removeReadFD(fd);
       return;
     }
@@ -1437,7 +1437,7 @@ static void handleRunningTCPQuestion(int fd, FDMultiplexer::funcparam_t& var)
   else if(conn->state==TCPConnection::GETQUESTION) {
     ssize_t bytes=recv(conn->getFD(), conn->data + conn->bytesread, conn->qlen - conn->bytesread, 0);
     if(!bytes || bytes < 0 || bytes > std::numeric_limits<std::uint16_t>::max()) {
-      L<<Logger::Error<<"TCP client "<< conn->d_remote.toString() <<" disconnected while reading question body"<<endl;
+      g_log<<Logger::Error<<"TCP client "<< conn->d_remote.toString() <<" disconnected while reading question body"<<endl;
       t_fdm->removeReadFD(fd);
       return;
     }
@@ -1452,7 +1452,7 @@ static void handleRunningTCPQuestion(int fd, FDMultiplexer::funcparam_t& var)
       catch(MOADNSException &mde) {
         g_stats.clientParseError++;
         if(g_logCommonErrors)
-          L<<Logger::Error<<"Unable to parse packet from TCP client "<< conn->d_remote.toString() <<endl;
+          g_log<<Logger::Error<<"Unable to parse packet from TCP client "<< conn->d_remote.toString() <<endl;
         return;
       }
       dc->d_tcpConnection = conn; // carry the torch
@@ -1491,14 +1491,14 @@ static void handleRunningTCPQuestion(int fd, FDMultiplexer::funcparam_t& var)
             }
             catch(std::exception& e)  {
               if(g_logCommonErrors)
-                L<<Logger::Warning<<"Error parsing a query packet qname='"<<qname<<"' for tag determination, setting tag=0: "<<e.what()<<endl;
+                g_log<<Logger::Warning<<"Error parsing a query packet qname='"<<qname<<"' for tag determination, setting tag=0: "<<e.what()<<endl;
             }
           }
         }
         catch(std::exception& e)
         {
           if(g_logCommonErrors)
-            L<<Logger::Warning<<"Error parsing a query packet for tag determination, setting tag=0: "<<e.what()<<endl;
+            g_log<<Logger::Warning<<"Error parsing a query packet for tag determination, setting tag=0: "<<e.what()<<endl;
         }
       }
 #ifdef HAVE_PROTOBUF
@@ -1518,20 +1518,20 @@ static void handleRunningTCPQuestion(int fd, FDMultiplexer::funcparam_t& var)
         }
         catch(std::exception& e) {
           if(g_logCommonErrors)
-            L<<Logger::Warning<<"Error parsing a TCP query packet for edns subnet: "<<e.what()<<endl;
+            g_log<<Logger::Warning<<"Error parsing a TCP query packet for edns subnet: "<<e.what()<<endl;
         }
       }
 #endif
       if(dc->d_mdp.d_header.qr) {
         delete dc;
         g_stats.ignoredCount++;
-        L<<Logger::Error<<"Ignoring answer from TCP client "<< conn->d_remote.toString() <<" on server socket!"<<endl;
+        g_log<<Logger::Error<<"Ignoring answer from TCP client "<< conn->d_remote.toString() <<" on server socket!"<<endl;
         return;
       }
       if(dc->d_mdp.d_header.opcode) {
         delete dc;
         g_stats.ignoredCount++;
-        L<<Logger::Error<<"Ignoring non-query opcode from TCP client "<< conn->d_remote.toString() <<" on server socket!"<<endl;
+        g_log<<Logger::Error<<"Ignoring non-query opcode from TCP client "<< conn->d_remote.toString() <<" on server socket!"<<endl;
         return;
       }
       else {
@@ -1557,7 +1557,7 @@ static void handleNewTCPQuestion(int fd, FDMultiplexer::funcparam_t& )
         closesocket(newsock);
       }
       catch(const PDNSException& e) {
-        L<<Logger::Error<<"Error closing TCP socket after an over capacity drop: "<<e.reason<<endl;
+        g_log<<Logger::Error<<"Error closing TCP socket after an over capacity drop: "<<e.reason<<endl;
       }
       return;
     }
@@ -1566,14 +1566,14 @@ static void handleNewTCPQuestion(int fd, FDMultiplexer::funcparam_t& )
       t_remotes->push_back(addr);
     if(t_allowFrom && !t_allowFrom->match(&addr)) {
       if(!g_quiet)
-        L<<Logger::Error<<"["<<MT->getTid()<<"] dropping TCP query from "<<addr.toString()<<", address not matched by allow-from"<<endl;
+        g_log<<Logger::Error<<"["<<MT->getTid()<<"] dropping TCP query from "<<addr.toString()<<", address not matched by allow-from"<<endl;
 
       g_stats.unauthorizedTCP++;
       try {
         closesocket(newsock);
       }
       catch(const PDNSException& e) {
-        L<<Logger::Error<<"Error closing TCP socket after an ACL drop: "<<e.reason<<endl;
+        g_log<<Logger::Error<<"Error closing TCP socket after an ACL drop: "<<e.reason<<endl;
       }
       return;
     }
@@ -1583,7 +1583,7 @@ static void handleNewTCPQuestion(int fd, FDMultiplexer::funcparam_t& )
         closesocket(newsock); // don't call TCPConnection::closeAndCleanup here - did not enter it in the counts yet!
       }
       catch(const PDNSException& e) {
-        L<<Logger::Error<<"Error closing TCP socket after an overflow drop: "<<e.reason<<endl;
+        g_log<<Logger::Error<<"Error closing TCP socket after an overflow drop: "<<e.reason<<endl;
       }
       return;
     }
@@ -1668,14 +1668,14 @@ static string* doProcessUDPQuestion(const std::string& question, const ComboAddr
           }
           catch(std::exception& e)  {
             if(g_logCommonErrors)
-              L<<Logger::Warning<<"Error parsing a query packet qname='"<<qname<<"' for tag determination, setting tag=0: "<<e.what()<<endl;
+              g_log<<Logger::Warning<<"Error parsing a query packet qname='"<<qname<<"' for tag determination, setting tag=0: "<<e.what()<<endl;
           }
         }
       }
       catch(std::exception& e)
       {
         if(g_logCommonErrors)
-          L<<Logger::Warning<<"Error parsing a query packet for tag determination, setting tag=0: "<<e.what()<<endl;
+          g_log<<Logger::Warning<<"Error parsing a query packet for tag determination, setting tag=0: "<<e.what()<<endl;
       }
     }
 
@@ -1710,7 +1710,7 @@ static string* doProcessUDPQuestion(const std::string& question, const ComboAddr
       }
 #endif /* HAVE_PROTOBUF */
       if(!g_quiet)
-        L<<Logger::Notice<<t_id<< " question answered from packet cache tag="<<ctag<<" from "<<fromaddr.toString()<<endl;
+        g_log<<Logger::Notice<<t_id<< " question answered from packet cache tag="<<ctag<<" from "<<fromaddr.toString()<<endl;
 
       g_stats.packetCacheHits++;
       SyncRes::s_queries++;
@@ -1725,7 +1725,7 @@ static string* doProcessUDPQuestion(const std::string& question, const ComboAddr
 	addCMsgSrcAddr(&msgh, cbuf, &destaddr, 0);
       }
       if(sendmsg(fd, &msgh, 0) < 0 && g_logCommonErrors)
-        L<<Logger::Warning<<"Sending UDP reply to client "<<fromaddr.toStringWithPort()<<" failed with: "<<strerror(errno)<<endl;
+        g_log<<Logger::Warning<<"Sending UDP reply to client "<<fromaddr.toStringWithPort()<<" failed with: "<<strerror(errno)<<endl;
 
       if(response.length() >= sizeof(struct dnsheader)) {
         struct dnsheader tmpdh;
@@ -1738,14 +1738,14 @@ static string* doProcessUDPQuestion(const std::string& question, const ComboAddr
     }
   }
   catch(std::exception& e) {
-    L<<Logger::Error<<"Error processing or aging answer packet: "<<e.what()<<endl;
+    g_log<<Logger::Error<<"Error processing or aging answer packet: "<<e.what()<<endl;
     return 0;
   }
 
   if(t_pdl) {
     if(t_pdl->ipfilter(fromaddr, destaddr, *dh)) {
       if(!g_quiet)
-	L<<Logger::Notice<<t_id<<" ["<<MT->getTid()<<"/"<<MT->numProcesses()<<"] DROPPED question from "<<fromaddr.toStringWithPort()<<" based on policy"<<endl;
+	g_log<<Logger::Notice<<t_id<<" ["<<MT->getTid()<<"/"<<MT->numProcesses()<<"] DROPPED question from "<<fromaddr.toStringWithPort()<<" based on policy"<<endl;
       g_stats.policyDrops++;
       return 0;
     }
@@ -1753,7 +1753,7 @@ static string* doProcessUDPQuestion(const std::string& question, const ComboAddr
 
   if(MT->numProcesses() > g_maxMThreads) {
     if(!g_quiet)
-      L<<Logger::Notice<<t_id<<" ["<<MT->getTid()<<"/"<<MT->numProcesses()<<"] DROPPED question from "<<fromaddr.toStringWithPort()<<", over capacity"<<endl;
+      g_log<<Logger::Notice<<t_id<<" ["<<MT->getTid()<<"/"<<MT->numProcesses()<<"] DROPPED question from "<<fromaddr.toStringWithPort()<<", over capacity"<<endl;
 
     g_stats.overCapacityDrops++;
     return 0;
@@ -1808,7 +1808,7 @@ static void handleNewUDPQuestion(int fd, FDMultiplexer::funcparam_t& var)
 
     if(t_allowFrom && !t_allowFrom->match(&fromaddr)) {
       if(!g_quiet)
-        L<<Logger::Error<<"["<<MT->getTid()<<"] dropping UDP query from "<<fromaddr.toString()<<", address not matched by allow-from"<<endl;
+        g_log<<Logger::Error<<"["<<MT->getTid()<<"] dropping UDP query from "<<fromaddr.toString()<<", address not matched by allow-from"<<endl;
 
       g_stats.unauthorizedUDP++;
       return;
@@ -1816,7 +1816,7 @@ static void handleNewUDPQuestion(int fd, FDMultiplexer::funcparam_t& var)
     BOOST_STATIC_ASSERT(offsetof(sockaddr_in, sin_port) == offsetof(sockaddr_in6, sin6_port));
     if(!fromaddr.sin4.sin_port) { // also works for IPv6
      if(!g_quiet)
-        L<<Logger::Error<<"["<<MT->getTid()<<"] dropping UDP query from "<<fromaddr.toStringWithPort()<<", can't deal with port 0"<<endl;
+        g_log<<Logger::Error<<"["<<MT->getTid()<<"] dropping UDP query from "<<fromaddr.toStringWithPort()<<", can't deal with port 0"<<endl;
 
       g_stats.clientParseError++; // not quite the best place to put it, but needs to go somewhere
       return;
@@ -1827,12 +1827,12 @@ static void handleNewUDPQuestion(int fd, FDMultiplexer::funcparam_t& var)
       if(dh->qr) {
         g_stats.ignoredCount++;
         if(g_logCommonErrors)
-          L<<Logger::Error<<"Ignoring answer from "<<fromaddr.toString()<<" on server socket!"<<endl;
+          g_log<<Logger::Error<<"Ignoring answer from "<<fromaddr.toString()<<" on server socket!"<<endl;
       }
       else if(dh->opcode) {
         g_stats.ignoredCount++;
         if(g_logCommonErrors)
-          L<<Logger::Error<<"Ignoring non-query opcode "<<dh->opcode<<" from "<<fromaddr.toString()<<" on server socket!"<<endl;
+          g_log<<Logger::Error<<"Ignoring non-query opcode "<<dh->opcode<<" from "<<fromaddr.toString()<<" on server socket!"<<endl;
       }
       else {
         string question(data, (size_t)len);
@@ -1865,12 +1865,12 @@ static void handleNewUDPQuestion(int fd, FDMultiplexer::funcparam_t& var)
     catch(MOADNSException& mde) {
       g_stats.clientParseError++;
       if(g_logCommonErrors)
-        L<<Logger::Error<<"Unable to parse packet from remote UDP client "<<fromaddr.toString() <<": "<<mde.what()<<endl;
+        g_log<<Logger::Error<<"Unable to parse packet from remote UDP client "<<fromaddr.toString() <<": "<<mde.what()<<endl;
     }
     catch(std::runtime_error& e) {
       g_stats.clientParseError++;
       if(g_logCommonErrors)
-        L<<Logger::Error<<"Unable to parse packet from remote UDP client "<<fromaddr.toString() <<": "<<e.what()<<endl;
+        g_log<<Logger::Error<<"Unable to parse packet from remote UDP client "<<fromaddr.toString() <<": "<<e.what()<<endl;
     }
   }
   else {
@@ -1914,17 +1914,17 @@ static void makeTCPServerSockets(unsigned int threadId)
 
     int tmp=1;
     if(setsockopt(fd, SOL_SOCKET, SO_REUSEADDR, &tmp, sizeof tmp)<0) {
-      L<<Logger::Error<<"Setsockopt failed for TCP listening socket"<<endl;
+      g_log<<Logger::Error<<"Setsockopt failed for TCP listening socket"<<endl;
       exit(1);
     }
     if(sin.sin6.sin6_family == AF_INET6 && setsockopt(fd, IPPROTO_IPV6, IPV6_V6ONLY, &tmp, sizeof(tmp)) < 0) {
-      L<<Logger::Error<<"Failed to set IPv6 socket to IPv6 only, continuing anyhow: "<<strerror(errno)<<endl;
+      g_log<<Logger::Error<<"Failed to set IPv6 socket to IPv6 only, continuing anyhow: "<<strerror(errno)<<endl;
     }
 
 #ifdef TCP_DEFER_ACCEPT
     if(setsockopt(fd, SOL_TCP, TCP_DEFER_ACCEPT, &tmp, sizeof tmp) >= 0) {
       if(i==locals.begin())
-        L<<Logger::Error<<"Enabled TCP data-ready filter for (slight) DoS protection"<<endl;
+        g_log<<Logger::Error<<"Enabled TCP data-ready filter for (slight) DoS protection"<<endl;
     }
 #endif
 
@@ -1942,10 +1942,10 @@ static void makeTCPServerSockets(unsigned int threadId)
 #ifdef TCP_FASTOPEN
       int fastOpenQueueSize = ::arg().asNum("tcp-fast-open");
       if (setsockopt(fd, IPPROTO_TCP, TCP_FASTOPEN, &fastOpenQueueSize, sizeof fastOpenQueueSize) < 0) {
-        L<<Logger::Error<<"Failed to enable TCP Fast Open for listening socket: "<<strerror(errno)<<endl;
+        g_log<<Logger::Error<<"Failed to enable TCP Fast Open for listening socket: "<<strerror(errno)<<endl;
       }
 #else
-      L<<Logger::Warning<<"TCP Fast Open configured but not supported for listening socket"<<endl;
+      g_log<<Logger::Warning<<"TCP Fast Open configured but not supported for listening socket"<<endl;
 #endif
     }
 
@@ -1962,9 +1962,9 @@ static void makeTCPServerSockets(unsigned int threadId)
     // we don't need to update g_listenSocketsAddresses since it doesn't work for TCP/IP:
     //  - fd is not that which we know here, but returned from accept()
     if(sin.sin4.sin_family == AF_INET)
-      L<<Logger::Error<<"Listening for TCP queries on "<< sin.toString() <<":"<<st.port<<endl;
+      g_log<<Logger::Error<<"Listening for TCP queries on "<< sin.toString() <<":"<<st.port<<endl;
     else
-      L<<Logger::Error<<"Listening for TCP queries on ["<< sin.toString() <<"]:"<<st.port<<endl;
+      g_log<<Logger::Error<<"Listening for TCP queries on ["<< sin.toString() <<"]:"<<st.port<<endl;
   }
 }
 
@@ -1997,7 +1997,7 @@ static void makeUDPServerSockets(unsigned int threadId)
       throw PDNSException("Making a UDP server socket for resolver: "+netstringerror());
     }
     if (!setSocketTimestamps(fd))
-      L<<Logger::Warning<<"Unable to enable timestamp reporting for socket"<<endl;
+      g_log<<Logger::Warning<<"Unable to enable timestamp reporting for socket"<<endl;
 
     if(IsAnyAddress(sin)) {
       if(sin.sin4.sin_family == AF_INET)
@@ -2009,7 +2009,7 @@ static void makeUDPServerSockets(unsigned int threadId)
           g_fromtosockets.insert(fd);
 #endif
       if(sin.sin6.sin6_family == AF_INET6 && setsockopt(fd, IPPROTO_IPV6, IPV6_V6ONLY, &one, sizeof(one)) < 0) {
-	L<<Logger::Error<<"Failed to set IPv6 socket to IPv6 only, continuing anyhow: "<<strerror(errno)<<endl;
+	g_log<<Logger::Error<<"Failed to set IPv6 socket to IPv6 only, continuing anyhow: "<<strerror(errno)<<endl;
       }
     }
     if( ::arg().mustDo("non-local-bind") )
@@ -2036,9 +2036,9 @@ static void makeUDPServerSockets(unsigned int threadId)
     deferredAdds[threadId].push_back(make_pair(fd, handleNewUDPQuestion));
     g_listenSocketsAddresses[fd]=sin;  // this is written to only from the startup thread, not from the workers
     if(sin.sin4.sin_family == AF_INET)
-      L<<Logger::Error<<"Listening for UDP queries on "<< sin.toString() <<":"<<st.port<<endl;
+      g_log<<Logger::Error<<"Listening for UDP queries on "<< sin.toString() <<":"<<st.port<<endl;
     else
-      L<<Logger::Error<<"Listening for UDP queries on ["<< sin.toString() <<"]:"<<st.port<<endl;
+      g_log<<Logger::Error<<"Listening for UDP queries on ["<< sin.toString() <<"]:"<<st.port<<endl;
   }
 }
 
@@ -2051,7 +2051,7 @@ static void daemonize(void)
 
   int i=open("/dev/null",O_RDWR); /* open stdin */
   if(i < 0)
-    L<<Logger::Critical<<"Unable to open /dev/null: "<<stringerror()<<endl;
+    g_log<<Logger::Critical<<"Unable to open /dev/null: "<<stringerror()<<endl;
   else {
     dup2(i,0); /* stdin */
     dup2(i,1); /* stderr */
@@ -2081,35 +2081,35 @@ static void doStats(void)
   uint64_t cacheMisses = broadcastAccFunction<uint64_t>(pleaseGetCacheMisses);
 
   if(g_stats.qcounter && (cacheHits + cacheMisses) && SyncRes::s_queries && SyncRes::s_outqueries) {
-    L<<Logger::Notice<<"stats: "<<g_stats.qcounter<<" questions, "<<
+    g_log<<Logger::Notice<<"stats: "<<g_stats.qcounter<<" questions, "<<
       broadcastAccFunction<uint64_t>(pleaseGetCacheSize)<< " cache entries, "<<
       broadcastAccFunction<uint64_t>(pleaseGetNegCacheSize)<<" negative entries, "<<
       (int)((cacheHits*100.0)/(cacheHits+cacheMisses))<<"% cache hits"<<endl;
 
-    L<<Logger::Notice<<"stats: throttle map: "
+    g_log<<Logger::Notice<<"stats: throttle map: "
       << broadcastAccFunction<uint64_t>(pleaseGetThrottleSize) <<", ns speeds: "
       << broadcastAccFunction<uint64_t>(pleaseGetNsSpeedsSize)<<endl;
-    L<<Logger::Notice<<"stats: outpacket/query ratio "<<(int)(SyncRes::s_outqueries*100.0/SyncRes::s_queries)<<"%";
-    L<<Logger::Notice<<", "<<(int)(SyncRes::s_throttledqueries*100.0/(SyncRes::s_outqueries+SyncRes::s_throttledqueries))<<"% throttled, "
+    g_log<<Logger::Notice<<"stats: outpacket/query ratio "<<(int)(SyncRes::s_outqueries*100.0/SyncRes::s_queries)<<"%";
+    g_log<<Logger::Notice<<", "<<(int)(SyncRes::s_throttledqueries*100.0/(SyncRes::s_outqueries+SyncRes::s_throttledqueries))<<"% throttled, "
      <<SyncRes::s_nodelegated<<" no-delegation drops"<<endl;
-    L<<Logger::Notice<<"stats: "<<SyncRes::s_tcpoutqueries<<" outgoing tcp connections, "<<
+    g_log<<Logger::Notice<<"stats: "<<SyncRes::s_tcpoutqueries<<" outgoing tcp connections, "<<
       broadcastAccFunction<uint64_t>(pleaseGetConcurrentQueries)<<" queries running, "<<SyncRes::s_outgoingtimeouts<<" outgoing timeouts"<<endl;
 
-    //L<<Logger::Notice<<"stats: "<<g_stats.ednsPingMatches<<" ping matches, "<<g_stats.ednsPingMismatches<<" mismatches, "<<
+    //g_log<<Logger::Notice<<"stats: "<<g_stats.ednsPingMatches<<" ping matches, "<<g_stats.ednsPingMismatches<<" mismatches, "<<
       //g_stats.noPingOutQueries<<" outqueries w/o ping, "<< g_stats.noEdnsOutQueries<<" w/o EDNS"<<endl;
 
-    L<<Logger::Notice<<"stats: " <<  broadcastAccFunction<uint64_t>(pleaseGetPacketCacheSize) <<
+    g_log<<Logger::Notice<<"stats: " <<  broadcastAccFunction<uint64_t>(pleaseGetPacketCacheSize) <<
     " packet cache entries, "<<(int)(100.0*broadcastAccFunction<uint64_t>(pleaseGetPacketCacheHits)/SyncRes::s_queries) << "% packet cache hits"<<endl;
 
     time_t now = time(0);
     if(lastOutputTime && lastQueryCount && now != lastOutputTime) {
-      L<<Logger::Notice<<"stats: "<< (SyncRes::s_queries - lastQueryCount) / (now - lastOutputTime) <<" qps (average over "<< (now - lastOutputTime) << " seconds)"<<endl;
+      g_log<<Logger::Notice<<"stats: "<< (SyncRes::s_queries - lastQueryCount) / (now - lastOutputTime) <<" qps (average over "<< (now - lastOutputTime) << " seconds)"<<endl;
     }
     lastOutputTime = now;
     lastQueryCount = SyncRes::s_queries;
   }
   else if(statsWanted)
-    L<<Logger::Notice<<"stats: no stats yet!"<<endl;
+    g_log<<Logger::Notice<<"stats: no stats yet!"<<endl;
 
   statsWanted=false;
 }
@@ -2160,19 +2160,19 @@ static void houseKeeping(void *)
 	}
 	catch(std::exception& e)
         {
-          L<<Logger::Error<<"Exception while performing security poll: "<<e.what()<<endl;
+          g_log<<Logger::Error<<"Exception while performing security poll: "<<e.what()<<endl;
         }
         catch(PDNSException& e)
         {
-          L<<Logger::Error<<"Exception while performing security poll: "<<e.reason<<endl;
+          g_log<<Logger::Error<<"Exception while performing security poll: "<<e.reason<<endl;
         }
         catch(ImmediateServFailException &e)
         {
-          L<<Logger::Error<<"Exception while performing security poll: "<<e.reason<<endl;
+          g_log<<Logger::Error<<"Exception while performing security poll: "<<e.reason<<endl;
         }
         catch(...)
         {
-          L<<Logger::Error<<"Exception while performing security poll"<<endl;
+          g_log<<Logger::Error<<"Exception while performing security poll"<<endl;
         }
 
       }
@@ -2182,7 +2182,7 @@ static void houseKeeping(void *)
   catch(PDNSException& ae)
     {
       s_running=false;
-      L<<Logger::Error<<"Fatal error in housekeeping thread: "<<ae.reason<<endl;
+      g_log<<Logger::Error<<"Fatal error in housekeeping thread: "<<ae.reason<<endl;
       throw;
     }
 }
@@ -2277,11 +2277,11 @@ static void handlePipeRequest(int fd, FDMultiplexer::funcparam_t& var)
   }
   catch(std::exception& e) {
     if(g_logCommonErrors)
-      L<<Logger::Error<<"PIPE function we executed created exception: "<<e.what()<<endl; // but what if they wanted an answer.. we send 0
+      g_log<<Logger::Error<<"PIPE function we executed created exception: "<<e.what()<<endl; // but what if they wanted an answer.. we send 0
   }
   catch(PDNSException& e) {
     if(g_logCommonErrors)
-      L<<Logger::Error<<"PIPE function we executed created PDNS exception: "<<e.reason<<endl; // but what if they wanted an answer.. we send 0
+      g_log<<Logger::Error<<"PIPE function we executed created PDNS exception: "<<e.reason<<endl; // but what if they wanted an answer.. we send 0
   }
   if(tmsg->wantAnswer) {
     if(write(g_pipes[t_id].writeFromThread, &resp, sizeof(resp)) != sizeof(resp)) {
@@ -2382,10 +2382,10 @@ static void handleRCC(int fd, FDMultiplexer::funcparam_t& var)
     command();
   }
   catch(std::exception& e) {
-    L<<Logger::Error<<"Error dealing with control socket request: "<<e.what()<<endl;
+    g_log<<Logger::Error<<"Error dealing with control socket request: "<<e.what()<<endl;
   }
   catch(PDNSException& ae) {
-    L<<Logger::Error<<"Error dealing with control socket request: "<<ae.reason<<endl;
+    g_log<<Logger::Error<<"Error dealing with control socket request: "<<ae.reason<<endl;
   }
 }
 
@@ -2472,7 +2472,7 @@ static void handleUDPServerResponse(int fd, FDMultiplexer::funcparam_t& var)
     else {
       g_stats.serverParseError++;
       if(g_logCommonErrors)
-        L<<Logger::Error<<"Unable to parse packet from remote UDP server "<< fromaddr.toString() <<
+        g_log<<Logger::Error<<"Unable to parse packet from remote UDP server "<< fromaddr.toString() <<
           ": packet smaller than DNS header"<<endl;
     }
 
@@ -2496,7 +2496,7 @@ static void handleUDPServerResponse(int fd, FDMultiplexer::funcparam_t& var)
   pident.fd=fd;
 
   if(!dh.qr && g_logCommonErrors) {
-    L<<Logger::Notice<<"Not taking data from question on outgoing socket from "<< fromaddr.toStringWithPort()  <<endl;
+    g_log<<Logger::Notice<<"Not taking data from question on outgoing socket from "<< fromaddr.toStringWithPort()  <<endl;
   }
 
   if(!dh.qdcount || // UPC, Nominum, very old BIND on FormErr, NSD
@@ -2511,7 +2511,7 @@ static void handleUDPServerResponse(int fd, FDMultiplexer::funcparam_t& var)
     }
     catch(std::exception& e) {
       g_stats.serverParseError++; // won't be fed to lwres.cc, so we have to increment
-      L<<Logger::Warning<<"Error in packet from remote nameserver "<< fromaddr.toStringWithPort() << ": "<<e.what() << endl;
+      g_log<<Logger::Warning<<"Error in packet from remote nameserver "<< fromaddr.toStringWithPort() << ": "<<e.what() << endl;
       return;
     }
   }
@@ -2544,7 +2544,7 @@ retryWithName:
     }
     g_stats.unexpectedCount++; // if we made it here, it really is an unexpected answer
     if(g_logCommonErrors) {
-      L<<Logger::Warning<<"Discarding unexpected packet from "<<fromaddr.toStringWithPort()<<": "<< (pident.domain.empty() ? "<empty>" : pident.domain.toString())<<", "<<pident.type<<", "<<MT->d_waiters.size()<<" waiters"<<endl;
+      g_log<<Logger::Warning<<"Discarding unexpected packet from "<<fromaddr.toStringWithPort()<<": "<< (pident.domain.empty() ? "<empty>" : pident.domain.toString())<<", "<<pident.type<<", "<<MT->d_waiters.size()<<" waiters"<<endl;
     }
   }
   else if(fd >= 0) {
@@ -2561,13 +2561,13 @@ FDMultiplexer* getMultiplexer()
       return ret;
     }
     catch(FDMultiplexerException &fe) {
-      L<<Logger::Error<<"Non-fatal error initializing possible multiplexer ("<<fe.what()<<"), falling back"<<endl;
+      g_log<<Logger::Error<<"Non-fatal error initializing possible multiplexer ("<<fe.what()<<"), falling back"<<endl;
     }
     catch(...) {
-      L<<Logger::Error<<"Non-fatal error initializing possible multiplexer"<<endl;
+      g_log<<Logger::Error<<"Non-fatal error initializing possible multiplexer"<<endl;
     }
   }
-  L<<Logger::Error<<"No working multiplexer found!"<<endl;
+  g_log<<Logger::Error<<"No working multiplexer found!"<<endl;
   exit(1);
 }
 
@@ -2578,7 +2578,7 @@ static string* doReloadLuaScript()
   try {
     if(fname.empty()) {
       t_pdl.reset();
-      L<<Logger::Error<<t_id<<" Unloaded current lua script"<<endl;
+      g_log<<Logger::Error<<t_id<<" Unloaded current lua script"<<endl;
       return new string("unloaded\n");
     }
     else {
@@ -2586,11 +2586,11 @@ static string* doReloadLuaScript()
     }
   }
   catch(std::exception& e) {
-    L<<Logger::Error<<t_id<<" Retaining current script, error from '"<<fname<<"': "<< e.what() <<endl;
+    g_log<<Logger::Error<<t_id<<" Retaining current script, error from '"<<fname<<"': "<< e.what() <<endl;
     return new string("retaining current script, error from '"+fname+"': "+e.what()+"\n");
   }
 
-  L<<Logger::Warning<<t_id<<" (Re)loaded lua script from '"<<fname<<"'"<<endl;
+  g_log<<Logger::Warning<<t_id<<" (Re)loaded lua script from '"<<fname<<"'"<<endl;
   return new string("(re)loaded '"+fname+"'\n");
 }
 
@@ -2631,7 +2631,7 @@ static void checkLinuxIPv6Limits()
   if(readFileIfThere("/proc/sys/net/ipv6/route/max_size", &line)) {
     int lim=std::stoi(line);
     if(lim < 16384) {
-      L<<Logger::Error<<"If using IPv6, please raise sysctl net.ipv6.route.max_size, currently set to "<<lim<<" which is < 16384"<<endl;
+      g_log<<Logger::Error<<"If using IPv6, please raise sysctl net.ipv6.route.max_size, currently set to "<<lim<<" which is < 16384"<<endl;
     }
   }
 #endif
@@ -2645,11 +2645,11 @@ static void checkOrFixFDS()
     unsigned int hardlimit= getFilenumLimit(true);
     if(hardlimit >= wantFDs) {
       setFilenumLimit(wantFDs);
-      L<<Logger::Warning<<"Raised soft limit on number of filedescriptors to "<<wantFDs<<" to match max-mthreads and threads settings"<<endl;
+      g_log<<Logger::Warning<<"Raised soft limit on number of filedescriptors to "<<wantFDs<<" to match max-mthreads and threads settings"<<endl;
     }
     else {
       int newval = (hardlimit - 25) / g_numWorkerThreads;
-      L<<Logger::Warning<<"Insufficient number of filedescriptors available for max-mthreads*threads setting! ("<<hardlimit<<" < "<<wantFDs<<"), reducing max-mthreads to "<<newval<<endl;
+      g_log<<Logger::Warning<<"Insufficient number of filedescriptors available for max-mthreads*threads setting! ("<<hardlimit<<" < "<<wantFDs<<"), reducing max-mthreads to "<<newval<<endl;
       g_maxMThreads = newval;
       setFilenumLimit(hardlimit);
     }
@@ -2720,24 +2720,24 @@ void parseACLs()
 
       allowFrom->addMask(line);
     }
-    L<<Logger::Warning<<"Done parsing " << allowFrom->size() <<" allow-from ranges from file '"<<::arg()["allow-from-file"]<<"' - overriding 'allow-from' setting"<<endl;
+    g_log<<Logger::Warning<<"Done parsing " << allowFrom->size() <<" allow-from ranges from file '"<<::arg()["allow-from-file"]<<"' - overriding 'allow-from' setting"<<endl;
   }
   else if(!::arg()["allow-from"].empty()) {
     vector<string> ips;
     stringtok(ips, ::arg()["allow-from"], ", ");
 
-    L<<Logger::Warning<<"Only allowing queries from: ";
+    g_log<<Logger::Warning<<"Only allowing queries from: ";
     for(vector<string>::const_iterator i = ips.begin(); i!= ips.end(); ++i) {
       allowFrom->addMask(*i);
       if(i!=ips.begin())
-        L<<Logger::Warning<<", ";
-      L<<Logger::Warning<<*i;
+        g_log<<Logger::Warning<<", ";
+      g_log<<Logger::Warning<<*i;
     }
-    L<<Logger::Warning<<endl;
+    g_log<<Logger::Warning<<endl;
   }
   else {
     if(::arg()["local-address"]!="127.0.0.1" && ::arg().asNum("local-port")==53)
-      L<<Logger::Error<<"WARNING: Allowing queries from all IP addresses - this can be a security risk!"<<endl;
+      g_log<<Logger::Error<<"WARNING: Allowing queries from all IP addresses - this can be a security risk!"<<endl;
     allowFrom = nullptr;
   }
 
@@ -2765,7 +2765,7 @@ static std::map<unsigned int, std::set<int> > parseCPUMap()
   const std::string value = ::arg()["cpu-map"];
 
   if (!value.empty() && !isSettingThreadCPUAffinitySupported()) {
-    L<<Logger::Warning<<"CPU mapping requested but not supported, skipping"<<endl;
+    g_log<<Logger::Warning<<"CPU mapping requested but not supported, skipping"<<endl;
     return result;
   }
 
@@ -2794,7 +2794,7 @@ static std::map<unsigned int, std::set<int> > parseCPUMap()
       }
     }
     catch(const std::exception& e) {
-      L<<Logger::Error<<"Error parsing cpu-map entry '"<<part<<"': "<<e.what()<<endl;
+      g_log<<Logger::Error<<"Error parsing cpu-map entry '"<<part<<"': "<<e.what()<<endl;
     }
   }
 
@@ -2807,34 +2807,34 @@ static void setCPUMap(const std::map<unsigned int, std::set<int> >& cpusMap, uns
   if (cpuMapping != cpusMap.cend()) {
     int rc = mapThreadToCPUList(tid, cpuMapping->second);
     if (rc == 0) {
-      L<<Logger::Info<<"CPU affinity for worker "<<n<<" has been set to CPU map:";
+      g_log<<Logger::Info<<"CPU affinity for worker "<<n<<" has been set to CPU map:";
       for (const auto cpu : cpuMapping->second) {
-        L<<Logger::Info<<" "<<cpu;
+        g_log<<Logger::Info<<" "<<cpu;
       }
-      L<<Logger::Info<<endl;
+      g_log<<Logger::Info<<endl;
     }
     else {
-      L<<Logger::Warning<<"Error setting CPU affinity for worker "<<n<<" to CPU map:";
+      g_log<<Logger::Warning<<"Error setting CPU affinity for worker "<<n<<" to CPU map:";
       for (const auto cpu : cpuMapping->second) {
-        L<<Logger::Info<<" "<<cpu;
+        g_log<<Logger::Info<<" "<<cpu;
       }
-      L<<Logger::Info<<strerror(rc)<<endl;
+      g_log<<Logger::Info<<strerror(rc)<<endl;
     }
   }
 }
 
 static int serviceMain(int argc, char*argv[])
 {
-  L.setName(s_programname);
-  L.disableSyslog(::arg().mustDo("disable-syslog"));
-  L.setTimestamps(::arg().mustDo("log-timestamp"));
+  g_log.setName(s_programname);
+  g_log.disableSyslog(::arg().mustDo("disable-syslog"));
+  g_log.setTimestamps(::arg().mustDo("log-timestamp"));
 
   if(!::arg()["logging-facility"].empty()) {
     int val=logFacilityToLOG(::arg().asNum("logging-facility") );
     if(val >= 0)
-      theL().setFacility(val);
+      g_log.setFacility(val);
     else
-      L<<Logger::Error<<"Unknown logging facility "<<::arg().asNum("logging-facility") <<endl;
+      g_log<<Logger::Error<<"Unknown logging facility "<<::arg().asNum("logging-facility") <<endl;
   }
 
   showProductVersion();
@@ -2847,7 +2847,7 @@ static int serviceMain(int argc, char*argv[])
     vector<string> addrs;
     if(!::arg()["query-local-address6"].empty()) {
       SyncRes::s_doIPv6=true;
-      L<<Logger::Warning<<"Enabling IPv6 transport for outgoing queries"<<endl;
+      g_log<<Logger::Warning<<"Enabling IPv6 transport for outgoing queries"<<endl;
 
       stringtok(addrs, ::arg()["query-local-address6"], ", ;");
       for(const string& addr : addrs) {
@@ -2855,7 +2855,7 @@ static int serviceMain(int argc, char*argv[])
       }
     }
     else {
-      L<<Logger::Warning<<"NOT using IPv6 for outgoing queries - set 'query-local-address6=::' to enable"<<endl;
+      g_log<<Logger::Warning<<"NOT using IPv6 for outgoing queries - set 'query-local-address6=::' to enable"<<endl;
     }
     addrs.clear();
     stringtok(addrs, ::arg()["query-local-address"], ", ;");
@@ -2864,7 +2864,7 @@ static int serviceMain(int argc, char*argv[])
     }
   }
   catch(std::exception& e) {
-    L<<Logger::Error<<"Assigning local query addresses: "<<e.what();
+    g_log<<Logger::Error<<"Assigning local query addresses: "<<e.what();
     exit(99);
   }
 
@@ -2880,7 +2880,7 @@ static int serviceMain(int argc, char*argv[])
   else if(::arg()["dnssec"]=="log-fail")
     g_dnssecmode=DNSSECMode::ValidateForLog;
   else {
-    L<<Logger::Error<<"Unknown DNSSEC mode "<<::arg()["dnssec"]<<endl;
+    g_log<<Logger::Error<<"Unknown DNSSEC mode "<<::arg()["dnssec"]<<endl;
     exit(1);
   }
 
@@ -2894,7 +2894,7 @@ static int serviceMain(int argc, char*argv[])
     loadRecursorLuaConfig(::arg()["lua-config-file"], ::arg().mustDo("daemon"));
   }
   catch (PDNSException &e) {
-    L<<Logger::Error<<"Cannot load Lua configuration: "<<e.reason<<endl;
+    g_log<<Logger::Error<<"Cannot load Lua configuration: "<<e.reason<<endl;
     exit(1);
   }
 
@@ -2907,21 +2907,21 @@ static int serviceMain(int argc, char*argv[])
     ips.push_back("0.0.0.0");
     ips.push_back("::");
 
-    L<<Logger::Warning<<"Will not send queries to: ";
+    g_log<<Logger::Warning<<"Will not send queries to: ";
     for(vector<string>::const_iterator i = ips.begin(); i!= ips.end(); ++i) {
       SyncRes::addDontQuery(*i);
       if(i!=ips.begin())
-        L<<Logger::Warning<<", ";
-      L<<Logger::Warning<<*i;
+        g_log<<Logger::Warning<<", ";
+      g_log<<Logger::Warning<<*i;
     }
-    L<<Logger::Warning<<endl;
+    g_log<<Logger::Warning<<endl;
   }
 
   g_quiet=::arg().mustDo("quiet");
 
   g_weDistributeQueries = ::arg().mustDo("pdns-distributes-queries");
   if(g_weDistributeQueries) {
-      L<<Logger::Warning<<"PowerDNS Recursor itself will distribute queries over threads"<<endl;
+      g_log<<Logger::Warning<<"PowerDNS Recursor itself will distribute queries over threads"<<endl;
   }
 
   setupDelegationOnly();
@@ -3006,7 +3006,7 @@ static int serviceMain(int argc, char*argv[])
 
   g_numWorkerThreads = ::arg().asNum("threads");
   if (g_numWorkerThreads < 1) {
-    L<<Logger::Warning<<"Asked to run with 0 threads, raising to 1 instead"<<endl;
+    g_log<<Logger::Warning<<"Asked to run with 0 threads, raising to 1 instead"<<endl;
     g_numWorkerThreads = 1;
   }
 
@@ -3044,8 +3044,8 @@ static int serviceMain(int argc, char*argv[])
   }
 
   if(::arg().mustDo("daemon")) {
-    L<<Logger::Warning<<"Calling daemonize, going to background"<<endl;
-    L.toConsole(Logger::Critical);
+    g_log<<Logger::Warning<<"Calling daemonize, going to background"<<endl;
+    g_log.toConsole(Logger::Critical);
     daemonize();
     loadRecursorLuaConfig(::arg()["lua-config-file"], false);
   }
@@ -3057,7 +3057,7 @@ static int serviceMain(int argc, char*argv[])
 
 #ifdef HAVE_LIBSODIUM
   if (sodium_init() == -1) {
-    L<<Logger::Error<<"Unable to initialize sodium crypto library"<<endl;
+    g_log<<Logger::Error<<"Unable to initialize sodium crypto library"<<endl;
     exit(99);
   }
 #endif
@@ -3079,16 +3079,16 @@ static int serviceMain(int argc, char*argv[])
      char *ns;
      ns = getenv("NOTIFY_SOCKET");
      if (ns != nullptr) {
-       L<<Logger::Error<<"Unable to chroot when running from systemd. Please disable chroot= or set the 'Type' for this service to 'simple'"<<endl;
+       g_log<<Logger::Error<<"Unable to chroot when running from systemd. Please disable chroot= or set the 'Type' for this service to 'simple'"<<endl;
        exit(1);
      }
 #endif
     if (chroot(::arg()["chroot"].c_str())<0 || chdir("/") < 0) {
-      L<<Logger::Error<<"Unable to chroot to '"+::arg()["chroot"]+"': "<<strerror (errno)<<", exiting"<<endl;
+      g_log<<Logger::Error<<"Unable to chroot to '"+::arg()["chroot"]+"': "<<strerror (errno)<<", exiting"<<endl;
       exit(1);
     }
     else
-      L<<Logger::Error<<"Chrooted to '"<<::arg()["chroot"]<<"'"<<endl;
+      g_log<<Logger::Error<<"Chrooted to '"<<::arg()["chroot"]<<"'"<<endl;
   }
 
   s_pidfname=::arg()["socket-dir"]+"/"+s_programname+".pid";
@@ -3113,7 +3113,7 @@ static int serviceMain(int argc, char*argv[])
 
   const auto cpusMap = parseCPUMap();
   if(g_numThreads == 1) {
-    L<<Logger::Warning<<"Operating unthreaded"<<endl;
+    g_log<<Logger::Warning<<"Operating unthreaded"<<endl;
 #ifdef HAVE_SYSTEMD
     sd_notify(0, "READY=1");
 #endif
@@ -3122,7 +3122,7 @@ static int serviceMain(int argc, char*argv[])
   }
   else {
     pthread_t tid;
-    L<<Logger::Warning<<"Launching "<< g_numThreads <<" threads"<<endl;
+    g_log<<Logger::Warning<<"Launching "<< g_numThreads <<" threads"<<endl;
     for(unsigned int n=0; n < g_numThreads; ++n) {
       pthread_create(&tid, 0, recursorThread, (void*)(long)n);
 
@@ -3153,16 +3153,16 @@ try
 #ifdef HAVE_PROTOBUF
   t_uuidGenerator = std::unique_ptr<boost::uuids::random_generator>(new boost::uuids::random_generator());
 #endif
-  L<<Logger::Warning<<"Done priming cache with root hints"<<endl;
+  g_log<<Logger::Warning<<"Done priming cache with root hints"<<endl;
 
   try {
     if(!::arg()["lua-dns-script"].empty()) {
       t_pdl = std::make_shared<RecursorLua4>(::arg()["lua-dns-script"]);
-      L<<Logger::Warning<<"Loaded 'lua' script from '"<<::arg()["lua-dns-script"]<<"'"<<endl;
+      g_log<<Logger::Warning<<"Loaded 'lua' script from '"<<::arg()["lua-dns-script"]<<"'"<<endl;
     }
   }
   catch(std::exception &e) {
-    L<<Logger::Error<<"Failed to load 'lua' script from '"<<::arg()["lua-dns-script"]<<"': "<<e.what()<<endl;
+    g_log<<Logger::Error<<"Failed to load 'lua' script from '"<<::arg()["lua-dns-script"]<<"': "<<e.what()<<endl;
     _exit(99);
   }
 
@@ -3191,16 +3191,16 @@ try
   t_fdm=getMultiplexer();
   if(!t_id) {
     if(::arg().mustDo("webserver")) {
-      L<<Logger::Warning << "Enabling web server" << endl;
+      g_log<<Logger::Warning << "Enabling web server" << endl;
       try {
         new RecursorWebServer(t_fdm);
       }
       catch(PDNSException &e) {
-        L<<Logger::Error<<"Exception: "<<e.reason<<endl;
+        g_log<<Logger::Error<<"Exception: "<<e.reason<<endl;
         exit(99);
       }
     }
-    L<<Logger::Error<<"Enabled '"<< t_fdm->getName() << "' multiplexer"<<endl;
+    g_log<<Logger::Error<<"Enabled '"<< t_fdm->getName() << "' multiplexer"<<endl;
   }
 
   t_fdm->addReadFD(g_pipes[t_id].readToThread, handlePipeRequest);
@@ -3244,7 +3244,7 @@ try
       for(expired_t::iterator i=expired.begin() ; i != expired.end(); ++i) {
         shared_ptr<TCPConnection> conn=any_cast<shared_ptr<TCPConnection> >(i->second);
         if(g_logCommonErrors)
-          L<<Logger::Warning<<"Timeout from remote TCP client "<< conn->d_remote.toString() <<endl;
+          g_log<<Logger::Warning<<"Timeout from remote TCP client "<< conn->d_remote.toString() <<endl;
         t_fdm->removeReadFD(i->first);
       }
     }
@@ -3284,15 +3284,15 @@ try
   }
 }
 catch(PDNSException &ae) {
-  L<<Logger::Error<<"Exception: "<<ae.reason<<endl;
+  g_log<<Logger::Error<<"Exception: "<<ae.reason<<endl;
   return 0;
 }
 catch(std::exception &e) {
-   L<<Logger::Error<<"STL Exception: "<<e.what()<<endl;
+   g_log<<Logger::Error<<"STL Exception: "<<e.what()<<endl;
    return 0;
 }
 catch(...) {
-   L<<Logger::Error<<"any other exception in main: "<<endl;
+   g_log<<Logger::Error<<"any other exception in main: "<<endl;
    return 0;
 }
 
@@ -3426,7 +3426,7 @@ int main(int argc, char **argv)
     ::arg().setCmd("help","Provide a helpful message");
     ::arg().setCmd("version","Print version string");
     ::arg().setCmd("config","Output blank configuration");
-    L.toConsole(Logger::Info);
+    g_log.toConsole(Logger::Info);
     ::arg().laxParse(argc,argv); // do a lax parse
 
     string configname=::arg()["config-dir"]+"/recursor.conf";
@@ -3442,12 +3442,12 @@ int main(int argc, char **argv)
     }
 
     if(!::arg().file(configname.c_str()))
-      L<<Logger::Warning<<"Unable to parse configuration file '"<<configname<<"'"<<endl;
+      g_log<<Logger::Warning<<"Unable to parse configuration file '"<<configname<<"'"<<endl;
 
     ::arg().parse(argc,argv);
 
     if( !::arg()["chroot"].empty() && !::arg()["api-config-dir"].empty() && !::arg().mustDo("api-readonly") )  {
-      L<<Logger::Error<<"Using chroot and a writable API is not possible"<<endl;
+      g_log<<Logger::Error<<"Using chroot and a writable API is not possible"<<endl;
       exit(EXIT_FAILURE);
     }
 
@@ -3481,21 +3481,21 @@ int main(int argc, char **argv)
     if(!g_quiet && logUrgency < Logger::Info) { // Logger::Info=6, Logger::Debug=7
       logUrgency = Logger::Info;                // if you do --quiet=no, you need Info to also see the query log
     }
-    L.setLoglevel(logUrgency);
-    L.toConsole(logUrgency);
+    g_log.setLoglevel(logUrgency);
+    g_log.toConsole(logUrgency);
 
     serviceMain(argc, argv);
   }
   catch(PDNSException &ae) {
-    L<<Logger::Error<<"Exception: "<<ae.reason<<endl;
+    g_log<<Logger::Error<<"Exception: "<<ae.reason<<endl;
     ret=EXIT_FAILURE;
   }
   catch(std::exception &e) {
-    L<<Logger::Error<<"STL Exception: "<<e.what()<<endl;
+    g_log<<Logger::Error<<"STL Exception: "<<e.what()<<endl;
     ret=EXIT_FAILURE;
   }
   catch(...) {
-    L<<Logger::Error<<"any other exception in main: "<<endl;
+    g_log<<Logger::Error<<"any other exception in main: "<<endl;
     ret=EXIT_FAILURE;
   }
 

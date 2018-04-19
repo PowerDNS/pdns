@@ -225,7 +225,6 @@ inline uint16_t * getFlagsFromDNSHeader(struct dnsheader * dh)
 #define FLAGS_CD_OFFSET (12)
 #endif
 
-#define L theL()
 extern time_t s_starttime;
 
 uint32_t hashQuestion(const char* packet, uint16_t len, uint32_t init);

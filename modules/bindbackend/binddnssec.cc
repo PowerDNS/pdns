@@ -173,11 +173,11 @@ bool Bind2Backend::getNSEC3PARAM(const DNSName& name, NSEC3PARAMRecordContent* n
 
     if (ns3p->d_iterations > maxNSEC3Iterations) {
       ns3p->d_iterations = maxNSEC3Iterations;
-      L<<Logger::Error<<"Number of NSEC3 iterations for zone '"<<name<<"' is above 'max-nsec3-iterations'. Value adjusted to: "<<maxNSEC3Iterations<<endl;
+      g_log<<Logger::Error<<"Number of NSEC3 iterations for zone '"<<name<<"' is above 'max-nsec3-iterations'. Value adjusted to: "<<maxNSEC3Iterations<<endl;
     }
 
     if (ns3p->d_algorithm != 1) {
-      L<<Logger::Error<<"Invalid hash algorithm for NSEC3: '"<<std::to_string(ns3p->d_algorithm)<<"', setting to 1 for zone '"<<name<<"'."<<endl;
+      g_log<<Logger::Error<<"Invalid hash algorithm for NSEC3: '"<<std::to_string(ns3p->d_algorithm)<<"', setting to 1 for zone '"<<name<<"'."<<endl;
       ns3p->d_algorithm = 1;
     }
   }

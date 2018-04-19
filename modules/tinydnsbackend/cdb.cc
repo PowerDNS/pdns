@@ -34,7 +34,7 @@ CDB::CDB(const string &cdbfile)
   d_fd = open(cdbfile.c_str(), O_RDONLY);
   if (d_fd < 0)
   {
-    L<<Logger::Error<<"Failed to open cdb database file '"<<cdbfile<<"'. Error: "<<stringerror()<<endl;
+    g_log<<Logger::Error<<"Failed to open cdb database file '"<<cdbfile<<"'. Error: "<<stringerror()<<endl;
     throw new PDNSException("Failed to open cdb database file '"+cdbfile+"'. Error: " + stringerror());
   }
 
@@ -42,7 +42,7 @@ CDB::CDB(const string &cdbfile)
   int cdbinit = cdb_init(&d_cdb, d_fd);
   if (cdbinit < 0)
   {
-    L<<Logger::Error<<"Failed to initialize cdb structure. ErrorNr: '"<<cdbinit<<endl;
+    g_log<<Logger::Error<<"Failed to initialize cdb structure. ErrorNr: '"<<cdbinit<<endl;
     throw new PDNSException("Failed to initialize cdb structure.");
   }
 
