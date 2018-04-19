@@ -53,7 +53,8 @@ BOOST_AUTO_TEST_CASE(test_get_entry) {
   Utility::gettimeofday(&now, 0);
 
   NegCache cache;
-  cache.add(genNegCacheEntry(qname, auth, now));
+  NegCache::NegCacheEntry entry = genNegCacheEntry(qname, auth, now);
+  cache.add(entry);
 
   BOOST_CHECK_EQUAL(cache.size(), 1);
 
@@ -77,7 +78,9 @@ BOOST_AUTO_TEST_CASE(test_get_entry_exact_type) {
   Utility::gettimeofday(&now, 0);
 
   NegCache cache;
-  cache.add(genNegCacheEntry(qname, auth, now));
+  NegCache::NegCacheEntry entry = genNegCacheEntry(qname, auth, now);
+
+  cache.add(entry);
 
   BOOST_CHECK_EQUAL(cache.size(), 1);
 
@@ -95,7 +98,8 @@ BOOST_AUTO_TEST_CASE(test_get_NODATA_entry) {
   Utility::gettimeofday(&now, 0);
 
   NegCache cache;
-  cache.add(genNegCacheEntry(qname, auth, now, 1));
+  NegCache::NegCacheEntry entry = genNegCacheEntry(qname, auth, now, 1);
+  cache.add(entry);
 
   BOOST_CHECK_EQUAL(cache.size(), 1);
 
@@ -120,7 +124,8 @@ BOOST_AUTO_TEST_CASE(test_getRootNXTrust_entry) {
   Utility::gettimeofday(&now, 0);
 
   NegCache cache;
-  cache.add(genNegCacheEntry(qname, auth, now));
+  NegCache::NegCacheEntry entry = genNegCacheEntry(qname, auth, now);
+  cache.add(entry);
 
   BOOST_CHECK_EQUAL(cache.size(), 1);
 
@@ -142,7 +147,8 @@ BOOST_AUTO_TEST_CASE(test_add_and_get_expired_entry) {
   now.tv_sec -= 1000;
 
   NegCache cache;
-  cache.add(genNegCacheEntry(qname, auth, now));
+  NegCache::NegCacheEntry entry = genNegCacheEntry(qname, auth, now);
+  cache.add(entry);
 
   BOOST_CHECK_EQUAL(cache.size(), 1);
 
@@ -166,7 +172,8 @@ BOOST_AUTO_TEST_CASE(test_getRootNXTrust_expired_entry) {
   now.tv_sec -= 1000;
 
   NegCache cache;
-  cache.add(genNegCacheEntry(qname, auth, now));
+  NegCache::NegCacheEntry entry = genNegCacheEntry(qname, auth, now);
+  cache.add(entry);
 
   BOOST_CHECK_EQUAL(cache.size(), 1);
 
@@ -190,9 +197,11 @@ BOOST_AUTO_TEST_CASE(test_add_updated_entry) {
   Utility::gettimeofday(&now, 0);
 
   NegCache cache;
-  cache.add(genNegCacheEntry(qname, auth, now));
+  NegCache::NegCacheEntry entry = genNegCacheEntry(qname, auth, now);
+  cache.add(entry);
   // Should override the existing entry for www2.powerdns.com
-  cache.add(genNegCacheEntry(qname, auth2, now));
+  entry = genNegCacheEntry(qname, auth2, now);
+  cache.add(entry);
 
   BOOST_CHECK_EQUAL(cache.size(), 1);
 
@@ -214,8 +223,10 @@ BOOST_AUTO_TEST_CASE(test_getRootNXTrust) {
   Utility::gettimeofday(&now, 0);
 
   NegCache cache;
-  cache.add(genNegCacheEntry(qname, auth, now));
-  cache.add(genNegCacheEntry(qname2, auth2, now));
+  NegCache::NegCacheEntry entry = genNegCacheEntry(qname, auth, now);
+  cache.add(entry);
+  entry = genNegCacheEntry(qname2, auth2, now);
+  cache.add(entry);
 
   NegCache::NegCacheEntry ne;
   bool ret = cache.getRootNXTrust(qname, now, ne);
@@ -235,14 +246,19 @@ BOOST_AUTO_TEST_CASE(test_getRootNXTrust_full_domain_only) {
   Utility::gettimeofday(&now, 0);
 
   NegCache cache;
-  cache.add(genNegCacheEntry(qname, auth, now));
-  cache.add(genNegCacheEntry(qname2, auth2, now, 1)); // Add the denial for COM|A
+  NegCache::NegCacheEntry entry = genNegCacheEntry(qname, auth, now);
+
+  cache.add(entry);
+  entry = genNegCacheEntry(qname2, auth2, now, 1);
+  cache.add(entry); // Add the denial for COM|A
 
   NegCache::NegCacheEntry ne;
   bool ret = cache.getRootNXTrust(qname, now, ne);
 
   BOOST_CHECK_EQUAL(ret, false);
 }
+
+// @todo really test prune meaning with maxEntries and maxBytes
 
 BOOST_AUTO_TEST_CASE(test_prune) {
   string qname(".powerdns.com");
@@ -356,18 +372,24 @@ BOOST_AUTO_TEST_CASE(test_clear) {
 BOOST_AUTO_TEST_CASE(test_dumpToFile) {
   NegCache cache;
   vector<string> expected;
-  expected.push_back("www1.powerdns.com. 600 IN TYPE0 VIA powerdns.com. ; (Indeterminate)\n");
-  expected.push_back("www1.powerdns.com. 600 IN NSEC deadbeef. ; (Indeterminate)\n");
-  expected.push_back("www1.powerdns.com. 600 IN RRSIG NSEC 5 3 600 20370101000000 20370101000000 24567 dummy. data ;\n");
-  expected.push_back("www2.powerdns.com. 600 IN TYPE0 VIA powerdns.com. ; (Indeterminate)\n");
-  expected.push_back("www2.powerdns.com. 600 IN NSEC deadbeef. ; (Indeterminate)\n");
-  expected.push_back("www2.powerdns.com. 600 IN RRSIG NSEC 5 3 600 20370101000000 20370101000000 24567 dummy. data ;\n");
+  expected.push_back("www1.powerdns.com. 600 IN TYPE0 VIA powerdns.com. ; (Indeterminate) size=176\n");
+  expected.push_back(" www1.powerdns.com. 600 IN NSEC deadbeef. ; (Indeterminate) size=0/176\n");
+  expected.push_back("  www1.powerdns.com. 600 IN RRSIG NSEC 5 3 600 20370101000000 20370101000000 24567 dummy. data ; size=0/176\n");
+  expected.push_back("   www1.powerdns.com. 600 IN SOA ns1. hostmaster. 1 2 3 4 5 ; (Indeterminate) size=0/176\n");
+  expected.push_back("    www1.powerdns.com. 600 IN RRSIG SOA 5 3 600 20370101000000 20370101000000 24567 dummy. data ; size=0/176\n");
+  expected.push_back("www2.powerdns.com. 600 IN TYPE0 VIA powerdns.com. ; (Indeterminate) size=176\n");
+  expected.push_back(" www2.powerdns.com. 600 IN NSEC deadbeef. ; (Indeterminate) size=0/176\n");
+  expected.push_back("  www2.powerdns.com. 600 IN RRSIG NSEC 5 3 600 20370101000000 20370101000000 24567 dummy. data ; size=0/176\n");
+  expected.push_back("   www2.powerdns.com. 600 IN SOA ns1. hostmaster. 1 2 3 4 5 ; (Indeterminate) size=0/176\n");
+  expected.push_back("    www2.powerdns.com. 600 IN RRSIG SOA 5 3 600 20370101000000 20370101000000 24567 dummy. data ; size=0/176\n");
 
   struct timeval now;
   Utility::gettimeofday(&now, 0);
 
-  cache.add(genNegCacheEntry(DNSName("www1.powerdns.com"), DNSName("powerdns.com"), now));
-  cache.add(genNegCacheEntry(DNSName("www2.powerdns.com"), DNSName("powerdns.com"), now));
+  NegCache::NegCacheEntry ne1, ne = genNegCacheEntry(DNSName("www1.powerdns.com"), DNSName("powerdns.com"), now);
+  cache.add(ne);
+  ne1 = genNegCacheEntry(DNSName("www2.powerdns.com"), DNSName("powerdns.com"), now);
+  cache.add(ne1);
 
   FILE* fp;
   fp = tmpfile();

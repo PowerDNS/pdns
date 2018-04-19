@@ -43,7 +43,7 @@ BOOST_AUTO_TEST_CASE(test_recPacketCacheSimple) {
 
   rpc.insertResponsePacket(tag, qhash, qname, QType::A, QClass::IN, rpacket, time(0), ttd);
   BOOST_CHECK_EQUAL(rpc.size(), 1);
-  rpc.doPruneTo(0);
+  rpc.doPruneTo(0, 0);
   BOOST_CHECK_EQUAL(rpc.size(), 0);
   rpc.insertResponsePacket(tag, qhash, qname, QType::A, QClass::IN, rpacket, time(0), ttd);
   BOOST_CHECK_EQUAL(rpc.size(), 1);
@@ -140,7 +140,7 @@ BOOST_AUTO_TEST_CASE(test_recPacketCache_Tags) {
   BOOST_CHECK_EQUAL(rpc.size(), 2);
 
   /* remove all responses from the cache */
-  rpc.doPruneTo(0);
+  rpc.doPruneTo(0, 0);
   BOOST_CHECK_EQUAL(rpc.size(), 0);
 
   /* reinsert both */

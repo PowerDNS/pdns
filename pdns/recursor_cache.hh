@@ -59,7 +59,7 @@ public:
 
   void replace(time_t, const DNSName &qname, const QType& qt,  const vector<DNSRecord>& content, const vector<shared_ptr<RRSIGRecordContent>>& signatures, const std::vector<std::shared_ptr<DNSRecord>>& authorityRecs, bool auth, boost::optional<Netmask> ednsmask=boost::none, vState state=Indeterminate);
 
-  void doPrune(unsigned int keep, size_t maxBytes);
+  void doPrune(unsigned int keep, size_t maxBytes = 0);
   uint64_t doDump(int fd);
 
   int doWipeCache(const DNSName& name, bool sub, uint16_t qtype=0xffff);

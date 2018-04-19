@@ -192,6 +192,7 @@ void NegCache::clear() {
  * Perform some cleanup in the cache, removing stale entries
  *
  * \param maxEntries The maximum number of entries that may exist in the cache.
+ * \param maxBytes 
  */
 void NegCache::prune(unsigned int maxEntries, size_t maxBytes) {
   pruneCollection(*this, d_negcache, maxEntries, maxBytes, 200);
