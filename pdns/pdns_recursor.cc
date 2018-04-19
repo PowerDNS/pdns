@@ -896,7 +896,8 @@ static void startDoResolve(void *p)
           dc->d_ecsFound = getEDNSSubnetOptsFromString(o.second, &dc->d_ednssubnet);
         } else if (o.first == EDNSOptionCode::NSID) {
           const static string mode_server_id = ::arg()["server-id"];
-          if(mode_server_id != "disabled" && !mode_server_id.empty()) {
+          if(mode_server_id != "disabled" && !mode_server_id.empty() &&
+              maxanswersize > (2 + 2 + mode_server_id.size())) {
             returnedEdnsOptions.push_back(make_pair(EDNSOptionCode::NSID, mode_server_id));
             variableAnswer = true; // Can't packetcache an answer with NSID
             // Option Code and Option Length are both 2
