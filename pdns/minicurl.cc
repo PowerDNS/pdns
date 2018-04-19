@@ -1,3 +1,27 @@
+/*
+ * MIT License
+ *
+ * Copyright (c) 2018 powerdns.com bv
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in all
+ * copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+ * SOFTWARE.
+ */
+
 #include "minicurl.hh"
 #include <curl/curl.h>
 #include <stdexcept>
@@ -38,7 +62,7 @@ void MiniCurl::setupURL(const std::string& str, const ComboAddress* rem, const C
   if(rem) {
     struct curl_slist *hostlist = nullptr; // THIS SHOULD BE FREED
 
-    // url = http://hostname.enzo/url 
+    // url = http://hostname.enzo/url
     string host4=extractHostFromURL(str);
     // doest the host contain port indication
     std::size_t found = host4.find(':');
@@ -71,7 +95,7 @@ void MiniCurl::setupURL(const std::string& str, const ComboAddress* rem, const C
   curl_easy_setopt(d_curl, CURLOPT_WRITEFUNCTION, write_callback);
   curl_easy_setopt(d_curl, CURLOPT_WRITEDATA, this);
   curl_easy_setopt(d_curl, CURLOPT_TIMEOUT, 2L);
-  
+
   d_data.clear();
 }
 std::string MiniCurl::getURL(const std::string& str, const ComboAddress* rem, const ComboAddress* src)
@@ -95,7 +119,7 @@ std::string MiniCurl::postURL(const std::string& str, const std::string& postdat
   curl_easy_setopt(d_curl, CURLOPT_POSTFIELDS, postdata.c_str());
 
   auto res = curl_easy_perform(d_curl);
-  if(res != CURLE_OK) 
+  if(res != CURLE_OK)
     throw std::runtime_error("Unable to post URL");
 
   std::string ret=d_data;
