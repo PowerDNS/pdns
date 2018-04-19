@@ -2071,6 +2071,18 @@ struct LuaContext::Pusher<LuaContext::EmptyArray_t> {
     }
 };
 
+// std::type_info* is a lightuserdata
+template<>
+struct LuaContext::Pusher<const std::type_info*> {
+    static const int minSize = 1;
+    static const int maxSize = 1;
+
+    static PushedObject push(lua_State* state, const std::type_info* ptr) noexcept {
+        lua_pushlightuserdata(state, const_cast<std::type_info*>(ptr));
+        return PushedObject{state, 1};
+    }
+};
+
 // thread
 template<>
 struct LuaContext::Pusher<LuaContext::ThreadID> {
