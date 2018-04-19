@@ -33,9 +33,11 @@ class EDNSTest(RecursorTest):
 
     def testEDNSBadVers(self):
         """
-        Ensure the rcode is BADVERS when we send an unsupported EDNS version
+        Ensure the rcode is BADVERS when we send an unsupported EDNS version and
+        the query is not processed any further.
         """
         query = dns.message.make_query('version.bind.', 'TXT', 'CH', use_edns=5,
                                        payload=4096)
         response = self.sendUDPQuery(query)
         self.assertRcodeEqual(response, dns.rcode.BADVERS)
+        self.assertEqual(response.answer, [])

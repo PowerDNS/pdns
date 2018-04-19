@@ -990,6 +990,10 @@ static void startDoResolve(void *p)
     dq.deviceId = dc->d_deviceId;
 #endif
 
+    if(ednsExtRCode != 0) {
+      goto sendit;
+    }
+
     if(dc->d_mdp.d_qtype==QType::ANY && !dc->d_tcp && g_anyToTcp) {
       pw.getHeader()->tc = 1;
       res = 0;
