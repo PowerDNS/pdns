@@ -2078,6 +2078,9 @@ struct LuaContext::Pusher<const std::type_info*> {
     static const int maxSize = 1;
 
     static PushedObject push(lua_State* state, const std::type_info* ptr) noexcept {
+        fprintf(stderr, "about to call lua_pushlightuserdata(state, %p)", ptr);
+        assert(false && "lua_pushlightuserdata called");
+
         lua_pushlightuserdata(state, const_cast<std::type_info*>(ptr));
         return PushedObject{state, 1};
     }
