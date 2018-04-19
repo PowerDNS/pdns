@@ -19,6 +19,7 @@ matrix:
       addons:
         apt:
           packages: ['clang-3.6']
+    - env: PDNS_BUILD_PRODUCT=nobuild_swagger
 
 before_script:
   - git describe --always --dirty=+
