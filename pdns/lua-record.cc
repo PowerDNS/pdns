@@ -31,6 +31,8 @@
    Pool checks ?
  */
 
+extern int  g_luaRecordExecLimit;
+
 using iplist_t = vector<pair<int, string> >;
 using wiplist_t = std::unordered_map<int, string>;
 using ipunitlist_t = vector<pair<int, iplist_t> >;
@@ -760,7 +762,9 @@ std::vector<shared_ptr<DNSRecordContent>> luaSynth(const std::string& code, cons
   lua.writeFunction("report", [&counter](string event, boost::optional<string> line){
       throw std::runtime_error("Script took too long");
     });
-  lua.executeCode("debug.sethook(report, '', 1000000)");
+  if (g_luaRecordExecLimit > 0) {
+      lua.executeCode(boost::str(boost::format("debug.sethook(report, '', %d)") % g_luaRecordExecLimit));
+  }
 
   // TODO: make this better. Accept netmask/CA objects; provide names for the attr constants
   lua.writeFunction("geoiplookup", [](const string &ip, const GeoIPInterface::GeoIPQueryAttribute attr) {

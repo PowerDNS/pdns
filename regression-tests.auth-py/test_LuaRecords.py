@@ -52,6 +52,7 @@ v6-bogus.rand.example.org.   3600 IN LUA  AAAA  "pickrandom({{'{prefix}.101', '{
 v6.rand.example.org.         3600 IN LUA  AAAA  "pickrandom({{'2001:db8:a0b:12f0::1', 'fe80::2a1:9bff:fe9b:f268'}})"
 closest.geo                  3600 IN LUA  A     "pickclosest({{'1.1.1.2','1.2.3.4'}})"
 empty.rand.example.org.      3600 IN LUA  A     "pickrandom()"
+timeout.example.org.         3600 IN LUA  A     "; local i = 0 ;  while i < 500 do i = i + 1 end return '1.2.3.4'"
 wrand.example.org.           3600 IN LUA  A     "pickwrandom({{ {{30, '{prefix}.102'}}, {{15, '{prefix}.103'}} }})"
 
 config    IN    LUA    LUA ("settings={{stringmatch='Programming in Lua'}} "
@@ -511,6 +512,15 @@ www-balanced     IN           CNAME 1-1-1-3.17-1-2-4.1-2-3-5.magic.example.org.
             res = self.sendUDPQuery(query)
             self.assertRcodeEqual(res, dns.rcode.NOERROR)
             self.assertRRsetInAnswer(res, first.answer[0])
+
+    def testTimeout(self):
+        """
+        Test if LUA scripts are aborted if script execution takes too long
+        """
+        query = dns.message.make_query('timeout.example.org', 'A')
+
+        first = self.sendUDPQuery(query)
+        self.assertRcodeEqual(first, dns.rcode.SERVFAIL)
 
 if __name__ == '__main__':
     unittest.main()
