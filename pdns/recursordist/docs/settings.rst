@@ -768,6 +768,18 @@ Maximum number of DNS queries in a TCP connection.
 
 Total maximum number of milliseconds of wallclock time the server may use to answer a single query.
 
+.. _setting-max-udp-queries-per-round:
+
+``max-udp-queries-per-round``
+----------------------------------
+.. versionadded:: 4.2.0
+
+-  Integer
+-  Default: 10000
+
+Maximum number of DNS queries processed in a single round after being woken up by the multiplexer, before
+returning back to normal processing to handle other events.
+
 .. _setting-minimum-ttl-override:
 
 ``minimum-ttl-override``

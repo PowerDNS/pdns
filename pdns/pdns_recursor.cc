@@ -146,6 +146,7 @@ static std::shared_ptr<SyncRes::domainmap_t> g_initialDomainMap; // new threads 
 static std::shared_ptr<NetmaskGroup> g_initialAllowFrom; // new thread needs to be setup with this
 static NetmaskGroup g_XPFAcl;
 static size_t g_tcpMaxQueriesPerConn;
+static size_t s_maxUDPQueriesPerRound;
 static uint64_t g_latencyStatSize;
 static uint32_t g_disthashseed;
 static unsigned int g_maxTCPPerClient;
@@ -1996,7 +1997,7 @@ static void handleNewUDPQuestion(int fd, FDMultiplexer::funcparam_t& var)
   fromaddr.sin6.sin6_family=AF_INET6; // this makes sure fromaddr is big enough
   fillMSGHdr(&msgh, &iov, cbuf, sizeof(cbuf), data, sizeof(data), &fromaddr);
 
-  for(;;)
+  for(size_t counter = 0; counter < s_maxUDPQueriesPerRound; counter++)
   if((len=recvmsg(fd, &msgh, 0)) >= 0) {
 
     firstQuery = false;
@@ -3309,6 +3310,7 @@ static int serviceMain(int argc, char*argv[])
   g_tcpTimeout=::arg().asNum("client-tcp-timeout");
   g_maxTCPPerClient=::arg().asNum("max-tcp-per-client");
   g_tcpMaxQueriesPerConn=::arg().asNum("max-tcp-queries-per-connection");
+  s_maxUDPQueriesPerRound=::arg().asNum("max-udp-queries-per-round");
 
   if (::arg().mustDo("snmp-agent")) {
     g_snmpAgent = std::make_shared<RecursorSNMPAgent>("recursor", ::arg()["snmp-master-socket"]);
@@ -3644,6 +3646,7 @@ int main(int argc, char **argv)
     ::arg().set("max-qperq", "Maximum outgoing queries per query")="50";
     ::arg().set("max-total-msec", "Maximum total wall-clock time per query in milliseconds, 0 for unlimited")="7000";
     ::arg().set("max-recursion-depth", "Maximum number of internal recursion calls per query, 0 for unlimited")="40";
+    ::arg().set("max-udp-queries-per-round", "Maximum number of UDP queries processed per round, before returning back to normal processing")="10000";
 
     ::arg().set("include-dir","Include *.conf files from this directory")="";
     ::arg().set("security-poll-suffix","Domain name from which to query security update notifications")="secpoll.powerdns.com.";
