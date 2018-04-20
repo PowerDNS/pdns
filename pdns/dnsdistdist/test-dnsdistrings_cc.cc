@@ -222,8 +222,10 @@ BOOST_AUTO_TEST_CASE(test_Rings_Threaded) {
   BOOST_CHECK_EQUAL(rings.getNumberOfShards(), numberOfShards);
   BOOST_CHECK_EQUAL(rings.d_shards.size(), rings.getNumberOfShards());
   BOOST_CHECK_LE(rings.getNumberOfQueryEntries(), numberOfEntries);
+  BOOST_CHECK_GT(rings.getNumberOfQueryEntries(), numberOfEntries * 0.75);
   BOOST_WARN_GT(rings.getNumberOfQueryEntries(), numberOfEntries * 0.99);
   BOOST_CHECK_LE(rings.getNumberOfResponseEntries(), numberOfEntries);
+  BOOST_CHECK_GT(rings.getNumberOfResponseEntries(), numberOfEntries * 0.75);
   BOOST_WARN_GT(rings.getNumberOfResponseEntries(), numberOfEntries * 0.99);
 
   size_t totalQueries = 0;
