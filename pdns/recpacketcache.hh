@@ -57,7 +57,7 @@ public:
   bool getResponsePacket(unsigned int tag, const std::string& queryPacket, const DNSName& qname, uint16_t qtype, uint16_t qclass, time_t now, std::string* responsePacket, uint32_t* age, uint32_t* qhash, RecProtoBufMessage* protobufMessage);
   void insertResponsePacket(unsigned int tag, uint32_t qhash, const DNSName& qname, uint16_t qtype, uint16_t qclass, const std::string& responsePacket, time_t now, uint32_t ttl);
   void insertResponsePacket(unsigned int tag, uint32_t qhash, const DNSName& qname, uint16_t qtype, uint16_t qclass, const std::string& responsePacket, time_t now, uint32_t ttl, const boost::optional<RecProtoBufMessage>& protobufMessage);
-  void doPruneTo(unsigned int maxSize, size_t maxBytes);
+  void doPruneTo(unsigned int maxCached, size_t maxBytes);
   uint64_t doDump(int fd);
   int doWipePacketCache(const DNSName& name, uint16_t qtype=0xffff, bool subtree=false);
   
@@ -92,7 +92,7 @@ private:
     {
       return d_ttd;
     }
-    mutable ssize_t d_bytes=0;
+    mutable size_t d_bytes=0;
   };
 
   typedef multi_index_container<
@@ -108,7 +108,7 @@ private:
 
   bool checkResponseMatches(std::pair<packetCache_t::index<HashTag>::type::iterator, packetCache_t::index<HashTag>::type::iterator> range, const std::string& queryPacket, const DNSName& qname, uint16_t qtype, uint16_t qclass, time_t now, std::string* responsePacket, uint32_t* age, RecProtoBufMessage* protobufMessage);
 
-  ssize_t d_bytes=0;
+  size_t d_bytes=0;
 public:
   void preRemoval(const Entry& entry)
   {

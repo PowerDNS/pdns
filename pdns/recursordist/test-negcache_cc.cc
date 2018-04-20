@@ -401,10 +401,9 @@ BOOST_AUTO_TEST_CASE(test_dumpToFile) {
   rewind(fp);
   char *line = nullptr;
   size_t len = 0;
-  ssize_t read;
 
   for (const auto& str : expected) {
-    read = getline(&line, &len, fp);
+    ssize_t read = getline(&line, &len, fp);
     if (read == -1)
       BOOST_FAIL("Unable to read a line from the temp file");
     BOOST_CHECK_EQUAL(line, str);

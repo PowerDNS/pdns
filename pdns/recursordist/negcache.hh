@@ -52,7 +52,7 @@ class NegCache : public boost::noncopyable {
       recordsAndSignatures authoritySOA;  // The upstream SOA record and RRSIGs
       recordsAndSignatures DNSSECRecords; // The upstream NSEC(3) and RRSIGs
       mutable vState d_validationState{Indeterminate};
-      ssize_t d_bytes=0;
+      size_t d_bytes=0;
       uint32_t getTTD() const {
         return d_ttd;
       };
@@ -66,7 +66,7 @@ class NegCache : public boost::noncopyable {
     uint64_t count(const DNSName& qname, const QType qtype) const;
     void prune(unsigned int maxEntries, size_t maxBytes = 0);
     void clear();
-    uint64_t dumpToFile(FILE* fd);
+    uint64_t dumpToFile(FILE* fp);
     uint64_t wipe(const DNSName& name, bool subtree = false);
 
     uint64_t size() const {
@@ -106,5 +106,5 @@ class NegCache : public boost::noncopyable {
     // Stores the negative cache entries
     negcache_t d_negcache;
 
-    ssize_t d_bytes;
+    size_t d_bytes;
 };

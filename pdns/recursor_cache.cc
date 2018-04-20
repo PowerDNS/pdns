@@ -162,7 +162,6 @@ bool MemRecursorCache::entryMatches(cache_t::const_iterator& entry, uint16_t qt,
 // returns -1 for no hits
 int32_t MemRecursorCache::get(time_t now, const DNSName &qname, const QType& qt, bool requireAuth, vector<DNSRecord>* res, const ComboAddress& who, vector<std::shared_ptr<RRSIGRecordContent>>* signatures, std::vector<std::shared_ptr<DNSRecord>>* authorityRecs, bool* variable, vState* state, bool* wasAuth)
 {
-  time_t ttd=0;
   //  cerr<<"looking up "<< qname<<"|"+qt.getName()<<"\n";
   if(res) {
     res->clear();
@@ -202,6 +201,7 @@ int32_t MemRecursorCache::get(time_t now, const DNSName &qname, const QType& qt,
   auto entries = getEntries(qname, qt);
 
   if(entries.first!=entries.second) {
+    time_t ttd=0;
     for(cache_t::const_iterator i=entries.first; i != entries.second; ++i) {
 
       if (i->d_ttd <= now) {
