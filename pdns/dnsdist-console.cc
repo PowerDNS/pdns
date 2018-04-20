@@ -409,7 +409,7 @@ const std::vector<ConsoleKeyword> g_consoleKeywords{
   { "SNMPTrapResponseAction", true, "[reason]", "send an SNMP trap, adding the optional `reason` string as the response description"},
   { "SpoofAction", true, "{ip, ...} ", "forge a response with the specified IPv4 (for an A query) or IPv6 (for an AAAA). If you specify multiple addresses, all that match the query type (A, AAAA or ANY) will get spoofed in" },
   { "TCAction", true, "", "create answer to query with TC and RD bits set, to move to TCP" },
-  { "testCrypto", true, "", "test of the crypto all works" },
+  { "testCrypto", true, "", "test if the crypto all works" },
   { "TimedIPSetRule", true, "", "Create a rule which matches a set of IP addresses which expire"}, 
   { "topBandwidth", true, "top", "show top-`top` clients that consume the most bandwidth over length of ringbuffer" },
   { "topCacheHitResponseRule", true, "", "move the last cache hit response rule to the first position" },
