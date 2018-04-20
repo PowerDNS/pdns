@@ -1624,7 +1624,7 @@ private:
                 lua_settable(state, -3);
             }
 
-            // the _typeid index of the metatable will store the type_info*
+            // the _typeid index of the metatable will store the name of the type
             lua_pushstring(state, "_typeid");
             lua_pushstring(state, typeid(TType).name());
             lua_settable(state, -3);
@@ -1710,7 +1710,7 @@ private:
             const auto storedTypeID = lua_tostring(state, -1);
             const auto typeIDToCompare = typeid(TType).name();
 
-            // if wrong typeid, returning false
+            // if wrong type, returning false
             lua_pop(state, 2);
             if (strcmp(storedTypeID, typeIDToCompare))
                 return false;
@@ -2078,7 +2078,9 @@ struct LuaContext::Pusher<const std::type_info*> {
     static const int maxSize = 1;
 
     static PushedObject push(lua_State* state, const std::type_info* ptr) noexcept {
-        fprintf(stderr, "about to call lua_pushlightuserdata(state, %p)", ptr);
+        fprintf(stderr, "was about to call lua_pushlightuserdata(state, %p)", ptr);
+        // we assert here to make sure nothing in the PowerDNS/dnsdist codebases calls lua_pushlightuserdata
+        // as this is likely to break on ARM64
         assert(false && "lua_pushlightuserdata called");
 
         lua_pushlightuserdata(state, const_cast<std::type_info*>(ptr));
@@ -2310,6 +2312,7 @@ struct LuaContext::Pusher<TReturnType (TParameters...)>
         // when the lua script calls the thing we will push on the stack, we want "fn" to be executed
         // since "fn" doesn't need to be destroyed, we simply push it on the stack
 
+        // we wrap the function pointer so we can store it in a userdata
         struct wrap {
             TReturnType (*fn)(TParameters...);
         };
@@ -2327,6 +2330,7 @@ struct LuaContext::Pusher<TReturnType (TParameters...)>
         // we make a userdata to hold the function's address
         auto wrapper = (struct wrap *) lua_newuserdata(state, sizeof(void*));
 
+        // and we store the function pointer inside it
         wrapper->fn = fn;
 
         // pushing the function with the function object as upvalue
