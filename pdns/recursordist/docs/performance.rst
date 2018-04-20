@@ -32,6 +32,16 @@ If ``SO_REUSEPORT`` support is available and :ref:`setting-reuseport` is set to 
 .. versionadded:: 4.1.0
    The :ref:`setting-cpu-map` parameter can be used to pin worker threads to specific CPUs, in order to keep caches as warm as possible and optimize memory access on NUMA systems.
 
+MTasker and MThreads
+--------------------
+
+PowerDNS Recursor uses a cooperative multitasking in userspace called ``MTasker``, based either on ``boost::context`` if available, or on ``System V ucontexts`` otherwise. For maximum performance, please make sure that your system supports ``boost::context``, as the alternative has been known to be quite slower.
+
+The maximum number of simultaneous MTasker threads, called ``MThreads``, can be tuned via :ref:`setting-max-mthreads`, as the default value of 2048 might not be enough for large-scale installations.
+
+When a ``MThread`` is started, a new stack is dynamically allocated for it on the heap. The size of those stacks can be configured via the :ref:`setting-stack-size` parameter, whose default value is 200k which should be enough in most cases.
+Modern memory allocators should be quite good at keeping released stacks around for a while in per-thread free list, making the allocation of a new stack very cheap. Still on older allocators, it might be helpful to maintain that free list directly inside the recursor, to make sure that the allocation stays cheap. This can be done via the :ref:`setting-mtasker-stacks-cache-size` setting, which configures the number of released stacks the recursor will keep in cache, ready to be reused again. The only trade-off of enabling this cache should be a slightly increased memory consumption, equals to the number of stacks specified by :ref:`setting-mtasker-stacks-cache-size` multiplied by the size of one stack, itself specified via :ref:`setting-stack-size`.
+
 Performance tips
 ----------------
 

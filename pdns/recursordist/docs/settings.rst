@@ -782,7 +782,7 @@ Can be set at runtime using ``rec_control set-minimum-ttl 3600``.
 .. _setting-mtasker-stacks-cache-size:
 
 ``mtasker-stacks-cache-size``
-------------------------
+-----------------------------
 .. versionadded:: 4.2.0
 
 -  Integer
@@ -885,6 +885,7 @@ If ``SO_REUSEPORT`` support is available, allows multiple processes to open a li
 Since 4.1.0, when ``pdns-distributes-queries`` is set to false and ``reuseport`` is enabled, every thread will open a separate listening socket to let the kernel distribute the incoming queries, avoiding any thundering herd issue as well as the distributor thread being a bottleneck, thus leading to much higher performance on multi-core boxes.
 
 .. _setting-rng:
+
 ``rng``
 -------
 
