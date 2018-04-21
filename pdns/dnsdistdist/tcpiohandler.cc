@@ -399,11 +399,23 @@ public:
 #if defined(SSL_CTX_set_ecdh_auto)
     SSL_CTX_set_ecdh_auto(d_tlsCtx, 1);
 #endif
-    SSL_CTX_use_certificate_chain_file(d_tlsCtx, fe.d_certFile.c_str());
-    SSL_CTX_use_PrivateKey_file(d_tlsCtx, fe.d_keyFile.c_str(), SSL_FILETYPE_PEM);
+
+    for (const auto& pair : fe.d_certKeyPairs) {
+      if (SSL_CTX_use_certificate_chain_file(d_tlsCtx, pair.first.c_str()) != 1) {
+        ERR_print_errors_fp(stderr);
+        throw std::runtime_error("Error loading certificate from " + pair.first + " for the TLS context on " + fe.d_addr.toStringWithPort());
+      }
+      if (SSL_CTX_use_PrivateKey_file(d_tlsCtx, pair.second.c_str(), SSL_FILETYPE_PEM) != 1) {
+        ERR_print_errors_fp(stderr);
+        throw std::runtime_error("Error loading key from " + pair.second + " for the TLS context on " + fe.d_addr.toStringWithPort());
+      }
+    }
 
     if (!fe.d_ciphers.empty()) {
-      SSL_CTX_set_cipher_list(d_tlsCtx, fe.d_ciphers.c_str());
+      if (SSL_CTX_set_cipher_list(d_tlsCtx, fe.d_ciphers.c_str()) != 1) {
+        ERR_print_errors_fp(stderr);
+        throw std::runtime_error("Error setting the cipher list to '" + fe.d_ciphers + "' for the TLS context on " + fe.d_addr.toStringWithPort());
+      }
     }
 
     try {
@@ -772,10 +784,12 @@ public:
       throw std::runtime_error("Error allocating credentials for TLS context on " + fe.d_addr.toStringWithPort() + ": " + gnutls_strerror(rc));
     }
 
-    rc = gnutls_certificate_set_x509_key_file(d_creds, fe.d_certFile.c_str(), fe.d_keyFile.c_str(), GNUTLS_X509_FMT_PEM);
-    if (rc != GNUTLS_E_SUCCESS) {
-      gnutls_certificate_free_credentials(d_creds);
-      throw std::runtime_error("Error loading certificate and key for TLS context on " + fe.d_addr.toStringWithPort() + ": " + gnutls_strerror(rc));
+    for (const auto& pair : fe.d_certKeyPairs) {
+      rc = gnutls_certificate_set_x509_key_file(d_creds, pair.first.c_str(), pair.second.c_str(), GNUTLS_X509_FMT_PEM);
+      if (rc != GNUTLS_E_SUCCESS) {
+        gnutls_certificate_free_credentials(d_creds);
+        throw std::runtime_error("Error loading certificate ('" + pair.first + "') and key ('" + pair.second + "') for TLS context on " + fe.d_addr.toStringWithPort() + ": " + gnutls_strerror(rc));
+      }
     }
 
 #if GNUTLS_VERSION_NUMBER >= 0x030600

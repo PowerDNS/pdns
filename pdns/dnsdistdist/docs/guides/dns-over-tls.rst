@@ -10,3 +10,9 @@ Adding a listen port for DNS-over-TLS can be done with the :func:`addTLSLocal` f
   addTLSLocal('192.0.2.55', '/etc/ssl/certs/example.com.pem', '/etc/ssl/private/example.com.key')
 
 This will make :program:`dnsdist` listen on 192.0.2.55:853 on TCP and UDP and will use the provided certificate and key to provide the TLS connection.
+
+In order to support multiple certificates and keys, for example an ECDSA and an RSA one, the following syntax may be used instead::
+
+  addTLSLocal('192.0.2.55', {'/etc/ssl/certs/example.com.rsa.pem', '/etc/ssl/certs/example.com.ecdsa.pem'}, {'/etc/ssl/private/example.com.rsa.key', '/etc/ssl/private/example.com.ecdsa.key'})
+
+The certificate chain to present will then be selected based on the algorithms advertised by the client.

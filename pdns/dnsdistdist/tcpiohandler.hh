@@ -128,9 +128,8 @@ public:
   }
 
   std::set<int> d_cpus;
+  std::vector<std::pair<std::string, std::string>> d_certKeyPairs;
   ComboAddress d_addr;
-  std::string d_certFile;
-  std::string d_keyFile;
   std::string d_ciphers;
   std::string d_provider;
   std::string d_interface;
