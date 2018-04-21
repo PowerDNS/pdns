@@ -223,6 +223,7 @@ try
     ("version", "Show the version number")
     ("ecs", po::value<string>(), "Add EDNS Client Subnet option to outgoing queries using random addresses from the specified range (IPv4 only)")
     ("increment", po::value<float>()->default_value(1.1),  "Set the factor to increase the QPS load per run")
+    ("maximum-qps", po::value<uint32_t>(), "Stop incrementing once this rate has been reached, to provide a stable load")
     ("want-recursion", "Set the Recursion Desired flag on queries");
   po::options_description alloptions;
   po::options_description hidden("hidden options");
@@ -273,6 +274,11 @@ try
   }
   hitrate /= 100;
   uint32_t qpsstart = g_vm["initial-qps"].as<uint32_t>();
+
+  uint32_t maximumQps = std::numeric_limits<uint32_t>::max();
+  if (g_vm.count("maximum-qps")) {
+    maximumQps = g_vm["maximum-qps"].as<uint32_t>();
+  }
 
   Netmask ecsRange;
   if (g_vm.count("ecs")) {
@@ -347,10 +353,10 @@ try
     sockets.push_back(sock);
   }
   new thread(recvThread, &sockets);
-  int qps;
+  uint32_t qps;
 
   ofstream plot("plot");
-  for(qps=qpsstart;;qps *= increment) {
+  for(qps=qpsstart;;) {
     double seconds=1;
     cout<<"Aiming at "<<qps<< "qps (RD="<<wantRecursion<<") for "<<seconds<<" seconds at cache hitrate "<<100.0*hitrate<<"%";
     unsigned int misses=(1-hitrate)*qps*seconds;
@@ -392,6 +398,9 @@ try
     cout<<"Received "<<g_recvcounter.load()<<" packets ("<<perc<<"%)"<<endl;
     plot<<qps<<" "<<realqps<<" "<<perc<<" "<<g_recvcounter.load()/(udiff/1000000.0)<<" " << 8*g_recvbytes.load()/(udiff/1000000.0)<<endl;
     plot.flush();
+    if (qps < maximumQps) {
+      qps *= increment;
+    }
   }
   plot.flush();
   // t1.detach();

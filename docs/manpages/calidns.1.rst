@@ -32,6 +32,10 @@ This is similar to Alexa top 1 million list.
 Options
 -------
 
+--ecs <SUBNET>           Add EDNS Client Subnet option to outgoing queries using random
+                         addresses from the specified *SUBNET* range (IPv4 only).
 --increment <NUM>        On every subsequent run, multiply the number of queries per second
                          by *NUM*. By default, this is 1.1.
+--maximum-qps <NUM>      Stop incrementing once this rate has been reached, to provide a
+                         stable load.
 --want-recursion         Set this flag to send queries with the Recursion Desired flag set.
