@@ -34,6 +34,8 @@ Options
 
 --ecs <SUBNET>           Add EDNS Client Subnet option to outgoing queries using random
                          addresses from the specified *SUBNET* range (IPv4 only).
+--ecs-from-file          Read IP or subnet values from the query file and add them as EDNS
+                         Client Subnet option to outgoing queries.
 --increment <NUM>        On every subsequent run, multiply the number of queries per second
                          by *NUM*. By default, this is 1.1.
 --maximum-qps <NUM>      Stop incrementing once this rate has been reached, to provide a
