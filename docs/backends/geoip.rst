@@ -50,8 +50,8 @@ defaults suite you.
 ``geoip-database-files``
 ~~~~~~~~~~~~~~~~~~~~~~~~
 
-.. deprecated:: 4.2.0
-  This setting has been removed
+.. versionchanged:: 4.2.0
+  This option has been changed since v4.2.0
 
 Comma, tab or space separated list of files to open. You can use
 `geoip-cvs-to-dat <https://github.com/dankamongmen/sprezzos-world/blob/master/packaging/geoip/debian/src/geoip-csv-to-dat.cpp>`__
@@ -68,9 +68,6 @@ Currently supported options for dat driver (legacy libGeoIP):
 Currently supported options for mmdb driver (libmaxminddb):
   - mode=mmap
   - language=en (which language to use)
-
-.. warning::
-  This option has been changed since v4.2.0
 
 .. _setting-geoip-database-cache:
 
