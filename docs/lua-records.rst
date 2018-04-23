@@ -2,7 +2,7 @@ Lua Records
 ===========
 
 To facilitate dynamic behaviour, such as Global Server Load Balancing,
-PowerDNS Authoritative Server version 4.1.1 and later support dynamic DNS
+PowerDNS Authoritative Server version 4.2 and later support dynamic DNS
 records.
 
 These records contain small snippets of configuration that enable dynamic
