@@ -387,7 +387,8 @@ export CPPFLAGS="-DLDAP_DEPRECATED"
 	--enable-libsodium \
 	--without-protobuf \
 	--enable-remotebackend-http \
-	--enable-unit-tests
+	--enable-unit-tests \
+	--disable-lua-records
 
 make %{?_smp_mflags}
 
@@ -987,7 +988,8 @@ export CPPFLAGS="-DLDAP_DEPRECATED"
 	--enable-tools \
 	--without-protobuf \
 	--enable-unit-tests \
-	--enable-systemd
+	--enable-systemd \
+	--disable-lua-records
 
 make %{?_smp_mflags}
 
