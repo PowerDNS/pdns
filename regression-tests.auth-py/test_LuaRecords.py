@@ -52,7 +52,7 @@ v6-bogus.rand.example.org.   3600 IN LUA  AAAA  "pickrandom({{'{prefix}.101', '{
 v6.rand.example.org.         3600 IN LUA  AAAA  "pickrandom({{'2001:db8:a0b:12f0::1', 'fe80::2a1:9bff:fe9b:f268'}})"
 closest.geo                  3600 IN LUA  A     "pickclosest({{'1.1.1.2','1.2.3.4'}})"
 empty.rand.example.org.      3600 IN LUA  A     "pickrandom()"
-timeout.example.org.         3600 IN LUA  A     "; local i = 0 ;  while i < 500 do i = i + 1 end return '1.2.3.4'"
+timeout.example.org.         3600 IN LUA  A     "; local i = 0 ;  while i < 1000 do pickrandom() ; i = i + 1 end return '1.2.3.4'"
 wrand.example.org.           3600 IN LUA  A     "pickwrandom({{ {{30, '{prefix}.102'}}, {{15, '{prefix}.103'}} }})"
 
 config    IN    LUA    LUA ("settings={{stringmatch='Programming in Lua'}} "
