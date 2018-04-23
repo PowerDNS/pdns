@@ -6,7 +6,7 @@ PowerDNS Authoritative Server version 4.2 and later support dynamic DNS
 records.
 
 These records contain small snippets of configuration that enable dynamic
-behaviour based on requestor IP address, requestor's EDNS Client Subnet,
+behaviour based on requester IP address, requester's EDNS Client Subnet,
 server availability or other factors.
 
 Capabilities range from very simple to highly advanced multi-pool
@@ -18,7 +18,7 @@ tiny (or larger) `Lua <https://www.lua.org>`_ statements.
 .. note::
   This is a PowerDNS specific feature, and is not (yet) standardized by the
   IETF or other standards bodies. We are committed however to
-  interoperability, and strive to turn this functionalitity into a broadly
+  interoperability, and strive to turn this functionality into a broadly
   supported standard.
 
 To enable this feature, either set 'enable-lua-record' in the configuration,
@@ -53,7 +53,7 @@ Another example::
     www    IN    LUA    A    "pickclosest({'192.0.2.1','192.0.2.2','198.51.100.1'})"
 
 This uses the GeoIP backend to find indications of the geographical location of
-the requestor and the listed IP addresses. It will return with one of the closest
+the requester and the listed IP addresses. It will return with one of the closest
 addresses.
 
 ``pickclosest`` and ifportup can be combined as follows::
@@ -117,7 +117,7 @@ outside of Europe will hit 198.51.100.1 as long as it is available, and the
 Advanced topics
 ---------------
 By default, LUA records are executed with 'return ' prefixed to them. This saves
-a lof of typing for common cases. To run actual Lua scripts, start a record with a ';'
+a lot of typing for common cases. To run actual Lua scripts, start a record with a ';'
 which indicates no 'return ' should be prepended.
 
 To keep records more concise and readable, configuration can be stored in
@@ -172,13 +172,15 @@ Record creation functions
 
 .. function:: ifportup(portnum, addresses[, options])
 
-  Simplistic test to see if an IP address listens on a certain port. Note that
-  both IPv4 and IPv6 addresses can be tested, but that it is an error to list
-  IPv4 addresses on an AAAA record, or IPv6 addresses on an A record.
+  Simplistic test to see if an IP address listens on a certain port. This will
+  attempt a TCP connection on port ``portnum`` and consider it UP if the
+  connection establishes, no data will be sent or read on that connection. Note
+  that both IPv4 and IPv6 addresses can be tested, but that it is an error to
+  list IPv4 addresses on an AAAA record, or IPv6 addresses on an A record.
 
   Will return a single IP address from the set of available IP addresses. If
   no IP address is available, will return a random element of the set of
-  addresses suppplied for testing.
+  addresses supplied for testing.
 
   :param int portnum: The port number to test connections to.
   :param {str} addresses: The list of IP addresses to check connectivity for.
