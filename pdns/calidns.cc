@@ -318,6 +318,9 @@ try
     vector<uint8_t> packet;
     DNSPacketWriter::optvect_t ednsOptions;
     boost::trim(line);
+    if (line.empty() || line.at(0) == '#') {
+      continue;
+    }
 
     auto fields = splitField(line, ' ');
     std::string qname = fields.first;
