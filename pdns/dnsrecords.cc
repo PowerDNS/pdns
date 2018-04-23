@@ -144,6 +144,9 @@ boilerplate_conv(MG, QType::MG, conv.xfrName(d_mgmname, true));
 boilerplate_conv(MR, QType::MR, conv.xfrName(d_alias, true));
 boilerplate_conv(MINFO, QType::MINFO, conv.xfrName(d_rmailbx, true); conv.xfrName(d_emailbx, true));
 boilerplate_conv(TXT, QType::TXT, conv.xfrText(d_text, true));
+#ifdef HAVE_LUA_RECORDS
+boilerplate_conv(LUA, QType::LUA, conv.xfrType(d_type); conv.xfrText(d_code, true));
+#endif
 boilerplate_conv(ENT, 0, );
 boilerplate_conv(SPF, 99, conv.xfrText(d_text, true));
 boilerplate_conv(HINFO, QType::HINFO,  conv.xfrText(d_cpu);   conv.xfrText(d_host));
@@ -157,6 +160,21 @@ boilerplate_conv(RP, QType::RP,
 boilerplate_conv(OPT, QType::OPT, 
                    conv.xfrBlob(d_data)
                  );
+
+#ifdef HAVE_LUA_RECORDS
+string LUARecordContent::getCode()
+{
+  // in d_code, series of "part1" "part2"
+  vector<string> parts;
+  stringtok(parts, d_code, "\"");
+  string ret;
+  for(const auto& p : parts) {
+    ret += p;
+    ret.append(1, ' ');
+  }
+  return ret;
+}
+#endif
 
 void OPTRecordContent::getData(vector<pair<uint16_t, string> >& options)
 {
@@ -583,6 +601,9 @@ void reportBasicTypes()
   PTRRecordContent::report();
   DNSRecordContent::regist(QClass::CHAOS, QType::TXT, &TXTRecordContent::make, &TXTRecordContent::make, "TXT");
   TXTRecordContent::report();
+#ifdef HAVE_LUA_RECORDS
+  LUARecordContent::report();
+#endif
   DNSRecordContent::regist(QClass::IN, QType::ANY, 0, 0, "ANY");
   DNSRecordContent::regist(QClass::IN, QType::AXFR, 0, 0, "AXFR");
   DNSRecordContent::regist(QClass::IN, QType::IXFR, 0, 0, "IXFR");

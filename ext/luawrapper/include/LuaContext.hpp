@@ -1438,6 +1438,8 @@ private:
                         if (const auto exp = readTopAndPop<std::exception_ptr>(state, std::move(errorCode))) {
                             std::rethrow_exception(exp);
                         }
+                    } catch(const std::exception& e) {
+                        std::throw_with_nested(ExecutionErrorException{std::string{"Exception thrown by a callback function: "} + e.what()});
                     } catch(...) {
                         std::throw_with_nested(ExecutionErrorException{"Exception thrown by a callback function called by Lua"});
                     }

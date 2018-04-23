@@ -1,20 +1,22 @@
 use MaxMind::DB::Writer::Tree;
 
 my %types = (
-        city          => 'map',
-        names         => 'map',
-        en            => 'utf8_string',
-        geoname_id    => 'uint32',
-        location      => 'map',
-        latitude      => 'double',
-        longitude     => 'double',
-        accuracy_radius => 'uint16',
-        continent     => 'map',
-        country       => 'map',
-        code          => 'utf8_string',
-        iso_code      => 'utf8_string',
-        subdivisions  => ['array', 'map'],
-);
+    city                             => 'map',
+    names                            => 'map',
+    en                               => 'utf8_string',
+    geoname_id                       => 'uint32',
+    location                         => 'map',
+    latitude                         => 'double',
+    longitude                        => 'double',
+    accuracy_radius                  => 'uint16',
+    continent                        => 'map',
+    country                          => 'map',
+    code                             => 'utf8_string',
+    iso_code                         => 'utf8_string',
+    subdivisions                     => ['array', 'map'],
+    autonomous_system_number         => 'uint32',
+    autonomous_system_organization   => 'utf8_string',
+    );
 
 my $tree = MaxMind::DB::Writer::Tree->new(
     ip_version            => 6,
@@ -33,6 +35,8 @@ $tree->insert_network(
       'continent' => { "code" => "OC", "geoname_id" => 6255151, "names" => { "en" => "Oceania" } },
       'country' => { "geoname_id" => 2077456, "iso_code" => "AU", "names" => { "en" => "Australia" } },
       'location' => { "latitude" => 1.0, "longitude" => 1.0, accuracy_radius => 1 },
+      'autonomous_system_number' => 4242,
+      'autonomous_system_organization' => "Test Telekom",
     }
 );
 
@@ -43,6 +47,8 @@ $tree->insert_network(
       'continent' => { "code" => "NA", "geoname_id" => 6255149, "names" => { "en" => "North America" } },
       'country' => { "geoname_id" => 6252001, "iso_code" => "US", "names" => { "en" => "United States" } },
       'location' => { "latitude" => 47.913000, "longitude" => -122.304200, accuracy_radius => 1 },
+      'autonomous_system_number' => 3320,
+      'autonomous_system_organization' => "Test Networks",
     }
 );
 

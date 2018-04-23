@@ -33,6 +33,10 @@
 #include "dnspacket.hh"
 #include "dns.hh"
 
+// this has to be somewhere central, and not in a file that requires Lua
+// this is so the geoipbackend can set this pointer if loaded for lua-record.cc
+std::function<std::string(const std::string&, int)> g_getGeo;
+
 bool DNSBackend::getAuth(const DNSName &target, SOAData *sd)
 {
   return this->getSOA(target, *sd);

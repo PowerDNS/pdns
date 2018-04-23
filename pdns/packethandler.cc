@@ -356,6 +356,15 @@ bool PacketHandler::getBestWildcard(DNSPacket *p, SOAData& sd, const DNSName &ta
   DNSName subdomain(target);
   bool haveSomething=false;
 
+#ifdef HAVE_LUA_RECORDS
+  bool doLua=g_doLuaRecord;
+  if(!doLua) {
+    string val;
+    d_dk.getFromMeta(sd.qname, "ENABLE-LUA-RECORD", val);
+    doLua = (val=="1");
+  }
+#endif
+  
   wildcard=subdomain;
   while( subdomain.chopOff() && !haveSomething )  {
     if (subdomain.empty()) {
@@ -364,8 +373,39 @@ bool PacketHandler::getBestWildcard(DNSPacket *p, SOAData& sd, const DNSName &ta
       B.lookup(QType(QType::ANY), g_wildcarddnsname+subdomain, p, sd.domain_id);
     }
     while(B.get(rr)) {
-      if(rr.dr.d_type == p->qtype.getCode() || rr.dr.d_type == QType::CNAME || (p->qtype.getCode() == QType::ANY && rr.dr.d_type != QType::RRSIG))
+#ifdef HAVE_LUA_RECORDS
+      if(rr.dr.d_type == QType::LUA) {
+        if(!doLua) {
+          DLOG(g_log<<"Have a wildcard LUA match, but not doing LUA record for this zone"<<endl);
+          continue;
+        }
+                  
+        DLOG(g_log<<"Have a wildcard LUA match"<<endl);
+        
+        auto rec=getRR<LUARecordContent>(rr.dr);
+        if(rec->d_type == QType::CNAME || rec->d_type == p->qtype.getCode()) {
+          //    noCache=true;
+          DLOG(g_log<<"Executing Lua: '"<<rec->getCode()<<"'"<<endl);
+          try {
+            auto recvec=luaSynth(rec->getCode(), target, sd.qname, sd.domain_id, *p, rec->d_type);
+            for(const auto& r : recvec) {
+              rr.dr.d_type = rec->d_type; // might be CNAME
+              rr.dr.d_content = r;
+              rr.scopeMask = p->getRealRemote().getBits(); // this makes sure answer is a specific as your question
+              ret->push_back(rr);
+            }
+          }
+          catch(std::exception &e) {
+            ;
+          }
+        }
+      }
+      else
+#endif
+      if(rr.dr.d_type == p->qtype.getCode() || rr.dr.d_type == QType::CNAME || (p->qtype.getCode() == QType::ANY && rr.dr.d_type != QType::RRSIG)) {
         ret->push_back(rr);
+      }
+      
       wildcard=g_wildcarddnsname+subdomain;
       haveSomething=true;
     }
@@ -466,7 +506,12 @@ void PacketHandler::emitNSEC(DNSPacket *r, const SOAData& sd, const DNSName& nam
 
   B.lookup(QType(QType::ANY), name, NULL, sd.domain_id);
   while(B.get(rr)) {
-    if(rr.dr.d_type == QType::NS || rr.auth)
+#ifdef HAVE_LUA_RECORDS   
+    if(rr.dr.d_type == QType::LUA)
+      nrc.d_set.insert(getRR<LUARecordContent>(rr.dr)->d_type);
+    else
+#endif
+      if(rr.dr.d_type == QType::NS || rr.auth)
       nrc.d_set.insert(rr.dr.d_type);
   }
 
@@ -508,7 +553,12 @@ void PacketHandler::emitNSEC3(DNSPacket *r, const SOAData& sd, const NSEC3PARAMR
 
     B.lookup(QType(QType::ANY), name, NULL, sd.domain_id);
     while(B.get(rr)) {
-      if(rr.dr.d_type && (rr.dr.d_type == QType::NS || rr.auth)) // skip empty non-terminals
+#ifdef HAVE_LUA_RECORDS
+      if(rr.dr.d_type == QType::LUA)
+        n3rc.d_set.insert(getRR<LUARecordContent>(rr.dr)->d_type);
+      else
+#endif
+        if(rr.dr.d_type && (rr.dr.d_type == QType::NS || rr.auth)) // skip empty non-terminals
         n3rc.d_set.insert(rr.dr.d_type);
     }
   }
@@ -1072,6 +1122,10 @@ DNSPacket *PacketHandler::doQuestion(DNSPacket *p)
 
   DNSPacket *r=0;
   bool noCache=false;
+
+#ifdef HAVE_LUA_RECORDS
+  bool doLua=g_doLuaRecord;
+#endif
   
   if(p->d.qr) { // QR bit from dns packet (thanks RA from N)
     if(d_logDNSDetails)
@@ -1291,8 +1345,48 @@ DNSPacket *PacketHandler::doQuestion(DNSPacket *p)
     rrset.clear();
     haveAlias.trimToLabels(0);
     weDone = weRedirected = weHaveUnauth =  false;
+
+
+#ifdef HAVE_LUA_RECORDS
+    if(!doLua) {
+      string val;
+      d_dk.getFromMeta(sd.qname, "ENABLE-LUA-RECORD", val);
+      doLua = (val=="1");
+    }
+#endif
     
     while(B.get(rr)) {
+#ifdef HAVE_LUA_RECORDS
+      if(rr.dr.d_type == QType::LUA) {
+        if(!doLua)
+          continue;
+        auto rec=getRR<LUARecordContent>(rr.dr);
+        if(rec->d_type == QType::CNAME || rec->d_type == p->qtype.getCode()) {
+          noCache=true;
+          try {
+            auto recvec=luaSynth(rec->getCode(), target, sd.qname, sd.domain_id, *p, rec->d_type);
+            if(!recvec.empty()) {
+              for(const auto& r : recvec) {
+                rr.dr.d_type = rec->d_type; // might be CNAME
+                rr.dr.d_content = r;
+                rr.scopeMask = p->getRealRemote().getBits(); // this makes sure answer is a specific as your question
+                rrset.push_back(rr);
+              }
+              if(rec->d_type == QType::CNAME && p->qtype.getCode() != QType::CNAME)
+                weRedirected = 1;
+              else
+                weDone = 1;
+            }
+          }
+          catch(std::exception &e) {
+            r=p->replyPacket();
+            r->setRcode(RCode::ServFail);
+
+            return r;
+          }
+        }
+      }
+#endif
       //cerr<<"got content: ["<<rr.content<<"]"<<endl;
       if (p->qtype.getCode() == QType::ANY && !p->d_dnssecOk && (rr.dr.d_type == QType:: DNSKEY || rr.dr.d_type == QType::NSEC3PARAM))
         continue; // Don't send dnssec info to non validating resolvers.
@@ -1403,6 +1497,10 @@ DNSPacket *PacketHandler::doQuestion(DNSPacket *p)
     else if(weDone) {
       bool haveRecords = false;
       for(const auto& loopRR: rrset) {
+#ifdef HAVE_LUA_RECORDS
+        if(loopRR.dr.d_type == QType::LUA)
+            continue;
+#endif
         if((p->qtype.getCode() == QType::ANY || loopRR.dr.d_type == p->qtype.getCode()) && loopRR.dr.d_type && loopRR.dr.d_type != QType::ALIAS && loopRR.auth) {
           r->addRecord(loopRR);
           haveRecords = true;

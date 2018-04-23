@@ -24,6 +24,8 @@
 
 #include "boost/optional.hpp"
 
+#include "geoipbackend.hh"
+
 class GeoIPInterface {
 public:
   enum GeoIPQueryAttribute {
@@ -33,7 +35,8 @@ public:
     Country,
     Country2,
     Name,
-    Region
+    Region,
+    Location
   };
 
   virtual bool queryCountry(string &ret, GeoIPNetmask& gl, const string &ip) = 0;

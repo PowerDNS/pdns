@@ -55,7 +55,10 @@ EXTRA_DIST = \
 	named.conf.parsertest \
 	delaypipe.hh delaypipe.cc \
 	pdns.service.in \
-	ixfrdist.service.in
+	ixfrdist.service.in \
+	lua-record.cc \
+	minicurl.cc \
+	minicurl.hh
 
 BUILT_SOURCES = \
 	bind-dnssec.schema.sqlite3.sql.h \
@@ -235,6 +238,11 @@ pdns_server_LDADD = \
 	$(JSON11_LIBS) \
 	$(LIBCRYPTO_LIBS) \
 	$(SYSTEMD_LIBS)
+
+if HAVE_LUA_RECORDS
+pdns_server_SOURCES += lua-record.cc minicurl.cc minicurl.hh
+pdns_server_LDADD += $(LIBCURL)
+endif
 
 if BOTAN
 pdns_server_SOURCES += botansigners.cc
@@ -549,6 +557,7 @@ stubquery_SOURCES = \
 	dnsparser.cc \
 	dnsrecords.cc \
 	dnswriter.cc \
+	iputils.cc \
 	logger.cc \
 	misc.cc \
 	nsecrecords.cc \
@@ -574,6 +583,7 @@ saxfr_SOURCES = \
 	dnssecinfra.cc \
 	dnswriter.cc dnswriter.hh \
 	gss_context.cc gss_context.hh \
+	iputils.cc \
 	logger.cc \
 	misc.cc misc.hh \
 	nsecrecords.cc \
@@ -660,6 +670,7 @@ ixplore_SOURCES = \
 	dnssecinfra.cc \
 	dnswriter.cc dnswriter.hh \
 	gss_context.cc gss_context.hh \
+	iputils.cc \
 	logger.cc \
 	misc.cc misc.hh \
 	nsecrecords.cc \
@@ -697,6 +708,7 @@ dnstcpbench_SOURCES = \
 	dnsrecords.cc \
 	dnstcpbench.cc \
 	dnswriter.cc dnswriter.hh \
+	iputils.cc \
 	logger.cc \
 	misc.cc misc.hh \
 	nsecrecords.cc \
@@ -726,6 +738,7 @@ nsec3dig_SOURCES = \
 	dnssecinfra.cc \
 	dnswriter.cc dnswriter.hh \
 	gss_context.cc gss_context.hh \
+	iputils.cc \
 	logger.cc \
 	misc.cc misc.hh \
 	nsec3dig.cc \

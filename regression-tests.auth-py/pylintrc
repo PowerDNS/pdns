@@ -1,0 +1,2 @@
+[MESSAGES CONTROL]
+disable=invalid-name, missing-docstring, line-too-long, superfluous-parens

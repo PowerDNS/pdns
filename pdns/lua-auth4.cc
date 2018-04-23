@@ -1,3 +1,7 @@
+#include "config.h"
+#if defined(HAVE_LUA)
+#include "ext/luawrapper/include/LuaContext.hpp"
+#endif
 #include "lua-auth4.hh"
 #include "stubresolver.hh"
 #include <fstream>
@@ -6,6 +10,11 @@
 #include "namespaces.hh"
 #include "ednssubnet.hh"
 #include <unordered_set>
+#include "sstuff.hh"
+#include <thread>
+#include <mutex>
+
+#include "ueberbackend.hh"
 
 AuthLua4::AuthLua4() { prepareContext(); }
 
@@ -13,6 +22,7 @@ AuthLua4::AuthLua4() { prepareContext(); }
 
 bool AuthLua4::updatePolicy(const DNSName &qname, QType qtype, const DNSName &zonename, DNSPacket *packet) { return false; }
 bool AuthLua4::axfrfilter(const ComboAddress& remote, const DNSName& zone, const DNSResourceRecord& in, vector<DNSResourceRecord>& out) { return false; }
+LuaContext* AuthLua4::getLua() { return 0; }
 DNSPacket *AuthLua4::prequery(DNSPacket *q) { return NULL; }
 
 AuthLua4::~AuthLua4() { }
@@ -27,7 +37,10 @@ void AuthLua4::postLoad()
 
 #else
 
-#include "ext/luawrapper/include/LuaContext.hpp"
+LuaContext* AuthLua4::getLua()
+{
+  return d_lw.get();
+}
 
 void AuthLua4::postPrepareContext() {
   stubParseResolveConf();
@@ -101,7 +114,6 @@ void AuthLua4::postLoad() {
   d_update_policy = d_lw->readVariable<boost::optional<luacall_update_policy_t>>("updatepolicy").get_value_or(0);
   d_axfr_filter = d_lw->readVariable<boost::optional<luacall_axfr_filter_t>>("axfrfilter").get_value_or(0);
   d_prequery = d_lw->readVariable<boost::optional<luacall_prequery_t>>("prequery").get_value_or(0);
-
 }
 
 bool AuthLua4::axfrfilter(const ComboAddress& remote, const DNSName& zone, const DNSResourceRecord& in, vector<DNSResourceRecord>& out) {
@@ -177,5 +189,6 @@ DNSPacket *AuthLua4::prequery(DNSPacket *q) {
 }
 
 AuthLua4::~AuthLua4() { }
+
 
 #endif

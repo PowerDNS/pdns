@@ -42,16 +42,6 @@
 #include "namespaces.hh"
 
 
-class NetworkError : public runtime_error
-{
-public:
-  NetworkError(const string& why="Network Error") : runtime_error(why.c_str())
-  {}
-  NetworkError(const char *why="Network Error") : runtime_error(why)
-  {}
-};
-
-
 typedef int ProtocolType; //!< Supported protocol types
 
 //! Representation of a Socket and many of the Berkeley functions available
@@ -167,22 +157,7 @@ public:
   //! Connect the socket to a specified endpoint
   void connect(const ComboAddress &ep, int timeout=0)
   {
-    if(::connect(d_socket,(struct sockaddr *)&ep, ep.getSocklen()) < 0) {
-      if(errno == EINPROGRESS) {
-        if (timeout > 0) {
-          /* if a timeout is provided, we wait until the connection has been established */
-          int res = waitForRWData(d_socket, false, timeout, 0);
-          if (res == 0) {
-            throw NetworkError("timeout while connecting to "+ep.toStringWithPort());
-          } else if (res < 0) {
-            throw NetworkError("while waiting to connect to "+ep.toStringWithPort()+": "+string(strerror(errno)));
-          }
-        }
-      }
-      else {
-        throw NetworkError("While connecting to "+ep.toStringWithPort()+": "+string(strerror(errno)));
-      }
-    }
+    SConnectWithTimeout(d_socket, ep, timeout);
   }
 
 

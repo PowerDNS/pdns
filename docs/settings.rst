@@ -544,6 +544,16 @@ disables caching.
 
 Enables EDNS subnet processing, for backends that support it.
 
+.. _setting-enable-lua-records:
+
+``enable-lua-records``
+--------------------------
+
+-  Boolean
+-  Default: no
+
+Enable globally the LUA records feature
+
 .. _setting-entropy-source:
 
 ``entropy-source``
@@ -689,6 +699,17 @@ Disable this if the process supervisor timestamps these lines already.
 
 .. note::
   The systemd unit file supplied with the source code already disables timestamp printing
+
+.. _setting-lua-record-exec-limit:
+
+``lua-record-exec-limit``
+-----------------------------
+
+-  Integer
+-  Default: 1000
+
+Limit LUA record scripts to ``lua-record-exec-limit`` instructions.
+Setting this to any value less than or equal to 0 will set no limit.
 
 .. _setting-non-local-bind:
 

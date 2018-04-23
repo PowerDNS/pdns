@@ -55,5 +55,8 @@ extern int isGuarded( char ** );
 void* carbonDumpThread(void*);
 extern bool g_anyToTcp;
 extern bool g_8bitDNS;
+#ifdef HAVE_LUA_RECORDS
+extern bool g_doLuaRecord;
+#endif // HAVE_LUA_RECORDS
 
 #endif // COMMON_STARTUP_HH

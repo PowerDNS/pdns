@@ -551,6 +551,11 @@ test_auth() {
   run "test ! -s ./failed_tests"
   run "cd .."
 
+  ### Lua rec tests ###
+  run "cd regression-tests.auth-py"
+  run "./runtests"
+  run "cd .."
+
   run "rm -f regression-tests/zones/*-slave.*" #FIXME
 }
 

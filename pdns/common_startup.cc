@@ -36,6 +36,10 @@
 
 bool g_anyToTcp;
 bool g_8bitDNS;
+#ifdef HAVE_LUA_RECORDS
+bool g_doLuaRecord;
+int g_luaRecordExecLimit;
+#endif
 typedef Distributor<DNSPacket,DNSPacket,PacketHandler> DNSDistributor;
 
 ArgvMap theArg;
@@ -198,6 +202,10 @@ void declareArguments()
   ::arg().setSwitch("expand-alias", "Expand ALIAS records")="no";
   ::arg().setSwitch("outgoing-axfr-expand-alias", "Expand ALIAS records during outgoing AXFR")="no";
   ::arg().setSwitch("8bit-dns", "Allow 8bit dns queries")="no";
+#ifdef HAVE_LUA_RECORDS
+  ::arg().setSwitch("enable-lua-record", "Process LUA record for all zones (metadata overrides this)")="no";
+  ::arg().set("lua-record-exec-limit", "LUA record scripts execution limit (instructions count). Values <= 0 mean no limit")="1000";
+#endif
   ::arg().setSwitch("axfr-lower-serial", "Also AXFR a zone from a master with a lower serial")="no";
 
   ::arg().set("lua-axfr-script", "Script to be used to edit incoming AXFRs")="";
@@ -487,6 +495,10 @@ void mainthread()
    
    g_anyToTcp = ::arg().mustDo("any-to-tcp");
    g_8bitDNS = ::arg().mustDo("8bit-dns");
+#ifdef HAVE_LUA_RECORDS
+   g_doLuaRecord = ::arg().mustDo("enable-lua-record");
+   g_luaRecordExecLimit = ::arg().asNum("lua-record-exec-limit");
+#endif
 
    DNSPacket::s_udpTruncationThreshold = std::max(512, ::arg().asNum("udp-truncation-threshold"));
    DNSPacket::s_doEDNSSubnetProcessing = ::arg().mustDo("edns-subnet-processing");
