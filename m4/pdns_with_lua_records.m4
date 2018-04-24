@@ -9,6 +9,9 @@ AC_DEFUN([PDNS_WITH_LUA_RECORDS], [
   AC_MSG_RESULT([$enable_lua_records])
 
   AS_IF([test "x$enable_lua_records" != "xno"], [
+    AS_IF([test "x$LUAPC" = "x"],
+      AC_MSG_ERROR([LUA records need LUA. You can disable this feature with the --disable-lua-records switch or configure a proper LUA installation.])
+    )
     LIBCURL_CHECK_CONFIG("yes", "7.21.3", [ : ], [
       AC_MSG_ERROR([libcurl minimum version requirement not met. This is required for LUA records. You can disable it with the --disable-lua-records switch or use --with-libcurl to select another curl installation.])
     ])
