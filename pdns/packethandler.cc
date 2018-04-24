@@ -1340,13 +1340,6 @@ DNSPacket *PacketHandler::doQuestion(DNSPacket *p)
 
     DLOG(g_log<<"Got no referrals, trying ANY"<<endl);
 
-    // see what we get..
-    B.lookup(QType(QType::ANY), target, p, sd.domain_id);
-    rrset.clear();
-    haveAlias.trimToLabels(0);
-    weDone = weRedirected = weHaveUnauth =  false;
-
-
 #ifdef HAVE_LUA_RECORDS
     if(!doLua) {
       string val;
@@ -1354,6 +1347,12 @@ DNSPacket *PacketHandler::doQuestion(DNSPacket *p)
       doLua = (val=="1");
     }
 #endif
+
+    // see what we get..
+    B.lookup(QType(QType::ANY), target, p, sd.domain_id);
+    rrset.clear();
+    haveAlias.trimToLabels(0);
+    weDone = weRedirected = weHaveUnauth =  false;
     
     while(B.get(rr)) {
 #ifdef HAVE_LUA_RECORDS
