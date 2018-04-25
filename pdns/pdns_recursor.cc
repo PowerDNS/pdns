@@ -195,9 +195,12 @@ bool g_logRPZChanges{false};
 
 //! used to send information to a newborn mthread
 struct DNSComboWriter {
-  DNSComboWriter(const char* data, uint16_t len, const struct timeval& now) : d_mdp(true, data, len), d_now(now),
-                                                                                                        d_tcp(false), d_socket(-1)
+  DNSComboWriter(const char* data, uint16_t len, const struct timeval& now): d_mdp(true, data, len), d_now(now)
   {}
+
+  DNSComboWriter(const std::string& query, const struct timeval& now, std::vector<std::string>&& policyTags, LuaContext::LuaObject&& data): d_mdp(true, query.c_str(), query.size()), d_now(now), d_policyTags(std::move(policyTags)), d_data(std::move(data))
+  {
+  }
 
   void setRemote(const ComboAddress& sa)
   {
@@ -251,20 +254,18 @@ struct DNSComboWriter {
   string d_requestorId;
   string d_deviceId;
 #endif
+  std::vector<std::string> d_policyTags;
+  LuaContext::LuaObject d_data;
   EDNSSubnetOpts d_ednssubnet;
-  bool d_ecsFound{false};
-  bool d_ecsParsed{false};
-  bool d_tcp;
+  shared_ptr<TCPConnection> d_tcpConnection;
   int d_socket;
   unsigned int d_tag{0};
   uint32_t d_qhash{0};
-  string d_query;
-  shared_ptr<TCPConnection> d_tcpConnection;
-  vector<pair<uint16_t, string> > d_ednsOpts;
-  std::vector<std::string> d_policyTags;
-  LuaContext::LuaObject d_data;
   uint32_t d_ttlCap{std::numeric_limits<uint32_t>::max()};
   bool d_variable{false};
+  bool d_ecsFound{false};
+  bool d_ecsParsed{false};
+  bool d_tcp;
 };
 
 MT_t* getMT()
@@ -695,7 +696,7 @@ static void updateResponseStats(int res, const ComboAddress& remote, unsigned in
   }
 }
 
-static string makeLoginfo(DNSComboWriter* dc)
+static string makeLoginfo(const DNSComboWriter* dc)
 try
 {
   return "("+dc->d_mdp.d_qname.toLogString()+"/"+DNSRecordContent::NumberToType(dc->d_mdp.d_qtype)+" from "+(dc->getRemote())+")";
@@ -860,6 +861,7 @@ static void startDoResolve(void *p)
 
     uint16_t maxanswersize = dc->d_tcp ? 65535 : min(static_cast<uint16_t>(512), g_udpTruncationThreshold);
     EDNSOpts edo;
+    std::vector<pair<uint16_t, string> > ednsOpts;
     bool haveEDNS=false;
     if(getEDNSOpts(dc->d_mdp, &edo)) {
       if(!dc->d_tcp) {
@@ -868,7 +870,7 @@ static void startDoResolve(void *p)
         */
         maxanswersize = min(static_cast<uint16_t>(edo.d_packetsize >= 512 ? edo.d_packetsize : 512), g_udpTruncationThreshold);
       }
-      dc->d_ednsOpts = edo.d_options;
+      ednsOpts = edo.d_options;
       haveEDNS=true;
 
       if (g_useIncomingECS && !dc->d_ecsParsed) {
@@ -953,7 +955,7 @@ static void startDoResolve(void *p)
     DNSRecord spoofed;
     RecursorLua4::DNSQuestion dq(dc->d_source, dc->d_destination, dc->d_mdp.d_qname, dc->d_mdp.d_qtype, dc->d_tcp, variableAnswer, wantsRPZ);
     dq.ednsFlags = &edo.d_Z;
-    dq.ednsOptions = &dc->d_ednsOpts;
+    dq.ednsOptions = &ednsOpts;
     dq.tag = dc->d_tag;
     dq.discardedPolicies = &sr.d_discardedPolicies;
     dq.policyTags = &dc->d_policyTags;
@@ -1953,18 +1955,15 @@ static string* doProcessUDPQuestion(const std::string& question, const ComboAddr
     return 0;
   }
 
-  DNSComboWriter* dc = new DNSComboWriter(question.c_str(), question.size(), g_now);
+  DNSComboWriter* dc = new DNSComboWriter(question, g_now, std::move(policyTags), std::move(data));
   dc->setSocket(fd);
   dc->d_tag=ctag;
   dc->d_qhash=qhash;
-  dc->d_query = question;
   dc->setRemote(fromaddr);
   dc->setSource(source);
   dc->setLocal(destaddr);
   dc->setDestination(destination);
   dc->d_tcp=false;
-  dc->d_policyTags = policyTags;
-  dc->d_data = data;
   dc->d_ecsFound = ecsFound;
   dc->d_ecsParsed = ecsParsed;
   dc->d_ednssubnet = ednssubnet;
@@ -1972,7 +1971,7 @@ static string* doProcessUDPQuestion(const std::string& question, const ComboAddr
   dc->d_variable = variable;
 #ifdef HAVE_PROTOBUF
   if (t_protobufServer || t_outgoingProtobufServer) {
-    dc->d_uuid = uniqueId;
+    dc->d_uuid = std::move(uniqueId);
   }
   dc->d_requestorId = requestorId;
   dc->d_deviceId = deviceId;
@@ -1986,20 +1985,29 @@ static string* doProcessUDPQuestion(const std::string& question, const ComboAddr
 static void handleNewUDPQuestion(int fd, FDMultiplexer::funcparam_t& var)
 {
   ssize_t len;
-  char data[1500];
+  static thread_local std::string data;
   ComboAddress fromaddr;
   struct msghdr msgh;
   struct iovec iov;
   char cbuf[256];
   bool firstQuery = true;
 
+  data.resize(1500);
   fromaddr.sin6.sin6_family=AF_INET6; // this makes sure fromaddr is big enough
-  fillMSGHdr(&msgh, &iov, cbuf, sizeof(cbuf), data, sizeof(data), &fromaddr);
+  fillMSGHdr(&msgh, &iov, cbuf, sizeof(cbuf), &data[0], data.size(), &fromaddr);
 
   for(;;)
   if((len=recvmsg(fd, &msgh, 0)) >= 0) {
 
     firstQuery = false;
+
+    if (static_cast<size_t>(len) < sizeof(dnsheader)) {
+      g_stats.ignoredCount++;
+      if (!g_quiet) {
+        g_log<<Logger::Error<<"Ignoring too-short ("<<std::to_string(len)<<") query from "<<fromaddr.toString()<<endl;
+      }
+      return;
+    }
 
     if(t_remotes)
       t_remotes->push_back(fromaddr);
@@ -2020,7 +2028,8 @@ static void handleNewUDPQuestion(int fd, FDMultiplexer::funcparam_t& var)
       return;
     }
     try {
-      dnsheader* dh=(dnsheader*)data;
+      data.resize(static_cast<size_t>(len));
+      dnsheader* dh=(dnsheader*)&data[0];
 
       if(dh->qr) {
         g_stats.ignoredCount++;
@@ -2033,7 +2042,6 @@ static void handleNewUDPQuestion(int fd, FDMultiplexer::funcparam_t& var)
           g_log<<Logger::Error<<"Ignoring non-query opcode "<<dh->opcode<<" from "<<fromaddr.toString()<<" on server socket!"<<endl;
       }
       else {
-        string question(data, (size_t)len);
 	struct timeval tv={0,0};
 	HarvestTimestamp(&msgh, &tv);
 	ComboAddress dest;
@@ -2055,9 +2063,9 @@ static void handleNewUDPQuestion(int fd, FDMultiplexer::funcparam_t& var)
           }
         }
         if(g_weDistributeQueries)
-          distributeAsyncFunction(question, boost::bind(doProcessUDPQuestion, question, fromaddr, dest, tv, fd));
+          distributeAsyncFunction(data, boost::bind(doProcessUDPQuestion, data, fromaddr, dest, tv, fd));
         else
-          doProcessUDPQuestion(question, fromaddr, dest, tv, fd);
+          doProcessUDPQuestion(data, fromaddr, dest, tv, fd);
       }
     }
     catch(MOADNSException& mde) {
