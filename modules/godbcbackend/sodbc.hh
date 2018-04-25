@@ -63,16 +63,16 @@ public:
   virtual ~SODBC( void );
 
   //! Sets the logging state.
-  void setLog( bool state );
+  void setLog( bool state ) override;
 
-  std::unique_ptr<SSqlStatement> prepare(const string& query, int nparams);
-  void execute(const string& query);
+  std::unique_ptr<SSqlStatement> prepare(const string& query, int nparams) override;
+  void execute(const string& query) override;
   void startTransaction() override;
   void rollback() override;
   void commit() override;
 
   //! Returns an exception.
-  SSqlException sPerrorException( const std::string & reason );
+  SSqlException sPerrorException( const std::string & reason ) override;
 
 };
 
