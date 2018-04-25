@@ -86,16 +86,18 @@ Listen Sockets
                                   higher than 0 to enable TCP Fast Open when available.
                                   Default is 0.
 
-.. function:: addTLSLocal(address, certFile, keyFile[, options])
+.. function:: addTLSLocal(address, certFile(s), keyFile(s) [, options])
 
   .. versionadded:: 1.3.0
+  .. versionchanged:: 1.3.1
+    ``certFile(s)`` and ``keyFile(s)`` parameters accept a list of files.
 
   Listen on the specified address and TCP port for incoming DNS over TLS connections, presenting the specified X.509 certificate.
 
   :param str address: The IP Address with an optional port to listen on.
                       The default port is 853.
-  :param str certFile: The path to a X.509 certificate file in PEM format.
-  :param str keyFile: The path to the private key file corresponding to the certificate.
+  :param str certFile(s): The path to a X.509 certificate file in PEM format, or a list of paths to such files.
+  :param str keyFile(s): The path to the private key file corresponding to the certificate, or a list of paths to such files, whose order should match the certFile(s) ones.
   :param table options: A table with key: value pairs with listen options.
 
   Options:

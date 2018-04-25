@@ -1431,7 +1431,7 @@ void setupLuaConfig(bool client)
 #endif
     });
 
-    g_lua.writeFunction("addTLSLocal", [client](const std::string& addr, const std::string& certFile, const std::string& keyFile, boost::optional<localbind_t> vars) {
+  g_lua.writeFunction("addTLSLocal", [client](const std::string& addr, boost::variant<std::string, std::vector<std::pair<int,std::string>>> certFiles, boost::variant<std::string, std::vector<std::pair<int,std::string>>> keyFiles, boost::optional<localbind_t> vars) {
         if (client)
           return;
 #ifdef HAVE_DNS_OVER_TLS
@@ -1441,8 +1441,32 @@ void setupLuaConfig(bool client)
           return;
         }
         shared_ptr<TLSFrontend> frontend = std::make_shared<TLSFrontend>();
-        frontend->d_certFile = certFile;
-        frontend->d_keyFile = keyFile;
+
+        if (certFiles.type() == typeid(std::string) && keyFiles.type() == typeid(std::string)) {
+          auto certFile = boost::get<std::string>(certFiles);
+          auto keyFile = boost::get<std::string>(keyFiles);
+          frontend->d_certKeyPairs.push_back({certFile, keyFile});
+        }
+        else if (certFiles.type() == typeid(std::vector<std::pair<int,std::string>>) && keyFiles.type() == typeid(std::vector<std::pair<int,std::string>>))
+        {
+          auto certFilesVect = boost::get<std::vector<std::pair<int,std::string>>>(certFiles);
+          auto keyFilesVect = boost::get<std::vector<std::pair<int,std::string>>>(keyFiles);
+          if (certFilesVect.size() == keyFilesVect.size()) {
+            for (size_t idx = 0; idx < certFilesVect.size(); idx++) {
+              frontend->d_certKeyPairs.push_back({certFilesVect.at(idx).second, keyFilesVect.at(idx).second});
+            }
+          }
+          else {
+            errlog("Error, mismatching number of certificates and keys in call to addTLSLocal()!");
+            g_outputBuffer="Error, mismatching number of certificates and keys in call to addTLSLocal()!";
+            return;
+          }
+        }
+        else {
+          errlog("Error, mismatching number of certificates and keys in call to addTLSLocal()!");
+          g_outputBuffer="Error, mismatching number of certificates and keys in call to addTLSLocal()!";
+          return;
+        }
 
         if (vars) {
           bool doTCP = true;

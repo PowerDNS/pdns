@@ -301,7 +301,7 @@ const std::vector<ConsoleKeyword> g_consoleKeywords{
   { "addCacheHitResponseAction", true, "DNS rule, DNS response action [, {uuid=\"UUID\"}]", "add a cache hit response rule" },
   { "addResponseAction", true, "DNS rule, DNS response action [, {uuid=\"UUID\"}]", "add a response rule" },
   { "addSelfAnsweredResponseAction", true, "DNS rule, DNS response action [, {uuid=\"UUID\"}]", "add a self-answered response rule" },
-  { "addTLSLocal", true, "addr, certFile, keyFile[,params]", "listen to incoming DNS over TLS queries on the specified address using the specified certificate and key. The last parameter is a table" },
+  { "addTLSLocal", true, "addr, certFile(s), keyFile(s) [,params]", "listen to incoming DNS over TLS queries on the specified address using the specified certificate (or list of) and key (or list of). The last parameter is a table" },
   { "AllowAction", true, "", "let these packets go through" },
   { "AllowResponseAction", true, "", "let these packets go through" },
   { "AllRule", true, "", "matches all traffic" },
