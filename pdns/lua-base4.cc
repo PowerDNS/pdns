@@ -228,7 +228,7 @@ void BaseLua4::prepareContext() {
           }});
 
   for(const auto& n : QType::names)
-    d_pd.push_back({n.first, n.second});
+    d_pd.push_back({n.first, QType(n.second)});
 
   d_lw->registerMember("tv_sec", &timeval::tv_sec);
   d_lw->registerMember("tv_usec", &timeval::tv_usec);

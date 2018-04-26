@@ -56,6 +56,10 @@ Interception Functions
 .. function:: gettag(remote, ednssubnet, localip, qname, qtype, ednsoptions, tcp) -> int
               gettag(remote, ednssubnet, localip, qname, qtype, ednsoptions) -> int
 
+    .. versionchanged:: 4.2.0
+
+      The qtype parameter is now a QType instead of an int.
+
     .. versionchanged:: 4.1.0
 
       The ``tcp`` parameter was added.
@@ -78,7 +82,7 @@ Interception Functions
     :param Netmask ednssubnet: The EDNS Client subnet that was extracted from the packet
     :param ComboAddress localip: The IP address the query was received on
     :param DNSName qname: The domain name the query is for
-    :param int qtype: The query type of the query
+    :param QType qtype: The query type of the query
     :param ednsoptions: A table whose keys are EDNS option codes and values are :class:`EDNSOptionView` objects. This table is empty unless the :ref:`setting-gettag-needs-edns-options` option is set.
     :param bool tcp: Added in 4.1.0, a boolean indicating whether the query was received over UDP (false) or TCP (true).
 

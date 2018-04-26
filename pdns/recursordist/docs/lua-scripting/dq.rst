@@ -17,7 +17,11 @@ The DNSQuestion object contains at least the following fields:
 
   .. attribute:: DNSQuestion.qtype
 
-      Type this query is for as an integer, can be compared against ``pdns.A``, ``pdns.AAAA``.
+     .. versionchanged:: 4.2.0
+
+       The qtype parameter is now a QType instead of an int
+
+      Type this query is for as an QType, can be compared against ``pdns.A``, ``pdns.AAAA``.
 
   .. attribute:: DNSQuestion.rcode
 

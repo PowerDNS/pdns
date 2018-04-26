@@ -60,11 +60,11 @@ public:
 
   struct DNSQuestion
   {
-    DNSQuestion(const ComboAddress& rem, const ComboAddress& loc, const DNSName& query, uint16_t type, bool tcp, bool& variable_, bool& wantsRPZ_): qname(query), qtype(type), local(loc), remote(rem), isTcp(tcp), variable(variable_), wantsRPZ(wantsRPZ_)
+    DNSQuestion(const ComboAddress& rem, const ComboAddress& loc, const DNSName& query, uint16_t type, bool tcp, bool& variable_, bool& wantsRPZ_): qname(query), qtype(QType(type)), local(loc), remote(rem), isTcp(tcp), variable(variable_), wantsRPZ(wantsRPZ_)
     {
     }
     const DNSName& qname;
-    const uint16_t qtype;
+    const QType qtype;
     const ComboAddress& local;
     const ComboAddress& remote;
     const struct dnsheader* dh{nullptr};
@@ -82,8 +82,8 @@ public:
     bool& wantsRPZ;
     unsigned int tag{0};
 
-    void addAnswer(uint16_t type, const std::string& content, boost::optional<int> ttl, boost::optional<string> name);
-    void addRecord(uint16_t type, const std::string& content, DNSResourceRecord::Place place, boost::optional<int> ttl, boost::optional<string> name);
+    void addAnswer(const QType& type, const std::string& content, boost::optional<int> ttl, boost::optional<string> name);
+    void addRecord(const QType& type, const std::string& content, DNSResourceRecord::Place place, boost::optional<int> ttl, boost::optional<string> name);
     vector<pair<int,DNSRecord> > getRecords() const;
     boost::optional<dnsheader> getDH() const;
     vector<pair<uint16_t, string> > getEDNSOptions() const;
@@ -109,7 +109,7 @@ public:
     DNSName followupName;
   };
 
-  unsigned int gettag(const ComboAddress& remote, const Netmask& ednssubnet, const ComboAddress& local, const DNSName& qname, uint16_t qtype, std::vector<std::string>* policyTags, LuaContext::LuaObject& data, const EDNSOptionViewMap&, bool tcp, std::string& requestorId, std::string& deviceId) const;
+  unsigned int gettag(const ComboAddress& remote, const Netmask& ednssubnet, const ComboAddress& local, const DNSName& qname, const QType& qtype, std::vector<std::string>* policyTags, LuaContext::LuaObject& data, const EDNSOptionViewMap&, bool tcp, std::string& requestorId, std::string& deviceId) const;
   unsigned int gettag_ffi(const ComboAddress& remote, const Netmask& ednssubnet, const ComboAddress& local, const DNSName& qname, uint16_t qtype, std::vector<std::string>* policyTags, LuaContext::LuaObject& data, const EDNSOptionViewMap&, bool tcp, std::string& requestorId, std::string& deviceId, uint32_t& ttlCap, bool& variable) const;
 
   void maintenance() const;
@@ -131,7 +131,7 @@ public:
             d_postresolve);
   }
 
-  typedef std::function<std::tuple<unsigned int,boost::optional<std::unordered_map<int,string> >,boost::optional<LuaContext::LuaObject>,boost::optional<std::string>,boost::optional<std::string> >(ComboAddress, Netmask, ComboAddress, DNSName, uint16_t, const EDNSOptionViewMap&, bool)> gettag_t;
+  typedef std::function<std::tuple<unsigned int,boost::optional<std::unordered_map<int,string> >,boost::optional<LuaContext::LuaObject>,boost::optional<std::string>,boost::optional<std::string> >(ComboAddress, Netmask, ComboAddress, DNSName, QType, const EDNSOptionViewMap&, bool)> gettag_t;
   gettag_t d_gettag; // public so you can query if we have this hooked
   typedef std::function<boost::optional<LuaContext::LuaObject>(pdns_ffi_param_t*)> gettag_ffi_t;
   gettag_ffi_t d_gettag_ffi;

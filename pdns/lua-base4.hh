@@ -29,5 +29,5 @@ protected:
   virtual void postPrepareContext() = 0;
   virtual void postLoad() = 0;
   typedef vector<pair<string, int> > in_t;
-  vector<pair<string, boost::variant<int, in_t, struct timeval* > > > d_pd;
+  vector<pair<string, boost::variant<int, in_t, struct timeval*, QType > > > d_pd;
 };

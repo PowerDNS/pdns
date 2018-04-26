@@ -65,7 +65,7 @@ class GettagRecursorTest(RecursorTest):
 
       -- test that tags are passed to other hooks
       table.insert(tags, qname:toString())
-      table.insert(tags, 'gettag-qtype-'..qtype)
+      table.insert(tags, 'gettag-qtype-'..qtype:getName())
 
       return 0, tags, data
     end
@@ -134,7 +134,7 @@ class GettagRecursorTest(RecursorTest):
         name = 'gettag.lua.'
         expected = [
             dns.rrset.from_text(name, 0, dns.rdataclass.IN, 'A', '192.0.2.1'),
-            dns.rrset.from_text_list(name, 0, dns.rdataclass.IN, 'TXT', [ name, 'gettag-qtype-1'])
+            dns.rrset.from_text_list(name, 0, dns.rdataclass.IN, 'TXT', [ name, 'gettag-qtype-A'])
             ]
         query = dns.message.make_query(name, 'A', want_dnssec=True)
         query.flags |= dns.flags.CD
@@ -145,7 +145,7 @@ class GettagRecursorTest(RecursorTest):
         name = 'gettag-tcpa.lua.'
         expected = [
             dns.rrset.from_text(name, 0, dns.rdataclass.IN, 'A', '192.0.2.1'),
-            dns.rrset.from_text_list(name, 0, dns.rdataclass.IN, 'TXT', [ name, 'gettag-qtype-1', 'gettag-tcp'])
+            dns.rrset.from_text_list(name, 0, dns.rdataclass.IN, 'TXT', [ name, 'gettag-qtype-A', 'gettag-tcp'])
             ]
         query = dns.message.make_query(name, 'A', want_dnssec=True)
         query.flags |= dns.flags.CD
@@ -156,7 +156,7 @@ class GettagRecursorTest(RecursorTest):
         name = 'gettag-aaaa.lua.'
         expected = [
             dns.rrset.from_text(name, 0, dns.rdataclass.IN, 'AAAA', '2001:db8::1'),
-            dns.rrset.from_text_list(name, 0, dns.rdataclass.IN, 'TXT', [ name, 'gettag-qtype-28'])
+            dns.rrset.from_text_list(name, 0, dns.rdataclass.IN, 'TXT', [ name, 'gettag-qtype-AAAA'])
             ]
         query = dns.message.make_query(name, 'AAAA', want_dnssec=True)
         query.flags |= dns.flags.CD
@@ -170,7 +170,7 @@ class GettagRecursorTest(RecursorTest):
         ecso = clientsubnetoption.ClientSubnetOption(subnet, subnetMask)
         expected = [
             dns.rrset.from_text(name, 0, dns.rdataclass.IN, 'A', '192.0.2.1'),
-            dns.rrset.from_text_list(name, 0, dns.rdataclass.IN, 'TXT', [name, 'gettag-qtype-1', 'edns-subnet-' + subnet + '/' + str(subnetMask),
+            dns.rrset.from_text_list(name, 0, dns.rdataclass.IN, 'TXT', [name, 'gettag-qtype-A', 'edns-subnet-' + subnet + '/' + str(subnetMask),
                                                                          'ednsoption-8-count-1', 'ednsoption-8-total-len-8']),
             ]
         query = dns.message.make_query(name, 'A', want_dnssec=True, options=[ecso])
@@ -188,7 +188,7 @@ class GettagRecursorTest(RecursorTest):
 
         expected = [
             dns.rrset.from_text(name, 0, dns.rdataclass.IN, 'A', '192.0.2.1'),
-            dns.rrset.from_text_list(name, 0, dns.rdataclass.IN, 'TXT', [name, 'gettag-qtype-1', 'edns-subnet-' + subnet + '/' + str(subnetMask),
+            dns.rrset.from_text_list(name, 0, dns.rdataclass.IN, 'TXT', [name, 'gettag-qtype-A', 'edns-subnet-' + subnet + '/' + str(subnetMask),
                                                                          'ednsoption-10-count-2', 'ednsoption-10-total-len-32',
                                                                          'ednsoption-8-count-1', 'ednsoption-8-total-len-8'
                                                                         ]),

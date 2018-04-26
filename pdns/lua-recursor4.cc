@@ -190,18 +190,18 @@ void RecursorLua4::DNSQuestion::setRecords(const vector<pair<int, DNSRecord> >& 
   }
 }
 
-void RecursorLua4::DNSQuestion::addRecord(uint16_t type, const std::string& content, DNSResourceRecord::Place place, boost::optional<int> ttl, boost::optional<string> name)
+void RecursorLua4::DNSQuestion::addRecord(const QType& type, const std::string& content, DNSResourceRecord::Place place, boost::optional<int> ttl, boost::optional<string> name)
 {
   DNSRecord dr;
   dr.d_name=name ? DNSName(*name) : qname;
   dr.d_ttl=ttl.get_value_or(3600);
-  dr.d_type = type;
+  dr.d_type = type.getCode();
   dr.d_place = place;
-  dr.d_content = DNSRecordContent::mastermake(type, 1, content);
+  dr.d_content = DNSRecordContent::mastermake(type.getCode(), 1, content);
   records.push_back(dr);
 }
 
-void RecursorLua4::DNSQuestion::addAnswer(uint16_t type, const std::string& content, boost::optional<int> ttl, boost::optional<string> name)
+void RecursorLua4::DNSQuestion::addAnswer(const QType& type, const std::string& content, boost::optional<int> ttl, boost::optional<string> name)
 {
   addRecord(type, content, DNSResourceRecord::ANSWER, ttl, name);
 }
@@ -218,7 +218,7 @@ struct DynMetric
 void RecursorLua4::postPrepareContext()
 {
   d_lw->registerMember<const DNSName (DNSQuestion::*)>("qname", [](const DNSQuestion& dq) -> const DNSName& { return dq.qname; }, [](DNSQuestion& dq, const DNSName& newName) { (void) newName; });
-  d_lw->registerMember<uint16_t (DNSQuestion::*)>("qtype", [](const DNSQuestion& dq) -> uint16_t { return dq.qtype; }, [](DNSQuestion& dq, uint16_t newType) { (void) newType; });
+  d_lw->registerMember<const QType (DNSQuestion::*)>("qtype", [](const DNSQuestion& dq) -> const QType& { return dq.qtype; }, [](DNSQuestion& dq, const QType newType) { (void) newType; });
   d_lw->registerMember<bool (DNSQuestion::*)>("isTcp", [](const DNSQuestion& dq) -> bool { return dq.isTcp; }, [](DNSQuestion& dq, bool newTcp) { (void) newTcp; });
   d_lw->registerMember<const ComboAddress (DNSQuestion::*)>("localaddr", [](const DNSQuestion& dq) -> const ComboAddress& { return dq.local; }, [](DNSQuestion& dq, const ComboAddress& newLocal) { (void) newLocal; });
   d_lw->registerMember<const ComboAddress (DNSQuestion::*)>("remoteaddr", [](const DNSQuestion& dq) -> const ComboAddress& { return dq.remote; }, [](DNSQuestion& dq, const ComboAddress& newRemote) { (void) newRemote; });
@@ -378,7 +378,7 @@ void RecursorLua4::postPrepareContext()
     }});
 
   for(const auto& n : QType::names)
-    d_pd.push_back({n.first, n.second});
+    d_pd.push_back({n.first, QType(n.second)});
 
   d_pd.push_back({"validationstates", in_t{
         {"Indeterminate", Indeterminate },
@@ -481,7 +481,7 @@ bool RecursorLua4::ipfilter(const ComboAddress& remote, const ComboAddress& loca
   return false; // don't block
 }
 
-unsigned int RecursorLua4::gettag(const ComboAddress& remote, const Netmask& ednssubnet, const ComboAddress& local, const DNSName& qname, uint16_t qtype, std::vector<std::string>* policyTags, LuaContext::LuaObject& data, const EDNSOptionViewMap& ednsOptions, bool tcp, std::string& requestorId, std::string& deviceId) const
+unsigned int RecursorLua4::gettag(const ComboAddress& remote, const Netmask& ednssubnet, const ComboAddress& local, const DNSName& qname, const QType& qtype, std::vector<std::string>* policyTags, LuaContext::LuaObject& data, const EDNSOptionViewMap& ednsOptions, bool tcp, std::string& requestorId, std::string& deviceId) const
 {
   if(d_gettag) {
     auto ret = d_gettag(remote, ednssubnet, local, qname, qtype, ednsOptions, tcp);

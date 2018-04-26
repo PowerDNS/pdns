@@ -1692,7 +1692,7 @@ static void handleRunningTCPQuestion(int fd, FDMultiplexer::funcparam_t& var)
                 dc->d_tag = t_pdl->gettag_ffi(dc->d_source, dc->d_ednssubnet.source, dc->d_destination, qname, qtype, &dc->d_policyTags, dc->d_data, ednsOptions, true, requestorId, deviceId, dc->d_ttlCap, dc->d_variable);
               }
               else if (t_pdl->d_gettag) {
-                dc->d_tag = t_pdl->gettag(dc->d_source, dc->d_ednssubnet.source, dc->d_destination, qname, qtype, &dc->d_policyTags, dc->d_data, ednsOptions, true, requestorId, deviceId);
+                dc->d_tag = t_pdl->gettag(dc->d_source, dc->d_ednssubnet.source, dc->d_destination, qname, QType(qtype), &dc->d_policyTags, dc->d_data, ednsOptions, true, requestorId, deviceId);
               }
             }
             catch(const std::exception& e)  {
@@ -1886,7 +1886,7 @@ static string* doProcessUDPQuestion(const std::string& question, const ComboAddr
               ctag = t_pdl->gettag_ffi(source, ednssubnet.source, destination, qname, qtype, &policyTags, data, ednsOptions, false, requestorId, deviceId, ttlCap, variable);
             }
             else if (t_pdl->d_gettag) {
-              ctag = t_pdl->gettag(source, ednssubnet.source, destination, qname, qtype, &policyTags, data, ednsOptions, false, requestorId, deviceId);
+              ctag = t_pdl->gettag(source, ednssubnet.source, destination, qname, QType(qtype), &policyTags, data, ednsOptions, false, requestorId, deviceId);
             }
           }
           catch(const std::exception& e)  {
