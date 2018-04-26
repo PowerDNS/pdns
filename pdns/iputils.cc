@@ -61,6 +61,10 @@ int SConnectWithTimeout(int sockfd, const ComboAddress& remote, int timeout)
   if(ret < 0) {
     int savederrno = errno;
     if (savederrno == EINPROGRESS) {
+      if (timeout <= 0) {
+        return ret;
+      }
+
       /* we wait until the connection has been established */
       bool error = false;
       bool disconnected = false;
