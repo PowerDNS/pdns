@@ -42,7 +42,7 @@ int RecursorPacketCache::doWipePacketCache(const DNSName& name, uint16_t qtype, 
 
 static bool qrMatch(const DNSName& qname, uint16_t qtype, uint16_t qclass, const DNSName& rname, uint16_t rtype, uint16_t rclass)
 {
-  // this ignores checking on the EDNS subnet flags! 
+  // this ignores checking on the EDNS subnet flags!
   return qname==rname && rtype == qtype && rclass == qclass;
 }
 
@@ -56,9 +56,9 @@ bool RecursorPacketCache::checkResponseMatches(std::pair<packetCache_t::index<Ha
       *age = static_cast<uint32_t>(now - iter->d_creation);
       *responsePacket = iter->d_packet;
       responsePacket->replace(0, 2, queryPacket.c_str(), 2);
-    
+
       string::size_type i=sizeof(dnsheader);
-      
+
       for(;;) {
         unsigned int labellen = (unsigned char)queryPacket[i];
         if(!labellen || i + labellen > responsePacket->size()) break;
@@ -79,11 +79,11 @@ bool RecursorPacketCache::checkResponseMatches(std::pair<packetCache_t::index<Ha
         }
       }
 #endif
-      
+
       return true;
     }
     else {
-      moveCacheItemToFront(d_packetCache, iter); 
+      moveCacheItemToFront(d_packetCache, iter);
       d_misses++;
       break;
     }
@@ -156,21 +156,25 @@ void RecursorPacketCache::insertResponsePacket(unsigned int tag, uint32_t qhash,
 
     moveCacheItemToBack(d_packetCache, iter);
     d_bytes -= iter->d_bytes;
-    iter->d_bytes -= iter->d_packet.length();
+    iter->d_bytes -= iter->d_packet.capacity();
     iter->d_packet = responsePacket;
-    iter->d_bytes += responsePacket.length();
+    iter->d_bytes += iter->d_packet.capacity();
     iter->d_ttd = now + ttl;
     iter->d_creation = now;
 #ifdef HAVE_PROTOBUF
     if (protobufMessage) {
+      if (iter->d_protobufMessage) {
+        iter->d_bytes -= iter->d_protobufMessage->byteSize();
+      }
       iter->d_protobufMessage = *protobufMessage;
+      iter->d_bytes += iter->d_protobufMessage->byteSize();
     }
 #endif
 
     d_bytes += iter->d_bytes;
     break;
   }
-  
+
   if(iter == range.second) { // nothing to refresh
     struct Entry e(qname, responsePacket);
     e.d_qhash = qhash;
@@ -179,11 +183,18 @@ void RecursorPacketCache::insertResponsePacket(unsigned int tag, uint32_t qhash,
     e.d_ttd = now+ttl;
     e.d_creation = now;
     e.d_tag = tag;
-    e.d_bytes = sizeof(e) + qname.wirelength() + responsePacket.length();
+    e.d_bytes = sizeof(e) + e.d_name.getStorage().capacity() + 1 + e.d_packet.capacity() + 1;
+    // account for the index overhead
+    // src: http://david-grs.github.io/why_boost_multi_index_container-part1/
+    e.d_bytes
+      += 2 * sizeof(void* ) // hashed
+      +  2 * sizeof(void* ) // sequenced
+      +  3 * sizeof(void* ) // ordered
+      ;
 #ifdef HAVE_PROTOBUF
     if (protobufMessage) {
       e.d_protobufMessage = *protobufMessage;
-      // e.d_bytes += FIXME
+      e.d_bytes += e.d_protobufMessage->byteSize();
     }
 #endif
     d_packetCache.insert(e);

@@ -278,6 +278,17 @@ std::string DNSProtoBufMessage::toDebugString() const
 #endif /* HAVE_PROTOBUF */
 }
 
+size_t DNSProtoBufMessage::byteSize() const
+{
+#ifdef HAVE_PROTOBUF
+    // https://developers.google.com/protocol-buffers/docs/reference/cpp/google.protobuf.message#Message.SpaceUsed.details
+  return d_message.SpaceUsedLong();
+//  return d_message.ByteSize();
+#else
+    return 0;
+#endif /* HAVE_PROTOBUF */
+}
+
 #ifdef HAVE_PROTOBUF
 
 void DNSProtoBufMessage::setUUID(const boost::uuids::uuid& uuid)
