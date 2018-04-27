@@ -222,6 +222,7 @@ try
     ("help,h", "Show this helpful message")
     ("version", "Show the version number")
     ("ecs", po::value<string>(), "Add EDNS Client Subnet option to outgoing queries using random addresses from the specified range (IPv4 only)")
+    ("ecs-from-file", "Read IP or subnet values from the query file and add them as EDNS Client Subnet options to outgoing queries")
     ("increment", po::value<float>()->default_value(1.1),  "Set the factor to increase the QPS load per run")
     ("maximum-qps", po::value<uint32_t>(), "Stop incrementing once this rate has been reached, to provide a stable load")
     ("want-recursion", "Set the Recursion Desired flag on queries");
@@ -266,6 +267,7 @@ try
   }
 
   bool wantRecursion = g_vm.count("want-recursion");
+  bool useECSFromFile = g_vm.count("ecs-from-file");
 
   double hitrate = g_vm["hitrate"].as<double>();
   if (hitrate > 100 || hitrate < 0) {
@@ -316,14 +318,28 @@ try
     vector<uint8_t> packet;
     DNSPacketWriter::optvect_t ednsOptions;
     boost::trim(line);
-    const auto fields = splitField(line, ' ');
-    DNSPacketWriter pw(packet, DNSName(fields.first), DNSRecordContent::TypeToNumber(fields.second));
+    if (line.empty() || line.at(0) == '#') {
+      continue;
+    }
+
+    auto fields = splitField(line, ' ');
+    std::string qname = fields.first;
+    std::string qtype = fields.second;
+    std::string subnet;
+
+    if(useECSFromFile) {
+      fields = splitField(qtype, ' ');
+      qtype = fields.first;
+      subnet = fields.second;
+    }
+
+    DNSPacketWriter pw(packet, DNSName(qname), DNSRecordContent::TypeToNumber(qtype));
     pw.getHeader()->rd=wantRecursion;
     pw.getHeader()->id=random();
 
-    if(!ecsRange.empty()) {
+    if(!subnet.empty() || !ecsRange.empty()) {
       EDNSSubnetOpts opt;
-      opt.source = Netmask("0.0.0.0/32");
+      opt.source = Netmask(subnet.empty() ? "0.0.0.0/32" : subnet);
       ednsOptions.push_back(std::make_pair(EDNSOptionCode::ECS, makeEDNSSubnetOptsString(opt)));
     }
 
