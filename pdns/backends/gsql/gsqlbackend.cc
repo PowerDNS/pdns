@@ -43,12 +43,12 @@ GSQLBackend::GSQLBackend(const string &mode, const string &suffix)
   setArgPrefix(mode+suffix);
   d_db=0;
   d_logprefix="["+mode+"Backend"+suffix+"] ";
-	
+
   try
   {
     d_dnssecQueries = mustDo("dnssec");
   }
-  catch (ArgException e)
+  catch (const ArgException&)
   {
     d_dnssecQueries = false;
   }
