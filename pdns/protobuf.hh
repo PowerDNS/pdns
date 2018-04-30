@@ -26,14 +26,14 @@
 
 #include "config.h"
 
-#include "dnsname.hh"
-#include "iputils.hh"
-
 #ifdef HAVE_PROTOBUF
 #include <boost/uuid/uuid.hpp>
 #include <boost/uuid/uuid_generators.hpp>
 #include "dnsmessage.pb.h"
 #endif /* HAVE_PROTOBUF */
+
+#include "dnsname.hh"
+#include "iputils.hh"
 
 class DNSProtoBufMessage
 {
