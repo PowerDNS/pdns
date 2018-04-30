@@ -33,7 +33,7 @@ unsigned int MemRecursorCache::bytes() const
     ret+=sizeof(struct CacheEntry);
     ret+=(unsigned int)i.d_qname.toString().length();
     for(const auto& record : i.d_records)
-      ret+= sizeof(record); // XXX WRONG we don't know the stored size! j->size();
+      ret+= sizeof(record); // XXX WRONG we don't know the stored size!
   }
   return ret;
 }
