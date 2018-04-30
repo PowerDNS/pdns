@@ -524,7 +524,7 @@ try
   d_rawpacket.assign(mesg,length); 
   d_wrapped=true;
   if(length < 12) { 
-    g_log << Logger::Warning << "Ignoring packet: too short from "
+    g_log << Logger::Debug << "Ignoring packet: too short from "
       << getRemote() << endl;
     return -1;
   }
