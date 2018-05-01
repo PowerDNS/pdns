@@ -1357,12 +1357,20 @@ class Bind2Factory : public BackendFactory
 
       DNSBackend *make(const string &suffix="")
       {
+         assertEmptySuffix(suffix);
          return new Bind2Backend(suffix);
       }
       
       DNSBackend *makeMetadataOnly(const string &suffix="")
       {
+        assertEmptySuffix(suffix);
         return new Bind2Backend(suffix, false);
+      }
+   private:
+      void assertEmptySuffix(const string &suffix)
+      {
+        if(suffix.length())
+          throw PDNSException("launch= suffixes are not supported on the bindbackend");
       }
 };
 
