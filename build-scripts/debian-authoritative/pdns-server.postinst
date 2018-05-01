@@ -76,12 +76,6 @@ case "$1" in
       sed -i -e "s|^\(#\)\?\(# \)\?local-address=.*$|local-address=$RET|" $PDNSCONFTEMP
     fi
 
-    # Allow recursion subnets ?
-    db_get pdns-server/allowrecursion || true
-    if [ ! -z "$RET" ]; then
-      sed -i -e "s|^\(#\)\?\(# \)\?allow-recursion=.*$|allow-recursion=$RET|" $PDNSCONFTEMP
-    fi
-    
     # this can be removed once we do not have to update from
     # wheezy (pdns 3.1) any more. Note: there was never pdns 3.2 in Debian
     if [ -n "$2" ] && dpkg --compare-versions "$2" lt 3.3; then
