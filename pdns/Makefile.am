@@ -1119,7 +1119,8 @@ dnspcap2protobuf_LDFLAGS = \
 dnspcap2protobuf_LDADD = \
 	$(LIBCRYPTO_LIBS) \
 	$(PROTOBUF_LIBS) \
-	$(BOOST_PROGRAM_OPTIONS_LIBS)
+	$(BOOST_PROGRAM_OPTIONS_LIBS) \
+	$(RT_LIBS)
 endif
 endif
 
