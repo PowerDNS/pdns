@@ -165,9 +165,9 @@ void declareArguments()
   ::arg().set("default-ttl","Seconds a result is valid if not set otherwise")="3600";
   ::arg().set("max-tcp-connections","Maximum number of TCP connections")="20";
   ::arg().set("max-tcp-connections-per-client","Maximum number of simultaneous TCP connections per client")="0";
-  ::arg().set("max-tcp-transactions-per-conn")="0";
-  ::arg().set("max-tcp-connection-duration")="0";
-  ::arg().set("tcp-idle-timeout")="5";
+  ::arg().set("max-tcp-transactions-per-conn","Maximum number of subsequent queries per TCP connection")="0";
+  ::arg().set("max-tcp-connection-duration","Maximum time in seconds that a TCP DNS connection is allowed to stay open.")="0";
+  ::arg().set("tcp-idle-timeout","Maximum time in seconds that a TCP DNS connection is allowed to stay open while being idle")="5";
 
   ::arg().setSwitch("no-shuffle","Set this to prevent random shuffling of answers - for regression testing")="off";
 
