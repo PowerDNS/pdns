@@ -8,7 +8,9 @@ use 5.10.0; # somewhat sane minimum?
 # standard perl
 use Test::More;
 
-my $sdig = 'timeout 3 ../../../pdns/sdig 127.0.0.1 5300';
+my $sdigpath = '../../../pdns/sdig';
+if (defined($ENV{SDIG})) { $sdigpath = $ENV{SDIG} }
+my $sdig = "timeout 3 $sdigpath 127.0.0.1 5300";
 
 exit main(@ARGV);
 
