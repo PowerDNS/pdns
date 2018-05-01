@@ -270,8 +270,8 @@ unsigned int ChunkedSigningPipe::getReady() const
 void ChunkedSigningPipe::worker(int fd)
 try
 {
-  DNSSECKeeper dk;
   UeberBackend db("key-only");
+  DNSSECKeeper dk(&db);
   
   chunk_t* chunk = nullptr;
   int res;
