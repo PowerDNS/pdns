@@ -3110,12 +3110,14 @@ try
     // iterate zones
     for(const DomainInfo& di: domains) {
       size_t nr,nc,nm,nk;
+      DomainInfo di_new;
       DNSResourceRecord rr;
       cout<<"Processing '"<<di.zone<<"'"<<endl;
       // create zone
       if (!tgt->createDomain(di.zone)) throw PDNSException("Failed to create zone");
-      tgt->setKind(di.zone, di.kind);
-      tgt->setAccount(di.zone,di.account);
+      if (!tgt->getDomainInfo(di.zone, di_new)) throw PDNSException("Failed to create zone");
+      tgt->setKind(di_new.zone, di.kind);
+      tgt->setAccount(di_new.zone,di.account);
       string masters="";
       bool first = true;
       for(const string& master: di.masters) {
@@ -3124,11 +3126,12 @@ try
         first = false;
         masters += master;
       }
-      tgt->setMaster(di.zone, masters);
+      tgt->setMaster(di_new.zone, masters);
       // move records
       if (!src->list(di.zone, di.id, true)) throw PDNSException("Failed to list records");
       nr=0;
       while(src->get(rr)) {
+        rr.domain_id = di_new.id;
         if (!tgt->feedRecord(rr, DNSName())) throw PDNSException("Failed to feed record");
         nr++;
       }
@@ -3137,6 +3140,7 @@ try
       if (src->listComments(di.id)) {
         Comment c;
         while(src->getComment(c)) {
+          c.domain_id = di_new.id;
           tgt->feedComment(c);
           nc++;
         }
