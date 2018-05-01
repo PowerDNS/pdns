@@ -5,7 +5,8 @@
 <!-- please indicate if any of these things are done/included with this Pull Request. Not all boxes need to be checked for the Pull Request to be accepted -->
 I have:
 - [ ] read the [CONTRIBUTING.md](https://github.com/PowerDNS/pdns/blob/master/CONTRIBUTING.md) document
-- [ ] compiled and tested this code
+- [ ] compiled this code
+- [ ] tested this code
 - [ ] included documentation (including possible behaviour changes)
 - [ ] documented the code
 - [ ] added or modified regression test(s)
