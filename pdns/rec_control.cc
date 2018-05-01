@@ -66,10 +66,7 @@ static void initArguments(int argc, char** argv)
   
   cleanSlashes(configname);
 
-  if(!::arg().preParseFile(configname.c_str(), "socket-dir", ""))
-    cerr<<"Warning: unable to parse configuration file '"<<configname<<"'"<<endl;
-  if(!::arg().preParseFile(configname.c_str(), "chroot", ""))
-    cerr<<"Warning: unable to parse configuration file '"<<configname<<"'"<<endl;
+  arg().laxFile(configname.c_str());
 
   arg().laxParse(argc,argv);   // make sure the commandline wins
 
