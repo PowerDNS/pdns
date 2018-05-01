@@ -142,7 +142,7 @@ try
     }
   }
 }
-catch(EofException) {
+catch(const EofException&) {
   return false;
 }
 

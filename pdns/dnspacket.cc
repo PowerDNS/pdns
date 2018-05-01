@@ -44,7 +44,7 @@
 #include "dnswriter.hh"
 #include "dnsparser.hh"
 #include "dnsrecords.hh"
-#include "dnssecinfra.hh" 
+#include "dnssecinfra.hh"
 #include "base64.hh"
 #include "ednssubnet.hh"
 #include "gss_context.hh"
@@ -331,7 +331,6 @@ void DNSPacket::wrapup()
       noCommit:;
       
       if(d_haveednssubnet) {
-        string makeEDNSSubnetOptsString(const EDNSSubnetOpts& eso);
         EDNSSubnetOpts eso = d_eso;
         eso.scope = Netmask(eso.source.getNetwork(), maxScopeMask);
     

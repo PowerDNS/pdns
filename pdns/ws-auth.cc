@@ -578,7 +578,7 @@ static void updateDomainSettingsFromDocument(UeberBackend& B, const DomainInfo& 
     bool api_rectify = boolFromJson(document, "api_rectify");
     di.backend->setDomainMetadataOne(zonename, "API-RECTIFY", api_rectify ? "1" : "0");
   }
-  catch (JsonException) {}
+  catch (const JsonException&) {}
 
   if (document["account"].is_string()) {
     di.backend->setAccount(zonename, document["account"].string_value());
@@ -592,7 +592,7 @@ static void updateDomainSettingsFromDocument(UeberBackend& B, const DomainInfo& 
     dnssecDocVal = boolFromJson(document, "dnssec");
     dnssecInJSON = true;
   }
-  catch (JsonException) {}
+  catch (const JsonException&) {}
 
   bool isDNSSECZone = dk.isSecuredZone(zonename);
 
@@ -761,7 +761,7 @@ static void apiZoneMetadata(HttpRequest* req, HttpResponse *resp) {
 
     try {
       kind = stringFromJson(document, "kind");
-    } catch (JsonException) {
+    } catch (const JsonException&) {
       throw ApiException("kind is not specified or not a string");
     }
 
