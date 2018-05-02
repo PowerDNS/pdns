@@ -11,11 +11,11 @@ if sys.version_info[0] == 2:
 else:
     from urllib.parse import urljoin
 
-
 DAEMON = os.environ.get('DAEMON', 'authoritative')
 PDNSUTIL_CMD = os.environ.get('PDNSUTIL_CMD', 'NOT_SET BUT_THIS MIGHT_BE_A_LIST').split(' ')
 SQLITE_DB = os.environ.get('SQLITE_DB', 'pdns.sqlite3')
-
+SDIG = os.environ.get('SDIG', 'sdig')
+DNSPORT = os.environ.get('DNSPORT', '53')
 
 class ApiTestCase(unittest.TestCase):
 
@@ -86,7 +86,12 @@ def pdnsutil(subcommand, *args):
     except subprocess.CalledProcessError as except_inst:
         raise RuntimeError("pdnsutil %s %s failed: %s" % (command, args, except_inst.output.decode('ascii', errors='replace')))
 
-
 def pdnsutil_rectify(zonename):
     """Run pdnsutil rectify-zone on the given zone."""
     pdnsutil('rectify-zone', zonename)
+
+def sdig(*args):
+    try:
+        return subprocess.check_call([SDIG, '127.0.0.1', str(DNSPORT)] + list(args))
+    except subprocess.CalledProcessError as except_inst:
+        raise RuntimeError("sdig %s %s failed: %s" % (command, args, except_inst.output.decode('ascii', errors='replace')))
