@@ -373,7 +373,7 @@ static void apiServerCacheFlush(HttpRequest* req, HttpResponse* resp) {
     throw HttpMethodNotAllowedException();
 
   DNSName canon = apiNameToDNSName(req->getvars["domain"]);
-  bool subtree = (req->getvars["subtree"].compare("true") == 0);
+  bool subtree = (req->getvars.count("subtree") > 0 && req->getvars["subtree"].compare("true") == 0);
 
   int count = broadcastAccFunction<uint64_t>(boost::bind(pleaseWipeCache, canon, subtree));
   count += broadcastAccFunction<uint64_t>(boost::bind(pleaseWipePacketCache, canon, subtree));
