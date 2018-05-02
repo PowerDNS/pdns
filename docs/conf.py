@@ -170,6 +170,7 @@ descriptions = {
     'calidns': 'A DNS recursor testing tool',
     'dnsbulktest': 'A debugging tool for intermittent resolver failures',
     'dnsgram': 'A debugging tool for intermittent resolver failures',
+    'dnspcap2calidns': 'A tool to convert PCAPs of DNS traffic to calidns input',
     'dnspcap2protobuf': 'A tool to convert PCAPs of DNS traffic to PowerDNS Protobuf',
     'dnsreplay': 'A PowerDNS nameserver debugging tool',
     'dnsscan': 'List the amount of queries per qtype in a pcap',

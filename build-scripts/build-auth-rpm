@@ -451,6 +451,7 @@ fi
 %files tools
 %{_bindir}/calidns
 %{_bindir}/dnsgram
+%{_bindir}/dnspcap2calidns
 %{_bindir}/dnsreplay
 %{_bindir}/dnsscan
 %{_bindir}/dnsscope
@@ -465,6 +466,7 @@ fi
 %{_bindir}/sdig
 %{_mandir}/man1/calidns.1.gz
 %{_mandir}/man1/dnsgram.1.gz
+%{_mandir}/man1/dnspcap2calidns.1.gz
 %{_mandir}/man1/dnsreplay.1.gz
 %{_mandir}/man1/dnsscan.1.gz
 %{_mandir}/man1/dnsscope.1.gz
@@ -774,6 +776,7 @@ exit 0
 %{_bindir}/calidns
 %{_bindir}/dnsbulktest
 %{_bindir}/dnsgram
+%{_bindir}/dnspcap2calidns
 %{_bindir}/dnspcap2protobuf
 %{_bindir}/dnsreplay
 %{_bindir}/dnsscan
@@ -791,6 +794,7 @@ exit 0
 %{_mandir}/man1/calidns.1.gz
 %{_mandir}/man1/dnsbulktest.1.gz
 %{_mandir}/man1/dnsgram.1.gz
+%{_mandir}/man1/dnspcap2calidns.1.gz
 %{_mandir}/man1/dnspcap2protobuf.1.gz
 %{_mandir}/man1/dnsreplay.1.gz
 %{_mandir}/man1/dnsscan.1.gz
@@ -1055,6 +1059,7 @@ exit 0
 %{_bindir}/calidns
 %{_bindir}/dnsbulktest
 %{_bindir}/dnsgram
+%{_bindir}/dnspcap2calidns
 %{_bindir}/dnsreplay
 %{_bindir}/dnsscan
 %{_bindir}/dnsscope
@@ -1071,6 +1076,7 @@ exit 0
 %{_mandir}/man1/calidns.1.gz
 %{_mandir}/man1/dnsbulktest.1.gz
 %{_mandir}/man1/dnsgram.1.gz
+%{_mandir}/man1/dnspcap2calidns.1.gz
 %{_mandir}/man1/dnsreplay.1.gz
 %{_mandir}/man1/dnsscan.1.gz
 %{_mandir}/man1/dnsscope.1.gz
