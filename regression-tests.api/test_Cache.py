@@ -1,4 +1,5 @@
 from test_helper import ApiTestCase, is_auth, is_recursor, sdig
+import unittest
 
 
 class Servers(ApiTestCase):
@@ -9,6 +10,7 @@ class Servers(ApiTestCase):
         data = r.json()
         self.assertIn('count', data)
 
+    @unittest.skipIf(not is_recursor(), "Not applicable")
     def test_flush_count(self):
         sdig("ns1.example.com", 'A')
         r = self.session.put(self.url("/api/v1/servers/localhost/cache/flush?domain=ns1.example.com."))
@@ -17,6 +19,7 @@ class Servers(ApiTestCase):
         self.assertIn('count', data)
         self.assertEquals(1, data['count'])
 
+    @unittest.skipIf(not is_recursor(), "Not applicable")
     def test_flush_subtree(self):
         sdig("ns1.example.com", 'A')
         sdig("ns2.example.com", 'A')
