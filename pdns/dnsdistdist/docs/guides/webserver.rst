@@ -220,6 +220,7 @@ JSON Objects
   :property integer sendErrors: Number of network errors while sending a query to this server
   :property string state: The state of the server (e.g. "DOWN" or "up")
   :property integer weight: The weight assigned to this server
+  :property float dropRate: The amount of packets dropped per second by this server
 
 .. json:object:: StatisticItem
 

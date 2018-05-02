@@ -414,7 +414,8 @@ static void connectionThread(int sock, ComboAddress remote, string password, str
           {"pools", pools},
           {"latency", (double)(a->latencyUsec/1000.0)},
           {"queries", (double)a->queries},
-          {"sendErrors", (double)a->sendErrors}
+          {"sendErrors", (double)a->sendErrors},
+          {"dropRate", (double)a->dropRate}
         };
 
         /* sending a latency for a DOWN server doesn't make sense */
