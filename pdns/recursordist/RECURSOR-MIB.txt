@@ -758,6 +758,14 @@ policyResultCustom OBJECT-TYPE
         "Number of policy-mandated custom results"
     ::= { stats 91 }
 
+queryPipeFullDrops OBJECT-TYPE
+    SYNTAX Counter64
+    MAX-ACCESS read-only
+    STATUS current
+    DESCRIPTION
+        "Number of responses dropped because the query distribution pipe was full"
+    ::= { stats 92 }
+
 ---
 --- Traps / Notifications
 ---
@@ -891,6 +899,7 @@ recGroup OBJECT-GROUP
         policyResultNodata,
         policyResultTruncate,
         policyResultCustom,
+        queryPipeFullDrops,
         trapReason
     }
     STATUS current
