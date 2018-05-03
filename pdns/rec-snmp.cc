@@ -107,6 +107,7 @@ static const oid policyResultNxdomainOID[] = { RECURSOR_STATS_OID, 88 };
 static const oid policyResultNodataOID[] = { RECURSOR_STATS_OID, 89 };
 static const oid policyResultTruncateOID[] = { RECURSOR_STATS_OID, 90 };
 static const oid policyResultCustomOID[] = { RECURSOR_STATS_OID, 91 };
+static const oid queryPipeFullDropsOID[] = { RECURSOR_STATS_OID, 92 };
 
 static std::unordered_map<oid, std::string> s_statsMap;
 
@@ -218,6 +219,7 @@ RecursorSNMPAgent::RecursorSNMPAgent(const std::string& name, const std::string&
   registerCounter64Stat("client-parse-errors", clientParseErrorsOID, OID_LENGTH(clientParseErrorsOID));
   registerCounter64Stat("server-parse-errors", serverParseErrorsOID, OID_LENGTH(serverParseErrorsOID));
   registerCounter64Stat("too-old-drops", tooOldDropsOID, OID_LENGTH(tooOldDropsOID));
+  registerCounter64Stat("query-pipe-full-drops", queryPipeFullDropsOID, OID_LENGTH(queryPipeFullDropsOID));
   registerCounter64Stat("answers0-1", answers01OID, OID_LENGTH(answers01OID));
   registerCounter64Stat("answers1-10", answers110OID, OID_LENGTH(answers110OID));
   registerCounter64Stat("answers10-100", answers10100OID, OID_LENGTH(answers10100OID));

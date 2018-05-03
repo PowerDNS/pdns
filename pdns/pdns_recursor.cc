@@ -120,6 +120,8 @@ struct ThreadPipeSet
   int readToThread;
   int writeFromThread;
   int readFromThread;
+  int writeQueriesToThread; // this one is non-blocking
+  int readQueriesToThread;
 };
 
 typedef vector<int> tcpListenSockets_t;
@@ -2227,6 +2229,12 @@ static void makeThreadPipes()
     tps.readFromThread = fd[0];
     tps.writeFromThread = fd[1];
 
+    if(pipe(fd) < 0)
+      unixDie("Creating pipe for inter-thread communications");
+    tps.readQueriesToThread = fd[0];
+    tps.writeQueriesToThread = fd[1];
+    setNonBlocking(tps.writeQueriesToThread);
+
     g_pipes.push_back(tps);
   }
 }
@@ -2281,9 +2289,21 @@ void distributeAsyncFunction(const string& packet, const pipefunc_t& func)
   tmsg->func = func;
   tmsg->wantAnswer = false;
 
-  if(write(tps.writeToThread, &tmsg, sizeof(tmsg)) != sizeof(tmsg)) {
+  ssize_t written = write(tps.writeQueriesToThread, &tmsg, sizeof(tmsg));
+  if (written > 0) {
+    if (static_cast<size_t>(written) != sizeof(tmsg)) {
+      delete tmsg;
+      unixDie("write to thread pipe returned wrong size or error");
+    }
+  }
+  else {
+    int error = errno;
     delete tmsg;
-    unixDie("write to thread pipe returned wrong size or error");
+    if (error == EAGAIN || error == EWOULDBLOCK) {
+      g_stats.queryPipeFullDrops++;
+    } else {
+      unixDie("write to thread pipe returned wrong size or error:" + error);
+    }
   }
 }
 
@@ -2291,7 +2311,7 @@ static void handlePipeRequest(int fd, FDMultiplexer::funcparam_t& var)
 {
   ThreadMSG* tmsg = nullptr;
 
-  if(read(fd, &tmsg, sizeof(tmsg)) != sizeof(tmsg)) { // fd == readToThread
+  if(read(fd, &tmsg, sizeof(tmsg)) != sizeof(tmsg)) { // fd == readToThread || fd == readQueriesToThread
     unixDie("read from thread pipe returned wrong size or error");
   }
 
@@ -3228,6 +3248,7 @@ try
   }
 
   t_fdm->addReadFD(g_pipes[t_id].readToThread, handlePipeRequest);
+  t_fdm->addReadFD(g_pipes[t_id].readQueriesToThread, handlePipeRequest);
 
   if(g_useOneSocketPerThread) {
     for(deferredAdd_t::const_iterator i = deferredAdds[t_id].cbegin(); i != deferredAdds[t_id].cend(); ++i) {
