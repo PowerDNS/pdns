@@ -72,6 +72,10 @@ endif # if !HAVE_MANPAGES
 	PowerDNS-Authoritative.pdf \
 	html-docs.tar.bz2
 
+clean-local:
+	rm -f latex/PowerDNS-Authoritative.pdf $(MANPAGES_DIST) html-docs.tar.bz2
+	rm -rf mans
+
 html-docs: common/** manpages/** .venv *.rst
 	.venv/bin/python -msphinx -b html . html-docs
 
