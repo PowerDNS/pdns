@@ -273,7 +273,11 @@ void MemRecursorCache::replace(time_t now, const DNSName &qname, const QType& qt
       ce.d_auth = false;  // new data won't be auth
     }
   }
-  ce.d_bytes=sizeof(ce)+qname.wirelength();
+  ce.d_bytes=sizeof(ce)+ce.d_qname.getStorage().capacity();
+  // todo accoun t
+  // - d_signatures
+  // - d_authorityRecs
+  // - d_records
 
   // refuse any attempt to *raise* the TTL of auth NS records, as it would make it possible
   // for an auth to keep a "ghost" zone alive forever, even after the delegation is gone from
@@ -285,7 +289,7 @@ void MemRecursorCache::replace(time_t now, const DNSName &qname, const QType& qt
   }
 
   if(auth) {
-    ce.d_bytes=sizeof(ce)+qname.wirelength(); //weird, this is the same as above
+//    ce.d_bytes=sizeof(ce)+qname.wirelength(); //weird, this is the same as above
     ce.d_auth = true;
   }
 
@@ -299,14 +303,15 @@ void MemRecursorCache::replace(time_t now, const DNSName &qname, const QType& qt
     //    cerr<<"To store: "<<i.d_content->getZoneRepresentation()<<" with ttl/ttd "<<i.d_ttl<<", capped at: "<<maxTTD<<endl;
     ce.d_records.push_back(i.d_content);
     // there was code here that did things with TTL and auth. Unsure if it was good. XXX
-    ce.d_bytes += i.d_content->d_size_in_bytes;
+    // add DNSRecordContent size
+    ce.d_bytes += i.d_content->bytes();
   }
 
   for(const auto i : signatures) {
-    ce.d_bytes += i->d_size_in_bytes;
+    ce.d_bytes += i->bytes();
   }
   for(const auto i : authorityRecs) {
-    ce.d_bytes += sizeof(i) + i->d_name.wirelength() + i->d_content->d_size_in_bytes;
+    ce.d_bytes += sizeof(i) + i->d_name.wirelength() + i->d_content->bytes();
   }
   if (!isNew) {
     moveCacheItemToBack(d_cache, stored);
@@ -442,7 +447,7 @@ uint64_t MemRecursorCache::doDump(int fd)
     for(const auto j : i.d_records) {
       count++;
       try {
-        fprintf(fp, "%s %" PRId64 " IN %s %s ; (%s) auth=%i size=%zu/%zu %s\n", i.d_qname.toString().c_str(), static_cast<int64_t>(i.d_ttd - now), DNSRecordContent::NumberToType(i.d_qtype).c_str(), j->getZoneRepresentation().c_str(), vStates[i.d_state], i.d_auth, j->d_size_in_bytes, i.d_bytes, i.d_netmask.empty() ? "" : i.d_netmask.toString().c_str());
+        fprintf(fp, "%s %" PRId64 " IN %s %s ; (%s) auth=%i size=%zu/%zu %s\n", i.d_qname.toString().c_str(), static_cast<int64_t>(i.d_ttd - now), DNSRecordContent::NumberToType(i.d_qtype).c_str(), j->getZoneRepresentation().c_str(), vStates[i.d_state], i.d_auth, j->bytes(), i.d_bytes, i.d_netmask.empty() ? "" : i.d_netmask.toString().c_str());
       }
       catch(...) {
         fprintf(fp, "; error printing '%s'\n", i.d_qname.empty() ? "EMPTY" : i.d_qname.toString().c_str());
@@ -451,7 +456,7 @@ uint64_t MemRecursorCache::doDump(int fd)
     for(const auto &sig : i.d_signatures) {
       count++;
       try {
-        fprintf(fp, "%s %" PRId64 " IN RRSIG %s ; size=%zu/%zu %s\n", i.d_qname.toString().c_str(), static_cast<int64_t>(i.d_ttd - now), sig->getZoneRepresentation().c_str(), sig->d_size_in_bytes, i.d_bytes, i.d_netmask.empty() ? "" : i.d_netmask.toString().c_str());
+        fprintf(fp, "%s %" PRId64 " IN RRSIG %s ; size=%zu/%zu %s\n", i.d_qname.toString().c_str(), static_cast<int64_t>(i.d_ttd - now), sig->getZoneRepresentation().c_str(), sig->bytes(), i.d_bytes, i.d_netmask.empty() ? "" : i.d_netmask.toString().c_str());
       }
       catch(...) {
         fprintf(fp, "; error printing '%s'\n", i.d_qname.empty() ? "EMPTY" : i.d_qname.toString().c_str());

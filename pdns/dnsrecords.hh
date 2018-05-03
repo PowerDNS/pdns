@@ -41,8 +41,9 @@
   static DNSRecordContent* make(const DNSRecord &dr, PacketReader& pr);                          \
   static DNSRecordContent* make(const string& zonedata);                                         \
   string getZoneRepresentation(bool noDot=false) const override;                                 \
+  size_t bytes() const override;                                                                 \
   void toPacket(DNSPacketWriter& pw) override;                                                   \
-  uint16_t getType() const override { return QType::RNAME; }                                   \
+  uint16_t getType() const override { return QType::RNAME; }                                     \
   template<class Convertor> void xfrPacket(Convertor& conv, bool noDot=false);
 
 class NAPTRRecordContent : public DNSRecordContent
@@ -545,6 +546,7 @@ public:
   {}
   NSECRecordContent(const string& content, const string& zone=""); //FIXME400: DNSName& zone?
 
+  size_t bytes() const override;
   static DNSRecordContent* make(const DNSRecord &dr, PacketReader& pr);
   static DNSRecordContent* make(const string& content);
   string getZoneRepresentation(bool noDot=false) const override;
@@ -566,6 +568,7 @@ public:
   {}
   NSEC3RecordContent(const string& content, const string& zone=""); //FIXME400: DNSName& zone?
 
+  size_t bytes() const override;
   static DNSRecordContent* make(const DNSRecord &dr, PacketReader& pr);
   static DNSRecordContent* make(const string& content);
   string getZoneRepresentation(bool noDot=false) const override;
@@ -595,6 +598,7 @@ public:
   {}
   NSEC3PARAMRecordContent(const string& content, const string& zone=""); // FIXME400: DNSName& zone?
 
+  size_t bytes() const override;
   static DNSRecordContent* make(const DNSRecord &dr, PacketReader& pr);
   static DNSRecordContent* make(const string& content);
   string getZoneRepresentation(bool noDot=false) const override;
@@ -620,6 +624,7 @@ public:
   {}
   LOCRecordContent(const string& content, const string& zone="");
 
+  size_t bytes() const override;
   static DNSRecordContent* make(const DNSRecord &dr, PacketReader& pr);
   static DNSRecordContent* make(const string& content);
   string getZoneRepresentation(bool noDot=false) const override;
@@ -636,29 +641,30 @@ private:
 };
 
 
-class WKSRecordContent : public DNSRecordContent
-{
-public:
-  static void report(void);
-  WKSRecordContent() 
-  {}
-  WKSRecordContent(const string& content, const string& zone=""); // FIXME400: DNSName& zone?
-
-  static DNSRecordContent* make(const DNSRecord &dr, PacketReader& pr);
-  static DNSRecordContent* make(const string& content);
-  string getZoneRepresentation(bool noDot=false) const override;
-  void toPacket(DNSPacketWriter& pw) override;
-
-  uint32_t d_ip{0};
-  std::bitset<65535> d_services;
-private:
-};
+//class WKSRecordContent : public DNSRecordContent
+//{
+//public:
+//  static void report(void);
+//  WKSRecordContent() 
+//  {}
+//  WKSRecordContent(const string& content, const string& zone=""); // FIXME400: DNSName& zone?
+//
+//  static DNSRecordContent* make(const DNSRecord &dr, PacketReader& pr);
+//  static DNSRecordContent* make(const string& content);
+//  string getZoneRepresentation(bool noDot=false) const override;
+//  void toPacket(DNSPacketWriter& pw) override;
+//
+//  uint32_t d_ip{0};
+//  std::bitset<65535> d_services;
+//private:
+//};
 
 class EUI48RecordContent : public DNSRecordContent 
 {
 public:
   EUI48RecordContent() {};
   static void report(void);
+  size_t bytes() const override;
   static DNSRecordContent* make(const DNSRecord &dr, PacketReader& pr);
   static DNSRecordContent* make(const string& zone); // FIXME400: DNSName& zone?
   string getZoneRepresentation(bool noDot=false) const override;
@@ -674,6 +680,7 @@ class EUI64RecordContent : public DNSRecordContent
 public:
   EUI64RecordContent() {};
   static void report(void);
+  size_t bytes() const override;
   static DNSRecordContent* make(const DNSRecord &dr, PacketReader& pr);
   static DNSRecordContent* make(const string& zone); // FIXME400: DNSName& zone?
   string getZoneRepresentation(bool noDot=false) const override;
@@ -730,8 +737,7 @@ RNAME##RecordContent::DNSRecordContent* RNAME##RecordContent::make(const DNSReco
 RNAME##RecordContent::RNAME##RecordContent(const DNSRecord& dr, PacketReader& pr)                  \
 {                                                                                                  \
   doRecordCheck(dr);                                                                               \
-  pr.d_bytesout = 0 ;xfrPacket(pr);                                                                                   \
-  d_size_in_bytes = pr.d_bytesout+sizeof(*this); ; /* d_size_in_bytes = dr.d_clen; */                                                               \
+  xfrPacket(pr);                                                                                   \
 }                                                                                                  \
                                                                                                    \
 RNAME##RecordContent::DNSRecordContent* RNAME##RecordContent::make(const string& zonedata)         \
@@ -769,7 +775,7 @@ RNAME##RecordContent::RNAME##RecordContent(const string& zoneData)              
 string RNAME##RecordContent::getZoneRepresentation(bool noDot) const                               \
 {                                                                                                  \
   string ret;                                                                                      \
-  RecordTextWriter rtw(ret, noDot);                                                                       \
+  RecordTextWriter rtw(ret, noDot);                                                                \
   const_cast<RNAME##RecordContent*>(this)->xfrPacket(rtw);                                         \
   return ret;                                                                                      \
 }                                                                                                  

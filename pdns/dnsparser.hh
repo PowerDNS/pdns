@@ -87,7 +87,6 @@ public:
   void xfr32BitInt(uint32_t& val)
   {
     val=get32BitInt();
-    d_bytesout += 4;
   }
 
   void xfrIP(uint32_t& val)
@@ -140,13 +139,11 @@ public:
   void xfrName(DNSName &name, bool compress=false, bool noDot=false)
   {
     name=getName();
-    d_bytesout += name.wirelength();
   }
 
   void xfrText(string &text, bool multi=false, bool lenField=true)
   {
     text=getText(multi, lenField);
-    d_bytesout += text.length();
   }
 
   void xfrUnquotedText(string &text, bool lenField){
@@ -169,8 +166,6 @@ public:
   string getUnquotedText(bool lenField);
 
   uint16_t d_pos;
-
-  size_t d_bytesout = 0;
 
   bool eof() { return true; };
   const string getRemaining() const {
@@ -223,6 +218,7 @@ public:
   static shared_ptr<DNSRecordContent> unserialize(const DNSName& qname, uint16_t qtype, const string& serialized);
 
   void doRecordCheck(const struct DNSRecord&){}
+  virtual size_t bytes() const = 0;
 
   typedef DNSRecordContent* makerfunc_t(const struct DNSRecord& dr, PacketReader& pr);  
   typedef DNSRecordContent* zmakerfunc_t(const string& str);  
@@ -268,7 +264,6 @@ public:
 
   virtual uint16_t getType() const = 0;
 
-  size_t d_size_in_bytes = 0;
 
 protected:
   typedef std::map<std::pair<uint16_t, uint16_t>, makerfunc_t* > typemap_t;

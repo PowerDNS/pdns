@@ -78,6 +78,12 @@ public:
   {
     return d_dr.d_type;
   }
+  size_t bytes() const override
+  {
+    return sizeof(*this)
+      + this->d_record.size() * sizeof(uint8_t)
+      + this->d_dr.d_name.getStorage().capacity() + 1;
+  }
 private:
   DNSRecord d_dr;
   vector<uint8_t> d_record;
@@ -526,7 +532,6 @@ try
     blob.clear();
 
   d_pos = d_startrecordpos + d_recordlen;
-  d_bytesout += d_recordlen;
 }
 catch(...)
 {
@@ -546,7 +551,6 @@ void PacketReader::xfrBlob(string& blob, int length)
   }
   else 
     blob.clear();
-  d_bytesout += length;
 }
 
 

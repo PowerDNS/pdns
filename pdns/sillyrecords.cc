@@ -153,6 +153,10 @@ latlon2ul(const char **latlonstrptr, int *which)
   return (retval);
 }
 
+size_t LOCRecordContent::bytes() const
+{
+  return sizeof(*this);
+}
 void LOCRecordContent::report(void)
 {
   regist(1, QType::LOC, &make, &make, "LOC");

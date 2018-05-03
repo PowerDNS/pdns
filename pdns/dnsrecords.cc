@@ -98,12 +98,20 @@ ARecordContent::ARecordContent(const ComboAddress& ca)
   d_ip = ca.sin4.sin_addr.s_addr;
 }
 
+size_t ARecordContent::bytes() const
+{
+  return sizeof(*this);
+}
+
 AAAARecordContent::AAAARecordContent(const ComboAddress& ca) 
 {
   d_ip6.assign((const char*)ca.sin6.sin6_addr.s6_addr, 16);
 }
 
-
+size_t AAAARecordContent::bytes() const
+{
+  return sizeof(*this);
+}
 
 ComboAddress ARecordContent::getCA(int port) const
 {
@@ -135,31 +143,114 @@ void ARecordContent::doRecordCheck(const DNSRecord& dr)
 boilerplate_conv(AAAA, QType::AAAA, conv.xfrIP6(d_ip6); );
 
 boilerplate_conv(NS, QType::NS, conv.xfrName(d_content, true));
+size_t NSRecordContent::bytes() const
+{
+  return sizeof(*this)
+    + d_content.getStorage().capacity() + 1;
+}
 boilerplate_conv(PTR, QType::PTR, conv.xfrName(d_content, true));
+size_t PTRRecordContent::bytes() const
+{
+  return sizeof(*this)
+    + d_content.getStorage().capacity() + 1;
+}
 boilerplate_conv(CNAME, QType::CNAME, conv.xfrName(d_content, true));
+size_t CNAMERecordContent::bytes() const
+{
+  return sizeof(*this)
+    + d_content.getStorage().capacity() + 1;
+}
 boilerplate_conv(ALIAS, QType::ALIAS, conv.xfrName(d_content, false));
+size_t ALIASRecordContent::bytes() const
+{
+  return sizeof(*this)
+    + d_content.getStorage().capacity() + 1;
+}
 boilerplate_conv(DNAME, QType::DNAME, conv.xfrName(d_content));
+size_t DNAMERecordContent::bytes() const
+{
+  return sizeof(*this)
+    + d_content.getStorage().capacity() + 1;
+}
 boilerplate_conv(MB, QType::MB, conv.xfrName(d_madname, true));
+size_t MBRecordContent::bytes() const
+{
+  return sizeof(*this)
+    + d_madname.getStorage().capacity() + 1;
+}
 boilerplate_conv(MG, QType::MG, conv.xfrName(d_mgmname, true));
+size_t MGRecordContent::bytes() const
+{
+  return sizeof(*this)
+    + d_mgmname.getStorage().capacity() + 1;
+}
 boilerplate_conv(MR, QType::MR, conv.xfrName(d_alias, true));
+size_t MRRecordContent::bytes() const
+{
+  return sizeof(*this)
+    + d_alias.getStorage().capacity() + 1;
+}
 boilerplate_conv(MINFO, QType::MINFO, conv.xfrName(d_rmailbx, true); conv.xfrName(d_emailbx, true));
+size_t MINFORecordContent::bytes() const
+{
+  return sizeof(*this)
+    + d_rmailbx.getStorage().capacity() + 1
+    + d_emailbx.getStorage().capacity() + 1;
+}
 boilerplate_conv(TXT, QType::TXT, conv.xfrText(d_text, true));
+
+size_t TXTRecordContent::bytes() const
+{
+  return sizeof(*this)
+    + d_text.capacity() + 1;
+}
+
 #ifdef HAVE_LUA_RECORDS
 boilerplate_conv(LUA, QType::LUA, conv.xfrType(d_type); conv.xfrText(d_code, true));
+size_t LUARecordContent::bytes() const
+{
+  return sizeof(*this)
+    + d_code.capacity() + 1;
+}
 #endif
 boilerplate_conv(ENT, 0, );
+size_t ENTRecordContent::bytes() const
+{
+  return sizeof(*this);
+}
 boilerplate_conv(SPF, 99, conv.xfrText(d_text, true));
+size_t SPFRecordContent::bytes() const
+{
+  return sizeof(*this);
+}
 boilerplate_conv(HINFO, QType::HINFO,  conv.xfrText(d_cpu);   conv.xfrText(d_host));
+size_t HINFORecordContent::bytes() const
+{
+  return sizeof(*this)
+    + d_cpu.capacity() + 1
+    + d_host.capacity() + 1;
+}
 
 boilerplate_conv(RP, QType::RP,
                  conv.xfrName(d_mbox);   
                  conv.xfrName(d_info)
                  );
 
+size_t RPRecordContent::bytes() const
+{
+  return sizeof(*this)
+    + d_mbox.getStorage().capacity() + 1
+    + d_info.getStorage().capacity() + 1;
+}
 
 boilerplate_conv(OPT, QType::OPT, 
                    conv.xfrBlob(d_data)
                  );
+size_t OPTRecordContent::bytes() const
+{
+  return sizeof(*this)
+    + d_data.capacity() + 1;
+}
 
 #ifdef HAVE_LUA_RECORDS
 string LUARecordContent::getCode()
@@ -208,6 +299,14 @@ boilerplate_conv(TSIG, QType::TSIG,
                  if (size>0) conv.xfrBlobNoSpaces(d_otherData, size);
                  );
 
+size_t TSIGRecordContent::bytes() const
+{
+  return sizeof(*this)
+    + d_algoName.getStorage().capacity() + 1
+    + d_mac.capacity() + 1
+    + d_otherData.capacity() +  1;
+}
+
 MXRecordContent::MXRecordContent(uint16_t preference, const DNSName& mxname):  d_preference(preference), d_mxname(mxname)
 {
 }
@@ -217,10 +316,22 @@ boilerplate_conv(MX, QType::MX,
                  conv.xfrName(d_mxname, true);
                  )
 
+size_t MXRecordContent::bytes() const
+{
+  return sizeof(*this)
+    + d_mxname.getStorage().capacity() + 1;
+}
+
 boilerplate_conv(KX, QType::KX, 
                  conv.xfr16BitInt(d_preference);
                  conv.xfrName(d_exchanger, false);
                  )
+
+size_t KXRecordContent::bytes() const
+{
+  return sizeof(*this)
+    + d_exchanger.getStorage().capacity() + 1;
+}
 
 boilerplate_conv(IPSECKEY, QType::IPSECKEY,
    conv.xfr8BitInt(d_preference);
@@ -256,15 +367,33 @@ boilerplate_conv(IPSECKEY, QType::IPSECKEY,
    }
 ) 
 
+size_t IPSECKEYRecordContent::bytes() const
+{
+  return sizeof(*this)
+    + d_gateway.getStorage().capacity() + 1
+    + d_publickey.capacity() + 1
+    + d_ip6.capacity() + 1;
+}
+
 boilerplate_conv(DHCID, 49, 
                  conv.xfrBlob(d_content);
                  )
 
+size_t DHCIDRecordContent::bytes() const
+{
+  return sizeof(*this)
+    + d_content.capacity() + 1;
+}
 
 boilerplate_conv(AFSDB, QType::AFSDB, 
                  conv.xfr16BitInt(d_subtype);
                  conv.xfrName(d_hostname);
                  )
+size_t AFSDBRecordContent::bytes() const
+{
+  return sizeof(*this)
+    + d_hostname.getStorage().capacity() + 1;
+}
 
 
 boilerplate_conv(NAPTR, QType::NAPTR,
@@ -272,7 +401,14 @@ boilerplate_conv(NAPTR, QType::NAPTR,
                  conv.xfrText(d_flags);        conv.xfrText(d_services);         conv.xfrText(d_regexp);
                  conv.xfrName(d_replacement);
                  )
-
+size_t NAPTRRecordContent::bytes() const
+{
+  return sizeof(*this)
+    + d_replacement.getStorage().capacity() + 1
+    + d_flags.capacity() + 1
+    + d_services.capacity() + 1
+    + d_regexp.capacity() + 1;
+}
 
 SRVRecordContent::SRVRecordContent(uint16_t preference, uint16_t weight, uint16_t port, const DNSName& target) 
 : d_weight(weight), d_port(port), d_target(target), d_preference(preference)
@@ -282,6 +418,12 @@ boilerplate_conv(SRV, QType::SRV,
                  conv.xfr16BitInt(d_preference);   conv.xfr16BitInt(d_weight);   conv.xfr16BitInt(d_port);
                  conv.xfrName(d_target); 
                  )
+
+size_t SRVRecordContent::bytes() const
+{
+  return sizeof(*this)
+    + d_target.getStorage().capacity() + 1;
+}
 
 SOARecordContent::SOARecordContent(const DNSName& mname, const DNSName& rname, const struct soatimes& st) 
 : d_mname(mname), d_rname(rname), d_st(st)
@@ -297,6 +439,13 @@ boilerplate_conv(SOA, QType::SOA,
                  conv.xfr32BitInt(d_st.expire);
                  conv.xfr32BitInt(d_st.minimum);
                  );
+size_t SOARecordContent::bytes() const
+{
+  return sizeof(*this)
+    + d_mname.getStorage().capacity() + 1
+    + d_rname.getStorage().capacity() + 1;
+}
+
 #undef KEY
 boilerplate_conv(KEY, QType::KEY, 
                  conv.xfr16BitInt(d_flags); 
@@ -304,6 +453,11 @@ boilerplate_conv(KEY, QType::KEY,
                  conv.xfr8BitInt(d_algorithm); 
                  conv.xfrBlob(d_certificate);
                  );
+size_t KEYRecordContent::bytes() const
+{
+  return sizeof(*this)
+    + d_certificate.capacity() + 1;
+}
 
 boilerplate_conv(CERT, 37, 
                  conv.xfr16BitInt(d_type); 
@@ -313,6 +467,11 @@ boilerplate_conv(CERT, 37,
                  conv.xfr8BitInt(d_algorithm); 
                  conv.xfrBlob(d_certificate);
                  )
+size_t CERTRecordContent::bytes() const
+{
+  return sizeof(*this)
+    + d_certificate.capacity() + 1;
+}
 
 boilerplate_conv(TLSA, 52, 
                  conv.xfr8BitInt(d_certusage); 
@@ -320,10 +479,21 @@ boilerplate_conv(TLSA, 52,
                  conv.xfr8BitInt(d_matchtype); 
                  conv.xfrHexBlob(d_cert, true);
                  )                 
+size_t TLSARecordContent::bytes() const
+{
+  return sizeof(*this)
+    + d_cert.capacity() + 1;
+}
                  
 boilerplate_conv(OPENPGPKEY, 61,
                  conv.xfrBlob(d_keyring);
                  )
+
+size_t OPENPGPKEYRecordContent::bytes() const
+{
+  return sizeof(*this)
+    + d_keyring.capacity() + 1;
+}
 
 boilerplate_conv(SMIMEA, 53,
                  conv.xfr8BitInt(d_certusage);
@@ -331,6 +501,11 @@ boilerplate_conv(SMIMEA, 53,
                  conv.xfr8BitInt(d_matchtype);
                  conv.xfrHexBlob(d_cert, true);
                  )
+size_t SMIMEARecordContent::bytes() const
+{
+  return sizeof(*this)
+    + d_cert.capacity() + 1;
+}
 
 DSRecordContent::DSRecordContent() {}
 boilerplate_conv(DS, 43, 
@@ -339,6 +514,11 @@ boilerplate_conv(DS, 43,
                  conv.xfr8BitInt(d_digesttype); 
                  conv.xfrHexBlob(d_digest, true); // keep reading across spaces
                  )
+size_t DSRecordContent::bytes() const
+{
+  return sizeof(*this)
+    + d_digest.capacity() + 1;
+}
 
 CDSRecordContent::CDSRecordContent() {}
 boilerplate_conv(CDS, 59, 
@@ -348,6 +528,12 @@ boilerplate_conv(CDS, 59,
                  conv.xfrHexBlob(d_digest, true); // keep reading across spaces
                  )
 
+size_t CDSRecordContent::bytes() const
+{
+  return sizeof(*this)
+    + d_digest.capacity() + 1;
+}
+
 DLVRecordContent::DLVRecordContent() {}
 boilerplate_conv(DLV,32769 , 
                  conv.xfr16BitInt(d_tag); 
@@ -355,6 +541,11 @@ boilerplate_conv(DLV,32769 ,
                  conv.xfr8BitInt(d_digesttype); 
                  conv.xfrHexBlob(d_digest, true); // keep reading across spaces
                  )
+size_t DLVRecordContent::bytes() const
+{
+  return sizeof(*this)
+    + d_digest.capacity() + 1;
+}
 
 
 boilerplate_conv(SSHFP, 44, 
@@ -362,6 +553,11 @@ boilerplate_conv(SSHFP, 44,
                  conv.xfr8BitInt(d_fptype); 
                  conv.xfrHexBlob(d_fingerprint, true);
                  )
+size_t SSHFPRecordContent::bytes() const
+{
+  return sizeof(*this)
+    + d_fingerprint.capacity() + 1;
+}
 
 boilerplate_conv(RRSIG, 46, 
                  conv.xfrType(d_type); 
@@ -374,6 +570,13 @@ boilerplate_conv(RRSIG, 46,
                  conv.xfrName(d_signer);
                  conv.xfrBlob(d_signature);
                  )
+
+size_t RRSIGRecordContent::bytes() const
+{
+  return sizeof(*this)
+    + d_signature.capacity() + 1
+    + d_signer.getStorage().capacity() + 1;
+}
                  
 RRSIGRecordContent::RRSIGRecordContent() {}
 
@@ -384,6 +587,11 @@ boilerplate_conv(DNSKEY, 48,
                  conv.xfrBlob(d_key);
                  )
 DNSKEYRecordContent::DNSKEYRecordContent() {}
+size_t DNSKEYRecordContent::bytes() const
+{
+  return sizeof(*this)
+    + d_key.capacity() + 1;
+}
 
 boilerplate_conv(CDNSKEY, 60, 
                  conv.xfr16BitInt(d_flags); 
@@ -392,6 +600,11 @@ boilerplate_conv(CDNSKEY, 60,
                  conv.xfrBlob(d_key);
                  )
 CDNSKEYRecordContent::CDNSKEYRecordContent() {}
+size_t CDNSKEYRecordContent::bytes() const
+{
+  return sizeof(*this)
+    + d_key.capacity() + 1;
+}
 
 boilerplate_conv(RKEY, 57, 
                  conv.xfr16BitInt(d_flags); 
@@ -399,6 +612,12 @@ boilerplate_conv(RKEY, 57,
                  conv.xfrBlob(d_key);
                  )
 RKEYRecordContent::RKEYRecordContent() {}
+
+size_t RKEYRecordContent::bytes() const
+{
+  return sizeof(*this)
+    + d_key.capacity() + 1;
+}
 
 /* EUI48 start */
 void EUI48RecordContent::report(void) 
@@ -440,10 +659,19 @@ string EUI48RecordContent::getZoneRepresentation(bool noDot) const
     return tmp;
 }
 
+size_t EUI48RecordContent::bytes() const
+{
+  return sizeof(*this);
+}
+
 /* EUI48 end */
 
 /* EUI64 start */
 
+size_t EUI64RecordContent::bytes() const
+{
+  return sizeof(*this);
+}
 void EUI64RecordContent::report(void)
 {
   regist(1, QType::EUI64, &make, &make, "EUI64");
@@ -498,6 +726,15 @@ boilerplate_conv(TKEY, QType::TKEY,
                  conv.xfr16BitInt(d_othersize);
                  if (d_othersize>0) conv.xfrBlobNoSpaces(d_other, d_othersize);
                  )
+
+size_t TKEYRecordContent::bytes() const
+{
+  return sizeof(*this)
+    + d_algo.getStorage().capacity() + 1
+    + d_key.capacity() + 1
+    + d_other.capacity() + 1;
+}
+
 TKEYRecordContent::TKEYRecordContent() { d_othersize = 0; } // fix CID#1288932
 
 boilerplate_conv(URI, QType::URI,
@@ -506,11 +743,24 @@ boilerplate_conv(URI, QType::URI,
                  conv.xfrText(d_target, true, false);
                  )
 
+size_t URIRecordContent::bytes() const
+{
+  return sizeof(*this)
+    + d_target.capacity() + 1;
+}
+
 boilerplate_conv(CAA, QType::CAA,
                  conv.xfr8BitInt(d_flags);
                  conv.xfrUnquotedText(d_tag, true);
                  conv.xfrText(d_value, true, false); /* no lenField */
                 )
+
+size_t CAARecordContent::bytes() const
+{
+  return sizeof(*this)
+    + d_tag.capacity() + 1
+    + d_value.capacity() + 1;
+}
 
 static uint16_t makeTag(const std::string& data)
 {

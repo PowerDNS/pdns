@@ -74,6 +74,7 @@ class NegCache : public boost::noncopyable {
     };
 
     size_t bytes() const {
+      // TODO move d_bytes calc from NegCache::add to there w/ caching ?
       return d_bytes;
     }
 
