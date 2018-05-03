@@ -547,7 +547,7 @@ static void throwUnableToSecure(const DNSName& zonename) {
       + "capable backends are loaded, or because the backends have DNSSEC disabled. Check your configuration.");
 }
 
-static void updateDomainSettingsFromDocument(UeberBackend& B, const DomainInfo& di, const DNSName& zonename, const Json document) {
+static void updateDomainSettingsFromDocument(UeberBackend& B, const DomainInfo& di, const DNSName& zonename, const Json document, HttpResponse* resp) {
   string zonemaster;
   bool shouldRectify = false;
   for(auto value : document["masters"].array_items()) {
@@ -655,13 +655,41 @@ static void updateDomainSettingsFromDocument(UeberBackend& B, const DomainInfo& 
     }
   }
 
-  string api_rectify;
-  di.backend->getDomainMetadataOne(zonename, "API-RECTIFY", api_rectify);
-  if (shouldRectify && dk.isSecuredZone(zonename) && !dk.isPresigned(zonename) && api_rectify == "1") {
-    string info;
-    string error_msg = "";
-    if (!dk.rectifyZone(zonename, error_msg, info, true))
-      throw ApiException("Failed to rectify '" + zonename.toString() + "' " + error_msg);
+  if (shouldRectify && !dk.isPresigned(zonename)) {
+    // Rectify
+    string api_rectify;
+    di.backend->getDomainMetadataOne(zonename, "API-RECTIFY", api_rectify);
+    if (api_rectify == "1") {
+      string info;
+      string error_msg;
+      if (!dk.rectifyZone(zonename, error_msg, info, true)) {
+        throw ApiException("Failed to rectify '" + zonename.toString() + "' " + error_msg);
+      }
+    }
+
+    // Increase serial
+    string soa_edit_api_kind;
+    di.backend->getDomainMetadataOne(zonename, "SOA-EDIT-API", soa_edit_api_kind);
+    if (!soa_edit_api_kind.empty()) {
+      SOAData sd;
+      if (!B.getSOAUncached(zonename, sd, true))
+        return;
+
+      string soa_edit_kind;
+      di.backend->getDomainMetadataOne(zonename, "SOA-EDIT", soa_edit_kind);
+
+      DNSResourceRecord rr;
+      if (makeIncreasedSOARecord(sd, soa_edit_api_kind, soa_edit_kind, rr)) {
+        if (!di.backend->replaceRRSet(di.id, rr.qname, rr.qtype, vector<DNSResourceRecord>(1, rr))) {
+          throw ApiException("Hosting backend does not support editing records.");
+        }
+      }
+
+      // return old and new serials in headers
+      resp->headers["X-PDNS-Old-Serial"] = std::to_string(sd.serial);
+      fillSOAData(rr.content, sd);
+      resp->headers["X-PDNS-New-Serial"] = std::to_string(sd.serial);
+    }
   }
 }
 
@@ -1339,7 +1367,7 @@ static void apiServerZones(HttpRequest* req, HttpResponse* resp) {
       di.backend->feedComment(c);
     }
 
-    updateDomainSettingsFromDocument(B, di, zonename, document);
+    updateDomainSettingsFromDocument(B, di, zonename, document, resp);
 
     di.backend->commitTransaction();
 
@@ -1373,7 +1401,7 @@ static void apiServerZoneDetail(HttpRequest* req, HttpResponse* resp) {
     if(!B.getDomainInfo(zonename, di))
       throw ApiException("Could not find domain '"+zonename.toString()+"'");
 
-    updateDomainSettingsFromDocument(B, di, zonename, req->json());
+    updateDomainSettingsFromDocument(B, di, zonename, req->json(), resp);
 
     resp->body = "";
     resp->status = 204; // No Content, but indicate success
