@@ -2462,13 +2462,14 @@ void broadcastFunction(const pipefunc_t& func)
       unixDie("write to thread pipe returned wrong size or error");
     }
 
-    string* resp;
+    string* resp = nullptr;
     if(read(tps.readFromThread, &resp, sizeof(resp)) != sizeof(resp))
       unixDie("read from thread pipe returned wrong size or error");
 
     if(resp) {
 //      cerr <<"got response: " << *resp << endl;
       delete resp;
+      resp = nullptr;
     }
   }
 }
@@ -2585,7 +2586,7 @@ template<class T> T broadcastAccFunction(const boost::function<T*()>& func)
       unixDie("write to thread pipe returned wrong size or error");
     }
 
-    T* resp;
+    T* resp = nullptr;
     if(read(tps.readFromThread, &resp, sizeof(resp)) != sizeof(resp))
       unixDie("read from thread pipe returned wrong size or error");
 
@@ -2593,6 +2594,7 @@ template<class T> T broadcastAccFunction(const boost::function<T*()>& func)
       //~ cerr <<"got response: " << *resp << endl;
       ret += *resp;
       delete resp;
+      resp = nullptr;
     }
   }
   return ret;
