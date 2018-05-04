@@ -372,16 +372,16 @@ BOOST_AUTO_TEST_CASE(test_clear) {
 BOOST_AUTO_TEST_CASE(test_dumpToFile) {
   NegCache cache;
   vector<string> expected;
-  expected.push_back("www1.powerdns.com. 600 IN TYPE0 VIA powerdns.com. ; (Indeterminate) size=176\n");
-  expected.push_back(" www1.powerdns.com. 600 IN NSEC deadbeef. ; (Indeterminate) size=0/176\n");
-  expected.push_back("  www1.powerdns.com. 600 IN RRSIG NSEC 5 3 600 20370101000000 20370101000000 24567 dummy. data ; size=0/176\n");
-  expected.push_back("   www1.powerdns.com. 600 IN SOA ns1. hostmaster. 1 2 3 4 5 ; (Indeterminate) size=0/176\n");
-  expected.push_back("    www1.powerdns.com. 600 IN RRSIG SOA 5 3 600 20370101000000 20370101000000 24567 dummy. data ; size=0/176\n");
-  expected.push_back("www2.powerdns.com. 600 IN TYPE0 VIA powerdns.com. ; (Indeterminate) size=176\n");
-  expected.push_back(" www2.powerdns.com. 600 IN NSEC deadbeef. ; (Indeterminate) size=0/176\n");
-  expected.push_back("  www2.powerdns.com. 600 IN RRSIG NSEC 5 3 600 20370101000000 20370101000000 24567 dummy. data ; size=0/176\n");
-  expected.push_back("   www2.powerdns.com. 600 IN SOA ns1. hostmaster. 1 2 3 4 5 ; (Indeterminate) size=0/176\n");
-  expected.push_back("    www2.powerdns.com. 600 IN RRSIG SOA 5 3 600 20370101000000 20370101000000 24567 dummy. data ; size=0/176\n");
+
+  expected.push_back("www1.powerdns.com. 600 IN TYPE0 VIA powerdns.com. ; (Indeterminate) size=705\n");
+  expected.push_back(" www1.powerdns.com. 600 IN NSEC deadbeef. ; (Indeterminate) size=103/705\n");
+  expected.push_back("  www1.powerdns.com. 600 IN RRSIG NSEC 5 3 600 20370101000000 20370101000000 24567 dummy. data ; size=127/705\n");
+  expected.push_back("   www1.powerdns.com. 600 IN SOA ns1. hostmaster. 1 2 3 4 5 ; (Indeterminate) size=126/705\n");
+  expected.push_back("    www1.powerdns.com. 600 IN RRSIG SOA 5 3 600 20370101000000 20370101000000 24567 dummy. data ; size=127/705\n");
+  expected.push_back("www2.powerdns.com. 600 IN TYPE0 VIA powerdns.com. ; (Indeterminate) size=705\n");
+  expected.push_back(" www2.powerdns.com. 600 IN NSEC deadbeef. ; (Indeterminate) size=103/705\n");
+  expected.push_back("  www2.powerdns.com. 600 IN RRSIG NSEC 5 3 600 20370101000000 20370101000000 24567 dummy. data ; size=127/705\n");
+  expected.push_back("   www2.powerdns.com. 600 IN SOA ns1. hostmaster. 1 2 3 4 5 ; (Indeterminate) size=126/705\n");
 
   struct timeval now;
   Utility::gettimeofday(&now, 0);
@@ -401,7 +401,6 @@ BOOST_AUTO_TEST_CASE(test_dumpToFile) {
   rewind(fp);
   char *line = nullptr;
   size_t len = 0;
-
   for (const auto& str : expected) {
     ssize_t read = getline(&line, &len, fp);
     if (read == -1)
