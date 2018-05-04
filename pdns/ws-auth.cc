@@ -552,7 +552,7 @@ static void throwUnableToSecure(const DNSName& zonename) {
       + "capable backends are loaded, or because the backends have DNSSEC disabled. Check your configuration.");
 }
 
-static void updateDomainSettingsFromDocument(UeberBackend& B, const DomainInfo& di, const DNSName& zonename, const Json document, HttpResponse* resp) {
+static void updateDomainSettingsFromDocument(UeberBackend& B, const DomainInfo& di, const DNSName& zonename, const Json document) {
   string zonemaster;
   bool shouldRectify = false;
   for(auto value : document["masters"].array_items()) {
@@ -689,11 +689,6 @@ static void updateDomainSettingsFromDocument(UeberBackend& B, const DomainInfo& 
           throw ApiException("Hosting backend does not support editing records.");
         }
       }
-
-      // return old and new serials in headers
-      resp->headers["X-PDNS-Old-Serial"] = std::to_string(sd.serial);
-      fillSOAData(rr.content, sd);
-      resp->headers["X-PDNS-New-Serial"] = std::to_string(sd.serial);
     }
   }
 }
@@ -1371,7 +1366,7 @@ static void apiServerZones(HttpRequest* req, HttpResponse* resp) {
       di.backend->feedComment(c);
     }
 
-    updateDomainSettingsFromDocument(B, di, zonename, document, resp);
+    updateDomainSettingsFromDocument(B, di, zonename, document);
 
     di.backend->commitTransaction();
 
@@ -1407,7 +1402,7 @@ static void apiServerZoneDetail(HttpRequest* req, HttpResponse* resp) {
   if(req->method == "PUT" && !::arg().mustDo("api-readonly")) {
     // update domain settings
 
-    updateDomainSettingsFromDocument(B, di, zonename, req->json(), resp);
+    updateDomainSettingsFromDocument(B, di, zonename, req->json());
 
     resp->body = "";
     resp->status = 204; // No Content, but indicate success
