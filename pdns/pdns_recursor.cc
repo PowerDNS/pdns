@@ -2415,7 +2415,10 @@ static void makeThreadPipes()
       unixDie("Creating pipe for inter-thread communications");
     tps.readQueriesToThread = fd[0];
     tps.writeQueriesToThread = fd[1];
-    setNonBlocking(tps.writeQueriesToThread);
+
+    if (!setNonBlocking(tps.writeQueriesToThread)) {
+      unixDie("Making pipe for inter-thread communications non-blocking");
+    }
 
     g_pipes.push_back(tps);
   }
