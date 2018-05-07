@@ -3,7 +3,7 @@ Changelogs for 4.1.x
 
 .. changelog::
   :version: 4.1.1
-  :released: 16th of Feburary 2018
+  :released: 16th of February 2018
 
   This is the second release in the 4.1 train.
 
