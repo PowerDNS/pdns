@@ -2,6 +2,150 @@ Changelogs for 4.1.x
 ====================
 
 .. changelog::
+  :version: 4.1.2
+  :released: 8th of May 2018
+
+  This is the third release in the 4.1 train. Besides bug fixes, it contains some performance and usability improvements.
+
+  .. change::
+    :tags: Improvements, API
+    :pullreq: 6572
+
+    API: increase serial after dnssec related updates
+
+  .. change::
+    :tags: Tools
+    :pullreq: 6575
+
+    Dnsreplay: bail out on a too small outgoing buffer
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 6573
+    :tickets: 6312, 6545
+
+    Auth: lower 'packet too short' loglevel
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 6570
+    :tickets: 6021
+
+    Auth-bindbackend: only compare ips in ismaster() (Kees Monshouwer)
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 6556
+    :tickets: 6354
+
+    Rather than crash, sheepishly report no file/linenum
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 6540
+    :tickets: 6539
+
+    Document undocumented config vars
+
+  .. change::
+    :tags: Internals
+    :pullreq: 6542
+    :tickets: 6516, 6516
+
+    Move includes around to avoid boost L conflict
+
+  .. change::
+    :tags: Internals
+    :pullreq: 6543
+    :tickets: 6155
+
+    Backport: update edns option code list
+
+  .. change::
+    :tags: Packages
+    :pullreq: 6546
+    :tickets: 6286
+
+    Backport: debian authoritative packaging fixes for 4.1
+
+  .. change::
+    :tags: Packages
+    :pullreq: 6547
+    :tickets: 6051, 6062
+
+    Fix piddir detection on centos 6
+
+  .. change::
+    :tags: Internals
+    :pullreq: 6548
+    :tickets: 6487
+
+    Auth: link dnspcap2protobuf against librt when needed
+
+  .. change::
+    :tags: Internals
+    :pullreq: 6549
+    :tickets: 6478
+
+    Fix a warning on botan >= 2.5.0
+
+  .. change::
+    :tags: Bug Fixes, Postgresql
+    :pullreq: 6551
+    :tickets: 6464
+
+    Auth: allocate new statements after reconnecting to postgresql
+
+  .. change::
+    :tags: Internals
+    :pullreq: 6552
+    :tickets: 6304
+
+    Auth 4.1.x: unbreak build
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 6553
+    :tickets: 6297
+
+    Make check-zone error on rows that have content but shouldn't
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 6554
+    :tickets: 6427
+
+    Auth: avoid an isane amount of new backend connections during an axfr
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 6555
+    :tickets: 6396
+
+    Report unparseable data in stoul invalid_argument exception
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 6490
+    :tickets: 6484
+
+    Backport: recheck serial when axfr is done
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 6337
+    :tickets: 6331
+
+    Backport: add tcp support for alias
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 6314
+    :tickets: 6276
+
+    Backport #6276 (auth 4.1.x): prevent cname + other data with dnsupdate
+
+.. changelog::
   :version: 4.1.1
   :released: 16th of February 2018
 
