@@ -132,7 +132,10 @@ struct ThreadPipeSet
   int readQueriesToThread;
 };
 
+/* the TID of the thread handling the web server, carbon, statistics and the control channel */
 static const int s_handlerThreadID = -1;
+/* when pdns-distributes-queries is set, the TID of the thread handling, hashing and distributing new queries
+   to the other threads */
 static const int s_distributorThreadID = 0;
 
 typedef vector<int> tcpListenSockets_t;
@@ -2437,14 +2440,18 @@ struct ThreadMSG
 
 void broadcastFunction(const pipefunc_t& func)
 {
-  /* This function might be called by the worker with t_id 0 during startup */
+  /* This function might be called by the worker with t_id 0 during startup
+     for the initialization of ACLs and domain maps */
   if (t_id != s_handlerThreadID && t_id != s_distributorThreadID) {
     g_log<<Logger::Error<<"broadcastFunction() has been called by a worker ("<<t_id<<")"<<endl;
     exit(1);
   }
 
-  // call the function ourselves, to update the ACL or domain maps for example
-  func();
+  if (t_id == s_handlerThreadID) {
+    /* the distributor will call itself below, but if we are the handler thread,
+       call the function ourselves to update the ACL or domain maps for example */
+    func();
+  }
 
   int n = 0;
   for(ThreadPipeSet& tps : g_pipes)
@@ -2467,13 +2474,13 @@ void broadcastFunction(const pipefunc_t& func)
       unixDie("read from thread pipe returned wrong size or error");
 
     if(resp) {
-//      cerr <<"got response: " << *resp << endl;
       delete resp;
       resp = nullptr;
     }
   }
 }
 
+// This function is only called by the distributor thread, when pdns-distributes-queries is set
 void distributeAsyncFunction(const string& packet, const pipefunc_t& func)
 {
   if (t_id != s_distributorThreadID) {
@@ -2566,6 +2573,9 @@ vector<pair<DNSName, uint16_t> >& operator+=(vector<pair<DNSName, uint16_t> >&a,
 }
 
 
+/*
+  This function should only be called by the handler to gather metrics, wipe the cache,
+  reload the Lua script (not the Lua config) or change the current trace regex */
 template<class T> T broadcastAccFunction(const boost::function<T*()>& func)
 {
   if (t_id != s_handlerThreadID) {
@@ -2591,7 +2601,6 @@ template<class T> T broadcastAccFunction(const boost::function<T*()>& func)
       unixDie("read from thread pipe returned wrong size or error");
 
     if(resp) {
-      //~ cerr <<"got response: " << *resp << endl;
       ret += *resp;
       delete resp;
       resp = nullptr;
