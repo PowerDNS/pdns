@@ -195,7 +195,7 @@ tooOldDrops OBJECT-TYPE
     MAX-ACCESS read-only
     STATUS current
     DESCRIPTION
-        "Number of responses dropped because of a timeout"
+        "Number of queries dropped because of a timeout"
     ::= { stats 21 }
 
 answers01 OBJECT-TYPE
@@ -387,7 +387,7 @@ noPacketError OBJECT-TYPE
     MAX-ACCESS read-only
     STATUS current
     DESCRIPTION
-        "Number of noPacketError"
+        "Number of calls to recvmsg() that returned no packet even though the socket was ready"
     ::= { stats 45 }
 
 dlgOnlyDrops OBJECT-TYPE
@@ -763,7 +763,7 @@ queryPipeFullDrops OBJECT-TYPE
     MAX-ACCESS read-only
     STATUS current
     DESCRIPTION
-        "Number of responses dropped because the query distribution pipe was full"
+        "Number of queries dropped because the query distribution pipe was full"
     ::= { stats 92 }
 
 ---
