@@ -1211,10 +1211,16 @@ bool Bind2Backend::isMaster(const DNSName& name, const string &ip)
   if(bbd.d_kind != DomainInfo::Slave)
     return false;
 
-  for(vector<string>::const_iterator iter = bbd.d_masters.begin(); iter != bbd.d_masters.end(); ++iter)
-    if(*iter==ip)
-      return true;
-  
+  for(vector<string>::const_iterator iter = bbd.d_masters.begin(); iter != bbd.d_masters.end(); ++iter) {
+    try {
+      const ComboAddress caMaster(*iter);
+      if(ip == caMaster.toString()) {
+        return true;
+      }
+    }
+    catch(...) {}
+  }
+
   return false;
 }
 
