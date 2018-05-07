@@ -655,13 +655,44 @@ static void updateDomainSettingsFromDocument(UeberBackend& B, const DomainInfo& 
     }
   }
 
-  string api_rectify;
-  di.backend->getDomainMetadataOne(zonename, "API-RECTIFY", api_rectify);
-  if (shouldRectify && dk.isSecuredZone(zonename) && !dk.isPresigned(zonename) && api_rectify == "1") {
-    string info;
-    string error_msg = "";
-    if (!dk.rectifyZone(zonename, error_msg, info, true))
-      throw ApiException("Failed to rectify '" + zonename.toString() + "' " + error_msg);
+  if (shouldRectify && !dk.isPresigned(zonename)) {
+    // Rectify
+    string api_rectify;
+    di.backend->getDomainMetadataOne(zonename, "API-RECTIFY", api_rectify);
+    if (api_rectify == "1") {
+      string info;
+      string error_msg;
+      if (!dk.rectifyZone(zonename, error_msg, info, true)) {
+        throw ApiException("Failed to rectify '" + zonename.toString() + "' " + error_msg);
+      }
+    }
+
+    // Increase serial
+    string soa_edit_api_kind;
+    di.backend->getDomainMetadataOne(zonename, "SOA-EDIT-API", soa_edit_api_kind);
+    if (!soa_edit_api_kind.empty()) {
+      SOAData sd;
+      if (!B.getSOAUncached(zonename, sd))
+        return;
+
+      string soa_edit_kind;
+      di.backend->getDomainMetadataOne(zonename, "SOA-EDIT", soa_edit_kind);
+
+      DNSResourceRecord rr;
+      rr.qname = sd.qname;
+      rr.content = serializeSOAData(sd);
+      rr.qtype = "SOA";
+      rr.domain_id = sd.domain_id;
+      rr.auth = 1;
+      rr.ttl = sd.ttl;
+      if (increaseSOARecord(rr, soa_edit_api_kind, soa_edit_kind)) {
+        // fixup dots after serializeSOAData/increaseSOARecord
+        rr.content = makeBackendRecordContent(rr.qtype, rr.content);
+        if (!di.backend->replaceRRSet(di.id, rr.qname, rr.qtype, vector<DNSResourceRecord>(1, rr))) {
+          throw ApiException("Hosting backend does not support editing records.");
+        }
+      }
+    }
   }
 }
 

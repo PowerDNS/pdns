@@ -440,6 +440,37 @@ class AuthZones(ApiTestCase, AuthZonesHelperMixin):
         self.assertEquals(data['kind'], 'NSEC3NARROW')
         self.assertEquals(data['metadata'][0], '1')
 
+    def test_create_zone_dnssec_serial(self):
+        """
+        Create a zone set/unset "dnssec" and see if the serial was increased
+        after every step
+        """
+        name = unique_zone_name()
+        name, payload, data = self.create_zone()
+
+        soa_serial = get_first_rec(data, name, 'SOA')['content'].split(' ')[2]
+        self.assertEquals(soa_serial[-2:], '01')
+
+        self.session.put(self.url("/api/v1/servers/localhost/zones/" + name),
+                         data=json.dumps({'dnssec': True}))
+        r = self.session.get(self.url("/api/v1/servers/localhost/zones/" + name))
+
+        data = r.json()
+        soa_serial = get_first_rec(data, name, 'SOA')['content'].split(' ')[2]
+
+        self.assertEquals(r.status_code, 200)
+        self.assertEquals(soa_serial[-2:], '02')
+
+        self.session.put(self.url("/api/v1/servers/localhost/zones/" + name),
+                         data=json.dumps({'dnssec': False}))
+        r = self.session.get(self.url("/api/v1/servers/localhost/zones/" + name))
+
+        data = r.json()
+        soa_serial = get_first_rec(data, name, 'SOA')['content'].split(' ')[2]
+
+        self.assertEquals(r.status_code, 200)
+        self.assertEquals(soa_serial[-2:], '03')
+
     def test_zone_absolute_url(self):
         name, payload, data = self.create_zone()
         r = self.session.get(self.url("/api/v1/servers/localhost/zones"))
