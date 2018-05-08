@@ -347,16 +347,21 @@ void RPZIXFRTracker(const ComboAddress& master, boost::optional<DNSFilterEngine:
   while (!sr) {
     /* if we received an empty sr, the zone was not really preloaded */
 
+    std::shared_ptr<DNSFilterEngine::Zone> newZone = std::make_shared<DNSFilterEngine::Zone>(*zone);
     try {
-      sr=loadRPZFromServer(master, zoneName, zone, defpol, maxTTL, tt, maxReceivedBytes, localAddress, axfrTimeout);
+      sr=loadRPZFromServer(master, zoneName, newZone, defpol, maxTTL, tt, maxReceivedBytes, localAddress, axfrTimeout);
       if(refresh == 0) {
         refresh = sr->d_st.refresh;
       }
-      zone->setSerial(sr->d_st.serial);
-      setRPZZoneNewState(polName, sr->d_st.serial, zone->size(), true);
+      newZone->setSerial(sr->d_st.serial);
+      setRPZZoneNewState(polName, sr->d_st.serial, newZone->size(), true);
+
+      g_luaconfs.modify([zoneIdx, &newZone](LuaConfigItems& lci) {
+        lci.dfe.setZone(zoneIdx, newZone);
+      });
 
       if (!dumpZoneFileName.empty()) {
-        dumpZoneToDisk(zoneName, zone, dumpZoneFileName);
+        dumpZoneToDisk(zoneName, newZone, dumpZoneFileName);
       }
     }
     catch(const std::exception& e) {
