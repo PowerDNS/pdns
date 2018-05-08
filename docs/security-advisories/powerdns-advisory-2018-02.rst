@@ -9,7 +9,7 @@ PowerDNS Security Advisory 2018-02: Buffer overflow in dnsreplay
 -  Severity: High
 -  Impact: Arbitrary code execution
 -  Exploit: This problem can be triggered via a crafted PCAP file
--  Risk of system compromise: No
+-  Risk of system compromise: Yes
 -  Solution: Upgrade to a non-affected version
 
 An issue has been found in the dnsreplay tool provided with PowerDNS
@@ -20,7 +20,7 @@ dnsreplay is used. Regardless of this issue, the use of dnsreplay with
 untrusted PCAP files is not advised.
 This issue has been assigned CVE-2018-1046 by Red Hat.
 
-PowerDNS Authoritative from 4.0.0 up to and including 4.1.0 is affected.
+PowerDNS Authoritative from 4.0.0 up to and including 4.1.1 is affected.
 
 We would like to thank Wei Hao for finding and subsequently reporting
 this issue.
