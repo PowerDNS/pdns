@@ -291,13 +291,18 @@ void RPZIXFRTracker(const ComboAddress& master, boost::optional<DNSFilterEngine:
   shared_ptr<SOARecordContent> sr;
 
   while (!sr) {
+    std::shared_ptr<DNSFilterEngine::Zone> newZone = std::make_shared<DNSFilterEngine::Zone>(*zone);
     try {
-      sr=loadRPZFromServer(master, zoneName, zone, defpol, maxTTL, tt, maxReceivedBytes, localAddress, axfrTimeout);
+      sr=loadRPZFromServer(master, zoneName, newZone, defpol, maxTTL, tt, maxReceivedBytes, localAddress, axfrTimeout);
       if(refresh == 0) {
         refresh = sr->d_st.refresh;
       }
-      zone->setSerial(sr->d_st.serial);
-      setRPZZoneNewState(polName, sr->d_st.serial, zone->size(), true);
+      newZone->setSerial(sr->d_st.serial);
+      setRPZZoneNewState(polName, sr->d_st.serial, newZone->size(), true);
+
+      g_luaconfs.modify([zoneIdx, &newZone](LuaConfigItems& lci) {
+        lci.dfe.setZone(zoneIdx, newZone);
+      });
     }
     catch(const std::exception& e) {
       theL()<<Logger::Warning<<"Unable to load RPZ zone '"<<zoneName<<"' from '"<<master<<"': '"<<e.what()<<"'. (Will try again in "<<refresh<<" seconds...)"<<endl;
