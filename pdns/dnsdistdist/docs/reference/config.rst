@@ -626,6 +626,12 @@ Status, Statistics and More
   :param {str} selectors: A lua table of selectors. Only queries matching all selectors are shown
   :param int num: Show a maximum of ``num`` recent queries, default is 10.
 
+.. function:: setVerboseHealthChecks(verbose)
+
+  Set whether health check errors should be logged. This is turned off by default.
+
+  :param bool verbose: Set to true if you want to enable health check errors logging
+
 .. function:: showBinds()
 
   Print a list of all the current addresses and ports dnsdist is listening on, also called ``frontends``
