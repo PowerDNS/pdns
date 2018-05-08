@@ -36,11 +36,15 @@ struct GeoIPDNSResourceRecord: DNSResourceRecord {
   bool has_weight;
 };
 
+struct GeoIPService {
+  NetmaskTree<vector<string> > masks;
+};
+
 struct GeoIPDomain {
   int id;
   DNSName domain;
   int ttl;
-  map<DNSName, NetmaskTree<vector<string> > > services;
+  map<DNSName, GeoIPService> services;
   map<DNSName, vector<GeoIPDNSResourceRecord> > records;
 };
 
@@ -211,7 +215,7 @@ void GeoIPBackend::initialize() {
         nmt.insert(Netmask("0.0.0.0/0")).second.assign(value.begin(),value.end());
         nmt.insert(Netmask("::/0")).second.swap(value);
       }
-      dom.services[DNSName(service->first.as<string>())].swap(nmt);
+      dom.services[DNSName(service->first.as<string>())].masks.swap(nmt);
     }
 
     // rectify the zone, first static records
@@ -371,7 +375,7 @@ void GeoIPBackend::lookup(const QType &qtype, const DNSName& qdomain, DNSPacket 
   auto target = dom.services.find(search);
   if (target == dom.services.end()) return; // no hit
 
-  const NetmaskTree<vector<string> >::node_type* node = target->second.lookup(ComboAddress(ip));
+  const NetmaskTree<vector<string> >::node_type* node = target->second.masks.lookup(ComboAddress(ip));
   if (node == NULL) return; // no hit, again.
 
   DNSName sformat;
