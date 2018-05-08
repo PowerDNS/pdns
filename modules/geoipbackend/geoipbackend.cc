@@ -35,13 +35,11 @@
 pthread_rwlock_t GeoIPBackend::s_state_lock=PTHREAD_RWLOCK_INITIALIZER;
 
 struct GeoIPDNSResourceRecord: DNSResourceRecord {
-public:
   int weight;
   bool has_weight;
 };
 
-class GeoIPDomain {
-public:
+struct GeoIPDomain {
   int id;
   DNSName domain;
   int ttl;
