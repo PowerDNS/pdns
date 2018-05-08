@@ -41,6 +41,8 @@ struct GeoIPDNSResourceRecord: DNSResourceRecord {
 
 struct GeoIPService {
   NetmaskTree<vector<string> > masks;
+  unsigned int netmask4;
+  unsigned int netmask6;
 };
 
 struct GeoIPDomain {
@@ -87,6 +89,7 @@ GeoIPBackend::GeoIPBackend(const string& suffix) {
 static vector<std::unique_ptr<GeoIPInterface> > s_geoip_files;
 
 string getGeoForLua(const std::string& ip, int qaint);
+static string queryGeoIP(const string &ip, bool v6, GeoIPInterface::GeoIPQueryAttribute attribute, GeoIPNetmask& gl);
 
 void GeoIPBackend::initialize() {
   YAML::Node config;
@@ -166,6 +169,8 @@ void GeoIPBackend::initialize() {
     }
 
     for(YAML::const_iterator service = domain["services"].begin(); service != domain["services"].end(); service++) {
+      unsigned int netmask4 = 0, netmask6 = 0;
+      DNSName srvName{service->first.as<string>()};
       NetmaskTree<vector<string> > nmt;
 
       // if it's an another map, we need to iterate it again, otherwise we just add two root entries.
@@ -181,7 +186,12 @@ void GeoIPBackend::initialize() {
             nmt.insert(Netmask("0.0.0.0/0")).second.assign(value.begin(),value.end());
             nmt.insert(Netmask("::/0")).second.swap(value);
           } else {
-            nmt.insert(Netmask(net->first.as<string>())).second.swap(value);
+            Netmask nm{net->first.as<string>()};
+            nmt.insert(nm).second.swap(value);
+            if (nm.isIpv6() == true && netmask6 < nm.getBits())
+              netmask6 = nm.getBits();
+            if (nm.isIpv6() == false && netmask4 < nm.getBits())
+              netmask4 = nm.getBits();
           }
         }
       } else {
@@ -194,7 +204,10 @@ void GeoIPBackend::initialize() {
         nmt.insert(Netmask("0.0.0.0/0")).second.assign(value.begin(),value.end());
         nmt.insert(Netmask("::/0")).second.swap(value);
       }
-      dom.services[DNSName(service->first.as<string>())].masks.swap(nmt);
+
+      dom.services[srvName].netmask4 = netmask4;
+      dom.services[srvName].netmask6 = netmask6;
+      dom.services[srvName].masks.swap(nmt);
     }
 
     // rectify the zone, first static records
@@ -364,6 +377,23 @@ void GeoIPBackend::lookup(const QType &qtype, const DNSName& qdomain, DNSPacket 
 
   DNSName sformat;
   gl.netmask = node->first.getBits();
+  // figure out smallest sensible netmask
+  if (gl.netmask == 0) {
+    GeoIPNetmask tmp_gl;
+    tmp_gl.netmask = 0;
+    // get netmask from geoip backend
+    if (queryGeoIP(ip, v6, GeoIPInterface::Name, tmp_gl) == "unknown") {
+      if (v6)
+        gl.netmask = target->second.netmask6;
+      else
+        gl.netmask = target->second.netmask4;
+    }
+  } else {
+    if (v6)
+      gl.netmask = target->second.netmask6;
+    else
+      gl.netmask = target->second.netmask4;
+  }
 
   // note that this means the array format won't work with indirect
   for(auto it = node->second.begin(); it != node->second.end(); it++) {
