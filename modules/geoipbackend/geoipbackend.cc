@@ -406,7 +406,7 @@ bool GeoIPBackend::get(DNSResourceRecord &r) {
   return true;
 }
 
-string queryGeoIP(const string &ip, bool v6, GeoIPInterface::GeoIPQueryAttribute attribute, GeoIPNetmask& gl) {
+static string queryGeoIP(const string &ip, bool v6, GeoIPInterface::GeoIPQueryAttribute attribute, GeoIPNetmask& gl) {
   string ret = "unknown";
 
   for(auto const& gi: s_geoip_files) {
