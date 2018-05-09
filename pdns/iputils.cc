@@ -153,7 +153,7 @@ bool HarvestTimestamp(struct msghdr* msgh, struct timeval* tv)
 }
 bool HarvestDestinationAddress(const struct msghdr* msgh, ComboAddress* destination)
 {
-  memset(destination, 0, sizeof(*destination));
+  destination->reset();
 #ifdef __NetBSD__
   struct cmsghdr* cmsg;
 #else

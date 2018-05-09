@@ -267,7 +267,7 @@ void* tcpClientThread(int pipefd)
     vector<uint8_t> rewrittenResponse;
     shared_ptr<DownstreamState> ds;
     ComboAddress dest;
-    memset(&dest, 0, sizeof(dest));
+    dest.reset();
     dest.sin4.sin_family = ci.remote.sin4.sin_family;
     socklen_t len = dest.getSocklen();
     size_t queriesCount = 0;
