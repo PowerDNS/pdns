@@ -652,6 +652,19 @@ See :doc:`lua-config/index` for the options that can be set in this file.
 
 Path to a lua file to manipulate the Recursor's answers. See :doc:`lua-scripting/index` for more information.
 
+.. _setting-maintenance-interval:
+
+``lua-maintenance-interval``
+-------------------
+.. versionadded:: 4.1.3
+
+-  Integer
+-  Default: 1
+
+
+The interval between calls to the Lua user defined `maintenance()` function in seconds.
+See :ref:`hooks-maintenance-callback`
+
 .. _setting-max-cache-entries:
 
 ``max-cache-entries``

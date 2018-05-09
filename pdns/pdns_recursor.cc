@@ -3518,8 +3518,9 @@ try
   bool listenOnTCP(true);
 
   time_t last_stat = 0;
-  time_t last_carbon=0;
+  time_t last_carbon=0, last_lua_maintenance=0;
   time_t carbonInterval=::arg().asNum("carbon-interval");
+  time_t luaMaintenanceInterval=::arg().asNum("lua-maintenance-interval");
   counter.store(0); // used to periodically execute certain tasks
   for(;;) {
     while(MT->schedule(&g_now)); // MTasker letting the mthreads do their thing
@@ -3554,6 +3555,10 @@ try
         MT->makeThread(doCarbonDump, 0);
         last_carbon = g_now.tv_sec;
       }
+    }
+    if(!t_id && (g_now.tv_sec - last_lua_maintenance >= luaMaintenanceInterval)) {
+      t_pdl->maintenance();
+      last_lua_maintenance = g_now.tv_sec;
     }
 
     t_fdm->run(&g_now);
@@ -3683,6 +3688,7 @@ int main(int argc, char **argv)
     ::arg().set("etc-hosts-file", "Path to 'hosts' file")="/etc/hosts";
     ::arg().set("serve-rfc1918", "If we should be authoritative for RFC 1918 private IP space")="yes";
     ::arg().set("lua-dns-script", "Filename containing an optional 'lua' script that will be used to modify dns answers")="";
+    ::arg().set("lua-maintenance-interval", "Number of seconds between calls to the lua user defined maintenance() function")="1";
     ::arg().set("latency-statistic-size","Number of latency values to calculate the qa-latency average")="10000";
     ::arg().setSwitch( "disable-packetcache", "Disable packetcache" )= "no";
     ::arg().set("ecs-ipv4-bits", "Number of bits of IPv4 address to pass for EDNS Client Subnet")="24";

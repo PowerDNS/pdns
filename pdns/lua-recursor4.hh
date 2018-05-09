@@ -112,6 +112,7 @@ public:
   unsigned int gettag(const ComboAddress& remote, const Netmask& ednssubnet, const ComboAddress& local, const DNSName& qname, uint16_t qtype, std::vector<std::string>* policyTags, LuaContext::LuaObject& data, const std::map<uint16_t, EDNSOptionView>&, bool tcp, std::string& requestorId, std::string& deviceId) const;
   unsigned int gettag_ffi(const ComboAddress& remote, const Netmask& ednssubnet, const ComboAddress& local, const DNSName& qname, uint16_t qtype, std::vector<std::string>* policyTags, LuaContext::LuaObject& data, const std::map<uint16_t, EDNSOptionView>&, bool tcp, std::string& requestorId, std::string& deviceId, uint32_t& ttlCap, bool& variable) const;
 
+  void maintenance() const;
   bool prerpz(DNSQuestion& dq, int& ret) const;
   bool preresolve(DNSQuestion& dq, int& ret) const;
   bool nxdomain(DNSQuestion& dq, int& ret) const;
@@ -139,6 +140,8 @@ protected:
   virtual void postPrepareContext() override;
   virtual void postLoad() override;
 private:
+  typedef std::function<void()> luamaintenance_t;
+  luamaintenance_t d_maintenance;
   typedef std::function<bool(DNSQuestion*)> luacall_t;
   luacall_t d_prerpz, d_preresolve, d_nxdomain, d_nodata, d_postresolve, d_preoutquery, d_postoutquery;
   bool genhook(const luacall_t& func, DNSQuestion& dq, int& ret) const;
