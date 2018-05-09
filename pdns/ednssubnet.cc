@@ -57,7 +57,7 @@ bool getEDNSSubnetOptsFromString(const char* options, unsigned int len, EDNSSubn
       return false;
     if(octetsin > sizeof(address.sin4.sin_addr.s_addr))
       return false;
-    memset(&address, 0, sizeof(address));
+    address.reset();
     address.sin4.sin_family = AF_INET;
     if(octetsin > 0)
       memcpy(&address.sin4.sin_addr.s_addr, options+sizeof(esow), octetsin);
@@ -66,7 +66,8 @@ bool getEDNSSubnetOptsFromString(const char* options, unsigned int len, EDNSSubn
       return false;
     if(octetsin > sizeof(address.sin6.sin6_addr.s6_addr))
       return false;
-    memset(&address, 0, sizeof(address));
+
+    address.reset();
     address.sin4.sin_family = AF_INET6;
     if(octetsin > 0)
       memcpy(&address.sin6.sin6_addr.s6_addr, options+sizeof(esow), octetsin);
