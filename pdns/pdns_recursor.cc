@@ -1460,7 +1460,7 @@ static void handleRunningTCPQuestion(int fd, FDMultiplexer::funcparam_t& var)
       dc->d_tcp=true;
       dc->setRemote(&conn->d_remote);
       ComboAddress dest;
-      memset(&dest, 0, sizeof(dest));
+      dest.reset();
       dest.sin4.sin_family = conn->d_remote.sin4.sin_family;
       socklen_t len = dest.getSocklen();
       getsockname(conn->getFD(), (sockaddr*)&dest, &len); // if this fails, we're ok with it
@@ -1839,7 +1839,7 @@ static void handleNewUDPQuestion(int fd, FDMultiplexer::funcparam_t& var)
 	struct timeval tv={0,0};
 	HarvestTimestamp(&msgh, &tv);
 	ComboAddress dest;
-	memset(&dest, 0, sizeof(dest)); // this makes sure we ignore this address if not returned by recvmsg above
+	dest.reset(); // this makes sure we ignore this address if not returned by recvmsg above
         auto loc = rplookup(g_listenSocketsAddresses, fd);
 	if(HarvestDestinationAddress(&msgh, &dest)) {
           // but.. need to get port too
@@ -1898,7 +1898,7 @@ static void makeTCPServerSockets(unsigned int threadId)
 
     ComboAddress sin;
 
-    memset((char *)&sin,0, sizeof(sin));
+    sin.reset();
     sin.sin4.sin_family = AF_INET;
     if(!IpToU32(st.host, (uint32_t*)&sin.sin4.sin_addr.s_addr)) {
       sin.sin6.sin6_family = AF_INET6;
@@ -1984,7 +1984,7 @@ static void makeUDPServerSockets(unsigned int threadId)
 
     ComboAddress sin;
 
-    memset(&sin, 0, sizeof(sin));
+    sin.reset();
     sin.sin4.sin_family = AF_INET;
     if(!IpToU32(st.host.c_str() , (uint32_t*)&sin.sin4.sin_addr.s_addr)) {
       sin.sin6.sin6_family = AF_INET6;

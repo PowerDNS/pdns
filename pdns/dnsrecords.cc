@@ -116,7 +116,7 @@ ComboAddress ARecordContent::getCA(int port) const
 ComboAddress AAAARecordContent::getCA(int port) const
 {
   ComboAddress ret;
-  memset(&ret, 0, sizeof(ret));
+  ret.reset();
 
   ret.sin4.sin_family=AF_INET6;
   ret.sin6.sin6_port = htons(port);
