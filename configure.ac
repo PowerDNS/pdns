@@ -224,6 +224,11 @@ AC_ARG_ENABLE([tools],
 
 AC_MSG_RESULT([$enable_tools])
 AM_CONDITIONAL([TOOLS], [test "x$enable_tools" != "xno"])
+AS_IF([test "x$enable_tools" != "xno"], [
+  PKG_CHECK_MODULES([YAML], [yaml-cpp >= 0.5],[],
+    AC_MSG_ERROR([Could not find yaml-cpp])
+  )]
+)
 
 PDNS_WITH_PROTOBUF
 
