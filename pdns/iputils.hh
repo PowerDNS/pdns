@@ -313,6 +313,12 @@ union ComboAddress {
     return ret;
   }
 
+  void reset()
+  {
+    memset(&sin4, 0, sizeof(sin4));
+    memset(&sin6, 0, sizeof(sin6));
+  }
+
 };
 
 /** This exception is thrown by the Netmask class and by extension by the NetmaskGroup class */
