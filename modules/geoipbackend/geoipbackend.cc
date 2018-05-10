@@ -318,7 +318,7 @@ GeoIPBackend::~GeoIPBackend() {
 }
 
 bool GeoIPBackend::lookup_static(const GeoIPDomain &dom, const DNSName &search, const QType &qtype, const DNSName& qdomain, const std::string &ip, GeoIPLookup &gl, bool v6) {
-  const auto i = dom.records.find(search);
+  const auto& i = dom.records.find(search);
   int cumul_probability = 0;
   int probability_rnd = 1+(dns_random(1000)); // setting probability=0 means it never is used
 
@@ -349,23 +349,21 @@ bool GeoIPBackend::lookup_static(const GeoIPDomain &dom, const DNSName &search, 
 
 void GeoIPBackend::lookup(const QType &qtype, const DNSName& qdomain, DNSPacket *pkt_p, int zoneId) {
   ReadLock rl(&s_state_lock);
-  GeoIPDomain dom;
+  const GeoIPDomain *dom;
   GeoIPLookup gl;
   bool found = false;
 
   if (d_result.size()>0) 
     throw PDNSException("Cannot perform lookup while another is running");
 
-  DNSName search = qdomain;
-
   d_result.clear();
 
   if (zoneId > -1 && zoneId < static_cast<int>(s_domains.size())) 
-    dom = s_domains[zoneId];
+    dom = &(s_domains[zoneId]);
   else {
     for(const GeoIPDomain& i : s_domains) {   // this is arguably wrong, we should probably find the most specific match
-      if (search.isPartOf(i.domain)) {
-        dom = i;
+      if (qdomain.isPartOf(i.domain)) {
+        dom = &i;
         found = true;
         break;
       }
@@ -382,10 +380,10 @@ void GeoIPBackend::lookup(const QType &qtype, const DNSName& qdomain, DNSPacket 
 
   gl.netmask = 0;
 
-  (void)this->lookup_static(dom, search, qtype, qdomain, ip, gl, v6);
+  (void)this->lookup_static(*dom, qdomain, qtype, qdomain, ip, gl, v6);
 
-  auto target = dom.services.find(search);
-  if (target == dom.services.end()) return; // no hit
+  const auto& target = (*dom).services.find(qdomain);
+  if (target == (*dom).services.end()) return; // no hit
 
   const NetmaskTree<vector<string> >::node_type* node = target->second.masks.lookup(ComboAddress(ip));
   if (node == NULL) return; // no hit, again.
@@ -415,7 +413,7 @@ void GeoIPBackend::lookup(const QType &qtype, const DNSName& qdomain, DNSPacket 
     sformat = DNSName(format2str(*it, ip, v6, &gl));
 
     // see if the record can be found
-    if (this->lookup_static(dom, sformat, qtype, qdomain, ip, gl, v6))
+    if (this->lookup_static((*dom), sformat, qtype, qdomain, ip, gl, v6))
       return;
   }
 
@@ -432,12 +430,12 @@ void GeoIPBackend::lookup(const QType &qtype, const DNSName& qdomain, DNSPacket 
   if (!(qtype == QType::ANY || qtype == QType::CNAME)) return;
 
   DNSResourceRecord rr;
-  rr.domain_id = dom.id;
+  rr.domain_id = dom->id;
   rr.qtype = QType::CNAME;
   rr.qname = qdomain;
   rr.content = sformat.toString();
   rr.auth = 1;
-  rr.ttl = dom.ttl;
+  rr.ttl = dom->ttl;
   rr.scopeMask = gl.netmask;
   d_result.push_back(rr);
 }
