@@ -6,11 +6,11 @@
 #include <fstream>
 #include <thread>
 #include "namespaces.hh"
+#include "syncres.hh"
 #include "logger.hh"
 #include "rec-lua-conf.hh"
 #include "sortlist.hh"
 #include "filterpo.hh"
-#include "syncres.hh"
 #include "rpzloader.hh"
 #include "base64.hh"
 #include "remote_logger.hh"

@@ -25,9 +25,9 @@
 #endif
 #include <boost/algorithm/string.hpp>
 
+#include "syncres.hh"
 #include "lua-recursor4.hh"
 #include "utility.hh"
-#include "syncres.hh"
 #include <iostream>
 #include <map>
 #include "dnsrecords.hh"
