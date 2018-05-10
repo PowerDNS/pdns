@@ -185,6 +185,8 @@ test_env.update({
     'DAEMON': daemon,
     'SQLITE_DB': SQLITE_DB,
     'PDNSUTIL_CMD': ' '.join(PDNSUTIL_CMD),
+    'SDIG': sdig,
+    'DNSPORT': str(DNSPORT)
 })
 
 try:
