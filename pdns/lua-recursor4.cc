@@ -749,6 +749,13 @@ const char* pdns_ffi_param_get_qname(pdns_ffi_param_t* ref)
   return ref->qnameStr->c_str();
 }
 
+void pdns_ffi_param_get_qname_raw(pdns_ffi_param_t* ref, const char** qname, size_t* qnameSize)
+{
+  const auto& storage = ref->qname.getStorage();
+  *qname = storage.data();
+  *qnameSize = storage.size();
+}
+
 uint16_t pdns_ffi_param_get_qtype(const pdns_ffi_param_t* ref)
 {
   return ref->qtype;
@@ -763,6 +770,23 @@ const char* pdns_ffi_param_get_remote(pdns_ffi_param_t* ref)
   return ref->remoteStr->c_str();
 }
 
+static void pdns_ffi_comboaddress_to_raw(const ComboAddress& ca, const void** addr, size_t* addrSize)
+{
+  if (ca.isIPv4()) {
+    *addr = &ca.sin4.sin_addr.s_addr;
+    *addrSize = sizeof(ca.sin4.sin_addr.s_addr);
+  }
+  else {
+    *addr = &ca.sin6.sin6_addr.s6_addr;
+    *addrSize = sizeof(ca.sin6.sin6_addr.s6_addr);
+  }
+}
+
+void pdns_ffi_param_get_remote_raw(pdns_ffi_param_t* ref, const void** addr, size_t* addrSize)
+{
+  pdns_ffi_comboaddress_to_raw(ref->remote, addr, addrSize);
+}
+
 uint16_t pdns_ffi_param_get_remote_port(const pdns_ffi_param_t* ref)
 {
   return ref->remote.getPort();
@@ -775,6 +799,11 @@ const char* pdns_ffi_param_get_local(pdns_ffi_param_t* ref)
   }
 
   return ref->localStr->c_str();
+}
+
+void pdns_ffi_param_get_local_raw(pdns_ffi_param_t* ref, const void** addr, size_t* addrSize)
+{
+  pdns_ffi_comboaddress_to_raw(ref->local, addr, addrSize);
 }
 
 uint16_t pdns_ffi_param_get_local_port(const pdns_ffi_param_t* ref)
@@ -793,6 +822,17 @@ const char* pdns_ffi_param_get_edns_cs(pdns_ffi_param_t* ref)
   }
 
   return ref->ednssubnetStr->c_str();
+}
+
+void pdns_ffi_param_get_edns_cs_raw(pdns_ffi_param_t* ref, const void** net, size_t* netSize)
+{
+  if (ref->ednssubnet.empty()) {
+    *net = nullptr;
+    *netSize = 0;
+    return;
+  }
+
+  pdns_ffi_comboaddress_to_raw(ref->ednssubnet.getNetwork(), net, netSize);
 }
 
 uint8_t pdns_ffi_param_get_edns_cs_source_mask(const pdns_ffi_param_t* ref)
