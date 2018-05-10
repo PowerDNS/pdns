@@ -58,32 +58,6 @@ string humanTime(time_t t)
   return ret;
 }
 
-static void loadModules()
-{
-  if(!::arg()["load-modules"].empty()) {
-    vector<string>modules;
-
-    stringtok(modules,::arg()["load-modules"],", ");
-
-    for(vector<string>::const_iterator i=modules.begin();i!=modules.end();++i) {
-      bool res;
-      const string &module=*i;
-
-      if(module.find(".")==string::npos)
-        res=UeberBackend::loadmodule(::arg()["module-dir"]+"/lib"+module+"backend.so");
-      else if(module[0]=='/' || (module[0]=='.' && module[1]=='/') || (module[0]=='.' && module[1]=='.'))    // absolute or current path
-        res=UeberBackend::loadmodule(module);
-      else
-        res=UeberBackend::loadmodule(::arg()["module-dir"]+"/"+module);
-
-      if(res==false) {
-        g_log<<Logger::Error<<"Receiver unable to load module "<<module<<endl;
-        exit(1);
-      }
-    }
-  }
-}
-
 void loadMainConfig(const std::string& configdir)
 {
   ::arg().set("config-dir","Location of configuration directory (pdns.conf)")=configdir;
@@ -125,7 +99,14 @@ void loadMainConfig(const std::string& configdir)
   ::arg().set("rng", "Specify random number generator to use. Valid values are auto,sodium,openssl,getrandom,arc4random,urandom.")="auto";
   ::arg().laxFile(configname.c_str());
 
-  loadModules();
+  if(!::arg()["load-modules"].empty()) {
+    vector<string> modules;
+
+    stringtok(modules,::arg()["load-modules"], ", ");
+    if (!UeberBackend::loadModules(modules, ::arg()["module-dir"])) {
+      exit(1);
+    }
+  }
 
   g_log.toConsole(Logger::Error);   // so we print any errors
   BackendMakers().launch(::arg()["launch"]); // vrooooom!
