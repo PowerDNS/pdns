@@ -277,7 +277,7 @@ void GeoIPBackend::initialize() {
       }
     }
 
-    tmp_domains.push_back(dom);
+    tmp_domains.push_back(std::move(dom));
   }
 
   s_domains.clear();
