@@ -1,7 +1,7 @@
+#include "syncres.hh"
 #include "dnsparser.hh"
 #include "dnsrecords.hh"
 #include "ixfr.hh"
-#include "syncres.hh"
 #include "resolver.hh"
 #include "logger.hh"
 #include "rec-lua-conf.hh"

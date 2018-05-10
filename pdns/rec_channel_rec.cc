@@ -1,6 +1,7 @@
 #ifdef HAVE_CONFIG_H
 #include "config.h"
 #endif
+#include "syncres.hh"
 #include "utility.hh"
 #include "rec_channel.hh"
 #include <boost/bind.hpp>
@@ -10,7 +11,6 @@
 #endif
 #include "misc.hh"
 #include "recursor_cache.hh"
-#include "syncres.hh"
 #include "negcache.hh"
 #include <boost/function.hpp>
 #include <boost/optional.hpp>

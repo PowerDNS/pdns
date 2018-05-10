@@ -21,6 +21,12 @@
  */
 #ifndef PDNS_RECPACKETCACHE_HH
 #define PDNS_RECPACKETCACHE_HH
+
+#ifdef HAVE_CONFIG_H
+#include "config.h"
+#endif
+#include "rec-protobuf.hh"
+
 #include <string>
 #include <set>
 #include <inttypes.h>
@@ -35,10 +41,6 @@
 
 #include "packetcache.hh"
 
-#ifdef HAVE_CONFIG_H
-#include "config.h"
-#endif
-#include "rec-protobuf.hh"
 
 
 using namespace ::boost::multi_index;
