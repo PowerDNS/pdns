@@ -13,6 +13,7 @@ MANPAGES_INSTALL += zone2ldap.1
 endif
 
 MANPAGES_TARGET_TOOLS = calidns.1 \
+	dnspcap2calidns.1 \
 	dnsgram.1 \
 	dnsreplay.1 \
 	dnsscan.1 \
