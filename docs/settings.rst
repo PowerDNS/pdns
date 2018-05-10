@@ -1527,7 +1527,7 @@ IP Address for webserver/API to listen on.
 
 .. versionchanged:: 4.1.0
 
-    Default is now 127.0.0.1,::1, was 0.0.0.0,::/0 before.
+    Default is now 127.0.0.1,::1, was 0.0.0.0/0,::/0 before.
 
 Webserver/API access is only allowed from these subnets.
 
