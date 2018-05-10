@@ -24,6 +24,7 @@
 /dnsdemog
 /dnsdist
 /dnsgram
+/dnspcap2calidns
 /dnspcap2protobuf
 /dnsscan
 /dnsscope
