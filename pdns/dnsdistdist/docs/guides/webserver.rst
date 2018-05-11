@@ -149,7 +149,7 @@ JSON Objects
   - ``tcp-send-timeout``
   - ``truncate-tc``
   - ``verbose``
-  - ``verbose-health-checks``
+  - ``verbose-health-checks`` The currently configured :func:`setVerboseHealthChecks`
 
   :property string name: The name of the setting
   :property string type: "ConfigSetting"
