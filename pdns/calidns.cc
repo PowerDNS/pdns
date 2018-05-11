@@ -314,6 +314,9 @@ try
   string line;
   reportAllTypes();
   vector<std::shared_ptr<vector<uint8_t> > > unknown, known;
+  std::vector<std::string> fields;
+  fields.reserve(3);
+
   while(getline(ifs, line)) {
     vector<uint8_t> packet;
     DNSPacketWriter::optvect_t ednsOptions;
@@ -322,15 +325,19 @@ try
       continue;
     }
 
-    auto fields = splitField(line, ' ');
-    std::string qname = fields.first;
-    std::string qtype = fields.second;
+    fields.clear();
+    stringtok(fields, line, "\t ");
+    if ((useECSFromFile && fields.size() < 3) || fields.size() < 2) {
+      cerr<<"Skipping invalid line '"<<line<<", it does not contain enough values"<<endl;
+      continue;
+    }
+
+    const std::string& qname = fields.at(0);
+    const std::string& qtype = fields.at(1);
     std::string subnet;
 
-    if(useECSFromFile) {
-      fields = splitField(qtype, ' ');
-      qtype = fields.first;
-      subnet = fields.second;
+    if (useECSFromFile) {
+      subnet = fields.at(2);
     }
 
     DNSPacketWriter pw(packet, DNSName(qname), DNSRecordContent::TypeToNumber(qtype));
