@@ -40,4 +40,5 @@ Options
                          by *NUM*. By default, this is 1.1.
 --maximum-qps <NUM>      Stop incrementing once this rate has been reached, to provide a
                          stable load.
+--plot-file <FILE>       Write results to the specified file.
 --want-recursion         Set this flag to send queries with the Recursion Desired flag set.

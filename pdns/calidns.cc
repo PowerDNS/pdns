@@ -225,6 +225,7 @@ try
     ("ecs-from-file", "Read IP or subnet values from the query file and add them as EDNS Client Subnet options to outgoing queries")
     ("increment", po::value<float>()->default_value(1.1),  "Set the factor to increase the QPS load per run")
     ("maximum-qps", po::value<uint32_t>(), "Stop incrementing once this rate has been reached, to provide a stable load")
+    ("plot-file", po::value<string>(), "Write results to the specific file")
     ("want-recursion", "Set the Recursion Desired flag on queries");
   po::options_description alloptions;
   po::options_description hidden("hidden options");
@@ -378,7 +379,15 @@ try
   new thread(recvThread, &sockets);
   uint32_t qps;
 
-  ofstream plot("plot");
+  ofstream plot;
+  if (g_vm.count("plot-file")) {
+    plot.open(g_vm["plot-file"].as<string>());
+    if (!plot) {
+      cerr<<"Error opening "<<g_vm["plot-file"].as<string>()<<" for writing: "<<strerror(errno)<<endl;
+      return EXIT_FAILURE;
+    }
+  }
+
   for(qps=qpsstart;;) {
     double seconds=1;
     cout<<"Aiming at "<<qps<< "qps (RD="<<wantRecursion<<") for "<<seconds<<" seconds at cache hitrate "<<100.0*hitrate<<"%";
@@ -419,13 +428,21 @@ try
     usleep(50000);
     double perc=g_recvcounter.load()*100.0/toSend.size();
     cout<<"Received "<<g_recvcounter.load()<<" packets ("<<perc<<"%)"<<endl;
-    plot<<qps<<" "<<realqps<<" "<<perc<<" "<<g_recvcounter.load()/(udiff/1000000.0)<<" " << 8*g_recvbytes.load()/(udiff/1000000.0)<<endl;
-    plot.flush();
+
+    if (plot) {
+      plot<<qps<<" "<<realqps<<" "<<perc<<" "<<g_recvcounter.load()/(udiff/1000000.0)<<" " << 8*g_recvbytes.load()/(udiff/1000000.0)<<endl;
+      plot.flush();
+    }
+
     if (qps < maximumQps) {
       qps *= increment;
     }
   }
-  plot.flush();
+
+  if (plot) {
+    plot.flush();
+  }
+
   // t1.detach();
 }
  catch(std::exception& e)
