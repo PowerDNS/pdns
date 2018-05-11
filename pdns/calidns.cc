@@ -225,6 +225,7 @@ try
     ("ecs-from-file", "Read IP or subnet values from the query file and add them as EDNS Client Subnet options to outgoing queries")
     ("increment", po::value<float>()->default_value(1.1),  "Set the factor to increase the QPS load per run")
     ("maximum-qps", po::value<uint32_t>(), "Stop incrementing once this rate has been reached, to provide a stable load")
+    ("minimum-success-rate", po::value<double>()->default_value(0), "Stop the test as soon as the success rate drops below this value, in percent")
     ("plot-file", po::value<string>(), "Write results to the specific file")
     ("want-recursion", "Set the Recursion Desired flag on queries");
   po::options_description alloptions;
@@ -283,6 +284,12 @@ try
     maximumQps = g_vm["maximum-qps"].as<uint32_t>();
   }
 
+  double minimumSuccessRate = g_vm["minimum-success-rate"].as<double>();
+  if (minimumSuccessRate > 100.0 || minimumSuccessRate < 0.0) {
+    cerr<<"Minimum success rate must be between 0 and 100, not "<<minimumSuccessRate<<endl;
+    return EXIT_FAILURE;
+  }
+
   Netmask ecsRange;
   if (g_vm.count("ecs")) {
     dns_random_init("0123456789abcdef");
@@ -308,8 +315,9 @@ try
   struct sched_param param;
   param.sched_priority=99;
 
-  if(sched_setscheduler(0, SCHED_FIFO, &param) < 0)
+  if(sched_setscheduler(0, SCHED_FIFO, &param) < 0) {
     cerr<<"Unable to set SCHED_FIFO: "<<strerror(errno)<<endl;
+  }
 
   ifstream ifs(g_vm["query-file"].as<string>());
   string line;
@@ -388,6 +396,9 @@ try
     }
   }
 
+  double bestQPS = 0.0;
+  double bestPerfectQPS = 0.0;
+
   for(qps=qpsstart;;) {
     double seconds=1;
     cout<<"Aiming at "<<qps<< "qps (RD="<<wantRecursion<<") for "<<seconds<<" seconds at cache hitrate "<<100.0*hitrate<<"%";
@@ -400,7 +411,7 @@ try
 
     if (misses > unknown.size()) {
       cerr<<"Not enough queries remaining (need at least "<<misses<<" and got "<<unknown.size()<<", please add more to the query file), exiting."<<endl;
-      exit(1);
+      return EXIT_FAILURE;
     }
     vector<vector<uint8_t>*> toSend;
     unsigned int n;
@@ -421,21 +432,38 @@ try
 
     sendPackets(&sockets, toSend, qps, dest, ecsRange);
     
-    auto udiff = dt.udiff();
-    auto realqps=toSend.size()/(udiff/1000000.0);
-    cout<<"Achieved "<<realqps<<"qps"<< " over "<< udiff/1000000.0<<" seconds"<<endl;
+    const auto udiff = dt.udiffNoReset();
+    const auto realqps=toSend.size()/(udiff/1000000.0);
+    cout<<"Achieved "<<realqps<<" qps over "<< udiff/1000000.0<<" seconds"<<endl;
     
     usleep(50000);
-    double perc=g_recvcounter.load()*100.0/toSend.size();
-    cout<<"Received "<<g_recvcounter.load()<<" packets ("<<perc<<"%)"<<endl;
+    const auto received = g_recvcounter.load();
+    const auto udiffReceived = dt.udiff();
+    const auto realReceivedQPS = received/(udiffReceived/1000000.0);
+    double perc=received*100.0/toSend.size();
+    cout<<"Received "<<received<<" packets over "<< udiffReceived/1000000.0<<" seconds ("<<perc<<"%, adjusted received rate "<<realReceivedQPS<<" qps)"<<endl;
 
     if (plot) {
-      plot<<qps<<" "<<realqps<<" "<<perc<<" "<<g_recvcounter.load()/(udiff/1000000.0)<<" " << 8*g_recvbytes.load()/(udiff/1000000.0)<<endl;
+      plot<<qps<<" "<<realqps<<" "<<perc<<" "<<received/(udiff/1000000.0)<<" " << 8*g_recvbytes.load()/(udiff/1000000.0)<<endl;
       plot.flush();
     }
 
     if (qps < maximumQps) {
       qps *= increment;
+    }
+    else {
+      qps = maximumQps;
+    }
+
+    if (minimumSuccessRate > 0.0 && perc < minimumSuccessRate) {
+      cout<<"The latest success rate ("<<perc<<") dropped below the minimum success rate of "<<minimumSuccessRate<<", stopping."<<endl;
+      cout<<"The final rate reached before failing was "<<bestQPS<<" qps (best rate at 100% was "<<bestPerfectQPS<<" qps)"<<endl;
+      break;
+    }
+
+    bestQPS = std::max(bestQPS, realReceivedQPS);
+    if (perc >= 100.0) {
+      bestPerfectQPS = std::max(bestPerfectQPS, realReceivedQPS);
     }
   }
 
