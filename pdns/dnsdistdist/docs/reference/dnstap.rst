@@ -21,9 +21,10 @@ To use FrameStream transport, :program:`dnsdist` must have been built with `libf
 .. function:: newFrameStreamTcpLogger(address)
 
   Create a Frame Stream Logger object, to use with :func:`DnstapLogAction` and :func:`DnstapLogResponseAction`.
-  This version will log to a local AF_UNIX socket.
+  This version will log to a possibly remote TCP socket.
+  Needs tcp_writer support in libfstrm.
 
-  :param string address: An IP:PORT combination where the logger will connect to. Needs tcp_writer support in libfstrm.
+  :param string address: An IP:PORT combination where the logger will connect to.
 
 .. class:: DnstapMessage
 
@@ -31,7 +32,7 @@ To use FrameStream transport, :program:`dnsdist` must have been built with `libf
 
 .. classmethod:: DnstapMessage:setExtra(extraData)
 
-  Set the time at which the query or response has been received.
+  Sets the dnstap "extra" field.
 
   :param string extraData: Extra data stuffed into the dnstap "extra" field.
 
