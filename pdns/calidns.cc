@@ -225,6 +225,9 @@ try
     ("ecs-from-file", "Read IP or subnet values from the query file and add them as EDNS Client Subnet options to outgoing queries")
     ("increment", po::value<float>()->default_value(1.1),  "Set the factor to increase the QPS load per run")
     ("maximum-qps", po::value<uint32_t>(), "Stop incrementing once this rate has been reached, to provide a stable load")
+    ("minimum-success-rate", po::value<double>()->default_value(0), "Stop the test as soon as the success rate drops below this value, in percent")
+    ("plot-file", po::value<string>(), "Write results to the specific file")
+    ("quiet", "Whether to run quietly, outputting only the maximum QPS reached. This option is mostly useful when used with --minimum-success-rate")
     ("want-recursion", "Set the Recursion Desired flag on queries");
   po::options_description alloptions;
   po::options_description hidden("hidden options");
@@ -267,6 +270,7 @@ try
   }
 
   bool wantRecursion = g_vm.count("want-recursion");
+  bool beQuiet = g_vm.count("quiet");
   bool useECSFromFile = g_vm.count("ecs-from-file");
 
   double hitrate = g_vm["hitrate"].as<double>();
@@ -282,6 +286,12 @@ try
     maximumQps = g_vm["maximum-qps"].as<uint32_t>();
   }
 
+  double minimumSuccessRate = g_vm["minimum-success-rate"].as<double>();
+  if (minimumSuccessRate > 100.0 || minimumSuccessRate < 0.0) {
+    cerr<<"Minimum success rate must be between 0 and 100, not "<<minimumSuccessRate<<endl;
+    return EXIT_FAILURE;
+  }
+
   Netmask ecsRange;
   if (g_vm.count("ecs")) {
     dns_random_init("0123456789abcdef");
@@ -295,7 +305,9 @@ try
           return EXIT_FAILURE;
         }
 
-        cout<<"Adding ECS option to outgoing queries with random addresses from the "<<ecsRange.toString()<<" range"<<endl;
+        if (!beQuiet) {
+          cout<<"Adding ECS option to outgoing queries with random addresses from the "<<ecsRange.toString()<<" range"<<endl;
+        }
       }
     }
     catch (const NetmaskException& e) {
@@ -307,13 +319,17 @@ try
   struct sched_param param;
   param.sched_priority=99;
 
-  if(sched_setscheduler(0, SCHED_FIFO, &param) < 0)
+  if(sched_setscheduler(0, SCHED_FIFO, &param) < 0) {
     cerr<<"Unable to set SCHED_FIFO: "<<strerror(errno)<<endl;
+  }
 
   ifstream ifs(g_vm["query-file"].as<string>());
   string line;
   reportAllTypes();
   vector<std::shared_ptr<vector<uint8_t> > > unknown, known;
+  std::vector<std::string> fields;
+  fields.reserve(3);
+
   while(getline(ifs, line)) {
     vector<uint8_t> packet;
     DNSPacketWriter::optvect_t ednsOptions;
@@ -322,15 +338,19 @@ try
       continue;
     }
 
-    auto fields = splitField(line, ' ');
-    std::string qname = fields.first;
-    std::string qtype = fields.second;
+    fields.clear();
+    stringtok(fields, line, "\t ");
+    if ((useECSFromFile && fields.size() < 3) || fields.size() < 2) {
+      cerr<<"Skipping invalid line '"<<line<<", it does not contain enough values"<<endl;
+      continue;
+    }
+
+    const std::string& qname = fields.at(0);
+    const std::string& qtype = fields.at(1);
     std::string subnet;
 
-    if(useECSFromFile) {
-      fields = splitField(qtype, ' ');
-      qtype = fields.first;
-      subnet = fields.second;
+    if (useECSFromFile) {
+      subnet = fields.at(2);
     }
 
     DNSPacketWriter pw(packet, DNSName(qname), DNSRecordContent::TypeToNumber(qtype));
@@ -350,7 +370,9 @@ try
     unknown.emplace_back(std::make_shared<vector<uint8_t>>(packet));
   }
   random_shuffle(unknown.begin(), unknown.end());
-  cout<<"Generated "<<unknown.size()<<" ready to use queries"<<endl;
+  if (!beQuiet) {
+    cout<<"Generated "<<unknown.size()<<" ready to use queries"<<endl;
+  }
   
   vector<Socket*> sockets;
   ComboAddress dest;
@@ -371,20 +393,35 @@ try
   new thread(recvThread, &sockets);
   uint32_t qps;
 
-  ofstream plot("plot");
+  ofstream plot;
+  if (g_vm.count("plot-file")) {
+    plot.open(g_vm["plot-file"].as<string>());
+    if (!plot) {
+      cerr<<"Error opening "<<g_vm["plot-file"].as<string>()<<" for writing: "<<strerror(errno)<<endl;
+      return EXIT_FAILURE;
+    }
+  }
+
+  double bestQPS = 0.0;
+  double bestPerfectQPS = 0.0;
+
   for(qps=qpsstart;;) {
     double seconds=1;
-    cout<<"Aiming at "<<qps<< "qps (RD="<<wantRecursion<<") for "<<seconds<<" seconds at cache hitrate "<<100.0*hitrate<<"%";
+    if (!beQuiet) {
+      cout<<"Aiming at "<<qps<< "qps (RD="<<wantRecursion<<") for "<<seconds<<" seconds at cache hitrate "<<100.0*hitrate<<"%";
+    }
     unsigned int misses=(1-hitrate)*qps*seconds;
     unsigned int total=qps*seconds;
     if (misses == 0) {
       misses = 1;
     }
-    cout<<", need "<<misses<<" misses, "<<total<<" queries, have "<<unknown.size()<<" unknown left!"<<endl;
+    if (!beQuiet) {
+      cout<<", need "<<misses<<" misses, "<<total<<" queries, have "<<unknown.size()<<" unknown left!"<<endl;
+    }
 
     if (misses > unknown.size()) {
       cerr<<"Not enough queries remaining (need at least "<<misses<<" and got "<<unknown.size()<<", please add more to the query file), exiting."<<endl;
-      exit(1);
+      return EXIT_FAILURE;
     }
     vector<vector<uint8_t>*> toSend;
     unsigned int n;
@@ -405,20 +442,54 @@ try
 
     sendPackets(&sockets, toSend, qps, dest, ecsRange);
     
-    auto udiff = dt.udiff();
-    auto realqps=toSend.size()/(udiff/1000000.0);
-    cout<<"Achieved "<<realqps<<"qps"<< " over "<< udiff/1000000.0<<" seconds"<<endl;
+    const auto udiff = dt.udiffNoReset();
+    const auto realqps=toSend.size()/(udiff/1000000.0);
+    if (!beQuiet) {
+      cout<<"Achieved "<<realqps<<" qps over "<< udiff/1000000.0<<" seconds"<<endl;
+    }
     
     usleep(50000);
-    double perc=g_recvcounter.load()*100.0/toSend.size();
-    cout<<"Received "<<g_recvcounter.load()<<" packets ("<<perc<<"%)"<<endl;
-    plot<<qps<<" "<<realqps<<" "<<perc<<" "<<g_recvcounter.load()/(udiff/1000000.0)<<" " << 8*g_recvbytes.load()/(udiff/1000000.0)<<endl;
-    plot.flush();
+    const auto received = g_recvcounter.load();
+    const auto udiffReceived = dt.udiff();
+    const auto realReceivedQPS = received/(udiffReceived/1000000.0);
+    double perc=received*100.0/toSend.size();
+     if (!beQuiet) {
+       cout<<"Received "<<received<<" packets over "<< udiffReceived/1000000.0<<" seconds ("<<perc<<"%, adjusted received rate "<<realReceivedQPS<<" qps)"<<endl;
+     }
+
+    if (plot) {
+      plot<<qps<<" "<<realqps<<" "<<perc<<" "<<received/(udiff/1000000.0)<<" " << 8*g_recvbytes.load()/(udiff/1000000.0)<<endl;
+      plot.flush();
+    }
+
     if (qps < maximumQps) {
       qps *= increment;
     }
+    else {
+      qps = maximumQps;
+    }
+
+    if (minimumSuccessRate > 0.0 && perc < minimumSuccessRate) {
+      if (beQuiet) {
+        cout<<bestQPS<<endl;
+      }
+      else {
+        cout<<"The latest success rate ("<<perc<<") dropped below the minimum success rate of "<<minimumSuccessRate<<", stopping."<<endl;
+        cout<<"The final rate reached before failing was "<<bestQPS<<" qps (best rate at 100% was "<<bestPerfectQPS<<" qps)"<<endl;
+      }
+      break;
+    }
+
+    bestQPS = std::max(bestQPS, realReceivedQPS);
+    if (perc >= 100.0) {
+      bestPerfectQPS = std::max(bestPerfectQPS, realReceivedQPS);
+    }
   }
-  plot.flush();
+
+  if (plot) {
+    plot.flush();
+  }
+
   // t1.detach();
 }
  catch(std::exception& e)
