@@ -361,32 +361,6 @@ static void UNIX_declareArguments()
   ::arg().set("daemon","Operate as a daemon")="no";
 }
 
-static void loadModules()
-{
-  if(!::arg()["load-modules"].empty()) { 
-    vector<string>modules;
-    
-    stringtok(modules,::arg()["load-modules"],", ");
-    
-    for(vector<string>::const_iterator i=modules.begin();i!=modules.end();++i) {
-      bool res;
-      const string &module=*i;
-      
-      if(module.find(".")==string::npos)
-        res=UeberBackend::loadmodule(::arg()["module-dir"]+"/lib"+module+"backend.so");
-      else if(module[0]=='/' || (module[0]=='.' && module[1]=='/') || (module[0]=='.' && module[1]=='.'))    // absolute or current path
-        res=UeberBackend::loadmodule(module);
-      else
-        res=UeberBackend::loadmodule(::arg()["module-dir"]+"/"+module);
-      
-      if(res==false) {
-        g_log<<Logger::Error<<"Receiver unable to load module "<<module<<endl;
-        exit(1);
-      }
-    }
-  }
-}
-
 #ifdef __GLIBC__
 #include <execinfo.h>
 static void tbhandler(int num)
@@ -506,7 +480,15 @@ int main(int argc, char **argv)
     /* setup rng */
     dns_random_init();
 
-    loadModules();
+    if(!::arg()["load-modules"].empty()) {
+      vector<string> modules;
+
+      stringtok(modules,::arg()["load-modules"], ", ");
+      if (!UeberBackend::loadModules(modules, ::arg()["module-dir"])) {
+        exit(1);
+      }
+    }
+
     BackendMakers().launch(::arg()["launch"]); // vrooooom!
 
     if(!::arg().getCommands().empty()) {

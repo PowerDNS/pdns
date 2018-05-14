@@ -61,6 +61,7 @@ public:
   static pthread_mutex_t instances_lock;
 
   static bool loadmodule(const string &name);
+  static bool loadModules(const vector<string>& modules, const string& path);
 
   static void go(void);
 

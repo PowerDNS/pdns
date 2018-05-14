@@ -72,6 +72,26 @@ bool UeberBackend::loadmodule(const string &name)
   return true;
 }
 
+bool UeberBackend::loadModules(const vector<string>& modules, const string& path)
+{
+  for (const auto& module: modules) {
+    bool res;
+    if (module.find(".")==string::npos) {
+      res = UeberBackend::loadmodule(path+"/lib"+module+"backend.so");
+    } else if (module[0]=='/' || (module[0]=='.' && module[1]=='/') || (module[0]=='.' && module[1]=='.')) {
+      // absolute or current path
+      res = UeberBackend::loadmodule(module);
+    } else {
+      res = UeberBackend::loadmodule(path+"/"+module);
+    }
+
+    if (res == false) {
+      return false;
+    }
+  }
+  return true;
+}
+
 void UeberBackend::go(void)
 {
   pthread_mutex_lock(&d_mut);

@@ -66,6 +66,7 @@ void loadMainConfig(const std::string& configdir)
   ::arg().set("dnssec","if we should do dnssec")="true";
   ::arg().set("config-name","Name of this virtual configuration - will rename the binary image")=g_vm["config-name"].as<string>();
   ::arg().setCmd("help","Provide a helpful message");
+  ::arg().set("load-modules","Load this module - supply absolute or relative path")="";
   //::arg().laxParse(argc,argv);
 
   if(::arg().mustDo("help")) {
@@ -97,6 +98,15 @@ void loadMainConfig(const std::string& configdir)
   ::arg().set("max-signature-cache-entries", "Maximum number of signatures cache entries")="";
   ::arg().set("rng", "Specify random number generator to use. Valid values are auto,sodium,openssl,getrandom,arc4random,urandom.")="auto";
   ::arg().laxFile(configname.c_str());
+
+  if(!::arg()["load-modules"].empty()) {
+    vector<string> modules;
+
+    stringtok(modules,::arg()["load-modules"], ", ");
+    if (!UeberBackend::loadModules(modules, ::arg()["module-dir"])) {
+      exit(1);
+    }
+  }
 
   g_log.toConsole(Logger::Error);   // so we print any errors
   BackendMakers().launch(::arg()["launch"]); // vrooooom!
