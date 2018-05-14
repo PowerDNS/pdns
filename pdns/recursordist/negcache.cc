@@ -35,7 +35,7 @@
  * \param ne       A NegCacheEntry that is filled when there is a cache entry
  * \return         true if ne was filled out, false otherwise
  */
-bool NegCache::getRootNXTrust(const DNSName& qname, const struct timeval& now, NegCacheEntry& ne) {
+bool NegCache::getRootNXTrust(const DNSName& qname, const struct timeval& now, const NegCacheEntry** ne) {
   // Never deny the root.
   if (qname.isRoot())
     return false;
@@ -51,7 +51,7 @@ bool NegCache::getRootNXTrust(const DNSName& qname, const struct timeval& now, N
          ni->d_qtype == qtnull) {
     // We have something
     if ((uint32_t)now.tv_sec < ni->d_ttd) {
-      ne = *ni;
+      *ne = &(*ni);
       moveCacheItemToBack(d_negcache, ni);
       return true;
     }
@@ -70,22 +70,25 @@ bool NegCache::getRootNXTrust(const DNSName& qname, const struct timeval& now, N
  * \param ne       A NegCacheEntry that is filled when there is a cache entry
  * \return         true if ne was filled out, false otherwise
  */
-bool NegCache::get(const DNSName& qname, const QType& qtype, const struct timeval& now, NegCacheEntry& ne, bool typeMustMatch) {
-  auto range = d_negcache.equal_range(tie(qname));
-  negcache_t::iterator ni = range.first;
+bool NegCache::get(const DNSName& qname, const QType& qtype, const struct timeval& now, const NegCacheEntry** ne, bool typeMustMatch) {
+  const auto& idx = d_negcache.get<2>();
+  auto range = idx.equal_range(qname);
+  auto ni = range.first;
 
   while (ni != range.second) {
     // We have an entry
     if ((!typeMustMatch && ni->d_qtype.getCode() == 0) || ni->d_qtype == qtype) {
       // We match the QType or the whole name is denied
+      auto firstIndexIterator = d_negcache.project<0>(ni);
+
       if((uint32_t) now.tv_sec < ni->d_ttd) {
         // Not expired
-        ne = *ni;
-        moveCacheItemToBack(d_negcache, ni);
+        *ne = &(*ni);
+        moveCacheItemToBack(d_negcache, firstIndexIterator);
         return true;
       }
       // expired
-      moveCacheItemToFront(d_negcache, ni);
+      moveCacheItemToFront(d_negcache, firstIndexIterator);
     }
     ++ni;
   }

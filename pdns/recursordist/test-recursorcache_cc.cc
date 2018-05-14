@@ -812,4 +812,93 @@ BOOST_AUTO_TEST_CASE(test_RecursorCacheECSIndex) {
   BOOST_CHECK_EQUAL(MRC.ecsIndexSize(), 0);
 }
 
+BOOST_AUTO_TEST_CASE(test_RecursorCache_Wipe) {
+  MemRecursorCache MRC;
+
+  const DNSName power("powerdns.com.");
+  std::vector<DNSRecord> records;
+  std::vector<std::shared_ptr<DNSRecord>> authRecords;
+  std::vector<std::shared_ptr<RRSIGRecordContent>> signatures;
+  time_t now = time(nullptr);
+  std::vector<DNSRecord> retrieved;
+  ComboAddress who("192.0.2.1");
+
+  time_t ttl = 10;
+  time_t ttd = now + ttl;
+  DNSRecord dr1;
+  ComboAddress dr1Content("192.0.2.255");
+  dr1.d_name = power;
+  dr1.d_type = QType::A;
+  dr1.d_class = QClass::IN;
+  dr1.d_content = std::make_shared<ARecordContent>(dr1Content);
+  dr1.d_ttl = static_cast<uint32_t>(ttd);
+  dr1.d_place = DNSResourceRecord::ANSWER;
+
+  BOOST_CHECK_EQUAL(MRC.size(), 0);
+  BOOST_CHECK_EQUAL(MRC.ecsIndexSize(), 0);
+
+  /* no entry in the ECS index, no non-specific entry either */
+  retrieved.clear();
+  BOOST_CHECK_EQUAL(MRC.get(now, power, QType(QType::A), false, &retrieved, who), -1);
+
+  /* insert a specific entry */
+  records.push_back(dr1);
+  MRC.replace(now, power, QType(QType::A), records, signatures, authRecords, true, Netmask("192.0.2.0/31"));
+
+  BOOST_CHECK_EQUAL(MRC.size(), 1);
+  BOOST_CHECK_EQUAL(MRC.ecsIndexSize(), 1);
+
+  /* insert two sub-domains entries */
+  DNSName sub1("a.powerdns.com.");
+  dr1.d_name = sub1;
+  records.clear();
+  records.push_back(dr1);
+  MRC.replace(now, sub1, QType(QType::A), records, signatures, authRecords, true, Netmask("192.0.2.0/31"));
+
+  BOOST_CHECK_EQUAL(MRC.size(), 2);
+  BOOST_CHECK_EQUAL(MRC.ecsIndexSize(), 2);
+
+  DNSName sub2("z.powerdns.com.");
+  dr1.d_name = sub2;
+  records.clear();
+  records.push_back(dr1);
+  MRC.replace(now, sub2, QType(QType::A), records, signatures, authRecords, true, Netmask("192.0.2.0/31"));
+
+  BOOST_CHECK_EQUAL(MRC.size(), 3);
+  BOOST_CHECK_EQUAL(MRC.ecsIndexSize(), 3);
+
+  /* insert two entries for different domains */
+  DNSName other1("b\bpowerdns.com.");
+  dr1.d_name = other1;
+  records.clear();
+  records.push_back(dr1);
+  MRC.replace(now, other1, QType(QType::A), records, signatures, authRecords, true, Netmask("192.0.2.0/31"));
+
+  BOOST_CHECK_EQUAL(MRC.size(), 4);
+  BOOST_CHECK_EQUAL(MRC.ecsIndexSize(), 4);
+
+  DNSName other2("c\bpowerdns.com.");
+  dr1.d_name = other2;
+  records.clear();
+  records.push_back(dr1);
+  MRC.replace(now, other2, QType(QType::A), records, signatures, authRecords, true, Netmask("192.0.2.0/31"));
+
+  BOOST_CHECK_EQUAL(MRC.size(), 5);
+  BOOST_CHECK_EQUAL(MRC.ecsIndexSize(), 5);
+
+  /* wipe everything under the powerdns.com domain */
+  BOOST_CHECK_EQUAL(MRC.doWipeCache(power, true), 3);
+  BOOST_CHECK_EQUAL(MRC.size(), 2);
+  BOOST_CHECK_EQUAL(MRC.ecsIndexSize(), 2);
+
+  /* now wipe the other domains too */
+  BOOST_CHECK_EQUAL(MRC.doWipeCache(other1, true), 1);
+  BOOST_CHECK_EQUAL(MRC.size(), 1);
+  BOOST_CHECK_EQUAL(MRC.ecsIndexSize(), 1);
+
+  BOOST_CHECK_EQUAL(MRC.doWipeCache(other2, true), 1);
+  BOOST_CHECK_EQUAL(MRC.size(), 0);
+  BOOST_CHECK_EQUAL(MRC.ecsIndexSize(), 0);
+}
+
 BOOST_AUTO_TEST_SUITE_END()

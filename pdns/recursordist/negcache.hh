@@ -22,6 +22,7 @@
 #pragma once
 
 #include <boost/multi_index_container.hpp>
+#include <boost/multi_index/hashed_index.hpp>
 #include "dnsparser.hh"
 #include "dnsname.hh"
 #include "dns.hh"
@@ -59,8 +60,8 @@ class NegCache : public boost::noncopyable {
 
     void add(const NegCacheEntry& ne);
     void updateValidationStatus(const DNSName& qname, const QType& qtype, const vState newState);
-    bool get(const DNSName& qname, const QType& qtype, const struct timeval& now, NegCacheEntry& ne, bool typeMustMatch=false);
-    bool getRootNXTrust(const DNSName& qname, const struct timeval& now, NegCacheEntry& ne);
+    bool get(const DNSName& qname, const QType& qtype, const struct timeval& now, const NegCacheEntry** ne, bool typeMustMatch=false);
+    bool getRootNXTrust(const DNSName& qname, const struct timeval& now, const NegCacheEntry** ne);
     uint64_t count(const DNSName& qname) const;
     uint64_t count(const DNSName& qname, const QType qtype) const;
     void prune(unsigned int maxEntries);
@@ -90,7 +91,10 @@ class NegCache : public boost::noncopyable {
             CanonDNSNameCompare, std::less<QType>
           >
         >,
-        sequenced<>
+        sequenced<>,
+        hashed_non_unique <
+          member<NegCacheEntry, DNSName, &NegCacheEntry::d_name>
+        >
       >
     > negcache_t;
 

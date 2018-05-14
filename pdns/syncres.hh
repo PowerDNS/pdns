@@ -776,9 +776,9 @@ private:
   vState validateRecordsWithSigs(unsigned int depth, const DNSName& qname, const QType& qtype, const DNSName& name, const std::vector<DNSRecord>& records, const std::vector<std::shared_ptr<RRSIGRecordContent> >& signatures);
   vState validateDNSKeys(const DNSName& zone, const std::vector<DNSRecord>& dnskeys, const std::vector<std::shared_ptr<RRSIGRecordContent> >& signatures, unsigned int depth);
   vState getDNSKeys(const DNSName& signer, skeyset_t& keys, unsigned int depth);
-  dState getDenialValidationState(NegCache::NegCacheEntry& ne, const vState state, const dState expectedState, bool referralToUnsigned);
-  void updateDenialValidationState(NegCache::NegCacheEntry& ne, vState& state, const dState denialState, const dState expectedState, bool allowOptOut);
-  void computeNegCacheValidationStatus(NegCache::NegCacheEntry& ne, const DNSName& qname, const QType& qtype, const int res, vState& state, unsigned int depth);
+  dState getDenialValidationState(const NegCache::NegCacheEntry& ne, const vState state, const dState expectedState, bool referralToUnsigned);
+  void updateDenialValidationState(vState& neValidationState, const DNSName& neName, vState& state, const dState denialState, const dState expectedState, bool allowOptOut);
+  void computeNegCacheValidationStatus(const NegCache::NegCacheEntry* ne, const DNSName& qname, const QType& qtype, const int res, vState& state, unsigned int depth);
   vState getTA(const DNSName& zone, dsmap_t& ds);
   bool haveExactValidationStatus(const DNSName& domain);
   vState getValidationStatus(const DNSName& subdomain, bool allowIndeterminate=true);
