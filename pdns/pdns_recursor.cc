@@ -2298,7 +2298,7 @@ void distributeAsyncFunction(const string& packet, const pipefunc_t& func)
   unsigned int hash = hashQuestion(packet.c_str(), packet.length(), g_disthashseed);
   unsigned int target = 1 + (hash % (g_pipes.size()-1));
 
-  if(target == 0) {
+  if(target == static_cast<unsigned int>(s_distributorThreadID)) {
     L<<Logger::Error<<"distributeAsyncFunction() tried to assign a query to the distributor"<<endl;
     exit(1);
   }
