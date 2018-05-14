@@ -2376,7 +2376,6 @@ template<class T> T broadcastAccFunction(const boost::function<T*()>& func)
   if (t_id != s_handlerThreadID) {
     L<<Logger::Error<<"broadcastFunction has been called by a worker ("<<t_id<<")"<<endl;
     exit(1);
-
   }
 
   T ret=T();
