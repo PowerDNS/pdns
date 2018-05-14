@@ -206,6 +206,10 @@ install_auth() {
   run "sudo apt-get -qq --no-install-recommends install \
     libp11-kit-dev"
 
+  # for validns
+  run "sudo add-apt-repository -y ppa:jelu/validns"
+  run 'curl "http://keyserver.ubuntu.com:11371/pks/lookup?op=get&search=0x7AA4AC1F04A52E842B88094F01B7B7D6564DECD0" | sudo apt-key add - '
+
   # geoip-backend
   run "sudo add-apt-repository -y ppa:maxmind/ppa"
   run "gpg --keyserver keyserver.ubuntu.com --recv-keys DE742AFA"
