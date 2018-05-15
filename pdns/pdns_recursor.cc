@@ -2330,7 +2330,7 @@ static void doStats(void)
 
 static void houseKeeping(void *)
 {
-  static thread_local time_t last_stat, last_rootupdate, last_prune, last_secpoll;
+  static thread_local time_t last_rootupdate, last_prune, last_secpoll;
   static thread_local int cleanCounter=0;
   static thread_local bool s_running;  // houseKeeping can get suspended in secpoll, and be restarted, which makes us do duplicate work
   try {
@@ -2362,13 +2362,7 @@ static void houseKeeping(void *)
         last_rootupdate=now.tv_sec;
     }
 
-    if (t_id == s_handlerThreadID) {
-      if(g_statisticsInterval > 0 && now.tv_sec - last_stat >= g_statisticsInterval) {
-	doStats();
-	last_stat=time(0);
-      }
-    }
-    else if(t_id == s_distributorThreadID) {
+    if(t_id == s_distributorThreadID) {
 
       if(now.tv_sec - last_secpoll >= 3600) {
 	try {
@@ -3523,6 +3517,7 @@ try
 
   bool listenOnTCP(true);
 
+  time_t last_stat = 0;
   time_t last_carbon=0;
   time_t carbonInterval=::arg().asNum("carbon-interval");
   counter.store(0); // used to periodically execute certain tasks
@@ -3547,15 +3542,18 @@ try
 
     counter++;
 
-    if(!worker && statsWanted) {
-      doStats();
-    }
+    if(!worker) {
+      if(statsWanted || (g_statisticsInterval > 0 && (g_now.tv_sec - last_stat) >= g_statisticsInterval)) {
+        doStats();
+        last_stat = g_now.tv_sec;
+      }
 
-    Utility::gettimeofday(&g_now, 0);
+      Utility::gettimeofday(&g_now, 0);
 
-    if(!worker && (g_now.tv_sec - last_carbon >= carbonInterval)) {
-      MT->makeThread(doCarbonDump, 0);
-      last_carbon = g_now.tv_sec;
+      if((g_now.tv_sec - last_carbon) >= carbonInterval) {
+        MT->makeThread(doCarbonDump, 0);
+        last_carbon = g_now.tv_sec;
+      }
     }
 
     t_fdm->run(&g_now);
