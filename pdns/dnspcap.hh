@@ -123,7 +123,7 @@ public:
 private:
   FILE* d_fp;
   string d_fname;
-  int d_skipMediaHeader;
+  unsigned int d_skipMediaHeader;
 };
 
 class PcapPacketWriter
