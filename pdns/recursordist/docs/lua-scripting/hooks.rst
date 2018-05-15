@@ -272,13 +272,14 @@ Example script
     myDomain = newDN("example.com")
 
     myNetblock = newNMG()
-    myNetblock:addMasks("192.0.2.0/24")
+    myNetblock:addMasks({"192.0.2.0/24"})
 
     function preresolve(dq)
       if dq.qname:isPartOf(myDomain) and dq.appliedPolicy.policyKind ~= pdns.policykinds.NoAction then
         pdnslog("Not blocking our own domain!")
         dq.appliedPolicy.policyKind = pdns.policykinds.NoAction
       end
+      return false
     end
 
     function postresolve(dq)
@@ -294,6 +295,7 @@ Example script
           end
         end
       end
+      return false
     end
 
 .. _snmp:
