@@ -97,7 +97,7 @@
 typedef map<ComboAddress, uint32_t, ComboAddress::addressOnlyLessThan> tcpClientCounts_t;
 
 static thread_local std::shared_ptr<RecursorLua4> t_pdl;
-static thread_local unsigned int t_id;
+static thread_local int t_id;
 static thread_local std::shared_ptr<Regex> t_traceRegex;
 static thread_local std::unique_ptr<tcpClientCounts_t> t_tcpClientCounts;
 
@@ -123,6 +123,12 @@ struct ThreadPipeSet
   int writeQueriesToThread; // this one is non-blocking
   int readQueriesToThread;
 };
+
+/* the TID of the thread handling the web server, carbon, statistics and the control channel */
+static const int s_handlerThreadID = -1;
+/* when pdns-distributes-queries is set, the TID of the thread handling, hashing and distributing new queries
+   to the other threads */
+static const int s_distributorThreadID = 0;
 
 typedef vector<int> tcpListenSockets_t;
 typedef map<int, ComboAddress> listenSocketsAddresses_t; // is shared across all threads right now
@@ -240,7 +246,7 @@ ArgvMap &arg()
 
 unsigned int getRecursorThreadId()
 {
-  return t_id;
+  return static_cast<unsigned int>(t_id);
 }
 
 int getMTaskerTID()
@@ -2142,7 +2148,7 @@ static void doStats(void)
 
 static void houseKeeping(void *)
 {
-  static thread_local time_t last_stat, last_rootupdate, last_prune, last_secpoll;
+  static thread_local time_t last_rootupdate, last_prune, last_secpoll;
   static thread_local int cleanCounter=0;
   static thread_local bool s_running;  // houseKeeping can get suspended in secpoll, and be restarted, which makes us do duplicate work
   try {
@@ -2174,11 +2180,7 @@ static void houseKeeping(void *)
         last_rootupdate=now.tv_sec;
     }
 
-    if(!t_id) {
-      if(g_statisticsInterval > 0 && now.tv_sec - last_stat >= g_statisticsInterval) {
-	doStats();
-	last_stat=time(0);
-      }
+    if(t_id == s_distributorThreadID) {
 
       if(now.tv_sec - last_secpoll >= 3600) {
 	try {
@@ -2248,14 +2250,26 @@ struct ThreadMSG
   bool wantAnswer;
 };
 
-void broadcastFunction(const pipefunc_t& func, bool skipSelf)
+void broadcastFunction(const pipefunc_t& func)
 {
-  unsigned int n = 0;
+  /* This function might be called by the worker with t_id 0 during startup
+     for the initialization of ACLs and domain maps */
+  if (t_id != s_handlerThreadID && t_id != s_distributorThreadID) {
+    L<<Logger::Error<<"broadcastFunction() has been called by a worker ("<<t_id<<")"<<endl;
+    exit(1);
+  }
+
+  if (t_id == s_handlerThreadID) {
+    /* the distributor will call itself below, but if we are the handler thread,
+       call the function ourselves to update the ACL or domain maps for example */
+    func();
+  }
+
+  int n = 0;
   for(ThreadPipeSet& tps : g_pipes)
   {
     if(n++ == t_id) {
-      if(!skipSelf)
-        func(); // don't write to ourselves!
+      func(); // don't write to ourselves!
       continue;
     }
 
@@ -2267,26 +2281,33 @@ void broadcastFunction(const pipefunc_t& func, bool skipSelf)
       unixDie("write to thread pipe returned wrong size or error");
     }
 
-    string* resp;
+    string* resp = nullptr;
     if(read(tps.readFromThread, &resp, sizeof(resp)) != sizeof(resp))
       unixDie("read from thread pipe returned wrong size or error");
 
     if(resp) {
-//      cerr <<"got response: " << *resp << endl;
       delete resp;
+      resp = nullptr;
     }
   }
 }
 
+// This function is only called by the distributor thread, when pdns-distributes-queries is set
 void distributeAsyncFunction(const string& packet, const pipefunc_t& func)
 {
+  if (t_id != s_distributorThreadID) {
+    L<<Logger::Error<<"distributeAsyncFunction() has been called by a worker ("<<t_id<<")"<<endl;
+    exit(1);
+  }
+
   unsigned int hash = hashQuestion(packet.c_str(), packet.length(), g_disthashseed);
   unsigned int target = 1 + (hash % (g_pipes.size()-1));
 
-  if(target == t_id) {
-    func();
-    return;
+  if(target == static_cast<unsigned int>(s_distributorThreadID)) {
+    L<<Logger::Error<<"distributeAsyncFunction() tried to assign a query to the distributor"<<endl;
+    exit(1);
   }
+
   ThreadPipeSet& tps = g_pipes[target];
   ThreadMSG* tmsg = new ThreadMSG();
   tmsg->func = func;
@@ -2364,24 +2385,19 @@ vector<pair<DNSName, uint16_t> >& operator+=(vector<pair<DNSName, uint16_t> >&a,
 }
 
 
-template<class T> T broadcastAccFunction(const boost::function<T*()>& func, bool skipSelf)
+/*
+  This function should only be called by the handler to gather metrics, wipe the cache,
+  reload the Lua script (not the Lua config) or change the current trace regex */
+template<class T> T broadcastAccFunction(const boost::function<T*()>& func)
 {
-  unsigned int n = 0;
+  if (t_id != s_handlerThreadID) {
+    L<<Logger::Error<<"broadcastFunction has been called by a worker ("<<t_id<<")"<<endl;
+    exit(1);
+  }
+
   T ret=T();
   for(ThreadPipeSet& tps : g_pipes)
   {
-    if(n++ == t_id) {
-      if(!skipSelf) {
-        T* resp = (T*)func(); // don't write to ourselves!
-        if(resp) {
-          //~ cerr <<"got direct: " << *resp << endl;
-          ret += *resp;
-          delete resp;
-        }
-      }
-      continue;
-    }
-
     ThreadMSG* tmsg = new ThreadMSG();
     tmsg->func = boost::bind(voider<T>, func);
     tmsg->wantAnswer = true;
@@ -2391,23 +2407,23 @@ template<class T> T broadcastAccFunction(const boost::function<T*()>& func, bool
       unixDie("write to thread pipe returned wrong size or error");
     }
 
-    T* resp;
+    T* resp = nullptr;
     if(read(tps.readFromThread, &resp, sizeof(resp)) != sizeof(resp))
       unixDie("read from thread pipe returned wrong size or error");
 
     if(resp) {
-      //~ cerr <<"got response: " << *resp << endl;
       ret += *resp;
       delete resp;
+      resp = nullptr;
     }
   }
   return ret;
 }
 
-template string broadcastAccFunction(const boost::function<string*()>& fun, bool skipSelf); // explicit instantiation
-template uint64_t broadcastAccFunction(const boost::function<uint64_t*()>& fun, bool skipSelf); // explicit instantiation
-template vector<ComboAddress> broadcastAccFunction(const boost::function<vector<ComboAddress> *()>& fun, bool skipSelf); // explicit instantiation
-template vector<pair<DNSName,uint16_t> > broadcastAccFunction(const boost::function<vector<pair<DNSName, uint16_t> > *()>& fun, bool skipSelf); // explicit instantiation
+template string broadcastAccFunction(const boost::function<string*()>& fun); // explicit instantiation
+template uint64_t broadcastAccFunction(const boost::function<uint64_t*()>& fun); // explicit instantiation
+template vector<ComboAddress> broadcastAccFunction(const boost::function<vector<ComboAddress> *()>& fun); // explicit instantiation
+template vector<pair<DNSName,uint16_t> > broadcastAccFunction(const boost::function<vector<pair<DNSName, uint16_t> > *()>& fun); // explicit instantiation
 
 static void handleRCC(int fd, FDMultiplexer::funcparam_t& var)
 {
@@ -2703,7 +2719,7 @@ static void checkOrFixFDS()
   }
 }
 
-static void* recursorThread(void*);
+static void* recursorThread(int tid, bool worker);
 
 static void* pleaseSupplantACLs(std::shared_ptr<NetmaskGroup> ng)
 {
@@ -3158,36 +3174,39 @@ static int serviceMain(int argc, char*argv[])
     g_snmpAgent->run();
   }
 
+  /* This thread handles the web server, carbon, statistics and the control channel */
+  std::thread handlerThread(recursorThread, s_handlerThreadID, false);
+
   const auto cpusMap = parseCPUMap();
+
+  std::vector<std::thread> workers(g_numThreads);
   if(g_numThreads == 1) {
     L<<Logger::Warning<<"Operating unthreaded"<<endl;
 #ifdef HAVE_SYSTEMD
     sd_notify(0, "READY=1");
 #endif
     setCPUMap(cpusMap, 0, pthread_self());
-    recursorThread(0);
+    recursorThread(0, true);
   }
   else {
-    pthread_t tid;
     L<<Logger::Warning<<"Launching "<< g_numThreads <<" threads"<<endl;
     for(unsigned int n=0; n < g_numThreads; ++n) {
-      pthread_create(&tid, 0, recursorThread, (void*)(long)n);
+      workers[n] = std::thread(recursorThread, n, true);
 
-      setCPUMap(cpusMap, n, tid);
+      setCPUMap(cpusMap, n, workers[n].native_handle());
     }
-    void* res;
 #ifdef HAVE_SYSTEMD
     sd_notify(0, "READY=1");
 #endif
-    pthread_join(tid, &res);
+    workers.back().join();
   }
   return 0;
 }
 
-static void* recursorThread(void* ptr)
+static void* recursorThread(int n, bool worker)
 try
 {
-  t_id=(int) (long) ptr;
+  t_id=n;
   SyncRes tmp(g_now); // make sure it allocates tsstorage before we do anything, like primeHints or so..
   SyncRes::setDomainMap(g_initialDomainMap);
   t_allowFrom = g_initialAllowFrom;
@@ -3236,7 +3255,8 @@ try
   PacketID pident;
 
   t_fdm=getMultiplexer();
-  if(!t_id) {
+
+  if(!worker) {
     if(::arg().mustDo("webserver")) {
       L<<Logger::Warning << "Enabling web server" << endl;
       try {
@@ -3249,25 +3269,27 @@ try
     }
     L<<Logger::Error<<"Enabled '"<< t_fdm->getName() << "' multiplexer"<<endl;
   }
-
-  t_fdm->addReadFD(g_pipes[t_id].readToThread, handlePipeRequest);
-  t_fdm->addReadFD(g_pipes[t_id].readQueriesToThread, handlePipeRequest);
-
-  if(g_useOneSocketPerThread) {
-    for(deferredAdd_t::const_iterator i = deferredAdds[t_id].cbegin(); i != deferredAdds[t_id].cend(); ++i) {
-      t_fdm->addReadFD(i->first, i->second);
-    }
-  }
   else {
-    if(!g_weDistributeQueries || !t_id) { // if we distribute queries, only t_id = 0 listens
-      for(deferredAdd_t::const_iterator i = deferredAdds[0].cbegin(); i != deferredAdds[0].cend(); ++i) {
+    t_fdm->addReadFD(g_pipes[t_id].readToThread, handlePipeRequest);
+    t_fdm->addReadFD(g_pipes[t_id].readQueriesToThread, handlePipeRequest);
+
+    if(g_useOneSocketPerThread) {
+      for(deferredAdd_t::const_iterator i = deferredAdds[t_id].cbegin(); i != deferredAdds[t_id].cend(); ++i) {
         t_fdm->addReadFD(i->first, i->second);
+      }
+    }
+    else {
+      if(!g_weDistributeQueries || t_id == s_distributorThreadID) { // if we distribute queries, only t_id = 0 listens
+        for(deferredAdd_t::const_iterator i = deferredAdds[0].cbegin(); i != deferredAdds[0].cend(); ++i) {
+          t_fdm->addReadFD(i->first, i->second);
+        }
       }
     }
   }
 
   registerAllStats();
-  if(!t_id) {
+
+  if(!worker) {
     t_fdm->addReadFD(s_rcc.d_fd, handleRCC); // control channel
   }
 
@@ -3275,6 +3297,7 @@ try
 
   bool listenOnTCP(true);
 
+  time_t last_stat = 0;
   time_t last_carbon=0;
   time_t carbonInterval=::arg().asNum("carbon-interval");
   counter.store(0); // used to periodically execute certain tasks
@@ -3299,21 +3322,24 @@ try
 
     counter++;
 
-    if(!t_id && statsWanted) {
-      doStats();
-    }
+    if(!worker) {
+      if(statsWanted || (g_statisticsInterval > 0 && (g_now.tv_sec - last_stat) >= g_statisticsInterval)) {
+        doStats();
+        last_stat = g_now.tv_sec;
+      }
 
-    Utility::gettimeofday(&g_now, 0);
+      Utility::gettimeofday(&g_now, 0);
 
-    if(!t_id && (g_now.tv_sec - last_carbon >= carbonInterval)) {
-      MT->makeThread(doCarbonDump, 0);
-      last_carbon = g_now.tv_sec;
+      if((g_now.tv_sec - last_carbon) >= carbonInterval) {
+        MT->makeThread(doCarbonDump, 0);
+        last_carbon = g_now.tv_sec;
+      }
     }
 
     t_fdm->run(&g_now);
     // 'run' updates g_now for us
 
-    if(!g_weDistributeQueries || !t_id) { // if pdns distributes queries, only tid 0 should do this
+    if(worker && (!g_weDistributeQueries || t_id == s_distributorThreadID)) { // if pdns distributes queries, only tid 0 should do this
       if(listenOnTCP) {
 	if(TCPConnection::getCurrentConnections() > maxTcpClients) {  // shutdown, too many connections
 	  for(tcpListenSockets_t::iterator i=g_tcpListenSockets.begin(); i != g_tcpListenSockets.end(); ++i)

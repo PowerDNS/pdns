@@ -966,12 +966,12 @@ std::string reloadAuthAndForwards();
 ComboAddress parseIPAndPort(const std::string& input, uint16_t port);
 ComboAddress getQueryLocalAddress(int family, uint16_t port);
 typedef boost::function<void*(void)> pipefunc_t;
-void broadcastFunction(const pipefunc_t& func, bool skipSelf = false);
+void broadcastFunction(const pipefunc_t& func);
 void distributeAsyncFunction(const std::string& question, const pipefunc_t& func);
 
 int directResolve(const DNSName& qname, const QType& qtype, int qclass, vector<DNSRecord>& ret);
 
-template<class T> T broadcastAccFunction(const boost::function<T*()>& func, bool skipSelf=false);
+template<class T> T broadcastAccFunction(const boost::function<T*()>& func);
 
 std::shared_ptr<SyncRes::domainmap_t> parseAuthAndForwards();
 uint64_t* pleaseGetNsSpeedsSize();
