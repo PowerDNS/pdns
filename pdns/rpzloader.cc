@@ -283,21 +283,35 @@ static void setRPZZoneNewState(const std::string& zone, uint32_t serial, uint64_
   stats->d_numberOfRecords = numberOfRecords;
 }
 
-void RPZIXFRTracker(const ComboAddress& master, boost::optional<DNSFilterEngine::Policy> defpol, uint32_t maxTTL, size_t zoneIdx, const TSIGTriplet& tt, size_t maxReceivedBytes, const ComboAddress& localAddress, std::shared_ptr<DNSFilterEngine::Zone> zone, const uint16_t axfrTimeout)
+void RPZIXFRTracker(const ComboAddress& master, boost::optional<DNSFilterEngine::Policy> defpol, uint32_t maxTTL, size_t zoneIdx, const TSIGTriplet& tt, size_t maxReceivedBytes, const ComboAddress& localAddress, const uint16_t axfrTimeout)
 {
-  uint32_t refresh = zone->getRefresh();
-  DNSName zoneName = zone->getDomain();
-  std::string polName = zone->getName() ? *(zone->getName()) : zoneName.toString();
+  auto luaconfsLocal = g_luaconfs.getLocal();
+  /* we can _never_ modify this zone directly, we need to do a full copy then replace the existing zone */
+  std::shared_ptr<DNSFilterEngine::Zone> oldZone = luaconfsLocal->dfe.getZone(zoneIdx);
+  if (!oldZone) {
+    L<<Logger::Error<<"Unable to retrieve RPZ zone with index "<<zoneIdx<<" from the configuration, exiting"<<endl;
+    return;
+  }
+  uint32_t refresh = oldZone->getRefresh();
+  DNSName zoneName = oldZone->getDomain();
+  std::string polName = oldZone->getName() ? *(oldZone->getName()) : zoneName.toString();
   shared_ptr<SOARecordContent> sr;
 
   while (!sr) {
+    /* full copy, as promised */
+    std::shared_ptr<DNSFilterEngine::Zone> newZone = std::make_shared<DNSFilterEngine::Zone>(*oldZone);
+
     try {
-      sr=loadRPZFromServer(master, zoneName, zone, defpol, maxTTL, tt, maxReceivedBytes, localAddress, axfrTimeout);
+      sr=loadRPZFromServer(master, zoneName, newZone, defpol, maxTTL, tt, maxReceivedBytes, localAddress, axfrTimeout);
       if(refresh == 0) {
         refresh = sr->d_st.refresh;
       }
-      zone->setSerial(sr->d_st.serial);
-      setRPZZoneNewState(polName, sr->d_st.serial, zone->size(), true);
+      newZone->setSerial(sr->d_st.serial);
+      setRPZZoneNewState(polName, sr->d_st.serial, newZone->size(), true);
+
+      g_luaconfs.modify([zoneIdx, &newZone](LuaConfigItems& lci) {
+        lci.dfe.setZone(zoneIdx, newZone);
+      });
     }
     catch(const std::exception& e) {
       theL()<<Logger::Warning<<"Unable to load RPZ zone '"<<zoneName<<"' from '"<<master<<"': '"<<e.what()<<"'. (Will try again in "<<refresh<<" seconds...)"<<endl;
@@ -341,8 +355,7 @@ void RPZIXFRTracker(const ComboAddress& master, boost::optional<DNSFilterEngine:
       continue;
     L<<Logger::Info<<"Processing "<<deltas.size()<<" delta"<<addS(deltas)<<" for RPZ "<<zoneName<<endl;
 
-    auto luaconfsLocal = g_luaconfs.getLocal();
-    const std::shared_ptr<DNSFilterEngine::Zone> oldZone = luaconfsLocal->dfe.getZone(zoneIdx);
+    oldZone = luaconfsLocal->dfe.getZone(zoneIdx);
     /* we need to make a _full copy_ of the zone we are going to work on */
     std::shared_ptr<DNSFilterEngine::Zone> newZone = std::make_shared<DNSFilterEngine::Zone>(*oldZone);
 
