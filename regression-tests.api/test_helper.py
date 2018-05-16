@@ -9,7 +9,8 @@ import subprocess
 DAEMON = os.environ.get('DAEMON', 'authoritative')
 PDNSUTIL_CMD = os.environ.get('PDNSUTIL_CMD', 'NOT_SET BUT_THIS MIGHT_BE_A_LIST').split(' ')
 SQLITE_DB = os.environ.get('SQLITE_DB', 'pdns.sqlite3')
-
+SDIG = os.environ.get('SDIG', 'sdig')
+DNSPORT = os.environ.get('DNSPORT', '53')
 
 class ApiTestCase(unittest.TestCase):
 
@@ -77,3 +78,9 @@ def get_db_records(zonename, qtype):
 def pdnsutil_rectify(zonename):
     """Run pdnsutil rectify-zone on the given zone."""
     subprocess.check_call(PDNSUTIL_CMD + ['rectify-zone', zonename])
+
+def sdig(*args):
+    try:
+        return subprocess.check_call([SDIG, '127.0.0.1', str(DNSPORT)] + list(args))
+    except subprocess.CalledProcessError as except_inst:
+        raise RuntimeError("sdig %s %s failed: %s" % (command, args, except_inst.output.decode('ascii', errors='replace')))

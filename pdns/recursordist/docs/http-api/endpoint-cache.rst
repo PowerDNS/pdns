@@ -8,6 +8,10 @@ Cache manipulation endpoint
   :query server_id: The name of the server
   :query domain: The domainname to flush for
 
+  .. versionadded:: 4.1.3
+
+  :query subtree: If set to `true`, also flush the whole subtree (default = `false`)
+
   **Example Response:**
 
   .. code-block:: json

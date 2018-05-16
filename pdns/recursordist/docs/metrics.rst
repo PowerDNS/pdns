@@ -144,6 +144,10 @@ auth6-answers100-1000
 ^^^^^^^^^^^^^^^^^^^^^
 counts the number of queries answered by auth6s within 1 second (4.0)
 
+auth-zone-queries
+^^^^^^^^^^^^^^^^^
+counts the number of queries to locally hosted authoritative zones (:ref:`setting-auth-zones`) since starting
+
 cache-bytes
 ^^^^^^^^^^^
 size of the cache in bytes
@@ -355,6 +359,12 @@ packets that were sent a custom answer by   the RPZ/filter engine
 qa-latency
 ^^^^^^^^^^
 shows the current latency average, in microseconds,   exponentially weighted over past 'latency-statistic-size' packets
+
+query-pipe-full-drops
+^^^^^^^^^^^^^^^^^^^^^
+.. versionadded:: 4.2
+
+questions dropped because the query distribution pipe was full
 
 questions
 ^^^^^^^^^

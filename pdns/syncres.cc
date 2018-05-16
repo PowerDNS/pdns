@@ -56,6 +56,7 @@ unsigned int SyncRes::s_packetcachettl;
 unsigned int SyncRes::s_packetcacheservfailttl;
 unsigned int SyncRes::s_serverdownmaxfails;
 unsigned int SyncRes::s_serverdownthrottletime;
+std::atomic<uint64_t> SyncRes::s_authzonequeries;
 std::atomic<uint64_t> SyncRes::s_queries;
 std::atomic<uint64_t> SyncRes::s_outgoingtimeouts;
 std::atomic<uint64_t> SyncRes::s_outgoing4timeouts;
@@ -106,7 +107,7 @@ static void accountAuthLatency(int usec, int family)
 }
 
 
-SyncRes::SyncRes(const struct timeval& now) :  d_outqueries(0), d_tcpoutqueries(0), d_throttledqueries(0), d_timeouts(0), d_unreachables(0),
+SyncRes::SyncRes(const struct timeval& now) :  d_authzonequeries(0), d_outqueries(0), d_tcpoutqueries(0), d_throttledqueries(0), d_timeouts(0), d_unreachables(0),
 					       d_totUsec(0), d_now(now),
 					       d_cacheonly(false), d_doDNSSEC(false), d_doEDNS0(false), d_lm(s_lm)
                                                  
@@ -122,8 +123,8 @@ int SyncRes::beginResolve(const DNSName &qname, const QType &qtype, uint16_t qcl
   d_wasOutOfBand=false;
 
   if (doSpecialNamesResolve(qname, qtype, qclass, ret)) {
-    d_queryValidationState = Insecure;
-    return 0;
+    d_queryValidationState = Insecure; // this could fool our stats into thinking a validation took place
+    return 0;                          // so do check before updating counters (we do now)
   }
 
   if( (qtype.getCode() == QType::AXFR) || (qtype.getCode() == QType::IXFR) || (qtype.getCode() == QType::RRSIG) || (qtype.getCode() == QType::NSEC3))
@@ -138,10 +139,10 @@ int SyncRes::beginResolve(const DNSName &qname, const QType &qtype, uint16_t qcl
   int res=doResolve(qname, qtype, ret, 0, beenthere, state);
   d_queryValidationState = state;
 
-  if (d_queryValidationState != Indeterminate) {
-    g_stats.dnssecValidations++;
-  }
   if (shouldValidate()) {
+    if (d_queryValidationState != Indeterminate) {
+      g_stats.dnssecValidations++;
+    }
     increaseDNSSECStateCounter(d_queryValidationState);
   }
 
@@ -319,8 +320,11 @@ int SyncRes::AuthDomain::getRecords(const DNSName& qname, uint16_t qtype, std::v
   return result;
 }
 
-bool SyncRes::doOOBResolve(const AuthDomain& domain, const DNSName &qname, const QType &qtype, vector<DNSRecord>&ret, int& res) const
+bool SyncRes::doOOBResolve(const AuthDomain& domain, const DNSName &qname, const QType &qtype, vector<DNSRecord>&ret, int& res)
 {
+  d_authzonequeries++;
+  s_authzonequeries++;
+
   res = domain.getRecords(qname, qtype.getCode(), ret);
   return true;
 }

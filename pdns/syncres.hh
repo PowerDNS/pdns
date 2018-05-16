@@ -665,6 +665,7 @@ public:
   static std::atomic<uint64_t> s_outgoing6timeouts;
   static std::atomic<uint64_t> s_throttledqueries;
   static std::atomic<uint64_t> s_dontqueries;
+  static std::atomic<uint64_t> s_authzonequeries;
   static std::atomic<uint64_t> s_outqueries;
   static std::atomic<uint64_t> s_tcpoutqueries;
   static std::atomic<uint64_t> s_nodelegated;
@@ -693,6 +694,7 @@ public:
 
   std::unordered_map<std::string,bool> d_discardedPolicies;
   DNSFilterEngine::Policy d_appliedPolicy;
+  unsigned int d_authzonequeries;
   unsigned int d_outqueries;
   unsigned int d_tcpoutqueries;
   unsigned int d_throttledqueries;
@@ -730,7 +732,7 @@ private:
   bool processAnswer(unsigned int depth, LWResult& lwr, const DNSName& qname, const QType& qtype, DNSName& auth, bool wasForwarded, const boost::optional<Netmask> ednsmask, bool sendRDQuery, NsSet &nameservers, std::vector<DNSRecord>& ret, const DNSFilterEngine& dfe, bool* gotNewServers, int* rcode, vState& state);
 
   int doResolve(const DNSName &qname, const QType &qtype, vector<DNSRecord>&ret, unsigned int depth, set<GetBestNSAnswer>& beenthere, vState& state);
-  bool doOOBResolve(const AuthDomain& domain, const DNSName &qname, const QType &qtype, vector<DNSRecord>&ret, int& res) const;
+  bool doOOBResolve(const AuthDomain& domain, const DNSName &qname, const QType &qtype, vector<DNSRecord>&ret, int& res);
   bool doOOBResolve(const DNSName &qname, const QType &qtype, vector<DNSRecord>&ret, unsigned int depth, int &res);
   domainmap_t::const_iterator getBestAuthZone(DNSName* qname) const;
   bool doCNAMECacheCheck(const DNSName &qname, const QType &qtype, vector<DNSRecord>&ret, unsigned int depth, int &res, vState& state, bool wasAuthZone);
@@ -892,6 +894,7 @@ struct RecursorStats
   std::atomic<uint64_t> clientParseError;
   std::atomic<uint64_t> serverParseError;
   std::atomic<uint64_t> tooOldDrops;
+  std::atomic<uint64_t> queryPipeFullDrops;
   std::atomic<uint64_t> unexpectedCount;
   std::atomic<uint64_t> caseMismatchCount;
   std::atomic<uint64_t> spoofCount;
@@ -965,12 +968,12 @@ std::string reloadAuthAndForwards();
 ComboAddress parseIPAndPort(const std::string& input, uint16_t port);
 ComboAddress getQueryLocalAddress(int family, uint16_t port);
 typedef boost::function<void*(void)> pipefunc_t;
-void broadcastFunction(const pipefunc_t& func, bool skipSelf = false);
+void broadcastFunction(const pipefunc_t& func);
 void distributeAsyncFunction(const std::string& question, const pipefunc_t& func);
 
 int directResolve(const DNSName& qname, const QType& qtype, int qclass, vector<DNSRecord>& ret);
 
-template<class T> T broadcastAccFunction(const boost::function<T*()>& func, bool skipSelf=false);
+template<class T> T broadcastAccFunction(const boost::function<T*()>& func);
 
 std::shared_ptr<SyncRes::domainmap_t> parseAuthAndForwards();
 uint64_t* pleaseGetNsSpeedsSize();
