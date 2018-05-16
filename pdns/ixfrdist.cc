@@ -936,6 +936,8 @@ int main(int argc, char** argv) {
     g_log.toConsole(Logger::Debug);
   }
 
+  g_log<<Logger::Notice<<"IXFR distributor version "<<VERSION<<" starting up!"<<endl;
+
   YAML::Node config;
   if (!parseAndCheckConfig(g_vm["config"].as<string>(), config)) {
     // parseAndCheckConfig already logged whatever was wrong
@@ -1057,8 +1059,6 @@ int main(int argc, char** argv) {
 
   // TODO read from urandom (perhaps getrandom(2)?
   dns_random_init("0123456789abcdef");
-
-  g_log<<Logger::Notice<<"IXFR distributor starting up!"<<endl;
 
   std::thread ut(updateThread,
       config["work-dir"].as<string>(),
