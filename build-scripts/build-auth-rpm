@@ -810,6 +810,7 @@ exit 0
 %{_mandir}/man1/saxfr.1.gz
 %{_mandir}/man1/sdig.1.gz
 %{_unitdir}/ixfrdist.service
+%{_unitdir}/ixfrdist@.service
 
 %files backend-mysql
 %doc modules/gmysqlbackend/schema.mysql.sql
@@ -1093,6 +1094,7 @@ exit 0
 %{_mandir}/man1/saxfr.1.gz
 %{_mandir}/man1/sdig.1.gz
 %{_unitdir}/ixfrdist.service
+%{_unitdir}/ixfrdist@.service
 
 %files backend-mysql
 %doc modules/gmysqlbackend/schema.mysql.sql

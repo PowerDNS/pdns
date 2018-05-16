@@ -1427,11 +1427,17 @@ if IXFRDIST
 ixfrdist.service: ixfrdist.service.in
 	$(AM_V_GEN)sed -e 's![@]bindir[@]!$(bindir)!' < $< > $@
 
+ixfrdist@.service: ixfrdist.service
+	$(AM_V_GEN)sed -e 's!/ixfrdist!& --config $(sysconfdir)/ixfrdist-%i.yml!' \
+	  < $< > $@
+
 systemdsystemunit_DATA += \
-	ixfrdist.service
+	ixfrdist.service \
+	ixfrdist@.service
 endif # IXFRDIST
 
 CLEANFILES += \
-	ixfrdist.service
+	ixfrdist.service \
+	ixfrdist@.service
 
 endif # HAVE_SYSTEMD

@@ -1,13 +1,13 @@
 [Unit]
 Description=PowerDNS IXFR Distributor
 Documentation=man:ixfrdist(1)
+Documentation=man:ixfrdist.yml(5)
 Documentation=https://doc.powerdns.com
 Wants=network-online.target
 After=network-online.target
 
 [Service]
 Type=simple
-# You'll want to override this, see the manpage
 ExecStart=@bindir@/ixfrdist
 Restart=on-failure
 RestartSec=1
