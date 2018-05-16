@@ -892,6 +892,29 @@ fred   IN  A      192.168.0.4
         data = self.session.get(self.url("/api/v1/servers/localhost/zones/" + name)).json()
         self.assertEquals(get_rrset(data, name, 'MX')['records'], rrset['records'])
 
+    def test_zone_rr_update_opt(self):
+        name, payload, zone = self.create_zone()
+        # do a replace (= update)
+        rrset = {
+            'changetype': 'replace',
+            'name': name,
+            'type': 'OPT',
+            'ttl': 3600,
+            'records': [
+                {
+                    "content": "9",
+                    "disabled": False
+                }
+            ]
+        }
+        payload = {'rrsets': [rrset]}
+        r = self.session.patch(
+            self.url("/api/v1/servers/localhost/zones/" + name),
+            data=json.dumps(payload),
+            headers={'content-type': 'application/json'})
+        self.assertEquals(r.status_code, 422)
+        self.assertIn('OPT: invalid type given', r.json()['error'])
+
     def test_zone_rr_update_multiple_rrsets(self):
         name, payload, zone = self.create_zone()
         rrset1 = {

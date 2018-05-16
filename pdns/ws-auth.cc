@@ -1658,6 +1658,10 @@ static void patchZone(HttpRequest* req, HttpResponse* resp) {
         if (!qname.isPartOf(zonename) && qname != zonename)
           throw ApiException("RRset "+qname.toString()+" IN "+qtype.getName()+": Name is out of zone");
 
+        if (qtype.getCode() == QType::OPT || qtype.getCode() == QType::TSIG) {
+          throw ApiException("RRset "+qname.toString()+" IN "+stringFromJson(rrset, "type")+": invalid type given");
+        }
+
         bool replace_records = rrset["records"].is_array();
         bool replace_comments = rrset["comments"].is_array();
 
