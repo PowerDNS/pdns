@@ -144,6 +144,10 @@ auth6-answers100-1000
 ^^^^^^^^^^^^^^^^^^^^^
 counts the number of queries answered by auth6s within 1 second (4.0)
 
+auth-zone-queries
+^^^^^^^^^^^^^^^^^
+counts the number of queries to locally hosted authoritative zones (:ref:`setting-auth-zones`) since starting
+
 cache-bytes
 ^^^^^^^^^^^
 size of the cache in bytes

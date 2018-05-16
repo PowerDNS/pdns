@@ -39,32 +39,27 @@
 #include "namespaces.hh"
 pthread_mutex_t g_carbon_config_lock=PTHREAD_MUTEX_INITIALIZER;
 
-map<string, const uint32_t*> d_get32bitpointers;
-map<string, const uint64_t*> d_get64bitpointers;
-map<string, const std::atomic<uint64_t>*> d_getatomics;
-map<string, function< uint64_t() > >  d_get64bitmembers;
-pthread_mutex_t d_dynmetricslock = PTHREAD_MUTEX_INITIALIZER;
-map<string, std::atomic<unsigned long>* > d_dynmetrics;
-void addGetStat(const string& name, const uint32_t* place)
+static map<string, const uint32_t*> d_get32bitpointers;
+static map<string, const uint64_t*> d_get64bitpointers;
+static map<string, const std::atomic<uint64_t>*> d_getatomics;
+static map<string, function< uint64_t() > >  d_get64bitmembers;
+static pthread_mutex_t d_dynmetricslock = PTHREAD_MUTEX_INITIALIZER;
+static map<string, std::atomic<unsigned long>* > d_dynmetrics;
+
+static void addGetStat(const string& name, const uint32_t* place)
 {
   d_get32bitpointers[name]=place;
 }
-void addGetStat(const string& name, const uint64_t* place)
-{
-  d_get64bitpointers[name]=place;
-}
 
-void addGetStat(const string& name, const std::atomic<uint64_t>* place)
+static void addGetStat(const string& name, const std::atomic<uint64_t>* place)
 {
   d_getatomics[name]=place;
 }
 
-
-void addGetStat(const string& name, function<uint64_t ()> f ) 
+static void addGetStat(const string& name, function<uint64_t ()> f )
 {
   d_get64bitmembers[name]=f;
 }
-
 
 std::atomic<unsigned long>* getDynMetric(const std::string& str)
 {
@@ -931,6 +926,7 @@ void registerAllStats()
   addGetStat("outgoing-timeouts", &SyncRes::s_outgoingtimeouts);
   addGetStat("outgoing4-timeouts", &SyncRes::s_outgoing4timeouts);
   addGetStat("outgoing6-timeouts", &SyncRes::s_outgoing6timeouts);
+  addGetStat("auth-zone-queries", &SyncRes::s_authzonequeries);
   addGetStat("tcp-outqueries", &SyncRes::s_tcpoutqueries);
   addGetStat("all-outqueries", &SyncRes::s_outqueries);
   addGetStat("ipv6-outqueries", &g_stats.ipv6queries);
