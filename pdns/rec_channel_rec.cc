@@ -875,6 +875,7 @@ void registerAllStats()
   addGetStat("client-parse-errors", &g_stats.clientParseError);
   addGetStat("server-parse-errors", &g_stats.serverParseError);
   addGetStat("too-old-drops", &g_stats.tooOldDrops);
+  addGetStat("query-pipe-full-drops", &g_stats.queryPipeFullDrops);
 
   addGetStat("answers0-1", &g_stats.answers0_1);
   addGetStat("answers1-10", &g_stats.answers1_10);

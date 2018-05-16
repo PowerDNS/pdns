@@ -356,6 +356,12 @@ qa-latency
 ^^^^^^^^^^
 shows the current latency average, in microseconds,   exponentially weighted over past 'latency-statistic-size' packets
 
+query-pipe-full-drops
+^^^^^^^^^^^^^^^^^^^^^
+.. versionadded:: 4.2
+
+questions dropped because the query distribution pipe was full
+
 questions
 ^^^^^^^^^
 counts all end-user initiated queries with the RD bit   set

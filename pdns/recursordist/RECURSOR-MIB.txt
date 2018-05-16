@@ -195,7 +195,7 @@ tooOldDrops OBJECT-TYPE
     MAX-ACCESS read-only
     STATUS current
     DESCRIPTION
-        "Number of responses dropped because of a timeout"
+        "Number of queries dropped because of a timeout"
     ::= { stats 21 }
 
 answers01 OBJECT-TYPE
@@ -387,7 +387,7 @@ noPacketError OBJECT-TYPE
     MAX-ACCESS read-only
     STATUS current
     DESCRIPTION
-        "Number of noPacketError"
+        "Number of calls to recvmsg() that returned no packet even though the socket was ready"
     ::= { stats 45 }
 
 dlgOnlyDrops OBJECT-TYPE
@@ -758,6 +758,14 @@ policyResultCustom OBJECT-TYPE
         "Number of policy-mandated custom results"
     ::= { stats 91 }
 
+queryPipeFullDrops OBJECT-TYPE
+    SYNTAX Counter64
+    MAX-ACCESS read-only
+    STATUS current
+    DESCRIPTION
+        "Number of queries dropped because the query distribution pipe was full"
+    ::= { stats 92 }
+
 ---
 --- Traps / Notifications
 ---
@@ -891,6 +899,7 @@ recGroup OBJECT-GROUP
         policyResultNodata,
         policyResultTruncate,
         policyResultCustom,
+        queryPipeFullDrops,
         trapReason
     }
     STATUS current
