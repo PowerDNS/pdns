@@ -1057,8 +1057,7 @@ int main(int argc, char** argv) {
   // Init the things we need
   reportAllTypes();
 
-  // TODO read from urandom (perhaps getrandom(2)?
-  dns_random_init("0123456789abcdef");
+  dns_random_init();
 
   std::thread ut(updateThread,
       config["work-dir"].as<string>(),
