@@ -185,7 +185,7 @@ shared_ptr<SOARecordContent> loadRPZFromServer(const ComboAddress& master, const
   if (local == ComboAddress())
     local = getQueryLocalAddress(master.sin4.sin_family, 0);
 
-  AXFRRetriever axfr(master, zoneName, tt, &local, maxReceivedBytes);
+  AXFRRetriever axfr(master, zoneName, tt, &local, maxReceivedBytes, axfrTimeout);
   unsigned int nrecords=0;
   Resolver::res_t nop;
   vector<DNSRecord> chunk;
@@ -314,11 +314,11 @@ void RPZIXFRTracker(const ComboAddress& master, boost::optional<DNSFilterEngine:
       });
     }
     catch(const std::exception& e) {
-      theL()<<Logger::Warning<<"Unable to load RPZ zone '"<<zoneName<<"' from '"<<master<<"': '"<<e.what()<<"'. (Will try again in "<<refresh<<" seconds...)"<<endl;
+      theL()<<Logger::Warning<<"Unable to load RPZ zone '"<<zoneName<<"' from '"<<master<<"': '"<<e.what()<<"'. (Will try again in "<<(refresh > 0 ? refresh : 10)<<" seconds...)"<<endl;
       incRPZFailedTransfers(polName);
     }
     catch(const PDNSException& e) {
-      theL()<<Logger::Warning<<"Unable to load RPZ zone '"<<zoneName<<"' from '"<<master<<"': '"<<e.reason<<"'. (Will try again in "<<refresh<<" seconds...)"<<endl;
+      theL()<<Logger::Warning<<"Unable to load RPZ zone '"<<zoneName<<"' from '"<<master<<"': '"<<e.reason<<"'. (Will try again in "<<(refresh > 0 ? refresh : 10)<<" seconds...)"<<endl;
       incRPZFailedTransfers(polName);
     }
 
