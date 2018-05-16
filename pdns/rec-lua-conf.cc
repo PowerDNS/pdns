@@ -92,6 +92,8 @@ void loadRecursorLuaConfig(const std::string& fname, bool checkOnly)
   if(!ifs)
     throw PDNSException("Cannot open file '"+fname+"': "+strerror(errno));
 
+  std::vector<std::tuple<ComboAddress, boost::optional<DNSFilterEngine::Policy>, uint32_t, size_t, TSIGTriplet, size_t, ComboAddress, uint16_t, std::shared_ptr<SOARecordContent>, std::string> > rpzMasterThreads;
+
   auto luaconfsLocal = g_luaconfs.getLocal();
   lci.generation = luaconfsLocal->generation + 1;
 
@@ -137,7 +139,7 @@ void loadRecursorLuaConfig(const std::string& fname, bool checkOnly)
       }
     });
 
-  Lua.writeFunction("rpzMaster", [&lci, checkOnly](const string& master_, const string& zoneName, const boost::optional<std::unordered_map<string,boost::variant<uint32_t, string>>>& options) {
+  Lua.writeFunction("rpzMaster", [&lci, &rpzMasterThreads, checkOnly](const string& master_, const string& zoneName, const boost::optional<std::unordered_map<string,boost::variant<uint32_t, string>>>& options) {
 
       boost::optional<DNSFilterEngine::Policy> defpol;
       std::shared_ptr<DNSFilterEngine::Zone> zone = std::make_shared<DNSFilterEngine::Zone>();
@@ -234,20 +236,7 @@ void loadRecursorLuaConfig(const std::string& fname, bool checkOnly)
         exit(1);  // FIXME proper exit code?
       }
 
-      try {
-          if (!checkOnly) {
-            std::thread t(RPZIXFRTracker, master, defpol, maxTTL, zoneIdx, tt, maxReceivedXFRMBytes * 1024 * 1024, localAddress, zone, axfrTimeout, sr, dumpFile, lci.generation);
-            t.detach();
-          }
-      }
-      catch(const std::exception& e) {
-        g_log<<Logger::Error<<"Problem starting RPZIXFRTracker thread: "<<e.what()<<endl;
-        exit(1);  // FIXME proper exit code?
-      }
-      catch(const PDNSException& e) {
-        g_log<<Logger::Error<<"Problem starting RPZIXFRTracker thread: "<<e.reason<<endl;
-        exit(1);  // FIXME proper exit code?
-      }
+      rpzMasterThreads.push_back(std::make_tuple(master, defpol, maxTTL, zoneIdx, tt, maxReceivedXFRMBytes, localAddress, axfrTimeout, sr, dumpFile));
     });
 
   typedef vector<pair<int,boost::variant<string, vector<pair<int, string> > > > > argvec_t;
@@ -406,6 +395,23 @@ void loadRecursorLuaConfig(const std::string& fname, bool checkOnly)
   try {
     Lua.executeCode(ifs);
     g_luaconfs.setState(lci);
+
+    if (!checkOnly) {
+      for (const auto& rpzMaster : rpzMasterThreads) {
+        try {
+          std::thread t(RPZIXFRTracker, std::get<0>(rpzMaster), std::get<1>(rpzMaster), std::get<2>(rpzMaster), std::get<3>(rpzMaster), std::get<4>(rpzMaster), std::get<5>(rpzMaster) * 1024 * 1024, std::get<6>(rpzMaster), std::get<7>(rpzMaster), std::get<8>(rpzMaster), std::get<9>(rpzMaster), lci.generation);
+          t.detach();
+        }
+        catch(const std::exception& e) {
+          g_log<<Logger::Error<<"Problem starting RPZIXFRTracker thread: "<<e.what()<<endl;
+          exit(1);  // FIXME proper exit code?
+        }
+        catch(const PDNSException& e) {
+          g_log<<Logger::Error<<"Problem starting RPZIXFRTracker thread: "<<e.reason<<endl;
+          exit(1);  // FIXME proper exit code?
+        }
+      }
+    }
   }
   catch(const LuaContext::ExecutionErrorException& e) {
     g_log<<Logger::Error<<"Unable to load Lua script from '"+fname+"': ";
