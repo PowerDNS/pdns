@@ -101,7 +101,6 @@ bin_PROGRAMS += \
 	saxfr \
 	stubquery \
 	ixplore \
-	ixfrdist \
 	sdig
 
 if HAVE_RECVMMSG
@@ -114,6 +113,11 @@ bin_PROGRAMS += \
 	dnstcpbench
 endif
 
+endif # TOOLS
+
+if IXFRDIST
+bin_PROGRAMS += \
+	ixfrdist
 endif
 
 EXTRA_PROGRAMS = \
@@ -1419,13 +1423,13 @@ CLEANFILES += \
 	pdns.service \
 	pdns@.service
 
-if TOOLS
+if IXFRDIST
 ixfrdist.service: ixfrdist.service.in
 	$(AM_V_GEN)sed -e 's![@]bindir[@]!$(bindir)!' < $< > $@
 
 systemdsystemunit_DATA += \
 	ixfrdist.service
-endif # TOOLS
+endif # IXFRDIST
 
 CLEANFILES += \
 	ixfrdist.service

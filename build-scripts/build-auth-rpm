@@ -457,7 +457,6 @@ fi
 %{_bindir}/dnsscope
 %{_bindir}/dnswasher
 %{_bindir}/dumresp
-%{_bindir}/ixfrdist
 %{_bindir}/ixplore
 %{_bindir}/pdns_notify
 %{_bindir}/nproxy
@@ -472,8 +471,6 @@ fi
 %{_mandir}/man1/dnsscope.1.gz
 %{_mandir}/man1/dnswasher.1.gz
 %{_mandir}/man1/dumresp.1.gz
-%{_mandir}/man1/ixfrdist.1.gz
-%{_mandir}/man5/ixfrdist.yml.5.gz
 %{_mandir}/man1/ixplore.1.gz
 %{_mandir}/man1/pdns_notify.1.gz
 %{_mandir}/man1/nproxy.1.gz
@@ -704,6 +701,7 @@ export CPPFLAGS="-DLDAP_DEPRECATED"
 	--with-lua=luajit \
 	--with-dynmodules='%{backends} random' \
 	--enable-tools \
+	--enable-ixfrdist \
 	--enable-libsodium \
 	--enable-unit-tests \
 	--enable-experimental-pkcs11 \
@@ -992,6 +990,7 @@ export CPPFLAGS="-DLDAP_DEPRECATED"
 	--with-lua \
 	--with-dynmodules='%{backends} random' \
 	--enable-tools \
+	--enable-ixfrdist \
 	--without-protobuf \
 	--enable-unit-tests \
 	--enable-systemd \

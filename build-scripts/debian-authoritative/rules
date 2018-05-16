@@ -51,6 +51,7 @@ override_dh_auto_configure:
 		--with-dynmodules="$(backends)" \
 		--with-modules="" \
 		--enable-tools \
+		--enable-ixfrdist \
 		--enable-unit-tests \
 		--with-lua=luajit \
 		--enable-experimental-pkcs11 \
