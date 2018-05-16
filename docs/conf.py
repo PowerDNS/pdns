@@ -197,7 +197,8 @@ for f in glob.glob('manpages/*.1.rst'):
     destname = srcname.split('/')[-1][:-2]
     man_pages.append((srcname, destname, descriptions.get(destname, ''),
                       [author], 1))
-
+man_pages.append(('manpages/ixfrdist.yml.5', 'ixfrdist.yml',
+                  'The ixfrdist configuration file', [author], 5))
 # -- Options for Texinfo output -------------------------------------------
 
 # Grouping the document tree into Texinfo files. List of tuples

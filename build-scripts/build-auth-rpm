@@ -473,6 +473,7 @@ fi
 %{_mandir}/man1/dnswasher.1.gz
 %{_mandir}/man1/dumresp.1.gz
 %{_mandir}/man1/ixfrdist.1.gz
+%{_mandir}/man5/ixfrdist.yml.5.gz
 %{_mandir}/man1/ixplore.1.gz
 %{_mandir}/man1/pdns_notify.1.gz
 %{_mandir}/man1/nproxy.1.gz
@@ -803,6 +804,7 @@ exit 0
 %{_mandir}/man1/dnswasher.1.gz
 %{_mandir}/man1/dumresp.1.gz
 %{_mandir}/man1/ixfrdist.1.gz
+%{_mandir}/man5/ixfrdist.yml.5.gz
 %{_mandir}/man1/ixplore.1.gz
 %{_mandir}/man1/pdns_notify.1.gz
 %{_mandir}/man1/nproxy.1.gz
@@ -1084,6 +1086,7 @@ exit 0
 %{_mandir}/man1/dnswasher.1.gz
 %{_mandir}/man1/dumresp.1.gz
 %{_mandir}/man1/ixfrdist.1.gz
+%{_mandir}/man5/ixfrdist.yml.5.gz
 %{_mandir}/man1/ixplore.1.gz
 %{_mandir}/man1/pdns_notify.1.gz
 %{_mandir}/man1/nproxy.1.gz
