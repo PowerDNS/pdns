@@ -12,6 +12,7 @@ import time
 
 SQLITE_DB = 'pdns.sqlite3'
 WEBPORT = '5556'
+DNSPORT = 5555
 APIKEY = '1234567890abcdefghijklmnopq-key'
 PDNSUTIL_CMD = ["../pdns/pdnsutil", "--config-dir=."]
 
@@ -63,6 +64,12 @@ def ensure_empty_dir(name):
         shutil.rmtree(name)
     os.mkdir(name)
 
+def format_call_args(cmd):
+    return "$ '%s'" % ("' '".join(cmd))
+
+def run_check_call(cmd, *args, **kwargs):
+    print format_call_args(cmd)
+    subprocess.check_call(cmd, *args, **kwargs)
 
 wait = ('--wait' in sys.argv)
 if wait:
@@ -82,6 +89,14 @@ if daemon not in ('authoritative', 'recursor'):
 daemon = sys.argv[1]
 
 pdns_recursor = os.environ.get("PDNSRECURSOR", "../pdns/recursordist/pdns_recursor")
+
+# Take sdig if it exists (recursor in travis), otherwise build it from Authoritative source.
+sdig = os.environ.get("SDIG", "")
+if sdig:
+    sdig = os.path.abspath(sdig)
+if not sdig or not os.path.exists(sdig):
+    run_check_call(["make", "-C", "../pdns", "sdig"])
+    sdig = "../pdns/sdig"
 
 if daemon == 'authoritative':
 
@@ -155,6 +170,8 @@ test_env.update({
     'DAEMON': daemon,
     'SQLITE_DB': SQLITE_DB,
     'PDNSUTIL_CMD': ' '.join(PDNSUTIL_CMD),
+    'SDIG': sdig,
+    'DNSPORT': str(DNSPORT)
 })
 
 try:
