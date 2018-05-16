@@ -57,6 +57,7 @@ EXTRA_DIST = \
 	delaypipe.hh delaypipe.cc \
 	pdns.service.in \
 	ixfrdist.service.in \
+	ixfrdist.example.yml \
 	lua-record.cc \
 	minicurl.cc \
 	minicurl.hh
@@ -118,6 +119,9 @@ endif # TOOLS
 if IXFRDIST
 bin_PROGRAMS += \
 	ixfrdist
+
+sysconf_DATA += \
+	ixfrdist.example.yml
 endif
 
 EXTRA_PROGRAMS = \

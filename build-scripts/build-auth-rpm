@@ -563,6 +563,7 @@ Furthermore, PowerDNS interfaces with almost any database.
 
 %package tools
 Summary: Extra tools for %{name}
+BuildRequires: yaml-cpp-devel
 Group: System Environment/Daemons
 
 %description tools
@@ -809,6 +810,7 @@ exit 0
 %{_mandir}/man1/nsec3dig.1.gz
 %{_mandir}/man1/saxfr.1.gz
 %{_mandir}/man1/sdig.1.gz
+%{_sysconfdir}/%{name}/ixfrdist.example.yml
 %{_unitdir}/ixfrdist.service
 %{_unitdir}/ixfrdist@.service
 
@@ -1093,6 +1095,7 @@ exit 0
 %{_mandir}/man1/nsec3dig.1.gz
 %{_mandir}/man1/saxfr.1.gz
 %{_mandir}/man1/sdig.1.gz
+%{_sysconfdir}/%{name}/ixfrdist.example.yml
 %{_unitdir}/ixfrdist.service
 %{_unitdir}/ixfrdist@.service
 
