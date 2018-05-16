@@ -104,9 +104,6 @@ struct ixfrdistdomain_t {
   set<ComboAddress> masters; // A set so we can do multiple master addresses in the future
 };
 
-// For all the listen-sockets
-FDMultiplexer* g_fdm;
-
 // This contains the configuration for each domain
 map<DNSName, ixfrdistdomain_t> g_domainConfigs;
 
@@ -122,16 +119,8 @@ std::mutex g_tcpRequestFDsMutex;
 using namespace boost::multi_index;
 
 namespace po = boost::program_options;
-po::variables_map g_vm;
-string g_workdir;
 
 bool g_exiting = false;
-
-#define KEEP_DEFAULT 20
-uint16_t g_keep = KEEP_DEFAULT;
-
-#define AXFRTIMEOUT_DEFAULT 20
-uint16_t g_axfrTimeout = AXFRTIMEOUT_DEFAULT;
 
 NetmaskGroup g_acl;
 
@@ -155,8 +144,8 @@ bool sortSOA(uint32_t i, uint32_t j) {
   return rfc1982LessThan(i, j);
 }
 
-void cleanUpDomain(const DNSName& domain) {
-  string dir = g_workdir + "/" + domain.toString();
+void cleanUpDomain(const DNSName& domain, const uint16_t& keep, const string& workdir) {
+  string dir = workdir + "/" + domain.toString();
   DIR *dp;
   dp = opendir(dir.c_str());
   if (dp == nullptr) {
@@ -171,12 +160,12 @@ void cleanUpDomain(const DNSName& domain) {
     zoneVersions.push_back(std::stoi(d->d_name));
   }
   closedir(dp);
-  g_log<<Logger::Info<<"Found "<<zoneVersions.size()<<" versions of "<<domain<<", asked to keep "<<g_keep<<", ";
-  if (zoneVersions.size() <= g_keep) {
+  g_log<<Logger::Info<<"Found "<<zoneVersions.size()<<" versions of "<<domain<<", asked to keep "<<keep<<", ";
+  if (zoneVersions.size() <= keep) {
     g_log<<Logger::Info<<"not cleaning up"<<endl;
     return;
   }
-  g_log<<Logger::Info<<"cleaning up the oldest "<<zoneVersions.size() - g_keep<<endl;
+  g_log<<Logger::Info<<"cleaning up the oldest "<<zoneVersions.size() - keep<<endl;
 
   // Sort the versions
   std::sort(zoneVersions.begin(), zoneVersions.end(), sortSOA);
@@ -185,7 +174,7 @@ void cleanUpDomain(const DNSName& domain) {
   {
     // Lock to ensure no one reads this.
     std::lock_guard<std::mutex> guard(g_soas_mutex);
-    for (auto iter = zoneVersions.cbegin(); iter != zoneVersions.cend() - g_keep; ++iter) {
+    for (auto iter = zoneVersions.cbegin(); iter != zoneVersions.cend() - keep; ++iter) {
       string fname = dir + "/" + std::to_string(*iter);
       g_log<<Logger::Debug<<"Removing "<<fname<<endl;
       unlink(fname.c_str());
@@ -219,20 +208,20 @@ static void makeIXFRDiff(const records_t& from, const records_t& to, ixfrdiff_t&
   }
 }
 
-void updateThread() {
+void updateThread(const string& workdir, const uint16_t& keep, const uint16_t& axfrTimeout) {
   std::map<DNSName, time_t> lastCheck;
 
   // Initialize the serials we have
   for (const auto &domainConfig : g_domainConfigs) {
     DNSName domain = domainConfig.first;
     lastCheck[domain] = 0;
-    string dir = g_workdir + "/" + domain.toString();
+    string dir = workdir + "/" + domain.toString();
     try {
       g_log<<Logger::Info<<"Trying to initially load domain "<<domain<<" from disk"<<endl;
       auto serial = getSerialsFromDir(dir);
       shared_ptr<SOARecordContent> soa;
       {
-        string fname = g_workdir + "/" + domain.toString() + "/" + std::to_string(serial);
+        string fname = workdir + "/" + domain.toString() + "/" + std::to_string(serial);
         loadSOAFromDisk(domain, fname, soa);
         records_t records;
         if (soa != nullptr) {
@@ -245,7 +234,7 @@ void updateThread() {
       if (soa != nullptr) {
         g_log<<Logger::Notice<<"Loaded zone "<<domain<<" with serial "<<soa->d_st.serial<<endl;
         // Initial cleanup
-        cleanUpDomain(domain);
+        cleanUpDomain(domain, keep, workdir);
       }
     } catch (runtime_error &e) {
       // Most likely, the directory does not exist.
@@ -285,7 +274,7 @@ void updateThread() {
       std::advance(it, random() % g_domainConfigs[domain].masters.size());
       ComboAddress master = *it;
 
-      string dir = g_workdir + "/" + domain.toString();
+      string dir = workdir + "/" + domain.toString();
       g_log<<Logger::Info<<"Attempting to retrieve SOA Serial update for '"<<domain<<"' from '"<<master.toStringWithPort()<<"'"<<endl;
       shared_ptr<SOARecordContent> sr;
       try {
@@ -318,7 +307,7 @@ void updateThread() {
         records_t records;
         time_t t_start = time(nullptr);
         time_t axfr_now = time(nullptr);
-        while(axfr.getChunk(nop, &chunk, (axfr_now - t_start + g_axfrTimeout))) {
+        while(axfr.getChunk(nop, &chunk, (axfr_now - t_start + axfrTimeout))) {
           for(auto& dr : chunk) {
             if(dr.d_type == QType::TSIG)
               continue;
@@ -330,7 +319,7 @@ void updateThread() {
             }
           }
           axfr_now = time(nullptr);
-          if (axfr_now - t_start > g_axfrTimeout) {
+          if (axfr_now - t_start > axfrTimeout) {
             throw PDNSException("Total AXFR time exceeded!");
           }
         }
@@ -349,7 +338,7 @@ void updateThread() {
             g_soas[domain].ixfrDiffs.push_back(diff);
           }
           // Clean up the diffs
-          while (g_soas[domain].ixfrDiffs.size() > g_keep) {
+          while (g_soas[domain].ixfrDiffs.size() > keep) {
             g_soas[domain].ixfrDiffs.erase(g_soas[domain].ixfrDiffs.begin());
           }
           g_soas[domain].latestAXFR = records;
@@ -361,7 +350,7 @@ void updateThread() {
         g_log<<Logger::Warning<<"Could not save zone '"<<domain<<"' to disk: "<<e.what()<<endl;
       }
       // Now clean up the directory
-      cleanUpDomain(domain);
+      cleanUpDomain(domain, keep, workdir);
     } /* for (const auto &domain : domains) */
     sleep(1);
   } /* while (true) */
@@ -772,11 +761,11 @@ void tcpWorker(int tid) {
  * good, false otherwise. Will log all issues with the config
  */
 bool parseAndCheckConfig(const string& configpath, YAML::Node& config) {
-  g_log<<Logger::Info<<"Loading configuration file from "<<g_vm["config"].as<string>()<<endl;
+  g_log<<Logger::Info<<"Loading configuration file from "<<configpath<<endl;
   try {
     config = YAML::LoadFile(configpath);
   } catch (const runtime_error &e) {
-    g_log<<Logger::Error<<"Unable to load configuration file '"<<g_vm["config"].as<string>()<<"': "<<e.what()<<endl;
+    g_log<<Logger::Error<<"Unable to load configuration file '"<<configpath<<"': "<<e.what()<<endl;
     return false;
   }
 
@@ -790,7 +779,7 @@ bool parseAndCheckConfig(const string& configpath, YAML::Node& config) {
       retval = false;
     }
   } else {
-    config["keep"] = KEEP_DEFAULT;
+    config["keep"] = 20;
   }
 
   if (config["axfr-timeout"]) {
@@ -800,7 +789,7 @@ bool parseAndCheckConfig(const string& configpath, YAML::Node& config) {
       g_log<<Logger::Error<<"Unable to read 'axfr-timeout' value: "<<e.what()<<endl;
     }
   } else {
-    config["axfr-timeout"] = AXFRTIMEOUT_DEFAULT;
+    config["axfr-timeout"] = 10;
   }
 
   if (config["tcp-in-threads"]) {
@@ -909,6 +898,7 @@ int main(int argc, char** argv) {
   g_log.setPrefixed(true);
   g_log.disableSyslog(true);
   g_log.setTimestamps(false);
+  po::variables_map g_vm;
   try {
     po::options_description desc("IXFR distribution tool");
     desc.add_options()
@@ -962,8 +952,6 @@ int main(int argc, char** argv) {
     g_domainConfigs[domain["domain"].as<DNSName>()].masters = s;
   }
 
-  g_workdir = config["work-dir"].as<string>();
-
   for (const auto &addr : config["acl"].as<vector<string>>()) {
     try {
       g_acl.addMask(addr);
@@ -974,8 +962,8 @@ int main(int argc, char** argv) {
   }
   g_log<<Logger::Notice<<"ACL set to "<<g_acl.toString()<<"."<<endl;
 
-  g_fdm = FDMultiplexer::getMultiplexerSilent();
-  if (g_fdm == nullptr) {
+  FDMultiplexer* fdm = FDMultiplexer::getMultiplexerSilent();
+  if (fdm == nullptr) {
     g_log<<Logger::Error<<"Could not enable a multiplexer for the listen sockets!"<<endl;
     return EXIT_FAILURE;
   }
@@ -991,7 +979,7 @@ int main(int argc, char** argv) {
         if (stype == SOCK_STREAM) {
           SListen(s, 30); // TODO make this configurable
         }
-        g_fdm->addReadFD(s, stype == SOCK_DGRAM ? handleUDPRequest : handleTCPRequest);
+        fdm->addReadFD(s, stype == SOCK_DGRAM ? handleUDPRequest : handleTCPRequest);
         allSockets.insert(s);
       } catch(runtime_error &e) {
         g_log<<Logger::Error<<e.what()<<endl;
@@ -1074,7 +1062,10 @@ int main(int argc, char** argv) {
 
   g_log<<Logger::Notice<<"IXFR distributor starting up!"<<endl;
 
-  std::thread ut(updateThread);
+  std::thread ut(updateThread,
+      config["work-dir"].as<string>(),
+      config["keep"].as<uint16_t>(),
+      config["axfr-timeout"].as<uint16_t>());
 
   vector<std::thread> tcpHandlers;
   tcpHandlers.reserve(config["tcp-in-threads"].as<uint16_t>());
@@ -1085,7 +1076,7 @@ int main(int argc, char** argv) {
   struct timeval now;
   for(;;) {
     gettimeofday(&now, 0);
-    g_fdm->run(&now);
+    fdm->run(&now);
     if (g_exiting) {
       g_log<<Logger::Notice<<"Shutting down!"<<endl;
       for (const int& fd : allSockets) {
