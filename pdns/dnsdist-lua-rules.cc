@@ -28,14 +28,44 @@
 class MaxQPSIPRule : public DNSRule
 {
 public:
-  MaxQPSIPRule(unsigned int qps, unsigned int burst, unsigned int ipv4trunc=32, unsigned int ipv6trunc=64) :
-    d_qps(qps), d_burst(burst), d_ipv4trunc(ipv4trunc), d_ipv6trunc(ipv6trunc)
+  MaxQPSIPRule(unsigned int qps, unsigned int burst, unsigned int ipv4trunc=32, unsigned int ipv6trunc=64, unsigned int expiration=300, unsigned int cleanupDelay=60):
+    d_qps(qps), d_burst(burst), d_ipv4trunc(ipv4trunc), d_ipv6trunc(ipv6trunc), d_cleanupDelay(cleanupDelay), d_expiration(expiration)
   {
     pthread_rwlock_init(&d_lock, 0);
+    gettime(&d_lastCleanup, true);
+  }
+
+  void cleanupIfNeeded(const struct timespec& now) const
+  {
+    if (d_cleanupDelay > 0) {
+      struct timespec cutOff = d_lastCleanup;
+      cutOff.tv_sec += d_cleanupDelay;
+
+      if (cutOff < now) {
+        WriteLock w(&d_lock);
+
+        /* the QPS Limiter doesn't use realtime, be careful! */
+        gettime(&cutOff, false);
+        cutOff.tv_sec -= d_expiration;
+
+        for (auto entry = d_limits.begin(); entry != d_limits.end(); ) {
+          if (!entry->second.seenSince(cutOff)) {
+            entry = d_limits.erase(entry);
+          }
+          else {
+            ++entry;
+          }
+        }
+
+        d_lastCleanup = now;
+      }
+    }
   }
 
   bool matches(const DNSQuestion* dq) const override
   {
+    cleanupIfNeeded(*dq->queryTime);
+
     ComboAddress zeroport(*dq->remote);
     zeroport.sin4.sin_port=0;
     zeroport.truncate(zeroport.sin4.sin_family == AF_INET ? d_ipv4trunc : d_ipv6trunc);
@@ -43,16 +73,17 @@ public:
       ReadLock r(&d_lock);
       const auto iter = d_limits.find(zeroport);
       if (iter != d_limits.end()) {
-        return !iter->second.check();
+        return !iter->second.check(d_qps, d_burst);
       }
     }
     {
       WriteLock w(&d_lock);
+
       auto iter = d_limits.find(zeroport);
       if(iter == d_limits.end()) {
         iter=d_limits.insert({zeroport,QPSLimiter(d_qps, d_burst)}).first;
       }
-      return !iter->second.check();
+      return !iter->second.check(d_qps, d_burst);
     }
   }
 
@@ -64,9 +95,9 @@ public:
 
 private:
   mutable pthread_rwlock_t d_lock;
-  mutable std::map<ComboAddress, QPSLimiter> d_limits;
-  unsigned int d_qps, d_burst, d_ipv4trunc, d_ipv6trunc;
-
+  mutable std::map<ComboAddress, BasicQPSLimiter> d_limits;
+  mutable struct timespec d_lastCleanup;
+  unsigned int d_qps, d_burst, d_ipv4trunc, d_ipv6trunc, d_cleanupDelay, d_expiration;
 };
 
 class MaxQPSRule : public DNSRule
@@ -1097,8 +1128,8 @@ void setupLuaRules()
         });
     });
 
-  g_lua.writeFunction("MaxQPSIPRule", [](unsigned int qps, boost::optional<int> ipv4trunc, boost::optional<int> ipv6trunc, boost::optional<int> burst) {
-      return std::shared_ptr<DNSRule>(new MaxQPSIPRule(qps, burst.get_value_or(qps), ipv4trunc.get_value_or(32), ipv6trunc.get_value_or(64)));
+  g_lua.writeFunction("MaxQPSIPRule", [](unsigned int qps, boost::optional<int> ipv4trunc, boost::optional<int> ipv6trunc, boost::optional<int> burst, boost::optional<unsigned int> expiration, boost::optional<unsigned int> cleanupDelay) {
+      return std::shared_ptr<DNSRule>(new MaxQPSIPRule(qps, burst.get_value_or(qps), ipv4trunc.get_value_or(32), ipv6trunc.get_value_or(64), expiration.get_value_or(300), cleanupDelay.get_value_or(60)));
     });
 
   g_lua.writeFunction("MaxQPSRule", [](unsigned int qps, boost::optional<int> burst) {

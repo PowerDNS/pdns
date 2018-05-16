@@ -272,28 +272,69 @@ struct StopWatch
 
 };
 
-class QPSLimiter
+class BasicQPSLimiter
 {
 public:
-  QPSLimiter()
+  BasicQPSLimiter()
   {
   }
 
-  QPSLimiter(unsigned int rate, unsigned int burst) : d_rate(rate), d_burst(burst), d_tokens(burst)
+  BasicQPSLimiter(unsigned int rate, unsigned int burst): d_tokens(burst)
   {
-    d_passthrough=false;
+    d_prev.start();
+  }
+
+  bool check(unsigned int rate, unsigned int burst) const // this is not quite fair
+  {
+    auto delta = d_prev.udiffAndSet();
+
+    d_tokens += 1.0 * rate * (delta/1000000.0);
+
+    if(d_tokens > burst) {
+      d_tokens = burst;
+    }
+
+    bool ret=false;
+    if(d_tokens >= 1.0) { // we need this because burst=1 is weird otherwise
+      ret=true;
+      --d_tokens;
+    }
+
+    return ret;
+  }
+
+  bool seenSince(const struct timespec& cutOff) const
+  {
+    return cutOff < d_prev.d_start;
+  }
+
+protected:
+  mutable StopWatch d_prev;
+  mutable double d_tokens;
+};
+
+class QPSLimiter : public BasicQPSLimiter
+{
+public:
+  QPSLimiter(): BasicQPSLimiter()
+  {
+  }
+
+  QPSLimiter(unsigned int rate, unsigned int burst): BasicQPSLimiter(rate, burst), d_rate(rate), d_burst(burst), d_passthrough(false)
+  {
     d_prev.start();
   }
 
   unsigned int getRate() const
   {
-    return d_passthrough? 0 : d_rate;
+    return d_passthrough ? 0 : d_rate;
   }
 
   int getPassed() const
   {
     return d_passed;
   }
+
   int getBlocked() const
   {
     return d_blocked;
@@ -301,34 +342,26 @@ public:
 
   bool check() const // this is not quite fair
   {
-    if(d_passthrough)
+    if (d_passthrough) {
       return true;
-    auto delta = d_prev.udiffAndSet();
+    }
 
-    d_tokens += 1.0*d_rate * (delta/1000000.0);
-
-    if(d_tokens > d_burst)
-      d_tokens = d_burst;
-
-    bool ret=false;
-    if(d_tokens >= 1.0) { // we need this because burst=1 is weird otherwise
-      ret=true;
-      --d_tokens;
+    bool ret = BasicQPSLimiter::check(d_rate, d_burst);
+    if (ret) {
       d_passed++;
     }
-    else
+    else {
       d_blocked++;
+    }
 
     return ret;
   }
 private:
-  bool d_passthrough{true};
-  unsigned int d_rate;
-  unsigned int d_burst;
-  mutable double d_tokens;
-  mutable StopWatch d_prev;
   mutable unsigned int d_passed{0};
   mutable unsigned int d_blocked{0};
+  unsigned int d_rate;
+  unsigned int d_burst;
+  bool d_passthrough{true};
 };
 
 struct ClientState;
