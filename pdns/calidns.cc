@@ -47,11 +47,13 @@ using std::unique_ptr;
 
 StatBag S;
 
-std::atomic<unsigned int> g_recvcounter, g_recvbytes;
-volatile bool g_done;
+static std::atomic<unsigned int> g_recvcounter, g_recvbytes;
+static volatile bool g_done;
 
 namespace po = boost::program_options;
-po::variables_map g_vm;
+static po::variables_map g_vm;
+
+static bool g_quiet;
 
 static void* recvThread(const vector<Socket*>* sockets)
 {
@@ -106,12 +108,17 @@ static void setSocketBuffer(int fd, int optname, uint32_t size)
   socklen_t len=sizeof(psize);
   
   if(!getsockopt(fd, SOL_SOCKET, optname, (char*)&psize, &len) && psize > size) {
-    cerr<<"Not decreasing socket buffer size from "<<psize<<" to "<<size<<endl;
+    if (!g_quiet) {
+      cerr<<"Not decreasing socket buffer size from "<<psize<<" to "<<size<<endl;
+    }
     return; 
   }
 
-  if (setsockopt(fd, SOL_SOCKET, optname, (char*)&size, sizeof(size)) < 0 )
-    cerr<<"Warning: unable to raise socket buffer size to "<<size<<": "<<strerror(errno)<<endl;
+  if (setsockopt(fd, SOL_SOCKET, optname, (char*)&size, sizeof(size)) < 0 ) {
+    if (!g_quiet) {
+      cerr<<"Warning: unable to raise socket buffer size to "<<size<<": "<<strerror(errno)<<endl;
+    }
+  }
 }
 
 
@@ -270,8 +277,8 @@ try
   }
 
   bool wantRecursion = g_vm.count("want-recursion");
-  bool beQuiet = g_vm.count("quiet");
   bool useECSFromFile = g_vm.count("ecs-from-file");
+  g_quiet = g_vm.count("quiet");
 
   double hitrate = g_vm["hitrate"].as<double>();
   if (hitrate > 100 || hitrate < 0) {
@@ -305,7 +312,7 @@ try
           return EXIT_FAILURE;
         }
 
-        if (!beQuiet) {
+        if (!g_quiet) {
           cout<<"Adding ECS option to outgoing queries with random addresses from the "<<ecsRange.toString()<<" range"<<endl;
         }
       }
@@ -320,7 +327,9 @@ try
   param.sched_priority=99;
 
   if(sched_setscheduler(0, SCHED_FIFO, &param) < 0) {
-    cerr<<"Unable to set SCHED_FIFO: "<<strerror(errno)<<endl;
+    if (!g_quiet) {
+      cerr<<"Unable to set SCHED_FIFO: "<<strerror(errno)<<endl;
+    }
   }
 
   ifstream ifs(g_vm["query-file"].as<string>());
@@ -370,7 +379,7 @@ try
     unknown.emplace_back(std::make_shared<vector<uint8_t>>(packet));
   }
   random_shuffle(unknown.begin(), unknown.end());
-  if (!beQuiet) {
+  if (!g_quiet) {
     cout<<"Generated "<<unknown.size()<<" ready to use queries"<<endl;
   }
   
@@ -407,7 +416,7 @@ try
 
   for(qps=qpsstart;;) {
     double seconds=1;
-    if (!beQuiet) {
+    if (!g_quiet) {
       cout<<"Aiming at "<<qps<< "qps (RD="<<wantRecursion<<") for "<<seconds<<" seconds at cache hitrate "<<100.0*hitrate<<"%";
     }
     unsigned int misses=(1-hitrate)*qps*seconds;
@@ -415,7 +424,7 @@ try
     if (misses == 0) {
       misses = 1;
     }
-    if (!beQuiet) {
+    if (!g_quiet) {
       cout<<", need "<<misses<<" misses, "<<total<<" queries, have "<<unknown.size()<<" unknown left!"<<endl;
     }
 
@@ -444,7 +453,7 @@ try
     
     const auto udiff = dt.udiffNoReset();
     const auto realqps=toSend.size()/(udiff/1000000.0);
-    if (!beQuiet) {
+    if (!g_quiet) {
       cout<<"Achieved "<<realqps<<" qps over "<< udiff/1000000.0<<" seconds"<<endl;
     }
     
@@ -453,7 +462,7 @@ try
     const auto udiffReceived = dt.udiff();
     const auto realReceivedQPS = received/(udiffReceived/1000000.0);
     double perc=received*100.0/toSend.size();
-     if (!beQuiet) {
+     if (!g_quiet) {
        cout<<"Received "<<received<<" packets over "<< udiffReceived/1000000.0<<" seconds ("<<perc<<"%, adjusted received rate "<<realReceivedQPS<<" qps)"<<endl;
      }
 
@@ -470,7 +479,7 @@ try
     }
 
     if (minimumSuccessRate > 0.0 && perc < minimumSuccessRate) {
-      if (beQuiet) {
+      if (g_quiet) {
         cout<<bestQPS<<endl;
       }
       else {
@@ -495,4 +504,5 @@ try
  catch(std::exception& e)
 {
   cerr<<"Fatal error: "<<e.what()<<endl;
+  return EXIT_FAILURE;
 }
