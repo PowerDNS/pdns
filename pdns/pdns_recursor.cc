@@ -3556,7 +3556,7 @@ try
         last_carbon = g_now.tv_sec;
       }
     }
-    if (t_pdl != nullptr) {
+    if (worker && t_pdl != nullptr) {
       // lua-dns-script directive is present, call the maintenance callback if needed
       if(g_now.tv_sec - last_lua_maintenance >= luaMaintenanceInterval) {
         t_pdl->maintenance();
