@@ -156,7 +156,7 @@ void Utility::dropUserPrivs( int uid )
 {
   if(uid) {
     if(setuid(uid)<0) {
-      g_log<<Logger::Critical<<"Unable to set effective user id to "<<uid<<":  "<<stringerror()<<endl;
+      g_log<<Logger::Critical<<"Unable to set effective user id to "<<uid<<": "<<stringerror()<<endl;
       exit(1);
     }
     else
