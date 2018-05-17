@@ -91,7 +91,7 @@ This state can be modified from the various hooks.
     Get the value of a tag stored into the DNSQuestion object.
 
     :param string key: The tag's key
-    :returns: A table of tags, using strings as keys and values
+    :returns: The tag's value if it was set, an empty string otherwise
 
   .. method:: DNSQuestion:getTagArray() -> table
 
@@ -99,7 +99,7 @@ This state can be modified from the various hooks.
 
     Get all the tags stored into the DNSQuestion object.
 
-    :returns: The tag's value if it was set, an empty string otherwise
+    :returns: A table of tags, using strings as keys and values
 
   .. method:: DNSQuestion:sendTrap(reason)
 
