@@ -462,7 +462,7 @@ void Bind2Backend::parseZoneFile(BB2DomainInfo *bbd)
   DNSResourceRecord rr;
   string hashed;
   while(zpt.get(rr)) { 
-    if(rr.qtype.getCode() == QType::NSEC || rr.qtype.getCode() == QType::NSEC3)
+    if(rr.qtype.getCode() == QType::NSEC || rr.qtype.getCode() == QType::NSEC3 || rr.qtype.getCode() == QType::NSEC3PARAM)
       continue; // we synthesise NSECs on demand
 
     insertRecord(*bbd, rr.qname, rr.qtype, rr.content, rr.ttl, "");
