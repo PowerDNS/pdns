@@ -20,6 +20,16 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
 #pragma once
+
+#ifdef HAVE_CONFIG_H
+#include "config.h"
+#endif
+
+#ifdef HAVE_PROTOBUF
+#include <boost/uuid/uuid.hpp>
+#include <boost/uuid/uuid_generators.hpp>
+#endif
+
 #include <string>
 #include <atomic>
 #include "utility.hh"
@@ -49,15 +59,6 @@
 #include "ednssubnet.hh"
 #include "filterpo.hh"
 #include "negcache.hh"
-
-#ifdef HAVE_CONFIG_H
-#include "config.h"
-#endif
-
-#ifdef HAVE_PROTOBUF
-#include <boost/uuid/uuid.hpp>
-#include <boost/uuid/uuid_generators.hpp>
-#endif
 
 class RecursorLua4;
 

@@ -23,6 +23,7 @@
 #include "config.h"
 #endif
 
+#include "syncres.hh"
 #include "arguments.hh"
 #include "cachecleaner.hh"
 #include "dns_random.hh"
@@ -32,7 +33,6 @@
 #include "logger.hh"
 #include "lua-recursor4.hh"
 #include "rec-lua-conf.hh"
-#include "syncres.hh"
 #include "dnsseckeeper.hh"
 #include "validate-recursor.hh"
 

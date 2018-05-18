@@ -4,12 +4,12 @@
 
 #include <cinttypes>
 
+#include "syncres.hh"
 #include "recursor_cache.hh"
 #include "misc.hh"
 #include <iostream>
 #include "dnsrecords.hh"
 #include "arguments.hh"
-#include "syncres.hh"
 #include "recursor_cache.hh"
 #include "cachecleaner.hh"
 #include "namespaces.hh"

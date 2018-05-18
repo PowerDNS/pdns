@@ -19,11 +19,9 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
-#include "lua-recursor4.hh"
 #include <fstream>
-#include "logger.hh"
-#include "dnsparser.hh"
 #include "syncres.hh"
+#include "logger.hh"
 #include "namespaces.hh"
 #include "rec_channel.hh"
 #include "ednsoptions.hh"
@@ -31,6 +29,7 @@
 #include "filterpo.hh"
 #include "rec-snmp.hh"
 #include <unordered_set>
+#include "lua-recursor4.hh"
 
 static int followCNAMERecords(vector<DNSRecord>& ret, const QType& qtype)
 {

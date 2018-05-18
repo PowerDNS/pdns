@@ -1,7 +1,7 @@
 
+#include "protobuf.hh"
 #include "gettime.hh"
 #include "dnsparser.hh"
-#include "protobuf.hh"
 #include "dnsparser.hh"
 #include "gettime.hh"
 
