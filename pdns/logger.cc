@@ -31,10 +31,8 @@ extern StatBag S;
 #include "lock.hh"
 #include "namespaces.hh"
 
-pthread_once_t Logger::s_once;
-pthread_key_t Logger::g_loggerKey;
-
 Logger g_log("", LOG_DAEMON);
+thread_local Logger::PerThread Logger::t_perThread;
 
 void Logger::log(const string &msg, Urgency u)
 {
@@ -129,52 +127,29 @@ void Logger::setName(const string &_name)
   open();
 }
 
-void Logger::initKey()
-{
-  if(pthread_key_create(&g_loggerKey, perThreadDestructor))
-    unixDie("Creating thread key for logger");
-}
-
 Logger::Logger(const string &n, int facility) :
   name(n), flags(LOG_PID|LOG_NDELAY), d_facility(facility), d_loglevel(Logger::None),
   consoleUrgency(Error), opened(false), d_disableSyslog(false)
 {
-  if(pthread_once(&s_once, initKey))
-    unixDie("Creating thread key for logger");
-
   open();
 
 }
 
 Logger& Logger::operator<<(Urgency u)
 {
-  getPerThread()->d_urgency=u;
+  getPerThread().d_urgency=u;
   return *this;
 }
 
-void Logger::perThreadDestructor(void* buf)
+Logger::PerThread& Logger::getPerThread()
 {
-  PerThread* pt = (PerThread*) buf;
-  delete pt;
-}
-
-Logger::PerThread* Logger::getPerThread()
-{
-  void *buf=pthread_getspecific(g_loggerKey);
-  PerThread* ret;
-  if(buf)
-    ret = (PerThread*) buf;
-  else {
-    ret = new PerThread();
-    pthread_setspecific(g_loggerKey, (void*)ret);
-  }
-  return ret;
+  return t_perThread;
 }
 
 Logger& Logger::operator<<(const string &s)
 {
-  PerThread* pt =getPerThread();
-  pt->d_output.append(s);
+  PerThread& pt = getPerThread();
+  pt.d_output.append(s);
   return *this;
 }
 
@@ -244,11 +219,11 @@ Logger& Logger::operator<<(long i)
 
 Logger& Logger::operator<<(ostream & (&)(ostream &))
 {
-  PerThread* pt =getPerThread();
+  PerThread& pt = getPerThread();
 
-  log(pt->d_output, pt->d_urgency);
-  pt->d_output.clear();
-  pt->d_urgency=Info;
+  log(pt.d_output, pt.d_urgency);
+  pt.d_output.clear();
+  pt.d_urgency=Info;
   return *this;
 }
 
