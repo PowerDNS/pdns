@@ -1294,7 +1294,7 @@ static void startDoResolve(void *p)
          OPT record.  This MUST also occur when a truncated response (using
          the DNS header's TC bit) is returned."
       */
-      if (addRecordToPacket(pw, makeOpt(edo.d_packetsize, 0, edo.d_Z), minTTL, dc->d_ttlCap, maxanswersize)) {
+      if (addRecordToPacket(pw, makeOpt(edo.d_packetsize, 0, edo.d_Z & EDNSOpts::DNSSECOK), minTTL, dc->d_ttlCap, maxanswersize)) {
         pw.commit();
       }
     }
