@@ -239,6 +239,7 @@ int asyncresolve(const ComboAddress& ip, const DNSName& domain, int type, bool d
         logIncomingResponse(outgoingLogger, context ? context->d_initialRequestId : boost::none, uuid, ip, domain, type, qid, doTCP, len, lwr->d_rcode, lwr->d_records, queryTime);
       }
 #endif
+      lwr->d_validpacket=true;
       return 1; // this is "success", the error is set in lwr->d_rcode
     }
 
@@ -283,6 +284,7 @@ int asyncresolve(const ComboAddress& ip, const DNSName& domain, int type, bool d
       logIncomingResponse(outgoingLogger, context ? context->d_initialRequestId : boost::none, uuid, ip, domain, type, qid, doTCP, len, lwr->d_rcode, lwr->d_records, queryTime);
     }
 #endif
+    lwr->d_validpacket=true;
     return 1;
   }
   catch(std::exception &mde) {
@@ -295,6 +297,7 @@ int asyncresolve(const ComboAddress& ip, const DNSName& domain, int type, bool d
       logIncomingResponse(outgoingLogger, context ? context->d_initialRequestId : boost::none, uuid, ip, domain, type, qid, doTCP, len, lwr->d_rcode, lwr->d_records, queryTime);
     }
 #endif
+    lwr->d_validpacket=false;
     return 1; // success - oddly enough
   }
   catch(...) {
