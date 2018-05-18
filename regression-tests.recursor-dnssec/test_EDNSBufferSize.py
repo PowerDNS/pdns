@@ -122,14 +122,14 @@ class EDNSBufferTest16801680(EDNSBufferTest):
             self.checkResponseContent(raw, 'A',
                                       self._udpTruncationThreshold, 9)
             message = dns.message.from_wire(raw)
-            self.checkEDNS(message, 1680)
+            self.checkEDNS(message, 512)
 
     def testEdnsBufferTestCase02(self):
         query = self.getMessage('02', 1679)
         for _ in range(10):
             message = self.sendUDPQuery(query)
             self.checkTruncatedResponse(message)
-            self.checkEDNS(message, self._udpTruncationThreshold)
+            self.checkEDNS(message, 512)
 
     def testEdnsBufferTestCase05(self):
         query = self.getMessage('05', 1680)
@@ -138,7 +138,7 @@ class EDNSBufferTest16801680(EDNSBufferTest):
             self.checkResponseContent(raw, 'E',
                                       self._udpTruncationThreshold, 9)
             message = dns.message.from_wire(raw)
-            self.checkEDNS(message, self._udpTruncationThreshold)
+            self.checkEDNS(message, 512)
 
     def testEdnsBufferTestCase06(self):
         query = self.getMessage('06', 0)
@@ -161,7 +161,7 @@ class EDNSBufferTest16801680(EDNSBufferTest):
             raw = self.sendUDPQuery(query, decode=False)
             self.checkResponseContent(raw, 'H', 512, 181)
             message = dns.message.from_wire(raw)
-            self.checkEDNS(message, 1680)
+            self.checkEDNS(message, 512)
 
 class EDNSBufferTest16801681(EDNSBufferTest):
     """
@@ -183,7 +183,7 @@ edns-outgoing-bufsize=%d
         for _ in range(10):
             message = self.sendUDPQuery(query)
             self.checkTruncatedResponse(message)
-            self.checkEDNS(message, 1680)
+            self.checkEDNS(message, 512)
 
 
 class EDNSBufferTest16801679(EDNSBufferTest):
@@ -208,7 +208,7 @@ edns-outgoing-bufsize=%d
             self.checkResponseContent(raw, 'D',
                                       self._ednsOutgoingBufsize, 8)
             message = dns.message.from_wire(raw)
-            self.checkEDNS(message, self._udpTruncationThreshold)
+            self.checkEDNS(message, 512)
 
 
 class UDPLargeResponder(DatagramProtocol):
