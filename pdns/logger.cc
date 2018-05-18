@@ -34,14 +34,22 @@ extern StatBag S;
 Logger g_log("", LOG_DAEMON);
 thread_local Logger::PerThread Logger::t_perThread;
 
+static Logger::Config& getLoggerConfig()
+{
+  static Logger::Config config;
+  return config;
+}
+
 void Logger::log(const string &msg, Urgency u)
 {
 #ifndef RECURSOR
   bool mustAccount(false);
 #endif
-  if(u<=consoleUrgency) {
+  const auto& config = getLoggerConfig();
+
+  if(u <= config.consoleUrgency) {
     char buffer[50] = "";
-    if (d_timestamps) {
+    if (config.d_timestamps) {
       struct tm tm;
       time_t t;
       time(&t);
@@ -50,7 +58,7 @@ void Logger::log(const string &msg, Urgency u)
     }
 
     string prefix;
-    if (d_prefixed) {
+    if (config.d_prefixed) {
       switch(u) {
         case All:
           prefix = "[all] ";
@@ -89,7 +97,7 @@ void Logger::log(const string &msg, Urgency u)
     mustAccount=true;
 #endif
   }
-  if( u <= d_loglevel && !d_disableSyslog ) {
+  if( u <= config.d_loglevel && !config.d_disableSyslog ) {
     syslog(u,"%s",msg.c_str());
 #ifndef RECURSOR
     mustAccount=true;
@@ -104,40 +112,89 @@ void Logger::log(const string &msg, Urgency u)
 
 void Logger::setLoglevel( Urgency u )
 {
-  d_loglevel = u;
+  auto& config = getLoggerConfig();
+  config.d_loglevel = u;
 }
   
+void Logger::setFacility(int f)
+{
+  auto& config = getLoggerConfig();
+
+  config.d_facility = f;
+  open();
+}
+
+void Logger::setFlag(int f)
+{
+  auto& config = getLoggerConfig();
+  config. flags |= f;
+  open();
+}
+
+void Logger::disableSyslog(bool d)
+{
+  auto& config = getLoggerConfig();
+
+  config.d_disableSyslog = d;
+}
+
+void Logger::setTimestamps(bool t)
+{
+  auto& config = getLoggerConfig();
+  config.d_timestamps = t;
+}
+
+void Logger::setPrefixed(bool p)
+{
+  auto& config = getLoggerConfig();
+  config.d_prefixed = p;
+}
+
+void Logger::resetFlags()
+{
+  auto& config = getLoggerConfig();
+
+  config.flags = 0;
+  open();
+}
 
 void Logger::toConsole(Urgency u)
 {
-  consoleUrgency=u;
+  auto& config = getLoggerConfig();
+  config.consoleUrgency = u;
 }
 
 void Logger::open()
 {
-  if(opened)
+  auto& config = getLoggerConfig();
+  if(config.opened) {
     closelog();
-  openlog(name.c_str(),flags,d_facility);
-  opened=true;
+  }
+
+  openlog(config.name.c_str(), config.flags, config.d_facility);
+  config.opened = true;
 }
 
 void Logger::setName(const string &_name)
 {
-  name=_name;
+  auto& config = getLoggerConfig();
+  config.name = _name;
   open();
 }
 
-Logger::Logger(const string &n, int facility) :
-  name(n), flags(LOG_PID|LOG_NDELAY), d_facility(facility), d_loglevel(Logger::None),
-  consoleUrgency(Error), opened(false), d_disableSyslog(false)
+Logger::Logger(const string &n, int facility)
 {
-  open();
+  auto& config = getLoggerConfig();
+  config.name = n;
+  config.flags = LOG_PID|LOG_NDELAY;
+  config.d_facility = facility;
 
+  open();
 }
 
 Logger& Logger::operator<<(Urgency u)
 {
-  getPerThread().d_urgency=u;
+  getPerThread().d_urgency = u;
   return *this;
 }
 

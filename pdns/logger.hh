@@ -41,36 +41,44 @@ public:
   enum Urgency {All=32767,Alert=LOG_ALERT, Critical=LOG_CRIT, Error=LOG_ERR, Warning=LOG_WARNING,
                 Notice=LOG_NOTICE,Info=LOG_INFO, Debug=LOG_DEBUG, None=-1};
 
+  struct Config
+  {
+    string name;
+    int flags;
+    int d_facility;
+    Urgency d_loglevel{None};
+    Urgency consoleUrgency{Error};
+    bool opened{false};
+    bool d_disableSyslog{false};
+    bool d_timestamps{true};
+    bool d_prefixed{false};
+  };
+
   /** Log a message.
       \param msg Message you wish to log
       \param u Urgency of the message you wish to log
   */
   void log(const string &msg, Urgency u=Notice);
 
-  void setFacility(int f){d_facility=f;open();} //!< Choose logging facility
-  void setFlag(int f){flags|=f;open();} //!< set a syslog flag
+  void setFacility(int f); //!< Choose logging facility
+  void setFlag(int f); //!< set a syslog flag
   void setName(const string &);
 
   //! set lower limit of urgency needed for console display. Messages of this urgency, and higher, will be displayed
   void toConsole(Urgency);
   void setLoglevel( Urgency );
 
-  void disableSyslog(bool d) {
-    d_disableSyslog = d;
-  }
+  void disableSyslog(bool d);
 
-  void setTimestamps(bool t) {
-    d_timestamps = t;
-  }
+  void setTimestamps(bool t);
 
-  void setPrefixed(bool p) {
-    d_prefixed = p;
-  }
+  void setPrefixed(bool p);
 
   //! Log to a file.
   void toFile( const string & filename );
   
-  void resetFlags(){flags=0;open();} //!< zero the flags
+  void resetFlags(); //!< zero the flags
+
   /** Use this to stream to your log, like this:
       \code
       g_log<<"This is an informational message"<<endl; // logged at default loglevel (Info)
@@ -104,15 +112,6 @@ private:
   void open();
 
   static thread_local PerThread t_perThread;
-  string name;
-  int flags;
-  int d_facility;
-  Urgency d_loglevel;
-  Urgency consoleUrgency;
-  bool opened;
-  bool d_disableSyslog;
-  bool d_timestamps{true};
-  bool d_prefixed{false};
 };
 
 extern Logger g_log;
