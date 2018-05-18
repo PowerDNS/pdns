@@ -144,8 +144,8 @@ paths:
           required: true
           description: The id of the zone to retrieve
       responses:
-        '200':
-          description: OK
+        '204':
+          description: 'Returns 204 No Content on success.'
     patch:
       summary: 'Creates/modifies/deletes RRsets present in the payload and their comments. Returns 204 No Content on success.'
       operationId: patchZone
