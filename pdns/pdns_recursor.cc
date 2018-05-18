@@ -2035,6 +2035,14 @@ static void handleNewUDPQuestion(int fd, FDMultiplexer::funcparam_t& var)
       return;
     }
 
+    if (msgh.msg_flags & MSG_TRUNC) {
+      g_stats.truncatedDrops++;
+      if (!g_quiet) {
+        g_log<<Logger::Error<<"Ignoring truncated query from "<<fromaddr.toString()<<endl;
+      }
+      return;
+    }
+
     if(t_remotes)
       t_remotes->push_back(fromaddr);
 

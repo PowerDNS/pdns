@@ -766,6 +766,14 @@ queryPipeFullDrops OBJECT-TYPE
         "Number of queries dropped because the query distribution pipe was full"
     ::= { stats 92 }
 
+truncatedDrops OBJECT-TYPE
+    SYNTAX Counter64
+    MAX-ACCESS read-only
+    STATUS current
+    DESCRIPTION
+        "Number of queries dropped because they were larger than 1500 bytes"
+    ::= { stats 93 }
+
 ---
 --- Traps / Notifications
 ---
@@ -900,6 +908,7 @@ recGroup OBJECT-GROUP
         policyResultTruncate,
         policyResultCustom,
         queryPipeFullDrops,
+        truncatedDrops,
         trapReason
     }
     STATUS current
