@@ -32,17 +32,21 @@
 pthread_rwlock_t GeoIPBackend::s_state_lock=PTHREAD_RWLOCK_INITIALIZER;
 
 struct GeoIPDNSResourceRecord: DNSResourceRecord {
-public:
-	int weight;
-	bool has_weight;
+  int weight;
+  bool has_weight;
 };
 
-class GeoIPDomain {
-public:
+struct GeoIPService {
+  NetmaskTree<vector<string> > masks;
+  unsigned int netmask4;
+  unsigned int netmask6;
+};
+
+struct GeoIPDomain {
   int id;
   DNSName domain;
   int ttl;
-  map<DNSName, NetmaskTree<vector<string> > > services;
+  map<DNSName, GeoIPService> services;
   map<DNSName, vector<GeoIPDNSResourceRecord> > records;
 };
 
@@ -185,6 +189,8 @@ void GeoIPBackend::initialize() {
     }
 
     for(YAML::const_iterator service = domain["services"].begin(); service != domain["services"].end(); service++) {
+      unsigned int netmask4 = 0, netmask6 = 0;
+      DNSName srvName{service->first.as<string>()};
       NetmaskTree<vector<string> > nmt;
 
       // if it's an another map, we need to iterate it again, otherwise we just add two root entries.
@@ -200,7 +206,12 @@ void GeoIPBackend::initialize() {
             nmt.insert(Netmask("0.0.0.0/0")).second.assign(value.begin(),value.end());
             nmt.insert(Netmask("::/0")).second.swap(value);
           } else {
-            nmt.insert(Netmask(net->first.as<string>())).second.swap(value);
+            Netmask nm{net->first.as<string>()};
+            nmt.insert(nm).second.swap(value);
+            if (nm.isIpv6() == true && netmask6 < nm.getBits())
+              netmask6 = nm.getBits();
+            if (nm.isIpv6() == false && netmask4 < nm.getBits())
+              netmask4 = nm.getBits();
           }
         }
       } else {
@@ -213,7 +224,10 @@ void GeoIPBackend::initialize() {
         nmt.insert(Netmask("0.0.0.0/0")).second.assign(value.begin(),value.end());
         nmt.insert(Netmask("::/0")).second.swap(value);
       }
-      dom.services[DNSName(service->first.as<string>())].swap(nmt);
+
+      dom.services[srvName].netmask4 = netmask4;
+      dom.services[srvName].netmask6 = netmask6;
+      dom.services[srvName].masks.swap(nmt);
     }
 
     // rectify the zone, first static records
@@ -283,7 +297,7 @@ void GeoIPBackend::initialize() {
       }
     }
 
-    tmp_domains.push_back(dom);
+    tmp_domains.push_back(std::move(dom));
   }
 
   s_domains.clear();
@@ -304,7 +318,7 @@ GeoIPBackend::~GeoIPBackend() {
 }
 
 bool GeoIPBackend::lookup_static(const GeoIPDomain &dom, const DNSName &search, const QType &qtype, const DNSName& qdomain, const std::string &ip, GeoIPLookup &gl, bool v6) {
-  const auto i = dom.records.find(search);
+  const auto& i = dom.records.find(search);
   int cumul_probability = 0;
   int probability_rnd = 1+(dns_random(1000)); // setting probability=0 means it never is used
 
@@ -335,23 +349,21 @@ bool GeoIPBackend::lookup_static(const GeoIPDomain &dom, const DNSName &search, 
 
 void GeoIPBackend::lookup(const QType &qtype, const DNSName& qdomain, DNSPacket *pkt_p, int zoneId) {
   ReadLock rl(&s_state_lock);
-  GeoIPDomain dom;
+  const GeoIPDomain *dom;
   GeoIPLookup gl;
   bool found = false;
 
   if (d_result.size()>0) 
     throw PDNSException("Cannot perform lookup while another is running");
 
-  DNSName search = qdomain;
-
   d_result.clear();
 
   if (zoneId > -1 && zoneId < static_cast<int>(s_domains.size())) 
-    dom = s_domains[zoneId];
+    dom = &(s_domains[zoneId]);
   else {
     for(const GeoIPDomain& i : s_domains) {   // this is arguably wrong, we should probably find the most specific match
-      if (search.isPartOf(i.domain)) {
-        dom = i;
+      if (qdomain.isPartOf(i.domain)) {
+        dom = &i;
         found = true;
         break;
       }
@@ -368,23 +380,40 @@ void GeoIPBackend::lookup(const QType &qtype, const DNSName& qdomain, DNSPacket 
 
   gl.netmask = 0;
 
-  (void)this->lookup_static(dom, search, qtype, qdomain, ip, gl, v6);
+  (void)this->lookup_static(*dom, qdomain, qtype, qdomain, ip, gl, v6);
 
-  auto target = dom.services.find(search);
-  if (target == dom.services.end()) return; // no hit
+  const auto& target = (*dom).services.find(qdomain);
+  if (target == (*dom).services.end()) return; // no hit
 
-  const NetmaskTree<vector<string> >::node_type* node = target->second.lookup(ComboAddress(ip));
+  const NetmaskTree<vector<string> >::node_type* node = target->second.masks.lookup(ComboAddress(ip));
   if (node == NULL) return; // no hit, again.
 
   DNSName sformat;
   gl.netmask = node->first.getBits();
+  // figure out smallest sensible netmask
+  if (gl.netmask == 0) {
+    GeoIPLookup tmp_gl;
+    tmp_gl.netmask = 0;
+    // get netmask from geoip backend
+    if (queryGeoIP(ip, v6, GeoIPQueryAttribute::Name, &tmp_gl) == "unknown") {
+      if (v6)
+        gl.netmask = target->second.netmask6;
+      else
+        gl.netmask = target->second.netmask4;
+    }
+  } else {
+    if (v6)
+      gl.netmask = target->second.netmask6;
+    else
+      gl.netmask = target->second.netmask4;
+  }
 
   // note that this means the array format won't work with indirect
   for(auto it = node->second.begin(); it != node->second.end(); it++) {
     sformat = DNSName(format2str(*it, ip, v6, &gl));
 
     // see if the record can be found
-    if (this->lookup_static(dom, sformat, qtype, qdomain, ip, gl, v6))
+    if (this->lookup_static((*dom), sformat, qtype, qdomain, ip, gl, v6))
       return;
   }
 
@@ -401,12 +430,12 @@ void GeoIPBackend::lookup(const QType &qtype, const DNSName& qdomain, DNSPacket 
   if (!(qtype == QType::ANY || qtype == QType::CNAME)) return;
 
   DNSResourceRecord rr;
-  rr.domain_id = dom.id;
+  rr.domain_id = dom->id;
   rr.qtype = QType::CNAME;
   rr.qname = qdomain;
   rr.content = sformat.toString();
   rr.auth = 1;
-  rr.ttl = dom.ttl;
+  rr.ttl = dom->ttl;
   rr.scopeMask = gl.netmask;
   d_result.push_back(rr);
 }
