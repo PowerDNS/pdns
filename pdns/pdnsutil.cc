@@ -244,7 +244,7 @@ int checkZone(DNSSECKeeper &dk, UeberBackend &B, const DNSName& zone, const vect
   bool presigned=dk.isPresigned(zone);
   bool validKeys=dk.checkKeys(zone);
 
-  uint64_t numrecords=0, numerrors=0, numwarnings=0;
+  uint64_t numerrors=0, numwarnings=0;
 
   if (haveNSEC3) {
     if(isSecure && zone.wirelength() > 222) {
@@ -292,7 +292,7 @@ int checkZone(DNSSECKeeper &dk, UeberBackend &B, const DNSName& zone, const vect
 
   bool hasNsAtApex = false;
   set<DNSName> tlsas, cnames, noncnames, glue, checkglue;
-  set<pair<DNSName, QType> > recs, checkOcclusion;
+  set<pair<DNSName, QType> > checkOcclusion;
   set<string> recordcontents;
   map<string, unsigned int> ttl;
 
@@ -310,17 +310,7 @@ int checkZone(DNSSECKeeper &dk, UeberBackend &B, const DNSName& zone, const vect
   else 
     records=*suppliedrecords;
 
-  for(auto rr : records) { // we modify this
-    // if(!rr.qtype.getCode()) {
-    //   if(rr.content.length()) {
-    //     cout<<"[Error] ENT (or unknown type) has content: "<<rr.qname<<" IN " <<rr.qtype.getName()<< " '" << rr.content<<"'"<<endl;
-    //     numerrors++;
-    //   }
-    //   continue;
-    // }
-
-    numrecords++;
-
+  for(auto &rr : records) { // we modify this
     if(rr.qtype.getCode() == QType::TLSA)
       tlsas.insert(rr.qname);
     if(rr.qtype.getCode() == QType::SOA) {
@@ -426,10 +416,6 @@ int checkZone(DNSSECKeeper &dk, UeberBackend &B, const DNSName& zone, const vect
         glue.insert(rr.qname);
       } else if (rr.qtype == QType::DNAME) {
         checkOcclusion.insert({rr.qname, rr.qtype});
-      }
-
-      if (rr.qtype != QType::NS && rr.qtype != QType::DS && rr.qtype != QType::DNAME) {
-        recs.insert({rr.qname, rr.qtype});
       }
     }
 
@@ -548,26 +534,30 @@ int checkZone(DNSSECKeeper &dk, UeberBackend &B, const DNSName& zone, const vect
     }
   }
 
-  for(const auto &qname : checkOcclusion) {
-    for (const auto &q : recs) {
-      if (q.first.isPartOf(qname.first) && !checkglue.count(q.first)) {
-        cout<<"[Warning] '"<<q.first<<"|"<<q.second.getName()<<"' in zone '"<<zone<<"' is occluded by a ";
-        if (qname.second == QType::NS) {
-          cout<<"delegation";
+  for( const auto &qname : checkOcclusion ) {
+    for( const auto &rr : records ) {
+      if( qname.first == rr.qname && ((( rr.qtype == QType::NS || rr.qtype == QType::DS ) && qname.second == QType::NS ) || ( rr.qtype == QType::DNAME && qname.second == QType::DNAME ) ) ) {
+          continue;
+      }
+      if( rr.qname.isPartOf( qname.first ) ) {
+        if( qname.second == QType::DNAME || ( rr.qtype != QType::ENT && rr.qtype.getCode() != QType::A && rr.qtype.getCode() != QType::AAAA ) ) {
+          cout << "[Warning] '" << rr.qname << "|" << rr.qtype.getName() << "' in zone '" << zone << "' is occluded by a ";
+          if( qname.second == QType::NS ) {
+            cout << "delegation";
+          } else {
+            cout << "DNAME";
+          }
+          cout << " at '" << qname.first << "'" << endl;
+          numwarnings++;
         }
-        if (qname.second == QType::DNAME) {
-          cout<<"DNAME";
-        }
-        cout<<" at '"<<qname.first<<"'"<<endl;
-        numwarnings++;
       }
     }
   }
 
-  cout<<"Checked "<<numrecords<<" records of '"<<zone<<"', "<<numerrors<<" errors, "<<numwarnings<<" warnings."<<endl;
+  cout<<"Checked "<<records.size()<<" records of '"<<zone<<"', "<<numerrors<<" errors, "<<numwarnings<<" warnings."<<endl;
   if(!numerrors)
-    return 0;
-  return 1;
+    return EXIT_SUCCESS;
+  return EXIT_FAILURE;
 }
 
 int checkAllZones(DNSSECKeeper &dk, bool exitOnError)
