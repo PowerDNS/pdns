@@ -105,8 +105,7 @@ AS_IF([test "x$LUAPC" = "x" -a "x$LUAJITPC" = "x"], [
 AS_IF([test "x$LUAJITPC" != "x"], [
   # export all symbols to be able to use the Lua FFI interface
   AC_MSG_NOTICE([Adding -rdynamic to export all symbols for the Lua FFI interface])
-  CFLAGS="$CFLAGS -rdynamic"
-  CXXFLAGS="$CXXFLAGS -rdynamic"
+  LDFLAGS="$LDFLAGS -rdynamic"
 ])
 PDNS_CHECK_LUA_HPP
 
