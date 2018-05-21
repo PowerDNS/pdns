@@ -1642,14 +1642,15 @@ static void patchZone(HttpRequest* req, HttpResponse* resp) {
       apiCheckQNameAllowedCharacters(qname.toString());
       QType qtype;
       qtype = stringFromJson(rrset, "type");
-      if(seen.count({qname, qtype}))
-      {
-        throw ApiException("Duplicate RRset "+qname.toString()+" IN "+stringFromJson(rrset, "type"));
-      }
-      seen.insert({qname, qtype});
       if (qtype.getCode() == 0) {
         throw ApiException("RRset "+qname.toString()+" IN "+stringFromJson(rrset, "type")+": unknown type given");
       }
+
+      if(seen.count({qname, qtype}))
+      {
+        throw ApiException("Duplicate RRset "+qname.toString()+" IN "+qtype.getName());
+      }
+      seen.insert({qname, qtype});
 
       if (changetype == "DELETE") {
         // delete all matching qname/qtype RRs (and, implicitly comments).
