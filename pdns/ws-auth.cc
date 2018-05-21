@@ -1634,12 +1634,19 @@ static void patchZone(HttpRequest* req, HttpResponse* resp) {
     di.backend->getDomainMetadataOne(zonename, "SOA-EDIT", soa_edit_kind);
     bool soa_edit_done = false;
 
+    set<pair<DNSName, QType>> seen;
+
     for (const auto& rrset : rrsets.array_items()) {
       string changetype = toUpper(stringFromJson(rrset, "changetype"));
       DNSName qname = apiNameToDNSName(stringFromJson(rrset, "name"));
       apiCheckQNameAllowedCharacters(qname.toString());
       QType qtype;
       qtype = stringFromJson(rrset, "type");
+      if(seen.count({qname, qtype}))
+      {
+        throw ApiException("Duplicate RRset "+qname.toString()+" IN "+stringFromJson(rrset, "type"));
+      }
+      seen.insert({qname, qtype});
       if (qtype.getCode() == 0) {
         throw ApiException("RRset "+qname.toString()+" IN "+stringFromJson(rrset, "type")+": unknown type given");
       }
