@@ -20,6 +20,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
 
+#include <cinttypes>
 #include <dirent.h>
 #include <errno.h>
 #include "ixfrutils.hh"
@@ -110,8 +111,9 @@ void writeZoneToDisk(const records_t& records, const DNSName& zone, const std::s
   fprintf(fp, "$ORIGIN %s\n", zone.toString().c_str());
   for(const auto& outer : {soarecord, records, soarecord} ) {
     for(const auto& r: outer) {
-      fprintf(fp, "%s\tIN\t%s\t%s\n",
+      fprintf(fp, "%s\t%" PRIu32 "\tIN\t%s\t%s\n",
           r.d_name.isRoot() ? "@" :  r.d_name.toStringNoDot().c_str(),
+          r.d_ttl,
           DNSRecordContent::NumberToType(r.d_type).c_str(),
           r.d_content->getZoneRepresentation().c_str());
     }
