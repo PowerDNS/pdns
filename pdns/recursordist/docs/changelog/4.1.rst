@@ -87,7 +87,7 @@ Changelogs for 4.1.x
 
   .. change::
     :tags: Bug Fixes
-    :pullreq: 6514
+    :pullreq: 6514, 6630
 
     Add ``-rdynamic`` to ``C{,XX}FLAGS`` when we build with ``LuaJIT``.
 
