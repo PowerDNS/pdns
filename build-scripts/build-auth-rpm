@@ -457,7 +457,6 @@ fi
 %{_bindir}/dnsscope
 %{_bindir}/dnswasher
 %{_bindir}/dumresp
-%{_bindir}/ixfrdist
 %{_bindir}/ixplore
 %{_bindir}/pdns_notify
 %{_bindir}/nproxy
@@ -472,7 +471,6 @@ fi
 %{_mandir}/man1/dnsscope.1.gz
 %{_mandir}/man1/dnswasher.1.gz
 %{_mandir}/man1/dumresp.1.gz
-%{_mandir}/man1/ixfrdist.1.gz
 %{_mandir}/man1/ixplore.1.gz
 %{_mandir}/man1/pdns_notify.1.gz
 %{_mandir}/man1/nproxy.1.gz
@@ -565,6 +563,7 @@ Furthermore, PowerDNS interfaces with almost any database.
 
 %package tools
 Summary: Extra tools for %{name}
+BuildRequires: yaml-cpp-devel
 Group: System Environment/Daemons
 
 %description tools
@@ -703,6 +702,7 @@ export CPPFLAGS="-DLDAP_DEPRECATED"
 	--with-lua=luajit \
 	--with-dynmodules='%{backends} random' \
 	--enable-tools \
+	--enable-ixfrdist \
 	--enable-libsodium \
 	--enable-unit-tests \
 	--enable-experimental-pkcs11 \
@@ -803,13 +803,16 @@ exit 0
 %{_mandir}/man1/dnswasher.1.gz
 %{_mandir}/man1/dumresp.1.gz
 %{_mandir}/man1/ixfrdist.1.gz
+%{_mandir}/man5/ixfrdist.yml.5.gz
 %{_mandir}/man1/ixplore.1.gz
 %{_mandir}/man1/pdns_notify.1.gz
 %{_mandir}/man1/nproxy.1.gz
 %{_mandir}/man1/nsec3dig.1.gz
 %{_mandir}/man1/saxfr.1.gz
 %{_mandir}/man1/sdig.1.gz
+%{_sysconfdir}/%{name}/ixfrdist.example.yml
 %{_unitdir}/ixfrdist.service
+%{_unitdir}/ixfrdist@.service
 
 %files backend-mysql
 %doc modules/gmysqlbackend/schema.mysql.sql
@@ -990,6 +993,7 @@ export CPPFLAGS="-DLDAP_DEPRECATED"
 	--with-lua \
 	--with-dynmodules='%{backends} random' \
 	--enable-tools \
+	--disable-ixfrdist \
 	--without-protobuf \
 	--enable-unit-tests \
 	--enable-systemd \
@@ -1066,7 +1070,6 @@ exit 0
 %{_bindir}/dnstcpbench
 %{_bindir}/dnswasher
 %{_bindir}/dumresp
-%{_bindir}/ixfrdist
 %{_bindir}/ixplore
 %{_bindir}/pdns_notify
 %{_bindir}/nproxy
@@ -1083,14 +1086,12 @@ exit 0
 %{_mandir}/man1/dnstcpbench.1.gz
 %{_mandir}/man1/dnswasher.1.gz
 %{_mandir}/man1/dumresp.1.gz
-%{_mandir}/man1/ixfrdist.1.gz
 %{_mandir}/man1/ixplore.1.gz
 %{_mandir}/man1/pdns_notify.1.gz
 %{_mandir}/man1/nproxy.1.gz
 %{_mandir}/man1/nsec3dig.1.gz
 %{_mandir}/man1/saxfr.1.gz
 %{_mandir}/man1/sdig.1.gz
-%{_unitdir}/ixfrdist.service
 
 %files backend-mysql
 %doc modules/gmysqlbackend/schema.mysql.sql

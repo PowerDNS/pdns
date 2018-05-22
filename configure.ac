@@ -224,6 +224,7 @@ AC_ARG_ENABLE([tools],
 
 AC_MSG_RESULT([$enable_tools])
 AM_CONDITIONAL([TOOLS], [test "x$enable_tools" != "xno"])
+PDNS_ENABLE_IXFRDIST
 
 PDNS_WITH_PROTOBUF
 

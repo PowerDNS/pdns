@@ -384,6 +384,7 @@ build_auth() {
     --enable-experimental-pkcs11 \
     --enable-remotebackend-zeromq \
     --enable-tools \
+    --enable-ixfrdist \
     --enable-unit-tests \
     --enable-backend-unit-tests \
     --disable-dependency-tracking \

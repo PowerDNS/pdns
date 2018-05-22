@@ -42,6 +42,7 @@
 #include "misc.hh"
 #include "iputils.hh"
 #include "logger.hh"
+#include <yaml-cpp/yaml.h>
 
 /* BEGIN Needed because of deeper dependencies */
 #include "arguments.hh"
@@ -55,12 +56,56 @@ ArgvMap &arg()
 }
 /* END Needed because of deeper dependencies */
 
+// Allows reading/writing ComboAddresses and DNSNames in YAML-cpp
+namespace YAML {
+template<>
+struct convert<ComboAddress> {
+  static Node encode(const ComboAddress& rhs) {
+    return Node(rhs.toStringWithPort());
+  }
+  static bool decode(const Node& node, ComboAddress& rhs) {
+    if (!node.IsScalar()) {
+      return false;
+    }
+    try {
+      rhs = ComboAddress(node.as<string>());
+      return true;
+    } catch(const runtime_error &e) {
+      return false;
+    } catch (const PDNSException &e) {
+      return false;
+    }
+  }
+};
 
-// For all the listen-sockets
-FDMultiplexer* g_fdm;
+template<>
+struct convert<DNSName> {
+  static Node encode(const DNSName& rhs) {
+    return Node(rhs.toStringRootDot());
+  }
+  static bool decode(const Node& node, DNSName& rhs) {
+    if (!node.IsScalar()) {
+      return false;
+    }
+    try {
+      rhs = DNSName(node.as<string>());
+      return true;
+    } catch(const runtime_error &e) {
+      return false;
+    } catch (const PDNSException &e) {
+      return false;
+    }
+  }
+};
+} // namespace YAML
 
-// The domains we support
-set<DNSName> g_domains;
+// Why a struct? This way we can add more options to a domain in the future
+struct ixfrdistdomain_t {
+  set<ComboAddress> masters; // A set so we can do multiple master addresses in the future
+};
+
+// This contains the configuration for each domain
+map<DNSName, ixfrdistdomain_t> g_domainConfigs;
 
 // Map domains and their data
 std::map<DNSName, ixfrinfo_t> g_soas;
@@ -71,20 +116,9 @@ std::condition_variable g_tcpHandlerCV;
 std::queue<pair<int, ComboAddress>> g_tcpRequestFDs;
 std::mutex g_tcpRequestFDsMutex;
 
-using namespace boost::multi_index;
-
 namespace po = boost::program_options;
-po::variables_map g_vm;
-string g_workdir;
-ComboAddress g_master;
 
 bool g_exiting = false;
-
-#define KEEP_DEFAULT 20
-uint16_t g_keep = KEEP_DEFAULT;
-
-#define AXFRTIMEOUT_DEFAULT 20
-uint16_t g_axfrTimeout = AXFRTIMEOUT_DEFAULT;
 
 NetmaskGroup g_acl;
 
@@ -99,7 +133,7 @@ void handleSignal(int signum) {
 }
 
 void usage(po::options_description &desc) {
-  cerr << "Usage: ixfrdist [OPTION]... DOMAIN [DOMAIN]..."<<endl;
+  cerr << "Usage: ixfrdist [OPTION]..."<<endl;
   cerr << desc << "\n";
 }
 
@@ -108,8 +142,8 @@ bool sortSOA(uint32_t i, uint32_t j) {
   return rfc1982LessThan(i, j);
 }
 
-void cleanUpDomain(const DNSName& domain) {
-  string dir = g_workdir + "/" + domain.toString();
+void cleanUpDomain(const DNSName& domain, const uint16_t& keep, const string& workdir) {
+  string dir = workdir + "/" + domain.toString();
   DIR *dp;
   dp = opendir(dir.c_str());
   if (dp == nullptr) {
@@ -124,12 +158,12 @@ void cleanUpDomain(const DNSName& domain) {
     zoneVersions.push_back(std::stoi(d->d_name));
   }
   closedir(dp);
-  g_log<<Logger::Info<<"Found "<<zoneVersions.size()<<" versions of "<<domain<<", asked to keep "<<g_keep<<", ";
-  if (zoneVersions.size() <= g_keep) {
+  g_log<<Logger::Info<<"Found "<<zoneVersions.size()<<" versions of "<<domain<<", asked to keep "<<keep<<", ";
+  if (zoneVersions.size() <= keep) {
     g_log<<Logger::Info<<"not cleaning up"<<endl;
     return;
   }
-  g_log<<Logger::Info<<"cleaning up the oldest "<<zoneVersions.size() - g_keep<<endl;
+  g_log<<Logger::Info<<"cleaning up the oldest "<<zoneVersions.size() - keep<<endl;
 
   // Sort the versions
   std::sort(zoneVersions.begin(), zoneVersions.end(), sortSOA);
@@ -138,7 +172,7 @@ void cleanUpDomain(const DNSName& domain) {
   {
     // Lock to ensure no one reads this.
     std::lock_guard<std::mutex> guard(g_soas_mutex);
-    for (auto iter = zoneVersions.cbegin(); iter != zoneVersions.cend() - g_keep; ++iter) {
+    for (auto iter = zoneVersions.cbegin(); iter != zoneVersions.cend() - keep; ++iter) {
       string fname = dir + "/" + std::to_string(*iter);
       g_log<<Logger::Debug<<"Removing "<<fname<<endl;
       unlink(fname.c_str());
@@ -172,19 +206,20 @@ static void makeIXFRDiff(const records_t& from, const records_t& to, ixfrdiff_t&
   }
 }
 
-void updateThread() {
+void updateThread(const string& workdir, const uint16_t& keep, const uint16_t& axfrTimeout) {
   std::map<DNSName, time_t> lastCheck;
 
   // Initialize the serials we have
-  for (const auto &domain : g_domains) {
+  for (const auto &domainConfig : g_domainConfigs) {
+    DNSName domain = domainConfig.first;
     lastCheck[domain] = 0;
-    string dir = g_workdir + "/" + domain.toString();
+    string dir = workdir + "/" + domain.toString();
     try {
       g_log<<Logger::Info<<"Trying to initially load domain "<<domain<<" from disk"<<endl;
       auto serial = getSerialsFromDir(dir);
       shared_ptr<SOARecordContent> soa;
       {
-        string fname = g_workdir + "/" + domain.toString() + "/" + std::to_string(serial);
+        string fname = workdir + "/" + domain.toString() + "/" + std::to_string(serial);
         loadSOAFromDisk(domain, fname, soa);
         records_t records;
         if (soa != nullptr) {
@@ -197,7 +232,7 @@ void updateThread() {
       if (soa != nullptr) {
         g_log<<Logger::Notice<<"Loaded zone "<<domain<<" with serial "<<soa->d_st.serial<<endl;
         // Initial cleanup
-        cleanUpDomain(domain);
+        cleanUpDomain(domain, keep, workdir);
       }
     } catch (runtime_error &e) {
       // Most likely, the directory does not exist.
@@ -218,7 +253,8 @@ void updateThread() {
       break;
     }
     time_t now = time(nullptr);
-    for (const auto &domain : g_domains) {
+    for (const auto &domainConfig : g_domainConfigs) {
+      DNSName domain = domainConfig.first;
       shared_ptr<SOARecordContent> current_soa;
       {
         std::lock_guard<std::mutex> guard(g_soas_mutex);
@@ -230,14 +266,20 @@ void updateThread() {
           (current_soa == nullptr && now - lastCheck[domain] < 30))  {                       // Or if we could not get an update at all still, every 30 seconds
         continue;
       }
-      string dir = g_workdir + "/" + domain.toString();
-      g_log<<Logger::Info<<"Attempting to retrieve SOA Serial update for '"<<domain<<"' from '"<<g_master.toStringWithPort()<<"'"<<endl;
+
+      // TODO Keep track of 'down' masters
+      set<ComboAddress>::const_iterator it(g_domainConfigs[domain].masters.begin());
+      std::advance(it, random() % g_domainConfigs[domain].masters.size());
+      ComboAddress master = *it;
+
+      string dir = workdir + "/" + domain.toString();
+      g_log<<Logger::Info<<"Attempting to retrieve SOA Serial update for '"<<domain<<"' from '"<<master.toStringWithPort()<<"'"<<endl;
       shared_ptr<SOARecordContent> sr;
       try {
         lastCheck[domain] = now;
-        auto newSerial = getSerialFromMaster(g_master, domain, sr); // TODO TSIG
+        auto newSerial = getSerialFromMaster(master, domain, sr); // TODO TSIG
         if(current_soa != nullptr) {
-          g_log<<Logger::Info<<"Got SOA Serial for "<<domain<<" from "<<g_master.toStringWithPort()<<": "<< newSerial<<", had Serial: "<<current_soa->d_st.serial;
+          g_log<<Logger::Info<<"Got SOA Serial for "<<domain<<" from "<<master.toStringWithPort()<<": "<< newSerial<<", had Serial: "<<current_soa->d_st.serial;
           if (newSerial == current_soa->d_st.serial) {
             g_log<<Logger::Info<<", not updating."<<endl;
             continue;
@@ -250,20 +292,20 @@ void updateThread() {
       }
       // Now get the full zone!
       g_log<<Logger::Info<<"Attempting to receive full zonedata for '"<<domain<<"'"<<endl;
-      ComboAddress local = g_master.isIPv4() ? ComboAddress("0.0.0.0") : ComboAddress("::");
+      ComboAddress local = master.isIPv4() ? ComboAddress("0.0.0.0") : ComboAddress("::");
       TSIGTriplet tt;
 
       // The *new* SOA
       shared_ptr<SOARecordContent> soa;
       try {
-        AXFRRetriever axfr(g_master, domain, tt, &local);
+        AXFRRetriever axfr(master, domain, tt, &local);
         unsigned int nrecords=0;
         Resolver::res_t nop;
         vector<DNSRecord> chunk;
         records_t records;
         time_t t_start = time(nullptr);
         time_t axfr_now = time(nullptr);
-        while(axfr.getChunk(nop, &chunk, (axfr_now - t_start + g_axfrTimeout))) {
+        while(axfr.getChunk(nop, &chunk, (axfr_now - t_start + axfrTimeout))) {
           for(auto& dr : chunk) {
             if(dr.d_type == QType::TSIG)
               continue;
@@ -275,7 +317,7 @@ void updateThread() {
             }
           }
           axfr_now = time(nullptr);
-          if (axfr_now - t_start > g_axfrTimeout) {
+          if (axfr_now - t_start > axfrTimeout) {
             throw PDNSException("Total AXFR time exceeded!");
           }
         }
@@ -294,7 +336,7 @@ void updateThread() {
             g_soas[domain].ixfrDiffs.push_back(diff);
           }
           // Clean up the diffs
-          while (g_soas[domain].ixfrDiffs.size() > g_keep) {
+          while (g_soas[domain].ixfrDiffs.size() > keep) {
             g_soas[domain].ixfrDiffs.erase(g_soas[domain].ixfrDiffs.begin());
           }
           g_soas[domain].latestAXFR = records;
@@ -306,7 +348,7 @@ void updateThread() {
         g_log<<Logger::Warning<<"Could not save zone '"<<domain<<"' to disk: "<<e.what()<<endl;
       }
       // Now clean up the directory
-      cleanUpDomain(domain);
+      cleanUpDomain(domain, keep, workdir);
     } /* for (const auto &domain : domains) */
     sleep(1);
   } /* while (true) */
@@ -327,7 +369,7 @@ bool checkQuery(const MOADNSParser& mdp, const ComboAddress& saddr, const bool u
 
   {
     std::lock_guard<std::mutex> guard(g_soas_mutex);
-    if (g_domains.find(mdp.d_qname) == g_domains.end()) {
+    if (g_domainConfigs.find(mdp.d_qname) == g_domainConfigs.end()) {
       info_msg.push_back("Domain name '" + mdp.d_qname.toLogString() + "' is not configured for distribution");
     }
 
@@ -712,12 +754,149 @@ void tcpWorker(int tid) {
   }
 }
 
+/* Parses the configuration file in configpath into config, adding defaults for
+ * missing parameters (if applicable), returning true if the config file was
+ * good, false otherwise. Will log all issues with the config
+ */
+bool parseAndCheckConfig(const string& configpath, YAML::Node& config) {
+  g_log<<Logger::Info<<"Loading configuration file from "<<configpath<<endl;
+  try {
+    config = YAML::LoadFile(configpath);
+  } catch (const runtime_error &e) {
+    g_log<<Logger::Error<<"Unable to load configuration file '"<<configpath<<"': "<<e.what()<<endl;
+    return false;
+  }
+
+  bool retval = true;
+
+  if (config["keep"]) {
+    try {
+      config["keep"].as<uint16_t>();
+    } catch (const runtime_error &e) {
+      g_log<<Logger::Error<<"Unable to read 'keep' value: "<<e.what()<<endl;
+      retval = false;
+    }
+  } else {
+    config["keep"] = 20;
+  }
+
+  if (config["axfr-timeout"]) {
+    try {
+      config["axfr-timeout"].as<uint16_t>();
+    } catch (const runtime_error &e) {
+      g_log<<Logger::Error<<"Unable to read 'axfr-timeout' value: "<<e.what()<<endl;
+    }
+  } else {
+    config["axfr-timeout"] = 10;
+  }
+
+  if (config["tcp-in-threads"]) {
+    try {
+      config["tcp-in-threads"].as<uint16_t>();
+    } catch (const runtime_error &e) {
+      g_log<<Logger::Error<<"Unable to read 'tcp-in-thread' value: "<<e.what()<<endl;
+    }
+  } else {
+    config["tcp-in-threads"] = 10;
+  }
+
+  if (config["listen"]) {
+    try {
+      config["listen"].as<vector<ComboAddress>>();
+    } catch (const runtime_error &e) {
+      g_log<<Logger::Error<<"Unable to read 'listen' value: "<<e.what()<<endl;
+      retval = false;
+    }
+  } else {
+    config["listen"].push_back("127.0.0.1:53");
+    config["listen"].push_back("[::1]:53");
+  }
+
+  if (config["acl"]) {
+    try {
+      config["acl"].as<vector<string>>();
+    } catch (const runtime_error &e) {
+      g_log<<Logger::Error<<"Unable to read 'acl' value: "<<e.what()<<endl;
+      retval = false;
+    }
+  } else {
+    config["acl"].push_back("127.0.0.0/8");
+    config["acl"].push_back("::1/128");
+  }
+
+  if (config["work-dir"]) {
+    try {
+      config["work-dir"].as<string>();
+    } catch(const runtime_error &e) {
+      g_log<<Logger::Error<<"Unable to read 'work-dir' value: "<<e.what()<<endl;
+      retval = false;
+    }
+  } else {
+    char tmp[512];
+    config["work-dir"] = getcwd(tmp, sizeof(tmp)) ? string(tmp) : "";;
+  }
+
+  if (config["uid"]) {
+    try {
+      config["uid"].as<string>();
+    } catch(const runtime_error &e) {
+      g_log<<Logger::Error<<"Unable to read 'uid' value: "<<e.what()<<endl;
+      retval = false;
+    }
+  }
+
+  if (config["gid"]) {
+    try {
+      config["gid"].as<string>();
+    } catch(const runtime_error &e) {
+      g_log<<Logger::Error<<"Unable to read 'gid' value: "<<e.what()<<endl;
+      retval = false;
+    }
+  }
+
+  if (config["domains"]) {
+    if (config["domains"].size() == 0) {
+      g_log<<Logger::Error<<"No domains configured"<<endl;
+      retval = false;
+    }
+    for (auto const &domain : config["domains"]) {
+      try {
+        if (!domain["domain"]) {
+          g_log<<Logger::Error<<"An entry in 'domains' is missing a 'domain' key!"<<endl;
+          retval = false;
+          continue;
+        }
+        domain["domain"].as<DNSName>();
+      } catch (const runtime_error &e) {
+        g_log<<Logger::Error<<"Unable to read domain '"<<domain["domain"].as<string>()<<"': "<<e.what()<<endl;
+      }
+      try {
+        if (!domain["master"]) {
+          g_log<<Logger::Error<<"Domain '"<<domain["domain"].as<string>()<<"' has no master configured!"<<endl;
+          retval = false;
+          continue;
+        }
+        domain["master"].as<ComboAddress>();
+      } catch (const runtime_error &e) {
+        g_log<<Logger::Error<<"Unable to read domain '"<<domain["domain"].as<string>()<<"' master address: "<<e.what()<<endl;
+        retval = false;
+      }
+    }
+  } else {
+    g_log<<Logger::Error<<"No domains configured"<<endl;
+    retval = false;
+  }
+
+  return retval;
+}
+
 int main(int argc, char** argv) {
   g_log.setLoglevel(Logger::Notice);
   g_log.toConsole(Logger::Notice);
   g_log.setPrefixed(true);
   g_log.disableSyslog(true);
   g_log.setTimestamps(false);
+  po::variables_map g_vm;
   try {
     po::options_description desc("IXFR distribution tool");
     desc.add_options()
@@ -725,26 +904,10 @@ int main(int argc, char** argv) {
       ("version", "Display the version of ixfrdist")
       ("verbose", "Be verbose")
       ("debug", "Be even more verbose")
-      ("uid", po::value<string>(), "Drop privileges to this user after binding the listen sockets")
-      ("gid", po::value<string>(), "Drop privileges to this group after binding the listen sockets")
-      ("listen-address", po::value< vector< string>>(), "IP Address(es) to listen on")
-      ("acl", po::value<vector<string>>(), "IP Address masks that are allowed access, by default only loopback addresses are allowed")
-      ("server-address", po::value<string>()->default_value("127.0.0.1:5300"), "server address")
-      ("work-dir", po::value<string>()->default_value("."), "Directory for storing AXFR and IXFR data")
-      ("keep", po::value<uint16_t>()->default_value(KEEP_DEFAULT), "Number of old zone versions to retain")
-      ("axfr-timeout", po::value<uint16_t>()->default_value(AXFRTIMEOUT_DEFAULT), "Timeout in seconds for an inbound AXFR to complete")
-      ("tcp-in-threads", po::value<uint16_t>()->default_value(10), "Number of maximum simultaneous inbound TCP connections. Limits simultaneous AXFR/IXFR transactions")
+      ("config", po::value<string>()->default_value(SYSCONFDIR + string("/ixfrdist.yml")), "Configuration file to use")
       ;
-    po::options_description alloptions;
-    po::options_description hidden("hidden options");
-    hidden.add_options()
-      ("domains", po::value< vector<string> >(), "domains");
 
-    alloptions.add(desc).add(hidden);
-    po::positional_options_description p;
-    p.add("domains", -1);
-
-    po::store(po::command_line_parser(argc, argv).options(alloptions).positional(p).run(), g_vm);
+    po::store(po::command_line_parser(argc, argv).options(desc).run(), g_vm);
     po::notify(g_vm);
 
     if (g_vm.count("help") > 0) {
@@ -773,60 +936,23 @@ int main(int argc, char** argv) {
     g_log.toConsole(Logger::Debug);
   }
 
-  if (g_vm.count("keep") > 0) {
-    g_keep = g_vm["keep"].as<uint16_t>();
-  }
+  g_log<<Logger::Notice<<"IXFR distributor version "<<VERSION<<" starting up!"<<endl;
 
-  if (g_vm.count("axfr-timeout") > 0) {
-    g_axfrTimeout = g_vm["axfr-timeout"].as<uint16_t>();
-  }
-
-  vector<ComboAddress> listen_addresses = {ComboAddress("127.0.0.1:53")};
-
-  if (g_vm.count("listen-address") > 0) {
-    listen_addresses.clear();
-    for (const auto &addr : g_vm["listen-address"].as< vector< string> >()) {
-      try {
-        listen_addresses.push_back(ComboAddress(addr, 53));
-      } catch(PDNSException &e) {
-        g_log<<Logger::Error<<"listen-address '"<<addr<<"' is not an IP address: "<<e.reason<<endl;
-        had_error = true;
-      }
-    }
-  }
-
-  try {
-    g_master = ComboAddress(g_vm["server-address"].as<string>(), 53);
-  } catch(PDNSException &e) {
-    g_log<<Logger::Error<<"server-address '"<<g_vm["server-address"].as<string>()<<"' is not an IP address: "<<e.reason<<endl;
-    had_error = true;
-  }
-
-  if (!g_vm.count("domains")) {
-    g_log<<Logger::Error<<"No domain(s) specified!"<<endl;
-    had_error = true;
-  } else {
-    for (const auto &domain : g_vm["domains"].as<vector<string>>()) {
-      try {
-        g_domains.insert(DNSName(domain));
-      } catch (PDNSException &e) {
-        g_log<<Logger::Error<<"'"<<domain<<"' is not a valid domain name: "<<e.reason<<endl;
-        had_error = true;
-      }
-    }
-  }
-
-  g_fdm = FDMultiplexer::getMultiplexerSilent();
-  if (g_fdm == nullptr) {
-    g_log<<Logger::Error<<"Could not enable a multiplexer for the listen sockets!"<<endl;
+  YAML::Node config;
+  if (!parseAndCheckConfig(g_vm["config"].as<string>(), config)) {
+    // parseAndCheckConfig already logged whatever was wrong
     return EXIT_FAILURE;
   }
 
-  vector<string> acl = {"127.0.0.0/8", "::1/128"};
-  if (g_vm.count("acl") > 0) {
-    acl = g_vm["acl"].as<vector<string>>();
+  /*  From hereon out, we known that all the values in config are valid. */
+
+  for (auto const &domain : config["domains"]) {
+    set<ComboAddress> s;
+    s.insert(domain["master"].as<ComboAddress>());
+    g_domainConfigs[domain["domain"].as<DNSName>()].masters = s;
   }
-  for (const auto &addr : acl) {
+
+  for (const auto &addr : config["acl"].as<vector<string>>()) {
     try {
       g_acl.addMask(addr);
     } catch (const NetmaskException &e) {
@@ -836,8 +962,14 @@ int main(int argc, char** argv) {
   }
   g_log<<Logger::Notice<<"ACL set to "<<g_acl.toString()<<"."<<endl;
 
+  FDMultiplexer* fdm = FDMultiplexer::getMultiplexerSilent();
+  if (fdm == nullptr) {
+    g_log<<Logger::Error<<"Could not enable a multiplexer for the listen sockets!"<<endl;
+    return EXIT_FAILURE;
+  }
+
   set<int> allSockets;
-  for (const auto& addr : listen_addresses) {
+  for (const auto& addr : config["listen"].as<vector<ComboAddress>>()) {
     for (const auto& stype : {SOCK_DGRAM, SOCK_STREAM}) {
       try {
         int s = SSocket(addr.sin4.sin_family, stype, 0);
@@ -847,7 +979,7 @@ int main(int argc, char** argv) {
         if (stype == SOCK_STREAM) {
           SListen(s, 30); // TODO make this configurable
         }
-        g_fdm->addReadFD(s, stype == SOCK_DGRAM ? handleUDPRequest : handleTCPRequest);
+        fdm->addReadFD(s, stype == SOCK_DGRAM ? handleUDPRequest : handleTCPRequest);
         allSockets.insert(s);
       } catch(runtime_error &e) {
         g_log<<Logger::Error<<e.what()<<endl;
@@ -857,12 +989,10 @@ int main(int argc, char** argv) {
     }
   }
 
-  g_workdir = g_vm["work-dir"].as<string>();
-
   int newgid = 0;
 
-  if (g_vm.count("gid") > 0) {
-    string gid = g_vm["gid"].as<string>();
+  if (config["gid"]) {
+    string gid = config["gid"].as<string>();
     if (!(newgid = atoi(gid.c_str()))) {
       struct group *gr = getgrnam(gid.c_str());
       if (gr == nullptr) {
@@ -881,8 +1011,8 @@ int main(int argc, char** argv) {
 
   int newuid = 0;
 
-  if (g_vm.count("uid") > 0) {
-    string uid = g_vm["uid"].as<string>();
+  if (config["uid"]) {
+    string uid = config["uid"].as<string>();
     if (!(newuid = atoi(uid.c_str()))) {
       struct passwd *pw = getpwnam(uid.c_str());
       if (pw == nullptr) {
@@ -927,21 +1057,23 @@ int main(int argc, char** argv) {
   // Init the things we need
   reportAllTypes();
 
-  // TODO read from urandom (perhaps getrandom(2)?
-  dns_random_init("0123456789abcdef");
+  dns_random_init();
 
-  g_log<<Logger::Notice<<"IXFR distributor starting up!"<<endl;
+  std::thread ut(updateThread,
+      config["work-dir"].as<string>(),
+      config["keep"].as<uint16_t>(),
+      config["axfr-timeout"].as<uint16_t>());
 
-  std::thread ut(updateThread);
   vector<std::thread> tcpHandlers;
-  for (int i = 0; i < g_vm["tcp-in-threads"].as<uint16_t>(); ++i) {
+  tcpHandlers.reserve(config["tcp-in-threads"].as<uint16_t>());
+  for (size_t i = 0; i < tcpHandlers.capacity(); ++i) {
     tcpHandlers.push_back(std::thread(tcpWorker, i));
   }
 
   struct timeval now;
   for(;;) {
     gettimeofday(&now, 0);
-    g_fdm->run(&now);
+    fdm->run(&now);
     if (g_exiting) {
       g_log<<Logger::Notice<<"Shutting down!"<<endl;
       for (const int& fd : allSockets) {

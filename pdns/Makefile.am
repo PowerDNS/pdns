@@ -5,7 +5,8 @@ AM_CPPFLAGS += \
 	$(YAHTTP_CFLAGS) \
 	$(LIBEDIT_CFLAGS) \
 	$(LIBCRYPTO_INCLUDES) \
-	$(SYSTEMD_CFLAGS)
+	$(SYSTEMD_CFLAGS) \
+	$(YAML_CFLAGS)
 
 AM_CXXFLAGS = \
 	-DSYSCONFDIR=\"$(sysconfdir)\" \
@@ -56,6 +57,7 @@ EXTRA_DIST = \
 	delaypipe.hh delaypipe.cc \
 	pdns.service.in \
 	ixfrdist.service.in \
+	ixfrdist.example.yml \
 	lua-record.cc \
 	minicurl.cc \
 	minicurl.hh
@@ -100,7 +102,6 @@ bin_PROGRAMS += \
 	saxfr \
 	stubquery \
 	ixplore \
-	ixfrdist \
 	sdig
 
 if HAVE_RECVMMSG
@@ -113,6 +114,14 @@ bin_PROGRAMS += \
 	dnstcpbench
 endif
 
+endif # TOOLS
+
+if IXFRDIST
+bin_PROGRAMS += \
+	ixfrdist
+
+sysconf_DATA += \
+	ixfrdist.example.yml
 endif
 
 EXTRA_PROGRAMS = \
@@ -642,7 +651,8 @@ ixfrdist_SOURCES = \
 
 ixfrdist_LDADD = \
 	$(BOOST_PROGRAM_OPTIONS_LIBS) \
-	$(LIBCRYPTO_LIBS)
+	$(LIBCRYPTO_LIBS) \
+	$(YAML_LIBS)
 
 ixfrdist_LDFLAGS = \
 	$(AM_LDFLAGS) \
@@ -1417,15 +1427,21 @@ CLEANFILES += \
 	pdns.service \
 	pdns@.service
 
-if TOOLS
+if IXFRDIST
 ixfrdist.service: ixfrdist.service.in
 	$(AM_V_GEN)sed -e 's![@]bindir[@]!$(bindir)!' < $< > $@
 
+ixfrdist@.service: ixfrdist.service
+	$(AM_V_GEN)sed -e 's!/ixfrdist!& --config $(sysconfdir)/ixfrdist-%i.yml!' \
+	  < $< > $@
+
 systemdsystemunit_DATA += \
-	ixfrdist.service
-endif # TOOLS
+	ixfrdist.service \
+	ixfrdist@.service
+endif # IXFRDIST
 
 CLEANFILES += \
-	ixfrdist.service
+	ixfrdist.service \
+	ixfrdist@.service
 
 endif # HAVE_SYSTEMD

@@ -20,7 +20,6 @@ MANPAGES_TARGET_TOOLS = calidns.1 \
 	dnsscope.1 \
 	dnswasher.1 \
 	dumresp.1 \
-	ixfrdist.1 \
 	ixplore.1 \
 	nproxy.1 \
 	nsec3dig.1 \
@@ -28,7 +27,11 @@ MANPAGES_TARGET_TOOLS = calidns.1 \
 	saxfr.1 \
 	sdig.1
 
+MANPAGES_TARGET_IXFRDIST = ixfrdist.1 \
+	ixfrdist.yml.5
+
 MANPAGES_DIST += $(MANPAGES_TARGET_TOOLS) \
+	$(MANPAGES_TARGET_IXFRDIST) \
 	dnsbulktest.1 \
 	dnstcpbench.1 \
 	dnspcap2protobuf.1
@@ -46,6 +49,10 @@ endif
 
 if TOOLS
 MANPAGES_INSTALL += $(MANPAGES_TARGET_TOOLS)
+endif
+
+if IXFRDIST
+MANPAGES_INSTALL += $(MANPAGES_TARGET_IXFRDIST)
 endif
 
 man_MANS = $(MANPAGES_INSTALL)
