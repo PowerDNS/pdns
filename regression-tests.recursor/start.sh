@@ -1,4 +1,8 @@
 #!/bin/sh
+
+SUPERVISE="`which supervise`"
+AUTHBIND="`which authbind`"
+
 set -e
 if [ "${PDNS_DEBUG}" = "YES" ]; then
   set -x
@@ -9,6 +13,16 @@ fi
 if [ -z "$PREFIX" ] 
 then
     echo "config not found or PREFIX not set"
+    exit 1
+fi
+
+if [ -z "$SUPERVISE" ]; then
+    echo "daemontools is not installed"
+    exit 1
+fi
+
+if [ -z "$AUTHBIND" ]; then
+    echo "authbind is not installed"
     exit 1
 fi
 
