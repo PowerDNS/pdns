@@ -2,6 +2,103 @@ Changelogs for 4.1.x
 ====================
 
 .. changelog::
+  :version: 4.1.3
+  :released: 22nd of May 2018
+
+  This release improves the stability and resiliency of the RPZ implementation, prevents metrics gathering from slowing down the processing of DNS queries and fixes an issue related to the cleaning of EDNS Client Subnet entries from the cache.
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 6469
+
+    Respect the ``AXFR`` timeout while connecting to the ``RPZ`` server.
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 6467
+
+    Don't increase the ``DNSSEC`` validations counters when running with ``process-no-validate``.
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 6313
+
+    Count a lookup into an internal auth zone as a cache miss.
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 6588
+    :tickets: 6237
+
+    Delay the loading of ``RPZ`` zones until the parsing is done, fixing a race condition.
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 6567
+
+    Move carbon/webserver/control/stats handling to a separate thread.
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 6566
+
+    Use a separate, non-blocking pipe to distribute queries.
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 6562
+    :tickets: 6550
+
+    Add a subtree option to the :doc:`API <../http-api/index>` cache flush endpoint.
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 6595
+    :tickets: 6542, 6516, 6358, 6517
+
+    Reorder includes to avoid boost ``L`` conflict.
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 6611
+    :tickets: 6130, 6610
+
+    Update copyright years to 2018 (Matt Nordhoff)/
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 6583
+
+    Add ``_raw`` versions for ``QName`` / ``ComboAddresses`` to the ``FFI`` API.
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 6586
+    :tickets: 6505
+
+     Use canonical ordering in the ``ECS`` index.
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 6514
+
+    Add ``-rdynamic`` to ``C{,XX}FLAGS`` when we build with ``LuaJIT``.
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 6418
+    :tickets: 6179
+
+    Increase ``MTasker`` stacksize to avoid crash in exception unwinding (Chris Hofstaedtler).
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 6419
+    :tickets: 6086
+
+    Use the SyncRes time in our unit tests when checking cache validity (Chris Hofstaedtler).
+
+.. changelog::
   :version: 4.1.2
   :released: 29th of March 2018
 
