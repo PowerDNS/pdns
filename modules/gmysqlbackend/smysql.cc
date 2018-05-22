@@ -426,8 +426,13 @@ void SMySQL::connect()
     mysql_options(&d_db, MYSQL_SET_CHARSET_NAME, MYSQL_AUTODETECT_CHARSET_NAME);
 #endif
 
-    if (d_setIsolation && (retry == 1))
+    if (d_setIsolation && (retry == 1)) {
+#if MYSQL_VERSION_ID >= 50720
+      mysql_options(&d_db, MYSQL_INIT_COMMAND,"SET SESSION transaction_isolation='READ-COMMITTED'");
+#else
       mysql_options(&d_db, MYSQL_INIT_COMMAND,"SET SESSION tx_isolation='READ-COMMITTED'");
+#endif /* MYSQL_VERSION_ID >= 50720 */
+    }
 
     mysql_options(&d_db, MYSQL_READ_DEFAULT_GROUP, d_group.c_str());
 
