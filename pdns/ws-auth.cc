@@ -1689,9 +1689,13 @@ static void patchZone(HttpRequest* req, HttpResponse* resp) {
         }
 
         if (replace_records) {
+          bool ent_present = false;
           di.backend->lookup(QType(QType::ANY), qname);
           DNSResourceRecord rr;
           while (di.backend->get(rr)) {
+            if (qtype.getCode() == 0) {
+              ent_present = true;
+            }
             if (qtype.getCode() == QType::CNAME && rr.qtype.getCode() != QType::CNAME) {
               throw ApiException("RRset "+qname.toString()+" IN "+qtype.getName()+": Conflicts with pre-existing non-CNAME RRset");
             } else if (qtype.getCode() != QType::CNAME && rr.qtype.getCode() == QType::CNAME) {
@@ -1699,6 +1703,12 @@ static void patchZone(HttpRequest* req, HttpResponse* resp) {
             }
           }
 
+          if (!new_records.empty() && ent_present) {
+            QType qt_ent{0};
+            if (!di.backend->replaceRRSet(di.id, qname, qt_ent, new_records)) {
+              throw ApiException("Hosting backend does not support editing records.");
+            }
+          }
           if (!di.backend->replaceRRSet(di.id, qname, qtype, new_records)) {
             throw ApiException("Hosting backend does not support editing records.");
           }
