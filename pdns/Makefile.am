@@ -1370,6 +1370,111 @@ check-local:
 	@echo "Run ./configure --enable-unit-tests"
 endif
 
+if FUZZ_TARGETS
+
+LIB_FUZZING_ENGINE ?= standalone_fuzz_target_runner.o
+
+standalone_fuzz_target_runner.o: standalone_fuzz_target_runner.cc
+
+bin_PROGRAMS += \
+	fuzz_dnsdistcache \
+	fuzz_moadnsparser \
+	fuzz_packetcache \
+	fuzz_zoneparsertng
+
+fuzz_targets_libs = \
+	$(LIBCRYPTO_LIBS) \
+	$(LIB_FUZZING_ENGINE)
+fuzz_targets_ldflags = \
+	$(AM_LDFLAGS) \
+	$(DYNLINKFLAGS) \
+	$(LIBCRYPTO_LDFLAGS) \
+	$(FUZZING_LDFLAGS)
+
+# we need the mockup runner to be built, but not linked if a real fuzzing engine is used
+fuzz_targets_deps = standalone_fuzz_target_runner.o
+
+fuzz_moadnsparser_SOURCES = \
+	fuzz_moadnsparser.cc \
+	base32.cc base32.hh \
+	base64.cc base64.hh \
+	dnslabeltext.cc \
+	dnsname.cc dnsname.hh \
+	dnsparser.cc dnsparser.hh \
+	dnsrecords.cc dnsrecords.hh \
+	dnswriter.cc dnswriter.hh \
+	logger.cc logger.hh \
+	misc.cc misc.hh \
+	nsecrecords.cc  \
+	qtype.cc qtype.hh \
+	rcpgenerator.cc rcpgenerator.hh \
+	sillyrecords.cc \
+	statbag.cc statbag.hh \
+	unix_utility.cc \
+	utility.hh
+
+fuzz_moadnsparser_DEPENDENCIES = $(fuzz_targets_deps)
+fuzz_moadnsparser_LDFLAGS = $(fuzz_targets_ldflags)
+fuzz_moadnsparser_LDADD = $(fuzz_targets_libs)
+
+fuzz_packetcache_SOURCES = \
+	fuzz_packetcache.cc \
+	dnslabeltext.cc \
+	dnsname.cc dnsname.hh \
+	ednsoptions.cc ednsoptions.hh \
+	misc.cc misc.hh \
+	packetcache.hh \
+	statbag.cc statbag.hh
+
+fuzz_packetcache_DEPENDENCIES = $(fuzz_targets_deps)
+fuzz_packetcache_LDFLAGS = $(fuzz_targets_ldflags)
+fuzz_packetcache_LDADD = $(fuzz_targets_libs)
+
+fuzz_dnsdistcache_SOURCES = \
+	fuzz_dnsdistcache.cc \
+	dnsdist-cache.cc dnsdist-cache.hh \
+	dnsdist-ecs.cc dnsdist-ecs.hh \
+	dnslabeltext.cc \
+	dnsname.cc dnsname.hh \
+	dnsparser.cc dnsparser.hh \
+	dnswriter.cc dnswriter.hh \
+	ednsoptions.cc ednsoptions.hh \
+	ednssubnet.cc ednssubnet.hh \
+	iputils.cc iputils.hh \
+	misc.cc misc.hh \
+	packetcache.hh \
+	qtype.cc qtype.hh
+
+fuzz_dnsdistcache_DEPENDENCIES = $(fuzz_targets_deps)
+fuzz_dnsdistcache_LDFLAGS = $(fuzz_targets_ldflags)
+fuzz_dnsdistcache_LDADD = $(fuzz_targets_libs)
+
+fuzz_zoneparsertng_SOURCES = \
+	fuzz_zoneparsertng.cc \
+	base32.cc base32.hh \
+	base64.cc base64.hh \
+	dnslabeltext.cc \
+	dnsname.cc dnsname.hh \
+	dnsparser.cc dnsparser.hh \
+	dnsrecords.cc dnsrecords.hh \
+	dnswriter.cc dnswriter.hh \
+	logger.cc logger.hh \
+	misc.cc misc.hh \
+	nsecrecords.cc  \
+	qtype.cc qtype.hh \
+	rcpgenerator.cc rcpgenerator.hh \
+	sillyrecords.cc \
+	statbag.cc statbag.hh \
+	unix_utility.cc \
+	utility.hh \
+	zoneparser-tng.cc zoneparser-tng.hh
+
+fuzz_zoneparsertng_DEPENDENCIES = $(fuzz_targets_deps)
+fuzz_zoneparsertng_LDFLAGS = $(fuzz_targets_ldflags)
+fuzz_zoneparsertng_LDADD = $(fuzz_targets_libs)
+
+endif
+
 dnslabeltext.cc: dnslabeltext.rl
 	$(AM_V_GEN)$(RAGEL) $< -o dnslabeltext.cc
 
