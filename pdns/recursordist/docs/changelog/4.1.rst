@@ -63,7 +63,14 @@ Changelogs for 4.1.x
     :pullreq: 6611
     :tickets: 6130, 6610
 
-    Update copyright years to 2018 (Matt Nordhoff)/
+    Update copyright years to 2018 (Matt Nordhoff).
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 6596, 6478
+    :tickets: 6474
+
+    Fix a warning on botan >= 2.5.0.
 
   .. change::
     :tags: Improvements
