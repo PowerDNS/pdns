@@ -244,37 +244,37 @@ void DNSProxy::mainloop(void)
 
         /* Set up iov and msgh structures. */
         memset(&msgh, 0, sizeof(struct msghdr));
-	string reply; // needs to be alive at time of sendmsg!
-	if(i->second.complete) {
+        string reply; // needs to be alive at time of sendmsg!
+        if(i->second.complete) {
 
-	  MOADNSParser mdp(false, p.getString());
-	  //	  cerr<<"Got completion, "<<mdp.d_answers.size()<<" answers, rcode: "<<mdp.d_header.rcode<<endl;
-	  for(MOADNSParser::answers_t::const_iterator j=mdp.d_answers.begin(); j!=mdp.d_answers.end(); ++j) {        
-	    //	    cerr<<"comp: "<<(int)j->first.d_place-1<<" "<<j->first.d_label<<" " << DNSRecordContent::NumberToType(j->first.d_type)<<" "<<j->first.d_content->getZoneRepresentation()<<endl;
-	    if(j->first.d_place == DNSResourceRecord::ANSWER || (j->first.d_place == DNSResourceRecord::AUTHORITY && j->first.d_type == QType::SOA)) {
-	    
-	      if(j->first.d_type == i->second.qtype || (i->second.qtype == QType::ANY && (j->first.d_type == QType::A || j->first.d_type == QType::AAAA))) {
+          MOADNSParser mdp(false, p.getString());
+          //	  cerr<<"Got completion, "<<mdp.d_answers.size()<<" answers, rcode: "<<mdp.d_header.rcode<<endl;
+          for(MOADNSParser::answers_t::const_iterator j=mdp.d_answers.begin(); j!=mdp.d_answers.end(); ++j) {        
+            //	    cerr<<"comp: "<<(int)j->first.d_place-1<<" "<<j->first.d_label<<" " << DNSRecordContent::NumberToType(j->first.d_type)<<" "<<j->first.d_content->getZoneRepresentation()<<endl;
+            if(j->first.d_place == DNSResourceRecord::ANSWER || (j->first.d_place == DNSResourceRecord::AUTHORITY && j->first.d_type == QType::SOA)) {
+
+              if(j->first.d_type == i->second.qtype || (i->second.qtype == QType::ANY && (j->first.d_type == QType::A || j->first.d_type == QType::AAAA))) {
                 DNSZoneRecord dzr;
-		dzr.dr.d_name=i->second.aname;
-		dzr.dr.d_type = j->first.d_type;
-		dzr.dr.d_ttl=j->first.d_ttl;
-		dzr.dr.d_place= j->first.d_place;
-		dzr.dr.d_content=j->first.d_content;
-		i->second.complete->addRecord(dzr);
-	      }
-	    }
-	  }
-	  i->second.complete->setRcode(mdp.d_header.rcode);
-	  reply=i->second.complete->getString();
-	  iov.iov_base = (void*)reply.c_str();
-	  iov.iov_len = reply.length();
-	  delete i->second.complete;
-	  i->second.complete=0;
-	}
-	else {
-	  iov.iov_base = buffer;
-	  iov.iov_len = len;
-	}
+                dzr.dr.d_name=i->second.aname;
+                dzr.dr.d_type = j->first.d_type;
+                dzr.dr.d_ttl=j->first.d_ttl;
+                dzr.dr.d_place= j->first.d_place;
+                dzr.dr.d_content=j->first.d_content;
+                i->second.complete->addRecord(dzr);
+              }
+            }
+          }
+          i->second.complete->setRcode(mdp.d_header.rcode);
+          reply=i->second.complete->getString();
+          iov.iov_base = (void*)reply.c_str();
+          iov.iov_len = reply.length();
+          delete i->second.complete;
+          i->second.complete=0;
+        }
+        else {
+          iov.iov_base = buffer;
+          iov.iov_len = len;
+        }
         msgh.msg_iov = &iov;
         msgh.msg_iovlen = 1;
         msgh.msg_name = (struct sockaddr*)&i->second.remote;
@@ -286,7 +286,7 @@ void DNSProxy::mainloop(void)
         }
         if(sendmsg(i->second.outsock, &msgh, 0) < 0)
           g_log<<Logger::Warning<<"dnsproxy.cc: Error sending reply with sendmsg (socket="<<i->second.outsock<<"): "<<strerror(errno)<<endl;
-        
+
         i->second.created=0;
       }
     }
