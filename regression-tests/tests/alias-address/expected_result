@@ -4,3 +4,9 @@ Reply to question for qname='google-alias.example.com.', qtype=A
 0	google-alias.example.com.	IN	AAAA	[ttl]	2001:4860:4860::8888
 Rcode: 0 (No Error), RD: 0, QR: 1, TC: 0, AA: 1, opcode: 0
 Reply to question for qname='google-alias.example.com.', qtype=AAAA
+0	google-alias.example.com.	IN	A	[ttl]	8.8.8.8
+Rcode: 0 (No Error), RD: 0, QR: 1, TC: 0, AA: 1, opcode: 0
+Reply to question for qname='google-alias.example.com.', qtype=A
+0	google-alias.example.com.	IN	AAAA	[ttl]	2001:4860:4860::8888
+Rcode: 0 (No Error), RD: 0, QR: 1, TC: 0, AA: 1, opcode: 0
+Reply to question for qname='google-alias.example.com.', qtype=AAAA
