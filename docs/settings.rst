@@ -1377,7 +1377,7 @@ and :doc:`Virtual Hosting <guides/virtual-instances>` how this can differ.
 
 .. versionadded:: 4.2.0
 
-Turn on supermaster support. See :ref:`supemaster-operation`.
+Turn on supermaster support. See :ref:`supermaster-operation`.
 
 .. _setting-tcp-control-address:
 
