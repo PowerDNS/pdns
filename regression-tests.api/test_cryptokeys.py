@@ -71,8 +71,7 @@ class Cryptokeys(ApiTestCase):
         self.remove_zone_key(self.keyid)
         #checks for key is gone. Its ok even if no key had to be deleted. Or something went wrong with the backend.
         r = self.session.delete(self.url("/api/v1/servers/localhost/zones/"+self.zone+"/cryptokeys/"+self.keyid))
-        self.assertEquals(r.status_code, 200)
-        self.assertEquals(r.content, b"")
+        self.assertEquals(r.status_code, 404)
 
     # Prepares the json object for Post and sends it to the server
     def add_key(self, content='', type='ksk', active='true', algo='', bits=None):

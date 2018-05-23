@@ -906,6 +906,21 @@ static void apiZoneMetadataKind(HttpRequest* req, HttpResponse* resp) {
     throw HttpMethodNotAllowedException();
 }
 
+// Throws 404 if the key with inquireKeyId does not exist
+static void apiZoneCryptoKeysCheckKeyExists(DNSName zonename, int inquireKeyId, DNSSECKeeper *dk) {
+  DNSSECKeeper::keyset_t keyset=dk->getKeys(zonename, false);
+  bool found = false;
+  for(const auto& value : keyset) {
+    if (value.second.id == (unsigned) inquireKeyId) {
+      found = true;
+      break;
+    }
+  }
+  if (!found) {
+    throw HttpNotFoundException();
+  }
+}
+
 static void apiZoneCryptokeysGET(DNSName zonename, int inquireKeyId, HttpResponse *resp, DNSSECKeeper *dk) {
   DNSSECKeeper::keyset_t keyset=dk->getKeys(zonename, false);
 
@@ -972,18 +987,6 @@ static void apiZoneCryptokeysGET(DNSName zonename, int inquireKeyId, HttpRespons
  *      The server returns 404 Not Found
  * */
 static void apiZoneCryptokeysDELETE(DNSName zonename, int inquireKeyId, HttpRequest *req, HttpResponse *resp, DNSSECKeeper *dk) {
-  DNSSECKeeper::keyset_t keyset=dk->getKeys(zonename, false);
-  bool found = false;
-  for(const auto& value : keyset) {
-    if (value.second.id == (unsigned) inquireKeyId) {
-      found = true;
-      break;
-    }
-  }
-  if (!found) {
-    throw HttpNotFoundException();
-  }
-
   if (dk->removeKey(zonename, inquireKeyId)) {
     resp->body = "";
     resp->status = 204;
@@ -1167,6 +1170,7 @@ static void apiZoneCryptokeys(HttpRequest *req, HttpResponse *resp) {
   int inquireKeyId = -1;
   if (req->parameters.count("key_id")) {
     inquireKeyId = std::stoi(req->parameters["key_id"]);
+    apiZoneCryptoKeysCheckKeyExists(zonename, inquireKeyId, &dk);
   }
 
   if (req->method == "GET") {
