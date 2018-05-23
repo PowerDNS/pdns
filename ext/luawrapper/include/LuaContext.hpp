@@ -2366,9 +2366,15 @@ private:
             lua_pushstring(state, ex.luaType.c_str());
             lua_pushstring(state, " to ");
             lua_pushstring(state, ex.destination.name());
-            lua_concat(state, 4);
+            lua_concat(state, 5);
             luaError(state);
 
+        } catch (const std::exception& e) {
+          luaL_where(state, 1);
+          lua_pushstring(state, "Caught exception: ");
+          lua_pushstring(state, e.what());
+          lua_concat(state, 3);
+          luaError(state);
         } catch (...) {
             Pusher<std::exception_ptr>::push(state, std::current_exception()).release();
             luaError(state);
