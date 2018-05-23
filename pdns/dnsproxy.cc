@@ -100,13 +100,22 @@ bool DNSProxy::completePacket(DNSPacket *r, const DNSName& target,const DNSName&
       ret2 = stubDoResolve(target, QType::AAAA, ips);
 
     if(ret1 != RCode::NoError || ret2 != RCode::NoError) {
-      g_log<<Logger::Error<<"Error resolving for ALIAS "<<target<<", returning SERVFAIL"<<endl;
-    }
-
-    for (auto &ip : ips)
-    {
-      ip.dr.d_name = aname;
-      r->addRecord(ip);
+      g_log<<Logger::Error<<"Error resolving for "<<aname<<" ALIAS "<<target;
+      if (ret1 != RCode::NoError) {
+       g_log<<Logger::Error<<", A-record query returned "<<RCode::to_s(ret1);
+      }
+      if (ret2 != RCode::NoError) {
+       g_log<<Logger::Error<<", AAAA-record query returned "<<RCode::to_s(ret2);
+      }
+      g_log<<Logger::Error<<", returning SERVFAIL"<<endl;
+      r->clearRecords();
+      r->setRcode(RCode::ServFail);
+    } else {
+      for (auto &ip : ips)
+      {
+        ip.dr.d_name = aname;
+        r->addRecord(ip);
+      }
     }
 
     uint16_t len=htons(r->getString().length());
