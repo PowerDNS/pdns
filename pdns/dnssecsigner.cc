@@ -38,6 +38,7 @@ typedef map<pair<string, string>, string> signaturecache_t;
 static signaturecache_t g_signatures;
 static int g_cacheweekno;
 
+const static std::set<uint16_t> g_KSKSignedQTypes {QType::DNSKEY, QType::CDS, QType::CDNSKEY};
 AtomicCounter* g_signatureCount;
 
 static void fillOutRRSIG(DNSSECPrivateKey& dpk, const DNSName& signQName, RRSIGRecordContent& rrc, vector<shared_ptr<DNSRecordContent> >& toSign)
@@ -106,8 +107,11 @@ static int getRRSIGsForRRSET(DNSSECKeeper& dk, const DNSName& signer, const DNSN
     if(!keymeta.second.active)
       continue;
 
+    bool signWithKSK = g_KSKSignedQTypes.count(signQType) != 0;
+    // Do not sign DNSKEY RRsets with the ZSK
     if((signQType == QType::DNSKEY && keymeta.second.keyType == DNSSECKeeper::ZSK) ||
-       (signQType != QType::DNSKEY && keymeta.second.keyType == DNSSECKeeper::KSK)) {
+       // Do not sign any other RRset than DNSKEY, CDS and CDNSKEY with a KSK
+       (!signWithKSK && keymeta.second.keyType == DNSSECKeeper::KSK)) {
       continue;
     }
 
