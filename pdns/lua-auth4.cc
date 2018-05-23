@@ -236,10 +236,17 @@ bool AuthLua4::axfrfilter(const ComboAddress& remote, const DNSName& zone, const
 
   ret = d_axfr_filter(remote, zone, in);
   rcode = std::get<0>(ret);
-  if (rcode < 0)
+  if (rcode < 0) {
+    // no modification, handle normally
     return false;
-  else if (rcode == 1)
+  }
+  else if (rcode == 0) {
+    // replace the matching record by the filtered record(s)
+  }
+  else if (rcode == 1) {
+    // append the filtered record(s) after the matching record
     out.push_back(in);
+  }
   else
     throw PDNSException("Cannot understand return code "+std::to_string(rcode)+" in axfr filter response");
 
