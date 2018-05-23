@@ -35,7 +35,7 @@ LuaConfigItems::LuaConfigItems()
 {
   DNSName root("."); // don't use g_rootdnsname here, it might not exist yet
   for (const auto &dsRecord : rootDSs) {
-    auto ds=unique_ptr<DSRecordContent>(dynamic_cast<DSRecordContent*>(DSRecordContent::make(dsRecord)));
+    auto ds=std::dynamic_pointer_cast<DSRecordContent>(DSRecordContent::make(dsRecord));
     dsAnchors[root].insert(*ds);
   }
 }
@@ -249,7 +249,7 @@ void loadRecursorLuaConfig(const std::string& fname, luaConfigDelayedThreads& de
   Lua.writeFunction("addDS", [&lci](const std::string& who, const std::string& what) {
       warnIfDNSSECDisabled("Warning: adding Trust Anchor for DNSSEC (addDS), but dnssec is set to 'off'!");
       DNSName zone(who);
-      auto ds = unique_ptr<DSRecordContent>(dynamic_cast<DSRecordContent*>(DSRecordContent::make(what)));
+      auto ds=std::dynamic_pointer_cast<DSRecordContent>(DSRecordContent::make(what));
       lci.dsAnchors[zone].insert(*ds);
   });
 

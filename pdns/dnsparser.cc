@@ -131,7 +131,7 @@ std::shared_ptr<DNSRecordContent> DNSRecordContent::mastermake(const DNSRecord &
     return std::make_shared<UnknownRecordContent>(dr, pr);
   }
 
-  return std::shared_ptr<DNSRecordContent>(i->second(dr, pr));
+  return i->second(dr, pr);
 }
 
 std::shared_ptr<DNSRecordContent> DNSRecordContent::mastermake(uint16_t qtype, uint16_t qclass,
@@ -142,20 +142,8 @@ std::shared_ptr<DNSRecordContent> DNSRecordContent::mastermake(uint16_t qtype, u
     return std::make_shared<UnknownRecordContent>(content);
   }
 
-  return std::shared_ptr<DNSRecordContent>(i->second(content));
+  return i->second(content);
 }
-
-std::unique_ptr<DNSRecordContent> DNSRecordContent::makeunique(uint16_t qtype, uint16_t qclass,
-                                               const string& content)
-{
-  zmakermap_t::const_iterator i=getZmakermap().find(make_pair(qclass, qtype));
-  if(i==getZmakermap().end()) {
-    return std::unique_ptr<DNSRecordContent>(new UnknownRecordContent(content));
-  }
-
-  return std::unique_ptr<DNSRecordContent>(i->second(content));
-}
-
 
 std::shared_ptr<DNSRecordContent> DNSRecordContent::mastermake(const DNSRecord &dr, PacketReader& pr, uint16_t oc) {
   // For opcode UPDATE and where the DNSRecord is an answer record, we don't care about content, because this is
@@ -171,7 +159,7 @@ std::shared_ptr<DNSRecordContent> DNSRecordContent::mastermake(const DNSRecord &
     return std::make_shared<UnknownRecordContent>(dr, pr);
   }
 
-  return std::shared_ptr<DNSRecordContent>(i->second(dr, pr));
+  return i->second(dr, pr);
 }
 
 
