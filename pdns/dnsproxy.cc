@@ -105,7 +105,7 @@ bool DNSProxy::completePacket(DNSPacket *r, const DNSName& target,const DNSName&
 
     for (auto &ip : ips)
     {
-      ip.dr.d_name = target;
+      ip.dr.d_name = aname;
       r->addRecord(ip);
     }
 
