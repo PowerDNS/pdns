@@ -405,19 +405,19 @@ void EUI48RecordContent::report(void)
 {
   regist(1, QType::EUI48, &make, &make, "EUI48");
 }
-DNSRecordContent* EUI48RecordContent::make(const DNSRecord &dr, PacketReader& pr)
+std::shared_ptr<DNSRecordContent> EUI48RecordContent::make(const DNSRecord &dr, PacketReader& pr)
 {
     if(dr.d_clen!=6)
       throw MOADNSException("Wrong size for EUI48 record");
 
-    EUI48RecordContent* ret=new EUI48RecordContent();
+    auto ret=std::make_shared<EUI48RecordContent>();
     pr.copyRecord((uint8_t*) &ret->d_eui48, 6);
     return ret;
 }
-DNSRecordContent* EUI48RecordContent::make(const string& zone)
+std::shared_ptr<DNSRecordContent> EUI48RecordContent::make(const string& zone)
 {
     // try to parse
-    EUI48RecordContent *ret=new EUI48RecordContent();
+    auto ret=std::make_shared<EUI48RecordContent>();
     // format is 6 hex bytes and dashes    
     if (sscanf(zone.c_str(), "%2hhx-%2hhx-%2hhx-%2hhx-%2hhx-%2hhx", 
            ret->d_eui48, ret->d_eui48+1, ret->d_eui48+2, 
@@ -448,19 +448,19 @@ void EUI64RecordContent::report(void)
 {
   regist(1, QType::EUI64, &make, &make, "EUI64");
 }
-DNSRecordContent* EUI64RecordContent::make(const DNSRecord &dr, PacketReader& pr)
+std::shared_ptr<DNSRecordContent> EUI64RecordContent::make(const DNSRecord &dr, PacketReader& pr)
 {
     if(dr.d_clen!=8)
       throw MOADNSException("Wrong size for EUI64 record");
 
-    EUI64RecordContent* ret=new EUI64RecordContent();
+    auto ret=std::make_shared<EUI64RecordContent>();
     pr.copyRecord((uint8_t*) &ret->d_eui64, 8);
     return ret;
 }
-DNSRecordContent* EUI64RecordContent::make(const string& zone)
+std::shared_ptr<DNSRecordContent> EUI64RecordContent::make(const string& zone)
 {
     // try to parse
-    EUI64RecordContent *ret=new EUI64RecordContent();
+    auto ret=std::make_shared<EUI64RecordContent>();
     // format is 8 hex bytes and dashes
     if (sscanf(zone.c_str(), "%2hhx-%2hhx-%2hhx-%2hhx-%2hhx-%2hhx-%2hhx-%2hhx", 
            ret->d_eui64, ret->d_eui64+1, ret->d_eui64+2,

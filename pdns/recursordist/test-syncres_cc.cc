@@ -92,7 +92,7 @@ void primeHints(void)
 LuaConfigItems::LuaConfigItems()
 {
   for (const auto &dsRecord : rootDSs) {
-    auto ds=unique_ptr<DSRecordContent>(dynamic_cast<DSRecordContent*>(DSRecordContent::make(dsRecord)));
+    auto ds=std::dynamic_pointer_cast<DSRecordContent>(DSRecordContent::make(dsRecord));
     dsAnchors[g_rootdnsname].insert(*ds);
   }
 }
@@ -154,7 +154,7 @@ static void init(bool debug=false)
   luaconfsCopy.dfe.clear();
   luaconfsCopy.dsAnchors.clear();
   for (const auto &dsRecord : rootDSs) {
-    auto ds=unique_ptr<DSRecordContent>(dynamic_cast<DSRecordContent*>(DSRecordContent::make(dsRecord)));
+    auto ds=std::dynamic_pointer_cast<DSRecordContent>(DSRecordContent::make(dsRecord));
     luaconfsCopy.dsAnchors[g_rootdnsname].insert(*ds);
   }
   luaconfsCopy.negAnchors.clear();
