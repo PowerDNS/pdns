@@ -43,7 +43,7 @@ class Cryptokeys(ApiTestCase):
 
         #checks the status code. I don't know how to test explicit that the backend fail removing a key.
         r = self.session.delete(self.url("/api/v1/servers/localhost/zones/"+self.zone+"/cryptokeys/"+self.keyid))
-        self.assertEquals(r.status_code, 200)
+        self.assertEquals(r.status_code, 204)
         self.assertEquals(r.content, b"")
 
         # Check that the key is actually deleted
@@ -53,6 +53,11 @@ class Cryptokeys(ApiTestCase):
     def test_get_wrong_zone(self):
         self.keyid = self.add_zone_key()
         r = self.session.get(self.url("/api/v1/servers/localhost/zones/"+self.zone+"fail/cryptokeys/"+self.keyid))
+        self.assertEquals(r.status_code, 404)
+
+    def test_delete_wrong_id(self):
+        self.keyid = self.add_zone_key()
+        r = self.session.delete(self.url("/api/v1/servers/localhost/zones/"+self.zone+"/cryptokeys/1234567"))
         self.assertEquals(r.status_code, 404)
 
     def test_delete_wrong_zone(self):

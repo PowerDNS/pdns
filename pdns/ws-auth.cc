@@ -965,14 +965,28 @@ static void apiZoneCryptokeysGET(DNSName zonename, int inquireKeyId, HttpRespons
  * It deletes a key from :zone_name specified by :cryptokey_id.
  * Server Answers:
  * Case 1: the backend returns true on removal. This means the key is gone.
- *      The server returns 200 OK, no body.
+ *      The server returns 204 No Content, no body.
  * Case 2: the backend returns false on removal. An error occurred.
- *      The sever returns 422 Unprocessable Entity with message "Could not DELETE :cryptokey_id".
+ *      The server returns 422 Unprocessable Entity with message "Could not DELETE :cryptokey_id".
+ * Case 3: the key or zone does not exist.
+ *      The server returns 404 Not Found
  * */
 static void apiZoneCryptokeysDELETE(DNSName zonename, int inquireKeyId, HttpRequest *req, HttpResponse *resp, DNSSECKeeper *dk) {
+  DNSSECKeeper::keyset_t keyset=dk->getKeys(zonename, false);
+  bool found = false;
+  for(const auto& value : keyset) {
+    if (value.second.id == (unsigned) inquireKeyId) {
+      found = true;
+      break;
+    }
+  }
+  if (!found) {
+    throw HttpNotFoundException();
+  }
+
   if (dk->removeKey(zonename, inquireKeyId)) {
     resp->body = "";
-    resp->status = 200;
+    resp->status = 204;
   } else {
     resp->setErrorResult("Could not DELETE " + req->parameters["key_id"], 422);
   }
