@@ -172,37 +172,43 @@ exit 0
 
 
 %post
-%if 0%{?el6}
+%if 0%{?rhel} < 7
 if [ -x /sbin/initctl ]; then
    /sbin/initctl reload-configuration
 fi
-%elif 0%{?suse_version}
+%else
+%if 0%{?suse_version}
 %service_add_post %{name}.service
 %else
 %systemd_post %{name}.service
 %endif
+%endif
 
 %preun
-%if 0%{?el6}
+%if 0%{?rhel} < 7
 if [ \$1 -eq 0 ] ; then
     # This is package removal, not upgrade
     /sbin/stop %{name} >/dev/null 2>&1 || :
 fi
-%elif 0%{?suse_version}
+%else
+%if 0%{?suse_version}
 %service_del_preun %{name}.service
 %else
 %systemd_preun %{name}.service
 %endif
+%endif
 
 %postun
-%if 0%{?el6}
+%if 0%{?rhel} < 7
 if [ -x /sbin/initctl ] && /sbin/initctl status %{name} 2>/dev/null | grep -q 'running' ; then
   /sbin/initctl stop %{name} > /dev/null 2>&1 || :
 fi
-%elif 0%{?suse_version}
+%else
+%if 0%{?suse_version}
 %service_del_postun %{name}.service
 %else
 %systemd_postun_with_restart %{name}.service
+%endif
 %endif
 
 %files
