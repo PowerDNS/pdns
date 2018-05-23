@@ -83,7 +83,7 @@ void DNSProxy::go()
   pthread_create(&tid,0,&launchhelper,this);
 }
 
-//! look up qname aname with r->qtype, plonk it in the answer section of 'r' with name target
+//! look up qname target with r->qtype, plonk it in the answer section of 'r' with name aname
 bool DNSProxy::completePacket(DNSPacket *r, const DNSName& target,const DNSName& aname)
 {
   if(r->d_tcp) {
