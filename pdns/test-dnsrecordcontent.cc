@@ -21,12 +21,12 @@ BOOST_AUTO_TEST_CASE(test_equality) {
   BOOST_CHECK(aaaa == aaaa1);
 
 
-  auto rec1=DNSRecordContent::makeunique(QType::A, 1, "192.168.0.1");
-  auto rec2=DNSRecordContent::makeunique(QType::A, 1, "192.168.222.222");
-  auto rec3=DNSRecordContent::makeunique(QType::AAAA, 1, "::1");
-  auto recMX=DNSRecordContent::makeunique(QType::MX, 1, "25 smtp.powerdns.com");
-  auto recMX2=DNSRecordContent::makeunique(QType::MX, 1, "26 smtp.powerdns.com");
-  auto recMX3=DNSRecordContent::makeunique(QType::MX, 1, "26 SMTP.powerdns.com");
+  auto rec1=DNSRecordContent::mastermake(QType::A, 1, "192.168.0.1");
+  auto rec2=DNSRecordContent::mastermake(QType::A, 1, "192.168.222.222");
+  auto rec3=DNSRecordContent::mastermake(QType::AAAA, 1, "::1");
+  auto recMX=DNSRecordContent::mastermake(QType::MX, 1, "25 smtp.powerdns.com");
+  auto recMX2=DNSRecordContent::mastermake(QType::MX, 1, "26 smtp.powerdns.com");
+  auto recMX3=DNSRecordContent::mastermake(QType::MX, 1, "26 SMTP.powerdns.com");
   BOOST_CHECK(!(*rec1==*rec2));
   BOOST_CHECK(*rec1==*rec1);
   BOOST_CHECK(*rec3==*rec3);
