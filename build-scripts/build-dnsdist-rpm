@@ -158,10 +158,12 @@ exit 0
 %post
 %if 0%{?el6}
 /sbin/chkconfig --add %{name}
-%elif 0%{?suse_version}
+%else
+%if 0%{?suse_version}
 %service_add_post %{name}.service
 %else
 %systemd_post %{name}.service
+%endif
 %endif
 
 %preun
@@ -171,10 +173,12 @@ if [ "\$1" -eq "0" ]; then
   /sbin/service %{name} stop > /dev/null 2>&1 || :
   /sbin/chkconfig --del %{name}
 fi
-%elif 0%{?suse_version}
+%else
+%if 0%{?suse_version}
 %service_del_preun %{name}.service
 %else
 %systemd_preun %{name}.service
+%endif
 %endif
 
 %postun
@@ -182,10 +186,12 @@ fi
 if [ "\$1" -ge "1" ] ; then
   /sbin/service %{name} condrestart >/dev/null 2>&1 || :
 fi
-%elif 0%{?suse_version}
+%else
+%if 0%{?suse_version}
 %service_del_postun %{name}.service
 %else
 %systemd_postun_with_restart %{name}.service
+%endif
 %endif
 
 %files
