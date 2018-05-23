@@ -29,6 +29,7 @@ BuildRequires: systemd-devel
 BuildRequires: protobuf-devel
 BuildRequires: protobuf-compiler
 BuildRequires: p11-kit-devel
+BuildRequires: libcurl-devel
 %endif
 
 Requires(pre): shadow-utils
@@ -53,13 +54,6 @@ Group: System Environment/Daemons
 
 %description tools
 This package contains the extra tools for %{name}
-
-%package ixfrdist
-Summary: A progrm to redistribute zones over AXFR and IXFR
-Group: System Environment/Daemons
-
-%description ixfrdist
-This package contains the ixfrdist program.
 
 %package backend-mysql
 Summary: MySQL backend for %{name}
@@ -179,6 +173,14 @@ BuildRequires: tinycdb-devel
 
 %description backend-tinydns
 This package contains the TinyDNS backend for %{name}
+
+%package ixfrdist
+BuildRequires: yaml-cpp-devel
+Summary: A progrm to redistribute zones over AXFR and IXFR
+Group: System Environment/Daemons
+
+%description ixfrdist
+This package contains the ixfrdist program.
 %endif
 
 %prep
@@ -197,18 +199,20 @@ export CPPFLAGS="-DLDAP_DEPRECATED"
   --disable-dependency-tracking \
   --disable-silent-rules \
   --with-modules='' \
-  --with-luajit \
+  --with-lua=luajit \
   --with-dynmodules='%{backends} random' \
   --enable-tools \
   --enable-libsodium \
   --enable-unit-tests \
 %if 0%{?rhel} >= 7
+  --enable-lua-records \
   --enable-experimental-pkcs11 \
-  --enable-systemd
+  --enable-systemd \
+  --enable-ixfrdist
 %else
+  --disable-lua-records \
   --without-protobuf
 %endif
-
 
 make %{?_smp_mflags}
 
@@ -291,7 +295,6 @@ fi
 %{_mandir}/man1/pdnsutil.1.gz
 %dir %{_libdir}/%{name}/
 %{_libdir}/%{name}/librandombackend.so
-%dir %{_sysconfdir}/%{name}/
 %config(noreplace) %{_sysconfdir}/%{name}/pdns.conf
 
 %if 0%{?rhel} >= 7
@@ -335,17 +338,12 @@ fi
 %if 0%{?rhel} >= 7
 %{_bindir}/dnsbulktest
 %{_bindir}/dnspcap2protobuf
+%{_bindir}/dnspcap2calidns
 %{_bindir}/dnstcpbench
 %{_mandir}/man1/dnsbulktest.1.gz
 %{_mandir}/man1/dnspcap2protobuf.1.gz
+%{_mandir}/man1/dnspcap2calidns.1.gz
 %{_mandir}/man1/dnstcpbench.1.gz
-%endif
-
-%files ixfrdist
-%{_bindir}/ixfrdist
-%{_mandir}/man1/ixfrdist.1.gz
-%if 0%{?rhel} >= 7
-%{_unitdir}/ixfrdist.service
 %endif
 
 %files backend-mysql
@@ -398,4 +396,12 @@ fi
 
 %files backend-tinydns
 %{_libdir}/%{name}/libtinydnsbackend.so
+
+%files ixfrdist
+%{_bindir}/ixfrdist
+%{_mandir}/man1/ixfrdist.1.gz
+%{_mandir}/man5/ixfrdist.yml.5.gz
+%{_sysconfdir}/%{name}/ixfrdist.example.yml
+%{_unitdir}/ixfrdist.service
+%{_unitdir}/ixfrdist@.service
 %endif

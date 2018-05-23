@@ -33,6 +33,8 @@ override_dh_auto_configure:
 		--with-protobuf \
 		--enable-unit-tests \
 		--enable-experimental-pkcs11 \
+		--enable-lua-records \
+		--enable-ixfrdist \
 		$(CONFIGURE_ARGS)
 
 override_dh_strip:
