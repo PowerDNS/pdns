@@ -9,9 +9,9 @@ Changelogs for 4.1.x
 
   .. change::
     :tags: Improvements, API
-    :pullreq: 6572
+    :pullreq: 6572, 6571
 
-    API: increase serial after dnssec related updates
+    API: increase serial after dnssec related updates (Kees Monshouwer)
 
   .. change::
     :tags: Tools
