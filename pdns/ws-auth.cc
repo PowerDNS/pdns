@@ -1653,6 +1653,8 @@ static void patchZone(HttpRequest* req, HttpResponse* resp) {
     di.backend->getDomainMetadataOne(zonename, "SOA-EDIT", soa_edit_kind);
     bool soa_edit_done = false;
 
+    set<pair<DNSName, QType>> seen;
+
     for (const auto& rrset : rrsets.array_items()) {
       string changetype = toUpper(stringFromJson(rrset, "changetype"));
       DNSName qname = apiNameToDNSName(stringFromJson(rrset, "name"));
@@ -1662,6 +1664,12 @@ static void patchZone(HttpRequest* req, HttpResponse* resp) {
       if (qtype.getCode() == 0) {
         throw ApiException("RRset "+qname.toString()+" IN "+stringFromJson(rrset, "type")+": unknown type given");
       }
+
+      if(seen.count({qname, qtype}))
+      {
+        throw ApiException("Duplicate RRset "+qname.toString()+" IN "+qtype.getName());
+      }
+      seen.insert({qname, qtype});
 
       if (changetype == "DELETE") {
         // delete all matching qname/qtype RRs (and, implicitly comments).

@@ -1022,6 +1022,40 @@ fred   IN  A      192.168.0.4
         self.assertEquals(r.status_code, 422)
         self.assertIn('Duplicate record in RRset', r.json()['error'])
 
+    def test_zone_rr_update_duplicate_rrset(self):
+        name, payload, zone = self.create_zone()
+        rrset1 = {
+            'changetype': 'replace',
+            'name': name,
+            'type': 'NS',
+            'ttl': 3600,
+            'records': [
+                {
+                    "content": "ns9999.example.com.",
+                    "disabled": False
+                }
+            ]
+        }
+        rrset2 = {
+            'changetype': 'replace',
+            'name': name,
+            'type': 'NS',
+            'ttl': 3600,
+            'records': [
+                {
+                    "content": "ns9998.example.com.",
+                    "disabled": False
+                }
+            ]
+        }
+        payload = {'rrsets': [rrset1, rrset2]}
+        r = self.session.patch(
+            self.url("/api/v1/servers/localhost/zones/" + name),
+            data=json.dumps(payload),
+            headers={'content-type': 'application/json'})
+        self.assertEquals(r.status_code, 422)
+        self.assertIn('Duplicate RRset', r.json()['error'])
+
     def test_zone_rr_delete(self):
         name, payload, zone = self.create_zone()
         # do a delete of all NS records (these are created with the zone)
