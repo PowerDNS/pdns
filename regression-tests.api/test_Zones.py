@@ -1526,6 +1526,41 @@ fred   IN  A      192.168.0.4
         # should return zone, SOA, ns1, ns2, sub.sub A (but not the ENT)
         self.assertEquals(len(r.json()), 5)
 
+    def test_cname_at_ent_place(self):
+        name, payload, zone = self.create_zone(api_rectify=True)
+        rrset = {
+            'changetype': 'replace',
+            'name': 'sub2.sub1.' + name,
+            'type': "A",
+            'ttl': 3600,
+            'records': [{
+                'content': "4.3.2.1",
+                'disabled': False,
+            }],
+        }
+        payload = {'rrsets': [rrset]}
+        r = self.session.patch(
+            self.url("/api/v1/servers/localhost/zones/" + zone['id']),
+            data=json.dumps(payload),
+            headers={'content-type': 'application/json'})
+        self.assertEquals(r.status_code, 204)
+        rrset = {
+            'changetype': 'replace',
+            'name': 'sub1.' + name,
+            'type': "CNAME",
+            'ttl': 3600,
+            'records': [{
+                'content': "www.example.org.",
+                'disabled': False,
+            }],
+        }
+        payload = {'rrsets': [rrset]}
+        r = self.session.patch(
+            self.url("/api/v1/servers/localhost/zones/" + zone['id']),
+            data=json.dumps(payload),
+            headers={'content-type': 'application/json'})
+        self.assertEquals(r.status_code, 204)
+
     def test_rrset_parameter_post_false(self):
         name = unique_zone_name()
         payload = {
