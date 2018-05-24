@@ -768,6 +768,21 @@ Maximum number of DNS queries in a TCP connection.
 
 Total maximum number of milliseconds of wallclock time the server may use to answer a single query.
 
+.. _setting-max-udp-queries-per-round:
+
+``max-udp-queries-per-round``
+----------------------------------
+.. versionadded:: 4.2.0
+
+-  Integer
+-  Default: 10000
+
+Under heavy load the recursor might be busy processing incoming UDP queries for a long while before there is no more of these, and might therefore
+neglect scheduling new ``mthreads``, handling responses from authoritative servers or responding to :doc:`rec_control <manpages/rec_control.1>`
+requests.
+This setting caps the maximum number of incoming UDP DNS queries processed in a single round of looping on ``recvmsg()`` after being woken up by the multiplexer, before
+returning back to normal processing and handling other events.
+
 .. _setting-minimum-ttl-override:
 
 ``minimum-ttl-override``
