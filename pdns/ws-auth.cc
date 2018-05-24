@@ -457,6 +457,12 @@ void productServerStatisticsFetch(map<string,string>& out)
   out["uptime"] = std::to_string(time(0) - s_starttime);
 }
 
+static void validateGatheredRRType(const DNSResourceRecord& rr) {
+  if (rr.qtype.getCode() == QType::OPT || rr.qtype.getCode() == QType::TSIG) {
+    throw ApiException("RRset "+rr.qname.toString()+" IN "+rr.qtype.getName()+": invalid type given");
+  }
+}
+
 static void gatherRecords(const Json container, const DNSName& qname, const QType qtype, const int ttl, vector<DNSResourceRecord>& new_records, vector<DNSResourceRecord>& new_ptrs) {
   UeberBackend B;
   DNSResourceRecord rr;
@@ -464,6 +470,8 @@ static void gatherRecords(const Json container, const DNSName& qname, const QTyp
   rr.qtype = qtype;
   rr.auth = 1;
   rr.ttl = ttl;
+
+  validateGatheredRRType(rr);
   for(auto record : container["records"].array_items()) {
     string content = stringFromJson(record, "content");
     rr.disabled = boolFromJson(record, "disabled");
@@ -1181,6 +1189,7 @@ static void gatherRecordsFromZone(const std::string& zonestring, vector<DNSResou
         continue;
       if(rr.qtype.getCode() == QType::SOA)
         seenSOA=true;
+      validateGatheredRRType(rr);
 
       new_records.push_back(rr);
     }
