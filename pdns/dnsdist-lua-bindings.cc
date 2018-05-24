@@ -44,6 +44,21 @@ void setupLuaBindings(bool client)
       g_outputBuffer+="\n";
     });
 
+  /* Exceptions */
+  g_lua.registerFunction<string(std::exception_ptr::*)()>("__tostring", [](const std::exception_ptr& eptr) {
+      try {
+        if (eptr) {
+          std::rethrow_exception(eptr);
+        }
+      } catch(const std::exception& e) {
+        return string(e.what());
+      } catch(const PDNSException& e) {
+        return e.reason;
+      } catch(...) {
+        return string("Unknown exception");
+      }
+      return string("No exception");
+    });
   /* ServerPolicy */
   g_lua.writeFunction("newServerPolicy", [](string name, policyfunc_t policy) { return ServerPolicy{name, policy, true};});
   g_lua.registerMember("name", &ServerPolicy::name);
