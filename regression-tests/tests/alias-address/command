@@ -1,3 +1,5 @@
 #!/bin/sh
 cleandig google-alias.example.com A hidettl
 cleandig google-alias.example.com AAAA hidettl
+cleandig google-alias.example.com A hidettl tcp
+cleandig google-alias.example.com AAAA hidettl tcp
