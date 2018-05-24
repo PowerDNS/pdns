@@ -349,7 +349,7 @@ local hnfmt = "host-%d.%s"
 local ipfmt = "192.168.1.%d"
 for n = 2, 19999, 1 do
     domains[origin].records[hnfmt:format(n, origin)] = {
-        {qtype = "A", ttl = ttl, content = ipfmt:format( n % 256)}
+        {qtype = "A", ttl = ttl, content = ipfmt:format( n % 256)},
     }
 end
 --]=]
