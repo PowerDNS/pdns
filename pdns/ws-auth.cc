@@ -1478,6 +1478,7 @@ static void apiServerZoneExport(HttpRequest* req, HttpResponse* resp) {
     ss <<
       rr.qname.toString() << "\t" <<
       rr.ttl << "\t" <<
+      "IN" << "\t" <<
       rr.qtype.getName() << "\t" <<
       makeApiRecordContent(rr.qtype, rr.content) <<
       endl;

@@ -828,9 +828,9 @@ fred   IN  A      192.168.0.4
         self.assert_success_json(r)
         data = r.json()
         self.assertIn('zone', data)
-        expected_data = [name + '\t3600\tNS\tns1.foo.com.',
-                         name + '\t3600\tNS\tns2.foo.com.',
-                         name + '\t3600\tSOA\ta.misconfigured.powerdns.server. hostmaster.' + name +
+        expected_data = [name + '\t3600\tIN\tNS\tns1.foo.com.',
+                         name + '\t3600\tIN\tNS\tns2.foo.com.',
+                         name + '\t3600\tIN\tSOA\ta.misconfigured.powerdns.server. hostmaster.' + name +
                          ' 0 10800 3600 604800 3600']
         self.assertEquals(data['zone'].strip().split('\n'), expected_data)
 
@@ -842,9 +842,9 @@ fred   IN  A      192.168.0.4
             headers={'accept': '*/*'}
         )
         data = r.text.strip().split("\n")
-        expected_data = [name + '\t3600\tNS\tns1.foo.com.',
-                         name + '\t3600\tNS\tns2.foo.com.',
-                         name + '\t3600\tSOA\ta.misconfigured.powerdns.server. hostmaster.' + name +
+        expected_data = [name + '\t3600\tIN\tNS\tns1.foo.com.',
+                         name + '\t3600\tIN\tNS\tns2.foo.com.',
+                         name + '\t3600\tIN\tSOA\ta.misconfigured.powerdns.server. hostmaster.' + name +
                          ' 0 10800 3600 604800 3600']
         self.assertEquals(data, expected_data)
 
