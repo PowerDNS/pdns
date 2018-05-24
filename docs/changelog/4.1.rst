@@ -2,6 +2,61 @@ Changelogs for 4.1.x
 ====================
 
 .. changelog::
+  :version: 4.1.3
+  :released: 24th of May 2018
+
+  This release contains several small fixes to the GeoIP backend.
+  The most prominent fix being one where the backend would be slow when thousands of network masks were configured for services.
+
+  .. change::
+    :tags: API, Bug Fixes
+    :pullreq: 6614
+    :tickets: 6441
+
+    Restrict creation of OPT and TSIG RRsets
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 6559
+    :tickets: 6239
+
+    pdnsutil: use new domain in b2bmigrate (Aki Tuomi)
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 6545, 6312
+
+    Lower 'packet too short' loglevel
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 6370
+    :tickets: 6228
+
+    Fix handling of user-defined axfr filters return values
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 6130
+
+    Update copyright years to 2018 (Matt Nordhoff)
+
+  .. change::
+    :tags: Bug Fixes, Improvements
+    :pullreq: 6608, 6585
+    :tickets: 6585, 6584
+
+    Prevent the GeoIP backend from copying NetMaskTrees around, fixes slow-downs in certain configurations (Aki Tuomi)
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 6659
+    :tickets: 6654
+
+    Ensure alias answers over tcp have correct name
+
+
+.. changelog::
   :version: 4.1.2
   :released: 8th of May 2018
 
@@ -9,9 +64,9 @@ Changelogs for 4.1.x
 
   .. change::
     :tags: Improvements, API
-    :pullreq: 6572
+    :pullreq: 6572, 6571
 
-    API: increase serial after dnssec related updates
+    API: increase serial after dnssec related updates (Kees Monshouwer)
 
   .. change::
     :tags: Tools
