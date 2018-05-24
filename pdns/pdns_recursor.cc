@@ -2508,7 +2508,7 @@ void distributeAsyncFunction(const string& packet, const pipefunc_t& func)
     if (error == EAGAIN || error == EWOULDBLOCK) {
       g_stats.queryPipeFullDrops++;
     } else {
-      unixDie("write to thread pipe returned wrong size or error:" + error);
+      unixDie("write to thread pipe returned wrong size or error:" + std::to_string(error));
     }
   }
 }
