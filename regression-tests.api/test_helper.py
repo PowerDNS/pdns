@@ -1,3 +1,4 @@
+from __future__ import print_function
 from datetime import datetime
 import os
 import requests
@@ -105,6 +106,6 @@ def get_db_tsigkeys(keyname):
             FROM tsigkeys
             WHERE name = ?""", (keyname, )).fetchall()
         keys = [{'name': row[0], 'algorithm': row[1], 'secret': row[2]} for row in rows]
-        print "DB TSIG keys:", keys
+        print("DB TSIG keys:", keys)
         return keys
 

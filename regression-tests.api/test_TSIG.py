@@ -1,3 +1,4 @@
+from __future__ import print_function
 import json
 import time
 import unittest
@@ -15,7 +16,7 @@ class AuthTSIGHelperMixin(object):
         }
         if key is not None:
             payload.update({'key': key})
-        print "sending", payload
+        print("sending", payload)
         r = self.session.post(
             self.url("/api/v1/servers/localhost/tsigkeys"),
             data=json.dumps(payload),
@@ -23,7 +24,7 @@ class AuthTSIGHelperMixin(object):
         self.assert_success_json(r)
         self.assertEquals(r.status_code, 201)
         reply = r.json()
-        print "reply", reply
+        print("reply", reply)
         return name, payload, reply
 
 
@@ -137,7 +138,7 @@ class AuthTSIG(ApiTestCase, AuthTSIGHelperMixin):
     def test_put_broken_key(self):
         name, payload, data = self.create_tsig_key()
         payload = {
-            'key': 'f\u333oobar1======'
+            'key': 'f\u0333oobar1======'
         }
         r = self.session.put(self.url("/api/v1/servers/localhost/tsigkeys/" + data['id']),
                              data=json.dumps(payload))
@@ -169,7 +170,7 @@ class AuthTSIG(ApiTestCase, AuthTSIGHelperMixin):
     def test_post_broken_key_name(self):
         payload = {
             'name': unique_tsigkey_name(),
-            'key': 'f\u333oobar1======',
+            'key': 'f\u0333oobar1======',
             'algorithm': 'hmac-md5'
         }
         r = self.session.post(self.url("/api/v1/servers/localhost/tsigkeys"),
