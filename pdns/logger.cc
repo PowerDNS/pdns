@@ -36,6 +36,15 @@ thread_local Logger::PerThread Logger::t_perThread;
 
 static Logger::Config& getLoggerConfig()
 {
+  /* Since the Logger can be called very early, we need to make sure
+     that the relevant parts are initialized no matter what, which is tricky
+     because we can't easily control the initialization order, especially with
+     built-in backends.
+     t_perThread is thread_local, so it will be initialized when first accessed,
+     but we need to make sure that the rest of the config is too, and making
+     it a function-level static variable achieves that, because it will be
+     initialized the first time we enter this function at the very last.
+  */
   static Logger::Config config;
   return config;
 }
