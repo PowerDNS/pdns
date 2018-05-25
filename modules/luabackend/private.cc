@@ -163,6 +163,9 @@ bool LUABackend::dnsrr_from_table(lua_State *lua, DNSResourceRecord &rr) {
         lua_pop(lua, 1);
         if (getValueFromTable(lua, "qtype", qt_name))
             rr.qtype = qt_name;
+        else // fallback to old key for tests to pass
+            if (getValueFromTable(lua, "type", qt_name))
+                rr.qtype = qt_name;
     }
 
     getValueFromTable(lua, "qclass", rr.qclass);
