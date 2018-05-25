@@ -376,7 +376,7 @@ install_dnsdist() {
 build_auth() {
   run "autoreconf -vi"
   # Build without --enable-botan, no botan 2.x in Travis CI
-  run "CFLAGS='-O1 -Werror=vla' CXXFLAGS='-O1 -Werror=vla' ./configure \
+  run "./configure \
     --with-dynmodules='bind gmysql geoip gpgsql gsqlite3 ldap lua mydns opendbx pipe random remote tinydns godbc lua2' \
     --with-modules='' \
     --with-sqlite3 \
@@ -404,7 +404,7 @@ build_recursor() {
   run "rm -f pdns-recursor-*.tar.bz2"
   run "cd pdns-recursor-*"
   # Build without --enable-botan, no botan 2.x in Travis CI
-  run "CFLAGS='-O1 -Werror=vla' CXXFLAGS='-O1 -Werror=vla' CXX=${COMPILER} ./configure \
+  run "CXX=${COMPILER} ./configure \
     --prefix=$PDNS_RECURSOR_DIR \
     --enable-libsodium \
     --enable-unit-tests \
@@ -420,7 +420,7 @@ build_dnsdist(){
   run "cd pdns/dnsdistdist"
   run "tar xf dnsdist*.tar.bz2"
   run "cd dnsdist-*"
-  run "CFLAGS='-O1 -Werror=vla' CXXFLAGS='-O1 -Werror=vla' ./configure \
+  run "./configure \
     --enable-unit-tests \
     --enable-libsodium \
     --enable-dnscrypt \
@@ -609,6 +609,14 @@ run "wget http://ppa.launchpad.net/kalon33/gamesgiroll/ubuntu/pool/main/libs/lib
 run "wget http://ppa.launchpad.net/kalon33/gamesgiroll/ubuntu/pool/main/libs/libsodium/libsodium13_1.0.3-1~ppa14.04+1_amd64.deb"
 run "sudo dpkg -i libsodium-dev_1.0.3-1~ppa14.04+1_amd64.deb libsodium13_1.0.3-1~ppa14.04+1_amd64.deb"
 run "cd ${TRAVIS_BUILD_DIR}"
+
+compilerflags="-O1 -Werror=vla"
+if [ "$CC" = "clang" ]
+then
+  compilerflags="$compilerflags -Werror=string-plus-int"
+fi
+export CFLAGS=$compilerflags
+export CXXFLAGS=$compilerflags
 
 install_$PDNS_BUILD_PRODUCT
 
