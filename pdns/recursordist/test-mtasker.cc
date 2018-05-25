@@ -15,7 +15,7 @@ static int g_result;
 static void doSomething(void* p)
 {
   MTasker<>* mt = reinterpret_cast<MTasker<>*>(p);
-  int i=12, o;
+  int i=12, o=0;
   mt->waitEvent(i, &o);
   g_result = o;
   
