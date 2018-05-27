@@ -62,9 +62,12 @@ public:
     };
     if (d_db_type == GEOIP_COUNTRY_EDITION ||
         d_db_type == GEOIP_LARGE_COUNTRY_EDITION) {
-      ret = GeoIP_code3_by_id(GeoIP_id_by_addr_gl(d_gi.get(), ip.c_str(), &tmp_gl));
-      gl.netmask = tmp_gl.netmask;
-      return true;
+      int id;
+      if ((id = GeoIP_id_by_addr_gl(d_gi.get(), ip.c_str(), &tmp_gl)) > 0) {
+        ret = GeoIP_code3_by_id(id);
+        gl.netmask = tmp_gl.netmask;
+        return true;
+      }
     } else if (d_db_type == GEOIP_REGION_EDITION_REV0 ||
                d_db_type == GEOIP_REGION_EDITION_REV1) {
       GeoIPRegion* gir = GeoIP_region_by_addr_gl(d_gi.get(), ip.c_str(), &tmp_gl);
@@ -91,9 +94,12 @@ public:
     };
     if (d_db_type == GEOIP_COUNTRY_EDITION_V6 ||
         d_db_type == GEOIP_LARGE_COUNTRY_EDITION_V6) {
-      ret = GeoIP_code3_by_id(GeoIP_id_by_addr_v6_gl(d_gi.get(), ip.c_str(), &tmp_gl));
-      gl.netmask = tmp_gl.netmask;
-      return true;
+      int id;
+      if ((id = GeoIP_id_by_addr_v6_gl(d_gi.get(), ip.c_str(), &tmp_gl)) > 0) {
+        ret = GeoIP_code3_by_id(id);
+        gl.netmask = tmp_gl.netmask;
+        return true;
+      }
     } else if (d_db_type == GEOIP_REGION_EDITION_REV0 ||
                d_db_type == GEOIP_REGION_EDITION_REV1) {
       GeoIPRegion* gir = GeoIP_region_by_addr_v6_gl(d_gi.get(), ip.c_str(), &tmp_gl);
@@ -120,9 +126,12 @@ public:
     };
     if (d_db_type == GEOIP_COUNTRY_EDITION ||
         d_db_type == GEOIP_LARGE_COUNTRY_EDITION) {
-      ret = GeoIP_code_by_id(GeoIP_id_by_addr_gl(d_gi.get(), ip.c_str(), &tmp_gl));
-      gl.netmask = tmp_gl.netmask;
-      return true;
+      int id;
+      if ((id = GeoIP_id_by_addr_gl(d_gi.get(), ip.c_str(), &tmp_gl)) > 0) {
+        ret = GeoIP_code_by_id(id);
+        gl.netmask = tmp_gl.netmask;
+        return true;
+      }
     } else if (d_db_type == GEOIP_REGION_EDITION_REV0 ||
                d_db_type == GEOIP_REGION_EDITION_REV1) {
       GeoIPRegion* gir = GeoIP_region_by_addr_gl(d_gi.get(), ip.c_str(), &tmp_gl);
@@ -149,9 +158,12 @@ public:
     };
     if (d_db_type == GEOIP_COUNTRY_EDITION_V6 ||
         d_db_type == GEOIP_LARGE_COUNTRY_EDITION_V6) {
-      ret = GeoIP_code_by_id(GeoIP_id_by_addr_v6_gl(d_gi.get(), ip.c_str(), &tmp_gl));
-      gl.netmask = tmp_gl.netmask;
-      return true;
+      int id;
+      if ((id = GeoIP_id_by_addr_v6_gl(d_gi.get(), ip.c_str(), &tmp_gl)) > 0) {
+        ret = GeoIP_code_by_id(id);
+        gl.netmask = tmp_gl.netmask;
+        return true;
+      }
     } else if (d_db_type == GEOIP_REGION_EDITION_REV0 ||
                d_db_type == GEOIP_REGION_EDITION_REV1) {
       GeoIPRegion* gir = GeoIP_region_by_addr_v6_gl(d_gi.get(), ip.c_str(), &tmp_gl);
@@ -178,9 +190,12 @@ public:
     };
     if (d_db_type == GEOIP_COUNTRY_EDITION ||
         d_db_type == GEOIP_LARGE_COUNTRY_EDITION) {
-      ret = GeoIP_continent_by_id(GeoIP_id_by_addr_gl(d_gi.get(), ip.c_str(), &tmp_gl));
-      gl.netmask = tmp_gl.netmask;
-      return true;
+      int id;
+      if ((id = GeoIP_id_by_addr_gl(d_gi.get(), ip.c_str(), &tmp_gl)) > 0) {
+        ret = GeoIP_continent_by_id(id);
+        gl.netmask = tmp_gl.netmask;
+        return true;
+      }
     } else if (d_db_type == GEOIP_REGION_EDITION_REV0 ||
                d_db_type == GEOIP_REGION_EDITION_REV1) {
       GeoIPRegion* gir = GeoIP_region_by_addr_gl(d_gi.get(), ip.c_str(), &tmp_gl);
@@ -207,9 +222,12 @@ public:
     };
     if (d_db_type == GEOIP_COUNTRY_EDITION_V6 ||
         d_db_type == GEOIP_LARGE_COUNTRY_EDITION_V6) {
-      ret = GeoIP_continent_by_id(GeoIP_id_by_addr_v6_gl(d_gi.get(), ip.c_str(), &tmp_gl));
-      gl.netmask = tmp_gl.netmask;
-      return true;
+      int id;
+      if ((id = GeoIP_id_by_addr_v6_gl(d_gi.get(), ip.c_str(), &tmp_gl)) > 0) {
+        ret = GeoIP_continent_by_id(id);
+        gl.netmask = tmp_gl.netmask;
+        return true;
+      }
     } else if (d_db_type == GEOIP_REGION_EDITION_REV0 ||
                d_db_type == GEOIP_REGION_EDITION_REV1) {
       GeoIPRegion* gir = GeoIP_region_by_addr_v6_gl(d_gi.get(), ip.c_str(), &tmp_gl);
