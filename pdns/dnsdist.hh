@@ -503,7 +503,7 @@ struct DownstreamState
   std::mutex socketsLock;
   std::unique_ptr<FDMultiplexer> mplexer{nullptr};
   std::thread tid;
-  ComboAddress remote;
+  const ComboAddress remote;
   QPSLimiter qps;
   vector<IDState> idStates;
   ComboAddress sourceAddr;
