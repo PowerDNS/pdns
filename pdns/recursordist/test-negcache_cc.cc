@@ -385,7 +385,7 @@ BOOST_AUTO_TEST_CASE(test_dumpToFile) {
   }
 
   if (line != nullptr) {
-    /* getline() allocates a buffer then called with a nullptr,
+    /* getline() allocates a buffer when called with a nullptr,
        then reallocates it when needed, but we need to free the
        last allocation if any. */
     free(line);
