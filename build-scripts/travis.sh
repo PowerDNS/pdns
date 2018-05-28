@@ -405,7 +405,7 @@ build_recursor() {
   run "rm -f pdns-recursor-*.tar.bz2"
   run "cd pdns-recursor-*"
   # Build without --enable-botan, no botan 2.x in Travis CI
-  run "CXX=${COMPILER} ./configure \
+  run "./configure \
     ${sanitizerflags} \
     --prefix=$PDNS_RECURSOR_DIR \
     --enable-libsodium \
