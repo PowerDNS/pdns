@@ -170,6 +170,7 @@ private:
       qtype_insert("CNAME", 5);
       qtype_insert("SOA", 6);
       qtype_insert("MR", 9);
+      qtype_insert("WKS", 11);
       qtype_insert("PTR", 12);
       qtype_insert("HINFO", 13);
       qtype_insert("MINFO", 14);
@@ -198,6 +199,7 @@ private:
       qtype_insert("NSEC3", 50);
       qtype_insert("NSEC3PARAM", 51);
       qtype_insert("TLSA", 52);
+      qtype_insert("SMIMEA", 53);
       qtype_insert("RKEY", 57);
       qtype_insert("CDS", 59);
       qtype_insert("CDNSKEY", 60);
