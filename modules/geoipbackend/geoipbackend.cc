@@ -452,8 +452,11 @@ bool GeoIPBackend::get(DNSResourceRecord &r) {
 bool GeoIPBackend::queryCountry(string &ret, GeoIPLookup* gl, const string &ip, const geoip_file_t& gi) {
   if (gi.first == GEOIP_COUNTRY_EDITION ||
       gi.first == GEOIP_LARGE_COUNTRY_EDITION) {
-    ret = GeoIP_code3_by_id(GeoIP_id_by_addr_gl(gi.second.get(), ip.c_str(), gl));
-    return true;
+    int id;
+    if ((id = GeoIP_id_by_addr_gl(gi.second.get(), ip.c_str(), gl)) > 0) {
+      ret = GeoIP_code3_by_id(id);
+      return true;
+    }
   } else if (gi.first == GEOIP_REGION_EDITION_REV0 ||
              gi.first == GEOIP_REGION_EDITION_REV1) {
     GeoIPRegion* gir = GeoIP_region_by_addr_gl(gi.second.get(), ip.c_str(), gl);
@@ -476,8 +479,11 @@ bool GeoIPBackend::queryCountry(string &ret, GeoIPLookup* gl, const string &ip, 
 bool GeoIPBackend::queryCountryV6(string &ret, GeoIPLookup* gl, const string &ip, const geoip_file_t& gi) {
   if (gi.first == GEOIP_COUNTRY_EDITION_V6 ||
       gi.first == GEOIP_LARGE_COUNTRY_EDITION_V6) {
-    ret = GeoIP_code3_by_id(GeoIP_id_by_addr_v6_gl(gi.second.get(), ip.c_str(), gl));
-    return true;
+    int id;
+    if ((id = GeoIP_id_by_addr_v6_gl(gi.second.get(), ip.c_str(), gl)) > 0) {
+      ret = GeoIP_code3_by_id(id);
+      return true;
+    }
   } else if (gi.first == GEOIP_REGION_EDITION_REV0 ||
              gi.first == GEOIP_REGION_EDITION_REV1) {
     GeoIPRegion* gir = GeoIP_region_by_addr_v6_gl(gi.second.get(), ip.c_str(), gl);
@@ -500,8 +506,11 @@ bool GeoIPBackend::queryCountryV6(string &ret, GeoIPLookup* gl, const string &ip
 bool GeoIPBackend::queryCountry2(string &ret, GeoIPLookup* gl, const string &ip, const geoip_file_t& gi) {
   if (gi.first == GEOIP_COUNTRY_EDITION ||
       gi.first == GEOIP_LARGE_COUNTRY_EDITION) {
-    ret = GeoIP_code_by_id(GeoIP_id_by_addr_gl(gi.second.get(), ip.c_str(), gl));
-    return true;
+    int id;
+    if ((id = GeoIP_id_by_addr_gl(gi.second.get(), ip.c_str(), gl)) > 0) {
+      ret = GeoIP_code_by_id(id);
+      return true;
+    }
   } else if (gi.first == GEOIP_REGION_EDITION_REV0 ||
              gi.first == GEOIP_REGION_EDITION_REV1) {
     GeoIPRegion* gir = GeoIP_region_by_addr_gl(gi.second.get(), ip.c_str(), gl);
@@ -524,7 +533,11 @@ bool GeoIPBackend::queryCountry2(string &ret, GeoIPLookup* gl, const string &ip,
 bool GeoIPBackend::queryCountry2V6(string &ret, GeoIPLookup* gl, const string &ip, const geoip_file_t& gi) {
   if (gi.first == GEOIP_COUNTRY_EDITION_V6 ||
       gi.first == GEOIP_LARGE_COUNTRY_EDITION_V6) {
-    ret = GeoIP_code_by_id(GeoIP_id_by_addr_v6_gl(gi.second.get(), ip.c_str(), gl));
+    int id;
+    if ((id = GeoIP_id_by_addr_v6_gl(gi.second.get(), ip.c_str(), gl)) > 0) {
+      ret = GeoIP_code_by_id(id);
+      return true;
+    }
     return true;
   } else if (gi.first == GEOIP_REGION_EDITION_REV0 ||
              gi.first == GEOIP_REGION_EDITION_REV1) {
@@ -548,8 +561,11 @@ bool GeoIPBackend::queryCountry2V6(string &ret, GeoIPLookup* gl, const string &i
 bool GeoIPBackend::queryContinent(string &ret, GeoIPLookup* gl, const string &ip, const geoip_file_t& gi) {
   if (gi.first == GEOIP_COUNTRY_EDITION ||
       gi.first == GEOIP_LARGE_COUNTRY_EDITION) {
-    ret = GeoIP_continent_by_id(GeoIP_id_by_addr_gl(gi.second.get(), ip.c_str(), gl));
-    return true;
+    int id;
+    if ((id = GeoIP_id_by_addr_gl(gi.second.get(), ip.c_str(), gl)) > 0) {
+      ret = GeoIP_continent_by_id(id);
+      return true;
+    }
   } else if (gi.first == GEOIP_REGION_EDITION_REV0 ||
              gi.first == GEOIP_REGION_EDITION_REV1) {
     GeoIPRegion* gir = GeoIP_region_by_addr_gl(gi.second.get(), ip.c_str(), gl);
@@ -572,8 +588,11 @@ bool GeoIPBackend::queryContinent(string &ret, GeoIPLookup* gl, const string &ip
 bool GeoIPBackend::queryContinentV6(string &ret, GeoIPLookup* gl, const string &ip, const geoip_file_t& gi) {
   if (gi.first == GEOIP_COUNTRY_EDITION_V6 ||
       gi.first == GEOIP_LARGE_COUNTRY_EDITION_V6) {
-    ret = GeoIP_continent_by_id(GeoIP_id_by_addr_v6_gl(gi.second.get(), ip.c_str(), gl));
-    return true;
+    int id;
+    if ((id = GeoIP_id_by_addr_v6_gl(gi.second.get(), ip.c_str(), gl)) > 0) {
+      ret = GeoIP_continent_by_id(id);
+      return true;
+    }
   } else if (gi.first == GEOIP_REGION_EDITION_REV0 ||
              gi.first == GEOIP_REGION_EDITION_REV1) {
     GeoIPRegion* gir = GeoIP_region_by_addr_v6_gl(gi.second.get(), ip.c_str(), gl);
