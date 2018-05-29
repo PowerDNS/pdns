@@ -139,7 +139,7 @@ void loadRecursorLuaConfig(const std::string& fname, bool checkOnly)
       }
     });
 
-  Lua.writeFunction("rpzMaster", [&lci, &rpzMasterThreads, checkOnly](const string& master_, const string& zoneName, const boost::optional<std::unordered_map<string,boost::variant<uint32_t, string>>>& options) {
+  Lua.writeFunction("rpzMaster", [&lci, &rpzMasterThreads](const string& master_, const string& zoneName, const boost::optional<std::unordered_map<string,boost::variant<uint32_t, string>>>& options) {
 
       boost::optional<DNSFilterEngine::Policy> defpol;
       std::shared_ptr<DNSFilterEngine::Zone> zone = std::make_shared<DNSFilterEngine::Zone>();
