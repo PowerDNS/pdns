@@ -49,7 +49,7 @@ $ autoreconf -vi
 To compile a very clean version, use:
 
 ```
-$ ./configure --with-modules="" --without-lua
+$ ./configure --with-modules="" --without-lua --disable-lua-records
 $ make
 # make install
 ```
