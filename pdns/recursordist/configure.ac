@@ -78,6 +78,9 @@ AC_DEFUN([PDNS_SELECT_CONTEXT_IMPL], [
   fi
 ])
 
+BOOST_FILESYSTEM
+AS_IF([test -z "$BOOST_FILESYSTEM_LIBS"], [ AC_MSG_ERROR([Boost filesystem library is not installed])])
+
 PDNS_CHECK_CLOCK_GETTIME
 
 boost_required_version=1.35
