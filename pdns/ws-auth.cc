@@ -1391,9 +1391,8 @@ static void apiServerZones(HttpRequest* req, HttpResponse* resp) {
 
   vector<DomainInfo> domains;
 
-  auto zone_it = req->getvars.find("zone");
-  if (zone_it != req->getvars.end()) {
-    string zone = zone_it->second;
+  if (req->getvars.count("zone")) {
+    string zone = req->getvars["zone"];
     apiCheckNameAllowedCharacters(zone);
     DNSName zonename = apiNameToDNSName(zone);
     zonename.makeUsLowerCase();
