@@ -86,6 +86,9 @@
 #include "rec-lua-conf.hh"
 #include "ednsoptions.hh"
 #include "gettime.hh"
+#ifdef NOD_ENABLED
+#include "nod.hh"
+#endif /* NOD_ENABLED */
 
 #include "rec-protobuf.hh"
 #include "rec-snmp.hh"
@@ -119,6 +122,9 @@ thread_local std::shared_ptr<NetmaskGroup> t_allowFrom;
 #ifdef HAVE_PROTOBUF
 thread_local std::unique_ptr<boost::uuids::random_generator> t_uuidGenerator;
 #endif
+#ifdef NOD_ENABLED
+thread_local std::shared_ptr<nod::NODDB> t_nodDBp;
+#endif /* NOD_ENABLED */
 __thread struct timeval g_now; // timestamp, updated (too) frequently
 
 // for communicating with our threads
@@ -175,6 +181,12 @@ static bool g_gettagNeedsEDNSOptions{false};
 static time_t g_statisticsInterval;
 static bool g_useIncomingECS;
 std::atomic<uint32_t> g_maxCacheEntries, g_maxPacketCacheEntries;
+#ifdef NOD_ENABLED
+static bool g_nodEnabled;
+static DNSName g_nodLookupDomain;
+static bool g_nodLog;
+static SuffixMatchNode g_nodDomainWL;
+#endif /* NOD_ENABLED */
 #ifdef HAVE_BOOST_CONTAINER_FLAT_SET_HPP
 static boost::container::flat_set<uint16_t> s_avoidUdpSourcePorts;
 #else
@@ -861,6 +873,42 @@ static bool checkOutgoingProtobufExport(LocalStateHolder<LuaConfigItems>& luacon
 }
 #endif /* HAVE_PROTOBUF */
 
+#ifdef NOD_ENABLED
+static void nodCheckNewDomain(const DNSName& dname)
+{
+  static const QType qt(QType::A);
+  static const uint16_t qc(QClass::IN);
+  // First check the (sub)domain isn't whitelisted for NOD purposes
+  if (!g_nodDomainWL.check(dname)) {
+    // Now check the NODDB (note this is probablistic so can have FNs/FPs)
+    if (t_nodDBp && t_nodDBp->isNewDomain(dname)) {
+      if (g_nodLog) {
+        // This should probably log to a dedicated log file
+        g_log<<Logger::Notice<<"Newly observed domain nod="<<dname.toLogString()<<endl;
+      }
+      if (!(g_nodLookupDomain.isRoot())) {
+        // Send a DNS A query to <domain>.g_nodLookupDomain
+        DNSName qname = dname;
+        vector<DNSRecord> dummy;
+        qname += g_nodLookupDomain;
+        directResolve(qname, qt, qc, dummy);
+      }
+    }
+  }
+}
+
+static void nodAddDomain(const DNSName& dname)
+{
+  // Don't bother adding domains on the nod whitelist
+  if (!g_nodDomainWL.check(dname)) {  
+    if (t_nodDBp) {
+      // This keeps the nod info up to date
+      t_nodDBp->addDomain(dname);
+    }
+  }
+}
+#endif /* NOD_ENABLED */
+
 static void startDoResolve(void *p)
 {
   DNSComboWriter* dc=(DNSComboWriter *)p;
@@ -1420,9 +1468,19 @@ static void startDoResolve(void *p)
 
     if (sr.d_outqueries || sr.d_authzonequeries) {
       t_RC->cacheMisses++;
+#ifdef NOD_ENABLED
+      if (g_nodEnabled) {
+        nodCheckNewDomain(dc->d_mdp.d_qname);
+      }
+#endif /* NOD_ENABLED */
     }
     else {
       t_RC->cacheHits++;
+#ifdef NOD_ENABLED
+      if (g_nodEnabled) {
+        nodAddDomain(dc->d_mdp.d_qname);
+      }
+#endif /* NOD_ENABLED */
     }
 
     if(spent < 0.001)
@@ -3124,6 +3182,46 @@ static void setCPUMap(const std::map<unsigned int, std::set<int> >& cpusMap, uns
   }
 }
 
+#ifdef NOD_ENABLED
+static void setupNODThread()
+{
+  if (g_nodEnabled) {
+    t_nodDBp = std::make_shared<nod::NODDB>();
+    try {
+      t_nodDBp->setCacheDir(::arg()["new-domain-history-dir"]);
+    }
+    catch (const PDNSException& e) {
+      g_log<<Logger::Error<<"new-domain-history-dir (" << ::arg()["new-domain-history-dir"] << ") is not readable or does not exist"<<endl;
+      _exit(1);
+    }
+    if (!t_nodDBp->init()) {
+      g_log<<Logger::Error<<"Could not initialize domain tracking"<<endl;
+      _exit(1);
+    }
+    std::thread t(nod::NODDB::startHousekeepingThread, t_nodDBp);
+    t.detach();
+  }
+}
+
+void parseNODWhitelist(const std::string& wlist)
+{
+  vector<string> parts;
+  stringtok(parts, wlist, ",; ");
+  for(const auto& a : parts) {
+    g_nodDomainWL.add(DNSName(a));
+  }
+}
+
+static void setupNODGlobal()
+{
+  // Setup NOD subsystem
+  g_nodEnabled = ::arg().mustDo("new-domain-tracking");
+  g_nodLookupDomain = DNSName(::arg()["new-domain-lookup"]);
+  g_nodLog = ::arg().mustDo("new-domain-log");
+  parseNODWhitelist(::arg()["new-domain-whitelist"]);
+}
+#endif /* NOD_ENABLED */
+
 static int serviceMain(int argc, char*argv[])
 {
   g_log.setName(s_programname);
@@ -3344,6 +3442,11 @@ static int serviceMain(int argc, char*argv[])
     makeTCPServerSockets(0);
   }
 
+#ifdef NOD_ENABLED
+  // Setup newly observed domain globals
+  setupNODGlobal();
+#endif /* NOD_ENABLED */
+  
   int forks;
   for(forks = 0; forks < ::arg().asNum("processes") - 1; ++forks) {
     if(!fork()) // we are child
@@ -3496,6 +3599,10 @@ try
 #endif
   g_log<<Logger::Warning<<"Done priming cache with root hints"<<endl;
 
+#ifdef NOD_ENABLED
+  setupNODThread();
+#endif /* NOD_ENABLED */
+  
   try {
     if(!::arg()["lua-dns-script"].empty()) {
       t_pdl = std::make_shared<RecursorLua4>();
@@ -3805,7 +3912,13 @@ int main(int argc, char **argv)
     ::arg().set("udp-source-port-max", "Maximum UDP port to bind on")="65535";
     ::arg().set("udp-source-port-avoid", "List of comma separated UDP port number to avoid")="11211";
     ::arg().set("rng", "Specify random number generator to use. Valid values are auto,sodium,openssl,getrandom,arc4random,urandom.")="auto";
-
+#ifdef NOD_ENABLED
+    ::arg().set("new-domain-tracking", "Track newly observed domains (i.e. never seen before).")="no";
+    ::arg().set("new-domain-log", "Log newly observed domains.")="yes";
+    ::arg().set("new-domain-lookup", "Perform a DNS lookup newly observed domains as a subdomain of the configured domain")="";
+    ::arg().set("new-domain-history-dir", "Persist new domain tracking data here to persist between restarts")=string(NODCACHEDIR)+"/nod";
+    ::arg().set("new-domain-whitelist", "List of domains (and implicitly all subdomains) which will never be considered a new domain")="";
+#endif /* NOD_ENABLED */
     ::arg().setCmd("help","Provide a helpful message");
     ::arg().setCmd("version","Print version string");
     ::arg().setCmd("config","Output blank configuration");
