@@ -115,7 +115,9 @@ private:
   bool d_prefixed{false};
 };
 
-extern Logger g_log;
+Logger& getLogger();
+
+#define g_log getLogger()
 
 #ifdef VERBOSELOG
 #define DLOG(x) x
