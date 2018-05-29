@@ -610,6 +610,9 @@ struct ServerPolicy
   string name;
   policyfunc_t policy;
   bool isLua;
+  std::string toString() const {
+    return string("ServerPolicy") + (isLua ? " (Lua)" : "") + " \"" + name + "\"";
+  }
 };
 
 struct ServerPool

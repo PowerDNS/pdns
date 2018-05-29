@@ -64,6 +64,7 @@ void setupLuaBindings(bool client)
   g_lua.registerMember("name", &ServerPolicy::name);
   g_lua.registerMember("policy", &ServerPolicy::policy);
   g_lua.registerMember("isLua", &ServerPolicy::isLua);
+  g_lua.registerFunction("toString", &ServerPolicy::toString);
 
   g_lua.writeVariable("firstAvailable", ServerPolicy{"firstAvailable", firstAvailable, false});
   g_lua.writeVariable("roundrobin", ServerPolicy{"roundrobin", roundrobin, false});
@@ -187,6 +188,7 @@ void setupLuaBindings(bool client)
   g_lua.registerFunction("match", (bool (NetmaskGroup::*)(const ComboAddress&) const)&NetmaskGroup::match);
   g_lua.registerFunction("size", &NetmaskGroup::size);
   g_lua.registerFunction("clear", &NetmaskGroup::clear);
+  g_lua.registerFunction<string(NetmaskGroup::*)()>("toString", [](const NetmaskGroup& nmg ) { return "NetmaskGroup " + nmg.toString(); });
 
   /* QPSLimiter */
   g_lua.writeFunction("newQPSLimiter", [](int rate, int burst) { return QPSLimiter(rate, burst); });
@@ -302,6 +304,8 @@ void setupLuaBindings(bool client)
       throw std::runtime_error("fstrm with TCP support is required to build an AF_INET FrameStreamLogger");
 #endif /* HAVE_FSTRM */
     });
+
+  g_lua.registerFunction("toString", &RemoteLoggerInterface::toString);
 
 #ifdef HAVE_DNSCRYPT
     /* DNSCryptContext bindings */
