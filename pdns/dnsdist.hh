@@ -534,6 +534,7 @@ struct DownstreamState
 
   std::vector<int> sockets;
   std::mutex socketsLock;
+  std::mutex connectLock;
   std::unique_ptr<FDMultiplexer> mplexer{nullptr};
   std::thread tid;
   ComboAddress remote;
@@ -577,8 +578,10 @@ struct DownstreamState
   bool useECS{false};
   bool setCD{false};
   std::atomic<bool> connected{false};
+  std::atomic_flag threadStarted;
   bool tcpFastOpen{false};
   bool ipBindAddrNoPort{true};
+
   bool isUp() const
   {
     if(availability == Availability::Down)
@@ -613,7 +616,7 @@ struct DownstreamState
       status = (upStatus ? "up" : "down");
     return status;
   }
-  void reconnect();
+  bool reconnect();
 };
 using servers_t =vector<std::shared_ptr<DownstreamState>>;
 

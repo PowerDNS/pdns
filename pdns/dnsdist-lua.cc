@@ -345,6 +345,8 @@ void setupLuaConfig(bool client)
                         g_pools.setState(localPools);
 
 			if (ret->connected) {
+			  ret->threadStarted.test_and_set();
+
 			  if(g_launchWork) {
 			    g_launchWork->push_back([ret,cpus]() {
                               ret->tid = thread(responderThread, ret);
