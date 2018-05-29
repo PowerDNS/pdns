@@ -200,12 +200,13 @@ static void setDNSSECValidation(std::unique_ptr<SyncRes>& sr, const DNSSECMode& 
   g_dnssecmode = mode;
 }
 
-static void setLWResult(LWResult* res, int rcode, bool aa=false, bool tc=false, bool edns=false)
+static void setLWResult(LWResult* res, int rcode, bool aa=false, bool tc=false, bool edns=false, bool validpacket=true)
 {
   res->d_rcode = rcode;
   res->d_aabit = aa;
   res->d_tcbit = tc;
   res->d_haveEDNS = edns;
+  res->d_validpacket = validpacket;
 }
 
 static void addRecordToLW(LWResult* res, const DNSName& name, uint16_t type, const std::string& content, DNSResourceRecord::Place place=DNSResourceRecord::ANSWER, uint32_t ttl=60)
@@ -614,42 +615,6 @@ BOOST_AUTO_TEST_CASE(test_edns_formerr_fallback) {
   BOOST_CHECK_EQUAL(queriesWithoutEDNS, 1);
   BOOST_CHECK_EQUAL(SyncRes::getEDNSStatusesSize(), 1);
   BOOST_CHECK_EQUAL(SyncRes::getEDNSStatus(noEDNSServer), SyncRes::EDNSStatus::NOEDNS);
-}
-
-BOOST_AUTO_TEST_CASE(test_edns_notimp_fallback) {
-  std::unique_ptr<SyncRes> sr;
-  initSR(sr);
-
-  size_t queriesWithEDNS = 0;
-  size_t queriesWithoutEDNS = 0;
-
-  sr->setAsyncCallback([&queriesWithEDNS, &queriesWithoutEDNS](const ComboAddress& ip, const DNSName& domain, int type, bool doTCP, bool sendRDQuery, int EDNS0Level, struct timeval* now, boost::optional<Netmask>& srcmask, boost::optional<const ResolveContext&> context, std::shared_ptr<RemoteLogger> outgoingLogger, LWResult* res, bool* chained) {
-      if (EDNS0Level != 0) {
-        queriesWithEDNS++;
-        setLWResult(res, RCode::NotImp);
-        return 1;
-      }
-
-      queriesWithoutEDNS++;
-
-      if (domain == DNSName("powerdns.com") && type == QType::A && !doTCP) {
-        setLWResult(res, 0, true, false, false);
-        addRecordToLW(res, domain, QType::A, "192.0.2.1");
-        return 1;
-      }
-
-      return 0;
-    });
-
-  primeHints();
-
-  /* fake that the NS doesn't handle EDNS, check that we fallback */
-  vector<DNSRecord> ret;
-  int res = sr->beginResolve(DNSName("powerdns.com."), QType(QType::A), QClass::IN, ret);
-  BOOST_CHECK_EQUAL(res, RCode::NoError);
-  BOOST_CHECK_EQUAL(ret.size(), 1);
-  BOOST_CHECK_EQUAL(queriesWithEDNS, 1);
-  BOOST_CHECK_EQUAL(queriesWithoutEDNS, 1);
 }
 
 BOOST_AUTO_TEST_CASE(test_tc_fallback_to_tcp) {

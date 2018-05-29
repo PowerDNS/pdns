@@ -62,6 +62,7 @@ public:
 
   vector<DNSRecord> d_records;
   int d_rcode{0};
+  bool d_validpacket{false};
   bool d_aabit{false}, d_tcbit{false};
   uint32_t d_usec{0};
   bool d_haveEDNS{false};

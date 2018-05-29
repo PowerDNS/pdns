@@ -418,7 +418,7 @@ int SyncRes::asyncresolveWrapper(const ComboAddress& ip, bool ednsMANDATORY, con
      0) UNKNOWN Unknown state 
      1) EDNS: Honors EDNS0
      2) EDNSIGNORANT: Ignores EDNS0, gives replies without EDNS0
-     3) NOEDNS: Generates FORMERR/NOTIMP on EDNS queries
+     3) NOEDNS: Generates FORMERR on EDNS queries
 
      Everybody starts out assumed to be '0'.
      If '0', send out EDNS0
@@ -477,7 +477,7 @@ int SyncRes::asyncresolveWrapper(const ComboAddress& ip, bool ednsMANDATORY, con
       return ret;
     }
     else if(mode==EDNSStatus::UNKNOWN || mode==EDNSStatus::EDNSOK || mode == EDNSStatus::EDNSIGNORANT ) {
-      if(res->d_rcode == RCode::FormErr || res->d_rcode == RCode::NotImp)  {
+      if(res->d_validpacket && res->d_rcode == RCode::FormErr)  {
 	//	cerr<<"Downgrading to NOEDNS because of "<<RCode::to_s(res->d_rcode)<<" for query to "<<ip.toString()<<" for '"<<domain<<"'"<<endl;
         mode = EDNSStatus::NOEDNS;
         continue;
@@ -485,7 +485,7 @@ int SyncRes::asyncresolveWrapper(const ComboAddress& ip, bool ednsMANDATORY, con
       else if(!res->d_haveEDNS) {
         if(mode != EDNSStatus::EDNSIGNORANT) {
           mode = EDNSStatus::EDNSIGNORANT;
-	  //	  cerr<<"We find that "<<ip.toString()<<" is an EDNS-ignorer for '"<<domain<<"', moving to mode 3"<<endl;
+	  //	  cerr<<"We find that "<<ip.toString()<<" is an EDNS-ignorer for '"<<domain<<"', moving to mode 2"<<endl;
 	}
       }
       else {
