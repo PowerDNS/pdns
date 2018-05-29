@@ -383,6 +383,14 @@ BOOST_AUTO_TEST_CASE(test_dumpToFile) {
       BOOST_FAIL("Unable to read a line from the temp file");
     BOOST_CHECK_EQUAL(line, str);
   }
+
+  if (line != nullptr) {
+    /* getline() allocates a buffer when called with a nullptr,
+       then reallocates it when needed, but we need to free the
+       last allocation if any. */
+    free(line);
+  }
+
   fclose(fp);
 }
 
