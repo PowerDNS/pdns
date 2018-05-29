@@ -466,10 +466,10 @@ class TCPClientCollection {
   std::atomic<uint64_t> d_numthreads{0};
   std::atomic<uint64_t> d_pos{0};
   std::atomic<uint64_t> d_queued{0};
-  uint64_t d_maxthreads{0};
+  const uint64_t d_maxthreads{0};
   std::mutex d_mutex;
   int d_singlePipe[2];
-  bool d_useSinglePipe;
+  const bool d_useSinglePipe;
 public:
 
   TCPClientCollection(size_t maxThreads, bool useSinglePipe=false): d_maxthreads(maxThreads), d_singlePipe{-1,-1}, d_useSinglePipe(useSinglePipe)
@@ -537,10 +537,10 @@ struct DownstreamState
   std::mutex connectLock;
   std::unique_ptr<FDMultiplexer> mplexer{nullptr};
   std::thread tid;
-  ComboAddress remote;
+  const ComboAddress remote;
   QPSLimiter qps;
   vector<IDState> idStates;
-  ComboAddress sourceAddr;
+  const ComboAddress sourceAddr;
   checkfunc_t checkFunction;
   DNSName checkName{"a.root-servers.net."};
   QType checkType{QType::A};
@@ -565,7 +565,7 @@ struct DownstreamState
   int tcpConnectTimeout{5};
   int tcpRecvTimeout{30};
   int tcpSendTimeout{30};
-  unsigned int sourceItf{0};
+  const unsigned int sourceItf{0};
   uint16_t retries{5};
   uint16_t xpfRRCode{0};
   uint8_t currentCheckFailures{0};

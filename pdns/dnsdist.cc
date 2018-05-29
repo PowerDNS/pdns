@@ -1088,7 +1088,8 @@ static ssize_t udpClientSendRequestToBackend(DownstreamState* ss, const int sd, 
     struct msghdr msgh;
     struct iovec iov;
     char cbuf[256];
-    fillMSGHdr(&msgh, &iov, cbuf, sizeof(cbuf), const_cast<char*>(request), requestLen, &ss->remote);
+    ComboAddress remote(ss->remote);
+    fillMSGHdr(&msgh, &iov, cbuf, sizeof(cbuf), const_cast<char*>(request), requestLen, &remote);
     addCMsgSrcAddr(&msgh, cbuf, &ss->sourceAddr, ss->sourceItf);
     result = sendmsg(sd, &msgh, 0);
   }
@@ -1705,7 +1706,15 @@ try
   }
 
   string reply;
-  sock.recvFrom(reply, ds.remote);
+  ComboAddress from;
+  sock.recvFrom(reply, from);
+
+  /* we are using a connected socket but hey.. */
+  if (from != ds.remote) {
+    if (g_verboseHealthChecks)
+      infolog("Invalid health check response received from %s, expecting one from %s", from.toStringWithPort(), ds.remote.toStringWithPort());
+    return false;
+  }
 
   const dnsheader * responseHeader = reinterpret_cast<const dnsheader *>(reply.c_str());
 
