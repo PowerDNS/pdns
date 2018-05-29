@@ -72,6 +72,9 @@ The descriptions above are a bit terse, here's a table describing different scen
 This might lead to unexpected query results when testing.
 Set ``+noad`` on the ``dig`` commandline when this is the case.
 
+**Note**: the CD-bit is honored correctly for ``process`` and
+``validate``. For ``log-fail``, failures will be logged too.
+
 Trust Anchor Management
 -----------------------
 In the PowerDNS Recursor, both positive and negative trust anchors can be configured during startup (from a persistent configuration file) and at runtime (which is volatile).
