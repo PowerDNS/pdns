@@ -119,7 +119,9 @@ private:
   static pthread_key_t g_loggerKey;
 };
 
-extern Logger g_log;
+Logger& getLogger();
+
+#define g_log getLogger()
 
 #ifdef VERBOSELOG
 #define DLOG(x) x
