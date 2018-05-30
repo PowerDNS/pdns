@@ -21,6 +21,7 @@
  */
 
 #include "nod.hh"
+#include <fstream>
 #include "pdnsexception.hh"
 #include <iostream>
 #include <iomanip>
