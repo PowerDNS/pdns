@@ -141,6 +141,13 @@ AC_ARG_WITH([socketdir],
   [socketdir="$withval"]
 )
 
+AC_SUBST([nodcachedir])
+nodcachedir='${prefix}/var/lib/pdns-recursor'
+AC_ARG_WITH([nod-cache-dir],
+  [AS_HELP_STRING([--with-nodcachedir], [where newly observed domain cache files live @<:@default=PREFIX/var/lib/pdns-recursor@:>@])],
+  [nodcachedir="$withval"]
+)
+
 AC_MSG_CHECKING([whether we will enable compiler security checks])
 AC_ARG_ENABLE([hardening],
   [AS_HELP_STRING([--disable-hardening], [disable compiler security checks @<:@default=no@:>@])],
