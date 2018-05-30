@@ -871,8 +871,16 @@ static void startDoResolve(void *p)
     uint16_t maxanswersize = dc->d_tcp ? 65535 : min(static_cast<uint16_t>(512), g_udpTruncationThreshold);
     EDNSOpts edo;
     std::vector<pair<uint16_t, string> > ednsOpts;
+    bool variableAnswer = dc->d_variable;
     bool haveEDNS=false;
+    DNSPacketWriter::optvect_t returnedEdnsOptions; // Here we stuff all the options for the return packet
+    uint8_t ednsExtRCode = 0;
     if(getEDNSOpts(dc->d_mdp, &edo)) {
+      haveEDNS=true;
+      if (edo.d_version != 0) {
+        ednsExtRCode = ERCode::BADVERS;
+      }
+
       if(!dc->d_tcp) {
         /* rfc6891 6.2.3:
            "Values lower than 512 MUST be treated as equal to 512."
@@ -881,12 +889,19 @@ static void startDoResolve(void *p)
       }
       ednsOpts = edo.d_options;
       haveEDNS=true;
+      maxanswersize -= 11; // EDNS header size
 
-      if (g_useIncomingECS && !dc->d_ecsParsed) {
-        for (const auto& o : edo.d_options) {
-          if (o.first == EDNSOptionCode::ECS) {
-            dc->d_ecsFound = getEDNSSubnetOptsFromString(o.second, &dc->d_ednssubnet);
-            break;
+      for (const auto& o : edo.d_options) {
+        if (o.first == EDNSOptionCode::ECS && g_useIncomingECS && !dc->d_ecsParsed) {
+          dc->d_ecsFound = getEDNSSubnetOptsFromString(o.second, &dc->d_ednssubnet);
+        } else if (o.first == EDNSOptionCode::NSID) {
+          const static string mode_server_id = ::arg()["server-id"];
+          if(mode_server_id != "disabled" && !mode_server_id.empty() &&
+              maxanswersize > (2 + 2 + mode_server_id.size())) {
+            returnedEdnsOptions.push_back(make_pair(EDNSOptionCode::NSID, mode_server_id));
+            variableAnswer = true; // Can't packetcache an answer with NSID
+            // Option Code and Option Length are both 2
+            maxanswersize -= 2 + 2 + mode_server_id.size();
           }
         }
       }
@@ -937,7 +952,7 @@ static void startDoResolve(void *p)
       sr.setDoDNSSEC(true);
 
       // Does the requestor want DNSSEC records?
-      if(edo.d_Z & EDNSOpts::DNSSECOK) {
+      if(edo.d_extFlags & EDNSOpts::DNSSECOK) {
         DNSSECOK=true;
         g_stats.dnssecQueries++;
       }
@@ -955,7 +970,6 @@ static void startDoResolve(void *p)
     sr.setQuerySource(dc->d_remote, g_useIncomingECS && !dc->d_ednssubnet.source.empty() ? boost::optional<const EDNSSubnetOpts&>(dc->d_ednssubnet) : boost::none);
 
     bool tracedQuery=false; // we could consider letting Lua know about this too
-    bool variableAnswer = dc->d_variable;
     bool shouldNotValidate = false;
 
     /* preresolve expects res (dq.rcode) to be set to RCode::NoError by default */
@@ -963,7 +977,7 @@ static void startDoResolve(void *p)
     DNSFilterEngine::Policy appliedPolicy;
     DNSRecord spoofed;
     RecursorLua4::DNSQuestion dq(dc->d_source, dc->d_destination, dc->d_mdp.d_qname, dc->d_mdp.d_qtype, dc->d_tcp, variableAnswer, wantsRPZ);
-    dq.ednsFlags = &edo.d_Z;
+    dq.ednsFlags = &edo.d_extFlags;
     dq.ednsOptions = &ednsOpts;
     dq.tag = dc->d_tag;
     dq.discardedPolicies = &sr.d_discardedPolicies;
@@ -976,6 +990,10 @@ static void startDoResolve(void *p)
     dq.requestorId = dc->d_requestorId;
     dq.deviceId = dc->d_deviceId;
 #endif
+
+    if(ednsExtRCode != 0) {
+      goto sendit;
+    }
 
     if(dc->d_mdp.d_qtype==QType::ANY && !dc->d_tcp && g_anyToTcp) {
       pw.getHeader()->tc = 1;
@@ -1295,9 +1313,8 @@ static void startDoResolve(void *p)
          OPT record.  This MUST also occur when a truncated response (using
          the DNS header's TC bit) is returned."
       */
-      if (addRecordToPacket(pw, makeOpt(edo.d_packetsize, 0, edo.d_Z & EDNSOpts::DNSSECOK), minTTL, dc->d_ttlCap, maxanswersize)) {
-        pw.commit();
-      }
+      pw.addOpt(512, ednsExtRCode, DNSSECOK ? EDNSOpts::DNSSECOK : 0, returnedEdnsOptions);
+      pw.commit();
     }
 
     g_rs.submitResponse(dc->d_mdp.d_qtype, packet.size(), !dc->d_tcp);
@@ -3182,6 +3199,11 @@ static int serviceMain(int argc, char*argv[])
     g_quiet=false;
     g_dnssecLOG=true;
   }
+  string myHostname = getHostname();
+  if (myHostname == "UNKNOWN"){
+    g_log<<Logger::Warning<<"Unable to get the hostname, NSID and id.server values will be empty"<<endl;
+    myHostname = "";
+  }
 
   SyncRes::s_minimumTTL = ::arg().asNum("minimum-ttl-override");
 
@@ -3201,9 +3223,7 @@ static int serviceMain(int argc, char*argv[])
   SyncRes::s_maxdepth=::arg().asNum("max-recursion-depth");
   SyncRes::s_rootNXTrust = ::arg().mustDo( "root-nx-trust");
   if(SyncRes::s_serverID.empty()) {
-    char tmp[128];
-    gethostname(tmp, sizeof(tmp)-1);
-    SyncRes::s_serverID=tmp;
+    SyncRes::s_serverID = myHostname;
   }
 
   SyncRes::s_ecsipv4limit = ::arg().asNum("ecs-ipv4-bits");
@@ -3316,6 +3336,10 @@ static int serviceMain(int argc, char*argv[])
   openssl_seed();
   /* setup rng before chroot */
   dns_random_init();
+
+  if(::arg()["server-id"].empty()) {
+    ::arg().set("server-id") = myHostname;
+  }
 
   int newgid=0;
   if(!::arg()["setgid"].empty())
@@ -3663,7 +3687,7 @@ int main(int argc, char **argv)
     ::arg().set("packetcache-ttl", "maximum number of seconds to keep a cached entry in packetcache")="3600";
     ::arg().set("max-packetcache-entries", "maximum number of entries to keep in the packetcache")="500000";
     ::arg().set("packetcache-servfail-ttl", "maximum number of seconds to keep a cached servfail entry in packetcache")="60";
-    ::arg().set("server-id", "Returned when queried for 'id.server' TXT or NSID, defaults to hostname")="";
+    ::arg().set("server-id", "Returned when queried for 'id.server' TXT or NSID, defaults to hostname, set custom or 'disabled'")="";
     ::arg().set("stats-ringbuffer-entries", "maximum number of packets to store statistics for")="10000";
     ::arg().set("version-string", "string reported on version.pdns or version.bind")=fullVersionString();
     ::arg().set("allow-from", "If set, only allow these comma separated netmasks to recurse")=LOCAL_NETS;

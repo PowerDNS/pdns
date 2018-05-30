@@ -543,7 +543,7 @@ uint16_t DNSKEYRecordContent::getTag()
  */
 bool getEDNSOpts(const MOADNSParser& mdp, EDNSOpts* eo)
 {
-  eo->d_Z=0;
+  eo->d_extFlags=0;
   if(mdp.d_header.arcount && !mdp.d_answers.empty()) {
     for(const MOADNSParser::answers_t::value_type& val :  mdp.d_answers) {
       if(val.first.d_place == DNSResourceRecord::ADDITIONAL && val.first.d_type == QType::OPT) {
@@ -556,10 +556,9 @@ bool getEDNSOpts(const MOADNSParser& mdp, EDNSOpts* eo)
         
         eo->d_extRCode=stuff.extRCode;
         eo->d_version=stuff.version;
-        eo->d_Z = ntohs(stuff.Z);
-        OPTRecordContent* orc = 
-          dynamic_cast<OPTRecordContent*>(val.first.d_content.get());
-        if(!orc)
+        eo->d_extFlags = ntohs(stuff.extFlags);
+        auto orc = getRR<OPTRecordContent>(val.first);
+        if(orc == nullptr)
           return false;
         orc->getData(eo->d_options);
         return true;
@@ -569,12 +568,12 @@ bool getEDNSOpts(const MOADNSParser& mdp, EDNSOpts* eo)
   return false;
 }
 
-DNSRecord makeOpt(int udpsize, int extRCode, int Z)
+DNSRecord makeOpt(const uint16_t udpsize, const uint16_t extRCode, const uint16_t extFlags)
 {
   EDNS0Record stuff;
   stuff.extRCode=0;
   stuff.version=0;
-  stuff.Z=htons(Z);
+  stuff.extFlags=htons(extFlags);
   DNSRecord dr;
   static_assert(sizeof(EDNS0Record) == sizeof(dr.d_ttl), "sizeof(EDNS0Record) must match sizeof(DNSRecord.d_ttl)");
   memcpy(&dr.d_ttl, &stuff, sizeof(stuff));

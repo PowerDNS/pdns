@@ -132,10 +132,10 @@ struct dnsrecordheader
   uint16_t d_clen;
 } GCCPACKATTRIBUTE;
 
-struct EDNS0Record 
-{ 
-        uint8_t extRCode, version; 
-        uint16_t Z; 
+struct EDNS0Record
+{
+  uint8_t extRCode{0}, version{0};
+  uint16_t extFlags{0};
 } GCCPACKATTRIBUTE;
 
 static_assert(sizeof(EDNS0Record) == 4, "EDNS0Record size must be 4");

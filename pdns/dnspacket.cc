@@ -546,8 +546,8 @@ try
     */
     d_ednsRawPacketSizeLimit=edo.d_packetsize;
     d_maxreplylen=std::min(std::max(static_cast<uint16_t>(512), edo.d_packetsize), s_udpTruncationThreshold);
-//    cerr<<edo.d_Z<<endl;
-    if(edo.d_Z & EDNSOpts::DNSSECOK)
+//    cerr<<edo.d_extFlags<<endl;
+    if(edo.d_extFlags & EDNSOpts::DNSSECOK)
       d_dnssecOk=true;
 
     for(vector<pair<uint16_t, string> >::const_iterator iter = edo.d_options.begin();

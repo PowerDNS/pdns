@@ -788,14 +788,14 @@ struct EDNSOpts
   enum zFlags { DNSSECOK=32768 };
   vector<pair<uint16_t, string> > d_options;
   uint16_t d_packetsize{0};
-  uint16_t d_Z{0};
+  uint16_t d_extFlags{0};
   uint8_t d_extRCode, d_version;
 };
 //! Convenience function that fills out EDNS0 options, and returns true if there are any
 
 class MOADNSParser;
 bool getEDNSOpts(const MOADNSParser& mdp, EDNSOpts* eo);
-DNSRecord makeOpt(int udpsize, int extRCode, int Z);
+DNSRecord makeOpt(const uint16_t udpsize, const uint16_t extRCode, const uint16_t extFlags);
 void reportBasicTypes();
 void reportOtherTypes();
 void reportAllTypes();
