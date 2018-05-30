@@ -127,6 +127,7 @@ pdns_recursor_SOURCES = \
 	opensslsigners.cc opensslsigners.hh \
 	packetcache.hh \
 	pdns_recursor.cc \
+	pdns_nod.cc pdns_nod.hh \
 	pdnsexception.hh \
 	pollmplexer.cc \
 	protobuf.cc protobuf.hh \
