@@ -32,9 +32,9 @@
 using namespace nod;
 using namespace boost::filesystem;
 
-void NODDB::init() {
+bool NODDB::init() {
   if (d_init)
-    return;
+    return false;
   
   if (d_cachedir.length()) {
     path p(d_cachedir);
@@ -71,11 +71,13 @@ void NODDB::init() {
       }
     }
     catch (const filesystem_error& e) {
-      throw PDNSException(std::string("NODDB init: ") + e.what());
+      g_log<<Logger::Warning<<"NODDB init failed:: " << e.what() << endl;
+      return false;
     }
   }
   d_cached_cardinality = static_cast<int>(d_hll_master.estimate());
   d_init = true;
+  return true;
 }
 
 void NODDB::housekeepingThread()

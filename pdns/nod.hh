@@ -35,7 +35,7 @@ namespace nod {
   class NODDB {
   public:
     NODDB(): d_current_creation(time(0)) {}
-    void init(); // Initialize the NODDB
+    bool init(); // Initialize the NODDB
     bool isNewDomain(const std::string& domain); // Returns true if newly observed domain
     bool isNewDomain(const DNSName& dname); // As above
     bool isNewDomainWithParent(const std::string& domain, std::string& observed); // Returns true if newly observed domain, in which case "observed" contains the parent domain which *was* observed (or "" if domain is .)
