@@ -86,6 +86,8 @@
 #include "rec-lua-conf.hh"
 #include "ednsoptions.hh"
 #include "gettime.hh"
+#include "nod.hh"
+#include "pdns_nod.hh"
 
 #include "rec-protobuf.hh"
 #include "rec-snmp.hh"
@@ -175,6 +177,9 @@ static bool g_gettagNeedsEDNSOptions{false};
 static time_t g_statisticsInterval;
 static bool g_useIncomingECS;
 std::atomic<uint32_t> g_maxCacheEntries, g_maxPacketCacheEntries;
+static bool g_nodEnabled;
+static bool g_sendNewDomains;
+static bool g_logNewDomains;
 #ifdef HAVE_BOOST_CONTAINER_FLAT_SET_HPP
 static boost::container::flat_set<uint16_t> s_avoidUdpSourcePorts;
 #else
@@ -1415,9 +1420,24 @@ static void startDoResolve(void *p)
 
     if (sr.d_outqueries || sr.d_authzonequeries) {
       t_RC->cacheMisses++;
+      if (g_nodEnabled) {
+        if (g_nodDBp && g_nodDBp->isNewDomain(dc->d_mdp.d_qname)) {
+          if (g_logNewDomains) {
+            // This should probably log to a dedicated log file
+            g_log<<Logger::Notice<<"Newly observed domain nod="<<dc->d_mdp.d_qname.toLogString()<<endl;
+          }
+          if (g_sendNewDomains) {
+            // XXX - send a DNS query to <domain>.nod.powerdns.com
+          }
+        }
+      }
     }
     else {
       t_RC->cacheHits++;
+      if (g_nodEnabled && g_nodDBp) {
+        // This keeps the "current" HLL up to date
+        g_nodDBp->addDomain(dc->d_mdp.d_qname);
+      }
     }
 
     if(spent < 0.001)
@@ -3307,6 +3327,28 @@ static int serviceMain(int argc, char*argv[])
     makeTCPServerSockets(0);
   }
 
+  // Setup NOD subsystem
+  g_nodEnabled = ::arg().mustDo("track-new-domains");
+  if (g_nodEnabled) {
+    g_nodDBp = std::make_shared<nod::NODDB>();
+    g_nodDBp->setMaxFiles(::arg().asNum("new-domain-history-days"));
+    try {
+      g_nodDBp->setCacheDir(::arg()["new-domain-history-dir"]);
+    }
+    catch (const PDNSException& e) {
+      g_log<<Logger::Error<<"new-domain-history-dir (" << ::arg()["new-domain-history-dir"] << ") is not readable or does not exist"<<endl;
+      exit(1);
+    }
+    if (!g_nodDBp->init()) {
+      g_log<<Logger::Error<<"Could not initialize domain tracking"<<endl;
+      exit(1);
+    }
+    std::thread t(nod::NODDB::startHousekeepingThread, g_nodDBp);
+    t.detach();
+  }
+  g_sendNewDomains = ::arg().mustDo("send-new-domains");
+  g_logNewDomains = ::arg().mustDo("log-new-domains");
+  
   int forks;
   for(forks = 0; forks < ::arg().asNum("processes") - 1; ++forks) {
     if(!fork()) // we are child
@@ -3752,7 +3794,12 @@ int main(int argc, char **argv)
     ::arg().set("udp-source-port-max", "Maximum UDP port to bind on")="65535";
     ::arg().set("udp-source-port-avoid", "List of comma separated UDP port number to avoid")="11211";
     ::arg().set("rng", "Specify random number generator to use. Valid values are auto,sodium,openssl,getrandom,arc4random,urandom.")="auto";
-
+    ::arg().set("track-new-domains", "Track newly observed domains (i.e. never seen before).")="yes";
+    ::arg().set("log-new-domains", "Log newly observed domains.")="yes";
+    ::arg().set("send-new-domains", "Send newly observed domains to powerdns to help find malicious domains")="no";
+    ::arg().set("new-domain-history-days", "Maximum number of days to keep hashes used for tracking new domains.")="365";
+    ::arg().set("new-domain-history-dir", "Use *.hll files from this directory to track new domains")=string(NODCACHEDIR)+"/nod";
+    
     ::arg().setCmd("help","Provide a helpful message");
     ::arg().setCmd("version","Print version string");
     ::arg().setCmd("config","Output blank configuration");

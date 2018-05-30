@@ -1,0 +1,4 @@
+libhll.la
+*.lo
+Makefile
+Makefile.in
