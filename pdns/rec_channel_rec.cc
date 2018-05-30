@@ -30,6 +30,7 @@
 #include "lock.hh"
 #include "responsestats.hh"
 #include "rec-lua-conf.hh"
+#include "pdns_nod.hh"
 
 #include "validate-recursor.hh"
 #include "filterpo.hh"
@@ -988,6 +989,10 @@ static void doExitGeneric(bool nicely)
   extern RecursorControlChannel s_rcc;
   s_rcc.~RecursorControlChannel(); 
 
+  if (g_nodDBp) {
+    g_nodDBp->snapshotCurrent();
+  }
+  
   extern string s_pidfname;
   if(!s_pidfname.empty()) 
     unlink(s_pidfname.c_str()); // we can at least try..
