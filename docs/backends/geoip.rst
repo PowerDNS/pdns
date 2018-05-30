@@ -153,7 +153,7 @@ Keys explained
   :records: Records for this domain.
             Each subkey must be a fully qualified name, under which an array of records follows.
             Every record is then keyed by its type (e.g. ``a``, ``txt``) and a type may exist more than once.
-            The content for this record may then be confgured as the value.
+            The content for this record may then be configured as the value.
             However, a record can alternatively have one or more subkeys:
 
             :content: The content of the record.
@@ -203,14 +203,14 @@ These placeholders disable caching for the record completely:
 
 .. versionadded:: 4.2.0
 
-  These placeholder have been added in version 4.2.0:
+  These placeholders have been added in version 4.2.0:
 
   - %lat, %lon, %loc to expand for geographic location, if available in backend. %loc in particular can be safely used with LOC record type.
   - %ip4 and %ip6 that will expand to the IP address when AFI matches, and empty otherwise. Can be particularly used with A and AAAA record types.
 
 .. versionadded:: 4.1.0
 
-  These placeholder have been added in version 4.1.0:
+  These placeholders have been added in version 4.1.0:
 
   - %cc = 2 letter country code
 
@@ -229,7 +229,7 @@ If the record which a service points to exists under "records" then it is return
 If it does not exist under "records" then it is returned as a CNAME.
 
 You can mix service and static records to produce the sum of these records, including apex record.
-For instance, this configuration will send the correct response both A and SOA queries:
+For instance, this configuration will send the correct response for both A and SOA queries:
 
 .. code-block:: yaml
 
@@ -252,14 +252,14 @@ Per :rfc:`2181`, CNAME records cannot appear in the same label as NS or SOA reco
 
 .. versionchanged:: 4.2.0
 
-  Before, a record expanded to an empty value it could cause SERVFAIL.
+  Before, a record expanded to an empty value would cause a SERVFAIL response.
   Since 4.2.0 such expansions for non-TXT record types are not included in response.
 
 Caching and the GeoIP Backend
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 The :ref:`packet-cache` and :ref:`query-cache` will cache the records with EDNS Client Subnet information, when provided in the response.
-Use of certain placeholders (described above) can disable record caching for certail resource records.
+Use of certain placeholders (described above) can disable record caching for certain resource records.
 
 That means, if you have a record like this:
 
@@ -271,4 +271,4 @@ That means, if you have a record like this:
 
 then caching will not happen for any records of something.example.com.
 
-If you need to use TXT for debugging, make sure you use dedicated name for it.
+If you need to use TXT for debugging, make sure you use a dedicated name for it.
