@@ -11,7 +11,8 @@ AM_CPPFLAGS += \
 AM_CXXFLAGS = \
 	-DSYSCONFDIR=\"$(sysconfdir)\" \
 	-DPKGLIBDIR=\"$(pkglibdir)\" \
-	-DLOCALSTATEDIR=\"$(socketdir)\"
+	-DLOCALSTATEDIR=\"$(socketdir)\" \
+	-DNODCACHEDIR=\"$(nodcachedir)\"
 
 AM_LDFLAGS = \
 	$(PROGRAM_LDFLAGS) \
