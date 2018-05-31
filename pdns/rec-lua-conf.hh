@@ -33,6 +33,9 @@ struct ProtobufExportConfig
   uint16_t reconnectWaitTime{1};
   bool asyncConnect{false};
   bool enabled{false};
+  bool logQueries{true};
+  bool logResponses{true};
+  bool taggedOnly{false};
 };
 
 class LuaConfigItems 
@@ -51,7 +54,6 @@ public:
   uint64_t generation{0};
   uint8_t protobufMaskV4{32};
   uint8_t protobufMaskV6{128};
-  bool protobufTaggedOnly{false};
 };
 
 extern GlobalStateHolder<LuaConfigItems> g_luaconfs;

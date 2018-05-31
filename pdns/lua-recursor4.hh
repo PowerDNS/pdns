@@ -60,7 +60,7 @@ public:
 
   struct DNSQuestion
   {
-    DNSQuestion(const ComboAddress& rem, const ComboAddress& loc, const DNSName& query, uint16_t type, bool tcp, bool& variable_, bool& wantsRPZ_): qname(query), qtype(type), local(loc), remote(rem), isTcp(tcp), variable(variable_), wantsRPZ(wantsRPZ_)
+    DNSQuestion(const ComboAddress& rem, const ComboAddress& loc, const DNSName& query, uint16_t type, bool tcp, bool& variable_, bool& wantsRPZ_, bool& logResponse_): qname(query), qtype(type), local(loc), remote(rem), isTcp(tcp), variable(variable_), wantsRPZ(wantsRPZ_), logResponse(logResponse_)
     {
     }
     const DNSName& qname;
@@ -80,6 +80,7 @@ public:
     vState validationState{Indeterminate};
     bool& variable;
     bool& wantsRPZ;
+    bool& logResponse;
     unsigned int tag{0};
 
     void addAnswer(uint16_t type, const std::string& content, boost::optional<int> ttl, boost::optional<string> name);
@@ -110,7 +111,7 @@ public:
   };
 
   unsigned int gettag(const ComboAddress& remote, const Netmask& ednssubnet, const ComboAddress& local, const DNSName& qname, uint16_t qtype, std::vector<std::string>* policyTags, LuaContext::LuaObject& data, const EDNSOptionViewMap&, bool tcp, std::string& requestorId, std::string& deviceId) const;
-  unsigned int gettag_ffi(const ComboAddress& remote, const Netmask& ednssubnet, const ComboAddress& local, const DNSName& qname, uint16_t qtype, std::vector<std::string>* policyTags, LuaContext::LuaObject& data, const EDNSOptionViewMap&, bool tcp, std::string& requestorId, std::string& deviceId, uint32_t& ttlCap, bool& variable) const;
+  unsigned int gettag_ffi(const ComboAddress& remote, const Netmask& ednssubnet, const ComboAddress& local, const DNSName& qname, uint16_t qtype, std::vector<std::string>* policyTags, LuaContext::LuaObject& data, const EDNSOptionViewMap&, bool tcp, std::string& requestorId, std::string& deviceId, uint32_t& ttlCap, bool& variable, bool& logQuery) const;
 
   void maintenance() const;
   bool prerpz(DNSQuestion& dq, int& ret) const;
