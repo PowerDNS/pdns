@@ -261,7 +261,7 @@ string DLNotifyHostHandler(const vector<string>&parts, Utility::pid_t ppid)
   ostringstream os;
   if(parts.size()!=3)
     return "syntax: notify-host domain ip";
-  if(!::arg().mustDo("master") && !::arg().mustDo("slave-renotify"))
+  if( !::arg().mustDo("master") && !(::arg().mustDo("slave") && ::arg().mustDo("slave-renotify")) )
       return "PowerDNS not configured as master or slave with re-notifications";
 
   DNSName domain;
@@ -289,7 +289,7 @@ string DLNotifyHandler(const vector<string>&parts, Utility::pid_t ppid)
   UeberBackend B;
   if(parts.size()!=2)
     return "syntax: notify domain";
-  if(!::arg().mustDo("master") && !::arg().mustDo("slave-renotify"))
+  if( !::arg().mustDo("master") && !(::arg().mustDo("slave") && ::arg().mustDo("slave-renotify")) )
       return "PowerDNS not configured as master or slave with re-notifications";
   g_log<<Logger::Warning<<"Notification request for domain '"<<parts[1]<<"' received from operator"<<endl;
 
@@ -297,19 +297,41 @@ string DLNotifyHandler(const vector<string>&parts, Utility::pid_t ppid)
     vector<DomainInfo> domains;
     B.getAllDomains(&domains);
 
-    int total = 0;
-    int notified = 0;
-    for (vector<DomainInfo>::const_iterator di=domains.begin(); di != domains.end(); di++) {
-      if (di->kind == 0) { // MASTER
-        total++;
-        if(Communicator.notifyDomain(di->zone))
-          notified++;
+    int master = 0, master_notified = 0;
+    int slave = 0, slave_notified = 0;
+    string status = "";
+
+    if( ::arg().mustDo("master") ) {
+      for (vector<DomainInfo>::const_iterator di=domains.begin(); di != domains.end(); di++) {
+        if (di->kind == 0) { // MASTER
+          master++;
+          if(Communicator.notifyDomain(di->zone))
+            master_notified++;
+        }
       }
+      if (master != master_notified)
+        status = itoa(master_notified)+" out of "+itoa(master)+" MASTER zones added to queue - see log.";
+      else
+        status = "Added "+itoa(master)+" MASTER zones to queue.";
+      if( ::arg().mustDo("slave") )
+        status = status + " ";
+    }
+    if( ::arg().mustDo("slave") ) {
+      for (vector<DomainInfo>::const_iterator di=domains.begin(); di != domains.end(); di++) {
+        if (di->kind == 1) { // SLAVE
+          slave++;
+          if(Communicator.notifyDomain(di->zone))
+            slave_notified++;
+        }
+      }
+      if (slave != slave_notified)
+        status = status + itoa(slave_notified)+" out of "+itoa(slave)+" SLAVE zones added to queue - see log.";
+      else
+        status = status + "Added "+itoa(slave)+" SLAVE zones to queue.";
     }
 
-    if (total != notified)
-      return itoa(notified)+" out of "+itoa(total)+" zones added to queue - see log";
-    return "Added "+itoa(total)+" MASTER zones to queue";
+    return status;
+
   } else {
     DNSName domain;
     try {
