@@ -335,8 +335,11 @@ int checkZone(DNSSECKeeper &dk, UeberBackend &B, const DNSName& zone, const vect
       rr.content=o.str();
     }
 
-    if(rr.qtype.getCode() == QType::TXT && !rr.content.empty() && rr.content[0]!='"')
+    if(rr.qtype.getCode() == QType::TXT && !rr.content.empty() && rr.content[0]!='"') {
+      cout<<"[Warning] TXT does not start with '\"': "<< rr.content<<endl;
+      numwarnings++;
       rr.content = "\""+rr.content+"\"";
+    }
 
     try {
       shared_ptr<DNSRecordContent> drc(DNSRecordContent::mastermake(rr.qtype.getCode(), 1, rr.content));
