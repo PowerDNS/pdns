@@ -498,6 +498,27 @@ class TestDynBlockGroupQPSRefused(DynBlocksTest):
         name = 'qraterefused.group.dynblocks.tests.powerdns.com.'
         self.doTestQRateRCode(name, dns.rcode.REFUSED)
 
+class TestDynBlockQPSActionAllow(DynBlocksTest):
+
+    _dynBlockQPS = 10
+    _dynBlockPeriod = 2
+    _dynBlockDuration = 5
+    _config_params = ['_dynBlockQPS', '_dynBlockPeriod', '_dynBlockDuration', '_testServerPort']
+    _config_template = """
+    function maintenance()
+	    addDynBlocks(exceedQRate(%d, %d), "Exceeded query rate", %d, DNSAction.Allow)
+    end
+    setDynBlocksAction(DNSAction.Drop)
+    newServer{address="127.0.0.1:%s"}
+    """
+
+    def testDynBlocksQRate(self):
+        """
+        Dyn Blocks: QRate allow (action)
+        """
+        name = 'qrateactionallow.dynblocks.tests.powerdns.com.'
+        self.doTestQRate(name)
+
 class TestDynBlockQPSActionRefused(DynBlocksTest):
 
     _dynBlockQPS = 10
