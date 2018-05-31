@@ -105,6 +105,7 @@ void BindParser::commit(BindDomainInfo DI)
 
 %token AWORD QUOTEDWORD OBRACE EBRACE SEMICOLON ZONETOK FILETOK OPTIONSTOK
 %token DIRECTORYTOK ACLTOK LOGGINGTOK CLASSTOK TYPETOK MASTERTOK ALSONOTIFYTOK
+%token VIEWTOK CHANNELTOK
 
 %%
 
@@ -113,7 +114,7 @@ root_commands:
 	root_commands root_command SEMICOLON
   	;
 
-root_command: command | acl_command | global_zone_command | global_options_command
+root_command: command | acl_command | global_zone_command | global_options_command | global_view_command
 	;
 
 commands:
@@ -123,6 +124,25 @@ commands:
 
 command:
 	terms 
+	;
+
+global_view_command:
+	VIEWTOK quotedname view_block
+	;
+
+view_block:
+	OBRACE view_commands EBRACE
+	;
+
+view_commands:
+	|
+	view_commands view_command SEMICOLON
+	;
+
+view_command:
+	command
+	|
+	global_zone_command
 	;
 
 global_zone_command:
@@ -172,7 +192,7 @@ options_commands:
 	options_command SEMICOLON options_commands
 	;
 
-options_command: command | global_options_command
+options_command: command | global_options_command | logging_channel_command
 	;
 
 global_options_command: options_directory_command | also_notify_command
@@ -183,6 +203,22 @@ options_directory_command: DIRECTORYTOK quotedname
 		parent->setDirectory($2);
 		free($2);
 	}
+	;
+
+logging_channel_command:
+	CHANNELTOK quotedname OBRACE channel_commands EBRACE
+	|
+	CHANNELTOK filename OBRACE channel_commands EBRACE
+
+channel_commands: /* empty */
+	|
+	channel_commands channel_command SEMICOLON
+	;
+
+channel_command: command | channel_file_command
+	;
+
+channel_file_command: FILETOK quotedname terms
 	;
 
 also_notify_command: ALSONOTIFYTOK OBRACE also_notify_list EBRACE 

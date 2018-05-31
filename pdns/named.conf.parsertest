@@ -10,22 +10,34 @@ options {
 	version "Meow!Meow!";
 	minimal-responses yes;
 };
-zone "example.com"{
-	type master;
-	file "example.com";
+
+logging {
+	channel default_debug {
+		file "data/named.run";
+		severity dynamic;
+	};
 };
 
-zone "test.com"{
-	type slave;
-	file "test.com";
-	masters { 1.2.3.4:5678; };
+view "basic" {
+	zone "example.com"{
+		type master;
+		file "example.com";
+	};
 };
 
-zone "test.dyndns" {
-	type garblewarble;
-	file "test.dyndns";
-	allow-update {
-		127.0.0.0/8;
+view "test" {
+	zone "test.com"{
+		type slave;
+		file "test.com";
+		masters { 1.2.3.4:5678; };
+	};
+
+	zone "test.dyndns" {
+		type garblewarble;
+		file "test.dyndns";
+		allow-update {
+			127.0.0.0/8;
+		};
 	};
 };
 
