@@ -554,6 +554,18 @@ Enables EDNS subnet processing, for backends that support it.
 
 Enable globally the LUA records feature
 
+.. _setting-enable-notification-warning:
+
+``enable-notification-warning``
+--------------------------
+
+-  Boolean
+-  Default: yes
+
+By default PowerDNS will log a warning if all NOTIFYs were suppressed due to
+`only-notify` and there were no explict ALSO-NOTIFYs. This warning can be suppressed by
+setting this option to `no`.
+
 .. _setting-entropy-source:
 
 ``entropy-source``

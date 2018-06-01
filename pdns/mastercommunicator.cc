@@ -96,8 +96,9 @@ void CommunicatorClass::queueNotifyDomain(const DomainInfo& di, UeberBackend* B)
     }
   }
 
-  if (!hasQueuedItem)
+  if (!hasQueuedItem && ::arg().mustDo("enable-notification-warning")) {
     g_log<<Logger::Warning<<"Request to queue notification for domain '"<<di.zone<<"' was processed, but no valid nameservers or ALSO-NOTIFYs found. Not notifying!"<<endl;
+  }
 }
 
 
