@@ -1037,7 +1037,7 @@ int main(int argc, char** argv) {
     }
 
     g_log<<Logger::Notice<<"Dropping effective user-id to "<<newuid<<endl;
-    if (setuid(pw->pw_uid) < 0) {
+    if (setuid(newuid) < 0) {
       g_log<<Logger::Error<<"Could not set user id to "<<newuid<<": "<<stringerror()<<endl;
       had_error = true;
     }
