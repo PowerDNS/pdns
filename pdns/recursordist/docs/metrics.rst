@@ -430,7 +430,7 @@ truncated-drops
 ^^^^^^^^^^^^^^^
 .. versionadded:: 4.2
 
-questions dropped because they were larger than 1500 bytes
+questions dropped because they were larger than 512 bytes
 
 unauthorized-tcp
 ^^^^^^^^^^^^^^^^

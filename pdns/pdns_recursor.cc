@@ -2011,6 +2011,7 @@ static string* doProcessUDPQuestion(const std::string& question, const ComboAddr
 static void handleNewUDPQuestion(int fd, FDMultiplexer::funcparam_t& var)
 {
   ssize_t len;
+  static const size_t maxIncomingQuerySize = 512;
   static thread_local std::string data;
   ComboAddress fromaddr;
   struct msghdr msgh;
@@ -2018,7 +2019,7 @@ static void handleNewUDPQuestion(int fd, FDMultiplexer::funcparam_t& var)
   char cbuf[256];
   bool firstQuery = true;
 
-  data.resize(1500);
+  data.resize(maxIncomingQuerySize);
   fromaddr.sin6.sin6_family=AF_INET6; // this makes sure fromaddr is big enough
   fillMSGHdr(&msgh, &iov, cbuf, sizeof(cbuf), &data[0], data.size(), &fromaddr);
 

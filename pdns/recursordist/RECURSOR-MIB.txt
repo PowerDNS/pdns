@@ -771,7 +771,7 @@ truncatedDrops OBJECT-TYPE
     MAX-ACCESS read-only
     STATUS current
     DESCRIPTION
-        "Number of queries dropped because they were larger than 1500 bytes"
+        "Number of queries dropped because they were larger than 512 bytes"
     ::= { stats 93 }
 
 ---
