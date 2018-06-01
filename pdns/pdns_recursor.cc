@@ -2019,107 +2019,121 @@ static void handleNewUDPQuestion(int fd, FDMultiplexer::funcparam_t& var)
   char cbuf[256];
   bool firstQuery = true;
 
-  data.resize(maxIncomingQuerySize);
-  fromaddr.sin6.sin6_family=AF_INET6; // this makes sure fromaddr is big enough
-  fillMSGHdr(&msgh, &iov, cbuf, sizeof(cbuf), &data[0], data.size(), &fromaddr);
+  for(size_t queriesCounter = 0; queriesCounter < s_maxUDPQueriesPerRound; queriesCounter++) {
+    data.resize(maxIncomingQuerySize);
+    fromaddr.sin6.sin6_family=AF_INET6; // this makes sure fromaddr is big enough
+    fillMSGHdr(&msgh, &iov, cbuf, sizeof(cbuf), &data[0], data.size(), &fromaddr);
 
-  for(size_t queriesCounter = 0; queriesCounter < s_maxUDPQueriesPerRound; queriesCounter++)
-  if((len=recvmsg(fd, &msgh, 0)) >= 0) {
+    if((len=recvmsg(fd, &msgh, 0)) >= 0) {
 
-    firstQuery = false;
+      firstQuery = false;
 
-    if (static_cast<size_t>(len) < sizeof(dnsheader)) {
-      g_stats.ignoredCount++;
-      if (!g_quiet) {
-        g_log<<Logger::Error<<"Ignoring too-short ("<<std::to_string(len)<<") query from "<<fromaddr.toString()<<endl;
-      }
-      return;
-    }
-
-    if (msgh.msg_flags & MSG_TRUNC) {
-      g_stats.truncatedDrops++;
-      if (!g_quiet) {
-        g_log<<Logger::Error<<"Ignoring truncated query from "<<fromaddr.toString()<<endl;
-      }
-      return;
-    }
-
-    if(t_remotes)
-      t_remotes->push_back(fromaddr);
-
-    if(t_allowFrom && !t_allowFrom->match(&fromaddr)) {
-      if(!g_quiet)
-        g_log<<Logger::Error<<"["<<MT->getTid()<<"] dropping UDP query from "<<fromaddr.toString()<<", address not matched by allow-from"<<endl;
-
-      g_stats.unauthorizedUDP++;
-      return;
-    }
-    BOOST_STATIC_ASSERT(offsetof(sockaddr_in, sin_port) == offsetof(sockaddr_in6, sin6_port));
-    if(!fromaddr.sin4.sin_port) { // also works for IPv6
-     if(!g_quiet)
-        g_log<<Logger::Error<<"["<<MT->getTid()<<"] dropping UDP query from "<<fromaddr.toStringWithPort()<<", can't deal with port 0"<<endl;
-
-      g_stats.clientParseError++; // not quite the best place to put it, but needs to go somewhere
-      return;
-    }
-    try {
-      data.resize(static_cast<size_t>(len));
-      dnsheader* dh=(dnsheader*)&data[0];
-
-      if(dh->qr) {
+      if (static_cast<size_t>(len) < sizeof(dnsheader)) {
         g_stats.ignoredCount++;
-        if(g_logCommonErrors)
-          g_log<<Logger::Error<<"Ignoring answer from "<<fromaddr.toString()<<" on server socket!"<<endl;
+        if (!g_quiet) {
+          g_log<<Logger::Error<<"Ignoring too-short ("<<std::to_string(len)<<") query from "<<fromaddr.toString()<<endl;
+        }
+        return;
       }
-      else if(dh->opcode) {
-        g_stats.ignoredCount++;
-        if(g_logCommonErrors)
-          g_log<<Logger::Error<<"Ignoring non-query opcode "<<dh->opcode<<" from "<<fromaddr.toString()<<" on server socket!"<<endl;
+
+      if (msgh.msg_flags & MSG_TRUNC) {
+        g_stats.truncatedDrops++;
+        if (!g_quiet) {
+          g_log<<Logger::Error<<"Ignoring truncated query from "<<fromaddr.toString()<<endl;
+        }
+        return;
       }
-      else {
-	struct timeval tv={0,0};
-	HarvestTimestamp(&msgh, &tv);
-	ComboAddress dest;
-	dest.reset(); // this makes sure we ignore this address if not returned by recvmsg above
-        auto loc = rplookup(g_listenSocketsAddresses, fd);
-	if(HarvestDestinationAddress(&msgh, &dest)) {
-          // but.. need to get port too
-          if(loc) 
-            dest.sin4.sin_port = loc->sin4.sin_port;
+
+      if(t_remotes) {
+        t_remotes->push_back(fromaddr);
+      }
+
+      if(t_allowFrom && !t_allowFrom->match(&fromaddr)) {
+        if(!g_quiet) {
+          g_log<<Logger::Error<<"["<<MT->getTid()<<"] dropping UDP query from "<<fromaddr.toString()<<", address not matched by allow-from"<<endl;
+        }
+
+        g_stats.unauthorizedUDP++;
+        return;
+      }
+      BOOST_STATIC_ASSERT(offsetof(sockaddr_in, sin_port) == offsetof(sockaddr_in6, sin6_port));
+      if(!fromaddr.sin4.sin_port) { // also works for IPv6
+        if(!g_quiet) {
+          g_log<<Logger::Error<<"["<<MT->getTid()<<"] dropping UDP query from "<<fromaddr.toStringWithPort()<<", can't deal with port 0"<<endl;
+        }
+
+        g_stats.clientParseError++; // not quite the best place to put it, but needs to go somewhere
+        return;
+      }
+
+      try {
+        data.resize(static_cast<size_t>(len));
+        dnsheader* dh=(dnsheader*)&data[0];
+
+        if(dh->qr) {
+          g_stats.ignoredCount++;
+          if(g_logCommonErrors) {
+            g_log<<Logger::Error<<"Ignoring answer from "<<fromaddr.toString()<<" on server socket!"<<endl;
+          }
+        }
+        else if(dh->opcode) {
+          g_stats.ignoredCount++;
+          if(g_logCommonErrors) {
+            g_log<<Logger::Error<<"Ignoring non-query opcode "<<dh->opcode<<" from "<<fromaddr.toString()<<" on server socket!"<<endl;
+          }
         }
         else {
-          if(loc) {
-            dest = *loc;
+          struct timeval tv={0,0};
+          HarvestTimestamp(&msgh, &tv);
+          ComboAddress dest;
+          dest.reset(); // this makes sure we ignore this address if not returned by recvmsg above
+          auto loc = rplookup(g_listenSocketsAddresses, fd);
+          if(HarvestDestinationAddress(&msgh, &dest)) {
+            // but.. need to get port too
+            if(loc) {
+              dest.sin4.sin_port = loc->sin4.sin_port;
+            }
           }
           else {
-            dest.sin4.sin_family = fromaddr.sin4.sin_family;
-            socklen_t slen = dest.getSocklen();
-            getsockname(fd, (sockaddr*)&dest, &slen); // if this fails, we're ok with it
+            if(loc) {
+              dest = *loc;
+            }
+            else {
+              dest.sin4.sin_family = fromaddr.sin4.sin_family;
+              socklen_t slen = dest.getSocklen();
+              getsockname(fd, (sockaddr*)&dest, &slen); // if this fails, we're ok with it
+            }
+          }
+
+          if(g_weDistributeQueries) {
+            distributeAsyncFunction(data, boost::bind(doProcessUDPQuestion, data, fromaddr, dest, tv, fd));
+          }
+          else {
+            doProcessUDPQuestion(data, fromaddr, dest, tv, fd);
           }
         }
-        if(g_weDistributeQueries)
-          distributeAsyncFunction(data, boost::bind(doProcessUDPQuestion, data, fromaddr, dest, tv, fd));
-        else
-          doProcessUDPQuestion(data, fromaddr, dest, tv, fd);
+      }
+      catch(const MOADNSException& mde) {
+        g_stats.clientParseError++;
+        if(g_logCommonErrors) {
+          g_log<<Logger::Error<<"Unable to parse packet from remote UDP client "<<fromaddr.toString() <<": "<<mde.what()<<endl;
+        }
+      }
+      catch(const std::runtime_error& e) {
+        g_stats.clientParseError++;
+        if(g_logCommonErrors) {
+          g_log<<Logger::Error<<"Unable to parse packet from remote UDP client "<<fromaddr.toString() <<": "<<e.what()<<endl;
+        }
       }
     }
-    catch(MOADNSException& mde) {
-      g_stats.clientParseError++;
-      if(g_logCommonErrors)
-        g_log<<Logger::Error<<"Unable to parse packet from remote UDP client "<<fromaddr.toString() <<": "<<mde.what()<<endl;
-    }
-    catch(std::runtime_error& e) {
-      g_stats.clientParseError++;
-      if(g_logCommonErrors)
-        g_log<<Logger::Error<<"Unable to parse packet from remote UDP client "<<fromaddr.toString() <<": "<<e.what()<<endl;
-    }
-  }
-  else {
-    // cerr<<t_id<<" had error: "<<stringerror()<<endl;
-    if(firstQuery && errno == EAGAIN)
-      g_stats.noPacketError++;
+    else {
+      // cerr<<t_id<<" had error: "<<stringerror()<<endl;
+      if(firstQuery && errno == EAGAIN) {
+        g_stats.noPacketError++;
+      }
 
-    break;
+      break;
+    }
   }
 }
 
