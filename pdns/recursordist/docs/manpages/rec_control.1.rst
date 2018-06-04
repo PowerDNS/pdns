@@ -183,13 +183,26 @@ top-servfail-queries
     Shows the top-20 queries causing servfail responses. Statistics are over
     the last 'stats-ringbuffer-entries' queries.
 
+top-bogus-queries
+    Shows the top-20 queries causing bogus responses. Statistics are over
+    the last 'stats-ringbuffer-entries' queries.
+
 top-pub-servfail-queries
     Shows the top-20 queries causing servfail responses grouped by public
     suffix list. Statistics are over the last 'stats-ringbuffer-entries'
     queries.
 
+top-pub-bogus-queries
+    Shows the top-20 queries causing bogus responses grouped by public
+    suffix list. Statistics are over the last 'stats-ringbuffer-entries'
+    queries.
+
 top-servfail-remotes
     Shows the top-20 most active remote hosts causing servfail responses.
+    Statistics are over the last 'stats-ringbuffer-entries' queries.
+
+top-bogus-remotes
+    Shows the top-20 most active remote hosts causing bogus responses.
     Statistics are over the last 'stats-ringbuffer-entries' queries.
 
 trace-regex *REGEX*
