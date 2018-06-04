@@ -203,7 +203,7 @@ private:
       blocks = g_dynblockNMG.getCopy();
     }
     struct timespec until = now;
-    until.tv_sec += rule.d_seconds;
+    until.tv_sec += rule.d_blockDuration;
     unsigned int count = 0;
     const auto& got = blocks->lookup(Netmask(requestor));
     bool expired = false;
@@ -225,7 +225,7 @@ private:
     DynBlock db{rule.d_blockReason, until, DNSName(), rule.d_action};
     db.blocks = count;
     if (!got || expired) {
-      warnlog("Inserting dynamic block for %s for %d seconds: %s", requestor.toString(), rule.d_seconds, rule.d_blockReason);
+      warnlog("Inserting dynamic block for %s for %d seconds: %s", requestor.toString(), rule.d_blockDuration, rule.d_blockReason);
     }
     blocks->insert(Netmask(requestor)).second = db;
     updated = true;
