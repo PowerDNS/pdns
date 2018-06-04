@@ -72,7 +72,7 @@ static void logOutgoingQuery(std::shared_ptr<RemoteLogger> outgoingLogger, boost
   outgoingLogger->queueData(str);
 }
 
-static void logIncomingResponse(std::shared_ptr<RemoteLogger> outgoingLogger, boost::optional<const boost::uuids::uuid&> initialRequestId, const boost::uuids::uuid& uuid, const ComboAddress& ip, const DNSName& domain, int type, uint16_t qid, bool doTCP, size_t bytes, int rcode, const std::vector<DNSRecord>& records, const struct timeval& queryTime)
+static void logIncomingResponse(std::shared_ptr<RemoteLogger> outgoingLogger, boost::optional<const boost::uuids::uuid&> initialRequestId, const boost::uuids::uuid& uuid, const ComboAddress& ip, const DNSName& domain, int type, uint16_t qid, bool doTCP, size_t bytes, int rcode, const std::vector<DNSRecord>& records, const struct timeval& queryTime, const std::set<uint16_t>& exportTypes)
 {
   if(!outgoingLogger)
     return;
@@ -84,7 +84,7 @@ static void logIncomingResponse(std::shared_ptr<RemoteLogger> outgoingLogger, bo
   }
   message.setQueryTime(queryTime.tv_sec, queryTime.tv_usec);
   message.setResponseCode(rcode);
-  message.addRRs(records);
+  message.addRRs(records, exportTypes);
 
 //  cerr <<message.toDebugString()<<endl;
   std::string str;
@@ -97,7 +97,7 @@ static void logIncomingResponse(std::shared_ptr<RemoteLogger> outgoingLogger, bo
 /** lwr is only filled out in case 1 was returned, and even when returning 1 for 'success', lwr might contain DNS errors
     Never throws! 
  */
-int asyncresolve(const ComboAddress& ip, const DNSName& domain, int type, bool doTCP, bool sendRDQuery, int EDNS0Level, struct timeval* now, boost::optional<Netmask>& srcmask, boost::optional<const ResolveContext&> context, const std::shared_ptr<RemoteLogger>& outgoingLogger, LWResult *lwr, bool* chained)
+int asyncresolve(const ComboAddress& ip, const DNSName& domain, int type, bool doTCP, bool sendRDQuery, int EDNS0Level, struct timeval* now, boost::optional<Netmask>& srcmask, boost::optional<const ResolveContext&> context, const std::shared_ptr<RemoteLogger>& outgoingLogger, const std::set<uint16_t>& exportTypes, LWResult *lwr, bool* chained)
 {
   size_t len;
   size_t bufsize=g_outgoingEDNSBufsize;
@@ -242,7 +242,7 @@ int asyncresolve(const ComboAddress& ip, const DNSName& domain, int type, bool d
     if(mdp.d_header.rcode == RCode::FormErr && mdp.d_qname.empty() && mdp.d_qtype == 0 && mdp.d_qclass == 0) {
 #ifdef HAVE_PROTOBUF
       if(outgoingLogger) {
-        logIncomingResponse(outgoingLogger, context ? context->d_initialRequestId : boost::none, uuid, ip, domain, type, qid, doTCP, len, lwr->d_rcode, lwr->d_records, queryTime);
+        logIncomingResponse(outgoingLogger, context ? context->d_initialRequestId : boost::none, uuid, ip, domain, type, qid, doTCP, len, lwr->d_rcode, lwr->d_records, queryTime, exportTypes);
       }
 #endif
       lwr->d_validpacket=true;
@@ -288,7 +288,7 @@ int asyncresolve(const ComboAddress& ip, const DNSName& domain, int type, bool d
         
 #ifdef HAVE_PROTOBUF
     if(outgoingLogger) {
-      logIncomingResponse(outgoingLogger, context ? context->d_initialRequestId : boost::none, uuid, ip, domain, type, qid, doTCP, len, lwr->d_rcode, lwr->d_records, queryTime);
+      logIncomingResponse(outgoingLogger, context ? context->d_initialRequestId : boost::none, uuid, ip, domain, type, qid, doTCP, len, lwr->d_rcode, lwr->d_records, queryTime, exportTypes);
     }
 #endif
     lwr->d_validpacket=true;
@@ -301,7 +301,7 @@ int asyncresolve(const ComboAddress& ip, const DNSName& domain, int type, bool d
     g_stats.serverParseError++;
 #ifdef HAVE_PROTOBUF
     if(outgoingLogger) {
-      logIncomingResponse(outgoingLogger, context ? context->d_initialRequestId : boost::none, uuid, ip, domain, type, qid, doTCP, len, lwr->d_rcode, lwr->d_records, queryTime);
+      logIncomingResponse(outgoingLogger, context ? context->d_initialRequestId : boost::none, uuid, ip, domain, type, qid, doTCP, len, lwr->d_rcode, lwr->d_records, queryTime, exportTypes);
     }
 #endif
     lwr->d_validpacket=false;

@@ -95,7 +95,7 @@ class TestRecursorProtobuf(RecursorTest):
         global protobufQueue
         self.assertTrue(protobufQueue.empty())
 
-    def checkProtobufBase(self, msg, protocol, query, initiator, normalQueryResponse=True, expectedECS=None):
+    def checkProtobufBase(self, msg, protocol, query, initiator, normalQueryResponse=True, expectedECS=None, receivedSize=None):
         self.assertTrue(msg)
         self.assertTrue(msg.HasField('timeSec'))
         self.assertTrue(msg.HasField('socketFamily'))
@@ -112,7 +112,13 @@ class TestRecursorProtobuf(RecursorTest):
         self.assertTrue(msg.HasField('inBytes'))
         if normalQueryResponse:
             # compare inBytes with length of query/response
-            self.assertEquals(msg.inBytes, len(query.to_wire()))
+            # Note that for responses, the size we received might differ
+            # because dnspython might compress labels differently from
+            # the recursor
+            if receivedSize:
+                self.assertEquals(msg.inBytes, receivedSize)
+            else:
+                self.assertEquals(msg.inBytes, len(query.to_wire()))
         if expectedECS is not None:
             self.assertTrue(msg.HasField('originalRequestorSubnet'))
             # v4 only for now
@@ -149,13 +155,13 @@ class TestRecursorProtobuf(RecursorTest):
         self.assertTrue(msg.question.HasField('qName'))
         self.assertEquals(msg.question.qName, qname)
 
-    def checkProtobufResponse(self, msg, protocol, response, initiator='127.0.0.1'):
+    def checkProtobufResponse(self, msg, protocol, response, initiator='127.0.0.1', receivedSize=None):
         self.assertEquals(msg.type, dnsmessage_pb2.PBDNSMessage.DNSResponseType)
-        self.checkProtobufBase(msg, protocol, response, initiator)
+        self.checkProtobufBase(msg, protocol, response, initiator, receivedSize=receivedSize)
         self.assertTrue(msg.HasField('response'))
         self.assertTrue(msg.response.HasField('queryTimeSec'))
 
-    def checkProtobufResponseRecord(self, record, rclass, rtype, rname, rttl):
+    def checkProtobufResponseRecord(self, record, rclass, rtype, rname, rttl, checkTTL=True):
         self.assertTrue(record.HasField('class'))
         self.assertEquals(getattr(record, 'class'), rclass)
         self.assertTrue(record.HasField('type'))
@@ -163,7 +169,8 @@ class TestRecursorProtobuf(RecursorTest):
         self.assertTrue(record.HasField('name'))
         self.assertEquals(record.name, rname)
         self.assertTrue(record.HasField('ttl'))
-        self.assertEquals(record.ttl, rttl)
+        if checkTTL:
+            self.assertEquals(record.ttl, rttl)
         self.assertTrue(record.HasField('rdata'))
 
     def checkProtobufPolicy(self, msg, policyType, reason):
@@ -234,6 +241,14 @@ a 3600 IN A 192.0.2.42
 tagged 3600 IN A 192.0.2.84
 query-selected 3600 IN A 192.0.2.84
 answer-selected 3600 IN A 192.0.2.84
+types 3600 IN A 192.0.2.84
+types 3600 IN AAAA 2001:DB8::1
+types 3600 IN TXT "Lorem ipsum dolor sit amet"
+types 3600 IN MX 10 a.example.
+types 3600 IN SPF "v=spf1 -all"
+types 3600 IN SRV 10 20 443 a.example.
+cname 3600 IN CNAME a.example.
+
 """.format(soa=cls._SOA))
         super(TestRecursorProtobuf, cls).generateRecursorConfig(confdir)
 
@@ -256,6 +271,7 @@ auth-zones=example=configs/%s/example.zone""" % _confdir
         query = dns.message.make_query(name, 'A', want_dnssec=True)
         query.flags |= dns.flags.CD
         res = self.sendUDPQuery(query)
+
         self.assertRRsetInAnswer(res, expected)
 
         # check the protobuf messages corresponding to the UDP query and answer
@@ -263,11 +279,40 @@ auth-zones=example=configs/%s/example.zone""" % _confdir
         self.checkProtobufQuery(msg, dnsmessage_pb2.PBDNSMessage.UDP, query, dns.rdataclass.IN, dns.rdatatype.A, name)
         # then the response
         msg = self.getFirstProtobufMessage()
-        self.checkProtobufResponse(msg, dnsmessage_pb2.PBDNSMessage.UDP, res)
+        self.checkProtobufResponse(msg, dnsmessage_pb2.PBDNSMessage.UDP, res, '127.0.0.1')
         self.assertEquals(len(msg.response.rrs), 1)
         rr = msg.response.rrs[0]
         # we have max-cache-ttl set to 15
         self.checkProtobufResponseRecord(rr, dns.rdataclass.IN, dns.rdatatype.A, name, 15)
+        self.assertEquals(socket.inet_ntop(socket.AF_INET, rr.rdata), '192.0.2.42')
+        self.checkNoRemainingMessage()
+
+    def testCNAME(self):
+        name = 'cname.example.'
+        expectedCNAME = dns.rrset.from_text(name, 0, dns.rdataclass.IN, 'CNAME', 'a.example.')
+        expectedA = dns.rrset.from_text('a.example.', 0, dns.rdataclass.IN, 'A', '192.0.2.42')
+        query = dns.message.make_query(name, 'A', want_dnssec=True)
+        query.flags |= dns.flags.CD
+        raw = self.sendUDPQuery(query, decode=False)
+        res = dns.message.from_wire(raw)
+        self.assertRRsetInAnswer(res, expectedCNAME)
+        self.assertRRsetInAnswer(res, expectedA)
+
+        # check the protobuf messages corresponding to the UDP query and answer
+        # but first let the protobuf messages the time to get there
+        msg = self.getFirstProtobufMessage()
+        self.checkProtobufQuery(msg, dnsmessage_pb2.PBDNSMessage.UDP, query, dns.rdataclass.IN, dns.rdatatype.A, name)
+        # then the response
+        msg = self.getFirstProtobufMessage()
+        self.checkProtobufResponse(msg, dnsmessage_pb2.PBDNSMessage.UDP, res, '127.0.0.1', receivedSize=len(raw))
+        self.assertEquals(len(msg.response.rrs), 2)
+        rr = msg.response.rrs[0]
+        # we don't want to check the TTL for the A record, it has been cached by the previous test
+        self.checkProtobufResponseRecord(rr, dns.rdataclass.IN, dns.rdatatype.CNAME, name, 15)
+        self.assertEquals(rr.rdata, 'a.example.')
+        rr = msg.response.rrs[1]
+        # we have max-cache-ttl set to 15
+        self.checkProtobufResponseRecord(rr, dns.rdataclass.IN, dns.rdatatype.A, 'a.example.', 15, checkTTL=False)
         self.assertEquals(socket.inet_ntop(socket.AF_INET, rr.rdata), '192.0.2.42')
         self.checkNoRemainingMessage()
 
@@ -544,4 +589,62 @@ auth-zones=example=configs/%s/example.zone""" % _confdir
         # we have max-cache-ttl set to 15
         self.checkProtobufResponseRecord(rr, dns.rdataclass.IN, dns.rdatatype.A, name, 15)
         self.assertEquals(socket.inet_ntop(socket.AF_INET, rr.rdata), '192.0.2.84')
+        self.checkNoRemainingMessage()
+
+class ProtobufExportTypesTest(TestRecursorProtobuf):
+    """
+    This test makes sure that we correctly export other types than A, AAAA and CNAME over protobuf.
+    """
+
+    _confdir = 'ProtobufExportTypes'
+    _config_template = """
+auth-zones=example=configs/%s/example.zone""" % _confdir
+    global protobufServerPort
+    _lua_config_file = """
+    protobufServer("127.0.0.1:%d", { exportTypes={"AAAA", "MX", "SPF", "SRV", "TXT"} } )
+    """ % (protobufServerPort)
+
+    def testA(self):
+        name = 'types.example.'
+        expected = [dns.rrset.from_text(name, 0, dns.rdataclass.IN, 'A', '192.0.2.84'),
+                    dns.rrset.from_text(name, 0, dns.rdataclass.IN, 'AAAA', '2001:DB8::1'),
+                    dns.rrset.from_text(name, 0, dns.rdataclass.IN, 'MX', '10 a.example.'),
+                    dns.rrset.from_text(name, 0, dns.rdataclass.IN, 'SPF', '"v=spf1 -all"'),
+                    dns.rrset.from_text(name, 0, dns.rdataclass.IN, 'SRV', '10 20 443 a.example.'),
+                    dns.rrset.from_text(name, 0, dns.rdataclass.IN, 'TXT', '"Lorem ipsum dolor sit amet"'),
+                   ]
+        query = dns.message.make_query(name, 'ANY', want_dnssec=True)
+        query.flags |= dns.flags.CD
+        raw = self.sendUDPQuery(query, decode=False)
+        res = dns.message.from_wire(raw)
+
+        for rrset in expected:
+            self.assertRRsetInAnswer(res, rrset)
+
+        # check the protobuf messages corresponding to the UDP query and answer
+        msg = self.getFirstProtobufMessage()
+        self.checkProtobufQuery(msg, dnsmessage_pb2.PBDNSMessage.UDP, query, dns.rdataclass.IN, dns.rdatatype.A, name)
+        # then the response
+        msg = self.getFirstProtobufMessage()
+        self.checkProtobufResponse(msg, dnsmessage_pb2.PBDNSMessage.UDP, res, '127.0.0.1', receivedSize=len(raw))
+        self.assertEquals(len(msg.response.rrs), 5)
+        for rr in msg.response.rrs:
+            self.assertTrue(rr.type in [dns.rdatatype.AAAA, dns.rdatatype.TXT, dns.rdatatype.MX, dns.rdatatype.SPF, dns.rdatatype.SRV])
+
+            if rr.type == dns.rdatatype.AAAA:
+                self.checkProtobufResponseRecord(rr, dns.rdataclass.IN, dns.rdatatype.AAAA, name, 15)
+                self.assertEquals(socket.inet_ntop(socket.AF_INET6, rr.rdata), '2001:db8::1')
+            elif rr.type == dns.rdatatype.TXT:
+                self.checkProtobufResponseRecord(rr, dns.rdataclass.IN, dns.rdatatype.TXT, name, 15)
+                self.assertEquals(rr.rdata, '"Lorem ipsum dolor sit amet"')
+            elif rr.type == dns.rdatatype.MX:
+                self.checkProtobufResponseRecord(rr, dns.rdataclass.IN, dns.rdatatype.MX, name, 15)
+                self.assertEquals(rr.rdata, 'a.example.')
+            elif rr.type == dns.rdatatype.SPF:
+                self.checkProtobufResponseRecord(rr, dns.rdataclass.IN, dns.rdatatype.SPF, name, 15)
+                self.assertEquals(rr.rdata, '"v=spf1 -all"')
+            elif rr.type == dns.rdatatype.SRV:
+                self.checkProtobufResponseRecord(rr, dns.rdataclass.IN, dns.rdatatype.SRV, name, 15)
+                self.assertEquals(rr.rdata, 'a.example.')
+
         self.checkNoRemainingMessage()

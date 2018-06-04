@@ -1010,11 +1010,9 @@ static void startDoResolve(void *p)
       logResponse = t_protobufServer && luaconfsLocal->protobufExportConfig.logResponses;
       Netmask requestorNM(dc->d_source, dc->d_source.sin4.sin_family == AF_INET ? luaconfsLocal->protobufMaskV4 : luaconfsLocal->protobufMaskV6);
       const ComboAddress& requestor = requestorNM.getMaskedNetwork();
-      pbMessage = RecProtoBufMessage(RecProtoBufMessage::Response);
+      pbMessage = RecProtoBufMessage(RecProtoBufMessage::Response, dc->d_uuid, &requestor, &dc->d_destination, dc->d_mdp.d_qname, dc->d_mdp.d_qtype, dc->d_mdp.d_qclass, dc->d_mdp.d_header.id, dc->d_tcp, 0);
       pbMessage->setServerIdentity(SyncRes::s_serverID);
-      pbMessage->update(dc->d_uuid, &requestor, &dc->d_destination, dc->d_tcp, dc->d_mdp.d_header.id);
       pbMessage->setEDNSSubnet(dc->d_ednssubnet.source, dc->d_ednssubnet.source.isIpv4() ? luaconfsLocal->protobufMaskV4 : luaconfsLocal->protobufMaskV6);
-      pbMessage->setQuestion(dc->d_mdp.d_qname, dc->d_mdp.d_qtype, dc->d_mdp.d_qclass);
     }
 #endif /* HAVE_PROTOBUF */
 
@@ -1392,8 +1390,8 @@ static void startDoResolve(void *p)
         needCommit = true;
 
 #ifdef HAVE_PROTOBUF
-        if(t_protobufServer && (i->d_type == QType::A || i->d_type == QType::AAAA || i->d_type == QType::CNAME)) {
-          pbMessage->addRR(*i);
+        if(t_protobufServer) {
+          pbMessage->addRR(*i, luaconfsLocal->protobufExportConfig.exportTypes);
         }
 #endif
       }
