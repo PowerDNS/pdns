@@ -141,9 +141,7 @@ end
 
 
 function lookup(qtype, qname, domain_id)
-	if ("table" == type(qtype)) then
-		qtype = qtype.name
-	end
+	qtype = tostring(qtype)
 	logger(log_debug, "(l_lookup)", "qtype:", qtype, " qname:", qname, " domain_id:", domain_id )
 
 	rrset = {}
