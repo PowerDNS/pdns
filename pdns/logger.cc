@@ -31,19 +31,34 @@ extern StatBag S;
 #include "lock.hh"
 #include "namespaces.hh"
 
-pthread_once_t Logger::s_once;
-pthread_key_t Logger::g_loggerKey;
-
 Logger g_log("", LOG_DAEMON);
+thread_local Logger::PerThread Logger::t_perThread;
+
+static Logger::Config& getLoggerConfig()
+{
+  /* Since the Logger can be called very early, we need to make sure
+     that the relevant parts are initialized no matter what, which is tricky
+     because we can't easily control the initialization order, especially with
+     built-in backends.
+     t_perThread is thread_local, so it will be initialized when first accessed,
+     but we need to make sure that the rest of the config is too, and making
+     it a function-level static variable achieves that, because it will be
+     initialized the first time we enter this function at the very last.
+  */
+  static Logger::Config config;
+  return config;
+}
 
 void Logger::log(const string &msg, Urgency u)
 {
 #ifndef RECURSOR
   bool mustAccount(false);
 #endif
-  if(u<=consoleUrgency) {
+  const auto& config = getLoggerConfig();
+
+  if(u <= config.consoleUrgency) {
     char buffer[50] = "";
-    if (d_timestamps) {
+    if (config.d_timestamps) {
       struct tm tm;
       time_t t;
       time(&t);
@@ -52,7 +67,7 @@ void Logger::log(const string &msg, Urgency u)
     }
 
     string prefix;
-    if (d_prefixed) {
+    if (config.d_prefixed) {
       switch(u) {
         case All:
           prefix = "[all] ";
@@ -91,7 +106,7 @@ void Logger::log(const string &msg, Urgency u)
     mustAccount=true;
 #endif
   }
-  if( u <= d_loglevel && !d_disableSyslog ) {
+  if( u <= config.d_loglevel && !config.d_disableSyslog ) {
     syslog(u,"%s",msg.c_str());
 #ifndef RECURSOR
     mustAccount=true;
@@ -106,75 +121,101 @@ void Logger::log(const string &msg, Urgency u)
 
 void Logger::setLoglevel( Urgency u )
 {
-  d_loglevel = u;
+  auto& config = getLoggerConfig();
+  config.d_loglevel = u;
 }
   
+void Logger::setFacility(int f)
+{
+  auto& config = getLoggerConfig();
+
+  config.d_facility = f;
+  open();
+}
+
+void Logger::setFlag(int f)
+{
+  auto& config = getLoggerConfig();
+  config. flags |= f;
+  open();
+}
+
+void Logger::disableSyslog(bool d)
+{
+  auto& config = getLoggerConfig();
+
+  config.d_disableSyslog = d;
+}
+
+void Logger::setTimestamps(bool t)
+{
+  auto& config = getLoggerConfig();
+  config.d_timestamps = t;
+}
+
+void Logger::setPrefixed(bool p)
+{
+  auto& config = getLoggerConfig();
+  config.d_prefixed = p;
+}
+
+void Logger::resetFlags()
+{
+  auto& config = getLoggerConfig();
+
+  config.flags = 0;
+  open();
+}
 
 void Logger::toConsole(Urgency u)
 {
-  consoleUrgency=u;
+  auto& config = getLoggerConfig();
+  config.consoleUrgency = u;
 }
 
 void Logger::open()
 {
-  if(opened)
+  auto& config = getLoggerConfig();
+  if(config.opened) {
     closelog();
-  openlog(name.c_str(),flags,d_facility);
-  opened=true;
+  }
+
+  openlog(config.name.c_str(), config.flags, config.d_facility);
+  config.opened = true;
 }
 
 void Logger::setName(const string &_name)
 {
-  name=_name;
+  auto& config = getLoggerConfig();
+  config.name = _name;
   open();
 }
 
-void Logger::initKey()
+Logger::Logger(const string &n, int facility)
 {
-  if(pthread_key_create(&g_loggerKey, perThreadDestructor))
-    unixDie("Creating thread key for logger");
-}
-
-Logger::Logger(const string &n, int facility) :
-  name(n), flags(LOG_PID|LOG_NDELAY), d_facility(facility), d_loglevel(Logger::None),
-  consoleUrgency(Error), opened(false), d_disableSyslog(false)
-{
-  if(pthread_once(&s_once, initKey))
-    unixDie("Creating thread key for logger");
+  auto& config = getLoggerConfig();
+  config.name = n;
+  config.flags = LOG_PID|LOG_NDELAY;
+  config.d_facility = facility;
 
   open();
-
 }
 
 Logger& Logger::operator<<(Urgency u)
 {
-  getPerThread()->d_urgency=u;
+  getPerThread().d_urgency = u;
   return *this;
 }
 
-void Logger::perThreadDestructor(void* buf)
+Logger::PerThread& Logger::getPerThread()
 {
-  PerThread* pt = (PerThread*) buf;
-  delete pt;
-}
-
-Logger::PerThread* Logger::getPerThread()
-{
-  void *buf=pthread_getspecific(g_loggerKey);
-  PerThread* ret;
-  if(buf)
-    ret = (PerThread*) buf;
-  else {
-    ret = new PerThread();
-    pthread_setspecific(g_loggerKey, (void*)ret);
-  }
-  return ret;
+  return t_perThread;
 }
 
 Logger& Logger::operator<<(const string &s)
 {
-  PerThread* pt =getPerThread();
-  pt->d_output.append(s);
+  PerThread& pt = getPerThread();
+  pt.d_output.append(s);
   return *this;
 }
 
@@ -244,11 +285,11 @@ Logger& Logger::operator<<(long i)
 
 Logger& Logger::operator<<(ostream & (&)(ostream &))
 {
-  PerThread* pt =getPerThread();
+  PerThread& pt = getPerThread();
 
-  log(pt->d_output, pt->d_urgency);
-  pt->d_output.clear();
-  pt->d_urgency=Info;
+  log(pt.d_output, pt.d_urgency);
+  pt.d_output.clear();
+  pt.d_urgency=Info;
   return *this;
 }
 
