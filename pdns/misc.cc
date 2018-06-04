@@ -351,7 +351,7 @@ int waitForRWData(int fd, bool waitForRead, int seconds, int useconds, bool* err
 }
 
 // returns -1 in case of error, 0 if no data is available, 1 if there is. In the first two cases, errno is set
-int waitForMultiData(const set<int>& fds, const int seconds, const int useconds, int* fd) {
+int waitForMultiData(const set<int>& fds, const int seconds, const int useconds, int* fdOut) {
   set<int> realFDs;
   for (const auto& fd : fds) {
     if (fd >= 0 && realFDs.count(fd) == 0) {
@@ -384,7 +384,7 @@ int waitForMultiData(const set<int>& fds, const int seconds, const int useconds,
   }
   set<int>::const_iterator it(pollinFDs.begin());
   advance(it, random() % pollinFDs.size());
-  *fd = *it;
+  *fdOut = *it;
   return 1;
 }
 

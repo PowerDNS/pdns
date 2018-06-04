@@ -320,10 +320,8 @@ int MemRecursorCache::doWipeCache(const DNSName& name, bool sub, uint16_t qtype)
 {
   int count=0;
   d_cachecachevalid=false;
-  pair<cache_t::iterator, cache_t::iterator> range;
 
   if(!sub) {
-    pair<ecsIndex_t::iterator, ecsIndex_t::iterator> ecsIndexRange;
     auto& idx = d_cache.get<NameOnlyHashedTag>();
     auto range = idx.equal_range(name);
     for(auto& i=range.first; i != range.second; ) {

@@ -179,10 +179,10 @@ void BaseLua4::prepareContext() {
   d_lw->registerFunction<boost::optional<ComboAddress>(DNSRecord::*)()>("getCA", [](const DNSRecord& dr) {
       boost::optional<ComboAddress> ret;
 
-      if(auto rec = std::dynamic_pointer_cast<ARecordContent>(dr.d_content))
-        ret=rec->getCA(53);
-      else if(auto rec = std::dynamic_pointer_cast<AAAARecordContent>(dr.d_content))
-        ret=rec->getCA(53);
+      if(auto arec = std::dynamic_pointer_cast<ARecordContent>(dr.d_content))
+        ret=arec->getCA(53);
+      else if(auto aaaarec = std::dynamic_pointer_cast<AAAARecordContent>(dr.d_content))
+        ret=aaaarec->getCA(53);
       return ret;
     });
   d_lw->registerFunction<void(DNSRecord::*)(const std::string&)>("changeContent", [](DNSRecord& dr, const std::string& newContent) { dr.d_content = shared_ptr<DNSRecordContent>(DNSRecordContent::mastermake(dr.d_type, 1, newContent)); });

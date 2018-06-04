@@ -2022,7 +2022,7 @@ static void handleNewUDPQuestion(int fd, FDMultiplexer::funcparam_t& var)
   fromaddr.sin6.sin6_family=AF_INET6; // this makes sure fromaddr is big enough
   fillMSGHdr(&msgh, &iov, cbuf, sizeof(cbuf), &data[0], data.size(), &fromaddr);
 
-  for(size_t counter = 0; counter < s_maxUDPQueriesPerRound; counter++)
+  for(size_t queriesCounter = 0; queriesCounter < s_maxUDPQueriesPerRound; queriesCounter++)
   if((len=recvmsg(fd, &msgh, 0)) >= 0) {
 
     firstQuery = false;
