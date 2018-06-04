@@ -1029,7 +1029,8 @@ extern std::vector<std::tuple<ComboAddress, std::shared_ptr<DNSCryptContext>, bo
 bool encryptResponse(char* response, uint16_t* responseLen, size_t responseSize, bool tcp, std::shared_ptr<DNSCryptQuery> dnsCryptQuery, dnsheader** dh, dnsheader* dhCopy);
 int handleDNSCryptQuery(char* packet, uint16_t len, std::shared_ptr<DNSCryptQuery> query, uint16_t* decryptedQueryLen, bool tcp, time_t now, std::vector<uint8_t>& response);
 #endif
-
+extern int pickBackendSocketForSending(DownstreamState* state);
+extern ssize_t udpClientSendRequestToBackend(DownstreamState* ss, const int sd, const char* request, const size_t requestLen);
 bool addXPF(DNSQuestion& dq, uint16_t optionCode);
 
 uint16_t getRandomDNSID();
