@@ -2103,7 +2103,7 @@ RCode::rcodes_ SyncRes::updateCacheFromRecords(unsigned int depth, LWResult& lwr
     }
 
     vState recordState = getValidationStatus(i->first.name, false);
-    LOG(d_prefix<<": got initial zone status "<<vStates[recordState]<<" for record "<<i->first.name<<endl);
+    LOG(d_prefix<<": got initial zone status "<<vStates[recordState]<<" for record "<<i->first.name<<"|"<<DNSRecordContent::NumberToType(i->first.type)<<endl);
 
     if (shouldValidate() && recordState == Secure) {
       vState initialState = recordState;
