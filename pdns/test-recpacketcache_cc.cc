@@ -10,8 +10,11 @@
 #include "dns_random.hh"
 #include "iputils.hh"
 #include "recpacketcache.hh"
+#include "syncres.hh"
 #include <utility>
 
+thread_local std::unique_ptr<addrringbuf_t> t_bogusremotes;
+thread_local std::unique_ptr<boost::circular_buffer<pair<DNSName, uint16_t> > > t_bogusqueryring;
 
 BOOST_AUTO_TEST_SUITE(recpacketcache_cc)
 
