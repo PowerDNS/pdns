@@ -500,6 +500,16 @@ private:
 };
 
 struct ClientState;
+struct st_h2o_req_t;
+struct DOHUnit
+{
+  st_h2o_req_t* req;
+  int rsock;
+  std::string query;
+  ComboAddress remote;
+  ComboAddress dest;
+};
+
 
 struct IDState
 {
@@ -513,6 +523,7 @@ struct IDState
   }
 
   std::atomic<int> origFD;  // set to <0 to indicate this state is empty   // 4
+  DOHUnit* du;                                                // 12 - rest of count is now 8 off
 
   ComboAddress origRemote;                                    // 28
   ComboAddress origDest;                                      // 28

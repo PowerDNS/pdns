@@ -19,21 +19,16 @@ using namespace std;
 #define USE_HTTPS 1
 #define USE_MEMCACHED 0
 
-struct DOHUnit
-{
-  h2o_req_t* req;
-  std::string query;
-  ComboAddress remote;
-  ComboAddress dest;
-};
 
-
+static ClientState cs; // need to fill this in somehow
 static void processDOHQuery(DOHUnit* du)
 {
   LocalHolders holders;
   uint16_t queryId=0;
   try {
-    ClientState cs; // need to fill this in somehow
+
+    cs.muted=false;
+    
     /* we need an accurate ("real") value for the response and
        to store into the IDS, but not for insertion into the
        rings for example */
@@ -133,7 +128,7 @@ static void processDOHQuery(DOHUnit* du)
 
         if (!cs.muted) {
           // sendUDPResponse(cs.udpFD, query, cachedResponseSize, delayMsec, dest, remote);
-          // actually send DOH response
+          // XXXX actually send DOH response
         }
 
         g_stats.cacheHits++;
@@ -165,7 +160,7 @@ static void processDOHQuery(DOHUnit* du)
         }
 
         //        sendUDPResponse(cs.udpFD, response, responseLen, 0, dest, remote);
-        // actually sendDOHResponse
+        // XXXX actually sendDOHResponse
 
         // no response-only statistics counter to update.
         doLatencyStats(0);  // we're not going to measure this
@@ -183,7 +178,7 @@ static void processDOHQuery(DOHUnit* du)
     unsigned int idOffset = (ss->idOffset++) % ss->idStates.size();
     IDState* ids = &ss->idStates[idOffset];
     ids->age = 0;
-
+    ids->du = du;
     if(ids->origFD < 0) // if we are reusing, no change in outstanding
       ss->outstanding++;
     else {
@@ -271,10 +266,12 @@ static int all_test(h2o_handler_t *self, h2o_req_t *req)
       h2o_memis(req->path_normalized.base, req->path_normalized.len, H2O_STRLIT("/post-test/"))) {
   */
 
-  
-  if(req->query_at != SIZE_MAX && (req->path.len - req->query_at > 5)) {
-    if (h2o_memis(&req->path.base[req->query_at], 5, "?dns=", 5)) {
-      char* dns=req->path.base+req->query_at+5;
+  cout<<req->path.base<<endl;
+  if(req->query_at != SIZE_MAX && (req->path.len - req->query_at > 4)) {
+    //    if (h2o_memis(&req->path.base[req->query_at], 5, "?dns=", 5)) {
+    char* dns = strstr(req->path.base+req->query_at, "dns=");
+    if(dns) {
+      dns+=4;
       if(auto p = strchr(dns, ' '))
         *p=0;
       cout<<"Got a dns query: "<<dns<<endl;
@@ -295,6 +292,7 @@ static int all_test(h2o_handler_t *self, h2o_req_t *req)
         cout<<"qname: "<<qname<<", qtype: "<<qtype<<endl;
         du->req=req;
         du->query=decoded;
+        du->rsock=g_dohresponsepair[0];
         send(g_dohquerypair[0], &du, sizeof(du), 0);
 
       }
@@ -307,12 +305,15 @@ static int all_test(h2o_handler_t *self, h2o_req_t *req)
 
 void dnsdistmock(int qsock, int rsock)
 {
-  DOHUnit* du;
-  recv(qsock, &du, sizeof(du), 0);
-  cout<<"Got query"<<endl;
-  processDOHQuery(du);
-  cout<<"Got answer, sending it"<<endl;
-  send(rsock, &du, sizeof(du), 0);
+  for(;;) {
+    DOHUnit* du;
+    recv(qsock, &du, sizeof(du), 0);
+    cout<<"Got query"<<endl;
+    processDOHQuery(du);
+  }
+
+  /*  cout<<"Got answer, sending it"<<endl;
+      send(rsock, &du, sizeof(du), 0); */
 }
 
 void responsesender(int rpair[2])
@@ -321,16 +322,15 @@ void responsesender(int rpair[2])
   for(;;) {
     recv(rpair[1], &du, sizeof(du), 0);
     cout<<"Received DU ready to https up"<<endl;
-    static h2o_generator_t generator = {NULL, NULL};
+    //    static h2o_generator_t generator = {NULL, NULL};
     du->req->res.status = 200;
     du->req->res.reason = "OK";
     
-    h2o_iovec_t body = h2o_strdup(&du->req->pool, "hello world\n", SIZE_MAX);
-    
-    
-    h2o_add_header(&du->req->pool, &du->req->res.headers, H2O_TOKEN_CONTENT_TYPE, NULL, H2O_STRLIT("text/plain; charset=utf-8"));
-    h2o_start_response(du->req, &generator);
-    h2o_send(du->req, &body, 1, (h2o_send_state_t)1);
+    h2o_add_header(&du->req->pool, &du->req->res.headers, H2O_TOKEN_CONTENT_TYPE, NULL, H2O_STRLIT("application/dns-udpwireformat"));
+    //    h2o_add_header(&du->req->pool, &du->req->res.headers, H2O_TOKEN_CONTENT_TYPE, NULL, H2O_STRLIT("application/dns-message"));
+    //    h2o_start_response(du->req, &generator);
+    cout<<"Attempt to send out "<<du->query.size()<<" bytes"<<endl;
+    h2o_send_inline(du->req, du->query.c_str(), du->query.size());
   }
 }
 
@@ -432,6 +432,10 @@ int dohThread()
   hostconf = h2o_config_register_host(&config, h2o_iovec_init(H2O_STRLIT("127.0.0.1")), 65535);
   
   pathconf = register_handler(hostconf, "/", all_test);
+
+  pathconf = register_handler(hostconf, "/ct", all_test);
+
+  
   if (logfh != NULL)
     h2o_access_log_register(pathconf, logfh);
   

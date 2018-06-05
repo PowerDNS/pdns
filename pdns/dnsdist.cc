@@ -455,20 +455,28 @@ try {
         char * response = packet;
         size_t responseSize = sizeof(packet);
 
+        cout<<"Got packet"<<endl;
+        
         if (got < (ssize_t) sizeof(dnsheader))
           continue;
 
         uint16_t responseLen = (uint16_t) got;
         queryId = dh->id;
 
-        if(queryId >= dss->idStates.size())
+        cout<<"Did we have a state for "<<queryId<<"?"<<endl;
+        
+        if(queryId >= dss->idStates.size()) {
+          cout<<"Nope"<<endl;
           continue;
+        }
 
         IDState* ids = &dss->idStates[queryId];
         int origFD = ids->origFD;
 
-        if(origFD < 0) // duplicate
+        if(origFD < 0 && !ids->du) { // duplicate
+          cout<<"origFD negative"<<endl;
           continue;
+        }
 
         /* setting age to 0 to prevent the maintainer thread from
            cleaning this IDS while we process the response.
@@ -479,9 +487,9 @@ try {
 
         unsigned int consumed = 0;
         if (!responseContentMatches(response, responseLen, ids->qname, ids->qtype, ids->qclass, dss->remote, consumed)) {
+          cout<<"No match.."<<endl;
           continue;
         }
-
         int oldFD = ids->origFD.exchange(-1);
         if (oldFD == origFD) {
           /* we only decrement the outstanding counter if the value was not
@@ -505,6 +513,7 @@ try {
         dr.qTag = ids->qTag;
 
         if (!processResponse(localRespRulactions, dr, &ids->delayMsec)) {
+          cout<<"Response processing said no"<<endl;
           continue;
         }
 
@@ -514,13 +523,14 @@ try {
         }
 #endif
         if (!fixUpResponse(&response, &responseLen, &responseSize, ids->qname, ids->origFlags, ids->ednsAdded, ids->ecsAdded, rewrittenResponse, addRoom)) {
+          cout<<"Fixupresponse said no"<<endl;
           continue;
         }
 
         if (ids->packetCache && !ids->skipCache) {
           ids->packetCache->insert(ids->cacheKey, ids->subnet, ids->origFlags, ids->dnssecOK, ids->qname, ids->qtype, ids->qclass, response, responseLen, false, dh->rcode, ids->tempFailureTTL);
         }
-
+        cout<<(void*)ids->cs<<", "<<ids->cs->muted<<endl;
         if (ids->cs && !ids->cs->muted) {
 #ifdef HAVE_DNSCRYPT
           if (!encryptResponse(response, &responseLen, responseSize, false, ids->dnsCryptQuery, &dh, &dhCopy)) {
@@ -532,7 +542,15 @@ try {
           empty.sin4.sin_family = 0;
           /* if ids->destHarvested is false, origDest holds the listening address.
              We don't want to use that as a source since it could be 0.0.0.0 for example. */
-          sendUDPResponse(origFD, response, responseLen, ids->delayMsec, ids->destHarvested ? ids->origDest : empty, ids->origRemote);
+          if(ids->du) {
+            ids->du->query = std::string(response, responseLen);
+            // XXX should also do the accounting things that sendUDPResponse does!
+            send(ids->du->rsock, &ids->du, sizeof(ids->du), 0);
+          }
+          else {
+            cout<<"Should send to normal socket"<<endl;
+            sendUDPResponse(origFD, response, responseLen, ids->delayMsec, ids->destHarvested ? ids->origDest : empty, ids->origRemote);
+          }
         }
 
         ++g_stats.responses;
@@ -1177,10 +1195,13 @@ bool processResponse(LocalStateHolder<vector<DNSDistResponseRuleAction> >& local
 
 static ssize_t udpClientSendRequestToBackend(DownstreamState* ss, const int sd, const char* request, const size_t requestLen, bool healthCheck=false)
 {
+  cout<<"Hiero"<<endl;
   ssize_t result;
 
   if (ss->sourceItf == 0) {
+    cout<<"just sent it"<<endl;
     result = send(sd, request, requestLen, 0);
+    cout<<"Result of sending: "<<result<<endl;
   }
   else {
     struct msghdr msgh;
