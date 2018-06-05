@@ -38,7 +38,7 @@ if [ ! -z "$(git rev-parse --abbrev-ref HEAD 2> /dev/null)" ]; then
   GIT_HASH="$(echo ${GIT_VERSION} | cut -d- -f3)"
 
   if [ -z "${GIT_VERSION}" ]; then
-    LAST_TAG=0.0.0
+    LAST_TAG=0.0
     COMMITS_SINCE_TAG="$(git rev-list --count 12c868770afc20b6cc0da439d881105151d557dd..HEAD 2> /dev/null)"
     GIT_HASH="$(git rev-parse HEAD | cut -c1-10 2> /dev/null)"
   fi
