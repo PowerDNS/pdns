@@ -81,7 +81,6 @@ bool g_verbose;
 
 struct DNSDistStats g_stats;
 uint16_t g_maxOutstanding{10240};
-bool g_console;
 bool g_verboseHealthChecks{false};
 uint32_t g_staleCacheEntriesTTL{0};
 bool g_syslog{true};
@@ -2062,7 +2061,6 @@ try
   signal(SIGPIPE, SIG_IGN);
   signal(SIGCHLD, SIG_IGN);
   openlog("dnsdist", LOG_PID, LOG_DAEMON);
-  g_console=true;
 
 #ifdef HAVE_LIBSODIUM
   if (sodium_init() == -1) {
@@ -2549,6 +2547,7 @@ try
   }
 
   warnlog("dnsdist %s comes with ABSOLUTELY NO WARRANTY. This is free software, and you are welcome to redistribute it according to the terms of the GPL version 2", VERSION);
+
   vector<string> vec;
   std::string acls;
   g_ACL.getLocal()->toStringVector(&vec);
@@ -2568,6 +2567,12 @@ try
     acls += entry;
   }
   infolog("Console ACL allowing connections from: %s", acls.c_str());
+
+#ifdef HAVE_LIBSODIUM
+  if (g_consoleEnabled && g_consoleKey.empty()) {
+    warnlog("Warning, the console has been enabled via 'controlSocket()' but no key has been set with 'setKey()' so all connections will fail until a key has been set");
+  }
+#endif
 
   uid_t newgid=0;
   gid_t newuid=0;
