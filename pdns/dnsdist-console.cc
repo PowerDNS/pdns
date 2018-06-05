@@ -461,6 +461,7 @@ const std::vector<ConsoleKeyword> g_consoleKeywords{
   { "unregisterDynBPFFilter", true, "DynBPFFilter", "unregister this dynamic BPF filter" },
   { "webserver", true, "address:port, password [, apiKey [, customHeaders ]])", "launch a webserver with stats on that address with that password" },
   { "whashed", false, "", "Weighted hashed ('sticky') distribution over available servers, based on the server 'weight' parameter" },
+  { "chashed", false, "", "Consistent hashed ('sticky') distribution over available servers, also based on the server 'weight' parameter" },
   { "wrandom", false, "", "Weighted random over available servers, based on the server 'weight' parameter" },
 };
 

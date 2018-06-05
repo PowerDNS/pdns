@@ -627,6 +627,7 @@ bool DownstreamState::reconnect()
 
 DownstreamState::DownstreamState(const ComboAddress& remote_, const ComboAddress& sourceAddr_, unsigned int sourceItf_, size_t numberOfSockets): remote(remote_), sourceAddr(sourceAddr_), sourceItf(sourceItf_)
 {
+  id = t_uuidGenerator();
   threadStarted.clear();
 
   mplexer = std::unique_ptr<FDMultiplexer>(FDMultiplexer::getMultiplexerSilent());
@@ -642,6 +643,7 @@ DownstreamState::DownstreamState(const ComboAddress& remote_, const ComboAddress
     sw.start();
     infolog("Added downstream server %s", remote.toStringWithPort());
   }
+
 }
 
 std::mutex g_luamutex;
@@ -719,6 +721,48 @@ uint32_t g_hashperturb;
 shared_ptr<DownstreamState> whashed(const NumberedServerVector& servers, const DNSQuestion* dq)
 {
   return valrandom(dq->qname->hash(g_hashperturb), servers, dq);
+}
+
+/*
+ * @todo
+ * - test/benchmark other hashing methods
+ * - test/benchmark adding an avalanche algorithm on hashes
+ * @see https://github.com/haproxy/haproxy/blob/master/doc/internals/hashing.txt
+ */
+
+shared_ptr<DownstreamState> chashed(const NumberedServerVector& servers, const DNSQuestion* dq)
+{
+  std::map<unsigned int, shared_ptr<DownstreamState>> circle = {};
+  unsigned int qhash = dq->qname->hash(g_hashperturb);
+
+  for (const auto& d: servers) {
+    if (d.second->isUp()) {
+      if (d.second->hashes.empty()) {
+        // computes server's points
+        // @todo check if server's weight can change over time
+        auto w = d.second->weight;
+        while (w > 0) {
+          std::string uuid = boost::str(boost::format("%s-%d") % d.second->id % w);
+          unsigned int wshash = burtleCI((const unsigned char*)uuid.c_str(), uuid.size(), g_hashperturb);
+          d.second->hashes.insert(wshash);
+          --w;
+        }
+      }
+      for (const auto& h: d.second->hashes) {
+        // put server's hashes on the circle
+        circle.insert(std::make_pair(h, d.second));
+      }
+    }
+  }
+  if (circle.empty()) {
+    return shared_ptr<DownstreamState>();
+  }
+
+  auto p = circle.upper_bound(qhash);
+  if(p == circle.end()) {
+    return circle.begin()->second;
+  }
+  return p->second;
 }
 
 

@@ -70,6 +70,7 @@ void setupLuaBindings(bool client)
   g_lua.writeVariable("roundrobin", ServerPolicy{"roundrobin", roundrobin, false});
   g_lua.writeVariable("wrandom", ServerPolicy{"wrandom", wrandom, false});
   g_lua.writeVariable("whashed", ServerPolicy{"whashed", whashed, false});
+  g_lua.writeVariable("chashed", ServerPolicy{"chashed", chashed, false});
   g_lua.writeVariable("leastOutstanding", ServerPolicy{"leastOutstanding", leastOutstanding, false});
 
   /* ServerPool */
