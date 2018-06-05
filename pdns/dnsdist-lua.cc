@@ -938,14 +938,8 @@ void setupLuaConfig(bool client)
       if (!g_configurationDone) {
         switch(action) {
           case DNSAction::Action::Allow: 
-            g_dynBlockAction = action;
-            break;
           case DNSAction::Action::Drop:
-            g_dynBlockAction = action;
-            break;
           case DNSAction::Action::Refused:
-            g_dynBlockAction = action;
-            break;
           case DNSAction::Action::Truncate:
             g_dynBlockAction = action;
             break;
