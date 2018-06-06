@@ -326,7 +326,7 @@ MIB
 
 Maintenance callback
 --------------------
-Starting with version 4.1.3 of the recursor, it is possible to define a `maintenance()` callback function that will be called periodically.
+Starting with version 4.1.4 of the recursor, it is possible to define a `maintenance()` callback function that will be called periodically.
 This function expects no argument and doesn't return any value
 
 .. code-block:: Lua
