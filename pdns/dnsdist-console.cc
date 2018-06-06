@@ -86,7 +86,6 @@ static bool sendMessageToServer(int fd, const std::string& line, SodiumNonce& re
   putMsgLen32(fd, static_cast<uint32_t>(msgLen));
 
   if (!msg.empty()) {
-    cerr << "sending message of size " << msgLen << endl;
     writen2(fd, msg);
   }
 
