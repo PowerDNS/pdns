@@ -3556,11 +3556,14 @@ try
         last_carbon = g_now.tv_sec;
       }
     }
-    if (worker && t_pdl != nullptr) {
+    if (t_pdl != nullptr) {
       // lua-dns-script directive is present, call the maintenance callback if needed
-      if(g_now.tv_sec - last_lua_maintenance >= luaMaintenanceInterval) {
-        t_pdl->maintenance();
-        last_lua_maintenance = g_now.tv_sec;
+      if (worker && (!g_weDistributeQueries || t_id != s_distributorThreadID)) {
+        // Only on threads processing queries
+        if(g_now.tv_sec - last_lua_maintenance >= luaMaintenanceInterval) {
+          t_pdl->maintenance();
+          last_lua_maintenance = g_now.tv_sec;
+        }
       }
     }
 
