@@ -194,7 +194,6 @@ static void addSecurityHeaders(YaHTTP::Response& resp, const boost::optional<std
     { "X-Permitted-Cross-Domain-Policies", "none" },
     { "X-XSS-Protection", "1; mode=block" },
     { "Content-Security-Policy", "default-src 'self'; style-src 'self' 'unsafe-inline'" },
-    { "Connection", "close" },
   };
 
   for (const auto& h : headers) {
@@ -275,6 +274,8 @@ static void connectionThread(int sock, ComboAddress remote, string password, str
 
     addCustomHeaders(resp, customHeaders);
     addSecurityHeaders(resp, customHeaders);
+    /* indicate that the connection will be closed after completion of the response */
+    resp.headers["Connection"] = "close";
 
     /* no need to send back the API key if any */
     resp.headers.erase("X-API-Key");

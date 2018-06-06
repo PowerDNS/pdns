@@ -21,7 +21,6 @@ By default, our web server sends some security-related headers::
    X-Permitted-Cross-Domain-Policies: none
    X-XSS-Protection: 1; mode=block
    Content-Security-Policy: default-src 'self'; style-src 'self' 'unsafe-inline'
-   Connection: close
 
 You can override those headers, or add custom headers by using the last parameter to :func:`webserver`.
 For example, to remove the X-Frame-Options header and add a X-Custom one:
