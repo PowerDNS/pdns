@@ -274,6 +274,8 @@ static void connectionThread(int sock, ComboAddress remote, string password, str
 
     addCustomHeaders(resp, customHeaders);
     addSecurityHeaders(resp, customHeaders);
+    /* indicate that the connection will be closed after completion of the response */
+    resp.headers["Connection"] = "close";
 
     /* no need to send back the API key if any */
     resp.headers.erase("X-API-Key");

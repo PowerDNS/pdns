@@ -64,6 +64,7 @@ URL Endpoints
 
       HTTP/1.1 200 OK
       Transfer-Encoding: chunked
+      Connection: close
       Content-Security-Policy: default-src 'self'; style-src 'self' 'unsafe-inline'
       Content-Type: application/json
       X-Content-Type-Options: nosniff
@@ -86,6 +87,7 @@ URL Endpoints
 
       HTTP/1.1 200 OK
       Transfer-Encoding: chunked
+      Connection: close
       Content-Security-Policy: default-src 'self'; style-src 'self' 'unsafe-inline'
       Content-Type: application/json
       X-Content-Type-Options: nosniff
