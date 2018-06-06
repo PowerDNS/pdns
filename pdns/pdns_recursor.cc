@@ -97,7 +97,7 @@
 typedef map<ComboAddress, uint32_t, ComboAddress::addressOnlyLessThan> tcpClientCounts_t;
 
 static thread_local std::shared_ptr<RecursorLua4> t_pdl;
-static thread_local int t_id;
+static thread_local int t_id = -1;
 static thread_local std::shared_ptr<Regex> t_traceRegex;
 static thread_local std::unique_ptr<tcpClientCounts_t> t_tcpClientCounts;
 
@@ -2257,18 +2257,17 @@ struct ThreadMSG
 
 void broadcastFunction(const pipefunc_t& func)
 {
-  /* This function might be called by the worker with t_id 0 during startup
-     for the initialization of ACLs and domain maps */
-  if (t_id != s_handlerThreadID && t_id != s_distributorThreadID) {
+  /* This function might be called before t_id are set during startup
+     for the initialization of ACLs and domain maps, but the default is the same
+     than the handler thread */
+  if (t_id != s_handlerThreadID) {
     L<<Logger::Error<<"broadcastFunction() has been called by a worker ("<<t_id<<")"<<endl;
     exit(1);
   }
 
-  if (t_id == s_handlerThreadID) {
-    /* the distributor will call itself below, but if we are the handler thread,
-       call the function ourselves to update the ACL or domain maps for example */
-    func();
-  }
+  /* the distributor will call itself below, but if we are the handler thread,
+     call the function ourselves to update the ACL or domain maps for example */
+  func();
 
   int n = 0;
   for(ThreadPipeSet& tps : g_pipes)
@@ -2392,11 +2391,13 @@ vector<pair<DNSName, uint16_t> >& operator+=(vector<pair<DNSName, uint16_t> >&a,
 
 /*
   This function should only be called by the handler to gather metrics, wipe the cache,
-  reload the Lua script (not the Lua config) or change the current trace regex */
+  reload the Lua script (not the Lua config) or change the current trace regex,
+  and by the SNMP thread to gather metrics. */
 template<class T> T broadcastAccFunction(const boost::function<T*()>& func)
 {
+  /* the SNMP thread uses id -1 too */
   if (t_id != s_handlerThreadID) {
-    L<<Logger::Error<<"broadcastFunction has been called by a worker ("<<t_id<<")"<<endl;
+    L<<Logger::Error<<"broadcastAccFunction has been called by a worker ("<<t_id<<")"<<endl;
     exit(1);
   }
 
