@@ -11,7 +11,7 @@ The console can be enabled with :func:`controlSocket`:
 
   controlSocket('192.0.2.53:5199')
 
-Exposing the console to the network without encryption enabled is not recommended. To enable encryption, first generate a key with :func:`makeKey`::
+Enabling the console without encryption enabled is not recommended. To enable encryption, first generate a key with :func:`makeKey`::
 
   $ ./dnsdist -l 127.0.0.1:5300
   [..]
@@ -48,4 +48,6 @@ Since 1.3.0, dnsdist supports restricting which client can connect to the consol
   setConsoleACL('192.0.2.0/24')
 
 The default value is '127.0.0.1', restricting the use of the console to local users. Please make sure that encryption is enabled
-before using :func:`addConsoleACL` or :func:`setConsoleACL` to allow connection from remote clients.
+before using :func:`addConsoleACL` or :func:`setConsoleACL` to allow connection from remote clients. Even if the console is
+restricted to local users, the use of encryption is still strongly advised to prevent unauthorized local users from connecting to
+the console.
