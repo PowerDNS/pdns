@@ -315,7 +315,7 @@ void* tcpClientThread(int pipefd)
         bool ecsAdded = false;
         /* allocate a bit more memory to be able to spoof the content,
            or to add ECS without allocating a new buffer */
-        queryBuffer.reserve(qlen + 512);
+        queryBuffer.resize(qlen + 512);
 
         char* query = &queryBuffer[0];
         handler.read(query, qlen, g_tcpRecvTimeout, remainingTime);
@@ -358,7 +358,7 @@ void* tcpClientThread(int pipefd)
 	uint16_t qtype, qclass;
 	unsigned int consumed = 0;
 	DNSName qname(query, qlen, sizeof(dnsheader), false, &qtype, &qclass, &consumed);
-	DNSQuestion dq(&qname, qtype, qclass, &dest, &ci.remote, dh, queryBuffer.capacity(), qlen, true, &queryRealTime);
+	DNSQuestion dq(&qname, qtype, qclass, &dest, &ci.remote, dh, queryBuffer.size(), qlen, true, &queryRealTime);
 
 	if (!processQuery(holders, dq, poolname, &delayMsec, now)) {
 	  goto drop;
