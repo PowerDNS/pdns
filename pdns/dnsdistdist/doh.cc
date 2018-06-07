@@ -258,16 +258,28 @@ int g_dohquerypair[2];
 int g_dohresponsepair[2];
 
 
-static int all_test(h2o_handler_t *self, h2o_req_t *req)
-{
-  cout<<"Called!"<<endl;
-  /*
-  if (h2o_memis(req->method.base, req->method.len, H2O_STRLIT("POST")) &&
-      h2o_memis(req->path_normalized.base, req->path_normalized.len, H2O_STRLIT("/post-test/"))) {
-  */
+/* This needs to handle 2*2 cases. {GET,POST} * {application/dns-udpwireformat, application/dns-message}
+   The Content-Type can be derived from the Accept header. 
 
-  cout<<req->path.base<<endl;
-  if(req->query_at != SIZE_MAX && (req->path.len - req->query_at > 4)) {
+   For GET, the base64url-encoded payload is in the 'dns' parameter, which might be the first parameter, or not.
+   For POST, the payload is the payload.
+
+ */
+static int doh_handler(h2o_handler_t *self, h2o_req_t *req)
+{
+  //  cout<<"Called: "<<req->path.base<<endl;
+  if (h2o_memis(req->method.base, req->method.len, H2O_STRLIT("POST"))) {
+    DOHUnit* du = new DOHUnit;
+    uint16_t qtype;
+    DNSName qname(req->entity.base, req->entity.len, sizeof(dnsheader), false, &qtype);
+    cout<<(void*)req<<", POST qname: "<<qname<<", qtype: "<<qtype<<endl;
+    du->req=req;
+    du->query=std::string(req->entity.base, req->entity.len);
+    du->rsock=g_dohresponsepair[0];
+    du->qtype = qtype;
+    send(g_dohquerypair[0], &du, sizeof(du), 0);
+  }
+  else if(req->query_at != SIZE_MAX && (req->path.len - req->query_at > 4)) {
     //    if (h2o_memis(&req->path.base[req->query_at], 5, "?dns=", 5)) {
     char* dns = strstr(req->path.base+req->query_at, "dns=");
     if(dns) {
@@ -286,34 +298,31 @@ static int all_test(h2o_handler_t *self, h2o_req_t *req)
       }
       else {
         DOHUnit* du = new DOHUnit;
-        cout<<"decoded fine"<<endl;
         uint16_t qtype;
         DNSName qname(decoded.c_str(), decoded.size(), sizeof(dnsheader), false, &qtype);
         cout<<"qname: "<<qname<<", qtype: "<<qtype<<endl;
         du->req=req;
         du->query=decoded;
         du->rsock=g_dohresponsepair[0];
+        du->qtype = qtype;
         send(g_dohquerypair[0], &du, sizeof(du), 0);
-
       }
          
     }
   }
+  else
+    cerr<<"Some unknown request, not POST, not properly formatted GET"<<endl;
   return 0;
 }
 
 
-void dnsdistmock(int qsock, int rsock)
+void dnsdistclient(int qsock, int rsock)
 {
   for(;;) {
     DOHUnit* du;
     recv(qsock, &du, sizeof(du), 0);
-    cout<<"Got query"<<endl;
-    processDOHQuery(du);
+    processDOHQuery(du);  // this could send out an actual response, or queue it for dnsdist
   }
-
-  /*  cout<<"Got answer, sending it"<<endl;
-      send(rsock, &du, sizeof(du), 0); */
 }
 
 void responsesender(int rpair[2])
@@ -321,7 +330,7 @@ void responsesender(int rpair[2])
   DOHUnit *du;
   for(;;) {
     recv(rpair[1], &du, sizeof(du), 0);
-    cout<<"Received DU ready to https up"<<endl;
+    //    cout<<"Received DU ready to https up"<<endl;
     //    static h2o_generator_t generator = {NULL, NULL};
     du->req->res.status = 200;
     du->req->res.reason = "OK";
@@ -329,40 +338,35 @@ void responsesender(int rpair[2])
     h2o_add_header(&du->req->pool, &du->req->res.headers, H2O_TOKEN_CONTENT_TYPE, NULL, H2O_STRLIT("application/dns-udpwireformat"));
     //    h2o_add_header(&du->req->pool, &du->req->res.headers, H2O_TOKEN_CONTENT_TYPE, NULL, H2O_STRLIT("application/dns-message"));
     //    h2o_start_response(du->req, &generator);
-    cout<<"Attempt to send out "<<du->query.size()<<" bytes"<<endl;
+    struct dnsheader* dh = (struct dnsheader*)du->query.c_str();
+    cout<<"Attempt to send out "<<du->query.size()<<" bytes over https, TC="<<dh->tc<<", RCODE="<<dh->rcode<<", qtype="<<du->qtype<<", req="<<(void*)du->req<<endl;
+    du->req->res.content_length = du->query.size();
     h2o_send_inline(du->req, du->query.c_str(), du->query.size());
   }
 }
 
-
-
 static void on_accept(h2o_socket_t *listener, const char *err)
 {
-    h2o_socket_t *sock;
+  cout<<"New accept"<<endl;
+  h2o_socket_t *sock;
 
-    if (err != NULL) {
-        return;
-    }
-
-    if ((sock = h2o_evloop_socket_accept(listener)) == NULL)
-        return;
-    h2o_accept(&accept_ctx, sock);
+  if (err != NULL) {
+    return;
+  }
+  
+  if ((sock = h2o_evloop_socket_accept(listener)) == NULL)
+    return;
+  h2o_accept(&accept_ctx, sock);
 }
 
-static int create_listener(void)
+static int create_listener(const ComboAddress& addr)
 {
-    struct sockaddr_in addr;
     int fd, reuseaddr_flag = 1;
     h2o_socket_t *sock;
 
-    memset(&addr, 0, sizeof(addr));
-    addr.sin_family = AF_INET;
-    addr.sin_addr.s_addr = htonl(0x7f000001);
-    addr.sin_port = htons(7890);
-
     if ((fd = socket(AF_INET, SOCK_STREAM, 0)) == -1 ||
         setsockopt(fd, SOL_SOCKET, SO_REUSEADDR, &reuseaddr_flag, sizeof(reuseaddr_flag)) != 0 ||
-        bind(fd, (struct sockaddr *)&addr, sizeof(addr)) != 0 || listen(fd, SOMAXCONN) != 0) {
+        bind(fd, (struct sockaddr *)&addr, addr.getSocklen()) != 0 || listen(fd, SOMAXCONN) != 0) {
         return -1;
     }
 
@@ -412,7 +416,7 @@ static int setup_ssl(const char *cert_file, const char *key_file, const char *ci
     return 0;
 }
 
-int dohThread()
+int dohThread(const ComboAddress ca, const char* certfile, const char*keyfile)
 {
   if(socketpair(AF_LOCAL, SOCK_DGRAM, 0, g_dohquerypair) < 0 ||
      socketpair(AF_LOCAL, SOCK_DGRAM, 0, g_dohresponsepair) < 0
@@ -420,22 +424,19 @@ int dohThread()
     unixDie("Creating a socket pair for DNS over HTTPS");
   }
 
-  std::thread dnsdistMockThread(dnsdistmock, g_dohquerypair[1], g_dohresponsepair[0]);
+  std::thread dnsdistThread(dnsdistclient, g_dohquerypair[1], g_dohresponsepair[0]);
   
   std::thread responseThread(responsesender, g_dohresponsepair);
   
-  h2o_hostconf_t *hostconf;
+
   h2o_access_log_filehandle_t *logfh = h2o_access_log_open_handle("/dev/stdout", NULL, H2O_LOGCONF_ESCAPE_APACHE);
   h2o_pathconf_t *pathconf;
   
   h2o_config_init(&config);
-  hostconf = h2o_config_register_host(&config, h2o_iovec_init(H2O_STRLIT("127.0.0.1")), 65535);
+  h2o_hostconf_t *hostconf = h2o_config_register_host(&config, h2o_iovec_init(ca.toString().c_str(), ca.toString().size()), 65535);
   
-  pathconf = register_handler(hostconf, "/", all_test);
+  pathconf = register_handler(hostconf, "/", doh_handler);
 
-  pathconf = register_handler(hostconf, "/ct", all_test);
-
-  
   if (logfh != NULL)
     h2o_access_log_register(pathconf, logfh);
   
@@ -444,15 +445,16 @@ int dohThread()
   
   
   if (USE_HTTPS &&
-      setup_ssl("server.crt", "server.key",
+      setup_ssl(certfile, keyfile, 
                 "DEFAULT:!MD5:!DSS:!DES:!RC4:!RC2:!SEED:!IDEA:!NULL:!ADH:!EXP:!SRP:!PSK") != 0)
     goto Error;
   
   accept_ctx.ctx = &ctx;
   accept_ctx.hosts = config.hosts;
-  
-  if (create_listener() != 0) {
-    fprintf(stderr, "failed to listen to 127.0.0.1:7890:%s\n", strerror(errno));
+
+
+  if (create_listener(ca) != 0) {
+    fprintf(stderr, "failed to listen to %s: %s\n", ca.toStringWithPort().c_str(), strerror(errno));
     goto Error;
   }
   
