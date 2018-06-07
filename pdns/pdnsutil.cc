@@ -1414,15 +1414,15 @@ void verifyCrypto(const string& zone)
     if(rr.qtype.getCode() == QType::DNSKEY) {
       cerr<<"got DNSKEY!"<<endl;
       apex=rr.qname;
-      drc = *dynamic_cast<DNSKEYRecordContent*>(DNSRecordContent::mastermake(QType::DNSKEY, 1, rr.content));
+      drc = *std::dynamic_pointer_cast<DNSKEYRecordContent>(DNSRecordContent::mastermake(QType::DNSKEY, 1, rr.content));
     }
     else if(rr.qtype.getCode() == QType::RRSIG) {
       cerr<<"got RRSIG"<<endl;
-      rrc = *dynamic_cast<RRSIGRecordContent*>(DNSRecordContent::mastermake(QType::RRSIG, 1, rr.content));
+      rrc = *std::dynamic_pointer_cast<RRSIGRecordContent>(DNSRecordContent::mastermake(QType::RRSIG, 1, rr.content));
     }
     else if(rr.qtype.getCode() == QType::DS) {
       cerr<<"got DS"<<endl;
-      dsrc = *dynamic_cast<DSRecordContent*>(DNSRecordContent::mastermake(QType::DS, 1, rr.content));
+      dsrc = *std::dynamic_pointer_cast<DSRecordContent>(DNSRecordContent::mastermake(QType::DS, 1, rr.content));
     }
     else {
       qname = rr.qname;

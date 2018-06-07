@@ -207,9 +207,8 @@ struct MakeARecordTestMM
 
   void operator()() const
   {
-      DNSRecordContent*drc = DNSRecordContent::mastermake(QType::A, 1, 
-                                                          "1.2.3.4");
-      delete drc;
+      auto drc = DNSRecordContent::mastermake(QType::A, 1,
+                                              "1.2.3.4");
   }
 };
 
@@ -281,8 +280,8 @@ struct GenericRecordTest
     DNSPacketWriter pw(packet, DNSName("outpost.ds9a.nl"), d_type);
     for(int records = 0; records < d_records; records++) {
       pw.startRecord(DNSName("outpost.ds9a.nl"), d_type);
-      DNSRecordContent*drc = DNSRecordContent::mastermake(d_type, 1, 
-                                                          d_content);
+      auto drc = DNSRecordContent::mastermake(d_type, 1,
+                                              d_content);
       drc->toPacket(pw);
       delete drc;
     }
@@ -309,7 +308,7 @@ struct AAAARecordTest
     DNSPacketWriter pw(packet, DNSName("outpost.ds9a.nl"), QType::AAAA);
     for(int records = 0; records < d_records; records++) {
       pw.startRecord(DNSName("outpost.ds9a.nl"), QType::AAAA);
-      DNSRecordContent*drc = DNSRecordContent::mastermake(QType::AAAA, 1, "fe80::21d:92ff:fe6d:8441");
+      auto drc = DNSRecordContent::mastermake(QType::AAAA, 1, "fe80::21d:92ff:fe6d:8441");
       drc->toPacket(pw);
       delete drc;
     }
@@ -334,7 +333,7 @@ struct SOARecordTest
 
     for(int records = 0; records < d_records; records++) {
       pw.startRecord(DNSName("outpost.ds9a.nl"), QType::SOA);
-      DNSRecordContent*drc = DNSRecordContent::mastermake(QType::SOA, 1, "a0.org.afilias-nst.info. noc.afilias-nst.info. 2008758137 1800 900 604800 86400");
+      auto drc = DNSRecordContent::mastermake(QType::SOA, 1, "a0.org.afilias-nst.info. noc.afilias-nst.info. 2008758137 1800 900 604800 86400");
       drc->toPacket(pw);
       delete drc;
     }
@@ -356,7 +355,7 @@ vector<uint8_t> makeTypicalReferral()
   DNSPacketWriter pw(packet, DNSName("outpost.ds9a.nl"), QType::A);
 
   pw.startRecord(DNSName("ds9a.nl"), QType::NS, 3600, 1, DNSResourceRecord::AUTHORITY);
-  DNSRecordContent* drc = DNSRecordContent::mastermake(QType::NS, 1, "ns1.ds9a.nl");
+  auto drc = DNSRecordContent::mastermake(QType::NS, 1, "ns1.ds9a.nl");
   drc->toPacket(pw);
   delete drc;
 

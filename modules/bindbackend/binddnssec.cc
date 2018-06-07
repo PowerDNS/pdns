@@ -164,9 +164,8 @@ bool Bind2Backend::getNSEC3PARAM(const DNSName& name, NSEC3PARAMRecordContent* n
 
   static int maxNSEC3Iterations=::arg().asNum("max-nsec3-iterations");
   if(ns3p) {
-    NSEC3PARAMRecordContent* tmp=dynamic_cast<NSEC3PARAMRecordContent*>(DNSRecordContent::mastermake(QType::NSEC3PARAM, 1, value));
+    auto tmp=std::dynamic_pointer_cast<NSEC3PARAMRecordContent>(DNSRecordContent::mastermake(QType::NSEC3PARAM, 1, value));
     *ns3p = *tmp;
-    delete tmp;
 
     if (ns3p->d_iterations > maxNSEC3Iterations) {
       ns3p->d_iterations = maxNSEC3Iterations;

@@ -166,10 +166,9 @@ struct DNSRecord;
 class DNSRecordContent
 {
 public:
-  static DNSRecordContent* mastermake(const DNSRecord &dr, PacketReader& pr);
-  static DNSRecordContent* mastermake(const DNSRecord &dr, PacketReader& pr, uint16_t opcode);
-  static DNSRecordContent* mastermake(uint16_t qtype, uint16_t qclass, const string& zone);
-  static std::unique_ptr<DNSRecordContent> makeunique(uint16_t qtype, uint16_t qclass, const string& content);
+  static std::shared_ptr<DNSRecordContent> mastermake(const DNSRecord &dr, PacketReader& pr);
+  static std::shared_ptr<DNSRecordContent> mastermake(const DNSRecord &dr, PacketReader& pr, uint16_t opcode);
+  static std::shared_ptr<DNSRecordContent> mastermake(uint16_t qtype, uint16_t qclass, const string& zone);
 
   virtual std::string getZoneRepresentation(bool noDot=false) const = 0;
   virtual ~DNSRecordContent() {}
@@ -198,8 +197,8 @@ public:
 
   void doRecordCheck(const struct DNSRecord&){}
 
-  typedef DNSRecordContent* makerfunc_t(const struct DNSRecord& dr, PacketReader& pr);  
-  typedef DNSRecordContent* zmakerfunc_t(const string& str);  
+  typedef std::shared_ptr<DNSRecordContent> makerfunc_t(const struct DNSRecord& dr, PacketReader& pr);
+  typedef std::shared_ptr<DNSRecordContent> zmakerfunc_t(const string& str);
 
   static void regist(uint16_t cl, uint16_t ty, makerfunc_t* f, zmakerfunc_t* z, const char* name)
   {
