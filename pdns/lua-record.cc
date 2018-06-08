@@ -255,11 +255,17 @@ std::string getGeo(const std::string& ip, GeoIPInterface::GeoIPQueryAttribute qa
 
 static ComboAddress pickrandom(const vector<ComboAddress>& ips)
 {
+  if (ips.empty()) {
+    throw std::invalid_argument("The IP list cannot be empty");
+  }
   return ips[random() % ips.size()];
 }
 
 static ComboAddress hashed(const ComboAddress& who, const vector<ComboAddress>& ips)
 {
+  if (ips.empty()) {
+    throw std::invalid_argument("The IP list cannot be empty");
+  }
   ComboAddress::addressOnlyHash aoh;
   return ips[aoh(who) % ips.size()];
 }
@@ -267,6 +273,9 @@ static ComboAddress hashed(const ComboAddress& who, const vector<ComboAddress>& 
 
 static ComboAddress pickwrandom(const vector<pair<int,ComboAddress> >& wips)
 {
+  if (wips.empty()) {
+    throw std::invalid_argument("The IP list cannot be empty");
+  }
   int sum=0;
   vector<pair<int, ComboAddress> > pick;
   for(auto& i : wips) {
@@ -280,6 +289,9 @@ static ComboAddress pickwrandom(const vector<pair<int,ComboAddress> >& wips)
 
 static ComboAddress pickwhashed(const ComboAddress& bestwho, vector<pair<int,ComboAddress> >& wips)
 {
+  if (wips.empty()) {
+    return ComboAddress();
+  }
   int sum=0;
   vector<pair<int, ComboAddress> > pick;
   for(auto& i : wips) {
@@ -356,11 +368,15 @@ static bool getLatLon(const std::string& ip, string& loc)
 
 static ComboAddress pickclosest(const ComboAddress& bestwho, const vector<ComboAddress>& wips)
 {
+  if (wips.empty()) {
+    throw std::invalid_argument("The IP list cannot be empty");
+  }
   map<double,vector<ComboAddress> > ranked;
   double wlat=0, wlon=0;
   getLatLon(bestwho.toString(), wlat, wlon);
   //        cout<<"bestwho "<<wlat<<", "<<wlon<<endl;
   vector<string> ret;
+  g_log<<Logger::Debug<< __FILE__ << ":" << __LINE__<< " " << __func__ << " wips.size()="<< wips.size() <<endl;
   for(const auto& c : wips) {
     double lat=0, lon=0;
     getLatLon(c.toString(), lat, lon);
@@ -373,6 +389,9 @@ static ComboAddress pickclosest(const ComboAddress& bestwho, const vector<ComboA
     //          cout<<"    distance: "<<sqrt(dist2) * 40000.0/360<<" km"<<endl; // length of a degree
     ranked[dist2].push_back(c);
   }
+  g_log<<Logger::Debug<< __FILE__ << ":" << __LINE__<< " " << __func__ << " ranked.size()="<< ranked.size()<<endl;
+  ranked.begin()->second.size();
+  g_log<<Logger::Debug<< __FILE__ << ":" << __LINE__<< " " << __func__ << " ranked.size()="<< ranked.size()<<endl;
   return ranked.begin()->second[random() % ranked.begin()->second.size()];
 }
 
@@ -470,18 +489,17 @@ std::vector<shared_ptr<DNSRecordContent>> luaSynth(const std::string& code, cons
   });
 
 
-  lua.writeFunction("closestMagic", [&bestwho,&query](){
+  lua.writeFunction("closestMagic", [&bestwho,&query]() {
       vector<ComboAddress> candidates;
       for(auto l : query.getRawLabels()) {
         boost::replace_all(l, "-", ".");
         try {
           candidates.emplace_back(l);
-        }
-        catch(...) {
-          break;
+        } catch (const PDNSException& e) {
+          // we want the reason to be reported by the lua wrapper
+          throw std::invalid_argument(e.reason);
         }
       }
-
       return pickclosest(bestwho, candidates).toString();
     });
 
@@ -718,7 +736,7 @@ std::vector<shared_ptr<DNSRecordContent>> luaSynth(const std::string& code, cons
    * @example pickrandom({ '1.2.3.4', '5.4.3.2' })"
    */
   lua.writeFunction("pickrandom", [](const iplist_t& ips) {
-      vector<ComboAddress > conv = convIplist(ips);
+      vector<ComboAddress> conv = convIplist(ips);
 
       return pickrandom(conv).toString();
     });
