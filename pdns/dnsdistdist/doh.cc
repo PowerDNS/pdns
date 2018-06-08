@@ -325,24 +325,44 @@ void dnsdistclient(int qsock, int rsock)
   }
 }
 
+
+/*
 void responsesender(int rpair[2])
 {
   DOHUnit *du;
   for(;;) {
     recv(rpair[1], &du, sizeof(du), 0);
-    //    cout<<"Received DU ready to https up"<<endl;
-    //    static h2o_generator_t generator = {NULL, NULL};
+
     du->req->res.status = 200;
     du->req->res.reason = "OK";
     
     h2o_add_header(&du->req->pool, &du->req->res.headers, H2O_TOKEN_CONTENT_TYPE, NULL, H2O_STRLIT("application/dns-udpwireformat"));
-    //    h2o_add_header(&du->req->pool, &du->req->res.headers, H2O_TOKEN_CONTENT_TYPE, NULL, H2O_STRLIT("application/dns-message"));
-    //    h2o_start_response(du->req, &generator);
+
     struct dnsheader* dh = (struct dnsheader*)du->query.c_str();
     cout<<"Attempt to send out "<<du->query.size()<<" bytes over https, TC="<<dh->tc<<", RCODE="<<dh->rcode<<", qtype="<<du->qtype<<", req="<<(void*)du->req<<endl;
+
     du->req->res.content_length = du->query.size();
     h2o_send_inline(du->req, du->query.c_str(), du->query.size());
   }
+}
+*/
+static void on_dnsdist(h2o_socket_t *listener, const char *err)
+{
+  cout<<"on_dnsdist got called"<<endl;
+  DOHUnit *du;
+  recv(g_dohresponsepair[1], &du, sizeof(du), 0);
+
+  du->req->res.status = 200;
+  du->req->res.reason = "OK";
+  
+  h2o_add_header(&du->req->pool, &du->req->res.headers, H2O_TOKEN_CONTENT_TYPE, NULL, H2O_STRLIT("application/dns-udpwireformat"));
+  
+  struct dnsheader* dh = (struct dnsheader*)du->query.c_str();
+  cout<<"Attempt to send out "<<du->query.size()<<" bytes over https, TC="<<dh->tc<<", RCODE="<<dh->rcode<<", qtype="<<du->qtype<<", req="<<(void*)du->req<<endl;
+  
+  du->req->res.content_length = du->query.size();
+  h2o_send_inline(du->req, du->query.c_str(), du->query.size());
+
 }
 
 static void on_accept(h2o_socket_t *listener, const char *err)
@@ -426,7 +446,7 @@ int dohThread(const ComboAddress ca, const char* certfile, const char*keyfile)
 
   std::thread dnsdistThread(dnsdistclient, g_dohquerypair[1], g_dohresponsepair[0]);
   
-  std::thread responseThread(responsesender, g_dohresponsepair);
+  //  std::thread responseThread(responsesender, g_dohresponsepair);
   
 
   h2o_access_log_filehandle_t *logfh = h2o_access_log_open_handle("/dev/stdout", NULL, H2O_LOGCONF_ESCAPE_APACHE);
@@ -443,6 +463,8 @@ int dohThread(const ComboAddress ca, const char* certfile, const char*keyfile)
   
   h2o_context_init(&ctx, h2o_evloop_create(), &config);
   
+  auto sock = h2o_evloop_socket_create(ctx.loop, g_dohresponsepair[1], H2O_SOCKET_FLAG_DONT_READ);
+  h2o_socket_read_start(sock, on_dnsdist);
   
   if (USE_HTTPS &&
       setup_ssl(certfile, keyfile, 
@@ -457,6 +479,8 @@ int dohThread(const ComboAddress ca, const char* certfile, const char*keyfile)
     fprintf(stderr, "failed to listen to %s: %s\n", ca.toStringWithPort().c_str(), strerror(errno));
     goto Error;
   }
+
+
   
   while (h2o_evloop_run(ctx.loop, INT32_MAX) == 0)
     ;
