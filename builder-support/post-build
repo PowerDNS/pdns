@@ -1,5 +1,9 @@
 #!/bin/bash
 
+if [[ "${BUILDER_TARGET}" =~ ^doc.* ]]; then
+  exit 0
+fi
+
 SRCDIR="${BUILDER_TMP}/${BUILDER_VERSION}/${BUILDER_TARGET}"
 DESTDIR="built_pkgs/"
 
