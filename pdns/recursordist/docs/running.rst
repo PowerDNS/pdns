@@ -85,7 +85,7 @@ To enable tracing for all queries, enable the :ref:`setting-trace` setting.
 
 .. warning::
 
-  Enabling tracing for all queries on a system with a high query rate can severely performance.
+  Enabling tracing for all queries on a system with a high query rate can severely impact performance.
 
 Tracing can also be enabled at runtime, without restarting the Recursor, for specific domains.
 These specific domains can be specified as a regular expression.
