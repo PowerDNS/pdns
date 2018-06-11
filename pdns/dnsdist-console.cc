@@ -79,7 +79,7 @@ static bool sendMessageToServer(int fd, const std::string& line, SodiumNonce& re
   string msg = sodEncryptSym(line, g_consoleKey, writingNonce);
   const auto msgLen = msg.length();
   if (msgLen > std::numeric_limits<uint32_t>::max()) {
-    cout << "Encrypted essage is too long to be sent to the server, "<< std::to_string(msgLen) << " > " << std::numeric_limits<uint32_t>::max() << endl;
+    cout << "Encrypted message is too long to be sent to the server, "<< std::to_string(msgLen) << " > " << std::numeric_limits<uint32_t>::max() << endl;
     return true;
   }
 
