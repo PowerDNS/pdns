@@ -11,14 +11,16 @@ The console can be enabled with :func:`controlSocket`:
 
   controlSocket('192.0.2.53:5199')
 
-Enabling the console without encryption enabled is not recommended. To enable encryption, first generate a key with :func:`makeKey`::
+Enabling the console without encryption enabled is not recommended. Note that encryption requires building dnsdist with libsodium support enabled.
+
+Once you have a libsodium-enabled dnsdist, the first step to enable encryption is to generate a key with :func:`makeKey`::
 
   $ ./dnsdist -l 127.0.0.1:5300
   [..]
   > makeKey()
   setKey("ENCODED KEY")
 
-Add the generated :func:`setKey` line to your dnsdist configuration file, along with a :func:`controlSocket`:
+Then add the generated :func:`setKey` line to your dnsdist configuration file, along with a :func:`controlSocket`:
 
 .. code-block:: lua
 
@@ -37,8 +39,6 @@ Alternatively, you can specify the address and key on the client commandline::
 .. warning::
 
   This will leak the key into your shell's history and is **not** recommended.
-
-Note that encryption requires building dnsdist with libsodium support enabled.
 
 Since 1.3.0, dnsdist supports restricting which client can connect to the console with an ACL:
 
