@@ -537,9 +537,9 @@ These ``DNSRule``\ s be one of the following items:
 
   Matches queries with the DO flag set
 
-.. function:: MaxQPSIPRule(qps[, v4Mask[, v6Mask[, burst[, expiration[, cleanupDelay]]]]])
+.. function:: MaxQPSIPRule(qps[, v4Mask[, v6Mask[, burst[, expiration[, cleanupDelay[, scanFraction]]]]]])
   .. versionchanged:: 1.3.1
-    Added the optional parameters ``expiration`` and ``cleanupDelay``.
+    Added the optional parameters ``expiration``, ``cleanupDelay`` and ``scanFraction``.
 
   Matches traffic for a subnet specified by ``v4Mask`` or ``v6Mask`` exceeding ``qps`` queries per second up to ``burst`` allowed.
   This rule keeps track of QPS by netmask or source IP. This state is cleaned up regularly if  ``cleanupDelay`` is greater than zero,
@@ -551,6 +551,7 @@ These ``DNSRule``\ s be one of the following items:
   :param int burst: The number of burstable queries per second allowed. Default is same as qps
   :param int expiration: How long to keep netmask or IP addresses after they have last been seen, in seconds. Default is 300
   :param int cleanupDelay: The number of seconds between two cleanups. Default is 60
+  :param int scanFraction: The maximum fraction of the store to scan for expired entries, for example 5 would scan at most 20% of it. Default is 10 so 10%
 
 .. function:: MaxQPSRule(qps)
 

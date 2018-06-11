@@ -29,11 +29,44 @@
 class MaxQPSIPRule : public DNSRule
 {
 public:
-  MaxQPSIPRule(unsigned int qps, unsigned int burst, unsigned int ipv4trunc=32, unsigned int ipv6trunc=64, unsigned int expiration=300, unsigned int cleanupDelay=60):
-    d_qps(qps), d_burst(burst), d_ipv4trunc(ipv4trunc), d_ipv6trunc(ipv6trunc), d_cleanupDelay(cleanupDelay), d_expiration(expiration)
+  MaxQPSIPRule(unsigned int qps, unsigned int burst, unsigned int ipv4trunc=32, unsigned int ipv6trunc=64, unsigned int expiration=300, unsigned int cleanupDelay=60, unsigned int scanFraction=10):
+    d_qps(qps), d_burst(burst), d_ipv4trunc(ipv4trunc), d_ipv6trunc(ipv6trunc), d_cleanupDelay(cleanupDelay), d_expiration(expiration), d_scanFraction(scanFraction)
   {
-    pthread_rwlock_init(&d_lock, 0);
     gettime(&d_lastCleanup, true);
+  }
+
+  void clear()
+  {
+    std::lock_guard<std::mutex> lock(d_lock);
+    d_limits.clear();
+  }
+
+  size_t cleanup(const struct timespec& cutOff, size_t* scannedCount=nullptr) const
+  {
+    std::lock_guard<std::mutex> lock(d_lock);
+    size_t toLook = d_limits.size() / d_scanFraction + 1;
+    size_t lookedAt = 0;
+
+    size_t removed = 0;
+    auto& sequence = d_limits.get<SequencedTag>();
+    for (auto entry = sequence.begin(); entry != sequence.end() && lookedAt < toLook; lookedAt++) {
+      if (entry->d_limiter.seenSince(cutOff)) {
+        /* entries are ordered from least recently seen to more recently
+           seen, as soon as we see one that has not expired yet, we are
+           done */
+        lookedAt++;
+        break;
+      }
+
+      entry = sequence.erase(entry);
+      removed++;
+    }
+
+    if (scannedCount != nullptr) {
+      *scannedCount = lookedAt;
+    }
+
+    return removed;
   }
 
   void cleanupIfNeeded(const struct timespec& now) const
@@ -43,20 +76,11 @@ public:
       cutOff.tv_sec += d_cleanupDelay;
 
       if (cutOff < now) {
-        WriteLock w(&d_lock);
-
         /* the QPS Limiter doesn't use realtime, be careful! */
         gettime(&cutOff, false);
         cutOff.tv_sec -= d_expiration;
 
-        for (auto entry = d_limits.begin(); entry != d_limits.end(); ) {
-          if (!entry->second.seenSince(cutOff)) {
-            entry = d_limits.erase(entry);
-          }
-          else {
-            ++entry;
-          }
-        }
+        cleanup(cutOff);
 
         d_lastCleanup = now;
       }
@@ -71,20 +95,15 @@ public:
     zeroport.sin4.sin_port=0;
     zeroport.truncate(zeroport.sin4.sin_family == AF_INET ? d_ipv4trunc : d_ipv6trunc);
     {
-      ReadLock r(&d_lock);
-      const auto iter = d_limits.find(zeroport);
-      if (iter != d_limits.end()) {
-        return !iter->second.check(d_qps, d_burst);
-      }
-    }
-    {
-      WriteLock w(&d_lock);
-
+      std::lock_guard<std::mutex> lock(d_lock);
       auto iter = d_limits.find(zeroport);
-      if(iter == d_limits.end()) {
-        iter=d_limits.insert({zeroport,QPSLimiter(d_qps, d_burst)}).first;
+      if (iter == d_limits.end()) {
+        Entry e(zeroport, QPSLimiter(d_qps, d_burst));
+        iter = d_limits.insert(e).first;
       }
-      return !iter->second.check(d_qps, d_burst);
+
+      moveCacheItemToBack(d_limits, iter);
+      return !iter->d_limiter.check(d_qps, d_burst);
     }
   }
 
@@ -93,12 +112,37 @@ public:
     return "IP (/"+std::to_string(d_ipv4trunc)+", /"+std::to_string(d_ipv6trunc)+") match for QPS over " + std::to_string(d_qps) + " burst "+ std::to_string(d_burst);
   }
 
+  size_t getEntriesCount() const
+  {
+    std::lock_guard<std::mutex> lock(d_lock);
+    return d_limits.size();
+  }
 
 private:
-  mutable pthread_rwlock_t d_lock;
-  mutable std::map<ComboAddress, BasicQPSLimiter> d_limits;
+  struct OrderedTag {};
+  struct SequencedTag {};
+  struct Entry
+  {
+    Entry(const ComboAddress& addr, BasicQPSLimiter&& limiter): d_limiter(limiter), d_addr(addr)
+    {
+    }
+    mutable BasicQPSLimiter d_limiter;
+    ComboAddress d_addr;
+  };
+
+  typedef multi_index_container<
+    Entry,
+    indexed_by <
+      ordered_unique<tag<OrderedTag>, member<Entry,ComboAddress,&Entry::d_addr>, ComboAddress::addressOnlyLessThan >,
+      sequenced<tag<SequencedTag> >
+      >
+  > qpsContainer_t;
+
+  mutable std::mutex d_lock;
+  mutable qpsContainer_t d_limits;
   mutable struct timespec d_lastCleanup;
   unsigned int d_qps, d_burst, d_ipv4trunc, d_ipv6trunc, d_cleanupDelay, d_expiration;
+  unsigned int d_scanFraction{10};
 };
 
 class MaxQPSRule : public DNSRule
