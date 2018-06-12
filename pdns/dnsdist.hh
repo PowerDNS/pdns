@@ -65,6 +65,7 @@ struct DNSQuestion
 #ifdef HAVE_PROTOBUF
   boost::optional<boost::uuids::uuid> uniqueId;
 #endif
+  Netmask ecs;
   const DNSName* qname;
   const uint16_t qtype;
   const uint16_t qclass;
@@ -82,6 +83,7 @@ struct DNSQuestion
   bool ecsOverride;
   bool useECS{true};
   bool addXPF{true};
+  bool ecsSet{false};
 };
 
 struct DNSResponse : DNSQuestion

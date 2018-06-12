@@ -98,7 +98,7 @@ string makeEDNSSubnetOptsString(const EDNSSubnetOpts& eso)
 
   ComboAddress src=eso.source.getNetwork();
   src.truncate(esow.sourceMask);
-  
+
   if(family == htons(1)) 
     ret.append((const char*) &src.sin4.sin_addr.s_addr, octetsout);
   else
