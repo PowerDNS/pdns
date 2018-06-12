@@ -177,25 +177,29 @@ void DNSPacket::setOpcode(uint16_t opcode)
 void DNSPacket::clearRecords()
 {
   d_rrs.clear();
+  d_dedup.clear();
 }
 
 void DNSPacket::addRecord(const DNSZoneRecord &rr)
 {
   // this removes duplicates from the packet in case we are not compressing
   // for AXFR, no such checking is performed!
-  // cerr<<"addrecord, content=["<<rr.content<<"]"<<endl;
+
+  std::string ser;
   if(d_compress) {
-    for(auto i=d_rrs.begin();i!=d_rrs.end();++i) {
-      if(rr.dr == i->dr)  // XXX SUPER SLOW
+    ser=const_cast<DNSZoneRecord&>(rr).dr.d_content->serialize(rr.dr.d_name);
+    if(d_dedup.count({rr.dr.d_name, ser})) { // might be a dup
+      for(auto i=d_rrs.begin();i!=d_rrs.end();++i) {
+        if(rr.dr == i->dr)  // XXX SUPER SLOW
           return;
+      }
     }
   }
+  if(d_compress)
+    d_dedup.insert({rr.dr.d_name, ser});
 
-  // cerr<<"added to d_rrs"<<endl;
   d_rrs.push_back(rr);
 }
-
-
 
 vector<DNSZoneRecord*> DNSPacket::getAPRecords()
 {
