@@ -173,7 +173,6 @@ void DNSPacket::setOpcode(uint16_t opcode)
   d.opcode=opcode;
 }
 
-
 void DNSPacket::clearRecords()
 {
   d_rrs.clear();
@@ -182,21 +181,19 @@ void DNSPacket::clearRecords()
 
 void DNSPacket::addRecord(const DNSZoneRecord &rr)
 {
-  // this removes duplicates from the packet in case we are not compressing
-  // for AXFR, no such checking is performed!
+  // this removes duplicates from the packet.
+  // in case we are not compressing for AXFR, no such checking is performed!
 
-  std::string ser;
   if(d_compress) {
-    ser=const_cast<DNSZoneRecord&>(rr).dr.d_content->serialize(rr.dr.d_name);
+    std::string ser = const_cast<DNSZoneRecord&>(rr).dr.d_content->serialize(rr.dr.d_name);
     if(d_dedup.count({rr.dr.d_name, ser})) { // might be a dup
       for(auto i=d_rrs.begin();i!=d_rrs.end();++i) {
         if(rr.dr == i->dr)  // XXX SUPER SLOW
           return;
       }
     }
-  }
-  if(d_compress)
     d_dedup.insert({rr.dr.d_name, ser});
+  }
 
   d_rrs.push_back(rr);
 }
@@ -217,9 +214,7 @@ vector<DNSZoneRecord*> DNSPacket::getAPRecords()
           arrs.push_back(&*i);
         }
     }
-
   return arrs;
-
 }
 
 vector<DNSZoneRecord*> DNSPacket::getAnswerRecords()
