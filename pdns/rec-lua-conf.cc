@@ -92,7 +92,7 @@ void loadRecursorLuaConfig(const std::string& fname, bool checkOnly)
   if(!ifs)
     throw PDNSException("Cannot open file '"+fname+"': "+strerror(errno));
 
-  std::vector<std::tuple<ComboAddress, boost::optional<DNSFilterEngine::Policy>, uint32_t, size_t, TSIGTriplet, size_t, ComboAddress, uint16_t, std::shared_ptr<SOARecordContent>, std::string> > rpzMasterThreads;
+  std::vector<std::tuple<std::vector<ComboAddress>, boost::optional<DNSFilterEngine::Policy>, uint32_t, size_t, TSIGTriplet, size_t, ComboAddress, uint16_t, std::shared_ptr<SOARecordContent>, std::string> > rpzMasterThreads;
 
   auto luaconfsLocal = g_luaconfs.getLocal();
   lci.generation = luaconfsLocal->generation + 1;
@@ -139,7 +139,7 @@ void loadRecursorLuaConfig(const std::string& fname, bool checkOnly)
       }
     });
 
-  Lua.writeFunction("rpzMaster", [&lci, &rpzMasterThreads](const string& master_, const string& zoneName, const boost::optional<std::unordered_map<string,boost::variant<uint32_t, string>>>& options) {
+  Lua.writeFunction("rpzMaster", [&lci, &rpzMasterThreads](const boost::variant<string, std::vector<std::pair<int, string> > >& masters_, const string& zoneName, const boost::optional<std::unordered_map<string,boost::variant<uint32_t, string>>>& options) {
 
       boost::optional<DNSFilterEngine::Policy> defpol;
       std::shared_ptr<DNSFilterEngine::Zone> zone = std::make_shared<DNSFilterEngine::Zone>();
@@ -149,7 +149,16 @@ void loadRecursorLuaConfig(const std::string& fname, bool checkOnly)
       uint16_t axfrTimeout = 20;
       uint32_t maxTTL = std::numeric_limits<uint32_t>::max();
       ComboAddress localAddress;
-      ComboAddress master(master_, 53);
+      std::vector<ComboAddress> masters;
+      if (masters_.type() == typeid(string)) {
+        masters.push_back(ComboAddress(boost::get<std::string>(masters_), 53));
+      }
+      else {
+        for (const auto& master : boost::get<std::vector<std::pair<int, std::string>>>(masters_)) {
+          masters.push_back(ComboAddress(master.second, 53));
+        }
+      }
+
       size_t zoneIdx;
       std::string dumpFile;
       std::shared_ptr<SOARecordContent> sr = nullptr;
@@ -198,9 +207,13 @@ void loadRecursorLuaConfig(const std::string& fname, bool checkOnly)
           }
         }
 
-        if (localAddress != ComboAddress() && localAddress.sin4.sin_family != master.sin4.sin_family) {
-          // We were passed a localAddress, check if its AF matches the master's
-          throw PDNSException("Master address("+master.toString()+") is not of the same Address Family as the local address ("+localAddress.toString()+").");
+        if (localAddress != ComboAddress()) {
+          // We were passed a localAddress, check if its AF matches the masters'
+          for (const auto& master : masters) {
+            if (localAddress.sin4.sin_family != master.sin4.sin_family) {
+              throw PDNSException("Master address("+master.toString()+") is not of the same Address Family as the local address ("+localAddress.toString()+").");
+            }
+          }
         }
 
         DNSName domain(zoneName);
@@ -236,7 +249,7 @@ void loadRecursorLuaConfig(const std::string& fname, bool checkOnly)
         exit(1);  // FIXME proper exit code?
       }
 
-      rpzMasterThreads.push_back(std::make_tuple(master, defpol, maxTTL, zoneIdx, tt, maxReceivedXFRMBytes, localAddress, axfrTimeout, sr, dumpFile));
+      rpzMasterThreads.push_back(std::make_tuple(masters, defpol, maxTTL, zoneIdx, tt, maxReceivedXFRMBytes, localAddress, axfrTimeout, sr, dumpFile));
     });
 
   typedef vector<pair<int,boost::variant<string, vector<pair<int, string> > > > > argvec_t;
