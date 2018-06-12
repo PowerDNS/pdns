@@ -373,7 +373,7 @@ static void on_accept(h2o_socket_t *listener, const char *err)
   if (err != NULL) {
     return;
   }
-  
+  // do some dnsdist rules here to filter based on IP address
   if ((sock = h2o_evloop_socket_accept(listener)) == NULL)
     return;
   h2o_accept(&accept_ctx, sock);
