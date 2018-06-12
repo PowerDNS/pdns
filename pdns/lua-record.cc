@@ -450,11 +450,7 @@ static vector<pair<int, ComboAddress> > convWIplist(std::unordered_map<int, wipl
 
 std::vector<shared_ptr<DNSRecordContent>> luaSynth(const std::string& code, const DNSName& query, const DNSName& zone, int zoneid, const DNSPacket& dnsp, uint16_t qtype)
 {
-  //  cerr<<"Called for "<<query<<", in zone "<<zone<<" for type "<<qtype<<endl;
-  //  cerr<<"Code: '"<<code<<"'"<<endl;
-
   AuthLua4 alua;
-  //
 
   std::vector<shared_ptr<DNSRecordContent>> ret;
 
@@ -491,13 +487,14 @@ std::vector<shared_ptr<DNSRecordContent>> luaSynth(const std::string& code, cons
 
   lua.writeFunction("closestMagic", [&bestwho,&query]() {
       vector<ComboAddress> candidates;
+      // Getting something like 192-0-2-1.192-0-2-2.198-51-100-1.example.org
       for(auto l : query.getRawLabels()) {
         boost::replace_all(l, "-", ".");
         try {
           candidates.emplace_back(l);
         } catch (const PDNSException& e) {
-          // we want the reason to be reported by the lua wrapper
-          throw std::invalid_argument(e.reason);
+          // no need to continue as we most likely reached the end of the ip list
+          break ;
         }
       }
       return pickclosest(bestwho, candidates).toString();

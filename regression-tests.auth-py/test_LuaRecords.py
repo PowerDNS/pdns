@@ -337,6 +337,16 @@ www-balanced     IN           CNAME 1-1-1-3.17-1-2-4.1-2-3-5.magic.example.org.
         self.assertRcodeEqual(res, dns.rcode.NOERROR)
         self.assertRRsetInAnswer(res, expected)
 
+    def testWildcardError(self):
+        """
+        Ensure errors coming from LUA wildcards are reported
+        """
+        query = dns.message.make_query('failure.magic.example.org', 'A')
+
+        res = self.sendUDPQuery(query)
+        self.assertRcodeEqual(res, dns.rcode.SERVFAIL)
+        self.assertAnswerEmpty(res)
+
     def testClosestMagic(self):
         """
         Basic closestMagic() test
@@ -488,8 +498,6 @@ www-balanced     IN           CNAME 1-1-1-3.17-1-2-4.1-2-3-5.magic.example.org.
         """
         view() test where no netmask match
         """
-        expected = dns.rrset.from_text('none.view.example.org.', 0,
-                                       dns.rdataclass.IN, 'A')
         query = dns.message.make_query('none.view.example.org', 'A')
 
         res = self.sendUDPQuery(query)
