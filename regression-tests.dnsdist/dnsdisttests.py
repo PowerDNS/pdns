@@ -458,6 +458,9 @@ class DNSDistTest(unittest.TestCase):
         sock.send(struct.pack("!I", len(msg)))
         sock.send(msg)
         data = sock.recv(4)
+        if not data:
+            raise socket.error("Got EOF while reading the response size")
+
         (responseLen,) = struct.unpack("!I", data)
         data = sock.recv(responseLen)
         response = cls._decryptConsole(data, readingNonce)

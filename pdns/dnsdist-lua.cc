@@ -611,6 +611,13 @@ void setupLuaConfig(bool client)
 	return;
       }
 
+      g_consoleEnabled = true;
+#ifdef HAVE_LIBSODIUM
+      if (g_configurationDone && g_consoleKey.empty()) {
+        warnlog("Warning, the console has been enabled via 'controlSocket()' but no key has been set with 'setKey()' so all connections will fail until a key has been set");
+      }
+#endif
+
       try {
 	int sock = SSocket(local.sin4.sin_family, SOCK_STREAM, 0);
 	SSetsockopt(sock, SOL_SOCKET, SO_REUSEADDR, 1);

@@ -42,6 +42,7 @@ GlobalStateHolder<NetmaskGroup> g_consoleACL;
 vector<pair<struct timeval, string> > g_confDelta;
 std::string g_consoleKey;
 bool g_logConsoleConnections{true};
+bool g_consoleEnabled{false};
 
 // MUST BE CALLED UNDER A LOCK - right now the LuaLock
 static void feedConfigDelta(const std::string& line)
@@ -73,10 +74,55 @@ static string historyFile(const bool &ignoreHOME = false)
   return ret;
 }
 
+static bool sendMessageToServer(int fd, const std::string& line, SodiumNonce& readingNonce, SodiumNonce& writingNonce, const bool outputEmptyLine)
+{
+  string msg = sodEncryptSym(line, g_consoleKey, writingNonce);
+  const auto msgLen = msg.length();
+  if (msgLen > std::numeric_limits<uint32_t>::max()) {
+    cout << "Encrypted message is too long to be sent to the server, "<< std::to_string(msgLen) << " > " << std::numeric_limits<uint32_t>::max() << endl;
+    return true;
+  }
+
+  putMsgLen32(fd, static_cast<uint32_t>(msgLen));
+
+  if (!msg.empty()) {
+    writen2(fd, msg);
+  }
+
+  uint32_t len;
+  if(!getMsgLen32(fd, &len)) {
+    cout << "Connection closed by the server." << endl;
+    return false;
+  }
+
+  if (len == 0) {
+    if (outputEmptyLine) {
+      cout << endl;
+    }
+
+    return true;
+  }
+
+  boost::scoped_array<char> resp(new char[len]);
+  readn2(fd, resp.get(), len);
+  msg.assign(resp.get(), len);
+  msg = sodDecryptSym(msg, g_consoleKey, readingNonce);
+  cout << msg;
+  cout.flush();
+
+  return true;
+}
+
 void doClient(ComboAddress server, const std::string& command)
 {
-  if(g_verbose)
+  if (!sodIsValidKey(g_consoleKey)) {
+    cerr << "The currently configured console key is not valid, please configure a valid key using the setKey() directive" << endl;
+    return;
+  }
+
+  if(g_verbose) {
     cout<<"Connecting to "<<server.toStringWithPort()<<endl;
+  }
 
   int fd=socket(server.sin4.sin_family, SOCK_STREAM, 0);
   if (fd < 0) {
@@ -93,25 +139,18 @@ void doClient(ComboAddress server, const std::string& command)
   readingNonce.merge(ours, theirs);
   writingNonce.merge(theirs, ours);
 
-  if(!command.empty()) {
-    string msg=sodEncryptSym(command, g_consoleKey, writingNonce);
-    putMsgLen32(fd, (uint32_t) msg.length());
-    if(!msg.empty())
-      writen2(fd, msg);
-    uint32_t len;
-    if(getMsgLen32(fd, &len)) {
-      if (len > 0) {
-        boost::scoped_array<char> resp(new char[len]);
-        readn2(fd, resp.get(), len);
-        msg.assign(resp.get(), len);
-        msg=sodDecryptSym(msg, g_consoleKey, readingNonce);
-        cout<<msg;
-        cout.flush();
-      }
-    }
-    else {
-      cout << "Connection closed by the server." << endl;
-    }
+  /* try sending an empty message, the server should send an empty
+     one back. If it closes the connection instead, we are probably
+     having a key mismatch issue. */
+  if (!sendMessageToServer(fd, "", readingNonce, writingNonce, false)) {
+    cerr<<"The server closed the connection right away, likely indicating a key mismatch. Please check your setKey() directive."<<endl;
+    close(fd);
+    return;
+  }
+
+  if (!command.empty()) {
+    sendMessageToServer(fd, command, readingNonce, writingNonce, false);
+
     close(fd);
     return; 
   }
@@ -150,25 +189,8 @@ void doClient(ComboAddress server, const std::string& command)
     if(line.empty())
       continue;
 
-    string msg=sodEncryptSym(line, g_consoleKey, writingNonce);
-    putMsgLen32(fd, (uint32_t) msg.length());
-    writen2(fd, msg);
-    uint32_t len;
-    if(!getMsgLen32(fd, &len)) {
-      cout << "Connection closed by the server." << endl;
+    if (!sendMessageToServer(fd, line, readingNonce, writingNonce, true)) {
       break;
-    }
-
-    if (len > 0) {
-      boost::scoped_array<char> resp(new char[len]);
-      readn2(fd, resp.get(), len);
-      msg.assign(resp.get(), len);
-      msg=sodDecryptSym(msg, g_consoleKey, readingNonce);
-      cout<<msg;
-      cout.flush();
-    }
-    else {
-      cout<<endl;
     }
   }
   close(fd);
@@ -529,8 +551,9 @@ try
 
     boost::scoped_array<char> msg(new char[len]);
     readn2(fd, msg.get(), len);
-    
+
     string line(msg.get(), len);
+
     line = sodDecryptSym(line, g_consoleKey, readingNonce);
     //    cerr<<"Have decrypted line: "<<line<<endl;
     string response;
@@ -642,6 +665,12 @@ try
   infolog("Accepting control connections on %s", local.toStringWithPort());
 
   while ((sock = SAccept(fd, client)) >= 0) {
+
+    if (!sodIsValidKey(g_consoleKey)) {
+      vinfolog("Control connection from %s dropped because we don't have a valid key configured, please configure one using setKey()", client.toStringWithPort());
+      close(sock);
+      continue;
+    }
 
     if (!localACL->match(client)) {
       vinfolog("Control connection from %s dropped because of ACL", client.toStringWithPort());

@@ -155,7 +155,8 @@ Control Socket, Console and Webserver
 
   Bind to ``addr`` and listen for a connection for the console. Since 1.3.0 only connections from local users are allowed
   by default, :func:`addConsoleACL` and :func:`setConsoleACL` can be used to enable remote connections. Please make sure
-  that encryption has been enabled with :func:`setKey` before doing so.
+  that encryption has been enabled with :func:`setKey` before doing so. Enabling encryption is also strongly advised for
+  local connections, since not enabling it allows any local user to connect to the console.
 
   :param str address: An IP address with optional port. By default, the port is 5199.
 
