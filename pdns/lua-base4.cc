@@ -62,6 +62,7 @@ void BaseLua4::prepareContext() {
   d_lw->registerFunction("canonCompare", &DNSName::canonCompare);
   d_lw->registerFunction("makeRelative", &DNSName::makeRelative);
   d_lw->registerFunction("isPartOf", &DNSName::isPartOf);
+  d_lw->registerFunction("getRawLabels", &DNSName::getRawLabels);
   d_lw->registerFunction<unsigned int(DNSName::*)()>("countLabels", [](const DNSName& name) { return name.countLabels(); });
   d_lw->registerFunction<size_t(DNSName::*)()>("wirelength", [](const DNSName& name) { return name.wirelength(); });
   d_lw->registerFunction<bool(DNSName::*)(const std::string&)>("equal", [](const DNSName& lhs, const std::string& rhs) { return lhs==DNSName(rhs); });
