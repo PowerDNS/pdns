@@ -714,7 +714,7 @@ void editDNSPacketTTL(char* packet, size_t length, std::function<uint32_t(uint8_
     for(n=0; n < numrecords; ++n) {
       dpm.skipLabel();
 
-      uint8_t section = n < dh.ancount ? 1 : (n < (dh.ancount + dh.nscount) ? 2 : 3);
+      uint8_t section = n < ntohs(dh.ancount) ? 1 : (n < (ntohs(dh.ancount) + ntohs(dh.nscount)) ? 2 : 3);
       uint16_t dnstype = dpm.get16BitInt();
       uint16_t dnsclass = dpm.get16BitInt();
 
@@ -804,8 +804,14 @@ uint32_t getDNSPacketMinTTL(const char* packet, size_t length)
       /* class */
       dpm.skipBytes(2);
 
-      if(dnstype == QType::OPT)
+      if(dnstype == QType::OPT) {
         break;
+      }
+
+      /* report it if we see a SOA record in the AUTHORITY section */
+      if(dnstype == QType::SOA && seenAuthSOA != nullptr && n >= (ntohs(dh->ancount) && n < (ntohs(dh->ancount) + ntohs(dh->nscount)))) {
+        *seenAuthSOA = true;
+      }
 
       const uint32_t ttl = dpm.get32BitInt();
       if (result > ttl)
