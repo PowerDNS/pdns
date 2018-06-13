@@ -1316,6 +1316,112 @@ class TestCachingFailureTTL(DNSDistTest):
 
         self.assertEquals(total, misses)
 
+class TestCachingNegativeTTL(DNSDistTest):
+
+    _negCacheTTL = 1
+    _config_params = ['_negCacheTTL', '_testServerPort']
+    _config_template = """
+    pc = newPacketCache(1000, 86400, 0, 60, 60, false, 1, true, %d)
+    getPool(""):setCache(pc)
+    newServer{address="127.0.0.1:%s"}
+    """
+
+    def testCacheNegativeTTLNXDomain(self):
+        """
+        Cache: Negative TTL on NXDOMAIN
+
+        """
+        misses = 0
+        name = 'nxdomain.negativettl.cache.tests.powerdns.com.'
+        query = dns.message.make_query(name, 'A', 'IN')
+        response = dns.message.make_response(query)
+        response.set_rcode(dns.rcode.NXDOMAIN)
+        soa = dns.rrset.from_text(name,
+                                  60,
+                                  dns.rdataclass.IN,
+                                  dns.rdatatype.SOA,
+                                  'ns.' + name + ' hostmaster.' + name + ' 1 3600 3600 3600 60')
+        response.authority.append(soa)
+
+        # Miss
+        (receivedQuery, receivedResponse) = self.sendUDPQuery(query, response)
+        self.assertTrue(receivedQuery)
+        self.assertTrue(receivedResponse)
+        receivedQuery.id = query.id
+        self.assertEquals(query, receivedQuery)
+        self.assertEquals(response, receivedResponse)
+        misses += 1
+
+        # next queries should hit the cache
+        (_, receivedResponse) = self.sendUDPQuery(query, response=None, useQueue=False)
+        self.assertEquals(receivedResponse, response)
+
+        time.sleep(self._negCacheTTL + 1)
+
+        # we should not have cached for longer than the negativel TTL
+        # so it should be a miss
+        (receivedQuery, receivedResponse) = self.sendUDPQuery(query, response)
+        self.assertTrue(receivedQuery)
+        self.assertTrue(receivedResponse)
+        receivedQuery.id = query.id
+        self.assertEquals(query, receivedQuery)
+        self.assertEquals(response, receivedResponse)
+        misses += 1
+
+        total = 0
+        for key in self._responsesCounter:
+            total += self._responsesCounter[key]
+
+        self.assertEquals(total, misses)
+
+    def testCacheNegativeTTLNoData(self):
+        """
+        Cache: Negative TTL on NoData
+
+        """
+        misses = 0
+        name = 'nodata.negativettl.cache.tests.powerdns.com.'
+        query = dns.message.make_query(name, 'A', 'IN')
+        response = dns.message.make_response(query)
+        response.set_rcode(dns.rcode.NOERROR)
+        soa = dns.rrset.from_text(name,
+                                  60,
+                                  dns.rdataclass.IN,
+                                  dns.rdatatype.SOA,
+                                  'ns.' + name + ' hostmaster.' + name + ' 1 3600 3600 3600 60')
+        response.authority.append(soa)
+
+        # Miss
+        (receivedQuery, receivedResponse) = self.sendUDPQuery(query, response)
+        self.assertTrue(receivedQuery)
+        self.assertTrue(receivedResponse)
+        receivedQuery.id = query.id
+        self.assertEquals(query, receivedQuery)
+        self.assertEquals(response, receivedResponse)
+        misses += 1
+
+        # next queries should hit the cache
+        (_, receivedResponse) = self.sendUDPQuery(query, response=None, useQueue=False)
+        self.assertEquals(receivedResponse, response)
+
+        time.sleep(self._negCacheTTL + 1)
+
+        # we should not have cached for longer than the negativel TTL
+        # so it should be a miss
+        (receivedQuery, receivedResponse) = self.sendUDPQuery(query, response)
+        self.assertTrue(receivedQuery)
+        self.assertTrue(receivedResponse)
+        receivedQuery.id = query.id
+        self.assertEquals(query, receivedQuery)
+        self.assertEquals(response, receivedResponse)
+        misses += 1
+
+        total = 0
+        for key in self._responsesCounter:
+            total += self._responsesCounter[key]
+
+        self.assertEquals(total, misses)
+
 class TestCachingDontAge(DNSDistTest):
 
     _config_template = """

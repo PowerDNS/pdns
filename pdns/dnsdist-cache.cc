@@ -24,7 +24,7 @@
 #include "dnsparser.hh"
 #include "dnsdist-cache.hh"
 
-DNSDistPacketCache::DNSDistPacketCache(size_t maxEntries, uint32_t maxTTL, uint32_t minTTL, uint32_t tempFailureTTL, uint32_t staleTTL, bool dontAge, uint32_t shards, bool deferrableInsertLock): d_maxEntries(maxEntries), d_shardCount(shards), d_maxTTL(maxTTL), d_tempFailureTTL(tempFailureTTL), d_minTTL(minTTL), d_staleTTL(staleTTL), d_dontAge(dontAge), d_deferrableInsertLock(deferrableInsertLock)
+DNSDistPacketCache::DNSDistPacketCache(size_t maxEntries, uint32_t maxTTL, uint32_t minTTL, uint32_t tempFailureTTL, uint32_t maxNegativeTTL, uint32_t staleTTL, bool dontAge, uint32_t shards, bool deferrableInsertLock): d_maxEntries(maxEntries), d_shardCount(shards), d_maxTTL(maxTTL), d_tempFailureTTL(tempFailureTTL), d_maxNegativeTTL(maxNegativeTTL), d_minTTL(minTTL), d_staleTTL(staleTTL), d_dontAge(dontAge), d_deferrableInsertLock(deferrableInsertLock)
 {
   d_shards.resize(d_shardCount);
 
@@ -103,14 +103,18 @@ void DNSDistPacketCache::insert(uint32_t key, const DNSName& qname, uint16_t qty
     }
   }
   else {
-    minTTL = getMinTTL(response, responseLen);
+    bool seenAuthSOA = false;
+    minTTL = getMinTTL(response, responseLen, &seenAuthSOA);
 
     /* no TTL found, we don't want to cache this */
     if (minTTL == std::numeric_limits<uint32_t>::max()) {
       return;
     }
 
-    if (minTTL > d_maxTTL) {
+    if (rcode == RCode::NXDomain || (rcode == RCode::NoError && seenAuthSOA)) {
+      minTTL = std::min(minTTL, d_maxNegativeTTL);
+    }
+    else if (minTTL > d_maxTTL) {
       minTTL = d_maxTTL;
     }
 
@@ -345,9 +349,9 @@ uint64_t DNSDistPacketCache::getSize()
   return count;
 }
 
-uint32_t DNSDistPacketCache::getMinTTL(const char* packet, uint16_t length)
+uint32_t DNSDistPacketCache::getMinTTL(const char* packet, uint16_t length, bool* seenNoDataSOA)
 {
-  return getDNSPacketMinTTL(packet, length);
+  return getDNSPacketMinTTL(packet, length, seenNoDataSOA);
 }
 
 uint32_t DNSDistPacketCache::getKey(const std::string& qname, uint16_t consumed, const unsigned char* packet, uint16_t packetLen, bool tcp)
