@@ -175,7 +175,7 @@ private:
   string d_tsigprevious;
 
   vector<DNSZoneRecord> d_rrs; // 8
-  std::unordered_set<pair<DNSName, std::string>, boost::hash< std::pair<DNSName, std::string> >  > d_dedup;
+  std::unordered_set<size_t> d_dedup;
   string d_rawpacket; // this is where everything lives 8
   EDNSSubnetOpts d_eso;
 

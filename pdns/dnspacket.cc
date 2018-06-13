@@ -186,13 +186,14 @@ void DNSPacket::addRecord(const DNSZoneRecord &rr)
 
   if(d_compress) {
     std::string ser = const_cast<DNSZoneRecord&>(rr).dr.d_content->serialize(rr.dr.d_name);
-    if(d_dedup.count({rr.dr.d_name, ser})) { // might be a dup
+    auto hash = boost::hash< std::pair<DNSName, std::string> >()({rr.dr.d_name, ser});
+    if(d_dedup.count(hash)) { // might be a dup
       for(auto i=d_rrs.begin();i!=d_rrs.end();++i) {
         if(rr.dr == i->dr)  // XXX SUPER SLOW
           return;
       }
     }
-    d_dedup.insert({rr.dr.d_name, ser});
+    d_dedup.insert(hash);
   }
 
   d_rrs.push_back(rr);
