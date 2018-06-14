@@ -599,6 +599,9 @@ try
   
   qtype=mdp.d_qtype;
   qclass=mdp.d_qclass;
+
+  d_trc = TSIGRecordContent();
+
   return 0;
 }
 catch(std::exception& e) {
