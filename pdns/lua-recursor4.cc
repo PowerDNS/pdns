@@ -402,10 +402,18 @@ void RecursorLua4::postLoad() {
   d_nxdomain = d_lw->readVariable<boost::optional<luacall_t>>("nxdomain").get_value_or(0);
   d_postresolve = d_lw->readVariable<boost::optional<luacall_t>>("postresolve").get_value_or(0);
   d_preoutquery = d_lw->readVariable<boost::optional<luacall_t>>("preoutquery").get_value_or(0);
+  d_maintenance = d_lw->readVariable<boost::optional<luamaintenance_t>>("maintenance").get_value_or(0);
 
   d_ipfilter = d_lw->readVariable<boost::optional<ipfilter_t>>("ipfilter").get_value_or(0);
   d_gettag = d_lw->readVariable<boost::optional<gettag_t>>("gettag").get_value_or(0);
   d_gettag_ffi = d_lw->readVariable<boost::optional<gettag_ffi_t>>("gettag_ffi").get_value_or(0);
+}
+
+void RecursorLua4::maintenance() const
+{
+  if (d_maintenance) {
+    d_maintenance();
+  }
 }
 
 bool RecursorLua4::prerpz(DNSQuestion& dq, int& ret) const

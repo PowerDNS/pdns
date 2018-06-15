@@ -321,3 +321,19 @@ MIB
 ^^^
 
 .. literalinclude:: ../../RECURSOR-MIB.txt
+
+.. _hooks-maintenance-callback:
+
+Maintenance callback
+--------------------
+Starting with version 4.1.4 of the recursor, it is possible to define a `maintenance()` callback function that will be called periodically.
+This function expects no argument and doesn't return any value
+
+.. code-block:: Lua
+
+    function maintenance()
+        -- This would be called every second
+        -- Perform here your maintenance
+    end
+
+The interval can be configured through the :ref:`setting-maintenance-interval` setting.
