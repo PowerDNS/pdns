@@ -618,6 +618,9 @@ struct DownstreamState
     return status;
   }
   bool reconnect();
+  void hash();
+  void setId(const boost::uuids::uuid& newId);
+  void setWeight(int newWeight);
 };
 using servers_t =vector<std::shared_ptr<DownstreamState>>;
 

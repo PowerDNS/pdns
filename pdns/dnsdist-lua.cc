@@ -237,7 +237,7 @@ void setupLuaConfig(bool client)
 			      return ret;
 			    }
 
-			    ret->weight=weightVal;
+			    ret->setWeight(weightVal);
 			  }
 			  catch(std::exception& e) {
 			    // std::stoi will throw an exception if the string isn't in a value int range
@@ -278,7 +278,7 @@ void setupLuaConfig(bool client)
 			}
 
                         if (vars.count("id")) {
-                          ret->id = boost::lexical_cast<boost::uuids::uuid>(boost::get<string>(vars["id"]));
+                          ret->setId(boost::lexical_cast<boost::uuids::uuid>(boost::get<string>(vars["id"])));
                         }
 
 			if(vars.count("checkName")) {
