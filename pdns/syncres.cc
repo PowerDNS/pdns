@@ -571,21 +571,25 @@ int SyncRes::doResolve(const DNSName &qname, const QType &qtype, vector<DNSRecor
     DNSName authname(qname);
     bool wasForwardedOrAuthZone = false;
     bool wasAuthZone = false;
+    bool wasForwardRecurse = false;
     domainmap_t::const_iterator iter = getBestAuthZone(&authname);
     if(iter != t_sstorage.domainmap->end()) {
+      const auto& domain = iter->second;
       wasForwardedOrAuthZone = true;
-      const vector<ComboAddress>& servers = iter->second.d_servers;
-      if(servers.empty()) {
+
+      if (domain.isAuth()) {
         wasAuthZone = true;
+      } else if (domain.shouldRecurse()) {
+        wasForwardRecurse = true;
       }
     }
 
-    if(!d_skipCNAMECheck && doCNAMECacheCheck(qname, qtype, ret, depth, res, state, wasAuthZone)) { // will reroute us if needed
+    if(!d_skipCNAMECheck && doCNAMECacheCheck(qname, qtype, ret, depth, res, state, wasAuthZone, wasForwardRecurse)) { // will reroute us if needed
       d_wasOutOfBand = wasAuthZone;
       return res;
     }
 
-    if(doCacheCheck(qname, authname, wasForwardedOrAuthZone, wasAuthZone, qtype, ret, depth, res, state)) {
+    if(doCacheCheck(qname, authname, wasForwardedOrAuthZone, wasAuthZone, wasForwardRecurse, qtype, ret, depth, res, state)) {
       // we done
       d_wasOutOfBand = wasAuthZone;
       return res;
@@ -881,7 +885,7 @@ DNSName SyncRes::getBestNSNamesFromCache(const DNSName &qname, const QType& qtyp
   return subdomain;
 }
 
-bool SyncRes::doCNAMECacheCheck(const DNSName &qname, const QType &qtype, vector<DNSRecord>& ret, unsigned int depth, int &res, vState& state, bool wasAuthZone)
+bool SyncRes::doCNAMECacheCheck(const DNSName &qname, const QType &qtype, vector<DNSRecord>& ret, unsigned int depth, int &res, vState& state, bool wasAuthZone, bool wasForwardRecurse)
 {
   string prefix;
   if(doLog()) {
@@ -900,7 +904,8 @@ bool SyncRes::doCNAMECacheCheck(const DNSName &qname, const QType &qtype, vector
   vector<std::shared_ptr<RRSIGRecordContent>> signatures;
   vector<std::shared_ptr<DNSRecord>> authorityRecs;
   bool wasAuth;
-  if(t_RC->get(d_now.tv_sec, qname, QType(QType::CNAME), d_requireAuthData, &cset, d_cacheRemote, d_doDNSSEC ? &signatures : nullptr, d_doDNSSEC ? &authorityRecs : nullptr, &d_wasVariable, &state, &wasAuth) > 0) {
+  /* we don't require auth data for forward-recurse lookups */
+  if(t_RC->get(d_now.tv_sec, qname, QType(QType::CNAME), !wasForwardRecurse && d_requireAuthData, &cset, d_cacheRemote, d_doDNSSEC ? &signatures : nullptr, d_doDNSSEC ? &authorityRecs : nullptr, &d_wasVariable, &state, &wasAuth) > 0) {
 
     for(auto j=cset.cbegin() ; j != cset.cend() ; ++j) {
       if (j->d_class != QClass::IN) {
@@ -1076,7 +1081,7 @@ void SyncRes::computeNegCacheValidationStatus(const NegCache::NegCacheEntry* ne,
   }
 }
 
-bool SyncRes::doCacheCheck(const DNSName &qname, const DNSName& authname, bool wasForwardedOrAuthZone, bool wasAuthZone, const QType &qtype, vector<DNSRecord>&ret, unsigned int depth, int &res, vState& state)
+bool SyncRes::doCacheCheck(const DNSName &qname, const DNSName& authname, bool wasForwardedOrAuthZone, bool wasAuthZone, bool wasForwardRecurse, const QType &qtype, vector<DNSRecord>&ret, unsigned int depth, int &res, vState& state)
 {
   bool giveNegative=false;
 
@@ -1154,7 +1159,7 @@ bool SyncRes::doCacheCheck(const DNSName &qname, const DNSName& authname, bool w
   vector<std::shared_ptr<DNSRecord>> authorityRecs;
   uint32_t ttl=0;
   bool wasCachedAuth;
-  if(t_RC->get(d_now.tv_sec, sqname, sqt, d_requireAuthData, &cset, d_cacheRemote, d_doDNSSEC ? &signatures : nullptr, d_doDNSSEC ? &authorityRecs : nullptr, &d_wasVariable, &cachedState, &wasCachedAuth) > 0) {
+  if(t_RC->get(d_now.tv_sec, sqname, sqt, !wasForwardRecurse && d_requireAuthData, &cset, d_cacheRemote, d_doDNSSEC ? &signatures : nullptr, d_doDNSSEC ? &authorityRecs : nullptr, &d_wasVariable, &cachedState, &wasCachedAuth) > 0) {
 
     LOG(prefix<<sqname<<": Found cache hit for "<<sqt.getName()<<": ");
 
