@@ -158,7 +158,6 @@ boost::optional<string>  RecursorLua4::DNSQuestion::getEDNSOption(uint16_t code)
 
 boost::optional<Netmask>  RecursorLua4::DNSQuestion::getEDNSSubnet() const
 {
-
   if(ednsOptions) {
     for(const auto& o : *ednsOptions) {
       if(o.first==EDNSOptionCode::ECS) {
@@ -273,8 +272,32 @@ void RecursorLua4::postPrepareContext()
   d_lw->registerMember("ttl", &DNSRecord::d_ttl);
   d_lw->registerMember("place", &DNSRecord::d_place);
 
-  d_lw->registerMember("size", &EDNSOptionView::size);
-  d_lw->registerFunction<std::string(EDNSOptionView::*)()>("getContent", [](const EDNSOptionView& option) { return std::string(option.content, option.size); });
+  d_lw->registerMember("size", &EDNSOptionViewValue::size);
+  d_lw->registerFunction<std::string(EDNSOptionViewValue::*)()>("getContent", [](const EDNSOptionViewValue& value) { return std::string(value.content, value.size); });
+  d_lw->registerFunction<size_t(EDNSOptionView::*)()>("count", [](const EDNSOptionView& option) { return option.values.size(); });
+  d_lw->registerFunction<std::vector<std::pair<int, string>>(EDNSOptionView::*)()>("getValues", [] (const EDNSOptionView& option) {
+      std::vector<std::pair<int, string> > values;
+      for (const auto& value : option.values) {
+        values.push_back(std::make_pair(values.size(), std::string(value.content, value.size)));
+      }
+      return values;
+    });
+
+  /* pre 4.2 API compatibility, when we had only one value for a given EDNS option */
+  d_lw->registerMember<uint16_t(EDNSOptionView::*)>("size", [](const EDNSOptionView& option) -> uint16_t {
+      uint16_t result = 0;
+
+      if (!option.values.empty()) {
+        result = option.values.at(0).size;
+      }
+      return result;
+    },
+    [](EDNSOptionView& option, uint16_t newSize) { (void) newSize; });
+  d_lw->registerFunction<std::string(EDNSOptionView::*)()>("getContent", [](const EDNSOptionView& option) {
+      if (option.values.empty()) {
+        return std::string();
+      }
+      return std::string(option.values.at(0).content, option.values.at(0).size); });
 
   d_lw->registerFunction<string(DNSRecord::*)()>("getContent", [](const DNSRecord& dr) { return dr.d_content->getZoneRepresentation(); });
   d_lw->registerFunction<boost::optional<ComboAddress>(DNSRecord::*)()>("getCA", [](const DNSRecord& dr) { 
@@ -458,7 +481,7 @@ bool RecursorLua4::ipfilter(const ComboAddress& remote, const ComboAddress& loca
   return false; // don't block
 }
 
-unsigned int RecursorLua4::gettag(const ComboAddress& remote, const Netmask& ednssubnet, const ComboAddress& local, const DNSName& qname, uint16_t qtype, std::vector<std::string>* policyTags, LuaContext::LuaObject& data, const std::map<uint16_t, EDNSOptionView>& ednsOptions, bool tcp, std::string& requestorId, std::string& deviceId) const
+unsigned int RecursorLua4::gettag(const ComboAddress& remote, const Netmask& ednssubnet, const ComboAddress& local, const DNSName& qname, uint16_t qtype, std::vector<std::string>* policyTags, LuaContext::LuaObject& data, const EDNSOptionViewMap& ednsOptions, bool tcp, std::string& requestorId, std::string& deviceId) const
 {
   if(d_gettag) {
     auto ret = d_gettag(remote, ednssubnet, local, qname, qtype, ednsOptions, tcp);
@@ -491,7 +514,7 @@ unsigned int RecursorLua4::gettag(const ComboAddress& remote, const Netmask& edn
 struct pdns_ffi_param
 {
 public:
-  pdns_ffi_param(const DNSName& qname_, uint16_t qtype_, const ComboAddress& local_, const ComboAddress& remote_, const Netmask& ednssubnet_, std::vector<std::string>& policyTags_, const std::map<uint16_t, EDNSOptionView>& ednsOptions_, std::string& requestorId_, std::string& deviceId_, uint32_t& ttlCap_, bool& variable_, bool tcp_): qname(qname_), local(local_), remote(remote_), ednssubnet(ednssubnet_), policyTags(policyTags_), ednsOptions(ednsOptions_), requestorId(requestorId_), deviceId(deviceId_), ttlCap(ttlCap_), variable(variable_), qtype(qtype_), tcp(tcp_)
+  pdns_ffi_param(const DNSName& qname_, uint16_t qtype_, const ComboAddress& local_, const ComboAddress& remote_, const Netmask& ednssubnet_, std::vector<std::string>& policyTags_, const EDNSOptionViewMap& ednsOptions_, std::string& requestorId_, std::string& deviceId_, uint32_t& ttlCap_, bool& variable_, bool tcp_): qname(qname_), local(local_), remote(remote_), ednssubnet(ednssubnet_), policyTags(policyTags_), ednsOptions(ednsOptions_), requestorId(requestorId_), deviceId(deviceId_), ttlCap(ttlCap_), variable(variable_), qtype(qtype_), tcp(tcp_)
   {
   }
 
@@ -506,7 +529,7 @@ public:
   const ComboAddress& remote;
   const Netmask& ednssubnet;
   std::vector<std::string>& policyTags;
-  const std::map<uint16_t, EDNSOptionView>& ednsOptions;
+  const EDNSOptionViewMap& ednsOptions;
   std::string& requestorId;
   std::string& deviceId;
   uint32_t& ttlCap;
@@ -517,7 +540,7 @@ public:
   bool tcp;
 };
 
-unsigned int RecursorLua4::gettag_ffi(const ComboAddress& remote, const Netmask& ednssubnet, const ComboAddress& local, const DNSName& qname, uint16_t qtype, std::vector<std::string>* policyTags, LuaContext::LuaObject& data, const std::map<uint16_t, EDNSOptionView>& ednsOptions, bool tcp, std::string& requestorId, std::string& deviceId, uint32_t& ttlCap, bool& variable) const
+unsigned int RecursorLua4::gettag_ffi(const ComboAddress& remote, const Netmask& ednssubnet, const ComboAddress& local, const DNSName& qname, uint16_t qtype, std::vector<std::string>* policyTags, LuaContext::LuaObject& data, const EDNSOptionViewMap& ednsOptions, bool tcp, std::string& requestorId, std::string& deviceId, uint32_t& ttlCap, bool& variable) const
 {
   if (d_gettag_ffi) {
     pdns_ffi_param_t param(qname, qtype, local, remote, ednssubnet, *policyTags, ednsOptions, requestorId, deviceId, ttlCap, variable, tcp);
@@ -692,13 +715,13 @@ uint8_t pdns_ffi_param_get_edns_cs_source_mask(const pdns_ffi_param_t* ref)
   return ref->ednssubnet.getBits();
 }
 
-static void fill_edns_option(const EDNSOptionView& view, pdns_ednsoption_t& option)
+static void fill_edns_option(const EDNSOptionViewValue& value, pdns_ednsoption_t& option)
 {
-  option.len = view.size;
+  option.len = value.size;
   option.data = nullptr;
 
-  if (view.size > 0) {
-    option.data = view.content;
+  if (value.size > 0) {
+    option.data = value.content;
   }
 }
 
@@ -708,36 +731,46 @@ size_t pdns_ffi_param_get_edns_options(pdns_ffi_param_t* ref, const pdns_ednsopt
     return 0;
   }
 
-  size_t count = ref->ednsOptions.size();
-  ref->ednsOptionsVect.resize(count);
+  size_t totalCount = 0;
+  for (const auto& option : ref->ednsOptions) {
+    totalCount += option.second.values.size();
+  }
+
+  ref->ednsOptionsVect.resize(totalCount);
 
   size_t pos = 0;
-  for (const auto& entry : ref->ednsOptions) {
-    fill_edns_option(entry.second, ref->ednsOptionsVect.at(pos));
-    ref->ednsOptionsVect.at(pos).optionCode = entry.first;
-    pos++;
+  for (const auto& option : ref->ednsOptions) {
+    for (const auto& entry : option.second.values) {
+      fill_edns_option(entry, ref->ednsOptionsVect.at(pos));
+      ref->ednsOptionsVect.at(pos).optionCode = option.first;
+      pos++;
+    }
   }
 
   *out = ref->ednsOptionsVect.data();
 
-  return count;
+  return totalCount;
 }
 
 size_t pdns_ffi_param_get_edns_options_by_code(pdns_ffi_param_t* ref, uint16_t optionCode, const pdns_ednsoption_t** out)
 {
   const auto& it = ref->ednsOptions.find(optionCode);
-  if (it == ref->ednsOptions.cend()) {
+  if (it == ref->ednsOptions.cend() || it->second.values.empty()) {
     return 0;
   }
 
-  /* the current code deals with only one entry per code, but we will fix that */
-  ref->ednsOptionsVect.resize(1);
-  fill_edns_option(it->second, ref->ednsOptionsVect.at(0));
-  ref->ednsOptionsVect.at(0).optionCode = it->first;
+  ref->ednsOptionsVect.resize(it->second.values.size());
+
+  size_t pos = 0;
+  for (const auto& entry : it->second.values) {
+    fill_edns_option(entry, ref->ednsOptionsVect.at(pos));
+    ref->ednsOptionsVect.at(pos).optionCode = optionCode;
+    pos++;
+  }
 
   *out = ref->ednsOptionsVect.data();
 
-  return 1;
+  return pos;
 }
 
 void pdns_ffi_param_set_tag(pdns_ffi_param_t* ref, unsigned int tag)
