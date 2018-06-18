@@ -1916,14 +1916,22 @@ static string* doProcessUDPQuestion(const std::string& question, const ComboAddr
     /* It might seem like a good idea to skip the packet cache lookup if we know that the answer is not cacheable,
        but it means that the hash would not be computed. If some script decides at a later time to mark back the answer
        as cacheable we would cache it with a wrong tag, so better safe than sorry. */
+    vState valState;
     if (qnameParsed) {
-      cacheHit = (!SyncRes::s_nopacketcache && t_packetCache->getResponsePacket(ctag, source, question, qname, qtype, qclass, g_now.tv_sec, &response, &age, &qhash, pbMessage ? &(*pbMessage) : nullptr));
+      cacheHit = (!SyncRes::s_nopacketcache && t_packetCache->getResponsePacket(ctag, question, qname, qtype, qclass, g_now.tv_sec, &response, &age, &valState, &qhash, pbMessage ? &(*pbMessage) : nullptr));
     }
     else {
-      cacheHit = (!SyncRes::s_nopacketcache && t_packetCache->getResponsePacket(ctag, source, question, g_now.tv_sec, &response, &age, &qhash, pbMessage ? &(*pbMessage) : nullptr));
+      cacheHit = (!SyncRes::s_nopacketcache && t_packetCache->getResponsePacket(ctag, question, qname, &qtype, &qclass, g_now.tv_sec, &response, &age, &valState, &qhash, pbMessage ? &(*pbMessage) : nullptr));
     }
 
     if (cacheHit) {
+      if(valState == Bogus) {
+        if(t_bogusremotes)
+          t_bogusremotes->push_back(source);
+        if(t_bogusqueryring)
+          t_bogusqueryring->push_back(make_pair(qname, qtype));
+      }
+
 #ifdef HAVE_PROTOBUF
       if(t_protobufServer && (!luaconfsLocal->protobufTaggedOnly || !pbMessage->getAppliedPolicy().empty() || !pbMessage->getPolicyTags().empty())) {
         Netmask requestorNM(source, source.sin4.sin_family == AF_INET ? luaconfsLocal->protobufMaskV4 : luaconfsLocal->protobufMaskV6);

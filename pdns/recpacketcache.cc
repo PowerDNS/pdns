@@ -8,7 +8,6 @@
 #include "cachecleaner.hh"
 #include "dns.hh"
 #include "namespaces.hh"
-#include "syncres.hh"
 
 RecursorPacketCache::RecursorPacketCache()
 {
@@ -46,7 +45,7 @@ static bool qrMatch(const DNSName& qname, uint16_t qtype, uint16_t qclass, const
   return qname==rname && rtype == qtype && rclass == qclass;
 }
 
-bool RecursorPacketCache::checkResponseMatches(std::pair<packetCache_t::index<HashTag>::type::iterator, packetCache_t::index<HashTag>::type::iterator> range, const ComboAddress& source, const std::string& queryPacket, const DNSName& qname, uint16_t qtype, uint16_t qclass, time_t now, std::string* responsePacket, uint32_t* age, RecProtoBufMessage* protobufMessage)
+bool RecursorPacketCache::checkResponseMatches(std::pair<packetCache_t::index<HashTag>::type::iterator, packetCache_t::index<HashTag>::type::iterator> range, const std::string& queryPacket, const DNSName& qname, uint16_t qtype, uint16_t qclass, time_t now, std::string* responsePacket, uint32_t* age, vState* valState, RecProtoBufMessage* protobufMessage)
 {
   for(auto iter = range.first ; iter != range.second ; ++ iter) {
     // the possibility is VERY real that we get hits that are not right - birthday paradox
@@ -56,6 +55,7 @@ bool RecursorPacketCache::checkResponseMatches(std::pair<packetCache_t::index<Ha
       *age = static_cast<uint32_t>(now - iter->d_creation);
       *responsePacket = iter->d_packet;
       responsePacket->replace(0, 2, queryPacket.c_str(), 2);
+      *valState = iter->d_vstate;
     
       string::size_type i=sizeof(dnsheader);
       
@@ -67,12 +67,6 @@ bool RecursorPacketCache::checkResponseMatches(std::pair<packetCache_t::index<Ha
         i = i + labellen;
       }
 
-      if(iter->d_vstate == Bogus) {
-        if(t_bogusremotes)
-          t_bogusremotes->push_back(source);
-        if(t_bogusqueryring)
-          t_bogusqueryring->push_back(make_pair(qname, qtype));
-      }
       d_hits++;
       moveCacheItemToBack(d_packetCache, iter);
 #ifdef HAVE_PROTOBUF
@@ -101,19 +95,21 @@ bool RecursorPacketCache::checkResponseMatches(std::pair<packetCache_t::index<Ha
 bool RecursorPacketCache::getResponsePacket(unsigned int tag, const std::string& queryPacket, time_t now,
                                             std::string* responsePacket, uint32_t* age, uint32_t* qhash)
 {
-  ComboAddress source;
-  return getResponsePacket(tag, source, queryPacket, now, responsePacket, age, qhash, nullptr);
+  DNSName qname;
+  uint16_t qtype, qclass;
+  vState valState;
+  return getResponsePacket(tag, queryPacket, qname, &qtype, &qclass, now, responsePacket, age, &valState, qhash, nullptr);
 }
 
 bool RecursorPacketCache::getResponsePacket(unsigned int tag, const std::string& queryPacket, const DNSName& qname, uint16_t qtype, uint16_t qclass, time_t now,
                                             std::string* responsePacket, uint32_t* age, uint32_t* qhash)
 {
-  ComboAddress source;
-  return getResponsePacket(tag, source, queryPacket, qname, qtype, qclass, now, responsePacket, age, qhash, nullptr);
+  vState valState;
+  return getResponsePacket(tag, queryPacket, qname, qtype, qclass, now, responsePacket, age, &valState, qhash, nullptr);
 }
 
-bool RecursorPacketCache::getResponsePacket(unsigned int tag, const ComboAddress& source, const std::string& queryPacket, const DNSName& qname, uint16_t qtype, uint16_t qclass, time_t now,
-                                            std::string* responsePacket, uint32_t* age, uint32_t* qhash, RecProtoBufMessage* protobufMessage)
+bool RecursorPacketCache::getResponsePacket(unsigned int tag, const std::string& queryPacket, const DNSName& qname, uint16_t qtype, uint16_t qclass, time_t now,
+                                            std::string* responsePacket, uint32_t* age, vState* valState, uint32_t* qhash, RecProtoBufMessage* protobufMessage)
 {
   *qhash = canHashPacket(queryPacket, true);
   const auto& idx = d_packetCache.get<HashTag>();
@@ -123,11 +119,11 @@ bool RecursorPacketCache::getResponsePacket(unsigned int tag, const ComboAddress
     d_misses++;
     return false;
   }
-  return checkResponseMatches(range, source, queryPacket, qname, qtype, qclass, now, responsePacket, age, protobufMessage);
+  return checkResponseMatches(range, queryPacket, qname, qtype, qclass, now, responsePacket, age, valState, protobufMessage);
 }
 
-bool RecursorPacketCache::getResponsePacket(unsigned int tag, const ComboAddress& source, const std::string& queryPacket, time_t now,
-                                            std::string* responsePacket, uint32_t* age, uint32_t* qhash, RecProtoBufMessage* protobufMessage)
+bool RecursorPacketCache::getResponsePacket(unsigned int tag, const std::string& queryPacket, DNSName& qname, uint16_t* qtype, uint16_t* qclass, time_t now,
+                                            std::string* responsePacket, uint32_t* age, vState* valState, uint32_t* qhash, RecProtoBufMessage* protobufMessage)
 {
   *qhash = canHashPacket(queryPacket, true);
   const auto& idx = d_packetCache.get<HashTag>();
@@ -138,11 +134,11 @@ bool RecursorPacketCache::getResponsePacket(unsigned int tag, const ComboAddress
     return false;
   }
 
-  uint16_t qtype, qclass;
-  DNSName qname(queryPacket.c_str(), queryPacket.length(), sizeof(dnsheader), false, &qtype, &qclass, 0);
+  qname = DNSName(queryPacket.c_str(), queryPacket.length(), sizeof(dnsheader), false, qtype, qclass, 0);
 
-  return checkResponseMatches(range, source, queryPacket, qname, qtype, qclass, now, responsePacket, age, protobufMessage);
+  return checkResponseMatches(range, queryPacket, qname, *qtype, *qclass, now, responsePacket, age, valState, protobufMessage);
 }
+
 
 void RecursorPacketCache::insertResponsePacket(unsigned int tag, uint32_t qhash, const DNSName& qname, uint16_t qtype, uint16_t qclass, const std::string& responsePacket, time_t now, uint32_t ttl)
 {
