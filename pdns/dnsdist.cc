@@ -754,43 +754,47 @@ shared_ptr<DownstreamState> whashed(const NumberedServerVector& servers, const D
   return valrandom(dq->qname->hash(g_hashperturb), servers, dq);
 }
 
-/*
- * @todo
- * - test/benchmark other hashing methods
- * - test/benchmark adding an avalanche algorithm on hashes
- * @see https://github.com/haproxy/haproxy/blob/master/doc/internals/hashing.txt
- */
-
 shared_ptr<DownstreamState> chashed(const NumberedServerVector& servers, const DNSQuestion* dq)
 {
   std::map<unsigned int, shared_ptr<DownstreamState>> circle = {};
   unsigned int qhash = dq->qname->hash(g_hashperturb);
+  unsigned int sel = 0, max = 0;
+  shared_ptr<DownstreamState> ret = nullptr, last = nullptr;
 
   for (const auto& d: servers) {
     if (d.second->isUp()) {
+      // make sure hashes have been computed
       if (d.second->hashes.empty()) {
         d.second->hash();
       }
       {
         ReadLock rl(&(d.second->d_lock));
-        for (const auto& h: d.second->hashes) {
-          // put server's hashes on the circle
-          circle.insert(std::make_pair(h, d.second));
+        const auto& server = d.second;
+        // we want to keep track of the last hash
+        if (max < *(server->hashes.rbegin())) {
+          max = *(server->hashes.rbegin());
+          last = server;
+        }
+        auto hash_it = server->hashes.begin();
+        while (hash_it != server->hashes.end()
+               && *hash_it < qhash) {
+          if (*hash_it > sel) {
+            sel = *hash_it;
+            ret = server;
+          }
+          ++hash_it;
         }
       }
     }
   }
-  if (circle.empty()) {
-    return shared_ptr<DownstreamState>();
+  if (ret != nullptr) {
+    return ret;
   }
-
-  auto p = circle.upper_bound(qhash);
-  if(p == circle.end()) {
-    return circle.begin()->second;
+  if (last != nullptr) {
+    return last;
   }
-  return p->second;
+  return shared_ptr<DownstreamState>();
 }
-
 
 shared_ptr<DownstreamState> roundrobin(const NumberedServerVector& servers, const DNSQuestion* dq)
 {
