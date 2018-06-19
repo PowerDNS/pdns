@@ -626,7 +626,9 @@ bool DownstreamState::reconnect()
 }
 void DownstreamState::hash()
 {
+  vinfolog("Computing hashes for id=%s and weight=%d", id, weight);
   auto w = weight;
+  WriteLock wl(&d_lock);
   hashes.clear();
   while (w > 0) {
     std::string uuid = boost::str(boost::format("%s-%d") % id % w);
@@ -639,17 +641,23 @@ void DownstreamState::hash()
 void DownstreamState::setId(const boost::uuids::uuid& newId)
 {
   id = newId;
-  hash();
+  // compute hashes only if already done
+  if (!hashes.empty()) {
+    hash();
+  }
 }
 
 void DownstreamState::setWeight(int newWeight)
 {
   weight = newWeight;
-  hash();
+  if (!hashes.empty()) {
+    hash();
+  }
 }
 
 DownstreamState::DownstreamState(const ComboAddress& remote_, const ComboAddress& sourceAddr_, unsigned int sourceItf_, size_t numberOfSockets): remote(remote_), sourceAddr(sourceAddr_), sourceItf(sourceItf_)
 {
+  pthread_rwlock_init(&d_lock, nullptr);
   id = t_uuidGenerator();
   threadStarted.clear();
 
@@ -659,7 +667,6 @@ DownstreamState::DownstreamState(const ComboAddress& remote_, const ComboAddress
   for (auto& fd : sockets) {
     fd = -1;
   }
-  hash();
 
   if (!IsAnyAddress(remote)) {
     reconnect();
@@ -761,9 +768,15 @@ shared_ptr<DownstreamState> chashed(const NumberedServerVector& servers, const D
 
   for (const auto& d: servers) {
     if (d.second->isUp()) {
-      for (const auto& h: d.second->hashes) {
-        // put server's hashes on the circle
-        circle.insert(std::make_pair(h, d.second));
+      if (d.second->hashes.empty()) {
+        d.second->hash();
+      }
+      {
+        ReadLock rl(&(d.second->d_lock));
+        for (const auto& h: d.second->hashes) {
+          // put server's hashes on the circle
+          circle.insert(std::make_pair(h, d.second));
+        }
       }
     }
   }
@@ -2314,6 +2327,15 @@ try
   }
 
   auto todo=setupLua(false, g_cmdLine.config);
+
+  if (g_policy.getLocal()->name == "chashed") {
+    vinfolog("Pre-computing hashes for consistent hash load-balancing policy");
+    // pre compute hashes
+    auto backends = g_dstates.getLocal();
+    for (auto& backend: *backends) {
+      backend->hash();
+    }
+  }
 
   if(g_cmdLine.locals.size()) {
     g_locals.clear();

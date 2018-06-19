@@ -533,6 +533,7 @@ struct DownstreamState
   }
   boost::uuids::uuid id;
   std::set<unsigned int> hashes;
+  mutable pthread_rwlock_t d_lock;
   std::vector<int> sockets;
   std::mutex socketsLock;
   std::mutex connectLock;
