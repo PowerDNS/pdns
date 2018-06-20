@@ -161,6 +161,7 @@ void RecursorPacketCache::insertResponsePacket(unsigned int tag, uint32_t qhash,
     iter->d_packet = responsePacket;
     iter->d_ttd = now + ttl;
     iter->d_creation = now;
+    iter->d_vstate = valState;
 #ifdef HAVE_PROTOBUF
     if (protobufMessage) {
       iter->d_protobufMessage = *protobufMessage;

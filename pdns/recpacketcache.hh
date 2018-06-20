@@ -87,7 +87,7 @@ private:
 #endif
     uint32_t d_qhash;
     uint32_t d_tag;
-    vState d_vstate;
+    mutable vState d_vstate;
     inline bool operator<(const struct Entry& rhs) const;
 
     time_t getTTD() const
