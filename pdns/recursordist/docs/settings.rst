@@ -856,6 +856,7 @@ Maximum number of seconds to cache a 'server failure' answer in the packet cache
 ``pdns-distributes-queries``
 ----------------------------
 -  Boolean
+-  Default: yes
 
 If set, PowerDNS will have only 1 thread listening on client sockets, and distribute work by itself over threads.
 Improves performance on Linux.
