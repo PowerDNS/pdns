@@ -214,10 +214,11 @@ testrunner_SOURCES = \
 	base64.hh \
 	dns.hh \
 	test-base64_cc.cc \
+	test-dnscrypt_cc.cc \
 	test-dnsdist_cc.cc \
 	test-dnsdistpacketcache_cc.cc \
 	test-dnsdistrings_cc.cc \
-	test-dnscrypt_cc.cc \
+	test-dnsparser_cc.cc \
 	test-iputils_hh.cc \
 	dnsdist.hh \
 	dnsdist-cache.cc dnsdist-cache.hh \

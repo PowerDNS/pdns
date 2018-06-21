@@ -160,6 +160,108 @@ BOOST_AUTO_TEST_CASE(test_PacketCacheServFailTTL) {
   }
 }
 
+BOOST_AUTO_TEST_CASE(test_PacketCacheNoDataTTL) {
+  const size_t maxEntries = 150000;
+  DNSDistPacketCache PC(maxEntries, /* maxTTL */ 86400, /* minTTL */ 1, /* tempFailureTTL */ 60, /* maxNegativeTTL */ 1);
+
+  struct timespec queryTime;
+  gettime(&queryTime);  // does not have to be accurate ("realTime") in tests
+
+  ComboAddress remote;
+  try {
+    DNSName name("nodata");
+    vector<uint8_t> query;
+    DNSPacketWriter pwQ(query, name, QType::A, QClass::IN, 0);
+    pwQ.getHeader()->rd = 1;
+
+    vector<uint8_t> response;
+    DNSPacketWriter pwR(response, name, QType::A, QClass::IN, 0);
+    pwR.getHeader()->rd = 1;
+    pwR.getHeader()->ra = 0;
+    pwR.getHeader()->qr = 1;
+    pwR.getHeader()->rcode = RCode::NoError;
+    pwR.getHeader()->id = pwQ.getHeader()->id;
+    pwR.commit();
+    pwR.startRecord(name, QType::SOA, 86400, QClass::IN, DNSResourceRecord::AUTHORITY);
+    pwR.commit();
+    pwR.addOpt(4096, 0, 0);
+    pwR.commit();
+
+    uint16_t responseLen = response.size();
+
+    char responseBuf[4096];
+    uint16_t responseBufSize = sizeof(responseBuf);
+    uint32_t key = 0;
+    DNSQuestion dq(&name, QType::A, QClass::IN, &remote, &remote, (struct dnsheader*) query.data(), query.size(), query.size(), false, &queryTime);
+    bool found = PC.get(dq, name.wirelength(), 0, responseBuf, &responseBufSize, &key);
+    BOOST_CHECK_EQUAL(found, false);
+
+    PC.insert(key, name, QType::A, QClass::IN, reinterpret_cast<const char*>(response.data()), responseLen, false, RCode::NoError, boost::none);
+    found = PC.get(dq, name.wirelength(), pwR.getHeader()->id, responseBuf, &responseBufSize, &key, 0, true);
+    BOOST_CHECK_EQUAL(found, true);
+    sleep(2);
+    /* it should have expired by now */
+    found = PC.get(dq, name.wirelength(), pwR.getHeader()->id, responseBuf, &responseBufSize, &key, 0, true);
+    BOOST_CHECK_EQUAL(found, false);
+
+  }
+  catch(const PDNSException& e) {
+    cerr<<"Had error: "<<e.reason<<endl;
+    throw;
+  }
+}
+
+BOOST_AUTO_TEST_CASE(test_PacketCacheNXDomainTTL) {
+  const size_t maxEntries = 150000;
+  DNSDistPacketCache PC(maxEntries, /* maxTTL */ 86400, /* minTTL */ 1, /* tempFailureTTL */ 60, /* maxNegativeTTL */ 1);
+
+  struct timespec queryTime;
+  gettime(&queryTime);  // does not have to be accurate ("realTime") in tests
+
+  ComboAddress remote;
+  try {
+    DNSName name("nxdomain");
+    vector<uint8_t> query;
+    DNSPacketWriter pwQ(query, name, QType::A, QClass::IN, 0);
+    pwQ.getHeader()->rd = 1;
+
+    vector<uint8_t> response;
+    DNSPacketWriter pwR(response, name, QType::A, QClass::IN, 0);
+    pwR.getHeader()->rd = 1;
+    pwR.getHeader()->ra = 0;
+    pwR.getHeader()->qr = 1;
+    pwR.getHeader()->rcode = RCode::NXDomain;
+    pwR.getHeader()->id = pwQ.getHeader()->id;
+    pwR.commit();
+    pwR.startRecord(name, QType::SOA, 86400, QClass::IN, DNSResourceRecord::AUTHORITY);
+    pwR.commit();
+    pwR.addOpt(4096, 0, 0);
+    pwR.commit();
+
+    uint16_t responseLen = response.size();
+
+    char responseBuf[4096];
+    uint16_t responseBufSize = sizeof(responseBuf);
+    uint32_t key = 0;
+    DNSQuestion dq(&name, QType::A, QClass::IN, &remote, &remote, (struct dnsheader*) query.data(), query.size(), query.size(), false, &queryTime);
+    bool found = PC.get(dq, name.wirelength(), 0, responseBuf, &responseBufSize, &key);
+    BOOST_CHECK_EQUAL(found, false);
+
+    PC.insert(key, name, QType::A, QClass::IN, reinterpret_cast<const char*>(response.data()), responseLen, false, RCode::NXDomain, boost::none);
+    found = PC.get(dq, name.wirelength(), pwR.getHeader()->id, responseBuf, &responseBufSize, &key, 0, true);
+    BOOST_CHECK_EQUAL(found, true);
+    sleep(2);
+    /* it should have expired by now */
+    found = PC.get(dq, name.wirelength(), pwR.getHeader()->id, responseBuf, &responseBufSize, &key, 0, true);
+    BOOST_CHECK_EQUAL(found, false);
+
+  }
+  catch(const PDNSException& e) {
+    cerr<<"Had error: "<<e.reason<<endl;
+    throw;
+  }
+}
+
 static DNSDistPacketCache PC(500000);
 
 static void *threadMangler(void* off)
