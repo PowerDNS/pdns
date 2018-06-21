@@ -268,6 +268,10 @@ int g_dohresponsepair[2];
 static int doh_handler(h2o_handler_t *self, h2o_req_t *req)
 {
   //  cout<<"Called: "<<req->path.base<<endl;
+
+  for (unsigned int i = 0; i != req->headers.size; ++i)
+    printf("%.*s: %.*s\n", (int)req->headers.entries[i].name->len, req->headers.entries[i].name->base, (int)req->headers.entries[i].value.len, req->headers.entries[i].value.base);
+
   if (h2o_memis(req->method.base, req->method.len, H2O_STRLIT("POST"))) {
     DOHUnit* du = new DOHUnit;
     uint16_t qtype;
@@ -348,7 +352,6 @@ void responsesender(int rpair[2])
 */
 static void on_dnsdist(h2o_socket_t *listener, const char *err)
 {
-  cout<<"on_dnsdist got called"<<endl;
   DOHUnit *du;
   recv(g_dohresponsepair[1], &du, sizeof(du), 0);
 
@@ -356,13 +359,14 @@ static void on_dnsdist(h2o_socket_t *listener, const char *err)
   du->req->res.reason = "OK";
   
   h2o_add_header(&du->req->pool, &du->req->res.headers, H2O_TOKEN_CONTENT_TYPE, NULL, H2O_STRLIT("application/dns-udpwireformat"));
+  //  h2o_add_header(&du->req->pool, &du->req->res.headers, H2O_TOKEN_SET_COOKIE, NULL, H2O_STRLIT("cookie=1")); 
   
   struct dnsheader* dh = (struct dnsheader*)du->query.c_str();
   cout<<"Attempt to send out "<<du->query.size()<<" bytes over https, TC="<<dh->tc<<", RCODE="<<dh->rcode<<", qtype="<<du->qtype<<", req="<<(void*)du->req<<endl;
   
   du->req->res.content_length = du->query.size();
   h2o_send_inline(du->req, du->query.c_str(), du->query.size());
-
+  delete du;
 }
 
 static void on_accept(h2o_socket_t *listener, const char *err)
@@ -381,19 +385,20 @@ static void on_accept(h2o_socket_t *listener, const char *err)
 
 static int create_listener(const ComboAddress& addr)
 {
-    int fd, reuseaddr_flag = 1;
-    h2o_socket_t *sock;
-
-    if ((fd = socket(AF_INET, SOCK_STREAM, 0)) == -1 ||
-        setsockopt(fd, SOL_SOCKET, SO_REUSEADDR, &reuseaddr_flag, sizeof(reuseaddr_flag)) != 0 ||
-        bind(fd, (struct sockaddr *)&addr, addr.getSocklen()) != 0 || listen(fd, SOMAXCONN) != 0) {
-        return -1;
-    }
-
-    sock = h2o_evloop_socket_create(ctx.loop, fd, H2O_SOCKET_FLAG_DONT_READ);
-    h2o_socket_read_start(sock, on_accept);
-
-    return 0;
+  cout<<"Launching DOH listener on "<<addr.toStringWithPort()<<endl;
+  int fd, reuseaddr_flag = 1;
+  h2o_socket_t *sock;
+  
+  if ((fd = socket(addr.sin4.sin_family, SOCK_STREAM, 0)) == -1 ||
+      setsockopt(fd, SOL_SOCKET, SO_REUSEADDR, &reuseaddr_flag, sizeof(reuseaddr_flag)) != 0 ||
+      bind(fd, (struct sockaddr *)&addr, addr.getSocklen()) != 0 || listen(fd, SOMAXCONN) != 0) {
+    return -1;
+  }
+  
+  sock = h2o_evloop_socket_create(ctx.loop, fd, H2O_SOCKET_FLAG_DONT_READ);
+  h2o_socket_read_start(sock, on_accept);
+  
+  return 0;
 }
 
 static int setup_ssl(const char *cert_file, const char *key_file, const char *ciphers)
@@ -479,8 +484,6 @@ int dohThread(const ComboAddress ca, const char* certfile, const char*keyfile)
     fprintf(stderr, "failed to listen to %s: %s\n", ca.toStringWithPort().c_str(), strerror(errno));
     goto Error;
   }
-
-
   
   while (h2o_evloop_run(ctx.loop, INT32_MAX) == 0)
     ;
