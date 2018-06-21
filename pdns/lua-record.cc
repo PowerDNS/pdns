@@ -376,7 +376,6 @@ static ComboAddress pickclosest(const ComboAddress& bestwho, const vector<ComboA
   getLatLon(bestwho.toString(), wlat, wlon);
   //        cout<<"bestwho "<<wlat<<", "<<wlon<<endl;
   vector<string> ret;
-  g_log<<Logger::Debug<< __FILE__ << ":" << __LINE__<< " " << __func__ << " wips.size()="<< wips.size() <<endl;
   for(const auto& c : wips) {
     double lat=0, lon=0;
     getLatLon(c.toString(), lat, lon);
@@ -389,9 +388,6 @@ static ComboAddress pickclosest(const ComboAddress& bestwho, const vector<ComboA
     //          cout<<"    distance: "<<sqrt(dist2) * 40000.0/360<<" km"<<endl; // length of a degree
     ranked[dist2].push_back(c);
   }
-  g_log<<Logger::Debug<< __FILE__ << ":" << __LINE__<< " " << __func__ << " ranked.size()="<< ranked.size()<<endl;
-  ranked.begin()->second.size();
-  g_log<<Logger::Debug<< __FILE__ << ":" << __LINE__<< " " << __func__ << " ranked.size()="<< ranked.size()<<endl;
   return ranked.begin()->second[random() % ranked.begin()->second.size()];
 }
 
