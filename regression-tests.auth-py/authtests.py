@@ -108,7 +108,10 @@ log-dns-details=yes
 loglevel=9
 geoip-database-files=../modules/geoipbackend/regression-tests/GeoLiteCity.mmdb
 edns-subnet-processing=yes
-distributor-threads=1""".format(confdir=confdir,
+expand-alias=yes
+resolver={prefix}.1:5301
+any-to-tcp=no
+distributor-threads=1""".format(confdir=confdir, prefix=cls._PREFIX,
                                 bind_dnssec_db=bind_dnssec_db))
 
         pdnsutilCmd = [os.environ['PDNSUTIL'],
