@@ -490,6 +490,8 @@ void RecursorWebServer::jsonstat(HttpRequest* req, HttpResponse *resp)
 
     if(req->getvars["name"]=="servfail-queries")
       queries=broadcastAccFunction<vector<query_t> >(pleaseGetServfailQueryRing);
+    if(req->getvars["name"]=="bogus-queries")
+      queries=broadcastAccFunction<vector<query_t> >(pleaseGetBogusQueryRing);
     else if(req->getvars["name"]=="queries")
       queries=broadcastAccFunction<vector<query_t> >(pleaseGetQueryRing);
 
@@ -534,6 +536,8 @@ void RecursorWebServer::jsonstat(HttpRequest* req, HttpResponse *resp)
       queries=broadcastAccFunction<vector<ComboAddress> >(pleaseGetRemotes);
     else if(req->getvars["name"]=="servfail-remotes")
       queries=broadcastAccFunction<vector<ComboAddress> >(pleaseGetServfailRemotes);
+    else if(req->getvars["name"]=="bogus-remotes")
+      queries=broadcastAccFunction<vector<ComboAddress> >(pleaseGetBogusRemotes);
     else if(req->getvars["name"]=="large-answer-remotes")
       queries=broadcastAccFunction<vector<ComboAddress> >(pleaseGetLargeAnswerRemotes);
 

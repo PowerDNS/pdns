@@ -113,8 +113,8 @@ thread_local std::unique_ptr<MT_t> MT; // the big MTasker
 thread_local std::unique_ptr<MemRecursorCache> t_RC;
 thread_local std::unique_ptr<RecursorPacketCache> t_packetCache;
 thread_local FDMultiplexer* t_fdm{nullptr};
-thread_local std::unique_ptr<addrringbuf_t> t_remotes, t_servfailremotes, t_largeanswerremotes;
-thread_local std::unique_ptr<boost::circular_buffer<pair<DNSName, uint16_t> > > t_queryring, t_servfailqueryring;
+thread_local std::unique_ptr<addrringbuf_t> t_remotes, t_servfailremotes, t_largeanswerremotes, t_bogusremotes;
+thread_local std::unique_ptr<boost::circular_buffer<pair<DNSName, uint16_t> > > t_queryring, t_servfailqueryring, t_bogusqueryring;
 thread_local std::shared_ptr<NetmaskGroup> t_allowFrom;
 #ifdef HAVE_PROTOBUF
 thread_local std::unique_ptr<boost::uuids::random_generator> t_uuidGenerator;
@@ -1238,6 +1238,10 @@ static void startDoResolve(void *p)
             pw.getHeader()->ad=0;
           }
           else if(state == Bogus) {
+            if(t_bogusremotes)
+              t_bogusremotes->push_back(dc->d_source);
+            if(t_bogusqueryring)
+              t_bogusqueryring->push_back(make_pair(dc->d_mdp.d_qname, dc->d_mdp.d_qtype));
             if(g_dnssecLogBogus || sr.doLog() || g_dnssecmode == DNSSECMode::ValidateForLog) {
               g_log<<Logger::Warning<<"Answer to "<<dc->d_mdp.d_qname<<"|"<<QType(dc->d_mdp.d_qtype).getName()<<" for "<<dc->getRemote()<<" validates as Bogus"<<endl;
             }
@@ -1353,6 +1357,7 @@ static void startDoResolve(void *p)
                                             g_now.tv_sec,
                                             pw.getHeader()->rcode == RCode::ServFail ? SyncRes::s_packetcacheservfailttl :
                                             min(minTTL,SyncRes::s_packetcachettl),
+                                            dq.validationState,
                                             pbMessage);
       }
       //      else cerr<<"Not putting in packet cache: "<<sr.wasVariable()<<endl;
@@ -1911,14 +1916,22 @@ static string* doProcessUDPQuestion(const std::string& question, const ComboAddr
     /* It might seem like a good idea to skip the packet cache lookup if we know that the answer is not cacheable,
        but it means that the hash would not be computed. If some script decides at a later time to mark back the answer
        as cacheable we would cache it with a wrong tag, so better safe than sorry. */
+    vState valState;
     if (qnameParsed) {
-      cacheHit = (!SyncRes::s_nopacketcache && t_packetCache->getResponsePacket(ctag, question, qname, qtype, qclass, g_now.tv_sec, &response, &age, &qhash, pbMessage ? &(*pbMessage) : nullptr));
+      cacheHit = (!SyncRes::s_nopacketcache && t_packetCache->getResponsePacket(ctag, question, qname, qtype, qclass, g_now.tv_sec, &response, &age, &valState, &qhash, pbMessage ? &(*pbMessage) : nullptr));
     }
     else {
-      cacheHit = (!SyncRes::s_nopacketcache && t_packetCache->getResponsePacket(ctag, question, g_now.tv_sec, &response, &age, &qhash, pbMessage ? &(*pbMessage) : nullptr));
+      cacheHit = (!SyncRes::s_nopacketcache && t_packetCache->getResponsePacket(ctag, question, qname, &qtype, &qclass, g_now.tv_sec, &response, &age, &valState, &qhash, pbMessage ? &(*pbMessage) : nullptr));
     }
 
     if (cacheHit) {
+      if(valState == Bogus) {
+        if(t_bogusremotes)
+          t_bogusremotes->push_back(source);
+        if(t_bogusqueryring)
+          t_bogusqueryring->push_back(make_pair(qname, qtype));
+      }
+
 #ifdef HAVE_PROTOBUF
       if(t_protobufServer && (!luaconfsLocal->protobufTaggedOnly || !pbMessage->getAppliedPolicy().empty() || !pbMessage->getPolicyTags().empty())) {
         Netmask requestorNM(source, source.sin4.sin_family == AF_INET ? luaconfsLocal->protobufMaskV4 : luaconfsLocal->protobufMaskV6);
@@ -3503,6 +3516,8 @@ try
       t_remotes->set_capacity(ringsize);
     t_servfailremotes = std::unique_ptr<addrringbuf_t>(new addrringbuf_t());
     t_servfailremotes->set_capacity(ringsize);
+    t_bogusremotes = std::unique_ptr<addrringbuf_t>(new addrringbuf_t());
+    t_bogusremotes->set_capacity(ringsize);
     t_largeanswerremotes = std::unique_ptr<addrringbuf_t>(new addrringbuf_t());
     t_largeanswerremotes->set_capacity(ringsize);
 
@@ -3510,6 +3525,8 @@ try
     t_queryring->set_capacity(ringsize);
     t_servfailqueryring = std::unique_ptr<boost::circular_buffer<pair<DNSName, uint16_t> > >(new boost::circular_buffer<pair<DNSName, uint16_t> >());
     t_servfailqueryring->set_capacity(ringsize);
+    t_bogusqueryring = std::unique_ptr<boost::circular_buffer<pair<DNSName, uint16_t> > >(new boost::circular_buffer<pair<DNSName, uint16_t> >());
+    t_bogusqueryring->set_capacity(ringsize);
   }
 
   MT=std::unique_ptr<MTasker<PacketID,string> >(new MTasker<PacketID,string>(::arg().asNum("stack-size")));
