@@ -169,7 +169,8 @@ class RPZRecursorTest(RecursorTest):
 
     global rpzServerPort
     _lua_config_file = """
-    rpzMaster('127.0.0.1:%d', 'zone.rpz.', { refresh=1 })
+    -- The first server is a bogus one, to test that we correctly fail over to the second one
+    rpzMaster({'127.0.0.1:9999', '127.0.0.1:%d'}, 'zone.rpz.', { refresh=1 })
     """ % (rpzServerPort)
     _wsPort = 8042
     _wsTimeout = 2
