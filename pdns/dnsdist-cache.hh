@@ -50,6 +50,7 @@ public:
   uint64_t getMaxEntries() const { return d_maxEntries; }
   uint64_t getTTLTooShorts() const { return d_ttlTooShorts; }
   uint64_t getEntriesCount();
+  uint64_t dump(int fd);
 
   static uint32_t getMinTTL(const char* packet, uint16_t length);
 

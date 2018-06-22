@@ -526,6 +526,14 @@ See :doc:`../guides/cache` for a how to.
 
   Represents a cache that can be part of :class:`ServerPool`.
 
+  .. method:: PacketCache:dump(fname)
+
+    .. versionadded:: 1.3.1
+
+    Dump a summary of the cache entries to a file.
+
+    :param str fname: The path to a file where the cache summary should be dumped. Note that if the target file already exists, it will not be overwritten.
+
   .. method:: PacketCache:expunge(n)
 
     Remove entries from the cache, leaving at most ``n`` entries
