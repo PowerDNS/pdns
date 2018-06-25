@@ -27,3 +27,4 @@ bool handleEDNSClientSubnet(char * packet, size_t packetSize, unsigned int consu
 void generateOptRR(const std::string& optRData, string& res);
 int removeEDNSOptionFromOPT(char* optStart, size_t* optLen, const uint16_t optionCodeToRemove);
 int rewriteResponseWithoutEDNSOption(const char * packet, const size_t len, const uint16_t optionCodeToSkip, vector<uint8_t>& newContent);
+int getEDNSOptionsStart(char* packet, const size_t offset, const size_t len, char ** optRDLen, size_t * remaining);

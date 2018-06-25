@@ -194,17 +194,18 @@ int locateEDNSOptRR(char * packet, const size_t len, char ** optStart, size_t * 
 }
 
 /* extract the start of the OPT RR in a QUERY packet if any */
-static int getEDNSOptionsStart(char* packet, const size_t offset, const size_t len, char ** optRDLen, size_t * remaining)
+int getEDNSOptionsStart(char* packet, const size_t offset, const size_t len, char ** optRDLen, size_t * remaining)
 {
   assert(packet != NULL);
   assert(optRDLen != NULL);
   assert(remaining != NULL);
-  const struct dnsheader* dh = (const struct dnsheader*) packet;
+  const struct dnsheader* dh = reinterpret_cast<const struct dnsheader*>(packet);
   
-  if (offset >= len)
+  if (offset >= len) {
     return ENOENT;
+  }
 
-  if (ntohs(dh->qdcount) != 1 || dh->ancount != 0 || ntohs(dh->arcount) != 1 || dh->nscount != 0)
+  if (ntohs(dh->qdcount) != 1 || ntohs(dh->ancount) != 0 || ntohs(dh->arcount) != 1 || ntohs(dh->nscount) != 0)
     return ENOENT;
 
   size_t pos = sizeof(dnsheader) + offset;
@@ -214,13 +215,21 @@ static int getEDNSOptionsStart(char* packet, const size_t offset, const size_t l
     return ENOENT;
 
   uint16_t qtype, qclass;
-  unsigned int consumed;
-  DNSName aname(packet, len, pos, true, &qtype, &qclass, &consumed);
 
-  if ((len - pos) < (consumed + DNS_TYPE_SIZE + DNS_CLASS_SIZE))
+  if ((pos + /* root */ 1 + DNS_TYPE_SIZE + DNS_CLASS_SIZE) >= len) {
     return ENOENT;
+  }
 
-  pos += consumed + DNS_TYPE_SIZE + DNS_CLASS_SIZE;
+  if (packet[pos] != 0) {
+    /* not the root so not an OPT record */
+    return ENOENT;
+  }
+  pos += 1;
+
+  qtype = (const unsigned char)packet[pos]*256 + (const unsigned char)packet[pos+1];
+  pos += DNS_TYPE_SIZE;
+  pos += DNS_CLASS_SIZE;
+
   if(qtype != QType::OPT || (len - pos) < (DNS_TTL_SIZE + DNS_RDLENGTH_SIZE))
     return ENOENT;
 
@@ -310,7 +319,7 @@ bool handleEDNSClientSubnet(char* const packet, const size_t packetSize, const u
   size_t remaining = 0;
 
   int res = getEDNSOptionsStart(packet, consumed, *len, (char**) &optRDLen, &remaining);
-        
+
   if (res == 0) {
     char * ecsOptionStart = NULL;
     size_t ecsOptionSize = 0;
