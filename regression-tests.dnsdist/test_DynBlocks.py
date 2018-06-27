@@ -757,3 +757,66 @@ class TestDynBlockGroupResponseBytes(DynBlocksTest):
         """
         name = 'responsebyterate.group.dynblocks.tests.powerdns.com.'
         self.doTestResponseByteRate(name)
+
+class TestDynBlockGroupResponseBytes(DynBlocksTest):
+
+    _dynBlockQPS = 10
+    _dynBlockPeriod = 2
+    _dynBlockDuration = 5
+    _consoleKey = DNSDistTest.generateConsoleKey()
+    _consoleKeyB64 = base64.b64encode(_consoleKey).decode('ascii')
+    _config_params = ['_consoleKeyB64', '_consolePort', '_dynBlockQPS', '_dynBlockPeriod', '_dynBlockDuration', '_testServerPort']
+    _config_template = """
+    setKey("%s")
+    controlSocket("127.0.0.1:%s")
+    local dbr = dynBlockRulesGroup()
+    dbr:setQueryRate(%d, %d, "Exceeded query rate", %d)
+    dbr:excludeRange("127.0.0.1/32")
+
+    function maintenance()
+	    dbr:apply()
+    end
+
+    newServer{address="127.0.0.1:%s"}
+    """
+
+    def testExcluded(self):
+        """
+        Dyn Blocks (group) : Excluded from the dynamic block rules
+        """
+        name = 'excluded.group.dynblocks.tests.powerdns.com.'
+        query = dns.message.make_query(name, 'A', 'IN')
+        response = dns.message.make_response(query)
+        rrset = dns.rrset.from_text(name,
+                                    60,
+                                    dns.rdataclass.IN,
+                                    dns.rdatatype.A,
+                                    '192.0.2.1')
+        response.answer.append(rrset)
+
+        allowed = 0
+        sent = 0
+        for _ in range((self._dynBlockQPS * self._dynBlockPeriod) + 1):
+            (receivedQuery, receivedResponse) = self.sendUDPQuery(query, response)
+            sent = sent + 1
+            if receivedQuery:
+                receivedQuery.id = query.id
+                self.assertEquals(query, receivedQuery)
+                self.assertEquals(response, receivedResponse)
+                allowed = allowed + 1
+            else:
+                # the query has not reached the responder,
+                # let's clear the response queue
+                self.clearToResponderQueue()
+
+        # we should have been blocked
+        self.assertEqual(allowed, sent)
+
+        # wait for the maintenance function to run
+        time.sleep(2)
+
+        # we should still not be blocked
+        (receivedQuery, receivedResponse) = self.sendUDPQuery(query, response)
+        receivedQuery.id = query.id
+        self.assertEquals(query, receivedQuery)
+        self.assertEquals(receivedResponse, receivedResponse)

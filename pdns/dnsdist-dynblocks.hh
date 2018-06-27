@@ -79,6 +79,24 @@ private:
       return d_enabled;
     }
 
+    std::string toString() const
+    {
+      if (!isEnabled()) {
+        return "";
+      }
+
+      std::stringstream result;
+      if (d_action != DNSAction::Action::None) {
+        result << DNSAction::typeToString(d_action) << " ";
+      }
+      else {
+        result << "Apply the global DynBlock action ";
+      }
+      result << "for " << std::to_string(d_blockDuration) << " seconds when over " << std::to_string(d_rate) << " during the last " << d_seconds << " seconds, reason: '" << d_blockReason << "'";
+
+      return result.str();
+    }
+
     std::string d_blockReason;
     struct timespec d_cutOff;
     struct timespec d_minTime;
@@ -176,6 +194,35 @@ public:
     }
   }
 
+  void excludeRange(const Netmask& range)
+  {
+    d_excludedSubnets.addMask(range);
+  }
+
+  void includeRange(const Netmask& range)
+  {
+    d_excludedSubnets.addMask(range, false);
+  }
+
+  std::string toString() const
+  {
+    std::stringstream result;
+
+    result << "Query rate rule: " << d_queryRateRule.toString() << std::endl;
+    result << "Response rate rule: " << d_respRateRule.toString() << std::endl;
+    result << "RCode rules: " << std::endl;
+    for (const auto& rule : d_rcodeRules) {
+      result << "- " << RCode::to_s(rule.first) << ": " << rule.second.toString() << std::endl;
+    }
+    result << "QType rules: " << std::endl;
+    for (const auto& rule : d_qtypeRules) {
+      result << "- " << QType(rule.first).getName() << ": " << rule.second.toString() << std::endl;
+    }
+    result << "Excluded Subnets: " << d_excludedSubnets.toString() << std::endl;
+
+    return result.str();
+  }
+
 private:
   bool checkIfQueryTypeMatches(const Rings::Query& query)
   {
@@ -199,6 +246,11 @@ private:
 
   void addBlock(boost::optional<NetmaskTree<DynBlock> >& blocks, const struct timespec& now, const ComboAddress& requestor, const DynBlockRule& rule, bool& updated)
   {
+    if (d_excludedSubnets.match(requestor)) {
+      /* do not add a block for excluded subnets */
+      return;
+    }
+
     if (!blocks) {
       blocks = g_dynblockNMG.getCopy();
     }
@@ -328,4 +380,5 @@ private:
   std::map<uint16_t, DynBlockRule> d_qtypeRules;
   DynBlockRule d_queryRateRule;
   DynBlockRule d_respRateRule;
+  NetmaskGroup d_excludedSubnets;
 };
