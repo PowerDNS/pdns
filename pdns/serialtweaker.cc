@@ -81,8 +81,6 @@ uint32_t calculateEditSOA(uint32_t old_serial, const string& kind, const DNSName
 uint32_t calculateEditSOA(uint32_t old_serial, DNSSECKeeper& dk, const DNSName& zonename) {
   string kind;
   dk.getSoaEdit(zonename, kind);
-  if(kind.empty())
-    return old_serial;
   return calculateEditSOA(old_serial, kind, zonename);
 }
 
