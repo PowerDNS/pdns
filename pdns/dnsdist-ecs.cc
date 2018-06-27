@@ -214,8 +214,6 @@ int getEDNSOptionsStart(char* packet, const size_t offset, const size_t len, cha
   if (pos >= len)
     return ENOENT;
 
-  uint16_t qtype, qclass;
-
   if ((pos + /* root */ 1 + DNS_TYPE_SIZE + DNS_CLASS_SIZE) >= len) {
     return ENOENT;
   }
@@ -226,7 +224,7 @@ int getEDNSOptionsStart(char* packet, const size_t offset, const size_t len, cha
   }
   pos += 1;
 
-  qtype = (const unsigned char)packet[pos]*256 + (const unsigned char)packet[pos+1];
+  uint16_t qtype = (const unsigned char)packet[pos]*256 + (const unsigned char)packet[pos+1];
   pos += DNS_TYPE_SIZE;
   pos += DNS_CLASS_SIZE;
 
