@@ -72,6 +72,9 @@ uint32_t calculateEditSOA(uint32_t old_serial, const string& kind, const DNSName
   else if(!kind.empty()) {
     g_log<<Logger::Warning<<"SOA-EDIT type '"<<kind<<"' for zone "<<zonename<<" is unknown."<<endl;
   }
+  // Seen strictly, this is a broken config: we can only come here if
+  // both SOA-EDIT and default-soa-edit are set to "", but the latter
+  // should be set to "NONE" instead.
   return old_serial;
 }
 
