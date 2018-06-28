@@ -1526,7 +1526,7 @@ static void makeControlChannelSocket(int processNum=-1)
 }
 
 static void getQNameAndSubnet(const std::string& question, DNSName* dnsname, uint16_t* qtype, uint16_t* qclass,
-                              bool& foundECS, EDNSSubnetOpts* ednssubnet, std::map<uint16_t, EDNSOptionView>* options,
+                              bool& foundECS, EDNSSubnetOpts* ednssubnet, EDNSOptionViewMap* options,
                               bool& foundXPF, ComboAddress* xpfSource, ComboAddress* xpfDest)
 {
   const bool lookForXPF = xpfSource != nullptr && g_xpfRRCode != 0;
@@ -1574,9 +1574,9 @@ static void getQNameAndSubnet(const std::string& question, DNSName* dnsname, uin
         int res = getEDNSOptions(reinterpret_cast<const char*>(&question.at(pos -sizeof(drh->d_clen))), questionLen - pos + (sizeof(drh->d_clen)), *options);
         if (res == 0) {
           const auto& it = options->find(EDNSOptionCode::ECS);
-          if (it != options->end() && it->second.content != nullptr && it->second.size > 0) {
+          if (it != options->end() && !it->second.values.empty() && it->second.values.at(0).content != nullptr && it->second.values.at(0).size > 0) {
             EDNSSubnetOpts eso;
-            if(getEDNSSubnetOptsFromString(it->second.content, it->second.size, &eso)) {
+            if(getEDNSSubnetOptsFromString(it->second.values.at(0).content, it->second.values.at(0).size, &eso)) {
               *ednssubnet=eso;
               foundECS = true;
             }
@@ -1678,7 +1678,7 @@ static void handleRunningTCPQuestion(int fd, FDMultiplexer::funcparam_t& var)
       if(needECS || needXPF || (t_pdl && (t_pdl->d_gettag_ffi || t_pdl->d_gettag))) {
 
         try {
-          std::map<uint16_t, EDNSOptionView> ednsOptions;
+          EDNSOptionViewMap ednsOptions;
           bool xpfFound = false;
           dc->d_ecsParsed = true;
           dc->d_ecsFound = false;
@@ -1868,7 +1868,7 @@ static string* doProcessUDPQuestion(const std::string& question, const ComboAddr
 
     if(needECS || needXPF || (t_pdl && (t_pdl->d_gettag || t_pdl->d_gettag_ffi))) {
       try {
-        std::map<uint16_t, EDNSOptionView> ednsOptions;
+        EDNSOptionViewMap ednsOptions;
         bool xpfFound = false;
 
         ecsFound = false;
