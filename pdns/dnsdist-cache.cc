@@ -47,14 +47,16 @@ DNSDistPacketCache::~DNSDistPacketCache()
   }
 }
 
-bool DNSDistPacketCache::cachedValueMatches(const CacheValue& cachedValue, const DNSName& qname, uint16_t qtype, uint16_t qclass, bool tcp)
+bool DNSDistPacketCache::cachedValueMatches(const CacheValue& cachedValue, uint16_t queryFlags, const DNSName& qname, uint16_t qtype, uint16_t qclass, bool tcp)
 {
-  if (cachedValue.tcp != tcp || cachedValue.qtype != qtype || cachedValue.qclass != qclass || cachedValue.qname != qname)
+  if (cachedValue.queryFlags != queryFlags || cachedValue.tcp != tcp || cachedValue.qtype != qtype || cachedValue.qclass != qclass || cachedValue.qname != qname) {
     return false;
+  }
+
   return true;
 }
 
-void DNSDistPacketCache::insertLocked(CacheShard& shard, uint32_t key, const DNSName& qname, uint16_t qtype, uint16_t qclass, bool tcp, CacheValue& newValue, time_t now, time_t newValidity)
+void DNSDistPacketCache::insertLocked(CacheShard& shard, uint32_t key, uint16_t queryFlags, const DNSName& qname, uint16_t qtype, uint16_t qclass, bool tcp, CacheValue& newValue, time_t now, time_t newValidity)
 {
   auto& map = shard.d_map;
   /* check again now that we hold the lock to prevent a race */
@@ -76,7 +78,7 @@ void DNSDistPacketCache::insertLocked(CacheShard& shard, uint32_t key, const DNS
   CacheValue& value = it->second;
   bool wasExpired = value.validity <= now;
 
-  if (!wasExpired && !cachedValueMatches(value, qname, qtype, qclass, tcp)) {
+  if (!wasExpired && !cachedValueMatches(value, queryFlags, qname, qtype, qclass, tcp)) {
     d_insertCollisions++;
     return;
   }
@@ -89,10 +91,11 @@ void DNSDistPacketCache::insertLocked(CacheShard& shard, uint32_t key, const DNS
   value = newValue;
 }
 
-void DNSDistPacketCache::insert(uint32_t key, const DNSName& qname, uint16_t qtype, uint16_t qclass, const char* response, uint16_t responseLen, bool tcp, uint8_t rcode, boost::optional<uint32_t> tempFailureTTL)
+void DNSDistPacketCache::insert(uint32_t key, uint16_t queryFlags, const DNSName& qname, uint16_t qtype, uint16_t qclass, const char* response, uint16_t responseLen, bool tcp, uint8_t rcode, boost::optional<uint32_t> tempFailureTTL)
 {
-  if (responseLen < sizeof(dnsheader))
+  if (responseLen < sizeof(dnsheader)) {
     return;
+  }
 
   uint32_t minTTL;
 
@@ -136,6 +139,7 @@ void DNSDistPacketCache::insert(uint32_t key, const DNSName& qname, uint16_t qty
   newValue.qname = qname;
   newValue.qtype = qtype;
   newValue.qclass = qclass;
+  newValue.queryFlags = queryFlags;
   newValue.len = responseLen;
   newValue.validity = newValidity;
   newValue.added = now;
@@ -151,12 +155,12 @@ void DNSDistPacketCache::insert(uint32_t key, const DNSName& qname, uint16_t qty
       d_deferredInserts++;
       return;
     }
-    insertLocked(shard, key, qname, qtype, qclass, tcp, newValue, now, newValidity)    ;
+    insertLocked(shard, key, queryFlags, qname, qtype, qclass, tcp, newValue, now, newValidity)    ;
   }
   else {
     WriteLock w(&shard.d_lock);
 
-    insertLocked(shard, key, qname, qtype, qclass, tcp, newValue, now, newValidity)    ;
+    insertLocked(shard, key, queryFlags, qname, qtype, qclass, tcp, newValue, now, newValidity)    ;
   }
 }
 
@@ -202,7 +206,7 @@ bool DNSDistPacketCache::get(const DNSQuestion& dq, uint16_t consumed, uint16_t 
     }
 
     /* check for collision */
-    if (!cachedValueMatches(value, *dq.qname, dq.qtype, dq.qclass, dq.tcp)) {
+    if (!cachedValueMatches(value, *(getFlagsFromDNSHeader(dq.dh)), *dq.qname, dq.qtype, dq.qclass, dq.tcp)) {
       d_lookupCollisions++;
       return false;
     }

@@ -3,6 +3,8 @@
 
 #include <boost/test/unit_test.hpp>
 
+#include "ednssubnet.hh"
+#include "ednsoptions.hh"
 #include "dnsdist.hh"
 #include "iputils.hh"
 #include "dnswriter.hh"
@@ -44,11 +46,12 @@ BOOST_AUTO_TEST_CASE(test_PacketCacheSimple) {
       char responseBuf[4096];
       uint16_t responseBufSize = sizeof(responseBuf);
       uint32_t key = 0;
-      DNSQuestion dq(&a, QType::A, QClass::IN, &remote, &remote, (struct dnsheader*) query.data(), query.size(), query.size(), false, &queryTime);
+      auto dh = reinterpret_cast<dnsheader*>(query.data());
+      DNSQuestion dq(&a, QType::A, QClass::IN, &remote, &remote, dh, query.size(), query.size(), false, &queryTime);
       bool found = PC.get(dq, a.wirelength(), 0, responseBuf, &responseBufSize, &key);
       BOOST_CHECK_EQUAL(found, false);
 
-      PC.insert(key, a, QType::A, QClass::IN, (const char*) response.data(), responseLen, false, 0, boost::none);
+      PC.insert(key, *(getFlagsFromDNSHeader(dh)), a, QType::A, QClass::IN, (const char*) response.data(), responseLen, false, 0, boost::none);
 
       found = PC.get(dq, a.wirelength(), pwR.getHeader()->id, responseBuf, &responseBufSize, &key, 0, true);
       if (found == true) {
@@ -140,17 +143,18 @@ BOOST_AUTO_TEST_CASE(test_PacketCacheServFailTTL) {
     char responseBuf[4096];
     uint16_t responseBufSize = sizeof(responseBuf);
     uint32_t key = 0;
-    DNSQuestion dq(&a, QType::A, QClass::IN, &remote, &remote, (struct dnsheader*) query.data(), query.size(), query.size(), false, &queryTime);
+    auto dh = reinterpret_cast<dnsheader*>(query.data());
+    DNSQuestion dq(&a, QType::A, QClass::IN, &remote, &remote, dh, query.size(), query.size(), false, &queryTime);
     bool found = PC.get(dq, a.wirelength(), 0, responseBuf, &responseBufSize, &key);
     BOOST_CHECK_EQUAL(found, false);
 
     // Insert with failure-TTL of 0 (-> should not enter cache).
-    PC.insert(key, a, QType::A, QClass::IN, (const char*) response.data(), responseLen, false, RCode::ServFail, boost::optional<uint32_t>(0));
+    PC.insert(key, *(getFlagsFromDNSHeader(dh)), a, QType::A, QClass::IN, (const char*) response.data(), responseLen, false, RCode::ServFail, boost::optional<uint32_t>(0));
     found = PC.get(dq, a.wirelength(), pwR.getHeader()->id, responseBuf, &responseBufSize, &key, 0, true);
     BOOST_CHECK_EQUAL(found, false);
 
     // Insert with failure-TTL non-zero (-> should enter cache).
-    PC.insert(key, a, QType::A, QClass::IN, (const char*) response.data(), responseLen, false, RCode::ServFail, boost::optional<uint32_t>(300));
+    PC.insert(key, *(getFlagsFromDNSHeader(dh)), a, QType::A, QClass::IN, (const char*) response.data(), responseLen, false, RCode::ServFail, boost::optional<uint32_t>(300));
     found = PC.get(dq, a.wirelength(), pwR.getHeader()->id, responseBuf, &responseBufSize, &key, 0, true);
     BOOST_CHECK_EQUAL(found, true);
   }
@@ -192,11 +196,12 @@ BOOST_AUTO_TEST_CASE(test_PacketCacheNoDataTTL) {
     char responseBuf[4096];
     uint16_t responseBufSize = sizeof(responseBuf);
     uint32_t key = 0;
-    DNSQuestion dq(&name, QType::A, QClass::IN, &remote, &remote, (struct dnsheader*) query.data(), query.size(), query.size(), false, &queryTime);
+    auto dh = reinterpret_cast<dnsheader*>(query.data());
+    DNSQuestion dq(&name, QType::A, QClass::IN, &remote, &remote, dh, query.size(), query.size(), false, &queryTime);
     bool found = PC.get(dq, name.wirelength(), 0, responseBuf, &responseBufSize, &key);
     BOOST_CHECK_EQUAL(found, false);
 
-    PC.insert(key, name, QType::A, QClass::IN, reinterpret_cast<const char*>(response.data()), responseLen, false, RCode::NoError, boost::none);
+    PC.insert(key, *(getFlagsFromDNSHeader(dh)), name, QType::A, QClass::IN, reinterpret_cast<const char*>(response.data()), responseLen, false, RCode::NoError, boost::none);
     found = PC.get(dq, name.wirelength(), pwR.getHeader()->id, responseBuf, &responseBufSize, &key, 0, true);
     BOOST_CHECK_EQUAL(found, true);
     sleep(2);
@@ -243,11 +248,12 @@ BOOST_AUTO_TEST_CASE(test_PacketCacheNXDomainTTL) {
     char responseBuf[4096];
     uint16_t responseBufSize = sizeof(responseBuf);
     uint32_t key = 0;
-    DNSQuestion dq(&name, QType::A, QClass::IN, &remote, &remote, (struct dnsheader*) query.data(), query.size(), query.size(), false, &queryTime);
+    auto dh = reinterpret_cast<dnsheader*>(query.data());
+    DNSQuestion dq(&name, QType::A, QClass::IN, &remote, &remote, dh, query.size(), query.size(), false, &queryTime);
     bool found = PC.get(dq, name.wirelength(), 0, responseBuf, &responseBufSize, &key);
     BOOST_CHECK_EQUAL(found, false);
 
-    PC.insert(key, name, QType::A, QClass::IN, reinterpret_cast<const char*>(response.data()), responseLen, false, RCode::NXDomain, boost::none);
+    PC.insert(key, *(getFlagsFromDNSHeader(dh)), name, QType::A, QClass::IN, reinterpret_cast<const char*>(response.data()), responseLen, false, RCode::NXDomain, boost::none);
     found = PC.get(dq, name.wirelength(), pwR.getHeader()->id, responseBuf, &responseBufSize, &key, 0, true);
     BOOST_CHECK_EQUAL(found, true);
     sleep(2);
@@ -291,10 +297,11 @@ static void *threadMangler(void* off)
       char responseBuf[4096];
       uint16_t responseBufSize = sizeof(responseBuf);
       uint32_t key = 0;
-      DNSQuestion dq(&a, QType::A, QClass::IN, &remote, &remote, (struct dnsheader*) query.data(), query.size(), query.size(), false, &queryTime);
+      auto dh = reinterpret_cast<dnsheader*>(query.data());
+      DNSQuestion dq(&a, QType::A, QClass::IN, &remote, &remote, dh, query.size(), query.size(), false, &queryTime);
       PC.get(dq, a.wirelength(), 0, responseBuf, &responseBufSize, &key);
 
-      PC.insert(key, a, QType::A, QClass::IN, (const char*) response.data(), responseLen, false, 0, boost::none);
+      PC.insert(key, *(getFlagsFromDNSHeader(dh)), a, QType::A, QClass::IN, (const char*) response.data(), responseLen, false, 0, boost::none);
     }
   }
   catch(PDNSException& e) {
