@@ -1615,9 +1615,11 @@ void setupLuaConfig(bool client)
       });
 
     g_lua.registerFunction<void(std::shared_ptr<TLSFrontend>::*)(boost::variant<std::string, std::vector<std::pair<int,std::string>>> certFiles, boost::variant<std::string, std::vector<std::pair<int,std::string>>> keyFiles)>("loadNewCertificatesAndKeys", [](std::shared_ptr<TLSFrontend>& frontend, boost::variant<std::string, std::vector<std::pair<int,std::string>>> certFiles, boost::variant<std::string, std::vector<std::pair<int,std::string>>> keyFiles) {
+#ifdef HAVE_DNS_OVER_TLS
         if (loadTLSCertificateAndKeys(frontend, certFiles, keyFiles)) {
           frontend->setupTLS();
         }
+#endif
       });
 }
 
