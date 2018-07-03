@@ -219,6 +219,10 @@ The number of worker threads is determined by the :ref:`setting-threads` setting
 If :ref:`setting-pdns-distributes-queries` is set, an additional thread is started, assigned the id 0,
 and is the only one listening on client sockets and accepting queries, distributing them to the other worker threads afterwards.
 
+Starting with version 4.2.0, the thread handling the control channel, the webserver and other internal stuff has been assigned
+id 0 and more than one distributor thread can be started using the :ref:`setting-distributor-threads` setting, so the distributor
+threads if any are assigned id 1 and counting, and the other threads follow behind.
+
 This parameter is only available on OS that provides the `pthread_setaffinity_np()` function.
 
 .. _setting-daemon:
@@ -262,6 +266,19 @@ not be cached.
 Do not log to syslog, only to stdout.
 Use this setting when running inside a supervisor that handles logging (like systemd).
 **Note**: do not use this setting in combination with `daemon`_ as all logging will disappear.
+
+.. _setting-distributor-threads:
+
+``distributor-threads``
+-----------
+.. versionadded:: 4.2.0
+
+-  Integer
+-  Default: 1 if `pdns-distributes-queries`_ is set, 0 otherwise
+
+If `pdns-distributes-queries`_ is set, spawn this number of distributor threads on startup. Distributor threads
+handle incoming queries and distribute them to other threads based on a hash of the query, to maximize the cache hit
+ratio.
 
 .. _setting-dnssec:
 
@@ -931,7 +948,9 @@ Maximum number of seconds to cache a 'server failure' answer in the packet cache
 -  Boolean
 -  Default: yes
 
-If set, PowerDNS will have only 1 thread listening on client sockets, and distribute work by itself over threads.
+If set, PowerDNS will have only 1 thread listening on client sockets, and distribute work by itself over threads by using a hash of the query,
+maximizing the cache hit ratio. Starting with version 4.2.0, more than one distributing thread can be started using the `distributor-threads`_
+setting.
 Improves performance on Linux.
 
 .. _setting-query-local-address:
