@@ -355,6 +355,12 @@ install_recursor() {
   run "sudo touch /etc/authbind/byport/53"
   run "sudo chmod 755 /etc/authbind/byport/53"
   run "cd ${TRAVIS_BUILD_DIR}"
+  # install SNMP
+  run "sudo sed -i \"s/agentxperms 0700 0755 recursor/agentxperms 0700 0755 ${USER}/g\" regression-tests.recursor-dnssec/snmpd.conf"
+  run "sudo cp -f regression-tests.recursor-dnssec/snmpd.conf /etc/snmp/snmpd.conf"
+  run "sudo service snmpd restart"
+  ## fun story, the directory perms are only applied if it doesn't exist yet, and it is created by the init script, so..
+  run "sudo chmod 0755 /var/agentx"
 }
 
 install_dnsdist() {
