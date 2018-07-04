@@ -19,6 +19,10 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
+#include <fcntl.h>
+#include <sys/stat.h>
+#include <sys/types.h>
+
 #include "dnsdist.hh"
 #include "dnsdist-lua.hh"
 #include "dnsdist-protobuf.hh"
@@ -238,6 +242,29 @@ void setupLuaBindings(bool client)
         g_outputBuffer+="Lookup Collisions: " + std::to_string(cache->getLookupCollisions()) + "\n";
         g_outputBuffer+="Insert Collisions: " + std::to_string(cache->getInsertCollisions()) + "\n";
         g_outputBuffer+="TTL Too Shorts: " + std::to_string(cache->getTTLTooShorts()) + "\n";
+      }
+    });
+  g_lua.registerFunction<void(std::shared_ptr<DNSDistPacketCache>::*)(const std::string& fname)>("dump", [](const std::shared_ptr<DNSDistPacketCache> cache, const std::string& fname) {
+      if (cache) {
+
+        int fd = open(fname.c_str(), O_CREAT | O_EXCL | O_WRONLY, 0660);
+        if (fd < 0) {
+          g_outputBuffer = "Error opening dump file for writing: " + string(strerror(errno)) + "\n";
+          return;
+        }
+
+        uint64_t records = 0;
+        try {
+          records = cache->dump(fd);
+        }
+        catch (const std::exception& e) {
+          close(fd);
+          throw;
+        }
+
+        close(fd);
+
+        g_outputBuffer += "Dumped " + std::to_string(records) + " records\n";
       }
     });
 

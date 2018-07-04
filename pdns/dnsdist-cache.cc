@@ -168,6 +168,7 @@ bool DNSDistPacketCache::get(const DNSQuestion& dq, uint16_t consumed, uint16_t 
 {
   std::string dnsQName(dq.qname->toDNSString());
   uint32_t key = getKey(dnsQName, consumed, (const unsigned char*)dq.dh, dq.len, dq.tcp);
+
   if (keyOut)
     *keyOut = key;
 
@@ -390,4 +391,36 @@ string DNSDistPacketCache::toString()
 uint64_t DNSDistPacketCache::getEntriesCount()
 {
   return getSize();
+}
+
+uint64_t DNSDistPacketCache::dump(int fd)
+{
+  FILE * fp = fdopen(dup(fd), "w");
+  if (fp == nullptr) {
+    return 0;
+  }
+
+  fprintf(fp, "; dnsdist's packet cache dump follows\n;\n");
+
+  uint64_t count = 0;
+  time_t now = time(nullptr);
+  for (uint32_t shardIndex = 0; shardIndex < d_shardCount; shardIndex++) {
+    ReadLock w(&d_shards.at(shardIndex).d_lock);
+    auto& map = d_shards[shardIndex].d_map;
+
+    for(const auto entry : map) {
+      const CacheValue& value = entry.second;
+      count++;
+
+      try {
+        fprintf(fp, "%s %" PRId64 " %s ; key %" PRIu32 ", length %" PRIu16 ", tcp %d, added %" PRIu64 "\n", value.qname.toString().c_str(), static_cast<int64_t>(value.validity - now), QType(value.qtype).getName().c_str(), entry.first, value.len, value.tcp, value.added);
+      }
+      catch(...) {
+        fprintf(fp, "; error printing '%s'\n", value.qname.empty() ? "EMPTY" : value.qname.toString().c_str());
+      }
+    }
+  }
+
+  fclose(fp);
+  return count;
 }
