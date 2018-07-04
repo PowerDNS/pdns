@@ -2,6 +2,7 @@
 #define BOOST_TEST_NO_MAIN
 #include <boost/test/unit_test.hpp>
 
+#include "syncres.hh"
 #include "arguments.hh"
 #include "base32.hh"
 #include "dnssecinfra.hh"
@@ -10,7 +11,6 @@
 #include "namespaces.hh"
 #include "rec-lua-conf.hh"
 #include "root-dnssec.hh"
-#include "syncres.hh"
 #include "test-common.hh"
 #include "utility.hh"
 #include "validate-recursor.hh"
