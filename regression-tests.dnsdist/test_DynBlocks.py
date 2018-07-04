@@ -29,7 +29,7 @@ class DynBlocksTest(DNSDistTest):
             self.assertIn(key, values)
 
         self.assertEqual(values['reason'], reason)
-        self.assertGreater(values['seconds'], minSeconds)
+        self.assertGreaterEqual(values['seconds'], minSeconds)
         self.assertLessEqual(values['seconds'], maxSeconds)
         self.assertGreaterEqual(values['blocks'], minBlocks)
         self.assertLessEqual(values['blocks'], maxBlocks)
