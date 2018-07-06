@@ -872,6 +872,28 @@ faster than the existing rules.
 
     Walk the in-memory query and response ring buffers and apply the configured rate-limiting rules, adding dynamic blocks when the limits have been exceeded.
 
+  .. method:: DynBlockRulesGroup:excludeRange(netmasks)
+
+    .. versionadded:: 1.3.1
+
+    Exclude this range, or list of ranges, meaning that no dynamic block will ever be inserted for clients in that range. Default to empty, meaning rules are applied to all ranges. When used in combination with :meth:`DynBlockRulesGroup:includeRange`, the more specific entry wins.
+
+    :param int netmasks: A netmask, or list of netmasks, as strings, like for example "192.0.2.1/24"
+
+  .. method:: DynBlockRulesGroup:includeRange(netmasks)
+
+    .. versionadded:: 1.3.1
+
+    Include this range, or list of ranges, meaning that rules will be applied to this range. When used in combination with :meth:`DynBlockRulesGroup:excludeRange`, the more specific entry wins.
+
+    :param int netmasks: A netmask, or list of netmasks, as strings, like for example "192.0.2.1/24"
+
+  .. method:: DynBlockRulesGroup:toString()
+
+    .. versionadded:: 1.3.1
+
+    Return a string describing the rules and range exclusions of this DynBlockRulesGroup.
+
 Other functions
 ---------------
 

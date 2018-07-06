@@ -103,6 +103,36 @@ class DNSAction
 {
 public:
   enum class Action { Drop, Nxdomain, Refused, Spoof, Allow, HeaderModify, Pool, Delay, Truncate, ServFail, None};
+  static std::string typeToString(const Action& action)
+  {
+    switch(action) {
+    case Action::Drop:
+      return "Drop";
+    case Action::Nxdomain:
+      return "Send NXDomain";
+    case Action::Refused:
+      return "Send Refused";
+    case Action::Spoof:
+      return "Spoof an answer";
+    case Action::Allow:
+      return "Allow";
+    case Action::HeaderModify:
+      return "Modify the header";
+    case Action::Pool:
+      return "Route to a pool";
+    case Action::Delay:
+      return "Delay";
+    case Action::Truncate:
+      return "Truncate over UDP";
+    case Action::ServFail:
+      return "Send ServFail";
+    case Action::None:
+      return "Do nothing";
+    }
+
+    return "Unknown";
+  }
+
   virtual Action operator()(DNSQuestion*, string* ruleresult) const =0;
   virtual ~DNSAction()
   {
