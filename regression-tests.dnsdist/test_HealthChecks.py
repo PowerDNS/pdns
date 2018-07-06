@@ -133,7 +133,7 @@ class TestHealthCheckCustomNameNoAnswer(HealthCheckTest):
     # because it uses a different health check configuration
     _testServerPort = 5384
 
-    _healthCheckAnswerUnexpected = False
+    _answerUnexpected = False
     _config_template = """
     setKey("%s")
     controlSocket("127.0.0.1:%d")
@@ -153,7 +153,7 @@ class TestHealthCheckCustomFunction(HealthCheckTest):
     # this test suite uses a different responder port
     # because it uses a different health check configuration
     _testServerPort = 5385
-    _healthCheckAnswerUnexpected = False
+    _answerUnexpected = False
 
     _healthCheckName = 'powerdns.com.'
     _config_template = """

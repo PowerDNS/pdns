@@ -34,7 +34,7 @@ class DynBlocksTest(DNSDistTest):
         self.assertGreaterEqual(values['blocks'], minBlocks)
         self.assertLessEqual(values['blocks'], maxBlocks)
 
-    def doTestQRate(self, name, testViaAPI=False):
+    def doTestQRate(self, name, testViaAPI=True):
         query = dns.message.make_query(name, 'A', 'IN')
         response = dns.message.make_response(query)
         rrset = dns.rrset.from_text(name,
@@ -459,7 +459,7 @@ class TestDynBlockQPS(DynBlocksTest):
         Dyn Blocks: QRate
         """
         name = 'qrate.dynblocks.tests.powerdns.com.'
-        self.doTestQRate(name, testViaAPI=True)
+        self.doTestQRate(name)
 
 class TestDynBlockGroupQPS(DynBlocksTest):
 
@@ -483,7 +483,7 @@ class TestDynBlockGroupQPS(DynBlocksTest):
         Dyn Blocks (Group): QRate
         """
         name = 'qrate.group.dynblocks.tests.powerdns.com.'
-        self.doTestQRate(name, testViaAPI=True)
+        self.doTestQRate(name)
 
 
 class TestDynBlockQPSRefused(DynBlocksTest):
