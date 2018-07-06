@@ -158,10 +158,14 @@ static void replaceEDNSClientSubnet(vector<uint8_t>* packet, const Netmask& ecsR
 static void sendPackets(const vector<Socket*>* sockets, const vector<vector<uint8_t>* >& packets, int qps, ComboAddress dest, const Netmask& ecsRange)
 {
   unsigned int burst=100;
+  const auto nsecPerBurst=1*(unsigned long)(burst*1000000000.0/qps);
   struct timespec nsec;
   nsec.tv_sec=0;
-  nsec.tv_nsec=1*(unsigned long)(burst*1000000000.0/qps);
+  nsec.tv_nsec=0;
   int count=0;
+  unsigned int nBursts=0;
+  DTime dt;
+  dt.set();
 
   struct Unit {
     struct msghdr msgh;
@@ -187,8 +191,17 @@ static void sendPackets(const vector<Socket*>* sockets, const vector<vector<uint
 	unixDie("sendmmsg");
     
     
-    if(!(count%burst))
-      nanosleep(&nsec, 0);
+    if(!(count%burst)) {
+      nBursts++;
+      // Calculate the time in nsec we need to sleep to the next burst.
+      // If this is negative, it means that we are not achieving the requested
+      // target rate, in which case we skip the sleep.
+      int toSleep = nBursts*nsecPerBurst - 1000*dt.udiffNoReset();
+      if (toSleep > 0) {
+        nsec.tv_nsec = toSleep;
+        nanosleep(&nsec, 0);
+      }
+    }
   }
 }
 
