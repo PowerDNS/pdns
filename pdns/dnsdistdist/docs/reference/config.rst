@@ -741,6 +741,8 @@ Dynamic Blocks
   :param int seconds: The number of seconds this block to expire
   :param int action: The action to take when the dynamic block matches, see :ref:`here <DNSAction>`. (default to the one set with :func:`setDynBlocksAction`)
 
+  Please see the documentation for :func:`setDynBlocksAction` to confirm which actions are supported by the action paramater.
+
 .. function:: clearDynBlocks()
 
   Remove all current dynamic blocks.
@@ -752,7 +754,8 @@ Dynamic Blocks
 .. function:: setDynBlocksAction(action)
 
   Set which action is performed when a query is blocked.
-  Only DNSAction.Drop (the default), DNSAction.Refused and DNSAction.Truncate are supported.
+
+  Only DNSAction.Allow (for testing), DNSAction.Drop (the default), DNSAction.Refused and DNSAction.Truncate are currently supported.
 
 .. _exceedfuncs:
 

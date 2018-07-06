@@ -943,12 +943,17 @@ void setupLuaConfig(bool client)
 
   g_lua.writeFunction("setDynBlocksAction", [](DNSAction::Action action) {
       if (!g_configurationDone) {
-        if (action == DNSAction::Action::Drop || action == DNSAction::Action::Refused || action == DNSAction::Action::Truncate) {
-          g_dynBlockAction = action;
-        }
-        else {
-          errlog("Dynamic blocks action can only be Drop, Refused or Truncate!");
-          g_outputBuffer="Dynamic blocks action can only be Drop, Refused or Truncate!\n";
+        switch(action) {
+          case DNSAction::Action::Allow: 
+          case DNSAction::Action::Drop:
+          case DNSAction::Action::Refused:
+          case DNSAction::Action::Truncate:
+            g_dynBlockAction = action;
+            break;
+          default:
+            errlog("Dynamic blocks action can only be Allow, Drop, Refused or Truncate!");
+            g_outputBuffer="Dynamic blocks action can only be Allow, Drop, Refused or Truncate!\n";
+            break;
         }
       } else {
         g_outputBuffer="Dynamic blocks action cannot be altered at runtime!\n";
