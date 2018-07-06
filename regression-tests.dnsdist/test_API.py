@@ -272,7 +272,7 @@ class TestAPIBasics(DNSDistTest):
         content = r.json()
 
         if content:
-            for key in ['reason', 'seconds', 'blocks']:
+            for key in ['reason', 'seconds', 'blocks', 'action']:
                 self.assertIn(key, content)
 
             for key in ['blocks']:

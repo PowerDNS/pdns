@@ -80,6 +80,7 @@ These constants represent an Action that can be returned from the functions invo
  * ``DNSAction.Drop``: drop the query
  * ``DNSAction.HeaderModify``: indicate that the query has been turned into a response
  * ``DNSAction.None``: continue to the next rule
+ * ``DNSAction.NoOp``: continue to the next rule (used for Dynamic Block actions where None has a different meaning)
  * ``DNSAction.Nxdomain``: return a response with a NXDomain rcode
  * ``DNSAction.Pool``: use the specified pool to forward this query
  * ``DNSAction.Refused``: return a response with a Refused rcode

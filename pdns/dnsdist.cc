@@ -910,15 +910,19 @@ bool processQuery(LocalHolders& holders, DNSQuestion& dq, string& poolname, int*
       if (action == DNSAction::Action::None) {
         action = g_dynBlockAction;
       }
-      if (action == DNSAction::Action::Refused) {
+      switch (action) {
+      case DNSAction::Action::NoOp:
+        /* do nothing */
+        break;
+      case DNSAction::Action::Refused:
         vinfolog("Query from %s refused because of dynamic block", dq.remote->toStringWithPort());
         updateBlockStats();
       
         dq.dh->rcode = RCode::Refused;
         dq.dh->qr=true;
         return true;
-      }
-      else if (action == DNSAction::Action::Truncate) {
+
+      case DNSAction::Action::Truncate:
         if(!dq.tcp) {
           updateBlockStats();
           vinfolog("Query from %s truncated because of dynamic block", dq.remote->toStringWithPort());
@@ -929,9 +933,8 @@ bool processQuery(LocalHolders& holders, DNSQuestion& dq, string& poolname, int*
         else {
           vinfolog("Query from %s for %s over TCP *not* truncated because of dynamic block", dq.remote->toStringWithPort(), dq.qname->toString());
         }
-
-      }
-      else {
+        break;
+      default:
         updateBlockStats();
         vinfolog("Query from %s dropped because of dynamic block", dq.remote->toStringWithPort());
         return false;
@@ -950,15 +953,18 @@ bool processQuery(LocalHolders& holders, DNSQuestion& dq, string& poolname, int*
       if (action == DNSAction::Action::None) {
         action = g_dynBlockAction;
       }
-      if (action == DNSAction::Action::Refused) {
+      switch (action) {
+      case DNSAction::Action::NoOp:
+        /* do nothing */
+        break;
+      case DNSAction::Action::Refused:
         vinfolog("Query from %s for %s refused because of dynamic block", dq.remote->toStringWithPort(), dq.qname->toString());
         updateBlockStats();
 
         dq.dh->rcode = RCode::Refused;
         dq.dh->qr=true;
         return true;
-      }
-      else if (action == DNSAction::Action::Truncate) {
+      case DNSAction::Action::Truncate:
         if(!dq.tcp) {
           updateBlockStats();
       
@@ -970,8 +976,8 @@ bool processQuery(LocalHolders& holders, DNSQuestion& dq, string& poolname, int*
         else {
           vinfolog("Query from %s for %s over TCP *not* truncated because of dynamic block", dq.remote->toStringWithPort(), dq.qname->toString());
         }
-      }
-      else {
+        break;
+      default:
         updateBlockStats();
         vinfolog("Query from %s for %s dropped because of dynamic block", dq.remote->toStringWithPort(), dq.qname->toString());
         return false;
@@ -1033,6 +1039,8 @@ bool processQuery(LocalHolders& holders, DNSQuestion& dq, string& poolname, int*
         *delayMsec = static_cast<int>(pdns_stou(ruleresult)); // sorry
         break;
       case DNSAction::Action::None:
+        /* fall-through */
+      case DNSAction::Action::NoOp:
         break;
       }
     }

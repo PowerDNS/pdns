@@ -32,6 +32,7 @@ void setupLuaVars()
       {"HeaderModify", (int)DNSAction::Action::HeaderModify},
       {"Pool", (int)DNSAction::Action::Pool},
       {"None",(int)DNSAction::Action::None},
+      {"NoOp",(int)DNSAction::Action::NoOp},
       {"Delay", (int)DNSAction::Action::Delay},
       {"Truncate", (int)DNSAction::Action::Truncate},
       {"ServFail", (int)DNSAction::Action::ServFail}
