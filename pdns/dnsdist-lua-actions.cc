@@ -173,7 +173,7 @@ DNSAction::Action TeeAction::operator()(DNSQuestion* dq, string* ruleresult) con
       query.reserve(dq->size);
       query.assign((char*) dq->dh, len);
 
-      if (!handleEDNSClientSubnet((char*) query.c_str(), query.capacity(), dq->qname->wirelength(), &len, &ednsAdded, &ecsAdded, *dq->remote, dq->ecsOverride, dq->ecsPrefixLength)) {
+      if (!handleEDNSClientSubnet(const_cast<char*>(query.c_str()), query.capacity(), dq->qname->wirelength(), &len, &ednsAdded, &ecsAdded, dq->ecsSet ? dq->ecs.getNetwork() : *dq->remote, dq->ecsOverride, dq->ecsSet ? dq->ecs.getBits() :  dq->ecsPrefixLength)) {
         return DNSAction::Action::None;
       }
 
@@ -659,6 +659,47 @@ public:
     return "disable ECS";
   }
 };
+
+class SetECSAction : public DNSAction
+{
+public:
+  SetECSAction(const Netmask& v4): d_v4(v4), d_hasV6(false)
+  {
+  }
+
+  SetECSAction(const Netmask& v4, const Netmask& v6): d_v4(v4), d_v6(v6), d_hasV6(true)
+  {
+  }
+
+  DNSAction::Action operator()(DNSQuestion* dq, string* ruleresult) const override
+  {
+    dq->ecsSet = true;
+
+    if (d_hasV6) {
+      dq->ecs = dq->remote->isIPv4() ? d_v4 : d_v6;
+    }
+    else {
+      dq->ecs = d_v4;
+    }
+
+    return Action::None;
+  }
+
+  string toString() const override
+  {
+    string result = "set ECS to " + d_v4.toString();
+    if (d_hasV6) {
+      result += " / " + d_v6.toString();
+    }
+    return result;
+  }
+
+private:
+  Netmask d_v4;
+  Netmask d_v6;
+  bool d_hasV6;
+};
+
 
 class DnstapLogAction : public DNSAction, public boost::noncopyable
 {
@@ -1180,6 +1221,13 @@ void setupLuaActions()
 
   g_lua.writeFunction("DisableECSAction", []() {
       return std::shared_ptr<DNSAction>(new DisableECSAction());
+    });
+
+  g_lua.writeFunction("SetECSAction", [](const std::string v4, boost::optional<std::string> v6) {
+      if (v6) {
+        return std::shared_ptr<DNSAction>(new SetECSAction(Netmask(v4), Netmask(*v6)));
+      }
+      return std::shared_ptr<DNSAction>(new SetECSAction(Netmask(v4)));
     });
 
   g_lua.writeFunction("SNMPTrapAction", [](boost::optional<std::string> reason) {

@@ -926,6 +926,19 @@ The following actions exist.
   :param string alterFunction: Name of a function to modify the contents of the logs before sending
   :param bool includeCNAME: Whether or not to parse and export CNAMEs. Default false
 
+.. function:: SetECSAction(v4 [, v6])
+
+  .. versionadded:: 1.3.1
+
+  Set the ECS prefix and prefix length sent to backends to an arbitrary value.
+  If both IPv4 and IPv6 masks are supplied the IPv4 one will be used for IPv4 clients
+  and the IPv6 one for IPv6 clients. Otherwise the first mask is used for both, and
+  can actually be an IPv6 mask.
+  Subsequent rules are processed after this rule.
+
+  :param string v4: The IPv4 netmask, for example "192.0.2.1/32"
+  :param string v6: The IPv6 netmask, if any
+
 .. function:: SkipCacheAction()
 
   Don't lookup the cache for this query, don't store the answer.
