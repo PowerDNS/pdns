@@ -91,6 +91,7 @@ Listen Sockets
   .. versionadded:: 1.3.0
   .. versionchanged:: 1.3.1
     ``certFile(s)`` and ``keyFile(s)`` parameters accept a list of files.
+    ``sessionTickets`` option added.
 
   Listen on the specified address and TCP port for incoming DNS over TLS connections, presenting the specified X.509 certificate.
 
@@ -112,6 +113,7 @@ Listen Sockets
   * ``numberOfTicketsKeys``: int - The maximum number of tickets keys to keep in memory at the same time, if the provider supports it (GnuTLS doesn't, OpenSSL does). Only one key is marked as active and used to encrypt new tickets while the remaining ones can still be used to decrypt existing tickets after a rotation. Default to 5.
   * ``ticketKeyFile``: str - The path to a file from where TLS tickets keys should be loaded, to support RFC 5077. These keys should be rotated often and never written to persistent storage to preserve forward secrecy. The default is to generate a random key. The OpenSSL provider supports several tickets keys to be able to decrypt existing sessions after the rotation, while the GnuTLS provider only supports one key.
   * ``ticketsKeysRotationDelay``: int - Set the delay before the TLS tickets key is rotated, in seconds. Default is 43200 (12h).
+  * ``sessionTickets``: bool - Whether session resumption via session tickets is enabled. Default is true, meaning tickets are enabled.
 
 .. function:: setLocal(address[, options])
 
@@ -625,6 +627,12 @@ Status, Statistics and More
 
   Return the TLSContext object for the context of index ``idx``.
 
+.. function:: getTLSFrontend(idx)
+
+  .. versionadded:: 1.3.1
+
+  Return the TLSFrontend object for the TLS bind of index ``idx``.
+
 .. function:: grepq(selector[, num])
               grepq(selectors[, num])
 
@@ -923,3 +931,19 @@ TLSContext
      Load new tickets keys from the selected file, replacing the existing ones. These keys should be rotated often and never written to persistent storage to preserve forward secrecy. The default is to generate a random key. The OpenSSL provider supports several tickets keys to be able to decrypt existing sessions after the rotation, while the GnuTLS provider only supports one key.
 
     :param str ticketsKeysFile: The path to a file from where TLS tickets keys should be loaded.
+
+TLSFrontend
+~~~~~~~~~~
+
+.. class:: TLSFrontend
+
+  .. versionadded:: 1.3.1
+
+  This object represents the configuration of a listening frontend for DNS over TLS queries. To each frontend is associated a TLSContext.
+
+  .. method:: TLSContext:loadNewCertificatesAndKeys(certFile(s), keyFile(s))
+
+     Create and switch to a new TLS context using the same options than were passed to the corresponding `addTLSLocal()` directive, but loading new certificates and keys from the selected files, replacing the existing ones.
+
+  :param str certFile(s): The path to a X.509 certificate file in PEM format, or a list of paths to such files.
+  :param str keyFile(s): The path to the private key file corresponding to the certificate, or a list of paths to such files, whose order should match the certFile(s) ones.

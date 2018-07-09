@@ -106,6 +106,41 @@ static void parseLocalBindVars(boost::optional<localbind_t> vars, bool& doTCP, b
   }
 }
 
+#ifdef HAVE_DNS_OVER_TLS
+static bool loadTLSCertificateAndKeys(shared_ptr<TLSFrontend>& frontend, boost::variant<std::string, std::vector<std::pair<int,std::string>>> certFiles, boost::variant<std::string, std::vector<std::pair<int,std::string>>> keyFiles)
+{
+  if (certFiles.type() == typeid(std::string) && keyFiles.type() == typeid(std::string)) {
+    auto certFile = boost::get<std::string>(certFiles);
+    auto keyFile = boost::get<std::string>(keyFiles);
+    frontend->d_certKeyPairs.clear();
+    frontend->d_certKeyPairs.push_back({certFile, keyFile});
+  }
+  else if (certFiles.type() == typeid(std::vector<std::pair<int,std::string>>) && keyFiles.type() == typeid(std::vector<std::pair<int,std::string>>))
+  {
+    auto certFilesVect = boost::get<std::vector<std::pair<int,std::string>>>(certFiles);
+    auto keyFilesVect = boost::get<std::vector<std::pair<int,std::string>>>(keyFiles);
+    if (certFilesVect.size() == keyFilesVect.size()) {
+      frontend->d_certKeyPairs.clear();
+      for (size_t idx = 0; idx < certFilesVect.size(); idx++) {
+        frontend->d_certKeyPairs.push_back({certFilesVect.at(idx).second, keyFilesVect.at(idx).second});
+      }
+    }
+    else {
+      errlog("Error, mismatching number of certificates and keys in call to addTLSLocal()!");
+      g_outputBuffer="Error, mismatching number of certificates and keys in call to addTLSLocal()!";
+      return false;
+    }
+  }
+  else {
+    errlog("Error, mismatching number of certificates and keys in call to addTLSLocal()!");
+    g_outputBuffer="Error, mismatching number of certificates and keys in call to addTLSLocal()!";
+    return false;
+  }
+
+  return true;
+}
+#endif /* HAVE_DNS_OVER_TLS */
+
 void setupLuaConfig(bool client)
 {
   typedef std::unordered_map<std::string, boost::variant<bool, std::string, vector<pair<int, std::string> >, DownstreamState::checkfunc_t > > newserver_t;
@@ -1451,29 +1486,7 @@ void setupLuaConfig(bool client)
         }
         shared_ptr<TLSFrontend> frontend = std::make_shared<TLSFrontend>();
 
-        if (certFiles.type() == typeid(std::string) && keyFiles.type() == typeid(std::string)) {
-          auto certFile = boost::get<std::string>(certFiles);
-          auto keyFile = boost::get<std::string>(keyFiles);
-          frontend->d_certKeyPairs.push_back({certFile, keyFile});
-        }
-        else if (certFiles.type() == typeid(std::vector<std::pair<int,std::string>>) && keyFiles.type() == typeid(std::vector<std::pair<int,std::string>>))
-        {
-          auto certFilesVect = boost::get<std::vector<std::pair<int,std::string>>>(certFiles);
-          auto keyFilesVect = boost::get<std::vector<std::pair<int,std::string>>>(keyFiles);
-          if (certFilesVect.size() == keyFilesVect.size()) {
-            for (size_t idx = 0; idx < certFilesVect.size(); idx++) {
-              frontend->d_certKeyPairs.push_back({certFilesVect.at(idx).second, keyFilesVect.at(idx).second});
-            }
-          }
-          else {
-            errlog("Error, mismatching number of certificates and keys in call to addTLSLocal()!");
-            g_outputBuffer="Error, mismatching number of certificates and keys in call to addTLSLocal()!";
-            return;
-          }
-        }
-        else {
-          errlog("Error, mismatching number of certificates and keys in call to addTLSLocal()!");
-          g_outputBuffer="Error, mismatching number of certificates and keys in call to addTLSLocal()!";
+        if (!loadTLSCertificateAndKeys(frontend, certFiles, keyFiles)) {
           return;
         }
 
@@ -1499,6 +1512,10 @@ void setupLuaConfig(bool client)
 
           if (vars->count("numberOfTicketsKeys")) {
             frontend->d_numberOfTicketsKeys = std::stoi(boost::get<const string>((*vars)["numberOfTicketsKeys"]));
+          }
+
+          if (vars->count("sessionTickets")) {
+            frontend->d_enableTickets = boost::get<bool>((*vars)["sessionTickets"]);
           }
         }
 
@@ -1562,6 +1579,29 @@ void setupLuaConfig(bool client)
         return result;
       });
 
+    g_lua.writeFunction("getTLSFrontend", [](size_t index) {
+        std::shared_ptr<TLSFrontend> result = nullptr;
+#ifdef HAVE_DNS_OVER_TLS
+        setLuaNoSideEffect();
+        try {
+          if (index < g_tlslocals.size()) {
+            result = g_tlslocals.at(index);
+          }
+          else {
+            errlog("Error: trying to get TLS frontend with index %zu but we only have %zu\n", index, g_tlslocals.size());
+            g_outputBuffer="Error: trying to get TLS frontend with index " + std::to_string(index) + " but we only have " + std::to_string(g_tlslocals.size()) + "\n";
+          }
+        }
+        catch(const std::exception& e) {
+          g_outputBuffer="Error: "+string(e.what())+"\n";
+          errlog("Error: %s\n", string(e.what()));
+        }
+#else
+        g_outputBuffer="DNS over TLS support is not present!\n";
+#endif
+        return result;
+      });
+
     g_lua.registerFunction<void(std::shared_ptr<TLSCtx>::*)()>("rotateTicketsKey", [](std::shared_ptr<TLSCtx> ctx) {
         if (ctx != nullptr) {
           ctx->rotateTicketsKey(time(nullptr));
@@ -1572,6 +1612,14 @@ void setupLuaConfig(bool client)
         if (ctx != nullptr) {
           ctx->loadTicketsKeys(file);
         }
+      });
+
+    g_lua.registerFunction<void(std::shared_ptr<TLSFrontend>::*)(boost::variant<std::string, std::vector<std::pair<int,std::string>>> certFiles, boost::variant<std::string, std::vector<std::pair<int,std::string>>> keyFiles)>("loadNewCertificatesAndKeys", [](std::shared_ptr<TLSFrontend>& frontend, boost::variant<std::string, std::vector<std::pair<int,std::string>>> certFiles, boost::variant<std::string, std::vector<std::pair<int,std::string>>> keyFiles) {
+#ifdef HAVE_DNS_OVER_TLS
+        if (loadTLSCertificateAndKeys(frontend, certFiles, keyFiles)) {
+          frontend->setupTLS();
+        }
+#endif
       });
 }
 
