@@ -23,6 +23,8 @@ For example, to send a REFUSED code instead of droppping the query::
 
   setDynBlocksAction(DNSAction.Refused)
 
+Please see the documentation for :func:`setDynBlocksAction` to confirm which actions are supported.
+
 .. _DynBlockRulesGroup:
 
 DynBlockRulesGroup

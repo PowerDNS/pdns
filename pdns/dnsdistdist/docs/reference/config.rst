@@ -739,7 +739,9 @@ Dynamic Blocks
   :param addresses: set of Addresses as returned by an exceed function
   :param string message: The message to show next to the blocks
   :param int seconds: The number of seconds this block to expire
-  :param int action: The action to take when the dynamic block matches, see :ref:`here <DNSAction>`. (default to the one set with :func:`setDynBlocksAction`)
+  :param int action: The action to take when the dynamic block matches, see :ref:`here <DNSAction>`. (default to DNSAction.None, meaning the one set with :func:`setDynBlocksAction` is used)
+
+  Please see the documentation for :func:`setDynBlocksAction` to confirm which actions are supported by the action paramater.
 
 .. function:: clearDynBlocks()
 
@@ -752,7 +754,7 @@ Dynamic Blocks
 .. function:: setDynBlocksAction(action)
 
   Set which action is performed when a query is blocked.
-  Only DNSAction.Drop (the default), DNSAction.Refused and DNSAction.Truncate are supported.
+  Only DNSAction.Drop (the default), DNSAction.NoOp, DNSAction.Refused and DNSAction.Truncate are supported.
 
 .. _exceedfuncs:
 

@@ -332,7 +332,8 @@ static void connectionThread(int sock, ComboAddress remote, string password, str
             Json::object thing{
               {"reason", e->second.reason},
               {"seconds", (double)(e->second.until.tv_sec - now.tv_sec)},
-              {"blocks", (double)e->second.blocks}
+              {"blocks", (double)e->second.blocks},
+              {"action", DNSAction::typeToString(e->second.action) }
             };
             obj.insert({e->first.toString(), thing});
           }
@@ -344,9 +345,12 @@ static void connectionThread(int sock, ComboAddress remote, string password, str
               string dom("empty");
               if(!node.d_value.domain.empty())
                 dom = node.d_value.domain.toString();
-              Json::object thing{{"reason", node.d_value.reason}, {"seconds", (double)(node.d_value.until.tv_sec - now.tv_sec)},
-							     {"blocks", (double)node.d_value.blocks} };
-
+              Json::object thing{
+                {"reason", node.d_value.reason},
+                {"seconds", (double)(node.d_value.until.tv_sec - now.tv_sec)},
+                {"blocks", (double)node.d_value.blocks},
+                {"action", DNSAction::typeToString(node.d_value.action) }
+              };
               obj.insert({dom, thing});
           }
         });
