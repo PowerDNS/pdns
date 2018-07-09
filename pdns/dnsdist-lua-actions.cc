@@ -57,6 +57,18 @@ public:
   }
 };
 
+class NoneAction : public DNSAction
+{
+public:
+  DNSAction::Action operator()(DNSQuestion* dq, string* ruleresult) const override
+  {
+    return Action::None;
+  }
+  string toString() const override
+  {
+    return "no op";
+  }
+};
 
 class QPSAction : public DNSAction
 {
@@ -1059,6 +1071,10 @@ void setupLuaActions()
 
   g_lua.writeFunction("AllowAction", []() {
       return std::shared_ptr<DNSAction>(new AllowAction);
+    });
+
+  g_lua.writeFunction("NoneAction", []() {
+      return std::shared_ptr<DNSAction>(new NoneAction);
     });
 
   g_lua.writeFunction("DelayAction", [](int msec) {
