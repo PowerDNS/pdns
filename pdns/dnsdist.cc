@@ -426,7 +426,6 @@ try {
 
   for(;;) {
     dnsheader* dh = reinterpret_cast<struct dnsheader*>(packet);
-    bool outstandingDecreased = false;
     try {
       pickBackendSocketsReadyForReceiving(dss, sockets);
       for (const auto& fd : sockets) {
@@ -460,8 +459,14 @@ try {
           continue;
         }
 
-        --dss->outstanding;  // you'd think an attacker could game this, but we're using connected socket
-        outstandingDecreased = true;
+        int oldFD = ids->origFD.exchange(-1);
+        if (oldFD == origFD) {
+          /* we only decrement the outstanding counter if the value was not
+             altered in the meantime, which would mean that the state has been actively reused
+             and the other thread has not incremented the outstanding counter, so we don't
+             want it to be decremented twice. */
+          --dss->outstanding;  // you'd think an attacker could game this, but we're using connected socket
+        }
 
         if(dh->tc && g_truncateTC) {
           truncateTC(response, &responseLen);
@@ -522,12 +527,12 @@ try {
 
         doLatencyStats(udiff);
 
-        if (ids->origFD == origFD) {
+        /* if the FD is not -1, the state has been actively reused and we should
+           not alter anything */
+        if (ids->origFD == -1) {
 #ifdef HAVE_DNSCRYPT
           ids->dnsCryptQuery = nullptr;
 #endif
-          ids->origFD = -1;
-          outstandingDecreased = false;
         }
 
         rewrittenResponse.clear();
@@ -535,14 +540,6 @@ try {
     }
     catch(const std::exception& e){
       vinfolog("Got an error in UDP responder thread while parsing a response from %s, id %d: %s", dss->remote.toStringWithPort(), queryId, e.what());
-      if (outstandingDecreased) {
-        /* so an exception was raised after we decreased the outstanding queries counter,
-           but before we could set ids->origFD to -1 (because we also set outstandingDecreased
-           to false then), meaning the IDS is still considered active and we will decrease the
-           counter again on a duplicate, or simply while reaping downstream timeouts, so let's
-           increase it back. */
-        dss->outstanding++;
-      }
     }
   }
   return 0;
@@ -1444,15 +1441,17 @@ static void processUDPQuery(ClientState& cs, LocalHolders& holders, const struct
     IDState* ids = &ss->idStates[idOffset];
     ids->age = 0;
 
-    if(ids->origFD < 0) // if we are reusing, no change in outstanding
+    int oldFD = ids->origFD.exchange(cs.udpFD);
+    if(oldFD < 0) {
+      // if we are reusing, no change in outstanding
       ss->outstanding++;
+    }
     else {
       ss->reuseds++;
       g_stats.downstreamTimeouts++;
     }
 
     ids->cs = &cs;
-    ids->origFD = cs.udpFD;
     ids->origID = dh->id;
     ids->origRemote = remote;
     ids->sentTime.set(queryRealTime);
@@ -1884,7 +1883,8 @@ void* healthChecksThread()
       dss->prev.reuseds.store(dss->reuseds.load());
       
       for(IDState& ids  : dss->idStates) { // timeouts
-        if(ids.origFD >=0 && ids.age++ > g_udpTimeout) {
+        int origFD = ids.origFD;
+        if(origFD >=0 && ids.age++ > g_udpTimeout) {
           /* We set origFD to -1 as soon as possible
              to limit the risk of racing with the
              responder thread.
@@ -1893,7 +1893,11 @@ void* healthChecksThread()
              so the sooner the better any way since we _will_
              decrement it.
           */
-          ids.origFD = -1;
+          if (ids.origFD.exchange(-1) != origFD) {
+            /* this state has been altered in the meantime,
+               don't go anywhere near it */
+            continue;
+          }
           ids.age = 0;
           dss->reuseds++;
           --dss->outstanding;

@@ -400,16 +400,15 @@ struct ClientState;
 struct IDState
 {
   IDState() : origFD(-1), sentTime(true), delayMsec(0), tempFailureTTL(boost::none) { origDest.sin4.sin_family = 0;}
-  IDState(const IDState& orig): origRemote(orig.origRemote), origDest(orig.origDest)
+  IDState(const IDState& orig): origRemote(orig.origRemote), origDest(orig.origDest), age(orig.age)
   {
-    origFD = orig.origFD;
+    origFD.store(orig.origFD.load());
     origID = orig.origID;
     delayMsec = orig.delayMsec;
     tempFailureTTL = orig.tempFailureTTL;
-    age.store(orig.age.load());
   }
 
-  int origFD;  // set to <0 to indicate this state is empty   // 4
+  std::atomic<int> origFD;  // set to <0 to indicate this state is empty   // 4
 
   ComboAddress origRemote;                                    // 28
   ComboAddress origDest;                                      // 28
@@ -426,7 +425,7 @@ struct IDState
   std::shared_ptr<QTag> qTag{nullptr};
   const ClientState* cs{nullptr};
   uint32_t cacheKey;                                          // 8
-  std::atomic<uint16_t> age;                                  // 4
+  uint16_t age;                                               // 4
   uint16_t qtype;                                             // 2
   uint16_t qclass;                                            // 2
   uint16_t origID;                                            // 2
