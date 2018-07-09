@@ -313,7 +313,7 @@ BOOST_AUTO_TEST_CASE(test_getDNSPacketMinTTL) {
     pwR.getHeader()->qr = 1;
     pwR.commit();
 
-    pwR.startRecord(name, QType::SOA, 255, QClass::CHAOS, DNSResourceRecord::ADDITIONAL);
+    pwR.startRecord(name, QType::SOA, 255, QClass::IN, DNSResourceRecord::ADDITIONAL);
     pwR.commit();
 
     bool seenAuthSOA = false;

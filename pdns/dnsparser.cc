@@ -809,7 +809,7 @@ uint32_t getDNSPacketMinTTL(const char* packet, size_t length, bool* seenAuthSOA
       }
 
       /* report it if we see a SOA record in the AUTHORITY section */
-      if(dnstype == QType::SOA && dnsclass == QClass::IN && seenAuthSOA != nullptr && n >= (ntohs(dh->ancount) && n < (ntohs(dh->ancount) + ntohs(dh->nscount)))) {
+      if(dnstype == QType::SOA && dnsclass == QClass::IN && seenAuthSOA != nullptr && n >= ntohs(dh->ancount) && n < (ntohs(dh->ancount) + ntohs(dh->nscount))) {
         *seenAuthSOA = true;
       }
 
