@@ -651,11 +651,11 @@ public:
 class SetECSAction : public DNSAction
 {
 public:
-  SetECSAction(Netmask v4): d_v4(v4), d_hasV6(false)
+  SetECSAction(const Netmask& v4): d_v4(v4), d_hasV6(false)
   {
   }
 
-  SetECSAction(Netmask v4, Netmask v6): d_v4(v4), d_v6(v6), d_hasV6(true)
+  SetECSAction(const Netmask& v4, const Netmask& v6): d_v4(v4), d_v6(v6), d_hasV6(true)
   {
   }
 
