@@ -372,7 +372,7 @@ public:
       SSL_OP_SINGLE_ECDH_USE |
       SSL_OP_CIPHER_SERVER_PREFERENCE;
 
-    if (fe.d_disableTickets) {
+    if (!fe.d_enableTickets) {
       sslOptions |= SSL_OP_NO_TICKET;
     }
 
@@ -650,7 +650,7 @@ class GnuTLSConnection: public TLSConnection
 {
 public:
 
-  GnuTLSConnection(int socket, unsigned int timeout, const gnutls_certificate_credentials_t creds, const gnutls_priority_t priorityCache, std::shared_ptr<GnuTLSTicketsKey>& ticketsKey, bool disableTickets): d_ticketsKey(ticketsKey)
+  GnuTLSConnection(int socket, unsigned int timeout, const gnutls_certificate_credentials_t creds, const gnutls_priority_t priorityCache, std::shared_ptr<GnuTLSTicketsKey>& ticketsKey, bool enableTickets): d_ticketsKey(ticketsKey)
   {
     unsigned int sslOptions = GNUTLS_SERVER;
 #ifdef GNUTLS_NO_SIGNAL
@@ -673,7 +673,7 @@ public:
       throw std::runtime_error("Error setting ciphers to TLS connection");
     }
 
-    if (!disableTickets && d_ticketsKey) {
+    if (enableTickets && d_ticketsKey) {
       const gnutls_datum_t& key = d_ticketsKey->getKey();
       if (gnutls_session_ticket_enable_server(d_conn, &key) != GNUTLS_E_SUCCESS) {
         gnutls_deinit(d_conn);
@@ -779,7 +779,7 @@ private:
 class GnuTLSIOCtx: public TLSCtx
 {
 public:
-  GnuTLSIOCtx(const TLSFrontend& fe): d_disableTickets(fe.d_disableTickets)
+  GnuTLSIOCtx(const TLSFrontend& fe): d_enableTickets(fe.d_enableTickets)
   {
     int rc = 0;
     d_ticketsKeyRotationDelay = fe.d_ticketsKeyRotationDelay;
@@ -838,12 +838,12 @@ public:
   {
     handleTicketsKeyRotation(now);
 
-    return std::unique_ptr<GnuTLSConnection>(new GnuTLSConnection(socket, timeout, d_creds, d_priorityCache, d_ticketsKey, d_disableTickets));
+    return std::unique_ptr<GnuTLSConnection>(new GnuTLSConnection(socket, timeout, d_creds, d_priorityCache, d_ticketsKey, d_enableTickets));
   }
 
   void rotateTicketsKey(time_t now) override
   {
-    if (d_disableTickets) {
+    if (!d_enableTickets) {
       return;
     }
 
@@ -856,7 +856,7 @@ public:
 
   void loadTicketsKeys(const std::string& file) override
   {
-    if (d_disableTickets) {
+    if (!d_enableTickets) {
       return;
     }
 
@@ -876,7 +876,7 @@ private:
   gnutls_certificate_credentials_t d_creds{nullptr};
   gnutls_priority_t d_priorityCache{nullptr};
   std::shared_ptr<GnuTLSTicketsKey> d_ticketsKey{nullptr};
-  bool d_disableTickets{false};
+  bool d_enableTickets{true};
 };
 
 #endif /* HAVE_GNUTLS */

@@ -1514,8 +1514,8 @@ void setupLuaConfig(bool client)
             frontend->d_numberOfTicketsKeys = std::stoi(boost::get<const string>((*vars)["numberOfTicketsKeys"]));
           }
 
-          if (vars->count("disableTickets")) {
-            frontend->d_disableTickets = boost::get<bool>((*vars)["disableTickets"]);
+          if (vars->count("sessionTickets")) {
+            frontend->d_enableTickets = boost::get<bool>((*vars)["sessionTickets"]);
           }
         }
 
