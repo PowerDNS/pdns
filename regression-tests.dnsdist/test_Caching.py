@@ -2,6 +2,7 @@
 import base64
 import time
 import dns
+import clientsubnetoption
 from dnsdisttests import DNSDistTest
 
 class TestCaching(DNSDistTest):
@@ -1603,3 +1604,93 @@ class TestCachingECSWithPoolECS(DNSDistTest):
         # same over TCP
         (_, receivedResponse) = self.sendTCPQuery(query, response=None, useQueue=False)
         self.assertEquals(receivedResponse, response)
+
+class TestCachingCollisionNoECSParsing(DNSDistTest):
+
+    _config_template = """
+    pc = newPacketCache(100, 86400, 1)
+    getPool(""):setCache(pc)
+    newServer{address="127.0.0.1:%s"}
+    """
+
+    def testCacheCollisionNoECSParsing(self):
+        """
+        Cache: Collision with no ECS parsing
+        """
+        name = 'collision-no-ecs-parsing.cache.tests.powerdns.com.'
+        ecso = clientsubnetoption.ClientSubnetOption('10.0.188.3', 32)
+        query = dns.message.make_query(name, 'AAAA', 'IN', use_edns=True, options=[ecso], payload=512)
+        query.flags = dns.flags.RD
+        response = dns.message.make_response(query)
+        rrset = dns.rrset.from_text(name,
+                                    3600,
+                                    dns.rdataclass.IN,
+                                    dns.rdatatype.AAAA,
+                                    '::1')
+        response.answer.append(rrset)
+
+        # first query should to fill the cache
+        (receivedQuery, receivedResponse) = self.sendUDPQuery(query, response)
+        self.assertTrue(receivedQuery)
+        self.assertTrue(receivedResponse)
+        receivedQuery.id = query.id
+        self.assertEquals(query, receivedQuery)
+        self.assertEquals(receivedResponse, response)
+
+        # second query will hash to the same key, triggering a collision which
+        # will not be detected because the qname, qtype, qclass and flags will
+        # match and EDNS Client Subnet parsing has not been enabled
+        ecso2 = clientsubnetoption.ClientSubnetOption('10.0.192.138', 32)
+        query2 = dns.message.make_query(name, 'AAAA', 'IN', use_edns=True, options=[ecso2], payload=512)
+        query2.flags = dns.flags.RD
+        (_, receivedResponse) = self.sendUDPQuery(query2, response=None, useQueue=False)
+        receivedResponse.id = response.id
+        self.assertEquals(receivedResponse, response)
+
+class TestCachingCollisionWithECSParsing(DNSDistTest):
+
+    _config_template = """
+    pc = newPacketCache(100, 86400, 1, 60, 60, false, 1, true, 3600, true)
+    getPool(""):setCache(pc)
+    newServer{address="127.0.0.1:%s"}
+    """
+
+    def testCacheCollisionWithECSParsing(self):
+        """
+        Cache: Collision with ECS parsing
+        """
+        name = 'collision-with-ecs-parsing.cache.tests.powerdns.com.'
+        ecso = clientsubnetoption.ClientSubnetOption('10.0.115.61', 32)
+        query = dns.message.make_query(name, 'AAAA', 'IN', use_edns=True, options=[ecso], payload=512)
+        query.flags = dns.flags.RD
+        response = dns.message.make_response(query)
+        rrset = dns.rrset.from_text(name,
+                                    3600,
+                                    dns.rdataclass.IN,
+                                    dns.rdatatype.AAAA,
+                                    '::1')
+        response.answer.append(rrset)
+
+        # first query should to fill the cache
+        (receivedQuery, receivedResponse) = self.sendUDPQuery(query, response)
+        self.assertTrue(receivedQuery)
+        self.assertTrue(receivedResponse)
+        receivedQuery.id = query.id
+        self.assertEquals(query, receivedQuery)
+        self.assertEquals(receivedResponse, response)
+
+        # second query will hash to the same key, triggering a collision which
+        # _will_ be detected this time because the qname, qtype, qclass and flags will
+        # match but EDNS Client Subnet parsing is now enabled and will detect the issue
+        ecso2 = clientsubnetoption.ClientSubnetOption('10.0.143.21', 32)
+        query2 = dns.message.make_query(name, 'AAAA', 'IN', use_edns=True, options=[ecso2], payload=512)
+        query2.flags = dns.flags.RD
+        response2 = dns.message.make_response(query2)
+        rrset = dns.rrset.from_text(name,
+                                    3600,
+                                    dns.rdataclass.IN,
+                                    dns.rdatatype.AAAA,
+                                    '2001:DB8::1')
+        response2.answer.append(rrset)
+        (receivedQuery, receivedResponse) = self.sendUDPQuery(query2, response2)
+        self.assertEquals(receivedResponse, response2)
