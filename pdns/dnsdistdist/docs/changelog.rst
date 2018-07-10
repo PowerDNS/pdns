@@ -2,6 +2,16 @@ Changelog
 =========
 
 .. changelog::
+  :version: 1.3.2
+  :released: 10th of July 2018
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 6785
+
+    Add missing include for PRId64, fix build on CentOS 6 / SLES 12
+
+.. changelog::
   :version: 1.3.1
   :released: 10th of July 2018
 
