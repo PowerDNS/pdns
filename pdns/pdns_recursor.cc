@@ -1374,7 +1374,7 @@ static void startDoResolve(void *p)
     g_rs.submitResponse(dc->d_mdp.d_qtype, packet.size(), !dc->d_tcp);
     updateResponseStats(res, dc->d_source, packet.size(), &dc->d_mdp.d_qname, dc->d_mdp.d_qtype);
 #ifdef HAVE_PROTOBUF
-    if (t_protobufServer && logResponse && (!luaconfsLocal->protobufExportConfig.taggedOnly || (appliedPolicy.d_name && !appliedPolicy.d_name->empty()) || !dc->d_policyTags.empty())) {
+    if (t_protobufServer && logResponse && !(luaconfsLocal->protobufExportConfig.taggedOnly && (!appliedPolicy.d_name || appliedPolicy.d_name->empty()) && dc->d_policyTags.empty())) {
       pbMessage->setBytes(packet.size());
       pbMessage->setResponseCode(pw.getHeader()->rcode);
       if (appliedPolicy.d_name) {
@@ -1779,7 +1779,7 @@ static void handleRunningTCPQuestion(int fd, FDMultiplexer::funcparam_t& var)
         try {
           const struct dnsheader* dh = (const struct dnsheader*) conn->data;
 
-          if (logQuery && (!luaconfsLocal->protobufExportConfig.taggedOnly || !dc->d_policyTags.empty())) {
+          if (logQuery && !(luaconfsLocal->protobufExportConfig.taggedOnly && dc->d_policyTags.empty())) {
             protobufLogQuery(t_protobufServer, luaconfsLocal->protobufMaskV4, luaconfsLocal->protobufMaskV6, dc->d_uuid, dc->d_source, dc->d_destination, dc->d_ednssubnet.source, true, dh->id, conn->qlen, qname, qtype, qclass, dc->d_policyTags, dc->d_requestorId, dc->d_deviceId);
           }
         }
@@ -1970,7 +1970,7 @@ static string* doProcessUDPQuestion(const std::string& question, const ComboAddr
 #ifdef HAVE_PROTOBUF
     if(t_protobufServer) {
       pbMessage = RecProtoBufMessage(DNSProtoBufMessage::DNSProtoBufMessageType::Response);
-      if (logQuery && (!luaconfsLocal->protobufExportConfig.taggedOnly || !policyTags.empty())) {
+      if (logQuery && !(luaconfsLocal->protobufExportConfig.taggedOnly && policyTags.empty())) {
         protobufLogQuery(t_protobufServer, luaconfsLocal->protobufMaskV4, luaconfsLocal->protobufMaskV6, uniqueId, source, destination, ednssubnet.source, false, dh->id, question.size(), qname, qtype, qclass, policyTags, requestorId, deviceId);
       }
     }
@@ -1996,7 +1996,7 @@ static string* doProcessUDPQuestion(const std::string& question, const ComboAddr
       }
 
 #ifdef HAVE_PROTOBUF
-      if(t_protobufServer && logResponse && (!luaconfsLocal->protobufExportConfig.taggedOnly || !pbMessage->getAppliedPolicy().empty() || !pbMessage->getPolicyTags().empty())) {
+      if(t_protobufServer && logResponse && !(luaconfsLocal->protobufExportConfig.taggedOnly && pbMessage->getAppliedPolicy().empty() && pbMessage->getPolicyTags().empty())) {
         Netmask requestorNM(source, source.sin4.sin_family == AF_INET ? luaconfsLocal->protobufMaskV4 : luaconfsLocal->protobufMaskV6);
         const ComboAddress& requestor = requestorNM.getMaskedNetwork();
         pbMessage->update(uniqueId, &requestor, &destination, false, dh->id);
