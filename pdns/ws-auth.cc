@@ -407,7 +407,8 @@ static void fillZone(const DNSName& zonename, HttpResponse* resp, bool doRRSets)
     auto cit = comments.begin();
 
     while (rit != records.end() || cit != comments.end()) {
-      if (cit == comments.end() || (rit != records.end() && (cit->qname.toString() <= rit->qname.toString() || cit->qtype < rit->qtype || cit->qtype == rit->qtype))) {
+      // if you think this should be rit < cit instead of cit < rit, note the b < a instead of a < b in the sort comparison functions above
+      if (cit == comments.end() || (rit != records.end() && (rit->qname == cit->qname ? (cit->qtype < rit->qtype || cit->qtype == rit->qtype) : cit->qname < rit->qname))) {
         current_qname = rit->qname;
         current_qtype = rit->qtype;
         ttl = rit->ttl;
