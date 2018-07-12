@@ -1029,6 +1029,7 @@ restarts, but it may also mask configuration issues and for this reason
 it is disabled by default.
 
 .. _setting-rng:
+
 ``rng``
 -------
 
@@ -1370,7 +1371,7 @@ and :doc:`Virtual Hosting <guides/virtual-instances>` how this can differ.
 .. _setting-supermaster:
 
 ``supermaster``
-------------
+---------------
 
 -  Boolean
 -  Default: no
