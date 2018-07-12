@@ -62,6 +62,14 @@ ArgvMap &arg()
 
 void declareArguments()
 {
+  ::arg().set("config-dir","Location of configuration directory (pdns.conf)")=SYSCONFDIR;
+  ::arg().set("config-name","Name of this virtual configuration - will rename the binary image")="";
+  ::arg().set("socket-dir",string("Where the controlsocket will live, ")+LOCALSTATEDIR+" when unset and not chrooted" )="";
+  ::arg().set("module-dir","Default directory for modules")=PKGLIBDIR;
+  ::arg().set("chroot","If set, chroot to this directory for more security")="";
+  ::arg().set("logging-facility","Log under a specific facility")="";
+  ::arg().set("daemon","Operate as a daemon")="no";
+
   ::arg().set("local-port","The port on which we listen")="53";
   ::arg().setSwitch("dnsupdate","Enable/Disable DNS update (RFC2136) support. Default is no.")="no";
   ::arg().setSwitch("write-pid","Write a PID file")="yes";
