@@ -2960,9 +2960,10 @@ static int serviceMain(int argc, char*argv[])
 
   g_maxCacheEntries = ::arg().asNum("max-cache-entries");
   g_maxPacketCacheEntries = ::arg().asNum("max-packetcache-entries");
-  
+
+  luaConfigDelayedThreads delayedLuaThreads;
   try {
-    loadRecursorLuaConfig(::arg()["lua-config-file"], ::arg().mustDo("daemon"));
+    loadRecursorLuaConfig(::arg()["lua-config-file"], delayedLuaThreads);
   }
   catch (PDNSException &e) {
     L<<Logger::Error<<"Cannot load Lua configuration: "<<e.reason<<endl;
@@ -3126,7 +3127,6 @@ static int serviceMain(int argc, char*argv[])
     L<<Logger::Warning<<"Calling daemonize, going to background"<<endl;
     L.toConsole(Logger::Critical);
     daemonize();
-    loadRecursorLuaConfig(::arg()["lua-config-file"], false);
   }
   signal(SIGUSR1,usr1Handler);
   signal(SIGUSR2,usr2Handler);
@@ -3178,6 +3178,8 @@ static int serviceMain(int argc, char*argv[])
   makeControlChannelSocket( ::arg().asNum("processes") > 1 ? forks : -1);
 
   Utility::dropUserPrivs(newuid);
+
+  startLuaConfigDelayedThreads(delayedLuaThreads);
 
   makeThreadPipes();
 

@@ -81,7 +81,7 @@ static void parseRPZParameters(const std::unordered_map<string,boost::variant<ui
   }
 }
 
-void loadRecursorLuaConfig(const std::string& fname, bool checkOnly)
+void loadRecursorLuaConfig(const std::string& fname, luaConfigDelayedThreads& delayedThreads)
 {
   LuaConfigItems lci;
 
@@ -91,8 +91,6 @@ void loadRecursorLuaConfig(const std::string& fname, bool checkOnly)
   ifstream ifs(fname);
   if(!ifs)
     throw PDNSException("Cannot open file '"+fname+"': "+strerror(errno));
-
-  std::vector<std::tuple<ComboAddress, boost::optional<DNSFilterEngine::Policy>, uint32_t, size_t, TSIGTriplet, size_t, ComboAddress, uint16_t> > rpzMasterThreads;
 
   auto luaconfsLocal = g_luaconfs.getLocal();
 
@@ -153,7 +151,7 @@ void loadRecursorLuaConfig(const std::string& fname, bool checkOnly)
       }
     });
 
-  Lua.writeFunction("rpzMaster", [&lci, &rpzMasterThreads, checkOnly](const string& master_, const string& zoneName, const boost::optional<std::unordered_map<string,boost::variant<uint32_t, string>>>& options) {
+  Lua.writeFunction("rpzMaster", [&lci, &delayedThreads](const string& master_, const string& zoneName, const boost::optional<std::unordered_map<string,boost::variant<uint32_t, string>>>& options) {
 
       boost::optional<DNSFilterEngine::Policy> defpol;
       std::shared_ptr<DNSFilterEngine::Zone> zone = std::make_shared<DNSFilterEngine::Zone>();
@@ -213,7 +211,7 @@ void loadRecursorLuaConfig(const std::string& fname, bool checkOnly)
         exit(1);  // FIXME proper exit code?
       }
 
-      rpzMasterThreads.push_back(std::make_tuple(master, defpol, maxTTL, zoneIdx, tt, maxReceivedXFRMBytes, localAddress, axfrTimeout));
+      delayedThreads.rpzMasterThreads.push_back(std::make_tuple(master, defpol, maxTTL, zoneIdx, tt, maxReceivedXFRMBytes, localAddress, axfrTimeout));
     });
 
   typedef vector<pair<int,boost::variant<string, vector<pair<int, string> > > > > argvec_t;
@@ -280,13 +278,11 @@ void loadRecursorLuaConfig(const std::string& fname, bool checkOnly)
     });
 
 #if HAVE_PROTOBUF
-  Lua.writeFunction("protobufServer", [&lci, checkOnly](const string& server_, const boost::optional<uint16_t> timeout, const boost::optional<uint64_t> maxQueuedEntries, const boost::optional<uint8_t> reconnectWaitTime, const boost::optional<uint8_t> maskV4, boost::optional<uint8_t> maskV6, boost::optional<bool> asyncConnect, boost::optional<bool> taggedOnly) {
+  Lua.writeFunction("protobufServer", [&lci](const string& server_, const boost::optional<uint16_t> timeout, const boost::optional<uint64_t> maxQueuedEntries, const boost::optional<uint8_t> reconnectWaitTime, const boost::optional<uint8_t> maskV4, boost::optional<uint8_t> maskV6, boost::optional<bool> asyncConnect, boost::optional<bool> taggedOnly) {
       try {
 	ComboAddress server(server_);
         if (!lci.protobufServer) {
-          if (!checkOnly) {
-            lci.protobufServer = std::make_shared<RemoteLogger>(server, timeout ? *timeout : 2, maxQueuedEntries ? *maxQueuedEntries : 100, reconnectWaitTime ? *reconnectWaitTime : 1, asyncConnect ? *asyncConnect : false);
-          }
+          lci.protobufServer = std::make_shared<RemoteLogger>(server, timeout ? *timeout : 2, maxQueuedEntries ? *maxQueuedEntries : 100, reconnectWaitTime ? *reconnectWaitTime : 1, asyncConnect ? *asyncConnect : false);
 
           if (maskV4) {
             lci.protobufMaskV4 = *maskV4;
@@ -310,13 +306,11 @@ void loadRecursorLuaConfig(const std::string& fname, bool checkOnly)
       }
     });
 
-  Lua.writeFunction("outgoingProtobufServer", [&lci, checkOnly](const string& server_, const boost::optional<uint16_t> timeout, const boost::optional<uint64_t> maxQueuedEntries, const boost::optional<uint8_t> reconnectWaitTime, boost::optional<bool> asyncConnect) {
+  Lua.writeFunction("outgoingProtobufServer", [&lci](const string& server_, const boost::optional<uint16_t> timeout, const boost::optional<uint64_t> maxQueuedEntries, const boost::optional<uint8_t> reconnectWaitTime, boost::optional<bool> asyncConnect) {
       try {
 	ComboAddress server(server_);
         if (!lci.outgoingProtobufServer) {
-          if (!checkOnly) {
-            lci.outgoingProtobufServer = std::make_shared<RemoteLogger>(server, timeout ? *timeout : 2, maxQueuedEntries ? *maxQueuedEntries : 100, reconnectWaitTime ? *reconnectWaitTime : 1, asyncConnect ? *asyncConnect : false);
-          }
+          lci.outgoingProtobufServer = std::make_shared<RemoteLogger>(server, timeout ? *timeout : 2, maxQueuedEntries ? *maxQueuedEntries : 100, reconnectWaitTime ? *reconnectWaitTime : 1, asyncConnect ? *asyncConnect : false);
         }
         else {
           theL()<<Logger::Error<<"Only one protobuf server can be configured, we already have "<<lci.protobufServer->toString()<<endl;
@@ -334,23 +328,6 @@ void loadRecursorLuaConfig(const std::string& fname, bool checkOnly)
   try {
     Lua.executeCode(ifs);
     g_luaconfs.setState(lci);
-
-    if (!checkOnly) {
-      for (const auto& rpzMaster : rpzMasterThreads) {
-        try {
-          std::thread t(RPZIXFRTracker, std::get<0>(rpzMaster), std::get<1>(rpzMaster), std::get<2>(rpzMaster), std::get<3>(rpzMaster), std::get<4>(rpzMaster), std::get<5>(rpzMaster) * 1024 * 1024, std::get<6>(rpzMaster), std::get<7>(rpzMaster));
-          t.detach();
-        }
-        catch(const std::exception& e) {
-          L<<Logger::Error<<"Problem starting RPZIXFRTracker thread: "<<e.what()<<endl;
-          exit(1);  // FIXME proper exit code?
-        }
-        catch(const PDNSException& e) {
-          L<<Logger::Error<<"Problem starting RPZIXFRTracker thread: "<<e.reason<<endl;
-          exit(1);  // FIXME proper exit code?
-        }
-      }
-    }
   }
   catch(const LuaContext::ExecutionErrorException& e) {
     theL()<<Logger::Error<<"Unable to load Lua script from '"+fname+"': ";
@@ -374,3 +351,20 @@ void loadRecursorLuaConfig(const std::string& fname, bool checkOnly)
 
 }
 
+void startLuaConfigDelayedThreads(const luaConfigDelayedThreads& delayedThreads)
+{
+  for (const auto& rpzMaster : delayedThreads.rpzMasterThreads) {
+    try {
+      std::thread t(RPZIXFRTracker, std::get<0>(rpzMaster), std::get<1>(rpzMaster), std::get<2>(rpzMaster), std::get<3>(rpzMaster), std::get<4>(rpzMaster), std::get<5>(rpzMaster) * 1024 * 1024, std::get<6>(rpzMaster), std::get<7>(rpzMaster));
+      t.detach();
+    }
+    catch(const std::exception& e) {
+      L<<Logger::Error<<"Problem starting RPZIXFRTracker thread: "<<e.what()<<endl;
+      exit(1);  // FIXME proper exit code?
+    }
+    catch(const PDNSException& e) {
+      L<<Logger::Error<<"Problem starting RPZIXFRTracker thread: "<<e.reason<<endl;
+      exit(1);  // FIXME proper exit code?
+    }
+  }
+}
