@@ -53,6 +53,9 @@ defaults suite you.
 .. versionchanged:: 4.2.0
   The syntax of the argument has been changed.
 
+.. versionchanged:: 4.2.0
+  Support for MMDB has been added.
+
 Comma, tab or space separated list of files to open. You can use
 `geoip-cvs-to-dat <https://github.com/dankamongmen/sprezzos-world/blob/master/packaging/geoip/debian/src/geoip-csv-to-dat.cpp>`__.
 to generate your own.
