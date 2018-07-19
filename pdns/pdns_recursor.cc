@@ -219,6 +219,7 @@ struct DNSComboWriter {
   string d_requestorId;
   string d_deviceId;
 #endif
+  std::string d_query;
   EDNSSubnetOpts d_ednssubnet;
   bool d_ecsFound{false};
   bool d_ecsParsed{false};
@@ -226,12 +227,13 @@ struct DNSComboWriter {
   int d_socket;
   unsigned int d_tag{0};
   uint32_t d_qhash{0};
-  string d_query;
   shared_ptr<TCPConnection> d_tcpConnection;
   vector<pair<uint16_t, string> > d_ednsOpts;
   std::vector<std::string> d_policyTags;
   LuaContext::LuaObject d_data;
   uint32_t d_ttlCap{std::numeric_limits<uint32_t>::max()};
+  uint16_t d_ecsBegin{0};
+  uint16_t d_ecsEnd{0};
   bool d_variable{false};
 };
 
@@ -1208,11 +1210,13 @@ static void startDoResolve(void *p)
         L<<Logger::Warning<<"Sending UDP reply to client "<<dc->d_remote.toStringWithPort()<<" failed with: "<<strerror(errno)<<endl;
 
       if(!SyncRes::s_nopacketcache && !variableAnswer && !sr.wasVariable() ) {
-        t_packetCache->insertResponsePacket(dc->d_tag, dc->d_qhash, dc->d_mdp.d_qname, dc->d_mdp.d_qtype, dc->d_mdp.d_qclass,
+        t_packetCache->insertResponsePacket(dc->d_tag, dc->d_qhash, dc->d_query, dc->d_mdp.d_qname, dc->d_mdp.d_qtype, dc->d_mdp.d_qclass,
                                             string((const char*)&*packet.begin(), packet.size()),
                                             g_now.tv_sec,
                                             pw.getHeader()->rcode == RCode::ServFail ? SyncRes::s_packetcacheservfailttl :
                                             min(minTTL,SyncRes::s_packetcachettl),
+                                            dc->d_ecsBegin,
+                                            dc->d_ecsEnd,
                                             &pbMessage);
       }
       //      else cerr<<"Not putting in packet cache: "<<sr.wasVariable()<<endl;
@@ -1664,6 +1668,8 @@ static string* doProcessUDPQuestion(const std::string& question, const ComboAddr
   EDNSSubnetOpts ednssubnet;
   bool ecsFound = false;
   bool ecsParsed = false;
+  uint16_t ecsBegin = 0;
+  uint16_t ecsEnd = 0;
   uint32_t ttlCap = std::numeric_limits<uint32_t>::max();
   bool variable = false;
   try {
@@ -1727,10 +1733,10 @@ static string* doProcessUDPQuestion(const std::string& question, const ComboAddr
        but it means that the hash would not be computed. If some script decides at a later time to mark back the answer
        as cacheable we would cache it with a wrong tag, so better safe than sorry. */
     if (qnameParsed) {
-      cacheHit = (!SyncRes::s_nopacketcache && t_packetCache->getResponsePacket(ctag, question, qname, qtype, qclass, g_now.tv_sec, &response, &age, &qhash, &pbMessage));
+      cacheHit = (!SyncRes::s_nopacketcache && t_packetCache->getResponsePacket(ctag, question, qname, qtype, qclass, g_now.tv_sec, &response, &age, &qhash, &ecsBegin, &ecsEnd, &pbMessage));
     }
     else {
-      cacheHit = (!SyncRes::s_nopacketcache && t_packetCache->getResponsePacket(ctag, question, g_now.tv_sec, &response, &age, &qhash, &pbMessage));
+      cacheHit = (!SyncRes::s_nopacketcache && t_packetCache->getResponsePacket(ctag, question, qname, &qtype, &qclass, g_now.tv_sec, &response, &age, &qhash, &ecsBegin, &ecsEnd, &pbMessage));
     }
 
     if (cacheHit) {
@@ -1808,6 +1814,8 @@ static string* doProcessUDPQuestion(const std::string& question, const ComboAddr
   dc->d_data = data;
   dc->d_ecsFound = ecsFound;
   dc->d_ecsParsed = ecsParsed;
+  dc->d_ecsBegin = ecsBegin;
+  dc->d_ecsEnd = ecsEnd;
   dc->d_ednssubnet = ednssubnet;
   dc->d_ttlCap = ttlCap;
   dc->d_variable = variable;
