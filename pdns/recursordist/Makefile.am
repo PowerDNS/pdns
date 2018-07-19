@@ -260,6 +260,7 @@ testrunner_SOURCES = \
 	test-misc_hh.cc \
 	test-mtasker.cc \
 	test-negcache_cc.cc \
+	test-packetcache_hh.cc \
 	test-rcpgenerator_cc.cc \
 	test-recpacketcache_cc.cc \
 	test-recursorcache_cc.cc \
