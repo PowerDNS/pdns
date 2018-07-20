@@ -940,12 +940,13 @@ public:
   {
     return d_fd;
   }
+
+  std::string data;
+  const ComboAddress d_remote;
+  size_t queriesCount{0};
   enum stateenum {BYTE0, BYTE1, GETQUESTION, DONE} state{BYTE0};
   uint16_t qlen{0};
   uint16_t bytesread{0};
-  const ComboAddress d_remote;
-  char data[65535]; // damn
-  size_t queriesCount{0};
 
   static unsigned int getCurrentConnections() { return s_currentConnections; }
 private:
