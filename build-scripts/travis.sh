@@ -416,6 +416,7 @@ build_recursor() {
     --prefix=$PDNS_RECURSOR_DIR \
     --enable-libsodium \
     --enable-unit-tests \
+    --enable-nod \
     --disable-silent-rules"
   run "make -k -j3"
   run "make install"

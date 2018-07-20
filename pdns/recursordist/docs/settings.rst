@@ -807,6 +807,79 @@ This setting artificially raises all TTLs to be at least this long.
 While this is a gross hack, and violates RFCs, under conditions of DoS, it may enable you to continue serving your customers.
 Can be set at runtime using ``rec_control set-minimum-ttl 3600``.
 
+.. _setting-new-domain-tracking:
+
+``new-domain-tracking``
+-----------------------
+- Boolean
+- Default: no (disabled)
+
+Whether to track newly observed domains, i.e. never seen before. This
+is a probablistic algorithm, using a stable bloom filter to store
+records of previously seen domains. When enabled for the first time,
+all domains will appear to be newly observed, so the feature is best
+left enabled for e.g. a week or longer before using the results. Note
+that this feature is optional and must be enabled at compile-time,
+thus it may not be available in all pre-built packages.
+
+.. _setting-new-domain-log:
+
+``new-domain-log``
+------------------
+- Boolean
+- Default: yes (enabled)
+
+If a newly observed domain is detected, log that domain in the
+recursor log file. The log line looks something like:
+
+Jul 18 11:31:25 Newly observed domain nod=sdfoijdfio.com
+
+.. _setting-new-domain-lookup:
+
+``new-domain-lookup``
+---------------------
+- Domain Name
+- Example: nod.powerdns.com
+
+If a domain is specified, then each time a newly observed domain is
+detected, the recursor will perform an A record lookup of "<newly
+observed domain>.<lookup domain>". For example if 'new-domain-lookup'
+is configured as 'nod.powerdns.com', and a new domain 'xyz123.tv' is
+detected, then an A record lookup will be made for
+'xyz123.tv.nod.powerdns.com'. This feature gives a way to share the
+newly observed domain with partners, vendors or security teams. The
+result of the DNS lookup will be ignored by the recursor.
+
+.. _setting-new-domain-history-dir:
+
+``new-domain-history-dir``
+--------------------------
+- Path
+- Default: /var/lib/pdns-recursor/nod
+
+This setting controls which directory is used to store the on-disk
+cache of previously observed domains.
+
+The newly observed domain feature uses a stable bloom filter to store
+a history of previously observed domains. The data structure is
+synchronized to disk every 5 minutes, and is also initialized from
+disk on startup. This ensures that previously observed domains are
+preserved across recursor restarts.
+
+.. _setting-new-domain-whitelist:
+
+``new-domain-whitelist``
+------------------------
+- List of Domain Names, comma separated
+- Example: xyz.com, abc.com
+
+This setting is a list of all domains (and implicitly all subdomains)
+that will never be considered a new domain. For example, if the domain
+'xyz123.tv' is in the list, then 'foo.bar.xyz123.tv' will never be
+considered a new domain. One use-case for the whitelist is to never
+reveal details of internal subdomains via the new-domain-lookup
+feature.
+
 .. _setting-network-timeout:
 
 ``network-timeout``
