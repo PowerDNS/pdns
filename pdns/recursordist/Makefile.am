@@ -11,8 +11,12 @@ AM_CPPFLAGS += \
 AM_CXXFLAGS = \
 	-DSYSCONFDIR=\"$(sysconfdir)\" \
 	-DPKGLIBDIR=\"$(pkglibdir)\" \
-	-DLOCALSTATEDIR=\"$(socketdir)\" \
+	-DLOCALSTATEDIR=\"$(socketdir)\"
+
+if NOD_ENABLED
+AM_CXXFLAGS += \
 	-DNODCACHEDIR=\"$(nodcachedir)\"
+endif
 
 AM_LDFLAGS = \
 	$(PROGRAM_LDFLAGS) \
@@ -123,7 +127,6 @@ pdns_recursor_SOURCES = \
 	mtasker_context.cc mtasker_context.hh \
 	namespaces.hh \
 	negcache.hh negcache.cc \
-	nod.hh nod.cc \
 	nsecrecords.cc \
 	opensslsigners.cc opensslsigners.hh \
 	packetcache.hh \
@@ -185,13 +188,20 @@ pdns_recursor_LDADD = \
 	$(NET_SNMP_LIBS) \
 	$(SYSTEMD_LIBS) \
 	$(RT_LIBS) \
-	$(BOOST_FILESYSTEM_LIBS) \
 	$(BOOST_SYSTEM_LIBS) \
 	$(PROBDS_LIBS)
 
 pdns_recursor_LDFLAGS = $(AM_LDFLAGS) \
 	$(LIBCRYPTO_LDFLAGS) $(BOOST_CONTEXT_LDFLAGS) \
-	$(BOOST_FILESYSTEM_LDFLAGS) $(BOOST_SYSTEM_LDFLAGS)
+	$(BOOST_SYSTEM_LDFLAGS)
+
+if NOD_ENABLED
+pdns_recursor_SOURCES += nod.hh nod.cc
+pdns_recursor_LDADD += \
+	$(BOOST_FILESYSTEM_LIBS)
+pdns_recursor_LDFLAGS += \
+	$(BOOST_FILESYSTEM_LDFLAGS)
+endif
 
 testrunner_SOURCES = \
 	arguments.cc \
@@ -219,7 +229,6 @@ testrunner_SOURCES = \
 	mtasker_context.cc \
 	negcache.hh negcache.cc \
 	namespaces.hh \
-	nod.hh nod.cc \
 	nsecrecords.cc \
 	pdnsexception.hh \
 	opensslsigners.cc opensslsigners.hh \
@@ -252,7 +261,6 @@ testrunner_SOURCES = \
 	test-mtasker.cc \
 	test-nmtree.cc \
 	test-negcache_cc.cc \
-	test-nod_cc.cc \
 	test-rcpgenerator_cc.cc \
 	test-recpacketcache_cc.cc \
 	test-recursorcache_cc.cc \
@@ -273,7 +281,6 @@ testrunner_LDFLAGS = \
 	$(BOOST_CONTEXT_LDFLAGS) \
 	$(BOOST_UNIT_TEST_FRAMEWORK_LDFLAGS) \
 	$(LIBCRYPTO_LDFLAGS) \
-	$(BOOST_FILESYSTEM_LDFLAGS) \
 	$(BOOST_SYSTEM_LDFLAGS)
 
 testrunner_LDADD = \
@@ -281,9 +288,18 @@ testrunner_LDADD = \
 	$(BOOST_UNIT_TEST_FRAMEWORK_LIBS) \
 	$(LIBCRYPTO_LIBS) \
 	$(RT_LIBS) \
-	$(BOOST_FILESYSTEM_LIBS) \
 	$(BOOST_SYSTEM_LIBS) \
 	$(PROBDS_LIBS)
+
+if NOD_ENABLED
+testrunner_SOURCES +=   nod.hh nod.cc \
+			test-nod_cc.cc
+
+testrunner_LDADD += \
+	$(BOOST_FILESYSTEM_LIBS)
+testrunner_LDFLAGS += \
+	$(BOOST_FILESYSTEM_LDFLAGS)
+endif
 
 if BOTAN
 pdns_recursor_SOURCES += \

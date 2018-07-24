@@ -13,5 +13,7 @@ AC_DEFUN([PDNS_ENABLE_NOD],[
     [AC_DEFINE([NOD_ENABLED], [1], [Define to 1 if nod is enabled])]
   )
 
+  AM_CONDITIONAL([NOD_ENABLED], [test "x$enable_nod" != "xno"])
+
   AC_MSG_RESULT([$enable_nod])
 ])
