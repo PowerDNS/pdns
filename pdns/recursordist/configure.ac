@@ -78,9 +78,6 @@ AC_DEFUN([PDNS_SELECT_CONTEXT_IMPL], [
   fi
 ])
 
-BOOST_FILESYSTEM
-AS_IF([test -z "$BOOST_FILESYSTEM_LIBS"], [ AC_MSG_ERROR([Boost filesystem library is not installed])])
-
 PDNS_CHECK_CLOCK_GETTIME
 
 boost_required_version=1.35
@@ -142,6 +139,12 @@ AC_ARG_WITH([socketdir],
 )
 
 PDNS_ENABLE_NOD
+
+AM_COND_IF([NOD_ENABLED],
+  [
+  BOOST_FILESYSTEM
+  AS_IF([test -z "$BOOST_FILESYSTEM_LIBS"], [ AC_MSG_ERROR([Boost filesystem library is not installed])])],
+  [])
 
 AC_SUBST([nodcachedir])
 nodcachedir='${prefix}/var/lib/pdns-recursor'
@@ -245,7 +248,7 @@ AS_IF([test "x$systemd" != "xn"],
   [AC_MSG_NOTICE([systemd: yes])],
   [AC_MSG_NOTICE([systemd: no])]
 )
-AS_IF([test "x$NOD_ENABLED" != "xn"],
+AM_COND_IF([NOD_ENABLED],
   [AC_MSG_NOTICE([nod: yes])],
   [AC_MSG_NOTICE([nod: no])]
 )
