@@ -404,6 +404,7 @@ const std::vector<ConsoleKeyword> g_consoleKeywords{
   { "QTypeRule", true, "qtype", "matches queries with the specified qtype" },
   { "RCodeRule", true, "rcode", "matches responses with the specified rcode" },
   { "ERCodeRule", true, "rcode", "matches responses with the specified extended rcode (EDNS0)" },
+  { "EDNSOptionRule", true, "optcode", "matches queries with the specified EDNS0 option present" },
   { "sendCustomTrap", true, "str", "send a custom `SNMP` trap from Lua, containing the `str` string"},
   { "setACL", true, "{netmask, netmask}", "replace the ACL set with these netmasks. Use `setACL({})` to reset the list, meaning no one can use us" },
   { "setAPIWritable", true, "bool, dir", "allow modifications via the API. if `dir` is set, it must be a valid directory where the configuration files will be written by the API" },

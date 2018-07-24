@@ -5,6 +5,7 @@ import os
 import string
 import time
 import dns
+import clientsubnetoption
 from dnsdisttests import DNSDistTest
 
 class TestAdvancedAllow(DNSDistTest):
@@ -1619,6 +1620,59 @@ class TestAdvancedLuaTempFailureTTL(DNSDistTest):
         (receivedQuery, receivedResponse) = self.sendUDPQuery(query, response)
         self.assertTrue(receivedQuery)
         self.assertTrue(receivedResponse)
+        receivedQuery.id = query.id
+        self.assertEquals(query, receivedQuery)
+        self.assertEquals(receivedResponse, response)
+
+class TestAdvancedEDNSOptionRule(DNSDistTest):
+
+    _config_template = """
+    newServer{address="127.0.0.1:%s"}
+    addAction(EDNSOptionRule(8), DropAction())
+    """
+
+    def testDropped(self):
+        """
+        A question with ECS is dropped
+        """
+
+        name = 'ednsoptionrule.advanced.tests.powerdns.com.'
+
+        ecso = clientsubnetoption.ClientSubnetOption('127.0.0.1', 24)
+        query = dns.message.make_query(name, 'A', 'IN', use_edns=True, options=[ecso], payload=512)
+
+        (_, receivedResponse) = self.sendUDPQuery(query, response=None)
+        self.assertEquals(receivedResponse, None)
+        (_, receivedResponse) = self.sendTCPQuery(query, response=None)
+        self.assertEquals(receivedResponse, None)
+
+    def testReplied(self):
+        """
+        A question without ECS is answered
+        """
+
+        name = 'ednsoptionrule.advanced.tests.powerdns.com.'
+
+        # both with EDNS
+        query = dns.message.make_query(name, 'A', 'IN', use_edns=True, options=[], payload=512)
+        response = dns.message.make_response(query)
+
+        (receivedQuery, receivedResponse) = self.sendUDPQuery(query, response)
+        self.assertTrue(receivedQuery)
+        self.assertTrue(receivedResponse)
+
+        receivedQuery.id = query.id
+        self.assertEquals(query, receivedQuery)
+        self.assertEquals(receivedResponse, response)
+
+        # and with no EDNS at all
+        query = dns.message.make_query(name, 'A', 'IN', use_edns=False)
+        response = dns.message.make_response(query)
+
+        (receivedQuery, receivedResponse) = self.sendUDPQuery(query, response)
+        self.assertTrue(receivedQuery)
+        self.assertTrue(receivedResponse)
+
         receivedQuery.id = query.id
         self.assertEquals(query, receivedQuery)
         self.assertEquals(receivedResponse, response)
