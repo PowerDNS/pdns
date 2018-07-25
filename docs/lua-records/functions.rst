@@ -2,7 +2,7 @@ Preset variables
 ----------------
 
 LUA rules run within the same environment as described in
-:doc:`modes-of-operation`.
+:doc:`../modes-of-operation`.
 
 The Lua snippets can query the following variables:
 
@@ -320,7 +320,7 @@ Helper functions
               country(countries)
 
   Returns true if the ``bestwho`` IP address of the client is within the
-  two letter ISO country code passed, as described in :doc:`backends/geoip`.
+  two letter ISO country code passed, as described in :doc:`../backends/geoip`.
 
   :param string country: A country code like "NL"
   :param [string] countries: A list of country codes
@@ -329,7 +329,7 @@ Helper functions
               continent(continents)
 
   Returns true if the ``bestwho`` IP address of the client is within the
-  continent passed, as described in :doc:`backends/geoip`.
+  continent passed, as described in :doc:`../backends/geoip`.
 
   :param string continent: A continent code like "EU"
   :param [string] continents: A list of continent codes

@@ -8,5 +8,7 @@ LUA Reference
   dnsheader
   dnsname
   dnsresourcerecord
+  dnsrecord
   netmask
   qtype
+  misc
