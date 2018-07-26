@@ -3603,7 +3603,7 @@ try
   setupNODThread();
 #endif /* NOD_ENABLED */
   
-  if(worker) {
+  if(worker && (!g_weDistributeQueries || t_id != s_distributorThreadID)) {
     try {
       if(!::arg()["lua-dns-script"].empty()) {
         t_pdl = std::make_shared<RecursorLua4>();
