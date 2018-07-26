@@ -1021,6 +1021,33 @@ class TestAdvancedNMGRule(DNSDistTest):
         (_, receivedResponse) = self.sendTCPQuery(query, response=None, useQueue=False)
         self.assertEquals(receivedResponse, expectedResponse)
 
+class TestDSTPortRule(DNSDistTest):
+
+    _config_params = ['_dnsDistPort', '_testServerPort']
+    _config_template = """
+    addAction(DSTPortRule(%d), RCodeAction(dnsdist.REFUSED))
+    newServer{address="127.0.0.1:%s"}
+    """
+
+    def testDSTPortRule(self):
+        """
+        Advanced: DSTPortRule should capture our queries
+
+        Send queries to "dstportrule.advanced.tests.powerdns.com.",
+        check that we are getting a REFUSED response.
+        """
+
+        name = 'dstportrule.advanced.tests.powerdns.com.'
+        query = dns.message.make_query(name, 'A', 'IN')
+        expectedResponse = dns.message.make_response(query)
+        expectedResponse.set_rcode(dns.rcode.REFUSED)
+
+        (_, receivedResponse) = self.sendUDPQuery(query, response=None, useQueue=False)
+        self.assertEquals(receivedResponse, expectedResponse)
+
+        (_, receivedResponse) = self.sendTCPQuery(query, response=None, useQueue=False)
+        self.assertEquals(receivedResponse, expectedResponse)
+
 class TestAdvancedLabelsCountRule(DNSDistTest):
 
     _config_template = """
