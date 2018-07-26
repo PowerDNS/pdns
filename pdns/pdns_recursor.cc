@@ -300,9 +300,9 @@ ArgvMap &arg()
   return theArg;
 }
 
-unsigned int getRecursorThreadId()
+int getRecursorThreadId()
 {
-  return static_cast<unsigned int>(t_id);
+  return t_id;
 }
 
 int getMTaskerTID()
