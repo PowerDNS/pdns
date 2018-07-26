@@ -373,6 +373,10 @@ void setupLuaRules()
       return std::shared_ptr<DNSRule>(new OrRule(a));
     });
 
+  g_lua.writeFunction("DSTPortRule", [](uint16_t port) {
+      return std::shared_ptr<DNSRule>(new DSTPortRule(port));
+    });
+
   g_lua.writeFunction("TCPRule", [](bool tcp) {
       return std::shared_ptr<DNSRule>(new TCPRule(tcp));
     });
