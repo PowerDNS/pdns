@@ -1,0 +1,37 @@
+/* Table to hold the IP Address - Geo Mapping Information */
+CREATE TABLE ip (
+    ip_poly POLYGON NOT NULL,
+    cc CHAR(2) NOT NULL,
+    SPATIAL INDEX (ip_poly)
+) ENGINE=MYISAM;
+
+/* Table to hold the custom region details */
+CREATE TABLE regions (
+    regionid INT UNSIGNED NOT NULL PRIMARY KEY AUTO_INCREMENT,
+    regionname VARCHAR(20) NOT NULL UNIQUE,
+    comment VARCHAR(50)
+);
+
+/* Table to connect country code with custom regions */
+CREATE TABLE connect_regions (
+    id INT UNSIGNED NOT NULL PRIMARY KEY auto_increment,
+    cc CHAR(2) NOT NULL UNIQUE,
+    regionid INT UNSIGNED,
+    FOREIGN KEY (regionid) REFERENCES regions(regionid)
+);
+
+/* Create a view linking ip, country code and region together for geosql's lookup function */
+CREATE VIEW lookup AS
+    SELECT ip_poly, ip.cc, regions.regionname FROM ip
+    LEFT JOIN connect_regions on ip.cc=connect_regions.cc
+    LEFT JOIN regions on connect_regions.regionid=regions.regionid;
+
+/* Importing of CSV file and converting IP Address into a GeoSpacial format for a more efficient search */
+LOAD DATA LOCAL INFILE "/tmp/GeoIPCountryWhois.csv"
+    INTO TABLE ip FIELDS TERMINATED BY "," ENCLOSED BY "\"" LINES TERMINATED BY "\n"
+     (@ip_start_string, @ip_end_string, @ip_start, @ip_end, @cc)
+    SET
+     ip_poly := GEOMFROMWKB(POLYGON(LINESTRING(
+      POINT(@ip_start, -1), POINT(@ip_end, -1), POINT(@ip_end, 1), POINT(@ip_start, 1), POINT(@ip_start, -1)))),
+     cc := @cc;
+	 
