@@ -1,0 +1,12 @@
+case $context in
+	geosql-*)
+		echo "Starting GeoSQL backend regression tests... "
+		echo "Setting up test database"
+		echo "Setting up PowerDNS test configuration"
+		echo "Performing tests..."
+		;;
+	*)
+		nocontext=yes
+esac
+		
+		

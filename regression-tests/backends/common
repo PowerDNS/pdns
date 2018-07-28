@@ -7,6 +7,9 @@ start_master ()
 			geoip*)
 				source ./backends/geoip-master
 				;;
+			geosql*)
+				source ./backends/geosql-master
+				;;
 			gmysql*)
 				source ./backends/gmysql-master
 				;;
