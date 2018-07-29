@@ -60,7 +60,7 @@ GeoSqlBackend::GeoSqlBackend ( const string &suffix )
                                getArgAsNum ( "pdns-timeout" ) );
 
     } catch ( SSqlException &e ) {
-        L << Logger::Debug << "geosql " << "DB Connection failed: " << e.txtReason() << endl;
+        g_log << Logger::Debug << "geosql " << "DB Connection failed: " << e.txtReason() << endl;
         throw PDNSException ( "geosql DB Connection failed: " + e.txtReason() );
     }
 
@@ -108,11 +108,11 @@ void GeoSqlBackend::refresh_cache ()
 
             cache_mutex.unlock();
 
-            L << Logger::Debug << "geosql " << "Cache updated with " << geosqlRrs->size() << " enabled records" << endl;
+            g_log << Logger::Debug << "geosql " << "Cache updated with " << geosqlRrs->size() << " enabled records" << endl;
 
         } catch ( SSqlException &e ) {
             cache_mutex.unlock();
-            L << Logger::Error << "geosql " << "DB Connection failed: " << e.txtReason() << endl;
+            g_log << Logger::Error << "geosql " << "DB Connection failed: " << e.txtReason() << endl;
         }
 
         // wait X seconds before continuing
@@ -139,7 +139,7 @@ void GeoSqlBackend::lookup ( const QType &qtype, const DNSName &qdomain, DNSPack
         if ( geosqlRrs->find ( qdomain.toStringNoDot() ) != geosqlRrs->end() ) {
             cache_mutex.unlock();
 
-            L << Logger::Debug << "geosql " << "Handling Query Request: '" << qdomain.toStringNoDot() << ":" << qtype.getName() << "'" << endl;
+            g_log << Logger::Debug << "geosql " << "Handling Query Request: '" << qdomain.toStringNoDot() << ":" << qtype.getName() << "'" << endl;
 
             //check for ECS data and use it if found
             if ( pkt_p->hasEDNSSubnet() ) {
@@ -158,7 +158,7 @@ void GeoSqlBackend::lookup ( const QType &qtype, const DNSName &qdomain, DNSPack
 
         } else {
             cache_mutex.unlock();
-            L << Logger::Debug << "geosql " << "Skipping Query request: '" << qdomain.toStringNoDot() << "' not a geosql enabled record" << endl;
+            g_log << Logger::Debug << "geosql " << "Skipping Query request: '" << qdomain.toStringNoDot() << "' not a geosql enabled record" << endl;
         }
 
     } catch ( SSqlException &e ) {
@@ -215,10 +215,10 @@ bool GeoSqlBackend::getRegionForIP ( ComboAddress &ip, sqlregion &returned_regio
             logentry.append ( "'" );
         }
 
-        L << Logger::Debug << "geosql " << logentry << endl;
+        g_log << Logger::Debug << "geosql " << logentry << endl;
 
     } else {
-        L << Logger::Debug << "geosql " << "No Region Found" << endl;
+        g_log << Logger::Debug << "geosql " << "No Region Found" << endl;
     }
 
     return foundCountry;
@@ -346,7 +346,7 @@ bool GeoSqlBackend::getSqlData ( SSqlStatement *sqlStatement, std::vector<boost:
 
                             sqlResponseData.push_back ( row );
 
-                            L << Logger::Debug << "Result: " << result[i][0] << " : " << string ( result[i][1] ) << " : " << string ( result[i][2] ) << " : "  << result[i][4] << endl;
+                            g_log << Logger::Debug << "Result: " << result[i][0] << " : " << string ( result[i][1] ) << " : " << string ( result[i][2] ) << " : "  << result[i][4] << endl;
                         }
 
 
@@ -427,7 +427,7 @@ bool GeoSqlBackend::list ( const DNSName &target, int domain_id, bool include_di
  */
 GeoSqlBackend::~GeoSqlBackend()
 {
-    L << Logger::Debug << "Destroying Backend geosql" << endl;
+    g_log << Logger::Debug << "Destroying Backend geosql" << endl;
 
     cacheThread->interrupt();
     cacheThread->join();
