@@ -16,6 +16,8 @@ Protobuf export to a server is enabled using the ``protobufServer()`` directive:
 
   .. versionadded:: 4.2.0
 
+  Send protocol buffer messages to a server for incoming queries and/or outgoing responses. The client address may be masked using :func:`setProtobufMasks`, for anonymization purposes.
+
   :param string server: The IP and port to connect to
   :param table options: A table with key: value pairs with options.
 
@@ -57,6 +59,8 @@ While :func:`protobufServer` only exports the queries sent to the recursor from 
 .. function:: outgoingProtobufServer(server [, options])
 
   .. versionadded:: 4.2.0
+
+  Send protocol buffer messages to a server for outgoing queries and/or incoming responses.
 
   :param string server: The IP and port to connect to
   :param table options: A table with key: value pairs with options.
