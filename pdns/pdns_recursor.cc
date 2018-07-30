@@ -318,7 +318,7 @@ ArgvMap &arg()
   return theArg;
 }
 
-int getRecursorThreadId()
+unsigned int getRecursorThreadId()
 {
   return t_id;
 }
@@ -3694,7 +3694,7 @@ try
   setupNODThread();
 #endif /* NOD_ENABLED */
   
-  if(worker && (!g_weDistributeQueries || t_id != s_distributorThreadID)) {
+  if(threadInfo.isWorker) {
     try {
       if(!::arg()["lua-dns-script"].empty()) {
         t_pdl = std::make_shared<RecursorLua4>();
