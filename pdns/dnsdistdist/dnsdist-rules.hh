@@ -603,11 +603,10 @@ class DSTPortRule : public DNSRule
 public:
   DSTPortRule(uint16_t port) : d_port(port)
   {
-    d_port_htons = htons(d_port);
   }
   bool matches(const DNSQuestion* dq) const override
   {
-    return d_port_htons == dq->local->sin4.sin_port;
+    return htons(d_port) == dq->local->sin4.sin_port;
   }
   string toString() const override
   {
