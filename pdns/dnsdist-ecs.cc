@@ -47,10 +47,9 @@ int rewriteResponseWithoutEDNS(const char * packet, const size_t len, vector<uin
 
   if (ntohs(dh->qdcount) == 0)
     return ENOENT;
-    
-  vector<uint8_t> content(len - sizeof(dnsheader));
-  copy(packet + sizeof(dnsheader), packet + len, content.begin());
-  PacketReader pr(content);
+
+  std::string packetStr(packet, len);
+  PacketReader pr(packetStr);
   
   size_t idx = 0;
   DNSName rrname;
@@ -117,7 +116,7 @@ int rewriteResponseWithoutEDNS(const char * packet, const size_t len, vector<uin
       pr.xfrBlob(blob);
       pw.xfrBlob(blob);
     } else {
-      pr.d_pos += ah.d_clen;
+      pr.skip(ah.d_clen);
     }
   }
   pw.commit();
@@ -136,9 +135,8 @@ int locateEDNSOptRR(char * packet, const size_t len, char ** optStart, size_t * 
   if (ntohs(dh->arcount) == 0)
     return ENOENT;
 
-  vector<uint8_t> content(len - sizeof(dnsheader));
-  copy(packet + sizeof(dnsheader), packet + len, content.begin());
-  PacketReader pr(content);
+  std::string packetStr(packet, len);
+  PacketReader pr(packetStr);
   size_t idx = 0;
   DNSName rrname;
   uint16_t qdcount = ntohs(dh->qdcount);
@@ -162,18 +160,18 @@ int locateEDNSOptRR(char * packet, const size_t len, char ** optStart, size_t * 
   for (idx = 0; idx < ancount + nscount; idx++) {
     rrname = pr.getName();
     pr.getDnsrecordheader(ah);
-    pr.d_pos += ah.d_clen;
+    pr.skip(ah.d_clen);
   }
 
   /* consume AR, looking for OPT */
   for (idx = 0; idx < arcount; idx++) {
-    uint16_t start = pr.d_pos;
+    uint16_t start = pr.getPosition();
     rrname = pr.getName();
     pr.getDnsrecordheader(ah);
 
     if (ah.d_type == QType::OPT) {
-      *optStart = packet + sizeof(dnsheader) + start;
-      *optLen = (pr.d_pos - start) + ah.d_clen;
+      *optStart = packet + start;
+      *optLen = (pr.getPosition() - start) + ah.d_clen;
 
       if ((packet + len) < (*optStart + *optLen)) {
         throw std::range_error("Opt record overflow");
@@ -187,7 +185,7 @@ int locateEDNSOptRR(char * packet, const size_t len, char ** optStart, size_t * 
       }
       return 0;
     }
-    pr.d_pos += ah.d_clen;
+    pr.skip(ah.d_clen);
   }
 
   return ENOENT;
@@ -445,9 +443,8 @@ int rewriteResponseWithoutEDNSOption(const char * packet, const size_t len, cons
   if (ntohs(dh->qdcount) == 0)
     return ENOENT;
 
-  vector<uint8_t> content(len - sizeof(dnsheader));
-  copy(packet + sizeof(dnsheader), packet + len, content.begin());
-  PacketReader pr(content);
+  std::string packetStr(packet, len);
+  PacketReader pr(packetStr);
 
   size_t idx = 0;
   DNSName rrname;

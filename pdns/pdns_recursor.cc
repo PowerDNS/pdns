@@ -234,11 +234,11 @@ bool g_logRPZChanges{false};
 
 //! used to send information to a newborn mthread
 struct DNSComboWriter {
-  DNSComboWriter(const std::string& query, const struct timeval& now): d_mdp(true, query.c_str(), query.size()), d_now(now)
+  DNSComboWriter(const std::string& query, const struct timeval& now): d_mdp(true, query), d_now(now)
   {
   }
 
-  DNSComboWriter(const std::string& query, const struct timeval& now, std::vector<std::string>&& policyTags, LuaContext::LuaObject&& data): d_mdp(true, query.c_str(), query.size()), d_now(now), d_policyTags(std::move(policyTags)), d_data(std::move(data))
+  DNSComboWriter(const std::string& query, const struct timeval& now, std::vector<std::string>&& policyTags, LuaContext::LuaObject&& data): d_mdp(true, query), d_now(now), d_policyTags(std::move(policyTags)), d_data(std::move(data))
   {
   }
 
