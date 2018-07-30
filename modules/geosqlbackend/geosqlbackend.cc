@@ -64,10 +64,10 @@ GeoSqlBackend::GeoSqlBackend ( const string &suffix )
         throw PDNSException ( "geosql DB Connection failed: " + e.txtReason() );
     }
 
-    geosqlenabled_stmt = pdns_db->prepare ( getArg ( "sql-pdns-lookup-geosqlenabled" ), 1 );
-    region_stmt = geoip_db->prepare ( getArg ( "sql-geo-lookup-region" ), 1 );
-    cc_stmt_any = pdns_db->prepare ( getArg ( "sql-pdns-lookuptype-any" ), 3 );
-    cc_stmt = pdns_db->prepare ( getArg ( "sql-pdns-lookuptype" ), 4 );
+    geosqlenabled_stmt = pdns_db->prepare ( getArg ( "sql-pdns-lookup-geosqlenabled" ), 1 ).get();
+    region_stmt = geoip_db->prepare ( getArg ( "sql-geo-lookup-region" ), 1 ).get();
+    cc_stmt_any = pdns_db->prepare ( getArg ( "sql-pdns-lookuptype-any" ), 3 ).get();
+    cc_stmt = pdns_db->prepare ( getArg ( "sql-pdns-lookuptype" ), 4 ).get();
 
     enable_cache = true;
     cacheThread = new boost::thread ( &GeoSqlBackend::refresh_cache, this );
