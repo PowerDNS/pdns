@@ -290,7 +290,7 @@ bool GeoSqlBackend::getGeoDnsRecords ( const QType &type, const string &qdomain,
         DNSResourceRecord record;
         record.auth = 1;
 
-        for ( int i = 0; i < sqlResponseData.size(); i++ ) {
+        for ( int i = 0; (unsigned) i < sqlResponseData.size(); i++ ) {
             record = boost::any_cast<DNSResourceRecord> ( sqlResponseData.at ( i ) );
             rrs->push_back ( record );
         }
@@ -331,7 +331,7 @@ bool GeoSqlBackend::getSqlData ( SSqlStatement *sqlStatement, std::vector<boost:
 
                     if ( !result.empty() ) {
 
-                        for ( int i = 0 ; i < result.size(); i++ ) {
+                        for ( int i = 0 ; (unsigned) i < result.size(); i++ ) {
                             row.qname = DNSName ( result[i][0] );
                             row.qtype = string ( result[i][1] );
 
