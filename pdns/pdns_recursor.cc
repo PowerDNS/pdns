@@ -3634,7 +3634,6 @@ static int serviceMain(int argc, char*argv[])
     recursorThread(currentThreadId++);
   }
   else {
-    g_log<<Logger::Warning<<"Launching "<< g_numWorkerThreads <<" worker threads"<<endl;
 
     if (g_weDistributeQueries) {
       g_log<<Logger::Warning<<"Launching "<< g_numDistributorThreads <<" distributor threads"<<endl;
@@ -3646,6 +3645,8 @@ static int serviceMain(int argc, char*argv[])
         setCPUMap(cpusMap, currentThreadId, infos.thread.native_handle());
       }
     }
+
+    g_log<<Logger::Warning<<"Launching "<< g_numWorkerThreads <<" worker threads"<<endl;
 
     for(unsigned int n=0; n < g_numWorkerThreads; ++n) {
       auto& infos = s_threadInfos.at(currentThreadId);
