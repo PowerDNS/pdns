@@ -306,15 +306,6 @@ install_auth() {
   run "sudo apt-get -qq --no-install-recommends install \
     libcdb-dev"
 
-  # geosql
-  run "mysql -u root <<- __EOF__
-	create database geosql;
-	__EOF__"
- 
-  run "mysql -u root <<- __EOF__
-	show databases;
-	__EOF__"
-
   # No backend
   run "sudo apt-get -qq --no-install-recommends install \
     authbind \
@@ -487,16 +478,6 @@ build_dnsdist(){
 test_auth() {
   run "make -j3 check || (cat pdns/test-suite.log; false)"
   run "test -f pdns/test-suite.log && cat pdns/test-suite.log || true"
-  run 'make -k -j3 -C pdns $(grep "(EXEEXT):" pdns/Makefile | cut -f1 -d\$)'
-
-  run "cd regression-tests"
-
-  run "./timestamp ./start-test-stop 5300 geosql"
-}
-
-test_auth_orig() {
-  run "make -j3 check || (cat pdns/test-suite.log; false)"
-  run "test -f pdns/test-suite.log && cat pdns/test-suite.log || true"
   run "test -f modules/remotebackend/test-suite.log && cat modules/remotebackend/test-suite.log || true"
 
   #DNSName - make -k -j3 -C pdns $(grep '(EXEEXT):' pdns/Makefile | cut -f1 -d\$ | grep -E -v 'dnsdist|calidns')
@@ -524,8 +505,6 @@ test_auth_orig() {
   run "export geoipdatabase=../modules/geoipbackend/regression-tests/GeoLiteCity.mmdb"
   run "./timestamp ./start-test-stop 5300 geoip"
 
-  run "./timestamp ./start-test-stop 5300 geosql"
-  
   run "./timestamp ./start-test-stop 5300 gmysql-nodnssec-both"
   run "./timestamp ./start-test-stop 5300 gmysql-both"
   run "./timestamp ./start-test-stop 5300 gmysql-nsec3-both"
