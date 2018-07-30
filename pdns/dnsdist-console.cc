@@ -342,6 +342,7 @@ const std::vector<ConsoleKeyword> g_consoleKeywords{
   { "DnstapLogResponseAction", true, "identity, FrameStreamLogger [, alterFunction]", "send the contents of this response to a remote or FrameStreamLogger or RemoteLogger as dnstap. `alterFunction` is a callback, receiving a DNSResponse and a DnstapMessage, that can be used to modify the dnstap message" },
   { "DropAction", true, "", "drop these packets" },
   { "DropResponseAction", true, "", "drop these packets" },
+  { "DSTPortRule", true, "port", "matches questions received to the destination port specified" },
   { "dumpStats", true, "", "print all statistics we gather" },
   { "exceedNXDOMAINs", true, "rate, seconds", "get set of addresses that exceed `rate` NXDOMAIN/s over `seconds` seconds" },
   { "dynBlockRulesGroup", true, "", "return a new DynBlockRulesGroup object" },
