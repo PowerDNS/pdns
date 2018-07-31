@@ -1249,6 +1249,20 @@ resolvers.
 
 Number of AXFR slave threads to start.
 
+.. _setting-send-signed-notify:
+
+``send-signed-notify``
+----------
+
+-  Boolean
+-  Default: yes
+
+If yes, outgoing NOTIFYs will be signed if a TSIG key is configured for the zone.
+If there are multiple TSIG keys configured for a domain, PowerDNS will use the
+first one retrieved from the backend, which may not be the correct one for the
+respective slave. Hence, in setups with mutliple slaves with different TSIG keys
+it may be required to send NOTIFYs unsigned.
+
 .. _setting-setgid:
 
 ``setgid``
