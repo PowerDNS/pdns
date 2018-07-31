@@ -522,7 +522,7 @@ See :doc:`../guides/cache` for a how to.
   :param int maxTTL: Cap the TTL for records to his number
   :param int minTTL: Don't cache entries with a TTL lower than this
   :param int temporaryFailureTTL: On a SERVFAIL or REFUSED from the backend, cache for this amount of seconds
-  :param int staleTTL: When the backend servers are not reachable, send responses if the cache entry is expired at most this amount of seconds
+  :param int staleTTL: When the backend servers are not reachable, and global configuration ``setStaleCacheEntriesTTL`` is set appropriately, TTL that will be used when a stale cache entry is returned
   :param bool dontAge: Don't reduce TTLs when serving from the cache. Use this when :program:`dnsdist` fronts a cluster of authoritative servers
   :param int numberOfShards: Number of shards to divide the cache into, to reduce lock contention
   :param bool deferrableInsertLock: Whether the cache should give up insertion if the lock is held by another thread, or simply wait to get the lock
