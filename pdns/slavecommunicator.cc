@@ -779,9 +779,11 @@ void CommunicatorClass::slaveRefresh(PacketHandler *P)
 
     for(DomainInfo& di :  rdomains) {
       const auto failed = d_failedSlaveRefresh.find(di.zone);
-      if (failed != d_failedSlaveRefresh.end() && now < failed->second.second )
+      if (failed != d_failedSlaveRefresh.end() && now < failed->second.second ) {
         // If the domain has failed before and the time before the next check has not expired, skip this domain
+        g_log<<Logger::Debug<<"Zone '"<<di.zone<<"' is on the list of failed SOA checks. Skipping SOA checks until "<< failed->second.second<<endl;
         continue;
+      }
       std::vector<std::string> localaddr;
       SuckRequest sr;
       sr.domain=di.zone;
