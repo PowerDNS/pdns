@@ -115,7 +115,10 @@ void setupLuaBindings(bool client)
   g_lua.registerFunction("getName", &DownstreamState::getName);
   g_lua.registerFunction("getNameWithAddr", &DownstreamState::getNameWithAddr);
   g_lua.registerMember("upStatus", &DownstreamState::upStatus);
-  g_lua.registerMember("weight", &DownstreamState::weight);
+  g_lua.registerMember<int (DownstreamState::*)>("weight",
+    [](const DownstreamState& s) -> int {return s.weight;},
+    [](DownstreamState& s, int newWeight) {s.setWeight(newWeight);}
+  );
   g_lua.registerMember("order", &DownstreamState::order);
   g_lua.registerMember("name", &DownstreamState::name);
 

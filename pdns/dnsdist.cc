@@ -649,6 +649,10 @@ void DownstreamState::setId(const boost::uuids::uuid& newId)
 
 void DownstreamState::setWeight(int newWeight)
 {
+  if (newWeight < 1) {
+    errlog("Error setting server's weight: downstream weight value must be greater than 0.");
+    return ;
+  }
   weight = newWeight;
   if (!hashes.empty()) {
     hash();
