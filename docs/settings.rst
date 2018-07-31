@@ -1260,7 +1260,7 @@ Number of AXFR slave threads to start.
 If yes, outgoing NOTIFYs will be signed if a TSIG key is configured for the zone.
 If there are multiple TSIG keys configured for a domain, PowerDNS will use the
 first one retrieved from the backend, which may not be the correct one for the
-respective slave. Hence, in setups with mutliple slaves with different TSIG keys
+respective slave. Hence, in setups with multiple slaves with different TSIG keys
 it may be required to send NOTIFYs unsigned.
 
 .. _setting-setgid:
