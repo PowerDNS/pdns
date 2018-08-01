@@ -743,7 +743,7 @@ void CommunicatorClass::slaveRefresh(PacketHandler *P)
         requeue.insert(di);
       }
       else {
-        g_log<<Logger::Debug<<"Got NOTIFY for "<<di.zone<<", going to check SOA serial, ourserial is "<<di.serial<<endl;
+        g_log<<Logger::Debug<<"Got NOTIFY for "<<di.zone<<", going to check SOA serial, our serial is "<<di.serial<<endl;
         rdomains.push_back(di);
       }
     }
