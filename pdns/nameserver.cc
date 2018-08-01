@@ -111,8 +111,8 @@ void UDPNameserver::bindIPv4()
   
     if(!setNonBlocking(s))
       throw PDNSException("Unable to set UDP socket to non-blocking: "+stringerror());
-  
-    memset(&locala,0,sizeof(locala));
+
+    locala.reset();
     locala.sin4.sin_family=AF_INET;
 
     if(localname=="0.0.0.0")
