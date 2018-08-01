@@ -105,7 +105,7 @@ void setupLuaBindings(bool client)
       g_pools.setState(localPools);
       s->pools.erase(pool);
     });
-  g_lua.registerFunction<void(DownstreamState::*)()>("getOutstanding", [](const DownstreamState& s) { g_outputBuffer=std::to_string(s.outstanding.load()); });
+  g_lua.registerFunction<int(DownstreamState::*)()>("getOutstanding", [](const DownstreamState& s) { return s.outstanding.load(); });
   g_lua.registerFunction("isUp", &DownstreamState::isUp);
   g_lua.registerFunction("setDown", &DownstreamState::setDown);
   g_lua.registerFunction("setUp", &DownstreamState::setUp);
