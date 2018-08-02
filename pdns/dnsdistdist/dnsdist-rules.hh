@@ -614,7 +614,6 @@ public:
   }
 private:
   uint16_t d_port;
-  uint16_t d_port_htons;
 };
 
 class TCPRule : public DNSRule
