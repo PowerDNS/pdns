@@ -170,7 +170,7 @@ int asyncresolve(const ComboAddress& ip, const DNSName& domain, int type, bool d
 
     // sleep until we see an answer to this, interface to mtasker
     
-    ret=arecvfrom(const_cast<char *>(buf.data()), buf.size(), 0, ip, &len, qid,
+    ret=arecvfrom(buf, 0, ip, &len, qid,
                   domain, type, queryfd, now);
   }
   else {
@@ -248,7 +248,8 @@ int asyncresolve(const ComboAddress& ip, const DNSName& domain, int type, bool d
       // unexpected count has already been done @ pdns_recursor.cc
       goto out;
     }
-    
+
+    lwr->d_records.reserve(mdp.d_answers.size());
     for(const auto& a : mdp.d_answers)
       lwr->d_records.push_back(a.first);
 

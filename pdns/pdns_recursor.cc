@@ -659,7 +659,7 @@ int asendto(const char *data, size_t len, int flags,
 }
 
 // -1 is error, 0 is timeout, 1 is success
-int arecvfrom(char *data, size_t len, int flags, const ComboAddress& fromaddr, size_t *d_len,
+int arecvfrom(std::string& packet, int flags, const ComboAddress& fromaddr, size_t *d_len,
               uint16_t id, const DNSName& domain, uint16_t qtype, int fd, struct timeval* now)
 {
   static optional<unsigned int> nearMissLimit;
@@ -673,7 +673,6 @@ int arecvfrom(char *data, size_t len, int flags, const ComboAddress& fromaddr, s
   pident.type = qtype;
   pident.remote=fromaddr;
 
-  string packet;
   int ret=MT->waitEvent(pident, &packet, g_networkTimeoutMsec, now);
 
   if(ret > 0) {
@@ -681,7 +680,7 @@ int arecvfrom(char *data, size_t len, int flags, const ComboAddress& fromaddr, s
       return -1;
 
     *d_len=packet.size();
-    memcpy(data,packet.c_str(),min(len,*d_len));
+
     if(*nearMissLimit && pident.nearMisses > *nearMissLimit) {
       g_log<<Logger::Error<<"Too many ("<<pident.nearMisses<<" > "<<*nearMissLimit<<") bogus answers for '"<<domain<<"' from "<<fromaddr.toString()<<", assuming spoof attempt."<<endl;
       g_stats.spoofCount++;
