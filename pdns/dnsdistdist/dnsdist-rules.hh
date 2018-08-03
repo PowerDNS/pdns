@@ -598,6 +598,24 @@ private:
   uint8_t d_opcode;
 };
 
+class DSTPortRule : public DNSRule
+{
+public:
+  DSTPortRule(uint16_t port) : d_port(port)
+  {
+  }
+  bool matches(const DNSQuestion* dq) const override
+  {
+    return htons(d_port) == dq->local->sin4.sin_port;
+  }
+  string toString() const override
+  {
+    return "dst port=="+std::to_string(d_port);
+  }
+private:
+  uint16_t d_port;
+};
+
 class TCPRule : public DNSRule
 {
 public:

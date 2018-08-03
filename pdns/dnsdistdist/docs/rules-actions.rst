@@ -714,6 +714,12 @@ These ``DNSRule``\ s be one of the following items:
 
   :param bool tcp: Match TCP traffic. Default is true.
 
+.. function:: DSTPortRule(port)
+
+  Matches questions received to the destination port.
+
+  :param int port: Match destination port.
+
 .. function:: TrailingDataRule()
 
   Matches if the query has trailing data.
