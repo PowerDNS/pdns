@@ -1332,7 +1332,9 @@ string RecursorControlParser::getAnswer(const string& question, RecursorControlP
       ::arg().set("lua-config-file") = *begin;
 
     try {
-      loadRecursorLuaConfig(::arg()["lua-config-file"], false);
+      luaConfigDelayedThreads delayedLuaThreads;
+      loadRecursorLuaConfig(::arg()["lua-config-file"], delayedLuaThreads);
+      startLuaConfigDelayedThreads(delayedLuaThreads, g_luaconfs.getCopy().generation);
       g_log<<Logger::Warning<<"Reloaded Lua configuration file '"<<::arg()["lua-config-file"]<<"', requested via control channel"<<endl;
       return "Reloaded Lua configuration file '"+::arg()["lua-config-file"]+"'\n";
     }
