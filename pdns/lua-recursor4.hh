@@ -38,7 +38,7 @@
 #include "lua-recursor4-ffi.hh"
 
 string GenUDPQueryResponse(const ComboAddress& dest, const string& query);
-int getRecursorThreadId();
+unsigned int getRecursorThreadId();
 
 // pdns_ffi_param_t is a lightuserdata
 template<>
