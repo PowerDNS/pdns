@@ -846,10 +846,12 @@ public:
       return false;
     }
 
-    char * optStart = NULL;
+    uint16_t optStart;
     size_t optLen = 0;
     bool last = false;
-    int res = locateEDNSOptRR(const_cast<char*>(reinterpret_cast<const char*>(dq->dh)), dq->len, &optStart, &optLen, &last);
+    const char * packet = reinterpret_cast<const char*>(dq->dh);
+    std::string packetStr(packet, dq->len);
+    int res = locateEDNSOptRR(packetStr, &optStart, &optLen, &last);
     if (res != 0) {
       // no EDNS OPT RR
       return d_extrcode == 0;
@@ -860,14 +862,14 @@ public:
       return false;
     }
 
-    if (*optStart != 0) {
+    if (optStart < dq->len && packet[optStart] != 0) {
       // OPT RR Name != '.'
       return false;
     }
     EDNS0Record edns0;
     static_assert(sizeof(EDNS0Record) == sizeof(uint32_t), "sizeof(EDNS0Record) must match sizeof(uint32_t) AKA RR TTL size");
     // copy out 4-byte "ttl" (really the EDNS0 record), after root label (1) + type (2) + class (2).
-    memcpy(&edns0, optStart + 5, sizeof edns0);
+    memcpy(&edns0, packet + optStart + 5, sizeof edns0);
 
     return d_extrcode == edns0.extRCode;
   }

@@ -273,11 +273,12 @@ bool fixUpResponse(char** response, uint16_t* responseLen, size_t* responseSize,
   }
 
   if (ednsAdded || ecsAdded) {
-    char * optStart = NULL;
+    uint16_t optStart = NULL;
     size_t optLen = 0;
     bool last = false;
 
-    int res = locateEDNSOptRR(*response, *responseLen, &optStart, &optLen, &last);
+    const std::string responseStr(*response, *responseLen);
+    int res = locateEDNSOptRR(responseStr, &optStart, &optLen, &last);
 
     if (res == 0) {
       if (ednsAdded) {
@@ -292,7 +293,7 @@ bool fixUpResponse(char** response, uint16_t* responseLen, size_t* responseSize,
         }
         else {
           /* Removing an intermediary RR could lead to compression error */
-          if (rewriteResponseWithoutEDNS(*response, *responseLen, rewrittenResponse) == 0) {
+          if (rewriteResponseWithoutEDNS(responseStr, rewrittenResponse) == 0) {
             *responseLen = rewrittenResponse.size();
             if (addRoom && (UINT16_MAX - *responseLen) > addRoom) {
               rewrittenResponse.reserve(*responseLen + addRoom);
@@ -312,12 +313,12 @@ bool fixUpResponse(char** response, uint16_t* responseLen, size_t* responseSize,
           /* nothing after the OPT RR, we can simply remove the
              ECS option */
           size_t existingOptLen = optLen;
-          removeEDNSOptionFromOPT(optStart, &optLen, EDNSOptionCode::ECS);
+          removeEDNSOptionFromOPT(*response + optStart, &optLen, EDNSOptionCode::ECS);
           *responseLen -= (existingOptLen - optLen);
         }
         else {
           /* Removing an intermediary RR could lead to compression error */
-          if (rewriteResponseWithoutEDNSOption(*response, *responseLen, EDNSOptionCode::ECS, rewrittenResponse) == 0) {
+          if (rewriteResponseWithoutEDNSOption(responseStr, EDNSOptionCode::ECS, rewrittenResponse) == 0) {
             *responseLen = rewrittenResponse.size();
             if (addRoom && (UINT16_MAX - *responseLen) > addRoom) {
               rewrittenResponse.reserve(*responseLen + addRoom);

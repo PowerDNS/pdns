@@ -36,11 +36,10 @@ uint16_t g_ECSSourcePrefixV6 = 56;
 
 bool g_ECSOverride{false};
 
-int rewriteResponseWithoutEDNS(const char * packet, const size_t len, vector<uint8_t>& newContent)
+int rewriteResponseWithoutEDNS(const std::string& initialPacket, vector<uint8_t>& newContent)
 {
-  assert(packet != NULL);
-  assert(len >= sizeof(dnsheader));
-  const struct dnsheader* dh = (const struct dnsheader*) packet;
+  assert(initialPacket.size() >= sizeof(dnsheader));
+  const struct dnsheader* dh = reinterpret_cast<const struct dnsheader*>(initialPacket.data());
 
   if (ntohs(dh->arcount) == 0)
     return ENOENT;
@@ -48,9 +47,8 @@ int rewriteResponseWithoutEDNS(const char * packet, const size_t len, vector<uin
   if (ntohs(dh->qdcount) == 0)
     return ENOENT;
 
-  std::string packetStr(packet, len);
-  PacketReader pr(packetStr);
-  
+  PacketReader pr(initialPacket);
+
   size_t idx = 0;
   DNSName rrname;
   uint16_t qdcount = ntohs(dh->qdcount);
@@ -124,19 +122,17 @@ int rewriteResponseWithoutEDNS(const char * packet, const size_t len, vector<uin
   return 0;
 }
 
-int locateEDNSOptRR(char * packet, const size_t len, char ** optStart, size_t * optLen, bool * last)
+int locateEDNSOptRR(const std::string& packet, uint16_t * optStart, size_t * optLen, bool * last)
 {
-  assert(packet != NULL);
   assert(optStart != NULL);
   assert(optLen != NULL);
   assert(last != NULL);
-  const struct dnsheader* dh = (const struct dnsheader*) packet;
+  const struct dnsheader* dh = reinterpret_cast<const struct dnsheader*>(packet.data());
 
   if (ntohs(dh->arcount) == 0)
     return ENOENT;
 
-  std::string packetStr(packet, len);
-  PacketReader pr(packetStr);
+  PacketReader pr(packet);
   size_t idx = 0;
   DNSName rrname;
   uint16_t qdcount = ntohs(dh->qdcount);
@@ -170,10 +166,10 @@ int locateEDNSOptRR(char * packet, const size_t len, char ** optStart, size_t * 
     pr.getDnsrecordheader(ah);
 
     if (ah.d_type == QType::OPT) {
-      *optStart = packet + start;
+      *optStart = start;
       *optLen = (pr.getPosition() - start) + ah.d_clen;
 
-      if ((packet + len) < (*optStart + *optLen)) {
+      if (packet.size() < (*optStart + *optLen)) {
         throw std::range_error("Opt record overflow");
       }
 
@@ -431,11 +427,10 @@ int removeEDNSOptionFromOPT(char* optStart, size_t* optLen, const uint16_t optio
   return 0;
 }
 
-int rewriteResponseWithoutEDNSOption(const char * packet, const size_t len, const uint16_t optionCodeToSkip, vector<uint8_t>& newContent)
+int rewriteResponseWithoutEDNSOption(const std::string& initialPacket, const uint16_t optionCodeToSkip, vector<uint8_t>& newContent)
 {
-  assert(packet != NULL);
-  assert(len >= sizeof(dnsheader));
-  const struct dnsheader* dh = (const struct dnsheader*) packet;
+  assert(initialPacket.size() >= sizeof(dnsheader));
+  const struct dnsheader* dh = reinterpret_cast<const struct dnsheader*>(initialPacket.data());
 
   if (ntohs(dh->arcount) == 0)
     return ENOENT;
@@ -443,8 +438,7 @@ int rewriteResponseWithoutEDNSOption(const char * packet, const size_t len, cons
   if (ntohs(dh->qdcount) == 0)
     return ENOENT;
 
-  std::string packetStr(packet, len);
-  PacketReader pr(packetStr);
+  PacketReader pr(initialPacket);
 
   size_t idx = 0;
   DNSName rrname;
