@@ -155,14 +155,14 @@ bool RecursorPacketCache::getResponsePacket(unsigned int tag, const std::string&
 }
 
 
-void RecursorPacketCache::insertResponsePacket(unsigned int tag, uint32_t qhash, const std::string& query, const DNSName& qname, uint16_t qtype, uint16_t qclass, const std::string& responsePacket, time_t now, uint32_t ttl, uint16_t ecsBegin, uint16_t ecsEnd)
+void RecursorPacketCache::insertResponsePacket(unsigned int tag, uint32_t qhash, std::string&& query, const DNSName& qname, uint16_t qtype, uint16_t qclass, std::string&& responsePacket, time_t now, uint32_t ttl, uint16_t ecsBegin, uint16_t ecsEnd)
 {
   vState valState;
   boost::optional<RecProtoBufMessage> pb(boost::none);
-  insertResponsePacket(tag, qhash, query, qname, qtype, qclass, responsePacket, now, ttl, valState, ecsBegin, ecsEnd, pb);
+  insertResponsePacket(tag, qhash, std::move(query), qname, qtype, qclass, std::move(responsePacket), now, ttl, valState, ecsBegin, ecsEnd, pb);
 }
 
-void RecursorPacketCache::insertResponsePacket(unsigned int tag, uint32_t qhash, const std::string& query, const DNSName& qname, uint16_t qtype, uint16_t qclass, const std::string& responsePacket, time_t now, uint32_t ttl, const vState& valState, uint16_t ecsBegin, uint16_t ecsEnd, const boost::optional<RecProtoBufMessage>& protobufMessage)
+void RecursorPacketCache::insertResponsePacket(unsigned int tag, uint32_t qhash, std::string&& query, const DNSName& qname, uint16_t qtype, uint16_t qclass, std::string&& responsePacket, time_t now, uint32_t ttl, const vState& valState, uint16_t ecsBegin, uint16_t ecsEnd, const boost::optional<RecProtoBufMessage>& protobufMessage)
 {
   auto& idx = d_packetCache.get<HashTag>();
   auto range = idx.equal_range(tie(tag,qhash));
@@ -174,8 +174,8 @@ void RecursorPacketCache::insertResponsePacket(unsigned int tag, uint32_t qhash,
     }
 
     moveCacheItemToBack(d_packetCache, iter);
-    iter->d_packet = responsePacket;
-    iter->d_query = query;
+    iter->d_packet = std::move(responsePacket);
+    iter->d_query = std::move(query);
     iter->d_ecsBegin = ecsBegin;
     iter->d_ecsEnd = ecsEnd;
     iter->d_ttd = now + ttl;
@@ -191,7 +191,7 @@ void RecursorPacketCache::insertResponsePacket(unsigned int tag, uint32_t qhash,
   }
   
   if(iter == range.second) { // nothing to refresh
-    struct Entry e(qname, responsePacket, query);
+    struct Entry e(qname, std::move(responsePacket), std::move(query));
     e.d_qhash = qhash;
     e.d_ecsBegin = ecsBegin;
     e.d_ecsEnd = ecsEnd;
