@@ -67,14 +67,9 @@ bool RecursorPacketCache::checkResponseMatches(std::pair<packetCache_t::index<Ha
       responsePacket->replace(0, 2, queryPacket.c_str(), 2);
       *valState = iter->d_vstate;
     
-      string::size_type i=sizeof(dnsheader);
-      
-      for(;;) {
-        unsigned int labellen = (unsigned char)queryPacket[i];
-        if(!labellen || i + labellen > responsePacket->size()) break;
-        i++;
-        responsePacket->replace(i, labellen, queryPacket, i, labellen);
-        i = i + labellen;
+      const size_t wirelength = qname.wirelength();
+      if (responsePacket->size() > (sizeof(dnsheader) + wirelength)) {
+        responsePacket->replace(sizeof(dnsheader), wirelength, queryPacket, sizeof(dnsheader), wirelength);
       }
 
       d_hits++;
