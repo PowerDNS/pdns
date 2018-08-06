@@ -743,7 +743,7 @@ void CommunicatorClass::slaveRefresh(PacketHandler *P)
         requeue.insert(di);
       }
       else {
-        g_log<<Logger::Debug<<"Got NOTIFY for "<<di.zone<<", going to check SOA serial"<<endl;
+        g_log<<Logger::Debug<<"Got NOTIFY for "<<di.zone<<", going to check SOA serial, our serial is "<<di.serial<<endl;
         rdomains.push_back(di);
       }
     }
@@ -910,27 +910,27 @@ void CommunicatorClass::slaveRefresh(PacketHandler *P)
         }
       }
       if(! maxInception && ! ssr.d_freshness[di.id].theirInception) {
-        g_log<<Logger::Info<<"Domain '"<< di.zone<<"' is fresh (no DNSSEC)"<<endl;
+        g_log<<Logger::Info<<"Domain '"<< di.zone<<"' is fresh (no DNSSEC), serial is "<<ourserial<<endl;
         di.backend->setFresh(di.id);
       }
       else if(maxInception == ssr.d_freshness[di.id].theirInception && maxExpire == ssr.d_freshness[di.id].theirExpire) {
-        g_log<<Logger::Info<<"Domain '"<< di.zone<<"' is fresh and SOA RRSIGs match"<<endl;
+        g_log<<Logger::Info<<"Domain '"<< di.zone<<"' is fresh and SOA RRSIGs match, serial is "<<ourserial<<endl;
         di.backend->setFresh(di.id);
       }
       else if(maxExpire >= now && ! ssr.d_freshness[di.id].theirInception ) {
-        g_log<<Logger::Info<<"Domain '"<< di.zone<<"' is fresh, master is no longer signed but (some) signatures are still vallid"<<endl;
+        g_log<<Logger::Info<<"Domain '"<< di.zone<<"' is fresh, master is no longer signed but (some) signatures are still vallid, serial is "<<ourserial<<endl;
         di.backend->setFresh(di.id);
       }
       else if(maxInception && ! ssr.d_freshness[di.id].theirInception ) {
-        g_log<<Logger::Warning<<"Domain '"<< di.zone<<"' is stale, master is no longer signed and all signatures have expired"<<endl;
+        g_log<<Logger::Warning<<"Domain '"<< di.zone<<"' is stale, master is no longer signed and all signatures have expired, serial is "<<ourserial<<endl;
         addSuckRequest(di.zone, *di.masters.begin());
       }
       else if(dk.doesDNSSEC() && ! maxInception && ssr.d_freshness[di.id].theirInception) {
-        g_log<<Logger::Warning<<"Domain '"<< di.zone<<"' is stale, master has signed"<<endl;
+        g_log<<Logger::Warning<<"Domain '"<< di.zone<<"' is stale, master has signed, serial is "<<ourserial<<endl;
         addSuckRequest(di.zone, *di.masters.begin());
       }
       else {
-        g_log<<Logger::Warning<<"Domain '"<< di.zone<<"' is fresh, but RRSIGs differ, so DNSSEC is stale"<<endl;
+        g_log<<Logger::Warning<<"Domain '"<< di.zone<<"' is fresh, but RRSIGs differ, so DNSSEC is stale, serial is "<<ourserial<<endl;
         addSuckRequest(di.zone, *di.masters.begin());
       }
     }
