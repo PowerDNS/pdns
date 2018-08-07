@@ -1517,7 +1517,7 @@ static void startDoResolve(void *p)
                                             dq.validationState,
                                             dc->d_ecsBegin,
                                             dc->d_ecsEnd,
-                                            pbMessage);
+                                            std::move(pbMessage));
       }
       //      else cerr<<"Not putting in packet cache: "<<sr.wasVariable()<<endl;
     }

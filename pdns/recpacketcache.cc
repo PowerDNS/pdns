@@ -154,10 +154,10 @@ void RecursorPacketCache::insertResponsePacket(unsigned int tag, uint32_t qhash,
 {
   vState valState;
   boost::optional<RecProtoBufMessage> pb(boost::none);
-  insertResponsePacket(tag, qhash, std::move(query), qname, qtype, qclass, std::move(responsePacket), now, ttl, valState, ecsBegin, ecsEnd, pb);
+  insertResponsePacket(tag, qhash, std::move(query), qname, qtype, qclass, std::move(responsePacket), now, ttl, valState, ecsBegin, ecsEnd, std::move(pb));
 }
 
-void RecursorPacketCache::insertResponsePacket(unsigned int tag, uint32_t qhash, std::string&& query, const DNSName& qname, uint16_t qtype, uint16_t qclass, std::string&& responsePacket, time_t now, uint32_t ttl, const vState& valState, uint16_t ecsBegin, uint16_t ecsEnd, const boost::optional<RecProtoBufMessage>& protobufMessage)
+void RecursorPacketCache::insertResponsePacket(unsigned int tag, uint32_t qhash, std::string&& query, const DNSName& qname, uint16_t qtype, uint16_t qclass, std::string&& responsePacket, time_t now, uint32_t ttl, const vState& valState, uint16_t ecsBegin, uint16_t ecsEnd, boost::optional<RecProtoBufMessage>&& protobufMessage)
 {
   auto& idx = d_packetCache.get<HashTag>();
   auto range = idx.equal_range(tie(tag,qhash));
@@ -178,7 +178,7 @@ void RecursorPacketCache::insertResponsePacket(unsigned int tag, uint32_t qhash,
     iter->d_vstate = valState;
 #ifdef HAVE_PROTOBUF
     if (protobufMessage) {
-      iter->d_protobufMessage = *protobufMessage;
+      iter->d_protobufMessage = std::move(*protobufMessage);
     }
 #endif
 
@@ -198,7 +198,7 @@ void RecursorPacketCache::insertResponsePacket(unsigned int tag, uint32_t qhash,
     e.d_vstate = valState;
 #ifdef HAVE_PROTOBUF
     if (protobufMessage) {
-      e.d_protobufMessage = *protobufMessage;
+      e.d_protobufMessage = std::move(*protobufMessage);
     }
 #endif
     d_packetCache.insert(e);
