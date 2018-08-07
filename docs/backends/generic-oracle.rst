@@ -5,7 +5,7 @@ Generic Oracle backend
 * Master: Yes
 * Slave: Yes
 * Superslave: Yes
-* Autoserial: Yes
+* Autoserial: No
 * Case: All lower
 * DNSSEC: Yes (set ``goracle-dnssec``)
 * Disabled data: Yes

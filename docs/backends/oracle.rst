@@ -5,7 +5,7 @@ Oracle backend
 * Master: Yes
 * Slave: Yes
 * Superslave: Yes
-* Autoserial: Yes
+* Autoserial: No
 * DNSSEC: Yes
 * Comments: No
 * Module name: oracle
@@ -301,13 +301,6 @@ The data part of the DNS record, in canonical string representation,
 except that if this includes FQDNs, they should be specified without a
 trailing dot.
 
-last\_change
-^^^^^^^^^^^^
-
-The unix timestamp of the last change to this record. Used only for the
-deprecated autoserial feature. You can omit this unless you want to use
-that feature.
-
 auth
 ^^^^
 
@@ -338,9 +331,6 @@ columns:
 -  zone\_id: The numerical identifier of the zone the record belongs to.
    A record can belong to two zones (delegations/glue), in which case it
    may be returned twice.
--  last\_change: The unix timestamp of the last time this record was
-   changed. Can safely be set as a constant 0, unless you use the
-   autoserial feature.
 -  auth: 1 or 0 depending on the zone membership (authoritative or not).
 
 Record sets (records for the same name of the same type) must appear

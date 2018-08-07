@@ -828,34 +828,6 @@ bool RemoteBackend::abortTransaction() {
    return true;
 }
 
-bool RemoteBackend::calculateSOASerial(const DNSName& domain, const SOAData& sd, uint32_t& serial) {
-   Json query = Json::object{
-     { "method", "calculateSOASerial" },
-     { "parameters", Json::object{
-       { "domain", domain.toString() },
-       { "sd", Json::object{
-         { "qname", sd.qname.toString() },
-         { "nameserver", sd.nameserver.toString() },
-         { "hostmaster", sd.hostmaster.toString() },
-         { "ttl", static_cast<int>(sd.ttl) },
-         { "serial", static_cast<double>(sd.serial) },
-         { "refresh", static_cast<int>(sd.refresh) },
-         { "retry", static_cast<int>(sd.retry) },
-         { "expire", static_cast<int>(sd.expire) },
-         { "default_ttl", static_cast<int>(sd.default_ttl) },
-         { "domain_id", static_cast<int>(sd.domain_id) },
-       }}
-     }}
-   };
-
-   Json answer;
-   if (this->send(query) == false || this->recv(answer) == false)
-     return false;
-
-   serial = static_cast<unsigned int>(doubleFromJson(answer,"result"));
-   return true;
-}
-
 string RemoteBackend::directBackendCmd(const string& querystr) {
    Json query = Json::object{
      { "method", "directBackendCmd" },

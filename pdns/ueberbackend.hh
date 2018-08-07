@@ -102,9 +102,8 @@ public:
   /** Determines if we are authoritative for a zone, and at what level */
   bool getAuth(const DNSName &target, const QType &qtype, SOAData* sd, bool cachedOk=true);
   bool getSOA(const DNSName &domain, SOAData &sd);
-  /** Load SOA info from backends, ignoring the cache. Callers that will write to the backend should use this
-   * function, possibly setting unmodifiedSerial=true when editing the SOA Serial. */
-  bool getSOAUncached(const DNSName &domain, SOAData &sd, bool unmodifiedSerial=false);
+  /** Load SOA info from backends, ignoring the cache.*/
+  bool getSOAUncached(const DNSName &domain, SOAData &sd);
   bool get(DNSZoneRecord &r);
   void getAllDomains(vector<DomainInfo> *domains, bool include_disabled=false);
 

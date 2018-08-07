@@ -694,7 +694,7 @@ static void updateDomainSettingsFromDocument(UeberBackend& B, const DomainInfo& 
     di.backend->getDomainMetadataOne(zonename, "SOA-EDIT-API", soa_edit_api_kind);
     if (!soa_edit_api_kind.empty()) {
       SOAData sd;
-      if (!B.getSOAUncached(zonename, sd, true))
+      if (!B.getSOAUncached(zonename, sd))
         return;
 
       string soa_edit_kind;
@@ -1773,7 +1773,7 @@ static void patchZone(HttpRequest* req, HttpResponse* resp) {
     // edit SOA (if needed)
     if (!soa_edit_api_kind.empty() && !soa_edit_done) {
       SOAData sd;
-      if (!B.getSOAUncached(zonename, sd, true))
+      if (!B.getSOAUncached(zonename, sd))
         throw ApiException("No SOA found for domain '"+zonename.toString()+"'");
 
       DNSResourceRecord rr;

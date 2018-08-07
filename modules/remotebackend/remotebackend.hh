@@ -179,7 +179,6 @@ class RemoteBackend : public DNSBackend
   bool startTransaction(const DNSName& domain, int domain_id) override;
   bool commitTransaction() override;
   bool abortTransaction() override;
-  bool calculateSOASerial(const DNSName& domain, const SOAData& sd, uint32_t& serial) override;
   bool setTSIGKey(const DNSName& name, const DNSName& algorithm, const string& content) override;
   bool deleteTSIGKey(const DNSName& name) override;
   bool getTSIGKeys(std::vector< struct TSIGKey > &keys) override;

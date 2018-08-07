@@ -206,12 +206,6 @@ void HTTPConnector::restful_requestbuilder(const std::string &method, const Json
         addUrlComponent(parameters, "trxid", ss);
         req.preparePost();
         verb = "POST";
-    } else if (method == "calculateSOASerial") {
-        addUrlComponent(parameters, "domain", ss);
-        req.body = buildMemberListArgs("sd", parameters["sd"]);
-        req.headers["content-type"] = "application/x-www-form-urlencoded; charset=utf-8";
-        req.headers["content-length"] = std::to_string(req.body.size());
-        verb = "POST";
     } else if (method == "setDomainMetadata") {
         // copy all metadata values into post
         std::stringstream ss2;
