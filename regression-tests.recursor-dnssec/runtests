@@ -7,6 +7,7 @@ if [ ! -d .venv ]; then
 fi
 . .venv/bin/activate
 python -V
+pip install -U pip
 pip install -r requirements.txt
 
 protoc -I=../pdns/ --python_out=. ../pdns/dnsmessage.proto
