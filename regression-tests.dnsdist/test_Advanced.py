@@ -1628,7 +1628,7 @@ class TestAdvancedEDNSOptionRule(DNSDistTest):
 
     _config_template = """
     newServer{address="127.0.0.1:%s"}
-    addAction(EDNSOptionRule(8), DropAction())
+    addAction(EDNSOptionRule(EDNSOptionCode.ECS), DropAction())
     """
 
     def testDropped(self):

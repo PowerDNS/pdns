@@ -58,6 +58,26 @@ RCodes below and including ``BADVERS`` are extended RCodes that can only be matc
 
 Reference: https://www.iana.org/assignments/dns-parameters/dns-parameters.xhtml#dns-parameters-6
 
+
+.. _EDNSOptionCode:
+
+EDNSOptionCode
+--------------
+
+- ``EDNSOptionCode.DHU``
+- ``EDNSOptionCode.ECS``
+- ``EDNSOptionCode.N3U``
+- ``EDNSOptionCode.DAU``
+- ``EDNSOptionCode.TCPKEEPALIVE``
+- ``EDNSOptionCode.COOKIE``
+- ``EDNSOptionCode.PADDING``
+- ``EDNSOptionCode.KEYTAG``
+- ``EDNSOptionCode.NSID``
+- ``EDNSOptionCode.CHAIN``
+- ``EDNSOptionCode.EXPIRE``
+
+Reference: https://www.iana.org/assignments/dns-parameters/dns-parameters.xhtml#dns-parameters-11
+
 .. _DNSSection:
 
 DNS Section

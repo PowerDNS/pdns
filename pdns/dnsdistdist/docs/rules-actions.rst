@@ -643,7 +643,7 @@ These ``DNSRule``\ s be one of the following items:
   .. versionadded:: 1.4.0
 
   Matches queries or responses with the specified EDNS option present.
-  ``optcode`` is specified as an integer.
+  ``optcode`` is specified as an integer, or a constant such as `EDNSOptionCode.ECS`.
 
 .. function:: RDRule()
 

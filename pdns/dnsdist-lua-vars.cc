@@ -69,6 +69,20 @@ void setupLuaVars()
       {"Additional",3 }
     });
 
+  g_lua.writeVariable("EDNSOptionCode", std::unordered_map<string,int>{
+      {"NSID",          3 },
+      {"DAU",           5 },
+      {"DHU",           6 },
+      {"N3U",           7 },
+      {"ECS",           8 },
+      {"EXPIRE",        9 },
+      {"COOKIE",       10 },
+      {"TCPKEEPALIVE", 11 },
+      {"PADDING",      12 },
+      {"CHAIN",        13 },
+      {"KEYTAG",       14 }
+    });
+
   vector<pair<string, int> > rcodes = {{"NOERROR",  RCode::NoError  },
                                        {"FORMERR",  RCode::FormErr  },
                                        {"SERVFAIL", RCode::ServFail },
