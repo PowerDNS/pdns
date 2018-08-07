@@ -273,7 +273,7 @@ bool fixUpResponse(char** response, uint16_t* responseLen, size_t* responseSize,
   }
 
   if (ednsAdded || ecsAdded) {
-    uint16_t optStart = NULL;
+    uint16_t optStart;
     size_t optLen = 0;
     bool last = false;
 
