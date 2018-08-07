@@ -80,6 +80,7 @@ public:
   void update(const boost::uuids::uuid& uuid, const ComboAddress* requestor, const ComboAddress* responder, bool isTCP, uint16_t id);
   void setUUID(const boost::uuids::uuid& uuid);
   void setInitialRequestID(const boost::uuids::uuid& uuid);
+  void copyFrom(const DNSProtoBufMessage& msg);
 
 protected:
   PBDNSMessage d_message;

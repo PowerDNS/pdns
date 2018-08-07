@@ -77,7 +77,7 @@ bool RecursorPacketCache::checkResponseMatches(std::pair<packetCache_t::index<Ha
 #ifdef HAVE_PROTOBUF
       if (protobufMessage) {
         if (iter->d_protobufMessage) {
-          *protobufMessage = *(iter->d_protobufMessage);
+          protobufMessage->copyFrom(*(iter->d_protobufMessage));
         }
         else {
           *protobufMessage = RecProtoBufMessage(DNSProtoBufMessage::DNSProtoBufMessageType::Response);
