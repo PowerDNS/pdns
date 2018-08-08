@@ -885,7 +885,7 @@ void setupLuaConfig(bool client)
       g_outputBuffer = (fmt % "What" % "Seconds" % "Blocks" % "Action" % "Reason").str();
       for(const auto& e: slow) {
 	if(now < e->second.until)
-	  g_outputBuffer+= (fmt % e->first.toString() % (e->second.until.tv_sec - now.tv_sec) % e->second.blocks % DNSAction::typeToString(e->second.action) % e->second.reason).str();
+	  g_outputBuffer+= (fmt % e->first.toString() % (e->second.until.tv_sec - now.tv_sec) % e->second.blocks % DNSAction::typeToString(e->second.action != DNSAction::Action::None ? e->second.action : g_dynBlockAction) % e->second.reason).str();
       }
       auto slow2 = g_dynblockSMT.getCopy();
       slow2.visit([&now, &fmt](const SuffixMatchTree<DynBlock>& node) {
@@ -893,7 +893,7 @@ void setupLuaConfig(bool client)
             string dom("empty");
             if(!node.d_value.domain.empty())
               dom = node.d_value.domain.toString();
-            g_outputBuffer+= (fmt % dom % (node.d_value.until.tv_sec - now.tv_sec) % node.d_value.blocks % DNSAction::typeToString(node.d_value.action) % node.d_value.reason).str();
+            g_outputBuffer+= (fmt % dom % (node.d_value.until.tv_sec - now.tv_sec) % node.d_value.blocks % DNSAction::typeToString(node.d_value.action != DNSAction::Action::None ? node.d_value.action : g_dynBlockAction) % node.d_value.reason).str();
           }
         });
 
