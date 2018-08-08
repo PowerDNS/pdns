@@ -447,8 +447,10 @@ int checkZone(DNSSECKeeper &dk, UeberBackend &B, const DNSName& zone, const vect
         toCheck = DNSName(rr.content);
       }
 
-      if (toCheck.empty())
+      if (toCheck.empty()) {
         cout<<"[Warning] "<<rr.qtype.getName()<<" record in zone '"<<zone<<"': unable to extract hostname from content."<<endl;
+        numwarnings++;
+      }
       else if ((rr.qtype.getCode() == QType::MX || rr.qtype.getCode() == QType::SRV) && toCheck == g_rootdnsname) {
         // allow null MX/SRV
       } else if(!toCheck.isHostname()) {
