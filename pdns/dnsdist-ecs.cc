@@ -427,6 +427,37 @@ int removeEDNSOptionFromOPT(char* optStart, size_t* optLen, const uint16_t optio
   return 0;
 }
 
+bool isEDNSOptionInOpt(const std::string& packet, const size_t optStart, const size_t optLen, const uint16_t optionCodeToFind)
+{
+  /* we need at least:
+   root label (1), type (2), class (2), ttl (4) + rdlen (2)*/
+  if (optLen < 11) {
+    return false;
+  }
+  size_t p = optStart + 9;
+  uint16_t rdLen = (0x100*packet.at(p) + packet.at(p+1));
+  p += sizeof(rdLen);
+  if (11 + rdLen > optLen) {
+    return false;
+  }
+
+  size_t rdEnd = p + rdLen;
+  while ((p + 4) <= rdEnd) {
+    const uint16_t optionCode = 0x100*packet.at(p) + packet.at(p+1);
+    p += sizeof(optionCode);
+    const uint16_t optionLen = 0x100*packet.at(p) + packet.at(p+1);
+    p += sizeof(optionLen);
+    if ((p + optionLen) > rdEnd) {
+      return false;
+    }
+    if (optionCode == optionCodeToFind) {
+      return true;
+    }
+    p += optionLen;
+  }
+  return false;
+}
+
 int rewriteResponseWithoutEDNSOption(const std::string& initialPacket, const uint16_t optionCodeToSkip, vector<uint8_t>& newContent)
 {
   assert(initialPacket.size() >= sizeof(dnsheader));

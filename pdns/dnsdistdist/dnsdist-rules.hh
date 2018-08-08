@@ -882,6 +882,45 @@ private:
   uint8_t d_extrcode;  // upper bits in EDNS0 record
 };
 
+class EDNSOptionRule : public DNSRule
+{
+public:
+  EDNSOptionRule(uint16_t optcode) : d_optcode(optcode)
+  {
+  }
+  bool matches(const DNSQuestion* dq) const override
+  {
+    uint16_t optStart;
+    size_t optLen = 0;
+    bool last = false;
+    const char * packet = reinterpret_cast<const char*>(dq->dh);
+    std::string packetStr(packet, dq->len);
+    int res = locateEDNSOptRR(packetStr, &optStart, &optLen, &last);
+    if (res != 0) {
+      // no EDNS OPT RR
+      return false;
+    }
+
+    // root label (1), type (2), class (2), ttl (4) + rdlen (2)
+    if (optLen < 11) {
+      return false;
+    }
+
+    if (optStart < dq->len && packetStr.at(optStart) != 0) {
+      // OPT RR Name != '.'
+      return false;
+    }
+
+    return isEDNSOptionInOpt(packetStr, optStart, optLen, d_optcode);
+  }
+  string toString() const override
+  {
+    return "ednsoptcode=="+std::to_string(d_optcode);
+  }
+private:
+  uint16_t d_optcode;
+};
+
 class RDRule : public DNSRule
 {
 public:

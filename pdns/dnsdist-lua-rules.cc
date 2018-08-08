@@ -417,6 +417,10 @@ void setupLuaRules()
       return std::shared_ptr<DNSRule>(new ERCodeRule(rcode));
     });
 
+  g_lua.writeFunction("EDNSOptionRule", [](uint16_t optcode) {
+      return std::shared_ptr<DNSRule>(new EDNSOptionRule(optcode));
+    });
+
   g_lua.writeFunction("showRules", [](boost::optional<ruleparams_t> vars) {
       showRules(&g_rulactions, vars);
     });
