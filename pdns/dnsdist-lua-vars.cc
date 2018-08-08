@@ -20,6 +20,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
 #include "dnsdist.hh"
+#include "ednsoptions.hh"
 
 void setupLuaVars()
 {
@@ -70,17 +71,17 @@ void setupLuaVars()
     });
 
   g_lua.writeVariable("EDNSOptionCode", std::unordered_map<string,int>{
-      {"NSID",          3 },
-      {"DAU",           5 },
-      {"DHU",           6 },
-      {"N3U",           7 },
-      {"ECS",           8 },
-      {"EXPIRE",        9 },
-      {"COOKIE",       10 },
-      {"TCPKEEPALIVE", 11 },
-      {"PADDING",      12 },
-      {"CHAIN",        13 },
-      {"KEYTAG",       14 }
+      {"NSID",         EDNSOptionCode::NSID },
+      {"DAU",          EDNSOptionCode::DAU },
+      {"DHU",          EDNSOptionCode::DHU },
+      {"N3U",          EDNSOptionCode::N3U },
+      {"ECS",          EDNSOptionCode::ECS },
+      {"EXPIRE",       EDNSOptionCode::EXPIRE },
+      {"COOKIE",       EDNSOptionCode::COOKIE },
+      {"TCPKEEPALIVE", EDNSOptionCode::TCPKEEPALIVE },
+      {"PADDING",      EDNSOptionCode::PADDING },
+      {"CHAIN",        EDNSOptionCode::CHAIN },
+      {"KEYTAG",       EDNSOptionCode::KEYTAG }
     });
 
   vector<pair<string, int> > rcodes = {{"NOERROR",  RCode::NoError  },
