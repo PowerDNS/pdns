@@ -919,6 +919,10 @@ int editZone(DNSSECKeeper& dk, const DNSName &zone) {
     str<<"\033[0;32m+"<< d.d_name <<" "<<d.d_ttl<<" IN "<<DNSRecordContent::NumberToType(d.d_type)<<" "<<d.d_content->getZoneRepresentation(true)<<"\033[0m"<<endl;
     changed[{d.d_name,d.d_type}]+=str.str();
   }
+  cout<<"Detected the following changes:"<<endl;
+  for(const auto& c : changed) {
+    cout<<c.second;
+  }
   if (changed.size() > 0) {
     if (changed.find({zone, QType::SOA}) == changed.end()) {
       cout<<endl<<"You have not updated the SOA record! Would you like to increase-serial?"<<endl;
@@ -959,12 +963,8 @@ int editZone(DNSSECKeeper& dk, const DNSName &zone) {
           break;
       }
     }
-    cout<<"Detected the following changes:"<<endl;
-    for(const auto& c : changed) {
-      cout<<c.second;
-    }
   }
- reAsk2:;
+  reAsk2:;
   if(changed.empty()) {
     cout<<endl<<"No changes to apply."<<endl;
     return(EXIT_SUCCESS);
