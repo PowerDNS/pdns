@@ -234,10 +234,11 @@ bool g_logRPZChanges{false};
 
 //! used to send information to a newborn mthread
 struct DNSComboWriter {
-  DNSComboWriter(const char* data, uint16_t len, const struct timeval& now): d_mdp(true, data, len), d_now(now)
-  {}
+  DNSComboWriter(const std::string& query, const struct timeval& now): d_mdp(true, query), d_now(now)
+  {
+  }
 
-  DNSComboWriter(const std::string& query, const struct timeval& now, std::vector<std::string>&& policyTags, LuaContext::LuaObject&& data): d_mdp(true, query.c_str(), query.size()), d_now(now), d_policyTags(std::move(policyTags)), d_data(std::move(data))
+  DNSComboWriter(const std::string& query, const struct timeval& now, std::vector<std::string>&& policyTags, LuaContext::LuaObject&& data): d_mdp(true, query), d_now(now), d_policyTags(std::move(policyTags)), d_data(std::move(data))
   {
   }
 
@@ -658,7 +659,7 @@ int asendto(const char *data, size_t len, int flags,
 }
 
 // -1 is error, 0 is timeout, 1 is success
-int arecvfrom(char *data, size_t len, int flags, const ComboAddress& fromaddr, size_t *d_len,
+int arecvfrom(std::string& packet, int flags, const ComboAddress& fromaddr, size_t *d_len,
               uint16_t id, const DNSName& domain, uint16_t qtype, int fd, struct timeval* now)
 {
   static optional<unsigned int> nearMissLimit;
@@ -672,7 +673,6 @@ int arecvfrom(char *data, size_t len, int flags, const ComboAddress& fromaddr, s
   pident.type = qtype;
   pident.remote=fromaddr;
 
-  string packet;
   int ret=MT->waitEvent(pident, &packet, g_networkTimeoutMsec, now);
 
   if(ret > 0) {
@@ -680,7 +680,7 @@ int arecvfrom(char *data, size_t len, int flags, const ComboAddress& fromaddr, s
       return -1;
 
     *d_len=packet.size();
-    memcpy(data,packet.c_str(),min(len,*d_len));
+
     if(*nearMissLimit && pident.nearMisses > *nearMissLimit) {
       g_log<<Logger::Error<<"Too many ("<<pident.nearMisses<<" > "<<*nearMissLimit<<") bogus answers for '"<<domain<<"' from "<<fromaddr.toString()<<", assuming spoof attempt."<<endl;
       g_stats.spoofCount++;
@@ -705,7 +705,7 @@ static void writePid(void)
     g_log<<Logger::Error<<"Writing pid for "<<Utility::getpid()<<" to "<<s_pidfname<<" failed: "<<strerror(errno)<<endl;
 }
 
-TCPConnection::TCPConnection(int fd, const ComboAddress& addr) : d_remote(addr), d_fd(fd)
+TCPConnection::TCPConnection(int fd, const ComboAddress& addr) : data(2, 0), d_remote(addr), d_fd(fd)
 {
   ++s_currentConnections;
   (*t_tcpClientCounts)[d_remote]++;
@@ -1697,11 +1697,12 @@ static void handleRunningTCPQuestion(int fd, FDMultiplexer::funcparam_t& var)
   shared_ptr<TCPConnection> conn=any_cast<shared_ptr<TCPConnection> >(var);
 
   if(conn->state==TCPConnection::BYTE0) {
-    ssize_t bytes=recv(conn->getFD(), conn->data, 2, 0);
+    ssize_t bytes=recv(conn->getFD(), &conn->data[0], 2, 0);
     if(bytes==1)
       conn->state=TCPConnection::BYTE1;
     if(bytes==2) {
       conn->qlen=(((unsigned char)conn->data[0]) << 8)+ (unsigned char)conn->data[1];
+      conn->data.resize(conn->qlen);
       conn->bytesread=0;
       conn->state=TCPConnection::GETQUESTION;
     }
@@ -1711,10 +1712,11 @@ static void handleRunningTCPQuestion(int fd, FDMultiplexer::funcparam_t& var)
     }
   }
   else if(conn->state==TCPConnection::BYTE1) {
-    ssize_t bytes=recv(conn->getFD(), conn->data+1, 1, 0);
+    ssize_t bytes=recv(conn->getFD(), &conn->data[1], 1, 0);
     if(bytes==1) {
       conn->state=TCPConnection::GETQUESTION;
       conn->qlen=(((unsigned char)conn->data[0]) << 8)+ (unsigned char)conn->data[1];
+      conn->data.resize(conn->qlen);
       conn->bytesread=0;
     }
     if(!bytes || bytes < 0) {
@@ -1725,7 +1727,7 @@ static void handleRunningTCPQuestion(int fd, FDMultiplexer::funcparam_t& var)
     }
   }
   else if(conn->state==TCPConnection::GETQUESTION) {
-    ssize_t bytes=recv(conn->getFD(), conn->data + conn->bytesread, conn->qlen - conn->bytesread, 0);
+    ssize_t bytes=recv(conn->getFD(), &conn->data[conn->bytesread], conn->qlen - conn->bytesread, 0);
     if(!bytes || bytes < 0 || bytes > std::numeric_limits<std::uint16_t>::max()) {
       g_log<<Logger::Error<<"TCP client "<< conn->d_remote.toStringWithPort() <<" disconnected while reading question body"<<endl;
       t_fdm->removeReadFD(fd);
@@ -1737,7 +1739,7 @@ static void handleRunningTCPQuestion(int fd, FDMultiplexer::funcparam_t& var)
 
       DNSComboWriter* dc=nullptr;
       try {
-        dc=new DNSComboWriter(conn->data, conn->qlen, g_now);
+        dc=new DNSComboWriter(conn->data, g_now);
       }
       catch(MOADNSException &mde) {
         g_stats.clientParseError++;
@@ -1779,7 +1781,7 @@ static void handleRunningTCPQuestion(int fd, FDMultiplexer::funcparam_t& var)
           bool xpfFound = false;
           dc->d_ecsParsed = true;
           dc->d_ecsFound = false;
-          getQNameAndSubnet(std::string(conn->data, conn->qlen), &qname, &qtype, &qclass,
+          getQNameAndSubnet(conn->data, &qname, &qtype, &qclass,
                             dc->d_ecsFound, &dc->d_ednssubnet, g_gettagNeedsEDNSOptions ? &ednsOptions : nullptr,
                             xpfFound, needXPF ? &dc->d_source : nullptr, needXPF ? &dc->d_destination : nullptr);
 
@@ -1813,7 +1815,7 @@ static void handleRunningTCPQuestion(int fd, FDMultiplexer::funcparam_t& var)
 
       if(t_protobufServer) {
         try {
-          const struct dnsheader* dh = (const struct dnsheader*) conn->data;
+          const struct dnsheader* dh = reinterpret_cast<const struct dnsheader*>(&conn->data[0]);
 
           if (logQuery && !(luaconfsLocal->protobufExportConfig.taggedOnly && dc->d_policyTags.empty())) {
             protobufLogQuery(t_protobufServer, luaconfsLocal->protobufMaskV4, luaconfsLocal->protobufMaskV6, dc->d_uuid, dc->d_source, dc->d_destination, dc->d_ednssubnet.source, true, dh->id, conn->qlen, qname, qtype, qclass, dc->d_policyTags, dc->d_requestorId, dc->d_deviceId);

@@ -21,10 +21,10 @@
  */
 #pragma once
 
-int rewriteResponseWithoutEDNS(const char * packet, size_t len, vector<uint8_t>& newContent);
-int locateEDNSOptRR(char * packet, size_t len, char ** optStart, size_t * optLen, bool * last);
+int rewriteResponseWithoutEDNS(const std::string& initialPacket, vector<uint8_t>& newContent);
+int locateEDNSOptRR(const std::string& packet, uint16_t * optStart, size_t * optLen, bool * last);
 bool handleEDNSClientSubnet(char * packet, size_t packetSize, unsigned int consumed, uint16_t * len, bool* ednsAdded, bool* ecsAdded, const ComboAddress& remote, bool overrideExisting, uint16_t ecsPrefixLength);
 void generateOptRR(const std::string& optRData, string& res);
 int removeEDNSOptionFromOPT(char* optStart, size_t* optLen, const uint16_t optionCodeToRemove);
-int rewriteResponseWithoutEDNSOption(const char * packet, const size_t len, const uint16_t optionCodeToSkip, vector<uint8_t>& newContent);
+int rewriteResponseWithoutEDNSOption(const std::string& initialPacket, const uint16_t optionCodeToSkip, vector<uint8_t>& newContent);
 int getEDNSOptionsStart(char* packet, const size_t offset, const size_t len, char ** optRDLen, size_t * remaining);

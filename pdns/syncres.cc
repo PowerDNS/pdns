@@ -940,6 +940,7 @@ bool SyncRes::doCNAMECacheCheck(const DNSName &qname, const QType &qtype, vector
 
         DNSRecord dr=*j;
         dr.d_ttl-=d_now.tv_sec;
+        ret.reserve(ret.size() + 1 + signatures.size() + authorityRecs.size());
         ret.push_back(dr);
 
         for(const auto& signature : signatures) {
@@ -1210,6 +1211,8 @@ bool SyncRes::doCacheCheck(const DNSName &qname, const DNSName& authname, bool w
         expired=true;
       }
     }
+
+    ret.reserve(ret.size() + signatures.size() + authorityRecs.size());
 
     for(const auto& signature : signatures) {
       DNSRecord dr;

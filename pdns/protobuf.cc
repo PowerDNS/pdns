@@ -147,9 +147,8 @@ void DNSProtoBufMessage::addRRsFromPacket(const char* packet, const size_t len, 
   if (!response)
     return;
 
-  vector<uint8_t> content(len - sizeof(dnsheader));
-  copy(packet + sizeof(dnsheader), packet + len, content.begin());
-  PacketReader pr(content);
+  std::string packetStr(packet, len);
+  PacketReader pr(packetStr);
 
   size_t idx = 0;
   DNSName rrname;
