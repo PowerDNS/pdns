@@ -333,7 +333,7 @@ static void connectionThread(int sock, ComboAddress remote, string password, str
               {"reason", e->second.reason},
               {"seconds", (double)(e->second.until.tv_sec - now.tv_sec)},
               {"blocks", (double)e->second.blocks},
-              {"action", DNSAction::typeToString(e->second.action) }
+              {"action", DNSAction::typeToString(e->second.action != DNSAction::Action::None ? e->second.action : g_dynBlockAction) }
             };
             obj.insert({e->first.toString(), thing});
           }
@@ -349,7 +349,7 @@ static void connectionThread(int sock, ComboAddress remote, string password, str
                 {"reason", node.d_value.reason},
                 {"seconds", (double)(node.d_value.until.tv_sec - now.tv_sec)},
                 {"blocks", (double)node.d_value.blocks},
-                {"action", DNSAction::typeToString(node.d_value.action) }
+                {"action", DNSAction::typeToString(node.d_value.action != DNSAction::Action::None ? node.d_value.action : g_dynBlockAction) }
               };
               obj.insert({dom, thing});
           }
