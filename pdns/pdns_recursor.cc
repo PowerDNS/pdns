@@ -1766,12 +1766,13 @@ static void handleRunningTCPQuestion(int fd, FDMultiplexer::funcparam_t& var)
       bool needXPF = g_XPFAcl.match(conn->d_remote);
       string requestorId;
       string deviceId;
+      bool logQuery = false;
 #ifdef HAVE_PROTOBUF
       auto luaconfsLocal = g_luaconfs.getLocal();
       if (checkProtobufExport(luaconfsLocal)) {
         needECS = true;
       }
-      bool logQuery = t_protobufServer && luaconfsLocal->protobufExportConfig.logQueries;
+      logQuery = t_protobufServer && luaconfsLocal->protobufExportConfig.logQueries;
 #endif
 
       if(needECS || needXPF || (t_pdl && (t_pdl->d_gettag_ffi || t_pdl->d_gettag))) {
@@ -1932,6 +1933,7 @@ static string* doProcessUDPQuestion(const std::string& question, const ComboAddr
   ComboAddress destination = destaddr;
   string requestorId;
   string deviceId;
+  bool logQuery = false;
 #ifdef HAVE_PROTOBUF
   boost::uuids::uuid uniqueId;
   auto luaconfsLocal = g_luaconfs.getLocal();
@@ -1941,7 +1943,7 @@ static string* doProcessUDPQuestion(const std::string& question, const ComboAddr
   } else if (checkOutgoingProtobufExport(luaconfsLocal)) {
     uniqueId = (*t_uuidGenerator)();
   }
-  bool logQuery = t_protobufServer && luaconfsLocal->protobufExportConfig.logQueries;
+  logQuery = t_protobufServer && luaconfsLocal->protobufExportConfig.logQueries;
   bool logResponse = t_protobufServer && luaconfsLocal->protobufExportConfig.logResponses;
 #endif
   EDNSSubnetOpts ednssubnet;
