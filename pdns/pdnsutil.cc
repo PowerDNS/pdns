@@ -604,15 +604,41 @@ int checkAllZones(DNSSECKeeper &dk, bool exitOnError)
 {
   UeberBackend B("default");
   vector<DomainInfo> domainInfo;
+  struct name{};
+  struct id{};
+  multi_index_container<
+    DomainInfo,
+    indexed_by<
+      ordered_non_unique< member<DomainInfo,DNSName,&DomainInfo::zone>, CanonDNSNameCompare >,
+      ordered_non_unique< member<DomainInfo,uint32_t,&DomainInfo::id> >
+    >
+  > seenInfos;
+  auto& seenNames = seenInfos.get<0>();
+  auto& seenIds = seenInfos.get<1>();
 
   B.getAllDomains(&domainInfo, true);
   int errors=0;
   for(auto di : domainInfo) {
     if (checkZone(dk, B, di.zone) > 0) {
       errors++;
-      if(exitOnError)
-        return EXIT_FAILURE;
     }
+
+    auto seenName = seenNames.find(di.zone);
+    if (seenName != seenNames.end()) {
+      cout<<"[Error] Another SOA for zone '"<<di.zone<<"' (serial "<<di.serial<<") has already been seen (serial "<<seenName->serial<<")."<<endl;
+      errors++;
+    }
+
+    auto seenId = seenIds.find(di.id);
+    if (seenId != seenIds.end()) {
+      cout<<"[Error] Domain ID "<<di.id<<" of '"<<di.zone<<"' in backend "<<di.backend->getPrefix()<<" has already been used by zone '"<<seenId->zone<<"' in backend "<<seenId->backend->getPrefix()<<"."<<endl;
+      errors++;
+    }
+
+    seenInfos.insert(di);
+
+    if(errors && exitOnError)
+      return EXIT_FAILURE;
   }
   cout<<"Checked "<<domainInfo.size()<<" zones, "<<errors<<" had errors."<<endl;
   if(!errors)
