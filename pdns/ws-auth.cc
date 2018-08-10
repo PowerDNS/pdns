@@ -792,7 +792,7 @@ static void apiZoneMetadata(HttpRequest* req, HttpResponse *resp) {
     }
 
     resp->setBody(document);
-  } else if (req->method == "POST" && !::arg().mustDo("api-readonly")) {
+  } else if (req->method == "POST") {
     auto document = req->json();
     string kind;
     vector<string> entries;
@@ -875,7 +875,7 @@ static void apiZoneMetadataKind(HttpRequest* req, HttpResponse* resp) {
 
     document["metadata"] = entries;
     resp->setBody(document);
-  } else if (req->method == "PUT" && !::arg().mustDo("api-readonly")) {
+  } else if (req->method == "PUT") {
     auto document = req->json();
 
     if (!isValidMetadataKind(kind, false))
@@ -902,7 +902,7 @@ static void apiZoneMetadataKind(HttpRequest* req, HttpResponse* resp) {
     };
 
     resp->setBody(key);
-  } else if (req->method == "DELETE" && !::arg().mustDo("api-readonly")) {
+  } else if (req->method == "DELETE") {
     if (!isValidMetadataKind(kind, false))
       throw ApiException("Unsupported metadata kind '" + kind + "'");
 
@@ -1182,13 +1182,13 @@ static void apiZoneCryptokeys(HttpRequest *req, HttpResponse *resp) {
 
   if (req->method == "GET") {
     apiZoneCryptokeysGET(zonename, inquireKeyId, resp, &dk);
-  } else if (req->method == "DELETE" && !::arg().mustDo("api-readonly")) {
+  } else if (req->method == "DELETE") {
     if (inquireKeyId == -1)
       throw HttpBadRequestException();
     apiZoneCryptokeysDELETE(zonename, inquireKeyId, req, resp, &dk);
-  } else if (req->method == "POST" && !::arg().mustDo("api-readonly")) {
+  } else if (req->method == "POST") {
     apiZoneCryptokeysPOST(zonename, req, resp, &dk);
-  } else if (req->method == "PUT" && !::arg().mustDo("api-readonly")) {
+  } else if (req->method == "PUT") {
     if (inquireKeyId == -1)
       throw HttpBadRequestException();
     apiZoneCryptokeysPUT(zonename, inquireKeyId, req, resp, &dk);
@@ -1246,7 +1246,7 @@ static void checkDuplicateRecords(vector<DNSResourceRecord>& records) {
 static void apiServerZones(HttpRequest* req, HttpResponse* resp) {
   UeberBackend B;
   DNSSECKeeper dk(&B);
-  if (req->method == "POST" && !::arg().mustDo("api-readonly")) {
+  if (req->method == "POST") {
     DomainInfo di;
     auto document = req->json();
     DNSName zonename = apiNameToDNSName(stringFromJson(document, "name"));
@@ -1432,7 +1432,7 @@ static void apiServerZoneDetail(HttpRequest* req, HttpResponse* resp) {
     throw HttpNotFoundException();
   }
 
-  if(req->method == "PUT" && !::arg().mustDo("api-readonly")) {
+  if(req->method == "PUT") {
     // update domain settings
 
     updateDomainSettingsFromDocument(B, di, zonename, req->json());
@@ -1441,7 +1441,7 @@ static void apiServerZoneDetail(HttpRequest* req, HttpResponse* resp) {
     resp->status = 204; // No Content, but indicate success
     return;
   }
-  else if(req->method == "DELETE" && !::arg().mustDo("api-readonly")) {
+  else if(req->method == "DELETE") {
     // delete domain
     if(!di.backend->deleteDomain(zonename))
       throw ApiException("Deleting domain '"+zonename.toString()+"' failed: backend delete failed/unsupported");
@@ -1450,7 +1450,7 @@ static void apiServerZoneDetail(HttpRequest* req, HttpResponse* resp) {
     resp->body = "";
     resp->status = 204; // No Content: declare that the zone is gone now
     return;
-  } else if (req->method == "PATCH" && !::arg().mustDo("api-readonly")) {
+  } else if (req->method == "PATCH") {
     patchZone(req, resp);
     return;
   } else if (req->method == "GET") {
@@ -1501,7 +1501,7 @@ static void apiServerZoneExport(HttpRequest* req, HttpResponse* resp) {
 static void apiServerZoneAxfrRetrieve(HttpRequest* req, HttpResponse* resp) {
   DNSName zonename = apiZoneIdToName(req->parameters["id"]);
 
-  if(req->method != "PUT" || ::arg().mustDo("api-readonly"))
+  if(req->method != "PUT")
     throw HttpMethodNotAllowedException();
 
   UeberBackend B;
@@ -1521,7 +1521,7 @@ static void apiServerZoneAxfrRetrieve(HttpRequest* req, HttpResponse* resp) {
 static void apiServerZoneNotify(HttpRequest* req, HttpResponse* resp) {
   DNSName zonename = apiZoneIdToName(req->parameters["id"]);
 
-  if(req->method != "PUT" || ::arg().mustDo("api-readonly"))
+  if(req->method != "PUT")
     throw HttpMethodNotAllowedException();
 
   UeberBackend B;
@@ -1886,7 +1886,7 @@ static void apiServerSearchData(HttpRequest* req, HttpResponse* resp) {
 }
 
 void apiServerCacheFlush(HttpRequest* req, HttpResponse* resp) {
-  if(req->method != "PUT" || ::arg().mustDo("api-readonly"))
+  if(req->method != "PUT")
     throw HttpMethodNotAllowedException();
 
   DNSName canon = apiNameToDNSName(req->getvars["domain"]);

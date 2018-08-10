@@ -94,7 +94,6 @@ void declareArguments()
   ::arg().setSwitch("api", "Enable/disable the REST API (including HTTP listener)")="no";
   ::arg().set("api-key", "Static pre-shared authentication key for access to the REST API")="";
   ::arg().set("api-logfile", "Location of the server logfile (used by the REST API)")="/var/log/pdns.log";
-  ::arg().setSwitch("api-readonly", "Disallow data modification through the REST API when set")="no";
   ::arg().setSwitch("dname-processing", "If we should support DNAME records")="no";
 
   ::arg().setCmd("help","Provide a helpful message");
