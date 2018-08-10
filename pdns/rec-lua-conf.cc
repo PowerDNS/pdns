@@ -132,6 +132,21 @@ void loadRecursorLuaConfig(const std::string& fname, luaConfigDelayedThreads& de
   auto luaconfsLocal = g_luaconfs.getLocal();
   lci.generation = luaconfsLocal->generation + 1;
 
+  // pdnslog here is compatible with pdnslog in lua-base4.cc.
+  Lua.writeFunction("pdnslog", [](const std::string& msg, boost::optional<int> loglevel) { g_log << (Logger::Urgency)loglevel.get_value_or(Logger::Warning) << msg<<endl; });
+  std::unordered_map<string, std::unordered_map<string, int>> pdns_table;
+  pdns_table["loglevels"] = std::unordered_map<string, int>{
+    {"Alert", LOG_ALERT},
+    {"Critical", LOG_CRIT},
+    {"Debug", LOG_DEBUG},
+    {"Emergency", LOG_EMERG},
+    {"Info", LOG_INFO},
+    {"Notice", LOG_NOTICE},
+    {"Warning", LOG_WARNING},
+    {"Error", LOG_ERR}
+  };
+  Lua.writeVariable("pdns", pdns_table);
+
   Lua.writeFunction("clearSortlist", [&lci]() { lci.sortlist.clear(); });
   
   /* we can get: "1.2.3.4"
