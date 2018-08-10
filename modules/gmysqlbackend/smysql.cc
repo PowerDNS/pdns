@@ -32,6 +32,11 @@
 #include "pdns/namespaces.hh"
 #include "pdns/lock.hh"
 
+#if MYSQL_VERSION_ID >= 80000
+// Need to keep this for compatibility with MySQL < 8.0.0, which used typedef char my_bool;
+typedef bool my_bool;
+#endif
+
 bool SMySQL::s_dolog;
 pthread_mutex_t SMySQL::s_myinitlock = PTHREAD_MUTEX_INITIALIZER;
 
