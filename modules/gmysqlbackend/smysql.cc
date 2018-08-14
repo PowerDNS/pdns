@@ -32,8 +32,9 @@
 #include "pdns/namespaces.hh"
 #include "pdns/lock.hh"
 
-#if MYSQL_VERSION_ID >= 80000
+#if MYSQL_VERSION_ID >= 80000 && !defined(MARIADB_BASE_VERSION)
 // Need to keep this for compatibility with MySQL < 8.0.0, which used typedef char my_bool;
+// MariaDB up to 10.4 also always define it.
 typedef bool my_bool;
 #endif
 
