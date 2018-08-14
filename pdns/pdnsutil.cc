@@ -604,8 +604,6 @@ int checkAllZones(DNSSECKeeper &dk, bool exitOnError)
 {
   UeberBackend B("default");
   vector<DomainInfo> domainInfo;
-  struct name{};
-  struct id{};
   multi_index_container<
     DomainInfo,
     indexed_by<
