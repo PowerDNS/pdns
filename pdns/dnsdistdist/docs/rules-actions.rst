@@ -854,7 +854,7 @@ The following actions exist.
   The ``buffered`` optional parameter specifies whether writes to the file are buffered (default) or not.
   Subsequent rules are processed after this rule.
 
-  :param string filename: File to log to
+  :param string filename: File to log to. Set to an empty string to log to the normal stdout log, this only works when ``-v`` is set on the command line.
   :param bool binary: Do binary logging. Default true
   :param bool append: Append to the log. Default false
   :param bool buffered: Use buffered I/O. default true
