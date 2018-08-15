@@ -81,6 +81,7 @@ static void parseRPZParameters(const std::unordered_map<string,boost::variant<ui
   }
 }
 
+#if HAVE_PROTOBUF
 typedef std::unordered_map<std::string, boost::variant<bool, uint64_t, std::string> > protobufOptions_t;
 
 static void parseProtobufOptions(boost::optional<protobufOptions_t> vars, ProtobufExportConfig& config)
@@ -117,6 +118,7 @@ static void parseProtobufOptions(boost::optional<protobufOptions_t> vars, Protob
     config.logResponses = boost::get<bool>((*vars)["logResponses"]);
   }
 }
+#endif /* HAVE_PROTOBUF */
 
 void loadRecursorLuaConfig(const std::string& fname, luaConfigDelayedThreads& delayedThreads)
 {
