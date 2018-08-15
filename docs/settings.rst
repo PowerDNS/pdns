@@ -1086,6 +1086,11 @@ of this setting, the IP addresses or netmasks configured with
 :ref:`setting-also-notify` and ``ALSO-NOTIFY`` domain metadata
 always receive AXFR NOTIFYs.
 
+IP addresses and netmasks can be excluded by prefixing them with a ``!``.
+To notify all IP addresses apart from the 192.168.0.0/24 subnet use the following::
+
+  only-notify=0.0.0.0/0, ::/0, !192.168.0.0/24
+
 .. note::
   Even if NOTIFYs are limited by a netmask, PowerDNS first has to
   resolve all the hostnames to check their IP addresses against the
