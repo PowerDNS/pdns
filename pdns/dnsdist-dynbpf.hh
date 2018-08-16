@@ -41,6 +41,14 @@ public:
   ~DynBPFFilter()
   {
   }
+  void excludeRange(const Netmask& range)
+  {
+    d_excludedSubnets.addMask(range);
+  }
+  void includeRange(const Netmask& range)
+  {
+    d_excludedSubnets.addMask(range, false);
+  }
   /* returns true if the addr wasn't already blocked, false otherwise */
   bool block(const ComboAddress& addr, const struct timespec& until);
   void purgeExpired(const struct timespec& now);
@@ -63,6 +71,7 @@ private:
   container_t d_entries;
   std::mutex d_mutex;
   std::shared_ptr<BPFFilter> d_bpf;
+  NetmaskGroup d_excludedSubnets;
 };
 
 #endif /* HAVE_EBPF */

@@ -544,5 +544,27 @@ void setupLuaBindings(bool client)
           dbpf->purgeExpired(now);
         }
     });
+
+    g_lua.registerFunction<void(std::shared_ptr<DynBPFFilter>::*)(boost::variant<std::string, std::vector<std::pair<int, std::string>>>)>("excludeRange", [](std::shared_ptr<DynBPFFilter> dbpf, boost::variant<std::string, std::vector<std::pair<int, std::string>>> ranges) {
+      if (ranges.type() == typeid(std::vector<std::pair<int, std::string>>)) {
+        for (const auto& range : *boost::get<std::vector<std::pair<int, std::string>>>(&ranges)) {
+          dbpf->excludeRange(Netmask(range.second));
+        }
+      }
+      else {
+        dbpf->excludeRange(Netmask(*boost::get<std::string>(&ranges)));
+      }
+    });
+
+    g_lua.registerFunction<void(std::shared_ptr<DynBPFFilter>::*)(boost::variant<std::string, std::vector<std::pair<int, std::string>>>)>("includeRange", [](std::shared_ptr<DynBPFFilter> dbpf, boost::variant<std::string, std::vector<std::pair<int, std::string>>> ranges) {
+      if (ranges.type() == typeid(std::vector<std::pair<int, std::string>>)) {
+        for (const auto& range : *boost::get<std::vector<std::pair<int, std::string>>>(&ranges)) {
+          dbpf->includeRange(Netmask(range.second));
+        }
+      }
+      else {
+        dbpf->includeRange(Netmask(*boost::get<std::string>(&ranges)));
+      }
+    });
 #endif /* HAVE_EBPF */
 }
