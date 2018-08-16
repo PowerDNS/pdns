@@ -514,7 +514,7 @@ See :doc:`../guides/cache` for a how to.
     ``numberOfShards`` and ``deferrableInsertLock`` parameters added.
 
   .. versionchanged:: 1.3.1
-    ``maxNegativeTTL`` and ``parseECS` parameters added.
+    ``maxNegativeTTL`` and ``parseECS`` parameters added.
 
   Creates a new :class:`PacketCache` with the settings specified.
 
@@ -933,7 +933,7 @@ TLSContext
     :param str ticketsKeysFile: The path to a file from where TLS tickets keys should be loaded.
 
 TLSFrontend
-~~~~~~~~~~
+~~~~~~~~~~~
 
 .. class:: TLSFrontend
 
