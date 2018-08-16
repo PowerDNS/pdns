@@ -2336,12 +2336,26 @@ try
 
   auto todo=setupLua(false, g_cmdLine.config);
 
-  if (g_policy.getLocal()->name == "chashed") {
-    vinfolog("Pre-computing hashes for consistent hash load-balancing policy");
-    // pre compute hashes
-    auto backends = g_dstates.getLocal();
-    for (auto& backend: *backends) {
-      backend->hash();
+  auto localPools = g_pools.getCopy();
+  {
+    bool precompute = false;
+    if (g_policy.getLocal()->name == "chashed") {
+      precompute = true;
+    } else {
+      for (const auto& entry: localPools) {
+        if (entry.second->policy != nullptr && entry.second->policy->name == "chashed") {
+          precompute = true;
+          break ;
+        }
+      }
+    }
+    if (precompute) {
+      vinfolog("Pre-computing hashes for consistent hash load-balancing policy");
+      // pre compute hashes
+      auto backends = g_dstates.getLocal();
+      for (auto& backend: *backends) {
+        backend->hash();
+      }
     }
   }
 
@@ -2680,7 +2694,7 @@ try
   for(auto& t : todo)
     t();
 
-  auto localPools = g_pools.getCopy();
+  localPools = g_pools.getCopy();
   /* create the default pool no matter what */
   createPoolIfNotExists(localPools, "");
   if(g_cmdLine.remotes.size()) {
