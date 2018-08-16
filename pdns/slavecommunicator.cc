@@ -746,7 +746,6 @@ void CommunicatorClass::slaveRefresh(PacketHandler *P)
         g_log<<Logger::Debug<<"Got NOTIFY for "<<di.zone<<", going to check SOA serial, our serial is "<<di.serial<<endl;
         // We received a NOTIFY for a zone. This means at least one of the zone's master server is working.
         // Therefore we delete the zone from the list of failed slave-checks to allow immediate checking.
-        Lock l(&d_lock);
         const auto wasFailedDomain = d_failedSlaveRefresh.find(di.zone);
         if (wasFailedDomain != d_failedSlaveRefresh.end()) {
           g_log<<Logger::Debug<<"Got NOTIFY for "<<di.zone<<", removing zone from list of failed slave-checks and going to check SOA serial"<<endl;
@@ -901,9 +900,12 @@ void CommunicatorClass::slaveRefresh(PacketHandler *P)
       continue;
     }
 
-    const auto wasFailedDomain = d_failedSlaveRefresh.find(di.zone);
-    if (wasFailedDomain != d_failedSlaveRefresh.end())
-      d_failedSlaveRefresh.erase(di.zone);
+    {
+      Lock l(&d_lock);
+      const auto wasFailedDomain = d_failedSlaveRefresh.find(di.zone);
+      if (wasFailedDomain != d_failedSlaveRefresh.end())
+        d_failedSlaveRefresh.erase(di.zone);
+    }
 
     uint32_t theirserial = ssr.d_freshness[di.id].theirSerial, ourserial = di.serial;
 
