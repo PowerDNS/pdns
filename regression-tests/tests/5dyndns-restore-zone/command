@@ -7,4 +7,4 @@
 
 mysql --user="$GMYSQLUSER" --password="$GMYSQLPASSWD" --host="$GMYSQLHOST" \
 	"$GMYSQLDB" \
-	-e "UPDATE records SET content = 'ns2.test.dyndns. ahu.example.dyndns. 2012060701 28800 7200 604800 86400' WHERE name = 'test.dyndns' AND type = 'SOA'"
+	-e "UPDATE records SET content = 'ns1.test.dyndns. ahu.example.dyndns. 2012060701 28800 7200 604800 86400' WHERE name in ('test.dyndns', 'sub.test.dyndns') AND type = 'SOA'"

@@ -1,0 +1,2 @@
+When writing a record to a child zone, while the name also exists (occluded)
+in the parent zone, make sure the update ends up in the child zone.
