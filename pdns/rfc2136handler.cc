@@ -968,6 +968,9 @@ int PacketHandler::processUpdate(DNSPacket *p) {
       di.backend->lookup(QType(QType::ANY), rr->d_name);
       while (di.backend->get(rec)) {
         if (rec.qtype != QType::CNAME && rec.qtype != QType::RRSIG) {
+          // leave database handle in a consistent state
+          while (di.backend->get(rec))
+            ;
           L<<Logger::Warning<<msgPrefix<<"Refusing update for " << rr->d_name << "/" << QType(rr->d_type).getName() << ": Data other than CNAME exists for the same name"<<endl;
           di.backend->abortTransaction();
           return RCode::Refused;
@@ -980,6 +983,9 @@ int PacketHandler::processUpdate(DNSPacket *p) {
       di.backend->lookup(QType(QType::CNAME), rr->d_name);
       while (di.backend->get(rec)) {
         if (rec.qtype == QType::CNAME && rr->d_type != QType::RRSIG) {
+          // leave database handle in a consistent state
+          while (di.backend->get(rec))
+            ;
           L<<Logger::Warning<<msgPrefix<<"Refusing update for " << rr->d_name << "/" << QType(rr->d_type).getName() << ": CNAME exists for the same name"<<endl;
           di.backend->abortTransaction();
           return RCode::Refused;
