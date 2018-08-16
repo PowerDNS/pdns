@@ -743,7 +743,16 @@ void CommunicatorClass::slaveRefresh(PacketHandler *P)
         requeue.insert(di);
       }
       else {
-        L<<Logger::Debug<<"Got NOTIFY for "<<di.zone<<", going to check SOA serial"<<endl;
+        L<<Logger::Debug<<"Got NOTIFY for "<<di.zone<<", going to check SOA serial, our serial is "<<di.serial<<endl;
+        // We received a NOTIFY for a zone. This means at least one of the zone's master server is working.
+        // Therefore we delete the zone from the list of failed slave-checks to allow immediate checking.
+        const auto wasFailedDomain = d_failedSlaveRefresh.find(di.zone);
+        if (wasFailedDomain != d_failedSlaveRefresh.end()) {
+          L<<Logger::Debug<<"Got NOTIFY for "<<di.zone<<", removing zone from list of failed slave-checks and going to check SOA serial"<<endl;
+          d_failedSlaveRefresh.erase(di.zone);
+        } else {
+          L<<Logger::Debug<<"Got NOTIFY for "<<di.zone<<", going to check SOA serial"<<endl;
+        }
         rdomains.push_back(di);
       }
     }
@@ -779,9 +788,11 @@ void CommunicatorClass::slaveRefresh(PacketHandler *P)
 
     for(DomainInfo& di :  rdomains) {
       const auto failed = d_failedSlaveRefresh.find(di.zone);
-      if (failed != d_failedSlaveRefresh.end() && now < failed->second.second )
+      if (failed != d_failedSlaveRefresh.end() && now < failed->second.second ) {
         // If the domain has failed before and the time before the next check has not expired, skip this domain
+        L<<Logger::Debug<<"Zone '"<<di.zone<<"' is on the list of failed SOA checks. Skipping SOA checks until "<< failed->second.second<<endl;
         continue;
+      }
       std::vector<std::string> localaddr;
       SuckRequest sr;
       sr.domain=di.zone;
@@ -877,19 +888,28 @@ void CommunicatorClass::slaveRefresh(PacketHandler *P)
 
     if(!ssr.d_freshness.count(di.id)) { // If we don't have an answer for the domain
       uint64_t newCount = 1;
+      Lock l(&d_lock);
       const auto failedEntry = d_failedSlaveRefresh.find(di.zone);
       if (failedEntry != d_failedSlaveRefresh.end())
         newCount = d_failedSlaveRefresh[di.zone].first + 1;
       time_t nextCheck = now + std::min(newCount * d_tickinterval, (uint64_t)::arg().asNum("soa-retry-default"));
       d_failedSlaveRefresh[di.zone] = {newCount, nextCheck};
-      if (newCount == 1 || newCount % 10 == 0)
-        L<<Logger::Warning<<"Unable to retrieve SOA for "<<di.zone<<", this was the "<<(newCount == 1 ? "first" : std::to_string(newCount) + "th")<<" time."<<endl;
+      if (newCount == 1) {
+        L<<Logger::Warning<<"Unable to retrieve SOA for "<<di.zone<<
+          ", this was the first time. NOTE: For every subsequent failed SOA check the domain will be suspended from freshness checks for 'num-errors x "<<
+          d_tickinterval<<" seconds', with a maximum of "<<(uint64_t)::arg().asNum("soa-retry-default")<<" seconds. Skipping SOA checks until "<<nextCheck<<endl;
+      } else if (newCount % 10 == 0) {
+        L<<Logger::Warning<<"Unable to retrieve SOA for "<<di.zone<<", this was the "<<std::to_string(newCount)<<"th time. Skipping SOA checks until "<<nextCheck<<endl;
+      }
       continue;
     }
 
-    const auto wasFailedDomain = d_failedSlaveRefresh.find(di.zone);
-    if (wasFailedDomain != d_failedSlaveRefresh.end())
-      d_failedSlaveRefresh.erase(di.zone);
+    {
+      Lock l(&d_lock);
+      const auto wasFailedDomain = d_failedSlaveRefresh.find(di.zone);
+      if (wasFailedDomain != d_failedSlaveRefresh.end())
+        d_failedSlaveRefresh.erase(di.zone);
+    }
 
     uint32_t theirserial = ssr.d_freshness[di.id].theirSerial, ourserial = di.serial;
 
