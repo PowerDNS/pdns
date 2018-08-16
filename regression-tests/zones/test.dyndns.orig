@@ -32,5 +32,3 @@ e.host			IN	A	1.1.1.1
 
 sub				IN NS ns1.test.dyndns.
 sub				IN NS ns2.test.dyndns.
-
-occluded.sub	IN A 127.0.0.200
