@@ -74,10 +74,6 @@ These are all the functions, objects and methods related to the :doc:`../advance
 
     Print the block tables.
 
-  .. method:: BPFFilter:purgeExpired()
-
-    Remove the expired ephemeral rules associated with this filter.
-
   .. method:: BPFFilter:unblock(address)
 
     Unblock this address.
@@ -94,6 +90,10 @@ These are all the functions, objects and methods related to the :doc:`../advance
 .. class:: DynBPFFilter
 
   Represents an dynamic eBPF filter, allowing the use of ephemeral rules to an existing eBPF filter.
+
+  .. method:: DynBPFFilter:purgeExpired()
+
+    Remove the expired ephemeral rules associated with this filter.
 
   .. method:: DynBPFFilter:excludeRange(netmasks)
 
