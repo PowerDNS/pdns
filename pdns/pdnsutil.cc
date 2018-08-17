@@ -920,19 +920,20 @@ int editZone(DNSSECKeeper& dk, const DNSName &zone) {
   ZoneParserTNG zpt(tmpnam, g_rootdnsname);
   DNSResourceRecord zrr;
   map<pair<DNSName,uint16_t>, vector<DNSRecord> > grouped;
-  while(zpt.get(zrr)) {
-    try {
-      DNSRecord dr(zrr);
-      post.push_back(dr);
-      grouped[{dr.d_name,dr.d_type}].push_back(dr);
-    }
-    catch(std::exception& e) {
-      cerr<<"Problem "<<e.what()<<" "<<zpt.getLineOfFile()<<endl;
-      auto fnum = zpt.getLineNumAndFile();
-      gotoline = fnum.second;
-      goto reAsk;
+  try {
+    while(zpt.get(zrr)) {
+        DNSRecord dr(zrr);
+        post.push_back(dr);
+        grouped[{dr.d_name,dr.d_type}].push_back(dr);
     }
   }
+  catch(std::exception& e) {
+    cerr<<"Problem: "<<e.what()<<" "<<zpt.getLineOfFile()<<endl;
+    auto fnum = zpt.getLineNumAndFile();
+    gotoline = fnum.second;
+    goto reAsk;
+  }
+
   sort(post.begin(), post.end(), DNSRecord::prettyCompare);
   checkrr.clear();
 
