@@ -933,3 +933,41 @@ uint16_t getRecordsOfTypeCount(const char* packet, size_t length, uint8_t sectio
   }
   return result;
 }
+
+uint16_t getEDNSUDPPayloadSize(const char* packet, size_t length)
+{
+  if (length < sizeof(dnsheader)) {
+    return 0;
+  }
+
+  try
+  {
+    const dnsheader* dh = (const dnsheader*) packet;
+    DNSPacketMangler dpm(const_cast<char*>(packet), length);
+
+    const uint16_t qdcount = ntohs(dh->qdcount);
+    for(size_t n = 0; n < qdcount; ++n) {
+      dpm.skipLabel();
+      /* type and class */
+      dpm.skipBytes(4);
+    }
+    const size_t numrecords = ntohs(dh->ancount) + ntohs(dh->nscount) + ntohs(dh->arcount);
+    for(size_t n = 0; n < numrecords; ++n) {
+      dpm.skipLabel();
+      const uint16_t dnstype = dpm.get16BitInt();
+      const uint16_t dnsclass = dpm.get16BitInt();
+
+      if(dnstype == QType::OPT) {
+        return dnsclass;
+      }
+
+      /* TTL */
+      dpm.skipBytes(4);
+      dpm.skipRData();
+    }
+  }
+  catch(...)
+  {
+  }
+  return 0;
+}
