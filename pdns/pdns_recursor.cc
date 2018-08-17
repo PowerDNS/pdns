@@ -3102,6 +3102,14 @@ static int serviceMain(int argc, char*argv[])
   else {
     makeUDPServerSockets(0);
     makeTCPServerSockets(0);
+
+    if (!g_weDistributeQueries) {
+      /* we are not distributing queries and we don't have reuseport,
+         so every thread will be listening on all the TCP sockets */
+      for (unsigned int threadId = 1; threadId < g_numWorkerThreads; threadId++) {
+        g_tcpListenSockets[threadId] = g_tcpListenSockets[0];
+      }
+    }
   }
 
   SyncRes::parseEDNSSubnetWhitelist(::arg()["edns-subnet-whitelist"]);
