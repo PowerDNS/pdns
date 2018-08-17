@@ -1,4 +1,2 @@
 DNS employs label compression to fit big answers in a small packet. This
-test performs a query that without proper compression would not fit. Runs
-dig in debug mode which makes proper operation very dependent on your
-version of dig.
+test performs a query that without proper compression would not fit.
