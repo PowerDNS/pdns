@@ -358,7 +358,7 @@ static void on_dnsdist(h2o_socket_t *listener, const char *err)
   du->req->res.status = 200;
   du->req->res.reason = "OK";
   
-  h2o_add_header(&du->req->pool, &du->req->res.headers, H2O_TOKEN_CONTENT_TYPE, NULL, H2O_STRLIT("application/dns-udpwireformat"));
+  h2o_add_header(&du->req->pool, &du->req->res.headers, H2O_TOKEN_CONTENT_TYPE, NULL, H2O_STRLIT("application/dns-message"));
   //  h2o_add_header(&du->req->pool, &du->req->res.headers, H2O_TOKEN_SET_COOKIE, NULL, H2O_STRLIT("cookie=1")); 
   
   struct dnsheader* dh = (struct dnsheader*)du->query.c_str();
