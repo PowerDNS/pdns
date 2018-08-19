@@ -47,7 +47,7 @@
 #include "mplexer.hh"
 #include "sholder.hh"
 #include "tcpiohandler.hh"
-
+#include "doh.hh"
 #include <boost/uuid/uuid.hpp>
 #include <boost/uuid/uuid_generators.hpp>
 #include <boost/uuid/uuid_io.hpp>
@@ -508,6 +508,7 @@ struct DOHUnit
   std::string query;
   ComboAddress remote;
   ComboAddress dest;
+  std::map<std::string, std::string, CIStringCompare> headers;
   uint16_t qtype;
 };
 
@@ -943,6 +944,7 @@ extern ComboAddress g_serverControl; // not changed during runtime
 
 extern std::vector<std::tuple<ComboAddress, bool, bool, int, std::string, std::set<int>>> g_locals; // not changed at runtime (we hope XXX)
 extern std::vector<shared_ptr<TLSFrontend>> g_tlslocals;
+extern std::vector<shared_ptr<DOHFrontend>> g_dohlocals;
 extern vector<ClientState*> g_frontends;
 extern bool g_truncateTC;
 extern bool g_fixupCase;

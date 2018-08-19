@@ -44,7 +44,7 @@
 #include "lock.hh"
 #include "protobuf.hh"
 #include "sodcrypto.hh"
-
+#include "doh.hh"
 #include <boost/logic/tribool.hpp>
 #include <boost/lexical_cast.hpp>
 
@@ -1592,6 +1592,26 @@ void setupLuaConfig(bool client)
 
       g_secPollInterval = newInterval;
   });
+
+    g_lua.writeFunction("addDOHLocal", [client](const std::string& addr, const std::string& certFile, const std::string& keyFile, boost::optional<localbind_t> vars) {
+        if (client)
+          return;
+
+        setLuaSideEffect();
+        if (g_configurationDone) {
+          g_outputBuffer="addDOHLocal cannot be used at runtime!\n";
+          return;
+        }
+        auto frontend = std::make_shared<DOHFrontend>();
+        frontend->d_certFile = certFile;
+        frontend->d_keyFile = keyFile;
+        frontend->d_local = ComboAddress(addr, 443);
+
+        if(vars) {
+          cout << "Not yet processing variables!" << endl;
+        }
+        g_dohlocals.push_back(frontend);
+      });
 
   g_lua.writeFunction("addTLSLocal", [client](const std::string& addr, boost::variant<std::string, std::vector<std::pair<int,std::string>>> certFiles, boost::variant<std::string, std::vector<std::pair<int,std::string>>> keyFiles, boost::optional<localbind_t> vars) {
         if (client)

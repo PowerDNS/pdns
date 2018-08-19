@@ -96,6 +96,7 @@ string g_outputBuffer;
 
 vector<std::tuple<ComboAddress, bool, bool, int, string, std::set<int>>> g_locals;
 std::vector<std::shared_ptr<TLSFrontend>> g_tlslocals;
+std::vector<std::shared_ptr<DOHFrontend>> g_dohlocals;
 #ifdef HAVE_DNSCRYPT
 std::vector<std::tuple<ComboAddress,std::shared_ptr<DNSCryptContext>,bool, int, string, std::set<int> >> g_dnsCryptLocals;
 #endif
@@ -2784,8 +2785,10 @@ try
     }
   }
 
-  thread dohthread(dohThread, ComboAddress("127.0.0.1", 7890), "server.crt", "server.key");
-  dohthread.detach();
+  for(auto& df : g_dohlocals) {
+    thread dohthread(dohThread, df->d_local, df->d_certFile, df->d_keyFile);
+    dohthread.detach();
+  }
   
   thread carbonthread(carbonDumpThread);
   carbonthread.detach();

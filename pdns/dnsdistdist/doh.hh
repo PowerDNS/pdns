@@ -1,4 +1,11 @@
 #pragma once
 #include "iputils.hh"
 
-int dohThread(const ComboAddress ca, const char* certfile, const char* keyfile);
+struct DOHFrontend
+{
+  std::string d_certFile;
+  std::string d_keyFile;
+  ComboAddress d_local;
+};
+
+int dohThread(const ComboAddress ca, const std::string& certfile, const std::string& keyfile);

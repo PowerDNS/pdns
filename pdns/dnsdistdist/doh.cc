@@ -441,7 +441,7 @@ static int setup_ssl(const char *cert_file, const char *key_file, const char *ci
     return 0;
 }
 
-int dohThread(const ComboAddress ca, const char* certfile, const char*keyfile)
+int dohThread(const ComboAddress ca, const string& certfile, const string& keyfile)
 {
   if(socketpair(AF_LOCAL, SOCK_DGRAM, 0, g_dohquerypair) < 0 ||
      socketpair(AF_LOCAL, SOCK_DGRAM, 0, g_dohresponsepair) < 0
@@ -451,15 +451,13 @@ int dohThread(const ComboAddress ca, const char* certfile, const char*keyfile)
 
   std::thread dnsdistThread(dnsdistclient, g_dohquerypair[1], g_dohresponsepair[0]);
   
-  //  std::thread responseThread(responsesender, g_dohresponsepair);
-  
-
   h2o_access_log_filehandle_t *logfh = h2o_access_log_open_handle("/dev/stdout", NULL, H2O_LOGCONF_ESCAPE_APACHE);
   h2o_pathconf_t *pathconf;
   
   h2o_config_init(&config);
   h2o_hostconf_t *hostconf = h2o_config_register_host(&config, h2o_iovec_init(ca.toString().c_str(), ca.toString().size()), 65535);
-  
+
+  // XXX should be a configurable URL
   pathconf = register_handler(hostconf, "/", doh_handler);
 
   if (logfh != NULL)
@@ -472,13 +470,12 @@ int dohThread(const ComboAddress ca, const char* certfile, const char*keyfile)
   h2o_socket_read_start(sock, on_dnsdist);
   
   if (USE_HTTPS &&
-      setup_ssl(certfile, keyfile, 
+      setup_ssl(certfile.c_str(), keyfile.c_str(), 
                 "DEFAULT:!MD5:!DSS:!DES:!RC4:!RC2:!SEED:!IDEA:!NULL:!ADH:!EXP:!SRP:!PSK") != 0)
     goto Error;
   
   accept_ctx.ctx = &ctx;
   accept_ctx.hosts = config.hosts;
-
 
   if (create_listener(ca) != 0) {
     fprintf(stderr, "failed to listen to %s: %s\n", ca.toStringWithPort().c_str(), strerror(errno));
