@@ -1593,7 +1593,7 @@ void setupLuaConfig(bool client)
       g_secPollInterval = newInterval;
   });
 
-    g_lua.writeFunction("addDOHLocal", [client](const std::string& addr, const std::string& certFile, const std::string& keyFile, boost::optional<localbind_t> vars) {
+  g_lua.writeFunction("addDOHLocal", [client](const std::string& addr, const std::string& certFile, const std::string& keyFile, boost::optional<vector<pair<int, std::string> > > urls, boost::optional<localbind_t> vars) {
         if (client)
           return;
 
@@ -1606,6 +1606,12 @@ void setupLuaConfig(bool client)
         frontend->d_certFile = certFile;
         frontend->d_keyFile = keyFile;
         frontend->d_local = ComboAddress(addr, 443);
+        if(urls && !urls->empty()) {
+          for(const auto& p : *urls)
+            frontend->d_urls.push_back(p.second);
+        }
+        else
+          frontend->d_urls = {"/"};
 
         if(vars) {
           cout << "Not yet processing variables!" << endl;

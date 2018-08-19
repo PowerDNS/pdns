@@ -441,7 +441,7 @@ static int setup_ssl(const char *cert_file, const char *key_file, const char *ci
     return 0;
 }
 
-int dohThread(const ComboAddress ca, const string& certfile, const string& keyfile)
+int dohThread(const ComboAddress ca, vector<string> urls,  string certfile, string keyfile)
 {
   if(socketpair(AF_LOCAL, SOCK_DGRAM, 0, g_dohquerypair) < 0 ||
      socketpair(AF_LOCAL, SOCK_DGRAM, 0, g_dohresponsepair) < 0
@@ -457,11 +457,13 @@ int dohThread(const ComboAddress ca, const string& certfile, const string& keyfi
   h2o_config_init(&config);
   h2o_hostconf_t *hostconf = h2o_config_register_host(&config, h2o_iovec_init(ca.toString().c_str(), ca.toString().size()), 65535);
 
-  // XXX should be a configurable URL
-  pathconf = register_handler(hostconf, "/", doh_handler);
-
-  if (logfh != NULL)
-    h2o_access_log_register(pathconf, logfh);
+  for(const auto& url : urls) {
+    cout<<"Registering URL prefix "<< url << " for " <<ca.toStringWithPort() << endl;
+    pathconf = register_handler(hostconf, url.c_str(), doh_handler);
+    
+    if (logfh != NULL)
+      h2o_access_log_register(pathconf, logfh);
+  }
   
   
   h2o_context_init(&ctx, h2o_evloop_create(), &config);
