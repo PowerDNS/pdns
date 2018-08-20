@@ -559,7 +559,6 @@ EOF
 cat > recursor-service/recursor.conf <<EOF
 webserver=yes
 api-key=secret
-api-readonly=yes
 forward-zones-file=$(pwd)/recursor-service/forward-zones-file
 
 socket-dir=/tmp/recursor-service

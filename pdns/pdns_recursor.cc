@@ -3923,7 +3923,6 @@ int main(int argc, char **argv)
     ::arg().set("api-config-dir", "Directory where REST API stores config and zones") = "";
     ::arg().set("api-key", "Static pre-shared authentication key for access to the REST API") = "";
     ::arg().set("api-logfile", "Location of the server logfile (used by the REST API)") = "/var/log/pdns.log";
-    ::arg().set("api-readonly", "Disallow data modification through the REST API when set") = "no";
     ::arg().setSwitch("webserver", "Start a webserver (for REST API)") = "no";
     ::arg().set("webserver-address", "IP Address of webserver to listen on") = "127.0.0.1";
     ::arg().set("webserver-port", "Port of webserver to listen on") = "8082";
@@ -4057,8 +4056,8 @@ int main(int argc, char **argv)
 
     ::arg().parse(argc,argv);
 
-    if( !::arg()["chroot"].empty() && !::arg()["api-config-dir"].empty() && !::arg().mustDo("api-readonly") )  {
-      g_log<<Logger::Error<<"Using chroot and a writable API is not possible"<<endl;
+    if( !::arg()["chroot"].empty() && !::arg()["api-config-dir"].empty() ) {
+      g_log<<Logger::Error<<"Using chroot and enabling the API is not possible"<<endl;
       exit(EXIT_FAILURE);
     }
 
