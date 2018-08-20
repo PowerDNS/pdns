@@ -16,17 +16,44 @@
 #include <boost/algorithm/string.hpp>
 using namespace std;
 
-#define USE_HTTPS 1
+/* So, how does this work. We use h2o for our http2 and TLS needs. 
+   If the operator has configured multiple IP addresses to listen on, 
+   we launch multiple h2o listener threads. 
 
-static ClientState cs; // need to fill this in somehow
+   h2o is event driven, so we get callbacks if a new DNS query arrived.
+   When it does, we do some minimal parsing on it, and send it on to the 
+   dnsdist worker thread which we also launched.
 
+   This dnsdist worker thread injects the query into the normal dnsdist flow 
+   (as a datagram over a socketpair). The response also goes back over a 
+   (different) socketpair, where we pick it up and deliver it back to h2o.
+
+   For coordination, we use the h2o socket multiplexer, which is sensitive to our
+   socketpair too.
+*/
+
+// we create on of these per thread, and pass around a pointer to it
+// through the bowels of h2o
+struct DOHServerConfig
+{
+  h2o_globalconf_t h2o_config;
+  h2o_context_t h2o_ctx;
+  h2o_accept_ctx_t h2o_accept_ctx;
+
+  int dohquerypair[2];
+  int dohresponsepair[2];
+  ClientState cs;
+};
+
+// this duplicates way too much from the UDP handler
 static void processDOHQuery(DOHUnit* du)
 {
   LocalHolders holders;
   uint16_t queryId=0;
   try {
-
-    cs.muted=false;
+    DOHServerConfig* dsc = (DOHServerConfig*)du->req->conn->ctx->storage.entries[0].data;
+    ClientState& cs = dsc->cs;
+    cs.muted=false; // cs is not filled out so we have to force this
     
     /* we need an accurate ("real") value for the response and
        to store into the IDS, but not for insertion into the
@@ -41,7 +68,7 @@ static void processDOHQuery(DOHUnit* du)
     uint16_t len = du->query.length();
 
     if (!checkQueryHeaders(dh)) {
-      return;
+      return; 
     }
 
     string poolname;
@@ -249,22 +276,9 @@ static h2o_pathconf_t *register_handler(h2o_hostconf_t *hostconf, const char *pa
 }
 
 
-struct DOHServerConfig
-{
-  h2o_globalconf_t h2o_config;
-  h2o_context_t h2o_ctx;
-  h2o_accept_ctx_t h2o_accept_ctx;
-
-  int dohquerypair[2];
-  int dohresponsepair[2];
-};
-
-/* This needs to handle 2*2 cases. {GET,POST} * {application/dns-udpwireformat, application/dns-message}
-   The Content-Type can be derived from the Accept header. 
-
+/*
    For GET, the base64url-encoded payload is in the 'dns' parameter, which might be the first parameter, or not.
    For POST, the payload is the payload.
-
  */
 static int doh_handler(h2o_handler_t *self, h2o_req_t *req)
 {
@@ -273,9 +287,11 @@ static int doh_handler(h2o_handler_t *self, h2o_req_t *req)
     return 0;
   }
   DOHServerConfig* dsc = (DOHServerConfig*)req->conn->ctx->storage.entries[0].data;
+  /*
+  // print headers
   for (unsigned int i = 0; i != req->headers.size; ++i)
     printf("%.*s: %.*s\n", (int)req->headers.entries[i].name->len, req->headers.entries[i].name->base, (int)req->headers.entries[i].value.len, req->headers.entries[i].value.base);
-
+  */
   if (h2o_memis(req->method.base, req->method.len, H2O_STRLIT("POST"))) {
     DOHUnit* du = new DOHUnit;
     uint16_t qtype;
@@ -286,16 +302,19 @@ static int doh_handler(h2o_handler_t *self, h2o_req_t *req)
 
     du->rsock=dsc->dohresponsepair[0];
     du->qtype = qtype;
-    send(dsc->dohquerypair[0], &du, sizeof(du), 0); // XXX check error
+    if(send(dsc->dohquerypair[0], &du, sizeof(du), 0) != sizeof(du))
+      delete du;     // XXX but now what - will h2o time this out for us?
   }
   else if(req->query_at != SIZE_MAX && (req->path.len - req->query_at > 4)) {
     //    if (h2o_memis(&req->path.base[req->query_at], 5, "?dns=", 5)) {
+
+    // this should do a better job and deal with ?dns= and &dns= XXX
     char* dns = strstr(req->path.base+req->query_at, "dns=");
     if(dns) {
       dns+=4;
       if(auto p = strchr(dns, ' '))
         *p=0;
-      cout<<"Got a dns query: "<<dns<<endl;
+      cout<<"Got a GET dns query: "<<dns<<endl;
       // need to base64url decode this
       string sdns(dns);
       boost::replace_all(sdns,"-", "+");
@@ -314,7 +333,8 @@ static int doh_handler(h2o_handler_t *self, h2o_req_t *req)
         du->query=decoded;
         du->rsock=dsc->dohresponsepair[0];
         du->qtype = qtype;
-        send(dsc->dohquerypair[0], &du, sizeof(du), 0);
+        if(send(dsc->dohquerypair[0], &du, sizeof(du), 0) != sizeof(du))
+          delete du; // XXX but now what 
       }
     }
   }
@@ -333,27 +353,7 @@ void dnsdistclient(int qsock, int rsock)
   }
 }
 
-
-/*
-void responsesender(int rpair[2])
-{
-  DOHUnit *du;
-  for(;;) {
-    recv(rpair[1], &du, sizeof(du), 0);
-
-    du->req->res.status = 200;
-    du->req->res.reason = "OK";
-    
-    h2o_add_header(&du->req->pool, &du->req->res.headers, H2O_TOKEN_CONTENT_TYPE, NULL, H2O_STRLIT("application/dns-udpwireformat"));
-
-    struct dnsheader* dh = (struct dnsheader*)du->query.c_str();
-    cout<<"Attempt to send out "<<du->query.size()<<" bytes over https, TC="<<dh->tc<<", RCODE="<<dh->rcode<<", qtype="<<du->qtype<<", req="<<(void*)du->req<<endl;
-
-    du->req->res.content_length = du->query.size();
-    h2o_send_inline(du->req, du->query.c_str(), du->query.size());
-  }
-}
-*/
+// called if h2o finds that dnsdist gave us an answer
 static void on_dnsdist(h2o_socket_t *listener, const char *err)
 {
   DOHUnit *du;
@@ -417,8 +417,8 @@ static int setup_ssl(DOHServerConfig* dsc, const char *cert_file, const char *ke
     OpenSSL_add_all_algorithms();
 
     dsc->h2o_accept_ctx.ssl_ctx = SSL_CTX_new(SSLv23_server_method());
+    dsc->h2o_accept_ctx.expect_proxy_line = 0; // makes valgrind happy
     SSL_CTX_set_options(dsc->h2o_accept_ctx.ssl_ctx, SSL_OP_NO_SSLv2);
-
 
 #ifdef SSL_CTX_set_ecdh_auto
     SSL_CTX_set_ecdh_auto(dsc->h2o_accept_ctx.ssl_ctx, 1);
@@ -439,7 +439,7 @@ static int setup_ssl(DOHServerConfig* dsc, const char *cert_file, const char *ke
         return -1;
     }
 
-/* setup protocol negotiation methods */
+    /* setup protocol negotiation methods */ // I have no idea what this means
 #if H2O_USE_NPN
     h2o_ssl_register_npn_protocols(dsc->h2o_accept_ctx.ssl_ctx, h2o_http2_npn_protocols);
 #endif
@@ -450,6 +450,7 @@ static int setup_ssl(DOHServerConfig* dsc, const char *cert_file, const char *ke
     return 0;
 }
 
+// this is the entrypoint from dnsdist.cc
 int dohThread(const ComboAddress ca, vector<string> urls,  string certfile, string keyfile)
 {
   auto dsc = new DOHServerConfig;
@@ -460,42 +461,50 @@ int dohThread(const ComboAddress ca, vector<string> urls,  string certfile, stri
   }
 
   std::thread dnsdistThread(dnsdistclient, dsc->dohquerypair[1], dsc->dohresponsepair[0]);
-  
-  h2o_access_log_filehandle_t *logfh = h2o_access_log_open_handle("/dev/stdout", NULL, H2O_LOGCONF_ESCAPE_APACHE);
-  h2o_pathconf_t *pathconf;
+
+  //  h2o_access_log_filehandle_t *logfh = h2o_access_log_open_handle("/dev/stdout", NULL, H2O_LOGCONF_ESCAPE_APACHE);
+
   
   h2o_config_init(&dsc->h2o_config);
+
+  // I wonder if this registers an IP address.. I think it does
+  // this may mean we need to actually register a site "name" here and not the IP address
   h2o_hostconf_t *hostconf = h2o_config_register_host(&dsc->h2o_config, h2o_iovec_init(ca.toString().c_str(), ca.toString().size()), 65535);
 
   for(const auto& url : urls) {
     cout<<"Registering URL prefix "<< url << " for " <<ca.toStringWithPort() << endl;
-    pathconf = register_handler(hostconf, url.c_str(), doh_handler);
+    //    h2o_pathconf_t *pathconf;
+    /* pathconf = */ register_handler(hostconf, url.c_str(), doh_handler);
     
-    if (logfh != NULL)
-      h2o_access_log_register(pathconf, logfh);
+    //    if (logfh != NULL)
+    //  h2o_access_log_register(pathconf, logfh);
   }
   
   h2o_context_init(&dsc->h2o_ctx, h2o_evloop_create(), &dsc->h2o_config);
 
-  cout<<"ctx storage size " << dsc->h2o_ctx.storage.size << endl;
+  // in this ugly way we insert the DOHServerConfig pointer in there
   h2o_vector_reserve(NULL, &dsc->h2o_ctx.storage, 1);
   dsc->h2o_ctx.storage.entries[0].data = (void*)dsc;
-  cout<<"ctx storage size " << ++dsc->h2o_ctx.storage.size << endl;
-
+  ++dsc->h2o_ctx.storage.size;
   
+
   auto sock = h2o_evloop_socket_create(dsc->h2o_ctx.loop, dsc->dohresponsepair[1], H2O_SOCKET_FLAG_DONT_READ);
   sock->data = dsc;
+
+  // this listens to responses from dnsdist to turn into http responses
   h2o_socket_read_start(sock, on_dnsdist);
-  
-  if (USE_HTTPS &&
-      setup_ssl(dsc, certfile.c_str(), keyfile.c_str(), 
+
+  // we should probably make that hash, algorithm etc line configurable too 
+  if(setup_ssl(dsc, certfile.c_str(), keyfile.c_str(), 
                 "DEFAULT:!MD5:!DSS:!DES:!RC4:!RC2:!SEED:!IDEA:!NULL:!ADH:!EXP:!SRP:!PSK") != 0)
     goto Error;
-  
+
+  // as one does
   dsc->h2o_accept_ctx.ctx = &dsc->h2o_ctx;
   dsc->h2o_accept_ctx.hosts = dsc->h2o_config.hosts;
 
   if (create_listener(ca, dsc) != 0) {
+    // should take down dnsdist
     fprintf(stderr, "failed to listen to %s: %s\n", ca.toStringWithPort().c_str(), strerror(errno));
     goto Error;
   }
