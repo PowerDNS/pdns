@@ -141,7 +141,8 @@ static void processDOHQuery(DOHUnit* du)
     if (packetCache && !dq.skipCache) {
       uint16_t cachedResponseSize = dq.size;
       uint32_t allowExpired = ss ? 0 : g_staleCacheEntriesTTL;
-      if (packetCache->get(dq, consumed, dh->id, query, &cachedResponseSize, &cacheKey, allowExpired)) {
+      boost::optional<Netmask> subnet;
+      if (packetCache->get(dq, consumed, dh->id, query, &cachedResponseSize, &cacheKey, subnet, allowExpired)) {
         DNSResponse dr(dq.qname, dq.qtype, dq.qclass, dq.local, dq.remote, reinterpret_cast<dnsheader*>(query), dq.size, cachedResponseSize, false, &queryRealTime);
 #ifdef HAVE_PROTOBUF
         dr.uniqueId = dq.uniqueId;
@@ -224,6 +225,7 @@ static void processDOHQuery(DOHUnit* du)
     ids->tempFailureTTL = dq.tempFailureTTL;
     ids->origFlags = origFlags;
     ids->cacheKey = cacheKey;
+    //    ids->subnet = subnet; // XXX this is in newer dnsdist, should we do this?
     ids->skipCache = dq.skipCache;
     ids->packetCache = packetCache;
     ids->ednsAdded = ednsAdded;

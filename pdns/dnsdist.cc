@@ -1186,7 +1186,7 @@ bool processResponse(LocalStateHolder<vector<DNSDistResponseRuleAction> >& local
   return true;
 }
 
-static ssize_t udpClientSendRequestToBackend(DownstreamState* ss, const int sd, const char* request, const size_t requestLen, bool healthCheck=false)
+ssize_t udpClientSendRequestToBackend(DownstreamState* ss, const int sd, const char* request, const size_t requestLen, bool healthCheck)
 {
   ssize_t result;
 
