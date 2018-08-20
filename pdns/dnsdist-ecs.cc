@@ -559,23 +559,23 @@ int rewriteResponseWithoutEDNSOption(const std::string& initialPacket, const uin
   return 0;
 }
 
-bool addEDNS(DNSQuestion& dq, bool dnssecOK)
+bool addEDNS(dnsheader* dh, uint16_t& len, const size_t size, bool dnssecOK, uint16_t payloadSize)
 {
-  if (dq.dh->arcount != 0) {
+  if (dh->arcount != 0) {
     return false;
   }
 
   std::string optRecord;
-  generateOptRR(std::string(), optRecord, g_PayloadSizeSelfGenAnswers, dnssecOK);
+  generateOptRR(std::string(), optRecord, payloadSize, dnssecOK);
 
-  if (optRecord.size() >= dq.size || (dq.size - optRecord.size()) < dq.len) {
+  if (optRecord.size() >= size || (size - optRecord.size()) < len) {
     return false;
   }
 
-  char * optPtr = reinterpret_cast<char*>(dq.dh) + dq.len;
+  char * optPtr = reinterpret_cast<char*>(dh) + len;
   memcpy(optPtr, optRecord.data(), optRecord.size());
-  dq.len += optRecord.size();
-  dq.dh->arcount = htons(1);
+  len += optRecord.size();
+  dh->arcount = htons(1);
 
   return true;
 }
@@ -611,7 +611,7 @@ bool addEDNSToQueryTurnedResponse(DNSQuestion& dq)
 
   if (g_addEDNSToSelfGeneratedResponses) {
     /* now we need to add a new OPT record */
-    return addEDNS(dq, dnssecOK);
+    return addEDNS(dq.dh, dq.len, dq.size, dnssecOK, g_PayloadSizeSelfGenAnswers);
   }
 
   /* otherwise we are just fine */

@@ -934,11 +934,14 @@ uint16_t getRecordsOfTypeCount(const char* packet, size_t length, uint8_t sectio
   return result;
 }
 
-uint16_t getEDNSUDPPayloadSize(const char* packet, size_t length)
+bool getEDNSUDPPayloadSizeAndZ(const char* packet, size_t length, uint16_t* payloadSize, uint16_t* z)
 {
   if (length < sizeof(dnsheader)) {
-    return 0;
+    return false;
   }
+
+  *payloadSize = 0;
+  *z = 0;
 
   try
   {
@@ -958,7 +961,11 @@ uint16_t getEDNSUDPPayloadSize(const char* packet, size_t length)
       const uint16_t dnsclass = dpm.get16BitInt();
 
       if(dnstype == QType::OPT) {
-        return dnsclass;
+        /* skip extended rcode and version */
+        dpm.skipBytes(2);
+        *z = dpm.get16BitInt();
+        *payloadSize = dnsclass;
+        return true;
       }
 
       /* TTL */
@@ -969,5 +976,6 @@ uint16_t getEDNSUDPPayloadSize(const char* packet, size_t length)
   catch(...)
   {
   }
-  return 0;
+
+  return false;
 }

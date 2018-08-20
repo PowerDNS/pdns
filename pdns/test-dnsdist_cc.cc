@@ -780,6 +780,8 @@ static int getZ(const DNSName& qname, const uint16_t qtype, const uint16_t qclas
 
 BOOST_AUTO_TEST_CASE(test_getEDNSZ) {
 
+  uint16_t z;
+  uint16_t udpPayloadSize;
   DNSName qname("www.powerdns.com.");
   uint16_t qtype = QType::A;
   uint16_t qclass = QClass::IN;
@@ -801,7 +803,9 @@ BOOST_AUTO_TEST_CASE(test_getEDNSZ) {
     pw.commit();
 
     BOOST_CHECK_EQUAL(getZ(qname, qtype, qclass, query), 0);
-    BOOST_CHECK_EQUAL(getEDNSUDPPayloadSize(reinterpret_cast<const char*>(query.data()), query.size()), 0);
+    BOOST_CHECK_EQUAL(getEDNSUDPPayloadSizeAndZ(reinterpret_cast<const char*>(query.data()), query.size(), &udpPayloadSize, &z), false);
+    BOOST_CHECK_EQUAL(z, 0);
+    BOOST_CHECK_EQUAL(udpPayloadSize, 0);
   }
 
   {
@@ -813,7 +817,9 @@ BOOST_AUTO_TEST_CASE(test_getEDNSZ) {
 
     query.resize(query.size() - (/* RDLEN */ sizeof(uint16_t) + /* last byte of TTL / Z */ 1));
     BOOST_CHECK_EQUAL(getZ(qname, qtype, qclass, query), 0);
-    BOOST_CHECK_EQUAL(getEDNSUDPPayloadSize(reinterpret_cast<const char*>(query.data()), query.size()), 512);
+    BOOST_CHECK_EQUAL(getEDNSUDPPayloadSizeAndZ(reinterpret_cast<const char*>(query.data()), query.size(), &udpPayloadSize, &z), false);
+    BOOST_CHECK_EQUAL(z, 0);
+    BOOST_CHECK_EQUAL(udpPayloadSize, 0);
   }
 
   {
@@ -824,7 +830,9 @@ BOOST_AUTO_TEST_CASE(test_getEDNSZ) {
     pw.commit();
 
     BOOST_CHECK_EQUAL(getZ(qname, qtype, qclass, query), 0);
-    BOOST_CHECK_EQUAL(getEDNSUDPPayloadSize(reinterpret_cast<const char*>(query.data()), query.size()), 512);
+    BOOST_CHECK_EQUAL(getEDNSUDPPayloadSizeAndZ(reinterpret_cast<const char*>(query.data()), query.size(), &udpPayloadSize, &z), true);
+    BOOST_CHECK_EQUAL(z, 0);
+    BOOST_CHECK_EQUAL(udpPayloadSize, 512);
   }
 
   {
@@ -835,7 +843,9 @@ BOOST_AUTO_TEST_CASE(test_getEDNSZ) {
     pw.commit();
 
     BOOST_CHECK_EQUAL(getZ(qname, qtype, qclass, query), EDNS_HEADER_FLAG_DO);
-    BOOST_CHECK_EQUAL(getEDNSUDPPayloadSize(reinterpret_cast<const char*>(query.data()), query.size()), 512);
+    BOOST_CHECK_EQUAL(getEDNSUDPPayloadSizeAndZ(reinterpret_cast<const char*>(query.data()), query.size(), &udpPayloadSize, &z), true);
+    BOOST_CHECK_EQUAL(z, EDNS_HEADER_FLAG_DO);
+    BOOST_CHECK_EQUAL(udpPayloadSize, 512);
   }
 
     {
@@ -846,7 +856,9 @@ BOOST_AUTO_TEST_CASE(test_getEDNSZ) {
     pw.commit();
 
     BOOST_CHECK_EQUAL(getZ(qname, qtype, qclass, query), 0);
-    BOOST_CHECK_EQUAL(getEDNSUDPPayloadSize(reinterpret_cast<const char*>(query.data()), query.size()), 512);
+    BOOST_CHECK_EQUAL(getEDNSUDPPayloadSizeAndZ(reinterpret_cast<const char*>(query.data()), query.size(), &udpPayloadSize, &z), true);
+    BOOST_CHECK_EQUAL(z, 0);
+    BOOST_CHECK_EQUAL(udpPayloadSize, 512);
   }
 
   {
@@ -857,13 +869,17 @@ BOOST_AUTO_TEST_CASE(test_getEDNSZ) {
     pw.commit();
 
     BOOST_CHECK_EQUAL(getZ(qname, qtype, qclass, query), EDNS_HEADER_FLAG_DO);
-    BOOST_CHECK_EQUAL(getEDNSUDPPayloadSize(reinterpret_cast<const char*>(query.data()), query.size()), 512);
+    BOOST_CHECK_EQUAL(getEDNSUDPPayloadSizeAndZ(reinterpret_cast<const char*>(query.data()), query.size(), &udpPayloadSize, &z), true);
+    BOOST_CHECK_EQUAL(z, EDNS_HEADER_FLAG_DO);
+    BOOST_CHECK_EQUAL(udpPayloadSize, 512);
   }
 
 }
 
 BOOST_AUTO_TEST_CASE(test_addEDNSToQueryTurnedResponse) {
 
+  uint16_t z;
+  uint16_t udpPayloadSize;
   DNSName qname("www.powerdns.com.");
   uint16_t qtype = QType::A;
   uint16_t qclass = QClass::IN;
@@ -892,7 +908,9 @@ BOOST_AUTO_TEST_CASE(test_addEDNSToQueryTurnedResponse) {
 
     auto dq = turnIntoResponse(qname, qtype, qclass, lc, rem, queryRealTime, query);
     BOOST_CHECK_EQUAL(getEDNSZ(dq), 0);
-    BOOST_CHECK_EQUAL(getEDNSUDPPayloadSize(reinterpret_cast<const char*>(dq.dh), dq.len), 0);
+    BOOST_CHECK_EQUAL(getEDNSUDPPayloadSizeAndZ(reinterpret_cast<const char*>(dq.dh), dq.len, &udpPayloadSize, &z), false);
+    BOOST_CHECK_EQUAL(z, 0);
+    BOOST_CHECK_EQUAL(udpPayloadSize, 0);
   }
 
   {
@@ -905,8 +923,9 @@ BOOST_AUTO_TEST_CASE(test_addEDNSToQueryTurnedResponse) {
     query.resize(query.size() - (/* RDLEN */ sizeof(uint16_t) + /* last byte of TTL / Z */ 1));
     auto dq = turnIntoResponse(qname, qtype, qclass, lc, rem, queryRealTime, query);
     BOOST_CHECK_EQUAL(getEDNSZ(dq), 0);
-    /* 512, because we don't touch a broken OPT record */
-    BOOST_CHECK_EQUAL(getEDNSUDPPayloadSize(reinterpret_cast<const char*>(dq.dh), dq.len), 512);
+    BOOST_CHECK_EQUAL(getEDNSUDPPayloadSizeAndZ(reinterpret_cast<const char*>(dq.dh), dq.len, &udpPayloadSize, &z), false);
+    BOOST_CHECK_EQUAL(z, 0);
+    BOOST_CHECK_EQUAL(udpPayloadSize, 0);
   }
 
   {
@@ -918,7 +937,9 @@ BOOST_AUTO_TEST_CASE(test_addEDNSToQueryTurnedResponse) {
 
     auto dq = turnIntoResponse(qname, qtype, qclass, lc, rem, queryRealTime, query);
     BOOST_CHECK_EQUAL(getEDNSZ(dq), 0);
-    BOOST_CHECK_EQUAL(getEDNSUDPPayloadSize(reinterpret_cast<const char*>(dq.dh), dq.len), g_PayloadSizeSelfGenAnswers);
+    BOOST_CHECK_EQUAL(getEDNSUDPPayloadSizeAndZ(reinterpret_cast<const char*>(dq.dh), dq.len, &udpPayloadSize, &z), true);
+    BOOST_CHECK_EQUAL(z, 0);
+    BOOST_CHECK_EQUAL(udpPayloadSize, g_PayloadSizeSelfGenAnswers);
   }
 
   {
@@ -930,7 +951,9 @@ BOOST_AUTO_TEST_CASE(test_addEDNSToQueryTurnedResponse) {
 
     auto dq = turnIntoResponse(qname, qtype, qclass, lc, rem, queryRealTime, query);
     BOOST_CHECK_EQUAL(getEDNSZ(dq), EDNS_HEADER_FLAG_DO);
-    BOOST_CHECK_EQUAL(getEDNSUDPPayloadSize(reinterpret_cast<const char*>(dq.dh), dq.len), g_PayloadSizeSelfGenAnswers);
+    BOOST_CHECK_EQUAL(getEDNSUDPPayloadSizeAndZ(reinterpret_cast<const char*>(dq.dh), dq.len, &udpPayloadSize, &z), true);
+    BOOST_CHECK_EQUAL(z, EDNS_HEADER_FLAG_DO);
+    BOOST_CHECK_EQUAL(udpPayloadSize, g_PayloadSizeSelfGenAnswers);
   }
 
   {
@@ -942,7 +965,9 @@ BOOST_AUTO_TEST_CASE(test_addEDNSToQueryTurnedResponse) {
 
     auto dq = turnIntoResponse(qname, qtype, qclass, lc, rem, queryRealTime, query);
     BOOST_CHECK_EQUAL(getEDNSZ(dq), 0);
-    BOOST_CHECK_EQUAL(getEDNSUDPPayloadSize(reinterpret_cast<const char*>(dq.dh), dq.len), g_PayloadSizeSelfGenAnswers);
+    BOOST_CHECK_EQUAL(getEDNSUDPPayloadSizeAndZ(reinterpret_cast<const char*>(dq.dh), dq.len, &udpPayloadSize, &z), true);
+    BOOST_CHECK_EQUAL(z, 0);
+    BOOST_CHECK_EQUAL(udpPayloadSize, g_PayloadSizeSelfGenAnswers);
   }
 
   {
@@ -954,7 +979,9 @@ BOOST_AUTO_TEST_CASE(test_addEDNSToQueryTurnedResponse) {
 
     auto dq = turnIntoResponse(qname, qtype, qclass, lc, rem, queryRealTime, query);
     BOOST_CHECK_EQUAL(getEDNSZ(dq), EDNS_HEADER_FLAG_DO);
-    BOOST_CHECK_EQUAL(getEDNSUDPPayloadSize(reinterpret_cast<const char*>(dq.dh), dq.len), g_PayloadSizeSelfGenAnswers);
+    BOOST_CHECK_EQUAL(getEDNSUDPPayloadSizeAndZ(reinterpret_cast<const char*>(dq.dh), dq.len, &udpPayloadSize, &z), true);
+    BOOST_CHECK_EQUAL(z, EDNS_HEADER_FLAG_DO);
+    BOOST_CHECK_EQUAL(udpPayloadSize, g_PayloadSizeSelfGenAnswers);
   }
 }
 
