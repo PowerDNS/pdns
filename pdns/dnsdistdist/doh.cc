@@ -17,10 +17,9 @@
 using namespace std;
 
 #define USE_HTTPS 1
-#define USE_MEMCACHED 0
-
 
 static ClientState cs; // need to fill this in somehow
+
 static void processDOHQuery(DOHUnit* du)
 {
   LocalHolders holders;
@@ -250,14 +249,18 @@ static h2o_pathconf_t *register_handler(h2o_hostconf_t *hostconf, const char *pa
 }
 
 
-static h2o_globalconf_t config;
-static h2o_context_t ctx;
-static h2o_accept_ctx_t accept_ctx;
+struct DOHServerConfig
+{
+  h2o_globalconf_t h2o_config;
+  h2o_context_t h2o_ctx;
+  h2o_accept_ctx_t h2o_accept_ctx;
 
-int g_dohquerypair[2];
-int g_dohresponsepair[2];
+  int dohquerypair[2];
+  int dohresponsepair[2];
+};
 
-
+static DOHServerConfig s_dsc;
+  
 /* This needs to handle 2*2 cases. {GET,POST} * {application/dns-udpwireformat, application/dns-message}
    The Content-Type can be derived from the Accept header. 
 
@@ -267,8 +270,6 @@ int g_dohresponsepair[2];
  */
 static int doh_handler(h2o_handler_t *self, h2o_req_t *req)
 {
-  //  cout<<"Called: "<<req->path.base<<endl;
-
   for (unsigned int i = 0; i != req->headers.size; ++i)
     printf("%.*s: %.*s\n", (int)req->headers.entries[i].name->len, req->headers.entries[i].name->base, (int)req->headers.entries[i].value.len, req->headers.entries[i].value.base);
 
@@ -279,9 +280,12 @@ static int doh_handler(h2o_handler_t *self, h2o_req_t *req)
     cout<<(void*)req<<", POST qname: "<<qname<<", qtype: "<<qtype<<endl;
     du->req=req;
     du->query=std::string(req->entity.base, req->entity.len);
-    du->rsock=g_dohresponsepair[0];
+
+    // use of s_dsc is a problem - we somehow need some data in h2o_handler_t to figure out the right socket
+    
+    du->rsock=s_dsc.dohresponsepair[0];
     du->qtype = qtype;
-    send(g_dohquerypair[0], &du, sizeof(du), 0);
+    send(s_dsc.dohquerypair[0], &du, sizeof(du), 0); // XXX check error
   }
   else if(req->query_at != SIZE_MAX && (req->path.len - req->query_at > 4)) {
     //    if (h2o_memis(&req->path.base[req->query_at], 5, "?dns=", 5)) {
@@ -307,11 +311,10 @@ static int doh_handler(h2o_handler_t *self, h2o_req_t *req)
         cout<<"qname: "<<qname<<", qtype: "<<qtype<<endl;
         du->req=req;
         du->query=decoded;
-        du->rsock=g_dohresponsepair[0];
+        du->rsock=s_dsc.dohresponsepair[0];
         du->qtype = qtype;
-        send(g_dohquerypair[0], &du, sizeof(du), 0);
+        send(s_dsc.dohquerypair[0], &du, sizeof(du), 0);
       }
-         
     }
   }
   else
@@ -353,7 +356,7 @@ void responsesender(int rpair[2])
 static void on_dnsdist(h2o_socket_t *listener, const char *err)
 {
   DOHUnit *du;
-  recv(g_dohresponsepair[1], &du, sizeof(du), 0);
+  recv(s_dsc.dohresponsepair[1], &du, sizeof(du), 0);
 
   du->req->res.status = 200;
   du->req->res.reason = "OK";
@@ -380,7 +383,9 @@ static void on_accept(h2o_socket_t *listener, const char *err)
   // do some dnsdist rules here to filter based on IP address
   if ((sock = h2o_evloop_socket_accept(listener)) == NULL)
     return;
-  h2o_accept(&accept_ctx, sock);
+
+  // s_dsc use is problematic here, we don't know how to pick the right one
+  h2o_accept(&s_dsc.h2o_accept_ctx, sock);
 }
 
 static int create_listener(const ComboAddress& addr)
@@ -395,7 +400,7 @@ static int create_listener(const ComboAddress& addr)
     return -1;
   }
   
-  sock = h2o_evloop_socket_create(ctx.loop, fd, H2O_SOCKET_FLAG_DONT_READ);
+  sock = h2o_evloop_socket_create(s_dsc.h2o_ctx.loop, fd, H2O_SOCKET_FLAG_DONT_READ);
   h2o_socket_read_start(sock, on_accept);
   
   return 0;
@@ -407,35 +412,35 @@ static int setup_ssl(const char *cert_file, const char *key_file, const char *ci
     SSL_library_init();
     OpenSSL_add_all_algorithms();
 
-    accept_ctx.ssl_ctx = SSL_CTX_new(SSLv23_server_method());
-    SSL_CTX_set_options(accept_ctx.ssl_ctx, SSL_OP_NO_SSLv2);
+    s_dsc.h2o_accept_ctx.ssl_ctx = SSL_CTX_new(SSLv23_server_method());
+    SSL_CTX_set_options(s_dsc.h2o_accept_ctx.ssl_ctx, SSL_OP_NO_SSLv2);
 
 
 #ifdef SSL_CTX_set_ecdh_auto
-    SSL_CTX_set_ecdh_auto(accept_ctx.ssl_ctx, 1);
+    SSL_CTX_set_ecdh_auto(s_dsc.h2o_accept_ctx.ssl_ctx, 1);
 #endif
 
     /* load certificate and private key */
-    if (SSL_CTX_use_certificate_file(accept_ctx.ssl_ctx, cert_file, SSL_FILETYPE_PEM) != 1) {
+    if (SSL_CTX_use_certificate_file(s_dsc.h2o_accept_ctx.ssl_ctx, cert_file, SSL_FILETYPE_PEM) != 1) {
         fprintf(stderr, "an error occurred while trying to load server certificate file:%s\n", cert_file);
         return -1;
     }
-    if (SSL_CTX_use_PrivateKey_file(accept_ctx.ssl_ctx, key_file, SSL_FILETYPE_PEM) != 1) {
+    if (SSL_CTX_use_PrivateKey_file(s_dsc.h2o_accept_ctx.ssl_ctx, key_file, SSL_FILETYPE_PEM) != 1) {
         fprintf(stderr, "an error occurred while trying to load private key file:%s\n", key_file);
         return -1;
     }
 
-    if (SSL_CTX_set_cipher_list(accept_ctx.ssl_ctx, ciphers) != 1) {
+    if (SSL_CTX_set_cipher_list(s_dsc.h2o_accept_ctx.ssl_ctx, ciphers) != 1) {
         fprintf(stderr, "ciphers could not be set: %s\n", ciphers);
         return -1;
     }
 
 /* setup protocol negotiation methods */
 #if H2O_USE_NPN
-    h2o_ssl_register_npn_protocols(accept_ctx.ssl_ctx, h2o_http2_npn_protocols);
+    h2o_ssl_register_npn_protocols(s_dsc.h2o_accept_ctx.ssl_ctx, h2o_http2_npn_protocols);
 #endif
 #if H2O_USE_ALPN
-    h2o_ssl_register_alpn_protocols(accept_ctx.ssl_ctx, h2o_http2_alpn_protocols);
+    h2o_ssl_register_alpn_protocols(s_dsc.h2o_accept_ctx.ssl_ctx, h2o_http2_alpn_protocols);
 #endif
 
     return 0;
@@ -443,19 +448,19 @@ static int setup_ssl(const char *cert_file, const char *key_file, const char *ci
 
 int dohThread(const ComboAddress ca, vector<string> urls,  string certfile, string keyfile)
 {
-  if(socketpair(AF_LOCAL, SOCK_DGRAM, 0, g_dohquerypair) < 0 ||
-     socketpair(AF_LOCAL, SOCK_DGRAM, 0, g_dohresponsepair) < 0
+  if(socketpair(AF_LOCAL, SOCK_DGRAM, 0, s_dsc.dohquerypair) < 0 ||
+     socketpair(AF_LOCAL, SOCK_DGRAM, 0, s_dsc.dohresponsepair) < 0
      ) {
     unixDie("Creating a socket pair for DNS over HTTPS");
   }
 
-  std::thread dnsdistThread(dnsdistclient, g_dohquerypair[1], g_dohresponsepair[0]);
+  std::thread dnsdistThread(dnsdistclient, s_dsc.dohquerypair[1], s_dsc.dohresponsepair[0]);
   
   h2o_access_log_filehandle_t *logfh = h2o_access_log_open_handle("/dev/stdout", NULL, H2O_LOGCONF_ESCAPE_APACHE);
   h2o_pathconf_t *pathconf;
   
-  h2o_config_init(&config);
-  h2o_hostconf_t *hostconf = h2o_config_register_host(&config, h2o_iovec_init(ca.toString().c_str(), ca.toString().size()), 65535);
+  h2o_config_init(&s_dsc.h2o_config);
+  h2o_hostconf_t *hostconf = h2o_config_register_host(&s_dsc.h2o_config, h2o_iovec_init(ca.toString().c_str(), ca.toString().size()), 65535);
 
   for(const auto& url : urls) {
     cout<<"Registering URL prefix "<< url << " for " <<ca.toStringWithPort() << endl;
@@ -466,9 +471,9 @@ int dohThread(const ComboAddress ca, vector<string> urls,  string certfile, stri
   }
   
   
-  h2o_context_init(&ctx, h2o_evloop_create(), &config);
+  h2o_context_init(&s_dsc.h2o_ctx, h2o_evloop_create(), &s_dsc.h2o_config);
   
-  auto sock = h2o_evloop_socket_create(ctx.loop, g_dohresponsepair[1], H2O_SOCKET_FLAG_DONT_READ);
+  auto sock = h2o_evloop_socket_create(s_dsc.h2o_ctx.loop, s_dsc.dohresponsepair[1], H2O_SOCKET_FLAG_DONT_READ);
   h2o_socket_read_start(sock, on_dnsdist);
   
   if (USE_HTTPS &&
@@ -476,15 +481,15 @@ int dohThread(const ComboAddress ca, vector<string> urls,  string certfile, stri
                 "DEFAULT:!MD5:!DSS:!DES:!RC4:!RC2:!SEED:!IDEA:!NULL:!ADH:!EXP:!SRP:!PSK") != 0)
     goto Error;
   
-  accept_ctx.ctx = &ctx;
-  accept_ctx.hosts = config.hosts;
+  s_dsc.h2o_accept_ctx.ctx = &s_dsc.h2o_ctx;
+  s_dsc.h2o_accept_ctx.hosts = s_dsc.h2o_config.hosts;
 
   if (create_listener(ca) != 0) {
     fprintf(stderr, "failed to listen to %s: %s\n", ca.toStringWithPort().c_str(), strerror(errno));
     goto Error;
   }
   
-  while (h2o_evloop_run(ctx.loop, INT32_MAX) == 0)
+  while (h2o_evloop_run(s_dsc.h2o_ctx.loop, INT32_MAX) == 0)
     ;
   
  Error:
