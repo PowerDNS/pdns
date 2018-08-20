@@ -232,7 +232,7 @@ void CommunicatorClass::sendNotification(int sock, const DNSName& domain, const 
   string tsigsecret64;
   string tsigsecret;
 
-  if (B.getDomainMetadata(domain, "TSIG-ALLOW-AXFR", meta) && meta.size() > 0) {
+  if (::arg().mustDo("send-signed-notify") && B.getDomainMetadata(domain, "TSIG-ALLOW-AXFR", meta) && meta.size() > 0) {
     tsigkeyname = DNSName(meta[0]);
   }
 
