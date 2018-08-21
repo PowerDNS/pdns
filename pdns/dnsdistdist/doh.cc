@@ -45,7 +45,11 @@ struct DOHServerConfig
   ClientState cs;
 };
 
-// this duplicates way too much from the UDP handler
+/* this duplicates way too much from the UDP handler. Sorry.
+   this function calls 'return' to drop a query without sending it
+   but that's not how it works in DoH land. We need to set du->error 
+   so HTTP serves a 500
+*/
 static void processDOHQuery(DOHUnit* du)
 {
   LocalHolders holders;
@@ -53,7 +57,7 @@ static void processDOHQuery(DOHUnit* du)
   try {
     DOHServerConfig* dsc = (DOHServerConfig*)du->req->conn->ctx->storage.entries[0].data;
     ClientState& cs = dsc->cs;
-    cs.muted=false; // cs is not filled out so we have to force this
+    cs.muted=false; // cs is not filled out so we have to force this for DoH
     
     /* we need an accurate ("real") value for the response and
        to store into the IDS, but not for insertion into the
@@ -150,12 +154,19 @@ static void processDOHQuery(DOHUnit* du)
         dr.qTag = dq.qTag;
 
         if (!processResponse(holders.cacheHitRespRulactions, dr, &delayMsec)) {
+
+          du->error = true;
+          if(send(du->rsock, &du, sizeof(du), 0) != sizeof(du))
+            delete du;     // XXX but now what - will h2o time this out for us?
+
           return;
         }
-
+        
         if (!cs.muted) {
+          du->query = std::string(query, cachedResponseSize);
+          send(du->rsock, &du, sizeof(du), 0);
           // sendUDPResponse(cs.udpFD, query, cachedResponseSize, delayMsec, dest, remote);
-          // XXXX actually send DOH response
+          // XXX sendUDPResponse probably kept more stats or did something with delayMsec
         }
 
         g_stats.cacheHits++;
@@ -183,15 +194,20 @@ static void processDOHQuery(DOHUnit* du)
         dr.qTag = dq.qTag;
 
         if (!processResponse(holders.selfAnsweredRespRulactions, dr, &delayMsec)) {
+          cout<<"Dropping DoH response because no policy, but have not implemented telling DoH thread about that"<<endl;
           return;
         }
 
         //        sendUDPResponse(cs.udpFD, response, responseLen, 0, dest, remote);
-        // XXXX actually sendDOHResponse
+        // XXXX actually sendDOHResponse instead
 
         // no response-only statistics counter to update.
         doLatencyStats(0);  // we're not going to measure this
       }
+      du->error = true; // turns our drop into a 500
+      if(send(dsc->dohquerypair[0], &du, sizeof(du), 0) != sizeof(du))
+        delete du;     // XXX but now what - will h2o time this out for us?
+
       vinfolog("%s query for %s|%s from %s, no policy applied", g_servFailOnNoPolicy ? "ServFailed" : "Dropped", dq.qname->toString(), QType(dq.qtype).getName(), du->remote.toStringWithPort());
       return;
     }
@@ -206,6 +222,9 @@ static void processDOHQuery(DOHUnit* du)
     IDState* ids = &ss->idStates[idOffset];
     ids->age = 0;
     ids->du = du;
+
+    // XXX in dnsdist.cc this logic changed to prevent negative outstandings, need to sync that up
+    
     if(ids->origFD < 0) // if we are reusing, no change in outstanding
       ss->outstanding++;
     else {
@@ -254,6 +273,10 @@ static void processDOHQuery(DOHUnit* du)
     dh->id = idOffset;
 
     int fd = pickBackendSocketForSending(ss);
+
+    // XXX for DoH we should modify or add EDNS option that says
+    // large answers are ok
+    
     ssize_t ret = udpClientSendRequestToBackend(ss, fd, query, dq.len);
 
     if(ret < 0) {
@@ -309,7 +332,7 @@ static int doh_handler(h2o_handler_t *self, h2o_req_t *req)
   }
   else if(req->query_at != SIZE_MAX && (req->path.len - req->query_at > 4)) {
     //    if (h2o_memis(&req->path.base[req->query_at], 5, "?dns=", 5)) {
-
+    // XXX
     // this should do a better job and deal with ?dns= and &dns= XXX
     char* dns = strstr(req->path.base+req->query_at, "dns=");
     if(dns) {
@@ -362,17 +385,22 @@ static void on_dnsdist(h2o_socket_t *listener, const char *err)
   DOHServerConfig* dsc = (DOHServerConfig*)listener->data;
   recv(dsc->dohresponsepair[1], &du, sizeof(du), 0);
 
-  du->req->res.status = 200;
-  du->req->res.reason = "OK";
-  
-  h2o_add_header(&du->req->pool, &du->req->res.headers, H2O_TOKEN_CONTENT_TYPE, NULL, H2O_STRLIT("application/dns-message"));
-  //  h2o_add_header(&du->req->pool, &du->req->res.headers, H2O_TOKEN_SET_COOKIE, NULL, H2O_STRLIT("cookie=1")); 
-  
-  struct dnsheader* dh = (struct dnsheader*)du->query.c_str();
-  cout<<"Attempt to send out "<<du->query.size()<<" bytes over https, TC="<<dh->tc<<", RCODE="<<dh->rcode<<", qtype="<<du->qtype<<", req="<<(void*)du->req<<endl;
-  
-  du->req->res.content_length = du->query.size();
-  h2o_send_inline(du->req, du->query.c_str(), du->query.size());
+  if(!du->error) {
+    du->req->res.status = 200;
+    du->req->res.reason = "OK";
+    
+    h2o_add_header(&du->req->pool, &du->req->res.headers, H2O_TOKEN_CONTENT_TYPE, NULL, H2O_STRLIT("application/dns-message"));
+    //  h2o_add_header(&du->req->pool, &du->req->res.headers, H2O_TOKEN_SET_COOKIE, NULL, H2O_STRLIT("cookie=1")); 
+    
+    struct dnsheader* dh = (struct dnsheader*)du->query.c_str();
+    cout<<"Attempt to send out "<<du->query.size()<<" bytes over https, TC="<<dh->tc<<", RCODE="<<dh->rcode<<", qtype="<<du->qtype<<", req="<<(void*)du->req<<endl;
+    
+    du->req->res.content_length = du->query.size();
+    h2o_send_inline(du->req, du->query.c_str(), du->query.size());
+  }
+  else {
+    h2o_send_error_500(du->req, "Internal Server Error", "Internal Server Error", 0);
+  }
   delete du;
 }
 

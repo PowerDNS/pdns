@@ -536,7 +536,7 @@ try {
           empty.sin4.sin_family = 0;
           /* if ids->destHarvested is false, origDest holds the listening address.
              We don't want to use that as a source since it could be 0.0.0.0 for example. */
-          if(ids->du) {
+          if(ids->du) { // DoH query
             ids->du->query = std::string(response, responseLen);
             // XXX should also do the accounting things that sendUDPResponse does!
             send(ids->du->rsock, &ids->du, sizeof(ids->du), 0);

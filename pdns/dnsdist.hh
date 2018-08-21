@@ -511,6 +511,7 @@ struct DOHUnit
   ComboAddress dest;
   std::map<std::string, std::string, CIStringCompare> headers;
   uint16_t qtype;
+  bool error{false};
 };
 
 
