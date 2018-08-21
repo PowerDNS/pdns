@@ -427,7 +427,7 @@ void SMySQL::connect()
 #endif
 
     if (d_setIsolation && (retry == 1))
-      mysql_options(&d_db, MYSQL_INIT_COMMAND,"SET SESSION tx_isolation='READ-COMMITTED'");
+      mysql_options(&d_db, MYSQL_INIT_COMMAND,"SET SESSION TRANSACTION ISOLATION LEVEL READ COMMITTED");
 
     mysql_options(&d_db, MYSQL_READ_DEFAULT_GROUP, d_group.c_str());
 
