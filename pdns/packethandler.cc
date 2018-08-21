@@ -457,18 +457,17 @@ int PacketHandler::doAdditionalProcessingAndDropAA(DNSPacket *p, DNSPacket *r, c
         lookup = getRR<NSRecordContent>(i->dr)->getNS();
       else
         continue;
+
       B.lookup(QType(d_doIPv6AdditionalProcessing ? QType::ANY : QType::A), lookup, p);
 
       while(B.get(rr)) {
         if(rr.dr.d_type != QType::A && rr.dr.d_type!=QType::AAAA)
           continue;
-        if(rr.domain_id!=i->domain_id && ::arg()["out-of-zone-additional-processing"]=="no") {
-          DLOG(g_log<<Logger::Warning<<"Not including out-of-zone additional processing of "<<i->dr.d_name<<" ("<<rr.dr.d_name<<")"<<endl);
+        if(rr.domain_id!=i->domain_id || !rr.dr.d_name.isPartOf(soadata.qname)) {
+          // FIXME we might still pass on the record if it is occluded and the
+          // backend does not report a different ID
           continue; // not adding out-of-zone additional data
         }
-        
-        if(rr.auth && !rr.dr.d_name.isPartOf(soadata.qname)) // don't sign out of zone data using the main key 
-          rr.auth=false;
         rr.dr.d_place=DNSResourceRecord::ADDITIONAL;
         toAdd.push_back(rr);
       }
