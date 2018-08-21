@@ -1345,7 +1345,7 @@ static void apiServerTSIGKeys(HttpRequest* req, HttpResponse* resp) {
       doc.push_back(makeJSONTSIGKey(key, false));
     }
     resp->setBody(doc);
-  } else if (req->method == "POST" && !::arg().mustDo("api-readonly")) {
+  } else if (req->method == "POST") {
     auto document = req->json();
     DNSName keyname(stringFromJson(document, "name"));
     DNSName algo(stringFromJson(document, "algorithm"));
@@ -1396,7 +1396,7 @@ static void apiServerTSIGKeyDetail(HttpRequest* req, HttpResponse* resp) {
 
   if (req->method == "GET") {
     resp->setBody(makeJSONTSIGKey(tsk));
-  } else if (req->method == "PUT" && !::arg().mustDo("api-readonly")) {
+  } else if (req->method == "PUT") {
     json11::Json document;
     if (!req->body.empty()) {
       document = req->json();
@@ -1430,7 +1430,7 @@ static void apiServerTSIGKeyDetail(HttpRequest* req, HttpResponse* resp) {
       }
     }
     resp->setBody(makeJSONTSIGKey(tsk));
-  } else if (req->method == "DELETE" && !::arg().mustDo("api-readonly")) {
+  } else if (req->method == "DELETE") {
     if (!B.deleteTSIGKey(keyname)) {
       throw HttpInternalServerErrorException("Unable to remove TSIG key '" + keyname.toStringNoDot() + "'");
     } else {
