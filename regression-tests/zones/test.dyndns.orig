@@ -29,3 +29,6 @@ ttl			IN	A	127.0.0.1
 *.wild			IN	A	127.0.1.255
 a.host			IN	A	1.1.1.1
 e.host			IN	A	1.1.1.1
+
+sub				IN NS ns1.test.dyndns.
+sub				IN NS ns2.test.dyndns.

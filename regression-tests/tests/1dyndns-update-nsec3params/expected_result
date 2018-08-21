@@ -46,6 +46,8 @@ Check if NSEC3PARAM record exists and A-record added
 < ns1.test.dyndns	A	0	127.0.0.1	3600	'ns1'	1
 < ns2.test.dyndns	A	0	127.0.0.2	3600	'ns2'	1
 < replace.test.dyndns	A	0	127.0.0.1	3600	'replace'	1
+< sub.test.dyndns	NS	0	ns1.test.dyndns	3600	'sub'	0
+< sub.test.dyndns	NS	0	ns2.test.dyndns	3600	'sub'	0
 < test.dyndns	MX	10	host-1.test.dyndns	3600	''	1
 < test.dyndns	MX	20	host-2.test.dyndns	3600	''	1
 < test.dyndns	NS	0	ns1.test.dyndns	3600	''	1
@@ -70,6 +72,8 @@ Check if NSEC3PARAM record exists and A-record added
 > ns1.test.dyndns	A	0	127.0.0.1	3600	'uba3qp1vffon9pq2r07e7ldrnh5mg90v'	1
 > ns2.test.dyndns	A	0	127.0.0.2	3600	'pe3h59f3ru6vid4ok0t4tsu6d0ndrvhs'	1
 > replace.test.dyndns	A	0	127.0.0.1	3600	'hcj69ok6nqcmebhuprvga4kagcb9cfrf'	1
+> sub.test.dyndns	NS	0	ns1.test.dyndns	3600	'n6n81ndt5ku73e19k457toub8e6d2lpm'	0
+> sub.test.dyndns	NS	0	ns2.test.dyndns	3600	'n6n81ndt5ku73e19k457toub8e6d2lpm'	0
 > test.dyndns	MX	10	host-1.test.dyndns	3600	'62qbu7pvpt7cm7bdpu7geb3je1l0aure'	1
 > test.dyndns	MX	20	host-2.test.dyndns	3600	'62qbu7pvpt7cm7bdpu7geb3je1l0aure'	1
 > test.dyndns	NS	0	ns1.test.dyndns	3600	'62qbu7pvpt7cm7bdpu7geb3je1l0aure'	1
