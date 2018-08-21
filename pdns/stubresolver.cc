@@ -102,6 +102,8 @@ static void parseLocalResolvConf()
  * First, parse the `resolver` configuration option for IP addresses to use.
  * If that doesn't work, parse /etc/resolv.conf and add those nameservers to
  * s_resolversForStub.
+ *
+ * mainthread() calls this so you don't have to.
  */
 void stubParseResolveConf()
 {

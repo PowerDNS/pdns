@@ -426,6 +426,12 @@ too-old-drops
 ^^^^^^^^^^^^^
 questions dropped that were too old
 
+truncated-drops
+^^^^^^^^^^^^^^^
+.. versionadded:: 4.2
+
+questions dropped because they were larger than 512 bytes
+
 unauthorized-tcp
 ^^^^^^^^^^^^^^^^
 number of TCP questions denied because of   allow-from restrictions

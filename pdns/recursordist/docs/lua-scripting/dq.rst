@@ -133,6 +133,12 @@ The DNSQuestion object contains at least the following fields:
       Possible states are ``pdns.validationstates.Indeterminate``, ``pdns.validationstates.Bogus``, ``pdns.validationstates.Insecure`` and ``pdns.validationstates.Secure``.
       The result will always be ``pdns.validationstates.Indeterminate`` is validation is disabled or was not requested.
 
+  .. attribute:: DNSQuestion.logResponse
+
+      .. versionadded:: 4.2.0
+
+      Whether the response to this query will be exported to a remote protobuf logger, if one has been configured.
+
   It also supports the following methods:
 
   .. method:: DNSQuestion:addAnswer(type, content, [ttl, name])
@@ -259,12 +265,22 @@ The EDNSOptionView Class
 
 .. class:: EDNSOptionView
 
-  An object that represents a single EDNS option
+  An object that represents the values of a single EDNS option
+
+  .. method:: EDNSOptionView:count()
+     .. versionadded:: 4.2.0
+
+    The number of values for this EDNS option.
+
+  .. method:: EDNSOptionView:getValues()
+     .. versionadded:: 4.2.0
+
+    Return a table of NULL-safe strings values for this EDNS option.
 
   .. attribute:: EDNSOptionView.size
 
-    The size in bytes of the EDNS option.
+    The size in bytes of the first value of this EDNS option.
 
   .. method:: EDNSOptionView:getContent()
 
-    Returns a NULL-safe string object of the EDNS option's content
+    Returns a NULL-safe string object of the first value of this EDNS option.

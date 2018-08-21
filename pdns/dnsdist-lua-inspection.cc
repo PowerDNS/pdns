@@ -670,5 +670,26 @@ void setupLuaInspection()
         group->setQTypeRate(qtype, rate, seconds, reason, blockDuration, action ? *action : DNSAction::Action::None);
       }
     });
+  g_lua.registerFunction<void(std::shared_ptr<DynBlockRulesGroup>::*)(boost::variant<std::string, std::vector<std::pair<int, std::string>>>)>("excludeRange", [](std::shared_ptr<DynBlockRulesGroup>& group, boost::variant<std::string, std::vector<std::pair<int, std::string>>> ranges) {
+      if (ranges.type() == typeid(std::vector<std::pair<int, std::string>>)) {
+        for (const auto& range : *boost::get<std::vector<std::pair<int, std::string>>>(&ranges)) {
+          group->excludeRange(Netmask(range.second));
+        }
+      }
+      else {
+        group->excludeRange(Netmask(*boost::get<std::string>(&ranges)));
+      }
+    });
+  g_lua.registerFunction<void(std::shared_ptr<DynBlockRulesGroup>::*)(boost::variant<std::string, std::vector<std::pair<int, std::string>>>)>("includeRange", [](std::shared_ptr<DynBlockRulesGroup>& group, boost::variant<std::string, std::vector<std::pair<int, std::string>>> ranges) {
+      if (ranges.type() == typeid(std::vector<std::pair<int, std::string>>)) {
+        for (const auto& range : *boost::get<std::vector<std::pair<int, std::string>>>(&ranges)) {
+          group->includeRange(Netmask(range.second));
+        }
+      }
+      else {
+        group->includeRange(Netmask(*boost::get<std::string>(&ranges)));
+      }
+    });
   g_lua.registerFunction("apply", &DynBlockRulesGroup::apply);
+  g_lua.registerFunction("toString", &DynBlockRulesGroup::toString);
 }

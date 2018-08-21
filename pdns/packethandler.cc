@@ -1145,8 +1145,9 @@ DNSPacket *PacketHandler::doQuestion(DNSPacket *p)
 
   if (p->hasEDNS() && p->getEDNSVersion() > 0) {
     r = p->replyPacket();
-    r->setRcode(16 & 0xF);
-    r->setEDNSRcode((16 & 0xFFF0)>>4); // set rcode to BADVERS
+
+    // PacketWriter::addOpt will take care of setting this correctly in the packet
+    r->setEDNSRcode(ERCode::BADVERS);
     return r;
   }
 

@@ -7,7 +7,10 @@ if [ ! -d .venv ]; then
 fi
 . .venv/bin/activate
 python -V
+pip install -U pip
 pip install -r requirements.txt
+
+protoc -I=../pdns/ --python_out=. ../pdns/dnsmessage.proto
 
 mkdir -p configs
 
@@ -42,4 +45,4 @@ set -e
 if [ "${PDNS_DEBUG}" = "YES" ]; then
   set -x
 fi
-LD_PRELOAD="${LIBAUTHBIND} ${LIBFAKETIME}" nosetests -I test_WellKnown.py --with-xunit $@
+LD_PRELOAD="${LIBASAN} ${LIBAUTHBIND} ${LIBFAKETIME}" nosetests -I test_WellKnown.py --with-xunit $@

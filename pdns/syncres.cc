@@ -193,7 +193,7 @@ bool SyncRes::doSpecialNamesResolve(const DNSName &qname, const QType &qtype, co
     if (qtype == QType::TXT || qtype == QType::ANY) {
       if(qname == versionbind || qname == versionpdns)
         answers.push_back({QType::TXT, "\""+::arg()["version-string"]+"\""});
-      else
+      else if (s_serverID != "disabled")
         answers.push_back({QType::TXT, "\""+s_serverID+"\""});
     }
   }
@@ -418,7 +418,7 @@ int SyncRes::asyncresolveWrapper(const ComboAddress& ip, bool ednsMANDATORY, con
      0) UNKNOWN Unknown state 
      1) EDNS: Honors EDNS0
      2) EDNSIGNORANT: Ignores EDNS0, gives replies without EDNS0
-     3) NOEDNS: Generates FORMERR/NOTIMP on EDNS queries
+     3) NOEDNS: Generates FORMERR on EDNS queries
 
      Everybody starts out assumed to be '0'.
      If '0', send out EDNS0
@@ -477,7 +477,7 @@ int SyncRes::asyncresolveWrapper(const ComboAddress& ip, bool ednsMANDATORY, con
       return ret;
     }
     else if(mode==EDNSStatus::UNKNOWN || mode==EDNSStatus::EDNSOK || mode == EDNSStatus::EDNSIGNORANT ) {
-      if(res->d_rcode == RCode::FormErr || res->d_rcode == RCode::NotImp)  {
+      if(res->d_validpacket && res->d_rcode == RCode::FormErr)  {
 	//	cerr<<"Downgrading to NOEDNS because of "<<RCode::to_s(res->d_rcode)<<" for query to "<<ip.toString()<<" for '"<<domain<<"'"<<endl;
         mode = EDNSStatus::NOEDNS;
         continue;
@@ -485,7 +485,7 @@ int SyncRes::asyncresolveWrapper(const ComboAddress& ip, bool ednsMANDATORY, con
       else if(!res->d_haveEDNS) {
         if(mode != EDNSStatus::EDNSIGNORANT) {
           mode = EDNSStatus::EDNSIGNORANT;
-	  //	  cerr<<"We find that "<<ip.toString()<<" is an EDNS-ignorer for '"<<domain<<"', moving to mode 3"<<endl;
+	  //	  cerr<<"We find that "<<ip.toString()<<" is an EDNS-ignorer for '"<<domain<<"', moving to mode 2"<<endl;
 	}
       }
       else {
@@ -571,21 +571,25 @@ int SyncRes::doResolve(const DNSName &qname, const QType &qtype, vector<DNSRecor
     DNSName authname(qname);
     bool wasForwardedOrAuthZone = false;
     bool wasAuthZone = false;
+    bool wasForwardRecurse = false;
     domainmap_t::const_iterator iter = getBestAuthZone(&authname);
     if(iter != t_sstorage.domainmap->end()) {
+      const auto& domain = iter->second;
       wasForwardedOrAuthZone = true;
-      const vector<ComboAddress>& servers = iter->second.d_servers;
-      if(servers.empty()) {
+
+      if (domain.isAuth()) {
         wasAuthZone = true;
+      } else if (domain.shouldRecurse()) {
+        wasForwardRecurse = true;
       }
     }
 
-    if(!d_skipCNAMECheck && doCNAMECacheCheck(qname, qtype, ret, depth, res, state, wasAuthZone)) { // will reroute us if needed
+    if(!d_skipCNAMECheck && doCNAMECacheCheck(qname, qtype, ret, depth, res, state, wasAuthZone, wasForwardRecurse)) { // will reroute us if needed
       d_wasOutOfBand = wasAuthZone;
       return res;
     }
 
-    if(doCacheCheck(qname, authname, wasForwardedOrAuthZone, wasAuthZone, qtype, ret, depth, res, state)) {
+    if(doCacheCheck(qname, authname, wasForwardedOrAuthZone, wasAuthZone, wasForwardRecurse, qtype, ret, depth, res, state)) {
       // we done
       d_wasOutOfBand = wasAuthZone;
       return res;
@@ -881,7 +885,7 @@ DNSName SyncRes::getBestNSNamesFromCache(const DNSName &qname, const QType& qtyp
   return subdomain;
 }
 
-bool SyncRes::doCNAMECacheCheck(const DNSName &qname, const QType &qtype, vector<DNSRecord>& ret, unsigned int depth, int &res, vState& state, bool wasAuthZone)
+bool SyncRes::doCNAMECacheCheck(const DNSName &qname, const QType &qtype, vector<DNSRecord>& ret, unsigned int depth, int &res, vState& state, bool wasAuthZone, bool wasForwardRecurse)
 {
   string prefix;
   if(doLog()) {
@@ -900,7 +904,8 @@ bool SyncRes::doCNAMECacheCheck(const DNSName &qname, const QType &qtype, vector
   vector<std::shared_ptr<RRSIGRecordContent>> signatures;
   vector<std::shared_ptr<DNSRecord>> authorityRecs;
   bool wasAuth;
-  if(t_RC->get(d_now.tv_sec, qname, QType(QType::CNAME), d_requireAuthData, &cset, d_cacheRemote, d_doDNSSEC ? &signatures : nullptr, d_doDNSSEC ? &authorityRecs : nullptr, &d_wasVariable, &state, &wasAuth) > 0) {
+  /* we don't require auth data for forward-recurse lookups */
+  if(t_RC->get(d_now.tv_sec, qname, QType(QType::CNAME), !wasForwardRecurse && d_requireAuthData, &cset, d_cacheRemote, d_doDNSSEC ? &signatures : nullptr, d_doDNSSEC ? &authorityRecs : nullptr, &d_wasVariable, &state, &wasAuth) > 0) {
 
     for(auto j=cset.cbegin() ; j != cset.cend() ; ++j) {
       if (j->d_class != QClass::IN) {
@@ -935,6 +940,7 @@ bool SyncRes::doCNAMECacheCheck(const DNSName &qname, const QType &qtype, vector
 
         DNSRecord dr=*j;
         dr.d_ttl-=d_now.tv_sec;
+        ret.reserve(ret.size() + 1 + signatures.size() + authorityRecs.size());
         ret.push_back(dr);
 
         for(const auto& signature : signatures) {
@@ -1076,7 +1082,7 @@ void SyncRes::computeNegCacheValidationStatus(const NegCache::NegCacheEntry* ne,
   }
 }
 
-bool SyncRes::doCacheCheck(const DNSName &qname, const DNSName& authname, bool wasForwardedOrAuthZone, bool wasAuthZone, const QType &qtype, vector<DNSRecord>&ret, unsigned int depth, int &res, vState& state)
+bool SyncRes::doCacheCheck(const DNSName &qname, const DNSName& authname, bool wasForwardedOrAuthZone, bool wasAuthZone, bool wasForwardRecurse, const QType &qtype, vector<DNSRecord>&ret, unsigned int depth, int &res, vState& state)
 {
   bool giveNegative=false;
 
@@ -1154,7 +1160,7 @@ bool SyncRes::doCacheCheck(const DNSName &qname, const DNSName& authname, bool w
   vector<std::shared_ptr<DNSRecord>> authorityRecs;
   uint32_t ttl=0;
   bool wasCachedAuth;
-  if(t_RC->get(d_now.tv_sec, sqname, sqt, d_requireAuthData, &cset, d_cacheRemote, d_doDNSSEC ? &signatures : nullptr, d_doDNSSEC ? &authorityRecs : nullptr, &d_wasVariable, &cachedState, &wasCachedAuth) > 0) {
+  if(t_RC->get(d_now.tv_sec, sqname, sqt, !wasForwardRecurse && d_requireAuthData, &cset, d_cacheRemote, d_doDNSSEC ? &signatures : nullptr, d_doDNSSEC ? &authorityRecs : nullptr, &d_wasVariable, &cachedState, &wasCachedAuth) > 0) {
 
     LOG(prefix<<sqname<<": Found cache hit for "<<sqt.getName()<<": ");
 
@@ -1205,6 +1211,8 @@ bool SyncRes::doCacheCheck(const DNSName &qname, const DNSName& authname, bool w
         expired=true;
       }
     }
+
+    ret.reserve(ret.size() + signatures.size() + authorityRecs.size());
 
     for(const auto& signature : signatures) {
       DNSRecord dr;
@@ -2103,7 +2111,7 @@ RCode::rcodes_ SyncRes::updateCacheFromRecords(unsigned int depth, LWResult& lwr
     }
 
     vState recordState = getValidationStatus(i->first.name, false);
-    LOG(d_prefix<<": got initial zone status "<<vStates[recordState]<<" for record "<<i->first.name<<endl);
+    LOG(d_prefix<<": got initial zone status "<<vStates[recordState]<<" for record "<<i->first.name<<"|"<<DNSRecordContent::NumberToType(i->first.type)<<endl);
 
     if (shouldValidate() && recordState == Secure) {
       vState initialState = recordState;

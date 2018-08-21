@@ -65,6 +65,7 @@ struct DNSQuestion
 #ifdef HAVE_PROTOBUF
   boost::optional<boost::uuids::uuid> uniqueId;
 #endif
+  Netmask ecs;
   const DNSName* qname;
   const uint16_t qtype;
   const uint16_t qclass;
@@ -82,6 +83,7 @@ struct DNSQuestion
   bool ecsOverride;
   bool useECS{true};
   bool addXPF{true};
+  bool ecsSet{false};
 };
 
 struct DNSResponse : DNSQuestion
@@ -102,7 +104,38 @@ struct DNSResponse : DNSQuestion
 class DNSAction
 {
 public:
-  enum class Action { Drop, Nxdomain, Refused, Spoof, Allow, HeaderModify, Pool, Delay, Truncate, ServFail, None};
+  enum class Action { Drop, Nxdomain, Refused, Spoof, Allow, HeaderModify, Pool, Delay, Truncate, ServFail, None, NoOp };
+  static std::string typeToString(const Action& action)
+  {
+    switch(action) {
+    case Action::Drop:
+      return "Drop";
+    case Action::Nxdomain:
+      return "Send NXDomain";
+    case Action::Refused:
+      return "Send Refused";
+    case Action::Spoof:
+      return "Spoof an answer";
+    case Action::Allow:
+      return "Allow";
+    case Action::HeaderModify:
+      return "Modify the header";
+    case Action::Pool:
+      return "Route to a pool";
+    case Action::Delay:
+      return "Delay";
+    case Action::Truncate:
+      return "Truncate over UDP";
+    case Action::ServFail:
+      return "Send ServFail";
+    case Action::None:
+    case Action::NoOp:
+      return "Do nothing";
+    }
+
+    return "Unknown";
+  }
+
   virtual Action operator()(DNSQuestion*, string* ruleresult) const =0;
   virtual ~DNSAction()
   {
@@ -272,28 +305,69 @@ struct StopWatch
 
 };
 
-class QPSLimiter
+class BasicQPSLimiter
 {
 public:
-  QPSLimiter()
+  BasicQPSLimiter()
   {
   }
 
-  QPSLimiter(unsigned int rate, unsigned int burst) : d_rate(rate), d_burst(burst), d_tokens(burst)
+  BasicQPSLimiter(unsigned int rate, unsigned int burst): d_tokens(burst)
   {
-    d_passthrough=false;
+    d_prev.start();
+  }
+
+  bool check(unsigned int rate, unsigned int burst) const // this is not quite fair
+  {
+    auto delta = d_prev.udiffAndSet();
+
+    d_tokens += 1.0 * rate * (delta/1000000.0);
+
+    if(d_tokens > burst) {
+      d_tokens = burst;
+    }
+
+    bool ret=false;
+    if(d_tokens >= 1.0) { // we need this because burst=1 is weird otherwise
+      ret=true;
+      --d_tokens;
+    }
+
+    return ret;
+  }
+
+  bool seenSince(const struct timespec& cutOff) const
+  {
+    return cutOff < d_prev.d_start;
+  }
+
+protected:
+  mutable StopWatch d_prev;
+  mutable double d_tokens;
+};
+
+class QPSLimiter : public BasicQPSLimiter
+{
+public:
+  QPSLimiter(): BasicQPSLimiter()
+  {
+  }
+
+  QPSLimiter(unsigned int rate, unsigned int burst): BasicQPSLimiter(rate, burst), d_rate(rate), d_burst(burst), d_passthrough(false)
+  {
     d_prev.start();
   }
 
   unsigned int getRate() const
   {
-    return d_passthrough? 0 : d_rate;
+    return d_passthrough ? 0 : d_rate;
   }
 
   int getPassed() const
   {
     return d_passed;
   }
+
   int getBlocked() const
   {
     return d_blocked;
@@ -301,34 +375,26 @@ public:
 
   bool check() const // this is not quite fair
   {
-    if(d_passthrough)
+    if (d_passthrough) {
       return true;
-    auto delta = d_prev.udiffAndSet();
+    }
 
-    d_tokens += 1.0*d_rate * (delta/1000000.0);
-
-    if(d_tokens > d_burst)
-      d_tokens = d_burst;
-
-    bool ret=false;
-    if(d_tokens >= 1.0) { // we need this because burst=1 is weird otherwise
-      ret=true;
-      --d_tokens;
+    bool ret = BasicQPSLimiter::check(d_rate, d_burst);
+    if (ret) {
       d_passed++;
     }
-    else
+    else {
       d_blocked++;
+    }
 
     return ret;
   }
 private:
-  bool d_passthrough{true};
-  unsigned int d_rate;
-  unsigned int d_burst;
-  mutable double d_tokens;
-  mutable StopWatch d_prev;
   mutable unsigned int d_passed{0};
   mutable unsigned int d_blocked{0};
+  unsigned int d_rate;
+  unsigned int d_burst;
+  bool d_passthrough{true};
 };
 
 struct ClientState;
@@ -336,16 +402,15 @@ struct ClientState;
 struct IDState
 {
   IDState() : origFD(-1), sentTime(true), delayMsec(0), tempFailureTTL(boost::none) { origDest.sin4.sin_family = 0;}
-  IDState(const IDState& orig): origRemote(orig.origRemote), origDest(orig.origDest)
+  IDState(const IDState& orig): origRemote(orig.origRemote), origDest(orig.origDest), age(orig.age)
   {
-    origFD = orig.origFD;
+    origFD.store(orig.origFD.load());
     origID = orig.origID;
     delayMsec = orig.delayMsec;
     tempFailureTTL = orig.tempFailureTTL;
-    age.store(orig.age.load());
   }
 
-  int origFD;  // set to <0 to indicate this state is empty   // 4
+  std::atomic<int> origFD;  // set to <0 to indicate this state is empty   // 4
 
   ComboAddress origRemote;                                    // 28
   ComboAddress origDest;                                      // 28
@@ -357,11 +422,12 @@ struct IDState
 #ifdef HAVE_PROTOBUF
   boost::optional<boost::uuids::uuid> uniqueId;
 #endif
+  boost::optional<Netmask> subnet{boost::none};
   std::shared_ptr<DNSDistPacketCache> packetCache{nullptr};
   std::shared_ptr<QTag> qTag{nullptr};
   const ClientState* cs{nullptr};
   uint32_t cacheKey;                                          // 8
-  std::atomic<uint16_t> age;                                  // 4
+  uint16_t age;                                               // 4
   uint16_t qtype;                                             // 2
   uint16_t qclass;                                            // 2
   uint16_t origID;                                            // 2
@@ -433,10 +499,10 @@ class TCPClientCollection {
   std::atomic<uint64_t> d_numthreads{0};
   std::atomic<uint64_t> d_pos{0};
   std::atomic<uint64_t> d_queued{0};
-  uint64_t d_maxthreads{0};
+  const uint64_t d_maxthreads{0};
   std::mutex d_mutex;
   int d_singlePipe[2];
-  bool d_useSinglePipe;
+  const bool d_useSinglePipe;
 public:
 
   TCPClientCollection(size_t maxThreads, bool useSinglePipe=false): d_maxthreads(maxThreads), d_singlePipe{-1,-1}, d_useSinglePipe(useSinglePipe)
@@ -501,12 +567,13 @@ struct DownstreamState
 
   std::vector<int> sockets;
   std::mutex socketsLock;
+  std::mutex connectLock;
   std::unique_ptr<FDMultiplexer> mplexer{nullptr};
   std::thread tid;
-  ComboAddress remote;
+  const ComboAddress remote;
   QPSLimiter qps;
   vector<IDState> idStates;
-  ComboAddress sourceAddr;
+  const ComboAddress sourceAddr;
   checkfunc_t checkFunction;
   DNSName checkName{"a.root-servers.net."};
   QType checkType{QType::A};
@@ -531,7 +598,7 @@ struct DownstreamState
   int tcpConnectTimeout{5};
   int tcpRecvTimeout{30};
   int tcpSendTimeout{30};
-  unsigned int sourceItf{0};
+  const unsigned int sourceItf{0};
   uint16_t retries{5};
   uint16_t xpfRRCode{0};
   uint8_t currentCheckFailures{0};
@@ -544,8 +611,10 @@ struct DownstreamState
   bool useECS{false};
   bool setCD{false};
   std::atomic<bool> connected{false};
+  std::atomic_flag threadStarted;
   bool tcpFastOpen{false};
   bool ipBindAddrNoPort{true};
+
   bool isUp() const
   {
     if(availability == Availability::Down)
@@ -580,7 +649,7 @@ struct DownstreamState
       status = (upStatus ? "up" : "down");
     return status;
   }
-  void reconnect();
+  bool reconnect();
 };
 using servers_t =vector<std::shared_ptr<DownstreamState>>;
 
@@ -610,6 +679,9 @@ struct ServerPolicy
   string name;
   policyfunc_t policy;
   bool isLua;
+  std::string toString() const {
+    return string("ServerPolicy") + (isLua ? " (Lua)" : "") + " \"" + name + "\"";
+  }
 };
 
 struct ServerPool

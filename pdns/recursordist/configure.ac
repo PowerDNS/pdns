@@ -138,6 +138,21 @@ AC_ARG_WITH([socketdir],
   [socketdir="$withval"]
 )
 
+PDNS_ENABLE_NOD
+
+AM_COND_IF([NOD_ENABLED],
+  [
+  BOOST_FILESYSTEM
+  AS_IF([test -z "$BOOST_FILESYSTEM_LIBS"], [ AC_MSG_ERROR([Boost filesystem library is not installed])])],
+  [])
+
+AC_SUBST([nodcachedir])
+nodcachedir='${prefix}/var/lib/pdns-recursor'
+AC_ARG_WITH([nod-cache-dir],
+  [AS_HELP_STRING([--with-nodcachedir], [where newly observed domain cache files live @<:@default=PREFIX/var/lib/pdns-recursor@:>@])],
+  [nodcachedir="$withval"]
+)
+
 AC_MSG_CHECKING([whether we will enable compiler security checks])
 AC_ARG_ENABLE([hardening],
   [AS_HELP_STRING([--disable-hardening], [disable compiler security checks @<:@default=no@:>@])],
@@ -179,6 +194,7 @@ AC_SUBST([PROGRAM_LDFLAGS])
 AC_CONFIG_FILES([Makefile
 	ext/Makefile
 	ext/json11/Makefile
+	ext/probds/Makefile
 	ext/yahttp/Makefile
 	ext/yahttp/yahttp/Makefile])
 
@@ -231,6 +247,10 @@ AS_IF([test "x$NET_SNMP_LIBS" != "x"],
 AS_IF([test "x$systemd" != "xn"],
   [AC_MSG_NOTICE([systemd: yes])],
   [AC_MSG_NOTICE([systemd: no])]
+)
+AM_COND_IF([NOD_ENABLED],
+  [AC_MSG_NOTICE([nod: yes])],
+  [AC_MSG_NOTICE([nod: no])]
 )
 AC_MSG_NOTICE([Context library: $pdns_context_library])
 AC_MSG_NOTICE([])

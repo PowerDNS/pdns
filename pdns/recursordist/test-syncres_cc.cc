@@ -39,7 +39,7 @@ bool RecursorLua4::preoutquery(const ComboAddress& ns, const ComboAddress& reque
   return false;
 }
 
-int asyncresolve(const ComboAddress& ip, const DNSName& domain, int type, bool doTCP, bool sendRDQuery, int EDNS0Level, struct timeval* now, boost::optional<Netmask>& srcmask, boost::optional<const ResolveContext&> context, std::shared_ptr<RemoteLogger> outgoingLogger, LWResult* res, bool* chained)
+int asyncresolve(const ComboAddress& ip, const DNSName& domain, int type, bool doTCP, bool sendRDQuery, int EDNS0Level, struct timeval* now, boost::optional<Netmask>& srcmask, boost::optional<const ResolveContext&> context, const std::shared_ptr<RemoteLogger>& outgoingLogger, LWResult* res, bool* chained)
 {
   return 0;
 }
@@ -200,12 +200,13 @@ static void setDNSSECValidation(std::unique_ptr<SyncRes>& sr, const DNSSECMode& 
   g_dnssecmode = mode;
 }
 
-static void setLWResult(LWResult* res, int rcode, bool aa=false, bool tc=false, bool edns=false)
+static void setLWResult(LWResult* res, int rcode, bool aa=false, bool tc=false, bool edns=false, bool validpacket=true)
 {
   res->d_rcode = rcode;
   res->d_aabit = aa;
   res->d_tcbit = tc;
   res->d_haveEDNS = edns;
+  res->d_validpacket = validpacket;
 }
 
 static void addRecordToLW(LWResult* res, const DNSName& name, uint16_t type, const std::string& content, DNSResourceRecord::Place place=DNSResourceRecord::ANSWER, uint32_t ttl=60)
@@ -614,42 +615,6 @@ BOOST_AUTO_TEST_CASE(test_edns_formerr_fallback) {
   BOOST_CHECK_EQUAL(queriesWithoutEDNS, 1);
   BOOST_CHECK_EQUAL(SyncRes::getEDNSStatusesSize(), 1);
   BOOST_CHECK_EQUAL(SyncRes::getEDNSStatus(noEDNSServer), SyncRes::EDNSStatus::NOEDNS);
-}
-
-BOOST_AUTO_TEST_CASE(test_edns_notimp_fallback) {
-  std::unique_ptr<SyncRes> sr;
-  initSR(sr);
-
-  size_t queriesWithEDNS = 0;
-  size_t queriesWithoutEDNS = 0;
-
-  sr->setAsyncCallback([&queriesWithEDNS, &queriesWithoutEDNS](const ComboAddress& ip, const DNSName& domain, int type, bool doTCP, bool sendRDQuery, int EDNS0Level, struct timeval* now, boost::optional<Netmask>& srcmask, boost::optional<const ResolveContext&> context, std::shared_ptr<RemoteLogger> outgoingLogger, LWResult* res, bool* chained) {
-      if (EDNS0Level != 0) {
-        queriesWithEDNS++;
-        setLWResult(res, RCode::NotImp);
-        return 1;
-      }
-
-      queriesWithoutEDNS++;
-
-      if (domain == DNSName("powerdns.com") && type == QType::A && !doTCP) {
-        setLWResult(res, 0, true, false, false);
-        addRecordToLW(res, domain, QType::A, "192.0.2.1");
-        return 1;
-      }
-
-      return 0;
-    });
-
-  primeHints();
-
-  /* fake that the NS doesn't handle EDNS, check that we fallback */
-  vector<DNSRecord> ret;
-  int res = sr->beginResolve(DNSName("powerdns.com."), QType(QType::A), QClass::IN, ret);
-  BOOST_CHECK_EQUAL(res, RCode::NoError);
-  BOOST_CHECK_EQUAL(ret.size(), 1);
-  BOOST_CHECK_EQUAL(queriesWithEDNS, 1);
-  BOOST_CHECK_EQUAL(queriesWithoutEDNS, 1);
 }
 
 BOOST_AUTO_TEST_CASE(test_tc_fallback_to_tcp) {
@@ -2944,17 +2909,21 @@ BOOST_AUTO_TEST_CASE(test_forward_zone_rd) {
   const ComboAddress ns("192.0.2.1:53");
   const ComboAddress forwardedNS("192.0.2.42:53");
 
+  size_t queriesCount = 0;
   SyncRes::AuthDomain ad;
-  ad.d_rdForward = false;
+  ad.d_rdForward = true;
   ad.d_servers.push_back(forwardedNS);
   (*SyncRes::t_sstorage.domainmap)[target] = ad;
 
-  sr->setAsyncCallback([forwardedNS](const ComboAddress& ip, const DNSName& domain, int type, bool doTCP, bool sendRDQuery, int EDNS0Level, struct timeval* now, boost::optional<Netmask>& srcmask, boost::optional<const ResolveContext&> context, std::shared_ptr<RemoteLogger> outgoingLogger, LWResult* res, bool* chained) {
+  sr->setAsyncCallback([forwardedNS, &queriesCount](const ComboAddress& ip, const DNSName& domain, int type, bool doTCP, bool sendRDQuery, int EDNS0Level, struct timeval* now, boost::optional<Netmask>& srcmask, boost::optional<const ResolveContext&> context, std::shared_ptr<RemoteLogger> outgoingLogger, LWResult* res, bool* chained) {
+
+      queriesCount++;
 
       if (ip == forwardedNS) {
-        BOOST_CHECK_EQUAL(sendRDQuery, false);
+        BOOST_CHECK_EQUAL(sendRDQuery, true);
 
-        setLWResult(res, 0, true, false, true);
+        /* set AA=0, we are a recursor */
+        setLWResult(res, 0, false, false, true);
         addRecordToLW(res, domain, QType::A, "192.0.2.42");
         return 1;
       }
@@ -2966,6 +2935,18 @@ BOOST_AUTO_TEST_CASE(test_forward_zone_rd) {
   int res = sr->beginResolve(target, QType(QType::A), QClass::IN, ret);
   BOOST_CHECK_EQUAL(res, RCode::NoError);
   BOOST_CHECK_EQUAL(ret.size(), 1);
+  BOOST_CHECK_EQUAL(queriesCount, 1);
+
+  /* now make sure we can resolve from the cache (see #6340
+     where the entries were added to the cache but not retrieved,
+     because the recursor doesn't set the AA bit and we require
+     it. We fixed it by not requiring the AA bit for forward-recurse
+     answers. */
+  ret.clear();
+  res = sr->beginResolve(target, QType(QType::A), QClass::IN, ret);
+  BOOST_CHECK_EQUAL(res, RCode::NoError);
+  BOOST_CHECK_EQUAL(ret.size(), 1);
+  BOOST_CHECK_EQUAL(queriesCount, 1);
 }
 
 BOOST_AUTO_TEST_CASE(test_forward_zone_recurse_nord) {

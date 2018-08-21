@@ -30,6 +30,7 @@
 #include <string>
 #include <errno.h>
 #include <boost/tokenizer.hpp>
+#include <boost/functional/hash.hpp>
 #include <boost/algorithm/string.hpp>
 #include <algorithm>
 
@@ -173,29 +174,31 @@ void DNSPacket::setOpcode(uint16_t opcode)
   d.opcode=opcode;
 }
 
-
 void DNSPacket::clearRecords()
 {
   d_rrs.clear();
+  d_dedup.clear();
 }
 
 void DNSPacket::addRecord(const DNSZoneRecord &rr)
 {
-  // this removes duplicates from the packet in case we are not compressing
-  // for AXFR, no such checking is performed!
-  // cerr<<"addrecord, content=["<<rr.content<<"]"<<endl;
+  // this removes duplicates from the packet.
+  // in case we are not compressing for AXFR, no such checking is performed!
+
   if(d_compress) {
-    for(auto i=d_rrs.begin();i!=d_rrs.end();++i) {
-      if(rr.dr == i->dr)  // XXX SUPER SLOW
+    std::string ser = const_cast<DNSZoneRecord&>(rr).dr.d_content->serialize(rr.dr.d_name);
+    auto hash = boost::hash< std::pair<DNSName, std::string> >()({rr.dr.d_name, ser});
+    if(d_dedup.count(hash)) { // might be a dup
+      for(auto i=d_rrs.begin();i!=d_rrs.end();++i) {
+        if(rr.dr == i->dr)  // XXX SUPER SLOW
           return;
+      }
     }
+    d_dedup.insert(hash);
   }
 
-  // cerr<<"added to d_rrs"<<endl;
   d_rrs.push_back(rr);
 }
-
-
 
 vector<DNSZoneRecord*> DNSPacket::getAPRecords()
 {
@@ -213,9 +216,7 @@ vector<DNSZoneRecord*> DNSPacket::getAPRecords()
           arrs.push_back(&*i);
         }
     }
-
   return arrs;
-
 }
 
 vector<DNSZoneRecord*> DNSPacket::getAnswerRecords()
@@ -546,8 +547,8 @@ try
     */
     d_ednsRawPacketSizeLimit=edo.d_packetsize;
     d_maxreplylen=std::min(std::max(static_cast<uint16_t>(512), edo.d_packetsize), s_udpTruncationThreshold);
-//    cerr<<edo.d_Z<<endl;
-    if(edo.d_Z & EDNSOpts::DNSSECOK)
+//    cerr<<edo.d_extFlags<<endl;
+    if(edo.d_extFlags & EDNSOpts::DNSSECOK)
       d_dnssecOk=true;
 
     for(vector<pair<uint16_t, string> >::const_iterator iter = edo.d_options.begin();
@@ -588,6 +589,9 @@ try
   
   qtype=mdp.d_qtype;
   qclass=mdp.d_qclass;
+
+  d_trc = TSIGRecordContent();
+
   return 0;
 }
 catch(std::exception& e) {

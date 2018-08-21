@@ -558,7 +558,7 @@ static void generateOptRR(const std::string& optRData, string& res)
   EDNS0Record edns0;
   edns0.extRCode = 0;
   edns0.version = 0;
-  edns0.Z = 0;
+  edns0.extFlags = 0;
   
   dh.d_type = htons(QType::OPT);
   dh.d_class = htons(1280);

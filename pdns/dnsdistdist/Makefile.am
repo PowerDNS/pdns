@@ -86,6 +86,7 @@ dnsdist_SOURCES = \
 	ascii.hh \
 	base64.hh \
 	bpf-filter.cc bpf-filter.hh \
+	cachecleaner.hh \
 	dns.cc dns.hh \
 	dnscrypt.cc dnscrypt.hh \
 	dnsdist.cc dnsdist.hh \
@@ -105,6 +106,7 @@ dnsdist_SOURCES = \
 	dnsdist-lua-vars.cc \
 	dnsdist-protobuf.cc dnsdist-protobuf.hh \
 	dnsdist-rings.cc dnsdist-rings.hh \
+	dnsdist-rules.hh \
 	dnsdist-snmp.cc dnsdist-snmp.hh \
 	dnsdist-tcp.cc \
 	dnsdist-web.cc \
@@ -214,11 +216,14 @@ testrunner_SOURCES = \
 	base64.hh \
 	dns.hh \
 	test-base64_cc.cc \
+	test-dnscrypt_cc.cc \
 	test-dnsdist_cc.cc \
 	test-dnsdistpacketcache_cc.cc \
 	test-dnsdistrings_cc.cc \
-	test-dnscrypt_cc.cc \
+	test-dnsdistrules_cc.cc \
+	test-dnsparser_cc.cc \
 	test-iputils_hh.cc \
+	cachecleaner.hh \
 	dnsdist.hh \
 	dnsdist-cache.cc dnsdist-cache.hh \
 	dnsdist-ecs.cc dnsdist-ecs.hh \

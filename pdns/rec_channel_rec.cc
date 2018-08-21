@@ -870,6 +870,7 @@ void registerAllStats()
   addGetStat("client-parse-errors", &g_stats.clientParseError);
   addGetStat("server-parse-errors", &g_stats.serverParseError);
   addGetStat("too-old-drops", &g_stats.tooOldDrops);
+  addGetStat("truncated-drops", &g_stats.truncatedDrops);
   addGetStat("query-pipe-full-drops", &g_stats.queryPipeFullDrops);
 
   addGetStat("answers0-1", &g_stats.answers0_1);
@@ -1032,6 +1033,18 @@ vector<pair<DNSName,uint16_t> >* pleaseGetServfailQueryRing()
   }
   return ret;
 }
+vector<pair<DNSName,uint16_t> >* pleaseGetBogusQueryRing()
+{
+  typedef pair<DNSName,uint16_t> query_t;
+  vector<query_t>* ret = new vector<query_t>();
+  if(!t_bogusqueryring)
+    return ret;
+  ret->reserve(t_bogusqueryring->size());
+  for(const query_t& q :  *t_bogusqueryring) {
+    ret->push_back(q);
+  }
+  return ret;
+}
 
 
 
@@ -1058,6 +1071,18 @@ vector<ComboAddress>* pleaseGetServfailRemotes()
     return ret;
   ret->reserve(t_servfailremotes->size());
   for(const ComboAddress& ca :  *t_servfailremotes) {
+    ret->push_back(ca);
+  }
+  return ret;
+}
+
+vector<ComboAddress>* pleaseGetBogusRemotes()
+{
+  vector<ComboAddress>* ret = new vector<ComboAddress>();
+  if(!t_bogusremotes)
+    return ret;
+  ret->reserve(t_bogusremotes->size());
+  for(const ComboAddress& ca :  *t_bogusremotes) {
     ret->push_back(ca);
   }
   return ret;
@@ -1251,8 +1276,11 @@ string RecursorControlParser::getAnswer(const string& question, RecursorControlP
 "top-pub-queries                  show top queries grouped by public suffix list\n"
 "top-remotes                      show top remotes\n"
 "top-servfail-queries             show top queries receiving servfail answers\n"
+"top-bogus-queries                show top queries validating as bogus\n"
 "top-pub-servfail-queries         show top queries receiving servfail answers grouped by public suffix list\n"
+"top-pub-bogus-queries            show top queries validating as bogus grouped by public suffix list\n"
 "top-servfail-remotes             show top remotes receiving servfail answers\n"
+"top-bogus-remotes                show top remotes receiving bogus answers\n"
 "unload-lua-script                unload Lua script\n"
 "version                          return Recursor version number\n"
 "wipe-cache domain0 [domain1] ..  wipe domain data from cache\n";
@@ -1304,7 +1332,9 @@ string RecursorControlParser::getAnswer(const string& question, RecursorControlP
       ::arg().set("lua-config-file") = *begin;
 
     try {
-      loadRecursorLuaConfig(::arg()["lua-config-file"], false);
+      luaConfigDelayedThreads delayedLuaThreads;
+      loadRecursorLuaConfig(::arg()["lua-config-file"], delayedLuaThreads);
+      startLuaConfigDelayedThreads(delayedLuaThreads, g_luaconfs.getCopy().generation);
       g_log<<Logger::Warning<<"Reloaded Lua configuration file '"<<::arg()["lua-config-file"]<<"', requested via control channel"<<endl;
       return "Reloaded Lua configuration file '"+::arg()["lua-config-file"]+"'\n";
     }
@@ -1366,9 +1396,18 @@ string RecursorControlParser::getAnswer(const string& question, RecursorControlP
   if(cmd=="top-pub-servfail-queries")
     return doGenericTopQueries(pleaseGetServfailQueryRing, getRegisteredName);
 
+  if(cmd=="top-bogus-queries")
+    return doGenericTopQueries(pleaseGetBogusQueryRing);
+
+  if(cmd=="top-pub-bogus-queries")
+    return doGenericTopQueries(pleaseGetBogusQueryRing, getRegisteredName);
+
 
   if(cmd=="top-servfail-remotes")
     return doGenericTopRemotes(pleaseGetServfailRemotes);
+
+  if(cmd=="top-bogus-remotes")
+    return doGenericTopRemotes(pleaseGetBogusRemotes);
 
   if(cmd=="top-largeanswer-remotes")
     return doGenericTopRemotes(pleaseGetLargeAnswerRemotes);

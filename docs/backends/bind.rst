@@ -9,6 +9,7 @@ Bind zone file backend
 * DNSSEC: Yes
 * Disabled data: No
 * Comments: No
+* API: Read-only
 * Module name: bind
 * Launch: ``bind``
 
@@ -20,6 +21,8 @@ The BindBackend parses a Bind-style ``named.conf`` and extracts
 information about zones from it. It makes no attempt to honour other
 configuration flags, which you should configure (when available) using
 the PowerDNS native configuration.
+
+**note**: Because this backend retrieves its configuration from a text file and not a database, the HTTP API is unable to process changes for this backend. This effectively makes the API read-only for zones hosted by the BIND backend.  
 
 Configuration Parameters
 ------------------------

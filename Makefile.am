@@ -1,6 +1,4 @@
-SUBDIRS = ext modules codedocs docs
-
-SUBDIRS += pdns
+SUBDIRS = ext modules pdns codedocs docs
 
 EXTRA_DIST = \
 	INSTALL \

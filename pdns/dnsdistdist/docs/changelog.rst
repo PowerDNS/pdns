@@ -2,6 +2,329 @@ Changelog
 =========
 
 .. changelog::
+  :version: 1.3.2
+  :released: 10th of July 2018
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 6785
+
+    Add missing include for PRId64, fix build on CentOS 6 / SLES 12
+
+.. changelog::
+  :version: 1.3.1
+  :released: 10th of July 2018
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 6358
+    :tickets: 6357
+
+    Remove `thelog` and `thel` and replace this with a global g_log
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 6422
+
+    Fix two small nits on the documentation
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 6426
+    :tickets: 6394
+
+    Move the el6 dnsdist package to upstart
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 6425
+
+    Initialize the done variable in the rings' unit tests
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 6429
+
+    Reorder headers to fix OpenBSD build
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 6435
+    :tickets: 6433
+
+    CLI option improvements (Chris Hofstaedtler)
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 6436
+
+    Split pdns_enable_unit_tests (Chris Hofstaedtler)
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 6448
+
+    Restrict value range for weight parameter, avoid sum overflows dropping queries (Dan McCombs)
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 6445, 6457, 6470
+    :tickets: 6423
+
+    Re-do lua detection
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 6460
+
+    Docs: fix missing ref in the dnsdist docs
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 6502
+
+    Be more permissive in wrandom tests, log values on failure
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 6523
+    :tickets: 6430
+
+     Tests: avoid failure on not-so-optimal distribution
+
+  .. change::
+    :tags: New Features
+    :pullreq: 6524
+    :tickets: 6450
+
+    Add support for more than one TLS certificate
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 6577
+
+    Add syntax to dns.proto to silence compilation warning.
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 6590
+
+    Fix warnings reported by gcc 8.1.0
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 6592
+    :tickets: 6483
+
+    Document setVerboseHealthchecks()
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 6615
+
+    Update dq.rst (phonedph1)
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 6641
+
+    Fix rpm scriptlets
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 6637
+
+    Don't copy unitialized values of SuffixMatchTree
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 6684
+
+    Expose toString of various objects to Lua (Chris Hofstaedtler)
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 6674
+
+    Remove 'expired' states from MaxQPSIPRule
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 6672
+
+     Fix reconnection handling
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 6688
+    :tickets: 6664
+
+    Mark the remote member of DownstreamState as const
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 6706
+
+    Dynamic blocks were being created with the wrong duration (David Freedman)
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 6710
+    :tickets: 6706
+
+    Test the content of dynamic blocks using the API
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 6711
+    :tickets: 6532
+
+    Default set "connection: close" header for web requests
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 6717
+
+    Update timedipsetrule.rst (phonedph1)
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 6716
+    :tickets: 6712
+
+    Don't access the TCP buffer vector past its size
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 6563
+
+    Show droprate in API output
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 6718
+    :tickets: 6442
+
+    Limit qps and latency to two decimals in the web view
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 6715
+    :tickets: 6683, 6709
+
+    Refuse console connection without a proper key set
+
+  .. change::
+    :tags: New Features
+    :pullreq: 6740
+    :tickets: 6579
+
+    Add a negative ttl option to the packet cache
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 6747
+
+    Check the flags to detect collisions in the packet cache
+
+  .. change::
+    :tags: New Features
+    :pullreq: 6749
+
+    Add the ability to dump a summary of the cache content
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 6762
+
+    Fix iterating over the results of exceed*() functions
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 6767
+
+    Fix duration false positive in the dynblock regression tests
+
+  .. change::
+    :tags: New Features
+    :pullreq: 6760
+
+    Add netmask-based {ex,in}clusions to DynblockRulesGroup
+
+  .. change::
+    :tags: New Features
+    :pullreq: 6776
+    :tickets: 6703
+
+    Add DNSAction.NoOp to debug dynamic blocks
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 6775
+    :tickets: 6758
+
+    Implement NoneAction()
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 6754
+    :tickets: 6747
+
+    Detect ECS collisions in the packet cache
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 6773
+
+    Fix an outstanding counter race when reusing states
+
+  .. change::
+    :tags: New Features
+    :pullreq: 6734
+    :tickets: 6404
+
+    Add SetECSAction to set an arbitrary outgoing ecs value
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 6726
+
+    Use LRU to clean the MaxQPSIPRule's store
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 6769
+
+    Disable maybe uninitialized warnings with boost optional
+
+  .. change::
+    :tags: New Features
+    :pullreq: 6764
+
+    Add support for rotating certificates and keys
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 6658
+    :tickets: 6541
+
+    Luawrapper: report caught std::exception as lua_error
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 6602
+
+    Dnstap.rst: fix some editing errors (Chris Hofstaedtler)
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 6541
+    :tickets: 6535
+
+    Allow known exception types to be converted to string
+
+
+.. changelog::
   :version: 1.3.0
   :released: 30th of March 2018
 

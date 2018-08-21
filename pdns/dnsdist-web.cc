@@ -274,6 +274,8 @@ static void connectionThread(int sock, ComboAddress remote, string password, str
 
     addCustomHeaders(resp, customHeaders);
     addSecurityHeaders(resp, customHeaders);
+    /* indicate that the connection will be closed after completion of the response */
+    resp.headers["Connection"] = "close";
 
     /* no need to send back the API key if any */
     resp.headers.erase("X-API-Key");
@@ -330,7 +332,8 @@ static void connectionThread(int sock, ComboAddress remote, string password, str
             Json::object thing{
               {"reason", e->second.reason},
               {"seconds", (double)(e->second.until.tv_sec - now.tv_sec)},
-              {"blocks", (double)e->second.blocks}
+              {"blocks", (double)e->second.blocks},
+              {"action", DNSAction::typeToString(e->second.action != DNSAction::Action::None ? e->second.action : g_dynBlockAction) }
             };
             obj.insert({e->first.toString(), thing});
           }
@@ -342,9 +345,12 @@ static void connectionThread(int sock, ComboAddress remote, string password, str
               string dom("empty");
               if(!node.d_value.domain.empty())
                 dom = node.d_value.domain.toString();
-              Json::object thing{{"reason", node.d_value.reason}, {"seconds", (double)(node.d_value.until.tv_sec - now.tv_sec)},
-							     {"blocks", (double)node.d_value.blocks} };
-
+              Json::object thing{
+                {"reason", node.d_value.reason},
+                {"seconds", (double)(node.d_value.until.tv_sec - now.tv_sec)},
+                {"blocks", (double)node.d_value.blocks},
+                {"action", DNSAction::typeToString(node.d_value.action != DNSAction::Action::None ? node.d_value.action : g_dynBlockAction) }
+              };
               obj.insert({dom, thing});
           }
         });
@@ -414,7 +420,8 @@ static void connectionThread(int sock, ComboAddress remote, string password, str
           {"pools", pools},
           {"latency", (double)(a->latencyUsec/1000.0)},
           {"queries", (double)a->queries},
-          {"sendErrors", (double)a->sendErrors}
+          {"sendErrors", (double)a->sendErrors},
+          {"dropRate", (double)a->dropRate}
         };
 
         /* sending a latency for a DOWN server doesn't make sense */

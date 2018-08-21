@@ -38,7 +38,7 @@ public:
   FrameStreamLogger(int family, const std::string& address, bool connect);
   virtual ~FrameStreamLogger();
   virtual void queueData(const std::string& data) override;
-  virtual std::string toString() override
+  virtual std::string toString() const override
   {
     return "FrameStreamLogger to " + d_address;
   }

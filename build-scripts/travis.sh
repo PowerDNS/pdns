@@ -355,6 +355,12 @@ install_recursor() {
   run "sudo touch /etc/authbind/byport/53"
   run "sudo chmod 755 /etc/authbind/byport/53"
   run "cd ${TRAVIS_BUILD_DIR}"
+  # install SNMP
+  run "sudo sed -i \"s/agentxperms 0700 0755 recursor/agentxperms 0700 0755 ${USER}/g\" regression-tests.recursor-dnssec/snmpd.conf"
+  run "sudo cp -f regression-tests.recursor-dnssec/snmpd.conf /etc/snmp/snmpd.conf"
+  run "sudo service snmpd restart"
+  ## fun story, the directory perms are only applied if it doesn't exist yet, and it is created by the init script, so..
+  run "sudo chmod 0755 /var/agentx"
 }
 
 install_dnsdist() {
@@ -377,6 +383,7 @@ build_auth() {
   run "autoreconf -vi"
   # Build without --enable-botan, no botan 2.x in Travis CI
   run "./configure \
+    ${sanitizerflags} \
     --with-dynmodules='bind gmysql geoip gpgsql gsqlite3 ldap lua mydns opendbx pipe random remote tinydns godbc lua2' \
     --with-modules='' \
     --with-sqlite3 \
@@ -404,10 +411,12 @@ build_recursor() {
   run "rm -f pdns-recursor-*.tar.bz2"
   run "cd pdns-recursor-*"
   # Build without --enable-botan, no botan 2.x in Travis CI
-  run "CXX=${COMPILER} ./configure \
+  run "./configure \
+    ${sanitizerflags} \
     --prefix=$PDNS_RECURSOR_DIR \
     --enable-libsodium \
     --enable-unit-tests \
+    --enable-nod \
     --disable-silent-rules"
   run "make -k -j3"
   run "make install"
@@ -421,6 +430,7 @@ build_dnsdist(){
   run "tar xf dnsdist*.tar.bz2"
   run "cd dnsdist-*"
   run "./configure \
+    ${sanitizerflags} \
     --enable-unit-tests \
     --enable-libsodium \
     --enable-dnscrypt \
@@ -611,12 +621,20 @@ run "sudo dpkg -i libsodium-dev_1.0.3-1~ppa14.04+1_amd64.deb libsodium13_1.0.3-1
 run "cd ${TRAVIS_BUILD_DIR}"
 
 compilerflags="-O1 -Werror=vla"
+sanitizerflags=""
 if [ "$CC" = "clang" ]
 then
   compilerflags="$compilerflags -Werror=string-plus-int"
+  if [ "${PDNS_BUILD_PRODUCT}" = "recursor" ]; then
+    sanitizerflags="${sanitizerflags} --enable-asan"
+  elif [ "${PDNS_BUILD_PRODUCT}" = "dnsdist" ]; then
+    sanitizerflags="${sanitizerflags} --enable-asan --enable-ubsan"
+  fi
 fi
 export CFLAGS=$compilerflags
 export CXXFLAGS=$compilerflags
+export sanitizerflags
+export UBSAN_OPTIONS="print_stacktrace=1:halt_on_error=1"
 
 install_$PDNS_BUILD_PRODUCT
 

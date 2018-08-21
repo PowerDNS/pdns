@@ -70,3 +70,4 @@ std::string newKeypair();
 std::string sodEncryptSym(const std::string& msg, const std::string& key, SodiumNonce&);
 std::string sodDecryptSym(const std::string& msg, const std::string& key, SodiumNonce&);
 std::string newKey();
+bool sodIsValidKey(const std::string& key);

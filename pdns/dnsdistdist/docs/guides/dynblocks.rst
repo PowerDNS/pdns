@@ -23,6 +23,8 @@ For example, to send a REFUSED code instead of droppping the query::
 
   setDynBlocksAction(DNSAction.Refused)
 
+Please see the documentation for :func:`setDynBlocksAction` to confirm which actions are supported.
+
 .. _DynBlockRulesGroup:
 
 DynBlockRulesGroup
@@ -61,3 +63,13 @@ The new syntax would be:
 
 The old syntax would walk the query buffer 2 times and the response one 3 times, while the new syntax does it only once for each.
 It also reuse the same internal table to keep track of the source IPs, reducing the CPU usage.
+
+DynBlockRulesGroup also offers the ability to specify that some network ranges should be excluded from dynamic blocking:
+
+.. code-block:: lua
+
+  -- do not add dynamic blocks for hosts in the 192.0.2.0/24 and 2001:db8::/32 ranges
+  dbr:excludeRange({"192.0.2.0/24", "2001:db8::/32" })
+  -- except for 192.0.2.1
+  dbr:includeRange("192.0.2.1/32")
+

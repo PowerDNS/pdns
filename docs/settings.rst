@@ -1029,6 +1029,7 @@ restarts, but it may also mask configuration issues and for this reason
 it is disabled by default.
 
 .. _setting-rng:
+
 ``rng``
 -------
 
@@ -1084,6 +1085,11 @@ disable these NOTIFYs set ``only-notify`` to an empty value. Independent
 of this setting, the IP addresses or netmasks configured with
 :ref:`setting-also-notify` and ``ALSO-NOTIFY`` domain metadata
 always receive AXFR NOTIFYs.
+
+IP addresses and netmasks can be excluded by prefixing them with a ``!``.
+To notify all IP addresses apart from the 192.168.0.0/24 subnet use the following::
+
+  only-notify=0.0.0.0/0, ::/0, !192.168.0.0/24
 
 .. note::
   Even if NOTIFYs are limited by a netmask, PowerDNS first has to
@@ -1248,6 +1254,20 @@ resolvers.
 
 Number of AXFR slave threads to start.
 
+.. _setting-send-signed-notify:
+
+``send-signed-notify``
+----------
+
+-  Boolean
+-  Default: yes
+
+If yes, outgoing NOTIFYs will be signed if a TSIG key is configured for the zone.
+If there are multiple TSIG keys configured for a domain, PowerDNS will use the
+first one retrieved from the backend, which may not be the correct one for the
+respective slave. Hence, in setups with multiple slaves with different TSIG keys
+it may be required to send NOTIFYs unsigned.
+
 .. _setting-setgid:
 
 ``setgid``
@@ -1370,7 +1390,7 @@ and :doc:`Virtual Hosting <guides/virtual-instances>` how this can differ.
 .. _setting-supermaster:
 
 ``supermaster``
-------------
+---------------
 
 -  Boolean
 -  Default: no

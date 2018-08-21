@@ -90,11 +90,12 @@ static void logIncomingResponse(std::shared_ptr<RemoteLogger> outgoingLogger, bo
 /** lwr is only filled out in case 1 was returned, and even when returning 1 for 'success', lwr might contain DNS errors
     Never throws! 
  */
-int asyncresolve(const ComboAddress& ip, const DNSName& domain, int type, bool doTCP, bool sendRDQuery, int EDNS0Level, struct timeval* now, boost::optional<Netmask>& srcmask, boost::optional<const ResolveContext&> context, std::shared_ptr<RemoteLogger> outgoingLogger, LWResult *lwr, bool* chained)
+int asyncresolve(const ComboAddress& ip, const DNSName& domain, int type, bool doTCP, bool sendRDQuery, int EDNS0Level, struct timeval* now, boost::optional<Netmask>& srcmask, boost::optional<const ResolveContext&> context, const std::shared_ptr<RemoteLogger>& outgoingLogger, LWResult *lwr, bool* chained)
 {
   size_t len;
   size_t bufsize=g_outgoingEDNSBufsize;
-  scoped_array<unsigned char> buf(new unsigned char[bufsize]);
+  std::string buf;
+  buf.resize(bufsize);
   vector<uint8_t> vpacket;
   //  string mapped0x20=dns0x20(domain);
   uint16_t qid = dns_random(0xffff);
@@ -169,7 +170,7 @@ int asyncresolve(const ComboAddress& ip, const DNSName& domain, int type, bool d
 
     // sleep until we see an answer to this, interface to mtasker
     
-    ret=arecvfrom(reinterpret_cast<char *>(buf.get()), bufsize, 0, ip, &len, qid,
+    ret=arecvfrom(buf, 0, ip, &len, qid,
                   domain, type, queryfd, now);
   }
   else {
@@ -204,12 +205,8 @@ int asyncresolve(const ComboAddress& ip, const DNSName& domain, int type, bool d
       if(!(ret > 0))
         return ret;
       
-      if(len > bufsize) {
-        bufsize=len;
-        scoped_array<unsigned char> narray(new unsigned char[bufsize]);
-        buf.swap(narray);
-      }
-      memcpy(buf.get(), packet.c_str(), len);
+      buf.resize(len);
+      memcpy(const_cast<char*>(buf.data()), packet.c_str(), len);
 
       ret=1;
     }
@@ -225,10 +222,11 @@ int asyncresolve(const ComboAddress& ip, const DNSName& domain, int type, bool d
   if(ret <= 0) // includes 'timeout'
     return ret;
 
+  buf.resize(len);
   lwr->d_records.clear();
   try {
     lwr->d_tcbit=0;
-    MOADNSParser mdp(false, (const char*)buf.get(), len);
+    MOADNSParser mdp(false, buf);
     lwr->d_aabit=mdp.d_header.aa;
     lwr->d_tcbit=mdp.d_header.tc;
     lwr->d_rcode=mdp.d_header.rcode;
@@ -239,6 +237,7 @@ int asyncresolve(const ComboAddress& ip, const DNSName& domain, int type, bool d
         logIncomingResponse(outgoingLogger, context ? context->d_initialRequestId : boost::none, uuid, ip, domain, type, qid, doTCP, len, lwr->d_rcode, lwr->d_records, queryTime);
       }
 #endif
+      lwr->d_validpacket=true;
       return 1; // this is "success", the error is set in lwr->d_rcode
     }
 
@@ -249,7 +248,8 @@ int asyncresolve(const ComboAddress& ip, const DNSName& domain, int type, bool d
       // unexpected count has already been done @ pdns_recursor.cc
       goto out;
     }
-    
+
+    lwr->d_records.reserve(mdp.d_answers.size());
     for(const auto& a : mdp.d_answers)
       lwr->d_records.push_back(a.first);
 
@@ -283,6 +283,7 @@ int asyncresolve(const ComboAddress& ip, const DNSName& domain, int type, bool d
       logIncomingResponse(outgoingLogger, context ? context->d_initialRequestId : boost::none, uuid, ip, domain, type, qid, doTCP, len, lwr->d_rcode, lwr->d_records, queryTime);
     }
 #endif
+    lwr->d_validpacket=true;
     return 1;
   }
   catch(std::exception &mde) {
@@ -295,6 +296,7 @@ int asyncresolve(const ComboAddress& ip, const DNSName& domain, int type, bool d
       logIncomingResponse(outgoingLogger, context ? context->d_initialRequestId : boost::none, uuid, ip, domain, type, qid, doTCP, len, lwr->d_rcode, lwr->d_records, queryTime);
     }
 #endif
+    lwr->d_validpacket=false;
     return 1; // success - oddly enough
   }
   catch(...) {

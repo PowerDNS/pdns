@@ -17,7 +17,7 @@ added in :class:`ComboAddress` form.
 
 .. class:: TimedIPSetRule
 
-  Can be used to handle IP addresses differentlt based on the date and time
+  Can be used to handle IP addresses differently for a certain time.
 
   .. method:: TimedIPSetRule:add(address, seconds)
 

@@ -19,6 +19,10 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
+#include <fcntl.h>
+#include <sys/stat.h>
+#include <sys/types.h>
+
 #include "dnsdist.hh"
 #include "dnsdist-lua.hh"
 #include "dnsdist-protobuf.hh"
@@ -64,6 +68,7 @@ void setupLuaBindings(bool client)
   g_lua.registerMember("name", &ServerPolicy::name);
   g_lua.registerMember("policy", &ServerPolicy::policy);
   g_lua.registerMember("isLua", &ServerPolicy::isLua);
+  g_lua.registerFunction("toString", &ServerPolicy::toString);
 
   g_lua.writeVariable("firstAvailable", ServerPolicy{"firstAvailable", firstAvailable, false});
   g_lua.writeVariable("roundrobin", ServerPolicy{"roundrobin", roundrobin, false});
@@ -100,7 +105,7 @@ void setupLuaBindings(bool client)
       g_pools.setState(localPools);
       s->pools.erase(pool);
     });
-  g_lua.registerFunction<void(DownstreamState::*)()>("getOutstanding", [](const DownstreamState& s) { g_outputBuffer=std::to_string(s.outstanding.load()); });
+  g_lua.registerFunction<uint64_t(DownstreamState::*)()>("getOutstanding", [](const DownstreamState& s) { return s.outstanding.load(); });
   g_lua.registerFunction("isUp", &DownstreamState::isUp);
   g_lua.registerFunction("setDown", &DownstreamState::setDown);
   g_lua.registerFunction("setUp", &DownstreamState::setUp);
@@ -187,6 +192,7 @@ void setupLuaBindings(bool client)
   g_lua.registerFunction("match", (bool (NetmaskGroup::*)(const ComboAddress&) const)&NetmaskGroup::match);
   g_lua.registerFunction("size", &NetmaskGroup::size);
   g_lua.registerFunction("clear", &NetmaskGroup::clear);
+  g_lua.registerFunction<string(NetmaskGroup::*)()>("toString", [](const NetmaskGroup& nmg ) { return "NetmaskGroup " + nmg.toString(); });
 
   /* QPSLimiter */
   g_lua.writeFunction("newQPSLimiter", [](int rate, int burst) { return QPSLimiter(rate, burst); });
@@ -210,8 +216,8 @@ void setupLuaBindings(bool client)
 #endif /* HAVE_EBPF */
 
   /* PacketCache */
-  g_lua.writeFunction("newPacketCache", [](size_t maxEntries, boost::optional<uint32_t> maxTTL, boost::optional<uint32_t> minTTL, boost::optional<uint32_t> tempFailTTL, boost::optional<uint32_t> staleTTL, boost::optional<bool> dontAge, boost::optional<size_t> numberOfShards, boost::optional<bool> deferrableInsertLock) {
-      return std::make_shared<DNSDistPacketCache>(maxEntries, maxTTL ? *maxTTL : 86400, minTTL ? *minTTL : 0, tempFailTTL ? *tempFailTTL : 60, staleTTL ? *staleTTL : 60, dontAge ? *dontAge : false, numberOfShards ? *numberOfShards : 1, deferrableInsertLock ? *deferrableInsertLock : true);
+  g_lua.writeFunction("newPacketCache", [](size_t maxEntries, boost::optional<uint32_t> maxTTL, boost::optional<uint32_t> minTTL, boost::optional<uint32_t> tempFailTTL, boost::optional<uint32_t> staleTTL, boost::optional<bool> dontAge, boost::optional<size_t> numberOfShards, boost::optional<bool> deferrableInsertLock, boost::optional<uint32_t> maxNegativeTTL, boost::optional<bool> ecsParsing) {
+      return std::make_shared<DNSDistPacketCache>(maxEntries, maxTTL ? *maxTTL : 86400, minTTL ? *minTTL : 0, tempFailTTL ? *tempFailTTL : 60, maxNegativeTTL ? *maxNegativeTTL : 3600, staleTTL ? *staleTTL : 60, dontAge ? *dontAge : false, numberOfShards ? *numberOfShards : 1, deferrableInsertLock ? *deferrableInsertLock : true, ecsParsing ? *ecsParsing : false);
     });
   g_lua.registerFunction("toString", &DNSDistPacketCache::toString);
   g_lua.registerFunction("isFull", &DNSDistPacketCache::isFull);
@@ -236,6 +242,29 @@ void setupLuaBindings(bool client)
         g_outputBuffer+="Lookup Collisions: " + std::to_string(cache->getLookupCollisions()) + "\n";
         g_outputBuffer+="Insert Collisions: " + std::to_string(cache->getInsertCollisions()) + "\n";
         g_outputBuffer+="TTL Too Shorts: " + std::to_string(cache->getTTLTooShorts()) + "\n";
+      }
+    });
+  g_lua.registerFunction<void(std::shared_ptr<DNSDistPacketCache>::*)(const std::string& fname)>("dump", [](const std::shared_ptr<DNSDistPacketCache> cache, const std::string& fname) {
+      if (cache) {
+
+        int fd = open(fname.c_str(), O_CREAT | O_EXCL | O_WRONLY, 0660);
+        if (fd < 0) {
+          g_outputBuffer = "Error opening dump file for writing: " + string(strerror(errno)) + "\n";
+          return;
+        }
+
+        uint64_t records = 0;
+        try {
+          records = cache->dump(fd);
+        }
+        catch (const std::exception& e) {
+          close(fd);
+          throw;
+        }
+
+        close(fd);
+
+        g_outputBuffer += "Dumped " + std::to_string(records) + " records\n";
       }
     });
 
@@ -302,6 +331,8 @@ void setupLuaBindings(bool client)
       throw std::runtime_error("fstrm with TCP support is required to build an AF_INET FrameStreamLogger");
 #endif /* HAVE_FSTRM */
     });
+
+  g_lua.registerFunction("toString", &RemoteLoggerInterface::toString);
 
 #ifdef HAVE_DNSCRYPT
     /* DNSCryptContext bindings */
@@ -512,6 +543,28 @@ void setupLuaBindings(bool client)
           clock_gettime(CLOCK_MONOTONIC, &now);
           dbpf->purgeExpired(now);
         }
+    });
+
+    g_lua.registerFunction<void(std::shared_ptr<DynBPFFilter>::*)(boost::variant<std::string, std::vector<std::pair<int, std::string>>>)>("excludeRange", [](std::shared_ptr<DynBPFFilter> dbpf, boost::variant<std::string, std::vector<std::pair<int, std::string>>> ranges) {
+      if (ranges.type() == typeid(std::vector<std::pair<int, std::string>>)) {
+        for (const auto& range : *boost::get<std::vector<std::pair<int, std::string>>>(&ranges)) {
+          dbpf->excludeRange(Netmask(range.second));
+        }
+      }
+      else {
+        dbpf->excludeRange(Netmask(*boost::get<std::string>(&ranges)));
+      }
+    });
+
+    g_lua.registerFunction<void(std::shared_ptr<DynBPFFilter>::*)(boost::variant<std::string, std::vector<std::pair<int, std::string>>>)>("includeRange", [](std::shared_ptr<DynBPFFilter> dbpf, boost::variant<std::string, std::vector<std::pair<int, std::string>>> ranges) {
+      if (ranges.type() == typeid(std::vector<std::pair<int, std::string>>)) {
+        for (const auto& range : *boost::get<std::vector<std::pair<int, std::string>>>(&ranges)) {
+          dbpf->includeRange(Netmask(range.second));
+        }
+      }
+      else {
+        dbpf->includeRange(Netmask(*boost::get<std::string>(&ranges)));
+      }
     });
 #endif /* HAVE_EBPF */
 }

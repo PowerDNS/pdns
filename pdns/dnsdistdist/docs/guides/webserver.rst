@@ -64,6 +64,7 @@ URL Endpoints
 
       HTTP/1.1 200 OK
       Transfer-Encoding: chunked
+      Connection: close
       Content-Security-Policy: default-src 'self'; style-src 'self' 'unsafe-inline'
       Content-Type: application/json
       X-Content-Type-Options: nosniff
@@ -86,6 +87,7 @@ URL Endpoints
 
       HTTP/1.1 200 OK
       Transfer-Encoding: chunked
+      Connection: close
       Content-Security-Policy: default-src 'self'; style-src 'self' 'unsafe-inline'
       Content-Type: application/json
       X-Content-Type-Options: nosniff
@@ -206,6 +208,9 @@ JSON Objects
 
   This object represents a backend server.
 
+  .. versionchanged:: 1.3.1
+    The ``dropRate`` property was added
+
   :property string address: The remote IP and port
   :property integer id: Internal identifier
   :property integer latency: The current latency of this backend server
@@ -220,6 +225,7 @@ JSON Objects
   :property integer sendErrors: Number of network errors while sending a query to this server
   :property string state: The state of the server (e.g. "DOWN" or "up")
   :property integer weight: The weight assigned to this server
+  :property float dropRate: The amount of packets dropped per second by this server
 
 .. json:object:: StatisticItem
 

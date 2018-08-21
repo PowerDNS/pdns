@@ -30,11 +30,11 @@ struct DNSQuestion;
 class DNSDistPacketCache : boost::noncopyable
 {
 public:
-  DNSDistPacketCache(size_t maxEntries, uint32_t maxTTL=86400, uint32_t minTTL=0, uint32_t tempFailureTTL=60, uint32_t staleTTL=60, bool dontAge=false, uint32_t shards=1, bool deferrableInsertLock=true);
+  DNSDistPacketCache(size_t maxEntries, uint32_t maxTTL=86400, uint32_t minTTL=0, uint32_t tempFailureTTL=60, uint32_t maxNegativeTTL=3600, uint32_t staleTTL=60, bool dontAge=false, uint32_t shards=1, bool deferrableInsertLock=true, bool parseECS=false);
   ~DNSDistPacketCache();
 
-  void insert(uint32_t key, const DNSName& qname, uint16_t qtype, uint16_t qclass, const char* response, uint16_t responseLen, bool tcp, uint8_t rcode, boost::optional<uint32_t> tempFailureTTL);
-  bool get(const DNSQuestion& dq, uint16_t consumed, uint16_t queryId, char* response, uint16_t* responseLen, uint32_t* keyOut, uint32_t allowExpired=0, bool skipAging=false);
+  void insert(uint32_t key, const boost::optional<Netmask>& subnet, uint16_t queryFlags, const DNSName& qname, uint16_t qtype, uint16_t qclass, const char* response, uint16_t responseLen, bool tcp, uint8_t rcode, boost::optional<uint32_t> tempFailureTTL);
+  bool get(const DNSQuestion& dq, uint16_t consumed, uint16_t queryId, char* response, uint16_t* responseLen, uint32_t* keyOut, boost::optional<Netmask>& subnetOut, uint32_t allowExpired=0, bool skipAging=false);
   void purgeExpired(size_t upTo=0);
   void expunge(size_t upTo=0);
   void expungeByName(const DNSName& name, uint16_t qtype=QType::ANY, bool suffixMatch=false);
@@ -50,8 +50,10 @@ public:
   uint64_t getMaxEntries() const { return d_maxEntries; }
   uint64_t getTTLTooShorts() const { return d_ttlTooShorts; }
   uint64_t getEntriesCount();
+  uint64_t dump(int fd);
 
-  static uint32_t getMinTTL(const char* packet, uint16_t length);
+  static uint32_t getMinTTL(const char* packet, uint16_t length, bool* seenNoDataSOA);
+  static uint32_t getKey(const std::string& qname, uint16_t consumed, const unsigned char* packet, uint16_t packetLen, bool tcp);
 
 private:
 
@@ -60,8 +62,10 @@ private:
     time_t getTTD() const { return validity; }
     std::string value;
     DNSName qname;
+    boost::optional<Netmask> subnet;
     uint16_t qtype{0};
     uint16_t qclass{0};
+    uint16_t queryFlags{0};
     time_t added{0};
     time_t validity{0};
     uint16_t len{0};
@@ -90,10 +94,10 @@ private:
     std::atomic<uint64_t> d_entriesCount;
   };
 
-  static uint32_t getKey(const std::string& qname, uint16_t consumed, const unsigned char* packet, uint16_t packetLen, bool tcp);
-  static bool cachedValueMatches(const CacheValue& cachedValue, const DNSName& qname, uint16_t qtype, uint16_t qclass, bool tcp);
+  static bool getClientSubnet(const char* packet, unsigned int consumed, uint16_t len, boost::optional<Netmask>& subnet);
+  bool cachedValueMatches(const CacheValue& cachedValue, uint16_t queryFlags, const DNSName& qname, uint16_t qtype, uint16_t qclass, bool tcp, const boost::optional<Netmask>& subnet) const;
   uint32_t getShardIndex(uint32_t key) const;
-  void insertLocked(CacheShard& shard, uint32_t key, const DNSName& qname, uint16_t qtype, uint16_t qclass, bool tcp, CacheValue& newValue, time_t now, time_t newValidity);
+  void insertLocked(CacheShard& shard, uint32_t key, CacheValue& newValue);
 
   std::vector<CacheShard> d_shards;
 
@@ -110,8 +114,10 @@ private:
   uint32_t d_shardCount;
   uint32_t d_maxTTL;
   uint32_t d_tempFailureTTL;
+  uint32_t d_maxNegativeTTL;
   uint32_t d_minTTL;
   uint32_t d_staleTTL;
   bool d_dontAge;
   bool d_deferrableInsertLock;
+  bool d_parseECS;
 };

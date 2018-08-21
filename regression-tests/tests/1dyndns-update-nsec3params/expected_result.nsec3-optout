@@ -1,0 +1,189 @@
+0 test.dyndns. IN NSEC3PARAM 86400 1 0 1 abcd 0 test.dyndns. IN RRSIG 86400 NSEC3PARAM 13 2 86400 [expiry] [inception] [keytag] test.dyndns. ... 2 . IN OPT 32768 Rcode: 0 (No Error), RD: 0, QR: 1, TC: 0, AA: 1, opcode: 0 Reply to question for qname='test.dyndns.', qtype=NSEC3PARAM
+1	4i84rosksbmegcqfnkf6n6ci093h7rq4.test.dyndns.	IN	NSEC3	86400	1 [flags] 1 abcd 8PQJV4B3M0LCFMVAE0HP394LC154L1I7 CNAME RRSIG
+1	4i84rosksbmegcqfnkf6n6ci093h7rq4.test.dyndns.	IN	RRSIG	86400	NSEC3 13 3 86400 [expiry] [inception] [keytag] test.dyndns. ...
+1	8ti9tgh8d81frr5vr4o1o5bvko42v9dq.test.dyndns.	IN	NSEC3	86400	1 [flags] 1 abcd DSA3TI9NU3APDSVL3F63QLVAKV555SR6 A RRSIG
+1	8ti9tgh8d81frr5vr4o1o5bvko42v9dq.test.dyndns.	IN	RRSIG	86400	NSEC3 13 3 86400 [expiry] [inception] [keytag] test.dyndns. ...
+1	lmrsadk2bb62qpruaules5i5ap06cp55.test.dyndns.	IN	NSEC3	86400	1 [flags] 1 abcd LRESBBP3LV8BLGJ9FSGTDMM4Q7VJ3D6J
+1	lmrsadk2bb62qpruaules5i5ap06cp55.test.dyndns.	IN	RRSIG	86400	NSEC3 13 3 86400 [expiry] [inception] [keytag] test.dyndns. ...
+1	test.dyndns.	IN	RRSIG	3600	SOA 13 2 3600 [expiry] [inception] [keytag] test.dyndns. ...
+1	test.dyndns.	IN	SOA	3600	ns1.test.dyndns. ahu.example.dyndns. [serial] 28800 7200 604800 86400
+2	.	IN	OPT	32768	
+Rcode: 3 (Non-Existent domain), RD: 0, QR: 1, TC: 0, AA: 1, opcode: 0
+Reply to question for qname='b.host.test.dyndns.', qtype=A
+Answer:
+;; ->>HEADER<<- opcode: UPDATE, status: NOERROR, id: [id]
+;; flags: qr aa; ZONE: 1, PREREQ: 0, UPDATE: 0, ADDITIONAL: 0
+;; ZONE SECTION:
+;test.dyndns.			IN	SOA
+
+0	test.dyndns.	IN	NSEC3PARAM	86400	1 0 10 dcbe
+0	test.dyndns.	IN	RRSIG	86400	NSEC3PARAM 13 2 86400 [expiry] [inception] [keytag] test.dyndns. ...
+2	.	IN	OPT	32768	
+Rcode: 0 (No Error), RD: 0, QR: 1, TC: 0, AA: 1, opcode: 0
+Reply to question for qname='test.dyndns.', qtype=NSEC3PARAM
+1	ac2jl1kik929tr9i5rfcmbucm547n51a.test.dyndns.	IN	NSEC3	86400	1 [flags] 10 dcbe EE295AK1NDT9O0RLL1A4RPPB4NAOV4QM
+1	ac2jl1kik929tr9i5rfcmbucm547n51a.test.dyndns.	IN	RRSIG	86400	NSEC3 13 3 86400 [expiry] [inception] [keytag] test.dyndns. ...
+1	test.dyndns.	IN	RRSIG	3600	SOA 13 2 3600 [expiry] [inception] [keytag] test.dyndns. ...
+1	test.dyndns.	IN	SOA	3600	ns1.test.dyndns. ahu.example.dyndns. [serial] 28800 7200 604800 86400
+1	uba3qp1vffon9pq2r07e7ldrnh5mg90v.test.dyndns.	IN	NSEC3	86400	1 [flags] 10 dcbe 4KLD1OCH52V50U3NG1HM8R7960VRSVOM A RRSIG
+1	uba3qp1vffon9pq2r07e7ldrnh5mg90v.test.dyndns.	IN	RRSIG	86400	NSEC3 13 3 86400 [expiry] [inception] [keytag] test.dyndns. ...
+2	.	IN	OPT	32768	
+Rcode: 3 (Non-Existent domain), RD: 0, QR: 1, TC: 0, AA: 1, opcode: 0
+Reply to question for qname='b.host.test.dyndns.', qtype=A
+Check if NSEC3PARAM record exists and A-record added
+--- Start: diff start step.1 ---
+< a.host.test.dyndns	A	0	1.1.1.1	3600	'dsa3ti9nu3apdsvl3f63qlvakv555sr6'	1
+< cname1.test.dyndns	CNAME	0	host-1.test.dyndns	3600	'8pqjv4b3m0lcfmvae0hp394lc154l1i7'	1
+< cname2.test.dyndns	CNAME	0	host-2.test.dyndns	3600	'4i84rosksbmegcqfnkf6n6ci093h7rq4'	1
+< delete-add.test.dyndns	A	0	127.0.0.108	3600	'slsck1enia56lrkr5gep7clu9j1o5ifn'	1
+< delete-add.test.dyndns	TXT	0	"Should be gone after a while"	3600	'slsck1enia56lrkr5gep7clu9j1o5ifn'	1
+< e.host.test.dyndns	A	0	1.1.1.1	3600	'8ti9tgh8d81frr5vr4o1o5bvko42v9dq'	1
+< host-1.test.dyndns	A	0	127.0.0.101	3600	'tdhv9cbk13jg8drivldhsl3mji8qqqe2'	1
+< host-2.test.dyndns	A	0	127.0.0.102	3600	's30oprhqrekh5suh6l530kd668elk9os'	1
+< host-3.test.dyndns	A	0	127.0.0.103	3600	'gou9ao3rkdcnhqldf4056m9oigmtkuh6'	1
+< host.test.dyndns	NULL	NULL	NULL	NULL	'lmrsadk2bb62qpruaules5i5ap06cp55'	1
+< multi.test.dyndns	A	0	127.0.0.1	3600	'tntcbdfsihhd24nt96bq9973vd019u43'	1
+< multi.test.dyndns	A	0	127.0.0.2	3600	'tntcbdfsihhd24nt96bq9973vd019u43'	1
+< multi.test.dyndns	A	0	127.0.0.3	3600	'tntcbdfsihhd24nt96bq9973vd019u43'	1
+< ns1.test.dyndns	A	0	127.0.0.1	3600	'2gp5rdnjoq5oospc5o1ih9lali101di8'	1
+< ns2.test.dyndns	A	0	127.0.0.2	3600	'fqu365vn7br5csv8cg6ne9v8ha6d008p'	1
+< replace.test.dyndns	A	0	127.0.0.1	3600	'ituduke14pthsno7ii6h5sboshr8rfqs'	1
+< test.dyndns	MX	10	host-1.test.dyndns	3600	'u36f0tjooqv1kspatto6qns0vap731v2'	1
+< test.dyndns	MX	20	host-2.test.dyndns	3600	'u36f0tjooqv1kspatto6qns0vap731v2'	1
+< test.dyndns	NS	0	ns1.test.dyndns	3600	'u36f0tjooqv1kspatto6qns0vap731v2'	1
+< test.dyndns	NS	0	ns2.test.dyndns	3600	'u36f0tjooqv1kspatto6qns0vap731v2'	1
+< ttl.test.dyndns	A	0	127.0.0.1	3600	'q75pnoe7pb74pnd6ogn44t5btuurbhrf'	1
+< txt.test.dyndns	TXT	0	"This is some text"	3600	'lbj6718q27qsm7q020pqmhj0emg1neac'	1
+< wild.test.dyndns	NULL	NULL	NULL	NULL	'r9s1cj8dkmnmenjn95sti8nhh9utpq9k'	1
+< *.wild.test.dyndns	A	0	127.0.1.255	3600	'lresbbp3lv8blgj9fsgtdmm4q7vj3d6j'	1
+> a.host.test.dyndns	A	0	1.1.1.1	3600	'56ack4bc22vbotda2c16ovse4fn25rq9'	1
+> cname1.test.dyndns	CNAME	0	host-1.test.dyndns	3600	'8uit4g0g6a2bhd4k1jqm8vss2ped90or'	1
+> cname2.test.dyndns	CNAME	0	host-2.test.dyndns	3600	'4kld1och52v50u3ng1hm8r7960vrsvom'	1
+> delete-add.test.dyndns	A	0	127.0.0.108	3600	'qos1o6fh2fhqsrobhfu5fo4jod7kbm31'	1
+> delete-add.test.dyndns	TXT	0	"Should be gone after a while"	3600	'qos1o6fh2fhqsrobhfu5fo4jod7kbm31'	1
+> e.host.test.dyndns	A	0	1.1.1.1	3600	'feibo0ol87v167hotqml6lfp3ertsvsm'	1
+> host-1.test.dyndns	A	0	127.0.0.101	3600	'5oj69l0a9ivclkj9od2jo4nhea4dqqrr'	1
+> host-2.test.dyndns	A	0	127.0.0.102	3600	'h5scf8d2fiklli0eejrr6ib9uurde8jo'	1
+> host-3.test.dyndns	A	0	127.0.0.103	3600	'g29j5ivi5i6rr1aoe2l59a9s1rohha2o'	1
+> host.test.dyndns	NULL	NULL	NULL	NULL	'ac2jl1kik929tr9i5rfcmbucm547n51a'	1
+> multi.test.dyndns	A	0	127.0.0.1	3600	'lavvds84bcal6n6qnavn3q1u4jcpjev9'	1
+> multi.test.dyndns	A	0	127.0.0.2	3600	'lavvds84bcal6n6qnavn3q1u4jcpjev9'	1
+> multi.test.dyndns	A	0	127.0.0.3	3600	'lavvds84bcal6n6qnavn3q1u4jcpjev9'	1
+> ns1.test.dyndns	A	0	127.0.0.1	3600	'uba3qp1vffon9pq2r07e7ldrnh5mg90v'	1
+> ns2.test.dyndns	A	0	127.0.0.2	3600	'pe3h59f3ru6vid4ok0t4tsu6d0ndrvhs'	1
+> replace.test.dyndns	A	0	127.0.0.1	3600	'hcj69ok6nqcmebhuprvga4kagcb9cfrf'	1
+> test.dyndns	MX	10	host-1.test.dyndns	3600	'62qbu7pvpt7cm7bdpu7geb3je1l0aure'	1
+> test.dyndns	MX	20	host-2.test.dyndns	3600	'62qbu7pvpt7cm7bdpu7geb3je1l0aure'	1
+> test.dyndns	NS	0	ns1.test.dyndns	3600	'62qbu7pvpt7cm7bdpu7geb3je1l0aure'	1
+> test.dyndns	NS	0	ns2.test.dyndns	3600	'62qbu7pvpt7cm7bdpu7geb3je1l0aure'	1
+> ttl.test.dyndns	A	0	127.0.0.1	3600	'fa878afqjafu98itdnj0744n7g1f8uei'	1
+> txt.test.dyndns	TXT	0	"This is some text"	3600	'rps6lu4mfq3fl71qp8np9gf8addr9k8t'	1
+> wild.test.dyndns	NULL	NULL	NULL	NULL	'a5s5svjou2lfs8r30prflluuqqui51q8'	1
+> *.wild.test.dyndns	A	0	127.0.1.255	3600	'ee295ak1ndt9o0rll1a4rppb4naov4qm'	1
+--- End: diff start step.1 ---
+
+Answer:
+;; ->>HEADER<<- opcode: UPDATE, status: NOERROR, id: [id]
+;; flags: qr aa; ZONE: 1, PREREQ: 0, UPDATE: 0, ADDITIONAL: 0
+;; ZONE SECTION:
+;test.dyndns.			IN	SOA
+
+1	test.dyndns.	IN	NSEC	86400	cname1.test.dyndns. NS SOA MX RRSIG NSEC DNSKEY
+1	test.dyndns.	IN	RRSIG	3600	SOA 13 2 3600 [expiry] [inception] [keytag] test.dyndns. ...
+1	test.dyndns.	IN	RRSIG	86400	NSEC 13 2 86400 [expiry] [inception] [keytag] test.dyndns. ...
+1	test.dyndns.	IN	SOA	3600	ns1.test.dyndns. ahu.example.dyndns. [serial] 28800 7200 604800 86400
+2	.	IN	OPT	32768	
+Rcode: 0 (No Error), RD: 0, QR: 1, TC: 0, AA: 1, opcode: 0
+Reply to question for qname='test.dyndns.', qtype=NSEC3PARAM
+1	a.host.test.dyndns.	IN	NSEC	86400	e.host.test.dyndns. A RRSIG NSEC
+1	a.host.test.dyndns.	IN	RRSIG	86400	NSEC 13 4 86400 [expiry] [inception] [keytag] test.dyndns. ...
+1	delete-add.test.dyndns.	IN	NSEC	86400	a.host.test.dyndns. A TXT RRSIG NSEC
+1	delete-add.test.dyndns.	IN	RRSIG	86400	NSEC 13 3 86400 [expiry] [inception] [keytag] test.dyndns. ...
+1	test.dyndns.	IN	RRSIG	3600	SOA 13 2 3600 [expiry] [inception] [keytag] test.dyndns. ...
+1	test.dyndns.	IN	SOA	3600	ns1.test.dyndns. ahu.example.dyndns. [serial] 28800 7200 604800 86400
+2	.	IN	OPT	32768	
+Rcode: 3 (Non-Existent domain), RD: 0, QR: 1, TC: 0, AA: 1, opcode: 0
+Reply to question for qname='b.host.test.dyndns.', qtype=A
+Check if NSEC3PARAM is deleted
+--- Start: diff start step.2 ---
+< a.host.test.dyndns	A	0	1.1.1.1	3600	'dsa3ti9nu3apdsvl3f63qlvakv555sr6'	1
+< cname1.test.dyndns	CNAME	0	host-1.test.dyndns	3600	'8pqjv4b3m0lcfmvae0hp394lc154l1i7'	1
+< cname2.test.dyndns	CNAME	0	host-2.test.dyndns	3600	'4i84rosksbmegcqfnkf6n6ci093h7rq4'	1
+< delete-add.test.dyndns	A	0	127.0.0.108	3600	'slsck1enia56lrkr5gep7clu9j1o5ifn'	1
+< delete-add.test.dyndns	TXT	0	"Should be gone after a while"	3600	'slsck1enia56lrkr5gep7clu9j1o5ifn'	1
+< e.host.test.dyndns	A	0	1.1.1.1	3600	'8ti9tgh8d81frr5vr4o1o5bvko42v9dq'	1
+< host-1.test.dyndns	A	0	127.0.0.101	3600	'tdhv9cbk13jg8drivldhsl3mji8qqqe2'	1
+< host-2.test.dyndns	A	0	127.0.0.102	3600	's30oprhqrekh5suh6l530kd668elk9os'	1
+< host-3.test.dyndns	A	0	127.0.0.103	3600	'gou9ao3rkdcnhqldf4056m9oigmtkuh6'	1
+< host.test.dyndns	NULL	NULL	NULL	NULL	'lmrsadk2bb62qpruaules5i5ap06cp55'	1
+< multi.test.dyndns	A	0	127.0.0.1	3600	'tntcbdfsihhd24nt96bq9973vd019u43'	1
+< multi.test.dyndns	A	0	127.0.0.2	3600	'tntcbdfsihhd24nt96bq9973vd019u43'	1
+< multi.test.dyndns	A	0	127.0.0.3	3600	'tntcbdfsihhd24nt96bq9973vd019u43'	1
+< ns1.test.dyndns	A	0	127.0.0.1	3600	'2gp5rdnjoq5oospc5o1ih9lali101di8'	1
+< ns2.test.dyndns	A	0	127.0.0.2	3600	'fqu365vn7br5csv8cg6ne9v8ha6d008p'	1
+< replace.test.dyndns	A	0	127.0.0.1	3600	'ituduke14pthsno7ii6h5sboshr8rfqs'	1
+< sub.test.dyndns	NS	0	ns1.test.dyndns	3600	NULL	0
+< sub.test.dyndns	NS	0	ns2.test.dyndns	3600	NULL	0
+< test.dyndns	MX	10	host-1.test.dyndns	3600	'u36f0tjooqv1kspatto6qns0vap731v2'	1
+< test.dyndns	MX	20	host-2.test.dyndns	3600	'u36f0tjooqv1kspatto6qns0vap731v2'	1
+< test.dyndns	NS	0	ns1.test.dyndns	3600	'u36f0tjooqv1kspatto6qns0vap731v2'	1
+< test.dyndns	NS	0	ns2.test.dyndns	3600	'u36f0tjooqv1kspatto6qns0vap731v2'	1
+< ttl.test.dyndns	A	0	127.0.0.1	3600	'q75pnoe7pb74pnd6ogn44t5btuurbhrf'	1
+< txt.test.dyndns	TXT	0	"This is some text"	3600	'lbj6718q27qsm7q020pqmhj0emg1neac'	1
+< wild.test.dyndns	NULL	NULL	NULL	NULL	'r9s1cj8dkmnmenjn95sti8nhh9utpq9k'	1
+< *.wild.test.dyndns	A	0	127.0.1.255	3600	'lresbbp3lv8blgj9fsgtdmm4q7vj3d6j'	1
+> a.host.test.dyndns	A	0	1.1.1.1	3600	'host a'	1
+> cname1.test.dyndns	CNAME	0	host-1.test.dyndns	3600	'cname1'	1
+> cname2.test.dyndns	CNAME	0	host-2.test.dyndns	3600	'cname2'	1
+> delete-add.test.dyndns	A	0	127.0.0.108	3600	'delete-add'	1
+> delete-add.test.dyndns	TXT	0	"Should be gone after a while"	3600	'delete-add'	1
+> e.host.test.dyndns	A	0	1.1.1.1	3600	'host e'	1
+> host-1.test.dyndns	A	0	127.0.0.101	3600	'host-1'	1
+> host-2.test.dyndns	A	0	127.0.0.102	3600	'host-2'	1
+> host-3.test.dyndns	A	0	127.0.0.103	3600	'host-3'	1
+> host.test.dyndns	NULL	NULL	NULL	NULL	NULL	1
+> multi.test.dyndns	A	0	127.0.0.1	3600	'multi'	1
+> multi.test.dyndns	A	0	127.0.0.2	3600	'multi'	1
+> multi.test.dyndns	A	0	127.0.0.3	3600	'multi'	1
+> ns1.test.dyndns	A	0	127.0.0.1	3600	'ns1'	1
+> ns2.test.dyndns	A	0	127.0.0.2	3600	'ns2'	1
+> replace.test.dyndns	A	0	127.0.0.1	3600	'replace'	1
+> sub.test.dyndns	NS	0	ns1.test.dyndns	3600	'sub'	0
+> sub.test.dyndns	NS	0	ns2.test.dyndns	3600	'sub'	0
+> test.dyndns	MX	10	host-1.test.dyndns	3600	''	1
+> test.dyndns	MX	20	host-2.test.dyndns	3600	''	1
+> test.dyndns	NS	0	ns1.test.dyndns	3600	''	1
+> test.dyndns	NS	0	ns2.test.dyndns	3600	''	1
+> ttl.test.dyndns	A	0	127.0.0.1	3600	'ttl'	1
+> txt.test.dyndns	TXT	0	"This is some text"	3600	'txt'	1
+> wild.test.dyndns	NULL	NULL	NULL	NULL	NULL	1
+> *.wild.test.dyndns	A	0	127.0.1.255	3600	'wild *'	1
+--- End: diff start step.2 ---
+
+Answer:
+;; ->>HEADER<<- opcode: UPDATE, status: NOERROR, id: [id]
+;; flags: qr aa; ZONE: 1, PREREQ: 0, UPDATE: 0, ADDITIONAL: 0
+;; ZONE SECTION:
+;test.dyndns.			IN	SOA
+
+0	test.dyndns.	IN	NSEC3PARAM	86400	1 0 1 abcd
+0	test.dyndns.	IN	RRSIG	86400	NSEC3PARAM 13 2 86400 [expiry] [inception] [keytag] test.dyndns. ...
+2	.	IN	OPT	32768	
+Rcode: 0 (No Error), RD: 0, QR: 1, TC: 0, AA: 1, opcode: 0
+Reply to question for qname='test.dyndns.', qtype=NSEC3PARAM
+1	4i84rosksbmegcqfnkf6n6ci093h7rq4.test.dyndns.	IN	NSEC3	86400	1 [flags] 1 abcd 8PQJV4B3M0LCFMVAE0HP394LC154L1I7 CNAME RRSIG
+1	4i84rosksbmegcqfnkf6n6ci093h7rq4.test.dyndns.	IN	RRSIG	86400	NSEC3 13 3 86400 [expiry] [inception] [keytag] test.dyndns. ...
+1	8ti9tgh8d81frr5vr4o1o5bvko42v9dq.test.dyndns.	IN	NSEC3	86400	1 [flags] 1 abcd DSA3TI9NU3APDSVL3F63QLVAKV555SR6 A RRSIG
+1	8ti9tgh8d81frr5vr4o1o5bvko42v9dq.test.dyndns.	IN	RRSIG	86400	NSEC3 13 3 86400 [expiry] [inception] [keytag] test.dyndns. ...
+1	lmrsadk2bb62qpruaules5i5ap06cp55.test.dyndns.	IN	NSEC3	86400	1 [flags] 1 abcd LRESBBP3LV8BLGJ9FSGTDMM4Q7VJ3D6J
+1	lmrsadk2bb62qpruaules5i5ap06cp55.test.dyndns.	IN	RRSIG	86400	NSEC3 13 3 86400 [expiry] [inception] [keytag] test.dyndns. ...
+1	test.dyndns.	IN	RRSIG	3600	SOA 13 2 3600 [expiry] [inception] [keytag] test.dyndns. ...
+1	test.dyndns.	IN	SOA	3600	ns1.test.dyndns. ahu.example.dyndns. [serial] 28800 7200 604800 86400
+2	.	IN	OPT	32768	
+Rcode: 3 (Non-Existent domain), RD: 0, QR: 1, TC: 0, AA: 1, opcode: 0
+Reply to question for qname='b.host.test.dyndns.', qtype=A
+Check if NSEC3PARAM is added again
+--- Start: diff start step.3 ---
+no difference
+--- End: diff start step.3 ---
+

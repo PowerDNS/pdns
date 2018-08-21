@@ -97,7 +97,8 @@ class TestAPIBasics(DNSDistTest):
 
         for server in content['servers']:
             for key in ['id', 'latency', 'name', 'weight', 'outstanding', 'qpsLimit',
-                        'reuseds', 'state', 'address', 'pools', 'qps', 'queries', 'order', 'sendErrors']:
+                        'reuseds', 'state', 'address', 'pools', 'qps', 'queries', 'order', 'sendErrors',
+                        'dropRate']:
                 self.assertIn(key, server)
 
             for key in ['id', 'latency', 'weight', 'outstanding', 'qpsLimit', 'reuseds',
@@ -271,7 +272,7 @@ class TestAPIBasics(DNSDistTest):
         content = r.json()
 
         if content:
-            for key in ['reason', 'seconds', 'blocks']:
+            for key in ['reason', 'seconds', 'blocks', 'action']:
                 self.assertIn(key, content)
 
             for key in ['blocks']:

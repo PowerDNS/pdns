@@ -159,7 +159,7 @@ $(document).ready(function() {
 
                 $("#cpu").text(cpu.toFixed(2));
                 var qps=1.0*data["queries"]-1.0*gdata["queries"];
-                $("#qps").text(qps);
+                $("#qps").text(qps.toFixed(2));
                 $("#server-policy").text(data["server-policy"]);
 
                 var servfailps=1.0*data["servfail-responses"]-1.0*gdata["servfail-responses"];
@@ -194,7 +194,7 @@ $(document).ready(function() {
                      var bouw='<table width="100%"><tr align=right><th>#</th><th align=left>Name</th><th align=left>Address</th><th>Status</th><th>Latency</th><th>Queries</th><th>Drops</th><th>QPS</th><th>Out</th><th>Weight</th><th>Order</th><th align=left>Pools</th></tr>';
                      $.each(data["servers"], function(a,b) {
                          bouw = bouw + ("<tr align=right><td>"+b["id"]+"</td><td align=left>"+b["name"]+"</td><td align=left>"+b["address"]+"</td><td>"+b["state"]+"</td>");
-                         bouw = bouw + ("<td>"+b["latency"]+"</td><td>"+b["queries"]+"</td><td>"+b["reuseds"]+"</td><td>"+b["qps"]+"</td><td>"+b["outstanding"]+"</td>");
+                         bouw = bouw + ("<td>"+(b["latency"]).toFixed(2)+"</td><td>"+b["queries"]+"</td><td>"+b["reuseds"]+"</td><td>"+(b["qps"]).toFixed(2)+"</td><td>"+b["outstanding"]+"</td>");
                          bouw = bouw + ("<td>"+b["weight"]+"</td><td>"+b["order"]+"</td><td align=left>"+b["pools"]+"</td></tr>");
                      }); 
                      bouw = bouw + "</table>";

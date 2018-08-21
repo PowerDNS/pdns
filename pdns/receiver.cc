@@ -350,17 +350,6 @@ static int guardian(int argc, char **argv)
   }
 }
 
-static void UNIX_declareArguments()
-{
-  ::arg().set("config-dir","Location of configuration directory (pdns.conf)")=SYSCONFDIR;
-  ::arg().set("config-name","Name of this virtual configuration - will rename the binary image")="";
-  ::arg().set("socket-dir",string("Where the controlsocket will live, ")+LOCALSTATEDIR+" when unset and not chrooted" )="";
-  ::arg().set("module-dir","Default directory for modules")=PKGLIBDIR;
-  ::arg().set("chroot","If set, chroot to this directory for more security")="";
-  ::arg().set("logging-facility","Log under a specific facility")="";
-  ::arg().set("daemon","Operate as a daemon")="no";
-}
-
 #ifdef __GLIBC__
 #include <execinfo.h>
 static void tbhandler(int num)
@@ -405,7 +394,6 @@ int main(int argc, char **argv)
   g_log.toConsole(Logger::Warning);
   try {
     declareArguments();
-    UNIX_declareArguments();
 
     ::arg().laxParse(argc,argv); // do a lax parse
     
@@ -576,8 +564,11 @@ int main(int argc, char **argv)
 
     if(::arg()["server-id"].empty()) {
       char tmp[128];
-      gethostname(tmp, sizeof(tmp)-1);
-      ::arg().set("server-id")=tmp;
+      if(gethostname(tmp, sizeof(tmp)-1) == 0) {
+        ::arg().set("server-id")=tmp;
+      } else {
+        g_log<<Logger::Warning<<"Unable to get the hostname, NSID and id.server values will be empty: "<<strerror(errno)<<endl;
+      }
     }
 
     UeberBackend::go();

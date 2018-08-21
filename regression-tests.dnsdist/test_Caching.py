@@ -2,6 +2,7 @@
 import base64
 import time
 import dns
+import clientsubnetoption
 from dnsdisttests import DNSDistTest
 
 class TestCaching(DNSDistTest):
@@ -1316,6 +1317,112 @@ class TestCachingFailureTTL(DNSDistTest):
 
         self.assertEquals(total, misses)
 
+class TestCachingNegativeTTL(DNSDistTest):
+
+    _negCacheTTL = 1
+    _config_params = ['_negCacheTTL', '_testServerPort']
+    _config_template = """
+    pc = newPacketCache(1000, 86400, 0, 60, 60, false, 1, true, %d)
+    getPool(""):setCache(pc)
+    newServer{address="127.0.0.1:%s"}
+    """
+
+    def testCacheNegativeTTLNXDomain(self):
+        """
+        Cache: Negative TTL on NXDOMAIN
+
+        """
+        misses = 0
+        name = 'nxdomain.negativettl.cache.tests.powerdns.com.'
+        query = dns.message.make_query(name, 'A', 'IN')
+        response = dns.message.make_response(query)
+        response.set_rcode(dns.rcode.NXDOMAIN)
+        soa = dns.rrset.from_text(name,
+                                  60,
+                                  dns.rdataclass.IN,
+                                  dns.rdatatype.SOA,
+                                  'ns.' + name + ' hostmaster.' + name + ' 1 3600 3600 3600 60')
+        response.authority.append(soa)
+
+        # Miss
+        (receivedQuery, receivedResponse) = self.sendUDPQuery(query, response)
+        self.assertTrue(receivedQuery)
+        self.assertTrue(receivedResponse)
+        receivedQuery.id = query.id
+        self.assertEquals(query, receivedQuery)
+        self.assertEquals(response, receivedResponse)
+        misses += 1
+
+        # next queries should hit the cache
+        (_, receivedResponse) = self.sendUDPQuery(query, response=None, useQueue=False)
+        self.assertEquals(receivedResponse, response)
+
+        time.sleep(self._negCacheTTL + 1)
+
+        # we should not have cached for longer than the negativel TTL
+        # so it should be a miss
+        (receivedQuery, receivedResponse) = self.sendUDPQuery(query, response)
+        self.assertTrue(receivedQuery)
+        self.assertTrue(receivedResponse)
+        receivedQuery.id = query.id
+        self.assertEquals(query, receivedQuery)
+        self.assertEquals(response, receivedResponse)
+        misses += 1
+
+        total = 0
+        for key in self._responsesCounter:
+            total += self._responsesCounter[key]
+
+        self.assertEquals(total, misses)
+
+    def testCacheNegativeTTLNoData(self):
+        """
+        Cache: Negative TTL on NoData
+
+        """
+        misses = 0
+        name = 'nodata.negativettl.cache.tests.powerdns.com.'
+        query = dns.message.make_query(name, 'A', 'IN')
+        response = dns.message.make_response(query)
+        response.set_rcode(dns.rcode.NOERROR)
+        soa = dns.rrset.from_text(name,
+                                  60,
+                                  dns.rdataclass.IN,
+                                  dns.rdatatype.SOA,
+                                  'ns.' + name + ' hostmaster.' + name + ' 1 3600 3600 3600 60')
+        response.authority.append(soa)
+
+        # Miss
+        (receivedQuery, receivedResponse) = self.sendUDPQuery(query, response)
+        self.assertTrue(receivedQuery)
+        self.assertTrue(receivedResponse)
+        receivedQuery.id = query.id
+        self.assertEquals(query, receivedQuery)
+        self.assertEquals(response, receivedResponse)
+        misses += 1
+
+        # next queries should hit the cache
+        (_, receivedResponse) = self.sendUDPQuery(query, response=None, useQueue=False)
+        self.assertEquals(receivedResponse, response)
+
+        time.sleep(self._negCacheTTL + 1)
+
+        # we should not have cached for longer than the negativel TTL
+        # so it should be a miss
+        (receivedQuery, receivedResponse) = self.sendUDPQuery(query, response)
+        self.assertTrue(receivedQuery)
+        self.assertTrue(receivedResponse)
+        receivedQuery.id = query.id
+        self.assertEquals(query, receivedQuery)
+        self.assertEquals(response, receivedResponse)
+        misses += 1
+
+        total = 0
+        for key in self._responsesCounter:
+            total += self._responsesCounter[key]
+
+        self.assertEquals(total, misses)
+
 class TestCachingDontAge(DNSDistTest):
 
     _config_template = """
@@ -1497,3 +1604,93 @@ class TestCachingECSWithPoolECS(DNSDistTest):
         # same over TCP
         (_, receivedResponse) = self.sendTCPQuery(query, response=None, useQueue=False)
         self.assertEquals(receivedResponse, response)
+
+class TestCachingCollisionNoECSParsing(DNSDistTest):
+
+    _config_template = """
+    pc = newPacketCache(100, 86400, 1)
+    getPool(""):setCache(pc)
+    newServer{address="127.0.0.1:%s"}
+    """
+
+    def testCacheCollisionNoECSParsing(self):
+        """
+        Cache: Collision with no ECS parsing
+        """
+        name = 'collision-no-ecs-parsing.cache.tests.powerdns.com.'
+        ecso = clientsubnetoption.ClientSubnetOption('10.0.188.3', 32)
+        query = dns.message.make_query(name, 'AAAA', 'IN', use_edns=True, options=[ecso], payload=512)
+        query.flags = dns.flags.RD
+        response = dns.message.make_response(query)
+        rrset = dns.rrset.from_text(name,
+                                    3600,
+                                    dns.rdataclass.IN,
+                                    dns.rdatatype.AAAA,
+                                    '::1')
+        response.answer.append(rrset)
+
+        # first query should to fill the cache
+        (receivedQuery, receivedResponse) = self.sendUDPQuery(query, response)
+        self.assertTrue(receivedQuery)
+        self.assertTrue(receivedResponse)
+        receivedQuery.id = query.id
+        self.assertEquals(query, receivedQuery)
+        self.assertEquals(receivedResponse, response)
+
+        # second query will hash to the same key, triggering a collision which
+        # will not be detected because the qname, qtype, qclass and flags will
+        # match and EDNS Client Subnet parsing has not been enabled
+        ecso2 = clientsubnetoption.ClientSubnetOption('10.0.192.138', 32)
+        query2 = dns.message.make_query(name, 'AAAA', 'IN', use_edns=True, options=[ecso2], payload=512)
+        query2.flags = dns.flags.RD
+        (_, receivedResponse) = self.sendUDPQuery(query2, response=None, useQueue=False)
+        receivedResponse.id = response.id
+        self.assertEquals(receivedResponse, response)
+
+class TestCachingCollisionWithECSParsing(DNSDistTest):
+
+    _config_template = """
+    pc = newPacketCache(100, 86400, 1, 60, 60, false, 1, true, 3600, true)
+    getPool(""):setCache(pc)
+    newServer{address="127.0.0.1:%s"}
+    """
+
+    def testCacheCollisionWithECSParsing(self):
+        """
+        Cache: Collision with ECS parsing
+        """
+        name = 'collision-with-ecs-parsing.cache.tests.powerdns.com.'
+        ecso = clientsubnetoption.ClientSubnetOption('10.0.115.61', 32)
+        query = dns.message.make_query(name, 'AAAA', 'IN', use_edns=True, options=[ecso], payload=512)
+        query.flags = dns.flags.RD
+        response = dns.message.make_response(query)
+        rrset = dns.rrset.from_text(name,
+                                    3600,
+                                    dns.rdataclass.IN,
+                                    dns.rdatatype.AAAA,
+                                    '::1')
+        response.answer.append(rrset)
+
+        # first query should to fill the cache
+        (receivedQuery, receivedResponse) = self.sendUDPQuery(query, response)
+        self.assertTrue(receivedQuery)
+        self.assertTrue(receivedResponse)
+        receivedQuery.id = query.id
+        self.assertEquals(query, receivedQuery)
+        self.assertEquals(receivedResponse, response)
+
+        # second query will hash to the same key, triggering a collision which
+        # _will_ be detected this time because the qname, qtype, qclass and flags will
+        # match but EDNS Client Subnet parsing is now enabled and will detect the issue
+        ecso2 = clientsubnetoption.ClientSubnetOption('10.0.143.21', 32)
+        query2 = dns.message.make_query(name, 'AAAA', 'IN', use_edns=True, options=[ecso2], payload=512)
+        query2.flags = dns.flags.RD
+        response2 = dns.message.make_response(query2)
+        rrset = dns.rrset.from_text(name,
+                                    3600,
+                                    dns.rdataclass.IN,
+                                    dns.rdatatype.AAAA,
+                                    '2001:DB8::1')
+        response2.answer.append(rrset)
+        (receivedQuery, receivedResponse) = self.sendUDPQuery(query2, response2)
+        self.assertEquals(receivedResponse, response2)
