@@ -45,6 +45,7 @@
 #include "zoneparser-tng.hh"
 #include "common_startup.hh"
 #include "auth-caches.hh"
+#include "tsigutils.hh"
 
 using json11::Json;
 
@@ -1352,17 +1353,11 @@ static void apiServerTSIGKeys(HttpRequest* req, HttpResponse* resp) {
     string content = document["key"].string_value();
 
     if (content.empty()) {
-      size_t klen = 64;
-      if (algo.toStringNoDot() == "hmac-md5"
-          || algo.toStringNoDot() == "hmac-sha1"
-          || algo.toStringNoDot() == "hmac-sha224") {
-        klen = 32;
+      try {
+        content = makeTSIGKey(algo);
+      } catch (const PDNSException& e) {
+        throw HttpBadRequestException(e.reason);
       }
-      char tmpkey[64];
-      for(size_t i = 0; i < klen; i+=4) {
-        *(unsigned int*)(tmpkey+i) = dns_random(0xffffffff);
-      }
-      content = Base64Encode(std::string(tmpkey, klen));
     }
 
     // Will throw an ApiException or HttpConflictException on error
