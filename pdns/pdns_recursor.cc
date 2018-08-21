@@ -246,9 +246,9 @@ ArgvMap &arg()
   return theArg;
 }
 
-unsigned int getRecursorThreadId()
+int getRecursorThreadId()
 {
-  return static_cast<unsigned int>(t_id);
+  return t_id;
 }
 
 int getMTaskerTID()
@@ -3238,15 +3238,17 @@ try
 #endif
   L<<Logger::Warning<<"Done priming cache with root hints"<<endl;
 
-  try {
-    if(!::arg()["lua-dns-script"].empty()) {
-      t_pdl = std::make_shared<RecursorLua4>(::arg()["lua-dns-script"]);
-      L<<Logger::Warning<<"Loaded 'lua' script from '"<<::arg()["lua-dns-script"]<<"'"<<endl;
+  if(worker && (!g_weDistributeQueries || t_id != s_distributorThreadID)) {
+    try {
+      if(!::arg()["lua-dns-script"].empty()) {
+        t_pdl = std::make_shared<RecursorLua4>(::arg()["lua-dns-script"]);
+        L<<Logger::Warning<<"Loaded 'lua' script from '"<<::arg()["lua-dns-script"]<<"'"<<endl;
+      }
     }
-  }
-  catch(std::exception &e) {
-    L<<Logger::Error<<"Failed to load 'lua' script from '"<<::arg()["lua-dns-script"]<<"': "<<e.what()<<endl;
-    _exit(99);
+    catch(std::exception &e) {
+      L<<Logger::Error<<"Failed to load 'lua' script from '"<<::arg()["lua-dns-script"]<<"': "<<e.what()<<endl;
+      _exit(99);
+    }
   }
 
   unsigned int ringsize=::arg().asNum("stats-ringbuffer-entries") / g_numWorkerThreads;
