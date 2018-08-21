@@ -130,8 +130,9 @@ static const int s_handlerThreadID = -1;
    to the other threads */
 static const int s_distributorThreadID = 0;
 
-typedef vector<int> tcpListenSockets_t;
+typedef std::map<int, std::set<int>> tcpListenSockets_t;
 typedef map<int, ComboAddress> listenSocketsAddresses_t; // is shared across all threads right now
+
 typedef vector<pair<int, function< void(int, any&) > > > deferredAdd_t;
 
 static const ComboAddress g_local4("0.0.0.0"), g_local6("::");
@@ -1995,7 +1996,7 @@ static void makeTCPServerSockets(unsigned int threadId)
     setSocketSendBuffer(fd, 65000);
     listen(fd, 128);
     deferredAdds[threadId].push_back(make_pair(fd, handleNewTCPQuestion));
-    g_tcpListenSockets.push_back(fd);
+    g_tcpListenSockets[threadId].insert(fd);
     // we don't need to update g_listenSocketsAddresses since it doesn't work for TCP/IP:
     //  - fd is not that which we know here, but returned from accept()
     if(sin.sin4.sin_family == AF_INET)
@@ -3101,6 +3102,14 @@ static int serviceMain(int argc, char*argv[])
   else {
     makeUDPServerSockets(0);
     makeTCPServerSockets(0);
+
+    if (!g_weDistributeQueries) {
+      /* we are not distributing queries and we don't have reuseport,
+         so every thread will be listening on all the TCP sockets */
+      for (unsigned int threadId = 1; threadId < g_numWorkerThreads; threadId++) {
+        g_tcpListenSockets[threadId] = g_tcpListenSockets[0];
+      }
+    }
   }
 
   SyncRes::parseEDNSSubnetWhitelist(::arg()["edns-subnet-whitelist"]);
@@ -3348,15 +3357,17 @@ try
     if(worker && (!g_weDistributeQueries || t_id == s_distributorThreadID)) { // if pdns distributes queries, only tid 0 should do this
       if(listenOnTCP) {
 	if(TCPConnection::getCurrentConnections() > maxTcpClients) {  // shutdown, too many connections
-	  for(tcpListenSockets_t::iterator i=g_tcpListenSockets.begin(); i != g_tcpListenSockets.end(); ++i)
-	    t_fdm->removeReadFD(*i);
+	  for(const auto fd : g_tcpListenSockets[t_id]) {
+	    t_fdm->removeReadFD(fd);
+          }
 	  listenOnTCP=false;
 	}
       }
       else {
 	if(TCPConnection::getCurrentConnections() <= maxTcpClients) {  // reenable
-	  for(tcpListenSockets_t::iterator i=g_tcpListenSockets.begin(); i != g_tcpListenSockets.end(); ++i)
-	    t_fdm->addReadFD(*i, handleNewTCPQuestion);
+          for(const auto fd : g_tcpListenSockets[t_id]) {
+	    t_fdm->addReadFD(fd, handleNewTCPQuestion);
+          }
 	  listenOnTCP=true;
 	}
       }
