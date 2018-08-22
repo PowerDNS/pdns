@@ -457,7 +457,7 @@ DNSAction::Action SpoofAction::operator()(DNSQuestion* dq, string* ruleresult) c
 
   dq->dh->ancount = htons(dq->dh->ancount);
 
-  if (hadEDNS && g_addEDNSToSelfGeneratedResponses) {
+  if (hadEDNS) {
     addEDNS(dq->dh, dq->len, dq->size, dnssecOK, g_PayloadSizeSelfGenAnswers);
   }
 

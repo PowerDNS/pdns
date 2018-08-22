@@ -969,10 +969,11 @@ overriden using :func:`setPayloadSizeOnSelfGeneratedAnswers`.
 
   :param bool add: Whether to add EDNS, default is true.
 
-.. function:: setPayloadSizeOnSelfGeneratedAnswers(size)
+.. function:: setPayloadSizeOnSelfGeneratedAnswers(payloadSize)
 
   .. versionadded:: 1.3.3
 
-  Set the UDP payload size advertised via EDNS on self-generated responses.
+  Set the UDP payload size advertised via EDNS on self-generated responses. In accordance with
+  :rfc:`RFC 6891 <6891#section-6.2.5>`, values lower than 512 will be treated as equal to 512.
 
-  :param int size: The responder's maximum UDP payload size, in bytes. Default is 1500.
+  :param int payloadSize: The responder's maximum UDP payload size, in bytes. Default is 1500.
