@@ -50,7 +50,7 @@ struct DOHServerConfig
    but that's not how it works in DoH land. We need to set du->error 
    so HTTP serves a 500
 */
-static void processDOHQuery(DOHUnit* du)
+static int processDOHQuery(DOHUnit* du)
 {
   LocalHolders holders;
   uint16_t queryId=0;
@@ -72,7 +72,7 @@ static void processDOHQuery(DOHUnit* du)
     uint16_t len = du->query.length();
 
     if (!checkQueryHeaders(dh)) {
-      return; 
+      return -1;
     }
 
     string poolname;
@@ -86,34 +86,32 @@ static void processDOHQuery(DOHUnit* du)
     queryId = ntohs(dh->id);
     if (!processQuery(holders, dq, poolname, &delayMsec, now))
     {
-      return;
+      return -1;
     }
 
     if(dq.dh->qr) { // something turned it into a response
       restoreFlags(dh, origFlags);
 
-      if (!cs.muted) {
-        char* response = query;
-        uint16_t responseLen = dq.len;
-
-        DNSResponse dr(dq.qname, dq.qtype, dq.qclass, dq.local, dq.remote, reinterpret_cast<dnsheader*>(response), dq.size, responseLen, false, &queryRealTime);
+      char* response = query;
+      uint16_t responseLen = dq.len;
+      
+      DNSResponse dr(dq.qname, dq.qtype, dq.qclass, dq.local, dq.remote, reinterpret_cast<dnsheader*>(response), dq.size, responseLen, false, &queryRealTime);
 #ifdef HAVE_PROTOBUF
-        dr.uniqueId = dq.uniqueId;
+      dr.uniqueId = dq.uniqueId;
 #endif
-        dr.qTag = dq.qTag;
-
-        if (!processResponse(holders.selfAnsweredRespRulactions, dr, &delayMsec)) {
-          return;
-        }
-
-        //        sendUDPResponse(cs.udpFD, response, responseLen, delayMsec, dest, remote);
-        // actually do sendDOHResponse
-
-        g_stats.selfAnswered++;
-        doLatencyStats(0);  // we're not going to measure this
+      dr.qTag = dq.qTag;
+      
+      if (!processResponse(holders.selfAnsweredRespRulactions, dr, &delayMsec)) {
+        return -1;
       }
+      
+      du->query = std::string(response, responseLen);
+      send(du->rsock, &du, sizeof(du), 0);
+      
+      g_stats.selfAnswered++;
+      doLatencyStats(0);  // we're not going to measure this
 
-      return;
+      return 0;
     }
 
     DownstreamState* ss = nullptr;
@@ -137,7 +135,8 @@ static void processDOHQuery(DOHUnit* du)
     if (dq.useECS && ((ss && ss->useECS) || (!ss && serverPool->getECS()))) {
       if (!handleEDNSClientSubnet(query, dq.size, consumed, &dq.len, &(ednsAdded), &(ecsAdded), du->remote, dq.ecsOverride, dq.ecsPrefixLength)) {
         vinfolog("Dropping query from %s because we couldn't insert the ECS value", du->remote.toStringWithPort());
-        return;
+        
+        return -1;
       }
     }
 
@@ -154,24 +153,17 @@ static void processDOHQuery(DOHUnit* du)
         dr.qTag = dq.qTag;
 
         if (!processResponse(holders.cacheHitRespRulactions, dr, &delayMsec)) {
-
-          du->error = true;
-          if(send(du->rsock, &du, sizeof(du), 0) != sizeof(du))
-            delete du;     // XXX but now what - will h2o time this out for us?
-
-          return;
+          return -1;
         }
         
-        if (!cs.muted) {
-          du->query = std::string(query, cachedResponseSize);
-          send(du->rsock, &du, sizeof(du), 0);
-          // sendUDPResponse(cs.udpFD, query, cachedResponseSize, delayMsec, dest, remote);
-          // XXX sendUDPResponse probably kept more stats or did something with delayMsec
-        }
+        du->query = std::string(query, cachedResponseSize);
+        send(du->rsock, &du, sizeof(du), 0);
+        // sendUDPResponse(cs.udpFD, query, cachedResponseSize, delayMsec, dest, remote);
+        // XXX sendUDPResponse probably kept more stats or did something with delayMsec
 
         g_stats.cacheHits++;
         doLatencyStats(0);  // we're not going to measure this
-        return;
+        return 0;
       }
       g_stats.cacheMisses++;
     }
@@ -194,11 +186,7 @@ static void processDOHQuery(DOHUnit* du)
         dr.qTag = dq.qTag;
 
         if (!processResponse(holders.selfAnsweredRespRulactions, dr, &delayMsec)) {
-          du->error = true; // turns our drop into a 500
-          if(send(dsc->dohquerypair[0], &du, sizeof(du), 0) != sizeof(du))
-            delete du;     // XXX but now what - will h2o time this out for us?
-
-          return;
+          return -1;
         }
 
         du->query = std::string(response, responseLen);
@@ -207,12 +195,9 @@ static void processDOHQuery(DOHUnit* du)
         // no response-only statistics counter to update.
         doLatencyStats(0);  // we're not going to measure this
       }
-      du->error = true; // turns our drop into a 500
-      if(send(dsc->dohquerypair[0], &du, sizeof(du), 0) != sizeof(du))
-        delete du;     // XXX but now what - will h2o time this out for us?
 
       vinfolog("%s query for %s|%s from %s, no policy applied", g_servFailOnNoPolicy ? "ServFailed" : "Dropped", dq.qname->toString(), QType(dq.qtype).getName(), du->remote.toStringWithPort());
-      return;
+      return -1;
     }
 
     if (dq.addXPF && ss->xpfRRCode != 0) {
@@ -291,7 +276,9 @@ static void processDOHQuery(DOHUnit* du)
   }
   catch(const std::exception& e){
     vinfolog("Got an error in UDP question thread while parsing a query from %s, id %d: %s", du->remote.toStringWithPort(), queryId, e.what());
+    return -1;
   }
+  return 0;
 }
 
 
@@ -386,7 +373,11 @@ void dnsdistclient(int qsock, int rsock)
   for(;;) {
     DOHUnit* du;
     recv(qsock, &du, sizeof(du), 0);
-    processDOHQuery(du);  // this could send out an actual response, or queue it for dnsdist
+    if(processDOHQuery(du) < 0) {
+      du->error = true; // turns our drop into a 500
+      if(send(du->rsock, &du, sizeof(du), 0) != sizeof(du))
+        delete du;     // XXX but now what - will h2o time this out for us?
+    }
   }
 }
 
