@@ -1,6 +1,4 @@
 0	up.example.com.	IN	NS	120	ns1.example.com.
 0	up.example.com.	IN	NS	120	ns2.example.com.
-2	ns1.example.com.	IN	A	120	192.168.2.2
-2	ns2.example.com.	IN	A	120	192.168.2.3
 Rcode: 0 (No Error), RD: 0, QR: 1, TC: 0, AA: 1, opcode: 0
 Reply to question for qname='up.example.com.', qtype=NS
