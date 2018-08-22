@@ -47,7 +47,9 @@
 #include "mplexer.hh"
 #include "sholder.hh"
 #include "tcpiohandler.hh"
+#ifdef HAVE_DNS_OVER_HTTPS
 #include "doh.hh"
+#endif
 #include <boost/uuid/uuid.hpp>
 #include <boost/uuid/uuid_generators.hpp>
 #include <boost/uuid/uuid_io.hpp>
@@ -946,7 +948,9 @@ extern ComboAddress g_serverControl; // not changed during runtime
 
 extern std::vector<std::tuple<ComboAddress, bool, bool, int, std::string, std::set<int>>> g_locals; // not changed at runtime (we hope XXX)
 extern std::vector<shared_ptr<TLSFrontend>> g_tlslocals;
+#ifdef HAVE_DNS_OVER_HTTPS
 extern std::vector<shared_ptr<DOHFrontend>> g_dohlocals;
+#endif
 extern vector<ClientState*> g_frontends;
 extern bool g_truncateTC;
 extern bool g_fixupCase;

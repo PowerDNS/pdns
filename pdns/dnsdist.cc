@@ -30,7 +30,9 @@
 #include <pwd.h>
 #include <sys/resource.h>
 #include <unistd.h>
+#ifdef HAVE_DNS_OVER_HTTPS
 #include "doh.hh"
+#endif
 
 #if defined (__OpenBSD__) || defined(__NetBSD__)
 #include <readline/readline.h>
@@ -96,7 +98,9 @@ string g_outputBuffer;
 
 vector<std::tuple<ComboAddress, bool, bool, int, string, std::set<int>>> g_locals;
 std::vector<std::shared_ptr<TLSFrontend>> g_tlslocals;
+#ifdef HAVE_DNS_OVER_HTTPS
 std::vector<std::shared_ptr<DOHFrontend>> g_dohlocals;
+#endif
 #ifdef HAVE_DNSCRYPT
 std::vector<std::tuple<ComboAddress,std::shared_ptr<DNSCryptContext>,bool, int, string, std::set<int> >> g_dnsCryptLocals;
 #endif
@@ -2785,10 +2789,12 @@ try
     }
   }
 
+#ifdef HAVE_DNS_OVER_HTTPS
   for(auto& df : g_dohlocals) {
     thread dohthread(dohThread, df->d_local, df->d_urls, df->d_certFile, df->d_keyFile);
     dohthread.detach();
   }
+#endif
   
   thread carbonthread(carbonDumpThread);
   carbonthread.detach();

@@ -44,7 +44,9 @@
 #include "lock.hh"
 #include "protobuf.hh"
 #include "sodcrypto.hh"
+#ifdef HAVE_DNS_OVER_HTTPS
 #include "doh.hh"
+#endif
 #include <boost/logic/tribool.hpp>
 #include <boost/lexical_cast.hpp>
 
@@ -1596,7 +1598,7 @@ void setupLuaConfig(bool client)
   g_lua.writeFunction("addDOHLocal", [client](const std::string& addr, const std::string& certFile, const std::string& keyFile, boost::optional<vector<pair<int, std::string> > > urls, boost::optional<localbind_t> vars) {
         if (client)
           return;
-
+#ifdef HAVE_DNS_OVER_HTTPS
         setLuaSideEffect();
         if (g_configurationDone) {
           g_outputBuffer="addDOHLocal cannot be used at runtime!\n";
@@ -1617,6 +1619,9 @@ void setupLuaConfig(bool client)
           cout << "Not yet processing variables!" << endl;
         }
         g_dohlocals.push_back(frontend);
+#else
+        g_outputBuffer="DNS over HTTPS support is not present!\n";
+#endif
       });
 
   g_lua.writeFunction("addTLSLocal", [client](const std::string& addr, boost::variant<std::string, std::vector<std::pair<int,std::string>>> certFiles, boost::variant<std::string, std::vector<std::pair<int,std::string>>> keyFiles, boost::optional<localbind_t> vars) {
