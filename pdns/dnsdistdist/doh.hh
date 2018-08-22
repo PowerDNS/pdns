@@ -9,4 +9,4 @@ struct DOHFrontend
   std::vector<std::string> d_urls;
 };
 
-int dohThread(const ComboAddress ca, std::vector<std::string> urls, string certfile, string keyfile);
+void dohThread(const ComboAddress ca, std::vector<std::string> urls, string certfile, string keyfile);

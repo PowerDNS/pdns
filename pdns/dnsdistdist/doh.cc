@@ -57,7 +57,7 @@ static void processDOHQuery(DOHUnit* du)
   try {
     DOHServerConfig* dsc = (DOHServerConfig*)du->req->conn->ctx->storage.entries[0].data;
     ClientState& cs = dsc->cs;
-    cs.muted=false; // cs is not filled out so we have to force this for DoH
+
     
     /* we need an accurate ("real") value for the response and
        to store into the IDS, but not for insertion into the
@@ -194,12 +194,15 @@ static void processDOHQuery(DOHUnit* du)
         dr.qTag = dq.qTag;
 
         if (!processResponse(holders.selfAnsweredRespRulactions, dr, &delayMsec)) {
-          cout<<"Dropping DoH response because no policy, but have not implemented telling DoH thread about that"<<endl;
+          du->error = true; // turns our drop into a 500
+          if(send(dsc->dohquerypair[0], &du, sizeof(du), 0) != sizeof(du))
+            delete du;     // XXX but now what - will h2o time this out for us?
+
           return;
         }
 
-        //        sendUDPResponse(cs.udpFD, response, responseLen, 0, dest, remote);
-        // XXXX actually sendDOHResponse instead
+        du->query = std::string(response, responseLen);
+        send(du->rsock, &du, sizeof(du), 0);
 
         // no response-only statistics counter to update.
         doLatencyStats(0);  // we're not going to measure this
@@ -311,6 +314,9 @@ static int doh_handler(h2o_handler_t *self, h2o_req_t *req)
     cout<<"Did not get connection metadata!"<<endl;
     return 0;
   }
+  h2o_socket_t* sock = req->conn->callbacks->get_socket(req->conn);
+  ComboAddress remote;
+  h2o_socket_getpeername(sock, (struct sockaddr*)&remote);
   DOHServerConfig* dsc = (DOHServerConfig*)req->conn->ctx->storage.entries[0].data;
   /*
   // print headers
@@ -321,19 +327,17 @@ static int doh_handler(h2o_handler_t *self, h2o_req_t *req)
     DOHUnit* du = new DOHUnit;
     uint16_t qtype;
     DNSName qname(req->entity.base, req->entity.len, sizeof(dnsheader), false, &qtype);
-    cout<<(void*)req<<", POST qname: "<<qname<<", qtype: "<<qtype<<endl;
+    cout<<remote.toStringWithPort()<<", POST qname: "<<qname<<", qtype: "<<qtype<<endl;
     du->req=req;
     du->query=std::string(req->entity.base, req->entity.len);
-
+    du->remote = remote;
     du->rsock=dsc->dohresponsepair[0];
     du->qtype = qtype;
     if(send(dsc->dohquerypair[0], &du, sizeof(du), 0) != sizeof(du))
       delete du;     // XXX but now what - will h2o time this out for us?
   }
   else if(req->query_at != SIZE_MAX && (req->path.len - req->query_at > 4)) {
-    //    if (h2o_memis(&req->path.base[req->query_at], 5, "?dns=", 5)) {
-    // XXX
-    // this should do a better job and deal with ?dns= and &dns= XXX
+    // XXX this should do a better job and deal with ?dns= and &dns= XXX
     char* dns = strstr(req->path.base+req->query_at, "dns=");
     if(dns) {
       dns+=4;
@@ -347,7 +351,8 @@ static int doh_handler(h2o_handler_t *self, h2o_req_t *req)
 
       string decoded;
       if(B64Decode(sdns, decoded) < 0) {
-        cout<<"Failed to decode"<<endl;
+        h2o_send_error_500(req, "Internal Server Error", "Could not decode BASE64-URL", 0);
+        return 0;
       }
       else {
         DOHUnit* du = new DOHUnit;
@@ -361,6 +366,11 @@ static int doh_handler(h2o_handler_t *self, h2o_req_t *req)
         if(send(dsc->dohquerypair[0], &du, sizeof(du), 0) != sizeof(du))
           delete du; // XXX but now what 
       }
+    }
+    else 
+    {
+      h2o_send_error_500(req, "Internal Server Error", "Could not find DNS parameter", 0);
+      return 0;
     }
   }
   else {
@@ -408,7 +418,6 @@ static void on_dnsdist(h2o_socket_t *listener, const char *err)
 
 static void on_accept(h2o_socket_t *listener, const char *err)
 {
-  cout<<"New accept: "<< listener->data << endl;
   DOHServerConfig* dsc = (DOHServerConfig*)listener->data;
   h2o_socket_t *sock;
 
@@ -419,6 +428,11 @@ static void on_accept(h2o_socket_t *listener, const char *err)
   if ((sock = h2o_evloop_socket_accept(listener)) == NULL)
     return;
 
+  ComboAddress remote;
+      
+  h2o_socket_getpeername(sock, (struct sockaddr*)&remote);
+  cout<<"New HTTP accept for client "<<remote.toStringWithPort()<<": "<< listener->data << endl;
+  
   sock->data = dsc;
   h2o_accept(&dsc->h2o_accept_ctx, sock);
 }
@@ -483,9 +497,12 @@ static int setup_ssl(DOHServerConfig* dsc, const char *cert_file, const char *ke
 }
 
 // this is the entrypoint from dnsdist.cc
-int dohThread(const ComboAddress ca, vector<string> urls,  string certfile, string keyfile)
+void dohThread(const ComboAddress ca, vector<string> urls,  string certfile, string keyfile)
+try
 {
   auto dsc = new DOHServerConfig;
+  dsc->cs.muted=false;
+  
   if(socketpair(AF_LOCAL, SOCK_DGRAM, 0, dsc->dohquerypair) < 0 ||
      socketpair(AF_LOCAL, SOCK_DGRAM, 0, dsc->dohresponsepair) < 0
      ) {
@@ -514,12 +531,11 @@ int dohThread(const ComboAddress ca, vector<string> urls,  string certfile, stri
   
   h2o_context_init(&dsc->h2o_ctx, h2o_evloop_create(), &dsc->h2o_config);
 
-  // in this ugly way we insert the DOHServerConfig pointer in there
+  // in this complicated way we insert the DOHServerConfig pointer in there
   h2o_vector_reserve(NULL, &dsc->h2o_ctx.storage, 1);
   dsc->h2o_ctx.storage.entries[0].data = (void*)dsc;
   ++dsc->h2o_ctx.storage.size;
   
-
   auto sock = h2o_evloop_socket_create(dsc->h2o_ctx.loop, dsc->dohresponsepair[1], H2O_SOCKET_FLAG_DONT_READ);
   sock->data = dsc;
 
@@ -529,21 +545,20 @@ int dohThread(const ComboAddress ca, vector<string> urls,  string certfile, stri
   // we should probably make that hash, algorithm etc line configurable too 
   if(setup_ssl(dsc, certfile.c_str(), keyfile.c_str(), 
                 "DEFAULT:!MD5:!DSS:!DES:!RC4:!RC2:!SEED:!IDEA:!NULL:!ADH:!EXP:!SRP:!PSK") != 0)
-    goto Error;
+    throw std::runtime_error("Failed to setup SSL/TLS for DoH listener");
 
   // as one does
   dsc->h2o_accept_ctx.ctx = &dsc->h2o_ctx;
   dsc->h2o_accept_ctx.hosts = dsc->h2o_config.hosts;
 
   if (create_listener(ca, dsc) != 0) {
-    // should take down dnsdist
-    fprintf(stderr, "failed to listen to %s: %s\n", ca.toStringWithPort().c_str(), strerror(errno));
-    goto Error;
+    throw std::runtime_error("DOH server failed to listen on " + ca.toStringWithPort() + ": " + strerror(errno));
   }
   
   while (h2o_evloop_run(dsc->h2o_ctx.loop, INT32_MAX) == 0)
     ;
-  
- Error:
-  return 1;
-}
+ }  
+ catch(std::exception& e) {
+   throw runtime_error("DOH thread failed to launch: " + std::string(e.what()));
+ }
+
