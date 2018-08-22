@@ -275,7 +275,7 @@ private:
         struct addrinfo* address = res;
         do {
           if (address->ai_addrlen <= sizeof(remote)) {
-            memcpy(&remote, address->ai_addr, address->ai_addrlen);
+            remote.setSockaddr(address->ai_addr, address->ai_addrlen);
             addresses->push_back(remote.toString());
           }
         } while((address = address->ai_next));

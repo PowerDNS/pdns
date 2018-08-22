@@ -216,7 +216,7 @@ class RemoteBackend : public DNSBackend
         string val = asString(value);
         if (val == "0") return false;
         if (val == "1") return true;
-      } catch (JsonException) {};
+      } catch (const JsonException&) {};
       throw JsonException("Json value not convertible to boolean");
     };
 

@@ -723,7 +723,7 @@ int makeIPv6sockaddr(const std::string& addr, struct sockaddr_in6* ret)
       port = pdns_stou(addr.substr(pos+2));
       portSet = true;
     }
-    catch(std::out_of_range) {
+    catch(const std::out_of_range&) {
       return -1;
     }
   }

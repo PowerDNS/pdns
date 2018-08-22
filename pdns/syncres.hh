@@ -818,7 +818,7 @@ struct PacketID
 {
   PacketID() : id(0), type(0), sock(0), inNeeded(0), inIncompleteOkay(false), outPos(0), nearMisses(0), fd(-1)
   {
-    memset(&remote, 0, sizeof(remote));
+    remote.reset();
   }
 
   uint16_t id;  // wait for a specific id/remote pair
