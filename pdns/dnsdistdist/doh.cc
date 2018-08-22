@@ -363,8 +363,10 @@ static int doh_handler(h2o_handler_t *self, h2o_req_t *req)
       }
     }
   }
-  else
-    cerr<<"Some unknown request, not POST, not properly formatted GET"<<endl;
+  else {
+    h2o_send_error_404(req, "Not Found", "Page not found", 0);
+    cerr<<"Some unknown request, not POST, not properly formatted GET: "<< req->path.base << endl;
+  }
   return 0;
 }
 
@@ -455,7 +457,7 @@ static int setup_ssl(DOHServerConfig* dsc, const char *cert_file, const char *ke
 #endif
 
     /* load certificate and private key */
-    if (SSL_CTX_use_certificate_file(dsc->h2o_accept_ctx.ssl_ctx, cert_file, SSL_FILETYPE_PEM) != 1) {
+    if (SSL_CTX_use_certificate_chain_file(dsc->h2o_accept_ctx.ssl_ctx, cert_file) != 1) {
         fprintf(stderr, "an error occurred while trying to load server certificate file:%s\n", cert_file);
         return -1;
     }
