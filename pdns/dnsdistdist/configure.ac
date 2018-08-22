@@ -64,6 +64,17 @@ AS_IF([test "x$enable_dns_over_tls" != "xno"], [
   ])
 ])
 
+DNSDIST_ENABLE_DNS_OVER_HTTPS
+PDNS_CHECK_LIBH2OEVLOOP
+AS_IF([test "x$enable_dns_over_https" != "xno"], [
+  AS_IF([test "$HAVE_LIBH2OEVLOOP" = "0"], [
+    AC_MSG_ERROR([DNS over HTTPS support requested but libh2o-evloop was not found])
+  ])
+  AS_IF([test "$HAVE_LIBSSL" = "0"], [
+    AC_MSG_ERROR([DNS over HTTPS support requested but OpenSSL was not found])
+  ])
+])
+
 AX_CXX_COMPILE_STDCXX_11([ext], [mandatory])
 
 AC_MSG_CHECKING([whether we will enable compiler security checks])
@@ -170,5 +181,9 @@ AS_IF([test "x$GNUTLS_LIBS" != "x"],
 AS_IF([test "x$LIBSSL_LIBS" != "x"],
   [AC_MSG_NOTICE([OpenSSL: yes])],
   [AC_MSG_NOTICE([OpenSSL: no])]
+)
+AS_IF([test "x$enable_dns_over_https" != "xno"],
+  [AC_MSG_NOTICE([DNS over HTTPS (DoH): yes])],
+  [AC_MSG_NOTICE([DNS over HTTPS (DoH): no])]
 )
 AC_MSG_NOTICE([])

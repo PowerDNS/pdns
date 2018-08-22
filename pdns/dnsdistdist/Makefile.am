@@ -1,8 +1,12 @@
 <<<<<<< HEAD
+<<<<<<< HEAD
 AM_CPPFLAGS += $(SYSTEMD_CFLAGS) $(LUA_CFLAGS) $(LIBEDIT_CFLAGS) $(LIBSODIUM_CFLAGS) $(FSTRM_CFLAGS) $(YAHTTP_CFLAGS) $(SANITIZER_FLAGS) $(NET_SNMP_CFLAGS) $(LIBCAP_CFLAGS) -DSYSCONFDIR=\"${sysconfdir}\" -Iext/h2o-2.2.4/include/
 =======
 AM_CPPFLAGS += $(SYSTEMD_CFLAGS) $(LUA_CFLAGS) $(LIBEDIT_CFLAGS) $(LIBSODIUM_CFLAGS) $(FSTRM_CFLAGS) $(YAHTTP_CFLAGS) $(SANITIZER_FLAGS) $(NET_SNMP_CFLAGS) -DSYSCONFDIR=\"${sysconfdir}\" -Iext/h2o-2.2.5/include/
 >>>>>>> WIP - gets question to main dnsdist now
+=======
+AM_CPPFLAGS += $(SYSTEMD_CFLAGS) $(LUA_CFLAGS) $(LIBEDIT_CFLAGS) $(LIBSODIUM_CFLAGS) $(FSTRM_CFLAGS) $(YAHTTP_CFLAGS) $(SANITIZER_FLAGS) $(NET_SNMP_CFLAGS) -DSYSCONFDIR=\"${sysconfdir}\"
+>>>>>>> DoH: Add detection for libh2o-evloop
 
 ACLOCAL_AMFLAGS = -I m4
 
@@ -48,8 +52,18 @@ AM_CPPFLAGS += $(GNUTLS_CFLAGS)
 endif
 endif
 
+if HAVE_DNS_OVER_HTTPS
+if HAVE_LIBH2OEVLOOP
+AM_CPPFLAGS += $(LIBH2OEVLOOP_CFLAGS)
+endif
+
+if HAVE_LIBSSL
+AM_CPPFLAGS += $(LIBSSL_CFLAGS)
+endif
+endif
+
 EXTRA_DIST=COPYING \
-	   dnslabeltext.rl \
+           dnslabeltext.rl \
 	   dnsdistconf.lua \
 	   dnsmessage.proto \
 	   dnstap.proto \
@@ -91,8 +105,11 @@ dnsdist_SOURCES = \
 	base64.hh \
 	bpf-filter.cc bpf-filter.hh \
 	cachecleaner.hh \
+<<<<<<< HEAD
 	capabilities.cc capabilities.hh \
 	doh.cc doh.hh \
+=======
+>>>>>>> DoH: Add detection for libh2o-evloop
 	dns.cc dns.hh \
 	dnscrypt.cc dnscrypt.hh \
 	dnsdist.cc dnsdist.hh \
@@ -170,7 +187,6 @@ dnsdist_LDADD = \
 	$(SYSTEMD_LIBS) \
 	$(NET_SNMP_LIBS) \
 	$(LIBCAP_LIBS)
-	ext/h2o-2.2.5/build/libh2o-evloop.a -lz
 
 if HAVE_RE2
 dnsdist_LDADD += $(RE2_LIBS)
@@ -183,6 +199,18 @@ endif
 
 if HAVE_LIBSSL
 dnsdist_LDADD += $(LIBSSL_LIBS) $(LIBCRYPTO_LIBS)
+endif
+endif
+
+if HAVE_DNS_OVER_HTTPS
+dnsdist_SOURCES += doh.hh doh.cc
+
+if HAVE_LIBH2OEVLOOP
+dnsdist_LDADD += $(LIBH2OEVLOOP_LIBS)
+endif
+
+if HAVE_LIBSSL
+dnsdist_LDADD += $(LIBSSL_LIBS)
 endif
 endif
 

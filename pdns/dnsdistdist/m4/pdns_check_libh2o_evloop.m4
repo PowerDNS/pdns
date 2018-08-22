@@ -1,0 +1,8 @@
+AC_DEFUN([PDNS_CHECK_LIBH2OEVLOOP], [
+  HAVE_LIBH2OEVLOOP=0
+  PKG_CHECK_MODULES([LIBH2OEVLOOP], [libh2o-evloop], [
+    [HAVE_LIBH2OEVLOOP=1]
+    AC_DEFINE([HAVE_LIBH2OEVLOOP], [1], [Define to 1 if you have libh2o-evloop])
+  ], [ : ])
+  AM_CONDITIONAL([HAVE_LIBH2OEVLOOP], [test "x$LIBH2OEVLOOP_LIBS" != "x"])
+])
