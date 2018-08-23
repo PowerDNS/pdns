@@ -1723,6 +1723,31 @@ static void patchZone(HttpRequest* req, HttpResponse* resp) {
             if (rr.qtype.getCode() == QType::SOA && rr.qname==zonename) {
               soa_edit_done = increaseSOARecord(rr, soa_edit_api_kind, soa_edit_kind);
             }
+
+            // Check if the DNSNames that should be hostnames, are hostnames
+            if (rr.qtype.getCode() == QType::NS || rr.qtype.getCode() == QType::MX || rr.qtype.getCode() == QType::SRV) {
+              DNSName toCheck;
+              if (rr.qtype.getCode() == QType::SRV) {
+                vector<string> parts;
+                stringtok(parts, rr.getZoneRepresentation());
+                if (parts.size() == 4) toCheck = DNSName(parts[3]);
+              } else if (rr.qtype.getCode() == QType::MX) {
+                vector<string> parts;
+                stringtok(parts, rr.getZoneRepresentation());
+                if (parts.size() == 2) toCheck = DNSName(parts[1]);
+              } else {
+                toCheck = DNSName(rr.content);
+              }
+
+              if (toCheck.empty()) {
+                throw ApiException("RRset "+qname.toString()+" IN "+qtype.getName() + " unable to extract hostname from content.");
+              }
+              else if ((rr.qtype.getCode() == QType::MX || rr.qtype.getCode() == QType::SRV) && toCheck == g_rootdnsname) {
+                // allow null MX/SRV
+              } else if(!toCheck.isHostname()) {
+                throw ApiException("RRset "+qname.toString()+" IN "+qtype.getName() + " record has non-hostname content '" + toCheck.toString() + "'.");
+              }
+            }
           }
           checkDuplicateRecords(new_records);
         }
