@@ -437,7 +437,7 @@ bool isEDNSOptionInOpt(const std::string& packet, const size_t optStart, const s
   size_t p = optStart + 9;
   uint16_t rdLen = (0x100*packet.at(p) + packet.at(p+1));
   p += sizeof(rdLen);
-  if (11 + rdLen > optLen) {
+  if (rdLen > (optLen - 11)) {
     return false;
   }
 
