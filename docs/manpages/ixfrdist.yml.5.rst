@@ -54,6 +54,11 @@ Options
   Entries without a netmask will be interpreted as a single address.
   By default, the ACL is set is ``127.0.0.0/8`` and ``::1/128``.
 
+:axfr-max-records:
+  Maximum number of records allowed in an AXFR transaction requested by :program:`ixfrdist`.
+  This may prevent untrusted sources from using all the process memory.
+  By default, this setting is ``0``, which means "unlimited".
+
 :axfr-timeout:
   Timeout in seconds an AXFR transaction requested by :program:`ixfrdist` may take.
   Increase this when the network to the authoritative servers is slow or the domains are very large and you experience timeouts.

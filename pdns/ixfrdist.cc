@@ -206,7 +206,7 @@ static void makeIXFRDiff(const records_t& from, const records_t& to, ixfrdiff_t&
   }
 }
 
-void updateThread(const string& workdir, const uint16_t& keep, const uint16_t& axfrTimeout) {
+void updateThread(const string& workdir, const uint16_t& keep, const uint16_t& axfrTimeout, const uint32_t axfrMaxRecords) {
   std::map<DNSName, time_t> lastCheck;
 
   // Initialize the serials we have
@@ -299,7 +299,7 @@ void updateThread(const string& workdir, const uint16_t& keep, const uint16_t& a
       shared_ptr<SOARecordContent> soa;
       try {
         AXFRRetriever axfr(master, domain, tt, &local);
-        unsigned int nrecords=0;
+        uint32_t nrecords=0;
         Resolver::res_t nop;
         vector<DNSRecord> chunk;
         records_t records;
@@ -315,6 +315,9 @@ void updateThread(const string& workdir, const uint16_t& keep, const uint16_t& a
             if (dr.d_type == QType::SOA) {
               soa = getRR<SOARecordContent>(dr);
             }
+          }
+          if (axfrMaxRecords != 0 && nrecords > axfrMaxRecords) {
+            throw PDNSException("Received more than " + std::to_string(axfrMaxRecords) + " records in AXFR, aborted");
           }
           axfr_now = time(nullptr);
           if (axfr_now - t_start > axfrTimeout) {
@@ -780,6 +783,16 @@ bool parseAndCheckConfig(const string& configpath, YAML::Node& config) {
     config["keep"] = 20;
   }
 
+  if (config["axfr-max-records"]) {
+    try {
+      config["axfr-max-records"].as<uint32_t>();
+    } catch (const runtime_error &e) {
+      g_log<<Logger::Error<<"Unable to read 'axfr-max-records' value: "<<e.what()<<endl;
+    }
+  } else {
+    config["axfr-max-records"] = 0;
+  }
+
   if (config["axfr-timeout"]) {
     try {
       config["axfr-timeout"].as<uint16_t>();
@@ -1062,7 +1075,8 @@ int main(int argc, char** argv) {
   std::thread ut(updateThread,
       config["work-dir"].as<string>(),
       config["keep"].as<uint16_t>(),
-      config["axfr-timeout"].as<uint16_t>());
+      config["axfr-timeout"].as<uint16_t>(),
+      config["axfr-max-records"].as<uint32_t>());
 
   vector<std::thread> tcpHandlers;
   tcpHandlers.reserve(config["tcp-in-threads"].as<uint16_t>());
