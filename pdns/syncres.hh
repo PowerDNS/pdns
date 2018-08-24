@@ -120,10 +120,23 @@ public:
     return (unsigned int)d_cont.size();
   }
 
+  typedef std::vector<boost::tuple<ComboAddress,DNSName,uint16_t> > throttles_t;
+  throttles_t getThrottleTuples() {
+    throttles_t ret;
+    ret.reserve(d_cont.size());
+
+    for(const auto& i : d_cont) {
+      ret.push_back(i.first);
+    }
+
+    return ret;
+  }
+
   void clear()
   {
     d_cont.clear();
   }
+
 private:
   unsigned int d_limit;
   time_t d_ttl;
@@ -393,6 +406,7 @@ public:
   }
   static void doEDNSDumpAndClose(int fd);
   static uint64_t doDumpNSSpeeds(int fd);
+  static uint64_t doDumpThrottleMap(int fd);
   static int getRootNS(struct timeval now, asyncresolve_t asyncCallback);
   static void clearDelegationOnly()
   {

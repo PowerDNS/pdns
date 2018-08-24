@@ -388,6 +388,26 @@ uint64_t SyncRes::doDumpNSSpeeds(int fd)
   return count;
 }
 
+uint64_t SyncRes::doDumpThrottleMap(int fd)
+{
+  FILE* fp=fdopen(dup(fd), "w");
+  if(!fp)
+    return 0;
+  fprintf(fp, "; throttle map dump follows\n");
+  fprintf(fp, "; remote IP, DNSName, QType\n");
+  uint64_t count=0;
+
+  for(const auto& i : t_sstorage.throttle.getThrottleTuples())
+  {
+    count++;
+    // remote IP, dns name, qtype
+    fprintf(fp, "%s %s %d", i.get<0>().toLogString().c_str(), i.get<1>().toString().c_str(), i.get<2>());
+    fprintf(fp, "\n");
+  }
+  fclose(fp);
+  return count;
+}
+
 /* so here is the story. First we complete the full resolution process for a domain name. And only THEN do we decide
    to also do DNSSEC validation, which leads to new queries. To make this simple, we *always* ask for DNSSEC records
    so that if there are RRSIGs for a name, we'll have them.
