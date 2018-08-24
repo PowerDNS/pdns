@@ -19,17 +19,16 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
-#include "lua-recursor4.hh"
 #include <fstream>
-#include "logger.hh"
-#include "dnsparser.hh"
 #include "syncres.hh"
+#include "logger.hh"
 #include "namespaces.hh"
 #include "rec_channel.hh"
 #include "ednsoptions.hh"
 #include "ednssubnet.hh"
 #include "filterpo.hh"
 #include <unordered_set>
+#include "lua-recursor4.hh"
 
 #if !defined(HAVE_LUA)
 RecursorLua4::RecursorLua4(const std::string &fname)

@@ -28,9 +28,9 @@
 #include <sys/stat.h>
 #include <unistd.h>
 
+#include "recpacketcache.hh"
 #include "ws-recursor.hh"
 #include <pthread.h>
-#include "recpacketcache.hh"
 #include "utility.hh"
 #include "dns_random.hh"
 #ifdef HAVE_LIBSODIUM

@@ -1,6 +1,6 @@
+#include "syncres.hh"
 #include "validate.hh"
 #include "validate-recursor.hh"
-#include "syncres.hh"
 #include "logger.hh"
 
 DNSSECMode g_dnssecmode{DNSSECMode::ProcessNoValidate};

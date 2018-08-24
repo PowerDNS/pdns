@@ -22,6 +22,7 @@
 #ifdef HAVE_CONFIG_H
 #include "config.h"
 #endif
+#include "syncres.hh"
 #include "utility.hh"
 #include "lwres.hh"
 #include <iostream>
@@ -38,7 +39,6 @@
 #include "pdnsexception.hh"
 #include "arguments.hh"
 #include "sstuff.hh"
-#include "syncres.hh"
 #include "dnswriter.hh"
 #include "dnsparser.hh"
 #include "logger.hh"

@@ -5,11 +5,11 @@
 #include "config.h"
 #endif
 #include <boost/test/unit_test.hpp>
+#include "recpacketcache.hh"
 #include "dnswriter.hh"
 #include "dnsrecords.hh"
 #include "dns_random.hh"
 #include "iputils.hh"
-#include "recpacketcache.hh"
 #include <utility>
 
 

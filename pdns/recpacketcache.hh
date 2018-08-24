@@ -21,6 +21,12 @@
  */
 #ifndef PDNS_RECPACKETCACHE_HH
 #define PDNS_RECPACKETCACHE_HH
+
+#ifdef HAVE_CONFIG_H
+#include "config.h"
+#endif
+#include "rec-protobuf.hh"
+
 #include <string>
 #include <set>
 #include <inttypes.h>
@@ -32,12 +38,6 @@
 #include <boost/multi_index/hashed_index.hpp>
 #include <boost/tuple/tuple_comparison.hpp>
 #include <boost/multi_index/sequenced_index.hpp>
-
-#ifdef HAVE_CONFIG_H
-#include "config.h"
-#endif
-#include "rec-protobuf.hh"
-
 
 using namespace ::boost::multi_index;
 

@@ -21,6 +21,13 @@
  */
 #ifndef PDNS_SYNCRES_HH
 #define PDNS_SYNCRES_HH
+
+#include "config.h"
+#ifdef HAVE_PROTOBUF
+#include <boost/uuid/uuid.hpp>
+#include <boost/uuid/uuid_generators.hpp>
+#endif
+
 #include <string>
 #include <atomic>
 #include "utility.hh"
@@ -49,12 +56,6 @@
 #include "validate.hh"
 #include "ednssubnet.hh"
 #include "filterpo.hh"
-
-#include "config.h"
-#ifdef HAVE_PROTOBUF
-#include <boost/uuid/uuid.hpp>
-#include <boost/uuid/uuid_generators.hpp>
-#endif
 
 void primeHints(void);
 int getRootNS(void);

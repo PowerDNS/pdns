@@ -1,6 +1,7 @@
 #ifdef HAVE_CONFIG_H
 #include "config.h"
 #endif
+#include "syncres.hh"
 #include "utility.hh"
 #include "rec_channel.hh"
 #include <boost/bind.hpp>

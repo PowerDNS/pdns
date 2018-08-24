@@ -22,6 +22,7 @@
 #ifdef HAVE_CONFIG_H
 #include "config.h"
 #endif
+#include "syncres.hh"
 #include "ws-recursor.hh"
 #include "json.hh"
 
@@ -32,7 +33,6 @@
 #include "rec_channel.hh"
 #include "arguments.hh"
 #include "misc.hh"
-#include "syncres.hh"
 #include "dnsparser.hh"
 #include "json11.hpp"
 #include "webserver.hh"
