@@ -128,7 +128,7 @@ void handleSignal(int signum) {
     g_log<<Logger::Notice<<", this is the second time we were asked to stop, forcefully exiting"<<endl;
     exit(EXIT_FAILURE);
   }
-  g_log<<Logger::Notice<<", stopping"<<endl;
+  g_log<<Logger::Notice<<", stopping, this may take a few second due to in-progress transfers and cleanup. Send this signal again to forcefully stop"<<endl;
   g_exiting = true;
 }
 
@@ -1075,7 +1075,7 @@ int main(int argc, char** argv) {
     gettimeofday(&now, 0);
     fdm->run(&now);
     if (g_exiting) {
-      g_log<<Logger::Notice<<"Shutting down!"<<endl;
+      g_log<<Logger::Debug<<"Closing listening sockets"<<endl;
       for (const int& fd : allSockets) {
         try {
           closesocket(fd);
@@ -1086,6 +1086,7 @@ int main(int argc, char** argv) {
       break;
     }
   }
+  g_log<<Logger::Debug<<"Waiting for al threads to stop"<<endl;
   g_tcpHandlerCV.notify_all();
   ut.join();
   for (auto &t : tcpHandlers) {
