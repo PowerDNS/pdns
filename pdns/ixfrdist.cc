@@ -794,7 +794,7 @@ bool parseAndCheckConfig(const string& configpath, YAML::Node& config) {
     try {
       config["tcp-in-threads"].as<uint16_t>();
     } catch (const runtime_error &e) {
-      g_log<<Logger::Error<<"Unable to read 'tcp-in-thread' value: "<<e.what()<<endl;
+      g_log<<Logger::Error<<"Unable to read 'tcp-in-threads' value: "<<e.what()<<endl;
     }
   } else {
     config["tcp-in-threads"] = 10;
