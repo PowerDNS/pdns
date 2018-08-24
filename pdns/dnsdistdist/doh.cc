@@ -414,6 +414,36 @@ void dnsdistclient(int qsock, int rsock)
   for(;;) {
     DOHUnit* du;
     recv(qsock, &du, sizeof(du), 0);
+
+    // if there was no EDNS, we add it with a large buffer size
+    // so we can use UDP to talk to the backend.
+    struct dnsheader* dh = (struct dnsheader*)du->query.c_str();
+    if(!dh->arcount) {
+      const uint8_t name = 0;
+      dnsrecordheader drh;
+      EDNS0Record edns0;
+      edns0.extRCode = 0;
+      edns0.version = 0;
+      edns0.extFlags = 0;
+      
+      drh.d_type = htons(QType::OPT);
+      drh.d_class = htons(4096);
+      memcpy(&drh.d_ttl, &edns0, sizeof edns0);
+      drh.d_clen = htons(0);
+      string res;
+      res.assign((const char *) &name, sizeof name);
+      res.append((const char *) &drh, sizeof drh);
+      
+      du->query += res;
+      dh = (struct dnsheader*)du->query.c_str(); // may have reallocated
+      dh->arcount = htons(1);
+
+      du->ednsAdded = true;
+    }
+    else {
+      // we leave existing EDNS in place
+    }
+    
     if(processDOHQuery(du) < 0) {
       du->error = true; // turns our drop into a 500
       if(send(du->rsock, &du, sizeof(du), 0) != sizeof(du))
@@ -435,10 +465,15 @@ static void on_dnsdist(h2o_socket_t *listener, const char *err)
     du->req->res.reason = "OK";
 
     h2o_add_header(&du->req->pool, &du->req->res.headers, H2O_TOKEN_CONTENT_TYPE, NULL, H2O_STRLIT("application/dns-message"));
-    //  h2o_add_header(&du->req->pool, &du->req->res.headers, H2O_TOKEN_SET_COOKIE, NULL, H2O_STRLIT("cookie=1")); 
     
-    struct dnsheader* dh = (struct dnsheader*)du->query.c_str();
-    cout<<"Attempt to send out "<<du->query.size()<<" bytes over https, TC="<<dh->tc<<", RCODE="<<dh->rcode<<", qtype="<<du->qtype<<", req="<<(void*)du->req<<endl;
+    //    struct dnsheader* dh = (struct dnsheader*)du->query.c_str();
+    //    cout<<"Attempt to send out "<<du->query.size()<<" bytes over https, TC="<<dh->tc<<", RCODE="<<dh->rcode<<", qtype="<<du->qtype<<", req="<<(void*)du->req<<endl;
+
+    if(du->ednsAdded) { // take it out again
+      vector<uint8_t> stripped;      
+      rewriteResponseWithoutEDNS(du->query, stripped);
+      du->query.assign((const char*)&stripped[0], stripped.size());
+    }
     
     du->req->res.content_length = du->query.size();
     h2o_send_inline(du->req, du->query.c_str(), du->query.size());

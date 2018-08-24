@@ -514,6 +514,7 @@ struct DOHUnit
   ComboAddress dest;
   uint16_t qtype;
   bool error{false};
+  bool ednsAdded{false};
 };
 
 
