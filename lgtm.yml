@@ -1,0 +1,23 @@
+path_classifiers:
+  test: "regression-tests*"
+  library:
+  - "ext"
+  - exclude: ext/luawrapper
+  - exclude: ext/yahttp
+  - "docs"
+  - "pdns/recursordist/html/js"
+  - "pdns/dnsdistdist/src_js"
+  - "pdns/dnsdistdist/html/js"
+extraction:
+  cpp:
+    configure:
+      command:
+      - "pushd pdns/recursordist/"
+      - "sed -i '/^dist_man_MANS/d' Makefile.am"
+      - "autoreconf -vi && ./configure"
+      - "popd"
+    index:
+      build_command:
+      - "pushd pdns/recursordist"
+      - "make"
+      - "popd"
