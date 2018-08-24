@@ -43,6 +43,7 @@ struct DOHServerConfig
   int dohquerypair[2];
   int dohresponsepair[2];
   ClientState cs;
+  std::shared_ptr<DOHFrontend> df;
 };
 
 /* this duplicates way too much from the UDP handler. Sorry.
@@ -298,7 +299,6 @@ static h2o_pathconf_t *register_handler(h2o_hostconf_t *hostconf, const char *pa
 static int doh_handler(h2o_handler_t *self, h2o_req_t *req)
 {
   if(!req->conn->ctx->storage.size) {
-    cout<<"Did not get connection metadata!"<<endl;
     return 0;
   }
   h2o_socket_t* sock = req->conn->callbacks->get_socket(req->conn);
@@ -311,10 +311,16 @@ static int doh_handler(h2o_handler_t *self, h2o_req_t *req)
     printf("%.*s: %.*s\n", (int)req->headers.entries[i].name->len, req->headers.entries[i].name->base, (int)req->headers.entries[i].value.len, req->headers.entries[i].value.base);
   */
   if (h2o_memis(req->method.base, req->method.len, H2O_STRLIT("POST"))) {
+    dsc->df->d_postqueries++;
+    if(req->version >= 0x0200)
+      dsc->df->d_http2queries++;
+    else
+      dsc->df->d_http1queries++;
+    
     DOHUnit* du = new DOHUnit;
     uint16_t qtype;
     DNSName qname(req->entity.base, req->entity.len, sizeof(dnsheader), false, &qtype);
-    cout<<remote.toStringWithPort()<<", POST qname: "<<qname<<", qtype: "<<qtype<<endl;
+    //    cout<<remote.toStringWithPort()<<", POST qname: "<<qname<<", qtype: "<<qtype<<endl;
     du->req=req;
     du->query=std::string(req->entity.base, req->entity.len);
     du->remote = remote;
@@ -330,7 +336,7 @@ static int doh_handler(h2o_handler_t *self, h2o_req_t *req)
       dns+=4;
       if(auto p = strchr(dns, ' '))
         *p=0;
-      cout<<"Got a GET dns query: "<<dns<<endl;
+
       // need to base64url decode this
       string sdns(dns);
       boost::replace_all(sdns,"-", "+");
@@ -338,14 +344,21 @@ static int doh_handler(h2o_handler_t *self, h2o_req_t *req)
 
       string decoded;
       if(B64Decode(sdns, decoded) < 0) {
-        h2o_send_error_500(req, "Internal Server Error", "Could not decode BASE64-URL", 0);
+        h2o_send_error_400(req, "Bad Request", "dnsdist " VERSION " could not decode BASE64-URL", 0);
+        dsc->df->d_badrequests++;
         return 0;
       }
       else {
+        dsc->df->d_getqueries++;
+        if(req->version >= 0x0200)
+          dsc->df->d_http2queries++;
+        else
+          dsc->df->d_http1queries++;
+        
         DOHUnit* du = new DOHUnit;
         uint16_t qtype;
         DNSName qname(decoded.c_str(), decoded.size(), sizeof(dnsheader), false, &qtype);
-        cout<<"qname: "<<qname<<", qtype: "<<qtype<<endl;
+
         du->req=req;
         du->query=decoded;
         du->rsock=dsc->dohresponsepair[0];
@@ -356,13 +369,14 @@ static int doh_handler(h2o_handler_t *self, h2o_req_t *req)
     }
     else 
     {
-      h2o_send_error_500(req, "Internal Server Error", "Could not find DNS parameter", 0);
+      h2o_send_error_400(req, "Bad Request", "dnsdist " VERSION " could not find DNS parameter", 0);
+      dsc->df->d_badrequests++;
       return 0;
     }
   }
   else {
-    h2o_send_error_404(req, "Not Found", "Page not found", 0);
-    cerr<<"Some unknown request, not POST, not properly formatted GET: "<< req->path.base << endl;
+    h2o_send_error_400(req, "Bad Request", "dnsdist " VERSION " could not parse your request", 0);
+    dsc->df->d_badrequests++;
   }
   return 0;
 }
@@ -389,9 +403,10 @@ static void on_dnsdist(h2o_socket_t *listener, const char *err)
   recv(dsc->dohresponsepair[1], &du, sizeof(du), 0);
 
   if(!du->error) {
+    dsc->df->d_validresponses++;
     du->req->res.status = 200;
     du->req->res.reason = "OK";
-    
+
     h2o_add_header(&du->req->pool, &du->req->res.headers, H2O_TOKEN_CONTENT_TYPE, NULL, H2O_STRLIT("application/dns-message"));
     //  h2o_add_header(&du->req->pool, &du->req->res.headers, H2O_TOKEN_SET_COOKIE, NULL, H2O_STRLIT("cookie=1")); 
     
@@ -403,6 +418,7 @@ static void on_dnsdist(h2o_socket_t *listener, const char *err)
   }
   else {
     h2o_send_error_500(du->req, "Internal Server Error", "Internal Server Error", 0);
+    dsc->df->d_errorresponses++;
   }
   delete du;
 }
@@ -422,9 +438,10 @@ static void on_accept(h2o_socket_t *listener, const char *err)
   ComboAddress remote;
       
   h2o_socket_getpeername(sock, (struct sockaddr*)&remote);
-  cout<<"New HTTP accept for client "<<remote.toStringWithPort()<<": "<< listener->data << endl;
+  //  cout<<"New HTTP accept for client "<<remote.toStringWithPort()<<": "<< listener->data << endl;
   
   sock->data = dsc;
+  dsc->df->d_httpconnects++;
   h2o_accept(&dsc->h2o_accept_ctx, sock);
 }
 
@@ -488,11 +505,12 @@ static int setup_ssl(DOHServerConfig* dsc, const char *cert_file, const char *ke
 }
 
 // this is the entrypoint from dnsdist.cc
-void dohThread(const ComboAddress ca, vector<string> urls,  string certfile, string keyfile)
+void dohThread(std::shared_ptr<DOHFrontend> df) 
 try
 {
   auto dsc = new DOHServerConfig;
   dsc->cs.muted=false;
+  dsc->df = df;
   
   if(socketpair(AF_LOCAL, SOCK_DGRAM, 0, dsc->dohquerypair) < 0 ||
      socketpair(AF_LOCAL, SOCK_DGRAM, 0, dsc->dohresponsepair) < 0
@@ -509,10 +527,9 @@ try
 
   // I wonder if this registers an IP address.. I think it does
   // this may mean we need to actually register a site "name" here and not the IP address
-  h2o_hostconf_t *hostconf = h2o_config_register_host(&dsc->h2o_config, h2o_iovec_init(ca.toString().c_str(), ca.toString().size()), 65535);
+  h2o_hostconf_t *hostconf = h2o_config_register_host(&dsc->h2o_config, h2o_iovec_init(df->d_local.toString().c_str(), df->d_local.toString().size()), 65535);
 
-  for(const auto& url : urls) {
-    cout<<"Registering URL prefix "<< url << " for " <<ca.toStringWithPort() << endl;
+  for(const auto& url : df->d_urls) {
     //    h2o_pathconf_t *pathconf;
     /* pathconf = */ register_handler(hostconf, url.c_str(), doh_handler);
     
@@ -534,7 +551,7 @@ try
   h2o_socket_read_start(sock, on_dnsdist);
 
   // we should probably make that hash, algorithm etc line configurable too 
-  if(setup_ssl(dsc, certfile.c_str(), keyfile.c_str(), 
+  if(setup_ssl(dsc, df->d_certFile.c_str(), df->d_keyFile.c_str(), 
                 "DEFAULT:!MD5:!DSS:!DES:!RC4:!RC2:!SEED:!IDEA:!NULL:!ADH:!EXP:!SRP:!PSK") != 0)
     throw std::runtime_error("Failed to setup SSL/TLS for DoH listener");
 
@@ -542,8 +559,8 @@ try
   dsc->h2o_accept_ctx.ctx = &dsc->h2o_ctx;
   dsc->h2o_accept_ctx.hosts = dsc->h2o_config.hosts;
 
-  if (create_listener(ca, dsc) != 0) {
-    throw std::runtime_error("DOH server failed to listen on " + ca.toStringWithPort() + ": " + strerror(errno));
+  if (create_listener(df->d_local, dsc) != 0) {
+    throw std::runtime_error("DOH server failed to listen on " + df->d_local.toStringWithPort() + ": " + strerror(errno));
   }
   
   while (h2o_evloop_run(dsc->h2o_ctx.loop, INT32_MAX) == 0)
