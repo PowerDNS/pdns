@@ -136,10 +136,15 @@ try
           for(const auto& doh : g_dohlocals) {
             string name = doh->d_local.toStringWithPort();
             boost::replace_all(name, ".", "_");
+            boost::replace_all(name, ":", "_");
+            boost::replace_all(name, "[", "_");
+            boost::replace_all(name, "]", "_");
+
+
             vector<pair<const char*, const std::atomic<uint64_t>&>> v{
               {"http-connects", doh->d_httpconnects},
-              {"http1-requests", doh->d_http1queries},
-              {"http2-requests", doh->d_http2queries},
+              {"http1-queries", doh->d_http1queries},
+              {"http2-queries", doh->d_http2queries},
               {"get-queries", doh->d_getqueries},
               {"post-queries", doh->d_postqueries},
               {"bad-requests", doh->d_badrequests},
@@ -148,7 +153,7 @@ try
             };
 
             for(const auto& item : v) {
-              str<<base<<"."<<name<<"."<<item.first << " " << item.second << " " << now <<"\r\n";
+              str<<base<<name<<"."<<item.first << " " << item.second << " " << now <<"\r\n";
             }
           }
         }
