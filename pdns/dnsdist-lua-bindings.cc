@@ -74,6 +74,7 @@ void setupLuaBindings(bool client)
   g_lua.writeVariable("roundrobin", ServerPolicy{"roundrobin", roundrobin, false});
   g_lua.writeVariable("wrandom", ServerPolicy{"wrandom", wrandom, false});
   g_lua.writeVariable("whashed", ServerPolicy{"whashed", whashed, false});
+  g_lua.writeVariable("chashed", ServerPolicy{"chashed", chashed, false});
   g_lua.writeVariable("leastOutstanding", ServerPolicy{"leastOutstanding", leastOutstanding, false});
 
   /* ServerPool */
@@ -118,7 +119,10 @@ void setupLuaBindings(bool client)
   g_lua.registerFunction("getName", &DownstreamState::getName);
   g_lua.registerFunction("getNameWithAddr", &DownstreamState::getNameWithAddr);
   g_lua.registerMember("upStatus", &DownstreamState::upStatus);
-  g_lua.registerMember("weight", &DownstreamState::weight);
+  g_lua.registerMember<int (DownstreamState::*)>("weight",
+    [](const DownstreamState& s) -> int {return s.weight;},
+    [](DownstreamState& s, int newWeight) {s.setWeight(newWeight);}
+  );
   g_lua.registerMember("order", &DownstreamState::order);
   g_lua.registerMember("name", &DownstreamState::name);
 

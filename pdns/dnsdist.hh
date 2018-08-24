@@ -551,7 +551,7 @@ extern std::shared_ptr<TCPClientCollection> g_tcpclientthreads;
 
 struct DownstreamState
 {
-  typedef std::function<std::tuple<DNSName, uint16_t, uint16_t>(const DNSName&, uint16_t, uint16_t, dnsheader*)> checkfunc_t;
+   typedef std::function<std::tuple<DNSName, uint16_t, uint16_t>(const DNSName&, uint16_t, uint16_t, dnsheader*)> checkfunc_t;
 
   DownstreamState(const ComboAddress& remote_, const ComboAddress& sourceAddr_, unsigned int sourceItf, size_t numberOfSockets);
   DownstreamState(const ComboAddress& remote_): DownstreamState(remote_, ComboAddress(), 0, 1) {}
@@ -564,7 +564,9 @@ struct DownstreamState
       }
     }
   }
-
+  boost::uuids::uuid id;
+  std::set<unsigned int> hashes;
+  mutable pthread_rwlock_t d_lock;
   std::vector<int> sockets;
   std::mutex socketsLock;
   std::mutex connectLock;
@@ -650,6 +652,9 @@ struct DownstreamState
     return status;
   }
   bool reconnect();
+  void hash();
+  void setId(const boost::uuids::uuid& newId);
+  void setWeight(int newWeight);
 };
 using servers_t =vector<std::shared_ptr<DownstreamState>>;
 
@@ -879,6 +884,7 @@ std::shared_ptr<DownstreamState> firstAvailable(const NumberedServerVector& serv
 std::shared_ptr<DownstreamState> leastOutstanding(const NumberedServerVector& servers, const DNSQuestion* dq);
 std::shared_ptr<DownstreamState> wrandom(const NumberedServerVector& servers, const DNSQuestion* dq);
 std::shared_ptr<DownstreamState> whashed(const NumberedServerVector& servers, const DNSQuestion* dq);
+std::shared_ptr<DownstreamState> chashed(const NumberedServerVector& servers, const DNSQuestion* dq);
 std::shared_ptr<DownstreamState> roundrobin(const NumberedServerVector& servers, const DNSQuestion* dq);
 int getEDNSZ(const char* packet, unsigned int len);
 uint16_t getEDNSOptionCode(const char * packet, size_t len);
