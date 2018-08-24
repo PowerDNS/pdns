@@ -29,7 +29,7 @@
 #include "zoneparser-tng.hh"
 #include "dnsparser.hh"
 
-uint32_t getSerialFromMaster(const ComboAddress& master, const DNSName& zone, shared_ptr<SOARecordContent>& sr, const TSIGTriplet& tt)
+uint32_t getSerialFromMaster(const ComboAddress& master, const DNSName& zone, shared_ptr<SOARecordContent>& sr, const TSIGTriplet& tt, const uint16_t timeout)
 {
   vector<uint8_t> packet;
   DNSPacketWriter pw(packet, zone, QType::SOA);
@@ -49,10 +49,14 @@ uint32_t getSerialFromMaster(const ComboAddress& master, const DNSName& zone, sh
   s.writen(msg);
 
   string reply;
-  s.read(reply);
+  char buf[4096];
+  // will throw a NetworkError on timeout
+  s.readWithTimeout(buf, sizeof(buf), timeout);
+  reply.assign(buf);
+
   MOADNSParser mdp(false, reply);
   if(mdp.d_header.rcode) {
-    throw std::runtime_error("Unable to retrieve SOA serial from master '"+master.toStringWithPort()+"': "+RCode::to_s(mdp.d_header.rcode));
+    throw std::runtime_error("RCODE from response is not NoError but " + RCode::to_s(mdp.d_header.rcode));
   }
   for(const auto& r: mdp.d_answers) {
     if(r.first.d_type == QType::SOA) {

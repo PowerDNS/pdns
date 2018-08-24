@@ -287,7 +287,7 @@ void updateThread(const string& workdir, const uint16_t& keep, const uint16_t& a
           g_log<<Logger::Info<<", will update."<<endl;
         }
       } catch (runtime_error &e) {
-        g_log<<Logger::Warning<<"Unable to get SOA serial update for '"<<domain<<"': "<<e.what()<<endl;
+        g_log<<Logger::Warning<<"Unable to get SOA serial update for '"<<domain<<"' from master "<<master.toStringWithPort()<<": "<<e.what()<<endl;
         continue;
       }
       // Now get the full zone!
