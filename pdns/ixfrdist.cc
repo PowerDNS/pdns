@@ -68,7 +68,7 @@ struct convert<ComboAddress> {
       return false;
     }
     try {
-      rhs = ComboAddress(node.as<string>());
+      rhs = ComboAddress(node.as<string>(), 53);
       return true;
     } catch(const runtime_error &e) {
       return false;
