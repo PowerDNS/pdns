@@ -64,7 +64,7 @@ extern bool g_ECSOverride;
 extern thread_local boost::uuids::random_generator t_uuidGenerator;
 
 typedef std::unordered_map<string, string> QTag;
-
+struct DOHUnit;
 struct DNSQuestion
 {
   DNSQuestion(const DNSName* name, uint16_t type, uint16_t class_, unsigned int consumed_, const ComboAddress* lc, const ComboAddress* rem, struct dnsheader* header, size_t bufferSize, uint16_t queryLen, bool isTcp, const struct timespec* queryTime_):
@@ -94,6 +94,7 @@ struct DNSQuestion
   bool useECS{true};
   bool addXPF{true};
   bool ecsSet{false};
+  struct DOHUnit* du{nullptr};
 };
 
 struct DNSResponse : DNSQuestion
@@ -511,7 +512,6 @@ struct DOHUnit
   std::string query;
   ComboAddress remote;
   ComboAddress dest;
-  std::map<std::string, std::string, CIStringCompare> headers;
   uint16_t qtype;
   bool error{false};
 };

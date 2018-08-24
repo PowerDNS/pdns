@@ -13,7 +13,9 @@
 #include "dns.hh"
 #include "dolog.hh"
 #include "dnsdist-ecs.hh"
+#include "dnsdist-rules.hh"
 #include <boost/algorithm/string.hpp>
+
 using namespace std;
 
 /* So, how does this work. We use h2o for our http2 and TLS needs. 
@@ -84,9 +86,11 @@ static int processDOHQuery(DOHUnit* du)
     unsigned int consumed = 0;
     DNSName qname(query, len, sizeof(dnsheader), false, &qtype, &qclass, &consumed);
     DNSQuestion dq(&qname, qtype, qclass, &du->dest, &du->remote, dh, 1500, len, false, &queryRealTime);
+    dq.du = du;
     queryId = ntohs(dh->id);
     if (!processQuery(holders, dq, poolname, &delayMsec, now))
     {
+      cerr<<"We should drop!"<<endl;
       return -1;
     }
 
@@ -381,6 +385,29 @@ static int doh_handler(h2o_handler_t *self, h2o_req_t *req)
   return 0;
 }
 
+
+HTTPHeaderRule::HTTPHeaderRule(const std::string& header, const std::string& regex)
+  :  d_regex(regex)
+{
+  d_header = toLower(header);
+  d_visual = "http[" + header+ "] ~ " + regex;
+
+}
+bool HTTPHeaderRule::matches(const DNSQuestion* dq) const
+{
+  for (unsigned int i = 0; i != dq->du->req->headers.size; ++i) {
+    //    cout<<dq->du->req->headers.entries[i].name->base << ": " <<dq->du->req->headers.entries[i].value.base<<endl; 
+    if(              dq->du->req->headers.entries[i].name->base == d_header &&
+       d_regex.match(dq->du->req->headers.entries[i].value.base))
+      return true;
+  }
+  return false;
+}
+
+string HTTPHeaderRule::toString() const
+{
+  return d_visual;
+}
 
 void dnsdistclient(int qsock, int rsock)
 {
