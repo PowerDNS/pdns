@@ -787,7 +787,7 @@ bool parseAndCheckConfig(const string& configpath, YAML::Node& config) {
       g_log<<Logger::Error<<"Unable to read 'axfr-timeout' value: "<<e.what()<<endl;
     }
   } else {
-    config["axfr-timeout"] = 10;
+    config["axfr-timeout"] = 20;
   }
 
   if (config["tcp-in-threads"]) {
