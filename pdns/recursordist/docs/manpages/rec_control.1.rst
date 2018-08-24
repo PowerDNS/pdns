@@ -237,6 +237,10 @@ top-bogus-remotes
     Shows the top-20 most active remote hosts causing bogus responses.
     Statistics are over the last 'stats-ringbuffer-entries' queries.
 
+top-timeouts
+    Shows the top-20 most active downstream timeout destinations.
+    Statistics are over the last 'stats-ringbuffer-entries' queries.
+
 trace-regex *REGEX*
     Emit resolution trace for matching queries. Empty regex to disable trace.
 

@@ -2484,6 +2484,8 @@ bool SyncRes::doResolveAtThisIP(const std::string& prefix, const DNSName& qname,
       else {
         // timeout
         t_sstorage.throttle.throttle(d_now.tv_sec, boost::make_tuple(remoteIP, qname, qtype.getCode()), 10, 5);
+        if(t_timeouts)
+          t_timeouts->push_back(remoteIP);
       }
     }
 
