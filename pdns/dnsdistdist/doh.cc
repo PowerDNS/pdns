@@ -20,7 +20,8 @@ using namespace std;
 
 /* So, how does this work. We use h2o for our http2 and TLS needs. 
    If the operator has configured multiple IP addresses to listen on, 
-   we launch multiple h2o listener threads. 
+   we launch multiple h2o listener threads. We can hook in to multiple 
+   URLs though on the same IP. There is no SNI yet (I think).
 
    h2o is event driven, so we get callbacks if a new DNS query arrived.
    When it does, we do some minimal parsing on it, and send it on to the 
@@ -49,10 +50,10 @@ struct DOHServerConfig
 };
 
 /* this duplicates way too much from the UDP handler. Sorry.
-   this function calls 'return' to drop a query without sending it
-   but that's not how it works in DoH land. We need to set du->error 
-   so HTTP serves a 500
+   this function calls 'return -1' to drop a query without sending it
+   caller should make sure HTTPS thread hears of that
 */
+
 static int processDOHQuery(DOHUnit* du)
 {
   LocalHolders holders;
@@ -75,7 +76,7 @@ static int processDOHQuery(DOHUnit* du)
     uint16_t len = du->query.length();
 
     if (!checkQueryHeaders(dh)) {
-      return -1;
+      return -1; // drop
     }
 
     string poolname;
@@ -90,7 +91,6 @@ static int processDOHQuery(DOHUnit* du)
     queryId = ntohs(dh->id);
     if (!processQuery(holders, dq, poolname, &delayMsec, now))
     {
-      cerr<<"We should drop!"<<endl;
       return -1;
     }
 
@@ -163,8 +163,8 @@ static int processDOHQuery(DOHUnit* du)
         
         du->query = std::string(query, cachedResponseSize);
         send(du->rsock, &du, sizeof(du), 0);
-        // sendUDPResponse(cs.udpFD, query, cachedResponseSize, delayMsec, dest, remote);
-        // XXX sendUDPResponse probably kept more stats or did something with delayMsec
+
+        // XXX on UDP we deal with the delayMsec too, which we don't do here
 
         g_stats.cacheHits++;
         doLatencyStats(0);  // we're not going to measure this
@@ -267,9 +267,6 @@ static int processDOHQuery(DOHUnit* du)
 
     int fd = pickBackendSocketForSending(ss);
 
-    // XXX for DoH we should modify or add EDNS option that says
-    // large answers are ok
-    
     ssize_t ret = udpClientSendRequestToBackend(ss, fd, query, dq.len);
 
     if(ret < 0) {
@@ -277,10 +274,10 @@ static int processDOHQuery(DOHUnit* du)
       g_stats.downstreamSendErrors++;
     }
 
-    vinfolog("Got query for %s|%s from %s, relayed to %s", ids->qname.toString(), QType(ids->qtype).getName(), du->remote.toStringWithPort(), ss->getName());
+    vinfolog("Got query for %s|%s from %s (https), relayed to %s", ids->qname.toString(), QType(ids->qtype).getName(), du->remote.toStringWithPort(), ss->getName());
   }
   catch(const std::exception& e){
-    vinfolog("Got an error in UDP question thread while parsing a query from %s, id %d: %s", du->remote.toStringWithPort(), queryId, e.what());
+    vinfolog("Got an error in DOH question thread while parsing a query from %s, id %d: %s", du->remote.toStringWithPort(), queryId, e.what());
     return -1;
   }
   return 0;
@@ -303,17 +300,13 @@ static h2o_pathconf_t *register_handler(h2o_hostconf_t *hostconf, const char *pa
 static int doh_handler(h2o_handler_t *self, h2o_req_t *req)
 {
   if(!req->conn->ctx->storage.size) {
-    return 0;
+    return 0; // although we might was well crash on this
   }
   h2o_socket_t* sock = req->conn->callbacks->get_socket(req->conn);
   ComboAddress remote;
   h2o_socket_getpeername(sock, (struct sockaddr*)&remote);
   DOHServerConfig* dsc = (DOHServerConfig*)req->conn->ctx->storage.entries[0].data;
-  /*
-  // print headers
-  for (unsigned int i = 0; i != req->headers.size; ++i)
-    printf("%.*s: %.*s\n", (int)req->headers.entries[i].name->len, req->headers.entries[i].name->base, (int)req->headers.entries[i].value.len, req->headers.entries[i].value.base);
-  */
+
   if (h2o_memis(req->method.base, req->method.len, H2O_STRLIT("POST"))) {
     dsc->df->d_postqueries++;
     if(req->version >= 0x0200)
@@ -333,19 +326,20 @@ static int doh_handler(h2o_handler_t *self, h2o_req_t *req)
     if(send(dsc->dohquerypair[0], &du, sizeof(du), 0) != sizeof(du))
       delete du;     // XXX but now what - will h2o time this out for us?
   }
-  else if(req->query_at != SIZE_MAX && (req->path.len - req->query_at > 4)) {
-    // XXX this should do a better job and deal with ?dns= and &dns= XXX
-    char* dns = strstr(req->path.base+req->query_at, "dns=");
+  else if(req->query_at != SIZE_MAX && (req->path.len - req->query_at > 5)) {
+    char* dns = strstr(req->path.base+req->query_at, "?dns=");
+    if(!dns)
+      dns = strstr(req->path.base+req->query_at, "&dns=");
     if(dns) {
-      dns+=4;
+      dns+=5;
       if(auto p = strchr(dns, ' '))
         *p=0;
-
+ 
       // need to base64url decode this
       string sdns(dns);
       boost::replace_all(sdns,"-", "+");
       boost::replace_all(sdns,"_", "/");
-
+ 
       string decoded;
       if(B64Decode(sdns, decoded) < 0) {
         h2o_send_error_400(req, "Bad Request", "dnsdist " VERSION " could not decode BASE64-URL", 0);
@@ -358,17 +352,24 @@ static int doh_handler(h2o_handler_t *self, h2o_req_t *req)
           dsc->df->d_http2queries++;
         else
           dsc->df->d_http1queries++;
-        
-        DOHUnit* du = new DOHUnit;
-        uint16_t qtype;
-        DNSName qname(decoded.c_str(), decoded.size(), sizeof(dnsheader), false, &qtype);
 
-        du->req=req;
-        du->query=decoded;
-        du->rsock=dsc->dohresponsepair[0];
-        du->qtype = qtype;
-        if(send(dsc->dohquerypair[0], &du, sizeof(du), 0) != sizeof(du))
-          delete du; // XXX but now what 
+        try {
+          uint16_t qtype;
+          DNSName qname(decoded.c_str(), decoded.size(), sizeof(dnsheader), false, &qtype);
+          DOHUnit* du = new DOHUnit;
+
+          du->req=req;
+          du->query=decoded;
+          du->rsock=dsc->dohresponsepair[0];
+          du->remote = remote;
+          du->qtype = qtype;
+          if(send(dsc->dohquerypair[0], &du, sizeof(du), 0) != sizeof(du))
+            delete du; // XXX but now what
+        }
+        catch(std::exception& e) {
+          vinfolog("Had error parsing DoH DNS packet: %s", e.what());
+          h2o_send_error_400(req, "Bad Request", "dnsdist " VERSION " could not parse DNS query", 0);
+        }
       }
     }
     else 
@@ -412,42 +413,50 @@ string HTTPHeaderRule::toString() const
 void dnsdistclient(int qsock, int rsock)
 {
   for(;;) {
-    DOHUnit* du;
-    recv(qsock, &du, sizeof(du), 0);
+    try {
+      DOHUnit* du;
+      recv(qsock, &du, sizeof(du), 0);
+      // if there was no EDNS, we add it with a large buffer size
+      // so we can use UDP to talk to the backend.
+      struct dnsheader* dh = (struct dnsheader*)du->query.c_str();
 
-    // if there was no EDNS, we add it with a large buffer size
-    // so we can use UDP to talk to the backend.
-    struct dnsheader* dh = (struct dnsheader*)du->query.c_str();
-    if(!dh->arcount) {
-      const uint8_t name = 0;
-      dnsrecordheader drh;
-      EDNS0Record edns0;
-      edns0.extRCode = 0;
-      edns0.version = 0;
-      edns0.extFlags = 0;
+      if(!dh->arcount) {
+        const uint8_t name = 0;
+        dnsrecordheader drh;
+        EDNS0Record edns0;
+        edns0.extRCode = 0;
+        edns0.version = 0;
+        edns0.extFlags = 0;
+        
+        drh.d_type = htons(QType::OPT);
+        drh.d_class = htons(4096);
+        memcpy(&drh.d_ttl, &edns0, sizeof edns0);
+        drh.d_clen = htons(0);
+        string res;
+        res.assign((const char *) &name, sizeof name);
+        res.append((const char *) &drh, sizeof drh);
+        
+        du->query += res;
+        dh = (struct dnsheader*)du->query.c_str(); // may have reallocated
+        dh->arcount = htons(1);
+        
+        du->ednsAdded = true;
+      }
+      else {
+        // we leave existing EDNS in place
+      }
       
-      drh.d_type = htons(QType::OPT);
-      drh.d_class = htons(4096);
-      memcpy(&drh.d_ttl, &edns0, sizeof edns0);
-      drh.d_clen = htons(0);
-      string res;
-      res.assign((const char *) &name, sizeof name);
-      res.append((const char *) &drh, sizeof drh);
-      
-      du->query += res;
-      dh = (struct dnsheader*)du->query.c_str(); // may have reallocated
-      dh->arcount = htons(1);
-
-      du->ednsAdded = true;
+      if(processDOHQuery(du) < 0) {
+        du->error = true; // turns our drop into a 500
+        if(send(du->rsock, &du, sizeof(du), 0) != sizeof(du))
+          delete du;     // XXX but now what - will h2o time this out for us?
+      }
     }
-    else {
-      // we leave existing EDNS in place
+    catch(std::exception& e) {
+      errlog("Error while processing query received over DoH: %s", e.what());
     }
-    
-    if(processDOHQuery(du) < 0) {
-      du->error = true; // turns our drop into a 500
-      if(send(du->rsock, &du, sizeof(du), 0) != sizeof(du))
-        delete du;     // XXX but now what - will h2o time this out for us?
+    catch(...) {
+      errlog("Unspecified error while processing query received over DoH");
     }
   }
 }

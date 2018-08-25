@@ -1581,8 +1581,8 @@ static void processUDPQuery(ClientState& cs, LocalHolders& holders, const struct
       ++g_stats.downstreamSendErrors;
     }
 
-    vinfolog("Got query for %s|%s from %s%s, relayed to %s", ids->qname.toString(), QType(ids->qtype).getName(), remote.toStringWithPort(),
-             ids->du ? " (https)" : "", ss->getName());
+    vinfolog("Got query for %s|%s from %s, relayed to %s", ids->qname.toString(), QType(ids->qtype).getName(), remote.toStringWithPort(),
+             ss->getName());
   }
   catch(const std::exception& e){
     vinfolog("Got an error in UDP question thread while parsing a query from %s, id %d: %s", remote.toStringWithPort(), queryId, e.what());
