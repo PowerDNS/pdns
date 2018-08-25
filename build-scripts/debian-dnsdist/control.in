@@ -3,7 +3,7 @@ Section: net
 Priority: optional
 Maintainer: PowerDNS Autobuilder <powerdns.support@powerdns.com>
 Origin: PowerDNS
-Build-Depends: debhelper (>= 9), dh-autoreconf, dh-systemd (>= 1.5), libboost-dev, libedit-dev, libluajit5.1-dev, protobuf-compiler, libprotobuf-dev, lib-snmp-dev, pkg-config @LIBRE2DEV@ @LIBSODIUMDEV@ @LIBSYSTEMDDEV@
+Build-Depends: debhelper (>= 9), dh-autoreconf, dh-systemd (>= 1.5), libboost-dev, libedit-dev, libluajit5.1-dev, protobuf-compiler, libprotobuf-dev, lib-snmp-dev, pkg-config, libgnutls28-dev @LIBRE2DEV@ @LIBSODIUMDEV@ @LIBSYSTEMDDEV@
 Standards-Version: 3.9.7
 Homepage: http://dnsdist.org
 

@@ -64,6 +64,7 @@ override_dh_auto_configure:
 	  --libdir='$${prefix}/lib/$(DEB_HOST_MULTIARCH)' \
 	  --libexecdir='$${prefix}/lib' \
 	  --with-protobuf=yes \
+	  --enable-dns-over-tls \
 	  --with-net-snmp \
 	  --with-lua=luajit \
 	  $(ENABLE_SYSTEMD) \
