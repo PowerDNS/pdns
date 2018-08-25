@@ -35,6 +35,11 @@ using namespace std;
    socketpair too.
 */
 
+/* h2o notes.
+   Paths and parameters etc just *happen* to be null-terminated in HTTP2.
+   They are not in HTTP1. So you MUST use the length field! 
+*/
+
 // we create on of these per thread, and pass around a pointer to it
 // through the bowels of h2o
 struct DOHServerConfig
@@ -307,6 +312,8 @@ static int doh_handler(h2o_handler_t *self, h2o_req_t *req)
   h2o_socket_getpeername(sock, (struct sockaddr*)&remote);
   DOHServerConfig* dsc = (DOHServerConfig*)req->conn->ctx->storage.entries[0].data;
 
+  string path(req->path.base, req->path.len);
+
   if (h2o_memis(req->method.base, req->method.len, H2O_STRLIT("POST"))) {
     dsc->df->d_postqueries++;
     if(req->version >= 0x0200)
@@ -327,16 +334,12 @@ static int doh_handler(h2o_handler_t *self, h2o_req_t *req)
       delete du;     // XXX but now what - will h2o time this out for us?
   }
   else if(req->query_at != SIZE_MAX && (req->path.len - req->query_at > 5)) {
-    char* dns = strstr(req->path.base+req->query_at, "?dns=");
-    if(!dns)
-      dns = strstr(req->path.base+req->query_at, "&dns=");
-    if(dns) {
-      dns+=5;
-      if(auto p = strchr(dns, ' '))
-        *p=0;
- 
+    auto pos = path.find("?dns=");
+    if(pos == string::npos)
+      pos = path.find("&dns=");
+    if(pos != string::npos) {
       // need to base64url decode this
-      string sdns(dns);
+      string sdns(path.substr(pos+5));
       boost::replace_all(sdns,"-", "+");
       boost::replace_all(sdns,"_", "/");
  
@@ -374,6 +377,7 @@ static int doh_handler(h2o_handler_t *self, h2o_req_t *req)
     }
     else 
     {
+      vinfolog("HTTP request without DNS parameter: %s", req->path.base);
       h2o_send_error_400(req, "Bad Request", "dnsdist " VERSION " could not find DNS parameter", 0);
       dsc->df->d_badrequests++;
       return 0;
@@ -409,6 +413,26 @@ string HTTPHeaderRule::toString() const
 {
   return d_visual;
 }
+
+HTTPPathRule::HTTPPathRule(const std::string& path)
+  :  d_path(path)
+{
+
+}
+bool HTTPPathRule::matches(const DNSQuestion* dq) const
+{
+  if(dq->du->req->query_at == SIZE_MAX) 
+    return dq->du->req->path.base == d_path;
+  else {
+    return d_path.compare(0, d_path.size(), dq->du->req->path.base, dq->du->req->query_at) == 0;
+  }
+}
+
+string HTTPPathRule::toString() const
+{
+  return "url path == " + d_path;
+}
+
 
 void dnsdistclient(int qsock, int rsock)
 {
