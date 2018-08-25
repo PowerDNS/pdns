@@ -19,7 +19,7 @@ For the recursor:
 
  * `cd pdns/recursordist`
  * `autoreconf -i`
- * `./configure --disable-depedency-tracking`
+ * `./configure --disable-dependency-tracking`
  * `make dist`
  * `mv pdns-recursor*.tar.bz2 ../../`
  * `cd -`
@@ -28,7 +28,7 @@ And dnsdist:
 
  * `cd pdns/dnsdistdist`
  * `autoreconf -i`
- * `./configure --disable-depedency-tracking`
+ * `./configure --disable-dependency-tracking`
  * `make dist`
  * `mv dnsdist*.tar.bz2 ../../`
  * `cd -`
