@@ -49,10 +49,14 @@ uint32_t getSerialFromMaster(const ComboAddress& master, const DNSName& zone, sh
   s.writen(msg);
 
   string reply;
-  char buf[4096];
+  reply.resize(4096);
   // will throw a NetworkError on timeout
-  s.readWithTimeout(buf, sizeof(buf), timeout);
-  reply.assign(buf);
+  ssize_t got = s.readWithTimeout(&reply[0], reply.size(), timeout);
+  if (got < 0 || static_cast<size_t>(got) < sizeof(dnsheader)) {
+    throw std::runtime_error("Invalid response size " + std::to_string(got));
+  }
+
+  reply.resize(got);
 
   MOADNSParser mdp(false, reply);
   if(mdp.d_header.rcode) {
