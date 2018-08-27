@@ -452,8 +452,11 @@ bool makeAXFRPackets(const MOADNSParser& mdp, vector<vector<uint8_t>>& packets) 
     records = g_soas[mdp.d_qname].latestAXFR;
   }
 
+  packets.reserve(packets.size() + /* SOAs */ 2 + records.size());
+
   // Initial SOA
-  packets.push_back(getSOAPacket(mdp, soa));
+  const auto soaPacket = getSOAPacket(mdp, soa);
+  packets.push_back(soaPacket);
 
   for (auto const &record : records) {
     if (record.d_type == QType::SOA) {
@@ -471,7 +474,7 @@ bool makeAXFRPackets(const MOADNSParser& mdp, vector<vector<uint8_t>>& packets) 
   }
 
   // Final SOA
-  packets.push_back(getSOAPacket(mdp, soa));
+  packets.push_back(soaPacket);
 
   return true;
 }
