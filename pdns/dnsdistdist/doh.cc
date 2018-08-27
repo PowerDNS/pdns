@@ -400,6 +400,8 @@ HTTPHeaderRule::HTTPHeaderRule(const std::string& header, const std::string& reg
 }
 bool HTTPHeaderRule::matches(const DNSQuestion* dq) const
 {
+  if(!dq->du)
+    return false;
   for (unsigned int i = 0; i != dq->du->req->headers.size; ++i) {
     //    cout<<dq->du->req->headers.entries[i].name->base << ": " <<dq->du->req->headers.entries[i].value.base<<endl; 
     if(              dq->du->req->headers.entries[i].name->base == d_header &&
@@ -421,6 +423,9 @@ HTTPPathRule::HTTPPathRule(const std::string& path)
 }
 bool HTTPPathRule::matches(const DNSQuestion* dq) const
 {
+  if(!dq->du)
+    return false;
+
   if(dq->du->req->query_at == SIZE_MAX) 
     return dq->du->req->path.base == d_path;
   else {
