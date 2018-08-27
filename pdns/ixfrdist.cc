@@ -68,7 +68,7 @@ struct convert<ComboAddress> {
       return false;
     }
     try {
-      rhs = ComboAddress(node.as<string>());
+      rhs = ComboAddress(node.as<string>(), 53);
       return true;
     } catch(const runtime_error &e) {
       return false;
@@ -128,7 +128,7 @@ void handleSignal(int signum) {
     g_log<<Logger::Notice<<", this is the second time we were asked to stop, forcefully exiting"<<endl;
     exit(EXIT_FAILURE);
   }
-  g_log<<Logger::Notice<<", stopping"<<endl;
+  g_log<<Logger::Notice<<", stopping, this may take a few second due to in-progress transfers and cleanup. Send this signal again to forcefully stop"<<endl;
   g_exiting = true;
 }
 
@@ -287,7 +287,7 @@ void updateThread(const string& workdir, const uint16_t& keep, const uint16_t& a
           g_log<<Logger::Info<<", will update."<<endl;
         }
       } catch (runtime_error &e) {
-        g_log<<Logger::Warning<<"Unable to get SOA serial update for '"<<domain<<"': "<<e.what()<<endl;
+        g_log<<Logger::Warning<<"Unable to get SOA serial update for '"<<domain<<"' from master "<<master.toStringWithPort()<<": "<<e.what()<<endl;
         continue;
       }
       // Now get the full zone!
@@ -787,14 +787,14 @@ bool parseAndCheckConfig(const string& configpath, YAML::Node& config) {
       g_log<<Logger::Error<<"Unable to read 'axfr-timeout' value: "<<e.what()<<endl;
     }
   } else {
-    config["axfr-timeout"] = 10;
+    config["axfr-timeout"] = 20;
   }
 
   if (config["tcp-in-threads"]) {
     try {
       config["tcp-in-threads"].as<uint16_t>();
     } catch (const runtime_error &e) {
-      g_log<<Logger::Error<<"Unable to read 'tcp-in-thread' value: "<<e.what()<<endl;
+      g_log<<Logger::Error<<"Unable to read 'tcp-in-threads' value: "<<e.what()<<endl;
     }
   } else {
     config["tcp-in-threads"] = 10;
@@ -1051,7 +1051,6 @@ int main(int argc, char** argv) {
   // It all starts here
   signal(SIGTERM, handleSignal);
   signal(SIGINT, handleSignal);
-  signal(SIGSTOP, handleSignal);
   signal(SIGPIPE, SIG_IGN);
 
   // Init the things we need
@@ -1075,7 +1074,7 @@ int main(int argc, char** argv) {
     gettimeofday(&now, 0);
     fdm->run(&now);
     if (g_exiting) {
-      g_log<<Logger::Notice<<"Shutting down!"<<endl;
+      g_log<<Logger::Debug<<"Closing listening sockets"<<endl;
       for (const int& fd : allSockets) {
         try {
           closesocket(fd);
@@ -1086,6 +1085,7 @@ int main(int argc, char** argv) {
       break;
     }
   }
+  g_log<<Logger::Debug<<"Waiting for al threads to stop"<<endl;
   g_tcpHandlerCV.notify_all();
   ut.join();
   for (auto &t : tcpHandlers) {
