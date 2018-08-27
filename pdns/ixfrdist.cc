@@ -226,8 +226,9 @@ void updateThread(const string& workdir, const uint16_t& keep, const uint16_t& a
           loadZoneFromDisk(records, fname, domain);
         }
         std::lock_guard<std::mutex> guard(g_soas_mutex);
-        g_soas[domain].latestAXFR = records;
-        g_soas[domain].soa = soa;
+        auto& zoneInfos = g_soas[domain];
+        zoneInfos.latestAXFR = records;
+        zoneInfos.soa = soa;
       }
       if (soa != nullptr) {
         g_log<<Logger::Notice<<"Loaded zone "<<domain<<" with serial "<<soa->d_st.serial<<endl;
@@ -248,6 +249,7 @@ void updateThread(const string& workdir, const uint16_t& keep, const uint16_t& a
   g_log<<Logger::Notice<<"Update Thread started"<<endl;
 
   while (true) {
+    g_log<<Logger::Debug<<"In the update loop with "<<g_domainConfigs.size()<<" configured domain(s) and "<<g_soas.size()<<" zone state(s)"<<endl;
     if (g_exiting) {
       g_log<<Logger::Notice<<"UpdateThread stopped"<<endl;
       break;
@@ -258,25 +260,28 @@ void updateThread(const string& workdir, const uint16_t& keep, const uint16_t& a
       shared_ptr<SOARecordContent> current_soa;
       {
         std::lock_guard<std::mutex> guard(g_soas_mutex);
-        if (g_soas.find(domain) != g_soas.end()) {
-          current_soa = g_soas[domain].soa;
+        const auto& zoneInfos = g_soas.find(domain);
+        if (zoneInfos != g_soas.end()) {
+          current_soa = zoneInfos->second.soa;
         }
       }
-      if ((current_soa != nullptr && now - lastCheck[domain] < current_soa->d_st.refresh) || // Only check if we have waited `refresh` seconds
-          (current_soa == nullptr && now - lastCheck[domain] < 30))  {                       // Or if we could not get an update at all still, every 30 seconds
+
+      auto& zoneLastCheck = lastCheck[domain];
+      if ((current_soa != nullptr && now - zoneLastCheck < current_soa->d_st.refresh) || // Only check if we have waited `refresh` seconds
+          (current_soa == nullptr && now - zoneLastCheck < 30))  {                       // Or if we could not get an update at all still, every 30 seconds
         continue;
       }
 
       // TODO Keep track of 'down' masters
-      set<ComboAddress>::const_iterator it(g_domainConfigs[domain].masters.begin());
-      std::advance(it, random() % g_domainConfigs[domain].masters.size());
+      set<ComboAddress>::const_iterator it(domainConfig.second.masters.begin());
+      std::advance(it, random() % domainConfig.second.masters.size());
       ComboAddress master = *it;
 
       string dir = workdir + "/" + domain.toString();
       g_log<<Logger::Info<<"Attempting to retrieve SOA Serial update for '"<<domain<<"' from '"<<master.toStringWithPort()<<"'"<<endl;
       shared_ptr<SOARecordContent> sr;
       try {
-        lastCheck[domain] = now;
+        zoneLastCheck = now;
         auto newSerial = getSerialFromMaster(master, domain, sr); // TODO TSIG
         if(current_soa != nullptr) {
           g_log<<Logger::Info<<"Got SOA Serial for "<<domain<<" from "<<master.toStringWithPort()<<": "<< newSerial<<", had Serial: "<<current_soa->d_st.serial;
@@ -340,18 +345,22 @@ void updateThread(const string& workdir, const uint16_t& keep, const uint16_t& a
         {
           std::lock_guard<std::mutex> guard(g_soas_mutex);
           ixfrdiff_t diff;
-          if (!g_soas[domain].latestAXFR.empty()) {
-            makeIXFRDiff(g_soas[domain].latestAXFR, records, diff, g_soas[domain].soa, soa);
-            g_soas[domain].ixfrDiffs.push_back(std::move(diff));
+          auto& zoneInfos = g_soas[domain];
+          if (!zoneInfos.latestAXFR.empty()) {
+            g_log<<Logger::Debug<<"Calculating diff for "<<domain<<endl;
+            makeIXFRDiff(zoneInfos.latestAXFR, records, diff, zoneInfos.soa, soa);
+            g_log<<Logger::Debug<<"Calculated diff for "<<domain<<", we had "<<diff.removals.size()<<" removals and "<<diff.additions.size()<<" additions"<<endl;
+            zoneInfos.ixfrDiffs.push_back(std::move(diff));
           }
 
           // Clean up the diffs
-          while (g_soas[domain].ixfrDiffs.size() > keep) {
-            g_soas[domain].ixfrDiffs.erase(g_soas[domain].ixfrDiffs.begin());
+          while (zoneInfos.ixfrDiffs.size() > keep) {
+            zoneInfos.ixfrDiffs.erase(zoneInfos.ixfrDiffs.begin());
           }
 
-          g_soas[domain].latestAXFR = std::move(records);
-          g_soas[domain].soa = soa;
+          g_log<<Logger::Debug<<"Zone "<<domain<<" previously contained "<<zoneInfos.latestAXFR.size()<<" entries, "<<records.size()<<" now"<<endl;
+          zoneInfos.latestAXFR = std::move(records);
+          zoneInfos.soa = soa;
         }
       } catch (PDNSException &e) {
         g_log<<Logger::Warning<<"Could not save zone '"<<domain<<"' to disk: "<<e.reason<<endl;
@@ -448,8 +457,9 @@ bool makeAXFRPackets(const MOADNSParser& mdp, vector<vector<uint8_t>>& packets) 
   {
     // Make copies of what we have
     std::lock_guard<std::mutex> guard(g_soas_mutex);
-    soa = g_soas[mdp.d_qname].soa;
-    records = g_soas[mdp.d_qname].latestAXFR;
+    const auto& zoneInfos = g_soas[mdp.d_qname];
+    soa = zoneInfos.soa;
+    records = zoneInfos.latestAXFR;
   }
 
   packets.reserve(packets.size() + /* SOAs */ 2 + records.size());
@@ -480,10 +490,12 @@ bool makeAXFRPackets(const MOADNSParser& mdp, vector<vector<uint8_t>>& packets) 
 }
 
 void makeXFRPacketsFromDNSRecords(const MOADNSParser& mdp, const vector<DNSRecord>& records, vector<vector<uint8_t>>& packets) {
+
   for(const auto& r : records) {
     if (r.d_type == QType::SOA) {
       continue;
     }
+
     vector<uint8_t> packet;
     DNSPacketWriter pw(packet, mdp.d_qname, mdp.d_qtype);
     pw.getHeader()->id = mdp.d_header.id;
@@ -555,6 +567,8 @@ bool makeIXFRPackets(const MOADNSParser& mdp, const shared_ptr<SOARecordContent>
      * ... added records ...
      * SOA new_serial
      */
+    packets.reserve(packets.size() + /* SOAs */ 4 + diff.removals.size() + diff.additions.size());
+
     packets.push_back(getSOAPacket(mdp, diff.newSOA));
     packets.push_back(getSOAPacket(mdp, diff.oldSOA));
     makeXFRPacketsFromDNSRecords(mdp, diff.removals, packets);
