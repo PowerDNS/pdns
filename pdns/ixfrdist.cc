@@ -198,11 +198,11 @@ static void makeIXFRDiff(const records_t& from, const records_t& to, ixfrdiff_t&
   set_difference(to.cbegin(), to.cend(), from.cbegin(), from.cend(), back_inserter(diff.additions), from.value_comp());
   diff.oldSOA = fromSOA;
   if (fromSOA == nullptr) {
-    getSOAFromRecords(from);
+    diff.oldSOA = getSOAFromRecords(from);
   }
   diff.newSOA = toSOA;
   if (toSOA == nullptr) {
-    getSOAFromRecords(to);
+    diff.newSOA = getSOAFromRecords(to);
   }
 }
 
