@@ -86,7 +86,7 @@ sed -i '/^ExecStart/ s/dnsdist/dnsdist -u dnsdist -g dnsdist/' dnsdist.service.i
   --enable-fstrm \
   --enable-gnutls \
   --with-protobuf \
-  --with-luajit \
+  --with-lua=luajit \
   --enable-libsodium \
   --enable-dnscrypt \
   --enable-systemd --with-systemd=/lib/systemd/system \

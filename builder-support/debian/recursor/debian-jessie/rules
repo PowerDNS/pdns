@@ -27,7 +27,7 @@ override_dh_auto_configure:
 	dh_auto_configure -- \
 		--sysconfdir=/etc/powerdns \
 		--enable-unit-tests \
-		--with-luajit \
+		--with-lua=luajit \
 		--enable-libsodium \
 		--with-protobuf=yes \
 		--with-net-snmp \

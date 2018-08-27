@@ -68,7 +68,7 @@ package if you need a dns cache for your network.
 
 make %{?_smp_mflags} LIBRARY_PATH=/usr/lib64/boost148
 %else
-    --with-luajit \
+    --with-lua=luajit \
     --enable-systemd --with-systemd=%{_unitdir}
 
 make %{?_smp_mflags}

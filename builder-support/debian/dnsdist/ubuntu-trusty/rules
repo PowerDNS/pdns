@@ -35,7 +35,7 @@ override_dh_auto_configure:
 	  --disable-re2 \
 	  --enable-dns-over-tls \
 	  --with-ebpf \
-	  --with-luajit \
+	  --with-lua=luajit \
 	  --with-protobuf \
 	  --disable-systemd
 

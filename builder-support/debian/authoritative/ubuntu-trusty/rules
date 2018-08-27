@@ -21,7 +21,7 @@ override_dh_auto_configure:
 		--with-modules="" \
 		--enable-tools \
 		--disable-libsodium \
-		--with-luajit \
+		--with-lua=luajit \
 		--with-protobuf \
 		--enable-unit-tests \
 		--enable-experimental-pkcs11 \

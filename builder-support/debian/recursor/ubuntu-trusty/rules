@@ -18,7 +18,7 @@ override_dh_auto_configure:
 	dh_auto_configure -- \
 		--sysconfdir=/etc/powerdns \
 		--enable-unit-tests \
-		--with-luajit \
+		--with-lua=luajit \
 		--with-protobuf=yes \
 		--with-net-snmp \
 		--disable-silent-rules \
