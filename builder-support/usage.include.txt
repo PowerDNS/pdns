@@ -2,5 +2,3 @@ Supported MODULES values:
   authoritative
   recursor
   dnsdist
-
-Not setting one of these will make the builder exit with an error, as building all programs in one go is not supported and usually not necessary.
