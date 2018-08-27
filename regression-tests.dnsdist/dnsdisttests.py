@@ -142,7 +142,7 @@ class DNSDistTest(unittest.TestCase):
             cls._responsesCounter[threading.currentThread().name] = 1
 
     @classmethod
-    def _getResponse(cls, request, fromQueue, toQueue):
+    def _getResponse(cls, request, fromQueue, toQueue, synthesize=None):
         response = None
         if len(request.question) != 1:
             print("Skipping query with question count %d" % (len(request.question)))
@@ -150,18 +150,21 @@ class DNSDistTest(unittest.TestCase):
         healthCheck = str(request.question[0].name).endswith(cls._healthCheckName)
         if healthCheck:
             cls._healthCheckCounter += 1
+            response = dns.message.make_response(request)
         else:
             cls._ResponderIncrementCounter()
             if not fromQueue.empty():
-                response = fromQueue.get(True, cls._queueTimeout)
-                if response:
-                    response = copy.copy(response)
-                    response.id = request.id
-                    toQueue.put(request, True, cls._queueTimeout)
+                toQueue.put(request, True, cls._queueTimeout)
+                if synthesize is None:
+                    response = fromQueue.get(True, cls._queueTimeout)
+                    if response:
+                        response = copy.copy(response)
+                        response.id = request.id
 
         if not response:
-            if healthCheck:
+            if synthesize is not None:
                 response = dns.message.make_response(request)
+                response.set_rcode(synthesize)
             elif cls._answerUnexpected:
                 response = dns.message.make_response(request)
                 response.set_rcode(dns.rcode.SERVFAIL)
@@ -169,15 +172,24 @@ class DNSDistTest(unittest.TestCase):
         return response
 
     @classmethod
-    def UDPResponder(cls, port, fromQueue, toQueue, ignoreTrailing=False):
+    def UDPResponder(cls, port, fromQueue, toQueue, trailingDataResponse=False):
+        ignoreTrailing = trailingDataResponse is True
         sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEPORT, 1)
         sock.bind(("127.0.0.1", port))
         while True:
             data, addr = sock.recvfrom(4096)
-            request = dns.message.from_wire(data, ignore_trailing=ignoreTrailing)
-            response = cls._getResponse(request, fromQueue, toQueue)
+            forceRcode = None
+            try:
+                request = dns.message.from_wire(data, ignore_trailing=ignoreTrailing)
+            except dns.message.TrailingJunk as e:
+                if trailingDataResponse is False:
+                    raise
+                print("UDP query with trailing data, synthesizing response")
+                request = dns.message.from_wire(data, ignore_trailing=True)
+                forceRcode = trailingDataResponse
 
+            response = cls._getResponse(request, fromQueue, toQueue, synthesize=forceRcode)
             if not response:
                 continue
 
@@ -187,7 +199,8 @@ class DNSDistTest(unittest.TestCase):
         sock.close()
 
     @classmethod
-    def TCPResponder(cls, port, fromQueue, toQueue, ignoreTrailing=False, multipleResponses=False):
+    def TCPResponder(cls, port, fromQueue, toQueue, trailingDataResponse=False, multipleResponses=False):
+        ignoreTrailing = trailingDataResponse is True
         sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEPORT, 1)
         try:
@@ -207,9 +220,17 @@ class DNSDistTest(unittest.TestCase):
 
             (datalen,) = struct.unpack("!H", data)
             data = conn.recv(datalen)
-            request = dns.message.from_wire(data, ignore_trailing=ignoreTrailing)
-            response = cls._getResponse(request, fromQueue, toQueue)
+            forceRcode = None
+            try:
+                request = dns.message.from_wire(data, ignore_trailing=ignoreTrailing)
+            except dns.message.TrailingJunk as e:
+                if trailingDataResponse is False:
+                    raise
+                print("TCP query with trailing data, synthesizing response")
+                request = dns.message.from_wire(data, ignore_trailing=True)
+                forceRcode = trailingDataResponse
 
+            response = cls._getResponse(request, fromQueue, toQueue, synthesize=forceRcode)
             if not response:
                 conn.close()
                 continue
