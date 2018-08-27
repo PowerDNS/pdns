@@ -1051,7 +1051,6 @@ int main(int argc, char** argv) {
   // It all starts here
   signal(SIGTERM, handleSignal);
   signal(SIGINT, handleSignal);
-  signal(SIGSTOP, handleSignal);
   signal(SIGPIPE, SIG_IGN);
 
   // Init the things we need
