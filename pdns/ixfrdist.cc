@@ -297,12 +297,12 @@ void updateThread(const string& workdir, const uint16_t& keep, const uint16_t& a
 
       // The *new* SOA
       shared_ptr<SOARecordContent> soa;
+      records_t records;
       try {
         AXFRRetriever axfr(master, domain, tt, &local);
         unsigned int nrecords=0;
         Resolver::res_t nop;
         vector<DNSRecord> chunk;
-        records_t records;
         time_t t_start = time(nullptr);
         time_t axfr_now = time(nullptr);
         while(axfr.getChunk(nop, &chunk, (axfr_now - t_start + axfrTimeout))) {
@@ -326,27 +326,39 @@ void updateThread(const string& workdir, const uint16_t& keep, const uint16_t& a
           continue;
         }
         g_log<<Logger::Notice<<"Retrieved all zone data for "<<domain<<". Received "<<nrecords<<" records."<<endl;
+      } catch (PDNSException &e) {
+        g_log<<Logger::Warning<<"Could not retrieve AXFR for '"<<domain<<"': "<<e.reason<<endl;
+      } catch (runtime_error &e) {
+        g_log<<Logger::Warning<<"Could not retrieve AXFR for zone '"<<domain<<"': "<<e.what()<<endl;
+      }
+
+      try {
+
         writeZoneToDisk(records, domain, dir);
         g_log<<Logger::Notice<<"Wrote zonedata for "<<domain<<" with serial "<<soa->d_st.serial<<" to "<<dir<<endl;
+
         {
           std::lock_guard<std::mutex> guard(g_soas_mutex);
           ixfrdiff_t diff;
           if (!g_soas[domain].latestAXFR.empty()) {
             makeIXFRDiff(g_soas[domain].latestAXFR, records, diff, g_soas[domain].soa, soa);
-            g_soas[domain].ixfrDiffs.push_back(diff);
+            g_soas[domain].ixfrDiffs.push_back(std::move(diff));
           }
+
           // Clean up the diffs
           while (g_soas[domain].ixfrDiffs.size() > keep) {
             g_soas[domain].ixfrDiffs.erase(g_soas[domain].ixfrDiffs.begin());
           }
-          g_soas[domain].latestAXFR = records;
+
+          g_soas[domain].latestAXFR = std::move(records);
           g_soas[domain].soa = soa;
         }
       } catch (PDNSException &e) {
-        g_log<<Logger::Warning<<"Could not retrieve AXFR for '"<<domain<<"': "<<e.reason<<endl;
+        g_log<<Logger::Warning<<"Could not save zone '"<<domain<<"' to disk: "<<e.reason<<endl;
       } catch (runtime_error &e) {
         g_log<<Logger::Warning<<"Could not save zone '"<<domain<<"' to disk: "<<e.what()<<endl;
       }
+
       // Now clean up the directory
       cleanUpDomain(domain, keep, workdir);
     } /* for (const auto &domain : domains) */
