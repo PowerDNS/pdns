@@ -221,8 +221,8 @@ paths:
 
   '/servers/{server_id}/zones/{zone_id}/axfr-retrieve':
     put:
-      summary: Send a DNS NOTIFY to all slaves.
-      description: 'Fails when zone kind is not Master or Slave, or master and slave are disabled in the configuration. Only works for Slave if renotify is on. Clients MUST NOT send a body.'
+      summary: Retrieve slave zone from its master.
+      description: 'Fails when zone kind is not Slave, or slave is disabled in the configuration. Clients MUST NOT send a body.'
       operationId: axfrRetrieveZone
       tags:
         - zones
