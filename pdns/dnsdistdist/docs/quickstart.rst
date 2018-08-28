@@ -6,7 +6,7 @@ This guide gives an overview of dnsdist features and operations.
 Running in the Foreground
 -------------------------
 
-After :doc:`installing <install>` dnsdist, the quickest way to start experimenting is lanching it on the foreground with::
+After :doc:`installing <install>` dnsdist, the quickest way to start experimenting is launching it on the foreground with::
 
    dnsdist -l 127.0.0.1:5300 8.8.8.8 2001:4860:4860::8888
 
