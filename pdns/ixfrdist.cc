@@ -281,6 +281,11 @@ void updateThread(const string& workdir, const uint16_t& keep, const uint16_t& a
     }
     time_t now = time(nullptr);
     for (const auto &domainConfig : g_domainConfigs) {
+
+      if (g_exiting) {
+        break;
+      }
+
       DNSName domain = domainConfig.first;
       shared_ptr<SOARecordContent> current_soa;
       const auto& zoneInfo = getCurrentZoneInfo(domain);
