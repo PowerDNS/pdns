@@ -23,7 +23,7 @@ RUN find /pdns/builder-support/specs/ -not -name '*.spec' -exec ln -s {} /root/r
 
 @IF [ ! -z "$M_authoritative$M_all" ]
 RUN if $(grep -q 'release 6' /etc/redhat-release); then \
-      scl enable devtoolset-3 -- builder/helpers/build-specs.sh builder-support/specs/pdns.spec; \
+      scl enable devtoolset-6 -- builder/helpers/build-specs.sh builder-support/specs/pdns.spec; \
     else \
       builder/helpers/build-specs.sh builder-support/specs/pdns.spec; \
     fi
@@ -31,7 +31,7 @@ RUN if $(grep -q 'release 6' /etc/redhat-release); then \
 
 @IF [ ! -z "$M_recursor$M_all" ]
 RUN if $(grep -q 'release 6' /etc/redhat-release); then \
-      scl enable devtoolset-3 -- builder/helpers/build-specs.sh builder-support/specs/pdns-recursor.spec; \
+      scl enable devtoolset-6 -- builder/helpers/build-specs.sh builder-support/specs/pdns-recursor.spec; \
     else \
       builder/helpers/build-specs.sh builder-support/specs/pdns-recursor.spec; \
     fi
@@ -39,7 +39,7 @@ RUN if $(grep -q 'release 6' /etc/redhat-release); then \
 
 @IF [ ! -z "$M_dnsdist$M_all" ]
 RUN if $(grep -q 'release 6' /etc/redhat-release); then \
-      scl enable devtoolset-3 -- builder/helpers/build-specs.sh builder-support/specs/dnsdist.spec; \
+      scl enable devtoolset-6 -- builder/helpers/build-specs.sh builder-support/specs/dnsdist.spec; \
     else \
       builder/helpers/build-specs.sh builder-support/specs/dnsdist.spec; \
     fi
