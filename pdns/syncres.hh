@@ -78,6 +78,14 @@ public:
     d_ttl=60;
     d_last_clean=time(0);
   }
+
+  struct entry
+  {
+    time_t ttd;
+    unsigned int count;
+  };
+  typedef map<Thing,entry> cont_t;
+
   bool shouldThrottle(time_t now, const Thing& t)
   {
     if(now > d_last_clean + 300 ) {
@@ -120,16 +128,9 @@ public:
     return (unsigned int)d_cont.size();
   }
 
-  typedef std::vector<boost::tuple<ComboAddress,DNSName,uint16_t> > throttles_t;
-  throttles_t getThrottleTuples() {
-    throttles_t ret;
-    ret.reserve(d_cont.size());
-
-    for(const auto& i : d_cont) {
-      ret.push_back(i.first);
-    }
-
-    return ret;
+  const cont_t& getThrottleMap() const
+  {
+    return d_cont;
   }
 
   void clear()
@@ -141,12 +142,6 @@ private:
   unsigned int d_limit;
   time_t d_ttl;
   time_t d_last_clean;
-  struct entry
-  {
-    time_t ttd;
-    unsigned int count;
-  };
-  typedef map<Thing,entry> cont_t;
   cont_t d_cont;
 };
 

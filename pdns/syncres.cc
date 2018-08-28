@@ -394,15 +394,15 @@ uint64_t SyncRes::doDumpThrottleMap(int fd)
   if(!fp)
     return 0;
   fprintf(fp, "; throttle map dump follows\n");
-  fprintf(fp, "; remote IP, DNSName, QType\n");
+  fprintf(fp, "; remote IP\tqname\tqtype\tcount\tttd\n");
   uint64_t count=0;
 
-  for(const auto& i : t_sstorage.throttle.getThrottleTuples())
+  const auto& throttleMap = t_sstorage.throttle.getThrottleMap();
+  for(const auto& i : throttleMap)
   {
     count++;
-    // remote IP, dns name, qtype
-    fprintf(fp, "%s %s %d", i.get<0>().toLogString().c_str(), i.get<1>().toString().c_str(), i.get<2>());
-    fprintf(fp, "\n");
+    // remote IP, dns name, qtype, count, ttd
+    fprintf(fp, "%s\t%s\t%d\t%d\t%s", i.first.get<0>().toString().c_str(), i.first.get<1>().toString().c_str(), i.first.get<2>(), i.second.count, ctime(&i.second.ttd));
   }
   fclose(fp);
   return count;
