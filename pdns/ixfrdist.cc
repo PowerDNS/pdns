@@ -360,8 +360,10 @@ void updateThread(const string& workdir, const uint16_t& keep, const uint16_t& a
         g_log<<Logger::Notice<<"Retrieved all zone data for "<<domain<<". Received "<<nrecords<<" records."<<endl;
       } catch (PDNSException &e) {
         g_log<<Logger::Warning<<"Could not retrieve AXFR for '"<<domain<<"': "<<e.reason<<endl;
+        continue;
       } catch (runtime_error &e) {
         g_log<<Logger::Warning<<"Could not retrieve AXFR for zone '"<<domain<<"': "<<e.what()<<endl;
+        continue;
       }
 
       try {
