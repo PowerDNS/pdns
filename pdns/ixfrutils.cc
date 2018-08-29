@@ -105,6 +105,17 @@ uint32_t getSerialFromRecords(const records_t& records, DNSRecord& soaret)
   return 0;
 }
 
+static void writeRecords(FILE* fp, const records_t& records)
+{
+  for(const auto& r: records) {
+    fprintf(fp, "%s\t%" PRIu32 "\tIN\t%s\t%s\n",
+            r.d_name.isRoot() ? "@" :  r.d_name.toStringNoDot().c_str(),
+            r.d_ttl,
+            DNSRecordContent::NumberToType(r.d_type).c_str(),
+            r.d_content->getZoneRepresentation().c_str());
+  }
+}
+
 void writeZoneToDisk(const records_t& records, const DNSName& zone, const std::string& directory)
 {
   DNSRecord soa;
@@ -117,15 +128,11 @@ void writeZoneToDisk(const records_t& records, const DNSName& zone, const std::s
   records_t soarecord;
   soarecord.insert(soa);
   fprintf(fp, "$ORIGIN %s\n", zone.toString().c_str());
-  for(const auto& outer : {soarecord, records, soarecord} ) {
-    for(const auto& r: outer) {
-      fprintf(fp, "%s\t%" PRIu32 "\tIN\t%s\t%s\n",
-          r.d_name.isRoot() ? "@" :  r.d_name.toStringNoDot().c_str(),
-          r.d_ttl,
-          DNSRecordContent::NumberToType(r.d_type).c_str(),
-          r.d_content->getZoneRepresentation().c_str());
-    }
-  }
+
+  writeRecords(fp, soarecord);
+  writeRecords(fp, records);
+  writeRecords(fp, soarecord);
+
   fclose(fp);
   rename( (fname+".partial").c_str(), fname.c_str());
 }
