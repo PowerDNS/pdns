@@ -46,7 +46,7 @@ Record creation functions
 
   Various options can be set in the ``options`` parameter:
 
-  - ``selector``: used to pick the IP address from list of viable candidates. Choices include 'pickclosest', 'random', 'hashed'.
+  - ``selector``: used to pick the IP address from list of viable candidates. Choices include 'pickclosest', 'random', 'hashed', 'all', 'none'.
   - ``source``: Source IP address to check from
 
 
@@ -56,16 +56,14 @@ Record creation functions
   ``url``. In addition, multiple groups of IP addresses can be supplied. The
   first set with a working (available) IP address is used.
 
-  If all addresses are down, as usual, a random element from all sets is
-  returned.
-
   :param string url: The url to retrieve.
   :param addresses: List of lists of IP addresses to check the URL on.
   :param options: Table of options for this specific check, see below.
 
   Various options can be set in the ``options`` parameter:
 
-  - ``selector``: used to pick the IP address from list of viable candidates. Choices include 'pickclosest', 'random', 'hashed'.
+  - ``selector``: used to pick the IP address from list of viable candidates. Choices include 'pickclosest', 'random', 'hashed', 'all', 'none'.
+  - ``defaultSelector``: used to pick the IP address from list of all candidates if all addresses are down. Choices include 'pickclosest', 'random', 'hashed', 'all', 'none'.
   - ``source``: Source IP address to check from
   - ``stringmatch``: check ``url`` for this string, only declare 'up' if found
 
