@@ -23,12 +23,6 @@ Changelogs for 4.1.x
     pdnsutil: use new domain in b2bmigrate (Aki Tuomi)
 
   .. change::
-    :tags: Improvements
-    :pullreq: 6545, 6312
-
-    Lower 'packet too short' loglevel
-
-  .. change::
     :tags: Bug Fixes
     :pullreq: 6370
     :tickets: 6228
