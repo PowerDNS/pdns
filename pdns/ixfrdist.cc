@@ -497,7 +497,7 @@ static bool sendPacketOverTCP(int fd, const std::vector<uint8_t>& packet)
 
 static bool addRecordToWriter(DNSPacketWriter& pw, const DNSName& zoneName, const DNSRecord& record)
 {
-  pw.startRecord(record.d_name + zoneName, record.d_type);
+  pw.startRecord(record.d_name + zoneName, record.d_type, record.d_ttl);
   record.d_content->toPacket(pw);
   if (pw.size() > 65535) {
     pw.rollback();
