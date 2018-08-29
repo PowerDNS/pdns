@@ -32,6 +32,12 @@
 #include "pdns/namespaces.hh"
 #include "pdns/lock.hh"
 
+#if MYSQL_VERSION_ID >= 80000 && !defined(MARIADB_BASE_VERSION)
+// Need to keep this for compatibility with MySQL < 8.0.0, which used typedef char my_bool;
+// MariaDB up to 10.4 also always define it.
+typedef bool my_bool;
+#endif
+
 bool SMySQL::s_dolog;
 pthread_mutex_t SMySQL::s_myinitlock = PTHREAD_MUTEX_INITIALIZER;
 
@@ -427,7 +433,7 @@ void SMySQL::connect()
 #endif
 
     if (d_setIsolation && (retry == 1))
-      mysql_options(&d_db, MYSQL_INIT_COMMAND,"SET SESSION tx_isolation='READ-COMMITTED'");
+      mysql_options(&d_db, MYSQL_INIT_COMMAND,"SET SESSION TRANSACTION ISOLATION LEVEL READ COMMITTED");
 
     mysql_options(&d_db, MYSQL_READ_DEFAULT_GROUP, d_group.c_str());
 
