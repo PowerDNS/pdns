@@ -245,13 +245,6 @@ string reloadAuthAndForwards()
   try {
     g_log<<Logger::Warning<<"Reloading zones, purging data from cache"<<endl;
 
-    if (original) {
-      for(const auto& i : *original) {
-        for(const auto& j : i.second.d_records)
-          broadcastAccFunction<uint64_t>(boost::bind(pleaseWipeCache, j.d_name, false));
-      }
-    }
-
     string configname=::arg()["config-dir"]+"/recursor.conf";
     if(::arg()["config-name"]!="") {
       configname=::arg()["config-dir"]+"/recursor-"+::arg()["config-name"]+".conf";
@@ -290,12 +283,23 @@ string reloadAuthAndForwards()
     ::arg().preParse(g_argc, g_argv, "serve-rfc1918");
 
     std::shared_ptr<SyncRes::domainmap_t> newDomainMap = parseAuthAndForwards();
-    
-    // purge again - new zones need to blank out the cache
+
+    // purge both original and new names
+    std::set<DNSName> oldAndNewDomains;
     for(const auto& i : *newDomainMap) {
-        broadcastAccFunction<uint64_t>(boost::bind(pleaseWipeCache, i.first, true));
-        broadcastAccFunction<uint64_t>(boost::bind(pleaseWipePacketCache, i.first, true));
-        broadcastAccFunction<uint64_t>(boost::bind(pleaseWipeAndCountNegCache, i.first, true));
+      oldAndNewDomains.insert(i.first);
+    }
+
+    if(original) {
+      for(const auto& i : *original) {
+        oldAndNewDomains.insert(i.first);
+      }
+    }
+
+    for(const auto i : oldAndNewDomains) {
+        broadcastAccFunction<uint64_t>(boost::bind(pleaseWipeCache, i, true));
+        broadcastAccFunction<uint64_t>(boost::bind(pleaseWipePacketCache, i, true));
+        broadcastAccFunction<uint64_t>(boost::bind(pleaseWipeAndCountNegCache, i, true));
     }
 
     broadcastFunction(boost::bind(pleaseUseNewSDomainsMap, newDomainMap));
