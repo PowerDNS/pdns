@@ -118,22 +118,23 @@ struct ixfrdistdomain_t {
 };
 
 // This contains the configuration for each domain
-map<DNSName, ixfrdistdomain_t> g_domainConfigs;
+static map<DNSName, ixfrdistdomain_t> g_domainConfigs;
 
 // Map domains and their data
-std::map<DNSName, std::shared_ptr<ixfrinfo_t>> g_soas;
-std::mutex g_soas_mutex;
+static std::map<DNSName, std::shared_ptr<ixfrinfo_t>> g_soas;
+static std::mutex g_soas_mutex;
 
 // Condition variable for TCP handling
-std::condition_variable g_tcpHandlerCV;
-std::queue<pair<int, ComboAddress>> g_tcpRequestFDs;
-std::mutex g_tcpRequestFDsMutex;
+static std::condition_variable g_tcpHandlerCV;
+static std::queue<pair<int, ComboAddress>> g_tcpRequestFDs;
+static std::mutex g_tcpRequestFDsMutex;
 
 namespace po = boost::program_options;
 
-bool g_exiting = false;
+static bool g_exiting = false;
 
-NetmaskGroup g_acl;
+static NetmaskGroup g_acl;
+static bool g_compress = false;
 
 static void handleSignal(int signum) {
   g_log<<Logger::Notice<<"Got "<<strsignal(signum)<<" signal";
@@ -495,9 +496,9 @@ static bool sendPacketOverTCP(int fd, const std::vector<uint8_t>& packet)
   return true;
 }
 
-static bool addRecordToWriter(DNSPacketWriter& pw, const DNSName& zoneName, const DNSRecord& record)
+static bool addRecordToWriter(DNSPacketWriter& pw, const DNSName& zoneName, const DNSRecord& record, bool compress)
 {
-  pw.startRecord(record.d_name + zoneName, record.d_type, record.d_ttl);
+  pw.startRecord(record.d_name + zoneName, record.d_type, record.d_ttl, QClass::IN, DNSResourceRecord::ANSWER, compress);
   record.d_content->toPacket(pw);
   if (pw.size() > 65535) {
     pw.rollback();
@@ -524,7 +525,7 @@ template <typename T> static bool sendRecordsOverTCP(int fd, const MOADNSParser&
         continue;
       }
 
-      if (addRecordToWriter(pw, mdp.d_qname, *it)) {
+      if (addRecordToWriter(pw, mdp.d_qname, *it, g_compress)) {
         recordsAdded = true;
         it++;
       }
@@ -1000,6 +1001,19 @@ static bool parseAndCheckConfig(const string& configpath, YAML::Node& config) {
     retval = false;
   }
 
+  if (config["compress"]) {
+    try {
+      config["compress"].as<bool>();
+    }
+    catch (const runtime_error &e) {
+      g_log<<Logger::Error<<"Unable to read 'compress' value: "<<e.what()<<endl;
+      retval = false;
+    }
+  }
+  else {
+    config["compress"] = false;
+  }
+
   return retval;
 }
 
@@ -1074,6 +1088,13 @@ int main(int argc, char** argv) {
     }
   }
   g_log<<Logger::Notice<<"ACL set to "<<g_acl.toString()<<"."<<endl;
+
+  if (config["compress"]) {
+    g_compress = config["compress"].as<bool>();
+    if (g_compress) {
+      g_log<<Logger::Notice<<"Record compression is enabled."<<endl;
+    }
+  }
 
   FDMultiplexer* fdm = FDMultiplexer::getMultiplexerSilent();
   if (fdm == nullptr) {
