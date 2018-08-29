@@ -3,7 +3,7 @@ Changelogs for 4.1.x
 
 .. changelog::
   :version: 4.1.4
-  :released: August 30th 2018
+  :released: August 29th 2018
 
   .. change::
     :tags: Improvements
