@@ -29,7 +29,7 @@ Example
     - '192.0.2.0/24'
     - '2001:DB8:ABCD:1234::/64'
 
-  workdir: /var/lib/ixfrdist
+  work-dir: /var/lib/ixfrdist
 
   uid: ixfrdist
   gid: ixfrdist
