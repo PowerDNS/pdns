@@ -70,6 +70,14 @@ paths:
           required: true
           description: The id of the server to retrieve
           type: string
+        - name: zone
+          in: query
+          required: false
+          type: string
+          description: |
+            When set to the name of a zone, only this zone is returned.
+            If no zone with that name exists, the response is an empty array.
+            This can e.g. be used to check if a zone exists in the database without having to guess/encode the zone's id or to check if a zone exists.
       responses:
         '200':
           description: An array of Zones
