@@ -99,7 +99,7 @@ URL Endpoints
 
   :query command: one of ``stats``, ``dynblocklist`` or ``ebpfblocklist``
 
-.. http:get:: /prometheus
+.. http:get:: /metrics
 
   Get statistics from dnsdist in `Prometheus <https://prometheus.io>`_ format.
 
@@ -107,7 +107,7 @@ URL Endpoints
 
    .. sourcecode:: http
 
-      GET /prometheus
+      GET /metrics
 
   **Example response**:
    .. sourcecode:: http
@@ -271,7 +271,7 @@ URL Endpoints
       job_name: dnsdist
       scrape_interval: 10s
       scrape_timeout: 2s
-      metrics_path: /prometheus
+      metrics_path: /metrics
       basic_auth:
         username: dontcare
         password: yoursecret

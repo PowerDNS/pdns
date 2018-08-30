@@ -128,7 +128,7 @@ static bool isAnAPIRequestAllowedWithWebAuth(const YaHTTP::Request& req)
 
 static bool isAStatsRequest(const YaHTTP::Request& req)
 {
-  return req.url.path == "/jsonstat" || req.url.path == "/prometheus";
+  return req.url.path == "/jsonstat" || req.url.path == "/metrics";
 }
 
 static bool compareAuthorization(const YaHTTP::Request& req, const string &expected_password, const string& expectedApiKey)
@@ -386,70 +386,98 @@ static void connectionThread(int sock, ComboAddress remote, string password, str
         resp.status=404;
       }
     }
-    else if(req.url.path=="/prometheus") {
+    else if (req.url.path == "/metrics") {
         handleCORS(req, resp);
-        resp.status=200;
+        resp.status = 200;
 
-        ostringstream str;
-        for(const auto& e : g_stats.entries) {
-          string metricName = "dnsdist_main_" + std::get<0>(e);
-          boost::replace_all(metricName, "-", "_");
+        std::ostringstream output;
+        for (const auto& e : g_stats.entries) {
+          std::string metricName = std::get<0>(e);
+
+          // Prometheus suggest using '_' instead of '-'
+          std::string prometheusMetricName = "dnsdist_main_" + boost::replace_all_copy(metricName, "-", "_");
+
+          MetricDefinition metricDetails; 
+
+          if (!g_metricDefinitions.getMetricDetails(metricName, metricDetails)) {
+              warnlog("Do not have metric details for %s", metricName);
+              continue;
+          }
 
           // for these we have the help and types encoded in the sources:
-          str<<"# HELP "<<metricName<<' '<< std::get<3>(e)<<"\n";
-          str<<"# TYPE "<<metricName<<' '<< std::get<2>(e)<<"\n";
-          str<<metricName<<' ';
-          if(const auto& val = boost::get<DNSDistStats::stat_t*>(&std::get<1>(e)))
-            str<<(*val)->load();
+          output << "# HELP " << prometheusMetricName << " " << metricDetails.description    << "\n";
+          output << "# TYPE " << prometheusMetricName << " " << metricDetails.prometheusType << "\n";
+          output << prometheusMetricName << " ";
+
+          if (const auto& val = boost::get<DNSDistStats::stat_t*>(&std::get<1>(e)))
+            output << (*val)->load();
           else if (const auto& dval = boost::get<double*>(&std::get<1>(e)))
-            str<<**dval;
+            output << **dval;
           else
-            str<<(*boost::get<DNSDistStats::statfunction_t>(&std::get<1>(e)))(std::get<0>(e));
-          str<<"\n";
+            output << (*boost::get<DNSDistStats::statfunction_t>(&std::get<1>(e)))(std::get<0>(e));
+          
+          output << "\n";
         }
+
         const auto states = g_dstates.getCopy();
         const string statesbase = "dnsdist_main_servers_";
-        for(const auto& state : states) {
-          string serverName = state->name.empty() ? (state->remote.toString() + ":" + std::to_string(state->remote.getPort())) : state->getName();
+        
+        for (const auto& state : states) {
+          string serverName;
+           
+          if (state->name.empty())
+              serverName = state->remote.toString() + ":" + std::to_string(state->remote.getPort());
+          else
+              serverName = state->getName();
+
           boost::replace_all(serverName, ".", "_");
+
           const string label = "{server=\"" + serverName + "\"}";
-          str<<statesbase<<"queries"<<label<<' '<< state->queries.load() <<"\n";
-          str<<statesbase<<"drops"<<label<<' '<< state->reuseds.load() << "\n";
-          str<<statesbase<<"latency"<<label<<' '<< state->latencyUsec/1000.0 << "\n";
-          str<<statesbase<<"senderrors"<<label<<' '<< state->sendErrors.load() << "\n";
-          str<<statesbase<<"outstanding"<<label<<' '<< state->outstanding.load() << "\n";
+          output << statesbase << "queries"     << label << " " << state->queries.load()     << "\n";
+          output << statesbase << "drops"       << label << " " << state->reuseds.load()     << "\n";
+          output << statesbase << "latency"     << label << " " << state->latencyUsec/1000.0 << "\n";
+          output << statesbase << "senderrors"  << label << " " << state->sendErrors.load()  << "\n";
+          output << statesbase << "outstanding" << label << " " << state->outstanding.load() << "\n";
         }
-        for(const auto& front : g_frontends) {
+
+        for (const auto& front : g_frontends) {
           if (front->udpFD == -1 && front->tcpFD == -1)
             continue;
 
           string frontName = front->local.toString() + ":" + std::to_string(front->local.getPort());
           boost::replace_all(frontName, ".", "_");
           string proto = (front->udpFD >= 0 ? "udp" : "tcp");
-          str<<"dnsdist_main_frontend_queries{frontend=\""<<frontName<<"\",proto=\""<<proto<<"\"} "<< front->queries.load() << "\n";
+
+          output << "dnsdist_main_frontend_queries{frontend=\"" << frontName << "\",proto=\"" << proto
+              << "\"} " << front->queries.load() << "\n";
         }
+
         const auto localPools = g_pools.getCopy();
         const string cachebase = "dnsdist_pool_";
+        
         for (const auto& entry : localPools) {
           string poolName = entry.first;
           boost::replace_all(poolName, ".", "_");
+          
           if (poolName.empty()) {
             poolName = "_default_";
           }
           const string label = "{pool=\"" + poolName + "\"}";
           const std::shared_ptr<ServerPool> pool = entry.second;
-          str<<"dnsdist_main_pools_servers"<<label<< ' ' << pool->servers.size() <<"\n";
+          output << "dnsdist_main_pools_servers" << label << " " << pool->countServers(false) << "\n";
+
           if (pool->packetCache != nullptr) {
             const auto& cache = pool->packetCache;
-            str<<cachebase<<"cache_size"<<label << ' ' << cache->getMaxEntries() << "\n";
-            str<<cachebase<<"cache_entries"<<label << ' ' << cache->getEntriesCount() << "\n";
-            str<<cachebase<<"cache_hits"<<label << ' ' << cache->getHits() << "\n";
-            str<<cachebase<<"cache_misses"<<label << ' ' << cache->getMisses() << "\n";
-            str<<cachebase<<"cache_deferred_inserts"<<label << ' ' << cache->getDeferredInserts() << "\n";
-            str<<cachebase<<"cache_deferred_lookups"<<label << ' ' << cache->getDeferredLookups() << "\n";
-            str<<cachebase<<"cache_lookup_collisions"<<label << ' ' << cache->getLookupCollisions() << "\n";
-            str<<cachebase<<"cache_insert_collisions"<<label << ' ' << cache->getInsertCollisions() << "\n";
-            str<<cachebase<<"cache_ttl_too_shorts"<<label << ' ' << cache->getTTLTooShorts() << "\n";
+
+            output << cachebase << "cache_size"              <<label << " " << cache->getMaxEntries()       << "\n";
+            output << cachebase << "cache_entries"           <<label << " " << cache->getEntriesCount()     << "\n";
+            output << cachebase << "cache_hits"              <<label << " " << cache->getHits()             << "\n";
+            output << cachebase << "cache_misses"            <<label << " " << cache->getMisses()           << "\n";
+            output << cachebase << "cache_deferred_inserts"  <<label << " " << cache->getDeferredInserts()  << "\n";
+            output << cachebase << "cache_deferred_lookups"  <<label << " " << cache->getDeferredLookups()  << "\n";
+            output << cachebase << "cache_lookup_collisions" <<label << " " << cache->getLookupCollisions() << "\n";
+            output << cachebase << "cache_insert_collisions" <<label << " " << cache->getInsertCollisions() << "\n";
+            output << cachebase << "cache_ttl_too_shorts"    <<label << " " << cache->getTTLTooShorts()     << "\n";
           }
         }
 
@@ -457,15 +485,18 @@ static void connectionThread(int sock, ComboAddress remote, string password, str
           WriteLock wl(&g_qcount.queryLock);
           std::string qname;
           const string qnamebase = "dnsdist_querycount_queries";
+
           for(auto &record: g_qcount.records) {
             qname = record.first;
             boost::replace_all(qname, ".", "_");
-	    const string label = "{qname=\"" + qname + "\"}";
-            str<<qnamebase<<label<<' '<<record.second<<"\n";
+	    
+            const std::string label = "{qname=\"" + qname + "\"}";
+            output << qnamebase << label << " " << record.second << "\n";
           }
           g_qcount.records.clear();
         }
-        resp.body=str.str();
+
+        resp.body = output.str();
         resp.headers["Content-Type"] = "text/plain";
     }
 
