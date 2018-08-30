@@ -1073,6 +1073,18 @@ vector<pair<DNSName,uint16_t> >* pleaseGetBogusQueryRing()
   return ret;
 }
 
+vector<pair<DNSName,uint16_t> >* pleaseGetRPZQueryRing()
+{
+  typedef pair<DNSName,uint16_t> query_t;
+  vector<query_t>* ret = new vector<query_t>();
+  if(!t_rpzqueryring)
+    return ret;
+  ret->reserve(t_rpzqueryring->size());
+  for(const query_t& q :  *t_rpzqueryring) {
+    ret->push_back(q);
+  }
+  return ret;
+}
 
 
 typedef boost::function<vector<ComboAddress>*()> pleaseremotefunc_t;
@@ -1110,6 +1122,18 @@ vector<ComboAddress>* pleaseGetBogusRemotes()
     return ret;
   ret->reserve(t_bogusremotes->size());
   for(const ComboAddress& ca :  *t_bogusremotes) {
+    ret->push_back(ca);
+  }
+  return ret;
+}
+
+vector<ComboAddress>* pleaseGetRPZRemotes()
+{
+  vector<ComboAddress>* ret = new vector<ComboAddress>();
+  if(!t_rpzremotes)
+    return ret;
+  ret->reserve(t_rpzremotes->size());
+  for(const ComboAddress& ca :  *t_rpzremotes) {
     ret->push_back(ca);
   }
   return ret;
@@ -1322,6 +1346,9 @@ string RecursorControlParser::getAnswer(const string& question, RecursorControlP
 "top-pub-bogus-queries            show top queries validating as bogus grouped by public suffix list\n"
 "top-servfail-remotes             show top remotes receiving servfail answers\n"
 "top-bogus-remotes                show top remotes receiving bogus answers\n"
+"top-rpz-remotes                  show top remotes receiving RPZ matches\n"
+"top-rpz-queries                  show top queries matching RPZ policy\n"
+"top-pub-rpz-queries              show top queries matching RPZ policy grouped by public suffix list\n"
 "unload-lua-script                unload Lua script\n"
 "version                          return Recursor version number\n"
 "wipe-cache domain0 [domain1] ..  wipe domain data from cache\n";
@@ -1446,12 +1473,21 @@ string RecursorControlParser::getAnswer(const string& question, RecursorControlP
   if(cmd=="top-pub-bogus-queries")
     return doGenericTopQueries(pleaseGetBogusQueryRing, getRegisteredName);
 
+  if(cmd=="top-rpz-queries")
+    return doGenericTopQueries(pleaseGetRPZQueryRing);
+
+  if(cmd=="top-pub-rpz-queries")
+    return doGenericTopQueries(pleaseGetRPZQueryRing, getRegisteredName);
+
 
   if(cmd=="top-servfail-remotes")
     return doGenericTopRemotes(pleaseGetServfailRemotes);
 
   if(cmd=="top-bogus-remotes")
     return doGenericTopRemotes(pleaseGetBogusRemotes);
+
+  if(cmd=="top-rpz-remotes")
+    return doGenericTopRemotes(pleaseGetRPZRemotes);
 
   if(cmd=="top-largeanswer-remotes")
     return doGenericTopRemotes(pleaseGetLargeAnswerRemotes);
