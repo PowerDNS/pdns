@@ -8,6 +8,7 @@ env:
   - PDNS_BUILD_PRODUCT=auth
   - PDNS_BUILD_PRODUCT=recursor
   - PDNS_BUILD_PRODUCT=dnsdist
+  - PDNS_BUILD_PRODUCT=ixfrdist
 
 before_script:
   - git describe --always --dirty=+
