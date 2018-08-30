@@ -13,7 +13,7 @@ Changelogs for 4.1.x
 
   .. change::
     :tags: Improvements
-    :pullreq: 6842, 6844, 6848
+    :pullreq: 6842, 6844, 6648
     :tickets: 6632
 
     Make the gmysql backend future-proof. (Chris Hofstaedtler)
