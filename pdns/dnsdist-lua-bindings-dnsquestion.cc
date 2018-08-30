@@ -63,6 +63,12 @@ void setupLuaBindingsDNSQuestion()
 
       return *dq.ednsOptions;
     });
+  g_lua.registerFunction<vector<uint8_t>(DNSQuestion::*)(void)>("getTrailingData", [](const DNSQuestion& dq) {
+      const uint8_t* message = reinterpret_cast<const uint8_t*>(dq.dh);
+      const uint16_t length = getDNSPacketLength(reinterpret_cast<const char*>(message), dq.len);
+      vector<uint8_t> tail(message + length, message + dq.len);
+      return tail;
+    });
 
   g_lua.registerFunction<void(DNSQuestion::*)(std::string)>("sendTrap", [](const DNSQuestion& dq, boost::optional<std::string> reason) {
 #ifdef HAVE_NET_SNMP
