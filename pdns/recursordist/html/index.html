@@ -58,6 +58,7 @@
             <div class="stats-table" id="queryring"></div>
             <div class="stats-table" id="servfailqueryring"></div>
             <div class="stats-table" id="bogusqueryring"></div>
+            <div class="stats-table" id="rpzqueryring"></div>
         </div>
 
         <div class="table-container">
@@ -67,6 +68,7 @@
             <div class="stats-table" id="servfailremotering"></div>
             <div class="stats-table" id="bogusremotering"></div>
             <div class="stats-table" id="timeouts"></div>
+            <div class="stats-table" id="rpzremotering"></div>
         </div>
     </div>
 
@@ -134,6 +136,23 @@
     </table>
 </script>
 
+<script id="rpzqueryring-template" type="text/x-handlebars-template">
+    <table class="three-col">
+        <tr>
+            <th>Number</th>
+            <th>RPZ query</th>
+            <th>Type</th>
+        </tr>
+        {{#each rows}}
+        <tr>
+            <td>{{0}}</td>
+            <td>{{1}}</td>
+            <td>{{2}}</td>
+        </tr>
+        {{/each}}
+    </table>
+</script>
+
 <script id="remotering-template" type="text/x-handlebars-template">
     <table class="two-col">
         <tr>
@@ -179,11 +198,19 @@
     </table>
 </script>
 
+<<<<<<< HEAD
 <script id="timeouts-template" type="text/x-handlebars-template">
     <table class="two-col">
         <tr>
             <th>Number</th>
             <th>Downstream timeouts</th>
+=======
+<script id="rpzremotering-template" type="text/x-handlebars-template">
+    <table class="two-col">
+        <tr>
+            <th>Number</th>
+            <th>RPZ remote</th>
+>>>>>>> We can easily produce some RPZ ring stats which might be helpful for people who aren't doing full blown logging (eg protobuf).
         </tr>
         {{#each rows}}
         <tr>

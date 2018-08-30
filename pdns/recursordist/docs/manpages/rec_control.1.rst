@@ -217,6 +217,15 @@ top-pub-queries
     Shows the top-20 queries grouped by public suffix list. Statistics are over
     the last 'stats-ringbuffer-entries' queries.
 
+top-rpz-queries
+    Shows the top-20 queries which matched a RPZ policy. Statistics are over
+    the last 'stats-ringbuffer-entries' queries.
+
+top-pub-rpz-queries
+    Shows the top-20 queries which matched a RPZ policy grouped by public
+    suffix list. Statistics are over the last 'stats-ringbuffer-entries'
+    queries.
+
 top-largeanswer-remotes
     Shows the top-20 remote hosts causing large answers. Statistics are over
     the last 'stats-ringbuffer-entries' queries.
@@ -224,6 +233,10 @@ top-largeanswer-remotes
 top-remotes
     Shows the top-20 most active remote hosts. Statistics are over the last
     'stats-ringbuffer-entries' queries.
+
+top-rpz-remotes
+    Show the top-20 hosts whoses queries matched a RPZ policy. Statistics are
+    over the last 'stats-ringbuffer-entries' queries.
 
 top-servfail-queries
     Shows the top-20 queries causing servfail responses. Statistics are over

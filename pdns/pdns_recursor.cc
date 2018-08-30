@@ -116,8 +116,8 @@ thread_local std::unique_ptr<MT_t> MT; // the big MTasker
 thread_local std::unique_ptr<MemRecursorCache> t_RC;
 thread_local std::unique_ptr<RecursorPacketCache> t_packetCache;
 thread_local FDMultiplexer* t_fdm{nullptr};
-thread_local std::unique_ptr<addrringbuf_t> t_remotes, t_servfailremotes, t_largeanswerremotes, t_bogusremotes;
-thread_local std::unique_ptr<boost::circular_buffer<pair<DNSName, uint16_t> > > t_queryring, t_servfailqueryring, t_bogusqueryring;
+thread_local std::unique_ptr<addrringbuf_t> t_remotes, t_servfailremotes, t_largeanswerremotes, t_bogusremotes, t_rpzremotes;
+thread_local std::unique_ptr<boost::circular_buffer<pair<DNSName, uint16_t> > > t_queryring, t_servfailqueryring, t_bogusqueryring, t_rpzqueryring;
 thread_local std::shared_ptr<NetmaskGroup> t_allowFrom;
 #ifdef HAVE_PROTOBUF
 thread_local std::unique_ptr<boost::uuids::random_generator> t_uuidGenerator;
@@ -1118,6 +1118,13 @@ static void startDoResolve(void *p)
     // Check if the query has a policy attached to it
     if (wantsRPZ) {
       appliedPolicy = luaconfsLocal->dfe.getQueryPolicy(dc->d_mdp.d_qname, dc->d_source, sr.d_discardedPolicies);
+
+      if(appliedPolicy.d_kind != DNSFilterEngine::PolicyKind::NoAction) {
+        if(t_rpzremotes)
+          t_rpzremotes->push_back(dc->d_source);
+        if(t_rpzqueryring)
+          t_rpzqueryring->push_back(make_pair(dc->d_mdp.d_qname, dc->d_mdp.d_qtype));
+      }
     }
 
     // if there is a RecursorLua active, and it 'took' the query in preResolve, we don't launch beginResolve
@@ -3757,13 +3764,16 @@ try
     t_largeanswerremotes->set_capacity(ringsize);
     t_timeouts = std::unique_ptr<addrringbuf_t>(new addrringbuf_t());
     t_timeouts->set_capacity(ringsize);
-
+    t_rpzremotes = std::unique_ptr<addrringbuf_t>(new addrringbuf_t());
+    t_rpzremotes->set_capacity(ringsize);
     t_queryring = std::unique_ptr<boost::circular_buffer<pair<DNSName, uint16_t> > >(new boost::circular_buffer<pair<DNSName, uint16_t> >());
     t_queryring->set_capacity(ringsize);
     t_servfailqueryring = std::unique_ptr<boost::circular_buffer<pair<DNSName, uint16_t> > >(new boost::circular_buffer<pair<DNSName, uint16_t> >());
     t_servfailqueryring->set_capacity(ringsize);
     t_bogusqueryring = std::unique_ptr<boost::circular_buffer<pair<DNSName, uint16_t> > >(new boost::circular_buffer<pair<DNSName, uint16_t> >());
     t_bogusqueryring->set_capacity(ringsize);
+    t_rpzqueryring = std::unique_ptr<boost::circular_buffer<pair<DNSName, uint16_t> > >(new boost::circular_buffer<pair<DNSName, uint16_t> >());
+    t_rpzqueryring->set_capacity(ringsize);
   }
 
   MT=std::unique_ptr<MTasker<PacketID,string> >(new MTasker<PacketID,string>(::arg().asNum("stack-size")));

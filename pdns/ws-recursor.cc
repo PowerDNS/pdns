@@ -494,6 +494,8 @@ void RecursorWebServer::jsonstat(HttpRequest* req, HttpResponse *resp)
       queries=broadcastAccFunction<vector<query_t> >(pleaseGetBogusQueryRing);
     else if(req->getvars["name"]=="queries")
       queries=broadcastAccFunction<vector<query_t> >(pleaseGetQueryRing);
+    else if(req->getvars["name"]=="rpz-queries")
+      queries=broadcastAccFunction<vector<query_t> >(pleaseGetRPZQueryRing);
 
     typedef map<query_t,unsigned int> counts_t;
     counts_t counts;
@@ -542,6 +544,8 @@ void RecursorWebServer::jsonstat(HttpRequest* req, HttpResponse *resp)
       queries=broadcastAccFunction<vector<ComboAddress> >(pleaseGetLargeAnswerRemotes);
     else if(req->getvars["name"]=="timeouts")
       queries=broadcastAccFunction<vector<ComboAddress> >(pleaseGetTimeouts);
+    else if(req->getvars["name"]=="rpz-remotes")
+      queries=broadcastAccFunction<vector<ComboAddress> >(pleaseGetRPZRemotes);
 
     typedef map<ComboAddress,unsigned int,ComboAddress::addressOnlyLessThan> counts_t;
     counts_t counts;

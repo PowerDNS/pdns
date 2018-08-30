@@ -120,6 +120,12 @@ $(document).ready(function () {
                 render('bogusqueryring', {rows: rows});
             });
 
+        $.getJSON('jsonstat', jsonstatParams('get-query-ring', 'rpz-queries', $("#filter1").is(':checked')),
+            function (data) {
+                var rows = makeRingRows(data);
+                render('rpzqueryring', {rows: rows});
+            });
+
         $.getJSON('jsonstat', jsonstatParams('get-remote-ring', 'remotes', false),
             function (data) {
                 var rows = makeRingRows(data);
@@ -141,6 +147,10 @@ $(document).ready(function () {
             function (data) {
                 var rows = makeRingRows(data);
                 render('timeouts', {rows: rows});
+        $.getJSON('jsonstat', jsonstatParams('get-remote-ring', 'rpz-remotes', false),
+            function (data) {
+                var rows = makeRingRows(data);
+                render('rpzremotering', {rows: rows});
             });
     }
 
