@@ -490,20 +490,6 @@ static void connectionThread(int sock, ComboAddress remote, string password, str
           }
         }
 
-        {
-          ReadLock rl(&g_qcount.queryLock);
-          std::string qname;
-          const string qnamebase = "dnsdist_querycount_queries";
-
-          for(auto &record: g_qcount.records) {
-            qname = record.first;
-            boost::replace_all(qname, ".", "_");
-	    
-            const std::string label = "{qname=\"" + qname + "\"}";
-            output << qnamebase << label << " " << record.second << "\n";
-          }
-        }
-
         resp.body = output.str();
         resp.headers["Content-Type"] = "text/plain";
     }

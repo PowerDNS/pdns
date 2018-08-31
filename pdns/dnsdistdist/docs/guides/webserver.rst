@@ -255,7 +255,6 @@ URL Endpoints
       dnsdist_pool_cache_lookup_collisions{pool="_default_"} 0
       dnsdist_pool_cache_insert_collisions{pool="_default_"} 0
       dnsdist_pool_cache_ttl_too_shorts{pool="_default_"} 0
-      dnsdist_querycount_queries{qname="kernel_org_"} 1
 
   **Example prometheus configuration**:
 
