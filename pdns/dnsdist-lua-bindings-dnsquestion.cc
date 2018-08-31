@@ -144,6 +144,27 @@ void setupLuaBindingsDNSQuestion()
   g_lua.registerFunction<void(DNSResponse::*)(std::function<uint32_t(uint8_t section, uint16_t qclass, uint16_t qtype, uint32_t ttl)> editFunc)>("editTTLs", [](const DNSResponse& dr, std::function<uint32_t(uint8_t section, uint16_t qclass, uint16_t qtype, uint32_t ttl)> editFunc) {
         editDNSPacketTTL((char*) dr.dh, dr.len, editFunc);
       });
+  g_lua.registerFunction<vector<uint8_t>(DNSResponse::*)(void)>("getTrailingData", [](const DNSResponse& dq) {
+      const uint8_t* message = reinterpret_cast<const uint8_t*>(dq.dh);
+      const uint16_t length = getDNSPacketLength(reinterpret_cast<const char*>(message), dq.len);
+      vector<uint8_t> tail(message + length, message + dq.len);
+      return tail;
+    });
+  g_lua.registerFunction<bool(DNSResponse::*)(vector<pair<int, uint8_t>>)>("setTrailingData", [](DNSResponse& dq, const vector<pair<int, uint8_t>>&data) {
+      uint8_t* message = reinterpret_cast<uint8_t*>(dq.dh);
+      const uint16_t length = getDNSPacketLength(reinterpret_cast<const char*>(message), dq.len);
+      if(length + data.size() > dq.size) {
+        return false;
+      }
+
+      /* Copy data from the Lua array, whose first index is 1 instead of 0. */
+      dq.len = length + data.size();
+      uint8_t* tail = message + length - 1;
+      for(const auto& pair : data) {
+        *(tail + pair.first) = pair.second;
+      }
+      return true;
+    });
   g_lua.registerFunction<void(DNSResponse::*)(std::string)>("sendTrap", [](const DNSResponse& dr, boost::optional<std::string> reason) {
 #ifdef HAVE_NET_SNMP
       if (g_snmpAgent && g_snmpTrapsEnabled) {
