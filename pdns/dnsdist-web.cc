@@ -427,7 +427,7 @@ static void connectionThread(int sock, ComboAddress remote, string password, str
         }
 
         auto states = g_dstates.getLocal();
-        const string statesbase = "dnsdist_servers_";
+        const string statesbase = "dnsdist_server_";
         
         for (const auto& state : *states) {
           string serverName;
@@ -454,7 +454,6 @@ static void connectionThread(int sock, ComboAddress remote, string password, str
             continue;
 
           string frontName = front->local.toString() + ":" + std::to_string(front->local.getPort());
-          boost::replace_all(frontName, ".", "_");
           string proto = (front->udpFD >= 0 ? "udp" : "tcp");
 
           output << "dnsdist_frontend_queries{frontend=\"" << frontName << "\",proto=\"" << proto
@@ -466,7 +465,6 @@ static void connectionThread(int sock, ComboAddress remote, string password, str
         
         for (const auto& entry : *localPools) {
           string poolName = entry.first;
-          boost::replace_all(poolName, ".", "_");
           
           if (poolName.empty()) {
             poolName = "_default_";
