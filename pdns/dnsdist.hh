@@ -264,7 +264,7 @@ struct DNSDistStats
 
 // Keeps additional information about metrics
 struct MetricDefinition {
-  MetricDefinition(std::string description, std::string prometheusType) {
+  MetricDefinition(const std::string& description, const std::string& prometheusType) {
     this->description = description;
     this->prometheusType = prometheusType;
   }
