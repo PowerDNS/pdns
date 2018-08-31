@@ -34,6 +34,7 @@
 #include "htmlfiles.h"
 #include "base64.hh"
 #include "gettime.hh"
+#include  <boost/format.hpp>
 
 bool g_apiReadWrite{false};
 std::string g_apiConfigDirectory;
@@ -439,7 +440,9 @@ static void connectionThread(int sock, ComboAddress remote, string password, str
 
           boost::replace_all(serverName, ".", "_");
 
-          const string label = "{server=\"" + serverName + "\"}";
+          const std::string label = boost::str(boost::format("{server=\"%1%\",address=\"%2%\"}")
+            % serverName % state->remote.toStringWithPort());
+
           output << statesbase << "queries"     << label << " " << state->queries.load()     << "\n";
           output << statesbase << "drops"       << label << " " << state->reuseds.load()     << "\n";
           output << statesbase << "latency"     << label << " " << state->latencyUsec/1000.0 << "\n";
