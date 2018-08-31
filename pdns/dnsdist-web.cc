@@ -445,6 +445,8 @@ static void connectionThread(int sock, ComboAddress remote, string password, str
           output << statesbase << "latency"     << label << " " << state->latencyUsec/1000.0 << "\n";
           output << statesbase << "senderrors"  << label << " " << state->sendErrors.load()  << "\n";
           output << statesbase << "outstanding" << label << " " << state->outstanding.load() << "\n";
+          output << statesbase << "order"       << label << " " << state->order              << "\n";
+          output << statesbase << "weight"      << label << " " << state->weight             << "\n";
         }
 
         for (const auto& front : g_frontends) {
