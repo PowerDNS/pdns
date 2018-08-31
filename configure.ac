@@ -116,6 +116,7 @@ AS_IF([test "$boost_cv_lib_program_options" = "no"], [
   AC_MSG_ERROR([Boost Program Options library not found])
 ])
 PDNS_ENABLE_UNIT_TESTS
+PDNS_ENABLE_BACKEND_UNIT_TESTS
 PDNS_ENABLE_REPRODUCIBLE
 
 PDNS_WITH_SQLITE3

@@ -44,13 +44,23 @@ EXIT=0
 ./start.sh
 sleep 3
 svstat configs/*
+## prints the logs of supervised processes reported as running for less than 3 secs
+for config in configs/* ; do
+    secs=$(svstat ${config} | perl -pe 's!.* (\d+) seconds!\1!')
+    if [ -n "${secs}" ] && [ ${secs} -lt 3 ] ; then
+        echo "-----------------"
+        echo "Logs of ${config}"
+        echo "-----------------"
+        cat ${config}/logfile
+    fi
+done
 ./runtests || EXIT=1
 ./stop.sh
 sleep 3
 ./clean.sh
 
 cd ../regression-tests.recursor-dnssec
-./runtests || EXIT=1
+./runtests -e SNMP || EXIT=1
 ./printlogs.py || true
 
 exit $EXIT

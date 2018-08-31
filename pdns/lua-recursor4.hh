@@ -38,7 +38,7 @@
 #include "lua-recursor4-ffi.hh"
 
 string GenUDPQueryResponse(const ComboAddress& dest, const string& query);
-unsigned int getRecursorThreadId();
+int getRecursorThreadId();
 
 class LuaContext;
 
