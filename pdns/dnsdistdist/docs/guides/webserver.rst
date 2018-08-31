@@ -129,7 +129,7 @@ URL Endpoints
       dnsdist_servfail_responses 0
       # HELP dnsdist_queries Number of received queries
       # TYPE dnsdist_queries counter
-      dnsdist_queries 1
+      dnsdist_queries 0
       # HELP dnsdist_acl_drops Number of packets dropped because of the ACL
       # TYPE dnsdist_acl_drops counter
       dnsdist_acl_drops 0
@@ -159,7 +159,7 @@ URL Endpoints
       dnsdist_trunc_failures 0
       # HELP dnsdist_no_policy Number of queries dropped because no server was available
       # TYPE dnsdist_no_policy counter
-      dnsdist_no_policy 1
+      dnsdist_no_policy 0
       # HELP dnsdist_latency0_1 Number of queries answered in less than 1ms
       # TYPE dnsdist_latency0_1 counter
       dnsdist_latency0_1 0
@@ -192,10 +192,10 @@ URL Endpoints
       dnsdist_latency_avg1000000 0
       # HELP dnsdist_uptime Uptime of the dnsdist process in seconds
       # TYPE dnsdist_uptime gauge
-      dnsdist_uptime 15
+      dnsdist_uptime 39
       # HELP dnsdist_real_memory_usage Current memory usage in bytes
       # TYPE dnsdist_real_memory_usage gauge
-      dnsdist_real_memory_usage 10268672
+      dnsdist_real_memory_usage 10276864
       # HELP dnsdist_noncompliant_queries Number of queries dropped as non-compliant
       # TYPE dnsdist_noncompliant_queries counter
       dnsdist_noncompliant_queries 0
@@ -204,7 +204,7 @@ URL Endpoints
       dnsdist_noncompliant_responses 0
       # HELP dnsdist_rdqueries Number of received queries with the recursion desired bit set
       # TYPE dnsdist_rdqueries counter
-      dnsdist_rdqueries 1
+      dnsdist_rdqueries 0
       # HELP dnsdist_empty_queries Number of empty queries received from clients
       # TYPE dnsdist_empty_queries counter
       dnsdist_empty_queries 0
@@ -213,13 +213,13 @@ URL Endpoints
       dnsdist_cache_hits 0
       # HELP dnsdist_cache_misses Number of times an answer not found in the cache
       # TYPE dnsdist_cache_misses counter
-      dnsdist_cache_misses 1
+      dnsdist_cache_misses 0
       # HELP dnsdist_cpu_user_msec Milliseconds spent by dnsdist in the user state
       # TYPE dnsdist_cpu_user_msec counter
-      dnsdist_cpu_user_msec 8
+      dnsdist_cpu_user_msec 28
       # HELP dnsdist_cpu_sys_msec Milliseconds spent by dnsdist in the system state
       # TYPE dnsdist_cpu_sys_msec counter
-      dnsdist_cpu_sys_msec 20
+      dnsdist_cpu_sys_msec 32
       # HELP dnsdist_fd_usage Number of currently used file descriptors
       # TYPE dnsdist_fd_usage gauge
       dnsdist_fd_usage 17
@@ -229,27 +229,27 @@ URL Endpoints
       # HELP dnsdist_dyn_block_nmg_size Number of dynamic blocks entries
       # TYPE dnsdist_dyn_block_nmg_size gauge
       dnsdist_dyn_block_nmg_size 0
-      dnsdist_servers_queries{server="1_1_1_1"} 0
-      dnsdist_servers_drops{server="1_1_1_1"} 0
-      dnsdist_servers_latency{server="1_1_1_1"} 0
-      dnsdist_servers_senderrors{server="1_1_1_1"} 0
-      dnsdist_servers_outstanding{server="1_1_1_1"} 0
-      dnsdist_servers_order{server="1_1_1_1"} 1
-      dnsdist_servers_weight{server="1_1_1_1"} 1
-      dnsdist_servers_queries{server="1_0_0_1"} 0
-      dnsdist_servers_drops{server="1_0_0_1"} 0
-      dnsdist_servers_latency{server="1_0_0_1"} 0
-      dnsdist_servers_senderrors{server="1_0_0_1"} 0
-      dnsdist_servers_outstanding{server="1_0_0_1"} 0
-      dnsdist_servers_order{server="1_0_0_1"} 1
-      dnsdist_servers_weight{server="1_0_0_1"} 2
-      dnsdist_frontend_queries{frontend="127_0_0_1:1153",proto="udp"} 0
-      dnsdist_frontend_queries{frontend="127_0_0_1:1153",proto="tcp"} 1
-      dnsdist_pools_servers{pool="_default_"} 2
+      dnsdist_server_queries{server="1_1_1_1",address="1.1.1.1:53"} 0
+      dnsdist_server_drops{server="1_1_1_1",address="1.1.1.1:53"} 0
+      dnsdist_server_latency{server="1_1_1_1",address="1.1.1.1:53"} 0
+      dnsdist_server_senderrors{server="1_1_1_1",address="1.1.1.1:53"} 0
+      dnsdist_server_outstanding{server="1_1_1_1",address="1.1.1.1:53"} 0
+      dnsdist_server_order{server="1_1_1_1",address="1.1.1.1:53"} 1
+      dnsdist_server_weight{server="1_1_1_1",address="1.1.1.1:53"} 1
+      dnsdist_server_queries{server="1_0_0_1",address="1.0.0.1:53"} 0
+      dnsdist_server_drops{server="1_0_0_1",address="1.0.0.1:53"} 0
+      dnsdist_server_latency{server="1_0_0_1",address="1.0.0.1:53"} 0
+      dnsdist_server_senderrors{server="1_0_0_1",address="1.0.0.1:53"} 0
+      dnsdist_server_outstanding{server="1_0_0_1",address="1.0.0.1:53"} 0
+      dnsdist_server_order{server="1_0_0_1",address="1.0.0.1:53"} 1
+      dnsdist_server_weight{server="1_0_0_1",address="1.0.0.1:53"} 2
+      dnsdist_frontend_queries{frontend="127.0.0.1:1153",proto="udp"} 0
+      dnsdist_frontend_queries{frontend="127.0.0.1:1153",proto="tcp"} 0
+      dnsdist_pool_servers{pool="_default_"} 2
       dnsdist_pool_cache_size{pool="_default_"} 200000
       dnsdist_pool_cache_entries{pool="_default_"} 0
       dnsdist_pool_cache_hits{pool="_default_"} 0
-      dnsdist_pool_cache_misses{pool="_default_"} 1
+      dnsdist_pool_cache_misses{pool="_default_"} 0
       dnsdist_pool_cache_deferred_inserts{pool="_default_"} 0
       dnsdist_pool_cache_deferred_lookups{pool="_default_"} 0
       dnsdist_pool_cache_lookup_collisions{pool="_default_"} 0
