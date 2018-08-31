@@ -262,11 +262,17 @@ struct DNSDistStats
   };
 };
 
+// Metric types for Prometheus
+enum class PrometheusMetricType: int {
+    counter = 1,
+    gauge = 2
+};
+
 // Keeps additional information about metrics
 struct MetricDefinition {
-  MetricDefinition(const std::string& description, const std::string& prometheusType) {
-    this->description = description;
+  MetricDefinition(PrometheusMetricType prometheusType, const std::string& description) {
     this->prometheusType = prometheusType;
+    this->description = description;
   }
  
   MetricDefinition() = default;
@@ -274,7 +280,7 @@ struct MetricDefinition {
   // Metric description
   std::string description;
   // Metric type for Prometheus
-  std::string prometheusType;
+  PrometheusMetricType prometheusType;
 };
 
 struct MetricDefinitionStorage {
@@ -290,43 +296,59 @@ struct MetricDefinitionStorage {
     return true;
   };
 
+  // Return string representation of Prometheus metric type
+  std::string getPrometheusStringMetricType(PrometheusMetricType metricType) {
+    switch (metricType) { 
+      case PrometheusMetricType::counter:
+        return "counter";
+        break;
+      case PrometheusMetricType::gauge:
+        return "gauge";
+        break;
+      default:
+        return "";
+        break;
+    }
+  };
+
   std::map<std::string, MetricDefinition> metrics = {
-    { "responses",              MetricDefinition("counter", "Number of responses received from backends") },
-    { "servfail-responses",     MetricDefinition("counter", "Number of SERVFAIL answers received from backends") },
-    { "queries",                MetricDefinition("counter", "Number of received queries")},
-    { "acl-drops",              MetricDefinition("counter", "Number of packets dropped because of the ACL")},
-    { "rule-drop",              MetricDefinition("counter", "Number of queries dropped because of a rule")},
-    { "rule-nxdomain",          MetricDefinition("counter", "Number of NXDomain answers returned because of a rule")},
-    { "rule-refused",           MetricDefinition("counter", "Number of Refused answers returned because of a rule")},
-    { "rule-servfail",          MetricDefinition("counter", "Number of SERVFAIL answers received because of a rule")},
-    { "self-answered",          MetricDefinition("counter", "Number of self-answered responses")},
-    { "downstream-timeouts",    MetricDefinition("counter", "Number of queries not answered in time by a backend")},
-    { "downstream-send-errors", MetricDefinition("counter", "Number of errors when sending a query to a backend")},
-    { "trunc-failures",         MetricDefinition("counter", "Number of errors encountered while truncating an answer")},
-    { "no-policy",              MetricDefinition("counter", "Number of queries dropped because no server was available")},
-    { "latency0-1",             MetricDefinition("counter", "Number of queries answered in less than 1ms")},
-    { "latency1-10",            MetricDefinition("counter", "Number of queries answered in 1-10 ms")},
-    { "latency10-50",           MetricDefinition("counter", "Number of queries answered in 10-50 ms")},
-    { "latency50-100",          MetricDefinition("counter", "Number of queries answered in 50-100 ms")},
-    { "latency100-1000",        MetricDefinition("counter", "Number of queries answered in 100-1000 ms")},
-    { "latency-slow",           MetricDefinition("counter", "Number of queries answered in more than 1 second")},
-    { "latency-avg100",         MetricDefinition("gauge",   "Average response latency in microseconds of the last 100 packets")},
-    { "latency-avg1000",        MetricDefinition("gauge",   "Average response latency in microseconds of the last 1000 packets")},
-    { "latency-avg10000",       MetricDefinition("gauge",   "Average response latency in microseconds of the last 10000 packets")},
-    { "latency-avg1000000",     MetricDefinition("gauge",   "Average response latency in microseconds of the last 1000000 packets")},
-    { "uptime",                 MetricDefinition("gauge",   "Uptime of the dnsdist process in seconds")},
-    { "real-memory-usage",      MetricDefinition("gauge",   "Current memory usage in bytes")},
-    { "noncompliant-queries",   MetricDefinition("counter", "Number of queries dropped as non-compliant")},
-    { "noncompliant-responses", MetricDefinition("counter", "Number of answers from a backend dropped as non-compliant")},
-    { "rdqueries",              MetricDefinition("counter", "Number of received queries with the recursion desired bit set")},
-    { "empty-queries",          MetricDefinition("counter", "Number of empty queries received from clients")},
-    { "cache-hits",             MetricDefinition("counter", "Number of times an answer was retrieved from cache")},
-    { "cache-misses",           MetricDefinition("counter", "Number of times an answer not found in the cache")},
-    { "cpu-user-msec",          MetricDefinition("counter", "Milliseconds spent by dnsdist in the user state")},
-    { "cpu-sys-msec",           MetricDefinition("counter", "Milliseconds spent by dnsdist in the system state")},
-    { "fd-usage",               MetricDefinition("gauge",   "Number of currently used file descriptors")},
-    { "dyn-blocked",            MetricDefinition("counter", "Number of queries dropped because of a dynamic block")},
-    { "dyn-block-nmg-size",     MetricDefinition("gauge",   "Number of dynamic blocks entries") },
+    { "responses",              MetricDefinition(PrometheusMetricType::counter, "Number of responses received from backends") },
+    { "servfail-responses",     MetricDefinition(PrometheusMetricType::counter, "Number of SERVFAIL answers received from backends") },
+    { "queries",                MetricDefinition(PrometheusMetricType::counter, "Number of received queries")},
+    { "acl-drops",              MetricDefinition(PrometheusMetricType::counter, "Number of packets dropped because of the ACL")},
+    { "rule-drop",              MetricDefinition(PrometheusMetricType::counter, "Number of queries dropped because of a rule")},
+    { "rule-nxdomain",          MetricDefinition(PrometheusMetricType::counter, "Number of NXDomain answers returned because of a rule")},
+    { "rule-refused",           MetricDefinition(PrometheusMetricType::counter, "Number of Refused answers returned because of a rule")},
+    { "rule-servfail",          MetricDefinition(PrometheusMetricType::counter, "Number of SERVFAIL answers received because of a rule")},
+    { "self-answered",          MetricDefinition(PrometheusMetricType::counter, "Number of self-answered responses")},
+    { "downstream-timeouts",    MetricDefinition(PrometheusMetricType::counter, "Number of queries not answered in time by a backend")},
+    { "downstream-send-errors", MetricDefinition(PrometheusMetricType::counter, "Number of errors when sending a query to a backend")},
+    { "trunc-failures",         MetricDefinition(PrometheusMetricType::counter, "Number of errors encountered while truncating an answer")},
+    { "no-policy",              MetricDefinition(PrometheusMetricType::counter, "Number of queries dropped because no server was available")},
+    { "latency0-1",             MetricDefinition(PrometheusMetricType::counter, "Number of queries answered in less than 1ms")},
+    { "latency1-10",            MetricDefinition(PrometheusMetricType::counter, "Number of queries answered in 1-10 ms")},
+    { "latency10-50",           MetricDefinition(PrometheusMetricType::counter, "Number of queries answered in 10-50 ms")},
+    { "latency50-100",          MetricDefinition(PrometheusMetricType::counter, "Number of queries answered in 50-100 ms")},
+    { "latency100-1000",        MetricDefinition(PrometheusMetricType::counter, "Number of queries answered in 100-1000 ms")},
+    { "latency-slow",           MetricDefinition(PrometheusMetricType::counter, "Number of queries answered in more than 1 second")},
+    { "latency-avg100",         MetricDefinition(PrometheusMetricType::gauge,   "Average response latency in microseconds of the last 100 packets")},
+    { "latency-avg1000",        MetricDefinition(PrometheusMetricType::gauge,   "Average response latency in microseconds of the last 1000 packets")},
+    { "latency-avg10000",       MetricDefinition(PrometheusMetricType::gauge,   "Average response latency in microseconds of the last 10000 packets")},
+    { "latency-avg1000000",     MetricDefinition(PrometheusMetricType::gauge,   "Average response latency in microseconds of the last 1000000 packets")},
+    { "uptime",                 MetricDefinition(PrometheusMetricType::gauge,   "Uptime of the dnsdist process in seconds")},
+    { "real-memory-usage",      MetricDefinition(PrometheusMetricType::gauge,   "Current memory usage in bytes")},
+    { "noncompliant-queries",   MetricDefinition(PrometheusMetricType::counter, "Number of queries dropped as non-compliant")},
+    { "noncompliant-responses", MetricDefinition(PrometheusMetricType::counter, "Number of answers from a backend dropped as non-compliant")},
+    { "rdqueries",              MetricDefinition(PrometheusMetricType::counter, "Number of received queries with the recursion desired bit set")},
+    { "empty-queries",          MetricDefinition(PrometheusMetricType::counter, "Number of empty queries received from clients")},
+    { "cache-hits",             MetricDefinition(PrometheusMetricType::counter, "Number of times an answer was retrieved from cache")},
+    { "cache-misses",           MetricDefinition(PrometheusMetricType::counter, "Number of times an answer not found in the cache")},
+    { "cpu-user-msec",          MetricDefinition(PrometheusMetricType::counter, "Milliseconds spent by dnsdist in the user state")},
+    { "cpu-sys-msec",           MetricDefinition(PrometheusMetricType::counter, "Milliseconds spent by dnsdist in the system state")},
+    { "fd-usage",               MetricDefinition(PrometheusMetricType::gauge,   "Number of currently used file descriptors")},
+    { "dyn-blocked",            MetricDefinition(PrometheusMetricType::counter
+            , "Number of queries dropped because of a dynamic block")},
+    { "dyn-block-nmg-size",     MetricDefinition(PrometheusMetricType::gauge,   "Number of dynamic blocks entries") },
   };
 };
 

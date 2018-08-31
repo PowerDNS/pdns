@@ -404,9 +404,16 @@ static void connectionThread(int sock, ComboAddress remote, string password, str
               continue;
           }
 
+          std::string prometheusTypeName = g_metricDefinitions.getPrometheusStringMetricType(metricDetails.prometheusType);
+
+          if (prometheusTypeName == "") {
+              vinfolog("Unknown Prometheus type for %s", metricName);
+              continue;
+          }
+
           // for these we have the help and types encoded in the sources:
           output << "# HELP " << prometheusMetricName << " " << metricDetails.description    << "\n";
-          output << "# TYPE " << prometheusMetricName << " " << metricDetails.prometheusType << "\n";
+          output << "# TYPE " << prometheusMetricName << " " << prometheusTypeName << "\n";
           output << prometheusMetricName << " ";
 
           if (const auto& val = boost::get<DNSDistStats::stat_t*>(&std::get<1>(e)))
