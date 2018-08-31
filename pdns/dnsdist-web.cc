@@ -491,7 +491,7 @@ static void connectionThread(int sock, ComboAddress remote, string password, str
         }
 
         {
-          WriteLock wl(&g_qcount.queryLock);
+          ReadLock rl(&g_qcount.queryLock);
           std::string qname;
           const string qnamebase = "dnsdist_querycount_queries";
 
@@ -502,7 +502,6 @@ static void connectionThread(int sock, ComboAddress remote, string password, str
             const std::string label = "{qname=\"" + qname + "\"}";
             output << qnamebase << label << " " << record.second << "\n";
           }
-          g_qcount.records.clear();
         }
 
         resp.body = output.str();
