@@ -395,7 +395,7 @@ static void connectionThread(int sock, ComboAddress remote, string password, str
           std::string metricName = std::get<0>(e);
 
           // Prometheus suggest using '_' instead of '-'
-          std::string prometheusMetricName = "dnsdist_main_" + boost::replace_all_copy(metricName, "-", "_");
+          std::string prometheusMetricName = "dnsdist_" + boost::replace_all_copy(metricName, "-", "_");
 
           MetricDefinition metricDetails; 
 
@@ -427,7 +427,7 @@ static void connectionThread(int sock, ComboAddress remote, string password, str
         }
 
         auto states = g_dstates.getLocal();
-        const string statesbase = "dnsdist_main_servers_";
+        const string statesbase = "dnsdist_servers_";
         
         for (const auto& state : *states) {
           string serverName;
@@ -457,7 +457,7 @@ static void connectionThread(int sock, ComboAddress remote, string password, str
           boost::replace_all(frontName, ".", "_");
           string proto = (front->udpFD >= 0 ? "udp" : "tcp");
 
-          output << "dnsdist_main_frontend_queries{frontend=\"" << frontName << "\",proto=\"" << proto
+          output << "dnsdist_frontend_queries{frontend=\"" << frontName << "\",proto=\"" << proto
               << "\"} " << front->queries.load() << "\n";
         }
 
@@ -473,7 +473,7 @@ static void connectionThread(int sock, ComboAddress remote, string password, str
           }
           const string label = "{pool=\"" + poolName + "\"}";
           const std::shared_ptr<ServerPool> pool = entry.second;
-          output << "dnsdist_main_pools_servers" << label << " " << pool->countServers(false) << "\n";
+          output << "dnsdist_pools_servers" << label << " " << pool->countServers(false) << "\n";
 
           if (pool->packetCache != nullptr) {
             const auto& cache = pool->packetCache;
