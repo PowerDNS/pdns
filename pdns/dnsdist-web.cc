@@ -433,7 +433,7 @@ static void connectionThread(int sock, ComboAddress remote, string password, str
           string serverName;
            
           if (state->name.empty())
-              serverName = state->remote.toString() + ":" + std::to_string(state->remote.getPort());
+              serverName = state->remote.toStringWithPort();
           else
               serverName = state->getName();
 
