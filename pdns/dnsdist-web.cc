@@ -471,7 +471,7 @@ static void connectionThread(int sock, ComboAddress remote, string password, str
           }
           const string label = "{pool=\"" + poolName + "\"}";
           const std::shared_ptr<ServerPool> pool = entry.second;
-          output << "dnsdist_pools_servers" << label << " " << pool->countServers(false) << "\n";
+          output << "dnsdist_pool_servers" << label << " " << pool->countServers(false) << "\n";
 
           if (pool->packetCache != nullptr) {
             const auto& cache = pool->packetCache;
