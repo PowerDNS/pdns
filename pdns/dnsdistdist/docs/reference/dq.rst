@@ -25,7 +25,7 @@ This state can be modified from the various hooks.
 
   .. attribute:: DNSQuestion.len
 
-    The length of the :attr:`qname <DNSQuestion.qname>`.
+    The length of the data starting at :attr:`DNSQuestion.dh`, including any trailing bytes following the DNS message.
 
   .. attribute:: DNSQuestion.localaddr
 
