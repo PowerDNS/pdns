@@ -400,7 +400,7 @@ static void connectionThread(int sock, ComboAddress remote, string password, str
           MetricDefinition metricDetails; 
 
           if (!g_metricDefinitions.getMetricDetails(metricName, metricDetails)) {
-              warnlog("Do not have metric details for %s", metricName);
+              vinfolog("Do not have metric details for %s", metricName);
               continue;
           }
 
