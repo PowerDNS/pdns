@@ -68,7 +68,7 @@ This state can be modified from the various hooks.
 
   .. attribute:: DNSQuestion.tcp
 
-    Whether the query have been received over TCP.
+    Whether the query was received over TCP.
 
   .. attribute:: DNSQuestion.useECS
 
