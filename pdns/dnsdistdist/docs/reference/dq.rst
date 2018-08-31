@@ -109,6 +109,14 @@ This state can be modified from the various hooks.
 
     :returns: A table of tags, using strings as keys and values
 
+  .. method:: DNSQuestion:getTrailingData() -> table
+
+    .. versionadded:: >1.3.2
+
+    Get all data following the DNS message.
+
+    :returns: A list of 8-bit integers
+
   .. method:: DNSQuestion:sendTrap(reason)
 
     .. versionadded:: 1.2.0
@@ -133,6 +141,15 @@ This state can be modified from the various hooks.
     Set an array of tags into the DNSQuestion object.
 
     :param table tags: A table of tags, using strings as keys and values
+
+  .. method:: DNSQuestion:setTrailingData(bytes) -> bool
+
+    .. versionadded:: >1.3.2
+
+    Set the data following the DNS message, overwriting anything already present.
+
+    :param table bytes: The new data as a list of 8-bit integers
+    :returns: true if the operation succeeded, false otherwise
 
 .. _DNSResponse:
 
