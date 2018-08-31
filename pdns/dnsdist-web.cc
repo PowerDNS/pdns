@@ -419,10 +419,10 @@ static void connectionThread(int sock, ComboAddress remote, string password, str
           output << "\n";
         }
 
-        const auto states = g_dstates.getCopy();
+        auto states = g_dstates.getLocal();
         const string statesbase = "dnsdist_main_servers_";
         
-        for (const auto& state : states) {
+        for (const auto& state : *states) {
           string serverName;
            
           if (state->name.empty())
@@ -452,10 +452,10 @@ static void connectionThread(int sock, ComboAddress remote, string password, str
               << "\"} " << front->queries.load() << "\n";
         }
 
-        const auto localPools = g_pools.getCopy();
+        auto localPools = g_pools.getLocal();
         const string cachebase = "dnsdist_pool_";
         
-        for (const auto& entry : localPools) {
+        for (const auto& entry : *localPools) {
           string poolName = entry.first;
           boost::replace_all(poolName, ".", "_");
           
