@@ -111,7 +111,6 @@ PDNS_CHECK_LUA_HPP
 PDNS_ENABLE_VERBOSE_LOGGING
 
 # Crypto libraries
-PDNS_ENABLE_BOTAN
 PDNS_CHECK_LIBCRYPTO([
 ],[
    AC_MSG_ERROR([OpenSSL/libcrypto not found])
@@ -231,10 +230,6 @@ AS_IF([test "x$LIBSODIUM_LIBS" != "x"],
 AS_IF([test "x$LIBDECAF_LIBS" != "x"],
   [AC_MSG_NOTICE([libdecaf ed25519 and ed448: yes])],
   [AC_MSG_NOTICE([libdecaf ed25519 and ed448: no])]
-)
-AS_IF([test "x$BOTAN_LIBS" != "x"],
-  [AC_MSG_NOTICE([Botan gost: yes])],
-  [AC_MSG_NOTICE([Botan gost: no])]
 )
 AS_IF([test "x$PROTOBUF_LIBS" != "x" -a x"$PROTOC" != "x"],
   [AC_MSG_NOTICE([Protobuf: yes])],

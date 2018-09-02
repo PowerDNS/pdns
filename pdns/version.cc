@@ -25,10 +25,6 @@
 #include "logger.hh"
 #include "version.hh"
 
-#ifdef HAVE_BOTAN
-#include <botan/version.h>
-#endif /* HAVE_BOTAN */
-
 static ProductType productType;
 
 string compilerVersion()
@@ -87,9 +83,6 @@ void showProductVersion()
 void showBuildConfiguration()
 {
   g_log<<Logger::Warning<<"Features: "<<
-#ifdef HAVE_BOTAN
-    "botan" << BOTAN_VERSION_MAJOR << "." << BOTAN_VERSION_MINOR  << " " <<
-#endif
 #ifdef HAVE_LIBSODIUM
     "sodium " <<
 #endif
