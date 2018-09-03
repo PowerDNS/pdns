@@ -930,13 +930,19 @@ public:
       throw runtime_error(getName()+" allocation of key structure failed");
     }
 
+#ifdef HAVE_LIBCRYPTO_ED25519
     if(d_algorithm == 15) {
       d_len = 32;
       d_id = NID_ED25519;
-    } else if (d_algorithm == 16) {
+    }
+#endif
+#ifdef HAVE_LIBCRYPTO_ED448
+    if (d_algorithm == 16) {
       d_len = 57;
       d_id = NID_ED448;
-    } else {
+    }
+#endif
+    if (d_len == 0) {
       EVP_PKEY_free(d_edkey);
       throw runtime_error(getName()+" unknown algorithm "+std::to_string(d_algorithm));
     }
@@ -966,8 +972,8 @@ public:
   }
 
 private:
-  size_t d_len;
-  int d_id;
+  size_t d_len{0};
+  int d_id{0};
 
   EVP_PKEY *d_edkey = nullptr;
 };
@@ -996,12 +1002,19 @@ DNSCryptoKeyEngine::storvector_t OpenSSLEDDSADNSCryptoKeyEngine::convertToISCVec
   storvector_t storvect;
   string algorithm;
 
-  if(d_algorithm == 15)
+#ifdef HAVE_LIBCRYPTO_ED25519
+  if(d_algorithm == 15) {
     algorithm = "15 (ED25519)";
-  else if(d_algorithm == 16)
+  }
+#endif
+#ifdef HAVE_LIBCRYPTO_ED448
+  if(d_algorithm == 16) {
     algorithm = "16 (ED448)";
-  else
+  }
+#endif
+  if (algorithm.empty()) {
     algorithm = " ? (?)";
+  }
 
   storvect.push_back(make_pair("Algorithm", algorithm));
 
