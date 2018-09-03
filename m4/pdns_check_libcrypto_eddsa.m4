@@ -25,7 +25,7 @@ AC_DEFUN([PDNS_CHECK_LIBCRYPTO_EDDSA], [
   [AC_INCLUDES_DEFAULT
   #include <$ssldir/include/openssl/evp.h>])
 
-  AS_IF([test "$libcrypto_ed448" = "yes" -o "$libcrypto_ed448" = "yes"], [
+  AS_IF([test "$libcrypto_ed25519" = "yes" -o "$libcrypto_ed448" = "yes"], [
     AC_DEFINE([HAVE_LIBCRYPTO_EDDSA], [1], [define to 1 if OpenSSL EDDSA support is available.])
   ], [ : ])
 
