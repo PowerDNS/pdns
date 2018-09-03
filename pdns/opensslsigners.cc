@@ -1134,20 +1134,13 @@ void OpenSSLEDDSADNSCryptoKeyEngine::fromISCMap(DNSKEYRecordContent& drc, std::m
 
 void OpenSSLEDDSADNSCryptoKeyEngine::fromPublicKeyString(const std::string& content)
 {
-  const unsigned char* raw = reinterpret_cast<const unsigned char*>(content.c_str());
-  const size_t inputLen = content.length();
-
-  int type{0};
-
-  if (inputLen == 32) {
-    type = NID_ED25519;
-  } else if (inputLen == 57) {
-    type = NID_ED448;
-  } else {
-    throw runtime_error(getName() + "could not determine EDDSA key type");
+  if (content.length() != d_len) {
+    throw runtime_error(getName() + " wrong public key length for algorithm " + std::to_string(d_algorithm));
   }
 
-  d_edkey = EVP_PKEY_new_raw_public_key(type, nullptr, raw, inputLen);
+  const unsigned char* raw = reinterpret_cast<const unsigned char*>(content.c_str());
+
+  d_edkey = EVP_PKEY_new_raw_public_key(d_id, nullptr, raw, d_len);
   if (d_edkey == nullptr) {
     throw runtime_error(getName()+" allocation of public key structure failed");
   }
