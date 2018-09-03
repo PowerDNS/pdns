@@ -1115,7 +1115,7 @@ std::string OpenSSLEDDSADNSCryptoKeyEngine::getPublicKeyString() const
   size_t len = d_len;
   buf.resize(len);
   if (EVP_PKEY_get_raw_public_key(d_edkey, reinterpret_cast<unsigned char*>(&buf.at(0)), &len) < 1) {
-    throw std::runtime_error("Unable to get public key from key struct");
+    throw std::runtime_error(getName() + " unable to get public key from key struct");
   }
   return buf;
 }
