@@ -80,6 +80,8 @@ using std::thread;
 bool g_verbose;
 
 struct DNSDistStats g_stats;
+MetricDefinitionStorage g_metricDefinitions;
+
 uint16_t g_maxOutstanding{10240};
 bool g_verboseHealthChecks{false};
 uint32_t g_staleCacheEntriesTTL{0};
