@@ -3755,6 +3755,8 @@ try
     t_bogusremotes->set_capacity(ringsize);
     t_largeanswerremotes = std::unique_ptr<addrringbuf_t>(new addrringbuf_t());
     t_largeanswerremotes->set_capacity(ringsize);
+    t_timeouts = std::unique_ptr<addrringbuf_t>(new addrringbuf_t());
+    t_timeouts->set_capacity(ringsize);
 
     t_queryring = std::unique_ptr<boost::circular_buffer<pair<DNSName, uint16_t> > >(new boost::circular_buffer<pair<DNSName, uint16_t> >());
     t_queryring->set_capacity(ringsize);

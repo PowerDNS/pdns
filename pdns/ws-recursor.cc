@@ -540,6 +540,8 @@ void RecursorWebServer::jsonstat(HttpRequest* req, HttpResponse *resp)
       queries=broadcastAccFunction<vector<ComboAddress> >(pleaseGetBogusRemotes);
     else if(req->getvars["name"]=="large-answer-remotes")
       queries=broadcastAccFunction<vector<ComboAddress> >(pleaseGetLargeAnswerRemotes);
+    else if(req->getvars["name"]=="timeouts")
+      queries=broadcastAccFunction<vector<ComboAddress> >(pleaseGetTimeouts);
 
     typedef map<ComboAddress,unsigned int,ComboAddress::addressOnlyLessThan> counts_t;
     counts_t counts;

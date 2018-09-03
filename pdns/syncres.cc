@@ -37,6 +37,7 @@
 #include "validate-recursor.hh"
 
 thread_local SyncRes::ThreadLocalStorage SyncRes::t_sstorage;
+thread_local std::unique_ptr<addrringbuf_t> t_timeouts;
 
 std::unordered_set<DNSName> SyncRes::s_delegationOnly;
 std::unique_ptr<NetmaskGroup> SyncRes::s_dontQuery{nullptr};
@@ -2455,6 +2456,9 @@ bool SyncRes::doResolveAtThisIP(const std::string& prefix, const DNSName& qname,
         s_outgoing4timeouts++;
       else
         s_outgoing6timeouts++;
+
+      if(t_timeouts)
+        t_timeouts->push_back(remoteIP);
     }
     else if(resolveret == -2) {
       /* OS resource limit reached */

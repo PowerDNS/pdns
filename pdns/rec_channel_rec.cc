@@ -1100,6 +1100,18 @@ vector<ComboAddress>* pleaseGetLargeAnswerRemotes()
   return ret;
 }
 
+vector<ComboAddress>* pleaseGetTimeouts()
+{
+  vector<ComboAddress>* ret = new vector<ComboAddress>();
+  if(!t_timeouts)
+    return ret;
+  ret->reserve(t_timeouts->size());
+  for(const ComboAddress& ca :  *t_timeouts) {
+    ret->push_back(ca);
+  }
+  return ret;
+}
+
 string doGenericTopRemotes(pleaseremotefunc_t func)
 {
   typedef map<ComboAddress, int, ComboAddress::addressOnlyLessThan> counts_t;
@@ -1275,6 +1287,7 @@ string RecursorControlParser::getAnswer(const string& question, RecursorControlP
 "top-queries                      show top queries\n"
 "top-pub-queries                  show top queries grouped by public suffix list\n"
 "top-remotes                      show top remotes\n"
+"top-timeouts                     show top downstream timeouts"
 "top-servfail-queries             show top queries receiving servfail answers\n"
 "top-bogus-queries                show top queries validating as bogus\n"
 "top-pub-servfail-queries         show top queries receiving servfail answers grouped by public suffix list\n"
@@ -1411,6 +1424,9 @@ string RecursorControlParser::getAnswer(const string& question, RecursorControlP
 
   if(cmd=="top-largeanswer-remotes")
     return doGenericTopRemotes(pleaseGetLargeAnswerRemotes);
+
+  if(cmd=="top-timeouts")
+    return doGenericTopRemotes(pleaseGetTimeouts);
 
 
   if(cmd=="current-queries")
