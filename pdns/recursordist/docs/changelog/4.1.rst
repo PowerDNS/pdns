@@ -2,6 +2,67 @@ Changelogs for 4.1.x
 ====================
 
 .. changelog::
+  :version: 4.1.4
+  :released: 31st of August 2018
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 6436
+
+    Split ``pdns_enable_unit_tests``. (Chris Hofstaedtler)
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 6465
+    :tickets: 6462
+
+    Don't account chained queries more than once.
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 6518
+
+    Add a new :ref:`setting-max-udp-queries-per-round` setting.
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 6557
+    :tickets: 6536
+
+    Make :doc:`rec_control` respect :ref:`setting-include-dir`.
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 6590
+
+    Fix warnings reported by gcc 8.1.0.
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 6809
+
+    Tests: replace awk command by perl.
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 6812
+    :tickets: 6567
+
+    Load lua scripts only in worker threads.
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 6720
+
+    Allow the snmp thread to retrieve statistics.
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 6873
+
+    Purge all auth/forward zone data including subtree. (@phonedph1)
+
+.. changelog::
   :version: 4.1.3
   :released: 22nd of May 2018
 
@@ -104,6 +165,13 @@ Changelogs for 4.1.x
     :tickets: 6086
 
     Use the SyncRes time in our unit tests when checking cache validity (Chris Hofstaedtler).
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 6850
+    :tickets: 6849
+
+    Disable only our own tcp listening socket when reuseport is enabled
 
 .. changelog::
   :version: 4.1.2

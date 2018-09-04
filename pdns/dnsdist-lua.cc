@@ -44,6 +44,7 @@
 #include "sodcrypto.hh"
 
 #include <boost/logic/tribool.hpp>
+#include <boost/lexical_cast.hpp>
 
 #ifdef HAVE_SYSTEMD
 #include <systemd/sd-daemon.h>
@@ -271,7 +272,7 @@ void setupLuaConfig(bool client)
 			      return ret;
 			    }
 
-			    ret->weight=weightVal;
+			    ret->setWeight(weightVal);
 			  }
 			  catch(std::exception& e) {
 			    // std::stoi will throw an exception if the string isn't in a value int range
@@ -310,6 +311,10 @@ void setupLuaConfig(bool client)
 			if(vars.count("name")) {
 			  ret->name=boost::get<string>(vars["name"]);
 			}
+
+                        if (vars.count("id")) {
+                          ret->setId(boost::lexical_cast<boost::uuids::uuid>(boost::get<string>(vars["id"])));
+                        }
 
 			if(vars.count("checkName")) {
 			  ret->checkName=DNSName(boost::get<string>(vars["checkName"]));

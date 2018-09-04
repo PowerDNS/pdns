@@ -27,7 +27,7 @@ The DNSQuestion object contains at least the following fields:
 
   .. attribute:: DNSQuestion.isTcp
 
-      Boolean whether the query have been received over TCP.
+      Whether the query was received over TCP.
 
   .. attribute:: DNSQuestion.remoteaddr
 

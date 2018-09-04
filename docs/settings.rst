@@ -811,7 +811,8 @@ Do not pass names like 'local0'!
 -  Integer
 -  Default: 4
 
-Amount of logging. Higher is more. Do not set below 3
+Amount of logging. Higher is more. Do not set below 3. Corresponds to "syslog" level values,
+e.g. error = 3, warning = 4, notice = 5, info = 6
 
 .. _setting-log-dns-queries:
 

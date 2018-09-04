@@ -43,6 +43,13 @@ The current hash algorithm is based on the qname of the query.
 
   Set the hash perturbation value to be used in the whashed policy instead of a random one, allowing to have consistent whashed results on different instances.
 
+``chashed``
+~~~~~~~~~~~
+
+``chashed`` is a consistent hashing distribution policy. Identical questions with identical hashes will be distributed to the same servers. But unlike the ``whashed`` policy, this distribution will keep consistent over time. Adding or removing servers will only remap a small part of the queries.
+
+You can also set the hash perturbation value, see :func:`setWHashedPertubation`.
+
 ``roundrobin``
 ~~~~~~~~~~~~~~
 
