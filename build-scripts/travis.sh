@@ -381,7 +381,6 @@ install_dnsdist() {
 
 build_auth() {
   run "autoreconf -vi"
-  # Build without --enable-botan, no botan 2.x in Travis CI
   run "./configure \
     ${sanitizerflags} \
     --with-dynmodules='bind gmysql geoip gpgsql gsqlite3 ldap lua mydns opendbx pipe random remote tinydns godbc lua2' \
@@ -410,7 +409,6 @@ build_recursor() {
   run "tar xf pdns-recursor-*.tar.bz2"
   run "rm -f pdns-recursor-*.tar.bz2"
   run "cd pdns-recursor-*"
-  # Build without --enable-botan, no botan 2.x in Travis CI
   run "./configure \
     ${sanitizerflags} \
     --prefix=$PDNS_RECURSOR_DIR \
@@ -605,7 +603,6 @@ test_repo(){
 }
 
 # global build requirements
-# Add botan 2.x when available in Travis CI
 run "sudo apt-get -qq --no-install-recommends install \
   libboost-all-dev \
   libluajit-5.1-dev \

@@ -20,10 +20,6 @@ AM_LDFLAGS = \
 AM_LFLAGS = -i
 AM_YFLAGS = -d --verbose --debug
 
-if BOTAN
-AM_CPPFLAGS += $(BOTAN_CFLAGS)
-endif
-
 if PKCS11
 AM_CPPFLAGS += $(P11KIT1_CFLAGS)
 endif
@@ -255,11 +251,6 @@ pdns_server_SOURCES += lua-record.cc minicurl.cc minicurl.hh
 pdns_server_LDADD += $(LIBCURL)
 endif
 
-if BOTAN
-pdns_server_SOURCES += botansigners.cc
-pdns_server_LDADD += $(BOTAN_LIBS)
-endif
-
 if LIBSODIUM
 pdns_server_SOURCES += sodiumsigners.cc
 pdns_server_LDADD += $(LIBSODIUM_LIBS)
@@ -356,11 +347,6 @@ pdnsutil_LDADD = \
 	$(LIBDL) \
 	$(BOOST_PROGRAM_OPTIONS_LIBS) \
 	$(LIBCRYPTO_LIBS)
-
-if BOTAN
-pdnsutil_SOURCES += botansigners.cc
-pdnsutil_LDADD += $(BOTAN_LIBS)
-endif
 
 if LIBSODIUM
 pdnsutil_SOURCES += sodiumsigners.cc
@@ -813,11 +799,6 @@ toysdig_LDADD = $(LIBCRYPTO_LIBS)
 
 if GSS_TSIG
 toysdig_LDADD += $(GSS_LIBS)
-endif
-
-if BOTAN
-toysdig_SOURCES += botansigners.cc
-toysdig_LDADD += $(BOTAN_LIBS)
 endif
 
 if PKCS11
@@ -1340,11 +1321,6 @@ endif
 if LIBSODIUM
 testrunner_SOURCES += sodiumsigners.cc
 testrunner_LDADD += $(LIBSODIUM_LIBS)
-endif
-
-if BOTAN
-testrunner_SOURCES += botansigners.cc
-testrunner_LDADD += $(BOTAN_LIBS)
 endif
 
 if LIBDECAF
