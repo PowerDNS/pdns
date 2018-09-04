@@ -420,8 +420,8 @@ Only relevant for algorithms with non-fixed keysizes (like RSA).
 -  Boolean
 -  Default: no
 
-Read additional ZSKs from the records table/your BIND zonefile. If not
-set, DNSKEY records in the zonefiles are ignored.
+Read additional DNSKEY, CDS and CDNSKEY records from the records table/your BIND zonefile. If not
+set, DNSKEY, CDS and CDNSKEY records in the zonefiles are ignored.
 
 .. _setting-disable-axfr:
 
