@@ -1,0 +1,7 @@
+1	delegated.dnssec-parent.com.	IN	NSEC	86400	ns1.dnssec-parent.com. NS RRSIG NSEC
+1	delegated.dnssec-parent.com.	IN	RRSIG	86400	NSEC 13 3 86400 [expiry] [inception] [keytag] dnssec-parent.com. ...
+1	dnssec-parent.com.	IN	RRSIG	3600	SOA 13 2 3600 [expiry] [inception] [keytag] dnssec-parent.com. ...
+1	dnssec-parent.com.	IN	SOA	3600	ns1.dnssec-parent.com. ahu.example.com. 2005092501 28800 7200 604800 86400
+2	.	IN	OPT	32768	
+Rcode: 0 (No Error), RD: 0, QR: 1, TC: 0, AA: 1, opcode: 0
+Reply to question for qname='delegated.dnssec-parent.com.', qtype=DS
