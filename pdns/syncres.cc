@@ -403,7 +403,7 @@ uint64_t SyncRes::doDumpThrottleMap(int fd)
   {
     count++;
     // remote IP, dns name, qtype, count, ttd
-    fprintf(fp, "%s\t%s\t%d\t%u\t%s", i.first.get<0>().toString().c_str(), i.first.get<1>().toString().c_str(), i.first.get<2>(), i.second.count, ctime(&i.second.ttd));
+    fprintf(fp, "%s\t%s\t%d\t%u\t%s", i.first.get<0>().toString().c_str(), i.first.get<1>().toLogString().c_str(), i.first.get<2>(), i.second.count, ctime(&i.second.ttd));
   }
   fclose(fp);
   return count;
