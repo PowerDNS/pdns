@@ -402,6 +402,13 @@ DNSAction::Action SpoofAction::operator()(DNSQuestion* dq, string* ruleresult) c
     return Action::None;
   }
 
+  bool dnssecOK = false;
+  bool hadEDNS = false;
+  if (g_addEDNSToSelfGeneratedResponses && queryHasEDNS(*dq)) {
+    hadEDNS = true;
+    dnssecOK = getEDNSZ(*dq) & EDNS_HEADER_FLAG_DO;
+  }
+
   dq->len = sizeof(dnsheader) + consumed + 4; // there goes your EDNS
   char* dest = ((char*)dq->dh) + dq->len;
 
@@ -450,6 +457,10 @@ DNSAction::Action SpoofAction::operator()(DNSQuestion* dq, string* ruleresult) c
 
   dq->dh->ancount = htons(dq->dh->ancount);
 
+  if (hadEDNS) {
+    addEDNS(dq->dh, dq->len, dq->size, dnssecOK, g_PayloadSizeSelfGenAnswers);
+  }
+
   return Action::HeaderModify;
 }
 
@@ -471,7 +482,7 @@ public:
     generateEDNSOption(d_code, mac, optRData);
 
     string res;
-    generateOptRR(optRData, res);
+    generateOptRR(optRData, res, g_EdnsUDPPayloadSize, false);
 
     if ((dq->size - dq->len) < res.length())
       return Action::None;
