@@ -194,6 +194,11 @@ static uint64_t* pleaseDumpNSSpeeds(int fd)
   return new uint64_t(SyncRes::doDumpNSSpeeds(fd));
 }
 
+static uint64_t* pleaseDumpThrottleMap(int fd)
+{
+  return new uint64_t(SyncRes::doDumpThrottleMap(fd));
+}
+
 template<typename T>
 string doDumpNSSpeeds(T begin, T end)
 {
@@ -303,6 +308,28 @@ string doDumpRPZ(T begin, T end)
   fclose(fp);
 
   return "done\n";
+}
+
+template<typename T>
+string doDumpThrottleMap(T begin, T end)
+{
+  T i=begin;
+  string fname;
+
+  if(i!=end)
+    fname=*i;
+
+  int fd=open(fname.c_str(), O_CREAT | O_EXCL | O_WRONLY, 0660);
+  if(fd < 0)
+    return "Error opening dump file for writing: "+string(strerror(errno))+"\n";
+  uint64_t total = 0;
+  try {
+    total = broadcastAccFunction<uint64_t>(boost::bind(pleaseDumpThrottleMap, fd));
+  }
+  catch(...){}
+
+  close(fd);
+  return "dumped "+std::to_string(total)+" records\n";
 }
 
 uint64_t* pleaseWipeCache(const DNSName& canon, bool subtree)
@@ -1262,6 +1289,7 @@ string RecursorControlParser::getAnswer(const string& question, RecursorControlP
 "dump-edns [status] <filename>    dump EDNS status to the named file\n"
 "dump-nsspeeds <filename>         dump nsspeeds statistics to the named file\n"
 "dump-rpz <zone name> <filename>  dump the content of a RPZ zone to the named file\n"
+"dump-throttlemap <filename>      dump the contents of the throttle to the named file\n"
 "get [key1] [key2] ..             get specific statistics\n"
 "get-all                          get all statistics\n"
 "get-ntas                         get all configured Negative Trust Anchors\n"
@@ -1333,6 +1361,9 @@ string RecursorControlParser::getAnswer(const string& question, RecursorControlP
   if(cmd=="dump-rpz") {
     return doDumpRPZ(begin, end);
   }
+
+  if(cmd=="dump-throttlemap")
+   return doDumpThrottleMap(begin, end);
 
   if(cmd=="wipe-cache" || cmd=="flushname")
     return doWipeCache(begin, end);

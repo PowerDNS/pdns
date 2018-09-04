@@ -123,6 +123,20 @@ dump-rpz *ZONE NAME* *FILE NAME*
         rec_control dump-rpz ZONE_NAME /tmp/file
         mv /proc/$(pidof pdns_recursor)/root/tmp/file /tmp/filename
 
+dump-throttlemap *FILENAME*
+    Dump the contents of the throttle map to the *FILENAME* mentioned.
+    This file should not exist already, PowerDNS will refuse to
+    overwrite it otherwise. While dumping, the recursor will not answer
+    questions.
+
+    .. note::
+
+      :program:`pdns_recursor` often runs in a chroot. You can
+      retrieve the file using::
+
+        rec_control dump-rpz ZONE_NAME /tmp/file
+        mv /proc/$(pidof pdns_recursor)/root/tmp/file /tmp/filename
+
 get *STATISTIC* [*STATISTIC*]...
     Retrieve a statistic. For items that can be queried, see
     :doc:`../metrics`
