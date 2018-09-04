@@ -340,7 +340,6 @@ On slaves
 ~~~~~~~~~
 
 -  ``info-all-slaves-query``: Called to retrieve all slave domains.
--  ``master-zone-query``: Called to determine the master of a zone.
 -  ``update-lastcheck-query``: Called to update the last time a slave
    domain was successfully checked for freshness.
 -  ``update-master-query``: Called to update the master address of a
