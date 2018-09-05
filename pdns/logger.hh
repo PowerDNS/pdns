@@ -86,6 +86,7 @@ public:
   Logger& operator<<(unsigned int);   //!< log an unsigned int
   Logger& operator<<(long);   //!< log an unsigned int
   Logger& operator<<(unsigned long);   //!< log an unsigned int
+  Logger& operator<<(long long);   //!< log a 64 bit int
   Logger& operator<<(unsigned long long);   //!< log an unsigned 64 bit int
   Logger& operator<<(const DNSName&); 
   Logger& operator<<(const ComboAddress&); //!< log an address
