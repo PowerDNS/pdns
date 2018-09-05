@@ -490,7 +490,7 @@ void RecursorWebServer::jsonstat(HttpRequest* req, HttpResponse *resp)
 
     if(req->getvars["name"]=="servfail-queries")
       queries=broadcastAccFunction<vector<query_t> >(pleaseGetServfailQueryRing);
-    if(req->getvars["name"]=="bogus-queries")
+    else if(req->getvars["name"]=="bogus-queries")
       queries=broadcastAccFunction<vector<query_t> >(pleaseGetBogusQueryRing);
     else if(req->getvars["name"]=="queries")
       queries=broadcastAccFunction<vector<query_t> >(pleaseGetQueryRing);
