@@ -1033,59 +1033,38 @@ DNSCryptoKeyEngine::storvector_t OpenSSLEDDSADNSCryptoKeyEngine::convertToISCVec
 
 std::string OpenSSLEDDSADNSCryptoKeyEngine::sign(const std::string& msg) const
 {
-  auto pctx = EVP_PKEY_CTX_new(d_edkey, nullptr);
-  if (pctx == nullptr) {
-    throw runtime_error(getName()+" PKEY context initialization failed");
-  }
   auto mdctx = EVP_MD_CTX_new();
   if (mdctx == nullptr) {
-    EVP_PKEY_CTX_free(pctx);
     throw runtime_error(getName()+" MD context initialization failed");
   }
-  if(EVP_DigestSignInit(mdctx, &pctx, nullptr, nullptr, d_edkey) < 1) {
-    EVP_PKEY_CTX_free(pctx);
+  if(EVP_DigestSignInit(mdctx, nullptr, nullptr, nullptr, d_edkey) < 1) {
     EVP_MD_CTX_free(mdctx);
     throw runtime_error(getName()+" unable to initialize signer");
   }
 
-  string signature;
-  size_t siglen;
   string msgToSign = msg;
-  if (EVP_DigestSign(mdctx,
-        nullptr, &siglen,
-        reinterpret_cast<unsigned char*>(&msgToSign.at(0)), msgToSign.length()) < 1) {
-    EVP_PKEY_CTX_free(pctx);
-    EVP_MD_CTX_free(mdctx);
-    throw runtime_error(getName()+" could not determine signature size");
-  }
 
+  size_t siglen = d_len * 2;
+  string signature;
   signature.resize(siglen);
 
   if (EVP_DigestSign(mdctx,
         reinterpret_cast<unsigned char*>(&signature.at(0)), &siglen,
         reinterpret_cast<unsigned char*>(&msgToSign.at(0)), msgToSign.length()) < 1) {
-    EVP_PKEY_CTX_free(pctx);
     EVP_MD_CTX_free(mdctx);
     throw runtime_error(getName()+" signing error");
   }
-  EVP_PKEY_CTX_free(pctx);
   EVP_MD_CTX_free(mdctx);
   return signature;
 }
 
 bool OpenSSLEDDSADNSCryptoKeyEngine::verify(const std::string& msg, const std::string& signature) const
 {
-  auto pctx = EVP_PKEY_CTX_new(d_edkey, nullptr);
-  if (pctx == nullptr) {
-    throw runtime_error(getName()+" PKEY context initialization failed");
-  }
   auto mdctx = EVP_MD_CTX_new();
   if (mdctx == nullptr) {
-    EVP_PKEY_CTX_free(pctx);
     throw runtime_error(getName()+" MD context initialization failed");
   }
-  if(EVP_DigestVerifyInit(mdctx, &pctx, nullptr, nullptr, d_edkey) < 1) {
-    EVP_PKEY_CTX_free(pctx);
+  if(EVP_DigestVerifyInit(mdctx, nullptr, nullptr, nullptr, d_edkey) < 1) {
     EVP_MD_CTX_free(mdctx);
     throw runtime_error(getName()+" unable to initialize signer");
   }
@@ -1097,12 +1076,10 @@ bool OpenSSLEDDSADNSCryptoKeyEngine::verify(const std::string& msg, const std::s
       reinterpret_cast<unsigned char*>(&checkSignature.at(0)), checkSignature.length(),
       reinterpret_cast<unsigned char*>(&checkMsg.at(0)), checkMsg.length());
   if (r < 0) {
-    EVP_PKEY_CTX_free(pctx);
     EVP_MD_CTX_free(mdctx);
     throw runtime_error(getName()+" verification failure");
   }
 
-  EVP_PKEY_CTX_free(pctx);
   EVP_MD_CTX_free(mdctx);
   return (r == 1);
 }
