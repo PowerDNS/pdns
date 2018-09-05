@@ -1315,7 +1315,7 @@ string RecursorControlParser::getAnswer(const string& question, RecursorControlP
 "top-queries                      show top queries\n"
 "top-pub-queries                  show top queries grouped by public suffix list\n"
 "top-remotes                      show top remotes\n"
-"top-timeouts                     show top downstream timeouts"
+"top-timeouts                     show top downstream timeouts\n"
 "top-servfail-queries             show top queries receiving servfail answers\n"
 "top-bogus-queries                show top queries validating as bogus\n"
 "top-pub-servfail-queries         show top queries receiving servfail answers grouped by public suffix list\n"
