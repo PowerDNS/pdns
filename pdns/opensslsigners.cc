@@ -985,7 +985,7 @@ bool OpenSSLEDDSADNSCryptoKeyEngine::checkKey() const
 
 void OpenSSLEDDSADNSCryptoKeyEngine::create(unsigned int bits)
 {
-  auto pctx = EVP_PKEY_CTX_new(d_edkey, nullptr);
+  auto pctx = EVP_PKEY_CTX_new_id(d_id, nullptr);
   if (pctx == nullptr) {
     throw runtime_error(getName()+" context initialization failed");
   }
