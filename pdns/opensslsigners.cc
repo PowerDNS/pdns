@@ -990,11 +990,14 @@ void OpenSSLEDDSADNSCryptoKeyEngine::create(unsigned int bits)
     throw runtime_error(getName()+" context initialization failed");
   }
   if (EVP_PKEY_keygen_init(pctx) < 1) {
+    EVP_PKEY_CTX_free(pctx);
     throw runtime_error(getName()+" keygen initialization failed");
   }
   if (EVP_PKEY_keygen(pctx, &d_edkey) < 1) {
+    EVP_PKEY_CTX_free(pctx);
     throw runtime_error(getName()+" key generation failed");
   }
+  EVP_PKEY_CTX_free(pctx);
 }
 
 DNSCryptoKeyEngine::storvector_t OpenSSLEDDSADNSCryptoKeyEngine::convertToISCVector() const
