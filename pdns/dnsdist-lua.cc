@@ -341,6 +341,10 @@ void setupLuaConfig(bool client)
 			  ret->mustResolve=boost::get<bool>(vars["mustResolve"]);
 			}
 
+			if(vars.count("backup")) {
+			  ret->backup=boost::get<bool>(vars["backup"]);
+			}
+
 			if(vars.count("useClientSubnet")) {
 			  ret->useECS=boost::get<bool>(vars["useClientSubnet"]);
 			}

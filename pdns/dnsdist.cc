@@ -738,7 +738,20 @@ shared_ptr<DownstreamState> valrandom(unsigned int val, const NumberedServerVect
   int sum = 0;
   int max = std::numeric_limits<int>::max();
 
+  // If we have backup server we will use it when we do not have any other servers alive
+  shared_ptr<DownstreamState> backup;
+
   for(auto& d : servers) {      // w=1, w=10 -> 1, 11
+    // We do not use servers marked as backup during normal operations
+    if (d.second->isBackup()) {
+      // We allow only single backup server
+      if (backup == nullptr) {
+        backup = d.second;
+      }
+
+      continue;
+    }
+
     if(d.second->isUp()) {
       // Don't overflow sum when adding high weights
       if(d.second->weight > max - sum) {
@@ -752,8 +765,14 @@ shared_ptr<DownstreamState> valrandom(unsigned int val, const NumberedServerVect
   }
 
   // Catch poss & sum are empty to avoid SIGFPE
-  if(poss.empty())
+  if(poss.empty()) {
+    // If we have backup server, let's use it
+    if (backup != nullptr) {
+        return backup;
+    }
+
     return shared_ptr<DownstreamState>();
+  }
 
   int r = val % sum;
   auto p = upper_bound(poss.begin(), poss.end(),r, [](int r_, const decltype(poss)::value_type& a) { return  r_ < a.first;});

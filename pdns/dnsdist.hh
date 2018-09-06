@@ -707,6 +707,21 @@ struct DownstreamState
   bool tcpFastOpen{false};
   bool ipBindAddrNoPort{true};
 
+  // Use this server only if other servers down
+  bool backup{false};
+
+  bool isBackup() {
+    return backup;
+  }
+
+  void setBackup() {
+    backup = true;
+  }
+
+  void unsetBackup() {
+    backup = false;
+  }
+
   bool isUp() const
   {
     if(availability == Availability::Down)
