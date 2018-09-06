@@ -19,10 +19,13 @@ ADD builder/helpers/ /pdns/builder/helpers/
 
 @IF [ ! -z "$M_authoritative$M_all" ]
 ADD docs/ /pdns/docs
+ADD modules/ /pdns/modules
 @ENDIF
 
 @IF [ ! -z "$M_recursor$M_all" ]
-ADD pdns/recursordist/docs/ /pdns/pdns/recursordist/docs
+ADD docs/ /pdns/docs
+ADD pdns/dnsmessage.proto /pdns/pdns/dnsmessage.proto
+ADD pdns/recursordist/ /pdns/pdns/recursordist
 @ENDIF
 
 @IF [ ! -z "$M_dnsdist$M_all" ]
