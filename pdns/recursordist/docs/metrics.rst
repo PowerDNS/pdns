@@ -432,6 +432,12 @@ truncated-drops
 
 questions dropped because they were larger than 512 bytes
 
+empty-queries
+^^^^^^^^^^^^^
+.. versionadded:: 4.2
+
+questions dropped because they had a QD count of 0
+
 unauthorized-tcp
 ^^^^^^^^^^^^^^^^
 number of TCP questions denied because of   allow-from restrictions

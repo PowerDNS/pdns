@@ -1733,7 +1733,9 @@ static void handleRunningTCPQuestion(int fd, FDMultiplexer::funcparam_t& var)
   else if(conn->state==TCPConnection::GETQUESTION) {
     ssize_t bytes=recv(conn->getFD(), &conn->data[conn->bytesread], conn->qlen - conn->bytesread, 0);
     if(!bytes || bytes < 0 || bytes > std::numeric_limits<std::uint16_t>::max()) {
-      g_log<<Logger::Error<<"TCP client "<< conn->d_remote.toStringWithPort() <<" disconnected while reading question body"<<endl;
+      if(g_logCommonErrors) {
+        g_log<<Logger::Error<<"TCP client "<< conn->d_remote.toStringWithPort() <<" disconnected while reading question body"<<endl;
+      }
       t_fdm->removeReadFD(fd);
       return;
     }
@@ -1818,9 +1820,9 @@ static void handleRunningTCPQuestion(int fd, FDMultiplexer::funcparam_t& var)
         dc->d_uuid = (*t_uuidGenerator)();
       }
 
+      const struct dnsheader* dh = reinterpret_cast<const struct dnsheader*>(&conn->data[0]);
       if(t_protobufServer) {
         try {
-          const struct dnsheader* dh = reinterpret_cast<const struct dnsheader*>(&conn->data[0]);
 
           if (logQuery && !(luaconfsLocal->protobufExportConfig.taggedOnly && dc->d_policyTags.empty())) {
             protobufLogQuery(t_protobufServer, luaconfsLocal->protobufMaskV4, luaconfsLocal->protobufMaskV6, dc->d_uuid, dc->d_source, dc->d_destination, dc->d_ednssubnet.source, true, dh->id, conn->qlen, qname, qtype, qclass, dc->d_policyTags, dc->d_requestorId, dc->d_deviceId);
@@ -1834,13 +1836,25 @@ static void handleRunningTCPQuestion(int fd, FDMultiplexer::funcparam_t& var)
 #endif
       if(dc->d_mdp.d_header.qr) {
         g_stats.ignoredCount++;
-        g_log<<Logger::Error<<"Ignoring answer from TCP client "<< dc->getRemote() <<" on server socket!"<<endl;
+        if(g_logCommonErrors) {
+          g_log<<Logger::Error<<"Ignoring answer from TCP client "<< dc->getRemote() <<" on server socket!"<<endl;
+        }
         delete dc;
         return;
       }
       if(dc->d_mdp.d_header.opcode) {
         g_stats.ignoredCount++;
-        g_log<<Logger::Error<<"Ignoring non-query opcode from TCP client "<< dc->getRemote() <<" on server socket!"<<endl;
+        if(g_logCommonErrors) {
+          g_log<<Logger::Error<<"Ignoring non-query opcode from TCP client "<< dc->getRemote() <<" on server socket!"<<endl;
+        }
+        delete dc;
+        return;
+      }
+      else if (dh->qdcount == 0) {
+        g_stats.emptyQueriesCount++;
+        if(g_logCommonErrors) {
+          g_log<<Logger::Error<<"Ignoring empty (qdcount == 0) query from "<< dc->getRemote() <<" on server socket!"<<endl;
+        }
         delete dc;
         return;
       }
@@ -2200,6 +2214,12 @@ static void handleNewUDPQuestion(int fd, FDMultiplexer::funcparam_t& var)
           g_stats.ignoredCount++;
           if(g_logCommonErrors) {
             g_log<<Logger::Error<<"Ignoring non-query opcode "<<dh->opcode<<" from "<<fromaddr.toString()<<" on server socket!"<<endl;
+          }
+        }
+        else if (dh->qdcount == 0) {
+          g_stats.emptyQueriesCount++;
+          if(g_logCommonErrors) {
+            g_log<<Logger::Error<<"Ignoring empty (qdcount == 0) query from "<<fromaddr.toString()<<" on server socket!"<<endl;
           }
         }
         else {

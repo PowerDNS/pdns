@@ -930,6 +930,7 @@ struct RecursorStats
   std::atomic<uint64_t> packetCacheHits;
   std::atomic<uint64_t> noPacketError;
   std::atomic<uint64_t> ignoredCount;
+  std::atomic<uint64_t> emptyQueriesCount;
   time_t startupTime;
   std::atomic<uint64_t> dnssecQueries;
   unsigned int maxMThreadStackUsage;

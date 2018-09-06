@@ -941,6 +941,7 @@ void registerAllStats()
   addGetStat("no-packet-error", &g_stats.noPacketError);
   addGetStat("dlg-only-drops", &SyncRes::s_nodelegated);
   addGetStat("ignored-packets", &g_stats.ignoredCount);
+  addGetStat("empty-queries", &g_stats.emptyQueriesCount);
   addGetStat("max-mthread-stack", &g_stats.maxMThreadStackUsage);
   
   addGetStat("negcache-entries", boost::bind(getNegCacheSize));
