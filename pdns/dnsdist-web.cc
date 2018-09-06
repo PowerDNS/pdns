@@ -780,7 +780,13 @@ static void connectionThread(int sock, ComboAddress remote, string password, str
         std::lock_guard<std::mutex> lock(g_luamutex);
         auto f = g_lua.readVariable<boost::optional<std::function<std::string (const std::string &)> > >("webcall");
         if(f) {
-          resp.body = (*f)(req.body);
+          try {
+            resp.body = (*f)(req.body);
+          }
+          catch(std::exception &e) {
+            resp.status = 500;
+            resp.body = e.what();
+          }
         }
       }
     }
