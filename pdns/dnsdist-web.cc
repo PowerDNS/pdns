@@ -161,6 +161,11 @@ static bool isMethodAllowed(const YaHTTP::Request& req)
       return true;
     }
   }
+  if (req.method == "POST" && g_apiReadWrite) {
+    if (req.url.path == "/api/v1/servers/localhost/luahandler") {
+      return true;
+    }
+  }
   return false;
 }
 
@@ -763,6 +768,20 @@ static void connectionThread(int sock, ComboAddress remote, string password, str
         };
         Json my_json = obj;
         resp.body=my_json.dump();
+      }
+    }
+    else if(req.url.path=="/api/v1/servers/localhost/luahandler") {
+      handleCORS(req, resp);
+
+      resp.headers["Content-Type"] = "text/plain";
+      resp.status=200;
+
+      if (req.method == "POST") {
+        std::lock_guard<std::mutex> lock(g_luamutex);
+        auto f = g_lua.readVariable<boost::optional<std::function<std::string (const std::string &)> > >("webcall");
+        if(f) {
+          resp.body = (*f)(req.body);
+        }
       }
     }
     else if(!req.url.path.empty() && g_urlmap.count(req.url.path.c_str()+1)) {
