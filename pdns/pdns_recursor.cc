@@ -1118,13 +1118,6 @@ static void startDoResolve(void *p)
     // Check if the query has a policy attached to it
     if (wantsRPZ) {
       appliedPolicy = luaconfsLocal->dfe.getQueryPolicy(dc->d_mdp.d_qname, dc->d_source, sr.d_discardedPolicies);
-
-      if(appliedPolicy.d_kind != DNSFilterEngine::PolicyKind::NoAction) {
-        if(t_rpzremotes)
-          t_rpzremotes->push_back(dc->d_source);
-        if(t_rpzqueryring)
-          t_rpzqueryring->push_back(make_pair(dc->d_mdp.d_qname, dc->d_mdp.d_qtype));
-      }
     }
 
     // if there is a RecursorLua active, and it 'took' the query in preResolve, we don't launch beginResolve
@@ -1435,6 +1428,17 @@ static void startDoResolve(void *p)
       protobufLogResponse(t_protobufServer, *pbMessage);
     }
 #endif
+
+    // RPZ stats - does not include drops which are handled very early on
+    if (appliedPolicy.d_kind != DNSFilterEngine::PolicyKind::NoAction) {
+      if (t_rpzremotes != nullptr) {
+        t_rpzremotes->push_back(dc->d_source);
+      }
+      if (t_rpzqueryring != nullptr) {
+        t_rpzqueryring->push_back(make_pair(dc->d_mdp.d_qname, dc->d_mdp.d_qtype));
+      }
+    }
+
     if(!dc->d_tcp) {
       struct msghdr msgh;
       struct iovec iov;
