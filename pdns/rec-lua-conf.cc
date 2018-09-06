@@ -396,8 +396,8 @@ void loadRecursorLuaConfig(const std::string& fname, luaConfigDelayedThreads& de
       try {
         if (!lci.outgoingProtobufExportConfig.enabled) {
           lci.outgoingProtobufExportConfig.enabled = true;
-          lci.protobufExportConfig.server = ComboAddress(server_);
-          parseProtobufOptions(vars, lci.protobufExportConfig);
+          lci.outgoingProtobufExportConfig.server = ComboAddress(server_);
+          parseProtobufOptions(vars, lci.outgoingProtobufExportConfig);
         }
         else {
           g_log<<Logger::Error<<"Only one protobuf server can be configured, we already have "<<lci.outgoingProtobufExportConfig.server.toString()<<endl;
