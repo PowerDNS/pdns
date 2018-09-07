@@ -103,3 +103,4 @@ The API exposes several endpoints and objects:
   metadata
   search
   statistics
+  cache
