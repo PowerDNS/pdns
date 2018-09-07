@@ -819,7 +819,22 @@ shared_ptr<DownstreamState> chashed(const NumberedServerVector& servers, const D
   unsigned int sel = 0, max = 0;
   shared_ptr<DownstreamState> ret = nullptr, last = nullptr;
 
+  // If we have backup server we will use it when we do not have any other servers alive
+  shared_ptr<DownstreamState> backup;
+
+  // Lookup for backup server if we have it
   for (const auto& d: servers) {
+    if (d.second->isBackup() && backup == nullptr) {
+        backup = d.second;
+    }
+  }
+
+  for (const auto& d: servers) {
+    // We do not use backup server during normal operations
+    if (d.second->isBackup()) {
+      continue;
+    }
+
     if (d.second->isUp()) {
       // make sure hashes have been computed
       if (d.second->hashes.empty()) {
@@ -851,6 +866,12 @@ shared_ptr<DownstreamState> chashed(const NumberedServerVector& servers, const D
   if (last != nullptr) {
     return last;
   }
+
+  // If we have backup server, let's use it
+  if (backup != nullptr) {
+    return backup;
+  }
+
   return shared_ptr<DownstreamState>();
 }
 
