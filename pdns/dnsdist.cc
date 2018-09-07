@@ -838,15 +838,33 @@ shared_ptr<DownstreamState> roundrobin(const NumberedServerVector& servers, cons
 {
   NumberedServerVector poss;
 
+  // If we have backup server we will use it when we do not have any other servers alive
+  shared_ptr<DownstreamState> backup;
+
   for(auto& d : servers) {
+    // We do not use servers marked as backup during normal operations
+    if (d.second->isBackup()) {
+      // We allow only single backup server
+      if (backup == nullptr) {
+        backup = d.second;
+      }
+      continue;
+    }
+
     if(d.second->isUp()) {
       poss.push_back(d);
     }
   }
 
   const auto *res=&poss;
-  if(poss.empty())
+  if(poss.empty()) {
+    // If we have backup server, let's use it
+    if (backup != nullptr)
+        return backup;
+
+    // If all servers down we will ignore their health and will use all of them
     res = &servers;
+  }
 
   if(res->empty())
     return shared_ptr<DownstreamState>();
