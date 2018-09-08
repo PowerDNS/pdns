@@ -1813,6 +1813,9 @@ static void handleRunningTCPQuestion(int fd, FDMultiplexer::funcparam_t& var)
             g_log<<Logger::Warning<<"Error parsing a query packet for tag determination, setting tag=0: "<<e.what()<<endl;
         }
       }
+
+      const struct dnsheader* dh = reinterpret_cast<const struct dnsheader*>(&conn->data[0]);
+
 #ifdef HAVE_PROTOBUF
       if(t_protobufServer || t_outgoingProtobufServer) {
         dc->d_requestorId = requestorId;
@@ -1820,7 +1823,6 @@ static void handleRunningTCPQuestion(int fd, FDMultiplexer::funcparam_t& var)
         dc->d_uuid = (*t_uuidGenerator)();
       }
 
-      const struct dnsheader* dh = reinterpret_cast<const struct dnsheader*>(&conn->data[0]);
       if(t_protobufServer) {
         try {
 
