@@ -113,6 +113,9 @@ public:
   MTasker(size_t stacksize=16*8192) : d_tid(0), d_maxtid(0), d_stacksize(stacksize), d_waitstatus(Error)
   {
     initMainStackBounds();
+
+    // make sure our stack is 16-byte aligned to make all the architectures happy
+    d_stacksize = d_stacksize >> 4 << 4;
   }
 
   typedef void tfunc_t(void *); //!< type of the pointer that starts a thread 
