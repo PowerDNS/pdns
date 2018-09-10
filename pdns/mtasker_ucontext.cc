@@ -134,7 +134,7 @@ pdns_makecontext
     }
     mcp->uc_link = next;
     mcp->uc_stack.ss_sp = ctx.uc_stack.data();
-    mcp->uc_stack.ss_size = ctx.uc_stack.size();
+    mcp->uc_stack.ss_size = ctx.uc_stack.size()-1;
     mcp->uc_stack.ss_flags = 0;
 
     auto ctxarg = splitPointer (&ctx);
