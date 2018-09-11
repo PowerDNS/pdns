@@ -36,6 +36,10 @@ try
 {
   extern StatBag S;
 
+  string namespace_name=arg()["carbon-namespace"];
+  if(namespace_name.empty()) {
+    namespace_name="pdns";
+  }
   string hostname=arg()["carbon-ourname"];
   if(hostname.empty()) {
     char tmp[80];
@@ -45,6 +49,10 @@ try
     if(p) *p=0;
     hostname=tmp;
     boost::replace_all(hostname, ".", "_");
+  }
+  string instance_name=arg()["carbon-instancename"];
+  if(instance_name.empty()) {
+    instance_name="auth";
   }
 
   vector<string> carbonServers;
@@ -61,7 +69,7 @@ try
     ostringstream str;
     time_t now=time(0);
     for(const string& entry : entries) {
-      str<<"pdns."<<hostname<<".auth."<<entry<<' '<<S.read(entry)<<' '<<now<<"\r\n";
+      str<<namespace_name<<'.'<<hostname<<'.'<<instance_name<<'.'<<entry<<' '<<S.read(entry)<<' '<<now<<"\r\n";
     }
     msg = str.str();
 

@@ -177,6 +177,18 @@ Also AXFR a zone from a master with a lower serial.
 
 Seconds to store packets in the :ref:`packet-cache`.
 
+.. _setting-carbon-namespace:
+
+``carbon-namespace``
+--------------------
+
+-  String
+-  Default: pdns
+
+Set the namespace or first string of the metric key. Be careful not to include
+any dots in this setting, unless you know what you are doing.
+See :ref:`metricscarbon`
+
 .. _setting-carbon-ourname:
 
 ``carbon-ourname``
@@ -188,6 +200,18 @@ Seconds to store packets in the :ref:`packet-cache`.
 If sending carbon updates, if set, this will override our hostname. Be
 careful not to include any dots in this setting, unless you know what
 you are doing. See :ref:`metricscarbon`
+
+.. _setting-carbon-instance:
+
+``carbon-instance``
+-------------------
+
+-  String
+-  Default: auth
+
+Set the instance or third string of the metric key. Be careful not to include
+any dots in this setting, unless you know what you are doing.
+See :ref:`metricscarbon`
 
 .. _setting-carbon-server:
 

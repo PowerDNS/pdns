@@ -14,17 +14,24 @@ void doCarbonDump(void*)
 try
 {
   string hostname;
+  string instance_name;
+  string namespace_name;
   vector<string> carbonServers;
 
   {
     Lock l(&g_carbon_config_lock);
     stringtok(carbonServers, arg()["carbon-server"], ", ");
+    namespace_name=arg()["carbon-namespace"];
     hostname=arg()["carbon-ourname"];
+    instance_name=arg()["carbon-instance"];
   }
 
   if(carbonServers.empty())
     return;
 
+  if(namespace_name.empty()) {
+    namespace_name="pdns";
+  }
   if(hostname.empty()) {
     char tmp[80];
     memset(tmp, 0, sizeof(tmp));
@@ -34,6 +41,9 @@ try
 
     hostname=tmp;
     boost::replace_all(hostname, ".", "_");    
+  }
+  if(instance_name.empty()) {
+    instance_name="recursor";
   }
 
   registerAllStats();
@@ -53,7 +63,7 @@ try
       time_t now=time(0);
       
       for(const all_t::value_type& val :  all) {
-        str<<"pdns."<<hostname<<".recursor."<<val.first<<' '<<val.second<<' '<<now<<"\r\n";
+        str<<namespace_name<<'.'<<hostname<<'.'<<instance_name<<'.'<<val.first<<' '<<val.second<<' '<<now<<"\r\n";
       }
       msg = str.str();
     }
