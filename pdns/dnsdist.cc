@@ -2610,7 +2610,7 @@ try
 #ifdef SO_REUSEPORT
       SSetsockopt(cs->tcpFD, SOL_SOCKET, SO_REUSEPORT, 1);
 #else
-      warnlog("SO_REUSEPORT has been configured on local address '%s' but is not supported", cs.local.toStringWithPort());
+      warnlog("SO_REUSEPORT has been configured on local address '%s' but is not supported", cs->local.toStringWithPort());
 #endif
     }
     if(cs->local.sin4.sin_family == AF_INET6) {
