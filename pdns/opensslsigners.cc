@@ -216,6 +216,7 @@ private:
 
 void OpenSSLRSADNSCryptoKeyEngine::create(unsigned int bits)
 {
+  // When changing the bitsizes, also edit them in ::checkKey and pdnsutil.cc
   if ((d_algorithm == DNSSECKeeper::RSASHA1 || d_algorithm == DNSSECKeeper::RSASHA1NSEC3SHA1) && (bits < 512 || bits > 4096)) {
     /* RFC3110 */
     throw runtime_error(getName()+" RSASHA1 key generation failed for invalid bits size " + std::to_string(bits));
@@ -540,6 +541,16 @@ void OpenSSLRSADNSCryptoKeyEngine::fromISCMap(DNSKEYRecordContent& drc, std::map
 
 bool OpenSSLRSADNSCryptoKeyEngine::checkKey() const
 {
+  // When changing the bitsizes, also edit them in ::create and pdnsutil.cc
+  if ((d_algorithm == DNSSECKeeper::RSASHA1 || d_algorithm == DNSSECKeeper::RSASHA1NSEC3SHA1) && (getBits() < 512 || getBits()> 4096)) {
+    return false;
+  }
+  if (d_algorithm == DNSSECKeeper::RSASHA256 && (getBits() < 512 || getBits() > 4096)) {
+    return false;
+  }
+  if (d_algorithm == DNSSECKeeper::RSASHA512 && (getBits() < 1024 || getBits() > 4096)) {
+    return false;
+  }
   return (RSA_check_key(d_key) == 1);
 }
 
