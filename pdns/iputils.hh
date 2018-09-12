@@ -632,11 +632,11 @@ public:
     return *this;
   }
 
-  const typename std::vector<node_type*>::const_iterator begin() const { return _nodes.begin(); }
-  const typename std::vector<node_type*>::const_iterator end() const { return _nodes.end(); }
+  const typename std::set<node_type*>::const_iterator begin() const { return _nodes.begin(); }
+  const typename std::set<node_type*>::const_iterator end() const { return _nodes.end(); }
 
-  typename std::vector<node_type*>::iterator begin() { return _nodes.begin(); }
-  typename std::vector<node_type*>::iterator end() { return _nodes.end(); }
+  typename std::set<node_type*>::iterator begin() { return _nodes.begin(); }
+  typename std::set<node_type*>::iterator end() { return _nodes.end(); }
 
   node_type& insert(const string &mask) {
     return insert(key_type(mask));
@@ -664,7 +664,7 @@ public:
       // only create node if not yet assigned
       if (!node->node4) {
         node->node4 = unique_ptr<node_type>(new node_type());
-        _nodes.push_back(node->node4.get());
+        _nodes.insert(node->node4.get());
       }
       value = node->node4.get();
     } else {
@@ -689,7 +689,7 @@ public:
       // only create node if not yet assigned
       if (!node->node6) {
         node->node6 = unique_ptr<node_type>(new node_type());
-        _nodes.push_back(node->node6.get());
+        _nodes.insert(node->node6.get());
       }
       value = node->node6.get();
     }
@@ -814,13 +814,7 @@ public:
         bits++;
       }
       if (node) {
-        for(auto it = _nodes.begin(); it != _nodes.end(); ) {
-          if (node->node4.get() == *it)
-            it = _nodes.erase(it);
-          else
-            it++;
-        }
-
+        _nodes.erase(node->node4.get());
         node->node4.reset();
 
         if (d_cleanup_tree)
@@ -843,13 +837,7 @@ public:
         bits++;
       }
       if (node) {
-        for(auto it = _nodes.begin(); it != _nodes.end(); ) {
-          if (node->node6.get() == *it)
-            it = _nodes.erase(it);
-          else
-            it++;
-        }
-
+        _nodes.erase(node->node6.get());
         node->node6.reset();
 
         if (d_cleanup_tree)
@@ -895,7 +883,7 @@ public:
 
 private:
   unique_ptr<TreeNode> root; //<! Root of our tree
-  std::vector<node_type*> _nodes; //<! Container for actual values
+  std::set<node_type*> _nodes; //<! Container for actual values
   bool d_cleanup_tree; //<! Whether or not to cleanup the tree on erase
 };
 
