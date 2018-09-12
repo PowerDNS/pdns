@@ -108,7 +108,7 @@ private:
   class ECSIndexEntry
   {
   public:
-    ECSIndexEntry(const DNSName& qname, uint16_t qtype): d_qname(qname), d_qtype(qtype)
+    ECSIndexEntry(const DNSName& qname, uint16_t qtype): d_nmt(true), d_qname(qname), d_qtype(qtype)
     {
     }
 
