@@ -6,9 +6,9 @@ Setting up a carbon export
 
 To emit metrics to Graphite, or any other software supporting the Carbon protocol, use::
 
-  carbonServer('ip-address-of-carbon-server', 'ourname', 30)
+  carbonServer('ip-address-of-carbon-server', 'ourname', 30, 'dnsdist', 'main')
 
-Where ``ourname`` can be used to override your hostname, and ``30`` is the reporting interval in seconds. The last two arguments can be omitted.
+Where ``ourname`` can be used to override your hostname, and ``30`` is the reporting interval in seconds. ``dnsdist`` and ``main`` are used as namespace and instance variables. For querycount statistics these two variables are currently ignored. The last four arguments can be omitted.
 The latest version of `PowerDNS Metronome <https://github.com/ahupowerdns/metronome>`_ comes with attractive graphs for dnsdist by default.
 
 Query counters
