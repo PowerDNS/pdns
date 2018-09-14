@@ -1,8 +1,4 @@
 #pragma once
-#ifdef L
-#error "Include this file BEFORE including logger.hh"
-#endif
-
 #include <boost/accumulators/accumulators.hpp>
 #include <boost/accumulators/statistics.hpp>
 
