@@ -186,7 +186,7 @@ static size_t s_maxUDPQueriesPerRound;
 static uint64_t g_latencyStatSize;
 static uint32_t g_disthashseed;
 static unsigned int g_maxTCPPerClient;
-static unsigned int g_networkTimeoutMsec;
+unsigned int g_networkTimeoutMsec;
 static unsigned int g_maxMThreads;
 static unsigned int g_numDistributorThreads;
 static unsigned int g_numWorkerThreads;
