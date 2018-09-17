@@ -111,7 +111,7 @@ This state can be modified from the various hooks.
 
   .. method:: DNSQuestion:getTrailingData() -> table
 
-    .. versionadded:: >1.3.2
+    .. versionadded:: 1.4.0
 
     Get all data following the DNS message.
 
@@ -144,7 +144,7 @@ This state can be modified from the various hooks.
 
   .. method:: DNSQuestion:setTrailingData(bytes) -> bool
 
-    .. versionadded:: >1.3.2
+    .. versionadded:: 1.4.0
 
     Set the data following the DNS message, overwriting anything already present.
 
