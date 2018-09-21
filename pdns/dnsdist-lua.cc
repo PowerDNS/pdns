@@ -913,6 +913,8 @@ void setupLuaConfig(bool client)
 
   g_lua.writeFunction("setECSOverride", [](bool override) { g_ECSOverride=override; });
 
+  g_lua.writeFunction("setPreserveTrailingData", [](bool preserve) { g_preserveTrailingData = preserve; });
+
   g_lua.writeFunction("showDynBlocks", []() {
       setLuaNoSideEffect();
       auto slow = g_dynblockNMG.getCopy();

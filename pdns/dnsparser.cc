@@ -811,7 +811,7 @@ uint32_t getDNSPacketLength(const char* packet, size_t length)
   }
   try
   {
-    const dnsheader* dh = (const dnsheader*) packet;
+    const dnsheader* dh = reinterpret_cast<const dnsheader*>(packet);
     DNSPacketMangler dpm(const_cast<char*>(packet), length);
 
     const uint16_t qdcount = ntohs(dh->qdcount);

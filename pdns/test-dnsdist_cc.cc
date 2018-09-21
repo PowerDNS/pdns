@@ -23,9 +23,12 @@
 #define BOOST_TEST_NO_MAIN
 
 #include <boost/test/unit_test.hpp>
+#include <unistd.h>
 
 #include "dnsdist.hh"
 #include "dnsdist-ecs.hh"
+#include "dnsdist-xpf.hh"
+
 #include "dolog.hh"
 #include "dnsname.hh"
 #include "dnsparser.hh"
@@ -33,17 +36,13 @@
 #include "ednsoptions.hh"
 #include "ednscookies.hh"
 #include "ednssubnet.hh"
-#include <unistd.h>
 
 BOOST_AUTO_TEST_SUITE(test_dnsdist_cc)
-
-bool g_syslog{true};
-bool g_verbose{true};
 
 static const uint16_t ECSSourcePrefixV4 = 24;
 static const uint16_t ECSSourcePrefixV6 = 56;
 
-static void validateQuery(const char * packet, size_t packetSize, bool hasEdns=true)
+static void validateQuery(const char * packet, size_t packetSize, bool hasEdns=true, bool hasXPF=false)
 {
   MOADNSParser mdp(true, packet, packetSize);
 
@@ -52,7 +51,8 @@ static void validateQuery(const char * packet, size_t packetSize, bool hasEdns=t
   BOOST_CHECK_EQUAL(mdp.d_header.qdcount, 1);
   BOOST_CHECK_EQUAL(mdp.d_header.ancount, 0);
   BOOST_CHECK_EQUAL(mdp.d_header.nscount, 0);
-  BOOST_CHECK_EQUAL(mdp.d_header.arcount, (hasEdns ? 1 : 0));
+  uint16_t expectedARCount = 0 + (hasEdns ? 1 : 0) + (hasXPF ? 1 : 0);
+  BOOST_CHECK_EQUAL(mdp.d_header.arcount, expectedARCount);
 }
 
 static void validateECS(const char* packet, size_t packetSize, const ComboAddress& expected)
@@ -89,6 +89,124 @@ static void validateResponse(const char * packet, size_t packetSize, bool hasEdn
   BOOST_CHECK_EQUAL(mdp.d_header.arcount, (hasEdns ? 1 : 0) + additionalCount);
 }
 
+BOOST_AUTO_TEST_CASE(test_addXPF)
+{
+  static const uint16_t xpfOptionCode = 65422;
+
+  struct timespec queryTime;
+  gettime(&queryTime);  // does not have to be accurate ("realTime") in tests
+  ComboAddress remote;
+  DNSName name("www.powerdns.com.");
+
+  vector<uint8_t> query;
+  DNSPacketWriter pw(query, name, QType::A, QClass::IN, 0);
+  pw.getHeader()->rd = 1;
+  const uint16_t len = query.size();
+  vector<uint8_t> queryWithXPF;
+
+  {
+    char packet[1500];
+    memcpy(packet, query.data(), query.size());
+
+    /* large enough packet */
+    unsigned int consumed = 0;
+    uint16_t qtype;
+    DNSName qname(packet, len, sizeof(dnsheader), false, &qtype, nullptr, &consumed);
+    BOOST_CHECK_EQUAL(qname, name);
+    BOOST_CHECK(qtype == QType::A);
+
+    auto dh = reinterpret_cast<dnsheader*>(packet);
+    DNSQuestion dq(&qname, qtype, QClass::IN, qname.wirelength(), &remote, &remote, dh, sizeof(packet), query.size(), false, &queryTime);
+
+    BOOST_CHECK(addXPF(dq, xpfOptionCode, false));
+    BOOST_CHECK(static_cast<size_t>(dq.len) > query.size());
+    validateQuery(packet, dq.len, false, true);
+    queryWithXPF.resize(dq.len);
+    memcpy(queryWithXPF.data(), packet, dq.len);
+  }
+
+  {
+    char packet[1500];
+    memcpy(packet, query.data(), query.size());
+
+    /* not large enough packet */
+    unsigned int consumed = 0;
+    uint16_t qtype;
+    DNSName qname(packet, len, sizeof(dnsheader), false, &qtype, nullptr, &consumed);
+    BOOST_CHECK_EQUAL(qname, name);
+    BOOST_CHECK(qtype == QType::A);
+
+    auto dh = reinterpret_cast<dnsheader*>(packet);
+    DNSQuestion dq(&qname, qtype, QClass::IN, qname.wirelength(), &remote, &remote, dh, sizeof(packet), query.size(), false, &queryTime);
+    dq.size = dq.len;
+
+    BOOST_CHECK(!addXPF(dq, xpfOptionCode, false));
+    BOOST_CHECK_EQUAL(static_cast<size_t>(dq.len), query.size());
+    validateQuery(packet, dq.len, false, false);
+  }
+
+  {
+    char packet[1500];
+    memcpy(packet, query.data(), query.size());
+
+    /* packet with trailing data (overriding it) */
+    unsigned int consumed = 0;
+    uint16_t qtype;
+    DNSName qname(packet, len, sizeof(dnsheader), false, &qtype, nullptr, &consumed);
+    BOOST_CHECK_EQUAL(qname, name);
+    BOOST_CHECK(qtype == QType::A);
+
+    auto dh = reinterpret_cast<dnsheader*>(packet);
+    DNSQuestion dq(&qname, qtype, QClass::IN, qname.wirelength(), &remote, &remote, dh, sizeof(packet), query.size(), false, &queryTime);
+
+    /* add trailing data */
+    const size_t trailingDataSize = 10;
+    /* Making sure we have enough room to allow for fake trailing data */
+    BOOST_REQUIRE(sizeof(packet) > dq.len && (sizeof(packet) - dq.len) > trailingDataSize);
+    for (size_t idx = 0; idx < trailingDataSize; idx++) {
+      packet[dq.len + idx] = 'A';
+    }
+    dq.len += trailingDataSize;
+
+    BOOST_CHECK(addXPF(dq, xpfOptionCode, false));
+    BOOST_CHECK_EQUAL(static_cast<size_t>(dq.len), queryWithXPF.size());
+    BOOST_CHECK_EQUAL(memcmp(queryWithXPF.data(), packet, queryWithXPF.size()), 0);
+    validateQuery(packet, dq.len, false, true);
+  }
+
+  {
+    char packet[1500];
+    memcpy(packet, query.data(), query.size());
+
+    /* packet with trailing data (preserving trailing data) */
+    unsigned int consumed = 0;
+    uint16_t qtype;
+    DNSName qname(packet, len, sizeof(dnsheader), false, &qtype, nullptr, &consumed);
+    BOOST_CHECK_EQUAL(qname, name);
+    BOOST_CHECK(qtype == QType::A);
+
+    auto dh = reinterpret_cast<dnsheader*>(packet);
+    DNSQuestion dq(&qname, qtype, QClass::IN, qname.wirelength(), &remote, &remote, dh, sizeof(packet), query.size(), false, &queryTime);
+
+    /* add trailing data */
+    const size_t trailingDataSize = 10;
+    /* Making sure we have enough room to allow for fake trailing data */
+    BOOST_REQUIRE(sizeof(packet) > dq.len && (sizeof(packet) - dq.len) > trailingDataSize);
+    for (size_t idx = 0; idx < trailingDataSize; idx++) {
+      packet[dq.len + idx] = 'A';
+    }
+    dq.len += trailingDataSize;
+
+    BOOST_CHECK(addXPF(dq, xpfOptionCode, true));
+    BOOST_CHECK(static_cast<size_t>(dq.len) > queryWithXPF.size());
+    BOOST_CHECK_EQUAL(memcmp(queryWithXPF.data(), packet, queryWithXPF.size()), 0);
+    for (size_t idx = 0; idx < trailingDataSize; idx++) {
+      BOOST_CHECK_EQUAL(packet[queryWithXPF.size() + idx], 'A');
+    }
+    validateQuery(packet, dq.len, false, true);
+  }
+}
+
 BOOST_AUTO_TEST_CASE(addECSWithoutEDNS)
 {
   bool ednsAdded = false;
@@ -109,31 +227,84 @@ BOOST_AUTO_TEST_CASE(addECSWithoutEDNS)
 
   unsigned int consumed = 0;
   uint16_t qtype;
-  DNSName qname(packet, len, sizeof(dnsheader), false, &qtype, NULL, &consumed);
+  DNSName qname(packet, len, sizeof(dnsheader), false, &qtype, nullptr, &consumed);
   BOOST_CHECK_EQUAL(qname, name);
   BOOST_CHECK(qtype == QType::A);
 
-  BOOST_CHECK(handleEDNSClientSubnet(packet, sizeof packet, consumed, &len, &ednsAdded, &ecsAdded, false, newECSOption));
-  BOOST_CHECK((size_t) len > query.size());
+  BOOST_CHECK(handleEDNSClientSubnet(packet, sizeof packet, consumed, &len, &ednsAdded, &ecsAdded, false, newECSOption, false));
+  BOOST_CHECK(static_cast<size_t>(len) > query.size());
   BOOST_CHECK_EQUAL(ednsAdded, true);
   BOOST_CHECK_EQUAL(ecsAdded, false);
   validateQuery(packet, len);
   validateECS(packet, len, remote);
+  vector<uint8_t> queryWithEDNS;
+  queryWithEDNS.resize(len);
+  memcpy(queryWithEDNS.data(), packet, len);
 
   /* not large enough packet */
   ednsAdded = false;
   ecsAdded = false;
   consumed = 0;
   len = query.size();
-  qname = DNSName(reinterpret_cast<char*>(query.data()), len, sizeof(dnsheader), false, &qtype, NULL, &consumed);
+  qname = DNSName(reinterpret_cast<char*>(query.data()), len, sizeof(dnsheader), false, &qtype, nullptr, &consumed);
   BOOST_CHECK_EQUAL(qname, name);
   BOOST_CHECK(qtype == QType::A);
 
-  BOOST_CHECK(!handleEDNSClientSubnet(reinterpret_cast<char*>(query.data()), query.size(), consumed, &len, &ednsAdded, &ecsAdded, false, newECSOption));
-  BOOST_CHECK_EQUAL((size_t) len, query.size());
+  BOOST_CHECK(!handleEDNSClientSubnet(reinterpret_cast<char*>(query.data()), query.size(), consumed, &len, &ednsAdded, &ecsAdded, false, newECSOption, false));
+  BOOST_CHECK_EQUAL(static_cast<size_t>(len), query.size());
   BOOST_CHECK_EQUAL(ednsAdded, false);
   BOOST_CHECK_EQUAL(ecsAdded, false);
   validateQuery(reinterpret_cast<char*>(query.data()), len, false);
+
+  /* packet with trailing data (overriding it) */
+  memcpy(packet, query.data(), query.size());
+  ednsAdded = false;
+  ecsAdded = false;
+  consumed = 0;
+  len = query.size();
+  qname = DNSName(packet, len, sizeof(dnsheader), false, &qtype, nullptr, &consumed);
+  BOOST_CHECK_EQUAL(qname, name);
+  BOOST_CHECK(qtype == QType::A);
+  /* add trailing data */
+  const size_t trailingDataSize = 10;
+  /* Making sure we have enough room to allow for fake trailing data */
+  BOOST_REQUIRE(sizeof(packet) > len && (sizeof(packet) - len) > trailingDataSize);
+  for (size_t idx = 0; idx < trailingDataSize; idx++) {
+    packet[len + idx] = 'A';
+  }
+  len += trailingDataSize;
+  BOOST_CHECK(handleEDNSClientSubnet(packet, sizeof packet, consumed, &len, &ednsAdded, &ecsAdded, false, newECSOption, false));
+  BOOST_REQUIRE_EQUAL(static_cast<size_t>(len), queryWithEDNS.size());
+  BOOST_CHECK_EQUAL(memcmp(queryWithEDNS.data(), packet, queryWithEDNS.size()), 0);
+  BOOST_CHECK_EQUAL(ednsAdded, true);
+  BOOST_CHECK_EQUAL(ecsAdded, false);
+  validateQuery(packet, len);
+
+  /* packet with trailing data (preserving trailing data) */
+  memcpy(packet, query.data(), query.size());
+  ednsAdded = false;
+  ecsAdded = false;
+  consumed = 0;
+  len = query.size();
+  qname = DNSName(packet, len, sizeof(dnsheader), false, &qtype, nullptr, &consumed);
+  BOOST_CHECK_EQUAL(qname, name);
+  BOOST_CHECK(qtype == QType::A);
+  /* add trailing data */
+  /* Making sure we have enough room to allow for fake trailing data */
+  BOOST_REQUIRE(sizeof(packet) > len && (sizeof(packet) - len) > trailingDataSize);
+  for (size_t idx = 0; idx < trailingDataSize; idx++) {
+    packet[len + idx] = 'A';
+  }
+  len += trailingDataSize;
+  BOOST_CHECK(handleEDNSClientSubnet(packet, sizeof packet, consumed, &len, &ednsAdded, &ecsAdded, false, newECSOption, true));
+  BOOST_REQUIRE_EQUAL(static_cast<size_t>(len), queryWithEDNS.size() + trailingDataSize);
+  BOOST_CHECK_EQUAL(memcmp(queryWithEDNS.data(), packet, queryWithEDNS.size()), 0);
+  for (size_t idx = 0; idx < trailingDataSize; idx++) {
+    BOOST_CHECK_EQUAL(packet[queryWithEDNS.size() + idx], 'A');
+  }
+  BOOST_CHECK_EQUAL(ednsAdded, true);
+  BOOST_CHECK_EQUAL(ecsAdded, false);
+  validateQuery(packet, len);
 }
 
 BOOST_AUTO_TEST_CASE(addECSWithoutEDNSAlreadyParsed)
@@ -164,7 +335,7 @@ BOOST_AUTO_TEST_CASE(addECSWithoutEDNSAlreadyParsed)
   BOOST_CHECK(!parseEDNSOptions(dq));
 
   /* And now we add our own ECS */
-  BOOST_CHECK(handleEDNSClientSubnet(dq, &ednsAdded, &ecsAdded));
+  BOOST_CHECK(handleEDNSClientSubnet(dq, &ednsAdded, &ecsAdded, false));
   BOOST_CHECK_GT(static_cast<size_t>(dq.len), query.size());
   BOOST_CHECK_EQUAL(ednsAdded, true);
   BOOST_CHECK_EQUAL(ecsAdded, false);
@@ -181,7 +352,7 @@ BOOST_AUTO_TEST_CASE(addECSWithoutEDNSAlreadyParsed)
   BOOST_CHECK(qclass == QClass::IN);
   DNSQuestion dq2(&qname, qtype, qclass, consumed, nullptr, &remote, reinterpret_cast<dnsheader*>(query.data()), query.size(), query.size(), false, nullptr);
 
-  BOOST_CHECK(!handleEDNSClientSubnet(dq2, &ednsAdded, &ecsAdded));
+  BOOST_CHECK(!handleEDNSClientSubnet(dq2, &ednsAdded, &ecsAdded, false));
   BOOST_CHECK_EQUAL(static_cast<size_t>(dq2.len), query.size());
   BOOST_CHECK_EQUAL(ednsAdded, false);
   BOOST_CHECK_EQUAL(ecsAdded, false);
@@ -213,7 +384,7 @@ BOOST_AUTO_TEST_CASE(addECSWithEDNSNoECS) {
   BOOST_CHECK_EQUAL(qname, name);
   BOOST_CHECK(qtype == QType::A);
 
-  BOOST_CHECK(handleEDNSClientSubnet(packet, sizeof packet, consumed, &len, &ednsAdded, &ecsAdded, false, newECSOption));
+  BOOST_CHECK(handleEDNSClientSubnet(packet, sizeof packet, consumed, &len, &ednsAdded, &ecsAdded, false, newECSOption, false));
   BOOST_CHECK((size_t) len > query.size());
   BOOST_CHECK_EQUAL(ednsAdded, false);
   BOOST_CHECK_EQUAL(ecsAdded, true);
@@ -229,7 +400,7 @@ BOOST_AUTO_TEST_CASE(addECSWithEDNSNoECS) {
   BOOST_CHECK_EQUAL(qname, name);
   BOOST_CHECK(qtype == QType::A);
 
-  BOOST_CHECK(!handleEDNSClientSubnet(reinterpret_cast<char*>(query.data()), query.size(), consumed, &len, &ednsAdded, &ecsAdded, false, newECSOption));
+  BOOST_CHECK(!handleEDNSClientSubnet(reinterpret_cast<char*>(query.data()), query.size(), consumed, &len, &ednsAdded, &ecsAdded, false, newECSOption, false));
   BOOST_CHECK_EQUAL((size_t) len, query.size());
   BOOST_CHECK_EQUAL(ednsAdded, false);
   BOOST_CHECK_EQUAL(ecsAdded, false);
@@ -265,7 +436,7 @@ BOOST_AUTO_TEST_CASE(addECSWithEDNSNoECSAlreadyParsed) {
   BOOST_CHECK(parseEDNSOptions(dq));
 
   /* And now we add our own ECS */
-  BOOST_CHECK(handleEDNSClientSubnet(dq, &ednsAdded, &ecsAdded));
+  BOOST_CHECK(handleEDNSClientSubnet(dq, &ednsAdded, &ecsAdded, false));
   BOOST_CHECK_GT(static_cast<size_t>(dq.len), query.size());
   BOOST_CHECK_EQUAL(ednsAdded, false);
   BOOST_CHECK_EQUAL(ecsAdded, true);
@@ -282,7 +453,7 @@ BOOST_AUTO_TEST_CASE(addECSWithEDNSNoECSAlreadyParsed) {
   BOOST_CHECK(qclass == QClass::IN);
   DNSQuestion dq2(&qname, qtype, qclass, consumed, nullptr, &remote, reinterpret_cast<dnsheader*>(query.data()), query.size(), query.size(), false, nullptr);
 
-  BOOST_CHECK(!handleEDNSClientSubnet(dq2, &ednsAdded, &ecsAdded));
+  BOOST_CHECK(!handleEDNSClientSubnet(dq2, &ednsAdded, &ecsAdded, false));
   BOOST_CHECK_EQUAL(static_cast<size_t>(dq2.len), query.size());
   BOOST_CHECK_EQUAL(ednsAdded, false);
   BOOST_CHECK_EQUAL(ecsAdded, false);
@@ -320,7 +491,7 @@ BOOST_AUTO_TEST_CASE(replaceECSWithSameSize) {
   BOOST_CHECK_EQUAL(qname, name);
   BOOST_CHECK(qtype == QType::A);
 
-  BOOST_CHECK(handleEDNSClientSubnet(packet, sizeof packet, consumed, &len, &ednsAdded, &ecsAdded, true, newECSOption));
+  BOOST_CHECK(handleEDNSClientSubnet(packet, sizeof packet, consumed, &len, &ednsAdded, &ecsAdded, true, newECSOption, false));
   BOOST_CHECK_EQUAL((size_t) len, query.size());
   BOOST_CHECK_EQUAL(ednsAdded, false);
   BOOST_CHECK_EQUAL(ecsAdded, false);
@@ -365,7 +536,7 @@ BOOST_AUTO_TEST_CASE(replaceECSWithSameSizeAlreadyParsed) {
   BOOST_CHECK(parseEDNSOptions(dq));
 
   /* And now we add our own ECS */
-  BOOST_CHECK(handleEDNSClientSubnet(dq, &ednsAdded, &ecsAdded));
+  BOOST_CHECK(handleEDNSClientSubnet(dq, &ednsAdded, &ecsAdded, false));
   BOOST_CHECK_EQUAL(static_cast<size_t>(dq.len), query.size());
   BOOST_CHECK_EQUAL(ednsAdded, false);
   BOOST_CHECK_EQUAL(ecsAdded, false);
@@ -404,7 +575,7 @@ BOOST_AUTO_TEST_CASE(replaceECSWithSmaller) {
   BOOST_CHECK_EQUAL(qname, name);
   BOOST_CHECK(qtype == QType::A);
 
-  BOOST_CHECK(handleEDNSClientSubnet(packet, sizeof packet, consumed, &len, &ednsAdded, &ecsAdded, true, newECSOption));
+  BOOST_CHECK(handleEDNSClientSubnet(packet, sizeof packet, consumed, &len, &ednsAdded, &ecsAdded, true, newECSOption, false));
   BOOST_CHECK((size_t) len < query.size());
   BOOST_CHECK_EQUAL(ednsAdded, false);
   BOOST_CHECK_EQUAL(ecsAdded, false);
@@ -443,7 +614,7 @@ BOOST_AUTO_TEST_CASE(replaceECSWithLarger) {
   BOOST_CHECK_EQUAL(qname, name);
   BOOST_CHECK(qtype == QType::A);
 
-  BOOST_CHECK(handleEDNSClientSubnet(packet, sizeof packet, consumed, &len, &ednsAdded, &ecsAdded, true, newECSOption));
+  BOOST_CHECK(handleEDNSClientSubnet(packet, sizeof packet, consumed, &len, &ednsAdded, &ecsAdded, true, newECSOption, false));
   BOOST_CHECK((size_t) len > query.size());
   BOOST_CHECK_EQUAL(ednsAdded, false);
   BOOST_CHECK_EQUAL(ecsAdded, false);
@@ -459,7 +630,7 @@ BOOST_AUTO_TEST_CASE(replaceECSWithLarger) {
   BOOST_CHECK_EQUAL(qname, name);
   BOOST_CHECK(qtype == QType::A);
 
-  BOOST_CHECK(!handleEDNSClientSubnet(reinterpret_cast<char*>(query.data()), query.size(), consumed, &len, &ednsAdded, &ecsAdded, true, newECSOption));
+  BOOST_CHECK(!handleEDNSClientSubnet(reinterpret_cast<char*>(query.data()), query.size(), consumed, &len, &ednsAdded, &ecsAdded, true, newECSOption, false));
   BOOST_CHECK_EQUAL((size_t) len, query.size());
   BOOST_CHECK_EQUAL(ednsAdded, false);
   BOOST_CHECK_EQUAL(ecsAdded, false);

@@ -22,6 +22,7 @@
 #include "dnsdist.hh"
 #include "dnsdist-ecs.hh"
 #include "dnsdist-rings.hh"
+#include "dnsdist-xpf.hh"
 
 #include "dnsparser.hh"
 #include "ednsoptions.hh"
@@ -433,7 +434,7 @@ void* tcpClientThread(int pipefd)
         }
 
         if (dq.useECS && ((ds && ds->useECS) || (!ds && serverPool->getECS()))) {
-          if (!handleEDNSClientSubnet(dq, &(ednsAdded), &(ecsAdded))) {
+          if (!handleEDNSClientSubnet(dq, &(ednsAdded), &(ecsAdded), g_preserveTrailingData)) {
             vinfolog("Dropping query from %s because we couldn't insert the ECS value", ci.remote.toStringWithPort());
             goto drop;
           }
@@ -501,7 +502,7 @@ void* tcpClientThread(int pipefd)
         }
 
         if (dq.addXPF && ds->xpfRRCode != 0) {
-          addXPF(dq, ds->xpfRRCode);
+          addXPF(dq, ds->xpfRRCode, g_preserveTrailingData);
         }
 
 	int dsock = -1;
