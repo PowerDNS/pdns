@@ -775,10 +775,10 @@ shared_ptr<DownstreamState> whashed(const NumberedServerVector& servers, const D
 
 shared_ptr<DownstreamState> chashed(const NumberedServerVector& servers, const DNSQuestion* dq)
 {
-  std::map<unsigned int, shared_ptr<DownstreamState>> circle = {};
   unsigned int qhash = dq->qname->hash(g_hashperturb);
-  unsigned int sel = 0, max = 0;
-  shared_ptr<DownstreamState> ret = nullptr, last = nullptr;
+  unsigned int sel = std::numeric_limits<unsigned int>::max();
+  unsigned int min = std::numeric_limits<unsigned int>::max();
+  shared_ptr<DownstreamState> ret = nullptr, first = nullptr;
 
   for (const auto& d: servers) {
     if (d.second->isUp()) {
@@ -790,18 +790,17 @@ shared_ptr<DownstreamState> chashed(const NumberedServerVector& servers, const D
         ReadLock rl(&(d.second->d_lock));
         const auto& server = d.second;
         // we want to keep track of the last hash
-        if (max < *(server->hashes.rbegin())) {
-          max = *(server->hashes.rbegin());
-          last = server;
+        if (min > *(server->hashes.begin())) {
+          min = *(server->hashes.begin());
+          first = server;
         }
-        auto hash_it = server->hashes.begin();
-        while (hash_it != server->hashes.end()
-               && *hash_it < qhash) {
-          if (*hash_it > sel) {
+
+        auto hash_it = server->hashes.lower_bound(qhash);
+        if (hash_it != server->hashes.end()) {
+          if (*hash_it < sel) {
             sel = *hash_it;
             ret = server;
           }
-          ++hash_it;
         }
       }
     }
@@ -809,8 +808,8 @@ shared_ptr<DownstreamState> chashed(const NumberedServerVector& servers, const D
   if (ret != nullptr) {
     return ret;
   }
-  if (last != nullptr) {
-    return last;
+  if (first != nullptr) {
+    return first;
   }
   return shared_ptr<DownstreamState>();
 }
