@@ -35,6 +35,11 @@ acl:
 #
 axfr-timeout: 20
 
+# Time in seconds between retries of the SOA query for a zone we have never
+# transferred.
+
+failed-soa-retry: 30
+
 # Whether record compression should be enabled, leading to smaller answers
 # at the cost of an increased CPU and memory usage. Defaults to false.
 #
