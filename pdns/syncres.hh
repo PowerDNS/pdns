@@ -981,6 +981,7 @@ string doQueueReloadLuaScript(vector<string>::const_iterator begin, vector<strin
 string doTraceRegex(vector<string>::const_iterator begin, vector<string>::const_iterator end);
 void parseACLs();
 extern RecursorStats g_stats;
+extern unsigned int g_networkTimeoutMsec;
 extern unsigned int g_numThreads;
 extern uint16_t g_outgoingEDNSBufsize;
 extern std::atomic<uint32_t> g_maxCacheEntries, g_maxPacketCacheEntries;
