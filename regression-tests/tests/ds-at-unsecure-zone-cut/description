@@ -1,2 +1,2 @@
-This test tries to resolve a DS question at an unsecure zone-cut, thus
-testing RFC 4035 3.1.4.1 and B.8.
+This test tries to resolve a DS question at an unsecure zone-cut, in
+the wrong presence of a child-side DS, thus testing RFC 4035 3.1.4.1 and B.8.
