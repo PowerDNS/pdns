@@ -161,15 +161,15 @@ public:
 
 struct DynBlock
 {
-  DynBlock(): action(DNSAction::Action::None)
+  DynBlock(): action(DNSAction::Action::None), warning(false)
   {
   }
 
-  DynBlock(const std::string& reason_, const struct timespec& until_, const DNSName& domain_, DNSAction::Action action_): reason(reason_), until(until_), domain(domain_), action(action_)
+  DynBlock(const std::string& reason_, const struct timespec& until_, const DNSName& domain_, DNSAction::Action action_): reason(reason_), until(until_), domain(domain_), action(action_), warning(false)
   {
   }
 
-  DynBlock(const DynBlock& rhs): reason(rhs.reason), until(rhs.until), domain(rhs.domain), action(rhs.action)
+  DynBlock(const DynBlock& rhs): reason(rhs.reason), until(rhs.until), domain(rhs.domain), action(rhs.action), warning(rhs.warning)
   {
     blocks.store(rhs.blocks);
   }
@@ -181,6 +181,7 @@ struct DynBlock
     domain=rhs.domain;
     action=rhs.action;
     blocks.store(rhs.blocks);
+    warning=rhs.warning;
     return *this;
   }
 
@@ -189,6 +190,7 @@ struct DynBlock
   DNSName domain;
   DNSAction::Action action;
   mutable std::atomic<unsigned int> blocks;
+  bool warning;
 };
 
 extern GlobalStateHolder<NetmaskTree<DynBlock>> g_dynblockNMG;
