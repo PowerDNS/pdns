@@ -174,6 +174,11 @@ vector<BenchQuery> g_queries;
 
 static void* worker(void*)
 {
+  string threadName = "dnstcpb/worker";
+  auto retval = pthread_setname_np(pthread_self(), const_cast<char*>(threadName.c_str()));
+  if (retval != 0) {
+    cerr<<"Could not set thread name "<<threadName<<" for wthread: "<<strerror(retval)<<endl;
+  }
   for(;;) {
     unsigned int pos = g_pos++; 
     if(pos >= g_queries.size())
