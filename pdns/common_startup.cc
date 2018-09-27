@@ -367,6 +367,12 @@ void sendout(DNSPacket* a)
 void *qthread(void *number)
 try
 {
+  string threadName = "pdns/receiver";
+  auto retval = pthread_setname_np(pthread_self(), const_cast<char*>(threadName.c_str()));
+  if (retval != 0) {
+    g_log<<Logger::Warning<<"Could not set thread name "<<threadName<<" for receiver thread: "<<strerror(retval)<<endl;
+  }
+
   DNSPacket *P;
   DNSDistributor *distributor = DNSDistributor::Create(::arg().asNum("distributor-threads", 1)); // the big dispatcher!
   int num = (int)(unsigned long)number;

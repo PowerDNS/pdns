@@ -75,6 +75,11 @@ void AuthWebServer::go()
 void AuthWebServer::statThread()
 {
   try {
+    string threadName = "pdns/statHelper";
+    auto retval = pthread_setname_np(pthread_self(), const_cast<char*>(threadName.c_str()));
+    if (retval != 0) {
+      g_log<<Logger::Warning<<"Could not set thread name "<<threadName<<" for stat helper thread: "<<strerror(retval)<<endl;
+    }
     for(;;) {
       d_queries.submit(S.read("udp-queries"));
       d_cachehits.submit(S.read("packetcache-hit"));
@@ -1949,6 +1954,11 @@ void AuthWebServer::cssfunction(HttpRequest* req, HttpResponse* resp)
 void AuthWebServer::webThread()
 {
   try {
+    string threadName = "pdns/webserver";
+    auto retval = pthread_setname_np(pthread_self(), const_cast<char*>(threadName.c_str()));
+    if (retval != 0) {
+      g_log<<Logger::Warning<<"Could not set thread name "<<threadName<<" for webserver thread: "<<strerror(retval)<<endl;
+    }
     if(::arg().mustDo("api")) {
       d_ws->registerApiHandler("/api/v1/servers/localhost/cache/flush", &apiServerCacheFlush);
       d_ws->registerApiHandler("/api/v1/servers/localhost/config", &apiServerConfig);

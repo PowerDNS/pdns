@@ -34,6 +34,11 @@
 void* carbonDumpThread(void*)
 try
 {
+  string threadName = "pdns/carbonDump";
+  auto retval = pthread_setname_np(pthread_self(), const_cast<char*>(threadName.c_str()));
+  if (retval != 0) {
+    g_log<<Logger::Warning<<"Could not set thread name "<<threadName<<" for Carbon dump thread: "<<strerror(retval)<<endl;
+  }
   extern StatBag S;
 
   string hostname=arg()["carbon-ourname"];

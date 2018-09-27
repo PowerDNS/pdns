@@ -173,6 +173,11 @@ template<class Answer, class Question, class Backend>MultiThreadDistributor<Answ
 // start of a new thread
 template<class Answer, class Question, class Backend>void *MultiThreadDistributor<Answer,Question,Backend>::makeThread(void *p)
 {
+  string threadName = "pdns/distributo";
+  auto retval = pthread_setname_np(pthread_self(), const_cast<char*>(threadName.c_str()));
+  if (retval != 0) {
+    g_log<<Logger::Warning<<"Could not set thread name "<<threadName<<" for distributor thread: "<<strerror(retval)<<endl;
+  }
   pthread_detach(pthread_self());
   MultiThreadDistributor *us=static_cast<MultiThreadDistributor *>(p);
   int ournum=us->d_running++;

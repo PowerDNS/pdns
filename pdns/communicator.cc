@@ -40,6 +40,11 @@
 // there can be MANY OF THESE
 void CommunicatorClass::retrievalLoopThread(void)
 {
+  string threadName = "pdns/comm-retre";
+  auto retval = pthread_setname_np(pthread_self(), const_cast<char*>(threadName.c_str()));
+  if (retval != 0) {
+    g_log<<Logger::Warning<<"Could not set thread name "<<threadName<<" for retrieval thread: "<<strerror(retval)<<endl;
+  }
   for(;;) {
     d_suck_sem.wait();
     SuckRequest sr;
@@ -104,6 +109,12 @@ void CommunicatorClass::go()
 void CommunicatorClass::mainloop(void)
 {
   try {
+    string threadName = "pdns/comm-main";
+    auto retval = pthread_setname_np(pthread_self(), const_cast<char*>(threadName.c_str()));
+    if (retval != 0) {
+      g_log<<Logger::Warning<<"Could not set thread name "<<threadName<<" for communicator main thread: "<<strerror(retval)<<endl;
+    }
+
     signal(SIGPIPE,SIG_IGN);
     g_log<<Logger::Error<<"Master/slave communicator launching"<<endl;
     PacketHandler P;
