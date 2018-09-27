@@ -1,5 +1,6 @@
 #include "snmp-agent.hh"
 #include "misc.hh"
+#include "logger.hh"
 
 #ifdef HAVE_NET_SNMP
 
@@ -98,6 +99,12 @@ void SNMPAgent::worker()
   FDMultiplexer* mplexer = FDMultiplexer::getMultiplexerSilent();
   if (mplexer == nullptr) {
     throw std::runtime_error("No FD multiplexer found for the SNMP agent!");
+  }
+
+  string threadName = "pdns-r/SNMP";
+  auto retval = pthread_setname_np(pthread_self(), const_cast<char*>(threadName.c_str()));
+  if (retval != 0) {
+    g_log<<Logger::Warning<<"Could not set thread name "<<threadName<<" for SNMP thread: "<<strerror(retval)<<endl;
   }
 
   int maxfd = 0;

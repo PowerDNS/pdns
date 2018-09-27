@@ -1,4 +1,5 @@
 #include <unistd.h>
+#include <pthread.h>
 #include "remote_logger.hh"
 #include "config.h"
 #ifdef PDNS_CONFIG_ARGS
@@ -41,6 +42,11 @@ void RemoteLogger::busyReconnectLoop()
 
 void RemoteLogger::worker()
 {
+  string threadName = "pdns-r/remLog";
+  auto retval = pthread_setname_np(pthread_self(), const_cast<char*>(threadName.c_str()));
+  if (retval != 0) {
+    g_log<<Logger::Warning<<"Could not set thread name "<<threadName<<" for Remote Logger thread: "<<strerror(retval)<<endl;
+  }
   while(true) {
     std::string data;
     {

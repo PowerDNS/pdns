@@ -99,6 +99,11 @@ bool NODDB::init(bool ignore_pid) {
 
 void NODDB::housekeepingThread()
 {
+  string threadName = "pdns-r/NOD-hk";
+  auto retval = pthread_setname_np(pthread_self(), const_cast<char*>(threadName.c_str()));
+  if (retval != 0) {
+    g_log<<Logger::Warning<<"Could not set thread name "<<threadName<<" for NOD housekeeping thread: "<<strerror(retval)<<endl;
+  }
   for (;;) {
     sleep(d_snapshot_interval);
     {

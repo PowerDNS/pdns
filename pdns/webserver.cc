@@ -26,6 +26,7 @@
 #include "webserver.hh"
 #include "misc.hh"
 #include <thread>
+#include <pthread.h>
 #include <vector>
 #include "logger.hh"
 #include <stdio.h>
@@ -195,6 +196,11 @@ void WebServer::registerWebHandler(const string& url, HandlerFunction handler) {
 }
 
 static void *WebServerConnectionThreadStart(const WebServer* webServer, std::shared_ptr<Socket> client) {
+  string threadName = "pdns-r/webhndlr";
+  auto retval = pthread_setname_np(pthread_self(), const_cast<char*>(threadName.c_str()));
+  if (retval != 0) {
+    g_log<<Logger::Warning<<"Could not set thread name "<<threadName<<" for webserver handler thread: "<<strerror(retval)<<endl;
+  }
   webServer->serveConnection(client);
   return nullptr;
 }
