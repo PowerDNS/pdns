@@ -426,6 +426,11 @@ static void pickBackendSocketsReadyForReceiving(const std::shared_ptr<Downstream
 // listens on a dedicated socket, lobs answers from downstream servers to original requestors
 void* responderThread(std::shared_ptr<DownstreamState> dss)
 try {
+  string threadName = "dnsdist/respond";
+  auto retval = pthread_setname_np(pthread_self(), const_cast<char*>(threadName.c_str()));
+  if (retval != 0) {
+    warnlog("Could not set thread name %s for responder thread: %s", threadName, strerror(retval));
+  }
   auto localRespRulactions = g_resprulactions.getLocal();
 #ifdef HAVE_DNSCRYPT
   char packet[4096 + DNSCRYPT_MAX_RESPONSE_PADDING_AND_MAC_SIZE];
@@ -1655,6 +1660,11 @@ static void MultipleMessagesUDPClientThread(ClientState* cs, LocalHolders& holde
 static void* udpClientThread(ClientState* cs)
 try
 {
+  string threadName = "dnsdist/udpClie";
+  auto retval = pthread_setname_np(pthread_self(), const_cast<char*>(threadName.c_str()));
+  if (retval != 0) {
+    warnlog("Could not set thread name %s for UDP client thread: %s", threadName, strerror(retval));
+  }
   LocalHolders holders;
 
 #if defined(HAVE_RECVMMSG) && defined(HAVE_SENDMMSG) && defined(MSG_WAITFORONE)
@@ -1850,6 +1860,11 @@ std::atomic<uint16_t> g_cacheCleaningPercentage{100};
 
 void* maintThread()
 {
+  string threadName = "dnsdist/main";
+  auto retval = pthread_setname_np(pthread_self(), const_cast<char*>(threadName.c_str()));
+  if (retval != 0) {
+    warnlog("Could not set thread name %s for main thread: %s", threadName, strerror(retval));
+  }
   int interval = 1;
   size_t counter = 0;
   int32_t secondsToWaitLog = 0;
@@ -1896,6 +1911,12 @@ void* maintThread()
 
 void* healthChecksThread()
 {
+  string threadName = "dnsdist/healthC";
+  auto retval = pthread_setname_np(pthread_self(), const_cast<char*>(threadName.c_str()));
+  if (retval != 0) {
+    warnlog("Could not set thread name %s for health check thread: %s", threadName, strerror(retval));
+  }
+
   int interval = 1;
 
   for(;;) {

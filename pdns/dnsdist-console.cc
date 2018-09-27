@@ -535,6 +535,11 @@ char** my_completion( const char * text , int start,  int end)
 static void controlClientThread(int fd, ComboAddress client)
 try
 {
+  string threadname = "dnsdist/conscli";
+  auto retval = pthread_setname_np(pthread_self(), const_cast<char*>(threadname.c_str()));
+  if (retval != 0) {
+    warnlog("could not set thread name %s for control client thread: %s", threadname, strerror(retval));
+  }
   setTCPNoDelay(fd);
   SodiumNonce theirs, ours, readingNonce, writingNonce;
   ours.init();
@@ -665,6 +670,11 @@ catch(std::exception& e)
 void controlThread(int fd, ComboAddress local)
 try
 {
+  string threadName = "dnsdist/control";
+  auto retval = pthread_setname_np(pthread_self(), const_cast<char*>(threadName.c_str()));
+  if (retval != 0) {
+    warnlog("Could not set thread name %s for control console thread: %s", threadName, strerror(retval));
+  }
   ComboAddress client;
   int sock;
   auto localACL = g_consoleACL.getLocal();

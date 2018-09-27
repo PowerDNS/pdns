@@ -25,6 +25,7 @@
 #include "ext/incbin/incbin.h"
 #include "dolog.hh"
 #include <thread>
+#include <pthread.h>
 #include <sstream>
 #include <yahttp/yahttp.hpp>
 #include "namespaces.hh"
@@ -242,6 +243,12 @@ static json11::Json::array someResponseRulesToJson(GlobalStateHolder<vector<T>>*
 
 static void connectionThread(int sock, ComboAddress remote, string password, string apiKey, const boost::optional<std::map<std::string, std::string> >& customHeaders)
 {
+  string threadName = "dnsdist/webConn";
+  auto retval = pthread_setname_np(pthread_self(), const_cast<char*>(threadName.c_str()));
+  if (retval != 0) {
+    warnlog("Could not set thread name %s for webserver connection thread: %s", threadName, strerror(retval));
+  }
+
   using namespace json11;
   vinfolog("Webserver handling connection from %s", remote.toStringWithPort());
 
@@ -813,6 +820,11 @@ static void connectionThread(int sock, ComboAddress remote, string password, str
 }
 void dnsdistWebserverThread(int sock, const ComboAddress& local, const std::string& password, const std::string& apiKey, const boost::optional<std::map<std::string, std::string> >& customHeaders)
 {
+  string threadName = "dnsdist/webserv";
+  auto retval = pthread_setname_np(pthread_self(), const_cast<char*>(threadName.c_str()));
+  if (retval != 0) {
+    warnlog("Could not set thread name %s for webserver thread: %s", threadName, strerror(retval));
+  }
   warnlog("Webserver launched on %s", local.toStringWithPort());
   for(;;) {
     try {

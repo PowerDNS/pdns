@@ -39,6 +39,11 @@ uint64_t uptimeOfProcess(const std::string& str)
 void* carbonDumpThread()
 try
 {
+  string threadName = "dnsdist/carbon";
+  auto retval = pthread_setname_np(pthread_self(), const_cast<char*>(threadName.c_str()));
+  if (retval != 0) {
+    warnlog("Could not set thread name %s for carbon thread: %s", threadName, strerror(retval));
+  }
   auto localCarbon = g_carbon.getLocal();
   for(int numloops=0;;++numloops) {
     if(localCarbon->empty()) {

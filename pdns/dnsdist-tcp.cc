@@ -237,6 +237,12 @@ void* tcpClientThread(int pipefd)
   /* we get launched with a pipe on which we receive file descriptors from clients that we own
      from that point on */
 
+  string threadName = "dnsdist/tcpClie";
+  auto retval = pthread_setname_np(pthread_self(), const_cast<char*>(threadName.c_str()));
+  if (retval != 0) {
+    warnlog("Could not set thread name %s for TCP Client thread: %s", threadName, strerror(retval));
+  }
+
   bool outstanding = false;
   time_t lastTCPCleanup = time(nullptr);
   
@@ -670,6 +676,11 @@ void* tcpClientThread(int pipefd)
 */
 void* tcpAcceptorThread(void* p)
 {
+  string threadName = "dnsdist/tcpAcce";
+  auto retval = pthread_setname_np(pthread_self(), const_cast<char*>(threadName.c_str()));
+  if (retval != 0) {
+    warnlog("Could not set thread name %s for TCP acceptor thread: %s", threadName, strerror(retval));
+  }
   ClientState* cs = (ClientState*) p;
   bool tcpClientCountIncremented = false;
   ComboAddress remote;

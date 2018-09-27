@@ -42,10 +42,18 @@ void RemoteLogger::busyReconnectLoop()
 
 void RemoteLogger::worker()
 {
+#ifdef WE_ARE_RECURSOR
   string threadName = "pdns-r/remLog";
+#else
+  string threadName = "dnsdist/remLog";
+#endif
   auto retval = pthread_setname_np(pthread_self(), const_cast<char*>(threadName.c_str()));
   if (retval != 0) {
+#ifdef WE_ARE_RECURSOR
     g_log<<Logger::Warning<<"Could not set thread name "<<threadName<<" for Remote Logger thread: "<<strerror(retval)<<endl;
+#else
+    warnlog("Could not set thread name %s for Remote Logger thread: %s", threadName, strerror(retval));
+#endif
   }
   while(true) {
     std::string data;

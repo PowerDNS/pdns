@@ -23,6 +23,7 @@
 #include "misc.hh"
 #include "gettime.hh"
 #include <thread>
+#include "dolog.hh"
 
 template<class T>
 ObjectPipe<T>::ObjectPipe()
@@ -138,6 +139,11 @@ DelayPipe<T>::~DelayPipe()
 template<class T>
 void DelayPipe<T>::worker()
 {
+  string threadName = "dnsdist/delayPi";
+  auto retval = pthread_setname_np(pthread_self(), const_cast<char*>(threadName.c_str()));
+  if (retval != 0) {
+    warnlog("Could not set thread name %s for DelayPipe worker thread: %s", threadName, strerror(retval));
+  }
   Combo c;
   for(;;) {
     /* this code is slightly too subtle, but I don't see how it could be any simpler.
