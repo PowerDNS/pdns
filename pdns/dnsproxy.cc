@@ -34,6 +34,7 @@
 #include "dns_random.hh"
 #include "stubresolver.hh"
 #include "arguments.hh"
+#include "threadname.hh"
 
 extern StatBag S;
 
@@ -175,11 +176,7 @@ int DNSProxy::getID_locked()
 
 void DNSProxy::mainloop(void)
 {
-  string threadName = "pdns/dnsproxy";
-  auto retval = pthread_setname_np(pthread_self(), const_cast<char*>(threadName.c_str()));
-  if (retval != 0) {
-    g_log<<Logger::Warning<<"Could not set thread name "<<threadName<<" for DNS proxy thread: "<<strerror(retval)<<endl;
-  }
+  setThreadName("pdns/dnsproxy");
   try {
     char buffer[1500];
     ssize_t len;

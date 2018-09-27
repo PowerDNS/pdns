@@ -138,6 +138,7 @@ dnsdist_SOURCES = \
 	sstuff.hh \
 	statnode.cc statnode.hh \
 	tcpiohandler.cc tcpiohandler.hh \
+	threadname.hh threadname.cc \
 	xpf.cc xpf.hh \
 	ext/luawrapper/include/LuaContext.hpp \
 	ext/json11/json11.cpp \

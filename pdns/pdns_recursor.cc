@@ -31,7 +31,7 @@
 #endif
 #include "ws-recursor.hh"
 #include <thread>
-#include <pthread.h>
+#include "threadname.hh"
 #include "recpacketcache.hh"
 #include "utility.hh"
 #include "dns_random.hh"
@@ -3735,11 +3735,7 @@ try
   auto& threadInfo = s_threadInfos.at(t_id);
 
   static string threadPrefix = "pdns-r/";
-
-  auto retval = pthread_setname_np(pthread_self(), const_cast<char*>((threadPrefix + threadName).c_str()));
-  if (retval != 0) {
-    g_log<<Logger::Warning<<"Could not set thread name "<<threadPrefix<<threadName<<" for thread number "<<n<<": "<<strerror(retval)<<endl;
-  }
+  setThreadName(threadPrefix + threadName);
 
   SyncRes tmp(g_now); // make sure it allocates tsstorage before we do anything, like primeHints or so..
   SyncRes::setDomainMap(g_initialDomainMap);

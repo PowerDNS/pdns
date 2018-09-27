@@ -30,7 +30,7 @@
 #include <sys/stat.h>
 #include <mutex>
 #include <thread>
-#include <pthread.h>
+#include "threadname.hh"
 #include <dirent.h>
 #include <queue>
 #include <condition_variable>
@@ -235,11 +235,7 @@ static void updateCurrentZoneInfo(const DNSName& domain, std::shared_ptr<ixfrinf
 }
 
 void updateThread(const string& workdir, const uint16_t& keep, const uint16_t& axfrTimeout) {
-  string threadName = "ixfrdist/update";
-  auto retval = pthread_setname_np(pthread_self(), const_cast<char*>(threadName.c_str()));
-  if (retval != 0) {
-    g_log<<Logger::Warning<<"Could not set thread name "<<threadName<<" for update thread: "<<strerror(retval)<<endl;
-  }
+  setThreadName("ixfrdist/update");
   std::map<DNSName, time_t> lastCheck;
 
   // Initialize the serials we have
@@ -774,11 +770,7 @@ static void handleTCPRequest(int fd, boost::any&) {
 /* Thread to handle TCP traffic
  */
 static void tcpWorker(int tid) {
-  string threadName = "ixfrdist/tcpWor";
-  auto retval = pthread_setname_np(pthread_self(), const_cast<char*>(threadName.c_str()));
-  if (retval != 0) {
-    g_log<<Logger::Warning<<"Could not set thread name "<<threadName<<" for update thread: "<<strerror(retval)<<endl;
-  }
+  setThreadName("ixfrdist/tcpWor");
   string prefix = "TCP Worker " + std::to_string(tid) + ": ";
 
   while(true) {

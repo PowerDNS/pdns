@@ -1,7 +1,9 @@
 #include <unistd.h>
-#include <pthread.h>
+#include "threadname.hh"
 #include "remote_logger.hh"
+#ifdef HAVE_CONFIG_H
 #include "config.h"
+#endif
 #ifdef PDNS_CONFIG_ARGS
 #include "logger.hh"
 #define WE_ARE_RECURSOR
@@ -47,14 +49,7 @@ void RemoteLogger::worker()
 #else
   string threadName = "dnsdist/remLog";
 #endif
-  auto retval = pthread_setname_np(pthread_self(), const_cast<char*>(threadName.c_str()));
-  if (retval != 0) {
-#ifdef WE_ARE_RECURSOR
-    g_log<<Logger::Warning<<"Could not set thread name "<<threadName<<" for Remote Logger thread: "<<strerror(retval)<<endl;
-#else
-    warnlog("Could not set thread name %s for Remote Logger thread: %s", threadName, strerror(retval));
-#endif
-  }
+  setThreadName(threadName);
   while(true) {
     std::string data;
     {

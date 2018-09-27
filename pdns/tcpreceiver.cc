@@ -25,6 +25,7 @@
 #include <boost/algorithm/string.hpp>
 #include "auth-packetcache.hh"
 #include "utility.hh"
+#include "threadname.hh"
 #include "dnssecinfra.hh"
 #include "dnsseckeeper.hh"
 #include <cstdio>
@@ -252,11 +253,7 @@ void TCPNameserver::decrementClientCount(const ComboAddress& remote)
 
 void *TCPNameserver::doConnection(void *data)
 {
-  string threadName = "pdns/tcpConnect";
-  auto retval = pthread_setname_np(pthread_self(), const_cast<char*>(threadName.c_str()));
-  if (retval != 0) {
-    g_log<<Logger::Warning<<"Could not set thread name "<<threadName<<" for TCP nameserver connection thread: "<<strerror(retval)<<endl;
-  }
+  setThreadName("pdns/tcpConnect");
   shared_ptr<DNSPacket> packet;
   // Fix gcc-4.0 error (on AMD64)
   int fd=(int)(long)data; // gotta love C (generates a harmless warning on opteron)
@@ -1340,11 +1337,7 @@ TCPNameserver::TCPNameserver()
 //! Start of TCP operations thread, we launch a new thread for each incoming TCP question
 void TCPNameserver::thread()
 {
-  string threadName = "pdns/tcpnameser";
-  auto retval = pthread_setname_np(pthread_self(), const_cast<char*>(threadName.c_str()));
-  if (retval != 0) {
-    g_log<<Logger::Warning<<"Could not set thread name "<<threadName<<" for TCP nameserver thread: "<<strerror(retval)<<endl;
-  }
+  setThreadName("pdns/tcpnameser");
   try {
     for(;;) {
       int fd;

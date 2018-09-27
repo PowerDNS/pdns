@@ -1,5 +1,6 @@
 #include "snmp-agent.hh"
 #include "misc.hh"
+#include "threadname.hh"
 #ifdef RECURSOR
 #include "logger.hh"
 #else
@@ -110,14 +111,7 @@ void SNMPAgent::worker()
 #else
   string threadName = "dnsdist/SNMP";
 #endif
-  auto retval = pthread_setname_np(pthread_self(), const_cast<char*>(threadName.c_str()));
-  if (retval != 0) {
-#ifdef RECURSOR
-    g_log<<Logger::Warning<<"Could not set thread name "<<threadName<<" for SNMP thread: "<<strerror(retval)<<endl;
-#else
-    warnlog("Could not set thread name %s for SNMP thread: %s", threadName, strerror(retval));
-#endif
-  }
+  setThreadName(threadName);
 
   int maxfd = 0;
   int block = 1;

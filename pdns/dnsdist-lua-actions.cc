@@ -19,7 +19,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
-#include <pthread.h>
+#include "threadname.hh"
 #include "dnsdist.hh"
 #include "dnsdist-ecs.hh"
 #include "dnsdist-lua.hh"
@@ -212,11 +212,7 @@ std::map<string,double> TeeAction::getStats() const
 
 void TeeAction::worker()
 {
-  string threadName = "dnsdist/TeeWork";
-  auto retval = pthread_setname_np(pthread_self(), const_cast<char*>(threadName.c_str()));
-  if (retval != 0) {
-    warnlog("Could not set thread name %s for TeeAction worker thread: %s", threadName, strerror(retval));
-  }
+  setThreadName("dnsdist/TeeWork");
   char packet[1500];
   int res=0;
   struct dnsheader* dh=(struct dnsheader*)packet;

@@ -52,6 +52,7 @@
 #include "dnspacket.hh"
 #include "logger.hh"
 #include "statbag.hh"
+#include "threadname.hh"
 
 extern StatBag S;
 
@@ -216,11 +217,7 @@ void DynListener::go()
 
 void *DynListener::theListenerHelper(void *p)
 {
-  string threadName = "pdns/ctrlListen";
-  auto retval = pthread_setname_np(pthread_self(), const_cast<char*>(threadName.c_str()));
-  if (retval != 0) {
-    g_log<<Logger::Warning<<"Could not set thread name "<<threadName<<" for control socket listener thread: "<<strerror(retval)<<endl;
-  }
+  setThreadName("pdns/ctrlListen");
   DynListener *us=static_cast<DynListener *>(p);
   us->theListener();
   g_log<<Logger::Error<<"Control listener aborted, please file a bug!"<<endl;

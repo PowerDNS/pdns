@@ -37,6 +37,7 @@ AC_PROG_LIBTOOL
 
 PDNS_CHECK_OS
 PDNS_CHECK_NETWORK_LIBS
+PTHREAD_SET_NAME
 
 # Boost Context was introduced in 1.51 (Aug 2012), but there was an immediate
 # API break in 1.52 (Nov 2012), so we only support that, and later.

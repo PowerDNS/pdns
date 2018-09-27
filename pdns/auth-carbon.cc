@@ -24,6 +24,7 @@
 #endif
 #include "statbag.hh"
 #include "logger.hh"
+#include "threadname.hh"
 #include "iputils.hh"
 #include "sstuff.hh"
 #include "arguments.hh"
@@ -34,11 +35,7 @@
 void* carbonDumpThread(void*)
 try
 {
-  string threadName = "pdns/carbonDump";
-  auto retval = pthread_setname_np(pthread_self(), const_cast<char*>(threadName.c_str()));
-  if (retval != 0) {
-    g_log<<Logger::Warning<<"Could not set thread name "<<threadName<<" for Carbon dump thread: "<<strerror(retval)<<endl;
-  }
+  setThreadName("pdns/carbonDump");
   extern StatBag S;
 
   string hostname=arg()["carbon-ourname"];

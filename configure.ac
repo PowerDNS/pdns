@@ -42,6 +42,7 @@ AC_DEFINE([_GNU_SOURCE], [1],
 m4_pattern_forbid([^_?PKG_[A-Z_]+$], [*** pkg.m4 missing, please install pkg-config])
 
 PDNS_CHECK_OS
+PTHREAD_SET_NAME
 
 PDNS_WITH_LUA
 PDNS_CHECK_LUA_HPP

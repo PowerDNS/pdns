@@ -161,6 +161,7 @@ pdns_recursor_SOURCES = \
 	sstuff.hh \
 	stable-bloom.hh \
 	syncres.cc syncres.hh \
+	threadname.hh threadname.cc \
 	tsigverifier.cc tsigverifier.hh \
 	ueberbackend.hh \
 	unix_utility.cc \
