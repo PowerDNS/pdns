@@ -11,7 +11,7 @@
 
 using std::string;
 
-BOOST_AUTO_TEST_SUITE(test_rcp_generator_cc)
+BOOST_AUTO_TEST_SUITE(test_rcpgenerator_cc)
 
 BOOST_AUTO_TEST_CASE(test_xfrIP6) {
         RecordTextReader rtr("::1");
