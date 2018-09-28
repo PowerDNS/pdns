@@ -162,7 +162,8 @@ public:
     if (!d_stmt) return this;
 
     if (d_dolog) {
-      g_log<<Logger::Warning<<"Query: " << d_query <<endl;
+      g_log<<Logger::Warning<< "Query "<<((long)(void*)this)<<": " << d_query << endl;
+      d_dtime.set();
     }
 
     if ((err = mysql_stmt_bind_param(d_stmt, d_req_bind))) {
@@ -221,10 +222,16 @@ public:
       }
     }
 
+    if(d_dolog) 
+      g_log<<Logger::Warning<< "Query "<<((long)(void*)this)<<": "<<d_dtime.udiffNoReset()<<" usec to execute"<<endl;
+
     return this;
   }
 
   bool hasNextRow() {
+    if(d_dolog && d_residx == d_resnum) {
+      g_log<<Logger::Warning<< "Query "<<((long)(void*)this)<<": "<<d_dtime.udiffNoReset()<<" total usec to last row"<<endl;
+    }
     return d_residx < d_resnum;
   }
 
@@ -399,6 +406,7 @@ private:
   
   bool d_prepared;
   bool d_dolog;
+  DTime d_dtime; // only used if d_dolog is set
   int d_parnum;
   int d_paridx;
   int d_fnum;
