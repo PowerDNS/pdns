@@ -20,15 +20,23 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
 #include <string.h>
+
 #ifdef HAVE_CONFIG_H
 #include "config.h"
 #endif
+
 #include <pthread.h>
+
+#if HAVE_PTHREAD_NP_H
+#include <pthread_np.h>
+#endif
+
 #ifdef DNSDIST
 #include "dolog.hh"
 #else
 #include "logger.hh"
 #endif
+
 #include "threadname.hh"
 
 void setThreadName(const std::string& threadName) {
