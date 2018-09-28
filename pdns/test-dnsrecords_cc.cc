@@ -44,7 +44,7 @@ BOOST_AUTO_TEST_CASE(test_record_types) {
   TSIGRecordContent::report();
   TKEYRecordContent::report();
 
-// NB!!! WHEN ADDING A TEST MAKE SURE YOU PUT IT NEXT TO IT'S KIND
+// NB!!! WHEN ADDING A TEST MAKE SURE YOU PUT IT NEXT TO ITS KIND
 // TO MAKE SURE TEST NUMBERING DOES NOT BREAK
 
 // why yes, they are unordered by name, how nice of you to notice
