@@ -55,7 +55,7 @@ void setThreadName(const std::string& threadName) {
   retval = pthread_setname_np(threadName.c_str());
 #endif
 #ifdef HAVE_PTHREAD_SETNAME_NP_3
-  retval = pthread_setname_np(pthread_self(), threadname.c_str(), nullptr);
+  retval = pthread_setname_np(pthread_self(), threadName.c_str(), nullptr);
 #endif
 
   if (retval != 0) {
