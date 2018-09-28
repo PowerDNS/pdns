@@ -762,7 +762,7 @@ RNAME##RecordContent::RNAME##RecordContent(const string& zoneData)              
   }                                                                                                \
   catch(RecordTextException& rte) {                                                                \
     throw MOADNSException("Parsing record content (try 'pdnsutil check-zone'): "+string(rte.what()));  \
-  }        											   \
+  }                                                                                                \
 }                                                                                                  \
                                                                                                    \
 string RNAME##RecordContent::getZoneRepresentation(bool noDot) const                               \
