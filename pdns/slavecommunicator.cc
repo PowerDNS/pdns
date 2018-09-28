@@ -600,8 +600,8 @@ void CommunicatorClass::suck(const DNSName &domain, const ComboAddress& remote)
       di.backend->abortTransaction();
     }
   }
-  catch(MOADNSException &re) {
-    g_log<<Logger::Error<<"Unable to parse record during incoming AXFR of '"<<domain<<"' (MOADNSException): "<<re.what()<<endl;
+  catch(const MOADNSException &mde) {
+    g_log<<Logger::Error<<"Unable to parse record during incoming AXFR of '"<<domain<<"' (MOADNSException): "<<mde.what()<<endl;
     if(di.backend && transaction) {
       g_log<<Logger::Error<<"Aborting possible open transaction for domain '"<<domain<<"' AXFR"<<endl;
       di.backend->abortTransaction();
