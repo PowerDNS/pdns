@@ -29,7 +29,7 @@ namespace {
 BOOST_AUTO_TEST_SUITE(test_dnsrecords_cc)
 
 #define REC_CHECK_EQUAL(a,b) { if (broken_marker::BROKEN == broken) { BOOST_WARN_EQUAL(a,b); } else {  BOOST_CHECK_EQUAL(a,b); } }
-#define REC_CHECK_MESSAGE(cond,msg) { if (broken_marker::BROKEN == broken) { BOOST_WARN_MESSAGE(cond,msg); } else {  BOOST_CHECK_MESSAGE(cond,msg); } }
+#define REC_CHECK_MESSAGE(cond,msg) { if (broken_marker::BROKEN == broken) { BOOST_WARN_MESSAGE(cond,"Failed to verify " << msg); } else {  BOOST_CHECK_MESSAGE(cond,msg); } }
 #define REC_FAIL_XSUCCESS(msg) { if (broken_marker::BROKEN == broken) { BOOST_CHECK_MESSAGE(false, std::string("Test has unexpectedly passed: ") + msg); } } // fail if test succeeds
 
 BOOST_AUTO_TEST_CASE(test_record_types) {
@@ -201,7 +201,7 @@ BOOST_AUTO_TEST_CASE(test_record_types) {
    const broken_marker broken = val.get<4>();
 
    if (lq != q.getCode()) n = 0;
-   BOOST_CHECK_MESSAGE(q.getCode() >= lq, "record types not sorted correctly: " << q.getCode() << " < " << lq);
+   BOOST_CHECK_MESSAGE(q.getCode() >= lq, "record types should be sorted such that " << q.getCode() << " >= " << lq);
    lq = q.getCode();
    n++;
    BOOST_TEST_CHECKPOINT("Checking record type " << q.getName() << " test #" << n);
@@ -209,7 +209,7 @@ BOOST_AUTO_TEST_CASE(test_record_types) {
    try {
       std::string recData;
       auto rec = DNSRecordContent::mastermake(q.getCode(), 1, inval);
-      BOOST_CHECK_MESSAGE(rec != NULL, "mastermake( " << q.getCode() << ", 1, " << inval << ") returned NULL");
+      BOOST_CHECK_MESSAGE(rec != NULL, "mastermake( " << q.getCode() << ", 1, " << inval << ") should not return NULL");
       if (rec == NULL) continue;
       // now verify the record (note that this will be same as *zone* value (except for certain QTypes)
 
@@ -229,7 +229,7 @@ BOOST_AUTO_TEST_CASE(test_record_types) {
       recData = rec->serialize(DNSName("rec.test"));
 
       std::shared_ptr<DNSRecordContent> rec2 = DNSRecordContent::unserialize(DNSName("rec.test"),q.getCode(),recData);
-      BOOST_CHECK_MESSAGE(rec2 != NULL, "unserialize(rec.test, " << q.getCode() << ", recData) returned NULL");
+      BOOST_CHECK_MESSAGE(rec2 != NULL, "unserialize(rec.test, " << q.getCode() << ", recData) should not return NULL");
       if (rec2 == NULL) continue;
       // now verify the zone representation (here it can be different!)
       REC_CHECK_EQUAL(rec2->getZoneRepresentation(), zoneval);
@@ -238,7 +238,7 @@ BOOST_AUTO_TEST_CASE(test_record_types) {
       recData = makeHexDump(recData);
       REC_CHECK_EQUAL(recData, cmpData);
    } catch (std::runtime_error &err) {
-      REC_CHECK_MESSAGE(false, "Failed to verify " << q.getName() << ": " << err.what());
+      REC_CHECK_MESSAGE(false, q.getName() << ": " << err.what());
       continue;
    }
    REC_FAIL_XSUCCESS(q.getName() << " test #" << n << " has unexpectedly passed")
