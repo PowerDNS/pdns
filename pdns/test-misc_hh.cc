@@ -15,7 +15,7 @@
 
 using std::string;
 
-BOOST_AUTO_TEST_SUITE(misc_hh)
+BOOST_AUTO_TEST_SUITE(test_misc_hh)
 typedef pair<std::string, uint16_t> typedns_t;
 
 BOOST_AUTO_TEST_CASE(test_CIStringCompare) {

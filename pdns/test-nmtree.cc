@@ -9,7 +9,7 @@
 
 using namespace boost;
 
-BOOST_AUTO_TEST_SUITE(nmtree)
+BOOST_AUTO_TEST_SUITE(test_nmtree)
 
 BOOST_AUTO_TEST_CASE(test_basic) {
   NetmaskTree<int> nmt;

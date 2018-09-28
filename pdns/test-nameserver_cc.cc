@@ -12,7 +12,7 @@
 
 extern vector<ComboAddress> g_localaddresses;
 
-BOOST_AUTO_TEST_SUITE(nameserver_cc)
+BOOST_AUTO_TEST_SUITE(test_nameserver_cc)
 
 BOOST_AUTO_TEST_CASE(test_AddressIsUs4) {
   ComboAddress local1("127.0.0.1", 53);

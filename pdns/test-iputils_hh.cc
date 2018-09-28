@@ -9,7 +9,7 @@
 
 using namespace boost;
 
-BOOST_AUTO_TEST_SUITE(iputils_hh)
+BOOST_AUTO_TEST_SUITE(test_iputils_hh)
 
 BOOST_AUTO_TEST_CASE(test_ComboAddress) {
   ComboAddress local("127.0.0.1", 53);
