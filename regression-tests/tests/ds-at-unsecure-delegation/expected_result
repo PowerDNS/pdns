@@ -1,7 +1,4 @@
-1	example.com.	IN	RRSIG	86400	SOA 13 2 100000 [expiry] [inception] [keytag] example.com. ...
 1	example.com.	IN	SOA	86400	ns1.example.com. ahu.example.com. 2847484148 28800 7200 604800 86400
-1	usa.example.com.	IN	NSEC	86400	*.w1.example.com. NS RRSIG NSEC
-1	usa.example.com.	IN	RRSIG	86400	NSEC 13 3 86400 [expiry] [inception] [keytag] example.com. ...
 2	.	IN	OPT	32768	
 Rcode: 0 (No Error), RD: 0, QR: 1, TC: 0, AA: 1, opcode: 0
 Reply to question for qname='usa.example.com.', qtype=DS
