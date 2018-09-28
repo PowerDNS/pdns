@@ -269,6 +269,7 @@ testrunner_SOURCES = \
 	test-tsig.cc \
 	test-xpf_cc.cc \
 	testrunner.cc \
+	threadname.hh threadname.cc \
 	tsigverifier.cc tsigverifier.hh \
 	unix_utility.cc \
 	validate.cc validate.hh \

@@ -1300,6 +1300,7 @@ testrunner_SOURCES = \
 	test-tsig.cc \
 	test-zoneparser_tng_cc.cc \
 	testrunner.cc \
+	threadname.hh threadname.cc \
 	tsigverifier.cc tsigverifier.hh \
 	ueberbackend.cc \
 	unix_utility.cc \
