@@ -64,6 +64,13 @@ Options
   Increase this when the network to the authoritative servers is slow or the domains are very large and you experience timeouts.
   Defaults to 20.
 
+:failed-soa-retry:
+  Time in seconds between retries of the SOA query for a zone we have never transferred. Defaults to 30.
+
+:compress:
+  Whether record compression should be enabled, leading to smaller answers at the cost of an increased CPU and memory usage.
+  Defaults to false.
+
 :work-dir:
   The directory where the domain data is stored.
   When not set, the current working directory is used.

@@ -118,6 +118,20 @@ class TestRecursorProtobuf(RecursorTest):
             self.assertEquals(len(msg.originalRequestorSubnet), 4)
             self.assertEquals(socket.inet_ntop(socket.AF_INET, msg.originalRequestorSubnet), '127.0.0.1')
 
+    def checkOutgoingProtobufBase(self, msg, protocol, query, initiator):
+        self.assertTrue(msg)
+        self.assertTrue(msg.HasField('timeSec'))
+        self.assertTrue(msg.HasField('socketFamily'))
+        self.assertEquals(msg.socketFamily, dnsmessage_pb2.PBDNSMessage.INET)
+        self.assertTrue(msg.HasField('socketProtocol'))
+        self.assertEquals(msg.socketProtocol, protocol)
+        self.assertTrue(msg.HasField('messageId'))
+        self.assertTrue(msg.HasField('id'))
+        self.assertNotEquals(msg.id, query.id)
+        self.assertTrue(msg.HasField('inBytes'))
+        # compare inBytes with length of query/response
+        self.assertEquals(msg.inBytes, len(query.to_wire()))
+
     def checkProtobufQuery(self, msg, protocol, query, qclass, qtype, qname, initiator='127.0.0.1'):
         self.assertEquals(msg.type, dnsmessage_pb2.PBDNSMessage.DNSQueryType)
         self.checkProtobufBase(msg, protocol, query, initiator)
@@ -161,6 +175,24 @@ class TestRecursorProtobuf(RecursorTest):
         self.assertEquals(len(msg.response.tags), len(tags))
         for tag in msg.response.tags:
             self.assertTrue(tag in tags)
+
+    def checkProtobufOutgoingQuery(self, msg, protocol, query, qclass, qtype, qname, initiator='127.0.0.1'):
+        self.assertEquals(msg.type, dnsmessage_pb2.PBDNSMessage.DNSOutgoingQueryType)
+        self.checkOutgoingProtobufBase(msg, protocol, query, initiator)
+        self.assertTrue(msg.HasField('to'))
+        self.assertTrue(msg.HasField('question'))
+        self.assertTrue(msg.question.HasField('qClass'))
+        self.assertEquals(msg.question.qClass, qclass)
+        self.assertTrue(msg.question.HasField('qType'))
+        self.assertEquals(msg.question.qClass, qtype)
+        self.assertTrue(msg.question.HasField('qName'))
+        self.assertEquals(msg.question.qName, qname)
+
+    def checkProtobufIncomingResponse(self, msg, protocol, response, initiator='127.0.0.1'):
+        self.assertEquals(msg.type, dnsmessage_pb2.PBDNSMessage.DNSIncomingResponseType)
+        self.checkOutgoingProtobufBase(msg, protocol, response, initiator)
+        self.assertTrue(msg.HasField('response'))
+        self.assertTrue(msg.response.HasField('queryTimeSec'))
 
     @classmethod
     def setUpClass(cls):
@@ -235,6 +267,35 @@ auth-zones=example=configs/%s/example.zone""" % _confdir
         # we have max-cache-ttl set to 15
         self.checkProtobufResponseRecord(rr, dns.rdataclass.IN, dns.rdatatype.A, name, 15)
         self.assertEquals(socket.inet_ntop(socket.AF_INET, rr.rdata), '192.0.2.42')
+        self.checkNoRemainingMessage()
+
+class OutgoingProtobufDefaultTest(TestRecursorProtobuf):
+    """
+    This test makes sure that we correctly export outgoing queries over protobuf.
+    It must be improved and setup env so we can check for incoming responses, but makes sure for now
+    that the recursor at least connects to the protobuf server.
+    """
+
+    _confdir = 'OutgoingProtobufDefault'
+    _config_template = """
+auth-zones=example=configs/%s/example.zone""" % _confdir
+    _lua_config_file = """
+    outgoingProtobufServer("127.0.0.1:%d")
+    """ % (protobufServerPort)
+
+    def testA(self):
+        name = 'www.example.org.'
+        expected = dns.rrset.from_text(name, 0, dns.rdataclass.IN, 'A', '192.0.2.42')
+        query = dns.message.make_query(name, 'A', want_dnssec=True)
+        query.flags |= dns.flags.RD
+        res = self.sendUDPQuery(query)
+
+        # check the protobuf messages corresponding to the UDP query and answer
+        msg = self.getFirstProtobufMessage()
+        self.checkProtobufOutgoingQuery(msg, dnsmessage_pb2.PBDNSMessage.UDP, query, dns.rdataclass.IN, dns.rdatatype.A, name)
+#        # then the response
+#        msg = self.getFirstProtobufMessage()
+#        self.checkProtobufIncomingResponse(msg, dnsmessage_pb2.PBDNSMessage.UDP, res)
         self.checkNoRemainingMessage()
 
 class ProtobufMasksTest(TestRecursorProtobuf):

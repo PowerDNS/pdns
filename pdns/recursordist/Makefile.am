@@ -1,7 +1,7 @@
 JSON11_LIBS = $(top_srcdir)/ext/json11/libjson11.la
 PROBDS_LIBS = $(top_srcdir)/ext/probds/libprobds.la
 
-AM_CPPFLAGS = $(LUA_CFLAGS) $(YAHTTP_CFLAGS) $(BOOST_CPPFLAGS) $(BOTAN_CFLAGS) $(LIBSODIUM_CFLAGS) $(NET_SNMP_CFLAGS) $(SANITIZER_FLAGS) -O3 -Wall -pthread -DSYSCONFDIR=\"${sysconfdir}\" $(SYSTEMD_CFLAGS)
+AM_CPPFLAGS = $(LUA_CFLAGS) $(YAHTTP_CFLAGS) $(BOOST_CPPFLAGS) $(LIBSODIUM_CFLAGS) $(NET_SNMP_CFLAGS) $(SANITIZER_FLAGS) -O3 -Wall -pthread -DSYSCONFDIR=\"${sysconfdir}\" $(SYSTEMD_CFLAGS)
 
 AM_CPPFLAGS += \
 	-I$(top_srcdir)/ext/json11 \
@@ -44,7 +44,6 @@ endif
 EXTRA_DIST = \
 	NOTICE \
 	.version \
-	botansigners.cc \
 	build-aux/gen-version \
 	contrib/* \
 	devpollmplexer.cc \
@@ -299,15 +298,6 @@ testrunner_LDADD += \
 	$(BOOST_FILESYSTEM_LIBS)
 testrunner_LDFLAGS += \
 	$(BOOST_FILESYSTEM_LDFLAGS)
-endif
-
-if BOTAN
-pdns_recursor_SOURCES += \
-	botansigners.cc
-pdns_recursor_LDADD += $(BOTAN_LIBS)
-testrunner_SOURCES += \
-	botansigners.cc
-testrunner_LDADD += $(BOTAN_LIBS)
 endif
 
 if LIBSODIUM

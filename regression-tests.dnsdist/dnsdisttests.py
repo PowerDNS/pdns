@@ -479,6 +479,10 @@ class DNSDistTest(unittest.TestCase):
         self.assertEquals(received.edns, -1)
         self.assertEquals(len(received.options), 0)
 
+    def checkMessageEDNSWithoutOptions(self, expected, received):
+        self.assertEquals(expected, received)
+        self.assertEquals(received.edns, 0)
+
     def checkMessageEDNSWithoutECS(self, expected, received, withCookies=0):
         self.assertEquals(expected, received)
         self.assertEquals(received.edns, 0)

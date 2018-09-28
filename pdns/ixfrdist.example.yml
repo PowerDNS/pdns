@@ -41,6 +41,16 @@ axfr-max-records: 0
 #
 axfr-timeout: 20
 
+# Time in seconds between retries of the SOA query for a zone we have never
+# transferred.
+
+failed-soa-retry: 30
+
+# Whether record compression should be enabled, leading to smaller answers
+# at the cost of an increased CPU and memory usage. Defaults to false.
+#
+compress: false
+
 # Amount of older copies/IXFR diffs to keep for every domain. This is set to
 # 20 by default or when unset.
 #

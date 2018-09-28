@@ -420,8 +420,8 @@ Only relevant for algorithms with non-fixed keysizes (like RSA).
 -  Boolean
 -  Default: no
 
-Read additional ZSKs from the records table/your BIND zonefile. If not
-set, DNSKEY records in the zonefiles are ignored.
+Read additional DNSKEY, CDS and CDNSKEY records from the records table/your BIND zonefile. If not
+set, DNSKEY, CDS and CDNSKEY records in the zonefiles are ignored.
 
 .. _setting-disable-axfr:
 
@@ -1102,6 +1102,16 @@ To notify all IP addresses apart from the 192.168.0.0/24 subnet use the followin
   :ref:`setting-only-notify` to an empty value and specify the notification targets
   explicitly using :ref:`setting-also-notify` and/or
   :ref:`metadata-also-notify` domain metadata to avoid this potential bottleneck.
+
+.. note::
+  If your slaves support Internet Protocol version, which your master does not, 
+  then set ``only-notify`` to include only supported protocol version. 
+  Otherwise there will be error trying to resolve address.
+  
+  For example, slaves support both IPv4 and IPv6, but PowerDNS master have only IPv4, 
+  so allow only IPv4 with ``only-notify``::
+  
+    only-notify=0.0.0.0/0
 
 .. _setting-out-of-zone-additional-processing:
 

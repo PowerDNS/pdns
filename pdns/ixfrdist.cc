@@ -118,24 +118,25 @@ struct ixfrdistdomain_t {
 };
 
 // This contains the configuration for each domain
-map<DNSName, ixfrdistdomain_t> g_domainConfigs;
+static map<DNSName, ixfrdistdomain_t> g_domainConfigs;
 
 // Map domains and their data
-std::map<DNSName, std::shared_ptr<ixfrinfo_t>> g_soas;
-std::mutex g_soas_mutex;
+static std::map<DNSName, std::shared_ptr<ixfrinfo_t>> g_soas;
+static std::mutex g_soas_mutex;
 
 // Condition variable for TCP handling
-std::condition_variable g_tcpHandlerCV;
-std::queue<pair<int, ComboAddress>> g_tcpRequestFDs;
-std::mutex g_tcpRequestFDsMutex;
+static std::condition_variable g_tcpHandlerCV;
+static std::queue<pair<int, ComboAddress>> g_tcpRequestFDs;
+static std::mutex g_tcpRequestFDsMutex;
 
 namespace po = boost::program_options;
 
-bool g_exiting = false;
+static bool g_exiting = false;
 
-NetmaskGroup g_acl;
+static NetmaskGroup g_acl;
+static bool g_compress = false;
 
-void handleSignal(int signum) {
+static void handleSignal(int signum) {
   g_log<<Logger::Notice<<"Got "<<strsignal(signum)<<" signal";
   if (g_exiting) {
     g_log<<Logger::Notice<<", this is the second time we were asked to stop, forcefully exiting"<<endl;
@@ -145,17 +146,17 @@ void handleSignal(int signum) {
   g_exiting = true;
 }
 
-void usage(po::options_description &desc) {
+static void usage(po::options_description &desc) {
   cerr << "Usage: ixfrdist [OPTION]..."<<endl;
   cerr << desc << "\n";
 }
 
 // The compiler does not like using rfc1982LessThan in std::sort directly
-bool sortSOA(uint32_t i, uint32_t j) {
+static bool sortSOA(uint32_t i, uint32_t j) {
   return rfc1982LessThan(i, j);
 }
 
-void cleanUpDomain(const DNSName& domain, const uint16_t& keep, const string& workdir) {
+static void cleanUpDomain(const DNSName& domain, const uint16_t& keep, const string& workdir) {
   string dir = workdir + "/" + domain.toString();
   DIR *dp;
   dp = opendir(dir.c_str());
@@ -232,7 +233,7 @@ static void updateCurrentZoneInfo(const DNSName& domain, std::shared_ptr<ixfrinf
   g_soas[domain] = newInfo;
 }
 
-void updateThread(const string& workdir, const uint16_t& keep, const uint16_t& axfrTimeout, const uint32_t axfrMaxRecords) {
+void updateThread(const string& workdir, const uint16_t& keep, const uint16_t& axfrTimeout, const uint16_t& soaRetry, const uint32_t axfrMaxRecords) {
   std::map<DNSName, time_t> lastCheck;
 
   // Initialize the serials we have
@@ -295,7 +296,7 @@ void updateThread(const string& workdir, const uint16_t& keep, const uint16_t& a
 
       auto& zoneLastCheck = lastCheck[domain];
       if ((current_soa != nullptr && now - zoneLastCheck < current_soa->d_st.refresh) || // Only check if we have waited `refresh` seconds
-          (current_soa == nullptr && now - zoneLastCheck < 30))  {                       // Or if we could not get an update at all still, every 30 seconds
+          (current_soa == nullptr && now - zoneLastCheck < soaRetry))  {                       // Or if we could not get an update at all still, every 30 seconds
         continue;
       }
 
@@ -408,17 +409,17 @@ void updateThread(const string& workdir, const uint16_t& keep, const uint16_t& a
   } /* while (true) */
 } /* updateThread */
 
-bool checkQuery(const MOADNSParser& mdp, const ComboAddress& saddr, const bool udp = true, const string& logPrefix="") {
+static bool checkQuery(const MOADNSParser& mdp, const ComboAddress& saddr, const bool udp = true, const string& logPrefix="") {
   vector<string> info_msg;
 
   g_log<<Logger::Debug<<logPrefix<<"Had "<<mdp.d_qname<<"|"<<QType(mdp.d_qtype).getName()<<" query from "<<saddr.toStringWithPort()<<endl;
 
   if (udp && mdp.d_qtype != QType::SOA && mdp.d_qtype != QType::IXFR) {
-    info_msg.push_back("QType is unsupported (" + QType(mdp.d_qtype).getName() + " is not in {SOA,IXFR}");
+    info_msg.push_back("QType is unsupported (" + QType(mdp.d_qtype).getName() + " is not in {SOA,IXFR})");
   }
 
   if (!udp && mdp.d_qtype != QType::SOA && mdp.d_qtype != QType::IXFR && mdp.d_qtype != QType::AXFR) {
-    info_msg.push_back("QType is unsupported (" + QType(mdp.d_qtype).getName() + " is not in {SOA,IXFR,AXFR}");
+    info_msg.push_back("QType is unsupported (" + QType(mdp.d_qtype).getName() + " is not in {SOA,IXFR,AXFR})");
   }
 
   {
@@ -454,7 +455,7 @@ bool checkQuery(const MOADNSParser& mdp, const ComboAddress& saddr, const bool u
  * Returns a vector<uint8_t> that represents the full response to a SOA
  * query. QNAME is read from mdp.
  */
-bool makeSOAPacket(const MOADNSParser& mdp, vector<uint8_t>& packet) {
+static bool makeSOAPacket(const MOADNSParser& mdp, vector<uint8_t>& packet) {
 
   auto zoneInfo = getCurrentZoneInfo(mdp.d_qname);
   if (zoneInfo == nullptr) {
@@ -473,7 +474,7 @@ bool makeSOAPacket(const MOADNSParser& mdp, vector<uint8_t>& packet) {
   return true;
 }
 
-vector<uint8_t> getSOAPacket(const MOADNSParser& mdp, const shared_ptr<SOARecordContent>& soa) {
+static vector<uint8_t> getSOAPacket(const MOADNSParser& mdp, const shared_ptr<SOARecordContent>& soa) {
   vector<uint8_t> packet;
   DNSPacketWriter pw(packet, mdp.d_qname, mdp.d_qtype);
   pw.getHeader()->id = mdp.d_header.id;
@@ -487,7 +488,75 @@ vector<uint8_t> getSOAPacket(const MOADNSParser& mdp, const shared_ptr<SOARecord
   return packet;
 }
 
-bool makeAXFRPackets(const MOADNSParser& mdp, vector<vector<uint8_t>>& packets) {
+static bool sendPacketOverTCP(int fd, const std::vector<uint8_t>& packet)
+{
+  char sendBuf[2];
+  sendBuf[0]=packet.size()/256;
+  sendBuf[1]=packet.size()%256;
+
+  ssize_t send = writen2(fd, sendBuf, 2);
+  send += writen2(fd, &packet[0], packet.size());
+  return true;
+}
+
+static bool addRecordToWriter(DNSPacketWriter& pw, const DNSName& zoneName, const DNSRecord& record, bool compress)
+{
+  pw.startRecord(record.d_name + zoneName, record.d_type, record.d_ttl, QClass::IN, DNSResourceRecord::ANSWER, compress);
+  record.d_content->toPacket(pw);
+  if (pw.size() > 65535) {
+    pw.rollback();
+    return false;
+  }
+  return true;
+}
+
+template <typename T> static bool sendRecordsOverTCP(int fd, const MOADNSParser& mdp, const T& records)
+{
+  vector<uint8_t> packet;
+
+  for (auto it = records.cbegin(); it != records.cend();) {
+    bool recordsAdded = false;
+    packet.clear();
+    DNSPacketWriter pw(packet, mdp.d_qname, mdp.d_qtype);
+    pw.getHeader()->id = mdp.d_header.id;
+    pw.getHeader()->rd = mdp.d_header.rd;
+    pw.getHeader()->qr = 1;
+
+    while (it != records.cend()) {
+      if (it->d_type == QType::SOA) {
+        it++;
+        continue;
+      }
+
+      if (addRecordToWriter(pw, mdp.d_qname, *it, g_compress)) {
+        recordsAdded = true;
+        it++;
+      }
+      else {
+        if (recordsAdded) {
+          pw.commit();
+          sendPacketOverTCP(fd, packet);
+        }
+        if (it == records.cbegin()) {
+          /* something is wrong */
+          return false;
+        }
+
+        break;
+      }
+    }
+
+    if (it == records.cend() && recordsAdded) {
+      pw.commit();
+      sendPacketOverTCP(fd, packet);
+    }
+  }
+
+  return true;
+}
+
+
+static bool handleAXFR(int fd, const MOADNSParser& mdp) {
   /* we get a shared pointer of the zone info that we can't modify, ever.
      A newer one may arise in the meantime, but this one will stay valid
      until we release it.
@@ -499,56 +568,29 @@ bool makeAXFRPackets(const MOADNSParser& mdp, vector<vector<uint8_t>>& packets) 
 
   shared_ptr<SOARecordContent> soa = zoneInfo->soa;
   const records_t& records = zoneInfo->latestAXFR;
-  packets.reserve(packets.size() + /* SOAs */ 2 + records.size());
 
   // Initial SOA
   const auto soaPacket = getSOAPacket(mdp, soa);
-  packets.push_back(soaPacket);
+  if (!sendPacketOverTCP(fd, soaPacket)) {
+    return false;
+  }
 
-  for (auto const &record : records) {
-    if (record.d_type == QType::SOA) {
-      continue;
-    }
-    vector<uint8_t> packet;
-    DNSPacketWriter pw(packet, mdp.d_qname, mdp.d_qtype);
-    pw.getHeader()->id = mdp.d_header.id;
-    pw.getHeader()->rd = mdp.d_header.rd;
-    pw.getHeader()->qr = 1;
-    pw.startRecord(record.d_name + mdp.d_qname, record.d_type);
-    record.d_content->toPacket(pw);
-    pw.commit();
-    packets.push_back(packet);
+  if (!sendRecordsOverTCP(fd, mdp, records)) {
+    return false;
   }
 
   // Final SOA
-  packets.push_back(soaPacket);
+  if (!sendPacketOverTCP(fd, soaPacket)) {
+    return false;
+  }
 
   return true;
-}
-
-void makeXFRPacketsFromDNSRecords(const MOADNSParser& mdp, const vector<DNSRecord>& records, vector<vector<uint8_t>>& packets) {
-
-  for(const auto& r : records) {
-    if (r.d_type == QType::SOA) {
-      continue;
-    }
-
-    vector<uint8_t> packet;
-    DNSPacketWriter pw(packet, mdp.d_qname, mdp.d_qtype);
-    pw.getHeader()->id = mdp.d_header.id;
-    pw.getHeader()->rd = mdp.d_header.rd;
-    pw.getHeader()->qr = 1;
-    pw.startRecord(r.d_name + mdp.d_qname, r.d_type);
-    r.d_content->toPacket(pw);
-    pw.commit();
-    packets.push_back(packet);
-  }
 }
 
 /* Produces an IXFR if one can be made according to the rules in RFC 1995 and
  * creates a SOA or AXFR packet when required by the RFC.
  */
-bool makeIXFRPackets(const MOADNSParser& mdp, const shared_ptr<SOARecordContent>& clientSOA, vector<vector<uint8_t>>& packets) {
+static bool handleIXFR(int fd, const ComboAddress& destination, const MOADNSParser& mdp, const shared_ptr<SOARecordContent>& clientSOA) {
   vector<std::shared_ptr<ixfrdiff_t>> toSend;
 
   /* we get a shared pointer of the zone info that we can't modify, ever.
@@ -571,7 +613,7 @@ bool makeIXFRPackets(const MOADNSParser& mdp, const shared_ptr<SOARecordContent>
     vector<uint8_t> packet;
     bool ret = makeSOAPacket(mdp, packet);
     if (ret) {
-      packets.push_back(packet);
+      sendPacketOverTCP(fd, packet);
     }
     return ret;
   }
@@ -593,9 +635,10 @@ bool makeIXFRPackets(const MOADNSParser& mdp, const shared_ptr<SOARecordContent>
 
   if (toSend.empty()) {
     g_log<<Logger::Warning<<"No IXFR available from serial "<<clientSOA->d_st.serial<<" for zone "<<mdp.d_qname<<", attempting to send AXFR"<<endl;
-    return makeAXFRPackets(mdp, packets);
+    return handleAXFR(fd, mdp);
   }
 
+  std::vector<std::vector<uint8_t>> packets;
   for (const auto& diff : toSend) {
     /* An IXFR packet's ANSWER section looks as follows:
      * SOA new_serial
@@ -605,24 +648,43 @@ bool makeIXFRPackets(const MOADNSParser& mdp, const shared_ptr<SOARecordContent>
      * ... added records ...
      * SOA new_serial
      */
-    packets.reserve(packets.size() + /* SOAs */ 4 + diff->removals.size() + diff->additions.size());
 
-    packets.push_back(getSOAPacket(mdp, diff->newSOA));
-    packets.push_back(getSOAPacket(mdp, diff->oldSOA));
-    makeXFRPacketsFromDNSRecords(mdp, diff->removals, packets);
-    packets.push_back(getSOAPacket(mdp, diff->newSOA));
-    makeXFRPacketsFromDNSRecords(mdp, diff->additions, packets);
-    packets.push_back(getSOAPacket(mdp, diff->newSOA));
+    const auto newSOAPacket = getSOAPacket(mdp, diff->newSOA);
+    const auto oldSOAPacket = getSOAPacket(mdp, diff->oldSOA);
+
+    if (!sendPacketOverTCP(fd, newSOAPacket)) {
+      return false;
+    }
+
+    if (!sendPacketOverTCP(fd, oldSOAPacket)) {
+      return false;
+    }
+
+    if (!sendRecordsOverTCP(fd, mdp, diff->removals)) {
+      return false;
+    }
+
+    if (!sendPacketOverTCP(fd, newSOAPacket)) {
+      return false;
+    }
+
+    if (!sendRecordsOverTCP(fd, mdp, diff->additions)) {
+      return false;
+    }
+
+    if (!sendPacketOverTCP(fd, newSOAPacket)) {
+      return false;
+    }
   }
 
   return true;
 }
 
-bool allowedByACL(const ComboAddress& addr) {
+static bool allowedByACL(const ComboAddress& addr) {
   return g_acl.match(addr);
 }
 
-void handleUDPRequest(int fd, boost::any&) {
+static void handleUDPRequest(int fd, boost::any&) {
   // TODO make the buffer-size configurable
   char buf[4096];
   ComboAddress saddr;
@@ -675,7 +737,7 @@ void handleUDPRequest(int fd, boost::any&) {
   return;
 }
 
-void handleTCPRequest(int fd, boost::any&) {
+static void handleTCPRequest(int fd, boost::any&) {
   ComboAddress saddr;
   int cfd = 0;
 
@@ -708,7 +770,7 @@ void handleTCPRequest(int fd, boost::any&) {
 
 /* Thread to handle TCP traffic
  */
-void tcpWorker(int tid) {
+static void tcpWorker(int tid) {
   string prefix = "TCP Worker " + std::to_string(tid) + ": ";
 
   while(true) {
@@ -749,7 +811,6 @@ void tcpWorker(int tid) {
         continue;
       }
 
-      vector<vector<uint8_t>> packets;
       if (mdp.d_qtype == QType::SOA) {
         vector<uint8_t> packet;
         bool ret = makeSOAPacket(mdp, packet);
@@ -757,17 +818,15 @@ void tcpWorker(int tid) {
           close(cfd);
           continue;
         }
-        packets.push_back(packet);
+        sendPacketOverTCP(cfd, packet);
       }
-
-      if (mdp.d_qtype == QType::AXFR) {
-        if (!makeAXFRPackets(mdp, packets)) {
+      else if (mdp.d_qtype == QType::AXFR) {
+        if (!handleAXFR(cfd, mdp)) {
           close(cfd);
           continue;
         }
       }
-
-      if (mdp.d_qtype == QType::IXFR) {
+      else if (mdp.d_qtype == QType::IXFR) {
         /* RFC 1995 section 3:
          *  The IXFR query packet format is the same as that of a normal DNS
          *  query, but with the query type being IXFR and the authority section
@@ -791,21 +850,12 @@ void tcpWorker(int tid) {
           continue;
         }
 
-        if (!makeIXFRPackets(mdp, clientSOA, packets)) {
+        if (!handleIXFR(cfd, saddr, mdp, clientSOA)) {
           close(cfd);
           continue;
         }
       } /* if (mdp.d_qtype == QType::IXFR) */
 
-      g_log<<Logger::Debug<<prefix<<"Sending "<<packets.size()<<" packets to "<<saddr.toStringWithPort()<<endl;
-      for (const auto& packet : packets) {
-        char sendBuf[2];
-        sendBuf[0]=packet.size()/256;
-        sendBuf[1]=packet.size()%256;
-
-        ssize_t send = writen2(cfd, sendBuf, 2);
-        send += writen2(cfd, &packet[0], packet.size());
-      }
       shutdown(cfd, 2);
     } catch (MOADNSException &e) {
       g_log<<Logger::Warning<<prefix<<"Could not parse DNS packet from "<<saddr.toStringWithPort()<<": "<<e.what()<<endl;
@@ -825,7 +875,7 @@ void tcpWorker(int tid) {
  * missing parameters (if applicable), returning true if the config file was
  * good, false otherwise. Will log all issues with the config
  */
-bool parseAndCheckConfig(const string& configpath, YAML::Node& config) {
+static bool parseAndCheckConfig(const string& configpath, YAML::Node& config) {
   g_log<<Logger::Info<<"Loading configuration file from "<<configpath<<endl;
   try {
     config = YAML::LoadFile(configpath);
@@ -865,6 +915,16 @@ bool parseAndCheckConfig(const string& configpath, YAML::Node& config) {
     }
   } else {
     config["axfr-timeout"] = 20;
+  }
+
+  if (config["failed-soa-retry"]) {
+    try {
+      config["failed-soa-retry"].as<uint16_t>();
+    } catch (const runtime_error &e) {
+      g_log<<Logger::Error<<"Unable to read 'failed-soa-retry' value: "<<e.what()<<endl;
+    }
+  } else {
+    config["failed-soa-retry"] = 30;
   }
 
   if (config["tcp-in-threads"]) {
@@ -964,6 +1024,19 @@ bool parseAndCheckConfig(const string& configpath, YAML::Node& config) {
     retval = false;
   }
 
+  if (config["compress"]) {
+    try {
+      config["compress"].as<bool>();
+    }
+    catch (const runtime_error &e) {
+      g_log<<Logger::Error<<"Unable to read 'compress' value: "<<e.what()<<endl;
+      retval = false;
+    }
+  }
+  else {
+    config["compress"] = false;
+  }
+
   return retval;
 }
 
@@ -1038,6 +1111,13 @@ int main(int argc, char** argv) {
     }
   }
   g_log<<Logger::Notice<<"ACL set to "<<g_acl.toString()<<"."<<endl;
+
+  if (config["compress"]) {
+    g_compress = config["compress"].as<bool>();
+    if (g_compress) {
+      g_log<<Logger::Notice<<"Record compression is enabled."<<endl;
+    }
+  }
 
   FDMultiplexer* fdm = FDMultiplexer::getMultiplexerSilent();
   if (fdm == nullptr) {
@@ -1139,6 +1219,7 @@ int main(int argc, char** argv) {
       config["work-dir"].as<string>(),
       config["keep"].as<uint16_t>(),
       config["axfr-timeout"].as<uint16_t>(),
+      config["failed-soa-retry"].as<uint16_t>(),
       config["axfr-max-records"].as<uint32_t>());
 
   vector<std::thread> tcpHandlers;

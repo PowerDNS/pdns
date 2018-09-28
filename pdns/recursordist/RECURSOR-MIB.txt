@@ -774,6 +774,14 @@ truncatedDrops OBJECT-TYPE
         "Number of queries dropped because they were larger than 512 bytes"
     ::= { stats 93 }
 
+emptyQueries OBJECT-TYPE
+    SYNTAX Counter64
+    MAX-ACCESS read-only
+    STATUS current
+    DESCRIPTION
+        "Number of queries dropped because they had a QD count of 0"
+    ::= { stats 94 }
+
 ---
 --- Traps / Notifications
 ---

@@ -8,16 +8,9 @@
 #include "iputils.hh"
 #include "nameserver.hh"
 #include "statbag.hh"
-#include "arguments.hh"
 #include <utility>
 
 extern vector<ComboAddress> g_localaddresses;
-
-ArgvMap &arg()
-{
-  static ArgvMap theArg;
-  return theArg;
-}
 
 BOOST_AUTO_TEST_SUITE(nameserver_cc)
 

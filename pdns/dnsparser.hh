@@ -401,6 +401,7 @@ void editDNSPacketTTL(char* packet, size_t length, std::function<uint32_t(uint8_
 uint32_t getDNSPacketMinTTL(const char* packet, size_t length, bool* seenAuthSOA=nullptr);
 uint32_t getDNSPacketLength(const char* packet, size_t length);
 uint16_t getRecordsOfTypeCount(const char* packet, size_t length, uint8_t section, uint16_t type);
+bool getEDNSUDPPayloadSizeAndZ(const char* packet, size_t length, uint16_t* payloadSize, uint16_t* z);
 
 template<typename T>
 std::shared_ptr<T> getRR(const DNSRecord& dr)

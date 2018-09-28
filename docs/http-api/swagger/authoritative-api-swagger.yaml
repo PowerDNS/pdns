@@ -58,6 +58,29 @@ paths:
           schema:
             $ref: '#/definitions/Server'
 
+  '/servers/{server_id}/cache/flush':
+    put:
+      summary: Flush a cache-entry by name
+      operationId: cacheFlushByName
+      tags:
+        - servers
+      parameters:
+        - name: server_id
+          in: path
+          required: true
+          description: The id of the server to retrieve
+          type: string
+        - name: domain
+          in: query
+          required: true
+          description: The domain name to flush from the cache
+          type: string
+      responses:
+        '200':
+          description: Flush successful
+          schema:
+            $ref: '#/definitions/CacheFlushResult'
+
   '/servers/{server_id}/zones':
     get:
       summary: List all Zones in a server
@@ -1090,3 +1113,14 @@ definitions:
       bits:
         type: integer
         description: 'The size of the key'
+
+  CacheFlushResult:
+    title: CacheFlushResult
+    description: 'The result of a cache-flush'
+    properties:
+      count:
+        type: number
+        description: 'Amount of entries flushed'
+      result:
+        type: string
+        description: 'A message about the result like "Flushed cache"'

@@ -78,6 +78,14 @@ public:
     d_ttl=60;
     d_last_clean=time(0);
   }
+
+  struct entry
+  {
+    time_t ttd;
+    unsigned int count;
+  };
+  typedef map<Thing,entry> cont_t;
+
   bool shouldThrottle(time_t now, const Thing& t)
   {
     if(now > d_last_clean + 300 ) {
@@ -120,20 +128,20 @@ public:
     return (unsigned int)d_cont.size();
   }
 
+  const cont_t& getThrottleMap() const
+  {
+    return d_cont;
+  }
+
   void clear()
   {
     d_cont.clear();
   }
+
 private:
   unsigned int d_limit;
   time_t d_ttl;
   time_t d_last_clean;
-  struct entry
-  {
-    time_t ttd;
-    unsigned int count;
-  };
-  typedef map<Thing,entry> cont_t;
   cont_t d_cont;
 };
 
@@ -393,6 +401,7 @@ public:
   }
   static void doEDNSDumpAndClose(int fd);
   static uint64_t doDumpNSSpeeds(int fd);
+  static uint64_t doDumpThrottleMap(int fd);
   static int getRootNS(struct timeval now, asyncresolve_t asyncCallback);
   static void clearDelegationOnly()
   {
@@ -921,6 +930,7 @@ struct RecursorStats
   std::atomic<uint64_t> packetCacheHits;
   std::atomic<uint64_t> noPacketError;
   std::atomic<uint64_t> ignoredCount;
+  std::atomic<uint64_t> emptyQueriesCount;
   time_t startupTime;
   std::atomic<uint64_t> dnssecQueries;
   unsigned int maxMThreadStackUsage;
@@ -971,6 +981,7 @@ string doQueueReloadLuaScript(vector<string>::const_iterator begin, vector<strin
 string doTraceRegex(vector<string>::const_iterator begin, vector<string>::const_iterator end);
 void parseACLs();
 extern RecursorStats g_stats;
+extern unsigned int g_networkTimeoutMsec;
 extern unsigned int g_numThreads;
 extern uint16_t g_outgoingEDNSBufsize;
 extern std::atomic<uint32_t> g_maxCacheEntries, g_maxPacketCacheEntries;

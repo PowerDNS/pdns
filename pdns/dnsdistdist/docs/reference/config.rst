@@ -947,3 +947,33 @@ TLSFrontend
 
   :param str certFile(s): The path to a X.509 certificate file in PEM format, or a list of paths to such files.
   :param str keyFile(s): The path to the private key file corresponding to the certificate, or a list of paths to such files, whose order should match the certFile(s) ones.
+
+EDNS on Self-generated answers
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+There are several mechanisms in dnsdist that turn an existing query into an answer right away,
+without reaching out to the backend, including :func:`SpoofAction`, :func:`RCodeAction`, :func:`TCAction`
+and returning a response from ``Lua``. Those responses should, according to :rfc:`6891`, contain an ``OPT``
+record if the received request had one, which is the case by default and can be disabled using
+:func:`setAddEDNSToSelfGeneratedResponses`.
+
+We must, however, provide a responder's maximum payload size in this record, and we can't easily know the
+maximum payload size of the actual backend so we need to provide one. The default value is 1500 and can be
+overriden using :func:`setPayloadSizeOnSelfGeneratedAnswers`.
+
+.. function:: setAddEDNSToSelfGeneratedResponses(add)
+
+  .. versionadded:: 1.3.3
+
+  Whether to add EDNS to self-generated responses, provided that the initial query had EDNS.
+
+  :param bool add: Whether to add EDNS, default is true.
+
+.. function:: setPayloadSizeOnSelfGeneratedAnswers(payloadSize)
+
+  .. versionadded:: 1.3.3
+
+  Set the UDP payload size advertised via EDNS on self-generated responses. In accordance with
+  :rfc:`RFC 6891 <6891#section-6.2.5>`, values lower than 512 will be treated as equal to 512.
+
+  :param int payloadSize: The responder's maximum UDP payload size, in bytes. Default is 1500.

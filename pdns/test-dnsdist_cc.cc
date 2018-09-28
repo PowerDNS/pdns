@@ -744,4 +744,245 @@ BOOST_AUTO_TEST_CASE(rewritingWithoutECSWhenLastOption) {
   validateResponse((const char *) newResponse.data(), newResponse.size(), true, 1);
 }
 
+static DNSQuestion getDNSQuestion(const DNSName& qname, const uint16_t qtype, const uint16_t qclass, const ComboAddress& lc, const ComboAddress& rem, const struct timespec& realTime, vector<uint8_t>& query, size_t len)
+{
+  dnsheader* dh = reinterpret_cast<dnsheader*>(query.data());
+
+  DNSQuestion dq(&qname, qtype, qclass, qname.wirelength(), &lc, &rem, dh, query.size(), len, false, &realTime);
+  return dq;
+}
+
+static DNSQuestion turnIntoResponse(const DNSName& qname, const uint16_t qtype, const uint16_t qclass, const ComboAddress& lc, const ComboAddress& rem, const struct timespec& queryRealTime, vector<uint8_t>&  query, bool resizeBuffer=true)
+{
+  size_t length = query.size();
+  if (resizeBuffer) {
+    query.resize(4096);
+  }
+
+  auto dq = getDNSQuestion(qname, qtype, qclass, lc, rem, queryRealTime, query, length);
+
+  BOOST_CHECK(addEDNSToQueryTurnedResponse(dq));
+
+  return dq;
+}
+
+static int getZ(const DNSName& qname, const uint16_t qtype, const uint16_t qclass, vector<uint8_t>& query)
+{
+  ComboAddress lc("127.0.0.1");
+  ComboAddress rem("127.0.0.1");
+  struct timespec queryRealTime;
+  gettime(&queryRealTime, true);
+  size_t length = query.size();
+  DNSQuestion dq = getDNSQuestion(qname, qtype, qclass, lc, rem, queryRealTime, query, length);
+
+  return getEDNSZ(dq);
+}
+
+BOOST_AUTO_TEST_CASE(test_getEDNSZ) {
+
+  uint16_t z;
+  uint16_t udpPayloadSize;
+  DNSName qname("www.powerdns.com.");
+  uint16_t qtype = QType::A;
+  uint16_t qclass = QClass::IN;
+  EDNSSubnetOpts ecsOpts;
+  ecsOpts.source = Netmask(ComboAddress("127.0.0.1"), ECSSourcePrefixV4);
+  string origECSOptionStr = makeEDNSSubnetOptsString(ecsOpts);
+  EDNSCookiesOpt cookiesOpt;
+  cookiesOpt.client = string("deadbeef");
+  cookiesOpt.server = string("deadbeef");
+  string cookiesOptionStr = makeEDNSCookiesOptString(cookiesOpt);
+  DNSPacketWriter::optvect_t opts;
+  opts.push_back(make_pair(EDNSOptionCode::COOKIE, cookiesOptionStr));
+  opts.push_back(make_pair(EDNSOptionCode::ECS, origECSOptionStr));
+
+  {
+    /* no EDNS */
+    vector<uint8_t> query;
+    DNSPacketWriter pw(query, qname, qtype, qclass, 0);
+    pw.commit();
+
+    BOOST_CHECK_EQUAL(getZ(qname, qtype, qclass, query), 0);
+    BOOST_CHECK_EQUAL(getEDNSUDPPayloadSizeAndZ(reinterpret_cast<const char*>(query.data()), query.size(), &udpPayloadSize, &z), false);
+    BOOST_CHECK_EQUAL(z, 0);
+    BOOST_CHECK_EQUAL(udpPayloadSize, 0);
+  }
+
+  {
+    /* truncated EDNS */
+    vector<uint8_t> query;
+    DNSPacketWriter pw(query, qname, qtype, qclass, 0);
+    pw.addOpt(512, 0, EDNS_HEADER_FLAG_DO);
+    pw.commit();
+
+    query.resize(query.size() - (/* RDLEN */ sizeof(uint16_t) + /* last byte of TTL / Z */ 1));
+    BOOST_CHECK_EQUAL(getZ(qname, qtype, qclass, query), 0);
+    BOOST_CHECK_EQUAL(getEDNSUDPPayloadSizeAndZ(reinterpret_cast<const char*>(query.data()), query.size(), &udpPayloadSize, &z), false);
+    BOOST_CHECK_EQUAL(z, 0);
+    BOOST_CHECK_EQUAL(udpPayloadSize, 0);
+  }
+
+  {
+    /* valid EDNS, no options, DO not set */
+    vector<uint8_t> query;
+    DNSPacketWriter pw(query, qname, qtype, qclass, 0);
+    pw.addOpt(512, 0, 0);
+    pw.commit();
+
+    BOOST_CHECK_EQUAL(getZ(qname, qtype, qclass, query), 0);
+    BOOST_CHECK_EQUAL(getEDNSUDPPayloadSizeAndZ(reinterpret_cast<const char*>(query.data()), query.size(), &udpPayloadSize, &z), true);
+    BOOST_CHECK_EQUAL(z, 0);
+    BOOST_CHECK_EQUAL(udpPayloadSize, 512);
+  }
+
+  {
+    /* valid EDNS, no options, DO set */
+    vector<uint8_t> query;
+    DNSPacketWriter pw(query, qname, qtype, qclass, 0);
+    pw.addOpt(512, 0, EDNS_HEADER_FLAG_DO);
+    pw.commit();
+
+    BOOST_CHECK_EQUAL(getZ(qname, qtype, qclass, query), EDNS_HEADER_FLAG_DO);
+    BOOST_CHECK_EQUAL(getEDNSUDPPayloadSizeAndZ(reinterpret_cast<const char*>(query.data()), query.size(), &udpPayloadSize, &z), true);
+    BOOST_CHECK_EQUAL(z, EDNS_HEADER_FLAG_DO);
+    BOOST_CHECK_EQUAL(udpPayloadSize, 512);
+  }
+
+    {
+    /* valid EDNS, options, DO not set */
+    vector<uint8_t> query;
+    DNSPacketWriter pw(query, qname, qtype, qclass, 0);
+    pw.addOpt(512, 0, 0, opts);
+    pw.commit();
+
+    BOOST_CHECK_EQUAL(getZ(qname, qtype, qclass, query), 0);
+    BOOST_CHECK_EQUAL(getEDNSUDPPayloadSizeAndZ(reinterpret_cast<const char*>(query.data()), query.size(), &udpPayloadSize, &z), true);
+    BOOST_CHECK_EQUAL(z, 0);
+    BOOST_CHECK_EQUAL(udpPayloadSize, 512);
+  }
+
+  {
+    /* valid EDNS, options, DO set */
+    vector<uint8_t> query;
+    DNSPacketWriter pw(query, qname, qtype, qclass, 0);
+    pw.addOpt(512, 0, EDNS_HEADER_FLAG_DO, opts);
+    pw.commit();
+
+    BOOST_CHECK_EQUAL(getZ(qname, qtype, qclass, query), EDNS_HEADER_FLAG_DO);
+    BOOST_CHECK_EQUAL(getEDNSUDPPayloadSizeAndZ(reinterpret_cast<const char*>(query.data()), query.size(), &udpPayloadSize, &z), true);
+    BOOST_CHECK_EQUAL(z, EDNS_HEADER_FLAG_DO);
+    BOOST_CHECK_EQUAL(udpPayloadSize, 512);
+  }
+
+}
+
+BOOST_AUTO_TEST_CASE(test_addEDNSToQueryTurnedResponse) {
+
+  uint16_t z;
+  uint16_t udpPayloadSize;
+  DNSName qname("www.powerdns.com.");
+  uint16_t qtype = QType::A;
+  uint16_t qclass = QClass::IN;
+  EDNSSubnetOpts ecsOpts;
+  ecsOpts.source = Netmask(ComboAddress("127.0.0.1"), ECSSourcePrefixV4);
+  string origECSOptionStr = makeEDNSSubnetOptsString(ecsOpts);
+  EDNSCookiesOpt cookiesOpt;
+  cookiesOpt.client = string("deadbeef");
+  cookiesOpt.server = string("deadbeef");
+  string cookiesOptionStr = makeEDNSCookiesOptString(cookiesOpt);
+  DNSPacketWriter::optvect_t opts;
+  opts.push_back(make_pair(EDNSOptionCode::COOKIE, cookiesOptionStr));
+  opts.push_back(make_pair(EDNSOptionCode::ECS, origECSOptionStr));
+  ComboAddress lc("127.0.0.1");
+  ComboAddress rem("127.0.0.1");
+  struct timespec queryRealTime;
+  gettime(&queryRealTime, true);
+
+  {
+    /* no EDNS */
+    vector<uint8_t> query;
+    DNSPacketWriter pw(query, qname, qtype, qclass, 0);
+    pw.getHeader()->qr = 1;
+    pw.getHeader()->rcode = RCode::NXDomain;
+    pw.commit();
+
+    auto dq = turnIntoResponse(qname, qtype, qclass, lc, rem, queryRealTime, query);
+    BOOST_CHECK_EQUAL(getEDNSZ(dq), 0);
+    BOOST_CHECK_EQUAL(getEDNSUDPPayloadSizeAndZ(reinterpret_cast<const char*>(dq.dh), dq.len, &udpPayloadSize, &z), false);
+    BOOST_CHECK_EQUAL(z, 0);
+    BOOST_CHECK_EQUAL(udpPayloadSize, 0);
+  }
+
+  {
+    /* truncated EDNS */
+    vector<uint8_t> query;
+    DNSPacketWriter pw(query, qname, qtype, qclass, 0);
+    pw.addOpt(512, 0, EDNS_HEADER_FLAG_DO);
+    pw.commit();
+
+    query.resize(query.size() - (/* RDLEN */ sizeof(uint16_t) + /* last byte of TTL / Z */ 1));
+    auto dq = turnIntoResponse(qname, qtype, qclass, lc, rem, queryRealTime, query);
+    BOOST_CHECK_EQUAL(getEDNSZ(dq), 0);
+    BOOST_CHECK_EQUAL(getEDNSUDPPayloadSizeAndZ(reinterpret_cast<const char*>(dq.dh), dq.len, &udpPayloadSize, &z), false);
+    BOOST_CHECK_EQUAL(z, 0);
+    BOOST_CHECK_EQUAL(udpPayloadSize, 0);
+  }
+
+  {
+    /* valid EDNS, no options, DO not set */
+    vector<uint8_t> query;
+    DNSPacketWriter pw(query, qname, qtype, qclass, 0);
+    pw.addOpt(512, 0, 0);
+    pw.commit();
+
+    auto dq = turnIntoResponse(qname, qtype, qclass, lc, rem, queryRealTime, query);
+    BOOST_CHECK_EQUAL(getEDNSZ(dq), 0);
+    BOOST_CHECK_EQUAL(getEDNSUDPPayloadSizeAndZ(reinterpret_cast<const char*>(dq.dh), dq.len, &udpPayloadSize, &z), true);
+    BOOST_CHECK_EQUAL(z, 0);
+    BOOST_CHECK_EQUAL(udpPayloadSize, g_PayloadSizeSelfGenAnswers);
+  }
+
+  {
+    /* valid EDNS, no options, DO set */
+    vector<uint8_t> query;
+    DNSPacketWriter pw(query, qname, qtype, qclass, 0);
+    pw.addOpt(512, 0, EDNS_HEADER_FLAG_DO);
+    pw.commit();
+
+    auto dq = turnIntoResponse(qname, qtype, qclass, lc, rem, queryRealTime, query);
+    BOOST_CHECK_EQUAL(getEDNSZ(dq), EDNS_HEADER_FLAG_DO);
+    BOOST_CHECK_EQUAL(getEDNSUDPPayloadSizeAndZ(reinterpret_cast<const char*>(dq.dh), dq.len, &udpPayloadSize, &z), true);
+    BOOST_CHECK_EQUAL(z, EDNS_HEADER_FLAG_DO);
+    BOOST_CHECK_EQUAL(udpPayloadSize, g_PayloadSizeSelfGenAnswers);
+  }
+
+  {
+    /* valid EDNS, options, DO not set */
+    vector<uint8_t> query;
+    DNSPacketWriter pw(query, qname, qtype, qclass, 0);
+    pw.addOpt(512, 0, 0, opts);
+    pw.commit();
+
+    auto dq = turnIntoResponse(qname, qtype, qclass, lc, rem, queryRealTime, query);
+    BOOST_CHECK_EQUAL(getEDNSZ(dq), 0);
+    BOOST_CHECK_EQUAL(getEDNSUDPPayloadSizeAndZ(reinterpret_cast<const char*>(dq.dh), dq.len, &udpPayloadSize, &z), true);
+    BOOST_CHECK_EQUAL(z, 0);
+    BOOST_CHECK_EQUAL(udpPayloadSize, g_PayloadSizeSelfGenAnswers);
+  }
+
+  {
+    /* valid EDNS, options, DO set */
+    vector<uint8_t> query;
+    DNSPacketWriter pw(query, qname, qtype, qclass, 0);
+    pw.addOpt(512, 0, EDNS_HEADER_FLAG_DO, opts);
+    pw.commit();
+
+    auto dq = turnIntoResponse(qname, qtype, qclass, lc, rem, queryRealTime, query);
+    BOOST_CHECK_EQUAL(getEDNSZ(dq), EDNS_HEADER_FLAG_DO);
+    BOOST_CHECK_EQUAL(getEDNSUDPPayloadSizeAndZ(reinterpret_cast<const char*>(dq.dh), dq.len, &udpPayloadSize, &z), true);
+    BOOST_CHECK_EQUAL(z, EDNS_HEADER_FLAG_DO);
+    BOOST_CHECK_EQUAL(udpPayloadSize, g_PayloadSizeSelfGenAnswers);
+  }
+}
+
 BOOST_AUTO_TEST_SUITE_END();

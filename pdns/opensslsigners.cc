@@ -77,6 +77,8 @@ void openssl_thread_cleanup()
   OPENSSL_free(openssllocks);
 }
 
+#if !defined(LIBRESSL_VERSION_NUMBER) || LIBRESSL_VERSION_NUMBER < 0x2070000fL
+/* those symbols are defined in LibreSSL 2.7.0+ */
 /* compat helpers. These DO NOT do any of the checking that the libssl 1.1 functions do. */
 static inline void RSA_get0_key(const RSA* rsakey, const BIGNUM** n, const BIGNUM** e, const BIGNUM** d) {
   *n = rsakey->n;
@@ -143,6 +145,8 @@ static inline int ECDSA_SIG_set0(ECDSA_SIG* signature, BIGNUM* pr, BIGNUM* ps) {
   return 1;
 }
 #endif /* HAVE_LIBCRYPTO_ECDSA */
+
+#endif /* !defined(LIBRESSL_VERSION_NUMBER) || LIBRESSL_VERSION_NUMBER < 0x2070000fL */
 
 #else
 void openssl_thread_setup() {}
@@ -616,14 +620,19 @@ public:
       d_ecgroup = EC_GROUP_new_by_curve_name(NID_secp384r1);
       d_len = 48;
     } else {
+      EC_KEY_free(d_eckey);
       throw runtime_error(getName()+" unknown algorithm "+std::to_string(d_algorithm));
     }
+
     if (d_ecgroup == NULL) {
+      EC_KEY_free(d_eckey);
       throw runtime_error(getName()+" allocation of group structure failed");
     }
 
-    ret = EC_KEY_set_group(d_eckey,d_ecgroup);
+    ret = EC_KEY_set_group(d_eckey, d_ecgroup);
     if (ret != 1) {
+      EC_KEY_free(d_eckey);
+      EC_GROUP_free(d_ecgroup);
       throw runtime_error(getName()+" setting key group failed");
     }
 

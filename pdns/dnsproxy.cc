@@ -88,7 +88,7 @@ void DNSProxy::go()
 }
 
 //! look up qname target with r->qtype, plonk it in the answer section of 'r' with name aname
-bool DNSProxy::completePacket(DNSPacket *r, const DNSName& target,const DNSName& aname)
+bool DNSProxy::completePacket(DNSPacket *r, const DNSName& target,const DNSName& aname, const uint8_t scopeMask)
 {
   if(r->d_tcp) {
     vector<DNSZoneRecord> ips;
@@ -106,6 +106,7 @@ bool DNSProxy::completePacket(DNSPacket *r, const DNSName& target,const DNSName&
     for (auto &ip : ips)
     {
       ip.dr.d_name = aname;
+      ip.scopeMask = scopeMask;
       r->addRecord(ip);
     }
 
@@ -132,6 +133,7 @@ bool DNSProxy::completePacket(DNSPacket *r, const DNSName& target,const DNSName&
     ce.anyLocal = r->d_anyLocal;
     ce.complete = r;
     ce.aname=aname;
+    ce.anameScopeMask = scopeMask;
     d_conntrack[id]=ce;
   }
 
@@ -247,6 +249,7 @@ void DNSProxy::mainloop(void)
 	      if(j->first.d_type == i->second.qtype || (i->second.qtype == QType::ANY && (j->first.d_type == QType::A || j->first.d_type == QType::AAAA))) {
                 DNSZoneRecord dzr;
 		dzr.dr.d_name=i->second.aname;
+		dzr.scopeMask=i->second.anameScopeMask;
 		dzr.dr.d_type = j->first.d_type;
 		dzr.dr.d_ttl=j->first.d_ttl;
 		dzr.dr.d_place= j->first.d_place;
