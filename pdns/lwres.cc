@@ -56,6 +56,8 @@ static void logOutgoingQuery(std::shared_ptr<RemoteLogger> outgoingLogger, boost
     return;
 
   RecProtoBufMessage message(DNSProtoBufMessage::OutgoingQuery, uuid, nullptr, &ip, domain, type, QClass::IN, qid, doTCP, bytes);
+  message.setServerIdentity(SyncRes::s_serverID);
+
   if (initialRequestId) {
     message.setInitialRequestID(*initialRequestId);
   }
@@ -76,6 +78,7 @@ static void logIncomingResponse(std::shared_ptr<RemoteLogger> outgoingLogger, bo
     return;
 
   RecProtoBufMessage message(DNSProtoBufMessage::IncomingResponse, uuid, nullptr, &ip, domain, type, QClass::IN, qid, doTCP, bytes);
+  message.setServerIdentity(SyncRes::s_serverID);
   if (initialRequestId) {
     message.setInitialRequestID(*initialRequestId);
   }

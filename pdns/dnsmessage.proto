@@ -46,7 +46,7 @@ message PBDNSMessage {
   }
   required Type type = 1;
   optional bytes messageId = 2;                 // UUID, shared by the query and the response
-  optional bytes serverIdentity = 3;            // UUID of the server emitting the protobuf message
+  optional bytes serverIdentity = 3;            // ID of the server emitting the protobuf message
   optional SocketFamily socketFamily = 4;
   optional SocketProtocol socketProtocol = 5;
   optional bytes from = 6;                      // DNS requestor (client)
