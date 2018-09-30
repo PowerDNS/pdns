@@ -258,7 +258,6 @@ testrunner_SOURCES = \
 	test-ixfr_cc.cc \
 	test-misc_hh.cc \
 	test-mtasker.cc \
-	test-nmtree.cc \
 	test-negcache_cc.cc \
 	test-rcpgenerator_cc.cc \
 	test-recpacketcache_cc.cc \
