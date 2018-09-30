@@ -854,8 +854,8 @@ static void tcpWorker(int tid) {
       } /* if (mdp.d_qtype == QType::IXFR) */
 
       shutdown(cfd, 2);
-    } catch (MOADNSException &e) {
-      g_log<<Logger::Warning<<prefix<<"Could not parse DNS packet from "<<saddr.toStringWithPort()<<": "<<e.what()<<endl;
+    } catch (const MOADNSException &mde) {
+      g_log<<Logger::Warning<<prefix<<"Could not parse DNS packet from "<<saddr.toStringWithPort()<<": "<<mde.what()<<endl;
     } catch (runtime_error &e) {
       g_log<<Logger::Warning<<prefix<<"Could not write reply to "<<saddr.toStringWithPort()<<": "<<e.what()<<endl;
     }

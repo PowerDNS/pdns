@@ -321,7 +321,7 @@ try
 
         
 	}
-	catch(MOADNSException& mde) {
+	catch(const MOADNSException &mde) {
 	  if(verbose)
 	    cout<<"error parsing packet: "<<mde.what()<<endl;
 	  if(pw)
