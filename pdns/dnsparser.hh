@@ -68,8 +68,8 @@ class MOADNSParser;
 class PacketReader
 {
 public:
-  PacketReader(const vector<uint8_t>& content) 
-    : d_pos(0), d_startrecordpos(0), d_content(content)
+  PacketReader(const std::string& content, uint16_t initialPos=sizeof(dnsheader))
+    : d_pos(initialPos), d_startrecordpos(initialPos), d_content(content)
   {
     if(content.size() > std::numeric_limits<uint16_t>::max())
       throw std::out_of_range("packet too large");
@@ -155,8 +155,6 @@ public:
   void xfrBlob(string& blob, int length);
   void xfrHexBlob(string& blob, bool keepReading=false);
 
-  static uint16_t get16BitInt(const vector<unsigned char>&content, uint16_t& pos);
-
   void getDnsrecordheader(struct dnsrecordheader &ah);
   void copyRecord(vector<unsigned char>& dest, uint16_t len);
   void copyRecord(unsigned char* dest, uint16_t len);
@@ -165,18 +163,28 @@ public:
   string getText(bool multi, bool lenField);
   string getUnquotedText(bool lenField);
 
-  uint16_t d_pos;
 
   bool eof() { return true; };
   const string getRemaining() const {
     return "";
   };
 
+  uint16_t getPosition() const
+  {
+    return d_pos;
+  }
+
+  void skip(uint16_t n)
+  {
+    d_pos += n;
+  }
+
 private:
+  uint16_t d_pos;
   uint16_t d_startrecordpos; // needed for getBlob later on
   uint16_t d_recordlen;      // ditto
   uint16_t not_used; // Aligns the whole class on 8-byte boundries
-  const vector<uint8_t>& d_content;
+  const std::string& d_content;
 };
 
 struct DNSRecord;
@@ -356,15 +364,15 @@ class MOADNSParser : public boost::noncopyable
 {
 public:
   //! Parse from a string
-  MOADNSParser(bool query, const string& buffer)  : d_tsigPos(0)
+  MOADNSParser(bool query, const string& buffer): d_tsigPos(0)
   {
-    init(query, buffer.c_str(), (unsigned int)buffer.size());
+    init(query, buffer);
   }
 
   //! Parse from a pointer and length
   MOADNSParser(bool query, const char *packet, unsigned int len) : d_tsigPos(0)
   {
-    init(query, packet, len);
+    init(query, std::string(packet, len));
   }
 
   DNSName d_qname;
@@ -377,21 +385,12 @@ public:
   //! All answers contained in this packet (everything *but* the question section)
   answers_t d_answers;
 
-  shared_ptr<PacketReader> getPacketReader(uint16_t offset)
-  {
-    shared_ptr<PacketReader> pr(new PacketReader(d_content));
-    pr->d_pos=offset;
-    return pr;
-  }
-
   uint16_t getTSIGPos() const
   {
     return d_tsigPos;
   }
 private:
-  void getDnsrecordheader(struct dnsrecordheader &ah);
-  void init(bool query, const char *packet, unsigned int len);
-  vector<uint8_t> d_content;
+  void init(bool query, const std::string& packet);
   uint16_t d_tsigPos;
 };
 
@@ -399,9 +398,10 @@ string simpleCompress(const string& label, const string& root="");
 void ageDNSPacket(char* packet, size_t length, uint32_t seconds);
 void ageDNSPacket(std::string& packet, uint32_t seconds);
 void editDNSPacketTTL(char* packet, size_t length, std::function<uint32_t(uint8_t, uint16_t, uint16_t, uint32_t)> visitor);
-uint32_t getDNSPacketMinTTL(const char* packet, size_t length);
+uint32_t getDNSPacketMinTTL(const char* packet, size_t length, bool* seenAuthSOA=nullptr);
 uint32_t getDNSPacketLength(const char* packet, size_t length);
 uint16_t getRecordsOfTypeCount(const char* packet, size_t length, uint8_t section, uint16_t type);
+bool getEDNSUDPPayloadSizeAndZ(const char* packet, size_t length, uint16_t* payloadSize, uint16_t* z);
 
 template<typename T>
 std::shared_ptr<T> getRR(const DNSRecord& dr)

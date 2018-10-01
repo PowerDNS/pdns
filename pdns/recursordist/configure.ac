@@ -111,7 +111,6 @@ PDNS_CHECK_LUA_HPP
 PDNS_ENABLE_VERBOSE_LOGGING
 
 # Crypto libraries
-PDNS_ENABLE_BOTAN
 PDNS_CHECK_LIBCRYPTO([
 ],[
    AC_MSG_ERROR([OpenSSL/libcrypto not found])
@@ -136,6 +135,21 @@ socketdir="/var/run"
 AC_ARG_WITH([socketdir],
   [AS_HELP_STRING([--with-socketdir], [where the controlsocket lives @<:@default=/var/run@:>@])],
   [socketdir="$withval"]
+)
+
+PDNS_ENABLE_NOD
+
+AM_COND_IF([NOD_ENABLED],
+  [
+  BOOST_FILESYSTEM
+  AS_IF([test -z "$BOOST_FILESYSTEM_LIBS"], [ AC_MSG_ERROR([Boost filesystem library is not installed])])],
+  [])
+
+AC_SUBST([nodcachedir])
+nodcachedir='${prefix}/var/lib/pdns-recursor'
+AC_ARG_WITH([nod-cache-dir],
+  [AS_HELP_STRING([--with-nodcachedir], [where newly observed domain cache files live @<:@default=PREFIX/var/lib/pdns-recursor@:>@])],
+  [nodcachedir="$withval"]
 )
 
 AC_MSG_CHECKING([whether we will enable compiler security checks])
@@ -179,6 +193,7 @@ AC_SUBST([PROGRAM_LDFLAGS])
 AC_CONFIG_FILES([Makefile
 	ext/Makefile
 	ext/json11/Makefile
+	ext/probds/Makefile
 	ext/yahttp/Makefile
 	ext/yahttp/yahttp/Makefile])
 
@@ -216,10 +231,6 @@ AS_IF([test "x$LIBDECAF_LIBS" != "x"],
   [AC_MSG_NOTICE([libdecaf ed25519 and ed448: yes])],
   [AC_MSG_NOTICE([libdecaf ed25519 and ed448: no])]
 )
-AS_IF([test "x$BOTAN_LIBS" != "x"],
-  [AC_MSG_NOTICE([Botan gost: yes])],
-  [AC_MSG_NOTICE([Botan gost: no])]
-)
 AS_IF([test "x$PROTOBUF_LIBS" != "x" -a x"$PROTOC" != "x"],
   [AC_MSG_NOTICE([Protobuf: yes])],
   [AC_MSG_NOTICE([Protobuf: no])]
@@ -231,6 +242,10 @@ AS_IF([test "x$NET_SNMP_LIBS" != "x"],
 AS_IF([test "x$systemd" != "xn"],
   [AC_MSG_NOTICE([systemd: yes])],
   [AC_MSG_NOTICE([systemd: no])]
+)
+AM_COND_IF([NOD_ENABLED],
+  [AC_MSG_NOTICE([nod: yes])],
+  [AC_MSG_NOTICE([nod: no])]
 )
 AC_MSG_NOTICE([Context library: $pdns_context_library])
 AC_MSG_NOTICE([])

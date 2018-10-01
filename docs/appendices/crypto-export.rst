@@ -6,7 +6,8 @@ PowerDNS does not itself implement any cryptographic algorithms but relies on th
 
 Starting with 4.0.0, PowerDNS will link in hash and cryptographic primitives from the open source `OpenSSL <https://openssl.org/>`_ library.
 
-Optionally, PowerDNS can link in a copy of the open source `Botan <http://botan.randombits.org/>`_ cryptographic library.
+Optionally, PowerDNS can link in a copy of the open source `Botan <https://botan.randombit.net/>`_ cryptographic library.
+Starting with 4.2.0, linking in Botan is no longer possible.
 
 Optionally, PowerDNS can link in a copy of the open source `Sodium <https://libsodium.org/>`_ library.
 
@@ -17,6 +18,6 @@ For re-export, like most open source, publicly available "mass market" projects,
 
 Like most open source projects containing some encryption, the ECCN that best fits PowerDNS software is 5D002.
 
-The official link to the publicly available source code is `http://downloads.powerdns.com/releases`.
+The official link to the publicly available source code is `https://downloads.powerdns.com/releases`.
 
 If absolute certainty is required, we recommend consulting an expert in US Export Control, or asking the BIS for confirmation.

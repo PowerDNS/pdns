@@ -1,7 +1,7 @@
 Changelogs
 ==========
 
-The changelogs for the PowerDNS Authoritative Servr are split between release trains.
+The changelogs for the PowerDNS Authoritative Server are split between release trains.
 
 .. toctree::
     :maxdepth: 2

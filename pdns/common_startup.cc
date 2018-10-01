@@ -62,10 +62,19 @@ ArgvMap &arg()
 
 void declareArguments()
 {
+  ::arg().set("config-dir","Location of configuration directory (pdns.conf)")=SYSCONFDIR;
+  ::arg().set("config-name","Name of this virtual configuration - will rename the binary image")="";
+  ::arg().set("socket-dir",string("Where the controlsocket will live, ")+LOCALSTATEDIR+" when unset and not chrooted" )="";
+  ::arg().set("module-dir","Default directory for modules")=PKGLIBDIR;
+  ::arg().set("chroot","If set, chroot to this directory for more security")="";
+  ::arg().set("logging-facility","Log under a specific facility")="";
+  ::arg().set("daemon","Operate as a daemon")="no";
+
   ::arg().set("local-port","The port on which we listen")="53";
   ::arg().setSwitch("dnsupdate","Enable/Disable DNS update (RFC2136) support. Default is no.")="no";
   ::arg().setSwitch("write-pid","Write a PID file")="yes";
   ::arg().set("allow-dnsupdate-from","A global setting to allow DNS updates from these IP ranges.")="127.0.0.0/8,::1";
+  ::arg().setSwitch("send-signed-notify","Send TSIG secured NOTIFY if TSIG key is configured for a domain")="yes";
   ::arg().set("allow-unsigned-notify","Allow unsigned notifications for TSIG secured domains")="yes"; //FIXME: change to 'no' later
   ::arg().set("allow-unsigned-supermaster", "Allow supermasters to create zones without TSIG signed NOTIFY")="yes";
   ::arg().setSwitch("forward-dnsupdate","A global setting to allow DNS update packages that are for a Slave domain, to be forwarded to the master.")="yes";
@@ -86,7 +95,6 @@ void declareArguments()
   ::arg().setSwitch("api", "Enable/disable the REST API (including HTTP listener)")="no";
   ::arg().set("api-key", "Static pre-shared authentication key for access to the REST API")="";
   ::arg().set("api-logfile", "Location of the server logfile (used by the REST API)")="/var/log/pdns.log";
-  ::arg().setSwitch("api-readonly", "Disallow data modification through the REST API when set")="no";
   ::arg().setSwitch("dname-processing", "If we should support DNAME records")="no";
 
   ::arg().setCmd("help","Provide a helpful message");
@@ -189,7 +197,7 @@ void declareArguments()
   ::arg().set("lua-dnsupdate-policy-script", "Lua script with DNS update policy handler")="";
 
   ::arg().setSwitch("traceback-handler","Enable the traceback handler (Linux only)")="yes";
-  ::arg().setSwitch("direct-dnskey","Fetch DNSKEY RRs from backend during DNSKEY synthesis")="no";
+  ::arg().setSwitch("direct-dnskey","Fetch DNSKEY, CDS and CDNSKEY RRs from backend during DNSKEY or CDS/CDNSKEY synthesis")="no";
   ::arg().set("default-ksk-algorithm","Default KSK algorithm")="ecdsa256";
   ::arg().set("default-ksk-size","Default KSK size (0 means default)")="0";
   ::arg().set("default-zsk-algorithm","Default ZSK algorithm")="";

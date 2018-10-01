@@ -33,6 +33,9 @@ struct ProtobufExportConfig
   uint16_t reconnectWaitTime{1};
   bool asyncConnect{false};
   bool enabled{false};
+  bool logQueries{true};
+  bool logResponses{true};
+  bool taggedOnly{false};
 };
 
 class LuaConfigItems 
@@ -51,9 +54,15 @@ public:
   uint64_t generation{0};
   uint8_t protobufMaskV4{32};
   uint8_t protobufMaskV6{128};
-  bool protobufTaggedOnly{false};
 };
 
 extern GlobalStateHolder<LuaConfigItems> g_luaconfs;
-void loadRecursorLuaConfig(const std::string& fname, bool checkOnly);
+
+struct luaConfigDelayedThreads
+{
+  std::vector<std::tuple<std::vector<ComboAddress>, boost::optional<DNSFilterEngine::Policy>, uint32_t, size_t, TSIGTriplet, size_t, ComboAddress, uint16_t, std::shared_ptr<SOARecordContent>, std::string> > rpzMasterThreads;
+};
+
+void loadRecursorLuaConfig(const std::string& fname, luaConfigDelayedThreads& delayedThreads);
+void startLuaConfigDelayedThreads(const luaConfigDelayedThreads& delayedThreads, uint64_t generation);
 

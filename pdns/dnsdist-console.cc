@@ -42,6 +42,7 @@ GlobalStateHolder<NetmaskGroup> g_consoleACL;
 vector<pair<struct timeval, string> > g_confDelta;
 std::string g_consoleKey;
 bool g_logConsoleConnections{true};
+bool g_consoleEnabled{false};
 
 // MUST BE CALLED UNDER A LOCK - right now the LuaLock
 static void feedConfigDelta(const std::string& line)
@@ -73,10 +74,55 @@ static string historyFile(const bool &ignoreHOME = false)
   return ret;
 }
 
+static bool sendMessageToServer(int fd, const std::string& line, SodiumNonce& readingNonce, SodiumNonce& writingNonce, const bool outputEmptyLine)
+{
+  string msg = sodEncryptSym(line, g_consoleKey, writingNonce);
+  const auto msgLen = msg.length();
+  if (msgLen > std::numeric_limits<uint32_t>::max()) {
+    cout << "Encrypted message is too long to be sent to the server, "<< std::to_string(msgLen) << " > " << std::numeric_limits<uint32_t>::max() << endl;
+    return true;
+  }
+
+  putMsgLen32(fd, static_cast<uint32_t>(msgLen));
+
+  if (!msg.empty()) {
+    writen2(fd, msg);
+  }
+
+  uint32_t len;
+  if(!getMsgLen32(fd, &len)) {
+    cout << "Connection closed by the server." << endl;
+    return false;
+  }
+
+  if (len == 0) {
+    if (outputEmptyLine) {
+      cout << endl;
+    }
+
+    return true;
+  }
+
+  boost::scoped_array<char> resp(new char[len]);
+  readn2(fd, resp.get(), len);
+  msg.assign(resp.get(), len);
+  msg = sodDecryptSym(msg, g_consoleKey, readingNonce);
+  cout << msg;
+  cout.flush();
+
+  return true;
+}
+
 void doClient(ComboAddress server, const std::string& command)
 {
-  if(g_verbose)
+  if (!sodIsValidKey(g_consoleKey)) {
+    cerr << "The currently configured console key is not valid, please configure a valid key using the setKey() directive" << endl;
+    return;
+  }
+
+  if(g_verbose) {
     cout<<"Connecting to "<<server.toStringWithPort()<<endl;
+  }
 
   int fd=socket(server.sin4.sin_family, SOCK_STREAM, 0);
   if (fd < 0) {
@@ -93,25 +139,18 @@ void doClient(ComboAddress server, const std::string& command)
   readingNonce.merge(ours, theirs);
   writingNonce.merge(theirs, ours);
 
-  if(!command.empty()) {
-    string msg=sodEncryptSym(command, g_consoleKey, writingNonce);
-    putMsgLen32(fd, (uint32_t) msg.length());
-    if(!msg.empty())
-      writen2(fd, msg);
-    uint32_t len;
-    if(getMsgLen32(fd, &len)) {
-      if (len > 0) {
-        boost::scoped_array<char> resp(new char[len]);
-        readn2(fd, resp.get(), len);
-        msg.assign(resp.get(), len);
-        msg=sodDecryptSym(msg, g_consoleKey, readingNonce);
-        cout<<msg;
-        cout.flush();
-      }
-    }
-    else {
-      cout << "Connection closed by the server." << endl;
-    }
+  /* try sending an empty message, the server should send an empty
+     one back. If it closes the connection instead, we are probably
+     having a key mismatch issue. */
+  if (!sendMessageToServer(fd, "", readingNonce, writingNonce, false)) {
+    cerr<<"The server closed the connection right away, likely indicating a key mismatch. Please check your setKey() directive."<<endl;
+    close(fd);
+    return;
+  }
+
+  if (!command.empty()) {
+    sendMessageToServer(fd, command, readingNonce, writingNonce, false);
+
     close(fd);
     return; 
   }
@@ -150,25 +189,8 @@ void doClient(ComboAddress server, const std::string& command)
     if(line.empty())
       continue;
 
-    string msg=sodEncryptSym(line, g_consoleKey, writingNonce);
-    putMsgLen32(fd, (uint32_t) msg.length());
-    writen2(fd, msg);
-    uint32_t len;
-    if(!getMsgLen32(fd, &len)) {
-      cout << "Connection closed by the server." << endl;
+    if (!sendMessageToServer(fd, line, readingNonce, writingNonce, true)) {
       break;
-    }
-
-    if (len > 0) {
-      boost::scoped_array<char> resp(new char[len]);
-      readn2(fd, resp.get(), len);
-      msg.assign(resp.get(), len);
-      msg=sodDecryptSym(msg, g_consoleKey, readingNonce);
-      cout<<msg;
-      cout.flush();
-    }
-    else {
-      cout<<endl;
     }
   }
   close(fd);
@@ -320,9 +342,12 @@ const std::vector<ConsoleKeyword> g_consoleKeywords{
   { "DnstapLogResponseAction", true, "identity, FrameStreamLogger [, alterFunction]", "send the contents of this response to a remote or FrameStreamLogger or RemoteLogger as dnstap. `alterFunction` is a callback, receiving a DNSResponse and a DnstapMessage, that can be used to modify the dnstap message" },
   { "DropAction", true, "", "drop these packets" },
   { "DropResponseAction", true, "", "drop these packets" },
+  { "DSTPortRule", true, "port", "matches questions received to the destination port specified" },
   { "dumpStats", true, "", "print all statistics we gather" },
-  { "exceedNXDOMAINs", true, "rate, seconds", "get set of addresses that exceed `rate` NXDOMAIN/s over `seconds` seconds" },
   { "dynBlockRulesGroup", true, "", "return a new DynBlockRulesGroup object" },
+  { "EDNSOptionRule", true, "optcode", "matches queries with the specified EDNS0 option present" },
+  { "ERCodeRule", true, "rcode", "matches responses with the specified extended rcode (EDNS0)" },
+  { "exceedNXDOMAINs", true, "rate, seconds", "get set of addresses that exceed `rate` NXDOMAIN/s over `seconds` seconds" },
   { "exceedQRate", true, "rate, seconds", "get set of address that exceed `rate` queries/s over `seconds` seconds" },
   { "exceedQTypeRate", true, "type, rate, seconds", "get set of address that exceed `rate` queries/s for queries of type `type` over `seconds` seconds" },
   { "exceedRespByterate", true, "rate, seconds", "get set of addresses that exceeded `rate` bytes/s answers over `seconds` seconds" },
@@ -340,6 +365,7 @@ const std::vector<ConsoleKeyword> g_consoleKeywords{
   { "getServer", true, "n", "returns server with index n" },
   { "getServers", true, "", "returns a table with all defined servers" },
   { "getTLSContext", true, "n", "returns the TLS context with index n" },
+  { "getTLSFrontend", true, "n", "returns the TLS frontend with index n" },
   { "inClientStartup", true, "", "returns true during console client parsing of configuration" },
   { "grepq", true, "Netmask|DNS Name|100ms|{\"::1\", \"powerdns.com\", \"100ms\"} [, n]", "shows the last n queries and responses matching the specified client address or range (Netmask), or the specified DNS Name, or slower than 100ms" },
   { "leastOutstanding", false, "", "Send traffic to downstream server with least outstanding queries, with the lowest 'order', and within that the lowest recent latency"},
@@ -364,6 +390,11 @@ const std::vector<ConsoleKeyword> g_consoleKeywords{
   { "NoRecurseAction", true, "", "strip RD bit from the question, let it go through" },
   { "PoolAction", true, "poolname", "set the packet into the specified pool" },
   { "printDNSCryptProviderFingerprint", true, "\"/path/to/providerPublic.key\"", "display the fingerprint of the provided resolver public key" },
+  { "QNameLabelsCountRule", true, "min, max", "matches if the qname has less than `min` or more than `max` labels" },
+  { "QNameRule", true, "qname", "matches queries with the specified qname" },
+  { "QNameWireLengthRule", true, "min, max", "matches if the qname's length on the wire is less than `min` or more than `max` bytes" },
+  { "QTypeRule", true, "qtype", "matches queries with the specified qtype" },
+  { "RCodeRule", true, "rcode", "matches responses with the specified rcode" },
   { "RegexRule", true, "regex", "matches the query name against the supplied regex" },
   { "registerDynBPFFilter", true, "DynBPFFilter", "register this dynamic BPF filter into the web interface so that its counters are displayed" },
   { "RemoteLogAction", true, "RemoteLogger [, alterFunction]", "send the content of this query to a remote logger via Protocol Buffer. `alterFunction` is a callback, receiving a DNSQuestion and a DNSDistProtoBufMessage, that can be used to modify the Protocol Buffer content, for example for anonymization purposes" },
@@ -374,14 +405,9 @@ const std::vector<ConsoleKeyword> g_consoleKeywords{
   { "rmSelfAnsweredResponseRule", true, "id", "remove self-answered response rule in position 'id', or whose uuid matches if 'id' is an UUID string" },
   { "rmServer", true, "n", "remove server with index n" },
   { "roundrobin", false, "", "Simple round robin over available servers" },
-  { "QNameLabelsCountRule", true, "min, max", "matches if the qname has less than `min` or more than `max` labels" },
-  { "QNameRule", true, "qname", "matches queries with the specified qname" },
-  { "QNameWireLengthRule", true, "min, max", "matches if the qname's length on the wire is less than `min` or more than `max` bytes" },
-  { "QTypeRule", true, "qtype", "matches queries with the specified qtype" },
-  { "RCodeRule", true, "rcode", "matches responses with the specified rcode" },
-  { "ERCodeRule", true, "rcode", "matches responses with the specified extended rcode (EDNS0)" },
   { "sendCustomTrap", true, "str", "send a custom `SNMP` trap from Lua, containing the `str` string"},
   { "setACL", true, "{netmask, netmask}", "replace the ACL set with these netmasks. Use `setACL({})` to reset the list, meaning no one can use us" },
+  { "setAddEDNSToSelfGeneratedResponses", true, "add", "set whether to add EDNS to self-generated responses, provided that the initial query had EDNS" },
   { "setAPIWritable", true, "bool, dir", "allow modifications via the API. if `dir` is set, it must be a valid directory where the configuration files will be written by the API" },
   { "setConsoleACL", true, "{netmask, netmask}", "replace the console ACL set with these netmasks" },
   { "setConsoleConnectionsLogging", true, "enabled", "whether to log the opening and closing of console connections" },
@@ -398,6 +424,7 @@ const std::vector<ConsoleKeyword> g_consoleKeywords{
   { "setMaxTCPQueriesPerConnection", true, "n", "set the maximum number of queries in an incoming TCP connection. 0 means unlimited" },
   { "setMaxTCPQueuedConnections", true, "n", "set the maximum number of TCP connections queued (waiting to be picked up by a client thread)" },
   { "setMaxUDPOutstanding", true, "n", "set the maximum number of outstanding UDP queries to a given backend server. This can only be set at configuration time and defaults to 10240" },
+  { "setPayloadSizeOnSelfGeneratedAnswers", true, "payloadSize", "set the UDP payload size advertised via EDNS on self-generated responses" },
   { "setPoolServerPolicy", true, "policy, pool", "set the server selection policy for this pool to that policy" },
   { "setPoolServerPolicy", true, "name, func, pool", "set the server selection policy for this pool to one named 'name' and provided by 'function'" },
   { "setQueryCount", true, "bool", "set whether queries should be counted" },
@@ -461,6 +488,7 @@ const std::vector<ConsoleKeyword> g_consoleKeywords{
   { "unregisterDynBPFFilter", true, "DynBPFFilter", "unregister this dynamic BPF filter" },
   { "webserver", true, "address:port, password [, apiKey [, customHeaders ]])", "launch a webserver with stats on that address with that password" },
   { "whashed", false, "", "Weighted hashed ('sticky') distribution over available servers, based on the server 'weight' parameter" },
+  { "chashed", false, "", "Consistent hashed ('sticky') distribution over available servers, also based on the server 'weight' parameter" },
   { "wrandom", false, "", "Weighted random over available servers, based on the server 'weight' parameter" },
 };
 
@@ -529,8 +557,9 @@ try
 
     boost::scoped_array<char> msg(new char[len]);
     readn2(fd, msg.get(), len);
-    
+
     string line(msg.get(), len);
+
     line = sodDecryptSym(line, g_consoleKey, readingNonce);
     //    cerr<<"Have decrypted line: "<<line<<endl;
     string response;
@@ -642,6 +671,12 @@ try
   infolog("Accepting control connections on %s", local.toStringWithPort());
 
   while ((sock = SAccept(fd, client)) >= 0) {
+
+    if (!sodIsValidKey(g_consoleKey)) {
+      vinfolog("Control connection from %s dropped because we don't have a valid key configured, please configure one using setKey()", client.toStringWithPort());
+      close(sock);
+      continue;
+    }
 
     if (!localACL->match(client)) {
       vinfolog("Control connection from %s dropped because of ACL", client.toStringWithPort());

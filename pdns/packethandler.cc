@@ -1119,6 +1119,7 @@ DNSPacket *PacketHandler::doQuestion(DNSPacket *p)
   vector<DNSZoneRecord> rrset;
   bool weDone=0, weRedirected=0, weHaveUnauth=0;
   DNSName haveAlias;
+  uint8_t aliasScopeMask;
 
   DNSPacket *r=0;
   bool noCache=false;
@@ -1353,6 +1354,7 @@ DNSPacket *PacketHandler::doQuestion(DNSPacket *p)
     B.lookup(QType(QType::ANY), target, p, sd.domain_id);
     rrset.clear();
     haveAlias.trimToLabels(0);
+    aliasScopeMask = 0;
     weDone = weRedirected = weHaveUnauth =  false;
     
     while(B.get(rr)) {
@@ -1409,6 +1411,7 @@ DNSPacket *PacketHandler::doQuestion(DNSPacket *p)
           continue;
         }
         haveAlias=getRR<ALIASRecordContent>(rr.dr)->d_content;
+        aliasScopeMask=rr.scopeMask;
       }
 
       // Filter out all SOA's and add them in later
@@ -1432,15 +1435,15 @@ DNSPacket *PacketHandler::doQuestion(DNSPacket *p)
 
 
     DLOG(g_log<<"After first ANY query for '"<<target<<"', id="<<sd.domain_id<<": weDone="<<weDone<<", weHaveUnauth="<<weHaveUnauth<<", weRedirected="<<weRedirected<<", haveAlias='"<<haveAlias<<"'"<<endl);
-    if(p->qtype.getCode() == QType::DS && weHaveUnauth &&  !weDone && !weRedirected && d_dk.isSecuredZone(sd.qname)) {
-      DLOG(g_log<<"Q for DS of a name for which we do have NS, but for which we don't have on a zone with DNSSEC need to provide an AUTH answer that proves we don't"<<endl);
+    if(p->qtype.getCode() == QType::DS && weHaveUnauth &&  !weDone && !weRedirected) {
+      DLOG(g_log<<"Q for DS of a name for which we do have NS, but for which we don't have DS; need to provide an AUTH answer that shows we don't"<<endl);
       makeNOError(p, r, target, DNSName(), sd, 1);
       goto sendit;
     }
 
     if(!haveAlias.empty() && (!weDone || p->qtype.getCode() == QType::ANY)) {
       DLOG(g_log<<Logger::Warning<<"Found nothing that matched for '"<<target<<"', but did get alias to '"<<haveAlias<<"', referring"<<endl);
-      DP->completePacket(r, haveAlias, target);
+      DP->completePacket(r, haveAlias, target, aliasScopeMask);
       return 0;
     }
 

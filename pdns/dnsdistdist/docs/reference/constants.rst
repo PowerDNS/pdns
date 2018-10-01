@@ -58,6 +58,26 @@ RCodes below and including ``BADVERS`` are extended RCodes that can only be matc
 
 Reference: https://www.iana.org/assignments/dns-parameters/dns-parameters.xhtml#dns-parameters-6
 
+
+.. _EDNSOptionCode:
+
+EDNSOptionCode
+--------------
+
+- ``EDNSOptionCode.DHU``
+- ``EDNSOptionCode.ECS``
+- ``EDNSOptionCode.N3U``
+- ``EDNSOptionCode.DAU``
+- ``EDNSOptionCode.TCPKEEPALIVE``
+- ``EDNSOptionCode.COOKIE``
+- ``EDNSOptionCode.PADDING``
+- ``EDNSOptionCode.KEYTAG``
+- ``EDNSOptionCode.NSID``
+- ``EDNSOptionCode.CHAIN``
+- ``EDNSOptionCode.EXPIRE``
+
+Reference: https://www.iana.org/assignments/dns-parameters/dns-parameters.xhtml#dns-parameters-11
+
 .. _DNSSection:
 
 DNS Section
@@ -80,6 +100,7 @@ These constants represent an Action that can be returned from the functions invo
  * ``DNSAction.Drop``: drop the query
  * ``DNSAction.HeaderModify``: indicate that the query has been turned into a response
  * ``DNSAction.None``: continue to the next rule
+ * ``DNSAction.NoOp``: continue to the next rule (used for Dynamic Block actions where None has a different meaning)
  * ``DNSAction.Nxdomain``: return a response with a NXDomain rcode
  * ``DNSAction.Pool``: use the specified pool to forward this query
  * ``DNSAction.Refused``: return a response with a Refused rcode

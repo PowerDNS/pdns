@@ -93,7 +93,7 @@ void loadMainConfig(const std::string& configdir)
   ::arg().set("entropy-source", "If set, read entropy from this file")="/dev/urandom";
   ::arg().setSwitch("query-logging","Hint backends that queries should be logged")="no";
   ::arg().set("loglevel","Amount of logging. Higher is more.")="3";
-  ::arg().setSwitch("direct-dnskey","Fetch DNSKEY RRs from backend during DNSKEY synthesis")="no";
+  ::arg().setSwitch("direct-dnskey","Fetch DNSKEY, CDS and CDNSKEY RRs from backend during DNSKEY or CDS/CDNSKEY synthesis")="no";
   ::arg().set("max-nsec3-iterations","Limit the number of NSEC3 hash iterations")="500"; // RFC5155 10.3
   ::arg().set("max-signature-cache-entries", "Maximum number of signatures cache entries")="";
   ::arg().set("rng", "Specify random number generator to use. Valid values are auto,sodium,openssl,getrandom,arc4random,urandom.")="auto";
@@ -447,9 +447,13 @@ int checkZone(DNSSECKeeper &dk, UeberBackend &B, const DNSName& zone, const vect
         toCheck = DNSName(rr.content);
       }
 
-      if (toCheck.empty())
+      if (toCheck.empty()) {
         cout<<"[Warning] "<<rr.qtype.getName()<<" record in zone '"<<zone<<"': unable to extract hostname from content."<<endl;
-      else if(!toCheck.isHostname()) {
+        numwarnings++;
+      }
+      else if ((rr.qtype.getCode() == QType::MX || rr.qtype.getCode() == QType::SRV) && toCheck == g_rootdnsname) {
+        // allow null MX/SRV
+      } else if(!toCheck.isHostname()) {
         cout<<"[Warning] "<<rr.qtype.getName()<<" record in zone '"<<zone<<"' has non-hostname content '"<<toCheck.toString()<<"'."<<endl;
         numwarnings++;
       }
@@ -604,15 +608,39 @@ int checkAllZones(DNSSECKeeper &dk, bool exitOnError)
 {
   UeberBackend B("default");
   vector<DomainInfo> domainInfo;
+  multi_index_container<
+    DomainInfo,
+    indexed_by<
+      ordered_non_unique< member<DomainInfo,DNSName,&DomainInfo::zone>, CanonDNSNameCompare >,
+      ordered_non_unique< member<DomainInfo,uint32_t,&DomainInfo::id> >
+    >
+  > seenInfos;
+  auto& seenNames = seenInfos.get<0>();
+  auto& seenIds = seenInfos.get<1>();
 
   B.getAllDomains(&domainInfo, true);
   int errors=0;
   for(auto di : domainInfo) {
     if (checkZone(dk, B, di.zone) > 0) {
       errors++;
-      if(exitOnError)
-        return EXIT_FAILURE;
     }
+
+    auto seenName = seenNames.find(di.zone);
+    if (seenName != seenNames.end()) {
+      cout<<"[Error] Another SOA for zone '"<<di.zone<<"' (serial "<<di.serial<<") has already been seen (serial "<<seenName->serial<<")."<<endl;
+      errors++;
+    }
+
+    auto seenId = seenIds.find(di.id);
+    if (seenId != seenIds.end()) {
+      cout<<"[Error] Domain ID "<<di.id<<" of '"<<di.zone<<"' in backend "<<di.backend->getPrefix()<<" has already been used by zone '"<<seenId->zone<<"' in backend "<<seenId->backend->getPrefix()<<"."<<endl;
+      errors++;
+    }
+
+    seenInfos.insert(di);
+
+    if(errors && exitOnError)
+      return EXIT_FAILURE;
   }
   cout<<"Checked "<<domainInfo.size()<<" zones, "<<errors<<" had errors."<<endl;
   if(!errors)
@@ -892,19 +920,20 @@ int editZone(DNSSECKeeper& dk, const DNSName &zone) {
   ZoneParserTNG zpt(tmpnam, g_rootdnsname);
   DNSResourceRecord zrr;
   map<pair<DNSName,uint16_t>, vector<DNSRecord> > grouped;
-  while(zpt.get(zrr)) {
-    try {
-      DNSRecord dr(zrr);
-      post.push_back(dr);
-      grouped[{dr.d_name,dr.d_type}].push_back(dr);
-    }
-    catch(std::exception& e) {
-      cerr<<"Problem "<<e.what()<<" "<<zpt.getLineOfFile()<<endl;
-      auto fnum = zpt.getLineNumAndFile();
-      gotoline = fnum.second;
-      goto reAsk;
+  try {
+    while(zpt.get(zrr)) {
+        DNSRecord dr(zrr);
+        post.push_back(dr);
+        grouped[{dr.d_name,dr.d_type}].push_back(dr);
     }
   }
+  catch(std::exception& e) {
+    cerr<<"Problem: "<<e.what()<<" "<<zpt.getLineOfFile()<<endl;
+    auto fnum = zpt.getLineNumAndFile();
+    gotoline = fnum.second;
+    goto reAsk;
+  }
+
   sort(post.begin(), post.end(), DNSRecord::prettyCompare);
   checkrr.clear();
 

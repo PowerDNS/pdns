@@ -537,9 +537,9 @@ These ``DNSRule``\ s be one of the following items:
 
   Matches queries with the DO flag set
 
-.. function:: MaxQPSIPRule(qps[, v4Mask[, v6Mask[, burst[, expiration[, cleanupDelay]]]]])
+.. function:: MaxQPSIPRule(qps[, v4Mask[, v6Mask[, burst[, expiration[, cleanupDelay[, scanFraction]]]]]])
   .. versionchanged:: 1.3.1
-    Added the optional parameters ``expiration`` and ``cleanupDelay``.
+    Added the optional parameters ``expiration``, ``cleanupDelay`` and ``scanFraction``.
 
   Matches traffic for a subnet specified by ``v4Mask`` or ``v6Mask`` exceeding ``qps`` queries per second up to ``burst`` allowed.
   This rule keeps track of QPS by netmask or source IP. This state is cleaned up regularly if  ``cleanupDelay`` is greater than zero,
@@ -551,6 +551,7 @@ These ``DNSRule``\ s be one of the following items:
   :param int burst: The number of burstable queries per second allowed. Default is same as qps
   :param int expiration: How long to keep netmask or IP addresses after they have last been seen, in seconds. Default is 300
   :param int cleanupDelay: The number of seconds between two cleanups. Default is 60
+  :param int scanFraction: The maximum fraction of the store to scan for expired entries, for example 5 would scan at most 20% of it. Default is 10 so 10%
 
 .. function:: MaxQPSRule(qps)
 
@@ -637,6 +638,13 @@ These ``DNSRule``\ s be one of the following items:
 
   :param int rcode: The RCODE to match on
 
+.. function:: EDNSOptionRule(optcode)
+
+  .. versionadded:: 1.4.0
+
+  Matches queries or responses with the specified EDNS option present.
+  ``optcode`` is specified as an integer, or a constant such as `EDNSOptionCode.ECS`.
+
 .. function:: RDRule()
 
   .. versionadded:: 1.2.0
@@ -712,6 +720,12 @@ These ``DNSRule``\ s be one of the following items:
   Matches question received over TCP if ``tcp`` is true, over UDP otherwise.
 
   :param bool tcp: Match TCP traffic. Default is true.
+
+.. function:: DSTPortRule(port)
+
+  Matches questions received to the destination port.
+
+  :param int port: Match destination port.
 
 .. function:: TrailingDataRule()
 
@@ -840,7 +854,7 @@ The following actions exist.
   The ``buffered`` optional parameter specifies whether writes to the file are buffered (default) or not.
   Subsequent rules are processed after this rule.
 
-  :param string filename: File to log to
+  :param string filename: File to log to. Set to an empty string to log to the normal stdout log, this only works when ``-v`` is set on the command line.
   :param bool binary: Do binary logging. Default true
   :param bool append: Append to the log. Default false
   :param bool buffered: Use buffered I/O. default true
@@ -925,6 +939,19 @@ The following actions exist.
   :param string remoteLogger: The :func:`remoteLogger <newRemoteLogger>` object to write to
   :param string alterFunction: Name of a function to modify the contents of the logs before sending
   :param bool includeCNAME: Whether or not to parse and export CNAMEs. Default false
+
+.. function:: SetECSAction(v4 [, v6])
+
+  .. versionadded:: 1.3.1
+
+  Set the ECS prefix and prefix length sent to backends to an arbitrary value.
+  If both IPv4 and IPv6 masks are supplied the IPv4 one will be used for IPv4 clients
+  and the IPv6 one for IPv6 clients. Otherwise the first mask is used for both, and
+  can actually be an IPv6 mask.
+  Subsequent rules are processed after this rule.
+
+  :param string v4: The IPv4 netmask, for example "192.0.2.1/32"
+  :param string v6: The IPv6 netmask, if any
 
 .. function:: SkipCacheAction()
 

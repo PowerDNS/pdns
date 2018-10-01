@@ -86,6 +86,9 @@
 #include "rec-lua-conf.hh"
 #include "ednsoptions.hh"
 #include "gettime.hh"
+#ifdef NOD_ENABLED
+#include "nod.hh"
+#endif /* NOD_ENABLED */
 
 #include "rec-protobuf.hh"
 #include "rec-snmp.hh"
@@ -101,7 +104,7 @@
 typedef map<ComboAddress, uint32_t, ComboAddress::addressOnlyLessThan> tcpClientCounts_t;
 
 static thread_local std::shared_ptr<RecursorLua4> t_pdl;
-static thread_local int t_id;
+static thread_local unsigned int t_id = 0;
 static thread_local std::shared_ptr<Regex> t_traceRegex;
 static thread_local std::unique_ptr<tcpClientCounts_t> t_tcpClientCounts;
 #ifdef HAVE_PROTOBUF
@@ -113,40 +116,65 @@ thread_local std::unique_ptr<MT_t> MT; // the big MTasker
 thread_local std::unique_ptr<MemRecursorCache> t_RC;
 thread_local std::unique_ptr<RecursorPacketCache> t_packetCache;
 thread_local FDMultiplexer* t_fdm{nullptr};
-thread_local std::unique_ptr<addrringbuf_t> t_remotes, t_servfailremotes, t_largeanswerremotes;
-thread_local std::unique_ptr<boost::circular_buffer<pair<DNSName, uint16_t> > > t_queryring, t_servfailqueryring;
+thread_local std::unique_ptr<addrringbuf_t> t_remotes, t_servfailremotes, t_largeanswerremotes, t_bogusremotes;
+thread_local std::unique_ptr<boost::circular_buffer<pair<DNSName, uint16_t> > > t_queryring, t_servfailqueryring, t_bogusqueryring;
 thread_local std::shared_ptr<NetmaskGroup> t_allowFrom;
 #ifdef HAVE_PROTOBUF
 thread_local std::unique_ptr<boost::uuids::random_generator> t_uuidGenerator;
 #endif
+#ifdef NOD_ENABLED
+thread_local std::shared_ptr<nod::NODDB> t_nodDBp;
+#endif /* NOD_ENABLED */
 __thread struct timeval g_now; // timestamp, updated (too) frequently
 
+typedef vector<pair<int, function< void(int, any&) > > > deferredAdd_t;
+
 // for communicating with our threads
-struct ThreadPipeSet
+// effectively readonly after startup
+struct RecThreadInfo
 {
-  int writeToThread;
-  int readToThread;
-  int writeFromThread;
-  int readFromThread;
-  int writeQueriesToThread; // this one is non-blocking
-  int readQueriesToThread;
+  struct ThreadPipeSet
+  {
+    int writeToThread{-1};
+    int readToThread{-1};
+    int writeFromThread{-1};
+    int readFromThread{-1};
+    int writeQueriesToThread{-1}; // this one is non-blocking
+    int readQueriesToThread{-1};
+  };
+
+  /* FD corresponding to TCP sockets this thread is listening
+     on.
+     These FDs are also in deferredAdds when we have one
+     socket per listener, and in g_deferredAdds instead. */
+  std::set<int> tcpSockets;
+  /* FD corresponding to listening sockets if we have one socket per
+     listener (with reuseport), otherwise all listeners share the
+     same FD and g_deferredAdds is then used instead */
+  deferredAdd_t deferredAdds;
+  struct ThreadPipeSet pipes;
+  std::thread thread;
+  /* handle the web server, carbon, statistics and the control channel */
+  bool isHandler{false};
+  /* accept incoming queries (and distributes them to the workers if pdns-distributes-queries is set) */
+  bool isListener{false};
+  /* process queries */
+  bool isWorker{false};
 };
 
-/* the TID of the thread handling the web server, carbon, statistics and the control channel */
-static const int s_handlerThreadID = -1;
-/* when pdns-distributes-queries is set, the TID of the thread handling, hashing and distributing new queries
-   to the other threads */
-static const int s_distributorThreadID = 0;
+/* first we have the handler thread, t_id == 0 (some other
+   helper threads like SNMP might have t_id == 0 as well)
+   then the distributor threads if any
+   and finally the workers */
+static std::vector<RecThreadInfo> s_threadInfos;
+/* without reuseport, all listeners share the same sockets */
+static deferredAdd_t g_deferredAdds;
 
 typedef vector<int> tcpListenSockets_t;
 typedef map<int, ComboAddress> listenSocketsAddresses_t; // is shared across all threads right now
-typedef vector<pair<int, function< void(int, any&) > > > deferredAdd_t;
 
 static const ComboAddress g_local4("0.0.0.0"), g_local6("::");
-static vector<ThreadPipeSet> g_pipes; // effectively readonly after startup
-static tcpListenSockets_t g_tcpListenSockets;   // shared across threads, but this is fine, never written to from a thread. All threads listen on all sockets
 static listenSocketsAddresses_t g_listenSocketsAddresses; // is shared across all threads right now
-static std::unordered_map<unsigned int, deferredAdd_t> deferredAdds;
 static set<int> g_fromtosockets; // listen sockets that use 'sendfromto()' mechanism
 static vector<ComboAddress> g_localQueryAddresses4, g_localQueryAddresses6;
 static AtomicCounter counter;
@@ -158,8 +186,8 @@ static size_t s_maxUDPQueriesPerRound;
 static uint64_t g_latencyStatSize;
 static uint32_t g_disthashseed;
 static unsigned int g_maxTCPPerClient;
-static unsigned int g_networkTimeoutMsec;
 static unsigned int g_maxMThreads;
+static unsigned int g_numDistributorThreads;
 static unsigned int g_numWorkerThreads;
 static int g_tcpTimeout;
 static uint16_t g_udpTruncationThreshold;
@@ -168,13 +196,18 @@ static std::atomic<bool> statsWanted;
 static std::atomic<bool> g_quiet;
 static bool g_logCommonErrors;
 static bool g_anyToTcp;
-static bool g_weDistributeQueries; // if true, only 1 thread listens on the incoming query sockets
+static bool g_weDistributeQueries; // if true, 1 or more threads listen on the incoming query sockets and distribute them to workers
 static bool g_reusePort{false};
-static bool g_useOneSocketPerThread;
 static bool g_gettagNeedsEDNSOptions{false};
 static time_t g_statisticsInterval;
 static bool g_useIncomingECS;
 std::atomic<uint32_t> g_maxCacheEntries, g_maxPacketCacheEntries;
+#ifdef NOD_ENABLED
+static bool g_nodEnabled;
+static DNSName g_nodLookupDomain;
+static bool g_nodLog;
+static SuffixMatchNode g_nodDomainWL;
+#endif /* NOD_ENABLED */
 #ifdef HAVE_BOOST_CONTAINER_FLAT_SET_HPP
 static boost::container::flat_set<uint16_t> s_avoidUdpSourcePorts;
 #else
@@ -183,11 +216,12 @@ static std::set<uint16_t> s_avoidUdpSourcePorts;
 static uint16_t s_minUdpSourcePort;
 static uint16_t s_maxUdpSourcePort;
 
-RecursorControlChannel s_rcc; // only active in thread 0
+RecursorControlChannel s_rcc; // only active in the handler thread
 RecursorStats g_stats;
 string s_programname="pdns_recursor";
 string s_pidfname;
 bool g_lowercaseOutgoing;
+unsigned int g_networkTimeoutMsec;
 unsigned int g_numThreads;
 uint16_t g_outgoingEDNSBufsize;
 bool g_logRPZChanges{false};
@@ -204,10 +238,11 @@ bool g_logRPZChanges{false};
 
 //! used to send information to a newborn mthread
 struct DNSComboWriter {
-  DNSComboWriter(const char* data, uint16_t len, const struct timeval& now): d_mdp(true, data, len), d_now(now)
-  {}
+  DNSComboWriter(const std::string& query, const struct timeval& now): d_mdp(true, query), d_now(now)
+  {
+  }
 
-  DNSComboWriter(const std::string& query, const struct timeval& now, std::vector<std::string>&& policyTags, LuaContext::LuaObject&& data): d_mdp(true, query.c_str(), query.size()), d_now(now), d_policyTags(std::move(policyTags)), d_data(std::move(data))
+  DNSComboWriter(const std::string& query, const struct timeval& now, std::vector<std::string>&& policyTags, LuaContext::LuaObject&& data): d_mdp(true, query), d_now(now), d_policyTags(std::move(policyTags)), d_data(std::move(data))
   {
   }
 
@@ -290,12 +325,30 @@ ArgvMap &arg()
 
 unsigned int getRecursorThreadId()
 {
-  return static_cast<unsigned int>(t_id);
+  return t_id;
 }
 
 int getMTaskerTID()
 {
   return MT->getTid();
+}
+
+static bool isDistributorThread()
+{
+  if (t_id == 0) {
+    return false;
+  }
+
+  return g_weDistributeQueries && s_threadInfos.at(t_id).isListener;
+}
+
+static bool isHandlerThread()
+{
+  if (t_id == 0) {
+    return true;
+  }
+
+  return s_threadInfos.at(t_id).isHandler;
 }
 
 static void handleTCPClientWritable(int fd, FDMultiplexer::funcparam_t& var);
@@ -610,7 +663,7 @@ int asendto(const char *data, size_t len, int flags,
 }
 
 // -1 is error, 0 is timeout, 1 is success
-int arecvfrom(char *data, size_t len, int flags, const ComboAddress& fromaddr, size_t *d_len,
+int arecvfrom(std::string& packet, int flags, const ComboAddress& fromaddr, size_t *d_len,
               uint16_t id, const DNSName& domain, uint16_t qtype, int fd, struct timeval* now)
 {
   static optional<unsigned int> nearMissLimit;
@@ -624,7 +677,6 @@ int arecvfrom(char *data, size_t len, int flags, const ComboAddress& fromaddr, s
   pident.type = qtype;
   pident.remote=fromaddr;
 
-  string packet;
   int ret=MT->waitEvent(pident, &packet, g_networkTimeoutMsec, now);
 
   if(ret > 0) {
@@ -632,7 +684,7 @@ int arecvfrom(char *data, size_t len, int flags, const ComboAddress& fromaddr, s
       return -1;
 
     *d_len=packet.size();
-    memcpy(data,packet.c_str(),min(len,*d_len));
+
     if(*nearMissLimit && pident.nearMisses > *nearMissLimit) {
       g_log<<Logger::Error<<"Too many ("<<pident.nearMisses<<" > "<<*nearMissLimit<<") bogus answers for '"<<domain<<"' from "<<fromaddr.toString()<<", assuming spoof attempt."<<endl;
       g_stats.spoofCount++;
@@ -657,7 +709,7 @@ static void writePid(void)
     g_log<<Logger::Error<<"Writing pid for "<<Utility::getpid()<<" to "<<s_pidfname<<" failed: "<<strerror(errno)<<endl;
 }
 
-TCPConnection::TCPConnection(int fd, const ComboAddress& addr) : d_remote(addr), d_fd(fd)
+TCPConnection::TCPConnection(int fd, const ComboAddress& addr) : data(2, 0), d_remote(addr), d_fd(fd)
 {
   ++s_currentConnections;
   (*t_tcpClientCounts)[d_remote]++;
@@ -861,6 +913,42 @@ static bool checkOutgoingProtobufExport(LocalStateHolder<LuaConfigItems>& luacon
 }
 #endif /* HAVE_PROTOBUF */
 
+#ifdef NOD_ENABLED
+static void nodCheckNewDomain(const DNSName& dname)
+{
+  static const QType qt(QType::A);
+  static const uint16_t qc(QClass::IN);
+  // First check the (sub)domain isn't whitelisted for NOD purposes
+  if (!g_nodDomainWL.check(dname)) {
+    // Now check the NODDB (note this is probablistic so can have FNs/FPs)
+    if (t_nodDBp && t_nodDBp->isNewDomain(dname)) {
+      if (g_nodLog) {
+        // This should probably log to a dedicated log file
+        g_log<<Logger::Notice<<"Newly observed domain nod="<<dname.toLogString()<<endl;
+      }
+      if (!(g_nodLookupDomain.isRoot())) {
+        // Send a DNS A query to <domain>.g_nodLookupDomain
+        DNSName qname = dname;
+        vector<DNSRecord> dummy;
+        qname += g_nodLookupDomain;
+        directResolve(qname, qt, qc, dummy);
+      }
+    }
+  }
+}
+
+static void nodAddDomain(const DNSName& dname)
+{
+  // Don't bother adding domains on the nod whitelist
+  if (!g_nodDomainWL.check(dname)) {  
+    if (t_nodDBp) {
+      // This keeps the nod info up to date
+      t_nodDBp->addDomain(dname);
+    }
+  }
+}
+#endif /* NOD_ENABLED */
+
 static void startDoResolve(void *p)
 {
   DNSComboWriter* dc=(DNSComboWriter *)p;
@@ -915,8 +1003,10 @@ static void startDoResolve(void *p)
     // Used to tell syncres later on if we should apply NSDNAME and NSIP RPZ triggers for this query
     bool wantsRPZ(true);
     boost::optional<RecProtoBufMessage> pbMessage(boost::none);
+    bool logResponse = false;
 #ifdef HAVE_PROTOBUF
     if (checkProtobufExport(luaconfsLocal)) {
+      logResponse = t_protobufServer && luaconfsLocal->protobufExportConfig.logResponses;
       Netmask requestorNM(dc->d_source, dc->d_source.sin4.sin_family == AF_INET ? luaconfsLocal->protobufMaskV4 : luaconfsLocal->protobufMaskV6);
       const ComboAddress& requestor = requestorNM.getMaskedNetwork();
       pbMessage = RecProtoBufMessage(RecProtoBufMessage::Response);
@@ -976,7 +1066,7 @@ static void startDoResolve(void *p)
     int res = RCode::NoError;
     DNSFilterEngine::Policy appliedPolicy;
     DNSRecord spoofed;
-    RecursorLua4::DNSQuestion dq(dc->d_source, dc->d_destination, dc->d_mdp.d_qname, dc->d_mdp.d_qtype, dc->d_tcp, variableAnswer, wantsRPZ);
+    RecursorLua4::DNSQuestion dq(dc->d_source, dc->d_destination, dc->d_mdp.d_qname, dc->d_mdp.d_qtype, dc->d_tcp, variableAnswer, wantsRPZ, logResponse);
     dq.ednsFlags = &edo.d_extFlags;
     dq.ednsOptions = &ednsOpts;
     dq.tag = dc->d_tag;
@@ -1238,6 +1328,10 @@ static void startDoResolve(void *p)
             pw.getHeader()->ad=0;
           }
           else if(state == Bogus) {
+            if(t_bogusremotes)
+              t_bogusremotes->push_back(dc->d_source);
+            if(t_bogusqueryring)
+              t_bogusqueryring->push_back(make_pair(dc->d_mdp.d_qname, dc->d_mdp.d_qtype));
             if(g_dnssecLogBogus || sr.doLog() || g_dnssecmode == DNSSECMode::ValidateForLog) {
               g_log<<Logger::Warning<<"Answer to "<<dc->d_mdp.d_qname<<"|"<<QType(dc->d_mdp.d_qtype).getName()<<" for "<<dc->getRemote()<<" validates as Bogus"<<endl;
             }
@@ -1320,7 +1414,7 @@ static void startDoResolve(void *p)
     g_rs.submitResponse(dc->d_mdp.d_qtype, packet.size(), !dc->d_tcp);
     updateResponseStats(res, dc->d_source, packet.size(), &dc->d_mdp.d_qname, dc->d_mdp.d_qtype);
 #ifdef HAVE_PROTOBUF
-    if (t_protobufServer && (!luaconfsLocal->protobufTaggedOnly || (appliedPolicy.d_name && !appliedPolicy.d_name->empty()) || !dc->d_policyTags.empty())) {
+    if (t_protobufServer && logResponse && !(luaconfsLocal->protobufExportConfig.taggedOnly && (!appliedPolicy.d_name || appliedPolicy.d_name->empty()) && dc->d_policyTags.empty())) {
       pbMessage->setBytes(packet.size());
       pbMessage->setResponseCode(pw.getHeader()->rcode);
       if (appliedPolicy.d_name) {
@@ -1353,6 +1447,7 @@ static void startDoResolve(void *p)
                                             g_now.tv_sec,
                                             pw.getHeader()->rcode == RCode::ServFail ? SyncRes::s_packetcacheservfailttl :
                                             min(minTTL,SyncRes::s_packetcachettl),
+                                            dq.validationState,
                                             pbMessage);
       }
       //      else cerr<<"Not putting in packet cache: "<<sr.wasVariable()<<endl;
@@ -1415,9 +1510,19 @@ static void startDoResolve(void *p)
 
     if (sr.d_outqueries || sr.d_authzonequeries) {
       t_RC->cacheMisses++;
+#ifdef NOD_ENABLED
+      if (g_nodEnabled) {
+        nodCheckNewDomain(dc->d_mdp.d_qname);
+      }
+#endif /* NOD_ENABLED */
     }
     else {
       t_RC->cacheHits++;
+#ifdef NOD_ENABLED
+      if (g_nodEnabled) {
+        nodAddDomain(dc->d_mdp.d_qname);
+      }
+#endif /* NOD_ENABLED */
     }
 
     if(spent < 0.001)
@@ -1465,8 +1570,8 @@ static void startDoResolve(void *p)
     g_log<<Logger::Error<<"startDoResolve problem "<<makeLoginfo(dc)<<": "<<ae.reason<<endl;
     delete dc;
   }
-  catch(MOADNSException& e) {
-    g_log<<Logger::Error<<"DNS parser error "<<makeLoginfo(dc) <<": "<<dc->d_mdp.d_qname<<", "<<e.what()<<endl;
+  catch(const MOADNSException &mde) {
+    g_log<<Logger::Error<<"DNS parser error "<<makeLoginfo(dc) <<": "<<dc->d_mdp.d_qname<<", "<<mde.what()<<endl;
     delete dc;
   }
   catch(std::exception& e) {
@@ -1521,7 +1626,7 @@ static void makeControlChannelSocket(int processNum=-1)
 }
 
 static void getQNameAndSubnet(const std::string& question, DNSName* dnsname, uint16_t* qtype, uint16_t* qclass,
-                              bool& foundECS, EDNSSubnetOpts* ednssubnet, std::map<uint16_t, EDNSOptionView>* options,
+                              bool& foundECS, EDNSSubnetOpts* ednssubnet, EDNSOptionViewMap* options,
                               bool& foundXPF, ComboAddress* xpfSource, ComboAddress* xpfDest)
 {
   const bool lookForXPF = xpfSource != nullptr && g_xpfRRCode != 0;
@@ -1569,9 +1674,9 @@ static void getQNameAndSubnet(const std::string& question, DNSName* dnsname, uin
         int res = getEDNSOptions(reinterpret_cast<const char*>(&question.at(pos -sizeof(drh->d_clen))), questionLen - pos + (sizeof(drh->d_clen)), *options);
         if (res == 0) {
           const auto& it = options->find(EDNSOptionCode::ECS);
-          if (it != options->end() && it->second.content != nullptr && it->second.size > 0) {
+          if (it != options->end() && !it->second.values.empty() && it->second.values.at(0).content != nullptr && it->second.values.at(0).size > 0) {
             EDNSSubnetOpts eso;
-            if(getEDNSSubnetOptsFromString(it->second.content, it->second.size, &eso)) {
+            if(getEDNSSubnetOptsFromString(it->second.values.at(0).content, it->second.values.at(0).size, &eso)) {
               *ednssubnet=eso;
               foundECS = true;
             }
@@ -1596,11 +1701,12 @@ static void handleRunningTCPQuestion(int fd, FDMultiplexer::funcparam_t& var)
   shared_ptr<TCPConnection> conn=any_cast<shared_ptr<TCPConnection> >(var);
 
   if(conn->state==TCPConnection::BYTE0) {
-    ssize_t bytes=recv(conn->getFD(), conn->data, 2, 0);
+    ssize_t bytes=recv(conn->getFD(), &conn->data[0], 2, 0);
     if(bytes==1)
       conn->state=TCPConnection::BYTE1;
     if(bytes==2) {
       conn->qlen=(((unsigned char)conn->data[0]) << 8)+ (unsigned char)conn->data[1];
+      conn->data.resize(conn->qlen);
       conn->bytesread=0;
       conn->state=TCPConnection::GETQUESTION;
     }
@@ -1610,10 +1716,11 @@ static void handleRunningTCPQuestion(int fd, FDMultiplexer::funcparam_t& var)
     }
   }
   else if(conn->state==TCPConnection::BYTE1) {
-    ssize_t bytes=recv(conn->getFD(), conn->data+1, 1, 0);
+    ssize_t bytes=recv(conn->getFD(), &conn->data[1], 1, 0);
     if(bytes==1) {
       conn->state=TCPConnection::GETQUESTION;
       conn->qlen=(((unsigned char)conn->data[0]) << 8)+ (unsigned char)conn->data[1];
+      conn->data.resize(conn->qlen);
       conn->bytesread=0;
     }
     if(!bytes || bytes < 0) {
@@ -1624,9 +1731,11 @@ static void handleRunningTCPQuestion(int fd, FDMultiplexer::funcparam_t& var)
     }
   }
   else if(conn->state==TCPConnection::GETQUESTION) {
-    ssize_t bytes=recv(conn->getFD(), conn->data + conn->bytesread, conn->qlen - conn->bytesread, 0);
+    ssize_t bytes=recv(conn->getFD(), &conn->data[conn->bytesread], conn->qlen - conn->bytesread, 0);
     if(!bytes || bytes < 0 || bytes > std::numeric_limits<std::uint16_t>::max()) {
-      g_log<<Logger::Error<<"TCP client "<< conn->d_remote.toStringWithPort() <<" disconnected while reading question body"<<endl;
+      if(g_logCommonErrors) {
+        g_log<<Logger::Error<<"TCP client "<< conn->d_remote.toStringWithPort() <<" disconnected while reading question body"<<endl;
+      }
       t_fdm->removeReadFD(fd);
       return;
     }
@@ -1636,9 +1745,9 @@ static void handleRunningTCPQuestion(int fd, FDMultiplexer::funcparam_t& var)
 
       DNSComboWriter* dc=nullptr;
       try {
-        dc=new DNSComboWriter(conn->data, conn->qlen, g_now);
+        dc=new DNSComboWriter(conn->data, g_now);
       }
-      catch(MOADNSException &mde) {
+      catch(const MOADNSException &mde) {
         g_stats.clientParseError++;
         if(g_logCommonErrors)
           g_log<<Logger::Error<<"Unable to parse packet from TCP client "<< conn->d_remote.toStringWithPort() <<endl;
@@ -1663,28 +1772,30 @@ static void handleRunningTCPQuestion(int fd, FDMultiplexer::funcparam_t& var)
       bool needXPF = g_XPFAcl.match(conn->d_remote);
       string requestorId;
       string deviceId;
+      bool logQuery = false;
 #ifdef HAVE_PROTOBUF
       auto luaconfsLocal = g_luaconfs.getLocal();
       if (checkProtobufExport(luaconfsLocal)) {
         needECS = true;
       }
+      logQuery = t_protobufServer && luaconfsLocal->protobufExportConfig.logQueries;
 #endif
 
       if(needECS || needXPF || (t_pdl && (t_pdl->d_gettag_ffi || t_pdl->d_gettag))) {
 
         try {
-          std::map<uint16_t, EDNSOptionView> ednsOptions;
+          EDNSOptionViewMap ednsOptions;
           bool xpfFound = false;
           dc->d_ecsParsed = true;
           dc->d_ecsFound = false;
-          getQNameAndSubnet(std::string(conn->data, conn->qlen), &qname, &qtype, &qclass,
+          getQNameAndSubnet(conn->data, &qname, &qtype, &qclass,
                             dc->d_ecsFound, &dc->d_ednssubnet, g_gettagNeedsEDNSOptions ? &ednsOptions : nullptr,
                             xpfFound, needXPF ? &dc->d_source : nullptr, needXPF ? &dc->d_destination : nullptr);
 
           if(t_pdl) {
             try {
               if (t_pdl->d_gettag_ffi) {
-                dc->d_tag = t_pdl->gettag_ffi(dc->d_source, dc->d_ednssubnet.source, dc->d_destination, qname, qtype, &dc->d_policyTags, dc->d_data, ednsOptions, true, requestorId, deviceId, dc->d_ttlCap, dc->d_variable);
+                dc->d_tag = t_pdl->gettag_ffi(dc->d_source, dc->d_ednssubnet.source, dc->d_destination, qname, qtype, &dc->d_policyTags, dc->d_data, ednsOptions, true, requestorId, deviceId, dc->d_ttlCap, dc->d_variable, logQuery);
               }
               else if (t_pdl->d_gettag) {
                 dc->d_tag = t_pdl->gettag(dc->d_source, dc->d_ednssubnet.source, dc->d_destination, qname, qtype, &dc->d_policyTags, dc->d_data, ednsOptions, true, requestorId, deviceId);
@@ -1702,6 +1813,9 @@ static void handleRunningTCPQuestion(int fd, FDMultiplexer::funcparam_t& var)
             g_log<<Logger::Warning<<"Error parsing a query packet for tag determination, setting tag=0: "<<e.what()<<endl;
         }
       }
+
+      const struct dnsheader* dh = reinterpret_cast<const struct dnsheader*>(&conn->data[0]);
+
 #ifdef HAVE_PROTOBUF
       if(t_protobufServer || t_outgoingProtobufServer) {
         dc->d_requestorId = requestorId;
@@ -1711,9 +1825,8 @@ static void handleRunningTCPQuestion(int fd, FDMultiplexer::funcparam_t& var)
 
       if(t_protobufServer) {
         try {
-          const struct dnsheader* dh = (const struct dnsheader*) conn->data;
 
-          if (!luaconfsLocal->protobufTaggedOnly) {
+          if (logQuery && !(luaconfsLocal->protobufExportConfig.taggedOnly && dc->d_policyTags.empty())) {
             protobufLogQuery(t_protobufServer, luaconfsLocal->protobufMaskV4, luaconfsLocal->protobufMaskV6, dc->d_uuid, dc->d_source, dc->d_destination, dc->d_ednssubnet.source, true, dh->id, conn->qlen, qname, qtype, qclass, dc->d_policyTags, dc->d_requestorId, dc->d_deviceId);
           }
         }
@@ -1725,13 +1838,25 @@ static void handleRunningTCPQuestion(int fd, FDMultiplexer::funcparam_t& var)
 #endif
       if(dc->d_mdp.d_header.qr) {
         g_stats.ignoredCount++;
-        g_log<<Logger::Error<<"Ignoring answer from TCP client "<< dc->getRemote() <<" on server socket!"<<endl;
+        if(g_logCommonErrors) {
+          g_log<<Logger::Error<<"Ignoring answer from TCP client "<< dc->getRemote() <<" on server socket!"<<endl;
+        }
         delete dc;
         return;
       }
       if(dc->d_mdp.d_header.opcode) {
         g_stats.ignoredCount++;
-        g_log<<Logger::Error<<"Ignoring non-query opcode from TCP client "<< dc->getRemote() <<" on server socket!"<<endl;
+        if(g_logCommonErrors) {
+          g_log<<Logger::Error<<"Ignoring non-query opcode from TCP client "<< dc->getRemote() <<" on server socket!"<<endl;
+        }
+        delete dc;
+        return;
+      }
+      else if (dh->qdcount == 0) {
+        g_stats.emptyQueriesCount++;
+        if(g_logCommonErrors) {
+          g_log<<Logger::Error<<"Ignoring empty (qdcount == 0) query from "<< dc->getRemote() <<" on server socket!"<<endl;
+        }
         delete dc;
         return;
       }
@@ -1828,6 +1953,7 @@ static string* doProcessUDPQuestion(const std::string& question, const ComboAddr
   ComboAddress destination = destaddr;
   string requestorId;
   string deviceId;
+  bool logQuery = false;
 #ifdef HAVE_PROTOBUF
   boost::uuids::uuid uniqueId;
   auto luaconfsLocal = g_luaconfs.getLocal();
@@ -1837,6 +1963,8 @@ static string* doProcessUDPQuestion(const std::string& question, const ComboAddr
   } else if (checkOutgoingProtobufExport(luaconfsLocal)) {
     uniqueId = (*t_uuidGenerator)();
   }
+  logQuery = t_protobufServer && luaconfsLocal->protobufExportConfig.logQueries;
+  bool logResponse = t_protobufServer && luaconfsLocal->protobufExportConfig.logResponses;
 #endif
   EDNSSubnetOpts ednssubnet;
   bool ecsFound = false;
@@ -1863,7 +1991,7 @@ static string* doProcessUDPQuestion(const std::string& question, const ComboAddr
 
     if(needECS || needXPF || (t_pdl && (t_pdl->d_gettag || t_pdl->d_gettag_ffi))) {
       try {
-        std::map<uint16_t, EDNSOptionView> ednsOptions;
+        EDNSOptionViewMap ednsOptions;
         bool xpfFound = false;
 
         ecsFound = false;
@@ -1878,7 +2006,7 @@ static string* doProcessUDPQuestion(const std::string& question, const ComboAddr
         if(t_pdl) {
           try {
             if (t_pdl->d_gettag_ffi) {
-              ctag = t_pdl->gettag_ffi(source, ednssubnet.source, destination, qname, qtype, &policyTags, data, ednsOptions, false, requestorId, deviceId, ttlCap, variable);
+              ctag = t_pdl->gettag_ffi(source, ednssubnet.source, destination, qname, qtype, &policyTags, data, ednsOptions, false, requestorId, deviceId, ttlCap, variable, logQuery);
             }
             else if (t_pdl->d_gettag) {
               ctag = t_pdl->gettag(source, ednssubnet.source, destination, qname, qtype, &policyTags, data, ednsOptions, false, requestorId, deviceId);
@@ -1902,7 +2030,7 @@ static string* doProcessUDPQuestion(const std::string& question, const ComboAddr
 #ifdef HAVE_PROTOBUF
     if(t_protobufServer) {
       pbMessage = RecProtoBufMessage(DNSProtoBufMessage::DNSProtoBufMessageType::Response);
-      if (!luaconfsLocal->protobufTaggedOnly || !policyTags.empty()) {
+      if (logQuery && !(luaconfsLocal->protobufExportConfig.taggedOnly && policyTags.empty())) {
         protobufLogQuery(t_protobufServer, luaconfsLocal->protobufMaskV4, luaconfsLocal->protobufMaskV6, uniqueId, source, destination, ednssubnet.source, false, dh->id, question.size(), qname, qtype, qclass, policyTags, requestorId, deviceId);
       }
     }
@@ -1911,16 +2039,24 @@ static string* doProcessUDPQuestion(const std::string& question, const ComboAddr
     /* It might seem like a good idea to skip the packet cache lookup if we know that the answer is not cacheable,
        but it means that the hash would not be computed. If some script decides at a later time to mark back the answer
        as cacheable we would cache it with a wrong tag, so better safe than sorry. */
+    vState valState;
     if (qnameParsed) {
-      cacheHit = (!SyncRes::s_nopacketcache && t_packetCache->getResponsePacket(ctag, question, qname, qtype, qclass, g_now.tv_sec, &response, &age, &qhash, pbMessage ? &(*pbMessage) : nullptr));
+      cacheHit = (!SyncRes::s_nopacketcache && t_packetCache->getResponsePacket(ctag, question, qname, qtype, qclass, g_now.tv_sec, &response, &age, &valState, &qhash, pbMessage ? &(*pbMessage) : nullptr));
     }
     else {
-      cacheHit = (!SyncRes::s_nopacketcache && t_packetCache->getResponsePacket(ctag, question, g_now.tv_sec, &response, &age, &qhash, pbMessage ? &(*pbMessage) : nullptr));
+      cacheHit = (!SyncRes::s_nopacketcache && t_packetCache->getResponsePacket(ctag, question, qname, &qtype, &qclass, g_now.tv_sec, &response, &age, &valState, &qhash, pbMessage ? &(*pbMessage) : nullptr));
     }
 
     if (cacheHit) {
+      if(valState == Bogus) {
+        if(t_bogusremotes)
+          t_bogusremotes->push_back(source);
+        if(t_bogusqueryring)
+          t_bogusqueryring->push_back(make_pair(qname, qtype));
+      }
+
 #ifdef HAVE_PROTOBUF
-      if(t_protobufServer && (!luaconfsLocal->protobufTaggedOnly || !pbMessage->getAppliedPolicy().empty() || !pbMessage->getPolicyTags().empty())) {
+      if(t_protobufServer && logResponse && !(luaconfsLocal->protobufExportConfig.taggedOnly && pbMessage->getAppliedPolicy().empty() && pbMessage->getPolicyTags().empty())) {
         Netmask requestorNM(source, source.sin4.sin_family == AF_INET ? luaconfsLocal->protobufMaskV4 : luaconfsLocal->protobufMaskV6);
         const ComboAddress& requestor = requestorNM.getMaskedNetwork();
         pbMessage->update(uniqueId, &requestor, &destination, false, dh->id);
@@ -2082,6 +2218,12 @@ static void handleNewUDPQuestion(int fd, FDMultiplexer::funcparam_t& var)
             g_log<<Logger::Error<<"Ignoring non-query opcode "<<dh->opcode<<" from "<<fromaddr.toString()<<" on server socket!"<<endl;
           }
         }
+        else if (dh->qdcount == 0) {
+          g_stats.emptyQueriesCount++;
+          if(g_logCommonErrors) {
+            g_log<<Logger::Error<<"Ignoring empty (qdcount == 0) query from "<<fromaddr.toString()<<" on server socket!"<<endl;
+          }
+        }
         else {
           struct timeval tv={0,0};
           HarvestTimestamp(&msgh, &tv);
@@ -2113,7 +2255,7 @@ static void handleNewUDPQuestion(int fd, FDMultiplexer::funcparam_t& var)
           }
         }
       }
-      catch(const MOADNSException& mde) {
+      catch(const MOADNSException &mde) {
         g_stats.clientParseError++;
         if(g_logCommonErrors) {
           g_log<<Logger::Error<<"Unable to parse packet from remote UDP client "<<fromaddr.toString() <<": "<<mde.what()<<endl;
@@ -2137,7 +2279,7 @@ static void handleNewUDPQuestion(int fd, FDMultiplexer::funcparam_t& var)
   }
 }
 
-static void makeTCPServerSockets(unsigned int threadId)
+static void makeTCPServerSockets(deferredAdd_t& deferredAdds, std::set<int>& tcpSockets)
 {
   int fd;
   vector<string>locals;
@@ -2212,8 +2354,9 @@ static void makeTCPServerSockets(unsigned int threadId)
     setNonBlocking(fd);
     setSocketSendBuffer(fd, 65000);
     listen(fd, 128);
-    deferredAdds[threadId].push_back(make_pair(fd, handleNewTCPQuestion));
-    g_tcpListenSockets.push_back(fd);
+    deferredAdds.push_back(make_pair(fd, handleNewTCPQuestion));
+    tcpSockets.insert(fd);
+
     // we don't need to update g_listenSocketsAddresses since it doesn't work for TCP/IP:
     //  - fd is not that which we know here, but returned from accept()
     if(sin.sin4.sin_family == AF_INET)
@@ -2223,7 +2366,7 @@ static void makeTCPServerSockets(unsigned int threadId)
   }
 }
 
-static void makeUDPServerSockets(unsigned int threadId)
+static void makeUDPServerSockets(deferredAdd_t& deferredAdds)
 {
   int one=1;
   vector<string>locals;
@@ -2288,7 +2431,7 @@ static void makeUDPServerSockets(unsigned int threadId)
 
     setNonBlocking(fd);
 
-    deferredAdds[threadId].push_back(make_pair(fd, handleNewUDPQuestion));
+    deferredAdds.push_back(make_pair(fd, handleNewUDPQuestion));
     g_listenSocketsAddresses[fd]=sin;  // this is written to only from the startup thread, not from the workers
     if(sin.sin4.sin_family == AF_INET)
       g_log<<Logger::Error<<"Listening for UDP queries on "<< sin.toString() <<":"<<st.port<<endl;
@@ -2403,7 +2546,7 @@ static void houseKeeping(void *)
         last_rootupdate=now.tv_sec;
     }
 
-    if(t_id == s_distributorThreadID) {
+    if(isHandlerThread()) {
 
       if(now.tv_sec - last_secpoll >= 3600) {
 	try {
@@ -2425,7 +2568,6 @@ static void houseKeeping(void *)
         {
           g_log<<Logger::Error<<"Exception while performing security poll"<<endl;
         }
-
       }
     }
     s_running=false;
@@ -2440,30 +2582,32 @@ static void houseKeeping(void *)
 
 static void makeThreadPipes()
 {
-  for(unsigned int n=0; n < g_numThreads; ++n) {
-    struct ThreadPipeSet tps;
+  /* thread 0 is the handler / SNMP, we start at 1 */
+  for(unsigned int n = 1; n <= (g_numWorkerThreads + g_numDistributorThreads); ++n) {
+    auto& threadInfos = s_threadInfos.at(n);
+
     int fd[2];
     if(pipe(fd) < 0)
       unixDie("Creating pipe for inter-thread communications");
 
-    tps.readToThread = fd[0];
-    tps.writeToThread = fd[1];
+    threadInfos.pipes.readToThread = fd[0];
+    threadInfos.pipes.writeToThread = fd[1];
 
     if(pipe(fd) < 0)
       unixDie("Creating pipe for inter-thread communications");
-    tps.readFromThread = fd[0];
-    tps.writeFromThread = fd[1];
+
+    threadInfos.pipes.readFromThread = fd[0];
+    threadInfos.pipes.writeFromThread = fd[1];
 
     if(pipe(fd) < 0)
       unixDie("Creating pipe for inter-thread communications");
-    tps.readQueriesToThread = fd[0];
-    tps.writeQueriesToThread = fd[1];
 
-    if (!setNonBlocking(tps.writeQueriesToThread)) {
+    threadInfos.pipes.readQueriesToThread = fd[0];
+    threadInfos.pipes.writeQueriesToThread = fd[1];
+
+    if (!setNonBlocking(threadInfos.pipes.writeQueriesToThread)) {
       unixDie("Making pipe for inter-thread communications non-blocking");
     }
-
-    g_pipes.push_back(tps);
   }
 }
 
@@ -2476,21 +2620,20 @@ struct ThreadMSG
 void broadcastFunction(const pipefunc_t& func)
 {
   /* This function might be called by the worker with t_id 0 during startup
-     for the initialization of ACLs and domain maps */
-  if (t_id != s_handlerThreadID && t_id != s_distributorThreadID) {
-    g_log<<Logger::Error<<"broadcastFunction() has been called by a worker ("<<t_id<<")"<<endl;
-    exit(1);
-  }
+     for the initialization of ACLs and domain maps. After that it should only
+     be called by the handler. */
 
-  if (t_id == s_handlerThreadID) {
-    /* the distributor will call itself below, but if we are the handler thread,
-       call the function ourselves to update the ACL or domain maps for example */
+  if (s_threadInfos.empty() && isHandlerThread()) {
+    /* the handler and  distributors will call themselves below, but
+       during startup we get called while s_threadInfos has not been
+       populated yet to update the ACL or domain maps, so we need to
+       handle that case.
+    */
     func();
   }
 
-  int n = 0;
-  for(ThreadPipeSet& tps : g_pipes)
-  {
+  unsigned int n = 0;
+  for (const auto& threadInfo : s_threadInfos) {
     if(n++ == t_id) {
       func(); // don't write to ourselves!
       continue;
@@ -2499,13 +2642,14 @@ void broadcastFunction(const pipefunc_t& func)
     ThreadMSG* tmsg = new ThreadMSG();
     tmsg->func = func;
     tmsg->wantAnswer = true;
-    if(write(tps.writeToThread, &tmsg, sizeof(tmsg)) != sizeof(tmsg)) {
+    if(write(threadInfo.pipes.writeToThread, &tmsg, sizeof(tmsg)) != sizeof(tmsg)) {
       delete tmsg;
+
       unixDie("write to thread pipe returned wrong size or error");
     }
 
     string* resp = nullptr;
-    if(read(tps.readFromThread, &resp, sizeof(resp)) != sizeof(resp))
+    if(read(threadInfo.pipes.readFromThread, &resp, sizeof(resp)) != sizeof(resp))
       unixDie("read from thread pipe returned wrong size or error");
 
     if(resp) {
@@ -2515,23 +2659,24 @@ void broadcastFunction(const pipefunc_t& func)
   }
 }
 
-// This function is only called by the distributor thread, when pdns-distributes-queries is set
+// This function is only called by the distributor threads, when pdns-distributes-queries is set
 void distributeAsyncFunction(const string& packet, const pipefunc_t& func)
 {
-  if (t_id != s_distributorThreadID) {
+  if (!isDistributorThread()) {
     g_log<<Logger::Error<<"distributeAsyncFunction() has been called by a worker ("<<t_id<<")"<<endl;
     exit(1);
   }
 
   unsigned int hash = hashQuestion(packet.c_str(), packet.length(), g_disthashseed);
-  unsigned int target = 1 + (hash % (g_pipes.size()-1));
+  unsigned int target = /* skip handler */ 1 + g_numDistributorThreads + (hash % g_numWorkerThreads);
 
-  if(target == static_cast<unsigned int>(s_distributorThreadID)) {
-    g_log<<Logger::Error<<"distributeAsyncFunction() tried to assign a query to the distributor"<<endl;
+  const auto& targetInfo = s_threadInfos[target];
+  if(!targetInfo.isWorker) {
+    g_log<<Logger::Error<<"distributeAsyncFunction() tried to assign a query to a non-worker thread"<<endl;
     exit(1);
   }
 
-  ThreadPipeSet& tps = g_pipes[target];
+  const auto& tps = targetInfo.pipes;
   ThreadMSG* tmsg = new ThreadMSG();
   tmsg->func = func;
   tmsg->wantAnswer = false;
@@ -2575,7 +2720,8 @@ static void handlePipeRequest(int fd, FDMultiplexer::funcparam_t& var)
       g_log<<Logger::Error<<"PIPE function we executed created PDNS exception: "<<e.reason<<endl; // but what if they wanted an answer.. we send 0
   }
   if(tmsg->wantAnswer) {
-    if(write(g_pipes[t_id].writeFromThread, &resp, sizeof(resp)) != sizeof(resp)) {
+    const auto& threadInfo = s_threadInfos.at(t_id);
+    if(write(threadInfo.pipes.writeFromThread, &resp, sizeof(resp)) != sizeof(resp)) {
       delete tmsg;
       unixDie("write to thread pipe returned wrong size or error");
     }
@@ -2610,17 +2756,23 @@ vector<pair<DNSName, uint16_t> >& operator+=(vector<pair<DNSName, uint16_t> >&a,
 
 /*
   This function should only be called by the handler to gather metrics, wipe the cache,
-  reload the Lua script (not the Lua config) or change the current trace regex */
+  reload the Lua script (not the Lua config) or change the current trace regex,
+  and by the SNMP thread to gather metrics. */
 template<class T> T broadcastAccFunction(const boost::function<T*()>& func)
 {
-  if (t_id != s_handlerThreadID) {
-    g_log<<Logger::Error<<"broadcastFunction has been called by a worker ("<<t_id<<")"<<endl;
+  if (!isHandlerThread()) {
+    g_log<<Logger::Error<<"broadcastAccFunction has been called by a worker ("<<t_id<<")"<<endl;
     exit(1);
   }
 
+  unsigned int n = 0;
   T ret=T();
-  for(ThreadPipeSet& tps : g_pipes)
-  {
+  for (const auto& threadInfo : s_threadInfos) {
+    if (n++ == t_id) {
+      continue;
+    }
+
+    const auto& tps = threadInfo.pipes;
     ThreadMSG* tmsg = new ThreadMSG();
     tmsg->func = boost::bind(voider<T>, func);
     tmsg->wantAnswer = true;
@@ -2943,7 +3095,7 @@ static void checkOrFixFDS()
   }
 }
 
-static void* recursorThread(int tid, bool worker);
+static void* recursorThread(unsigned int tid);
 
 static void* pleaseSupplantACLs(std::shared_ptr<NetmaskGroup> ng)
 {
@@ -3110,6 +3262,46 @@ static void setCPUMap(const std::map<unsigned int, std::set<int> >& cpusMap, uns
   }
 }
 
+#ifdef NOD_ENABLED
+static void setupNODThread()
+{
+  if (g_nodEnabled) {
+    t_nodDBp = std::make_shared<nod::NODDB>();
+    try {
+      t_nodDBp->setCacheDir(::arg()["new-domain-history-dir"]);
+    }
+    catch (const PDNSException& e) {
+      g_log<<Logger::Error<<"new-domain-history-dir (" << ::arg()["new-domain-history-dir"] << ") is not readable or does not exist"<<endl;
+      _exit(1);
+    }
+    if (!t_nodDBp->init()) {
+      g_log<<Logger::Error<<"Could not initialize domain tracking"<<endl;
+      _exit(1);
+    }
+    std::thread t(nod::NODDB::startHousekeepingThread, t_nodDBp);
+    t.detach();
+  }
+}
+
+void parseNODWhitelist(const std::string& wlist)
+{
+  vector<string> parts;
+  stringtok(parts, wlist, ",; ");
+  for(const auto& a : parts) {
+    g_nodDomainWL.add(DNSName(a));
+  }
+}
+
+static void setupNODGlobal()
+{
+  // Setup NOD subsystem
+  g_nodEnabled = ::arg().mustDo("new-domain-tracking");
+  g_nodLookupDomain = DNSName(::arg()["new-domain-lookup"]);
+  g_nodLog = ::arg().mustDo("new-domain-log");
+  parseNODWhitelist(::arg()["new-domain-whitelist"]);
+}
+#endif /* NOD_ENABLED */
+
 static int serviceMain(int argc, char*argv[])
 {
   g_log.setName(s_programname);
@@ -3175,9 +3367,10 @@ static int serviceMain(int argc, char*argv[])
 
   g_maxCacheEntries = ::arg().asNum("max-cache-entries");
   g_maxPacketCacheEntries = ::arg().asNum("max-packetcache-entries");
-  
+
+  luaConfigDelayedThreads delayedLuaThreads;
   try {
-    loadRecursorLuaConfig(::arg()["lua-config-file"], ::arg().mustDo("daemon"));
+    loadRecursorLuaConfig(::arg()["lua-config-file"], delayedLuaThreads);
   }
   catch (PDNSException &e) {
     g_log<<Logger::Error<<"Cannot load Lua configuration: "<<e.reason<<endl;
@@ -3205,9 +3398,10 @@ static int serviceMain(int argc, char*argv[])
 
   g_quiet=::arg().mustDo("quiet");
 
+  /* this needs to be done before parseACLs(), which call broadcastFunction() */
   g_weDistributeQueries = ::arg().mustDo("pdns-distributes-queries");
   if(g_weDistributeQueries) {
-      g_log<<Logger::Warning<<"PowerDNS Recursor itself will distribute queries over threads"<<endl;
+    g_log<<Logger::Warning<<"PowerDNS Recursor itself will distribute queries over threads"<<endl;
   }
 
   setupDelegationOnly();
@@ -3300,13 +3494,14 @@ static int serviceMain(int argc, char*argv[])
 
   g_lowercaseOutgoing = ::arg().mustDo("lowercase-outgoing");
 
+  g_numDistributorThreads = ::arg().asNum("distributor-threads");
   g_numWorkerThreads = ::arg().asNum("threads");
   if (g_numWorkerThreads < 1) {
     g_log<<Logger::Warning<<"Asked to run with 0 threads, raising to 1 instead"<<endl;
     g_numWorkerThreads = 1;
   }
 
-  g_numThreads = g_numWorkerThreads + g_weDistributeQueries;
+  g_numThreads = g_numDistributorThreads + g_numWorkerThreads;
   g_maxMThreads = ::arg().asNum("max-mthreads");
 
   g_gettagNeedsEDNSOptions = ::arg().mustDo("gettag-needs-edns-options");
@@ -3317,19 +3512,56 @@ static int serviceMain(int argc, char*argv[])
   g_reusePort = ::arg().mustDo("reuseport");
 #endif
 
-  g_useOneSocketPerThread = (!g_weDistributeQueries && g_reusePort);
+  s_threadInfos.resize(g_numDistributorThreads + g_numWorkerThreads + /* handler */ 1);
 
-  if (g_useOneSocketPerThread) {
-    for (unsigned int threadId = 0; threadId < g_numWorkerThreads; threadId++) {
-      makeUDPServerSockets(threadId);
-      makeTCPServerSockets(threadId);
+  if (g_reusePort) {
+    if (g_weDistributeQueries) {
+      /* first thread is the handler, then distributors */
+      for (unsigned int threadId = 1; threadId <= g_numDistributorThreads; threadId++) {
+        auto& deferredAdds = s_threadInfos.at(threadId).deferredAdds;
+        auto& tcpSockets = s_threadInfos.at(threadId).tcpSockets;
+        makeUDPServerSockets(deferredAdds);
+        makeTCPServerSockets(deferredAdds, tcpSockets);
+      }
+    }
+    else {
+      /* first thread is the handler, there is no distributor here and workers are accepting queries */
+      for (unsigned int threadId = 1; threadId <= g_numWorkerThreads; threadId++) {
+        auto& deferredAdds = s_threadInfos.at(threadId).deferredAdds;
+        auto& tcpSockets = s_threadInfos.at(threadId).tcpSockets;
+        makeUDPServerSockets(deferredAdds);
+        makeTCPServerSockets(deferredAdds, tcpSockets);
+      }
     }
   }
   else {
-    makeUDPServerSockets(0);
-    makeTCPServerSockets(0);
+    std::set<int> tcpSockets;
+    /* we don't have reuseport so we can only open one socket per
+       listening addr:port and everyone will listen on it */
+    makeUDPServerSockets(g_deferredAdds);
+    makeTCPServerSockets(g_deferredAdds, tcpSockets);
+
+    /* every listener (so distributor if g_weDistributeQueries, workers otherwise)
+       needs to listen to the shared sockets */
+    if (g_weDistributeQueries) {
+      /* first thread is the handler, then distributors */
+      for (unsigned int threadId = 1; threadId <= g_numDistributorThreads; threadId++) {
+        s_threadInfos.at(threadId).tcpSockets = tcpSockets;
+      }
+    }
+    else {
+      /* first thread is the handler, there is no distributor here and workers are accepting queries */
+      for (unsigned int threadId = 1; threadId <= g_numWorkerThreads; threadId++) {
+        s_threadInfos.at(threadId).tcpSockets = tcpSockets;
+      }
+    }
   }
 
+#ifdef NOD_ENABLED
+  // Setup newly observed domain globals
+  setupNODGlobal();
+#endif /* NOD_ENABLED */
+  
   int forks;
   for(forks = 0; forks < ::arg().asNum("processes") - 1; ++forks) {
     if(!fork()) // we are child
@@ -3340,7 +3572,6 @@ static int serviceMain(int argc, char*argv[])
     g_log<<Logger::Warning<<"Calling daemonize, going to background"<<endl;
     g_log.toConsole(Logger::Critical);
     daemonize();
-    loadRecursorLuaConfig(::arg()["lua-config-file"], false);
   }
   signal(SIGUSR1,usr1Handler);
   signal(SIGUSR2,usr2Handler);
@@ -3399,6 +3630,8 @@ static int serviceMain(int argc, char*argv[])
 
   Utility::dropUserPrivs(newuid);
 
+  startLuaConfigDelayedThreads(delayedLuaThreads, g_luaconfs.getCopy().generation);
+
   makeThreadPipes();
 
   g_tcpTimeout=::arg().asNum("client-tcp-timeout");
@@ -3435,39 +3668,70 @@ static int serviceMain(int argc, char*argv[])
     s_avoidUdpSourcePorts.insert(port);
   }
 
-  /* This thread handles the web server, carbon, statistics and the control channel */
-  std::thread handlerThread(recursorThread, s_handlerThreadID, false);
-
+  unsigned int currentThreadId = 1;
   const auto cpusMap = parseCPUMap();
 
-  std::vector<std::thread> workers(g_numThreads);
   if(g_numThreads == 1) {
     g_log<<Logger::Warning<<"Operating unthreaded"<<endl;
 #ifdef HAVE_SYSTEMD
     sd_notify(0, "READY=1");
 #endif
-    setCPUMap(cpusMap, 0, pthread_self());
-    recursorThread(0, true);
+
+    /* This thread handles the web server, carbon, statistics and the control channel */
+    auto& handlerInfos = s_threadInfos.at(0);
+    handlerInfos.isHandler = true;
+    handlerInfos.thread = std::thread(recursorThread, 0);
+
+    setCPUMap(cpusMap, currentThreadId, pthread_self());
+
+    auto& infos = s_threadInfos.at(currentThreadId);
+    infos.isListener = true;
+    infos.isWorker = true;
+    recursorThread(currentThreadId++);
   }
   else {
-    g_log<<Logger::Warning<<"Launching "<< g_numThreads <<" threads"<<endl;
-    for(unsigned int n=0; n < g_numThreads; ++n) {
-      workers[n] = std::thread(recursorThread, n, true);
 
-      setCPUMap(cpusMap, n, workers[n].native_handle());
+    if (g_weDistributeQueries) {
+      g_log<<Logger::Warning<<"Launching "<< g_numDistributorThreads <<" distributor threads"<<endl;
+      for(unsigned int n=0; n < g_numDistributorThreads; ++n) {
+        auto& infos = s_threadInfos.at(currentThreadId);
+        infos.isListener = true;
+        infos.thread = std::thread(recursorThread, currentThreadId++);
+
+        setCPUMap(cpusMap, currentThreadId, infos.thread.native_handle());
+      }
     }
+
+    g_log<<Logger::Warning<<"Launching "<< g_numWorkerThreads <<" worker threads"<<endl;
+
+    for(unsigned int n=0; n < g_numWorkerThreads; ++n) {
+      auto& infos = s_threadInfos.at(currentThreadId);
+      infos.isListener = g_weDistributeQueries ? false : true;
+      infos.isWorker = true;
+      infos.thread = std::thread(recursorThread, currentThreadId++);
+
+      setCPUMap(cpusMap, currentThreadId, infos.thread.native_handle());
+    }
+
 #ifdef HAVE_SYSTEMD
     sd_notify(0, "READY=1");
 #endif
-    workers.back().join();
+
+    /* This thread handles the web server, carbon, statistics and the control channel */
+    auto& infos = s_threadInfos.at(0);
+    infos.isHandler = true;
+    infos.thread = std::thread(recursorThread, 0);
+
+    s_threadInfos.at(0).thread.join();
   }
   return 0;
 }
 
-static void* recursorThread(int n, bool worker)
+static void* recursorThread(unsigned int n)
 try
 {
   t_id=n;
+  auto& threadInfo = s_threadInfos.at(t_id);
   SyncRes tmp(g_now); // make sure it allocates tsstorage before we do anything, like primeHints or so..
   SyncRes::setDomainMap(g_initialDomainMap);
   t_allowFrom = g_initialAllowFrom;
@@ -3482,34 +3746,46 @@ try
 #endif
   g_log<<Logger::Warning<<"Done priming cache with root hints"<<endl;
 
-  try {
-    if(!::arg()["lua-dns-script"].empty()) {
-      t_pdl = std::make_shared<RecursorLua4>();
-      t_pdl->loadFile(::arg()["lua-dns-script"]);
-      g_log<<Logger::Warning<<"Loaded 'lua' script from '"<<::arg()["lua-dns-script"]<<"'"<<endl;
+#ifdef NOD_ENABLED
+  setupNODThread();
+#endif /* NOD_ENABLED */
+  
+  if(threadInfo.isWorker) {
+    try {
+      if(!::arg()["lua-dns-script"].empty()) {
+        t_pdl = std::make_shared<RecursorLua4>();
+        t_pdl->loadFile(::arg()["lua-dns-script"]);
+        g_log<<Logger::Warning<<"Loaded 'lua' script from '"<<::arg()["lua-dns-script"]<<"'"<<endl;
+      }
     }
-  }
-  catch(std::exception &e) {
-    g_log<<Logger::Error<<"Failed to load 'lua' script from '"<<::arg()["lua-dns-script"]<<"': "<<e.what()<<endl;
-    _exit(99);
+    catch(std::exception &e) {
+      g_log<<Logger::Error<<"Failed to load 'lua' script from '"<<::arg()["lua-dns-script"]<<"': "<<e.what()<<endl;
+      _exit(99);
+    }
   }
 
   unsigned int ringsize=::arg().asNum("stats-ringbuffer-entries") / g_numWorkerThreads;
   if(ringsize) {
     t_remotes = std::unique_ptr<addrringbuf_t>(new addrringbuf_t());
-    if(g_weDistributeQueries)  // if so, only 1 thread does recvfrom
-      t_remotes->set_capacity(::arg().asNum("stats-ringbuffer-entries"));
+    if(g_weDistributeQueries)
+      t_remotes->set_capacity(::arg().asNum("stats-ringbuffer-entries") / g_numDistributorThreads);
     else
       t_remotes->set_capacity(ringsize);
     t_servfailremotes = std::unique_ptr<addrringbuf_t>(new addrringbuf_t());
     t_servfailremotes->set_capacity(ringsize);
+    t_bogusremotes = std::unique_ptr<addrringbuf_t>(new addrringbuf_t());
+    t_bogusremotes->set_capacity(ringsize);
     t_largeanswerremotes = std::unique_ptr<addrringbuf_t>(new addrringbuf_t());
     t_largeanswerremotes->set_capacity(ringsize);
+    t_timeouts = std::unique_ptr<addrringbuf_t>(new addrringbuf_t());
+    t_timeouts->set_capacity(ringsize);
 
     t_queryring = std::unique_ptr<boost::circular_buffer<pair<DNSName, uint16_t> > >(new boost::circular_buffer<pair<DNSName, uint16_t> >());
     t_queryring->set_capacity(ringsize);
     t_servfailqueryring = std::unique_ptr<boost::circular_buffer<pair<DNSName, uint16_t> > >(new boost::circular_buffer<pair<DNSName, uint16_t> >());
     t_servfailqueryring->set_capacity(ringsize);
+    t_bogusqueryring = std::unique_ptr<boost::circular_buffer<pair<DNSName, uint16_t> > >(new boost::circular_buffer<pair<DNSName, uint16_t> >());
+    t_bogusqueryring->set_capacity(ringsize);
   }
 
   MT=std::unique_ptr<MTasker<PacketID,string> >(new MTasker<PacketID,string>(::arg().asNum("stack-size")));
@@ -3525,7 +3801,7 @@ try
 
   t_fdm=getMultiplexer();
 
-  if(!worker) {
+  if(threadInfo.isHandler) {
     if(::arg().mustDo("webserver")) {
       g_log<<Logger::Warning << "Enabling web server" << endl;
       try {
@@ -3539,18 +3815,21 @@ try
     g_log<<Logger::Error<<"Enabled '"<< t_fdm->getName() << "' multiplexer"<<endl;
   }
   else {
-    t_fdm->addReadFD(g_pipes[t_id].readToThread, handlePipeRequest);
-    t_fdm->addReadFD(g_pipes[t_id].readQueriesToThread, handlePipeRequest);
 
-    if(g_useOneSocketPerThread) {
-      for(deferredAdd_t::const_iterator i = deferredAdds[t_id].cbegin(); i != deferredAdds[t_id].cend(); ++i) {
-        t_fdm->addReadFD(i->first, i->second);
+    t_fdm->addReadFD(threadInfo.pipes.readToThread, handlePipeRequest);
+    t_fdm->addReadFD(threadInfo.pipes.readQueriesToThread, handlePipeRequest);
+
+    if (threadInfo.isListener) {
+      if (g_reusePort) {
+        /* then every listener has its own FDs */
+        for(const auto deferred : threadInfo.deferredAdds) {
+          t_fdm->addReadFD(deferred.first, deferred.second);
+        }
       }
-    }
-    else {
-      if(!g_weDistributeQueries || t_id == s_distributorThreadID) { // if we distribute queries, only t_id = 0 listens
-        for(deferredAdd_t::const_iterator i = deferredAdds[0].cbegin(); i != deferredAdds[0].cend(); ++i) {
-          t_fdm->addReadFD(i->first, i->second);
+      else {
+        /* otherwise all listeners are listening on the same ones */
+        for(const auto deferred : g_deferredAdds) {
+          t_fdm->addReadFD(deferred.first, deferred.second);
         }
       }
     }
@@ -3558,7 +3837,7 @@ try
 
   registerAllStats();
 
-  if(!worker) {
+  if(threadInfo.isHandler) {
     t_fdm->addReadFD(s_rcc.d_fd, handleRCC); // control channel
   }
 
@@ -3567,8 +3846,9 @@ try
   bool listenOnTCP(true);
 
   time_t last_stat = 0;
-  time_t last_carbon=0;
+  time_t last_carbon=0, last_lua_maintenance=0;
   time_t carbonInterval=::arg().asNum("carbon-interval");
+  time_t luaMaintenanceInterval=::arg().asNum("lua-maintenance-interval");
   counter.store(0); // used to periodically execute certain tasks
   for(;;) {
     while(MT->schedule(&g_now)); // MTasker letting the mthreads do their thing
@@ -3591,7 +3871,7 @@ try
 
     counter++;
 
-    if(!worker) {
+    if(threadInfo.isHandler) {
       if(statsWanted || (g_statisticsInterval > 0 && (g_now.tv_sec - last_stat) >= g_statisticsInterval)) {
         doStats();
         last_stat = g_now.tv_sec;
@@ -3604,24 +3884,36 @@ try
         last_carbon = g_now.tv_sec;
       }
     }
+    if (t_pdl != nullptr) {
+      // lua-dns-script directive is present, call the maintenance callback if needed
+      if (threadInfo.isWorker) {
+        // Only on threads processing queries
+        if(g_now.tv_sec - last_lua_maintenance >= luaMaintenanceInterval) {
+          t_pdl->maintenance();
+          last_lua_maintenance = g_now.tv_sec;
+        }
+      }
+    }
 
     t_fdm->run(&g_now);
     // 'run' updates g_now for us
 
-    if(worker && (!g_weDistributeQueries || t_id == s_distributorThreadID)) { // if pdns distributes queries, only tid 0 should do this
+    if(threadInfo.isListener) {
       if(listenOnTCP) {
-	if(TCPConnection::getCurrentConnections() > maxTcpClients) {  // shutdown, too many connections
-	  for(tcpListenSockets_t::iterator i=g_tcpListenSockets.begin(); i != g_tcpListenSockets.end(); ++i)
-	    t_fdm->removeReadFD(*i);
-	  listenOnTCP=false;
-	}
+        if(TCPConnection::getCurrentConnections() > maxTcpClients) {  // shutdown, too many connections
+          for(const auto fd : threadInfo.tcpSockets) {
+            t_fdm->removeReadFD(fd);
+          }
+          listenOnTCP=false;
+        }
       }
       else {
-	if(TCPConnection::getCurrentConnections() <= maxTcpClients) {  // reenable
-	  for(tcpListenSockets_t::iterator i=g_tcpListenSockets.begin(); i != g_tcpListenSockets.end(); ++i)
-	    t_fdm->addReadFD(*i, handleNewTCPQuestion);
-	  listenOnTCP=true;
-	}
+        if(TCPConnection::getCurrentConnections() <= maxTcpClients) {  // reenable
+          for(const auto fd : threadInfo.tcpSockets) {
+            t_fdm->addReadFD(fd, handleNewTCPQuestion);
+          }
+          listenOnTCP=true;
+        }
       }
     }
   }
@@ -3672,12 +3964,12 @@ int main(int argc, char **argv)
     ::arg().set("setuid","If set, change user id to this uid for more security")="";
     ::arg().set("network-timeout", "Wait this number of milliseconds for network i/o")="1500";
     ::arg().set("threads", "Launch this number of threads")="2";
+    ::arg().set("distributor-threads", "Launch this number of distributor threads, distributing queries to other threads")="0";
     ::arg().set("processes", "Launch this number of processes (EXPERIMENTAL, DO NOT CHANGE)")="1"; // if we un-experimental this, need to fix openssl rand seeding for multiple PIDs!
     ::arg().set("config-name","Name of this virtual configuration - will rename the binary image")="";
     ::arg().set("api-config-dir", "Directory where REST API stores config and zones") = "";
     ::arg().set("api-key", "Static pre-shared authentication key for access to the REST API") = "";
     ::arg().set("api-logfile", "Location of the server logfile (used by the REST API)") = "/var/log/pdns.log";
-    ::arg().set("api-readonly", "Disallow data modification through the REST API when set") = "no";
     ::arg().setSwitch("webserver", "Start a webserver (for REST API)") = "no";
     ::arg().set("webserver-address", "IP Address of webserver to listen on") = "127.0.0.1";
     ::arg().set("webserver-port", "Port of webserver to listen on") = "8082";
@@ -3732,6 +4024,7 @@ int main(int argc, char **argv)
     ::arg().set("etc-hosts-file", "Path to 'hosts' file")="/etc/hosts";
     ::arg().set("serve-rfc1918", "If we should be authoritative for RFC 1918 private IP space")="yes";
     ::arg().set("lua-dns-script", "Filename containing an optional 'lua' script that will be used to modify dns answers")="";
+    ::arg().set("lua-maintenance-interval", "Number of seconds between calls to the lua user defined maintenance() function")="1";
     ::arg().set("latency-statistic-size","Number of latency values to calculate the qa-latency average")="10000";
     ::arg().setSwitch( "disable-packetcache", "Disable packetcache" )= "no";
     ::arg().set("ecs-ipv4-bits", "Number of bits of IPv4 address to pass for EDNS Client Subnet")="24";
@@ -3775,7 +4068,13 @@ int main(int argc, char **argv)
     ::arg().set("udp-source-port-max", "Maximum UDP port to bind on")="65535";
     ::arg().set("udp-source-port-avoid", "List of comma separated UDP port number to avoid")="11211";
     ::arg().set("rng", "Specify random number generator to use. Valid values are auto,sodium,openssl,getrandom,arc4random,urandom.")="auto";
-
+#ifdef NOD_ENABLED
+    ::arg().set("new-domain-tracking", "Track newly observed domains (i.e. never seen before).")="no";
+    ::arg().set("new-domain-log", "Log newly observed domains.")="yes";
+    ::arg().set("new-domain-lookup", "Perform a DNS lookup newly observed domains as a subdomain of the configured domain")="";
+    ::arg().set("new-domain-history-dir", "Persist new domain tracking data here to persist between restarts")=string(NODCACHEDIR)+"/nod";
+    ::arg().set("new-domain-whitelist", "List of domains (and implicitly all subdomains) which will never be considered a new domain")="";
+#endif /* NOD_ENABLED */
     ::arg().setCmd("help","Provide a helpful message");
     ::arg().setCmd("version","Print version string");
     ::arg().setCmd("config","Output blank configuration");
@@ -3804,8 +4103,8 @@ int main(int argc, char **argv)
 
     ::arg().parse(argc,argv);
 
-    if( !::arg()["chroot"].empty() && !::arg()["api-config-dir"].empty() && !::arg().mustDo("api-readonly") )  {
-      g_log<<Logger::Error<<"Using chroot and a writable API is not possible"<<endl;
+    if( !::arg()["chroot"].empty() && !::arg()["api-config-dir"].empty() ) {
+      g_log<<Logger::Error<<"Using chroot and enabling the API is not possible"<<endl;
       exit(EXIT_FAILURE);
     }
 
@@ -3818,8 +4117,21 @@ int main(int argc, char **argv)
 
     ::arg().set("delegation-only")=toLower(::arg()["delegation-only"]);
 
-    if(::arg().asNum("threads")==1)
-      ::arg().set("pdns-distributes-queries")="no";
+    if(::arg().asNum("threads")==1) {
+      if (::arg().mustDo("pdns-distributes-queries")) {
+        g_log<<Logger::Warning<<"Only one thread, no need to distribute queries ourselves"<<endl;
+        ::arg().set("pdns-distributes-queries")="no";
+      }
+    }
+
+    if(::arg().mustDo("pdns-distributes-queries") && ::arg().asNum("distributor-threads") <= 0) {
+      g_log<<Logger::Warning<<"Asked to run with pdns-distributes-queries set but no distributor threads, raising to 1"<<endl;
+      ::arg().set("distributor-threads")="1";
+    }
+
+    if (!::arg().mustDo("pdns-distributes-queries")) {
+      ::arg().set("distributor-threads")="0";
+    }
 
     if(::arg().mustDo("help")) {
       cout<<"syntax:"<<endl<<endl;

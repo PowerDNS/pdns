@@ -58,6 +58,29 @@ paths:
           schema:
             $ref: '#/definitions/Server'
 
+  '/servers/{server_id}/cache/flush':
+    put:
+      summary: Flush a cache-entry by name
+      operationId: cacheFlushByName
+      tags:
+        - servers
+      parameters:
+        - name: server_id
+          in: path
+          required: true
+          description: The id of the server to retrieve
+          type: string
+        - name: domain
+          in: query
+          required: true
+          description: The domain name to flush from the cache
+          type: string
+      responses:
+        '200':
+          description: Flush successful
+          schema:
+            $ref: '#/definitions/CacheFlushResult'
+
   '/servers/{server_id}/zones':
     get:
       summary: List all Zones in a server
@@ -70,6 +93,14 @@ paths:
           required: true
           description: The id of the server to retrieve
           type: string
+        - name: zone
+          in: query
+          required: false
+          type: string
+          description: |
+            When set to the name of a zone, only this zone is returned.
+            If no zone with that name exists, the response is an empty array.
+            This can e.g. be used to check if a zone exists in the database without having to guess/encode the zone's id or to check if a zone exists.
       responses:
         '200':
           description: An array of Zones
@@ -221,8 +252,8 @@ paths:
 
   '/servers/{server_id}/zones/{zone_id}/axfr-retrieve':
     put:
-      summary: Send a DNS NOTIFY to all slaves.
-      description: 'Fails when zone kind is not Master or Slave, or master and slave are disabled in the configuration. Only works for Slave if renotify is on. Clients MUST NOT send a body.'
+      summary: Retrieve slave zone from its master.
+      description: 'Fails when zone kind is not Slave, or slave is disabled in the configuration. Clients MUST NOT send a body.'
       operationId: axfrRetrieveZone
       tags:
         - zones
@@ -1082,3 +1113,14 @@ definitions:
       bits:
         type: integer
         description: 'The size of the key'
+
+  CacheFlushResult:
+    title: CacheFlushResult
+    description: 'The result of a cache-flush'
+    properties:
+      count:
+        type: number
+        description: 'Amount of entries flushed'
+      result:
+        type: string
+        description: 'A message about the result like "Flushed cache"'

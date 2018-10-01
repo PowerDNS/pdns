@@ -41,3 +41,20 @@ class TestConsoleNotAllowed(DNSDistTest):
         Console: Not allowed by the ACL
         """
         self.assertRaises(SocketError, self.sendConsoleCommand, 'showVersion()')
+
+class TestConsoleNoKey(DNSDistTest):
+
+    _consoleKey = DNSDistTest.generateConsoleKey()
+    _consoleKeyB64 = base64.b64encode(_consoleKey).decode('ascii')
+
+    _config_params = ['_consolePort', '_testServerPort']
+    _config_template = """
+    controlSocket("127.0.0.1:%s")
+    newServer{address="127.0.0.1:%d"}
+    """
+
+    def testConsoleAllowed(self):
+        """
+        Console: No key, the connection should not be allowed
+        """
+        self.assertRaises(SocketError, self.sendConsoleCommand, 'showVersion()')

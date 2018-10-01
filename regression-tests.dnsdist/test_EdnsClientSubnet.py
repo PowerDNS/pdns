@@ -886,3 +886,83 @@ class TestECSPrefixLengthSetByRuleOrLua(DNSDistTest):
         receivedQuery.id = expectedQuery.id
         self.checkQueryEDNSWithECS(expectedQuery, receivedQuery)
         self.checkResponseNoEDNS(expectedResponse, receivedResponse)
+
+class TestECSPrefixSetByRule(DNSDistTest):
+    """
+    dnsdist is configured to set the EDNS0 Client Subnet
+    option for incoming queries to the actual source IP,
+    but we override it for some queries via SetECSAction().
+    """
+
+    _config_template = """
+    setECSOverride(false)
+    setECSSourcePrefixV4(32)
+    setECSSourcePrefixV6(128)
+    newServer{address="127.0.0.1:%s", useClientSubnet=true}
+    addAction(makeRule("setecsaction.ecsrules.tests.powerdns.com."), SetECSAction("192.0.2.1/32"))
+    """
+
+    def testWithRegularECS(self):
+        """
+        ECS Prefix: not set
+        """
+        name = 'notsetecsaction.ecsrules.tests.powerdns.com.'
+        ecso = clientsubnetoption.ClientSubnetOption('127.0.0.1', 32)
+        query = dns.message.make_query(name, 'A', 'IN')
+        expectedQuery = dns.message.make_query(name, 'A', 'IN', use_edns=True, options=[ecso], payload=512)
+        response = dns.message.make_response(query)
+        response.use_edns(edns=True, payload=4096, options=[ecso])
+        rrset = dns.rrset.from_text(name,
+                                    3600,
+                                    dns.rdataclass.IN,
+                                    dns.rdatatype.A,
+                                    '127.0.0.1')
+        response.answer.append(rrset)
+        expectedResponse = dns.message.make_response(query)
+        expectedResponse.answer.append(rrset)
+
+        (receivedQuery, receivedResponse) = self.sendUDPQuery(query, response)
+        self.assertTrue(receivedQuery)
+        self.assertTrue(receivedResponse)
+        receivedQuery.id = expectedQuery.id
+        self.checkQueryEDNSWithECS(expectedQuery, receivedQuery)
+        self.checkResponseNoEDNS(expectedResponse, receivedResponse)
+
+        (receivedQuery, receivedResponse) = self.sendTCPQuery(query, response)
+        self.assertTrue(receivedQuery)
+        self.assertTrue(receivedResponse)
+        receivedQuery.id = expectedQuery.id
+        self.checkQueryEDNSWithECS(expectedQuery, receivedQuery)
+        self.checkResponseNoEDNS(expectedResponse, receivedResponse)
+
+    def testWithECSSetByRule(self):
+        """
+        ECS Prefix: set with SetECSAction
+        """
+        name = 'setecsaction.ecsrules.tests.powerdns.com.'
+        ecso = clientsubnetoption.ClientSubnetOption('192.0.2.1', 32)
+        query = dns.message.make_query(name, 'A', 'IN')
+        expectedQuery = dns.message.make_query(name, 'A', 'IN', use_edns=True, options=[ecso], payload=512)
+        response = dns.message.make_response(expectedQuery)
+        rrset = dns.rrset.from_text(name,
+                                    3600,
+                                    dns.rdataclass.IN,
+                                    dns.rdatatype.A,
+                                    '127.0.0.1')
+        response.answer.append(rrset)
+        expectedResponse = dns.message.make_response(query)
+        expectedResponse.answer.append(rrset)
+
+        (receivedQuery, receivedResponse) = self.sendUDPQuery(query, response)
+        self.assertTrue(receivedQuery)
+        self.assertTrue(receivedResponse)
+        receivedQuery.id = expectedQuery.id
+        self.checkQueryEDNSWithECS(expectedQuery, receivedQuery)
+        self.checkResponseNoEDNS(expectedResponse, receivedResponse)
+
+        (receivedQuery, receivedResponse) = self.sendTCPQuery(query, response)
+        self.assertTrue(receivedQuery)
+        self.assertTrue(receivedResponse)
+        receivedQuery.id = expectedQuery.id
+        self.checkQueryEDNSWithECS(expectedQuery, receivedQuery)
+        self.checkResponseNoEDNS(expectedResponse, receivedResponse)

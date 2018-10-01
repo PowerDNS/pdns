@@ -33,6 +33,7 @@
 
 #include "dnsdist.hh"
 #include "dnsdist-console.hh"
+#include "dnsdist-ecs.hh"
 #include "dnsdist-lua.hh"
 #include "dnsdist-rings.hh"
 
@@ -44,6 +45,7 @@
 #include "sodcrypto.hh"
 
 #include <boost/logic/tribool.hpp>
+#include <boost/lexical_cast.hpp>
 
 #ifdef HAVE_SYSTEMD
 #include <systemd/sd-daemon.h>
@@ -105,6 +107,41 @@ static void parseLocalBindVars(boost::optional<localbind_t> vars, bool& doTCP, b
     }
   }
 }
+
+#ifdef HAVE_DNS_OVER_TLS
+static bool loadTLSCertificateAndKeys(shared_ptr<TLSFrontend>& frontend, boost::variant<std::string, std::vector<std::pair<int,std::string>>> certFiles, boost::variant<std::string, std::vector<std::pair<int,std::string>>> keyFiles)
+{
+  if (certFiles.type() == typeid(std::string) && keyFiles.type() == typeid(std::string)) {
+    auto certFile = boost::get<std::string>(certFiles);
+    auto keyFile = boost::get<std::string>(keyFiles);
+    frontend->d_certKeyPairs.clear();
+    frontend->d_certKeyPairs.push_back({certFile, keyFile});
+  }
+  else if (certFiles.type() == typeid(std::vector<std::pair<int,std::string>>) && keyFiles.type() == typeid(std::vector<std::pair<int,std::string>>))
+  {
+    auto certFilesVect = boost::get<std::vector<std::pair<int,std::string>>>(certFiles);
+    auto keyFilesVect = boost::get<std::vector<std::pair<int,std::string>>>(keyFiles);
+    if (certFilesVect.size() == keyFilesVect.size()) {
+      frontend->d_certKeyPairs.clear();
+      for (size_t idx = 0; idx < certFilesVect.size(); idx++) {
+        frontend->d_certKeyPairs.push_back({certFilesVect.at(idx).second, keyFilesVect.at(idx).second});
+      }
+    }
+    else {
+      errlog("Error, mismatching number of certificates and keys in call to addTLSLocal()!");
+      g_outputBuffer="Error, mismatching number of certificates and keys in call to addTLSLocal()!";
+      return false;
+    }
+  }
+  else {
+    errlog("Error, mismatching number of certificates and keys in call to addTLSLocal()!");
+    g_outputBuffer="Error, mismatching number of certificates and keys in call to addTLSLocal()!";
+    return false;
+  }
+
+  return true;
+}
+#endif /* HAVE_DNS_OVER_TLS */
 
 void setupLuaConfig(bool client)
 {
@@ -236,7 +273,7 @@ void setupLuaConfig(bool client)
 			      return ret;
 			    }
 
-			    ret->weight=weightVal;
+			    ret->setWeight(weightVal);
 			  }
 			  catch(std::exception& e) {
 			    // std::stoi will throw an exception if the string isn't in a value int range
@@ -275,6 +312,10 @@ void setupLuaConfig(bool client)
 			if(vars.count("name")) {
 			  ret->name=boost::get<string>(vars["name"]);
 			}
+
+                        if (vars.count("id")) {
+                          ret->setId(boost::lexical_cast<boost::uuids::uuid>(boost::get<string>(vars["id"])));
+                        }
 
 			if(vars.count("checkName")) {
 			  ret->checkName=DNSName(boost::get<string>(vars["checkName"]));
@@ -611,6 +652,13 @@ void setupLuaConfig(bool client)
 	return;
       }
 
+      g_consoleEnabled = true;
+#ifdef HAVE_LIBSODIUM
+      if (g_configurationDone && g_consoleKey.empty()) {
+        warnlog("Warning, the console has been enabled via 'controlSocket()' but no key has been set with 'setKey()' so all connections will fail until a key has been set");
+      }
+#endif
+
       try {
 	int sock = SSocket(local.sin4.sin_family, SOCK_STREAM, 0);
 	SSetsockopt(sock, SOL_SOCKET, SO_REUSEADDR, 1);
@@ -839,11 +887,11 @@ void setupLuaConfig(bool client)
       auto slow = g_dynblockNMG.getCopy();
       struct timespec now;
       gettime(&now);
-      boost::format fmt("%-24s %8d %8d %s\n");
-      g_outputBuffer = (fmt % "What" % "Seconds" % "Blocks" % "Reason").str();
+      boost::format fmt("%-24s %8d %8d %-20s %s\n");
+      g_outputBuffer = (fmt % "What" % "Seconds" % "Blocks" % "Action" % "Reason").str();
       for(const auto& e: slow) {
 	if(now < e->second.until)
-	  g_outputBuffer+= (fmt % e->first.toString() % (e->second.until.tv_sec - now.tv_sec) % e->second.blocks % e->second.reason).str();
+	  g_outputBuffer+= (fmt % e->first.toString() % (e->second.until.tv_sec - now.tv_sec) % e->second.blocks % DNSAction::typeToString(e->second.action != DNSAction::Action::None ? e->second.action : g_dynBlockAction) % e->second.reason).str();
       }
       auto slow2 = g_dynblockSMT.getCopy();
       slow2.visit([&now, &fmt](const SuffixMatchTree<DynBlock>& node) {
@@ -851,7 +899,7 @@ void setupLuaConfig(bool client)
             string dom("empty");
             if(!node.d_value.domain.empty())
               dom = node.d_value.domain.toString();
-            g_outputBuffer+= (fmt % dom % (node.d_value.until.tv_sec - now.tv_sec) % node.d_value.blocks % node.d_value.reason).str();
+            g_outputBuffer+= (fmt % dom % (node.d_value.until.tv_sec - now.tv_sec) % node.d_value.blocks % DNSAction::typeToString(node.d_value.action != DNSAction::Action::None ? node.d_value.action : g_dynBlockAction) % node.d_value.reason).str();
           }
         });
 
@@ -936,12 +984,12 @@ void setupLuaConfig(bool client)
 
   g_lua.writeFunction("setDynBlocksAction", [](DNSAction::Action action) {
       if (!g_configurationDone) {
-        if (action == DNSAction::Action::Drop || action == DNSAction::Action::Refused || action == DNSAction::Action::Truncate) {
+        if (action == DNSAction::Action::Drop || action == DNSAction::Action::NoOp || action == DNSAction::Action::Refused || action == DNSAction::Action::Truncate) {
           g_dynBlockAction = action;
         }
         else {
-          errlog("Dynamic blocks action can only be Drop, Refused or Truncate!");
-          g_outputBuffer="Dynamic blocks action can only be Drop, Refused or Truncate!\n";
+          errlog("Dynamic blocks action can only be Drop, NoOp, Refused or Truncate!");
+          g_outputBuffer="Dynamic blocks action can only be Drop, NoOp, Refused or Truncate!\n";
         }
       } else {
         g_outputBuffer="Dynamic blocks action cannot be altered at runtime!\n";
@@ -1433,6 +1481,24 @@ void setupLuaConfig(bool client)
 #endif
     });
 
+  g_lua.writeFunction("setAddEDNSToSelfGeneratedResponses", [](bool add) {
+      g_addEDNSToSelfGeneratedResponses = add;
+  });
+
+  g_lua.writeFunction("setPayloadSizeOnSelfGeneratedAnswers", [](uint16_t payloadSize) {
+      if (payloadSize < 512) {
+        warnlog("setPayloadSizeOnSelfGeneratedAnswers() is set too low, using 512 instead!");
+        g_outputBuffer="setPayloadSizeOnSelfGeneratedAnswers() is set too low, using 512 instead!";
+        payloadSize = 512;
+      }
+      if (payloadSize > s_udpIncomingBufferSize) {
+        warnlog("setPayloadSizeOnSelfGeneratedAnswers() is set too high, capping to %d instead!", s_udpIncomingBufferSize);
+        g_outputBuffer="setPayloadSizeOnSelfGeneratedAnswers() is set too high, capping to " + std::to_string(s_udpIncomingBufferSize) + " instead";
+        payloadSize = s_udpIncomingBufferSize;
+      }
+      g_PayloadSizeSelfGenAnswers = payloadSize;
+  });
+
   g_lua.writeFunction("addTLSLocal", [client](const std::string& addr, boost::variant<std::string, std::vector<std::pair<int,std::string>>> certFiles, boost::variant<std::string, std::vector<std::pair<int,std::string>>> keyFiles, boost::optional<localbind_t> vars) {
         if (client)
           return;
@@ -1444,29 +1510,7 @@ void setupLuaConfig(bool client)
         }
         shared_ptr<TLSFrontend> frontend = std::make_shared<TLSFrontend>();
 
-        if (certFiles.type() == typeid(std::string) && keyFiles.type() == typeid(std::string)) {
-          auto certFile = boost::get<std::string>(certFiles);
-          auto keyFile = boost::get<std::string>(keyFiles);
-          frontend->d_certKeyPairs.push_back({certFile, keyFile});
-        }
-        else if (certFiles.type() == typeid(std::vector<std::pair<int,std::string>>) && keyFiles.type() == typeid(std::vector<std::pair<int,std::string>>))
-        {
-          auto certFilesVect = boost::get<std::vector<std::pair<int,std::string>>>(certFiles);
-          auto keyFilesVect = boost::get<std::vector<std::pair<int,std::string>>>(keyFiles);
-          if (certFilesVect.size() == keyFilesVect.size()) {
-            for (size_t idx = 0; idx < certFilesVect.size(); idx++) {
-              frontend->d_certKeyPairs.push_back({certFilesVect.at(idx).second, keyFilesVect.at(idx).second});
-            }
-          }
-          else {
-            errlog("Error, mismatching number of certificates and keys in call to addTLSLocal()!");
-            g_outputBuffer="Error, mismatching number of certificates and keys in call to addTLSLocal()!";
-            return;
-          }
-        }
-        else {
-          errlog("Error, mismatching number of certificates and keys in call to addTLSLocal()!");
-          g_outputBuffer="Error, mismatching number of certificates and keys in call to addTLSLocal()!";
+        if (!loadTLSCertificateAndKeys(frontend, certFiles, keyFiles)) {
           return;
         }
 
@@ -1492,6 +1536,10 @@ void setupLuaConfig(bool client)
 
           if (vars->count("numberOfTicketsKeys")) {
             frontend->d_numberOfTicketsKeys = std::stoi(boost::get<const string>((*vars)["numberOfTicketsKeys"]));
+          }
+
+          if (vars->count("sessionTickets")) {
+            frontend->d_enableTickets = boost::get<bool>((*vars)["sessionTickets"]);
           }
         }
 
@@ -1555,6 +1603,29 @@ void setupLuaConfig(bool client)
         return result;
       });
 
+    g_lua.writeFunction("getTLSFrontend", [](size_t index) {
+        std::shared_ptr<TLSFrontend> result = nullptr;
+#ifdef HAVE_DNS_OVER_TLS
+        setLuaNoSideEffect();
+        try {
+          if (index < g_tlslocals.size()) {
+            result = g_tlslocals.at(index);
+          }
+          else {
+            errlog("Error: trying to get TLS frontend with index %zu but we only have %zu\n", index, g_tlslocals.size());
+            g_outputBuffer="Error: trying to get TLS frontend with index " + std::to_string(index) + " but we only have " + std::to_string(g_tlslocals.size()) + "\n";
+          }
+        }
+        catch(const std::exception& e) {
+          g_outputBuffer="Error: "+string(e.what())+"\n";
+          errlog("Error: %s\n", string(e.what()));
+        }
+#else
+        g_outputBuffer="DNS over TLS support is not present!\n";
+#endif
+        return result;
+      });
+
     g_lua.registerFunction<void(std::shared_ptr<TLSCtx>::*)()>("rotateTicketsKey", [](std::shared_ptr<TLSCtx> ctx) {
         if (ctx != nullptr) {
           ctx->rotateTicketsKey(time(nullptr));
@@ -1565,6 +1636,14 @@ void setupLuaConfig(bool client)
         if (ctx != nullptr) {
           ctx->loadTicketsKeys(file);
         }
+      });
+
+    g_lua.registerFunction<void(std::shared_ptr<TLSFrontend>::*)(boost::variant<std::string, std::vector<std::pair<int,std::string>>> certFiles, boost::variant<std::string, std::vector<std::pair<int,std::string>>> keyFiles)>("loadNewCertificatesAndKeys", [](std::shared_ptr<TLSFrontend>& frontend, boost::variant<std::string, std::vector<std::pair<int,std::string>>> certFiles, boost::variant<std::string, std::vector<std::pair<int,std::string>>> keyFiles) {
+#ifdef HAVE_DNS_OVER_TLS
+        if (loadTLSCertificateAndKeys(frontend, certFiles, keyFiles)) {
+          frontend->setupTLS();
+        }
+#endif
       });
 }
 

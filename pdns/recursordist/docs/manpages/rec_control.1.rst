@@ -74,10 +74,26 @@ dump-cache *FILENAME*
     also dumped to the same file. The per-thread positive and negative cache
     dumps are separated with an appropriate comment.
 
+    .. note::
+
+      :program:`pdns_recursor` often runs in a chroot. You can
+      retrieve the file using::
+
+        rec_control dump-cache /tmp/file
+        mv /proc/$(pidof pdns_recursor)/root/tmp/file /tmp/filename
+
 dump-edns *FILENAME*
     Dumps the EDNS status to the filename mentioned. This file should not exist
     already, PowerDNS will refuse to overwrite it. While dumping, the recursor
     will not answer questions.
+
+    .. note::
+
+      :program:`pdns_recursor` often runs in a chroot. You can
+      retrieve the file using::
+
+        rec_control dump-edns /tmp/file
+        mv /proc/$(pidof pdns_recursor)/root/tmp/file /tmp/filename
 
 dump-nsspeeds *FILENAME*
     Dumps the nameserver speed statistics to the *FILENAME* mentioned. This
@@ -85,11 +101,41 @@ dump-nsspeeds *FILENAME*
     dumping, the recursor will not answer questions. Statistics are kept per
     thread, and the dumps end up in the same file.
 
+    .. note::
+
+      :program:`pdns_recursor` often runs in a chroot. You can
+      retrieve the file using::
+
+        rec_control dump-nsspeeds /tmp/file
+        mv /proc/$(pidof pdns_recursor)/root/tmp/file /tmp/filename
+
 dump-rpz *ZONE NAME* *FILE NAME*
     Dumps the content of the RPZ zone named *ZONE NAME* to the *FILENAME*
     mentioned. This file should not exist already, PowerDNS will refuse to
     overwrite it otherwise. While dumping, the recursor will not answer
     questions.
+
+    .. note::
+
+      :program:`pdns_recursor` often runs in a chroot. You can
+      retrieve the file using::
+
+        rec_control dump-rpz ZONE_NAME /tmp/file
+        mv /proc/$(pidof pdns_recursor)/root/tmp/file /tmp/filename
+
+dump-throttlemap *FILENAME*
+    Dump the contents of the throttle map to the *FILENAME* mentioned.
+    This file should not exist already, PowerDNS will refuse to
+    overwrite it otherwise. While dumping, the recursor will not answer
+    questions.
+
+    .. note::
+
+      :program:`pdns_recursor` often runs in a chroot. You can
+      retrieve the file using::
+
+        rec_control dump-rpz ZONE_NAME /tmp/file
+        mv /proc/$(pidof pdns_recursor)/root/tmp/file /tmp/filename
 
 get *STATISTIC* [*STATISTIC*]...
     Retrieve a statistic. For items that can be queried, see
@@ -183,13 +229,30 @@ top-servfail-queries
     Shows the top-20 queries causing servfail responses. Statistics are over
     the last 'stats-ringbuffer-entries' queries.
 
+top-bogus-queries
+    Shows the top-20 queries causing bogus responses. Statistics are over
+    the last 'stats-ringbuffer-entries' queries.
+
 top-pub-servfail-queries
     Shows the top-20 queries causing servfail responses grouped by public
     suffix list. Statistics are over the last 'stats-ringbuffer-entries'
     queries.
 
+top-pub-bogus-queries
+    Shows the top-20 queries causing bogus responses grouped by public
+    suffix list. Statistics are over the last 'stats-ringbuffer-entries'
+    queries.
+
 top-servfail-remotes
     Shows the top-20 most active remote hosts causing servfail responses.
+    Statistics are over the last 'stats-ringbuffer-entries' queries.
+
+top-bogus-remotes
+    Shows the top-20 most active remote hosts causing bogus responses.
+    Statistics are over the last 'stats-ringbuffer-entries' queries.
+
+top-timeouts
+    Shows the top-20 most active downstream timeout destinations.
     Statistics are over the last 'stats-ringbuffer-entries' queries.
 
 trace-regex *REGEX*

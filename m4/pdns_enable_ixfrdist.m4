@@ -1,7 +1,7 @@
 AC_DEFUN([PDNS_ENABLE_IXFRDIST], [
   AC_MSG_CHECKING([whether we will be building ixfrdist])
-  AC_ARG_ENABLE([ixfrdist], [
-    AS_HELP_STRING([--enable-ixfrdist], [if we should build and install ixfrdist @<:@default=no@:>@])
+  AC_ARG_ENABLE([ixfrdist],
+    [AS_HELP_STRING([--enable-ixfrdist], [if we should build and install ixfrdist @<:@default=no@:>@])
   ], [
     enable_ixfrdist=$enableval
   ], [

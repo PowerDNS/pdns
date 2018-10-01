@@ -29,7 +29,7 @@
 #include <sys/types.h>
 #include "iputils.hh"
 #include "ednssubnet.hh"
-
+#include <unordered_set>
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <sys/time.h>
@@ -175,6 +175,7 @@ private:
   string d_tsigprevious;
 
   vector<DNSZoneRecord> d_rrs; // 8
+  std::unordered_set<size_t> d_dedup;
   string d_rawpacket; // this is where everything lives 8
   EDNSSubnetOpts d_eso;
 

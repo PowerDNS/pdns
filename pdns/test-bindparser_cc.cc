@@ -17,7 +17,7 @@
 
 using std::string;
 
-BOOST_AUTO_TEST_SUITE(bindparser_cc)
+BOOST_AUTO_TEST_SUITE(test_bindparser_cc)
 
 BOOST_AUTO_TEST_CASE(test_parser) {
         const char *srcdir;

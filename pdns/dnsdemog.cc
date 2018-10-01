@@ -81,7 +81,7 @@ try
           cout <<", "<< ntohs(dh->arcount) <<");\n";
 
         }
-        catch(MOADNSException& mde) {
+        catch(const MOADNSException &mde) {
           //        cerr<<"error parsing packet: "<<mde.what()<<endl;
           continue;
         }

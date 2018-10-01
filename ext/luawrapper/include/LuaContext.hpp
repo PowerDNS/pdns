@@ -78,6 +78,12 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  * your function to std::function (not directly std::bind or a lambda function) so the class can detect which argument types
  * it wants. These arguments may only be of basic types (int, float, etc.) or std::string.
  */
+
+#if defined(__GNUC__) && !defined(__clang__)
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wmaybe-uninitialized"
+#endif
+
 class LuaContext {
     struct ValueInRegistry;
     template<typename TFunctionObject, typename TFirstParamType> struct Binder;
@@ -2113,12 +2119,12 @@ struct LuaContext::Pusher<std::map<TKey,TValue>> {
 };
 
 // unordered_maps
-template<typename TKey, typename TValue>
-struct LuaContext::Pusher<std::unordered_map<TKey,TValue>> {
+template<typename TKey, typename TValue, typename THash, typename TKeyEqual>
+struct LuaContext::Pusher<std::unordered_map<TKey,TValue,THash,TKeyEqual>> {
     static const int minSize = 1;
     static const int maxSize = 1;
 
-    static PushedObject push(lua_State* state, const std::unordered_map<TKey,TValue>& value) noexcept {
+    static PushedObject push(lua_State* state, const std::unordered_map<TKey,TValue,THash,TKeyEqual>& value) noexcept {
         static_assert(Pusher<typename std::decay<TKey>::type>::minSize == 1 && Pusher<typename std::decay<TKey>::type>::maxSize == 1, "Can't push multiple elements for a table key");
         static_assert(Pusher<typename std::decay<TValue>::type>::minSize == 1 && Pusher<typename std::decay<TValue>::type>::maxSize == 1, "Can't push multiple elements for a table value");
         
@@ -2777,16 +2783,16 @@ struct LuaContext::Reader<std::map<TKey,TValue>>
 };
 
 // unordered_map
-template<typename TKey, typename TValue>
-struct LuaContext::Reader<std::unordered_map<TKey,TValue>>
+template<typename TKey, typename TValue, typename THash, typename TKeyEqual>
+struct LuaContext::Reader<std::unordered_map<TKey,TValue,THash,TKeyEqual>>
 {
     static auto read(lua_State* state, int index)
-        -> boost::optional<std::unordered_map<TKey,TValue>>
+        -> boost::optional<std::unordered_map<TKey,TValue,THash,TKeyEqual>>
     {
         if (!lua_istable(state, index))
             return boost::none;
 
-        std::unordered_map<TKey,TValue> result;
+        std::unordered_map<TKey,TValue,THash,TKeyEqual> result;
 
         // we traverse the table at the top of the stack
         lua_pushnil(state);     // first key
@@ -2946,5 +2952,9 @@ struct LuaContext::Reader<std::tuple<TFirst, TOthers...>,
         return std::tuple_cat(std::tuple<TFirst>(*firstVal), std::move(*othersVal));
     }
 };
+
+#if defined(__GNUC__) && !defined(__clang__)
+#pragma GCC diagnostic pop
+#endif
 
 #endif

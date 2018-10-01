@@ -4,7 +4,7 @@ import os
 import shutil
 import os.path
 
-for extdir in ['yahttp', 'json11']:
+for extdir in ['yahttp', 'json11', 'probds']:
     try:
         shutil.rmtree(os.path.join('ext', extdir))
     except OSError:

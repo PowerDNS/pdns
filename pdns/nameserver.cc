@@ -61,8 +61,8 @@ extern StatBag S;
 
     A DNSBackend is an entity that returns DNSResourceRecord objects in return to explicit questions for domains with a specified QType
 
-    PowerDNS uses the UeberBackend as its DNSBackend. The UeberBackend by default has no DNSBackends within itself, those are loaded
-    using the pdns_control tool. This way DNSBackend implementations can be kept completely separate (but they often aren't).s
+    PowerDNS uses the UeberBackend, which hosts DNSBackends. By default it has no DNSBackends within itself, those are loaded
+    by setting --load=<list of backends>. This way DNSBackend implementations can be kept completely separate, but most aren't.
 
     If one or more DNSBackends are loaded, the UeberBackend fields the queries to all of them until one answers.
 

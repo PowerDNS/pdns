@@ -43,8 +43,6 @@ LuaContext* AuthLua4::getLua()
 }
 
 void AuthLua4::postPrepareContext() {
-  stubParseResolveConf();
-
   d_lw->writeFunction("resolve", [](const std::string& qname, uint16_t qtype) {
       std::vector<DNSZoneRecord> ret;
       std::unordered_map<int, DNSResourceRecord> luaResult;

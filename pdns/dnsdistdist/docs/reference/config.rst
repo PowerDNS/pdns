@@ -91,6 +91,7 @@ Listen Sockets
   .. versionadded:: 1.3.0
   .. versionchanged:: 1.3.1
     ``certFile(s)`` and ``keyFile(s)`` parameters accept a list of files.
+    ``sessionTickets`` option added.
 
   Listen on the specified address and TCP port for incoming DNS over TLS connections, presenting the specified X.509 certificate.
 
@@ -112,6 +113,7 @@ Listen Sockets
   * ``numberOfTicketsKeys``: int - The maximum number of tickets keys to keep in memory at the same time, if the provider supports it (GnuTLS doesn't, OpenSSL does). Only one key is marked as active and used to encrypt new tickets while the remaining ones can still be used to decrypt existing tickets after a rotation. Default to 5.
   * ``ticketKeyFile``: str - The path to a file from where TLS tickets keys should be loaded, to support RFC 5077. These keys should be rotated often and never written to persistent storage to preserve forward secrecy. The default is to generate a random key. The OpenSSL provider supports several tickets keys to be able to decrypt existing sessions after the rotation, while the GnuTLS provider only supports one key.
   * ``ticketsKeysRotationDelay``: int - Set the delay before the TLS tickets key is rotated, in seconds. Default is 43200 (12h).
+  * ``sessionTickets``: bool - Whether session resumption via session tickets is enabled. Default is true, meaning tickets are enabled.
 
 .. function:: setLocal(address[, options])
 
@@ -155,7 +157,8 @@ Control Socket, Console and Webserver
 
   Bind to ``addr`` and listen for a connection for the console. Since 1.3.0 only connections from local users are allowed
   by default, :func:`addConsoleACL` and :func:`setConsoleACL` can be used to enable remote connections. Please make sure
-  that encryption has been enabled with :func:`setKey` before doing so.
+  that encryption has been enabled with :func:`setKey` before doing so. Enabling encryption is also strongly advised for
+  local connections, since not enabling it allows any local user to connect to the console.
 
   :param str address: An IP address with optional port. By default, the port is 5199.
 
@@ -296,7 +299,7 @@ Servers
       address="IP:PORT",     -- IP and PORT of the backend server (mandatory)
       qps=NUM,               -- Limit the number of queries per second to NUM, when using the `firstAvailable` policy
       order=NUM,             -- The order of this server, used by the `leastOustanding` and `firstAvailable` policies
-      weight=NUM,            -- The weight of this server, used by the `wrandom` and `whashed` policies, default: 1
+      weight=NUM,            -- The weight of this server, used by the `wrandom`, `whashed` and `chashed` policies, default: 1
                              -- Supported values are a minimum of 1, and a maximum of 2147483647.
       pool=STRING|{STRING},  -- The pools this server belongs to (unset or empty string means default pool) as a string or table of strings
       retries=NUM,           -- The number of TCP connection attempts to the backend, for a given query
@@ -505,10 +508,13 @@ PacketCache
 A Pool can have a packet cache to answer queries directly in stead of going to the backend.
 See :doc:`../guides/cache` for a how to.
 
-.. function:: newPacketCache(maxEntries[, maxTTL=86400[, minTTL=0[, temporaryFailureTTL=60[, staleTTL=60[, dontAge=false[, numberOfShards=1[, deferrableInsertLock=true]]]]]]]) -> PacketCache
+.. function:: newPacketCache(maxEntries[, maxTTL=86400[, minTTL=0[, temporaryFailureTTL=60[, staleTTL=60[, dontAge=false[, numberOfShards=1[, deferrableInsertLock=true[, maxNegativeTTL=3600[, parseECS=false]]]]]]]) -> PacketCache
 
   .. versionchanged:: 1.3.0
     ``numberOfShards`` and ``deferrableInsertLock`` parameters added.
+
+  .. versionchanged:: 1.3.1
+    ``maxNegativeTTL`` and ``parseECS`` parameters added.
 
   Creates a new :class:`PacketCache` with the settings specified.
 
@@ -516,14 +522,24 @@ See :doc:`../guides/cache` for a how to.
   :param int maxTTL: Cap the TTL for records to his number
   :param int minTTL: Don't cache entries with a TTL lower than this
   :param int temporaryFailureTTL: On a SERVFAIL or REFUSED from the backend, cache for this amount of seconds
-  :param int staleTTL: When the backend servers are not reachable, send responses if the cache entry is expired at most this amount of seconds
+  :param int staleTTL: When the backend servers are not reachable, and global configuration ``setStaleCacheEntriesTTL`` is set appropriately, TTL that will be used when a stale cache entry is returned
   :param bool dontAge: Don't reduce TTLs when serving from the cache. Use this when :program:`dnsdist` fronts a cluster of authoritative servers
   :param int numberOfShards: Number of shards to divide the cache into, to reduce lock contention
   :param bool deferrableInsertLock: Whether the cache should give up insertion if the lock is held by another thread, or simply wait to get the lock
+  :param int maxNegativeTTL: Cache a NXDomain or NoData answer from the backend for at most this amount of seconds, even if the TTL of the SOA record is higher
+  :param bool parseECS: Whether any EDNS Client Subnet option present in the query should be extracted and stored to be able to detect hash collisions involving queries with the same qname, qtype and qclass but a different incoming ECS value. Enabling this option adds a parsing cost and only makes sense if at least one backend might send different responses based on the ECS value, so it's disabled by default
 
 .. class:: PacketCache
 
   Represents a cache that can be part of :class:`ServerPool`.
+
+  .. method:: PacketCache:dump(fname)
+
+    .. versionadded:: 1.3.1
+
+    Dump a summary of the cache entries to a file.
+
+    :param str fname: The path to a file where the cache summary should be dumped. Note that if the target file already exists, it will not be overwritten.
 
   .. method:: PacketCache:expunge(n)
 
@@ -610,6 +626,12 @@ Status, Statistics and More
   .. versionadded:: 1.3.0
 
   Return the TLSContext object for the context of index ``idx``.
+
+.. function:: getTLSFrontend(idx)
+
+  .. versionadded:: 1.3.1
+
+  Return the TLSFrontend object for the TLS bind of index ``idx``.
 
 .. function:: grepq(selector[, num])
               grepq(selectors[, num])
@@ -726,7 +748,9 @@ Dynamic Blocks
   :param addresses: set of Addresses as returned by an exceed function
   :param string message: The message to show next to the blocks
   :param int seconds: The number of seconds this block to expire
-  :param int action: The action to take when the dynamic block matches, see :ref:`here <DNSAction>`. (default to the one set with :func:`setDynBlocksAction`)
+  :param int action: The action to take when the dynamic block matches, see :ref:`here <DNSAction>`. (default to DNSAction.None, meaning the one set with :func:`setDynBlocksAction` is used)
+
+  Please see the documentation for :func:`setDynBlocksAction` to confirm which actions are supported by the action paramater.
 
 .. function:: clearDynBlocks()
 
@@ -739,7 +763,7 @@ Dynamic Blocks
 .. function:: setDynBlocksAction(action)
 
   Set which action is performed when a query is blocked.
-  Only DNSAction.Drop (the default), DNSAction.Refused and DNSAction.Truncate are supported.
+  Only DNSAction.Drop (the default), DNSAction.NoOp, DNSAction.Refused and DNSAction.Truncate are supported.
 
 .. _exceedfuncs:
 
@@ -859,6 +883,28 @@ faster than the existing rules.
 
     Walk the in-memory query and response ring buffers and apply the configured rate-limiting rules, adding dynamic blocks when the limits have been exceeded.
 
+  .. method:: DynBlockRulesGroup:excludeRange(netmasks)
+
+    .. versionadded:: 1.3.1
+
+    Exclude this range, or list of ranges, meaning that no dynamic block will ever be inserted for clients in that range. Default to empty, meaning rules are applied to all ranges. When used in combination with :meth:`DynBlockRulesGroup:includeRange`, the more specific entry wins.
+
+    :param int netmasks: A netmask, or list of netmasks, as strings, like for example "192.0.2.1/24"
+
+  .. method:: DynBlockRulesGroup:includeRange(netmasks)
+
+    .. versionadded:: 1.3.1
+
+    Include this range, or list of ranges, meaning that rules will be applied to this range. When used in combination with :meth:`DynBlockRulesGroup:excludeRange`, the more specific entry wins.
+
+    :param int netmasks: A netmask, or list of netmasks, as strings, like for example "192.0.2.1/24"
+
+  .. method:: DynBlockRulesGroup:toString()
+
+    .. versionadded:: 1.3.1
+
+    Return a string describing the rules and range exclusions of this DynBlockRulesGroup.
+
 Other functions
 ---------------
 
@@ -885,3 +931,49 @@ TLSContext
      Load new tickets keys from the selected file, replacing the existing ones. These keys should be rotated often and never written to persistent storage to preserve forward secrecy. The default is to generate a random key. The OpenSSL provider supports several tickets keys to be able to decrypt existing sessions after the rotation, while the GnuTLS provider only supports one key.
 
     :param str ticketsKeysFile: The path to a file from where TLS tickets keys should be loaded.
+
+TLSFrontend
+~~~~~~~~~~~
+
+.. class:: TLSFrontend
+
+  .. versionadded:: 1.3.1
+
+  This object represents the configuration of a listening frontend for DNS over TLS queries. To each frontend is associated a TLSContext.
+
+  .. method:: TLSContext:loadNewCertificatesAndKeys(certFile(s), keyFile(s))
+
+     Create and switch to a new TLS context using the same options than were passed to the corresponding `addTLSLocal()` directive, but loading new certificates and keys from the selected files, replacing the existing ones.
+
+  :param str certFile(s): The path to a X.509 certificate file in PEM format, or a list of paths to such files.
+  :param str keyFile(s): The path to the private key file corresponding to the certificate, or a list of paths to such files, whose order should match the certFile(s) ones.
+
+EDNS on Self-generated answers
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+There are several mechanisms in dnsdist that turn an existing query into an answer right away,
+without reaching out to the backend, including :func:`SpoofAction`, :func:`RCodeAction`, :func:`TCAction`
+and returning a response from ``Lua``. Those responses should, according to :rfc:`6891`, contain an ``OPT``
+record if the received request had one, which is the case by default and can be disabled using
+:func:`setAddEDNSToSelfGeneratedResponses`.
+
+We must, however, provide a responder's maximum payload size in this record, and we can't easily know the
+maximum payload size of the actual backend so we need to provide one. The default value is 1500 and can be
+overriden using :func:`setPayloadSizeOnSelfGeneratedAnswers`.
+
+.. function:: setAddEDNSToSelfGeneratedResponses(add)
+
+  .. versionadded:: 1.3.3
+
+  Whether to add EDNS to self-generated responses, provided that the initial query had EDNS.
+
+  :param bool add: Whether to add EDNS, default is true.
+
+.. function:: setPayloadSizeOnSelfGeneratedAnswers(payloadSize)
+
+  .. versionadded:: 1.3.3
+
+  Set the UDP payload size advertised via EDNS on self-generated responses. In accordance with
+  :rfc:`RFC 6891 <6891#section-6.2.5>`, values lower than 512 will be treated as equal to 512.
+
+  :param int payloadSize: The responder's maximum UDP payload size, in bytes. Default is 1500.

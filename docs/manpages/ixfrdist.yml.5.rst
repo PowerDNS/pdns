@@ -29,7 +29,7 @@ Example
     - '192.0.2.0/24'
     - '2001:DB8:ABCD:1234::/64'
 
-  workdir: /var/lib/ixfrdist
+  work-dir: /var/lib/ixfrdist
 
   uid: ixfrdist
   gid: ixfrdist
@@ -58,6 +58,13 @@ Options
   Timeout in seconds an AXFR transaction requested by :program:`ixfrdist` may take.
   Increase this when the network to the authoritative servers is slow or the domains are very large and you experience timeouts.
   Defaults to 20.
+
+:failed-soa-retry:
+  Time in seconds between retries of the SOA query for a zone we have never transferred. Defaults to 30.
+
+:compress:
+  Whether record compression should be enabled, leading to smaller answers at the cost of an increased CPU and memory usage.
+  Defaults to false.
 
 :work-dir:
   The directory where the domain data is stored.

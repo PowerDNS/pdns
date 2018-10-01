@@ -70,7 +70,7 @@ static void apiWriteConfigFile(const string& filebasename, const string& content
 
 static void apiServerConfigAllowFrom(HttpRequest* req, HttpResponse* resp)
 {
-  if (req->method == "PUT" && !::arg().mustDo("api-readonly")) {
+  if (req->method == "PUT") {
     Json document = req->json();
 
     auto jlist = document["value"];
@@ -248,7 +248,7 @@ static bool doDeleteZone(const DNSName& zonename)
 
 static void apiServerZones(HttpRequest* req, HttpResponse* resp)
 {
-  if (req->method == "POST" && !::arg().mustDo("api-readonly")) {
+  if (req->method == "POST") {
     if (::arg()["api-config-dir"].empty()) {
       throw ApiException("Config Option \"api-config-dir\" must be set");
     }
@@ -300,7 +300,7 @@ static void apiServerZoneDetail(HttpRequest* req, HttpResponse* resp)
   if (iter == SyncRes::t_sstorage.domainmap->end())
     throw ApiException("Could not find domain '"+zonename.toLogString()+"'");
 
-  if(req->method == "PUT" && !::arg().mustDo("api-readonly")) {
+  if(req->method == "PUT") {
     Json document = req->json();
 
     doDeleteZone(zonename);
@@ -309,7 +309,7 @@ static void apiServerZoneDetail(HttpRequest* req, HttpResponse* resp)
     resp->body = "";
     resp->status = 204; // No Content, but indicate success
   }
-  else if(req->method == "DELETE" && !::arg().mustDo("api-readonly")) {
+  else if(req->method == "DELETE") {
     if (!doDeleteZone(zonename)) {
       throw ApiException("Deleting domain failed");
     }
@@ -490,6 +490,8 @@ void RecursorWebServer::jsonstat(HttpRequest* req, HttpResponse *resp)
 
     if(req->getvars["name"]=="servfail-queries")
       queries=broadcastAccFunction<vector<query_t> >(pleaseGetServfailQueryRing);
+    else if(req->getvars["name"]=="bogus-queries")
+      queries=broadcastAccFunction<vector<query_t> >(pleaseGetBogusQueryRing);
     else if(req->getvars["name"]=="queries")
       queries=broadcastAccFunction<vector<query_t> >(pleaseGetQueryRing);
 
@@ -515,7 +517,7 @@ void RecursorWebServer::jsonstat(HttpRequest* req, HttpResponse *resp)
     for(const rcounts_t::value_type& q :  rcounts) {
       totIncluded-=q.first;
       entries.push_back(Json::array {
-        -q.first, q.second.first.toString(), DNSRecordContent::NumberToType(q.second.second)
+        -q.first, q.second.first.toLogString(), DNSRecordContent::NumberToType(q.second.second)
       });
       if(tot++>=100)
 	break;
@@ -534,8 +536,12 @@ void RecursorWebServer::jsonstat(HttpRequest* req, HttpResponse *resp)
       queries=broadcastAccFunction<vector<ComboAddress> >(pleaseGetRemotes);
     else if(req->getvars["name"]=="servfail-remotes")
       queries=broadcastAccFunction<vector<ComboAddress> >(pleaseGetServfailRemotes);
+    else if(req->getvars["name"]=="bogus-remotes")
+      queries=broadcastAccFunction<vector<ComboAddress> >(pleaseGetBogusRemotes);
     else if(req->getvars["name"]=="large-answer-remotes")
       queries=broadcastAccFunction<vector<ComboAddress> >(pleaseGetLargeAnswerRemotes);
+    else if(req->getvars["name"]=="timeouts")
+      queries=broadcastAccFunction<vector<ComboAddress> >(pleaseGetTimeouts);
 
     typedef map<ComboAddress,unsigned int,ComboAddress::addressOnlyLessThan> counts_t;
     counts_t counts;

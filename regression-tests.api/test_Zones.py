@@ -217,18 +217,57 @@ class AuthZones(ApiTestCase, AuthZonesHelperMixin):
 
     def test_create_zone_with_comments(self):
         name = unique_zone_name()
-        rrset = {
-            "name": name,
-            "type": "soa",  # test uppercasing of type, too.
-            "comments": [{
-                "account": "test1",
-                "content": "blah blah",
-                "modified_at": 11112,
-            }],
-        }
-        name, payload, data = self.create_zone(name=name, rrsets=[rrset])
+        rrsets = [
+              {
+                  "name": name,
+                  "type": "soa",  # test uppercasing of type, too.
+                  "comments": [{
+                      "account": "test1",
+                      "content": "blah blah",
+                      "modified_at": 11112,
+                  }],
+              },
+              {
+                  "name": name,
+                  "type": "AAAA",
+                  "ttl": 3600,
+                  "records": [{
+                      "content": "2001:DB8::1",
+                      "disabled": False,
+                  }],
+                  "comments": [{
+                      "account": "test AAAA",
+                      "content": "blah blah AAAA",
+                      "modified_at": 11112,
+                  }],
+              },
+              {
+                  "name": name,
+                  "type": "TXT",
+                  "ttl": 3600,
+                  "records": [{
+                      "content": "\"test TXT\"",
+                      "disabled": False,
+                  }],
+              },
+              {
+                  "name": name,
+                  "type": "A",
+                  "ttl": 3600,
+                  "records": [{
+                      "content": "192.0.2.1",
+                      "disabled": False,
+                  }],
+              },
+          ]
+        name, payload, data = self.create_zone(name=name, rrsets=rrsets)
+        # NS records have been created
+        self.assertEquals(len(data['rrsets']), len(rrsets) + 1)
         # check our comment has appeared
-        self.assertEquals(get_rrset(data, name, 'SOA')['comments'], rrset['comments'])
+        self.assertEquals(get_rrset(data, name, 'SOA')['comments'], rrsets[0]['comments'])
+        self.assertEquals(get_rrset(data, name, 'A')['comments'], [])
+        self.assertEquals(get_rrset(data, name, 'TXT')['comments'], [])
+        self.assertEquals(get_rrset(data, name, 'AAAA')['comments'], rrsets[1]['comments'])
 
     def test_create_zone_uncanonical_nameservers(self):
         name = unique_zone_name()
@@ -602,6 +641,14 @@ class AuthZones(ApiTestCase, AuthZonesHelperMixin):
             self.assertEquals(data[k], payload[k])
         self.assertEqual(data['serial'], 0)
         self.assertEqual(data['rrsets'], [])
+
+    def test_find_zone_by_name(self):
+        name = 'foo/' + unique_zone_name()
+        name, payload, data = self.create_zone(name=name)
+        r = self.session.get(self.url("/api/v1/servers/localhost/zones?zone=" + name))
+        data = r.json()
+        print(data)
+        self.assertEquals(data[0]['name'], name)
 
     def test_delete_slave_zone(self):
         name, payload, data = self.create_zone(kind='Slave', nameservers=None, masters=['127.0.0.2'])
@@ -1510,15 +1557,15 @@ fred   IN  A      192.168.0.4
         print(r.json())
         self.assertEquals(r.json(), [
             {u'object_type': u'zone', u'name': name, u'zone_id': name},
-            {u'content': u'a.misconfigured.powerdns.server. hostmaster.'+name+' 22 10800 3600 604800 3600',
-             u'zone_id': name, u'zone': name, u'object_type': u'record', u'disabled': False,
-             u'ttl': 3600, u'type': u'SOA', u'name': name},
             {u'content': u'ns1.example.com.',
              u'zone_id': name, u'zone': name, u'object_type': u'record', u'disabled': False,
              u'ttl': 3600, u'type': u'NS', u'name': name},
             {u'content': u'ns2.example.com.',
              u'zone_id': name, u'zone': name, u'object_type': u'record', u'disabled': False,
              u'ttl': 3600, u'type': u'NS', u'name': name},
+            {u'content': u'a.misconfigured.powerdns.server. hostmaster.'+name+' 22 10800 3600 604800 3600',
+             u'zone_id': name, u'zone': name, u'object_type': u'record', u'disabled': False,
+             u'ttl': 3600, u'type': u'SOA', u'name': name},
         ])
 
     def test_search_rr_substring(self):

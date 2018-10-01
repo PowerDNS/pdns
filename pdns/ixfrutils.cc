@@ -29,7 +29,7 @@
 #include "zoneparser-tng.hh"
 #include "dnsparser.hh"
 
-uint32_t getSerialFromMaster(const ComboAddress& master, const DNSName& zone, shared_ptr<SOARecordContent>& sr, const TSIGTriplet& tt)
+uint32_t getSerialFromMaster(const ComboAddress& master, const DNSName& zone, shared_ptr<SOARecordContent>& sr, const TSIGTriplet& tt, const uint16_t timeout)
 {
   vector<uint8_t> packet;
   DNSPacketWriter pw(packet, zone, QType::SOA);
@@ -49,10 +49,18 @@ uint32_t getSerialFromMaster(const ComboAddress& master, const DNSName& zone, sh
   s.writen(msg);
 
   string reply;
-  s.read(reply);
+  reply.resize(4096);
+  // will throw a NetworkError on timeout
+  ssize_t got = s.readWithTimeout(&reply[0], reply.size(), timeout);
+  if (got < 0 || static_cast<size_t>(got) < sizeof(dnsheader)) {
+    throw std::runtime_error("Invalid response size " + std::to_string(got));
+  }
+
+  reply.resize(got);
+
   MOADNSParser mdp(false, reply);
   if(mdp.d_header.rcode) {
-    throw std::runtime_error("Unable to retrieve SOA serial from master '"+master.toStringWithPort()+"': "+RCode::to_s(mdp.d_header.rcode));
+    throw std::runtime_error("RCODE from response is not NoError but " + RCode::to_s(mdp.d_header.rcode));
   }
   for(const auto& r: mdp.d_answers) {
     if(r.first.d_type == QType::SOA) {
@@ -97,6 +105,17 @@ uint32_t getSerialFromRecords(const records_t& records, DNSRecord& soaret)
   return 0;
 }
 
+static void writeRecords(FILE* fp, const records_t& records)
+{
+  for(const auto& r: records) {
+    fprintf(fp, "%s\t%" PRIu32 "\tIN\t%s\t%s\n",
+            r.d_name.isRoot() ? "@" :  r.d_name.toStringNoDot().c_str(),
+            r.d_ttl,
+            DNSRecordContent::NumberToType(r.d_type).c_str(),
+            r.d_content->getZoneRepresentation().c_str());
+  }
+}
+
 void writeZoneToDisk(const records_t& records, const DNSName& zone, const std::string& directory)
 {
   DNSRecord soa;
@@ -109,15 +128,11 @@ void writeZoneToDisk(const records_t& records, const DNSName& zone, const std::s
   records_t soarecord;
   soarecord.insert(soa);
   fprintf(fp, "$ORIGIN %s\n", zone.toString().c_str());
-  for(const auto& outer : {soarecord, records, soarecord} ) {
-    for(const auto& r: outer) {
-      fprintf(fp, "%s\t%" PRIu32 "\tIN\t%s\t%s\n",
-          r.d_name.isRoot() ? "@" :  r.d_name.toStringNoDot().c_str(),
-          r.d_ttl,
-          DNSRecordContent::NumberToType(r.d_type).c_str(),
-          r.d_content->getZoneRepresentation().c_str());
-    }
-  }
+
+  writeRecords(fp, soarecord);
+  writeRecords(fp, records);
+  writeRecords(fp, soarecord);
+
   fclose(fp);
   rename( (fname+".partial").c_str(), fname.c_str());
 }

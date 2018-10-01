@@ -106,7 +106,7 @@ struct TSIGKey {
 
 class DNSPacket;
 
-//! This virtual base class defines the interface for backends for the ahudns.
+//! This virtual base class defines the interface for backends for PowerDNS.
 /** To create a backend, inherit from this class and implement functions for all virtual methods.
     Methods should not throw an exception if they are sure they did not find the requested data. However,
     if an error occurred which prevented them temporarily from performing a lockup, they should throw a DBException,

@@ -2909,17 +2909,21 @@ BOOST_AUTO_TEST_CASE(test_forward_zone_rd) {
   const ComboAddress ns("192.0.2.1:53");
   const ComboAddress forwardedNS("192.0.2.42:53");
 
+  size_t queriesCount = 0;
   SyncRes::AuthDomain ad;
-  ad.d_rdForward = false;
+  ad.d_rdForward = true;
   ad.d_servers.push_back(forwardedNS);
   (*SyncRes::t_sstorage.domainmap)[target] = ad;
 
-  sr->setAsyncCallback([forwardedNS](const ComboAddress& ip, const DNSName& domain, int type, bool doTCP, bool sendRDQuery, int EDNS0Level, struct timeval* now, boost::optional<Netmask>& srcmask, boost::optional<const ResolveContext&> context, std::shared_ptr<RemoteLogger> outgoingLogger, LWResult* res, bool* chained) {
+  sr->setAsyncCallback([forwardedNS, &queriesCount](const ComboAddress& ip, const DNSName& domain, int type, bool doTCP, bool sendRDQuery, int EDNS0Level, struct timeval* now, boost::optional<Netmask>& srcmask, boost::optional<const ResolveContext&> context, std::shared_ptr<RemoteLogger> outgoingLogger, LWResult* res, bool* chained) {
+
+      queriesCount++;
 
       if (ip == forwardedNS) {
-        BOOST_CHECK_EQUAL(sendRDQuery, false);
+        BOOST_CHECK_EQUAL(sendRDQuery, true);
 
-        setLWResult(res, 0, true, false, true);
+        /* set AA=0, we are a recursor */
+        setLWResult(res, 0, false, false, true);
         addRecordToLW(res, domain, QType::A, "192.0.2.42");
         return 1;
       }
@@ -2931,6 +2935,18 @@ BOOST_AUTO_TEST_CASE(test_forward_zone_rd) {
   int res = sr->beginResolve(target, QType(QType::A), QClass::IN, ret);
   BOOST_CHECK_EQUAL(res, RCode::NoError);
   BOOST_CHECK_EQUAL(ret.size(), 1);
+  BOOST_CHECK_EQUAL(queriesCount, 1);
+
+  /* now make sure we can resolve from the cache (see #6340
+     where the entries were added to the cache but not retrieved,
+     because the recursor doesn't set the AA bit and we require
+     it. We fixed it by not requiring the AA bit for forward-recurse
+     answers. */
+  ret.clear();
+  res = sr->beginResolve(target, QType(QType::A), QClass::IN, ret);
+  BOOST_CHECK_EQUAL(res, RCode::NoError);
+  BOOST_CHECK_EQUAL(ret.size(), 1);
+  BOOST_CHECK_EQUAL(queriesCount, 1);
 }
 
 BOOST_AUTO_TEST_CASE(test_forward_zone_recurse_nord) {
@@ -10054,143 +10070,6 @@ BOOST_AUTO_TEST_CASE(test_getDSRecords_multialgo_two_highest) {
     BOOST_CHECK_EQUAL(i.d_digesttype, DNSSECKeeper::SHA256);
   }
 }
-
-#ifdef HAVE_BOTAN
-BOOST_AUTO_TEST_CASE(test_getDSRecords_multialgo_prefer_sha384_over_gost) {
-  std::unique_ptr<SyncRes> sr;
-  initSR(sr, true);
-
-  setDNSSECValidation(sr, DNSSECMode::ValidateAll);
-
-  primeHints();
-  const DNSName target("com.");
-  testkeysset_t keys, keys2;
-
-  auto luaconfsCopy = g_luaconfs.getCopy();
-  luaconfsCopy.dsAnchors.clear();
-  generateKeyMaterial(g_rootdnsname, DNSSECKeeper::ECDSA256, DNSSECKeeper::SHA256, keys, luaconfsCopy.dsAnchors);
-  generateKeyMaterial(target, DNSSECKeeper::ECDSA256, DNSSECKeeper::SHA384, keys);
-  g_luaconfs.setState(luaconfsCopy);
-
-  // As testkeysset_t only contains one DSRecordContent, create another one with a different hash algo
-  generateKeyMaterial(target, DNSSECKeeper::ECDSA256, DNSSECKeeper::GOST, keys2);
-  // But add the existing root key otherwise no RRSIG can be created
-  auto rootkey = keys.find(g_rootdnsname);
-  keys2.insert(*rootkey);
-
-  sr->setAsyncCallback([target, keys, keys2](const ComboAddress& ip, const DNSName& domain, int type, bool doTCP, bool sendRDQuery, int EDNS0Level, struct timeval* now, boost::optional<Netmask>& srcmask, boost::optional<const ResolveContext&> context, std::shared_ptr<RemoteLogger> outgoingLogger, LWResult* res, bool* chained) {
-      DNSName auth = domain;
-      auth.chopOff();
-      if (type == QType::DS || type == QType::DNSKEY) {
-        if (domain == target) {
-          if (genericDSAndDNSKEYHandler(res, domain, auth, type, keys2) != 1) {
-            return 0;
-          }
-        }
-        return genericDSAndDNSKEYHandler(res, domain, auth, type, keys);
-      }
-      return 0;
-    });
-
-  dsmap_t ds;
-  auto state = sr->getDSRecords(target, ds, false, 0, false);
-  BOOST_CHECK_EQUAL(state, Secure);
-  BOOST_REQUIRE_EQUAL(ds.size(), 1);
-  for (const auto& i : ds) {
-    BOOST_CHECK_EQUAL(i.d_digesttype, DNSSECKeeper::SHA384);
-  }
-}
-
-BOOST_AUTO_TEST_CASE(test_getDSRecords_multialgo_prefer_sha256_over_gost) {
-  std::unique_ptr<SyncRes> sr;
-  initSR(sr, true);
-
-  setDNSSECValidation(sr, DNSSECMode::ValidateAll);
-
-  primeHints();
-  const DNSName target("com.");
-  testkeysset_t keys, keys2;
-
-  auto luaconfsCopy = g_luaconfs.getCopy();
-  luaconfsCopy.dsAnchors.clear();
-  generateKeyMaterial(g_rootdnsname, DNSSECKeeper::ECDSA256, DNSSECKeeper::SHA256, keys, luaconfsCopy.dsAnchors);
-  generateKeyMaterial(target, DNSSECKeeper::ECDSA256, DNSSECKeeper::SHA256, keys);
-  g_luaconfs.setState(luaconfsCopy);
-
-  // As testkeysset_t only contains one DSRecordContent, create another one with a different hash algo
-  generateKeyMaterial(target, DNSSECKeeper::ECDSA256, DNSSECKeeper::GOST, keys2);
-  // But add the existing root key otherwise no RRSIG can be created
-  auto rootkey = keys.find(g_rootdnsname);
-  keys2.insert(*rootkey);
-
-  sr->setAsyncCallback([target, keys, keys2](const ComboAddress& ip, const DNSName& domain, int type, bool doTCP, bool sendRDQuery, int EDNS0Level, struct timeval* now, boost::optional<Netmask>& srcmask, boost::optional<const ResolveContext&> context, std::shared_ptr<RemoteLogger> outgoingLogger, LWResult* res, bool* chained) {
-      DNSName auth = domain;
-      auth.chopOff();
-      if (type == QType::DS || type == QType::DNSKEY) {
-        if (domain == target) {
-          if (genericDSAndDNSKEYHandler(res, domain, auth, type, keys2) != 1) {
-            return 0;
-          }
-        }
-        return genericDSAndDNSKEYHandler(res, domain, auth, type, keys);
-      }
-      return 0;
-    });
-
-  dsmap_t ds;
-  auto state = sr->getDSRecords(target, ds, false, 0, false);
-  BOOST_CHECK_EQUAL(state, Secure);
-  BOOST_REQUIRE_EQUAL(ds.size(), 1);
-  for (const auto& i : ds) {
-    BOOST_CHECK_EQUAL(i.d_digesttype, DNSSECKeeper::SHA256);
-  }
-}
-
-BOOST_AUTO_TEST_CASE(test_getDSRecords_multialgo_prefer_gost_over_sha1) {
-  std::unique_ptr<SyncRes> sr;
-  initSR(sr, true);
-
-  setDNSSECValidation(sr, DNSSECMode::ValidateAll);
-
-  primeHints();
-  const DNSName target("com.");
-  testkeysset_t keys, keys2;
-
-  auto luaconfsCopy = g_luaconfs.getCopy();
-  luaconfsCopy.dsAnchors.clear();
-  generateKeyMaterial(g_rootdnsname, DNSSECKeeper::ECDSA256, DNSSECKeeper::SHA256, keys, luaconfsCopy.dsAnchors);
-  generateKeyMaterial(target, DNSSECKeeper::ECDSA256, DNSSECKeeper::SHA1, keys);
-  g_luaconfs.setState(luaconfsCopy);
-
-  // As testkeysset_t only contains one DSRecordContent, create another one with a different hash algo
-  generateKeyMaterial(target, DNSSECKeeper::ECDSA256, DNSSECKeeper::GOST, keys2);
-  // But add the existing root key otherwise no RRSIG can be created
-  auto rootkey = keys.find(g_rootdnsname);
-  keys2.insert(*rootkey);
-
-  sr->setAsyncCallback([target, keys, keys2](const ComboAddress& ip, const DNSName& domain, int type, bool doTCP, bool sendRDQuery, int EDNS0Level, struct timeval* now, boost::optional<Netmask>& srcmask, boost::optional<const ResolveContext&> context, std::shared_ptr<RemoteLogger> outgoingLogger, LWResult* res, bool* chained) {
-      DNSName auth = domain;
-      auth.chopOff();
-      if (type == QType::DS || type == QType::DNSKEY) {
-        if (domain == target) {
-          if (genericDSAndDNSKEYHandler(res, domain, auth, type, keys2) != 1) {
-            return 0;
-          }
-        }
-        return genericDSAndDNSKEYHandler(res, domain, auth, type, keys);
-      }
-      return 0;
-    });
-
-  dsmap_t ds;
-  auto state = sr->getDSRecords(target, ds, false, 0, false);
-  BOOST_CHECK_EQUAL(state, Secure);
-  BOOST_REQUIRE_EQUAL(ds.size(), 1);
-  for (const auto& i : ds) {
-    BOOST_CHECK_EQUAL(i.d_digesttype, DNSSECKeeper::GOST);
-  }
-}
-#endif // HAVE_BOTAN110
 
 /*
 // cerr<<"asyncresolve called to ask "<<ip.toStringWithPort()<<" about "<<domain.toString()<<" / "<<QType(type).getName()<<" over "<<(doTCP ? "TCP" : "UDP")<<" (rd: "<<sendRDQuery<<", EDNS0 level: "<<EDNS0Level<<")"<<endl;

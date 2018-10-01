@@ -9,7 +9,7 @@ class TestTCPLimits(DNSDistTest):
     # this test suite uses a different responder port
     # because it uses a different health check configuration
     _testServerPort = 5395
-    _healthCheckAnswerUnexpected = True
+    _answerUnexpected = True
 
     _tcpIdleTimeout = 2
     _maxTCPQueriesPerConn = 5

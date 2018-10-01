@@ -1,0 +1,2 @@
+PowerDNS truncates incoming UDP packets This might have effect on RFC2136
+operation as packets might be very big.

@@ -139,6 +139,7 @@ public:
   int d_tcpFastOpenQueueSize{0};
   uint8_t d_numberOfTicketsKeys{5};
   bool d_reusePort{false};
+  bool d_enableTickets{true};
 
 private:
   std::shared_ptr<TLSCtx> d_ctx{nullptr};

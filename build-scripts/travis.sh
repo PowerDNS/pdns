@@ -329,6 +329,11 @@ install_auth() {
   run "sudo chmod 755 /etc/authbind/byport/53"
 }
 
+install_ixfrdist() {
+  run "sudo apt-get -qq --no-install-recommends install \
+    libyaml-cpp-dev"
+}
+
 install_recursor() {
   # recursor test requirements / setup
   # lua-posix is required for the ghost tests
@@ -355,6 +360,12 @@ install_recursor() {
   run "sudo touch /etc/authbind/byport/53"
   run "sudo chmod 755 /etc/authbind/byport/53"
   run "cd ${TRAVIS_BUILD_DIR}"
+  # install SNMP
+  run "sudo sed -i \"s/agentxperms 0700 0755 recursor/agentxperms 0700 0755 ${USER}/g\" regression-tests.recursor-dnssec/snmpd.conf"
+  run "sudo cp -f regression-tests.recursor-dnssec/snmpd.conf /etc/snmp/snmpd.conf"
+  run "sudo service snmpd restart"
+  ## fun story, the directory perms are only applied if it doesn't exist yet, and it is created by the init script, so..
+  run "sudo chmod 0755 /var/agentx"
 }
 
 install_dnsdist() {
@@ -375,7 +386,6 @@ install_dnsdist() {
 
 build_auth() {
   run "autoreconf -vi"
-  # Build without --enable-botan, no botan 2.x in Travis CI
   run "./configure \
     ${sanitizerflags} \
     --with-dynmodules='bind gmysql geoip gpgsql gsqlite3 ldap lua mydns opendbx pipe random remote tinydns godbc lua2' \
@@ -385,7 +395,6 @@ build_auth() {
     --enable-experimental-pkcs11 \
     --enable-remotebackend-zeromq \
     --enable-tools \
-    --enable-ixfrdist \
     --enable-unit-tests \
     --enable-backend-unit-tests \
     --disable-dependency-tracking \
@@ -396,6 +405,21 @@ build_auth() {
   run "find /tmp/pdns-install-dir -ls"
 }
 
+build_ixfrdist() {
+  run "autoreconf -vi"
+  run "./configure \
+    ${sanitizerflags} \
+    --with-dynmodules='bind' \
+    --with-modules='' \
+    --enable-ixfrdist \
+    --enable-unit-tests \
+    --disable-dependency-tracking \
+    --disable-silent-rules"
+  run "cd pdns"
+  run "make -k -j3 ixfrdist"
+  run "cd .."
+}
+
 build_recursor() {
   export PDNS_RECURSOR_DIR=$HOME/pdns_recursor
   # distribution build
@@ -404,12 +428,12 @@ build_recursor() {
   run "tar xf pdns-recursor-*.tar.bz2"
   run "rm -f pdns-recursor-*.tar.bz2"
   run "cd pdns-recursor-*"
-  # Build without --enable-botan, no botan 2.x in Travis CI
   run "./configure \
     ${sanitizerflags} \
     --prefix=$PDNS_RECURSOR_DIR \
     --enable-libsodium \
     --enable-unit-tests \
+    --enable-nod \
     --disable-silent-rules"
   run "make -k -j3"
   run "make install"
@@ -567,6 +591,12 @@ test_auth() {
   run "rm -f regression-tests/zones/*-slave.*" #FIXME
 }
 
+test_ixfrdist(){
+  run "cd regression-tests.ixfrdist"
+  run "IXFRDISTBIN=${TRAVIS_BUILD_DIR}/pdns/ixfrdist ./runtests -v || (cat ixfrdist.log; false)"
+  run "cd .."
+}
+
 test_recursor() {
   export PDNSRECURSOR="${PDNS_RECURSOR_DIR}/sbin/pdns_recursor"
   export DNSBULKTEST="/usr/bin/dnsbulktest"
@@ -598,7 +628,6 @@ test_repo(){
 }
 
 # global build requirements
-# Add botan 2.x when available in Travis CI
 run "sudo apt-get -qq --no-install-recommends install \
   libboost-all-dev \
   libluajit-5.1-dev \
@@ -622,6 +651,8 @@ then
     sanitizerflags="${sanitizerflags} --enable-asan"
   elif [ "${PDNS_BUILD_PRODUCT}" = "dnsdist" ]; then
     sanitizerflags="${sanitizerflags} --enable-asan --enable-ubsan"
+  elif [ "${PDNS_BUILD_PRODUCT}" = "ixfrdist" ]; then
+    sanitizerflags="${sanitizerflags} --enable-asan"
   fi
 fi
 export CFLAGS=$compilerflags

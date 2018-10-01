@@ -88,7 +88,7 @@ void DNSProxy::go()
 }
 
 //! look up qname target with r->qtype, plonk it in the answer section of 'r' with name aname
-bool DNSProxy::completePacket(DNSPacket *r, const DNSName& target,const DNSName& aname)
+bool DNSProxy::completePacket(DNSPacket *r, const DNSName& target,const DNSName& aname, const uint8_t scopeMask)
 {
   if(r->d_tcp) {
     vector<DNSZoneRecord> ips;
@@ -141,6 +141,7 @@ bool DNSProxy::completePacket(DNSPacket *r, const DNSName& target,const DNSName&
     ce.anyLocal = r->d_anyLocal;
     ce.complete = r;
     ce.aname=aname;
+    ce.anameScopeMask = scopeMask;
     d_conntrack[id]=ce;
   }
 

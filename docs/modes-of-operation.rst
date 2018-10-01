@@ -109,7 +109,12 @@ back on checking the domain for
 :ref:`setting-soa-retry-default` seconds
 between checks. With default settings, this means that PowerDNS will
 back off for 1, then 2, then 3 etc. minutes, to a maximum of 60 minutes
-between checks.
+between checks. The same hold back algorithm is also applied if the zone
+transfer fails due to problems on the master, i.e. if zone transfer is
+not allowed.
+
+Receiving a NOTIFY immediately clears the back off period for the
+respective domain to allow immediately freshness checks for this domain.
 
 .. warning::
   Slave support is OFF by default, turn it on by adding

@@ -74,10 +74,6 @@ These are all the functions, objects and methods related to the :doc:`../advance
 
     Print the block tables.
 
-  .. method:: BPFFilter:purgeExpired()
-
-    Remove the expired ephemeral rules associated with this filter.
-
   .. method:: BPFFilter:unblock(address)
 
     Unblock this address.
@@ -95,3 +91,22 @@ These are all the functions, objects and methods related to the :doc:`../advance
 
   Represents an dynamic eBPF filter, allowing the use of ephemeral rules to an existing eBPF filter.
 
+  .. method:: DynBPFFilter:purgeExpired()
+
+    Remove the expired ephemeral rules associated with this filter.
+
+  .. method:: DynBPFFilter:excludeRange(netmasks)
+
+    .. versionadded:: 1.3.3
+
+    Exclude this range, or list of ranges, meaning that no dynamic block will ever be inserted for clients in that range. Default to empty, meaning rules are applied to all ranges. When used in combination with :meth:`DynBPFFilter:includeRange`, the more specific entry wins.
+
+    :param int netmasks: A netmask, or list of netmasks, as strings, like for example "192.0.2.1/24"
+
+  .. method:: DynBPFFilter:includeRange(netmasks)
+
+    .. versionadded:: 1.3.3
+
+    Include this range, or list of ranges, meaning that rules will be applied to this range. When used in combination with :meth:`DynBPFFilter:excludeRange`, the more specific entry wins.
+
+    :param int netmasks: A netmask, or list of netmasks, as strings, like for example "192.0.2.1/24"

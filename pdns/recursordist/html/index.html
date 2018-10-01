@@ -57,6 +57,7 @@
             </div>
             <div class="stats-table" id="queryring"></div>
             <div class="stats-table" id="servfailqueryring"></div>
+            <div class="stats-table" id="bogusqueryring"></div>
         </div>
 
         <div class="table-container">
@@ -64,6 +65,8 @@
             <div class="filter"></div>
             <div class="stats-table" id="remotering"></div>
             <div class="stats-table" id="servfailremotering"></div>
+            <div class="stats-table" id="bogusremotering"></div>
+            <div class="stats-table" id="timeouts"></div>
         </div>
     </div>
 
@@ -114,6 +117,23 @@
     </table>
 </script>
 
+<script id="bogusqueryring-template" type="text/x-handlebars-template">
+    <table class="three-col">
+        <tr>
+            <th>Number</th>
+            <th>Bogus domain</th>
+            <th>Type</th>
+        </tr>
+        {{#each rows}}
+        <tr>
+            <td>{{0}}</td>
+            <td>{{1}}</td>
+            <td>{{2}}</td>
+        </tr>
+        {{/each}}
+    </table>
+</script>
+
 <script id="remotering-template" type="text/x-handlebars-template">
     <table class="two-col">
         <tr>
@@ -134,6 +154,36 @@
         <tr>
             <th>Number</th>
             <th>Servfail remote</th>
+        </tr>
+        {{#each rows}}
+        <tr>
+            <td>{{0}}</td>
+            <td>{{1}}</td>
+        </tr>
+        {{/each}}
+    </table>
+</script>
+
+<script id="bogusremotering-template" type="text/x-handlebars-template">
+    <table class="two-col">
+        <tr>
+            <th>Number</th>
+            <th>Bogus remote</th>
+        </tr>
+        {{#each rows}}
+        <tr>
+            <td>{{0}}</td>
+            <td>{{1}}</td>
+        </tr>
+        {{/each}}
+    </table>
+</script>
+
+<script id="timeouts-template" type="text/x-handlebars-template">
+    <table class="two-col">
+        <tr>
+            <th>Number</th>
+            <th>Downstream timeouts</th>
         </tr>
         {{#each rows}}
         <tr>

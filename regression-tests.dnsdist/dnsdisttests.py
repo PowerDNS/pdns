@@ -52,7 +52,7 @@ class DNSDistTest(unittest.TestCase):
     _consoleKey = None
     _healthCheckName = 'a.root-servers.net.'
     _healthCheckCounter = 0
-    _healthCheckAnswerUnexpected = False
+    _answerUnexpected = True
 
     @classmethod
     def startResponders(cls):
@@ -159,9 +159,12 @@ class DNSDistTest(unittest.TestCase):
                     response.id = request.id
                     toQueue.put(request, True, cls._queueTimeout)
 
-        if not response and (healthCheck or cls._healthCheckAnswerUnexpected):
-            # unexpected query, or health check
-            response = dns.message.make_response(request)
+        if not response:
+            if healthCheck:
+                response = dns.message.make_response(request)
+            elif cls._answerUnexpected:
+                response = dns.message.make_response(request)
+                response.set_rcode(dns.rcode.SERVFAIL)
 
         return response
 
@@ -458,6 +461,9 @@ class DNSDistTest(unittest.TestCase):
         sock.send(struct.pack("!I", len(msg)))
         sock.send(msg)
         data = sock.recv(4)
+        if not data:
+            raise socket.error("Got EOF while reading the response size")
+
         (responseLen,) = struct.unpack("!I", data)
         data = sock.recv(responseLen)
         response = cls._decryptConsole(data, readingNonce)
@@ -472,6 +478,10 @@ class DNSDistTest(unittest.TestCase):
         self.assertEquals(expected, received)
         self.assertEquals(received.edns, -1)
         self.assertEquals(len(received.options), 0)
+
+    def checkMessageEDNSWithoutOptions(self, expected, received):
+        self.assertEquals(expected, received)
+        self.assertEquals(received.edns, 0)
 
     def checkMessageEDNSWithoutECS(self, expected, received, withCookies=0):
         self.assertEquals(expected, received)

@@ -548,12 +548,12 @@ bool getEDNSOpts(const MOADNSParser& mdp, EDNSOpts* eo)
     for(const MOADNSParser::answers_t::value_type& val :  mdp.d_answers) {
       if(val.first.d_place == DNSResourceRecord::ADDITIONAL && val.first.d_type == QType::OPT) {
         eo->d_packetsize=val.first.d_class;
-       
+
         EDNS0Record stuff;
         uint32_t ttl=ntohl(val.first.d_ttl);
         static_assert(sizeof(EDNS0Record) == sizeof(uint32_t), "sizeof(EDNS0Record) must match sizeof(uint32_t)");
         memcpy(&stuff, &ttl, sizeof(stuff));
-        
+
         eo->d_extRCode=stuff.extRCode;
         eo->d_version=stuff.version;
         eo->d_extFlags = ntohs(stuff.extFlags);
