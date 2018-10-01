@@ -168,7 +168,7 @@ BOOST_AUTO_TEST_CASE(test_generic_signers)
 
     BOOST_CHECK_EQUAL(dcke->getAlgorithm(), signer.algorithm);
     BOOST_CHECK_EQUAL(dcke->getBits(), signer.bits);
-    BOOST_CHECK_EQUAL(dcke->checkKey(), true);
+    BOOST_CHECK_EQUAL(dcke->checkKey(nullptr), true);
 
     BOOST_CHECK_EQUAL(drc.d_algorithm, signer.algorithm);
 

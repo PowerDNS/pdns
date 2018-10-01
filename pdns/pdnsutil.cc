@@ -252,7 +252,8 @@ int checkZone(DNSSECKeeper &dk, UeberBackend &B, const DNSName& zone, const vect
 
   bool isSecure=dk.isSecuredZone(zone);
   bool presigned=dk.isPresigned(zone);
-  bool validKeys=dk.checkKeys(zone);
+  vector<string> checkKeyErrors;
+  bool validKeys=dk.checkKeys(zone, &checkKeyErrors);
 
   uint64_t numerrors=0, numwarnings=0;
 
@@ -279,25 +280,8 @@ int checkZone(DNSSECKeeper &dk, UeberBackend &B, const DNSName& zone, const vect
   if (!validKeys) {
     numerrors++;
     cout<<"[Error] zone '" << zone << "' has at least one invalid DNS Private Key." << endl;
-    vector<DNSBackend::KeyData> dbkeyset;
-    B.getDomainKeys(zone, dbkeyset);
-
-    for(const DNSBackend::KeyData &keydata : dbkeyset) {
-      DNSKEYRecordContent dkrc;
-      shared_ptr<DNSCryptoKeyEngine> dke(DNSCryptoKeyEngine::makeFromISCString(dkrc, keydata.content));
-      string msg;
-      if ((dke->getAlgorithm() == DNSSECKeeper::RSASHA1 || dke->getAlgorithm() == DNSSECKeeper::RSASHA1NSEC3SHA1) && (dke->getBits() < 512 || dke->getBits() > 4096)) {
-        msg = "512 and 4096";
-      }
-      if (dke->getAlgorithm() == DNSSECKeeper::RSASHA256 && (dke->getBits() < 512 || dke->getBits() > 4096)) {
-        msg = "512 and 4096";
-      }
-      if (dke->getAlgorithm() == DNSSECKeeper::RSASHA512 && (dke->getBits() < 1024 || dke->getBits() > 4096)) {
-        msg = "1024 and 4096";
-      }
-      if (!msg.empty()) {
-        cout<<"[Error] zone '" << zone << "' key with algorithm " << DNSSECKeeper::algorithm2name(dke->getAlgorithm()) << " has a keysize of " << dke->getBits() << ", which is not between " << msg << endl;
-      }
+    for (const auto &msg : checkKeyErrors) {
+      cout<<"\t"<<msg<<endl;
     }
   }
 
