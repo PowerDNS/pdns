@@ -140,6 +140,8 @@ See :doc:`metrics`.
 
 ``carbon-namespace``
 --------------------
+.. versionadded:: 4.2.0
+
 -  String
 
 Change the namespace or first string of the metric key. The default is pdns.
@@ -158,6 +160,8 @@ See :ref:`metricscarbon`.
 
 ``carbon-instance``
 --------------------
+.. versionadded:: 4.2.0
+
 -  String
 
 Change the instance or third string of the metric key. The default is recursor.

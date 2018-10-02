@@ -185,6 +185,8 @@ Seconds to store packets in the :ref:`packet-cache`.
 -  String
 -  Default: pdns
 
+.. versionadded:: 4.2.0
+
 Set the namespace or first string of the metric key. Be careful not to include
 any dots in this setting, unless you know what you are doing.
 See :ref:`metricscarbon`
@@ -208,6 +210,8 @@ you are doing. See :ref:`metricscarbon`
 
 -  String
 -  Default: auth
+
+.. versionadded:: 4.2.0
 
 Set the instance or third string of the metric key. Be careful not to include
 any dots in this setting, unless you know what you are doing.
