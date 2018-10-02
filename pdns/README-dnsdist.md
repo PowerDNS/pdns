@@ -17,13 +17,13 @@ Make sure to `autoreconf -vi` before running `configure`.
 
 Install dependencies from Homebrew:
 
-```
-$ brew install autoconf automake boost libedit libsodium libtool lua pkg-config protobuf
+```sh
+brew install autoconf automake boost libedit libsodium libtool lua pkg-config protobuf
 ```
 
 Let configure know where to find libedit:
 
-```
-$ ./configure 'PKG_CONFIG_PATH=/usr/local/opt/libedit/lib/pkgconfig'
-$ make
+```sh
+./configure 'PKG_CONFIG_PATH=/usr/local/opt/libedit/lib/pkgconfig'
+make
 ```

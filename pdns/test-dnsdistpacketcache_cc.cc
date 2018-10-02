@@ -12,7 +12,7 @@
 #include "dnsdist-cache.hh"
 #include "gettime.hh"
 
-BOOST_AUTO_TEST_SUITE(dnsdistpacketcache_cc)
+BOOST_AUTO_TEST_SUITE(test_dnsdistpacketcache_cc)
 
 BOOST_AUTO_TEST_CASE(test_PacketCacheSimple) {
   const size_t maxEntries = 150000;

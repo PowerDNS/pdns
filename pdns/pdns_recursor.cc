@@ -1570,8 +1570,8 @@ static void startDoResolve(void *p)
     g_log<<Logger::Error<<"startDoResolve problem "<<makeLoginfo(dc)<<": "<<ae.reason<<endl;
     delete dc;
   }
-  catch(MOADNSException& e) {
-    g_log<<Logger::Error<<"DNS parser error "<<makeLoginfo(dc) <<": "<<dc->d_mdp.d_qname<<", "<<e.what()<<endl;
+  catch(const MOADNSException &mde) {
+    g_log<<Logger::Error<<"DNS parser error "<<makeLoginfo(dc) <<": "<<dc->d_mdp.d_qname<<", "<<mde.what()<<endl;
     delete dc;
   }
   catch(std::exception& e) {
@@ -1747,7 +1747,7 @@ static void handleRunningTCPQuestion(int fd, FDMultiplexer::funcparam_t& var)
       try {
         dc=new DNSComboWriter(conn->data, g_now);
       }
-      catch(MOADNSException &mde) {
+      catch(const MOADNSException &mde) {
         g_stats.clientParseError++;
         if(g_logCommonErrors)
           g_log<<Logger::Error<<"Unable to parse packet from TCP client "<< conn->d_remote.toStringWithPort() <<endl;
@@ -2255,7 +2255,7 @@ static void handleNewUDPQuestion(int fd, FDMultiplexer::funcparam_t& var)
           }
         }
       }
-      catch(const MOADNSException& mde) {
+      catch(const MOADNSException &mde) {
         g_stats.clientParseError++;
         if(g_logCommonErrors) {
           g_log<<Logger::Error<<"Unable to parse packet from remote UDP client "<<fromaddr.toString() <<": "<<mde.what()<<endl;

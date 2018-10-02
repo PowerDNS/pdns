@@ -35,7 +35,7 @@
 #include "ednssubnet.hh"
 #include <unistd.h>
 
-BOOST_AUTO_TEST_SUITE(dnsdist_cc)
+BOOST_AUTO_TEST_SUITE(test_dnsdist_cc)
 
 bool g_syslog{true};
 bool g_verbose{true};

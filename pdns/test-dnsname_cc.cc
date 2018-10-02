@@ -12,7 +12,7 @@
 using namespace boost;
 using std::string;
 
-BOOST_AUTO_TEST_SUITE(dnsname_cc)
+BOOST_AUTO_TEST_SUITE(test_dnsname_cc)
 
 BOOST_AUTO_TEST_CASE(test_basic) {
   DNSName aroot("a.root-servers.net"), broot("b.root-servers.net");

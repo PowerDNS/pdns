@@ -600,8 +600,8 @@ void CommunicatorClass::suck(const DNSName &domain, const ComboAddress& remote)
       di.backend->abortTransaction();
     }
   }
-  catch(MOADNSException &re) {
-    g_log<<Logger::Error<<"Unable to parse record during incoming AXFR of '"<<domain<<"' (MOADNSException): "<<re.what()<<endl;
+  catch(const MOADNSException &mde) {
+    g_log<<Logger::Error<<"Unable to parse record during incoming AXFR of '"<<domain<<"' (MOADNSException): "<<mde.what()<<endl;
     if(di.backend && transaction) {
       g_log<<Logger::Error<<"Aborting possible open transaction for domain '"<<domain<<"' AXFR"<<endl;
       di.backend->abortTransaction();
@@ -615,7 +615,20 @@ void CommunicatorClass::suck(const DNSName &domain, const ComboAddress& remote)
     }
   }
   catch(ResolverException &re) {
-    g_log<<Logger::Error<<"Unable to AXFR zone '"<<domain<<"' from remote '"<<remote<<"' (resolver): "<<re.reason<<endl;
+    {
+      Lock l(&d_lock);
+      // The AXFR probably failed due to a problem on the master server. If SOA-checks against this master
+      // still succeed, we would constantly try to AXFR the zone. To avoid this, we add the zone to the list of
+      // failed slave-checks. This will suspend slave-checks (and subsequent AXFR) for this zone for some time.
+      uint64_t newCount = 1;
+      time_t now = time(0);
+      const auto failedEntry = d_failedSlaveRefresh.find(domain);
+      if (failedEntry != d_failedSlaveRefresh.end())
+        newCount = d_failedSlaveRefresh[domain].first + 1;
+      time_t nextCheck = now + std::min(newCount * d_tickinterval, (uint64_t)::arg().asNum("soa-retry-default"));
+      d_failedSlaveRefresh[domain] = {newCount, nextCheck};
+      g_log<<Logger::Error<<"Unable to AXFR zone '"<<domain<<"' from remote '"<<remote<<"' (resolver): "<<re.reason<<" (This was the "<<(newCount == 1 ? "first" : std::to_string(newCount) + "th")<<" time. Excluding zone from slave-checks until "<<nextCheck<<")"<<endl;
+    }
     if(di.backend && transaction) {
       g_log<<Logger::Error<<"Aborting possible open transaction for domain '"<<domain<<"' AXFR"<<endl;
       di.backend->abortTransaction();

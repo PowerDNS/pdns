@@ -1,0 +1,34 @@
+#!/usr/bin/env bash
+set -e
+
+if [ ! -d .venv ]; then
+  if [ -z "$PYTHON" ]; then
+    if [ ! -z "$(python3 --version | egrep '^Python 3.[6789]' 2>/dev/null)" ]; then
+      # found python3.6 or better
+      PYTHON=python3
+    else
+      # until we have better Linux distribution detection.
+      PYTHON=python2
+    fi
+  fi
+
+  virtualenv -p ${PYTHON} .venv
+fi
+. .venv/bin/activate
+python -V
+pip install -r requirements.txt
+
+if [ -z "${IXFRDISTBIN}" ]; then
+  IXFRDISTBIN=$(ls ../pdns/ixfrdist)
+fi
+export IXFRDISTBIN
+
+set -e
+if [ "${PDNS_DEBUG}" = "YES" ]; then
+  set -x
+fi
+
+rm -rf ixfrdist.dir
+mkdir ixfrdist.dir
+
+nosetests --with-xunit $@

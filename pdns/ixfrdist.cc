@@ -233,7 +233,7 @@ static void updateCurrentZoneInfo(const DNSName& domain, std::shared_ptr<ixfrinf
   g_soas[domain] = newInfo;
 }
 
-void updateThread(const string& workdir, const uint16_t& keep, const uint16_t& axfrTimeout) {
+void updateThread(const string& workdir, const uint16_t& keep, const uint16_t& axfrTimeout, const uint16_t& soaRetry) {
   std::map<DNSName, time_t> lastCheck;
 
   // Initialize the serials we have
@@ -296,7 +296,7 @@ void updateThread(const string& workdir, const uint16_t& keep, const uint16_t& a
 
       auto& zoneLastCheck = lastCheck[domain];
       if ((current_soa != nullptr && now - zoneLastCheck < current_soa->d_st.refresh) || // Only check if we have waited `refresh` seconds
-          (current_soa == nullptr && now - zoneLastCheck < 30))  {                       // Or if we could not get an update at all still, every 30 seconds
+          (current_soa == nullptr && now - zoneLastCheck < soaRetry))  {                       // Or if we could not get an update at all still, every 30 seconds
         continue;
       }
 
@@ -854,8 +854,8 @@ static void tcpWorker(int tid) {
       } /* if (mdp.d_qtype == QType::IXFR) */
 
       shutdown(cfd, 2);
-    } catch (MOADNSException &e) {
-      g_log<<Logger::Warning<<prefix<<"Could not parse DNS packet from "<<saddr.toStringWithPort()<<": "<<e.what()<<endl;
+    } catch (const MOADNSException &mde) {
+      g_log<<Logger::Warning<<prefix<<"Could not parse DNS packet from "<<saddr.toStringWithPort()<<": "<<mde.what()<<endl;
     } catch (runtime_error &e) {
       g_log<<Logger::Warning<<prefix<<"Could not write reply to "<<saddr.toStringWithPort()<<": "<<e.what()<<endl;
     }
@@ -902,6 +902,16 @@ static bool parseAndCheckConfig(const string& configpath, YAML::Node& config) {
     }
   } else {
     config["axfr-timeout"] = 20;
+  }
+
+  if (config["failed-soa-retry"]) {
+    try {
+      config["failed-soa-retry"].as<uint16_t>();
+    } catch (const runtime_error &e) {
+      g_log<<Logger::Error<<"Unable to read 'failed-soa-retry' value: "<<e.what()<<endl;
+    }
+  } else {
+    config["failed-soa-retry"] = 30;
   }
 
   if (config["tcp-in-threads"]) {
@@ -1195,7 +1205,8 @@ int main(int argc, char** argv) {
   std::thread ut(updateThread,
       config["work-dir"].as<string>(),
       config["keep"].as<uint16_t>(),
-      config["axfr-timeout"].as<uint16_t>());
+      config["axfr-timeout"].as<uint16_t>(),
+      config["failed-soa-retry"].as<uint16_t>());
 
   vector<std::thread> tcpHandlers;
   tcpHandlers.reserve(config["tcp-in-threads"].as<uint16_t>());
