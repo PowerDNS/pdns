@@ -43,6 +43,7 @@
 #include "misc.hh"
 #include "iputils.hh"
 #include "logger.hh"
+#include "ixfrdist-stats.hh"
 #include <yaml-cpp/yaml.h>
 
 /* BEGIN Needed because of deeper dependencies */
@@ -136,6 +137,8 @@ static bool g_exiting = false;
 
 static NetmaskGroup g_acl;
 static bool g_compress = false;
+
+static ixfrdistStats g_stats;
 
 static void handleSignal(int signum) {
   g_log<<Logger::Notice<<"Got "<<strsignal(signum)<<" signal";
@@ -232,6 +235,7 @@ static void updateCurrentZoneInfo(const DNSName& domain, std::shared_ptr<ixfrinf
 {
   std::lock_guard<std::mutex> guard(g_soas_mutex);
   g_soas[domain] = newInfo;
+  g_stats.setSOASerial(domain, newInfo->soa->d_st.serial);
 }
 
 void updateThread(const string& workdir, const uint16_t& keep, const uint16_t& axfrTimeout, const uint16_t& soaRetry) {
@@ -278,6 +282,7 @@ void updateThread(const string& workdir, const uint16_t& keep, const uint16_t& a
   g_log<<Logger::Notice<<"Update Thread started"<<endl;
 
   while (true) {
+    cout<<g_stats.getStats()<<endl;
     if (g_exiting) {
       g_log<<Logger::Notice<<"UpdateThread stopped"<<endl;
       break;
@@ -1109,6 +1114,7 @@ int main(int argc, char** argv) {
     set<ComboAddress> s;
     s.insert(domain["master"].as<ComboAddress>());
     g_domainConfigs[domain["domain"].as<DNSName>()].masters = s;
+    g_stats.registerDomain(domain["domain"].as<DNSName>());
   }
 
   for (const auto &addr : config["acl"].as<vector<string>>()) {
