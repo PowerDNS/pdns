@@ -108,7 +108,7 @@ struct ixfrdiff_t {
 };
 
 struct ixfrinfo_t {
-  shared_ptr<SOARecordContent> soa; // The SOA of the latestAXFR
+  shared_ptr<SOARecordContent> soa; // The SOA of the latest AXFR
   records_t latestAXFR;             // The most recent AXFR
   vector<std::shared_ptr<ixfrdiff_t>> ixfrDiffs;
 };
@@ -625,7 +625,7 @@ static bool handleIXFR(int fd, const ComboAddress& destination, const MOADNSPars
     /* RFC 1995 Section 2
      *    If an IXFR query with the same or newer version number than that of
      *    the server is received, it is replied to with a single SOA record of
-     *    the server's current version, just as in AXFR.
+     *    the server's current version.
      */
     vector<uint8_t> packet;
     bool ret = makeSOAPacket(mdp, packet);
@@ -1252,7 +1252,7 @@ int main(int argc, char** argv) {
       break;
     }
   }
-  g_log<<Logger::Debug<<"Waiting for al threads to stop"<<endl;
+  g_log<<Logger::Debug<<"Waiting for all threads to stop"<<endl;
   g_tcpHandlerCV.notify_all();
   ut.join();
   for (auto &t : tcpHandlers) {
