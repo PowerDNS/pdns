@@ -437,8 +437,8 @@ static bool checkQuery(const MOADNSParser& mdp, const ComboAddress& saddr, const
     for (const auto& s : info_msg) {
       if (!first) {
         g_log<<Logger::Warning<<", ";
-        first = false;
       }
+      first = false;
       g_log<<Logger::Warning<<s;
     }
     g_log<<Logger::Warning<<endl;
