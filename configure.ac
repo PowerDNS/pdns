@@ -1,6 +1,6 @@
 AC_PREREQ([2.61])
 
-AC_INIT([pdns], m4_esyscmd([build-aux/gen-version]))
+AC_INIT([pdns], m4_esyscmd([builder-support/gen-version]))
 
 AC_CONFIG_SRCDIR([pdns/receiver.cc])
 AC_CONFIG_MACRO_DIR([m4])

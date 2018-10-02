@@ -1,0 +1,64 @@
+# Sphinx
+FROM ubuntu:bionic as pdns-docs
+RUN apt-get update && apt-get -y dist-upgrade && apt-get -y --no-install-recommends install \
+    ghostscript \
+    git \
+    latexmk \
+    make \
+    python-minimal \
+    python2.7 \
+    texlive \
+    texlive-font-utils \
+    texlive-fonts-extra \
+    texlive-latex-extra \
+    virtualenv
+
+RUN mkdir -p /pdns /dist /sdist
+
+ADD builder/helpers/ /pdns/builder/helpers/
+
+@IF [ ! -z "$M_authoritative$M_all" ]
+ADD docs/ /pdns/docs
+ADD modules/ /pdns/modules
+@ENDIF
+
+@IF [ ! -z "$M_recursor$M_all" ]
+ADD docs/ /pdns/docs
+ADD pdns/dnsmessage.proto /pdns/pdns/dnsmessage.proto
+ADD pdns/recursordist/ /pdns/pdns/recursordist
+@ENDIF
+
+@IF [ ! -z "$M_dnsdist$M_all" ]
+ADD pdns/dnsdistdist/docs/ /pdns/pdns/dnsdistdist/docs
+@ENDIF
+
+ARG BUILDER_VERSION
+ARG PIP_INDEX_URL
+ARG PIP_TRUSTED_HOST
+
+@IF [ ! -z "$M_authoritative$M_all" ]
+WORKDIR /pdns/docs
+RUN rm -rf .venv _build
+RUN make -f Makefile.sphinx html || (cat /tmp/sphinx-err*; exit 1)
+RUN make -f Makefile.sphinx latexpdf || (cat /tmp/sphinx-err*; exit 1)
+RUN mkdir -p /dist/auth
+RUN cp -R _build/html _build/latex/PowerDNS*.pdf /dist/auth
+@ENDIF
+
+@IF [ ! -z "$M_recursor$M_all" ]
+WORKDIR /pdns/pdns/recursordist/docs
+RUN rm -rf .venv _build
+RUN make -f Makefile.sphinx html || (cat /tmp/sphinx-err*; exit 1)
+RUN make -f Makefile.sphinx latexpdf || (cat /tmp/sphinx-err*; exit 1)
+RUN mkdir -p /dist/rec
+RUN cp -R _build/html _build/latex/PowerDNS*.pdf /dist/rec
+@ENDIF
+
+@IF [ ! -z "$M_dnsdist$M_all" ]
+WORKDIR /pdns/pdns/dnsdistdist/docs
+RUN rm -rf .venv _build
+RUN make -f Makefile.sphinx html || (cat /tmp/sphinx-err*; exit 1)
+RUN make -f Makefile.sphinx latexpdf || (cat /tmp/sphinx-err*; exit 1)
+RUN mkdir -p /dist/dnsdist
+RUN cp -R _build/html _build/latex/dnsdist*.pdf /dist/dnsdist
+@ENDIF

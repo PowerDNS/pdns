@@ -1,0 +1,65 @@
+#!/bin/sh
+set -e
+
+# Execute dbconfig-common
+. /usr/share/debconf/confmodule
+
+if [ -n "$PDNSDEBUG" ]; then
+  echo "now debugging $0 $@"
+  set -x
+fi
+
+PKGNAME="pdns-backend-pgsql"
+
+# rename ucf-conffile. This was mostly stolen from cacti.postinst after
+# a short discussion on debian-mentors, see
+# http://lists.debian.org/debian-mentors/2013/07/msg00027.html
+# and the following thread. Thanks to Paul Gevers
+renameconffile() {
+  oldname="$1"
+  newname="$2"
+  sourcefile="$3"
+  if [ -f $oldname ] ; then
+    if [ ! -e $newname ] ; then
+      mv $oldname $newname
+#   else: Don't do anything, leave old file in place
+    fi
+    ucf --purge $oldname
+    ucfr --purge $PKGNAME $oldname
+  elif [ ! -e $newname ] ; then
+#   The file was removed, we should respect that. Unfortunately, we don't
+#   have a proper way to tell ucf that for the new location, so we need
+#   to hack it a bit.
+#   We only need to do this if the target does not already exist. If the
+#   target already exists, we can later call ucf straight as there
+#   is already a version of the file available, althought never
+#   provided by this package, but we can just propose the new file anyway.
+    ucf --debconf-ok $sourcefile $newname
+    ucfr $PKGNAME $newname
+    rm -f $newname
+  fi
+}
+
+if [ "$1" = "configure" ]; then
+  if [ -n "$2" ] && dpkg --compare-versions "$2" lt 3.3; then
+    renameconffile /etc/powerdns/pdns.d/pdns.local.gpgsql /etc/powerdns/pdns.d/pdns.local.gpgsql.conf /dev/null
+  fi
+fi
+
+. /usr/share/dbconfig-common/dpkg/postinst.pgsql
+dbc_first_version="3.0-1"
+dbc_pgsql_createdb_encoding="UTF8"
+dbc_generate_include_args="-o template_infile=/usr/share/pdns-backend-pgsql/pdns.local.gpgsql.conf"
+dbc_generate_include=template:/etc/powerdns/pdns.d/pdns.local.gpgsql.conf
+dbc_generate_include_owner=pdns
+dbc_generate_include_perms=0640
+dbc_go $PKGNAME $@
+
+# Activate trigger
+dpkg-trigger pdns-server
+
+ucfr $PKGNAME /etc/powerdns/pdns.d/pdns.local.gpgsql.conf
+
+#DEBHELPER#
+
+exit 0

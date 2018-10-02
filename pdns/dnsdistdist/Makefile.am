@@ -51,9 +51,7 @@ EXTRA_DIST=dnslabeltext.rl \
 	   README.md \
 	   delaypipe.cc delaypipe.hh \
 	   html \
-	   .version \
 	   contrib \
-	   build-aux/gen-version \
 	   ext/incbin/UNLICENSE \
 	   incfiles \
 	   src_js \
@@ -66,7 +64,8 @@ EXTRA_DIST=dnslabeltext.rl \
 	   devpollmplexer.cc \
 	   epollmplexer.cc \
 	   kqueuemplexer.cc \
-	   portsmplexer.cc
+	   portsmplexer.cc \
+	   builder-support/gen-version
 
 bin_PROGRAMS = dnsdist
 
