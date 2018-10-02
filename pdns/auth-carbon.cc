@@ -37,9 +37,6 @@ try
   extern StatBag S;
 
   string namespace_name=arg()["carbon-namespace"];
-  if(namespace_name.empty()) {
-    namespace_name="pdns";
-  }
   string hostname=arg()["carbon-ourname"];
   if(hostname.empty()) {
     char tmp[80];
@@ -51,9 +48,6 @@ try
     boost::replace_all(hostname, ".", "_");
   }
   string instance_name=arg()["carbon-instancename"];
-  if(instance_name.empty()) {
-    instance_name="auth";
-  }
 
   vector<string> carbonServers;
   stringtok(carbonServers, arg()["carbon-server"], ", ");
