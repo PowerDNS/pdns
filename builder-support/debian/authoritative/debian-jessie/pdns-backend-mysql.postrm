@@ -8,15 +8,6 @@ fi
 
 PKGNAME="pdns-backend-mysql"
 
-# Execute dbconfig-common
-if [ -f /usr/share/debconf/confmodule ]; then
-	. /usr/share/debconf/confmodule
-fi
-if [ -f /usr/share/dbconfig-common/dpkg/postrm.mysql ]; then
-	. /usr/share/dbconfig-common/dpkg/postrm.mysql
-	dbc_go pdns-backend-mysql $@
-fi
-
 if [ "$1" = "purge" ]; then
     # Remove files registered with ucf.
     if command -v ucfq >/dev/null; then

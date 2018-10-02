@@ -1,4 +1,0 @@
--- 3.3 to 3.3.1
-ALTER TABLE domains ADD CONSTRAINT c_lowercase_name CHECK (((name)::text = lower((name)::text)));
-ALTER TABLE tsigkeys ADD CONSTRAINT c_lowercase_name check (((name)::text = lower((name)::text)));
-

@@ -1,4 +1,2 @@
 debian/config/pdns.local.gsqlite3.conf usr/share/pdns-backend-sqlite3
-debian/sql/sqlite3/*.* usr/share/dbconfig-common/data/pdns-backend-sqlite3/upgrade/sqlite3/
-debian/sql/sqlite3/sqlite3 usr/share/dbconfig-common/data/pdns-backend-sqlite3/install/
 usr/lib/*/pdns/libgsqlite3backend.so*

@@ -1,4 +1,2 @@
 debian/config/pdns.local.gmysql.conf usr/share/pdns-backend-mysql
-debian/sql/mysql/*.* usr/share/dbconfig-common/data/pdns-backend-mysql/upgrade/mysql/
-debian/sql/mysql/mysql usr/share/dbconfig-common/data/pdns-backend-mysql/install/
 usr/lib/*/pdns/libgmysqlbackend.so*

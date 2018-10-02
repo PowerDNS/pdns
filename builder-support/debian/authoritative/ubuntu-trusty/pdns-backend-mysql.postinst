@@ -1,9 +1,6 @@
 #!/bin/sh
 set -e
 
-# Execute dbconfig-common
-. /usr/share/debconf/confmodule
-
 if [ -n "$PDNSDEBUG" ]; then
   echo "now debugging $0 $@"
   set -x
@@ -49,15 +46,6 @@ if [ "$1" = "configure" ]; then
     renameconffile /etc/powerdns/pdns.d/pdns.local.gmysql /etc/powerdns/pdns.d/pdns.local.gmysql.conf /dev/null
   fi
 fi
-
-
-. /usr/share/dbconfig-common/dpkg/postinst.mysql
-dbc_first_version="3.0-1"
-dbc_generate_include_args="-o template_infile=/usr/share/pdns-backend-mysql/pdns.local.gmysql.conf"
-dbc_generate_include=template:/etc/powerdns/pdns.d/pdns.local.gmysql.conf
-dbc_generate_include_owner=pdns
-dbc_generate_include_perms=0640
-dbc_go $PKGNAME $@
 
 # Activate trigger
 dpkg-trigger pdns-server

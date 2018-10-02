@@ -1,1 +1,0 @@
-ALTER TABLE records ALTER id TYPE BIGINT;

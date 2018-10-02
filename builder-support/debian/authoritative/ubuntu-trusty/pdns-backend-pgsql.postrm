@@ -8,15 +8,6 @@ fi
 
 PKGNAME="pdns-backend-pgsql"
 
-# Execute dbconfig-common
-if [ -f /usr/share/debconf/confmodule ]; then
-	. /usr/share/debconf/confmodule
-fi
-if [ -f /usr/share/dbconfig-common/dpkg/postrm.pgsql ]; then
-	. /usr/share/dbconfig-common/dpkg/postrm.pgsql
-	dbc_go pdns-backend-pgsql $@
-fi
-
 if [ "$1" = "purge" ]; then
     # Remove files registered with ucf.
     UCF="ucf"
