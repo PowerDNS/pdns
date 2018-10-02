@@ -59,7 +59,7 @@ if [ ! -z "$(git rev-parse --abbrev-ref HEAD 2> /dev/null)" ]; then
     fi
   fi
 
-  VERSION="${LAST_TAG}.${COMMITS_SINCE_TAG}${BRANCH}.${GIT_HASH}${DIRTY}"
+  VERSION="${LAST_TAG}.${COMMITS_SINCE_TAG}${BRANCH}.g${GIT_HASH}${DIRTY}"
 fi
 
 printf $VERSION
