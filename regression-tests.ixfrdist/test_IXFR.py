@@ -36,7 +36,8 @@ class IXFRDistBasicTest(IXFRDistTest):
     global xfrServerPort
     _xfrDone = 0
     _config_domains = { 'example': '127.0.0.1:' + str(xfrServerPort),
-                        'example2': '127.0.0.1:1' } # bogus port is intentional
+                        'example2': '127.0.0.1:1',       # bogus port is intentional
+                        'example4': '127.0.0.1:' + str(xfrServerPort) }
 
     @classmethod
     def setUpClass(cls):

@@ -342,6 +342,9 @@ void updateThread(const string& workdir, const uint16_t& keep, const uint16_t& a
           for(auto& dr : chunk) {
             if(dr.d_type == QType::TSIG)
               continue;
+            if(!dr.d_name.isPartOf(domain)) {
+              throw PDNSException("Out-of-zone data received during AXFR of "+domain.toLogString());
+            }
             dr.d_name.makeUsRelative(domain);
             records.insert(dr);
             nrecords++;
