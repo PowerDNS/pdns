@@ -236,6 +236,7 @@ static void updateCurrentZoneInfo(const DNSName& domain, std::shared_ptr<ixfrinf
   std::lock_guard<std::mutex> guard(g_soas_mutex);
   g_soas[domain] = newInfo;
   g_stats.setSOASerial(domain, newInfo->soa->d_st.serial);
+  // FIXME: also report zone size?
 }
 
 void updateThread(const string& workdir, const uint16_t& keep, const uint16_t& axfrTimeout, const uint16_t& soaRetry) {
@@ -317,6 +318,7 @@ void updateThread(const string& workdir, const uint16_t& keep, const uint16_t& a
       shared_ptr<SOARecordContent> sr;
       try {
         zoneLastCheck = now;
+        g_stats.incrementSOAChecks(domain);
         auto newSerial = getSerialFromMaster(master, domain, sr); // TODO TSIG
         if(current_soa != nullptr) {
           g_log<<Logger::Info<<"Got SOA Serial for "<<domain<<" from "<<master.toStringWithPort()<<": "<< newSerial<<", had Serial: "<<current_soa->d_st.serial;
@@ -328,6 +330,7 @@ void updateThread(const string& workdir, const uint16_t& keep, const uint16_t& a
         }
       } catch (runtime_error &e) {
         g_log<<Logger::Warning<<"Unable to get SOA serial update for '"<<domain<<"' from master "<<master.toStringWithPort()<<": "<<e.what()<<endl;
+        g_stats.incrementSOAChecksFailed(domain);
         continue;
       }
       // Now get the full zone!
@@ -361,18 +364,22 @@ void updateThread(const string& workdir, const uint16_t& keep, const uint16_t& a
           }
           axfr_now = time(nullptr);
           if (axfr_now - t_start > axfrTimeout) {
+            g_stats.incrementAXFRFailures(domain);
             throw PDNSException("Total AXFR time exceeded!");
           }
         }
         if (soa == nullptr) {
+          g_stats.incrementAXFRFailures(domain);
           g_log<<Logger::Warning<<"No SOA was found in the AXFR of "<<domain<<endl;
           continue;
         }
         g_log<<Logger::Notice<<"Retrieved all zone data for "<<domain<<". Received "<<nrecords<<" records."<<endl;
       } catch (PDNSException &e) {
+        g_stats.incrementAXFRFailures(domain);
         g_log<<Logger::Warning<<"Could not retrieve AXFR for '"<<domain<<"': "<<e.reason<<endl;
         continue;
       } catch (runtime_error &e) {
+        g_stats.incrementAXFRFailures(domain);
         g_log<<Logger::Warning<<"Could not retrieve AXFR for zone '"<<domain<<"': "<<e.what()<<endl;
         continue;
       }
@@ -404,8 +411,10 @@ void updateThread(const string& workdir, const uint16_t& keep, const uint16_t& a
         zoneInfo->soa = soa;
         updateCurrentZoneInfo(domain, zoneInfo);
       } catch (PDNSException &e) {
+        g_stats.incrementAXFRFailures(domain);
         g_log<<Logger::Warning<<"Could not save zone '"<<domain<<"' to disk: "<<e.reason<<endl;
       } catch (runtime_error &e) {
+        g_stats.incrementAXFRFailures(domain);
         g_log<<Logger::Warning<<"Could not save zone '"<<domain<<"' to disk: "<<e.what()<<endl;
       }
 
@@ -583,6 +592,9 @@ static bool handleAXFR(int fd, const MOADNSParser& mdp) {
      A newer one may arise in the meantime, but this one will stay valid
      until we release it.
   */
+
+  g_stats.incrementAXFRinQueries(mdp.d_qname);
+
   auto zoneInfo = getCurrentZoneInfo(mdp.d_qname);
   if (zoneInfo == nullptr) {
     return false;
@@ -619,6 +631,9 @@ static bool handleIXFR(int fd, const ComboAddress& destination, const MOADNSPars
      A newer one may arise in the meantime, but this one will stay valid
      until we release it.
   */
+
+  g_stats.incrementIXFRinQueries(mdp.d_qname);
+
   auto zoneInfo = getCurrentZoneInfo(mdp.d_qname);
   if (zoneInfo == nullptr) {
     return false;
@@ -656,6 +671,7 @@ static bool handleIXFR(int fd, const ComboAddress& destination, const MOADNSPars
   }
 
   if (toSend.empty()) {
+    // FIXME: incrementIXFRFallbacks
     g_log<<Logger::Warning<<"No IXFR available from serial "<<clientSOA->d_st.serial<<" for zone "<<mdp.d_qname<<", attempting to send AXFR"<<endl;
     return handleAXFR(fd, mdp);
   }
@@ -748,6 +764,7 @@ static void handleUDPRequest(int fd, boost::any&) {
      * Let's not complicate this with IXFR over UDP (and looking if we need to truncate etc).
      * Just send the current SOA and let the client try over TCP
      */
+    g_stats.incrementSOAinQueries(mdp.d_qname); // FIXME: this also counts IXFR queries (but the response is the same as to a SOA query)
     makeSOAPacket(mdp, packet);
   } else {
     makeRefusedPacket(mdp, packet);
