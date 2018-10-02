@@ -35,7 +35,8 @@ class IXFRDistBasicTest(IXFRDistTest):
 
     global xfrServerPort
     _xfrDone = 0
-    _config_domains = { 'example': '127.0.0.1:' + str(xfrServerPort) }
+    _config_domains = { 'example': '127.0.0.1:' + str(xfrServerPort),
+                        'example2': '127.0.0.1:1' } # bogus port is intentional
 
     @classmethod
     def setUpClass(cls):
@@ -104,7 +105,7 @@ class IXFRDistBasicTest(IXFRDistTest):
         # answers[1].sort(key=lambda rrset: (rrset.name, rrset.rdtype))
         self.assertEqual(answers, expected)
 
-    def testXFR(self):
+    def test_a_XFR(self):
         self.waitUntilCorrectSerialIsLoaded(1)
         self.checkFullZone(1)
 
@@ -112,3 +113,28 @@ class IXFRDistBasicTest(IXFRDistTest):
         self.checkFullZone(2)
 
         self.checkIXFR(1,2)
+
+    # _b_ because we expect post-XFR testing state
+    def test_b_UDP_SOA_existing(self):
+        query = dns.message.make_query('example.', 'SOA')
+        expected = dns.message.make_response(query)
+        expected.answer.append(xfrServer._getSOAForSerial(2))
+
+        response = self.sendUDPQuery(query)
+        self.assertEquals(expected, response)
+
+    def test_b_UDP_SOA_not_loaded(self):
+        query = dns.message.make_query('example2.', 'SOA')
+        expected = dns.message.make_response(query)
+        expected.set_rcode(dns.rcode.REFUSED)
+
+        response = self.sendUDPQuery(query)
+        self.assertEquals(expected, response)
+
+    def test_b_UDP_SOA_not_configured(self):
+        query = dns.message.make_query('example3.', 'SOA')
+        expected = dns.message.make_response(query)
+        expected.set_rcode(dns.rcode.REFUSED)
+
+        response = self.sendUDPQuery(query)
+        self.assertEquals(expected, response)
