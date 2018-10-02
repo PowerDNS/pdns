@@ -35,9 +35,10 @@ class IXFRDistBasicTest(IXFRDistTest):
 
     global xfrServerPort
     _xfrDone = 0
-    _config_domains = { 'example': '127.0.0.1:' + str(xfrServerPort),
-                        'example2': '127.0.0.1:1',       # bogus port is intentional
-                        'example4': '127.0.0.1:' + str(xfrServerPort) }
+    _config_domains = { 'example': '127.0.0.1:' + str(xfrServerPort),   # zone for actual XFR testing
+                        'example2': '127.0.0.1:1',                      # bogus port is intentional - zone is intentionally unloadable
+                        # example3                                      # intentionally absent for 'unconfigured zone' testing
+                        'example4': '127.0.0.1:' + str(xfrServerPort) } # for testing how ixfrdist deals with getting the wrong zone on XFR
 
     @classmethod
     def setUpClass(cls):
