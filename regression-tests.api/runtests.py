@@ -55,6 +55,7 @@ REC_CONF_TPL = """
 auth-zones=
 forward-zones=
 forward-zones-recurse=
+allow-from-file=acl.list
 api-config-dir=%(conf_dir)s
 include-dir=%(conf_dir)s
 """
@@ -148,7 +149,7 @@ else:
     with open(conf_dir+'/example.com..conf', 'w') as conf_file:
         conf_file.write(REC_EXAMPLE_COM_CONF_TPL)
 
-    servercmd = [pdns_recursor] + common_args + ["--allow-from-file=acl.list"]
+    servercmd = [pdns_recursor] + common_args
 
 
 # Now run pdns and the tests.
