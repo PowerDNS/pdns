@@ -38,12 +38,12 @@ if [ ! -z "$(git rev-parse --abbrev-ref HEAD 2> /dev/null)" ]; then
   GIT_HASH="$(echo ${GIT_VERSION} | cut -d- -f3)"
 
   if [ -z "${GIT_VERSION}" ]; then
-    # We used 0.0.XXXX for master in the previous incarnation of our build pipeline.
-    # This would become 0.0.0.XXXX in this incarnation, which would break upgrades.
-    # Hence, 0.1.0.XXXX will be the version for master for now on.
+    # We used 0.0.XXXXgHASH for master in the previous incarnation of our build pipeline.
+    # This now becomes 0.0.XXXX.0.gHASH, as 0.0.0.XXXX.gHASH (which is more correct)
+    # would break upgrades for those running master
     # This _should_ be ok for forever is we stick to X.Y.Z for version numbers
-    LAST_TAG=0.1.0
-    COMMITS_SINCE_TAG="$(git rev-list --count 12c868770afc20b6cc0da439d881105151d557dd..HEAD 2> /dev/null)"
+    LAST_TAG=0.0
+    COMMITS_SINCE_TAG="$(git rev-list --count 12c868770afc20b6cc0da439d881105151d557dd..HEAD 2> /dev/null).0"
     GIT_HASH="$(git rev-parse HEAD | cut -c1-10 2> /dev/null)"
   fi
 
