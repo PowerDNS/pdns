@@ -103,7 +103,6 @@ Listen Sockets
 
   Options:
 
-  * ``doTCP=true``: bool - Also bind on TCP on ``address``.
   * ``reusePort=false``: bool - Set the ``SO_REUSEPORT`` socket option.
   * ``tcpFastOpenSize=0``: int - Set the TCP Fast Open queue size, enabling TCP Fast Open when available and the value is larger than 0.
   * ``interface=""``: str - Set the network interface to use.
