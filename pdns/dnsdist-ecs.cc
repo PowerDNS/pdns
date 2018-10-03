@@ -66,7 +66,7 @@ int rewriteResponseWithoutEDNS(const std::string& initialPacket, vector<uint8_t>
   rrname = pr.getName();
   rrtype = pr.get16BitInt();
   rrclass = pr.get16BitInt();
-  
+
   DNSPacketWriter pw(newContent, rrname, rrtype, rrclass, dh->opcode);
   pw.getHeader()->id=dh->id;
   pw.getHeader()->qr=dh->qr;
@@ -77,7 +77,7 @@ int rewriteResponseWithoutEDNS(const std::string& initialPacket, vector<uint8_t>
   pw.getHeader()->ad=dh->ad;
   pw.getHeader()->cd=dh->cd;
   pw.getHeader()->rcode=dh->rcode;
-  
+
   /* consume remaining qd if any */
   if (qdcount > 1) {
     for(idx = 1; idx < qdcount; idx++) {
@@ -191,13 +191,13 @@ int locateEDNSOptRR(const std::string& packet, uint16_t * optStart, size_t * opt
 }
 
 /* extract the start of the OPT RR in a QUERY packet if any */
-int getEDNSOptionsStart(char* packet, const size_t offset, const size_t len, char ** optRDLen, size_t * remaining)
+int getEDNSOptionsStart(const char* packet, const size_t offset, const size_t len, uint16_t* optRDPosition, size_t * remaining)
 {
-  assert(packet != NULL);
-  assert(optRDLen != NULL);
-  assert(remaining != NULL);
+  assert(packet != nullptr);
+  assert(optRDPosition != nullptr);
+  assert(remaining != nullptr);
   const struct dnsheader* dh = reinterpret_cast<const struct dnsheader*>(packet);
-  
+
   if (offset >= len) {
     return ENOENT;
   }
@@ -229,13 +229,13 @@ int getEDNSOptionsStart(char* packet, const size_t offset, const size_t len, cha
     return ENOENT;
 
   pos += DNS_TTL_SIZE;
-  *optRDLen = packet + pos;
+  *optRDPosition = pos;
   *remaining = len - pos;
 
   return 0;
 }
 
-static void generateECSOption(const ComboAddress& source, string& res, uint16_t ECSPrefixLength)
+void generateECSOption(const ComboAddress& source, string& res, uint16_t ECSPrefixLength)
 {
   Netmask sourceNetmask(source, ECSPrefixLength);
   EDNSSubnetOpts ecsOpts;
@@ -264,22 +264,20 @@ void generateOptRR(const std::string& optRData, string& res, uint16_t udpPayload
   res.append(optRData.c_str(), optRData.length());
 }
 
-static bool replaceEDNSClientSubnetOption(char * const packet, const size_t packetSize, uint16_t * const len, const ComboAddress& remote, char * const oldEcsOptionStart, size_t const oldEcsOptionSize, unsigned char * const optRDLen, uint16_t ECSPrefixLength)
+static bool replaceEDNSClientSubnetOption(char * const packet, const size_t packetSize, uint16_t * const len, char * const oldEcsOptionStart, size_t const oldEcsOptionSize, unsigned char * const optRDLen, const string& newECSOption)
 {
   assert(packet != NULL);
   assert(len != NULL);
   assert(oldEcsOptionStart != NULL);
   assert(optRDLen != NULL);
-  string ECSOption;
-  generateECSOption(remote, ECSOption, ECSPrefixLength);
 
-  if (ECSOption.size() == oldEcsOptionSize) {
+  if (newECSOption.size() == oldEcsOptionSize) {
     /* same size as the existing option */
-    memcpy(oldEcsOptionStart, ECSOption.c_str(), oldEcsOptionSize);
+    memcpy(oldEcsOptionStart, newECSOption.c_str(), oldEcsOptionSize);
   }
   else {
     /* different size than the existing option */
-    const unsigned int newPacketLen = *len + (ECSOption.length() - oldEcsOptionSize);
+    const unsigned int newPacketLen = *len + (newECSOption.length() - oldEcsOptionSize);
     const size_t beforeOptionLen = oldEcsOptionStart - packet;
     const size_t dataBehindSize = *len - beforeOptionLen - oldEcsOptionSize;
 
@@ -290,89 +288,138 @@ static bool replaceEDNSClientSubnetOption(char * const packet, const size_t pack
 
     /* fix the size of ECS Option RDLen */
     uint16_t newRDLen = (optRDLen[0] * 256) + optRDLen[1];
-    newRDLen += (ECSOption.size() - oldEcsOptionSize);
+    newRDLen += (newECSOption.size() - oldEcsOptionSize);
     optRDLen[0] = newRDLen / 256;
     optRDLen[1] = newRDLen % 256;
 
     if (dataBehindSize > 0) {
       memmove(oldEcsOptionStart, oldEcsOptionStart + oldEcsOptionSize, dataBehindSize);
     }
-    memcpy(oldEcsOptionStart + dataBehindSize, ECSOption.c_str(), ECSOption.size());
+    memcpy(oldEcsOptionStart + dataBehindSize, newECSOption.c_str(), newECSOption.size());
     *len = newPacketLen;
   }
 
   return true;
 }
 
-bool handleEDNSClientSubnet(char* const packet, const size_t packetSize, const unsigned int consumed, uint16_t* const len, bool* const ednsAdded, bool* const ecsAdded, const ComboAddress& remote, bool overrideExisting, uint16_t ecsPrefixLength)
+/* This function looks for an OPT RR, return true if a valid one was found (even if there was no options)
+   and false otherwise. */
+bool parseEDNSOptions(DNSQuestion& dq)
 {
-  assert(packet != NULL);
-  assert(len != NULL);
-  assert(consumed <= (size_t) *len);
-  assert(ednsAdded != NULL);
-  assert(ecsAdded != NULL);
-  unsigned char * optRDLen = NULL;
-  size_t remaining = 0;
+  assert(dq.dh != nullptr);
+  assert(dq.consumed <= dq.len);
+  assert(dq.len <= dq.size);
 
-  int res = getEDNSOptionsStart(packet, consumed, *len, (char**) &optRDLen, &remaining);
+  if (dq.ednsOptions != nullptr) {
+    return true;
+  }
+
+  dq.ednsOptions = std::make_shared<std::map<uint16_t, EDNSOptionView> >();
+  const char* packet = reinterpret_cast<const char*>(dq.dh);
+
+  size_t remaining = 0;
+  uint16_t optRDPosition;
+  int res = getEDNSOptionsStart(packet, dq.consumed, dq.len, &optRDPosition, &remaining);
 
   if (res == 0) {
-    char * ecsOptionStart = NULL;
-    size_t ecsOptionSize = 0;
-    
-    res = getEDNSOption((char*)optRDLen, remaining, EDNSOptionCode::ECS, &ecsOptionStart, &ecsOptionSize);
-    
-    if (res == 0) {
-      /* there is already an ECS value */
-      if (overrideExisting) {
-        return replaceEDNSClientSubnetOption(packet, packetSize, len, remote, ecsOptionStart, ecsOptionSize, optRDLen, ecsPrefixLength);
-      }
-    } else {
-      /* we need to add one EDNS0 ECS option, fixing the size of EDNS0 RDLENGTH */
-      /* getEDNSOptionsStart has already checked that there is exactly one AR,
-         no NS and no AN */
-      string ECSOption;
-      generateECSOption(remote, ECSOption, ecsPrefixLength);
-      const size_t ECSOptionSize = ECSOption.size();
-      
-      /* check if the existing buffer is large enough */
-      if (packetSize - *len <= ECSOptionSize) {
-        return false;
-      }
-
-      uint16_t newRDLen = (optRDLen[0] * 256) + optRDLen[1];
-      newRDLen += ECSOptionSize;
-      optRDLen[0] = newRDLen / 256;
-      optRDLen[1] = newRDLen % 256;
-
-      memcpy(packet + *len, ECSOption.c_str(), ECSOptionSize);
-      *len += ECSOptionSize;
-      *ecsAdded = true;
-    }
+    res = getEDNSOptions(packet + optRDPosition, remaining, *dq.ednsOptions);
+    return (res == 0);
   }
-  else {
-    /* we need to add a EDNS0 RR with one EDNS0 ECS option, fixing the AR count */
-    string EDNSRR;
-    struct dnsheader* dh = (struct dnsheader*) packet;
-    string optRData;
-    generateECSOption(remote, optRData, ecsPrefixLength);
-    generateOptRR(optRData, EDNSRR, g_EdnsUDPPayloadSize, false);
 
-    /* does it fit in the existing buffer? */
-    if (packetSize - *len <= EDNSRR.size()) {
-      return false;
+  return false;
+}
+
+static bool addECSToExistingOPT(char* const packet, size_t const packetSize, uint16_t* const len, const string& newECSOption, unsigned char* optRDLen, bool* const ecsAdded)
+{
+  /* we need to add one EDNS0 ECS option, fixing the size of EDNS0 RDLENGTH */
+  /* getEDNSOptionsStart has already checked that there is exactly one AR,
+     no NS and no AN */
+
+  /* check if the existing buffer is large enough */
+  const size_t newECSOptionSize = newECSOption.size();
+  if (packetSize - *len <= newECSOptionSize) {
+    return false;
+  }
+
+  uint16_t newRDLen = (optRDLen[0] * 256) + optRDLen[1];
+  newRDLen += newECSOptionSize;
+  optRDLen[0] = newRDLen / 256;
+  optRDLen[1] = newRDLen % 256;
+
+  memcpy(packet + *len, newECSOption.c_str(), newECSOptionSize);
+  *len += newECSOptionSize;
+  *ecsAdded = true;
+
+  return true;
+}
+
+static bool addEDNSWithECS(char* const packet, size_t const packetSize, uint16_t* const len, const string& newECSOption, bool* const ednsAdded)
+{
+  /* we need to add a EDNS0 RR with one EDNS0 ECS option, fixing the AR count */
+  string EDNSRR;
+  struct dnsheader* dh = reinterpret_cast<struct dnsheader*>(packet);
+  generateOptRR(newECSOption, EDNSRR, g_EdnsUDPPayloadSize, false);
+
+  /* does it fit in the existing buffer? */
+  if (packetSize - *len <= EDNSRR.size()) {
+    return false;
+  }
+
+  uint16_t arcount = ntohs(dh->arcount);
+  arcount++;
+  dh->arcount = htons(arcount);
+  *ednsAdded = true;
+
+  memcpy(packet + *len, EDNSRR.c_str(), EDNSRR.size());
+  *len += EDNSRR.size();
+  return true;
+}
+
+bool handleEDNSClientSubnet(char* const packet, const size_t packetSize, const unsigned int consumed, uint16_t* const len, bool* const ednsAdded, bool* const ecsAdded, bool overrideExisting, const string& newECSOption)
+{
+  assert(packet != nullptr);
+  assert(len != nullptr);
+  assert(consumed <= (size_t) *len);
+  assert(ednsAdded != nullptr);
+  assert(ecsAdded != nullptr);
+  uint16_t optRDPosition = 0;
+  size_t remaining = 0;
+
+  int res = getEDNSOptionsStart(packet, consumed, *len, &optRDPosition, &remaining);
+
+  if (res != 0) {
+    return addEDNSWithECS(packet, packetSize, len, newECSOption, ednsAdded);
+  }
+
+  unsigned char* optRDLen = reinterpret_cast<unsigned char*>(packet) + optRDPosition;
+  char * ecsOptionStart = nullptr;
+  size_t ecsOptionSize = 0;
+
+  res = getEDNSOption(reinterpret_cast<char*>(optRDLen), remaining, EDNSOptionCode::ECS, &ecsOptionStart, &ecsOptionSize);
+
+  if (res == 0) {
+    /* there is already an ECS value */
+    if (!overrideExisting) {
+      return true;
     }
 
-    uint16_t arcount = ntohs(dh->arcount);
-    arcount++;
-    dh->arcount = htons(arcount);
-    *ednsAdded = true;
-
-    memcpy(packet + *len, EDNSRR.c_str(), EDNSRR.size());
-    *len += EDNSRR.size();
+    return replaceEDNSClientSubnetOption(packet, packetSize, len, ecsOptionStart, ecsOptionSize, optRDLen, newECSOption);
+  } else {
+    /* we have an EDNS OPT RR but no existing ECS option */
+    return addECSToExistingOPT(packet, packetSize, len, newECSOption, optRDLen, ecsAdded);
   }
 
   return true;
+}
+
+bool handleEDNSClientSubnet(DNSQuestion& dq, bool* ednsAdded, bool* ecsAdded)
+{
+  assert(dq.remote != nullptr);
+  string newECSOption;
+  generateECSOption(dq.ecsSet ? dq.ecs.getNetwork() : *dq.remote, newECSOption, dq.ecsSet ? dq.ecs.getBits() :  dq.ecsPrefixLength);
+  char* packet = reinterpret_cast<char*>(dq.dh);
+
+  return handleEDNSClientSubnet(packet, dq.size, dq.consumed, &dq.len, ednsAdded, ecsAdded, dq.ecsOverride, newECSOption);
 }
 
 static int removeEDNSOptionFromOptions(unsigned char* optionsStart, const uint16_t optionsLen, const uint16_t optionCodeToRemove, uint16_t* newOptionsLen)
@@ -582,11 +629,11 @@ bool addEDNS(dnsheader* dh, uint16_t& len, const size_t size, bool dnssecOK, uin
 
 bool addEDNSToQueryTurnedResponse(DNSQuestion& dq)
 {
-  char* optRDLen = nullptr;
+  uint16_t optRDPosition;
   /* remaining is at least the size of the rdlen + the options if any + the following records if any */
   size_t remaining = 0;
 
-  int res = getEDNSOptionsStart(reinterpret_cast<char*>(dq.dh), dq.consumed, dq.len, &optRDLen, &remaining);
+  int res = getEDNSOptionsStart(reinterpret_cast<char*>(dq.dh), dq.consumed, dq.len, &optRDPosition, &remaining);
 
   if (res != 0) {
     /* if the initial query did not have EDNS0, we are done */
@@ -599,6 +646,7 @@ bool addEDNSToQueryTurnedResponse(DNSQuestion& dq)
     return false;
   }
 
+  char* optRDLen = reinterpret_cast<char*>(dq.dh) + optRDPosition;
   char * optPtr = (optRDLen - (/* root */ 1 + DNS_TYPE_SIZE + DNS_CLASS_SIZE + EDNS_EXTENDED_RCODE_SIZE + EDNS_VERSION_SIZE + /* Z */ 2));
 
   const uint8_t* zPtr = (const uint8_t*) optPtr + /* root */ 1 + DNS_TYPE_SIZE + DNS_CLASS_SIZE + EDNS_EXTENDED_RCODE_SIZE + EDNS_VERSION_SIZE;
@@ -663,10 +711,10 @@ catch(...)
 
 bool queryHasEDNS(const DNSQuestion& dq)
 {
-  char * optRDLen = nullptr;
+  uint16_t optRDPosition;
   size_t ecsRemaining = 0;
 
-  int res = getEDNSOptionsStart(reinterpret_cast<char*>(dq.dh), dq.consumed, dq.len, &optRDLen, &ecsRemaining);
+  int res = getEDNSOptionsStart(reinterpret_cast<char*>(dq.dh), dq.consumed, dq.len, &optRDPosition, &ecsRemaining);
   if (res == 0) {
     return true;
   }

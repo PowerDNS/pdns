@@ -155,7 +155,6 @@ TeeAction::~TeeAction()
   d_worker.join();
 }
 
-
 DNSAction::Action TeeAction::operator()(DNSQuestion* dq, string* ruleresult) const
 {
   if(dq->tcp) {
@@ -173,7 +172,10 @@ DNSAction::Action TeeAction::operator()(DNSQuestion* dq, string* ruleresult) con
       query.reserve(dq->size);
       query.assign((char*) dq->dh, len);
 
-      if (!handleEDNSClientSubnet(const_cast<char*>(query.c_str()), query.capacity(), dq->qname->wirelength(), &len, &ednsAdded, &ecsAdded, dq->ecsSet ? dq->ecs.getNetwork() : *dq->remote, dq->ecsOverride, dq->ecsSet ? dq->ecs.getBits() :  dq->ecsPrefixLength)) {
+      string newECSOption;
+      generateECSOption(dq->ecsSet ? dq->ecs.getNetwork() : *dq->remote, newECSOption, dq->ecsSet ? dq->ecs.getBits() :  dq->ecsPrefixLength);
+
+      if (!handleEDNSClientSubnet(const_cast<char*>(query.c_str()), query.capacity(), dq->qname->wirelength(), &len, &ednsAdded, &ecsAdded, dq->ecsOverride, newECSOption)) {
         return DNSAction::Action::None;
       }
 
