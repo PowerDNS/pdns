@@ -20,12 +20,14 @@ override_dh_auto_configure:
 		--with-dynmodules="$(backends)" \
 		--with-modules="" \
 		--enable-tools \
+		--enable-ixfrdist \
 		--disable-libsodium \
 		--with-lua=luajit \
 		--with-protobuf \
 		--enable-unit-tests \
 		--enable-experimental-pkcs11 \
-		--disable-systemd
+		--disable-systemd \
+		--disable-lua-records
 
 # pdns-server has a debug package
 override_dh_strip:
