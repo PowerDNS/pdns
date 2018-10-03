@@ -1268,7 +1268,7 @@ Number of AXFR slave threads to start.
 .. _setting-send-signed-notify:
 
 ``send-signed-notify``
-----------
+----------------------
 
 -  Boolean
 -  Default: yes
