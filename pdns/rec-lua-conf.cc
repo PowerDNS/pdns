@@ -82,7 +82,7 @@ static void parseRPZParameters(const std::unordered_map<string,boost::variant<ui
 }
 
 #if HAVE_PROTOBUF
-typedef std::unordered_map<std::string, boost::variant<bool, uint64_t, std::string> > protobufOptions_t;
+typedef std::unordered_map<std::string, boost::variant<bool, uint64_t, std::string, std::vector<std::pair<int,std::string> > > > protobufOptions_t;
 
 static void parseProtobufOptions(boost::optional<protobufOptions_t> vars, ProtobufExportConfig& config)
 {
@@ -116,6 +116,28 @@ static void parseProtobufOptions(boost::optional<protobufOptions_t> vars, Protob
 
   if (vars->count("logResponses")) {
     config.logResponses = boost::get<bool>((*vars)["logResponses"]);
+  }
+
+  if (vars->count("exportTypes")) {
+    config.exportTypes.clear();
+
+    auto types =  boost::get<std::vector<std::pair<int, std::string>>>((*vars)["exportTypes"]);
+    for (const auto& pair : types) {
+      const auto type = pair.second;
+      bool found = false;
+
+      for (const auto& entry : QType::names) {
+        if (entry.first == type) {
+          found = true;
+          config.exportTypes.insert(entry.second);
+          break;
+        }
+      }
+
+      if (!found) {
+        throw std::runtime_error("Unknown QType '" + type + "' in protobuf's export types");
+      }
+    }
   }
 }
 #endif /* HAVE_PROTOBUF */

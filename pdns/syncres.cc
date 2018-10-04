@@ -485,10 +485,10 @@ int SyncRes::asyncresolveWrapper(const ComboAddress& ip, bool ednsMANDATORY, con
       sendQname.makeUsLowerCase();
 
     if (d_asyncResolve) {
-      ret = d_asyncResolve(ip, sendQname, type, doTCP, sendRDQuery, EDNSLevel, now, srcmask, ctx, d_outgoingProtobufServer, res, chained);
+      ret = d_asyncResolve(ip, sendQname, type, doTCP, sendRDQuery, EDNSLevel, now, srcmask, ctx, res, chained);
     }
     else {
-      ret=asyncresolve(ip, sendQname, type, doTCP, sendRDQuery, EDNSLevel, now, srcmask, ctx, d_outgoingProtobufServer, res, chained);
+      ret=asyncresolve(ip, sendQname, type, doTCP, sendRDQuery, EDNSLevel, now, srcmask, ctx, d_outgoingProtobufServer, luaconfsLocal->outgoingProtobufExportConfig.exportTypes, res, chained);
     }
     if(ret < 0) {
       return ret; // transport error, nothing to learn here

@@ -42,8 +42,8 @@ public:
   }
 #endif /* HAVE_PROTOBUF */
 
-  void addRRs(const std::vector<DNSRecord>& records);
-  void addRR(const DNSRecord& record);
+  void addRRs(const std::vector<DNSRecord>& records, const std::set<uint16_t>& exportTypes);
+  void addRR(const DNSRecord& record, const std::set<uint16_t>& exportTypes);
   void setAppliedPolicy(const std::string& policy);
   void setAppliedPolicyType(const DNSFilterEngine::PolicyType& policyType);
   void setPolicyTags(const std::vector<std::string>& policyTags);
