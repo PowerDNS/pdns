@@ -100,14 +100,22 @@ bool DNSProxy::completePacket(DNSPacket *r, const DNSName& target,const DNSName&
       ret2 = stubDoResolve(target, QType::AAAA, ips);
 
     if(ret1 != RCode::NoError || ret2 != RCode::NoError) {
-      g_log<<Logger::Error<<"Error resolving for ALIAS "<<target<<", returning SERVFAIL"<<endl;
-    }
-
-    for (auto &ip : ips)
-    {
-      ip.dr.d_name = aname;
-      ip.scopeMask = scopeMask;
-      r->addRecord(ip);
+      g_log<<Logger::Error<<"Error resolving for "<<aname<<" ALIAS "<<target<<" over UDP, original query came in over TCP";
+      if (ret1 != RCode::NoError) {
+       g_log<<Logger::Error<<", A-record query returned "<<RCode::to_s(ret1);
+      }
+      if (ret2 != RCode::NoError) {
+       g_log<<Logger::Error<<", AAAA-record query returned "<<RCode::to_s(ret2);
+      }
+      g_log<<Logger::Error<<", returning SERVFAIL"<<endl;
+      r->clearRecords();
+      r->setRcode(RCode::ServFail);
+    } else {
+      for (auto &ip : ips)
+      {
+        ip.dr.d_name = aname;
+        r->addRecord(ip);
+      }
     }
 
     uint16_t len=htons(r->getString().length());
@@ -237,38 +245,36 @@ void DNSProxy::mainloop(void)
 
         /* Set up iov and msgh structures. */
         memset(&msgh, 0, sizeof(struct msghdr));
-	string reply; // needs to be alive at time of sendmsg!
-	if(i->second.complete) {
+        string reply; // needs to be alive at time of sendmsg!
+        MOADNSParser mdp(false, p.getString());
+        //	  cerr<<"Got completion, "<<mdp.d_answers.size()<<" answers, rcode: "<<mdp.d_header.rcode<<endl;
+        if (mdp.d_header.rcode == RCode::NoError) {
+          for(MOADNSParser::answers_t::const_iterator j=mdp.d_answers.begin(); j!=mdp.d_answers.end(); ++j) {        
+            //	    cerr<<"comp: "<<(int)j->first.d_place-1<<" "<<j->first.d_label<<" " << DNSRecordContent::NumberToType(j->first.d_type)<<" "<<j->first.d_content->getZoneRepresentation()<<endl;
+            if(j->first.d_place == DNSResourceRecord::ANSWER || (j->first.d_place == DNSResourceRecord::AUTHORITY && j->first.d_type == QType::SOA)) {
 
-	  MOADNSParser mdp(false, p.getString());
-	  //	  cerr<<"Got completion, "<<mdp.d_answers.size()<<" answers, rcode: "<<mdp.d_header.rcode<<endl;
-	  for(MOADNSParser::answers_t::const_iterator j=mdp.d_answers.begin(); j!=mdp.d_answers.end(); ++j) {        
-	    //	    cerr<<"comp: "<<(int)j->first.d_place-1<<" "<<j->first.d_label<<" " << DNSRecordContent::NumberToType(j->first.d_type)<<" "<<j->first.d_content->getZoneRepresentation()<<endl;
-	    if(j->first.d_place == DNSResourceRecord::ANSWER || (j->first.d_place == DNSResourceRecord::AUTHORITY && j->first.d_type == QType::SOA)) {
-	    
-	      if(j->first.d_type == i->second.qtype || (i->second.qtype == QType::ANY && (j->first.d_type == QType::A || j->first.d_type == QType::AAAA))) {
+              if(j->first.d_type == i->second.qtype || (i->second.qtype == QType::ANY && (j->first.d_type == QType::A || j->first.d_type == QType::AAAA))) {
                 DNSZoneRecord dzr;
-		dzr.dr.d_name=i->second.aname;
-		dzr.scopeMask=i->second.anameScopeMask;
-		dzr.dr.d_type = j->first.d_type;
-		dzr.dr.d_ttl=j->first.d_ttl;
-		dzr.dr.d_place= j->first.d_place;
-		dzr.dr.d_content=j->first.d_content;
-		i->second.complete->addRecord(dzr);
-	      }
-	    }
-	  }
-	  i->second.complete->setRcode(mdp.d_header.rcode);
-	  reply=i->second.complete->getString();
-	  iov.iov_base = (void*)reply.c_str();
-	  iov.iov_len = reply.length();
-	  delete i->second.complete;
-	  i->second.complete=0;
-	}
-	else {
-	  iov.iov_base = buffer;
-	  iov.iov_len = len;
-	}
+                dzr.dr.d_name=i->second.aname;
+                dzr.dr.d_type = j->first.d_type;
+                dzr.dr.d_ttl=j->first.d_ttl;
+                dzr.dr.d_place= j->first.d_place;
+                dzr.dr.d_content=j->first.d_content;
+                i->second.complete->addRecord(dzr);
+              }
+            }
+          }
+          i->second.complete->setRcode(mdp.d_header.rcode);
+        } else {
+          g_log<<Logger::Error<<"Error resolving for "<<i->second.aname<<" ALIAS "<<i->second.qname<<" over UDP, "<<QType(i->second.qtype).getName()<<"-record query returned "<<RCode::to_s(mdp.d_header.rcode)<<", returning SERVFAIL"<<endl;
+          i->second.complete->clearRecords();
+          i->second.complete->setRcode(RCode::ServFail);
+        }
+        reply=i->second.complete->getString();
+        iov.iov_base = (void*)reply.c_str();
+        iov.iov_len = reply.length();
+        delete i->second.complete;
+        i->second.complete=0;
         msgh.msg_iov = &iov;
         msgh.msg_iovlen = 1;
         msgh.msg_name = (struct sockaddr*)&i->second.remote;
@@ -280,7 +286,7 @@ void DNSProxy::mainloop(void)
         }
         if(sendmsg(i->second.outsock, &msgh, 0) < 0)
           g_log<<Logger::Warning<<"dnsproxy.cc: Error sending reply with sendmsg (socket="<<i->second.outsock<<"): "<<strerror(errno)<<endl;
-        
+
         i->second.created=0;
       }
     }
