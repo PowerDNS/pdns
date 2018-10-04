@@ -1,15 +1,15 @@
-AC_DEFUN([PDNS_CHECK_LIBDECAF],[
+AC_DEFUN([PDNS_WITH_LIBDECAF],[
   AC_MSG_CHECKING([whether we will be linking in libdecaf])
-  AC_ARG_ENABLE([libdecaf],
-    [AS_HELP_STRING([--enable-libdecaf],[use libdecaf  @<:@default=no@:>@])],
-    [enable_libdecaf=$enableval],
-    [enable_libdecaf=no]
+  AC_ARG_WITH([libdecaf],
+    [AS_HELP_STRING([--with-libdecaf],[use libdecaf  @<:@default=no@:>@])],
+    [with_libdecaf=$withval],
+    [with_libdecaf=no]
   )
-  AC_MSG_RESULT([$enable_libdecaf])
+  AC_MSG_RESULT([$with_libdecaf])
 
-  AM_CONDITIONAL([LIBDECAF],[test "x$enable_libdecaf" != "xno"])
+  AM_CONDITIONAL([LIBDECAF],[test "x$with_libdecaf" != "xno"])
 
-  AS_IF([test "x$enable_libdecaf" != "xno"],[
+  AS_IF([test "x$with_libdecaf" != "xno"],[
     save_LIBS=$LIBS
     LIBS=""
     AC_SEARCH_LIBS([decaf_ed25519_sign],[decaf],[
