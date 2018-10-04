@@ -79,7 +79,7 @@ sed -i '/^ExecStart/ s/dnsdist/dnsdist -u dnsdist -g dnsdist/' dnsdist.service.i
 %if 0%{?el6}
   --disable-dnscrypt \
   --without-libsodium \
-  --enable-re2 \
+  --with-re2 \
   --with-net-snmp \
   --with-protobuf \
   --with-boost=/usr/include/boost148 LIBRARY_PATH=/usr/lib64/boost148
@@ -87,7 +87,7 @@ sed -i '/^ExecStart/ s/dnsdist/dnsdist -u dnsdist -g dnsdist/' dnsdist.service.i
 %if 0%{?suse_version}
   --disable-dnscrypt \
   --without-libsodium \
-  --disable-re2 \
+  --without-re2 \
   --enable-systemd --with-systemd=/lib/systemd/system \
   --without-protobuf \
   --without-net-snmp
@@ -100,7 +100,7 @@ sed -i '/^ExecStart/ s/dnsdist/dnsdist -u dnsdist -g dnsdist/' dnsdist.service.i
   --with-libsodium \
   --enable-dnscrypt \
   --enable-systemd --with-systemd=/lib/systemd/system \
-  --enable-re2 \
+  --with-re2 \
   --with-net-snmp
 %endif
 

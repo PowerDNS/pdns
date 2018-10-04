@@ -41,7 +41,7 @@ override_dh_auto_configure:
 	  --enable-dns-over-tls \
 	  --enable-dnscrypt \
 	  --with-libsodium \
-	  --enable-re2 \
+	  --with-re2 \
 	  --with-ebpf \
 	  --with-lua=luajit \
 	  --with-protobuf \
