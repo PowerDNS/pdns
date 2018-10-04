@@ -78,7 +78,7 @@ sed -i '/^ExecStart/ s/dnsdist/dnsdist -u dnsdist -g dnsdist/' dnsdist.service.i
   --enable-dns-over-tls \
 %if 0%{?el6}
   --disable-dnscrypt \
-  --disable-libsodium \
+  --without-libsodium \
   --enable-re2 \
   --with-net-snmp \
   --with-protobuf \
@@ -86,7 +86,7 @@ sed -i '/^ExecStart/ s/dnsdist/dnsdist -u dnsdist -g dnsdist/' dnsdist.service.i
 %endif
 %if 0%{?suse_version}
   --disable-dnscrypt \
-  --disable-libsodium \
+  --without-libsodium \
   --disable-re2 \
   --enable-systemd --with-systemd=/lib/systemd/system \
   --without-protobuf \
@@ -97,7 +97,7 @@ sed -i '/^ExecStart/ s/dnsdist/dnsdist -u dnsdist -g dnsdist/' dnsdist.service.i
   --with-gnutls \
   --with-protobuf \
   --with-lua=%{lua_implementation} \
-  --enable-libsodium \
+  --with-libsodium \
   --enable-dnscrypt \
   --enable-systemd --with-systemd=/lib/systemd/system \
   --enable-re2 \

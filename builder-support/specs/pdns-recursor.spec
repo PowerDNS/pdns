@@ -64,7 +64,7 @@ package if you need a dns cache for your network.
 %build
 %configure \
     --sysconfdir=%{_sysconfdir}/%{name} \
-    --enable-libsodium \
+    --with-libsodium \
     --with-netsnmp \
     --disable-silent-rules \
     --disable-static \

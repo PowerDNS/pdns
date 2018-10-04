@@ -812,7 +812,7 @@ Changelogs for 4.1.x
     :tags: Improvements
     :pullreq: 5764
 
-    autoconf: set ``--enable-libsodium`` to ``auto``.
+    autoconf: set ``--with-libsodium`` to ``auto``.
 
   .. change::
     :tags: Bug Fixes

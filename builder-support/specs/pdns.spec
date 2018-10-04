@@ -211,7 +211,7 @@ export CPPFLAGS="-DLDAP_DEPRECATED"
   --with-lua=%{lua_implementation} \
   --with-dynmodules='%{backends} random' \
   --enable-tools \
-  --enable-libsodium \
+  --with-libsodium \
   --enable-unit-tests \
 %if 0%{?rhel} >= 7
   --enable-lua-records \

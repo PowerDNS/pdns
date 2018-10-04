@@ -46,7 +46,10 @@ ed25519 support with libsodium
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 The PowerDNS Recursor can link with `libsodium <https://download.libsodium.org/doc/>`_ to support ed25519 (DNSSEC algorithm 15).
-To detect libsodium, use the ``--enable-libsodium`` configure option.
+To detect libsodium, use the ``--with-libsodium`` configure option.
+
+.. versionchanged:: 4.2.0
+  This option was previously ``--enable-libsodium``
 
 ed25519 and ed448 support with libdecaf
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^

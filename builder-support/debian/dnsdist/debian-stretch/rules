@@ -41,7 +41,7 @@ override_dh_auto_configure:
 	  --enable-dnscrypt \
 	  --enable-fstrm \
 	  --with-gnutls \
-	  --enable-libsodium \
+	  --with-libsodium \
 	  --enable-re2 \
 	  --with-ebpf \
 	  --with-lua=luajit \

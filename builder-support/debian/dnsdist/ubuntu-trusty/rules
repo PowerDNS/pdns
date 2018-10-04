@@ -31,7 +31,7 @@ override_dh_auto_configure:
 	  --libexecdir='$${prefix}/lib' \
 	  --disable-dnscrypt \
 	  --without-gnutls \
-	  --disable-libsodium \
+	  --without-libsodium \
 	  --disable-re2 \
 	  --enable-dns-over-tls \
 	  --with-ebpf \

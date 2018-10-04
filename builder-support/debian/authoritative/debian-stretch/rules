@@ -28,7 +28,7 @@ override_dh_auto_configure:
 		--with-dynmodules="$(backends)" \
 		--with-modules="" \
 		--enable-tools \
-		--enable-libsodium \
+		--with-libsodium \
 		--with-lua=luajit \
 		--with-protobuf \
 		--enable-unit-tests \
