@@ -34,6 +34,7 @@
 #include "dns_random.hh"
 #include "stubresolver.hh"
 #include "arguments.hh"
+#include "threadname.hh"
 
 extern StatBag S;
 
@@ -183,6 +184,7 @@ int DNSProxy::getID_locked()
 
 void DNSProxy::mainloop(void)
 {
+  setThreadName("pdns/dnsproxy");
   try {
     char buffer[1500];
     ssize_t len;

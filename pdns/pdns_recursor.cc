@@ -30,7 +30,8 @@
 #include <boost/container/flat_set.hpp>
 #endif
 #include "ws-recursor.hh"
-#include <pthread.h>
+#include <thread>
+#include "threadname.hh"
 #include "recpacketcache.hh"
 #include "utility.hh"
 #include "dns_random.hh"
@@ -3098,7 +3099,7 @@ static void checkOrFixFDS()
   }
 }
 
-static void* recursorThread(unsigned int tid);
+static void* recursorThread(unsigned int tid, const string& threadName);
 
 static void* pleaseSupplantACLs(std::shared_ptr<NetmaskGroup> ng)
 {
@@ -3683,14 +3684,14 @@ static int serviceMain(int argc, char*argv[])
     /* This thread handles the web server, carbon, statistics and the control channel */
     auto& handlerInfos = s_threadInfos.at(0);
     handlerInfos.isHandler = true;
-    handlerInfos.thread = std::thread(recursorThread, 0);
+    handlerInfos.thread = std::thread(recursorThread, 0, "main");
 
     setCPUMap(cpusMap, currentThreadId, pthread_self());
 
     auto& infos = s_threadInfos.at(currentThreadId);
     infos.isListener = true;
     infos.isWorker = true;
-    recursorThread(currentThreadId++);
+    recursorThread(currentThreadId++, "worker");
   }
   else {
 
@@ -3699,7 +3700,7 @@ static int serviceMain(int argc, char*argv[])
       for(unsigned int n=0; n < g_numDistributorThreads; ++n) {
         auto& infos = s_threadInfos.at(currentThreadId);
         infos.isListener = true;
-        infos.thread = std::thread(recursorThread, currentThreadId++);
+        infos.thread = std::thread(recursorThread, currentThreadId++, "distr");
 
         setCPUMap(cpusMap, currentThreadId, infos.thread.native_handle());
       }
@@ -3711,7 +3712,7 @@ static int serviceMain(int argc, char*argv[])
       auto& infos = s_threadInfos.at(currentThreadId);
       infos.isListener = g_weDistributeQueries ? false : true;
       infos.isWorker = true;
-      infos.thread = std::thread(recursorThread, currentThreadId++);
+      infos.thread = std::thread(recursorThread, currentThreadId++, "worker");
 
       setCPUMap(cpusMap, currentThreadId, infos.thread.native_handle());
     }
@@ -3723,18 +3724,22 @@ static int serviceMain(int argc, char*argv[])
     /* This thread handles the web server, carbon, statistics and the control channel */
     auto& infos = s_threadInfos.at(0);
     infos.isHandler = true;
-    infos.thread = std::thread(recursorThread, 0);
+    infos.thread = std::thread(recursorThread, 0, "web+stat");
 
     s_threadInfos.at(0).thread.join();
   }
   return 0;
 }
 
-static void* recursorThread(unsigned int n)
+static void* recursorThread(unsigned int n, const string& threadName)
 try
 {
   t_id=n;
   auto& threadInfo = s_threadInfos.at(t_id);
+
+  static string threadPrefix = "pdns-r/";
+  setThreadName(threadPrefix + threadName);
+
   SyncRes tmp(g_now); // make sure it allocates tsstorage before we do anything, like primeHints or so..
   SyncRes::setDomainMap(g_initialDomainMap);
   t_allowFrom = g_initialAllowFrom;

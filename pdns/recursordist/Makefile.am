@@ -159,6 +159,7 @@ pdns_recursor_SOURCES = \
 	sstuff.hh \
 	stable-bloom.hh \
 	syncres.cc syncres.hh \
+	threadname.hh threadname.cc \
 	tsigverifier.cc tsigverifier.hh \
 	ueberbackend.hh \
 	unix_utility.cc \
@@ -265,6 +266,7 @@ testrunner_SOURCES = \
 	test-tsig.cc \
 	test-xpf_cc.cc \
 	testrunner.cc \
+	threadname.hh threadname.cc \
 	tsigverifier.cc tsigverifier.hh \
 	unix_utility.cc \
 	validate.cc validate.hh \

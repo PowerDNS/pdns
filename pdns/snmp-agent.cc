@@ -1,5 +1,11 @@
 #include "snmp-agent.hh"
 #include "misc.hh"
+#include "threadname.hh"
+#ifdef RECURSOR
+#include "logger.hh"
+#else
+#include "dolog.hh"
+#endif
 
 #ifdef HAVE_NET_SNMP
 
@@ -99,6 +105,13 @@ void SNMPAgent::worker()
   if (mplexer == nullptr) {
     throw std::runtime_error("No FD multiplexer found for the SNMP agent!");
   }
+
+#ifdef RECURSOR
+  string threadName = "pdns-r/SNMP";
+#else
+  string threadName = "dnsdist/SNMP";
+#endif
+  setThreadName(threadName);
 
   int maxfd = 0;
   int block = 1;

@@ -37,6 +37,7 @@
 #include "dnsdist.hh"
 #include "dnsdist-console.hh"
 #include "sodcrypto.hh"
+#include "threadname.hh"
 
 GlobalStateHolder<NetmaskGroup> g_consoleACL;
 vector<pair<struct timeval, string> > g_confDelta;
@@ -535,6 +536,7 @@ char** my_completion( const char * text , int start,  int end)
 static void controlClientThread(int fd, ComboAddress client)
 try
 {
+  setThreadName("dnsdist/conscli");
   setTCPNoDelay(fd);
   SodiumNonce theirs, ours, readingNonce, writingNonce;
   ours.init();
@@ -665,6 +667,7 @@ catch(std::exception& e)
 void controlThread(int fd, ComboAddress local)
 try
 {
+  setThreadName("dnsdist/control");
   ComboAddress client;
   int sock;
   auto localACL = g_consoleACL.getLocal();

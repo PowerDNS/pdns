@@ -19,6 +19,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
+#include "threadname.hh"
 #include "dnsdist.hh"
 #include "dnsdist-ecs.hh"
 #include "dnsdist-lua.hh"
@@ -213,6 +214,7 @@ std::map<string,double> TeeAction::getStats() const
 
 void TeeAction::worker()
 {
+  setThreadName("dnsdist/TeeWork");
   char packet[1500];
   int res=0;
   struct dnsheader* dh=(struct dnsheader*)packet;

@@ -219,6 +219,7 @@ pdns_server_SOURCES = \
 	statbag.cc statbag.hh \
 	stubresolver.cc stubresolver.hh \
 	tcpreceiver.cc tcpreceiver.hh \
+	threadname.hh threadname.cc \
 	tsigverifier.cc tsigverifier.hh \
 	tkey.cc \
 	ueberbackend.cc ueberbackend.hh \
@@ -328,6 +329,7 @@ pdnsutil_SOURCES = \
 	sstuff.hh \
 	statbag.cc \
 	stubresolver.cc stubresolver.hh \
+	threadname.hh threadname.cc \
 	ueberbackend.cc \
 	unix_utility.cc \
 	zoneparser-tng.cc
@@ -632,6 +634,7 @@ ixfrdist_SOURCES = \
 	sillyrecords.cc \
 	sstuff.hh \
 	statbag.cc \
+	threadname.hh threadname.cc \
 	tsigverifier.cc tsigverifier.hh \
 	unix_utility.cc zoneparser-tng.cc
 
@@ -715,6 +718,7 @@ dnstcpbench_SOURCES = \
 	sillyrecords.cc \
 	sstuff.hh \
 	statbag.cc \
+	threadname.hh threadname.cc \
 	unix_utility.cc
 
 dnstcpbench_LDFLAGS = \
@@ -1295,6 +1299,7 @@ testrunner_SOURCES = \
 	test-tsig.cc \
 	test-zoneparser_tng_cc.cc \
 	testrunner.cc \
+	threadname.hh threadname.cc \
 	tsigverifier.cc tsigverifier.hh \
 	ueberbackend.cc \
 	unix_utility.cc \

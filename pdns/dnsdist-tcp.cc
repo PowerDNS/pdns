@@ -29,6 +29,7 @@
 #include "lock.hh"
 #include "gettime.hh"
 #include "tcpiohandler.hh"
+#include "threadname.hh"
 #include <thread>
 #include <atomic>
 
@@ -236,6 +237,8 @@ void* tcpClientThread(int pipefd)
 {
   /* we get launched with a pipe on which we receive file descriptors from clients that we own
      from that point on */
+
+  setThreadName("dnsdist/tcpClie");
 
   bool outstanding = false;
   time_t lastTCPCleanup = time(nullptr);
@@ -668,6 +671,7 @@ void* tcpClientThread(int pipefd)
 */
 void* tcpAcceptorThread(void* p)
 {
+  setThreadName("dnsdist/tcpAcce");
   ClientState* cs = (ClientState*) p;
   bool tcpClientCountIncremented = false;
   ComboAddress remote;
