@@ -93,7 +93,6 @@ Disallow data modification through the REST API when set.
 
 ``api-logfile``
 ---------------
-.. versionadded:: 4.0.0
 .. versionchanged:: 4.2.0
   This setting has been removed.
 
