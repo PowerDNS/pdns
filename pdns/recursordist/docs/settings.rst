@@ -80,7 +80,6 @@ Static pre-shared authentication key for access to the REST API.
 
 ``api-readonly``
 ----------------
-.. versionadded:: 4.0.0
 .. versionchanged:: 4.2.0
   This setting has been removed.
 
