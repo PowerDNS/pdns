@@ -120,7 +120,9 @@ Current memory usage.
 
 responses
 ---------
-Number of responses received from backends.
+Number of responses received from backends. Note! This is not the number of
+responses sent to clients. To get that number, add 'cache-hits' and
+'responses'.
 
 rule-drop
 ---------
