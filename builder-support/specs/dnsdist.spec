@@ -94,7 +94,7 @@ sed -i '/^ExecStart/ s/dnsdist/dnsdist -u dnsdist -g dnsdist/' dnsdist.service.i
 %endif
 %if 0%{?rhel} >= 7
   --enable-fstrm \
-  --enable-gnutls \
+  --with-gnutls \
   --with-protobuf \
   --with-lua=%{lua_implementation} \
   --enable-libsodium \

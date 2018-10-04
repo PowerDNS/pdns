@@ -40,7 +40,7 @@ override_dh_auto_configure:
 	  --enable-dns-over-tls \
 	  --enable-dnscrypt \
 	  --enable-fstrm \
-	  --enable-gnutls \
+	  --with-gnutls \
 	  --enable-libsodium \
 	  --enable-re2 \
 	  --with-ebpf \
