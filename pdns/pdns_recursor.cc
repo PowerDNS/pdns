@@ -30,7 +30,8 @@
 #include <boost/container/flat_set.hpp>
 #endif
 #include "ws-recursor.hh"
-#include <pthread.h>
+#include <thread>
+#include "threadname.hh"
 #include "recpacketcache.hh"
 #include "utility.hh"
 #include "dns_random.hh"
@@ -186,7 +187,6 @@ static size_t s_maxUDPQueriesPerRound;
 static uint64_t g_latencyStatSize;
 static uint32_t g_disthashseed;
 static unsigned int g_maxTCPPerClient;
-static unsigned int g_networkTimeoutMsec;
 static unsigned int g_maxMThreads;
 static unsigned int g_numDistributorThreads;
 static unsigned int g_numWorkerThreads;
@@ -222,6 +222,7 @@ RecursorStats g_stats;
 string s_programname="pdns_recursor";
 string s_pidfname;
 bool g_lowercaseOutgoing;
+unsigned int g_networkTimeoutMsec;
 unsigned int g_numThreads;
 uint16_t g_outgoingEDNSBufsize;
 bool g_logRPZChanges{false};
@@ -773,6 +774,7 @@ static void protobufLogQuery(const std::shared_ptr<RemoteLogger>& logger, uint8_
   Netmask requestorNM(remote, remote.sin4.sin_family == AF_INET ? maskV4 : maskV6);
   const ComboAddress& requestor = requestorNM.getMaskedNetwork();
   RecProtoBufMessage message(DNSProtoBufMessage::Query, uniqueId, &requestor, &local, qname, qtype, qclass, id, tcp, len);
+  message.setServerIdentity(SyncRes::s_serverID);
   message.setEDNSSubnet(ednssubnet, ednssubnet.isIpv4() ? maskV4 : maskV6);
   message.setRequestorId(requestorId);
   message.setDeviceId(deviceId);
@@ -1009,10 +1011,9 @@ static void startDoResolve(void *p)
       logResponse = t_protobufServer && luaconfsLocal->protobufExportConfig.logResponses;
       Netmask requestorNM(dc->d_source, dc->d_source.sin4.sin_family == AF_INET ? luaconfsLocal->protobufMaskV4 : luaconfsLocal->protobufMaskV6);
       const ComboAddress& requestor = requestorNM.getMaskedNetwork();
-      pbMessage = RecProtoBufMessage(RecProtoBufMessage::Response);
-      pbMessage->update(dc->d_uuid, &requestor, &dc->d_destination, dc->d_tcp, dc->d_mdp.d_header.id);
+      pbMessage = RecProtoBufMessage(RecProtoBufMessage::Response, dc->d_uuid, &requestor, &dc->d_destination, dc->d_mdp.d_qname, dc->d_mdp.d_qtype, dc->d_mdp.d_qclass, dc->d_mdp.d_header.id, dc->d_tcp, 0);
+      pbMessage->setServerIdentity(SyncRes::s_serverID);
       pbMessage->setEDNSSubnet(dc->d_ednssubnet.source, dc->d_ednssubnet.source.isIpv4() ? luaconfsLocal->protobufMaskV4 : luaconfsLocal->protobufMaskV6);
-      pbMessage->setQuestion(dc->d_mdp.d_qname, dc->d_mdp.d_qtype, dc->d_mdp.d_qclass);
     }
 #endif /* HAVE_PROTOBUF */
 
@@ -1390,8 +1391,8 @@ static void startDoResolve(void *p)
         needCommit = true;
 
 #ifdef HAVE_PROTOBUF
-        if(t_protobufServer && (i->d_type == QType::A || i->d_type == QType::AAAA || i->d_type == QType::CNAME)) {
-          pbMessage->addRR(*i);
+        if(t_protobufServer) {
+          pbMessage->addRR(*i, luaconfsLocal->protobufExportConfig.exportTypes);
         }
 #endif
       }
@@ -1570,8 +1571,8 @@ static void startDoResolve(void *p)
     g_log<<Logger::Error<<"startDoResolve problem "<<makeLoginfo(dc)<<": "<<ae.reason<<endl;
     delete dc;
   }
-  catch(MOADNSException& e) {
-    g_log<<Logger::Error<<"DNS parser error "<<makeLoginfo(dc) <<": "<<dc->d_mdp.d_qname<<", "<<e.what()<<endl;
+  catch(const MOADNSException &mde) {
+    g_log<<Logger::Error<<"DNS parser error "<<makeLoginfo(dc) <<": "<<dc->d_mdp.d_qname<<", "<<mde.what()<<endl;
     delete dc;
   }
   catch(std::exception& e) {
@@ -1733,7 +1734,9 @@ static void handleRunningTCPQuestion(int fd, FDMultiplexer::funcparam_t& var)
   else if(conn->state==TCPConnection::GETQUESTION) {
     ssize_t bytes=recv(conn->getFD(), &conn->data[conn->bytesread], conn->qlen - conn->bytesread, 0);
     if(!bytes || bytes < 0 || bytes > std::numeric_limits<std::uint16_t>::max()) {
-      g_log<<Logger::Error<<"TCP client "<< conn->d_remote.toStringWithPort() <<" disconnected while reading question body"<<endl;
+      if(g_logCommonErrors) {
+        g_log<<Logger::Error<<"TCP client "<< conn->d_remote.toStringWithPort() <<" disconnected while reading question body"<<endl;
+      }
       t_fdm->removeReadFD(fd);
       return;
     }
@@ -1745,7 +1748,7 @@ static void handleRunningTCPQuestion(int fd, FDMultiplexer::funcparam_t& var)
       try {
         dc=new DNSComboWriter(conn->data, g_now);
       }
-      catch(MOADNSException &mde) {
+      catch(const MOADNSException &mde) {
         g_stats.clientParseError++;
         if(g_logCommonErrors)
           g_log<<Logger::Error<<"Unable to parse packet from TCP client "<< conn->d_remote.toStringWithPort() <<endl;
@@ -1811,6 +1814,9 @@ static void handleRunningTCPQuestion(int fd, FDMultiplexer::funcparam_t& var)
             g_log<<Logger::Warning<<"Error parsing a query packet for tag determination, setting tag=0: "<<e.what()<<endl;
         }
       }
+
+      const struct dnsheader* dh = reinterpret_cast<const struct dnsheader*>(&conn->data[0]);
+
 #ifdef HAVE_PROTOBUF
       if(t_protobufServer || t_outgoingProtobufServer) {
         dc->d_requestorId = requestorId;
@@ -1820,7 +1826,6 @@ static void handleRunningTCPQuestion(int fd, FDMultiplexer::funcparam_t& var)
 
       if(t_protobufServer) {
         try {
-          const struct dnsheader* dh = reinterpret_cast<const struct dnsheader*>(&conn->data[0]);
 
           if (logQuery && !(luaconfsLocal->protobufExportConfig.taggedOnly && dc->d_policyTags.empty())) {
             protobufLogQuery(t_protobufServer, luaconfsLocal->protobufMaskV4, luaconfsLocal->protobufMaskV6, dc->d_uuid, dc->d_source, dc->d_destination, dc->d_ednssubnet.source, true, dh->id, conn->qlen, qname, qtype, qclass, dc->d_policyTags, dc->d_requestorId, dc->d_deviceId);
@@ -1834,13 +1839,25 @@ static void handleRunningTCPQuestion(int fd, FDMultiplexer::funcparam_t& var)
 #endif
       if(dc->d_mdp.d_header.qr) {
         g_stats.ignoredCount++;
-        g_log<<Logger::Error<<"Ignoring answer from TCP client "<< dc->getRemote() <<" on server socket!"<<endl;
+        if(g_logCommonErrors) {
+          g_log<<Logger::Error<<"Ignoring answer from TCP client "<< dc->getRemote() <<" on server socket!"<<endl;
+        }
         delete dc;
         return;
       }
       if(dc->d_mdp.d_header.opcode) {
         g_stats.ignoredCount++;
-        g_log<<Logger::Error<<"Ignoring non-query opcode from TCP client "<< dc->getRemote() <<" on server socket!"<<endl;
+        if(g_logCommonErrors) {
+          g_log<<Logger::Error<<"Ignoring non-query opcode from TCP client "<< dc->getRemote() <<" on server socket!"<<endl;
+        }
+        delete dc;
+        return;
+      }
+      else if (dh->qdcount == 0) {
+        g_stats.emptyQueriesCount++;
+        if(g_logCommonErrors) {
+          g_log<<Logger::Error<<"Ignoring empty (qdcount == 0) query from "<< dc->getRemote() <<" on server socket!"<<endl;
+        }
         delete dc;
         return;
       }
@@ -2014,6 +2031,7 @@ static string* doProcessUDPQuestion(const std::string& question, const ComboAddr
 #ifdef HAVE_PROTOBUF
     if(t_protobufServer) {
       pbMessage = RecProtoBufMessage(DNSProtoBufMessage::DNSProtoBufMessageType::Response);
+      pbMessage->setServerIdentity(SyncRes::s_serverID);
       if (logQuery && !(luaconfsLocal->protobufExportConfig.taggedOnly && policyTags.empty())) {
         protobufLogQuery(t_protobufServer, luaconfsLocal->protobufMaskV4, luaconfsLocal->protobufMaskV6, uniqueId, source, destination, ednssubnet.source, false, dh->id, question.size(), qname, qtype, qclass, policyTags, requestorId, deviceId);
       }
@@ -2202,6 +2220,12 @@ static void handleNewUDPQuestion(int fd, FDMultiplexer::funcparam_t& var)
             g_log<<Logger::Error<<"Ignoring non-query opcode "<<dh->opcode<<" from "<<fromaddr.toString()<<" on server socket!"<<endl;
           }
         }
+        else if (dh->qdcount == 0) {
+          g_stats.emptyQueriesCount++;
+          if(g_logCommonErrors) {
+            g_log<<Logger::Error<<"Ignoring empty (qdcount == 0) query from "<<fromaddr.toString()<<" on server socket!"<<endl;
+          }
+        }
         else {
           struct timeval tv={0,0};
           HarvestTimestamp(&msgh, &tv);
@@ -2233,7 +2257,7 @@ static void handleNewUDPQuestion(int fd, FDMultiplexer::funcparam_t& var)
           }
         }
       }
-      catch(const MOADNSException& mde) {
+      catch(const MOADNSException &mde) {
         g_stats.clientParseError++;
         if(g_logCommonErrors) {
           g_log<<Logger::Error<<"Unable to parse packet from remote UDP client "<<fromaddr.toString() <<": "<<mde.what()<<endl;
@@ -3073,7 +3097,7 @@ static void checkOrFixFDS()
   }
 }
 
-static void* recursorThread(unsigned int tid);
+static void* recursorThread(unsigned int tid, const string& threadName);
 
 static void* pleaseSupplantACLs(std::shared_ptr<NetmaskGroup> ng)
 {
@@ -3658,14 +3682,14 @@ static int serviceMain(int argc, char*argv[])
     /* This thread handles the web server, carbon, statistics and the control channel */
     auto& handlerInfos = s_threadInfos.at(0);
     handlerInfos.isHandler = true;
-    handlerInfos.thread = std::thread(recursorThread, 0);
+    handlerInfos.thread = std::thread(recursorThread, 0, "main");
 
     setCPUMap(cpusMap, currentThreadId, pthread_self());
 
     auto& infos = s_threadInfos.at(currentThreadId);
     infos.isListener = true;
     infos.isWorker = true;
-    recursorThread(currentThreadId++);
+    recursorThread(currentThreadId++, "worker");
   }
   else {
 
@@ -3674,7 +3698,7 @@ static int serviceMain(int argc, char*argv[])
       for(unsigned int n=0; n < g_numDistributorThreads; ++n) {
         auto& infos = s_threadInfos.at(currentThreadId);
         infos.isListener = true;
-        infos.thread = std::thread(recursorThread, currentThreadId++);
+        infos.thread = std::thread(recursorThread, currentThreadId++, "distr");
 
         setCPUMap(cpusMap, currentThreadId, infos.thread.native_handle());
       }
@@ -3686,7 +3710,7 @@ static int serviceMain(int argc, char*argv[])
       auto& infos = s_threadInfos.at(currentThreadId);
       infos.isListener = g_weDistributeQueries ? false : true;
       infos.isWorker = true;
-      infos.thread = std::thread(recursorThread, currentThreadId++);
+      infos.thread = std::thread(recursorThread, currentThreadId++, "worker");
 
       setCPUMap(cpusMap, currentThreadId, infos.thread.native_handle());
     }
@@ -3698,18 +3722,22 @@ static int serviceMain(int argc, char*argv[])
     /* This thread handles the web server, carbon, statistics and the control channel */
     auto& infos = s_threadInfos.at(0);
     infos.isHandler = true;
-    infos.thread = std::thread(recursorThread, 0);
+    infos.thread = std::thread(recursorThread, 0, "web+stat");
 
     s_threadInfos.at(0).thread.join();
   }
   return 0;
 }
 
-static void* recursorThread(unsigned int n)
+static void* recursorThread(unsigned int n, const string& threadName)
 try
 {
   t_id=n;
   auto& threadInfo = s_threadInfos.at(t_id);
+
+  static string threadPrefix = "pdns-r/";
+  setThreadName(threadPrefix + threadName);
+
   SyncRes tmp(g_now); // make sure it allocates tsstorage before we do anything, like primeHints or so..
   SyncRes::setDomainMap(g_initialDomainMap);
   t_allowFrom = g_initialAllowFrom;

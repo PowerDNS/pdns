@@ -1,0 +1,30 @@
+#!/bin/sh
+set -e
+
+case "$1" in
+    configure)
+        chown pdns:pdns /var/lib/powerdns/zones.slave.d || :
+
+        # Create suggested supermaster.conf, which is included from /etc/powerdns/named.conf by default.
+        BINDCONF=/etc/powerdns/pdns.d/bind.conf
+        SUPERMASTERCONF=/var/lib/powerdns/supermaster.conf
+        if test -e $BINDCONF && grep "^bind-supermaster-config=$SUPERMASTERCONF" $BINDCONF >/dev/null 2>&1; then
+            touch $SUPERMASTERCONF
+            chown pdns:pdns $SUPERMASTERCONF
+        fi
+    ;;
+
+    abort-upgrade|abort-remove|abort-deconfigure)
+    ;;
+
+    *)
+        echo "postinst called with unknown argument \`$1'" >&2
+        exit 1
+    ;;
+esac
+
+dpkg-trigger pdns-server
+
+#DEBHELPER#
+
+exit 0

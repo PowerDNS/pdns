@@ -2,7 +2,7 @@
 #include "config.h"
 #include "rec-protobuf.hh"
 
-void RecProtoBufMessage::addRR(const DNSRecord& record)
+void RecProtoBufMessage::addRR(const DNSRecord& record, const std::set<uint16_t>& exportTypes)
 {
 #ifdef HAVE_PROTOBUF
   PBDNSMessage_DNSResponse* response = d_message.mutable_response();
@@ -10,44 +10,91 @@ void RecProtoBufMessage::addRR(const DNSRecord& record)
     return;
   }
 
-  if (record.d_place != DNSResourceRecord::ANSWER ||
-      record.d_class != QClass::IN ||
-      (record.d_type != QType::A &&
-       record.d_type != QType::AAAA &&
-       record.d_type != QType::CNAME)) {
+  if (record.d_place != DNSResourceRecord::ANSWER || record.d_class != QClass::IN) {
     return;
   }
 
-   PBDNSMessage_DNSResponse_DNSRR* pbRR = response->add_rrs();
-   if (!pbRR) {
-     return;
-   }
+  if (exportTypes.count(record.d_type) == 0) {
+    return;
+  }
 
-   pbRR->set_name(record.d_name.toString());
-   pbRR->set_type(record.d_type);
-   pbRR->set_class_(record.d_class);
-   pbRR->set_ttl(record.d_ttl);
-   if (record.d_type == QType::A) {
-     const ARecordContent& arc = dynamic_cast<const ARecordContent&>(*(record.d_content));
-     ComboAddress data = arc.getCA();
-     pbRR->set_rdata(&data.sin4.sin_addr.s_addr, sizeof(data.sin4.sin_addr.s_addr));
-   }
-   else if (record.d_type == QType::AAAA) {
-     const AAAARecordContent& arc = dynamic_cast<const AAAARecordContent&>(*(record.d_content));
-     ComboAddress data = arc.getCA();
-     pbRR->set_rdata(&data.sin6.sin6_addr.s6_addr, sizeof(data.sin6.sin6_addr.s6_addr));
-   } else if (record.d_type == QType::CNAME) {
-     const CNAMERecordContent& crc = dynamic_cast<const CNAMERecordContent&>(*(record.d_content));
-     DNSName data = crc.getTarget();
-     pbRR->set_rdata(data.toString());
-   }
+  PBDNSMessage_DNSResponse_DNSRR* pbRR = response->add_rrs();
+  if (!pbRR) {
+    return;
+  }
+
+  pbRR->set_name(record.d_name.toString());
+  pbRR->set_type(record.d_type);
+  pbRR->set_class_(record.d_class);
+  pbRR->set_ttl(record.d_ttl);
+
+  switch(record.d_type) {
+  case QType::A:
+  {
+    const auto& content = dynamic_cast<const ARecordContent&>(*(record.d_content));
+    ComboAddress data = content.getCA();
+    pbRR->set_rdata(&data.sin4.sin_addr.s_addr, sizeof(data.sin4.sin_addr.s_addr));
+    break;
+  }
+  case QType::AAAA:
+  {
+    const auto& content = dynamic_cast<const AAAARecordContent&>(*(record.d_content));
+    ComboAddress data = content.getCA();
+    pbRR->set_rdata(&data.sin6.sin6_addr.s6_addr, sizeof(data.sin6.sin6_addr.s6_addr));
+    break;
+  }
+  case QType::CNAME:
+  {
+    const auto& content = dynamic_cast<const CNAMERecordContent&>(*(record.d_content));
+    pbRR->set_rdata(content.getTarget().toString());
+    break;
+  }
+  case QType::TXT:
+  {
+    const auto& content = dynamic_cast<const TXTRecordContent&>(*(record.d_content));
+    pbRR->set_rdata(content.d_text);
+    break;
+  }
+  case QType::NS:
+  {
+    const auto& content = dynamic_cast<const NSRecordContent&>(*(record.d_content));
+    pbRR->set_rdata(content.getNS().toString());
+    break;
+  }
+  case QType::PTR:
+  {
+    const auto& content = dynamic_cast<const PTRRecordContent&>(*(record.d_content));
+    pbRR->set_rdata(content.getContent().toString());
+    break;
+  }
+  case QType::MX:
+  {
+    const auto& content = dynamic_cast<const MXRecordContent&>(*(record.d_content));
+    pbRR->set_rdata(content.d_mxname.toString());
+    break;
+  }
+  case QType::SPF:
+  {
+    const auto& content = dynamic_cast<const SPFRecordContent&>(*(record.d_content));
+    pbRR->set_rdata(content.getText());
+    break;
+  }
+  case QType::SRV:
+  {
+    const auto& content = dynamic_cast<const SRVRecordContent&>(*(record.d_content));
+    pbRR->set_rdata(content.d_target.toString());
+    break;
+  }
+  default:
+    break;
+  }
 #endif /* HAVE_PROTOBUF */
 }
 
-void RecProtoBufMessage::addRRs(const std::vector<DNSRecord>& records)
+void RecProtoBufMessage::addRRs(const std::vector<DNSRecord>& records, const std::set<uint16_t>& exportTypes)
 {
   for (const auto& record : records) {
-    addRR(record);
+    addRR(record, exportTypes);
   }
 }
 

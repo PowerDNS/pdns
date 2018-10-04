@@ -25,6 +25,7 @@
 #include "ext/incbin/incbin.h"
 #include "dolog.hh"
 #include <thread>
+#include "threadname.hh"
 #include <sstream>
 #include <yahttp/yahttp.hpp>
 #include "namespaces.hh"
@@ -242,6 +243,8 @@ static json11::Json::array someResponseRulesToJson(GlobalStateHolder<vector<T>>*
 
 static void connectionThread(int sock, ComboAddress remote, string password, string apiKey, const boost::optional<std::map<std::string, std::string> >& customHeaders)
 {
+  setThreadName("dnsdist/webConn");
+
   using namespace json11;
   vinfolog("Webserver handling connection from %s", remote.toStringWithPort());
 
@@ -475,6 +478,7 @@ static void connectionThread(int sock, ComboAddress remote, string password, str
           const string label = "{pool=\"" + poolName + "\"}";
           const std::shared_ptr<ServerPool> pool = entry.second;
           output << "dnsdist_pool_servers" << label << " " << pool->countServers(false) << "\n";
+          output << "dnsdist_pool_active_servers" << label << " " << pool->countServers(true) << "\n";
 
           if (pool->packetCache != nullptr) {
             const auto& cache = pool->packetCache;
@@ -813,6 +817,7 @@ static void connectionThread(int sock, ComboAddress remote, string password, str
 }
 void dnsdistWebserverThread(int sock, const ComboAddress& local, const std::string& password, const std::string& apiKey, const boost::optional<std::map<std::string, std::string> >& customHeaders)
 {
+  setThreadName("dnsdist/webserv");
   warnlog("Webserver launched on %s", local.toStringWithPort());
   for(;;) {
     try {

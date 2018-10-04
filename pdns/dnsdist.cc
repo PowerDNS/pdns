@@ -60,6 +60,7 @@
 #include "misc.hh"
 #include "sodcrypto.hh"
 #include "sstuff.hh"
+#include "threadname.hh"
 #include "xpf.hh"
 
 thread_local boost::uuids::random_generator t_uuidGenerator;
@@ -426,6 +427,7 @@ static void pickBackendSocketsReadyForReceiving(const std::shared_ptr<Downstream
 // listens on a dedicated socket, lobs answers from downstream servers to original requestors
 void* responderThread(std::shared_ptr<DownstreamState> dss)
 try {
+  setThreadName("dnsdist/respond");
   auto localRespRulactions = g_resprulactions.getLocal();
 #ifdef HAVE_DNSCRYPT
   char packet[4096 + DNSCRYPT_MAX_RESPONSE_PADDING_AND_MAC_SIZE];
@@ -775,10 +777,10 @@ shared_ptr<DownstreamState> whashed(const NumberedServerVector& servers, const D
 
 shared_ptr<DownstreamState> chashed(const NumberedServerVector& servers, const DNSQuestion* dq)
 {
-  std::map<unsigned int, shared_ptr<DownstreamState>> circle = {};
   unsigned int qhash = dq->qname->hash(g_hashperturb);
-  unsigned int sel = 0, max = 0;
-  shared_ptr<DownstreamState> ret = nullptr, last = nullptr;
+  unsigned int sel = std::numeric_limits<unsigned int>::max();
+  unsigned int min = std::numeric_limits<unsigned int>::max();
+  shared_ptr<DownstreamState> ret = nullptr, first = nullptr;
 
   for (const auto& d: servers) {
     if (d.second->isUp()) {
@@ -790,18 +792,17 @@ shared_ptr<DownstreamState> chashed(const NumberedServerVector& servers, const D
         ReadLock rl(&(d.second->d_lock));
         const auto& server = d.second;
         // we want to keep track of the last hash
-        if (max < *(server->hashes.rbegin())) {
-          max = *(server->hashes.rbegin());
-          last = server;
+        if (min > *(server->hashes.begin())) {
+          min = *(server->hashes.begin());
+          first = server;
         }
-        auto hash_it = server->hashes.begin();
-        while (hash_it != server->hashes.end()
-               && *hash_it < qhash) {
-          if (*hash_it > sel) {
+
+        auto hash_it = server->hashes.lower_bound(qhash);
+        if (hash_it != server->hashes.end()) {
+          if (*hash_it < sel) {
             sel = *hash_it;
             ret = server;
           }
-          ++hash_it;
         }
       }
     }
@@ -809,8 +810,8 @@ shared_ptr<DownstreamState> chashed(const NumberedServerVector& servers, const D
   if (ret != nullptr) {
     return ret;
   }
-  if (last != nullptr) {
-    return last;
+  if (first != nullptr) {
+    return first;
   }
   return shared_ptr<DownstreamState>();
 }
@@ -1404,7 +1405,7 @@ static void processUDPQuery(ClientState& cs, LocalHolders& holders, const struct
     bool ednsAdded = false;
     bool ecsAdded = false;
     if (dq.useECS && ((ss && ss->useECS) || (!ss && serverPool->getECS()))) {
-      if (!handleEDNSClientSubnet(query, dq.size, consumed, &dq.len, &(ednsAdded), &(ecsAdded), dq.ecsSet ? dq.ecs.getNetwork() : remote, dq.ecsOverride, dq.ecsSet ? dq.ecs.getBits() : dq.ecsPrefixLength)) {
+      if (!handleEDNSClientSubnet(dq, &(ednsAdded), &(ecsAdded))) {
         vinfolog("Dropping query from %s because we couldn't insert the ECS value", remote.toStringWithPort());
         return;
       }
@@ -1656,6 +1657,7 @@ static void MultipleMessagesUDPClientThread(ClientState* cs, LocalHolders& holde
 static void* udpClientThread(ClientState* cs)
 try
 {
+  setThreadName("dnsdist/udpClie");
   LocalHolders holders;
 
 #if defined(HAVE_RECVMMSG) && defined(HAVE_SENDMMSG) && defined(MSG_WAITFORONE)
@@ -1851,6 +1853,7 @@ std::atomic<uint16_t> g_cacheCleaningPercentage{100};
 
 void* maintThread()
 {
+  setThreadName("dnsdist/main");
   int interval = 1;
   size_t counter = 0;
   int32_t secondsToWaitLog = 0;
@@ -1897,6 +1900,8 @@ void* maintThread()
 
 void* healthChecksThread()
 {
+  setThreadName("dnsdist/healthC");
+
   int interval = 1;
 
   for(;;) {

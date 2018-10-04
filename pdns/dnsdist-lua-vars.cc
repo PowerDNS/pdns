@@ -118,4 +118,17 @@ void setupLuaVars()
         { "VERSION2", DNSCryptExchangeVersion::VERSION2 },
     });
 #endif
+
+  g_lua.writeVariable("EDNSOptionCode", std::unordered_map<string, uint8_t>{
+      { "NSID", EDNSOptionCode::NSID },
+      { "DAU", EDNSOptionCode::DAU },
+      { "DHU", EDNSOptionCode::DHU },
+      { "N3U", EDNSOptionCode::N3U },
+      { "ECS", EDNSOptionCode::ECS },
+      { "EXPIRE", EDNSOptionCode::EXPIRE },
+      { "COOKIE", EDNSOptionCode::COOKIE },
+      { "TCPKEEPALIVE", EDNSOptionCode::TCPKEEPALIVE },
+      { "PADDING", EDNSOptionCode::PADDING },
+      { "CHAIN", EDNSOptionCode::CHAIN }
+    });
 }

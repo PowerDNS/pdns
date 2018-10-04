@@ -10,7 +10,7 @@
 
 using namespace boost;
 
-BOOST_AUTO_TEST_SUITE(base64_cc)
+BOOST_AUTO_TEST_SUITE(test_base64_cc)
 
 BOOST_AUTO_TEST_CASE(test_Base64_Roundtrip) {
   std::string before("Some Random String"), after;

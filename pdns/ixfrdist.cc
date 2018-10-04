@@ -30,6 +30,7 @@
 #include <sys/stat.h>
 #include <mutex>
 #include <thread>
+#include "threadname.hh"
 #include <dirent.h>
 #include <queue>
 #include <condition_variable>
@@ -233,7 +234,8 @@ static void updateCurrentZoneInfo(const DNSName& domain, std::shared_ptr<ixfrinf
   g_soas[domain] = newInfo;
 }
 
-void updateThread(const string& workdir, const uint16_t& keep, const uint16_t& axfrTimeout) {
+void updateThread(const string& workdir, const uint16_t& keep, const uint16_t& axfrTimeout, const uint16_t& soaRetry) {
+  setThreadName("ixfrdist/update");
   std::map<DNSName, time_t> lastCheck;
 
   // Initialize the serials we have
@@ -296,7 +298,7 @@ void updateThread(const string& workdir, const uint16_t& keep, const uint16_t& a
 
       auto& zoneLastCheck = lastCheck[domain];
       if ((current_soa != nullptr && now - zoneLastCheck < current_soa->d_st.refresh) || // Only check if we have waited `refresh` seconds
-          (current_soa == nullptr && now - zoneLastCheck < 30))  {                       // Or if we could not get an update at all still, every 30 seconds
+          (current_soa == nullptr && now - zoneLastCheck < soaRetry))  {                       // Or if we could not get an update at all still, every 30 seconds
         continue;
       }
 
@@ -342,6 +344,9 @@ void updateThread(const string& workdir, const uint16_t& keep, const uint16_t& a
           for(auto& dr : chunk) {
             if(dr.d_type == QType::TSIG)
               continue;
+            if(!dr.d_name.isPartOf(domain)) {
+              throw PDNSException("Out-of-zone data received during AXFR of "+domain.toLogString());
+            }
             dr.d_name.makeUsRelative(domain);
             records.insert(dr);
             nrecords++;
@@ -423,22 +428,23 @@ static bool checkQuery(const MOADNSParser& mdp, const ComboAddress& saddr, const
     if (g_domainConfigs.find(mdp.d_qname) == g_domainConfigs.end()) {
       info_msg.push_back("Domain name '" + mdp.d_qname.toLogString() + "' is not configured for distribution");
     }
-
-    const auto zoneInfo = getCurrentZoneInfo(mdp.d_qname);
-    if (zoneInfo == nullptr) {
-      info_msg.push_back("Domain has not been transferred yet");
+    else {
+      const auto zoneInfo = getCurrentZoneInfo(mdp.d_qname);
+      if (zoneInfo == nullptr) {
+        info_msg.push_back("Domain has not been transferred yet");
+      }
     }
   }
 
   if (!info_msg.empty()) {
-    g_log<<Logger::Warning<<logPrefix<<"Ignoring "<<mdp.d_qname<<"|"<<QType(mdp.d_qtype).getName()<<" query from "<<saddr.toStringWithPort();
+    g_log<<Logger::Warning<<logPrefix<<"Refusing "<<mdp.d_qname<<"|"<<QType(mdp.d_qtype).getName()<<" query from "<<saddr.toStringWithPort();
     g_log<<Logger::Warning<<": ";
     bool first = true;
     for (const auto& s : info_msg) {
       if (!first) {
         g_log<<Logger::Warning<<", ";
-        first = false;
       }
+      first = false;
       g_log<<Logger::Warning<<s;
     }
     g_log<<Logger::Warning<<endl;
@@ -449,7 +455,7 @@ static bool checkQuery(const MOADNSParser& mdp, const ComboAddress& saddr, const
 }
 
 /*
- * Returns a vector<uint8_t> that represents the full response to a SOA
+ * Returns a vector<uint8_t> that represents the full positive response to a SOA
  * query. QNAME is read from mdp.
  */
 static bool makeSOAPacket(const MOADNSParser& mdp, vector<uint8_t>& packet) {
@@ -467,6 +473,20 @@ static bool makeSOAPacket(const MOADNSParser& mdp, vector<uint8_t>& packet) {
   pw.startRecord(mdp.d_qname, QType::SOA);
   zoneInfo->soa->toPacket(pw);
   pw.commit();
+
+  return true;
+}
+
+/*
+ * Returns a vector<uint8_t> that represents the full REFUSED response to a
+ * query. QNAME and type are read from mdp.
+ */
+static bool makeRefusedPacket(const MOADNSParser& mdp, vector<uint8_t>& packet) {
+  DNSPacketWriter pw(packet, mdp.d_qname, mdp.d_qtype);
+  pw.getHeader()->id = mdp.d_header.id;
+  pw.getHeader()->rd = mdp.d_header.rd;
+  pw.getHeader()->qr = 1;
+  pw.getHeader()->rcode = RCode::Refused;
 
   return true;
 }
@@ -710,23 +730,24 @@ static void handleUDPRequest(int fd, boost::any&) {
   }
 
   MOADNSParser mdp(true, string(buf, res));
-  if (!checkQuery(mdp, saddr)) {
-    return;
+  vector<uint8_t> packet;
+  if (checkQuery(mdp, saddr)) {
+    /* RFC 1995 Section 2
+     *    Transport of a query may be by either UDP or TCP.  If an IXFR query
+     *    is via UDP, the IXFR server may attempt to reply using UDP if the
+     *    entire response can be contained in a single DNS packet.  If the UDP
+     *    reply does not fit, the query is responded to with a single SOA
+     *    record of the server's current version to inform the client that a
+     *    TCP query should be initiated.
+     *
+     * Let's not complicate this with IXFR over UDP (and looking if we need to truncate etc).
+     * Just send the current SOA and let the client try over TCP
+     */
+    makeSOAPacket(mdp, packet);
+  } else {
+    makeRefusedPacket(mdp, packet);
   }
 
-  /* RFC 1995 Section 2
-   *    Transport of a query may be by either UDP or TCP.  If an IXFR query
-   *    is via UDP, the IXFR server may attempt to reply using UDP if the
-   *    entire response can be contained in a single DNS packet.  If the UDP
-   *    reply does not fit, the query is responded to with a single SOA
-   *    record of the server's current version to inform the client that a
-   *    TCP query should be initiated.
-   *
-   * Let's not complicate this with IXFR over UDP (and looking if we need to truncate etc).
-   * Just send the current SOA and let the client try over TCP
-   */
-  vector<uint8_t> packet;
-  makeSOAPacket(mdp, packet);
   if(sendto(fd, &packet[0], packet.size(), 0, (struct sockaddr*) &saddr, fromlen) < 0) {
     auto savedErrno = errno;
     g_log<<Logger::Warning<<"Could not send reply for "<<mdp.d_qname<<"|"<<QType(mdp.d_qtype).getName()<<" to "<<saddr.toStringWithPort()<<": "<<strerror(savedErrno)<<endl;
@@ -768,6 +789,7 @@ static void handleTCPRequest(int fd, boost::any&) {
 /* Thread to handle TCP traffic
  */
 static void tcpWorker(int tid) {
+  setThreadName("ixfrdist/tcpWor");
   string prefix = "TCP Worker " + std::to_string(tid) + ": ";
 
   while(true) {
@@ -854,8 +876,8 @@ static void tcpWorker(int tid) {
       } /* if (mdp.d_qtype == QType::IXFR) */
 
       shutdown(cfd, 2);
-    } catch (MOADNSException &e) {
-      g_log<<Logger::Warning<<prefix<<"Could not parse DNS packet from "<<saddr.toStringWithPort()<<": "<<e.what()<<endl;
+    } catch (const MOADNSException &mde) {
+      g_log<<Logger::Warning<<prefix<<"Could not parse DNS packet from "<<saddr.toStringWithPort()<<": "<<mde.what()<<endl;
     } catch (runtime_error &e) {
       g_log<<Logger::Warning<<prefix<<"Could not write reply to "<<saddr.toStringWithPort()<<": "<<e.what()<<endl;
     }
@@ -902,6 +924,16 @@ static bool parseAndCheckConfig(const string& configpath, YAML::Node& config) {
     }
   } else {
     config["axfr-timeout"] = 20;
+  }
+
+  if (config["failed-soa-retry"]) {
+    try {
+      config["failed-soa-retry"].as<uint16_t>();
+    } catch (const runtime_error &e) {
+      g_log<<Logger::Error<<"Unable to read 'failed-soa-retry' value: "<<e.what()<<endl;
+    }
+  } else {
+    config["failed-soa-retry"] = 30;
   }
 
   if (config["tcp-in-threads"]) {
@@ -1195,7 +1227,8 @@ int main(int argc, char** argv) {
   std::thread ut(updateThread,
       config["work-dir"].as<string>(),
       config["keep"].as<uint16_t>(),
-      config["axfr-timeout"].as<uint16_t>());
+      config["axfr-timeout"].as<uint16_t>(),
+      config["failed-soa-retry"].as<uint16_t>());
 
   vector<std::thread> tcpHandlers;
   tcpHandlers.reserve(config["tcp-in-threads"].as<uint16_t>());

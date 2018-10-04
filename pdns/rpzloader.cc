@@ -7,6 +7,7 @@
 #include "rec-lua-conf.hh"
 #include "rpzloader.hh"
 #include "zoneparser-tng.hh"
+#include "threadname.hh"
 
 static Netmask makeNetmaskFromRPZ(const DNSName& name)
 {
@@ -339,6 +340,7 @@ static bool dumpZoneToDisk(const DNSName& zoneName, const std::shared_ptr<DNSFil
 
 void RPZIXFRTracker(const std::vector<ComboAddress> masters, boost::optional<DNSFilterEngine::Policy> defpol, uint32_t maxTTL, size_t zoneIdx, const TSIGTriplet& tt, size_t maxReceivedBytes, const ComboAddress& localAddress, const uint16_t axfrTimeout, std::shared_ptr<SOARecordContent> sr, std::string dumpZoneFileName, uint64_t configGeneration)
 {
+  setThreadName("pdns-r/RPZIXFR");
   bool isPreloaded = sr != nullptr;
   auto luaconfsLocal = g_luaconfs.getLocal();
   /* we can _never_ modify this zone directly, we need to do a full copy then replace the existing zone */

@@ -55,6 +55,15 @@ void setupLuaBindingsDNSQuestion()
   g_lua.registerFunction<bool(DNSQuestion::*)()>("getDO", [](const DNSQuestion& dq) {
       return getEDNSZ(dq) & EDNS_HEADER_FLAG_DO;
     });
+
+  g_lua.registerFunction<std::map<uint16_t, EDNSOptionView>(DNSQuestion::*)()>("getEDNSOptions", [](DNSQuestion& dq) {
+      if (dq.ednsOptions == nullptr) {
+        parseEDNSOptions(dq);
+      }
+
+      return *dq.ednsOptions;
+    });
+
   g_lua.registerFunction<void(DNSQuestion::*)(std::string)>("sendTrap", [](const DNSQuestion& dq, boost::optional<std::string> reason) {
 #ifdef HAVE_NET_SNMP
       if (g_snmpAgent && g_snmpTrapsEnabled) {

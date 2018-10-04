@@ -10,7 +10,7 @@
 #include "test-common.hh"
 #include "ixfr.hh"
 
-BOOST_AUTO_TEST_SUITE(ixfr_cc)
+BOOST_AUTO_TEST_SUITE(test_ixfr_cc)
 
 BOOST_AUTO_TEST_CASE(test_ixfr_rfc1995_axfr) {
   const ComboAddress master("[2001:DB8::1]:53");

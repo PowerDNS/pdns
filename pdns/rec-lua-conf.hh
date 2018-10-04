@@ -20,6 +20,8 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
 #pragma once
+#include <set>
+
 #include "sholder.hh"
 #include "sortlist.hh"
 #include "filterpo.hh"
@@ -27,6 +29,7 @@
 
 struct ProtobufExportConfig
 {
+  std::set<uint16_t> exportTypes = { QType::A, QType::AAAA, QType::CNAME };
   ComboAddress server;
   uint64_t maxQueuedEntries{100};
   uint16_t timeout{2};

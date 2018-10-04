@@ -54,16 +54,16 @@ DNSDistPacketCache::~DNSDistPacketCache()
 
 bool DNSDistPacketCache::getClientSubnet(const char* packet, unsigned int consumed, uint16_t len, boost::optional<Netmask>& subnet)
 {
-  char * optRDLen = NULL;
+  uint16_t optRDPosition;
   size_t remaining = 0;
 
-  int res = getEDNSOptionsStart(const_cast<char*>(packet), consumed, len, &optRDLen, &remaining);
+  int res = getEDNSOptionsStart(const_cast<char*>(packet), consumed, len, &optRDPosition, &remaining);
 
   if (res == 0) {
-    char * ecsOptionStart = NULL;
+    char * ecsOptionStart = nullptr;
     size_t ecsOptionSize = 0;
 
-    res = getEDNSOption(optRDLen, remaining, EDNSOptionCode::ECS, &ecsOptionStart, &ecsOptionSize);
+    res = getEDNSOption(const_cast<char*>(packet) + optRDPosition, remaining, EDNSOptionCode::ECS, &ecsOptionStart, &ecsOptionSize);
 
     if (res == 0 && ecsOptionSize > (EDNS_OPTION_CODE_SIZE + EDNS_OPTION_LENGTH_SIZE)) {
 
