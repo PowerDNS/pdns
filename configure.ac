@@ -100,6 +100,7 @@ PDNS_CHECK_LIBCRYPTO([
   ]
 )
 PDNS_CHECK_LIBCRYPTO_ECDSA
+PDNS_CHECK_LIBCRYPTO_EDDSA
 
 PDNS_CHECK_RAGEL([pdns/dnslabeltext.cc], [www.powerdns.com])
 PDNS_CHECK_CLOCK_GETTIME
@@ -351,11 +352,11 @@ AS_IF([test "x$libcrypto_ecdsa" = "xyes"],
   [AC_MSG_NOTICE([OpenSSL ecdsa: yes])],
   [AC_MSG_NOTICE([OpenSSL ecdsa: no])]
 )
-AS_IF([test "x$LIBSODIUM_LIBS" != "x" || test "x$LIBDECAF_LIBS" != "x"],
+AS_IF([test "x$LIBSODIUM_LIBS" != "x" || test "x$LIBDECAF_LIBS" != "x" || test "x$libcrypto_ed25519" = "xyes"],
   [AC_MSG_NOTICE([ed25519: yes])],
   [AC_MSG_NOTICE([ed25519: no])]
 )
-AS_IF([test "x$LIBDECAF_LIBS" != "x"],
+AS_IF([test "x$LIBDECAF_LIBS" != "x" || test "x$libcrypto_ed448" = "xyes"],
   [AC_MSG_NOTICE([ed448: yes])],
   [AC_MSG_NOTICE([ed448: no])]
 )
