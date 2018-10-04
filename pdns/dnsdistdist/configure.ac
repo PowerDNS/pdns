@@ -52,7 +52,7 @@ PDNS_CHECK_LUA_HPP
 
 DNSDIST_ENABLE_DNS_OVER_TLS
 DNSDIST_WITH_GNUTLS
-DNSDIST_CHECK_LIBSSL
+DNSDIST_WITH_LIBSSL
 AS_IF([test "x$enable_dns_over_tls" != "xno"], [
   AS_IF([test "$HAVE_LIBSSL" = "1"], [
     # we need libcrypto if libssl is enabled
