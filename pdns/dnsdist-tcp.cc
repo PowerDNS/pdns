@@ -32,6 +32,7 @@
 #include "threadname.hh"
 #include <thread>
 #include <atomic>
+#include <netinet/tcp.h>
 
 using std::thread;
 using std::atomic;
@@ -715,7 +716,7 @@ void* tcpAcceptorThread(void* p)
         continue;
       }
 #endif
-
+      SSetsockopt(ci->fd, SOL_TCP, TCP_NODELAY, 1); // disable NAGLE
       if(g_maxTCPQueuedConnections > 0 && g_tcpclientthreads->getQueuedCount() >= g_maxTCPQueuedConnections) {
         close(ci->fd);
         delete ci;
