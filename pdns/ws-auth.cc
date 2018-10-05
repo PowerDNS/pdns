@@ -322,7 +322,7 @@ static inline string makeBackendRecordContent(const QType& qtype, const string& 
   return makeRecordContent(qtype, content, true);
 }
 
-static Json::object getZoneInfo(const DomainInfo& di, DNSSECKeeper *dk) {
+static Json::object getZoneInfo(const DomainInfo& di) {
   string zoneId = apiZoneNameToId(di.zone);
   vector<string> masters;
   for(const auto& m : di.masters)
@@ -334,7 +334,6 @@ static Json::object getZoneInfo(const DomainInfo& di, DNSSECKeeper *dk) {
     { "url", "/api/v1/servers/localhost/zones/" + zoneId },
     { "name", di.zone.toString() },
     { "kind", di.getKindString() },
-    { "dnssec", dk->isSecuredZone(di.zone) },
     { "account", di.account },
     { "masters", masters },
     { "serial", (double)di.serial },
@@ -359,7 +358,7 @@ static void fillZone(UeberBackend& B, const DNSName& zonename, HttpResponse* res
   }
 
   DNSSECKeeper dk(&B);
-  Json::object doc = getZoneInfo(di, &dk);
+  Json::object doc = getZoneInfo(di);
   // extra stuff getZoneInfo doesn't do for us (more expensive)
   string soa_edit_api;
   di.backend->getDomainMetadataOne(zonename, "SOA-EDIT-API", soa_edit_api);
@@ -376,6 +375,7 @@ static void fillZone(UeberBackend& B, const DNSName& zonename, HttpResponse* res
   if (nsec3narrow == "1")
     nsec3narrowbool = true;
   doc["nsec3narrow"] = nsec3narrowbool;
+  doc["dnssec"] = dk.isSecuredZone(zonename);
 
   string api_rectify;
   di.backend->getDomainMetadataOne(zonename, "API-RECTIFY", api_rectify);
@@ -1698,7 +1698,7 @@ static void apiServerZones(HttpRequest* req, HttpResponse* resp) {
 
   Json::array doc;
   for(const DomainInfo& di : domains) {
-    doc.push_back(getZoneInfo(di, &dk));
+    doc.push_back(getZoneInfo(di));
   }
   resp->setBody(doc);
 }
