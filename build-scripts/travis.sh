@@ -462,7 +462,7 @@ build_dnsdist(){
     --with-libsodium \
     --enable-dnscrypt \
     --enable-dns-over-tls \
-    --enable-fstrm \
+    --enable-dnstap \
     --prefix=$HOME/dnsdist \
     --disable-silent-rules"
   run "make -k -j3"
