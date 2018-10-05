@@ -1401,6 +1401,17 @@ static void startDoResolve(void *p)
     }
   sendit:;
 
+    if(g_useIncomingECS && haveEDNS && !sr.wasVariable()) {
+      EDNSSubnetOpts eo;
+      eo.source = dc->d_ednssubnet.source;
+      ComboAddress sa;
+      memset(&sa, 0, sizeof(sa));
+      sa.sin4.sin_family = eo.source.getNetwork().sin4.sin_family;
+      eo.scope = Netmask(sa, 0);
+
+      returnedEdnsOptions.push_back(make_pair(EDNSOptionCode::ECS, makeEDNSSubnetOptsString(eo)));
+    }
+
     if (haveEDNS) {
       /* we try to add the EDNS OPT RR even for truncated answers,
          as rfc6891 states:
