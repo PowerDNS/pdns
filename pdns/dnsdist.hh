@@ -528,7 +528,8 @@ struct IDState
   std::shared_ptr<DNSDistPacketCache> packetCache{nullptr};
   std::shared_ptr<QTag> qTag{nullptr};
   const ClientState* cs{nullptr};
-  uint32_t cacheKey;                                          // 8
+  uint32_t cacheKey;                                          // 4
+  uint32_t cacheKeyNoECS;                                     // 4
   uint16_t age;                                               // 4
   uint16_t qtype;                                             // 2
   uint16_t qclass;                                            // 2
@@ -1019,7 +1020,7 @@ bool responseContentMatches(const char* response, const uint16_t responseLen, co
 bool processQuery(LocalHolders& holders, DNSQuestion& dq, string& poolname, int* delayMsec, const struct timespec& now);
 bool processResponse(LocalStateHolder<vector<DNSDistResponseRuleAction> >& localRespRulactions, DNSResponse& dr, int* delayMsec);
 bool fixUpQueryTurnedResponse(DNSQuestion& dq, const uint16_t origFlags);
-bool fixUpResponse(char** response, uint16_t* responseLen, size_t* responseSize, const DNSName& qname, uint16_t origFlags, bool ednsAdded, bool ecsAdded, std::vector<uint8_t>& rewrittenResponse, uint16_t addRoom);
+bool fixUpResponse(char** response, uint16_t* responseLen, size_t* responseSize, const DNSName& qname, uint16_t origFlags, bool ednsAdded, bool ecsAdded, std::vector<uint8_t>& rewrittenResponse, uint16_t addRoom, bool* zeroScope=0);
 void restoreFlags(struct dnsheader* dh, uint16_t origFlags);
 bool checkQueryHeaders(const struct dnsheader* dh);
 
