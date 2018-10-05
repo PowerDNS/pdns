@@ -65,6 +65,10 @@ sed -i '/^ExecStart/ s/dnsdist/dnsdist -u dnsdist -g dnsdist/' dnsdist.service.i
 %build
 %configure \
   --sysconfdir=/etc/dnsdist \
+  --disable-static \
+  --disable-dependency-tracking \
+  --disable-silent-rules \
+  --enable-unit-tests \
   --enable-dns-over-tls \
 %if 0%{?el6}
   --disable-dnscrypt \
