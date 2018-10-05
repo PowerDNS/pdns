@@ -269,7 +269,7 @@ bool fixUpQueryTurnedResponse(DNSQuestion& dq, const uint16_t origFlags)
   return addEDNSToQueryTurnedResponse(dq);
 }
 
-bool fixUpResponse(char** response, uint16_t* responseLen, size_t* responseSize, const DNSName& qname, uint16_t origFlags, bool ednsAdded, bool ecsAdded, std::vector<uint8_t>& rewrittenResponse, uint16_t addRoom)
+bool fixUpResponse(char** response, uint16_t* responseLen, size_t* responseSize, const DNSName& qname, uint16_t origFlags, bool ednsAdded, bool ecsAdded, std::vector<uint8_t>& rewrittenResponse, uint16_t addRoom, bool* zeroScope)
 {
   struct dnsheader* dh = (struct dnsheader*) *response;
 
@@ -297,8 +297,11 @@ bool fixUpResponse(char** response, uint16_t* responseLen, size_t* responseSize,
 
     const std::string responseStr(*response, *responseLen);
     int res = locateEDNSOptRR(responseStr, &optStart, &optLen, &last);
-
+    
     if (res == 0) {
+      if(zeroScope)
+        *zeroScope = optLen > 18 && !responseStr.at(optStart + 18);
+
       if (ednsAdded) {
         /* we added the entire OPT RR,
            therefore we need to remove it entirely */
@@ -511,12 +514,13 @@ try {
           addRoom = DNSCRYPT_MAX_RESPONSE_PADDING_AND_MAC_SIZE;
         }
 #endif
-        if (!fixUpResponse(&response, &responseLen, &responseSize, ids->qname, ids->origFlags, ids->ednsAdded, ids->ecsAdded, rewrittenResponse, addRoom)) {
+        bool zeroScope=false;
+        if (!fixUpResponse(&response, &responseLen, &responseSize, ids->qname, ids->origFlags, ids->ednsAdded, ids->ecsAdded, rewrittenResponse, addRoom, &zeroScope)) {
           continue;
         }
 
         if (ids->packetCache && !ids->skipCache) {
-          ids->packetCache->insert(ids->cacheKey, ids->subnet, ids->origFlags, ids->qname, ids->qtype, ids->qclass, response, responseLen, false, dh->rcode, ids->tempFailureTTL);
+          ids->packetCache->insert(zeroScope ? ids->cacheKeyNoECS : ids->cacheKey, ids->subnet, ids->origFlags, ids->qname, ids->qtype, ids->qclass, response, responseLen, false, dh->rcode, ids->tempFailureTTL);
         }
 
         if (ids->cs && !ids->cs->muted) {
@@ -1404,19 +1408,29 @@ static void processUDPQuery(ClientState& cs, LocalHolders& holders, const struct
 
     bool ednsAdded = false;
     bool ecsAdded = false;
+    uint32_t cacheKeyNoECS = 0;
+    uint32_t cacheKey = 0;
+    boost::optional<Netmask> subnet;
+    uint16_t cachedResponseSize = dq.size;
+    uint32_t allowExpired = ss ? 0 : g_staleCacheEntriesTTL;
+    
     if (dq.useECS && ((ss && ss->useECS) || (!ss && serverPool->getECS()))) {
+      uint16_t cachedResponseSize = dq.size;
+      uint32_t allowExpired = ss ? 0 : g_staleCacheEntriesTTL;
+      boost::optional<Netmask> subnet;
+      if (packetCache && !dq.skipCache && packetCache->get(dq, consumed, dh->id, query, &cachedResponseSize, &cacheKeyNoECS, subnet, allowExpired)) {
+        goto sendIt;
+      }
+      
       if (!handleEDNSClientSubnet(dq, &(ednsAdded), &(ecsAdded))) {
         vinfolog("Dropping query from %s because we couldn't insert the ECS value", remote.toStringWithPort());
         return;
       }
     }
 
-    uint32_t cacheKey = 0;
-    boost::optional<Netmask> subnet;
     if (packetCache && !dq.skipCache) {
-      uint16_t cachedResponseSize = dq.size;
-      uint32_t allowExpired = ss ? 0 : g_staleCacheEntriesTTL;
       if (packetCache->get(dq, consumed, dh->id, query, &cachedResponseSize, &cacheKey, subnet, allowExpired)) {
+      sendIt:;
         DNSResponse dr(dq.qname, dq.qtype, dq.qclass, dq.consumed, dq.local, dq.remote, reinterpret_cast<dnsheader*>(query), dq.size, cachedResponseSize, false, &queryRealTime);
 #ifdef HAVE_PROTOBUF
         dr.uniqueId = dq.uniqueId;
@@ -1527,6 +1541,7 @@ static void processUDPQuery(ClientState& cs, LocalHolders& holders, const struct
     ids->tempFailureTTL = dq.tempFailureTTL;
     ids->origFlags = origFlags;
     ids->cacheKey = cacheKey;
+    ids->cacheKeyNoECS = cacheKeyNoECS;
     ids->subnet = subnet;
     ids->skipCache = dq.skipCache;
     ids->packetCache = packetCache;
