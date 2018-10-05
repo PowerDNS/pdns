@@ -33,14 +33,19 @@ COMPILING Authoritative Server
 The PowerDNS Authoritative Server depends on Boost, OpenSSL and requires a
 compiler with C++-2011 support.
 
-On Debian 8.0, the following is useful:
+On Debian 9, the following is useful:
 
 ```sh
-apt-get install g++ libboost-all-dev libtool make pkg-config libmysqlclient-dev libssl-dev virtualenv
+apt install g++ libboost-all-dev libtool make pkg-config default-libmysqlclient-dev libssl-dev virtualenv
 ```
 
-When building from git, the following packages are also required: autoconf, automake,
-ragel, bison and flex, then generate the configure file:
+When building from git, the following packages are also required:
+
+```sh
+apt install autoconf automake ragel bison flex
+```
+
+then generate the configure file:
 
 ```sh
 autoreconf -vi
