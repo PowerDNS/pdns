@@ -193,7 +193,7 @@ try
   int dnserrors=0, parsefail=0;
   typedef map<uint32_t,uint32_t> cumul_t;
   cumul_t cumul;
-  unsigned int untracked=0, errorresult=0, reallylate=0, nonRDQueries=0, queries=0;
+  unsigned int untracked=0, errorresult=0, nonRDQueries=0, queries=0;
   unsigned int ipv4DNSPackets=0, ipv6DNSPackets=0, fragmented=0, rdNonRAAnswers=0;
   unsigned int answers=0, nonDNSIP=0, rdFilterMismatch=0;
   unsigned int dnssecOK=0, edns=0;
@@ -414,11 +414,11 @@ try
 
   uint32_t sum=0;
   //  ofstream stats("stats");
-  uint32_t totpackets=reallylate;
+  uint32_t totpairs=0;
   double tottime=0;
   for(cumul_t::const_iterator i=cumul.begin(); i!=cumul.end(); ++i) {
     //    stats<<i->first<<"\t"<<(sum+=i->second)<<"\n";
-    totpackets+=i->second;
+    totpairs+=i->second;
     tottime+=i->first*i->second;
   }
   
@@ -451,26 +451,29 @@ try
   
   sum=0;
   double lastperc=0, perc=0;
+  uint64_t lastsum=0;
   for(cumul_t::const_iterator i=cumul.begin(); i!=cumul.end(); ++i) {
     sum+=i->second;
 
-    for(done_t::iterator j=done.begin(); j!=done.end(); ++j)
+    for(done_t::iterator j=done.begin(); j!=done.end(); ++j) {
       if(!j->second && i->first > j->first) {
         j->second=true;
 
-        perc=sum*100.0/totpackets;
+        perc=sum*100.0/totpairs;
         if(j->first < 1024)
           cout<< perc <<"% of questions answered within " << j->first << " usec (";
         else
           cout<< perc <<"% of questions answered within " << j->first/1000.0 << " msec (";
         
         cout<<perc-lastperc<<"%)\n";
-        lastperc=sum*100.0/totpackets;
+        lastperc=sum*100.0/totpairs;
+        lastsum=sum;
       }
+    }
   }
-  cout<<reallylate<<" responses ("<<reallylate*100.0/answers<<"%) older than 2 seconds"<<endl;
-  if(totpackets)
-    cout<<"Average non-late response time: "<<tottime/totpackets<<" usec"<<endl;
+  cout<< (totpairs-lastsum)<<" responses ("<<((totpairs-lastsum)*100.0/answers) <<"%) older than "<< (done.rbegin()->first/1000000.0) <<" seconds"<<endl;
+  if(totpairs)
+    cout<<"Average non-late response time: "<<tottime/totpairs<<" usec"<<endl;
 
   if(!g_vm["load-stats"].as<string>().empty()) {
     ofstream load(g_vm["load-stats"].as<string>().c_str());
