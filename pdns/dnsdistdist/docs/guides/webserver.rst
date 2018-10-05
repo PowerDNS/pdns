@@ -107,7 +107,7 @@ URL Endpoints
 
    .. sourcecode:: http
 
-      GET /metrics
+      GET /metrics HTTP/1.1
 
   **Example response**:
    .. sourcecode:: http
@@ -261,6 +261,7 @@ URL Endpoints
    This is just the scrape job description, for details see the prometheus documentation.
 
    .. sourcecode:: yaml
+
       job_name: dnsdist
       scrape_interval: 10s
       scrape_timeout: 2s
@@ -268,7 +269,6 @@ URL Endpoints
       basic_auth:
         username: dontcare
         password: yoursecret
-
 
 .. http:get:: /api/v1/servers/localhost
 
