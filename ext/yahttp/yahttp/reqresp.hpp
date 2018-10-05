@@ -83,12 +83,12 @@ namespace YaHTTP {
           ifs.read(buf, sizeof buf);
           n += (k = ifs.gcount());
           if (k > 0) {
-            if (chunked) os << std::hex << k << std::dec << "\r\n";
+            if (chunked) os << std::hex << k << std::dec << "\t\n";
             os.write(buf, k);
-            if (chunked) os << "\r\n"; 
+            if (chunked) os << "\t\n"; 
           }
         }
-        if (chunked) os << 0 << "\r\n\r\n";
+        if (chunked) os << 0 << "\t\n\t\n";
         return n;
       }; //<! writes file to ostream and returns length
 
