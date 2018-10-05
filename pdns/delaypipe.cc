@@ -24,7 +24,6 @@
 #include "gettime.hh"
 #include <thread>
 #include "threadname.hh"
-#include "dolog.hh"
 
 template<class T>
 ObjectPipe<T>::ObjectPipe()
