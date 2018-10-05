@@ -50,7 +50,6 @@ EXTRA_DIST = \
 	bind-dnssec.schema.sqlite3.sql \
 	bindparser.h \
 	named.conf.parsertest \
-	delaypipe.hh delaypipe.cc \
 	pdns.service.in \
 	ixfrdist.service.in \
 	ixfrdist.example.yml \
@@ -1276,7 +1275,6 @@ testrunner_SOURCES = \
 	test-base64_cc.cc \
 	test-bindparser_cc.cc \
 	test-common.hh \
-	test-delaypipe_hh.cc \
 	test-dnsrecordcontent.cc \
 	test-distributor_hh.cc \
 	test-dns_random_hh.cc \

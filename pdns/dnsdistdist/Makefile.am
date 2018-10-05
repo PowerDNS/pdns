@@ -216,6 +216,7 @@ testrunner_SOURCES = \
 	base64.hh \
 	dns.hh \
 	test-base64_cc.cc \
+	test-delaypipe_hh.cc \
 	test-dnscrypt_cc.cc \
 	test-dnsdist_cc.cc \
 	test-dnsdistpacketcache_cc.cc \
@@ -245,6 +246,7 @@ testrunner_SOURCES = \
 	sholder.hh \
 	sodcrypto.cc \
 	sstuff.hh \
+	threadname.hh threadname.cc \
 	testrunner.cc \
 	xpf.cc xpf.hh
 
