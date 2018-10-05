@@ -716,7 +716,7 @@ void* tcpAcceptorThread(void* p)
         continue;
       }
 #endif
-      SSetsockopt(ci->fd, SOL_TCP, TCP_NODELAY, 1); // disable NAGLE
+      setTCPNoDelay(ci->fd);  // disable NAGLE
       if(g_maxTCPQueuedConnections > 0 && g_tcpclientthreads->getQueuedCount() >= g_maxTCPQueuedConnections) {
         close(ci->fd);
         delete ci;
