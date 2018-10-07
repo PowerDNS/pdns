@@ -1417,8 +1417,6 @@ static void processUDPQuery(ClientState& cs, LocalHolders& holders, const struct
         dnssecOK = (getEDNSZ(dq) & EDNS_HEADER_FLAG_DO);
       }
 
-      uint16_t cachedResponseSize = dq.size;
-      uint32_t allowExpired = ss ? 0 : g_staleCacheEntriesTTL;
       boost::optional<Netmask> subnet;
       if (packetCache && !dq.skipCache && packetCache->get(dq, consumed, dh->id, query, &cachedResponseSize, &cacheKeyNoECS, subnet, dnssecOK, allowExpired)) {
         goto sendIt;
