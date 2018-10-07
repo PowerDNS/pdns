@@ -417,7 +417,8 @@ public:
   {
     auto delta = d_prev.udiffAndSet();
 
-    d_tokens += 1.0 * rate * (delta/1000000.0);
+    if(delta > 0.0) // time, frequently, does go backwards..
+      d_tokens += 1.0 * rate * (delta/1000000.0);
 
     if(d_tokens > burst) {
       d_tokens = burst;
