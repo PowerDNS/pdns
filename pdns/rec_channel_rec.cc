@@ -990,6 +990,7 @@ void registerAllStats()
   addGetStat("edns-ping-matches", &g_stats.ednsPingMatches);
   addGetStat("edns-ping-mismatches", &g_stats.ednsPingMismatches);
   addGetStat("dnssec-queries", &g_stats.dnssecQueries);
+  addGetStat("variable-responses", &g_stats.variableResponses);
 
   addGetStat("noping-outqueries", &g_stats.noPingOutQueries);
   addGetStat("noedns-outqueries", &g_stats.noEdnsOutQueries);

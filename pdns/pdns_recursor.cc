@@ -1454,6 +1454,9 @@ static void startDoResolve(void *p)
       if(sendmsg(dc->d_socket, &msgh, 0) < 0 && g_logCommonErrors) 
         g_log<<Logger::Warning<<"Sending UDP reply to client "<<dc->getRemote()<<" failed with: "<<strerror(errno)<<endl;
 
+      if(variableAnswer || sr.wasVariable()) {
+	g_stats.variableResponses++;
+      }
       if(!SyncRes::s_nopacketcache && !variableAnswer && !sr.wasVariable() ) {
         t_packetCache->insertResponsePacket(dc->d_tag, dc->d_qhash, dc->d_mdp.d_qname, dc->d_mdp.d_qtype, dc->d_mdp.d_qclass,
                                             string((const char*)&*packet.begin(), packet.size()),
