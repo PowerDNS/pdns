@@ -782,6 +782,14 @@ emptyQueries OBJECT-TYPE
         "Number of queries dropped because they had a QD count of 0"
     ::= { stats 94 }
 
+variableResponses OBJECT-TYPE
+    SYNTAX Counter64
+    MAX-ACCESS read-only
+    STATUS current
+    DESCRIPTION
+        "Number of variable responses"
+    ::= { stats 95 }
+
 ---
 --- Traps / Notifications
 ---

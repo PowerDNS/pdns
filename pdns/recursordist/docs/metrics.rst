@@ -464,6 +464,14 @@ number of CPU milliseconds spent in 'user' mode
 
 .. _stat-x-our-latency:
 
+variable-responses
+^^^^^^^^^^^^^
+.. versionadded:: 4.2
+
+Reponses that were marked as 'variable'. This could be because of EDNS
+Client Subnet or Lua rules that indicate this variable status (dependent on
+time or who is asking, for example).
+
 x-our-latency
 ^^^^^^^^^^^^^
 .. versionadded:: 4.1
