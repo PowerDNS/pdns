@@ -30,12 +30,14 @@ BuildRequires: protobuf-devel
 BuildRequires: protobuf-compiler
 BuildRequires: p11-kit-devel
 BuildRequires: libcurl-devel
+BuildRequires: boost-devel
+%else
+BuildRequires: boost148-devel
+BuildRequires: boost148-program-options
 %endif
 
 Requires(pre): shadow-utils
 BuildRequires: luajit-devel
-BuildRequires: boost148-devel
-BuildRequires: boost148-program-options
 BuildRequires: libsodium-devel
 BuildRequires: bison
 BuildRequires: openssl-devel
