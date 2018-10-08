@@ -1401,7 +1401,7 @@ static void startDoResolve(void *p)
     }
   sendit:;
 
-    if(g_useIncomingECS && dc->d_ecsFound && !sr.wasVariable()) {
+    if(g_useIncomingECS && dc->d_ecsFound && (!sr.wasVariable() && !variableAnswer)) {
       //      cerr<<"Stuffing in a 0 scope because answer is static"<<endl;
       EDNSSubnetOpts eo;
       eo.source = dc->d_ednssubnet.source;
