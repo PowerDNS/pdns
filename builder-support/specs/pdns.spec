@@ -37,7 +37,12 @@ BuildRequires: boost148-program-options
 %endif
 
 Requires(pre): shadow-utils
+%ifarch aarch64
+BuildRequires: lua-devel
+%else
 BuildRequires: luajit-devel
+%endif
+BuildRequires: boost-devel
 BuildRequires: libsodium-devel
 BuildRequires: bison
 BuildRequires: openssl-devel
@@ -202,7 +207,11 @@ export CPPFLAGS="-DLDAP_DEPRECATED"
   --disable-dependency-tracking \
   --disable-silent-rules \
   --with-modules='' \
+%ifarch aarch64
+  --with-lua=lua \
+%else
   --with-lua=luajit \
+%endif
   --with-dynmodules='%{backends} random' \
   --enable-tools \
   --enable-libsodium \
