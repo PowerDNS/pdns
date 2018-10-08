@@ -1411,13 +1411,12 @@ static void processUDPQuery(ClientState& cs, LocalHolders& holders, const struct
     boost::optional<Netmask> subnet;
     uint16_t cachedResponseSize = dq.size;
     uint32_t allowExpired = ss ? 0 : g_staleCacheEntriesTTL;
-    
-    if (dq.useECS && ((ss && ss->useECS) || (!ss && serverPool->getECS()))) {
-      if (packetCache && !dq.skipCache) {
-        dnssecOK = (getEDNSZ(dq) & EDNS_HEADER_FLAG_DO);
-      }
 
-      boost::optional<Netmask> subnet;
+    if (packetCache && !dq.skipCache) {
+      dnssecOK = (getEDNSZ(dq) & EDNS_HEADER_FLAG_DO);
+    }
+
+    if (dq.useECS && ((ss && ss->useECS) || (!ss && serverPool->getECS()))) {
       if (packetCache && !dq.skipCache && packetCache->get(dq, consumed, dh->id, query, &cachedResponseSize, &cacheKeyNoECS, subnet, dnssecOK, allowExpired)) {
         goto sendIt;
       }

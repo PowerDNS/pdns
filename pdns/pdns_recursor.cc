@@ -1486,12 +1486,12 @@ static void startDoResolve(void *p)
     }
   sendit:;
 
-    if(g_useIncomingECS && haveEDNS && !sr.wasVariable()) {
+    if(g_useIncomingECS && dc->d_ecsFound && !sr.wasVariable()) {
       //      cerr<<"Stuffing in a 0 scope because answer is static"<<endl;
       EDNSSubnetOpts eo;
       eo.source = dc->d_ednssubnet.source;
       ComboAddress sa;
-      memset(&sa, 0, sizeof(sa));
+      sa.reset();
       sa.sin4.sin_family = eo.source.getNetwork().sin4.sin_family;
       eo.scope = Netmask(sa, 0);
 
@@ -1568,7 +1568,7 @@ static void startDoResolve(void *p)
         g_log<<Logger::Warning<<"Sending UDP reply to client "<<dc->getRemote()<<" failed with: "<<strerror(errno)<<endl;
 
       if(variableAnswer || sr.wasVariable()) {
-	g_stats.variableResponses++;
+        g_stats.variableResponses++;
       }
       if(!SyncRes::s_nopacketcache && !variableAnswer && !sr.wasVariable() ) {
         t_packetCache->insertResponsePacket(dc->d_tag, dc->d_qhash, std::move(dc->d_query), dc->d_mdp.d_qname, dc->d_mdp.d_qtype, dc->d_mdp.d_qclass,
