@@ -301,8 +301,10 @@ bool fixUpResponse(char** response, uint16_t* responseLen, size_t* responseSize,
     int res = locateEDNSOptRR(responseStr, &optStart, &optLen, &last);
 
     if (res == 0) {
-      if(zeroScope)
-        *zeroScope = optLen > 18 && !responseStr.at(optStart + 18);
+      if(zeroScope) { // this finds if an EDNS scope was set, and if it is 0
+        *zeroScope = optLen > 18 && !responseStr.at(optStart + 18) && !responseStr.at(optStart + 11) && responseStr.at(optStart + 12) ==8;
+      }
+      // this test only detects a /0 if ECS is the first option
 
       if (ednsAdded) {
         /* we added the entire OPT RR,
