@@ -142,6 +142,7 @@ sed -i '/^ExecStart/ s/dnsdist/dnsdist -u dnsdist -g dnsdist/' dnsdist.service.i
 %build
 %configure \
   --sysconfdir=/etc/dnsdist \
+  --enable-dns-over-tls \
   ${SNMP_CONFIGURE}
   ${LUA_CONFIGURE}
   ${RE2_CONFIGURE}
