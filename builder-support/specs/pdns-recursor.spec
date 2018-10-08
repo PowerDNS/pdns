@@ -16,12 +16,14 @@ BuildRequires: boost148-devel
 BuildRequires: lua-devel
 %else
 BuildRequires: boost-devel
+%ifarch aarch64
+BuildRequires: lua-devel
+%else
 BuildRequires: luajit-devel
+%endif
 BuildRequires: systemd
 BuildRequires: systemd-devel
 %endif
-
-# Note: The ifarch for luajit is removed becuae of EL6 not having luajit
 
 %ifarch ppc64 ppc64le
 BuildRequires: libatomic
@@ -68,7 +70,11 @@ package if you need a dns cache for your network.
 
 make %{?_smp_mflags} LIBRARY_PATH=/usr/lib64/boost148
 %else
+%ifarch aarch64
+    --with-lua=lua \
+%else
     --with-lua=luajit \
+%endif
     --enable-systemd --with-systemd=%{_unitdir}
 
 make %{?_smp_mflags}
