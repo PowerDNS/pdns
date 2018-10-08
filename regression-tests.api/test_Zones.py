@@ -642,6 +642,14 @@ class AuthZones(ApiTestCase, AuthZonesHelperMixin):
         self.assertEqual(data['serial'], 0)
         self.assertEqual(data['rrsets'], [])
 
+    def test_find_zone_by_name(self):
+        name = 'foo/' + unique_zone_name()
+        name, payload, data = self.create_zone(name=name)
+        r = self.session.get(self.url("/api/v1/servers/localhost/zones?zone=" + name))
+        data = r.json()
+        print(data)
+        self.assertEquals(data[0]['name'], name)
+
     def test_delete_slave_zone(self):
         name, payload, data = self.create_zone(kind='Slave', nameservers=None, masters=['127.0.0.2'])
         r = self.session.delete(self.url("/api/v1/servers/localhost/zones/" + data['id']))

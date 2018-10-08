@@ -33,6 +33,7 @@
 
 #include "dnsdist.hh"
 #include "dnsdist-console.hh"
+#include "dnsdist-ecs.hh"
 #include "dnsdist-lua.hh"
 #include "dnsdist-rings.hh"
 
@@ -44,6 +45,7 @@
 #include "sodcrypto.hh"
 
 #include <boost/logic/tribool.hpp>
+#include <boost/lexical_cast.hpp>
 
 #ifdef HAVE_SYSTEMD
 #include <systemd/sd-daemon.h>
@@ -271,7 +273,7 @@ void setupLuaConfig(bool client)
 			      return ret;
 			    }
 
-			    ret->weight=weightVal;
+			    ret->setWeight(weightVal);
 			  }
 			  catch(std::exception& e) {
 			    // std::stoi will throw an exception if the string isn't in a value int range
@@ -310,6 +312,10 @@ void setupLuaConfig(bool client)
 			if(vars.count("name")) {
 			  ret->name=boost::get<string>(vars["name"]);
 			}
+
+                        if (vars.count("id")) {
+                          ret->setId(boost::lexical_cast<boost::uuids::uuid>(boost::get<string>(vars["id"])));
+                        }
 
 			if(vars.count("checkName")) {
 			  ret->checkName=DNSName(boost::get<string>(vars["checkName"]));
@@ -1474,6 +1480,24 @@ void setupLuaConfig(bool client)
       g_outputBuffer="recvmmsg support is not available!\n";
 #endif
     });
+
+  g_lua.writeFunction("setAddEDNSToSelfGeneratedResponses", [](bool add) {
+      g_addEDNSToSelfGeneratedResponses = add;
+  });
+
+  g_lua.writeFunction("setPayloadSizeOnSelfGeneratedAnswers", [](uint16_t payloadSize) {
+      if (payloadSize < 512) {
+        warnlog("setPayloadSizeOnSelfGeneratedAnswers() is set too low, using 512 instead!");
+        g_outputBuffer="setPayloadSizeOnSelfGeneratedAnswers() is set too low, using 512 instead!";
+        payloadSize = 512;
+      }
+      if (payloadSize > s_udpIncomingBufferSize) {
+        warnlog("setPayloadSizeOnSelfGeneratedAnswers() is set too high, capping to %d instead!", s_udpIncomingBufferSize);
+        g_outputBuffer="setPayloadSizeOnSelfGeneratedAnswers() is set too high, capping to " + std::to_string(s_udpIncomingBufferSize) + " instead";
+        payloadSize = s_udpIncomingBufferSize;
+      }
+      g_PayloadSizeSelfGenAnswers = payloadSize;
+  });
 
   g_lua.writeFunction("addTLSLocal", [client](const std::string& addr, boost::variant<std::string, std::vector<std::pair<int,std::string>>> certFiles, boost::variant<std::string, std::vector<std::pair<int,std::string>>> keyFiles, boost::optional<localbind_t> vars) {
         if (client)

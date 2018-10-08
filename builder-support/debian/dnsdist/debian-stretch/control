@@ -1,0 +1,33 @@
+Source: dnsdist
+Section: net
+Priority: optional
+Maintainer: Debian DNS Packaging <pkg-dns-devel@lists.alioth.debian.org>
+Uploaders: Christian Hofstaedtler <zeha@debian.org>
+Build-Depends: debhelper (>= 10~),
+               libboost-dev,
+               libedit-dev,
+               libfstrm-dev,
+               libgnutls28-dev,
+               libluajit-5.1-dev,
+               libprotobuf-dev,
+               libre2-dev,
+               libsodium-dev,
+               libssl-dev,
+               libsystemd-dev [linux-any],
+               pkg-config,
+               protobuf-compiler,
+               ragel
+Standards-Version: 4.1.0
+Homepage: http://dnsdist.org
+Vcs-Git: https://anonscm.debian.org/git/pkg-dns/dnsdist.git
+Vcs-Browser: https://anonscm.debian.org/cgit/pkg-dns/dnsdist.git
+
+Package: dnsdist
+Architecture: any
+Depends: ${misc:Depends},
+         ${shlibs:Depends}
+Description: DNS loadbalancer
+ Highly DoS- and abuse-aware load balancing tool for DNS traffic,
+ with Lua scripting and configuration capability.
+ Can be configured to use various sets of rules to classify, route
+ and reject traffic.

@@ -12,7 +12,7 @@
 #include "dnsdist-cache.hh"
 #include "gettime.hh"
 
-BOOST_AUTO_TEST_SUITE(dnsdistpacketcache_cc)
+BOOST_AUTO_TEST_SUITE(test_dnsdistpacketcache_cc)
 
 BOOST_AUTO_TEST_CASE(test_PacketCacheSimple) {
   const size_t maxEntries = 150000;
@@ -49,7 +49,7 @@ BOOST_AUTO_TEST_CASE(test_PacketCacheSimple) {
       uint32_t key = 0;
       boost::optional<Netmask> subnet;
       auto dh = reinterpret_cast<dnsheader*>(query.data());
-      DNSQuestion dq(&a, QType::A, QClass::IN, &remote, &remote, dh, query.size(), query.size(), false, &queryTime);
+      DNSQuestion dq(&a, QType::A, QClass::IN, 0, &remote, &remote, dh, query.size(), query.size(), false, &queryTime);
       bool found = PC.get(dq, a.wirelength(), 0, responseBuf, &responseBufSize, &key, subnet);
       BOOST_CHECK_EQUAL(found, false);
       BOOST_CHECK(!subnet);
@@ -82,7 +82,7 @@ BOOST_AUTO_TEST_CASE(test_PacketCacheSimple) {
       uint16_t responseBufSize = sizeof(responseBuf);
       uint32_t key = 0;
       boost::optional<Netmask> subnet;
-      DNSQuestion dq(&a, QType::A, QClass::IN, &remote, &remote, (struct dnsheader*) query.data(), query.size(), query.size(), false, &queryTime);
+      DNSQuestion dq(&a, QType::A, QClass::IN, 0, &remote, &remote, (struct dnsheader*) query.data(), query.size(), query.size(), false, &queryTime);
       bool found = PC.get(dq, a.wirelength(), 0, responseBuf, &responseBufSize, &key, subnet);
       if (found == true) {
         PC.expungeByName(a);
@@ -105,7 +105,7 @@ BOOST_AUTO_TEST_CASE(test_PacketCacheSimple) {
       boost::optional<Netmask> subnet;
       char response[4096];
       uint16_t responseSize = sizeof(response);
-      DNSQuestion dq(&a, QType::A, QClass::IN, &remote, &remote, (struct dnsheader*) query.data(), len, query.size(), false, &queryTime);
+      DNSQuestion dq(&a, QType::A, QClass::IN, 0, &remote, &remote, (struct dnsheader*) query.data(), len, query.size(), false, &queryTime);
       if(PC.get(dq, a.wirelength(), pwQ.getHeader()->id, response, &responseSize, &key, subnet)) {
         matches++;
       }
@@ -151,7 +151,7 @@ BOOST_AUTO_TEST_CASE(test_PacketCacheServFailTTL) {
     uint32_t key = 0;
     boost::optional<Netmask> subnet;
     auto dh = reinterpret_cast<dnsheader*>(query.data());
-    DNSQuestion dq(&a, QType::A, QClass::IN, &remote, &remote, dh, query.size(), query.size(), false, &queryTime);
+    DNSQuestion dq(&a, QType::A, QClass::IN, 0, &remote, &remote, dh, query.size(), query.size(), false, &queryTime);
     bool found = PC.get(dq, a.wirelength(), 0, responseBuf, &responseBufSize, &key, subnet);
     BOOST_CHECK_EQUAL(found, false);
     BOOST_CHECK(!subnet);
@@ -208,7 +208,7 @@ BOOST_AUTO_TEST_CASE(test_PacketCacheNoDataTTL) {
     uint32_t key = 0;
     boost::optional<Netmask> subnet;
     auto dh = reinterpret_cast<dnsheader*>(query.data());
-    DNSQuestion dq(&name, QType::A, QClass::IN, &remote, &remote, dh, query.size(), query.size(), false, &queryTime);
+    DNSQuestion dq(&name, QType::A, QClass::IN, 0, &remote, &remote, dh, query.size(), query.size(), false, &queryTime);
     bool found = PC.get(dq, name.wirelength(), 0, responseBuf, &responseBufSize, &key, subnet);
     BOOST_CHECK_EQUAL(found, false);
     BOOST_CHECK(!subnet);
@@ -264,7 +264,7 @@ BOOST_AUTO_TEST_CASE(test_PacketCacheNXDomainTTL) {
     uint32_t key = 0;
     boost::optional<Netmask> subnet;
     auto dh = reinterpret_cast<dnsheader*>(query.data());
-    DNSQuestion dq(&name, QType::A, QClass::IN, &remote, &remote, dh, query.size(), query.size(), false, &queryTime);
+    DNSQuestion dq(&name, QType::A, QClass::IN, 0, &remote, &remote, dh, query.size(), query.size(), false, &queryTime);
     bool found = PC.get(dq, name.wirelength(), 0, responseBuf, &responseBufSize, &key, subnet);
     BOOST_CHECK_EQUAL(found, false);
     BOOST_CHECK(!subnet);
@@ -317,7 +317,7 @@ static void *threadMangler(void* off)
       uint32_t key = 0;
       boost::optional<Netmask> subnet;
       auto dh = reinterpret_cast<dnsheader*>(query.data());
-      DNSQuestion dq(&a, QType::A, QClass::IN, &remote, &remote, dh, query.size(), query.size(), false, &queryTime);
+      DNSQuestion dq(&a, QType::A, QClass::IN, 0, &remote, &remote, dh, query.size(), query.size(), false, &queryTime);
       PC.get(dq, a.wirelength(), 0, responseBuf, &responseBufSize, &key, subnet);
 
       PC.insert(key, subnet, *(getFlagsFromDNSHeader(dh)), a, QType::A, QClass::IN, (const char*) response.data(), responseLen, false, 0, boost::none);
@@ -351,7 +351,7 @@ static void *threadReader(void* off)
       uint16_t responseBufSize = sizeof(responseBuf);
       uint32_t key = 0;
       boost::optional<Netmask> subnet;
-      DNSQuestion dq(&a, QType::A, QClass::IN, &remote, &remote, (struct dnsheader*) query.data(), query.size(), query.size(), false, &queryTime);
+      DNSQuestion dq(&a, QType::A, QClass::IN, 0, &remote, &remote, (struct dnsheader*) query.data(), query.size(), query.size(), false, &queryTime);
       bool found = PC.get(dq, a.wirelength(), 0, responseBuf, &responseBufSize, &key, subnet);
       if (!found) {
 	g_missing++;
@@ -422,7 +422,7 @@ BOOST_AUTO_TEST_CASE(test_PCCollision) {
     ComboAddress remote("192.0.2.1");
     struct timespec queryTime;
     gettime(&queryTime);
-    DNSQuestion dq(&qname, QType::AAAA, QClass::IN, &remote, &remote, pwQ.getHeader(), query.size(), query.size(), false, &queryTime);
+    DNSQuestion dq(&qname, QType::AAAA, QClass::IN, 0, &remote, &remote, pwQ.getHeader(), query.size(), query.size(), false, &queryTime);
     bool found = PC.get(dq, qname.wirelength(), 0, responseBuf, &responseBufSize, &key, subnetOut);
     BOOST_CHECK_EQUAL(found, false);
     BOOST_REQUIRE(subnetOut);
@@ -467,7 +467,7 @@ BOOST_AUTO_TEST_CASE(test_PCCollision) {
     ComboAddress remote("192.0.2.1");
     struct timespec queryTime;
     gettime(&queryTime);
-    DNSQuestion dq(&qname, QType::AAAA, QClass::IN, &remote, &remote, pwQ.getHeader(), query.size(), query.size(), false, &queryTime);
+    DNSQuestion dq(&qname, QType::AAAA, QClass::IN, 0, &remote, &remote, pwQ.getHeader(), query.size(), query.size(), false, &queryTime);
     bool found = PC.get(dq, qname.wirelength(), 0, responseBuf, &responseBufSize, &secondKey, subnetOut);
     BOOST_CHECK_EQUAL(found, false);
     BOOST_CHECK_EQUAL(secondKey, key);

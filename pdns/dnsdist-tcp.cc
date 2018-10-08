@@ -29,8 +29,10 @@
 #include "lock.hh"
 #include "gettime.hh"
 #include "tcpiohandler.hh"
+#include "threadname.hh"
 #include <thread>
 #include <atomic>
+#include <netinet/tcp.h>
 
 using std::thread;
 using std::atomic;
@@ -237,6 +239,8 @@ void* tcpClientThread(int pipefd)
   /* we get launched with a pipe on which we receive file descriptors from clients that we own
      from that point on */
 
+  setThreadName("dnsdist/tcpClie");
+
   bool outstanding = false;
   time_t lastTCPCleanup = time(nullptr);
   
@@ -358,16 +362,16 @@ void* tcpClientThread(int pipefd)
 	uint16_t qtype, qclass;
 	unsigned int consumed = 0;
 	DNSName qname(query, qlen, sizeof(dnsheader), false, &qtype, &qclass, &consumed);
-	DNSQuestion dq(&qname, qtype, qclass, &dest, &ci.remote, dh, queryBuffer.size(), qlen, true, &queryRealTime);
+	DNSQuestion dq(&qname, qtype, qclass, consumed, &dest, &ci.remote, dh, queryBuffer.size(), qlen, true, &queryRealTime);
 
 	if (!processQuery(holders, dq, poolname, &delayMsec, now)) {
 	  goto drop;
 	}
 
 	if(dq.dh->qr) { // something turned it into a response
-          restoreFlags(dh, origFlags);
+          fixUpQueryTurnedResponse(dq, origFlags);
 
-          DNSResponse dr(dq.qname, dq.qtype, dq.qclass, dq.local, dq.remote, reinterpret_cast<dnsheader*>(query), dq.size, dq.len, true, &queryRealTime);
+          DNSResponse dr(dq.qname, dq.qtype, dq.qclass, dq.consumed, dq.local, dq.remote, reinterpret_cast<dnsheader*>(query), dq.size, dq.len, true, &queryRealTime);
 #ifdef HAVE_PROTOBUF
           dr.uniqueId = dq.uniqueId;
 #endif
@@ -404,12 +408,10 @@ void* tcpClientThread(int pipefd)
         }
 
         if (dq.useECS && ((ds && ds->useECS) || (!ds && serverPool->getECS()))) {
-          uint16_t newLen = dq.len;
-          if (!handleEDNSClientSubnet(query, dq.size, consumed, &newLen, &ednsAdded, &ecsAdded, dq.ecsSet ? dq.ecs.getNetwork() : ci.remote, dq.ecsOverride, dq.ecsSet ? dq.ecs.getBits() : dq.ecsPrefixLength)) {
+          if (!handleEDNSClientSubnet(dq, &(ednsAdded), &(ecsAdded))) {
             vinfolog("Dropping query from %s because we couldn't insert the ECS value", ci.remote.toStringWithPort());
             goto drop;
           }
-          dq.len = newLen;
         }
 
         uint32_t cacheKey = 0;
@@ -419,7 +421,7 @@ void* tcpClientThread(int pipefd)
           uint16_t cachedResponseSize = sizeof cachedResponse;
           uint32_t allowExpired = ds ? 0 : g_staleCacheEntriesTTL;
           if (packetCache->get(dq, (uint16_t) consumed, dq.dh->id, cachedResponse, &cachedResponseSize, &cacheKey, subnet, allowExpired)) {
-            DNSResponse dr(dq.qname, dq.qtype, dq.qclass, dq.local, dq.remote, (dnsheader*) cachedResponse, sizeof cachedResponse, cachedResponseSize, true, &queryRealTime);
+            DNSResponse dr(dq.qname, dq.qtype, dq.qclass, dq.consumed, dq.local, dq.remote, (dnsheader*) cachedResponse, sizeof cachedResponse, cachedResponseSize, true, &queryRealTime);
 #ifdef HAVE_PROTOBUF
             dr.uniqueId = dq.uniqueId;
 #endif
@@ -449,7 +451,7 @@ void* tcpClientThread(int pipefd)
             dq.dh->rcode = RCode::ServFail;
             dq.dh->qr = true;
 
-            DNSResponse dr(dq.qname, dq.qtype, dq.qclass, dq.local, dq.remote, reinterpret_cast<dnsheader*>(query), dq.size, dq.len, false, &queryRealTime);
+            DNSResponse dr(dq.qname, dq.qtype, dq.qclass, dq.consumed, dq.local, dq.remote, reinterpret_cast<dnsheader*>(query), dq.size, dq.len, false, &queryRealTime);
 #ifdef HAVE_PROTOBUF
             dr.uniqueId = dq.uniqueId;
 #endif
@@ -581,7 +583,8 @@ void* tcpClientThread(int pipefd)
           break;
         }
 
-        if (firstPacket && !responseContentMatches(response, responseLen, qname, qtype, qclass, ds->remote)) {
+        consumed = 0;
+        if (firstPacket && !responseContentMatches(response, responseLen, qname, qtype, qclass, ds->remote, consumed)) {
           break;
         }
         firstPacket=false;
@@ -590,7 +593,7 @@ void* tcpClientThread(int pipefd)
         }
 
         dh = (struct dnsheader*) response;
-        DNSResponse dr(&qname, qtype, qclass, &dest, &ci.remote, dh, responseSize, responseLen, true, &queryRealTime);
+        DNSResponse dr(&qname, qtype, qclass, consumed, &dest, &ci.remote, dh, responseSize, responseLen, true, &queryRealTime);
 #ifdef HAVE_PROTOBUF
         dr.uniqueId = dq.uniqueId;
 #endif
@@ -669,6 +672,7 @@ void* tcpClientThread(int pipefd)
 */
 void* tcpAcceptorThread(void* p)
 {
+  setThreadName("dnsdist/tcpAcce");
   ClientState* cs = (ClientState*) p;
   bool tcpClientCountIncremented = false;
   ComboAddress remote;
@@ -712,7 +716,7 @@ void* tcpAcceptorThread(void* p)
         continue;
       }
 #endif
-
+      setTCPNoDelay(ci->fd);  // disable NAGLE
       if(g_maxTCPQueuedConnections > 0 && g_tcpclientthreads->getQueuedCount() >= g_maxTCPQueuedConnections) {
         close(ci->fd);
         delete ci;

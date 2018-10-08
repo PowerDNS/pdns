@@ -29,6 +29,7 @@
 #include <sys/resource.h>
 #include "dynhandler.hh"
 #include "dnsseckeeper.hh"
+#include "threadname.hh"
 
 #ifdef HAVE_SYSTEMD
 #include <systemd/sd-daemon.h>
@@ -197,7 +198,7 @@ void declareArguments()
   ::arg().set("lua-dnsupdate-policy-script", "Lua script with DNS update policy handler")="";
 
   ::arg().setSwitch("traceback-handler","Enable the traceback handler (Linux only)")="yes";
-  ::arg().setSwitch("direct-dnskey","Fetch DNSKEY RRs from backend during DNSKEY synthesis")="no";
+  ::arg().setSwitch("direct-dnskey","Fetch DNSKEY, CDS and CDNSKEY RRs from backend during DNSKEY or CDS/CDNSKEY synthesis")="no";
   ::arg().set("default-ksk-algorithm","Default KSK algorithm")="ecdsa256";
   ::arg().set("default-ksk-size","Default KSK size (0 means default)")="0";
   ::arg().set("default-zsk-algorithm","Default ZSK algorithm")="";
@@ -367,6 +368,8 @@ void sendout(DNSPacket* a)
 void *qthread(void *number)
 try
 {
+  setThreadName("pdns/receiver");
+
   DNSPacket *P;
   DNSDistributor *distributor = DNSDistributor::Create(::arg().asNum("distributor-threads", 1)); // the big dispatcher!
   int num = (int)(unsigned long)number;

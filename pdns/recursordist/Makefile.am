@@ -1,7 +1,7 @@
 JSON11_LIBS = $(top_srcdir)/ext/json11/libjson11.la
 PROBDS_LIBS = $(top_srcdir)/ext/probds/libprobds.la
 
-AM_CPPFLAGS = $(LUA_CFLAGS) $(YAHTTP_CFLAGS) $(BOOST_CPPFLAGS) $(BOTAN_CFLAGS) $(LIBSODIUM_CFLAGS) $(NET_SNMP_CFLAGS) $(SANITIZER_FLAGS) -O3 -Wall -pthread -DSYSCONFDIR=\"${sysconfdir}\" $(SYSTEMD_CFLAGS)
+AM_CPPFLAGS = $(LUA_CFLAGS) $(YAHTTP_CFLAGS) $(BOOST_CPPFLAGS) $(LIBSODIUM_CFLAGS) $(NET_SNMP_CFLAGS) $(SANITIZER_FLAGS) -O3 -Wall -pthread -DSYSCONFDIR=\"${sysconfdir}\" $(SYSTEMD_CFLAGS)
 
 AM_CPPFLAGS += \
 	-I$(top_srcdir)/ext/json11 \
@@ -42,10 +42,6 @@ AM_CPPFLAGS +=$(LUA_CFLAGS)
 endif
 
 EXTRA_DIST = \
-	NOTICE \
-	.version \
-	botansigners.cc \
-	build-aux/gen-version \
 	contrib/* \
 	devpollmplexer.cc \
 	dnslabeltext.cc \
@@ -65,7 +61,8 @@ EXTRA_DIST = \
 	html incfiles \
 	test_libcrypto \
 	pdns-recursor.service.in \
-	RECURSOR-MIB.txt
+	RECURSOR-MIB.txt \
+	builder-support/gen-version
 
 dist-hook:
 	for file in $$(find $(distdir)/docs -type l); do \
@@ -162,6 +159,7 @@ pdns_recursor_SOURCES = \
 	sstuff.hh \
 	stable-bloom.hh \
 	syncres.cc syncres.hh \
+	threadname.hh threadname.cc \
 	tsigverifier.cc tsigverifier.hh \
 	ueberbackend.hh \
 	unix_utility.cc \
@@ -259,7 +257,6 @@ testrunner_SOURCES = \
 	test-ixfr_cc.cc \
 	test-misc_hh.cc \
 	test-mtasker.cc \
-	test-nmtree.cc \
 	test-negcache_cc.cc \
 	test-rcpgenerator_cc.cc \
 	test-recpacketcache_cc.cc \
@@ -269,6 +266,7 @@ testrunner_SOURCES = \
 	test-tsig.cc \
 	test-xpf_cc.cc \
 	testrunner.cc \
+	threadname.hh threadname.cc \
 	tsigverifier.cc tsigverifier.hh \
 	unix_utility.cc \
 	validate.cc validate.hh \
@@ -299,15 +297,6 @@ testrunner_LDADD += \
 	$(BOOST_FILESYSTEM_LIBS)
 testrunner_LDFLAGS += \
 	$(BOOST_FILESYSTEM_LDFLAGS)
-endif
-
-if BOTAN
-pdns_recursor_SOURCES += \
-	botansigners.cc
-pdns_recursor_LDADD += $(BOTAN_LIBS)
-testrunner_SOURCES += \
-	botansigners.cc
-testrunner_LDADD += $(BOTAN_LIBS)
 endif
 
 if LIBSODIUM

@@ -54,7 +54,7 @@ public:
   DNSProxy(const string &ip); //!< creates socket
   ~DNSProxy(); //<! dtor for DNSProxy
   void go(); //!< launches the actual thread
-  bool completePacket(DNSPacket *r, const DNSName& target,const DNSName& aname);
+  bool completePacket(DNSPacket *r, const DNSName& target,const DNSName& aname, const uint8_t scopeMask);
 
   void mainloop();                  //!< this is the main loop that receives reply packets and sends them out again
   static void *launchhelper(void *p)
@@ -71,6 +71,7 @@ private:
     DNSName qname;
     DNSPacket* complete;
     DNSName aname;
+    uint8_t anameScopeMask;
     ComboAddress remote;
     uint16_t id;
     uint16_t qtype;

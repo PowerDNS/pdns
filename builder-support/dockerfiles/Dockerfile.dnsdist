@@ -1,0 +1,20 @@
+FROM alpine:3.6 as dnsdist
+
+RUN apk add --no-cache gcc g++ make tar autoconf automake protobuf-dev lua-dev \
+                       libtool file boost-dev ragel py-virtualenv git libedit-dev
+
+ADD builder/helpers/set-configure-ac-version.sh /dnsdist/builder/helpers/
+@EXEC sdist_dirs=(build-aux m4 pdns ext)
+@EXEC for d in ${sdist_dirs[@]} ; do echo "COPY $d/ /dnsdist/$d/" ; done
+ADD builder-support/gen-version /dnsdist/pdns/dnsdistdist/builder-support/gen-version
+WORKDIR /dnsdist/pdns/dnsdistdist
+
+RUN mkdir /sdist
+
+ARG BUILDER_VERSION
+RUN /dnsdist/builder/helpers/set-configure-ac-version.sh && \
+     autoreconf -v -i --force && \
+    ./configure --disable-dependency-tracking && \
+    make dist
+RUN cp dnsdist-${BUILDER_VERSION}.tar.bz2 /sdist/
+

@@ -19,6 +19,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
+#include "threadname.hh"
 #include "dnsdist.hh"
 #include "dnsdist-ecs.hh"
 #include "dnsdist-lua.hh"
@@ -155,7 +156,6 @@ TeeAction::~TeeAction()
   d_worker.join();
 }
 
-
 DNSAction::Action TeeAction::operator()(DNSQuestion* dq, string* ruleresult) const
 {
   if(dq->tcp) {
@@ -173,7 +173,10 @@ DNSAction::Action TeeAction::operator()(DNSQuestion* dq, string* ruleresult) con
       query.reserve(dq->size);
       query.assign((char*) dq->dh, len);
 
-      if (!handleEDNSClientSubnet(const_cast<char*>(query.c_str()), query.capacity(), dq->qname->wirelength(), &len, &ednsAdded, &ecsAdded, dq->ecsSet ? dq->ecs.getNetwork() : *dq->remote, dq->ecsOverride, dq->ecsSet ? dq->ecs.getBits() :  dq->ecsPrefixLength)) {
+      string newECSOption;
+      generateECSOption(dq->ecsSet ? dq->ecs.getNetwork() : *dq->remote, newECSOption, dq->ecsSet ? dq->ecs.getBits() :  dq->ecsPrefixLength);
+
+      if (!handleEDNSClientSubnet(const_cast<char*>(query.c_str()), query.capacity(), dq->qname->wirelength(), &len, &ednsAdded, &ecsAdded, dq->ecsOverride, newECSOption)) {
         return DNSAction::Action::None;
       }
 
@@ -211,6 +214,7 @@ std::map<string,double> TeeAction::getStats() const
 
 void TeeAction::worker()
 {
+  setThreadName("dnsdist/TeeWork");
   char packet[1500];
   int res=0;
   struct dnsheader* dh=(struct dnsheader*)packet;
@@ -402,6 +406,13 @@ DNSAction::Action SpoofAction::operator()(DNSQuestion* dq, string* ruleresult) c
     return Action::None;
   }
 
+  bool dnssecOK = false;
+  bool hadEDNS = false;
+  if (g_addEDNSToSelfGeneratedResponses && queryHasEDNS(*dq)) {
+    hadEDNS = true;
+    dnssecOK = getEDNSZ(*dq) & EDNS_HEADER_FLAG_DO;
+  }
+
   dq->len = sizeof(dnsheader) + consumed + 4; // there goes your EDNS
   char* dest = ((char*)dq->dh) + dq->len;
 
@@ -450,6 +461,10 @@ DNSAction::Action SpoofAction::operator()(DNSQuestion* dq, string* ruleresult) c
 
   dq->dh->ancount = htons(dq->dh->ancount);
 
+  if (hadEDNS) {
+    addEDNS(dq->dh, dq->len, dq->size, dnssecOK, g_PayloadSizeSelfGenAnswers);
+  }
+
   return Action::HeaderModify;
 }
 
@@ -471,7 +486,7 @@ public:
     generateEDNSOption(d_code, mac, optRData);
 
     string res;
-    generateOptRR(optRData, res);
+    generateOptRR(optRData, res, g_EdnsUDPPayloadSize, false);
 
     if ((dq->size - dq->len) < res.length())
       return Action::None;
@@ -736,7 +751,7 @@ private:
 class RemoteLogAction : public DNSAction, public boost::noncopyable
 {
 public:
-  RemoteLogAction(std::shared_ptr<RemoteLoggerInterface>& logger, boost::optional<std::function<void(const DNSQuestion&, DNSDistProtoBufMessage*)> > alterFunc): d_logger(logger), d_alterFunc(alterFunc)
+  RemoteLogAction(std::shared_ptr<RemoteLoggerInterface>& logger, boost::optional<std::function<void(const DNSQuestion&, DNSDistProtoBufMessage*)> > alterFunc, const std::string& serverID): d_logger(logger), d_alterFunc(alterFunc), d_serverID(serverID)
   {
   }
   DNSAction::Action operator()(DNSQuestion* dq, string* ruleresult) const override
@@ -747,12 +762,15 @@ public:
     }
 
     DNSDistProtoBufMessage message(*dq);
-    {
-      if (d_alterFunc) {
-        std::lock_guard<std::mutex> lock(g_luamutex);
-        (*d_alterFunc)(*dq, &message);
-      }
+    if (!d_serverID.empty()) {
+      message.setServerIdentity(d_serverID);
     }
+
+    if (d_alterFunc) {
+      std::lock_guard<std::mutex> lock(g_luamutex);
+      (*d_alterFunc)(*dq, &message);
+    }
+
     std::string data;
     message.serialize(data);
     d_logger->queueData(data);
@@ -766,6 +784,7 @@ public:
 private:
   std::shared_ptr<RemoteLoggerInterface> d_logger;
   boost::optional<std::function<void(const DNSQuestion&, DNSDistProtoBufMessage*)> > d_alterFunc;
+  std::string d_serverID;
 };
 
 class SNMPTrapAction : public DNSAction
@@ -852,7 +871,7 @@ private:
 class RemoteLogResponseAction : public DNSResponseAction, public boost::noncopyable
 {
 public:
-  RemoteLogResponseAction(std::shared_ptr<RemoteLoggerInterface>& logger, boost::optional<std::function<void(const DNSResponse&, DNSDistProtoBufMessage*)> > alterFunc, bool includeCNAME): d_logger(logger), d_alterFunc(alterFunc), d_includeCNAME(includeCNAME)
+  RemoteLogResponseAction(std::shared_ptr<RemoteLoggerInterface>& logger, boost::optional<std::function<void(const DNSResponse&, DNSDistProtoBufMessage*)> > alterFunc, const std::string& serverID, bool includeCNAME): d_logger(logger), d_alterFunc(alterFunc), d_serverID(serverID), d_includeCNAME(includeCNAME)
   {
   }
   DNSResponseAction::Action operator()(DNSResponse* dr, string* ruleresult) const override
@@ -863,12 +882,15 @@ public:
     }
 
     DNSDistProtoBufMessage message(*dr, d_includeCNAME);
-    {
-      if (d_alterFunc) {
-        std::lock_guard<std::mutex> lock(g_luamutex);
-        (*d_alterFunc)(*dr, &message);
-      }
+    if (!d_serverID.empty()) {
+      message.setServerIdentity(d_serverID);
     }
+
+    if (d_alterFunc) {
+      std::lock_guard<std::mutex> lock(g_luamutex);
+      (*d_alterFunc)(*dr, &message);
+    }
+
     std::string data;
     message.serialize(data);
     d_logger->queueData(data);
@@ -882,6 +904,7 @@ public:
 private:
   std::shared_ptr<RemoteLoggerInterface> d_logger;
   boost::optional<std::function<void(const DNSResponse&, DNSDistProtoBufMessage*)> > d_alterFunc;
+  std::string d_serverID;
   bool d_includeCNAME;
 };
 
@@ -1163,29 +1186,45 @@ void setupLuaActions()
       return std::shared_ptr<DNSResponseAction>(new LuaResponseAction(func));
     });
 
-  g_lua.writeFunction("RemoteLogAction", [](std::shared_ptr<RemoteLoggerInterface> logger, boost::optional<std::function<void(const DNSQuestion&, DNSDistProtoBufMessage*)> > alterFunc) {
+  g_lua.writeFunction("RemoteLogAction", [](std::shared_ptr<RemoteLoggerInterface> logger, boost::optional<std::function<void(const DNSQuestion&, DNSDistProtoBufMessage*)> > alterFunc, boost::optional<std::unordered_map<std::string, std::string>> vars) {
       // avoids potentially-evaluated-expression warning with clang.
       RemoteLoggerInterface& rl = *logger.get();
       if (typeid(rl) != typeid(RemoteLogger)) {
         // We could let the user do what he wants, but wrapping PowerDNS Protobuf inside a FrameStream tagged as dnstap is logically wrong.
         throw std::runtime_error(std::string("RemoteLogAction only takes RemoteLogger. For other types, please look at DnstapLogAction."));
       }
+
+      std::string serverID;
+      if (vars) {
+        if (vars->count("serverID")) {
+          serverID = boost::get<std::string>((*vars)["serverID"]);
+        }
+      }
+
 #ifdef HAVE_PROTOBUF
-      return std::shared_ptr<DNSAction>(new RemoteLogAction(logger, alterFunc));
+      return std::shared_ptr<DNSAction>(new RemoteLogAction(logger, alterFunc, serverID));
 #else
       throw std::runtime_error("Protobuf support is required to use RemoteLogAction");
 #endif
     });
 
-  g_lua.writeFunction("RemoteLogResponseAction", [](std::shared_ptr<RemoteLoggerInterface> logger, boost::optional<std::function<void(const DNSResponse&, DNSDistProtoBufMessage*)> > alterFunc, boost::optional<bool> includeCNAME) {
+  g_lua.writeFunction("RemoteLogResponseAction", [](std::shared_ptr<RemoteLoggerInterface> logger, boost::optional<std::function<void(const DNSResponse&, DNSDistProtoBufMessage*)> > alterFunc, boost::optional<bool> includeCNAME, boost::optional<std::unordered_map<std::string, std::string>> vars) {
       // avoids potentially-evaluated-expression warning with clang.
       RemoteLoggerInterface& rl = *logger.get();
       if (typeid(rl) != typeid(RemoteLogger)) {
         // We could let the user do what he wants, but wrapping PowerDNS Protobuf inside a FrameStream tagged as dnstap is logically wrong.
         throw std::runtime_error("RemoteLogResponseAction only takes RemoteLogger. For other types, please look at DnstapLogResponseAction.");
       }
+
+      std::string serverID;
+      if (vars) {
+        if (vars->count("serverID")) {
+          serverID = boost::get<std::string>((*vars)["serverID"]);
+        }
+      }
+
 #ifdef HAVE_PROTOBUF
-      return std::shared_ptr<DNSResponseAction>(new RemoteLogResponseAction(logger, alterFunc, includeCNAME ? *includeCNAME : false));
+      return std::shared_ptr<DNSResponseAction>(new RemoteLogResponseAction(logger, alterFunc, serverID, includeCNAME ? *includeCNAME : false));
 #else
       throw std::runtime_error("Protobuf support is required to use RemoteLogResponseAction");
 #endif

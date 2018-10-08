@@ -10,9 +10,21 @@ dnsdist keeps statistics on the queries is receives and send out. They can be ac
 - via Carbon / Graphite / Metronome export (see :doc:`../guides/carbon`)
 - via SNMP (see :doc:`../advanced/snmp`)
 
+To make sense of the statistics, the following relation should hold:
+
+	queries - noncompliant-queries
+	=
+	responses - noncompliant-responses + cache-hits + downstream-timeouts + self-answered + no-policy
+	+ rule-drop
+
+Note that packets dropped by eBPF (see :doc:`../advanced/ebpf`) are
+accounted for in the eBPF statistics, and do not show up in the metrics
+described on this page.
+
 acl-drops
 ---------
-The number of packets dropped because of the :doc:`ACL <advanced/acl>`.
+The number of packets (or TCP messages) dropped because of the :doc:`ACL <advanced/acl>`.
+If a packet or message is dropped, it is not counted in the `queries` statistic.
 
 cache-hits
 ----------
@@ -48,7 +60,8 @@ Number of queries dropped because of a dynamic block.
 
 empty-queries
 -------------
-Number of empty queries received from clients.
+Number of empty queries received from clients. Every empty-query is also
+counted as a `query`.
 
 fd-usage
 --------
@@ -120,7 +133,9 @@ Current memory usage.
 
 responses
 ---------
-Number of responses received from backends.
+Number of responses received from backends. Note! This is not the number of
+responses sent to clients. To get that number, add 'cache-hits' and
+'responses'.
 
 rule-drop
 ---------

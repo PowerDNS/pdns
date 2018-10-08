@@ -96,3 +96,4 @@ The API exposes several endpoints and objects:
   tsigkey
   search
   statistics
+  cache

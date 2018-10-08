@@ -1,0 +1,270 @@
+#!/bin/sh
+### BEGIN INIT INFO
+# Provides:          pdns
+# Required-Start:    $network $remote_fs $syslog
+# Required-Stop:     $network $remote_fs $syslog
+# Default-Start:     2 3 4 5
+# Default-Stop:      0 1 6
+# Should-Start:      slapd
+# Should-Stop:       slapd
+# Short-Description: PowerDNS Authoritative Name Server
+# Description: PDNS is a versatile high performance authoritative nameser
+### END INIT INFO
+
+PATH=/bin:/sbin:/usr/bin:/usr/sbin
+BINARYPATH=/usr/bin
+SBINARYPATH=/usr/sbin
+
+ODESC="PowerDNS Authoritative Name Server"
+DESC="$ODESC"
+NAME=pdns
+DAEMON=/usr/sbin/pdns_server
+DAEMON_ARGS=""
+CONTROL=/usr/bin/pdns_control
+PIDFILE=/var/run/$NAME.pid
+SCRIPTNAME=/etc/init.d/$NAME
+
+[ -x "$DAEMON" ] || exit 0
+
+[ -r /etc/default/pdns ] && . /etc/default/pdns
+
+# Handle instance scripts
+suffix=$(basename $0 | cut -d- -f2- -s)
+
+if [ -n "$suffix" ]; then
+	SUFFIX="--config-name=$suffix"
+	DAEMON_ARGS="$DAEMON_ARGS $SUFFIX"
+	NAME="$NAME-$suffix"
+	DESC="$DESC (config name $suffix)"
+	PIDFILE="/var/run/$NAME-$suffix.pid"
+fi
+
+# Load lsb stuff for systemd redirection (if available).
+if [ -e /lib/lsb/init-functions ]; then
+  . /lib/lsb/init-functions
+fi
+
+# function to invoke properly parametrized pdns_control
+doPC()
+{
+    $CONTROL $SUFFIX $1 $2 2> /dev/null
+	return $?
+}
+
+isrunning()
+{
+	doPC ping > /dev/null
+	return $?
+}
+
+#
+# Function that starts the daemon/service
+#
+do_start()
+{
+	# Return
+	#   0 if daemon has been started
+	#   1 if daemon was already running
+	#   2 if daemon could not be started
+	if isrunning; then
+		return 1
+	fi
+	start-stop-daemon --start --quiet \
+		--pidfile $PIDFILE --exec $DAEMON -- \
+		$DAEMON_ARGS --daemon --guardian=yes \
+		|| return 2
+}
+
+#
+# Function that stops the daemon/service
+#
+do_stop()
+{
+	# Return
+	#   0 if daemon has been stopped
+	#   1 if daemon was already stopped
+	#   2 if daemon could not be stopped
+	#   other if a failure occurred
+	doPC quit >/dev/null
+	RETVAL="2"
+	for sec in $(seq 1 5); do
+		if ! isrunning; then
+			RETVAL="0"
+			break
+		fi
+		sleep 1
+	done
+	[ "$RETVAL" = 2 ] && return 2
+	rm -f $PIDFILE
+}
+
+case "$1" in
+  start)
+	echo -n "Starting $DESC: $NAME ..."
+	do_start
+	case "$?" in
+		0|1)
+			echo done
+			exit 0
+			;;
+		2)
+			echo failed
+			exit 1
+			;;
+	esac
+	;;
+  stop)
+	echo -n "Stopping $DESC: $NAME ..."
+	do_stop
+	case "$?" in
+		0|1)
+			echo done
+			exit 0
+			;;
+		2)
+			echo failed
+			exit 1
+			;;
+	esac
+	;;
+  status)
+	if isrunning; then
+		echo "$NAME is running: $(doPC status)"
+		exit 0
+	else
+		echo "$NAME is not running"
+		exit 3
+	fi
+	;;
+  force-stop)
+	echo -n "Killing $ODESC (all instances): $NAME ..."
+	kill -9 $(pidof pdns_server)
+	case "$?" in
+		0)
+			echo done
+			exit 0
+			;;
+		1)
+			echo failed
+			exit 1
+			;;
+	esac
+	;;
+  restart)
+	echo -n "Restarting $DESC: $NAME ..."
+	do_stop
+	case "$?" in
+		0|1)
+			do_start
+			case "$?" in
+				0)
+					echo done
+					exit 0
+					;;
+				1)
+					echo failed  # Old process is still running
+					exit 1
+					;;
+				*)
+					echo failed # Failed to start
+					exit 1
+					;;
+			esac
+			;;
+		*)
+			# Failed to stop
+			echo failed
+			exit 1
+			;;
+	esac
+	;;
+  reload|force-reload)
+	echo -n "Reloading $DESC: $NAME ..."
+	if isrunning; then
+		doPC cycle >/dev/null
+		case "$?" in
+			0)
+				echo done
+				exit 0
+				;;
+			1)
+				echo failed
+				exit 1
+				;;
+		esac
+	else
+		echo done
+		exit 7
+	fi
+	;;
+  monitor)
+	if isrunning; then
+		echo "already running"
+		exit 1
+	else
+		$DAEMON $DAEMON_ARGS --daemon=no --guardian=no --control-console --loglevel=9
+		exit 0
+	fi
+	;;
+  dump)
+	if isrunning; then
+		doPC list
+		exit 0
+	else
+		echo "not running"
+		exit 7
+	fi
+	;;
+  show)
+	if isrunning; then
+		if [ $# -lt 2 ]; then
+			echo "Insufficient parameters"
+			exit 2
+		fi
+		echo -n "$2="
+		doPC show $2
+		exit 0
+	else
+		echo "not running"
+		exit 7
+	fi
+	;;
+  mrtg)
+	if isrunning; then
+		if [ $# -lt 2 ]; then
+			echo "Insufficient parameters"
+			exit 2
+		fi
+		doPC show $2
+		if [ "$3x" != "x" ]; then
+			doPC show $3
+		else
+			echo 0
+		fi
+		doPC uptime
+		echo "$DESC"
+		exit 0
+	else
+		echo "not running"
+		exit 7
+	fi
+	;;
+  cricket)
+	if isrunning; then
+		if [ $# -lt 2 ]; then
+			echo "Insufficient parameters"
+			exit 1
+		fi
+		doPC show $2
+		exit 0
+	else
+		echo "not running"
+		exit 7
+	fi
+	;;
+  *)
+	echo "Usage: $SCRIPTNAME {start|stop|status|force-stop|restart|reload|monitor|dump|show|mrtg|cricket}"
+	;;
+esac
+
+exit 0

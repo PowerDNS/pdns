@@ -9,9 +9,9 @@ Compiling
 Starting with version 4.0.0, the PowerDNS recursor uses autotools and compiling
 [from the tarball](https://downloads.powerdns.com/releases/) can be as simple as
 
-```
-$ ./configure
-$ make
+```sh
+./configure
+make
 ```
 
 As for dependencies, Boost (http://boost.org/) and OpenSSL (https://openssl.org/)
@@ -23,16 +23,16 @@ compiler at the right directory using CPPFLAGS.
 
 On Debian and Ubuntu, the following will get you the dependencies:
 
-```
-$ apt-get install libboost-dev libboost-serialization-dev libssl-dev g++ make pkg-config
+```sh
+apt-get install libboost-dev libboost-serialization-dev libssl-dev g++ make pkg-config
 ```
 
 Compiling from git checkout
 ===========================
 Source code is available on GitHub:
 
-```
-$ git clone https://github.com/PowerDNS/pdns.git
+```sh
+git clone https://github.com/PowerDNS/pdns.git
 ```
 
 This repository contains the sources for the PowerDNS Recursor, the PowerDNS
@@ -42,14 +42,24 @@ the recursor are located in the `pdns/recursordist` subdirectory of the reposito
 To compile from a git checkout, install pandoc, ragel, automake, autoconf and curl.
 Then run
 
-```
-$ cd pdns/pdns/recursordist/
-$ autoreconf -vi
-$ ./configure
-$ make
+```sh
+cd pdns/pdns/recursordist/
+autoreconf -vi
+./configure
+make
 ```
 
-On macOS, you may need to `brew install openssl` and set `PKG_CONFIG_PATH=/usr/local/opt/openssl/lib/pkgconfig` during configure.
+macOS Notes
+-----------
+
+If you want to compile yourself, the dependencies can be installed using
+Homebrew. You need to tell configure where to find OpenSSL, too.
+
+```sh
+brew install boost lua pkg-config ragel openssl
+./configure --with-modules="" --with-lua PKG_CONFIG_PATH=/usr/local/opt/openssl/lib/pkgconfig
+make -j4
+```
 
 Lua scripting
 -------------
@@ -61,8 +71,8 @@ The configure script will automatically detect the Lua version. If more than one
 version of Lua is installed, the `--with-lua` configure flag can be set to the
 desired version. e.g.:
 
-```
-$ ./configure --with-lua=lua51
+```sh
+./configure --with-lua=lua51
 ```
 
 (On older versions of Debian/Ubuntu, you'll need to pass `--with-lua=lua5.1` instead.)

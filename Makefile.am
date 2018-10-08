@@ -4,12 +4,12 @@ EXTRA_DIST = \
 	INSTALL \
 	NOTICE \
 	README \
-	.version \
-	build-aux/gen-version \
+	COPYING \
 	codedocs/doxygen.conf \
 	contrib/powerdns.solaris.init.d \
 	pdns/named.conf.parsertest \
-	regression-tests/zones/unit.test
+	regression-tests/zones/unit.test \
+	builder-support/gen-version
 
 ACLOCAL_AMFLAGS = -I m4
 

@@ -59,26 +59,6 @@ static const struct signerParams
     DNSSECKeeper::RSASHA256,
     true
   },
-#ifdef HAVE_BOTAN
-  /* ECC-GOST from rfc5933 */
-  { "Algorithm: 12\n"
-    "GostAsn1: MEUCAQAwHAYGKoUDAgITMBIGByqFAwICIwEGByqFAwICHgEEIgQg/9MiXtXKg9FDXDN/R9CmVhJDyuzRAIgh4tPwCu4NHIs=\n",
-    "59732 12 1 794287b8033625ae938c0341fd800fd5ce45a728",
-    "59732 12 2 a7c24528480884ef4f5c0aaf85b3a20323a96722ccda26045aa7d304c9942868",
-    "59732 12 4 6f43cc67087875a5f2115adbc29604f0b5a43be6f28be0deaf71e08168967f7a1a8218d063a6f9137133a721e60eed4f",
-    { 0x1f, 0x3f, 0x2a, 0x2d, 0xc6, 0x72, 0x1d, 0xc8, 0xc4, 0x1f, 0x8b, 0xa1, 0xe8, 0x07, 0x83, 0x25, 0x9a, 0xbd, 0xc3, 0x80, 0xc1, 0x67, 0x80, 0xb7, 0x07, 0xed, 0xcb, 0xb0, 0x45, 0x5e, 0x46, 0x00, 0xcb, 0xa2, 0x7c, 0xf4, 0x7a, 0xa1, 0x81, 0x0c, 0xb2, 0xd1, 0xa1, 0xba, 0xb4, 0x53, 0xed, 0x8c, 0x10, 0x79, 0x12, 0x84, 0x9f, 0x9a, 0x69, 0xf5, 0x6d, 0x00, 0x4f, 0x06, 0x30, 0xba, 0xaa, 0xe6 },
-    "256 3 12 aRS/DcPWGQj2wVJydT8EcAVoC0kXn5pDVm2IMvDDPXeD32dsSKcmq8KNVzigjL4OXZTV+t/6w4X1gpNrZiC01g==",
-    "gost.",
-    "00 01 0c 03 00 00 0e 10 70 db d8 80 38 6d 43 80 e9 54 07 65 78 61 6d 70 6c 65 03 6e 65 74 00 03 77 77 77 07 65 78 61 6d 70 6c 65 03 6e 65 74 00 00 01 00 01 00 00 0e 10 00 04 c0 00 02 01 ",
-    /* from rfc5933 */
-    "7vzzz6iLOmvtjs5FjVjSHT8XnRKFY15ki6KpkNPkUnS8iIns0Kv4APT+D9ibmHhGri6Sfbyyzi67+wBbbW/jrA==",
-    256,
-    256,
-    256,
-    DNSSECKeeper::ECCGOST,
-    false
-  },
-#endif /* HAVE_BOTAN */
 #ifdef HAVE_LIBCRYPTO_ECDSA
   /* ECDSA-P256-SHA256 from https://github.com/CZ-NIC/knot/blob/master/src/dnssec/tests/sample_keys.h */
   { "Algorithm: 13\n"
@@ -99,7 +79,7 @@ static const struct signerParams
     false
   },
 #endif /* HAVE_LIBCRYPTO_ECDSA */
-#if defined(HAVE_LIBSODIUM) || defined(HAVE_LIBDECAF)
+#if defined(HAVE_LIBSODIUM) || defined(HAVE_LIBDECAF) || defined(HAVE_LIBCRYPTO_ED25519)
   /* ed25519 from https://github.com/CZ-NIC/knot/blob/master/src/dnssec/tests/sample_keys.h,
      also from rfc8080 section 6.1 */
   { "Algorithm: 15\n"
@@ -121,7 +101,7 @@ static const struct signerParams
     DNSSECKeeper::ED25519,
     true
   },
-#endif /* defined(HAVE_LIBSODIUM) || defined(HAVE_LIBDECAF) */
+#endif /* defined(HAVE_LIBSODIUM) || defined(HAVE_LIBDECAF) || defined(HAVE_LIBCRYPTO_ED25519) */
 };
 
 static void checkRR(const signerParams& signer)
@@ -234,7 +214,7 @@ BOOST_AUTO_TEST_CASE(test_generic_signers)
   }
 }
 
-#ifdef HAVE_LIBDECAF
+#if defined(HAVE_LIBDECAF) || defined(HAVE_LIBCRYPTO_ED448)
 BOOST_AUTO_TEST_CASE(test_ed448_signer) {
     vector<std::shared_ptr<DNSRecordContent> > rrs;
     DNSName qname("example.com.");
@@ -275,6 +255,6 @@ BOOST_AUTO_TEST_CASE(test_ed448_signer) {
     // vector verified from dnskey.py as above, and confirmed with https://www.rfc-editor.org/errata_search.php?rfc=8080&eid=4935
     BOOST_CHECK_EQUAL(b64, "3cPAHkmlnxcDHMyg7vFC34l0blBhuG1qpwLmjInI8w1CMB29FkEAIJUA0amxWndkmnBZ6SKiwZSAxGILn/NBtOXft0+Gj7FSvOKxE/07+4RQvE581N3Aj/JtIyaiYVdnYtyMWbSNyGEY2213WKsJlwEA");
 }
-#endif
+#endif /* defined(HAVE_LIBDECAF) || defined(HAVE_LIBCRYPTO_ED448) */
 
 BOOST_AUTO_TEST_SUITE_END()

@@ -13,8 +13,9 @@ import dnsmessage_pb2
 class TestProtobuf(DNSDistTest):
     _protobufServerPort = 4242
     _protobufQueue = Queue()
+    _protobufServerID = 'dnsdist-server-1'
     _protobufCounter = 0
-    _config_params = ['_testServerPort', '_protobufServerPort']
+    _config_params = ['_testServerPort', '_protobufServerPort', '_protobufServerID', '_protobufServerID']
     _config_template = """
     luasmn = newSuffixMatchNode()
     luasmn:add(newDNSName('lua.protobuf.tests.powerdns.com.'))
@@ -116,9 +117,9 @@ class TestProtobuf(DNSDistTest):
 
     addAction(AllRule(), LuaAction(alterLuaFirst))							-- Add tags to DNSQuery first
 
-    addAction(AllRule(), RemoteLogAction(rl, alterProtobufQuery))				-- Send protobuf message before lookup
+    addAction(AllRule(), RemoteLogAction(rl, alterProtobufQuery, {serverID='%s'}))				-- Send protobuf message before lookup
 
-    addResponseAction(AllRule(), RemoteLogResponseAction(rl, alterProtobufResponse, true))	-- Send protobuf message after lookup
+    addResponseAction(AllRule(), RemoteLogResponseAction(rl, alterProtobufResponse, true, {serverID='%s'}))	-- Send protobuf message after lookup
 
     """
 
@@ -186,6 +187,9 @@ class TestProtobuf(DNSDistTest):
         self.assertTrue(msg.HasField('id'))
         self.assertEquals(msg.id, query.id)
         self.assertTrue(msg.HasField('inBytes'))
+        self.assertTrue(msg.HasField('serverIdentity'))
+        self.assertEquals(msg.serverIdentity, self._protobufServerID)
+
         if normalQueryResponse:
           # compare inBytes with length of query/response
           self.assertEquals(msg.inBytes, len(query.to_wire()))

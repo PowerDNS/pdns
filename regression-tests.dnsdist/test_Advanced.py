@@ -1582,6 +1582,44 @@ class TestAdvancedGetLocalPortOnAnyBind(DNSDistTest):
         (_, receivedResponse) = self.sendTCPQuery(query, response=None, useQueue=False)
         self.assertEquals(receivedResponse, response)
 
+class TestAdvancedGetLocalAddressOnAnyBind(DNSDistTest):
+
+    _config_template = """
+    function answerBasedOnLocalAddress(dq)
+      local dest = dq.localaddr:toString()
+      local i, j = string.find(dest, "[0-9.]+")
+      local addr = string.sub(dest, i, j)
+      local dashAddr = string.gsub(addr, "[.]", "-")
+      return DNSAction.Spoof, "address-was-"..dashAddr..".local-address-any.advanced.tests.powerdns.com."
+    end
+    addAction("local-address-any.advanced.tests.powerdns.com.", LuaAction(answerBasedOnLocalAddress))
+    newServer{address="127.0.0.1:%s"}
+    """
+    _dnsDistListeningAddr = "0.0.0.0"
+
+    def testAdvancedGetLocalAddressOnAnyBind(self):
+        """
+        Advanced: Return CNAME containing the local address for an ANY bind
+        """
+        name = 'local-address-any.advanced.tests.powerdns.com.'
+        query = dns.message.make_query(name, 'A', 'IN')
+        # dnsdist set RA = RD for spoofed responses
+        query.flags &= ~dns.flags.RD
+
+        response = dns.message.make_response(query)
+        rrset = dns.rrset.from_text(name,
+                                    60,
+                                    dns.rdataclass.IN,
+                                    dns.rdatatype.CNAME,
+                                    'address-was-127-0-0-1.local-address-any.advanced.tests.powerdns.com.')
+        response.answer.append(rrset)
+
+        (_, receivedResponse) = self.sendUDPQuery(query, response=None, useQueue=False)
+        self.assertEquals(receivedResponse, response)
+
+        (_, receivedResponse) = self.sendTCPQuery(query, response=None, useQueue=False)
+        self.assertEquals(receivedResponse, response)
+
 class TestAdvancedLuaTempFailureTTL(DNSDistTest):
 
     _config_template = """

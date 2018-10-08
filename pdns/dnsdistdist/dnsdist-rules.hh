@@ -377,7 +377,7 @@ public:
   }
   bool matches(const DNSQuestion* dq) const override
   {
-    return dq->dh->cd || (getEDNSZ((const char*)dq->dh, dq->len) & EDNS_HEADER_FLAG_DO);    // turns out dig sets ad by default..
+    return dq->dh->cd || (getEDNSZ(*dq) & EDNS_HEADER_FLAG_DO);    // turns out dig sets ad by default..
   }
 
   string toString() const override

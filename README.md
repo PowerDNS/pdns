@@ -19,8 +19,8 @@ SOURCE CODE / GIT
 -----------------
 Source code is available on GitHub:
 
-```
-$ git clone https://github.com/PowerDNS/pdns.git
+```sh
+git clone https://github.com/PowerDNS/pdns.git
 ```
 
 This repository contains the sources for the PowerDNS Recursor, the PowerDNS
@@ -33,24 +33,29 @@ COMPILING Authoritative Server
 The PowerDNS Authoritative Server depends on Boost, OpenSSL and requires a
 compiler with C++-2011 support.
 
-On Debian 8.0, the following is useful:
+On Debian 9, the following is useful:
 
-```
-$ apt-get install g++ libboost-all-dev libtool make pkg-config libmysqlclient-dev libssl-dev virtualenv
+```sh
+apt install g++ libboost-all-dev libtool make pkg-config default-libmysqlclient-dev libssl-dev virtualenv
 ```
 
-When building from git, the following packages are also required: autoconf, automake,
-ragel, bison and flex, then generate the configure file:
+When building from git, the following packages are also required:
 
+```sh
+apt install autoconf automake ragel bison flex
 ```
-$ autoreconf -vi
+
+then generate the configure file:
+
+```sh
+autoreconf -vi
 ```
 
 To compile a very clean version, use:
 
-```
-$ ./configure --with-modules="" --without-lua --disable-lua-records
-$ make
+```sh
+./configure --with-modules="" --without-lua --disable-lua-records
+make
 # make install
 ```
 
@@ -61,8 +66,8 @@ built-in by default and the pipe-backend is compiled for runtime loading.
 
 To add multiple modules, try:
 
-```
-$ ./configure --with-modules="bind gmysql gpgsql"
+```sh
+./configure --with-modules="bind gmysql gpgsql"
 ```
 
 Note that you will need the development headers for PostgreSQL as well in this case.
@@ -91,8 +96,8 @@ You need to compile using gmake - regular make only appears to work, but doesn't
 
 The clang compiler installed through FreeBSD's package manager does not expose all of the C++11 features needed under `std=gnuc++11`. Force the compiler to use `std=c++11` mode instead.
 
-```
-$ export CXXFLAGS=-std=c++11
+```sh
+export CXXFLAGS=-std=c++11
 ```
 
 macOS Notes
@@ -100,16 +105,16 @@ macOS Notes
 PowerDNS Authoritative Server is available through Homebrew:
 
 ```
-$ brew install pdns
+brew install pdns
 ```
 
 If you want to compile yourself, the dependencies can be installed using
 Homebrew. You need to tell configure where to find OpenSSL, too.
 
-```
-$ brew install boost lua pkg-config ragel openssl
-$ ./configure --with-modules="" --with-lua PKG_CONFIG_PATH=/usr/local/opt/openssl/lib/pkgconfig
-$ make -j4
+```sh
+brew install boost lua pkg-config ragel openssl
+./configure --with-modules="" --with-lua PKG_CONFIG_PATH=/usr/local/opt/openssl/lib/pkgconfig
+make -j4
 ```
 
 Additionally, for PostgreSQL support, run `brew install postgresql` and add `--with-modules="gpsql"` to `./configure`.

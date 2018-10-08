@@ -420,8 +420,8 @@ Only relevant for algorithms with non-fixed keysizes (like RSA).
 -  Boolean
 -  Default: no
 
-Read additional ZSKs from the records table/your BIND zonefile. If not
-set, DNSKEY records in the zonefiles are ignored.
+Read additional DNSKEY, CDS and CDNSKEY records from the records table/your BIND zonefile. If not
+set, DNSKEY, CDS and CDNSKEY records in the zonefiles are ignored.
 
 .. _setting-disable-axfr:
 
@@ -811,7 +811,8 @@ Do not pass names like 'local0'!
 -  Integer
 -  Default: 4
 
-Amount of logging. Higher is more. Do not set below 3
+Amount of logging. Higher is more. Do not set below 3. Corresponds to "syslog" level values,
+e.g. error = 3, warning = 4, notice = 5, info = 6
 
 .. _setting-log-dns-queries:
 
@@ -1102,6 +1103,16 @@ To notify all IP addresses apart from the 192.168.0.0/24 subnet use the followin
   explicitly using :ref:`setting-also-notify` and/or
   :ref:`metadata-also-notify` domain metadata to avoid this potential bottleneck.
 
+.. note::
+  If your slaves support Internet Protocol version, which your master does not, 
+  then set ``only-notify`` to include only supported protocol version. 
+  Otherwise there will be error trying to resolve address.
+  
+  For example, slaves support both IPv4 and IPv6, but PowerDNS master have only IPv4, 
+  so allow only IPv4 with ``only-notify``::
+  
+    only-notify=0.0.0.0/0
+
 .. _setting-out-of-zone-additional-processing:
 
 ``out-of-zone-additional-processing``
@@ -1257,7 +1268,7 @@ Number of AXFR slave threads to start.
 .. _setting-send-signed-notify:
 
 ``send-signed-notify``
-----------
+----------------------
 
 -  Boolean
 -  Default: yes

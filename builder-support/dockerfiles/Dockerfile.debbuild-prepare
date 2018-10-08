@@ -1,0 +1,28 @@
+FROM dist-base as package-builder
+ARG APT_URL
+RUN apt-get -y install devscripts dpkg-dev build-essential python3 equivs
+
+RUN mkdir /dist /pdns
+WORKDIR /pdns
+
+ADD builder/helpers/ /pdns/builder/helpers/
+
+# Used for -p option to only build specific packages
+ARG BUILDER_PACKAGE_MATCH
+
+ARG BUILDER_VERSION
+ARG BUILDER_RELEASE
+
+COPY --from=sdist /sdist /sdist
+
+@IF [ ! -z "$M_authoritative" ]
+RUN tar xvf /sdist/pdns-${BUILDER_VERSION}.tar.bz2
+@ENDIF
+
+@IF [ ! -z "$M_recursor" ]
+RUN tar xvf /sdist/pdns-recursor-${BUILDER_VERSION}.tar.bz2
+@ENDIF
+
+@IF [ ! -z "$M_dnsdist" ]
+RUN tar xvf /sdist/dnsdist-${BUILDER_VERSION}.tar.bz2
+@ENDIF

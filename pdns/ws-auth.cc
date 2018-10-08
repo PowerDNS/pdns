@@ -45,6 +45,7 @@
 #include "zoneparser-tng.hh"
 #include "common_startup.hh"
 #include "auth-caches.hh"
+#include "threadname.hh"
 #include "tsigutils.hh"
 
 using json11::Json;
@@ -77,6 +78,7 @@ void AuthWebServer::go()
 void AuthWebServer::statThread()
 {
   try {
+    setThreadName("pdns/statHelper");
     for(;;) {
       d_queries.submit(S.read("udp-queries"));
       d_cachehits.submit(S.read("packetcache-hit"));
@@ -1608,7 +1610,19 @@ static void apiServerZones(HttpRequest* req, HttpResponse* resp) {
     throw HttpMethodNotAllowedException();
 
   vector<DomainInfo> domains;
-  B.getAllDomains(&domains, true); // incl. disabled
+
+  if (req->getvars.count("zone")) {
+    string zone = req->getvars["zone"];
+    apiCheckNameAllowedCharacters(zone);
+    DNSName zonename = apiNameToDNSName(zone);
+    zonename.makeUsLowerCase();
+    DomainInfo di;
+    if (B.getDomainInfo(zonename, di)) {
+      domains.push_back(di);
+    }
+  } else {
+    B.getAllDomains(&domains, true); // incl. disabled
+  }
 
   Json::array doc;
   for(const DomainInfo& di : domains) {
@@ -2131,6 +2145,7 @@ void AuthWebServer::cssfunction(HttpRequest* req, HttpResponse* resp)
 void AuthWebServer::webThread()
 {
   try {
+    setThreadName("pdns/webserver");
     if(::arg().mustDo("api")) {
       d_ws->registerApiHandler("/api/v1/servers/localhost/cache/flush", &apiServerCacheFlush);
       d_ws->registerApiHandler("/api/v1/servers/localhost/config", &apiServerConfig);

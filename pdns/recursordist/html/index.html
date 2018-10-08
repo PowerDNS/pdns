@@ -66,6 +66,7 @@
             <div class="stats-table" id="remotering"></div>
             <div class="stats-table" id="servfailremotering"></div>
             <div class="stats-table" id="bogusremotering"></div>
+            <div class="stats-table" id="timeouts"></div>
         </div>
     </div>
 
@@ -168,6 +169,21 @@
         <tr>
             <th>Number</th>
             <th>Bogus remote</th>
+        </tr>
+        {{#each rows}}
+        <tr>
+            <td>{{0}}</td>
+            <td>{{1}}</td>
+        </tr>
+        {{/each}}
+    </table>
+</script>
+
+<script id="timeouts-template" type="text/x-handlebars-template">
+    <table class="two-col">
+        <tr>
+            <th>Number</th>
+            <th>Downstream timeouts</th>
         </tr>
         {{#each rows}}
         <tr>

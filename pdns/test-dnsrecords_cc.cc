@@ -21,6 +21,12 @@ namespace {
 // C++11, but only C++14 added the `s` suffix.
 #define BINARY(s) (std::string(s, sizeof(s) - 1))
 
+// CASE_S is the simple case where zonefile format -> dns -> zonefile format roundtrips cleanly
+// CASE_L can be used where this is not the case. See LOC below for a good example why this might happen
+
+/*   (CASE_S(QType::NAME, "zone format", "line format")) */
+/*   (CASE_L(QType::NAME, "zone format", "canonic zone format", "line format")) */
+
 #define _CASE_L(type, inval, zoneval, lineval, broken) case_t(type, BINARY(inval), BINARY(zoneval), BINARY(lineval), broken)
 #define CASE_L(type, inval, zoneval, lineval) _CASE_L(type, inval, zoneval, lineval, broken_marker::WORKING)
 #define CASE_S(type, zoneval, lineval) _CASE_L(type, zoneval, zoneval, lineval, broken_marker::WORKING)
@@ -29,7 +35,7 @@ namespace {
 BOOST_AUTO_TEST_SUITE(test_dnsrecords_cc)
 
 #define REC_CHECK_EQUAL(a,b) { if (broken_marker::BROKEN == broken) { BOOST_WARN_EQUAL(a,b); } else {  BOOST_CHECK_EQUAL(a,b); } }
-#define REC_CHECK_MESSAGE(cond,msg) { if (broken_marker::BROKEN == broken) { BOOST_WARN_MESSAGE(cond,msg); } else {  BOOST_CHECK_MESSAGE(cond,msg); } }
+#define REC_CHECK_MESSAGE(cond,msg) { if (broken_marker::BROKEN == broken) { BOOST_WARN_MESSAGE(cond,"Failed to verify " << msg); } else {  BOOST_CHECK_MESSAGE(cond,msg); } }
 #define REC_FAIL_XSUCCESS(msg) { if (broken_marker::BROKEN == broken) { BOOST_CHECK_MESSAGE(false, std::string("Test has unexpectedly passed: ") + msg); } } // fail if test succeeds
 
 BOOST_AUTO_TEST_CASE(test_record_types) {
@@ -44,7 +50,7 @@ BOOST_AUTO_TEST_CASE(test_record_types) {
   TSIGRecordContent::report();
   TKEYRecordContent::report();
 
-// NB!!! WHEN ADDING A TEST MAKE SURE YOU PUT IT NEXT TO IT'S KIND
+// NB!!! WHEN ADDING A TEST MAKE SURE YOU PUT IT NEXT TO ITS KIND
 // TO MAKE SURE TEST NUMBERING DOES NOT BREAK
 
 // why yes, they are unordered by name, how nice of you to notice
@@ -94,6 +100,7 @@ BOOST_AUTO_TEST_CASE(test_record_types) {
      (CASE_S(QType::TXT, "\"long record test 1111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111\" \"2222222222\"", "\xff""long record test 1111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111\x0a""2222222222"))
      (CASE_L(QType::TXT, "\"long record test 11111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111112222222222\"", "\"long record test 1111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111\" \"2222222222\"", "\xff""long record test 1111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111\x0a""2222222222"))
      (CASE_S(QType::TXT,  "\"\\195\\133LAND ISLANDS\"", "\x0e\xc3\x85LAND ISLANDS"))
+     (CASE_S(QType::TXT,  "\"text with DEL in there: \\127\"", "\x19text with DEL in there: \x7f"))
      (CASE_L(QType::TXT, "\"\xc3\x85LAND ISLANDS\"", "\"\\195\\133LAND ISLANDS\"", "\x0e\xc3\x85LAND ISLANDS"))
      (CASE_S(QType::TXT, "\"nonbreakingtxt\"", "\x0enonbreakingtxt"))
 // local name
@@ -187,8 +194,6 @@ BOOST_AUTO_TEST_CASE(test_record_types) {
      (CASE_S(QType::DLV, "20642 8 2 04443abe7e94c3985196beae5d548c727b044dda5151e60d7cd76a9fd931d00e", "\x50\xa2\x08\x02\x04\x44\x3a\xbe\x7e\x94\xc3\x98\x51\x96\xbe\xae\x5d\x54\x8c\x72\x7b\x04\x4d\xda\x51\x51\xe6\x0d\x7c\xd7\x6a\x9f\xd9\x31\xd0\x0e"))
      (CASE_S((QType::typeenum)65226,"\\# 3 414243","\x41\x42\x43"))
 
-/*   (CASE_S(QType::NAME, "zone format", "line format")) */
-/*   (CASE_L(QType::NAME, "zone format", "canonic zone format", "line format")) */
 ;
 
   int n=0;
@@ -201,7 +206,7 @@ BOOST_AUTO_TEST_CASE(test_record_types) {
    const broken_marker broken = val.get<4>();
 
    if (lq != q.getCode()) n = 0;
-   BOOST_CHECK_MESSAGE(q.getCode() >= lq, "record types not sorted correctly: " << q.getCode() << " < " << lq);
+   BOOST_CHECK_MESSAGE(q.getCode() >= lq, "record types should be sorted such that " << q.getCode() << " >= " << lq);
    lq = q.getCode();
    n++;
    BOOST_TEST_CHECKPOINT("Checking record type " << q.getName() << " test #" << n);
@@ -209,7 +214,7 @@ BOOST_AUTO_TEST_CASE(test_record_types) {
    try {
       std::string recData;
       auto rec = DNSRecordContent::mastermake(q.getCode(), 1, inval);
-      BOOST_CHECK_MESSAGE(rec != NULL, "mastermake( " << q.getCode() << ", 1, " << inval << ") returned NULL");
+      BOOST_CHECK_MESSAGE(rec != NULL, "mastermake( " << q.getCode() << ", 1, " << inval << ") should not return NULL");
       if (rec == NULL) continue;
       // now verify the record (note that this will be same as *zone* value (except for certain QTypes)
 
@@ -229,7 +234,7 @@ BOOST_AUTO_TEST_CASE(test_record_types) {
       recData = rec->serialize(DNSName("rec.test"));
 
       std::shared_ptr<DNSRecordContent> rec2 = DNSRecordContent::unserialize(DNSName("rec.test"),q.getCode(),recData);
-      BOOST_CHECK_MESSAGE(rec2 != NULL, "unserialize(rec.test, " << q.getCode() << ", recData) returned NULL");
+      BOOST_CHECK_MESSAGE(rec2 != NULL, "unserialize(rec.test, " << q.getCode() << ", recData) should not return NULL");
       if (rec2 == NULL) continue;
       // now verify the zone representation (here it can be different!)
       REC_CHECK_EQUAL(rec2->getZoneRepresentation(), zoneval);
@@ -238,7 +243,7 @@ BOOST_AUTO_TEST_CASE(test_record_types) {
       recData = makeHexDump(recData);
       REC_CHECK_EQUAL(recData, cmpData);
    } catch (std::runtime_error &err) {
-      REC_CHECK_MESSAGE(false, "Failed to verify " << q.getName() << ": " << err.what());
+      REC_CHECK_MESSAGE(false, q.getName() << ": " << err.what());
       continue;
    }
    REC_FAIL_XSUCCESS(q.getName() << " test #" << n << " has unexpectedly passed")

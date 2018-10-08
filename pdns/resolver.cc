@@ -205,6 +205,8 @@ static int parseResult(MOADNSParser& mdp, const DNSName& origQname, uint16_t ori
 
   vector<DNSResourceRecord> ret;
   DNSResourceRecord rr;
+  result->reserve(mdp.d_answers.size());
+
   for (const auto& i: mdp.d_answers) {
     rr.qname = i.first.d_name;
     rr.qtype = i.first.d_type;
@@ -455,28 +457,39 @@ int AXFRRetriever::getChunk(Resolver::res_t &res, vector<DNSRecord>* records, ui
 
   MOADNSParser mdp(false, d_buf.get(), len);
 
-  int err;
-  if(!records)
-    err=parseResult(mdp, DNSName(), 0, 0, &res);
-  else {
-    records->clear();
-    for(const auto& r: mdp.d_answers)
-      records->push_back(r.first);
-    err = mdp.d_header.rcode;
-  }
-  
-  if(err) 
-    throw ResolverException("AXFR chunk error: " + RCode::to_s(err));
+  int err = mdp.d_header.rcode;
 
-  for(const MOADNSParser::answers_t::value_type& answer :  mdp.d_answers)
-    if (answer.first.d_type == QType::SOA)
-      d_soacount++;
- 
+  if(err) {
+    throw ResolverException("AXFR chunk error: " + RCode::to_s(err));
+  }
+
   try {
     d_tsigVerifier.check(std::string(d_buf.get(), len), mdp);
   }
   catch(const std::runtime_error& re) {
     throw ResolverException(re.what());
+  }
+
+  if(!records) {
+    err = parseResult(mdp, DNSName(), 0, 0, &res);
+
+    if (!err) {
+      for(const auto& answer :  mdp.d_answers)
+        if (answer.first.d_type == QType::SOA)
+          d_soacount++;
+    }
+  }
+  else {
+    records->clear();
+    records->reserve(mdp.d_answers.size());
+
+    for(auto& r: mdp.d_answers) {
+      if (r.first.d_type == QType::SOA) {
+        d_soacount++;
+      }
+
+      records->push_back(std::move(r.first));
+    }
   }
 
   return true;

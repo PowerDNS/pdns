@@ -25,7 +25,7 @@ This state can be modified from the various hooks.
 
   .. attribute:: DNSQuestion.len
 
-    The length of the :attr:`qname <DNSQuestion.qname>`.
+    The length of the data starting at :attr:`DNSQuestion.dh`, including any trailing bytes following the DNS message.
 
   .. attribute:: DNSQuestion.localaddr
 
@@ -68,7 +68,7 @@ This state can be modified from the various hooks.
 
   .. attribute:: DNSQuestion.tcp
 
-    Whether the query have been received over TCP.
+    Whether the query was received over TCP.
 
   .. attribute:: DNSQuestion.useECS
 
@@ -83,6 +83,14 @@ This state can be modified from the various hooks.
     Get the value of the DNSSEC OK bit.
 
     :returns: true if the DO bit was set, false otherwise
+
+  .. method:: DNSQuestion:getEDNSOptions() -> table
+
+    .. versionadded:: 1.3.1
+
+    Return the list of EDNS Options, if any.
+
+    :returns: A table of EDNSOptionView objects, indexed on the ECS Option code
 
   .. method:: DNSQuestion:getTag(key) -> string
 
@@ -194,3 +202,22 @@ DNSHeader (``dh``) object
     Set checking disabled flag.
 
     :param bool cd: State of the CD flag
+
+.. _EDNSOptionView:
+
+EDNSOptionView object
+=====================
+
+.. class:: EDNSOptionView
+
+  .. versionadded:: 1.3.1
+
+  An object that represents the values of a single EDNS option received in a query.
+
+  .. attribute:: EDNSOptionView.count -> int
+
+    The number of values for this EDNS option.
+
+  .. method:: EDNSOptionView:getValues()
+
+    Return a table of NULL-safe strings values for this EDNS option.

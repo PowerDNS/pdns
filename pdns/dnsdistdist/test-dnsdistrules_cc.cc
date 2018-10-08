@@ -32,7 +32,7 @@ BOOST_AUTO_TEST_CASE(test_MaxQPSIPRule) {
   /* the internal QPS limiter does not use the real time */
   gettime(&expiredTime);
 
-  DNSQuestion dq(&qname, qtype, qclass, &lc, &rem, dh, bufferSize, queryLen, isTcp, &queryRealTime);
+  DNSQuestion dq(&qname, qtype, qclass, qname.wirelength(), &lc, &rem, dh, bufferSize, queryLen, isTcp, &queryRealTime);
 
   for (size_t idx = 0; idx < maxQPS; idx++) {
     /* let's use different source ports, it shouldn't matter */

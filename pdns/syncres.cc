@@ -37,6 +37,7 @@
 #include "validate-recursor.hh"
 
 thread_local SyncRes::ThreadLocalStorage SyncRes::t_sstorage;
+thread_local std::unique_ptr<addrringbuf_t> t_timeouts;
 
 std::unordered_set<DNSName> SyncRes::s_delegationOnly;
 std::unique_ptr<NetmaskGroup> SyncRes::s_dontQuery{nullptr};
@@ -388,6 +389,26 @@ uint64_t SyncRes::doDumpNSSpeeds(int fd)
   return count;
 }
 
+uint64_t SyncRes::doDumpThrottleMap(int fd)
+{
+  FILE* fp=fdopen(dup(fd), "w");
+  if(!fp)
+    return 0;
+  fprintf(fp, "; throttle map dump follows\n");
+  fprintf(fp, "; remote IP\tqname\tqtype\tcount\tttd\n");
+  uint64_t count=0;
+
+  const auto& throttleMap = t_sstorage.throttle.getThrottleMap();
+  for(const auto& i : throttleMap)
+  {
+    count++;
+    // remote IP, dns name, qtype, count, ttd
+    fprintf(fp, "%s\t%s\t%d\t%u\t%s", i.first.get<0>().toString().c_str(), i.first.get<1>().toLogString().c_str(), i.first.get<2>(), i.second.count, ctime(&i.second.ttd));
+  }
+  fclose(fp);
+  return count;
+}
+
 /* so here is the story. First we complete the full resolution process for a domain name. And only THEN do we decide
    to also do DNSSEC validation, which leads to new queries. To make this simple, we *always* ask for DNSSEC records
    so that if there are RRSIGs for a name, we'll have them.
@@ -464,10 +485,10 @@ int SyncRes::asyncresolveWrapper(const ComboAddress& ip, bool ednsMANDATORY, con
       sendQname.makeUsLowerCase();
 
     if (d_asyncResolve) {
-      ret = d_asyncResolve(ip, sendQname, type, doTCP, sendRDQuery, EDNSLevel, now, srcmask, ctx, d_outgoingProtobufServer, res, chained);
+      ret = d_asyncResolve(ip, sendQname, type, doTCP, sendRDQuery, EDNSLevel, now, srcmask, ctx, res, chained);
     }
     else {
-      ret=asyncresolve(ip, sendQname, type, doTCP, sendRDQuery, EDNSLevel, now, srcmask, ctx, d_outgoingProtobufServer, res, chained);
+      ret=asyncresolve(ip, sendQname, type, doTCP, sendRDQuery, EDNSLevel, now, srcmask, ctx, d_outgoingProtobufServer, luaconfsLocal->outgoingProtobufExportConfig.exportTypes, res, chained);
     }
     if(ret < 0) {
       return ret; // transport error, nothing to learn here
@@ -2455,6 +2476,9 @@ bool SyncRes::doResolveAtThisIP(const std::string& prefix, const DNSName& qname,
         s_outgoing4timeouts++;
       else
         s_outgoing6timeouts++;
+
+      if(t_timeouts)
+        t_timeouts->push_back(remoteIP);
     }
     else if(resolveret == -2) {
       /* OS resource limit reached */

@@ -82,7 +82,7 @@ static void parseRPZParameters(const std::unordered_map<string,boost::variant<ui
 }
 
 #if HAVE_PROTOBUF
-typedef std::unordered_map<std::string, boost::variant<bool, uint64_t, std::string> > protobufOptions_t;
+typedef std::unordered_map<std::string, boost::variant<bool, uint64_t, std::string, std::vector<std::pair<int,std::string> > > > protobufOptions_t;
 
 static void parseProtobufOptions(boost::optional<protobufOptions_t> vars, ProtobufExportConfig& config)
 {
@@ -117,6 +117,28 @@ static void parseProtobufOptions(boost::optional<protobufOptions_t> vars, Protob
   if (vars->count("logResponses")) {
     config.logResponses = boost::get<bool>((*vars)["logResponses"]);
   }
+
+  if (vars->count("exportTypes")) {
+    config.exportTypes.clear();
+
+    auto types =  boost::get<std::vector<std::pair<int, std::string>>>((*vars)["exportTypes"]);
+    for (const auto& pair : types) {
+      const auto type = pair.second;
+      bool found = false;
+
+      for (const auto& entry : QType::names) {
+        if (entry.first == type) {
+          found = true;
+          config.exportTypes.insert(entry.second);
+          break;
+        }
+      }
+
+      if (!found) {
+        throw std::runtime_error("Unknown QType '" + type + "' in protobuf's export types");
+      }
+    }
+  }
 }
 #endif /* HAVE_PROTOBUF */
 
@@ -133,6 +155,21 @@ void loadRecursorLuaConfig(const std::string& fname, luaConfigDelayedThreads& de
 
   auto luaconfsLocal = g_luaconfs.getLocal();
   lci.generation = luaconfsLocal->generation + 1;
+
+  // pdnslog here is compatible with pdnslog in lua-base4.cc.
+  Lua.writeFunction("pdnslog", [](const std::string& msg, boost::optional<int> loglevel) { g_log << (Logger::Urgency)loglevel.get_value_or(Logger::Warning) << msg<<endl; });
+  std::unordered_map<string, std::unordered_map<string, int>> pdns_table;
+  pdns_table["loglevels"] = std::unordered_map<string, int>{
+    {"Alert", LOG_ALERT},
+    {"Critical", LOG_CRIT},
+    {"Debug", LOG_DEBUG},
+    {"Emergency", LOG_EMERG},
+    {"Info", LOG_INFO},
+    {"Notice", LOG_NOTICE},
+    {"Warning", LOG_WARNING},
+    {"Error", LOG_ERR}
+  };
+  Lua.writeVariable("pdns", pdns_table);
 
   Lua.writeFunction("clearSortlist", [&lci]() { lci.sortlist.clear(); });
   
@@ -381,8 +418,8 @@ void loadRecursorLuaConfig(const std::string& fname, luaConfigDelayedThreads& de
       try {
         if (!lci.outgoingProtobufExportConfig.enabled) {
           lci.outgoingProtobufExportConfig.enabled = true;
-          lci.protobufExportConfig.server = ComboAddress(server_);
-          parseProtobufOptions(vars, lci.protobufExportConfig);
+          lci.outgoingProtobufExportConfig.server = ComboAddress(server_);
+          parseProtobufOptions(vars, lci.outgoingProtobufExportConfig);
         }
         else {
           g_log<<Logger::Error<<"Only one protobuf server can be configured, we already have "<<lci.outgoingProtobufExportConfig.server.toString()<<endl;

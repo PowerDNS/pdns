@@ -1,0 +1,25 @@
+@IF [ ! -z "$M_authoritative$M_all" ]
+@INCLUDE Dockerfile.authoritative
+@ENDIF
+
+@IF [ ! -z "$M_recursor$M_all" ]
+@INCLUDE Dockerfile.recursor
+@ENDIF
+
+@IF [ ! -z "$M_dnsdist$M_all" ]
+@INCLUDE Dockerfile.dnsdist
+@ENDIF
+
+FROM alpine:3.6 as sdist
+
+@IF [ ! -z "$M_authoritative$M_all" ]
+COPY --from=pdns-authoritative /sdist/ /sdist/
+@ENDIF
+
+@IF [ ! -z "$M_recursor$M_all" ]
+COPY --from=pdns-recursor /sdist/ /sdist/
+@ENDIF
+
+@IF [ ! -z "$M_dnsdist$M_all" ]
+COPY --from=dnsdist /sdist/ /sdist/
+@ENDIF

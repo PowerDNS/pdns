@@ -804,7 +804,7 @@ Total maximum number of milliseconds of wallclock time the server may use to ans
 
 ``max-udp-queries-per-round``
 ----------------------------------
-.. versionadded:: 4.2.0
+.. versionadded:: 4.1.4
 
 -  Integer
 -  Default: 10000
