@@ -34,7 +34,8 @@ BuildRequires: libcurl-devel
 
 Requires(pre): shadow-utils
 BuildRequires: luajit-devel
-BuildRequires: boost-devel
+BuildRequires: boost148-devel
+BuildRequires: boost148-program-options
 BuildRequires: libsodium-devel
 BuildRequires: bison
 BuildRequires: openssl-devel
@@ -211,7 +212,9 @@ export CPPFLAGS="-DLDAP_DEPRECATED"
   --enable-ixfrdist
 %else
   --disable-lua-records \
-  --without-protobuf
+  --without-protobuf \
+  --with-boost=/usr/include/boost148/ LDFLAGS=-L/usr/lib64/boost148 \
+  CXXFLAGS='-std=gnu++11 -std=gnu++0x'
 %endif
 
 make %{?_smp_mflags}
