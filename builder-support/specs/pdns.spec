@@ -214,7 +214,7 @@ export CPPFLAGS="-DLDAP_DEPRECATED"
   --disable-lua-records \
   --without-protobuf \
   --with-boost=/usr/include/boost148/ LDFLAGS=-L/usr/lib64/boost148 \
-  CXXFLAGS='-std=gnu++11 -std=gnu++0x'
+  CXXFLAGS=-std=gnu++11
 %endif
 
 make %{?_smp_mflags}
