@@ -340,15 +340,15 @@ fi
 %{_mandir}/man1/nsec3dig.1.gz
 %{_mandir}/man1/saxfr.1.gz
 %{_mandir}/man1/sdig.1.gz
-%if 0%{?rhel} >= 7
 %{_bindir}/dnsbulktest
-%{_bindir}/dnspcap2protobuf
 %{_bindir}/dnspcap2calidns
 %{_bindir}/dnstcpbench
 %{_mandir}/man1/dnsbulktest.1.gz
-%{_mandir}/man1/dnspcap2protobuf.1.gz
 %{_mandir}/man1/dnspcap2calidns.1.gz
 %{_mandir}/man1/dnstcpbench.1.gz
+%if 0%{?rhel} >= 7
+%{_bindir}/dnspcap2protobuf
+%{_mandir}/man1/dnspcap2protobuf.1.gz
 %endif
 
 %files backend-mysql
