@@ -10081,7 +10081,7 @@ BOOST_AUTO_TEST_CASE(test_cname_plus_authority_auth) {
   const DNSName cnameTarget("cname-target.powerdns.com");
   size_t queriesCount = 0;
 
-  sr->setAsyncCallback([target, cnameTarget, &queriesCount](const ComboAddress& ip, const DNSName& domain, int type, bool doTCP, bool sendRDQuery, int EDNS0Level, struct timeval* now, boost::optional<Netmask>& srcmask, boost::optional<const ResolveContext&> context, std::shared_ptr<RemoteLogger> outgoingLogger, LWResult* res, bool* chained) {
+  sr->setAsyncCallback([target, cnameTarget, &queriesCount](const ComboAddress& ip, const DNSName& domain, int type, bool doTCP, bool sendRDQuery, int EDNS0Level, struct timeval* now, boost::optional<Netmask>& srcmask, boost::optional<const ResolveContext&> context, LWResult* res, bool* chained) {
 
       queriesCount++;
 
