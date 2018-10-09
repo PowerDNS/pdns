@@ -27,7 +27,11 @@ BuildRequires: systemd-devel
 BuildRequires: boost-devel
 BuildRequires: gnutls-devel
 BuildRequires: libsodium-devel
+%ifarch aarch64
+BuildRequires: lua-devel
+%else
 BuildRequires: luajit-devel
+%endif
 BuildRequires: net-snmp-devel
 BuildRequires: protobuf-compiler
 BuildRequires: protobuf-devel
@@ -90,7 +94,11 @@ sed -i '/^ExecStart/ s/dnsdist/dnsdist -u dnsdist -g dnsdist/' dnsdist.service.i
   --enable-fstrm \
   --enable-gnutls \
   --with-protobuf \
+%ifarch aarch64
+  --with-lua=lua \
+%else
   --with-lua=luajit \
+%endif
   --enable-libsodium \
   --enable-dnscrypt \
   --enable-systemd --with-systemd=/lib/systemd/system \
