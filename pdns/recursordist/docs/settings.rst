@@ -272,7 +272,7 @@ Use this setting when running inside a supervisor that handles logging (like sys
 .. _setting-distributor-threads:
 
 ``distributor-threads``
------------
+-----------------------
 .. versionadded:: 4.2.0
 
 -  Integer
@@ -344,7 +344,7 @@ Queries to addresses for zones as configured in any of the settings `forward-zon
 .. _setting-ecs-add-for:
 
 ``ecs-add-for``
---------------------------
+---------------
 .. versionadded:: 4.2.0
 
 -  Comma separated list of netmasks
@@ -623,7 +623,7 @@ It is recommended not to set this below 3.
 Some DNS errors occur rather frequently and are no cause for alarm.
 
 ``log-rpz-changes``
----------------------
+-------------------
 .. versionadded:: 4.1.0
 
 -  Boolean
@@ -674,7 +674,7 @@ Path to a lua file to manipulate the Recursor's answers. See :doc:`lua-scripting
 .. _setting-maintenance-interval:
 
 ``lua-maintenance-interval``
--------------------
+----------------------------
 .. versionadded:: 4.1.4
 
 -  Integer
@@ -1076,7 +1076,7 @@ Throttle a server that has failed to respond `server-down-max-fails`_ times for 
 -  Default: The hostname of the server
 
 The reply given by The PowerDNS recursor to a query for 'id.server' with its hostname, useful for in clusters.
-When a query contains the :rfc:`NSID EDNS0 Option <5001>`__, this value is returned in the response as the NSID value.
+When a query contains the :rfc:`NSID EDNS0 Option <5001>`, this value is returned in the response as the NSID value.
 
 This setting can be used to override the answer given to these queries.
 Set to "disabled" to disable NSID and 'id.server' answers.
@@ -1373,7 +1373,7 @@ should be done on the proxy.
 .. _setting-xpf-rr-code:
 
 ``xpf-rr-code``
--------------------
+---------------
 .. versionadded:: 4.2.0
 
 -  Integer
