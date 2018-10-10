@@ -3975,7 +3975,6 @@ int main(int argc, char **argv)
     ::arg().set("config-name","Name of this virtual configuration - will rename the binary image")="";
     ::arg().set("api-config-dir", "Directory where REST API stores config and zones") = "";
     ::arg().set("api-key", "Static pre-shared authentication key for access to the REST API") = "";
-    ::arg().set("api-logfile", "Location of the server logfile (used by the REST API)") = "/var/log/pdns.log";
     ::arg().setSwitch("webserver", "Start a webserver (for REST API)") = "no";
     ::arg().set("webserver-address", "IP Address of webserver to listen on") = "127.0.0.1";
     ::arg().set("webserver-port", "Port of webserver to listen on") = "8082";
