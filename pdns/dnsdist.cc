@@ -1303,6 +1303,41 @@ static void queueResponse(const ClientState& cs, const char* response, uint16_t 
 }
 #endif /* defined(HAVE_RECVMMSG) && defined(HAVE_SENDMMSG) && defined(MSG_WAITFORONE) */
 
+static int sendAndEncryptUDPResponse(LocalHolders& holders, ClientState& cs, const DNSQuestion& dq, char* query, uint16_t cachedResponseSize, const struct timespec& queryRealTime, int delayMsec, const ComboAddress& dest, const ComboAddress& remote, struct mmsghdr* responsesVect, unsigned int* queuedResponses, struct iovec* respIOV, char* respCBuf)
+{
+  DNSResponse dr(dq.qname, dq.qtype, dq.qclass, dq.consumed, dq.local, dq.remote, reinterpret_cast<dnsheader*>(query), dq.size, cachedResponseSize, false, &queryRealTime);
+#ifdef HAVE_PROTOBUF
+  dr.uniqueId = dq.uniqueId;
+#endif
+  dr.qTag = dq.qTag;
+
+  if (!processResponse(holders.cacheHitRespRulactions, dr, &delayMsec)) {
+    return -1;
+  }
+
+  if (!cs.muted) {
+#ifdef HAVE_DNSCRYPT
+    if (!encryptResponse(query, &cachedResponseSize, dq.size, false, dnsCryptQuery, nullptr, nullptr)) {
+      return -1;
+    }
+#endif
+#if defined(HAVE_RECVMMSG) && defined(HAVE_SENDMMSG) && defined(MSG_WAITFORONE)
+    if (delayMsec == 0 && responsesVect != nullptr) {
+      queueResponse(cs, query, cachedResponseSize, dest, remote, responsesVect[*queuedResponses], respIOV, respCBuf);
+      (*queuedResponses)++;
+    }
+    else
+#endif /* defined(HAVE_RECVMMSG) && defined(HAVE_SENDMMSG) && defined(MSG_WAITFORONE) */
+      {
+        sendUDPResponse(cs.udpFD, query, cachedResponseSize, delayMsec, dest, remote);
+      }
+  }
+
+  ++g_stats.cacheHits;
+  doLatencyStats(0);  // we're not going to measure this
+  return 0;
+}
+
 static void processUDPQuery(ClientState& cs, LocalHolders& holders, const struct msghdr* msgh, const ComboAddress& remote, ComboAddress& dest, char* query, uint16_t len, size_t queryBufferSize, struct mmsghdr* responsesVect, unsigned int* queuedResponses, struct iovec* respIOV, char* respCBuf)
 {
   assert(responsesVect == nullptr || (queuedResponses != nullptr && respIOV != nullptr && respCBuf != nullptr));
@@ -1422,7 +1457,8 @@ static void processUDPQuery(ClientState& cs, LocalHolders& holders, const struct
     if (dq.useECS && ((ss && ss->useECS) || (!ss && serverPool->getECS()))) {
       // we special case our cache in case a downstream explicitly gave us a universally valid resposne with a 0 scope
       if (packetCache && !dq.skipCache && packetCache->get(dq, consumed, dh->id, query, &cachedResponseSize, &cacheKeyNoECS, subnet, dnssecOK, allowExpired)) {
-        goto sendIt;
+        sendAndEncryptUDPResponse(holders, cs, dq, query, cachedResponseSize, queryRealTime, delayMsec, dest, remote, responsesVect, queuedResponses, respIOV, respCBuf);
+        return;
       }
       
       if (!handleEDNSClientSubnet(dq, &(ednsAdded), &(ecsAdded), g_preserveTrailingData)) {
@@ -1433,37 +1469,7 @@ static void processUDPQuery(ClientState& cs, LocalHolders& holders, const struct
 
     if (packetCache && !dq.skipCache) {
       if (packetCache->get(dq, consumed, dh->id, query, &cachedResponseSize, &cacheKey, subnet, dnssecOK, allowExpired)) {
-      sendIt:;
-        DNSResponse dr(dq.qname, dq.qtype, dq.qclass, dq.consumed, dq.local, dq.remote, reinterpret_cast<dnsheader*>(query), dq.size, cachedResponseSize, false, &queryRealTime);
-#ifdef HAVE_PROTOBUF
-        dr.uniqueId = dq.uniqueId;
-#endif
-        dr.qTag = dq.qTag;
-
-        if (!processResponse(holders.cacheHitRespRulactions, dr, &delayMsec)) {
-          return;
-        }
-
-        if (!cs.muted) {
-#ifdef HAVE_DNSCRYPT
-          if (!encryptResponse(query, &cachedResponseSize, dq.size, false, dnsCryptQuery, nullptr, nullptr)) {
-            return;
-          }
-#endif
-#if defined(HAVE_RECVMMSG) && defined(HAVE_SENDMMSG) && defined(MSG_WAITFORONE)
-          if (delayMsec == 0 && responsesVect != nullptr) {
-            queueResponse(cs, query, cachedResponseSize, dest, remote, responsesVect[*queuedResponses], respIOV, respCBuf);
-            (*queuedResponses)++;
-          }
-          else
-#endif /* defined(HAVE_RECVMMSG) && defined(HAVE_SENDMMSG) && defined(MSG_WAITFORONE) */
-          {
-            sendUDPResponse(cs.udpFD, query, cachedResponseSize, delayMsec, dest, remote);
-          }
-        }
-
-        ++g_stats.cacheHits;
-        doLatencyStats(0);  // we're not going to measure this
+        sendAndEncryptUDPResponse(holders, cs, dq, query, cachedResponseSize, queryRealTime, delayMsec, dest, remote, responsesVect, queuedResponses, respIOV, respCBuf);
         return;
       }
       ++g_stats.cacheMisses;
