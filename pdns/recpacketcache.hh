@@ -24,8 +24,6 @@
 #include <string>
 #include <set>
 #include <inttypes.h>
-#include "dns.hh"
-#include "namespaces.hh"
 #include <iostream>
 #include <boost/multi_index_container.hpp>
 #include <boost/multi_index/ordered_index.hpp>
@@ -38,6 +36,8 @@
 #endif
 #include "rec-protobuf.hh"
 
+#include "dns.hh"
+#include "namespaces.hh"
 
 using namespace ::boost::multi_index;
 
