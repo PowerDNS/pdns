@@ -154,6 +154,23 @@ private:
 size_t hash_value(DNSName const& d);
 
 
+template<class InputIt1, class InputIt2>
+int twosided_compare(InputIt1 first1, InputIt1 last1,
+                             InputIt2 first2, InputIt2 last2)
+{
+  int cmp;
+  for ( ; (first1 != last1) && (first2 != last2); ++first1, (void) ++first2 ) {
+    cmp = dns_tolower(*first1) - dns_tolower(*first2);
+    if(cmp)
+      return cmp;
+  }
+  if((first1 == last1) && (first2 != last2))
+    return -1;
+  else if((first2 == last2) && (first1 != last1))
+    return 1;
+  return 0;
+}
+
 inline bool DNSName::canonCompare(const DNSName& rhs) const
 {
   //      01234567890abcd
@@ -184,28 +201,15 @@ inline bool DNSName::canonCompare(const DNSName& rhs) const
     ourcount--;
     rhscount--;
 
-    bool res=std::lexicographical_compare(
+    int res=twosided_compare(
 					  d_storage.c_str() + ourpos[ourcount] + 1, 
 					  d_storage.c_str() + ourpos[ourcount] + 1 + *(d_storage.c_str() + ourpos[ourcount]),
 					  rhs.d_storage.c_str() + rhspos[rhscount] + 1, 
-					  rhs.d_storage.c_str() + rhspos[rhscount] + 1 + *(rhs.d_storage.c_str() + rhspos[rhscount]),
-					  [](const unsigned char& a, const unsigned char& b) {
-					    return dns_tolower(a) < dns_tolower(b);
-					  });
-    
-    //    cout<<"Forward: "<<res<<endl;
-    if(res)
-      return true;
+					  rhs.d_storage.c_str() + rhspos[rhscount] + 1 + *(rhs.d_storage.c_str() + rhspos[rhscount]));
 
-    res=std::lexicographical_compare(	  rhs.d_storage.c_str() + rhspos[rhscount] + 1, 
-					  rhs.d_storage.c_str() + rhspos[rhscount] + 1 + *(rhs.d_storage.c_str() + rhspos[rhscount]),
-					  d_storage.c_str() + ourpos[ourcount] + 1, 
-					  d_storage.c_str() + ourpos[ourcount] + 1 + *(d_storage.c_str() + ourpos[ourcount]),
-					  [](const unsigned char& a, const unsigned char& b) {
-					    return dns_tolower(a) < dns_tolower(b);
-					  });
-    //    cout<<"Reverse: "<<res<<endl;
-    if(res)
+    if(res < 0)
+      return true;
+    else if(res > 0)
       return false;
   }
   return false;
