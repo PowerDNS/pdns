@@ -547,7 +547,7 @@ Enables EDNS subnet processing, for backends that support it.
 .. _setting-enable-lua-records:
 
 ``enable-lua-records``
---------------------------
+----------------------
 
 -  Boolean
 -  Default: no
@@ -1257,7 +1257,7 @@ Number of AXFR slave threads to start.
 .. _setting-send-signed-notify:
 
 ``send-signed-notify``
-----------
+----------------------
 
 -  Boolean
 -  Default: yes
