@@ -30,11 +30,14 @@ BuildRequires: protobuf-devel
 BuildRequires: protobuf-compiler
 BuildRequires: p11-kit-devel
 BuildRequires: libcurl-devel
+BuildRequires: boost-devel
+%else
+BuildRequires: boost148-devel
+BuildRequires: boost148-program-options
 %endif
 
 Requires(pre): shadow-utils
 BuildRequires: luajit-devel
-BuildRequires: boost-devel
 BuildRequires: libsodium-devel
 BuildRequires: bison
 BuildRequires: openssl-devel
@@ -211,7 +214,9 @@ export CPPFLAGS="-DLDAP_DEPRECATED"
   --enable-ixfrdist
 %else
   --disable-lua-records \
-  --without-protobuf
+  --without-protobuf \
+  --with-boost=/usr/include/boost148/ LDFLAGS=-L/usr/lib64/boost148 \
+  CXXFLAGS=-std=gnu++11
 %endif
 
 make %{?_smp_mflags}
@@ -335,15 +340,15 @@ fi
 %{_mandir}/man1/nsec3dig.1.gz
 %{_mandir}/man1/saxfr.1.gz
 %{_mandir}/man1/sdig.1.gz
-%if 0%{?rhel} >= 7
 %{_bindir}/dnsbulktest
-%{_bindir}/dnspcap2protobuf
 %{_bindir}/dnspcap2calidns
 %{_bindir}/dnstcpbench
 %{_mandir}/man1/dnsbulktest.1.gz
-%{_mandir}/man1/dnspcap2protobuf.1.gz
 %{_mandir}/man1/dnspcap2calidns.1.gz
 %{_mandir}/man1/dnstcpbench.1.gz
+%if 0%{?rhel} >= 7
+%{_bindir}/dnspcap2protobuf
+%{_mandir}/man1/dnspcap2protobuf.1.gz
 %endif
 
 %files backend-mysql
