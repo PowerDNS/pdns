@@ -13,7 +13,7 @@ https://doc.powerdns.com/md/appendix/compiling-powerdns/
 To file bugs, head towards:
 https://github.com/PowerDNS/pdns/issues
 
-But please check if the issue is already reported there first.
+But please check if the issue is already reported there first.//comment added 
 
 SOURCE CODE / GIT
 -----------------
