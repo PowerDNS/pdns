@@ -214,7 +214,7 @@ static shared_ptr<SOARecordContent> loadRPZFromServer(const ComboAddress& master
       throw PDNSException("Total AXFR time exceeded!");
     }
     if(last != time(0)) {
-      g_log<<Logger::Info<<"Loaded & indexed "<<nrecords<<" policy records so far"<<endl;
+      g_log<<Logger::Info<<"Loaded & indexed "<<nrecords<<" policy records so far for RPZ zone '"<<zoneName<<"'"<<endl;
       last=time(0);
     }
   }
