@@ -246,6 +246,8 @@ public:
     }
 
     if (!SSL_set_fd(d_conn, d_socket)) {
+      SSL_free(d_conn);
+      d_conn = nullptr;
       throw std::runtime_error("Error assigning socket");
     }
 
@@ -253,12 +255,21 @@ public:
     do {
       res = SSL_accept(d_conn);
       if (res < 0) {
-        handleIORequest(res, timeout);
+        try {
+          handleIORequest(res, timeout);
+        }
+        catch(const std::exception&) {
+          SSL_free(d_conn);
+          d_conn = nullptr;
+          throw;
+        }
       }
     }
     while (res < 0);
 
     if (res != 1) {
+      SSL_free(d_conn);
+      d_conn = nullptr;
       throw std::runtime_error("Error accepting TLS connection");
     }
   }
@@ -407,10 +418,14 @@ public:
     for (const auto& pair : fe.d_certKeyPairs) {
       if (SSL_CTX_use_certificate_chain_file(d_tlsCtx, pair.first.c_str()) != 1) {
         ERR_print_errors_fp(stderr);
+        SSL_CTX_free(d_tlsCtx);
+        d_tlsCtx = nullptr;
         throw std::runtime_error("Error loading certificate from " + pair.first + " for the TLS context on " + fe.d_addr.toStringWithPort());
       }
       if (SSL_CTX_use_PrivateKey_file(d_tlsCtx, pair.second.c_str(), SSL_FILETYPE_PEM) != 1) {
         ERR_print_errors_fp(stderr);
+        SSL_CTX_free(d_tlsCtx);
+        d_tlsCtx = nullptr;
         throw std::runtime_error("Error loading key from " + pair.second + " for the TLS context on " + fe.d_addr.toStringWithPort());
       }
     }
@@ -418,6 +433,8 @@ public:
     if (!fe.d_ciphers.empty()) {
       if (SSL_CTX_set_cipher_list(d_tlsCtx, fe.d_ciphers.c_str()) != 1) {
         ERR_print_errors_fp(stderr);
+        SSL_CTX_free(d_tlsCtx);
+        d_tlsCtx = nullptr;
         throw std::runtime_error("Error setting the cipher list to '" + fe.d_ciphers + "' for the TLS context on " + fe.d_addr.toStringWithPort());
       }
     }
@@ -432,6 +449,7 @@ public:
     }
     catch (const std::exception& e) {
       SSL_CTX_free(d_tlsCtx);
+      d_tlsCtx = nullptr;
       throw;
     }
   }
@@ -618,6 +636,8 @@ public:
 
       if (file.fail()) {
         file.close();
+        safe_memory_release(d_key.data, d_key.size);
+        gnutls_free(d_key.data);
         throw std::runtime_error("Invalid GnuTLS tickets key file " + keyFile);
       }
 
