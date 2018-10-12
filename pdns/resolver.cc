@@ -271,6 +271,9 @@ bool Resolver::tryGetSOASerial(DNSName *domain, ComboAddress* remote, uint32_t *
   if(mdp.d_qtype != QType::SOA)
     throw ResolverException("Query to '" + remote->toStringWithPort() + "' for SOA of '" + domain->toLogString() + "' returned wrong record type");
 
+  if(mdp.d_header.rcode != 0)
+    throw ResolverException("Query to '" + remote->toStringWithPort() + "' for SOA of '" + domain->toLogString() + "' returned Rcode " + RCode::to_s(mdp.d_header.rcode));
+
   *theirInception = *theirExpire = 0;
   bool gotSOA=false;
   for(const MOADNSParser::answers_t::value_type& drc :  mdp.d_answers) {
