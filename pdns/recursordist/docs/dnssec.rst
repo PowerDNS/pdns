@@ -100,6 +100,20 @@ For PowerDNS Recursor 4.1.x and below, use the :func:`addDS` function instead.
 
 Now (re)start the recursor to load these trust anchors.
 
+Reading trust anchors from files
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Since version 4.2.0 of the PowerDNS Recursor, it is also possible to read the Trust Anchors from a BIND-style zonefile.
+Only the DS and DNSKEY records from this file are read.
+Debian and its derivatives ship the ``dns-root-data`` package that contains the DNSSEC root trust anchors in ``/usr/share/dns/root.key``.
+
+To only use the distribution-provided Trust Anchors, add the following to the :ref:`setting-lua-config-file`:
+
+.. sourcecode:: lua
+
+  clearTA() -- Remove built-in trust-anchors
+  readTrustAnchorsFromFile("/usr/share/dns/root.key") -- Use these keys
+
 Runtime Configuration of Trust Anchors
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 To change or add trust anchors at runtime, use the :doc:`manpages/rec_control.1` tool.

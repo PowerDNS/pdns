@@ -15,6 +15,9 @@
 #include "validate.hh"
 #include "validate-recursor.hh"
 #include "root-dnssec.hh"
+#include "dnssecinfra.hh"
+#include "dnsseckeeper.hh"
+#include "zoneparser-tng.hh"
 
 GlobalStateHolder<LuaConfigItems> g_luaconfs; 
 
@@ -406,6 +409,39 @@ void loadRecursorLuaConfig(const std::string& fname, luaConfigDelayedThreads& de
         lci.negAnchors.erase(DNSName(*who));
       else
         lci.negAnchors.clear();
+    });
+
+  Lua.writeFunction("readTrustAnchorsFromFile", [&lci](const std::string& fname) {
+      warnIfDNSSECDisabled("Warning: reading Trust Anchors from file (readTrustAnchorsFromFile), but dnssec is set to 'off'!");
+      auto zp = ZoneParserTNG(fname);
+      DNSResourceRecord rr;
+      DNSRecord dr;
+      try {
+        while(zp.get(rr)) {
+          dr = DNSRecord(rr);
+          if (rr.qtype == QType::DS) {
+            auto dsr = getRR<DSRecordContent>(dr);
+            if (dsr == nullptr) {
+              throw PDNSException("Unable to parse DS record '" + rr.qname.toString() + " " + rr.getZoneRepresentation() + "'");
+            }
+            lci.dsAnchors[rr.qname].insert(*dsr);
+          }
+          if (rr.qtype == QType::DNSKEY) {
+            auto dnskeyr = getRR<DNSKEYRecordContent>(dr);
+            if (dnskeyr == nullptr) {
+              throw PDNSException("Unable to parse DNSKEY record '" + rr.qname.toString() + " " + rr.getZoneRepresentation() +"'");
+            }
+            auto dsr = makeDSFromDNSKey(rr.qname, *dnskeyr, DNSSECKeeper::SHA256);
+            lci.dsAnchors[rr.qname].insert(dsr);
+          }
+        }
+      }
+      catch (const std::exception &e) {
+        throw PDNSException("Error while reading Trust Anchors from file (readTrustAnchorsFromFile) '" + fname + "': " + e.what());
+      }
+      catch (...) {
+        throw PDNSException("Error while reading Trust Anchors from file (readTrustAnchorsFromFile) '" + fname + "'");
+      }
     });
 
 #if HAVE_PROTOBUF

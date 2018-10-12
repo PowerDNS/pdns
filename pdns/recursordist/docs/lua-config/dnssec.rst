@@ -56,3 +56,12 @@ This page only documents the Lua functions for DNSSEC configuration
   not given, remove *all* negative trust anchors instead.
 
   :param str name: The name in the DNS tree from where this NTA should be removed
+
+.. function:: readTrustAnchorsFromFile(fname)
+
+  .. versionadded:: 4.2.0
+
+  Reads all DS and DNSKEY records from ``fname`` (a BIND zone file) and adds these to the Trust Anchors.
+  This function can be used to read distribution provided trust anchors, as for instance ``/usr/share/dns/root.key`` from Debian's ``dns-root-data`` package.
+
+  :param str fname: Path to a zone file with Trust Anchors
