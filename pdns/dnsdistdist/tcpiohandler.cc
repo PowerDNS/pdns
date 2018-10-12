@@ -258,7 +258,7 @@ public:
         try {
           handleIORequest(res, timeout);
         }
-        catch(const std::exception&) {
+        catch(...) {
           SSL_free(d_conn);
           d_conn = nullptr;
           throw;
