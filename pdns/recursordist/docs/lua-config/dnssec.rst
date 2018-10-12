@@ -4,7 +4,19 @@ The DNSSEC Trust Anchors and Negative Trust Anchors must be stored in the Lua Co
 See the :doc:`../dnssec` for all information about DNSSEC in the PowerDNS Recursor.
 This page only documents the Lua functions for DNSSEC configuration
 
+.. function:: addTA(name, dscontent)
+
+  .. versionadded:: 4.2.0
+
+  Adds Trust Anchor to the list of DNSSEC anchors.
+
+  :param str name: The name in the DNS tree from where this Trust Anchor should be used
+  :param str dsrecord: The DS Record content associated with ``name``
+
 .. function:: addDS(name, dscontent)
+
+  .. deprecated:: 4.2.0
+    Please use :func:`addTA` instead
 
   Adds a DS record (Trust Anchor) to the configuration
 

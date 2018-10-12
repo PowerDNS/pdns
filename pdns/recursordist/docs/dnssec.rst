@@ -86,15 +86,17 @@ The PowerDNS Recursor ships with the DNSSEC Root key built-in.
 
 **Note**: it has no support for :rfc:`5011` key rollover and does not persist a changed root trust anchor to disk.
 
-Configuring DNSSEC key material must be done in the :ref:`setting-lua-config-file`, using :func:`addDS`.
+Configuring DNSSEC key material must be done in the :ref:`setting-lua-config-file`, using :func:`addTA`.
 This function takes 2 arguments: the node in the DNS-tree and the data of the corresponding DS record.
 
 To e.g. add a trust anchor for the root and powerdns.com, use the following config in the Lua file:
 
 .. code:: Lua
 
-    addDS('.', "63149 13 1 a59da3f5c1b97fcd5fa2b3b2b0ac91d38a60d33a") -- This is not an ICANN root
-    addDS('powerdns.com', "44030 8 2 D4C3D5552B8679FAEEBC317E5F048B614B2E5F607DC57F1553182D49 AB2179F7")
+    addTA('.', "63149 13 1 a59da3f5c1b97fcd5fa2b3b2b0ac91d38a60d33a") -- This is not an ICANN root
+    addTA('powerdns.com', "44030 8 2 D4C3D5552B8679FAEEBC317E5F048B614B2E5F607DC57F1553182D49 AB2179F7")
+
+For PowerDNS Recursor 4.1.x and below, use the :func:`addDS` function instead.
 
 Now (re)start the recursor to load these trust anchors.
 
