@@ -386,8 +386,6 @@ public:
       throw std::runtime_error("Error creating TLS context on " + fe.d_addr.toStringWithPort());
     }
 
-    /* use the internal built-in cache to store sessions */
-    SSL_CTX_set_session_cache_mode(d_tlsCtx.get(), SSL_SESS_CACHE_SERVER);
     /* use our own ticket keys handler so we can rotate them */
     SSL_CTX_set_tlsext_ticket_key_cb(d_tlsCtx.get(), &OpenSSLTLSIOCtx::ticketKeyCb);
     SSL_CTX_set_ex_data(d_tlsCtx.get(), s_ticketsKeyIndex, this);
@@ -395,6 +393,15 @@ public:
 #if defined(SSL_CTX_set_ecdh_auto)
     SSL_CTX_set_ecdh_auto(d_tlsCtx.get(), 1);
 #endif
+    if (fe.d_maxStoredSessions == 0) {
+      /* disable stored sessions entirely */
+      SSL_CTX_set_session_cache_mode(d_tlsCtx.get(), SSL_SESS_CACHE_OFF);
+    }
+    else {
+      /* use the internal built-in cache to store sessions */
+      SSL_CTX_set_session_cache_mode(d_tlsCtx.get(), SSL_SESS_CACHE_SERVER);
+      SSL_CTX_sess_set_cache_size(d_tlsCtx.get(), fe.d_maxStoredSessions);
+    }
 
     for (const auto& pair : fe.d_certKeyPairs) {
       if (SSL_CTX_use_certificate_chain_file(d_tlsCtx.get(), pair.first.c_str()) != 1) {

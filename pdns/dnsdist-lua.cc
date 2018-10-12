@@ -1541,6 +1541,10 @@ void setupLuaConfig(bool client)
           if (vars->count("sessionTickets")) {
             frontend->d_enableTickets = boost::get<bool>((*vars)["sessionTickets"]);
           }
+
+          if (vars->count("numberOfStoredSessions")) {
+            frontend->d_maxStoredSessions = boost::get<int>((*vars)["numberOfStoredSessions"]);
+          }
         }
 
         try {
