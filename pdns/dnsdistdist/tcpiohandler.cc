@@ -636,8 +636,6 @@ public:
 
       if (file.fail()) {
         file.close();
-        safe_memory_release(d_key.data, d_key.size);
-        gnutls_free(d_key.data);
         throw std::runtime_error("Invalid GnuTLS tickets key file " + keyFile);
       }
 
