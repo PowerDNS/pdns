@@ -844,7 +844,6 @@ bool RemoteBackend::calculateSOASerial(const DNSName& domain, const SOAData& sd,
          { "expire", static_cast<int>(sd.expire) },
          { "default_ttl", static_cast<int>(sd.default_ttl) },
          { "domain_id", static_cast<int>(sd.domain_id) },
-         { "scopeMask", sd.scopeMask }
        }}
      }}
    };
