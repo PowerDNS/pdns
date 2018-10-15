@@ -57,7 +57,7 @@ This page only documents the Lua functions for DNSSEC configuration
 
   :param str name: The name in the DNS tree from where this NTA should be removed
 
-.. function:: readTrustAnchorsFromFile(fname)
+.. function:: readTrustAnchorsFromFile(fname[, interval])
 
   .. versionadded:: 4.2.0
 
@@ -65,3 +65,4 @@ This page only documents the Lua functions for DNSSEC configuration
   This function can be used to read distribution provided trust anchors, as for instance ``/usr/share/dns/root.key`` from Debian's ``dns-root-data`` package.
 
   :param str fname: Path to a zone file with Trust Anchors
+  :param int interval: Re-read this file every ``interval`` hours. By default this is set to 24. Set to 0 to disable automatic re-reads.

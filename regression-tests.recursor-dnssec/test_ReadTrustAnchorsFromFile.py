@@ -1,3 +1,4 @@
+from __future__ import print_function
 import os
 import subprocess
 from recursortests import RecursorTest
@@ -25,6 +26,6 @@ readTrustAnchorsFromFile('root.keys')"""
             self.assertEqual(ret, expected)
 
         except subprocess.CalledProcessError as e:
-            print e.output
+            print(e.output)
             raise
 
