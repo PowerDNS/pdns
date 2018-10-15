@@ -1543,7 +1543,13 @@ void setupLuaConfig(bool client)
           }
 
           if (vars->count("numberOfStoredSessions")) {
-            frontend->d_maxStoredSessions = boost::get<int>((*vars)["numberOfStoredSessions"]);
+            auto value = boost::get<int>((*vars)["numberOfStoredSessions"]);
+            if (value < 0) {
+              errlog("Invalid value '%d' for addTLSLocal() parameter 'numberOfStoredSessions', should be >= 0, dismissing", value);
+              g_outputBuffer="Invalid value '" +  std::to_string(value) + "' for addTLSLocal() parameter 'numberOfStoredSessions', should be >= 0, dimissing";
+              return;
+            }
+            frontend->d_maxStoredSessions = value;
           }
         }
 
