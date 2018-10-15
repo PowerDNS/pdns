@@ -547,7 +547,7 @@ Enables EDNS subnet processing, for backends that support it.
 .. _setting-enable-lua-records:
 
 ``enable-lua-records``
---------------------------
+----------------------
 
 -  Boolean
 -  Default: no
