@@ -14,7 +14,7 @@ class TestTrailingDataToBackend(DNSDistTest):
     newServer{address="127.0.0.1:%s"}
 
     function replaceTrailingData(dq)
-        local success = dq:setTrailingData({65, 66, 67}) -- "ABC"
+        local success = dq:setTrailingData("ABC")
         if not success then
             return DNSAction.ServFail, ""
         end
@@ -24,7 +24,7 @@ class TestTrailingDataToBackend(DNSDistTest):
 
     function fillBuffer(dq)
         local available = dq.size - dq.len
-        local tail = extendTableBy({}, available)
+        local tail = string.rep("A", available)
         local success = dq:setTrailingData(tail)
         if not success then
             return DNSAction.ServFail, ""
@@ -35,7 +35,7 @@ class TestTrailingDataToBackend(DNSDistTest):
 
     function exceedBuffer(dq)
         local available = dq.size - dq.len
-        local tail = extendTableBy({}, available + 1)
+        local tail = string.rep("A", available + 1)
         local success = dq:setTrailingData(tail)
         if not success then
             return DNSAction.ServFail, ""
@@ -43,21 +43,6 @@ class TestTrailingDataToBackend(DNSDistTest):
         return DNSAction.None, ""
     end
     addLuaAction("limited.trailing.tests.powerdns.com.", exceedBuffer)
-
-    function extendTableBy(t, n)
-        if n <= 1 then
-            if n == 1 then
-                t[#t + 1] = 0
-            end
-            return t
-        end
-
-        local lower = math.floor(n / 2)
-        local upper = n - lower
-        t = extendTableBy(t, lower)
-        t = extendTableBy(t, upper)
-        return t
-    end
     """
     @classmethod
     def startResponders(cls):
@@ -192,7 +177,7 @@ class TestTrailingDataToDnsdist(DNSDistTest):
     addAction(AndRule({QNameRule("dropped.trailing.tests.powerdns.com."), TrailingDataRule()}), DropAction())
 
     function removeTrailingData(dq)
-        local success = dq:setTrailingData({})
+        local success = dq:setTrailingData("")
         if not success then
             return DNSAction.ServFail, ""
         end
@@ -201,14 +186,13 @@ class TestTrailingDataToDnsdist(DNSDistTest):
     addLuaAction("removed.trailing.tests.powerdns.com.", removeTrailingData)
 
     function reportTrailingData(dq)
-        local tailBytes = dq:getTrailingData()
-        local tailChars = string.char(unpack(tailBytes))
-        return DNSAction.Spoof, "-" .. tailChars .. ".echoed.trailing.tests.powerdns.com."
+        local tail = dq:getTrailingData()
+        return DNSAction.Spoof, "-" .. tail .. ".echoed.trailing.tests.powerdns.com."
     end
     addLuaAction("echoed.trailing.tests.powerdns.com.", reportTrailingData)
 
     function replaceTrailingData(dq)
-        local success = dq:setTrailingData({65, 66, 67}) -- "ABC"
+        local success = dq:setTrailingData("ABC")
         if not success then
             return DNSAction.ServFail, ""
         end
