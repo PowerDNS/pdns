@@ -44,9 +44,6 @@ private:
 
     DynBlockRule(const std::string& blockReason, unsigned int blockDuration, unsigned int rate, unsigned int warningRate, unsigned int seconds, DNSAction::Action action): d_blockReason(blockReason), d_blockDuration(blockDuration), d_rate(rate), d_warningRate(warningRate), d_seconds(seconds), d_action(action), d_enabled(true)
     {
-      if (d_warningRate > 0) {
-        d_warningEnabled = true;
-      }
     }
 
     bool matches(const struct timespec& when)
@@ -79,7 +76,7 @@ private:
 
     bool warningRateExceeded(unsigned int count, const struct timespec& now) const
     {
-      if (!d_warningEnabled) {
+      if (d_warningRate == 0) {
         return false;
       }
 
@@ -90,7 +87,7 @@ private:
 
     bool isEnabled() const
     {
-      return d_enabled || d_warningEnabled;
+      return d_enabled;
     }
 
     std::string toString() const
@@ -120,7 +117,6 @@ private:
     unsigned int d_seconds{0};
     DNSAction::Action d_action{DNSAction::Action::None};
     bool d_enabled{false};
-    bool d_warningEnabled{false};
   };
 
     typedef std::unordered_map<ComboAddress, Counts, ComboAddress::addressOnlyHash, ComboAddress::addressOnlyEqual> counts_t;
