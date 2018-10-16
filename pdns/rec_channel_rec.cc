@@ -189,6 +189,11 @@ static uint64_t* pleaseDump(int fd)
   return new uint64_t(t_RC->doDump(fd) + dumpNegCache(SyncRes::t_sstorage.negcache, fd) + t_packetCache->doDump(fd));
 }
 
+static uint64_t* pleaseDumpEDNSMap(int fd)
+{
+  return new uint64_t(SyncRes::doEDNSDump(fd));
+}
+
 static uint64_t* pleaseDumpNSSpeeds(int fd)
 {
   return new uint64_t(SyncRes::doDumpNSSpeeds(fd));
@@ -264,10 +269,14 @@ string doDumpEDNSStatus(T begin, T end)
   int fd=open(fname.c_str(), O_CREAT | O_EXCL | O_WRONLY, 0660);
   if(fd < 0) 
     return "Error opening dump file for writing: "+string(strerror(errno))+"\n";
+  uint64_t total = 0;
+  try {
+    total = broadcastAccFunction<uint64_t>(boost::bind(pleaseDumpEDNSMap, fd));
+  }
+  catch(...){}
 
-  SyncRes::doEDNSDumpAndClose(fd);
-
-  return "done\n";
+  close(fd);
+  return "dumped "+std::to_string(total)+" records\n";
 }
 
 template<typename T>
