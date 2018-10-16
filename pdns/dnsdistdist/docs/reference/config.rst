@@ -92,6 +92,8 @@ Listen Sockets
   .. versionchanged:: 1.3.1
     ``certFile(s)`` and ``keyFile(s)`` parameters accept a list of files.
     ``sessionTickets`` option added.
+  .. versionchanged:: 1.3.3
+    ``numberOfStoredSessions`` option added.
 
   Listen on the specified address and TCP port for incoming DNS over TLS connections, presenting the specified X.509 certificate.
 
@@ -113,6 +115,7 @@ Listen Sockets
   * ``ticketKeyFile``: str - The path to a file from where TLS tickets keys should be loaded, to support RFC 5077. These keys should be rotated often and never written to persistent storage to preserve forward secrecy. The default is to generate a random key. The OpenSSL provider supports several tickets keys to be able to decrypt existing sessions after the rotation, while the GnuTLS provider only supports one key.
   * ``ticketsKeysRotationDelay``: int - Set the delay before the TLS tickets key is rotated, in seconds. Default is 43200 (12h).
   * ``sessionTickets``: bool - Whether session resumption via session tickets is enabled. Default is true, meaning tickets are enabled.
+  * ``numberOfStoredSessions``: int - The maximum number of sessions kept in memory at the same time. At this time this is only supported by the OpenSSL provider, as stored sessions are not supported with the GnuTLS one. Default is 20480. Setting this value to 0 disables stored session entirely.
 
 .. function:: setLocal(address[, options])
 
