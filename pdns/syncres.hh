@@ -399,7 +399,7 @@ public:
   {
     s_lm = lm;
   }
-  static void doEDNSDumpAndClose(int fd);
+  static uint64_t doEDNSDump(int fd);
   static uint64_t doDumpNSSpeeds(int fd);
   static uint64_t doDumpThrottleMap(int fd);
   static int getRootNS(struct timeval now, asyncresolve_t asyncCallback);
