@@ -15,7 +15,7 @@ software--to make sure the software is free for all its users.  This
 General Public License applies to most of the Free Software
 Foundation's software and to any other program whose authors commit to
 using it.  (Some other Free Software Foundation software is covered by
-the GNU Lesser General Public License instead.)  You can apply it to
+the GNU Lesser General Public License instead).  You can apply it to
 your programs, too.
 
   When we speak of free software, we are referring to freedom, not
@@ -111,8 +111,8 @@ above, provided that you also meet all of these conditions:
     does not normally print such an announcement, your work based on
     the Program is not required to print an announcement.)
 
-These requirements apply to the modified work as a whole.  If
-identifiable sections of that work are not derived from the Program,
+These requirements apply to the modified work as a whole.
+If identifiable sections of that work are not derived from the Program,
 and can be reasonably considered independent and separate works in
 themselves, then this License, and its terms, do not apply to those
 sections when you distribute them as separate works.  But when you
@@ -178,10 +178,10 @@ this License will not have their licenses terminated so long as such
 parties remain in full compliance.
 
   5. You are not required to accept this License, since you have not
-signed it.  However, nothing else grants you permission to modify or
-distribute the Program or its derivative works.  These actions are
-prohibited by law if you do not accept this License.  Therefore, by
-modifying or distributing the Program (or any work based on the
+signed it.  However, nothing else grants you permission to modify 
+or distribute the Program or its derivative works.  These actions are
+prohibited by law if you do not accept this License.  Therefore,
+by modifying or distributing the Program (or any work based on the
 Program), you indicate your acceptance of this License to do so, and
 all its terms and conditions for copying, distributing or modifying
 the Program or works based on it.
@@ -239,7 +239,7 @@ of the General Public License from time to time.  Such new versions will
 be similar in spirit to the present version, but may differ in detail to
 address new problems or concerns.
 
-Each version is given a distinguishing version number.  If the Program
+Each version is given a distinguishing version number. If the Program
 specifies a version number of this License which applies to it and "any
 later version", you have the option of following the terms and conditions
 either of that version or of any later version published by the Free
@@ -295,8 +295,8 @@ the "copyright" line and a pointer to where the full notice is found.
 
     This program is free software; you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
-    the Free Software Foundation; either version 2 of the License, or
-    (at your option) any later version.
+    the Free Software Foundation; either version 2 of the License, 
+    or (at your option) any later version.
 
     This program is distributed in the hope that it will be useful,
     but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -323,8 +323,8 @@ be called something other than `show w' and `show c'; they could even be
 mouse-clicks or menu items--whatever suits your program.
 
 You should also get your employer (if you work as a programmer) or your
-school, if any, to sign a "copyright disclaimer" for the program, if
-necessary.  Here is a sample; alter the names:
+school, if any, to sign a "copyright disclaimer" for the program, 
+if necessary.  Here is a sample; alter the names:
 
   Yoyodyne, Inc., hereby disclaims all copyright interest in the program
   `Gnomovision' (which makes passes at compilers) written by James Hacker.
