@@ -73,7 +73,7 @@ void setupLuaBindingsDNSQuestion()
       char* message = reinterpret_cast<char*>(dq.dh);
       const uint16_t messageLen = getDNSPacketLength(message, dq.len);
       const uint16_t tailLen = tail.size();
-      if(messageLen + tailLen > dq.size) {
+      if(tailLen > (dq.size - messageLen)) {
         return false;
       }
 
@@ -154,7 +154,7 @@ void setupLuaBindingsDNSQuestion()
       char* message = reinterpret_cast<char*>(dq.dh);
       const uint16_t messageLen = getDNSPacketLength(message, dq.len);
       const uint16_t tailLen = tail.size();
-      if(messageLen + tailLen > dq.size) {
+      if(tailLen > (dq.size - messageLen)) {
         return false;
       }
 
