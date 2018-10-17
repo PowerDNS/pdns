@@ -337,7 +337,8 @@ static void connectionThread(int sock, ComboAddress remote, string password, str
               {"reason", e->second.reason},
               {"seconds", (double)(e->second.until.tv_sec - now.tv_sec)},
               {"blocks", (double)e->second.blocks},
-              {"action", DNSAction::typeToString(e->second.action != DNSAction::Action::None ? e->second.action : g_dynBlockAction) }
+              {"action", DNSAction::typeToString(e->second.action != DNSAction::Action::None ? e->second.action : g_dynBlockAction) },
+              {"warning", e->second.warning }
             };
             obj.insert({e->first.toString(), thing});
           }

@@ -42,7 +42,7 @@ private:
     {
     }
 
-    DynBlockRule(const std::string& blockReason, unsigned int blockDuration, unsigned int rate, unsigned int seconds, DNSAction::Action action): d_blockReason(blockReason), d_blockDuration(blockDuration), d_rate(rate), d_seconds(seconds), d_action(action), d_enabled(true)
+    DynBlockRule(const std::string& blockReason, unsigned int blockDuration, unsigned int rate, unsigned int warningRate, unsigned int seconds, DNSAction::Action action): d_blockReason(blockReason), d_blockDuration(blockDuration), d_rate(rate), d_warningRate(warningRate), d_seconds(seconds), d_action(action), d_enabled(true)
     {
     }
 
@@ -74,6 +74,17 @@ private:
       return (count > limit);
     }
 
+    bool warningRateExceeded(unsigned int count, const struct timespec& now) const
+    {
+      if (d_warningRate == 0) {
+        return false;
+      }
+
+      double delta = d_seconds ? d_seconds : DiffTime(now, d_minTime);
+      double limit = delta * d_warningRate;
+      return (count > limit);
+    }
+
     bool isEnabled() const
     {
       return d_enabled;
@@ -102,6 +113,7 @@ private:
     struct timespec d_minTime;
     unsigned int d_blockDuration{0};
     unsigned int d_rate{0};
+    unsigned int d_warningRate{0};
     unsigned int d_seconds{0};
     DNSAction::Action d_action{DNSAction::Action::None};
     bool d_enabled{false};
@@ -114,29 +126,38 @@ public:
   {
   }
 
-  void setQueryRate(unsigned int rate, unsigned int seconds, std::string reason, unsigned int blockDuration, DNSAction::Action action)
+  void setQueryRate(unsigned int rate, unsigned int warningRate, unsigned int seconds, std::string reason, unsigned int blockDuration, DNSAction::Action action)
   {
-    d_queryRateRule = DynBlockRule(reason, blockDuration, rate, seconds, action);
+    d_queryRateRule = DynBlockRule(reason, blockDuration, rate, warningRate, seconds, action);
   }
 
-  void setResponseByteRate(unsigned int rate, unsigned int seconds, std::string reason, unsigned int blockDuration, DNSAction::Action action)
+  /* rate is in bytes per second */
+  void setResponseByteRate(unsigned int rate, unsigned int warningRate, unsigned int seconds, std::string reason, unsigned int blockDuration, DNSAction::Action action)
   {
-    d_respRateRule = DynBlockRule(reason, blockDuration, rate, seconds, action);
+    d_respRateRule = DynBlockRule(reason, blockDuration, rate, warningRate, seconds, action);
   }
 
-  void setRCodeRate(uint8_t rcode, unsigned int rate, unsigned int seconds, std::string reason, unsigned int blockDuration, DNSAction::Action action)
+  void setRCodeRate(uint8_t rcode, unsigned int rate, unsigned int warningRate, unsigned int seconds, std::string reason, unsigned int blockDuration, DNSAction::Action action)
   {
     auto& entry = d_rcodeRules[rcode];
-    entry = DynBlockRule(reason, blockDuration, rate, seconds, action);
+    entry = DynBlockRule(reason, blockDuration, rate, warningRate, seconds, action);
   }
 
-  void setQTypeRate(uint16_t qtype, unsigned int rate, unsigned int seconds, std::string reason, unsigned int blockDuration, DNSAction::Action action)
+  void setQTypeRate(uint16_t qtype, unsigned int rate, unsigned int warningRate, unsigned int seconds, std::string reason, unsigned int blockDuration, DNSAction::Action action)
   {
     auto& entry = d_qtypeRules[qtype];
-    entry = DynBlockRule(reason, blockDuration, rate, seconds, action);
+    entry = DynBlockRule(reason, blockDuration, rate, warningRate, seconds, action);
   }
 
   void apply()
+  {
+    struct timespec now;
+    gettime(&now);
+
+    apply(now);
+  }
+
+  void apply(const struct timespec& now)
   {
     counts_t counts;
 
@@ -149,8 +170,8 @@ public:
     }
     counts.reserve(entriesCount);
 
-    processQueryRules(counts);
-    processResponseRules(counts);
+    processQueryRules(counts, now);
+    processResponseRules(counts, now);
 
     if (counts.empty()) {
       return;
@@ -158,33 +179,59 @@ public:
 
     boost::optional<NetmaskTree<DynBlock> > blocks;
     bool updated = false;
-    struct timespec now;
-    gettime(&now);
 
     for (const auto& entry : counts) {
-      if (d_queryRateRule.rateExceeded(entry.second.queries, now)) {
-        addBlock(blocks, now, entry.first, d_queryRateRule, updated);
+      const auto& requestor = entry.first;
+      const auto& counters = entry.second;
+
+      if (d_queryRateRule.warningRateExceeded(counters.queries, now)) {
+        handleWarning(blocks, now, requestor, d_queryRateRule, updated);
+      }
+
+      if (d_queryRateRule.rateExceeded(counters.queries, now)) {
+        addBlock(blocks, now, requestor, d_queryRateRule, updated);
         continue;
       }
 
-      if (d_respRateRule.rateExceeded(entry.second.respBytes, now)) {
-        addBlock(blocks, now, entry.first, d_respRateRule, updated);
+      if (d_respRateRule.warningRateExceeded(counters.respBytes, now)) {
+        handleWarning(blocks, now, requestor, d_respRateRule, updated);
+      }
+
+      if (d_respRateRule.rateExceeded(counters.respBytes, now)) {
+        addBlock(blocks, now, requestor, d_respRateRule, updated);
         continue;
       }
 
-      for (const auto& rule : d_qtypeRules) {
-        const auto& typeIt = entry.second.d_qtypeCounts.find(rule.first);
-        if (typeIt != entry.second.d_qtypeCounts.cend() && rule.second.rateExceeded(typeIt->second, now)) {
-          addBlock(blocks, now, entry.first, rule.second, updated);
-          break;
+      for (const auto& pair : d_qtypeRules) {
+        const auto qtype = pair.first;
+
+        const auto& typeIt = counters.d_qtypeCounts.find(qtype);
+        if (typeIt != counters.d_qtypeCounts.cend()) {
+
+          if (pair.second.warningRateExceeded(typeIt->second, now)) {
+            handleWarning(blocks, now, requestor, pair.second, updated);
+          }
+
+          if (pair.second.rateExceeded(typeIt->second, now)) {
+            addBlock(blocks, now, requestor, pair.second, updated);
+            break;
+          }
         }
       }
 
-      for (const auto& rule : d_rcodeRules) {
-        const auto& rcodeIt = entry.second.d_rcodeCounts.find(rule.first);
-        if (rcodeIt != entry.second.d_rcodeCounts.cend() && rule.second.rateExceeded(rcodeIt->second, now)) {
-          addBlock(blocks, now, entry.first, rule.second, updated);
-          break;
+      for (const auto& pair : d_rcodeRules) {
+        const auto rcode = pair.first;
+
+        const auto& rcodeIt = counters.d_rcodeCounts.find(rcode);
+        if (rcodeIt != counters.d_rcodeCounts.cend()) {
+          if (pair.second.warningRateExceeded(rcodeIt->second, now)) {
+            handleWarning(blocks, now, requestor, pair.second, updated);
+          }
+
+          if (pair.second.rateExceeded(rcodeIt->second, now)) {
+            addBlock(blocks, now, requestor, pair.second, updated);
+            break;
+          }
         }
       }
     }
@@ -223,6 +270,11 @@ public:
     return result.str();
   }
 
+  void setQuiet(bool quiet)
+  {
+    d_beQuiet = quiet;
+  }
+
 private:
   bool checkIfQueryTypeMatches(const Rings::Query& query)
   {
@@ -244,7 +296,7 @@ private:
     return rule->second.matches(response.when);
   }
 
-  void addBlock(boost::optional<NetmaskTree<DynBlock> >& blocks, const struct timespec& now, const ComboAddress& requestor, const DynBlockRule& rule, bool& updated)
+  void addOrRefreshBlock(boost::optional<NetmaskTree<DynBlock> >& blocks, const struct timespec& now, const ComboAddress& requestor, const DynBlockRule& rule, bool& updated, bool warning)
   {
     if (d_excludedSubnets.match(requestor)) {
       /* do not add a block for excluded subnets */
@@ -259,10 +311,22 @@ private:
     unsigned int count = 0;
     const auto& got = blocks->lookup(Netmask(requestor));
     bool expired = false;
+    bool wasWarning = false;
+
     if (got) {
-      if (until < got->second.until) {
-        // had a longer policy
+      if (warning && !got->second.warning) {
+        /* we have an existing entry which is not a warning,
+           don't override it */
         return;
+      }
+      else if (!warning && got->second.warning) {
+        wasWarning = true;
+      }
+      else {
+        if (until < got->second.until) {
+          // had a longer policy
+          return;
+        }
       }
 
       if (now < got->second.until) {
@@ -274,13 +338,24 @@ private:
       }
     }
 
-    DynBlock db{rule.d_blockReason, until, DNSName(), rule.d_action};
+    DynBlock db{rule.d_blockReason, until, DNSName(), warning ? DNSAction::Action::NoOp : rule.d_action};
     db.blocks = count;
-    if (!got || expired) {
-      warnlog("Inserting dynamic block for %s for %d seconds: %s", requestor.toString(), rule.d_blockDuration, rule.d_blockReason);
+    db.warning = warning;
+    if (!d_beQuiet && (!got || expired || wasWarning)) {
+      warnlog("Inserting %sdynamic block for %s for %d seconds: %s", warning ? "(warning) " :"", requestor.toString(), rule.d_blockDuration, rule.d_blockReason);
     }
     blocks->insert(Netmask(requestor)).second = db;
     updated = true;
+  }
+
+  void addBlock(boost::optional<NetmaskTree<DynBlock> >& blocks, const struct timespec& now, const ComboAddress& requestor, const DynBlockRule& rule, bool& updated)
+  {
+    addOrRefreshBlock(blocks, now, requestor, rule, updated, false);
+  }
+
+  void handleWarning(boost::optional<NetmaskTree<DynBlock> >& blocks, const struct timespec& now, const ComboAddress& requestor, const DynBlockRule& rule, bool& updated)
+  {
+    addOrRefreshBlock(blocks, now, requestor, rule, updated, true);
   }
 
   bool hasQueryRules() const
@@ -298,14 +373,12 @@ private:
     return hasQueryRules() || hasResponseRules();
   }
 
-  void processQueryRules(counts_t& counts)
+  void processQueryRules(counts_t& counts, const struct timespec& now)
   {
     if (!hasQueryRules()) {
       return;
     }
 
-    struct timespec now;
-    gettime(&now);
     d_queryRateRule.d_cutOff = d_queryRateRule.d_minTime = now;
     d_queryRateRule.d_cutOff.tv_sec -= d_queryRateRule.d_seconds;
 
@@ -337,14 +410,12 @@ private:
     }
   }
 
-  void processResponseRules(counts_t& counts)
+  void processResponseRules(counts_t& counts, const struct timespec& now)
   {
     if (!hasResponseRules()) {
       return;
     }
 
-    struct timespec now;
-    gettime(&now);
     d_respRateRule.d_cutOff = d_respRateRule.d_minTime = now;
     d_respRateRule.d_cutOff.tv_sec -= d_respRateRule.d_seconds;
 
@@ -381,4 +452,5 @@ private:
   DynBlockRule d_queryRateRule;
   DynBlockRule d_respRateRule;
   NetmaskGroup d_excludedSubnets;
+  bool d_beQuiet{false};
 };

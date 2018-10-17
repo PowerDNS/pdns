@@ -827,7 +827,10 @@ faster than the existing rules.
 
   Represents a group of dynamic block rules.
 
-  .. method:: DynBlockRulesGroup:setQueryRate(rate, seconds, reason, blockingTime [, action])
+  .. method:: DynBlockRulesGroup:setQueryRate(rate, seconds, reason, blockingTime [, action [, warningRate]])
+
+    .. versionchanged:: 1.3.3
+        ``warningRate`` parameter added.
 
     Adds a query rate-limiting rule, equivalent to:
     ```
@@ -839,8 +842,12 @@ faster than the existing rules.
     :param string reason: The message to show next to the blocks
     :param int blockingTime: The number of seconds this block to expire
     :param int action: The action to take when the dynamic block matches, see :ref:`here <DNSAction>`. (default to the one set with :func:`setDynBlocksAction`)
+    :param int warningRate: If set to a non-zero value, the rate above which a warning message will be issued and a no-op block inserted
 
-  .. method:: DynBlockRulesGroup:setRCodeRate(rcode, rate, seconds, reason, blockingTime [, action])
+  .. method:: DynBlockRulesGroup:setRCodeRate(rcode, rate, seconds, reason, blockingTime [, action [, warningRate]])
+
+    .. versionchanged:: 1.3.3
+        ``warningRate`` parameter added.
 
     Adds a rate-limiting rule for responses of code ``rcode``, equivalent to:
     ```
@@ -853,8 +860,12 @@ faster than the existing rules.
     :param string reason: The message to show next to the blocks
     :param int blockingTime: The number of seconds this block to expire
     :param int action: The action to take when the dynamic block matches, see :ref:`here <DNSAction>`. (default to the one set with :func:`setDynBlocksAction`)
+    :param int warningRate: If set to a non-zero value, the rate above which a warning message will be issued and a no-op block inserted
 
-  .. method:: DynBlockRulesGroup:setQTypeRate(qtype, rate, seconds, reason, blockingTime [, action])
+  .. method:: DynBlockRulesGroup:setQTypeRate(qtype, rate, seconds, reason, blockingTime [, action [, warningRate]])
+
+    .. versionchanged:: 1.3.3
+        ``warningRate`` parameter added.
 
     Adds a rate-limiting rule for queries of type ``qtype``, equivalent to:
     ```
@@ -867,8 +878,12 @@ faster than the existing rules.
     :param string reason: The message to show next to the blocks
     :param int blockingTime: The number of seconds this block to expire
     :param int action: The action to take when the dynamic block matches, see :ref:`here <DNSAction>`. (default to the one set with :func:`setDynBlocksAction`)
+    :param int warningRate: If set to a non-zero value, the rate above which a warning message will be issued and a no-op block inserted
 
-  .. method:: DynBlockRulesGroup:setRespByteRate(rate, seconds, reason, blockingTime [, action])
+  .. method:: DynBlockRulesGroup:setResponseByteRate(rate, seconds, reason, blockingTime [, action [, warningRate]])
+
+    .. versionchanged:: 1.3.3
+        ``warningRate`` parameter added.
 
     Adds a bandwidth rate-limiting rule for responses, equivalent to:
     ```
@@ -880,6 +895,7 @@ faster than the existing rules.
     :param string reason: The message to show next to the blocks
     :param int blockingTime: The number of seconds this block to expire
     :param int action: The action to take when the dynamic block matches, see :ref:`here <DNSAction>`. (default to the one set with :func:`setDynBlocksAction`)
+    :param int warningRate: If set to a non-zero value, the rate above which a warning message will be issued and a no-op block inserted
 
   .. method:: DynBlockRulesGroup:apply()
 
