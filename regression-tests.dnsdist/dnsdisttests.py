@@ -173,7 +173,11 @@ class DNSDistTest(unittest.TestCase):
 
     @classmethod
     def UDPResponder(cls, port, fromQueue, toQueue, trailingDataResponse=False):
+        # trailingDataResponse=True means "ignore trailing data".
+        # Other values are either False (meaning "raise an exception")
+        # or are interpreted as a response RCODE for queries with trailing data.
         ignoreTrailing = trailingDataResponse is True
+
         sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEPORT, 1)
         sock.bind(("127.0.0.1", port))
@@ -183,7 +187,7 @@ class DNSDistTest(unittest.TestCase):
             try:
                 request = dns.message.from_wire(data, ignore_trailing=ignoreTrailing)
             except dns.message.TrailingJunk as e:
-                if trailingDataResponse is False:
+                if trailingDataResponse is False or forceRcode is True:
                     raise
                 print("UDP query with trailing data, synthesizing response")
                 request = dns.message.from_wire(data, ignore_trailing=True)
@@ -200,7 +204,11 @@ class DNSDistTest(unittest.TestCase):
 
     @classmethod
     def TCPResponder(cls, port, fromQueue, toQueue, trailingDataResponse=False, multipleResponses=False):
+        # trailingDataResponse=True means "ignore trailing data".
+        # Other values are either False (meaning "raise an exception")
+        # or are interpreted as a response RCODE for queries with trailing data.
         ignoreTrailing = trailingDataResponse is True
+
         sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEPORT, 1)
         try:
@@ -224,7 +232,7 @@ class DNSDistTest(unittest.TestCase):
             try:
                 request = dns.message.from_wire(data, ignore_trailing=ignoreTrailing)
             except dns.message.TrailingJunk as e:
-                if trailingDataResponse is False:
+                if trailingDataResponse is False or forceRcode is True:
                     raise
                 print("TCP query with trailing data, synthesizing response")
                 request = dns.message.from_wire(data, ignore_trailing=True)
