@@ -204,14 +204,14 @@ class TestTrailingDataToDnsdist(DNSDistTest):
     function reportTrailingHex(dq)
         local tail = dq:getTrailingData()
         local hex = string.gsub(tail, ".", function(ch)
-            return string.format("\\x2502X", string.byte(ch))
+            return string.sub(string.format("\\x2502X", string.byte(ch)), -2)
         end)
         return DNSAction.Spoof, "-0x" .. hex .. ".echoed-hex.trailing.tests.powerdns.com."
     end
     addLuaAction("echoed-hex.trailing.tests.powerdns.com.", reportTrailingHex)
 
     function replaceTrailingData_unsafe(dq)
-        local success = dq:setTrailingData("\\xB0\\x00\\x00\\xDE\\xAD.")
+        local success = dq:setTrailingData("\\xB0\\x00\\xDE\\xADB\\xF0\\x9F\\x91\\xBB\\xC3\\xBE")
         if not success then
             return DNSAction.ServFail, ""
         end
@@ -388,7 +388,7 @@ class TestTrailingDataToDnsdist(DNSDistTest):
                                     60,
                                     dns.rdataclass.IN,
                                     dns.rdatatype.CNAME,
-                                    '-0xB00000DEAD2E.echoed-hex.trailing.tests.powerdns.com.')
+                                    '-0xB000DEAD42F09F91BBC3BE.echoed-hex.trailing.tests.powerdns.com.')
         expectedResponse.answer.append(rrset)
 
         raw = query.to_wire()
