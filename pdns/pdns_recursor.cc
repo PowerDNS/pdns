@@ -1344,6 +1344,7 @@ static void startDoResolve(void *p)
   }
   catch(...) {
     L<<Logger::Error<<"Any other exception in a resolver context "<< makeLoginfo(dc) <<endl;
+    delete dc;
   }
 
   g_stats.maxMThreadStackUsage = max(MT->getMaxStackUsage(), g_stats.maxMThreadStackUsage);
