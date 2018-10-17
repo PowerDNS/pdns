@@ -896,6 +896,7 @@ struct DNSDistRuleAction
   std::shared_ptr<DNSRule> d_rule;
   std::shared_ptr<DNSAction> d_action;
   boost::uuids::uuid d_id;
+  uint64_t d_creationOrder;
 };
 
 struct DNSDistResponseRuleAction
@@ -903,6 +904,7 @@ struct DNSDistResponseRuleAction
   std::shared_ptr<DNSRule> d_rule;
   std::shared_ptr<DNSResponseAction> d_action;
   boost::uuids::uuid d_id;
+  uint64_t d_creationOrder;
 };
 
 extern GlobalStateHolder<SuffixMatchTree<DynBlock>> g_dynblockSMT;
