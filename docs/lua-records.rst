@@ -59,7 +59,7 @@ addresses.
 ``pickclosest`` and ifportup can be combined as follows::
 
   www    IN    LUA    A    ("ifportup(443, {'192.0.2.1', '192.0.2.2', '198.51.100.1'}"
-                            ", {selector='closest'})                                 ")
+                            ", {selector='pickclosest'})                                 ")
 
 This will pick from the viable IP addresses the one deemed closest to the user.                         
 
