@@ -2,7 +2,32 @@
 #include "config.h"
 #include "rec-protobuf.hh"
 
+#ifdef NOD_ENABLED
+void RecProtoBufMessage::setNOD(bool nod)
+{
+#ifdef HAVE_PROTOBUF
+  d_message.set_newlyobserveddomain(nod);
+#endif /* HAVE_PROTOBUF */  
+}
+
+void RecProtoBufMessage::clearUDR() 
+{
+#ifdef HAVE_PROTOBUF
+  auto response = d_message.mutable_response();
+  const int count = response->rrs_size();
+  for (int idx = 0; idx < count; idx++) {
+    auto rr = response->mutable_rrs(idx);
+    rr->set_udr(false);
+  }
+#endif /* HAVE_PROTOBUF */
+}
+#endif /* NOD_ENABLED */
+
+#ifdef NOD_ENABLED
+void RecProtoBufMessage::addRR(const DNSRecord& record, const std::set<uint16_t>& exportTypes, bool udr)
+#else
 void RecProtoBufMessage::addRR(const DNSRecord& record, const std::set<uint16_t>& exportTypes)
+#endif /* NOD_ENABLED */
 {
 #ifdef HAVE_PROTOBUF
   PBDNSMessage_DNSResponse* response = d_message.mutable_response();
@@ -27,6 +52,9 @@ void RecProtoBufMessage::addRR(const DNSRecord& record, const std::set<uint16_t>
   pbRR->set_type(record.d_type);
   pbRR->set_class_(record.d_class);
   pbRR->set_ttl(record.d_ttl);
+#ifdef NOD_ENABLED
+  pbRR->set_udr(udr);
+#endif
 
   switch(record.d_type) {
   case QType::A:
