@@ -45,7 +45,23 @@ When building from git, the following packages are also required:
 apt install autoconf automake ragel bison flex
 ```
 
-then generate the configure file:
+For Ubuntu 18.04 (Bionic Beaver), the following packages should be installed:
+
+```sh
+apt install libcurl4-openssl-dev luajit lua-yaml-dev libyaml-cpp-dev libtolua-dev lua5.3 autoconf automake ragel bison flex g++ libboost-all-dev libtool make pkg-config libssl-dev virtualenv lua-yaml-dev libyaml-cpp-dev libluajit-5.1-dev libcurl4 gawk
+# For DNSSEC ed25519 (algorithm 15) support with --enable-libsodium
+apt install libsodium-dev
+# If using the gmysql (Generic MySQL) backend
+apt install default-libmysqlclient-dev
+# If using the gpgsql (Generic PostgreSQL) backend
+apt install postgresql-server-dev-10
+# If using --enable-systemd (will create the service scripts so it can be managed with systemctl/service)
+apt install libsystemd0 libsystemd-dev
+# If using the geoip backend
+apt install libmaxminddb-dev libmaxminddb0 libgeoip1 libgeoip-dev
+```
+
+Then generate the configure file:
 
 ```sh
 autoreconf -vi
@@ -61,6 +77,8 @@ make
 
 This generates a PowerDNS Authoritative Server binary with no modules built in.
 
+See https://doc.powerdns.com/authoritative/backends/index.html for a list of available modules.
+
 When `./configure` is run without `--with-modules`, the bind and gmysql module are
 built-in by default and the pipe-backend is compiled for runtime loading.
 
@@ -72,7 +90,7 @@ To add multiple modules, try:
 
 Note that you will need the development headers for PostgreSQL as well in this case.
 
-See https://doc.powerdns.com/md/appendix/compiling-powerdns/ for more details.
+See https://doc.powerdns.com/authoritative/appendices/compiling.html for more details.
 
 If you run into C++11-related symbol trouble, please try passing `CPPFLAGS=-D_GLIBCXX_USE_CXX11_ABI=0` (or 1) to `./configure` to make sure you are compatible with the installed dependencies.
 
@@ -83,6 +101,82 @@ See the README in pdns/recursordist.
 Compiling dnsdist
 -----------------
 See the README in pdns/dnsdistdist.
+
+Building the HTML documentation
+-------------------------------
+
+The HTML documentation (as seen [on the PowerDNS docs site](https://doc.powerdns.com/authoritative/)) is built from ReStructured Text (rst) files located in `docs`. They are compiled into HTML files using [Sphinx](http://www.sphinx-doc.org/en/master/index.html), a documentation generator tool which is built in Python.
+
+**Using a normal Python installation**
+
+For those simply contributing to the documentation, this avoids needing to install the various build
+tools and other dependencies.
+
+Install Python 2.7 or Python 3 (preferable) if you don't yet have it installed. On some operating
+systems you may also have to install `python3-pip` or similarly named.
+
+Ubuntu 16.04 / 18.04
+
+```sh
+apt update
+apt install python3 python3-pip python3-venv
+```
+
+macOS (using homebrew)
+
+```sh
+brew install python3
+```
+
+Update your `pip` and install/update `virtualenv` to avoid problems:
+
+```sh
+# for python2, use "pip" instead of "pip3"
+pip3 install -U pip
+pip3 install -U virtualenv
+```
+
+Enter the repository's `docs` folder, set up the virtualenv, and install the requirements
+
+```sh
+cd docs
+# for python2, use "virtualenv .venv" instead
+python3 -m venv .venv
+source .venv/bin/activate
+# The virtualenv may use an older pip, so upgrade it again
+pip3 install -U pip setuptools setuptools-git
+# Now you can install the requirements
+pip3 install -r requirements.txt
+```
+
+Finally, you can build the documentation:
+
+```sh
+sphinx-build . html-docs
+```
+
+Note: If your shell has problems finding sphinx-build, try using `.venv/bin/sphinx-build` instead.
+
+The HTML documentation is now available in `html-docs`.
+
+**Using the build tools**
+
+This method is preferable for those who already have a working build environment for PowerDNS.
+
+Install the dependencies under "COMPILING", and run autoreconf if you haven't already:
+
+```sh
+autoreconf -vi
+```
+
+Enter the `docs` folder, and use make to build the HTML docs.
+
+```
+cd docs
+make html-docs
+```
+
+The HTML documentation will now be available in `html-docs`.
 
 Solaris Notes
 -------------
