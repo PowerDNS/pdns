@@ -309,36 +309,38 @@ Record creation functions
 Reverse DNS functions
 ~~~~~~~~~~~~~~~~~~~~~~~~~
 
-.. note::
-  **WARNING**: The reverse DNS functions are under active development. **They may**
+.. warning::
+  The reverse DNS functions are under active development. **They may**
   **not be safe for production use.** The syntax of these functions may change at any
   time.
 
 .. function:: createReverse(format)
 
-  Used for generating default hostnames from IPv4 wildcard reverse DNS records, e.g. *.0.0.127.in-addr.arpa 
+  Used for generating default hostnames from IPv4 wildcard reverse DNS records, e.g. ``*.0.0.127.in-addr.arpa`` 
   
   See :func:`createReverse6` for IPv6 records (ip6.arpa)
-  See :func:`createForward` for creating the A records to a wildcard record such as *.static.example.com
+
+  See :func:`createForward` for creating the A records on a wildcard record such as ``*.static.example.com``
   
   Returns a formatted hostname based on the format string passed.
 
   :param format: A hostname string to format, for example ``%1%.%2%.%3%.%4%.static.example.com``.
   
-  Formatting options::
-   
-   - ``%1%`` to ``%4%`` are individual octets
-     - Example record query: ``1.0.0.127.in-addr.arpa``
-       - ``%1%`` = 127
-       - ``%2%`` = 0
-       - ``%3%`` = 0
-       - ``%4%`` = 1
-   - ``%5%`` joins the four decimal octets together with dashes
-     - Example: ``%5%.static.example.com`` is equivalent to ``%1%-%2%-%3%-%4%.static.example.com``
-   - ``%6%`` converts each octet from decimal to hexadecimal and joins them together
-     - Example: A query for ``15.0.0.127.static.example.com`` - ``%6`` would be `7f00000f` (127 is 7f, and 15 is 0f in hexadecimal)
-  
-  **NOTE:** At the current time, only forward dotted format works with :func:`createForward` (i.e. 127.0.0.1.static.example.com)
+  **Formatting options:**
+
+    - ``%1%`` to ``%4%`` are individual octets
+        - Example record query: ``1.0.0.127.in-addr.arpa`` 
+        - ``%1%`` = 127
+        - ``%2%`` = 0
+        - ``%3%`` = 0
+        - ``%4%`` = 1
+    - ``%5%`` joins the four decimal octets together with dashes
+        - Example: ``%5%.static.example.com`` is equivalent to ``%1%-%2%-%3%-%4%.static.example.com``
+    - ``%6%`` converts each octet from decimal to hexadecimal and joins them together
+        - Example: A query for ``15.0.0.127.in-addr.arpa`` 
+        - ``%6`` would be ``7f00000f`` (127 is 7f, and 15 is 0f in hexadecimal)
+
+  **NOTE:** At the current time, only forward dotted format works with :func:`createForward` (i.e. ``127.0.0.1.static.example.com``)
   
   Example records::
   
@@ -369,7 +371,7 @@ Reverse DNS functions
     
     *.static.example.com    IN    LUA    A "createForward()"
   
-  **NOTE:** At the current time, only forward dotted format works for this function (i.e. 127.0.0.1.static.example.com)
+  **NOTE:** At the current time, only forward dotted format works for this function (i.e. ``127.0.0.1.static.example.com``)
   
   When queried::
   
@@ -378,34 +380,35 @@ Reverse DNS functions
   
 .. function:: createReverse6(format)
 
-  Used for generating default hostnames from IPv6 wildcard reverse DNS records, e.g. *.1.0.0.2.ip6.arpa 
+  Used for generating default hostnames from IPv6 wildcard reverse DNS records, e.g. ``*.1.0.0.2.ip6.arpa``
   
   **For simplicity purposes, only small sections of IPv6 rDNS domains are used in most parts of this guide,**
-  **as a full ip6.arpa record is around 80 characters long, e.g. ``1.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.b.0.0.0.a.0.0.0.1.0.0.2.ip6.arpa``**
+  **as a full ip6.arpa record is around 80 characters long**
   
   See :func:`createReverse` for IPv4 records (in-addr.arpa)
-  See :func:`createForward6` for creating the AAAA records to a wildcard record such as *.static.example.com
+
+  See :func:`createForward6` for creating the AAAA records on a wildcard record such as ``*.static.example.com``
   
   Returns a formatted hostname based on the format string passed.
 
   :param format: A hostname string to format, for example ``%33%.static6.example.com``.
   
-  Formatting options::
+  Formatting options:
    
-   - ``%1%`` to ``%32%`` are individual characters (nibbles)
-     - Example record query: ``1.0.0.2.ip6.arpa``
-       - ``%1%`` = 2
-       - ``%2%`` = 0
-       - ``%3%`` = 0
-       - ``%4%`` = 1
-   - ``%33%`` converts the compressed address format into a dashed format, e.g. ``2001:a::1`` to ``2001-a--1``
-   - ``%34%`` to ``%41%`` represent the 8 uncompressed 2-byte chunks
-     - Example: A query for 2001:a:b::123
-       - ``%34%`` - returns ``2001`` (chunk 1)
-       - ``%35%`` - returns ``000a`` (chunk 2)
-       - ``%41%`` - returns ``0123`` (chunk 8)
+    - ``%1%`` to ``%32%`` are individual characters (nibbles)
+        - **Example PTR record query:** ``a.0.0.0.1.0.0.2.ip6.arpa``
+        - ``%1%`` = 2
+        - ``%2%`` = 0
+        - ``%3%`` = 0
+        - ``%4%`` = 1
+    - ``%33%`` converts the compressed address format into a dashed format, e.g. ``2001:a::1`` to ``2001-a--1``
+    - ``%34%`` to ``%41%`` represent the 8 uncompressed 2-byte chunks
+        - **Example:** PTR query for ``2001:a:b::123``
+        - ``%34%`` - returns ``2001`` (chunk 1)
+        - ``%35%`` - returns ``000a`` (chunk 2)
+        - ``%41%`` - returns ``0123`` (chunk 8)
   
-  **NOTE:** At the current time, only forward dotted format works with :func:`createForward` (i.e. 1.0.0.2.static.example.com)
+  **NOTE:** At the current time, only dashed compressed format works for this function (i.e. ``2001-a-b--1.static6.example.com``)
   
   Example records::
   
@@ -428,7 +431,7 @@ Reverse DNS functions
   
   Used to generate the reverse DNS domains made from :func:`createReverse6`
   
-  Generates an AAAA record for a dashed compressed IPv6 domain (e.g. 2001-a-b--1.static6.example.com)
+  Generates an AAAA record for a dashed compressed IPv6 domain (e.g. ``2001-a-b--1.static6.example.com``)
   
   It does not take any parameters, it simply interprets the zone record to find the IP address.
   
@@ -436,7 +439,7 @@ Reverse DNS functions
     
     *.static6.example.com    IN    LUA    AAAA "createForward6()"
   
-  **NOTE:** At the current time, only dashed compressed format works for this function (i.e. 2001-a-b--1.static6.example.com)
+  **NOTE:** At the current time, only dashed compressed format works for this function (i.e. ``2001-a-b--1.static6.example.com``)
   
   When queried::
   
