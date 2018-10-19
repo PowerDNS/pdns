@@ -63,6 +63,40 @@ addresses.
 
 This will pick from the viable IP addresses the one deemed closest to the user.                         
 
+Using LUA Records with Generic SQL backends
+-------------------------------------------
+
+It's possible to use Lua records with the Generic SQL backends such as gmysql and gpgsql.
+
+Be aware that due to the fact that Lua records uses both double and single quotes, you will
+need to appropriately escape them in INSERT/UPDATE queries.
+
+Here is an example from the previous section (``pickclosest``) which should work 
+for both **MySQL** and **PostgreSQL**::
+
+    -- Create the zone example.com
+    INSERT INTO domains (id, name, type) VALUES (1, 'example.com', 'NATIVE');
+
+    -- Enable Lua records for the zone (if not enabled globally)
+    INSERT INTO domainmetadata (domain_id, kind, content) 
+    VALUES (1, 'ENABLE-LUA-RECORD', 1);
+
+    -- Create a pickClosest() Lua A record.
+    -- Double single quotes are used to escape single quotes in both MySQL and PostgreSQL
+    INSERT INTO records (domain_id, name, type, content, ttl)
+    VALUES (
+      1, 
+      'www.example.com',
+      'LUA', 
+      'A "pickclosest({''192.0.2.1'',''192.0.2.2'',''198.51.100.1''})"',
+      600
+    );
+
+The above queries create a zone ``example.com``, enable Lua records for the zone using ``ENABLE-LUA-RECORD``,
+and finally insert a LUA A record for the ``www`` subdomain using the previous pickclosest example.
+
+See `Details & Security`_ for more information about enabling Lua records, and the risks involved.
+
 Record format
 -------------
 .. note::
