@@ -114,6 +114,7 @@ class PDNSPBConnHandler(object):
                 if rr.HasField('class'):
                     rrclass = getattr(rr, 'class')
                 rrtype = rr.type
+                rrudr = rr.udr
                 if (rrclass == 1 or rrclass == 255) and rr.HasField('rdata'):
                     if rrtype == 1:
                         rdatastr = socket.inet_ntop(socket.AF_INET, rr.rdata)
@@ -122,11 +123,12 @@ class PDNSPBConnHandler(object):
                     elif rrtype == 28:
                         rdatastr = socket.inet_ntop(socket.AF_INET6, rr.rdata)
 
-                print("\t - %d, %d, %s, %d, %s" % (rrclass,
+                print("\t - %d, %d, %s, %d, %s, %d" % (rrclass,
                                                    rrtype,
                                                    rr.name,
                                                    rr.ttl,
-                                                   rdatastr))
+                                                   rdatastr,
+                                                   rrudr))
 
     def printSummary(self, msg, typestr):
         datestr = datetime.datetime.fromtimestamp(msg.timeSec).strftime('%Y-%m-%d %H:%M:%S')
@@ -168,9 +170,10 @@ class PDNSPBConnHandler(object):
 
         deviceId = binascii.hexlify(bytearray(msg.deviceId))
         requestorId = msg.requestorId
+        nod = msg.newlyObservedDomain
 
         print('[%s] %s of size %d: %s%s -> %s (%s), id: %d, uuid: %s%s '
-                  'requestorid: %s deviceid: %s serverid: %s' % (datestr,
+                  'requestorid: %s deviceid: %s serverid: %s nod: %d' % (datestr,
                                                     typestr,
                                                     msg.inBytes,
                                                     ipfromstr,
@@ -182,7 +185,8 @@ class PDNSPBConnHandler(object):
                                                     initialrequestidstr,
                                                     requestorId,
                                                     deviceId,
-                                                    serveridstr))
+                                                    serveridstr,
+                                                    nod))
 
     def getRequestorSubnet(self, msg):
         requestorstr = None
