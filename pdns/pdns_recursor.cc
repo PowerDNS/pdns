@@ -125,6 +125,7 @@ thread_local std::unique_ptr<boost::uuids::random_generator> t_uuidGenerator;
 #endif
 #ifdef NOD_ENABLED
 thread_local std::shared_ptr<nod::NODDB> t_nodDBp;
+thread_local std::shared_ptr<nod::UniqueResponseDB> t_udrDBp;
 #endif /* NOD_ENABLED */
 __thread struct timeval g_now; // timestamp, updated (too) frequently
 
@@ -208,6 +209,8 @@ static bool g_nodEnabled;
 static DNSName g_nodLookupDomain;
 static bool g_nodLog;
 static SuffixMatchNode g_nodDomainWL;
+static bool g_udrEnabled;
+static bool g_udrLog;
 #endif /* NOD_ENABLED */
 #ifdef HAVE_BOOST_CONTAINER_FLAT_SET_HPP
 static boost::container::flat_set<uint16_t> s_avoidUdpSourcePorts;
@@ -916,10 +919,11 @@ static bool checkOutgoingProtobufExport(LocalStateHolder<LuaConfigItems>& luacon
 #endif /* HAVE_PROTOBUF */
 
 #ifdef NOD_ENABLED
-static void nodCheckNewDomain(const DNSName& dname)
+static bool nodCheckNewDomain(const DNSName& dname)
 {
   static const QType qt(QType::A);
   static const uint16_t qc(QClass::IN);
+  bool ret = false;
   // First check the (sub)domain isn't whitelisted for NOD purposes
   if (!g_nodDomainWL.check(dname)) {
     // Now check the NODDB (note this is probablistic so can have FNs/FPs)
@@ -935,8 +939,10 @@ static void nodCheckNewDomain(const DNSName& dname)
         qname += g_nodLookupDomain;
         directResolve(qname, qt, qc, dummy);
       }
+      ret = true;
     }
   }
+  return ret;
 }
 
 static void nodAddDomain(const DNSName& dname)
@@ -948,6 +954,25 @@ static void nodAddDomain(const DNSName& dname)
       t_nodDBp->addDomain(dname);
     }
   }
+}
+
+static bool udrCheckUniqueDNSRecord(const DNSName& dname, uint16_t qtype, const DNSRecord& record)
+{
+  bool ret = false;
+  if (record.d_place == DNSResourceRecord::ANSWER ||
+      record.d_place == DNSResourceRecord::ADDITIONAL) {
+    // Create a string that represent a triplet of (qname, qtype and RR[type, name, content])
+    std::stringstream ss;
+    ss << dname.toDNSStringLC() << ":" << qtype <<  ":" << qtype << ":" << record.d_type << ":" << record.d_name.toDNSStringLC() << ":" << record.d_content->getZoneRepresentation();
+    if (t_udrDBp && t_udrDBp->isUniqueResponse(ss.str())) {
+      if (g_udrLog) {
+	// This should also probably log to a dedicated file. 
+	g_log<<Logger::Notice<<"Unique response observed: qname="<<dname.toLogString()<<" qtype="<<QType(qtype).getName()<< " rrtype=" << QType(record.d_type).getName() << " rrname=" << record.d_name.toLogString() << " rrcontent=" << record.d_content->getZoneRepresentation() << endl;
+      }
+      ret = true;
+    }
+  }
+  return ret;
 }
 #endif /* NOD_ENABLED */
 
@@ -1390,9 +1415,20 @@ static void startDoResolve(void *p)
         }
         needCommit = true;
 
+#ifdef NOD_ENABLED
+	bool udr = false;
+	if (g_udrEnabled) {
+	  udr = udrCheckUniqueDNSRecord(dc->d_mdp.d_qname, dc->d_mdp.d_qtype, *i);
+	}
+#endif /* NOD ENABLED */    
+
 #ifdef HAVE_PROTOBUF
         if(t_protobufServer) {
+#ifdef NOD_ENABLED
+          pbMessage->addRR(*i, luaconfsLocal->protobufExportConfig.exportTypes, udr);
+#else
           pbMessage->addRR(*i, luaconfsLocal->protobufExportConfig.exportTypes);
+#endif /* NOD_ENABLED */
         }
 #endif
       }
@@ -1426,6 +1462,12 @@ static void startDoResolve(void *p)
       pbMessage->setQueryTime(dc->d_now.tv_sec, dc->d_now.tv_usec);
       pbMessage->setRequestorId(dq.requestorId);
       pbMessage->setDeviceId(dq.deviceId);
+#ifdef NOD_ENABLED
+      if (g_nodEnabled) {
+        if (nodCheckNewDomain(dc->d_mdp.d_qname))
+	  pbMessage->setNOD(true);
+      }
+#endif /* NOD_ENABLED */
       protobufLogResponse(t_protobufServer, *pbMessage);
     }
 #endif
@@ -1511,19 +1553,9 @@ static void startDoResolve(void *p)
 
     if (sr.d_outqueries || sr.d_authzonequeries) {
       t_RC->cacheMisses++;
-#ifdef NOD_ENABLED
-      if (g_nodEnabled) {
-        nodCheckNewDomain(dc->d_mdp.d_qname);
-      }
-#endif /* NOD_ENABLED */
     }
     else {
       t_RC->cacheHits++;
-#ifdef NOD_ENABLED
-      if (g_nodEnabled) {
-        nodAddDomain(dc->d_mdp.d_qname);
-      }
-#endif /* NOD_ENABLED */
     }
 
     if(spent < 0.001)
@@ -2067,6 +2099,10 @@ static string* doProcessUDPQuestion(const std::string& question, const ComboAddr
         pbMessage->setQueryTime(g_now.tv_sec, g_now.tv_usec);
         pbMessage->setRequestorId(requestorId);
         pbMessage->setDeviceId(deviceId);
+#ifdef NOD_ENABLED
+	pbMessage->setNOD(false);
+	pbMessage->clearUDR();
+#endif
         protobufLogResponse(t_protobufServer, *pbMessage);
       }
 #endif /* HAVE_PROTOBUF */
@@ -3281,7 +3317,23 @@ static void setupNODThread()
       g_log<<Logger::Error<<"Could not initialize domain tracking"<<endl;
       _exit(1);
     }
-    std::thread t(nod::NODDB::startHousekeepingThread, t_nodDBp);
+    std::thread t(nod::NODDB::startHousekeepingThread, t_nodDBp, std::this_thread::get_id());
+    t.detach();
+  }
+  if (g_udrEnabled) {
+    t_udrDBp = std::make_shared<nod::UniqueResponseDB>();
+    try {
+      t_udrDBp->setCacheDir(::arg()["unique-response-history-dir"]);
+    }
+    catch (const PDNSException& e) {
+      g_log<<Logger::Error<<"unique-response-history-dir (" << ::arg()["unique-response-history-dir"] << ") is not readable or does not exist"<<endl;
+      _exit(1);
+    }
+    if (!t_udrDBp->init()) {
+      g_log<<Logger::Error<<"Could not initialize unique response tracking"<<endl;
+      _exit(1);
+    }
+    std::thread t(nod::UniqueResponseDB::startHousekeepingThread, t_udrDBp, std::this_thread::get_id());
     t.detach();
   }
 }
@@ -3302,6 +3354,10 @@ static void setupNODGlobal()
   g_nodLookupDomain = DNSName(::arg()["new-domain-lookup"]);
   g_nodLog = ::arg().mustDo("new-domain-log");
   parseNODWhitelist(::arg()["new-domain-whitelist"]);
+
+  // Setup Unique DNS Response subsystem
+  g_udrEnabled = ::arg().mustDo("unique-response-tracking");
+  g_udrLog = ::arg().mustDo("unique-response-log");
 }
 #endif /* NOD_ENABLED */
 
@@ -3754,7 +3810,8 @@ try
   g_log<<Logger::Warning<<"Done priming cache with root hints"<<endl;
 
 #ifdef NOD_ENABLED
-  setupNODThread();
+  if (threadInfo.isWorker)
+    setupNODThread();
 #endif /* NOD_ENABLED */
   
   if(threadInfo.isWorker) {
@@ -4080,6 +4137,9 @@ int main(int argc, char **argv)
     ::arg().set("new-domain-lookup", "Perform a DNS lookup newly observed domains as a subdomain of the configured domain")="";
     ::arg().set("new-domain-history-dir", "Persist new domain tracking data here to persist between restarts")=string(NODCACHEDIR)+"/nod";
     ::arg().set("new-domain-whitelist", "List of domains (and implicitly all subdomains) which will never be considered a new domain")="";
+    ::arg().set("unique-response-tracking", "Track unique responses (tuple of query name, type and RR).")="no";
+    ::arg().set("unique-response-log", "Log unique responses")="yes";
+    ::arg().set("unique-response-history-dir", "Persist unique response tracking data here to persist between restarts")=string(NODCACHEDIR)+"/udr";
 #endif /* NOD_ENABLED */
     ::arg().setCmd("help","Provide a helpful message");
     ::arg().setCmd("version","Print version string");
