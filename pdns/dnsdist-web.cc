@@ -433,6 +433,21 @@ static void connectionThread(int sock, ComboAddress remote, string password, str
 
         auto states = g_dstates.getLocal();
         const string statesbase = "dnsdist_server_";
+
+        output << "# HELP " << statesbase << "queries "     << "Amount of queries relayed to server"                               << "\n";
+        output << "# TYPE " << statesbase << "queries "     << "counter"                                                           << "\n";
+        output << "# HELP " << statesbase << "drops "       << "Amount of queries not answered by server"                          << "\n";
+        output << "# TYPE " << statesbase << "drops "       << "counter"                                                           << "\n";
+        output << "# HELP " << statesbase << "latency "     << "Server's latency when answering questions in miliseconds"          << "\n";
+        output << "# TYPE " << statesbase << "latency "     << "gauge"                                                             << "\n";
+        output << "# HELP " << statesbase << "senderrors "  << "Total number of OS snd errors while relaying queries"              << "\n";
+        output << "# TYPE " << statesbase << "senderrors "  << "counter"                                                           << "\n";
+        output << "# HELP " << statesbase << "outstanding " << "Current number of queries that are waiting for a backend response" << "\n";
+        output << "# TYPE " << statesbase << "outstanding " << "gauge"                                                             << "\n";
+        output << "# HELP " << statesbase << "order "       << "The order in which this server is picked"                          << "\n";
+        output << "# TYPE " << statesbase << "order "       << "gauge"                                                             << "\n";
+        output << "# HELP " << statesbase << "weight "      << "The weight within the order in which this server is picked"        << "\n";
+        output << "# TYPE " << statesbase << "weight "      << "gauge"                                                             << "\n";
         
         for (const auto& state : *states) {
           string serverName;
