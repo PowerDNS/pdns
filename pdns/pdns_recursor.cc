@@ -3305,7 +3305,8 @@ static void setCPUMap(const std::map<unsigned int, std::set<int> >& cpusMap, uns
 static void setupNODThread()
 {
   if (g_nodEnabled) {
-    t_nodDBp = std::make_shared<nod::NODDB>();
+    uint32_t num_cells = ::arg().asNum("new-domain-db-size");
+    t_nodDBp = std::make_shared<nod::NODDB>(num_cells);
     try {
       t_nodDBp->setCacheDir(::arg()["new-domain-history-dir"]);
     }
@@ -3321,7 +3322,8 @@ static void setupNODThread()
     t.detach();
   }
   if (g_udrEnabled) {
-    t_udrDBp = std::make_shared<nod::UniqueResponseDB>();
+    uint32_t num_cells = ::arg().asNum("unique-response-db-size");
+    t_udrDBp = std::make_shared<nod::UniqueResponseDB>(num_cells);
     try {
       t_udrDBp->setCacheDir(::arg()["unique-response-history-dir"]);
     }
@@ -4137,9 +4139,11 @@ int main(int argc, char **argv)
     ::arg().set("new-domain-lookup", "Perform a DNS lookup newly observed domains as a subdomain of the configured domain")="";
     ::arg().set("new-domain-history-dir", "Persist new domain tracking data here to persist between restarts")=string(NODCACHEDIR)+"/nod";
     ::arg().set("new-domain-whitelist", "List of domains (and implicitly all subdomains) which will never be considered a new domain")="";
+    ::arg().set("new-domain-db-size", "Size of the DB used to track new domains in terms of number of cells. Defaults to 67108864")="67108864";
     ::arg().set("unique-response-tracking", "Track unique responses (tuple of query name, type and RR).")="no";
     ::arg().set("unique-response-log", "Log unique responses")="yes";
     ::arg().set("unique-response-history-dir", "Persist unique response tracking data here to persist between restarts")=string(NODCACHEDIR)+"/udr";
+    ::arg().set("unique-response-db-size", "Size of the DB used to track unique responses in terms of number of cells. Defaults to 67108864")="67108864";
 #endif /* NOD_ENABLED */
     ::arg().setCmd("help","Provide a helpful message");
     ::arg().setCmd("version","Print version string");

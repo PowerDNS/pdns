@@ -27,9 +27,9 @@
 #include "stable-bloom.hh"
 
 namespace nod {
-  const float fp_rate = 0.01;
-  const size_t num_cells = 67108864;
-  const uint8_t num_dec = 10;
+  const float c_fp_rate = 0.01;
+  const size_t c_num_cells = 67108864;
+  const uint8_t c_num_dec = 10;
   const unsigned int snapshot_interval_default = 600;
   const std::string bf_suffix = "bf";
   const std::string sbf_prefix = "sbf";
@@ -41,6 +41,8 @@ namespace nod {
   // Synchronization (at the instance level) is needed when snapshotting
   class PersistentSBF {
   public:
+    PersistentSBF() : d_sbf{c_fp_rate, c_num_cells, c_num_dec} {}
+    PersistentSBF(uint32_t num_cells) : d_sbf{c_fp_rate, num_cells, c_num_dec} {}
     bool init(bool ignore_pid=false);
     void setPrefix(const std::string& prefix) { d_prefix = prefix; } // Added to filenames in cachedir
     void setCacheDir(const std::string& cachedir);
@@ -58,7 +60,7 @@ namespace nod {
     }
   private:
     bool d_init{false};
-    bf::stableBF d_sbf{fp_rate, num_cells, num_dec}; // Stable Bloom Filter
+    bf::stableBF d_sbf; // Stable Bloom Filter
     std::string d_cachedir;
     std::string d_prefix = sbf_prefix;
     std::mutex d_sbf_mutex; // Per-instance mutex for snapshots
@@ -67,7 +69,8 @@ namespace nod {
 
   class NODDB {
   public:
-    NODDB() {}
+    NODDB() : d_psbf{} {}
+    NODDB(uint32_t num_cells) : d_psbf{num_cells} {}
     // Set ignore_pid to true if you don't mind loading files
     // created by the current process
     bool init(bool ignore_pid=false) { 
@@ -94,7 +97,8 @@ namespace nod {
 
   class UniqueResponseDB {
   public:
-    UniqueResponseDB() {}
+    UniqueResponseDB() : d_psbf{} {}
+    UniqueResponseDB(uint32_t num_cells) : d_psbf{num_cells} {}
     bool init(bool ignore_pid=false) {
       d_psbf.setPrefix("udr");
       return d_psbf.init(ignore_pid); 
