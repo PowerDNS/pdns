@@ -1469,6 +1469,10 @@ static void startDoResolve(void *p)
       }
 #endif /* NOD_ENABLED */
       protobufLogResponse(t_protobufServer, *pbMessage);
+#ifdef NOD_ENABLED
+      pbMessage->setNOD(false);
+      pbMessage->clearUDR();
+#endif /* NOD_ENABLED */
     }
 #endif
     if(!dc->d_tcp) {
@@ -2099,10 +2103,6 @@ static string* doProcessUDPQuestion(const std::string& question, const ComboAddr
         pbMessage->setQueryTime(g_now.tv_sec, g_now.tv_usec);
         pbMessage->setRequestorId(requestorId);
         pbMessage->setDeviceId(deviceId);
-#ifdef NOD_ENABLED
-	pbMessage->setNOD(false);
-	pbMessage->clearUDR();
-#endif
         protobufLogResponse(t_protobufServer, *pbMessage);
       }
 #endif /* HAVE_PROTOBUF */
