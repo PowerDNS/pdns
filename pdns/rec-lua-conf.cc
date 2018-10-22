@@ -425,41 +425,67 @@ void loadRecursorLuaConfig(const std::string& fname, luaConfigDelayedThreads& de
       lci.protobufMaskV6 = maskV6;
     });
 
-  Lua.writeFunction("protobufServer", [&lci](const string& server_, boost::optional<protobufOptions_t> vars) {
-      try {
+  Lua.writeFunction("protobufServer", [&lci](boost::variant<const std::string, const std::unordered_map<int, std::string>> servers, boost::optional<protobufOptions_t> vars) {
         if (!lci.protobufExportConfig.enabled) {
+
           lci.protobufExportConfig.enabled = true;
-          lci.protobufExportConfig.server = ComboAddress(server_);
-          parseProtobufOptions(vars, lci.protobufExportConfig);
+
+          try {
+            if (servers.type() == typeid(std::string)) {
+              auto server = boost::get<const std::string>(servers);
+
+              lci.protobufExportConfig.servers.emplace_back(server);
+            }
+            else {
+              auto serversMap = boost::get<const std::unordered_map<int,std::string>>(servers);
+              for (const auto& serverPair : serversMap) {
+                lci.protobufExportConfig.servers.emplace_back(serverPair.second);
+              }
+            }
+
+            parseProtobufOptions(vars, lci.protobufExportConfig);
+          }
+          catch(std::exception& e) {
+            g_log<<Logger::Error<<"Error while adding protobuf logger: "<<e.what()<<endl;
+          }
+          catch(PDNSException& e) {
+            g_log<<Logger::Error<<"Error while adding protobuf logger: "<<e.reason<<endl;
+          }
         }
         else {
-          g_log<<Logger::Error<<"Only one protobuf server can be configured, we already have "<<lci.protobufExportConfig.server.toString()<<endl;
+          g_log<<Logger::Error<<"Only one protobufServer() directive can be configured, we already have "<<lci.protobufExportConfig.servers.at(0).toString()<<endl;
         }
-      }
-      catch(std::exception& e) {
-	g_log<<Logger::Error<<"Error while starting protobuf logger to '"<<server_<<": "<<e.what()<<endl;
-      }
-      catch(PDNSException& e) {
-        g_log<<Logger::Error<<"Error while starting protobuf logger to '"<<server_<<": "<<e.reason<<endl;
-      }
     });
 
-  Lua.writeFunction("outgoingProtobufServer", [&lci](const string& server_, boost::optional<protobufOptions_t> vars) {
-      try {
-        if (!lci.outgoingProtobufExportConfig.enabled) {
-          lci.outgoingProtobufExportConfig.enabled = true;
-          lci.outgoingProtobufExportConfig.server = ComboAddress(server_);
-          parseProtobufOptions(vars, lci.outgoingProtobufExportConfig);
-        }
-        else {
-          g_log<<Logger::Error<<"Only one protobuf server can be configured, we already have "<<lci.outgoingProtobufExportConfig.server.toString()<<endl;
-        }
+  Lua.writeFunction("outgoingProtobufServer", [&lci](boost::variant<const std::string, const std::unordered_map<int, std::string>> servers, boost::optional<protobufOptions_t> vars) {
+      if (!lci.outgoingProtobufExportConfig.enabled) {
+
+        lci.outgoingProtobufExportConfig.enabled = true;
+
+          try {
+            if (servers.type() == typeid(std::string)) {
+              auto server = boost::get<const std::string>(servers);
+
+              lci.outgoingProtobufExportConfig.servers.emplace_back(server);
+            }
+            else {
+              auto serversMap = boost::get<const std::unordered_map<int,std::string>>(servers);
+              for (const auto& serverPair : serversMap) {
+                lci.outgoingProtobufExportConfig.servers.emplace_back(serverPair.second);
+              }
+            }
+
+            parseProtobufOptions(vars, lci.outgoingProtobufExportConfig);
+          }
+          catch(std::exception& e) {
+            g_log<<Logger::Error<<"Error while starting outgoing protobuf logger: "<<e.what()<<endl;
+          }
+          catch(PDNSException& e) {
+            g_log<<Logger::Error<<"Error while starting outgoing protobuf logger: "<<e.reason<<endl;
+          }
       }
-      catch(std::exception& e) {
-	g_log<<Logger::Error<<"Error while starting protobuf logger to '"<<server_<<": "<<e.what()<<endl;
-      }
-      catch(PDNSException& e) {
-        g_log<<Logger::Error<<"Error while starting protobuf logger to '"<<server_<<": "<<e.reason<<endl;
+      else {
+        g_log<<Logger::Error<<"Only one outgoingProtobufServer() directive can be configured, we already have "<<lci.outgoingProtobufExportConfig.servers.at(0).toString()<<endl;
       }
     });
 #endif

@@ -159,7 +159,7 @@ class RPZServer(object):
                 print('Error in RPZ socket: %s' % str(e))
                 sock.close()
 
-rpzServerPort = 4244
+rpzServerPort = 4250
 rpzServer = RPZServer(rpzServerPort)
 
 class RPZRecursorTest(RecursorTest):
