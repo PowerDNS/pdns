@@ -44,7 +44,8 @@ AM_CPPFLAGS += $(GNUTLS_CFLAGS)
 endif
 endif
 
-EXTRA_DIST=dnslabeltext.rl \
+EXTRA_DIST=COPYING \
+	   dnslabeltext.rl \
 	   dnsdistconf.lua \
 	   dnsmessage.proto \
 	   dnstap.proto \

@@ -1,4 +1,3 @@
-lib/systemd/system/*
 usr/bin/pdns_control
 usr/bin/pdnsutil
 usr/bin/zone2json
