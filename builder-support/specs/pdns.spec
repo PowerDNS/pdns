@@ -270,7 +270,7 @@ exit 0
 %if 0%{?rhel} >= 7
 %systemd_preun pdns.service
 %else
-if [ \$1 -eq 0 ]; then
+if [ $1 -eq 0 ]; then
   /sbin/service pdns stop >/dev/null 2>&1 || :
   /sbin/chkconfig --del pdns
 fi
@@ -280,7 +280,7 @@ fi
 %if 0%{?rhel} >= 7
 %systemd_postun_with_restart pdns.service
 %else
-if [ \$1 -ge 1 ]; then
+if [ $1 -ge 1 ]; then
   /sbin/service pdns condrestart >/dev/null 2>&1 || :
 fi
 %endif
