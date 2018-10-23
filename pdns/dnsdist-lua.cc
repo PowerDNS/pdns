@@ -75,7 +75,10 @@ void setLuaSideEffect()
 
 bool getLuaNoSideEffect()
 {
-  return g_noLuaSideEffect==true;
+  if (g_noLuaSideEffect) {
+    return true;
+  }
+  return false;
 }
 
 void resetLuaSideEffect()
