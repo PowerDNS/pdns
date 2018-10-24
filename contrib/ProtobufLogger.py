@@ -111,10 +111,12 @@ class PDNSPBConnHandler(object):
             for rr in response.rrs:
                 rrclass = 1
                 rdatastr = ''
+                rrudr = 0
                 if rr.HasField('class'):
                     rrclass = getattr(rr, 'class')
                 rrtype = rr.type
-                rrudr = rr.udr
+                if rr.HasField('udr'):
+                    rrudr = rr.udr
                 if (rrclass == 1 or rrclass == 255) and rr.HasField('rdata'):
                     if rrtype == 1:
                         rdatastr = socket.inet_ntop(socket.AF_INET, rr.rdata)
@@ -170,7 +172,9 @@ class PDNSPBConnHandler(object):
 
         deviceId = binascii.hexlify(bytearray(msg.deviceId))
         requestorId = msg.requestorId
-        nod = msg.newlyObservedDomain
+        nod = 0
+        if (msg.HasField('newlyObservedDomain')):
+            nod = msg.newlyObservedDomain
 
         print('[%s] %s of size %d: %s%s -> %s (%s), id: %d, uuid: %s%s '
                   'requestorid: %s deviceid: %s serverid: %s nod: %d' % (datestr,
