@@ -224,7 +224,7 @@ uint32_t dns_random(uint32_t upper_bound) {
      On applicable rngs, we loop until the rng spews out
      value larger than min, and then take modulo out of that.
   */
-#if (ULONG_MAX > 0xffffffffUL)
+#if (UINT32_MAX > 0xffffffffUL)
   min = 0x100000000UL % upper_bound;
 #else
   /* Calculate (2**32 % upper_bound) avoiding 64-bit math */
@@ -247,7 +247,7 @@ uint32_t dns_random(uint32_t upper_bound) {
 #endif /* RND_SODIUM */
   case RNG_OPENSSL: {
 #if defined(HAVE_RAND_BYTES) && !defined(USE_URANDOM_ONLY)
-      unsigned int num=0;
+      uint32_t num = 0;
       while(num < min) {
         if (RAND_bytes(reinterpret_cast<unsigned char*>(&num), sizeof(num)) < 1)
           throw std::runtime_error("Openssl RNG was not seeded");
@@ -259,7 +259,7 @@ uint32_t dns_random(uint32_t upper_bound) {
      }
   case RNG_GETRANDOM: {
 #if defined(HAVE_GETRANDOM) && !defined(USE_URANDOM_ONLY)
-      unsigned int num=0;
+      uint32_t num = 0;
       while(num < min) {
         if (getrandom(&num, sizeof(num), 0) != sizeof(num))
           throw std::runtime_error("getrandom() failed: " + std::string(strerror(errno)));
@@ -276,7 +276,7 @@ uint32_t dns_random(uint32_t upper_bound) {
     throw std::runtime_error("Unreachable at " __FILE__ ":" + boost::lexical_cast<std::string>(__LINE__)); // cannot be reached
 #endif
   case RNG_URANDOM: {
-      unsigned int num = 0;
+      uint32_t num = 0;
       while(num < min) {
         if (read(urandom_fd, &num, sizeof(num)) < 0) {
           (void)close(urandom_fd);
@@ -287,7 +287,7 @@ uint32_t dns_random(uint32_t upper_bound) {
     }
 #if defined(HAVE_KISS_RNG)
   case RNG_KISS: {
-      unsigned int num = 0;
+      uint32_t num = 0;
       while(num < min)
         num = kiss_rand();
       return num % upper_bound;
