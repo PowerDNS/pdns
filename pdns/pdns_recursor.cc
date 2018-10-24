@@ -965,9 +965,9 @@ static bool udrCheckUniqueDNSRecord(const DNSName& dname, uint16_t qtype, const 
     std::stringstream ss;
     ss << dname.toDNSStringLC() << ":" << qtype <<  ":" << qtype << ":" << record.d_type << ":" << record.d_name.toDNSStringLC() << ":" << record.d_content->getZoneRepresentation();
     if (t_udrDBp && t_udrDBp->isUniqueResponse(ss.str())) {
-      if (g_udrLog) {
-	// This should also probably log to a dedicated file. 
-	g_log<<Logger::Notice<<"Unique response observed: qname="<<dname.toLogString()<<" qtype="<<QType(qtype).getName()<< " rrtype=" << QType(record.d_type).getName() << " rrname=" << record.d_name.toLogString() << " rrcontent=" << record.d_content->getZoneRepresentation() << endl;
+      if (g_udrLog) {  
+        // This should also probably log to a dedicated file. 
+        g_log<<Logger::Notice<<"Unique response observed: qname="<<dname.toLogString()<<" qtype="<<QType(qtype).getName()<< " rrtype=" << QType(record.d_type).getName() << " rrname=" << record.d_name.toLogString() << " rrcontent=" << record.d_content->getZoneRepresentation() << endl;
       }
       ret = true;
     }
@@ -1450,6 +1450,13 @@ static void startDoResolve(void *p)
 
     g_rs.submitResponse(dc->d_mdp.d_qtype, packet.size(), !dc->d_tcp);
     updateResponseStats(res, dc->d_source, packet.size(), &dc->d_mdp.d_qname, dc->d_mdp.d_qtype);
+#ifdef NOD_ENABLED
+    bool nod = false;
+    if (g_nodEnabled) {
+      if (nodCheckNewDomain(dc->d_mdp.d_qname))
+        nod = true;
+    }
+#endif /* NOD_ENABLED */
 #ifdef HAVE_PROTOBUF
     if (t_protobufServer && logResponse && !(luaconfsLocal->protobufExportConfig.taggedOnly && (!appliedPolicy.d_name || appliedPolicy.d_name->empty()) && dc->d_policyTags.empty())) {
       pbMessage->setBytes(packet.size());
@@ -1464,7 +1471,7 @@ static void startDoResolve(void *p)
       pbMessage->setDeviceId(dq.deviceId);
 #ifdef NOD_ENABLED
       if (g_nodEnabled) {
-        if (nodCheckNewDomain(dc->d_mdp.d_qname))
+        if (nod)
 	  pbMessage->setNOD(true);
       }
 #endif /* NOD_ENABLED */
