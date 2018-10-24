@@ -42,7 +42,6 @@ BuildRequires: lua-devel
 %else
 BuildRequires: luajit-devel
 %endif
-BuildRequires: boost-devel
 BuildRequires: libsodium-devel
 BuildRequires: bison
 BuildRequires: openssl-devel
