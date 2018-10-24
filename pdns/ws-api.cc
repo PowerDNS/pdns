@@ -240,12 +240,12 @@ void apiServerStatistics(HttpRequest* req, HttpResponse* resp) {
 
 DNSName apiNameToDNSName(const string& name) {
   if (!isCanonical(name)) {
-    throw ApiException("DNS Name '" + name + "' is not canonical");
+    throw ApiException(ApiException::ErrNotFQDN, "DNS Name '" + name + "' is not canonical");
   }
   try {
     return DNSName(name);
   } catch (...) {
-    throw ApiException("Unable to parse DNS Name '" + name + "'");
+    throw ApiException(ApiException::ErrParsingError, "Unable to parse DNS Name '" + name + "'");
   }
 }
 
@@ -292,7 +292,7 @@ DNSName apiZoneIdToName(const string& id) {
   try {
     return DNSName(zonename);
   } catch (...) {
-    throw ApiException("Unable to parse DNS Name '" + zonename + "'");
+    throw ApiException(ApiException::ErrParsingError, "Unable to parse DNS Name '" + zonename + "'");
   }
 }
 
@@ -328,7 +328,7 @@ string apiZoneNameToId(const DNSName& dname) {
 
 void apiCheckNameAllowedCharacters(const string& name) {
   if (name.find_first_not_of("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ01234567890_/.-") != std::string::npos)
-    throw ApiException("Name '"+name+"' contains unsupported characters");
+    throw ApiException(ApiException::ErrInvalidInput, "Name '"+name+"' contains unsupported characters");
 }
 
 void apiCheckQNameAllowedCharacters(const string& qname) {

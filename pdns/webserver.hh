@@ -52,7 +52,7 @@ public:
   HttpResponse(const YaHTTP::Response &resp) : YaHTTP::Response(resp) { };
 
   void setBody(const json11::Json& document);
-  void setErrorResult(const std::string& message, const int status);
+  void setErrorResult(const std::string& code, const std::string& message, const int status);
   void setSuccessResult(const std::string& message, const int status = 200);
 };
 
@@ -115,8 +115,41 @@ public:
 class ApiException : public runtime_error
 {
 public:
-  ApiException(const string& what) : runtime_error(what) {
+  ApiException(const char* code, const string& what) : runtime_error(what) {
+      this->code = code;
   }
+  ApiException(const char* code, const string& what, int statusCode) : runtime_error(what) {
+      this->code = code;
+      this->statusCode = statusCode;
+  }
+
+  const char* code;
+  int statusCode = 422;
+
+  // Eror codes pre-defined
+  static constexpr const char* ErrGenericError      = "ERR_GENERIC_ERROR";
+  static constexpr const char* ErrInvalidConfig     = "ERR_INVALID_CONFIGURATION";
+  static constexpr const char* ErrIOError           = "ERR_IO_ERROR";
+  static constexpr const char* ErrInvalidInput      = "ERR_INVALID_INPUT";
+  static constexpr const char* ErrOPFailed          = "ERR_OP_FAIELD";
+  static constexpr const char* ErrBadBackend        = "ERR_BAD_BACKEND";
+  static constexpr const char* ErrSlaveZone         = "ERR_SLAVE_ZONE";
+  static constexpr const char* ErrInvalidKind       = "ERR_INVALID_KIND";
+  static constexpr const char* ErrNotFQDN           = "ERR_NOT_FQDN";
+  static constexpr const char* ErrParsingError      = "ERR_PARSING_ERROR";
+  static constexpr const char* ErrJSONError         = "ERR_JSON_ERROR";
+  static constexpr const char* ErrMasterEmpty       = "ERR_MASTER_EMPTY";
+  static constexpr const char* ErrRRGenericError    = "ERR_RR_GENERIC";
+  static constexpr const char* ErrRRUnknownType     = "ERR_RR_UNKNOWN_TYPE";
+  static constexpr const char* ErrRRNotInZone       = "ERR_RR_NOT_IN_ZONE";
+  static constexpr const char* ErrRRAlreadyExists   = "ERR_RR_ALREADY_EXISTS";
+  static constexpr const char* ErrRRConflict        = "ERR_RR_CONFLICT";
+  static constexpr const char* ErrDomainNotSlave    = "ERR_DOMAIN_NOT_SLAVE";
+  static constexpr const char* ErrZoneAlreadyExists = "ERR_ZONE_ALREADY_EXISTS";
+  static constexpr const char* ErrZoneNotExists     = "ERR_ZONE_NOT_EXISRS";
+  static constexpr const char* ErrZoneNotSigned     = "ERR_ZONE_NOT_SIGNED";
+  static constexpr const char* ErrZoneNoRecord      = "ERR_ZONE_NO_RECORD";
+  static constexpr const char* ErrSecGeneric        = "ERR_DNSSEC_GENERIC";
 };
 
 class Server

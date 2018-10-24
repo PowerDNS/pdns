@@ -87,9 +87,9 @@ void HttpResponse::setBody(const json11::Json& document)
   document.dump(this->body);
 }
 
-void HttpResponse::setErrorResult(const std::string& message, const int status_)
+void HttpResponse::setErrorResult(const std::string& code, const std::string& message, const int status_)
 {
-  setBody(json11::Json::object { { "error", message } });
+  setBody(json11::Json::object { { "code", code }, { "error", message } });
   this->status = status_;
 }
 
@@ -158,10 +158,10 @@ static void apiWrapper(WebServer::HandlerFunction handler, HttpRequest* req, Htt
     resp->status = 200;
     handler(req, resp);
   } catch (ApiException &e) {
-    resp->setErrorResult(e.what(), 422);
+    resp->setErrorResult(e.code, e.what(), e.statusCode);
     return;
   } catch (JsonException &e) {
-    resp->setErrorResult(e.what(), 422);
+    resp->setErrorResult(ApiException::ErrJSONError, e.what(), 422);
     return;
   }
 
@@ -260,7 +260,7 @@ void WebServer::handleRequest(HttpRequest& req, HttpResponse& resp) const
       resp.body = "<!html><title>" + what + "</title><h1>" + what + "</h1>";
     } else if (req.accept_json) {
       resp.headers["Content-Type"] = "application/json";
-      resp.setErrorResult(what, resp.status);
+      resp.setErrorResult(ApiException::ErrGenericError, what, resp.status);
     } else {
       resp.headers["Content-Type"] = "text/plain; charset=utf-8";
       resp.body = what;
