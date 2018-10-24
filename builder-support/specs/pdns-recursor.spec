@@ -18,8 +18,10 @@ BuildRequires: lua-devel
 BuildRequires: boost-devel
 %ifarch aarch64
 BuildRequires: lua-devel
+%define lua_implementation lua
 %else
 BuildRequires: luajit-devel
+%define lua_implementation luajit
 %endif
 BuildRequires: systemd
 BuildRequires: systemd-devel
@@ -70,11 +72,7 @@ package if you need a dns cache for your network.
 
 make %{?_smp_mflags} LIBRARY_PATH=/usr/lib64/boost148
 %else
-%ifarch aarch64
-    --with-lua=lua \
-%else
-    --with-lua=luajit \
-%endif
+    --with-lua=%{lua_implementation} \
     --enable-systemd --with-systemd=%{_unitdir}
 
 make %{?_smp_mflags}
