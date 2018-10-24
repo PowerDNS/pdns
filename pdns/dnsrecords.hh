@@ -211,6 +211,10 @@ class SPFRecordContent : public DNSRecordContent
 {
 public:
   includeboilerplate(SPF)
+  const std::string& getText() const
+  {
+    return d_text;
+  }
 
 private:
   string d_text;
@@ -240,6 +244,7 @@ class PTRRecordContent : public DNSRecordContent
 public:
   includeboilerplate(PTR)
   explicit PTRRecordContent(const DNSName& content) : d_content(content){}
+  const DNSName& getContent() const { return d_content; }
 private:
   DNSName d_content;
 };
@@ -760,9 +765,9 @@ RNAME##RecordContent::RNAME##RecordContent(const string& zoneData)              
     RecordTextReader rtr(zoneData);                                                                \
     xfrPacket(rtr);                                                                                \
   }                                                                                                \
-  catch(RecordTextException& rtr) {                                                                \
-    throw MOADNSException("Parsing record content (try 'pdnsutil check-zone'): "+string(rtr.what()));  \
-  }        											   \
+  catch(RecordTextException& rte) {                                                                \
+    throw MOADNSException("Parsing record content (try 'pdnsutil check-zone'): "+string(rte.what()));  \
+  }                                                                                                \
 }                                                                                                  \
                                                                                                    \
 string RNAME##RecordContent::getZoneRepresentation(bool noDot) const                               \

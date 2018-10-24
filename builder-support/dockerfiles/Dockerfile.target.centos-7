@@ -1,0 +1,14 @@
+# First do the source builds
+@INCLUDE Dockerfile.target.sdist
+
+# This defines the dstribution base layer
+# Put only the bare minimum of common commands here, without dev tools
+FROM centos:7 as dist-base
+RUN yum install -y epel-release
+
+# Do the actual rpm build
+@INCLUDE Dockerfile.rpmbuild
+
+# Do a test install and verify
+# Can be skipped with skiptests=1 in the environment
+# @EXEC [ "$skiptests" = "" ] && include Dockerfile.rpmtest

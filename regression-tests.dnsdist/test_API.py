@@ -178,7 +178,11 @@ class TestAPIBasics(DNSDistTest):
 
         self.assertEquals(content['name'], 'allow-from')
         self.assertEquals(content['type'], 'ConfigSetting')
-        self.assertEquals(content['value'], ["127.0.0.1/32", "::1/128"])
+        acl = content['value']
+        expectedACL = ["127.0.0.1/32", "::1/128"]
+        acl.sort()
+        expectedACL.sort()
+        self.assertEquals(acl, expectedACL)
 
     def testServersLocalhostConfigAllowFromPut(self):
         """
@@ -333,7 +337,11 @@ class TestAPIWritable(DNSDistTest):
         self.assertEquals(r.status_code, 200)
         self.assertTrue(r.json())
         content = r.json()
-        self.assertEquals(content['value'], ["127.0.0.1/32", "::1/128"])
+        acl = content['value']
+        expectedACL = ["127.0.0.1/32", "::1/128"]
+        acl.sort()
+        expectedACL.sort()
+        self.assertEquals(acl, expectedACL)
 
         newACL = ["192.0.2.0/24", "198.51.100.0/24", "203.0.113.0/24"]
         payload = json.dumps({"name": "allow-from",

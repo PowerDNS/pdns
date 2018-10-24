@@ -1,7 +1,7 @@
 AC_PREREQ([2.61])
 
 AC_INIT([dnsdist], m4_esyscmd(build-aux/gen-version))
-AM_INIT_AUTOMAKE([foreign dist-bzip2 parallel-tests 1.11 subdir-objects])
+AM_INIT_AUTOMAKE([foreign dist-bzip2 no-dist-gzip parallel-tests 1.11 subdir-objects])
 AM_SILENT_RULES([yes])
 AC_CONFIG_MACRO_DIR([m4])
 AC_CONFIG_HEADERS([config.h])
@@ -9,6 +9,10 @@ AC_PROG_CC
 AC_PROG_CXX
 AC_LANG([C++])
 AC_GNU_SOURCE
+
+AC_DEFINE([DNSDIST], [1],
+  [This is dnsdist]
+)
 
 LT_PREREQ([2.2.2])
 LT_INIT([disable-static])
@@ -20,6 +24,7 @@ PDNS_CHECK_LIBEDIT
 PDNS_CHECK_CLOCK_GETTIME
 
 PDNS_CHECK_OS
+PTHREAD_SET_NAME
 PDNS_CHECK_NETWORK_LIBS
 PDNS_CHECK_PTHREAD_NP
 PDNS_CHECK_SECURE_MEMSET

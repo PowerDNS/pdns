@@ -27,6 +27,7 @@
 #include <iomanip>
 #include <ctime>
 #include <thread>
+#include "threadname.hh"
 #include <unistd.h>
 #include <boost/filesystem.hpp>
 #include "logger.hh"
@@ -99,6 +100,7 @@ bool NODDB::init(bool ignore_pid) {
 
 void NODDB::housekeepingThread()
 {
+  setThreadName("pdns-r/NOD-hk");
   for (;;) {
     sleep(d_snapshot_interval);
     {

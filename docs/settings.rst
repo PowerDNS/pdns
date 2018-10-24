@@ -547,7 +547,7 @@ Enables EDNS subnet processing, for backends that support it.
 .. _setting-enable-lua-records:
 
 ``enable-lua-records``
---------------------------
+----------------------
 
 -  Boolean
 -  Default: no
@@ -1103,6 +1103,16 @@ To notify all IP addresses apart from the 192.168.0.0/24 subnet use the followin
   explicitly using :ref:`setting-also-notify` and/or
   :ref:`metadata-also-notify` domain metadata to avoid this potential bottleneck.
 
+.. note::
+  If your slaves support Internet Protocol version, which your master does not, 
+  then set ``only-notify`` to include only supported protocol version. 
+  Otherwise there will be error trying to resolve address.
+  
+  For example, slaves support both IPv4 and IPv6, but PowerDNS master have only IPv4, 
+  so allow only IPv4 with ``only-notify``::
+  
+    only-notify=0.0.0.0/0
+
 .. _setting-out-of-zone-additional-processing:
 
 ``out-of-zone-additional-processing``
@@ -1258,7 +1268,7 @@ Number of AXFR slave threads to start.
 .. _setting-send-signed-notify:
 
 ``send-signed-notify``
-----------
+----------------------
 
 -  Boolean
 -  Default: yes

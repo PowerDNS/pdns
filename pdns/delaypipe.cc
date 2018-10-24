@@ -23,6 +23,7 @@
 #include "misc.hh"
 #include "gettime.hh"
 #include <thread>
+#include "threadname.hh"
 
 template<class T>
 ObjectPipe<T>::ObjectPipe()
@@ -138,6 +139,7 @@ DelayPipe<T>::~DelayPipe()
 template<class T>
 void DelayPipe<T>::worker()
 {
+  setThreadName("dnsdist/delayPi");
   Combo c;
   for(;;) {
     /* this code is slightly too subtle, but I don't see how it could be any simpler.

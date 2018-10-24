@@ -194,7 +194,7 @@ try
             lastreport = pr.d_pheader.ts;
           }          
         }
-        catch(MOADNSException& mde) {
+        catch(const MOADNSException &mde) {
           //        cerr<<"error parsing packet: "<<mde.what()<<endl;
           parseErrors++;
           continue;

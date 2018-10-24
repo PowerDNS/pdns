@@ -24,6 +24,7 @@
 #endif
 #include "statbag.hh"
 #include "logger.hh"
+#include "threadname.hh"
 #include "iputils.hh"
 #include "sstuff.hh"
 #include "arguments.hh"
@@ -34,6 +35,7 @@
 void* carbonDumpThread(void*)
 try
 {
+  setThreadName("pdns/carbonDump");
   extern StatBag S;
 
   string hostname=arg()["carbon-ourname"];

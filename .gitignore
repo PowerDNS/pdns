@@ -51,3 +51,4 @@ pdns_recursor.pid
 *.gcov
 modules/geoipbackend/regression-tests/GeoLiteCity.dat
 modules/geoipbackend/regression-tests/GeoLiteCity.mmdb
+built_pkgs

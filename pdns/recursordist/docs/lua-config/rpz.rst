@@ -8,6 +8,10 @@ Response Policy Zone is an open standard developed by Paul Vixie (ISC and Farsig
 Frequently, Response Policy Zones get to be very large and change quickly, so it is customary to update them over IXFR.
 It allows the use of third-party feeds, and near real-time policy updates.
 
+If multiple RPZs are loaded, they get consulted in the order they were
+defined in. It is however possible from Lua to make queries skip specific
+Response Policy Zones.
+
 Configuring RPZ
 ---------------
 An RPZ can be loaded from file or slaved from a master. To load from file, use for example:

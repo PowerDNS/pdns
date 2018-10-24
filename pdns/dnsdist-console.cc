@@ -37,6 +37,7 @@
 #include "dnsdist.hh"
 #include "dnsdist-console.hh"
 #include "sodcrypto.hh"
+#include "threadname.hh"
 
 GlobalStateHolder<NetmaskGroup> g_consoleACL;
 vector<pair<struct timeval, string> > g_confDelta;
@@ -397,8 +398,8 @@ const std::vector<ConsoleKeyword> g_consoleKeywords{
   { "RCodeRule", true, "rcode", "matches responses with the specified rcode" },
   { "RegexRule", true, "regex", "matches the query name against the supplied regex" },
   { "registerDynBPFFilter", true, "DynBPFFilter", "register this dynamic BPF filter into the web interface so that its counters are displayed" },
-  { "RemoteLogAction", true, "RemoteLogger [, alterFunction]", "send the content of this query to a remote logger via Protocol Buffer. `alterFunction` is a callback, receiving a DNSQuestion and a DNSDistProtoBufMessage, that can be used to modify the Protocol Buffer content, for example for anonymization purposes" },
-  { "RemoteLogResponseAction", true, "RemoteLogger [,alterFunction [,includeCNAME]]", "send the content of this response to a remote logger via Protocol Buffer. `alterFunction` is the same callback than the one in `RemoteLogAction` and `includeCNAME` indicates whether CNAME records inside the response should be parsed and exported. The default is to only exports A and AAAA records" },
+  { "RemoteLogAction", true, "RemoteLogger [, alterFunction [, serverID]]", "send the content of this query to a remote logger via Protocol Buffer. `alterFunction` is a callback, receiving a DNSQuestion and a DNSDistProtoBufMessage, that can be used to modify the Protocol Buffer content, for example for anonymization purposes. `serverID` is the server identifier." },
+  { "RemoteLogResponseAction", true, "RemoteLogger [,alterFunction [,includeCNAME [, serverID]]]", "send the content of this response to a remote logger via Protocol Buffer. `alterFunction` is the same callback than the one in `RemoteLogAction` and `includeCNAME` indicates whether CNAME records inside the response should be parsed and exported. The default is to only exports A and AAAA records. `serverID` is the server identifier." },
   { "rmCacheHitResponseRule", true, "id", "remove cache hit response rule in position 'id', or whose uuid matches if 'id' is an UUID string" },
   { "rmResponseRule", true, "id", "remove response rule in position 'id', or whose uuid matches if 'id' is an UUID string" },
   { "rmRule", true, "id", "remove rule in position 'id', or whose uuid matches if 'id' is an UUID string" },
@@ -535,6 +536,7 @@ char** my_completion( const char * text , int start,  int end)
 static void controlClientThread(int fd, ComboAddress client)
 try
 {
+  setThreadName("dnsdist/conscli");
   setTCPNoDelay(fd);
   SodiumNonce theirs, ours, readingNonce, writingNonce;
   ours.init();
@@ -665,6 +667,7 @@ catch(std::exception& e)
 void controlThread(int fd, ComboAddress local)
 try
 {
+  setThreadName("dnsdist/control");
   ComboAddress client;
   int sock;
   auto localACL = g_consoleACL.getLocal();

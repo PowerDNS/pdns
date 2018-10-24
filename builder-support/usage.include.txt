@@ -1,0 +1,4 @@
+Supported MODULES values:
+  authoritative
+  recursor
+  dnsdist

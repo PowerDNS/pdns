@@ -309,6 +309,9 @@ void setupLuaBindings(bool client)
   g_lua.registerFunction<void(DNSDistProtoBufMessage::*)(const std::string&)>("setResponderFromString", [](DNSDistProtoBufMessage& message, const std::string& str) {
       message.setResponder(str);
     });
+  g_lua.registerFunction<void(DNSDistProtoBufMessage::*)(const std::string&)>("setServerIdentity", [](DNSDistProtoBufMessage& message, const std::string& str) {
+      message.setServerIdentity(str);
+    });
 
   g_lua.registerFunction<std::string(DnstapMessage::*)()>("toDebugString", [](const DnstapMessage& message) { return message.toDebugString(); });
   g_lua.registerFunction<void(DnstapMessage::*)(const std::string&)>("setExtra", [](DnstapMessage& message, const std::string& str) {
@@ -571,4 +574,16 @@ void setupLuaBindings(bool client)
       }
     });
 #endif /* HAVE_EBPF */
+
+  /* EDNSOptionView */
+  g_lua.registerFunction<size_t(EDNSOptionView::*)()>("count", [](const EDNSOptionView& option) {
+      return option.values.size();
+    });
+  g_lua.registerFunction<std::vector<std::pair<int, string>>(EDNSOptionView::*)()>("getValues", [] (const EDNSOptionView& option) {
+    std::vector<std::pair<int, string> > values;
+    for (const auto& value : option.values) {
+      values.push_back(std::make_pair(values.size(), std::string(value.content, value.size)));
+    }
+    return values;
+  });
 }

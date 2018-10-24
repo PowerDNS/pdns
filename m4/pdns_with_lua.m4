@@ -1,8 +1,8 @@
 AC_DEFUN([PDNS_WITH_LUA],[
   AC_PROG_GREP()dnl Ensure we have grep
   AC_MSG_CHECKING([which Lua implementation to use])
-  AC_ARG_WITH([lua], [
-    AS_HELP_STRING([--with-lua], [select Lua implementation @<:@default=auto@:>@])
+  AC_ARG_WITH([lua],
+    [AS_HELP_STRING([--with-lua], [select Lua implementation @<:@default=auto@:>@])
   ], [
     with_lua=$withval
   ], [

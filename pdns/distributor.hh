@@ -27,6 +27,7 @@
 #include <queue>
 #include <vector>
 #include <pthread.h>
+#include "threadname.hh"
 #include <unistd.h>
 #include "logger.hh"
 #include "dns.hh"
@@ -173,6 +174,7 @@ template<class Answer, class Question, class Backend>MultiThreadDistributor<Answ
 // start of a new thread
 template<class Answer, class Question, class Backend>void *MultiThreadDistributor<Answer,Question,Backend>::makeThread(void *p)
 {
+  setThreadName("pdns/distributo");
   pthread_detach(pthread_self());
   MultiThreadDistributor *us=static_cast<MultiThreadDistributor *>(p);
   int ournum=us->d_running++;

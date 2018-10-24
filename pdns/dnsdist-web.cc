@@ -25,6 +25,7 @@
 #include "ext/incbin/incbin.h"
 #include "dolog.hh"
 #include <thread>
+#include "threadname.hh"
 #include <sstream>
 #include <yahttp/yahttp.hpp>
 #include "namespaces.hh"
@@ -242,6 +243,8 @@ static json11::Json::array someResponseRulesToJson(GlobalStateHolder<vector<T>>*
 
 static void connectionThread(int sock, ComboAddress remote, string password, string apiKey, const boost::optional<std::map<std::string, std::string> >& customHeaders)
 {
+  setThreadName("dnsdist/webConn");
+
   using namespace json11;
   vinfolog("Webserver handling connection from %s", remote.toStringWithPort());
 
@@ -334,7 +337,8 @@ static void connectionThread(int sock, ComboAddress remote, string password, str
               {"reason", e->second.reason},
               {"seconds", (double)(e->second.until.tv_sec - now.tv_sec)},
               {"blocks", (double)e->second.blocks},
-              {"action", DNSAction::typeToString(e->second.action != DNSAction::Action::None ? e->second.action : g_dynBlockAction) }
+              {"action", DNSAction::typeToString(e->second.action != DNSAction::Action::None ? e->second.action : g_dynBlockAction) },
+              {"warning", e->second.warning }
             };
             obj.insert({e->first.toString(), thing});
           }
@@ -429,6 +433,21 @@ static void connectionThread(int sock, ComboAddress remote, string password, str
 
         auto states = g_dstates.getLocal();
         const string statesbase = "dnsdist_server_";
+
+        output << "# HELP " << statesbase << "queries "     << "Amount of queries relayed to server"                               << "\n";
+        output << "# TYPE " << statesbase << "queries "     << "counter"                                                           << "\n";
+        output << "# HELP " << statesbase << "drops "       << "Amount of queries not answered by server"                          << "\n";
+        output << "# TYPE " << statesbase << "drops "       << "counter"                                                           << "\n";
+        output << "# HELP " << statesbase << "latency "     << "Server's latency when answering questions in miliseconds"          << "\n";
+        output << "# TYPE " << statesbase << "latency "     << "gauge"                                                             << "\n";
+        output << "# HELP " << statesbase << "senderrors "  << "Total number of OS snd errors while relaying queries"              << "\n";
+        output << "# TYPE " << statesbase << "senderrors "  << "counter"                                                           << "\n";
+        output << "# HELP " << statesbase << "outstanding " << "Current number of queries that are waiting for a backend response" << "\n";
+        output << "# TYPE " << statesbase << "outstanding " << "gauge"                                                             << "\n";
+        output << "# HELP " << statesbase << "order "       << "The order in which this server is picked"                          << "\n";
+        output << "# TYPE " << statesbase << "order "       << "gauge"                                                             << "\n";
+        output << "# HELP " << statesbase << "weight "      << "The weight within the order in which this server is picked"        << "\n";
+        output << "# TYPE " << statesbase << "weight "      << "gauge"                                                             << "\n";
         
         for (const auto& state : *states) {
           string serverName;
@@ -475,6 +494,7 @@ static void connectionThread(int sock, ComboAddress remote, string password, str
           const string label = "{pool=\"" + poolName + "\"}";
           const std::shared_ptr<ServerPool> pool = entry.second;
           output << "dnsdist_pool_servers" << label << " " << pool->countServers(false) << "\n";
+          output << "dnsdist_pool_active_servers" << label << " " << pool->countServers(true) << "\n";
 
           if (pool->packetCache != nullptr) {
             const auto& cache = pool->packetCache;
@@ -813,6 +833,7 @@ static void connectionThread(int sock, ComboAddress remote, string password, str
 }
 void dnsdistWebserverThread(int sock, const ComboAddress& local, const std::string& password, const std::string& apiKey, const boost::optional<std::map<std::string, std::string> >& customHeaders)
 {
+  setThreadName("dnsdist/webserv");
   warnlog("Webserver launched on %s", local.toStringWithPort());
   for(;;) {
     try {

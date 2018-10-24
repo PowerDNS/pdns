@@ -75,7 +75,10 @@ void setLuaSideEffect()
 
 bool getLuaNoSideEffect()
 {
-  return g_noLuaSideEffect==true;
+  if (g_noLuaSideEffect) {
+    return true;
+  }
+  return false;
 }
 
 void resetLuaSideEffect()
@@ -887,11 +890,11 @@ void setupLuaConfig(bool client)
       auto slow = g_dynblockNMG.getCopy();
       struct timespec now;
       gettime(&now);
-      boost::format fmt("%-24s %8d %8d %-20s %s\n");
-      g_outputBuffer = (fmt % "What" % "Seconds" % "Blocks" % "Action" % "Reason").str();
+      boost::format fmt("%-24s %8d %8d %-10s %-20s %s\n");
+      g_outputBuffer = (fmt % "What" % "Seconds" % "Blocks" % "Warning" % "Action" % "Reason").str();
       for(const auto& e: slow) {
 	if(now < e->second.until)
-	  g_outputBuffer+= (fmt % e->first.toString() % (e->second.until.tv_sec - now.tv_sec) % e->second.blocks % DNSAction::typeToString(e->second.action != DNSAction::Action::None ? e->second.action : g_dynBlockAction) % e->second.reason).str();
+	  g_outputBuffer+= (fmt % e->first.toString() % (e->second.until.tv_sec - now.tv_sec) % e->second.blocks % (e->second.warning ? "true" : "false") % DNSAction::typeToString(e->second.action != DNSAction::Action::None ? e->second.action : g_dynBlockAction) % e->second.reason).str();
       }
       auto slow2 = g_dynblockSMT.getCopy();
       slow2.visit([&now, &fmt](const SuffixMatchTree<DynBlock>& node) {
@@ -899,7 +902,7 @@ void setupLuaConfig(bool client)
             string dom("empty");
             if(!node.d_value.domain.empty())
               dom = node.d_value.domain.toString();
-            g_outputBuffer+= (fmt % dom % (node.d_value.until.tv_sec - now.tv_sec) % node.d_value.blocks % DNSAction::typeToString(node.d_value.action != DNSAction::Action::None ? node.d_value.action : g_dynBlockAction) % node.d_value.reason).str();
+            g_outputBuffer+= (fmt % dom % (node.d_value.until.tv_sec - now.tv_sec) % node.d_value.blocks % (node.d_value.warning ? "true" : "false") % DNSAction::typeToString(node.d_value.action != DNSAction::Action::None ? node.d_value.action : g_dynBlockAction) % node.d_value.reason).str();
           }
         });
 
@@ -1540,6 +1543,16 @@ void setupLuaConfig(bool client)
 
           if (vars->count("sessionTickets")) {
             frontend->d_enableTickets = boost::get<bool>((*vars)["sessionTickets"]);
+          }
+
+          if (vars->count("numberOfStoredSessions")) {
+            auto value = boost::get<int>((*vars)["numberOfStoredSessions"]);
+            if (value < 0) {
+              errlog("Invalid value '%d' for addTLSLocal() parameter 'numberOfStoredSessions', should be >= 0, dismissing", value);
+              g_outputBuffer="Invalid value '" +  std::to_string(value) + "' for addTLSLocal() parameter 'numberOfStoredSessions', should be >= 0, dimissing";
+              return;
+            }
+            frontend->d_maxStoredSessions = value;
           }
         }
 

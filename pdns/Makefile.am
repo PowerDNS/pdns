@@ -50,7 +50,6 @@ EXTRA_DIST = \
 	bind-dnssec.schema.sqlite3.sql \
 	bindparser.h \
 	named.conf.parsertest \
-	delaypipe.hh delaypipe.cc \
 	pdns.service.in \
 	ixfrdist.service.in \
 	ixfrdist.example.yml \
@@ -219,6 +218,7 @@ pdns_server_SOURCES = \
 	statbag.cc statbag.hh \
 	stubresolver.cc stubresolver.hh \
 	tcpreceiver.cc tcpreceiver.hh \
+	threadname.hh threadname.cc \
 	tsigverifier.cc tsigverifier.hh \
 	tkey.cc \
 	ueberbackend.cc ueberbackend.hh \
@@ -328,6 +328,7 @@ pdnsutil_SOURCES = \
 	sstuff.hh \
 	statbag.cc \
 	stubresolver.cc stubresolver.hh \
+	threadname.hh threadname.cc \
 	ueberbackend.cc \
 	unix_utility.cc \
 	zoneparser-tng.cc
@@ -632,6 +633,7 @@ ixfrdist_SOURCES = \
 	sillyrecords.cc \
 	sstuff.hh \
 	statbag.cc \
+	threadname.hh threadname.cc \
 	tsigverifier.cc tsigverifier.hh \
 	unix_utility.cc zoneparser-tng.cc
 
@@ -715,6 +717,7 @@ dnstcpbench_SOURCES = \
 	sillyrecords.cc \
 	sstuff.hh \
 	statbag.cc \
+	threadname.hh threadname.cc \
 	unix_utility.cc
 
 dnstcpbench_LDFLAGS = \
@@ -977,6 +980,7 @@ dnsreplay_SOURCES = \
 	dnswriter.cc dnswriter.hh \
 	ednsoptions.cc ednsoptions.hh \
 	ednssubnet.cc ednssubnet.hh \
+	histog.hh \
 	iputils.cc \
 	logger.cc \
 	misc.cc \
@@ -1272,7 +1276,6 @@ testrunner_SOURCES = \
 	test-base64_cc.cc \
 	test-bindparser_cc.cc \
 	test-common.hh \
-	test-delaypipe_hh.cc \
 	test-dnsrecordcontent.cc \
 	test-distributor_hh.cc \
 	test-dns_random_hh.cc \
@@ -1287,7 +1290,6 @@ testrunner_SOURCES = \
 	test-md5_hh.cc \
 	test-misc_hh.cc \
 	test-nameserver_cc.cc \
-	test-nmtree.cc \
 	test-packetcache_cc.cc \
 	test-rcpgenerator_cc.cc \
 	test-signers.cc \
@@ -1296,6 +1298,7 @@ testrunner_SOURCES = \
 	test-tsig.cc \
 	test-zoneparser_tng_cc.cc \
 	testrunner.cc \
+	threadname.hh threadname.cc \
 	tsigverifier.cc tsigverifier.hh \
 	ueberbackend.cc \
 	unix_utility.cc \

@@ -26,6 +26,7 @@
 #include "webserver.hh"
 #include "misc.hh"
 #include <thread>
+#include "threadname.hh"
 #include <vector>
 #include "logger.hh"
 #include <stdio.h>
@@ -195,6 +196,7 @@ void WebServer::registerWebHandler(const string& url, HandlerFunction handler) {
 }
 
 static void *WebServerConnectionThreadStart(const WebServer* webServer, std::shared_ptr<Socket> client) {
+  setThreadName("pdns-r/webhndlr");
   webServer->serveConnection(client);
   return nullptr;
 }

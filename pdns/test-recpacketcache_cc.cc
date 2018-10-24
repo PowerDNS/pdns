@@ -13,7 +13,7 @@
 #include <utility>
 
 
-BOOST_AUTO_TEST_SUITE(recpacketcache_cc)
+BOOST_AUTO_TEST_SUITE(test_recpacketcache_cc)
 
 BOOST_AUTO_TEST_CASE(test_recPacketCacheSimple) {
   RecursorPacketCache rpc;

@@ -1,0 +1,39 @@
+Source: pdns-recursor
+Section: net
+Priority: extra
+Standards-Version: 4.1.2
+Maintainer: PowerDNS.COM BV <powerdns.support@powerdns.com>
+Build-Depends: debhelper (>= 9~),
+               dh-autoreconf,
+               libboost-all-dev,
+               libluajit-5.1-dev,
+               libprotobuf-dev,
+               libsnmp-dev,
+               libssl-dev,
+               pkg-config,
+               protobuf-compiler,
+               ragel
+Homepage: https://www.powerdns.com/
+
+Package: pdns-recursor
+Architecture: any
+Depends: adduser,
+         dns-root-data,
+         ${misc:Depends},
+         ${shlibs:Depends}
+Description: PowerDNS Recursor
+ High-performance resolving name server, utilizing multiple
+ processor and including Lua scripting capabilities.
+
+Package: pdns-recursor-dbg
+Section: debug
+Architecture: any
+Depends: pdns-recursor (= ${binary:Version}), ${misc:Depends}
+Description: debugging symbols for PowerDNS recursor
+ PowerDNS is a versatile nameserver which supports a large number
+ of different backends ranging from simple zonefiles to relational
+ databases and load balancing/failover algorithms.
+ PowerDNS tries to emphasize speed and security.
+ .
+ This package contains debugging symbols for PowerDNS to assist in
+ debugging, such as with gdb. It is not required for normal operation.

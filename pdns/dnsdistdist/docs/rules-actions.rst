@@ -921,15 +921,26 @@ The following actions exist.
 
   :param int rcode: The RCODE to respond with.
 
-.. function:: RemoteLogAction(remoteLogger[, alterFunction])
+.. function:: RemoteLogAction(remoteLogger[, alterFunction [, options]])
+
+  .. versionchanged:: 1.3.0
+    ``options`` optional parameter added.
 
   Send the content of this query to a remote logger via Protocol Buffer.
   ``alterFunction`` is a callback, receiving a :class:`DNSQuestion` and a :class:`DNSDistProtoBufMessage`, that can be used to modify the Protocol Buffer content, for example for anonymization purposes
 
   :param string remoteLogger: The :func:`remoteLogger <newRemoteLogger>` object to write to
   :param string alterFunction: Name of a function to modify the contents of the logs before sending
+  :param table options: A table with key: value pairs.
 
-.. function:: RemoteLogResponseAction(remoteLogger[, alterFunction[, includeCNAME]])
+  Options:
+
+  * ``serverID=""``: str - Set the Server Identity field.
+
+.. function:: RemoteLogResponseAction(remoteLogger[, alterFunction[, includeCNAME [, options]]])
+
+  .. versionchanged:: 1.3.0
+    ``options`` optional parameter added.
 
   Send the content of this response to a remote logger via Protocol Buffer.
   ``alterFunction`` is the same callback that receiving a :class:`DNSQuestion` and a :class:`DNSDistProtoBufMessage`, that can be used to modify the Protocol Buffer content, for example for anonymization purposes
@@ -939,6 +950,11 @@ The following actions exist.
   :param string remoteLogger: The :func:`remoteLogger <newRemoteLogger>` object to write to
   :param string alterFunction: Name of a function to modify the contents of the logs before sending
   :param bool includeCNAME: Whether or not to parse and export CNAMEs. Default false
+  :param table options: A table with key: value pairs.
+
+  Options:
+
+  * ``serverID=""``: str - Set the Server Identity field.
 
 .. function:: SetECSAction(v4 [, v6])
 

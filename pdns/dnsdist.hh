@@ -22,24 +22,29 @@
 #pragma once
 #include "config.h"
 #include "ext/luawrapper/include/LuaContext.hpp"
-#include <time.h>
-#include "misc.hh"
-#include "mplexer.hh"
-#include "iputils.hh"
-#include "dnsname.hh"
+
 #include <atomic>
-#include <boost/variant.hpp>
 #include <mutex>
+#include <string>
 #include <thread>
+#include <time.h>
 #include <unistd.h>
-#include "sholder.hh"
+#include <unordered_map>
+
+#include <boost/circular_buffer.hpp>
+#include <boost/variant.hpp>
+
+#include "bpf-filter.hh"
 #include "dnscrypt.hh"
 #include "dnsdist-cache.hh"
-#include "gettime.hh"
 #include "dnsdist-dynbpf.hh"
-#include "bpf-filter.hh"
-#include <string>
-#include <unordered_map>
+#include "dnsname.hh"
+#include "ednsoptions.hh"
+#include "gettime.hh"
+#include "iputils.hh"
+#include "misc.hh"
+#include "mplexer.hh"
+#include "sholder.hh"
 #include "tcpiohandler.hh"
 
 #include <boost/uuid/uuid.hpp>
@@ -72,6 +77,7 @@ struct DNSQuestion
   const ComboAddress* local;
   const ComboAddress* remote;
   std::shared_ptr<QTag> qTag{nullptr};
+  std::shared_ptr<std::map<uint16_t, EDNSOptionView> > ednsOptions;
   struct dnsheader* dh;
   size_t size;
   unsigned int consumed{0};
@@ -161,15 +167,15 @@ public:
 
 struct DynBlock
 {
-  DynBlock(): action(DNSAction::Action::None)
+  DynBlock(): action(DNSAction::Action::None), warning(false)
   {
   }
 
-  DynBlock(const std::string& reason_, const struct timespec& until_, const DNSName& domain_, DNSAction::Action action_): reason(reason_), until(until_), domain(domain_), action(action_)
+  DynBlock(const std::string& reason_, const struct timespec& until_, const DNSName& domain_, DNSAction::Action action_): reason(reason_), until(until_), domain(domain_), action(action_), warning(false)
   {
   }
 
-  DynBlock(const DynBlock& rhs): reason(rhs.reason), until(rhs.until), domain(rhs.domain), action(rhs.action)
+  DynBlock(const DynBlock& rhs): reason(rhs.reason), until(rhs.until), domain(rhs.domain), action(rhs.action), warning(rhs.warning)
   {
     blocks.store(rhs.blocks);
   }
@@ -181,6 +187,7 @@ struct DynBlock
     domain=rhs.domain;
     action=rhs.action;
     blocks.store(rhs.blocks);
+    warning=rhs.warning;
     return *this;
   }
 
@@ -189,6 +196,7 @@ struct DynBlock
   DNSName domain;
   DNSAction::Action action;
   mutable std::atomic<unsigned int> blocks;
+  bool warning;
 };
 
 extern GlobalStateHolder<NetmaskTree<DynBlock>> g_dynblockNMG;

@@ -29,8 +29,10 @@
 #include "lock.hh"
 #include "gettime.hh"
 #include "tcpiohandler.hh"
+#include "threadname.hh"
 #include <thread>
 #include <atomic>
+#include <netinet/tcp.h>
 
 using std::thread;
 using std::atomic;
@@ -237,6 +239,8 @@ void* tcpClientThread(int pipefd)
   /* we get launched with a pipe on which we receive file descriptors from clients that we own
      from that point on */
 
+  setThreadName("dnsdist/tcpClie");
+
   bool outstanding = false;
   time_t lastTCPCleanup = time(nullptr);
   
@@ -404,12 +408,10 @@ void* tcpClientThread(int pipefd)
         }
 
         if (dq.useECS && ((ds && ds->useECS) || (!ds && serverPool->getECS()))) {
-          uint16_t newLen = dq.len;
-          if (!handleEDNSClientSubnet(query, dq.size, consumed, &newLen, &ednsAdded, &ecsAdded, dq.ecsSet ? dq.ecs.getNetwork() : ci.remote, dq.ecsOverride, dq.ecsSet ? dq.ecs.getBits() : dq.ecsPrefixLength)) {
+          if (!handleEDNSClientSubnet(dq, &(ednsAdded), &(ecsAdded))) {
             vinfolog("Dropping query from %s because we couldn't insert the ECS value", ci.remote.toStringWithPort());
             goto drop;
           }
-          dq.len = newLen;
         }
 
         uint32_t cacheKey = 0;
@@ -670,6 +672,7 @@ void* tcpClientThread(int pipefd)
 */
 void* tcpAcceptorThread(void* p)
 {
+  setThreadName("dnsdist/tcpAcce");
   ClientState* cs = (ClientState*) p;
   bool tcpClientCountIncremented = false;
   ComboAddress remote;
@@ -713,7 +716,7 @@ void* tcpAcceptorThread(void* p)
         continue;
       }
 #endif
-
+      setTCPNoDelay(ci->fd);  // disable NAGLE
       if(g_maxTCPQueuedConnections > 0 && g_tcpclientthreads->getQueuedCount() >= g_maxTCPQueuedConnections) {
         close(ci->fd);
         delete ci;

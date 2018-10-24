@@ -152,9 +152,14 @@ class PDNSPBConnHandler(object):
             protostr = 'TCP'
 
         messageidstr = binascii.hexlify(bytearray(msg.messageId))
+
+        serveridstr = 'N/A'
+        if msg.HasField('serverIdentity'):
+            serveridstr = msg.serverIdentity
+
         initialrequestidstr = ''
         if msg.HasField('initialRequestId'):
-            initialrequestidstr = ', initial uuid: ' + binascii.hexlify(bytearray(msg.initialRequestId))
+            initialrequestidstr = ', initial uuid: %s ' % (binascii.hexlify(bytearray(msg.initialRequestId)))
 
         requestorstr = ''
         requestor = self.getRequestorSubnet(msg)
@@ -165,7 +170,7 @@ class PDNSPBConnHandler(object):
         requestorId = msg.requestorId
 
         print('[%s] %s of size %d: %s%s -> %s (%s), id: %d, uuid: %s%s '
-                  'requestorid: %s deviceid: %s' % (datestr,
+                  'requestorid: %s deviceid: %s serverid: %s' % (datestr,
                                                     typestr,
                                                     msg.inBytes,
                                                     ipfromstr,
@@ -176,7 +181,8 @@ class PDNSPBConnHandler(object):
                                                     messageidstr,
                                                     initialrequestidstr,
                                                     requestorId,
-                                                    deviceId))
+                                                    deviceId,
+                                                    serveridstr))
 
     def getRequestorSubnet(self, msg):
         requestorstr = None
