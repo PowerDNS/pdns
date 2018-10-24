@@ -840,6 +840,8 @@ all domains will appear to be newly observed, so the feature is best
 left enabled for e.g. a week or longer before using the results. Note
 that this feature is optional and must be enabled at compile-time,
 thus it may not be available in all pre-built packages.
+If protobuf is enabled and configured, then the newly observed domain
+status will appear as a flag in Response messages.
 
 .. _setting-new-domain-log:
 
@@ -869,6 +871,20 @@ detected, then an A record lookup will be made for
 newly observed domain with partners, vendors or security teams. The
 result of the DNS lookup will be ignored by the recursor.
 
+.. _setting-new-domain-db-size:
+
+``new-domain-db-size``
+---------------------
+- Integer
+- Example: 67108864
+
+The default size of the stable bloom filter used to store previously
+observed domains is 67108864. To change the number of cells, use this
+setting. For each cell, the SBF uses 1 bit of memory, and one byte of
+disk for the persistent file.
+If there are already persistent files saved to disk, this setting will 
+have no effect unless you remove the existing files.
+
 .. _setting-new-domain-history-dir:
 
 ``new-domain-history-dir``
@@ -881,9 +897,11 @@ cache of previously observed domains.
 
 The newly observed domain feature uses a stable bloom filter to store
 a history of previously observed domains. The data structure is
-synchronized to disk every 5 minutes, and is also initialized from
+synchronized to disk every 10 minutes, and is also initialized from
 disk on startup. This ensures that previously observed domains are
 preserved across recursor restarts.
+If you change the new-domain-db-size setting, you must remove any files 
+from this directory.
 
 .. _setting-new-domain-whitelist:
 
@@ -898,6 +916,68 @@ that will never be considered a new domain. For example, if the domain
 considered a new domain. One use-case for the whitelist is to never
 reveal details of internal subdomains via the new-domain-lookup
 feature.
+
+.. _setting-unique-response-tracking:
+
+``unique-response-tracking``
+-----------------------
+- Boolean
+- Default: no (disabled)
+
+Whether to track unique DNS responses, i.e. never seen before combinations
+of the triplet (query name, query type, RR[rrname, rrtype, rrdata]).
+This can be useful for tracking potentially suspicious domains and 
+behaviour, e.g. DNS fast-flux.
+If protobuf is enabled and configured, then the Protobuf Response message
+will contain a flag with udr set to true for each RR that is considered
+unique, i.e. never seen before.
+This feature uses a probabilistic data structure (stable bloom filter) to
+track unique responses, which can have false positives as well as false
+negatives, thus it is a best-effort feature. Increasing the number of cells
+in the SBF using the unique-response-db-size setting can reduce FPs and FNs.
+
+.. _setting-unique-response-log:
+
+``unique-response-log``
+-----------------------
+- Boolean
+- Default: no (disabled)
+
+Whether to log when a unique response is detected. The log line
+looks something like:
+
+Oct 24 12:11:27 Unique response observed: qname=foo.com qtype=A rrtype=AAAA rrname=foo.com rrcontent=1.2.3.4
+
+.. _setting-unique-response-db-size:
+
+``unique-response-db-size``
+---------------------
+- Integer
+- Example: 67108864
+
+The default size of the stable bloom filter used to store previously
+observed responses is 67108864. To change the number of cells, use this
+setting. For each cell, the SBF uses 1 bit of memory, and one byte of
+disk for the persistent file.
+If there are already persistent files saved to disk, this setting will 
+have no effect unless you remove the existing files.
+
+.. _setting-unique-response-history-dir:
+
+``unique-response-history-dir``
+--------------------------
+- Path
+- Default: /var/lib/pdns-recursor/udr
+
+This setting controls which directory is used to store the on-disk
+cache of previously observed responses.
+
+The newly observed domain feature uses a stable bloom filter to store
+a history of previously observed responses. The data structure is
+synchronized to disk every 10 minutes, and is also initialized from
+disk on startup. This ensures that previously observed responses are
+preserved across recursor restarts. If you change the 
+unique-response-db-size, you must remove any files from this directory.
 
 .. _setting-network-timeout:
 
