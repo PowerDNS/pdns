@@ -10,6 +10,18 @@ env:
   - PDNS_BUILD_PRODUCT=dnsdist
   - PDNS_BUILD_PRODUCT=ixfrdist
 
+cache:
+  - pip
+  - directories:
+    - $HOME/.pyenv_cache
+
+before_install:
+  - |
+      PYENV_VERSION='2.7.13' PYENV_VERSION_STRING='Python 2.7.13'
+      wget https://github.com/praekeltfoundation/travis-pyenv/releases/download/0.4.0/setup-pyenv.sh
+      source setup-pyenv.sh
+      rm setup-pyenv.sh
+
 before_script:
   - git describe --always --dirty=+
   - sudo rm -f /etc/apt/sources.list.d/*.list
