@@ -48,16 +48,11 @@ std::string makeTSIGKey(const DNSName& algorithm) {
   string tmpkey;
   tmpkey.resize(klen);
 
-  for (size_t i = 0; i < klen; i += sizeof(unsigned int)) {
-    unsigned int t = dns_random(std::numeric_limits<unsigned int>::max());
-    memcpy(&tmpkey.at(i), &t, sizeof(unsigned int));
-    if (i + sizeof(unsigned int) > klen) {
-      size_t needed_bytes = klen - i;
-      for (size_t j = 0; j < needed_bytes; j++) {
-        uint8_t v = dns_random(0xff);
-        memcpy(&tmpkey.at(i + j), &v, sizeof(uint8_t));
-      }
-    }
+  // Fill out the key
+  for (size_t i = 0; i < klen; i += sizeof(uint32_t)) {
+    uint32_t t = dns_random(std::numeric_limits<uint32_t>::max());
+    memcpy(&tmpkey.at(i), &t, sizeof(uint32_t));
   }
+
   return Base64Encode(tmpkey);
 }
