@@ -126,7 +126,7 @@ public:
   const char* code;
   int statusCode = 422;
 
-  // Eror codes pre-defined
+  // Pre-defined error codes
   static constexpr const char* ErrGenericError      = "ERR_GENERIC_ERROR";
   static constexpr const char* ErrInvalidConfig     = "ERR_INVALID_CONFIGURATION";
   static constexpr const char* ErrIOError           = "ERR_IO_ERROR";
