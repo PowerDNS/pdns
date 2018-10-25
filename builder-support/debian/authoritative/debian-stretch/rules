@@ -57,7 +57,6 @@ override_dh_install:
 	  -e 's!# launch=.*!&\nlaunch=!' \
 	  -e 's!# setgid=.*!setgid=pdns!' \
 	  -e 's!# setuid=.*!setuid=pdns!' \
-	  -e 's!# security-poll-suffix=.*!&\nsecurity-poll-suffix=!' \
 	  > debian/pdns-server/etc/powerdns/pdns.conf
 ifeq ($(DEB_HOST_ARCH_BITS),32)
 	echo RestrictAddressFamilies is broken on 32bit, removing it from service file
