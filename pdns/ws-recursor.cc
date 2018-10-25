@@ -102,7 +102,7 @@ static void apiServerConfigAllowFrom(HttpRequest* req, HttpResponse* resp)
 
     // fall through to GET
   } else if (req->method != "GET") {
-    throw HttpMethodNotAllowedException();
+    throw ApiException(ApiException::ErrMethodNotAllowed, "Method '" + req->method + "' not allowed here", 405);
   }
 
   // Return currently configured ACLs
@@ -270,7 +270,7 @@ static void apiServerZones(HttpRequest* req, HttpResponse* resp)
   }
 
   if(req->method != "GET")
-    throw HttpMethodNotAllowedException();
+    throw ApiException(ApiException::ErrMethodNotAllowed, "Method '" + req->method + "' not allowed here", 405);
 
   Json::array doc;
   for(const SyncRes::domainmap_t::value_type& val :  *SyncRes::t_sstorage.domainmap) {
@@ -322,13 +322,13 @@ static void apiServerZoneDetail(HttpRequest* req, HttpResponse* resp)
   } else if(req->method == "GET") {
     fillZone(zonename, resp);
   } else {
-    throw HttpMethodNotAllowedException();
+    throw ApiException(ApiException::ErrMethodNotAllowed, "Method '" + req->method + "' not allowed here", 405);
   }
 }
 
 static void apiServerSearchData(HttpRequest* req, HttpResponse* resp) {
   if(req->method != "GET")
-    throw HttpMethodNotAllowedException();
+    throw ApiException(ApiException::ErrMethodNotAllowed, "Method '" + req->method + "' not allowed here", 405);
 
   string q = req->getvars["q"];
   if (q.empty())
@@ -371,7 +371,7 @@ static void apiServerSearchData(HttpRequest* req, HttpResponse* resp) {
 
 static void apiServerCacheFlush(HttpRequest* req, HttpResponse* resp) {
   if(req->method != "PUT")
-    throw HttpMethodNotAllowedException();
+    throw ApiException(ApiException::ErrMethodNotAllowed, "Method '" + req->method + "' not allowed here", 405);
 
   DNSName canon = apiNameToDNSName(req->getvars["domain"]);
   bool subtree = (req->getvars.count("subtree") > 0 && req->getvars["subtree"].compare("true") == 0);
@@ -387,7 +387,7 @@ static void apiServerCacheFlush(HttpRequest* req, HttpResponse* resp) {
 
 static void apiServerRPZStats(HttpRequest* req, HttpResponse* resp) {
   if(req->method != "GET")
-    throw HttpMethodNotAllowedException();
+    throw ApiException(ApiException::ErrMethodNotAllowed, "Method '" + req->method + "' not allowed here", 405);
 
   auto luaconf = g_luaconfs.getLocal();
   auto numZones = luaconf->dfe.size();

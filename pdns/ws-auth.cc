@@ -336,7 +336,7 @@ static void fillZone(const DNSName& zonename, HttpResponse* resp, bool doRRSets)
   UeberBackend B;
   DomainInfo di;
   if(!B.getDomainInfo(zonename, di)) {
-    throw HttpNotFoundException();
+    throw ApiException(ApiException::ErrNotFound, "Zone '" + zonename.toString() + "' does not exist", 404);
   }
 
   DNSSECKeeper dk(&B);
@@ -769,7 +769,7 @@ static void apiZoneMetadata(HttpRequest* req, HttpResponse *resp) {
   UeberBackend B;
   DomainInfo di;
   if (!B.getDomainInfo(zonename, di)) {
-    throw HttpNotFoundException();
+    throw ApiException(ApiException::ErrNotFound, "Zone '" + zonename.toString() + "' does not exist", 404);
   }
 
   if (req->method == "GET") {
@@ -777,7 +777,7 @@ static void apiZoneMetadata(HttpRequest* req, HttpResponse *resp) {
     Json::array document;
 
     if (!B.getAllDomainMetadata(zonename, md))
-      throw HttpNotFoundException();
+      throw ApiException(ApiException::ErrNotFound, "Zone '" + zonename.toString() + "' has no metadata", 404);
 
     for (const auto& i : md) {
       Json::array entries;
@@ -843,7 +843,7 @@ static void apiZoneMetadata(HttpRequest* req, HttpResponse *resp) {
     resp->status = 201;
     resp->setBody(key);
   } else
-    throw HttpMethodNotAllowedException();
+    throw ApiException(ApiException::ErrMethodNotAllowed, "Method '" + req->method + "' not allowed here", 405);
 }
 
 static void apiZoneMetadataKind(HttpRequest* req, HttpResponse* resp) {
@@ -852,7 +852,7 @@ static void apiZoneMetadataKind(HttpRequest* req, HttpResponse* resp) {
   UeberBackend B;
   DomainInfo di;
   if (!B.getDomainInfo(zonename, di)) {
-    throw HttpNotFoundException();
+    throw ApiException(ApiException::ErrNotFound, "Zone '" + zonename.toString() + "' does not exist", 404);
   }
 
   string kind = req->parameters["kind"];
@@ -863,7 +863,7 @@ static void apiZoneMetadataKind(HttpRequest* req, HttpResponse* resp) {
     Json::array entries;
 
     if (!B.getDomainMetadata(zonename, kind, metadata))
-      throw HttpNotFoundException();
+      throw ApiException(ApiException::ErrNotFound, "Zone '" + zonename.toString() + "' has no metadata", 404);
     else if (!isValidMetadataKind(kind, true))
       throw ApiException(ApiException::ErrInvalidKind, "Unsupported metadata kind '" + kind + "'");
 
@@ -910,7 +910,7 @@ static void apiZoneMetadataKind(HttpRequest* req, HttpResponse* resp) {
     if (!B.setDomainMetadata(zonename, kind, md))
       throw ApiException(ApiException::ErrOPFailed, "Could not delete metadata for domain '" + zonename.toString() + "' (" + kind + ")");
   } else
-    throw HttpMethodNotAllowedException();
+    throw ApiException(ApiException::ErrMethodNotAllowed, "Method '" + req->method + "' not allowed here", 405);
 }
 
 // Throws 404 if the key with inquireKeyId does not exist
@@ -924,7 +924,7 @@ static void apiZoneCryptoKeysCheckKeyExists(DNSName zonename, int inquireKeyId, 
     }
   }
   if (!found) {
-    throw HttpNotFoundException();
+    throw ApiException(ApiException::ErrNotFound, "Key does not exist", 404);
   }
 }
 
@@ -976,7 +976,7 @@ static void apiZoneCryptokeysGET(DNSName zonename, int inquireKeyId, HttpRespons
 
   if (inquireSingleKey) {
     // we came here because we couldn't find the requested key.
-    throw HttpNotFoundException();
+    throw ApiException(ApiException::ErrNotFound, "Key does not exist", 404);
   }
   resp->setBody(doc);
 
@@ -1169,7 +1169,7 @@ static void apiZoneCryptokeys(HttpRequest *req, HttpResponse *resp) {
   DNSSECKeeper dk(&B);
   DomainInfo di;
   if (!B.getDomainInfo(zonename, di)) {
-    throw HttpNotFoundException();
+    throw ApiException(ApiException::ErrNotFound, "Zone '" + zonename.toString() + "' does not exist", 404);
   }
 
   int inquireKeyId = -1;
@@ -1182,16 +1182,16 @@ static void apiZoneCryptokeys(HttpRequest *req, HttpResponse *resp) {
     apiZoneCryptokeysGET(zonename, inquireKeyId, resp, &dk);
   } else if (req->method == "DELETE") {
     if (inquireKeyId == -1)
-      throw HttpBadRequestException();
+      throw ApiException(ApiException::ErrBadRequest, "Bad request", 400);
     apiZoneCryptokeysDELETE(zonename, inquireKeyId, req, resp, &dk);
   } else if (req->method == "POST") {
     apiZoneCryptokeysPOST(zonename, req, resp, &dk);
   } else if (req->method == "PUT") {
     if (inquireKeyId == -1)
-      throw HttpBadRequestException();
+      throw ApiException(ApiException::ErrBadRequest, "Bad request", 400);
     apiZoneCryptokeysPUT(zonename, inquireKeyId, req, resp, &dk);
   } else {
-    throw HttpMethodNotAllowedException(); //Returns method not allowed
+    throw ApiException(ApiException::ErrMethodNotAllowed, "Method '" + req->method + "' not allowed here", 405); //Returns method not allowed
   }
 }
 
@@ -1253,7 +1253,6 @@ static void apiServerZones(HttpRequest* req, HttpResponse* resp) {
 
     bool exists = B.getDomainInfo(zonename, di);
     if(exists)
-      // throw HttpConflictException();
       throw ApiException(ApiException::ErrZoneAlreadyExists, "Zone '" + zonename.toString() + "' already exists", 409);
 
     // validate 'kind' is set
@@ -1410,7 +1409,7 @@ static void apiServerZones(HttpRequest* req, HttpResponse* resp) {
   }
 
   if(req->method != "GET")
-    throw HttpMethodNotAllowedException();
+    throw ApiException(ApiException::ErrMethodNotAllowed, "Method '" + req->method + "' not allowed here", 405);
 
   vector<DomainInfo> domains;
 
@@ -1440,7 +1439,7 @@ static void apiServerZoneDetail(HttpRequest* req, HttpResponse* resp) {
   UeberBackend B;
   DomainInfo di;
   if (!B.getDomainInfo(zonename, di)) {
-    throw HttpNotFoundException();
+    throw ApiException(ApiException::ErrNotFound, "Zone '" + req->parameters["id"] + "' does not exist", 404);
   }
 
   if(req->method == "PUT") {
@@ -1455,7 +1454,7 @@ static void apiServerZoneDetail(HttpRequest* req, HttpResponse* resp) {
   else if(req->method == "DELETE") {
     // delete domain
     if(!di.backend->deleteDomain(zonename))
-      throw ApiException(ApiException::ErrOPFailed, "Deleting domain '"+zonename.toString()+"' failed: backend delete failed/unsupported");
+      throw ApiException(ApiException::ErrOPFailed, "Deleting domain '" + zonename.toString() + "' failed: backend delete failed/unsupported");
 
     // empty body on success
     resp->body = "";
@@ -1468,21 +1467,21 @@ static void apiServerZoneDetail(HttpRequest* req, HttpResponse* resp) {
     fillZone(zonename, resp, shouldDoRRSets(req));
     return;
   }
-  throw HttpMethodNotAllowedException();
+  throw ApiException(ApiException::ErrMethodNotAllowed, "Method '" + req->method + "' not allowed here", 405);
 }
 
 static void apiServerZoneExport(HttpRequest* req, HttpResponse* resp) {
   DNSName zonename = apiZoneIdToName(req->parameters["id"]);
 
   if(req->method != "GET")
-    throw HttpMethodNotAllowedException();
+    throw ApiException(ApiException::ErrMethodNotAllowed, "Method '" + req->method + "' not allowed here", 405);
 
   ostringstream ss;
 
   UeberBackend B;
   DomainInfo di;
   if (!B.getDomainInfo(zonename, di)) {
-    throw HttpNotFoundException();
+    throw ApiException(ApiException::ErrNotFound, "Zone '" + zonename.toString() + "' does not exist", 404);
   }
 
   DNSResourceRecord rr;
@@ -1513,12 +1512,12 @@ static void apiServerZoneAxfrRetrieve(HttpRequest* req, HttpResponse* resp) {
   DNSName zonename = apiZoneIdToName(req->parameters["id"]);
 
   if(req->method != "PUT")
-    throw HttpMethodNotAllowedException();
+    throw ApiException(ApiException::ErrMethodNotAllowed, "Method '" + req->method + "' not allowed here", 405);
 
   UeberBackend B;
   DomainInfo di;
   if (!B.getDomainInfo(zonename, di)) {
-    throw HttpNotFoundException();
+    throw ApiException(ApiException::ErrNotFound, "Zone '" + zonename.toString() + "' does not exist", 404);
   }
 
   if(di.masters.empty())
@@ -1533,12 +1532,12 @@ static void apiServerZoneNotify(HttpRequest* req, HttpResponse* resp) {
   DNSName zonename = apiZoneIdToName(req->parameters["id"]);
 
   if(req->method != "PUT")
-    throw HttpMethodNotAllowedException();
+    throw ApiException(ApiException::ErrMethodNotAllowed, "Method '" + req->method + "' not allowed here", 405);
 
   UeberBackend B;
   DomainInfo di;
   if (!B.getDomainInfo(zonename, di)) {
-    throw HttpNotFoundException();
+    throw ApiException(ApiException::ErrNotFound, "Zone '" + zonename.toString() + "' does not exist", 404);
   }
 
   if(!Communicator.notifyDomain(zonename))
@@ -1551,12 +1550,12 @@ static void apiServerZoneRectify(HttpRequest* req, HttpResponse* resp) {
   DNSName zonename = apiZoneIdToName(req->parameters["id"]);
 
   if(req->method != "PUT")
-    throw HttpMethodNotAllowedException();
+    throw ApiException(ApiException::ErrMethodNotAllowed, "Method '" + req->method + "' not allowed here", 405);
 
   UeberBackend B;
   DomainInfo di;
   if (!B.getDomainInfo(zonename, di)) {
-    throw HttpNotFoundException();
+    throw ApiException(ApiException::ErrNotFound, "Zone '" + zonename.toString() + "' does not exist", 404);
   }
 
   DNSSECKeeper dk(&B);
@@ -1594,7 +1593,7 @@ static void makePtr(const DNSResourceRecord& rr, DNSResourceRecord* ptr) {
     for (int octet = 0; octet < 16; ++octet) {
       if (snprintf(buf, sizeof(buf), "%02x", ca.sin6.sin6_addr.s6_addr[octet]) != (sizeof(buf)-1)) {
         // this should be impossible: no byte should give more than two digits in hex format
-        throw PDNSException("Formatting IPv6 address failed");
+        throw ApiException(ApiException::ErrOPFailed, "Formatting IPv6 address failed");
       }
       ss << buf[0] << '.' << buf[1] << '.';
     }
@@ -1648,7 +1647,7 @@ static void patchZone(HttpRequest* req, HttpResponse* resp) {
   DomainInfo di;
   DNSName zonename = apiZoneIdToName(req->parameters["id"]);
   if (!B.getDomainInfo(zonename, di)) {
-    throw HttpNotFoundException();
+    throw ApiException(ApiException::ErrNotFound, "Zone '" + zonename.toString() + "' does not exist", 404);
   }
 
   vector<DNSResourceRecord> new_records;
@@ -1815,7 +1814,7 @@ static void patchZone(HttpRequest* req, HttpResponse* resp) {
 
 static void apiServerSearchData(HttpRequest* req, HttpResponse* resp) {
   if(req->method != "GET")
-    throw HttpMethodNotAllowedException();
+    throw ApiException(ApiException::ErrMethodNotAllowed, "Method '" + req->method + "' not allowed here", 405);
 
   string q = req->getvars["q"];
   string sMax = req->getvars["max"];
@@ -1898,7 +1897,7 @@ static void apiServerSearchData(HttpRequest* req, HttpResponse* resp) {
 
 void apiServerCacheFlush(HttpRequest* req, HttpResponse* resp) {
   if(req->method != "PUT")
-    throw HttpMethodNotAllowedException();
+    throw ApiException(ApiException::ErrMethodNotAllowed, "Method '" + req->method + "' not allowed here", 405);
 
   DNSName canon = apiNameToDNSName(req->getvars["domain"]);
 

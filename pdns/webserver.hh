@@ -127,6 +127,11 @@ public:
   int statusCode = 422;
 
   // Pre-defined error codes
+  static constexpr const char* ErrMethodNotAllowed  = "ERR_HTTP_METHOD_NOT_ALLOWED";
+  static constexpr const char* ErrNotFound          = "ERR_NOT_FOUND";
+  static constexpr const char* ErrBadRequest        = "ERR_BAD_REQUEST";
+  static constexpr const char* ErrUnathorized       = "ERR_UNAUTHORIZED";
+  static constexpr const char* ErrInternalError     = "ERR_INTERNAL_SERVER_ERROR";
   static constexpr const char* ErrGenericError      = "ERR_GENERIC_ERROR";
   static constexpr const char* ErrInvalidConfig     = "ERR_INVALID_CONFIGURATION";
   static constexpr const char* ErrIOError           = "ERR_IO_ERROR";
