@@ -917,6 +917,16 @@ considered a new domain. One use-case for the whitelist is to never
 reveal details of internal subdomains via the new-domain-lookup
 feature.
 
+.. _setting-new-domain-pb-tag:
+
+``new-domain-pb-tag``
+------------------------
+- String
+- Default: pnds-nod
+
+If protobuf is configured, then this tag will be added to all protobuf response messages when
+a new domain is observed. 
+
 .. _setting-unique-response-tracking:
 
 ``unique-response-tracking``
@@ -978,6 +988,16 @@ synchronized to disk every 10 minutes, and is also initialized from
 disk on startup. This ensures that previously observed responses are
 preserved across recursor restarts. If you change the 
 unique-response-db-size, you must remove any files from this directory.
+
+.. _setting-unique-response-pb-tag:
+
+``unique-response-pb-tag``
+------------------------
+- String
+- Default: pnds-udr
+
+If protobuf is configured, then this tag will be added to all protobuf response messages when
+a unique DNS response is observed. 
 
 .. _setting-network-timeout:
 
