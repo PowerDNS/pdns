@@ -764,8 +764,11 @@ Dynamic Blocks
 
 .. function:: setDynBlocksAction(action)
 
+  .. versionchanged:: 1.3.3
+    ``DNSAction.NXDomain`` action added.
+
   Set which action is performed when a query is blocked.
-  Only DNSAction.Drop (the default), DNSAction.NoOp, DNSAction.Refused and DNSAction.Truncate are supported.
+  Only DNSAction.Drop (the default), DNSAction.NoOp, DNSAction.NXDomain, DNSAction.Refused and DNSAction.Truncate are supported.
 
 .. _exceedfuncs:
 
