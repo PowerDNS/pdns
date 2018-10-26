@@ -209,8 +209,10 @@ static bool g_nodEnabled;
 static DNSName g_nodLookupDomain;
 static bool g_nodLog;
 static SuffixMatchNode g_nodDomainWL;
+static std::string g_nod_pbtag;
 static bool g_udrEnabled;
 static bool g_udrLog;
+static std::string g_udr_pbtag;
 #endif /* NOD_ENABLED */
 #ifdef HAVE_BOOST_CONTAINER_FLAT_SET_HPP
 static boost::container::flat_set<uint16_t> s_avoidUdpSourcePorts;
@@ -988,6 +990,9 @@ static void startDoResolve(void *p)
     std::vector<pair<uint16_t, string> > ednsOpts;
     bool variableAnswer = dc->d_variable;
     bool haveEDNS=false;
+#ifdef NOD_ENABLED
+    bool hasUDR = false;
+#endif /* NOD_ENABLED */
     DNSPacketWriter::optvect_t returnedEdnsOptions; // Here we stuff all the options for the return packet
     uint8_t ednsExtRCode = 0;
     if(getEDNSOpts(dc->d_mdp, &edo)) {
@@ -1419,6 +1424,8 @@ static void startDoResolve(void *p)
 	bool udr = false;
 	if (g_udrEnabled) {
 	  udr = udrCheckUniqueDNSRecord(dc->d_mdp.d_qname, dc->d_mdp.d_qtype, *i);
+          if (!hasUDR && udr)
+            hasUDR = true;
 	}
 #endif /* NOD ENABLED */    
 
@@ -1471,14 +1478,25 @@ static void startDoResolve(void *p)
       pbMessage->setDeviceId(dq.deviceId);
 #ifdef NOD_ENABLED
       if (g_nodEnabled) {
-        if (nod)
+        if (nod) {
 	  pbMessage->setNOD(true);
+          pbMessage->addPolicyTag(g_nod_pbtag);
+        }
+        if (hasUDR) {
+          pbMessage->addPolicyTag(g_udr_pbtag);
+        }
       }
 #endif /* NOD_ENABLED */
       protobufLogResponse(t_protobufServer, *pbMessage);
 #ifdef NOD_ENABLED
-      pbMessage->setNOD(false);
-      pbMessage->clearUDR();
+      if (g_nodEnabled) {
+        pbMessage->setNOD(false);
+        pbMessage->clearUDR();
+        if (nod)
+          pbMessage->removePolicyTag(g_nod_pbtag);
+        if (hasUDR)
+          pbMessage->removePolicyTag(g_udr_pbtag);
+      }
 #endif /* NOD_ENABLED */
     }
 #endif
@@ -3327,6 +3345,7 @@ static void setupNODThread()
     }
     std::thread t(nod::NODDB::startHousekeepingThread, t_nodDBp, std::this_thread::get_id());
     t.detach();
+    g_nod_pbtag = ::arg()["new-domain-pb-tag"];
   }
   if (g_udrEnabled) {
     uint32_t num_cells = ::arg().asNum("unique-response-db-size");
@@ -3344,6 +3363,7 @@ static void setupNODThread()
     }
     std::thread t(nod::UniqueResponseDB::startHousekeepingThread, t_udrDBp, std::this_thread::get_id());
     t.detach();
+    g_udr_pbtag = ::arg()["unique-response-pb-tag"];
   }
 }
 
@@ -4147,10 +4167,12 @@ int main(int argc, char **argv)
     ::arg().set("new-domain-history-dir", "Persist new domain tracking data here to persist between restarts")=string(NODCACHEDIR)+"/nod";
     ::arg().set("new-domain-whitelist", "List of domains (and implicitly all subdomains) which will never be considered a new domain")="";
     ::arg().set("new-domain-db-size", "Size of the DB used to track new domains in terms of number of cells. Defaults to 67108864")="67108864";
+    ::arg().set("new-domain-pb-tag", "If protobuf is configured, the tag to use for messages containing newly observed domains. Defaults to 'pdns-nod'")="pdns-nod";
     ::arg().set("unique-response-tracking", "Track unique responses (tuple of query name, type and RR).")="no";
     ::arg().set("unique-response-log", "Log unique responses")="yes";
     ::arg().set("unique-response-history-dir", "Persist unique response tracking data here to persist between restarts")=string(NODCACHEDIR)+"/udr";
     ::arg().set("unique-response-db-size", "Size of the DB used to track unique responses in terms of number of cells. Defaults to 67108864")="67108864";
+    ::arg().set("unique-response-pb-tag", "If protobuf is configured, the tag to use for messages containing unique DNS responses. Defaults to 'pdns-udr'")="pdns-udr";
 #endif /* NOD_ENABLED */
     ::arg().setCmd("help","Provide a helpful message");
     ::arg().setCmd("version","Print version string");
