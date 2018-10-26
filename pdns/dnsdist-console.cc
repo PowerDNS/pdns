@@ -44,6 +44,7 @@ vector<pair<struct timeval, string> > g_confDelta;
 std::string g_consoleKey;
 bool g_logConsoleConnections{true};
 bool g_consoleEnabled{false};
+uint32_t g_consoleOutputMsgMaxSize{10000000};
 
 // MUST BE CALLED UNDER A LOCK - right now the LuaLock
 static void feedConfigDelta(const std::string& line)
@@ -412,6 +413,7 @@ const std::vector<ConsoleKeyword> g_consoleKeywords{
   { "setAPIWritable", true, "bool, dir", "allow modifications via the API. if `dir` is set, it must be a valid directory where the configuration files will be written by the API" },
   { "setConsoleACL", true, "{netmask, netmask}", "replace the console ACL set with these netmasks" },
   { "setConsoleConnectionsLogging", true, "enabled", "whether to log the opening and closing of console connections" },
+  { "setConsoleOutputMaxMsgSize", true, "messageSize", "set console message maximum size in bytes, default is 10 MB" },
   { "setDNSSECPool", true, "pool name", "move queries requesting DNSSEC processing to this pool" },
   { "setDynBlocksAction", true, "action", "set which action is performed when a query is blocked. Only DNSAction.Drop (the default) and DNSAction.Refused are supported" },
   { "setECSOverride", true, "bool", "whether to override an existing EDNS Client Subnet value in the query" },
@@ -699,4 +701,31 @@ catch(const std::exception& e)
 {
   close(fd);
   errlog("Control connection died: %s", e.what());
+}
+
+bool getMsgLen32(int fd, uint32_t* len)
+try
+{
+  uint32_t raw;
+  size_t ret = readn2(fd, &raw, sizeof raw);
+  if(ret != sizeof raw)
+    return false;
+  *len = ntohl(raw);
+  if(*len > g_consoleOutputMsgMaxSize)
+    return false;
+  return true;
+}
+catch(...) {
+   return false;
+}
+
+bool putMsgLen32(int fd, uint32_t len)
+try
+{
+  uint32_t raw = htonl(len);
+  size_t ret = writen2(fd, &raw, sizeof raw);
+  return ret==sizeof raw;
+}
+catch(...) {
+  return false;
 }

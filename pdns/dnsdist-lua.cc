@@ -1469,6 +1469,10 @@ void setupLuaConfig(bool client)
       g_logConsoleConnections = enabled;
     });
 
+  g_lua.writeFunction("setConsoleOutputMaxMsgSize", [](uint32_t size) {
+      g_consoleOutputMsgMaxSize = size;
+    });
+
   g_lua.writeFunction("setUDPMultipleMessagesVectorSize", [](size_t vSize) {
       if (g_configurationDone) {
         errlog("setUDPMultipleMessagesVectorSize() cannot be used at runtime!");

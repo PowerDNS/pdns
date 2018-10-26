@@ -203,6 +203,14 @@ Control Socket, Console and Webserver
 
   Test the crypto code, will report errors when something is not ok.
 
+.. function:: setConsoleOutputMaxMsgSize(size)
+
+  .. versionadded:: 1.3.3
+
+  Set the maximum size in bytes of a single console message, default set to 10 MB.
+
+  :param int size: The new maximum size.
+
 Webserver
 ~~~~~~~~~
 

@@ -776,30 +776,3 @@ void* tcpAcceptorThread(void* p)
 
   return 0;
 }
-
-bool getMsgLen32(int fd, uint32_t* len)
-try
-{
-  uint32_t raw;
-  size_t ret = readn2(fd, &raw, sizeof raw);
-  if(ret != sizeof raw)
-    return false;
-  *len = ntohl(raw);
-  if(*len > 10000000) // arbitrary 10MB limit
-    return false;
-  return true;
-}
-catch(...) {
-   return false;
-}
-
-bool putMsgLen32(int fd, uint32_t len)
-try
-{
-  uint32_t raw = htonl(len);
-  size_t ret = writen2(fd, &raw, sizeof raw);
-  return ret==sizeof raw;
-}
-catch(...) {
-  return false;
-}
