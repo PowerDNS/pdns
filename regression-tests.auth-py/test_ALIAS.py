@@ -197,5 +197,7 @@ class AliasUDPResponder(DatagramProtocol):
         if request.question[0].name == dns.name.from_text(
                 'servfail.example.com.'):
             response.set_rcode(dns.rcode.SERVFAIL)
+        else:
+            print("ERROR!")
 
         self.transport.write(response.to_wire(max_size=65535), address)
