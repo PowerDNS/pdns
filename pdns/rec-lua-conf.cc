@@ -358,14 +358,33 @@ void loadRecursorLuaConfig(const std::string& fname, luaConfigDelayedThreads& de
 		      }
 		    });
 
-  Lua.writeFunction("addDS", [&lci](const std::string& who, const std::string& what) {
-      warnIfDNSSECDisabled("Warning: adding Trust Anchor for DNSSEC (addDS), but dnssec is set to 'off'!");
+  Lua.writeFunction("addTA", [&lci](const std::string& who, const std::string& what) {
+      warnIfDNSSECDisabled("Warning: adding Trust Anchor for DNSSEC (addTA), but dnssec is set to 'off'!");
       DNSName zone(who);
       auto ds = unique_ptr<DSRecordContent>(dynamic_cast<DSRecordContent*>(DSRecordContent::make(what)));
       lci.dsAnchors[zone].insert(*ds);
   });
 
+  Lua.writeFunction("clearTA", [&lci](boost::optional<string> who) {
+      warnIfDNSSECDisabled("Warning: removing Trust Anchor for DNSSEC (clearTA), but dnssec is set to 'off'!");
+      if(who)
+        lci.dsAnchors.erase(DNSName(*who));
+      else
+        lci.dsAnchors.clear();
+    });
+
+  /* Remove in 4.3 */
+  Lua.writeFunction("addDS", [&lci](const std::string& who, const std::string& what) {
+      warnIfDNSSECDisabled("Warning: adding Trust Anchor for DNSSEC (addDS), but dnssec is set to 'off'!");
+      g_log<<Logger::Warning<<"addDS is deprecated and will be removed in the future, switch to addTA"<<endl;
+      DNSName zone(who);
+      auto ds = unique_ptr<DSRecordContent>(dynamic_cast<DSRecordContent*>(DSRecordContent::make(what)));
+      lci.dsAnchors[zone].insert(*ds);
+  });
+
+  /* Remove in 4.3 */
   Lua.writeFunction("clearDS", [&lci](boost::optional<string> who) {
+      g_log<<Logger::Warning<<"clearDS is deprecated and will be removed in the future, switch to clearTA"<<endl;
       warnIfDNSSECDisabled("Warning: removing Trust Anchor for DNSSEC (clearDS), but dnssec is set to 'off'!");
       if(who)
         lci.dsAnchors.erase(DNSName(*who));
@@ -387,6 +406,17 @@ void loadRecursorLuaConfig(const std::string& fname, luaConfigDelayedThreads& de
         lci.negAnchors.erase(DNSName(*who));
       else
         lci.negAnchors.clear();
+    });
+
+  Lua.writeFunction("readTrustAnchorsFromFile", [&lci](const std::string& fname, const boost::optional<uint32_t> interval) {
+      uint32_t realInterval = 24;
+      if (interval) {
+        realInterval = static_cast<uint32_t>(*interval);
+      }
+      warnIfDNSSECDisabled("Warning: reading Trust Anchors from file (readTrustAnchorsFromFile), but dnssec is set to 'off'!");
+      lci.trustAnchorFileInfo.fname = fname;
+      lci.trustAnchorFileInfo.interval = realInterval;
+      updateTrustAnchorsFromFile(fname, lci.dsAnchors);
     });
 
 #if HAVE_PROTOBUF

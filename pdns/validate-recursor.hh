@@ -38,3 +38,4 @@ extern bool g_dnssecLogBogus;
 bool checkDNSSECDisabled();
 bool warnIfDNSSECDisabled(const string& msg);
 vState increaseDNSSECStateCounter(const vState& state);
+bool updateTrustAnchorsFromFile(const std::string &fname, map<DNSName, dsmap_t> &dsAnchors);

@@ -2500,9 +2500,16 @@ static void doStats(void)
 
 static void houseKeeping(void *)
 {
-  static thread_local time_t last_rootupdate, last_prune, last_secpoll;
+  static thread_local time_t last_rootupdate, last_prune, last_secpoll, last_trustAnchorUpdate{0};
   static thread_local int cleanCounter=0;
   static thread_local bool s_running;  // houseKeeping can get suspended in secpoll, and be restarted, which makes us do duplicate work
+  auto luaconfsLocal = g_luaconfs.getLocal();
+
+  if (last_trustAnchorUpdate == 0 && !luaconfsLocal->trustAnchorFileInfo.fname.empty() && luaconfsLocal->trustAnchorFileInfo.interval != 0) {
+    // Loading the Lua config file already "refreshed" the TAs
+    last_trustAnchorUpdate = g_now.tv_sec + luaconfsLocal->trustAnchorFileInfo.interval * 3600;
+  }
+
   try {
     if(s_running)
       return;
@@ -2555,8 +2562,24 @@ static void houseKeeping(void *)
           g_log<<Logger::Error<<"Exception while performing security poll"<<endl;
         }
       }
+
+      if (!luaconfsLocal->trustAnchorFileInfo.fname.empty() && luaconfsLocal->trustAnchorFileInfo.interval != 0 &&
+          g_now.tv_sec - last_trustAnchorUpdate >= (luaconfsLocal->trustAnchorFileInfo.interval * 3600)) {
+        g_log<<Logger::Debug<<"Refreshing Trust Anchors from file"<<endl;
+        try {
+          map<DNSName, dsmap_t> dsAnchors;
+          if (updateTrustAnchorsFromFile(luaconfsLocal->trustAnchorFileInfo.fname, dsAnchors)) {
+            g_luaconfs.modify([&dsAnchors](LuaConfigItems& lci) {
+                lci.dsAnchors = dsAnchors;
+            });
+          }
+          last_trustAnchorUpdate = now.tv_sec;
+        } catch (const PDNSException &pe) {
+          g_log<<Logger::Error<<"Unable to update Trust Anchors: "<<pe.reason<<endl;
+        }
+      }
+      s_running=false;
     }
-    s_running=false;
   }
   catch(PDNSException& ae)
     {
