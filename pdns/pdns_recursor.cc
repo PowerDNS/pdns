@@ -758,7 +758,7 @@ static void updateResponseStats(int res, const ComboAddress& remote, unsigned in
   }
 }
 
-static string makeLoginfo(const DNSComboWriter* dc)
+static string makeLoginfo(const std::unique_ptr<DNSComboWriter>& dc)
 try
 {
   return "("+dc->d_mdp.d_qname.toLogString()+"/"+DNSRecordContent::NumberToType(dc->d_mdp.d_qtype)+" from "+(dc->getRemote())+")";
@@ -953,7 +953,7 @@ static void nodAddDomain(const DNSName& dname)
 
 static void startDoResolve(void *p)
 {
-  DNSComboWriter* dc=(DNSComboWriter *)p;
+  auto dc=std::unique_ptr<DNSComboWriter>(reinterpret_cast<DNSComboWriter*>(p));
   try {
     if (t_queryring)
       t_queryring->push_back(make_pair(dc->d_mdp.d_qname, dc->d_mdp.d_qtype));
@@ -1132,8 +1132,6 @@ static void startDoResolve(void *p)
           case DNSFilterEngine::PolicyKind::Drop:
             g_stats.policyDrops++;
             g_stats.policyResults[appliedPolicy.d_kind]++;
-            delete dc;
-            dc=0;
             return; 
           case DNSFilterEngine::PolicyKind::NXDOMAIN:
             g_stats.policyResults[appliedPolicy.d_kind]++;
@@ -1183,8 +1181,6 @@ static void startDoResolve(void *p)
             throw PDNSException("NoAction policy returned while a NSDNAME or NSIP trigger was hit");
           case DNSFilterEngine::PolicyKind::Drop:
             g_stats.policyDrops++;
-            delete dc;
-            dc=0;
             return;
           case DNSFilterEngine::PolicyKind::NXDOMAIN:
             ret.clear();
@@ -1243,8 +1239,6 @@ static void startDoResolve(void *p)
             break;
           case DNSFilterEngine::PolicyKind::Drop:
             g_stats.policyDrops++;
-            delete dc;
-            dc=0;
             return; 
           case DNSFilterEngine::PolicyKind::NXDOMAIN:
             ret.clear();
@@ -1278,8 +1272,6 @@ static void startDoResolve(void *p)
   haveAnswer:;
     if(res == PolicyDecision::DROP) {
       g_stats.policyDrops++;
-      delete dc;
-      dc=0;
       return;
     }
     if(tracedQuery || res == -1 || res == RCode::ServFail || pw.getHeader()->rcode == RCode::ServFail)
@@ -1564,16 +1556,12 @@ static void startDoResolve(void *p)
       g_stats.avgLatencyOursUsec=(1-1.0/g_latencyStatSize)*g_stats.avgLatencyOursUsec + (float)newLat/g_latencyStatSize;
     }
     //    cout<<dc->d_mdp.d_qname<<"\t"<<MT->getUsec()<<"\t"<<sr.d_outqueries<<endl;
-    delete dc;
-    dc=0;
   }
   catch(PDNSException &ae) {
     g_log<<Logger::Error<<"startDoResolve problem "<<makeLoginfo(dc)<<": "<<ae.reason<<endl;
-    delete dc;
   }
   catch(const MOADNSException &mde) {
     g_log<<Logger::Error<<"DNS parser error "<<makeLoginfo(dc) <<": "<<dc->d_mdp.d_qname<<", "<<mde.what()<<endl;
-    delete dc;
   }
   catch(std::exception& e) {
     g_log<<Logger::Error<<"STL error "<< makeLoginfo(dc)<<": "<<e.what();
@@ -1586,11 +1574,9 @@ static void startDoResolve(void *p)
     } catch(...) {}
 
     g_log<<endl;
-    delete dc;
   }
   catch(...) {
     g_log<<Logger::Error<<"Any other exception in a resolver context "<< makeLoginfo(dc) <<endl;
-    delete dc;
   }
 
   g_stats.maxMThreadStackUsage = max(MT->getMaxStackUsage(), g_stats.maxMThreadStackUsage);
@@ -1745,9 +1731,9 @@ static void handleRunningTCPQuestion(int fd, FDMultiplexer::funcparam_t& var)
     if(conn->bytesread==conn->qlen) {
       t_fdm->removeReadFD(fd); // should no longer awake ourselves when there is data to read
 
-      DNSComboWriter* dc=nullptr;
+      std::unique_ptr<DNSComboWriter> dc;
       try {
-        dc=new DNSComboWriter(conn->data, g_now);
+        dc=std::unique_ptr<DNSComboWriter>(new DNSComboWriter(conn->data, g_now));
       }
       catch(const MOADNSException &mde) {
         g_stats.clientParseError++;
@@ -1843,7 +1829,6 @@ static void handleRunningTCPQuestion(int fd, FDMultiplexer::funcparam_t& var)
         if(g_logCommonErrors) {
           g_log<<Logger::Error<<"Ignoring answer from TCP client "<< dc->getRemote() <<" on server socket!"<<endl;
         }
-        delete dc;
         return;
       }
       if(dc->d_mdp.d_header.opcode) {
@@ -1851,7 +1836,6 @@ static void handleRunningTCPQuestion(int fd, FDMultiplexer::funcparam_t& var)
         if(g_logCommonErrors) {
           g_log<<Logger::Error<<"Ignoring non-query opcode from TCP client "<< dc->getRemote() <<" on server socket!"<<endl;
         }
-        delete dc;
         return;
       }
       else if (dh->qdcount == 0) {
@@ -1859,13 +1843,12 @@ static void handleRunningTCPQuestion(int fd, FDMultiplexer::funcparam_t& var)
         if(g_logCommonErrors) {
           g_log<<Logger::Error<<"Ignoring empty (qdcount == 0) query from "<< dc->getRemote() <<" on server socket!"<<endl;
         }
-        delete dc;
         return;
       }
       else {
         ++g_stats.qcounter;
         ++g_stats.tcpqcounter;
-        MT->makeThread(startDoResolve, dc); // deletes dc, will set state to BYTE0 again
+        MT->makeThread(startDoResolve, dc.release()); // deletes dc, will set state to BYTE0 again
         return;
       }
     }
@@ -2120,7 +2103,7 @@ static string* doProcessUDPQuestion(const std::string& question, const ComboAddr
     return 0;
   }
 
-  DNSComboWriter* dc = new DNSComboWriter(question, g_now, std::move(policyTags), std::move(data));
+  auto dc = std::unique_ptr<DNSComboWriter>(new DNSComboWriter(question, g_now, std::move(policyTags), std::move(data)));
   dc->setSocket(fd);
   dc->d_tag=ctag;
   dc->d_qhash=qhash;
@@ -2142,7 +2125,7 @@ static string* doProcessUDPQuestion(const std::string& question, const ComboAddr
   dc->d_deviceId = deviceId;
 #endif
 
-  MT->makeThread(startDoResolve, (void*) dc); // deletes dc
+  MT->makeThread(startDoResolve, (void*) dc.release()); // deletes dc
   return 0;
 }
 
