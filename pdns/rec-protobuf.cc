@@ -179,6 +179,39 @@ void RecProtoBufMessage::setPolicyTags(const std::vector<std::string>& policyTag
 #endif /* HAVE_PROTOBUF */
 }
 
+void RecProtoBufMessage::addPolicyTag(const std::string& policyTag)
+{
+#ifdef HAVE_PROTOBUF
+  PBDNSMessage_DNSResponse* response = d_message.mutable_response();
+  if (response) {
+    response->add_tags(policyTag);
+  }
+#endif
+}
+
+void RecProtoBufMessage::removePolicyTag(const std::string& policyTag)
+{
+#ifdef HAVE_PROTOBUF
+  PBDNSMessage_DNSResponse* response = d_message.mutable_response();
+  if (response) {
+    const int count = response->tags_size();
+    int keep = 0;
+    for (int idx = 0; idx < count; ++idx) {
+      auto tagp = response->mutable_tags(idx);
+      if (tagp->compare(policyTag) == 0) {        
+      }
+      else {
+        if (keep < idx) {
+          response->mutable_tags()->SwapElements(idx, keep);
+        }
+        ++keep;
+      }
+    }
+    response->mutable_tags()->DeleteSubrange(keep, count - keep);
+  }  
+#endif
+}
+
 std::string RecProtoBufMessage::getAppliedPolicy() const
 {
   std::string result;
