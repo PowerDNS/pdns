@@ -643,7 +643,6 @@ run "sudo apt-get -qq --no-install-recommends install \
   libluajit-5.1-dev \
   libedit-dev \
   libprotobuf-dev \
-  pandoc\
   protobuf-compiler"
 
 run "cd .."
