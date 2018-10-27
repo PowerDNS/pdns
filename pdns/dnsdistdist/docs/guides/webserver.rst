@@ -297,9 +297,85 @@ URL Endpoints
 
   Gets you the ``allow-from`` :json:object:`ConfigSetting`, who's value is a list of strings of all the netmasks in the :ref:`ACL <ACL>`.
 
+  **Example request**:
+
+   .. sourcecode:: http
+
+      GET /api/v1/servers/localhost/config/allow-from HTTP/1.1
+      X-API-Key: supersecretAPIkey
+
+  **Example response**:
+   .. sourcecode:: http
+
+      HTTP/1.1 200 OK
+      Connection: close
+      Content-Security-Policy: default-src 'self'; style-src 'self' 'unsafe-inline'
+      Content-Type: application/json
+      Transfer-Encoding: chunked
+      X-Content-Type-Options: nosniff
+      X-Frame-Options: deny
+      X-Permitted-Cross-Domain-Policies: none
+      X-Xss-Protection: 1; mode=block
+
+      {
+          "name": "allow-from",
+          "type": "ConfigSetting",
+          "value": [
+              "fc00::/7",
+              "169.254.0.0/16",
+              "100.64.0.0/10",
+              "fe80::/10",
+              "10.0.0.0/8",
+              "127.0.0.0/8",
+              "::1/128",
+              "172.16.0.0/12",
+              "192.168.0.0/16"
+          ]
+      }
+
 .. http:put:: /api/v1/servers/localhost/config/allow-from
 
-  Allows you to add to the ACL. TODO **how**
+  Allows you to update the ``allow-from`` :ref:`ACL <ACL>` with a list of netmasks.
+
+  Make sure you made the API writable using :func:`setAPIWritable`.
+
+  **Example request**:
+
+   .. sourcecode:: http
+
+      PUT /api/v1/servers/localhost/config/allow-from HTTP/1.1
+      Content-Length: 37
+      Content-Type: application/json
+      X-API-Key: supersecretAPIkey
+
+      {
+          "value": [
+              "127.0.0.0/8",
+              "::1/128"
+          ]
+      }
+
+  **Example response**:
+   .. sourcecode:: http
+
+      HTTP/1.1 200 OK
+      Connection: close
+      Content-Security-Policy: default-src 'self'; style-src 'self' 'unsafe-inline'
+      Content-Type: application/json
+      Transfer-Encoding: chunked
+      X-Content-Type-Options: nosniff
+      X-Frame-Options: deny
+      X-Permitted-Cross-Domain-Policies: none
+      X-Xss-Protection: 1; mode=block
+
+      {
+          "name": "allow-from",
+          "type": "ConfigSetting",
+          "value": [
+              "127.0.0.0/8",
+              "::1/128"
+          ]
+      }
 
 JSON Objects
 ~~~~~~~~~~~~
@@ -405,4 +481,3 @@ JSON Objects
   :property string name: The name of this statistic. See :doc:`../statistics`
   :property string type: "StatisticItem"
   :property integer value: The value for this item
-
