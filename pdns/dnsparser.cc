@@ -582,7 +582,7 @@ public:
     : d_packet(packet), d_length(length), d_notyouroffset(12), d_offset(d_notyouroffset)
   {}
   
-  void skipLabel()
+  void skipDomainName()
   {
     uint8_t len; 
     while((len=get8BitInt())) { 
@@ -694,13 +694,13 @@ void editDNSPacketTTL(char* packet, size_t length, std::function<uint32_t(uint8_
 
     uint64_t n;
     for(n=0; n < ntohs(dh.qdcount) ; ++n) {
-      dpm.skipLabel();
+      dpm.skipDomainName();
       /* type and class */
       dpm.skipBytes(4);
     }
 
     for(n=0; n < numrecords; ++n) {
-      dpm.skipLabel();
+      dpm.skipDomainName();
 
       uint8_t section = n < ntohs(dh.ancount) ? 1 : (n < (ntohs(dh.ancount) + ntohs(dh.nscount)) ? 2 : 3);
       uint16_t dnstype = dpm.get16BitInt();
@@ -738,13 +738,13 @@ void ageDNSPacket(char* packet, size_t length, uint32_t seconds)
 
     uint64_t n;
     for(n=0; n < dqcount; ++n) {
-      dpm.skipLabel();
+      dpm.skipDomainName();
       /* type and class */
       dpm.skipBytes(4);
     }
    // cerr<<"Skipped "<<n<<" questions, now parsing "<<numrecords<<" records"<<endl;
     for(n=0; n < numrecords; ++n) {
-      dpm.skipLabel();
+      dpm.skipDomainName();
       
       uint16_t dnstype = dpm.get16BitInt();
       /* class */
@@ -781,13 +781,13 @@ uint32_t getDNSPacketMinTTL(const char* packet, size_t length, bool* seenAuthSOA
 
     const uint16_t qdcount = ntohs(dh->qdcount);
     for(size_t n = 0; n < qdcount; ++n) {
-      dpm.skipLabel();
+      dpm.skipDomainName();
       /* type and class */
       dpm.skipBytes(4);
     }
     const size_t numrecords = ntohs(dh->ancount) + ntohs(dh->nscount) + ntohs(dh->arcount);
     for(size_t n = 0; n < numrecords; ++n) {
-      dpm.skipLabel();
+      dpm.skipDomainName();
       const uint16_t dnstype = dpm.get16BitInt();
       /* class */
       const uint16_t dnsclass = dpm.get16BitInt();
@@ -828,13 +828,13 @@ uint32_t getDNSPacketLength(const char* packet, size_t length)
 
     const uint16_t qdcount = ntohs(dh->qdcount);
     for(size_t n = 0; n < qdcount; ++n) {
-      dpm.skipLabel();
+      dpm.skipDomainName();
       /* type and class */
       dpm.skipBytes(4);
     }
     const size_t numrecords = ntohs(dh->ancount) + ntohs(dh->nscount) + ntohs(dh->arcount);
     for(size_t n = 0; n < numrecords; ++n) {
-      dpm.skipLabel();
+      dpm.skipDomainName();
       /* type (2), class (2) and ttl (4) */
       dpm.skipBytes(8);
       dpm.skipRData();
@@ -860,7 +860,7 @@ uint16_t getRecordsOfTypeCount(const char* packet, size_t length, uint8_t sectio
 
     const uint16_t qdcount = ntohs(dh->qdcount);
     for(size_t n = 0; n < qdcount; ++n) {
-      dpm.skipLabel();
+      dpm.skipDomainName();
       if (section == 0) {
         uint16_t dnstype = dpm.get16BitInt();
         if (dnstype == type) {
@@ -875,7 +875,7 @@ uint16_t getRecordsOfTypeCount(const char* packet, size_t length, uint8_t sectio
     }
     const uint16_t ancount = ntohs(dh->ancount);
     for(size_t n = 0; n < ancount; ++n) {
-      dpm.skipLabel();
+      dpm.skipDomainName();
       if (section == 1) {
         uint16_t dnstype = dpm.get16BitInt();
         if (dnstype == type) {
@@ -893,7 +893,7 @@ uint16_t getRecordsOfTypeCount(const char* packet, size_t length, uint8_t sectio
     }
     const uint16_t nscount = ntohs(dh->nscount);
     for(size_t n = 0; n < nscount; ++n) {
-      dpm.skipLabel();
+      dpm.skipDomainName();
       if (section == 2) {
         uint16_t dnstype = dpm.get16BitInt();
         if (dnstype == type) {
@@ -911,7 +911,7 @@ uint16_t getRecordsOfTypeCount(const char* packet, size_t length, uint8_t sectio
     }
     const uint16_t arcount = ntohs(dh->arcount);
     for(size_t n = 0; n < arcount; ++n) {
-      dpm.skipLabel();
+      dpm.skipDomainName();
       if (section == 3) {
         uint16_t dnstype = dpm.get16BitInt();
         if (dnstype == type) {
@@ -950,13 +950,13 @@ bool getEDNSUDPPayloadSizeAndZ(const char* packet, size_t length, uint16_t* payl
 
     const uint16_t qdcount = ntohs(dh->qdcount);
     for(size_t n = 0; n < qdcount; ++n) {
-      dpm.skipLabel();
+      dpm.skipDomainName();
       /* type and class */
       dpm.skipBytes(4);
     }
     const size_t numrecords = ntohs(dh->ancount) + ntohs(dh->nscount) + ntohs(dh->arcount);
     for(size_t n = 0; n < numrecords; ++n) {
-      dpm.skipLabel();
+      dpm.skipDomainName();
       const uint16_t dnstype = dpm.get16BitInt();
       const uint16_t dnsclass = dpm.get16BitInt();
 
