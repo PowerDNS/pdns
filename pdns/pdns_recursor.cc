@@ -109,9 +109,9 @@ static thread_local unsigned int t_id = 0;
 static thread_local std::shared_ptr<Regex> t_traceRegex;
 static thread_local std::unique_ptr<tcpClientCounts_t> t_tcpClientCounts;
 #ifdef HAVE_PROTOBUF
-static thread_local std::shared_ptr<std::vector<std::shared_ptr<RemoteLogger>>> t_protobufServers{nullptr};
+static thread_local std::shared_ptr<std::vector<std::unique_ptr<RemoteLogger>>> t_protobufServers{nullptr};
 static thread_local uint64_t t_protobufServersGeneration;
-static thread_local std::shared_ptr<std::vector<std::shared_ptr<RemoteLogger>>> t_outgoingProtobufServers{nullptr};
+static thread_local std::shared_ptr<std::vector<std::unique_ptr<RemoteLogger>>> t_outgoingProtobufServers{nullptr};
 static thread_local uint64_t t_outgoingProtobufServersGeneration;
 #endif /* HAVE_PROTOBUF */
 
@@ -866,13 +866,13 @@ static bool addRecordToPacket(DNSPacketWriter& pw, const DNSRecord& rec, uint32_
 }
 
 #ifdef HAVE_PROTOBUF
-static std::shared_ptr<std::vector<std::shared_ptr<RemoteLogger>>> startProtobufServers(const ProtobufExportConfig& config)
+static std::shared_ptr<std::vector<std::unique_ptr<RemoteLogger>>> startProtobufServers(const ProtobufExportConfig& config)
 {
-  auto result = std::make_shared<std::vector<std::shared_ptr<RemoteLogger>>>();
+  auto result = std::make_shared<std::vector<std::unique_ptr<RemoteLogger>>>();
 
   for (const auto& server : config.servers) {
     try {
-      result->push_back(std::make_shared<RemoteLogger>(server, config.timeout, config.maxQueuedEntries, config.reconnectWaitTime, config.asyncConnect));
+      result->emplace_back(new RemoteLogger(server, config.timeout, config.maxQueuedEntries, config.reconnectWaitTime, config.asyncConnect));
     }
     catch(const std::exception& e) {
       g_log<<Logger::Error<<"Error while starting protobuf logger to '"<<server<<": "<<e.what()<<endl;
