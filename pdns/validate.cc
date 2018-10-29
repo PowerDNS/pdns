@@ -6,6 +6,7 @@
 #include "base32.hh"
 #include "logger.hh"
 bool g_dnssecLOG{false};
+time_t g_signatureInceptionSkew{0};
 uint16_t g_maxNSEC3Iterations{0};
 
 #define LOG(x) if(g_dnssecLOG) { L <<Logger::Warning << x; }
@@ -680,7 +681,7 @@ static const vector<DNSName> getZoneCuts(const DNSName& begin, const DNSName& en
 
 bool isRRSIGNotExpired(const time_t now, const shared_ptr<RRSIGRecordContent> sig)
 {
-  return sig->d_siginception <= now && sig->d_sigexpire >= now;
+  return sig->d_siginception - g_signatureInceptionSkew <= now && sig->d_sigexpire >= now;
 }
 
 static bool checkSignatureWithKey(time_t now, const shared_ptr<RRSIGRecordContent> sig, const shared_ptr<DNSKEYRecordContent> key, const std::string& msg)
@@ -697,7 +698,7 @@ static bool checkSignatureWithKey(time_t now, const shared_ptr<RRSIGRecordConten
       LOG("signature by key with tag "<<sig->d_tag<<" and algorithm "<<DNSSECKeeper::algorithm2name(sig->d_algorithm)<<" was " << (result ? "" : "NOT ")<<"valid"<<endl);
     }
     else {
-      LOG("Signature is "<<((sig->d_siginception > now) ? "not yet valid" : "expired")<<" (inception: "<<sig->d_siginception<<", expiration: "<<sig->d_sigexpire<<", now: "<<now<<")"<<endl);
+      LOG("Signature is "<<((sig->d_siginception - g_signatureInceptionSkew > now) ? "not yet valid" : "expired")<<" (inception: "<<sig->d_siginception<<", inception skew: "<<g_signatureInceptionSkew<<", expiration: "<<sig->d_sigexpire<<", now: "<<now<<")"<<endl);
     }
   }
   catch(const std::exception& e) {
