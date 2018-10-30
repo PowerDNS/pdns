@@ -13,7 +13,7 @@
 
 
 <!--
-If this is a bug report, use the following part of the the template and delete the part at the bottom
+If this is a BUG report, use the following part of the the template and delete the part at the bottom
 -->
 ### Environment
 <!-- Tell us about the environment -->
