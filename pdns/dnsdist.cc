@@ -47,6 +47,7 @@
 #include "dnsdist-ecs.hh"
 #include "dnsdist-lua.hh"
 #include "dnsdist-rings.hh"
+#include "dnsdist-secpoll.hh"
 
 #include "base64.hh"
 #include "delaypipe.hh"
@@ -1914,7 +1915,21 @@ void* maintThread()
   return 0;
 }
 
-void* healthChecksThread()
+static void* secPollThread()
+{
+  setThreadName("dnsdist/secpoll");
+
+  for (;;) {
+    try {
+      doSecPoll(g_secPollSuffix);
+    }
+    catch(...) {
+    }
+    sleep(g_secPollInterval);
+  }
+}
+
+static void* healthChecksThread()
 {
   setThreadName("dnsdist/healthC");
 
@@ -2774,6 +2789,11 @@ try
   stattid.detach();
   
   thread healththread(healthChecksThread);
+
+  if (!g_secPollSuffix.empty()) {
+    thread secpollthread(secPollThread);
+    secpollthread.detach();
+  }
 
   if(g_cmdLine.beSupervised) {
 #ifdef HAVE_SYSTEMD

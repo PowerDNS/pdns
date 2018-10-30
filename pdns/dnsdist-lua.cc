@@ -36,6 +36,7 @@
 #include "dnsdist-ecs.hh"
 #include "dnsdist-lua.hh"
 #include "dnsdist-rings.hh"
+#include "dnsdist-secpoll.hh"
 
 #include "base64.hh"
 #include "dnswriter.hh"
@@ -1504,6 +1505,24 @@ void setupLuaConfig(bool client)
         payloadSize = s_udpIncomingBufferSize;
       }
       g_PayloadSizeSelfGenAnswers = payloadSize;
+  });
+
+  g_lua.writeFunction("setSecurityPollSuffix", [](const std::string& suffix) {
+      if (g_configurationDone) {
+        g_outputBuffer="setSecurityPollSuffix() cannot be used at runtime!\n";
+        return;
+      }
+
+      g_secPollSuffix = suffix;
+  });
+
+  g_lua.writeFunction("setSecurityPollInterval", [](time_t newInterval) {
+      if (newInterval <= 0) {
+        warnlog("setSecurityPollInterval() should be > 0, skipping");
+        g_outputBuffer="setSecurityPollInterval() should be > 0, skipping";
+      }
+
+      g_secPollInterval = newInterval;
   });
 
   g_lua.writeFunction("addTLSLocal", [client](const std::string& addr, boost::variant<std::string, std::vector<std::pair<int,std::string>>> certFiles, boost::variant<std::string, std::vector<std::pair<int,std::string>>> keyFiles, boost::optional<localbind_t> vars) {
