@@ -17,7 +17,7 @@ If this is a BUG report, use the following part of the the template and delete t
 -->
 ### Environment
 <!-- Tell us about the environment -->
- - Operating system: 
+ - Operating System: 
  - Software version: 
  - Software source: <!-- e.g. Operating system repository, PowerDNS repository, compiled yourself -->
 
