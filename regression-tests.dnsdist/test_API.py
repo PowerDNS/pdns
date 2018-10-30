@@ -6,7 +6,6 @@ import json
 import requests
 from dnsdisttests import DNSDistTest
 
-
 class TestAPIBasics(DNSDistTest):
 
     _webTimeout = 2.0
