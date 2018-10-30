@@ -232,15 +232,19 @@ Webserver configuration
   :param bool allow: Set to true to allow modification through the API
   :param str dir: A valid directory where the configuration files will be written by the API.
 
-.. function:: setWebserverConfig(password[, apikey[, custom_headers]])
+.. function:: setWebserverConfig(options)
 
   .. versionadded:: 1.3.3
 
   Setup webserver configuration. See :func:`webserver`.
 
-  :param str password: The password required to access the webserver
-  :param str apikey: The key required to access the API
-  :param {[str]=str,...} custom_headers: Allows setting custom headers and removing the defaults
+  :param table options: A table with key: value pairs with webserver options.
+
+  Options:
+
+  * ``password=newPassword``: string - Changes the API password
+  * ``apikey=newKey``: string - Changes the API Key (set to an empty string do disable it)
+  * ``custom_headers={[str]=str,...}``: map of string - Allows setting custom headers and removing the defaults.
                  
 Access Control Lists
 ~~~~~~~~~~~~~~~~~~~~

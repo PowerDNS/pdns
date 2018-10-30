@@ -993,7 +993,10 @@ struct WebserverConfig
   std::mutex lock;
 };
 
-void setWebserverConfig(const std::string& password, const boost::optional<std::string> apiKey, const boost::optional<std::map<std::string, std::string> > customHeaders);
+void setWebserverAPIKey(const boost::optional<std::string> apiKey);
+void setWebserverPassword(const std::string& password);
+void setWebserverCustomHeaders(const boost::optional<std::map<std::string, std::string> > customHeaders);
+
 void dnsdistWebserverThread(int sock, const ComboAddress& local);
 bool getMsgLen32(int fd, uint32_t* len);
 bool putMsgLen32(int fd, uint32_t len);

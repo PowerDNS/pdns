@@ -149,7 +149,6 @@ static bool loadTLSCertificateAndKeys(shared_ptr<TLSFrontend>& frontend, boost::
 void setupLuaConfig(bool client)
 {
   typedef std::unordered_map<std::string, boost::variant<bool, std::string, vector<pair<int, std::string> >, DownstreamState::checkfunc_t > > newserver_t;
-
   g_lua.writeFunction("inClientStartup", [client]() {
         return client && !g_configurationDone;
   });
@@ -631,7 +630,9 @@ void setupLuaConfig(bool client)
 	SBind(sock, local);
 	SListen(sock, 5);
 	auto launch=[sock, local, password, apiKey, customHeaders]() {
-          setWebserverConfig(password, apiKey, customHeaders);
+          setWebserverPassword(password);
+          setWebserverAPIKey(apiKey);
+          setWebserverCustomHeaders(customHeaders);
           thread t(dnsdistWebserverThread, sock, local);
 	  t.detach();
 	};
@@ -647,9 +648,30 @@ void setupLuaConfig(bool client)
 
     });
 
-  g_lua.writeFunction("setWebserverConfig", [](const std::string& password, const boost::optional<std::string> apiKey, const boost::optional<std::map<std::string, std::string> > customHeaders) {
+  typedef std::unordered_map<std::string, boost::variant<std::string, std::map<std::string, std::string>> > webserveropts_t;
+
+  g_lua.writeFunction("setWebserverConfig", [](boost::optional<webserveropts_t> vars) {
       setLuaSideEffect();
-      setWebserverConfig(password, apiKey, customHeaders);
+
+      if (!vars) {
+        return ;
+      }
+      if(vars->count("password")) {
+        const std::string password = boost::get<std::string>(vars->at("password"));
+
+        setWebserverPassword(password);
+      }
+      if(vars->count("apiKey")) {
+        // allows setting apiKey: nil to disable access with it
+        const std::string apiKey = boost::get<std::string>(vars->at("apiKey"));
+
+        setWebserverAPIKey(apiKey);
+      }
+      if(vars->count("customHeaders")) {
+        const boost::optional<std::map<std::string, std::string> > headers = boost::get<std::map<std::string, std::string> >(vars->at("customHeaders"));
+
+        setWebserverCustomHeaders(headers);
+      }
     });
 
   g_lua.writeFunction("controlSocket", [client](const std::string& str) {

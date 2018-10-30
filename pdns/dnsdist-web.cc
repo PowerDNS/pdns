@@ -838,16 +838,29 @@ static void connectionThread(int sock, ComboAddress remote)
     close(sock);
   }
 }
-void setWebserverConfig(const std::string& password, const boost::optional<std::string> apiKey, const boost::optional<std::map<std::string, std::string> > customHeaders)
+
+void setWebserverAPIKey(const boost::optional<std::string> apiKey)
 {
   std::lock_guard<std::mutex> lock(g_webserverConfig.lock);
 
-  g_webserverConfig.password = password;
   if (apiKey) {
     g_webserverConfig.apiKey = *apiKey;
   } else {
     g_webserverConfig.apiKey.clear();
   }
+}
+
+void setWebserverPassword(const std::string& password)
+{
+  std::lock_guard<std::mutex> lock(g_webserverConfig.lock);
+
+  g_webserverConfig.password = password;
+}
+
+void setWebserverCustomHeaders(const boost::optional<std::map<std::string, std::string> > customHeaders)
+{
+  std::lock_guard<std::mutex> lock(g_webserverConfig.lock);
+
   g_webserverConfig.customHeaders = customHeaders;
 }
 

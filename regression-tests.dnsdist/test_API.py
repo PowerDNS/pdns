@@ -383,6 +383,54 @@ class TestAPIWritable(DNSDistTest):
 setACL({"192.0.2.0/24", "198.51.100.0/24", "203.0.113.0/24"})
 """)
 
+class TestAPICustomHeaders(DNSDistTest):
+
+    _webTimeout = 2.0
+    _webServerPort = 8083
+    _webServerBasicAuthPassword = 'secret'
+    _webServerAPIKey = 'apisecret'
+    # paths accessible using the API key only
+    _apiOnlyPath = '/api/v1/servers/localhost/config'
+    # paths accessible using basic auth only (list not exhaustive)
+    _basicOnlyPath = '/'
+    _consoleKey = DNSDistTest.generateConsoleKey()
+    _consoleKeyB64 = base64.b64encode(_consoleKey).decode('ascii')
+    _config_params = ['_consoleKeyB64', '_consolePort', '_testServerPort', '_webServerPort', '_webServerBasicAuthPassword', '_webServerAPIKey']
+    _config_template = """
+    setKey("%s")
+    controlSocket("127.0.0.1:%s")
+    setACL({"127.0.0.1/32", "::1/128"})
+    newServer({address="127.0.0.1:%s"})
+    webserver("127.0.0.1:%s", "%s", "%s", {["X-Frame-Options"]="", ["X-Custom"]="custom"})
+    """
+
+    def testBasicHeaders(self):
+        """
+        API: Basic custom headers
+        """
+
+        url = 'http://127.0.0.1:' + str(self._webServerPort) + self._basicOnlyPath
+
+        r = requests.get(url, auth=('whatever', self._webServerBasicAuthPassword), timeout=self._webTimeout)
+        self.assertTrue(r)
+        self.assertEquals(r.status_code, 200)
+        self.assertEquals(r.headers.get('x-custom'), "custom")
+        self.assertFalse("x-frame-options" in r.headers)
+
+    def testBasicHeadersUpdate(self):
+        """
+        API: Basic update of custom headers
+        """
+
+        url = 'http://127.0.0.1:' + str(self._webServerPort) + self._basicOnlyPath
+        self.sendConsoleCommand('setWebserverConfig({customHeaders={["x-powered-by"]="dnsdist"}})')
+        r = requests.get(url, auth=('whatever', self._webServerBasicAuthPassword), timeout=self._webTimeout)
+        self.assertTrue(r)
+        self.assertEquals(r.status_code, 200)
+        self.assertEquals(r.headers.get('x-powered-by'), "dnsdist")
+        self.assertTrue("x-frame-options" in r.headers)
+
+
 class TestAPIAuth(DNSDistTest):
 
     _webTimeout = 2.0
@@ -411,15 +459,14 @@ class TestAPIAuth(DNSDistTest):
         API: Basic Authentication updating credentials
         """
 
-        self.sendConsoleCommand('setWebserverConfig("{}")'.format(self._webServerBasicAuthPasswordNew))
-
         url = 'http://127.0.0.1:' + str(self._webServerPort) + self._basicOnlyPath
+        self.sendConsoleCommand('setWebserverConfig({{password="{}"}})'.format(self._webServerBasicAuthPasswordNew))
+
         r = requests.get(url, auth=('whatever', self._webServerBasicAuthPasswordNew), timeout=self._webTimeout)
         self.assertTrue(r)
         self.assertEquals(r.status_code, 200)
 
         # Make sure the old password is not usable any more
-        url = 'http://127.0.0.1:' + str(self._webServerPort) + self._basicOnlyPath
         r = requests.get(url, auth=('whatever', self._webServerBasicAuthPassword), timeout=self._webTimeout)
         self.assertEquals(r.status_code, 401)
 
@@ -428,17 +475,16 @@ class TestAPIAuth(DNSDistTest):
         API: X-Api-Key updating credentials
         """
 
-        self.sendConsoleCommand('setWebserverConfig("{}", "{}")'.format(self._webServerBasicAuthPasswordNew, self._webServerAPIKeyNew))
+        url = 'http://127.0.0.1:' + str(self._webServerPort) + self._apiOnlyPath
+        self.sendConsoleCommand('setWebserverConfig({{apiKey="{}"}})'.format(self._webServerAPIKeyNew))
 
         headers = {'x-api-key': self._webServerAPIKeyNew}
-        url = 'http://127.0.0.1:' + str(self._webServerPort) + self._apiOnlyPath
         r = requests.get(url, headers=headers, timeout=self._webTimeout)
         self.assertTrue(r)
         self.assertEquals(r.status_code, 200)
 
         # Make sure the old password is not usable any more
         headers = {'x-api-key': self._webServerAPIKey}
-        url = 'http://127.0.0.1:' + str(self._webServerPort) + self._apiOnlyPath
         r = requests.get(url, headers=headers, timeout=self._webTimeout)
         self.assertEquals(r.status_code, 401)
 
@@ -447,18 +493,16 @@ class TestAPIAuth(DNSDistTest):
         API: X-Api-Key updated to none (disabled)
         """
 
-        self.sendConsoleCommand('setWebserverConfig("{}", "{}")'.format(self._webServerBasicAuthPasswordNew, self._webServerAPIKeyNew))
+        url = 'http://127.0.0.1:' + str(self._webServerPort) + self._apiOnlyPath
+        self.sendConsoleCommand('setWebserverConfig({{apiKey="{}"}})'.format(self._webServerAPIKeyNew))
 
         headers = {'x-api-key': self._webServerAPIKeyNew}
-        url = 'http://127.0.0.1:' + str(self._webServerPort) + self._apiOnlyPath
         r = requests.get(url, headers=headers, timeout=self._webTimeout)
         self.assertTrue(r)
         self.assertEquals(r.status_code, 200)
 
         # now disable apiKey
-        self.sendConsoleCommand('setWebserverConfig("{}")'.format(self._webServerBasicAuthPasswordNew))
+        self.sendConsoleCommand('setWebserverConfig({apiKey=""})')
 
-        headers = {'x-api-key': self._webServerAPIKeyNew}
-        url = 'http://127.0.0.1:' + str(self._webServerPort) + self._apiOnlyPath
         r = requests.get(url, headers=headers, timeout=self._webTimeout)
         self.assertEquals(r.status_code, 401)
