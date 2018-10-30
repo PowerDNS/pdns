@@ -446,6 +446,7 @@ const std::vector<ConsoleKeyword> g_consoleKeywords{
   { "setUDPMultipleMessagesVectorSize", true, "n", "set the size of the vector passed to recvmmsg() to receive UDP messages. Default to 1 which means that the feature is disabled and recvmsg() is used instead" },
   { "setUDPTimeout", true, "n", "set the maximum time dnsdist will wait for a response from a backend over UDP, in seconds" },
   { "setVerboseHealthChecks", true, "bool", "set whether health check errors will be logged" },
+  { "setWebserverConfig", true, "password [, apiKey [, customHeaders ]]", "Updates webserver configuration" },
   { "show", true, "string", "outputs `string`" },
   { "showACL", true, "", "show our ACL set" },
   { "showBinds", true, "", "show listening addresses (frontends)" },

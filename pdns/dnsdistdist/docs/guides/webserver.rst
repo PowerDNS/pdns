@@ -29,6 +29,8 @@ For example, to remove the X-Frame-Options header and add a X-Custom one:
 
   webserver("127.0.0.1:8080", "supersecret", "apikey", {["X-Frame-Options"]= "", ["X-Custom"]="custom"}
 
+Credentials can be changed over time using the :func:`setWebserverConfig` function.
+
 dnsdist API
 -----------
 

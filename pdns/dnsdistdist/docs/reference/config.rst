@@ -211,10 +211,10 @@ Control Socket, Console and Webserver
 
   :param int size: The new maximum size.
 
-Webserver
-~~~~~~~~~
+Webserver configuration
+~~~~~~~~~~~~~~~~~~~~~~~
 
-.. function:: webServer(listen_address, password[, apikey[, custom_headers]])
+.. function:: webserver(listen_address, password[, apikey[, custom_headers]])
 
   Launch the :doc:`../guides/webserver` with statistics and the API.
 
@@ -232,6 +232,16 @@ Webserver
   :param bool allow: Set to true to allow modification through the API
   :param str dir: A valid directory where the configuration files will be written by the API.
 
+.. function:: setWebserverConfig(password[, apikey[, custom_headers]])
+
+  .. versionadded:: 1.3.3
+
+  Setup webserver configuration. See :func:`webserver`.
+
+  :param str password: The password required to access the webserver
+  :param str apikey: The key required to access the API
+  :param {[str]=str,...} custom_headers: Allows setting custom headers and removing the defaults
+                 
 Access Control Lists
 ~~~~~~~~~~~~~~~~~~~~
 

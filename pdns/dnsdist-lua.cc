@@ -631,7 +631,8 @@ void setupLuaConfig(bool client)
 	SBind(sock, local);
 	SListen(sock, 5);
 	auto launch=[sock, local, password, apiKey, customHeaders]() {
-	  thread t(dnsdistWebserverThread, sock, local, password, apiKey ? *apiKey : "", customHeaders);
+          setWebserverConfig(password, apiKey, customHeaders);
+          thread t(dnsdistWebserverThread, sock, local);
 	  t.detach();
 	};
 	if(g_launchWork)
@@ -644,6 +645,11 @@ void setupLuaConfig(bool client)
 	errlog("Unable to bind to webserver socket on %s: %s", local.toStringWithPort(), e.what());
       }
 
+    });
+
+  g_lua.writeFunction("setWebserverConfig", [](const std::string& password, const boost::optional<std::string> apiKey, const boost::optional<std::map<std::string, std::string> > customHeaders) {
+      setLuaSideEffect();
+      setWebserverConfig(password, apiKey, customHeaders);
     });
 
   g_lua.writeFunction("controlSocket", [client](const std::string& str) {
