@@ -2,7 +2,32 @@
 #include "config.h"
 #include "rec-protobuf.hh"
 
+#ifdef NOD_ENABLED
+void RecProtoBufMessage::setNOD(bool nod)
+{
+#ifdef HAVE_PROTOBUF
+  d_message.set_newlyobserveddomain(nod);
+#endif /* HAVE_PROTOBUF */  
+}
+
+void RecProtoBufMessage::clearUDR() 
+{
+#ifdef HAVE_PROTOBUF
+  auto response = d_message.mutable_response();
+  const int count = response->rrs_size();
+  for (int idx = 0; idx < count; idx++) {
+    auto rr = response->mutable_rrs(idx);
+    rr->set_udr(false);
+  }
+#endif /* HAVE_PROTOBUF */
+}
+#endif /* NOD_ENABLED */
+
+#ifdef NOD_ENABLED
+void RecProtoBufMessage::addRR(const DNSRecord& record, const std::set<uint16_t>& exportTypes, bool udr)
+#else
 void RecProtoBufMessage::addRR(const DNSRecord& record, const std::set<uint16_t>& exportTypes)
+#endif /* NOD_ENABLED */
 {
 #ifdef HAVE_PROTOBUF
   PBDNSMessage_DNSResponse* response = d_message.mutable_response();
@@ -27,6 +52,9 @@ void RecProtoBufMessage::addRR(const DNSRecord& record, const std::set<uint16_t>
   pbRR->set_type(record.d_type);
   pbRR->set_class_(record.d_class);
   pbRR->set_ttl(record.d_ttl);
+#ifdef NOD_ENABLED
+  pbRR->set_udr(udr);
+#endif
 
   switch(record.d_type) {
   case QType::A:
@@ -149,6 +177,39 @@ void RecProtoBufMessage::setPolicyTags(const std::vector<std::string>& policyTag
     }
   }
 #endif /* HAVE_PROTOBUF */
+}
+
+void RecProtoBufMessage::addPolicyTag(const std::string& policyTag)
+{
+#ifdef HAVE_PROTOBUF
+  PBDNSMessage_DNSResponse* response = d_message.mutable_response();
+  if (response) {
+    response->add_tags(policyTag);
+  }
+#endif
+}
+
+void RecProtoBufMessage::removePolicyTag(const std::string& policyTag)
+{
+#ifdef HAVE_PROTOBUF
+  PBDNSMessage_DNSResponse* response = d_message.mutable_response();
+  if (response) {
+    const int count = response->tags_size();
+    int keep = 0;
+    for (int idx = 0; idx < count; ++idx) {
+      auto tagp = response->mutable_tags(idx);
+      if (tagp->compare(policyTag) == 0) {        
+      }
+      else {
+        if (keep < idx) {
+          response->mutable_tags()->SwapElements(idx, keep);
+        }
+        ++keep;
+      }
+    }
+    response->mutable_tags()->DeleteSubrange(keep, count - keep);
+  }  
+#endif
 }
 
 std::string RecProtoBufMessage::getAppliedPolicy() const
