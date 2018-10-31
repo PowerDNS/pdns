@@ -51,7 +51,7 @@ case "$OS" in
 #    Fedora\ *\ 21*)
 #      ;;
   CentOS\ *\ 6*)
-    RPMBUILD_COMMAND="scl enable devtoolset-3 -- ${RPMBUILD_COMMAND}"
+    RPMBUILD_COMMAND="scl enable devtoolset-7 -- ${RPMBUILD_COMMAND}"
     cat > $HOME/rpmbuild/SOURCES/pdns.init <<EOF
 #!/bin/sh
 # chkconfig: - 80 75
@@ -283,7 +283,8 @@ Requires(post): /sbin/chkconfig
 Requires(preun): /sbin/service, /sbin/chkconfig
 Requires(postun): /sbin/service
 
-BuildRequires: boost-devel
+BuildRequires: boost148-devel
+BuildRequires: boost148-program-options
 BuildRequires: lua-devel
 BuildRequires: bison
 Provides: powerdns = %{version}-%{release}
@@ -397,7 +398,9 @@ export CPPFLAGS="-DLDAP_DEPRECATED"
 	--enable-tools \
 	--without-protobuf \
 	--enable-remotebackend-http \
-	--enable-unit-tests
+	--enable-unit-tests \
+	--with-boost=/usr/include/boost148/ LDFLAGS=-L/usr/lib64/boost148 \
+	CXXFLAGS=-std=gnu++11
 
 make %{?_smp_mflags}
 
@@ -459,29 +462,33 @@ fi
 
 %files tools
 %{_bindir}/calidns
+%{_bindir}/dnsbulktest
 %{_bindir}/dnsgram
 %{_bindir}/dnsreplay
 %{_bindir}/dnsscan
 %{_bindir}/dnsscope
+%{_bindir}/dnstcpbench
 %{_bindir}/dnswasher
 %{_bindir}/dumresp
 %{_bindir}/ixplore
-%{_bindir}/pdns_notify
 %{_bindir}/nproxy
 %{_bindir}/nsec3dig
+%{_bindir}/pdns_notify
 %{_bindir}/saxfr
 %{_bindir}/sdig
 %{_mandir}/man1/calidns.1.gz
+%{_mandir}/man1/dnsbulktest.1.gz
 %{_mandir}/man1/dnsgram.1.gz
 %{_mandir}/man1/dnsreplay.1.gz
 %{_mandir}/man1/dnsscan.1.gz
 %{_mandir}/man1/dnsscope.1.gz
+%{_mandir}/man1/dnstcpbench.1.gz
 %{_mandir}/man1/dnswasher.1.gz
 %{_mandir}/man1/dumresp.1.gz
 %{_mandir}/man1/ixplore.1.gz
-%{_mandir}/man1/pdns_notify.1.gz
 %{_mandir}/man1/nproxy.1.gz
 %{_mandir}/man1/nsec3dig.1.gz
+%{_mandir}/man1/pdns_notify.1.gz
 %{_mandir}/man1/saxfr.1.gz
 %{_mandir}/man1/sdig.1.gz
 
