@@ -515,7 +515,7 @@ void RecursorWebServer::jsonstat(HttpRequest* req, HttpResponse *resp)
     for(const rcounts_t::value_type& q :  rcounts) {
       totIncluded-=q.first;
       entries.push_back(Json::array {
-        -q.first, q.second.first.toString(), DNSRecordContent::NumberToType(q.second.second)
+        -q.first, q.second.first.toLogString(), DNSRecordContent::NumberToType(q.second.second)
       });
       if(tot++>=100)
 	break;
