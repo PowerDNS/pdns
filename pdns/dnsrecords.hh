@@ -805,4 +805,5 @@ void reportBasicTypes();
 void reportOtherTypes();
 void reportAllTypes();
 ComboAddress getAddr(const DNSRecord& dr, uint16_t defport=0);
+void checkHostnameCorrectness(const DNSResourceRecord& rr);
 #endif 

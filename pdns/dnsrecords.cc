@@ -587,7 +587,6 @@ DNSRecord makeOpt(const uint16_t udpsize, const uint16_t extRCode, const uint16_
   return dr;
 }
 
-
 void reportBasicTypes()
 {
   ARecordContent::report();
@@ -665,6 +664,35 @@ ComboAddress getAddr(const DNSRecord& dr, uint16_t defport)
     return getRR<AAAARecordContent>(dr)->getCA(defport);
 }
 
+/**
+ * Check if the DNSNames that should be hostnames, are hostnames
+ */
+void checkHostnameCorrectness(const DNSResourceRecord& rr)
+{
+  if (rr.qtype.getCode() == QType::NS || rr.qtype.getCode() == QType::MX || rr.qtype.getCode() == QType::SRV) {
+    DNSName toCheck;
+    if (rr.qtype.getCode() == QType::SRV) {
+      vector<string> parts;
+      stringtok(parts, rr.getZoneRepresentation());
+      if (parts.size() == 4) toCheck = DNSName(parts[3]);
+    } else if (rr.qtype.getCode() == QType::MX) {
+      vector<string> parts;
+      stringtok(parts, rr.getZoneRepresentation());
+      if (parts.size() == 2) toCheck = DNSName(parts[1]);
+    } else {
+      toCheck = DNSName(rr.content);
+    }
+
+    if (toCheck.empty()) {
+      throw std::runtime_error("unable to extract hostname from content");
+    }
+    else if ((rr.qtype.getCode() == QType::MX || rr.qtype.getCode() == QType::SRV) && toCheck == g_rootdnsname) {
+      // allow null MX/SRV
+    } else if(!toCheck.isHostname()) {
+      throw std::runtime_error(boost::str(boost::format("non-hostname content %s") % toCheck.toString()));
+    }
+  }
+}
 
 #if 0
 static struct Reporter

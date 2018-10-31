@@ -1006,7 +1006,7 @@ fred   IN  A      192.168.0.4
             data=json.dumps(payload),
             headers={'content-type': 'application/json'})
         self.assertEquals(r.status_code, 422)
-        self.assertIn('record has non-hostname content', r.json()['error'])
+        self.assertIn('non-hostname content', r.json()['error'])
         data = self.session.get(self.url("/api/v1/servers/localhost/zones/" + name)).json()
         self.assertIsNone(get_rrset(data, name, 'MX'))
 
