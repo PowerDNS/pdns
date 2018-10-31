@@ -25,7 +25,7 @@ if [ -f /etc/redhat-release ]; then
       exit 1
       ;;
     CentOS\ *\ 6*)
-      RPMBUILD_COMMAND="scl enable devtoolset-3 -- ${RPMBUILD_COMMAND}"
+      RPMBUILD_COMMAND="scl enable devtoolset-7 -- ${RPMBUILD_COMMAND}"
       cat > $HOME/rpmbuild/SOURCES/pdns-recursor.init << EOF
 #!/bin/bash
 #
