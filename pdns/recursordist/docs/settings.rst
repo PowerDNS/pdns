@@ -1100,6 +1100,8 @@ Can be used for better :doc:`security <security>`.
 
 ``signature-inception-skew``
 ----------------------------------
+.. versionadded:: 4.1.5
+
 -  Integer
 -  Default: 60
 
