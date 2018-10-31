@@ -243,6 +243,13 @@ void DNSProtoBufMessage::setDeviceId(const std::string& deviceId)
 #endif /* HAVE_PROTOBUF */
 }
 
+void DNSProtoBufMessage::setServerIdentity(const std::string& serverId)
+{
+#ifdef HAVE_PROTOBUF
+  d_message.set_serveridentity(serverId);
+#endif /* HAVE_PROTOBUF */
+}
+
 void DNSProtoBufMessage::setResponder(const std::string& responder)
 {
 #ifdef HAVE_PROTOBUF
