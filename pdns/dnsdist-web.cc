@@ -234,6 +234,7 @@ static json11::Json::array someResponseRulesToJson(GlobalStateHolder<vector<T>>*
   for(const auto& a : *localResponseRules) {
     Json::object rule{
       {"id", num++},
+      {"creationOrder", (double)a.d_creationOrder},
       {"uuid", boost::uuids::to_string(a.d_id)},
       {"matches", (double)a.d_rule->d_matches},
       {"rule", a.d_rule->toString()},
@@ -611,6 +612,7 @@ static void connectionThread(int sock, ComboAddress remote)
       for(const auto& a : *localRules) {
 	Json::object rule{
           {"id", num++},
+          {"creationOrder", (double)a.d_creationOrder},
           {"uuid", boost::uuids::to_string(a.d_id)},
           {"matches", (double)a.d_rule->d_matches},
           {"rule", a.d_rule->toString()},

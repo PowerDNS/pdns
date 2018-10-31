@@ -68,8 +68,10 @@ static boost::uuids::uuid makeRuleID(std::string& id)
   return gen(id);
 }
 
-void parseRuleParams(boost::optional<luaruleparams_t> params, boost::uuids::uuid& uuid)
+void parseRuleParams(boost::optional<luaruleparams_t> params, boost::uuids::uuid& uuid, uint64_t& creationOrder)
 {
+  static uint64_t s_creationOrder = 0;
+
   string uuidStr;
 
   if (params) {
@@ -79,6 +81,7 @@ void parseRuleParams(boost::optional<luaruleparams_t> params, boost::uuids::uuid
   }
 
   uuid = makeRuleID(uuidStr);
+  creationOrder = s_creationOrder++;
 }
 
 typedef std::unordered_map<std::string, boost::variant<bool, int, std::string, std::vector<std::pair<int,int> > > > ruleparams_t;
@@ -101,11 +104,11 @@ static void showRules(GlobalStateHolder<vector<T> > *someRulActions, boost::opti
 
   auto rules = someRulActions->getLocal();
   if (showUUIDs) {
-    boost::format fmt("%-3d %-38s %9d %-56s %s\n");
-    g_outputBuffer += (fmt % "#" % "UUID" % "Matches" % "Rule" % "Action").str();
+    boost::format fmt("%-3d %-38s %9d %9d %-56s %s\n");
+    g_outputBuffer += (fmt % "#" % "UUID" % "Cr. Order" % "Matches" % "Rule" % "Action").str();
     for(const auto& lim : *rules) {
       string name = lim.d_rule->toString().substr(0, truncateRuleWidth);
-      g_outputBuffer += (fmt % num % boost::uuids::to_string(lim.d_id) % lim.d_rule->d_matches % name % lim.d_action->toString()).str();
+      g_outputBuffer += (fmt % num % boost::uuids::to_string(lim.d_id) % lim.d_creationOrder % lim.d_rule->d_matches % name % lim.d_action->toString()).str();
       ++num;
     }
   }
