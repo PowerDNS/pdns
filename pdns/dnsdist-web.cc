@@ -38,6 +38,7 @@
 #include  <boost/format.hpp>
 
 bool g_apiReadWrite{false};
+WebserverConfig g_webserverConfig;
 std::string g_apiConfigDirectory;
 
 static bool apiWriteConfigFile(const string& filebasename, const string& content)
@@ -133,23 +134,25 @@ static bool isAStatsRequest(const YaHTTP::Request& req)
   return req.url.path == "/jsonstat" || req.url.path == "/metrics";
 }
 
-static bool compareAuthorization(const YaHTTP::Request& req, const string &expected_password, const string& expectedApiKey)
+static bool compareAuthorization(const YaHTTP::Request& req)
 {
+  std::lock_guard<std::mutex> lock(g_webserverConfig.lock);
+
   if (isAnAPIRequest(req)) {
     /* Access to the API requires a valid API key */
-    if (checkAPIKey(req, expectedApiKey)) {
+    if (checkAPIKey(req, g_webserverConfig.apiKey)) {
       return true;
     }
 
-    return isAnAPIRequestAllowedWithWebAuth(req) && checkWebPassword(req, expected_password);
+    return isAnAPIRequestAllowedWithWebAuth(req) && checkWebPassword(req, g_webserverConfig.password);
   }
 
   if (isAStatsRequest(req)) {
     /* Access to the stats is allowed for both API and Web users */
-    return checkAPIKey(req, expectedApiKey) || checkWebPassword(req, expected_password);
+    return checkAPIKey(req, g_webserverConfig.apiKey) || checkWebPassword(req, g_webserverConfig.password);
   }
 
-  return checkWebPassword(req, expected_password);
+  return checkWebPassword(req, g_webserverConfig.password);
 }
 
 static bool isMethodAllowed(const YaHTTP::Request& req)
@@ -241,7 +244,7 @@ static json11::Json::array someResponseRulesToJson(GlobalStateHolder<vector<T>>*
   return responseRules;
 }
 
-static void connectionThread(int sock, ComboAddress remote, string password, string apiKey, const boost::optional<std::map<std::string, std::string> >& customHeaders)
+static void connectionThread(int sock, ComboAddress remote)
 {
   setThreadName("dnsdist/webConn");
 
@@ -276,8 +279,12 @@ static void connectionThread(int sock, ComboAddress remote, string password, str
     resp.version = req.version;
     const string charset = "; charset=utf-8";
 
-    addCustomHeaders(resp, customHeaders);
-    addSecurityHeaders(resp, customHeaders);
+    {
+      std::lock_guard<std::mutex> lock(g_webserverConfig.lock);
+
+      addCustomHeaders(resp, g_webserverConfig.customHeaders);
+      addSecurityHeaders(resp, g_webserverConfig.customHeaders);
+    }
     /* indicate that the connection will be closed after completion of the response */
     resp.headers["Connection"] = "close";
 
@@ -289,7 +296,7 @@ static void connectionThread(int sock, ComboAddress remote, string password, str
       handleCORS(req, resp);
       resp.status=200;
     }
-    else if (!compareAuthorization(req, password, apiKey)) {
+    else if (!compareAuthorization(req)) {
       YaHTTP::strstr_map_t::iterator header = req.headers.find("authorization");
       if (header != req.headers.end())
         errlog("HTTP Request \"%s\" from %s: Web Authentication failed", req.url.path, remote.toStringWithPort());
@@ -402,7 +409,7 @@ static void connectionThread(int sock, ComboAddress remote, string password, str
           // Prometheus suggest using '_' instead of '-'
           std::string prometheusMetricName = "dnsdist_" + boost::replace_all_copy(metricName, "-", "_");
 
-          MetricDefinition metricDetails; 
+          MetricDefinition metricDetails;
 
           if (!g_metricDefinitions.getMetricDetails(metricName, metricDetails)) {
               vinfolog("Do not have metric details for %s", metricName);
@@ -427,7 +434,7 @@ static void connectionThread(int sock, ComboAddress remote, string password, str
             output << **dval;
           else
             output << (*boost::get<DNSDistStats::statfunction_t>(&std::get<1>(e)))(std::get<0>(e));
-          
+
           output << "\n";
         }
 
@@ -448,10 +455,10 @@ static void connectionThread(int sock, ComboAddress remote, string password, str
         output << "# TYPE " << statesbase << "order "       << "gauge"                                                             << "\n";
         output << "# HELP " << statesbase << "weight "      << "The weight within the order in which this server is picked"        << "\n";
         output << "# TYPE " << statesbase << "weight "      << "gauge"                                                             << "\n";
-        
+
         for (const auto& state : *states) {
           string serverName;
-           
+
           if (state->name.empty())
               serverName = state->remote.toStringWithPort();
           else
@@ -484,10 +491,10 @@ static void connectionThread(int sock, ComboAddress remote, string password, str
 
         auto localPools = g_pools.getLocal();
         const string cachebase = "dnsdist_pool_";
-        
+
         for (const auto& entry : *localPools) {
           string poolName = entry.first;
-          
+
           if (poolName.empty()) {
             poolName = "_default_";
           }
@@ -524,18 +531,18 @@ static void connectionThread(int sock, ComboAddress remote, string password, str
       int num=0;
       for(const auto& a : *localServers) {
 	string status;
-	if(a->availability == DownstreamState::Availability::Up) 
+	if(a->availability == DownstreamState::Availability::Up)
 	  status = "UP";
-	else if(a->availability == DownstreamState::Availability::Down) 
+	else if(a->availability == DownstreamState::Availability::Down)
 	  status = "DOWN";
-	else 
+	else
 	  status = (a->upStatus ? "up" : "down");
 
 	Json::array pools;
 	for(const auto& p: a->pools)
 	  pools.push_back(p);
 
-	Json::object server{ 
+	Json::object server{
 	  {"id", num++},
 	  {"name", a->name},
           {"address", a->remote.toStringWithPort()},
@@ -612,7 +619,7 @@ static void connectionThread(int sock, ComboAddress remote, string password, str
         };
 	rules.push_back(rule);
       }
-      
+
       auto responseRules = someResponseRulesToJson(&g_resprulactions);
       auto cacheHitResponseRules = someResponseRulesToJson(&g_cachehitresprulactions);
       auto selfAnsweredResponseRules = someResponseRulesToJson(&g_selfansweredresprulactions);
@@ -631,7 +638,7 @@ static void connectionThread(int sock, ComboAddress remote, string password, str
         if(!localaddresses.empty()) localaddresses += ", ";
         localaddresses += std::get<0>(loc).toStringWithPort();
       }
- 
+
       Json my_json = Json::object {
         { "daemon_type", "dnsdist" },
         { "version", VERSION},
@@ -831,7 +838,33 @@ static void connectionThread(int sock, ComboAddress remote, string password, str
     close(sock);
   }
 }
-void dnsdistWebserverThread(int sock, const ComboAddress& local, const std::string& password, const std::string& apiKey, const boost::optional<std::map<std::string, std::string> >& customHeaders)
+
+void setWebserverAPIKey(const boost::optional<std::string> apiKey)
+{
+  std::lock_guard<std::mutex> lock(g_webserverConfig.lock);
+
+  if (apiKey) {
+    g_webserverConfig.apiKey = *apiKey;
+  } else {
+    g_webserverConfig.apiKey.clear();
+  }
+}
+
+void setWebserverPassword(const std::string& password)
+{
+  std::lock_guard<std::mutex> lock(g_webserverConfig.lock);
+
+  g_webserverConfig.password = password;
+}
+
+void setWebserverCustomHeaders(const boost::optional<std::map<std::string, std::string> > customHeaders)
+{
+  std::lock_guard<std::mutex> lock(g_webserverConfig.lock);
+
+  g_webserverConfig.customHeaders = customHeaders;
+}
+
+void dnsdistWebserverThread(int sock, const ComboAddress& local)
 {
   setThreadName("dnsdist/webserv");
   warnlog("Webserver launched on %s", local.toStringWithPort());
@@ -840,7 +873,7 @@ void dnsdistWebserverThread(int sock, const ComboAddress& local, const std::stri
       ComboAddress remote(local);
       int fd = SAccept(sock, remote);
       vinfolog("Got connection from %s", remote.toStringWithPort());
-      std::thread t(connectionThread, fd, remote, password, apiKey, customHeaders);
+      std::thread t(connectionThread, fd, remote);
       t.detach();
     }
     catch(std::exception& e) {
