@@ -193,11 +193,7 @@ void doSecPoll(const std::string& suffix)
 
   const std::string pkgv(PACKAGEVERSION);
   bool releaseVersion = pkgv.find("0.0.") != 0;
-
-  struct timeval now;
-  gettimeofday(&now, 0);
-
-  const std::string version = "dnsdist-" + std::string(PACKAGEVERSION);
+  const std::string version = "dnsdist-" + pkgv;
   std::string queriedName = version.substr(0, 63) + ".security-status." + suffix;
 
   if (*queriedName.rbegin() != '.') {
