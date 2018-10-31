@@ -601,14 +601,19 @@ public:
       d_ecgroup = EC_GROUP_new_by_curve_name(NID_secp384r1);
       d_len = 48;
     } else {
+      EC_KEY_free(d_eckey);
       throw runtime_error(getName()+" unknown algorithm "+std::to_string(d_algorithm));
     }
+
     if (d_ecgroup == NULL) {
+      EC_KEY_free(d_eckey);
       throw runtime_error(getName()+" allocation of group structure failed");
     }
 
-    ret = EC_KEY_set_group(d_eckey,d_ecgroup);
+    ret = EC_KEY_set_group(d_eckey, d_ecgroup);
     if (ret != 1) {
+      EC_KEY_free(d_eckey);
+      EC_GROUP_free(d_ecgroup);
       throw runtime_error(getName()+" setting key group failed");
     }
 
