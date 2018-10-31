@@ -662,7 +662,6 @@ void setupLuaConfig(bool client)
         setWebserverPassword(password);
       }
       if(vars->count("apiKey")) {
-        // allows setting apiKey: nil to disable access with it
         const std::string apiKey = boost::get<std::string>(vars->at("apiKey"));
 
         setWebserverAPIKey(apiKey);
