@@ -1732,6 +1732,15 @@ catch(...)
   return nullptr;
 }
 
+uint16_t getRandomDNSID()
+{
+#ifdef HAVE_LIBSODIUM
+  return (randombytes_random() % 65536);
+#else
+  return (random() % 65536);
+#endif
+}
+
 static bool upCheck(DownstreamState& ds)
 try
 {
@@ -1742,17 +1751,12 @@ try
   memset(&checkHeader, 0, sizeof(checkHeader));
 
   checkHeader.qdcount = htons(1);
-#ifdef HAVE_LIBSODIUM
-  checkHeader.id = randombytes_random() % 65536;
-#else
-  checkHeader.id = random() % 65536;
-#endif
+  checkHeader.id = getRandomDNSID();
 
   checkHeader.rd = true;
   if (ds.setCD) {
     checkHeader.cd = true;
   }
-
 
   if (ds.checkFunction) {
     std::lock_guard<std::mutex> lock(g_luamutex);

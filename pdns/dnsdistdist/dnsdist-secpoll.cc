@@ -35,7 +35,12 @@
 #include "misc.hh"
 #include "sstuff.hh"
 
+#include "dnsdist.hh"
 #include "dnsdist-secpoll.hh"
+
+#ifndef PACKAGEVERSION
+#define PACKAGEVERSION PACKAGE_VERSION
+#endif
 
 static std::string getFirstTXTAnswer(const std::string& answer)
 {
@@ -85,13 +90,10 @@ static std::string getFirstTXTAnswer(const std::string& answer)
 
 static std::string getSecPollStatus(const std::string& queriedName, int timeout=2)
 {
+  const DNSName& sentName = DNSName(queriedName);
   vector<uint8_t> packet;
-  DNSPacketWriter pw(packet, DNSName(queriedName), QType::TXT);
-#ifdef HAVE_LIBSODIUM
-  pw.getHeader()->id = randombytes_random() % 65536;
-#else
-  pw.getHeader()->id = random() % 65536;
-#endif
+  DNSPacketWriter pw(packet, sentName, QType::TXT);
+  pw.getHeader()->id = getRandomDNSID();
   pw.getHeader()->rd = 1;
 
   const auto& resolversForStub = getResolvers("/etc/resolv.conf");
@@ -162,6 +164,17 @@ static std::string getSecPollStatus(const std::string& queriedName, int timeout=
       continue;
     }
 
+    uint16_t receivedType;
+    uint16_t receivedClass;
+    DNSName receivedName(reply.c_str(), reply.size(), sizeof(dnsheader), false, &receivedType, &receivedClass);
+
+    if (receivedName != sentName || receivedType != QType::TXT || receivedClass != QClass::IN) {
+      if (g_verbose) {
+        warnlog("Invalid answer, either the qname (%s / %s), qtype (%s / %s) or qclass (%d / %d) does not match, received from the secpoll stub resolver %s", receivedName, sentName, QType(receivedType).getName(), QType(QType::TXT).getName(), receivedClass, QClass::IN, dest.toString());
+      }
+      continue;
+    }
+
     return getFirstTXTAnswer(reply);
   }
 
@@ -178,13 +191,13 @@ void doSecPoll(const std::string& suffix)
     return;
   }
 
-  const std::string pkgv(PACKAGE_VERSION);
+  const std::string pkgv(PACKAGEVERSION);
   bool releaseVersion = pkgv.find("0.0.") != 0;
 
   struct timeval now;
   gettimeofday(&now, 0);
 
-  const std::string version = "dnsdist-" + std::string(VERSION);
+  const std::string version = "dnsdist-" + std::string(PACKAGEVERSION);
   std::string queriedName = version.substr(0, 63) + ".security-status." + suffix;
 
   if (*queriedName.rbegin() != '.') {

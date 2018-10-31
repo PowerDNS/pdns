@@ -1012,6 +1012,8 @@ int handleDNSCryptQuery(char* packet, uint16_t len, std::shared_ptr<DNSCryptQuer
 
 bool addXPF(DNSQuestion& dq, uint16_t optionCode);
 
+uint16_t getRandomDNSID();
+
 #include "dnsdist-snmp.hh"
 
 extern bool g_snmpEnabled;
