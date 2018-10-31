@@ -76,6 +76,8 @@ void openssl_thread_cleanup()
   OPENSSL_free(openssllocks);
 }
 
+#if !defined(LIBRESSL_VERSION_NUMBER) || LIBRESSL_VERSION_NUMBER < 0x2070000fL
+/* those symbols are defined in LibreSSL 2.7.0+ */
 /* compat helpers. These DO NOT do any of the checking that the libssl 1.1 functions do. */
 static inline void RSA_get0_key(const RSA* rsakey, const BIGNUM** n, const BIGNUM** e, const BIGNUM** d) {
   *n = rsakey->n;
@@ -142,6 +144,8 @@ static inline int ECDSA_SIG_set0(ECDSA_SIG* signature, BIGNUM* pr, BIGNUM* ps) {
   return 1;
 }
 #endif /* HAVE_LIBCRYPTO_ECDSA */
+
+#endif /* !defined(LIBRESSL_VERSION_NUMBER) || LIBRESSL_VERSION_NUMBER < 0x2070000fL */
 
 #else
 void openssl_thread_setup() {}
