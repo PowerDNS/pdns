@@ -1020,3 +1020,35 @@ overriden using :func:`setPayloadSizeOnSelfGeneratedAnswers`.
   :rfc:`RFC 6891 <6891#section-6.2.5>`, values lower than 512 will be treated as equal to 512.
 
   :param int payloadSize: The responder's maximum UDP payload size, in bytes. Default is 1500.
+
+Security Polling
+~~~~~~~~~~~~~~~~
+
+PowerDNS products can poll the security status of their respective versions. This polling, naturally,
+happens over DNS. If the result is that a given version has a security problem, the software will
+report this at level ‘Error’ during startup, and repeatedly during operations, every
+:func:`setSecurityPollInterval` seconds.
+
+By default, security polling happens on the domain ‘secpoll.powerdns.com’, but this can be changed with
+the :func:`setSecurityPollSuffix` function. If this setting is made empty, no polling will take place.
+Organizations wanting to host their own security zones can do so by changing this setting to a domain name
+under their control.
+
+To enable distributors of PowerDNS to signal that they have backported versions, the PACKAGEVERSION
+compilation-time macro can be used to set a distributor suffix.
+
+.. function:: setSecurityPollInterval(interval)
+
+  .. versionadded:: 1.3.3
+
+  Set the interval, in seconds, between two security pollings.
+
+  :param int interval: The interval, in seconds, between two pollings. Default is 3600.
+
+.. function:: setSecurityPollSuffix(suffix)
+
+  .. versionadded:: 1.3.3
+
+  Domain name from which to query security update notifications. Setting this to an empty string disables secpoll.
+
+  :param string suffix: The suffix to use, default is 'secpoll.powerdns.com.'.

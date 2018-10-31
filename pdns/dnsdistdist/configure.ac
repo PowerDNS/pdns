@@ -96,6 +96,11 @@ AC_SUBST([AM_CPPFLAGS],
   ["AS_ESCAPE([-I$(top_builddir) -I$(top_srcdir)]) -Wall -O3 -pthread $BOOST_CPPFLAGS"]
 )
 
+AC_ARG_VAR(PACKAGEVERSION, [The version used in secpoll queries])
+AS_IF([test "x$PACKAGEVERSION" != "x"],
+  [AC_DEFINE_UNQUOTED([PACKAGEVERSION], "$PACKAGEVERSION", [Set to the package version used for secpoll])]
+)
+
 AC_CONFIG_FILES([Makefile
 	ext/yahttp/Makefile
 	ext/yahttp/yahttp/Makefile])

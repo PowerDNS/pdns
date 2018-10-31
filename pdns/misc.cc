@@ -1413,3 +1413,39 @@ int mapThreadToCPUList(pthread_t tid, const std::set<int>& cpus)
   return ENOSYS;
 #endif /* HAVE_PTHREAD_SETAFFINITY_NP */
 }
+
+std::vector<ComboAddress> getResolvers(const std::string& resolvConfPath)
+{
+  std::vector<ComboAddress> results;
+
+  ifstream ifs(resolvConfPath);
+  if (!ifs) {
+    return results;
+  }
+
+  string line;
+  while(std::getline(ifs, line)) {
+    boost::trim_right_if(line, is_any_of(" \r\n\x1a"));
+    boost::trim_left(line); // leading spaces, let's be nice
+
+    string::size_type tpos = line.find_first_of(";#");
+    if (tpos != string::npos) {
+      line.resize(tpos);
+    }
+
+    if (boost::starts_with(line, "nameserver ") || boost::starts_with(line, "nameserver\t")) {
+      vector<string> parts;
+      stringtok(parts, line, " \t,"); // be REALLY nice
+      for(vector<string>::const_iterator iter = parts.begin() + 1; iter != parts.end(); ++iter) {
+        try {
+          results.emplace_back(*iter, 53);
+        }
+        catch(...)
+        {
+        }
+      }
+    }
+  }
+
+  return results;
+}

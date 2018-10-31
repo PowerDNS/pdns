@@ -47,6 +47,7 @@
 #include "dnsdist-ecs.hh"
 #include "dnsdist-lua.hh"
 #include "dnsdist-rings.hh"
+#include "dnsdist-secpoll.hh"
 
 #include "base64.hh"
 #include "delaypipe.hh"
@@ -1731,6 +1732,15 @@ catch(...)
   return nullptr;
 }
 
+uint16_t getRandomDNSID()
+{
+#ifdef HAVE_LIBSODIUM
+  return (randombytes_random() % 65536);
+#else
+  return (random() % 65536);
+#endif
+}
+
 static bool upCheck(DownstreamState& ds)
 try
 {
@@ -1741,17 +1751,12 @@ try
   memset(&checkHeader, 0, sizeof(checkHeader));
 
   checkHeader.qdcount = htons(1);
-#ifdef HAVE_LIBSODIUM
-  checkHeader.id = randombytes_random() % 65536;
-#else
-  checkHeader.id = random() % 65536;
-#endif
+  checkHeader.id = getRandomDNSID();
 
   checkHeader.rd = true;
   if (ds.setCD) {
     checkHeader.cd = true;
   }
-
 
   if (ds.checkFunction) {
     std::lock_guard<std::mutex> lock(g_luamutex);
@@ -1914,7 +1919,21 @@ void* maintThread()
   return 0;
 }
 
-void* healthChecksThread()
+static void* secPollThread()
+{
+  setThreadName("dnsdist/secpoll");
+
+  for (;;) {
+    try {
+      doSecPoll(g_secPollSuffix);
+    }
+    catch(...) {
+    }
+    sleep(g_secPollInterval);
+  }
+}
+
+static void* healthChecksThread()
 {
   setThreadName("dnsdist/healthC");
 
@@ -2774,6 +2793,11 @@ try
   stattid.detach();
   
   thread healththread(healthChecksThread);
+
+  if (!g_secPollSuffix.empty()) {
+    thread secpollthread(secPollThread);
+    secpollthread.detach();
+  }
 
   if(g_cmdLine.beSupervised) {
 #ifdef HAVE_SYSTEMD
