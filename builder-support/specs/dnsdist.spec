@@ -162,8 +162,11 @@ fi
 
 %postun
 %if 0%{?el6}
-if [ -x /sbin/initctl ] && /sbin/initctl status %{name} 2>/dev/null | grep -q 'running' ; then
-  /sbin/initctl stop %{name} > /dev/null 2>&1 || :
+if [ $1 -ge 1 ] ; then
+    # Package upgrade, not uninstall
+    if [ -x /sbin/initctl ] && /sbin/initctl status %{name} 2>/dev/null | grep -q 'running' ; then
+      /sbin/initctl restart %{name} > /dev/null 2>&1 || :
+    fi
 fi
 %endif
 %if 0%{?suse_version}
