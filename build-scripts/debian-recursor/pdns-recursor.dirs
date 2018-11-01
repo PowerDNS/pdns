@@ -1,7 +1,0 @@
-etc/powerdns
-etc/powerdns/recursor.d
-etc/init.d
-etc/default
-usr/bin
-usr/sbin
-usr/share/doc/pdns-recursor

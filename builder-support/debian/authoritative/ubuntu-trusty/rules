@@ -47,7 +47,6 @@ override_dh_install:
 	  -e 's!# launch=.*!&\nlaunch=!' \
 	  -e 's!# setgid=.*!setgid=pdns!' \
 	  -e 's!# setuid=.*!setuid=pdns!' \
-	  -e 's!# security-poll-suffix=.*!&\nsecurity-poll-suffix=!' \
 	  > debian/pdns-server/etc/powerdns/pdns.conf
 
 # Verbose tests (shows used compiler/linker and their flags)

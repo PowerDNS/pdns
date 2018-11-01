@@ -1,2 +1,0 @@
-usr/lib/*/pdns/libgodbcbackend.so*
-debian/config/pdns.local.godbc.conf usr/share/pdns-backend-godbc
