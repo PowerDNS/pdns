@@ -582,6 +582,10 @@ public:
     : d_packet(packet), d_length(length), d_notyouroffset(12), d_offset(d_notyouroffset)
   {}
   
+  /*! Advances past a wire-format domain name
+   * The name is not checked for adherence to length restrictions.
+   * Compression pointers are not followed.
+   */
   void skipDomainName()
   {
     uint8_t len; 
@@ -593,6 +597,7 @@ public:
       skipBytes(len);
     }
   }
+
   void skipBytes(uint16_t bytes)
   {
     moveOffset(bytes);
