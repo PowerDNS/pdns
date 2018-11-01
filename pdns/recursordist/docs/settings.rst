@@ -1105,7 +1105,11 @@ Can be used for better :doc:`security <security>`.
 -  Integer
 -  Default: 60
 
-Allow the signture inception to be off by this number of seconds. Negative values are not allowed.
+Allow the signature inception to be off by this number of seconds. Negative values are not allowed.
+
+.. versionchanged:: 4.2.0
+
+    Default is now 60, was 0 before.
 
 .. _setting-single-socket:
 
