@@ -81,7 +81,7 @@ Documentation
 -------------
 After compiling, run `pdns\_recursor --config` to view the configuration options
 and a short description. The full documentation is online at
-https://doc.powerdns.com/md/recursor/
+https://doc.powerdns.com/recursor/
 
 Reporting bugs
 --------------
