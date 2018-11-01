@@ -7,7 +7,7 @@ to legitimate users while shunting or blocking abusive traffic.
 runtime, and that its statistics can be queried from a console-like
 interface.
 
-All `dnsdist` features are documented at [dnsdist.org](http://dnsdist.org).
+All `dnsdist` features are documented at [dnsdist.org](https://dnsdist.org).
 
 ## Compiling from git
 
