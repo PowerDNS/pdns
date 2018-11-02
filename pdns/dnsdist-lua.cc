@@ -1477,6 +1477,20 @@ void setupLuaConfig(bool client)
       g_pools.setState(localPools);
     });
 
+  g_lua.writeFunction("addPoolBackupPool", [](string pool, string backupPool) {
+      setLuaSideEffect();
+      auto localPools = g_pools.getCopy();
+      addBackupPool(localPools, pool, backupPool);
+      g_pools.setState(localPools);
+    });
+
+  g_lua.writeFunction("showPoolBackupPool", [](string pool) {
+      setLuaSideEffect();
+      auto localPools = g_pools.getCopy();
+      auto poolObj = getPool(localPools, pool);
+      g_outputBuffer = boost::algorithm::join(poolObj->backupPools, ",")+"\n";
+    });
+
   g_lua.writeFunction("showPoolServerPolicy", [](string pool) {
       setLuaSideEffect();
       auto localPools = g_pools.getCopy();

@@ -868,6 +868,18 @@ void setPoolPolicy(pools_t& pools, const string& poolName, std::shared_ptr<Serve
   pool->policy = policy;
 }
 
+// Adds backup pool to specified pool
+void addBackupPool(pools_t& pools, const string& poolName, const std::string& backupPool) {
+  std::shared_ptr<ServerPool> pool = createPoolIfNotExists(pools, poolName);
+  if (!poolName.empty()) {
+    vinfolog("Add backup pool '%s' for pool '%s'", backupPool, poolName);
+  } else {
+    vinfolog("Add backup pool '%s' for default pool", backupPool);
+  }
+
+  pool->addBackupPool(backupPool);
+}
+
 void addServerToPool(pools_t& pools, const string& poolName, std::shared_ptr<DownstreamState> server)
 {
   std::shared_ptr<ServerPool> pool = createPoolIfNotExists(pools, poolName);
@@ -1404,113 +1416,137 @@ static void processUDPQuery(ClientState& cs, LocalHolders& holders, const struct
     }
 
     DownstreamState* ss = nullptr;
-    std::shared_ptr<ServerPool> serverPool = getPool(*holders.pools, poolname);
-    std::shared_ptr<DNSDistPacketCache> packetCache = serverPool->packetCache;
-    auto policy = *(holders.policy);
-    if (serverPool->policy != nullptr) {
-      policy = *(serverPool->policy);
-    }
-    auto servers = serverPool->getServers();
-    if (policy.isLua) {
-      std::lock_guard<std::mutex> lock(g_luamutex);
-      ss = policy.policy(servers, &dq).get();
-    }
-    else {
-      ss = policy.policy(servers, &dq).get();
-    }
 
-    bool ednsAdded = false;
-    bool ecsAdded = false;
-    if (dq.useECS && ((ss && ss->useECS) || (!ss && serverPool->getECS()))) {
-      if (!handleEDNSClientSubnet(dq, &(ednsAdded), &(ecsAdded))) {
-        vinfolog("Dropping query from %s because we couldn't insert the ECS value", remote.toStringWithPort());
-        return;
-      }
-    }
+    std::shared_ptr<ServerPool> configuredServerPool = getPool(*holders.pools, poolname);
+    auto backupPools = configuredServerPool->backupPools;
+
+    std::vector<std::string> allPools = { poolname };
+
+    // Add backup pools
+    allPools.insert(allPools.end(), backupPools.begin(), backupPools.end());
 
     uint32_t cacheKey = 0;
+    bool ednsAdded = false;
+    bool ecsAdded = false;
     boost::optional<Netmask> subnet;
-    if (packetCache && !dq.skipCache) {
-      uint16_t cachedResponseSize = dq.size;
-      uint32_t allowExpired = ss ? 0 : g_staleCacheEntriesTTL;
-      if (packetCache->get(dq, consumed, dh->id, query, &cachedResponseSize, &cacheKey, subnet, allowExpired)) {
-        DNSResponse dr(dq.qname, dq.qtype, dq.qclass, dq.consumed, dq.local, dq.remote, reinterpret_cast<dnsheader*>(query), dq.size, cachedResponseSize, false, &queryRealTime);
-#ifdef HAVE_PROTOBUF
-        dr.uniqueId = dq.uniqueId;
-#endif
-        dr.qTag = dq.qTag;
+    std::shared_ptr<DNSDistPacketCache> packetCache;
 
-        if (!processResponse(holders.cacheHitRespRulactions, dr, &delayMsec)) {
+    for (auto it = allPools.begin(); it != allPools.end(); it++) {
+      std::shared_ptr<ServerPool> serverPool = getPool(*holders.pools, *it);
+
+      packetCache = serverPool->packetCache;
+      auto policy = *(holders.policy);
+      if (serverPool->policy != nullptr) {
+        policy = *(serverPool->policy);
+      }
+
+      auto servers = serverPool->getServers();
+      if (policy.isLua) {
+        std::lock_guard<std::mutex> lock(g_luamutex);
+        ss = policy.policy(servers, &dq).get();
+      }
+      else {
+        ss = policy.policy(servers, &dq).get();
+      }
+
+      if (dq.useECS && ((ss && ss->useECS) || (!ss && serverPool->getECS()))) {
+        if (!handleEDNSClientSubnet(dq, &(ednsAdded), &(ecsAdded))) {
+          vinfolog("Dropping query from %s because we couldn't insert the ECS value", remote.toStringWithPort());
           return;
         }
+      }
 
-        if (!cs.muted) {
+      if (packetCache && !dq.skipCache) {
+        uint16_t cachedResponseSize = dq.size;
+        uint32_t allowExpired = ss ? 0 : g_staleCacheEntriesTTL;
+        if (packetCache->get(dq, consumed, dh->id, query, &cachedResponseSize, &cacheKey, subnet, allowExpired)) {
+          DNSResponse dr(dq.qname, dq.qtype, dq.qclass, dq.consumed, dq.local, dq.remote, reinterpret_cast<dnsheader*>(query), dq.size, cachedResponseSize, false, &queryRealTime);
+#ifdef HAVE_PROTOBUF
+          dr.uniqueId = dq.uniqueId;
+#endif
+          dr.qTag = dq.qTag;
+
+          if (!processResponse(holders.cacheHitRespRulactions, dr, &delayMsec)) {
+            return;
+          }
+
+          if (!cs.muted) {
 #ifdef HAVE_DNSCRYPT
-          if (!encryptResponse(query, &cachedResponseSize, dq.size, false, dnsCryptQuery, nullptr, nullptr)) {
+            if (!encryptResponse(query, &cachedResponseSize, dq.size, false, dnsCryptQuery, nullptr, nullptr)) {
+              return;
+            }
+#endif
+#if defined(HAVE_RECVMMSG) && defined(HAVE_SENDMMSG) && defined(MSG_WAITFORONE)
+            if (delayMsec == 0 && responsesVect != nullptr) {
+              queueResponse(cs, query, cachedResponseSize, dest, remote, responsesVect[*queuedResponses], respIOV, respCBuf);
+              (*queuedResponses)++;
+            }
+            else
+#endif /* defined(HAVE_RECVMMSG) && defined(HAVE_SENDMMSG) && defined(MSG_WAITFORONE) */
+            {
+              sendUDPResponse(cs.udpFD, query, cachedResponseSize, delayMsec, dest, remote);
+            }
+          }
+
+          g_stats.cacheHits++;
+          doLatencyStats(0);  // we're not going to measure this
+          return;
+        }
+        g_stats.cacheMisses++;
+      }
+
+      bool lastPool = std::next(it) == allPools.end();
+
+      if (!ss && !lastPool) {
+          warnlog("We cannot get any active servers for this pool. Switching to next pool");
+          continue;
+      }
+
+      if(!ss) {
+        g_stats.noPolicy++;
+
+        if (g_servFailOnNoPolicy && !cs.muted) {
+          char* response = query;
+          uint16_t responseLen = dq.len;
+          restoreFlags(dh, origFlags);
+
+          dq.dh->rcode = RCode::ServFail;
+          dq.dh->qr = true;
+
+          DNSResponse dr(dq.qname, dq.qtype, dq.qclass, dq.consumed, dq.local, dq.remote, reinterpret_cast<dnsheader*>(response), dq.size, responseLen, false, &queryRealTime);
+#ifdef HAVE_PROTOBUF
+          dr.uniqueId = dq.uniqueId;
+#endif
+          dr.qTag = dq.qTag;
+
+          if (!processResponse(holders.selfAnsweredRespRulactions, dr, &delayMsec)) {
+            return;
+          }
+
+#ifdef HAVE_DNSCRYPT
+          if (!encryptResponse(response, &responseLen, dq.size, false, dnsCryptQuery, nullptr, nullptr)) {
             return;
           }
 #endif
 #if defined(HAVE_RECVMMSG) && defined(HAVE_SENDMMSG) && defined(MSG_WAITFORONE)
-          if (delayMsec == 0 && responsesVect != nullptr) {
-            queueResponse(cs, query, cachedResponseSize, dest, remote, responsesVect[*queuedResponses], respIOV, respCBuf);
+          if (responsesVect != nullptr) {
+            queueResponse(cs, response, responseLen, dest, remote, responsesVect[*queuedResponses], respIOV, respCBuf);
             (*queuedResponses)++;
           }
           else
 #endif /* defined(HAVE_RECVMMSG) && defined(HAVE_SENDMMSG) && defined(MSG_WAITFORONE) */
           {
-            sendUDPResponse(cs.udpFD, query, cachedResponseSize, delayMsec, dest, remote);
+            sendUDPResponse(cs.udpFD, response, responseLen, 0, dest, remote);
           }
-        }
 
-        g_stats.cacheHits++;
-        doLatencyStats(0);  // we're not going to measure this
+          // no response-only statistics counter to update.
+          doLatencyStats(0);  // we're not going to measure this
+        }
+        vinfolog("%s query for %s|%s from %s, no policy applied", g_servFailOnNoPolicy ? "ServFailed" : "Dropped", dq.qname->toString(), QType(dq.qtype).getName(), remote.toStringWithPort());
         return;
+      } else {
+          break;
       }
-      g_stats.cacheMisses++;
-    }
-
-    if(!ss) {
-      g_stats.noPolicy++;
-
-      if (g_servFailOnNoPolicy && !cs.muted) {
-        char* response = query;
-        uint16_t responseLen = dq.len;
-        restoreFlags(dh, origFlags);
-
-        dq.dh->rcode = RCode::ServFail;
-        dq.dh->qr = true;
-
-        DNSResponse dr(dq.qname, dq.qtype, dq.qclass, dq.consumed, dq.local, dq.remote, reinterpret_cast<dnsheader*>(response), dq.size, responseLen, false, &queryRealTime);
-#ifdef HAVE_PROTOBUF
-        dr.uniqueId = dq.uniqueId;
-#endif
-        dr.qTag = dq.qTag;
-
-        if (!processResponse(holders.selfAnsweredRespRulactions, dr, &delayMsec)) {
-          return;
-        }
-
-#ifdef HAVE_DNSCRYPT
-        if (!encryptResponse(response, &responseLen, dq.size, false, dnsCryptQuery, nullptr, nullptr)) {
-          return;
-        }
-#endif
-#if defined(HAVE_RECVMMSG) && defined(HAVE_SENDMMSG) && defined(MSG_WAITFORONE)
-        if (responsesVect != nullptr) {
-          queueResponse(cs, response, responseLen, dest, remote, responsesVect[*queuedResponses], respIOV, respCBuf);
-          (*queuedResponses)++;
-        }
-        else
-#endif /* defined(HAVE_RECVMMSG) && defined(HAVE_SENDMMSG) && defined(MSG_WAITFORONE) */
-        {
-          sendUDPResponse(cs.udpFD, response, responseLen, 0, dest, remote);
-        }
-
-        // no response-only statistics counter to update.
-        doLatencyStats(0);  // we're not going to measure this
-      }
-      vinfolog("%s query for %s|%s from %s, no policy applied", g_servFailOnNoPolicy ? "ServFailed" : "Dropped", dq.qname->toString(), QType(dq.qtype).getName(), remote.toStringWithPort());
-      return;
     }
 
     if (dq.addXPF && ss->xpfRRCode != 0) {

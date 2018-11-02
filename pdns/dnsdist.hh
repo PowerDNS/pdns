@@ -808,6 +808,11 @@ struct ServerPool
 
   std::shared_ptr<DNSDistPacketCache> packetCache{nullptr};
   std::shared_ptr<ServerPolicy> policy{nullptr};
+  std::vector<std::string> backupPools;
+
+  void addBackupPool(const std::string& poolName) {
+    backupPools.push_back(poolName);
+  }
 
   size_t countServers(bool upOnly)
   {
@@ -876,6 +881,7 @@ private:
 };
 using pools_t=map<std::string,std::shared_ptr<ServerPool>>;
 void setPoolPolicy(pools_t& pools, const string& poolName, std::shared_ptr<ServerPolicy> policy);
+void addBackupPool(pools_t& pools, const string& poolName, const std::string& backupPool);
 void addServerToPool(pools_t& pools, const string& poolName, std::shared_ptr<DownstreamState> server);
 void removeServerFromPool(pools_t& pools, const string& poolName, std::shared_ptr<DownstreamState> server);
 
