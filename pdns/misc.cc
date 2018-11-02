@@ -65,6 +65,10 @@
 #  include <sched.h>
 #endif
 
+#ifdef HAVE_LIBCAP
+#include <sys/capability.h>
+#endif
+
 bool g_singleThreaded;
 
 size_t writen2(int fd, const void *buf, size_t count)
@@ -1448,4 +1452,21 @@ std::vector<ComboAddress> getResolvers(const std::string& resolvConfPath)
   }
 
   return results;
+}
+
+void dropCapabilities()
+{
+#ifdef HAVE_LIBCAP
+   cap_t caps = cap_get_proc();
+   if (caps != nullptr) {
+     cap_clear(caps);
+
+     if (cap_set_proc(caps) != 0) {
+       cap_free(caps);
+       throw std::runtime_error("Unable to drop capabilities: " + std::string(strerror(errno)));
+     }
+
+     cap_free(caps);
+   }
+#endif /* HAVE_LIBCAP */
 }
