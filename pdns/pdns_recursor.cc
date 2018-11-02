@@ -3768,6 +3768,16 @@ static int serviceMain(int argc, char*argv[])
   makeControlChannelSocket( ::arg().asNum("processes") > 1 ? forks : -1);
 
   Utility::dropUserPrivs(newuid);
+  try {
+    /* we might still have capabilities remaining, for example if we have been started as root
+       without --setuid (please don't do that) or as an unprivileged user with ambient capabilities
+       like CAP_NET_BIND_SERVICE.
+    */
+    dropCapabilities();
+  }
+  catch(const std::exception& e) {
+    g_log<<Logger::Warning<<e.what()<<endl;
+  }
 
   startLuaConfigDelayedThreads(delayedLuaThreads, g_luaconfs.getCopy().generation);
 

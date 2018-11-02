@@ -1,7 +1,7 @@
 JSON11_LIBS = $(top_srcdir)/ext/json11/libjson11.la
 PROBDS_LIBS = $(top_srcdir)/ext/probds/libprobds.la
 
-AM_CPPFLAGS = $(LUA_CFLAGS) $(YAHTTP_CFLAGS) $(BOOST_CPPFLAGS) $(LIBSODIUM_CFLAGS) $(NET_SNMP_CFLAGS) $(SANITIZER_FLAGS) -O3 -Wall -pthread -DSYSCONFDIR=\"${sysconfdir}\" $(SYSTEMD_CFLAGS)
+AM_CPPFLAGS = $(LUA_CFLAGS) $(YAHTTP_CFLAGS) $(BOOST_CPPFLAGS) $(LIBSODIUM_CFLAGS) $(NET_SNMP_CFLAGS) $(LIBCAP_CFLAGS) $(SANITIZER_FLAGS) -O3 -Wall -pthread -DSYSCONFDIR=\"${sysconfdir}\" $(SYSTEMD_CFLAGS)
 
 AM_CPPFLAGS += \
 	-I$(top_srcdir)/ext/json11 \
@@ -189,7 +189,8 @@ pdns_recursor_LDADD = \
 	$(SYSTEMD_LIBS) \
 	$(RT_LIBS) \
 	$(BOOST_SYSTEM_LIBS) \
-	$(PROBDS_LIBS)
+	$(PROBDS_LIBS) \
+	$(LIBCAP_LIBS)
 
 pdns_recursor_LDFLAGS = $(AM_LDFLAGS) \
 	$(LIBCRYPTO_LDFLAGS) $(BOOST_CONTEXT_LDFLAGS) \
@@ -290,7 +291,8 @@ testrunner_LDADD = \
 	$(LIBCRYPTO_LIBS) \
 	$(RT_LIBS) \
 	$(BOOST_SYSTEM_LIBS) \
-	$(PROBDS_LIBS)
+	$(PROBDS_LIBS) \
+	$(LIBCAP_LIBS)
 
 if NOD_ENABLED
 testrunner_SOURCES +=   nod.hh nod.cc \
@@ -369,6 +371,9 @@ rec_control_SOURCES = \
 	rec_channel.cc rec_channel.hh \
 	rec_control.cc \
 	unix_utility.cc
+
+rec_control_LDADD = \
+	$(LIBCAP_LIBS)
 
 dnslabeltext.cc: dnslabeltext.rl
 	$(AM_V_GEN)$(RAGEL) $< -o dnslabeltext.cc
