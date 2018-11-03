@@ -512,6 +512,16 @@ Functions for manipulating Self-Answered Response Rules:
 
   Move the last self answered response rule to the first position.
 
+Function for pool related rules
+
+.. function:: PoolAvailableRule(poolname)
+
+  .. versionadded:: 1.3.3
+
+  Check whether a pool has any servers available to handle queries
+
+  :param string poolname: Pool to check
+
 .. _RulesIntro:
 
 Matching Packets (Selectors)
