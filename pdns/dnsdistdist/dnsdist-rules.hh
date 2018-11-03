@@ -991,3 +991,25 @@ private:
   boost::optional<std::string> d_value;
   std::string d_tag;
 };
+
+class PoolAvailableRule : public DNSRule
+{
+public:
+  PoolAvailableRule(pools_t& pools, const std::string& poolname) : d_poolname(poolname)
+  {
+    d_pool = getPool(pools, poolname);
+  }
+
+  bool matches(const DNSQuestion* dq) const override
+  {
+    return (d_pool->countServers(true) > 0);
+  }
+
+  string toString() const override
+  {
+    return "pool '" + d_poolname + "' is available";
+  }
+private:
+  std::string d_poolname;
+  std::shared_ptr<ServerPool> d_pool;
+};

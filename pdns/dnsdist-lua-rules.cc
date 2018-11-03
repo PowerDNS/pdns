@@ -440,6 +440,12 @@ void setupLuaRules()
       return std::shared_ptr<TimedIPSetRule>(new TimedIPSetRule());
     });
 
+  g_lua.writeFunction("PoolAvailableRule", [](std::string poolname) {
+    setLuaSideEffect();
+    auto localPools = g_pools.getCopy();
+    return std::shared_ptr<DNSRule>(new PoolAvailableRule(localPools, poolname));
+  });
+
   g_lua.registerFunction<void(std::shared_ptr<TimedIPSetRule>::*)()>("clear", [](std::shared_ptr<TimedIPSetRule> tisr) {
       tisr->clear();
     });
