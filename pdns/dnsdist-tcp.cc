@@ -442,11 +442,13 @@ void* tcpClientThread(int pipefd)
 
         uint32_t cacheKey = 0;
         boost::optional<Netmask> subnet;
+        bool dnssecOK = false;
         if (packetCache && !dq.skipCache) {
           char cachedResponse[4096];
           uint16_t cachedResponseSize = sizeof cachedResponse;
           uint32_t allowExpired = ds ? 0 : g_staleCacheEntriesTTL;
-          if (packetCache->get(dq, (uint16_t) consumed, dq.dh->id, cachedResponse, &cachedResponseSize, &cacheKey, subnet, allowExpired)) {
+          dnssecOK = (getEDNSZ(dq) & EDNS_HEADER_FLAG_DO);
+          if (packetCache->get(dq, (uint16_t) consumed, dq.dh->id, cachedResponse, &cachedResponseSize, &cacheKey, subnet, dnssecOK, allowExpired)) {
             DNSResponse dr(dq.qname, dq.qtype, dq.qclass, dq.consumed, dq.local, dq.remote, (dnsheader*) cachedResponse, sizeof cachedResponse, cachedResponseSize, true, &queryRealTime);
 #ifdef HAVE_PROTOBUF
             dr.uniqueId = dq.uniqueId;
@@ -630,7 +632,7 @@ void* tcpClientThread(int pipefd)
         }
 
 	if (packetCache && !dq.skipCache) {
-	  packetCache->insert(cacheKey, subnet, origFlags, qname, qtype, qclass, response, responseLen, true, dh->rcode, dq.tempFailureTTL);
+	  packetCache->insert(cacheKey, subnet, origFlags, dnssecOK, qname, qtype, qclass, response, responseLen, true, dh->rcode, dq.tempFailureTTL);
 	}
 
 #ifdef HAVE_DNSCRYPT
