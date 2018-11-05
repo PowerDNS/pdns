@@ -995,14 +995,13 @@ private:
 class PoolAvailableRule : public DNSRule
 {
 public:
-  PoolAvailableRule(pools_t& pools, const std::string& poolname) : d_poolname(poolname)
+  PoolAvailableRule(const std::string& poolname) : d_pools(&g_pools), d_poolname(poolname)
   {
-    d_pool = getPool(pools, poolname);
   }
 
   bool matches(const DNSQuestion* dq) const override
   {
-    return (d_pool->countServers(true) > 0);
+    return (getPool(*d_pools, d_poolname)->countServers(true) > 0);
   }
 
   string toString() const override
@@ -1010,6 +1009,6 @@ public:
     return "pool '" + d_poolname + "' is available";
   }
 private:
+  mutable LocalStateHolder<pools_t> d_pools;
   std::string d_poolname;
-  std::shared_ptr<ServerPool> d_pool;
 };
