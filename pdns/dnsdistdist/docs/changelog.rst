@@ -2,6 +2,192 @@ Changelog
 =========
 
 .. changelog::
+  :version: 1.3.3
+  :released: 8th of November 2018
+
+  .. change::
+    :tags: New Features
+    :pullreq: 6737, 6939
+    :tickets: 6932
+
+    Add consistent hash builtin policy
+
+  .. change::
+    :tags: New Features
+    :pullreq: 6803
+
+    Add EDNSOptionRule
+
+  .. change::
+    :tags: New Features
+    :pullreq: 6813
+
+    Add DSTPortRule (phonedph1)
+
+  .. change::
+    :tags: New Features
+    :pullreq: 6826
+
+    Make getOutstanding usable from both lua and console (phonedph1)
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 6831
+
+    Get rid of some allocs/copies in DNS parsing
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 6835
+
+    Display dynblocks' default action, None, as the global one
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 6847
+    :tickets: 6348, 4857
+
+    Set a correct EDNS OPT RR for self-generated answers
+
+  .. change::
+    :tags: New Features
+    :pullreq: 6856
+
+    Added :excludeRange and :includeRange methods to DynBPFFilter class (Reinier Schoof)
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 6877
+
+    Fix a sign-comparison warning in isEDNSOptionInOPT()
+
+  .. change::
+    :tags: New Features
+    :pullreq: 3935, 6343, 6901, 7007, 7089
+    :tickets: 4947, 6002
+
+    Add Prometheus stats support (Pavel Odintsov, Kai S)
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 6956
+
+    Fix compilation when SO_REUSEPORT is not defined
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 6986
+    :tickets: 6907, 6907
+
+    Add warning rates to DynBlockRulesGroup rules
+
+  .. change::
+    :tags: New Features
+    :pullreq: 6997
+    :tickets: 6974
+
+    Name threads in the programs
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 7015
+    :tickets: 7004, 6990
+
+     Add support for exporting a server id in protobuf
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 7030
+
+    dnsdist did not set TCP_NODELAY, causing needless latency
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 7060
+
+    Release memory on DNS over TLS handshake failure
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 7062
+
+    Add a setting to control the number of stored sessions
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 7064
+    :tickets: 7060
+
+     Wrap GnuTLS and OpenSSL pointers in smart pointers
+
+  .. change::
+    :tags: New Features
+    :pullreq: 7075
+    :tickets: 6908
+
+    Support the NXDomain action with dynamic blocks
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 7078
+    :tickets: 6909
+
+    Add a 'creationOrder' field to rules
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 7092
+    :tickets: 7091
+
+    Fix return-type detection with boost 1.69's tribool
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 7104
+    :tickets: 7096
+
+    Fix format string issue on 32bits ARM
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 7108
+
+    Wrap TCP connection objects in smart pointers
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 7109
+    :tickets: 7084
+
+    Add the setConsoleOutputMaxMsgSize function
+
+  .. change::
+    :tags: New Features
+    :pullreq: 7115
+
+    Add security polling
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 7117
+    :tickets: 7112
+
+    Add the ability to update webserver credentials
+
+  .. change::
+    :tags: New Features
+    :pullreq: 7140
+
+    Add a PoolAvailableRule to easily add backup pools (Robin Geuze)
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: TBD
+    :tickets: 6896
+
+    Handle trailing data correctly when adding OPT or ECS info
+
+.. changelog::
   :version: 1.3.2
   :released: 10th of July 2018
 
