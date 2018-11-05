@@ -2,6 +2,61 @@ Changelogs for 4.1.x
 ====================
 
 .. changelog::
+  :version: 4.1.5
+  :released: November 6th 2018
+
+  This release fixes the following security advisories:
+
+  - PowerDNS Security Advisory :doc:`2018-03 <../security-advisories/powerdns-advisory-2018-03>` (CVE-2018-10851)
+  - PowerDNS Security Advisory :doc:`2018-05 <../security-advisories/powerdns-advisory-2018-05>` (CVE-2018-14626)
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: XXXX
+
+    Crafted zone record can cause a denial of service (CVE-2018-10851, PowerDNS Security Advisory :doc:`2018-03 <../security-advisories/powerdns-advisory-2018-03>`)
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: XXXX
+
+    Packet cache pollution via crafted query (CVE-2018-14626, PowerDNS Security Advisory :doc:`2018-05 <../security-advisories/powerdns-advisory-2018-05>`)
+
+  Additionally there are some other minor fixes and improvements listed below.
+
+  .. change::
+    :tags: Improvements, Internals
+    :pullreq: 6976
+
+    Apply alias scopemask after chasing
+
+  .. change::
+    :tags: Improvements, Internals
+    :pullreq: 6917
+
+    Release memory in case of error in the openssl ecdsa constructor
+
+  .. change::
+    :tags: Bug Fixes, Internals
+    :pullreq: 6948
+    :tickets: 6943
+
+    Fix compilation with libressl 2.7.0+
+
+  .. change::
+    :tags: Bug Fixes, Internals
+    :pullreq: 6913
+
+    Actually truncate truncated responses
+
+  .. change::
+    :tags: Improvements, Internals
+    :pullreq: 7118
+    :tickets: 7040
+
+    Switch to devtoolset 7 for el6
+
+.. changelog::
   :version: 4.1.4
   :released: August 29th 2018
 
