@@ -698,6 +698,8 @@ struct DownstreamState
   int tcpConnectTimeout{5};
   int tcpRecvTimeout{30};
   int tcpSendTimeout{30};
+  unsigned int checkInterval{1};
+  unsigned int lastCheck{0};
   const unsigned int sourceItf{0};
   uint16_t retries{5};
   uint16_t xpfRRCode{0};
