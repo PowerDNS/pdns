@@ -666,6 +666,7 @@ static void protobufLogQuery(const std::shared_ptr<RemoteLogger>& logger, uint8_
   Netmask requestorNM(remote, remote.sin4.sin_family == AF_INET ? maskV4 : maskV6);
   const ComboAddress& requestor = requestorNM.getMaskedNetwork();
   RecProtoBufMessage message(DNSProtoBufMessage::Query, uniqueId, &requestor, &local, qname, qtype, qclass, id, tcp, len);
+  message.setServerIdentity(SyncRes::s_serverID);
   message.setEDNSSubnet(ednssubnet, ednssubnet.isIpv4() ? maskV4 : maskV6);
   message.setRequestorId(requestorId);
   message.setDeviceId(deviceId);
@@ -777,6 +778,7 @@ static void startDoResolve(void *p)
     if (luaconfsLocal->protobufServer) {
       Netmask requestorNM(dc->d_remote, dc->d_remote.sin4.sin_family == AF_INET ? luaconfsLocal->protobufMaskV4 : luaconfsLocal->protobufMaskV6);
       const ComboAddress& requestor = requestorNM.getMaskedNetwork();
+      pbMessage.setServerIdentity(SyncRes::s_serverID);
       pbMessage.update(dc->d_uuid, &requestor, &dc->d_local, dc->d_tcp, dc->d_mdp.d_header.id);
       pbMessage.setEDNSSubnet(dc->d_ednssubnet.source, dc->d_ednssubnet.source.isIpv4() ? luaconfsLocal->protobufMaskV4 : luaconfsLocal->protobufMaskV6);
       pbMessage.setQuestion(dc->d_mdp.d_qname, dc->d_mdp.d_qtype, dc->d_mdp.d_qclass);
@@ -1717,6 +1719,7 @@ static string* doProcessUDPQuestion(const std::string& question, const ComboAddr
     bool cacheHit = false;
     RecProtoBufMessage pbMessage(DNSProtoBufMessage::DNSProtoBufMessageType::Response);
 #ifdef HAVE_PROTOBUF
+    pbMessage.setServerIdentity(SyncRes::s_serverID);
     if(luaconfsLocal->protobufServer) {
       if (!luaconfsLocal->protobufTaggedOnly || !policyTags.empty()) {
         protobufLogQuery(luaconfsLocal->protobufServer, luaconfsLocal->protobufMaskV4, luaconfsLocal->protobufMaskV6, uniqueId, fromaddr, destaddr, ednssubnet.source, false, dh->id, question.size(), qname, qtype, qclass, policyTags, requestorId, deviceId);

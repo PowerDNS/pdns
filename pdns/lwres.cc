@@ -50,14 +50,20 @@
 
 #ifdef HAVE_PROTOBUF
 
-static void logOutgoingQuery(std::shared_ptr<RemoteLogger> outgoingLogger, boost::optional<const boost::uuids::uuid&> initialRequestId, const boost::uuids::uuid& uuid, const ComboAddress& ip, const DNSName& domain, int type, uint16_t qid, bool doTCP, size_t bytes)
+static void logOutgoingQuery(std::shared_ptr<RemoteLogger> outgoingLogger, boost::optional<const boost::uuids::uuid&> initialRequestId, const boost::uuids::uuid& uuid, const ComboAddress& ip, const DNSName& domain, int type, uint16_t qid, bool doTCP, size_t bytes, boost::optional<Netmask>& srcmask)
 {
   if(!outgoingLogger)
     return;
 
   RecProtoBufMessage message(DNSProtoBufMessage::OutgoingQuery, uuid, nullptr, &ip, domain, type, QClass::IN, qid, doTCP, bytes);
+  message.setServerIdentity(SyncRes::s_serverID);
+
   if (initialRequestId) {
     message.setInitialRequestID(*initialRequestId);
+  }
+
+  if (srcmask) {
+    message.setEDNSSubnet(*srcmask);
   }
 
 //  cerr <<message.toDebugString()<<endl;
@@ -72,6 +78,7 @@ static void logIncomingResponse(std::shared_ptr<RemoteLogger> outgoingLogger, bo
     return;
 
   RecProtoBufMessage message(DNSProtoBufMessage::IncomingResponse, uuid, nullptr, &ip, domain, type, QClass::IN, qid, doTCP, bytes);
+  message.setServerIdentity(SyncRes::s_serverID);
   if (initialRequestId) {
     message.setInitialRequestID(*initialRequestId);
   }
@@ -133,7 +140,6 @@ int asyncresolve(const ComboAddress& ip, const DNSName& domain, int type, bool d
     pw.addOpt(g_outgoingEDNSBufsize, 0, g_dnssecmode == DNSSECMode::Off ? 0 : EDNSOpts::DNSSECOK, opts); 
     pw.commit();
   }
-  srcmask = boost::none; // this is also our return value, even if EDNS0Level == 0
   lwr->d_rcode = 0;
   lwr->d_haveEDNS = false;
   int ret;
@@ -148,9 +154,11 @@ int asyncresolve(const ComboAddress& ip, const DNSName& domain, int type, bool d
 
   if (outgoingLogger) {
     uuid = (*t_uuidGenerator)();
-    logOutgoingQuery(outgoingLogger, context ? context->d_initialRequestId : boost::none, uuid, ip, domain, type, qid, doTCP, vpacket.size());
+    logOutgoingQuery(outgoingLogger, context ? context->d_initialRequestId : boost::none, uuid, ip, domain, type, qid, doTCP, vpacket.size(), srcmask);
   }
 #endif
+
+  srcmask = boost::none; // this is also our return value, even if EDNS0Level == 0
 
   errno=0;
   if(!doTCP) {

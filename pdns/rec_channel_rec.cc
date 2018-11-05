@@ -435,7 +435,9 @@ string doAddNTA(T begin, T end)
   g_luaconfs.modify([who, why](LuaConfigItems& lci) {
       lci.negAnchors[who] = why;
       });
+  broadcastAccFunction<uint64_t>(boost::bind(pleaseWipeCache, who, true));
   broadcastAccFunction<uint64_t>(boost::bind(pleaseWipePacketCache, who, true));
+  broadcastAccFunction<uint64_t>(boost::bind(pleaseWipeAndCountNegCache, who, true));
   return "Added Negative Trust Anchor for " + who.toLogString() + " with reason '" + why + "'\n";
 }
 
@@ -481,7 +483,9 @@ string doClearNTA(T begin, T end)
     g_luaconfs.modify([entry](LuaConfigItems& lci) {
         lci.negAnchors.erase(entry);
       });
+    broadcastAccFunction<uint64_t>(boost::bind(pleaseWipeCache, entry, true));
     broadcastAccFunction<uint64_t>(boost::bind(pleaseWipePacketCache, entry, true));
+    broadcastAccFunction<uint64_t>(boost::bind(pleaseWipeAndCountNegCache, entry, true));
     if (!first) {
       first = false;
       removed += ",";
@@ -536,7 +540,9 @@ string doAddTA(T begin, T end)
       auto ds = unique_ptr<DSRecordContent>(dynamic_cast<DSRecordContent*>(DSRecordContent::make(what)));
       lci.dsAnchors[who].insert(*ds);
       });
+    broadcastAccFunction<uint64_t>(boost::bind(pleaseWipeCache, who, true));
     broadcastAccFunction<uint64_t>(boost::bind(pleaseWipePacketCache, who, true));
+    broadcastAccFunction<uint64_t>(boost::bind(pleaseWipeAndCountNegCache, who, true));
     L<<Logger::Warning<<endl;
     return "Added Trust Anchor for " + who.toStringRootDot() + " with data " + what + "\n";
   }
@@ -580,7 +586,9 @@ string doClearTA(T begin, T end)
     g_luaconfs.modify([entry](LuaConfigItems& lci) {
         lci.dsAnchors.erase(entry);
       });
+    broadcastAccFunction<uint64_t>(boost::bind(pleaseWipeCache, entry, true));
     broadcastAccFunction<uint64_t>(boost::bind(pleaseWipePacketCache, entry, true));
+    broadcastAccFunction<uint64_t>(boost::bind(pleaseWipeAndCountNegCache, entry, true));
     if (!first) {
       first = false;
       removed += ",";
@@ -1186,7 +1194,7 @@ string doGenericTopQueries(pleasequeryfunc_t func, boost::function<DNSName(const
   int limit=0, accounted=0;
   if(total) {
     for(rcounts_t::const_iterator i=rcounts.begin(); i != rcounts.end() && limit < 20; ++i, ++limit) {
-      ret<< fmt % (-100.0*i->first/total) % (i->second.first.toString()+"|"+DNSRecordContent::NumberToType(i->second.second));
+      ret<< fmt % (-100.0*i->first/total) % (i->second.first.toLogString()+"|"+DNSRecordContent::NumberToType(i->second.second));
       accounted+= -i->first;
     }
     ret<< '\n' << fmt % (100.0*(total-accounted)/total) % "rest";
