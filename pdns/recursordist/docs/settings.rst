@@ -1196,6 +1196,21 @@ Query example (where 192.0.2.14 is your server):
 PowerDNS can change its user and group id after binding to its socket.
 Can be used for better :doc:`security <security>`.
 
+.. _setting-signature-inception-skew:
+
+``signature-inception-skew``
+----------------------------------
+.. versionadded:: 4.1.5
+
+-  Integer
+-  Default: 60
+
+Allow the signature inception to be off by this number of seconds. Negative values are not allowed.
+
+.. versionchanged:: 4.2.0
+
+    Default is now 60, was 0 before.
+
 .. _setting-single-socket:
 
 ``single-socket``
