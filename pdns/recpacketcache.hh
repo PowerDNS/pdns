@@ -50,10 +50,8 @@ class RecursorPacketCache
 {
 public:
   RecursorPacketCache();
-  bool getResponsePacket(unsigned int tag, const std::string& queryPacket, time_t now, std::string* responsePacket, uint32_t* age);
-  void insertResponsePacket(unsigned int tag, const DNSName& qname, uint16_t qtype, const std::string& queryPacket, const std::string& responsePacket, time_t now, uint32_t ttd);
   bool getResponsePacket(unsigned int tag, const std::string& queryPacket, time_t now, std::string* responsePacket, uint32_t* age, RecProtoBufMessage* protobufMessage);
-  void insertResponsePacket(unsigned int tag, const DNSName& qname, uint16_t qtype, const std::string& queryPacket, const std::string& responsePacket, time_t now, uint32_t ttd, const RecProtoBufMessage* protobufMessage);
+  void insertResponsePacket(unsigned int tag, const DNSName& qname, uint16_t qtype, uint16_t qclass, const std::string& queryPacket, const std::string& responsePacket, time_t now, uint32_t ttd, const RecProtoBufMessage* protobufMessage);
   void doPruneTo(unsigned int maxSize=250000);
   uint64_t doDump(int fd);
   int doWipePacketCache(const DNSName& name, uint16_t qtype=0xffff, bool subtree=false);
@@ -68,16 +66,21 @@ private:
   struct NameTag {};
   struct Entry 
   {
-    mutable uint32_t d_ttd;
-    mutable uint32_t d_creation; // so we can 'age' our packets
     DNSName d_name;
-    uint16_t d_type;
     mutable std::string d_packet; // "I know what I am doing"
+    mutable std::string d_query;
 #ifdef HAVE_PROTOBUF
     mutable RecProtoBufMessage d_protobufMessage;
 #endif
+    mutable uint32_t d_ttd;
+    mutable uint32_t d_creation; // so we can 'age' our packets
     uint32_t d_qhash;
     uint32_t d_tag;
+    mutable uint16_t d_ecsBegin;
+    mutable uint16_t d_ecsEnd;
+    uint16_t d_type;
+    uint16_t d_class;
+
     inline bool operator<(const struct Entry& rhs) const;
     
     uint32_t getTTD() const
@@ -85,7 +88,7 @@ private:
       return d_ttd;
     }
   };
-  uint32_t canHashPacket(const std::string& origPacket);
+
   typedef multi_index_container<
     Entry,
     indexed_by  <
@@ -96,6 +99,11 @@ private:
   > packetCache_t;
   
   packetCache_t d_packetCache;
+
+public:
+  static bool queryMatches(const std::string& cachedQuery, const std::string& query, const DNSName& qname, uint16_t ecsBegin, uint16_t ecsEnd);
+  static bool qrMatch(const packetCache_t::index<HashTag>::type::iterator& iter, const std::string& queryPacket, uint16_t ecsBegin, uint16_t ecsEnd);
+  static uint32_t canHashPacket(const std::string& origPacket, uint16_t* ecsBegin, uint16_t* ecsEnd);
 };
 
 #endif

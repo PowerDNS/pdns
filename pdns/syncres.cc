@@ -124,6 +124,8 @@ SyncRes::SyncRes(const struct timeval& now) :  d_outqueries(0), d_tcpoutqueries(
 /** everything begins here - this is the entry point just after receiving a packet */
 int SyncRes::beginResolve(const DNSName &qname, const QType &qtype, uint16_t qclass, vector<DNSRecord>&ret)
 {
+  /* rfc6895 section 3.1 + RRSIG and NSEC3 */
+  static const std::set<uint16_t> metaTypes = { QType::AXFR, QType::IXFR, QType::RRSIG, QType::NSEC3, QType::OPT, QType::TSIG, QType::TKEY, QType::MAILA, QType::MAILB };
   s_queries++;
   d_wasVariable=false;
   d_wasOutOfBand=false;
@@ -170,6 +172,10 @@ int SyncRes::beginResolve(const DNSName &qname, const QType &qtype, uint16_t qcl
     ret.push_back(dr);
     d_wasOutOfBand=true;
     return 0;
+  }
+
+  if (metaTypes.count(qtype.getCode())) {
+    return -1;
   }
 
   if(qclass==QClass::ANY)
@@ -390,7 +396,7 @@ int SyncRes::asyncresolveWrapper(const ComboAddress& ip, bool wantsEDNS, const D
       return ret;
     }
     else if(mode==EDNSStatus::UNKNOWN || mode==EDNSStatus::EDNSOK || mode == EDNSStatus::EDNSIGNORANT ) {
-      if(res->d_rcode == RCode::FormErr || res->d_rcode == RCode::NotImp)  {
+      if(!res->d_haveEDNS && (res->d_rcode == RCode::FormErr || res->d_rcode == RCode::NotImp)) {
 	//	cerr<<"Downgrading to NOEDNS because of "<<RCode::to_s(res->d_rcode)<<" for query to "<<ip.toString()<<" for '"<<domain<<"'"<<endl;
         mode = EDNSStatus::NOEDNS;
         continue;
