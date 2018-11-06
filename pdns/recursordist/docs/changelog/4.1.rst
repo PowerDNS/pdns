@@ -13,19 +13,19 @@ Changelogs for 4.1.x
 
   .. change::
     :tags: Bug Fixes
-    :pullreq: XXXX
+    :pullreq: 7151
 
     Crafted answer can cause a denial of service (CVE-2018-10851, PowerDNS Security Advisory :doc:`2018-04 <../security-advisories/powerdns-advisory-2018-04>`)
 
   .. change::
     :tags: Bug Fixes
-    :pullreq: XXXX
+    :pullreq: 7151
 
     Packet cache pollution via crafted query (CVE-2018-14626, PowerDNS Security Advisory :doc:`2018-06 <../security-advisories/powerdns-advisory-2018-06>`)
 
   .. change::
     :tags: Bug Fixes
-    :pullreq: XXXX
+    :pullreq: 7151
 
     Crafted query for meta-types can cause a denial of service (CVE-2018-14644, PowerDNS Security Advisory :doc:`2018-07 <../security-advisories/powerdns-advisory-2018-07>`)
 

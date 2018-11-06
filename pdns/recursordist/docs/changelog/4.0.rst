@@ -17,9 +17,9 @@ This release fixes the following security advisories:
 Bug fixes
 ^^^^^^^^^
 
-- `#XXXX <https://github.com/PowerDNS/pdns/pull/XXXX>`__: Crafted answer can cause a denial of service (CVE-2018-10851)
-- `#XXXX <https://github.com/PowerDNS/pdns/pull/XXXX>`__: Packet cache pollution via crafted query (CVE-2018-14626)
-- `#XXXX <https://github.com/PowerDNS/pdns/pull/XXXX>`__: Crafted query for meta-types can cause a denial of service (CVE-2018-14644)
+- `#7152 <https://github.com/PowerDNS/pdns/pull/7152>`__: Crafted answer can cause a denial of service (CVE-2018-10851)
+- `#7152 <https://github.com/PowerDNS/pdns/pull/7152>`__: Packet cache pollution via crafted query (CVE-2018-14626)
+- `#7152 <https://github.com/PowerDNS/pdns/pull/7152>`__: Crafted query for meta-types can cause a denial of service (CVE-2018-14644)
 
 PowerDNS Recursor 4.0.8
 -----------------------

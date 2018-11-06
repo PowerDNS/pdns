@@ -12,13 +12,13 @@ Changelogs for 4.1.x
 
   .. change::
     :tags: Bug Fixes
-    :pullreq: XXXX
+    :pullreq: 7149
 
     Crafted zone record can cause a denial of service (CVE-2018-10851, PowerDNS Security Advisory :doc:`2018-03 <../security-advisories/powerdns-advisory-2018-03>`)
 
   .. change::
     :tags: Bug Fixes
-    :pullreq: XXXX
+    :pullreq: 7149
 
     Packet cache pollution via crafted query (CVE-2018-14626, PowerDNS Security Advisory :doc:`2018-05 <../security-advisories/powerdns-advisory-2018-05>`)
 
