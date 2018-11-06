@@ -300,10 +300,9 @@ bool TinyDNSBackend::get(DNSResourceRecord &rr)
         dr.d_type = rr.qtype.getCode();
         dr.d_clen = val.size()-pr.d_pos;
 
-        DNSRecordContent *drc = DNSRecordContent::mastermake(dr, pr);
+        auto drc = DNSRecordContent::mastermake(dr, pr);
         rr.content = drc->getZoneRepresentation();
         DLOG(cerr<<"CONTENT: "<<rr.content<<endl);
-        delete drc;
       }
       catch (...) {
         if (d_ignorebogus) {

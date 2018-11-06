@@ -35,7 +35,7 @@ GlobalStateHolder<LuaConfigItems> g_luaconfs;
 LuaConfigItems::LuaConfigItems()
 {
   for (const auto &dsRecord : rootDSs) {
-    auto ds=unique_ptr<DSRecordContent>(dynamic_cast<DSRecordContent*>(DSRecordContent::make(dsRecord)));
+    auto ds=std::dynamic_pointer_cast<DSRecordContent>(DSRecordContent::make(dsRecord));
     dsAnchors[DNSName(".")].insert(*ds);
   }
 }
@@ -234,7 +234,7 @@ void loadRecursorLuaConfig(const std::string& fname)
 
   Lua.writeFunction("addDS", [&lci](const std::string& who, const std::string& what) {
       DNSName zone(who);
-      auto ds = unique_ptr<DSRecordContent>(dynamic_cast<DSRecordContent*>(DSRecordContent::make(what)));
+      auto ds=std::dynamic_pointer_cast<DSRecordContent>(DSRecordContent::make(what));
       lci.dsAnchors[zone].insert(*ds);
   });
 

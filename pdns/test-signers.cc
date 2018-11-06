@@ -33,7 +33,7 @@ BOOST_AUTO_TEST_CASE(test_ed25519_signer) {
 
     reportBasicTypes();
 
-    rrs.push_back(DNSRecordContent::makeunique(QType::MX, 1, "10 mail.example.com."));
+    rrs.push_back(DNSRecordContent::mastermake(QType::MX, 1, "10 mail.example.com."));
 
     RRSIGRecordContent rrc;
     rrc.d_originalttl = 3600;
@@ -76,7 +76,7 @@ BOOST_AUTO_TEST_CASE(test_ed448_signer) {
 
     reportBasicTypes();
 
-    rrs.push_back(DNSRecordContent::makeunique(QType::MX, 1, "10 mail.example.com."));
+    rrs.push_back(DNSRecordContent::mastermake(QType::MX, 1, "10 mail.example.com."));
 
     RRSIGRecordContent rrc;
     rrc.d_originalttl = 3600;
