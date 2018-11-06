@@ -512,6 +512,8 @@ fi
 
 %files backend-ldap
 %{_libdir}/%{name}/libldapbackend.so
+%doc %{_defaultdocdir}/%{name}/dnsdomain2.schema
+%doc %{_defaultdocdir}/%{name}/pdns-domaininfo.schema
 
 %files backend-lua
 %{_libdir}/%{name}/libluabackend.so
