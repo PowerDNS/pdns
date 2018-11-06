@@ -27,6 +27,17 @@ void usage() {
   cerr<<"Syntax: sdig IP-ADDRESS PORT QUESTION QUESTION-TYPE [dnssec] [recurse] [showflags] [hidesoadetails] [hidettl] [tcp] [ednssubnet SUBNET/MASK] [xpf XPFDATA]"<<endl;
 }
 
+const string nameForClass(uint16_t qclass)
+{
+  switch(qclass) {
+    case QClass::IN:    return "IN";
+    case QClass::CHAOS: return "CHAOS";
+    case QClass::NONE:  return "NONE";
+    case QClass::ANY:   return "ANY";
+    default:            return string("CLASS")+std::to_string(qclass);
+  }
+}
+
 int main(int argc, char** argv)
 try
 {
@@ -182,7 +193,7 @@ try
   cout<<", TC: "<<mdp.d_header.tc<<", AA: "<<mdp.d_header.aa<<", opcode: "<<mdp.d_header.opcode<<endl;
 
   for(MOADNSParser::answers_t::const_iterator i=mdp.d_answers.begin(); i!=mdp.d_answers.end(); ++i) {          
-    cout<<i->first.d_place-1<<"\t"<<i->first.d_name.toString()<<"\tIN\t"<<DNSRecordContent::NumberToType(i->first.d_type);
+    cout<<i->first.d_place-1<<"\t"<<i->first.d_name.toString()<<"\t"<<nameForClass(i->first.d_class)<<"\t"<<DNSRecordContent::NumberToType(i->first.d_type);
     if(i->first.d_type == QType::RRSIG) 
     {
       string zoneRep = i->first.d_content->getZoneRepresentation();
