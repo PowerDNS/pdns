@@ -1150,6 +1150,7 @@ testrunner_SOURCES = \
 	dnssecsigner.cc \
 	dnswriter.cc \
 	ednsoptions.cc ednsoptions.hh \
+	ednscookies.cc ednscookies.hh \
 	ednssubnet.cc \
 	gettime.cc gettime.hh \
 	gss_context.cc gss_context.hh \
@@ -1186,6 +1187,7 @@ testrunner_SOURCES = \
 	test-nameserver_cc.cc \
 	test-nmtree.cc \
 	test-packetcache_cc.cc \
+	test-packetcache_hh.cc \
 	test-rcpgenerator_cc.cc \
 	test-signers.cc \
 	test-sha_hh.cc \
