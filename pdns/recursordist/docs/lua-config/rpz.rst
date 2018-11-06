@@ -43,7 +43,7 @@ In this example, 'policy.rpz' denotes the name of the zone to query for.
 
   Load an RPZ from AXFR and keep retrieving with IXFR.
 
-  :param str address: The IP address to transfer the RPZ from. Also accepts a list of addresses since 4.2.0 in which case they will be tried one after another in the submitted order until a response is obtained
+  :param str address: The IP address to transfer the RPZ from. Also accepts a list of addresses since 4.2.0 in which case they will be tried one after another in the submitted order until a response is obtained. List of IP shall be wrapped in ``{}`` and have ``""`` around each IP block. IP list format ex: ``{"3.3.3.3","4.4.4.4"}``
   :param str name: The name of this RPZ
   :param {} settings: A table to settings, see below
 
