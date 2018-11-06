@@ -91,7 +91,7 @@ static int processDOHQuery(DOHUnit* du)
     uint16_t qtype, qclass;
     unsigned int consumed = 0;
     DNSName qname(query, len, sizeof(dnsheader), false, &qtype, &qclass, &consumed);
-    DNSQuestion dq(&qname, qtype, qclass, &du->dest, &du->remote, dh, 1500, len, false, &queryRealTime);
+    DNSQuestion dq(&qname, qtype, qclass, consumed, &du->dest, &du->remote, dh, 1500, len, false, &queryRealTime);
     dq.du = du;
     queryId = ntohs(dh->id);
     if (!processQuery(holders, dq, poolname, &delayMsec, now))
@@ -105,7 +105,7 @@ static int processDOHQuery(DOHUnit* du)
       char* response = query;
       uint16_t responseLen = dq.len;
       
-      DNSResponse dr(dq.qname, dq.qtype, dq.qclass, dq.local, dq.remote, reinterpret_cast<dnsheader*>(response), dq.size, responseLen, false, &queryRealTime);
+      DNSResponse dr(dq.qname, dq.qtype, dq.qclass, consumed, dq.local, dq.remote, reinterpret_cast<dnsheader*>(response), dq.size, responseLen, false, &queryRealTime);
 #ifdef HAVE_PROTOBUF
       dr.uniqueId = dq.uniqueId;
 #endif
@@ -143,7 +143,7 @@ static int processDOHQuery(DOHUnit* du)
     bool ednsAdded = false;
     bool ecsAdded = false;
     if (dq.useECS && ((ss && ss->useECS) || (!ss && serverPool->getECS()))) {
-      if (!handleEDNSClientSubnet(query, dq.size, consumed, &dq.len, &(ednsAdded), &(ecsAdded), du->remote, dq.ecsOverride, dq.ecsPrefixLength)) {
+      if (!handleEDNSClientSubnet(dq, &ednsAdded, &ecsAdded)) {
         vinfolog("Dropping query from %s because we couldn't insert the ECS value", du->remote.toStringWithPort());
         
         return -1;
@@ -156,7 +156,7 @@ static int processDOHQuery(DOHUnit* du)
       uint32_t allowExpired = ss ? 0 : g_staleCacheEntriesTTL;
       boost::optional<Netmask> subnet;
       if (packetCache->get(dq, consumed, dh->id, query, &cachedResponseSize, &cacheKey, subnet, allowExpired)) {
-        DNSResponse dr(dq.qname, dq.qtype, dq.qclass, dq.local, dq.remote, reinterpret_cast<dnsheader*>(query), dq.size, cachedResponseSize, false, &queryRealTime);
+        DNSResponse dr(dq.qname, dq.qtype, dq.qclass, consumed, dq.local, dq.remote, reinterpret_cast<dnsheader*>(query), dq.size, cachedResponseSize, false, &queryRealTime);
 #ifdef HAVE_PROTOBUF
         dr.uniqueId = dq.uniqueId;
 #endif
@@ -189,7 +189,7 @@ static int processDOHQuery(DOHUnit* du)
         dq.dh->rcode = RCode::ServFail;
         dq.dh->qr = true;
 
-        DNSResponse dr(dq.qname, dq.qtype, dq.qclass, dq.local, dq.remote, reinterpret_cast<dnsheader*>(response), dq.size, responseLen, false, &queryRealTime);
+        DNSResponse dr(dq.qname, dq.qtype, dq.qclass, consumed, dq.local, dq.remote, reinterpret_cast<dnsheader*>(response), dq.size, responseLen, false, &queryRealTime);
 #ifdef HAVE_PROTOBUF
         dr.uniqueId = dq.uniqueId;
 #endif
