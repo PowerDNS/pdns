@@ -337,4 +337,9 @@ DNSProtoBufMessage::DNSProtoBufMessage(DNSProtoBufMessageType type, const boost:
   setQuestion(domain, qtype, qclass);
 }
 
+void DNSProtoBufMessage::copyFrom(const DNSProtoBufMessage& msg)
+{
+  d_message.CopyFrom(msg.d_message);
+}
+
 #endif /* HAVE_PROTOBUF */

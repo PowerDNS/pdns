@@ -92,7 +92,7 @@ void primeHints(void)
 LuaConfigItems::LuaConfigItems()
 {
   for (const auto &dsRecord : rootDSs) {
-    auto ds=unique_ptr<DSRecordContent>(dynamic_cast<DSRecordContent*>(DSRecordContent::make(dsRecord)));
+    auto ds=std::dynamic_pointer_cast<DSRecordContent>(DSRecordContent::make(dsRecord));
     dsAnchors[g_rootdnsname].insert(*ds);
   }
 }
@@ -154,7 +154,7 @@ static void init(bool debug=false)
   luaconfsCopy.dfe.clear();
   luaconfsCopy.dsAnchors.clear();
   for (const auto &dsRecord : rootDSs) {
-    auto ds=unique_ptr<DSRecordContent>(dynamic_cast<DSRecordContent*>(DSRecordContent::make(dsRecord)));
+    auto ds=std::dynamic_pointer_cast<DSRecordContent>(DSRecordContent::make(dsRecord));
     luaconfsCopy.dsAnchors[g_rootdnsname].insert(*ds);
   }
   luaconfsCopy.negAnchors.clear();
@@ -615,6 +615,54 @@ BOOST_AUTO_TEST_CASE(test_edns_formerr_fallback) {
   BOOST_CHECK_EQUAL(queriesWithoutEDNS, 1);
   BOOST_CHECK_EQUAL(SyncRes::getEDNSStatusesSize(), 1);
   BOOST_CHECK_EQUAL(SyncRes::getEDNSStatus(noEDNSServer), SyncRes::EDNSStatus::NOEDNS);
+}
+
+BOOST_AUTO_TEST_CASE(test_edns_formerr_but_edns_enabled) {
+  std::unique_ptr<SyncRes> sr;
+  initSR(sr);
+
+  /* in this test, the auth answers with FormErr to an EDNS-enabled
+     query, but the response does contain EDNS so we should not mark
+     it as EDNS ignorant or intolerant.
+  */
+  size_t queriesWithEDNS = 0;
+  size_t queriesWithoutEDNS = 0;
+  std::set<ComboAddress> usedServers;
+
+  sr->setAsyncCallback([&queriesWithEDNS, &queriesWithoutEDNS, &usedServers](const ComboAddress& ip, const DNSName& domain, int type, bool doTCP, bool sendRDQuery, int EDNS0Level, struct timeval* now, boost::optional<Netmask>& srcmask, boost::optional<const ResolveContext&> context, LWResult* res, bool* chained) {
+
+      if (EDNS0Level > 0) {
+        queriesWithEDNS++;
+      }
+      else {
+        queriesWithoutEDNS++;
+      }
+      usedServers.insert(ip);
+
+      if (type == QType::DNAME) {
+        setLWResult(res, RCode::FormErr);
+        if (EDNS0Level > 0) {
+          res->d_haveEDNS = true;
+        }
+        return 1;
+      }
+
+      return 0;
+    });
+
+  primeHints();
+
+  vector<DNSRecord> ret;
+  int res = sr->beginResolve(DNSName("powerdns.com."), QType(QType::DNAME), QClass::IN, ret);
+  BOOST_CHECK_EQUAL(res, RCode::ServFail);
+  BOOST_CHECK_EQUAL(ret.size(), 0);
+  BOOST_CHECK_EQUAL(queriesWithEDNS, 26);
+  BOOST_CHECK_EQUAL(queriesWithoutEDNS, 0);
+  BOOST_CHECK_EQUAL(SyncRes::getEDNSStatusesSize(), 26);
+  BOOST_CHECK_EQUAL(usedServers.size(), 26);
+  for (const auto& server : usedServers) {
+    BOOST_CHECK_EQUAL(SyncRes::getEDNSStatus(server), SyncRes::EDNSStatus::EDNSOK);
+  }
 }
 
 BOOST_AUTO_TEST_CASE(test_tc_fallback_to_tcp) {
