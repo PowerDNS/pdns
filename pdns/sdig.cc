@@ -27,8 +27,10 @@ void usage() {
   cerr<<"Syntax: sdig IP-ADDRESS PORT QUESTION QUESTION-TYPE [dnssec] [recurse] [showflags] [hidesoadetails] [hidettl] [tcp] [ednssubnet SUBNET/MASK] [xpf XPFDATA]"<<endl;
 }
 
-const string nameForClass(uint16_t qclass)
+const string nameForClass(uint16_t qclass, uint16_t qtype)
 {
+  if (qtype == QType::OPT) return "IN";
+
   switch(qclass) {
     case QClass::IN:    return "IN";
     case QClass::CHAOS: return "CHAOS";
@@ -193,43 +195,46 @@ try
   cout<<", TC: "<<mdp.d_header.tc<<", AA: "<<mdp.d_header.aa<<", opcode: "<<mdp.d_header.opcode<<endl;
 
   for(MOADNSParser::answers_t::const_iterator i=mdp.d_answers.begin(); i!=mdp.d_answers.end(); ++i) {          
-    cout<<i->first.d_place-1<<"\t"<<i->first.d_name.toString()<<"\t"<<nameForClass(i->first.d_class)<<"\t"<<DNSRecordContent::NumberToType(i->first.d_type);
-    if(i->first.d_type == QType::RRSIG) 
+    cout<<i->first.d_place-1<<"\t"<<i->first.d_name.toString()<<"\t"<<nameForClass(i->first.d_class, i->first.d_type)<<"\t"<<DNSRecordContent::NumberToType(i->first.d_type);
+    if(i->first.d_class == QClass::IN)
     {
-      string zoneRep = i->first.d_content->getZoneRepresentation();
-      vector<string> parts;
-      stringtok(parts, zoneRep);
-      cout<<"\t"<<ttl(i->first.d_ttl)<<"\t"<< parts[0]<<" "<<parts[1]<<" "<<parts[2]<<" "<<parts[3]<<" [expiry] [inception] [keytag] "<<parts[7]<<" ...\n";
+      if(i->first.d_type == QType::RRSIG) 
+      {
+        string zoneRep = i->first.d_content->getZoneRepresentation();
+        vector<string> parts;
+        stringtok(parts, zoneRep);
+        cout<<"\t"<<ttl(i->first.d_ttl)<<"\t"<< parts[0]<<" "<<parts[1]<<" "<<parts[2]<<" "<<parts[3]<<" [expiry] [inception] [keytag] "<<parts[7]<<" ...\n";
+        continue;
+      }
+      if(!showflags && i->first.d_type == QType::NSEC3)
+      {
+        string zoneRep = i->first.d_content->getZoneRepresentation();
+        vector<string> parts;
+        stringtok(parts, zoneRep);
+        cout<<"\t"<<ttl(i->first.d_ttl)<<"\t"<< parts[0]<<" [flags] "<<parts[2]<<" "<<parts[3]<<" "<<parts[4];
+        for(vector<string>::iterator iter = parts.begin()+5; iter != parts.end(); ++iter)
+          cout<<" "<<*iter;
+        cout<<"\n";
+        continue;
+      }
+      if(i->first.d_type == QType::DNSKEY)
+      {
+        string zoneRep = i->first.d_content->getZoneRepresentation();
+        vector<string> parts;
+        stringtok(parts, zoneRep);
+        cout<<"\t"<<ttl(i->first.d_ttl)<<"\t"<< parts[0]<<" "<<parts[1]<<" "<<parts[2]<<" ...\n";
+        continue;
+      }
+      if (i->first.d_type == QType::SOA && hidesoadetails)
+      {
+        string zoneRep = i->first.d_content->getZoneRepresentation();
+        vector<string> parts;
+        stringtok(parts, zoneRep);
+        cout<<"\t"<<ttl(i->first.d_ttl)<<"\t"<<parts[0]<<" "<<parts[1]<<" [serial] "<<parts[3]<<" "<<parts[4]<<" "<<parts[5]<<" "<<parts[6]<<"\n";
+        continue;
+      }
     }
-    else if(!showflags && i->first.d_type == QType::NSEC3)
-    {
-      string zoneRep = i->first.d_content->getZoneRepresentation();
-      vector<string> parts;
-      stringtok(parts, zoneRep);
-      cout<<"\t"<<ttl(i->first.d_ttl)<<"\t"<< parts[0]<<" [flags] "<<parts[2]<<" "<<parts[3]<<" "<<parts[4];
-      for(vector<string>::iterator iter = parts.begin()+5; iter != parts.end(); ++iter)
-        cout<<" "<<*iter;
-      cout<<"\n";
-    }
-    else if(i->first.d_type == QType::DNSKEY)
-    {
-      string zoneRep = i->first.d_content->getZoneRepresentation();
-      vector<string> parts;
-      stringtok(parts, zoneRep);
-      cout<<"\t"<<ttl(i->first.d_ttl)<<"\t"<< parts[0]<<" "<<parts[1]<<" "<<parts[2]<<" ...\n";
-    }
-    else if (i->first.d_type == QType::SOA && hidesoadetails)
-    {
-      string zoneRep = i->first.d_content->getZoneRepresentation();
-      vector<string> parts;
-      stringtok(parts, zoneRep);
-      cout<<"\t"<<ttl(i->first.d_ttl)<<"\t"<<parts[0]<<" "<<parts[1]<<" [serial] "<<parts[3]<<" "<<parts[4]<<" "<<parts[5]<<" "<<parts[6]<<"\n";
-    }
-    else
-    {
-      cout<<"\t"<<ttl(i->first.d_ttl)<<"\t"<< i->first.d_content->getZoneRepresentation()<<"\n";
-    }
-
+    cout<<"\t"<<ttl(i->first.d_ttl)<<"\t"<< i->first.d_content->getZoneRepresentation()<<"\n";
   }
 
   EDNSOpts edo;
