@@ -28,6 +28,10 @@ To slave from a master and start IXFR to get updates, use for example:
 
 In this example, 'policy.rpz' denotes the name of the zone to query for.
 
+As of .. versionchanged:: 4.2.0: you can add IP blocks into the rpzMaster as:
+
+    rpzMaster({"192.0.2.4","192.0.2.5"}, "policy.rpz", {defpol=Policy.Drop})
+    
 .. function:: rpzFile(filename, settings)
 
   Load an RPZ from disk.
@@ -43,7 +47,7 @@ In this example, 'policy.rpz' denotes the name of the zone to query for.
 
   Load an RPZ from AXFR and keep retrieving with IXFR.
 
-  :param str address: The IP address to transfer the RPZ from. Also accepts a list of addresses since 4.2.0 in which case they will be tried one after another in the submitted order until a response is obtained. List of IP shall be wrapped in ``{}`` and have ``""`` around each IP block. IP list format ex: ``{"3.3.3.3","4.4.4.4"}``
+  :param str address: The IP address to transfer the RPZ from. Also accepts a list of addresses since 4.2.0 in which case they will be tried one after another in the submitted order until a response is obtained.
   :param str name: The name of this RPZ
   :param {} settings: A table to settings, see below
 
