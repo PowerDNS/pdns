@@ -71,6 +71,10 @@ tcp-in-threads: 10
 #
 # gid: ixfrdist
 
+# The IP address and port where the webserver should listen
+#
+webserver-address: 127.0.0.1:8080
+
 # The domains to redistribute, the 'master' and 'domains' keys are mandatory.
 # When no port is specified, 53 is used. When specifying ports for IPv6, use the
 # "bracket" notation:

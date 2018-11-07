@@ -44,6 +44,7 @@
 #include "iputils.hh"
 #include "logger.hh"
 #include "ixfrdist-stats.hh"
+#include "ixfrdist-web.hh"
 #include <yaml-cpp/yaml.h>
 
 /* BEGIN Needed because of deeper dependencies */
@@ -139,6 +140,11 @@ static NetmaskGroup g_acl;
 static bool g_compress = false;
 
 static ixfrdistStats g_stats;
+
+// g_stats is static, so local to this file. But the webserver needs this info
+string doGetStats() {
+  return g_stats.getStats();
+}
 
 static void handleSignal(int signum) {
   g_log<<Logger::Notice<<"Got "<<strsignal(signum)<<" signal";
@@ -1068,6 +1074,16 @@ static bool parseAndCheckConfig(const string& configpath, YAML::Node& config) {
     config["compress"] = false;
   }
 
+  if (config["webserver-address"]) {
+    try {
+      config["webserver-address"].as<ComboAddress>();
+    }
+    catch (const runtime_error &e) {
+      g_log<<Logger::Error<<"Unable to read 'webserver-address' value: "<<e.what()<<endl;
+      retval = false;
+    }
+  }
+
   return retval;
 }
 
@@ -1196,6 +1212,11 @@ int main(int argc, char** argv) {
       g_log<<Logger::Error<<"Could not set group id to "<<newgid<<": "<<stringerror()<<endl;
       had_error = true;
     }
+  }
+
+  if (config["webserver-address"]) {
+    auto ws = IXFRDistWebServer(config["webserver-address"].as<ComboAddress>());
+    ws.go();
   }
 
   int newuid = 0;
