@@ -361,6 +361,12 @@ void DNSDistPacketCache::expunge(size_t upTo)
 
 void DNSDistPacketCache::expungeByName(const DNSName& name, uint16_t qtype, bool suffixMatch)
 {
+  const std::vector<DNSName> names = {name};
+  expungeByNames(names, qtype, suffixMatch);
+}
+
+void DNSDistPacketCache::expungeByNames(const std::vector<DNSName> names, uint16_t qtype, bool suffixMatch)
+{
   for (uint32_t shardIndex = 0; shardIndex < d_shardCount; shardIndex++) {
     WriteLock w(&d_shards.at(shardIndex).d_lock);
     auto& map = d_shards[shardIndex].d_map;
@@ -368,11 +374,13 @@ void DNSDistPacketCache::expungeByName(const DNSName& name, uint16_t qtype, bool
     for(auto it = map.begin(); it != map.end(); ) {
       const CacheValue& value = it->second;
 
-      if ((value.qname == name || (suffixMatch && value.qname.isPartOf(name))) && (qtype == QType::ANY || qtype == value.qtype)) {
-        it = map.erase(it);
-        d_shards[shardIndex].d_entriesCount--;
-      } else {
-        ++it;
+      for (auto name : names) {
+        if ((value.qname == name || (suffixMatch && value.qname.isPartOf(name))) && (qtype == QType::ANY || qtype == value.qtype)) {
+          it = map.erase(it);
+          d_shards[shardIndex].d_entriesCount--;
+        } else {
+          ++it;
+        }
       }
     }
   }

@@ -38,6 +38,7 @@ public:
   void purgeExpired(size_t upTo=0);
   void expunge(size_t upTo=0);
   void expungeByName(const DNSName& name, uint16_t qtype=QType::ANY, bool suffixMatch=false);
+  void expungeByNames(const std::vector<DNSName> names, uint16_t qtype=QType::ANY, bool suffixMatch=false);
   bool isFull();
   string toString();
   uint64_t getSize();

@@ -236,6 +236,19 @@ void setupLuaBindings(bool client)
                   cache->expungeByName(dname, qtype ? *qtype : QType::ANY, suffixMatch ? *suffixMatch : false);
                 }
     });
+  g_lua.registerFunction<void(std::shared_ptr<DNSDistPacketCache>::*)(const std::vector<std::pair<int,DNSName>> dnames, boost::optional<uint16_t> qtype, boost::optional<bool> suffixMatch)>("expungeByName", [](
+              std::shared_ptr<DNSDistPacketCache> cache,
+              const std::vector<std::pair<int, DNSName>> dnames,
+              boost::optional<uint16_t> qtype,
+              boost::optional<bool> suffixMatch) {
+                if (cache) {
+                  std::vector<DNSName> names;
+                  for (auto dname : dnames) {
+                    names.push_back(dname.second);
+                  }
+                  cache->expungeByNames(names, qtype ? *qtype : QType::ANY, suffixMatch ? *suffixMatch : false);
+                }
+    });
   g_lua.registerFunction<void(std::shared_ptr<DNSDistPacketCache>::*)()>("printStats", [](const std::shared_ptr<DNSDistPacketCache> cache) {
       if (cache) {
         g_outputBuffer="Entries: " + std::to_string(cache->getEntriesCount()) + "/" + std::to_string(cache->getMaxEntries()) + "\n";
