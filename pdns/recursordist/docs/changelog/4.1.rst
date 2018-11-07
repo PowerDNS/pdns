@@ -2,6 +2,19 @@ Changelogs for 4.1.x
 ====================
 
 .. changelog::
+  :version: 4.1.6
+  :released: 7th of November 2018
+
+  This release reverts `#6980 <https://github.com/PowerDNS/pdns/pull/6980>`__, it could lead to DNSSEC validation issues.
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 7159
+    :tickets: 7158
+
+    Revert "rec: Authority records in AA=1 CNAME answer are authoritative".
+
+.. changelog::
   :version: 4.1.5
   :released: 6th of November 2018
 
