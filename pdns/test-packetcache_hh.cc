@@ -166,6 +166,38 @@ BOOST_AUTO_TEST_CASE(test_PacketCacheAuthCollision) {
   }
 }
 
+BOOST_AUTO_TEST_CASE(test_PacketCacheRecSimple) {
+
+  const DNSName qname("www.powerdns.com.");
+  uint16_t qtype = QType::AAAA;
+  EDNSSubnetOpts opt;
+  DNSPacketWriter::optvect_t ednsOptions;
+  uint16_t ecsBegin;
+  uint16_t ecsEnd;
+
+  {
+    vector<uint8_t> packet;
+    DNSPacketWriter pw1(packet, qname, qtype);
+    pw1.getHeader()->rd = true;
+    pw1.getHeader()->qr = false;
+    pw1.getHeader()->id = 0x42;
+    pw1.addOpt(512, 0, 0);
+    pw1.commit();
+
+    string spacket1((const char*)&packet[0], packet.size());
+    /* set the RD length to a large value */
+    unsigned char* ptr = reinterpret_cast<unsigned char*>(&spacket1.at(sizeof(dnsheader) + qname.wirelength() + /* qtype and qclass */ 4 + /* OPT root label (1), type (2), class (2) and ttl (4) */ 9));
+    *ptr = 255;
+    *(ptr + 1) = 255;
+    /* truncate the end of the OPT header to try to trigger an out of bounds read */
+    spacket1.resize(spacket1.size() - 6);
+    PacketCache::canHashPacket(spacket1, &ecsBegin, &ecsEnd);
+    /* no ECS */
+    BOOST_CHECK_EQUAL(ecsBegin, 0);
+    BOOST_CHECK_EQUAL(ecsEnd, 0);
+  }
+}
+
 BOOST_AUTO_TEST_CASE(test_PacketCacheRecCollision) {
 
   /* rec version (ECS is processed, we hash the whole query except for the ID and the ECS value, while lowercasing the qname) */
