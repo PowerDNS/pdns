@@ -66,7 +66,6 @@ static int processDOHQuery(DOHUnit* du)
   try {
     DOHServerConfig* dsc = (DOHServerConfig*)du->req->conn->ctx->storage.entries[0].data;
     ClientState& cs = dsc->cs;
-
     
     /* we need an accurate ("real") value for the response and
        to store into the IDS, but not for insertion into the
@@ -200,10 +199,13 @@ static int processDOHQuery(DOHUnit* du)
         }
 
         du->query = std::string(response, responseLen);
+        // g_logstream<<(void*)du<<" send " << __LINE__<< endl;        
         send(du->rsock, &du, sizeof(du), 0);
 
         // no response-only statistics counter to update.
         doLatencyStats(0);  // we're not going to measure this
+        vinfolog("%s query for %s|%s from %s, no policy applied", g_servFailOnNoPolicy ? "ServFailed" : "Dropped", dq.qname->toString(), QType(dq.qtype).getName(), du->remote.toStringWithPort());
+        return 0;
       }
 
       vinfolog("%s query for %s|%s from %s, no policy applied", g_servFailOnNoPolicy ? "ServFailed" : "Dropped", dq.qname->toString(), QType(dq.qtype).getName(), du->remote.toStringWithPort());
@@ -303,7 +305,9 @@ static h2o_pathconf_t *register_handler(h2o_hostconf_t *hostconf, const char *pa
    For POST, the payload is the payload.
  */
 static int doh_handler(h2o_handler_t *self, h2o_req_t *req)
+try
 {
+  // g_logstream<<(void*)req<<" doh_handler"<<endl;
   if(!req->conn->ctx->storage.size) {
     return 0; // although we might was well crash on this
   }
@@ -387,6 +391,11 @@ static int doh_handler(h2o_handler_t *self, h2o_req_t *req)
     h2o_send_error_400(req, "Bad Request", "dnsdist " VERSION " could not parse your request", 0);
     dsc->df->d_badrequests++;
   }
+  return 0;
+}
+catch(exception& e)
+{
+  cerr<<"DOH Handler function failed with error "<<e.what()<<endl;
   return 0;
 }
 
@@ -619,6 +628,7 @@ try
   }
 
   std::thread dnsdistThread(dnsdistclient, dsc->dohquerypair[1], dsc->dohresponsepair[0]);
+  dnsdistThread.detach(); // gets us better error reporting
 
   //  h2o_access_log_filehandle_t *logfh = h2o_access_log_open_handle("/dev/stdout", NULL, H2O_LOGCONF_ESCAPE_APACHE);
 
@@ -668,5 +678,8 @@ try
  }  
  catch(std::exception& e) {
    throw runtime_error("DOH thread failed to launch: " + std::string(e.what()));
+ }
+ catch(...) {
+   throw runtime_error("DOH thread failed to launch");
  }
 
