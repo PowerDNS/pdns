@@ -417,6 +417,32 @@ BOOST_AUTO_TEST_CASE(test_getDNSPacketLength) {
     BOOST_CHECK_EQUAL(result, realSize);
   }
 
+  {
+    /* truncated packet, should return the full size */
+    vector<uint8_t> packet;
+    DNSPacketWriter pwR(packet, name, QType::A, QClass::IN, 0);
+    pwR.getHeader()->qr = 1;
+    pwR.commit();
+
+    pwR.startRecord(name, QType::A, 255, QClass::IN, DNSResourceRecord::ANSWER);
+    pwR.xfrIP(v4.sin4.sin_addr.s_addr);
+    pwR.commit();
+
+    pwR.startRecord(name, QType::SOA, 257, QClass::IN, DNSResourceRecord::AUTHORITY);
+    pwR.commit();
+
+    pwR.startRecord(name, QType::A, 256, QClass::IN, DNSResourceRecord::ADDITIONAL);
+    pwR.xfrIP(v4.sin4.sin_addr.s_addr);
+    pwR.commit();
+
+    pwR.addOpt(4096, 0, 0);
+    pwR.commit();
+
+    size_t fakeSize = packet.size()-1;
+    auto result = getDNSPacketLength(reinterpret_cast<char*>(packet.data()), fakeSize);
+    BOOST_CHECK_EQUAL(result, fakeSize);
+  }
+
 }
 
 BOOST_AUTO_TEST_CASE(test_getRecordsOfTypeCount) {

@@ -77,6 +77,64 @@ class TestCaching(DNSDistTest):
 
         self.assertEquals(total, 1)
 
+    def testDOCached(self):
+        """
+        Cache: Served from cache, query has DO bit set
+
+        dnsdist is configured to cache entries, we are sending several
+        identical requests and checking that the backend only receive
+        the first one.
+        """
+        numberOfQueries = 10
+        name = 'cached-do.cache.tests.powerdns.com.'
+        query = dns.message.make_query(name, 'AAAA', 'IN', use_edns=True, payload=4096, want_dnssec=True)
+        response = dns.message.make_response(query)
+        rrset = dns.rrset.from_text(name,
+                                    3600,
+                                    dns.rdataclass.IN,
+                                    dns.rdatatype.AAAA,
+                                    '::1')
+        response.answer.append(rrset)
+
+        # first query to fill the cache
+        (receivedQuery, receivedResponse) = self.sendUDPQuery(query, response)
+        self.assertTrue(receivedQuery)
+        self.assertTrue(receivedResponse)
+        receivedQuery.id = query.id
+        self.assertEquals(query, receivedQuery)
+        self.assertEquals(receivedResponse, response)
+
+        for _ in range(numberOfQueries):
+            (_, receivedResponse) = self.sendUDPQuery(query, response=None, useQueue=False)
+            self.assertEquals(receivedResponse, response)
+
+        total = 0
+        for key in self._responsesCounter:
+            total += self._responsesCounter[key]
+            TestCaching._responsesCounter[key] = 0
+
+        self.assertEquals(total, 1)
+
+        # TCP should not be cached
+        # first query to fill the cache
+        (receivedQuery, receivedResponse) = self.sendTCPQuery(query, response)
+        self.assertTrue(receivedQuery)
+        self.assertTrue(receivedResponse)
+        receivedQuery.id = query.id
+        self.assertEquals(query, receivedQuery)
+        self.assertEquals(receivedResponse, response)
+
+        for _ in range(numberOfQueries):
+            (_, receivedResponse) = self.sendTCPQuery(query, response=None, useQueue=False)
+            self.assertEquals(receivedResponse, response)
+
+        total = 0
+        for key in self._responsesCounter:
+            total += self._responsesCounter[key]
+            TestCaching._responsesCounter[key] = 0
+
+        self.assertEquals(total, 1)
+
     def testSkipCache(self):
         """
         Cache: SkipCacheAction

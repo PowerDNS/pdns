@@ -1,4 +1,4 @@
-@       86400   IN  SOA pdns-public-ns1.powerdns.com. pieter\.lexis.powerdns.com. 2018110701 10800 3600 604800 10800
+@       86400   IN  SOA pdns-public-ns1.powerdns.com. pieter\.lexis.powerdns.com. 2018110801 10800 3600 604800 10800
 @       3600    IN  NS  pdns-public-ns1.powerdns.com.
 @       3600    IN  NS  pdns-public-ns2.powerdns.com.
 ; Auth
@@ -275,3 +275,6 @@ recursor-4.0.0_beta1-1pdns.xenial.ubuntu.security-status 60 IN TXT "3 Upgrade no
 recursor-4.0.0_alpha2-1pdns.jessie.raspbian.security-status 60 IN TXT "3 Upgrade now, see https://doc.powerdns.com/3/security/powerdns-advisory-2016-02/ and https://doc.powerdns.com/3/security/powerdns-advisory-2016-04/"
 recursor-4.0.0_alpha3-1pdns.jessie.raspbian.security-status 60 IN TXT "3 Upgrade now, see https://doc.powerdns.com/3/security/powerdns-advisory-2016-02/ and https://doc.powerdns.com/3/security/powerdns-advisory-2016-04/"
 recursor-4.0.0_beta1-1pdns.jessie.raspbian.security-status 60 IN TXT "3 Upgrade now, see https://doc.powerdns.com/3/security/powerdns-advisory-2016-02/ and https://doc.powerdns.com/3/security/powerdns-advisory-2016-04/"
+
+; dnsdist
+dnsdist-1.3.3.security-status                              60 IN TXT "1 OK"
