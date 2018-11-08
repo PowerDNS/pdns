@@ -144,6 +144,14 @@ class WebServer : public boost::noncopyable
 public:
   WebServer(const string &listenaddress, int port);
   virtual ~WebServer() { };
+
+  void setApiKey(const string &apikey) {
+    if (d_registerApiHandlerCalled) {
+      throw PDNSException("registerApiHandler has been called, can not change apikey");
+    }
+    d_apikey = apikey;
+  }
+
   void bind();
   void go();
 
@@ -165,6 +173,9 @@ protected:
   int d_port;
   string d_password;
   std::shared_ptr<Server> d_server;
+
+  std::string d_apikey;
+  bool d_registerApiHandlerCalled{false};
 };
 
 #endif /* WEBSERVER_HH */

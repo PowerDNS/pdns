@@ -450,6 +450,7 @@ RecursorWebServer::RecursorWebServer(FDMultiplexer* fdm)
   registerAllStats();
 
   d_ws = new AsyncWebServer(fdm, arg()["webserver-address"], arg().asNum("webserver-port"));
+  d_ws->setApiKey(arg()["api-key"]);
   d_ws->bind();
 
   // legacy dispatch

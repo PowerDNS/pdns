@@ -125,18 +125,16 @@ static bool optionsHandler(HttpRequest* req, HttpResponse* resp) {
   return false;
 }
 
-static void apiWrapper(WebServer::HandlerFunction handler, HttpRequest* req, HttpResponse* resp) {
-  const string& api_key = arg()["api-key"];
-
+static void apiWrapper(WebServer::HandlerFunction handler, HttpRequest* req, HttpResponse* resp, const string &apikey) {
   if (optionsHandler(req, resp)) return;
 
   resp->headers["access-control-allow-origin"] = "*";
 
-  if (api_key.empty()) {
+  if (apikey.empty()) {
     g_log<<Logger::Error<<"HTTP API Request \"" << req->url.path << "\": Authentication failed, API Key missing in config" << endl;
     throw HttpUnauthorizedException("X-API-Key");
   }
-  bool auth_ok = req->compareHeader("x-api-key", api_key) || req->getvars["api-key"]==api_key;
+  bool auth_ok = req->compareHeader("x-api-key", apikey) || req->getvars["api-key"] == apikey;
   
   if (!auth_ok) {
     g_log<<Logger::Error<<"HTTP Request \"" << req->url.path << "\": Authentication by API Key failed" << endl;
@@ -172,8 +170,9 @@ static void apiWrapper(WebServer::HandlerFunction handler, HttpRequest* req, Htt
 }
 
 void WebServer::registerApiHandler(const string& url, HandlerFunction handler) {
-  HandlerFunction f = boost::bind(&apiWrapper, handler, _1, _2);
+  HandlerFunction f = boost::bind(&apiWrapper, handler, _1, _2, d_apikey);
   registerBareHandler(url, f);
+  d_registerApiHandlerCalled = true;
 }
 
 static void webWrapper(WebServer::HandlerFunction handler, HttpRequest* req, HttpResponse* resp) {
