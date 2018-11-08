@@ -182,7 +182,7 @@ Changelog
 
   .. change::
     :tags: Bug Fixes
-    :pullreq: TBD
+    :pullreq: 7165
     :tickets: 6896
 
     Handle trailing data correctly when adding OPT or ECS info
