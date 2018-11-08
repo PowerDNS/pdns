@@ -410,7 +410,7 @@ public:
   {
   }
 
-  BasicQPSLimiter(unsigned int rate, unsigned int burst): d_tokens(burst)
+  BasicQPSLimiter(unsigned int burst): d_tokens(burst)
   {
     d_prev.start();
   }
@@ -451,7 +451,7 @@ public:
   {
   }
 
-  QPSLimiter(unsigned int rate, unsigned int burst): BasicQPSLimiter(rate, burst), d_rate(rate), d_burst(burst), d_passthrough(false)
+  QPSLimiter(unsigned int rate, unsigned int burst): BasicQPSLimiter(burst), d_rate(rate), d_burst(burst), d_passthrough(false)
   {
     d_prev.start();
   }
