@@ -1903,6 +1903,7 @@ static void* secPollThread()
     }
     sleep(g_secPollInterval);
   }
+  return 0;
 }
 
 static void* healthChecksThread()
