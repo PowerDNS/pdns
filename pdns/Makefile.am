@@ -20,10 +20,6 @@ AM_LDFLAGS = \
 AM_LFLAGS = -i
 AM_YFLAGS = -d --verbose --debug
 
-if BOTAN
-AM_CPPFLAGS += $(BOTAN_CFLAGS)
-endif
-
 if PKCS11
 AM_CPPFLAGS += $(P11KIT1_CFLAGS)
 endif
@@ -54,7 +50,6 @@ EXTRA_DIST = \
 	bind-dnssec.schema.sqlite3.sql \
 	bindparser.h \
 	named.conf.parsertest \
-	delaypipe.hh delaypipe.cc \
 	pdns.service.in \
 	ixfrdist.service.in \
 	ixfrdist.example.yml \
@@ -223,6 +218,7 @@ pdns_server_SOURCES = \
 	statbag.cc statbag.hh \
 	stubresolver.cc stubresolver.hh \
 	tcpreceiver.cc tcpreceiver.hh \
+	threadname.hh threadname.cc \
 	tsigverifier.cc tsigverifier.hh \
 	tkey.cc \
 	ueberbackend.cc ueberbackend.hh \
@@ -253,11 +249,6 @@ pdns_server_LDADD = \
 if HAVE_LUA_RECORDS
 pdns_server_SOURCES += lua-record.cc minicurl.cc minicurl.hh
 pdns_server_LDADD += $(LIBCURL)
-endif
-
-if BOTAN
-pdns_server_SOURCES += botansigners.cc
-pdns_server_LDADD += $(BOTAN_LIBS)
 endif
 
 if LIBSODIUM
@@ -337,6 +328,7 @@ pdnsutil_SOURCES = \
 	sstuff.hh \
 	statbag.cc \
 	stubresolver.cc stubresolver.hh \
+	threadname.hh threadname.cc \
 	ueberbackend.cc \
 	unix_utility.cc \
 	zoneparser-tng.cc
@@ -356,11 +348,6 @@ pdnsutil_LDADD = \
 	$(LIBDL) \
 	$(BOOST_PROGRAM_OPTIONS_LIBS) \
 	$(LIBCRYPTO_LIBS)
-
-if BOTAN
-pdnsutil_SOURCES += botansigners.cc
-pdnsutil_LDADD += $(BOTAN_LIBS)
-endif
 
 if LIBSODIUM
 pdnsutil_SOURCES += sodiumsigners.cc
@@ -646,6 +633,7 @@ ixfrdist_SOURCES = \
 	sillyrecords.cc \
 	sstuff.hh \
 	statbag.cc \
+	threadname.hh threadname.cc \
 	tsigverifier.cc tsigverifier.hh \
 	unix_utility.cc zoneparser-tng.cc
 
@@ -729,6 +717,7 @@ dnstcpbench_SOURCES = \
 	sillyrecords.cc \
 	sstuff.hh \
 	statbag.cc \
+	threadname.hh threadname.cc \
 	unix_utility.cc
 
 dnstcpbench_LDFLAGS = \
@@ -813,11 +802,6 @@ toysdig_LDADD = $(LIBCRYPTO_LIBS)
 
 if GSS_TSIG
 toysdig_LDADD += $(GSS_LIBS)
-endif
-
-if BOTAN
-toysdig_SOURCES += botansigners.cc
-toysdig_LDADD += $(BOTAN_LIBS)
 endif
 
 if PKCS11
@@ -996,6 +980,7 @@ dnsreplay_SOURCES = \
 	dnswriter.cc dnswriter.hh \
 	ednsoptions.cc ednsoptions.hh \
 	ednssubnet.cc ednssubnet.hh \
+	histog.hh \
 	iputils.cc \
 	logger.cc \
 	misc.cc \
@@ -1267,6 +1252,7 @@ testrunner_SOURCES = \
 	dnssecsigner.cc \
 	dnswriter.cc \
 	ednsoptions.cc ednsoptions.hh \
+	ednscookies.cc ednscookies.hh \
 	ednssubnet.cc \
 	gettime.cc gettime.hh \
 	gss_context.cc gss_context.hh \
@@ -1291,7 +1277,6 @@ testrunner_SOURCES = \
 	test-base64_cc.cc \
 	test-bindparser_cc.cc \
 	test-common.hh \
-	test-delaypipe_hh.cc \
 	test-dnsrecordcontent.cc \
 	test-distributor_hh.cc \
 	test-dns_random_hh.cc \
@@ -1306,8 +1291,8 @@ testrunner_SOURCES = \
 	test-md5_hh.cc \
 	test-misc_hh.cc \
 	test-nameserver_cc.cc \
-	test-nmtree.cc \
 	test-packetcache_cc.cc \
+	test-packetcache_hh.cc \
 	test-rcpgenerator_cc.cc \
 	test-signers.cc \
 	test-sha_hh.cc \
@@ -1315,6 +1300,7 @@ testrunner_SOURCES = \
 	test-tsig.cc \
 	test-zoneparser_tng_cc.cc \
 	testrunner.cc \
+	threadname.hh threadname.cc \
 	tsigverifier.cc tsigverifier.hh \
 	ueberbackend.cc \
 	unix_utility.cc \
@@ -1340,11 +1326,6 @@ endif
 if LIBSODIUM
 testrunner_SOURCES += sodiumsigners.cc
 testrunner_LDADD += $(LIBSODIUM_LIBS)
-endif
-
-if BOTAN
-testrunner_SOURCES += botansigners.cc
-testrunner_LDADD += $(BOTAN_LIBS)
 endif
 
 if LIBDECAF

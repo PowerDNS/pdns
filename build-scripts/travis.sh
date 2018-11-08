@@ -329,6 +329,11 @@ install_auth() {
   run "sudo chmod 755 /etc/authbind/byport/53"
 }
 
+install_ixfrdist() {
+  run "sudo apt-get -qq --no-install-recommends install \
+    libyaml-cpp-dev"
+}
+
 install_recursor() {
   # recursor test requirements / setup
   # lua-posix is required for the ghost tests
@@ -379,9 +384,12 @@ install_dnsdist() {
   run "sudo chmod 0755 /var/agentx"
 }
 
+check_for_dangling_symlinks() {
+  run '! find -L . -name missing-sources -prune -o ! -name pubsuffix.cc -type l | grep .'
+}
+
 build_auth() {
   run "autoreconf -vi"
-  # Build without --enable-botan, no botan 2.x in Travis CI
   run "./configure \
     ${sanitizerflags} \
     --with-dynmodules='bind gmysql geoip gpgsql gsqlite3 ldap lua mydns opendbx pipe random remote tinydns godbc lua2' \
@@ -391,7 +399,6 @@ build_auth() {
     --enable-experimental-pkcs11 \
     --enable-remotebackend-zeromq \
     --enable-tools \
-    --enable-ixfrdist \
     --enable-unit-tests \
     --enable-backend-unit-tests \
     --disable-dependency-tracking \
@@ -402,15 +409,32 @@ build_auth() {
   run "find /tmp/pdns-install-dir -ls"
 }
 
+build_ixfrdist() {
+  run "autoreconf -vi"
+  run "./configure \
+    ${sanitizerflags} \
+    --with-dynmodules='bind' \
+    --with-modules='' \
+    --enable-ixfrdist \
+    --enable-unit-tests \
+    --disable-dependency-tracking \
+    --disable-silent-rules"
+  run "cd pdns"
+  run "make -k -j3 ixfrdist"
+  run "cd .."
+}
+
 build_recursor() {
   export PDNS_RECURSOR_DIR=$HOME/pdns_recursor
+  run "cd pdns/recursordist"
+  check_for_dangling_symlinks
+  run "cd ../.."
   # distribution build
   run "./build-scripts/dist-recursor"
   run "cd pdns/recursordist"
   run "tar xf pdns-recursor-*.tar.bz2"
   run "rm -f pdns-recursor-*.tar.bz2"
   run "cd pdns-recursor-*"
-  # Build without --enable-botan, no botan 2.x in Travis CI
   run "./configure \
     ${sanitizerflags} \
     --prefix=$PDNS_RECURSOR_DIR \
@@ -425,6 +449,9 @@ build_recursor() {
 }
 
 build_dnsdist(){
+  run "cd pdns/dnsdistdist"
+  check_for_dangling_symlinks
+  run "cd ../.."
   run "./build-scripts/dist-dnsdist"
   run "cd pdns/dnsdistdist"
   run "tar xf dnsdist*.tar.bz2"
@@ -568,10 +595,16 @@ test_auth() {
 
   ### Lua rec tests ###
   run "cd regression-tests.auth-py"
-  run "./runtests"
+  run "./runtests -v || (cat pdns.log; false)"
   run "cd .."
 
   run "rm -f regression-tests/zones/*-slave.*" #FIXME
+}
+
+test_ixfrdist(){
+  run "cd regression-tests.ixfrdist"
+  run "IXFRDISTBIN=${TRAVIS_BUILD_DIR}/pdns/ixfrdist ./runtests -v || (cat ixfrdist.log; false)"
+  run "cd .."
 }
 
 test_recursor() {
@@ -605,13 +638,11 @@ test_repo(){
 }
 
 # global build requirements
-# Add botan 2.x when available in Travis CI
 run "sudo apt-get -qq --no-install-recommends install \
   libboost-all-dev \
   libluajit-5.1-dev \
   libedit-dev \
   libprotobuf-dev \
-  pandoc\
   protobuf-compiler"
 
 run "cd .."
@@ -629,6 +660,8 @@ then
     sanitizerflags="${sanitizerflags} --enable-asan"
   elif [ "${PDNS_BUILD_PRODUCT}" = "dnsdist" ]; then
     sanitizerflags="${sanitizerflags} --enable-asan --enable-ubsan"
+  elif [ "${PDNS_BUILD_PRODUCT}" = "ixfrdist" ]; then
+    sanitizerflags="${sanitizerflags} --enable-asan"
   fi
 fi
 export CFLAGS=$compilerflags

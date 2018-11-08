@@ -33,7 +33,7 @@ static void *threadMangler2(void* a)
 
 
 
-BOOST_AUTO_TEST_SUITE(misc_hh)
+BOOST_AUTO_TEST_SUITE(test_misc_hh)
 
 BOOST_AUTO_TEST_CASE(test_StatBagBasic) {
   StatBag s;

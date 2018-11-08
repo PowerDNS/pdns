@@ -25,6 +25,7 @@
 #include <boost/algorithm/string.hpp>
 #include "auth-packetcache.hh"
 #include "utility.hh"
+#include "threadname.hh"
 #include "dnssecinfra.hh"
 #include "dnsseckeeper.hh"
 #include <cstdio>
@@ -252,6 +253,7 @@ void TCPNameserver::decrementClientCount(const ComboAddress& remote)
 
 void *TCPNameserver::doConnection(void *data)
 {
+  setThreadName("pdns/tcpConnect");
   shared_ptr<DNSPacket> packet;
   // Fix gcc-4.0 error (on AMD64)
   int fd=(int)(long)data; // gotta love C (generates a harmless warning on opteron)
@@ -1335,6 +1337,7 @@ TCPNameserver::TCPNameserver()
 //! Start of TCP operations thread, we launch a new thread for each incoming TCP question
 void TCPNameserver::thread()
 {
+  setThreadName("pdns/tcpnameser");
   try {
     for(;;) {
       int fd;

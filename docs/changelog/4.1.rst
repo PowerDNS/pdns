@@ -2,6 +2,134 @@ Changelogs for 4.1.x
 ====================
 
 .. changelog::
+  :version: 4.1.5
+  :released: November 6th 2018
+
+  This release fixes the following security advisories:
+
+  - PowerDNS Security Advisory :doc:`2018-03 <../security-advisories/powerdns-advisory-2018-03>` (CVE-2018-10851)
+  - PowerDNS Security Advisory :doc:`2018-05 <../security-advisories/powerdns-advisory-2018-05>` (CVE-2018-14626)
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 7149
+
+    Crafted zone record can cause a denial of service (CVE-2018-10851, PowerDNS Security Advisory :doc:`2018-03 <../security-advisories/powerdns-advisory-2018-03>`)
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 7149
+
+    Packet cache pollution via crafted query (CVE-2018-14626, PowerDNS Security Advisory :doc:`2018-05 <../security-advisories/powerdns-advisory-2018-05>`)
+
+  Additionally there are some other minor fixes and improvements listed below.
+
+  .. change::
+    :tags: Improvements, Internals
+    :pullreq: 6976
+
+    Apply alias scopemask after chasing
+
+  .. change::
+    :tags: Improvements, Internals
+    :pullreq: 6917
+
+    Release memory in case of error in the openssl ecdsa constructor
+
+  .. change::
+    :tags: Bug Fixes, Internals
+    :pullreq: 6948
+    :tickets: 6943
+
+    Fix compilation with libressl 2.7.0+
+
+  .. change::
+    :tags: Bug Fixes, Internals
+    :pullreq: 6913
+
+    Actually truncate truncated responses
+
+  .. change::
+    :tags: Improvements, Internals
+    :pullreq: 7118
+    :tickets: 7040
+
+    Switch to devtoolset 7 for el6
+
+.. changelog::
+  :version: 4.1.4
+  :released: August 29th 2018
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 6590
+
+    Fix warnings reported by gcc 8.1.0.
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 6842, 6844, 6648
+    :tickets: 6632
+
+    Make the gmysql backend future-proof. (Chris Hofstaedtler)
+
+    * Use future-proof statement for transaction isolation
+    * Allow compiling against MySQL 8 client header files
+    * Workaround MariaDB pretending to be MySQL
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 6686
+    :tickets: 6685
+
+    Initialize some missed qtypes. (Chris Hofstaedtler)
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 6691
+    :tickets: 4457
+
+    ``pdns_control notify``: handle slave without renotify properly. (Chris Hofstaedtler)
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 6738
+    :tickets: 6736
+
+    Reset the TSIG state between queries.
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 6857
+
+    Remove SOA-check backoff on incoming notify and fix lock handling. (Klaus Darilion)
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 6858
+
+    Fix an issue where updating a record via DNS-UPDATE in a child zone that also exists in the parent zone, we would incorrectly apply the update to the parent zone.
+
+  .. change::
+    :tags: Bug Fixes, API
+    :pullreq: 6780
+
+    Avoid concurrent records/comments iteration from running out of sync.
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 6677
+    :tickets: 6676
+
+    Geoipbackend: check ``geoip_id_by_addr_gl`` and ``geoip_id_by_addr_v6_gl`` return value. (Aki Tuomi)
+
+  .. change::
+    :tags: Bug Fixes, API
+    :pullreq: 6816
+
+    Fix a crash in the API when adding records
+
+.. changelog::
   :version: 4.1.3
   :released: 24th of May 2018
 
@@ -21,12 +149,6 @@ Changelogs for 4.1.x
     :tickets: 6239
 
     pdnsutil: use new domain in b2bmigrate (Aki Tuomi)
-
-  .. change::
-    :tags: Improvements
-    :pullreq: 6545, 6312
-
-    Lower 'packet too short' loglevel
 
   .. change::
     :tags: Bug Fixes

@@ -28,6 +28,7 @@
 
 #include "namespaces.hh"
 #include "dnsdist.hh"
+#include "threadname.hh"
 
 GlobalStateHolder<vector<CarbonConfig> > g_carbon;
 static time_t s_start=time(0);
@@ -39,6 +40,7 @@ uint64_t uptimeOfProcess(const std::string& str)
 void* carbonDumpThread()
 try
 {
+  setThreadName("dnsdist/carbon");
   auto localCarbon = g_carbon.getLocal();
   for(int numloops=0;;++numloops) {
     if(localCarbon->empty()) {

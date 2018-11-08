@@ -74,6 +74,7 @@ void setupLuaBindings(bool client)
   g_lua.writeVariable("roundrobin", ServerPolicy{"roundrobin", roundrobin, false});
   g_lua.writeVariable("wrandom", ServerPolicy{"wrandom", wrandom, false});
   g_lua.writeVariable("whashed", ServerPolicy{"whashed", whashed, false});
+  g_lua.writeVariable("chashed", ServerPolicy{"chashed", chashed, false});
   g_lua.writeVariable("leastOutstanding", ServerPolicy{"leastOutstanding", leastOutstanding, false});
 
   /* ServerPool */
@@ -118,7 +119,10 @@ void setupLuaBindings(bool client)
   g_lua.registerFunction("getName", &DownstreamState::getName);
   g_lua.registerFunction("getNameWithAddr", &DownstreamState::getNameWithAddr);
   g_lua.registerMember("upStatus", &DownstreamState::upStatus);
-  g_lua.registerMember("weight", &DownstreamState::weight);
+  g_lua.registerMember<int (DownstreamState::*)>("weight",
+    [](const DownstreamState& s) -> int {return s.weight;},
+    [](DownstreamState& s, int newWeight) {s.setWeight(newWeight);}
+  );
   g_lua.registerMember("order", &DownstreamState::order);
   g_lua.registerMember("name", &DownstreamState::name);
 
@@ -304,6 +308,9 @@ void setupLuaBindings(bool client)
     });
   g_lua.registerFunction<void(DNSDistProtoBufMessage::*)(const std::string&)>("setResponderFromString", [](DNSDistProtoBufMessage& message, const std::string& str) {
       message.setResponder(str);
+    });
+  g_lua.registerFunction<void(DNSDistProtoBufMessage::*)(const std::string&)>("setServerIdentity", [](DNSDistProtoBufMessage& message, const std::string& str) {
+      message.setServerIdentity(str);
     });
 
   g_lua.registerFunction<std::string(DnstapMessage::*)()>("toDebugString", [](const DnstapMessage& message) { return message.toDebugString(); });
@@ -567,4 +574,16 @@ void setupLuaBindings(bool client)
       }
     });
 #endif /* HAVE_EBPF */
+
+  /* EDNSOptionView */
+  g_lua.registerFunction<size_t(EDNSOptionView::*)()>("count", [](const EDNSOptionView& option) {
+      return option.values.size();
+    });
+  g_lua.registerFunction<std::vector<std::pair<int, string>>(EDNSOptionView::*)()>("getValues", [] (const EDNSOptionView& option) {
+    std::vector<std::pair<int, string> > values;
+    for (const auto& value : option.values) {
+      values.push_back(std::make_pair(values.size(), std::string(value.content, value.size)));
+    }
+    return values;
+  });
 }

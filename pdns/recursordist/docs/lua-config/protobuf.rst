@@ -30,6 +30,7 @@ Protobuf export to a server is enabled using the ``protobufServer()`` directive:
   * ``asyncConnect``: bool - When set to false (default) the first connection to the server during startup will block up to ``timeout`` seconds, otherwise the connection is done in a separate thread, after the first message has been queued
   * ``logQueries=true``: bool - Whether to export queries
   * ``logResponses=true``: bool - Whether to export responses
+  * ``exportTypes={'A', 'AAAA', 'CNAME'}``: list of strings - The list of record types found in the answer section to export. Only A, AAAA, CNAME, MX, NS, PTR, SPF, SRV and TXT are currently supported
 
 .. function:: protobufServer(server [[[[[[[, timeout=2], maxQueuedEntries=100], reconnectWaitTime=1], maskV4=32], maskV6=128], asyncConnect=false], taggedOnly=false])
 
@@ -74,6 +75,7 @@ While :func:`protobufServer` only exports the queries sent to the recursor from 
   * ``asyncConnect``: bool - When set to false (default) the first connection to the server during startup will block up to ``timeout`` seconds, otherwise the connection is done in a separate thread, after the first message has been queued
   * ``logQueries=true``: bool - Whether to export queries
   * ``logResponses=true``: bool - Whether to export responses
+  * ``exportTypes={'A', 'AAAA', 'CNAME'}``: list of strings - The list of record types found in the answer section to export. Only A, AAAA, CNAME, MX, NS, PTR, SPF, SRV and TXT are currently supported
 
 .. function:: outgoingProtobufServer(server [[[[, timeout=2], maxQueuedEntries=100], reconnectWaitTime=1], asyncConnect=false])
 

@@ -37,12 +37,14 @@
 #include "dnsdist.hh"
 #include "dnsdist-console.hh"
 #include "sodcrypto.hh"
+#include "threadname.hh"
 
 GlobalStateHolder<NetmaskGroup> g_consoleACL;
 vector<pair<struct timeval, string> > g_confDelta;
 std::string g_consoleKey;
 bool g_logConsoleConnections{true};
 bool g_consoleEnabled{false};
+uint32_t g_consoleOutputMsgMaxSize{10000000};
 
 // MUST BE CALLED UNDER A LOCK - right now the LuaLock
 static void feedConfigDelta(const std::string& line)
@@ -344,8 +346,10 @@ const std::vector<ConsoleKeyword> g_consoleKeywords{
   { "DropResponseAction", true, "", "drop these packets" },
   { "DSTPortRule", true, "port", "matches questions received to the destination port specified" },
   { "dumpStats", true, "", "print all statistics we gather" },
-  { "exceedNXDOMAINs", true, "rate, seconds", "get set of addresses that exceed `rate` NXDOMAIN/s over `seconds` seconds" },
   { "dynBlockRulesGroup", true, "", "return a new DynBlockRulesGroup object" },
+  { "EDNSOptionRule", true, "optcode", "matches queries with the specified EDNS0 option present" },
+  { "ERCodeRule", true, "rcode", "matches responses with the specified extended rcode (EDNS0)" },
+  { "exceedNXDOMAINs", true, "rate, seconds", "get set of addresses that exceed `rate` NXDOMAIN/s over `seconds` seconds" },
   { "exceedQRate", true, "rate, seconds", "get set of address that exceed `rate` queries/s over `seconds` seconds" },
   { "exceedQTypeRate", true, "type, rate, seconds", "get set of address that exceed `rate` queries/s for queries of type `type` over `seconds` seconds" },
   { "exceedRespByterate", true, "rate, seconds", "get set of addresses that exceeded `rate` bytes/s answers over `seconds` seconds" },
@@ -388,28 +392,28 @@ const std::vector<ConsoleKeyword> g_consoleKeywords{
   { "NoRecurseAction", true, "", "strip RD bit from the question, let it go through" },
   { "PoolAction", true, "poolname", "set the packet into the specified pool" },
   { "printDNSCryptProviderFingerprint", true, "\"/path/to/providerPublic.key\"", "display the fingerprint of the provided resolver public key" },
+  { "QNameLabelsCountRule", true, "min, max", "matches if the qname has less than `min` or more than `max` labels" },
+  { "QNameRule", true, "qname", "matches queries with the specified qname" },
+  { "QNameWireLengthRule", true, "min, max", "matches if the qname's length on the wire is less than `min` or more than `max` bytes" },
+  { "QTypeRule", true, "qtype", "matches queries with the specified qtype" },
+  { "RCodeRule", true, "rcode", "matches responses with the specified rcode" },
   { "RegexRule", true, "regex", "matches the query name against the supplied regex" },
   { "registerDynBPFFilter", true, "DynBPFFilter", "register this dynamic BPF filter into the web interface so that its counters are displayed" },
-  { "RemoteLogAction", true, "RemoteLogger [, alterFunction]", "send the content of this query to a remote logger via Protocol Buffer. `alterFunction` is a callback, receiving a DNSQuestion and a DNSDistProtoBufMessage, that can be used to modify the Protocol Buffer content, for example for anonymization purposes" },
-  { "RemoteLogResponseAction", true, "RemoteLogger [,alterFunction [,includeCNAME]]", "send the content of this response to a remote logger via Protocol Buffer. `alterFunction` is the same callback than the one in `RemoteLogAction` and `includeCNAME` indicates whether CNAME records inside the response should be parsed and exported. The default is to only exports A and AAAA records" },
+  { "RemoteLogAction", true, "RemoteLogger [, alterFunction [, serverID]]", "send the content of this query to a remote logger via Protocol Buffer. `alterFunction` is a callback, receiving a DNSQuestion and a DNSDistProtoBufMessage, that can be used to modify the Protocol Buffer content, for example for anonymization purposes. `serverID` is the server identifier." },
+  { "RemoteLogResponseAction", true, "RemoteLogger [,alterFunction [,includeCNAME [, serverID]]]", "send the content of this response to a remote logger via Protocol Buffer. `alterFunction` is the same callback than the one in `RemoteLogAction` and `includeCNAME` indicates whether CNAME records inside the response should be parsed and exported. The default is to only exports A and AAAA records. `serverID` is the server identifier." },
   { "rmCacheHitResponseRule", true, "id", "remove cache hit response rule in position 'id', or whose uuid matches if 'id' is an UUID string" },
   { "rmResponseRule", true, "id", "remove response rule in position 'id', or whose uuid matches if 'id' is an UUID string" },
   { "rmRule", true, "id", "remove rule in position 'id', or whose uuid matches if 'id' is an UUID string" },
   { "rmSelfAnsweredResponseRule", true, "id", "remove self-answered response rule in position 'id', or whose uuid matches if 'id' is an UUID string" },
   { "rmServer", true, "n", "remove server with index n" },
   { "roundrobin", false, "", "Simple round robin over available servers" },
-  { "QNameLabelsCountRule", true, "min, max", "matches if the qname has less than `min` or more than `max` labels" },
-  { "QNameRule", true, "qname", "matches queries with the specified qname" },
-  { "QNameWireLengthRule", true, "min, max", "matches if the qname's length on the wire is less than `min` or more than `max` bytes" },
-  { "QTypeRule", true, "qtype", "matches queries with the specified qtype" },
-  { "RCodeRule", true, "rcode", "matches responses with the specified rcode" },
-  { "ERCodeRule", true, "rcode", "matches responses with the specified extended rcode (EDNS0)" },
-  { "EDNSOptionRule", true, "optcode", "matches queries with the specified EDNS0 option present" },
   { "sendCustomTrap", true, "str", "send a custom `SNMP` trap from Lua, containing the `str` string"},
   { "setACL", true, "{netmask, netmask}", "replace the ACL set with these netmasks. Use `setACL({})` to reset the list, meaning no one can use us" },
+  { "setAddEDNSToSelfGeneratedResponses", true, "add", "set whether to add EDNS to self-generated responses, provided that the initial query had EDNS" },
   { "setAPIWritable", true, "bool, dir", "allow modifications via the API. if `dir` is set, it must be a valid directory where the configuration files will be written by the API" },
   { "setConsoleACL", true, "{netmask, netmask}", "replace the console ACL set with these netmasks" },
   { "setConsoleConnectionsLogging", true, "enabled", "whether to log the opening and closing of console connections" },
+  { "setConsoleOutputMaxMsgSize", true, "messageSize", "set console message maximum size in bytes, default is 10 MB" },
   { "setDNSSECPool", true, "pool name", "move queries requesting DNSSEC processing to this pool" },
   { "setDynBlocksAction", true, "action", "set which action is performed when a query is blocked. Only DNSAction.Drop (the default) and DNSAction.Refused are supported" },
   { "setECSOverride", true, "bool", "whether to override an existing EDNS Client Subnet value in the query" },
@@ -423,6 +427,7 @@ const std::vector<ConsoleKeyword> g_consoleKeywords{
   { "setMaxTCPQueriesPerConnection", true, "n", "set the maximum number of queries in an incoming TCP connection. 0 means unlimited" },
   { "setMaxTCPQueuedConnections", true, "n", "set the maximum number of TCP connections queued (waiting to be picked up by a client thread)" },
   { "setMaxUDPOutstanding", true, "n", "set the maximum number of outstanding UDP queries to a given backend server. This can only be set at configuration time and defaults to 10240" },
+  { "setPayloadSizeOnSelfGeneratedAnswers", true, "payloadSize", "set the UDP payload size advertised via EDNS on self-generated responses" },
   { "setPoolServerPolicy", true, "policy, pool", "set the server selection policy for this pool to that policy" },
   { "setPoolServerPolicy", true, "name, func, pool", "set the server selection policy for this pool to one named 'name' and provided by 'function'" },
   { "setQueryCount", true, "bool", "set whether queries should be counted" },
@@ -430,6 +435,8 @@ const std::vector<ConsoleKeyword> g_consoleKeywords{
   { "setRingBuffersLockRetries", true, "n", "set the number of attempts to get a non-blocking lock to a ringbuffer shard before blocking" },
   { "setRingBuffersSize", true, "n [, numberOfShards]", "set the capacity of the ringbuffers used for live traffic inspection to `n`, and optionally the number of shards to use to `numberOfShards`" },
   { "setRules", true, "list of rules", "replace the current rules with the supplied list of pairs of DNS Rules and DNS Actions (see `newRuleAction()`)" },
+  { "setSecurityPollInterval", true, "n", "set the security polling interval to `n` seconds" },
+  { "setSecurityPollSuffix", true, "suffix", "set the security polling suffix to the specified value" },
   { "setServerPolicy", true, "policy", "set server selection policy to that policy" },
   { "setServerPolicyLua", true, "name, function", "set server selection policy to one named 'name' and provided by 'function'" },
   { "setServFailWhenNoServer", true, "bool", "if set, return a ServFail when no servers are available, instead of the default behaviour of dropping the query" },
@@ -441,6 +448,7 @@ const std::vector<ConsoleKeyword> g_consoleKeywords{
   { "setUDPMultipleMessagesVectorSize", true, "n", "set the size of the vector passed to recvmmsg() to receive UDP messages. Default to 1 which means that the feature is disabled and recvmsg() is used instead" },
   { "setUDPTimeout", true, "n", "set the maximum time dnsdist will wait for a response from a backend over UDP, in seconds" },
   { "setVerboseHealthChecks", true, "bool", "set whether health check errors will be logged" },
+  { "setWebserverConfig", true, "[{password=string, apiKey=string, customHeaders}]", "Updates webserver configuration" },
   { "show", true, "string", "outputs `string`" },
   { "showACL", true, "", "show our ACL set" },
   { "showBinds", true, "", "show listening addresses (frontends)" },
@@ -486,6 +494,7 @@ const std::vector<ConsoleKeyword> g_consoleKeywords{
   { "unregisterDynBPFFilter", true, "DynBPFFilter", "unregister this dynamic BPF filter" },
   { "webserver", true, "address:port, password [, apiKey [, customHeaders ]])", "launch a webserver with stats on that address with that password" },
   { "whashed", false, "", "Weighted hashed ('sticky') distribution over available servers, based on the server 'weight' parameter" },
+  { "chashed", false, "", "Consistent hashed ('sticky') distribution over available servers, also based on the server 'weight' parameter" },
   { "wrandom", false, "", "Weighted random over available servers, based on the server 'weight' parameter" },
 };
 
@@ -532,6 +541,7 @@ char** my_completion( const char * text , int start,  int end)
 static void controlClientThread(int fd, ComboAddress client)
 try
 {
+  setThreadName("dnsdist/conscli");
   setTCPNoDelay(fd);
   SodiumNonce theirs, ours, readingNonce, writingNonce;
   ours.init();
@@ -662,6 +672,7 @@ catch(std::exception& e)
 void controlThread(int fd, ComboAddress local)
 try
 {
+  setThreadName("dnsdist/control");
   ComboAddress client;
   int sock;
   auto localACL = g_consoleACL.getLocal();
@@ -693,4 +704,31 @@ catch(const std::exception& e)
 {
   close(fd);
   errlog("Control connection died: %s", e.what());
+}
+
+bool getMsgLen32(int fd, uint32_t* len)
+try
+{
+  uint32_t raw;
+  size_t ret = readn2(fd, &raw, sizeof raw);
+  if(ret != sizeof raw)
+    return false;
+  *len = ntohl(raw);
+  if(*len > g_consoleOutputMsgMaxSize)
+    return false;
+  return true;
+}
+catch(...) {
+   return false;
+}
+
+bool putMsgLen32(int fd, uint32_t len)
+try
+{
+  uint32_t raw = htonl(len);
+  size_t ret = writen2(fd, &raw, sizeof raw);
+  return ret==sizeof raw;
+}
+catch(...) {
+  return false;
 }

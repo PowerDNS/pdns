@@ -137,6 +137,11 @@ $(document).ready(function () {
                 var rows = makeRingRows(data);
                 render('bogusremotering', {rows: rows});
             });
+        $.getJSON('jsonstat', jsonstatParams('get-remote-ring', 'timeouts', false),
+            function (data) {
+                var rows = makeRingRows(data);
+                render('timeouts', {rows: rows});
+            });
     }
 
     var connectionOK = function (ok, o) {

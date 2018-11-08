@@ -44,16 +44,15 @@ AM_CPPFLAGS += $(GNUTLS_CFLAGS)
 endif
 endif
 
-EXTRA_DIST=dnslabeltext.rl \
+EXTRA_DIST=COPYING \
+	   dnslabeltext.rl \
 	   dnsdistconf.lua \
 	   dnsmessage.proto \
 	   dnstap.proto \
 	   README.md \
 	   delaypipe.cc delaypipe.hh \
 	   html \
-	   .version \
 	   contrib \
-	   build-aux/gen-version \
 	   ext/incbin/UNLICENSE \
 	   incfiles \
 	   src_js \
@@ -66,7 +65,8 @@ EXTRA_DIST=dnslabeltext.rl \
 	   devpollmplexer.cc \
 	   epollmplexer.cc \
 	   kqueuemplexer.cc \
-	   portsmplexer.cc
+	   portsmplexer.cc \
+	   builder-support/gen-version
 
 bin_PROGRAMS = dnsdist
 
@@ -107,6 +107,7 @@ dnsdist_SOURCES = \
 	dnsdist-protobuf.cc dnsdist-protobuf.hh \
 	dnsdist-rings.cc dnsdist-rings.hh \
 	dnsdist-rules.hh \
+	dnsdist-secpoll.cc dnsdist-secpoll.hh \
 	dnsdist-snmp.cc dnsdist-snmp.hh \
 	dnsdist-tcp.cc \
 	dnsdist-web.cc \
@@ -138,6 +139,7 @@ dnsdist_SOURCES = \
 	sstuff.hh \
 	statnode.cc statnode.hh \
 	tcpiohandler.cc tcpiohandler.hh \
+	threadname.hh threadname.cc \
 	xpf.cc xpf.hh \
 	ext/luawrapper/include/LuaContext.hpp \
 	ext/json11/json11.cpp \
@@ -216,8 +218,10 @@ testrunner_SOURCES = \
 	base64.hh \
 	dns.hh \
 	test-base64_cc.cc \
+	test-delaypipe_hh.cc \
 	test-dnscrypt_cc.cc \
 	test-dnsdist_cc.cc \
+	test-dnsdistdynblocks_hh.cc \
 	test-dnsdistpacketcache_cc.cc \
 	test-dnsdistrings_cc.cc \
 	test-dnsdistrules_cc.cc \
@@ -245,6 +249,7 @@ testrunner_SOURCES = \
 	sholder.hh \
 	sodcrypto.cc \
 	sstuff.hh \
+	threadname.hh threadname.cc \
 	testrunner.cc \
 	xpf.cc xpf.hh
 

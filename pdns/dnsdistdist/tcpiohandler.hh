@@ -135,6 +135,7 @@ public:
   std::string d_interface;
   std::string d_ticketKeyFile;
 
+  size_t d_maxStoredSessions{20480};
   time_t d_ticketsKeyRotationDelay{43200};
   int d_tcpFastOpenQueueSize{0};
   uint8_t d_numberOfTicketsKeys{5};

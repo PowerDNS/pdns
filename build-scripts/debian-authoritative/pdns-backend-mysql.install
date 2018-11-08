@@ -1,2 +1,0 @@
-usr/lib/*/pdns/libgmysqlbackend.so*
-debian/config/pdns.local.gmysql.conf usr/share/pdns-backend-mysql

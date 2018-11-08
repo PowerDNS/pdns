@@ -7,6 +7,7 @@ PowerDNS does not itself implement any cryptographic algorithms but relies on th
 Starting with 4.0.0, PowerDNS will link in hash and cryptographic primitives from the open source `OpenSSL <https://openssl.org/>`_ library.
 
 Optionally, PowerDNS can link in a copy of the open source `Botan <https://botan.randombit.net/>`_ cryptographic library.
+Starting with 4.2.0, linking in Botan is no longer possible.
 
 Optionally, PowerDNS can link in a copy of the open source `Sodium <https://libsodium.org/>`_ library.
 

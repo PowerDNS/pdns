@@ -15,7 +15,7 @@
 #include <utility>
 extern StatBag S;
 
-BOOST_AUTO_TEST_SUITE(packetcache_cc)
+BOOST_AUTO_TEST_SUITE(test_packetcache_cc)
 
 BOOST_AUTO_TEST_CASE(test_AuthQueryCacheSimple) {
   AuthQueryCache QC;

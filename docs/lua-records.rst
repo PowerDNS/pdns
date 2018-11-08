@@ -59,9 +59,43 @@ addresses.
 ``pickclosest`` and ifportup can be combined as follows::
 
   www    IN    LUA    A    ("ifportup(443, {'192.0.2.1', '192.0.2.2', '198.51.100.1'}"
-                            ", {selector='closest'})                                 ")
+                            ", {selector='pickclosest'})                                 ")
 
 This will pick from the viable IP addresses the one deemed closest to the user.                         
+
+Using LUA Records with Generic SQL backends
+-------------------------------------------
+
+It's possible to use Lua records with the Generic SQL backends such as gmysql and gpgsql.
+
+Be aware that due to the fact that Lua records uses both double and single quotes, you will
+need to appropriately escape them in INSERT/UPDATE queries.
+
+Here is an example from the previous section (``pickclosest``) which should work 
+for both **MySQL** and **PostgreSQL**::
+
+    -- Create the zone example.com
+    INSERT INTO domains (id, name, type) VALUES (1, 'example.com', 'NATIVE');
+
+    -- Enable Lua records for the zone (if not enabled globally)
+    INSERT INTO domainmetadata (domain_id, kind, content) 
+    VALUES (1, 'ENABLE-LUA-RECORD', 1);
+
+    -- Create a pickClosest() Lua A record.
+    -- Double single quotes are used to escape single quotes in both MySQL and PostgreSQL
+    INSERT INTO records (domain_id, name, type, content, ttl)
+    VALUES (
+      1, 
+      'www.example.com',
+      'LUA', 
+      'A "pickclosest({''192.0.2.1'',''192.0.2.2'',''198.51.100.1''})"',
+      600
+    );
+
+The above queries create a zone ``example.com``, enable Lua records for the zone using ``ENABLE-LUA-RECORD``,
+and finally insert a LUA A record for the ``www`` subdomain using the previous pickclosest example.
+
+See `Details & Security`_ for more information about enabling Lua records, and the risks involved.
 
 Record format
 -------------
@@ -188,7 +222,7 @@ Record creation functions
 
   Various options can be set in the ``options`` parameter:
 
-  - ``selector``: used to pick the IP address from list of viable candidates. Choices include 'closest', 'random', 'hashed'.
+  - ``selector``: used to pick the IP address from list of viable candidates. Choices include 'pickclosest', 'random', 'hashed'.
   - ``source``: Source IP address to check from
 
 
@@ -207,7 +241,7 @@ Record creation functions
 
   Various options can be set in the ``options`` parameter:
 
-  - ``selector``: used to pick the IP address from list of viable candidates. Choices include 'closest', 'random', 'hashed'.
+  - ``selector``: used to pick the IP address from list of viable candidates. Choices include 'pickclosest', 'random', 'hashed'.
   - ``source``: Source IP address to check from
   - ``stringmatch``: check ``url`` for this string, only declare 'up' if found
 
@@ -305,6 +339,147 @@ Record creation functions
   :param weightparams: table of weight, IP addresses.
 
   See :func:`pickwhashed` for an example.
+
+Reverse DNS functions
+~~~~~~~~~~~~~~~~~~~~~~~~~
+
+.. warning::
+  The reverse DNS functions are under active development. **They may**
+  **not be safe for production use.** The syntax of these functions may change at any
+  time.
+
+.. function:: createReverse(format)
+
+  Used for generating default hostnames from IPv4 wildcard reverse DNS records, e.g. ``*.0.0.127.in-addr.arpa`` 
+  
+  See :func:`createReverse6` for IPv6 records (ip6.arpa)
+
+  See :func:`createForward` for creating the A records on a wildcard record such as ``*.static.example.com``
+  
+  Returns a formatted hostname based on the format string passed.
+
+  :param format: A hostname string to format, for example ``%1%.%2%.%3%.%4%.static.example.com``.
+  
+  **Formatting options:**
+
+    - ``%1%`` to ``%4%`` are individual octets
+        - Example record query: ``1.0.0.127.in-addr.arpa`` 
+        - ``%1%`` = 127
+        - ``%2%`` = 0
+        - ``%3%`` = 0
+        - ``%4%`` = 1
+    - ``%5%`` joins the four decimal octets together with dashes
+        - Example: ``%5%.static.example.com`` is equivalent to ``%1%-%2%-%3%-%4%.static.example.com``
+    - ``%6%`` converts each octet from decimal to hexadecimal and joins them together
+        - Example: A query for ``15.0.0.127.in-addr.arpa`` 
+        - ``%6`` would be ``7f00000f`` (127 is 7f, and 15 is 0f in hexadecimal)
+
+  **NOTE:** At the current time, only forward dotted format works with :func:`createForward` (i.e. ``127.0.0.1.static.example.com``)
+  
+  Example records::
+  
+    *.0.0.127.in-addr.arpa IN    LUA    PTR "createReverse('%1%.%2%.%3%.%4%.static.example.com')"
+    *.1.0.127.in-addr.arpa IN    LUA    PTR "createReverse('%5%.static.example.com')"
+    *.2.0.127.in-addr.arpa IN    LUA    PTR "createReverse('%6%.static.example.com')"
+ 
+  When queried::
+  
+    # -x is syntactic sugar to request the PTR record for an IPv4/v6 address such as 127.0.0.5
+    # Equivalent to dig PTR 5.0.0.127.in-addr.arpa
+    $ dig +short -x 127.0.0.5 @ns1.example.com
+    127.0.0.5.static.example.com.
+    $ dig +short -x 127.0.1.5 @ns1.example.com
+    127-0-0-5.static.example.com.
+    $ dig +short -x 127.0.2.5 @ns1.example.com
+    7f000205.static.example.com.
+
+.. function:: createForward()
+  
+  Used to generate the reverse DNS domains made from :func:`createReverse`
+  
+  Generates an A record for a dotted or hexadecimal IPv4 domain (e.g. 127.0.0.1.static.example.com)
+  
+  It does not take any parameters, it simply interprets the zone record to find the IP address.
+  
+  An example record for zone ``static.example.com``::
+    
+    *.static.example.com    IN    LUA    A "createForward()"
+  
+  **NOTE:** At the current time, only forward dotted format works for this function (i.e. ``127.0.0.1.static.example.com``)
+  
+  When queried::
+  
+    $ dig +short A 127.0.0.5.static.example.com @ns1.example.com
+    127.0.0.5
+  
+.. function:: createReverse6(format)
+
+  Used for generating default hostnames from IPv6 wildcard reverse DNS records, e.g. ``*.1.0.0.2.ip6.arpa``
+  
+  **For simplicity purposes, only small sections of IPv6 rDNS domains are used in most parts of this guide,**
+  **as a full ip6.arpa record is around 80 characters long**
+  
+  See :func:`createReverse` for IPv4 records (in-addr.arpa)
+
+  See :func:`createForward6` for creating the AAAA records on a wildcard record such as ``*.static.example.com``
+  
+  Returns a formatted hostname based on the format string passed.
+
+  :param format: A hostname string to format, for example ``%33%.static6.example.com``.
+  
+  Formatting options:
+   
+    - ``%1%`` to ``%32%`` are individual characters (nibbles)
+        - **Example PTR record query:** ``a.0.0.0.1.0.0.2.ip6.arpa``
+        - ``%1%`` = 2
+        - ``%2%`` = 0
+        - ``%3%`` = 0
+        - ``%4%`` = 1
+    - ``%33%`` converts the compressed address format into a dashed format, e.g. ``2001:a::1`` to ``2001-a--1``
+    - ``%34%`` to ``%41%`` represent the 8 uncompressed 2-byte chunks
+        - **Example:** PTR query for ``2001:a:b::123``
+        - ``%34%`` - returns ``2001`` (chunk 1)
+        - ``%35%`` - returns ``000a`` (chunk 2)
+        - ``%41%`` - returns ``0123`` (chunk 8)
+  
+  **NOTE:** At the current time, only dashed compressed format works for this function (i.e. ``2001-a-b--1.static6.example.com``)
+  
+  Example records::
+  
+    *.1.0.0.2.ip6.arpa IN    LUA    PTR "createReverse('%33%.static6.example.com')"
+    *.2.0.0.2.ip6.arpa IN    LUA    PTR "createReverse('%34%.%35%.static6.example.com')"
+ 
+  When queried::
+  
+    # -x is syntactic sugar to request the PTR record for an IPv4/v6 address such as 2001::1
+    # Equivalent to dig PTR 1.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.b.0.0.0.a.0.0.0.1.0.0.2.ip6.arpa
+    # readable version:     1.0.0.0 .0.0.0.0 .0.0.0.0 .0.0.0.0 .0.0.0.0 .b.0.0.0 .a.0.0.0 .1.0.0.2 .ip6.arpa
+    
+    $ dig +short -x 2001:a:b::1 @ns1.example.com
+    2001-a-b--1.static6.example.com.
+    
+    $ dig +short -x 2002:a:b::1 @ns1.example.com
+    2002.000a.static6.example.com
+
+.. function:: createForward6()
+  
+  Used to generate the reverse DNS domains made from :func:`createReverse6`
+  
+  Generates an AAAA record for a dashed compressed IPv6 domain (e.g. ``2001-a-b--1.static6.example.com``)
+  
+  It does not take any parameters, it simply interprets the zone record to find the IP address.
+  
+  An example record for zone ``static.example.com``::
+    
+    *.static6.example.com    IN    LUA    AAAA "createForward6()"
+  
+  **NOTE:** At the current time, only dashed compressed format works for this function (i.e. ``2001-a-b--1.static6.example.com``)
+  
+  When queried::
+  
+    $ dig +short AAAA 2001-a-b--1.static6.example.com @ns1.example.com
+    2001:a:b::1
+
 
 Helper functions
 ~~~~~~~~~~~~~~~~

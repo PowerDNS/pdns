@@ -319,6 +319,7 @@ void DNSPacket::wrapup()
         if(pw.size() + 20U > (d_tcp ? 65535 : getMaxReplyLen())) { // 20 = room for EDNS0
           pw.rollback();
           if(pos->dr.d_place == DNSResourceRecord::ANSWER || pos->dr.d_place == DNSResourceRecord::AUTHORITY) {
+            pw.truncate();
             pw.getHeader()->tc=1;
           }
           goto noCommit;

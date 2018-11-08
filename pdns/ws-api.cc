@@ -155,53 +155,6 @@ void apiServerConfig(HttpRequest* req, HttpResponse* resp) {
   resp->setBody(doc);
 }
 
-static Json logGrep(const string& q, const string& fname, const string& prefix)
-{
-  FILE* ptr = fopen(fname.c_str(), "r");
-  if(!ptr) {
-    throw ApiException("Opening \"" + fname + "\" failed: " + stringerror());
-  }
-  std::shared_ptr<FILE> fp(ptr, fclose);
-
-  string line;
-  string needle = q;
-  trim_right(needle);
-
-  boost::replace_all(needle, "%20", " ");
-  boost::replace_all(needle, "%22", "\"");
-
-  boost::tokenizer<boost::escaped_list_separator<char> > t(needle, boost::escaped_list_separator<char>("\\", " ", "\""));
-  vector<string> matches(t.begin(), t.end());
-  matches.push_back(prefix);
-
-  boost::circular_buffer<string> lines(200);
-  while(stringfgets(fp.get(), line)) {
-    vector<string>::const_iterator iter;
-    for(iter = matches.begin(); iter != matches.end(); ++iter) {
-      if(!strcasestr(line.c_str(), iter->c_str()))
-        break;
-    }
-    if(iter == matches.end()) {
-      trim_right(line);
-      lines.push_front(line);
-    }
-  }
-
-  Json::array items;
-  for(const string& iline : lines) {
-    items.push_back(iline);
-  }
-  return items;
-}
-
-void apiServerSearchLog(HttpRequest* req, HttpResponse* resp) {
-  if(req->method != "GET")
-    throw HttpMethodNotAllowedException();
-
-  string prefix = " " + s_programname + "[";
-  resp->setBody(logGrep(req->getvars["q"], ::arg()["api-logfile"], prefix));
-}
-
 void apiServerStatistics(HttpRequest* req, HttpResponse* resp) {
   if(req->method != "GET")
     throw HttpMethodNotAllowedException();

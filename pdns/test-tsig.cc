@@ -35,7 +35,7 @@
 #include "misc.hh"
 #include "tsigverifier.hh"
 
-BOOST_AUTO_TEST_SUITE(tsig)
+BOOST_AUTO_TEST_SUITE(test_tsig)
 
 static vector<uint8_t> generateTSIGQuery(const DNSName& qname, const DNSName& tsigName, const DNSName& tsigAlgo, const string& tsigSecret, uint16_t fudge=300, time_t tsigTime=time(nullptr))
 {

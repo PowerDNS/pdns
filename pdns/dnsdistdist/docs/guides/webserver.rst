@@ -29,6 +29,8 @@ For example, to remove the X-Frame-Options header and add a X-Custom one:
 
   webserver("127.0.0.1:8080", "supersecret", "apikey", {["X-Frame-Options"]= "", ["X-Custom"]="custom"}
 
+Credentials can be changed over time using the :func:`setWebserverConfig` function.
+
 dnsdist API
 -----------
 
@@ -99,6 +101,177 @@ URL Endpoints
 
   :query command: one of ``stats``, ``dynblocklist`` or ``ebpfblocklist``
 
+.. http:get:: /metrics
+
+  Get statistics from dnsdist in `Prometheus <https://prometheus.io>`_ format.
+
+  **Example request**:
+
+   .. sourcecode:: http
+
+      GET /metrics HTTP/1.1
+
+  **Example response**:
+   .. sourcecode:: http
+
+      HTTP/1.1 200 OK
+      Transfer-Encoding: chunked
+      Content-Security-Policy: default-src 'self'; style-src 'self' 'unsafe-inline'
+      Content-Type: text/plain
+      X-Content-Type-Options: nosniff
+      X-Frame-Options: deny
+      X-Permitted-Cross-Domain-Policies: none
+      X-Xss-Protection: 1; mode=block
+
+      # HELP dnsdist_responses Number of responses received from backends
+      # TYPE dnsdist_responses counter
+      dnsdist_responses 0
+      # HELP dnsdist_servfail_responses Number of SERVFAIL answers received from backends
+      # TYPE dnsdist_servfail_responses counter
+      dnsdist_servfail_responses 0
+      # HELP dnsdist_queries Number of received queries
+      # TYPE dnsdist_queries counter
+      dnsdist_queries 0
+      # HELP dnsdist_acl_drops Number of packets dropped because of the ACL
+      # TYPE dnsdist_acl_drops counter
+      dnsdist_acl_drops 0
+      # HELP dnsdist_rule_drop Number of queries dropped because of a rule
+      # TYPE dnsdist_rule_drop counter
+      dnsdist_rule_drop 0
+      # HELP dnsdist_rule_nxdomain Number of NXDomain answers returned because of a rule
+      # TYPE dnsdist_rule_nxdomain counter
+      dnsdist_rule_nxdomain 0
+      # HELP dnsdist_rule_refused Number of Refused answers returned because of a rule
+      # TYPE dnsdist_rule_refused counter
+      dnsdist_rule_refused 0
+      # HELP dnsdist_rule_servfail Number of SERVFAIL answers received because of a rule
+      # TYPE dnsdist_rule_servfail counter
+      dnsdist_rule_servfail 0
+      # HELP dnsdist_self_answered Number of self-answered responses
+      # TYPE dnsdist_self_answered counter
+      dnsdist_self_answered 0
+      # HELP dnsdist_downstream_timeouts Number of queries not answered in time by a backend
+      # TYPE dnsdist_downstream_timeouts counter
+      dnsdist_downstream_timeouts 0
+      # HELP dnsdist_downstream_send_errors Number of errors when sending a query to a backend
+      # TYPE dnsdist_downstream_send_errors counter
+      dnsdist_downstream_send_errors 0
+      # HELP dnsdist_trunc_failures Number of errors encountered while truncating an answer
+      # TYPE dnsdist_trunc_failures counter
+      dnsdist_trunc_failures 0
+      # HELP dnsdist_no_policy Number of queries dropped because no server was available
+      # TYPE dnsdist_no_policy counter
+      dnsdist_no_policy 0
+      # HELP dnsdist_latency0_1 Number of queries answered in less than 1ms
+      # TYPE dnsdist_latency0_1 counter
+      dnsdist_latency0_1 0
+      # HELP dnsdist_latency1_10 Number of queries answered in 1-10 ms
+      # TYPE dnsdist_latency1_10 counter
+      dnsdist_latency1_10 0
+      # HELP dnsdist_latency10_50 Number of queries answered in 10-50 ms
+      # TYPE dnsdist_latency10_50 counter
+      dnsdist_latency10_50 0
+      # HELP dnsdist_latency50_100 Number of queries answered in 50-100 ms
+      # TYPE dnsdist_latency50_100 counter
+      dnsdist_latency50_100 0
+      # HELP dnsdist_latency100_1000 Number of queries answered in 100-1000 ms
+      # TYPE dnsdist_latency100_1000 counter
+      dnsdist_latency100_1000 0
+      # HELP dnsdist_latency_slow Number of queries answered in more than 1 second
+      # TYPE dnsdist_latency_slow counter
+      dnsdist_latency_slow 0
+      # HELP dnsdist_latency_avg100 Average response latency in microseconds of the last 100 packets
+      # TYPE dnsdist_latency_avg100 gauge
+      dnsdist_latency_avg100 0
+      # HELP dnsdist_latency_avg1000 Average response latency in microseconds of the last 1000 packets
+      # TYPE dnsdist_latency_avg1000 gauge
+      dnsdist_latency_avg1000 0
+      # HELP dnsdist_latency_avg10000 Average response latency in microseconds of the last 10000 packets
+      # TYPE dnsdist_latency_avg10000 gauge
+      dnsdist_latency_avg10000 0
+      # HELP dnsdist_latency_avg1000000 Average response latency in microseconds of the last 1000000 packets
+      # TYPE dnsdist_latency_avg1000000 gauge
+      dnsdist_latency_avg1000000 0
+      # HELP dnsdist_uptime Uptime of the dnsdist process in seconds
+      # TYPE dnsdist_uptime gauge
+      dnsdist_uptime 39
+      # HELP dnsdist_real_memory_usage Current memory usage in bytes
+      # TYPE dnsdist_real_memory_usage gauge
+      dnsdist_real_memory_usage 10276864
+      # HELP dnsdist_noncompliant_queries Number of queries dropped as non-compliant
+      # TYPE dnsdist_noncompliant_queries counter
+      dnsdist_noncompliant_queries 0
+      # HELP dnsdist_noncompliant_responses Number of answers from a backend dropped as non-compliant
+      # TYPE dnsdist_noncompliant_responses counter
+      dnsdist_noncompliant_responses 0
+      # HELP dnsdist_rdqueries Number of received queries with the recursion desired bit set
+      # TYPE dnsdist_rdqueries counter
+      dnsdist_rdqueries 0
+      # HELP dnsdist_empty_queries Number of empty queries received from clients
+      # TYPE dnsdist_empty_queries counter
+      dnsdist_empty_queries 0
+      # HELP dnsdist_cache_hits Number of times an answer was retrieved from cache
+      # TYPE dnsdist_cache_hits counter
+      dnsdist_cache_hits 0
+      # HELP dnsdist_cache_misses Number of times an answer not found in the cache
+      # TYPE dnsdist_cache_misses counter
+      dnsdist_cache_misses 0
+      # HELP dnsdist_cpu_user_msec Milliseconds spent by dnsdist in the user state
+      # TYPE dnsdist_cpu_user_msec counter
+      dnsdist_cpu_user_msec 28
+      # HELP dnsdist_cpu_sys_msec Milliseconds spent by dnsdist in the system state
+      # TYPE dnsdist_cpu_sys_msec counter
+      dnsdist_cpu_sys_msec 32
+      # HELP dnsdist_fd_usage Number of currently used file descriptors
+      # TYPE dnsdist_fd_usage gauge
+      dnsdist_fd_usage 17
+      # HELP dnsdist_dyn_blocked Number of queries dropped because of a dynamic block
+      # TYPE dnsdist_dyn_blocked counter
+      dnsdist_dyn_blocked 0
+      # HELP dnsdist_dyn_block_nmg_size Number of dynamic blocks entries
+      # TYPE dnsdist_dyn_block_nmg_size gauge
+      dnsdist_dyn_block_nmg_size 0
+      dnsdist_server_queries{server="1_1_1_1",address="1.1.1.1:53"} 0
+      dnsdist_server_drops{server="1_1_1_1",address="1.1.1.1:53"} 0
+      dnsdist_server_latency{server="1_1_1_1",address="1.1.1.1:53"} 0
+      dnsdist_server_senderrors{server="1_1_1_1",address="1.1.1.1:53"} 0
+      dnsdist_server_outstanding{server="1_1_1_1",address="1.1.1.1:53"} 0
+      dnsdist_server_order{server="1_1_1_1",address="1.1.1.1:53"} 1
+      dnsdist_server_weight{server="1_1_1_1",address="1.1.1.1:53"} 1
+      dnsdist_server_queries{server="1_0_0_1",address="1.0.0.1:53"} 0
+      dnsdist_server_drops{server="1_0_0_1",address="1.0.0.1:53"} 0
+      dnsdist_server_latency{server="1_0_0_1",address="1.0.0.1:53"} 0
+      dnsdist_server_senderrors{server="1_0_0_1",address="1.0.0.1:53"} 0
+      dnsdist_server_outstanding{server="1_0_0_1",address="1.0.0.1:53"} 0
+      dnsdist_server_order{server="1_0_0_1",address="1.0.0.1:53"} 1
+      dnsdist_server_weight{server="1_0_0_1",address="1.0.0.1:53"} 2
+      dnsdist_frontend_queries{frontend="127.0.0.1:1153",proto="udp"} 0
+      dnsdist_frontend_queries{frontend="127.0.0.1:1153",proto="tcp"} 0
+      dnsdist_pool_servers{pool="_default_"} 2
+      dnsdist_pool_cache_size{pool="_default_"} 200000
+      dnsdist_pool_cache_entries{pool="_default_"} 0
+      dnsdist_pool_cache_hits{pool="_default_"} 0
+      dnsdist_pool_cache_misses{pool="_default_"} 0
+      dnsdist_pool_cache_deferred_inserts{pool="_default_"} 0
+      dnsdist_pool_cache_deferred_lookups{pool="_default_"} 0
+      dnsdist_pool_cache_lookup_collisions{pool="_default_"} 0
+      dnsdist_pool_cache_insert_collisions{pool="_default_"} 0
+      dnsdist_pool_cache_ttl_too_shorts{pool="_default_"} 0
+
+  **Example prometheus configuration**:
+
+   This is just the scrape job description, for details see the prometheus documentation.
+
+   .. sourcecode:: yaml
+
+      job_name: dnsdist
+      scrape_interval: 10s
+      scrape_timeout: 2s
+      metrics_path: /metrics
+      basic_auth:
+        username: dontcare
+        password: yoursecret
+
 .. http:get:: /api/v1/servers/localhost
 
   Get a quick overview of several parameters.
@@ -126,9 +299,85 @@ URL Endpoints
 
   Gets you the ``allow-from`` :json:object:`ConfigSetting`, who's value is a list of strings of all the netmasks in the :ref:`ACL <ACL>`.
 
+  **Example request**:
+
+   .. sourcecode:: http
+
+      GET /api/v1/servers/localhost/config/allow-from HTTP/1.1
+      X-API-Key: supersecretAPIkey
+
+  **Example response**:
+   .. sourcecode:: http
+
+      HTTP/1.1 200 OK
+      Connection: close
+      Content-Security-Policy: default-src 'self'; style-src 'self' 'unsafe-inline'
+      Content-Type: application/json
+      Transfer-Encoding: chunked
+      X-Content-Type-Options: nosniff
+      X-Frame-Options: deny
+      X-Permitted-Cross-Domain-Policies: none
+      X-Xss-Protection: 1; mode=block
+
+      {
+          "name": "allow-from",
+          "type": "ConfigSetting",
+          "value": [
+              "fc00::/7",
+              "169.254.0.0/16",
+              "100.64.0.0/10",
+              "fe80::/10",
+              "10.0.0.0/8",
+              "127.0.0.0/8",
+              "::1/128",
+              "172.16.0.0/12",
+              "192.168.0.0/16"
+          ]
+      }
+
 .. http:put:: /api/v1/servers/localhost/config/allow-from
 
-  Allows you to add to the ACL. TODO **how**
+  Allows you to update the ``allow-from`` :ref:`ACL <ACL>` with a list of netmasks.
+
+  Make sure you made the API writable using :func:`setAPIWritable`.
+
+  **Example request**:
+
+   .. sourcecode:: http
+
+      PUT /api/v1/servers/localhost/config/allow-from HTTP/1.1
+      Content-Length: 37
+      Content-Type: application/json
+      X-API-Key: supersecretAPIkey
+
+      {
+          "value": [
+              "127.0.0.0/8",
+              "::1/128"
+          ]
+      }
+
+  **Example response**:
+   .. sourcecode:: http
+
+      HTTP/1.1 200 OK
+      Connection: close
+      Content-Security-Policy: default-src 'self'; style-src 'self' 'unsafe-inline'
+      Content-Type: application/json
+      Transfer-Encoding: chunked
+      X-Content-Type-Options: nosniff
+      X-Frame-Options: deny
+      X-Permitted-Cross-Domain-Policies: none
+      X-Xss-Protection: 1; mode=block
+
+      {
+          "name": "allow-from",
+          "type": "ConfigSetting",
+          "value": [
+              "127.0.0.0/8",
+              "::1/128"
+          ]
+      }
 
 JSON Objects
 ~~~~~~~~~~~~
@@ -234,4 +483,3 @@ JSON Objects
   :property string name: The name of this statistic. See :doc:`../statistics`
   :property string type: "StatisticItem"
   :property integer value: The value for this item
-

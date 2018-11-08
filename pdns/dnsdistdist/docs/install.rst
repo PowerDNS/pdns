@@ -81,7 +81,6 @@ To compile from git, these additional dependencies are required:
 
 * GNU `Autoconf <http://www.gnu.org/software/autoconf/autoconf.html>`_
 * GNU `Automake <https://www.gnu.org/software/automake/>`_
-* `Pandoc <http://pandoc.org/>`_
 * `Ragel <http://www.colm.net/open-source/ragel/>`_
 
 dnsdist sourcecode lives in the `PowerDNS git repository <https://github.com/PowerDNS/pdns>`_ but is independent of PowerDNS.

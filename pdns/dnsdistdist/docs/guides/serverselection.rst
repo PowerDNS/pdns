@@ -1,7 +1,7 @@
 Loadbalancing and Server Policies
 =================================
 
-:program:`dnsdist` selects the server (if there are multiple eligable) to send queries to based on the configured policy.
+:program:`dnsdist` selects the server (if there are multiple eligible) to send queries to based on the configured policy.
 Only servers that are marked as 'up', either forced so by the administrator or as the result of the last health check, might
 be selected.
 
@@ -31,7 +31,7 @@ For now this is the only policy using the QPS limit.
 A further policy, ``wrandom`` assigns queries randomly, but based on the weight parameter passed to :func:`newServer`.
 
 For example, if two servers are available, the first one with a weight of 2 and the second one with a weight of 1 (the default), the
-first one should get two thirds of the incoming queries and the second one the remaining third.
+first one should get two-thirds of the incoming queries and the second one the remaining third.
 
 ``whashed``
 ~~~~~~~~~~~
@@ -42,6 +42,13 @@ The current hash algorithm is based on the qname of the query.
 .. function:: setWHashedPertubation(value)
 
   Set the hash perturbation value to be used in the whashed policy instead of a random one, allowing to have consistent whashed results on different instances.
+
+``chashed``
+~~~~~~~~~~~
+
+``chashed`` is a consistent hashing distribution policy. Identical questions with identical hashes will be distributed to the same servers. But unlike the ``whashed`` policy, this distribution will keep consistent over time. Adding or removing servers will only remap a small part of the queries.
+
+You can also set the hash perturbation value, see :func:`setWHashedPertubation`.
 
 ``roundrobin``
 ~~~~~~~~~~~~~~

@@ -1,6 +1,11 @@
 Upgrade Guide
 =============
 
+1.3.2 to 1.3.3
+--------------
+
+When upgrading from a package before 1.3.3, on CentOS 6 and RHEL 6, dnsdist will be stopped instead of restarted.
+
 1.2.x to 1.3.x
 --------------
 

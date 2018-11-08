@@ -108,8 +108,13 @@ void GeoIPBackend::initialize() {
   if (s_geoip_files.empty())
     g_log<<Logger::Warning<<"No GeoIP database files loaded!"<<endl;
 
-  if(!getArg("zones-file").empty())
-    config = YAML::LoadFile(getArg("zones-file"));
+  if(!getArg("zones-file").empty()) {
+    try {
+       config = YAML::LoadFile(getArg("zones-file"));
+    } catch (YAML::Exception &ex) {
+       throw PDNSException(string("Cannot read config file ") + ex.msg);
+    }
+  }
 
   for(YAML::Node domain :  config["domains"]) {
     GeoIPDomain dom;

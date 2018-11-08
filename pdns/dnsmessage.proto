@@ -46,7 +46,7 @@ message PBDNSMessage {
   }
   required Type type = 1;
   optional bytes messageId = 2;                 // UUID, shared by the query and the response
-  optional bytes serverIdentity = 3;            // UUID of the server emitting the protobuf message
+  optional bytes serverIdentity = 3;            // ID of the server emitting the protobuf message
   optional SocketFamily socketFamily = 4;
   optional SocketProtocol socketProtocol = 5;
   optional bytes from = 6;                      // DNS requestor (client)
@@ -70,6 +70,7 @@ message PBDNSMessage {
       optional uint32 class = 3;
       optional uint32 ttl = 4;
       optional bytes rdata = 5;
+      optional bool  udr = 6;                   // True if this is the first time this RR has been seen for this question
     }
     optional uint32 rcode = 1;
     repeated DNSRR rrs = 2;
@@ -85,4 +86,5 @@ message PBDNSMessage {
   optional string requestorId = 15;             // Username of the requestor
   optional bytes initialRequestId = 16;         // UUID of the incoming query that initiated this outgoing query or incoming response
   optional bytes deviceId = 17;     		// Device ID of the requestor (could be mac address IP address or e.g. IMEI)
+  optional bool  newlyObservedDomain = 18;      // True if the domain has not been seen before
 }

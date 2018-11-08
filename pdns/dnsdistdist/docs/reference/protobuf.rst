@@ -80,7 +80,7 @@ Protobuf Logging Reference
 
     :param ComboAddress address: The address to set to
 
-  .. method:: DNSDistProtoBufMessage:setResponderFromString(string)
+  .. method:: DNSDistProtoBufMessage:setResponderFromString(address)
 
     Set the responder's address.
 
@@ -91,6 +91,14 @@ Protobuf Logging Reference
     Set the response code of the query.
 
     :param int rcode: The response code of the answer
+
+  .. method:: DNSDistProtoBufMessage:setServerIdentity(id)
+
+    .. versionadded:: 1.3.3
+
+    Set the server identify field.
+
+    :param string id: The server ID
 
   .. method:: DNSDistProtoBufMessage:setTag(value)
 

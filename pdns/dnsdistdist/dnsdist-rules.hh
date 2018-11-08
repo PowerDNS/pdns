@@ -377,7 +377,7 @@ public:
   }
   bool matches(const DNSQuestion* dq) const override
   {
-    return dq->dh->cd || (getEDNSZ((const char*)dq->dh, dq->len) & EDNS_HEADER_FLAG_DO);    // turns out dig sets ad by default..
+    return dq->dh->cd || (getEDNSZ(*dq) & EDNS_HEADER_FLAG_DO);    // turns out dig sets ad by default..
   }
 
   string toString() const override
@@ -990,4 +990,25 @@ public:
 private:
   boost::optional<std::string> d_value;
   std::string d_tag;
+};
+
+class PoolAvailableRule : public DNSRule
+{
+public:
+  PoolAvailableRule(const std::string& poolname) : d_pools(&g_pools), d_poolname(poolname)
+  {
+  }
+
+  bool matches(const DNSQuestion* dq) const override
+  {
+    return (getPool(*d_pools, d_poolname)->countServers(true) > 0);
+  }
+
+  string toString() const override
+  {
+    return "pool '" + d_poolname + "' is available";
+  }
+private:
+  mutable LocalStateHolder<pools_t> d_pools;
+  std::string d_poolname;
 };

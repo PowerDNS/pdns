@@ -54,16 +54,16 @@ DNSDistPacketCache::~DNSDistPacketCache()
 
 bool DNSDistPacketCache::getClientSubnet(const char* packet, unsigned int consumed, uint16_t len, boost::optional<Netmask>& subnet)
 {
-  char * optRDLen = NULL;
+  uint16_t optRDPosition;
   size_t remaining = 0;
 
-  int res = getEDNSOptionsStart(const_cast<char*>(packet), consumed, len, &optRDLen, &remaining);
+  int res = getEDNSOptionsStart(const_cast<char*>(packet), consumed, len, &optRDPosition, &remaining);
 
   if (res == 0) {
-    char * ecsOptionStart = NULL;
+    char * ecsOptionStart = nullptr;
     size_t ecsOptionSize = 0;
 
-    res = getEDNSOption(optRDLen, remaining, EDNSOptionCode::ECS, &ecsOptionStart, &ecsOptionSize);
+    res = getEDNSOption(const_cast<char*>(packet) + optRDPosition, remaining, EDNSOptionCode::ECS, &ecsOptionStart, &ecsOptionSize);
 
     if (res == 0 && ecsOptionSize > (EDNS_OPTION_CODE_SIZE + EDNS_OPTION_LENGTH_SIZE)) {
 
@@ -453,7 +453,7 @@ uint64_t DNSDistPacketCache::dump(int fd)
       count++;
 
       try {
-        fprintf(fp, "%s %" PRId64 " %s ; key %" PRIu32 ", length %" PRIu16 ", tcp %d, added %" PRIu64 "\n", value.qname.toString().c_str(), static_cast<int64_t>(value.validity - now), QType(value.qtype).getName().c_str(), entry.first, value.len, value.tcp, value.added);
+        fprintf(fp, "%s %" PRId64 " %s ; key %" PRIu32 ", length %" PRIu16 ", tcp %d, added %" PRId64 "\n", value.qname.toString().c_str(), static_cast<int64_t>(value.validity - now), QType(value.qtype).getName().c_str(), entry.first, value.len, value.tcp, static_cast<int64_t>(value.added));
       }
       catch(...) {
         fprintf(fp, "; error printing '%s'\n", value.qname.empty() ? "EMPTY" : value.qname.toString().c_str());

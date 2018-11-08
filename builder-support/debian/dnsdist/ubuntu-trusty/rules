@@ -1,0 +1,51 @@
+#!/usr/bin/make -f
+# See debhelper(7) (uncomment to enable)
+# output every command that modifies files on the build system.
+#DH_VERBOSE = 1
+
+# Enable hardening features for daemons
+export DEB_BUILD_MAINT_OPTIONS=hardening=+bindnow,+pie
+# see EXAMPLES in dpkg-buildflags(1) and read /usr/share/dpkg/*
+DPKG_EXPORT_BUILDFLAGS = 1
+include /usr/share/dpkg/default.mk
+
+# for atomic support on powerpc (automatic on mipsel)
+LDFLAGS += -latomic
+
+%:
+	dh $@
+
+override_dh_auto_clean:
+	rm -f dnslabeltext.cc
+	dh_auto_clean
+
+override_dh_auto_configure:
+	./configure \
+	  --host=$(DEB_HOST_GNU_TYPE) \
+	  --build=$(DEB_BUILD_GNU_TYPE) \
+	  --prefix=/usr \
+	  --sysconfdir=/etc/dnsdist \
+	  --mandir=\$${prefix}/share/man \
+	  --infodir=\$${prefix}/share/info \
+	  --libdir='$${prefix}/lib/$(DEB_HOST_MULTIARCH)' \
+	  --libexecdir='$${prefix}/lib' \
+	  --disable-dnscrypt \
+	  --disable-gnutls \
+	  --disable-libsodium \
+	  --disable-re2 \
+	  --enable-dns-over-tls \
+	  --with-ebpf \
+	  --with-lua=luajit \
+	  --with-protobuf \
+	  --disable-systemd
+
+override_dh_auto_build-arch:
+	dh_auto_build -- V=1
+
+override_dh_installexamples:
+	cp dnsdistconf.lua dnsdist.conf
+	dh_installexamples
+	rm -f dnsdist.conf
+
+override_dh_strip:
+	dh_strip --dbg-package=dnsdist-dbg
