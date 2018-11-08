@@ -496,7 +496,6 @@ try {
              want it to be decremented twice. */
           --dss->outstanding;  // you'd think an attacker could game this, but we're using connected socket
         }
-
         if(dh->tc && g_truncateTC) {
           truncateTC(response, &responseLen, responseSize, consumed);
         }
@@ -544,6 +543,7 @@ try {
             ids->du->query = std::string(response, responseLen);
             // XXX should also do the accounting things that sendUDPResponse does!
             send(ids->du->rsock, &ids->du, sizeof(ids->du), 0);
+            ids->du = 0;
           }
           else {
             sendUDPResponse(origFD, response, responseLen, ids->delayMsec, ids->destHarvested ? ids->origDest : empty, ids->origRemote);
@@ -1996,6 +1996,7 @@ static void healthChecksThread()
                don't go anywhere near it */
             continue;
           }
+          ids.du = 0;
           ids.age = 0;
           dss->reuseds++;
           --dss->outstanding;
