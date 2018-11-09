@@ -458,16 +458,11 @@ int PacketHandler::doAdditionalProcessingAndDropAA(DNSPacket *p, DNSPacket *r, c
       else
         continue;
 
-      B.lookup(QType(d_doIPv6AdditionalProcessing ? QType::ANY : QType::A), lookup, p);
+      B.lookup(QType(d_doIPv6AdditionalProcessing ? QType::ANY : QType::A), lookup, p, sd.domain_id);
 
       while(B.get(rr)) {
         if(rr.dr.d_type != QType::A && rr.dr.d_type!=QType::AAAA)
           continue;
-        if(rr.domain_id!=i->domain_id || !rr.dr.d_name.isPartOf(soadata.qname)) {
-          // FIXME we might still pass on the record if it is occluded and the
-          // backend does not report a different ID
-          continue; // not adding out-of-zone additional data
-        }
         rr.dr.d_place=DNSResourceRecord::ADDITIONAL;
         toAdd.push_back(rr);
       }
