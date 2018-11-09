@@ -419,6 +419,7 @@ build_ixfrdist() {
     --enable-unit-tests \
     --disable-dependency-tracking \
     --disable-silent-rules"
+  run "make -C ext -k -j3"
   run "cd pdns"
   run "make -k -j3 ixfrdist"
   run "cd .."
