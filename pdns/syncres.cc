@@ -117,8 +117,6 @@ SyncRes::SyncRes(const struct timeval& now) :  d_authzonequeries(0), d_outquerie
 /** everything begins here - this is the entry point just after receiving a packet */
 int SyncRes::beginResolve(const DNSName &qname, const QType &qtype, uint16_t qclass, vector<DNSRecord>&ret)
 {
-  /* rfc6895 section 3.1 + RRSIG and NSEC3 */
-  static const std::set<uint16_t> metaTypes = { QType::AXFR, QType::IXFR, QType::RRSIG, QType::NSEC3, QType::OPT, QType::TSIG, QType::TKEY, QType::MAILA, QType::MAILB };
   vState state = Indeterminate;
   s_queries++;
   d_wasVariable=false;
@@ -129,7 +127,9 @@ int SyncRes::beginResolve(const DNSName &qname, const QType &qtype, uint16_t qcl
     return 0;                          // so do check before updating counters (we do now)
   }
 
-  if (metaTypes.count(qtype.getCode())) {
+  auto qtypeCode = qtype.getCode();
+  /* rfc6895 section 3.1 */
+  if ((qtypeCode >= 128 && qtypeCode <= 254) || qtypeCode == QType::RRSIG || qtypeCode == QType::NSEC3 || qtypeCode == QType::OPT || qtypeCode == 65535) {
     return -1;
   }
 
