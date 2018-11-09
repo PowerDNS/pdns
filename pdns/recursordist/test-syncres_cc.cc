@@ -652,8 +652,9 @@ BOOST_AUTO_TEST_CASE(test_edns_formerr_but_edns_enabled) {
   initSR(sr);
 
   /* in this test, the auth answers with FormErr to an EDNS-enabled
-     query, but the response does contain EDNS so we should not mark
-     it as EDNS ignorant or intolerant.
+     query, but the response does contain EDNS so we might consider
+     that the server knows a bit about EDNS. It turns out that we can't
+     because there are too many awful servers out there.
   */
   size_t queriesWithEDNS = 0;
   size_t queriesWithoutEDNS = 0;
@@ -669,10 +670,14 @@ BOOST_AUTO_TEST_CASE(test_edns_formerr_but_edns_enabled) {
       }
       usedServers.insert(ip);
 
-      if (type == QType::DNAME) {
-        setLWResult(res, RCode::FormErr);
+      if (type == QType::A) {
         if (EDNS0Level > 0) {
+          setLWResult(res, RCode::FormErr);
           res->d_haveEDNS = true;
+        }
+        else {
+          setLWResult(res, 0, true, false, false);
+          addRecordToLW(res, domain, QType::A, "192.0.2.1");
         }
         return 1;
       }
@@ -683,15 +688,15 @@ BOOST_AUTO_TEST_CASE(test_edns_formerr_but_edns_enabled) {
   primeHints();
 
   vector<DNSRecord> ret;
-  int res = sr->beginResolve(DNSName("powerdns.com."), QType(QType::DNAME), QClass::IN, ret);
-  BOOST_CHECK_EQUAL(res, RCode::ServFail);
-  BOOST_CHECK_EQUAL(ret.size(), 0);
-  BOOST_CHECK_EQUAL(queriesWithEDNS, 26);
-  BOOST_CHECK_EQUAL(queriesWithoutEDNS, 0);
-  BOOST_CHECK_EQUAL(SyncRes::getEDNSStatusesSize(), 26);
-  BOOST_CHECK_EQUAL(usedServers.size(), 26);
+  int res = sr->beginResolve(DNSName("powerdns.com."), QType(QType::A), QClass::IN, ret);
+  BOOST_CHECK_EQUAL(res, RCode::NoError);
+  BOOST_CHECK_EQUAL(ret.size(), 1);
+  BOOST_CHECK_EQUAL(queriesWithEDNS, 1);
+  BOOST_CHECK_EQUAL(queriesWithoutEDNS, 1);
+  BOOST_CHECK_EQUAL(SyncRes::getEDNSStatusesSize(), 1);
+  BOOST_CHECK_EQUAL(usedServers.size(), 1);
   for (const auto& server : usedServers) {
-    BOOST_CHECK_EQUAL(SyncRes::getEDNSStatus(server), SyncRes::EDNSStatus::EDNSOK);
+    BOOST_CHECK_EQUAL(SyncRes::getEDNSStatus(server), SyncRes::EDNSStatus::NOEDNS);
   }
 }
 
