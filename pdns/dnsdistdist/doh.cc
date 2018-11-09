@@ -300,6 +300,11 @@ static h2o_pathconf_t *register_handler(h2o_hostconf_t *hostconf, const char *pa
     return pathconf;
 }
 
+static void on_generator_dispose(void *_self)
+{
+  DOHUnit** du = (DOHUnit**)_self;
+  (*du)->req = 0;
+}
 
 /*
    For GET, the base64url-encoded payload is in the 'dns' parameter, which might be the first parameter, or not.
@@ -317,6 +322,8 @@ try
   h2o_socket_getpeername(sock, (struct sockaddr*)&remote);
   DOHServerConfig* dsc = (DOHServerConfig*)req->conn->ctx->storage.entries[0].data;
 
+
+  
   string path(req->path.base, req->path.len);
 
   if (h2o_memis(req->method.base, req->method.len, H2O_STRLIT("POST"))) {
@@ -327,6 +334,8 @@ try
       dsc->df->d_http1queries++;
     
     DOHUnit* du = new DOHUnit;
+    DOHUnit** self = (DOHUnit**)h2o_mem_alloc_shared(&req->pool, sizeof(*self), on_generator_dispose);
+    *self = du;
     uint16_t qtype;
     DNSName qname(req->entity.base, req->entity.len, sizeof(dnsheader), false, &qtype);
     //    cout<<remote.toStringWithPort()<<", POST qname: "<<qname<<", qtype: "<<qtype<<endl;
@@ -507,6 +516,10 @@ static void on_dnsdist(h2o_socket_t *listener, const char *err)
   DOHServerConfig* dsc = (DOHServerConfig*)listener->data;
   recv(dsc->dohresponsepair[1], &du, sizeof(du), 0);
 
+  if(!du->req) { // it got killed in flight
+    delete du;
+    return;
+  }
   if(!du->error) {
     dsc->df->d_validresponses++;
     du->req->res.status = 200;
