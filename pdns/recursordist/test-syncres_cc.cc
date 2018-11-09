@@ -665,6 +665,31 @@ BOOST_AUTO_TEST_CASE(test_edns_formerr_but_edns_enabled) {
   }
 }
 
+BOOST_AUTO_TEST_CASE(test_meta_types) {
+  std::unique_ptr<SyncRes> sr;
+  initSR(sr);
+
+  static const std::set<uint16_t> invalidTypes = { 128, QType::AXFR, QType::IXFR, QType::RRSIG, QType::NSEC3, QType::OPT, QType::TSIG, QType::TKEY, QType::MAILA, QType::MAILB, 65535 };
+
+  for (const auto qtype : invalidTypes) {
+    size_t queriesCount = 0;
+
+    sr->setAsyncCallback([&queriesCount](const ComboAddress& ip, const DNSName& domain, int type, bool doTCP, bool sendRDQuery, int EDNS0Level, struct timeval* now, boost::optional<Netmask>& srcmask, boost::optional<const ResolveContext&> context, LWResult* res, bool* chained) {
+
+      queriesCount++;
+      return 0;
+    });
+
+    primeHints();
+
+    vector<DNSRecord> ret;
+    int res = sr->beginResolve(DNSName("powerdns.com."), QType(qtype), QClass::IN, ret);
+    BOOST_CHECK_EQUAL(res, -1);
+    BOOST_CHECK_EQUAL(ret.size(), 0);
+    BOOST_CHECK_EQUAL(queriesCount, 0);
+  }
+}
+
 BOOST_AUTO_TEST_CASE(test_tc_fallback_to_tcp) {
   std::unique_ptr<SyncRes> sr;
   initSR(sr);
