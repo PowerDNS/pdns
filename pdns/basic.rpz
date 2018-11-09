@@ -59,13 +59,13 @@ local-a.org        A 192.168.2.5
 ; you have to add the cidr range as first
 ; information.
 ; In this example we return NXDOMAIN to
-; any response that would had returned
+; any response that would have returned
 ; an ip address of 10.4.3.2/32
 32.2.3.4.10.rpz-ip CNAME .
 
 ; As you can see above the CIDR value
 ; is very important to notice and add as the
-; first value first value
+; first value
 
 ;; NSDNAME Trigger
 ;; if ns1.example.org appears in the authority section
