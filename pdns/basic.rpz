@@ -1,7 +1,13 @@
 $TTL 2h;
 $ORIGIN domain.example.com.
-@               SOA powerdns.example.net. hostmaster.example.com ( 1 12h 15m 3w 2h)
-                NS powerdns.example.net.  
+@               SOA powerdns.example.com. hostmaster.example.com ( 
+                1 ; Serial
+                12h ; refresh
+                15m ; retry
+                3w ; exspirer
+                2h ; nxdomain ttl
+                )
+                NS powerdns.example.net.
 ; begin RPZ RR definitions
 
 ;; QNAME Trigger
@@ -40,11 +46,11 @@ local-a.org        A 192.168.2.5
 ; like in .arp zones, in addition to this
 ; you have to add the cidr range as first
 ; information. In this example we DROP all
-; request from the 127.0.0.0/24 network
+; request from the network 127.0.0.0/24
 24.0.0.0.127.rpz-client-ip CNAME rpz-drop.
 
 ; CLIENT-IP Trigger TCP-ONLY Action
-; slows-up all DNS activity from this client
+; slows-up all DNS activity from this client.
 ; IP addresses are added in reversed order
 ; like in .arp zones, in addition to this
 ; you have to add the cidr range as first
@@ -63,22 +69,22 @@ local-a.org        A 192.168.2.5
 ; an ip address of 10.4.3.2/32
 32.2.3.4.10.rpz-ip CNAME .
 
-; As you can see above the CIDR value
-; is very important to notice and add as the
+; As you can see above, the CIDR value is
+; very important to notice and add as the
 ; first value
 
 ;; NSDNAME Trigger
-;; if ns1.example.org appears in the authority section
+;; if ns1.powerdns.net appears in the authority section
 ;; of any answer
 
 ; NSDNAME Trigger NXDOMAIN Action
-; kills specific name server
+; - kills specific name server
 dns-eu1.powerdns.net.rpz-nsdname CNAME .
 
-; this will kill any name servers from example.org
+; - this will kill any name servers from powerdns.net
 *.powerdns.net.rpz-nsdname   CNAME .
 
 ; NSDNAME Trigger TCP-ONLY Action
-; kills specific name server
-*.gtld-servers.net.rpz-nsdname CNAME rpz-tcp-only.
+; - kills specific name server
+*.powerdns.net.rpz-nsdname CNAME rpz-tcp-only.
 
