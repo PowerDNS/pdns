@@ -1052,7 +1052,6 @@ int handleDNSCryptQuery(char* packet, uint16_t len, std::shared_ptr<DNSCryptQuer
 #endif
 extern int pickBackendSocketForSending(DownstreamState* state);
 ssize_t udpClientSendRequestToBackend(DownstreamState* ss, const int sd, const char* request, const size_t requestLen, bool healthCheck=false);
-bool addXPF(DNSQuestion& dq, uint16_t optionCode);
 
 uint16_t getRandomDNSID();
 

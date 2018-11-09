@@ -14,6 +14,7 @@
 #include "dolog.hh"
 #include "dnsdist-ecs.hh"
 #include "dnsdist-rules.hh"
+#include "dnsdist-xpf.hh"
 #include <boost/algorithm/string.hpp>
 
 using namespace std;
@@ -142,7 +143,7 @@ static int processDOHQuery(DOHUnit* du)
     bool ednsAdded = false;
     bool ecsAdded = false;
     if (dq.useECS && ((ss && ss->useECS) || (!ss && serverPool->getECS()))) {
-      if (!handleEDNSClientSubnet(dq, &ednsAdded, &ecsAdded)) {
+      if (!handleEDNSClientSubnet(dq, &ednsAdded, &ecsAdded, false)) {
         vinfolog("Dropping query from %s because we couldn't insert the ECS value", du->remote.toStringWithPort());
         
         return -1;
@@ -213,7 +214,7 @@ static int processDOHQuery(DOHUnit* du)
     }
 
     if (dq.addXPF && ss->xpfRRCode != 0) {
-      addXPF(dq, ss->xpfRRCode);
+      addXPF(dq, ss->xpfRRCode, false);
     }
 
     ss->queries++;
