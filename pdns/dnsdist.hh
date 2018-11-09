@@ -515,6 +515,7 @@ struct DOHUnit
   uint16_t qtype;
   bool error{false};
   bool ednsAdded{false};
+  DOHUnit** self{0};
 };
 
 

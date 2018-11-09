@@ -300,10 +300,15 @@ static h2o_pathconf_t *register_handler(h2o_hostconf_t *hostconf, const char *pa
     return pathconf;
 }
 
+/* this is called by h2o when our request dies.
+   We use this to signal to the 'du' that this req is no longer alive */
 static void on_generator_dispose(void *_self)
 {
   DOHUnit** du = (DOHUnit**)_self;
-  (*du)->req = 0;
+  if(*du) { // if 0, on_dnsdist cleaned up du already
+//    cout << "du "<<(void*)*du<<" containing req "<<(*du)->req<<" got killed"<<endl;
+    (*du)->req = 0;
+  }
 }
 
 /*
@@ -321,8 +326,6 @@ try
   ComboAddress remote;
   h2o_socket_getpeername(sock, (struct sockaddr*)&remote);
   DOHServerConfig* dsc = (DOHServerConfig*)req->conn->ctx->storage.entries[0].data;
-
-
   
   string path(req->path.base, req->path.len);
 
@@ -334,8 +337,8 @@ try
       dsc->df->d_http1queries++;
     
     DOHUnit* du = new DOHUnit;
-    DOHUnit** self = (DOHUnit**)h2o_mem_alloc_shared(&req->pool, sizeof(*self), on_generator_dispose);
-    *self = du;
+    du->self = (DOHUnit**)h2o_mem_alloc_shared(&req->pool, sizeof(*self), on_generator_dispose);
+    *(du->self) = du;
     uint16_t qtype;
     DNSName qname(req->entity.base, req->entity.len, sizeof(dnsheader), false, &qtype);
     //    cout<<remote.toStringWithPort()<<", POST qname: "<<qname<<", qtype: "<<qtype<<endl;
@@ -374,6 +377,9 @@ try
           uint16_t qtype;
           DNSName qname(decoded.c_str(), decoded.size(), sizeof(dnsheader), false, &qtype);
           DOHUnit* du = new DOHUnit;
+
+          du->self = (DOHUnit**)h2o_mem_alloc_shared(&req->pool, sizeof(*self), on_generator_dispose);
+          *(du->self) = du;
 
           du->req=req;
           du->query=decoded;
@@ -517,9 +523,11 @@ static void on_dnsdist(h2o_socket_t *listener, const char *err)
   recv(dsc->dohresponsepair[1], &du, sizeof(du), 0);
 
   if(!du->req) { // it got killed in flight
+//    cout << "du "<<(void*)du<<" came back from dnsdist, but it was killed"<<endl;
     delete du;
     return;
   }
+  *du->self = 0; // so we don't clean up again in on_generator_dispose
   if(!du->error) {
     dsc->df->d_validresponses++;
     du->req->res.status = 200;
