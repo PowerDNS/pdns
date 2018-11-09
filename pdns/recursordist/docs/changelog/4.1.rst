@@ -2,6 +2,24 @@ Changelogs for 4.1.x
 ====================
 
 .. changelog::
+  :version: 4.1.7
+  :released: 9th of November 2018
+
+  This release updates the mitigation for :doc:`Security Advisory 2018-07 <../security-advisories/powerdns-advisory-2018-07>`, reverting the EDNS fallback strictness increase. This is necessary because there are a lot of broken name servers on the Internet.
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 7172
+
+    Revert 'Keep the EDNS status of a server on FormErr with EDNS'
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 7174
+
+    Refuse queries for all meta-types
+
+.. changelog::
   :version: 4.1.6
   :released: 7th of November 2018
 
