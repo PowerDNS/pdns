@@ -35,16 +35,37 @@ local-a.org        A 192.168.2.5
 *.local-a.org      A 192.168.2.5
 
 ; CLIENT-IP Trigger DROP Action
-; kills all DNS activity from this client
+; kills all DNS activity from this client.
+; IP addresses are added in reversed order
+; like in .arp zones, in addition to this
+; you have to add the cidr range as first
+; information. In this example we DROP all
+; request from the 127.0.0.0/24 network
 24.0.0.0.127.rpz-client-ip CNAME rpz-drop.
 
 ; CLIENT-IP Trigger TCP-ONLY Action
 ; slows-up all DNS activity from this client
-32.1.0.0.10.rpz-client-ip CNAME rpz-tcp-only.
+; IP addresses are added in reversed order
+; like in .arp zones, in addition to this
+; you have to add the cidr range as first
+; information. In this example we ask the
+; IP address 10.3.2.1/32 to query over TCP
+32.1.2.3.10.rpz-client-ip CNAME rpz-tcp-only.
 
 ; IP Trigger NXDOMAIN Action
 ; any answer containing IP range
-32.2.0.0.10.rpz-ip CNAME .
+; IP addresses are added in reversed order
+; like in .arp zones, in addition to this
+; you have to add the cidr range as first
+; information.
+; In this example we return NXDOMAIN to
+; any response that would had returned
+; an ip address of 10.4.3.2/32
+32.2.3.4.10.rpz-ip CNAME .
+
+; As you can see above the CIDR value
+; is very important to notice and add as the
+; first value first value
 
 ;; NSDNAME Trigger
 ;; if ns1.example.org appears in the authority section
