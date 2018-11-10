@@ -152,11 +152,14 @@ static int processDOHQuery(DOHUnit* du)
 
     uint32_t cacheKey = 0;
     if (packetCache && !dq.skipCache) {
-      uint16_t cachedResponseSize = dq.size;
+
       uint32_t allowExpired = ss ? 0 : g_staleCacheEntriesTTL;
       boost::optional<Netmask> subnet;
-      if (packetCache->get(dq, consumed, dh->id, query, &cachedResponseSize, &cacheKey, subnet, allowExpired)) {
-        DNSResponse dr(dq.qname, dq.qtype, dq.qclass, consumed, dq.local, dq.remote, reinterpret_cast<dnsheader*>(query), dq.size, cachedResponseSize, false, &queryRealTime);
+      char cquery[1500];
+      memcpy(cquery, query, du->query.length());
+      uint16_t cachedResponseSize = sizeof(cquery);      
+      if (packetCache->get(dq, consumed, dh->id, cquery, &cachedResponseSize, &cacheKey, subnet, allowExpired)) {
+        DNSResponse dr(dq.qname, dq.qtype, dq.qclass, consumed, dq.local, dq.remote, reinterpret_cast<dnsheader*>(cquery), sizeof(cquery), cachedResponseSize, false, &queryRealTime);
 #ifdef HAVE_PROTOBUF
         dr.uniqueId = dq.uniqueId;
 #endif
@@ -166,7 +169,7 @@ static int processDOHQuery(DOHUnit* du)
           return -1;
         }
         
-        du->query = std::string(query, cachedResponseSize);
+        du->query = std::string(cquery, cachedResponseSize);
         send(du->rsock, &du, sizeof(du), 0);
 
         // XXX on UDP we deal with the delayMsec too, which we don't do here
