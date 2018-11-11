@@ -65,6 +65,8 @@ static int processDOHQuery(DOHUnit* du)
   LocalHolders holders;
   uint16_t queryId=0;
   try {
+    if(!du->req) // we got closed meanwhile. XXX small race condition here
+      return -1;
     DOHServerConfig* dsc = (DOHServerConfig*)du->req->conn->ctx->storage.entries[0].data;
     ClientState& cs = dsc->cs;
     
