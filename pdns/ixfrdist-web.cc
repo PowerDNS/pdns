@@ -22,13 +22,15 @@
 #include "ixfrdist-web.hh"
 #include <thread>
 #include "threadname.hh"
+#include "iputils.hh"
 #include "ixfrdist-stats.hh"
 
 string doGetStats();
 
-IXFRDistWebServer::IXFRDistWebServer(const ComboAddress &listenAddress) {
+IXFRDistWebServer::IXFRDistWebServer(const ComboAddress &listenAddress, const NetmaskGroup &acl) {
   // TODO wrap in smart pointer
   d_ws = new WebServer(listenAddress.toString() , listenAddress.getPort());
+  d_ws->setACL(acl);
   d_ws->bind();
 }
 

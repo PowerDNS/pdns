@@ -100,6 +100,26 @@ struct convert<DNSName> {
     }
   }
 };
+
+template<>
+struct convert<Netmask> {
+  static Node encode(const Netmask& rhs) {
+    return Node(rhs.toString());
+  }
+  static bool decode(const Node& node, Netmask& rhs) {
+    if (!node.IsScalar()) {
+      return false;
+    }
+    try {
+      rhs = Netmask(node.as<string>());
+      return true;
+    } catch(const runtime_error &e) {
+      return false;
+    } catch (const PDNSException &e) {
+      return false;
+    }
+  }
+};
 } // namespace YAML
 
 struct ixfrdiff_t {
@@ -1084,6 +1104,16 @@ static bool parseAndCheckConfig(const string& configpath, YAML::Node& config) {
     }
   }
 
+  if (config["webserver-acl"]) {
+    try {
+      config["webserver-acl"].as<vector<Netmask>>();
+    }
+    catch (const runtime_error &e) {
+      g_log<<Logger::Error<<"Unable to read 'webserver-address' value: "<<e.what()<<endl;
+      retval = false;
+    }
+  }
+
   return retval;
 }
 
@@ -1215,7 +1245,18 @@ int main(int argc, char** argv) {
   }
 
   if (config["webserver-address"]) {
-    auto ws = IXFRDistWebServer(config["webserver-address"].as<ComboAddress>());
+    NetmaskGroup wsACL;
+    wsACL.addMask("127.0.0.0/8");
+    wsACL.addMask("::1/128");
+
+    if (config["webserver-acl"]) {
+      wsACL.clear();
+      for (const auto &acl : config["webserver-acl"].as<vector<Netmask>>()) {
+        wsACL.addMask(acl);
+      }
+    }
+
+    auto ws = IXFRDistWebServer(config["webserver-address"].as<ComboAddress>(), wsACL);
     ws.go();
   }
 

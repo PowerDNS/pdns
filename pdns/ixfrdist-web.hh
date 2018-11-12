@@ -27,7 +27,7 @@
 class IXFRDistWebServer
 {
   public:
-    explicit IXFRDistWebServer(const ComboAddress &listenAddress);
+    explicit IXFRDistWebServer(const ComboAddress &listenAddress, const NetmaskGroup &acl);
     void go();
 
   private:
