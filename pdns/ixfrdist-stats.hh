@@ -32,53 +32,7 @@ class ixfrdistStats {
       progStats.startTime = time(nullptr);
     }
 
-    std::string getStats() {
-      std::stringstream stats;
-      const std::string prefix = "ixfrdist_";
-
-      stats<<"# TYPE "<<prefix<<"uptime_seconds gauge"<<std::endl;
-      stats<<prefix<<"uptime_seconds "<<time(nullptr) - progStats.startTime<<std::endl;
-      stats<<"# TYPE "<<prefix<<"domains gauge"<<std::endl;
-      stats<<prefix<<"domains "<<domainStats.size()<<std::endl;
-
-      uint64_t numSOAChecks{0}, numSOAChecksFailed{0}, numSOAinQueries{0}, numIXFRinQueries{0}, numAXFRinQueries{0}, numAXFRFailures{0}, numIXFRFailures{0};
-      for (auto const &d : domainStats) {
-        if(d.second.haveZone)
-          stats<<prefix<<"soa_serial{domain="<<d.first<<"} "<<d.second.currentSOA<<std::endl;
-        else
-          stats<<prefix<<"soa_serial{domain="<<d.first<<"} NaN"<<std::endl;
-
-        stats<<prefix<<"soa_checks{domain="<<d.first<<"} "<<d.second.numSOAChecks<<std::endl;
-        numSOAChecks += d.second.numSOAChecks;
-
-        stats<<prefix<<"soa_checks_failed{domain="<<d.first<<"} "<<d.second.numSOAChecksFailed<<std::endl;
-        numSOAChecksFailed += d.second.numSOAChecksFailed;
-
-        stats<<prefix<<"soa_inqueries{domain="<<d.first<<"} "<<d.second.numSOAinQueries<<std::endl;
-        numSOAinQueries += d.second.numSOAinQueries;
-
-        stats<<prefix<<"axfr_inqueries{domain="<<d.first<<"} "<<d.second.numAXFRinQueries<<std::endl;
-        numAXFRinQueries += d.second.numAXFRinQueries;
-
-        stats<<prefix<<"ixfr_inqueries{domain="<<d.first<<"} "<<d.second.numIXFRinQueries<<std::endl;
-        numIXFRinQueries += d.second.numIXFRinQueries;
-
-        stats<<prefix<<"axfr_failures{domain="<<d.first<<"} "<<d.second.numAXFRFailures<<std::endl;
-        numAXFRFailures += d.second.numAXFRFailures;
-
-        stats<<prefix<<"ixfr_failures{domain="<<d.first<<"} "<<d.second.numIXFRFailures<<std::endl;
-        numIXFRFailures += d.second.numIXFRFailures;
-      }
-
-      stats<<prefix<<"soa_checks "<<numSOAChecks<<std::endl;
-      stats<<prefix<<"soa_checks_failed "<<numSOAChecksFailed<<std::endl;
-      stats<<prefix<<"soa_inqueries "<<numSOAinQueries<<std::endl;
-      stats<<prefix<<"axfr_inqueries "<<numAXFRinQueries<<std::endl;
-      stats<<prefix<<"ixfr_inqueries "<<numIXFRinQueries<<std::endl;
-      stats<<prefix<<"axfr_failures "<<numAXFRFailures<<std::endl;
-      stats<<prefix<<"ixfr_failures "<<numIXFRFailures<<std::endl;
-      return stats.str();
-    }
+    std::string getStats();
 
     void setSOASerial(const DNSName& d, const uint32_t serial) {
       domainStats[d].currentSOA = serial;
