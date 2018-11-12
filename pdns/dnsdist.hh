@@ -543,6 +543,7 @@ struct IDState
   bool skipCache{false};
   bool destHarvested{false}; // if true, origDest holds the original dest addr, otherwise the listening addr
   bool dnssecOK{false};
+  bool useZeroScope;
 };
 
 typedef std::unordered_map<string, unsigned int> QueryCountRecords;
