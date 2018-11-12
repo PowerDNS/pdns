@@ -31,18 +31,13 @@ IXFRDistWebServer::IXFRDistWebServer(const ComboAddress &listenAddress, const Ne
   // TODO wrap in smart pointer
   d_ws = new WebServer(listenAddress.toString() , listenAddress.getPort());
   d_ws->setACL(acl);
+  d_ws->registerWebHandler("/metrics", boost::bind(&IXFRDistWebServer::getMetrics, this, _1, _2));
   d_ws->bind();
 }
 
 void IXFRDistWebServer::go() {
-  // std::thread wt(IXFRDistWebServer::webThread);
-  d_ws->registerWebHandler("/metrics", boost::bind(&IXFRDistWebServer::getMetrics, this, _1, _2));
-  d_ws->go();
-  // wt.detach();
-}
-
-void IXFRDistWebServer::webThread() {
   setThreadName("ixfrdist/web");
+  d_ws->go();
 }
 
 void IXFRDistWebServer::getMetrics(HttpRequest* req, HttpResponse* resp) {

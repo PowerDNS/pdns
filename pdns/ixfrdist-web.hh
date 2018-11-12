@@ -22,7 +22,6 @@
 #pragma once
 #include "webserver.hh"
 #include "iputils.hh"
-//#include "ixfrdist-stats.hh"
 
 class IXFRDistWebServer
 {
@@ -32,7 +31,6 @@ class IXFRDistWebServer
 
   private:
     WebServer *d_ws;
-    void webThread();
 
     // All endpoints
     void getMetrics(HttpRequest* req, HttpResponse* resp);
