@@ -301,10 +301,16 @@ bool fixUpResponse(char** response, uint16_t* responseLen, size_t* responseSize,
     int res = locateEDNSOptRR(responseStr, &optStart, &optLen, &last);
 
     if (res == 0) {
-      if(zeroScope) { // this finds if an EDNS scope was set, and if it is 0
-        *zeroScope = optLen > 18 && !responseStr.at(optStart + 18) && !responseStr.at(optStart + 11) && responseStr.at(optStart + 12) ==8;
+      if (zeroScope) { // this finds if an EDNS Client Subnet scope was set, and if it is 0
+        size_t optContentStart = 0;
+        uint16_t optContentLen = 0;
+        /* we need at least 4 bytes after the option length (family: 2, source prefix-length: 1, scope prefix-length: 1) */
+        if (isEDNSOptionInOpt(responseStr, optStart, optLen, EDNSOptionCode::ECS, &optContentStart, &optContentLen) && optContentLen >= 4) {
+          /* see if the EDNS Client Subnet SCOPE PREFIX-LENGTH byte in position 3 is set to 0, which is the only thing
+             we care about. */
+          *zeroScope = responseStr.at(optContentStart + 3) == 0;
+        }
       }
-      // this test only detects a /0 if ECS is the first option
 
       if (ednsAdded) {
         /* we added the entire OPT RR,
@@ -518,8 +524,8 @@ try {
           addRoom = DNSCRYPT_MAX_RESPONSE_PADDING_AND_MAC_SIZE;
         }
 #endif
-        bool zeroScope=false;
-        if (!fixUpResponse(&response, &responseLen, &responseSize, ids->qname, ids->origFlags, ids->ednsAdded, ids->ecsAdded, rewrittenResponse, addRoom, &zeroScope)) {
+        bool zeroScope = false;
+        if (!fixUpResponse(&response, &responseLen, &responseSize, ids->qname, ids->origFlags, ids->ednsAdded, ids->ecsAdded, rewrittenResponse, addRoom, ids->useZeroScope ? &zeroScope : nullptr)) {
           continue;
         }
 
@@ -1445,7 +1451,7 @@ static void processUDPQuery(ClientState& cs, LocalHolders& holders, const struct
 
     if (dq.useECS && ((ss && ss->useECS) || (!ss && serverPool->getECS()))) {
       // we special case our cache in case a downstream explicitly gave us a universally valid response with a 0 scope
-      if (packetCache && !dq.skipCache && packetCache->isECSParsingEnabled()) {
+      if (packetCache && !dq.skipCache && !ss->disableZeroScope && packetCache->isECSParsingEnabled()) {
         if (packetCache->get(dq, consumed, dh->id, query, &cachedResponseSize, &cacheKeyNoECS, subnet, dnssecOK, allowExpired)) {
           sendAndEncryptUDPResponse(holders, cs, dq, query, cachedResponseSize, dnsCryptQuery, delayMsec, dest, responsesVect, queuedResponses, respIOV, respCBuf, true);
           return;
