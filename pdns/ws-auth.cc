@@ -63,6 +63,7 @@ AuthWebServer::AuthWebServer()
   if(arg().mustDo("webserver") || arg().mustDo("api")) {
     d_ws = new WebServer(arg()["webserver-address"], arg().asNum("webserver-port"));
     d_ws->setApiKey(arg()["api-key"]);
+    d_ws->setPassword(arg()["webserver-password"]);
     d_ws->bind();
   }
 }

@@ -175,11 +175,9 @@ void WebServer::registerApiHandler(const string& url, HandlerFunction handler) {
   d_registerApiHandlerCalled = true;
 }
 
-static void webWrapper(WebServer::HandlerFunction handler, HttpRequest* req, HttpResponse* resp) {
-  const string& web_password = arg()["webserver-password"];
-
-  if (!web_password.empty()) {
-    bool auth_ok = req->compareAuthorization(web_password);
+static void webWrapper(WebServer::HandlerFunction handler, HttpRequest* req, HttpResponse* resp, const string &password) {
+  if (!password.empty()) {
+    bool auth_ok = req->compareAuthorization(password);
     if (!auth_ok) {
       g_log<<Logger::Debug<<"HTTP Request \"" << req->url.path << "\": Web Authentication failed" << endl;
       throw HttpUnauthorizedException("Basic");
@@ -190,7 +188,7 @@ static void webWrapper(WebServer::HandlerFunction handler, HttpRequest* req, Htt
 }
 
 void WebServer::registerWebHandler(const string& url, HandlerFunction handler) {
-  HandlerFunction f = boost::bind(&webWrapper, handler, _1, _2);
+  HandlerFunction f = boost::bind(&webWrapper, handler, _1, _2, d_webserverPassword);
   registerBareHandler(url, f);
 }
 

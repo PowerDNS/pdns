@@ -152,6 +152,13 @@ public:
     d_apikey = apikey;
   }
 
+  void setPassword(const string &password) {
+    if (d_registerWebHandlerCalled) {
+      throw PDNSException("registerWebHandler has been called, can not change password");
+    }
+    d_webserverPassword = password;
+  }
+
   void bind();
   void go();
 
@@ -176,6 +183,9 @@ protected:
 
   std::string d_apikey;
   bool d_registerApiHandlerCalled{false};
+
+  std::string d_webserverPassword;
+  bool d_registerWebHandlerCalled{false};
 };
 
 #endif /* WEBSERVER_HH */
