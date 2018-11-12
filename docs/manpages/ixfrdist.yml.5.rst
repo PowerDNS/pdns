@@ -99,6 +99,15 @@ Options
   :master: IP address of the server to transfer this domain from.
            Mandatory.
 
+:webserver-address:
+  IP address to listen on for the built-in webserver.
+  When not set, no webserver is started.
+
+:webserver-acl:
+  A list of networks that are allowed to access the :program:`ixfrdist` webserver.
+  Entries without a netmask will be interpreted as a single address.
+  By default, this list is set to ``127.0.0.0/8`` and ``::1/128``.
+
 See also
 --------
 
