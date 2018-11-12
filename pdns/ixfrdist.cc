@@ -309,7 +309,6 @@ void updateThread(const string& workdir, const uint16_t& keep, const uint16_t& a
   g_log<<Logger::Notice<<"Update Thread started"<<endl;
 
   while (true) {
-    cout<<g_stats.getStats()<<endl;
     if (g_exiting) {
       g_log<<Logger::Notice<<"UpdateThread stopped"<<endl;
       break;
