@@ -33,7 +33,6 @@
 #include "dns.hh"
 #include "base64.hh"
 #include "json.hh"
-#include "arguments.hh"
 #include <yahttp/router.hpp>
 
 json11::Json HttpRequest::json()
@@ -343,22 +342,19 @@ void WebServer::go()
   if(!d_server)
     return;
   try {
-    NetmaskGroup acl;
-    acl.toMasks(::arg()["webserver-allow-from"]);
-
     while(true) {
       try {
         auto client = d_server->accept();
         if (!client) {
           continue;
         }
-        if (client->acl(acl)) {
+        if (client->acl(d_acl)) {
           std::thread webHandler(WebServerConnectionThreadStart, this, client);
           webHandler.detach();
         } else {
           ComboAddress remote;
           if (client->getRemote(remote))
-            g_log<<Logger::Error<<"Webserver closing socket: remote ("<< remote.toString() <<") does not match 'webserver-allow-from'"<<endl;
+            g_log<<Logger::Error<<"Webserver closing socket: remote ("<< remote.toString() <<") does not match the set ACL("<<d_acl.toString()<<")"<<endl;
         }
       }
       catch(PDNSException &e) {

@@ -159,6 +159,10 @@ public:
     d_webserverPassword = password;
   }
 
+  void setACL(const NetmaskGroup &nmg) {
+    d_acl = nmg;
+  }
+
   void bind();
   void go();
 
@@ -186,6 +190,8 @@ protected:
 
   std::string d_webserverPassword;
   bool d_registerWebHandlerCalled{false};
+
+  NetmaskGroup d_acl;
 };
 
 #endif /* WEBSERVER_HH */

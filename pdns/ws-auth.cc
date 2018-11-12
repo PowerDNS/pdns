@@ -64,6 +64,11 @@ AuthWebServer::AuthWebServer()
     d_ws = new WebServer(arg()["webserver-address"], arg().asNum("webserver-port"));
     d_ws->setApiKey(arg()["api-key"]);
     d_ws->setPassword(arg()["webserver-password"]);
+
+    NetmaskGroup acl;
+    acl.toMasks(::arg()["webserver-allow-from"]);
+    d_ws->setACL(acl);
+
     d_ws->bind();
   }
 }
