@@ -2339,7 +2339,7 @@ try
   g_consoleACL.setState(consoleACL);
 
   if (g_cmdLine.checkConfig) {
-    setupLua(true, g_cmdLine.config);
+    setupLua(false, g_cmdLine.config);
     // No exception was thrown
     infolog("Configuration '%s' OK!", g_cmdLine.config);
     _exit(EXIT_SUCCESS);
