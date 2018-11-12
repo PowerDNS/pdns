@@ -448,7 +448,7 @@ void tcpClientThread(int pipefd)
 
         if (dq.useECS && ((ds && ds->useECS) || (!ds && serverPool->getECS()))) {
           // we special case our cache in case a downstream explicitly gave us a universally valid response with a 0 scope
-          if (packetCache && !dq.skipCache && !ds->disableZeroScope && packetCache->isECSParsingEnabled()) {
+          if (packetCache && !dq.skipCache && (!ds || !ds->disableZeroScope) && packetCache->isECSParsingEnabled()) {
             if (packetCache->get(dq, consumed, dq.dh->id, cachedResponse, &cachedResponseSize, &cacheKeyNoECS, subnet, dnssecOK, allowExpired)) {
               DNSResponse dr(dq.qname, dq.qtype, dq.qclass, dq.consumed, dq.local, dq.remote, (dnsheader*) cachedResponse, sizeof cachedResponse, cachedResponseSize, true, &queryRealTime);
 #ifdef HAVE_PROTOBUF

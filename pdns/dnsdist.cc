@@ -1451,7 +1451,7 @@ static void processUDPQuery(ClientState& cs, LocalHolders& holders, const struct
 
     if (dq.useECS && ((ss && ss->useECS) || (!ss && serverPool->getECS()))) {
       // we special case our cache in case a downstream explicitly gave us a universally valid response with a 0 scope
-      if (packetCache && !dq.skipCache && !ss->disableZeroScope && packetCache->isECSParsingEnabled()) {
+      if (packetCache && !dq.skipCache && (!ss || !ss->disableZeroScope) && packetCache->isECSParsingEnabled()) {
         if (packetCache->get(dq, consumed, dh->id, query, &cachedResponseSize, &cacheKeyNoECS, subnet, dnssecOK, allowExpired)) {
           sendAndEncryptUDPResponse(holders, cs, dq, query, cachedResponseSize, dnsCryptQuery, delayMsec, dest, responsesVect, queuedResponses, respIOV, respCBuf, true);
           return;

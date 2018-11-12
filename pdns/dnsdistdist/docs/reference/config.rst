@@ -349,7 +349,8 @@ Servers
                              --   "address@interface", e.g. "192.0.2.2@eth0"
       addXPF=NUM,            -- Add the client's IP address and port to the query, along with the original destination address and port,
                              -- using the experimental XPF record from `draft-bellis-dnsop-xpf <https://datatracker.ietf.org/doc/draft-bellis-dnsop-xpf/>`_ and the specified option code. Default is disabled (0)
-      sockets=NUM            -- Number of sockets (and thus source ports) used toward the backend server, defaults to a single one
+      sockets=NUM,           -- Number of sockets (and thus source ports) used toward the backend server, defaults to a single one
+      disableZeroScope       -- Disable the EDNS Client Subnet 'zero scope' feature, which does a cache lookup for an answer valid for all subnets (ECS scope of 0) before adding ECS information to the query and doing the regular lookup
     })
 
   :param str server_string: A simple IP:PORT string.
