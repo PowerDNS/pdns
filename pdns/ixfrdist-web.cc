@@ -50,5 +50,6 @@ void IXFRDistWebServer::getMetrics(HttpRequest* req, HttpResponse* resp) {
     throw HttpMethodNotAllowedException();
 
   resp->body = doGetStats();
+  resp->headers["Content-Type"] = "text/plain; version=0.0.4"; // https://prometheus.io/docs/instrumenting/exposition_formats/#text-based-format
   resp->status = 200;
 }
