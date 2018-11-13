@@ -40,7 +40,6 @@ algorithms are supported:
 -  rsasha1
 -  rsasha256
 -  rsasha512
--  gost
 -  ecdsa256
 -  ecdsa384
 -  ed25519
@@ -72,8 +71,8 @@ generate-zone-key {**KSK**,\ **ZSK**} [*ALGORITHM*] [*KEYBITS*]
     and print it on STDOUT. If *ALGORITHM* is not set, RSASHA512 is
     used. If *KEYBITS* is not set, an appropriate keysize is selected
     for *ALGORITHM*. Each ECC-based algorithm supports only one valid
-    *KEYBITS* value: For GOST, ECDSA256, and ED25519, it is 256; for
-    ECDSA384, it is 384; and for ED448, it is 456.
+    *KEYBITS* value: For ECDSA256 and ED25519, it is 256; for ECDSA384,
+    it is 384; and for ED448, it is 456.
 import-zone-key *ZONE* *FILE* {**KSK**,\ **ZSK**}
     Import from *FILE* a full (private) key for zone called *ZONE*. The
     format used is compatible with BIND and NSD/LDNS. **KSK** or **ZSK**

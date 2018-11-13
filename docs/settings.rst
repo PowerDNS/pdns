@@ -288,10 +288,6 @@ The algorithm that should be used for the KSK when running
 :doc:`pdnsutil secure-zone <manpages/pdnsutil.1>` or using the :doc:`Zone API endpoint <http-api/cryptokey>`
 to enable DNSSEC. Must be one of:
 
-* rsamd5
-* dh
-* dsa
-* ecc
 * rsasha1
 * rsasha256
 * rsasha512
@@ -299,6 +295,7 @@ to enable DNSSEC. Must be one of:
 * ecdsa256 (ECDSA P-256 with SHA256)
 * ecdsa384 (ECDSA P-384 with SHA384)
 * ed25519
+* ed448
 
 .. note::
   Actual supported algorithms depend on the crypto-libraries
@@ -384,10 +381,6 @@ The algorithm that should be used for the ZSK when running
 :doc:`pdnsutil secure-zone <manpages/pdnsutil.1>` or using the :doc:`Zone API endpoint <http-api/cryptokey>`
 to enable DNSSEC. Must be one of:
 
-* rsamd5
-* dh
-* dsa
-* ecc
 * rsasha1
 * rsasha256
 * rsasha512
@@ -395,6 +388,7 @@ to enable DNSSEC. Must be one of:
 * ecdsa256 (ECDSA P-256 with SHA256)
 * ecdsa384 (ECDSA P-384 with SHA384)
 * ed25519
+* ed448
 
 .. note::
   Actual supported algorithms depend on the crypto-libraries
