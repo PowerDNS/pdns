@@ -291,7 +291,6 @@ to enable DNSSEC. Must be one of:
 * rsasha1
 * rsasha256
 * rsasha512
-* ecc-gost
 * ecdsa256 (ECDSA P-256 with SHA256)
 * ecdsa384 (ECDSA P-384 with SHA384)
 * ed25519
@@ -384,7 +383,6 @@ to enable DNSSEC. Must be one of:
 * rsasha1
 * rsasha256
 * rsasha512
-* ecc-gost
 * ecdsa256 (ECDSA P-256 with SHA256)
 * ecdsa384 (ECDSA P-384 with SHA384)
 * ed25519
