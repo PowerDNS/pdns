@@ -321,6 +321,7 @@ Servers
 
     newServer({
       address="IP:PORT",     -- IP and PORT of the backend server (mandatory)
+      id=STRING              -- Use a pre-defined UUID instead of a random one
       qps=NUM,               -- Limit the number of queries per second to NUM, when using the `firstAvailable` policy
       order=NUM,             -- The order of this server, used by the `leastOustanding` and `firstAvailable` policies
       weight=NUM,            -- The weight of this server, used by the `wrandom`, `whashed` and `chashed` policies, default: 1
@@ -686,12 +687,16 @@ Status, Statistics and More
 
   Show a plot of the response time latency distribution
 
-.. function:: showServers()
+.. function:: showServers([options])
+
+  .. versionchanged:: 1.3.4
+    ``options`` optional parameter added
 
   This function shows all backend servers currently configured and some statistics.
   These statics have the following fields:
 
   * ``#`` - The number of the server, can be used as the argument for :func:`getServer`
+  * ``UUID`` - The UUID of the backend. Can be set with the ``id`` option of :func:`newServer`
   * ``Address`` - The IP address and port of the server
   * ``State`` - The current state of the server
   * ``Qps`` - Current number of queries per second
@@ -703,6 +708,12 @@ Status, Statistics and More
   * ``Drate`` - Number of queries dropped per second by this server
   * ``Lat`` - The latency of this server in milliseconds
   * ``Pools`` - The pools this server belongs to
+
+  :param table options: A table with key: value pairs with display options.
+
+  Options:
+
+  * ``showUUIDs=false``: bool - Whether to display the UUIDs, defaults to false.
 
 .. function:: showTCPStats()
 
