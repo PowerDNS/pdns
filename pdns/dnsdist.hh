@@ -883,7 +883,9 @@ void removeServerFromPool(pools_t& pools, const string& poolName, std::shared_pt
 struct CarbonConfig
 {
   ComboAddress server;
+  std::string namespace_name;
   std::string ourname;
+  std::string instance_name;
   unsigned int interval;
 };
 

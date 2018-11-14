@@ -38,6 +38,7 @@ try
   setThreadName("pdns/carbonDump");
   extern StatBag S;
 
+  string namespace_name=arg()["carbon-namespace"];
   string hostname=arg()["carbon-ourname"];
   if(hostname.empty()) {
     char tmp[80];
@@ -48,6 +49,7 @@ try
     hostname=tmp;
     boost::replace_all(hostname, ".", "_");
   }
+  string instance_name=arg()["carbon-instancename"];
 
   vector<string> carbonServers;
   stringtok(carbonServers, arg()["carbon-server"], ", ");
@@ -63,7 +65,7 @@ try
     ostringstream str;
     time_t now=time(0);
     for(const string& entry : entries) {
-      str<<"pdns."<<hostname<<".auth."<<entry<<' '<<S.read(entry)<<' '<<now<<"\r\n";
+      str<<namespace_name<<'.'<<hostname<<'.'<<instance_name<<'.'<<entry<<' '<<S.read(entry)<<' '<<now<<"\r\n";
     }
     msg = str.str();
 

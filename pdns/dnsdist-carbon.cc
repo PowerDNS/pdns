@@ -56,6 +56,10 @@ try
 
     for (const auto& conf : *localCarbon) {
       const auto& server = conf.server;
+      std::string namespace_name = conf.namespace_name;
+      if(namespace_name.empty()) {
+        namespace_name="dnsdist";
+      }
       std::string hostname = conf.ourname;
       if(hostname.empty()) {
         char tmp[80];
@@ -66,6 +70,10 @@ try
         hostname=tmp;
         boost::replace_all(hostname, ".", "_");
       }
+      std::string instance_name = conf.instance_name;
+      if(instance_name.empty()) {
+        instance_name="main";
+      }
 
       try {
         Socket s(server.sin4.sin_family, SOCK_STREAM);
@@ -74,7 +82,7 @@ try
         ostringstream str;
         time_t now=time(0);
         for(const auto& e : g_stats.entries) {
-          str<<"dnsdist."<<hostname<<".main."<<e.first<<' ';
+          str<<namespace_name<<"."<<hostname<<"."<<instance_name<<"."<<e.first<<' ';
           if(const auto& val = boost::get<DNSDistStats::stat_t*>(&e.second))
             str<<(*val)->load();
           else if (const auto& dval = boost::get<double*>(&e.second))
@@ -87,7 +95,7 @@ try
         for(const auto& state : *states) {
           string serverName = state->name.empty() ? (state->remote.toString() + ":" + std::to_string(state->remote.getPort())) : state->getName();
           boost::replace_all(serverName, ".", "_");
-          const string base = "dnsdist." + hostname + ".main.servers." + serverName + ".";
+          const string base = namespace_name + "." + hostname + "." + instance_name + ".servers." + serverName + ".";
           str<<base<<"queries" << ' ' << state->queries.load() << " " << now << "\r\n";
           str<<base<<"drops" << ' ' << state->reuseds.load() << " " << now << "\r\n";
           str<<base<<"latency" << ' ' << (state->availability != DownstreamState::Availability::Down ? state->latencyUsec/1000.0 : 0) << " " << now << "\r\n";
@@ -100,7 +108,7 @@ try
 
           string frontName = front->local.toString() + ":" + std::to_string(front->local.getPort()) +  (front->udpFD >= 0 ? "_udp" : "_tcp");
           boost::replace_all(frontName, ".", "_");
-          const string base = "dnsdist." + hostname + ".main.frontends." + frontName + ".";
+          const string base = namespace_name + "." + hostname + "." + instance_name + ".frontends." + frontName + ".";
           str<<base<<"queries" << ' ' << front->queries.load() << " " << now << "\r\n";
         }
         auto localPools = g_pools.getLocal();
@@ -110,7 +118,7 @@ try
           if (poolName.empty()) {
             poolName = "_default_";
           }
-          const string base = "dnsdist." + hostname + ".main.pools." + poolName + ".";
+          const string base = namespace_name + "." + hostname + "." + instance_name + ".pools." + poolName + ".";
           const std::shared_ptr<ServerPool> pool = entry.second;
           str<<base<<"servers" << " " << pool->countServers(false) << " " << now << "\r\n";
           str<<base<<"servers-up" << " " << pool->countServers(true) << " " << now << "\r\n";

@@ -136,6 +136,16 @@ DNSSEC is not supported. Example:
 If sending carbon updates, this is the interval between them in seconds.
 See :doc:`metrics`.
 
+.. _setting-carbon-namespace:
+
+``carbon-namespace``
+--------------------
+.. versionadded:: 4.2.0
+
+-  String
+
+Change the namespace or first string of the metric key. The default is pdns.
+
 .. _setting-carbon-ourname:
 
 ``carbon-ourname``
@@ -145,6 +155,16 @@ See :doc:`metrics`.
 If sending carbon updates, if set, this will override our hostname.
 Be careful not to include any dots in this setting, unless you know what you are doing.
 See :ref:`metricscarbon`.
+
+.. _setting-carbon-instance:
+
+``carbon-instance``
+--------------------
+.. versionadded:: 4.2.0
+
+-  String
+
+Change the instance or third string of the metric key. The default is recursor.
 
 .. _setting-carbon-server:
 
