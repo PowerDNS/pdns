@@ -463,6 +463,11 @@ int PacketHandler::doAdditionalProcessingAndDropAA(DNSPacket *p, DNSPacket *r, c
       while(B.get(rr)) {
         if(rr.dr.d_type != QType::A && rr.dr.d_type!=QType::AAAA)
           continue;
+        if(!rr.dr.d_name.isPartOf(soadata.qname)) {
+          // FIXME we might still pass on the record if it is occluded and the
+          // backend uses a single id for all zones
+          continue;
+        }
         rr.dr.d_place=DNSResourceRecord::ADDITIONAL;
         toAdd.push_back(rr);
       }
