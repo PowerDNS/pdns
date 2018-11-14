@@ -506,7 +506,7 @@ public:
     d_ticketKeys.addKey(newKey);
 
     if (d_ticketsKeyRotationDelay > 0) {
-      d_ticketsKeyNextRotation = time(nullptr) + d_ticketsKeyRotationDelay;
+      d_ticketsKeyNextRotation = now + d_ticketsKeyRotationDelay;
     }
   }
 
@@ -840,7 +840,7 @@ public:
     auto newKey = std::make_shared<GnuTLSTicketsKey>();
     d_ticketsKey = newKey;
     if (d_ticketsKeyRotationDelay > 0) {
-      d_ticketsKeyNextRotation = time(nullptr) + d_ticketsKeyRotationDelay;
+      d_ticketsKeyNextRotation = now + d_ticketsKeyRotationDelay;
     }
   }
 

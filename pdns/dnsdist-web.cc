@@ -68,7 +68,7 @@ static bool apiWriteConfigFile(const string& filebasename, const string& content
 static void apiSaveACL(const NetmaskGroup& nmg)
 {
   vector<string> vec;
-  g_ACL.getLocal()->toStringVector(&vec);
+  nmg.toStringVector(&vec);
 
   string acl;
   for(const auto& s : vec) {

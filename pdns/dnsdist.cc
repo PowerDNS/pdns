@@ -565,22 +565,22 @@ try {
       vinfolog("Got an error in UDP responder thread while parsing a response from %s, id %d: %s", dss->remote.toStringWithPort(), queryId, e.what());
     }
   }
-  return 0;
+  return nullptr;
 }
 catch(const std::exception& e)
 {
   errlog("UDP responder thread died because of exception: %s", e.what());
-  return 0;
+  return nullptr;
 }
 catch(const PDNSException& e)
 {
   errlog("UDP responder thread died because of PowerDNS exception: %s", e.reason);
-  return 0;
+  return nullptr;
 }
 catch(...)
 {
   errlog("UDP responder thread died because of an exception: %s", "unknown");
-  return 0;
+  return nullptr;
 }
 
 bool DownstreamState::reconnect()
@@ -1888,7 +1888,7 @@ void* maintThread()
 
     // ponder pruning g_dynblocks of expired entries here
   }
-  return 0;
+  return nullptr;
 }
 
 static void* secPollThread()
@@ -1995,7 +1995,7 @@ static void* healthChecksThread()
       }
     }
   }
-  return 0;
+  return nullptr;
 }
 
 static void bindAny(int af, int sock)
