@@ -153,6 +153,17 @@ rule-servfail
 -------------
 Number of ServFail answers returned because of a rule.
 
+security-status
+---------------
+.. versionadded:: 1.3.4
+
+The security status of :program:`dnsdist`. This is regularly polled.
+
+ * 0 = Unknown status or unreleased version
+ * 1 = OK
+ * 2 = Upgrade recommended
+ * 3 = Upgrade required (most likely because there is a known security issue)
+
 self-answered
 -------------
 Number of self-answered responses.

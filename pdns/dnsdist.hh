@@ -227,10 +227,11 @@ struct DNSDistStats
   stat_t cacheHits{0};
   stat_t cacheMisses{0};
   stat_t latency0_1{0}, latency1_10{0}, latency10_50{0}, latency50_100{0}, latency100_1000{0}, latencySlow{0};
+  stat_t securityStatus{0};
 
   double latencyAvg100{0}, latencyAvg1000{0}, latencyAvg10000{0}, latencyAvg1000000{0};
   typedef std::function<uint64_t(const std::string&)> statfunction_t;
-  typedef boost::variant<stat_t*, double*, statfunction_t> entry_t;
+  typedef boost::variant<stat_t*, double*, statfunction_t, uint64_t*> entry_t;
   std::vector<std::pair<std::string, entry_t>> entries{
     {"responses", &responses},
     {"servfail-responses", &servfailResponses},
@@ -267,7 +268,8 @@ struct DNSDistStats
     {"cpu-sys-msec", getCPUTimeSystem},
     {"fd-usage", getOpenFileDescriptors},
     {"dyn-blocked", &dynBlocked},
-    {"dyn-block-nmg-size", [](const std::string&) { return g_dynblockNMG.getLocal()->size(); }}
+    {"dyn-block-nmg-size", [](const std::string&) { return g_dynblockNMG.getLocal()->size(); }},
+    {"security-status", &securityStatus}
   };
 };
 
@@ -357,6 +359,7 @@ struct MetricDefinitionStorage {
     { "fd-usage",               MetricDefinition(PrometheusMetricType::gauge,   "Number of currently used file descriptors")},
     { "dyn-blocked",            MetricDefinition(PrometheusMetricType::counter, "Number of queries dropped because of a dynamic block")},
     { "dyn-block-nmg-size",     MetricDefinition(PrometheusMetricType::gauge,   "Number of dynamic blocks entries") },
+    { "security-status",        MetricDefinition(PrometheusMetricType::gauge,   "Security status of this software. 0=unknown, 1=OK, 2=upgrade recommended, 3=upgrade mandatory") },
   };
 };
 

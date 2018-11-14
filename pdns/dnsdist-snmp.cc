@@ -47,6 +47,7 @@ static const oid fdUsageOID[] = { DNSDIST_STATS_OID, 34 };
 static const oid dynBlockedOID[] = { DNSDIST_STATS_OID, 35 };
 static const oid dynBlockedNMGSizeOID[] = { DNSDIST_STATS_OID, 36 };
 static const oid ruleServFailOID[] = { DNSDIST_STATS_OID, 37 };
+static const oid securityStatusOID[] = { DNSDIST_STATS_OID, 38 };
 
 static std::unordered_map<oid, DNSDistStats::entry_t> s_statsMap;
 
@@ -580,6 +581,7 @@ DNSDistSNMPAgent::DNSDistSNMPAgent(const std::string& name, const std::string& m
   registerGauge64Stat("cpuSysMSec", cpuSysMSecOID, OID_LENGTH(cpuSysMSecOID), &getCPUTimeSystem);
   registerGauge64Stat("fdUsage", fdUsageOID, OID_LENGTH(fdUsageOID), &getOpenFileDescriptors);
   registerGauge64Stat("dynBlockedNMGSize", dynBlockedNMGSizeOID, OID_LENGTH(dynBlockedNMGSizeOID), [](const std::string&) { return g_dynblockNMG.getLocal()->size(); });
+  registerGauge64Stat("securityStatus", securityStatusOID, OID_LENGTH(securityStatusOID), [](const std::string&) { return g_stats.securityStatus.load(); });
 
 
   netsnmp_table_registration_info* table_info = SNMP_MALLOC_TYPEDEF(netsnmp_table_registration_info);
