@@ -2270,7 +2270,7 @@ bool SyncRes::processRecords(const std::string& prefix, const DNSName& qname, co
       */
       if(!wasVariable() && newtarget.empty()) {
         t_sstorage.negcache.add(ne);
-        if(s_rootNXTrust && ne.d_auth.isRoot() && auth.isRoot()) {
+        if(s_rootNXTrust && ne.d_auth.isRoot() && auth.isRoot() && lwr.d_aabit) {
           ne.d_name = ne.d_name.getLastLabel();
           t_sstorage.negcache.add(ne);
         }
