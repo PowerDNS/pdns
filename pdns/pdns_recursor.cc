@@ -109,8 +109,10 @@ static thread_local unsigned int t_id = 0;
 static thread_local std::shared_ptr<Regex> t_traceRegex;
 static thread_local std::unique_ptr<tcpClientCounts_t> t_tcpClientCounts;
 #ifdef HAVE_PROTOBUF
-static thread_local std::shared_ptr<RemoteLogger> t_protobufServer{nullptr};
-static thread_local std::shared_ptr<RemoteLogger> t_outgoingProtobufServer{nullptr};
+static thread_local std::shared_ptr<std::vector<std::unique_ptr<RemoteLogger>>> t_protobufServers{nullptr};
+static thread_local uint64_t t_protobufServersGeneration;
+static thread_local std::shared_ptr<std::vector<std::unique_ptr<RemoteLogger>>> t_outgoingProtobufServers{nullptr};
+static thread_local uint64_t t_outgoingProtobufServersGeneration;
 #endif /* HAVE_PROTOBUF */
 
 thread_local std::unique_ptr<MT_t> MT; // the big MTasker
@@ -777,8 +779,12 @@ catch(...)
 }
 
 #ifdef HAVE_PROTOBUF
-static void protobufLogQuery(const std::shared_ptr<RemoteLogger>& logger, uint8_t maskV4, uint8_t maskV6, const boost::uuids::uuid& uniqueId, const ComboAddress& remote, const ComboAddress& local, const Netmask& ednssubnet, bool tcp, uint16_t id, size_t len, const DNSName& qname, uint16_t qtype, uint16_t qclass, const std::vector<std::string>& policyTags, const std::string& requestorId, const std::string& deviceId)
+static void protobufLogQuery(uint8_t maskV4, uint8_t maskV6, const boost::uuids::uuid& uniqueId, const ComboAddress& remote, const ComboAddress& local, const Netmask& ednssubnet, bool tcp, uint16_t id, size_t len, const DNSName& qname, uint16_t qtype, uint16_t qclass, const std::vector<std::string>& policyTags, const std::string& requestorId, const std::string& deviceId)
 {
+  if (!t_protobufServers) {
+    return;
+  }
+
   Netmask requestorNM(remote, remote.sin4.sin_family == AF_INET ? maskV4 : maskV6);
   const ComboAddress& requestor = requestorNM.getMaskedNetwork();
   RecProtoBufMessage message(DNSProtoBufMessage::Query, uniqueId, &requestor, &local, qname, qtype, qclass, id, tcp, len);
@@ -794,15 +800,25 @@ static void protobufLogQuery(const std::shared_ptr<RemoteLogger>& logger, uint8_
 //  cerr <<message.toDebugString()<<endl;
   std::string str;
   message.serialize(str);
-  logger->queueData(str);
+
+  for (auto& server : *t_protobufServers) {
+    server->queueData(str);
+  }
 }
 
-static void protobufLogResponse(const std::shared_ptr<RemoteLogger>& logger, const RecProtoBufMessage& message)
+static void protobufLogResponse(const RecProtoBufMessage& message)
 {
+  if (!t_protobufServers) {
+    return;
+  }
+
 //  cerr <<message.toDebugString()<<endl;
   std::string str;
   message.serialize(str);
-  logger->queueData(str);
+
+  for (auto& server : *t_protobufServers) {
+    server->queueData(str);
+  }
 }
 #endif
 
@@ -853,18 +869,20 @@ static bool addRecordToPacket(DNSPacketWriter& pw, const DNSRecord& rec, uint32_
 }
 
 #ifdef HAVE_PROTOBUF
-static std::shared_ptr<RemoteLogger> startProtobufServer(const ProtobufExportConfig& config, uint64_t generation)
+static std::shared_ptr<std::vector<std::unique_ptr<RemoteLogger>>> startProtobufServers(const ProtobufExportConfig& config)
 {
-  std::shared_ptr<RemoteLogger> result = nullptr;
-  try {
-    result = std::make_shared<RemoteLogger>(config.server, config.timeout, config.maxQueuedEntries, config.reconnectWaitTime, config.asyncConnect);
-    result->setGeneration(generation);
-  }
-  catch(const std::exception& e) {
-    g_log<<Logger::Error<<"Error while starting protobuf logger to '"<<config.server<<": "<<e.what()<<endl;
-  }
-  catch(const PDNSException& e) {
-    g_log<<Logger::Error<<"Error while starting protobuf logger to '"<<config.server<<": "<<e.reason<<endl;
+  auto result = std::make_shared<std::vector<std::unique_ptr<RemoteLogger>>>();
+
+  for (const auto& server : config.servers) {
+    try {
+      result->emplace_back(new RemoteLogger(server, config.timeout, config.maxQueuedEntries, config.reconnectWaitTime, config.asyncConnect));
+    }
+    catch(const std::exception& e) {
+      g_log<<Logger::Error<<"Error while starting protobuf logger to '"<<server<<": "<<e.what()<<endl;
+    }
+    catch(const PDNSException& e) {
+      g_log<<Logger::Error<<"Error while starting protobuf logger to '"<<server<<": "<<e.reason<<endl;
+    }
   }
 
   return result;
@@ -873,9 +891,11 @@ static std::shared_ptr<RemoteLogger> startProtobufServer(const ProtobufExportCon
 static bool checkProtobufExport(LocalStateHolder<LuaConfigItems>& luaconfsLocal)
 {
   if (!luaconfsLocal->protobufExportConfig.enabled) {
-    if (t_protobufServer != nullptr) {
-      t_protobufServer->stop();
-      t_protobufServer = nullptr;
+    if (t_protobufServers) {
+      for (auto& server : *t_protobufServers) {
+        server->stop();
+      }
+      t_protobufServers.reset();
     }
 
     return false;
@@ -883,14 +903,18 @@ static bool checkProtobufExport(LocalStateHolder<LuaConfigItems>& luaconfsLocal)
 
   /* if the server was not running, or if it was running according to a
      previous configuration */
-  if (t_protobufServer == nullptr ||
-      t_protobufServer->getGeneration() < luaconfsLocal->generation) {
+  if (!t_protobufServers ||
+      t_protobufServersGeneration < luaconfsLocal->generation) {
 
-    if (t_protobufServer) {
-      t_protobufServer->stop();
+    if (t_protobufServers) {
+      for (auto& server : *t_protobufServers) {
+        server->stop();
+      }
     }
+    t_protobufServers.reset();
 
-    t_protobufServer = startProtobufServer(luaconfsLocal->protobufExportConfig, luaconfsLocal->generation);
+    t_protobufServers = startProtobufServers(luaconfsLocal->protobufExportConfig);
+    t_protobufServersGeneration = luaconfsLocal->generation;
   }
 
   return true;
@@ -899,24 +923,30 @@ static bool checkProtobufExport(LocalStateHolder<LuaConfigItems>& luaconfsLocal)
 static bool checkOutgoingProtobufExport(LocalStateHolder<LuaConfigItems>& luaconfsLocal)
 {
   if (!luaconfsLocal->outgoingProtobufExportConfig.enabled) {
-    if (t_outgoingProtobufServer != nullptr) {
-      t_outgoingProtobufServer->stop();
-      t_outgoingProtobufServer = nullptr;
+    if (t_outgoingProtobufServers) {
+      for (auto& server : *t_outgoingProtobufServers) {
+        server->stop();
+      }
     }
+    t_outgoingProtobufServers.reset();
 
     return false;
   }
 
   /* if the server was not running, or if it was running according to a
      previous configuration */
-  if (t_outgoingProtobufServer == nullptr ||
-      t_outgoingProtobufServer->getGeneration() < luaconfsLocal->generation) {
+  if (!t_outgoingProtobufServers ||
+      t_outgoingProtobufServersGeneration < luaconfsLocal->generation) {
 
-    if (t_outgoingProtobufServer) {
-      t_outgoingProtobufServer->stop();
+    if (t_outgoingProtobufServers) {
+      for (auto& server : *t_outgoingProtobufServers) {
+        server->stop();
+      }
     }
+    t_outgoingProtobufServers.reset();
 
-    t_outgoingProtobufServer = startProtobufServer(luaconfsLocal->outgoingProtobufExportConfig, luaconfsLocal->generation);
+    t_outgoingProtobufServers = startProtobufServers(luaconfsLocal->outgoingProtobufExportConfig);
+    t_outgoingProtobufServersGeneration = luaconfsLocal->generation;
   }
 
   return true;
@@ -1041,7 +1071,7 @@ static void startDoResolve(void *p)
     bool logResponse = false;
 #ifdef HAVE_PROTOBUF
     if (checkProtobufExport(luaconfsLocal)) {
-      logResponse = t_protobufServer && luaconfsLocal->protobufExportConfig.logResponses;
+      logResponse = t_protobufServers && luaconfsLocal->protobufExportConfig.logResponses;
       Netmask requestorNM(dc->d_source, dc->d_source.sin4.sin_family == AF_INET ? luaconfsLocal->protobufMaskV4 : luaconfsLocal->protobufMaskV6);
       const ComboAddress& requestor = requestorNM.getMaskedNetwork();
       pbMessage = RecProtoBufMessage(RecProtoBufMessage::Response, dc->d_uuid, &requestor, &dc->d_destination, dc->d_mdp.d_qname, dc->d_mdp.d_qtype, dc->d_mdp.d_qclass, dc->d_mdp.d_header.id, dc->d_tcp, 0);
@@ -1088,7 +1118,7 @@ static void startDoResolve(void *p)
 
 #ifdef HAVE_PROTOBUF
     sr.setInitialRequestId(dc->d_uuid);
-    sr.setOutgoingProtobufServer(t_outgoingProtobufServer);
+    sr.setOutgoingProtobufServers(t_outgoingProtobufServers);
 #endif
 
     sr.setQuerySource(dc->d_remote, g_useIncomingECS && !dc->d_ednssubnet.source.empty() ? boost::optional<const EDNSSubnetOpts&>(dc->d_ednssubnet) : boost::none);
@@ -1425,7 +1455,7 @@ static void startDoResolve(void *p)
 #endif /* NOD ENABLED */    
 
 #ifdef HAVE_PROTOBUF
-        if(t_protobufServer) {
+        if (t_protobufServers) {
 #ifdef NOD_ENABLED
           pbMessage->addRR(*i, luaconfsLocal->protobufExportConfig.exportTypes, udr);
 #else
@@ -1460,7 +1490,7 @@ static void startDoResolve(void *p)
     }
 #endif /* NOD_ENABLED */
 #ifdef HAVE_PROTOBUF
-    if (t_protobufServer && logResponse && !(luaconfsLocal->protobufExportConfig.taggedOnly && (!appliedPolicy.d_name || appliedPolicy.d_name->empty()) && dc->d_policyTags.empty())) {
+    if (t_protobufServers && logResponse && !(luaconfsLocal->protobufExportConfig.taggedOnly && (!appliedPolicy.d_name || appliedPolicy.d_name->empty()) && dc->d_policyTags.empty())) {
       pbMessage->setBytes(packet.size());
       pbMessage->setResponseCode(pw.getHeader()->rcode);
       if (appliedPolicy.d_name) {
@@ -1482,7 +1512,7 @@ static void startDoResolve(void *p)
         }
       }
 #endif /* NOD_ENABLED */
-      protobufLogResponse(t_protobufServer, *pbMessage);
+      protobufLogResponse(*pbMessage);
 #ifdef NOD_ENABLED
       if (g_nodEnabled) {
         pbMessage->setNOD(false);
@@ -1832,7 +1862,7 @@ static void handleRunningTCPQuestion(int fd, FDMultiplexer::funcparam_t& var)
       if (checkProtobufExport(luaconfsLocal)) {
         needECS = true;
       }
-      logQuery = t_protobufServer && luaconfsLocal->protobufExportConfig.logQueries;
+      logQuery = t_protobufServers && luaconfsLocal->protobufExportConfig.logQueries;
 #endif
 
       if(needECS || needXPF || (t_pdl && (t_pdl->d_gettag_ffi || t_pdl->d_gettag))) {
@@ -1871,17 +1901,17 @@ static void handleRunningTCPQuestion(int fd, FDMultiplexer::funcparam_t& var)
       const struct dnsheader* dh = reinterpret_cast<const struct dnsheader*>(&conn->data[0]);
 
 #ifdef HAVE_PROTOBUF
-      if(t_protobufServer || t_outgoingProtobufServer) {
+      if(t_protobufServers || t_outgoingProtobufServers) {
         dc->d_requestorId = requestorId;
         dc->d_deviceId = deviceId;
         dc->d_uuid = (*t_uuidGenerator)();
       }
 
-      if(t_protobufServer) {
+      if(t_protobufServers) {
         try {
 
           if (logQuery && !(luaconfsLocal->protobufExportConfig.taggedOnly && dc->d_policyTags.empty())) {
-            protobufLogQuery(t_protobufServer, luaconfsLocal->protobufMaskV4, luaconfsLocal->protobufMaskV6, dc->d_uuid, dc->d_source, dc->d_destination, dc->d_ednssubnet.source, true, dh->id, conn->qlen, qname, qtype, qclass, dc->d_policyTags, dc->d_requestorId, dc->d_deviceId);
+              protobufLogQuery(luaconfsLocal->protobufMaskV4, luaconfsLocal->protobufMaskV6, dc->d_uuid, dc->d_source, dc->d_destination, dc->d_ednssubnet.source, true, dh->id, conn->qlen, qname, qtype, qclass, dc->d_policyTags, dc->d_requestorId, dc->d_deviceId);
           }
         }
         catch(std::exception& e) {
@@ -2014,8 +2044,8 @@ static string* doProcessUDPQuestion(const std::string& question, const ComboAddr
   } else if (checkOutgoingProtobufExport(luaconfsLocal)) {
     uniqueId = (*t_uuidGenerator)();
   }
-  logQuery = t_protobufServer && luaconfsLocal->protobufExportConfig.logQueries;
-  bool logResponse = t_protobufServer && luaconfsLocal->protobufExportConfig.logResponses;
+  logQuery = t_protobufServers && luaconfsLocal->protobufExportConfig.logQueries;
+  bool logResponse = t_protobufServers && luaconfsLocal->protobufExportConfig.logResponses;
 #endif
   EDNSSubnetOpts ednssubnet;
   bool ecsFound = false;
@@ -2081,11 +2111,11 @@ static string* doProcessUDPQuestion(const std::string& question, const ComboAddr
     bool cacheHit = false;
     boost::optional<RecProtoBufMessage> pbMessage(boost::none);
 #ifdef HAVE_PROTOBUF
-    if(t_protobufServer) {
+    if (t_protobufServers) {
       pbMessage = RecProtoBufMessage(DNSProtoBufMessage::DNSProtoBufMessageType::Response);
       pbMessage->setServerIdentity(SyncRes::s_serverID);
       if (logQuery && !(luaconfsLocal->protobufExportConfig.taggedOnly && policyTags.empty())) {
-        protobufLogQuery(t_protobufServer, luaconfsLocal->protobufMaskV4, luaconfsLocal->protobufMaskV6, uniqueId, source, destination, ednssubnet.source, false, dh->id, question.size(), qname, qtype, qclass, policyTags, requestorId, deviceId);
+        protobufLogQuery(luaconfsLocal->protobufMaskV4, luaconfsLocal->protobufMaskV6, uniqueId, source, destination, ednssubnet.source, false, dh->id, question.size(), qname, qtype, qclass, policyTags, requestorId, deviceId);
       }
     }
 #endif /* HAVE_PROTOBUF */
@@ -2110,7 +2140,7 @@ static string* doProcessUDPQuestion(const std::string& question, const ComboAddr
       }
 
 #ifdef HAVE_PROTOBUF
-      if(t_protobufServer && logResponse && !(luaconfsLocal->protobufExportConfig.taggedOnly && pbMessage->getAppliedPolicy().empty() && pbMessage->getPolicyTags().empty())) {
+      if(t_protobufServers && logResponse && !(luaconfsLocal->protobufExportConfig.taggedOnly && pbMessage->getAppliedPolicy().empty() && pbMessage->getPolicyTags().empty())) {
         Netmask requestorNM(source, source.sin4.sin_family == AF_INET ? luaconfsLocal->protobufMaskV4 : luaconfsLocal->protobufMaskV6);
         const ComboAddress& requestor = requestorNM.getMaskedNetwork();
         pbMessage->update(uniqueId, &requestor, &destination, false, dh->id);
@@ -2118,7 +2148,7 @@ static string* doProcessUDPQuestion(const std::string& question, const ComboAddr
         pbMessage->setQueryTime(g_now.tv_sec, g_now.tv_usec);
         pbMessage->setRequestorId(requestorId);
         pbMessage->setDeviceId(deviceId);
-        protobufLogResponse(t_protobufServer, *pbMessage);
+        protobufLogResponse(*pbMessage);
       }
 #endif /* HAVE_PROTOBUF */
       if(!g_quiet)
@@ -2188,7 +2218,7 @@ static string* doProcessUDPQuestion(const std::string& question, const ComboAddr
   dc->d_ttlCap = ttlCap;
   dc->d_variable = variable;
 #ifdef HAVE_PROTOBUF
-  if (t_protobufServer || t_outgoingProtobufServer) {
+  if (t_protobufServers || t_outgoingProtobufServers) {
     dc->d_uuid = std::move(uniqueId);
   }
   dc->d_requestorId = requestorId;
