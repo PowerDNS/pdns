@@ -464,7 +464,7 @@ const std::vector<ConsoleKeyword> g_consoleKeywords{
   { "showRules", true, "[{showUUIDs=false, truncateRuleWidth=-1}]", "show all defined rules, optionally with their UUIDs and optionally truncated to a given width" },
   { "showSelfAnsweredResponseRules", true, "[{showUUIDs=false, truncateRuleWidth=-1}]", "show all defined self-answered response rules, optionally with their UUIDs and optionally truncated to a given width" },
   { "showServerPolicy", true, "", "show name of currently operational server selection policy" },
-  { "showServers", true, "", "output all servers" },
+  { "showServers", true, "[{showUUIDs=false}]", "output all servers, optionally with their UUIDs" },
   { "showTCPStats", true, "", "show some statistics regarding TCP" },
   { "showTLSContexts", true, "", "list all the available TLS contexts" },
   { "showVersion", true, "", "show the current version" },
