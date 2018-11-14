@@ -8,6 +8,10 @@ Response Policy Zone is an open standard developed by Paul Vixie (ISC and Farsig
 Frequently, Response Policy Zones get to be very large and change quickly, so it is customary to update them over IXFR.
 It allows the use of third-party feeds, and near real-time policy updates.
 
+If multiple RPZs are loaded, they get consulted in the order they were
+defined in. It is however possible from Lua to make queries skip specific
+Response Policy Zones.
+
 Configuring RPZ
 ---------------
 An RPZ can be loaded from file or slaved from a master. To load from file, use for example:
@@ -24,6 +28,10 @@ To slave from a master and start IXFR to get updates, use for example:
 
 In this example, 'policy.rpz' denotes the name of the zone to query for.
 
+As of .. versionchanged:: 4.2.0: you can add IP blocks into the rpzMaster as:
+
+    rpzMaster({"192.0.2.4","192.0.2.5"}, "policy.rpz", {defpol=Policy.Drop})
+    
 .. function:: rpzFile(filename, settings)
 
   Load an RPZ from disk.
@@ -39,7 +47,7 @@ In this example, 'policy.rpz' denotes the name of the zone to query for.
 
   Load an RPZ from AXFR and keep retrieving with IXFR.
 
-  :param str address: The IP address to transfer the RPZ from. Also accepts a list of addresses since 4.2.0 in which case they will be tried one after another in the submitted order until a response is obtained
+  :param str address: The IP address to transfer the RPZ from. Also accepts a list of addresses since 4.2.0 in which case they will be tried one after another in the submitted order until a response is obtained.
   :param str name: The name of this RPZ
   :param {} settings: A table to settings, see below
 

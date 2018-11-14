@@ -22,24 +22,29 @@
 #pragma once
 #include "config.h"
 #include "ext/luawrapper/include/LuaContext.hpp"
-#include <time.h>
-#include "misc.hh"
-#include "mplexer.hh"
-#include "iputils.hh"
-#include "dnsname.hh"
+
 #include <atomic>
-#include <boost/variant.hpp>
 #include <mutex>
+#include <string>
 #include <thread>
+#include <time.h>
 #include <unistd.h>
-#include "sholder.hh"
+#include <unordered_map>
+
+#include <boost/circular_buffer.hpp>
+#include <boost/variant.hpp>
+
+#include "bpf-filter.hh"
 #include "dnscrypt.hh"
 #include "dnsdist-cache.hh"
-#include "gettime.hh"
 #include "dnsdist-dynbpf.hh"
-#include "bpf-filter.hh"
-#include <string>
-#include <unordered_map>
+#include "dnsname.hh"
+#include "ednsoptions.hh"
+#include "gettime.hh"
+#include "iputils.hh"
+#include "misc.hh"
+#include "mplexer.hh"
+#include "sholder.hh"
 #include "tcpiohandler.hh"
 
 #include <boost/uuid/uuid.hpp>
@@ -72,6 +77,7 @@ struct DNSQuestion
   const ComboAddress* local;
   const ComboAddress* remote;
   std::shared_ptr<QTag> qTag{nullptr};
+  std::shared_ptr<std::map<uint16_t, EDNSOptionView> > ednsOptions;
   struct dnsheader* dh;
   size_t size;
   unsigned int consumed{0};
@@ -161,15 +167,15 @@ public:
 
 struct DynBlock
 {
-  DynBlock(): action(DNSAction::Action::None)
+  DynBlock(): action(DNSAction::Action::None), warning(false)
   {
   }
 
-  DynBlock(const std::string& reason_, const struct timespec& until_, const DNSName& domain_, DNSAction::Action action_): reason(reason_), until(until_), domain(domain_), action(action_)
+  DynBlock(const std::string& reason_, const struct timespec& until_, const DNSName& domain_, DNSAction::Action action_): reason(reason_), until(until_), domain(domain_), action(action_), warning(false)
   {
   }
 
-  DynBlock(const DynBlock& rhs): reason(rhs.reason), until(rhs.until), domain(rhs.domain), action(rhs.action)
+  DynBlock(const DynBlock& rhs): reason(rhs.reason), until(rhs.until), domain(rhs.domain), action(rhs.action), warning(rhs.warning)
   {
     blocks.store(rhs.blocks);
   }
@@ -181,6 +187,7 @@ struct DynBlock
     domain=rhs.domain;
     action=rhs.action;
     blocks.store(rhs.blocks);
+    warning=rhs.warning;
     return *this;
   }
 
@@ -189,6 +196,7 @@ struct DynBlock
   DNSName domain;
   DNSAction::Action action;
   mutable std::atomic<unsigned int> blocks;
+  bool warning;
 };
 
 extern GlobalStateHolder<NetmaskTree<DynBlock>> g_dynblockNMG;
@@ -402,7 +410,7 @@ public:
   {
   }
 
-  BasicQPSLimiter(unsigned int rate, unsigned int burst): d_tokens(burst)
+  BasicQPSLimiter(unsigned int burst): d_tokens(burst)
   {
     d_prev.start();
   }
@@ -443,7 +451,7 @@ public:
   {
   }
 
-  QPSLimiter(unsigned int rate, unsigned int burst): BasicQPSLimiter(rate, burst), d_rate(rate), d_burst(burst), d_passthrough(false)
+  QPSLimiter(unsigned int rate, unsigned int burst): BasicQPSLimiter(burst), d_rate(rate), d_burst(burst), d_passthrough(false)
   {
     d_prev.start();
   }
@@ -528,6 +536,7 @@ struct IDState
   bool ecsAdded{false};
   bool skipCache{false};
   bool destHarvested{false}; // if true, origDest holds the original dest addr, otherwise the listening addr
+  bool dnssecOK{false};
 };
 
 typedef std::unordered_map<string, unsigned int> QueryCountRecords;
@@ -874,7 +883,9 @@ void removeServerFromPool(pools_t& pools, const string& poolName, std::shared_pt
 struct CarbonConfig
 {
   ComboAddress server;
+  std::string namespace_name;
   std::string ourname;
+  std::string instance_name;
   unsigned int interval;
 };
 
@@ -888,6 +899,7 @@ struct DNSDistRuleAction
   std::shared_ptr<DNSRule> d_rule;
   std::shared_ptr<DNSAction> d_action;
   boost::uuids::uuid d_id;
+  uint64_t d_creationOrder;
 };
 
 struct DNSDistResponseRuleAction
@@ -895,6 +907,7 @@ struct DNSDistResponseRuleAction
   std::shared_ptr<DNSRule> d_rule;
   std::shared_ptr<DNSResponseAction> d_action;
   boost::uuids::uuid d_id;
+  uint64_t d_creationOrder;
 };
 
 extern GlobalStateHolder<SuffixMatchTree<DynBlock>> g_dynblockSMT;
@@ -938,6 +951,7 @@ extern uint32_t g_hashperturb;
 extern bool g_useTCPSinglePipe;
 extern std::atomic<uint16_t> g_downstreamTCPCleanupInterval;
 extern size_t g_udpVectorSize;
+extern bool g_preserveTrailingData;
 
 #ifdef HAVE_EBPF
 extern shared_ptr<BPFFilter> g_defaultBPFFilter;
@@ -977,7 +991,19 @@ std::shared_ptr<DownstreamState> whashed(const NumberedServerVector& servers, co
 std::shared_ptr<DownstreamState> chashed(const NumberedServerVector& servers, const DNSQuestion* dq);
 std::shared_ptr<DownstreamState> roundrobin(const NumberedServerVector& servers, const DNSQuestion* dq);
 
-void dnsdistWebserverThread(int sock, const ComboAddress& local, const string& password, const string& apiKey, const boost::optional<std::map<std::string, std::string> >&);
+struct WebserverConfig
+{
+  std::string password;
+  std::string apiKey;
+  boost::optional<std::map<std::string, std::string> > customHeaders;
+  std::mutex lock;
+};
+
+void setWebserverAPIKey(const boost::optional<std::string> apiKey);
+void setWebserverPassword(const std::string& password);
+void setWebserverCustomHeaders(const boost::optional<std::map<std::string, std::string> > customHeaders);
+
+void dnsdistWebserverThread(int sock, const ComboAddress& local);
 bool getMsgLen32(int fd, uint32_t* len);
 bool putMsgLen32(int fd, uint32_t len);
 void* tcpAcceptorThread(void* p);
@@ -1003,6 +1029,8 @@ int handleDNSCryptQuery(char* packet, uint16_t len, std::shared_ptr<DNSCryptQuer
 #endif
 
 bool addXPF(DNSQuestion& dq, uint16_t optionCode);
+
+uint16_t getRandomDNSID();
 
 #include "dnsdist-snmp.hh"
 

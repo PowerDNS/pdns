@@ -16,7 +16,7 @@ struct TestObject
 static GlobalStateHolder<TestObject> g_to; 
 std::atomic<bool> g_failed;
 
-BOOST_AUTO_TEST_SUITE(sholder_hh)
+BOOST_AUTO_TEST_SUITE(test_sholder_hh)
 
 void treader()
 {

@@ -12,13 +12,13 @@ Configuring Protocol Buffer logs
 --------------------------------
 Protobuf export to a server is enabled using the ``protobufServer()`` directive:
 
-.. function:: protobufServer(server [, options]))
+.. function:: protobufServer(servers [, options]))
 
   .. versionadded:: 4.2.0
 
-  Send protocol buffer messages to a server for incoming queries and/or outgoing responses. The client address may be masked using :func:`setProtobufMasks`, for anonymization purposes.
+  Send protocol buffer messages to one or more servers for incoming queries and/or outgoing responses. The client address may be masked using :func:`setProtobufMasks`, for anonymization purposes.
 
-  :param string server: The IP and port to connect to
+  :param string or list of strings servers: The IP and port to connect to, or a list of those. If more than one server is configured, all messages are sent to every server.
   :param table options: A table with key: value pairs with options.
 
   Options:
@@ -30,6 +30,7 @@ Protobuf export to a server is enabled using the ``protobufServer()`` directive:
   * ``asyncConnect``: bool - When set to false (default) the first connection to the server during startup will block up to ``timeout`` seconds, otherwise the connection is done in a separate thread, after the first message has been queued
   * ``logQueries=true``: bool - Whether to export queries
   * ``logResponses=true``: bool - Whether to export responses
+  * ``exportTypes={'A', 'AAAA', 'CNAME'}``: list of strings - The list of record types found in the answer section to export. Only A, AAAA, CNAME, MX, NS, PTR, SPF, SRV and TXT are currently supported
 
 .. function:: protobufServer(server [[[[[[[, timeout=2], maxQueuedEntries=100], reconnectWaitTime=1], maskV4=32], maskV6=128], asyncConnect=false], taggedOnly=false])
 
@@ -56,13 +57,13 @@ Logging outgoing queries and responses
 
 While :func:`protobufServer` only exports the queries sent to the recursor from clients, with the corresponding responses, ``outgoingProtobufServer()`` can be used to export outgoing queries sent by the recursor to authoritative servers, along with the corresponding responses.
 
-.. function:: outgoingProtobufServer(server [, options])
+.. function:: outgoingProtobufServer(servers [, options])
 
   .. versionadded:: 4.2.0
 
-  Send protocol buffer messages to a server for outgoing queries and/or incoming responses.
+  Send protocol buffer messages to one or more servers for outgoing queries and/or incoming responses.
 
-  :param string server: The IP and port to connect to
+  :param string or list of strings servers: The IP and port to connect to, or a list of those. If more than one server is configured, all messages are sent to every server.
   :param table options: A table with key: value pairs with options.
 
   Options:
@@ -74,6 +75,7 @@ While :func:`protobufServer` only exports the queries sent to the recursor from 
   * ``asyncConnect``: bool - When set to false (default) the first connection to the server during startup will block up to ``timeout`` seconds, otherwise the connection is done in a separate thread, after the first message has been queued
   * ``logQueries=true``: bool - Whether to export queries
   * ``logResponses=true``: bool - Whether to export responses
+  * ``exportTypes={'A', 'AAAA', 'CNAME'}``: list of strings - The list of record types found in the answer section to export. Only A, AAAA, CNAME, MX, NS, PTR, SPF, SRV and TXT are currently supported
 
 .. function:: outgoingProtobufServer(server [[[[, timeout=2], maxQueuedEntries=100], reconnectWaitTime=1], asyncConnect=false])
 

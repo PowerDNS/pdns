@@ -75,6 +75,7 @@ private:
 
   struct CacheEntry
   {
+    mutable string query;
     mutable string value;
     DNSName qname;
 
@@ -109,7 +110,8 @@ private:
     return d_maps[name.hash() % d_maps.size()];
   }
 
-  bool getEntryLocked(cmap_t& map, uint32_t hash, const DNSName &qname, uint16_t qtype, bool tcp, time_t now, string& entry);
+  static bool entryMatches(cmap_t::index<HashTag>::type::iterator& iter, const std::string& query, const DNSName& qname, uint16_t qtype, bool tcp);
+  bool getEntryLocked(cmap_t& map, const std::string& query, uint32_t hash, const DNSName &qname, uint16_t qtype, bool tcp, time_t now, string& entry);
   void cleanupIfNeeded();
 
   AtomicCounter d_ops{0};

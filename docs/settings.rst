@@ -177,6 +177,20 @@ Also AXFR a zone from a master with a lower serial.
 
 Seconds to store packets in the :ref:`packet-cache`.
 
+.. _setting-carbon-namespace:
+
+``carbon-namespace``
+--------------------
+
+-  String
+-  Default: pdns
+
+.. versionadded:: 4.2.0
+
+Set the namespace or first string of the metric key. Be careful not to include
+any dots in this setting, unless you know what you are doing.
+See :ref:`metricscarbon`
+
 .. _setting-carbon-ourname:
 
 ``carbon-ourname``
@@ -188,6 +202,20 @@ Seconds to store packets in the :ref:`packet-cache`.
 If sending carbon updates, if set, this will override our hostname. Be
 careful not to include any dots in this setting, unless you know what
 you are doing. See :ref:`metricscarbon`
+
+.. _setting-carbon-instance:
+
+``carbon-instance``
+-------------------
+
+-  String
+-  Default: auth
+
+.. versionadded:: 4.2.0
+
+Set the instance or third string of the metric key. Be careful not to include
+any dots in this setting, unless you know what you are doing.
+See :ref:`metricscarbon`
 
 .. _setting-carbon-server:
 
@@ -288,17 +316,13 @@ The algorithm that should be used for the KSK when running
 :doc:`pdnsutil secure-zone <manpages/pdnsutil.1>` or using the :doc:`Zone API endpoint <http-api/cryptokey>`
 to enable DNSSEC. Must be one of:
 
-* rsamd5
-* dh
-* dsa
-* ecc
 * rsasha1
 * rsasha256
 * rsasha512
-* ecc-gost
 * ecdsa256 (ECDSA P-256 with SHA256)
 * ecdsa384 (ECDSA P-384 with SHA384)
 * ed25519
+* ed448
 
 .. note::
   Actual supported algorithms depend on the crypto-libraries
@@ -384,17 +408,13 @@ The algorithm that should be used for the ZSK when running
 :doc:`pdnsutil secure-zone <manpages/pdnsutil.1>` or using the :doc:`Zone API endpoint <http-api/cryptokey>`
 to enable DNSSEC. Must be one of:
 
-* rsamd5
-* dh
-* dsa
-* ecc
 * rsasha1
 * rsasha256
 * rsasha512
-* ecc-gost
 * ecdsa256 (ECDSA P-256 with SHA256)
 * ecdsa384 (ECDSA P-384 with SHA384)
 * ed25519
+* ed448
 
 .. note::
   Actual supported algorithms depend on the crypto-libraries
@@ -547,7 +567,7 @@ Enables EDNS subnet processing, for backends that support it.
 .. _setting-enable-lua-records:
 
 ``enable-lua-records``
---------------------------
+----------------------
 
 -  Boolean
 -  Default: no
@@ -1268,7 +1288,7 @@ Number of AXFR slave threads to start.
 .. _setting-send-signed-notify:
 
 ``send-signed-notify``
-----------
+----------------------
 
 -  Boolean
 -  Default: yes

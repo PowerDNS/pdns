@@ -30,7 +30,6 @@ void apiDiscovery(HttpRequest* req, HttpResponse* resp);
 void apiServer(HttpRequest* req, HttpResponse* resp);
 void apiServerDetail(HttpRequest* req, HttpResponse* resp);
 void apiServerConfig(HttpRequest* req, HttpResponse* resp);
-void apiServerSearchLog(HttpRequest* req, HttpResponse* resp);
 void apiServerStatistics(HttpRequest* req, HttpResponse* resp);
 
 // helpers

@@ -826,7 +826,7 @@ int PacketHandler::processUpdate(DNSPacket *p) {
     if (rr->d_place == DNSResourceRecord::ANSWER) {
       int res = checkUpdatePrerequisites(rr, &di);
       if (res>0) {
-        g_log<<Logger::Error<<msgPrefix<<"Failed PreRequisites check, returning "<<RCode::to_s(res)<<endl;
+        g_log<<Logger::Error<<msgPrefix<<"Failed PreRequisites check for "<<rr->d_name.toLogString()<<", returning "<<RCode::to_s(res)<<endl;
         di.backend->abortTransaction();
         return res;
       }

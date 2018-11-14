@@ -42,11 +42,19 @@ public:
   }
 #endif /* HAVE_PROTOBUF */
 
-  void addRRs(const std::vector<DNSRecord>& records);
-  void addRR(const DNSRecord& record);
+  void addRRs(const std::vector<DNSRecord>& records, const std::set<uint16_t>& exportTypes);
+#ifdef NOD_ENABLED
+  void setNOD(bool nod);
+  void addRR(const DNSRecord& record, const std::set<uint16_t>& exportTypes, bool udr=false);
+  void clearUDR();
+#else
+  void addRR(const DNSRecord& record, const std::set<uint16_t>& exportTypes);
+#endif /* NOD_ENABLED */
   void setAppliedPolicy(const std::string& policy);
   void setAppliedPolicyType(const DNSFilterEngine::PolicyType& policyType);
   void setPolicyTags(const std::vector<std::string>& policyTags);
+  void addPolicyTag(const std::string& policyTag);
+  void removePolicyTag(const std::string& policyTag);
   std::string getAppliedPolicy() const;
   std::vector<std::string> getPolicyTags() const;
 };

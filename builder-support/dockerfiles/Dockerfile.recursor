@@ -1,0 +1,21 @@
+FROM alpine:3.6 as pdns-recursor
+
+RUN apk add --no-cache gcc g++ make tar autoconf automake protobuf-dev lua-dev \
+                       libtool file boost-dev curl openssl-dev ragel py-virtualenv \
+                       flex bison git
+
+ADD COPYING NOTICE /pdns-recursor/
+@EXEC sdist_dirs=(build-aux m4 pdns ext docs)
+@EXEC for d in ${sdist_dirs[@]} ; do echo "COPY $d/ /pdns-recursor/$d/" ; done
+ADD builder/helpers/set-configure-ac-version.sh /pdns-recursor/builder/helpers/
+ADD builder-support/gen-version /pdns-recursor/pdns/recursordist/builder-support/gen-version
+WORKDIR /pdns-recursor/pdns/recursordist
+
+RUN mkdir /sdist
+
+ARG BUILDER_VERSION
+RUN /pdns-recursor/builder/helpers/set-configure-ac-version.sh && \
+     autoreconf -v -i --force && \
+    ./configure --disable-dependency-tracking && \
+    make dist
+RUN cp pdns-recursor-${BUILDER_VERSION}.tar.bz2 /sdist/

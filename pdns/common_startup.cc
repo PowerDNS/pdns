@@ -29,6 +29,7 @@
 #include <sys/resource.h>
 #include "dynhandler.hh"
 #include "dnsseckeeper.hh"
+#include "threadname.hh"
 
 #ifdef HAVE_SYSTEMD
 #include <systemd/sd-daemon.h>
@@ -94,7 +95,6 @@ void declareArguments()
   ::arg().set("retrieval-threads", "Number of AXFR-retrieval threads for slave operation")="2";
   ::arg().setSwitch("api", "Enable/disable the REST API (including HTTP listener)")="no";
   ::arg().set("api-key", "Static pre-shared authentication key for access to the REST API")="";
-  ::arg().set("api-logfile", "Location of the server logfile (used by the REST API)")="/var/log/pdns.log";
   ::arg().setSwitch("dname-processing", "If we should support DNAME records")="no";
 
   ::arg().setCmd("help","Provide a helpful message");
@@ -154,7 +154,9 @@ void declareArguments()
   ::arg().setSwitch("do-ipv6-additional-processing", "Do AAAA additional processing")="yes";
   ::arg().setSwitch("query-logging","Hint backends that queries should be logged")="no";
 
+  ::arg().set("carbon-namespace", "If set overwrites the first part of the carbon string")="pdns";
   ::arg().set("carbon-ourname", "If set, overrides our reported hostname for carbon stats")="";
+  ::arg().set("carbon-instancename", "If set overwrites the the instance name default")="auth";
   ::arg().set("carbon-server", "If set, send metrics in carbon (graphite) format to this server IP address")="";
   ::arg().set("carbon-interval", "Number of seconds between carbon (graphite) updates")="30";
 
@@ -367,6 +369,8 @@ void sendout(DNSPacket* a)
 void *qthread(void *number)
 try
 {
+  setThreadName("pdns/receiver");
+
   DNSPacket *P;
   DNSDistributor *distributor = DNSDistributor::Create(::arg().asNum("distributor-threads", 1)); // the big dispatcher!
   int num = (int)(unsigned long)number;

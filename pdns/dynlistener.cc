@@ -52,6 +52,7 @@
 #include "dnspacket.hh"
 #include "logger.hh"
 #include "statbag.hh"
+#include "threadname.hh"
 
 extern StatBag S;
 
@@ -216,6 +217,7 @@ void DynListener::go()
 
 void *DynListener::theListenerHelper(void *p)
 {
+  setThreadName("pdns/ctrlListen");
   DynListener *us=static_cast<DynListener *>(p);
   us->theListener();
   g_log<<Logger::Error<<"Control listener aborted, please file a bug!"<<endl;

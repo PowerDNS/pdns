@@ -129,8 +129,11 @@ int SyncRes::beginResolve(const DNSName &qname, const QType &qtype, uint16_t qcl
     return 0;                          // so do check before updating counters (we do now)
   }
 
-  if( (qtype.getCode() == QType::AXFR) || (qtype.getCode() == QType::IXFR) || (qtype.getCode() == QType::RRSIG) || (qtype.getCode() == QType::NSEC3))
+  auto qtypeCode = qtype.getCode();
+  /* rfc6895 section 3.1 */
+  if ((qtypeCode >= 128 && qtypeCode <= 254) || qtypeCode == QType::RRSIG || qtypeCode == QType::NSEC3 || qtypeCode == QType::OPT || qtypeCode == 65535) {
     return -1;
+  }
 
   if(qclass==QClass::ANY)
     qclass=QClass::IN;
@@ -350,18 +353,21 @@ bool SyncRes::doOOBResolve(const DNSName &qname, const QType &qtype, vector<DNSR
   return doOOBResolve(iter->second, qname, qtype, ret, res);
 }
 
-void SyncRes::doEDNSDumpAndClose(int fd)
+uint64_t SyncRes::doEDNSDump(int fd)
 {
-  FILE* fp=fdopen(fd, "w");
+  FILE* fp=fdopen(dup(fd), "w");
   if (!fp) {
-    return;
+    return 0;
   }
-  fprintf(fp,"IP Address\tMode\tMode last updated at\n");
+  uint64_t count = 0;
+
+  fprintf(fp,"; edns from thread follows\n;\n");
   for(const auto& eds : t_sstorage.ednsstatus) {
+    count++;
     fprintf(fp, "%s\t%d\t%s", eds.first.toString().c_str(), (int)eds.second.mode, ctime(&eds.second.modeSetAt));
   }
-
   fclose(fp);
+  return count;
 }
 
 uint64_t SyncRes::doDumpNSSpeeds(int fd)
@@ -485,10 +491,10 @@ int SyncRes::asyncresolveWrapper(const ComboAddress& ip, bool ednsMANDATORY, con
       sendQname.makeUsLowerCase();
 
     if (d_asyncResolve) {
-      ret = d_asyncResolve(ip, sendQname, type, doTCP, sendRDQuery, EDNSLevel, now, srcmask, ctx, d_outgoingProtobufServer, res, chained);
+      ret = d_asyncResolve(ip, sendQname, type, doTCP, sendRDQuery, EDNSLevel, now, srcmask, ctx, res, chained);
     }
     else {
-      ret=asyncresolve(ip, sendQname, type, doTCP, sendRDQuery, EDNSLevel, now, srcmask, ctx, d_outgoingProtobufServer, res, chained);
+      ret=asyncresolve(ip, sendQname, type, doTCP, sendRDQuery, EDNSLevel, now, srcmask, ctx, d_outgoingProtobufServers, luaconfsLocal->outgoingProtobufExportConfig.exportTypes, res, chained);
     }
     if(ret < 0) {
       return ret; // transport error, nothing to learn here
@@ -498,7 +504,7 @@ int SyncRes::asyncresolveWrapper(const ComboAddress& ip, bool ednsMANDATORY, con
       return ret;
     }
     else if(mode==EDNSStatus::UNKNOWN || mode==EDNSStatus::EDNSOK || mode == EDNSStatus::EDNSIGNORANT ) {
-      if(res->d_validpacket && res->d_rcode == RCode::FormErr)  {
+      if(res->d_validpacket && !res->d_haveEDNS && res->d_rcode == RCode::FormErr)  {
 	//	cerr<<"Downgrading to NOEDNS because of "<<RCode::to_s(res->d_rcode)<<" for query to "<<ip.toString()<<" for '"<<domain<<"'"<<endl;
         mode = EDNSStatus::NOEDNS;
         continue;
@@ -2902,7 +2908,26 @@ int directResolve(const DNSName& qname, const QType& qtype, int qclass, vector<D
   gettimeofday(&now, 0);
 
   SyncRes sr(now);
-  int res = sr.beginResolve(qname, QType(qtype), qclass, ret); 
+  int res = -1;
+  try {
+    res = sr.beginResolve(qname, QType(qtype), qclass, ret);
+  }
+  catch(const PDNSException& e) {
+    g_log<<Logger::Error<<"Failed to resolve "<<qname.toLogString()<<", got pdns exception: "<<e.reason<<endl;
+    ret.clear();
+  }
+  catch(const ImmediateServFailException& e) {
+    g_log<<Logger::Error<<"Failed to resolve "<<qname.toLogString()<<", got ImmediateServFailException: "<<e.reason<<endl;
+    ret.clear();
+  }
+  catch(const std::exception& e) {
+    g_log<<Logger::Error<<"Failed to resolve "<<qname.toLogString()<<", got STL error: "<<e.what()<<endl;
+    ret.clear();
+  }
+  catch(...) {
+    g_log<<Logger::Error<<"Failed to resolve "<<qname.toLogString()<<", got an exception"<<endl;
+    ret.clear();
+  }
   
   return res;
 }

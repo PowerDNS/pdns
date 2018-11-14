@@ -20,6 +20,8 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
 #pragma once
+#include <set>
+
 #include "sholder.hh"
 #include "sortlist.hh"
 #include "filterpo.hh"
@@ -27,7 +29,8 @@
 
 struct ProtobufExportConfig
 {
-  ComboAddress server;
+  std::set<uint16_t> exportTypes = { QType::A, QType::AAAA, QType::CNAME };
+  std::vector<ComboAddress> servers;
   uint64_t maxQueuedEntries{100};
   uint16_t timeout{2};
   uint16_t reconnectWaitTime{1};
@@ -38,12 +41,18 @@ struct ProtobufExportConfig
   bool taggedOnly{false};
 };
 
+struct TrustAnchorFileInfo {
+  uint32_t interval{24};
+  std::string fname;
+};
+
 class LuaConfigItems 
 {
 public:
   LuaConfigItems();
   SortList sortlist;
   DNSFilterEngine dfe;
+  TrustAnchorFileInfo trustAnchorFileInfo; // Used to update the Trust Anchors from file periodically
   map<DNSName,dsmap_t> dsAnchors;
   map<DNSName,std::string> negAnchors;
   ProtobufExportConfig protobufExportConfig;

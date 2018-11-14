@@ -1,6 +1,9 @@
 #include <unistd.h>
+#include "threadname.hh"
 #include "remote_logger.hh"
+#ifdef HAVE_CONFIG_H
 #include "config.h"
+#endif
 #ifdef PDNS_CONFIG_ARGS
 #include "logger.hh"
 #define WE_ARE_RECURSOR
@@ -41,6 +44,12 @@ void RemoteLogger::busyReconnectLoop()
 
 void RemoteLogger::worker()
 {
+#ifdef WE_ARE_RECURSOR
+  string threadName = "pdns-r/remLog";
+#else
+  string threadName = "dnsdist/remLog";
+#endif
+  setThreadName(threadName);
   while(true) {
     std::string data;
     {

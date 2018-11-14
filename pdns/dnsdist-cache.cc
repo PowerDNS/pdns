@@ -54,16 +54,16 @@ DNSDistPacketCache::~DNSDistPacketCache()
 
 bool DNSDistPacketCache::getClientSubnet(const char* packet, unsigned int consumed, uint16_t len, boost::optional<Netmask>& subnet)
 {
-  char * optRDLen = NULL;
+  uint16_t optRDPosition;
   size_t remaining = 0;
 
-  int res = getEDNSOptionsStart(const_cast<char*>(packet), consumed, len, &optRDLen, &remaining);
+  int res = getEDNSOptionsStart(const_cast<char*>(packet), consumed, len, &optRDPosition, &remaining);
 
   if (res == 0) {
-    char * ecsOptionStart = NULL;
+    char * ecsOptionStart = nullptr;
     size_t ecsOptionSize = 0;
 
-    res = getEDNSOption(optRDLen, remaining, EDNSOptionCode::ECS, &ecsOptionStart, &ecsOptionSize);
+    res = getEDNSOption(const_cast<char*>(packet) + optRDPosition, remaining, EDNSOptionCode::ECS, &ecsOptionStart, &ecsOptionSize);
 
     if (res == 0 && ecsOptionSize > (EDNS_OPTION_CODE_SIZE + EDNS_OPTION_LENGTH_SIZE)) {
 
@@ -78,9 +78,9 @@ bool DNSDistPacketCache::getClientSubnet(const char* packet, unsigned int consum
   return false;
 }
 
-bool DNSDistPacketCache::cachedValueMatches(const CacheValue& cachedValue, uint16_t queryFlags, const DNSName& qname, uint16_t qtype, uint16_t qclass, bool tcp, const boost::optional<Netmask>& subnet) const
+bool DNSDistPacketCache::cachedValueMatches(const CacheValue& cachedValue, uint16_t queryFlags, const DNSName& qname, uint16_t qtype, uint16_t qclass, bool tcp, bool dnssecOK, const boost::optional<Netmask>& subnet) const
 {
-  if (cachedValue.queryFlags != queryFlags || cachedValue.tcp != tcp || cachedValue.qtype != qtype || cachedValue.qclass != qclass || cachedValue.qname != qname) {
+  if (cachedValue.queryFlags != queryFlags || cachedValue.dnssecOK != dnssecOK || cachedValue.tcp != tcp || cachedValue.qtype != qtype || cachedValue.qclass != qclass || cachedValue.qname != qname) {
     return false;
   }
 
@@ -113,7 +113,7 @@ void DNSDistPacketCache::insertLocked(CacheShard& shard, uint32_t key, CacheValu
   CacheValue& value = it->second;
   bool wasExpired = value.validity <= newValue.added;
 
-  if (!wasExpired && !cachedValueMatches(value, newValue.queryFlags, newValue.qname, newValue.qtype, newValue.qclass, newValue.tcp, newValue.subnet)) {
+  if (!wasExpired && !cachedValueMatches(value, newValue.queryFlags, newValue.qname, newValue.qtype, newValue.qclass, newValue.tcp, newValue.dnssecOK, newValue.subnet)) {
     d_insertCollisions++;
     return;
   }
@@ -126,7 +126,7 @@ void DNSDistPacketCache::insertLocked(CacheShard& shard, uint32_t key, CacheValu
   value = newValue;
 }
 
-void DNSDistPacketCache::insert(uint32_t key, const boost::optional<Netmask>& subnet, uint16_t queryFlags, const DNSName& qname, uint16_t qtype, uint16_t qclass, const char* response, uint16_t responseLen, bool tcp, uint8_t rcode, boost::optional<uint32_t> tempFailureTTL)
+void DNSDistPacketCache::insert(uint32_t key, const boost::optional<Netmask>& subnet, uint16_t queryFlags, bool dnssecOK, const DNSName& qname, uint16_t qtype, uint16_t qclass, const char* response, uint16_t responseLen, bool tcp, uint8_t rcode, boost::optional<uint32_t> tempFailureTTL)
 {
   if (responseLen < sizeof(dnsheader)) {
     return;
@@ -179,6 +179,7 @@ void DNSDistPacketCache::insert(uint32_t key, const boost::optional<Netmask>& su
   newValue.validity = newValidity;
   newValue.added = now;
   newValue.tcp = tcp;
+  newValue.dnssecOK = dnssecOK;
   newValue.value = std::string(response, responseLen);
   newValue.subnet = subnet;
 
@@ -200,7 +201,7 @@ void DNSDistPacketCache::insert(uint32_t key, const boost::optional<Netmask>& su
   }
 }
 
-bool DNSDistPacketCache::get(const DNSQuestion& dq, uint16_t consumed, uint16_t queryId, char* response, uint16_t* responseLen, uint32_t* keyOut, boost::optional<Netmask>& subnet, uint32_t allowExpired, bool skipAging)
+bool DNSDistPacketCache::get(const DNSQuestion& dq, uint16_t consumed, uint16_t queryId, char* response, uint16_t* responseLen, uint32_t* keyOut, boost::optional<Netmask>& subnet, bool dnssecOK, uint32_t allowExpired, bool skipAging)
 {
   std::string dnsQName(dq.qname->toDNSString());
   uint32_t key = getKey(dnsQName, consumed, reinterpret_cast<const unsigned char*>(dq.dh), dq.len, dq.tcp);
@@ -247,7 +248,7 @@ bool DNSDistPacketCache::get(const DNSQuestion& dq, uint16_t consumed, uint16_t 
     }
 
     /* check for collision */
-    if (!cachedValueMatches(value, *(getFlagsFromDNSHeader(dq.dh)), *dq.qname, dq.qtype, dq.qclass, dq.tcp, subnet)) {
+    if (!cachedValueMatches(value, *(getFlagsFromDNSHeader(dq.dh)), *dq.qname, dq.qtype, dq.qclass, dq.tcp, dnssecOK, subnet)) {
       d_lookupCollisions++;
       return false;
     }
@@ -453,7 +454,7 @@ uint64_t DNSDistPacketCache::dump(int fd)
       count++;
 
       try {
-        fprintf(fp, "%s %" PRId64 " %s ; key %" PRIu32 ", length %" PRIu16 ", tcp %d, added %" PRIu64 "\n", value.qname.toString().c_str(), static_cast<int64_t>(value.validity - now), QType(value.qtype).getName().c_str(), entry.first, value.len, value.tcp, value.added);
+        fprintf(fp, "%s %" PRId64 " %s ; key %" PRIu32 ", length %" PRIu16 ", tcp %d, added %" PRId64 "\n", value.qname.toString().c_str(), static_cast<int64_t>(value.validity - now), QType(value.qtype).getName().c_str(), entry.first, value.len, value.tcp, static_cast<int64_t>(value.added));
       }
       catch(...) {
         fprintf(fp, "; error printing '%s'\n", value.qname.empty() ? "EMPTY" : value.qname.toString().c_str());

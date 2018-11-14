@@ -90,8 +90,8 @@ try
           counts[mdp.d_qtype]++;
 
       }
-      catch(MOADNSException &e) {
-        cout<<"Error from remote "<<pr.getSource().toString()<<": "<<e.what()<<"\n";
+      catch(const MOADNSException &mde) {
+        cout<<"Error from remote "<<pr.getSource().toString()<<": "<<mde.what()<<"\n";
         //        sock.sendTo(string(pr.d_payload, pr.d_payload + pr.d_len), remote);
       }
     }

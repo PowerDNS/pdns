@@ -48,7 +48,7 @@ BOOST_AUTO_TEST_CASE(test_basic) {
     BOOST_CHECK_EQUAL(newnod.isNewDomain(new_domain2), true);
     BOOST_CHECK_EQUAL(newnod.isNewDomain(new_domain1), false);
     BOOST_CHECK_EQUAL(newnod.isNewDomain(new_domain2), false);
-    BOOST_CHECK_EQUAL(newnod.snapshotCurrent(), true);
+    BOOST_CHECK_EQUAL(newnod.snapshotCurrent(std::this_thread::get_id()), true);
   }
   {
     NODDB newnod;

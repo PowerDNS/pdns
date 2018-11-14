@@ -28,6 +28,7 @@
 #include "dnsrecords.hh"
  
 extern bool g_dnssecLOG;
+extern time_t g_signatureInceptionSkew;
 extern uint16_t g_maxNSEC3Iterations;
 
 // 4033 5

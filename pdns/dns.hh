@@ -37,7 +37,7 @@ struct DNSRecord;
 
 struct SOAData
 {
-  SOAData() : ttl(0), serial(0), refresh(0), retry(0), expire(0), default_ttl(0), db(0), domain_id(-1), scopeMask(0) {};
+  SOAData() : ttl(0), serial(0), refresh(0), retry(0), expire(0), default_ttl(0), db(0), domain_id(-1) {};
 
   DNSName qname;
   DNSName nameserver;
@@ -50,7 +50,6 @@ struct SOAData
   uint32_t default_ttl;
   DNSBackend *db;
   int domain_id;
-  uint8_t scopeMask;
 };
 
 class RCode

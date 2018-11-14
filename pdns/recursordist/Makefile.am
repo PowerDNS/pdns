@@ -42,10 +42,8 @@ AM_CPPFLAGS +=$(LUA_CFLAGS)
 endif
 
 EXTRA_DIST = \
-	NOTICE \
-	.version \
-	build-aux/gen-version \
 	contrib/* \
+	COPYING \
 	devpollmplexer.cc \
 	dnslabeltext.cc \
 	dnslabeltext.rl \
@@ -58,13 +56,15 @@ EXTRA_DIST = \
 	mkpubsuffixcc \
 	mtasker.cc \
 	mtasker_fcontext.cc mtasker_ucontext.cc \
+	NOTICE \
 	opensslsigners.hh opensslsigners.cc \
 	portsmplexer.cc \
 	rrd/* \
 	html incfiles \
 	test_libcrypto \
 	pdns-recursor.service.in \
-	RECURSOR-MIB.txt
+	RECURSOR-MIB.txt \
+	builder-support/gen-version
 
 dist-hook:
 	for file in $$(find $(distdir)/docs -type l); do \
@@ -161,6 +161,7 @@ pdns_recursor_SOURCES = \
 	sstuff.hh \
 	stable-bloom.hh \
 	syncres.cc syncres.hh \
+	threadname.hh threadname.cc \
 	tsigverifier.cc tsigverifier.hh \
 	ueberbackend.hh \
 	unix_utility.cc \
@@ -258,8 +259,8 @@ testrunner_SOURCES = \
 	test-ixfr_cc.cc \
 	test-misc_hh.cc \
 	test-mtasker.cc \
-	test-nmtree.cc \
 	test-negcache_cc.cc \
+	test-packetcache_hh.cc \
 	test-rcpgenerator_cc.cc \
 	test-recpacketcache_cc.cc \
 	test-recursorcache_cc.cc \
@@ -268,6 +269,7 @@ testrunner_SOURCES = \
 	test-tsig.cc \
 	test-xpf_cc.cc \
 	testrunner.cc \
+	threadname.hh threadname.cc \
 	tsigverifier.cc tsigverifier.hh \
 	unix_utility.cc \
 	validate.cc validate.hh \

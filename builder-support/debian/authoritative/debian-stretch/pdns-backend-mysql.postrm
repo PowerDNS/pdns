@@ -1,0 +1,26 @@
+#!/bin/sh
+set -e
+
+if [ -n "$PDNSDEBUG" ]; then
+  echo "now debugging $0 $@"
+  set -x
+fi
+
+PKGNAME="pdns-backend-mysql"
+
+if [ "$1" = "purge" ]; then
+    # Remove files registered with ucf.
+    if command -v ucfq >/dev/null; then
+      for file in $(ucfq --with-colons "$PKGNAME" | cut --delimiter=: --fields=1); do
+        rm -f ${file}
+        ucf --purge ${file}
+        ucfr --purge $PKGNAME ${file}
+      done
+    else
+      echo >&2 "ucf no longer installed, not cleaning up"
+    fi
+fi
+
+#DEBHELPER#
+
+exit 0

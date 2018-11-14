@@ -491,18 +491,25 @@ class DNSDistTest(unittest.TestCase):
             for option in received.options:
                 self.assertEquals(option.otype, 10)
 
-    def checkMessageEDNSWithECS(self, expected, received):
+    def checkMessageEDNSWithECS(self, expected, received, additionalOptions=0):
         self.assertEquals(expected, received)
         self.assertEquals(received.edns, 0)
-        self.assertEquals(len(received.options), 1)
-        self.assertEquals(received.options[0].otype, clientsubnetoption.ASSIGNED_OPTION_CODE)
+        self.assertEquals(len(received.options), 1 + additionalOptions)
+        hasECS = False
+        for option in received.options:
+            if option.otype == clientsubnetoption.ASSIGNED_OPTION_CODE:
+                hasECS = True
+            else:
+                self.assertNotEquals(additionalOptions, 0)
+
         self.compareOptions(expected.options, received.options)
+        self.assertTrue(hasECS)
 
-    def checkQueryEDNSWithECS(self, expected, received):
-        self.checkMessageEDNSWithECS(expected, received)
+    def checkQueryEDNSWithECS(self, expected, received, additionalOptions=0):
+        self.checkMessageEDNSWithECS(expected, received, additionalOptions)
 
-    def checkResponseEDNSWithECS(self, expected, received):
-        self.checkMessageEDNSWithECS(expected, received)
+    def checkResponseEDNSWithECS(self, expected, received, additionalOptions=0):
+        self.checkMessageEDNSWithECS(expected, received, additionalOptions)
 
     def checkQueryEDNSWithoutECS(self, expected, received):
         self.checkMessageEDNSWithoutECS(expected, received)

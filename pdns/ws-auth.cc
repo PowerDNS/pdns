@@ -44,6 +44,7 @@
 #include "zoneparser-tng.hh"
 #include "common_startup.hh"
 #include "auth-caches.hh"
+#include "threadname.hh"
 
 using json11::Json;
 
@@ -75,6 +76,7 @@ void AuthWebServer::go()
 void AuthWebServer::statThread()
 {
   try {
+    setThreadName("pdns/statHelper");
     for(;;) {
       d_queries.submit(S.read("udp-queries"));
       d_cachehits.submit(S.read("packetcache-hit"));
@@ -287,7 +289,7 @@ void AuthWebServer::indexfunction(HttpRequest* req, HttpResponse* resp)
 /** Helper to build a record content as needed. */
 static inline string makeRecordContent(const QType& qtype, const string& content, bool noDot) {
   // noDot: for backend storage, pass true. for API users, pass false.
-  auto drc = DNSRecordContent::makeunique(qtype.getCode(), QClass::IN, content);
+  auto drc = DNSRecordContent::mastermake(qtype.getCode(), QClass::IN, content);
   return drc->getZoneRepresentation(noDot);
 }
 
@@ -1721,6 +1723,13 @@ static void patchZone(HttpRequest* req, HttpResponse* resp) {
             if (rr.qtype.getCode() == QType::SOA && rr.qname==zonename) {
               soa_edit_done = increaseSOARecord(rr, soa_edit_api_kind, soa_edit_kind);
             }
+
+            // Check if the DNSNames that should be hostnames, are hostnames
+            try {
+              checkHostnameCorrectness(rr);
+            } catch (const std::exception& e) {
+              throw ApiException("RRset "+qname.toString()+" IN "+qtype.getName() + " " + e.what());
+            }
           }
           checkDuplicateRecords(new_records);
         }
@@ -1949,10 +1958,10 @@ void AuthWebServer::cssfunction(HttpRequest* req, HttpResponse* resp)
 void AuthWebServer::webThread()
 {
   try {
+    setThreadName("pdns/webserver");
     if(::arg().mustDo("api")) {
       d_ws->registerApiHandler("/api/v1/servers/localhost/cache/flush", &apiServerCacheFlush);
       d_ws->registerApiHandler("/api/v1/servers/localhost/config", &apiServerConfig);
-      d_ws->registerApiHandler("/api/v1/servers/localhost/search-log", &apiServerSearchLog);
       d_ws->registerApiHandler("/api/v1/servers/localhost/search-data", &apiServerSearchData);
       d_ws->registerApiHandler("/api/v1/servers/localhost/statistics", &apiServerStatistics);
       d_ws->registerApiHandler("/api/v1/servers/localhost/zones/<id>/axfr-retrieve", &apiServerZoneAxfrRetrieve);

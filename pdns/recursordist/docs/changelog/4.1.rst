@@ -2,6 +2,169 @@ Changelogs for 4.1.x
 ====================
 
 .. changelog::
+  :version: 4.1.7
+  :released: 9th of November 2018
+
+  This release updates the mitigation for :doc:`Security Advisory 2018-07 <../security-advisories/powerdns-advisory-2018-07>`, reverting the EDNS fallback strictness increase. This is necessary because there are a lot of broken name servers on the Internet.
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 7172
+
+    Revert 'Keep the EDNS status of a server on FormErr with EDNS'
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 7174
+
+    Refuse queries for all meta-types
+
+.. changelog::
+  :version: 4.1.6
+  :released: 7th of November 2018
+
+  This release reverts `#6980 <https://github.com/PowerDNS/pdns/pull/6980>`__, it could lead to DNSSEC validation issues.
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 7159
+    :tickets: 7158
+
+    Revert "rec: Authority records in AA=1 CNAME answer are authoritative".
+
+.. changelog::
+  :version: 4.1.5
+  :released: 6th of November 2018
+
+  This release fixes the following security advisories:
+
+  - PowerDNS Security Advisory :doc:`2018-04 <../security-advisories/powerdns-advisory-2018-04>` (CVE-2018-10851)
+  - PowerDNS Security Advisory :doc:`2018-06 <../security-advisories/powerdns-advisory-2018-06>` (CVE-2018-14626)
+  - PowerDNS Security Advisory :doc:`2018-07 <../security-advisories/powerdns-advisory-2018-07>` (CVE-2018-14644)
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 7151
+
+    Crafted answer can cause a denial of service (CVE-2018-10851, PowerDNS Security Advisory :doc:`2018-04 <../security-advisories/powerdns-advisory-2018-04>`)
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 7151
+
+    Packet cache pollution via crafted query (CVE-2018-14626, PowerDNS Security Advisory :doc:`2018-06 <../security-advisories/powerdns-advisory-2018-06>`)
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 7151
+
+    Crafted query for meta-types can cause a denial of service (CVE-2018-14644, PowerDNS Security Advisory :doc:`2018-07 <../security-advisories/powerdns-advisory-2018-07>`)
+
+  Additionally there are some other minor fixes and improvements listed below.
+
+  .. change::
+    :tags: Improvements, Lua
+    :pullreq: 6919
+    :tickets: 6848
+
+    Add pdnslog to lua configuration scripts (Chris Hofstaedtler)
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 6961
+    :tickets: 6960
+
+    Cleanup the netmask trees used for the ecs index on removals
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 6963
+    :tickets: 6605
+
+    Make sure that the ECS scope from the auth is < to the source
+
+  .. change::
+    :tags: Bug Fixes, RPZ, Internals
+    :pullreq: 6984
+    :tickets: 6792
+
+    Delay the creation of rpz threads until we have dropped privileges
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 6980
+    :tickets: 6979
+
+    Authority records in aa=1 cname answer are authoritative
+
+  .. change::
+    :tags: Bug Fixes, Internals
+    :pullreq: 7073
+
+    Avoid a memory leak in catch-all exception handler
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 6741
+    :tickets: 6340
+
+    Don't require authoritative answers for forward-recurse zones
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 6948
+    :tickets: 6943
+
+    Fix compilation with libressl 2.7.0+
+
+  .. change::
+    :tags: Bug Fixes, Internals
+    :pullreq: 6917
+
+    Release memory in case of error in the openssl ecdsa constructor
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 6925
+    :tickets: 6924
+
+    Convert a few uses to toLogString to print DNSName's that may be empty in a safer manner
+
+  .. change::
+    :tags: Bug Fixes, Internals
+    :pullreq: 6945
+
+    Avoid a crash on DEC Alpha systems
+
+  .. change::
+    :tags: Bug Fixes, Internals
+    :pullreq: 6951
+    :tickets: 6949
+
+    Clear all caches on (N)TA changes
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 7004
+    :tickets: 6989, 6991
+
+    Export outgoing ECS value and server ID in protobuf (if any)
+
+  .. change::
+    :tags: Improvements, Internals
+    :pullreq: 7122
+    :tickets: 7040
+
+    Switch to devtoolset 7 for el6
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 7125
+    :tickets: 7081
+
+    Allow the signature inception to be off by a number of seconds. (Kees Monshouwer)
+
+.. changelog::
   :version: 4.1.4
   :released: 31st of August 2018
 
