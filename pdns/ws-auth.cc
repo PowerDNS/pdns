@@ -1723,6 +1723,13 @@ static void patchZone(HttpRequest* req, HttpResponse* resp) {
             if (rr.qtype.getCode() == QType::SOA && rr.qname==zonename) {
               soa_edit_done = increaseSOARecord(rr, soa_edit_api_kind, soa_edit_kind);
             }
+
+            // Check if the DNSNames that should be hostnames, are hostnames
+            try {
+              checkHostnameCorrectness(rr);
+            } catch (const std::exception& e) {
+              throw ApiException("RRset "+qname.toString()+" IN "+qtype.getName() + " " + e.what());
+            }
           }
           checkDuplicateRecords(new_records);
         }

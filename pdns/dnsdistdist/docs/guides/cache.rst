@@ -8,10 +8,17 @@ The first step is to define a cache with :func:`newPacketCache`, then to assign 
   pc = newPacketCache(10000, 86400, 0, 60, 60, false)
   getPool(""):setCache(pc)
 
-The first parameter (10000) is the maximum number of entries stored in the cache, and is the only one required.
-All the other parameters are optional and in seconds, except the last one which is a boolean.
-The second one (86400) is the maximum lifetime of an entry in the cache, the third one (0) is the minimum TTL an entry should have to be considered for insertion in the cache, the fourth one (60) is the TTL used for a Server Failure or a Refused response.
-The fifth one (60) is the TTL that will be used when a stale cache entry is returned. The sixth one is a boolean that when set to true, avoids reducing the TTL of cached entries.
+ + The first parameter (10000) is the maximum number of entries stored in the cache, and is the only one required. All the other parameters are optional and in seconds, except the last one which is a boolean.
+
++ The second one (86400) is the maximum lifetime of an entry in the cache.
+
++ The third one (0) is the minimum TTL an entry should have to be considered for insertion in the cache.
+
++ The fourth one (60) is the TTL used for a Server Failure or a Refused response.
+
++ The fifth one (60) is the TTL that will be used when a stale cache entry is returned.
+
++ The sixth one is a boolean that when set to true, avoids reducing the TTL of cached entries.
 
 For performance reasons the cache will pre-allocate buckets based on the maximum number of entries, so be careful to set the first parameter to a reasonable value.
 Something along the lines of a dozen bytes per pre-allocated entry can be expected on 64-bit.

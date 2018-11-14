@@ -428,35 +428,15 @@ int checkZone(DNSSECKeeper &dk, UeberBackend &B, const DNSName& zone, const vect
         checkOcclusion.insert({rr.qname, rr.qtype});
       }
     }
-
     if((rr.qtype.getCode() == QType::A || rr.qtype.getCode() == QType::AAAA) && !rr.qname.isWildcard() && !rr.qname.isHostname())
       cout<<"[Info] "<<rr.qname.toString()<<" record for '"<<rr.qtype.getName()<<"' is not a valid hostname."<<endl;
 
     // Check if the DNSNames that should be hostnames, are hostnames
-    if (rr.qtype.getCode() == QType::NS || rr.qtype.getCode() == QType::MX || rr.qtype.getCode() == QType::SRV) {
-      DNSName toCheck;
-      if (rr.qtype.getCode() == QType::SRV) {
-        vector<string> parts;
-        stringtok(parts, rr.getZoneRepresentation());
-        if (parts.size() == 4) toCheck = DNSName(parts[3]);
-      } else if (rr.qtype.getCode() == QType::MX) {
-        vector<string> parts;
-        stringtok(parts, rr.getZoneRepresentation());
-        if (parts.size() == 2) toCheck = DNSName(parts[1]);
-      } else {
-        toCheck = DNSName(rr.content);
-      }
-
-      if (toCheck.empty()) {
-        cout<<"[Warning] "<<rr.qtype.getName()<<" record in zone '"<<zone<<"': unable to extract hostname from content."<<endl;
-        numwarnings++;
-      }
-      else if ((rr.qtype.getCode() == QType::MX || rr.qtype.getCode() == QType::SRV) && toCheck == g_rootdnsname) {
-        // allow null MX/SRV
-      } else if(!toCheck.isHostname()) {
-        cout<<"[Warning] "<<rr.qtype.getName()<<" record in zone '"<<zone<<"' has non-hostname content '"<<toCheck.toString()<<"'."<<endl;
-        numwarnings++;
-      }
+    try {
+      checkHostnameCorrectness(rr);
+    } catch (const std::exception& e) {
+      cout << "[Warning] " << rr.qtype.getName() << " record in zone '" << zone << ": " << e.what() << endl;
+      numwarnings++;
     }
 
     if (rr.qtype.getCode() == QType::CNAME) {

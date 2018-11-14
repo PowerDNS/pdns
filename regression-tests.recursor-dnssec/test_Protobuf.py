@@ -17,9 +17,6 @@ else:
 
 from recursortests import RecursorTest
 
-protobufQueue = Queue()
-protobufServerPort = 4243
-
 def ProtobufConnectionHandler(queue, conn):
     data = None
     while True:
@@ -35,8 +32,7 @@ def ProtobufConnectionHandler(queue, conn):
 
     conn.close()
 
-def ProtobufListener(port):
-    global protobufQueue
+def ProtobufListener(queue, port):
     sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEPORT, 1)
     try:
@@ -51,7 +47,7 @@ def ProtobufListener(port):
             (conn, _) = sock.accept()
             thread = threading.Thread(name='Connection Handler',
                                       target=ProtobufConnectionHandler,
-                                      args=[protobufQueue, conn])
+                                      args=[queue, conn])
             thread.setDaemon(True)
             thread.start()
 
@@ -61,39 +57,58 @@ def ProtobufListener(port):
     sock.close()
 
 
-protobufListener = threading.Thread(name='Protobuf Listener', target=ProtobufListener, args=[protobufServerPort])
-protobufListener.setDaemon(True)
-protobufListener.start()
+class ProtobufServerParams:
+  def __init__(self, port):
+    self.queue = Queue()
+    self.port = port
+
+protobufServersParameters = [ProtobufServerParams(4243), ProtobufServerParams(4244)]
+protobufListeners = []
+for param in protobufServersParameters:
+  listener = threading.Thread(name='Protobuf Listener', target=ProtobufListener, args=[param.queue, param.port])
+  listener.setDaemon(True)
+  listener.start()
+  protobufListeners.append(listener)
 
 class TestRecursorProtobuf(RecursorTest):
 
-    global protobufServerPort
     _lua_config_file = """
-    protobufServer("127.0.0.1:%d")
-    """ % (protobufServerPort)
+    protobufServer({"127.0.0.1:%d", "127.0.0.1:%d"})
+    """ % (protobufServersParameters[0].port, protobufServersParameters[1].port)
 
 
     def getFirstProtobufMessage(self, retries=1, waitTime=1):
-        global protobufQueue
-        failed = 0
+        msg = None
 
-        while protobufQueue.empty:
-          if failed >= retries:
-            break
+        print("in getFirstProtobufMessage")
+        for param in protobufServersParameters:
+          print(param.port)
+          failed = 0
 
-          failed = failed + 1
-          time.sleep(waitTime)
+          while param.queue.empty:
+            print(failed)
+            print(retries)
+            if failed >= retries:
+              break
 
-        self.assertFalse(protobufQueue.empty())
-        data = protobufQueue.get(False)
-        self.assertTrue(data)
-        msg = dnsmessage_pb2.PBDNSMessage()
-        msg.ParseFromString(data)
+            failed = failed + 1
+            print("waiting")
+            time.sleep(waitTime)
+
+          self.assertFalse(param.queue.empty())
+          data = param.queue.get(False)
+          self.assertTrue(data)
+          oldmsg = msg
+          msg = dnsmessage_pb2.PBDNSMessage()
+          msg.ParseFromString(data)
+          if oldmsg is not None:
+            self.assertEquals(msg, oldmsg)
+
         return msg
 
     def checkNoRemainingMessage(self):
-        global protobufQueue
-        self.assertTrue(protobufQueue.empty())
+        for param in protobufServersParameters:
+          self.assertTrue(param.queue.empty())
 
     def checkProtobufBase(self, msg, protocol, query, initiator, normalQueryResponse=True, expectedECS=None, receivedSize=None):
         self.assertTrue(msg)
@@ -206,14 +221,6 @@ class TestRecursorProtobuf(RecursorTest):
     @classmethod
     def setUpClass(cls):
 
-        global protobufListener
-        global protobufServerPort
-        global ProtobufListener
-        if protobufListener is None or not protobufListener.isAlive():
-            protobufListener = threading.Thread(name='Protobuf Listener', target=ProtobufListener, args=[protobufServerPort])
-            protobufListener.setDaemon(True)
-            protobufListener.start()
-
         cls.setUpSockets()
 
         cls.startResponders()
@@ -227,9 +234,9 @@ class TestRecursorProtobuf(RecursorTest):
     def setUp(self):
       # Make sure the queue is empty, in case
       # a previous test failed
-      global protobufQueue
-      while not protobufQueue.empty():
-        protobufQueue.get(False)
+      for param in protobufServersParameters:
+        while not param.queue.empty():
+          param.queue.get(False)
 
     @classmethod
     def generateRecursorConfig(cls, confdir):
@@ -327,8 +334,8 @@ class OutgoingProtobufDefaultTest(TestRecursorProtobuf):
     _config_template = """
 auth-zones=example=configs/%s/example.zone""" % _confdir
     _lua_config_file = """
-    outgoingProtobufServer("127.0.0.1:%d")
-    """ % (protobufServerPort)
+    outgoingProtobufServer({"127.0.0.1:%d", "127.0.0.1:%d"})
+    """ % (protobufServersParameters[0].port, protobufServersParameters[1].port)
 
     def testA(self):
         name = 'www.example.org.'
@@ -353,13 +360,12 @@ class ProtobufMasksTest(TestRecursorProtobuf):
     _confdir = 'ProtobufMasks'
     _config_template = """
 auth-zones=example=configs/%s/example.zone""" % _confdir
-    global protobufServerPort
     _protobufMaskV4 = 4
     _protobufMaskV6 = 128
     _lua_config_file = """
-    protobufServer("127.0.0.1:%d")
+    protobufServer({"127.0.0.1:%d", "127.0.0.1:%d"})
     setProtobufMasks(%d, %d)
-    """ % (protobufServerPort, _protobufMaskV4, _protobufMaskV6)
+    """ % (protobufServersParameters[0].port, protobufServersParameters[1].port, _protobufMaskV4, _protobufMaskV6)
 
     def testA(self):
         name = 'a.example.'
@@ -391,10 +397,9 @@ class ProtobufQueriesOnlyTest(TestRecursorProtobuf):
     _confdir = 'ProtobufQueriesOnly'
     _config_template = """
 auth-zones=example=configs/%s/example.zone""" % _confdir
-    global protobufServerPort
     _lua_config_file = """
-    protobufServer("127.0.0.1:%d", { logQueries=true, logResponses=false } )
-    """ % (protobufServerPort)
+    protobufServer({"127.0.0.1:%d", "127.0.0.1:%d"}, { logQueries=true, logResponses=false } )
+    """ % (protobufServersParameters[0].port, protobufServersParameters[1].port)
 
     def testA(self):
         name = 'a.example.'
@@ -418,10 +423,9 @@ class ProtobufResponsesOnlyTest(TestRecursorProtobuf):
     _confdir = 'ProtobufResponsesOnly'
     _config_template = """
 auth-zones=example=configs/%s/example.zone""" % _confdir
-    global protobufServerPort
     _lua_config_file = """
-    protobufServer("127.0.0.1:%d", { logQueries=false, logResponses=true } )
-    """ % (protobufServerPort)
+    protobufServer({"127.0.0.1:%d", "127.0.0.1:%d"}, { logQueries=false, logResponses=true } )
+    """ % (protobufServersParameters[0].port, protobufServersParameters[1].port)
 
     def testA(self):
         name = 'a.example.'
@@ -450,10 +454,9 @@ class ProtobufTaggedOnlyTest(TestRecursorProtobuf):
     _confdir = 'ProtobufTaggedOnly'
     _config_template = """
 auth-zones=example=configs/%s/example.zone""" % _confdir
-    global protobufServerPort
     _lua_config_file = """
-    protobufServer("127.0.0.1:%d", { logQueries=true, logResponses=true, taggedOnly=true } )
-    """ % (protobufServerPort)
+    protobufServer({"127.0.0.1:%d", "127.0.0.1:%d"}, { logQueries=true, logResponses=true, taggedOnly=true } )
+    """ % (protobufServersParameters[0].port, protobufServersParameters[1].port)
     _tags = ['tag1', 'tag2']
     _tag_from_gettag = 'tag-from-gettag'
     _lua_dns_script_file = """
@@ -517,10 +520,9 @@ class ProtobufSelectedFromLuaTest(TestRecursorProtobuf):
     _confdir = 'ProtobufSelectedFromLua'
     _config_template = """
 auth-zones=example=configs/%s/example.zone""" % _confdir
-    global protobufServerPort
     _lua_config_file = """
-    protobufServer("127.0.0.1:%d", { logQueries=false, logResponses=false } )
-    """ % (protobufServerPort)
+    protobufServer({"127.0.0.1:%d", "127.0.0.1:%d"}, { logQueries=false, logResponses=false } )
+    """ % (protobufServersParameters[0].port, protobufServersParameters[1].port)
     _lua_dns_script_file = """
     local ffi = require("ffi")
 
@@ -599,10 +601,9 @@ class ProtobufExportTypesTest(TestRecursorProtobuf):
     _confdir = 'ProtobufExportTypes'
     _config_template = """
 auth-zones=example=configs/%s/example.zone""" % _confdir
-    global protobufServerPort
     _lua_config_file = """
-    protobufServer("127.0.0.1:%d", { exportTypes={"AAAA", "MX", "SPF", "SRV", "TXT"} } )
-    """ % (protobufServerPort)
+    protobufServer({"127.0.0.1:%d", "127.0.0.1:%d"}, { exportTypes={"AAAA", "MX", "SPF", "SRV", "TXT"} } )
+    """ % (protobufServersParameters[0].port, protobufServersParameters[1].port)
 
     def testA(self):
         name = 'types.example.'

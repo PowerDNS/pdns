@@ -410,7 +410,7 @@ public:
   {
   }
 
-  BasicQPSLimiter(unsigned int rate, unsigned int burst): d_tokens(burst)
+  BasicQPSLimiter(unsigned int burst): d_tokens(burst)
   {
     d_prev.start();
   }
@@ -451,7 +451,7 @@ public:
   {
   }
 
-  QPSLimiter(unsigned int rate, unsigned int burst): BasicQPSLimiter(rate, burst), d_rate(rate), d_burst(burst), d_passthrough(false)
+  QPSLimiter(unsigned int rate, unsigned int burst): BasicQPSLimiter(burst), d_rate(rate), d_burst(burst), d_passthrough(false)
   {
     d_prev.start();
   }
@@ -536,6 +536,7 @@ struct IDState
   bool ecsAdded{false};
   bool skipCache{false};
   bool destHarvested{false}; // if true, origDest holds the original dest addr, otherwise the listening addr
+  bool dnssecOK{false};
 };
 
 typedef std::unordered_map<string, unsigned int> QueryCountRecords;
@@ -882,7 +883,9 @@ void removeServerFromPool(pools_t& pools, const string& poolName, std::shared_pt
 struct CarbonConfig
 {
   ComboAddress server;
+  std::string namespace_name;
   std::string ourname;
+  std::string instance_name;
   unsigned int interval;
 };
 
@@ -948,6 +951,7 @@ extern uint32_t g_hashperturb;
 extern bool g_useTCPSinglePipe;
 extern std::atomic<uint16_t> g_downstreamTCPCleanupInterval;
 extern size_t g_udpVectorSize;
+extern bool g_preserveTrailingData;
 
 #ifdef HAVE_EBPF
 extern shared_ptr<BPFFilter> g_defaultBPFFilter;
