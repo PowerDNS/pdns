@@ -1,0 +1,3 @@
+#!/bin/sh
+
+cleandig o1.city.geo.example.com A
