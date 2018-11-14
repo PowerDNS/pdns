@@ -462,6 +462,7 @@ const std::vector<ConsoleKeyword> g_consoleKeywords{
   { "showResponseLatency", true, "", "show a plot of the response time latency distribution" },
   { "showResponseRules", true, "[{showUUIDs=false, truncateRuleWidth=-1}]", "show all defined response rules, optionally with their UUIDs and optionally truncated to a given width" },
   { "showRules", true, "[{showUUIDs=false, truncateRuleWidth=-1}]", "show all defined rules, optionally with their UUIDs and optionally truncated to a given width" },
+  { "showSecurityStatus", true, "", "Show the security status"},
   { "showSelfAnsweredResponseRules", true, "[{showUUIDs=false, truncateRuleWidth=-1}]", "show all defined self-answered response rules, optionally with their UUIDs and optionally truncated to a given width" },
   { "showServerPolicy", true, "", "show name of currently operational server selection policy" },
   { "showServers", true, "", "output all servers" },

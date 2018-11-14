@@ -1268,6 +1268,11 @@ instance_name ? *instance_name : "main" ,
       g_outputBuffer = "dnsdist " + std::string(VERSION) + "\n";
     });
 
+  g_lua.writeFunction("showSecurityStatus", []() {
+      setLuaNoSideEffect();
+      g_outputBuffer = std::to_string(g_stats.securityStatus) + "\n";
+    });
+
 #ifdef HAVE_EBPF
   g_lua.writeFunction("setDefaultBPFFilter", [](std::shared_ptr<BPFFilter> bpf) {
       if (g_configurationDone) {
