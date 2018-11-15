@@ -641,17 +641,18 @@ void setupLuaConfig(bool client)
 
   g_lua.writeFunction("carbonServer", [](const std::string& address, boost::optional<string> ourName,
 					 boost::optional<unsigned int> interval, boost::optional<string> namespace_name,
-           boost::optional<string> instance_name) {
-                        setLuaSideEffect();
-			auto ours = g_carbon.getCopy();
-			ours.push_back({
-          ComboAddress(address, 2003),
-          namespace_name ? *namespace_name : "dnsdist",
-          ourName ? *ourName : "", 
-instance_name ? *instance_name : "main" ,
-          interval ? *interval : 30, });
-			g_carbon.setState(ours);
-		      });
+                                         boost::optional<string> instance_name) {
+      setLuaSideEffect();
+      auto ours = g_carbon.getCopy();
+      ours.push_back({
+        ComboAddress(address, 2003),
+        (namespace_name && !namespace_name->empty()) ? *namespace_name : "dnsdist",
+        ourName ? *ourName : "",
+        (instance_name && !instance_name->empty()) ? *instance_name : "main" ,
+        interval ? *interval : 30
+      });
+      g_carbon.setState(ours);
+  });
 
   g_lua.writeFunction("webserver", [client](const std::string& address, const std::string& password, const boost::optional<std::string> apiKey, const boost::optional<std::map<std::string, std::string> > customHeaders) {
       setLuaSideEffect();

@@ -4122,6 +4122,9 @@ int main(int argc, char **argv)
     ::arg().set("carbon-ourname", "If set, overrides our reported hostname for carbon stats")="";
     ::arg().set("carbon-server", "If set, send metrics in carbon (graphite) format to this server IP address")="";
     ::arg().set("carbon-interval", "Number of seconds between carbon (graphite) updates")="30";
+    ::arg().set("carbon-namespace", "If set overwrites the first part of the carbon string")="pdns";
+    ::arg().set("carbon-instance", "If set overwrites the the instance name default")="recursor";
+
     ::arg().set("statistics-interval", "Number of seconds between printing of recursor statistics, 0 to disable")="1800";
     ::arg().set("quiet","Suppress logging of questions and answers")="";
     ::arg().set("logging-facility","Facility to log messages as. 0 corresponds to local0")="";
