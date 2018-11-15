@@ -11,6 +11,11 @@ import sys
 import tempfile
 import time
 
+try:
+  raw_input
+except NameError:
+  raw_input = input
+
 SQLITE_DB = 'pdns.sqlite3'
 WEBPORT = 5556
 DNSPORT = 5300

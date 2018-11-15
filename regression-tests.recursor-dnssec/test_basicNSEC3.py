@@ -1,3 +1,4 @@
+from __future__ import print_function
 from basicDNSSEC import BasicDNSSEC
 import os
 import subprocess
@@ -27,11 +28,11 @@ class basicNSEC3(BasicDNSSEC):
                            'active',
                            'ksk']
 
-        print ' '.join(pdnsutilCmd)
+        print(' '.join(pdnsutilCmd))
         try:
             subprocess.check_output(pdnsutilCmd, stderr=subprocess.STDOUT)
         except subprocess.CalledProcessError as e:
-            print e.output
+            print(e.output)
             raise
 
         params = "1 0 100 AABBCCDDEEFF112233"
@@ -45,9 +46,9 @@ class basicNSEC3(BasicDNSSEC):
                        zone,
                        params]
 
-        print ' '.join(pdnsutilCmd)
+        print(' '.join(pdnsutilCmd))
         try:
             subprocess.check_output(pdnsutilCmd, stderr=subprocess.STDOUT)
         except subprocess.CalledProcessError as e:
-            print e.output
+            print(e.output)
             raise

@@ -1,4 +1,5 @@
 #!/usr/bin/env python2
+from __future__ import print_function
 import glob, json
 
 varnames = set()
@@ -24,4 +25,4 @@ for fname in glob.glob('testresults-*.xml'):
 # print varnames
 # print statnames
 
-print json.dumps(runs)
+print(json.dumps(runs))

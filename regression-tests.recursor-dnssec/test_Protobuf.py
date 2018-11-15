@@ -8,12 +8,15 @@ import threading
 import time
 
 # Python2/3 compatibility hacks
-if sys.version_info[0] == 2:
-  from Queue import Queue
-  range = xrange
-else:
+try:
   from queue import Queue
-  range = range  # allow re-export of the builtin name
+except ImportError:
+  from Queue import Queue
+
+try:
+  range = xrange
+except NameError:
+  pass
 
 from recursortests import RecursorTest
 
