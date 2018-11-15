@@ -477,7 +477,7 @@ number of CPU milliseconds spent in 'user' mode
 .. _stat-x-our-latency:
 
 variable-responses
-^^^^^^^^^^^^^
+^^^^^^^^^^^^^^^^^^
 .. versionadded:: 4.2
 
 Reponses that were marked as 'variable'. This could be because of EDNS
