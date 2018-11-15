@@ -1,0 +1,3 @@
+1	geo.example.com.	IN	SOA	30	ns1.example.com. hostmaster.example.com. 2014090125 7200 3600 1209600 3600
+Rcode: 0 (No Error), RD: 0, QR: 1, TC: 0, AA: 1, opcode: 0
+Reply to question for qname='o1.city.geo.example.com.', qtype=A
