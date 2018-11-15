@@ -240,8 +240,8 @@ install_auth() {
     jq"
 
   run "cd .."
-  run "wget https://www.verisignlabs.com/dnssec-tools/packages/jdnssec-tools-0.13.tar.gz"
-  run "sudo tar xfz jdnssec-tools-0.13.tar.gz --strip-components=1 -C /"
+  run "wget https://www.monshouwer.eu/download/3rd_party/jdnssec-tools-0.13.ecdsafix.tar.gz"
+  run "sudo tar xfz jdnssec-tools-0.13.ecdsafix.tar.gz --strip-components=1 -C /"
   run "cd ${TRAVIS_BUILD_DIR}"
 
   # pkcs11 test requirements / setup
