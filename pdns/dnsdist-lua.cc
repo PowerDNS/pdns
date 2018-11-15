@@ -555,41 +555,68 @@ void setupLuaConfig(bool client)
       _exit(0);
   } );
 
-  g_lua.writeFunction("showServers", []() {
+  typedef std::unordered_map<std::string, boost::variant<bool, std::string> > showserversopts_t;
+
+  g_lua.writeFunction("showServers", [](boost::optional<showserversopts_t> vars) {
       setLuaNoSideEffect();
-      try {
-      ostringstream ret;
-      boost::format fmt("%1$-3d %2$-20.20s %|25t|%3% %|55t|%4$5s %|51t|%5$7.1f %|66t|%6$7d %|69t|%7$3d %|78t|%8$2d %|80t|%9$10d %|86t|%10$7d %|91t|%11$5.1f %|109t|%12$5.1f %|115t|%13$11d %14%" );
-      //             1        2          3       4        5       6       7       8           9        10        11       12     13              14
-      ret << (fmt % "#" % "Name" % "Address" % "State" % "Qps" % "Qlim" % "Ord" % "Wt" % "Queries" % "Drops" % "Drate" % "Lat" % "Outstanding" % "Pools") << endl;
-
-      uint64_t totQPS{0}, totQueries{0}, totDrops{0};
-      int counter=0;
-      auto states = g_dstates.getLocal();
-      for(const auto& s : *states) {
-	string status = s->getStatus();
-	string pools;
-	for(auto& p : s->pools) {
-	  if(!pools.empty())
-	    pools+=" ";
-	  pools+=p;
-	}
-
-	ret << (fmt % counter % s->name % s->remote.toStringWithPort() %
-		status %
-		s->queryLoad % s->qps.getRate() % s->order % s->weight % s->queries.load() % s->reuseds.load() % (s->dropRate) % (s->latencyUsec/1000.0) % s->outstanding.load() % pools) << endl;
-
-	totQPS += s->queryLoad;
-	totQueries += s->queries.load();
-	totDrops += s->reuseds.load();
-	++counter;
+      bool showUUIDs = false;
+      if (vars) {
+        if (vars->count("showUUIDs")) {
+          showUUIDs = boost::get<bool>((*vars)["showUUIDs"]);
+        }
       }
-      ret<< (fmt % "All" % "" % "" % ""
-		%
-	     (double)totQPS % "" % "" % "" % totQueries % totDrops % "" % "" % "" % "" ) << endl;
+      try {
+        ostringstream ret;
+        boost::format fmt;
+        if (showUUIDs) {
+          fmt = boost::format("%1$-3d %15$-36s %2$-20.20s %|62t|%3% %|92t|%4$5s %|88t|%5$7.1f %|103t|%6$7d %|106t|%7$3d %|115t|%8$2d %|117t|%9$10d %|123t|%10$7d %|128t|%11$5.1f %|146t|%12$5.1f %|152t|%13$11d %14%" );
+          //             1        2          3       4        5       6       7       8           9        10        11       12     13              14        15
+          ret << (fmt % "#" % "Name" % "Address" % "State" % "Qps" % "Qlim" % "Ord" % "Wt" % "Queries" % "Drops" % "Drate" % "Lat" % "Outstanding" % "Pools" % "UUID") << endl;
+        } else {
+          fmt = boost::format("%1$-3d %2$-20.20s %|25t|%3% %|55t|%4$5s %|51t|%5$7.1f %|66t|%6$7d %|69t|%7$3d %|78t|%8$2d %|80t|%9$10d %|86t|%10$7d %|91t|%11$5.1f %|109t|%12$5.1f %|115t|%13$11d %14%" );
+          ret << (fmt % "#" % "Name" % "Address" % "State" % "Qps" % "Qlim" % "Ord" % "Wt" % "Queries" % "Drops" % "Drate" % "Lat" % "Outstanding" % "Pools") << endl;
+        }
 
-      g_outputBuffer=ret.str();
-      }catch(std::exception& e) { g_outputBuffer=e.what(); throw; }
+        uint64_t totQPS{0}, totQueries{0}, totDrops{0};
+        int counter=0;
+        auto states = g_dstates.getLocal();
+        for(const auto& s : *states) {
+          string status = s->getStatus();
+          string pools;
+          for(auto& p : s->pools) {
+            if(!pools.empty())
+              pools+=" ";
+            pools+=p;
+          }
+          if (showUUIDs) {
+            ret << (fmt % counter % s->name % s->remote.toStringWithPort() %
+                    status %
+                    s->queryLoad % s->qps.getRate() % s->order % s->weight % s->queries.load() % s->reuseds.load() % (s->dropRate) % (s->latencyUsec/1000.0) % s->outstanding.load() % pools % s->id) << endl;
+          } else {
+            ret << (fmt % counter % s->name % s->remote.toStringWithPort() %
+                    status %
+                    s->queryLoad % s->qps.getRate() % s->order % s->weight % s->queries.load() % s->reuseds.load() % (s->dropRate) % (s->latencyUsec/1000.0) % s->outstanding.load() % pools) << endl;
+          }
+          totQPS += s->queryLoad;
+          totQueries += s->queries.load();
+          totDrops += s->reuseds.load();
+          ++counter;
+        }
+        if (showUUIDs) {
+          ret<< (fmt % "All" % "" % "" % ""
+                 %
+                 (double)totQPS % "" % "" % "" % totQueries % totDrops % "" % "" % "" % "" % "" ) << endl;
+        } else {
+          ret<< (fmt % "All" % "" % "" % ""
+                 %
+                 (double)totQPS % "" % "" % "" % totQueries % totDrops % "" % "" % "" % "" ) << endl;
+        }
+
+        g_outputBuffer=ret.str();
+      } catch(std::exception& e) {
+        g_outputBuffer=e.what();
+        throw;
+      }
     });
 
   g_lua.writeFunction("getServers", []() {
