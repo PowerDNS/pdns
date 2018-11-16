@@ -2,7 +2,7 @@ TSIGKeys
 ========
 .. versionadded:: 4.2.0
 
-TSIGKeys and be manipulated via the API.
+TSIGKeys can be manipulated via the API.
 
 Examples
 --------
