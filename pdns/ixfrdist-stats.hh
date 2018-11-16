@@ -25,6 +25,7 @@
 #include <string>
 
 #include "dnsname.hh"
+#include "pdnsexception.hh"
 
 class ixfrdistStats {
   public:
@@ -35,29 +36,30 @@ class ixfrdistStats {
     std::string getStats();
 
     void setSOASerial(const DNSName& d, const uint32_t serial) {
-      domainStats[d].currentSOA = serial;
-      domainStats[d].haveZone = true;
+      auto stat = getRegisteredDomain(d);
+      stat->second.currentSOA = serial;
+      stat->second.haveZone = true;
     }
     void incrementSOAChecks(const DNSName& d, const uint64_t amount = 1) {
-      domainStats[d].numSOAChecks += amount;
+      getRegisteredDomain(d)->second.numSOAChecks += amount;
     }
     void incrementSOAChecksFailed(const DNSName& d, const uint64_t amount = 1) {
-      domainStats[d].numSOAChecksFailed += amount;
+      getRegisteredDomain(d)->second.numSOAChecksFailed += amount;
     }
     void incrementSOAinQueries(const DNSName& d, const uint64_t amount = 1) {
-      domainStats[d].numSOAinQueries += amount;
+      getRegisteredDomain(d)->second.numSOAinQueries += amount;
     }
     void incrementAXFRinQueries(const DNSName& d, const uint64_t amount = 1) {
-      domainStats[d].numAXFRinQueries += amount;
+      getRegisteredDomain(d)->second.numAXFRinQueries += amount;
     }
     void incrementIXFRinQueries(const DNSName& d, const uint64_t amount = 1) {
-      domainStats[d].numIXFRinQueries += amount;
+      getRegisteredDomain(d)->second.numIXFRinQueries += amount;
     }
     void incrementAXFRFailures(const DNSName& d, const uint64_t amount = 1) {
-      domainStats[d].numAXFRFailures += amount;
+      getRegisteredDomain(d)->second.numAXFRFailures += amount;
     }
     void incrementIXFRFailures(const DNSName& d, const uint64_t amount = 1) {
-      domainStats[d].numIXFRFailures += amount;
+      getRegisteredDomain(d)->second.numIXFRFailures += amount;
     }
     void registerDomain(const DNSName& d) {
       domainStats[d].haveZone = false;
@@ -85,4 +87,12 @@ class ixfrdistStats {
 
     std::map<DNSName, perDomainStat> domainStats;
     programStats progStats;
+
+    std::map<DNSName, perDomainStat>::iterator getRegisteredDomain(const DNSName& d) {
+      auto ret = domainStats.find(d);
+      if (ret == domainStats.end()) {
+        throw PDNSException("Domain '" + d.toLogString() + "' not defined in the statistics map");
+      }
+      return ret;
+    };
 };
