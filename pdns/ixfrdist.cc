@@ -1108,7 +1108,7 @@ static bool parseAndCheckConfig(const string& configpath, YAML::Node& config) {
       config["webserver-acl"].as<vector<Netmask>>();
     }
     catch (const runtime_error &e) {
-      g_log<<Logger::Error<<"Unable to read 'webserver-address' value: "<<e.what()<<endl;
+      g_log<<Logger::Error<<"Unable to read 'webserver-acl' value: "<<e.what()<<endl;
       retval = false;
     }
   }
