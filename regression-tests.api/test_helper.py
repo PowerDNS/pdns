@@ -84,7 +84,7 @@ def pdnsutil(subcommand, *args):
     try:
         return subprocess.check_output(PDNSUTIL_CMD + [subcommand] + list(args), close_fds=True).decode('ascii')
     except subprocess.CalledProcessError as except_inst:
-        raise RuntimeError("pdnsutil %s %s failed: %s" % (command, args, except_inst.output.decode('ascii', errors='replace')))
+        raise RuntimeError("pdnsutil %s %s failed: %s" % (subcommand, args, except_inst.output.decode('ascii', errors='replace')))
 
 def pdnsutil_rectify(zonename):
     """Run pdnsutil rectify-zone on the given zone."""
