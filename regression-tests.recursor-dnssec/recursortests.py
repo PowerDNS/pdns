@@ -445,7 +445,7 @@ distributor-threads=1""".format(confdir=confdir,
                 luaconfpath = os.path.join(confdir, 'conffile.lua')
                 with open(luaconfpath, 'w') as luaconf:
                     if cls._root_DS:
-                        luaconf.write("addDS('.', '%s')\n" % cls._root_DS)
+                        luaconf.write("addTA('.', '%s')\n" % cls._root_DS)
                     if cls._lua_config_file:
                         luaconf.write(cls._lua_config_file)
                 conf.write("lua-config-file=%s\n" % luaconfpath)

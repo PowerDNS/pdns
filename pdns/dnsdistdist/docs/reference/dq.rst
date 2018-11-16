@@ -86,7 +86,7 @@ This state can be modified from the various hooks.
 
   .. method:: DNSQuestion:getEDNSOptions() -> table
 
-    .. versionadded:: 1.3.1
+    .. versionadded:: 1.3.3
 
     Return the list of EDNS Options, if any.
 
@@ -210,7 +210,7 @@ EDNSOptionView object
 
 .. class:: EDNSOptionView
 
-  .. versionadded:: 1.3.1
+  .. versionadded:: 1.3.3
 
   An object that represents the values of a single EDNS option received in a query.
 

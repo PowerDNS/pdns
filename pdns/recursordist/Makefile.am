@@ -43,6 +43,7 @@ endif
 
 EXTRA_DIST = \
 	contrib/* \
+	COPYING \
 	devpollmplexer.cc \
 	dnslabeltext.cc \
 	dnslabeltext.rl \
@@ -55,6 +56,7 @@ EXTRA_DIST = \
 	mkpubsuffixcc \
 	mtasker.cc \
 	mtasker_fcontext.cc mtasker_ucontext.cc \
+	NOTICE \
 	opensslsigners.hh opensslsigners.cc \
 	portsmplexer.cc \
 	rrd/* \
@@ -258,6 +260,7 @@ testrunner_SOURCES = \
 	test-misc_hh.cc \
 	test-mtasker.cc \
 	test-negcache_cc.cc \
+	test-packetcache_hh.cc \
 	test-rcpgenerator_cc.cc \
 	test-recpacketcache_cc.cc \
 	test-recursorcache_cc.cc \

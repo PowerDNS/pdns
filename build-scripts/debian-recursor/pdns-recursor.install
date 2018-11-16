@@ -1,4 +1,0 @@
-debian/tmp/usr/sbin/pdns_recursor usr/sbin/
-debian/tmp/usr/bin/rec_control usr/bin/
-lib/systemd/system/pdns-recursor.service lib/systemd/system/
-lib/systemd/system/pdns-recursor@.service lib/systemd/system/

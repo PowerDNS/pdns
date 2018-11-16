@@ -38,8 +38,8 @@
   RNAME##RecordContent(const string& zoneData);                                                  \
   static void report(void);                                                                      \
   static void unreport(void);                                                                    \
-  static DNSRecordContent* make(const DNSRecord &dr, PacketReader& pr);                          \
-  static DNSRecordContent* make(const string& zonedata);                                         \
+  static std::shared_ptr<DNSRecordContent> make(const DNSRecord &dr, PacketReader& pr);          \
+  static std::shared_ptr<DNSRecordContent> make(const string& zonedata);                         \
   string getZoneRepresentation(bool noDot=false) const override;                                 \
   void toPacket(DNSPacketWriter& pw) override;                                                   \
   uint16_t getType() const override { return QType::RNAME; }                                   \
@@ -550,8 +550,8 @@ public:
   {}
   NSECRecordContent(const string& content, const string& zone=""); //FIXME400: DNSName& zone?
 
-  static DNSRecordContent* make(const DNSRecord &dr, PacketReader& pr);
-  static DNSRecordContent* make(const string& content);
+  static std::shared_ptr<DNSRecordContent> make(const DNSRecord &dr, PacketReader& pr);
+  static std::shared_ptr<DNSRecordContent> make(const string& content);
   string getZoneRepresentation(bool noDot=false) const override;
   void toPacket(DNSPacketWriter& pw) override;
   uint16_t getType() const override
@@ -571,8 +571,8 @@ public:
   {}
   NSEC3RecordContent(const string& content, const string& zone=""); //FIXME400: DNSName& zone?
 
-  static DNSRecordContent* make(const DNSRecord &dr, PacketReader& pr);
-  static DNSRecordContent* make(const string& content);
+  static std::shared_ptr<DNSRecordContent> make(const DNSRecord &dr, PacketReader& pr);
+  static std::shared_ptr<DNSRecordContent> make(const string& content);
   string getZoneRepresentation(bool noDot=false) const override;
   void toPacket(DNSPacketWriter& pw) override;
 
@@ -600,8 +600,8 @@ public:
   {}
   NSEC3PARAMRecordContent(const string& content, const string& zone=""); // FIXME400: DNSName& zone?
 
-  static DNSRecordContent* make(const DNSRecord &dr, PacketReader& pr);
-  static DNSRecordContent* make(const string& content);
+  static std::shared_ptr<DNSRecordContent> make(const DNSRecord &dr, PacketReader& pr);
+  static std::shared_ptr<DNSRecordContent> make(const string& content);
   string getZoneRepresentation(bool noDot=false) const override;
   void toPacket(DNSPacketWriter& pw) override;
 
@@ -625,8 +625,8 @@ public:
   {}
   LOCRecordContent(const string& content, const string& zone="");
 
-  static DNSRecordContent* make(const DNSRecord &dr, PacketReader& pr);
-  static DNSRecordContent* make(const string& content);
+  static std::shared_ptr<DNSRecordContent> make(const DNSRecord &dr, PacketReader& pr);
+  static std::shared_ptr<DNSRecordContent> make(const string& content);
   string getZoneRepresentation(bool noDot=false) const override;
   void toPacket(DNSPacketWriter& pw) override;
 
@@ -649,8 +649,8 @@ public:
   {}
   WKSRecordContent(const string& content, const string& zone=""); // FIXME400: DNSName& zone?
 
-  static DNSRecordContent* make(const DNSRecord &dr, PacketReader& pr);
-  static DNSRecordContent* make(const string& content);
+  static std::shared_ptr<DNSRecordContent> make(const DNSRecord &dr, PacketReader& pr);
+  static std::shared_ptr<DNSRecordContent> make(const string& content);
   string getZoneRepresentation(bool noDot=false) const override;
   void toPacket(DNSPacketWriter& pw) override;
 
@@ -664,8 +664,8 @@ class EUI48RecordContent : public DNSRecordContent
 public:
   EUI48RecordContent() {};
   static void report(void);
-  static DNSRecordContent* make(const DNSRecord &dr, PacketReader& pr);
-  static DNSRecordContent* make(const string& zone); // FIXME400: DNSName& zone?
+  static std::shared_ptr<DNSRecordContent> make(const DNSRecord &dr, PacketReader& pr);
+  static std::shared_ptr<DNSRecordContent> make(const string& zone); // FIXME400: DNSName& zone?
   string getZoneRepresentation(bool noDot=false) const override;
   void toPacket(DNSPacketWriter& pw) override;
   uint16_t getType() const override { return QType::EUI48; }
@@ -679,8 +679,8 @@ class EUI64RecordContent : public DNSRecordContent
 public:
   EUI64RecordContent() {};
   static void report(void);
-  static DNSRecordContent* make(const DNSRecord &dr, PacketReader& pr);
-  static DNSRecordContent* make(const string& zone); // FIXME400: DNSName& zone?
+  static std::shared_ptr<DNSRecordContent> make(const DNSRecord &dr, PacketReader& pr);
+  static std::shared_ptr<DNSRecordContent> make(const string& zone); // FIXME400: DNSName& zone?
   string getZoneRepresentation(bool noDot=false) const override;
   void toPacket(DNSPacketWriter& pw) override;
   uint16_t getType() const override { return QType::EUI64; }
@@ -727,9 +727,9 @@ class CAARecordContent : public DNSRecordContent {
 };
 
 #define boilerplate(RNAME, RTYPE)                                                                         \
-RNAME##RecordContent::DNSRecordContent* RNAME##RecordContent::make(const DNSRecord& dr, PacketReader& pr) \
+std::shared_ptr<RNAME##RecordContent::DNSRecordContent> RNAME##RecordContent::make(const DNSRecord& dr, PacketReader& pr) \
 {                                                                                                  \
-  return new RNAME##RecordContent(dr, pr);                                                         \
+  return std::make_shared<RNAME##RecordContent>(dr, pr);                                           \
 }                                                                                                  \
                                                                                                    \
 RNAME##RecordContent::RNAME##RecordContent(const DNSRecord& dr, PacketReader& pr)                  \
@@ -738,9 +738,9 @@ RNAME##RecordContent::RNAME##RecordContent(const DNSRecord& dr, PacketReader& pr
   xfrPacket(pr);                                                                                   \
 }                                                                                                  \
                                                                                                    \
-RNAME##RecordContent::DNSRecordContent* RNAME##RecordContent::make(const string& zonedata)         \
+std::shared_ptr<RNAME##RecordContent::DNSRecordContent> RNAME##RecordContent::make(const string& zonedata)         \
 {                                                                                                  \
-  return new RNAME##RecordContent(zonedata);                                                       \
+  return std::make_shared<RNAME##RecordContent>(zonedata);                                         \
 }                                                                                                  \
                                                                                                    \
 void RNAME##RecordContent::toPacket(DNSPacketWriter& pw)                                           \
@@ -805,4 +805,5 @@ void reportBasicTypes();
 void reportOtherTypes();
 void reportAllTypes();
 ComboAddress getAddr(const DNSRecord& dr, uint16_t defport=0);
+void checkHostnameCorrectness(const DNSResourceRecord& rr);
 #endif 

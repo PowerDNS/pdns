@@ -12,13 +12,13 @@ Configuring Protocol Buffer logs
 --------------------------------
 Protobuf export to a server is enabled using the ``protobufServer()`` directive:
 
-.. function:: protobufServer(server [, options]))
+.. function:: protobufServer(servers [, options]))
 
   .. versionadded:: 4.2.0
 
-  Send protocol buffer messages to a server for incoming queries and/or outgoing responses. The client address may be masked using :func:`setProtobufMasks`, for anonymization purposes.
+  Send protocol buffer messages to one or more servers for incoming queries and/or outgoing responses. The client address may be masked using :func:`setProtobufMasks`, for anonymization purposes.
 
-  :param string server: The IP and port to connect to
+  :param string or list of strings servers: The IP and port to connect to, or a list of those. If more than one server is configured, all messages are sent to every server.
   :param table options: A table with key: value pairs with options.
 
   Options:
@@ -57,13 +57,13 @@ Logging outgoing queries and responses
 
 While :func:`protobufServer` only exports the queries sent to the recursor from clients, with the corresponding responses, ``outgoingProtobufServer()`` can be used to export outgoing queries sent by the recursor to authoritative servers, along with the corresponding responses.
 
-.. function:: outgoingProtobufServer(server [, options])
+.. function:: outgoingProtobufServer(servers [, options])
 
   .. versionadded:: 4.2.0
 
-  Send protocol buffer messages to a server for outgoing queries and/or incoming responses.
+  Send protocol buffer messages to one or more servers for outgoing queries and/or incoming responses.
 
-  :param string server: The IP and port to connect to
+  :param string or list of strings servers: The IP and port to connect to, or a list of those. If more than one server is configured, all messages are sent to every server.
   :param table options: A table with key: value pairs with options.
 
   Options:

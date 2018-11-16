@@ -22,6 +22,7 @@
 #include "dnsdist.hh"
 #include "dnsdist-ecs.hh"
 #include "dnsdist-rings.hh"
+#include "dnsdist-xpf.hh"
 
 #include "dnsparser.hh"
 #include "ednsoptions.hh"
@@ -92,9 +93,34 @@ static int setupTCPDownstream(shared_ptr<DownstreamState> ds, uint16_t& downstre
 
 struct ConnectionInfo
 {
-  int fd;
+  ConnectionInfo(): cs(nullptr), fd(-1)
+  {
+  }
+
+  ConnectionInfo(const ConnectionInfo& rhs) = delete;
+  ConnectionInfo& operator=(const ConnectionInfo& rhs) = delete;
+
+  ConnectionInfo& operator=(ConnectionInfo&& rhs)
+  {
+    remote = rhs.remote;
+    cs = rhs.cs;
+    rhs.cs = nullptr;
+    fd = rhs.fd;
+    rhs.fd = -1;
+    return *this;
+  }
+
+  ~ConnectionInfo()
+  {
+    if (fd != -1) {
+      close(fd);
+      fd = -1;
+    }
+  }
+
   ComboAddress remote;
-  ClientState* cs;
+  ClientState* cs{nullptr};
+  int fd{-1};
 };
 
 uint64_t g_maxTCPQueuedConnections{1000};
@@ -264,7 +290,7 @@ void* tcpClientThread(int pipefd)
     }
 
     g_tcpclientthreads->decrementQueuedCount();
-    ci=*citmp;
+    ci=std::move(*citmp);
     delete citmp;
 
     uint16_t qlen, rlen;
@@ -408,7 +434,7 @@ void* tcpClientThread(int pipefd)
         }
 
         if (dq.useECS && ((ds && ds->useECS) || (!ds && serverPool->getECS()))) {
-          if (!handleEDNSClientSubnet(dq, &(ednsAdded), &(ecsAdded))) {
+          if (!handleEDNSClientSubnet(dq, &(ednsAdded), &(ecsAdded), g_preserveTrailingData)) {
             vinfolog("Dropping query from %s because we couldn't insert the ECS value", ci.remote.toStringWithPort());
             goto drop;
           }
@@ -416,11 +442,13 @@ void* tcpClientThread(int pipefd)
 
         uint32_t cacheKey = 0;
         boost::optional<Netmask> subnet;
+        bool dnssecOK = false;
         if (packetCache && !dq.skipCache) {
           char cachedResponse[4096];
           uint16_t cachedResponseSize = sizeof cachedResponse;
           uint32_t allowExpired = ds ? 0 : g_staleCacheEntriesTTL;
-          if (packetCache->get(dq, (uint16_t) consumed, dq.dh->id, cachedResponse, &cachedResponseSize, &cacheKey, subnet, allowExpired)) {
+          dnssecOK = (getEDNSZ(dq) & EDNS_HEADER_FLAG_DO);
+          if (packetCache->get(dq, (uint16_t) consumed, dq.dh->id, cachedResponse, &cachedResponseSize, &cacheKey, subnet, dnssecOK, allowExpired)) {
             DNSResponse dr(dq.qname, dq.qtype, dq.qclass, dq.consumed, dq.local, dq.remote, (dnsheader*) cachedResponse, sizeof cachedResponse, cachedResponseSize, true, &queryRealTime);
 #ifdef HAVE_PROTOBUF
             dr.uniqueId = dq.uniqueId;
@@ -476,7 +504,7 @@ void* tcpClientThread(int pipefd)
         }
 
         if (dq.addXPF && ds->xpfRRCode != 0) {
-          addXPF(dq, ds->xpfRRCode);
+          addXPF(dq, ds->xpfRRCode, g_preserveTrailingData);
         }
 
 	int dsock = -1;
@@ -604,7 +632,7 @@ void* tcpClientThread(int pipefd)
         }
 
 	if (packetCache && !dq.skipCache) {
-	  packetCache->insert(cacheKey, subnet, origFlags, qname, qtype, qclass, response, responseLen, true, dh->rcode, dq.tempFailureTTL);
+	  packetCache->insert(cacheKey, subnet, origFlags, dnssecOK, qname, qtype, qclass, response, responseLen, true, dh->rcode, dq.tempFailureTTL);
 	}
 
 #ifdef HAVE_DNSCRYPT
@@ -648,10 +676,6 @@ void* tcpClientThread(int pipefd)
   drop:;
 
     vinfolog("Closing TCP client connection with %s", ci.remote.toStringWithPort());
-    if (ci.fd >= 0) {
-      close(ci.fd);
-    }
-    ci.fd = -1;
 
     if (ds && outstanding) {
       outstanding = false;
@@ -683,13 +707,12 @@ void* tcpAcceptorThread(void* p)
   auto acl = g_ACL.getLocal();
   for(;;) {
     bool queuedCounterIncremented = false;
-    ConnectionInfo* ci = nullptr;
+    std::unique_ptr<ConnectionInfo> ci;
     tcpClientCountIncremented = false;
     try {
       socklen_t remlen = remote.getSocklen();
-      ci = new ConnectionInfo;
+      ci = std::unique_ptr<ConnectionInfo>(new ConnectionInfo);
       ci->cs = cs;
-      ci->fd = -1;
 #ifdef HAVE_ACCEPT4
       ci->fd = accept4(cs->tcpFD, (struct sockaddr*)&remote, &remlen, SOCK_NONBLOCK);
 #else
@@ -701,26 +724,17 @@ void* tcpAcceptorThread(void* p)
 
       if(!acl->match(remote)) {
 	g_stats.aclDrops++;
-	close(ci->fd);
-	delete ci;
-	ci=nullptr;
 	vinfolog("Dropped TCP connection from %s because of ACL", remote.toStringWithPort());
 	continue;
       }
 
 #ifndef HAVE_ACCEPT4
       if (!setNonBlocking(ci->fd)) {
-        close(ci->fd);
-        delete ci;
-        ci=nullptr;
         continue;
       }
 #endif
       setTCPNoDelay(ci->fd);  // disable NAGLE
       if(g_maxTCPQueuedConnections > 0 && g_tcpclientthreads->getQueuedCount() >= g_maxTCPQueuedConnections) {
-        close(ci->fd);
-        delete ci;
-        ci=nullptr;
         vinfolog("Dropping TCP connection from %s because we have too many queued already", remote.toStringWithPort());
         continue;
       }
@@ -729,9 +743,6 @@ void* tcpAcceptorThread(void* p)
         std::lock_guard<std::mutex> lock(tcpClientsCountMutex);
 
         if (tcpClientsCount[remote] >= g_maxTCPConnectionsPerClient) {
-          close(ci->fd);
-          delete ci;
-          ci=nullptr;
           vinfolog("Dropping TCP connection from %s because we have too many from this client already", remote.toStringWithPort());
           continue;
         }
@@ -745,14 +756,19 @@ void* tcpAcceptorThread(void* p)
       int pipe = g_tcpclientthreads->getThread();
       if (pipe >= 0) {
         queuedCounterIncremented = true;
-        writen2WithTimeout(pipe, &ci, sizeof(ci), 0);
+        auto tmp = ci.release();
+        try {
+          writen2WithTimeout(pipe, &tmp, sizeof(tmp), 0);
+        }
+        catch(...) {
+          delete tmp;
+          tmp = nullptr;
+          throw;
+        }
       }
       else {
         g_tcpclientthreads->decrementQueuedCount();
         queuedCounterIncremented = false;
-        close(ci->fd);
-        delete ci;
-        ci=nullptr;
         if(tcpClientCountIncremented) {
           decrementTCPClientCount(remote);
         }
@@ -760,13 +776,9 @@ void* tcpAcceptorThread(void* p)
     }
     catch(std::exception& e) {
       errlog("While reading a TCP question: %s", e.what());
-      if(ci && ci->fd >= 0) 
-	close(ci->fd);
       if(tcpClientCountIncremented) {
         decrementTCPClientCount(remote);
       }
-      delete ci;
-      ci = nullptr;
       if (queuedCounterIncremented) {
         g_tcpclientthreads->decrementQueuedCount();
       }
@@ -775,31 +787,4 @@ void* tcpAcceptorThread(void* p)
   }
 
   return 0;
-}
-
-bool getMsgLen32(int fd, uint32_t* len)
-try
-{
-  uint32_t raw;
-  size_t ret = readn2(fd, &raw, sizeof raw);
-  if(ret != sizeof raw)
-    return false;
-  *len = ntohl(raw);
-  if(*len > 10000000) // arbitrary 10MB limit
-    return false;
-  return true;
-}
-catch(...) {
-   return false;
-}
-
-bool putMsgLen32(int fd, uint32_t len)
-try
-{
-  uint32_t raw = htonl(len);
-  size_t ret = writen2(fd, &raw, sizeof raw);
-  return ret==sizeof raw;
-}
-catch(...) {
-  return false;
 }

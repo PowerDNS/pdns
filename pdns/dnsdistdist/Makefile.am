@@ -44,7 +44,8 @@ AM_CPPFLAGS += $(GNUTLS_CFLAGS)
 endif
 endif
 
-EXTRA_DIST=dnslabeltext.rl \
+EXTRA_DIST=COPYING \
+	   dnslabeltext.rl \
 	   dnsdistconf.lua \
 	   dnsmessage.proto \
 	   dnstap.proto \
@@ -106,9 +107,11 @@ dnsdist_SOURCES = \
 	dnsdist-protobuf.cc dnsdist-protobuf.hh \
 	dnsdist-rings.cc dnsdist-rings.hh \
 	dnsdist-rules.hh \
+	dnsdist-secpoll.cc dnsdist-secpoll.hh \
 	dnsdist-snmp.cc dnsdist-snmp.hh \
 	dnsdist-tcp.cc \
 	dnsdist-web.cc \
+	dnsdist-xpf.cc dnsdist-xpf.hh \
 	dnslabeltext.cc \
 	dnsname.cc dnsname.hh \
 	dnsparser.hh dnsparser.cc \
@@ -219,6 +222,7 @@ testrunner_SOURCES = \
 	test-delaypipe_hh.cc \
 	test-dnscrypt_cc.cc \
 	test-dnsdist_cc.cc \
+	test-dnsdistdynblocks_hh.cc \
 	test-dnsdistpacketcache_cc.cc \
 	test-dnsdistrings_cc.cc \
 	test-dnsdistrules_cc.cc \
@@ -228,6 +232,7 @@ testrunner_SOURCES = \
 	dnsdist.hh \
 	dnsdist-cache.cc dnsdist-cache.hh \
 	dnsdist-ecs.cc dnsdist-ecs.hh \
+	dnsdist-xpf.cc dnsdist-xpf.hh \
 	dnscrypt.cc dnscrypt.hh \
 	dnslabeltext.cc \
 	dnsname.cc dnsname.hh \

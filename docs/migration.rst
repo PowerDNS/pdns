@@ -131,10 +131,10 @@ The :doc:`pdnsutil <manpages/pdnsutil.1>` tool has a
 first backend that is capable of hosting it.
 
 To import, configure the backend and run
-``pdnsutil load-zone example.com /tmp/example.com.com.zone`` to import
+``pdnsutil load-zone example.com /tmp/example.com.zone`` to import
 the ``example.com`` domain from the ``/tmp/example.com.zone`` file. The
 zone is imported atomically (i.e. it is fully imported, or not) and any
-existing records for that zone are overwritten.
+existing records for that zone are overwritten. This include the SOA record too.
 
 .. _b2b-migrate:
 

@@ -3,6 +3,24 @@ Changelogs for 4.0.x
 
 This page has all the changelogs for the PowerDNS Recursor 4.0 release train.
 
+PowerDNS Recursor 4.0.9
+-----------------------
+
+Released 6th of November 2018
+
+This release fixes the following security advisories:
+
+- PowerDNS Security Advisory :doc:`2018-04 <../security-advisories/powerdns-advisory-2018-04>`: Crafted answer can cause a denial of service (CVE-2018-10851)
+- PowerDNS Security Advisory :doc:`2018-06 <../security-advisories/powerdns-advisory-2018-06>`: Packet cache pollution via crafted query (CVE-2018-14626)
+- PowerDNS Security Advisory :doc:`2018-07 <../security-advisories/powerdns-advisory-2018-07>`: Crafted query for meta-types can cause a denial of service (CVE-2018-14644)
+
+Bug fixes
+^^^^^^^^^
+
+- `#7152 <https://github.com/PowerDNS/pdns/pull/7152>`__: Crafted answer can cause a denial of service (CVE-2018-10851)
+- `#7152 <https://github.com/PowerDNS/pdns/pull/7152>`__: Packet cache pollution via crafted query (CVE-2018-14626)
+- `#7152 <https://github.com/PowerDNS/pdns/pull/7152>`__: Crafted query for meta-types can cause a denial of service (CVE-2018-14644)
+
 PowerDNS Recursor 4.0.8
 -----------------------
 

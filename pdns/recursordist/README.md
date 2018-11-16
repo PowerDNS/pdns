@@ -39,7 +39,7 @@ This repository contains the sources for the PowerDNS Recursor, the PowerDNS
 Authoritative Server, and dnsdist (a powerful DNS loadbalancer). The sources for
 the recursor are located in the `pdns/recursordist` subdirectory of the repository.
 
-To compile from a git checkout, install pandoc, ragel, automake, autoconf and curl.
+To compile from a git checkout, install ragel, automake, autoconf and curl.
 Then run
 
 ```sh
@@ -81,7 +81,7 @@ Documentation
 -------------
 After compiling, run `pdns\_recursor --config` to view the configuration options
 and a short description. The full documentation is online at
-https://doc.powerdns.com/md/recursor/
+https://doc.powerdns.com/recursor/
 
 Reporting bugs
 --------------

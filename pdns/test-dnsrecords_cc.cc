@@ -378,4 +378,84 @@ BOOST_AUTO_TEST_CASE(test_opt_record_out) {
   BOOST_CHECK_EQUAL(makeHexDump(std::string(pak.begin(),pak.end())), makeHexDump(packet));
 }
 
+// special record test, because EUI are odd
+BOOST_AUTO_TEST_CASE(test_eui_records_in) {
+
+  auto validEUI48=DNSRecordContent::mastermake(QType::EUI48, QClass::IN, "00-00-5e-00-53-2a");
+
+  BOOST_CHECK_THROW(auto invalidEUI48=DNSRecordContent::mastermake(QType::EUI48, QClass::IN, "00-00-5e-00-53-"), MOADNSException);
+
+  auto validEUI64=DNSRecordContent::mastermake(QType::EUI64, QClass::IN, "00-00-5e-ef-10-00-00-2a");
+
+  BOOST_CHECK_THROW(auto invalidEUI64=DNSRecordContent::mastermake(QType::EUI64, QClass::IN, "00-00-5e-ef-10-00-00-"), MOADNSException);
+}
+
+// special record test, because LOC is weird
+BOOST_AUTO_TEST_CASE(test_loc_records_in) {
+
+  auto validLOC=DNSRecordContent::mastermake(QType::LOC, QClass::IN, "52 22 23.000 N 4 53 32.000 E -2.00m 0.00m 10000m 10m");
+
+  BOOST_CHECK_THROW(auto invalidLOC=DNSRecordContent::mastermake(QType::LOC, QClass::IN, "52 22 23.000 N"), MOADNSException);
+
+  vector<uint8_t> packet;
+  DNSPacketWriter writer(packet, DNSName("powerdns.com."), QType::LOC, QClass::IN, 0);
+  writer.getHeader()->qr = 1;
+  writer.startRecord(DNSName("powerdns.com."), QType::LOC, 100, QClass::IN, DNSResourceRecord::ANSWER);
+  validLOC->toPacket(writer);
+  writer.commit();
+
+  MOADNSParser parser(false, reinterpret_cast<const char*>(packet.data()), packet.size());
+
+  BOOST_CHECK_THROW(MOADNSParser failParser(false, reinterpret_cast<const char*>(packet.data()), packet.size()-1), MOADNSException);
+}
+
+// special record test, because NSEC records are odd
+BOOST_AUTO_TEST_CASE(test_nsec_records_in) {
+
+  {
+    auto validNSEC=DNSRecordContent::mastermake(QType::NSEC, QClass::IN, "host.example.com. A MX RRSIG NSEC TYPE1234");
+
+    vector<uint8_t> packet;
+    DNSPacketWriter writer(packet, DNSName("powerdns.com."), QType::NSEC, QClass::IN, 0);
+    writer.getHeader()->qr = 1;
+    writer.startRecord(DNSName("powerdns.com."), QType::NSEC, 100, QClass::IN, DNSResourceRecord::ANSWER);
+    validNSEC->toPacket(writer);
+    writer.commit();
+
+    MOADNSParser parser(false, reinterpret_cast<const char*>(packet.data()), packet.size());
+
+    BOOST_CHECK_THROW(MOADNSParser failParser(false, reinterpret_cast<const char*>(packet.data()), packet.size()-1), MOADNSException);
+  }
+
+  {
+    auto validNSEC3=DNSRecordContent::mastermake(QType::NSEC3, QClass::IN, "1 1 12 aabbccdd 2vptu5timamqttgl4luu9kg21e0aor3s A RRSIG");
+
+    vector<uint8_t> packet;
+    DNSPacketWriter writer(packet, DNSName("powerdns.com."), QType::NSEC3, QClass::IN, 0);
+    writer.getHeader()->qr = 1;
+    writer.startRecord(DNSName("powerdns.com."), QType::NSEC3, 100, QClass::IN, DNSResourceRecord::ANSWER);
+    validNSEC3->toPacket(writer);
+    writer.commit();
+
+    MOADNSParser parser(false, reinterpret_cast<const char*>(packet.data()), packet.size());
+
+    BOOST_CHECK_THROW(MOADNSParser failParser(false, reinterpret_cast<const char*>(packet.data()), packet.size()-1), MOADNSException);
+  }
+
+  {
+    auto validNSEC3PARAM=DNSRecordContent::mastermake(QType::NSEC3PARAM, QClass::IN, "1 0 12 aabbccdd");
+
+    vector<uint8_t> packet;
+    DNSPacketWriter writer(packet, DNSName("powerdns.com."), QType::NSEC3PARAM, QClass::IN, 0);
+    writer.getHeader()->qr = 1;
+    writer.startRecord(DNSName("powerdns.com."), QType::NSEC3PARAM, 100, QClass::IN, DNSResourceRecord::ANSWER);
+    validNSEC3PARAM->toPacket(writer);
+    writer.commit();
+
+    MOADNSParser parser(false, reinterpret_cast<const char*>(packet.data()), packet.size());
+
+    BOOST_CHECK_THROW(MOADNSParser failParser(false, reinterpret_cast<const char*>(packet.data()), packet.size()-1), MOADNSException);
+  }
+}
+
 BOOST_AUTO_TEST_SUITE_END()

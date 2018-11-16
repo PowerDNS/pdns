@@ -92,6 +92,8 @@ Listen Sockets
   .. versionchanged:: 1.3.1
     ``certFile(s)`` and ``keyFile(s)`` parameters accept a list of files.
     ``sessionTickets`` option added.
+  .. versionchanged:: 1.3.3
+    ``numberOfStoredSessions`` option added.
 
   Listen on the specified address and TCP port for incoming DNS over TLS connections, presenting the specified X.509 certificate.
 
@@ -113,6 +115,7 @@ Listen Sockets
   * ``ticketKeyFile``: str - The path to a file from where TLS tickets keys should be loaded, to support RFC 5077. These keys should be rotated often and never written to persistent storage to preserve forward secrecy. The default is to generate a random key. The OpenSSL provider supports several tickets keys to be able to decrypt existing sessions after the rotation, while the GnuTLS provider only supports one key.
   * ``ticketsKeysRotationDelay``: int - Set the delay before the TLS tickets key is rotated, in seconds. Default is 43200 (12h).
   * ``sessionTickets``: bool - Whether session resumption via session tickets is enabled. Default is true, meaning tickets are enabled.
+  * ``numberOfStoredSessions``: int - The maximum number of sessions kept in memory at the same time. At this time this is only supported by the OpenSSL provider, as stored sessions are not supported with the GnuTLS one. Default is 20480. Setting this value to 0 disables stored session entirely.
 
 .. function:: setLocal(address[, options])
 
@@ -200,10 +203,18 @@ Control Socket, Console and Webserver
 
   Test the crypto code, will report errors when something is not ok.
 
-Webserver
-~~~~~~~~~
+.. function:: setConsoleOutputMaxMsgSize(size)
 
-.. function:: webServer(listen_address, password[, apikey[, custom_headers]])
+  .. versionadded:: 1.3.3
+
+  Set the maximum size in bytes of a single console message, default set to 10 MB.
+
+  :param int size: The new maximum size.
+
+Webserver configuration
+~~~~~~~~~~~~~~~~~~~~~~~
+
+.. function:: webserver(listen_address, password[, apikey[, custom_headers]])
 
   Launch the :doc:`../guides/webserver` with statistics and the API.
 
@@ -221,6 +232,20 @@ Webserver
   :param bool allow: Set to true to allow modification through the API
   :param str dir: A valid directory where the configuration files will be written by the API.
 
+.. function:: setWebserverConfig(options)
+
+  .. versionadded:: 1.3.3
+
+  Setup webserver configuration. See :func:`webserver`.
+
+  :param table options: A table with key: value pairs with webserver options.
+
+  Options:
+
+  * ``password=newPassword``: string - Changes the API password
+  * ``apikey=newKey``: string - Changes the API Key (set to an empty string do disable it)
+  * ``custom_headers={[str]=str,...}``: map of string - Allows setting custom headers and removing the defaults.
+                 
 Access Control Lists
 ~~~~~~~~~~~~~~~~~~~~
 
@@ -296,6 +321,7 @@ Servers
 
     newServer({
       address="IP:PORT",     -- IP and PORT of the backend server (mandatory)
+      id=STRING,             -- Use a pre-defined UUID instead of a random one
       qps=NUM,               -- Limit the number of queries per second to NUM, when using the `firstAvailable` policy
       order=NUM,             -- The order of this server, used by the `leastOustanding` and `firstAvailable` policies
       weight=NUM,            -- The weight of this server, used by the `wrandom`, `whashed` and `chashed` policies, default: 1
@@ -661,12 +687,16 @@ Status, Statistics and More
 
   Show a plot of the response time latency distribution
 
-.. function:: showServers()
+.. function:: showServers([options])
+
+  .. versionchanged:: 1.3.4
+    ``options`` optional parameter added
 
   This function shows all backend servers currently configured and some statistics.
   These statics have the following fields:
 
   * ``#`` - The number of the server, can be used as the argument for :func:`getServer`
+  * ``UUID`` - The UUID of the backend. Can be set with the ``id`` option of :func:`newServer`
   * ``Address`` - The IP address and port of the server
   * ``State`` - The current state of the server
   * ``Qps`` - Current number of queries per second
@@ -678,6 +708,12 @@ Status, Statistics and More
   * ``Drate`` - Number of queries dropped per second by this server
   * ``Lat`` - The latency of this server in milliseconds
   * ``Pools`` - The pools this server belongs to
+
+  :param table options: A table with key: value pairs with display options.
+
+  Options:
+
+  * ``showUUIDs=false``: bool - Whether to display the UUIDs, defaults to false.
 
 .. function:: showTCPStats()
 
@@ -761,8 +797,11 @@ Dynamic Blocks
 
 .. function:: setDynBlocksAction(action)
 
+  .. versionchanged:: 1.3.3
+    ``DNSAction.NXDomain`` action added.
+
   Set which action is performed when a query is blocked.
-  Only DNSAction.Drop (the default), DNSAction.NoOp, DNSAction.Refused and DNSAction.Truncate are supported.
+  Only DNSAction.Drop (the default), DNSAction.NoOp, DNSAction.NXDomain, DNSAction.Refused and DNSAction.Truncate are supported.
 
 .. _exceedfuncs:
 
@@ -824,7 +863,10 @@ faster than the existing rules.
 
   Represents a group of dynamic block rules.
 
-  .. method:: DynBlockRulesGroup:setQueryRate(rate, seconds, reason, blockingTime [, action])
+  .. method:: DynBlockRulesGroup:setQueryRate(rate, seconds, reason, blockingTime [, action [, warningRate]])
+
+    .. versionchanged:: 1.3.3
+        ``warningRate`` parameter added.
 
     Adds a query rate-limiting rule, equivalent to:
     ```
@@ -836,8 +878,12 @@ faster than the existing rules.
     :param string reason: The message to show next to the blocks
     :param int blockingTime: The number of seconds this block to expire
     :param int action: The action to take when the dynamic block matches, see :ref:`here <DNSAction>`. (default to the one set with :func:`setDynBlocksAction`)
+    :param int warningRate: If set to a non-zero value, the rate above which a warning message will be issued and a no-op block inserted
 
-  .. method:: DynBlockRulesGroup:setRCodeRate(rcode, rate, seconds, reason, blockingTime [, action])
+  .. method:: DynBlockRulesGroup:setRCodeRate(rcode, rate, seconds, reason, blockingTime [, action [, warningRate]])
+
+    .. versionchanged:: 1.3.3
+        ``warningRate`` parameter added.
 
     Adds a rate-limiting rule for responses of code ``rcode``, equivalent to:
     ```
@@ -850,8 +896,12 @@ faster than the existing rules.
     :param string reason: The message to show next to the blocks
     :param int blockingTime: The number of seconds this block to expire
     :param int action: The action to take when the dynamic block matches, see :ref:`here <DNSAction>`. (default to the one set with :func:`setDynBlocksAction`)
+    :param int warningRate: If set to a non-zero value, the rate above which a warning message will be issued and a no-op block inserted
 
-  .. method:: DynBlockRulesGroup:setQTypeRate(qtype, rate, seconds, reason, blockingTime [, action])
+  .. method:: DynBlockRulesGroup:setQTypeRate(qtype, rate, seconds, reason, blockingTime [, action [, warningRate]])
+
+    .. versionchanged:: 1.3.3
+        ``warningRate`` parameter added.
 
     Adds a rate-limiting rule for queries of type ``qtype``, equivalent to:
     ```
@@ -864,8 +914,12 @@ faster than the existing rules.
     :param string reason: The message to show next to the blocks
     :param int blockingTime: The number of seconds this block to expire
     :param int action: The action to take when the dynamic block matches, see :ref:`here <DNSAction>`. (default to the one set with :func:`setDynBlocksAction`)
+    :param int warningRate: If set to a non-zero value, the rate above which a warning message will be issued and a no-op block inserted
 
-  .. method:: DynBlockRulesGroup:setRespByteRate(rate, seconds, reason, blockingTime [, action])
+  .. method:: DynBlockRulesGroup:setResponseByteRate(rate, seconds, reason, blockingTime [, action [, warningRate]])
+
+    .. versionchanged:: 1.3.3
+        ``warningRate`` parameter added.
 
     Adds a bandwidth rate-limiting rule for responses, equivalent to:
     ```
@@ -877,6 +931,7 @@ faster than the existing rules.
     :param string reason: The message to show next to the blocks
     :param int blockingTime: The number of seconds this block to expire
     :param int action: The action to take when the dynamic block matches, see :ref:`here <DNSAction>`. (default to the one set with :func:`setDynBlocksAction`)
+    :param int warningRate: If set to a non-zero value, the rate above which a warning message will be issued and a no-op block inserted
 
   .. method:: DynBlockRulesGroup:apply()
 
@@ -976,3 +1031,35 @@ overriden using :func:`setPayloadSizeOnSelfGeneratedAnswers`.
   :rfc:`RFC 6891 <6891#section-6.2.5>`, values lower than 512 will be treated as equal to 512.
 
   :param int payloadSize: The responder's maximum UDP payload size, in bytes. Default is 1500.
+
+Security Polling
+~~~~~~~~~~~~~~~~
+
+PowerDNS products can poll the security status of their respective versions. This polling, naturally,
+happens over DNS. If the result is that a given version has a security problem, the software will
+report this at level ‘Error’ during startup, and repeatedly during operations, every
+:func:`setSecurityPollInterval` seconds.
+
+By default, security polling happens on the domain ‘secpoll.powerdns.com’, but this can be changed with
+the :func:`setSecurityPollSuffix` function. If this setting is made empty, no polling will take place.
+Organizations wanting to host their own security zones can do so by changing this setting to a domain name
+under their control.
+
+To enable distributors of PowerDNS to signal that they have backported versions, the PACKAGEVERSION
+compilation-time macro can be used to set a distributor suffix.
+
+.. function:: setSecurityPollInterval(interval)
+
+  .. versionadded:: 1.3.3
+
+  Set the interval, in seconds, between two security pollings.
+
+  :param int interval: The interval, in seconds, between two pollings. Default is 3600.
+
+.. function:: setSecurityPollSuffix(suffix)
+
+  .. versionadded:: 1.3.3
+
+  Domain name from which to query security update notifications. Setting this to an empty string disables secpoll.
+
+  :param string suffix: The suffix to use, default is 'secpoll.powerdns.com.'.

@@ -43,6 +43,10 @@ case "$1" in
       ucf_delete_unchanged "/etc/powerdns/pdns.d/pdns.simplebind.conf"
       backup_conffile "/etc/powerdns/pdns.d/pdns.simplebind.conf"
     fi
+
+    # Remove files no longer in the package (and unused)
+    rm -f /etc/resolvconf/update.d/pdns
+    rm -f /etc/insserv.d/pdns-server
   ;;
 esac
 

@@ -4,6 +4,7 @@ RUN apk add --no-cache gcc g++ make tar autoconf automake protobuf-dev lua-dev \
                        libtool file boost-dev curl openssl-dev ragel py-virtualenv \
                        flex bison git
 
+ADD COPYING NOTICE /pdns-recursor/
 @EXEC sdist_dirs=(build-aux m4 pdns ext docs)
 @EXEC for d in ${sdist_dirs[@]} ; do echo "COPY $d/ /pdns-recursor/$d/" ; done
 ADD builder/helpers/set-configure-ac-version.sh /pdns-recursor/builder/helpers/

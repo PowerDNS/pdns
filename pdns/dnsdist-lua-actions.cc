@@ -176,7 +176,7 @@ DNSAction::Action TeeAction::operator()(DNSQuestion* dq, string* ruleresult) con
       string newECSOption;
       generateECSOption(dq->ecsSet ? dq->ecs.getNetwork() : *dq->remote, newECSOption, dq->ecsSet ? dq->ecs.getBits() :  dq->ecsPrefixLength);
 
-      if (!handleEDNSClientSubnet(const_cast<char*>(query.c_str()), query.capacity(), dq->qname->wirelength(), &len, &ednsAdded, &ecsAdded, dq->ecsOverride, newECSOption)) {
+      if (!handleEDNSClientSubnet(const_cast<char*>(query.c_str()), query.capacity(), dq->qname->wirelength(), &len, &ednsAdded, &ecsAdded, dq->ecsOverride, newECSOption, g_preserveTrailingData)) {
         return DNSAction::Action::None;
       }
 
@@ -1004,11 +1004,12 @@ static void addAction(GlobalStateHolder<vector<T> > *someRulActions, luadnsrule_
   setLuaSideEffect();
 
   boost::uuids::uuid uuid;
-  parseRuleParams(params, uuid);
+  uint64_t creationOrder;
+  parseRuleParams(params, uuid, creationOrder);
 
   auto rule=makeRule(var);
-  someRulActions->modify([rule, action, uuid](vector<T>& rulactions){
-      rulactions.push_back({rule, action, uuid});
+  someRulActions->modify([rule, action, uuid, creationOrder](vector<T>& rulactions){
+      rulactions.push_back({rule, action, uuid, creationOrder});
     });
 }
 
@@ -1016,10 +1017,11 @@ void setupLuaActions()
 {
   g_lua.writeFunction("newRuleAction", [](luadnsrule_t dnsrule, std::shared_ptr<DNSAction> action, boost::optional<luaruleparams_t> params) {
       boost::uuids::uuid uuid;
-      parseRuleParams(params, uuid);
+      uint64_t creationOrder;
+      parseRuleParams(params, uuid, creationOrder);
 
       auto rule=makeRule(dnsrule);
-      DNSDistRuleAction ra({rule, action, uuid});
+      DNSDistRuleAction ra({rule, action, uuid, creationOrder});
       return std::make_shared<DNSDistRuleAction>(ra);
     });
 

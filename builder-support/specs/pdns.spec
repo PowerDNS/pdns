@@ -30,11 +30,20 @@ BuildRequires: protobuf-devel
 BuildRequires: protobuf-compiler
 BuildRequires: p11-kit-devel
 BuildRequires: libcurl-devel
+BuildRequires: boost-devel
+%else
+BuildRequires: boost148-devel
+BuildRequires: boost148-program-options
 %endif
 
 Requires(pre): shadow-utils
+%ifarch aarch64
+BuildRequires: lua-devel
+%define lua_implementation lua
+%else
 BuildRequires: luajit-devel
-BuildRequires: boost-devel
+%define lua_implementation luajit
+%endif
 BuildRequires: libsodium-devel
 BuildRequires: bison
 BuildRequires: openssl-devel
@@ -199,7 +208,7 @@ export CPPFLAGS="-DLDAP_DEPRECATED"
   --disable-dependency-tracking \
   --disable-silent-rules \
   --with-modules='' \
-  --with-lua=luajit \
+  --with-lua=%{lua_implementation} \
   --with-dynmodules='%{backends} random' \
   --enable-tools \
   --enable-libsodium \
@@ -211,7 +220,9 @@ export CPPFLAGS="-DLDAP_DEPRECATED"
   --enable-ixfrdist
 %else
   --disable-lua-records \
-  --without-protobuf
+  --without-protobuf \
+  --with-boost=/usr/include/boost148/ LDFLAGS=-L/usr/lib64/boost148 \
+  CXXFLAGS=-std=gnu++11
 %endif
 
 make %{?_smp_mflags}
@@ -265,7 +276,7 @@ exit 0
 %if 0%{?rhel} >= 7
 %systemd_preun pdns.service
 %else
-if [ \$1 -eq 0 ]; then
+if [ $1 -eq 0 ]; then
   /sbin/service pdns stop >/dev/null 2>&1 || :
   /sbin/chkconfig --del pdns
 fi
@@ -275,7 +286,7 @@ fi
 %if 0%{?rhel} >= 7
 %systemd_postun_with_restart pdns.service
 %else
-if [ \$1 -ge 1 ]; then
+if [ $1 -ge 1 ]; then
   /sbin/service pdns condrestart >/dev/null 2>&1 || :
 fi
 %endif
@@ -335,15 +346,15 @@ fi
 %{_mandir}/man1/nsec3dig.1.gz
 %{_mandir}/man1/saxfr.1.gz
 %{_mandir}/man1/sdig.1.gz
-%if 0%{?rhel} >= 7
 %{_bindir}/dnsbulktest
-%{_bindir}/dnspcap2protobuf
 %{_bindir}/dnspcap2calidns
 %{_bindir}/dnstcpbench
 %{_mandir}/man1/dnsbulktest.1.gz
-%{_mandir}/man1/dnspcap2protobuf.1.gz
 %{_mandir}/man1/dnspcap2calidns.1.gz
 %{_mandir}/man1/dnstcpbench.1.gz
+%if 0%{?rhel} >= 7
+%{_bindir}/dnspcap2protobuf
+%{_mandir}/man1/dnspcap2protobuf.1.gz
 %endif
 
 %files backend-mysql

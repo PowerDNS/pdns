@@ -30,7 +30,7 @@
 struct ProtobufExportConfig
 {
   std::set<uint16_t> exportTypes = { QType::A, QType::AAAA, QType::CNAME };
-  ComboAddress server;
+  std::vector<ComboAddress> servers;
   uint64_t maxQueuedEntries{100};
   uint16_t timeout{2};
   uint16_t reconnectWaitTime{1};
@@ -41,12 +41,18 @@ struct ProtobufExportConfig
   bool taggedOnly{false};
 };
 
+struct TrustAnchorFileInfo {
+  uint32_t interval{24};
+  std::string fname;
+};
+
 class LuaConfigItems 
 {
 public:
   LuaConfigItems();
   SortList sortlist;
   DNSFilterEngine dfe;
+  TrustAnchorFileInfo trustAnchorFileInfo; // Used to update the Trust Anchors from file periodically
   map<DNSName,dsmap_t> dsAnchors;
   map<DNSName,std::string> negAnchors;
   ProtobufExportConfig protobufExportConfig;

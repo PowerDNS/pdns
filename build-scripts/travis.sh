@@ -384,6 +384,10 @@ install_dnsdist() {
   run "sudo chmod 0755 /var/agentx"
 }
 
+check_for_dangling_symlinks() {
+  run '! find -L . -name missing-sources -prune -o ! -name pubsuffix.cc -type l | grep .'
+}
+
 build_auth() {
   run "autoreconf -vi"
   run "./configure \
@@ -422,6 +426,9 @@ build_ixfrdist() {
 
 build_recursor() {
   export PDNS_RECURSOR_DIR=$HOME/pdns_recursor
+  run "cd pdns/recursordist"
+  check_for_dangling_symlinks
+  run "cd ../.."
   # distribution build
   run "./build-scripts/dist-recursor"
   run "cd pdns/recursordist"
@@ -442,6 +449,9 @@ build_recursor() {
 }
 
 build_dnsdist(){
+  run "cd pdns/dnsdistdist"
+  check_for_dangling_symlinks
+  run "cd ../.."
   run "./build-scripts/dist-dnsdist"
   run "cd pdns/dnsdistdist"
   run "tar xf dnsdist*.tar.bz2"
@@ -585,7 +595,7 @@ test_auth() {
 
   ### Lua rec tests ###
   run "cd regression-tests.auth-py"
-  run "./runtests"
+  run "./runtests -v || (cat pdns.log; false)"
   run "cd .."
 
   run "rm -f regression-tests/zones/*-slave.*" #FIXME
@@ -633,7 +643,6 @@ run "sudo apt-get -qq --no-install-recommends install \
   libluajit-5.1-dev \
   libedit-dev \
   libprotobuf-dev \
-  pandoc\
   protobuf-compiler"
 
 run "cd .."

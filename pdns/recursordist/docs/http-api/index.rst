@@ -62,6 +62,5 @@ All API endpoints for the PowerDNS Recursor are documented here:
   endpoint-zones
   endpoint-trace
   endpoint-cache
-  ../common/api/endpoint-logging.rst
   endpoint-failure
   endpoint-rpz-stats

@@ -36,25 +36,27 @@
 using namespace nod;
 using namespace boost::filesystem;
 
-std::mutex NODDB::d_cachedir_mutex;
+// PersistentSBF Implementation 
+
+std::mutex PersistentSBF::d_cachedir_mutex;
 
 // This looks for an old (per-thread) snapshot. The first one it finds,
 // it restores from that. Then immediately snapshots with the current thread id,// before removing the old snapshot
 // In this way, we can have per-thread SBFs, but still snapshot and restore.
 // The mutex has to be static because we can't have multiple (i.e. per-thread)
 // instances iterating and writing to the cache dir at the same time
-bool NODDB::init(bool ignore_pid) {
+bool PersistentSBF::init(bool ignore_pid) {
   if (d_init)
     return false;
 
-  std::lock_guard<std::mutex> lock(NODDB::d_cachedir_mutex);
+  std::lock_guard<std::mutex> lock(d_cachedir_mutex);
   if (d_cachedir.length()) {
     path p(d_cachedir);
     try {
       if (exists(p) && is_directory(p)) {
         path newest_file;
         std::time_t newest_time=time(nullptr);
-        Regex file_regex(".*\\." + bf_suffix + "$");
+        Regex file_regex(d_prefix + ".*\\." + bf_suffix + "$");
         for (directory_iterator i(p); i!=directory_iterator(); ++i) {
           if (is_regular_file(i->path()) &&
               file_regex.match(i->path().filename().string())) {
@@ -79,7 +81,7 @@ bool NODDB::init(bool ignore_pid) {
             d_sbf.restore(infile);
             infile.close();
             // now dump it out again with new thread id & process id
-            snapshotCurrent();
+            snapshotCurrent(std::this_thread::get_id());
             // Remove the old file we just read to stop proliferation
             remove(newest_file);
           }
@@ -98,18 +100,7 @@ bool NODDB::init(bool ignore_pid) {
   return true;
 }
 
-void NODDB::housekeepingThread()
-{
-  setThreadName("pdns-r/NOD-hk");
-  for (;;) {
-    sleep(d_snapshot_interval);
-    {
-      snapshotCurrent();
-    }
-  }
-}
-
-void NODDB::setCacheDir(const std::string& cachedir)
+void PersistentSBF::setCacheDir(const std::string& cachedir)
 {
   if (!d_init) {
     path p(cachedir);
@@ -118,6 +109,59 @@ void NODDB::setCacheDir(const std::string& cachedir)
     else if (!is_directory(p))
       throw PDNSException("NODDB setCacheDir specified a file not a directory: " + cachedir);
     d_cachedir = cachedir;
+  }
+}
+
+// Dump the SBF to a file
+// To spend the least amount of time inside the mutex, we dump to an
+// intermediate stringstream, otherwise the lock would be waiting for
+// file IO to complete
+bool PersistentSBF::snapshotCurrent(std::thread::id tid)
+{
+  if (d_cachedir.length()) {
+    path p(d_cachedir);
+    path f(d_cachedir);
+    std::stringstream ss;
+    ss << d_prefix << "_" << tid;
+    f /= ss.str() + "_" + std::to_string(getpid()) + "." + bf_suffix;
+    if (exists(p) && is_directory(p)) {
+      try {
+        std::ofstream ofile;
+        std::stringstream ss;
+        ofile.open(f.string(), std::ios::out | std::ios::binary);
+        {
+          // only lock while dumping to a stringstream
+          std::lock_guard<std::mutex> lock(d_sbf_mutex);
+          d_sbf.dump(ss);
+        }
+        // Now write it out to the file
+        ofile << ss.str();
+
+        if (ofile.fail())
+          throw std::runtime_error("Failed to write to file:" + f.string());
+        return true;
+      }
+      catch (const std::runtime_error& e) {
+        g_log<<Logger::Warning<<"NODDB snapshot: Cannot write file: " << e.what() << endl;
+      }
+    }
+    else {
+      g_log<<Logger::Warning<<"NODDB snapshot: Cannot write file: " << f.string() << endl;
+    }
+  }
+  return false;
+}
+
+// NODDB Implementation
+
+void NODDB::housekeepingThread(std::thread::id tid)
+{
+  setThreadName("pdns-r/NOD-hk");
+  for (;;) {
+    sleep(d_snapshot_interval);
+    {
+      snapshotCurrent(tid);
+    }
   }
 }
 
@@ -132,9 +176,8 @@ bool NODDB::isNewDomain(const DNSName& dname)
   std::string dname_lc = dname.toDNSStringLC();
   // The only time this should block is when snapshotting from the
   // housekeeping thread
-  std::lock_guard<std::mutex> lock(NODDB::d_sbf_mutex);
   // the result is always the inverse of what is returned by the SBF
-  return !d_sbf.testAndAdd(dname_lc);
+  return !d_psbf.testAndAdd(dname_lc);
 }
 
 bool NODDB::isNewDomainWithParent(const std::string& domain, std::string& observed)
@@ -160,11 +203,8 @@ bool NODDB::isNewDomainWithParent(const DNSName& dname, std::string& observed)
 
 void NODDB::addDomain(const DNSName& dname)
 {
-  // The only time this should block is when snapshotting from the
-  // housekeeping thread
   std::string native_domain = dname.toDNSStringLC();
-  std::lock_guard<std::mutex> lock(NODDB::d_sbf_mutex);
-  d_sbf.add(native_domain);
+  d_psbf.add(native_domain);
 }
 
 void NODDB::addDomain(const std::string& domain)
@@ -173,42 +213,24 @@ void NODDB::addDomain(const std::string& domain)
   addDomain(dname);
 }
 
-// Dump the SBF to a file
-// To spend the least amount of time inside the mutex, we dump to an
-// intermediate stringstream, otherwise the lock would be waiting for
-// file IO to complete
-bool NODDB::snapshotCurrent()
+// UniqueResponseDB Implementation
+bool UniqueResponseDB::isUniqueResponse(const std::string& response)
 {
-  if (d_cachedir.length()) {
-    path p(d_cachedir);
-    path f(d_cachedir);
-    std::stringstream ss;
-    ss << std::this_thread::get_id();
-    f /= ss.str() + "_" + std::to_string(getpid()) + "." + bf_suffix;
-    if (exists(p) && is_directory(p)) {
-      try {
-        std::ofstream ofile;
-        std::stringstream ss;
-        ofile.open(f.string(), std::ios::out | std::ios::binary);
-        {
-          // only lock while dumping to a stringstream
-          std::lock_guard<std::mutex> lock(NODDB::d_sbf_mutex);
-          d_sbf.dump(ss);
-        }
-        // Now write it out to the file
-        ofile << ss.str();
+  return !d_psbf.testAndAdd(response);
+}
 
-        if (ofile.fail())
-          throw std::runtime_error("Failed to write to file:" + f.string());
-        return true;
-      }
-      catch (const std::runtime_error& e) {
-        g_log<<Logger::Warning<<"NODDB snapshot: Cannot write file: " << e.what() << endl;
-      }
-    }
-    else {
-      g_log<<Logger::Warning<<"NODDB snapshot: Cannot write file: " << f.string() << endl;
+void UniqueResponseDB::addResponse(const std::string& response)
+{
+  d_psbf.add(response);
+}
+
+void UniqueResponseDB::housekeepingThread(std::thread::id tid)
+{
+  setThreadName("pdns-r/UDR-hk");
+  for (;;) {
+    sleep(d_snapshot_interval);
+    {
+      snapshotCurrent(tid);
     }
   }
-  return false;
 }

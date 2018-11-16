@@ -53,14 +53,6 @@ public:
   {
     d_exiting = true;
   }
-  uint64_t getGeneration() const
-  {
-    return d_generation;
-  }
-  void setGeneration(uint64_t newGeneration)
-  {
-    d_generation = newGeneration;
-  }
 private:
   void busyReconnectLoop();
   bool reconnect();
@@ -71,7 +63,6 @@ private:
   std::condition_variable d_queueCond;
   ComboAddress d_remote;
   uint64_t d_maxQueuedEntries;
-  uint64_t d_generation{0};
   int d_socket{-1};
   uint16_t d_timeout;
   uint8_t d_reconnectWaitTime;

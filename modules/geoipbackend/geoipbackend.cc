@@ -108,8 +108,13 @@ void GeoIPBackend::initialize() {
   if (s_geoip_files.empty())
     g_log<<Logger::Warning<<"No GeoIP database files loaded!"<<endl;
 
-  if(!getArg("zones-file").empty())
-    config = YAML::LoadFile(getArg("zones-file"));
+  if(!getArg("zones-file").empty()) {
+    try {
+       config = YAML::LoadFile(getArg("zones-file"));
+    } catch (YAML::Exception &ex) {
+       throw PDNSException(string("Cannot read config file ") + ex.msg);
+    }
+  }
 
   for(YAML::Node domain :  config["domains"]) {
     GeoIPDomain dom;
@@ -316,7 +321,7 @@ bool GeoIPBackend::lookup_static(const GeoIPDomain &dom, const DNSName &search, 
       }
       if (qtype == QType::ANY || rr.qtype == qtype) {
         const string& content = format2str(rr.content, ip, v6, gl);
-        if (rr.qtype != QType::TXT && content.empty()) continue;
+        if (rr.qtype != QType::ENT && rr.qtype != QType::TXT && content.empty()) continue;
         d_result.push_back(rr);
         d_result.back().content = content;
         d_result.back().qname = qdomain;

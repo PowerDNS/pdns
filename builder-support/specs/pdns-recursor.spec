@@ -16,21 +16,28 @@ BuildRequires: boost148-devel
 BuildRequires: lua-devel
 %else
 BuildRequires: boost-devel
+%ifarch aarch64
+BuildRequires: lua-devel
+%define lua_implementation lua
+%else
 BuildRequires: luajit-devel
+%define lua_implementation luajit
+%endif
 BuildRequires: systemd
 BuildRequires: systemd-devel
 %endif
-
-# Note: The ifarch for luajit is removed becuae of EL6 not having luajit
 
 %ifarch ppc64 ppc64le
 BuildRequires: libatomic
 %endif
 
-BuildRequires: openssl-devel
-BuildRequires: net-snmp-devel
+%if 0%{?rhel} >= 7
 BuildRequires: protobuf-compiler
 BuildRequires: protobuf-devel
+%endif
+
+BuildRequires: openssl-devel
+BuildRequires: net-snmp-devel
 BuildRequires: libsodium-devel
 
 Requires(pre): shadow-utils
@@ -58,17 +65,18 @@ package if you need a dns cache for your network.
 %configure \
     --sysconfdir=%{_sysconfdir}/%{name} \
     --enable-libsodium \
-    --with-protobuf \
     --with-netsnmp \
     --disable-silent-rules \
     --disable-static \
     --enable-unit-tests \
 %if 0%{?rhel} == 6
+    --without-protobuf \
     --with-boost=/usr/include/boost148 LIBRARY_PATH=/usr/lib64/boost148
 
 make %{?_smp_mflags} LIBRARY_PATH=/usr/lib64/boost148
 %else
-    --with-lua=luajit \
+    --with-protobuf \
+    --with-lua=%{lua_implementation} \
     --enable-systemd --with-systemd=%{_unitdir}
 
 make %{?_smp_mflags}

@@ -413,31 +413,6 @@ paths:
             - $ref: '#/definitions/MapStatisticItem'
             - $ref: '#/definitions/RingStatisticItem'
 
-  '/servers/{server_id}/search-log':
-    get:
-      summary: 'Query the log, filtered by search_term.'
-      operationId: searchLog
-      tags:
-        - search
-      parameters:
-        - name: server_id
-          in: path
-          required: true
-          description: The id of the server to retrieve
-          type: string
-        - name: q
-          in: query
-          required: true
-          description: 'The string to search for'
-          type: string
-      responses:
-        '200':
-          description: Returns a single JSON object with a single array of strings.
-          schema:
-            type: array
-            items:
-              type: string
-
   '/servers/{server_id}/search-data':
     get:
       summary: 'Search the data inside PowerDNS'
