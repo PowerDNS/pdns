@@ -319,13 +319,87 @@ string LOCRecordContent::getZoneRepresentation(bool noDot) const
 
   double remlat=60.0*(latitude-(int)latitude);
   double remlong=60.0*(longitude-(int)longitude);
+
+  int d1 = abs(static_cast<int>(latitude));
+  int d2 = abs(static_cast<int>(longitude));
+  int m1 = abs(static_cast<int>((latitude-static_cast<int>(latitude))*60));
+  int m2 = abs(static_cast<int>((longitude-static_cast<int>(longitude))*60));
+  double s1 = fabs(static_cast<double>((remlat-static_cast<int>(remlat))*60.0));
+  double s2 = fabs(static_cast<double>((remlong-static_cast<int>(remlong))*60.0));
+
+  /* d1 takes at most 2 bytes */
+  if (d1 < 0) {
+    d1 = 0;
+  }
+  else if (d1 > 90) {
+    d1 = 90;
+  }
+
+  /* d2 takes at most 3 bytes */
+  if (d2 < 0) {
+    d2 = 0;
+  }
+  else if (d2 > 180) {
+    d1 = 180;
+  }
+
+  /* m1 takes at most 2 bytes */
+  if (m1 < 0) {
+    m1 = 0;
+  }
+  else if (m1 > 59) {
+    m1 = 59;
+  }
+
+  /* m2 takes at most 2 bytes */
+  if (m2 < 0) {
+    m2 = 0;
+  }
+  else if (m2 > 59) {
+    m2 = 59;
+  }
+
+  /* s1 and s2 take at most 6 bytes due to the way they are computed and their format string */
+ 
+  /* altitude will take at most 11 bytes */
+  if (altitude < -100000.00) {
+    altitude = -100000.00;
+  }
+  else if (altitude > 42849672.95) {
+    altitude = 42849672.95;
+  }
+
+  /* size, horizpre and vertpre take at most 11 bytes */
+  if (size < 0.0) {
+    size = 0.0;
+  }
+  else if (size > 90000000.00) {
+    size = 90000000.00;
+  }
+
+  if (horizpre < 0.0) {
+    horizpre = 0.0;
+  }
+  else if (horizpre > 90000000.00) {
+    horizpre = 90000000.00;
+  }
+
+  if (vertpre < 0.0) {
+    vertpre = 0.0;
+  }
+  else if (vertpre > 90000000.00) {
+    vertpre = 90000000.00;
+  }
+
   char ret[80];
   snprintf(ret,sizeof(ret)-1,"%d %d %2.03f %c %d %d %2.03f %c %.2fm %.2fm %.2fm %.2fm",
-           abs((int)latitude), abs((int) ((latitude-(int)latitude)*60)),
-           fabs((double)((remlat-(int)remlat)*60.0)),
+           d1,
+           m1,
+           s1,
            latitude>0 ? 'N' : 'S',
-           abs((int)longitude), abs((int) ((longitude-(int)longitude)*60)),
-           fabs((double)((remlong-(int)remlong)*60.0)),
+           d2,
+           m2,
+           s2,
            longitude>0 ? 'E' : 'W',
            altitude, size, horizpre, vertpre);
 
