@@ -49,7 +49,7 @@ try
     hostname=tmp;
     boost::replace_all(hostname, ".", "_");
   }
-  string instance_name=arg()["carbon-instancename"];
+  string instance_name=arg()["carbon-instance"];
 
   vector<string> carbonServers;
   stringtok(carbonServers, arg()["carbon-server"], ", ");

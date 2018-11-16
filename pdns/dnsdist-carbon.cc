@@ -56,10 +56,7 @@ try
 
     for (const auto& conf : *localCarbon) {
       const auto& server = conf.server;
-      std::string namespace_name = conf.namespace_name;
-      if(namespace_name.empty()) {
-        namespace_name="dnsdist";
-      }
+      const std::string& namespace_name = conf.namespace_name;
       std::string hostname = conf.ourname;
       if(hostname.empty()) {
         char tmp[80];
@@ -70,10 +67,7 @@ try
         hostname=tmp;
         boost::replace_all(hostname, ".", "_");
       }
-      std::string instance_name = conf.instance_name;
-      if(instance_name.empty()) {
-        instance_name="main";
-      }
+      const std::string& instance_name = conf.instance_name;
 
       try {
         Socket s(server.sin4.sin_family, SOCK_STREAM);
