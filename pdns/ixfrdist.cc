@@ -1255,8 +1255,8 @@ int main(int argc, char** argv) {
       }
     }
 
-    auto ws = IXFRDistWebServer(config["webserver-address"].as<ComboAddress>(), wsACL);
-    std::thread (&IXFRDistWebServer::go, ws).detach();
+    // Launch the webserver!
+    std::thread(&IXFRDistWebServer::go, IXFRDistWebServer(config["webserver-address"].as<ComboAddress>(), wsACL)).detach();
   }
 
   int newuid = 0;

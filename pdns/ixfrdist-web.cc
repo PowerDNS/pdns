@@ -28,8 +28,7 @@
 string doGetStats();
 
 IXFRDistWebServer::IXFRDistWebServer(const ComboAddress &listenAddress, const NetmaskGroup &acl) {
-  // TODO wrap in smart pointer
-  d_ws = new WebServer(listenAddress.toString() , listenAddress.getPort());
+  d_ws = std::unique_ptr<WebServer>(new WebServer(listenAddress.toString(), listenAddress.getPort()));
   d_ws->setACL(acl);
   d_ws->registerWebHandler("/metrics", boost::bind(&IXFRDistWebServer::getMetrics, this, _1, _2));
   d_ws->bind();

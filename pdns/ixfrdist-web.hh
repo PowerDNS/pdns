@@ -30,7 +30,7 @@ class IXFRDistWebServer
     void go();
 
   private:
-    WebServer *d_ws;
+    std::unique_ptr<WebServer> d_ws;
 
     // All endpoints
     void getMetrics(HttpRequest* req, HttpResponse* resp);
