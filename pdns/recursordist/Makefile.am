@@ -93,6 +93,7 @@ pdns_recursor_SOURCES = \
 	base32.cc base32.hh \
 	base64.cc base64.hh \
 	cachecleaner.hh \
+	capabilities.cc capabilities.hh \
 	comment.hh \
 	dns.hh dns.cc \
 	dns_random.hh dns_random.cc \
@@ -371,9 +372,6 @@ rec_control_SOURCES = \
 	rec_channel.cc rec_channel.hh \
 	rec_control.cc \
 	unix_utility.cc
-
-rec_control_LDADD = \
-	$(LIBCAP_LIBS)
 
 dnslabeltext.cc: dnslabeltext.rl
 	$(AM_V_GEN)$(RAGEL) $< -o dnslabeltext.cc

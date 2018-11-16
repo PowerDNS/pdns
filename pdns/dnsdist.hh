@@ -35,6 +35,7 @@
 #include <boost/variant.hpp>
 
 #include "bpf-filter.hh"
+#include "capabilities.hh"
 #include "dnscrypt.hh"
 #include "dnsdist-cache.hh"
 #include "dnsdist-dynbpf.hh"

@@ -87,6 +87,7 @@ dnsdist_SOURCES = \
 	base64.hh \
 	bpf-filter.cc bpf-filter.hh \
 	cachecleaner.hh \
+	capabilities.cc capabilities.hh \
 	dns.cc dns.hh \
 	dnscrypt.cc dnscrypt.hh \
 	dnsdist.cc dnsdist.hh \

@@ -67,6 +67,7 @@
 #include "malloctrace.hh"
 #endif
 #include <netinet/tcp.h>
+#include "capabilities.hh"
 #include "dnsparser.hh"
 #include "dnswriter.hh"
 #include "dnsrecords.hh"
