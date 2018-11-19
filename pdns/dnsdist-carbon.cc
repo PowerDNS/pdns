@@ -37,7 +37,7 @@ uint64_t uptimeOfProcess(const std::string& str)
   return time(0) - s_start;
 }
 
-void* carbonDumpThread()
+void carbonDumpThread()
 try
 {
   setThreadName("dnsdist/carbon");
@@ -156,20 +156,16 @@ try
       }
     }
   }
-  return 0;
 }
 catch(std::exception& e)
 {
   errlog("Carbon thread died: %s", e.what());
-  return 0;
 }
 catch(PDNSException& e)
 {
   errlog("Carbon thread died, PDNSException: %s", e.reason);
-  return 0;
 }
 catch(...)
 {
   errlog("Carbon thread died");
-  return 0;
 }

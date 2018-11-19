@@ -51,7 +51,7 @@
 #include <boost/uuid/uuid_generators.hpp>
 #include <boost/uuid/uuid_io.hpp>
 
-void* carbonDumpThread();
+void carbonDumpThread();
 uint64_t uptimeOfProcess(const std::string& str);
 
 extern uint16_t g_ECSSourcePrefixV4;
@@ -759,7 +759,7 @@ using servers_t =vector<std::shared_ptr<DownstreamState>>;
 
 template <class T> using NumberedVector = std::vector<std::pair<unsigned int, T> >;
 
-void* responderThread(std::shared_ptr<DownstreamState> state);
+void responderThread(std::shared_ptr<DownstreamState> state);
 extern std::mutex g_luamutex;
 extern LuaContext g_lua;
 extern std::string g_outputBuffer; // locking for this is ok, as locked by g_luamutex
@@ -1006,7 +1006,7 @@ void setWebserverCustomHeaders(const boost::optional<std::map<std::string, std::
 void dnsdistWebserverThread(int sock, const ComboAddress& local);
 bool getMsgLen32(int fd, uint32_t* len);
 bool putMsgLen32(int fd, uint32_t len);
-void* tcpAcceptorThread(void* p);
+void tcpAcceptorThread(void* p);
 
 void setLuaNoSideEffect(); // if nothing has been declared, set that there are no side effects
 void setLuaSideEffect();   // set to report a side effect, cancelling all _no_ side effect calls

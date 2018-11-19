@@ -427,7 +427,7 @@ static void pickBackendSocketsReadyForReceiving(const std::shared_ptr<Downstream
 }
 
 // listens on a dedicated socket, lobs answers from downstream servers to original requestors
-void* responderThread(std::shared_ptr<DownstreamState> dss)
+void responderThread(std::shared_ptr<DownstreamState> dss)
 try {
   setThreadName("dnsdist/respond");
   auto localRespRulactions = g_resprulactions.getLocal();
@@ -565,22 +565,18 @@ try {
       vinfolog("Got an error in UDP responder thread while parsing a response from %s, id %d: %s", dss->remote.toStringWithPort(), queryId, e.what());
     }
   }
-  return nullptr;
 }
 catch(const std::exception& e)
 {
   errlog("UDP responder thread died because of exception: %s", e.what());
-  return nullptr;
 }
 catch(const PDNSException& e)
 {
   errlog("UDP responder thread died because of PowerDNS exception: %s", e.reason);
-  return nullptr;
 }
 catch(...)
 {
   errlog("UDP responder thread died because of an exception: %s", "unknown");
-  return nullptr;
 }
 
 bool DownstreamState::reconnect()
@@ -1643,7 +1639,7 @@ static void MultipleMessagesUDPClientThread(ClientState* cs, LocalHolders& holde
 #endif /* defined(HAVE_RECVMMSG) && defined(HAVE_SENDMMSG) && defined(MSG_WAITFORONE) */
 
 // listens to incoming queries, sends out to downstream servers, noting the intended return path
-static void* udpClientThread(ClientState* cs)
+static void udpClientThread(ClientState* cs)
 try
 {
   setThreadName("dnsdist/udpClie");
@@ -1685,23 +1681,18 @@ try
       processUDPQuery(*cs, holders, &msgh, remote, dest, packet, static_cast<uint16_t>(got), s_udpIncomingBufferSize, nullptr, nullptr, nullptr, nullptr);
     }
   }
-
-  return nullptr;
 }
 catch(const std::exception &e)
 {
   errlog("UDP client thread died because of exception: %s", e.what());
-  return nullptr;
 }
 catch(const PDNSException &e)
 {
   errlog("UDP client thread died because of PowerDNS exception: %s", e.reason);
-  return nullptr;
 }
 catch(...)
 {
   errlog("UDP client thread died because of an exception: %s", "unknown");
-  return nullptr;
 }
 
 uint16_t getRandomDNSID()
@@ -1844,7 +1835,7 @@ uint64_t g_maxTCPClientThreads{10};
 std::atomic<uint16_t> g_cacheCleaningDelay{60};
 std::atomic<uint16_t> g_cacheCleaningPercentage{100};
 
-void* maintThread()
+void maintThread()
 {
   setThreadName("dnsdist/main");
   int interval = 1;
@@ -1888,10 +1879,9 @@ void* maintThread()
 
     // ponder pruning g_dynblocks of expired entries here
   }
-  return nullptr;
 }
 
-static void* secPollThread()
+static void secPollThread()
 {
   setThreadName("dnsdist/secpoll");
 
@@ -1903,10 +1893,9 @@ static void* secPollThread()
     }
     sleep(g_secPollInterval);
   }
-  return 0;
 }
 
-static void* healthChecksThread()
+static void healthChecksThread()
 {
   setThreadName("dnsdist/healthC");
 
@@ -1995,7 +1984,6 @@ static void* healthChecksThread()
       }
     }
   }
-  return nullptr;
 }
 
 static void bindAny(int af, int sock)

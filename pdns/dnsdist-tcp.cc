@@ -132,7 +132,7 @@ static std::map<ComboAddress,size_t,ComboAddress::addressOnlyLessThan> tcpClient
 bool g_useTCPSinglePipe{false};
 std::atomic<uint16_t> g_downstreamTCPCleanupInterval{60};
 
-void* tcpClientThread(int pipefd);
+void tcpClientThread(int pipefd);
 
 static void decrementTCPClientCount(const ComboAddress& client)
 {
@@ -260,7 +260,7 @@ void cleanupClosedTCPConnections(std::map<ComboAddress,int>& sockets)
 
 std::shared_ptr<TCPClientCollection> g_tcpclientthreads;
 
-void* tcpClientThread(int pipefd)
+void tcpClientThread(int pipefd)
 {
   /* we get launched with a pipe on which we receive file descriptors from clients that we own
      from that point on */
@@ -688,13 +688,12 @@ void* tcpClientThread(int pipefd)
       lastTCPCleanup = time(nullptr);
     }
   }
-  return 0;
 }
 
 /* spawn as many of these as required, they call Accept on a socket on which they will accept queries, and 
    they will hand off to worker threads & spawn more of them if required
 */
-void* tcpAcceptorThread(void* p)
+void tcpAcceptorThread(void* p)
 {
   setThreadName("dnsdist/tcpAcce");
   ClientState* cs = (ClientState*) p;
@@ -785,6 +784,4 @@ void* tcpAcceptorThread(void* p)
     }
     catch(...){}
   }
-
-  return 0;
 }
