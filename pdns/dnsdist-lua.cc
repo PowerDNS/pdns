@@ -1616,7 +1616,9 @@ void setupLuaConfig(bool client)
           frontend->d_urls = {"/"};
 
         if(vars) {
-          cout << "Not yet processing variables!" << endl;
+          if (vars->count("idleTimeout")) {
+            frontend->d_idleTimeout = boost::get<int>((*vars)["idleTimeout"]);
+          }
         }
         g_dohlocals.push_back(frontend);
 #else

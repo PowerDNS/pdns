@@ -6,6 +6,8 @@ struct DOHFrontend
   std::string d_certFile;
   std::string d_keyFile;
   ComboAddress d_local;
+
+  uint32_t d_idleTimeout{30};             // HTTP idle timeout in seconds
   std::vector<std::string> d_urls;
   std::string d_errortext;
   std::atomic<uint64_t> d_httpconnects;   // number of TCP/IP connections established

@@ -669,22 +669,15 @@ try
   std::thread dnsdistThread(dnsdistclient, dsc->dohquerypair[1], dsc->dohresponsepair[0]);
   dnsdistThread.detach(); // gets us better error reporting
 
-  //  h2o_access_log_filehandle_t *logfh = h2o_access_log_open_handle("/dev/stdout", NULL, H2O_LOGCONF_ESCAPE_APACHE);
-
-  
   h2o_config_init(&dsc->h2o_config);
-  dsc->h2o_config.http2.idle_timeout = 300000;
+  dsc->h2o_config.http2.idle_timeout = df->d_idleTimeout * 1000;
 
   // I wonder if this registers an IP address.. I think it does
   // this may mean we need to actually register a site "name" here and not the IP address
   h2o_hostconf_t *hostconf = h2o_config_register_host(&dsc->h2o_config, h2o_iovec_init(df->d_local.toString().c_str(), df->d_local.toString().size()), 65535);
 
   for(const auto& url : df->d_urls) {
-    //    h2o_pathconf_t *pathconf;
-    /* pathconf = */ register_handler(hostconf, url.c_str(), doh_handler);
-    
-    //    if (logfh != NULL)
-    //  h2o_access_log_register(pathconf, logfh);
+    register_handler(hostconf, url.c_str(), doh_handler);
   }
   
   h2o_context_init(&dsc->h2o_ctx, h2o_evloop_create(), &dsc->h2o_config);
