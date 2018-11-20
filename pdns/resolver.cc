@@ -271,17 +271,20 @@ bool Resolver::tryGetSOASerial(DNSName *domain, ComboAddress* remote, uint32_t *
   if(mdp.d_qtype != QType::SOA)
     throw ResolverException("Query to '" + remote->toStringWithPort() + "' for SOA of '" + domain->toLogString() + "' returned wrong record type");
 
+  if(mdp.d_header.rcode != 0)
+    throw ResolverException("Query to '" + remote->toStringWithPort() + "' for SOA of '" + domain->toLogString() + "' returned Rcode " + RCode::to_s(mdp.d_header.rcode));
+
   *theirInception = *theirExpire = 0;
   bool gotSOA=false;
   for(const MOADNSParser::answers_t::value_type& drc :  mdp.d_answers) {
-    if(drc.first.d_type == QType::SOA) {
+    if(drc.first.d_type == QType::SOA && drc.first.d_name == *domain) {
       shared_ptr<SOARecordContent> src=getRR<SOARecordContent>(drc.first);
       if (src) {
         *theirSerial=src->d_st.serial;
         gotSOA = true;
       }
     }
-    if(drc.first.d_type == QType::RRSIG) {
+    if(drc.first.d_type == QType::RRSIG && drc.first.d_name == *domain) {
       shared_ptr<RRSIGRecordContent> rrc=getRR<RRSIGRecordContent>(drc.first);
       if(rrc && rrc->d_type == QType::SOA) {
         *theirInception= std::max(*theirInception, rrc->d_siginception);
