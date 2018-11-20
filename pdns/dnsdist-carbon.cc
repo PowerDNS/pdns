@@ -140,11 +140,15 @@ try
             boost::replace_all(name, "[", "_");
             boost::replace_all(name, "]", "_");
 
-
             vector<pair<const char*, const std::atomic<uint64_t>&>> v{
               {"http-connects", doh->d_httpconnects},
               {"http1-queries", doh->d_http1queries},
               {"http2-queries", doh->d_http2queries},
+              {"tls10-queries", doh->d_tls10queries},
+              {"tls11-queries", doh->d_tls11queries},
+              {"tls12-queries", doh->d_tls12queries},
+              {"tls13-queries", doh->d_tls13queries},
+              {"tls-unknown-queries", doh->d_tlsUnknownqueries},
               {"get-queries", doh->d_getqueries},
               {"post-queries", doh->d_postqueries},
               {"bad-requests", doh->d_badrequests},

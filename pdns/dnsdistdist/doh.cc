@@ -331,6 +331,19 @@ try
   ComboAddress remote;
   h2o_socket_getpeername(sock, (struct sockaddr*)&remote);
   DOHServerConfig* dsc = (DOHServerConfig*)req->conn->ctx->storage.entries[0].data;
+
+  auto tlsversion=h2o_socket_get_ssl_protocol_version(sock);
+
+  if(!strcmp(tlsversion, "TLSv1.0"))
+    dsc->df->d_tls10queries++;
+  else if(!strcmp(tlsversion, "TLSv1.1"))
+    dsc->df->d_tls11queries++;
+  else if(!strcmp(tlsversion, "TLSv1.2"))
+    dsc->df->d_tls12queries++;
+  else if(!strcmp(tlsversion, "TLSv1.3"))
+    dsc->df->d_tls13queries++;
+  else
+    dsc->df->d_tlsUnknownqueries++;
   
   string path(req->path.base, req->path.len);
 
@@ -346,7 +359,7 @@ try
     *(du->self) = du;
     uint16_t qtype;
     DNSName qname(req->entity.base, req->entity.len, sizeof(dnsheader), false, &qtype);
-    //    cout<<remote.toStringWithPort()<<", POST qname: "<<qname<<", qtype: "<<qtype<<endl;
+    //    cout<<remote.toStringWithPort()<<", POST qname: "<<qname<<", qtype: "<<qtype<<", tls version: "<<tlsversion<<endl;
     du->req=req;
     du->query=std::string(req->entity.base, req->entity.len);
     du->remote = remote;
@@ -385,7 +398,7 @@ try
 
           du->self = (DOHUnit**)h2o_mem_alloc_shared(&req->pool, sizeof(*self), on_generator_dispose);
           *(du->self) = du;
-
+          //          cout<<remote.toStringWithPort()<<", GET qname: "<<qname<<", qtype: "<<qtype<<", tls version: "<<tlsversion<<endl;
           du->req=req;
           du->query=decoded;
           du->rsock=dsc->dohresponsepair[0];
@@ -433,9 +446,8 @@ bool HTTPHeaderRule::matches(const DNSQuestion* dq) const
   if(!dq->du)
     return false;
   for (unsigned int i = 0; i != dq->du->req->headers.size; ++i) {
-    //    cout<<dq->du->req->headers.entries[i].name->base << ": " <<dq->du->req->headers.entries[i].value.base<<endl; 
-    if(              dq->du->req->headers.entries[i].name->base == d_header &&
-       d_regex.match(dq->du->req->headers.entries[i].value.base))
+    if(std::string(dq->du->req->headers.entries[i].name->base, dq->du->req->headers.entries[i].name->len) == d_header &&
+       d_regex.match(std::string(dq->du->req->headers.entries[i].value.base, dq->du->req->headers.entries[i].value.len)))
       return true;
   }
   return false;
@@ -661,6 +673,7 @@ try
 
   
   h2o_config_init(&dsc->h2o_config);
+  dsc->h2o_config.http2.idle_timeout = 300000;
 
   // I wonder if this registers an IP address.. I think it does
   // this may mean we need to actually register a site "name" here and not the IP address
