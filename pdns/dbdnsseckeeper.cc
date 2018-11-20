@@ -521,20 +521,19 @@ DNSSECKeeper::keyset_t DNSSECKeeper::getKeys(const DNSName& zone, bool useCache)
   return retkeyset;
 }
 
-bool DNSSECKeeper::checkKeys(const DNSName& zone)
+bool DNSSECKeeper::checkKeys(const DNSName& zone, vector<string>* errorMessages)
 {
   vector<DNSBackend::KeyData> dbkeyset;
   d_keymetadb->getDomainKeys(zone, dbkeyset);
+  bool retval = true;
 
   for(const DNSBackend::KeyData &keydata : dbkeyset) {
     DNSKEYRecordContent dkrc;
     shared_ptr<DNSCryptoKeyEngine> dke(DNSCryptoKeyEngine::makeFromISCString(dkrc, keydata.content));
-    if (!dke->checkKey()) {
-      return false;
-    }
+    retval = dke->checkKey(errorMessages) && retval;
   }
 
-  return true;
+  return retval;
 }
 
 bool DNSSECKeeper::getPreRRSIGs(UeberBackend& db, const DNSName& signer, const DNSName& qname,

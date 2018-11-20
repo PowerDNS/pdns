@@ -252,7 +252,8 @@ int checkZone(DNSSECKeeper &dk, UeberBackend &B, const DNSName& zone, const vect
 
   bool isSecure=dk.isSecuredZone(zone);
   bool presigned=dk.isPresigned(zone);
-  bool validKeys=dk.checkKeys(zone);
+  vector<string> checkKeyErrors;
+  bool validKeys=dk.checkKeys(zone, &checkKeyErrors);
 
   uint64_t numerrors=0, numwarnings=0;
 
@@ -279,6 +280,9 @@ int checkZone(DNSSECKeeper &dk, UeberBackend &B, const DNSName& zone, const vect
   if (!validKeys) {
     numerrors++;
     cout<<"[Error] zone '" << zone << "' has at least one invalid DNS Private Key." << endl;
+    for (const auto &msg : checkKeyErrors) {
+      cout<<"\t"<<msg<<endl;
+    }
   }
 
   // Check for delegation in parent zone

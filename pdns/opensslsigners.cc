@@ -33,6 +33,7 @@
 #include <openssl/rand.h>
 #include <openssl/rsa.h>
 #include <openssl/opensslv.h>
+#include <openssl/err.h>
 #include "opensslsigners.hh"
 #include "dnssecinfra.hh"
 #include "dnsseckeeper.hh"
@@ -201,7 +202,7 @@ public:
   std::string getPublicKeyString() const override;
   void fromISCMap(DNSKEYRecordContent& drc, std::map<std::string, std::string>& stormap) override;
   void fromPublicKeyString(const std::string& content) override;
-  bool checkKey() const override;
+  bool checkKey(vector<string> *errorMessages) const override;
 
   static std::shared_ptr<DNSCryptoKeyEngine> maker(unsigned int algorithm)
   {
@@ -217,6 +218,7 @@ private:
 
 void OpenSSLRSADNSCryptoKeyEngine::create(unsigned int bits)
 {
+  // When changing the bitsizes, also edit them in ::checkKey
   if ((d_algorithm == DNSSECKeeper::RSASHA1 || d_algorithm == DNSSECKeeper::RSASHA1NSEC3SHA1) && (bits < 512 || bits > 4096)) {
     /* RFC3110 */
     throw runtime_error(getName()+" RSASHA1 key generation failed for invalid bits size " + std::to_string(bits));
@@ -519,9 +521,29 @@ void OpenSSLRSADNSCryptoKeyEngine::fromISCMap(DNSKEYRecordContent& drc, std::map
   d_key = std::move(key);
 }
 
-bool OpenSSLRSADNSCryptoKeyEngine::checkKey() const
+bool OpenSSLRSADNSCryptoKeyEngine::checkKey(vector<string> *errorMessages) const
 {
-  return (RSA_check_key(d_key.get()) == 1);
+  bool retval = true;
+  // When changing the bitsizes, also edit them in ::create
+  if ((d_algorithm == DNSSECKeeper::RSASHA1 || d_algorithm == DNSSECKeeper::RSASHA1NSEC3SHA1 || d_algorithm == DNSSECKeeper::RSASHA256) && (getBits() < 512 || getBits()> 4096)) {
+    retval = false;
+    if (errorMessages != nullptr) {
+      errorMessages->push_back("key is " + std::to_string(getBits()) + " bytes, should be between 512 and 4096");
+    }
+  }
+  if (d_algorithm == DNSSECKeeper::RSASHA512 && (getBits() < 1024 || getBits() > 4096)) {
+    retval = false;
+    if (errorMessages != nullptr) {
+      errorMessages->push_back("key is " + std::to_string(getBits()) + " bytes, should be between 1024 and 4096");
+    }
+  }
+  if (RSA_check_key(d_key.get()) != 1) {
+    retval = false;
+    if (errorMessages != nullptr) {
+      errorMessages->push_back(ERR_reason_error_string(ERR_get_error()));
+    }
+  }
+  return retval;
 }
 
 void OpenSSLRSADNSCryptoKeyEngine::fromPublicKeyString(const std::string& input)
@@ -623,7 +645,7 @@ public:
   std::string getPublicKeyString() const override;
   void fromISCMap(DNSKEYRecordContent& drc, std::map<std::string, std::string>& stormap) override;
   void fromPublicKeyString(const std::string& content) override;
-  bool checkKey() const override;
+  bool checkKey(vector<string> *errorMessages) const override;
 
   static std::shared_ptr<DNSCryptoKeyEngine> maker(unsigned int algorithm)
   {
@@ -823,9 +845,16 @@ void OpenSSLECDSADNSCryptoKeyEngine::fromISCMap(DNSKEYRecordContent& drc, std::m
   }
 }
 
-bool OpenSSLECDSADNSCryptoKeyEngine::checkKey() const
+bool OpenSSLECDSADNSCryptoKeyEngine::checkKey(vector<string> *errorMessages) const
 {
-  return (EC_KEY_check_key(d_eckey.get()) == 1);
+  bool retval = true;
+  if (EC_KEY_check_key(d_eckey.get()) != 1) {
+    retval = false;
+    if (errorMessages != nullptr) {
+      errorMessages->push_back(ERR_reason_error_string(ERR_get_error()));
+    }
+  }
+  return retval;
 }
 
 void OpenSSLECDSADNSCryptoKeyEngine::fromPublicKeyString(const std::string& input)
@@ -901,7 +930,7 @@ public:
   std::string getPublicKeyString() const override;
   void fromISCMap(DNSKEYRecordContent& drc, std::map<std::string, std::string>& stormap) override;
   void fromPublicKeyString(const std::string& content) override;
-  bool checkKey() const override;
+  bool checkKey(vector<string> *errorMessages) const override;
 
   static std::shared_ptr<DNSCryptoKeyEngine> maker(unsigned int algorithm)
   {
@@ -915,7 +944,7 @@ private:
   std::unique_ptr<EVP_PKEY, void(*)(EVP_PKEY*)> d_edkey;
 };
 
-bool OpenSSLEDDSADNSCryptoKeyEngine::checkKey() const
+bool OpenSSLEDDSADNSCryptoKeyEngine::checkKey(vector<string> *errorMessages) const
 {
   return (d_edkey ? true : false);
 }
