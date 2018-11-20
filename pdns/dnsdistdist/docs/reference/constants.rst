@@ -107,6 +107,7 @@ These constants represent an Action that can be returned from the functions invo
  * ``DNSAction.ServFail``: return a response with a ServFail rcode
  * ``DNSAction.Spoof``: spoof the response using the supplied IPv4 (A), IPv6 (AAAA) or string (CNAME) value
  * ``DNSAction.Truncate``: truncate the response
+ * ``DNSAction.NoRecurse``: set rd=0 on the query
 
 
 .. _DNSResponseAction:

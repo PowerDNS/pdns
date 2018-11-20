@@ -1003,6 +1003,11 @@ bool processQuery(LocalHolders& holders, DNSQuestion& dq, string& poolname, int*
           vinfolog("Query from %s for %s over TCP *not* truncated because of dynamic block", dq.remote->toStringWithPort(), dq.qname->toString());
         }
         break;
+      case DNSAction::Action::NoRecurse:
+        updateBlockStats();
+        vinfolog("Query from %s setting rd=0 because of dynamic block", dq.remote->toStringWithPort());
+        dq.dh->rd = false;
+        return true;
       default:
         updateBlockStats();
         vinfolog("Query from %s dropped because of dynamic block", dq.remote->toStringWithPort());
@@ -1053,6 +1058,11 @@ bool processQuery(LocalHolders& holders, DNSQuestion& dq, string& poolname, int*
           vinfolog("Query from %s for %s over TCP *not* truncated because of dynamic block", dq.remote->toStringWithPort(), dq.qname->toString());
         }
         break;
+      case DNSAction::Action::NoRecurse:
+        updateBlockStats();
+        vinfolog("Query from %s setting rd=0 because of dynamic block", dq.remote->toStringWithPort());
+        dq.dh->rd = false;
+        return true;
       default:
         updateBlockStats();
         vinfolog("Query from %s for %s dropped because of dynamic block", dq.remote->toStringWithPort(), dq.qname->toString());
@@ -1117,6 +1127,10 @@ bool processQuery(LocalHolders& holders, DNSQuestion& dq, string& poolname, int*
       case DNSAction::Action::None:
         /* fall-through */
       case DNSAction::Action::NoOp:
+        break;
+      case DNSAction::Action::NoRecurse:
+        dq.dh->rd = false;
+        return true;
         break;
       }
     }

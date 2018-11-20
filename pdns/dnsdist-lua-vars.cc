@@ -36,7 +36,8 @@ void setupLuaVars()
       {"NoOp",(int)DNSAction::Action::NoOp},
       {"Delay", (int)DNSAction::Action::Delay},
       {"Truncate", (int)DNSAction::Action::Truncate},
-      {"ServFail", (int)DNSAction::Action::ServFail}
+      {"ServFail", (int)DNSAction::Action::ServFail},
+      {"NoRecurse", (int)DNSAction::Action::NoRecurse}
     });
 
   g_lua.writeVariable("DNSResponseAction", std::unordered_map<string,int>{
