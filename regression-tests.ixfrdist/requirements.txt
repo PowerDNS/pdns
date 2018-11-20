@@ -1,3 +1,4 @@
 dnspython
 nose
 git+https://github.com/PowerDNS/xfrserver.git@0.1
+requests

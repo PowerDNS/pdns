@@ -144,6 +144,25 @@ class WebServer : public boost::noncopyable
 public:
   WebServer(const string &listenaddress, int port);
   virtual ~WebServer() { };
+
+  void setApiKey(const string &apikey) {
+    if (d_registerApiHandlerCalled) {
+      throw PDNSException("registerApiHandler has been called, can not change apikey");
+    }
+    d_apikey = apikey;
+  }
+
+  void setPassword(const string &password) {
+    if (d_registerWebHandlerCalled) {
+      throw PDNSException("registerWebHandler has been called, can not change password");
+    }
+    d_webserverPassword = password;
+  }
+
+  void setACL(const NetmaskGroup &nmg) {
+    d_acl = nmg;
+  }
+
   void bind();
   void go();
 
@@ -165,6 +184,14 @@ protected:
   int d_port;
   string d_password;
   std::shared_ptr<Server> d_server;
+
+  std::string d_apikey;
+  bool d_registerApiHandlerCalled{false};
+
+  std::string d_webserverPassword;
+  bool d_registerWebHandlerCalled{false};
+
+  NetmaskGroup d_acl;
 };
 
 #endif /* WEBSERVER_HH */

@@ -33,7 +33,6 @@
 #include "dns.hh"
 #include "base64.hh"
 #include "json.hh"
-#include "arguments.hh"
 #include <yahttp/router.hpp>
 
 json11::Json HttpRequest::json()
@@ -125,18 +124,16 @@ static bool optionsHandler(HttpRequest* req, HttpResponse* resp) {
   return false;
 }
 
-static void apiWrapper(WebServer::HandlerFunction handler, HttpRequest* req, HttpResponse* resp) {
-  const string& api_key = arg()["api-key"];
-
+static void apiWrapper(WebServer::HandlerFunction handler, HttpRequest* req, HttpResponse* resp, const string &apikey) {
   if (optionsHandler(req, resp)) return;
 
   resp->headers["access-control-allow-origin"] = "*";
 
-  if (api_key.empty()) {
+  if (apikey.empty()) {
     g_log<<Logger::Error<<"HTTP API Request \"" << req->url.path << "\": Authentication failed, API Key missing in config" << endl;
     throw HttpUnauthorizedException("X-API-Key");
   }
-  bool auth_ok = req->compareHeader("x-api-key", api_key) || req->getvars["api-key"]==api_key;
+  bool auth_ok = req->compareHeader("x-api-key", apikey) || req->getvars["api-key"] == apikey;
   
   if (!auth_ok) {
     g_log<<Logger::Error<<"HTTP Request \"" << req->url.path << "\": Authentication by API Key failed" << endl;
@@ -172,15 +169,14 @@ static void apiWrapper(WebServer::HandlerFunction handler, HttpRequest* req, Htt
 }
 
 void WebServer::registerApiHandler(const string& url, HandlerFunction handler) {
-  HandlerFunction f = boost::bind(&apiWrapper, handler, _1, _2);
+  HandlerFunction f = boost::bind(&apiWrapper, handler, _1, _2, d_apikey);
   registerBareHandler(url, f);
+  d_registerApiHandlerCalled = true;
 }
 
-static void webWrapper(WebServer::HandlerFunction handler, HttpRequest* req, HttpResponse* resp) {
-  const string& web_password = arg()["webserver-password"];
-
-  if (!web_password.empty()) {
-    bool auth_ok = req->compareAuthorization(web_password);
+static void webWrapper(WebServer::HandlerFunction handler, HttpRequest* req, HttpResponse* resp, const string &password) {
+  if (!password.empty()) {
+    bool auth_ok = req->compareAuthorization(password);
     if (!auth_ok) {
       g_log<<Logger::Debug<<"HTTP Request \"" << req->url.path << "\": Web Authentication failed" << endl;
       throw HttpUnauthorizedException("Basic");
@@ -191,7 +187,7 @@ static void webWrapper(WebServer::HandlerFunction handler, HttpRequest* req, Htt
 }
 
 void WebServer::registerWebHandler(const string& url, HandlerFunction handler) {
-  HandlerFunction f = boost::bind(&webWrapper, handler, _1, _2);
+  HandlerFunction f = boost::bind(&webWrapper, handler, _1, _2, d_webserverPassword);
   registerBareHandler(url, f);
 }
 
@@ -346,22 +342,19 @@ void WebServer::go()
   if(!d_server)
     return;
   try {
-    NetmaskGroup acl;
-    acl.toMasks(::arg()["webserver-allow-from"]);
-
     while(true) {
       try {
         auto client = d_server->accept();
         if (!client) {
           continue;
         }
-        if (client->acl(acl)) {
+        if (client->acl(d_acl)) {
           std::thread webHandler(WebServerConnectionThreadStart, this, client);
           webHandler.detach();
         } else {
           ComboAddress remote;
           if (client->getRemote(remote))
-            g_log<<Logger::Error<<"Webserver closing socket: remote ("<< remote.toString() <<") does not match 'webserver-allow-from'"<<endl;
+            g_log<<Logger::Error<<"Webserver closing socket: remote ("<< remote.toString() <<") does not match the set ACL("<<d_acl.toString()<<")"<<endl;
         }
       }
       catch(PDNSException &e) {

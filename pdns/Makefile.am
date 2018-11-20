@@ -622,6 +622,8 @@ ixfrdist_SOURCES = \
 	ixfr.cc ixfr.hh \
 	ixfrdist.cc \
 	ixfrutils.cc ixfrutils.hh \
+	ixfrdist-stats.hh ixfrdist-stats.cc \
+	ixfrdist-web.hh ixfrdist-web.cc \
 	logger.cc logger.hh\
 	misc.cc misc.hh \
 	mplexer.hh \
@@ -635,11 +637,16 @@ ixfrdist_SOURCES = \
 	statbag.cc \
 	threadname.hh threadname.cc \
 	tsigverifier.cc tsigverifier.hh \
-	unix_utility.cc zoneparser-tng.cc
+	unix_utility.cc \
+	webserver.hh webserver.cc \
+	zoneparser-tng.cc
+
 
 ixfrdist_LDADD = \
 	$(BOOST_PROGRAM_OPTIONS_LIBS) \
+	$(JSON11_LIBS) \
 	$(LIBCRYPTO_LIBS) \
+	$(YAHTTP_LIBS) \
 	$(YAML_LIBS)
 
 ixfrdist_LDFLAGS = \
