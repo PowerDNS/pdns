@@ -326,6 +326,14 @@ ruleServFail OBJECT-TYPE
 	"Number of ServFail responses returned because of a rule"
     ::= { stats 37 }
 
+securityStatus OBJECT-TYPE
+    SYNTAX CounterBasedGauge64
+    MAX-ACCESS read-only
+    STATUS current
+    DESCRIPTION
+	"Security status of this software. 0=unknown, 1=OK, 2=upgrade recommended, 3=upgrade mandatory"
+    ::= { stats 38 }
+
 backendStatTable OBJECT-TYPE
     SYNTAX SEQUENCE OF BackendStatEntry
     MAX-ACCESS not-accessible
@@ -670,6 +678,7 @@ dnsdistGroup OBJECT-GROUP
         fdUsage,
         dynBlocked,
         dynBlockNMGSize,
+        securityStatus,
         backendName,
         backendLatency,
         backendWeight,
