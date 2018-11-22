@@ -26,11 +26,30 @@
 #include "geoipinterface.hh"
 #ifdef HAVE_GEOIP
 #include "GeoIPCity.h"
+#include "GeoIP.h"
 
 struct geoip_deleter {
   void operator()(GeoIP* ptr) {
-    if (ptr) GeoIP_delete(ptr);
+    if (ptr) {
+      GeoIP_delete(ptr);
+    }
   };
+};
+
+struct geoiprecord_deleter {
+  void operator()(GeoIPRecord* ptr) {
+    if (ptr) {
+      GeoIPRecord_delete(ptr);
+    }
+  }
+};
+
+struct geoipregion_deleter {
+  void operator()(GeoIPRegion* ptr) {
+    if (ptr) {
+      GeoIPRegion_delete(ptr);
+    }
+  }
 };
 
 class GeoIPInterfaceDAT : public GeoIPInterface {
@@ -43,15 +62,15 @@ public:
       flags = GEOIP_MEMORY_CACHE;
     else if (modeStr == "index")
       flags = GEOIP_INDEX_CACHE;
-    #ifdef HAVE_MMAP
+#ifdef HAVE_MMAP
     else if (modeStr == "mmap")
       flags = GEOIP_MMAP_CACHE;
-    #endif
+#endif
     else
       throw PDNSException("Invalid cache mode " + modeStr + " for GeoIP backend");
 
-    d_gi = std::unique_ptr<GeoIP,geoip_deleter>(GeoIP_open(fname.c_str(), flags));
-    if (d_gi.get() == NULL)
+    d_gi = std::unique_ptr<GeoIP, geoip_deleter>(GeoIP_open(fname.c_str(), flags));
+    if (d_gi.get() == nullptr)
       throw PDNSException("Cannot open GeoIP database " + fname);
     d_db_type = GeoIP_database_edition(d_gi.get());
   }
@@ -70,7 +89,7 @@ public:
       }
     } else if (d_db_type == GEOIP_REGION_EDITION_REV0 ||
                d_db_type == GEOIP_REGION_EDITION_REV1) {
-      GeoIPRegion* gir = GeoIP_region_by_addr_gl(d_gi.get(), ip.c_str(), &tmp_gl);
+      std::unique_ptr<GeoIPRegion, geoipregion_deleter> gir(GeoIP_region_by_addr_gl(d_gi.get(), ip.c_str(), &tmp_gl));
       if (gir) {
         gl.netmask = tmp_gl.netmask;
         ret = GeoIP_code3_by_id(GeoIP_id_by_code(gir->country_code));
@@ -78,7 +97,7 @@ public:
       }
     } else if (d_db_type == GEOIP_CITY_EDITION_REV0 ||
                d_db_type == GEOIP_CITY_EDITION_REV1) {
-      GeoIPRecord *gir = GeoIP_record_by_addr(d_gi.get(), ip.c_str());
+      std::unique_ptr<GeoIPRecord, geoiprecord_deleter> gir(GeoIP_record_by_addr(d_gi.get(), ip.c_str()));
       if (gir) {
         ret = gir->country_code3;
         gl.netmask = gir->netmask;
@@ -102,7 +121,7 @@ public:
       }
     } else if (d_db_type == GEOIP_REGION_EDITION_REV0 ||
                d_db_type == GEOIP_REGION_EDITION_REV1) {
-      GeoIPRegion* gir = GeoIP_region_by_addr_v6_gl(d_gi.get(), ip.c_str(), &tmp_gl);
+      std::unique_ptr<GeoIPRegion, geoipregion_deleter> gir(GeoIP_region_by_addr_v6_gl(d_gi.get(), ip.c_str(), &tmp_gl));
       if (gir) {
         gl.netmask = tmp_gl.netmask;
         ret = GeoIP_code3_by_id(GeoIP_id_by_code(gir->country_code));
@@ -110,7 +129,7 @@ public:
       }
     } else if (d_db_type == GEOIP_CITY_EDITION_REV0_V6 ||
                d_db_type == GEOIP_CITY_EDITION_REV1_V6) {
-      GeoIPRecord *gir = GeoIP_record_by_addr_v6(d_gi.get(), ip.c_str());
+      std::unique_ptr<GeoIPRecord, geoiprecord_deleter> gir(GeoIP_record_by_addr_v6(d_gi.get(), ip.c_str()));
       if (gir) {
         ret = gir->country_code3;
         gl.netmask = gir->netmask;
@@ -134,7 +153,7 @@ public:
       }
     } else if (d_db_type == GEOIP_REGION_EDITION_REV0 ||
                d_db_type == GEOIP_REGION_EDITION_REV1) {
-      GeoIPRegion* gir = GeoIP_region_by_addr_gl(d_gi.get(), ip.c_str(), &tmp_gl);
+      std::unique_ptr<GeoIPRegion,geoipregion_deleter> gir(GeoIP_region_by_addr_gl(d_gi.get(), ip.c_str(), &tmp_gl));
       if (gir) {
         gl.netmask = tmp_gl.netmask;
         ret = GeoIP_code_by_id(GeoIP_id_by_code(gir->country_code));
@@ -142,7 +161,7 @@ public:
       }
     } else if (d_db_type == GEOIP_CITY_EDITION_REV0 ||
                d_db_type == GEOIP_CITY_EDITION_REV1) {
-      GeoIPRecord *gir = GeoIP_record_by_addr(d_gi.get(), ip.c_str());
+      std::unique_ptr<GeoIPRecord, geoiprecord_deleter> gir(GeoIP_record_by_addr(d_gi.get(), ip.c_str()));
       if (gir) {
         ret = gir->country_code;
         gl.netmask = gir->netmask;
@@ -166,7 +185,7 @@ public:
       }
     } else if (d_db_type == GEOIP_REGION_EDITION_REV0 ||
                d_db_type == GEOIP_REGION_EDITION_REV1) {
-      GeoIPRegion* gir = GeoIP_region_by_addr_v6_gl(d_gi.get(), ip.c_str(), &tmp_gl);
+      std::unique_ptr<GeoIPRegion, geoipregion_deleter> gir(GeoIP_region_by_addr_v6_gl(d_gi.get(), ip.c_str(), &tmp_gl));
       if (gir) {
         gl.netmask = tmp_gl.netmask;
         ret = GeoIP_code_by_id(GeoIP_id_by_code(gir->country_code));
@@ -174,7 +193,7 @@ public:
       }
     } else if (d_db_type == GEOIP_CITY_EDITION_REV0_V6 ||
                d_db_type == GEOIP_CITY_EDITION_REV1_V6) {
-      GeoIPRecord *gir = GeoIP_record_by_addr_v6(d_gi.get(), ip.c_str());
+      std::unique_ptr<GeoIPRecord, geoiprecord_deleter> gir(GeoIP_record_by_addr_v6(d_gi.get(), ip.c_str()));
       if (gir) {
         ret = gir->country_code;
         gl.netmask = gir->netmask;
@@ -198,7 +217,7 @@ public:
       }
     } else if (d_db_type == GEOIP_REGION_EDITION_REV0 ||
                d_db_type == GEOIP_REGION_EDITION_REV1) {
-      GeoIPRegion* gir = GeoIP_region_by_addr_gl(d_gi.get(), ip.c_str(), &tmp_gl);
+      std::unique_ptr<GeoIPRegion, geoipregion_deleter> gir(GeoIP_region_by_addr_gl(d_gi.get(), ip.c_str(), &tmp_gl));
       if (gir) {
         gl.netmask = tmp_gl.netmask;
         ret = GeoIP_continent_by_id(GeoIP_id_by_code(gir->country_code));
@@ -206,7 +225,7 @@ public:
       }
     } else if (d_db_type == GEOIP_CITY_EDITION_REV0 ||
                d_db_type == GEOIP_CITY_EDITION_REV1) {
-      GeoIPRecord *gir = GeoIP_record_by_addr(d_gi.get(), ip.c_str());
+      std::unique_ptr<GeoIPRecord, geoiprecord_deleter> gir(GeoIP_record_by_addr(d_gi.get(), ip.c_str()));
       if (gir) {
         ret =  ret = GeoIP_continent_by_id(GeoIP_id_by_code(gir->country_code));
         gl.netmask = gir->netmask;
@@ -230,7 +249,7 @@ public:
       }
     } else if (d_db_type == GEOIP_REGION_EDITION_REV0 ||
                d_db_type == GEOIP_REGION_EDITION_REV1) {
-      GeoIPRegion* gir = GeoIP_region_by_addr_v6_gl(d_gi.get(), ip.c_str(), &tmp_gl);
+      std::unique_ptr<GeoIPRegion, geoipregion_deleter> gir(GeoIP_region_by_addr_v6_gl(d_gi.get(), ip.c_str(), &tmp_gl));
       if (gir) {
         gl.netmask = tmp_gl.netmask;
         ret = GeoIP_continent_by_id(GeoIP_id_by_code(gir->country_code));
@@ -238,7 +257,7 @@ public:
       }
     } else if (d_db_type == GEOIP_CITY_EDITION_REV0_V6 ||
                d_db_type == GEOIP_CITY_EDITION_REV1_V6) {
-      GeoIPRecord *gir = GeoIP_record_by_addr_v6(d_gi.get(), ip.c_str());
+      std::unique_ptr<GeoIPRecord, geoiprecord_deleter> gir(GeoIP_record_by_addr_v6(d_gi.get(), ip.c_str()));
       if (gir) {
         ret = GeoIP_continent_by_id(GeoIP_id_by_code(gir->country_code));
         gl.netmask = gir->netmask;
@@ -254,13 +273,16 @@ public:
     };
     if (d_db_type == GEOIP_ISP_EDITION ||
         d_db_type == GEOIP_ORG_EDITION) {
-      string val = valueOrEmpty<char*,string>(GeoIP_name_by_addr_gl(d_gi.get(), ip.c_str(), &tmp_gl));
-      if (!val.empty()) {
+      char* result = GeoIP_name_by_addr_gl(d_gi.get(), ip.c_str(), &tmp_gl);
+      if (result != nullptr) {
+        ret = result;
+        free(result);
         gl.netmask = tmp_gl.netmask;
         // reduce space to dash
-        ret = boost::replace_all_copy(val, " ", "-");
+        ret = boost::replace_all_copy(ret, " ", "-");
         return true;
       }
+
     }
     return false;
   }
@@ -271,11 +293,13 @@ public:
     };
     if (d_db_type == GEOIP_ISP_EDITION_V6 ||
         d_db_type == GEOIP_ORG_EDITION_V6) {
-      string val = valueOrEmpty<char*,string>(GeoIP_name_by_addr_v6_gl(d_gi.get(), ip.c_str(), &tmp_gl));
-      if (!val.empty()) {
+      char* result = GeoIP_name_by_addr_v6_gl(d_gi.get(), ip.c_str(), &tmp_gl);
+      if (result != nullptr) {
+        ret = result;
+        free(result);
         gl.netmask = tmp_gl.netmask;
         // reduce space to dash
-        ret = boost::replace_all_copy(val, " ", "-");
+        ret = boost::replace_all_copy(ret, " ", "-");
         return true;
       }
     }
@@ -287,9 +311,11 @@ public:
       .netmask = gl.netmask,
     };
     if (d_db_type == GEOIP_ASNUM_EDITION) {
-      string val = valueOrEmpty<char*,string>(GeoIP_name_by_addr_gl(d_gi.get(), ip.c_str(), &tmp_gl));
-      if (!val.empty()) {
+      char* result = GeoIP_name_by_addr_gl(d_gi.get(), ip.c_str(), &tmp_gl);
+      if (result != nullptr) {
+        std::string val(result);
         vector<string> asnr;
+        free(result);
         stringtok(asnr, val);
         if(asnr.size()>0) {
           gl.netmask = tmp_gl.netmask;
@@ -306,9 +332,11 @@ public:
       .netmask = gl.netmask,
     };
     if (d_db_type == GEOIP_ASNUM_EDITION_V6) {
-      string val = valueOrEmpty<char*,string>(GeoIP_name_by_addr_v6_gl(d_gi.get(), ip.c_str(), &tmp_gl));
-      if (!val.empty()) {
+      char* result = GeoIP_name_by_addr_v6_gl(d_gi.get(), ip.c_str(), &tmp_gl);
+      if (result != nullptr) {
+        std::string val(result);
         vector<string> asnr;
+        free(result);
         stringtok(asnr, val);
         if(asnr.size()>0) {
           gl.netmask = tmp_gl.netmask;
@@ -326,7 +354,7 @@ public:
     };
     if (d_db_type == GEOIP_REGION_EDITION_REV0 ||
         d_db_type == GEOIP_REGION_EDITION_REV1) {
-      GeoIPRegion *gir = GeoIP_region_by_addr_gl(d_gi.get(), ip.c_str(), &tmp_gl);
+      std::unique_ptr<GeoIPRegion, geoipregion_deleter> gir(GeoIP_region_by_addr_gl(d_gi.get(), ip.c_str(), &tmp_gl));
       if (gir) {
         gl.netmask = tmp_gl.netmask;
         ret = valueOrEmpty<char*,string>(gir->region);
@@ -334,7 +362,7 @@ public:
       }
     } else if (d_db_type == GEOIP_CITY_EDITION_REV0 ||
                d_db_type == GEOIP_CITY_EDITION_REV1) {
-      GeoIPRecord *gir = GeoIP_record_by_addr(d_gi.get(), ip.c_str());
+      std::unique_ptr<GeoIPRecord, geoiprecord_deleter> gir(GeoIP_record_by_addr(d_gi.get(), ip.c_str()));
       if (gir) {
         ret = valueOrEmpty<char*,string>(gir->region);
         gl.netmask = gir->netmask;
@@ -350,7 +378,7 @@ public:
     };
     if (d_db_type == GEOIP_REGION_EDITION_REV0 ||
         d_db_type == GEOIP_REGION_EDITION_REV1) {
-      GeoIPRegion *gir = GeoIP_region_by_addr_v6_gl(d_gi.get(), ip.c_str(), &tmp_gl);
+      std::unique_ptr<GeoIPRegion, geoipregion_deleter> gir(GeoIP_region_by_addr_v6_gl(d_gi.get(), ip.c_str(), &tmp_gl));
       if (gir) {
         gl.netmask = tmp_gl.netmask;
         ret = valueOrEmpty<char*,string>(gir->region);
@@ -358,7 +386,7 @@ public:
       }
     } else if (d_db_type == GEOIP_CITY_EDITION_REV0_V6 ||
                d_db_type == GEOIP_CITY_EDITION_REV1_V6) {
-      GeoIPRecord *gir = GeoIP_record_by_addr_v6(d_gi.get(), ip.c_str());
+      std::unique_ptr<GeoIPRecord, geoiprecord_deleter> gir(GeoIP_record_by_addr_v6(d_gi.get(), ip.c_str()));
       if (gir) {
         ret = valueOrEmpty<char*,string>(gir->region);
         gl.netmask = gir->netmask;
@@ -371,7 +399,7 @@ public:
   bool queryCity(string &ret, GeoIPNetmask& gl, const string &ip) override {
     if (d_db_type == GEOIP_CITY_EDITION_REV0 ||
         d_db_type == GEOIP_CITY_EDITION_REV1) {
-      GeoIPRecord *gir = GeoIP_record_by_addr(d_gi.get(), ip.c_str());
+      std::unique_ptr<GeoIPRecord, geoiprecord_deleter> gir(GeoIP_record_by_addr(d_gi.get(), ip.c_str()));
       if (gir) {
         ret = valueOrEmpty<char*,string>(gir->city);
         gl.netmask = gir->netmask;
@@ -384,7 +412,7 @@ public:
   bool queryCityV6(string &ret, GeoIPNetmask& gl, const string &ip) override {
     if (d_db_type == GEOIP_CITY_EDITION_REV0_V6 ||
         d_db_type == GEOIP_CITY_EDITION_REV1_V6) {
-      GeoIPRecord *gir = GeoIP_record_by_addr_v6(d_gi.get(), ip.c_str());
+      std::unique_ptr<GeoIPRecord, geoiprecord_deleter> gir(GeoIP_record_by_addr_v6(d_gi.get(), ip.c_str()));
       if (gir) {
         ret = valueOrEmpty<char*,string>(gir->city);
         gl.netmask = gir->netmask;
@@ -401,7 +429,7 @@ public:
         d_db_type == GEOIP_REGION_EDITION_REV1 ||
         d_db_type == GEOIP_CITY_EDITION_REV0_V6 ||
         d_db_type == GEOIP_CITY_EDITION_REV1_V6) {
-      GeoIPRecord *gir = GeoIP_record_by_addr_v6(d_gi.get(), ip.c_str());
+      std::unique_ptr<GeoIPRecord, geoiprecord_deleter> gir(GeoIP_record_by_addr_v6(d_gi.get(), ip.c_str()));
       if (gir) {
         latitude = gir->latitude;
         longitude = gir->longitude;
@@ -419,7 +447,7 @@ public:
         d_db_type == GEOIP_REGION_EDITION_REV1 ||
         d_db_type == GEOIP_CITY_EDITION_REV0 ||
         d_db_type == GEOIP_CITY_EDITION_REV1) {
-      GeoIPRecord *gir = GeoIP_record_by_addr(d_gi.get(), ip.c_str());
+      std::unique_ptr<GeoIPRecord, geoiprecord_deleter> gir(GeoIP_record_by_addr(d_gi.get(), ip.c_str()));
       if (gir) {
         latitude = gir->latitude;
         longitude = gir->longitude;
@@ -433,7 +461,7 @@ public:
   ~GeoIPInterfaceDAT() { }
 private:
   unsigned int d_db_type;
-  unique_ptr<GeoIP,geoip_deleter> d_gi;
+  unique_ptr<GeoIP, geoip_deleter> d_gi;
 };
 
 unique_ptr<GeoIPInterface> GeoIPInterface::makeDATInterface(const string &fname, const map<string, string>& opts) {
