@@ -233,7 +233,7 @@ struct DNSDistStats
 
   double latencyAvg100{0}, latencyAvg1000{0}, latencyAvg10000{0}, latencyAvg1000000{0};
   typedef std::function<uint64_t(const std::string&)> statfunction_t;
-  typedef boost::variant<stat_t*, double*, statfunction_t, uint64_t*> entry_t;
+  typedef boost::variant<stat_t*, double*, statfunction_t> entry_t;
   std::vector<std::pair<std::string, entry_t>> entries{
     {"responses", &responses},
     {"servfail-responses", &servfailResponses},
