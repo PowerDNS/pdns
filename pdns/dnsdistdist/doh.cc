@@ -299,10 +299,10 @@ static int processDOHQuery(DOHUnit* du)
 
 static h2o_pathconf_t *register_handler(h2o_hostconf_t *hostconf, const char *path, int (*on_req)(h2o_handler_t *, h2o_req_t *))
 {
-    h2o_pathconf_t *pathconf = h2o_config_register_path(hostconf, path, 0);
-    h2o_handler_t *handler = h2o_create_handler(pathconf, sizeof(*handler));
-    handler->on_req = on_req;
-    return pathconf;
+  h2o_pathconf_t *pathconf = h2o_config_register_path(hostconf, path, 0);
+  h2o_handler_t *handler = h2o_create_handler(pathconf, sizeof(*handler));
+  handler->on_req = on_req;
+  return pathconf;
 }
 
 /* this is called by h2o when our request dies.
@@ -332,18 +332,18 @@ try
   h2o_socket_getpeername(sock, (struct sockaddr*)&remote);
   DOHServerConfig* dsc = (DOHServerConfig*)req->conn->ctx->storage.entries[0].data;
 
-  auto tlsversion=h2o_socket_get_ssl_protocol_version(sock);
-
-  if(!strcmp(tlsversion, "TLSv1.0"))
-    dsc->df->d_tls10queries++;
-  else if(!strcmp(tlsversion, "TLSv1.1"))
-    dsc->df->d_tls11queries++;
-  else if(!strcmp(tlsversion, "TLSv1.2"))
-    dsc->df->d_tls12queries++;
-  else if(!strcmp(tlsversion, "TLSv1.3"))
-    dsc->df->d_tls13queries++;
-  else
-    dsc->df->d_tlsUnknownqueries++;
+  if(auto tlsversion=h2o_socket_get_ssl_protocol_version(sock)) {
+    if(!strcmp(tlsversion, "TLSv1.0"))
+      dsc->df->d_tls10queries++;
+    else if(!strcmp(tlsversion, "TLSv1.1"))
+      dsc->df->d_tls11queries++;
+    else if(!strcmp(tlsversion, "TLSv1.2"))
+      dsc->df->d_tls12queries++;
+    else if(!strcmp(tlsversion, "TLSv1.3"))
+      dsc->df->d_tls13queries++;
+    else
+      dsc->df->d_tlsUnknownqueries++;
+  }
   
   string path(req->path.base, req->path.len);
 
@@ -641,13 +641,7 @@ static int setup_ssl(DOHServerConfig* dsc, const char *cert_file, const char *ke
         return -1;
     }
 
-    /* setup protocol negotiation methods */ // I have no idea what this means
-#if H2O_USE_NPN
-    h2o_ssl_register_npn_protocols(dsc->h2o_accept_ctx.ssl_ctx, h2o_http2_npn_protocols);
-#endif
-#if H2O_USE_ALPN
     h2o_ssl_register_alpn_protocols(dsc->h2o_accept_ctx.ssl_ctx, h2o_http2_alpn_protocols);
-#endif
 
     return 0;
 }
