@@ -401,6 +401,7 @@ build_auth() {
     --enable-tools \
     --enable-unit-tests \
     --enable-backend-unit-tests \
+    --enable-fuzz-targets \
     --disable-dependency-tracking \
     --disable-silent-rules"
   run "make -k dist"
