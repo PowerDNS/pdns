@@ -318,6 +318,8 @@ bool GeoIPBackend::lookup_static(const GeoIPDomain &dom, const DNSName &search, 
 
   if (i != dom.records.end()) { // return static value
     for(const auto& rr : i->second) {
+      if (qtype != QType::ANY && rr.qtype != qtype) continue;
+
       if (rr.has_weight) {
         gl.netmask = (v6?128:32);
         int comp = cumul_probabilities[rr.qtype.getCode()];
@@ -325,13 +327,11 @@ bool GeoIPBackend::lookup_static(const GeoIPDomain &dom, const DNSName &search, 
         if (rr.weight == 0 || probability_rnd < comp || probability_rnd > (comp + rr.weight))
           continue;
       }
-      if (qtype == QType::ANY || rr.qtype == qtype) {
-        const string& content = format2str(rr.content, ip, v6, gl);
-        if (rr.qtype != QType::ENT && rr.qtype != QType::TXT && content.empty()) continue;
-        d_result.push_back(rr);
-        d_result.back().content = content;
-        d_result.back().qname = qdomain;
-      }
+      const string& content = format2str(rr.content, ip, v6, gl);
+      if (rr.qtype != QType::ENT && rr.qtype != QType::TXT && content.empty()) continue;
+      d_result.push_back(rr);
+      d_result.back().content = content;
+      d_result.back().qname = qdomain;
     }
     // ensure we get most strict netmask
     for(DNSResourceRecord& rr: d_result) {
