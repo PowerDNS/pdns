@@ -221,7 +221,7 @@ Using the ``weight`` attribute
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 You can use record attributes to define positive and non-zero weight.
-If this is given, only one record is chosen randomly based on the weight.
+If this is given, only one record per type is chosen randomly based on the weight.
 
 Probability is calculated by summing up the weights and dividing each weight with the sum.
 

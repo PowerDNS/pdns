@@ -261,24 +261,30 @@ void GeoIPBackend::initialize() {
 
     // finally fix weights
     for(auto &item: dom.records) {
-      float weight=0;
-      float sum=0;
+      map<uint16_t, float> weights;
+      map<uint16_t, float> sums;
+      map<uint16_t, GeoIPDNSResourceRecord> lasts;
       bool has_weight=false;
       // first we look for used weight
       for(const auto &rr: item.second) {
-        weight+=rr.weight;
+        weights[rr.qtype.getCode()] += rr.weight;
         if (rr.has_weight) has_weight = true;
       }
       if (has_weight) {
         // put them back as probabilities and values..
         for(auto &rr: item.second) {
-          rr.weight=static_cast<int>((static_cast<float>(rr.weight) / weight)*1000.0);
-          sum += rr.weight;
+          uint16_t rr_type = rr.qtype.getCode();
+          rr.weight=static_cast<int>((static_cast<float>(rr.weight) / weights[rr_type])*1000.0);
+          sums[rr_type] += rr.weight;
           rr.has_weight = has_weight;
+          lasts[rr_type] = rr;
         }
         // remove rounding gap
-        if (sum < 1000)
-          item.second.back().weight += (1000-sum);
+        for(auto &x: lasts) {
+          float sum = sums[x.first];
+          if (sum < 1000)
+            x.second.weight += (1000-sum);
+        }
       }
     }
 
@@ -307,15 +313,15 @@ GeoIPBackend::~GeoIPBackend() {
 
 bool GeoIPBackend::lookup_static(const GeoIPDomain &dom, const DNSName &search, const QType &qtype, const DNSName& qdomain, const std::string &ip, GeoIPNetmask &gl, bool v6) {
   const auto& i = dom.records.find(search);
-  int cumul_probability = 0;
+  map<uint16_t,int> cumul_probabilities;
   int probability_rnd = 1+(dns_random(1000)); // setting probability=0 means it never is used
 
   if (i != dom.records.end()) { // return static value
     for(const auto& rr : i->second) {
       if (rr.has_weight) {
         gl.netmask = (v6?128:32);
-        int comp = cumul_probability;
-        cumul_probability += rr.weight;
+        int comp = cumul_probabilities[rr.qtype.getCode()];
+        cumul_probabilities[rr.qtype.getCode()] += rr.weight;
         if (rr.weight == 0 || probability_rnd < comp || probability_rnd > (comp + rr.weight))
           continue;
       }
