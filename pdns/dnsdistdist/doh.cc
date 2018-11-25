@@ -377,7 +377,8 @@ try
       string sdns(path.substr(pos+5));
       boost::replace_all(sdns,"-", "+");
       boost::replace_all(sdns,"_", "/");
- 
+      sdns.append(sdns.size() % 4, '='); // re-add padding that may have been missing
+
       string decoded;
       if(B64Decode(sdns, decoded) < 0) {
         h2o_send_error_400(req, "Bad Request", "dnsdist " VERSION " could not decode BASE64-URL", 0);
