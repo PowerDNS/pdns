@@ -13,7 +13,7 @@ Changelogs for 4.1.x
 
   .. change::
     :tags: Bug Fixes
-    :pullreq: TBD
+    :pullreq: 7221
 
     Crafted query can cause a denial of service (CVE-2018-16855, PowerDNS Security Advisory :doc:`2018-09 <../security-advisories/powerdns-advisory-2018-09>`)
 
