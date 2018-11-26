@@ -106,6 +106,14 @@ class IXFRDistBasicTest(IXFRDistTest):
 
         # answers[1].sort(key=lambda rrset: (rrset.name, rrset.rdtype))
         self.assertEqual(answers, expected)
+        # check the TTLs
+        answerPos = 0
+        for expectedAnswer in expected:
+            pos = 0
+            for rec in expectedAnswer:
+                self.assertEquals(rec.ttl, answers[answerPos][pos].ttl)
+                pos = pos + 1
+            answerPos = answerPos + 1
 
     def test_a_XFR(self):
         self.waitUntilCorrectSerialIsLoaded(1)
@@ -124,6 +132,11 @@ class IXFRDistBasicTest(IXFRDistTest):
 
         response = self.sendUDPQuery(query)
         self.assertEquals(expected, response)
+        # check the TTLs
+        pos = 0
+        for rec in expected.answer:
+            self.assertEquals(rec.ttl, response.answer[pos].ttl)
+            pos = pos + 1
 
     def test_b_UDP_SOA_not_loaded(self):
         query = dns.message.make_query('example2.', 'SOA')
