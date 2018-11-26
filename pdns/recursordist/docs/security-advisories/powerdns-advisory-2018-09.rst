@@ -18,7 +18,7 @@ of the query for a packet cache lookup, possibly leading to a crash.
 This issue has been assigned CVE-2018-16855 by Red Hat.
 
 When the PowerDNS Recursor is run inside a supervisor like supervisord
-or systemd, an out-of-memory crash will lead to an automatic restart, limiting
-the impact to a somewhat degraded service.
+or systemd, a crash will lead to an automatic restart, limiting the impact to
+a somewhat degraded service.
 
 PowerDNS Recursor from 4.1.0 up to and including 4.1.7 is affected.

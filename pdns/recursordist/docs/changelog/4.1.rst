@@ -9,7 +9,7 @@ Changelogs for 4.1.x
 
   The issue is that a remote attacker can trigger an out-of-bounds memory read via a crafted query, while computing the hash of the query for a packet cache lookup, possibly leading to a crash.
 
-  When the PowerDNS Recursor is run inside a supervisor like supervisord or systemd, an out-of-memory crash will lead to an automatic restart, limiting the impact to a somewhat degraded service.
+  When the PowerDNS Recursor is run inside a supervisor like supervisord or systemd, a crash will lead to an automatic restart, limiting the impact to a somewhat degraded service.
 
   .. change::
     :tags: Bug Fixes
