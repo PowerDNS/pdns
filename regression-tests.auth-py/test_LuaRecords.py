@@ -559,7 +559,7 @@ any              IN           TXT "hello there"
 
         res = self.sendUDPQuery(query)
         self.assertRcodeEqual(res, dns.rcode.NOERROR)
-        self.assertEqual(res.answer, response.answer)
+        self.assertEqual(sorted(res.answer), sorted(response.answer))
 
 if __name__ == '__main__':
     unittest.main()
