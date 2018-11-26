@@ -2,6 +2,22 @@ Changelogs for 4.1.x
 ====================
 
 .. changelog::
+  :version: 4.1.8
+  :released: 26th of November 2018
+
+  This release fixes :doc:`Security Advisory 2018-09 <../security-advisories/powerdns-advisory-2018-09>` that we recently discovered, affecting PowerDNS Recursor up to and including 4.1.7.
+
+  The issue is that a remote attacker can trigger an out-of-bounds memory read via a crafted query, while computing the hash of the query for a packet cache lookup, possibly leading to a crash.
+
+  When the PowerDNS Recursor is run inside a supervisor like supervisord or systemd, a crash will lead to an automatic restart, limiting the impact to a somewhat degraded service.
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 7221
+
+    Crafted query can cause a denial of service (CVE-2018-16855, PowerDNS Security Advisory :doc:`2018-09 <../security-advisories/powerdns-advisory-2018-09>`)
+
+.. changelog::
   :version: 4.1.7
   :released: 9th of November 2018
 
