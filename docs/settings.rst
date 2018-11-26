@@ -1138,6 +1138,9 @@ To notify all IP addresses apart from the 192.168.0.0/24 subnet use the followin
 ``out-of-zone-additional-processing``
 -------------------------------------
 
+.. versionchanged:: 4.2.0
+  This setting has been removed.
+
 -  Boolean
 -  Default: yes
 

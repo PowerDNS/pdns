@@ -37,12 +37,8 @@ Operational
 
 The ADDITIONAL is section different than BIND's answer, why?
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-My server is not answering with a verbose "ADDITIONAL SECTION" that includes A records for the namservers of the domain queried
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 The PowerDNS Authoritative Server by default does not 'trust' other zones in its own database.
-You may want to add :ref:`setting-out-of-zone-additional-processing` to ``yes`` in your configuration to tell it to do so.
-If the domain your nameservers are in are known to the backend they will now be included in the additional section.
 
 PowerDNS does not give authoritative answers, how come?
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
