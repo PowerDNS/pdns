@@ -38,7 +38,7 @@ public:
     const char* end = packet.c_str() + packetSize;
     const char* p = packet.c_str() + pos;
 
-    for(; p < end && *p; ++p) { // XXX if you embed a 0 in your qname we'll stop lowercasing there
+    for(; p < end && *p; ++p, ++pos) { // XXX if you embed a 0 in your qname we'll stop lowercasing there
       const unsigned char l = dns_tolower(*p); // label lengths can safely be lower cased
       ret=burtle(&l, 1, ret);
     }                           // XXX the embedded 0 in the qname will break the subnet stripping
