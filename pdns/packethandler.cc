@@ -383,7 +383,10 @@ bool PacketHandler::getBestWildcard(DNSPacket *p, SOAData& sd, const DNSName &ta
         DLOG(g_log<<"Have a wildcard LUA match"<<endl);
         
         auto rec=getRR<LUARecordContent>(rr.dr);
-        if(rec->d_type == QType::CNAME || rec->d_type == p->qtype.getCode()) {
+        if (!rec) {
+          continue;
+        }
+        if(rec->d_type == QType::CNAME || rec->d_type == p->qtype.getCode() || (p->qtype.getCode() == QType::ANY && rec->d_type != QType::RRSIG)) {
           //    noCache=true;
           DLOG(g_log<<"Executing Lua: '"<<rec->getCode()<<"'"<<endl);
           try {
@@ -1362,7 +1365,10 @@ DNSPacket *PacketHandler::doQuestion(DNSPacket *p)
         if(!doLua)
           continue;
         auto rec=getRR<LUARecordContent>(rr.dr);
-        if(rec->d_type == QType::CNAME || rec->d_type == p->qtype.getCode()) {
+        if (!rec) {
+          continue;
+        }
+        if(rec->d_type == QType::CNAME || rec->d_type == p->qtype.getCode() || (p->qtype.getCode() == QType::ANY && rec->d_type != QType::RRSIG)) {
           noCache=true;
           try {
             auto recvec=luaSynth(rec->getCode(), target, sd.qname, sd.domain_id, *p, rec->d_type);

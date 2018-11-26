@@ -195,7 +195,7 @@ class LUARecordContent : public DNSRecordContent
 {
 public:
   includeboilerplate(LUA)
-  string getCode();
+  string getCode() const;
   uint16_t d_type;
   string d_code;
 };
