@@ -1376,11 +1376,16 @@ LIB_FUZZING_ENGINE ?= standalone_fuzz_target_runner.o
 
 standalone_fuzz_target_runner.o: standalone_fuzz_target_runner.cc
 
+fuzz_targets_programs =  \
+	fuzz_target_dnsdistcache \
+	fuzz_target_moadnsparser \
+	fuzz_target_packetcache \
+	fuzz_target_zoneparsertng
+
+fuzz_targets: $(fuzz_targets_programs)
+
 bin_PROGRAMS += \
-	fuzz_dnsdistcache \
-	fuzz_moadnsparser \
-	fuzz_packetcache \
-	fuzz_zoneparsertng
+	$(fuzz_targets_programs)
 
 fuzz_targets_libs = \
 	$(LIBCRYPTO_LIBS) \
@@ -1394,7 +1399,7 @@ fuzz_targets_ldflags = \
 # we need the mockup runner to be built, but not linked if a real fuzzing engine is used
 fuzz_targets_deps = standalone_fuzz_target_runner.o
 
-fuzz_moadnsparser_SOURCES = \
+fuzz_target_moadnsparser_SOURCES = \
 	fuzz_moadnsparser.cc \
 	base32.cc base32.hh \
 	base64.cc base64.hh \
@@ -1413,11 +1418,11 @@ fuzz_moadnsparser_SOURCES = \
 	unix_utility.cc \
 	utility.hh
 
-fuzz_moadnsparser_DEPENDENCIES = $(fuzz_targets_deps)
-fuzz_moadnsparser_LDFLAGS = $(fuzz_targets_ldflags)
-fuzz_moadnsparser_LDADD = $(fuzz_targets_libs)
+fuzz_target_moadnsparser_DEPENDENCIES = $(fuzz_targets_deps)
+fuzz_target_moadnsparser_LDFLAGS = $(fuzz_targets_ldflags)
+fuzz_target_moadnsparser_LDADD = $(fuzz_targets_libs)
 
-fuzz_packetcache_SOURCES = \
+fuzz_target_packetcache_SOURCES = \
 	fuzz_packetcache.cc \
 	dnslabeltext.cc \
 	dnsname.cc dnsname.hh \
@@ -1426,11 +1431,11 @@ fuzz_packetcache_SOURCES = \
 	packetcache.hh \
 	statbag.cc statbag.hh
 
-fuzz_packetcache_DEPENDENCIES = $(fuzz_targets_deps)
-fuzz_packetcache_LDFLAGS = $(fuzz_targets_ldflags)
-fuzz_packetcache_LDADD = $(fuzz_targets_libs)
+fuzz_target_packetcache_DEPENDENCIES = $(fuzz_targets_deps)
+fuzz_target_packetcache_LDFLAGS = $(fuzz_targets_ldflags)
+fuzz_target_packetcache_LDADD = $(fuzz_targets_libs)
 
-fuzz_dnsdistcache_SOURCES = \
+fuzz_target_dnsdistcache_SOURCES = \
 	fuzz_dnsdistcache.cc \
 	dnsdist-cache.cc dnsdist-cache.hh \
 	dnsdist-ecs.cc dnsdist-ecs.hh \
@@ -1445,11 +1450,11 @@ fuzz_dnsdistcache_SOURCES = \
 	packetcache.hh \
 	qtype.cc qtype.hh
 
-fuzz_dnsdistcache_DEPENDENCIES = $(fuzz_targets_deps)
-fuzz_dnsdistcache_LDFLAGS = $(fuzz_targets_ldflags)
-fuzz_dnsdistcache_LDADD = $(fuzz_targets_libs)
+fuzz_target_dnsdistcache_DEPENDENCIES = $(fuzz_targets_deps)
+fuzz_target_dnsdistcache_LDFLAGS = $(fuzz_targets_ldflags)
+fuzz_target_dnsdistcache_LDADD = $(fuzz_targets_libs)
 
-fuzz_zoneparsertng_SOURCES = \
+fuzz_target_zoneparsertng_SOURCES = \
 	fuzz_zoneparsertng.cc \
 	base32.cc base32.hh \
 	base64.cc base64.hh \
@@ -1469,9 +1474,9 @@ fuzz_zoneparsertng_SOURCES = \
 	utility.hh \
 	zoneparser-tng.cc zoneparser-tng.hh
 
-fuzz_zoneparsertng_DEPENDENCIES = $(fuzz_targets_deps)
-fuzz_zoneparsertng_LDFLAGS = $(fuzz_targets_ldflags)
-fuzz_zoneparsertng_LDADD = $(fuzz_targets_libs)
+fuzz_target_zoneparsertng_DEPENDENCIES = $(fuzz_targets_deps)
+fuzz_target_zoneparsertng_LDFLAGS = $(fuzz_targets_ldflags)
+fuzz_target_zoneparsertng_LDADD = $(fuzz_targets_libs)
 
 endif
 

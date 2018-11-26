@@ -62,3 +62,7 @@ effective_tld_names.dat
 /*.service
 /pdns.conf-dist
 /stubquery
+/fuzz_target_dnsdistcache
+/fuzz_target_moadnsparser
+/fuzz_target_packetcache
+/fuzz_target_zoneparsertng
