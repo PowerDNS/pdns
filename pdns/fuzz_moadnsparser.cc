@@ -39,6 +39,10 @@ extern "C" int LLVMFuzzerTestOneInput(const uint8_t* data, size_t size) {
     initialized = true;
   }
 
+  if (size > std::numeric_limits<uint16_t>::max()) {
+    return 0;
+  }
+
   try {
     MOADNSParser moaQuery(true, reinterpret_cast<const char*>(data), size);
   }
