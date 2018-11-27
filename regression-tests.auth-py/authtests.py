@@ -413,6 +413,13 @@ distributor-threads=1""".format(confdir=confdir, prefix=cls._PREFIX,
         if not found :
             raise AssertionError("RRset not found in answer\n\n%s" % ret)
 
+    def sortRRsets(self, rrsets):
+        """Sorts RRsets in a more useful way than dnspython's default behaviour
+
+        @param rrsets: an array of dns.rrset.RRset objects"""
+
+        return sorted(rrsets, key=lambda rrset: (rrset.name, rrset.rdtype))
+
     def assertAnyRRsetInAnswer(self, msg, rrsets):
         """Asserts that any of the supplied rrsets exists (without comparing TTL)
         in the answer section of msg
