@@ -70,12 +70,12 @@ def get_auth_db():
 def get_db_records(zonename, qtype):
     with get_auth_db() as db:
         rows = db.execute("""
-            SELECT name, type, content, ttl
+            SELECT name, type, content, ttl, ordername
             FROM records
             WHERE type = ? AND domain_id = (
                 SELECT id FROM domains WHERE name = ?
             )""", (qtype, zonename.rstrip('.'))).fetchall()
-        recs = [{'name': row[0], 'type': row[1], 'content': row[2], 'ttl': row[3]} for row in rows]
+        recs = [{'name': row[0], 'type': row[1], 'content': row[2], 'ttl': row[3], 'ordername': row[4]} for row in rows]
         print("DB Records:", recs)
         return recs
 

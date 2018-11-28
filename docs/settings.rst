@@ -300,6 +300,20 @@ Debugging switch - don't use.
 
 Operate as a daemon.
 
+.. _setting-default-api-rectify:
+
+``default-api-rectify``
+-----------------------
+-  Boolean
+-  Default: yes
+
+.. versionadded:: 4.2.0
+
+The value of :ref:`metadata-api-rectify` if it is not set on the zone.
+
+.. note::
+  Pre 4.2.0 the default was always no.
+
 .. _setting-default-ksk-algorithms:
 .. _setting-default-ksk-algorithm:
 
