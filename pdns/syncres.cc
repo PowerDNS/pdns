@@ -1137,9 +1137,7 @@ bool SyncRes::doCacheCheck(const DNSName &qname, const DNSName& authname, bool w
     giveNegative = true;
     cachedState = ne->d_validationState;
   }
-  else if (t_sstorage.negcache.get(qname, qtype, d_now, &ne) &&
-           !(wasForwardedOrAuthZone && ne->d_auth != authname)) { // Only the authname nameserver can neg cache entries
-
+  else if (t_sstorage.negcache.get(qname, qtype, d_now, &ne)) {
     /* If we are looking for a DS, discard NXD if auth == qname
        and ask for a specific denial instead */
     if (qtype != QType::DS || ne->d_qtype.getCode() || ne->d_auth != qname ||
@@ -1971,8 +1969,9 @@ vState SyncRes::validateRecordsWithSigs(unsigned int depth, const DNSName& qname
   return Bogus;
 }
 
-RCode::rcodes_ SyncRes::updateCacheFromRecords(unsigned int depth, LWResult& lwr, const DNSName& qname, const QType& qtype, const DNSName& auth, bool wasForwarded, const boost::optional<Netmask> ednsmask, vState& state, bool& needWildcardProof, unsigned int& wildcardLabelsCount)
+RCode::rcodes_ SyncRes::updateCacheFromRecords(unsigned int depth, LWResult& lwr, const DNSName& qname, const QType& qtype, const DNSName& auth, bool wasForwarded, const boost::optional<Netmask> ednsmask, vState& state, bool& needWildcardProof, unsigned int& wildcardLabelsCount, bool rdQuery)
 {
+  bool wasForwardRecurse = wasForwarded && rdQuery;
   tcache_t tcache;
 
   string prefix;
@@ -2143,7 +2142,7 @@ RCode::rcodes_ SyncRes::updateCacheFromRecords(unsigned int depth, LWResult& lwr
     if (shouldValidate() && recordState == Secure) {
       vState initialState = recordState;
 
-      if (isAA) {
+      if (isAA || wasForwardRecurse) {
         if (i->first.place != DNSResourceRecord::ADDITIONAL) {
           /* the additional entries can be insecure,
              like glue:
@@ -2173,7 +2172,7 @@ RCode::rcodes_ SyncRes::updateCacheFromRecords(unsigned int depth, LWResult& lwr
         }
       }
 
-      if (initialState == Secure && state != recordState && isAA) {
+      if (initialState == Secure && state != recordState && (isAA || wasForwardRecurse)) {
         updateValidationState(state, recordState);
       }
     }
@@ -2566,7 +2565,7 @@ bool SyncRes::processAnswer(unsigned int depth, LWResult& lwr, const DNSName& qn
 
   bool needWildcardProof = false;
   unsigned int wildcardLabelsCount;
-  *rcode = updateCacheFromRecords(depth, lwr, qname, qtype, auth, wasForwarded, ednsmask, state, needWildcardProof, wildcardLabelsCount);
+  *rcode = updateCacheFromRecords(depth, lwr, qname, qtype, auth, wasForwarded, ednsmask, state, needWildcardProof, wildcardLabelsCount, sendRDQuery);
   if (*rcode != RCode::NoError) {
     return true;
   }
