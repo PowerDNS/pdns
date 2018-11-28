@@ -103,6 +103,10 @@ none.view        IN    LUA    A          ("view({{                              
                                           " }})                                          " )
 *.magic          IN    LUA    A     "closestMagic()"
 www-balanced     IN           CNAME 1-1-1-3.17-1-2-4.1-2-3-5.magic.example.org.
+
+any              IN    LUA    A   "'192.0.2.1'"
+any              IN           TXT "hello there"
+
         """,
     }
     _web_rrsets = []
@@ -521,6 +525,41 @@ www-balanced     IN           CNAME 1-1-1-3.17-1-2-4.1-2-3-5.magic.example.org.
 
         first = self.sendUDPQuery(query)
         self.assertRcodeEqual(first, dns.rcode.SERVFAIL)
+
+
+    def testA(self):
+        """
+        Test A query against `any`
+        """
+        name = 'any.example.org.'
+
+        query = dns.message.make_query(name, 'A')
+
+        response = dns.message.make_response(query)
+
+        response.answer.append(dns.rrset.from_text(name, 0, dns.rdataclass.IN, dns.rdatatype.A, '192.0.2.1'))
+
+        res = self.sendUDPQuery(query)
+        self.assertRcodeEqual(res, dns.rcode.NOERROR)
+        self.assertEqual(res.answer, response.answer)
+
+    def testANY(self):
+        """
+        Test ANY query against `any`
+        """
+
+        name = 'any.example.org.'
+
+        query = dns.message.make_query(name, 'ANY')
+
+        response = dns.message.make_response(query)
+
+        response.answer.append(dns.rrset.from_text(name, 0, dns.rdataclass.IN, dns.rdatatype.A, '192.0.2.1'))
+        response.answer.append(dns.rrset.from_text(name, 0, dns.rdataclass.IN, 'TXT', '"hello there"'))
+
+        res = self.sendUDPQuery(query)
+        self.assertRcodeEqual(res, dns.rcode.NOERROR)
+        self.assertEqual(self.sortRRsets(res.answer), self.sortRRsets(response.answer))
 
 if __name__ == '__main__':
     unittest.main()

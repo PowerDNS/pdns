@@ -162,7 +162,7 @@ boilerplate_conv(OPT, QType::OPT,
                  );
 
 #ifdef HAVE_LUA_RECORDS
-string LUARecordContent::getCode()
+string LUARecordContent::getCode() const
 {
   // in d_code, series of "part1" "part2"
   vector<string> parts;
