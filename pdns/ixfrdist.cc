@@ -127,12 +127,15 @@ struct ixfrdiff_t {
   shared_ptr<SOARecordContent> newSOA;
   vector<DNSRecord> removals;
   vector<DNSRecord> additions;
+  uint32_t oldSOATTL;
+  uint32_t newSOATTL;
 };
 
 struct ixfrinfo_t {
   shared_ptr<SOARecordContent> soa; // The SOA of the latest AXFR
   records_t latestAXFR;             // The most recent AXFR
   vector<std::shared_ptr<ixfrdiff_t>> ixfrDiffs;
+  uint32_t soaTTL;
 };
 
 // Why a struct? This way we can add more options to a domain in the future
@@ -224,29 +227,32 @@ static void cleanUpDomain(const DNSName& domain, const uint16_t& keep, const str
   }
 }
 
-static shared_ptr<SOARecordContent> getSOAFromRecords(const records_t& records) {
+static void getSOAFromRecords(const records_t& records, shared_ptr<SOARecordContent>& soa, uint32_t& soaTTL) {
   for (const auto& dnsrecord : records) {
     if (dnsrecord.d_type == QType::SOA) {
-      auto soa = getRR<SOARecordContent>(dnsrecord);
+      soa = getRR<SOARecordContent>(dnsrecord);
       if (soa == nullptr) {
         throw PDNSException("Unable to determine SOARecordContent from old records");
       }
-      return soa;
+      soaTTL = dnsrecord.d_ttl;
+      return;
     }
   }
   throw PDNSException("No SOA in supplied records");
 }
 
-static void makeIXFRDiff(const records_t& from, const records_t& to, std::shared_ptr<ixfrdiff_t>& diff, const shared_ptr<SOARecordContent>& fromSOA = nullptr, const shared_ptr<SOARecordContent>& toSOA = nullptr) {
+static void makeIXFRDiff(const records_t& from, const records_t& to, std::shared_ptr<ixfrdiff_t>& diff, const shared_ptr<SOARecordContent>& fromSOA = nullptr, uint32_t fromSOATTL=0, const shared_ptr<SOARecordContent>& toSOA = nullptr, uint32_t toSOATTL = 0) {
   set_difference(from.cbegin(), from.cend(), to.cbegin(), to.cend(), back_inserter(diff->removals), from.value_comp());
   set_difference(to.cbegin(), to.cend(), from.cbegin(), from.cend(), back_inserter(diff->additions), from.value_comp());
   diff->oldSOA = fromSOA;
+  diff->oldSOATTL = fromSOATTL;
   if (fromSOA == nullptr) {
-    diff->oldSOA = getSOAFromRecords(from);
+    getSOAFromRecords(from, diff->oldSOA, diff->oldSOATTL);
   }
   diff->newSOA = toSOA;
+  diff->newSOATTL = toSOATTL;
   if (toSOA == nullptr) {
-    diff->newSOA = getSOAFromRecords(to);
+    getSOAFromRecords(to, diff->newSOA, diff->newSOATTL);
   }
 }
 
@@ -278,9 +284,10 @@ void updateThread(const string& workdir, const uint16_t& keep, const uint16_t& a
       g_log<<Logger::Info<<"Trying to initially load domain "<<domain<<" from disk"<<endl;
       auto serial = getSerialsFromDir(dir);
       shared_ptr<SOARecordContent> soa;
+      uint32_t soaTTL;
       {
         string fname = workdir + "/" + domain.toString() + "/" + std::to_string(serial);
-        loadSOAFromDisk(domain, fname, soa);
+        loadSOAFromDisk(domain, fname, soa, soaTTL);
         records_t records;
         if (soa != nullptr) {
           loadZoneFromDisk(records, fname, domain);
@@ -288,6 +295,7 @@ void updateThread(const string& workdir, const uint16_t& keep, const uint16_t& a
         auto zoneInfo = std::make_shared<ixfrinfo_t>();
         zoneInfo->latestAXFR = std::move(records);
         zoneInfo->soa = soa;
+        zoneInfo->soaTTL = soaTTL;
         updateCurrentZoneInfo(domain, zoneInfo);
       }
       if (soa != nullptr) {
@@ -301,7 +309,7 @@ void updateThread(const string& workdir, const uint16_t& keep, const uint16_t& a
       // Attempt to create it, if _that_ fails, there is no hope
       if (mkdir(dir.c_str(), 0777) == -1 && errno != EEXIST) {
         g_log<<Logger::Error<<"Could not create '"<<dir<<"': "<<strerror(errno)<<endl;
-        exit(EXIT_FAILURE);
+        _exit(EXIT_FAILURE);
       }
     }
   }
@@ -365,6 +373,7 @@ void updateThread(const string& workdir, const uint16_t& keep, const uint16_t& a
 
       // The *new* SOA
       shared_ptr<SOARecordContent> soa;
+      uint32_t soaTTL = 0;
       records_t records;
       try {
         AXFRRetriever axfr(master, domain, tt, &local);
@@ -385,6 +394,7 @@ void updateThread(const string& workdir, const uint16_t& keep, const uint16_t& a
             nrecords++;
             if (dr.d_type == QType::SOA) {
               soa = getRR<SOARecordContent>(dr);
+              soaTTL = dr.d_ttl;
             }
           }
           axfr_now = time(nullptr);
@@ -421,7 +431,7 @@ void updateThread(const string& workdir, const uint16_t& keep, const uint16_t& a
           auto diff = std::make_shared<ixfrdiff_t>();
           zoneInfo->ixfrDiffs = oldZoneInfo->ixfrDiffs;
           g_log<<Logger::Debug<<"Calculating diff for "<<domain<<endl;
-          makeIXFRDiff(oldZoneInfo->latestAXFR, records, diff, oldZoneInfo->soa, soa);
+          makeIXFRDiff(oldZoneInfo->latestAXFR, records, diff, oldZoneInfo->soa, oldZoneInfo->soaTTL, soa, soaTTL);
           g_log<<Logger::Debug<<"Calculated diff for "<<domain<<", we had "<<diff->removals.size()<<" removals and "<<diff->additions.size()<<" additions"<<endl;
           zoneInfo->ixfrDiffs.push_back(std::move(diff));
         }
@@ -434,6 +444,7 @@ void updateThread(const string& workdir, const uint16_t& keep, const uint16_t& a
         g_log<<Logger::Debug<<"Zone "<<domain<<" previously contained "<<(oldZoneInfo ? oldZoneInfo->latestAXFR.size() : 0)<<" entries, "<<records.size()<<" now"<<endl;
         zoneInfo->latestAXFR = std::move(records);
         zoneInfo->soa = soa;
+        zoneInfo->soaTTL = soaTTL;
         updateCurrentZoneInfo(domain, zoneInfo);
       } catch (PDNSException &e) {
         g_stats.incrementAXFRFailures(domain);
@@ -509,7 +520,7 @@ static bool makeSOAPacket(const MOADNSParser& mdp, vector<uint8_t>& packet) {
   pw.getHeader()->rd = mdp.d_header.rd;
   pw.getHeader()->qr = 1;
 
-  pw.startRecord(mdp.d_qname, QType::SOA);
+  pw.startRecord(mdp.d_qname, QType::SOA, zoneInfo->soaTTL);
   zoneInfo->soa->toPacket(pw);
   pw.commit();
 
@@ -530,7 +541,7 @@ static bool makeRefusedPacket(const MOADNSParser& mdp, vector<uint8_t>& packet) 
   return true;
 }
 
-static vector<uint8_t> getSOAPacket(const MOADNSParser& mdp, const shared_ptr<SOARecordContent>& soa) {
+static vector<uint8_t> getSOAPacket(const MOADNSParser& mdp, const shared_ptr<SOARecordContent>& soa, uint32_t soaTTL) {
   vector<uint8_t> packet;
   DNSPacketWriter pw(packet, mdp.d_qname, mdp.d_qtype);
   pw.getHeader()->id = mdp.d_header.id;
@@ -538,7 +549,7 @@ static vector<uint8_t> getSOAPacket(const MOADNSParser& mdp, const shared_ptr<SO
   pw.getHeader()->qr = 1;
 
   // Add the first SOA
-  pw.startRecord(mdp.d_qname, QType::SOA);
+  pw.startRecord(mdp.d_qname, QType::SOA, soaTTL);
   soa->toPacket(pw);
   pw.commit();
   return packet;
@@ -626,10 +637,11 @@ static bool handleAXFR(int fd, const MOADNSParser& mdp) {
   }
 
   shared_ptr<SOARecordContent> soa = zoneInfo->soa;
+  uint32_t soaTTL = zoneInfo->soaTTL;
   const records_t& records = zoneInfo->latestAXFR;
 
   // Initial SOA
-  const auto soaPacket = getSOAPacket(mdp, soa);
+  const auto soaPacket = getSOAPacket(mdp, soa, soaTTL);
   if (!sendPacketOverTCP(fd, soaPacket)) {
     return false;
   }
@@ -712,8 +724,8 @@ static bool handleIXFR(int fd, const ComboAddress& destination, const MOADNSPars
      * SOA new_serial
      */
 
-    const auto newSOAPacket = getSOAPacket(mdp, diff->newSOA);
-    const auto oldSOAPacket = getSOAPacket(mdp, diff->oldSOA);
+    const auto newSOAPacket = getSOAPacket(mdp, diff->newSOA, diff->newSOATTL);
+    const auto oldSOAPacket = getSOAPacket(mdp, diff->oldSOA, diff->oldSOATTL);
 
     if (!sendPacketOverTCP(fd, newSOAPacket)) {
       return false;

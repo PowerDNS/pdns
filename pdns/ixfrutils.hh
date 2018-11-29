@@ -54,4 +54,4 @@ uint32_t getSerialsFromDir(const std::string& dir);
 uint32_t getSerialFromRecords(const records_t& records, DNSRecord& soaret);
 void writeZoneToDisk(const records_t& records, const DNSName& zone, const std::string& directory);
 void loadZoneFromDisk(records_t& records, const string& fname, const DNSName& zone);
-void loadSOAFromDisk(const DNSName& zone, const string& fname, shared_ptr<SOARecordContent>& soa);
+void loadSOAFromDisk(const DNSName& zone, const string& fname, shared_ptr<SOARecordContent>& soa, uint32_t& soaTTL);
