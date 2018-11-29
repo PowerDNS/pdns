@@ -19,11 +19,8 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
-#ifndef PDNS_DNS_RANDOM
-#define PDNS_DNS_RANDOM
-#include <cstdint>
 
-void dns_random_init(const std::string& data = "", bool force_reinit = false);
-uint32_t dns_random(uint32_t n);
+#include "dnsname.hh"
+#include <string>
 
-#endif
+std::string makeTSIGKey(const DNSName& algorithm);

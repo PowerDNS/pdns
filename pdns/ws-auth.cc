@@ -30,6 +30,7 @@
 #include "logger.hh"
 #include "statbag.hh"
 #include "misc.hh"
+#include "base64.hh"
 #include "arguments.hh"
 #include "dns.hh"
 #include "comment.hh"
@@ -45,6 +46,7 @@
 #include "common_startup.hh"
 #include "auth-caches.hh"
 #include "threadname.hh"
+#include "tsigutils.hh"
 
 using json11::Json;
 
@@ -368,6 +370,23 @@ static void fillZone(const DNSName& zonename, HttpResponse* resp, bool doRRSets)
   string api_rectify;
   di.backend->getDomainMetadataOne(zonename, "API-RECTIFY", api_rectify);
   doc["api_rectify"] = (api_rectify == "1");
+
+  // TSIG
+  vector<string> tsig_master, tsig_slave;
+  di.backend->getDomainMetadata(zonename, "TSIG-ALLOW-AXFR", tsig_master);
+  di.backend->getDomainMetadata(zonename, "AXFR-MASTER-TSIG", tsig_slave);
+
+  Json::array tsig_master_keys;
+  for (const auto& keyname : tsig_master) {
+    tsig_master_keys.push_back(apiZoneNameToId(DNSName(keyname)));
+  }
+  doc["master_tsig_key_ids"] = tsig_master_keys;
+
+  Json::array tsig_slave_keys;
+  for (const auto& keyname : tsig_slave) {
+    tsig_slave_keys.push_back(apiZoneNameToId(DNSName(keyname)));
+  }
+  doc["slave_tsig_key_ids"] = tsig_slave_keys;
 
   if (doRRSets) {
     vector<DNSResourceRecord> records;
@@ -720,6 +739,39 @@ static void updateDomainSettingsFromDocument(UeberBackend& B, const DomainInfo& 
       }
     }
   }
+
+  if (!document["master_tsig_key_ids"].is_null()) {
+    vector<string> metadata;
+    DNSName keyAlgo;
+    string keyContent;
+    for(auto value : document["master_tsig_key_ids"].array_items()) {
+      auto keyname(apiZoneIdToName(value.string_value()));
+      B.getTSIGKey(keyname, &keyAlgo, &keyContent);
+      if (keyAlgo.empty() || keyContent.empty()) {
+        throw ApiException("A TSIG key with the name '"+keyname.toLogString()+"' does not exist");
+      }
+      metadata.push_back(keyname.toString());
+    }
+    if (!di.backend->setDomainMetadata(zonename, "TSIG-ALLOW-AXFR", metadata)) {
+      throw HttpInternalServerErrorException("Unable to set new TSIG master keys for zone '" + zonename.toLogString() + "'");
+    }
+  }
+  if (!document["slave_tsig_key_ids"].is_null()) {
+    vector<string> metadata;
+    DNSName keyAlgo;
+    string keyContent;
+    for(auto value : document["slave_tsig_key_ids"].array_items()) {
+      auto keyname(apiZoneIdToName(value.string_value()));
+      B.getTSIGKey(keyname, &keyAlgo, &keyContent);
+      if (keyAlgo.empty() || keyContent.empty()) {
+        throw ApiException("A TSIG key with the name '"+keyname.toLogString()+"' does not exist");
+      }
+      metadata.push_back(keyname.toString());
+    }
+    if (!di.backend->setDomainMetadata(zonename, "AXFR-MASTER-TSIG", metadata)) {
+      throw HttpInternalServerErrorException("Unable to set new TSIG slave keys for zone '" + zonename.toLogString() + "'");
+    }
+  }
 }
 
 static bool isValidMetadataKind(const string& kind, bool readonly) {
@@ -750,10 +802,12 @@ static bool isValidMetadataKind(const string& kind, bool readonly) {
   // the following options do not allow modifications via API
   static vector<string> protectedOptions {
     "API-RECTIFY",
+    "AXFR-MASTER-TSIG",
     "NSEC3NARROW",
     "NSEC3PARAM",
     "PRESIGNED",
-    "LUA-AXFR-SCRIPT"
+    "LUA-AXFR-SCRIPT",
+    "TSIG-ALLOW-AXFR"
   };
 
   if (kind.find("X-") == 0)
@@ -1254,6 +1308,146 @@ static void checkDuplicateRecords(vector<DNSResourceRecord>& records) {
       throw ApiException("Duplicate record in RRset " + rec.qname.toString() + " IN " + rec.qtype.getName() + " with content \"" + rec.content + "\"");
     }
     previous = rec;
+  }
+}
+
+static void checkTSIGKey(UeberBackend& B, const DNSName& keyname, const DNSName& algo, const string& content) {
+  DNSName algoFromDB;
+  string contentFromDB;
+  B.getTSIGKey(keyname, &algoFromDB, &contentFromDB);
+  if (!contentFromDB.empty() || !algoFromDB.empty()) {
+    throw HttpConflictException("A TSIG key with the name '"+keyname.toLogString()+"' already exists");
+  }
+
+  TSIGHashEnum the;
+  if (!getTSIGHashEnum(algo, the)) {
+    throw ApiException("Unknown TSIG algorithm: " + algo.toLogString());
+  }
+
+  string b64out;
+  if (B64Decode(content, b64out) == -1) {
+    throw ApiException("TSIG content '" + content + "' cannot be base64-decoded");
+  }
+}
+
+static Json::object makeJSONTSIGKey(const DNSName& keyname, const DNSName& algo, const string& content) {
+  Json::object tsigkey = {
+    { "name", keyname.toStringNoDot() },
+    { "id", apiZoneNameToId(keyname) },
+    { "algorithm", algo.toStringNoDot() },
+    { "key", content },
+    { "type", "TSIGKey" }
+  };
+  return tsigkey;
+}
+
+static Json::object makeJSONTSIGKey(const struct TSIGKey& key, bool doContent=true) {
+  return makeJSONTSIGKey(key.name, key.algorithm, doContent ? key.key : "");
+}
+
+static void apiServerTSIGKeys(HttpRequest* req, HttpResponse* resp) {
+  UeberBackend B;
+  if (req->method == "GET") {
+    vector<struct TSIGKey> keys;
+
+    if (!B.getTSIGKeys(keys)) {
+      throw HttpInternalServerErrorException("Unable to retrieve TSIG keys");
+    }
+
+    Json::array doc;
+
+    for(const auto &key : keys) {
+      doc.push_back(makeJSONTSIGKey(key, false));
+    }
+    resp->setBody(doc);
+  } else if (req->method == "POST") {
+    auto document = req->json();
+    DNSName keyname(stringFromJson(document, "name"));
+    DNSName algo(stringFromJson(document, "algorithm"));
+    string content = document["key"].string_value();
+
+    if (content.empty()) {
+      try {
+        content = makeTSIGKey(algo);
+      } catch (const PDNSException& e) {
+        throw HttpBadRequestException(e.reason);
+      }
+    }
+
+    // Will throw an ApiException or HttpConflictException on error
+    checkTSIGKey(B, keyname, algo, content);
+
+    if(!B.setTSIGKey(keyname, algo, content)) {
+      throw HttpInternalServerErrorException("Unable to add TSIG key");
+    }
+
+    resp->status = 201;
+    resp->setBody(makeJSONTSIGKey(keyname, algo, content));
+  } else {
+    throw HttpMethodNotAllowedException();
+  }
+}
+
+static void apiServerTSIGKeyDetail(HttpRequest* req, HttpResponse* resp) {
+  UeberBackend B;
+  DNSName keyname = apiZoneIdToName(req->parameters["id"]);
+  DNSName algo;
+  string content;
+
+  if (!B.getTSIGKey(keyname, &algo, &content)) {
+    throw HttpNotFoundException("TSIG key with name '"+keyname.toLogString()+"' not found");
+  }
+
+  struct TSIGKey tsk;
+  tsk.name = keyname;
+  tsk.algorithm = algo;
+  tsk.key = content;
+
+  if (req->method == "GET") {
+    resp->setBody(makeJSONTSIGKey(tsk));
+  } else if (req->method == "PUT") {
+    json11::Json document;
+    if (!req->body.empty()) {
+      document = req->json();
+    }
+    if (document["name"].is_string()) {
+      tsk.name = DNSName(document["name"].string_value());
+    }
+    if (document["algorithm"].is_string()) {
+      tsk.algorithm = DNSName(document["algorithm"].string_value());
+
+      TSIGHashEnum the;
+      if (!getTSIGHashEnum(tsk.algorithm, the)) {
+        throw ApiException("Unknown TSIG algorithm: " + tsk.algorithm.toLogString());
+      }
+    }
+    if (document["key"].is_string()) {
+      string new_content = document["key"].string_value();
+      string decoded;
+      if (B64Decode(new_content, decoded) == -1) {
+        throw ApiException("Can not base64 decode key content '" + new_content + "'");
+      }
+      tsk.key = new_content;
+    }
+    if (!B.setTSIGKey(tsk.name, tsk.algorithm, tsk.key)) {
+      throw HttpInternalServerErrorException("Unable to save TSIG Key");
+    }
+    if (tsk.name != keyname) {
+      // Remove the old key
+      if (!B.deleteTSIGKey(keyname)) {
+        throw HttpInternalServerErrorException("Unable to remove TSIG key '" + keyname.toStringNoDot() + "'");
+      }
+    }
+    resp->setBody(makeJSONTSIGKey(tsk));
+  } else if (req->method == "DELETE") {
+    if (!B.deleteTSIGKey(keyname)) {
+      throw HttpInternalServerErrorException("Unable to remove TSIG key '" + keyname.toStringNoDot() + "'");
+    } else {
+      resp->body = "";
+      resp->status = 204;
+    }
+  } else {
+    throw HttpMethodNotAllowedException();
   }
 }
 
@@ -1976,6 +2170,8 @@ void AuthWebServer::webThread()
       d_ws->registerApiHandler("/api/v1/servers/localhost/config", &apiServerConfig);
       d_ws->registerApiHandler("/api/v1/servers/localhost/search-data", &apiServerSearchData);
       d_ws->registerApiHandler("/api/v1/servers/localhost/statistics", &apiServerStatistics);
+      d_ws->registerApiHandler("/api/v1/servers/localhost/tsigkeys/<id>", &apiServerTSIGKeyDetail);
+      d_ws->registerApiHandler("/api/v1/servers/localhost/tsigkeys", &apiServerTSIGKeys);
       d_ws->registerApiHandler("/api/v1/servers/localhost/zones/<id>/axfr-retrieve", &apiServerZoneAxfrRetrieve);
       d_ws->registerApiHandler("/api/v1/servers/localhost/zones/<id>/cryptokeys/<key_id>", &apiZoneCryptokeys);
       d_ws->registerApiHandler("/api/v1/servers/localhost/zones/<id>/cryptokeys", &apiZoneCryptokeys);

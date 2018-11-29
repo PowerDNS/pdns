@@ -220,6 +220,7 @@ pdns_server_SOURCES = \
 	tcpreceiver.cc tcpreceiver.hh \
 	threadname.hh threadname.cc \
 	tsigverifier.cc tsigverifier.hh \
+	tsigutils.hh tsigutils.cc \
 	tkey.cc \
 	ueberbackend.cc ueberbackend.hh \
 	unix_semaphore.cc \
@@ -329,6 +330,7 @@ pdnsutil_SOURCES = \
 	statbag.cc \
 	stubresolver.cc stubresolver.hh \
 	threadname.hh threadname.cc \
+	tsigutils.hh tsigutils.cc \
 	ueberbackend.cc \
 	unix_utility.cc \
 	zoneparser-tng.cc

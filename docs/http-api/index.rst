@@ -61,16 +61,8 @@ Response code ``4xx`` or ``5xx``, depending on the situation.
 
 Error responses have a JSON body of this format:
 
-.. code-block:: json
-
-    {
-      "error": "short error message",
-      "errors": [
-        {  },
-      ]
-    }
-
-Where ``errors`` is optional, and the contents are error-specific.
+.. openapi:: swagger/authoritative-api-swagger.yaml
+  :definitions: Error
 
 Data format
 ~~~~~~~~~~~
@@ -101,6 +93,7 @@ The API exposes several endpoints and objects:
   zone
   cryptokey
   metadata
+  tsigkey
   search
   statistics
   cache

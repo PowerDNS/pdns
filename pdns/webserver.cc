@@ -256,7 +256,9 @@ void WebServer::handleRequest(HttpRequest& req, HttpResponse& resp) const
       resp.body = "<!html><title>" + what + "</title><h1>" + what + "</h1>";
     } else if (req.accept_json) {
       resp.headers["Content-Type"] = "application/json";
-      resp.setErrorResult(what, resp.status);
+      if (resp.body.empty()) {
+        resp.setErrorResult(what, resp.status);
+      }
     } else {
       resp.headers["Content-Type"] = "text/plain; charset=utf-8";
       resp.body = what;

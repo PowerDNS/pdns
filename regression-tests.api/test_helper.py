@@ -1,3 +1,4 @@
+from __future__ import print_function
 from datetime import datetime
 import os
 import requests
@@ -53,6 +54,8 @@ class ApiTestCase(unittest.TestCase):
 def unique_zone_name():
     return 'test-' + datetime.now().strftime('%d%H%S%M%f') + '.org.'
 
+def unique_tsigkey_name():
+    return 'test-' + datetime.now().strftime('%d%H%S%M%f') + '-key'
 
 def is_auth():
     return DAEMON == 'authoritative'
@@ -95,3 +98,14 @@ def sdig(*args):
         return subprocess.check_call([SDIG, '127.0.0.1', str(DNSPORT)] + list(args))
     except subprocess.CalledProcessError as except_inst:
         raise RuntimeError("sdig %s %s failed: %s" % (command, args, except_inst.output.decode('ascii', errors='replace')))
+
+def get_db_tsigkeys(keyname):
+    with get_auth_db() as db:
+        rows = db.execute("""
+            SELECT name, algorithm, secret
+            FROM tsigkeys
+            WHERE name = ?""", (keyname, )).fetchall()
+        keys = [{'name': row[0], 'algorithm': row[1], 'secret': row[2]} for row in rows]
+        print("DB TSIG keys:", keys)
+        return keys
+

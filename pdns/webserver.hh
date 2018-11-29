@@ -65,6 +65,11 @@ public:
     d_response.status = status;
   };
 
+  HttpException(int status, const string& msg) : d_response()
+  {
+    d_response.setErrorResult(msg, status);
+  };
+
   HttpResponse response()
   {
     return d_response;
@@ -77,6 +82,7 @@ protected:
 class HttpBadRequestException : public HttpException {
 public:
   HttpBadRequestException() : HttpException(400) { };
+  HttpBadRequestException(const string& msg) : HttpException(400, msg) { };
 };
 
 class HttpUnauthorizedException : public HttpException {
@@ -90,26 +96,31 @@ public:
 class HttpForbiddenException : public HttpException {
 public:
   HttpForbiddenException() : HttpException(403) { };
+  HttpForbiddenException(const string& msg) : HttpException(403, msg) { };
 };
 
 class HttpNotFoundException : public HttpException {
 public:
   HttpNotFoundException() : HttpException(404) { };
+  HttpNotFoundException(const string& msg) : HttpException(404, msg) { };
 };
 
 class HttpMethodNotAllowedException : public HttpException {
 public:
   HttpMethodNotAllowedException() : HttpException(405) { };
+  HttpMethodNotAllowedException(const string& msg) : HttpException(405, msg) { };
 };
 
 class HttpConflictException : public HttpException {
 public:
   HttpConflictException() : HttpException(409) { };
+  HttpConflictException(const string& msg) : HttpException(409, msg) { };
 };
 
 class HttpInternalServerErrorException : public HttpException {
 public:
   HttpInternalServerErrorException() : HttpException(500) { };
+  HttpInternalServerErrorException(const string& msg) : HttpException(500, msg) { };
 };
 
 class ApiException : public runtime_error

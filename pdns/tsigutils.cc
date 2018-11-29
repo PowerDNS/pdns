@@ -19,11 +19,40 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
-#ifndef PDNS_DNS_RANDOM
-#define PDNS_DNS_RANDOM
-#include <cstdint>
 
-void dns_random_init(const std::string& data = "", bool force_reinit = false);
-uint32_t dns_random(uint32_t n);
+#include "dnsname.hh"
+#include "base64.hh"
+#include "dns_random.hh"
+#include "misc.hh"
+#include "pdnsexception.hh"
+#include <string>
 
-#endif
+/*
+ * Returns a generated Base64'd TSIG key
+ *
+ * Will raise a PDNSException() if algorithm is invalid
+ */
+std::string makeTSIGKey(const DNSName& algorithm) {
+  TSIGHashEnum tsigHashEnum;
+  if (!getTSIGHashEnum(algorithm, tsigHashEnum)) {
+    throw PDNSException("Invalid TSIG algorithm: " + algorithm.toStringNoDot());
+  }
+
+  size_t klen = 64;
+  if (tsigHashEnum == TSIG_MD5
+      || tsigHashEnum == TSIG_SHA1
+      || tsigHashEnum == TSIG_SHA224) {
+    klen = 32;
+  }
+
+  string tmpkey;
+  tmpkey.resize(klen);
+
+  // Fill out the key
+  for (size_t i = 0; i < klen; i += sizeof(uint32_t)) {
+    uint32_t t = dns_random(std::numeric_limits<uint32_t>::max());
+    memcpy(&tmpkey.at(i), &t, sizeof(uint32_t));
+  }
+
+  return Base64Encode(tmpkey);
+}

@@ -1760,6 +1760,32 @@ fred   IN  A      192.168.0.4
         self.assertEquals(r.status_code, 422)
         self.assertIn("'rrsets' request parameter value 'foobar' is not supported", r.json()['error'])
 
+    def test_put_master_tsig_key_ids_non_existent(self):
+        name = unique_zone_name()
+        keyname = unique_zone_name().split('.')[0]
+        self.create_zone(name=name, kind='Native')
+        payload = {
+            'master_tsig_key_ids': [keyname]
+        }
+        r = self.session.put(self.url('/api/v1/servers/localhost/zones/' + name),
+                             data=json.dumps(payload),
+                             headers={'content-type': 'application/json'})
+        self.assertEquals(r.status_code, 422)
+        self.assertIn('A TSIG key with the name', r.json()['error'])
+
+    def test_put_slave_tsig_key_ids_non_existent(self):
+        name = unique_zone_name()
+        keyname = unique_zone_name().split('.')[0]
+        self.create_zone(name=name, kind='Native')
+        payload = {
+            'slave_tsig_key_ids': [keyname]
+        }
+        r = self.session.put(self.url('/api/v1/servers/localhost/zones/' + name),
+                             data=json.dumps(payload),
+                             headers={'content-type': 'application/json'})
+        self.assertEquals(r.status_code, 422)
+        self.assertIn('A TSIG key with the name', r.json()['error'])
+
 
 @unittest.skipIf(not is_auth(), "Not applicable")
 class AuthRootZone(ApiTestCase, AuthZonesHelperMixin):

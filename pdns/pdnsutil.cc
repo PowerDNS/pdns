@@ -11,6 +11,7 @@
 #include <boost/program_options.hpp>
 #include <boost/assign/std/vector.hpp>
 #include <boost/assign/list_of.hpp>
+#include "tsigutils.hh"
 #include "dnsbackend.hh"
 #include "ueberbackend.hh"
 #include "arguments.hh"
@@ -2765,34 +2766,14 @@ try
       return 0;
     }
     DNSName name(cmds[1]);
-    string algo = cmds[2];
+    DNSName algo(cmds[2]);
     string key;
-    char tmpkey[64];
-
-    size_t klen = 0;
-    if (algo == "hmac-md5") {
-      klen = 32;
-    } else if (algo == "hmac-sha1") {
-      klen = 32;
-    } else if (algo == "hmac-sha224") {
-      klen = 32;
-    } else if (algo == "hmac-sha256") {
-      klen = 64;
-    } else if (algo == "hmac-sha384") {
-      klen = 64;
-    } else if (algo == "hmac-sha512") {
-      klen = 64;
-    } else {
-      cerr << "Cannot generate key for " << algo << endl;
-      cerr << usage << endl;
+    try {
+      key = makeTSIGKey(algo);
+    } catch(const PDNSException& e) {
+      cerr << "Could not create new TSIG key " << name << " " << algo << ": "<< e.reason << endl;
       return 1;
     }
-
-    cerr << "Generating new key with " << klen << " bytes" << endl;
-    for(size_t i = 0; i < klen; i+=4) {
-      *(unsigned int*)(tmpkey+i) = dns_random(0xffffffff);
-    }
-    key = Base64Encode(std::string(tmpkey, klen));
 
     UeberBackend B("default");
     if (B.setTSIGKey(name, DNSName(algo), key)) { // you are feeling bored, put up DNSName(algo) up earlier
