@@ -677,6 +677,7 @@ std::vector<shared_ptr<DNSRecordContent>> luaSynth(const std::string& code, cons
       vector<ComboAddress> candidates, unavailables;
       opts_t opts;
       vector<ComboAddress > conv;
+      std::string selector;
 
       if(options)
         opts = *options;
@@ -689,12 +690,16 @@ std::vector<shared_ptr<DNSRecordContent>> luaSynth(const std::string& code, cons
           unavailables.push_back(rem);
         }
       }
-      if(candidates.empty()) {
-        // if no IP is available, use selector on the whole set
+      if(!candidates.empty()) {
+        // use regular selector
+        selector = getOptionValue(options, "selector", "random");
+      } else {
+        // All units are down, apply backupSelector on all candidates
         candidates = std::move(unavailables);
+        selector = getOptionValue(options, "backupSelector", "random");
       }
 
-      vector<ComboAddress> res = useSelector(getOptionValue(options, "selector", "random"), bestwho, candidates);
+      vector<ComboAddress> res = useSelector(selector, bestwho, candidates);
       return convIpListToString(res);
     });
 
@@ -730,13 +735,13 @@ std::vector<shared_ptr<DNSRecordContent>> luaSynth(const std::string& code, cons
         }
       }
 
-      // All units down, apply defaultSelector on all candidates
+      // All units down, apply backupSelector on all candidates
       vector<ComboAddress> ret{};
       for(const auto& unit : candidates) {
         ret.insert(ret.end(), unit.begin(), unit.end());
       }
 
-      vector<ComboAddress> res = useSelector(getOptionValue(options, "defaultSelector", "random"), bestwho, ret);
+      vector<ComboAddress> res = useSelector(getOptionValue(options, "backupSelector", "random"), bestwho, ret);
       return convIpListToString(res);
     });
 

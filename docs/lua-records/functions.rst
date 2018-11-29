@@ -46,7 +46,8 @@ Record creation functions
 
   Various options can be set in the ``options`` parameter:
 
-  - ``selector``: used to pick the IP address from list of viable candidates. Choices include 'pickclosest', 'random', 'hashed', 'all', 'none'.
+  - ``selector``: used to pick the IP address from list of viable candidates. Choices include 'pickclosest', 'random', 'hashed', 'all', 'none' (default to 'random').
+  - ``backupSelector``: used to pick the IP address from list of all candidates if all addresses are down. Choices include 'pickclosest', 'random', 'hashed', 'all', 'none' (default to 'random').
   - ``source``: Source IP address to check from
 
 
@@ -54,7 +55,9 @@ Record creation functions
 
   More sophisticated test that attempts an actual http(s) connection to
   ``url``. In addition, multiple groups of IP addresses can be supplied. The
-  first set with a working (available) IP address is used.
+  first set with a working (available) IP address is used. URL is considered up if
+  HTTP response code is 200 and optionally if the content matches ``stringmatch``
+  option.
 
   :param string url: The url to retrieve.
   :param addresses: List of lists of IP addresses to check the URL on.
@@ -62,8 +65,8 @@ Record creation functions
 
   Various options can be set in the ``options`` parameter:
 
-  - ``selector``: used to pick the IP address from list of viable candidates. Choices include 'pickclosest', 'random', 'hashed', 'all', 'none'.
-  - ``defaultSelector``: used to pick the IP address from list of all candidates if all addresses are down. Choices include 'pickclosest', 'random', 'hashed', 'all', 'none'.
+  - ``selector``: used to pick the IP address from list of viable candidates. Choices include 'pickclosest', 'random', 'hashed', 'all', 'none' (default to 'random').
+  - ``backupSelector``: used to pick the IP address from list of all candidates if all addresses are down. Choices include 'pickclosest', 'random', 'hashed', 'all', 'none' (default to 'random').
   - ``source``: Source IP address to check from
   - ``stringmatch``: check ``url`` for this string, only declare 'up' if found
 
