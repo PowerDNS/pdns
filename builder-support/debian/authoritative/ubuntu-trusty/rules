@@ -21,7 +21,7 @@ override_dh_auto_configure:
 		--with-modules="" \
 		--enable-tools \
 		--enable-ixfrdist \
-		--disable-libsodium \
+		--without-libsodium \
 		--with-lua=luajit \
 		--with-protobuf \
 		--enable-unit-tests \

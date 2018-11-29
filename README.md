@@ -49,7 +49,7 @@ For Ubuntu 18.04 (Bionic Beaver), the following packages should be installed:
 
 ```sh
 apt install libcurl4-openssl-dev luajit lua-yaml-dev libyaml-cpp-dev libtolua-dev lua5.3 autoconf automake ragel bison flex g++ libboost-all-dev libtool make pkg-config libssl-dev virtualenv lua-yaml-dev libyaml-cpp-dev libluajit-5.1-dev libcurl4 gawk
-# For DNSSEC ed25519 (algorithm 15) support with --enable-libsodium
+# For DNSSEC ed25519 (algorithm 15) support with --with-libsodium
 apt install libsodium-dev
 # If using the gmysql (Generic MySQL) backend
 apt install default-libmysqlclient-dev

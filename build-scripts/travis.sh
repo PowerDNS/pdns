@@ -395,7 +395,7 @@ build_auth() {
     --with-dynmodules='bind gmysql geoip gpgsql gsqlite3 ldap lua mydns opendbx pipe random remote tinydns godbc lua2' \
     --with-modules='' \
     --with-sqlite3 \
-    --enable-libsodium \
+    --with-libsodium \
     --enable-experimental-pkcs11 \
     --enable-remotebackend-zeromq \
     --enable-tools \
@@ -439,7 +439,7 @@ build_recursor() {
   run "./configure \
     ${sanitizerflags} \
     --prefix=$PDNS_RECURSOR_DIR \
-    --enable-libsodium \
+    --with-libsodium \
     --enable-unit-tests \
     --enable-nod \
     --disable-silent-rules"
@@ -460,10 +460,10 @@ build_dnsdist(){
   run "./configure \
     ${sanitizerflags} \
     --enable-unit-tests \
-    --enable-libsodium \
+    --with-libsodium \
     --enable-dnscrypt \
     --enable-dns-over-tls \
-    --enable-fstrm \
+    --enable-dnstap \
     --prefix=$HOME/dnsdist \
     --disable-silent-rules"
   run "make -k -j3"

@@ -37,11 +37,11 @@ override_dh_auto_configure:
 	  --infodir=\$${prefix}/share/info \
 	  --libdir='$${prefix}/lib/$(DEB_HOST_MULTIARCH)' \
 	  --libexecdir='$${prefix}/lib' \
-	  --disable-gnutls \
+	  --without-gnutls \
 	  --enable-dns-over-tls \
 	  --enable-dnscrypt \
-	  --enable-libsodium \
-	  --enable-re2 \
+	  --with-libsodium \
+	  --with-re2 \
 	  --with-ebpf \
 	  --with-lua=luajit \
 	  --with-protobuf \

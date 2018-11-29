@@ -70,7 +70,7 @@ and ``--with-pgsql-config`` ``configure`` options have been deprecated.
 ``--with-pg-config`` to specify a path to a non-default ``pg_config`` if
 you have Postgresql installed in a non-default location.
 
-The ``--enable-libsodium`` configure flag has changed from 'no' to 'auto'.
+The ``--with-libsodium`` configure flag has changed from 'no' to 'auto'.
 This means that if libsodium and its development header are installed, it will be linked in.
 
 The improved :doc:`LDAP Backend <backends/ldap>` backend now requires Kerberos headers to be installed.

@@ -30,9 +30,9 @@ override_dh_auto_configure:
 	  --libdir='$${prefix}/lib/$(DEB_HOST_MULTIARCH)' \
 	  --libexecdir='$${prefix}/lib' \
 	  --disable-dnscrypt \
-	  --disable-gnutls \
-	  --disable-libsodium \
-	  --disable-re2 \
+	  --without-gnutls \
+	  --without-libsodium \
+	  --without-re2 \
 	  --enable-dns-over-tls \
 	  --with-ebpf \
 	  --with-lua=luajit \
