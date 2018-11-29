@@ -111,8 +111,8 @@ public:
 
     declare(suffix,"insert-zone-query","", "insert into domains (type,name,master,account,last_check, notified_serial) values($1,$2,$3,$4,null,null)");
 
-    declare(suffix, "insert-record-query", "", "insert into records (content,ttl,prio,type,domain_id,disabled,name,ordername,auth,change_date) values ($1,$2,$3,$4,$5,$6,$7,$8,$9,null)");
-    declare(suffix, "insert-empty-non-terminal-order-query", "insert empty non-terminal in zone", "insert into records (type,domain_id,disabled,name,ordername,auth,ttl,prio,change_date,content) values (null,$1,false,$2,$3,$4,null,null,null,null)");
+    declare(suffix, "insert-record-query", "", "insert into records (content,ttl,prio,type,domain_id,disabled,name,ordername,auth) values ($1,$2,$3,$4,$5,$6,$7,$8,$9)");
+    declare(suffix, "insert-empty-non-terminal-order-query", "insert empty non-terminal in zone", "insert into records (type,domain_id,disabled,name,ordername,auth,ttl,prio,content) values (null,$1,false,$2,$3,$4,null,null,null)");
 
     declare(suffix, "get-order-first-query", "DNSSEC Ordering Query, last", "select ordername from records where disabled=false and domain_id=$1 and ordername is not null order by 1 using ~<~ limit 1");
     declare(suffix, "get-order-before-query", "DNSSEC Ordering Query, before", "select ordername, name from records where disabled=false and ordername ~<=~ $1 and domain_id=$2 and ordername is not null order by 1 using ~>~ limit 1");
@@ -129,7 +129,6 @@ public:
     declare(suffix,"update-account-query","", "update domains set account=$1 where name=$2");
     declare(suffix,"update-serial-query","", "update domains set notified_serial=$1 where id=$2");
     declare(suffix,"update-lastcheck-query","", "update domains set last_check=$1 where id=$2");
-    declare(suffix,"zone-lastchange-query", "", "select max(change_date) from records where domain_id=$1");
     declare(suffix,"info-all-master-query","", "select id,name,master,last_check,notified_serial,type from domains where type='MASTER'");
     declare(suffix,"delete-domain-query","", "delete from domains where name=$1");
     declare(suffix,"delete-zone-query","", "delete from records where domain_id=$1");

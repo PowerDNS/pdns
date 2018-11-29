@@ -196,7 +196,7 @@ bool MyDNSBackend::list(const DNSName &target, int zoneId, bool include_disabled
   return true;
 }
 
-bool MyDNSBackend::getSOA(const DNSName& name, SOAData& soadata, bool unmodifiedSerial) {
+bool MyDNSBackend::getSOA(const DNSName& name, SOAData& soadata) {
   string query;
   SSqlStatement::row_t rrow;
 

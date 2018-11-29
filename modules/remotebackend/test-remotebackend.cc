@@ -318,16 +318,6 @@ BOOST_AUTO_TEST_CASE(test_method_abortTransaction) {
    BOOST_CHECK(be->abortTransaction());
 }
 
-BOOST_AUTO_TEST_CASE(test_method_calculateSOASerial) {
-   SOAData sd;
-   uint32_t serial;
- 
-   be->getSOA(DNSName("unit.test."),sd);
-   BOOST_CHECK(be->calculateSOASerial(DNSName("unit.test."),sd,serial));
-
-   BOOST_CHECK_EQUAL(serial, 2013060300);
-}
-
 BOOST_AUTO_TEST_CASE(test_method_directBackendCmd) {
    BOOST_TEST_MESSAGE("Testing directBackendCmd method");
    BOOST_CHECK_EQUAL(be->directBackendCmd("PING 1234"), "PING 1234");

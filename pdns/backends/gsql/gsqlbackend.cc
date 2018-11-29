@@ -72,7 +72,6 @@ GSQLBackend::GSQLBackend(const string &mode, const string &suffix)
   d_UpdateSerialOfZoneQuery=getArg("update-serial-query");
   d_UpdateLastCheckofZoneQuery=getArg("update-lastcheck-query");
   d_UpdateAccountOfZoneQuery=getArg("update-account-query");
-  d_ZoneLastChangeQuery=getArg("zone-lastchange-query");
   d_InfoOfAllMasterDomainsQuery=getArg("info-all-master-query");
   d_DeleteDomainQuery=getArg("delete-domain-query");
   d_DeleteZoneQuery=getArg("delete-zone-query");
@@ -146,7 +145,6 @@ GSQLBackend::GSQLBackend(const string &mode, const string &suffix)
   d_DeleteZoneQuery_stmt = NULL;
   d_DeleteRRSetQuery_stmt = NULL;
   d_DeleteNamesQuery_stmt = NULL;
-  d_ZoneLastChangeQuery_stmt = NULL;
   d_firstOrderQuery_stmt = NULL;
   d_beforeOrderQuery_stmt = NULL;
   d_afterOrderQuery_stmt = NULL;
@@ -1482,36 +1480,6 @@ bool GSQLBackend::abortTransaction()
     throw PDNSException("Database failed to abort transaction: "+string(e.txtReason()));
   }
   return true;
-}
-
-bool GSQLBackend::calculateSOASerial(const DNSName& domain, const SOAData& sd, uint32_t& serial)
-{
-  if (d_ZoneLastChangeQuery.empty()) {
-    // query not set => fall back to default impl
-    return DNSBackend::calculateSOASerial(domain, sd, serial);
-  }
-  
-  try {
-    reconnectIfNeeded();
-
-    d_ZoneLastChangeQuery_stmt->
-      bind("domain_id", sd.domain_id)->
-      execute()->
-      getResult(d_result)->
-      reset();
-  }
-  catch (const SSqlException& e) {
-    //DLOG(g_log<<"GSQLBackend unable to calculate SOA serial: " << e.txtReason()<<endl);
-    return false;
-  }
- 
-  if (!d_result.empty()) {
-    ASSERT_ROW_COLUMNS("zone-lastchange-query", d_result[0], 1);
-    serial = pdns_stou(d_result[0][0]);
-    return true;
-  }
-
-  return false;
 }
 
 bool GSQLBackend::listComments(const uint32_t domain_id)

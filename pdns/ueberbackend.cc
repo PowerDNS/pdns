@@ -398,22 +398,21 @@ bool UeberBackend::getSOA(const DNSName &domain, SOAData &sd)
   }
 
   // not found in neg. or pos. cache, look it up
-  return getSOAUncached(domain, sd, false);
+  return getSOAUncached(domain, sd);
 }
 
-bool UeberBackend::getSOAUncached(const DNSName &domain, SOAData &sd, bool unmodifiedSerial)
+bool UeberBackend::getSOAUncached(const DNSName &domain, SOAData &sd)
 {
   d_question.qtype=QType::SOA;
   d_question.qname=domain;
   d_question.zoneId=-1;
 
   for(vector<DNSBackend *>::const_iterator i=backends.begin();i!=backends.end();++i)
-    if((*i)->getSOA(domain, sd, unmodifiedSerial)) {
-      if(d_cache_ttl && !unmodifiedSerial) {
+    if((*i)->getSOA(domain, sd)) {
+      if(d_cache_ttl) {
         DNSZoneRecord rr;
         rr.dr.d_name = sd.qname;
         rr.dr.d_type = QType::SOA;
-        
         rr.dr.d_content = makeSOAContent(sd);
         rr.dr.d_ttl = sd.ttl;
         rr.domain_id = sd.domain_id;
