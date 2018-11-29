@@ -224,7 +224,7 @@ uint32_t dns_random(uint32_t upper_bound) {
      On applicable rngs, we loop until the rng spews out
      value larger than min, and then take modulo out of that.
   */
-#if (UINT32_MAX > 0xffffffffUL)
+#if (ULONG_MAX > 0xffffffffUL)
   min = 0x100000000UL % upper_bound;
 #else
   /* Calculate (2**32 % upper_bound) avoiding 64-bit math */
