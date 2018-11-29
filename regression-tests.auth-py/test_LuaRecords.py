@@ -341,6 +341,16 @@ any              IN           TXT "hello there"
         self.assertRcodeEqual(res, dns.rcode.NOERROR)
         self.assertRRsetInAnswer(res, expected)
 
+    def testWildcardError(self):
+        """
+        Ensure errors coming from LUA wildcards are reported
+        """
+        query = dns.message.make_query('failure.magic.example.org', 'A')
+
+        res = self.sendUDPQuery(query)
+        self.assertRcodeEqual(res, dns.rcode.SERVFAIL)
+        self.assertAnswerEmpty(res)
+
     def testClosestMagic(self):
         """
         Basic closestMagic() test
@@ -492,8 +502,6 @@ any              IN           TXT "hello there"
         """
         view() test where no netmask match
         """
-        expected = dns.rrset.from_text('none.view.example.org.', 0,
-                                       dns.rdataclass.IN, 'A')
         query = dns.message.make_query('none.view.example.org', 'A')
 
         res = self.sendUDPQuery(query)
