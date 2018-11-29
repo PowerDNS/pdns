@@ -688,6 +688,11 @@ static void updateDomainSettingsFromDocument(UeberBackend& B, const DomainInfo& 
     // Rectify
     string api_rectify;
     di.backend->getDomainMetadataOne(zonename, "API-RECTIFY", api_rectify);
+    if (api_rectify.empty()) {
+      if (::arg().mustDo("default-api-rectify")) {
+        api_rectify = "1";
+      }
+    }
     if (api_rectify == "1") {
       string info;
       string error_msg;

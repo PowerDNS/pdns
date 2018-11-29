@@ -1632,6 +1632,60 @@ fred   IN  A      192.168.0.4
         # should return zone, SOA, ns1, ns2, sub.sub A (but not the ENT)
         self.assertEquals(len(r.json()), 5)
 
+    def test_default_api_rectify(self):
+        name = unique_zone_name()
+        search = name.split('.')[0]
+        rrsets = [
+            {
+                "name": 'a.' + name,
+                "type": "AAAA",
+                "ttl": 3600,
+                "records": [{
+                    "content": "2001:DB8::1",
+                    "disabled": False,
+                }],
+            },
+            {
+                "name": 'b.' + name,
+                "type": "AAAA",
+                "ttl": 3600,
+                "records": [{
+                    "content": "2001:DB8::2",
+                    "disabled": False,
+                }],
+            },
+        ]
+        self.create_zone(name=name, rrsets=rrsets, dnssec=True, nsec3param='1 0 1 ab')
+        dbrecs = get_db_records(name, 'AAAA')
+        self.assertIsNotNone(dbrecs[0]['ordername'])
+
+    def test_override_api_rectify(self):
+        name = unique_zone_name()
+        search = name.split('.')[0]
+        rrsets = [
+            {
+                "name": 'a.' + name,
+                "type": "AAAA",
+                "ttl": 3600,
+                "records": [{
+                    "content": "2001:DB8::1",
+                    "disabled": False,
+                }],
+            },
+            {
+                "name": 'b.' + name,
+                "type": "AAAA",
+                "ttl": 3600,
+                "records": [{
+                    "content": "2001:DB8::2",
+                    "disabled": False,
+                }],
+            },
+        ]
+        self.create_zone(name=name, rrsets=rrsets, api_rectify=False, dnssec=True, nsec3param='1 0 1 ab')
+        dbrecs = get_db_records(name, 'AAAA')
+        self.assertIsNone(dbrecs[0]['ordername'])
+
     def test_cname_at_ent_place(self):
         name, payload, zone = self.create_zone(api_rectify=True)
         rrset = {
