@@ -440,8 +440,11 @@ static vector<ComboAddress> useSelector(const std::string &selector, const Combo
 static vector<string> convIpListToString(const vector<ComboAddress> &comboAddresses)
 {
   vector<string> ret;
-  for (ComboAddress c : comboAddresses)
+
+  for (const auto& c : comboAddresses) {
     ret.emplace_back(c.toString());
+  }
+
   return ret;
 }
 
@@ -449,8 +452,9 @@ static vector<ComboAddress> convIplist(const iplist_t& src)
 {
   vector<ComboAddress> ret;
 
-  for(const auto& ip : src)
+  for(const auto& ip : src) {
     ret.emplace_back(ip.second);
+  }
 
   return ret;
 }
@@ -459,8 +463,9 @@ static vector<pair<int, ComboAddress> > convWIplist(std::unordered_map<int, wipl
 {
   vector<pair<int,ComboAddress> > ret;
 
-  for(const auto& i : src)
+  for(const auto& i : src) {
     ret.emplace_back(atoi(i.second.at(1).c_str()), ComboAddress(i.second.at(2)));
+  }
 
   return ret;
 }
