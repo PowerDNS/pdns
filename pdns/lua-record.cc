@@ -419,9 +419,7 @@ static vector<ComboAddress> useSelector(const std::string &selector, const Combo
 {
   vector<ComboAddress> ret;
 
-  if(selector=="none")
-    return ret;
-  else if(selector=="all")
+  if(selector=="all")
     return candidates;
   else if(selector=="random")
     ret.emplace_back(pickrandom(candidates));
