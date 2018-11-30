@@ -121,10 +121,31 @@ try
     }
 
     char buffer[1500];
+    fd_set rfds;
+    FD_ZERO(&rfds);
+    FD_SET(sock, &rfds);
+    int len;
+    struct timeval tv;
+    bool timeout = true;
 
-    int len=recv(sock, buffer, sizeof(buffer),0);
+    for(int tries=0; tries<60; tries++) {
+      tv.tv_sec = 1;
+      tv.tv_usec = 0;
+      if ((len = select(sock+1, &rfds, NULL, &rfds, &tv)) > 0) {
+        len = recv(sock, buffer, sizeof(buffer), 0);
+        timeout = false;
+        break;
+      }
+    }
+
     if(len < 0) {
       cerr<<"Unable to receive notification response from PowerDNS: "+stringerror()<<endl;
+      continue;
+    } else if (timeout) {
+      cerr<<"Unable to receive notification response from PowerDNS: Timed out"<<endl;
+      continue;
+    } else if (len == 0) {
+      cerr<<"Unable to receive notification response from PowerDNS: EOF"<<endl;
       continue;
     }
 
