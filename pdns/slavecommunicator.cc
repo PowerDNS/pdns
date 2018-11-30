@@ -923,13 +923,20 @@ void CommunicatorClass::slaveRefresh(PacketHandler *P)
         d_failedSlaveRefresh.erase(di.zone);
     }
 
-    uint32_t theirserial = ssr.d_freshness[di.id].theirSerial, ourserial = di.serial;
+    bool hasSOA = false;
+    SOAData sd;
+    try{
+      hasSOA = B->getSOA(di.zone, sd);
+    }
+    catch(...) {}
+
+    uint32_t theirserial = ssr.d_freshness[di.id].theirSerial, ourserial = sd.serial;
 
     if(rfc1982LessThan(theirserial, ourserial) && ourserial != 0 && !::arg().mustDo("axfr-lower-serial"))  {
       g_log<<Logger::Error<<"Domain '"<<di.zone<<"' more recent than master, our serial " << ourserial << " > their serial "<< theirserial << endl;
       di.backend->setFresh(di.id);
     }
-    else if(theirserial == ourserial) {
+    else if(hasSOA && theirserial == ourserial) {
       uint32_t maxExpire=0, maxInception=0;
       if(dk.isPresigned(di.zone)) {
         B->lookup(QType(QType::RRSIG), di.zone); // can't use DK before we are done with this lookup!
@@ -968,7 +975,12 @@ void CommunicatorClass::slaveRefresh(PacketHandler *P)
       }
     }
     else {
-      g_log<<Logger::Warning<<"Domain '"<< di.zone<<"' is stale, master serial "<<theirserial<<", our serial "<< ourserial <<endl;
+      if(hasSOA) {
+        g_log<<Logger::Warning<<"Domain '"<< di.zone<<"' is stale, master serial "<<theirserial<<", our serial "<< ourserial <<endl;
+      }
+      else {
+        g_log<<Logger::Warning<<"Domain '"<< di.zone<<"' is empty, master serial "<<theirserial<<endl;
+      }
       addSuckRequest(di.zone, *di.masters.begin());
     }
   }
