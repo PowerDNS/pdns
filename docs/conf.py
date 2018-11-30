@@ -135,6 +135,7 @@ htmlhelp_basename = 'PowerDNSAuthoritativedoc'
 # -- Options for LaTeX output ---------------------------------------------
 
 latex_elements = {
+    'maxlistdepth' : '8',
     # The paper size ('letterpaper' or 'a4paper').
     #
     'papersize': 'a4paper',
