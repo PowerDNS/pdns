@@ -884,7 +884,7 @@ int PacketHandler::processNotify(DNSPacket *p)
   // Domain verification
   //
   DomainInfo di;
-  if(!B.getDomainInfo(p->qdomain, di, true) || !di.backend) {
+  if(!B.getDomainInfo(p->qdomain, di, false) || !di.backend) {
     if(::arg().mustDo("supermaster")) {
       g_log<<Logger::Warning<<"Received NOTIFY for "<<p->qdomain<<" from "<<p->getRemote()<<" for which we are not authoritative, trying supermaster"<<endl;
       return trySuperMaster(p, p->getTSIGKeyname());
@@ -918,7 +918,7 @@ int PacketHandler::processNotify(DNSPacket *p)
   }
 
   if(::arg().mustDo("slave")) {
-    g_log<<Logger::Debug<<"Queueing slave check for "<<p->qdomain<<", our serial is "<<di.serial<<endl;
+    g_log<<Logger::Debug<<"Queueing slave check for "<<p->qdomain<<endl;
     Communicator.addSlaveCheckRequest(di, p->d_remote);
   }
   return 0;
