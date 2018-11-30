@@ -620,7 +620,7 @@ static int setup_ssl(DOHServerConfig* dsc, const char *cert_file, const char *ke
     OpenSSL_add_all_algorithms();
 
     dsc->h2o_accept_ctx.ssl_ctx = SSL_CTX_new(SSLv23_server_method());
-    dsc->h2o_accept_ctx.expect_proxy_line = 0; // makes valgrind happy
+
     SSL_CTX_set_options(dsc->h2o_accept_ctx.ssl_ctx, SSL_OP_NO_SSLv2);
 
 #ifdef SSL_CTX_set_ecdh_auto
@@ -652,6 +652,7 @@ void dohThread(std::shared_ptr<DOHFrontend> df)
 try
 {
   auto dsc = new DOHServerConfig;
+  memset(&dsc->h2o_accept_ctx, 0, sizeof(dsc->h2o_accept_ctx));
   dsc->cs.muted=false;
   dsc->df = df;
   
