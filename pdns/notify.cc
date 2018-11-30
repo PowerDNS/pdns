@@ -107,16 +107,15 @@ try
     if(sock < 0)
       throw runtime_error("Creating socket for incoming packets: "+stringerror());
     if(connect(sock, (struct sockaddr*)&addr, addr.getSocklen()) < 0) {
-      cerr<<"Failed to connect PowerDNS socket to address "+addr.toString()+": "+stringerror()<<endl;
+      cerr<<"Failed to connect to address "+addr.toStringWithPort()+": "+stringerror()<<endl;
       continue;
     }
     vector<uint8_t> outpacket;
     DNSPacketWriter pw(outpacket, DNSName(argv[2]), QType::SOA, 1, Opcode::Notify);
     pw.getHeader()->id = random();
 
-
     if(send(sock, &outpacket[0], outpacket.size(), 0) < 0) {
-      cerr<<"Unable to send notify to PowerDNS: "+stringerror()<<endl;
+      cerr<<"Unable to send notify to "<<addr.toStringWithPort()<<": "+stringerror()<<endl;
       continue;
     }
 
@@ -139,20 +138,23 @@ try
     }
 
     if(len < 0) {
-      cerr<<"Unable to receive notification response from PowerDNS: "+stringerror()<<endl;
+      cerr<<"Unable to receive notification response from "<<addr.toStringWithPort()<<": "+stringerror()<<endl;
       continue;
     } else if (timeout) {
-      cerr<<"Unable to receive notification response from PowerDNS: Timed out"<<endl;
+      cerr<<"Unable to receive notification response from "<<addr.toStringWithPort()<<": Timed out"<<endl;
       continue;
     } else if (len == 0) {
-      cerr<<"Unable to receive notification response from PowerDNS: EOF"<<endl;
+      cerr<<"Unable to receive notification response from "<<addr.toStringWithPort()<<": EOF"<<endl;
       continue;
     }
 
     string packet(buffer, len);
     MOADNSParser mdp(false, packet);
 
-    cerr<<addr.toString()<<": Received notification response with error: "<<RCode::to_s(mdp.d_header.rcode)<<endl;
+    if (mdp.d_header.rcode == 0)
+      cerr<<"Successfully notified "<<addr.toStringWithPort()<<endl;
+    else
+      cerr<<"Received notification response with error from "<<addr.toStringWithPort()<<": "<<RCode::to_s(mdp.d_header.rcode)<<endl;
     cerr<<"For: '"<<mdp.d_qname<<"'"<<endl;
   }
 }
