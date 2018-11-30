@@ -68,7 +68,7 @@ export-zone-key *ZONE* *KEY-ID*
     and NSD/LDNS.
 generate-zone-key {**KSK**,\ **ZSK**} [*ALGORITHM*] [*KEYBITS*]
     Generate a ZSK or KSK to stdout with specified algorithm and bits
-    and print it on STDOUT. If *ALGORITHM* is not set, RSASHA512 is
+    and print it on STDOUT. If *ALGORITHM* is not set, ECDSA256 is
     used. If *KEYBITS* is not set, an appropriate keysize is selected
     for *ALGORITHM*. Each ECC-based algorithm supports only one valid
     *KEYBITS* value: For ECDSA256 and ED25519, it is 256; for ECDSA384,
