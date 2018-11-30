@@ -405,31 +405,54 @@ static std::vector<DNSZoneRecord> lookup(const DNSName& name, uint16_t qtype, in
   return ret;
 }
 
-static ComboAddress useSelector(const boost::optional<std::unordered_map<string, string>>& options, const ComboAddress& bestwho, const vector<ComboAddress>& candidates)
+static std::string getOptionValue(const boost::optional<std::unordered_map<string, string>>& options, const std::string &name, const std::string &defaultValue)
 {
-  string selector="random";
+  string selector=defaultValue;
   if(options) {
-    if(options->count("selector"))
-      selector=options->find("selector")->second;
+    if(options->count(name))
+      selector=options->find(name)->second;
+  }
+  return selector;
+}
+
+static vector<ComboAddress> useSelector(const std::string &selector, const ComboAddress& bestwho, const vector<ComboAddress>& candidates)
+{
+  vector<ComboAddress> ret;
+
+  if(selector=="all")
+    return candidates;
+  else if(selector=="random")
+    ret.emplace_back(pickrandom(candidates));
+  else if(selector=="pickclosest")
+    ret.emplace_back(pickclosest(bestwho, candidates));
+  else if(selector=="hashed")
+    ret.emplace_back(hashed(bestwho, candidates));
+  else {
+    g_log<<Logger::Warning<<"LUA Record called with unknown selector '"<<selector<<"'"<<endl;
+    ret.emplace_back(pickrandom(candidates));
   }
 
-  if(selector=="random")
-    return pickrandom(candidates);
-  else if(selector=="pickclosest")
-    return pickclosest(bestwho, candidates);
-  else if(selector=="hashed")
-    return hashed(bestwho, candidates);
+  return ret;
+}
 
-  g_log<<Logger::Warning<<"LUA Record called with unknown selector '"<<selector<<"'"<<endl;
-  return pickrandom(candidates);
+static vector<string> convIpListToString(const vector<ComboAddress> &comboAddresses)
+{
+  vector<string> ret;
+
+  for (const auto& c : comboAddresses) {
+    ret.emplace_back(c.toString());
+  }
+
+  return ret;
 }
 
 static vector<ComboAddress> convIplist(const iplist_t& src)
 {
   vector<ComboAddress> ret;
 
-  for(const auto& ip : src)
+  for(const auto& ip : src) {
     ret.emplace_back(ip.second);
+  }
 
   return ret;
 }
@@ -438,8 +461,9 @@ static vector<pair<int, ComboAddress> > convWIplist(std::unordered_map<int, wipl
 {
   vector<pair<int,ComboAddress> > ret;
 
-  for(const auto& i : src)
+  for(const auto& i : src) {
     ret.emplace_back(atoi(i.second.at(1).c_str()), ComboAddress(i.second.at(2)));
+  }
 
   return ret;
 }
@@ -656,6 +680,7 @@ std::vector<shared_ptr<DNSRecordContent>> luaSynth(const std::string& code, cons
       vector<ComboAddress> candidates, unavailables;
       opts_t opts;
       vector<ComboAddress > conv;
+      std::string selector;
 
       if(options)
         opts = *options;
@@ -668,13 +693,17 @@ std::vector<shared_ptr<DNSRecordContent>> luaSynth(const std::string& code, cons
           unavailables.push_back(rem);
         }
       }
-      if(candidates.empty()) {
-        // if no IP is available, use selector on the whole set
+      if(!candidates.empty()) {
+        // use regular selector
+        selector = getOptionValue(options, "selector", "random");
+      } else {
+        // All units are down, apply backupSelector on all candidates
         candidates = std::move(unavailables);
+        selector = getOptionValue(options, "backupSelector", "random");
       }
-      ComboAddress res=useSelector(options, bestwho, candidates);
 
-      return res.toString();
+      vector<ComboAddress> res = useSelector(selector, bestwho, candidates);
+      return convIpListToString(res);
     });
 
   lua.writeFunction("ifurlup", [&bestwho](const std::string& url,
@@ -704,20 +733,20 @@ std::vector<shared_ptr<DNSRecordContent>> luaSynth(const std::string& code, cons
           }
         }
         if(!available.empty()) {
-          ComboAddress res=useSelector(options, bestwho, available);
-
-          return res.toString();
+          vector<ComboAddress> res = useSelector(getOptionValue(options, "selector", "random"), bestwho, available);
+          return convIpListToString(res);
         }
       }
 
-      // All units down, return a single, random record
+      // All units down, apply backupSelector on all candidates
       vector<ComboAddress> ret{};
       for(const auto& unit : candidates) {
         ret.insert(ret.end(), unit.begin(), unit.end());
       }
 
-      return pickrandom(ret).toString();
-                    });
+      vector<ComboAddress> res = useSelector(getOptionValue(options, "backupSelector", "random"), bestwho, ret);
+      return convIpListToString(res);
+    });
 
 
   /* idea: we have policies on vectors of ComboAddresses, like

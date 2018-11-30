@@ -45,6 +45,7 @@ web3.example.org.            3600 IN A    {prefix}.103
 all.ifportup                 3600 IN LUA  A     "ifportup(8080, {{'{prefix}.101', '{prefix}.102'}})"
 some.ifportup                3600 IN LUA  A     "ifportup(8080, {{'192.168.42.21', '{prefix}.102'}})"
 none.ifportup                3600 IN LUA  A     "ifportup(8080, {{'192.168.42.21', '192.168.21.42'}})"
+all.noneup.ifportup          3600 IN LUA  A     "ifportup(8080, {{'192.168.42.21', '192.168.21.42'}}, {{ backupSelector='all' }})"
 
 whashed.example.org.         3600 IN LUA  A     "pickwhashed({{ {{15, '1.2.3.4'}}, {{42, '4.3.2.1'}} }})"
 rand.example.org.            3600 IN LUA  A     "pickrandom({{'{prefix}.101', '{prefix}.102'}})"
@@ -257,6 +258,22 @@ any              IN           TXT "hello there"
         self.assertRcodeEqual(res, dns.rcode.NOERROR)
         self.assertAnyRRsetInAnswer(res, expected)
 
+    def testIfportupWithAllDownAndAllBackupSelector(self):
+        """
+        Basic ifportup() test with all ports DOWN, fallback to 'all' backup selector
+        """
+        name = 'all.noneup.ifportup.example.org.'
+        query = dns.message.make_query(name, dns.rdatatype.A)
+        expected = [dns.rrset.from_text(name, 0, dns.rdataclass.IN, dns.rdatatype.A, '192.168.42.21', '192.168.21.42')]
+
+        res = self.sendUDPQuery(query)
+        self.assertRcodeEqual(res, dns.rcode.NOERROR)
+
+        time.sleep(1)
+        res = self.sendUDPQuery(query)
+        self.assertRcodeEqual(res, dns.rcode.NOERROR)
+        self.assertEqual(res.answer, expected)
+
     def testIfurlup(self):
         """
         Basic ifurlup() test
@@ -362,7 +379,7 @@ any              IN           TXT "hello there"
             ('1.2.3.0', 24,  '1.2.3.5'),
             ('17.1.0.0', 16, '17.1.2.4')
         ]
-                
+
         for (subnet, mask, ip) in queries:
             ecso = clientsubnetoption.ClientSubnetOption(subnet, mask)
             query = dns.message.make_query(name, 'A', 'IN', use_edns=True, payload=4096, options=[ecso])
