@@ -173,8 +173,7 @@ DNS64
 -----
 
 The ``getFakeAAAARecords`` and ``getFakePTRRecords`` followupFunctions
-can be used to implement DNS64. See `DNS64 support in the PowerDNS
-Recursor <dns64.md>`__ for more information.
+can be used to implement DNS64. See :doc:`dns64` for more information.
 
 To get fake AAAA records for DNS64 usage, set dq.followupFunction to
 ``getFakeAAAARecords``, dq.followupPrefix to e.g. "64:ff9b::" and

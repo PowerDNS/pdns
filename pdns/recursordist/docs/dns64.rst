@@ -21,7 +21,7 @@ To setup DNS64, with both forward and reverse records, create the following Lua 
 .. literalinclude:: ../contrib/dns64.lua
     :language: lua
 
-Where fe80::21b::77ff:0:0 is your "Pref64" translation prefix and the "ip6.arpa" string is the reversed form of this Pref64 address.
+Where fe80::21b:77ff:0:0 is your "Pref64" translation prefix and the "ip6.arpa" string is the reversed form of this Pref64 address.
 Now ensure your script gets loaded by specifying it with :ref:`lua-dns-script=dns64.lua <setting-lua-dns-script>`.
 
 To enhance DNS64, see the :doc:`lua-scripting/index` documentation.
