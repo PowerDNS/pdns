@@ -28,7 +28,7 @@ the compilation tests done during the configure phase fail.
 Sanitizers
 ----------
 
-In order to catch the maximum of issues during fuzzing, it makes sene to
+In order to catch the maximum of issues during fuzzing, it makes sense to
 enable the ASAN and UBSAN sanitizers via --enable-asan and --enable-ubsan
 options to the configure, or to set the appropriate flags directly.
 
