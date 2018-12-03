@@ -104,7 +104,7 @@ try
       command+=" ";
     command+=commands[i];
   }
-  rccS.send(command);
+  rccS.send(command, nullptr, arg().asNum("timeout"));
   string receive=rccS.recv(0, arg().asNum("timeout"));
   if(receive.compare(0, 7, "Unknown") == 0) {
     cerr<<receive<<endl;

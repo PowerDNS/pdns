@@ -108,8 +108,16 @@ void RecursorControlChannel::connect(const string& path, const string& fname)
   }
 }
 
-void RecursorControlChannel::send(const std::string& msg, const std::string* remote)
+void RecursorControlChannel::send(const std::string& msg, const std::string* remote, unsigned int timeout)
 {
+  int ret = waitForRWData(d_fd, false, timeout, 0);
+  if(ret == 0) {
+    throw PDNSException("Timeout sending message over control channel");
+  }
+  else if(ret < 0) {
+    throw PDNSException("Error sending message over control channel:" + string(strerror(errno)));
+  }
+
   if(remote) {
     struct sockaddr_un remoteaddr;
     memset(&remoteaddr, 0, sizeof(remoteaddr));
