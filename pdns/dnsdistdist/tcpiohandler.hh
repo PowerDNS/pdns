@@ -44,7 +44,11 @@ public:
       }
       catch(const std::runtime_error& e) {
         d_rotatingTicketsKey.clear();
-        throw std::runtime_error("Error generating a new tickets key for TLS context");
+        throw std::runtime_error(std::string("Error generating a new tickets key for TLS context:") + e.what());
+      }
+      catch(...) {
+        d_rotatingTicketsKey.clear();
+        throw;
       }
     }
   }
