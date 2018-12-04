@@ -1625,11 +1625,11 @@ void setupLuaConfig(bool client)
           }
 
           if (vars->count("ticketsKeysRotationDelay")) {
-            frontend->d_ticketsKeyRotationDelay = std::stoi(boost::get<const string>((*vars)["ticketsKeysRotationDelay"]));
+            frontend->d_ticketsKeyRotationDelay = boost::get<int>((*vars)["ticketsKeysRotationDelay"]);
           }
 
           if (vars->count("numberOfTicketsKeys")) {
-            frontend->d_numberOfTicketsKeys = std::stoi(boost::get<const string>((*vars)["numberOfTicketsKeys"]));
+            frontend->d_numberOfTicketsKeys = boost::get<int>((*vars)["numberOfTicketsKeys"]);
           }
 
           if (vars->count("sessionTickets")) {

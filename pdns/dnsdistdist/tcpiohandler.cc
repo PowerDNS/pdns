@@ -622,6 +622,7 @@ public:
     catch (const std::exception& e) {
       safe_memory_release(d_key.data, d_key.size);
       gnutls_free(d_key.data);
+      d_key.data = nullptr;
       throw;
     }
   }
@@ -632,6 +633,7 @@ public:
       safe_memory_release(d_key.data, d_key.size);
     }
     gnutls_free(d_key.data);
+    d_key.data = nullptr;
   }
   const gnutls_datum_t& getKey() const
   {
@@ -802,6 +804,8 @@ public:
       warnlog("Error setting up TLS cipher preferences to %s (%s), skipping.", fe.d_ciphers.c_str(), gnutls_strerror(rc));
     }
 
+    pthread_rwlock_init(&d_lock, nullptr);
+
     try {
       if (fe.d_ticketKeyFile.empty()) {
         handleTicketsKeyRotation(time(nullptr));
@@ -811,12 +815,15 @@ public:
       }
     }
     catch(const std::runtime_error& e) {
+      pthread_rwlock_destroy(&d_lock);
       throw std::runtime_error("Error generating tickets key for TLS context on " + fe.d_addr.toStringWithPort() + ": " + e.what());
     }
   }
 
   virtual ~GnuTLSIOCtx() override
   {
+    pthread_rwlock_destroy(&d_lock);
+
     d_creds.reset();
 
     if (d_priorityCache) {
@@ -828,7 +835,13 @@ public:
   {
     handleTicketsKeyRotation(now);
 
-    return std::unique_ptr<GnuTLSConnection>(new GnuTLSConnection(socket, timeout, d_creds.get(), d_priorityCache, d_ticketsKey, d_enableTickets));
+    std::shared_ptr<GnuTLSTicketsKey> ticketsKey;
+    {
+      ReadLock rl(&d_lock);
+      ticketsKey = d_ticketsKey;
+    }
+
+    return std::unique_ptr<GnuTLSConnection>(new GnuTLSConnection(socket, timeout, d_creds.get(), d_priorityCache, ticketsKey, d_enableTickets));
   }
 
   void rotateTicketsKey(time_t now) override
@@ -838,7 +851,12 @@ public:
     }
 
     auto newKey = std::make_shared<GnuTLSTicketsKey>();
-    d_ticketsKey = newKey;
+
+    {
+      WriteLock wl(&d_lock);
+      d_ticketsKey = newKey;
+    }
+
     if (d_ticketsKeyRotationDelay > 0) {
       d_ticketsKeyNextRotation = now + d_ticketsKeyRotationDelay;
     }
@@ -851,7 +869,11 @@ public:
     }
 
     auto newKey = std::make_shared<GnuTLSTicketsKey>(file);
-    d_ticketsKey = newKey;
+    {
+      WriteLock wl(&d_lock);
+      d_ticketsKey = newKey;
+    }
+
     if (d_ticketsKeyRotationDelay > 0) {
       d_ticketsKeyNextRotation = time(nullptr) + d_ticketsKeyRotationDelay;
     }
@@ -859,6 +881,7 @@ public:
 
   size_t getTicketsKeysCount() override
   {
+    ReadLock rl(&d_lock);
     return d_ticketsKey != nullptr ? 1 : 0;
   }
 
@@ -866,6 +889,7 @@ private:
   std::unique_ptr<gnutls_certificate_credentials_st, void(*)(gnutls_certificate_credentials_t)> d_creds;
   gnutls_priority_t d_priorityCache{nullptr};
   std::shared_ptr<GnuTLSTicketsKey> d_ticketsKey{nullptr};
+  pthread_rwlock_t d_lock;
   bool d_enableTickets{true};
 };
 
