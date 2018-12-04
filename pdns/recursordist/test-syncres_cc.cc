@@ -10146,6 +10146,116 @@ BOOST_AUTO_TEST_CASE(test_getDSRecords_multialgo_two_highest) {
   }
 }
 
+BOOST_AUTO_TEST_CASE(test_cache_ns_nodata) {
+  std::unique_ptr<SyncRes> sr;
+  initSR(sr);
+
+  primeHints();
+
+  const DNSName target("nodata.powerdns.com.");
+  const DNSName sub("sub.powerdns.com.");
+
+  sr->setAsyncCallback([sub](const ComboAddress& ip, const DNSName& domain, int type, bool doTCP, bool sendRDQuery, int EDNS0Level, struct timeval* now, boost::optional<Netmask>& srcmask, boost::optional<const ResolveContext&> context, LWResult* res, bool* chained) {
+
+      setLWResult(res, 0, true, false, true);
+      addRecordToLW(res, DNSName("powerdns.com."), QType::SOA, "pdns-public-ns1.powerdns.com. pieter\\.lexis.powerdns.com. 2017032301 10800 3600 604800 3600", DNSResourceRecord::AUTHORITY, 3600);
+      addRecordToLW(res, sub, QType::NS, "totally-legit-ns.evil.", DNSResourceRecord::AUTHORITY, 86400);
+      addRecordToLW(res, sub, QType::NS, "totally-legit-ns.evil.", DNSResourceRecord::ADDITIONAL, 86400);
+
+      return 1;
+    });
+
+  const time_t now = sr->getNow().tv_sec;
+
+  vector<DNSRecord> ret;
+  int res = sr->beginResolve(target, QType(QType::A), QClass::IN, ret);
+  BOOST_CHECK_EQUAL(res, RCode::NoError);
+  BOOST_REQUIRE_EQUAL(ret.size(), 1);
+  BOOST_REQUIRE_EQUAL(QType(ret.at(0).d_type).getName(), QType(QType::SOA).getName());
+
+  /* check that we correctly cached only the SOA entry, not the NS */
+  const ComboAddress who;
+  vector<DNSRecord> cached;
+  BOOST_REQUIRE_GT(t_RC->get(now, DNSName("powerdns.com."), QType(QType::SOA), true, &cached, who), 0);
+  BOOST_REQUIRE_EQUAL(cached.size(), 1);
+  BOOST_REQUIRE_EQUAL(QType(cached.at(0).d_type).getName(), QType(QType::SOA).getName());
+
+  cached.clear();
+  BOOST_REQUIRE_EQUAL(t_RC->get(now, sub, QType(QType::NS), false, &cached, who), -1);
+  BOOST_REQUIRE_EQUAL(cached.size(), 0);
+}
+
+BOOST_AUTO_TEST_CASE(test_cache_ns_nxdomain) {
+  std::unique_ptr<SyncRes> sr;
+  initSR(sr);
+
+  primeHints();
+
+  const DNSName target("nxd.powerdns.com.");
+  const DNSName sub("sub.powerdns.com.");
+
+  sr->setAsyncCallback([sub](const ComboAddress& ip, const DNSName& domain, int type, bool doTCP, bool sendRDQuery, int EDNS0Level, struct timeval* now, boost::optional<Netmask>& srcmask, boost::optional<const ResolveContext&> context, LWResult* res, bool* chained) {
+
+      setLWResult(res, RCode::NXDomain, true, false, true);
+      addRecordToLW(res, DNSName("powerdns.com."), QType::SOA, "pdns-public-ns1.powerdns.com. pieter\\.lexis.powerdns.com. 2017032301 10800 3600 604800 3600", DNSResourceRecord::AUTHORITY, 3600);
+      addRecordToLW(res, sub, QType::NS, "totally-legit-ns.evil.", DNSResourceRecord::AUTHORITY, 86400);
+      addRecordToLW(res, sub, QType::NS, "totally-legit-ns.evil.", DNSResourceRecord::ADDITIONAL, 86400);
+
+      return 1;
+    });
+
+  const time_t now = sr->getNow().tv_sec;
+
+  vector<DNSRecord> ret;
+  int res = sr->beginResolve(target, QType(QType::A), QClass::IN, ret);
+  BOOST_CHECK_EQUAL(res, RCode::NXDomain);
+  BOOST_REQUIRE_EQUAL(ret.size(), 1);
+  BOOST_REQUIRE_EQUAL(QType(ret.at(0).d_type).getName(), QType(QType::SOA).getName());
+
+  /* check that we correctly cached only the SOA entry, not the NS */
+  const ComboAddress who;
+  vector<DNSRecord> cached;
+  BOOST_REQUIRE_GT(t_RC->get(now, DNSName("powerdns.com."), QType(QType::SOA), true, &cached, who), 0);
+  BOOST_REQUIRE_EQUAL(cached.size(), 1);
+  BOOST_REQUIRE_EQUAL(QType(cached.at(0).d_type).getName(), QType(QType::SOA).getName());
+
+  cached.clear();
+  BOOST_REQUIRE_EQUAL(t_RC->get(now, sub, QType(QType::NS), false, &cached, who), -1);
+  BOOST_REQUIRE_EQUAL(cached.size(), 0);
+}
+
+BOOST_AUTO_TEST_CASE(test_cache_ns_delegation) {
+  std::unique_ptr<SyncRes> sr;
+  initSR(sr);
+
+  primeHints();
+
+  const DNSName target("www.powerdns.com.");
+
+  sr->setAsyncCallback([](const ComboAddress& ip, const DNSName& domain, int type, bool doTCP, bool sendRDQuery, int EDNS0Level, struct timeval* now, boost::optional<Netmask>& srcmask, boost::optional<const ResolveContext&> context, LWResult* res, bool* chained) {
+
+      if (isRootServer(ip)) {
+        setLWResult(res, RCode::NoError, false, false, true);
+        addRecordToLW(res, DNSName("powerdns.com."), QType::NS, "pdns-public-ns1.powerdns.com.", DNSResourceRecord::AUTHORITY, 86400);
+        addRecordToLW(res, DNSName("pdns-public-ns1.powerdns.com."), QType::A, "192.0.2.1", DNSResourceRecord::ADDITIONAL, 86400);
+        return 1;
+      }
+      else if (ip == ComboAddress("192.0.2.1:53")) {
+        setLWResult(res, RCode::NoError, true, false, true);
+        addRecordToLW(res, DNSName("wwW.powerdns.com."), QType::A, "192.0.2.42");
+        return 1;
+      }
+
+      return 0;
+    });
+
+  vector<DNSRecord> ret;
+  int res = sr->beginResolve(target, QType(QType::A), QClass::IN, ret);
+  BOOST_CHECK_EQUAL(res, RCode::NoError);
+  BOOST_REQUIRE_EQUAL(ret.size(), 1);
+  BOOST_REQUIRE_EQUAL(QType(ret.at(0).d_type).getName(), QType(QType::A).getName());
+}
+
 /*
 // cerr<<"asyncresolve called to ask "<<ip.toStringWithPort()<<" about "<<domain.toString()<<" / "<<QType(type).getName()<<" over "<<(doTCP ? "TCP" : "UDP")<<" (rd: "<<sendRDQuery<<", EDNS0 level: "<<EDNS0Level<<")"<<endl;
 

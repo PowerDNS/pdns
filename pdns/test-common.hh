@@ -6,23 +6,29 @@ static inline std::shared_ptr<DNSRecordContent> getRecordContent(uint16_t type, 
 {
   std::shared_ptr<DNSRecordContent> result = nullptr;
 
-  if (type == QType::NS) {
-    result = std::make_shared<NSRecordContent>(DNSName(content));
+  try {
+    if (type == QType::NS) {
+      result = std::make_shared<NSRecordContent>(DNSName(content));
+    }
+    else if (type == QType::A) {
+      result = std::make_shared<ARecordContent>(ComboAddress(content));
+    }
+    else if (type == QType::AAAA) {
+      result = std::make_shared<AAAARecordContent>(ComboAddress(content));
+    }
+    else if (type == QType::CNAME) {
+      result = std::make_shared<CNAMERecordContent>(DNSName(content));
+    }
+    else if (type == QType::OPT) {
+      result = std::make_shared<OPTRecordContent>();
+    }
+    else {
+      result = DNSRecordContent::mastermake(type, QClass::IN, content);
+    }
   }
-  else if (type == QType::A) {
-    result = std::make_shared<ARecordContent>(ComboAddress(content));
-  }
-  else if (type == QType::AAAA) {
-    result = std::make_shared<AAAARecordContent>(ComboAddress(content));
-  }
-  else if (type == QType::CNAME) {
-    result = std::make_shared<CNAMERecordContent>(DNSName(content));
-  }
-  else if (type == QType::OPT) {
-    result = std::make_shared<OPTRecordContent>();
-  }
-  else {
-    result = DNSRecordContent::mastermake(type, QClass::IN, content);
+  catch(...) {
+    cerr<<"Error in getRecordContent() while parsing content '" << content <<"' for type "<<QType(type).getName()<<endl;
+    throw;
   }
 
   return result;
