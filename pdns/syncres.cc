@@ -1984,6 +1984,10 @@ RCode::rcodes_ SyncRes::updateCacheFromRecords(unsigned int depth, LWResult& lwr
   std::vector<std::shared_ptr<DNSRecord>> authorityRecs;
   const unsigned int labelCount = qname.countLabels();
   bool isCNAMEAnswer = false;
+  bool haveAnswers = false;
+  bool isNXDomain = false;
+  bool isNXQType = false;
+
   for(const auto& rec : lwr.d_records) {
     if (rec.d_class != QClass::IN) {
       continue;
@@ -2045,6 +2049,23 @@ RCode::rcodes_ SyncRes::updateCacheFromRecords(unsigned int depth, LWResult& lwr
     }
 
     if(rec.d_name.isPartOf(auth)) {
+
+      if (!haveAnswers) {
+        if (rec.d_place == DNSResourceRecord::ANSWER) {
+          haveAnswers = true;
+        }
+        else if (rec.d_place == DNSResourceRecord::AUTHORITY &&
+                 rec.d_type == QType::SOA &&
+                 qname.isPartOf(rec.d_name)) {
+          if (lwr.d_rcode == RCode::NXDomain) {
+            isNXDomain = true;
+          }
+          else if (lwr.d_rcode == RCode::NoError) {
+            isNXQType = true;
+          }
+        }
+      }
+
       if(rec.d_type == QType::RRSIG) {
         LOG("RRSIG - separate"<<endl);
       }
@@ -2088,8 +2109,9 @@ RCode::rcodes_ SyncRes::updateCacheFromRecords(unsigned int depth, LWResult& lwr
         tcache[{rec.d_name,rec.d_type,rec.d_place}].records.push_back(dr);
       }
     }
-    else
+    else {
       LOG("NO!"<<endl);
+    }
   }
 
   // supplant
@@ -2181,6 +2203,15 @@ RCode::rcodes_ SyncRes::updateCacheFromRecords(unsigned int depth, LWResult& lwr
       if (shouldValidate()) {
         LOG(d_prefix<<"Skipping validation because the current state is "<<vStates[recordState]<<endl);
       }
+    }
+
+    if ((isNXDomain || isNXQType) && i->first.type == QType::NS && (i->first.place == DNSResourceRecord::AUTHORITY || i->first.place == DNSResourceRecord::ADDITIONAL)) {
+      /* we don't want to pick up NS records in AUTHORITY or ADDITIONAL sections of NXDomain answers
+         because they are somewhat easy to insert into a large, fragmented UDP response
+         for an off-path attacker by injecting spoofed UDP fragments.
+      */
+      LOG(d_prefix<<"Discarding "<<QType(i->first.type).getName()<<" in "<<(i->first.place == DNSResourceRecord::AUTHORITY ? "authority" : "additional")<<" section since this answer is a "<<(isNXDomain ? "NXD" : "NXQTYPE")<<", in an answer for "<<qname<<"|"<<qtype.getName()<<" from "<<auth<<" nameserver"<<endl);
+      continue;
     }
 
     /* We don't need to store NSEC3 records in the positive cache because:
