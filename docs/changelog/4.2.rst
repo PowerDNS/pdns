@@ -16,7 +16,6 @@ Changelogs for 4.2.x
 
   Minor features, weave paragraph from this:
 
-  * 7094: Unique DNS Responses
   * 6823: On incoming NOTIFY load our serial from backend to have it
   * 6969: re-do of an earlier PR to add the glorious log-log histograms
   * 6997: Name threads in the programs
@@ -103,12 +102,6 @@ Changelogs for 4.2.x
     After this PR only the opendbx backend is capable of doing autoserial.  Autoserial is implement in the backend itself and not in core.
 
   .. change::
-    :tags: Improvements
-    :pullreq: 7224
-
-    geoip: store binary blobs instead of base64 sources.
-
-  .. change::
     :tags: Bug Fixes
     :pullreq: 7228
 
@@ -143,12 +136,6 @@ Changelogs for 4.2.x
     :pullreq: 6958
 
     Improve RSA key warnings
-
-  .. change::
-    :tags: Packages
-    :pullreq: 7212
-
-    Upgrade to jdnssec-tools 0.14.
 
   .. change::
     :tags: Bug Fixes
@@ -199,12 +186,6 @@ Changelogs for 4.2.x
     :pullreq: 7134
 
     Fix up the BIND config files on upgrade
-
-  .. change::
-    :tags: Improvements
-    :pullreq: 7094
-
-    Unique DNS Responses.
 
   .. change::
     :tags: Bug Fixes
@@ -734,12 +715,6 @@ Changelogs for 4.2.x
     dns_random: Implement new dns_random.
 
   .. change::
-    :tags: Bug Fixes
-    :pullreq: 6464
-
-    Allocate new statements after reconnecting to PostgreSQL.
-
-  .. change::
     :tags: New Features
     :pullreq: 5821
     :tickets: 5260
@@ -977,12 +952,6 @@ Changelogs for 4.2.x
     :pullreq: 2603
 
     Expose ResponseStats via REST API.
-
-  .. change::
-    :tags: Bug Fixes
-    :pullreq: 6134
-
-    Always bind the results array after executing a MySQL statement.
 
   .. change::
     :tags: Improvements, Internals
