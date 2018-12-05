@@ -9,7 +9,6 @@ Changelogs for 4.2.x
 
   Major features for this release:
 
-  * DNS over HTTPS (DoH)
   * Lua records
   * IXFRDist
   * API changes
