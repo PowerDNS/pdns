@@ -76,6 +76,33 @@ static string historyFile(const bool &ignoreHOME = false)
   return ret;
 }
 
+static bool getMsgLen32(int fd, uint32_t* len)
+try
+{
+  uint32_t raw;
+  size_t ret = readn2(fd, &raw, sizeof raw);
+  if(ret != sizeof raw)
+    return false;
+  *len = ntohl(raw);
+  if(*len > g_consoleOutputMsgMaxSize)
+    return false;
+  return true;
+}
+catch(...) {
+   return false;
+}
+
+static bool putMsgLen32(int fd, uint32_t len)
+try
+{
+  uint32_t raw = htonl(len);
+  size_t ret = writen2(fd, &raw, sizeof raw);
+  return ret==sizeof raw;
+}
+catch(...) {
+  return false;
+}
+
 static bool sendMessageToServer(int fd, const std::string& line, SodiumNonce& readingNonce, SodiumNonce& writingNonce, const bool outputEmptyLine)
 {
   string msg = sodEncryptSym(line, g_consoleKey, writingNonce);
@@ -706,31 +733,4 @@ catch(const std::exception& e)
 {
   close(fd);
   errlog("Control connection died: %s", e.what());
-}
-
-bool getMsgLen32(int fd, uint32_t* len)
-try
-{
-  uint32_t raw;
-  size_t ret = readn2(fd, &raw, sizeof raw);
-  if(ret != sizeof raw)
-    return false;
-  *len = ntohl(raw);
-  if(*len > g_consoleOutputMsgMaxSize)
-    return false;
-  return true;
-}
-catch(...) {
-   return false;
-}
-
-bool putMsgLen32(int fd, uint32_t len)
-try
-{
-  uint32_t raw = htonl(len);
-  size_t ret = writen2(fd, &raw, sizeof raw);
-  return ret==sizeof raw;
-}
-catch(...) {
-  return false;
 }

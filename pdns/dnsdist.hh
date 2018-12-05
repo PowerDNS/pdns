@@ -1009,8 +1009,6 @@ void setWebserverPassword(const std::string& password);
 void setWebserverCustomHeaders(const boost::optional<std::map<std::string, std::string> > customHeaders);
 
 void dnsdistWebserverThread(int sock, const ComboAddress& local);
-bool getMsgLen32(int fd, uint32_t* len);
-bool putMsgLen32(int fd, uint32_t len);
 void tcpAcceptorThread(void* p);
 
 void setLuaNoSideEffect(); // if nothing has been declared, set that there are no side effects
