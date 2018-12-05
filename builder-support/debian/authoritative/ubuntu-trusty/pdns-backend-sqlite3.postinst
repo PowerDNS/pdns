@@ -9,44 +9,20 @@ if [ -n "$PDNSDEBUG" ]; then
   set -x
 fi
 
-PKGNAME="pdns-backend-sqlite3"
-
-# rename ucf-conffile. This was mostly stolen from cacti.postinst after
-# a short discussion on debian-mentors, see
-# http://lists.debian.org/debian-mentors/2013/07/msg00027.html
-# and the following thread. Thanks to Paul Gevers
-renameconffile() {
-  oldname="$1"
-  newname="$2"
-  sourcefile="$3"
-  if [ -f $oldname ] ; then
-    if [ ! -e $newname ] ; then
-      mv $oldname $newname
-#   else: Don't do anything, leave old file in place
-    fi
-    ucf --purge $oldname
-    ucfr --purge $PKGNAME $oldname
-  elif [ ! -e $newname ] ; then
-#   The file was removed, we should respect that. Unfortunately, we don't
-#   have a proper way to tell ucf that for the new location, so we need
-#   to hack it a bit.
-#   We only need to do this if the target does not already exist. If the
-#   target already exists, we can later call ucf straight as there
-#   is already a version of the file available, althought never
-#   provided by this package, but we can just propose the new file anyway.
-    ucf --debconf-ok $sourcefile $newname
-    ucfr $PKGNAME $newname
-    rm -f $newname
+purge_ucf_registry() {
+  pkgname="$1"
+  # Remove files previously registered with ucf (but keep the files).
+  # Newer versions no longer use ucf to manage conffiles.
+  # We stopped depending on ucf, so avoid calling ucf when it is not present.
+  if command -v ucfq >/dev/null; then
+    for file in $(ucfq --with-colons "$pkgname" | cut --delimiter=: --fields=1); do
+      ucf --purge ${file}
+      ucfr --purge $pkgname ${file}
+    done
   fi
 }
 
-if [ "$1" = "configure" ]; then
-  if [ -n "$2" ] && dpkg --compare-versions "$2" lt 3.3; then
-    renameconffile /etc/powerdns/pdns.d/pdns.local.gsqlite3 /etc/powerdns/pdns.d/pdns.local.gsqlite3.conf /dev/null
-  fi
-fi
-
-ucfr $PKGNAME /etc/powerdns/pdns.d/pdns.local.gsqlite3.conf
+purge_ucf_registry "pdns-backend-sqlite3"
 
 dpkg-trigger pdns-server
 

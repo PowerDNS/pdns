@@ -16,6 +16,19 @@ ucf_delete_unchanged() {
   fi
 }
 
+purge_ucf_registry() {
+  pkgname="$1"
+  # Remove files previously registered with ucf (but keep the files).
+  # Newer versions no longer use ucf to manage conffiles.
+  # We stopped depending on ucf, so avoid calling ucf when it is not present.
+  if command -v ucfq >/dev/null; then
+    for file in $(ucfq --with-colons "$pkgname" | cut --delimiter=: --fields=1); do
+      ucf --purge ${file}
+      ucfr --purge $pkgname ${file}
+    done
+  fi
+}
+
 backup_conffile() {
   if [ -e "$1" ]; then
     echo "Moving configuration file $1 to $1.dpkg-bak"
@@ -47,6 +60,8 @@ case "$1" in
     # Remove files no longer in the package (and unused)
     rm -f /etc/resolvconf/update.d/pdns
     rm -f /etc/insserv.d/pdns-server
+
+    purge_ucf_registry "pdns-server"
   ;;
 esac
 
