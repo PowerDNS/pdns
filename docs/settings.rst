@@ -578,9 +578,9 @@ disables caching.
 
 Enables EDNS subnet processing, for backends that support it.
 
-.. _setting-enable-lua-records:
+.. _setting-enable-lua-record:
 
-``enable-lua-records``
+``enable-lua-record``
 ----------------------
 
 -  Boolean
