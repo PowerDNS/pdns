@@ -28,10 +28,14 @@ To slave from a master and start IXFR to get updates, use for example:
 
 In this example, 'policy.rpz' denotes the name of the zone to query for.
 
-As of .. versionchanged:: 4.2.0: you can add IP blocks into the rpzMaster as:
+New in version 4.2.0: You can add several IP blocks into the :func:`rpzMaster` for backends failover and load balancing per zones as an comma seperated array with ip addresses enclosed in "" (double quotes) and add optional port:
 
-    rpzMaster({"192.0.2.4","192.0.2.5"}, "policy.rpz", {defpol=Policy.Drop})
-    
+    rpzMaster({"192.0.2.4","192.0.2.5:5301"}, "policy.rpz", {defpol=Policy.Drop})
+  
+  In the above example we have truncated two rpzMaster lines into one line by using array and added optional port number 5301.
+  (If no optional port is set, the default port 53 is used)
+  
+   
 .. function:: rpzFile(filename, settings)
 
   Load an RPZ from disk.
