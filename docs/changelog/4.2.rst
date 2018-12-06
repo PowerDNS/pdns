@@ -50,12 +50,6 @@ Changelogs for 4.2.x
     Improved Lua records - Added all selector, and backupSelector fallbacks
 
   .. change::
-    :tags: Bug Fixes, IXFRDist
-    :pullreq: 7225
-
-    Preserve the correct TTL for SOA records
-
-  .. change::
     :tags: Bug Fixes
     :pullreq: 6823
     :tickets: 6821
@@ -118,12 +112,6 @@ Changelogs for 4.2.x
     :pullreq: 7217
 
     geoip: properly delete libGeoIP return values.
-
-  .. change::
-    :tags: Improvements, IXFRDist
-    :pullreq: 7182
-
-    Add metrics to ixfrdist.
 
   .. change::
     :tags: Bug Fixes
@@ -236,17 +224,6 @@ Changelogs for 4.2.x
     Add support for OpenSSL 1.1.1's ed25519 and ed448 for signing and verifying.
 
   .. change::
-    :tags: Bug Fixes, Improvements, IXFRDist
-    :pullreq: 7011
-
-    Various ixfrdist fixes / improvements:
-
-    * fix log message concatenation
-    * send REFUSED for UDP queries we are unable to handle
-    * stop crashing on out-of-zone data during inbound AXFR
-    * clarify testing zone names
-
-  .. change::
     :tags: Improvements
     :pullreq: 6822
 
@@ -290,12 +267,6 @@ Changelogs for 4.2.x
     Actually truncate truncated responses.
 
   .. change::
-    :tags: Bug Fixes, Improvements, IXFRDist
-    :pullreq: 6895
-
-    Fix TTL, optimize the construction of answers.
-
-  .. change::
     :tags: Improvements, Packages
     :pullreq: 6921
 
@@ -306,18 +277,6 @@ Changelogs for 4.2.x
     :pullreq: 6668
 
     Add zone lookup by /zones?zone=example.org.
-
-  .. change::
-    :tags: Improvements, IXFRDist
-    :pullreq: 6890
-
-    Reduce memory usage and lock contention.
-
-  .. change::
-    :tags: Bug Fixes, IXFRDist
-    :pullreq: 6886
-
-    Fix invalid buffer usage in ``getSerialFromMaster()``.
 
   .. change::
     :tags: Bug Fixes
@@ -490,18 +449,6 @@ Changelogs for 4.2.x
     Ensure ALIAS answers over TCP have correct name.
 
   .. change::
-    :tags: Improvements, IXFRDist
-    :pullreq: 6613
-
-    Use yaml as config file.
-
-  .. change::
-    :tags: Improvements, IXFRDist
-    :pullreq: 6638
-
-    Store TTL in stored zones.
-
-  .. change::
     :tags: Bug Fixes, Tools
     :pullreq: 6617
 
@@ -605,12 +552,6 @@ Changelogs for 4.2.x
     :pullreq: 6171
 
     LUA Records (yes we know it is "Lua").
-
-  .. change::
-    :tags: Improvements, Tools, IXFRDist
-    :pullreq: 6489
-
-    Use worker threads to handle TCP connections.
 
   .. change::
     :tags: Bug Fixes
@@ -763,18 +704,6 @@ Changelogs for 4.2.x
     Make ``check-zone`` error on rows that have content but shouldn't.
 
   .. change::
-    :tags: Bug Fixes, Tools, IXFRDist
-    :pullreq: 6302
-
-    Also respect the AXFR timeout for the chunk's length.
-
-  .. change::
-    :tags: Bug Fixes, Tools, IXFRDist
-    :pullreq: 6291
-
-    Read only the amount of bytes we need.
-
-  .. change::
     :tags: Improvements
     :pullreq: 6100
 
@@ -791,52 +720,10 @@ Changelogs for 4.2.x
     * Fixes SERVFAIL if expansion is empty
 
   .. change::
-    :tags: Improvements, Tools, IXFRDist
-    :pullreq: 6292
-
-    Keep latest AXFR and ``--keep`` IXFR's in memory.
-
-  .. change::
     :tags: Improvements
     :pullreq: 6295
 
     Fix syntax error for ``replace-rrset``. (@lordievader)
-
-  .. change::
-    :tags: Improvements, Tools, IXFRDist
-    :pullreq: 6288
-
-    Add missing CAP_SETGID and CAP_SETUID to the IXFRDist systemD unit file.
-
-  .. change::
-    :tags: Improvements, Tools, IXFRDist
-    :pullreq: 6268
-
-    Allow setting the inbound AXFR timeout
-
-  .. change::
-    :tags: Improvements, Tools, IXFRDist
-    :pullreq: 6269
-
-    Implement priv-dropping.
-
-  .. change::
-    :tags: Bug Fixes, Improvements, Tools, IXFRDist
-    :pullreq: 6264
-
-    Prevent a nullptr exception and guard reads/writes.
-
-  .. change::
-    :tags: Bug Fixes, Tools, IXFRDist
-    :pullreq: 6258
-
-    Check the serial even if verbose is off.
-
-  .. change::
-    :tags: New Features, Tools, IXFRDist
-    :pullreq: 6235
-
-    New tool: IXFRDist.
 
   .. change::
     :tags: Improvements, API
