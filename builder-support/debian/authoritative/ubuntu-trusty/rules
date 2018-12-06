@@ -27,7 +27,7 @@ override_dh_auto_configure:
 		--enable-unit-tests \
 		--enable-experimental-pkcs11 \
 		--disable-systemd \
-		--disable-lua-records
+		--enable-lua-records
 
 # pdns-server has a debug package
 override_dh_strip:
