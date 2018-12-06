@@ -177,7 +177,7 @@ distributor-threads=1""".format(confdir=confdir, prefix=cls._PREFIX,
         authcmd.append('--local-address=%s' % ipaddress)
         authcmd.append('--local-port=%s' % cls._authPort)
         authcmd.append('--loglevel=9')
-        authcmd.append('--enable-lua-record')
+        authcmd.append('--enable-lua-records')
         print(' '.join(authcmd))
 
         logFile = os.path.join(confdir, 'pdns.log')
