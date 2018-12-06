@@ -33,9 +33,45 @@ Changelogs for 4.2.x
 
   Thank:
 
+  * @Gibheer
+  * @KamagoNet
+  * @Privex
+  * @RvdE
+  * @SvenMW
+  * @alexjfisher
+  * @bandzoogle
+  * @blop
+  * @cassvin
+  * @cclauss
   * @cmouse
+  * @cyclops1982
+  * @dkoster
+  * @dwfreed
+  * @ffledgling
+  * @fobser
+  * @gibson042
+  * @gryphius
+  * @jannyg
+  * @jpmens
   * @jsoref
+  * @klaus3000
+  * @krionbsd
+  * @lordievader
+  * @mind04
+  * @mnordhoff
+  * @needleshaped
+  * @oridistor
+  * @ossobv
+  * @peterthomassen
+  * @ploxiln
+  * @rubenk
+  * @spirillen
   * @stbuehler
+  * @tih
+  * @tjikkun
+  * @wk
+  * @zeha
+  * @zilopbg
 
   .. change::
     :tags: Improvements, Internals
