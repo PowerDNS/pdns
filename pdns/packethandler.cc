@@ -360,7 +360,7 @@ bool PacketHandler::getBestWildcard(DNSPacket *p, SOAData& sd, const DNSName &ta
   bool doLua=g_doLuaRecord;
   if(!doLua) {
     string val;
-    d_dk.getFromMeta(sd.qname, "ENABLE-LUA-RECORD", val);
+    d_dk.getFromMeta(sd.qname, "ENABLE-LUA-RECORDS", val);
     doLua = (val=="1");
   }
 #endif
@@ -1341,7 +1341,7 @@ DNSPacket *PacketHandler::doQuestion(DNSPacket *p)
 #ifdef HAVE_LUA_RECORDS
     if(!doLua) {
       string val;
-      d_dk.getFromMeta(sd.qname, "ENABLE-LUA-RECORD", val);
+      d_dk.getFromMeta(sd.qname, "ENABLE-LUA-RECORDS", val);
       doLua = (val=="1");
     }
 #endif

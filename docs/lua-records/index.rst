@@ -21,8 +21,8 @@ tiny (or larger) `Lua <https://www.lua.org>`_ statements.
   interoperability, and strive to turn this functionality into a broadly
   supported standard.
 
-To enable this feature, either set 'enable-lua-record' in the configuration,
-or set the 'ENABLE-LUA-RECORD' per-zone metadata item to 1.
+To enable this feature, either set 'enable-lua-records' in the configuration,
+or set the 'ENABLE-LUA-RECORDS' per-zone metadata item to 1.
 
 In addition, to benefit from the geographical features, make sure the PowerDNS
 launch statement includes the ``geoip`` backend.
@@ -79,7 +79,7 @@ for both **MySQL** and **PostgreSQL**::
 
     -- Enable Lua records for the zone (if not enabled globally)
     INSERT INTO domainmetadata (domain_id, kind, content) 
-    VALUES (1, 'ENABLE-LUA-RECORD', 1);
+    VALUES (1, 'ENABLE-LUA-RECORDS', 1);
 
     -- Create a pickClosest() Lua A record.
     -- Double single quotes are used to escape single quotes in both MySQL and PostgreSQL
@@ -92,7 +92,7 @@ for both **MySQL** and **PostgreSQL**::
       600
     );
 
-The above queries create a zone ``example.com``, enable Lua records for the zone using ``ENABLE-LUA-RECORD``,
+The above queries create a zone ``example.com``, enable Lua records for the zone using ``ENABLE-LUA-RECORDS``,
 and finally insert a LUA A record for the ``www`` subdomain using the previous pickclosest example.
 
 See `Details & Security`_ for more information about enabling Lua records, and the risks involved.
@@ -110,7 +110,7 @@ again for configuration scripts. The query type is then followed by the
 actual Lua snippet.
 
 LUA records can have TTL settings, and these will be honoured. In addition,
-LUA record output can be DNSSEC signed like any other record, but see below
+LUA records output can be DNSSEC signed like any other record, but see below
 for further details.
 
 More powerful example
@@ -181,7 +181,7 @@ LUA records themselves can not be queried however, as this would allow third par
 they do not need to see.
 
 A non-supporting DNS server will also serve a zone with LUA records, but
-they will not function, and will in fact leak the contents of the LUA record.
+they will not function, and will in fact leak the content of the LUA records.
 
 .. note::
   Under NO circumstances serve LUA records from zones from untrusted sources!
@@ -193,9 +193,9 @@ possible to combine pre-signed DNSSEC zone and LUA records. In other words,
 the signing key must be available on the server creating answers based on
 LUA records.
 
-Note that to protect operators, support for the LUA record must be enabled
-explicitly, either globally (``enable-lua-record``) or per zone
-(``ENABLE-LUA-RECORD`` = 1).
+Note that to protect operators, support for LUA records must be enabled
+explicitly, either globally (``enable-lua-records``) or per zone
+(``ENABLE-LUA-RECORDS`` = 1).
 
 Reference
 ---------

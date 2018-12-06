@@ -736,15 +736,15 @@ Disable this if the process supervisor timestamps these lines already.
 .. note::
   The systemd unit file supplied with the source code already disables timestamp printing
 
-.. _setting-lua-record-exec-limit:
+.. _setting-lua-records-exec-limit:
 
-``lua-record-exec-limit``
+``lua-records-exec-limit``
 -----------------------------
 
 -  Integer
 -  Default: 1000
 
-Limit LUA record scripts to ``lua-record-exec-limit`` instructions.
+Limit LUA records scripts to ``lua-records-exec-limit`` instructions.
 Setting this to any value less than or equal to 0 will set no limit.
 
 .. _setting-non-local-bind:
