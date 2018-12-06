@@ -12,7 +12,6 @@ Changelogs for 4.2.x
   * Lua records
   * IXFRDist
   * API changes
-  * DNSSEC? (#6655)
 
   Minor features, weave paragraph from this:
 
