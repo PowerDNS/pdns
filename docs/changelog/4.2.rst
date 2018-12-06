@@ -15,13 +15,11 @@ Changelogs for 4.2.x
 
   Minor features, weave paragraph from this:
 
-  * 6823: On incoming NOTIFY load our serial from backend to have it
   * 6969: re-do of an earlier PR to add the glorious log-log histograms
   * 6997: Name threads in the programs
   * 6727: ALIAS: Respond SERVFAIL on non-NOERRORs from resolver
   * 6910: support for OpenSSL 1.1.1's ed25519 and ed448
   * 6975: Enhance query-logging with timing
-  * 6913: actually truncate truncated responses
   * 6730: Implement a smarter dedup for filling packets in auth
 
   Upgrade notes:
@@ -31,8 +29,13 @@ Changelogs for 4.2.x
   * BIND config files fixup on package upgrade
   * GOST and Botan removed
   * #6633?
+  * 7026: Configure --enable-pdns-option --with-third-party-module
 
-  Possible tags we can use below: Bug Fixes, Improvements, Internals, API, Packages, PostgreSQL, LDAP, MySQL, Tools, DNSSEC, Removed Features, New Features, BIND, DNSUpdate, IXFRDist.
+  Thank:
+
+  * @cmouse
+  * @jsoref
+  * @stbuehler
 
   .. change::
     :tags: Improvements, Internals
@@ -68,7 +71,7 @@ Changelogs for 4.2.x
     API: Add TSIG key manipulation endpoints
 
   .. change::
-    :tags: Improvments
+    :tags: Improvements
     :pullreq: 7026
 
     Configure --enable-pdns-option --with-third-party-module
@@ -97,8 +100,6 @@ Changelogs for 4.2.x
     :tickets: 1355, 1366
 
     Remove autoserial from the Authoritative Server.  Serial 0 was a little bit too special in PowerDNS.
-
-    After this PR only the opendbx backend is capable of doing autoserial.  Autoserial is implement in the backend itself and not in core.
 
   .. change::
     :tags: Bug Fixes
@@ -169,18 +170,6 @@ Changelogs for 4.2.x
     Add namespace and instance variable to carbon key.
 
   .. change::
-    :tags: Improvements
-    :pullreq: 7111
-
-    Rename skipLabel function to skipDomainName.
-
-  .. change::
-    :tags: Bug Fixes, Packages
-    :pullreq: 7145
-
-    m4: Fix lua.hpp check to actually work
-
-  .. change::
     :tags: Bug Fixes, Packages
     :pullreq: 7134
 
@@ -194,22 +183,9 @@ Changelogs for 4.2.x
 
   .. change::
     :tags: Improvements
-    :pullreq: 7074
-
-    Print the content of pdns.log when the regression tests fail.
-
-  .. change::
-    :tags: Improvements
     :pullreq: 7069
 
     Use unique pointers in the OpenSSL signer.
-
-  .. change::
-    :tags: Improvements
-    :pullreq: 7057
-    :tickets: 5512
-
-    ``scopeMask`` in the ``SOAData`` structure is unused after #5512.
 
   .. change::
     :tags: API, Removed Features
@@ -254,7 +230,7 @@ Changelogs for 4.2.x
     ALIAS: Respond SERVFAIL on non-NOERRORs from resolver.
 
   .. change::
-    :tags: New Features
+    :tags: Improvements
     :pullreq: 6910
 
     Add support for OpenSSL 1.1.1's ed25519 and ed448 for signing and verifying.
@@ -277,12 +253,6 @@ Changelogs for 4.2.x
     Add incremental slave-check backoff also for failed AXFR.
 
   .. change::
-    :tags: <nil>
-    :pullreq: 7003
-
-    Enforce style const MOADNSException &mde
-
-  .. change::
     :tags: Bug Fixes
     :pullreq: 6923
 
@@ -293,18 +263,6 @@ Changelogs for 4.2.x
     :pullreq: 6975
 
     Enhance query-logging with timing for MySQL, PostgreSQL and SQLite.
-
-  .. change::
-    :tags: Improvements
-    :pullreq: 6998
-
-    Rename ``rtr`` to ``rte`` since it's an ``rte``. (@jsoref)
-
-  .. change::
-    :tags: Packages
-    :pullreq: 6970
-
-    Update the required version of FFI in the remote backend.
 
   .. change::
     :tags: Improvements
@@ -369,12 +327,6 @@ Changelogs for 4.2.x
 
   .. change::
     :tags: Improvements
-    :pullreq: 6861
-
-    Do not leak requests for addzone.com to the Internet.
-
-  .. change::
-    :tags: Improvements
     :pullreq: 6825
 
     Add option ``send-signed-notify`` to send NOTIFYs without TSIG signature.
@@ -417,21 +369,16 @@ Changelogs for 4.2.x
 
   .. change::
     :tags: Improvements
-    :pullreq: 6831
-
-    Get rid of some allocs/copies in DNS parsing.
-
-  .. change::
-    :tags: Improvements
     :pullreq: 6824
 
     Add the serials when logging the final result of a slave-check.
 
   .. change::
     :tags: Bug Fixes, API
-    :pullreq: 6816
+    :pullreq: 6780, 6816
 
     Make sure that we use strict weak records ordering in the API.
+    (Doing this avoids concurrent records / comments iteration from running out of sync.)
 
   .. change::
     :tags: Bug Fixes
@@ -444,12 +391,6 @@ Changelogs for 4.2.x
     :pullreq: 6774
 
     calidns: accurate qps targets.
-
-  .. change::
-    :tags: Bug Fixes
-    :pullreq: 6780
-
-    Avoid concurrent records/comments iteration from running out of sync.
 
   .. change::
     :tags: <nil>
@@ -465,21 +406,9 @@ Changelogs for 4.2.x
 
   .. change::
     :tags: Improvements
-    :pullreq: 6692
-
-    Reorder SUBDIRS.
-
-  .. change::
-    :tags: Improvements
     :pullreq: 6730
 
     Implement a smarter dedup for filling packets in auth.
-
-  .. change::
-    :tags: Improvements
-    :pullreq: 6699
-
-    Revert EDNS0Record to a trivial type.
 
   .. change::
     :tags: Improvements, Tools
@@ -678,12 +607,6 @@ Changelogs for 4.2.x
     LUA Records (yes we know it is "Lua").
 
   .. change::
-    :tags: Improvements
-    :pullreq: 6498
-
-    dnsbackend: Make ``isMaster`` a const.
-
-  .. change::
     :tags: Improvements, Tools, IXFRDist
     :pullreq: 6489
 
@@ -730,29 +653,10 @@ Changelogs for 4.2.x
     Avoid an isane amount of new backend connections during an AXFR.
 
   .. change::
-    :tags: Bug Fixes
-    :pullreq: 6437
-
-    Fix reorder warning: field ``d_rname`` will be initialized after field ``d_st``.
-
-  .. change::
-    :tags: Bug Fixes, API
-    :pullreq: 6421
-
-    Add parameters to Swagger API definition for creating zone.
-
-  .. change::
     :tags: Improvements, Internals
     :pullreq: 6358
 
     Remove ``theLog`` and ``theL`` and replace this with a global ``g_log``.
-
-  .. change::
-    :tags: Bug Fixes
-    :pullreq: 6413
-    :tickets: 6377
-
-    Update ``data.cdb`` hash after merge of #6377.
 
   .. change::
     :tags: Improvements, Tools
@@ -785,12 +689,6 @@ Changelogs for 4.2.x
     Report unparseable data in stoul invalid_argument exception.
 
   .. change::
-    :tags: Improvements
-    :pullreq: 6380
-
-    Remove VLAs.
-
-  .. change::
     :tags: New Features, Tools
     :pullreq: 6374
 
@@ -820,12 +718,6 @@ Changelogs for 4.2.x
     :pullreq: 6326
 
     calidns: Add the ``--ecs`` parameter to add random ECS values to queries.
-
-  .. change::
-    :tags: Improvements
-    :pullreq: 6330
-
-    Make tkey.py work on Python 3.
 
   .. change::
     :tags: Improvements
@@ -1010,12 +902,6 @@ Changelogs for 4.2.x
     gmysql-backend: set unsigned attribute on ``notified_serial`` column.
 
   .. change::
-    :tags: Bug Fixes, Packages
-    :pullreq: 6165
-
-    Upgrade to webrick 1.4.2 (CVE-2009-4492).
-
-  .. change::
     :tags: Improvements
     :pullreq: 6158
     :tickets: 2611
@@ -1063,12 +949,6 @@ Changelogs for 4.2.x
     :pullreq: 6063
 
     Add colour to diff output of pdnsutil.
-
-  .. change::
-    :tags: Bug Fixes
-    :pullreq: 6127
-
-    Fix dependency tracking for backends. (@cmouse)
 
   .. change::
     :tags: <nil>
@@ -1131,12 +1011,6 @@ Changelogs for 4.2.x
     :tickets: 5854
 
     Add Draft of Swagger spec for Authoritative Server HTTP API.
-
-  .. change::
-    :tags: Improvements
-    :pullreq: 6034
-
-    Centralise ragel check+remove .cc symlink.
 
   .. change::
     :tags: Bug Fixes
