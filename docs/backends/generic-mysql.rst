@@ -126,4 +126,6 @@ server. A value of 0 will disable the timeout. Default: 10
 Default Schema
 --------------
 
+This is the 4.2 schema. Please find `the 4.1 schema on GitHub <https://github.com/PowerDNS/pdns/blob/rel/auth-4.1.x/modules/gmysqlbackend/schema.mysql.sql>`_.
+
 .. literalinclude:: ../../modules/gmysqlbackend/schema.mysql.sql
