@@ -83,24 +83,50 @@ void showProductVersion()
 void showBuildConfiguration()
 {
   g_log<<Logger::Warning<<"Features: "<<
-#ifdef HAVE_LIBSODIUM
-    "sodium " <<
-#endif
 #ifdef HAVE_LIBDECAF
     "decaf " <<
 #endif
-    "openssl " <<
+#ifdef HAVE_BOOST_CONTEXT
+    "fcontext " <<
+#endif
+#ifdef HAVE_LIBCRYPTO_ECDSA
+    "libcrypto-ecdsa "
+#endif
+#ifdef HAVE_LIBCRYPTO_ED25519
+    "libcrypto-ed25519 "
+#endif
+#ifdef HAVE_LIBCRYPTO_ED448
+    "libcrypto-ed448 "
+#endif
+#ifdef HAVE_LIBCRYPTO_EDDSA
+    "libcrypto-eddsa "
+#endif
 #ifdef HAVE_LIBDL
     "libdl " <<
 #endif
 #ifdef HAVE_LUA
     "lua " <<
 #endif
+#ifdef HAVE_LUA_RECORDS
+    "lua-records " <<
+#endif
+#ifdef NOD_ENABLED
+    "nod " <<
+#endif
+#ifdef HAVE_P11KIT1
+    "PKCS#11 " <<
+#endif
+#ifdef HAVE_PROTOBUF
+    "protobuf " <<
+#endif
 #ifdef REMOTEBACKEND_ZEROMQ
     "remotebackend-zeromq " <<
 #endif
-#ifdef HAVE_P11KIT1
-    "PKCS#11" <<
+#ifdef HAVE_NET_SNMP
+    "snmp " <<
+#endif
+#ifdef HAVE_LIBSODIUM
+    "sodium " <<
 #endif
 #ifdef VERBOSELOG
     "verboselog" <<

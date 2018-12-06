@@ -1385,6 +1385,9 @@ public:
 #ifndef REPRODUCIBLE
       << " (" __DATE__ " " __TIME__ ")"
 #endif
+#ifdef HAVE_SQLITE3
+      << " (with bind-dnssec-db support)"
+#endif
       << " reporting" << endl;
   }
 };
