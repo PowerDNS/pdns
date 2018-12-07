@@ -5,7 +5,8 @@ Changelogs for 4.2.x
   :version: 4.2.0
   :released: *unreleased*
 
-  This release *blah blah blah* …
+  Below are some bulletpoints that we can use for the actual 4.2.0
+  announcement.
 
   Major features for this release:
 
@@ -28,7 +29,7 @@ Changelogs for 4.2.x
   * command line util parameters (for scripts)
   * BIND config files fixup on package upgrade
   * GOST and Botan removed
-  * #6633?
+  * 6633: reject duplicate RRsets in patchZone
   * 7026: Configure --enable-pdns-option --with-third-party-module
 
   Thank:
@@ -83,7 +84,7 @@ Changelogs for 4.2.x
     :tags: Improvements
     :pullreq: 6894
 
-    Improved Lua records - Added all selector, and backupSelector fallbacks
+    Improved Lua records - Added all selector, and backupSelector fallbacks.
 
   .. change::
     :tags: Bug Fixes
@@ -98,25 +99,25 @@ Changelogs for 4.2.x
     :tags: Improvements, API, DNSSEC
     :pullreq: 5988
 
-    API: Add TSIG key manipulation endpoints
+    API: Add TSIG key manipulation endpoints.
 
   .. change::
     :tags: Improvements
     :pullreq: 7026
 
-    Configure --enable-pdns-option --with-third-party-module
+    Configure ``--enable-pdns-option`` ``--with-third-party-module``.
 
   .. change::
     :tags: Improvements
     :pullreq: 6731
     :tickets: 6693
 
-    Address some known LUA Records issues :
+    Address some known LUA Records issues:
 
-    * better check input lists
-    * report lua wildcards errors
-    * exposes DNSName::getRawLabels in lua env
-    * better document LUA functions and objects
+    * Better check input lists,
+    * Report lua wildcards errors,
+    * Exposes ``DNSName::getRawLabels`` in lua env,
+    * Better document LUA functions and objects.
 
   .. change::
     :tags: Improvements, API
@@ -129,7 +130,7 @@ Changelogs for 4.2.x
     :pullreq: 6838
     :tickets: 1355, 1366
 
-    Remove autoserial from the Authoritative Server.  Serial 0 was a little bit too special in PowerDNS.
+    Remove ``autoserial`` from the Authoritative Server.  Serial 0 was a little bit too special in PowerDNS.
 
   .. change::
     :tags: Bug Fixes
@@ -141,7 +142,7 @@ Changelogs for 4.2.x
     :tags: Improvements
     :pullreq: 6869
 
-    Remove out-of-zone-additional-processing setting.
+    Remove ``out-of-zone-additional-processing`` setting.
 
   .. change::
     :tags: Bug Fixes
@@ -153,19 +154,19 @@ Changelogs for 4.2.x
     :tags: Bug Fixes
     :pullreq: 7067
 
-    SOA-check: reject nxdomain response and check label of RR against qname.
+    SOA-check: reject NXDOMAIN response and check label of RR against qname.
 
   .. change::
     :tags: Improvements, DNSSEC
     :pullreq: 6958
 
-    Improve RSA key warnings
+    Improve RSA key warnings.
 
   .. change::
     :tags: Bug Fixes
     :pullreq: 7201
 
-    Fix carbon-instance / carbon-namespace inconsistencies.
+    Fix ``carbon-instance`` / ``carbon-namespace`` inconsistencies.
 
   .. change::
     :tags: <nil>
@@ -178,7 +179,11 @@ Changelogs for 4.2.x
     :tags: Tools, DNSSEC
     :pullreq: 7187
 
-    pdnsutil.1 & settings: Add Ed25519 and Ed448, document ECC keysizes, remove old algos
+    pdnsutil.1 & settings:
+
+    * Add Ed25519 and Ed448,
+    * Document ECC keysizes,
+    * Remove old algos.
 
   .. change::
     :tags: Bug Fixes, API
@@ -197,13 +202,13 @@ Changelogs for 4.2.x
     :tags: Bug Fixes, Packages
     :pullreq: 7134
 
-    Fix up the BIND config files on upgrade
+    Fix up the BIND config files on upgrade.
 
   .. change::
     :tags: Bug Fixes
     :pullreq: 7024
 
-    geoipbackend: Handle read error for config file
+    geoipbackend: Handle read error for config file.
 
   .. change::
     :tags: Improvements
@@ -221,25 +226,25 @@ Changelogs for 4.2.x
     :tags: Improvements
     :pullreq: 6962
 
-    Store NetmaskTree nodes in a set for faster removal
+    Store ``NetmaskTree`` nodes in a set for faster removal.
 
   .. change::
     :tags: New Features
     :pullreq: 6969
 
-    A clean re-do of an earlier PR to add the glorious log-log histograms
+    Adds the glorious log-log histograms.
 
   .. change::
     :tags: Bug Fixes
     :pullreq: 7017
 
-    Make sure we escape 127 in TXT records.
+    Make sure we escape ``127`` in TXT records.
 
   .. change::
     :tags: Bug Fixes
     :pullreq: 4598
 
-    Add support for ``NONE`` SOA-EDIT kind
+    Add support for NONE SOA-EDIT kind.
 
   .. change::
     :tags: Tools
@@ -263,7 +268,7 @@ Changelogs for 4.2.x
     :tags: Improvements
     :pullreq: 6822
 
-    Add incremental slave-check backoff also for failed AXFR.
+    Add incremental ``slave-check`` backoff also for failed AXFR.
 
   .. change::
     :tags: Bug Fixes
@@ -306,13 +311,13 @@ Changelogs for 4.2.x
     :tags: Improvements, Packages
     :pullreq: 6921
 
-    Remove GOST support and Botan in the process
+    Remove GOST and Botan support.
 
   .. change::
     :tags: Improvements, API
     :pullreq: 6668
 
-    Add zone lookup by /zones?zone=example.org.
+    Add zone lookup by ``/zones?zone=example.org``.
 
   .. change::
     :tags: Bug Fixes
@@ -366,7 +371,7 @@ Changelogs for 4.2.x
     :tags: Improvements
     :pullreq: 6824
 
-    Add the serials when logging the final result of a slave-check.
+    Add the serials when logging the final result of a slave check.
 
   .. change::
     :tags: Bug Fixes, API
@@ -379,25 +384,25 @@ Changelogs for 4.2.x
     :tags: Bug Fixes
     :pullreq: 6738
 
-    Reset the TSIG state between queries
+    Reset the TSIG state between queries.
 
   .. change::
     :tags: Improvements, Tools
     :pullreq: 6774
 
-    calidns: accurate qps targets.
+    calidns: Accurate qps targets.
 
   .. change::
     :tags: <nil>
     :pullreq: 6769
 
-    LuaWrapper: Disable maybe uninitialized warnings with boost optional
+    LuaWrapper: Disable maybe uninitialized warnings with boost optional.
 
   .. change::
     :tags: Bug Fixes
     :pullreq: 6495
 
-    Only parse resolv.conf once - this avoids race conditions.
+    Only parse ``resolv.conf`` once - this avoids race conditions.
 
   .. change::
     :tags: Improvements
@@ -409,13 +414,13 @@ Changelogs for 4.2.x
     :tags: Improvements, Tools
     :pullreq: 6691
 
-    pdns_control notify: handle slave w/o renotify properly.
+    pdns_control notify: Handle slave w/o renotify properly.
 
   .. change::
     :tags: Improvements, Tools
     :pullreq: 6653
 
-    pdnsutil: occlusion and auth check improvements.
+    pdnsutil: Occlusion and auth check improvements.
 
   .. change::
     :tags: Bug Fixes
@@ -427,13 +432,13 @@ Changelogs for 4.2.x
     :tags: Improvements
     :pullreq: 6658
 
-    luawrapper: report caught std::exception as lua_error
+    luawrapper: Report caught ``std::exception`` as ``lua_error``.
 
   .. change::
     :tags: Bug Fixes
     :pullreq: 6686
 
-    Initialize some missed qtypes.
+    Initialize some missed qtypes: WKS, SMIMEA.
 
   .. change::
     :tags: Bug Fixes
@@ -513,7 +518,7 @@ Changelogs for 4.2.x
     :pullreq: 6585
     :tickets: 6584
 
-    Geoip: fix poisoning of cache when hit service's default network.
+    Geoip: Fix poisoning of cache when hit service's default network.
 
     Also includes an optimization to make lookups faster.
 
@@ -521,19 +526,19 @@ Changelogs for 4.2.x
     :tags: Improvements, Tools
     :pullreq: 6594
 
-    pdnsutil: also load modules through the load-modules directive.
+    pdnsutil: also load modules through the ``load-modules`` directive.
 
   .. change::
     :tags: Improvements, Tools
     :pullreq: 6601
 
-    calidns: Add quiet, minimum-success-rate options to use from a script.
+    calidns: Add ``quiet``, ``minimum-success-rate`` options to use from a script.
 
   .. change::
     :tags: New Features, Tools
     :pullreq: 6564
 
-    Add dnspcap2calidns: to convert PCAP to the calidns format.
+    Add ``dnspcap2calidns`` to convert PCAP to the calidns format.
 
   .. change::
     :tags: Bug Fixes, Tools
@@ -545,19 +550,19 @@ Changelogs for 4.2.x
     :tags: Bug Fixes, Tools
     :pullreq: 6559
 
-    pdnsutil: Use new domain in b2bmigrate.
+    pdnsutil: Use new domain in ``b2bmigrate``.
 
   .. change::
     :tags: Bug Fixes, API
     :pullreq: 6571
 
-    Increase serial after dnssec related updates.
+    Increase serial after DNSSEC related updates.
 
   .. change::
     :tags: Improvements
     :pullreq: 6558
 
-    bindbackend: refuse launch suffixes.
+    bindbackend: Refuse launch suffixes.
 
   .. change::
     :tags: Improvements, Tools
@@ -569,7 +574,9 @@ Changelogs for 4.2.x
     :tags: Bug Fixes
     :pullreq: 6531
 
-    Avoid interleaved access to B (via ``d_dk``).
+    Avoid interleaved access to B (via ``d_dk``).  Before this patch,
+    the meta lookup would interfere with the already-started
+    ``B.lookup``. This caused failures with odbc/MSSQL.
 
   .. change::
     :tags: Improvements
@@ -581,7 +588,7 @@ Changelogs for 4.2.x
     :tags: Improvements, Tools
     :pullreq: 6525
 
-    calidns: Add a maximum-qps option to stay at a given stable load
+    calidns: Add a ``maximum-qps`` option to stay at a given stable load.
 
   .. change::
     :tags: New Features
@@ -599,7 +606,7 @@ Changelogs for 4.2.x
     :tags: Bug Fixes, Tools
     :pullreq: 6487
 
-    Link dnspcap2protobuf against librt when needed.
+    Link ``dnspcap2protobuf`` against librt when needed.
 
   .. change::
     :tags: Bug Fixes
@@ -620,8 +627,8 @@ Changelogs for 4.2.x
 
     LDAP misc updates:
 
-    * ALIAS support
-    * DNAME support
+    * ALIAS support,
+    * DNAME support.
 
   .. change::
     :tags: Improvements
@@ -639,7 +646,7 @@ Changelogs for 4.2.x
     :tags: Improvements, Tools
     :pullreq: 6331
 
-    Add TCP support for ALIAS
+    Add TCP support for ALIAS.
 
   .. change::
     :tags: Improvements
@@ -663,7 +670,7 @@ Changelogs for 4.2.x
     :tags: Bug Fixes
     :pullreq: 6396
 
-    Report unparseable data in stoul invalid_argument exception.
+    Report unparseable data in stoul ``invalid_argument`` exception.
 
   .. change::
     :tags: New Features, Tools
@@ -675,14 +682,14 @@ Changelogs for 4.2.x
     :tags: Bug Fixes
     :pullreq: 6370
 
-    Fix handling of user-defined axfr filters return values.
+    Fix handling of user defined AXFR filters return values.
 
   .. change::
     :tags: Bug Fixes
     :pullreq: 6342
     :tickets: 6263
 
-    Reload /etc/resolv.conf when modified.
+    Reload ``/etc/resolv.conf`` when modified.
 
   .. change::
     :tags: Bug Fixes, Tools
@@ -713,7 +720,7 @@ Changelogs for 4.2.x
     :tags: Improvements, API
     :pullreq: 6325
 
-    Return status 409 if domain already exists.
+    Return status ``409`` if domain already exists.
 
   .. change::
     :tags: Improvements
@@ -743,17 +750,19 @@ Changelogs for 4.2.x
     :tags: Improvements
     :pullreq: 6100
 
-    Make outgoing-query-address{,6} behaviour equivalent.
+    Make ``outgoing-query-address`` and ``outgoing-query-address6``
+    behaviours equivalent.
 
   .. change::
     :tags: Improvements
     :pullreq: 6128
+    :tickets: 5268
 
     GeoIPbackend improvements:
 
-    * Adds MMDB support. Now geoip backend can be compiled without geoip support. Closes #5268
-    * Adds location support
-    * Fixes SERVFAIL if expansion is empty
+    * Adds MMDB support. Now geoip backend can be compiled without geoip support,
+    * Adds location support,
+    * Fixes SERVFAIL if expansion is empty.
 
   .. change::
     :tags: Improvements
@@ -765,7 +774,7 @@ Changelogs for 4.2.x
     :tags: Improvements, API
     :pullreq: 2603
 
-    Expose ResponseStats via REST API.
+    Expose ``ResponseStats`` via REST API.
 
   .. change::
     :tags: Improvements, Internals
@@ -783,7 +792,7 @@ Changelogs for 4.2.x
     :tags: Bug Fixes
     :pullreq: 6152
 
-    bindbackend: handle std::exception during startup zone-parsing.
+    bindbackend: handle ``std::exception`` during startup zone-parsing.
 
   .. change::
     :tags: Improvements, Tools
@@ -880,8 +889,8 @@ Changelogs for 4.2.x
 
     Improve tests and two bugfixes:
 
-    * fix xfrIP to reject invalid ips (fixes #6101)
-    * accept seconds since epoch in RRSIG timestamps too (fixes #6120)
+    * Fix xfrIP to reject invalid ips,
+    * Accept seconds since epoch in RRSIG timestamps too.
 
     (@stbuehler)
 
@@ -926,7 +935,7 @@ Changelogs for 4.2.x
     :tags: Improvements, API
     :pullreq: 6076
 
-    Return 404 for non-existing zones.
+    Return ``404`` for non-existing zones.
 
   .. change::
     :tags: Improvements
