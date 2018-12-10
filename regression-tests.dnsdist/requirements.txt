@@ -1,4 +1,4 @@
-dnspython>=1.11
+dnspython>=1.11,<1.16.0
 nose>=1.3.7
 libnacl>=1.4.3
 requests>=2.1.0
