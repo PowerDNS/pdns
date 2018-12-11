@@ -48,7 +48,7 @@ BOOST_AUTO_TEST_CASE(test_DynBlockRulesGroup_QueryRate) {
     }
     BOOST_CHECK_EQUAL(g_rings.getNumberOfQueryEntries(), numberOfQueries);
 
-    dbrg.apply();
+    dbrg.apply(now);
     BOOST_CHECK_EQUAL(g_dynblockNMG.getLocal()->size(), 0);
     BOOST_CHECK(g_dynblockNMG.getLocal()->lookup(requestor1) == nullptr);
   }
@@ -66,7 +66,7 @@ BOOST_AUTO_TEST_CASE(test_DynBlockRulesGroup_QueryRate) {
     }
     BOOST_CHECK_EQUAL(g_rings.getNumberOfQueryEntries(), numberOfQueries);
 
-    dbrg.apply();
+    dbrg.apply(now);
     BOOST_CHECK_EQUAL(g_dynblockNMG.getLocal()->size(), 1);
     BOOST_CHECK(g_dynblockNMG.getLocal()->lookup(requestor1) != nullptr);
     BOOST_CHECK(g_dynblockNMG.getLocal()->lookup(requestor2) == nullptr);
@@ -116,7 +116,7 @@ BOOST_AUTO_TEST_CASE(test_DynBlockRulesGroup_QTypeRate) {
     }
     BOOST_CHECK_EQUAL(g_rings.getNumberOfQueryEntries(), numberOfQueries);
 
-    dbrg.apply();
+    dbrg.apply(now);
     BOOST_CHECK_EQUAL(g_dynblockNMG.getLocal()->size(), 0);
     BOOST_CHECK(g_dynblockNMG.getLocal()->lookup(requestor1) == nullptr);
   }
@@ -134,7 +134,7 @@ BOOST_AUTO_TEST_CASE(test_DynBlockRulesGroup_QTypeRate) {
     }
     BOOST_CHECK_EQUAL(g_rings.getNumberOfQueryEntries(), numberOfQueries);
 
-    dbrg.apply();
+    dbrg.apply(now);
     BOOST_CHECK_EQUAL(g_dynblockNMG.getLocal()->size(), 0);
     BOOST_CHECK(g_dynblockNMG.getLocal()->lookup(requestor1) == nullptr);
   }
@@ -152,7 +152,7 @@ BOOST_AUTO_TEST_CASE(test_DynBlockRulesGroup_QTypeRate) {
     }
     BOOST_CHECK_EQUAL(g_rings.getNumberOfQueryEntries(), numberOfQueries);
 
-    dbrg.apply();
+    dbrg.apply(now);
     BOOST_CHECK_EQUAL(g_dynblockNMG.getLocal()->size(), 1);
     BOOST_CHECK(g_dynblockNMG.getLocal()->lookup(requestor1) != nullptr);
     BOOST_CHECK(g_dynblockNMG.getLocal()->lookup(requestor2) == nullptr);
@@ -206,7 +206,7 @@ BOOST_AUTO_TEST_CASE(test_DynBlockRulesGroup_RCodeRate) {
     }
     BOOST_CHECK_EQUAL(g_rings.getNumberOfResponseEntries(), numberOfResponses);
 
-    dbrg.apply();
+    dbrg.apply(now);
     BOOST_CHECK_EQUAL(g_dynblockNMG.getLocal()->size(), 0);
     BOOST_CHECK(g_dynblockNMG.getLocal()->lookup(requestor1) == nullptr);
   }
@@ -224,7 +224,7 @@ BOOST_AUTO_TEST_CASE(test_DynBlockRulesGroup_RCodeRate) {
     }
     BOOST_CHECK_EQUAL(g_rings.getNumberOfResponseEntries(), numberOfResponses);
 
-    dbrg.apply();
+    dbrg.apply(now);
     BOOST_CHECK_EQUAL(g_dynblockNMG.getLocal()->size(), 0);
     BOOST_CHECK(g_dynblockNMG.getLocal()->lookup(requestor1) == nullptr);
   }
@@ -243,7 +243,7 @@ BOOST_AUTO_TEST_CASE(test_DynBlockRulesGroup_RCodeRate) {
     }
     BOOST_CHECK_EQUAL(g_rings.getNumberOfResponseEntries(), numberOfResponses);
 
-    dbrg.apply();
+    dbrg.apply(now);
     BOOST_CHECK_EQUAL(g_dynblockNMG.getLocal()->size(), 1);
     BOOST_CHECK(g_dynblockNMG.getLocal()->lookup(requestor1) != nullptr);
     BOOST_CHECK(g_dynblockNMG.getLocal()->lookup(requestor2) == nullptr);
@@ -297,7 +297,7 @@ BOOST_AUTO_TEST_CASE(test_DynBlockRulesGroup_ResponseByteRate) {
     }
     BOOST_CHECK_EQUAL(g_rings.getNumberOfResponseEntries(), numberOfResponses);
 
-    dbrg.apply();
+    dbrg.apply(now);
     BOOST_CHECK_EQUAL(g_dynblockNMG.getLocal()->size(), 0);
     BOOST_CHECK(g_dynblockNMG.getLocal()->lookup(requestor1) == nullptr);
   }
@@ -315,7 +315,7 @@ BOOST_AUTO_TEST_CASE(test_DynBlockRulesGroup_ResponseByteRate) {
     }
     BOOST_CHECK_EQUAL(g_rings.getNumberOfResponseEntries(), numberOfResponses);
 
-    dbrg.apply();
+    dbrg.apply(now);
     BOOST_CHECK_EQUAL(g_dynblockNMG.getLocal()->size(), 1);
     BOOST_CHECK(g_dynblockNMG.getLocal()->lookup(requestor1) != nullptr);
     BOOST_CHECK(g_dynblockNMG.getLocal()->lookup(requestor2) == nullptr);
@@ -528,7 +528,7 @@ BOOST_AUTO_TEST_CASE(test_DynBlockRulesGroup_Ranges) {
     }
     BOOST_CHECK_EQUAL(g_rings.getNumberOfQueryEntries(), numberOfQueries * 2);
 
-    dbrg.apply();
+    dbrg.apply(now);
     BOOST_CHECK_EQUAL(g_dynblockNMG.getLocal()->size(), 1);
     BOOST_CHECK(g_dynblockNMG.getLocal()->lookup(requestor1) != nullptr);
     BOOST_CHECK(g_dynblockNMG.getLocal()->lookup(requestor2) == nullptr);
