@@ -321,6 +321,7 @@ AC_CONFIG_FILES([
   modules/gpgsqlbackend/Makefile
   modules/gsqlite3backend/Makefile
   modules/ldapbackend/Makefile
+  modules/lmdbbackend/Makefile
   modules/luabackend/Makefile
   modules/lua2backend/Makefile
   modules/mydnsbackend/Makefile
