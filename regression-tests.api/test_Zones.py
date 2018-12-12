@@ -1201,6 +1201,30 @@ fred   IN  A      192.168.0.4
         self.assertEquals(r.status_code, 422)
         self.assertIn('Conflicts with pre-existing CNAME RRset', r.json()['error'])
 
+    def test_rrset_multiple_cnames(self):
+        name, payload, zone = self.create_zone()
+        rrset = {
+            'changetype': 'replace',
+            'name': 'sub.'+name,
+            'type': 'CNAME',
+            'ttl': 3600,
+            'records': [
+                {
+                    "content": "01.example.org.",
+                    "disabled": False
+                },
+                {
+                    "content": "02.example.org.",
+                    "disabled": False
+                }
+            ]
+        }
+        payload = {'rrsets': [rrset]}
+        r = self.session.patch(self.url("/api/v1/servers/localhost/zones/" + name), data=json.dumps(payload),
+                               headers={'content-type': 'application/json'})
+        self.assertEquals(r.status_code, 422)
+        self.assertIn('/CNAME has more than one record', r.json()['error'])
+
     def test_create_zone_with_leading_space(self):
         # Actual regression.
         name, payload, zone = self.create_zone()
