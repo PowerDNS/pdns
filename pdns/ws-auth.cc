@@ -504,6 +504,7 @@ static void validateGatheredRRType(const DNSResourceRecord& rr) {
 }
 
 static void gatherRecords(const Json container, const DNSName& qname, const QType qtype, const int ttl, vector<DNSResourceRecord>& new_records, vector<DNSResourceRecord>& new_ptrs) {
+  static const std::set<uint16_t> onlyOneEntryTypes = { QType::CNAME, QType::SOA};
   UeberBackend B;
   DNSResourceRecord rr;
   rr.qname = qname;
@@ -512,7 +513,12 @@ static void gatherRecords(const Json container, const DNSName& qname, const QTyp
   rr.ttl = ttl;
 
   validateGatheredRRType(rr);
-  for(auto record : container["records"].array_items()) {
+  const auto& items = container["records"].array_items();
+  if (onlyOneEntryTypes.count(qtype.getCode()) != 0 && items.size() > 1) {
+    throw ApiException("RRset for "+rr.qname.toString()+"/"+rr.qtype.getName()+" has more than one record");
+  }
+
+  for(const auto& record : items) {
     string content = stringFromJson(record, "content");
     rr.disabled = boolFromJson(record, "disabled");
 
