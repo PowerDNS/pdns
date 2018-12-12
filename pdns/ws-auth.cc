@@ -471,7 +471,7 @@ static void validateGatheredRRType(const DNSResourceRecord& rr) {
 }
 
 static void gatherRecords(const Json container, const DNSName& qname, const QType qtype, const int ttl, vector<DNSResourceRecord>& new_records, vector<DNSResourceRecord>& new_ptrs) {
-  static const std::set<uint16_t> onlyOneEntryTypes = { QType::CNAME, QType::SOA};
+  static const std::set<uint16_t> onlyOneEntryTypes = { QType::CNAME, QType::SOA };
   UeberBackend B;
   DNSResourceRecord rr;
   rr.qname = qname;
