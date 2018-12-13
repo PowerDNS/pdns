@@ -98,6 +98,7 @@ auth-4.0.1-7.debian.security-status                     60 IN TXT "3 Upgrade now
 auth-4.0.2-1.debian.security-status                     60 IN TXT "3 Upgrade now, see https://doc.powerdns.com/authoritative/security-advisories/powerdns-advisory-2017-04.html"
 auth-4.0.3-1.debian.security-status                     60 IN TXT "3 Upgrade now, see https://doc.powerdns.com/authoritative/security-advisories/powerdns-advisory-2017-04.html"
 auth-4.0.3-1_deb9u2.debian.security-status              60 IN TXT "1 OK"
+; From here on security polling has been disabled for this distribution.
 
 ; Auth Ubuntu
 auth-3.4.1-3.ubuntu.security-status                     60 IN TXT "3 Upgrade now, see https://doc.powerdns.com/3/security/powerdns-advisory-2015-01/ and https://doc.powerdns.com/3/security/powerdns-advisory-2015-02/ and https://doc.powerdns.com/3/security/powerdns-advisory-2016-02/ and https://doc.powerdns.com/3/security/powerdns-advisory-2016-03/ and https://doc.powerdns.com/3/security/powerdns-advisory-2016-04/ and https://doc.powerdns.com/3/security/powerdns-advisory-2016-05/"
@@ -109,17 +110,20 @@ auth-3.4.7-1.ubuntu.security-status                     60 IN TXT "3 Upgrade now
 auth-4.0.0_alpha1-1.ubuntu.security-status              60 IN TXT "3 Upgrade now, see https://doc.powerdns.com/authoritative/security-advisories/powerdns-advisory-2016-02.html https://doc.powerdns.com/authoritative/security-advisories/powerdns-advisory-2016-03.html https://doc.powerdns.com/authoritative/security-advisories/powerdns-advisory-2016-04.html https://doc.powerdns.com/authoritative/security-advisories/powerdns-advisory-2016-05.html"
 auth-4.0.0_alpha2-1.ubuntu.security-status              60 IN TXT "3 Upgrade now, see https://doc.powerdns.com/authoritative/security-advisories/powerdns-advisory-2016-02.html https://doc.powerdns.com/authoritative/security-advisories/powerdns-advisory-2016-03.html https://doc.powerdns.com/authoritative/security-advisories/powerdns-advisory-2016-04.html https://doc.powerdns.com/authoritative/security-advisories/powerdns-advisory-2016-05.html"
 auth-4.0.0_alpha2-3build1.ubuntu.security-status        60 IN TXT "3 Upgrade now, see https://doc.powerdns.com/authoritative/security-advisories/powerdns-advisory-2016-02.html https://doc.powerdns.com/authoritative/security-advisories/powerdns-advisory-2016-03.html https://doc.powerdns.com/authoritative/security-advisories/powerdns-advisory-2016-04.html https://doc.powerdns.com/authoritative/security-advisories/powerdns-advisory-2016-05.html"
+; From here on security polling has been disabled for this distribution.
 
 ; Auth Raspbian
 auth-3.4.1-3.raspbian.security-status                   60 IN TXT "3 Upgrade now, see https://doc.powerdns.com/3/security/powerdns-advisory-2015-01/ and https://doc.powerdns.com/3/security/powerdns-advisory-2015-02/ and https://doc.powerdns.com/3/security/powerdns-advisory-2016-02/ and https://doc.powerdns.com/3/security/powerdns-advisory-2016-03/ and https://doc.powerdns.com/3/security/powerdns-advisory-2016-04/ and https://doc.powerdns.com/3/security/powerdns-advisory-2016-05/"
 auth-3.4.1-3_bpo70_1.raspbian.security-status           60 IN TXT "3 Upgrade now, see https://doc.powerdns.com/3/security/powerdns-advisory-2015-01/ and https://doc.powerdns.com/3/security/powerdns-advisory-2015-02/ and https://doc.powerdns.com/3/security/powerdns-advisory-2016-02/ and https://doc.powerdns.com/3/security/powerdns-advisory-2016-03/ and https://doc.powerdns.com/3/security/powerdns-advisory-2016-04/ and https://doc.powerdns.com/3/security/powerdns-advisory-2016-05/"
 auth-3.4.1-4.raspbian.security-status                   60 IN TXT "3 Upgrade now, see https://doc.powerdns.com/3/security/powerdns-advisory-2015-01/ and https://doc.powerdns.com/3/security/powerdns-advisory-2015-02/ and https://doc.powerdns.com/3/security/powerdns-advisory-2016-02/ and https://doc.powerdns.com/3/security/powerdns-advisory-2016-03/ and https://doc.powerdns.com/3/security/powerdns-advisory-2016-04/ and https://doc.powerdns.com/3/security/powerdns-advisory-2016-05/"
 auth-3.4.1-4_bpo70_1.raspbian.security-status           60 IN TXT "3 Upgrade now, see https://doc.powerdns.com/3/security/powerdns-advisory-2015-01/ and https://doc.powerdns.com/3/security/powerdns-advisory-2015-02/ and https://doc.powerdns.com/3/security/powerdns-advisory-2016-02/ and https://doc.powerdns.com/3/security/powerdns-advisory-2016-03/ and https://doc.powerdns.com/3/security/powerdns-advisory-2016-04/ and https://doc.powerdns.com/3/security/powerdns-advisory-2016-05/"
+; From here on security polling has been disabled for this distribution.
 
 ; Auth Fedora, EL
 auth-3.4.1-1.fc22.fedora.security-status                60 IN TXT "3 Upgrade now, see https://doc.powerdns.com/3/security/powerdns-advisory-2015-01/ and https://doc.powerdns.com/3/security/powerdns-advisory-2015-02/ and https://doc.powerdns.com/3/security/powerdns-advisory-2016-02/ and https://doc.powerdns.com/3/security/powerdns-advisory-2016-03/ and https://doc.powerdns.com/3/security/powerdns-advisory-2016-04/ and https://doc.powerdns.com/3/security/powerdns-advisory-2016-05/"
 auth-3.4.1-1.fc21.fedora.security-status                60 IN TXT "3 Upgrade now, see https://doc.powerdns.com/3/security/powerdns-advisory-2015-01/ and https://doc.powerdns.com/3/security/powerdns-advisory-2015-02/ and https://doc.powerdns.com/3/security/powerdns-advisory-2016-02/ and https://doc.powerdns.com/3/security/powerdns-advisory-2016-03/ and https://doc.powerdns.com/3/security/powerdns-advisory-2016-04/ and https://doc.powerdns.com/3/security/powerdns-advisory-2016-05/"
 auth-3.4.1-1.el7.fedora.security-status                 60 IN TXT "3 Upgrade now, see https://doc.powerdns.com/3/security/powerdns-advisory-2015-01/ and https://doc.powerdns.com/3/security/powerdns-advisory-2015-02/ and https://doc.powerdns.com/3/security/powerdns-advisory-2016-02/ and https://doc.powerdns.com/3/security/powerdns-advisory-2016-03/ and https://doc.powerdns.com/3/security/powerdns-advisory-2016-04/ and https://doc.powerdns.com/3/security/powerdns-advisory-2016-05/"
+; From here on security polling has been disabled for this distribution.
 
 ; Recursor
 recursor-3.6.0.security-status                          60 IN TXT "3 Upgrade now, see http://doc.powerdns.com/html/powerdns-advisory-2014-01.html and https://doc.powerdns.com/3/security/powerdns-advisory-2015-01/"
@@ -211,10 +215,12 @@ recursor-4.0.4-1_bpo8_1.debian.security-status          60 IN TXT "3 Upgrade now
 recursor-4.0.4-1_deb9u1.debian.security-status          60 IN TXT "3 Upgrade now, see https://doc.powerdns.com/recursor/security-advisories/powerdns-advisory-2017-03.html https://doc.powerdns.com/recursor/security-advisories/powerdns-advisory-2017-05.html https://doc.powerdns.com/recursor/security-advisories/powerdns-advisory-2017-06.html and https://doc.powerdns.com/recursor/security-advisories/powerdns-advisory-2017-07.html"
 recursor-4.0.4-1.debian.security-status                 60 IN TXT "3 Upgrade now, see https://doc.powerdns.com/recursor/security-advisories/powerdns-advisory-2017-03.html https://doc.powerdns.com/recursor/security-advisories/powerdns-advisory-2017-05.html https://doc.powerdns.com/recursor/security-advisories/powerdns-advisory-2017-06.html and https://doc.powerdns.com/recursor/security-advisories/powerdns-advisory-2017-07.html"
 recursor-4.0.5-2.debian.security-status                 60 IN TXT "3 Upgrade now, see https://doc.powerdns.com/recursor/security-advisories/powerdns-advisory-2017-03.html https://doc.powerdns.com/recursor/security-advisories/powerdns-advisory-2017-05.html https://doc.powerdns.com/recursor/security-advisories/powerdns-advisory-2017-06.html and https://doc.powerdns.com/recursor/security-advisories/powerdns-advisory-2017-07.html"
+; From here on security polling has been disabled for this distribution.
 
 ; Recursor Raspbian
 recursor-3.6.2-2.raspbian.security-status               60 IN TXT "3 Upgrade now, see https://doc.powerdns.com/3/security/powerdns-advisory-2015-01/"
 recursor-3.6.2-2_bpo70_2.raspbian.security-status       60 IN TXT "3 Upgrade now, see https://doc.powerdns.com/3/security/powerdns-advisory-2015-01/"
+; From here on security polling has been disabled for this distribution.
 
 ; Recursor Ubuntu
 recursor-3.6.2-2.ubuntu.security-status                 60 IN TXT "3 Upgrade now, see https://doc.powerdns.com/3/security/powerdns-advisory-2015-01/"
@@ -223,6 +229,7 @@ recursor-3.7.3-1.ubuntu.security-status                 60 IN TXT "3 Upgrade now
 
 auth-4.0.0_alpha1-1.ubuntu.security-status              60 IN TXT "3 Upgrade now, see https://doc.powerdns.com/recursor/security-advisories/powerdns-advisory-2016-02.html and https://doc.powerdns.com/recursor/security-advisories/powerdns-advisory-2016-04.html"
 auth-4.0.0_alpha2-2.ubuntu.security-status              60 IN TXT "3 Upgrade now, see https://doc.powerdns.com/recursor/security-advisories/powerdns-advisory-2016-02.html and https://doc.powerdns.com/recursor/security-advisories/powerdns-advisory-2016-04.html"
+; From here on security polling has been disabled for this distribution.
 
 ; Recursor Fedora, EL
 recursor-3.6.2-1.fc19.fedora.security-status            60 IN TXT "3 Upgrade now, see https://doc.powerdns.com/3/security/powerdns-advisory-2015-01/"
@@ -233,6 +240,7 @@ recursor-3.6.2-1.fc22.fedora.security-status            60 IN TXT "3 Upgrade now
 recursor-3.6.2-1.el5.fedora.security-status             60 IN TXT "3 Upgrade now, see https://doc.powerdns.com/3/security/powerdns-advisory-2015-01/"
 recursor-3.6.2-1.el6.fedora.security-status             60 IN TXT "3 Upgrade now, see https://doc.powerdns.com/3/security/powerdns-advisory-2015-01/"
 recursor-3.6.2-1.el7.fedora.security-status             60 IN TXT "3 Upgrade now, see https://doc.powerdns.com/3/security/powerdns-advisory-2015-01/"
+; From here on security polling has been disabled for this distribution.
 
 ;; Builder Generated packages (auth)
 
