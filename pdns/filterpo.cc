@@ -340,7 +340,7 @@ DNSName DNSFilterEngine::Zone::maskToRPZ(const Netmask& nm)
 {
   int bits = nm.getBits();
   DNSName res(std::to_string(bits));
-  const auto addr = nm.getNetwork();
+  const auto& addr = nm.getNetwork();
 
   if (addr.isIPv4()) {
     const uint8_t* bytes = reinterpret_cast<const uint8_t*>(&addr.sin4.sin_addr.s_addr);
