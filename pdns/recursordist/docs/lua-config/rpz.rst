@@ -28,7 +28,7 @@ To slave from a master and start IXFR to get updates, use for example:
 
 In this example, 'policy.rpz' denotes the name of the zone to query for.
 
-New in version 4.2.0: You can add several IP blocks into the :func:`rpzMaster` for backends failover and load balancing per zones as an comma seperated array with ip addresses enclosed in "" (double quotes) and add optional port:
+As of version 4.2.0, the first parameter of :func:`rpzMaster` can be a list of addresses for failover:
 
     rpzMaster({"192.0.2.4","192.0.2.5:5301"}, "policy.rpz", {defpol=Policy.Drop})
   
