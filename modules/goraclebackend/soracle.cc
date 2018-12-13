@@ -29,7 +29,7 @@
 #include "pdns/logger.hh"
 #include "pdns/dns.hh"
 #include "pdns/namespaces.hh"
-#include "pdns/md5.hh"
+#include "pdns/digests.hh"
 
 static AtomicCounter s_txid;
 

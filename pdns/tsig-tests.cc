@@ -8,7 +8,7 @@
 #include "dnswriter.hh"
 #include "dnsrecords.hh"
 #include "statbag.hh"
-#include "md5.hh"
+#include "digests.hh"
 #include "base64.hh"
 #include "dnssecinfra.hh"
 #include "resolver.hh"
