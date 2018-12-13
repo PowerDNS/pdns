@@ -1264,9 +1264,9 @@ int listAllZones(const string &type="") {
   B.getAllDomains(&domains, true);
 
   int count = 0;
-  for (vector<DomainInfo>::const_iterator di=domains.begin(); di != domains.end(); di++) {
-    if (di->kind == kindFilter || kindFilter == -1) {
-      cout<<di->zone<<endl;
+  for (const auto& di: domains) {
+    if (di.kind == kindFilter || kindFilter == -1) {
+      cout<<di.zone<<endl;
       count++;
     }
   }
@@ -2882,7 +2882,7 @@ try
        return 1;
      }
      std::vector<std::string>::iterator iter = meta.begin();
-     for(;iter != meta.end(); iter++) if (*iter == name) break;
+     for(;iter != meta.end(); ++iter) if (*iter == name) break;
      if (iter != meta.end()) meta.erase(iter);
      if (B.setDomainMetadata(zname, metaKey, meta)) {
        cout << "Disabled TSIG key " << name << " for " << zname << endl;
@@ -2920,8 +2920,8 @@ try
       std::map<std::string, std::vector<std::string> > meta;
       std::cout << "Metadata for '" << zone << "'" << endl;
       B.getAllDomainMetadata(zone, meta);
-      for(std::map<std::string, std::vector<std::string> >::const_iterator each_meta = meta.begin(); each_meta != meta.end(); each_meta++) {
-        cout << each_meta->first << " = " << boost::join(each_meta->second, ", ") << endl;
+      for(const auto& each_meta: meta) {
+        cout << each_meta.first << " = " << boost::join(each_meta.second, ", ") << endl;
       }
     }  
     return 0;
@@ -3164,9 +3164,8 @@ try
       nm=0;
       std::map<std::string, std::vector<std::string> > meta;
       if (src->getAllDomainMetadata(di.zone, meta)) {
-        std::map<std::string, std::vector<std::string> >::iterator i;
-        for(i=meta.begin(); i != meta.end(); i++) {
-          if (!tgt->setDomainMetadata(di.zone, i->first, i->second)) throw PDNSException("Failed to feed domain metadata");
+        for (const auto& i : meta) {
+          if (!tgt->setDomainMetadata(di.zone, i.first, i.second)) throw PDNSException("Failed to feed domain metadata");
           nm++;
         }
       }
