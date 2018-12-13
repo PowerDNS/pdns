@@ -154,7 +154,7 @@ create-slave-zone *ZONE* *MASTER* [*MASTER*]..
     need to to be IP addresses with an optional port. Master addressess is to be seperated by spaces
 change-slave-zone-master *ZONE* *MASTER* [*MASTER*]..
     Change the masters for slave zone *ZONE* to new masters *MASTER*. All
-    *MASTER*\ s need to to be IP addresses with an optional port. Master addressess is to be seperated by spaces
+    *MASTER*\ s need to to be space-separated IP addresses with an optional port.
 check-all-zones
     Check all zones for correctness.
 check-zone *ZONE*
