@@ -32,7 +32,7 @@ As of version 4.2.0, the first parameter of :func:`rpzMaster` can be a list of a
 
     rpzMaster({"192.0.2.4","192.0.2.5:5301"}, "policy.rpz", {defpol=Policy.Drop})
   
-  In the above example we have truncated two rpzMaster lines into one line by using array and added optional port number 5301.
+  In the example above, two addresses are specified and will be tried one after another until a response is obtained. The first address uses the default port (53) while the second one uses port 5301.
   (If no optional port is set, the default port 53 is used)
   
    
