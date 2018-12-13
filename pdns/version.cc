@@ -90,16 +90,16 @@ void showBuildConfiguration()
     "fcontext " <<
 #endif
 #ifdef HAVE_LIBCRYPTO_ECDSA
-    "libcrypto-ecdsa "
+    "libcrypto-ecdsa " <<
 #endif
 #ifdef HAVE_LIBCRYPTO_ED25519
-    "libcrypto-ed25519 "
+    "libcrypto-ed25519 " <<
 #endif
 #ifdef HAVE_LIBCRYPTO_ED448
-    "libcrypto-ed448 "
+    "libcrypto-ed448 " <<
 #endif
 #ifdef HAVE_LIBCRYPTO_EDDSA
-    "libcrypto-eddsa "
+    "libcrypto-eddsa " <<
 #endif
 #ifdef HAVE_LIBDL
     "libdl " <<
