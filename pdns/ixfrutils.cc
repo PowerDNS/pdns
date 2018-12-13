@@ -143,9 +143,7 @@ void loadZoneFromDisk(records_t& records, const string& fname, const DNSName& zo
 
   DNSResourceRecord rr;
   bool seenSOA=false;
-  unsigned int nrecords=0;
   while(zpt.get(rr)) {
-    ++nrecords;
     if(rr.qtype.getCode() == QType::CNAME && rr.content.empty())
       rr.content=".";
     rr.qname = rr.qname.makeRelative(zone);
