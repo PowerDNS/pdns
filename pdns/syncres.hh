@@ -72,11 +72,8 @@ typedef map<
 template<class Thing> class Throttle : public boost::noncopyable
 {
 public:
-  Throttle()
+  Throttle() : d_limit(3), d_ttl(60), d_last_clean(time(0))
   {
-    d_limit=3;
-    d_ttl=60;
-    d_last_clean=time(0);
   }
 
   struct entry
@@ -967,7 +964,7 @@ private:
 class ImmediateServFailException
 {
 public:
-  ImmediateServFailException(string r){reason=r;};
+  ImmediateServFailException(string r) : reason(r) {};
 
   string reason; //! Print this to tell the user what went wrong
 };

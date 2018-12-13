@@ -46,13 +46,11 @@ ZoneParserTNG::ZoneParserTNG(const string& fname, const DNSName& zname, const st
 }
 
 ZoneParserTNG::ZoneParserTNG(const vector<string> zonedata, const DNSName& zname):
-                                                                        d_zonename(zname), d_defaultttl(3600), 
-                                                                        d_templatecounter(0), d_templatestop(0),
-                                                                        d_templatestep(0), d_havedollarttl(false)
+  d_zonename(zname), d_zonedata(zonedata), d_defaultttl(3600),
+  d_templatecounter(0), d_templatestop(0), d_templatestep(0),
+  d_havedollarttl(false), d_fromfile(false)
 {
-  d_zonedata = zonedata;
   d_zonedataline = d_zonedata.begin();
-  d_fromfile = false;
 }
 
 void ZoneParserTNG::stackFile(const std::string& fname)
