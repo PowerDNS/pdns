@@ -1,0 +1,883 @@
+Changelogs for 4.2.x
+====================
+
+.. changelog::
+  :version: 4.2.0
+  :released: *unreleased*
+
+  .. change::
+    :tags: Improvements, Internals
+    :pullreq: 7245
+
+    Use a cache-able soa record for the serial check caused by a notify.
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 6894
+
+    Improved Lua records - Added all selector, and backupSelector fallbacks.
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 6823
+    :tickets: 6821
+
+    On incoming NOTIFY load our serial from backend to have it available during slave-check.
+
+    Also log ourserial to ease debugging.
+
+  .. change::
+    :tags: Improvements, API, DNSSEC
+    :pullreq: 5988
+
+    API: Add TSIG key manipulation endpoints.
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 7026
+
+    Configure ``--enable-pdns-option`` ``--with-third-party-module``.
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 6731
+    :tickets: 6693
+
+    Address some known LUA Records issues:
+
+    * Better check input lists,
+    * Report lua wildcards errors,
+    * Exposes ``DNSName::getRawLabels`` in lua env,
+    * Better document LUA functions and objects.
+
+  .. change::
+    :tags: Improvements, API
+    :pullreq: 7233
+
+    Make API changes do a rectify by default, add an option to disable.
+
+  .. change::
+    :tags: Bug Fixes, Improvements
+    :pullreq: 6838
+    :tickets: 1355, 1366
+
+    Remove ``autoserial`` from the Authoritative Server.  Serial 0 was a little bit too special in PowerDNS.
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 7228
+
+    Handle ANY queries with Lua records.
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 6869
+
+    Remove ``out-of-zone-additional-processing`` setting.
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 7217
+
+    geoip: properly delete libGeoIP return values.
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 7067
+
+    SOA-check: reject NXDOMAIN response and check label of RR against qname.
+
+  .. change::
+    :tags: Improvements, DNSSEC
+    :pullreq: 6958
+
+    Improve RSA key warnings.
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 7201
+
+    Fix ``carbon-instance`` / ``carbon-namespace`` inconsistencies.
+
+  .. change::
+    :tags: <nil>
+    :pullreq: 7196
+    :tickets: 7195
+
+    geoipbackend: Allow empty content for ENT record.
+
+  .. change::
+    :tags: Tools, DNSSEC
+    :pullreq: 7187
+
+    pdnsutil.1 & settings:
+
+    * Add Ed25519 and Ed448,
+    * Document ECC keysizes,
+    * Remove old algos.
+
+  .. change::
+    :tags: Bug Fixes, API
+    :pullreq: 6871
+
+    Check DNSNames that should be hostnames.
+
+  .. change::
+    :tags: <nil>
+    :pullreq: 6959
+    :tickets: 2362, 6951
+
+    Add namespace and instance variable to carbon key.
+
+  .. change::
+    :tags: Bug Fixes, Packages
+    :pullreq: 7134
+
+    Fix up the BIND config files on upgrade.
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 7024
+
+    geoipbackend: Handle read error for config file.
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 7069
+
+    Use unique pointers in the OpenSSL signer.
+
+  .. change::
+    :tags: API, Removed Features
+    :pullreq: 7025
+
+    Remove ``api-logfile`` flag and grep API endpoint.
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 6962
+
+    Store ``NetmaskTree`` nodes in a set for faster removal.
+
+  .. change::
+    :tags: New Features
+    :pullreq: 6969
+
+    Adds the glorious log-log histograms.
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 7017
+
+    Make sure we escape ``127`` in TXT records.
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 4598
+
+    Add support for NONE SOA-EDIT kind.
+
+  .. change::
+    :tags: Tools
+    :pullreq: 6997
+
+    Name threads in the programs.
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 6727
+
+    ALIAS: Respond SERVFAIL on non-NOERRORs from resolver.
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 6910
+
+    Add support for OpenSSL 1.1.1's ed25519 and ed448 for signing and verifying.
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 6822
+
+    Add incremental ``slave-check`` backoff also for failed AXFR.
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 6923
+
+    Respond correctly to DS query at delegation in unsigned zone.
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 6975
+
+    Enhance query-logging with timing for MySQL, PostgreSQL and SQLite.
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 6811
+
+    Apply ALIAS scopemask after chasing.
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 6948
+
+    Fix compilation with LibreSSL 2.7.0+.
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 6917
+
+    Release memory in case of error in the OpenSSL ECDSA constructor.
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 6913
+    :tickets: 6912
+
+    Actually truncate truncated responses.
+
+  .. change::
+    :tags: Improvements, Packages
+    :pullreq: 6921
+
+    Remove GOST and Botan support.
+
+  .. change::
+    :tags: Improvements, API
+    :pullreq: 6668
+
+    Add zone lookup by ``/zones?zone=example.org``.
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 6858
+
+    RFC2136 fixes.
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 6825
+
+    Add option ``send-signed-notify`` to send NOTIFYs without TSIG signature.
+
+  .. change::
+    :tags: Removed Features, API
+    :pullreq: 6845
+
+    Drop ``api-readonly`` configuration setting.
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 6857
+
+    Remove SOA-check backoff on incoming NOTIFY and fix ``d_lock`` handling.
+
+  .. change::
+    :tags: Bug Fixes, Tools
+    :pullreq: 6859
+
+    Make ``edit-zone`` catch zoneparser exceptions as well.
+
+  .. change::
+    :tags: Improvements, Tools
+    :pullreq: 6843
+
+    ``check-all-zones``: find duplicate zones and SOAs.
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 6834
+
+    ``check-zone``: allow null MX, SRV.
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 6844
+
+    Workaround MariaDB pretending to be MySQL.
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 6824
+
+    Add the serials when logging the final result of a slave check.
+
+  .. change::
+    :tags: Bug Fixes, API
+    :pullreq: 6780, 6816
+
+    Make sure that we use strict weak records ordering in the API.
+    (Doing this avoids concurrent records / comments iteration from running out of sync.)
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 6738
+
+    Reset the TSIG state between queries.
+
+  .. change::
+    :tags: Improvements, Tools
+    :pullreq: 6774
+
+    calidns: Accurate qps targets.
+
+  .. change::
+    :tags: <nil>
+    :pullreq: 6769
+
+    LuaWrapper: Disable maybe uninitialized warnings with boost optional.
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 6495
+
+    Only parse ``resolv.conf`` once - this avoids race conditions.
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 6730
+
+    Implement a smarter dedup for filling packets in auth.
+
+  .. change::
+    :tags: Improvements, Tools
+    :pullreq: 6691
+
+    pdns_control notify: Handle slave w/o renotify properly.
+
+  .. change::
+    :tags: Improvements, Tools
+    :pullreq: 6653
+
+    pdnsutil: Occlusion and auth check improvements.
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 6655
+
+    Sign CDS/CDNSKEY RRsets with the KSK.
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 6658
+
+    luawrapper: Report caught ``std::exception`` as ``lua_error``.
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 6686
+
+    Initialize some missed qtypes: WKS, SMIMEA.
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 6677
+
+    geoipbackend: Check ``GeoIP_id_by_addr_gl`` and ``GeoIP_id_by_addr_v6_gl`` return value.
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 6499
+
+    stubresolver: Improve locking.
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 6633
+
+    Reject duplicate RRsets in patchZone.
+
+  .. change::
+    :tags: Bug Fixes, API
+    :pullreq: 6647
+
+    Remove ENTs when "replacing" new records.
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 6648
+
+    gmysql: Use future-proof statement for transaction isolation.
+
+  .. change::
+    :tags: Improvements, API
+    :pullreq: 6649
+
+    API export function output change to add IN to the output.
+
+  .. change::
+    :tags: Improvements, API
+    :pullreq: 6662
+    :tickets: 6652
+
+    Send correct response codes for the CryptoKey endpoints.
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 6659
+
+    Ensure ALIAS answers over TCP have correct name.
+
+  .. change::
+    :tags: Bug Fixes, Tools
+    :pullreq: 6617
+
+    calidns: Don't issue socket buffer or SCHED_FIFO warnings in quiet mode.
+
+  .. change::
+    :tags: Bug Fixes, API
+    :pullreq: 6614
+
+    Restrict creation of OPT and TSIG rrsets.
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 6561
+
+    Fix some minor issues for presigned (large) bind zones.
+
+  .. change::
+    :tags: Tools
+    :pullreq: 6582
+
+    dnsreplay: Add more checks against bogus PCAP.
+
+  .. change::
+    :tags: Bug Fixes, Improvements
+    :pullreq: 6585
+    :tickets: 6584
+
+    Geoip: Fix poisoning of cache when hit service's default network.
+
+    Also includes an optimization to make lookups faster.
+
+  .. change::
+    :tags: Improvements, Tools
+    :pullreq: 6594
+
+    pdnsutil: also load modules through the ``load-modules`` directive.
+
+  .. change::
+    :tags: Improvements, Tools
+    :pullreq: 6601
+
+    calidns: Add ``quiet``, ``minimum-success-rate`` options to use from a script.
+
+  .. change::
+    :tags: New Features, Tools
+    :pullreq: 6564
+
+    Add ``dnspcap2calidns`` to convert PCAP to the calidns format.
+
+  .. change::
+    :tags: Bug Fixes, Tools
+    :pullreq: 6580
+
+    dnsreplay: Bail out on a too small outgoing buffer.
+
+  .. change::
+    :tags: Bug Fixes, Tools
+    :pullreq: 6559
+
+    pdnsutil: Use new domain in ``b2bmigrate``.
+
+  .. change::
+    :tags: Bug Fixes, API
+    :pullreq: 6571
+
+    Increase serial after DNSSEC related updates.
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 6558
+
+    bindbackend: Refuse launch suffixes.
+
+  .. change::
+    :tags: Improvements, Tools
+    :pullreq: 6526
+
+    calidns: Add an option to read ECS values from the query file, skip comments.
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 6531
+
+    Avoid interleaved access to B (via ``d_dk``).  Before this patch,
+    the meta lookup would interfere with the already-started
+    ``B.lookup``. This caused failures with odbc/MSSQL.
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 6530
+
+    Add missing overrides.
+
+  .. change::
+    :tags: Improvements, Tools
+    :pullreq: 6525
+
+    calidns: Add a ``maximum-qps`` option to stay at a given stable load.
+
+  .. change::
+    :tags: New Features
+    :pullreq: 6171
+
+    LUA Records (yes we know it is "Lua").
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 6481
+
+    Add return 0 for correct exit of ``set-kind`` and ``set-account``.
+
+  .. change::
+    :tags: Bug Fixes, Tools
+    :pullreq: 6487
+
+    Link ``dnspcap2protobuf`` against librt when needed.
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 6484
+
+    Recheck serial when AXFR is done.
+
+  .. change::
+    :tags: Improvements, Internals
+    :pullreq: 5274
+
+    dns_random: Implement new dns_random.
+
+  .. change::
+    :tags: New Features
+    :pullreq: 5821
+    :tickets: 5260
+
+    LDAP misc updates:
+
+    * ALIAS support,
+    * DNAME support.
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 6427
+
+    Avoid an isane amount of new backend connections during an AXFR.
+
+  .. change::
+    :tags: Improvements, Internals
+    :pullreq: 6358
+
+    Remove ``theLog`` and ``theL`` and replace this with a global ``g_log``.
+
+  .. change::
+    :tags: Improvements, Tools
+    :pullreq: 6331
+
+    Add TCP support for ALIAS.
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 6377
+
+    Add support for MB and MG RR types.
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 6102
+
+    Add actual EDNS buffer size logging, not just our interpretation.
+
+  .. change::
+    :tags: Improvements, Internals
+    :pullreq: 6312
+
+    Lower 'packet too short' loglevel.
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 6396
+
+    Report unparseable data in stoul ``invalid_argument`` exception.
+
+  .. change::
+    :tags: New Features, Tools
+    :pullreq: 6374
+
+    Add quiet modifier to pdnsutil ``rectify-all-zones`` command.
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 6370
+
+    Fix handling of user defined AXFR filters return values.
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 6342
+    :tickets: 6263
+
+    Reload ``/etc/resolv.conf`` when modified.
+
+  .. change::
+    :tags: Bug Fixes, Tools
+    :pullreq: 6354
+
+    Rather than crash, sheepishly report no file/linenum in pdnsutil.
+
+  .. change::
+    :tags: Improvements, Tools
+    :pullreq: 6326
+
+    calidns: Add the ``--ecs`` parameter to add random ECS values to queries.
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 6157
+
+    Lua2 backend: This is a rewrite of the lua backend. It uses AuthLua4 as basis and more strongly typed access using LuaContext.
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 5361
+    :tickets: 3602
+
+    Make requests always return to sender, for usage in multimaster slave zones. Also - made sure that the master that is questioned for updates will be selected randomly, to prevent repeatidally asking a dead master for updates.
+
+  .. change::
+    :tags: Improvements, API
+    :pullreq: 6325
+
+    Return status ``409`` if domain already exists.
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 6276
+
+    Reject updates if they would lead to CNAME+Other data.
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 6243
+
+    Fix rectify (ordername) for non-DNSSEC zones.
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 6278
+
+    pkcs11signers: Fix yubikey NEO to work.
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 6297
+
+    Make ``check-zone`` error on rows that have content but shouldn't.
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 6100
+
+    Make ``outgoing-query-address`` and ``outgoing-query-address6``
+    behaviours equivalent.
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 6128
+    :tickets: 5268
+
+    GeoIPbackend improvements:
+
+    * Adds MMDB support. Now geoip backend can be compiled without geoip support,
+    * Adds location support,
+    * Fixes SERVFAIL if expansion is empty.
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 6295
+
+    Fix syntax error for ``replace-rrset``. (@lordievader)
+
+  .. change::
+    :tags: Improvements, API
+    :pullreq: 2603
+
+    Expose ``ResponseStats`` via REST API.
+
+  .. change::
+    :tags: Improvements, Internals
+    :pullreq: 6230
+
+    Remove all traces of selectmplexer, fix up pollmplexer.
+
+  .. change::
+    :tags: Bug Fixes, Tools
+    :pullreq: 6172
+
+    IXFR: correct behavior of dealing with DNS Name with multiple records; speed up IXFR transaction.
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 6152
+
+    bindbackend: handle ``std::exception`` during startup zone-parsing.
+
+  .. change::
+    :tags: Improvements, Tools
+    :pullreq: 6166
+
+    Add an ``--initial-port`` option to dnsreplay.
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 6220
+    :tickets: 5079, 5594, 5654
+
+    Add XPF support.
+
+  .. change::
+    :tags: Improvements, Internals
+    :pullreq: 5068
+    :tickets: 1010
+
+    Change from ``time_t`` to ``uint32_t`` for serial in ``calculateSOASerial``.
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 5960
+
+    Check more thoroughly the source of UDP answers.
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 6162
+
+    Slave cleanups. (@zeha)
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 6019
+    :tickets: 5915
+
+    gmysql-backend: set unsigned attribute on ``notified_serial`` column.
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 6158
+    :tickets: 2611
+
+    pdns: Improve record parsing
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 6018
+
+    Escaping unusual DNS label octets in DNSName is off by one.
+
+  .. change::
+    :tags: Improvements, Internals
+    :pullreq: 5979
+
+    Use ``toLogString()`` for logging and throwing.
+
+  .. change::
+    :tags: Improvements, Internals
+    :pullreq: 6156
+
+    Remove obsolete EDNS PING code. (@zeha)
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 6155
+
+    Update EDNS Option code list.
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 6146
+
+    Changes to compile and run on NetBSD.
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 4547
+
+    Remove ``serializeSOAData``, refactor ``calculate``/``edit``/``increaseSOA``.
+
+  .. change::
+    :tags: Improvements, Tools
+    :pullreq: 6063
+
+    Add colour to diff output of pdnsutil.
+
+  .. change::
+    :tags: <nil>
+    :pullreq: 6124
+    :tickets: 6101, 6120
+
+    Improve tests and two bugfixes:
+
+    * Fix xfrIP to reject invalid ips,
+    * Accept seconds since epoch in RRSIG timestamps too.
+
+    (@stbuehler)
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 6139
+
+    Forbid creating algo 5/8/10 keys with out-of-spec sizes.
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 6132
+
+    Add methods missing from AuthLua4 when Lua support is disabled.
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 6129
+
+    Init openssl and libsodium before chrooting in pdnsutil.
+
+  .. change::
+    :tags: Bug Fixes, LDAP
+    :pullreq: 6122
+
+    Fix listing zones incl. AXFR.
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 6107
+
+    Fix uninitialized index in Lua's DNSPacket::getRRS() binding.
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 6103
+    :tickets: 6089
+
+    Fix out of bounds exception in CAA processing.
+
+  .. change::
+    :tags: Improvements, API
+    :pullreq: 6076
+
+    Return ``404`` for non-existing zones.
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 5862
+    :tickets: 5854
+
+    Add Draft of Swagger spec for Authoritative Server HTTP API.
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 6029
+    :tickets: 6028
+
+    Forbid label compression in ALIAS wire format.
