@@ -945,7 +945,7 @@ situation hopeless and respawn.
 -------------------------------
 
 -  Integer
--  Default: 2^64 (on 64-bit systems)
+-  Default: 2^31-1 (on most systems), 2^63-1 (on ILP64 systems)
 
 Maximum number of signatures cache entries
 
