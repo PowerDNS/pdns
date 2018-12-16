@@ -809,7 +809,7 @@ paths:
       parameters:
         - name: tsigkey
           description: A (possibly stripped down) TSIGKey object with the new values
-          properties:
+          schema:
             $ref: '#/definitions/TSIGKey'
           in: body
           required: true
