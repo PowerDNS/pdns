@@ -1258,17 +1258,18 @@ definitions:
 
   Error:
     title: Error
-    descripton: 'Returned when the server encounters an error. Either in client input or internally'
+    description: 'Returned when the server encounters an error. Either in client input or internally'
     properties:
       error:
         type: string
         description: 'A human readable error message'
-        required: true
       errors:
         type: array
         items:
           type: string
         description: 'Optional array of multiple errors encountered during processing'
+    required:
+      - error
 
   CacheFlushResult:
     title: CacheFlushResult
