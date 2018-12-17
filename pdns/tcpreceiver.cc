@@ -951,13 +951,17 @@ int TCPNameserver::doAXFR(const DNSName &target, shared_ptr<DNSPacket> q, int ou
       for(nsecxrepo_t::const_iterator iter = nsecxrepo.begin(); iter != nsecxrepo.end(); ++iter) {
         if(iter->second.d_auth) {
           NSEC3RecordContent n3rc;
-          n3rc.d_set = iter->second.d_set;
-          if (n3rc.d_set.size() && (n3rc.d_set.size() != 1 || !n3rc.d_set.count(QType::NS)))
-            n3rc.d_set.insert(QType::RRSIG);
-          n3rc.d_salt=ns3pr.d_salt;
+          for (const auto type : iter->second.d_set) {
+            n3rc.set(type);
+          }
+          const auto numberOfTypesSet = n3rc.numberOfTypesSet();
+          if (numberOfTypesSet != 0 && (numberOfTypesSet != 1 || !n3rc.isSet(QType::NS))) {
+            n3rc.set(QType::RRSIG);
+          }
+          n3rc.d_salt = ns3pr.d_salt;
           n3rc.d_flags = ns3pr.d_flags;
           n3rc.d_iterations = ns3pr.d_iterations;
-          n3rc.d_algorithm = 1; // SHA1, fixed in PowerDNS for now
+          n3rc.d_algorithm = DNSSECKeeper::SHA1; // SHA1, fixed in PowerDNS for now
           nsecxrepo_t::const_iterator inext = iter;
           inext++;
           if(inext == nsecxrepo.end())
@@ -972,7 +976,7 @@ int TCPNameserver::doAXFR(const DNSName &target, shared_ptr<DNSPacket> q, int ou
           zrr.dr.d_name = iter->first+sd.qname;
 
           zrr.dr.d_ttl = sd.default_ttl;
-          zrr.dr.d_content = std::make_shared<NSEC3RecordContent>(n3rc);
+          zrr.dr.d_content = std::make_shared<NSEC3RecordContent>(std::move(n3rc));
           zrr.dr.d_type = QType::NSEC3;
           zrr.dr.d_place = DNSResourceRecord::ANSWER;
           zrr.auth=true;
@@ -995,9 +999,11 @@ int TCPNameserver::doAXFR(const DNSName &target, shared_ptr<DNSPacket> q, int ou
     }
     else for(nsecxrepo_t::const_iterator iter = nsecxrepo.begin(); iter != nsecxrepo.end(); ++iter) {
       NSECRecordContent nrc;
-      nrc.d_set = iter->second.d_set;
-      nrc.d_set.insert(QType::RRSIG);
-      nrc.d_set.insert(QType::NSEC);
+      for (const auto type : iter->second.d_set) {
+        nrc.set(type);
+      }
+      nrc.set(QType::RRSIG);
+      nrc.set(QType::NSEC);
 
       if(boost::next(iter) != nsecxrepo.end())
         nrc.d_next = boost::next(iter)->first;
@@ -1006,7 +1012,7 @@ int TCPNameserver::doAXFR(const DNSName &target, shared_ptr<DNSPacket> q, int ou
       zrr.dr.d_name = iter->first;
 
       zrr.dr.d_ttl = sd.default_ttl;
-      zrr.dr.d_content = std::make_shared<NSECRecordContent>(nrc);
+      zrr.dr.d_content = std::make_shared<NSECRecordContent>(std::move(nrc));
       zrr.dr.d_type = QType::NSEC;
       zrr.dr.d_place = DNSResourceRecord::ANSWER;
       zrr.auth=true;

@@ -24,6 +24,140 @@
 #endif
 #include "dnsrecords.hh"
 
+class NSECBitmapGenerator
+{
+public:
+  NSECBitmapGenerator(DNSPacketWriter& pw_): pw(pw_)
+  {
+  }
+  void set(uint16_t type)
+  {
+    uint16_t bit = type % 256;
+    int window = static_cast<int>(type / 256);
+
+    if (window != oldWindow) {
+      if (oldWindow > -1) {
+        res[0] = static_cast<unsigned char>(oldWindow);
+        res[1] = static_cast<unsigned char>(len);
+        tmp.assign(res, res+len+2);
+        pw.xfrBlob(tmp);
+      }
+      memset(res, 0, 34);
+      oldWindow = window;
+    }
+    res[2+bit/8] |= 1 << (7-(bit%8));
+    len=1+bit/8;
+  }
+
+  void finish()
+  {
+    res[0] = static_cast<unsigned char>(oldWindow);
+    res[1] = static_cast<unsigned char>(len);
+    if (len) {
+      tmp.assign(res, res+len+2);
+      pw.xfrBlob(tmp);
+    }
+  }
+
+private:
+  DNSPacketWriter& pw;
+  /* one byte for the window,
+     one for the length,
+     then the maximum of 32 bytes */
+  uint8_t res[34];
+  int oldWindow{-1};
+  int len{0};
+  string tmp;
+};
+
+void NSECBitmap::toPacket(DNSPacketWriter& pw)
+{
+  NSECBitmapGenerator nbg(pw);
+  if (d_bitset) {
+    size_t count = d_bitset->count();
+    size_t found = 0;
+    for(size_t idx = 0; idx < 65535 && found < count; ++idx){
+      if (!d_bitset->test(idx)) {
+        continue;
+      }
+      found++;
+      nbg.set(idx);
+    }
+  }
+  else {
+    for (const auto& type : d_set) {
+      nbg.set(type);
+    }
+  }
+
+  nbg.finish();
+}
+
+void NSECBitmap::fromPacket(PacketReader& pr)
+{
+  string bitmap;
+  pr.xfrBlob(bitmap);
+
+  // 00 06 20 00 00 00 00 03  -> NS RRSIG NSEC  ( 2, 46, 47 ) counts from left
+  if(bitmap.empty()) {
+    return;
+  }
+
+  if(bitmap.size() < 2) {
+    throw MOADNSException("NSEC record with impossibly small bitmap");
+  }
+  
+  for(unsigned int n = 0; n+1 < bitmap.size();) {
+    unsigned int window=static_cast<unsigned char>(bitmap[n++]);
+    unsigned int blen=static_cast<unsigned char>(bitmap[n++]);
+
+    // end if zero padding and ensure packet length
+    if(window == 0 && blen == 0) {
+      break;
+    }
+
+    if(n + blen > bitmap.size()) {
+      throw MOADNSException("NSEC record with bitmap length > packet length");
+    }
+
+    for(unsigned int k=0; k < blen; k++) {
+      uint8_t val=bitmap[n++];
+      for(int bit = 0; bit < 8 ; ++bit , val>>=1) {
+        if(val & 1) {
+          set((7-bit) + 8*(k) + 256*window);
+        }
+      }
+    }
+  }
+}
+
+string NSECBitmap::getZoneRepresentation() const
+{
+  string ret;
+
+  if (d_bitset) {
+    size_t count = d_bitset->count();
+    size_t found = 0;
+    for(size_t idx = 0; idx < 65535 && found < count; ++idx) {
+      if (!d_bitset->test(idx)) {
+        continue;
+      }
+      found++;
+
+      ret+=" ";
+      ret+=DNSRecordContent::NumberToType(idx);
+    }
+  }
+  else {
+    for(const auto& type : d_set) {
+      ret+=" ";
+      ret+=DNSRecordContent::NumberToType(type);
+    }
+  }
+
+  return ret;
+}
+
 void NSECRecordContent::report(void)
 {
   regist(1, 47, &make, &make, "NSEC");
@@ -34,7 +168,7 @@ std::shared_ptr<DNSRecordContent> NSECRecordContent::make(const string& content)
   return std::make_shared<NSECRecordContent>(content);
 }
 
-NSECRecordContent::NSECRecordContent(const string& content, const string& zone) 
+NSECRecordContent::NSECRecordContent(const string& content, const string& zone)
 {
   RecordTextReader rtr(content, DNSName(zone));
   rtr.xfrName(d_next);
@@ -42,76 +176,23 @@ NSECRecordContent::NSECRecordContent(const string& content, const string& zone)
   while(!rtr.eof()) {
     uint16_t type;
     rtr.xfrType(type);
-    d_set.insert(type);
+    set(type);
   }
 }
 
-void NSECRecordContent::toPacket(DNSPacketWriter& pw) 
+void NSECRecordContent::toPacket(DNSPacketWriter& pw)
 {
   pw.xfrName(d_next);
-
-  uint8_t res[34];
-  set<uint16_t>::const_iterator i;
-  int oldWindow = -1;
-  int window = 0;
-  int len = 0;
-  string tmp;
-
-  for(i=d_set.begin(); i != d_set.end(); ++i){
-    uint16_t bit = (*i)%256;
-    window = static_cast<int>((*i) / 256); 
-
-    if (window != oldWindow) {
-      if (oldWindow > -1) {
-          res[0] = static_cast<unsigned char>(oldWindow);
-          res[1] = static_cast<unsigned char>(len);
-          tmp.assign(res, res+len+2);
-          pw.xfrBlob(tmp);
-      }
-      memset(res, 0, 34);
-      oldWindow = window;
-    }
-    res[2+bit/8] |= 1 << (7-(bit%8));
-    len=1+bit/8;
-  }
-
-  res[0] = static_cast<unsigned char>(window);
-  res[1] = static_cast<unsigned char>(len);
-  tmp.assign(res, res+len+2);
-  pw.xfrBlob(tmp);
+  d_bitmap.toPacket(pw);
 }
 
 std::shared_ptr<NSECRecordContent::DNSRecordContent> NSECRecordContent::make(const DNSRecord &dr, PacketReader& pr)
 {
   auto ret=std::make_shared<NSECRecordContent>();
   pr.xfrName(ret->d_next);
-  string bitmap;
-  pr.xfrBlob(bitmap);
- 
-  // 00 06 20 00 00 00 00 03  -> NS RRSIG NSEC  ( 2, 46, 47 ) counts from left
-  if(bitmap.empty())
-    return ret;
 
-  if(bitmap.size() < 2)
-    throw MOADNSException("NSEC record with impossibly small bitmap");
-  
-  for(unsigned int n = 0; n+1 < bitmap.size();) {
-    unsigned int window=static_cast<unsigned char>(bitmap[n++]);
-    unsigned int blen=static_cast<unsigned char>(bitmap[n++]);
+  ret->d_bitmap.fromPacket(pr);
 
-    // end if zero padding and ensure packet length
-    if(window == 0 && blen == 0) break;
-    if(n + blen > bitmap.size())
-      throw MOADNSException("NSEC record with bitmap length > packet length");
-
-    for(unsigned int k=0; k < blen; k++) {
-      uint8_t val=bitmap[n++];
-      for(int bit = 0; bit < 8 ; ++bit , val>>=1)
-        if(val & 1) {
-          ret->d_set.insert((7-bit) + 8*(k) + 256*window);
-        }
-      }
-  }
   return ret;
 }
 
@@ -120,13 +201,8 @@ string NSECRecordContent::getZoneRepresentation(bool noDot) const
   string ret;
   RecordTextWriter rtw(ret);
   rtw.xfrName(d_next);
-  
-  for(set<uint16_t>::const_iterator i=d_set.begin(); i!=d_set.end(); ++i) {
-    ret+=" ";
-    ret+=NumberToType(*i);
-  }
-  
-  return ret;
+
+  return ret + d_bitmap.getZoneRepresentation();
 }
 
 ////// begin of NSEC3
@@ -154,7 +230,7 @@ NSEC3RecordContent::NSEC3RecordContent(const string& content, const string& zone
   while(!rtr.eof()) {
     uint16_t type;
     rtr.xfrType(type);
-    d_set.insert(type);
+    set(type);
   }
 }
 
@@ -168,39 +244,8 @@ void NSEC3RecordContent::toPacket(DNSPacketWriter& pw)
 
   pw.xfr8BitInt(d_nexthash.length());
   pw.xfrBlob(d_nexthash);
-  
-  uint8_t res[34];
-  set<uint16_t>::const_iterator i;
-  int oldWindow = -1;
-  int window = 0;
-  int len = 0;
-  string tmp;
 
-  for(i=d_set.begin(); i != d_set.end(); ++i){
-    uint16_t bit = (*i)%256;
-    window = static_cast<int>((*i) / 256);
-
-    if (window != oldWindow) {
-      if (oldWindow > -1) {
-          res[0] = static_cast<unsigned char>(oldWindow);
-          res[1] = static_cast<unsigned char>(len);
-          tmp.assign(res, res+len+2);
-          pw.xfrBlob(tmp);
-      }
-      memset(res, 0, 34);
-      oldWindow = window;
-    }
-    res[2+bit/8] |= 1 << (7-(bit%8));
-    len=1+bit/8;
-  }
-
-  res[0] = static_cast<unsigned char>(window);
-  res[1] = static_cast<unsigned char>(len);
-
-  if (len) {
-    tmp.assign(res, res+len+2);
-    pw.xfrBlob(tmp);
-  }
+  d_bitmap.toPacket(pw);
 }
 
 std::shared_ptr<NSEC3RecordContent::DNSRecordContent> NSEC3RecordContent::make(const DNSRecord &dr, PacketReader& pr)
@@ -215,35 +260,8 @@ std::shared_ptr<NSEC3RecordContent::DNSRecordContent> NSEC3RecordContent::make(c
 
   pr.xfr8BitInt(len);
   pr.xfrBlob(ret->d_nexthash, len);
-  
-  string bitmap;
-  pr.xfrBlob(bitmap);
-  
-  // 00 06 20 00 00 00 00 03  -> NS RRSIG NSEC  ( 2, 46, 47 ) counts from left
-  
-  if(bitmap.empty())
-    return ret;
 
-  if(bitmap.size() < 2)
-    throw MOADNSException("NSEC3 record with impossibly small bitmap");
-
-  for(unsigned int n = 0; n+1 < bitmap.size();) {
-    unsigned int window=static_cast<unsigned char>(bitmap[n++]);
-    unsigned int innerlen=static_cast<unsigned char>(bitmap[n++]);
-    
-    // end if zero padding and ensure packet length
-    if(window == 0&&innerlen == 0) break;
-    if(n+innerlen>bitmap.size())
-      throw MOADNSException("NSEC record with bitmap length > packet length");
-
-    for(unsigned int k=0; k < innerlen; k++) {
-      uint8_t val=bitmap[n++];
-      for(int bit = 0; bit < 8 ; ++bit , val>>=1)
-        if(val & 1) {
-          ret->d_set.insert((7-bit) + 8*(k) + 256*window);
-        }
-      }
-  }
+  ret->d_bitmap.fromPacket(pr);
   return ret;
 }
 
@@ -257,12 +275,8 @@ string NSEC3RecordContent::getZoneRepresentation(bool noDot) const
 
   rtw.xfrHexBlob(d_salt);
   rtw.xfrBase32HexBlob(d_nexthash);
-  for(set<uint16_t>::const_iterator i=d_set.begin(); i!=d_set.end(); ++i) {
-    ret+=" ";
-    ret+=NumberToType(*i);
-  }
-  
-  return ret;
+
+  return ret + d_bitmap.getZoneRepresentation();
 }
 
 

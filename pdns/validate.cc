@@ -75,7 +75,7 @@ bool denialProvesNoDelegation(const DNSName& zone, const std::vector<DNSRecord>&
       }
 
       if (record.d_name == zone) {
-        return !nsec->d_set.count(QType::NS);
+        return !nsec->isSet(QType::NS);
       }
 
       if (isCoveredByNSEC(zone, record.d_name, nsec->d_next)) {
@@ -95,7 +95,7 @@ bool denialProvesNoDelegation(const DNSName& zone, const std::vector<DNSRecord>&
 
       const string beginHash = fromBase32Hex(record.d_name.getRawLabels()[0]);
       if (beginHash == h) {
-        return !nsec3->d_set.count(QType::NS);
+        return !nsec3->isSet(QType::NS);
       }
 
       if (isCoveredByNSEC3Hash(h, beginHash, nsec3->d_nexthash)) {
@@ -154,15 +154,15 @@ static DNSName getNSECOwnerName(const DNSName& initialOwner, const std::vector<s
 
 static bool isNSECAncestorDelegation(const DNSName& signer, const DNSName& owner, const std::shared_ptr<NSECRecordContent>& nsec)
 {
-  return nsec->d_set.count(QType::NS) &&
-    !nsec->d_set.count(QType::SOA) &&
+  return nsec->isSet(QType::NS) &&
+    !nsec->isSet(QType::SOA) &&
     signer.countLabels() < owner.countLabels();
 }
 
 static bool isNSEC3AncestorDelegation(const DNSName& signer, const DNSName& owner, const std::shared_ptr<NSEC3RecordContent>& nsec3)
 {
-  return nsec3->d_set.count(QType::NS) &&
-    !nsec3->d_set.count(QType::SOA) &&
+  return nsec3->isSet(QType::NS) &&
+    !nsec3->isSet(QType::SOA) &&
     signer.countLabels() < owner.countLabels();
 }
 
@@ -191,7 +191,7 @@ static bool provesNoDataWildCard(const DNSName& qname, const uint16_t qtype, con
 
         if (qname.isPartOf(wildcard)) {
           LOG("\tWildcard matches");
-          if (qtype == 0 || !nsec->d_set.count(qtype)) {
+          if (qtype == 0 || !nsec->isSet(qtype)) {
             LOG(" and proves that the type did not exist"<<endl);
             return true;
           }
@@ -287,7 +287,7 @@ static bool provesNSEC3NoWildCard(DNSName wildcard, uint16_t const qtype, const 
           if (wildcardExists) {
             *wildcardExists = true;
           }
-          if (qtype == 0 || !nsec3->d_set.count(qtype)) {
+          if (qtype == 0 || !nsec3->isSet(qtype)) {
             LOG(" and proves that the type did not exist"<<endl);
             return true;
           }
@@ -346,7 +346,7 @@ dState getDenial(const cspmap_t &validrrsets, const DNSName& qname, const uint16
            owner name regardless of type.
         */
         if (qtype != QType::DS && (qname == owner || qname.isPartOf(owner)) && isNSECAncestorDelegation(signer, owner, nsec)) {
-          LOG("type is "<<QType(qtype).getName()<<", NS is "<<std::to_string(nsec->d_set.count(QType::NS))<<", SOA is "<<std::to_string(nsec->d_set.count(QType::SOA))<<", signer is "<<signer<<", owner name is "<<owner<<endl);
+          LOG("type is "<<QType(qtype).getName()<<", NS is "<<std::to_string(nsec->isSet(QType::NS))<<", SOA is "<<std::to_string(nsec->isSet(QType::SOA))<<", signer is "<<signer<<", owner name is "<<owner<<endl);
           /* this is an "ancestor delegation" NSEC RR */
           LOG("An ancestor delegation NSEC RR can only deny the existence of a DS"<<endl);
           return NODATA;
@@ -354,7 +354,7 @@ dState getDenial(const cspmap_t &validrrsets, const DNSName& qname, const uint16
 
         /* check if the type is denied */
         if(qname == owner) {
-          if (nsec->d_set.count(qtype)) {
+          if (nsec->isSet(qtype)) {
             LOG("Does _not_ deny existence of type "<<QType(qtype).getName()<<endl);
             return NODATA;
           }
@@ -362,7 +362,7 @@ dState getDenial(const cspmap_t &validrrsets, const DNSName& qname, const uint16
           LOG("Denies existence of type "<<QType(qtype).getName()<<endl);
 
           /* RFC 6840 section 4.3 */
-          if (nsec->d_set.count(QType::CNAME)) {
+          if (nsec->isSet(QType::CNAME)) {
             LOG("However a CNAME exists"<<endl);
             return NODATA;
           }
@@ -373,7 +373,7 @@ dState getDenial(const cspmap_t &validrrsets, const DNSName& qname, const uint16
            * attention.  Bits corresponding to the delegation NS RRset and any
            * RRsets for which the parent zone has authoritative data MUST be set
            */
-          if (referralToUnsigned && qtype == QType::DS && !nsec->d_set.count(QType::NS)) {
+          if (referralToUnsigned && qtype == QType::DS && !nsec->isSet(QType::NS)) {
             LOG("However, no NS record exists at this level!"<<endl);
             return NODATA;
           }
@@ -421,7 +421,7 @@ dState getDenial(const cspmap_t &validrrsets, const DNSName& qname, const uint16
           return NODATA;
         }
 
-        LOG("Did not deny existence of "<<QType(qtype).getName()<<", "<<owner<<"?="<<qname<<", "<<nsec->d_set.count(qtype)<<", next: "<<nsec->d_next<<endl);
+        LOG("Did not deny existence of "<<QType(qtype).getName()<<", "<<owner<<"?="<<qname<<", "<<nsec->isSet(qtype)<<", next: "<<nsec->d_next<<endl);
       }
     } else if(v.first.second==QType::NSEC3) {
       for(const auto& r : v.second.records) {
@@ -455,7 +455,7 @@ dState getDenial(const cspmap_t &validrrsets, const DNSName& qname, const uint16
            owner name regardless of type.
         */
         if (qtype != QType::DS && beginHash == h && isNSEC3AncestorDelegation(signer, v.first.first, nsec3)) {
-          LOG("type is "<<QType(qtype).getName()<<", NS is "<<std::to_string(nsec3->d_set.count(QType::NS))<<", SOA is "<<std::to_string(nsec3->d_set.count(QType::SOA))<<", signer is "<<signer<<", owner name is "<<v.first.first<<endl);
+          LOG("type is "<<QType(qtype).getName()<<", NS is "<<std::to_string(nsec3->isSet(QType::NS))<<", SOA is "<<std::to_string(nsec3->isSet(QType::SOA))<<", signer is "<<signer<<", owner name is "<<v.first.first<<endl);
           /* this is an "ancestor delegation" NSEC3 RR */
           LOG("An ancestor delegation NSEC3 RR can only deny the existence of a DS"<<endl);
           return NODATA;
@@ -463,7 +463,7 @@ dState getDenial(const cspmap_t &validrrsets, const DNSName& qname, const uint16
 
         // If the name exists, check if the qtype is denied
         if(beginHash == h) {
-          if (nsec3->d_set.count(qtype)) {
+          if (nsec3->isSet(qtype)) {
             LOG("Does _not_ deny existence of type "<<QType(qtype).getName()<<" for name "<<qname<<" (not opt-out)."<<endl);
             return NODATA;
           }
@@ -471,7 +471,7 @@ dState getDenial(const cspmap_t &validrrsets, const DNSName& qname, const uint16
           LOG("Denies existence of type "<<QType(qtype).getName()<<" for name "<<qname<<" (not opt-out)."<<endl);
 
           /* RFC 6840 section 4.3 */
-          if (nsec3->d_set.count(QType::CNAME)) {
+          if (nsec3->isSet(QType::CNAME)) {
             LOG("However a CNAME exists"<<endl);
             return NODATA;
           }
@@ -483,7 +483,7 @@ dState getDenial(const cspmap_t &validrrsets, const DNSName& qname, const uint16
            * set and that the DS bit is not set in the Type Bit Maps field of the
            * NSEC3 RR.
            */
-          if (referralToUnsigned && qtype == QType::DS && !nsec3->d_set.count(QType::NS)) {
+          if (referralToUnsigned && qtype == QType::DS && !nsec3->isSet(QType::NS)) {
             LOG("However, no NS record exists at this level!"<<endl);
             return NODATA;
           }
