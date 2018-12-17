@@ -546,7 +546,7 @@ void RecordTextWriter::xfrTime(const uint32_t& val)
   gmtime_r(&time, &tm);
 
   char tmp[16];
-  snprintf(tmp,sizeof(tmp)-1, "%04d%02d%02d" "%02d%02d%02d", 
+  snprintf(tmp, sizeof(tmp), "%04d%02d%02d" "%02d%02d%02d", 
            tm.tm_year+1900, tm.tm_mon+1, tm.tm_mday, 
            tm.tm_hour, tm.tm_min, tm.tm_sec);
   
@@ -605,7 +605,7 @@ void RecordTextWriter::xfrHexBlob(const string& val, bool)
   string::size_type limit=val.size();
   char tmp[5];
   for(string::size_type n = 0; n < limit; ++n) {
-    snprintf(tmp, sizeof(tmp)-1, "%02x", (unsigned char)val[n]);
+    snprintf(tmp, sizeof(tmp), "%02x", (unsigned char)val[n]);
     d_string+=tmp;
   }
 }
