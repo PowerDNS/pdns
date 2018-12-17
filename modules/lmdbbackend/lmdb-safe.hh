@@ -40,7 +40,7 @@ public:
   {
     d_dbi = -1;
   }
-  explicit MDBDbi(MDB_env* env, MDB_txn* txn, const char* dbname, int flags);  
+  explicit MDBDbi(MDB_env* env, MDB_txn* txn, string_view dbname, int flags);  
 
   operator const MDB_dbi&() const
   {
@@ -65,7 +65,7 @@ public:
     // but, elsewhere, docs say database handles do not need to be closed?
   }
 
-  MDBDbi openDB(const char* dbname, int flags);
+  MDBDbi openDB(const string_view dbname, int flags);
   
   MDBRWTransaction getRWTransaction();
   MDBROTransaction getROTransaction();
@@ -148,7 +148,7 @@ public:
   {
     d_mdbval = rhs.d_mdbval;
   }
-  
+
   template <class T,
             typename std::enable_if<std::is_arithmetic<T>::value,
                                     T>::type* = nullptr>
@@ -257,7 +257,7 @@ public:
 
   
   // this is something you can do, readonly
-  MDBDbi openDB(const char* dbname, int flags)
+  MDBDbi openDB(string_view dbname, int flags)
   {
     return MDBDbi(d_parent->d_env, d_txn, dbname, flags);
   }
@@ -328,14 +328,10 @@ public:
     key.d_mdbval = in.d_mdbval;
     return mdb_cursor_get(d_cursor, const_cast<MDB_val*>(&key.d_mdbval), &data.d_mdbval, MDB_SET);
   }
-
-
   
   MDB_cursor* d_cursor;
   MDBROTransaction* d_parent;
 };
-
-
 
 class MDBRWCursor;
 
@@ -408,7 +404,7 @@ public:
   }
 
 
-  int del(MDB_dbi dbi, const MDBInVal& key, const MDBInVal& val)
+  int del(MDBDbi& dbi, const MDBInVal& key, const MDBInVal& val)
   {
     int rc;
     rc=mdb_del(d_txn, dbi, (MDB_val*)&key.d_mdbval, (MDB_val*)&val.d_mdbval);
@@ -417,7 +413,7 @@ public:
     return rc;
   }
 
-  int del(MDB_dbi dbi, const MDBInVal& key)
+  int del(MDBDbi& dbi, const MDBInVal& key)
   {
     int rc;
     rc=mdb_del(d_txn, dbi, (MDB_val*)&key.d_mdbval, 0);
@@ -427,7 +423,7 @@ public:
   }
 
  
-  int get(MDB_dbi dbi, const MDBInVal& key, MDBOutVal& val)
+  int get(MDBDbi& dbi, const MDBInVal& key, MDBOutVal& val)
   {
     if(!d_txn)
       throw std::runtime_error("Attempt to use a closed RW transaction for get");
@@ -439,7 +435,7 @@ public:
     return rc;
   }
 
-  int get(MDB_dbi dbi, const MDBInVal& key, string_view& val)
+  int get(MDBDbi& dbi, const MDBInVal& key, string_view& val)
   {
     MDBOutVal out;
     int rc = get(dbi, key, out);

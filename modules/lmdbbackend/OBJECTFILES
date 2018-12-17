@@ -1,1 +1,1 @@
-lmdbbackend.lo lmdb-safe.lo
+lmdbbackend.lo lmdb-safe.lo lmdb-typed.lo
