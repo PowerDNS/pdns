@@ -4097,7 +4097,7 @@ int main(int argc, char **argv)
     ::arg().set("trace","if we should output heaps of logging. set to 'fail' to only log failing domains")="off";
     ::arg().set("dnssec", "DNSSEC mode: off/process-no-validate (default)/process/log-fail/validate")="process-no-validate";
     ::arg().set("dnssec-log-bogus", "Log DNSSEC bogus validations")="no";
-    ::arg().set("signature-inception-skew", "Allow the signture inception to be off by this number of seconds")="60";
+    ::arg().set("signature-inception-skew", "Allow the signature inception to be off by this number of seconds")="60";
     ::arg().set("daemon","Operate as a daemon")="no";
     ::arg().setSwitch("write-pid","Write a PID file")="yes";
     ::arg().set("loglevel","Amount of logging. Higher is more. Do not set below 3")="6";
