@@ -2407,7 +2407,7 @@ static void makeTCPServerSockets(deferredAdd_t& deferredAdds, std::set<int>& tcp
 #ifdef TCP_DEFER_ACCEPT
     if(setsockopt(fd, IPPROTO_TCP, TCP_DEFER_ACCEPT, &tmp, sizeof tmp) >= 0) {
       if(i==locals.begin())
-        g_log<<Logger::Error<<"Enabled TCP data-ready filter for (slight) DoS protection"<<endl;
+        g_log<<Logger::Info<<"Enabled TCP data-ready filter for (slight) DoS protection"<<endl;
     }
 #endif
 
@@ -2446,9 +2446,9 @@ static void makeTCPServerSockets(deferredAdd_t& deferredAdds, std::set<int>& tcp
     // we don't need to update g_listenSocketsAddresses since it doesn't work for TCP/IP:
     //  - fd is not that which we know here, but returned from accept()
     if(sin.sin4.sin_family == AF_INET)
-      g_log<<Logger::Error<<"Listening for TCP queries on "<< sin.toString() <<":"<<st.port<<endl;
+      g_log<<Logger::Info<<"Listening for TCP queries on "<< sin.toString() <<":"<<st.port<<endl;
     else
-      g_log<<Logger::Error<<"Listening for TCP queries on ["<< sin.toString() <<"]:"<<st.port<<endl;
+      g_log<<Logger::Info<<"Listening for TCP queries on ["<< sin.toString() <<"]:"<<st.port<<endl;
   }
 }
 
@@ -2520,9 +2520,9 @@ static void makeUDPServerSockets(deferredAdd_t& deferredAdds)
     deferredAdds.push_back(make_pair(fd, handleNewUDPQuestion));
     g_listenSocketsAddresses[fd]=sin;  // this is written to only from the startup thread, not from the workers
     if(sin.sin4.sin_family == AF_INET)
-      g_log<<Logger::Error<<"Listening for UDP queries on "<< sin.toString() <<":"<<st.port<<endl;
+      g_log<<Logger::Info<<"Listening for UDP queries on "<< sin.toString() <<":"<<st.port<<endl;
     else
-      g_log<<Logger::Error<<"Listening for UDP queries on ["<< sin.toString() <<"]:"<<st.port<<endl;
+      g_log<<Logger::Info<<"Listening for UDP queries on ["<< sin.toString() <<"]:"<<st.port<<endl;
   }
 }
 
@@ -3125,7 +3125,7 @@ static string* doReloadLuaScript()
   try {
     if(fname.empty()) {
       t_pdl.reset();
-      g_log<<Logger::Error<<t_id<<" Unloaded current lua script"<<endl;
+      g_log<<Logger::Info<<t_id<<" Unloaded current lua script"<<endl;
       return new string("unloaded\n");
     }
     else {
@@ -3285,7 +3285,7 @@ void parseACLs()
   }
   else {
     if(::arg()["local-address"]!="127.0.0.1" && ::arg().asNum("local-port")==53)
-      g_log<<Logger::Error<<"WARNING: Allowing queries from all IP addresses - this can be a security risk!"<<endl;
+      g_log<<Logger::Warning<<"WARNING: Allowing queries from all IP addresses - this can be a security risk!"<<endl;
     allowFrom = nullptr;
   }
 
@@ -3757,7 +3757,7 @@ static int serviceMain(int argc, char*argv[])
       exit(1);
     }
     else
-      g_log<<Logger::Error<<"Chrooted to '"<<::arg()["chroot"]<<"'"<<endl;
+      g_log<<Logger::Info<<"Chrooted to '"<<::arg()["chroot"]<<"'"<<endl;
   }
 
   s_pidfname=::arg()["socket-dir"]+"/"+s_programname+".pid";
@@ -3956,7 +3956,7 @@ try
         exit(99);
       }
     }
-    g_log<<Logger::Error<<"Enabled '"<< t_fdm->getName() << "' multiplexer"<<endl;
+    g_log<<Logger::Info<<"Enabled '"<< t_fdm->getName() << "' multiplexer"<<endl;
   }
   else {
 
