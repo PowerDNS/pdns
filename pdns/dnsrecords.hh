@@ -720,25 +720,6 @@ public:
 private:
 };
 
-
-class WKSRecordContent : public DNSRecordContent
-{
-public:
-  static void report(void);
-  WKSRecordContent() 
-  {}
-  WKSRecordContent(const string& content, const string& zone=""); // FIXME400: DNSName& zone?
-
-  static std::shared_ptr<DNSRecordContent> make(const DNSRecord &dr, PacketReader& pr);
-  static std::shared_ptr<DNSRecordContent> make(const string& content);
-  string getZoneRepresentation(bool noDot=false) const override;
-  void toPacket(DNSPacketWriter& pw) override;
-
-  uint32_t d_ip{0};
-  std::bitset<65535> d_services;
-private:
-};
-
 class EUI48RecordContent : public DNSRecordContent 
 {
 public:
