@@ -941,7 +941,7 @@ bool SyncRes::doCNAMECacheCheck(const DNSName &qname, const QType &qtype, vector
 
       if(j->d_ttl>(unsigned int) d_now.tv_sec) {
 
-        if (!wasAuthZone && shouldValidate() && wasAuth && state == Indeterminate && d_requireAuthData) {
+        if (!wasAuthZone && shouldValidate() && (wasAuth || wasForwardRecurse) && state == Indeterminate && d_requireAuthData) {
           /* This means we couldn't figure out the state when this entry was cached,
              most likely because we hadn't computed the zone cuts yet. */
           /* make sure they are computed before validating */
@@ -1189,7 +1189,7 @@ bool SyncRes::doCacheCheck(const DNSName &qname, const DNSName& authname, bool w
 
     LOG(prefix<<sqname<<": Found cache hit for "<<sqt.getName()<<": ");
 
-    if (!wasAuthZone && shouldValidate() && wasCachedAuth && cachedState == Indeterminate && d_requireAuthData) {
+    if (!wasAuthZone && shouldValidate() && (wasCachedAuth || wasForwardRecurse) && cachedState == Indeterminate && d_requireAuthData) {
 
       /* This means we couldn't figure out the state when this entry was cached,
          most likely because we hadn't computed the zone cuts yet. */
@@ -2122,7 +2122,11 @@ RCode::rcodes_ SyncRes::updateCacheFromRecords(unsigned int depth, LWResult& lwr
        set the TC bit solely because these RRSIG RRs didn't fit."
     */
     bool isAA = lwr.d_aabit && i->first.place != DNSResourceRecord::ADDITIONAL;
-    if (isAA && isCNAMEAnswer && (i->first.place != DNSResourceRecord::ANSWER || i->first.type != QType::CNAME || i->first.name != qname)) {
+    /* if we forwarded the query to a recursor, we can expect the answer to be signed,
+       even if the answer is not AA. Of course that's not only true inside a Secure
+       zone, but we check that below. */
+    bool expectSignature = isAA || wasForwardRecurse;
+    if (isCNAMEAnswer && (i->first.place != DNSResourceRecord::ANSWER || i->first.type != QType::CNAME || i->first.name != qname)) {
       /*
         rfc2181 states:
         Note that the answer section of an authoritative answer normally
@@ -2134,6 +2138,7 @@ RCode::rcodes_ SyncRes::updateCacheFromRecords(unsigned int depth, LWResult& lwr
         associated with the alias.
       */
       isAA = false;
+      expectSignature = false;
     }
 
     vState recordState = getValidationStatus(i->first.name, false);
@@ -2142,7 +2147,7 @@ RCode::rcodes_ SyncRes::updateCacheFromRecords(unsigned int depth, LWResult& lwr
     if (shouldValidate() && recordState == Secure) {
       vState initialState = recordState;
 
-      if (isAA || wasForwardRecurse) {
+      if (expectSignature) {
         if (i->first.place != DNSResourceRecord::ADDITIONAL) {
           /* the additional entries can be insecure,
              like glue:
@@ -2172,7 +2177,7 @@ RCode::rcodes_ SyncRes::updateCacheFromRecords(unsigned int depth, LWResult& lwr
         }
       }
 
-      if (initialState == Secure && state != recordState && (isAA || wasForwardRecurse)) {
+      if (initialState == Secure && state != recordState && expectSignature) {
         updateValidationState(state, recordState);
       }
     }
