@@ -319,8 +319,9 @@ string LOCRecordContent::getZoneRepresentation(bool noDot) const
 
   double remlat=60.0*(latitude-(int)latitude);
   double remlong=60.0*(longitude-(int)longitude);
+  static const boost::format fmt("%d %d %2.03f %c %d %d %2.03f %c %.2fm %.2fm %.2fm %.2fm");
   std::string ret = boost::str(
-    boost::format("%d %d %2.03f %c %d %d %2.03f %c %.2fm %.2fm %.2fm %.2fm")
+    boost::format(fmt)
     % abs((int)latitude) % abs((int) ((latitude-(int)latitude)*60))
     % fabs((double)((remlat-(int)remlat)*60.0)) % (latitude>0 ? 'N' : 'S')
     % abs((int)longitude) % abs((int) ((longitude-(int)longitude)*60))

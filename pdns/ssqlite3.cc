@@ -53,7 +53,7 @@ public:
     d_prepared(false),
     d_query(query),
     d_dolog(dolog),
-    d_stmt(NULL),
+    d_stmt(nullptr),
     d_rc(0),
     d_db(db)
   {

@@ -72,7 +72,7 @@ typedef map<
 template<class Thing> class Throttle : public boost::noncopyable
 {
 public:
-  Throttle() : d_limit(3), d_ttl(60), d_last_clean(time(0))
+  Throttle() : d_limit(3), d_ttl(60), d_last_clean(time(nullptr))
   {
   }
 

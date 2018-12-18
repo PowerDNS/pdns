@@ -545,7 +545,8 @@ void RecordTextWriter::xfrTime(const uint32_t& val)
   time_t time=val; // Y2038 bug!
   gmtime_r(&time, &tm);
 
-  d_string += boost::str(boost::format("%04d%02d%02d" "%02d%02d%02d") % (tm.tm_year+1900) % (tm.tm_mon+1) % tm.tm_mday % tm.tm_hour % tm.tm_min % tm.tm_sec);
+  static const boost::format fmt("%04d%02d%02d" "%02d%02d%02d");
+  d_string += boost::str(boost::format(fmt) % (tm.tm_year+1900) % (tm.tm_mon+1) % tm.tm_mday % tm.tm_hour % tm.tm_min % tm.tm_sec);
 }
 
 

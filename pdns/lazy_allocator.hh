@@ -35,12 +35,12 @@ struct lazy_allocator {
                    "lazy_allocator must only be used with trivial types");
 
     pointer
-    allocate (size_type const& n) {
+    allocate (size_type const n) {
         return static_cast<pointer>(::operator new (n * sizeof(value_type)));
     }
 
     void
-    deallocate (pointer const ptr, size_type const& n) noexcept {
+    deallocate (pointer const ptr, size_type const n) noexcept {
 #if defined(__cpp_sized_deallocation) &&  (__cpp_sized_deallocation >= 201309)
         ::operator delete (ptr, n * sizeof(value_type));
 #else
