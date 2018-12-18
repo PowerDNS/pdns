@@ -300,7 +300,7 @@ string DLNotifyHandler(const vector<string>&parts, Utility::pid_t ppid)
     int total = 0;
     int notified = 0;
     for (vector<DomainInfo>::const_iterator di=domains.begin(); di != domains.end(); di++) {
-      if (di->kind == 0) { // MASTER
+      if (di->kind == 0 || di->kind == 1) { // MASTER and Slave if slave-renotify is enabled
         total++;
         if(Communicator.notifyDomain(di->zone))
           notified++;
@@ -309,7 +309,7 @@ string DLNotifyHandler(const vector<string>&parts, Utility::pid_t ppid)
 
     if (total != notified)
       return itoa(notified)+" out of "+itoa(total)+" zones added to queue - see log";
-    return "Added "+itoa(total)+" MASTER zones to queue";
+    return "Added "+itoa(total)+" MASTER/SLAVE zones to queue";
   } else {
     DNSName domain;
     try {
