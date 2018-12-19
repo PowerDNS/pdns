@@ -2638,7 +2638,7 @@ bool SyncRes::processAnswer(unsigned int depth, LWResult& lwr, const DNSName& qn
   if(nsset.empty() && !lwr.d_rcode && (negindic || lwr.d_aabit || sendRDQuery)) {
     LOG(prefix<<qname<<": status=noerror, other types may exist, but we are done "<<(negindic ? "(have negative SOA) " : "")<<(lwr.d_aabit ? "(have aa bit) " : "")<<endl);
 
-    if(state == Secure && lwr.d_aabit && !negindic) {
+    if(state == Secure && (lwr.d_aabit || sendRDQuery) && !negindic) {
       updateValidationState(state, Bogus);
     }
 
