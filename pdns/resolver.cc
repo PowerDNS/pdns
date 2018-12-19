@@ -86,10 +86,11 @@ int makeQuerySocket(const ComboAddress& local, bool udpOrTCP, bool nonLocalBind)
   }
   else {
     // tcp, let the kernel figure out the port
-    // cerr<<"letting kernel pick TCP port"<<endl;
     ourLocal.sin4.sin_port = 0;
-    if(::bind(sock, (struct sockaddr *)&ourLocal, ourLocal.getSocklen()) < 0)
+    if(::bind(sock, (struct sockaddr *)&ourLocal, ourLocal.getSocklen()) < 0) {
+      closesocket(sock);
       throw PDNSException("Resolver binding to local TCP socket on "+ourLocal.toString()+": "+stringerror());
+    }
   }
   return sock;
 }
