@@ -66,10 +66,10 @@ LMDBBackend::LMDBBackend(const std::string& suffix)
   else
     throw std::runtime_error("Unknown sync mode "+syncMode+" requested for LMDB backend");
   
-  d_tdbi = std::make_shared<tdbi_t>(getMDBEnv(getArg("filename").c_str(), MDB_NOSUBDIR | asyncFlag | MDB_WRITEMAP, 0600), "records");
-  d_tdomains = std::make_shared<tdomains_t>(d_tdbi->getEnv(), "domains");
-  d_tmeta = std::make_shared<tmeta_t>(d_tdbi->getEnv(), "metadata");
-  d_tkdb = std::make_shared<tkdb_t>(d_tdbi->getEnv(), "keydata");
+  d_trecords = std::make_shared<trecords_t>(getMDBEnv(getArg("filename").c_str(), MDB_NOSUBDIR | asyncFlag | MDB_WRITEMAP, 0600), "records");
+  d_tdomains = std::make_shared<tdomains_t>(d_trecords->getEnv(), "domains");
+  d_tmeta = std::make_shared<tmeta_t>(d_trecords->getEnv(), "metadata");
+  d_tkdb = std::make_shared<tkdb_t>(d_trecords->getEnv(), "keydata");
     
   d_dolog = ::arg().mustDo("query-logging");
 }
@@ -151,7 +151,7 @@ BOOST_SERIALIZATION_SPLIT_FREE(DNSName);
 BOOST_SERIALIZATION_SPLIT_FREE(QType);
 BOOST_IS_BITWISE_SERIALIZABLE(ComboAddress);
 
-void LMDBBackend::deleteDomainRecords(tdbi_t::RWTransaction& txn, uint32_t domain_id)
+void LMDBBackend::deleteDomainRecords(trecords_t::RWTransaction& txn, uint32_t domain_id)
 {
   cout << "Going to delete domain with id "<<domain_id << endl;
   auto range = txn.equal_range<1>(domain_id);
@@ -164,7 +164,7 @@ bool LMDBBackend::startTransaction(const DNSName &domain, int domain_id)
 {
   //  cout<<"Start transaction for domain "<<domain_id<<endl;
   
-  d_rwtxn = std::make_shared<tdbi_t::RWTransaction>(d_tdbi->getRWTransaction());
+  d_rwtxn = std::make_shared<trecords_t::RWTransaction>(d_trecords->getRWTransaction());
 
   if(domain_id >= 0) {
     deleteDomainRecords(*d_rwtxn, domain_id);
@@ -198,14 +198,14 @@ bool LMDBBackend::feedRecord(const DNSResourceRecord &r, const DNSName &ordernam
 bool LMDBBackend::replaceRRSet(uint32_t domain_id, const DNSName& qname, const QType& qt, const vector<DNSResourceRecord>& rrset)
 {
   // zonk qname/qtype within domain_id (go through qname, check domain_id && qtype)
-  shared_ptr<tdbi_t::RWTransaction> txn;
+  shared_ptr<trecords_t::RWTransaction> txn;
   if(d_rwtxn) {
     txn = d_rwtxn;
     cout<<"Reusing open transaction"<<endl;
   }
   else {
     cout<<"Making a new RW txn for replace rrset"<<endl;
-    txn = std::make_shared<tdbi_t::RWTransaction>(d_tdbi->getRWTransaction());
+    txn = std::make_shared<trecords_t::RWTransaction>(d_trecords->getRWTransaction());
   }
 
   auto range = txn->equal_range<0>(qname); // XXX dangerous (why?)
@@ -226,14 +226,14 @@ bool LMDBBackend::replaceRRSet(uint32_t domain_id, const DNSName& qname, const Q
 
 bool LMDBBackend::deleteDomain(const DNSName &domain)
 {
-  shared_ptr<tdbi_t::RWTransaction> txn;
+  shared_ptr<trecords_t::RWTransaction> txn;
   if(d_rwtxn) {
     txn = d_rwtxn;
     cout<<"Reusing open transaction"<<endl;
   }
   else {
     cout<<"Making a new RW txn for delete domain"<<endl;
-    txn = std::make_shared<tdbi_t::RWTransaction>(d_tdbi->getRWTransaction());
+    txn = std::make_shared<trecords_t::RWTransaction>(d_trecords->getRWTransaction());
   }
 
 
@@ -273,7 +273,7 @@ bool LMDBBackend::list(const DNSName &target, int id, bool include_disabled)
     }
   }
   
-  d_rotxn = std::make_shared<tdbi_t::ROTransaction>(d_tdbi->getROTransaction());  
+  d_rotxn = std::make_shared<trecords_t::ROTransaction>(d_trecords->getROTransaction());  
   auto range = d_rotxn->equal_range<1>(di.id);
   d_listrange = std::make_shared<listrange_t::element_type>(std::move(range));
   d_inlist = true;
@@ -308,7 +308,7 @@ void LMDBBackend::lookup(const QType &type, const DNSName &qdomain, DNSPacket *p
     g_log << Logger::Warning << "Got lookup for "<<qdomain<<"|"<<type.getName()<<" in zone "<< zoneId<<endl;
     d_dtime.set();
   }
-  d_rotxn = std::make_shared<tdbi_t::ROTransaction>(d_tdbi->getROTransaction());
+  d_rotxn = std::make_shared<trecords_t::ROTransaction>(d_trecords->getROTransaction());
 
   d_listrange = std::make_shared<listrange_t::element_type>(d_rotxn->equal_range<0>(qdomain));
 
@@ -479,7 +479,7 @@ void LMDBBackend::getUnfreshSlaveInfos(vector<DomainInfo>* domains)
 {
   domains->clear();
   auto txn = d_tdomains->getROTransaction();
-  auto rectxn = d_tdbi->getROTransaction(txn.getTransactionHandle());
+  auto rectxn = d_trecords->getROTransaction(txn.getTransactionHandle());
   for(auto iter = txn.begin(); iter != txn.end(); ++iter) {
     DomainInfo di=*iter;
     di.serial=0;
