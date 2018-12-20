@@ -40,7 +40,14 @@
 
 #include <boost/iostreams/device/back_inserter.hpp>
 #include <sstream>
+
+
 #include "lmdbbackend.hh"
+template<>
+std::string keyConv(const DNSName& t)
+{
+  return t.toDNSStringLC();
+}
 
 LMDBBackend::LMDBBackend(const std::string& suffix)
 {
@@ -62,9 +69,13 @@ LMDBBackend::LMDBBackend(const std::string& suffix)
   d_tdbi = std::make_shared<tdbi_t>(getMDBEnv(getArg("filename").c_str(), MDB_NOSUBDIR | asyncFlag | MDB_WRITEMAP, 0600), "records");
   d_tdomains = std::make_shared<tdomains_t>(d_tdbi->getEnv(), "domains");
   d_tmeta = std::make_shared<tmeta_t>(d_tdbi->getEnv(), "metadata");
+  d_tkdb = std::make_shared<tkdb_t>(d_tdbi->getEnv(), "keydata");
     
   d_dolog = ::arg().mustDo("query-logging");
 }
+
+
+
 namespace boost {
 namespace serialization {
 
@@ -114,6 +125,12 @@ void serialize(Archive & ar, LMDBBackend::DomainMeta& g, const unsigned int vers
   ar & g.domain & g.key & g.value;
 }
 
+template<class Archive>
+void serialize(Archive & ar, LMDBBackend::KeyDataDB& g, const unsigned int version)
+{
+  ar & g.domain & g.content & g.flags & g.active;
+}
+
   
 template<class Archive>
 void serialize(Archive & ar, DNSResourceRecord& g, const unsigned int version)
@@ -145,7 +162,7 @@ void LMDBBackend::deleteDomainRecords(tdbi_t::RWTransaction& txn, uint32_t domai
 
 bool LMDBBackend::startTransaction(const DNSName &domain, int domain_id)
 {
-  cout<<"Start transaction for domain "<<domain_id<<endl;
+  //  cout<<"Start transaction for domain "<<domain_id<<endl;
   
   d_rwtxn = std::make_shared<tdbi_t::RWTransaction>(d_tdbi->getRWTransaction());
 
@@ -158,7 +175,6 @@ bool LMDBBackend::startTransaction(const DNSName &domain, int domain_id)
 
 bool LMDBBackend::commitTransaction()
 {
-  cout<<"Actual commit"<<endl;
   d_rwtxn->commit();
   d_rwtxn.reset();
   return true;
@@ -192,7 +208,7 @@ bool LMDBBackend::replaceRRSet(uint32_t domain_id, const DNSName& qname, const Q
     txn = std::make_shared<tdbi_t::RWTransaction>(d_tdbi->getRWTransaction());
   }
 
-  auto range = txn->equal_range<0>(qname.toDNSStringLC()); // XXX dangerous
+  auto range = txn->equal_range<0>(qname); // XXX dangerous (why?)
   for(auto& iter = range.first; iter != range.second; ++iter) {
     if(iter->domain_id == (int32_t)domain_id && iter->qtype == qt) {
       iter.del();
@@ -224,7 +240,7 @@ bool LMDBBackend::deleteDomain(const DNSName &domain)
   auto doms = d_tdomains->getRWTransaction(txn->getTransactionHandle());
 
   DomainInfo di;
-  auto id = doms.get<0>(domain.toDNSStringLC(), di); // XXX index pain
+  auto id = doms.get<0>(domain, di); 
   if(id) {
     doms.del(id);
     auto range = txn->equal_range<1>(id);
@@ -242,15 +258,15 @@ bool LMDBBackend::deleteDomain(const DNSName &domain)
 
 bool LMDBBackend::list(const DNSName &target, int id, bool include_disabled)
 {
-  cout<<"In list for id "<<id<<endl;
+//  cout<<"In list for id "<<id<<endl;
   d_inlist=true;
   DomainInfo di;
 
   {
     auto dtxn = d_tdomains->getROTransaction();
     
-    if((di.id = dtxn.get<0>(target.toDNSStringLC(), di))) // XXX index pain
-      cout<<"Found domain "<<target<<" on domain_id "<<di.id << endl;
+    if((di.id = dtxn.get<0>(target, di))) 
+  ;//     cout<<"Found domain "<<target<<" on domain_id "<<di.id << endl;
     else {
       cout<<"Did not find "<<target<<endl;
       return false;
@@ -294,7 +310,7 @@ void LMDBBackend::lookup(const QType &type, const DNSName &qdomain, DNSPacket *p
   }
   d_rotxn = std::make_shared<tdbi_t::ROTransaction>(d_tdbi->getROTransaction());
 
-  d_listrange = std::make_shared<listrange_t::element_type>(d_rotxn->equal_range<0>(qdomain.toDNSStringLC())); // XXX index pain
+  d_listrange = std::make_shared<listrange_t::element_type>(d_rotxn->equal_range<0>(qdomain));
 
   if(d_dolog) {
     g_log<<Logger::Warning<< "Query "<<((long)(void*)this)<<": "<<d_dtime.udiffNoReset()<<" usec to execute"<<endl;
@@ -331,7 +347,7 @@ bool LMDBBackend::getDomainInfo(const DNSName &domain, DomainInfo &di, bool getS
 {
   auto txn = d_tdomains->getROTransaction();
 
-  if(!(di.id=txn.get<0>(domain.toDNSStringLC(), di)))
+  if(!(di.id=txn.get<0>(domain, di)))
     return false;
   di.backend = this;
   return true;
@@ -346,13 +362,13 @@ int LMDBBackend::genChangeDomain(const DNSName& domain, std::function<void(Domai
     cout<<"Reusing open transaction"<<endl;
   }
   else {
-    cout<<"Making a new RW txn for feed record"<<endl;
+    cout<<"Making a new RW txn for genChangeDomain record"<<endl;
     txn = std::make_shared<tdomains_t::RWTransaction>(d_tdomains->getRWTransaction());
   }
 
   DomainInfo di;
 
-  auto id = txn->get<0>(domain.toDNSStringLC(), di);
+  auto id = txn->get<0>(domain, di);
   func(di);
   txn->put(di, id);
   
@@ -369,7 +385,7 @@ int LMDBBackend::genChangeDomain(uint32_t id, std::function<void(DomainInfo&)> f
     cout<<"Reusing open transaction"<<endl;
   }
   else {
-    cout<<"Making a new RW txn for feed record"<<endl;
+    cout<<"Making a new RW txn for genChangeDomain record"<<endl;
     txn = std::make_shared<tdomains_t::RWTransaction>(d_tdomains->getRWTransaction());
   }
 
@@ -433,7 +449,6 @@ bool LMDBBackend::createDomain(const DNSName &domain)
   return createDomain(domain, "NATIVE", "", "");
 }
           
-
 bool LMDBBackend::createDomain(const DNSName &domain, const string &type, const string &masters, const string &account)
 {
   cout<<"Creating domain "<<domain<<endl;
@@ -473,7 +488,7 @@ void LMDBBackend::getUnfreshSlaveInfos(vector<DomainInfo>* domains)
     
     di.id = iter.getID();
 
-    auto range = rectxn.equal_range<0>(di.zone.toDNSStringLC());
+    auto range = rectxn.equal_range<0>(di.zone);
     string content;
     for(auto& iter2 = range.first ; iter2 != range.second; ++iter2) {
       if(iter2->qtype.getCode() == QType::SOA && iter2->domain_id == (int32_t)di.id) {
@@ -492,38 +507,47 @@ void LMDBBackend::getUnfreshSlaveInfos(vector<DomainInfo>* domains)
       }
       di.serial=sdata.serial;
     }
-
     domains->push_back(di);
   }
-
 }
-
 
 bool LMDBBackend::getAllDomainMetadata(const DNSName& name, std::map<std::string, std::vector<std::string> >& meta)
 {
   meta.clear();
-  auto txn = d_tmeta->getROTransaction();
-  auto range = txn.equal_range<0>(name.toDNSStringLC());
+  if(d_rwtxn) { // within transaction already
+    auto txn = d_tmeta->getRWTransaction(d_rwtxn->getTransactionHandle());
+    auto range = txn.equal_range<0>(name);
+    
+    for(auto& iter = range.first; iter != range.second; ++iter) {
+      meta[iter->key].push_back(iter->value);
+    }
 
-  for(auto& iter = range.first; iter != range.second; ++iter) {
-    meta[iter->key].push_back(iter->value);
+  }
+  else {
+    auto txn = d_tmeta->getROTransaction();
+    auto range = txn.equal_range<0>(name);
+    
+    for(auto& iter = range.first; iter != range.second; ++iter) {
+      meta[iter->key].push_back(iter->value);
+    }
   }
   return true;
 }
 
 bool LMDBBackend::setDomainMetadata(const DNSName& name, const std::string& kind, const std::vector<std::string>& meta)
 {
+  cout<<"Wants to set "<<kind<<" for domain "<<name<<endl;
   shared_ptr<tmeta_t::RWTransaction> txn;
   if(d_rwtxn) {
     txn = std::make_shared<tmeta_t::RWTransaction>(d_tmeta->getRWTransaction(d_rwtxn->getTransactionHandle()));
     cout<<"Reusing open transaction for setdomainmetadata"<<endl;
   }
   else {
-    cout<<"Making a new RW txn for feed record"<<endl;
+    //    cout<<"Making a new RW txn for setdomainmetadata"<<endl;
     txn = std::make_shared<tmeta_t::RWTransaction>(d_tmeta->getRWTransaction());
   }
 
-  auto range = txn->equal_range<0>(name.toDNSStringLC());
+  auto range = txn->equal_range<0>(name);
 
   for(auto& iter = range.first; iter != range.second; ++iter) {
     if(iter-> key == kind)
@@ -539,6 +563,99 @@ bool LMDBBackend::setDomainMetadata(const DNSName& name, const std::string& kind
   return true;
 }
 
+bool LMDBBackend::getDomainKeys(const DNSName& name, std::vector<KeyData>& keys)
+{
+  if(d_rwtxn) {
+    auto txn = d_tkdb->getRWTransaction(d_rwtxn->getTransactionHandle());
+    auto range = txn.equal_range<0>(name);
+    for(auto& iter = range.first; iter != range.second; ++iter) {
+      KeyData kd{iter->content, iter.getID(), iter->flags, iter->active};
+      keys.push_back(kd);
+    }
+  }
+  else {
+    auto txn = d_tkdb->getROTransaction();
+    auto range = txn.equal_range<0>(name);
+    for(auto& iter = range.first; iter != range.second; ++iter) {
+      KeyData kd{iter->content, iter.getID(), iter->flags, iter->active};
+      keys.push_back(kd);
+    }
+  }
+  return true;
+}
+
+bool LMDBBackend::removeDomainKey(const DNSName& name, unsigned int id)
+{
+  auto txn = d_tkdb->getRWTransaction();
+  KeyDataDB kdb;
+  if(txn.get(id, kdb)) {
+    if(kdb.domain == name) {
+      txn.del(id);
+      txn.commit();
+      return true;
+    }
+  }
+  cout << "??? wanted to remove domain key for domain "<<name<<" with id "<<id<<", could not find it"<<endl;
+  return true;
+}
+
+bool LMDBBackend::addDomainKey(const DNSName& name, const KeyData& key, int64_t& id)
+{
+  if(!d_rwtxn) {
+    auto txn = d_tkdb->getRWTransaction();
+    KeyDataDB kdb{name, key.content, key.flags, key.active};
+    id = txn.put(kdb);
+    txn.commit();
+  }
+  else {
+    auto txn = d_tkdb->getRWTransaction(d_rwtxn->getTransactionHandle());
+    KeyDataDB kdb{name, key.content, key.flags, key.active};
+    id = txn.put(kdb);
+  }
+    
+  return true;
+}
+
+bool LMDBBackend::activateDomainKey(const DNSName& name, unsigned int id)
+{
+  // XX needs to sense transaction
+  auto txn = d_tkdb->getRWTransaction();
+  KeyDataDB kdb;
+  if(txn.get(id, kdb)) {
+    if(kdb.domain == name) {
+      txn.modify(id, [](KeyDataDB& kdb)
+                 {
+                   kdb.active = true;
+                 });
+      txn.commit();
+      return true;
+    }
+  }
+
+  cout << "??? wanted to activate domain key for domain "<<name<<" with id "<<id<<", could not find it"<<endl;
+  return true;
+}
+
+bool LMDBBackend::deactivateDomainKey(const DNSName& name, unsigned int id)
+{
+  // XX needs to sense transaction
+  auto txn = d_tkdb->getRWTransaction();
+  KeyDataDB kdb;
+  if(txn.get(id, kdb)) {
+    if(kdb.domain == name) {
+      txn.modify(id, [](KeyDataDB& kdb)
+                 {
+                   kdb.active = false;
+                 });
+      txn.commit();
+      return true;
+    }
+  }
+  cout << "??? wanted to activate domain key for domain "<<name<<" with id "<<id<<", could not find it"<<endl;
+  return true;
+}
+
+
 class LMDBFactory : public BackendFactory
 {
 public:
@@ -553,6 +670,9 @@ public:
     return new LMDBBackend(suffix);
   }
 };
+
+
+
 
 /* THIRD PART */
 
