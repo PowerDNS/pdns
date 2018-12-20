@@ -374,8 +374,8 @@ public:
   void commit()
   {
     closeCursors();
-    if(mdb_txn_commit(d_txn)) {
-      throw std::runtime_error("committing");
+    if(int rc = mdb_txn_commit(d_txn)) {
+      throw std::runtime_error("committing: " + std::string(mdb_strerror(rc)));
     }
     d_parent->decRWTX();
 
