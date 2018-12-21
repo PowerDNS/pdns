@@ -256,6 +256,7 @@ testrunner_SOURCES = \
 	test-dnsparser_hh.cc \
 	test-dnsrecords_cc.cc \
 	test-ednsoptions_cc.cc \
+	test-filterpo_cc.cc \
 	test-iputils_hh.cc \
 	test-ixfr_cc.cc \
 	test-misc_hh.cc \

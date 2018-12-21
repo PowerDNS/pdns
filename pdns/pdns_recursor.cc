@@ -838,7 +838,7 @@ static void handleRPZCustom(const DNSRecord& spoofed, const QType& qtype, SyncRe
     bool oldWantsRPZ = sr.getWantsRPZ();
     sr.setWantsRPZ(false);
     vector<DNSRecord> ans;
-    res = sr.beginResolve(DNSName(spoofed.d_content->getZoneRepresentation()), qtype, 1, ans);
+    res = sr.beginResolve(DNSName(spoofed.d_content->getZoneRepresentation()), qtype, QClass::IN, ans);
     for (const auto& rec : ans) {
       if(rec.d_place == DNSResourceRecord::ANSWER) {
         ret.push_back(rec);
@@ -1145,7 +1145,7 @@ static void startDoResolve(void *p)
     /* preresolve expects res (dq.rcode) to be set to RCode::NoError by default */
     int res = RCode::NoError;
     DNSFilterEngine::Policy appliedPolicy;
-    DNSRecord spoofed;
+    std::vector<DNSRecord> spoofed;
     RecursorLua4::DNSQuestion dq(dc->d_source, dc->d_destination, dc->d_mdp.d_qname, dc->d_mdp.d_qtype, dc->d_tcp, variableAnswer, wantsRPZ, logResponse);
     dq.ednsFlags = &edo.d_extFlags;
     dq.ednsOptions = &ednsOpts;
@@ -1223,9 +1223,11 @@ static void startDoResolve(void *p)
           case DNSFilterEngine::PolicyKind::Custom:
             g_stats.policyResults[appliedPolicy.d_kind]++;
             res=RCode::NoError;
-            spoofed=appliedPolicy.getCustomRecord(dc->d_mdp.d_qname);
-            ret.push_back(spoofed);
-            handleRPZCustom(spoofed, QType(dc->d_mdp.d_qtype), sr, res, ret);
+            spoofed=appliedPolicy.getCustomRecords(dc->d_mdp.d_qname, dc->d_mdp.d_qtype);
+            for (const auto& dr : spoofed) {
+              ret.push_back(dr);
+              handleRPZCustom(dr, QType(dc->d_mdp.d_qtype), sr, res, ret);
+            }
             goto haveAnswer;
           case DNSFilterEngine::PolicyKind::Truncate:
             if(!dc->d_tcp) {
@@ -1283,9 +1285,11 @@ static void startDoResolve(void *p)
           case DNSFilterEngine::PolicyKind::Custom:
             ret.clear();
             res=RCode::NoError;
-            spoofed=appliedPolicy.getCustomRecord(dc->d_mdp.d_qname);
-            ret.push_back(spoofed);
-            handleRPZCustom(spoofed, QType(dc->d_mdp.d_qtype), sr, res, ret);
+            spoofed=appliedPolicy.getCustomRecords(dc->d_mdp.d_qname, dc->d_mdp.d_qtype);
+            for (const auto& dr : spoofed) {
+              ret.push_back(dr);
+              handleRPZCustom(dr, QType(dc->d_mdp.d_qtype), sr, res, ret);
+            }
             goto haveAnswer;
         }
       }
@@ -1341,9 +1345,11 @@ static void startDoResolve(void *p)
           case DNSFilterEngine::PolicyKind::Custom:
             ret.clear();
             res=RCode::NoError;
-            spoofed=appliedPolicy.getCustomRecord(dc->d_mdp.d_qname);
-            ret.push_back(spoofed);
-            handleRPZCustom(spoofed, QType(dc->d_mdp.d_qtype), sr, res, ret);
+            spoofed=appliedPolicy.getCustomRecords(dc->d_mdp.d_qname, dc->d_mdp.d_qtype);
+            for (const auto& dr : spoofed) {
+              ret.push_back(dr);
+              handleRPZCustom(dr, QType(dc->d_mdp.d_qtype), sr, res, ret);
+            }
             goto haveAnswer;
         }
       }
