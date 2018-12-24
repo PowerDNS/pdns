@@ -110,6 +110,8 @@ static const oid policyResultCustomOID[] = { RECURSOR_STATS_OID, 91 };
 static const oid queryPipeFullDropsOID[] = { RECURSOR_STATS_OID, 92 };
 static const oid truncatedDropsOID[] = { RECURSOR_STATS_OID, 93 };
 static const oid emptyQueriesOID[] = { RECURSOR_STATS_OID, 94 };
+static const oid dnssecAuthenticDataQueriesOID[] = { RECURSOR_STATS_OID, 95 };
+static const oid dnssecCheckDisabledQueriesOID[] = { RECURSOR_STATS_OID, 96 };
 
 static std::unordered_map<oid, std::string> s_statsMap;
 
@@ -277,6 +279,8 @@ RecursorSNMPAgent::RecursorSNMPAgent(const std::string& name, const std::string&
   registerCounter64Stat("edns-ping-matches", ednsPingMatchesOID, OID_LENGTH(ednsPingMatchesOID));
   registerCounter64Stat("edns-ping-mismatches", ednsPingMismatchesOID, OID_LENGTH(ednsPingMismatchesOID));
   registerCounter64Stat("dnssec-queries", dnssecQueriesOID, OID_LENGTH(dnssecQueriesOID));
+  registerCounter64Stat("dnssec-authentic-data-queries", dnssecAuthenticDataQueriesOID, OID_LENGTH(dnssecAuthenticDataQueriesOID));
+  registerCounter64Stat("dnssec-check-disabled-queries", dnssecCheckDisabledQueriesOID, OID_LENGTH(dnssecCheckDisabledQueriesOID));
   registerCounter64Stat("noping-outqueries", nopingOutqueriesOID, OID_LENGTH(nopingOutqueriesOID));
   registerCounter64Stat("noedns-outqueries", noednsOutqueriesOID, OID_LENGTH(noednsOutqueriesOID));
   registerCounter64Stat("uptime", uptimeOID, OID_LENGTH(uptimeOID));
