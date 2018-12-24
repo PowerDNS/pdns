@@ -2608,6 +2608,35 @@ BOOST_AUTO_TEST_CASE(test_qclass_none) {
   BOOST_CHECK_EQUAL(queriesCount, 0);
 }
 
+BOOST_AUTO_TEST_CASE(test_answer_no_aa) {
+  std::unique_ptr<SyncRes> sr;
+  initSR(sr, true);
+
+  primeHints();
+
+  const DNSName target("powerdns.com.");
+
+  sr->setAsyncCallback([target](const ComboAddress& ip, const DNSName& domain, int type, bool doTCP, bool sendRDQuery, int EDNS0Level, struct timeval* now, boost::optional<Netmask>& srcmask, boost::optional<const ResolveContext&> context, LWResult* res, bool* chained) {
+
+      setLWResult(res, 0, false, false, true);
+      addRecordToLW(res, domain, QType::A, "192.0.2.1");
+      return 1;
+    });
+
+  const time_t now = sr->getNow().tv_sec;
+
+  vector<DNSRecord> ret;
+  int res = sr->beginResolve(target, QType(QType::A), QClass::IN, ret);
+  BOOST_CHECK_EQUAL(res, RCode::ServFail);
+  BOOST_CHECK_EQUAL(ret.size(), 0);
+
+  /* check that the record in the answer section has not been cached */
+  const ComboAddress who;
+  vector<DNSRecord> cached;
+  vector<std::shared_ptr<RRSIGRecordContent>> signatures;
+  BOOST_REQUIRE_EQUAL(t_RC->get(now, target, QType(QType::A), false, &cached, who, &signatures), -1);
+}
+
 BOOST_AUTO_TEST_CASE(test_special_types) {
   std::unique_ptr<SyncRes> sr;
   initSR(sr);

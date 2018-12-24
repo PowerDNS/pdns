@@ -2043,6 +2043,11 @@ RCode::rcodes_ SyncRes::updateCacheFromRecords(unsigned int depth, LWResult& lwr
       continue;
     }
 
+    if (!(lwr.d_aabit || wasForwardRecurse) && rec.d_place == DNSResourceRecord::ANSWER) {
+      LOG("NO! - we don't accept records in the answers section without the AA bit set"<<endl);
+      continue;
+    }
+
     if(rec.d_name.isPartOf(auth)) {
       if(rec.d_type == QType::RRSIG) {
         LOG("RRSIG - separate"<<endl);
@@ -2125,7 +2130,7 @@ RCode::rcodes_ SyncRes::updateCacheFromRecords(unsigned int depth, LWResult& lwr
     /* if we forwarded the query to a recursor, we can expect the answer to be signed,
        even if the answer is not AA. Of course that's not only true inside a Secure
        zone, but we check that below. */
-    bool expectSignature = isAA || wasForwardRecurse;
+    bool expectSignature = i->first.place == DNSResourceRecord::ANSWER || ((lwr.d_aabit || wasForwardRecurse) && i->first.place != DNSResourceRecord::ADDITIONAL);
     if (isCNAMEAnswer && (i->first.place != DNSResourceRecord::ANSWER || i->first.type != QType::CNAME || i->first.name != qname)) {
       /*
         rfc2181 states:
@@ -2251,6 +2256,10 @@ bool SyncRes::processRecords(const std::string& prefix, const DNSName& qname, co
   for(auto& rec : lwr.d_records) {
     if (rec.d_type!=QType::OPT && rec.d_class!=QClass::IN)
       continue;
+
+    if (rec.d_place==DNSResourceRecord::ANSWER && !(lwr.d_aabit || sendRDQuery)) {
+      continue;
+    }
 
     if(rec.d_place==DNSResourceRecord::AUTHORITY && rec.d_type==QType::SOA &&
        lwr.d_rcode==RCode::NXDomain && qname.isPartOf(rec.d_name) && rec.d_name.isPartOf(auth)) {
