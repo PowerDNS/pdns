@@ -1969,6 +1969,152 @@ vState SyncRes::validateRecordsWithSigs(unsigned int depth, const DNSName& qname
   return Bogus;
 }
 
+static bool allowAdditionalEntry(std::unordered_set<DNSName>& allowedAdditionals, const DNSRecord& rec)
+{
+  switch(rec.d_type) {
+  case QType::MX:
+  {
+    if (auto mxContent = getRR<MXRecordContent>(rec)) {
+      allowedAdditionals.insert(mxContent->d_mxname);
+    }
+    return true;
+  }
+  case QType::NS:
+  {
+    if (auto nsContent = getRR<NSRecordContent>(rec)) {
+      allowedAdditionals.insert(nsContent->getNS());
+    }
+    return true;
+  }
+  case QType::SRV:
+  {
+    if (auto srvContent = getRR<SRVRecordContent>(rec)) {
+      allowedAdditionals.insert(srvContent->d_target);
+    }
+    return true;
+  }
+  default:
+    return false;
+  }
+}
+
+void SyncRes::sanitizeRecords(const std::string& prefix, LWResult& lwr, const DNSName& qname, const QType& qtype, const DNSName& auth, bool wasForwarded, bool rdQuery)
+{
+  const bool wasForwardRecurse = wasForwarded && rdQuery;
+  /* list of names for which we will allow A and AAAA records in the additional section
+     to remain */
+  std::unordered_set<DNSName> allowedAdditionals = { qname };
+  bool haveAnswers = false;
+  bool isNXDomain = false;
+  bool isNXQType = false;
+
+  for(auto rec = lwr.d_records.begin(); rec != lwr.d_records.end(); ) {
+
+    if (rec->d_type == QType::OPT) {
+      ++rec;
+      continue;
+    }
+
+    if (rec->d_class != QClass::IN) {
+      LOG(prefix<<"Removing non internet-classed data received from "<<auth<<endl);
+      rec = lwr.d_records.erase(rec);
+      continue;
+    }
+
+    if (rec->d_type == QType::ANY) {
+      LOG(prefix<<"Removing 'ANY'-typed data received from "<<auth<<endl);
+      rec = lwr.d_records.erase(rec);
+      continue;
+    }
+
+    if (!rec->d_name.isPartOf(auth)) {
+      LOG(prefix<<"Removing record '"<<rec->d_name<<"|"<<DNSRecordContent::NumberToType(rec->d_type)<<"|"<<rec->d_content->getZoneRepresentation()<<"' in the "<<(int)rec->d_place<<" section received from "<<auth<<endl);
+      rec = lwr.d_records.erase(rec);
+      continue;
+    }
+
+    /* dealing with the records in answer */
+    if (!(lwr.d_aabit || wasForwardRecurse) && rec->d_place == DNSResourceRecord::ANSWER) {
+      LOG(prefix<<"Removing record '"<<rec->d_name<<"|"<<DNSRecordContent::NumberToType(rec->d_type)<<"|"<<rec->d_content->getZoneRepresentation()<<"' in the answer section without the AA bit set received from "<<auth<<endl);
+      rec = lwr.d_records.erase(rec);
+      continue;
+    }
+
+    if (rec->d_type == QType::DNAME && (rec->d_place != DNSResourceRecord::ANSWER || !qname.isPartOf(rec->d_name))) {
+      LOG(prefix<<"Removing invalid DNAME record '"<<rec->d_name<<"|"<<DNSRecordContent::NumberToType(rec->d_type)<<"|"<<rec->d_content->getZoneRepresentation()<<"' in the "<<(int)rec->d_place<<" section received from "<<auth<<endl);
+      rec = lwr.d_records.erase(rec);
+      continue;
+    }
+
+    if (rec->d_place == DNSResourceRecord::ANSWER && (qtype != QType::ANY && rec->d_type != qtype.getCode() && rec->d_type != QType::CNAME && rec->d_type != QType::SOA && rec->d_type != QType::RRSIG)) {
+      LOG(prefix<<"Removing irrelevant record '"<<rec->d_name<<"|"<<DNSRecordContent::NumberToType(rec->d_type)<<"|"<<rec->d_content->getZoneRepresentation()<<"' in the "<<(int)rec->d_place<<" section received from "<<auth<<endl);
+      rec = lwr.d_records.erase(rec);
+      continue;
+    }
+
+    if (rec->d_place == DNSResourceRecord::ANSWER && !haveAnswers) {
+      haveAnswers = true;
+    }
+
+    if (rec->d_place == DNSResourceRecord::ANSWER) {
+      allowAdditionalEntry(allowedAdditionals, *rec);
+    }
+
+    /* dealing with the records in authority */
+    if (rec->d_place == DNSResourceRecord::AUTHORITY && rec->d_type != QType::NS && rec->d_type != QType::DS && rec->d_type != QType::SOA && rec->d_type != QType::RRSIG && rec->d_type != QType::NSEC && rec->d_type != QType::NSEC3) {
+      LOG(prefix<<"Removing irrelevant record '"<<rec->d_name<<"|"<<DNSRecordContent::NumberToType(rec->d_type)<<"|"<<rec->d_content->getZoneRepresentation()<<"' in the "<<(int)rec->d_place<<" section received from "<<auth<<endl);
+      rec = lwr.d_records.erase(rec);
+      continue;
+    }
+
+    if (rec->d_place == DNSResourceRecord::AUTHORITY && rec->d_type == QType::SOA) {
+      if (!qname.isPartOf(rec->d_name)) {
+        LOG(prefix<<"Removing irrelevant record '"<<rec->d_name<<"|"<<DNSRecordContent::NumberToType(rec->d_type)<<"|"<<rec->d_content->getZoneRepresentation()<<"' in the "<<(int)rec->d_place<<" section received from "<<auth<<endl);
+        rec = lwr.d_records.erase(rec);
+        continue;
+      }
+
+      if (!haveAnswers) {
+        if (lwr.d_rcode == RCode::NXDomain) {
+          isNXDomain = true;
+        }
+        else if (lwr.d_rcode == RCode::NoError) {
+          isNXQType = true;
+        }
+      }
+    }
+
+    if (rec->d_place == DNSResourceRecord::AUTHORITY && rec->d_type == QType::NS && (isNXDomain || isNXQType)) {
+      /* we don't want to pick up NS records in AUTHORITY or ADDITIONAL sections of NXDomain answers
+         because they are somewhat easy to insert into a large, fragmented UDP response
+         for an off-path attacker by injecting spoofed UDP fragments. 
+      */
+      LOG(prefix<<"Removing NS record '"<<rec->d_name<<"|"<<DNSRecordContent::NumberToType(rec->d_type)<<"|"<<rec->d_content->getZoneRepresentation()<<"' in the "<<(int)rec->d_place<<" section of a "<<(isNXDomain ? "NXD" : "NXQTYPE")<<" response received from "<<auth<<endl);
+      rec = lwr.d_records.erase(rec);
+      continue;      
+    }
+
+    if (rec->d_place == DNSResourceRecord::AUTHORITY && rec->d_type == QType::NS) {
+      allowAdditionalEntry(allowedAdditionals, *rec);
+    }
+
+    /* dealing with the records in additional */
+    if (rec->d_place == DNSResourceRecord::ADDITIONAL && rec->d_type != QType::A && rec->d_type != QType::AAAA && rec->d_type != QType::RRSIG) {
+      LOG(prefix<<"Removing irrelevant record '"<<rec->d_name<<"|"<<DNSRecordContent::NumberToType(rec->d_type)<<"|"<<rec->d_content->getZoneRepresentation()<<"' in the "<<(int)rec->d_place<<" section received from "<<auth<<endl);
+      rec = lwr.d_records.erase(rec);
+      continue;
+    }
+
+    if (rec->d_place == DNSResourceRecord::ADDITIONAL && allowedAdditionals.count(rec->d_name) == 0) {
+      LOG(prefix<<"Removing irrelevant additional record '"<<rec->d_name<<"|"<<DNSRecordContent::NumberToType(rec->d_type)<<"|"<<rec->d_content->getZoneRepresentation()<<"' in the "<<(int)rec->d_place<<" section received from "<<auth<<endl);
+      rec = lwr.d_records.erase(rec);
+      continue;
+    }
+
+    ++rec;
+  }
+}
+
 RCode::rcodes_ SyncRes::updateCacheFromRecords(unsigned int depth, LWResult& lwr, const DNSName& qname, const QType& qtype, const DNSName& auth, bool wasForwarded, const boost::optional<Netmask> ednsmask, vState& state, bool& needWildcardProof, unsigned int& wildcardLabelsCount, bool rdQuery)
 {
   bool wasForwardRecurse = wasForwarded && rdQuery;
@@ -1979,6 +2125,8 @@ RCode::rcodes_ SyncRes::updateCacheFromRecords(unsigned int depth, LWResult& lwr
     prefix=d_prefix;
     prefix.append(depth, ' ');
   }
+
+  sanitizeRecords(prefix, lwr, qname, qtype, auth, wasForwarded, rdQuery);
 
   std::vector<std::shared_ptr<DNSRecord>> authorityRecs;
   const unsigned int labelCount = qname.countLabels();
