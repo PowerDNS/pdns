@@ -38,6 +38,7 @@ void initPublicSuffixList(const std::string& file)
   bool loaded = false;
   if (!file.empty()) {
     try {
+      Regex reg("^[.0-9a-z-]*$");
       std::ifstream suffixFile(file);
       if (!suffixFile.is_open()) {
         throw std::runtime_error("Error opening the public suffix list file");
@@ -50,7 +51,14 @@ void initPublicSuffixList(const std::string& file)
           continue;
         }
         try {
+          line = toLower(line);
+          if (!reg.match(line)) {
+            continue;
+          }
           DNSName name(toLower(line));
+          if (name.countLabels() < 2) {
+            continue;
+          }
           pbList.push_back(name.labelReverse().getRawLabels());
         }
         catch(...) {
