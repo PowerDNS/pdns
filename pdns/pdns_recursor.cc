@@ -87,6 +87,7 @@
 #include "rec-lua-conf.hh"
 #include "ednsoptions.hh"
 #include "gettime.hh"
+#include "pubsuffix.hh"
 #ifdef NOD_ENABLED
 #include "nod.hh"
 #endif /* NOD_ENABLED */
@@ -3517,7 +3518,7 @@ static int serviceMain(int argc, char*argv[])
   }
 
   parseACLs();
-  sortPublicSuffixList();
+  initPublicSuffixList(::arg()["public-suffix-list-file"]);
 
   if(!::arg()["dont-query"].empty()) {
     vector<string> ips;
@@ -4215,6 +4216,7 @@ int main(int argc, char **argv)
     ::arg().set("udp-source-port-max", "Maximum UDP port to bind on")="65535";
     ::arg().set("udp-source-port-avoid", "List of comma separated UDP port number to avoid")="11211";
     ::arg().set("rng", "Specify random number generator to use. Valid values are auto,sodium,openssl,getrandom,arc4random,urandom.")="auto";
+    ::arg().set("public-suffix-list-file", "Path to the Public Suffix List file, if any")="";
 #ifdef NOD_ENABLED
     ::arg().set("new-domain-tracking", "Track newly observed domains (i.e. never seen before).")="no";
     ::arg().set("new-domain-log", "Log newly observed domains.")="yes";

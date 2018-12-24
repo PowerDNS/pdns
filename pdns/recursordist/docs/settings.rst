@@ -1075,6 +1075,17 @@ maximizing the cache hit ratio. Starting with version 4.2.0, more than one distr
 setting.
 Improves performance on Linux.
 
+.. _settting-public-suffix-list-file:
+
+``public-suffix-list-file``
+---------------------------
+.. versionadded:: 4.2.0
+
+- Path
+- Default: unset
+
+Path to the Public Suffix List file, if any. If set, PowerDNS will try to load the Public Suffix List from this file instead of using the built-in list. The PSL is used to group the queries by relevant domain names when displaying the top queries.
+
 .. _setting-query-local-address:
 
 ``query-local-address``
