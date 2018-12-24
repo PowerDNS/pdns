@@ -15,7 +15,7 @@ IMPORTS
         FROM SNMPv2-CONF;
 
 rec MODULE-IDENTITY
-    LAST-UPDATED "201611290000Z"
+    LAST-UPDATED "201812240000Z"
     ORGANIZATION "PowerDNS BV"
     CONTACT-INFO "support@powerdns.com"
     DESCRIPTION
@@ -23,6 +23,9 @@ rec MODULE-IDENTITY
 
     REVISION "201611290000Z"
     DESCRIPTION "Initial revision."
+
+    REVISION "201812240000Z"
+    DESCRIPTION "Added the dnssecAuthenticDataQueries and dnssecCheckDisabledQueries stats."
 
     ::= { powerdns 2 }
 
@@ -766,6 +769,22 @@ queryPipeFullDrops OBJECT-TYPE
         "Number of queries dropped because the query distribution pipe was full"
     ::= { stats 92 }
 
+dnssecAuthenticDataQueries OBJECT-TYPE
+    SYNTAX Counter64
+    MAX-ACCESS read-only
+    STATUS current
+    DESCRIPTION
+        "Number of queries received with the AD bit set"
+    ::= { stats 95 }
+
+dnssecCheckDisabledQueries OBJECT-TYPE
+    SYNTAX Counter64
+    MAX-ACCESS read-only
+    STATUS current
+    DESCRIPTION
+        "Number of queries received with the CD bit set"
+    ::= { stats 96 }
+
 ---
 --- Traps / Notifications
 ---
@@ -900,6 +919,8 @@ recGroup OBJECT-GROUP
         policyResultTruncate,
         policyResultCustom,
         queryPipeFullDrops,
+        dnssecAuthenticDataQueries,
+        dnssecCheckDisabledQueries,
         trapReason
     }
     STATUS current

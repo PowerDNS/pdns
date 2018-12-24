@@ -916,6 +916,8 @@ struct RecursorStats
   std::atomic<uint64_t> ignoredCount;
   time_t startupTime;
   std::atomic<uint64_t> dnssecQueries;
+  std::atomic<uint64_t> dnssecAuthenticDataQueries;
+  std::atomic<uint64_t> dnssecCheckDisabledQueries;
   unsigned int maxMThreadStackUsage;
   std::atomic<uint64_t> dnssecValidations; // should be the sum of all dnssecResult* stats
   std::map<vState, std::atomic<uint64_t> > dnssecResults;

@@ -188,6 +188,18 @@ dlg-only-drops
 ^^^^^^^^^^^^^^
 number of records dropped because of :ref:`setting-delegation-only` setting
 
+dnssec-authentic-data-queries
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+.. versionadded:: 4.2
+
+number of queries received with the AD bit set
+
+dnssec-check-disabled-queries
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+.. versionadded:: 4.2
+
+number of queries received with the CD bit set
+
 dnssec-queries
 ^^^^^^^^^^^^^^
 number of queries received with the DO bit set
