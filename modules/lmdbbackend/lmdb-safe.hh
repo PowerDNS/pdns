@@ -11,9 +11,14 @@
 #include <mutex>
 
 #if __cplusplus < 201703L
+#if BOOST_VERSION > 105400
 #include <boost/utility/string_view.hpp>
 using boost::string_view;
 #else
+#include <boost/utility/string_ref.hpp>
+using string_view = boost::string_ref;
+#endif
+#else // C++17
 using std::string_view;
 #endif
 
@@ -259,7 +264,7 @@ public:
   // this is something you can do, readonly
   MDBDbi openDB(string_view dbname, int flags)
   {
-    return MDBDbi(d_parent->d_env, d_txn, dbname, flags);
+    return MDBDbi( d_parent->d_env, d_txn, dbname, flags);
   }
 
   MDBROCursor getCursor(const MDBDbi&);
@@ -444,7 +449,7 @@ public:
     return rc;
   }
   
-  MDBDbi openDB(const char* dbname, int flags)
+  MDBDbi openDB(string_view dbname, int flags)
   {
     return MDBDbi(d_parent->d_env, d_txn, dbname, flags);
   }

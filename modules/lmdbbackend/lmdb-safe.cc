@@ -17,7 +17,7 @@ MDBDbi::MDBDbi(MDB_env* env, MDB_txn* txn, const string_view dbname, int flags)
 {
   // A transaction that uses this function must finish (either commit or abort) before any other transaction in the process may use this function.
   
-  int rc = mdb_dbi_open(txn, &dbname[0], flags, &d_dbi);
+  int rc = mdb_dbi_open(txn, dbname.empty() ? 0 : &dbname[0], flags, &d_dbi);
   if(rc)
     throw std::runtime_error("Unable to open named database: " + MDBError(rc));
   
@@ -139,13 +139,17 @@ MDBDbi MDBEnv::openDB(const string_view dbname, int flags)
   
   if(!(envflags & MDB_RDONLY)) {
     auto rwt = getRWTransaction();
-    MDBDbi ret  = rwt.openDB(&dbname[0], flags);
+    MDBDbi ret = rwt.openDB(dbname, flags);
     rwt.commit();
     return ret;
   }
-  
-  auto rwt = getROTransaction();
-  return rwt.openDB(dbname, flags);
+
+  MDBDbi ret;
+  {
+    auto rwt = getROTransaction(); 
+    ret = rwt.openDB(dbname, flags);
+  }
+  return ret;
 }
 
 MDBRWTransaction::MDBRWTransaction(MDBEnv* parent, int flags) : d_parent(parent)
