@@ -78,8 +78,10 @@ namespace serialization {
 template<class Archive>
 void save(Archive & ar, const DNSName& g, const unsigned int version)
 {
-  if(!g.empty())
-    ar & g.toDNSStringLC();
+  if(!g.empty()) {
+    std::string tmp = g.toDNSStringLC(); // g++ 4.8 woes
+    ar & tmp;
+  }
   else
     ar & "";
 }
@@ -90,7 +92,7 @@ void load(Archive & ar, DNSName& g, const unsigned int version)
   string tmp;
   ar & tmp;
   if(tmp.empty())
-    g= DNSName();
+    g = DNSName();
   else
     g = DNSName(tmp.c_str(), tmp.size(), 0, false);
 }
@@ -98,21 +100,15 @@ void load(Archive & ar, DNSName& g, const unsigned int version)
 template<class Archive>
 void save(Archive & ar, const QType& g, const unsigned int version)
 {
-  if(g == QType::SOA) {
-    QType n(0);
-    ar & n;
-  }
-  else
-    ar & g.getCode();
+  uint16_t tmp = g.getCode(); // g++ 4.8 woes
+  ar & tmp;
 }
 
 template<class Archive>
 void load(Archive & ar, QType& g, const unsigned int version)
 {
   uint16_t tmp;
-  ar & tmp;
-  if(tmp == 0)
-    tmp = QType::SOA;
+  ar & tmp; 
   g = QType(tmp);
 }
   
