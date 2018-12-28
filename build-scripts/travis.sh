@@ -224,6 +224,10 @@ install_auth() {
   run "sudo apt-get -qq --no-install-recommends install \
     libldap-dev"
 
+  # lmdb-backend
+  run "sudo apt-get -qq --no-install-recommends install \
+    liblmdb-dev"
+
   # opendbx-backend
   run "sudo apt-get -qq --no-install-recommends install \
     libopendbx1-dev \
@@ -406,7 +410,7 @@ build_auth() {
   run "autoreconf -vi"
   run "./configure \
     ${sanitizerflags} \
-    --with-dynmodules='bind gmysql geoip gpgsql gsqlite3 ldap lua mydns opendbx pipe random remote tinydns godbc lua2' \
+    --with-dynmodules='bind gmysql geoip gpgsql gsqlite3 ldap lmdb lua mydns opendbx pipe random remote tinydns godbc lua2' \
     --with-modules='' \
     --with-sqlite3 \
     --with-libsodium \

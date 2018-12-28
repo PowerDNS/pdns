@@ -80,13 +80,24 @@ inline std::string keyConv(const std::string& t)
 template<>
 inline std::string keyConv(const uint32_t& t)
 {
-  return std::string((char*)&t, sizeof(4));
+  return std::string((char*)&t, sizeof(t));
 }
 template<>
 inline std::string keyConv(const int32_t& t)
 {
-  return std::string((char*)&t, sizeof(4));
+  return std::string((char*)&t, sizeof(t));
 }
+template<>
+inline std::string keyConv(const uint64_t& t)
+{
+  return std::string((char*)&t, sizeof(t));
+}
+template<>
+inline std::string keyConv(const int64_t& t)
+{
+  return std::string((char*)&t, sizeof(t));
+}
+
 
 
 /** This is a struct that implements index operations, but 
@@ -406,7 +417,7 @@ public:
       typename Parent::cursor_t d_cursor;
 
       // gcc complains if I don't zero-init these, which is worrying XXX
-      MDBOutVal d_key{0,0}, d_data{0,0}, d_id{0,0};
+      MDBOutVal d_key{{0,0}}, d_data{{0,0}}, d_id{{0,0}};
       bool d_on_index;
       bool d_one_key;
       std::string d_prefix;
