@@ -11,6 +11,7 @@
 #include <mutex>
 
 #if __cplusplus < 201703L
+#include <boost/version.hpp>
 #if BOOST_VERSION > 105400
 #include <boost/utility/string_view.hpp>
 using boost::string_view;

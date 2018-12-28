@@ -131,14 +131,22 @@ private:
     }
   };
 
-
+public:
   struct DomainMeta
   {
     DNSName domain;
     string key;
     string value;
   };
-  
+  struct KeyDataDB
+  {
+    DNSName domain;
+    std::string content;
+    unsigned int flags;
+    bool active;
+  };
+
+private:
   typedef TypedDBI<DNSResourceRecord, 
            index_on_function<DNSResourceRecord, string, compoundOrdername>
                    > trecords_t;
@@ -151,14 +159,6 @@ private:
   typedef TypedDBI<DomainMeta,
             index_on<DomainMeta, DNSName, &DomainMeta::domain>
           > tmeta_t;
-
-  struct KeyDataDB
-  {
-    DNSName domain;
-    std::string content;
-    unsigned int flags;
-    bool active;
-  };
 
   
   typedef TypedDBI<KeyDataDB,
