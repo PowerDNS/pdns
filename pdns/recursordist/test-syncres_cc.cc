@@ -10477,8 +10477,6 @@ BOOST_AUTO_TEST_CASE(test_records_sanitization_general) {
       /* should be scrubbed because it doesn't match any of the accepted names in this answer (mostly 'domain') */
       addRecordToLW(res, DNSName("powerdns.com."), QType::AAAA, "2001:db8::1", DNSResourceRecord::ADDITIONAL);
       return 1;
-
-      return 0;
     });
 
   const time_t now = sr->getNow().tv_sec;
@@ -10514,8 +10512,6 @@ BOOST_AUTO_TEST_CASE(test_records_sanitization_keep_relevant_additional_aaaa) {
       addRecordToLW(res, domain, QType::A, "192.0.2.1");
       addRecordToLW(res, domain, QType::AAAA, "2001:db8::1", DNSResourceRecord::ADDITIONAL);
       return 1;
-
-      return 0;
     });
 
   const time_t now = sr->getNow().tv_sec;

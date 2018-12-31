@@ -2087,11 +2087,11 @@ void SyncRes::sanitizeRecords(const std::string& prefix, LWResult& lwr, const DN
     if (rec->d_place == DNSResourceRecord::AUTHORITY && rec->d_type == QType::NS && (isNXDomain || isNXQType)) {
       /* we don't want to pick up NS records in AUTHORITY or ADDITIONAL sections of NXDomain answers
          because they are somewhat easy to insert into a large, fragmented UDP response
-         for an off-path attacker by injecting spoofed UDP fragments. 
+         for an off-path attacker by injecting spoofed UDP fragments.
       */
       LOG(prefix<<"Removing NS record '"<<rec->d_name<<"|"<<DNSRecordContent::NumberToType(rec->d_type)<<"|"<<rec->d_content->getZoneRepresentation()<<"' in the "<<(int)rec->d_place<<" section of a "<<(isNXDomain ? "NXD" : "NXQTYPE")<<" response received from "<<auth<<endl);
       rec = lwr.d_records.erase(rec);
-      continue;      
+      continue;
     }
 
     if (rec->d_place == DNSResourceRecord::AUTHORITY && rec->d_type == QType::NS) {
