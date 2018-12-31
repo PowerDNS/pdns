@@ -76,7 +76,7 @@ void NSECBitmap::toPacket(DNSPacketWriter& pw)
   if (d_bitset) {
     size_t count = d_bitset->count();
     size_t found = 0;
-    for(size_t idx = 0; idx < 65535 && found < count; ++idx){
+    for(size_t idx = 0; idx < nbTypes && found < count; ++idx){
       if (!d_bitset->test(idx)) {
         continue;
       }
@@ -138,7 +138,7 @@ string NSECBitmap::getZoneRepresentation() const
   if (d_bitset) {
     size_t count = d_bitset->count();
     size_t found = 0;
-    for(size_t idx = 0; idx < 65535 && found < count; ++idx) {
+    for(size_t idx = 0; idx < nbTypes && found < count; ++idx) {
       if (!d_bitset->test(idx)) {
         continue;
       }

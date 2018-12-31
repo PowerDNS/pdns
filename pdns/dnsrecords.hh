@@ -580,10 +580,13 @@ public:
   void toPacket(DNSPacketWriter& pw);
   std::string getZoneRepresentation() const;
 
+  static constexpr size_t const nbTypes = 65536;
+
 private:
+
   void migrateToBitSet()
   {
-    d_bitset = std::unique_ptr<std::bitset<65536>>(new std::bitset<65536>());
+    d_bitset = std::unique_ptr<std::bitset<nbTypes>>(new std::bitset<nbTypes>());
     for (const auto& type : d_set) {
       d_bitset->set(type);
     }
@@ -594,7 +597,7 @@ private:
      when there are a lot of them.
      So we start with the set, but allocate and switch to a bitset
      if the number of covered types increases a lot */
-  std::unique_ptr<std::bitset<65536>> d_bitset;
+  std::unique_ptr<std::bitset<nbTypes>> d_bitset;
   std::set<uint16_t> d_set;
 };
 

@@ -493,30 +493,39 @@ BOOST_AUTO_TEST_CASE(test_nsec_records_types) {
 BOOST_AUTO_TEST_CASE(test_nsec3_records_types) {
 
   {
-    auto validNSEC3 = DNSRecordContent::mastermake(QType::NSEC3, QClass::IN, "1 1 12 aabbccdd 2vptu5timamqttgl4luu9kg21e0aor3s A MX RRSIG NSEC3 TYPE1234");
+    const std::string str = "1 1 12 aabbccdd 2vptu5timamqttgl4luu9kg21e0aor3s a mx rrsig nsec3 type1234 type65535";
+    auto validNSEC3 = DNSRecordContent::mastermake(QType::NSEC3, QClass::IN, str);
     auto nsec3Content = std::dynamic_pointer_cast<NSEC3RecordContent>(validNSEC3);
     BOOST_REQUIRE(nsec3Content);
 
-    for (const auto type : { QType::A, QType::MX, QType::RRSIG, QType::NSEC3, static_cast<QType::typeenum>(1234) }) {
+    for (const auto type : { QType::A, QType::MX, QType::RRSIG, QType::NSEC3, static_cast<QType::typeenum>(1234), static_cast<QType::typeenum>(65535) }) {
       BOOST_CHECK(nsec3Content->isSet(type));
     }
     BOOST_CHECK_EQUAL(nsec3Content->isSet(QType::NSEC), false);
-    BOOST_CHECK_EQUAL(nsec3Content->numberOfTypesSet(), 5);
+    BOOST_CHECK_EQUAL(nsec3Content->numberOfTypesSet(), 6);
+    auto str2 = nsec3Content->getZoneRepresentation();
+    boost::to_lower(str2);
+    BOOST_CHECK_EQUAL(str2, str);
   }
 
   {
-    auto nsec3Content = std::make_shared<NSEC3RecordContent>();
+    std::string str = "1 1 12 aabbccdd 2vptu5timamqttgl4luu9kg21e0aor3s";
+    auto nsec3Content = std::make_shared<NSEC3RecordContent>(str);
     BOOST_CHECK_EQUAL(nsec3Content->numberOfTypesSet(), 0);
     BOOST_CHECK_EQUAL(nsec3Content->isSet(QType::NSEC), false);
 
     for (size_t idx = 0; idx < 65536; idx++) {
       nsec3Content->set(idx);
+      str += " " + toLower(DNSRecordContent::NumberToType(idx));
     }
     BOOST_CHECK_EQUAL(nsec3Content->isSet(QType::NSEC), true);
     BOOST_CHECK_EQUAL(nsec3Content->numberOfTypesSet(), 65536);
     for (size_t idx = 0; idx < 65536; idx++) {
       BOOST_CHECK(nsec3Content->isSet(idx));
     }
+    auto str2 = nsec3Content->getZoneRepresentation();
+    boost::to_lower(str2);
+    BOOST_CHECK_EQUAL(str2, str);
   }
 
   {
