@@ -545,6 +545,28 @@ public:
 class NSECBitmap
 {
 public:
+  NSECBitmap(): d_bitset(nullptr)
+  {
+  }
+  NSECBitmap(const NSECBitmap& rhs): d_set(rhs.d_set)
+  {
+    if (rhs.d_bitset) {
+      d_bitset = std::unique_ptr<std::bitset<nbTypes>>(new std::bitset<nbTypes>(*(rhs.d_bitset)));
+    }
+  }
+  NSECBitmap& operator=(const NSECBitmap& rhs)
+  {
+    d_set = rhs.d_set;
+
+    if (rhs.d_bitset) {
+      d_bitset = std::unique_ptr<std::bitset<nbTypes>>(new std::bitset<nbTypes>(*(rhs.d_bitset)));
+    }
+
+    return *this;
+  }
+  NSECBitmap(NSECBitmap&& rhs): d_bitset(std::move(rhs.d_bitset)), d_set(std::move(rhs.d_set))
+  {
+  }
   bool isSet(uint16_t type) const
   {
     if (d_bitset) {
@@ -625,6 +647,10 @@ public:
   {
     d_bitmap.set(type);
   }
+  void set(const NSECBitmap& bitmap)
+  {
+    d_bitmap = bitmap;
+  }
   size_t numberOfTypesSet() const
   {
     return d_bitmap.count();
@@ -664,6 +690,10 @@ public:
   void set(uint16_t type)
   {
     d_bitmap.set(type);
+  }
+  void set(const NSECBitmap& bitmap)
+  {
+    d_bitmap = bitmap;
   }
   size_t numberOfTypesSet() const
   {

@@ -532,7 +532,7 @@ bool TCPNameserver::canDoAXFR(shared_ptr<DNSPacket> q)
 namespace {
   struct NSECXEntry
   {
-    set<uint16_t> d_set;
+    NSECBitmap d_set;
     unsigned int d_ttl;
     bool d_auth;
   };
@@ -707,7 +707,7 @@ int TCPNameserver::doAXFR(const DNSName &target, shared_ptr<DNSPacket> q, int ou
     DNSName keyname = NSEC3Zone ? DNSName(toBase32Hex(hashQNameWithSalt(ns3pr, zrr.dr.d_name))) : zrr.dr.d_name;
     NSECXEntry& ne = nsecxrepo[keyname];
     
-    ne.d_set.insert(zrr.dr.d_type);
+    ne.d_set.set(zrr.dr.d_type);
     ne.d_ttl = sd.default_ttl;
     csp.submit(zrr);
 
@@ -750,7 +750,7 @@ int TCPNameserver::doAXFR(const DNSName &target, shared_ptr<DNSPacket> q, int ou
     DNSName keyname = DNSName(toBase32Hex(hashQNameWithSalt(ns3pr, zrr.dr.d_name)));
     NSECXEntry& ne = nsecxrepo[keyname];
     
-    ne.d_set.insert(zrr.dr.d_type);
+    ne.d_set.set(zrr.dr.d_type);
     csp.submit(zrr);
   }
   
@@ -914,7 +914,7 @@ int TCPNameserver::doAXFR(const DNSName &target, shared_ptr<DNSPacket> q, int ou
         ne.d_ttl = sd.default_ttl;
         ne.d_auth = (ne.d_auth || loopZRR.auth || (NSEC3Zone && (!ns3pr.d_flags)));
         if (loopZRR.dr.d_type && loopZRR.dr.d_type != QType::RRSIG) {
-          ne.d_set.insert(loopZRR.dr.d_type);
+          ne.d_set.set(loopZRR.dr.d_type);
         }
       }
     }
@@ -951,9 +951,7 @@ int TCPNameserver::doAXFR(const DNSName &target, shared_ptr<DNSPacket> q, int ou
       for(nsecxrepo_t::const_iterator iter = nsecxrepo.begin(); iter != nsecxrepo.end(); ++iter) {
         if(iter->second.d_auth) {
           NSEC3RecordContent n3rc;
-          for (const auto type : iter->second.d_set) {
-            n3rc.set(type);
-          }
+          n3rc.set(iter->second.d_set);
           const auto numberOfTypesSet = n3rc.numberOfTypesSet();
           if (numberOfTypesSet != 0 && (numberOfTypesSet != 1 || !n3rc.isSet(QType::NS))) {
             n3rc.set(QType::RRSIG);
@@ -999,9 +997,7 @@ int TCPNameserver::doAXFR(const DNSName &target, shared_ptr<DNSPacket> q, int ou
     }
     else for(nsecxrepo_t::const_iterator iter = nsecxrepo.begin(); iter != nsecxrepo.end(); ++iter) {
       NSECRecordContent nrc;
-      for (const auto type : iter->second.d_set) {
-        nrc.set(type);
-      }
+      nrc.set(iter->second.d_set);
       nrc.set(QType::RRSIG);
       nrc.set(QType::NSEC);
 
