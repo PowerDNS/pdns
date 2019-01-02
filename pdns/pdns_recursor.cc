@@ -4185,8 +4185,8 @@ int main(int argc, char **argv)
     ::arg().setSwitch( "any-to-tcp","Answer ANY queries with tc=1, shunting to TCP" )="no";
     ::arg().setSwitch( "lowercase-outgoing","Force outgoing questions to lowercase")="no";
     ::arg().setSwitch("gettag-needs-edns-options", "If EDNS Options should be extracted before calling the gettag() hook")="no";
-    ::arg().set("udp-truncation-threshold", "Maximum UDP response size before we truncate")="1680";
-    ::arg().set("edns-outgoing-bufsize", "Outgoing EDNS buffer size")="1680";
+    ::arg().set("udp-truncation-threshold", "Maximum UDP response size before we truncate")="1232";
+    ::arg().set("edns-outgoing-bufsize", "Outgoing EDNS buffer size")="1232";
     ::arg().set("minimum-ttl-override", "Set under adverse conditions, a minimum TTL")="0";
     ::arg().set("max-qperq", "Maximum outgoing queries per query")="50";
     ::arg().set("max-total-msec", "Maximum total wall-clock time per query in milliseconds, 0 for unlimited")="7000";
