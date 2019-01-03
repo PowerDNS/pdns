@@ -1111,6 +1111,21 @@ static void startDoResolve(void *p)
         DNSSECOK=true;
         g_stats.dnssecQueries++;
       }
+      if (dc->d_mdp.d_header.cd) {
+        /* Per rfc6840 section 5.9, "When processing a request with
+           the Checking Disabled (CD) bit set, a resolver SHOULD attempt
+           to return all response data, even data that has failed DNSSEC
+           validation. */
+        ++g_stats.dnssecCheckDisabledQueries;
+      }
+      if (dc->d_mdp.d_header.ad) {
+        /* Per rfc6840 section 5.7, "the AD bit in a query as a signal
+           indicating that the requester understands and is interested in the
+           value of the AD bit in the response.  This allows a requester to
+           indicate that it understands the AD bit without also requesting
+           DNSSEC data via the DO bit. */
+        ++g_stats.dnssecAuthenticDataQueries;
+      }
     } else {
       // Ignore the client-set CD flag
       pw.getHeader()->cd=0;
