@@ -312,6 +312,7 @@ install_auth() {
     ruby-json \
     rubygems-integration \
     socat"
+  run "gem update --system"
   run "gem install bundler --no-rdoc --no-ri"
   run "cd modules/remotebackend"
   run "ruby -S bundle install"
