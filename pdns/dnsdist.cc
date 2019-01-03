@@ -1883,14 +1883,42 @@ void maintThread()
 
     counter++;
     if (counter >= g_cacheCleaningDelay) {
+      /* keep track, for each cache, of whether we should keep
+       expired entries */
+      std::map<std::shared_ptr<DNSDistPacketCache>, bool> caches;
+
+      /* gather all caches actually used by at least one pool, and see
+         if something prevents us from cleaning the expired entries */
       auto localPools = g_pools.getLocal();
-      std::shared_ptr<DNSDistPacketCache> packetCache = nullptr;
       for (const auto& entry : *localPools) {
-        packetCache = entry.second->packetCache;
-        if (packetCache) {
-          size_t upTo = (packetCache->getMaxEntries()* (100 - g_cacheCleaningPercentage)) / 100;
-          packetCache->purgeExpired(upTo);
+        auto& pool = entry.second;
+
+        auto packetCache = pool->packetCache;
+        if (!packetCache) {
+          continue;
         }
+
+        auto pair = caches.insert({packetCache, false});
+        auto& iter = pair.first;
+        /* if we need to keep stale data for this cache (ie, not clear
+           expired entries when at least one pool using this cache
+           has all its backends down) */
+        if (packetCache->keepStaleData() && iter->second == false) {
+          /* so far all pools had at least one backend up */
+          if (pool->countServers(true) == 0) {
+            iter->second = true;
+          }
+        }
+      }
+
+      for (auto pair : caches) {
+        /* shall we keep expired entries ? */
+        if (pair.second == true) {
+          continue;
+        }
+        auto& packetCache = pair.first;
+        size_t upTo = (packetCache->getMaxEntries()* (100 - g_cacheCleaningPercentage)) / 100;
+        packetCache->purgeExpired(upTo);
       }
       counter = 0;
     }

@@ -40,6 +40,8 @@ Cache usage stats (hits, misses, deferred inserts and lookups, collisions) can b
 
   getPool("poolname"):getCache():printStats()
 
+The same values can also be returned as a Lua table, which is easier to work with from a script, using the :meth:`PacketCache:getStats` method.
+
 Expired cached entries can be removed from a cache using the :meth:`PacketCache:purgeExpired` method, which will remove expired entries from the cache until at most n entries remain in the cache.
 For example, to remove all expired entries::
 

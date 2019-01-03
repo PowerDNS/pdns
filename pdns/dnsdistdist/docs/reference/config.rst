@@ -535,7 +535,7 @@ PacketCache
 A Pool can have a packet cache to answer queries directly in stead of going to the backend.
 See :doc:`../guides/cache` for a how to.
 
-.. function:: newPacketCache(maxEntries[, maxTTL=86400[, minTTL=0[, temporaryFailureTTL=60[, staleTTL=60[, dontAge=false[, numberOfShards=1[, deferrableInsertLock=true[, maxNegativeTTL=3600[, parseECS=false]]]]]]]) -> PacketCache
+.. function:: newPacketCache(maxEntries[, maxTTL=86400[, minTTL=0[, temporaryFailureTTL=60[, staleTTL=60[, dontAge=false[, numberOfShards=1[, deferrableInsertLock=true[, maxNegativeTTL=3600[, parseECS=false [,options]]]]]]]]) -> PacketCache
 
   .. versionchanged:: 1.3.0
     ``numberOfShards`` and ``deferrableInsertLock`` parameters added.
@@ -543,7 +543,11 @@ See :doc:`../guides/cache` for a how to.
   .. versionchanged:: 1.3.1
     ``maxNegativeTTL`` and ``parseECS`` parameters added.
 
+  .. versionchanged:: 1.3.4
+    ``options`` parameter added.
+
   Creates a new :class:`PacketCache` with the settings specified.
+  Starting with 1.3.4, all parameters can be specified in the ``options`` table, overriding the value from the existing parameters if any.
 
   :param int maxEntries: The maximum number of entries in this cache
   :param int maxTTL: Cap the TTL for records to his number
@@ -555,6 +559,21 @@ See :doc:`../guides/cache` for a how to.
   :param bool deferrableInsertLock: Whether the cache should give up insertion if the lock is held by another thread, or simply wait to get the lock
   :param int maxNegativeTTL: Cache a NXDomain or NoData answer from the backend for at most this amount of seconds, even if the TTL of the SOA record is higher
   :param bool parseECS: Whether any EDNS Client Subnet option present in the query should be extracted and stored to be able to detect hash collisions involving queries with the same qname, qtype and qclass but a different incoming ECS value. Enabling this option adds a parsing cost and only makes sense if at least one backend might send different responses based on the ECS value, so it's disabled by default
+  :param table options: A table with key: value pairs with the options listed below:
+
+  Options:
+
+  * ``deferrableInsertLock=true``: bool - Whether the cache should give up insertion if the lock is held by another thread, or simply wait to get the lock.
+  * ``dontAge=false``: bool - Don't reduce TTLs when serving from the cache. Use this when :program:`dnsdist` fronts a cluster of authoritative servers.
+  * ``keepStaleData=false``: bool - Whether to suspend the removal of expired entries from the cache when there is no backend available in at least one of the pools using this cache.
+  * ``maxEntries``: int - The maximum number of entries in this cache.
+  * ``maxNegativeTTL=3600``: int - Cache a NXDomain or NoData answer from the backend for at most this amount of seconds, even if the TTL of the SOA record is higher.
+  * ``maxTTL=86400``: int - Cap the TTL for records to his number.
+  * ``minTTL=0``: int - Don't cache entries with a TTL lower than this.
+  * ``numberOfShards=1``: int - Number of shards to divide the cache into, to reduce lock contention.
+  * ``parseECS=false``: bool - Whether any EDNS Client Subnet option present in the query should be extracted and stored to be able to detect hash collisions involving queries with the same qname, qtype and qclass but a different incoming ECS value. Enabling this option adds a parsing cost and only makes sense if at least one backend might send different responses based on the ECS value, so it's disabled by default.
+  * ``staleTTL=60``: int - When the backend servers are not reachable, and global configuration ``setStaleCacheEntriesTTL`` is set appropriately, TTL that will be used when a stale cache entry is returned.
+  * ``temporaryFailureTTL=60``: int - On a SERVFAIL or REFUSED from the backend, cache for this amount of seconds..
 
 .. class:: PacketCache
 
@@ -585,13 +604,19 @@ See :doc:`../guides/cache` for a how to.
     :param int qtype: The type to expunge
     :param bool suffixMatch: When set to true, remove al entries under ``name``
 
+  .. method:: PacketCache:getStats()
+
+    .. versionadded:: 1.3.4
+
+    Return the cache stats (number of entries, hits, misses, deferred lookups, deferred inserts, lookup collisions, insert collisons and TTL too shorts) as a Lua table.
+
   .. method:: PacketCache:isFull() -> bool
 
     Return true if the cache has reached the maximum number of entries.
 
   .. method:: PacketCache:printStats()
 
-    Print the cache stats (hits, misses, deferred lookups and deferred inserts).
+    Print the cache stats (number of entries, hits, misses, deferred lookups, deferred inserts, lookup collisions, insert collisons and TTL too shorts).
 
   .. method:: PacketCache:purgeExpired(n)
 
