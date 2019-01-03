@@ -297,7 +297,7 @@ void UDPNameserver::send(DNSPacket *p)
   }
   DLOG(g_log<<Logger::Notice<<"Sending a packet to "<< p->getRemote() <<" ("<< buffer.length()<<" octets)"<<endl);
   if(buffer.length() > p->getMaxReplyLen()) {
-    g_log<<Logger::Error<<"Weird, trying to send a message that needs truncation, "<< buffer.length()<<" > "<<p->getMaxReplyLen()<<endl;
+    g_log<<Logger::Error<<"Weird, trying to send a message that needs truncation, "<< buffer.length()<<" > "<<p->getMaxReplyLen()<<". Question was for "<<p->qdomain<<"|"<<p->qtype.getName()<<endl;
   }
   if(sendmsg(p->getSocket(), &msgh, 0) < 0)
     g_log<<Logger::Error<<"Error sending reply with sendmsg (socket="<<p->getSocket()<<", dest="<<p->d_remote.toStringWithPort()<<"): "<<strerror(errno)<<endl;
