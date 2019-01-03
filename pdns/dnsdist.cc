@@ -1930,14 +1930,32 @@ static void healthChecksThread()
       if(dss->availability==DownstreamState::Availability::Auto) {
         bool newState=upCheck(*dss);
         if (newState) {
-          if (dss->currentCheckFailures != 0) {
-            dss->currentCheckFailures = 0;
+          /* check succeeded */
+          dss->currentCheckFailures = 0;
+
+          if (!dss->upStatus) {
+            /* we were marked as down */
+            dss->consecutiveSuccesfulChecks++;
+            if (dss->consecutiveSuccesfulChecks < dss->minRiseSuccesses) {
+              /* if we need more than one successful check to rise
+                 and we didn't reach the threshold yet,
+                 let's stay down */
+              newState = false;
+            }
           }
         }
-        else if (!newState && dss->upStatus) {
-          dss->currentCheckFailures++;
-          if (dss->currentCheckFailures < dss->maxCheckFailures) {
-            newState = true;
+        else {
+          /* check failed */
+          dss->consecutiveSuccesfulChecks = 0;
+
+          if (dss->upStatus) {
+            /* we are currently up */
+            dss->currentCheckFailures++;
+            if (dss->currentCheckFailures < dss->maxCheckFailures) {
+              /* we need more than one failure to be marked as down,
+                 and we did not reach the threshold yet, let's stay down */
+              newState = true;
+            }
           }
         }
 
@@ -1954,6 +1972,7 @@ static void healthChecksThread()
 
           dss->upStatus = newState;
           dss->currentCheckFailures = 0;
+          dss->consecutiveSuccesfulChecks = 0;
           if (g_snmpAgent && g_snmpTrapsEnabled) {
             g_snmpAgent->sendBackendStatusChangeTrap(dss);
           }
