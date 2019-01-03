@@ -32,6 +32,32 @@ RecursorControlChannel::~RecursorControlChannel()
     unlink(d_local.sun_path);
 }
 
+static void setSocketBuffer(int fd, int optname, uint32_t size)
+{
+  uint32_t psize=0;
+  socklen_t len=sizeof(psize);
+
+  if (getsockopt(fd, SOL_SOCKET, optname, (void*)&psize, &len))
+    throw PDNSException("Unable to getsocket buffer size: "+stringerror());
+
+  if (psize > size)
+    return;
+
+  if (setsockopt(fd, SOL_SOCKET, optname, (const void*)&size, sizeof(size)) < 0 )
+    throw PDNSException("Unable to raise socket buffer size: "+stringerror());
+}
+
+
+static void setSocketReceiveBuffer(int fd, uint32_t size)
+{
+  setSocketBuffer(fd, SO_RCVBUF, size);
+}
+
+static void setSocketSendBuffer(int fd, uint32_t size)
+{
+  setSocketBuffer(fd, SO_SNDBUF, size);
+}
+
 int RecursorControlChannel::listen(const string& fname)
 {
   d_fd=socket(AF_UNIX,SOCK_DGRAM,0);
@@ -55,10 +81,8 @@ int RecursorControlChannel::listen(const string& fname)
     throw PDNSException("Unable to bind to controlsocket '"+fname+"': "+stringerror());
 
   // receive buf should be size of max datagram plus address size
-  int bufsz = 60*1024;
-  setsockopt(d_fd, SOL_SOCKET, SO_SNDBUF, &bufsz, sizeof(bufsz));
-  bufsz = 64*1024;
-  setsockopt(d_fd, SOL_SOCKET, SO_RCVBUF, &bufsz, sizeof(bufsz));
+  setSocketReceiveBuffer(d_fd, 60 * 1024);
+  setSocketSendBuffer(d_fd, 64 * 1024);
   
   return d_fd;
 }
@@ -107,10 +131,8 @@ void RecursorControlChannel::connect(const string& path, const string& fname)
     }
 
     // receive buf should be size of max datagram plus address size
-    int bufsz = 60*1024;
-    setsockopt(d_fd, SOL_SOCKET, SO_SNDBUF, &bufsz, sizeof(bufsz));
-    bufsz = 64*1024;
-    setsockopt(d_fd, SOL_SOCKET, SO_RCVBUF, &bufsz, sizeof(bufsz));
+    setSocketReceiveBuffer(d_fd, 60 * 1024);
+    setSocketSendBuffer(d_fd, 64 * 1024);
 
   } catch (...) {
     close(d_fd);
