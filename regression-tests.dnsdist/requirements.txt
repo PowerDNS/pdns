@@ -5,3 +5,4 @@ requests>=2.1.0
 protobuf>=2.5,<3.0; sys_platform != 'darwin'
 protobuf>=3.0; sys_platform == 'darwin'
 pysnmp>=4.3.4
+future>=0.17.1

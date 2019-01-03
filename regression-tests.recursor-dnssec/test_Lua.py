@@ -2,6 +2,11 @@ import clientsubnetoption
 import cookiesoption
 import dns
 import os
+import threading
+import time
+
+from twisted.internet.protocol import DatagramProtocol
+from twisted.internet import reactor
 
 from recursortests import RecursorTest
 
@@ -198,10 +203,177 @@ class GettagRecursorTest(RecursorTest):
         res = self.sendUDPQuery(query)
         self.assertResponseMatches(query, expected, res)
 
-# TODO:
-# - postresolve
-# - preoutquery
-# - ipfilter
-# - prerpz
-# - nxdomain
-# - nodata
+hooksReactorRunning = False
+
+class UDPHooksResponder(DatagramProtocol):
+
+    def datagramReceived(self, datagram, address):
+        request = dns.message.from_wire(datagram)
+
+        response = dns.message.make_response(request)
+        response.flags |= dns.flags.AA
+
+        if request.question[0].name == dns.name.from_text('nxdomain.luahooks.example.'):
+            soa = dns.rrset.from_text('luahooks.example.', 86400, dns.rdataclass.IN, 'SOA', 'ns.luahooks.example. hostmaster.luahooks.example. 1 3600 3600 3600 1')
+            response.authority.append(soa)
+            response.set_rcode(dns.rcode.NXDOMAIN)
+
+        elif request.question[0].name == dns.name.from_text('nodata.luahooks.example.'):
+            soa = dns.rrset.from_text('luahooks.example.', 86400, dns.rdataclass.IN, 'SOA', 'ns.luahooks.example. hostmaster.luahooks.example. 1 3600 3600 3600 1')
+            response.authority.append(soa)
+
+        elif request.question[0].name == dns.name.from_text('postresolve.luahooks.example.'):
+            answer = dns.rrset.from_text('postresolve.luahooks.example.', 3600, dns.rdataclass.IN, 'A', '192.0.2.1')
+            response.answer.append(answer)
+
+        self.transport.write(response.to_wire(), address)
+
+class LuaHooksRecursorTest(RecursorTest):
+    _confdir = 'LuaHooks'
+    _config_template = """
+forward-zones=luahooks.example=%s.23
+log-common-errors=yes
+quiet=no
+    """ % (os.environ['PREFIX'])
+    _lua_dns_script_file = """
+
+    allowedips = newNMG()
+    allowedips:addMask("%s.0/24")
+
+    function ipfilter(remoteip, localip, dh)
+      -- allow only 127.0.0.1 and AD=0
+      if allowedips:match(remoteip) and not dh:getAD() then
+        return false
+      end
+
+      return true
+    end
+
+    function nodata(dq)
+      if dq.qtype == pdns.AAAA and dq.qname == newDN("nodata.luahooks.example.") then
+        dq:addAnswer(pdns.AAAA, "2001:DB8::1")
+        return true
+      end
+
+      return false
+    end
+
+    function nxdomain(dq)
+      if dq.qtype == pdns.A and dq.qname == newDN("nxdomain.luahooks.example.") then
+        dq.rcode=0
+        dq:addAnswer(pdns.A, "192.0.2.1")
+        return true
+      end
+
+      return false
+    end
+
+    function postresolve(dq)
+      if dq.qtype == pdns.A and dq.qname == newDN("postresolve.luahooks.example.") then
+        local records = dq:getRecords()
+        for k,v in pairs(records) do
+          if v.type == pdns.A and v:getContent() == "192.0.2.1" then
+            v:changeContent("192.0.2.42")
+            v.ttl=1
+          end
+	end
+        dq:setRecords(records)
+        return true
+      end
+
+      return false
+    end
+
+    function preoutquery(dq)
+      if dq.remoteaddr:equal(newCA("%s.23")) and dq.qname == newDN("preout.luahooks.example.") and dq.qtype == pdns.A then
+        dq.rcode = -3 -- "kill"
+        return true
+      end
+
+      return false
+    end
+
+    """ % (os.environ['PREFIX'], os.environ['PREFIX'])
+
+    @classmethod
+    def startResponders(cls):
+        global hooksReactorRunning
+        print("Launching responders..")
+
+        address = cls._PREFIX + '.23'
+        port = 53
+
+        if not hooksReactorRunning:
+            reactor.listenUDP(port, UDPHooksResponder(), interface=address)
+            hooksReactorRunning = True
+
+        if not reactor.running:
+            cls._UDPResponder = threading.Thread(name='UDP Hooks Responder', target=reactor.run, args=(False,))
+            cls._UDPResponder.setDaemon(True)
+            cls._UDPResponder.start()
+
+    @classmethod
+    def setUpClass(cls):
+        cls.setUpSockets()
+
+        cls.startResponders()
+
+        confdir = os.path.join('configs', cls._confdir)
+        cls.createConfigDir(confdir)
+
+        cls.generateRecursorConfig(confdir)
+        cls.startRecursor(confdir, cls._recursorPort)
+
+        print("Launching tests..")
+
+    @classmethod
+    def tearDownClass(cls):
+        cls.tearDownRecursor()
+
+    def testNoData(self):
+        expected = dns.rrset.from_text('nodata.luahooks.example.', 3600, dns.rdataclass.IN, 'AAAA', '2001:DB8::1')
+        query = dns.message.make_query('nodata.luahooks.example.', 'AAAA', 'IN')
+        res = self.sendUDPQuery(query)
+
+        self.assertRcodeEqual(res, dns.rcode.NOERROR)
+        self.assertRRsetInAnswer(res, expected)
+
+    def testVanillaNXD(self):
+        #expected = dns.rrset.from_text('nxdomain.luahooks.example.', 3600, dns.rdataclass.IN, 'A', '192.0.2.1')
+        query = dns.message.make_query('nxdomain.luahooks.example.', 'AAAA', 'IN')
+        res = self.sendUDPQuery(query)
+
+        self.assertRcodeEqual(res, dns.rcode.NXDOMAIN)
+
+    def testHookedNXD(self):
+        expected = dns.rrset.from_text('nxdomain.luahooks.example.', 3600, dns.rdataclass.IN, 'A', '192.0.2.1')
+        query = dns.message.make_query('nxdomain.luahooks.example.', 'A', 'IN')
+        res = self.sendUDPQuery(query)
+
+        self.assertRcodeEqual(res, dns.rcode.NOERROR)
+        self.assertRRsetInAnswer(res, expected)
+
+    def testPostResolve(self):
+        expected = dns.rrset.from_text('postresolve.luahooks.example.', 1, dns.rdataclass.IN, 'A', '192.0.2.42')
+        query = dns.message.make_query('postresolve.luahooks.example.', 'A', 'IN')
+        res = self.sendUDPQuery(query)
+
+        self.assertRcodeEqual(res, dns.rcode.NOERROR)
+        self.assertRRsetInAnswer(res, expected)
+        self.assertEqual(res.answer[0].ttl, 1)
+
+    def testIPFilterHeader(self):
+        query = dns.message.make_query('ipfiler.luahooks.example.', 'A', 'IN')
+        query.flags |= dns.flags.AD
+        res = self.sendUDPQuery(query)
+        self.assertEqual(res, None)
+
+    def testPreOutInterceptedQuery(self):
+        query = dns.message.make_query('preout.luahooks.example.', 'A', 'IN')
+        res = self.sendUDPQuery(query)
+        self.assertRcodeEqual(res, dns.rcode.SERVFAIL)
+
+    def testPreOutNotInterceptedQuery(self):
+        query = dns.message.make_query('preout.luahooks.example.', 'AAAA', 'IN')
+        res = self.sendUDPQuery(query)
+        self.assertRcodeEqual(res, dns.rcode.NOERROR)
