@@ -436,6 +436,11 @@ paths:
           required: true
           description: 'Maximum number of entries to return'
           type: integer
+        - name: type
+          in: query
+          required: false
+          description: 'Type of data to search for, one of “all”, “zone”, “record”, “comment”'
+          type: string
       responses:
         '200':
           description: Returns a JSON array with results

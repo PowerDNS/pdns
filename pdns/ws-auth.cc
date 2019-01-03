@@ -2041,8 +2041,19 @@ static void apiServerSearchData(HttpRequest* req, HttpResponse* resp) {
 
   string q = req->getvars["q"];
   string sMax = req->getvars["max"];
+  string sType = req->getvars["type"];
+
   int maxEnts = 100;
   int ents = 0;
+
+  // the following types of data can be searched for using the api
+  enum class Type
+  {
+    ALL,
+    ZONE,
+    RECORD,
+    COMMENT
+  } type;
 
   if (q.empty())
     throw ApiException("Query q can't be blank");
@@ -2050,6 +2061,19 @@ static void apiServerSearchData(HttpRequest* req, HttpResponse* resp) {
     maxEnts = std::stoi(sMax);
   if (maxEnts < 1)
     throw ApiException("Maximum entries must be larger than 0");
+
+  if (sType.empty())
+    type = Type::ALL;
+  else if (sType == "all")
+    type = Type::ALL;
+  else if (sType == "zone")
+    type = Type::ZONE;
+  else if (sType == "record")
+    type = Type::RECORD;
+  else if (sType == "comment")
+    type = Type::COMMENT;
+  else
+    throw ApiException("Type must be one of the following options: all, zone, record, comment");
 
   SimpleMatch sm(q,true);
   UeberBackend B;
@@ -2064,7 +2088,7 @@ static void apiServerSearchData(HttpRequest* req, HttpResponse* resp) {
 
   for(const DomainInfo di: domains)
   {
-    if (ents < maxEnts && sm.match(di.zone)) {
+    if ((type == Type::ALL || type == Type::ZONE) && ents < maxEnts && sm.match(di.zone)) {
       doc.push_back(Json::object {
         { "object_type", "zone" },
         { "zone_id", apiZoneNameToId(di.zone) },
@@ -2075,7 +2099,7 @@ static void apiServerSearchData(HttpRequest* req, HttpResponse* resp) {
     zoneIdZone[di.id] = di; // populate cache
   }
 
-  if (B.searchRecords(q, maxEnts, result_rr))
+  if ((type == Type::ALL || type == Type::RECORD) && B.searchRecords(q, maxEnts, result_rr))
   {
     for(const DNSResourceRecord& rr: result_rr)
     {
@@ -2098,7 +2122,7 @@ static void apiServerSearchData(HttpRequest* req, HttpResponse* resp) {
     }
   }
 
-  if (B.searchComments(q, maxEnts, result_c))
+  if ((type == Type::ALL || type == Type::COMMENT) && B.searchComments(q, maxEnts, result_c))
   {
     for(const Comment &c: result_c)
     {
