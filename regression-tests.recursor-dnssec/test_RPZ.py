@@ -177,6 +177,17 @@ class RPZRecursorTest(RecursorTest):
     _wsPassword = 'secretpassword'
     _apiKey = 'secretapikey'
     _confdir = 'RPZ'
+    _lua_dns_script_file = """
+
+    function prerpz(dq)
+      -- disable the RPZ policy named 'zone.rpz' for AD=1 queries
+      if dq:getDH():getAD() then
+        dq:discardPolicy('zone.rpz.')
+      end
+      return false
+    end
+    """
+
     _config_template = """
 auth-zones=example=configs/%s/example.zone
 webserver=yes
@@ -217,9 +228,11 @@ e 3600 IN A 192.0.2.42
     def tearDownClass(cls):
         cls.tearDownRecursor()
 
-    def checkBlocked(self, name, shouldBeBlocked=True):
+    def checkBlocked(self, name, shouldBeBlocked=True, adQuery=False):
         query = dns.message.make_query(name, 'A', want_dnssec=True)
         query.flags |= dns.flags.CD
+        if adQuery:
+            query.flags |= dns.flags.AD
         res = self.sendUDPQuery(query)
         if shouldBeBlocked:
             expected = dns.rrset.from_text(name, 0, dns.rdataclass.IN, 'A', '192.0.2.1')
@@ -228,8 +241,8 @@ e 3600 IN A 192.0.2.42
 
         self.assertRRsetInAnswer(res, expected)
 
-    def checkNotBlocked(self, name):
-        self.checkBlocked(name, False)
+    def checkNotBlocked(self, name, adQuery=False):
+        self.checkBlocked(name, False, adQuery)
 
     def waitUntilCorrectSerialIsLoaded(self, serial, timeout=5):
         global rpzServer
@@ -313,3 +326,5 @@ e 3600 IN A 192.0.2.42
         self.checkNotBlocked('c.example.')
         self.checkNotBlocked('d.example.')
         self.checkBlocked('e.example.')
+        # check that the policy is disabled for AD=1 queries
+        self.checkNotBlocked('e.example.', True)
