@@ -990,7 +990,6 @@ dnsreplay_SOURCES = \
 	dnswriter.cc dnswriter.hh \
 	ednsoptions.cc ednsoptions.hh \
 	ednssubnet.cc ednssubnet.hh \
-	histog.hh \
 	iputils.cc \
 	logger.cc \
 	misc.cc \
@@ -1082,6 +1081,7 @@ dnsscope_SOURCES = \
 	dnsrecords.cc \
 	dnsscope.cc \
 	dnswriter.cc dnswriter.hh \
+	histog.hh \
 	logger.cc \
 	misc.cc \
 	nsecrecords.cc \
