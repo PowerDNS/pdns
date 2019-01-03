@@ -9,6 +9,14 @@ DESTDIR="built_pkgs/"
 
 mkdir -p ${DESTDIR}
 
+# We need the GNU version of tar for --transform
+[ -z "$tar" ] && tar=`which gtar tar | grep '^/' | head -1`
+if ! $tar --version | grep -q GNU; then
+    echo "ERROR: could not find GNU tar (as gtar or tar)"
+    echo "On macOS: brew install gnu-tar"
+    exit 1
+fi
+
 for prog in pdns-recursor dnsdist pdns; do
   if [ $(find ${SRCDIR}/dist -name "${prog}*" 2>/dev/null | wc -l) -ne 0 ]; then
     dst=${DESTDIR}/${prog}/${BUILDER_VERSION}
@@ -18,6 +26,6 @@ for prog in pdns-recursor dnsdist pdns; do
       rm -f ${dst}/pdns-recursor*
     fi
     tardirname=${prog}-${BUILDER_VERSION}-${BUILDER_TARGET}
-    tar -cjf ${dst}/${tardirname}.tar.bz2 --transform="s,.*/,${tardirname}/,g"  $(find ${SRCDIR} -type f)
+    "$tar" -cjf ${dst}/${tardirname}.tar.bz2 --transform="s,.*/,${tardirname}/,g"  $(find ${SRCDIR} -type f)
   fi
 done
