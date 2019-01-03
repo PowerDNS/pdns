@@ -54,6 +54,12 @@ int RecursorControlChannel::listen(const string& fname)
   if(bind(d_fd, (sockaddr*)&d_local,sizeof(d_local))<0) 
     throw PDNSException("Unable to bind to controlsocket '"+fname+"': "+stringerror());
 
+  // receive buf should be size of max datagram plus address size
+  int bufsz = 60*1024;
+  setsockopt(d_fd, SOL_SOCKET, SO_SNDBUF, &bufsz, sizeof(bufsz));
+  bufsz = 64*1024;
+  setsockopt(d_fd, SOL_SOCKET, SO_RCVBUF, &bufsz, sizeof(bufsz));
+  
   return d_fd;
 }
 
@@ -99,6 +105,12 @@ void RecursorControlChannel::connect(const string& path, const string& fname)
 	unlink(d_local.sun_path);
       throw PDNSException("Unable to connect to remote '"+string(remote.sun_path)+"': "+stringerror());
     }
+
+    // receive buf should be size of max datagram plus address size
+    int bufsz = 60*1024;
+    setsockopt(d_fd, SOL_SOCKET, SO_SNDBUF, &bufsz, sizeof(bufsz));
+    bufsz = 64*1024;
+    setsockopt(d_fd, SOL_SOCKET, SO_RCVBUF, &bufsz, sizeof(bufsz));
 
   } catch (...) {
     close(d_fd);
