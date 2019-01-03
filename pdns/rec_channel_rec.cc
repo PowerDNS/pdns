@@ -1208,24 +1208,6 @@ string doGenericTopRemotes(pleaseremotefunc_t func)
   return ret.str();
 }
 
-namespace {
-  typedef vector<vector<string> > pubs_t;
-  pubs_t g_pubs;
-}
-
-void sortPublicSuffixList()
-{
-  for(const char** p=g_pubsuffix; *p; ++p) {
-    string low=toLower(*p);
-
-    vector<string> parts;
-    stringtok(parts, low, ".");
-    reverse(parts.begin(), parts.end());
-    g_pubs.push_back(parts);
-  }
-  sort(g_pubs.begin(), g_pubs.end());
-}
-
 // XXX DNSName Pain - this function should benefit from native DNSName methods
 DNSName getRegisteredName(const DNSName& dom)
 {

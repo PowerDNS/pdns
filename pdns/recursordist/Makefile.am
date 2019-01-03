@@ -134,6 +134,7 @@ pdns_recursor_SOURCES = \
 	pollmplexer.cc \
 	protobuf.cc protobuf.hh \
 	pubsuffix.hh pubsuffix.cc \
+	pubsuffixloader.cc \
 	qtype.hh qtype.cc \
 	rcpgenerator.cc rcpgenerator.hh \
 	rec-carbon.cc \
