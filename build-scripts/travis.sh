@@ -664,13 +664,16 @@ then
   elif [ "${PDNS_BUILD_PRODUCT}" = "dnsdist" ]; then
     sanitizerflags="${sanitizerflags} --enable-asan --enable-ubsan"
   elif [ "${PDNS_BUILD_PRODUCT}" = "ixfrdist" ]; then
-    sanitizerflags="${sanitizerflags} --enable-asan"
+    sanitizerflags="${sanitizerflags} --enable-asan --enable-ubsan"
   fi
 fi
 export CFLAGS=$compilerflags
 export CXXFLAGS=$compilerflags
 export sanitizerflags
-export UBSAN_OPTIONS="print_stacktrace=1:halt_on_error=1"
+# We need a suppression for UndefinedBehaviorSanitizer with ixfrdist,
+# because of a vptr bug fixed in Boost 1.57.0:
+# https://github.com/boostorg/any/commit/c92ab03ab35775b6aab30f6cdc3d95b7dd8fc5c6
+export UBSAN_OPTIONS="print_stacktrace=1:halt_on_error=1:suppressions=${TRAVIS_BUILD_DIR}/build-scripts/UBSan.supp"
 
 install_$PDNS_BUILD_PRODUCT
 
