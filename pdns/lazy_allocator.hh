@@ -43,7 +43,7 @@ struct lazy_allocator {
 
     pointer
     allocate (size_type const n) {
-        void *p = mmap(NULL, n * sizeof(value_type),
+        void *p = mmap(nullptr, n * sizeof(value_type),
           PROT_READ | PROT_WRITE, MAP_PRIVATE | MAP_ANON | MAP_STACK, -1, 0);
         if (p == MAP_FAILED)
           throw std::bad_alloc();
