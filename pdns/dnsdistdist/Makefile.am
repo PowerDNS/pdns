@@ -251,6 +251,7 @@ testrunner_SOURCES = \
 	sholder.hh \
 	sodcrypto.cc \
 	sstuff.hh \
+	statnode.cc statnode.hh \
 	threadname.hh threadname.cc \
 	testrunner.cc \
 	xpf.cc xpf.hh
