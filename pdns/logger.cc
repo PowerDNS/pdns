@@ -184,64 +184,6 @@ Logger& Logger::operator<<(const char *s)
   return *this;
 }
 
-Logger& Logger::operator<<(int i)
-{
-  ostringstream tmp;
-  tmp<<i;
-
-  *this<<tmp.str();
-
-  return *this;
-}
-
-Logger& Logger::operator<<(double i)
-{
-  ostringstream tmp;
-  tmp<<i;
-  *this<<tmp.str();
-  return *this;
-}
-
-Logger& Logger::operator<<(unsigned int i)
-{
-  ostringstream tmp;
-  tmp<<i;
-
-  *this<<tmp.str();
-
-  return *this;
-}
-
-Logger& Logger::operator<<(unsigned long i)
-{
-  ostringstream tmp;
-  tmp<<i;
-
-  *this<<tmp.str();
-
-  return *this;
-}
-
-Logger& Logger::operator<<(unsigned long long i)
-{
-  ostringstream tmp;
-  tmp<<i;
-
-  *this<<tmp.str();
-
-  return *this;
-}
-
-Logger& Logger::operator<<(long i)
-{
-  ostringstream tmp;
-  tmp<<i;
-
-  *this<<tmp.str();
-
-  return *this;
-}
-
 Logger& Logger::operator<<(ostream & (&)(ostream &))
 {
   PerThread* pt =getPerThread();
