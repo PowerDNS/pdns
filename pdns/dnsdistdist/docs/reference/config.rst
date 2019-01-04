@@ -480,17 +480,15 @@ Pools are automatically created when a server is added to a pool (with :func:`ne
 
   :param string name: The name of the pool
 
-.. function:: rmPool(name)
-
-   Remove the pool named `name`.
-
-  :param string name: The name of the pool to remove
-
 .. function:: getPoolServers(name) -> [ Server ]
 
   Returns a list of :class:`Server`\ s or nil.
 
   :param string name: The name of the pool
+
+.. function:: showPools()
+
+   Display the name, associated cache, server policy and associated servers for every pool.
 
 .. class:: ServerPool
 
