@@ -42,9 +42,9 @@ static void setSocketBuffer(int fd, int optname, uint32_t size)
 
   if (psize > size)
     return;
-
-  if (setsockopt(fd, SOL_SOCKET, optname, (const void*)&size, sizeof(size)) < 0 )
-    throw PDNSException("Unable to raise socket buffer size: "+stringerror());
+  
+  // failure to raise is not fatal
+  setsockopt(fd, SOL_SOCKET, optname, (const void*)&size, sizeof(size));
 }
 
 
