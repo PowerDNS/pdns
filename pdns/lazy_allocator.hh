@@ -25,6 +25,13 @@
 #include <cstddef>
 #include <utility>
 #include <type_traits>
+#include <new>
+#include <sys/mman.h>
+
+// On OpenBSD mem used as stack should be marked MAP_STACK
+#if !defined(MAP_STACK)
+#define MAP_STACK 0
+#endif
 
 template <typename T>
 struct lazy_allocator {
@@ -36,17 +43,16 @@ struct lazy_allocator {
 
     pointer
     allocate (size_type const n) {
-        return static_cast<pointer>(::operator new (n * sizeof(value_type)));
+        void *p = mmap(NULL, n * sizeof(value_type),
+          PROT_READ | PROT_WRITE, MAP_PRIVATE | MAP_ANON | MAP_STACK, -1, 0);
+        if (p == MAP_FAILED)
+          throw std::bad_alloc();
+        return static_cast<pointer>(p);
     }
 
     void
     deallocate (pointer const ptr, size_type const n) noexcept {
-#if defined(__cpp_sized_deallocation) &&  (__cpp_sized_deallocation >= 201309)
-        ::operator delete (ptr, n * sizeof(value_type));
-#else
-        (void) n;
-        ::operator delete (ptr);
-#endif
+        munmap(ptr, n * sizeof(value_type));
     }
 
     void construct (T*) const noexcept {}
