@@ -5,6 +5,13 @@
 $/="\0";
 my @excludes=qw(
   spellchecker
+  missing-sources/
+  regression-tests/
+  \.asc$
+  \.git/
+  \.hg
+  \.so$
+  pubsuffix.cc
 );
 my $exclude = join "|", @excludes;
 while (<>) {
