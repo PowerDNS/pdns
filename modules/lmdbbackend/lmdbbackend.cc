@@ -494,17 +494,17 @@ bool LMDBBackend::get_lookup(DNSResourceRecord& rr)
   rr.qname = compoundOrdername::getQName(key) + d_lookupdomain;
 
   rr.domain_id = compoundOrdername::getDomainID(key);
-  cout << "We found "<<rr.qname<< " in zone id "<<rr.domain_id <<endl;
+  //  cout << "We found "<<rr.qname<< " in zone id "<<rr.domain_id <<endl;
   rr.qtype = compoundOrdername::getQType(key);
-  cout<<"Going to deserialize "<<makeHexDump(rr.content)<<" into: ";
+  //  cout<<"Going to deserialize "<<makeHexDump(rr.content)<<" into: ";
   rr.content = unserializeContent(rr.qtype.getCode(), rr.qname, rr.content);
-  cout <<rr.content<<endl;
+  //  cout <<rr.content<<endl;
   rr.auth = true; // XXX why??
 
   if(d_getcursor->next(keyv, val) || keyv.get<string_view>().rfind(d_matchkey, 0) != 0) {
     d_getcursor.reset();
     d_rotxn.reset();
-    cout<<"Signing EOF"<<endl;
+    //    cout<<"Signing EOF"<<endl;
   }
 
   
