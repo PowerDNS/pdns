@@ -12,6 +12,7 @@ env:
 
 cache:
   - pip
+  - ccache
 
 before_script:
   - git describe --always --dirty=+
@@ -28,9 +29,13 @@ before_script:
   - pyenv global 2.7
   # needed for virtualenv to use the pyenv python
   - pip install virtualenv
+  - ccache -z
 
 script:
   - ./build-scripts/travis.sh
+
+after_script:
+  - ccache -s
 
 notifications:
   irc:
