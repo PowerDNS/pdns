@@ -24,6 +24,7 @@ before_script:
   - export CFLAGS=-O0
   - export CXXFLAGS=-O0
   - export OPTFLAGS=-O0
+  - export CCACHE_LOGFILE=/tmp/cache.debug
   - sudo apt-get -qq update
   # you can remove this when updating dist to something newer than trusty
   - pyenv global 2.7
@@ -36,6 +37,7 @@ script:
 
 after_script:
   - ccache -s
+  - cat $CCACHE_LOGFILE
 
 notifications:
   irc:
