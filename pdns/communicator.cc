@@ -117,7 +117,10 @@ void CommunicatorClass::mainloop(void)
     time_t next, tick;
 
     for(;;) {
+      DTime dt;
+      dt.set();
       slaveRefresh(&P);
+      cout<<"udiff: "<<dt.udiff() << endl;
       masterUpdateCheck(&P);
       tick=doNotifications(); // this processes any notification acknowledgements and actually send out our own notifications
       

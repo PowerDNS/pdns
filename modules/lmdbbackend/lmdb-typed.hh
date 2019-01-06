@@ -67,37 +67,22 @@ void serFromString(const std::string& str, T& ret)
   */
 }
 
-// mini-serializer for keys. Again, you can override
-template<typename KeyType>
-std::string keyConv(const KeyType& t);
 
-template<>
-inline std::string keyConv(const std::string& t)
+template <class T, class Enable>
+inline std::string keyConv(const T& t);
+
+template <class T, typename std::enable_if<std::is_arithmetic<T>::value,T>::type* = nullptr>
+inline std::string keyConv(const T& t)
+{
+  return std::string((char*)&t, sizeof(t));
+}
+
+// this is how to override specific types.. it is ugly 
+template<class T, typename std::enable_if<std::is_same<T, std::string>::value,T>::type* = nullptr>
+inline std::string keyConv(const T& t)
 {
   return t;
 }
-
-template<>
-inline std::string keyConv(const uint32_t& t)
-{
-  return std::string((char*)&t, sizeof(t));
-}
-template<>
-inline std::string keyConv(const int32_t& t)
-{
-  return std::string((char*)&t, sizeof(t));
-}
-template<>
-inline std::string keyConv(const uint64_t& t)
-{
-  return std::string((char*)&t, sizeof(t));
-}
-template<>
-inline std::string keyConv(const int64_t& t)
-{
-  return std::string((char*)&t, sizeof(t));
-}
-
 
 
 /** This is a struct that implements index operations, but 
@@ -412,6 +397,12 @@ public:
           return d_key.get<uint32_t>();
       }
 
+      const MDBOutVal& getKey()
+      {
+        return d_key;
+      }
+      
+      
       // transaction we are part of
       Parent* d_parent;
       typename Parent::cursor_t d_cursor;

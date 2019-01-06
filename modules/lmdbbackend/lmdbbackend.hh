@@ -2,8 +2,8 @@
 #include "pdns/dnsbackend.hh"
 #include "lmdb-typed.hh"
 
-template<>
-std::string keyConv(const DNSName& t)
+template<class T, typename std::enable_if<std::is_same<T, DNSName>::value,T>::type* = nullptr>
+std::string keyConv(const T& t)
 {
   /* www.ds9a.nl -> nl0ds9a0www0
      root -> 0   <- we need this to keep lmdb happy
@@ -129,6 +129,44 @@ private:
     {
       return operator()(rr.domain_id, rr.qname, rr.qtype.getCode());
     }
+
+    static uint32_t getDomainID(const string_view& key)
+    {
+      uint32_t ret;
+      memcpy(&ret, &key[0], sizeof(ret));
+      return ntohl(ret);
+    }
+
+    static DNSName getQName(const string_view& key)
+    {
+      /* www.ds9a.nl -> nl0ds9a0www0
+         root -> 0   <- we need this to keep lmdb happy
+         nl -> nl0 */
+      DNSName ret;
+      auto iter = key.cbegin() + 4;
+      auto end = key.cend() - 2;
+      while(iter < end) {
+        auto startpos = iter;
+        while(iter != end && *iter)
+          ++iter;
+        if(iter == startpos)
+          break;
+        string part(&*startpos, iter-startpos);
+        ret.prependRawLabel(part);
+        //        cout << "Prepending part: "<<part<<endl;
+        if(iter != end)
+          ++iter;
+      }
+
+      return ret;
+    }
+
+    static QType getQType(const string_view& key)
+    {
+      uint16_t ret;
+      memcpy(&ret, &key[key.size()-2], sizeof(ret));
+      return QType(ntohs(ret));
+    }
   };
 
 public:
@@ -147,9 +185,6 @@ public:
   };
 
 private:
-  typedef TypedDBI<DNSResourceRecord, 
-           index_on_function<DNSResourceRecord, string, compoundOrdername>
-                   > trecords_t;
 
   typedef TypedDBI<DomainInfo,
                    index_on<DomainInfo, DNSName, &DomainInfo::zone>
@@ -167,29 +202,57 @@ private:
 
   static constexpr int s_shards{512};
   int d_asyncFlag;
-  vector<shared_ptr<trecords_t>> d_trecords{s_shards};
 
-  std::shared_ptr<trecords_t::ROTransaction::iter_t> d_getiter;
+  struct RecordsDB
+  {
+    shared_ptr<MDBEnv> env;
+    MDBDbi dbi;
+  };
+
+  struct RecordsROTransaction
+  {
+    RecordsROTransaction(MDBROTransaction&& intxn) : txn(std::move(intxn))
+    {}
+    shared_ptr<RecordsDB> db;
+    MDBROTransaction txn;
+  };
+  struct RecordsRWTransaction
+  {
+    RecordsRWTransaction(MDBRWTransaction&& intxn) : txn(std::move(intxn))
+    {}
+    shared_ptr<RecordsDB> db;
+    MDBRWTransaction txn;
+  };
+  
+  vector<RecordsDB> d_trecords{s_shards};
+
+  std::shared_ptr<MDBROCursor> d_getcursor;
 
   shared_ptr<tdomains_t> d_tdomains;
   shared_ptr<tmeta_t> d_tmeta;
   shared_ptr<tkdb_t> d_tkdb;
-  shared_ptr<trecords_t::ROTransaction> d_rotxn; // for lookup and list
-  shared_ptr<trecords_t::RWTransaction> d_rwtxn; // for feedrecord within begin/aborttransaction
+  
+  shared_ptr<RecordsROTransaction> d_rotxn; // for lookup and list
+  shared_ptr<RecordsRWTransaction> d_rwtxn; // for feedrecord within begin/aborttransaction
   uint32_t d_newrecordid;               // id to be used by next feedRecord
   uint32_t d_newdomainid;                  // domain id to use on commitTransaction
-  std::shared_ptr<trecords_t::RWTransaction> getRecordsRWTransaction(uint32_t id);
-  std::shared_ptr<trecords_t::ROTransaction> getRecordsROTransaction(uint32_t id);
+  std::shared_ptr<RecordsRWTransaction> getRecordsRWTransaction(uint32_t id);
+  std::shared_ptr<RecordsROTransaction> getRecordsROTransaction(uint32_t id);
   int genChangeDomain(const DNSName& domain, std::function<void(DomainInfo&)> func);
   int genChangeDomain(uint32_t id, std::function<void(DomainInfo&)> func);
-  void deleteDomainRecords(trecords_t::RWTransaction& txn, uint32_t domain_id);
+  void deleteDomainRecords(RecordsRWTransaction& txn, uint32_t domain_id);
+  
   bool get_list(DNSResourceRecord &rr);
   bool get_lookup(DNSResourceRecord &rr);
   bool d_inlist{false};
   QType d_lookuptype;                   // for get after lookup
+  std::string d_matchkey;
   int32_t d_lookupdomainid;            // for get after lookup
   DNSName d_lookupqname;
+  DNSName d_lookupdomain;
   
+  DNSName d_transactiondomain;
+  uint32_t d_transactiondomainid;
   bool d_dolog;
   DTime d_dtime; // used only for logging
 };
