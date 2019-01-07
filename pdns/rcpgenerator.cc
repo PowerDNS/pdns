@@ -601,7 +601,7 @@ void RecordTextWriter::xfrHexBlob(const string& val, bool)
   string::size_type limit=val.size();
   char tmp[5];
   for(string::size_type n = 0; n < limit; ++n) {
-    snprintf(tmp, sizeof(tmp)-1, "%02x", (unsigned char)val[n]);
+    snprintf(tmp, sizeof(tmp), "%02x", (unsigned char)val[n]);
     d_string+=tmp;
   }
 }

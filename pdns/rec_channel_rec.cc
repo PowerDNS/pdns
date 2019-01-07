@@ -1013,6 +1013,8 @@ void registerAllStats()
   addGetStat("edns-ping-matches", &g_stats.ednsPingMatches);
   addGetStat("edns-ping-mismatches", &g_stats.ednsPingMismatches);
   addGetStat("dnssec-queries", &g_stats.dnssecQueries);
+  addGetStat("dnssec-authentic-data-queries", &g_stats.dnssecAuthenticDataQueries);
+  addGetStat("dnssec-check-disabled-queries", &g_stats.dnssecCheckDisabledQueries);
 
   addGetStat("noping-outqueries", &g_stats.noPingOutQueries);
   addGetStat("noedns-outqueries", &g_stats.noEdnsOutQueries);
@@ -1206,24 +1208,6 @@ string doGenericTopRemotes(pleaseremotefunc_t func)
     ret<< '\n' << fmt % (100.0*(total-accounted)/total) % "rest";
   }
   return ret.str();
-}
-
-namespace {
-  typedef vector<vector<string> > pubs_t;
-  pubs_t g_pubs;
-}
-
-void sortPublicSuffixList()
-{
-  for(const char** p=g_pubsuffix; *p; ++p) {
-    string low=toLower(*p);
-
-    vector<string> parts;
-    stringtok(parts, low, ".");
-    reverse(parts.begin(), parts.end());
-    g_pubs.push_back(parts);
-  }
-  sort(g_pubs.begin(), g_pubs.end());
 }
 
 // XXX DNSName Pain - this function should benefit from native DNSName methods

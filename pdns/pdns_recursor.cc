@@ -87,6 +87,7 @@
 #include "rec-lua-conf.hh"
 #include "ednsoptions.hh"
 #include "gettime.hh"
+#include "pubsuffix.hh"
 #ifdef NOD_ENABLED
 #include "nod.hh"
 #endif /* NOD_ENABLED */
@@ -1109,6 +1110,21 @@ static void startDoResolve(void *p)
       if(edo.d_extFlags & EDNSOpts::DNSSECOK) {
         DNSSECOK=true;
         g_stats.dnssecQueries++;
+      }
+      if (dc->d_mdp.d_header.cd) {
+        /* Per rfc6840 section 5.9, "When processing a request with
+           the Checking Disabled (CD) bit set, a resolver SHOULD attempt
+           to return all response data, even data that has failed DNSSEC
+           validation. */
+        ++g_stats.dnssecCheckDisabledQueries;
+      }
+      if (dc->d_mdp.d_header.ad) {
+        /* Per rfc6840 section 5.7, "the AD bit in a query as a signal
+           indicating that the requester understands and is interested in the
+           value of the AD bit in the response.  This allows a requester to
+           indicate that it understands the AD bit without also requesting
+           DNSSEC data via the DO bit. */
+        ++g_stats.dnssecAuthenticDataQueries;
       }
     } else {
       // Ignore the client-set CD flag
@@ -2407,7 +2423,7 @@ static void makeTCPServerSockets(deferredAdd_t& deferredAdds, std::set<int>& tcp
 #ifdef TCP_DEFER_ACCEPT
     if(setsockopt(fd, IPPROTO_TCP, TCP_DEFER_ACCEPT, &tmp, sizeof tmp) >= 0) {
       if(i==locals.begin())
-        g_log<<Logger::Error<<"Enabled TCP data-ready filter for (slight) DoS protection"<<endl;
+        g_log<<Logger::Info<<"Enabled TCP data-ready filter for (slight) DoS protection"<<endl;
     }
 #endif
 
@@ -2446,9 +2462,9 @@ static void makeTCPServerSockets(deferredAdd_t& deferredAdds, std::set<int>& tcp
     // we don't need to update g_listenSocketsAddresses since it doesn't work for TCP/IP:
     //  - fd is not that which we know here, but returned from accept()
     if(sin.sin4.sin_family == AF_INET)
-      g_log<<Logger::Error<<"Listening for TCP queries on "<< sin.toString() <<":"<<st.port<<endl;
+      g_log<<Logger::Info<<"Listening for TCP queries on "<< sin.toString() <<":"<<st.port<<endl;
     else
-      g_log<<Logger::Error<<"Listening for TCP queries on ["<< sin.toString() <<"]:"<<st.port<<endl;
+      g_log<<Logger::Info<<"Listening for TCP queries on ["<< sin.toString() <<"]:"<<st.port<<endl;
   }
 }
 
@@ -2520,9 +2536,9 @@ static void makeUDPServerSockets(deferredAdd_t& deferredAdds)
     deferredAdds.push_back(make_pair(fd, handleNewUDPQuestion));
     g_listenSocketsAddresses[fd]=sin;  // this is written to only from the startup thread, not from the workers
     if(sin.sin4.sin_family == AF_INET)
-      g_log<<Logger::Error<<"Listening for UDP queries on "<< sin.toString() <<":"<<st.port<<endl;
+      g_log<<Logger::Info<<"Listening for UDP queries on "<< sin.toString() <<":"<<st.port<<endl;
     else
-      g_log<<Logger::Error<<"Listening for UDP queries on ["<< sin.toString() <<"]:"<<st.port<<endl;
+      g_log<<Logger::Info<<"Listening for UDP queries on ["<< sin.toString() <<"]:"<<st.port<<endl;
   }
 }
 
@@ -3125,7 +3141,7 @@ static string* doReloadLuaScript()
   try {
     if(fname.empty()) {
       t_pdl.reset();
-      g_log<<Logger::Error<<t_id<<" Unloaded current lua script"<<endl;
+      g_log<<Logger::Info<<t_id<<" Unloaded current lua script"<<endl;
       return new string("unloaded\n");
     }
     else {
@@ -3285,7 +3301,7 @@ void parseACLs()
   }
   else {
     if(::arg()["local-address"]!="127.0.0.1" && ::arg().asNum("local-port")==53)
-      g_log<<Logger::Error<<"WARNING: Allowing queries from all IP addresses - this can be a security risk!"<<endl;
+      g_log<<Logger::Warning<<"WARNING: Allowing queries from all IP addresses - this can be a security risk!"<<endl;
     allowFrom = nullptr;
   }
 
@@ -3517,7 +3533,7 @@ static int serviceMain(int argc, char*argv[])
   }
 
   parseACLs();
-  sortPublicSuffixList();
+  initPublicSuffixList(::arg()["public-suffix-list-file"]);
 
   if(!::arg()["dont-query"].empty()) {
     vector<string> ips;
@@ -3757,7 +3773,7 @@ static int serviceMain(int argc, char*argv[])
       exit(1);
     }
     else
-      g_log<<Logger::Error<<"Chrooted to '"<<::arg()["chroot"]<<"'"<<endl;
+      g_log<<Logger::Info<<"Chrooted to '"<<::arg()["chroot"]<<"'"<<endl;
   }
 
   s_pidfname=::arg()["socket-dir"]+"/"+s_programname+".pid";
@@ -3956,7 +3972,7 @@ try
         exit(99);
       }
     }
-    g_log<<Logger::Error<<"Enabled '"<< t_fdm->getName() << "' multiplexer"<<endl;
+    g_log<<Logger::Info<<"Enabled '"<< t_fdm->getName() << "' multiplexer"<<endl;
   }
   else {
 
@@ -4097,7 +4113,7 @@ int main(int argc, char **argv)
     ::arg().set("trace","if we should output heaps of logging. set to 'fail' to only log failing domains")="off";
     ::arg().set("dnssec", "DNSSEC mode: off/process-no-validate (default)/process/log-fail/validate")="process-no-validate";
     ::arg().set("dnssec-log-bogus", "Log DNSSEC bogus validations")="no";
-    ::arg().set("signature-inception-skew", "Allow the signture inception to be off by this number of seconds")="60";
+    ::arg().set("signature-inception-skew", "Allow the signature inception to be off by this number of seconds")="60";
     ::arg().set("daemon","Operate as a daemon")="no";
     ::arg().setSwitch("write-pid","Write a PID file")="yes";
     ::arg().set("loglevel","Amount of logging. Higher is more. Do not set below 3")="6";
@@ -4215,6 +4231,7 @@ int main(int argc, char **argv)
     ::arg().set("udp-source-port-max", "Maximum UDP port to bind on")="65535";
     ::arg().set("udp-source-port-avoid", "List of comma separated UDP port number to avoid")="11211";
     ::arg().set("rng", "Specify random number generator to use. Valid values are auto,sodium,openssl,getrandom,arc4random,urandom.")="auto";
+    ::arg().set("public-suffix-list-file", "Path to the Public Suffix List file, if any")="";
 #ifdef NOD_ENABLED
     ::arg().set("new-domain-tracking", "Track newly observed domains (i.e. never seen before).")="no";
     ::arg().set("new-domain-log", "Log newly observed domains.")="yes";
