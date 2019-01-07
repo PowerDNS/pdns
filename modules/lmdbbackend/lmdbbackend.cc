@@ -652,20 +652,14 @@ void LMDBBackend::getUnfreshSlaveInfos(vector<DomainInfo>* domains)
   for(auto iter = txn.begin(); iter != txn.end(); ++iter) {
     if(iter->kind != DomainInfo::Slave)
       continue;
-    
-    DomainInfo di=*iter;    
-    di.id = iter.getID();
-    di.serial=0;
 
-    auto txn2 = getRecordsROTransaction(di.id);
+    auto txn2 = getRecordsROTransaction(iter.getID());
     compoundOrdername co;
     MDBOutVal val;
-    if(!txn2->txn.get(txn2->db->dbi, co(di.id, g_rootdnsname, QType::SOA), val)) {
-      SOAData sdata;
-      sdata.serial=0;
-      sdata.refresh=0;
+    uint32_t serial = 0;
+    if(!txn2->txn.get(txn2->db->dbi, co(iter.getID(), g_rootdnsname, QType::SOA), val)) {
       DNSResourceRecord rr;
-      serFromString(val.get<string>(), rr);
+      serFromString(val.get<string_view>(), rr);
       struct soatimes 
       {
         uint32_t serial;
@@ -677,15 +671,20 @@ void LMDBBackend::getUnfreshSlaveInfos(vector<DomainInfo>* domains)
 
       memcpy(&st, &rr.content[rr.content.size()-sizeof(soatimes)], sizeof(soatimes));
 
-      if((time_t)(di.last_check + ntohl(st.refresh)) >= now) { // still fresh
+      if((time_t)(iter->last_check + ntohl(st.refresh)) >= now) { // still fresh
         continue; // try next domain
       }
       //      cout << di.last_check <<" + " <<sdata.refresh<<" > = " << now << "\n";
-      di.serial = ntohl(st.serial);
+      serial = ntohl(st.serial);
     }
     else {
-      cout << "Could not find SOA for "<<di.zone<<" with id "<<di.id<<endl;
+      cout << "Could not find SOA for "<<iter->zone<<" with id "<<iter.getID()<<endl;
+      serial=0;  
     }
+    DomainInfo di=*iter;    
+    di.id = iter.getID();
+    di.serial = serial;
+
     domains->push_back(di);
   }
   cout<<"END of getUnfreshSlaveInfos"<<endl;
