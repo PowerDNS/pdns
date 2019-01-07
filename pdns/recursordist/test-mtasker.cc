@@ -16,9 +16,8 @@ static void doSomething(void* p)
 {
   MTasker<>* mt = reinterpret_cast<MTasker<>*>(p);
   int i=12, o;
-  mt->waitEvent(i, &o);
-  g_result = o;
-  
+  if (mt->waitEvent(i, &o) == 1)
+    g_result = o;
 }
 
 BOOST_AUTO_TEST_CASE(test_Simple) {
