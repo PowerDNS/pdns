@@ -372,11 +372,18 @@ bool LMDBBackend::list(const DNSName &target, int id, bool include_disabled)
   
   d_rotxn = getRecordsROTransaction(di.id);
   compoundOrdername co;
+  d_matchkey = co(di.id);
   d_getcursor = std::make_shared<MDBROCursor>(d_rotxn->txn.getCursor(d_rotxn->db->dbi));
   MDBOutVal key, val;
-  d_getcursor->lower_bound(co(di.id), key, val);
-  d_lookupqname = target;
   d_inlist = true;
+  
+  if(d_getcursor->lower_bound(d_matchkey, key, val) || key.get<string_view>().rfind(d_matchkey, 0) != 0) {
+    cout<<"Found nothing fir list"<<endl;
+    d_getcursor.reset();
+    return true;
+  }
+  
+  d_lookupqname = target;
   
   return true;
 }
@@ -465,14 +472,14 @@ bool LMDBBackend::get_list(DNSResourceRecord& rr)
   MDBOutVal keyv, val;
   d_getcursor->current(keyv, val);
   serFromString(val.get<string>(), rr);
-  compoundOrdername co;
+
   auto key = keyv.get<string_view>();
   rr.qname = compoundOrdername::getQName(key) + d_lookupqname;
   rr.domain_id = compoundOrdername::getDomainID(key);
   rr.qtype = compoundOrdername::getQType(key);
   rr.content = unserializeContent(rr.qtype.getCode(), rr.qname, rr.content);
 
-  if(d_getcursor->next(keyv, val) || keyv.get<string_view>().rfind(co(rr.domain_id), 0) != 0) {
+  if(d_getcursor->next(keyv, val) || keyv.get<string_view>().rfind(d_matchkey, 0) != 0) {
     d_getcursor.reset();
   }
   return true;
