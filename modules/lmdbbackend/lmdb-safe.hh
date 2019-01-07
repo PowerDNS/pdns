@@ -350,13 +350,26 @@ public:
     return rc;
   }
 
-  int next(MDBOutVal& key, MDBOutVal& data)
+  
+  int nextprev(MDBOutVal& key, MDBOutVal& data, MDB_cursor_op op)
   {
-    int rc = mdb_cursor_get(d_cursor, const_cast<MDB_val*>(&key.d_mdbval), &data.d_mdbval, MDB_NEXT);
+    int rc = mdb_cursor_get(d_cursor, const_cast<MDB_val*>(&key.d_mdbval), &data.d_mdbval, op);
     if(rc && rc != MDB_NOTFOUND)
-       throw std::runtime_error("Unable to next from cursor: " + std::string(mdb_strerror(rc)));
+       throw std::runtime_error("Unable to prevnext from cursor: " + std::string(mdb_strerror(rc)));
     return rc;
   }
+
+  int next(MDBOutVal& key, MDBOutVal& data)
+  {
+    return nextprev(key, data, MDB_NEXT);
+  }
+
+  int prev(MDBOutVal& key, MDBOutVal& data)
+  {
+    return nextprev(key, data, MDB_PREV);
+  }
+
+  
   int current(MDBOutVal& key, MDBOutVal& data)
   {
     int rc = mdb_cursor_get(d_cursor, const_cast<MDB_val*>(&key.d_mdbval), &data.d_mdbval, MDB_GET_CURRENT);
@@ -558,6 +571,16 @@ public:
     return rc;
   }
 
+
+  void put(const MDBOutVal& key, const MDBInVal& data)
+  {
+    int rc = mdb_cursor_put(d_cursor,
+                          const_cast<MDB_val*>(&key.d_mdbval),
+                          const_cast<MDB_val*>(&data.d_mdbval), MDB_CURRENT);
+    if(rc)
+      throw std::runtime_error("mdb_cursor_put: " + std::string(mdb_strerror(rc)));
+  }
+
   
   int put(const MDBOutVal& key, const MDBOutVal& data, int flags=0)
   {
@@ -586,14 +609,23 @@ public:
     return rc;
   }
 
-  int next(MDBOutVal& key, MDBOutVal& data)
+  int nextprev(MDBOutVal& key, MDBOutVal& data, MDB_cursor_op op)
   {
-    int rc = mdb_cursor_get(d_cursor, const_cast<MDB_val*>(&key.d_mdbval), &data.d_mdbval, MDB_NEXT);
+    int rc = mdb_cursor_get(d_cursor, const_cast<MDB_val*>(&key.d_mdbval), &data.d_mdbval, op);
     if(rc && rc != MDB_NOTFOUND)
-       throw std::runtime_error("Unable to next from cursor: " + std::string(mdb_strerror(rc)));
+       throw std::runtime_error("Unable to prevnext from cursor: " + std::string(mdb_strerror(rc)));
     return rc;
   }
 
+  int next(MDBOutVal& key, MDBOutVal& data)
+  {
+    return nextprev(key, data, MDB_NEXT);
+  }
+
+  int prev(MDBOutVal& key, MDBOutVal& data)
+  {
+    return nextprev(key, data, MDB_PREV);
+  }
 
   int del(int flags=0)
   {

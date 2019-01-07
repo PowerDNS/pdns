@@ -157,7 +157,8 @@ private:
         if(iter != end)
           ++iter;
       }
-
+      if(ret.empty())
+        return g_rootdnsname;
       return ret;
     }
 

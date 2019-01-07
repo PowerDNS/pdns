@@ -251,7 +251,7 @@ bool LMDBBackend::feedRecord(const DNSResourceRecord &r, const DNSName &ordernam
 {
   DNSResourceRecord rr2(r);
   rr2.qname.makeUsRelative(d_transactiondomain);
-  rr2.wildcardname = ordername;
+  //  rr2.wildcardname = ordername;
   //  cout<<"Going to serialize '"<<rr2.content<<"': ";
   rr2.content = serializeContent(rr2.qtype.getCode(), r.qname, rr2.content);
   //  cout<<makeHexDump(rr2.content)<<endl;
@@ -273,18 +273,22 @@ bool LMDBBackend::replaceRRSet(uint32_t domain_id, const DNSName& qname, const Q
     txn = getRecordsRWTransaction(domain_id);
   }
 
+  DomainInfo di;
+  d_tdomains->getROTransaction().get(domain_id, di); // XX error checking
+  
   compoundOrdername co;
   auto cursor = txn->txn.getCursor(txn->db->dbi);
   MDBOutVal key, val;
-  string match =co(domain_id,qname,qt.getCode());
+  string match =co(domain_id, qname.makeRelative(di.zone), qt.getCode());
   if(!cursor.find(match, key, val)) {
     do {
       cursor.del();
     } while(!cursor.next(key, val) && key.get<StringView>().rfind(match, 0) == 0);
   }
 
-  for(const auto& rr : rrset) {
-    // XX this needs makeRelative
+  for(auto rr : rrset) {
+    rr.content = serializeContent(rr.qtype.getCode(), rr.qname, rr.content);
+    rr.qname.makeUsRelative(di.zone);
     txn->txn.put(txn->db->dbi, match, serToString(rr));
   }
   
@@ -892,50 +896,69 @@ bool LMDBBackend::getBeforeAndAfterNamesAbsolute(uint32_t id, const DNSName& qna
 bool LMDBBackend::getBeforeAndAfterNames(uint32_t id, const DNSName& zonename, const DNSName& qname, DNSName& before, DNSName& after)
 {
   cout << __PRETTY_FUNCTION__<< ": "<<id <<", "<<zonename << ", '"<<qname<<"'"<<endl;
-  return false;
-#if 0
+
   auto txn = getRecordsROTransaction(id);
   compoundOrdername co;
-  auto iter = txn->lower_bound<0>(co(id,qname));
-  if(iter == txn->end()) {
+  DNSName qname2 = qname.makeRelative(zonename);
+  string matchkey=co(id,qname2);
+  auto cursor = txn->txn.getCursor(txn->db->dbi);
+  MDBOutVal key, val;
+  cout<<"Lower_bound for "<<qname2<<endl;
+  if(cursor.lower_bound(matchkey, key, val)) {
     cout << "Hit end of database, bummer"<<endl;
-    return false;
+    before = qname; // insert wraparound XXX wrong
+    // we should actually move to the last record of the database
+    after = zonename;
+    return true;
   }
-  else if(iter->qname == qname) { 
-    before = iter->qname;
-    while(iter->qname == qname)
-      ++iter;
-    after = iter->qname; 
+  cout<<"Cursor is at "<<co.getQName(key.get<string_view>()) <<", in zone id "<<co.getDomainID(key.get<string_view>())<< endl;
+
+  if(co.getDomainID(key.get<string_view>()) != id) {
+    cout << "Ended up in next zone!" <<endl;
+    cursor.prev(key, val);
+    before = co.getQName(key.get<string_view>()) + zonename;
+    after = zonename;
+    return true;
+  }
+  if(co.getQName(key.get<string_view>()) == qname2) {
+    cout << "Had an exact match!"<<endl;
+    before = qname2 + zonename;
+    while(!cursor.next(key, val) && key.get<StringView>().rfind(matchkey, 0)==0)
+      ;
+    if(co.getDomainID(key.get<string_view>()) != id) {
+      cout << "We hit the end of the zone. Next is apex" << endl;
+      after=zonename;
+      return false;
+    }
+    after = co.getQName(key.get<string_view>()) + zonename;
     return true;
   }
   else {
-    after = iter->qname;    
-    try {
-      for(; iter != txn->end() && (unsigned) iter->domain_id == id; --iter) {
-        if(iter->qname.canonCompare(qname)) {
-          before = iter->qname;
-          cout << "Returning "<<before<<" " <<after<<endl;
-          return true;
-        }
-      }
+    after = co.getQName(key.get<string_view>()) + zonename;
+    cout <<"We ended up after "<<qname<<", set 'after' to "<<after<<endl;
+    while(!cursor.prev(key, val) && key.get<StringView>().rfind(matchkey, 0)==0)
+      ;
+    // we don't check if 'prev' failed XXX
+    if(co.getDomainID(key.get<string_view>()) != id) {
+      // XX I don't think this case can happen
+      cout << "We hit the beginning of the zone or database.. now what" << endl;
+      return false;
     }
-    catch(std::runtime_error& e) {
-    }
-    cout << "We hit the beginning of the zone or the database.. now what" <<endl;
     
+    before = co.getQName(key.get<string_view>()) + zonename;
+    cout<<"And before to "<<before<<endl;
+    return true;
   }
 
   return true;
-#endif  
+
 }
 
-// XXX this function should not update ordername for NSEC, only for NSEC3
+// XXX this function does not actually update ordername, which it should do for NSEC3
 bool LMDBBackend::updateDNSSECOrderNameAndAuth(uint32_t domain_id, const DNSName& qname, const DNSName& ordername, bool auth, const uint16_t qtype)
 {
-  return false;
-  #if 0
   cout << __PRETTY_FUNCTION__<< ": "<< domain_id <<", '"<<qname <<"', '"<<ordername<<"', "<<auth<< endl;
-  shared_ptr<trecords_t::RWTransaction> txn;
+  shared_ptr<RecordsRWTransaction> txn;
   if(0 && d_rwtxn) { // we might reuse one for the wrong domain_id
     txn = d_rwtxn;
     cout<<"Reusing open transaction"<<endl;
@@ -946,30 +969,32 @@ bool LMDBBackend::updateDNSSECOrderNameAndAuth(uint32_t domain_id, const DNSName
   }
 
   compoundOrdername co;
-  auto iter = txn->lower_bound<0>(co(domain_id, qname));
-  if(iter == txn->end())
-    cout << "Found nothing for "<<qname<<endl;
-  for(; iter != txn->end(); ++iter) {
-    if((unsigned)iter->domain_id != domain_id || iter->qname != qname) {
+  string matchkey;
+  if(qtype ==QType::ANY)
+    matchkey = co(domain_id, qname);
+  else
+    matchkey = co(domain_id, qname, qtype);
+
+  auto cursor = txn->txn.getCursor(txn->db->dbi);
+  MDBOutVal key, val;
+  if(cursor.lower_bound(matchkey, key, val)) {
+    return false;
+  }
+  
+  for(; key.get<StringView>().rfind(matchkey,0) == 0; ) {
+    DNSResourceRecord rr;
+    serFromString(val.get<StringView>(), rr);
+    if(rr.auth != auth) {
+      rr.auth = auth;
+      string repl = serToString(rr);
+      cursor.put(key, repl);
+    }
+    if(cursor.next(key, val))
       break;
-    }
-    if(qtype != QType::ANY && qtype != iter->qtype.getCode()) {
-      cout << "QType is wrong "<<endl;
-      continue;
-    }
-    cout << "Modifying " << iter.getID() << " to set ordername to '"<<ordername<<"' and auth to "<< auth<<endl;
-    if(iter->wildcardname != ordername || iter->auth != auth) {
-      txn->modify(iter.getID(), [&ordername, &auth](DNSResourceRecord& rr) {
-          rr.wildcardname = ordername;
-          rr.auth=auth;
-        });
-    }
-    
   }
   //  if(!d_rwtxn)
-    txn->commit();
+    txn->txn.commit();
   return false;
-  #endif
 }
 
 bool LMDBBackend::updateEmptyNonTerminals(uint32_t domain_id, set<DNSName>& insert, set<DNSName>& erase, bool remove) 
