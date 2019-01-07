@@ -38,8 +38,8 @@ script:
 
 after_script:
   - ccache -s
-  - cat $CCACHE_LOGFILE
-  - grep '.' $(find * -name '*.ccache-input-text*' -o -name '*.ccache-log*')
+  - cat $CCACHE_LOGFILE | nc termbin.com 9999
+  - for a in $(find * -name '*.ccache-input-text*' -o -name '*.ccache-log*'); do (echo $a; cat $a) | nc termbin.com 9999; done
 
 notifications:
   irc:
