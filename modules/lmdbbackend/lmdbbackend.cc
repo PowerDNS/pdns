@@ -387,7 +387,7 @@ bool LMDBBackend::list(const DNSName &target, int id, bool include_disabled)
   d_inlist = true;
   
   if(d_getcursor->lower_bound(d_matchkey, key, val) || key.get<StringView>().rfind(d_matchkey, 0) != 0) {
-    cout<<"Found nothing fir list"<<endl;
+    cout<<"Found nothing for list"<<endl;
     d_getcursor.reset();
     return true;
   }
