@@ -24,6 +24,7 @@ Build-Depends: autoconf,
                libgeoip-dev,
                libkrb5-dev,
                libldap2-dev,
+               liblmdb-dev,
                libluajit-5.1-dev,
                libmaxminddb-dev,
                libopendbx1-dev,
@@ -312,3 +313,17 @@ Description: tinydns compatibility backend for PowerDNS
  PowerDNS tries to emphasize speed and security.
  .
  This package contains the tinydns compatibility backend for PowerDNS.
+
+Package: pdns-backend-lmdb
+Architecture: any
+Depends: pdns-server (= ${binary:Version}),
+         ${misc:Depends},
+         ${shlibs:Depends}
+Provides: pdns-backend
+Description: LMDB backend for PowerDNS
+ PowerDNS is a versatile nameserver which supports a large number
+ of different backends ranging from simple zonefiles to relational
+ databases and load balancing/failover algorithms.
+ PowerDNS tries to emphasize speed and security.
+ .
+ This package contains the LMDB backend for PowerDNS.
