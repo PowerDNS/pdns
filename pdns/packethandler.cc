@@ -1447,7 +1447,7 @@ DNSPacket *PacketHandler::doQuestion(DNSPacket *p)
     }
 
     if(rrset.empty()) {
-      DLOG(g_log<<"checking qtype.getCode() ["<<(p->qtype.getCode())<<"] against QType::DS ["<<(QType::DS)<<"]"<<endl);
+      DLOG(g_log<<"checking if qtype is DS"<<endl);
       if(p->qtype.getCode() == QType::DS)
       {
         DLOG(g_log<<"DS query found no direct result, trying referral now"<<endl);
