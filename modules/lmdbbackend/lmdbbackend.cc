@@ -196,6 +196,12 @@ std::string unserializeContent(uint16_t qtype, const DNSName& qname, const std::
    Note - domain_id, name and type are ONLY present on the index!
 */
 
+#if BOOST_VERSION <= 105400
+#define StringView string
+#else
+#define StringView string_view
+#endif
+
 void LMDBBackend::deleteDomainRecords(RecordsRWTransaction& txn, uint32_t domain_id)
 {
   compoundOrdername co;
@@ -205,7 +211,7 @@ void LMDBBackend::deleteDomainRecords(RecordsRWTransaction& txn, uint32_t domain
   MDBOutVal key, val;
   //  cout<<"Match: "<<makeHexDump(match);
   if(!cursor.lower_bound(match, key, val) ) {
-    while(key.get<string_view>().rfind(match, 0) == 0) {
+    while(key.get<StringView>().rfind(match, 0) == 0) {
       cursor.del();
       if(cursor.next(key, val)) break;
     } 
@@ -274,7 +280,7 @@ bool LMDBBackend::replaceRRSet(uint32_t domain_id, const DNSName& qname, const Q
   if(!cursor.find(match, key, val)) {
     do {
       cursor.del();
-    } while(!cursor.next(key, val) && key.get<string_view>().rfind(match, 0) == 0);
+    } while(!cursor.next(key, val) && key.get<StringView>().rfind(match, 0) == 0);
   }
 
   for(const auto& rr : rrset) {
@@ -347,7 +353,7 @@ bool LMDBBackend::deleteDomain(const DNSName &domain)
   if(!cursor.find(match, key, val)) {
     do {
       cursor.del();
-    } while(!cursor.next(key, val) && key.get<string_view>().rfind(match, 0) == 0);
+    } while(!cursor.next(key, val) && key.get<StringView>().rfind(match, 0) == 0);
   }
 
   if(!d_rwtxn)
@@ -380,7 +386,7 @@ bool LMDBBackend::list(const DNSName &target, int id, bool include_disabled)
   MDBOutVal key, val;
   d_inlist = true;
   
-  if(d_getcursor->lower_bound(d_matchkey, key, val) || key.get<string_view>().rfind(d_matchkey, 0) != 0) {
+  if(d_getcursor->lower_bound(d_matchkey, key, val) || key.get<StringView>().rfind(d_matchkey, 0) != 0) {
     cout<<"Found nothing fir list"<<endl;
     d_getcursor.reset();
     return true;
@@ -439,7 +445,7 @@ void LMDBBackend::lookup(const QType &type, const DNSName &qdomain, DNSPacket *p
   }
   d_inlist=false;
   
-  if(d_getcursor->lower_bound(d_matchkey, key, val) || key.get<string_view>().rfind(d_matchkey, 0) != 0) {
+  if(d_getcursor->lower_bound(d_matchkey, key, val) || key.get<StringView>().rfind(d_matchkey, 0) != 0) {
     d_getcursor.reset();
     if(d_dolog) {
       g_log<<Logger::Warning<< "Query "<<((long)(void*)this)<<": "<<d_dtime.udiffNoReset()<<" usec to execute (found nothing)"<<endl;
@@ -482,7 +488,7 @@ bool LMDBBackend::get_list(DNSResourceRecord& rr)
   rr.qtype = compoundOrdername::getQType(key);
   rr.content = unserializeContent(rr.qtype.getCode(), rr.qname, rr.content);
 
-  if(d_getcursor->next(keyv, val) || keyv.get<string_view>().rfind(d_matchkey, 0) != 0) {
+  if(d_getcursor->next(keyv, val) || keyv.get<StringView>().rfind(d_matchkey, 0) != 0) {
     d_getcursor.reset();
   }
   return true;
@@ -511,7 +517,7 @@ bool LMDBBackend::get_lookup(DNSResourceRecord& rr)
   //  cout <<rr.content<<endl;
   rr.auth = true; // XXX why??
 
-  if(d_getcursor->next(keyv, val) || keyv.get<string_view>().rfind(d_matchkey, 0) != 0) {
+  if(d_getcursor->next(keyv, val) || keyv.get<StringView>().rfind(d_matchkey, 0) != 0) {
     d_getcursor.reset();
     d_rotxn.reset();
     //    cout<<"Signing EOF"<<endl;
