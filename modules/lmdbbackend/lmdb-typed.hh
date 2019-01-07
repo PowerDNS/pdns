@@ -51,11 +51,11 @@ std::string serToString(const T& t)
 }
 
 template<typename T>
-void serFromString(const std::string& str, T& ret)
+void serFromString(const string_view& str, T& ret)
 {
   ret = T();
 
-  boost::iostreams::array_source source(str.c_str(), str.size());
+  boost::iostreams::array_source source(&str[0], str.size());
   boost::iostreams::stream<boost::iostreams::array_source> stream(source);
   boost::archive::binary_iarchive in_archive(stream, boost::archive::no_header|boost::archive::no_codecvt);
   in_archive >> ret;

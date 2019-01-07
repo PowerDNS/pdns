@@ -164,12 +164,12 @@ std::string serToString(const DNSResourceRecord& rr)
 }
 
 template<>
-void serFromString(const std::string& str, DNSResourceRecord& rr)
+void serFromString(const string_view& str, DNSResourceRecord& rr)
 {
   uint16_t len;
-  memcpy(&len, str.c_str(), 2);
-  rr.content.assign(str.c_str() + 2, len);
-  memcpy(&rr.ttl, str.c_str() + 2 + len, 4);
+  memcpy(&len, &str[0], 2);
+  rr.content.assign(&str[2], len);
+  memcpy(&rr.ttl, &str[2] + len, 4);
   rr.auth = str[2+len+4];
   rr.wildcardname.clear();
 }
@@ -274,7 +274,7 @@ bool LMDBBackend::replaceRRSet(uint32_t domain_id, const DNSName& qname, const Q
   if(!cursor.find(match, key, val)) {
     do {
       cursor.del();
-    } while(!cursor.next(key, val) && key.get<string>().rfind(match, 0) == 0);
+    } while(!cursor.next(key, val) && key.get<string_view>().rfind(match, 0) == 0);
   }
 
   for(const auto& rr : rrset) {
@@ -347,7 +347,7 @@ bool LMDBBackend::deleteDomain(const DNSName &domain)
   if(!cursor.find(match, key, val)) {
     do {
       cursor.del();
-    } while(!cursor.next(key, val) && key.get<string>().rfind(match, 0) == 0);
+    } while(!cursor.next(key, val) && key.get<string_view>().rfind(match, 0) == 0);
   }
 
   if(!d_rwtxn)
