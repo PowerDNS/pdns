@@ -30,3 +30,4 @@
 /oracle.log
 /oracle2.log
 /remotebackend-access.log
+/pdns.lmdb*

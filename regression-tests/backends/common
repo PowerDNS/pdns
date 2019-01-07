@@ -35,6 +35,10 @@ start_master ()
 				source ./backends/gsqlite3-master
 				;;
 
+			lmdb*)
+				source ./backends/lmdb-master
+				;;
+
 			mydns*)
 				source ./backends/mydns-master
 				;;

@@ -1,0 +1,29 @@
+case $context in
+    lmdb)
+        cat > pdns-lmdb.conf << __EOF__
+module-dir=./modules
+launch=lmdb
+lmdb-filename=./pdns.lmdb
+__EOF__
+
+        rm -f pdns.lmdb*
+        for zone in $(grep 'zone ' named.conf  | cut -f2 -d\")
+        do
+            $PDNSUTIL --config-dir=. --config-name=lmdb load-zone $zone zones/$zone
+        done
+
+        $RUNWRAPPER $PDNS --daemon=no --local-address=$address --local-port=$port --config-dir=. \
+            --config-name=lmdb --socket-dir=./ --no-shuffle \
+            --query-logging --dnsupdate=no \
+            --expand-alias=yes --outgoing-axfr-expand-alias=yes \
+            --resolver=8.8.8.8 \
+            --cache-ttl=$cachettl --dname-processing $lua_prequery &
+
+        skipreasons="nodnssec nodyndns nometa noent"
+
+        # skipreasons="nodnssec noent nodyndns nometa noaxfr"
+
+        ;;
+    *)
+        nocontext=yes
+esac
