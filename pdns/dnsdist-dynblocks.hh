@@ -27,6 +27,33 @@
 #include "dnsdist-rings.hh"
 #include "statnode.hh"
 
+#include "dnsdist-lua-inspection-ffi.hh"
+
+// dnsdist_ffi_stat_node_t is a lightuserdata
+template<>
+struct LuaContext::Pusher<dnsdist_ffi_stat_node_t*> {
+    static const int minSize = 1;
+    static const int maxSize = 1;
+
+    static PushedObject push(lua_State* state, dnsdist_ffi_stat_node_t* ptr) noexcept {
+        lua_pushlightuserdata(state, ptr);
+        return PushedObject{state, 1};
+    }
+};
+
+typedef std::function<bool(dnsdist_ffi_stat_node_t*)> dnsdist_ffi_stat_node_visitor_t;
+
+struct dnsdist_ffi_stat_node_t
+{
+  dnsdist_ffi_stat_node_t(const StatNode& node_, const StatNode::Stat& self_, const StatNode::Stat& children_): node(node_), self(self_), children(children_)
+  {
+  }
+
+  const StatNode& node;
+  const StatNode::Stat& self;
+  const StatNode::Stat& children;
+};
+
 class DynBlockRulesGroup
 {
 private:
@@ -160,6 +187,12 @@ public:
     d_smtVisitor = visitor;
   }
 
+  void setSuffixMatchRuleFFI(unsigned int seconds, std::string reason, unsigned int blockDuration, DNSAction::Action action, dnsdist_ffi_stat_node_visitor_t visitor)
+  {
+    d_suffixMatchRule = DynBlockRule(reason, blockDuration, 0, 0, seconds, action);
+    d_smtVisitorFFI = visitor;
+  }
+
   void apply()
   {
     struct timespec now;
@@ -256,7 +289,16 @@ public:
       StatNode::Stat node;
       std::unordered_set<DNSName> namesToBlock;
       statNodeRoot.visit([this,&namesToBlock](const StatNode* node_, const StatNode::Stat& self, const StatNode::Stat& children) {
-                           bool block = d_smtVisitor(*node_, self, children);
+                           bool block = false;
+
+                           if (d_smtVisitorFFI) {
+                             dnsdist_ffi_stat_node_t tmp(*node_, self, children);
+                             block = d_smtVisitorFFI(&tmp);
+                           }
+                           else {
+                             block = d_smtVisitor(*node_, self, children);
+                           }
+
                            if (block) {
                              namesToBlock.insert(DNSName(node_->fullname));
                            }
@@ -548,5 +590,6 @@ private:
   NetmaskGroup d_excludedSubnets;
   SuffixMatchNode d_excludedDomains;
   smtVisitor_t d_smtVisitor;
+  dnsdist_ffi_stat_node_visitor_t d_smtVisitorFFI;
   bool d_beQuiet{false};
 };
