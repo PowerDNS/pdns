@@ -17,6 +17,61 @@ matrix:
 cache:
   - pip
 
+addons:
+  apt:
+    sources:
+      - sourceline: 'ppa:jelu/validns'
+      - sourceline: 'ppa:maxmind/ppa'
+      - sourceline: 'ppa:zeha/libfstrm-ppa'
+      - sourceline: 'ppa:kalon33/gamesgiroll'
+      - sourceline: 'deb http://repo.powerdns.com/ubuntu $(lsb_release -cs)-auth-master main'
+        key_url: 'https://repo.powerdns.com/CBC8B383-pub.asc'
+    packages:
+      - alien
+      - authbind
+      - bind9utils
+      - daemontools
+      - default-jre
+      - fakeroot
+      - faketime
+      - geoip-database
+      - jq
+      - ldap-utils
+      - ldnsutils
+      - libboost-all-dev
+      - libcdb-dev
+      - libedit-dev
+      - libfaketime
+      - libfstrm-dev
+      - libgeoip-dev
+      - libldap-dev
+      - libluajit-5.1-dev
+      - libmaxminddb-dev
+      - libnet-dns-perl
+      - libopendbx1-dev
+      - libopendbx1-sqlite3
+      - libp11-kit-dev
+      - libprotobuf-dev
+      - libsnmp-dev
+      - libsodium-dev
+      - libsodium13
+      - libsqliteodbc
+      - libyaml-cpp-dev
+      - libzmq3-dev
+      - lua-posix
+      - moreutils
+      - p11-kit
+      - pdns-tools
+      - protobuf-compiler
+      - ruby-json
+      - rubygems-integration
+      - slapd
+      - snmpd
+      - socat
+      - softhsm
+      - unbound-host
+      - validns
+
 before_script:
   - git describe --always --dirty=+
   - sudo rm -f /etc/apt/sources.list.d/*.list

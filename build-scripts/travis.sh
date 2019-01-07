@@ -202,61 +202,12 @@ run() {
 }
 
 install_auth() {
-  # pkcs11 build requirements
-  run "sudo apt-get -qq --no-install-recommends install \
-    libp11-kit-dev"
-
-  # for validns
-  run "sudo add-apt-repository -y ppa:jelu/validns"
-  run 'curl "http://keyserver.ubuntu.com:11371/pks/lookup?op=get&search=0x7AA4AC1F04A52E842B88094F01B7B7D6564DECD0" | sudo apt-key add - '
-
-  # geoip-backend
-  run "sudo add-apt-repository -y ppa:maxmind/ppa"
-  run "gpg --keyserver keyserver.ubuntu.com --recv-keys DE742AFA"
-  run "gpg --export DE742AFA | sudo apt-key add -"
-  run "sudo apt-get update"
-  run "sudo apt-get -qq --no-install-recommends install \
-    libgeoip-dev \
-    libyaml-cpp-dev \
-    libmaxminddb-dev"
-
-  # ldap-backend
-  run "sudo apt-get -qq --no-install-recommends install \
-    libldap-dev"
-
-  # opendbx-backend
-  run "sudo apt-get -qq --no-install-recommends install \
-    libopendbx1-dev \
-    libopendbx1-sqlite3"
-
-  # remote-backend build requirements
-  run "sudo apt-get -qq --no-install-recommends install \
-    libzmq3-dev"
-
-  # godbc-backend
-  run "sudo apt-get -qq --no-install-recommends install \
-    libsqliteodbc"
-
-  # authoritative test requirements / setup
-  run "sudo apt-get -qq --no-install-recommends install \
-    bind9utils \
-    ldnsutils \
-    libnet-dns-perl \
-    moreutils \
-    unbound-host \
-    validns \
-    default-jre \
-    jq"
-
   run "cd .."
   run "wget https://github.com/dblacka/jdnssec-tools/releases/download/0.14/jdnssec-tools-0.14.tar.gz"
   run "sudo tar xfz jdnssec-tools-0.14.tar.gz --strip-components=1 -C /"
   run "cd ${TRAVIS_BUILD_DIR}"
 
   # pkcs11 test requirements / setup
-  run "sudo apt-get -qq --no-install-recommends install \
-    p11-kit \
-    softhsm"
   run "sudo mkdir -p /etc/pkcs11/modules/"
   run "sudo cp -f regression-tests/softhsm.mod /etc/pkcs11/modules/softhsm.module"
   run "sudo cp -f regression-tests/softhsm.conf /etc/softhsm/softhsm.conf"
@@ -266,9 +217,6 @@ install_auth() {
   run "p11-kit -l" # ensure it's ok
 
   # bind-backend tests requirements
-  run "sudo apt-get -qq --no-install-recommends install \
-    alien\
-    fakeroot"
   run "cd .."
   run "wget https://downloads.powerdns.com/tmp/dnsperf-2.0.0.0-1-rhel-6-x86_64.tar.gz"
   run "tar xzvf dnsperf-2.0.0.0-1-rhel-6-x86_64.tar.gz"
@@ -276,25 +224,11 @@ install_auth() {
   run "sudo dpkg -i dnsperf_2.0.0.0-2_amd64.deb"
   run "cd ${TRAVIS_BUILD_DIR}"
 
-  # geoip-backend test requirements / setup
-  run "sudo apt-get -qq --no-install-recommends install \
-    geoip-database"
-
-  # gmysql-backend test requirements
-  # as of 2016/12/01, mysql-5.6 is now installed in the default travis image
-  # see https://github.com/travis-ci/travis-ci/issues/6961
-  #run "sudo apt-get -qq --no-install-recommends install \
-  #  mysql-server"
-
   # godbc-backend test setup
   run 'echo -e "[pdns-sqlite3-1]\nDriver = SQLite3\nDatabase = ${PWD}/regression-tests/pdns.sqlite3\n\n[pdns-sqlite3-2]\nDriver = SQLite3\nDatabase = ${PWD}/regression-tests/pdns.sqlite32\n" > ${HOME}/.odbc.ini'
   run 'echo ${HOME}/.odbc.ini'
   run 'cat ${HOME}/.odbc.ini'
 
-  # ldap-backend test setup
-  run "sudo apt-get -qq --no-install-recommends install \
-    slapd \
-    ldap-utils"
   run "mkdir /tmp/ldap-dns"
   run "pushd /tmp/ldap-dns"
   run 'for schema in /etc/ldap/schema/{core,cosine}.schema ${TRAVIS_BUILD_DIR}/modules/ldapbackend/{dnsdomain2,pdns-domaininfo}.schema ; do echo include $schema ; done > ldap.conf'
@@ -308,50 +242,29 @@ install_auth() {
   run "sudo ldapadd -Y EXTERNAL -H ldapi:/// -f ./modules/ldapbackend/testfiles/add.ldif"
 
   # remote-backend tests requirements
-  run "sudo apt-get -qq --no-install-recommends install \
-    ruby-json \
-    rubygems-integration \
-    socat"
   run "gem update --system"
   run "gem install bundler --no-rdoc --no-ri"
   run "cd modules/remotebackend"
   run "ruby -S bundle install"
   run "cd ../.."
 
-  # tinydns
-  run "sudo apt-get -qq --no-install-recommends install \
-    libcdb-dev"
-
   # No backend
-  run "sudo apt-get -qq --no-install-recommends install \
-    authbind \
-    faketime"
   run "sudo touch /etc/authbind/byport/53"
   run "sudo chmod 755 /etc/authbind/byport/53"
 }
 
 install_ixfrdist() {
-  run "sudo apt-get -qq --no-install-recommends install \
-    libyaml-cpp-dev"
+  true
 }
 
 install_recursor() {
   # recursor test requirements / setup
   # lua-posix is required for the ghost tests
   # (used by the prequery script in the auth)
-  run "sudo apt-get -qq --no-install-recommends install \
-    authbind \
-    daemontools \
-    jq \
-    libfaketime \
-    libsnmp-dev \
-    lua-posix \
-    moreutils \
-    snmpd"
   run "cd .."
   run "wget http://s3-us-west-1.amazonaws.com/umbrella-static/top-1m.csv.zip"
   run "unzip top-1m.csv.zip -d ${TRAVIS_BUILD_DIR}/regression-tests"
-  run 'echo -e "deb [arch=amd64] http://repo.powerdns.com/ubuntu trusty-auth-master main" | sudo tee /etc/apt/sources.list.d/pdns.list'
+  run 'echo -e "deb [arch=amd64] http://repo.powerdns.com/ubuntu $(lsb_release -cs)-auth-master main" | sudo tee /etc/apt/sources.list.d/pdns.list'
   run 'echo -e "Package: pdns-*\nPin: origin repo.powerdns.com\nPin-Priority: 9001" | sudo tee /etc/apt/preferences.d/pdns'
   run 'curl https://repo.powerdns.com/CBC8B383-pub.asc | sudo apt-key add - '
   run 'sudo apt-get update'
@@ -371,13 +284,6 @@ install_recursor() {
 
 install_dnsdist() {
   # test requirements / setup
-  run "sudo add-apt-repository -y ppa:zeha/libfstrm-ppa"
-  run 'curl "http://keyserver.ubuntu.com:11371/pks/lookup?op=get&search=0x396160EF8126A2E2" | sudo apt-key add - '
-  run "sudo apt-get -qq update"
-  run "sudo apt-get -qq --no-install-recommends install \
-    snmpd \
-    libsnmp-dev \
-    libfstrm-dev"
   run "sudo sed -i \"s/agentxperms 0700 0755 dnsdist/agentxperms 0700 0755 ${USER}/g\" regression-tests.dnsdist/snmpd.conf"
   run "sudo cp -f regression-tests.dnsdist/snmpd.conf /etc/snmp/snmpd.conf"
   run "sudo service snmpd restart"
@@ -645,20 +551,6 @@ test_none() {
 }
 
 if [ $PDNS_BUILD_PRODUCT != "none" ]; then
-# global build requirements
-run "sudo apt-get -qq --no-install-recommends install \
-  libboost-all-dev \
-  libluajit-5.1-dev \
-  libedit-dev \
-  libprotobuf-dev \
-  protobuf-compiler"
-
-run "cd .."
-run "wget http://ppa.launchpad.net/kalon33/gamesgiroll/ubuntu/pool/main/libs/libsodium/libsodium-dev_1.0.3-1~ppa14.04+1_amd64.deb"
-run "wget http://ppa.launchpad.net/kalon33/gamesgiroll/ubuntu/pool/main/libs/libsodium/libsodium13_1.0.3-1~ppa14.04+1_amd64.deb"
-run "sudo dpkg -i libsodium-dev_1.0.3-1~ppa14.04+1_amd64.deb libsodium13_1.0.3-1~ppa14.04+1_amd64.deb"
-run "cd ${TRAVIS_BUILD_DIR}"
-
 compilerflags="-O1 -Werror=vla"
 sanitizerflags=""
 if [ "$CC" = "clang" ]

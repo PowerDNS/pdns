@@ -106,6 +106,7 @@ addingrecords
 addnode
 ADDO
 ADDOCD
+addons
 addrbuf
 ADDRCONFIG
 addres
@@ -3005,7 +3006,6 @@ Govpa
 Goxz
 Gpb
 GPcs
-gpg
 gpgsql
 gpgsqlbackend
 gpgsqlloader
@@ -4052,7 +4052,6 @@ keypos
 keyring
 keyroll
 keysearch
-keyserver
 keysize
 keystr
 keystring
@@ -7750,6 +7749,7 @@ sourcecode
 Sourced
 SOURCEDIR
 sourceforge
+sourceline
 Spaans
 spacelen
 Spackages
