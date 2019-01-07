@@ -200,12 +200,15 @@ void LMDBBackend::deleteDomainRecords(RecordsRWTransaction& txn, uint32_t domain
 {
   compoundOrdername co;
   string match = co(domain_id);
+  //  cout<<"Going to clean records for "<<domain_id<<endl;
   auto cursor = txn.txn.getCursor(txn.db->dbi);
   MDBOutVal key, val;
-  if(!cursor.lower_bound(match, key, val)) {
-    do {
+  //  cout<<"Match: "<<makeHexDump(match);
+  if(!cursor.lower_bound(match, key, val) ) {
+    while(key.get<string_view>().rfind(match, 0) == 0) {
       cursor.del();
-    } while(!cursor.next(key, val) && key.get<string>().rfind(match, 0) == 0);
+      if(cursor.next(key, val)) break;
+    } 
   }
 }
 
