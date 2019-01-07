@@ -660,14 +660,14 @@ void LMDBBackend::getUnfreshSlaveInfos(vector<DomainInfo>* domains)
       sdata.refresh=0;
       DNSResourceRecord rr;
       serFromString(val.get<string>(), rr);
-      string content = unserializeContent(QType::SOA, di.zone, rr.content);
-      fillSOAData(content, sdata);
-        
-      if((time_t)(di.last_check + sdata.refresh) >= now) { // still fresh
+
+      auto sr = std::dynamic_pointer_cast<SOARecordContent>(DNSRecordContent::unserialize(di.zone, QType::SOA, rr.content));
+      
+      if((time_t)(di.last_check + sr->d_st.refresh) >= now) { // still fresh
         continue; // try next domain
       }
-      cout << di.last_check <<" + " <<sdata.refresh<<" > = " << now << "\n";
-      di.serial = sdata.serial;
+      //      cout << di.last_check <<" + " <<sdata.refresh<<" > = " << now << "\n";
+      di.serial = sr->d_st.serial;
     }
     else {
       cout << "Could not find SOA for "<<di.zone<<" with id "<<di.id<<endl;
