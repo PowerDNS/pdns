@@ -421,7 +421,8 @@ build_auth() {
     --enable-backend-unit-tests \
     --enable-fuzz-targets \
     --disable-dependency-tracking \
-    --disable-silent-rules"
+    --disable-silent-rules \
+    --with-lmdb=/usr"
   run "make -k dist"
   run "make -k -j3"
   run "make -k install DESTDIR=/tmp/pdns-install-dir"
