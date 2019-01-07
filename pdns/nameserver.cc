@@ -112,10 +112,12 @@ void UDPNameserver::bindIPv4()
     if(!setNonBlocking(s))
       throw PDNSException("Unable to set UDP socket to non-blocking: "+stringerror());
 
-    locala.reset();
-    locala.sin4.sin_family=AF_INET;
+    locala=ComboAddress(localname, ::arg().asNum("local-port"));
 
-    if(localname=="0.0.0.0")
+    if(locala.sin4.sin_family != AF_INET)
+      throw PDNSException("Attempting to bind IPv4 socket to IPv6 address");
+
+    if(IsAnyAddress(locala))
       setsockopt(s, IPPROTO_IP, GEN_IP_PKTINFO, &one, sizeof(one));
 
     if (!setSocketTimestamps(s))
@@ -130,9 +132,6 @@ void UDPNameserver::bindIPv4()
     if( ::arg().mustDo("non-local-bind") )
 	Utility::setBindAny(AF_INET, s);
 
-    locala=ComboAddress(localname, ::arg().asNum("local-port"));
-    if(locala.sin4.sin_family != AF_INET) 
-      throw PDNSException("Attempting to bind IPv4 socket to IPv6 address");
 
     if( !d_additional_socket )
         g_localaddresses.push_back(locala);
