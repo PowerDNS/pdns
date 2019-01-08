@@ -565,6 +565,8 @@ test_auth() {
 
   run "./timestamp ./start-test-stop 5300 tinydns"
 
+  run "./timestamp ./start-test-stop 5300 lmdb"
+
   run "rm tests/ent-asterisk/fail.nsec"
 
   run "cd ../modules/luabackend/test2"
@@ -601,7 +603,7 @@ test_auth() {
   run "./timestamp ./start-test-stop 5300 lua2"
   run "./timestamp ./start-test-stop 5300 lua2-dnssec"
 
-  run "./timestamp ./start-test-stop 5300 lmdb"
+  # run "./timestamp ./start-test-stop 5300 lmdb"
 
   run "cd .."
 
