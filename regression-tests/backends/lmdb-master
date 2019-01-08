@@ -6,7 +6,7 @@ launch=lmdb
 lmdb-filename=./pdns.lmdb
 __EOF__
 
-        skipreasons="$skipreasons lmdb nodyndns noent nometa"
+        skipreasons="$skipreasons lmdb nodyndns noent"
         rm -f pdns.lmdb*
         for zone in $(grep 'zone ' named.conf  | cut -f2 -d\")
         do
@@ -18,6 +18,10 @@ __EOF__
                 securezone $zone lmdb
             else
                 skipreasons="$skipreasons nodnssec nodyndns"
+            fi
+            if [ "$zone" = "tsig.com" ]; then
+                $PDNSUTIL --config-dir=. --config-name=lmdb import-tsig-key test $ALGORITHM $KEY
+                $PDNSUTIL --config-dir=. --config-name=lmdb activate-tsig-key tsig.com test master
             fi
         done
 
