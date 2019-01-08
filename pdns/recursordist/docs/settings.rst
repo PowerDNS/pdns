@@ -419,8 +419,16 @@ found, the recursor fallbacks to sending 127.0.0.1.
 
 ``edns-outgoing-bufsize``
 -------------------------
+.. versionchanged:: 4.2.0
+  Before 4.2.0, the default was 1680
+
 -  Integer
--  Default: 1680
+-  Default: 1232
+
+.. note:: Why 1232?
+
+  1232 is the largest number of payload bytes that can fit in the smallest IPv6 packet.
+  IPv6 has a minumum MTU of 1280 bytes (:rfc:`RFC 8200, section 5 <8200#section-5>`), minus 40 bytes for the IPv6 header, minus 8 bytes for the UDP header gives 1232, the maximum payload size for the DNS response.
 
 This is the value set for the EDNS0 buffer size in outgoing packets.
 Lower this if you experience timeouts.
@@ -1406,13 +1414,18 @@ See `udp-source-port-min`_.
 
 ``udp-truncation-threshold``
 ----------------------------
+.. versionchanged:: 4.2.0
+  Before 4.2.0, the default was 1680
+
 -  Integer
--  Default: 1680
+-  Default: 1232
 
 EDNS0 allows for large UDP response datagrams, which can potentially raise performance.
 Large responses however also have downsides in terms of reflection attacks.
 This setting limits the accepted size.
 Maximum value is 65535, but values above 4096 should probably not be attempted.
+
+To know why 1232, see the note at :ref:`setting-edns-outgoing-bufsize`.
 
 .. _setting-use-incoming-edns-subnet:
 
