@@ -19,6 +19,8 @@ ResponseStats::ResponseStats() :   d_qtypecounters(new std::atomic<unsigned long
   for(int n=200; n < 65000 ; n+=200)
     d_sizecounters.push_back(make_pair(n,0));
   d_sizecounters.push_back(make_pair(std::numeric_limits<uint16_t>::max(),0));
+  for(unsigned int n =0 ; n < 65535; ++n)
+    d_qtypecounters[n] = 0;
 }
 
 ResponseStats g_rs;
