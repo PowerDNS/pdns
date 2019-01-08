@@ -7,7 +7,8 @@ understand the terminology, actions and timelines (TTL and RRSIG expiry)
 involved in rolling a KSK.
 
 This How To describes the "Double-Signature Key Signing Key Rollover"
-from the above mentioned RFC.
+from the above mentioned RFC. The following instruction work for
+both a KSK and a CSK.
 
 To start the rollover, add an **active** new KSK to the zone
 (example.net in this case):
@@ -27,11 +28,11 @@ the new KSK:
 
     pdnsutil show-zone example.net
 
-And communicate this securely to your registrar/parent zone. Now wait
-until the new DS is published in the parent zone and at least the TTL
-for the DS records has passed. The rollover is now in the "DS Change"
-state and can continue to the "DNSKEY Removal" stage by actually
-deleting the old KSK.
+And communicate this securely to your registrar/parent zone, replacing
+the existing data. Now wait until the new DS is published in the
+parent zone and at least the TTL for the DS records has passed. The
+rollover is now in the "DS Change" state and can continue to the
+"DNSKEY Removal" stage by actually deleting the old KSK.
 
 .. note::
   The key-id for the old KSK is shown in the output of
@@ -41,4 +42,5 @@ deleting the old KSK.
 
     pdnsutil remove-zone-key example.net KEY-ID
 
+If this zone is of the type 'MASTER', increate the SOA serial.
 The rollover is now complete.
