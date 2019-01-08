@@ -519,7 +519,6 @@ bool LMDBBackend::get_lookup(DNSResourceRecord& rr)
   //  cout<<"Going to deserialize "<<makeHexDump(rr.content)<<" into: ";
   rr.content = unserializeContent(rr.qtype.getCode(), rr.qname, rr.content);
   //  cout <<rr.content<<endl;
-  rr.auth = true; // XXX why??
 
   if(d_getcursor->next(keyv, val) || keyv.get<StringView>().rfind(d_matchkey, 0) != 0) {
     d_getcursor.reset();
@@ -893,8 +892,9 @@ bool LMDBBackend::getBeforeAndAfterNamesAbsolute(uint32_t id, const DNSName& qna
   return false;
 }
 
-bool LMDBBackend::getBeforeAndAfterNames(uint32_t id, const DNSName& zonename, const DNSName& qname, DNSName& before, DNSName& after)
+bool LMDBBackend::getBeforeAndAfterNames(uint32_t id, const DNSName& zonenameU, const DNSName& qname, DNSName& before, DNSName& after)
 {
+  DNSName zonename = zonenameU.makeLowerCase();
   cout << __PRETTY_FUNCTION__<< ": "<<id <<", "<<zonename << ", '"<<qname<<"'"<<endl;
 
   auto txn = getRecordsROTransaction(id);
