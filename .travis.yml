@@ -23,7 +23,7 @@ addons:
       - sourceline: 'ppa:jelu/validns'
       - sourceline: 'ppa:maxmind/ppa'
       - sourceline: 'ppa:zeha/libfstrm-ppa'
-      - sourceline: 'deb http://repo.powerdns.com/ubuntu $(lsb_release -cs)-auth-master main'
+      - sourceline: 'deb [arch=amd64] http://repo.powerdns.com/ubuntu $(lsb_release -cs)-auth-master main'
         key_url: 'https://repo.powerdns.com/CBC8B383-pub.asc'
     packages:
       - alien
