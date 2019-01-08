@@ -906,10 +906,7 @@ bool LMDBBackend::getBeforeAndAfterNames(uint32_t id, const DNSName& zonename, c
   cout<<"Lower_bound for "<<qname2<<endl;
   if(cursor.lower_bound(matchkey, key, val)) {
     cout << "Hit end of database, bummer"<<endl;
-    before = qname; // insert wraparound XXX wrong
-    // we should actually move to the last record of the database
-    after = zonename;
-    return true;
+    cursor.last(key, val);
   }
   cout<<"Cursor is at "<<co.getQName(key.get<string_view>()) <<", in zone id "<<co.getDomainID(key.get<string_view>())<< endl;
 

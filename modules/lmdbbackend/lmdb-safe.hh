@@ -369,13 +369,21 @@ public:
     return nextprev(key, data, MDB_PREV);
   }
 
-  
-  int current(MDBOutVal& key, MDBOutVal& data)
+  int currentlast(MDBOutVal& key, MDBOutVal& data, MDB_cursor_op op)
   {
-    int rc = mdb_cursor_get(d_cursor, const_cast<MDB_val*>(&key.d_mdbval), &data.d_mdbval, MDB_GET_CURRENT);
+    int rc = mdb_cursor_get(d_cursor, const_cast<MDB_val*>(&key.d_mdbval), &data.d_mdbval, op);
     if(rc && rc != MDB_NOTFOUND)
        throw std::runtime_error("Unable to next from cursor: " + std::string(mdb_strerror(rc)));
     return rc;
+  }
+
+  int current(MDBOutVal& key, MDBOutVal& data)
+  {
+    return currentlast(key, data, MDB_GET_CURRENT);
+  }
+  int last(MDBOutVal& key, MDBOutVal& data)
+  {
+    return currentlast(key, data, MDB_LAST);
   }
   
   MDB_cursor* d_cursor;
