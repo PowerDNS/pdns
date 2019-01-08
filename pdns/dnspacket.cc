@@ -32,6 +32,7 @@
 #include <boost/tokenizer.hpp>
 #include <boost/functional/hash.hpp>
 #include <boost/algorithm/string.hpp>
+#include <openssl/hmac.h>
 #include <algorithm>
 
 #include "dnsseckeeper.hh"
@@ -300,11 +301,44 @@ void DNSPacket::wrapup()
   pw.getHeader()->tc=d.tc;
   
   DNSPacketWriter::optvect_t opts;
+
+  /* optsize is expected to hold an upper bound of data that will be
+     added after actual record data - i.e. OPT, TSIG, perhaps one day
+     XPF. Because of the way `pw` incrementally writes the packet, we
+     cannot easily 'go back' and remove a few records. So, to prevent
+     going over our maximum size, we keep our (potential) extra data
+     in mind.
+
+     This means that sometimes we'll send TC even if we'd end up with
+     a few bytes to spare, but so be it.
+    */
+  size_t optsize = 0;
+
+  if (d_haveednssection || d_dnssecOk)
+    optsize = 11;
+
   if(d_wantsnsid) {
     const static string mode_server_id=::arg()["server-id"];
     if(mode_server_id != "disabled") {
       opts.push_back(make_pair(3, mode_server_id));
+      optsize += 4 + mode_server_id.size();
     }
+  }
+
+  if (d_haveednssubnet)
+  {
+    // this is an upper bound
+    optsize += 2 + 2 + 2 + 2 + 2; // code+len+family+src len+scope len
+    optsize += 16; // maximum length of a v6 address
+  }
+
+  if (d_trc.d_algoName.countLabels())
+  {
+    // TSIG is not OPT, but we count it in optsize anyway
+    optsize += d_trc.d_algoName.wirelength() + 3 + 1 + 2; // algo + time + fudge + maclen
+    optsize += EVP_MAX_MD_SIZE + 2 + 2 + 2 + 0; // mac + origid + ercode + otherdatalen + no other data
+
+    static_assert(EVP_MAX_MD_SIZE <= 64, "EVP_MAX_MD_SIZE is overly huge on this system, please check");
   }
 
   if(!d_rrs.empty() || !opts.empty() || d_haveednssubnet || d_haveednssection) {
@@ -316,7 +350,7 @@ void DNSPacket::wrapup()
         
         pw.startRecord(pos->dr.d_name, pos->dr.d_type, pos->dr.d_ttl, pos->dr.d_class, pos->dr.d_place);
         pos->dr.d_content->toPacket(pw);
-        if(pw.size() + 20U > (d_tcp ? 65535 : getMaxReplyLen())) { // 20 = room for EDNS0
+        if(pw.size() + optsize > (d_tcp ? 65535 : getMaxReplyLen())) {
           pw.rollback();
           if(pos->dr.d_place == DNSResourceRecord::ANSWER || pos->dr.d_place == DNSResourceRecord::AUTHORITY) {
             pw.truncate();
