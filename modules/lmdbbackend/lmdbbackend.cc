@@ -206,13 +206,13 @@ void LMDBBackend::deleteDomainRecords(RecordsRWTransaction& txn, uint32_t domain
 {
   compoundOrdername co;
   string match = co(domain_id);
-  //  cout<<"Going to clean records for "<<domain_id<<endl;
+
   auto cursor = txn.txn.getCursor(txn.db->dbi);
   MDBOutVal key, val;
   //  cout<<"Match: "<<makeHexDump(match);
   if(!cursor.lower_bound(match, key, val) ) {
     while(key.get<StringView>().rfind(match, 0) == 0) {
-      cursor.del();
+      cursor.del(MDB_NODUPDATA);
       if(cursor.next(key, val)) break;
     } 
   }
@@ -282,7 +282,7 @@ bool LMDBBackend::replaceRRSet(uint32_t domain_id, const DNSName& qname, const Q
   string match =co(domain_id, qname.makeRelative(di.zone), qt.getCode());
   if(!cursor.find(match, key, val)) {
     do {
-      cursor.del();
+      cursor.del(MDB_NODUPDATA);
     } while(!cursor.next(key, val) && key.get<StringView>().rfind(match, 0) == 0);
   }
 
@@ -356,7 +356,7 @@ bool LMDBBackend::deleteDomain(const DNSName &domain)
   MDBOutVal key, val;
   if(!cursor.find(match, key, val)) {
     do {
-      cursor.del();
+      cursor.del(MDB_NODUPDATA);
     } while(!cursor.next(key, val) && key.get<StringView>().rfind(match, 0) == 0);
   }
 
