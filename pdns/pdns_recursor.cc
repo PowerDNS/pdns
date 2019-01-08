@@ -1959,6 +1959,15 @@ static void handleRunningTCPQuestion(int fd, FDMultiplexer::funcparam_t& var)
         }
       }
 #endif
+      if(t_pdl) {
+        if(t_pdl->ipfilter(dc->d_source, dc->d_destination, *dh)) {
+          if(!g_quiet)
+            g_log<<Logger::Notice<<t_id<<" ["<<MT->getTid()<<"/"<<MT->numProcesses()<<"] DROPPED TCP question from "<<dc->d_source.toStringWithPort()<<(dc->d_source != dc->d_remote ? " (via "+dc->d_remote.toStringWithPort()+")" : "")<<" based on policy"<<endl;
+          g_stats.policyDrops++;
+          return;
+        }
+      }
+
       if(dc->d_mdp.d_header.qr) {
         g_stats.ignoredCount++;
         if(g_logCommonErrors) {
