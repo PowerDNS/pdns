@@ -3959,8 +3959,9 @@ try
   if (threadInfo.isWorker)
     setupNODThread();
 #endif /* NOD_ENABLED */
-  
-  if(threadInfo.isWorker) {
+
+  /* the listener threads handle TCP queries */
+  if(threadInfo.isWorker || threadInfo.isListener) {
     try {
       if(!::arg()["lua-dns-script"].empty()) {
         t_pdl = std::make_shared<RecursorLua4>();
@@ -4096,7 +4097,8 @@ try
     }
     if (t_pdl != nullptr) {
       // lua-dns-script directive is present, call the maintenance callback if needed
-      if (threadInfo.isWorker) {
+      /* remember that the listener threads handle TCP queries */
+      if (threadInfo.isWorker || threadInfo.isListener) {
         // Only on threads processing queries
         if(g_now.tv_sec - last_lua_maintenance >= luaMaintenanceInterval) {
           t_pdl->maintenance();
