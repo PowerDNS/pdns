@@ -3258,7 +3258,7 @@ try
 #endif
   L<<Logger::Warning<<"Done priming cache with root hints"<<endl;
 
-  if(worker && (!g_weDistributeQueries || t_id != s_distributorThreadID)) {
+  if(worker) {
     try {
       if(!::arg()["lua-dns-script"].empty()) {
         t_pdl = std::make_shared<RecursorLua4>(::arg()["lua-dns-script"]);
