@@ -85,6 +85,13 @@ public:
   bool activateDomainKey(const DNSName& name, unsigned int id) override;
   bool deactivateDomainKey(const DNSName& name, unsigned int id) override;
 
+  // TSIG
+  bool getTSIGKey(const DNSName& name, DNSName* algorithm, string* content) override;
+  bool setTSIGKey(const DNSName& name, const DNSName& algorithm, const string& content) override;
+  bool deleteTSIGKey(const DNSName& name) override;
+  bool getTSIGKeys(std::vector< struct TSIGKey > &keys) override;
+
+  
   // DNSSEC
 
   bool getBeforeAndAfterNamesAbsolute(uint32_t id, const DNSName& qname, DNSName& unhashed, DNSName& before, DNSName& after) override;
@@ -195,12 +202,16 @@ private:
   typedef TypedDBI<DomainMeta,
             index_on<DomainMeta, DNSName, &DomainMeta::domain>
           > tmeta_t;
-
   
   typedef TypedDBI<KeyDataDB,
                    index_on<KeyDataDB, DNSName, &KeyDataDB::domain>                   
           > tkdb_t;
 
+  typedef TypedDBI<TSIGKey,
+                   index_on<TSIGKey, DNSName, &TSIGKey::name>                   
+          > ttsig_t;
+
+  
   static constexpr int s_shards{512};
   int d_asyncFlag;
 
@@ -232,6 +243,7 @@ private:
   shared_ptr<tdomains_t> d_tdomains;
   shared_ptr<tmeta_t> d_tmeta;
   shared_ptr<tkdb_t> d_tkdb;
+  shared_ptr<ttsig_t> d_ttsig;
   
   shared_ptr<RecordsROTransaction> d_rotxn; // for lookup and list
   shared_ptr<RecordsRWTransaction> d_rwtxn; // for feedrecord within begin/aborttransaction

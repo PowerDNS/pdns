@@ -64,6 +64,7 @@ LMDBBackend::LMDBBackend(const std::string& suffix)
   d_tdomains = std::make_shared<tdomains_t>(getMDBEnv(getArg("filename").c_str(), MDB_NOSUBDIR | d_asyncFlag | MDB_WRITEMAP, 0600), "domains");
   d_tmeta = std::make_shared<tmeta_t>(d_tdomains->getEnv(), "metadata");
   d_tkdb = std::make_shared<tkdb_t>(d_tdomains->getEnv(), "keydata");
+  d_ttsig = std::make_shared<ttsig_t>(d_tdomains->getEnv(), "tsig");
     
   d_dolog = ::arg().mustDo("query-logging");
 }
@@ -135,14 +136,15 @@ void serialize(Archive & ar, LMDBBackend::KeyDataDB& g, const unsigned int versi
 }
 
 template<class Archive>
-void serialize(Archive & ar, DNSResourceRecord& g, const unsigned int version)
+void serialize(Archive & ar, TSIGKey& g, const unsigned int version)
 {
-  ar & g.content;
-  ar & g.wildcardname; // this is the ordername
-  ar & g.ttl;
-  ar & g.auth;
+  ar & g.name;
+  ar & g.algorithm; // this is the ordername
+  ar & g.key;
 }
 
+
+  
 } // namespace serialization
 } // namespace boost
 
@@ -1006,6 +1008,64 @@ bool LMDBBackend::updateEmptyNonTerminals(uint32_t domain_id, set<DNSName>& inse
   cout << __PRETTY_FUNCTION__<< ": "<< domain_id << ", insert.size() "<<insert.size()<<", "<<erase.size()<<", " <<remove<<endl;
   return false;
 }
+
+/* TSIG */
+bool LMDBBackend::getTSIGKey(const DNSName& name, DNSName* algorithm, string* content)
+{
+  auto txn = d_ttsig->getROTransaction();
+
+  TSIGKey tk;
+  if(!txn.get<0>(name, tk))
+    return false;
+  if(algorithm)
+    *algorithm = tk.algorithm;
+  if(content)
+    *content = tk.key;
+  return true;
+
+}
+// this deletes an old key if it has the same algorithm
+bool LMDBBackend::setTSIGKey(const DNSName& name, const DNSName& algorithm, const string& content)
+{
+  auto txn = d_ttsig->getRWTransaction();
+
+  for(auto range = txn.equal_range<0>(name); range.first != range.second; ++range.first) {
+    if(range.first->algorithm == algorithm)
+      range.first.del();
+  }
+
+  TSIGKey tk;
+  tk.name = name;
+  tk.algorithm = algorithm;
+  tk.key=content;
+  
+  txn.put(tk);
+  txn.commit();
+  
+  return true;
+}
+bool LMDBBackend::deleteTSIGKey(const DNSName& name)
+{
+  auto txn = d_ttsig->getRWTransaction();
+  TSIGKey tk;
+
+  for(auto range = txn.equal_range<0>(name); range.first != range.second; ++range.first) {
+    range.first.del();
+  }
+  txn.commit();
+  return true;
+}
+bool LMDBBackend::getTSIGKeys(std::vector< struct TSIGKey > &keys)
+{
+  auto txn = d_ttsig->getROTransaction();
+
+  keys.clear();
+  for(auto iter = txn.begin(); iter != txn.end(); ++iter) {
+    keys.push_back(*iter);
+  }
+  return false;
+}
+
 
 
 
