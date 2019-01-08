@@ -2701,6 +2701,18 @@ try
 
   dropGroupPrivs(newgid);
   dropUserPrivs(newuid);
+  try {
+    /* we might still have capabilities remaining,
+       for example if we have been started as root
+       without --uid or --gid (please don't do that)
+       or as an unprivileged user with ambient
+       capabilities like CAP_NET_BIND_SERVICE.
+    */
+    dropCapabilities();
+  }
+  catch(const std::exception& e) {
+    warnlog("%s", e.what());
+  }
 
   /* this need to be done _after_ dropping privileges */
   g_delay = new DelayPipe<DelayedPacket>();

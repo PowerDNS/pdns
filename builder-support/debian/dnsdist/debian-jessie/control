@@ -6,6 +6,7 @@ Uploaders: Christian Hofstaedtler <zeha@debian.org>
 Build-Depends: debhelper (>= 9~),
                dh-systemd,
                libboost-dev,
+               libcap-dev,
                libedit-dev,
                libluajit-5.1-dev,
                libprotobuf-dev,

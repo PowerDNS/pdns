@@ -1,4 +1,4 @@
-AM_CPPFLAGS += $(SYSTEMD_CFLAGS) $(LUA_CFLAGS) $(LIBEDIT_CFLAGS) $(LIBSODIUM_CFLAGS) $(FSTRM_CFLAGS) $(YAHTTP_CFLAGS) $(SANITIZER_FLAGS) $(NET_SNMP_CFLAGS) -DSYSCONFDIR=\"${sysconfdir}\"
+AM_CPPFLAGS += $(SYSTEMD_CFLAGS) $(LUA_CFLAGS) $(LIBEDIT_CFLAGS) $(LIBSODIUM_CFLAGS) $(FSTRM_CFLAGS) $(YAHTTP_CFLAGS) $(SANITIZER_FLAGS) $(NET_SNMP_CFLAGS) $(LIBCAP_CFLAGS) -DSYSCONFDIR=\"${sysconfdir}\"
 
 ACLOCAL_AMFLAGS = -I m4
 
@@ -87,6 +87,7 @@ dnsdist_SOURCES = \
 	base64.hh \
 	bpf-filter.cc bpf-filter.hh \
 	cachecleaner.hh \
+	capabilities.cc capabilities.hh \
 	dns.cc dns.hh \
 	dnscrypt.cc dnscrypt.hh \
 	dnsdist.cc dnsdist.hh \
@@ -162,7 +163,8 @@ dnsdist_LDADD = \
 	$(FSTRM_LIBS) \
 	$(SANITIZER_FLAGS) \
 	$(SYSTEMD_LIBS) \
-	$(NET_SNMP_LIBS)
+	$(NET_SNMP_LIBS) \
+	$(LIBCAP_LIBS)
 
 if HAVE_RE2
 dnsdist_LDADD += $(RE2_LIBS)
@@ -266,7 +268,8 @@ testrunner_LDADD = \
 	$(LIBSODIUM_LIBS) \
 	$(FSTRM_LIBS) \
 	$(RT_LIBS) \
-	$(SANITIZER_FLAGS)
+	$(SANITIZER_FLAGS) \
+	$(LIBCAP_LIBS)
 
 MANPAGES=dnsdist.1
 
