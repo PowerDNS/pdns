@@ -907,6 +907,13 @@ bool LMDBBackend::getBeforeAndAfterNames(uint32_t id, const DNSName& zonename, c
   if(cursor.lower_bound(matchkey, key, val)) {
     cout << "Hit end of database, bummer"<<endl;
     cursor.last(key, val);
+    if(co.getDomainID(key.get<string_view>()) == id) {
+      before = co.getQName(key.get<string_view>()) + zonename;
+      after = zonename;
+    }
+    else
+      cout << "We were at end of database, but this zone is not there?!"<<endl;
+    return true;
   }
   cout<<"Cursor is at "<<co.getQName(key.get<string_view>()) <<", in zone id "<<co.getDomainID(key.get<string_view>())<< endl;
 
