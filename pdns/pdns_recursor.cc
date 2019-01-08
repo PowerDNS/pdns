@@ -1542,9 +1542,9 @@ static void handleRunningTCPQuestion(int fd, FDMultiplexer::funcparam_t& var)
         dc->d_uuid = (*t_uuidGenerator)();
       }
 
+      const struct dnsheader* dh = (const struct dnsheader*) conn->data;
       if(luaconfsLocal->protobufServer) {
         try {
-          const struct dnsheader* dh = (const struct dnsheader*) conn->data;
 
           if (!luaconfsLocal->protobufTaggedOnly) {
             protobufLogQuery(luaconfsLocal->protobufServer, luaconfsLocal->protobufMaskV4, luaconfsLocal->protobufMaskV6, dc->d_uuid, conn->d_remote, dest, dc->d_ednssubnet.source, true, dh->id, conn->qlen, qname, qtype, qclass, dc->d_policyTags, dc->d_requestorId, dc->d_deviceId);
@@ -1556,6 +1556,16 @@ static void handleRunningTCPQuestion(int fd, FDMultiplexer::funcparam_t& var)
         }
       }
 #endif
+      if(t_pdl) {
+        if(t_pdl->ipfilter(dc->d_remote, dc->d_local, *dh)) {
+          delete dc;
+          if(!g_quiet)
+            L<<Logger::Notice<<t_id<<" ["<<MT->getTid()<<"/"<<MT->numProcesses()<<"] DROPPED TCP question from "<<conn->d_remote.toStringWithPort()<<" based on policy"<<endl;
+          g_stats.policyDrops++;
+          return;
+        }
+      }
+
       if(dc->d_mdp.d_header.qr) {
         delete dc;
         g_stats.ignoredCount++;
