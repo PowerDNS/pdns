@@ -23,7 +23,6 @@ addons:
       - sourceline: 'ppa:jelu/validns'
       - sourceline: 'ppa:maxmind/ppa'
       - sourceline: 'ppa:zeha/libfstrm-ppa'
-      - sourceline: 'ppa:kalon33/gamesgiroll'
       - sourceline: 'deb http://repo.powerdns.com/ubuntu $(lsb_release -cs)-auth-master main'
         key_url: 'https://repo.powerdns.com/CBC8B383-pub.asc'
     packages:
@@ -54,7 +53,7 @@ addons:
       - libprotobuf-dev
       - libsnmp-dev
       - libsodium-dev
-      - libsodium13
+      - libsodium18
       - libsqliteodbc
       - libyaml-cpp-dev
       - libzmq3-dev
