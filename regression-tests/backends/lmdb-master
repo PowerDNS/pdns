@@ -1,15 +1,24 @@
 case $context in
-    lmdb)
+    lmdb | lmdb-nodnssec)
         cat > pdns-lmdb.conf << __EOF__
 module-dir=./modules
 launch=lmdb
 lmdb-filename=./pdns.lmdb
 __EOF__
 
+        skipreasons="$skipreasons lmdb nodyndns noent nometa"
         rm -f pdns.lmdb*
         for zone in $(grep 'zone ' named.conf  | cut -f2 -d\")
         do
             $PDNSUTIL --config-dir=. --config-name=lmdb load-zone $zone zones/$zone
+            if [ $context != lmdb-nodnssec ]
+            then
+                extracontexts="dnssec"
+                skipreasons="$skipreasons nodyndns"
+                securezone $zone lmdb
+            else
+                skipreasons="$skipreasons nodnssec nodyndns"
+            fi
         done
 
         $RUNWRAPPER $PDNS --daemon=no --local-address=$address --local-port=$port --config-dir=. \
@@ -18,10 +27,6 @@ __EOF__
             --expand-alias=yes --outgoing-axfr-expand-alias=yes \
             --resolver=8.8.8.8 \
             --cache-ttl=$cachettl --dname-processing $lua_prequery &
-
-        skipreasons="nodnssec nodyndns nometa noent"
-
-        # skipreasons="nodnssec noent nodyndns nometa noaxfr"
 
         ;;
     *)
