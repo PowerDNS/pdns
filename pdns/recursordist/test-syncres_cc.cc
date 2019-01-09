@@ -343,13 +343,15 @@ static void addNSECRecordToLW(const DNSName& domain, const DNSName& next, const 
 {
   NSECRecordContent nrc;
   nrc.d_next = next;
-  nrc.d_set = types;
+  for (const auto& type : types) {
+    nrc.set(type);
+  }
 
   DNSRecord rec;
   rec.d_name = domain;
   rec.d_ttl = ttl;
   rec.d_type = QType::NSEC;
-  rec.d_content = std::make_shared<NSECRecordContent>(nrc);
+  rec.d_content = std::make_shared<NSECRecordContent>(std::move(nrc));
   rec.d_place = DNSResourceRecord::AUTHORITY;
 
   records.push_back(rec);
@@ -363,13 +365,15 @@ static void addNSEC3RecordToLW(const DNSName& hashedName, const std::string& has
   nrc.d_iterations = iterations;
   nrc.d_salt = salt;
   nrc.d_nexthash = hashedNext;
-  nrc.d_set = types;
+  for (const auto& type : types) {
+    nrc.set(type);
+  }
 
   DNSRecord rec;
   rec.d_name = hashedName;
   rec.d_ttl = ttl;
   rec.d_type = QType::NSEC3;
-  rec.d_content = std::make_shared<NSEC3RecordContent>(nrc);
+  rec.d_content = std::make_shared<NSEC3RecordContent>(std::move(nrc));
   rec.d_place = DNSResourceRecord::AUTHORITY;
 
   records.push_back(rec);
