@@ -40,6 +40,7 @@ override_dh_auto_configure:
 	  --without-gnutls \
 	  --enable-dns-over-tls \
 	  --enable-dnscrypt \
+	  --with-libcap \
 	  --with-libsodium \
 	  --with-re2 \
 	  --with-ebpf \

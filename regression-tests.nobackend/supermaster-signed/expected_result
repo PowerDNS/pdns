@@ -4,5 +4,5 @@ Set 'example.com' meta TSIG-ALLOW-AXFR = tsig.com
 Set 'test.com' meta TSIG-ALLOW-AXFR = tsig.com
 Set 'example.com' meta AXFR-MASTER-TSIG = tsig.com
 Added to queue
-Received notification response with error: Query Refused
+Received notification response with error from 127.0.0.2:53: Query Refused
 For: 'test.com'

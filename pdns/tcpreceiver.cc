@@ -532,7 +532,7 @@ bool TCPNameserver::canDoAXFR(shared_ptr<DNSPacket> q)
 namespace {
   struct NSECXEntry
   {
-    set<uint16_t> d_set;
+    NSECBitmap d_set;
     unsigned int d_ttl;
     bool d_auth;
   };
@@ -707,7 +707,7 @@ int TCPNameserver::doAXFR(const DNSName &target, shared_ptr<DNSPacket> q, int ou
     DNSName keyname = NSEC3Zone ? DNSName(toBase32Hex(hashQNameWithSalt(ns3pr, zrr.dr.d_name))) : zrr.dr.d_name;
     NSECXEntry& ne = nsecxrepo[keyname];
     
-    ne.d_set.insert(zrr.dr.d_type);
+    ne.d_set.set(zrr.dr.d_type);
     ne.d_ttl = sd.default_ttl;
     csp.submit(zrr);
 
@@ -750,7 +750,7 @@ int TCPNameserver::doAXFR(const DNSName &target, shared_ptr<DNSPacket> q, int ou
     DNSName keyname = DNSName(toBase32Hex(hashQNameWithSalt(ns3pr, zrr.dr.d_name)));
     NSECXEntry& ne = nsecxrepo[keyname];
     
-    ne.d_set.insert(zrr.dr.d_type);
+    ne.d_set.set(zrr.dr.d_type);
     csp.submit(zrr);
   }
   
@@ -914,7 +914,7 @@ int TCPNameserver::doAXFR(const DNSName &target, shared_ptr<DNSPacket> q, int ou
         ne.d_ttl = sd.default_ttl;
         ne.d_auth = (ne.d_auth || loopZRR.auth || (NSEC3Zone && (!ns3pr.d_flags)));
         if (loopZRR.dr.d_type && loopZRR.dr.d_type != QType::RRSIG) {
-          ne.d_set.insert(loopZRR.dr.d_type);
+          ne.d_set.set(loopZRR.dr.d_type);
         }
       }
     }
@@ -951,13 +951,15 @@ int TCPNameserver::doAXFR(const DNSName &target, shared_ptr<DNSPacket> q, int ou
       for(nsecxrepo_t::const_iterator iter = nsecxrepo.begin(); iter != nsecxrepo.end(); ++iter) {
         if(iter->second.d_auth) {
           NSEC3RecordContent n3rc;
-          n3rc.d_set = iter->second.d_set;
-          if (n3rc.d_set.size() && (n3rc.d_set.size() != 1 || !n3rc.d_set.count(QType::NS)))
-            n3rc.d_set.insert(QType::RRSIG);
-          n3rc.d_salt=ns3pr.d_salt;
+          n3rc.set(iter->second.d_set);
+          const auto numberOfTypesSet = n3rc.numberOfTypesSet();
+          if (numberOfTypesSet != 0 && (numberOfTypesSet != 1 || !n3rc.isSet(QType::NS))) {
+            n3rc.set(QType::RRSIG);
+          }
+          n3rc.d_salt = ns3pr.d_salt;
           n3rc.d_flags = ns3pr.d_flags;
           n3rc.d_iterations = ns3pr.d_iterations;
-          n3rc.d_algorithm = 1; // SHA1, fixed in PowerDNS for now
+          n3rc.d_algorithm = DNSSECKeeper::SHA1; // SHA1, fixed in PowerDNS for now
           nsecxrepo_t::const_iterator inext = iter;
           inext++;
           if(inext == nsecxrepo.end())
@@ -972,7 +974,7 @@ int TCPNameserver::doAXFR(const DNSName &target, shared_ptr<DNSPacket> q, int ou
           zrr.dr.d_name = iter->first+sd.qname;
 
           zrr.dr.d_ttl = sd.default_ttl;
-          zrr.dr.d_content = std::make_shared<NSEC3RecordContent>(n3rc);
+          zrr.dr.d_content = std::make_shared<NSEC3RecordContent>(std::move(n3rc));
           zrr.dr.d_type = QType::NSEC3;
           zrr.dr.d_place = DNSResourceRecord::ANSWER;
           zrr.auth=true;
@@ -995,9 +997,9 @@ int TCPNameserver::doAXFR(const DNSName &target, shared_ptr<DNSPacket> q, int ou
     }
     else for(nsecxrepo_t::const_iterator iter = nsecxrepo.begin(); iter != nsecxrepo.end(); ++iter) {
       NSECRecordContent nrc;
-      nrc.d_set = iter->second.d_set;
-      nrc.d_set.insert(QType::RRSIG);
-      nrc.d_set.insert(QType::NSEC);
+      nrc.set(iter->second.d_set);
+      nrc.set(QType::RRSIG);
+      nrc.set(QType::NSEC);
 
       if(boost::next(iter) != nsecxrepo.end())
         nrc.d_next = boost::next(iter)->first;
@@ -1006,7 +1008,7 @@ int TCPNameserver::doAXFR(const DNSName &target, shared_ptr<DNSPacket> q, int ou
       zrr.dr.d_name = iter->first;
 
       zrr.dr.d_ttl = sd.default_ttl;
-      zrr.dr.d_content = std::make_shared<NSECRecordContent>(nrc);
+      zrr.dr.d_content = std::make_shared<NSECRecordContent>(std::move(nrc));
       zrr.dr.d_type = QType::NSEC;
       zrr.dr.d_place = DNSResourceRecord::ANSWER;
       zrr.auth=true;

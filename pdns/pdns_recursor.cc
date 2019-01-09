@@ -67,6 +67,7 @@
 #include "malloctrace.hh"
 #endif
 #include <netinet/tcp.h>
+#include "capabilities.hh"
 #include "dnsparser.hh"
 #include "dnswriter.hh"
 #include "dnsrecords.hh"
@@ -87,6 +88,7 @@
 #include "rec-lua-conf.hh"
 #include "ednsoptions.hh"
 #include "gettime.hh"
+#include "pubsuffix.hh"
 #ifdef NOD_ENABLED
 #include "nod.hh"
 #endif /* NOD_ENABLED */
@@ -1109,6 +1111,21 @@ static void startDoResolve(void *p)
       if(edo.d_extFlags & EDNSOpts::DNSSECOK) {
         DNSSECOK=true;
         g_stats.dnssecQueries++;
+      }
+      if (dc->d_mdp.d_header.cd) {
+        /* Per rfc6840 section 5.9, "When processing a request with
+           the Checking Disabled (CD) bit set, a resolver SHOULD attempt
+           to return all response data, even data that has failed DNSSEC
+           validation. */
+        ++g_stats.dnssecCheckDisabledQueries;
+      }
+      if (dc->d_mdp.d_header.ad) {
+        /* Per rfc6840 section 5.7, "the AD bit in a query as a signal
+           indicating that the requester understands and is interested in the
+           value of the AD bit in the response.  This allows a requester to
+           indicate that it understands the AD bit without also requesting
+           DNSSEC data via the DO bit. */
+        ++g_stats.dnssecAuthenticDataQueries;
       }
     } else {
       // Ignore the client-set CD flag
@@ -3517,7 +3534,7 @@ static int serviceMain(int argc, char*argv[])
   }
 
   parseACLs();
-  sortPublicSuffixList();
+  initPublicSuffixList(::arg()["public-suffix-list-file"]);
 
   if(!::arg()["dont-query"].empty()) {
     vector<string> ips;
@@ -3768,6 +3785,16 @@ static int serviceMain(int argc, char*argv[])
   makeControlChannelSocket( ::arg().asNum("processes") > 1 ? forks : -1);
 
   Utility::dropUserPrivs(newuid);
+  try {
+    /* we might still have capabilities remaining, for example if we have been started as root
+       without --setuid (please don't do that) or as an unprivileged user with ambient capabilities
+       like CAP_NET_BIND_SERVICE.
+    */
+    dropCapabilities();
+  }
+  catch(const std::exception& e) {
+    g_log<<Logger::Warning<<e.what()<<endl;
+  }
 
   startLuaConfigDelayedThreads(delayedLuaThreads, g_luaconfs.getCopy().generation);
 
@@ -4185,8 +4212,8 @@ int main(int argc, char **argv)
     ::arg().setSwitch( "any-to-tcp","Answer ANY queries with tc=1, shunting to TCP" )="no";
     ::arg().setSwitch( "lowercase-outgoing","Force outgoing questions to lowercase")="no";
     ::arg().setSwitch("gettag-needs-edns-options", "If EDNS Options should be extracted before calling the gettag() hook")="no";
-    ::arg().set("udp-truncation-threshold", "Maximum UDP response size before we truncate")="1680";
-    ::arg().set("edns-outgoing-bufsize", "Outgoing EDNS buffer size")="1680";
+    ::arg().set("udp-truncation-threshold", "Maximum UDP response size before we truncate")="1232";
+    ::arg().set("edns-outgoing-bufsize", "Outgoing EDNS buffer size")="1232";
     ::arg().set("minimum-ttl-override", "Set under adverse conditions, a minimum TTL")="0";
     ::arg().set("max-qperq", "Maximum outgoing queries per query")="50";
     ::arg().set("max-total-msec", "Maximum total wall-clock time per query in milliseconds, 0 for unlimited")="7000";
@@ -4215,6 +4242,7 @@ int main(int argc, char **argv)
     ::arg().set("udp-source-port-max", "Maximum UDP port to bind on")="65535";
     ::arg().set("udp-source-port-avoid", "List of comma separated UDP port number to avoid")="11211";
     ::arg().set("rng", "Specify random number generator to use. Valid values are auto,sodium,openssl,getrandom,arc4random,urandom.")="auto";
+    ::arg().set("public-suffix-list-file", "Path to the Public Suffix List file, if any")="";
 #ifdef NOD_ENABLED
     ::arg().set("new-domain-tracking", "Track newly observed domains (i.e. never seen before).")="no";
     ::arg().set("new-domain-log", "Log newly observed domains.")="yes";

@@ -21,13 +21,4 @@
  */
 #pragma once
 
-#include <string>
-#include <vector>
-
-extern std::vector<std::vector<std::string>> g_pubs;
-
-/* initialize the g_pubs variable with the public suffix list,
-   using the file passed in parameter if any, or the built-in
-   list otherwise.
-*/
-void initPublicSuffixList(const std::string& file);
+void dropCapabilities();

@@ -259,7 +259,7 @@ bool OdbxBackend::list( const DNSName& target, int zoneid, bool include_disabled
         	m_qname.clear();
         	m_result = NULL;
 
-        	int len = snprintf( m_buffer, sizeof( m_buffer ) - 1, "%d", zoneid );
+        	int len = snprintf( m_buffer, sizeof( m_buffer ), "%d", zoneid );
 
         	if( len < 0 )
         	{
@@ -321,7 +321,7 @@ void OdbxBackend::lookup( const QType& qtype, const DNSName& qname, DNSPacket* d
         			stmtref = strbind( ":type", qtype.getName(), stmt );
         		}
 
-        		int len = snprintf( m_buffer, sizeof( m_buffer ) - 1, "%d", zoneid );
+        		int len = snprintf( m_buffer, sizeof( m_buffer ), "%d", zoneid );
 
         		if( len < 0 )
         		{
@@ -433,7 +433,7 @@ void OdbxBackend::setFresh( uint32_t domain_id )
         		throw( DBException( "Error: Server unreachable" ) );
         	}
 
-        	len = snprintf( m_buffer, sizeof( m_buffer ) - 1, getArg( "sql-update-lastcheck" ).c_str(), time( 0 ), domain_id );
+        	len = snprintf( m_buffer, sizeof( m_buffer ), getArg( "sql-update-lastcheck" ).c_str(), time( 0 ), domain_id );
 
         	if( len < 0 )
         	{
@@ -473,7 +473,7 @@ void OdbxBackend::setNotified( uint32_t domain_id, uint32_t serial )
         		throw( DBException( "Error: Server unreachable" ) );
         	}
 
-        	int len = snprintf( m_buffer, sizeof( m_buffer ) - 1, getArg( "sql-update-serial" ).c_str(), serial, domain_id );
+        	int len = snprintf( m_buffer, sizeof( m_buffer ), getArg( "sql-update-serial" ).c_str(), serial, domain_id );
 
         	if( len < 0 )
         	{
@@ -601,7 +601,7 @@ bool OdbxBackend::createSlaveDomain( const string& ip, const DNSName& domain, co
         		return false;
         	}
 
-        	int len = snprintf( m_buffer, sizeof( m_buffer ) - 1, getArg( "sql-insert-slave" ).c_str(), escape( domain.makeLowerCase().toStringRootDot(), WRITE ).c_str(),
+        	int len = snprintf( m_buffer, sizeof( m_buffer ), getArg( "sql-insert-slave" ).c_str(), escape( domain.makeLowerCase().toStringRootDot(), WRITE ).c_str(),
         		escape( ip, WRITE ).c_str(), escape( account, WRITE ).c_str() );
 
         	if( len < 0 )
@@ -652,7 +652,7 @@ bool OdbxBackend::feedRecord( const DNSResourceRecord& rr, const DNSName& ordern
         		trim_left(content);
         	}
 
-        	int len = snprintf( m_buffer, sizeof( m_buffer ) - 1, getArg( "sql-insert-record" ).c_str(), rr.domain_id,
+        	int len = snprintf( m_buffer, sizeof( m_buffer ), getArg( "sql-insert-record" ).c_str(), rr.domain_id,
         		escape( rr.qname.makeLowerCase().toStringRootDot(), WRITE ).c_str(), rr.qtype.getName().c_str(), rr.ttl, priority,
         		escape( content, WRITE ).c_str() );
 
@@ -695,7 +695,7 @@ bool OdbxBackend::startTransaction( const DNSName& domain, int zoneid )
 
         	string stmtref =  getArg( "sql-transactbegin" );
         	if( !execStmt( stmtref.c_str(), stmtref.size(), WRITE ) ) { return false; }
-        	int len = snprintf( m_buffer, sizeof( m_buffer ) - 1, "%d", zoneid );
+        	int len = snprintf( m_buffer, sizeof( m_buffer ), "%d", zoneid );
 
         	if( len < 0 )
         	{

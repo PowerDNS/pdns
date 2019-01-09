@@ -484,19 +484,19 @@ void PacketHandler::emitNSEC(DNSPacket *r, const SOAData& sd, const DNSName& nam
   NSECRecordContent nrc;
   nrc.d_next = next;
 
-  nrc.d_set.insert(QType::NSEC);
-  nrc.d_set.insert(QType::RRSIG);
+  nrc.set(QType::NSEC);
+  nrc.set(QType::RRSIG);
   if(sd.qname == name) {
-    nrc.d_set.insert(QType::SOA); // 1dfd8ad SOA can live outside the records table
-    nrc.d_set.insert(QType::DNSKEY);
+    nrc.set(QType::SOA); // 1dfd8ad SOA can live outside the records table
+    nrc.set(QType::DNSKEY);
     string publishCDNSKEY;
     d_dk.getFromMeta(name, "PUBLISH-CDNSKEY", publishCDNSKEY);
     if (publishCDNSKEY == "1")
-      nrc.d_set.insert(QType::CDNSKEY);
+      nrc.set(QType::CDNSKEY);
     string publishCDS;
     d_dk.getFromMeta(name, "PUBLISH-CDS", publishCDS);
     if (! publishCDS.empty())
-      nrc.d_set.insert(QType::CDS);
+      nrc.set(QType::CDS);
   }
 
   DNSZoneRecord rr;
@@ -505,17 +505,17 @@ void PacketHandler::emitNSEC(DNSPacket *r, const SOAData& sd, const DNSName& nam
   while(B.get(rr)) {
 #ifdef HAVE_LUA_RECORDS   
     if(rr.dr.d_type == QType::LUA)
-      nrc.d_set.insert(getRR<LUARecordContent>(rr.dr)->d_type);
+      nrc.set(getRR<LUARecordContent>(rr.dr)->d_type);
     else
 #endif
       if(rr.dr.d_type == QType::NS || rr.auth)
-      nrc.d_set.insert(rr.dr.d_type);
+      nrc.set(rr.dr.d_type);
   }
 
   rr.dr.d_name = name;
   rr.dr.d_ttl = sd.default_ttl;
   rr.dr.d_type = QType::NSEC;
-  rr.dr.d_content = std::make_shared<NSECRecordContent>(nrc);
+  rr.dr.d_content = std::make_shared<NSECRecordContent>(std::move(nrc));
   rr.dr.d_place = (mode == 5 ) ? DNSResourceRecord::ANSWER: DNSResourceRecord::AUTHORITY;
   rr.auth = true;
 
@@ -535,38 +535,40 @@ void PacketHandler::emitNSEC3(DNSPacket *r, const SOAData& sd, const NSEC3PARAMR
 
   if(!name.empty()) {
     if (sd.qname == name) {
-      n3rc.d_set.insert(QType::SOA); // 1dfd8ad SOA can live outside the records table
-      n3rc.d_set.insert(QType::NSEC3PARAM);
-      n3rc.d_set.insert(QType::DNSKEY);
+      n3rc.set(QType::SOA); // 1dfd8ad SOA can live outside the records table
+      n3rc.set(QType::NSEC3PARAM);
+      n3rc.set(QType::DNSKEY);
       string publishCDNSKEY;
       d_dk.getFromMeta(name, "PUBLISH-CDNSKEY", publishCDNSKEY);
       if (publishCDNSKEY == "1")
-        n3rc.d_set.insert(QType::CDNSKEY);
+        n3rc.set(QType::CDNSKEY);
       string publishCDS;
       d_dk.getFromMeta(name, "PUBLISH-CDS", publishCDS);
       if (! publishCDS.empty())
-        n3rc.d_set.insert(QType::CDS);
+        n3rc.set(QType::CDS);
     }
 
     B.lookup(QType(QType::ANY), name, NULL, sd.domain_id);
     while(B.get(rr)) {
 #ifdef HAVE_LUA_RECORDS
       if(rr.dr.d_type == QType::LUA)
-        n3rc.d_set.insert(getRR<LUARecordContent>(rr.dr)->d_type);
+        n3rc.set(getRR<LUARecordContent>(rr.dr)->d_type);
       else
 #endif
         if(rr.dr.d_type && (rr.dr.d_type == QType::NS || rr.auth)) // skip empty non-terminals
-        n3rc.d_set.insert(rr.dr.d_type);
+        n3rc.set(rr.dr.d_type);
     }
   }
 
-  if (n3rc.d_set.size() && !(n3rc.d_set.size() == 1 && n3rc.d_set.count(QType::NS)))
-    n3rc.d_set.insert(QType::RRSIG);
+  const auto numberOfTypesSet = n3rc.numberOfTypesSet();
+  if (numberOfTypesSet != 0 && !(numberOfTypesSet == 1 && n3rc.isSet(QType::NS))) {
+    n3rc.set(QType::RRSIG);
+  }
 
   rr.dr.d_name = DNSName(toBase32Hex(namehash))+sd.qname;
   rr.dr.d_ttl = sd.default_ttl;
   rr.dr.d_type=QType::NSEC3;
-  rr.dr.d_content=std::make_shared<NSEC3RecordContent>(n3rc);
+  rr.dr.d_content=std::make_shared<NSEC3RecordContent>(std::move(n3rc));
   rr.dr.d_place = (mode == 5 ) ? DNSResourceRecord::ANSWER: DNSResourceRecord::AUTHORITY;
   rr.auth = true;
 
@@ -1447,7 +1449,7 @@ DNSPacket *PacketHandler::doQuestion(DNSPacket *p)
     }
 
     if(rrset.empty()) {
-      DLOG(g_log<<"checking qtype.getCode() ["<<(p->qtype.getCode())<<"] against QType::DS ["<<(QType::DS)<<"]"<<endl);
+      DLOG(g_log<<"checking if qtype is DS"<<endl);
       if(p->qtype.getCode() == QType::DS)
       {
         DLOG(g_log<<"DS query found no direct result, trying referral now"<<endl);

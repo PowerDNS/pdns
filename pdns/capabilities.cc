@@ -19,15 +19,31 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
-#pragma once
 
-#include <string>
-#include <vector>
+#include "config.h"
 
-extern std::vector<std::vector<std::string>> g_pubs;
+#include <cstring>
+#include <stdexcept>
 
-/* initialize the g_pubs variable with the public suffix list,
-   using the file passed in parameter if any, or the built-in
-   list otherwise.
-*/
-void initPublicSuffixList(const std::string& file);
+#ifdef HAVE_LIBCAP
+#include <sys/capability.h>
+#endif
+
+#include "capabilities.hh"
+
+void dropCapabilities()
+{
+#ifdef HAVE_LIBCAP
+   cap_t caps = cap_get_proc();
+   if (caps != nullptr) {
+     cap_clear(caps);
+
+     if (cap_set_proc(caps) != 0) {
+       cap_free(caps);
+       throw std::runtime_error("Unable to drop capabilities: " + std::string(strerror(errno)));
+     }
+
+     cap_free(caps);
+   }
+#endif /* HAVE_LIBCAP */
+}

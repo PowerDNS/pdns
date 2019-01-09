@@ -81,15 +81,17 @@ public:
   */
   Logger& operator<<(const char *s);
   Logger& operator<<(const string &s);   //!< log a string
-  Logger& operator<<(int);   //!< log an int
-  Logger& operator<<(double);   //!< log a double
-  Logger& operator<<(unsigned int);   //!< log an unsigned int
-  Logger& operator<<(long);   //!< log an unsigned int
-  Logger& operator<<(unsigned long);   //!< log an unsigned int
-  Logger& operator<<(unsigned long long);   //!< log an unsigned 64 bit int
   Logger& operator<<(const DNSName&); 
   Logger& operator<<(const ComboAddress&); //!< log an address
   Logger& operator<<(Urgency);    //!< set the urgency, << style
+
+  // Using const & since otherwise SyncRes:: values induce (illegal) copies
+  template<typename T> Logger & operator<<(const T & i) {
+	ostringstream tmp;
+	tmp<<i;
+	*this<<tmp.str();
+	return *this;
+  }
 
   Logger& operator<<(std::ostream & (&)(std::ostream &)); //!< this is to recognise the endl, and to commit the log
 
