@@ -519,7 +519,6 @@ try
     ZoneParserTNG zpt(argv[2]);
     DNSResourceRecord rr;
     
-    unsigned int pdnscount=0;
     set<DNSName> seen, pdnsdomains;
     int count=0;
     while(zpt.get(rr)) {
@@ -527,7 +526,6 @@ try
         seen.insert(rr.qname);
       } 
       if(rr.qtype.getCode() == QType::NS && powerdns.count(DNSName(rr.content)) && !pdnsdomains.count(DNSName(rr.qname))) {
-        pdnscount++;
         pdnsdomains.insert(DNSName(rr.qname));
       }
       if(!(count%100000)) {

@@ -32,9 +32,8 @@
 class SSqlException 
 {
 public: 
-  SSqlException(const string &reason) 
+  SSqlException(const string &reason) : d_reason(reason)
   {
-      d_reason=reason;
   }
   
   string txtReason()

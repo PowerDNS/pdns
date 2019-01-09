@@ -197,10 +197,10 @@ uint PacketHandler::performUpdate(const string &msgPrefix, const DNSRecord *rr, 
       // It's not possible to have multiple CNAME's with the same NAME. So we always update.
       } else if (rrType == QType::CNAME) {
         int changedCNames = 0;
-        for (vector<DNSResourceRecord>::iterator i = rrset.begin(); i != rrset.end(); i++) {
-          if (i->ttl != rr->d_ttl || i->content != rr->d_content->getZoneRepresentation()) {
-            i->ttl = rr->d_ttl;
-            i->setContent(rr->d_content->getZoneRepresentation());
+        for (auto& i : rrset) {
+          if (i.ttl != rr->d_ttl || i.content != rr->d_content->getZoneRepresentation()) {
+            i.ttl = rr->d_ttl;
+            i.setContent(rr->d_content->getZoneRepresentation());
             changedCNames++;
           }
         }
@@ -216,12 +216,12 @@ uint PacketHandler::performUpdate(const string &msgPrefix, const DNSRecord *rr, 
       } else {
         int updateTTL=0;
         foundRecord = false;
-        for (vector<DNSResourceRecord>::iterator i = rrset.begin(); i != rrset.end(); i++) {
+        for (auto& i : rrset) {
           string content = rr->d_content->getZoneRepresentation();
-          if (rrType == i->qtype.getCode() && i->getZoneRepresentation() == content) {
+          if (rrType == i.qtype.getCode() && i.getZoneRepresentation() == content) {
             foundRecord=true;
-            if (i->ttl != rr->d_ttl)  {
-              i->ttl = rr->d_ttl;
+            if (i.ttl != rr->d_ttl)  {
+              i.ttl = rr->d_ttl;
               updateTTL++;
             }
           }
@@ -718,8 +718,9 @@ int PacketHandler::processUpdate(DNSPacket *p) {
       stringtok(allowedRanges, ::arg()["allow-dnsupdate-from"], ", \t" );
 
     NetmaskGroup ng;
-    for(vector<string>::const_iterator i=allowedRanges.begin(); i != allowedRanges.end(); i++)
-      ng.addMask(*i);
+    for(const auto& i: allowedRanges) {
+      ng.addMask(i);
+    }
 
     if ( ! ng.match(&p->d_remote)) {
       g_log<<Logger::Error<<msgPrefix<<"Remote not listed in allow-dnsupdate-from or domainmetadata. Sending REFUSED"<<endl;
@@ -743,15 +744,15 @@ int PacketHandler::processUpdate(DNSPacket *p) {
 
       if (p->d_tsig_algo == TSIG_GSS) {
         GssName inputname(p->d_peer_principal); // match against principal since GSS
-        for(vector<string>::const_iterator key=tsigKeys.begin(); key != tsigKeys.end(); key++) {
-          if (inputname.match(*key)) {
+        for(const auto& key: tsigKeys) {
+          if (inputname.match(key)) {
             validKey = true;
             break;
           }
         }
       } else {
-        for(vector<string>::const_iterator key=tsigKeys.begin(); key != tsigKeys.end(); key++) {
-          if (inputkey == DNSName(*key)) { // because checkForCorrectTSIG has already been performed earlier on, if the names of the ky match with the domain given. THis is valid.
+        for(const auto& key: tsigKeys) {
+          if (inputkey == DNSName(key)) { // because checkForCorrectTSIG has already been performed earlier on, if the names of the ky match with the domain given. THis is valid.
             validKey=true;
             break;
           }
@@ -838,7 +839,7 @@ int PacketHandler::processUpdate(DNSPacket *p) {
   typedef vector<DNSResourceRecord> rrVector_t;
   typedef std::map<rrSetKey_t, rrVector_t> RRsetMap_t;
   RRsetMap_t preReqRRsets;
-  for(const auto& i : mdp.d_answers) {
+  for(const auto& i: mdp.d_answers) {
     const DNSRecord* rr = &i.first;
     if (rr->d_place == DNSResourceRecord::ANSWER) {
       // Last line of 3.2.3
@@ -994,10 +995,10 @@ int PacketHandler::processUpdate(DNSPacket *p) {
         nsRRInZone.push_back(rec);
       }
       if (nsRRInZone.size() > nsRRtoDelete.size()) { // only delete if the NS's we delete are less then what we have in the zone (3.4.2.4)
-        for (vector<DNSResourceRecord>::iterator inZone=nsRRInZone.begin(); inZone != nsRRInZone.end(); inZone++) {
-          for (vector<const DNSRecord *>::iterator rr=nsRRtoDelete.begin(); rr != nsRRtoDelete.end(); rr++) {
-            if (inZone->getZoneRepresentation() == (*rr)->d_content->getZoneRepresentation())
-              changedRecords += performUpdate(msgPrefix, *rr, &di, isPresigned, &narrow, &haveNSEC3, &ns3pr, &updatedSerial);
+        for (auto& inZone: nsRRInZone) {
+          for (auto& rr: nsRRtoDelete) {
+            if (inZone.getZoneRepresentation() == (rr)->d_content->getZoneRepresentation())
+              changedRecords += performUpdate(msgPrefix, rr, &di, isPresigned, &narrow, &haveNSEC3, &ns3pr, &updatedSerial);
           }
         }
       }

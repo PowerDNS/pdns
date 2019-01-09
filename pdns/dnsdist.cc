@@ -196,12 +196,12 @@ DelayPipe<DelayedPacket> * g_delay = 0;
 
 void doLatencyStats(double udiff)
 {
-  if(udiff < 1000) g_stats.latency0_1++;
-  else if(udiff < 10000) g_stats.latency1_10++;
-  else if(udiff < 50000) g_stats.latency10_50++;
-  else if(udiff < 100000) g_stats.latency50_100++;
-  else if(udiff < 1000000) g_stats.latency100_1000++;
-  else g_stats.latencySlow++;
+  if(udiff < 1000) ++g_stats.latency0_1;
+  else if(udiff < 10000) ++g_stats.latency1_10;
+  else if(udiff < 50000) ++g_stats.latency10_50;
+  else if(udiff < 100000) ++g_stats.latency50_100;
+  else if(udiff < 1000000) ++g_stats.latency100_1000;
+  else ++g_stats.latencySlow;
 
   auto doAvg = [](double& var, double n, double weight) {
     var = (weight -1) * var/weight + n/weight;
@@ -228,7 +228,7 @@ bool responseContentMatches(const char* response, const uint16_t responseLen, co
       return true;
     }
     else {
-      g_stats.nonCompliantResponses++;
+      ++g_stats.nonCompliantResponses;
       return false;
     }
   }
@@ -239,7 +239,7 @@ bool responseContentMatches(const char* response, const uint16_t responseLen, co
   catch(std::exception& e) {
     if(responseLen > (ssize_t)sizeof(dnsheader))
       infolog("Backend %s sent us a response with id %d that did not parse: %s", remote.toStringWithPort(), ntohs(dh->id), e.what());
-    g_stats.nonCompliantResponses++;
+    ++g_stats.nonCompliantResponses;
     return false;
   }
 
@@ -535,7 +535,7 @@ try {
           sendUDPResponse(origFD, response, responseLen, ids->delayMsec, ids->destHarvested ? ids->origDest : empty, ids->origRemote);
         }
 
-        g_stats.responses++;
+        ++g_stats.responses;
 
         double udiff = ids->sentTime.udiff();
         vinfolog("Got answer from %s, relayed to %s, took %f usec", dss->remote.toStringWithPort(), ids->origRemote.toStringWithPort(), udiff);
@@ -544,8 +544,9 @@ try {
         gettime(&ts);
         g_rings.insertResponse(ts, ids->origRemote, ids->qname, ids->qtype, (unsigned int)udiff, (unsigned int)got, *dh, dss->remote);
 
-        if(dh->rcode == RCode::ServFail)
-          g_stats.servfailResponses++;
+        if(dh->rcode == RCode::ServFail) {
+          ++g_stats.servfailResponses;
+        }
         dss->latencyUsec = (127.0 * dss->latencyUsec / 128.0) + udiff/128.0;
 
         doLatencyStats(udiff);
@@ -961,7 +962,7 @@ bool processQuery(LocalHolders& holders, DNSQuestion& dq, string& poolname, int*
 
   if(auto got = holders.dynNMGBlock->lookup(*dq.remote)) {
     auto updateBlockStats = [&got]() {
-      g_stats.dynBlocked++;
+      ++g_stats.dynBlocked;
       got->second.blocks++;
     };
 
@@ -1018,7 +1019,7 @@ bool processQuery(LocalHolders& holders, DNSQuestion& dq, string& poolname, int*
 
   if(auto got = holders.dynSMTBlock->lookup(*dq.qname)) {
     auto updateBlockStats = [&got]() {
-      g_stats.dynBlocked++;
+      ++g_stats.dynBlocked;
       got->blocks++;
     };
 
@@ -1083,25 +1084,25 @@ bool processQuery(LocalHolders& holders, DNSQuestion& dq, string& poolname, int*
         return true;
         break;
       case DNSAction::Action::Drop:
-        g_stats.ruleDrop++;
+        ++g_stats.ruleDrop;
         return false;
         break;
       case DNSAction::Action::Nxdomain:
         dq.dh->rcode = RCode::NXDomain;
         dq.dh->qr=true;
-        g_stats.ruleNXDomain++;
+        ++g_stats.ruleNXDomain;
         return true;
         break;
       case DNSAction::Action::Refused:
         dq.dh->rcode = RCode::Refused;
         dq.dh->qr=true;
-        g_stats.ruleRefused++;
+        ++g_stats.ruleRefused;
         return true;
         break;
       case DNSAction::Action::ServFail:
         dq.dh->rcode = RCode::ServFail;
         dq.dh->qr=true;
-        g_stats.ruleServFail++;
+        ++g_stats.ruleServFail;
         return true;
         break;
       case DNSAction::Action::Spoof:
@@ -1213,18 +1214,18 @@ static bool isUDPQueryAcceptable(ClientState& cs, LocalHolders& holders, const s
   if (msgh->msg_flags & MSG_TRUNC) {
     /* message was too large for our buffer */
     vinfolog("Dropping message too large for our buffer");
-    g_stats.nonCompliantQueries++;
+    ++g_stats.nonCompliantQueries;
     return false;
   }
 
   if(!holders.acl->match(remote)) {
     vinfolog("Query from %s dropped because of ACL", remote.toStringWithPort());
-    g_stats.aclDrops++;
+    ++g_stats.aclDrops;
     return false;
   }
 
   cs.queries++;
-  g_stats.queries++;
+  ++g_stats.queries;
 
   if (HarvestDestinationAddress(msgh, &dest)) {
     /* we don't get the port, only the address */
@@ -1264,17 +1265,17 @@ static bool checkDNSCryptQuery(const ClientState& cs, const char* query, uint16_
 bool checkQueryHeaders(const struct dnsheader* dh)
 {
   if (dh->qr) {   // don't respond to responses
-    g_stats.nonCompliantQueries++;
+    ++g_stats.nonCompliantQueries;
     return false;
   }
 
   if (dh->qdcount == 0) {
-    g_stats.emptyQueries++;
+    ++g_stats.emptyQueries;
     return false;
   }
 
   if (dh->rd) {
-    g_stats.rdQueries++;
+    ++g_stats.rdQueries;
   }
 
   return true;
@@ -1376,7 +1377,7 @@ static void processUDPQuery(ClientState& cs, LocalHolders& holders, const struct
           sendUDPResponse(cs.udpFD, response, responseLen, delayMsec, dest, remote);
         }
 
-        g_stats.selfAnswered++;
+        ++g_stats.selfAnswered;
         doLatencyStats(0);  // we're not going to measure this
       }
 
@@ -1443,15 +1444,15 @@ static void processUDPQuery(ClientState& cs, LocalHolders& holders, const struct
           }
         }
 
-        g_stats.cacheHits++;
+        ++g_stats.cacheHits;
         doLatencyStats(0);  // we're not going to measure this
         return;
       }
-      g_stats.cacheMisses++;
+      ++g_stats.cacheMisses;
     }
 
     if(!ss) {
-      g_stats.noPolicy++;
+      ++g_stats.noPolicy;
 
       if (g_servFailOnNoPolicy && !cs.muted) {
         char* response = query;
@@ -1511,7 +1512,7 @@ static void processUDPQuery(ClientState& cs, LocalHolders& holders, const struct
     }
     else {
       ss->reuseds++;
-      g_stats.downstreamTimeouts++;
+      ++g_stats.downstreamTimeouts;
     }
 
     ids->cs = &cs;
@@ -1561,7 +1562,7 @@ static void processUDPQuery(ClientState& cs, LocalHolders& holders, const struct
 
     if(ret < 0) {
       ss->sendErrors++;
-      g_stats.downstreamSendErrors++;
+      ++g_stats.downstreamSendErrors;
     }
 
     vinfolog("Got query for %s|%s from %s, relayed to %s", ids->qname.toString(), QType(ids->qtype).getName(), remote.toStringWithPort(), ss->getName());
@@ -1688,7 +1689,7 @@ try
       ssize_t got = recvmsg(cs->udpFD, &msgh, 0);
 
       if (got < 0 || static_cast<size_t>(got) < sizeof(struct dnsheader)) {
-        g_stats.nonCompliantQueries++;
+        ++g_stats.nonCompliantQueries;
         continue;
       }
 
@@ -1981,7 +1982,7 @@ static void healthChecksThread()
           ids.age = 0;
           dss->reuseds++;
           --dss->outstanding;
-          g_stats.downstreamTimeouts++; // this is an 'actively' discovered timeout
+          ++g_stats.downstreamTimeouts; // this is an 'actively' discovered timeout
           vinfolog("Had a downstream timeout from %s (%s) for query for %s|%s from %s",
                    dss->remote.toStringWithPort(), dss->name,
                    ids.qname.toString(), QType(ids.qtype).getName(), ids.origRemote.toStringWithPort());

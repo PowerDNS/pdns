@@ -69,7 +69,7 @@ private:
 
   struct Checker
   {
-    std::thread* thr;
+    std::thread thr;
     bool status;
   };
 
@@ -113,13 +113,6 @@ private:
     std::lock_guard<std::mutex> l(d_mutex);
     return d_statuses[cd].status;
   }
-
-  statuses_t getStatus()
-  {
-    std::lock_guard<std::mutex> l(d_mutex);
-    return d_statuses;
-  }
-
 };
 
 bool IsUpOracle::isUp(const CheckDesc& cd)
@@ -127,8 +120,7 @@ bool IsUpOracle::isUp(const CheckDesc& cd)
   std::lock_guard<std::mutex> l(d_mutex);
   auto iter = d_statuses.find(cd);
   if(iter == d_statuses.end()) {
-    std::thread* checker = new std::thread(&IsUpOracle::checkTCPThread, this, cd.rem, cd.opts);
-    d_statuses[cd]=Checker{checker, false};
+    d_statuses[cd]=Checker{std::thread(&IsUpOracle::checkTCPThread, this, cd.rem, cd.opts), false};
     return false;
   }
   return iter->second.status;
@@ -148,8 +140,7 @@ bool IsUpOracle::isUp(const ComboAddress& remote, const std::string& url, const 
   auto iter = d_statuses.find(cd);
   if(iter == d_statuses.end()) {
     //    g_log<<Logger::Warning<<"Launching HTTP(s) status checker for "<<remote.toStringWithPort()<<" and URL "<<url<<endl;
-    std::thread* checker = new std::thread(&IsUpOracle::checkURLThread, this, remote, url, opts);
-    d_statuses[cd]=Checker{checker, false};
+    d_statuses[cd]=Checker{std::thread(&IsUpOracle::checkURLThread, this, remote, url, opts), false};
     return false;
   }
 
@@ -579,7 +570,7 @@ std::vector<shared_ptr<DNSRecordContent>> luaSynth(const std::string& code, cons
       if(parts.size()==1) {
         // either hex string, or 12-13-14-15
         //        cout<<parts[0]<<endl;
-        int x1, x2, x3, x4;
+        unsigned int x1, x2, x3, x4;
         if(sscanf(parts[0].c_str()+2, "%02x%02x%02x%02x", &x1, &x2, &x3, &x4)==4) {
           return std::to_string(x1)+"."+std::to_string(x2)+"."+std::to_string(x3)+"."+std::to_string(x4);
         }

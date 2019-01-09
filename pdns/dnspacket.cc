@@ -93,45 +93,45 @@ uint16_t DNSPacket::getRemotePort() const
   return d_remote.sin4.sin_port;
 }
 
-DNSPacket::DNSPacket(const DNSPacket &orig)
+DNSPacket::DNSPacket(const DNSPacket &orig) :
+  d_socket(orig.d_socket),
+  d_remote(orig.d_remote),
+  d_dt(orig.d_dt),
+  d_compress(orig.d_compress),
+  d_tcp(orig.d_tcp),
+  qtype(orig.qtype),
+  qclass(orig.qclass),
+  qdomain(orig.qdomain),
+  qdomainwild(orig.qdomainwild),
+  qdomainzone(orig.qdomainzone),
+  d_maxreplylen(orig.d_maxreplylen),
+  d_wantsnsid(orig.d_wantsnsid),
+  d_anyLocal(orig.d_anyLocal),
+  d_eso(orig.d_eso),
+  d_haveednssubnet(orig.d_haveednssubnet),
+  d_haveednssection(orig.d_haveednssection),
+  d_ednsversion(orig.d_ednsversion),
+  d_ednsrcode(orig.d_ednsrcode),
+  d_dnssecOk(orig.d_dnssecOk),
+  d_rrs(orig.d_rrs),
+
+  d_tsigkeyname(orig.d_tsigkeyname),
+  d_tsigprevious(orig.d_tsigprevious),
+  d_tsigtimersonly(orig.d_tsigtimersonly),
+  d_trc(orig.d_trc),
+  d_tsigsecret(orig.d_tsigsecret),
+  d_ednsRawPacketSizeLimit(orig.d_ednsRawPacketSizeLimit),
+  d_havetsig(orig.d_havetsig),
+  d_wrapped(orig.d_wrapped),
+
+  d_rawpacket(orig.d_rawpacket),
+  d_tsig_algo(orig.d_tsig_algo),
+  d(orig.d),
+
+  d_isQuery(orig.d_isQuery),
+  d_hash(orig.d_hash)
 {
   DLOG(g_log<<"DNSPacket copy constructor called!"<<endl);
-  d_socket=orig.d_socket;
-  d_remote=orig.d_remote;
-  d_dt=orig.d_dt;
-  d_compress=orig.d_compress;
-  d_tcp=orig.d_tcp;
-  qtype=orig.qtype;
-  qclass=orig.qclass;
-  qdomain=orig.qdomain;
-  qdomainwild=orig.qdomainwild;
-  qdomainzone=orig.qdomainzone;
-  d_maxreplylen = orig.d_maxreplylen;
-  d_wantsnsid = orig.d_wantsnsid;
-  d_anyLocal = orig.d_anyLocal;  
-  d_eso = orig.d_eso;
-  d_haveednssubnet = orig.d_haveednssubnet;
-  d_haveednssection = orig.d_haveednssection;
-  d_ednsversion = orig.d_ednsversion;
-  d_ednsrcode = orig.d_ednsrcode;
-  d_dnssecOk = orig.d_dnssecOk;
-  d_rrs=orig.d_rrs;
-  
-  d_tsigkeyname = orig.d_tsigkeyname;
-  d_tsigprevious = orig.d_tsigprevious;
-  d_tsigtimersonly = orig.d_tsigtimersonly;
-  d_trc = orig.d_trc;
-  d_tsigsecret = orig.d_tsigsecret;
-  d_ednsRawPacketSizeLimit = orig.d_ednsRawPacketSizeLimit;
-  d_havetsig = orig.d_havetsig;
-  d_wrapped=orig.d_wrapped;
-
-  d_rawpacket=orig.d_rawpacket;
-  d_tsig_algo=orig.d_tsig_algo;
-  d=orig.d;
-
-  d_isQuery = orig.d_isQuery;
-  d_hash = orig.d_hash;
 }
 
 void DNSPacket::setRcode(int v)

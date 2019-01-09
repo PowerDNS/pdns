@@ -561,8 +561,8 @@ static bool sendPacketOverTCP(int fd, const std::vector<uint8_t>& packet)
   sendBuf[0]=packet.size()/256;
   sendBuf[1]=packet.size()%256;
 
-  ssize_t send = writen2(fd, sendBuf, 2);
-  send += writen2(fd, &packet[0], packet.size());
+  writen2(fd, sendBuf, 2);
+  writen2(fd, &packet[0], packet.size());
   return true;
 }
 

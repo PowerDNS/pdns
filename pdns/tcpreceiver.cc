@@ -961,12 +961,12 @@ int TCPNameserver::doAXFR(const DNSName &target, shared_ptr<DNSPacket> q, int ou
           n3rc.d_iterations = ns3pr.d_iterations;
           n3rc.d_algorithm = DNSSECKeeper::SHA1; // SHA1, fixed in PowerDNS for now
           nsecxrepo_t::const_iterator inext = iter;
-          inext++;
+          ++inext;
           if(inext == nsecxrepo.end())
             inext = nsecxrepo.begin();
           while(!inext->second.d_auth && inext != iter)
           {
-            inext++;
+            ++inext;
             if(inext == nsecxrepo.end())
               inext = nsecxrepo.begin();
           }
