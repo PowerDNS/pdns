@@ -266,7 +266,7 @@ install_recursor() {
   run "unzip top-1m.csv.zip -d ${TRAVIS_BUILD_DIR}/regression-tests"
   run 'echo -e "Package: pdns-*\nPin: origin repo.powerdns.com\nPin-Priority: 9001" | sudo tee /etc/apt/preferences.d/pdns'
   run 'sudo apt-get update'
-  run 'sudo apt-get -y install pdns-server pdns-tools'
+  run 'sudo apt-get -y install pdns-server pdns-backend-bind pdns-tools'
   run "sudo service pdns stop"
   run 'for suffix in {1..40}; do sudo /sbin/ip addr add 10.0.3.$suffix/32 dev lo; done'
   run "sudo touch /etc/authbind/byport/53"
