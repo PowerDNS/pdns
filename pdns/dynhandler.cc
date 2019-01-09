@@ -299,8 +299,8 @@ string DLNotifyHandler(const vector<string>&parts, Utility::pid_t ppid)
 
     int total = 0;
     int notified = 0;
-    for (vector<DomainInfo>::const_iterator di=domains.begin(); di != domains.end(); di++) {
-      if (di->kind == 0 || di->kind == 1) { // MASTER and Slave if slave-renotify is enabled
+    for (const auto& di : domains) {
+      if (di->kind == DomainInfo::Master || di->kind == DomainInfo::Slave) { // MASTER and Slave if slave-renotify is enabled
         total++;
         if(Communicator.notifyDomain(di->zone))
           notified++;
