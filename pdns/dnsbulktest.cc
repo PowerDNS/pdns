@@ -77,10 +77,8 @@ struct SendReceive
   
   boost::array<double, 11> d_probs;
   
-  SendReceive(const std::string& remoteAddr, uint16_t port)  
+  SendReceive(const std::string& remoteAddr, uint16_t port) : d_probs({{0.001,0.01, 0.025, 0.1, 0.25,0.5,0.75,0.9,0.975, 0.99,0.9999}})
   {
-    boost::array<double, 11> tmp ={{0.001,0.01, 0.025, 0.1, 0.25,0.5,0.75,0.9,0.975, 0.99,0.9999}};
-    d_probs = tmp;
     d_acc = new acc_t(boost::accumulators::tag::extended_p_square::probabilities=d_probs);
     // 
     //d_acc = acc_t

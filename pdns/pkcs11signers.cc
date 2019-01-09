@@ -217,12 +217,13 @@ class Pkcs11Slot {
     }
 
   public:
-    Pkcs11Slot(CK_FUNCTION_LIST* functions, const CK_SLOT_ID& slot) {
+  Pkcs11Slot(CK_FUNCTION_LIST* functions, const CK_SLOT_ID& slot) :
+      d_slot(slot),
+      d_functions(functions),
+      d_err(0),
+      d_logged_in(false)
+  {
       CK_TOKEN_INFO tokenInfo;
-      d_slot = slot;
-      d_functions = functions;
-      d_err = 0;
-      d_logged_in = false;
       pthread_mutex_init(&(this->d_m), NULL);
       Lock l(&d_m);
 
@@ -768,14 +769,15 @@ std::shared_ptr<Pkcs11Token> Pkcs11Token::GetToken(const std::string& module, co
   return pkcs11_tokens[tidx];
 }
 
-Pkcs11Token::Pkcs11Token(const std::shared_ptr<Pkcs11Slot>& slot, const std::string& label, const std::string& pub_label) {
+Pkcs11Token::Pkcs11Token(const std::shared_ptr<Pkcs11Slot>& slot, const std::string& label, const std::string& pub_label) :
+  d_bits(0),
+  d_slot(slot),
+  d_label(label),
+  d_pub_label(pub_label),
+  d_err(0),
+  d_loaded(false)
+{
   // open a session
-  this->d_bits = 0;
-  this->d_slot = slot;
-  this->d_label = label;
-  this->d_pub_label = pub_label;
-  this->d_err = 0;
-  this->d_loaded = false;
   if (this->d_slot->LoggedIn()) LoadAttributes();
 }
 

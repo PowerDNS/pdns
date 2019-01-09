@@ -324,12 +324,12 @@ void tcpClientThread(int pipefd)
         queriesCount++;
 
         if (qlen < sizeof(dnsheader)) {
-          g_stats.nonCompliantQueries++;
+          ++g_stats.nonCompliantQueries;
           break;
         }
 
         ci.cs->queries++;
-        g_stats.queries++;
+        ++g_stats.queries;
 
         if (g_maxTCPQueriesPerConn && queriesCount > g_maxTCPQueriesPerConn) {
           vinfolog("Terminating TCP connection from %s because it reached the maximum number of queries per conn (%d / %d)", ci.remote.toStringWithPort(), queriesCount, g_maxTCPQueriesPerConn);
@@ -413,7 +413,7 @@ void tcpClientThread(int pipefd)
           }
 #endif
           handler.writeSizeAndMsg(query, dq.len, g_tcpSendTimeout);
-          g_stats.selfAnswered++;
+          ++g_stats.selfAnswered;
           continue;
         }
 
@@ -465,14 +465,14 @@ void tcpClientThread(int pipefd)
             }
 #endif
             handler.writeSizeAndMsg(cachedResponse, cachedResponseSize, g_tcpSendTimeout);
-            g_stats.cacheHits++;
+            ++g_stats.cacheHits;
             continue;
           }
-          g_stats.cacheMisses++;
+          ++g_stats.cacheMisses;
         }
 
         if(!ds) {
-          g_stats.noPolicy++;
+          ++g_stats.noPolicy;
 
           if (g_servFailOnNoPolicy) {
             restoreFlags(dh, origFlags);
@@ -662,7 +662,7 @@ void tcpClientThread(int pipefd)
           sockets.erase(ds->remote);
         }
 
-        g_stats.responses++;
+        ++g_stats.responses;
         struct timespec answertime;
         gettime(&answertime);
         unsigned int udiff = 1000000.0*DiffTime(now,answertime);
@@ -722,7 +722,7 @@ void tcpAcceptorThread(void* p)
       }
 
       if(!acl->match(remote)) {
-	g_stats.aclDrops++;
+	++g_stats.aclDrops;
 	vinfolog("Dropped TCP connection from %s because of ACL", remote.toStringWithPort());
 	continue;
       }

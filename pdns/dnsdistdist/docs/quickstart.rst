@@ -39,7 +39,7 @@ Now run dnsdist again, reading this configuration::
 
 You can now send queries to port 5300, and get answers::
 
-  $ dig -t aaaa powerdns.com @127.0.0.1 -p 5300 +short
+  $ dig -t aaaa powerdns.com @127.0.0.1 -p 5300 +short +nocookie
   2001:888:2000:1d::2
 
 Note that dnsdist dropped us in a prompt above, where we can get some statistics::
@@ -59,7 +59,7 @@ Here we also see our configuration. 5 downstream servers have been configured, o
 
 The final server has no limit, which we can easily test::
 
-  $ for a in {0..1000}; do dig powerdns.com @127.0.0.1 -p 5300 +noall > /dev/null; done
+  $ for a in {0..1000}; do dig powerdns.com @127.0.0.1 -p 5300 +noall +nocookie > /dev/null; done
 
 ::
 

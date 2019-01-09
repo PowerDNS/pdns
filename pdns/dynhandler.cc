@@ -300,9 +300,9 @@ string DLNotifyHandler(const vector<string>&parts, Utility::pid_t ppid)
     int total = 0;
     int notified = 0;
     for (const auto& di : domains) {
-      if (di->kind == DomainInfo::Master || di->kind == DomainInfo::Slave) { // MASTER and Slave if slave-renotify is enabled
+      if (di.kind == DomainInfo::Master || di.kind == DomainInfo::Slave) { // MASTER and Slave if slave-renotify is enabled
         total++;
-        if(Communicator.notifyDomain(di->zone))
+        if(Communicator.notifyDomain(di.zone))
           notified++;
       }
     }
@@ -366,9 +366,9 @@ string DLListZones(const vector<string>&parts, Utility::pid_t ppid)
 
   int count = 0;
 
-  for (vector<DomainInfo>::const_iterator di=domains.begin(); di != domains.end(); di++) {
-    if (di->kind == kindFilter || kindFilter == -1) {
-      ret<<di->zone.toString()<<endl;
+  for (const auto& di: domains) {
+    if (di.kind == kindFilter || kindFilter == -1) {
+      ret<<di.zone.toString()<<endl;
       count++;
     }
   }

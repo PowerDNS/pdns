@@ -470,10 +470,8 @@ private:
 class SimpleMatch
 {
 public:
-  SimpleMatch(const string &mask, bool caseFold = false)
+  SimpleMatch(const string &mask, bool caseFold = false): d_mask(mask), d_fold(caseFold)
   {
-    this->d_mask = mask;
-    this->d_fold = caseFold;
   }
  
   bool match(string::const_iterator mi, string::const_iterator mend, string::const_iterator vi, string::const_iterator vend)
