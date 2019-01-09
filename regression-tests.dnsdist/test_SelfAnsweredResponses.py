@@ -15,7 +15,7 @@ class TestSelfAnsweredResponses(DNSDistTest):
 
     def testSelfAnsweredUDP(self):
         """
-        SelfAnsweredResponses: CacheHitResponse: Drop when served from the cache
+        SelfAnsweredResponses: Drop when served from the cache
         """
         ttl = 60
         name = 'udp.selfanswered.tests.powerdns.com.'
