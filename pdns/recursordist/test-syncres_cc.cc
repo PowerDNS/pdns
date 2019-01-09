@@ -4270,6 +4270,74 @@ BOOST_AUTO_TEST_CASE(test_dnssec_bogus_bad_sig) {
   BOOST_CHECK_EQUAL(queriesCount, 2);
 }
 
+BOOST_AUTO_TEST_CASE(test_dnssec_bogus_bad_sig_no_aa) {
+  std::unique_ptr<SyncRes> sr;
+  initSR(sr, true);
+
+  setDNSSECValidation(sr, DNSSECMode::ValidateAll);
+
+  primeHints();
+  const DNSName target(".");
+  testkeysset_t keys;
+
+  auto luaconfsCopy = g_luaconfs.getCopy();
+  luaconfsCopy.dsAnchors.clear();
+  generateKeyMaterial(g_rootdnsname, DNSSECKeeper::RSASHA512, DNSSECKeeper::SHA384, keys, luaconfsCopy.dsAnchors);
+
+  g_luaconfs.setState(luaconfsCopy);
+
+  size_t queriesCount = 0;
+
+  sr->setAsyncCallback([target,&queriesCount,keys](const ComboAddress& ip, const DNSName& domain, int type, bool doTCP, bool sendRDQuery, int EDNS0Level, struct timeval* now, boost::optional<Netmask>& srcmask, boost::optional<const ResolveContext&> context, std::shared_ptr<RemoteLogger> outgoingLogger, LWResult* res, bool* chained) {
+      queriesCount++;
+
+      if (domain == target && type == QType::NS) {
+
+        /* set AA=0 */
+        setLWResult(res, 0, false, false, true);
+        char addr[] = "a.root-servers.net.";
+        for (char idx = 'a'; idx <= 'm'; idx++) {
+          addr[0] = idx;
+          addRecordToLW(res, domain, QType::NS, std::string(addr), DNSResourceRecord::ANSWER, 3600);
+        }
+
+        addRRSIG(keys, res->d_records, domain, 300, true);
+
+        addRecordToLW(res, "a.root-servers.net.", QType::A, "198.41.0.4", DNSResourceRecord::ADDITIONAL, 3600);
+        addRecordToLW(res, "a.root-servers.net.", QType::AAAA, "2001:503:ba3e::2:30", DNSResourceRecord::ADDITIONAL, 3600);
+
+        return 1;
+      } else if (domain == target && type == QType::DNSKEY) {
+
+        setLWResult(res, 0, true, false, true);
+
+        addDNSKEY(keys, domain, 300, res->d_records);
+        addRRSIG(keys, res->d_records, domain, 300);
+
+        return 1;
+      }
+
+      return 0;
+    });
+
+  vector<DNSRecord> ret;
+  int res = sr->beginResolve(target, QType(QType::NS), QClass::IN, ret);
+  BOOST_CHECK_EQUAL(res, RCode::NoError);
+  BOOST_CHECK_EQUAL(sr->getValidationState(), Bogus);
+  /* 13 NS + 1 RRSIG */
+  BOOST_REQUIRE_EQUAL(ret.size(), 14);
+  BOOST_CHECK_EQUAL(queriesCount, 2);
+
+  /* again, to test the cache, but we will trigger a new outgoing query since
+     the answer did not have the AA bit set */
+  ret.clear();
+  res = sr->beginResolve(target, QType(QType::NS), QClass::IN, ret);
+  BOOST_CHECK_EQUAL(res, RCode::NoError);
+  BOOST_CHECK_EQUAL(sr->getValidationState(), Bogus);
+  BOOST_REQUIRE_EQUAL(ret.size(), 14);
+  BOOST_CHECK_EQUAL(queriesCount, 3);
+}
+
 BOOST_AUTO_TEST_CASE(test_dnssec_bogus_bad_algo) {
   std::unique_ptr<SyncRes> sr;
   initSR(sr, true);
