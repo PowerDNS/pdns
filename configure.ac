@@ -179,7 +179,7 @@ for a in $modules $dynmodules; do
     godbc)
       PDNS_WITH_UNIXODBC
       ;;
-    mydns|gmysql|pdns)
+    mydns|gmysql)
       PDNS_WITH_MYSQL
       ;;
     gpgsql)
