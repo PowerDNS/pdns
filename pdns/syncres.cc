@@ -2078,6 +2078,12 @@ void SyncRes::sanitizeRecords(const std::string& prefix, LWResult& lwr, const DN
         continue;
       }
 
+      if (!(lwr.d_aabit || wasForwardRecurse)) {
+        LOG(prefix<<"Removing irrelevant record '"<<rec->d_name<<"|"<<DNSRecordContent::NumberToType(rec->d_type)<<"|"<<rec->d_content->getZoneRepresentation()<<"' in the "<<(int)rec->d_place<<" section received from "<<auth<<endl);
+        rec = lwr.d_records.erase(rec);
+        continue;
+      }
+
       if (!haveAnswers) {
         if (lwr.d_rcode == RCode::NXDomain) {
           isNXDomain = true;
