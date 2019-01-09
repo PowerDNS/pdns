@@ -2035,9 +2035,13 @@ void SyncRes::sanitizeRecords(const std::string& prefix, LWResult& lwr, const DN
 
     /* dealing with the records in answer */
     if (!(lwr.d_aabit || wasForwardRecurse) && rec->d_place == DNSResourceRecord::ANSWER) {
-      LOG(prefix<<"Removing record '"<<rec->d_name<<"|"<<DNSRecordContent::NumberToType(rec->d_type)<<"|"<<rec->d_content->getZoneRepresentation()<<"' in the answer section without the AA bit set received from "<<auth<<endl);
-      rec = lwr.d_records.erase(rec);
-      continue;
+      /* for now we allow a CNAME for the exact qname in ANSWER with AA=0, because Amazon DNS servers
+         are sending such responses */
+      if (!(rec->d_type == QType::CNAME && qname == rec->d_name)) {
+        LOG(prefix<<"Removing record '"<<rec->d_name<<"|"<<DNSRecordContent::NumberToType(rec->d_type)<<"|"<<rec->d_content->getZoneRepresentation()<<"' in the answer section without the AA bit set received from "<<auth<<endl);
+        rec = lwr.d_records.erase(rec);
+        continue;
+      }
     }
 
     if (rec->d_type == QType::DNAME && (rec->d_place != DNSResourceRecord::ANSWER || !qname.isPartOf(rec->d_name))) {
@@ -2192,8 +2196,12 @@ RCode::rcodes_ SyncRes::updateCacheFromRecords(unsigned int depth, LWResult& lwr
     }
 
     if (!(lwr.d_aabit || wasForwardRecurse) && rec.d_place == DNSResourceRecord::ANSWER) {
-      LOG("NO! - we don't accept records in the answers section without the AA bit set"<<endl);
-      continue;
+      /* for now we allow a CNAME for the exact qname in ANSWER with AA=0, because Amazon DNS servers
+         are sending such responses */
+      if (!(rec.d_type == QType::CNAME && rec.d_name == qname)) {
+        LOG("NO! - we don't accept records in the answers section without the AA bit set"<<endl);
+        continue;
+      }
     }
 
     if(rec.d_name.isPartOf(auth)) {
@@ -2406,7 +2414,11 @@ bool SyncRes::processRecords(const std::string& prefix, const DNSName& qname, co
       continue;
 
     if (rec.d_place==DNSResourceRecord::ANSWER && !(lwr.d_aabit || sendRDQuery)) {
-      continue;
+      /* for now we allow a CNAME for the exact qname in ANSWER with AA=0, because Amazon DNS servers
+         are sending such responses */
+      if (!(rec.d_type == QType::CNAME && rec.d_name == qname)) {
+        continue;
+      }
     }
 
     if(rec.d_place==DNSResourceRecord::AUTHORITY && rec.d_type==QType::SOA &&
