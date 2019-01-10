@@ -217,19 +217,17 @@ void DNSFilterEngine::Zone::addQNameTrigger(const DNSName& n, Policy&& pol)
   if (it != d_qpolName.end()) {
     auto& existingPol = it->second;
 
-    if (existingPol.d_kind != pol.d_kind) {
-      throw std::runtime_error("Adding a QName-based filter policy of kind " + getKindToString(existingPol.d_kind) + " but a policy of kind " + getKindToString(existingPol.d_kind) + " already exists for the following QName: " + n.toString());
+    if (pol.d_kind != PolicyKind::Custom) {
+      throw std::runtime_error("Adding a QName-based filter policy of kind " + getKindToString(pol.d_kind) + " but a policy of kind " + getKindToString(existingPol.d_kind) + " already exists for the following QName: " + n.toLogString());
     }
 
     if (existingPol.d_kind != PolicyKind::Custom) {
-      throw std::runtime_error("Adding a QName-based filter policy of kind " + getKindToString(existingPol.d_kind) + " but there was already an existing policy for the following QName: " + n.toString());
+      throw std::runtime_error("Adding a QName-based filter policy of kind " + getKindToString(existingPol.d_kind) + " but there was already an existing policy for the following QName: " + n.toLogString());
     }
 
     existingPol.d_custom.reserve(existingPol.d_custom.size() + pol.d_custom.size());
 
-    for (auto& custom : pol.d_custom) {
-      existingPol.d_custom.emplace_back(std::move(custom));
-    }
+    std::move(pol.d_custom.begin(), pol.d_custom.end(), std::back_inserter(existingPol.d_custom));
   }
   else {
     auto& qpol = d_qpolName.insert({n, std::move(pol)}).first->second;
