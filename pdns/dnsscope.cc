@@ -458,9 +458,8 @@ try
   sum=0;
   double lastperc=0, perc=0;
   uint64_t lastsum=0;
-  for(cumul_t::const_iterator i=cumul.begin(); i!=cumul.end(); ++i) {
-    sum+=i->second;
 
+  for(cumul_t::const_iterator i=cumul.begin(); i!=cumul.end(); ++i) {
     for(done_t::iterator j=done.begin(); j!=done.end(); ++j) {
       if(!j->second && i->first > j->first) {
         j->second=true;
@@ -476,7 +475,24 @@ try
         lastsum=sum;
       }
     }
+    sum+=i->second;
   }
+
+  for(auto j = done.begin(); j != done.end(); ++j) {
+    if(!j->second) {
+      perc=sum*100.0/totpairs;
+      if(j->first < 1024)
+        cout<< perc <<"% of questions answered within " << j->first << " usec (";
+      else
+        cout<< perc <<"% of questions answered within " << j->first/1000.0 << " msec (";
+      
+      cout<<perc-lastperc<<"%)\n";
+      lastperc=sum*100.0/totpairs;
+      lastsum=sum;
+      break;
+    }
+  }
+  
   cout<< (totpairs-lastsum)<<" responses ("<<((totpairs-lastsum)*100.0/answers) <<"%) older than "<< (done.rbegin()->first/1000000.0) <<" seconds"<<endl;
   if(totpairs)
     cout<<"Average non-late response time: "<<tottime/totpairs<<" usec"<<endl;
