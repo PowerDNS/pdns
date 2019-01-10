@@ -1831,8 +1831,6 @@ class TestCachingScopeZero(DNSDistTest):
             (receivedQuery, receivedResponse) = sender(query, scopedResponse)
             receivedQuery.id = expectedQuery.id
             self.checkMessageEDNSWithECS(expectedQuery, receivedQuery)
-            print(receivedResponse)
-            print(expectedResponse)
             self.checkMessageEDNSWithECS(receivedResponse, expectedResponse)
 
         # it should still have been cached, though, so the next query should be a hit
