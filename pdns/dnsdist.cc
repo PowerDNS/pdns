@@ -1767,7 +1767,7 @@ try
     return false;
   }
 
-  int ret=waitForRWData(sock.getHandle(), true, 1, 0);
+  int ret = waitForRWData(sock.getHandle(), true, /* ms to seconds */ ds.checkTimeout / 1000, /* remaining ms to us */ (ds.checkTimeout % 1000) * 1000);
   if(ret < 0 || !ret) { // error, timeout, both are down!
     if (ret < 0) {
       ret = errno;

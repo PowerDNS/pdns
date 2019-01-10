@@ -336,6 +336,10 @@ void setupLuaConfig(bool client)
 			  ret->checkFunction= boost::get<DownstreamState::checkfunc_t>(vars["checkFunction"]);
 			}
 
+			if(vars.count("checkTimeout")) {
+			  ret->checkTimeout = std::stoi(boost::get<string>(vars["checkTimeout"]));
+			}
+
 			if(vars.count("setCD")) {
 			  ret->setCD=boost::get<bool>(vars["setCD"]);
 			}
