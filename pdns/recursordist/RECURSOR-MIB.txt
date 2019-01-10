@@ -801,6 +801,14 @@ dnssecCheckDisabledQueries OBJECT-TYPE
         "Number of queries received with the CD bit set"
     ::= { stats 96 }
 
+variableResponses OBJECT-TYPE
+    SYNTAX Counter64
+    MAX-ACCESS read-only
+    STATUS current
+    DESCRIPTION
+        "Number of variable responses"
+    ::= { stats 97 }
+
 ---
 --- Traps / Notifications
 ---
@@ -938,7 +946,8 @@ recGroup OBJECT-GROUP
         truncatedDrops,
         emptyQueries,
         dnssecAuthenticDataQueries,
-        dnssecCheckDisabledQueries
+        dnssecCheckDisabledQueries,
+        variableResponses,
         trapReason
     }
     STATUS current

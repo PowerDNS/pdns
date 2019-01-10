@@ -348,6 +348,10 @@ void setupLuaConfig(bool client)
 			  ret->useECS=boost::get<bool>(vars["useClientSubnet"]);
 			}
 
+			if(vars.count("disableZeroScope")) {
+			  ret->disableZeroScope=boost::get<bool>(vars["disableZeroScope"]);
+			}
+
 			if(vars.count("ipBindAddrNoPort")) {
 			  ret->ipBindAddrNoPort=boost::get<bool>(vars["ipBindAddrNoPort"]);
 			}

@@ -1486,6 +1486,18 @@ static void startDoResolve(void *p)
     }
   sendit:;
 
+    if(g_useIncomingECS && dc->d_ecsFound && !sr.wasVariable() && !variableAnswer) {
+      //      cerr<<"Stuffing in a 0 scope because answer is static"<<endl;
+      EDNSSubnetOpts eo;
+      eo.source = dc->d_ednssubnet.source;
+      ComboAddress sa;
+      sa.reset();
+      sa.sin4.sin_family = eo.source.getNetwork().sin4.sin_family;
+      eo.scope = Netmask(sa, 0);
+
+      returnedEdnsOptions.push_back(make_pair(EDNSOptionCode::ECS, makeEDNSSubnetOptsString(eo)));
+    }
+
     if (haveEDNS) {
       /* we try to add the EDNS OPT RR even for truncated answers,
          as rfc6891 states:
@@ -1555,6 +1567,9 @@ static void startDoResolve(void *p)
       if(sendmsg(dc->d_socket, &msgh, 0) < 0 && g_logCommonErrors) 
         g_log<<Logger::Warning<<"Sending UDP reply to client "<<dc->getRemote()<<" failed with: "<<strerror(errno)<<endl;
 
+      if(variableAnswer || sr.wasVariable()) {
+        g_stats.variableResponses++;
+      }
       if(!SyncRes::s_nopacketcache && !variableAnswer && !sr.wasVariable() ) {
         t_packetCache->insertResponsePacket(dc->d_tag, dc->d_qhash, std::move(dc->d_query), dc->d_mdp.d_qname, dc->d_mdp.d_qtype, dc->d_mdp.d_qclass,
                                             string((const char*)&*packet.begin(), packet.size()),

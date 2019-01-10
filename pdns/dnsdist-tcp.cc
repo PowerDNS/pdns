@@ -433,21 +433,56 @@ void tcpClientThread(int pipefd)
           ds = policy.policy(servers, &dq);
         }
 
+        uint32_t cacheKeyNoECS = 0;
+        uint32_t cacheKey = 0;
+        boost::optional<Netmask> subnet;
+        char cachedResponse[4096];
+        uint16_t cachedResponseSize = sizeof cachedResponse;
+        uint32_t allowExpired = ds ? 0 : g_staleCacheEntriesTTL;
+        bool useZeroScope = false;
+
+        bool dnssecOK = false;
+        if (packetCache && !dq.skipCache) {
+          dnssecOK = (getEDNSZ(dq) & EDNS_HEADER_FLAG_DO);
+        }
+
         if (dq.useECS && ((ds && ds->useECS) || (!ds && serverPool->getECS()))) {
+          // we special case our cache in case a downstream explicitly gave us a universally valid response with a 0 scope
+          if (packetCache && !dq.skipCache && (!ds || !ds->disableZeroScope) && packetCache->isECSParsingEnabled()) {
+            if (packetCache->get(dq, consumed, dq.dh->id, cachedResponse, &cachedResponseSize, &cacheKeyNoECS, subnet, dnssecOK, allowExpired)) {
+              DNSResponse dr(dq.qname, dq.qtype, dq.qclass, dq.consumed, dq.local, dq.remote, (dnsheader*) cachedResponse, sizeof cachedResponse, cachedResponseSize, true, &queryRealTime);
+#ifdef HAVE_PROTOBUF
+              dr.uniqueId = dq.uniqueId;
+#endif
+              dr.qTag = dq.qTag;
+
+              if (!processResponse(holders.cacheHitRespRulactions, dr, &delayMsec)) {
+                goto drop;
+              }
+
+#ifdef HAVE_DNSCRYPT
+              if (!encryptResponse(cachedResponse, &cachedResponseSize, sizeof cachedResponse, true, dnsCryptQuery, nullptr, nullptr)) {
+                goto drop;
+              }
+#endif
+              handler.writeSizeAndMsg(cachedResponse, cachedResponseSize, g_tcpSendTimeout);
+              g_stats.cacheHits++;
+              continue;
+            }
+
+            if (!subnet) {
+              /* there was no existing ECS on the query, enable the zero-scope feature */
+              useZeroScope = true;
+            }
+          }
+
           if (!handleEDNSClientSubnet(dq, &(ednsAdded), &(ecsAdded), g_preserveTrailingData)) {
             vinfolog("Dropping query from %s because we couldn't insert the ECS value", ci.remote.toStringWithPort());
             goto drop;
           }
         }
 
-        uint32_t cacheKey = 0;
-        boost::optional<Netmask> subnet;
-        bool dnssecOK = false;
         if (packetCache && !dq.skipCache) {
-          char cachedResponse[4096];
-          uint16_t cachedResponseSize = sizeof cachedResponse;
-          uint32_t allowExpired = ds ? 0 : g_staleCacheEntriesTTL;
-          dnssecOK = (getEDNSZ(dq) & EDNS_HEADER_FLAG_DO);
           if (packetCache->get(dq, (uint16_t) consumed, dq.dh->id, cachedResponse, &cachedResponseSize, &cacheKey, subnet, dnssecOK, allowExpired)) {
             DNSResponse dr(dq.qname, dq.qtype, dq.qclass, dq.consumed, dq.local, dq.remote, (dnsheader*) cachedResponse, sizeof cachedResponse, cachedResponseSize, true, &queryRealTime);
 #ifdef HAVE_PROTOBUF
@@ -616,7 +651,8 @@ void tcpClientThread(int pipefd)
           break;
         }
         firstPacket=false;
-        if (!fixUpResponse(&response, &responseLen, &responseSize, qname, origFlags, ednsAdded, ecsAdded, rewrittenResponse, addRoom)) {
+        bool zeroScope = false;
+        if (!fixUpResponse(&response, &responseLen, &responseSize, qname, origFlags, ednsAdded, ecsAdded, rewrittenResponse, addRoom, useZeroScope ? &zeroScope : nullptr)) {
           break;
         }
 
@@ -632,7 +668,19 @@ void tcpClientThread(int pipefd)
         }
 
 	if (packetCache && !dq.skipCache) {
-	  packetCache->insert(cacheKey, subnet, origFlags, dnssecOK, qname, qtype, qclass, response, responseLen, true, dh->rcode, dq.tempFailureTTL);
+          if (!useZeroScope) {
+            /* if the query was not suitable for zero-scope, for
+               example because it had an existing ECS entry so the hash is
+               not really 'no ECS', so just insert it for the existing subnet
+               since:
+               - we don't have the correct hash for a non-ECS query
+               - inserting with hash computed before the ECS replacement but with
+               the subnet extracted _after_ the replacement would not work.
+            */
+            zeroScope = false;
+          }
+          // if zeroScope, pass the pre-ECS hash-key and do not pass the subnet to the cache
+          packetCache->insert(zeroScope ? cacheKeyNoECS : cacheKey, zeroScope ? boost::none : subnet, origFlags, dnssecOK, qname, qtype, qclass, response, responseLen, true, dh->rcode, dq.tempFailureTTL);
 	}
 
 #ifdef HAVE_DNSCRYPT
