@@ -596,7 +596,7 @@ static void on_accept(h2o_socket_t *listener, const char *err)
 
 static int create_listener(const ComboAddress& addr, DOHServerConfig* dsc)
 {
-  cout<<"Launching DOH listener on "<<addr.toStringWithPort()<<endl;
+  infolog("Launching DOH listener on %s", addr.toStringWithPort());
   int fd, reuseaddr_flag = 1;
   h2o_socket_t *sock;
   

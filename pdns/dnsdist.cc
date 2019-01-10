@@ -510,7 +510,6 @@ try {
         dr.qTag = ids->qTag;
 
         if (!processResponse(localRespRulactions, dr, &ids->delayMsec)) {
-          cout<<"Response processing said no"<<endl;
           continue;
         }
 
@@ -520,7 +519,6 @@ try {
         }
 #endif
         if (!fixUpResponse(&response, &responseLen, &responseSize, ids->qname, ids->origFlags, ids->ednsAdded, ids->ecsAdded, rewrittenResponse, addRoom)) {
-          cout<<"Fixupresponse said no"<<endl;
           continue;
         }
 
