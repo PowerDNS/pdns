@@ -531,7 +531,7 @@ struct IDState
   }
 
   std::atomic<int> origFD;  // set to <0 to indicate this state is empty   // 4
-  DOHUnit* du;                                                // 12 - rest of count is now 8 off
+  DOHUnit* du{nullptr};                                                // 12 - rest of count is now 8 off
 
   ComboAddress origRemote;                                    // 28
   ComboAddress origDest;                                      // 28
