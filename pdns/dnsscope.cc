@@ -144,6 +144,7 @@ try
     ("log-histogram", "Write a log-histogram to file 'log-histogram'")
     ("full-histogram", po::value<double>(), "Write a log-histogram to file 'full-histogram' with this millisecond bin size")
 #endif
+    ("filter-name,f", po::value<string>(), "Do statistics only for queries within this domain")
     ("load-stats,l", po::value<string>()->default_value(""), "if set, emit per-second load statistics (questions, answers, outstanding)")
     ("no-servfail-stats", "Don't include servfails in response time stats")
     ("servfail-tree", "Figure out subtrees that generate servfails")
@@ -176,6 +177,11 @@ try
     cout << desc << endl;
     exit(0);
   }
+
+  DNSName filtername;
+  if(g_vm.count("filter-name"))
+    filtername = DNSName(g_vm["filter-name"].as<string>());
+  uint32_t nameMismatch = 0;
 
   StatNode root;
 
@@ -245,7 +251,12 @@ try
 	    rdFilterMismatch++;
 	    continue;
 	  }
-
+          
+          if(!filtername.empty() && !qname.isPartOf(filtername)) {
+            nameMismatch++;
+            continue;
+          }
+          
 	  if(!header.qr) {
             uint16_t udpsize, z;
             if(getEDNSUDPPayloadSizeAndZ((const char*)pr.d_payload, pr.d_len, &udpsize, &z)) {
@@ -390,6 +401,8 @@ try
   cout<<nonDNSIP<<" non-DNS UDP, "<<dnserrors<<" dns decoding errors, "<<parsefail<<" packets failed to parse"<<endl;
   cout<<"Ignored fragment packets: "<<fragmented<<endl;
   cout<<"Dropped DNS packets based on recursion-desired filter: "<<rdFilterMismatch<<endl;
+  if(!filtername.empty())
+    cout <<"Dropped DNS packets because not part of '"<<filtername<<"': "<<nameMismatch << endl;
   cout<<"DNS IPv4: "<<ipv4DNSPackets<<" packets, IPv6: "<<ipv6DNSPackets<<" packets"<<endl;
   cout<<"Questions: "<<queries<<", answers: "<<answers<<endl;
   cout<<"Reuses of same state entry: "<<reuses<<endl;
