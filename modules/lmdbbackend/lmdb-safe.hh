@@ -202,11 +202,7 @@ public:
 private:
   MDBInVal(){}
   char d_memory[sizeof(double)];
-
 };
-
-
-
 
 class MDBROCursor;
 
@@ -294,35 +290,12 @@ public:
    "If the parent transaction commits, the cursor must not be used again."
 */
 
-class MDBROCursor
+template<class Transaction>
+class MDBGenCursor
 {
 public:
-  MDBROCursor(MDBROTransaction* parent, const MDB_dbi& dbi) : d_parent(parent)
-  {
-    int rc= mdb_cursor_open(d_parent->d_txn, dbi, &d_cursor);
-    if(rc) {
-      throw std::runtime_error("Error creating RO cursor: "+std::string(mdb_strerror(rc)));
-    }
-  }
-  MDBROCursor(MDBROCursor&& rhs)
-  {
-    d_cursor = rhs.d_cursor;
-    rhs.d_cursor=0;
-  }
-
-  void close()
-  {
-    mdb_cursor_close(d_cursor);
-    d_cursor=0;
-  }
-  
-  ~MDBROCursor()
-  {
-    if(d_cursor)
-      mdb_cursor_close(d_cursor);
-  }
-
-  
+  MDBGenCursor(Transaction *t) : d_parent(t)
+  {}
   int get(MDBOutVal& key, MDBOutVal& data, MDB_cursor_op op)
   {
     int rc = mdb_cursor_get(d_cursor, &key.d_mdbval, &data.d_mdbval, op);
@@ -339,7 +312,7 @@ public:
        throw std::runtime_error("Unable to find from cursor: " + std::string(mdb_strerror(rc)));
     return rc;
   }
-
+  
   int lower_bound(const MDBInVal& in, MDBOutVal& key, MDBOutVal& data)
   {
     key.d_mdbval = in.d_mdbval;
@@ -385,9 +358,44 @@ public:
   {
     return currentlast(key, data, MDB_LAST);
   }
-  
+
+  operator MDB_cursor*&()
+  {
+    return d_cursor;
+  }
+
   MDB_cursor* d_cursor;
-  MDBROTransaction* d_parent;
+  Transaction* d_parent;
+};
+
+class MDBROCursor : public MDBGenCursor<MDBROTransaction>
+{
+public:
+  MDBROCursor(MDBROTransaction* parent, const MDB_dbi& dbi) : MDBGenCursor<MDBROTransaction>(parent)
+  {
+    int rc= mdb_cursor_open(d_parent->d_txn, dbi, &d_cursor);
+    if(rc) {
+      throw std::runtime_error("Error creating RO cursor: "+std::string(mdb_strerror(rc)));
+    }
+  }
+  MDBROCursor(MDBROCursor&& rhs) : MDBGenCursor<MDBROTransaction>(rhs.d_parent)
+  {
+    d_cursor = rhs.d_cursor;
+    rhs.d_cursor=0;
+  }
+
+  void close()
+  {
+    mdb_cursor_close(d_cursor);
+    d_cursor=0;
+  }
+  
+  ~MDBROCursor()
+  {
+    if(d_cursor)
+      mdb_cursor_close(d_cursor);
+  }
+
 };
 
 class MDBRWCursor;
@@ -538,10 +546,10 @@ public:
 /* "A cursor in a write-transaction can be closed before its transaction ends, and will otherwise be closed when its transaction ends" 
    This is a problem for us since it may means we are closing the cursor twice, which is bad
 */
-class MDBRWCursor
+class MDBRWCursor : public MDBGenCursor<MDBRWTransaction>
 {
 public:
-  MDBRWCursor(MDBRWTransaction* parent, const MDB_dbi& dbi) : d_parent(parent)
+  MDBRWCursor(MDBRWTransaction* parent, const MDB_dbi& dbi) : MDBGenCursor<MDBRWTransaction>(parent)
   {
     int rc= mdb_cursor_open(d_parent->d_txn, dbi, &d_cursor);
     if(rc) {
@@ -549,9 +557,8 @@ public:
     }
     d_parent->reportCursor(this);
   }
-  MDBRWCursor(MDBRWCursor&& rhs)
+  MDBRWCursor(MDBRWCursor&& rhs) : MDBGenCursor<MDBRWTransaction>(rhs.d_parent)
   {
-    d_parent = rhs.d_parent;
     d_cursor = rhs.d_cursor;
     rhs.d_cursor=0;
     d_parent->reportCursorMove(&rhs, this);
@@ -569,14 +576,6 @@ public:
     if(d_cursor)
       mdb_cursor_close(d_cursor);
     d_parent->unreportCursor(this);
-  }
-
-  int get(MDBOutVal& key, MDBOutVal& data, MDB_cursor_op op)
-  {
-    int rc = mdb_cursor_get(d_cursor, &key.d_mdbval, &data.d_mdbval, op);
-    if(rc && rc != MDB_NOTFOUND)
-      throw std::runtime_error("mdb_cursor_get: " + std::string(mdb_strerror(rc)));
-    return rc;
   }
 
 
@@ -598,54 +597,9 @@ public:
                           const_cast<MDB_val*>(&data.d_mdbval), flags);
   }
 
-  int find(const MDBInVal& in, MDBOutVal& key, MDBOutVal& data)
-  {
-    key.d_mdbval = in.d_mdbval;
-    int rc=mdb_cursor_get(d_cursor, const_cast<MDB_val*>(&key.d_mdbval), &data.d_mdbval, MDB_SET);
-    if(rc && rc != MDB_NOTFOUND)
-       throw std::runtime_error("Unable to find from cursor: " + std::string(mdb_strerror(rc)));
-    return rc;
-  }
-
-  int lower_bound(const MDBInVal& in, MDBOutVal& key, MDBOutVal& data)
-  {
-    key.d_mdbval = in.d_mdbval;
-
-    int rc = mdb_cursor_get(d_cursor, const_cast<MDB_val*>(&key.d_mdbval), &data.d_mdbval, MDB_SET_RANGE);
-    if(rc && rc != MDB_NOTFOUND)
-       throw std::runtime_error("Unable to lower_bound from cursor: " + std::string(mdb_strerror(rc)));
-    return rc;
-  }
-
-  int nextprev(MDBOutVal& key, MDBOutVal& data, MDB_cursor_op op)
-  {
-    int rc = mdb_cursor_get(d_cursor, const_cast<MDB_val*>(&key.d_mdbval), &data.d_mdbval, op);
-    if(rc && rc != MDB_NOTFOUND)
-       throw std::runtime_error("Unable to prevnext from cursor: " + std::string(mdb_strerror(rc)));
-    return rc;
-  }
-
-  int next(MDBOutVal& key, MDBOutVal& data)
-  {
-    return nextprev(key, data, MDB_NEXT);
-  }
-
-  int prev(MDBOutVal& key, MDBOutVal& data)
-  {
-    return nextprev(key, data, MDB_PREV);
-  }
-
   int del(int flags=0)
   {
     return mdb_cursor_del(d_cursor, flags);
   }
-
-  operator MDB_cursor*&()
-  {
-    return d_cursor;
-  }
-  
-  MDB_cursor* d_cursor;
-  MDBRWTransaction* d_parent;
 };
 
