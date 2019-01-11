@@ -114,6 +114,9 @@ class TestCarbon(DNSDistTest):
             self.assertTrue(value >= 1)
 
     def testCarbonServerUp(self):
+        """
+        Carbon: set up 2 carbon servers
+        """
         # wait for the carbon data to be sent
         time.sleep(self._carbonInterval + 1)
 
