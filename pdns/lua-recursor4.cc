@@ -86,6 +86,7 @@ static int getFakeAAAARecords(const DNSName& qname, const std::string& prefix, v
         }),
       ret.end());
 
+  bool seenA = false;
   for(DNSRecord& rr :  ret)
   {
     if(rr.d_type == QType::A && rr.d_place==DNSResourceRecord::ANSWER) {
@@ -98,7 +99,20 @@ static int getFakeAAAARecords(const DNSName& qname, const std::string& prefix, v
         rr.d_content = std::make_shared<AAAARecordContent>(prefixAddress);
         rr.d_type = QType::AAAA;
       }
+      seenA = true;
     }
+  }
+
+  if (seenA) {
+    // We've seen an A in the ANSWER section, so there is no need to keep any
+    // SOA in the AUTHORITY section as this is not a NODATA response.
+    ret.erase(std::remove_if(
+          ret.begin(),
+          ret.end(),
+          [](DNSRecord& rr) {
+            return (rr.d_type == QType::SOA && rr.d_place==DNSResourceRecord::AUTHORITY);
+          }),
+        ret.end());
   }
   return rcode;
 }
