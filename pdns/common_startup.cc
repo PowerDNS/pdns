@@ -116,7 +116,7 @@ void declareArguments()
   ::arg().set("receiver-threads","Default number of receiver threads to start")="1";
   ::arg().set("queue-limit","Maximum number of milliseconds to queue a query")="1500"; 
   ::arg().set("resolver","Use this resolver for ALIAS and the internal stub resolver")="no";
-  ::arg().set("udp-truncation-threshold", "Maximum UDP response size before we truncate")="1680";
+  ::arg().set("udp-truncation-threshold", "Maximum UDP response size before we truncate")="1232";
   ::arg().set("disable-tcp","Do not listen to TCP queries")="no";
   
   ::arg().set("config-name","Name of this virtual configuration - will rename the binary image")="";
