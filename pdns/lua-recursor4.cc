@@ -65,6 +65,27 @@ static int getFakeAAAARecords(const DNSName& qname, const std::string& prefix, v
 
   ComboAddress prefixAddress(prefix);
 
+  // Remove double CNAME records
+  std::set<DNSName> seenCNAMEs;
+  ret.erase(std::remove_if(
+        ret.begin(),
+        ret.end(),
+        [&seenCNAMEs](DNSRecord& rr) {
+          if (rr.d_type == QType::CNAME) {
+            auto target = getRR<CNAMERecordContent>(rr);
+            if (target == nullptr) {
+              return false;
+            }
+            if (seenCNAMEs.count(target->getTarget()) > 0) {
+              // We've had this CNAME before, remove it
+              return true;
+            }
+            seenCNAMEs.insert(target->getTarget());
+          }
+          return false;
+        }),
+      ret.end());
+
   for(DNSRecord& rr :  ret)
   {
     if(rr.d_type == QType::A && rr.d_place==DNSResourceRecord::ANSWER) {
