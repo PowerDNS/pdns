@@ -1545,7 +1545,7 @@ of reflection attacks. Maximum value is 65535, but values above
 .. note:: Why 1232?
 
   1232 is the largest number of payload bytes that can fit in the smallest IPv6 packet.
-  IPv6 has a minumum MTU of 1280 bytes (:rfc:`RFC 8200, section 5 <8200#section-5>`), minus 40 bytes for the IPv6 header, minus 8 bytes for the UDP header gives 1232, the maximum payload size for the DNS response.
+  IPv6 has a minimum MTU of 1280 bytes (:rfc:`RFC 8200, section 5 <8200#section-5>`), minus 40 bytes for the IPv6 header, minus 8 bytes for the UDP header gives 1232, the maximum payload size for the DNS response.
 
 .. _setting-version-string:
 
