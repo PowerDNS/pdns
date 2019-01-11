@@ -51,6 +51,9 @@ public:
   void getAllDomains(vector<DomainInfo> *domains, bool include_disabled=false) override;
   void lookup(const QType &type, const DNSName &qdomain, DNSPacket *p, int zoneId) override;
   bool get(DNSResourceRecord &rr) override;
+  bool get(DNSZoneRecord& dzr) override;
+
+  bool getSOA(const DNSName &domain, SOAData &sd) override;
   void getUnfreshSlaveInfos(vector<DomainInfo>* domains) override;
   
   bool setMaster(const DNSName &domain, const string &ip) override;
@@ -254,8 +257,8 @@ private:
   int genChangeDomain(uint32_t id, std::function<void(DomainInfo&)> func);
   void deleteDomainRecords(RecordsRWTransaction& txn, uint32_t domain_id);
   
-  bool get_list(DNSResourceRecord &rr);
-  bool get_lookup(DNSResourceRecord &rr);
+  bool get_list(DNSZoneRecord &rr);
+  bool get_lookup(DNSZoneRecord &rr);
   bool d_inlist{false};
   QType d_lookuptype;                   // for get after lookup
   std::string d_matchkey;

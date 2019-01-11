@@ -204,6 +204,11 @@ std::string unserializeContent(uint16_t qtype, const DNSName& qname, const std::
   return DNSRecordContent::unserialize(qname, qtype, content)->getZoneRepresentation();
 }
 
+std::shared_ptr<DNSRecordContent> unserializeContentZR(uint16_t qtype, const DNSName& qname, const std::string& content)
+{
+  return DNSRecordContent::unserialize(qname, qtype, content);
+}
+
 
 /* design. If you ask a question without a zone id, we lookup the best
    zone id for you, and answer from that. This is different than other backends, but I can't see why it would not work.
@@ -485,7 +490,7 @@ void LMDBBackend::lookup(const QType &type, const DNSName &qdomain, DNSPacket *p
   d_lookupdomainid = zoneId;
 }
 
-bool LMDBBackend::get(DNSResourceRecord& rr)
+bool LMDBBackend::get(DNSZoneRecord& rr)
 {
   if(d_inlist)
     return get_list(rr);
@@ -493,7 +498,52 @@ bool LMDBBackend::get(DNSResourceRecord& rr)
     return get_lookup(rr);
 }
 
-bool LMDBBackend::get_list(DNSResourceRecord& rr)
+bool LMDBBackend::get(DNSResourceRecord& rr)
+{
+  cout <<"Old-school get called"<<endl;
+  DNSZoneRecord dzr;
+  if(d_inlist) {
+    if(!get_list(dzr))
+      return false;
+  }
+  else {
+    if(!get_lookup(dzr))
+      return false;
+  }
+  rr.qname = dzr.dr.d_name;
+  rr.ttl = dzr.dr.d_ttl;
+  rr.qtype =dzr.dr.d_type;
+  rr.content = dzr.dr.d_content->getZoneRepresentation();
+  rr.domain_id = dzr.domain_id;
+  cout<<"old school called for "<<rr.qname<<", "<<rr.qtype.getName()<<endl;
+  return true;
+}
+
+bool LMDBBackend::getSOA(const DNSName &domain, SOAData &sd)
+{
+  //  cout <<"Native getSOA called"<<endl;
+  lookup(QType(QType::SOA), domain, 0, -1);
+  DNSZoneRecord dzr;
+  bool found=false;
+  while(get(dzr)) {
+    auto src = getRR<SOARecordContent>(dzr.dr);
+    sd.domain_id = dzr.domain_id;
+    sd.ttl = dzr.dr.d_ttl;
+    sd.qname = dzr.dr.d_name;
+    
+    sd.nameserver = src->d_mname;
+    sd.serial = src->d_st.serial;
+    sd.refresh = src->d_st.refresh;
+    sd.retry = src->d_st.retry;
+    sd.expire = src->d_st.expire;
+    sd.default_ttl = src->d_st.minimum;
+    
+    sd.db = this;
+    found=true;
+  }
+  return found;
+}
+bool LMDBBackend::get_list(DNSZoneRecord& rr)
 {
   if(!d_getcursor)  {
     d_rotxn.reset();
@@ -502,13 +552,15 @@ bool LMDBBackend::get_list(DNSResourceRecord& rr)
 
   MDBOutVal keyv, val;
   d_getcursor->current(keyv, val);
-  serFromString(val.get<string>(), rr);
+  DNSResourceRecord drr;
+  serFromString(val.get<string>(), drr);
 
   auto key = keyv.get<string_view>();
-  rr.qname = compoundOrdername::getQName(key) + d_lookupqname;
+  rr.dr.d_name = compoundOrdername::getQName(key) + d_lookupqname;
   rr.domain_id = compoundOrdername::getDomainID(key);
-  rr.qtype = compoundOrdername::getQType(key);
-  rr.content = unserializeContent(rr.qtype.getCode(), rr.qname, rr.content);
+  rr.dr.d_type = compoundOrdername::getQType(key).getCode();
+  rr.dr.d_ttl = drr.ttl;
+  rr.dr.d_content = unserializeContentZR(drr.qtype.getCode(), rr.dr.d_name, drr.content);
 
   if(d_getcursor->next(keyv, val) || keyv.get<StringView>().rfind(d_matchkey, 0) != 0) {
     d_getcursor.reset();
@@ -517,7 +569,7 @@ bool LMDBBackend::get_list(DNSResourceRecord& rr)
 }
 
 
-bool LMDBBackend::get_lookup(DNSResourceRecord& rr)
+bool LMDBBackend::get_lookup(DNSZoneRecord& rr)
 {
   if(!d_getcursor) {
     d_rotxn.reset();
@@ -525,17 +577,19 @@ bool LMDBBackend::get_lookup(DNSResourceRecord& rr)
   }
   MDBOutVal keyv, val;
   d_getcursor->current(keyv, val);
-  serFromString(val.get<string>(), rr);
+  DNSResourceRecord drr;
+  serFromString(val.get<string>(), drr);
 
   auto key = keyv.get<string_view>();
 
-  rr.qname = compoundOrdername::getQName(key) + d_lookupdomain;
+  rr.dr.d_name = compoundOrdername::getQName(key) + d_lookupdomain;
 
   rr.domain_id = compoundOrdername::getDomainID(key);
   //  cout << "We found "<<rr.qname<< " in zone id "<<rr.domain_id <<endl;
-  rr.qtype = compoundOrdername::getQType(key);
+  rr.dr.d_type = compoundOrdername::getQType(key).getCode();
+  rr.dr.d_ttl = drr.ttl;
   //  cout<<"Going to deserialize "<<makeHexDump(rr.content)<<" into: ";
-  rr.content = unserializeContent(rr.qtype.getCode(), rr.qname, rr.content);
+  rr.dr.d_content = unserializeContentZR(rr.dr.d_type, rr.dr.d_name, drr.content);
   //  cout <<rr.content<<endl;
 
   if(d_getcursor->next(keyv, val) || keyv.get<StringView>().rfind(d_matchkey, 0) != 0) {
