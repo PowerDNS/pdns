@@ -22,7 +22,13 @@
 #pragma once
 #include "config.h"
 
-#ifdef HAVE_DNSCRYPT
+#ifndef HAVE_DNSCRYPT
+
+class DNSCryptQuery
+{
+};
+
+#else
 
 #include <memory>
 #include <string>
