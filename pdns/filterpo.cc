@@ -283,9 +283,9 @@ bool DNSFilterEngine::Zone::rmQNameTrigger(const DNSName& n, const Policy& pol)
   }
 
   bool result = false;
-  for (auto& toremove : pol.d_custom) {
+  for (auto& toRemove : pol.d_custom) {
     for (auto it = existing.d_custom.begin(); it != existing.d_custom.end(); ++it) {
-      if (**it == *toremove) {
+      if (**it == *toRemove) {
         existing.d_custom.erase(it);
         result = true;
         break;
