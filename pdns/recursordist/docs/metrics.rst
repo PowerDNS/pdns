@@ -480,7 +480,7 @@ variable-responses
 ^^^^^^^^^^^^^^^^^^
 .. versionadded:: 4.2
 
-Reponses that were marked as 'variable'. This could be because of EDNS
+Responses that were marked as 'variable'. This could be because of EDNS
 Client Subnet or Lua rules that indicate this variable status (dependent on
 time or who is asking, for example).
 
