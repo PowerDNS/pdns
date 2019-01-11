@@ -2801,7 +2801,7 @@ BOOST_AUTO_TEST_CASE(test_nameserver_ipv4_rpz) {
   pol.d_kind = DNSFilterEngine::PolicyKind::Drop;
   std::shared_ptr<DNSFilterEngine::Zone> zone = std::make_shared<DNSFilterEngine::Zone>();
   zone->setName("Unit test policy 0");
-  zone->addNSIPTrigger(Netmask(ns, 32), pol);
+  zone->addNSIPTrigger(Netmask(ns, 32), std::move(pol));
   auto luaconfsCopy = g_luaconfs.getCopy();
   luaconfsCopy.dfe.addZone(zone);
   g_luaconfs.setState(luaconfsCopy);
@@ -2842,7 +2842,7 @@ BOOST_AUTO_TEST_CASE(test_nameserver_ipv6_rpz) {
   pol.d_kind = DNSFilterEngine::PolicyKind::Drop;
   std::shared_ptr<DNSFilterEngine::Zone> zone = std::make_shared<DNSFilterEngine::Zone>();
   zone->setName("Unit test policy 0");
-  zone->addNSIPTrigger(Netmask(ns, 128), pol);
+  zone->addNSIPTrigger(Netmask(ns, 128), std::move(pol));
   auto luaconfsCopy = g_luaconfs.getCopy();
   luaconfsCopy.dfe.addZone(zone);
   g_luaconfs.setState(luaconfsCopy);
@@ -2884,7 +2884,7 @@ BOOST_AUTO_TEST_CASE(test_nameserver_name_rpz) {
   pol.d_kind = DNSFilterEngine::PolicyKind::Drop;
   std::shared_ptr<DNSFilterEngine::Zone> zone = std::make_shared<DNSFilterEngine::Zone>();
   zone->setName("Unit test policy 0");
-  zone->addNSTrigger(nsName, pol);
+  zone->addNSTrigger(nsName, std::move(pol));
   auto luaconfsCopy = g_luaconfs.getCopy();
   luaconfsCopy.dfe.addZone(zone);
   g_luaconfs.setState(luaconfsCopy);
@@ -2926,8 +2926,8 @@ BOOST_AUTO_TEST_CASE(test_nameserver_name_rpz_disabled) {
   pol.d_kind = DNSFilterEngine::PolicyKind::Drop;
   std::shared_ptr<DNSFilterEngine::Zone> zone = std::make_shared<DNSFilterEngine::Zone>();
   zone->setName("Unit test policy 0");
-  zone->addNSIPTrigger(Netmask(ns, 128), pol);
-  zone->addNSTrigger(nsName, pol);
+  zone->addNSIPTrigger(Netmask(ns, 128), DNSFilterEngine::Policy(pol));
+  zone->addNSTrigger(nsName, std::move(pol));
   auto luaconfsCopy = g_luaconfs.getCopy();
   luaconfsCopy.dfe.addZone(zone);
   g_luaconfs.setState(luaconfsCopy);

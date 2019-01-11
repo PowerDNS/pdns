@@ -116,7 +116,7 @@ void RPZRecordToPolicy(const DNSRecord& dr, std::shared_ptr<DNSFilterEngine::Zon
     }
     else {
       pol.d_kind = DNSFilterEngine::PolicyKind::Custom;
-      pol.d_custom = dr.d_content;
+      pol.d_custom.emplace_back(dr.d_content);
       // cerr<<"Wants custom "<<crcTarget<<" for "<<dr.d_name<<": ";
     }
   }
@@ -126,7 +126,7 @@ void RPZRecordToPolicy(const DNSRecord& dr, std::shared_ptr<DNSFilterEngine::Zon
     }
     else {
       pol.d_kind = DNSFilterEngine::PolicyKind::Custom;
-      pol.d_custom = dr.d_content;
+      pol.d_custom.emplace_back(dr.d_content);
       // cerr<<"Wants custom "<<dr.d_content->getZoneRepresentation()<<" for "<<dr.d_name<<": ";
     }
   }
@@ -142,37 +142,37 @@ void RPZRecordToPolicy(const DNSRecord& dr, std::shared_ptr<DNSFilterEngine::Zon
   if(dr.d_name.isPartOf(rpzNSDname)) {
     DNSName filt=dr.d_name.makeRelative(rpzNSDname);
     if(addOrRemove)
-      zone->addNSTrigger(filt, pol);
+      zone->addNSTrigger(filt, std::move(pol));
     else
-      zone->rmNSTrigger(filt, pol);
+      zone->rmNSTrigger(filt, std::move(pol));
   } else if(dr.d_name.isPartOf(rpzClientIP)) {
     DNSName filt=dr.d_name.makeRelative(rpzClientIP);
     auto nm=makeNetmaskFromRPZ(filt);
     if(addOrRemove)
-      zone->addClientTrigger(nm, pol);
+      zone->addClientTrigger(nm, std::move(pol));
     else
-      zone->rmClientTrigger(nm, pol);
+      zone->rmClientTrigger(nm, std::move(pol));
     
   } else if(dr.d_name.isPartOf(rpzIP)) {
     // cerr<<"Should apply answer content IP policy: "<<dr.d_name<<endl;
     DNSName filt=dr.d_name.makeRelative(rpzIP);
     auto nm=makeNetmaskFromRPZ(filt);
     if(addOrRemove)
-      zone->addResponseTrigger(nm, pol);
+      zone->addResponseTrigger(nm, std::move(pol));
     else
-      zone->rmResponseTrigger(nm, pol);
+      zone->rmResponseTrigger(nm, std::move(pol));
   } else if(dr.d_name.isPartOf(rpzNSIP)) {
     DNSName filt=dr.d_name.makeRelative(rpzNSIP);
     auto nm=makeNetmaskFromRPZ(filt);
     if(addOrRemove)
-      zone->addNSIPTrigger(nm, pol);
+      zone->addNSIPTrigger(nm, std::move(pol));
     else
-      zone->rmNSIPTrigger(nm, pol);
+      zone->rmNSIPTrigger(nm, std::move(pol));
   } else {
     if(addOrRemove)
-      zone->addQNameTrigger(dr.d_name, pol);
+      zone->addQNameTrigger(dr.d_name, std::move(pol));
     else
-      zone->rmQNameTrigger(dr.d_name, pol);
+      zone->rmQNameTrigger(dr.d_name, std::move(pol));
   }
 }
 
