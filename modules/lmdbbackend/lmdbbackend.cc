@@ -60,12 +60,28 @@ LMDBBackend::LMDBBackend(const std::string& suffix)
     d_asyncFlag = 0;
   else
     throw std::runtime_error("Unknown sync mode "+syncMode+" requested for LMDB backend");
-  
-  d_tdomains = std::make_shared<tdomains_t>(getMDBEnv(getArg("filename").c_str(), MDB_NOSUBDIR | d_asyncFlag | MDB_WRITEMAP, 0600), "domains");
+
+  d_tdomains = std::make_shared<tdomains_t>(getMDBEnv(getArg("filename").c_str(), MDB_NOSUBDIR | d_asyncFlag, 0600), "domains");
   d_tmeta = std::make_shared<tmeta_t>(d_tdomains->getEnv(), "metadata");
   d_tkdb = std::make_shared<tkdb_t>(d_tdomains->getEnv(), "keydata");
   d_ttsig = std::make_shared<ttsig_t>(d_tdomains->getEnv(), "tsig");
+  
+  auto pdnsdbi = d_tdomains->getEnv()->openDB("pdns", MDB_CREATE);
+  auto txn = d_tdomains->getEnv()->getRWTransaction();
+  MDBOutVal shards;
+  if(!txn.get(pdnsdbi, "shards", shards)) {
     
+    d_shards = shards.get<uint32_t>();
+    if(d_shards != atoi(getArg("shards").c_str())) {
+      g_log << Logger::Warning<<"Note: configured number of lmdb shards ("<<atoi(getArg("shards").c_str())<<") is different from on-disk ("<<d_shards<<"). Using on-disk shard number"<<endl;
+    }
+  }
+  else {
+    d_shards = atoi(getArg("shards").c_str());
+    txn.put(pdnsdbi, "shards", d_shards);
+    txn.commit();
+  }
+    d_trecords.resize(d_shards);
   d_dolog = ::arg().mustDo("query-logging");
 }
 
@@ -302,10 +318,10 @@ bool LMDBBackend::replaceRRSet(uint32_t domain_id, const DNSName& qname, const Q
 
 std::shared_ptr<LMDBBackend::RecordsRWTransaction> LMDBBackend::getRecordsRWTransaction(uint32_t id)
 {
-  auto& shard =d_trecords[id % s_shards];
+  auto& shard =d_trecords[id % d_shards];
   if(!shard.env) {
-    shard.env = getMDBEnv( (getArg("filename")+"-"+std::to_string(id % s_shards)).c_str(),
-                           MDB_NOSUBDIR | d_asyncFlag | MDB_WRITEMAP, 0600);
+    shard.env = getMDBEnv( (getArg("filename")+"-"+std::to_string(id % d_shards)).c_str(),
+                           MDB_NOSUBDIR | d_asyncFlag, 0600);
     shard.dbi = shard.env->openDB("records", MDB_CREATE | MDB_DUPSORT);
   }
   auto ret = std::make_shared<RecordsRWTransaction>(shard.env->getRWTransaction());
@@ -316,10 +332,10 @@ std::shared_ptr<LMDBBackend::RecordsRWTransaction> LMDBBackend::getRecordsRWTran
 
 std::shared_ptr<LMDBBackend::RecordsROTransaction> LMDBBackend::getRecordsROTransaction(uint32_t id)
 {
-  auto& shard =d_trecords[id % s_shards];
+  auto& shard =d_trecords[id % d_shards];
   if(!shard.env) {
-    shard.env = getMDBEnv( (getArg("filename")+"-"+std::to_string(id % s_shards)).c_str(),
-                           MDB_NOSUBDIR | d_asyncFlag | MDB_WRITEMAP, 0600);
+    shard.env = getMDBEnv( (getArg("filename")+"-"+std::to_string(id % d_shards)).c_str(),
+                           MDB_NOSUBDIR | d_asyncFlag, 0600);
     shard.dbi = shard.env->openDB("records", MDB_CREATE | MDB_DUPSORT);
     
   }
@@ -421,7 +437,7 @@ void LMDBBackend::lookup(const QType &type, const DNSName &qdomain, DNSPacket *p
         break;
     }
     if(zoneId <= 0) {
-      cout << "Did not find zone for "<< qdomain<<endl;
+      //      cout << "Did not find zone for "<< qdomain<<endl;
       d_getcursor.reset();
       return;
     }
@@ -649,7 +665,7 @@ void LMDBBackend::getAllDomains(vector<DomainInfo> *domains, bool include_disabl
 
 void LMDBBackend::getUnfreshSlaveInfos(vector<DomainInfo>* domains)
 {
-  cout<<"Start of getUnfreshSlaveInfos"<<endl;
+  //  cout<<"Start of getUnfreshSlaveInfos"<<endl;
   domains->clear();
   auto txn = d_tdomains->getROTransaction();
 
@@ -692,7 +708,7 @@ void LMDBBackend::getUnfreshSlaveInfos(vector<DomainInfo>* domains)
 
     domains->push_back(di);
   }
-  cout<<"END of getUnfreshSlaveInfos"<<endl;
+  //  cout<<"END of getUnfreshSlaveInfos"<<endl;
 }
 
 bool LMDBBackend::getAllDomainMetadata(const DNSName& name, std::map<std::string, std::vector<std::string> >& meta)
@@ -1077,6 +1093,7 @@ public:
   {
     declare(suffix,"filename","Filename for lmdb","./pdns.lmdb");
     declare(suffix,"sync-mode","Synchronisation mode: nosync, nometasync, mapasync","mapasync");
+    declare(suffix,"shards","Records database will be split into this number of shards","64");
   }
   DNSBackend *make(const string &suffix="")
   {

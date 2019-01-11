@@ -210,9 +210,8 @@ private:
   typedef TypedDBI<TSIGKey,
                    index_on<TSIGKey, DNSName, &TSIGKey::name>                   
           > ttsig_t;
-
   
-  static constexpr int s_shards{512};
+  int d_shards;
   int d_asyncFlag;
 
   struct RecordsDB
@@ -236,7 +235,7 @@ private:
     MDBRWTransaction txn;
   };
   
-  vector<RecordsDB> d_trecords{s_shards};
+  vector<RecordsDB> d_trecords;;
 
   std::shared_ptr<MDBROCursor> d_getcursor;
 
