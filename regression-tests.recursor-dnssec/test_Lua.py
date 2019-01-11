@@ -122,19 +122,6 @@ class GettagRecursorTest(RecursorTest):
     def tearDownClass(cls):
         cls.tearDownRecursor()
 
-    def assertResponseMatches(self, query, expectedRRs, response):
-        expectedResponse = dns.message.make_response(query)
-
-        if query.flags & dns.flags.RD:
-            expectedResponse.flags |= dns.flags.RA
-        if query.flags & dns.flags.CD:
-            expectedResponse.flags |= dns.flags.CD
-
-        expectedResponse.answer = expectedRRs
-        print(expectedResponse)
-        print(response)
-        self.assertEquals(response, expectedResponse)
-
     def testA(self):
         name = 'gettag.lua.'
         expected = [
@@ -377,3 +364,57 @@ quiet=no
         query = dns.message.make_query('preout.luahooks.example.', 'AAAA', 'IN')
         res = self.sendUDPQuery(query)
         self.assertRcodeEqual(res, dns.rcode.NOERROR)
+
+
+class DNS64Test(RecursorTest):
+    """Tests the dq.followupAction("getFakeAAAARecords")"""
+
+    _confdir = 'dns64'
+    _config_template = """
+    """
+    _lua_dns_script_file = """
+    prefix = "2001:DB8:64::"
+
+    function nodata (dq)
+      if dq.qtype ~= pdns.AAAA then
+        return false
+      end  --  only AAAA records
+
+      -- don't fake AAAA records if DNSSEC validation failed
+      if dq.validationState == pdns.validationstates.Bogus then
+         return false
+      end
+
+      dq.followupFunction = "getFakeAAAARecords"
+      dq.followupPrefix = prefix
+      dq.followupName = dq.qname
+      return true
+    end
+    """
+
+    def testAtoAAAA(self):
+        expected = [
+            dns.rrset.from_text('ns.secure.example.', 15, dns.rdataclass.IN, 'AAAA', '2001:db8:64::7f00:9')
+        ]
+        query = dns.message.make_query('ns.secure.example', 'AAAA')
+
+        res = self.sendUDPQuery(query)
+
+        self.assertRcodeEqual(res, dns.rcode.NOERROR)
+        self.assertEqual(len(res.answer), 1)
+        self.assertEqual(len(res.authority), 0)
+        self.assertResponseMatches(query, expected, res)
+
+    def testAtoCNAMEtoAAAA(self):
+        expected = [
+            dns.rrset.from_text('cname-to-insecure.secure.example.', 3600, dns.rdataclass.IN, 'CNAME', 'node1.insecure.example.'),
+            dns.rrset.from_text('node1.insecure.example.', 3600, dns.rdataclass.IN, 'AAAA', '2001:db8:64::c000:206')
+        ]
+        query = dns.message.make_query('cname-to-insecure.secure.example.', 'AAAA')
+
+        res = self.sendUDPQuery(query)
+
+        self.assertRcodeEqual(res, dns.rcode.NOERROR)
+        self.assertEqual(len(res.answer), 2)
+        self.assertEqual(len(res.authority), 0)
+        self.assertResponseMatches(query, expected, res)
