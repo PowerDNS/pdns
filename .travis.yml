@@ -73,7 +73,6 @@ addons:
 
 before_script:
   - git describe --always --dirty=+
-  - sudo rm -f /etc/apt/sources.list.d/*.list
 
   ### setup travis environment ###
   - sudo sysctl net.ipv6.conf.lo.disable_ipv6=0
