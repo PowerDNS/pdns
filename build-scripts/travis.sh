@@ -393,7 +393,7 @@ test_auth() {
   run "./pdnsutil test-algorithms"
   run "cd .."
 
-  run "sudo systemctl start mysql.service postgresql.service"
+  run "sudo systemctl start slapd.service mysql.service postgresql.service"
   run "cd regression-tests"
 
   #travis unbound is too old for this test (unbound 1.6.0 required)

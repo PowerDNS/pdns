@@ -874,7 +874,6 @@ cachehitresprulactions
 cachemisses
 cachenotfullyet
 cacheonly
-cachesize
 cachettl
 cachevar
 cacheweekno
@@ -3142,7 +3141,6 @@ hcode
 Hcot
 hctx
 Hcu
-hdb
 HDd
 Hdhcm
 HDhn
@@ -4799,6 +4797,7 @@ MCX
 MCZ
 MDAL
 mday
+mdb
 mdctx
 mde
 Mdi
