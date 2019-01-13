@@ -199,13 +199,11 @@ std::string serializeContent(uint16_t qtype, const DNSName& domain, const std::s
   return drc->serialize(domain, false);
 }
 
-std::string unserializeContent(uint16_t qtype, const DNSName& qname, const std::string& content)
-{
-  return DNSRecordContent::unserialize(qname, qtype, content)->getZoneRepresentation();
-}
-
 std::shared_ptr<DNSRecordContent> unserializeContentZR(uint16_t qtype, const DNSName& qname, const std::string& content)
 {
+  if(qtype == QType::A && content.size() == 4) {
+    return std::make_shared<ARecordContent>(*((uint32_t*)content.c_str()));
+  }
   return DNSRecordContent::unserialize(qname, qtype, content);
 }
 
@@ -432,10 +430,11 @@ void LMDBBackend::lookup(const QType &type, const DNSName &qdomain, DNSPacket *p
   }
   DNSName hunt(qdomain);
   if(zoneId < 0) {
+    auto rotxn = d_tdomains->getROTransaction();
+    
     for(;;) {
       DomainInfo di;
-    
-      if((zoneId = d_tdomains->getROTransaction().get<0>(hunt, di))) {
+      if((zoneId = rotxn.get<0>(hunt, di))) {
         break;
       }
       if(!hunt.chopOff())
@@ -532,6 +531,7 @@ bool LMDBBackend::getSOA(const DNSName &domain, SOAData &sd)
     sd.qname = dzr.dr.d_name;
     
     sd.nameserver = src->d_mname;
+    sd.hostmaster = src->d_rname;
     sd.serial = src->d_st.serial;
     sd.refresh = src->d_st.refresh;
     sd.retry = src->d_st.retry;
@@ -560,7 +560,7 @@ bool LMDBBackend::get_list(DNSZoneRecord& rr)
   rr.domain_id = compoundOrdername::getDomainID(key);
   rr.dr.d_type = compoundOrdername::getQType(key).getCode();
   rr.dr.d_ttl = drr.ttl;
-  rr.dr.d_content = unserializeContentZR(drr.qtype.getCode(), rr.dr.d_name, drr.content);
+  rr.dr.d_content = unserializeContentZR(rr.dr.d_type, rr.dr.d_name, drr.content);
 
   if(d_getcursor->next(keyv, val) || keyv.get<StringView>().rfind(d_matchkey, 0) != 0) {
     d_getcursor.reset();
@@ -588,9 +588,7 @@ bool LMDBBackend::get_lookup(DNSZoneRecord& rr)
   //  cout << "We found "<<rr.qname<< " in zone id "<<rr.domain_id <<endl;
   rr.dr.d_type = compoundOrdername::getQType(key).getCode();
   rr.dr.d_ttl = drr.ttl;
-  //  cout<<"Going to deserialize "<<makeHexDump(rr.content)<<" into: ";
   rr.dr.d_content = unserializeContentZR(rr.dr.d_type, rr.dr.d_name, drr.content);
-  //  cout <<rr.content<<endl;
 
   if(d_getcursor->next(keyv, val) || keyv.get<StringView>().rfind(d_matchkey, 0) != 0) {
     d_getcursor.reset();
@@ -693,7 +691,6 @@ bool LMDBBackend::createDomain(const DNSName &domain)
           
 bool LMDBBackend::createDomain(const DNSName &domain, const string &type, const string &masters, const string &account)
 {
-  cout<<"Creating domain "<<domain<<endl;
   DomainInfo di;
   di.zone = domain;
   di.kind = DomainInfo::Native;
@@ -753,7 +750,7 @@ void LMDBBackend::getUnfreshSlaveInfos(vector<DomainInfo>* domains)
       serial = ntohl(st.serial);
     }
     else {
-      cout << "Could not find SOA for "<<iter->zone<<" with id "<<iter.getID()<<endl;
+      //      cout << "Could not find SOA for "<<iter->zone<<" with id "<<iter.getID()<<endl;
       serial=0;  
     }
     DomainInfo di=*iter;    
@@ -779,7 +776,6 @@ bool LMDBBackend::getAllDomainMetadata(const DNSName& name, std::map<std::string
 
 bool LMDBBackend::setDomainMetadata(const DNSName& name, const std::string& kind, const std::vector<std::string>& meta)
 {
-  cout<<"Wants to set "<<kind<<" for domain "<<name<<endl;
   auto txn = d_tmeta->getRWTransaction();
 
   auto range = txn.equal_range<0>(name);
