@@ -202,7 +202,11 @@ public:
 private:
   MDBInVal(){}
   char d_memory[sizeof(double)];
+
 };
+
+
+
 
 class MDBROCursor;
 
@@ -357,6 +361,10 @@ public:
   int last(MDBOutVal& key, MDBOutVal& data)
   {
     return currentlast(key, data, MDB_LAST);
+  }
+  int first(MDBOutVal& key, MDBOutVal& data)
+  {
+    return currentlast(key, data, MDB_FIRST);
   }
 
   operator MDB_cursor*&()
