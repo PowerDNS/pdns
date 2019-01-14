@@ -236,10 +236,11 @@ install_auth() {
   run "slaptest -f ldap.conf -F slapd.d"
   run "sudo cp slapd.d/cn=config/cn=schema/cn={*dns*.ldif /etc/ldap/slapd.d/cn=config/cn=schema/"
   run "sudo chown -R openldap:openldap /etc/ldap/slapd.d/"
-  run "sudo service slapd restart"
+  run "sudo systemctl restart slapd"
   run "popd"
   run "sudo -u openldap mkdir -p /var/lib/ldap/powerdns"
   run "sudo ldapadd -Y EXTERNAL -H ldapi:/// -f ./modules/ldapbackend/testfiles/add.ldif"
+  run "sudo systemctl stop slapd"
 
   # remote-backend tests requirements
   run "gem update --system"
@@ -399,9 +400,11 @@ test_auth() {
   #travis unbound is too old for this test (unbound 1.6.0 required)
   run "touch tests/ent-asterisk/fail.nsec"
 
+  run "sudo systemctl start slapd.service"
   run "./timestamp ./start-test-stop 5300 ldap-tree"
   run "./timestamp ./start-test-stop 5300 ldap-simple"
   run "./timestamp ./start-test-stop 5300 ldap-strict"
+  run "sudo systemctl stop slapd.service"
 
   run "./timestamp ./start-test-stop 5300 bind-both"
   run "./timestamp ./start-test-stop 5300 bind-dnssec-both"
@@ -416,20 +419,24 @@ test_auth() {
   run "export geoipdatabase=../modules/geoipbackend/regression-tests/GeoLiteCity.mmdb"
   run "./timestamp ./start-test-stop 5300 geoip"
 
+  run "sudo systemctl start mysql.service"
   run "./timestamp ./start-test-stop 5300 gmysql-nodnssec-both"
   run "./timestamp ./start-test-stop 5300 gmysql-both"
   run "./timestamp ./start-test-stop 5300 gmysql-nsec3-both"
   run "./timestamp ./start-test-stop 5300 gmysql-nsec3-optout-both"
   run "./timestamp ./start-test-stop 5300 gmysql-nsec3-narrow"
+  run "sudo systemctl stop mysql.service"
 
   run "export GODBC_SQLITE3_DSN=pdns-sqlite3-1"
   run "./timestamp ./start-test-stop 5300 godbc_sqlite3-nsec3"
 
+  run "sudo systemctl start postgresql.service"
   run "./timestamp ./start-test-stop 5300 gpgsql-nodnssec-both"
   run "./timestamp ./start-test-stop 5300 gpgsql-both"
   run "./timestamp ./start-test-stop 5300 gpgsql-nsec3-both"
   run "./timestamp ./start-test-stop 5300 gpgsql-nsec3-optout-both"
   run "./timestamp ./start-test-stop 5300 gpgsql-nsec3-narrow"
+  run "sudo systemctl stop postgresql.service"
 
   run "./timestamp ./start-test-stop 5300 gsqlite3-nodnssec-both"
   run "./timestamp ./start-test-stop 5300 gsqlite3-both"
@@ -467,17 +474,21 @@ test_auth() {
   run "./timestamp ./start-test-stop 5300 bind-dnssec-nsec3-narrow"
   run "./timestamp ./start-test-stop 5300 bind-hybrid-nsec3"
 
+  run "sudo systemctl start mysql.service"
   run "./timestamp ./start-test-stop 5300 gmysql-nodnssec-both"
   run "./timestamp ./start-test-stop 5300 gmysql-both"
   run "./timestamp ./start-test-stop 5300 gmysql-nsec3-both"
   run "./timestamp ./start-test-stop 5300 gmysql-nsec3-optout-both"
   run "./timestamp ./start-test-stop 5300 gmysql-nsec3-narrow"
+  run "sudo systemctl stop mysql.service"
 
+  run "sudo systemctl start postgresql.service"
   run "./timestamp ./start-test-stop 5300 gpgsql-nodnssec-both"
   run "./timestamp ./start-test-stop 5300 gpgsql-both"
   run "./timestamp ./start-test-stop 5300 gpgsql-nsec3-both"
   run "./timestamp ./start-test-stop 5300 gpgsql-nsec3-optout-both"
   run "./timestamp ./start-test-stop 5300 gpgsql-nsec3-narrow"
+  run "sudo systemctl stop postgresql.service"
 
   run "./timestamp ./start-test-stop 5300 gsqlite3-nodnssec-both"
   run "./timestamp ./start-test-stop 5300 gsqlite3-both"
