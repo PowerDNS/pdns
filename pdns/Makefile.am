@@ -1513,6 +1513,45 @@ dnsdist:
 if HAVE_SYSTEMD
 pdns.service: pdns.service.in
 	$(AM_V_GEN)sed -e 's![@]sbindir[@]!$(sbindir)!' < $< > $@
+if !HAVE_SYSTEMD_LOCK_PERSONALITY
+	$(AM_V_GEN)sed -i '' -e '/^LockPersonality/d' $@
+endif
+if !HAVE_SYSTEMD_PRIVATE_DEVICES
+	$(AM_V_GEN)sed -i '' -e '/^PrivateDevices/d' $@
+endif
+if !HAVE_SYSTEMD_PRIVATE_TMP
+	$(AM_V_GEN)sed -i '' -e '/^PrivateTmp/d' $@
+endif
+if !HAVE_SYSTEMD_PROTECT_CONTROL_GROUPS
+	$(AM_V_GEN)sed -i '' -e '/^ProtectControlGroups/d' $@
+endif
+if !HAVE_SYSTEMD_PROTECT_HOME
+	$(AM_V_GEN)sed -i '' -e '/^ProtectHome/d' $@
+endif
+if !HAVE_SYSTEMD_PROTECT_KERNEL_MODULES
+	$(AM_V_GEN)sed -i '' -e '/^ProtectKernelModules/d' $@
+endif
+if !HAVE_SYSTEMD_PROTECT_KERNEL_TUNABLES
+	$(AM_V_GEN)sed -i '' -e '/^ProtectKernelTunables/d' $@
+endif
+if !HAVE_SYSTEMD_PROTECT_SYSTEM
+	$(AM_V_GEN)sed -i '' -e '/^ProtectSystem/d' $@
+endif
+if !HAVE_SYSTEMD_RESTRICT_ADDRESS_FAMILIES
+	$(AM_V_GEN)sed -i '' -e '/^RestrictAddressFamilies/d' $@
+endif
+if !HAVE_SYSTEMD_RESTRICT_NAMESPACES
+	$(AM_V_GEN)sed -i '' -e '/^RestrictNamespaces/d' $@
+endif
+if !HAVE_SYSTEMD_RESTRICT_REALTIME
+	$(AM_V_GEN)sed -i '' -e '/^RestrictRealtime/d' $@
+endif
+if !HAVE_SYSTEMD_SYSTEM_CALL_ARCHITECTURES
+	$(AM_V_GEN)sed -i '' -e '/^SystemCallArchitectures/d' $@
+endif
+if !HAVE_SYSTEMD_SYSTEM_CALL_FILTER
+	$(AM_V_GEN)sed -i '' -e '/^SystemCallFilter/d' $@
+endif
 
 pdns@.service: pdns.service
 	$(AM_V_GEN)sed -e 's!/pdns_server!& --config-name=%i!' \

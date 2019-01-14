@@ -33,6 +33,8 @@ ProtectSystem=full
 RestrictAddressFamilies=AF_UNIX AF_INET AF_INET6
 RestrictNamespaces=true
 RestrictRealtime=true
+SystemCallArchitectures=native
+SystemCallFilter=~ @clock @debug @module @mount @raw-io @reboot @swap @cpu-emulation @obsolete
 
 [Install]
 WantedBy=multi-user.target

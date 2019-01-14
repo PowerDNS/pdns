@@ -270,6 +270,7 @@ for a in $dynmodules; do
 done
 
 AX_AVAILABLE_SYSTEMD
+AX_CHECK_SYSTEMD_FEATURES
 AM_CONDITIONAL([HAVE_SYSTEMD], [ test x"$systemd" = "xy" ])
 
 LDFLAGS="$RELRO_LDFLAGS $LDFLAGS"
