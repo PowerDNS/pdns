@@ -1535,15 +1535,17 @@ IP address of incoming notification proxy
 ----------------------------
 
 -  Integer
--  Default: 1680
+-  Default: 1232
 
 EDNS0 allows for large UDP response datagrams, which can potentially
 raise performance. Large responses however also have downsides in terms
-of reflection attacks. Up till PowerDNS Authoritative Server 3.3, the
-truncation limit was set at 1680 bytes, regardless of EDNS0 buffer size
-indications from the client. Beyond 3.3, this setting makes our
-truncation limit configurable. Maximum value is 65535, but values above
+of reflection attacks. Maximum value is 65535, but values above
 4096 should probably not be attempted.
+
+.. note:: Why 1232?
+
+  1232 is the largest number of payload bytes that can fit in the smallest IPv6 packet.
+  IPv6 has a minimum MTU of 1280 bytes (:rfc:`RFC 8200, section 5 <8200#section-5>`), minus 40 bytes for the IPv6 header, minus 8 bytes for the UDP header gives 1232, the maximum payload size for the DNS response.
 
 .. _setting-version-string:
 

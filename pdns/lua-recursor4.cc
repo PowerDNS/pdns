@@ -288,13 +288,24 @@ void RecursorLua4::postPrepareContext()
   d_lw->registerMember("policyTTL", &DNSFilterEngine::Policy::d_ttl);
   d_lw->registerMember<DNSFilterEngine::Policy, std::string>("policyCustom",
     [](const DNSFilterEngine::Policy& pol) -> std::string {
-      if(pol.d_custom)
-        return pol.d_custom->getZoneRepresentation();
-      return std::string();
+      std::string result;
+      if (pol.d_kind != DNSFilterEngine::PolicyKind::Custom) {
+        return result;
+      }
+
+      for (const auto& dr : pol.d_custom) {
+        if (!result.empty()) {
+          result += "\n";
+        }
+        result += dr->getZoneRepresentation();
+      }
+
+      return result;
     },
     [](DNSFilterEngine::Policy& pol, const std::string& content) {
       // Only CNAMES for now, when we ever add a d_custom_type, there will be pain
-      pol.d_custom = DNSRecordContent::mastermake(QType::CNAME, 1, content);
+      pol.d_custom.clear();
+      pol.d_custom.push_back(DNSRecordContent::mastermake(QType::CNAME, QClass::IN, content));
     }
   );
   d_lw->registerFunction("getDH", &DNSQuestion::getDH);

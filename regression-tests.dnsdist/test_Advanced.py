@@ -1643,7 +1643,7 @@ class TestAdvancedLuaTempFailureTTL(DNSDistTest):
 
     def testTempFailureTTLBinding(self):
         """
-        Exercise dq.tempFailureTTL Lua binding
+        Advanced: Exercise dq.tempFailureTTL Lua binding
         """
         name = 'tempfailurettlbinding.advanced.tests.powerdns.com.'
         query = dns.message.make_query(name, 'A', 'IN')
@@ -1671,7 +1671,7 @@ class TestAdvancedEDNSOptionRule(DNSDistTest):
 
     def testDropped(self):
         """
-        A question with ECS is dropped
+        Advanced: A question with ECS is dropped
         """
 
         name = 'ednsoptionrule.advanced.tests.powerdns.com.'
@@ -1686,7 +1686,7 @@ class TestAdvancedEDNSOptionRule(DNSDistTest):
 
     def testReplied(self):
         """
-        A question without ECS is answered
+        Advanced: A question without ECS is answered
         """
 
         name = 'ednsoptionrule.advanced.tests.powerdns.com.'

@@ -1375,9 +1375,9 @@ static void processUDPQuery(ClientState& cs, LocalHolders& holders, const struct
     gettime(&now);
     gettime(&queryRealTime, true);
 
-#ifdef HAVE_DNSCRYPT
     std::shared_ptr<DNSCryptQuery> dnsCryptQuery = nullptr;
 
+#ifdef HAVE_DNSCRYPT
     if (!checkDNSCryptQuery(cs, query, len, dnsCryptQuery, dest, remote, queryRealTime.tv_sec)) {
       return;
     }
