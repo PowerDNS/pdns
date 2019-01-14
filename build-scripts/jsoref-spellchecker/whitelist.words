@@ -4832,7 +4832,7 @@ memchr
 memcmp
 memcpy
 memfree
-MEMLOCK
+memlock
 memmove
 memoize
 memset
@@ -7339,6 +7339,7 @@ Sakaguchi
 SAkn
 salen
 saltsa
+Sandboxing
 sandybrown
 Sangwhan
 sanitizerflags
@@ -8508,6 +8509,7 @@ Ttv
 ttype
 TUCUj
 Tuinder
+tunables
 tuomi
 tupb
 Tupleizer
