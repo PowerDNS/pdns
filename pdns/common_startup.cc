@@ -557,33 +557,41 @@ void mainthread()
   }
   catch(...) {}
 
-  // Some sanity checking on default key settings
-  bool hadKeyError = false;
-  for (const string& algotype : {"ksk", "zsk"}) {
-    int algo, size;
-    if (::arg()["default-"+algotype+"-algorithm"].empty())
-      continue;
-    algo = DNSSECKeeper::shorthand2algorithm(::arg()["default-"+algotype+"-algorithm"]);
-    size = ::arg().asNum("default-"+algotype+"-size");
-    if (algo == -1) {
-      g_log<<Logger::Error<<"Error: default-"<<algotype<<"-algorithm set to unknown algorithm: "<<::arg()["default-"+algotype+"-algorithm"]<<endl;
-      hadKeyError = true;
+  {
+    // Some sanity checking on default key settings
+    bool hadKeyError = false;
+    int kskAlgo{0}, zskAlgo{0};
+    for (const string& algotype : {"ksk", "zsk"}) {
+      int algo, size;
+      if (::arg()["default-"+algotype+"-algorithm"].empty())
+        continue;
+      algo = DNSSECKeeper::shorthand2algorithm(::arg()["default-"+algotype+"-algorithm"]);
+      size = ::arg().asNum("default-"+algotype+"-size");
+      if (algo == -1) {
+        g_log<<Logger::Error<<"Error: default-"<<algotype<<"-algorithm set to unknown algorithm: "<<::arg()["default-"+algotype+"-algorithm"]<<endl;
+        hadKeyError = true;
+      }
+      else if (algo <= 10 && size == 0) {
+        g_log<<Logger::Error<<"Error: default-"<<algotype<<"-algorithm is set to an algorithm ("<<::arg()["default-"+algotype+"-algorithm"]<<") that requires a non-zero default-"<<algotype<<"-size!"<<endl;
+        hadKeyError = true;
+      }
+      if (algotype == "ksk") {
+        kskAlgo = algo;
+      } else {
+        zskAlgo = algo;
+      }
     }
-    else if (algo <= 10 && size == 0) {
-      g_log<<Logger::Error<<"Error: default-"<<algotype<<"-algorithm is set to an algorithm ("<<::arg()["default-"+algotype+"-algorithm"]<<") that requires a non-zero default-"<<algotype<<"-size!"<<endl;
-      hadKeyError = true;
+    if (hadKeyError) {
+      exit(1);
     }
-  }
-  if (hadKeyError) {
-    exit(1);
-  }
-  if (::arg()["default-ksk-algorithm"].empty() && !::arg()["default-zsk-algorithm"].empty()) {
-    g_log<<Logger::Error<<"Error: default-zsk-algorithm is set, but default-ksk-algorithm is not set."<<endl;
-    exit(1);
-  }
-  if (!::arg()["default-zsk-algorithm"].empty() && ::arg()["default-zsk-algorithm"] != ::arg()["default-ksk-algorithm"]) {
-    g_log<<Logger::Error<<"Error: default-zsk-algorithm ("<<::arg()["default-zsk-algorithm"]<<"), when set, can not be different from default-ksk-algorithm ("<<::arg()["default-ksk-algorithm"]<<")."<<endl;
-    exit(1);
+    if (kskAlgo == 0 && zskAlgo != 0) {
+      g_log<<Logger::Error<<"Error: default-zsk-algorithm is set, but default-ksk-algorithm is not set."<<endl;
+      exit(1);
+    }
+    if (zskAlgo != 0 && zskAlgo != kskAlgo) {
+      g_log<<Logger::Error<<"Error: default-zsk-algorithm ("<<::arg()["default-zsk-algorithm"]<<"), when set, can not be different from default-ksk-algorithm ("<<::arg()["default-ksk-algorithm"]<<")."<<endl;
+      exit(1);
+    }
   }
 
   // NOW SAFE TO CREATE THREADS!
