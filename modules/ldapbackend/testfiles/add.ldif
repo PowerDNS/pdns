@@ -10,6 +10,7 @@ olcDbCheckpoint: 512 30
 olcDbIndex: objectClass eq
 olcDbIndex: associatedDomain eq
 olcRootPW: secret
+OlcDbMaxSize: 2684354560
 
 dn: o=power
 objectClass: organization
