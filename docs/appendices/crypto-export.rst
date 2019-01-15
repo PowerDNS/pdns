@@ -2,7 +2,7 @@ Cryptographic software and export control
 =========================================
 In certain legal climates, PowerDNS might potentially require an export control status, particularly since PowerDNS software contains cryptographic primitives.
 
-PowerDNS does not itself implement any cryptographic algorithms but relies on third party implementations of AES, RSA, ECDSA, GOST, MD5 and various SHA-based hashing algorithms.
+PowerDNS does not itself implement any cryptographic algorithms but relies on third-party implementations of AES, RSA, ECDSA, GOST, MD5 and various SHA-based hashing algorithms.
 
 Starting with 4.0.0, PowerDNS will link in hash and cryptographic primitives from the open source `OpenSSL <https://openssl.org/>`_ library.
 
