@@ -50,12 +50,9 @@ class SSQLite3Statement: public SSqlStatement
 {
 public:
   SSQLite3Statement(SSQLite3 *db, bool dolog, const string& query) :
-    d_prepared(false),
     d_query(query),
-    d_dolog(dolog),
-    d_stmt(nullptr),
-    d_rc(0),
-    d_db(db)
+    d_db(db),
+    d_dolog(dolog)
   {
   }
 
@@ -149,12 +146,13 @@ public:
   const string& getQuery() { return d_query; };
 private:
   string d_query;
-  sqlite3_stmt* d_stmt;
-  SSQLite3* d_db;
-  int d_rc;
-  bool d_dolog;
-  bool d_prepared;
   DTime d_dtime;
+  sqlite3_stmt* d_stmt{nullptr};
+  SSQLite3* d_db{nullptr};
+  int d_rc{0};
+  bool d_dolog;
+  bool d_prepared{false};
+
   void prepareStatement() {
     const char *pTail;
 
@@ -176,7 +174,7 @@ private:
   void releaseStatement() {
     if (d_stmt)
       sqlite3_finalize(d_stmt);
-    d_stmt = NULL;
+    d_stmt = nullptr;
     d_prepared = false;
   }
 };
