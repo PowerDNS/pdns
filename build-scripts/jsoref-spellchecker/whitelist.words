@@ -354,6 +354,7 @@ athread
 atid
 ATj
 Atlassian
+Ato
 atof
 atoi
 Atomia
@@ -1094,11 +1095,11 @@ cmsghdr
 Cmu
 cmval
 cn
+cnam
 cname
 cnameaction
 CNAMEAt
 cnamechainresolution
-CNAMEd
 CNAMEDNS
 CNAMENo
 CNAMENTA
