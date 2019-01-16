@@ -2370,8 +2370,12 @@ RCode::rcodes_ SyncRes::updateCacheFromRecords(unsigned int depth, LWResult& lwr
        - we don't allow direct NSEC3 queries
        - denial of existence proofs in wildcard expanded positive responses are stored in authorityRecs
        - denial of existence proofs for negative responses are stored in the negative cache
+       We also don't want to cache non-authoritative data except for:
+       - records coming from non forward-recurse servers (those will never be AA)
+       - DS (special case)
+       - NS, A and AAAA (used for infra queries)
     */
-    if (i->first.type != QType::NSEC3) {
+    if (i->first.type != QType::NSEC3 && (i->first.type == QType::DS || i->first.type == QType::NS || i->first.type == QType::A || i->first.type == QType::AAAA || isAA || wasForwardRecurse)) {
       t_RC->replace(d_now.tv_sec, i->first.name, QType(i->first.type), i->second.records, i->second.signatures, authorityRecs, i->first.type == QType::DS ? true : isAA, i->first.place == DNSResourceRecord::ANSWER ? ednsmask : boost::none, recordState);
     }
 
