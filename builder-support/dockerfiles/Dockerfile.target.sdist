@@ -11,6 +11,7 @@
 @ENDIF
 
 FROM alpine:3.6 as sdist
+ARG BUILDER_CACHE_BUSTER=
 
 @IF [ ! -z "$M_authoritative$M_all" ]
 COPY --from=pdns-authoritative /sdist/ /sdist/

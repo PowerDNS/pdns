@@ -4,6 +4,7 @@
 # This defines the dstribution base layer
 # Put only the bare minimum of common commands here, without dev tools
 FROM amazonlinux:2 as dist-base
+ARG BUILDER_CACHE_BUSTER=
 RUN yum install -y https://dl.fedoraproject.org/pub/epel/epel-release-latest-7.noarch.rpm
 
 # Do the actual rpm build
