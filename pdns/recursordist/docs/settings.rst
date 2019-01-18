@@ -858,6 +858,8 @@ Can be set at runtime using ``rec_control set-minimum-ttl 3600``.
 
 ``new-domain-tracking``
 -----------------------
+.. versionadded:: 4.2.0
+
 - Boolean
 - Default: no (disabled)
 
@@ -875,18 +877,22 @@ status will appear as a flag in Response messages.
 
 ``new-domain-log``
 ------------------
+.. versionadded:: 4.2.0
+
 - Boolean
 - Default: yes (enabled)
 
 If a newly observed domain is detected, log that domain in the
-recursor log file. The log line looks something like:
+recursor log file. The log line looks something like::
 
-Jul 18 11:31:25 Newly observed domain nod=sdfoijdfio.com
+  Jul 18 11:31:25 Newly observed domain nod=sdfoijdfio.com
 
 .. _setting-new-domain-lookup:
 
 ``new-domain-lookup``
 ---------------------
+.. versionadded:: 4.2.0
+
 - Domain Name
 - Example: nod.powerdns.com
 
@@ -902,7 +908,9 @@ result of the DNS lookup will be ignored by the recursor.
 .. _setting-new-domain-db-size:
 
 ``new-domain-db-size``
----------------------
+----------------------
+.. versionadded:: 4.2.0
+
 - Integer
 - Example: 67108864
 
@@ -917,11 +925,15 @@ have no effect unless you remove the existing files.
 
 ``new-domain-history-dir``
 --------------------------
+.. versionadded:: 4.2.0
+
 - Path
-- Default: /var/lib/pdns-recursor/nod
 
 This setting controls which directory is used to store the on-disk
 cache of previously observed domains.
+
+The default depends on ``LOCALSTATEDIR`` when building the software.
+Usually this comes down to ``/var/lib/pdns-recursor/nod`` or ``/usr/local/var/lib/pdns-recursor/nod``).
 
 The newly observed domain feature uses a stable bloom filter to store
 a history of previously observed domains. The data structure is
@@ -935,6 +947,8 @@ from this directory.
 
 ``new-domain-whitelist``
 ------------------------
+.. versionadded:: 4.2.0
+
 - List of Domain Names, comma separated
 - Example: xyz.com, abc.com
 
@@ -948,84 +962,14 @@ feature.
 .. _setting-new-domain-pb-tag:
 
 ``new-domain-pb-tag``
-------------------------
+---------------------
+.. versionadded:: 4.2.0
+
 - String
 - Default: pnds-nod
 
 If protobuf is configured, then this tag will be added to all protobuf response messages when
 a new domain is observed. 
-
-.. _setting-unique-response-tracking:
-
-``unique-response-tracking``
------------------------
-- Boolean
-- Default: no (disabled)
-
-Whether to track unique DNS responses, i.e. never seen before combinations
-of the triplet (query name, query type, RR[rrname, rrtype, rrdata]).
-This can be useful for tracking potentially suspicious domains and 
-behaviour, e.g. DNS fast-flux.
-If protobuf is enabled and configured, then the Protobuf Response message
-will contain a flag with udr set to true for each RR that is considered
-unique, i.e. never seen before.
-This feature uses a probabilistic data structure (stable bloom filter) to
-track unique responses, which can have false positives as well as false
-negatives, thus it is a best-effort feature. Increasing the number of cells
-in the SBF using the unique-response-db-size setting can reduce FPs and FNs.
-
-.. _setting-unique-response-log:
-
-``unique-response-log``
------------------------
-- Boolean
-- Default: no (disabled)
-
-Whether to log when a unique response is detected. The log line
-looks something like:
-
-Oct 24 12:11:27 Unique response observed: qname=foo.com qtype=A rrtype=AAAA rrname=foo.com rrcontent=1.2.3.4
-
-.. _setting-unique-response-db-size:
-
-``unique-response-db-size``
----------------------
-- Integer
-- Example: 67108864
-
-The default size of the stable bloom filter used to store previously
-observed responses is 67108864. To change the number of cells, use this
-setting. For each cell, the SBF uses 1 bit of memory, and one byte of
-disk for the persistent file.
-If there are already persistent files saved to disk, this setting will 
-have no effect unless you remove the existing files.
-
-.. _setting-unique-response-history-dir:
-
-``unique-response-history-dir``
---------------------------
-- Path
-- Default: /var/lib/pdns-recursor/udr
-
-This setting controls which directory is used to store the on-disk
-cache of previously observed responses.
-
-The newly observed domain feature uses a stable bloom filter to store
-a history of previously observed responses. The data structure is
-synchronized to disk every 10 minutes, and is also initialized from
-disk on startup. This ensures that previously observed responses are
-preserved across recursor restarts. If you change the 
-unique-response-db-size, you must remove any files from this directory.
-
-.. _setting-unique-response-pb-tag:
-
-``unique-response-pb-tag``
-------------------------
-- String
-- Default: pnds-udr
-
-If protobuf is configured, then this tag will be added to all protobuf response messages when
-a unique DNS response is observed. 
 
 .. _setting-network-timeout:
 
@@ -1288,7 +1232,7 @@ If not empty and ``snmp-agent`` is set to true, indicates how PowerDNS should co
 -  Path
 
 Where to store the control socket and pidfile.
-The default depends on ``LOCALSTATEDIR`` during compile-time (usually ``/var/run`` or ``/run``).
+The default depends on ``LOCALSTATEDIR`` or the ``--with-socketdir`` setting when building (usually ``/var/run`` or ``/run``).
 
 When using `chroot`_ the default becomes to ``/``.
 
@@ -1426,6 +1370,90 @@ This setting limits the accepted size.
 Maximum value is 65535, but values above 4096 should probably not be attempted.
 
 To know why 1232, see the note at :ref:`setting-edns-outgoing-bufsize`.
+
+.. _setting-unique-response-tracking:
+
+``unique-response-tracking``
+----------------------------
+.. versionadded:: 4.2.0
+
+- Boolean
+- Default: no (disabled)
+
+Whether to track unique DNS responses, i.e. never seen before combinations
+of the triplet (query name, query type, RR[rrname, rrtype, rrdata]).
+This can be useful for tracking potentially suspicious domains and 
+behaviour, e.g. DNS fast-flux.
+If protobuf is enabled and configured, then the Protobuf Response message
+will contain a flag with udr set to true for each RR that is considered
+unique, i.e. never seen before.
+This feature uses a probabilistic data structure (stable bloom filter) to
+track unique responses, which can have false positives as well as false
+negatives, thus it is a best-effort feature. Increasing the number of cells
+in the SBF using the unique-response-db-size setting can reduce FPs and FNs.
+
+.. _setting-unique-response-log:
+
+``unique-response-log``
+-----------------------
+.. versionadded:: 4.2.0
+
+- Boolean
+- Default: no (disabled)
+
+Whether to log when a unique response is detected. The log line
+looks something like:
+
+Oct 24 12:11:27 Unique response observed: qname=foo.com qtype=A rrtype=AAAA rrname=foo.com rrcontent=1.2.3.4
+
+.. _setting-unique-response-db-size:
+
+``unique-response-db-size``
+---------------------------
+.. versionadded:: 4.2.0
+
+- Integer
+- Example: 67108864
+
+The default size of the stable bloom filter used to store previously
+observed responses is 67108864. To change the number of cells, use this
+setting. For each cell, the SBF uses 1 bit of memory, and one byte of
+disk for the persistent file.
+If there are already persistent files saved to disk, this setting will 
+have no effect unless you remove the existing files.
+
+.. _setting-unique-response-history-dir:
+
+``unique-response-history-dir``
+-------------------------------
+.. versionadded:: 4.2.0
+
+- Path
+
+This setting controls which directory is used to store the on-disk
+cache of previously observed responses.
+
+The default depends on ``LOCALSTATEDIR`` when building the software.
+Usually this comes down to ``/var/lib/pdns-recursor/udr`` or ``/usr/local/var/lib/pdns-recursor/udr``).
+
+The newly observed domain feature uses a stable bloom filter to store
+a history of previously observed responses. The data structure is
+synchronized to disk every 10 minutes, and is also initialized from
+disk on startup. This ensures that previously observed responses are
+preserved across recursor restarts. If you change the 
+unique-response-db-size, you must remove any files from this directory.
+
+.. _setting-unique-response-pb-tag:
+
+``unique-response-pb-tag``
+--------------------------
+.. versionadded:: 4.2.0
+
+- String
+- Default: pnds-udr
+
+If protobuf is configured, then this tag will be added to all protobuf response messages when
+a unique DNS response is observed. 
 
 .. _setting-use-incoming-edns-subnet:
 
