@@ -22,5 +22,4 @@
 
 #pragma once
 
-static const char* const rootDSs[]={"19036 8 2 49aac11d7b6f6446702e54a1607371607a1a41855200fd2ce1cdde32f24e8fb5",
-                                    "20326 8 2 e06d44b80b8f1d39a95c0b0d7c65d08458e880409bbc683457104237c7f8ec8d"};
+static const char* const rootDSs[]={"20326 8 2 e06d44b80b8f1d39a95c0b0d7c65d08458e880409bbc683457104237c7f8ec8d"};
