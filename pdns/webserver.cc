@@ -39,12 +39,12 @@ json11::Json HttpRequest::json()
 {
   string err;
   if(this->body.empty()) {
-    g_log<<Logger::Debug<<logprefix<<"HTTP: JSON document expected in request body, but body was empty" << endl;
+    g_log<<Logger::Debug<<logprefix<<"JSON document expected in request body, but body was empty" << endl;
     throw HttpBadRequestException();
   }
   json11::Json doc = json11::Json::parse(this->body, err);
   if (doc.is_null()) {
-    g_log<<Logger::Debug<<logprefix<<"HTTP: parsing of JSON document failed:" << err << endl;
+    g_log<<Logger::Debug<<logprefix<<"parsing of JSON document failed:" << err << endl;
     throw HttpBadRequestException();
   }
   return doc;
@@ -204,11 +204,11 @@ void WebServer::handleRequest(HttpRequest& req, HttpResponse& resp) const
 
   try {
     if (!req.complete) {
-      g_log<<Logger::Debug<<req.logprefix<<": Incomplete request" << endl;
+      g_log<<Logger::Debug<<req.logprefix<<"Incomplete request" << endl;
       throw HttpBadRequestException();
     }
 
-    g_log<<Logger::Debug<<req.logprefix<<"HTTP: Handling request \"" << req.url.path << "\"" << endl;
+    g_log<<Logger::Debug<<req.logprefix<<"Handling request \"" << req.url.path << "\"" << endl;
 
     YaHTTP::strstr_map_t::iterator header;
 
@@ -223,13 +223,13 @@ void WebServer::handleRequest(HttpRequest& req, HttpResponse& resp) const
 
     YaHTTP::THandlerFunction handler;
     if (!YaHTTP::Router::Route(&req, handler)) {
-      g_log<<Logger::Debug<<req.logprefix<<"HTTP: No route found for \"" << req.url.path << "\"" << endl;
+      g_log<<Logger::Debug<<req.logprefix<<"No route found for \"" << req.url.path << "\"" << endl;
       throw HttpNotFoundException();
     }
 
     try {
       handler(&req, &resp);
-      g_log<<Logger::Debug<<req.logprefix<<"HTTP: Result for \"" << req.url.path << "\": " << resp.status << ", body length: " << resp.body.size() << endl;
+      g_log<<Logger::Debug<<req.logprefix<<"Result for \"" << req.url.path << "\": " << resp.status << ", body length: " << resp.body.size() << endl;
     }
     catch(HttpException&) {
       throw;
