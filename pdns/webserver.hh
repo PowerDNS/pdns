@@ -34,11 +34,12 @@ class WebServer;
 
 class HttpRequest : public YaHTTP::Request {
 public:
-  HttpRequest() : YaHTTP::Request(), accept_json(false), accept_html(false), complete(false) { };
+  HttpRequest(const string& logprefix="") : YaHTTP::Request(), accept_json(false), accept_html(false), complete(false), logprefix(logprefix) { };
 
   bool accept_json;
   bool accept_html;
   bool complete;
+  string logprefix;
   json11::Json json();
 
   // checks password _only_.
@@ -184,6 +185,19 @@ public:
   void registerApiHandler(const string& url, HandlerFunction handler);
   void registerWebHandler(const string& url, HandlerFunction handler);
 
+  enum class LogLevel : uint8_t {
+    None = 0,                // No logs from requests at all
+    Common = 10,             // A "common log format"-like line e.g. '127.0.0.1 "GET /apache_pb.gif HTTP/1.0" 200 2326'
+    Detailed = 20,           // The full request headers and body, and the full response headers and body
+  };
+
+  void setLogLevel(const LogLevel level) {
+    d_loglevel = level;
+  };
+
+  LogLevel getLogLevel() {
+    return d_loglevel;
+  };
 
 protected:
   void registerBareHandler(const string& url, HandlerFunction handler);
@@ -206,6 +220,9 @@ protected:
   NetmaskGroup d_acl;
 
   const string d_logprefix = "[webserver] ";
+
+  // Describes the amount of logging the webserver does
+  WebServer::LogLevel d_loglevel{WebServer::LogLevel::Detailed};
 };
 
 #endif /* WEBSERVER_HH */

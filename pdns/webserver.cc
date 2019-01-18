@@ -39,12 +39,12 @@ json11::Json HttpRequest::json()
 {
   string err;
   if(this->body.empty()) {
-    g_log<<Logger::Debug<<"HTTP: JSON document expected in request body, but body was empty" << endl;
+    g_log<<Logger::Debug<<logprefix<<"HTTP: JSON document expected in request body, but body was empty" << endl;
     throw HttpBadRequestException();
   }
   json11::Json doc = json11::Json::parse(this->body, err);
   if (doc.is_null()) {
-    g_log<<Logger::Debug<<"HTTP: parsing of JSON document failed:" << err << endl;
+    g_log<<Logger::Debug<<logprefix<<"HTTP: parsing of JSON document failed:" << err << endl;
     throw HttpBadRequestException();
   }
   return doc;
@@ -130,13 +130,13 @@ static void apiWrapper(WebServer::HandlerFunction handler, HttpRequest* req, Htt
   resp->headers["access-control-allow-origin"] = "*";
 
   if (apikey.empty()) {
-    g_log<<Logger::Error<<"HTTP API Request \"" << req->url.path << "\": Authentication failed, API Key missing in config" << endl;
+    g_log<<Logger::Error<<req->logprefix<<"HTTP API Request \"" << req->url.path << "\": Authentication failed, API Key missing in config" << endl;
     throw HttpUnauthorizedException("X-API-Key");
   }
   bool auth_ok = req->compareHeader("x-api-key", apikey) || req->getvars["api-key"] == apikey;
   
   if (!auth_ok) {
-    g_log<<Logger::Error<<"HTTP Request \"" << req->url.path << "\": Authentication by API Key failed" << endl;
+    g_log<<Logger::Error<<req->logprefix<<"HTTP Request \"" << req->url.path << "\": Authentication by API Key failed" << endl;
     throw HttpUnauthorizedException("X-API-Key");
   }
 
@@ -178,7 +178,7 @@ static void webWrapper(WebServer::HandlerFunction handler, HttpRequest* req, Htt
   if (!password.empty()) {
     bool auth_ok = req->compareAuthorization(password);
     if (!auth_ok) {
-      g_log<<Logger::Debug<<"HTTP Request \"" << req->url.path << "\": Web Authentication failed" << endl;
+      g_log<<Logger::Debug<<req->logprefix<<"HTTP Request \"" << req->url.path << "\": Web Authentication failed" << endl;
       throw HttpUnauthorizedException("Basic");
     }
   }
@@ -204,11 +204,11 @@ void WebServer::handleRequest(HttpRequest& req, HttpResponse& resp) const
 
   try {
     if (!req.complete) {
-      g_log<<Logger::Debug<<"HTTP: Incomplete request" << endl;
+      g_log<<Logger::Debug<<req.logprefix<<": Incomplete request" << endl;
       throw HttpBadRequestException();
     }
 
-    g_log<<Logger::Debug<<"HTTP: Handling request \"" << req.url.path << "\"" << endl;
+    g_log<<Logger::Debug<<req.logprefix<<"HTTP: Handling request \"" << req.url.path << "\"" << endl;
 
     YaHTTP::strstr_map_t::iterator header;
 
@@ -223,33 +223,34 @@ void WebServer::handleRequest(HttpRequest& req, HttpResponse& resp) const
 
     YaHTTP::THandlerFunction handler;
     if (!YaHTTP::Router::Route(&req, handler)) {
-      g_log<<Logger::Debug<<"HTTP: No route found for \"" << req.url.path << "\"" << endl;
+      g_log<<Logger::Debug<<req.logprefix<<"HTTP: No route found for \"" << req.url.path << "\"" << endl;
       throw HttpNotFoundException();
     }
 
     try {
       handler(&req, &resp);
-      g_log<<Logger::Debug<<"HTTP: Result for \"" << req.url.path << "\": " << resp.status << ", body length: " << resp.body.size() << endl;
+      g_log<<Logger::Debug<<req.logprefix<<"HTTP: Result for \"" << req.url.path << "\": " << resp.status << ", body length: " << resp.body.size() << endl;
     }
     catch(HttpException&) {
       throw;
     }
     catch(PDNSException &e) {
-      g_log<<Logger::Error<<"HTTP ISE for \""<< req.url.path << "\": Exception: " << e.reason << endl;
+      g_log<<Logger::Error<<req.logprefix<<"HTTP ISE for \""<< req.url.path << "\": Exception: " << e.reason << endl;
       throw HttpInternalServerErrorException();
     }
     catch(std::exception &e) {
-      g_log<<Logger::Error<<"HTTP ISE for \""<< req.url.path << "\": STL Exception: " << e.what() << endl;
+      g_log<<Logger::Error<<req.logprefix<<"HTTP ISE for \""<< req.url.path << "\": STL Exception: " << e.what() << endl;
       throw HttpInternalServerErrorException();
     }
     catch(...) {
-      g_log<<Logger::Error<<"HTTP ISE for \""<< req.url.path << "\": Unknown Exception" << endl;
+      g_log<<Logger::Error<<req.logprefix<<"HTTP ISE for \""<< req.url.path << "\": Unknown Exception" << endl;
       throw HttpInternalServerErrorException();
     }
   }
   catch(HttpException &e) {
     resp = e.response();
-    g_log<<Logger::Debug<<"HTTP: Error result for \"" << req.url.path << "\": " << resp.status << endl;
+    // TODO rm this logline?
+    g_log<<Logger::Debug<<req.logprefix<<"Error result for \"" << req.url.path << "\": " << resp.status << endl;
     string what = YaHTTP::Utility::status2text(resp.status);
     if(req.accept_html) {
       resp.headers["Content-Type"] = "text/html; charset=utf-8";
@@ -276,86 +277,118 @@ void WebServer::handleRequest(HttpRequest& req, HttpResponse& resp) const
   }
 }
 
-void WebServer::serveConnection(std::shared_ptr<Socket> client) const
-try {
-  HttpRequest req;
-  YaHTTP::AsyncRequestLoader yarl;
-  yarl.initialize(&req);
-  int timeout = 5;
-  client->setNonBlocking();
+void WebServer::serveConnection(std::shared_ptr<Socket> client) const {
+  const string logprefix = d_logprefix + "<" + "I should be a UUID" + "> ";
 
   try {
-    while(!req.complete) {
-      int bytes;
-      char buf[1024];
-      bytes = client->readWithTimeout(buf, sizeof(buf), timeout);
-      if (bytes > 0) {
-        string data = string(buf, bytes);
-        req.complete = yarl.feed(data);
+    HttpRequest req(logprefix);
+    YaHTTP::AsyncRequestLoader yarl;
+    yarl.initialize(&req);
+    int timeout = 5;
+    client->setNonBlocking();
+
+    try {
+      while(!req.complete) {
+        int bytes;
+        char buf[1024];
+        bytes = client->readWithTimeout(buf, sizeof(buf), timeout);
+        if (bytes > 0) {
+          string data = string(buf, bytes);
+          req.complete = yarl.feed(data);
+        } else {
+          // read error OR EOF
+          break;
+        }
+      }
+      yarl.finalize();
+    } catch (YaHTTP::ParseError &e) {
+      // request stays incomplete
+    }
+
+    ComboAddress remote;
+
+    if (d_loglevel >= WebServer::LogLevel::None) {
+      client->getRemote(remote);
+    }
+
+    if (d_loglevel >= WebServer::LogLevel::Detailed) {
+      g_log<<Logger::Info<<logprefix<<"Request Details:"<<endl;
+
+      bool first = true;
+      for (const auto& r : req.getvars) {
+        if (first) {
+          first = false;
+          g_log<<Logger::Info<<logprefix<<" GET params:"<<endl;
+        }
+        g_log<<Logger::Info<<logprefix<<"  "<<r.first<<": "<<r.second<<endl;
+      }
+
+      first = true;
+      for (const auto& r : req.postvars) {
+        if (first) {
+          first = false;
+          g_log<<Logger::Info<<logprefix<<" POST params:"<<endl;
+        }
+        g_log<<Logger::Info<<logprefix<<"  "<<r.first<<": "<<r.second<<endl;
+      }
+      first = true;
+
+      for (const auto& h : req.headers) {
+        if (first) {
+          first = false;
+          g_log<<Logger::Info<<logprefix<<" Headers:"<<endl;
+        }
+        g_log<<Logger::Info<<logprefix<<"  "<<h.first<<": "<<h.second<<endl;
+      }
+
+      if (req.body.empty()) {
+        g_log<<Logger::Info<<logprefix<<" No body"<<endl;
       } else {
-        // read error OR EOF
-        break;
+        g_log<<Logger::Info<<logprefix<<" Full body: "<<endl;
+        g_log<<Logger::Info<<logprefix<<"  "<<req.body<<endl;
       }
     }
-    yarl.finalize();
-  } catch (YaHTTP::ParseError &e) {
-    // request stays incomplete
-  }
 
-  HttpResponse resp;
-  WebServer::handleRequest(req, resp);
-  ostringstream ss;
-  resp.write(ss);
-  string reply = ss.str();
+    HttpResponse resp;
+    WebServer::handleRequest(req, resp);
+    ostringstream ss;
+    resp.write(ss);
+    string reply = ss.str();
 
-  ComboAddress remote;
-  client->getRemote(remote);
-  g_log<<Logger::Warning<<d_logprefix<<remote<<" \""<<req.method<<" "<<req.url.path<<" HTTP/"<<req.versionStr(req.version)<<"\" "<<resp.status<<" "<<reply.size()<<endl;
-  bool first = true;
-  for (const auto& r : req.getvars) {
-    if (first) {
-      first = false;
-      g_log<<Logger::Info<<d_logprefix<<" GET params:"<<endl;
+    if (d_loglevel >= WebServer::LogLevel::Detailed) {
+      g_log<<Logger::Info<<logprefix<<"Response details:"<<endl;
+      bool first = true;
+      for (const auto& h : resp.headers) {
+        if (first) {
+          first = false;
+          g_log<<Logger::Info<<logprefix<<" Headers:"<<endl;
+        }
+        g_log<<Logger::Info<<logprefix<<"  "<<h.first<<": "<<h.second<<endl;
+      }
+      if (resp.body.empty()) {
+        g_log<<Logger::Info<<logprefix<<" No body"<<endl;
+      } else {
+        g_log<<Logger::Info<<logprefix<<" Full body: "<<endl;
+        g_log<<Logger::Info<<logprefix<<"  "<<resp.body<<endl;
+      }
     }
-    g_log<<Logger::Info<<d_logprefix<<"  "<<r.first<<": "<<r.second<<endl;
-  }
-  first = true;
-  for (const auto& r : req.postvars) {
-    if (first) {
-      first = false;
-      g_log<<Logger::Info<<d_logprefix<<" POST params:"<<endl;
+
+    if (d_loglevel >= WebServer::LogLevel::Common) {
+      g_log<<Logger::Info<<logprefix<<remote<<" \""<<req.method<<" "<<req.url.path<<" HTTP/"<<req.versionStr(req.version)<<"\" "<<resp.status<<" "<<reply.size()<<endl;
     }
-    g_log<<Logger::Info<<d_logprefix<<"  "<<r.first<<": "<<r.second<<endl;
+
+    client->writenWithTimeout(reply.c_str(), reply.size(), timeout);
   }
-  first = true;
-  for (const auto& h : req.headers) {
-    if (first) {
-      first = false;
-      g_log<<Logger::Info<<d_logprefix<<" Request headers:"<<endl;
-    }
-    g_log<<Logger::Info<<d_logprefix<<"  "<<h.first<<": "<<h.second<<endl;
+  catch(PDNSException &e) {
+    g_log<<Logger::Error<<logprefix<<"HTTP Exception: "<<e.reason<<endl;
   }
-  first = true;
-  for (const auto& h : resp.headers) {
-    if (first) {
-      first = false;
-      g_log<<Logger::Info<<d_logprefix<<" Response headers:"<<endl;
-    }
-    g_log<<Logger::Info<<d_logprefix<<"  "<<h.first<<": "<<h.second<<endl;
+  catch(std::exception &e) {
+    if(strstr(e.what(), "timeout")==0)
+      g_log<<Logger::Error<<logprefix<<"HTTP STL Exception: "<<e.what()<<endl;
   }
-  g_log<<Logger::Debug<<d_logprefix<<" Full request body: "<<req.body<<endl;
-  g_log<<Logger::Debug<<d_logprefix<<" Full response body: "<<resp.body<<endl;
-  client->writenWithTimeout(reply.c_str(), reply.size(), timeout);
-}
-catch(PDNSException &e) {
-  g_log<<Logger::Error<<"HTTP Exception: "<<e.reason<<endl;
-}
-catch(std::exception &e) {
-  if(strstr(e.what(), "timeout")==0)
-    g_log<<Logger::Error<<"HTTP STL Exception: "<<e.what()<<endl;
-}
-catch(...) {
-  g_log<<Logger::Error<<"HTTP: Unknown exception"<<endl;
+  catch(...) {
+    g_log<<Logger::Error<<logprefix<<"Unknown exception"<<endl;
+  }
 }
 
 WebServer::WebServer(const string &listenaddress, int port) :
@@ -369,10 +402,10 @@ void WebServer::bind()
 {
   try {
     d_server = createServer();
-    g_log<<Logger::Warning<<"Listening for HTTP requests on "<<d_server->d_local.toStringWithPort()<<endl;
+    g_log<<Logger::Warning<<d_logprefix<<"Listening for HTTP requests on "<<d_server->d_local.toStringWithPort()<<endl;
   }
   catch(NetworkError &e) {
-    g_log<<Logger::Error<<"Listening on HTTP socket failed: "<<e.what()<<endl;
+    g_log<<Logger::Error<<d_logprefix<<"Listening on HTTP socket failed: "<<e.what()<<endl;
     d_server = nullptr;
   }
 }
@@ -394,28 +427,28 @@ void WebServer::go()
         } else {
           ComboAddress remote;
           if (client->getRemote(remote))
-            g_log<<Logger::Error<<"Webserver closing socket: remote ("<< remote.toString() <<") does not match the set ACL("<<d_acl.toString()<<")"<<endl;
+            g_log<<Logger::Error<<d_logprefix<<"Webserver closing socket: remote ("<< remote.toString() <<") does not match the set ACL("<<d_acl.toString()<<")"<<endl;
         }
       }
       catch(PDNSException &e) {
-        g_log<<Logger::Error<<"PDNSException while accepting a connection in main webserver thread: "<<e.reason<<endl;
+        g_log<<Logger::Error<<d_logprefix<<"PDNSException while accepting a connection in main webserver thread: "<<e.reason<<endl;
       }
       catch(std::exception &e) {
-        g_log<<Logger::Error<<"STL Exception while accepting a connection in main webserver thread: "<<e.what()<<endl;
+        g_log<<Logger::Error<<d_logprefix<<"STL Exception while accepting a connection in main webserver thread: "<<e.what()<<endl;
       }
       catch(...) {
-        g_log<<Logger::Error<<"Unknown exception while accepting a connection in main webserver thread"<<endl;
+        g_log<<Logger::Error<<d_logprefix<<"Unknown exception while accepting a connection in main webserver thread"<<endl;
       }
     }
   }
   catch(PDNSException &e) {
-    g_log<<Logger::Error<<"PDNSException in main webserver thread: "<<e.reason<<endl;
+    g_log<<Logger::Error<<d_logprefix<<"PDNSException in main webserver thread: "<<e.reason<<endl;
   }
   catch(std::exception &e) {
-    g_log<<Logger::Error<<"STL Exception in main webserver thread: "<<e.what()<<endl;
+    g_log<<Logger::Error<<d_logprefix<<"STL Exception in main webserver thread: "<<e.what()<<endl;
   }
   catch(...) {
-    g_log<<Logger::Error<<"Unknown exception in main webserver thread"<<endl;
+    g_log<<Logger::Error<<d_logprefix<<"Unknown exception in main webserver thread"<<endl;
   }
   _exit(1);
 }
