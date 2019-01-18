@@ -280,8 +280,12 @@ void WebServer::handleRequest(HttpRequest& req, HttpResponse& resp) const
 void WebServer::serveConnection(std::shared_ptr<Socket> client) const {
   const string logprefix = d_logprefix + "<" + "I should be a UUID" + "> ";
 
+  HttpRequest req(logprefix);
+  HttpResponse resp;
+  ComboAddress remote;
+  string reply;
+
   try {
-    HttpRequest req(logprefix);
     YaHTTP::AsyncRequestLoader yarl;
     yarl.initialize(&req);
     int timeout = 5;
@@ -304,8 +308,6 @@ void WebServer::serveConnection(std::shared_ptr<Socket> client) const {
     } catch (YaHTTP::ParseError &e) {
       // request stays incomplete
     }
-
-    ComboAddress remote;
 
     if (d_loglevel >= WebServer::LogLevel::None) {
       client->getRemote(remote);
@@ -349,11 +351,10 @@ void WebServer::serveConnection(std::shared_ptr<Socket> client) const {
       }
     }
 
-    HttpResponse resp;
     WebServer::handleRequest(req, resp);
     ostringstream ss;
     resp.write(ss);
-    string reply = ss.str();
+    reply = ss.str();
 
     if (d_loglevel >= WebServer::LogLevel::Detailed) {
       g_log<<Logger::Info<<logprefix<<"Response details:"<<endl;
@@ -373,10 +374,6 @@ void WebServer::serveConnection(std::shared_ptr<Socket> client) const {
       }
     }
 
-    if (d_loglevel >= WebServer::LogLevel::Common) {
-      g_log<<Logger::Info<<logprefix<<remote<<" \""<<req.method<<" "<<req.url.path<<" HTTP/"<<req.versionStr(req.version)<<"\" "<<resp.status<<" "<<reply.size()<<endl;
-    }
-
     client->writenWithTimeout(reply.c_str(), reply.size(), timeout);
   }
   catch(PDNSException &e) {
@@ -388,6 +385,10 @@ void WebServer::serveConnection(std::shared_ptr<Socket> client) const {
   }
   catch(...) {
     g_log<<Logger::Error<<logprefix<<"Unknown exception"<<endl;
+  }
+
+  if (d_loglevel >= WebServer::LogLevel::Common) {
+    g_log<<Logger::Info<<logprefix<<remote<<" \""<<req.method<<" "<<req.url.path<<" HTTP/"<<req.versionStr(req.version)<<"\" "<<resp.status<<" "<<reply.size()<<endl;
   }
 }
 
