@@ -4230,7 +4230,7 @@ int main(int argc, char **argv)
     ::arg().set("single-socket", "If set, only use a single socket for outgoing queries")="off";
     ::arg().set("auth-zones", "Zones for which we have authoritative data, comma separated domain=file pairs ")="";
     ::arg().set("lua-config-file", "More powerful configuration options")="";
-    ::arg().setSwitch("allow-trust-anchor-query", "Allow queries for trustanchor.server CH TXT")="yes";
+    ::arg().setSwitch("allow-trust-anchor-query", "Allow queries for trustanchor.server CH TXT and negativetrustanchor.server CH TXT")="no";
 
     ::arg().set("forward-zones", "Zones for which we forward queries, comma separated domain=ip pairs")="";
     ::arg().set("forward-zones-recurse", "Zones for which we forward queries with recursion bit, comma separated domain=ip pairs")="";
