@@ -47,10 +47,7 @@
 #include "mplexer.hh"
 #include "sholder.hh"
 #include "tcpiohandler.hh"
-
-#include <boost/uuid/uuid.hpp>
-#include <boost/uuid/uuid_generators.hpp>
-#include <boost/uuid/uuid_io.hpp>
+#include "uuid-utils.hh"
 
 void carbonDumpThread();
 uint64_t uptimeOfProcess(const std::string& str);
@@ -58,8 +55,6 @@ uint64_t uptimeOfProcess(const std::string& str);
 extern uint16_t g_ECSSourcePrefixV4;
 extern uint16_t g_ECSSourcePrefixV6;
 extern bool g_ECSOverride;
-
-extern thread_local boost::uuids::random_generator t_uuidGenerator;
 
 typedef std::unordered_map<string, string> QTag;
 

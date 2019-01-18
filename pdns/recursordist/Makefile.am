@@ -362,6 +362,10 @@ testrunner_LDADD += $(PROTOBUF_LIBS)
 testrunner$(OBJEXT): dnsmessage.pb.cc
 
 endif
+
+pdns_recursor_SOURCES += \
+	uuid-utils.hh uuid-utils.cc
+
 endif
 
 rec_control_SOURCES = \
