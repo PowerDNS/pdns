@@ -8,6 +8,7 @@ from dnsdisttests import DNSDistTest
 class TestCaching(DNSDistTest):
 
     _config_template = """
+    -- maxTTL=86400, minTTL=1
     pc = newPacketCache(100, 86400, 1)
     getPool(""):setCache(pc)
     addAction(makeRule("nocache.cache.tests.powerdns.com."), SkipCacheAction())
@@ -16,7 +17,7 @@ class TestCaching(DNSDistTest):
         return DNSAction.None, ""
     end
     addAction("nocachevialua.cache.tests.powerdns.com.", LuaAction(skipViaLua))
-    newServer{address="127.0.0.1:%s"}
+    newServer{address="127.0.0.1:%d"}
     """
 
     def testCached(self):
@@ -416,10 +417,11 @@ class TestCaching(DNSDistTest):
 class TestTempFailureCacheTTLAction(DNSDistTest):
 
     _config_template = """
+    -- maxTTL=86400, minTTL=1
     pc = newPacketCache(100, 86400, 1)
     getPool(""):setCache(pc)
     addAction("servfail.cache.tests.powerdns.com.", TempFailureCacheTTLAction(1))
-    newServer{address="127.0.0.1:%s"}
+    newServer{address="127.0.0.1:%d"}
     """
 
     def testTempFailureCacheTTLAction(self):
@@ -462,9 +464,10 @@ class TestTempFailureCacheTTLAction(DNSDistTest):
 class TestCachingWithExistingEDNS(DNSDistTest):
 
     _config_template = """
+    -- maxTTL=86400, minTTL=1
     pc = newPacketCache(5, 86400, 1)
     getPool(""):setCache(pc)
-    newServer{address="127.0.0.1:%s"}
+    newServer{address="127.0.0.1:%d"}
     """
     def testCacheWithEDNS(self):
         """
@@ -519,9 +522,10 @@ class TestCachingWithExistingEDNS(DNSDistTest):
 class TestCachingCacheFull(DNSDistTest):
 
     _config_template = """
+    -- maxTTL=86400, minTTL=1
     pc = newPacketCache(1, 86400, 1)
     getPool(""):setCache(pc)
-    newServer{address="127.0.0.1:%s"}
+    newServer{address="127.0.0.1:%d"}
     """
     def testCacheFull(self):
         """
@@ -593,11 +597,12 @@ class TestCachingNoStale(DNSDistTest):
     _consoleKeyB64 = base64.b64encode(_consoleKey).decode('ascii')
     _config_params = ['_consoleKeyB64', '_consolePort', '_testServerPort']
     _config_template = """
+    -- maxTTL=86400, minTTL=1
     pc = newPacketCache(100, 86400, 1)
     getPool(""):setCache(pc)
     setKey("%s")
-    controlSocket("127.0.0.1:%s")
-    newServer{address="127.0.0.1:%s"}
+    controlSocket("127.0.0.1:%d")
+    newServer{address="127.0.0.1:%d"}
     """
     def testCacheNoStale(self):
         """
@@ -644,12 +649,13 @@ class TestCachingStale(DNSDistTest):
     _staleCacheTTL = 60
     _config_params = ['_staleCacheTTL', '_consoleKeyB64', '_consolePort', '_testServerPort']
     _config_template = """
-    pc = newPacketCache(100, 86400, 1, %s)
+    -- maxTTL=86400, minTTL=1, temporaryFailureTTL=0, staleTTL=XX
+    pc = newPacketCache(100, 86400, 1, 0, %d)
     getPool(""):setCache(pc)
     setStaleCacheEntriesTTL(600)
     setKey("%s")
-    controlSocket("127.0.0.1:%s")
-    newServer{address="127.0.0.1:%s"}
+    controlSocket("127.0.0.1:%d")
+    newServer{address="127.0.0.1:%d"}
     """
     def testCacheStale(self):
         """
@@ -698,17 +704,168 @@ class TestCachingStale(DNSDistTest):
 
         self.assertEquals(total, misses)
 
+class TestCachingStaleExpunged(DNSDistTest):
+
+    _consoleKey = DNSDistTest.generateConsoleKey()
+    _consoleKeyB64 = base64.b64encode(_consoleKey).decode('ascii')
+    _staleCacheTTL = 60
+    _config_params = ['_staleCacheTTL', '_consoleKeyB64', '_consolePort', '_testServerPort']
+    _config_template = """
+    -- maxTTL=86400, minTTL=1, temporaryFailureTTL=0, staleTTL=XX
+    pc = newPacketCache(100, 86400, 1, 0, %d)
+    getPool(""):setCache(pc)
+    setStaleCacheEntriesTTL(600)
+    -- try to remove all expired entries
+    setCacheCleaningPercentage(100)
+    -- clean the cache every second
+    setCacheCleaningDelay(1)
+    setKey("%s")
+    controlSocket("127.0.0.1:%d")
+    newServer{address="127.0.0.1:%d"}
+    """
+    def testCacheStale(self):
+        """
+        Cache: Cache entry, set backend down, wait for the cache cleaning to run and remove the entry, get no entry
+        """
+        misses = 0
+        drops = 0
+        ttl = 1
+        name = 'stale-but-expunged.cache.tests.powerdns.com.'
+        query = dns.message.make_query(name, 'A', 'IN')
+        response = dns.message.make_response(query)
+        rrset = dns.rrset.from_text(name,
+                                    ttl,
+                                    dns.rdataclass.IN,
+                                    dns.rdatatype.A,
+                                    '127.0.0.1')
+        response.answer.append(rrset)
+
+        # Miss
+        (receivedQuery, receivedResponse) = self.sendUDPQuery(query, response)
+        self.assertTrue(receivedQuery)
+        self.assertTrue(receivedResponse)
+        receivedQuery.id = query.id
+        self.assertEquals(query, receivedQuery)
+        self.assertEquals(response, receivedResponse)
+        misses += 1
+        self.assertEquals(int(self.sendConsoleCommand("getPool(\"\"):getCache():getStats()[\"misses\"]").strip("\n")), misses + drops)
+
+        # next queries should hit the cache
+        (_, receivedResponse) = self.sendUDPQuery(query, response=None, useQueue=False)
+        self.assertEquals(receivedResponse, response)
+        # the cache should have one entry
+        self.assertEquals(int(self.sendConsoleCommand("getPool(\"\"):getCache():getStats()[\"entries\"]").strip("\n")), 1)
+        self.assertEquals(int(self.sendConsoleCommand("getPool(\"\"):getCache():getStats()[\"hits\"]").strip("\n")), 1)
+
+        # ok, we mark the backend as down
+        self.sendConsoleCommand("getServer(0):setDown()")
+        # and we wait for the entry to expire
+        time.sleep(ttl + 1)
+        # wait a bit more to be sure that the cache cleaning algo has been run
+        time.sleep(1)
+        # the cache should be empty now
+        self.assertEquals(int(self.sendConsoleCommand("getPool(\"\"):getCache():getStats()[\"entries\"]").strip("\n")), 0)
+
+        # we should get a DROP (backend is down, nothing in the cache anymore)
+        (_, receivedResponse) = self.sendUDPQuery(query, response=None, useQueue=False)
+        self.assertEquals(receivedResponse, None)
+        drops += 1
+
+        self.assertEquals(int(self.sendConsoleCommand("getPool(\"\"):getCache():getStats()[\"misses\"]").strip("\n")), misses + drops)
+        self.assertEquals(int(self.sendConsoleCommand("getPool(\"\"):getCache():getStats()[\"hits\"]").strip("\n")), 1)
+
+        total = 0
+        for key in self._responsesCounter:
+            total += self._responsesCounter[key]
+
+        self.assertEquals(total, misses)
+
+class TestCachingStaleExpungePrevented(DNSDistTest):
+
+    _consoleKey = DNSDistTest.generateConsoleKey()
+    _consoleKeyB64 = base64.b64encode(_consoleKey).decode('ascii')
+    _config_params = ['_consoleKeyB64', '_consolePort', '_testServerPort']
+    _config_template = """
+    -- maxTTL=86400, minTTL=1, temporaryFailureTTL=0, staleTTL=60, dontAge=false, numberOfShards=1, deferrableInsertLock=true, maxNegativeTTL=3600, ecsParsing=false, keepStaleData=true
+    pc = newPacketCache(100, 86400, 1, 0, 60, false, 1, true, 3600, false, { keepStaleData=true})
+    getPool(""):setCache(pc)
+    setStaleCacheEntriesTTL(600)
+    -- try to remove all expired entries
+    setCacheCleaningPercentage(100)
+    -- clean the cache every second
+    setCacheCleaningDelay(1)
+    setKey("%s")
+    controlSocket("127.0.0.1:%d")
+    newServer{address="127.0.0.1:%d"}
+    """
+    def testCacheStale(self):
+        """
+        Cache: Cache entry, set backend down, wait for the cache cleaning to run and remove the entry, still get a cache HIT because the stale entry was not removed
+        """
+        misses = 0
+        ttl = 1
+        name = 'stale-not-expunged.cache.tests.powerdns.com.'
+        query = dns.message.make_query(name, 'A', 'IN')
+        response = dns.message.make_response(query)
+        rrset = dns.rrset.from_text(name,
+                                    ttl,
+                                    dns.rdataclass.IN,
+                                    dns.rdatatype.A,
+                                    '127.0.0.1')
+        response.answer.append(rrset)
+
+        # Miss
+        (receivedQuery, receivedResponse) = self.sendUDPQuery(query, response)
+        self.assertTrue(receivedQuery)
+        self.assertTrue(receivedResponse)
+        receivedQuery.id = query.id
+        self.assertEquals(query, receivedQuery)
+        self.assertEquals(response, receivedResponse)
+        misses += 1
+        self.assertEquals(int(self.sendConsoleCommand("getPool(\"\"):getCache():getStats()[\"misses\"]").strip("\n")), 1)
+
+        # next queries should hit the cache
+        (_, receivedResponse) = self.sendUDPQuery(query, response=None, useQueue=False)
+        self.assertEquals(receivedResponse, response)
+        # the cache should have one entry
+        self.assertEquals(int(self.sendConsoleCommand("getPool(\"\"):getCache():getStats()[\"entries\"]").strip("\n")), 1)
+        self.assertEquals(int(self.sendConsoleCommand("getPool(\"\"):getCache():getStats()[\"hits\"]").strip("\n")), 1)
+
+        # ok, we mark the backend as down
+        self.sendConsoleCommand("getServer(0):setDown()")
+        # and we wait for the entry to expire
+        time.sleep(ttl + 1)
+        # wait a bit more to be sure that the cache cleaning algo has been run
+        time.sleep(1)
+        # the cache should NOT be empty because the removal of the expired entry should have been prevented
+        # since all backends for this pool are down
+        self.assertEquals(int(self.sendConsoleCommand("getPool(\"\"):getCache():getStats()[\"entries\"]").strip("\n")), 1)
+
+        # we should get a HIT
+        (_, receivedResponse) = self.sendUDPQuery(query, response=None, useQueue=False)
+        self.assertEquals(receivedResponse, response)
+
+        self.assertEquals(int(self.sendConsoleCommand("getPool(\"\"):getCache():getStats()[\"misses\"]").strip("\n")), 1)
+        self.assertEquals(int(self.sendConsoleCommand("getPool(\"\"):getCache():getStats()[\"hits\"]").strip("\n")), 2)
+
+        total = 0
+        for key in self._responsesCounter:
+            total += self._responsesCounter[key]
+
+        self.assertEquals(total, misses)
+
 class TestCacheManagement(DNSDistTest):
 
     _consoleKey = DNSDistTest.generateConsoleKey()
     _consoleKeyB64 = base64.b64encode(_consoleKey).decode('ascii')
     _config_params = ['_consoleKeyB64', '_consolePort', '_testServerPort']
     _config_template = """
+    -- maxTTL=86400, minTTL=1
     pc = newPacketCache(100, 86400, 1)
     getPool(""):setCache(pc)
     setKey("%s")
-    controlSocket("127.0.0.1:%s")
-    newServer{address="127.0.0.1:%s"}
+    controlSocket("127.0.0.1:%d")
+    newServer{address="127.0.0.1:%d"}
     """
     def testCacheExpunge(self):
         """
@@ -1092,9 +1249,10 @@ class TestCachingTTL(DNSDistTest):
     _minCacheTTL = 600
     _config_params = ['_maxCacheTTL', '_minCacheTTL', '_testServerPort']
     _config_template = """
-    pc = newPacketCache(1000, %s, %s)
+    -- maxTTL=XX, minTTL=XX
+    pc = newPacketCache(1000, %d, %d)
     getPool(""):setCache(pc)
-    newServer{address="127.0.0.1:%s"}
+    newServer{address="127.0.0.1:%d"}
     """
     def testCacheShortTTL(self):
         """
@@ -1181,9 +1339,10 @@ class TestCachingLongTTL(DNSDistTest):
     _maxCacheTTL = 2
     _config_params = ['_maxCacheTTL', '_testServerPort']
     _config_template = """
-    pc = newPacketCache(1000, %s)
+    -- maxTTL=XX
+    pc = newPacketCache(1000, %d)
     getPool(""):setCache(pc)
-    newServer{address="127.0.0.1:%s"}
+    newServer{address="127.0.0.1:%d"}
     """
     def testCacheLongTTL(self):
         """
@@ -1244,9 +1403,10 @@ class TestCachingFailureTTL(DNSDistTest):
     _failureCacheTTL = 2
     _config_params = ['_failureCacheTTL', '_testServerPort']
     _config_template = """
+    -- maxTTL=86400, minTTL=0, temporaryFailureTTL=XX, staleTTL=60
     pc = newPacketCache(1000, 86400, 0, %d, 60)
     getPool(""):setCache(pc)
-    newServer{address="127.0.0.1:%s"}
+    newServer{address="127.0.0.1:%d"}
     """
     def testCacheServFailTTL(self):
         """
@@ -1380,9 +1540,10 @@ class TestCachingNegativeTTL(DNSDistTest):
     _negCacheTTL = 1
     _config_params = ['_negCacheTTL', '_testServerPort']
     _config_template = """
+    -- maxTTL=86400, minTTL=0, temporaryFailureTTL=60, staleTTL=60, dontAge=false, numberOfShards=1, deferrableInsertLock=true, maxNegativeTTL=XX
     pc = newPacketCache(1000, 86400, 0, 60, 60, false, 1, true, %d)
     getPool(""):setCache(pc)
-    newServer{address="127.0.0.1:%s"}
+    newServer{address="127.0.0.1:%d"}
     """
 
     def testCacheNegativeTTLNXDomain(self):
@@ -1484,9 +1645,10 @@ class TestCachingNegativeTTL(DNSDistTest):
 class TestCachingDontAge(DNSDistTest):
 
     _config_template = """
+    -- maxTTL=86400, minTTL=0, temporaryFailureTTL=60, staleTTL=60, dontAge=true
     pc = newPacketCache(100, 86400, 0, 60, 60, true)
     getPool(""):setCache(pc)
-    newServer{address="127.0.0.1:%s"}
+    newServer{address="127.0.0.1:%d"}
     """
     def testCacheDoesntDecreaseTTL(self):
         """
@@ -1544,6 +1706,7 @@ class TestCachingECSWithoutPoolECS(DNSDistTest):
     _consoleKeyB64 = base64.b64encode(_consoleKey).decode('ascii')
     _config_params = ['_consoleKeyB64', '_consolePort', '_testServerPort']
     _config_template = """
+    -- maxTTL=86400, minTTL=1
     pc = newPacketCache(100, 86400, 1)
     getPool(""):setCache(pc)
     setKey("%s")
@@ -1606,6 +1769,7 @@ class TestCachingECSWithPoolECS(DNSDistTest):
     _consoleKeyB64 = base64.b64encode(_consoleKey).decode('ascii')
     _config_params = ['_consoleKeyB64', '_consolePort', '_testServerPort']
     _config_template = """
+    -- maxTTL=86400, minTTL=1
     pc = newPacketCache(100, 86400, 1)
     getPool(""):setCache(pc)
     getPool(""):setECS(true)
@@ -1666,9 +1830,10 @@ class TestCachingECSWithPoolECS(DNSDistTest):
 class TestCachingCollisionNoECSParsing(DNSDistTest):
 
     _config_template = """
+    -- maxTTL=86400, minTTL=1
     pc = newPacketCache(100, 86400, 1)
     getPool(""):setCache(pc)
-    newServer{address="127.0.0.1:%s"}
+    newServer{address="127.0.0.1:%d"}
     """
 
     def testCacheCollisionNoECSParsing(self):
@@ -1708,9 +1873,10 @@ class TestCachingCollisionNoECSParsing(DNSDistTest):
 class TestCachingCollisionWithECSParsing(DNSDistTest):
 
     _config_template = """
+    -- maxTTL=86400, minTTL=1, temporaryFailureTTL=60, staleTTL=60, dontAge=false, numberOfShards=1, deferrableInsertLock=true, maxNegativeTTL=3600, parseECS=true
     pc = newPacketCache(100, 86400, 1, 60, 60, false, 1, true, 3600, true)
     getPool(""):setCache(pc)
-    newServer{address="127.0.0.1:%s"}
+    newServer{address="127.0.0.1:%d"}
     """
 
     def testCacheCollisionWithECSParsing(self):

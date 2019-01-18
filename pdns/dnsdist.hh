@@ -828,8 +828,8 @@ struct ServerPool
     for (const auto& server : d_servers) {
       if (!upOnly || std::get<1>(server)->isUp() ) {
         count++;
-      };
-    };
+      }
+    }
     return count;
   }
 

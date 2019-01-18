@@ -168,7 +168,7 @@ void DNSDistPacketCache::insert(uint32_t key, const boost::optional<Netmask>& su
     return;
   }
 
-  const time_t now = time(NULL);
+  const time_t now = time(nullptr);
   time_t newValidity = now + minTTL;
   CacheValue newValue;
   newValue.qname = qname;
@@ -214,7 +214,7 @@ bool DNSDistPacketCache::get(const DNSQuestion& dq, uint16_t consumed, uint16_t 
   }
 
   uint32_t shardIndex = getShardIndex(key);
-  time_t now = time(NULL);
+  time_t now = time(nullptr);
   time_t age;
   bool stale = false;
   auto& shard = d_shards.at(shardIndex);
@@ -294,10 +294,9 @@ bool DNSDistPacketCache::get(const DNSQuestion& dq, uint16_t consumed, uint16_t 
 */
 void DNSDistPacketCache::purgeExpired(size_t upTo)
 {
-  time_t now = time(NULL);
   uint64_t size = getSize();
 
-  if (upTo >= size) {
+  if (size == 0 || upTo >= size) {
     return;
   }
 
@@ -305,6 +304,7 @@ void DNSDistPacketCache::purgeExpired(size_t upTo)
 
   size_t scannedMaps = 0;
 
+  const time_t now = time(nullptr);
   do {
     uint32_t shardIndex = (d_expungeIndex++ % d_shardCount);
     WriteLock w(&d_shards.at(shardIndex).d_lock);
