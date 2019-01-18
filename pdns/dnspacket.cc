@@ -314,22 +314,24 @@ void DNSPacket::wrapup()
     */
   size_t optsize = 0;
 
-  if (d_haveednssection || d_dnssecOk)
+  if (d_haveednssection || d_dnssecOk) {
+    /* root label (1), type (2), class (2), ttl (4) + rdlen (2) */
     optsize = 11;
+  }
 
   if(d_wantsnsid) {
     const static string mode_server_id=::arg()["server-id"];
     if(mode_server_id != "disabled") {
-      opts.push_back(make_pair(3, mode_server_id));
-      optsize += 4 + mode_server_id.size();
+      opts.push_back(make_pair(EDNSOptionCode::NSID, mode_server_id));
+      optsize += EDNS_OPTION_CODE_SIZE + EDNS_OPTION_LENGTH_SIZE + mode_server_id.size();
     }
   }
 
   if (d_haveednssubnet)
   {
     // this is an upper bound
-    optsize += 2 + 2 + 2 + 2 + 2; // code+len+family+src len+scope len
-    optsize += 16; // maximum length of a v6 address
+    optsize += EDNS_OPTION_CODE_SIZE + EDNS_OPTION_LENGTH_SIZE + 2 + 1 + 1; // code+len+family+src len+scope len
+    optsize += d_eso.source.isIpv4() ? 4 : 16;
   }
 
   if (d_trc.d_algoName.countLabels())
