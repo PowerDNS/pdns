@@ -136,12 +136,12 @@ int l_dnspacket (lua_State *lua) {
 int l_logger (lua_State *lua) {
 //    assert(lua == lb->lua);
 
-    lua_getfield(lua, LUA_REGISTRYINDEX, "__LUABACKEND");
-    LUABackend* lb = (LUABackend*)lua_touserdata(lua, -1);
-
     int i = lua_gettop(lua);
     if (i < 1)
-	return 0;
+        return 0;
+
+    lua_getfield(lua, LUA_REGISTRYINDEX, "__LUABACKEND");
+    LUABackend* lb = (LUABackend*)lua_touserdata(lua, -1);
 
     int log_level = 0;
     stringstream s;
@@ -158,7 +158,7 @@ int l_logger (lua_State *lua) {
 	space = " ";
     }
 
-    L.log(lb->backend_name + s.str(), (Logger::Urgency) log_level);
+    g_log.log(lb->backend_name + s.str(), (Logger::Urgency) log_level);
 
     return 0;
 }

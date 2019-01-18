@@ -1,0 +1,55 @@
+#!/bin/sh
+
+mysqldiff
+
+RECORDNAME=occluded.sub.test.dyndns
+
+echo '* Check that the name cannot be found'
+cleandig $RECORDNAME ANY hidesoadetails
+
+echo '* Create the occluded name in the parent zone'
+cleannsupdate <<!
+server $nameserver $port
+zone test.dyndns
+update add $RECORDNAME. 3600 CNAME parent
+send
+answer
+!
+
+echo '* Check that the name cannot be found'
+cleandig $RECORDNAME ANY hidesoadetails
+
+echo '* Create a record in the child zone'
+cleannsupdate <<!
+server $nameserver $port
+zone sub.test.dyndns
+update add $RECORDNAME. 3600 CNAME child
+send
+answer
+!
+
+echo '* Check that the child zone record is visible'
+cleandig $RECORDNAME A hidesoadetails
+
+echo '* Remove child record'
+cleannsupdate <<!
+server $nameserver $port
+zone sub.test.dyndns
+update delete $RECORDNAME. 3600 CNAME child
+send
+answer
+!
+
+echo '* Check that the occluded name is invisible again'
+cleandig $RECORDNAME ANY hidesoadetails
+
+echo '* Remove parent record'
+cleannsupdate <<!
+server $nameserver $port
+zone test.dyndns
+update delete $RECORDNAME. 3600 CNAME parent
+send
+answer
+!
+
+mysqldiff 1 "check that we cleaned up correctly"

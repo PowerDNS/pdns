@@ -2,13 +2,695 @@ Changelogs for 4.1.x
 ====================
 
 .. changelog::
+  :version: 4.1.5
+  :released: November 6th 2018
+
+  This release fixes the following security advisories:
+
+  - PowerDNS Security Advisory :doc:`2018-03 <../security-advisories/powerdns-advisory-2018-03>` (CVE-2018-10851)
+  - PowerDNS Security Advisory :doc:`2018-05 <../security-advisories/powerdns-advisory-2018-05>` (CVE-2018-14626)
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 7149
+
+    Crafted zone record can cause a denial of service (CVE-2018-10851, PowerDNS Security Advisory :doc:`2018-03 <../security-advisories/powerdns-advisory-2018-03>`)
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 7149
+
+    Packet cache pollution via crafted query (CVE-2018-14626, PowerDNS Security Advisory :doc:`2018-05 <../security-advisories/powerdns-advisory-2018-05>`)
+
+  Additionally there are some other minor fixes and improvements listed below.
+
+  .. change::
+    :tags: Improvements, Internals
+    :pullreq: 6976
+
+    Apply alias scopemask after chasing
+
+  .. change::
+    :tags: Improvements, Internals
+    :pullreq: 6917
+
+    Release memory in case of error in the openssl ecdsa constructor
+
+  .. change::
+    :tags: Bug Fixes, Internals
+    :pullreq: 6948
+    :tickets: 6943
+
+    Fix compilation with libressl 2.7.0+
+
+  .. change::
+    :tags: Bug Fixes, Internals
+    :pullreq: 6913
+
+    Actually truncate truncated responses
+
+  .. change::
+    :tags: Improvements, Internals
+    :pullreq: 7118
+    :tickets: 7040
+
+    Switch to devtoolset 7 for el6
+
+.. changelog::
+  :version: 4.1.4
+  :released: August 29th 2018
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 6590
+
+    Fix warnings reported by gcc 8.1.0.
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 6842, 6844, 6648
+    :tickets: 6632
+
+    Make the gmysql backend future-proof. (Chris Hofstaedtler)
+
+    * Use future-proof statement for transaction isolation
+    * Allow compiling against MySQL 8 client header files
+    * Workaround MariaDB pretending to be MySQL
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 6686
+    :tickets: 6685
+
+    Initialize some missed qtypes. (Chris Hofstaedtler)
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 6691
+    :tickets: 4457
+
+    ``pdns_control notify``: handle slave without renotify properly. (Chris Hofstaedtler)
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 6738
+    :tickets: 6736
+
+    Reset the TSIG state between queries.
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 6857
+
+    Remove SOA-check backoff on incoming notify and fix lock handling. (Klaus Darilion)
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 6858
+
+    Fix an issue where updating a record via DNS-UPDATE in a child zone that also exists in the parent zone, we would incorrectly apply the update to the parent zone.
+
+  .. change::
+    :tags: Bug Fixes, API
+    :pullreq: 6780
+
+    Avoid concurrent records/comments iteration from running out of sync.
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 6677
+    :tickets: 6676
+
+    Geoipbackend: check ``geoip_id_by_addr_gl`` and ``geoip_id_by_addr_v6_gl`` return value. (Aki Tuomi)
+
+  .. change::
+    :tags: Bug Fixes, API
+    :pullreq: 6816
+
+    Fix a crash in the API when adding records
+
+.. changelog::
+  :version: 4.1.3
+  :released: 24th of May 2018
+
+  This release contains several small fixes to the GeoIP backend.
+  The most prominent fix being one where the backend would be slow when thousands of network masks were configured for services.
+
+  .. change::
+    :tags: API, Bug Fixes
+    :pullreq: 6614
+    :tickets: 6441
+
+    Restrict creation of OPT and TSIG RRsets
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 6559
+    :tickets: 6239
+
+    pdnsutil: use new domain in b2bmigrate (Aki Tuomi)
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 6370
+    :tickets: 6228
+
+    Fix handling of user-defined axfr filters return values
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 6130
+
+    Update copyright years to 2018 (Matt Nordhoff)
+
+  .. change::
+    :tags: Bug Fixes, Improvements
+    :pullreq: 6608, 6585
+    :tickets: 6585, 6584
+
+    Prevent the GeoIP backend from copying NetMaskTrees around, fixes slow-downs in certain configurations (Aki Tuomi)
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 6659
+    :tickets: 6654
+
+    Ensure alias answers over tcp have correct name
+
+
+.. changelog::
+  :version: 4.1.2
+  :released: 8th of May 2018
+
+  This is the third release in the 4.1 train. Besides bug fixes, it contains some performance and usability improvements.
+
+  .. change::
+    :tags: Improvements, API
+    :pullreq: 6572, 6571
+
+    API: increase serial after dnssec related updates (Kees Monshouwer)
+
+  .. change::
+    :tags: Tools
+    :pullreq: 6575
+
+    Dnsreplay: bail out on a too small outgoing buffer
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 6573
+    :tickets: 6312, 6545
+
+    Auth: lower 'packet too short' loglevel
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 6570
+    :tickets: 6021
+
+    Auth-bindbackend: only compare ips in ismaster() (Kees Monshouwer)
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 6556
+    :tickets: 6354
+
+    Rather than crash, sheepishly report no file/linenum
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 6540
+    :tickets: 6539
+
+    Document undocumented config vars
+
+  .. change::
+    :tags: Internals
+    :pullreq: 6542
+    :tickets: 6516, 6516
+
+    Move includes around to avoid boost L conflict
+
+  .. change::
+    :tags: Internals
+    :pullreq: 6543
+    :tickets: 6155
+
+    Backport: update edns option code list
+
+  .. change::
+    :tags: Packages
+    :pullreq: 6546
+    :tickets: 6286
+
+    Backport: debian authoritative packaging fixes for 4.1
+
+  .. change::
+    :tags: Packages
+    :pullreq: 6547
+    :tickets: 6051, 6062
+
+    Fix piddir detection on centos 6
+
+  .. change::
+    :tags: Internals
+    :pullreq: 6548
+    :tickets: 6487
+
+    Auth: link dnspcap2protobuf against librt when needed
+
+  .. change::
+    :tags: Internals
+    :pullreq: 6549
+    :tickets: 6478
+
+    Fix a warning on botan >= 2.5.0
+
+  .. change::
+    :tags: Bug Fixes, Postgresql
+    :pullreq: 6551
+    :tickets: 6464
+
+    Auth: allocate new statements after reconnecting to postgresql
+
+  .. change::
+    :tags: Internals
+    :pullreq: 6552
+    :tickets: 6304
+
+    Auth 4.1.x: unbreak build
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 6553
+    :tickets: 6297
+
+    Make check-zone error on rows that have content but shouldn't
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 6554
+    :tickets: 6427
+
+    Auth: avoid an isane amount of new backend connections during an axfr
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 6555
+    :tickets: 6396
+
+    Report unparseable data in stoul invalid_argument exception
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 6490
+    :tickets: 6484
+
+    Backport: recheck serial when axfr is done
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 6337
+    :tickets: 6331
+
+    Backport: add tcp support for alias
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 6314
+    :tickets: 6276
+
+    Backport #6276 (auth 4.1.x): prevent cname + other data with dnsupdate
+
+.. changelog::
+  :version: 4.1.1
+  :released: 16th of February 2018
+
+  This is the second release in the 4.1 train.
+
+  This is a bug-fix only release, with fixes to the LDAP and MySQL backends, the ``pdnsutil`` tool, and PDNS internals.
+
+  Changes since 4.1.1:
+
+  .. change::
+    :tags: Bug Fixes, Internals
+    :pullreq: 6260
+    :tickets: 6028
+
+    Backport: forbid label compression in alias wire format
+
+  .. change::
+    :tags: Bug Fixes, Internals
+    :pullreq: 6077
+
+    Include unistd.h for chroot(2) et al. (Florian Obser)
+
+  .. change::
+    :tags: Bug Fixes, LDAP
+    :pullreq: 6048
+
+    Ldap: fix getdomaininfo() to set ``this`` as di.backend (Grégory Oestreicher)
+
+  .. change::
+    :tags: Bug Fixes, Improvements
+    :pullreq: 6172
+
+    Ixfr: correct behavior of dealing with dns name with multiple records (Leon Xu)
+
+  .. change::
+    :tags: Bug Fixes, MySQL
+    :pullreq: 6134
+    :tickets: 6115
+
+    Auth: always bind the results array after executing a mysql statement
+
+  .. change::
+    :tags: Bug Fixes, Tools
+    :pullreq: 6129
+    :tickets: 6125
+
+    Auth: init openssl and libsodium before chrooting in pdnsutil
+
+  .. change::
+    :tags: Bug Fixes, LDAP
+    :pullreq: 6122
+    :tickets: 6097, 6060
+
+    Ldapbackend: fix listing zones incl. axfr (Chris Hofstaedtler)
+
+  .. change::
+    :tags: Bug Fixes, Internals
+    :pullreq: 6103
+
+    Auth: fix out of bounds exception in caa processing, fixes #6089
+
+  .. change::
+    :tags: Bug Fixes, Internals
+    :pullreq: 6041
+    :tickets: 6040
+
+    Add the missing <sys/time.h> include to mplexer.hh for struct timeval
+
+.. changelog::
+  :version: 4.1.0
+  :released: 30th of November 2017
+
+  This is the first release in the 4.1 train.
+
+  The full release notes can be read `on the blog <https://blog.powerdns.com/2017/11/30/powerdns-authoritative-server-4-1/>`_.
+
+  The 4.1 release is a major upgrade for the Authoritative Server featuring many improvements and speedups:
+
+  - Improved performance: 400% speedup in some scenarios,
+  - Crypto API: DNSSEC fully configurable via RESTful API,
+  - Improved documentation,
+  - Database related improvements,
+  - Enhanced tooling,
+  - Support for TCP Fast Open,
+  - Support for non-local bind,
+  - Support for Botan 2.x (and removal of support for Botan 1.10),
+  - Our packages now ship with PKCS #11 support.
+
+  Recursor passthrough removal: This will impact many installations, and we realize this may be painful, but it is necessary. Previously, the PowerDNS Authoritative Server contained a facility for sending recursion desired queries to a resolving backend, possibly after first consulting its local cache. This feature (‘recursor=’) was frequently confusing and also delivered inconsistent results, for example when a query ended up referring to a CNAME that was outside of the Authoritative Server’s knowledge. To read more about this please see the blog post mentioned above or read the :doc:`migration guide <../../guides/recursion>`.
+
+  Changes since 4.1.0-rc3:
+
+  .. change::
+    :tags: DNSSEC, Bug Fixes
+    :pullreq: 5968
+
+    Fix hang when PATCHing zone during rectify.
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 5976
+    :tickets: 5974
+
+    Report remote IP when SOA query comes back with empty question section.
+
+  .. change::
+    :tags: API, Improvements
+    :pullreq: 5964
+    :tickets: 5862
+
+    Make the /cryptokeys endpoint consistently use CryptoKey objects.
+
+  .. change::
+    :tags: Removed Features
+    :pullreq: 6004
+
+    Remove deprecated SOA-EDIT values: INCEPTION and INCEPTION-WEEK.
+
+  .. change::
+    :tags: API, Bug Fixes
+    :pullreq: 6007
+
+    Deny cache flush, zone retrieve and notify if the API is read-only.
+
+.. changelog::
+  :version: 4.1.0-rc3
+  :released: 17th of November 2017
+
+  This is the third release candidate of the PowerDNS Authoritative Server in the 4.1 release train.
+
+  This release features various bug fixes and some improvements to
+  ``pdnsutil``.
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 5905
+
+    Use 302 redirects in the webserver for ringbuffer reset or
+    resize. With the current 301 redirect it is only possible to reset
+    or resize once. Every next duplicate action is replaced by the
+    destination cached in the browser.
+
+  .. change::
+    :tags: Tools, Bug Fixes
+    :pullreq: 5884
+    :tickets: 5849
+
+    Fix messages created by ``pdnsutil generate-tsig-key``.
+
+  .. change::
+    :tags: Internals, Improvements
+    :pullreq: 5616
+
+    Better support for deleting entries in NetmaskTree and NetmaskGroup.
+
+  .. change::
+    :tags: Internals, Bug Fixes
+    :pullreq: 5917
+
+    Use ``_exit()`` when we really really want to exit, for example
+    after a fatal error. This stops us dying while we die. A call to
+    ``exit()`` will trigger destructors, which may paradoxically stop
+    the process from exiting, taking down only one thread, but harming
+    the rest of the process.
+
+  .. change::
+    :tags: Tools, New Features
+    :pullreq: 5883
+    :tickets: 5853
+
+    Add ``add-meta`` command to ``pdnsutil`` that can be used to append
+    to existing metadata without clobbering it.
+
+  .. change::
+    :tags: Tools, Bug Fixes
+    :pullreq: 5928
+    :tickets: 5903
+
+    Add back missing output details to rectifyZone.
+
+  .. change::
+    :tags: Tools, Improvements
+    :pullreq: 5879
+    :tickets: 3059, 5948, 5949
+
+    Warn if records in a zone are occluded.
+
+  .. change::
+    :tags: API, Improvements
+    :pullreq: 5935
+
+    Throw exception for metadata endpoint with wrong zone. Before, We
+    would happily accept this POST.
+
+  .. change::
+    :tags: API, New Features
+    :pullreq: 5936
+    :tickets: 5909, 5910
+
+    Make it possible to disable DNSSEC via the API, this is equivalent
+    to doing ``pdnsutil disable-dnssec``.
+
+.. changelog::
   :version: 4.1.0-rc2
+  :released: 3rd of November 2017
+
+  This is the second release candidate of the PowerDNS Authoritative Server in the 4.1 release train.
+
+  This release has several performance improvements, stability and
+  correctness fixes.
 
   .. change::
     :tags: Packages, New Features
     :pullreq: 5665
 
     Add :doc:`PKCS#11 <../../dnssec/pkcs11>` support to packages on Operating Systems that support it.
+
+  .. change::
+    :tags: Bug Fixes, Internals, Tools
+    :pullreq: 5684
+    :tickets: 5673
+
+    Improve trailing dot handling internally which lead to a segfault in
+    pdnsutil before.
+
+  .. change::
+    :tags: Bug Fixes, Internals
+    :pullreq: 5678
+
+    Treat requestor's payload size lower than 512 as equal to 512.
+    Before, we did not follow :rfc:`RFC 6891 section 6.2.3 <6891#section-6.2.3>` correctly.
+
+  .. change::
+    :tags: Improvements, LDAP
+    :pullreq: 5584
+
+    Add support for new record types to the LDAP backend.
+
+  .. change::
+    :tags: API, Bug Fixes
+    :pullreq: 5696
+
+    For zone PATCH requests, add new ``X-PDNS-Old-Serial`` and
+    ``X-PDNS-New-Serial`` response headers with the zone serials before
+    and after the changes.
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 5710
+    :tickets: 5692
+
+    Remove "" around secpoll result which fixes ``pdns_control show
+    security-status`` not working.
+
+  .. change::
+    :tags: Bug Fixes, BIND
+    :pullreq: 5702
+
+    Make bindbackend startTransaction to return false when it has
+    failed. (Aki Tuomi)
+
+  .. change::
+    :tags: Bug Fixes, DNSSEC, API
+    :pullreq: 5704
+
+    Make default options singular and use defaults in Cryptokey API-endpoint
+
+  .. change::
+    :tags: Bug Fixes, Tools
+    :pullreq: 5729
+    :tickets: 5719
+
+    Remove printing of DS records from ``pdnsutil export-zone-dnskey …``. This was not only inconsistent behaviour but also done incorrectly.
+
+  .. change::
+    :tags: Bug Fixes, DNSSEC
+    :pullreq: 5722
+    :tickets: 5721
+
+    Make the auth also publish CDS/CDNSKEY records for inactive keys, as
+    this is needed to roll without double sigs.
+
+  .. change::
+    :tags: Bug Fixes, DNSSEC
+    :pullreq: 5734
+
+    Fix a crash when getting a public GOST key if the private one is not set.
+
+  .. change::
+    :tags: Bug Fixes, Internals
+    :pullreq: 5766
+    :tickets: 5767
+
+    Correctly purge entries from the caches after a transfer.  Since the
+    QC/PC split up, we only removed entries for the AXFR'd domain from
+    the packet cache, not the query cache.
+    We also did not remove entries in case of IXFR.
+
+  .. change::
+    :tags: Bug Fixes, Internals
+    :pullreq: 5791
+
+    When throwing because of bogus content in the tinydns database,
+    report the offending name+type so the admin can find the offending
+    record.
+
+  .. change::
+    :tags: DNSSEC, Bug Fixes
+    :pullreq: 5815
+
+    Ignore SOA-EDIT for PRESIGNED zones.
+
+  .. change::
+    :tags: Bug Fixes, MySQL
+    :pullreq: 5820
+    :tickets: 5675
+
+    Log the needed size when a MySQL result was truncated.
+
+  .. change::
+    :tags: API, DNSSEC, New Features
+    :pullreq: 5779
+    :tickets: 3417, 5712
+
+    Rectify zones via the API. (Nils Wisiol)
+
+    * Move the pdnsutil rectification code to the DNSSECKeeper
+    * Generate DNSSEC keys for a zone when "dnssec" is true in an API POST/PATCH for zones
+    * Rectify DNSSEC zones after POST/PATCH when API-RECTIFY metadata is 1
+    * Allow setting this metadata via the "api-rectify" param in a Zone object
+    * Show "nsec3param" and "nsec3narrow" in Zone API responses
+    * Add an "rrsets" request parameter for a zone to skip sending RRSets in the response
+    * Add rectify endpoint in the API
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 5842
+
+    Add :ref:`setting-log-timestamp` option. This option can be used to disable
+    printing timestamps to stdout, this is useful when using
+    systemd-journald or another supervisor that timestamps stdout by
+    itself. As the logs will not have 2 timestamps.
+
+  .. change::
+    :tags: Internals, Improvements
+    :pullreq: 5498
+    :tickets: 2250, 5734, 5797, 5889
+
+    Add support for Botan 2.x and drop support for Botan 1.10 (the
+    latter thanks to Kees Monshouwer).
+
+  .. change::
+    :tags: DNSSEC, Improvements
+    :pullreq: 5838
+    :tickets: 5767
+
+    Stop doing individual RRSIG queries during outbound AXFR. (Kees Monshouwer)
+
+  .. change::
+    :tags: BIND, Improvements
+    :pullreq: 5810
+    :tickets: 5115, 5807
+
+    Fix issues when b2b-migrating from the BIND backend to a database:
+
+    * No masters were set in the target db (#5807)
+    * Only the last master in the list of masters would be added to the target database
+    * The BIND backend was not fully aware of native zones
 
 .. changelog::
   :version: 4.1.0-rc1

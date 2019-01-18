@@ -9,6 +9,7 @@ Bind zone file backend
 * DNSSEC: Yes
 * Disabled data: No
 * Comments: No
+* API: Read-only
 * Module name: bind
 * Launch: ``bind``
 
@@ -21,6 +22,8 @@ information about zones from it. It makes no attempt to honour other
 configuration flags, which you should configure (when available) using
 the PowerDNS native configuration.
 
+**note**: Because this backend retrieves its configuration from a text file and not a database, the HTTP API is unable to process changes for this backend. This effectively makes the API read-only for zones hosted by the BIND backend.  
+
 Configuration Parameters
 ------------------------
 
@@ -30,6 +33,18 @@ Configuration Parameters
 ~~~~~~~~~~~~~~~
 
 Location of the Bind configuration file to parse.
+
+PowerDNS does not support every directive supported by Bind.
+It supports the following blocks and directives:
+
+* ``options``
+   * ``directory``
+   * ``also-notify``
+* ``zone``
+   * ``file``
+   * ``type``
+   * ``masters``
+   * ``also-notify``
 
 .. _setting-bind-check-interval:
 

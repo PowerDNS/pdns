@@ -8,7 +8,7 @@
 #include "dnswriter.hh"
 #include "dnsrecords.hh"
 #include "statbag.hh"
-#include "md5.hh"
+#include "digests.hh"
 #include "base64.hh"
 #include "dnssecinfra.hh"
 #include "resolver.hh"
@@ -59,8 +59,7 @@ try
 
   Socket sock(AF_INET, SOCK_DGRAM);
   ComboAddress dest(argv[1] + (*argv[1]=='@'), atoi(argv[2]));
-  seedRandom("/dev/urandom");
-  cerr<<"Keyname: '"<<keyname.toString()<<"', algo: '"<<trc.d_algoName.toString()<<"', key: '"<<Base64Encode(key)<<"'\n";
+  cerr<<"Keyname: '"<<keyname<<"', algo: '"<<trc.d_algoName<<"', key: '"<<Base64Encode(key)<<"'\n";
   TSIGTriplet tt;
   tt.name=keyname;
   tt.algo=DNSName("hmac-md5");

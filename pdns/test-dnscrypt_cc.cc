@@ -31,23 +31,22 @@
 #include <unistd.h>
 
 bool g_verbose{true};
-bool g_console{true};
 bool g_syslog{true};
 
-BOOST_AUTO_TEST_SUITE(dnscrypt_cc)
+BOOST_AUTO_TEST_SUITE(test_dnscrypt_cc)
 
 #ifdef HAVE_DNSCRYPT
 
 // plaintext query for cert
 BOOST_AUTO_TEST_CASE(DNSCryptPlaintextQuery) {
-  DnsCryptPrivateKey resolverPrivateKey;
-  DnsCryptCert resolverCert;
+  DNSCryptPrivateKey resolverPrivateKey;
+  DNSCryptCert resolverCert;
   unsigned char providerPublicKey[DNSCRYPT_PROVIDER_PUBLIC_KEY_SIZE];
   unsigned char providerPrivateKey[DNSCRYPT_PROVIDER_PRIVATE_KEY_SIZE];
-  time_t now = time(NULL);
-  DnsCryptContext::generateProviderKeys(providerPublicKey, providerPrivateKey);
-  DnsCryptContext::generateCertificate(1, now, now + (24 * 60 * 3600), providerPrivateKey, resolverPrivateKey, resolverCert);
-  DnsCryptContext ctx("2.name", resolverCert, resolverPrivateKey);
+  time_t now = time(nullptr);
+  DNSCryptContext::generateProviderKeys(providerPublicKey, providerPrivateKey);
+  DNSCryptContext::generateCertificate(1, now, now + (24 * 60 * 3600), DNSCryptExchangeVersion::VERSION1, providerPrivateKey, resolverPrivateKey, resolverCert);
+  auto ctx = std::make_shared<DNSCryptContext>("2.name", resolverCert, resolverPrivateKey);
 
   DNSName name("2.name.");
   vector<uint8_t> plainQuery;
@@ -55,17 +54,17 @@ BOOST_AUTO_TEST_CASE(DNSCryptPlaintextQuery) {
   pw.getHeader()->rd = 0;
   uint16_t len = plainQuery.size();
 
-  std::shared_ptr<DnsCryptQuery> query = std::make_shared<DnsCryptQuery>();
+  std::shared_ptr<DNSCryptQuery> query = std::make_shared<DNSCryptQuery>(ctx);
   uint16_t decryptedLen = 0;
 
-  ctx.parsePacket((char*) plainQuery.data(), len, query, false, &decryptedLen);
+  query->parsePacket((char*) plainQuery.data(), len, false, &decryptedLen, now);
 
-  BOOST_CHECK_EQUAL(query->valid, true);
-  BOOST_CHECK_EQUAL(query->encrypted, false);
+  BOOST_CHECK_EQUAL(query->isValid(), true);
+  BOOST_CHECK_EQUAL(query->isEncrypted(), false);
 
   std::vector<uint8_t> response;
 
-  ctx.getCertificateResponse(query, response);
+  query->getCertificateResponse(now, response);
 
   MOADNSParser mdp(false, (char*) response.data(), response.size());
 
@@ -81,14 +80,14 @@ BOOST_AUTO_TEST_CASE(DNSCryptPlaintextQuery) {
 
 // invalid plaintext query (A)
 BOOST_AUTO_TEST_CASE(DNSCryptPlaintextQueryInvalidA) {
-    DnsCryptPrivateKey resolverPrivateKey;
-  DnsCryptCert resolverCert;
+  DNSCryptPrivateKey resolverPrivateKey;
+  DNSCryptCert resolverCert;
   unsigned char providerPublicKey[DNSCRYPT_PROVIDER_PUBLIC_KEY_SIZE];
   unsigned char providerPrivateKey[DNSCRYPT_PROVIDER_PRIVATE_KEY_SIZE];
-  time_t now = time(NULL);
-  DnsCryptContext::generateProviderKeys(providerPublicKey, providerPrivateKey);
-  DnsCryptContext::generateCertificate(1, now, now + (24 * 60 * 3600), providerPrivateKey, resolverPrivateKey, resolverCert);
-  DnsCryptContext ctx("2.name", resolverCert, resolverPrivateKey);
+  time_t now = time(nullptr);
+  DNSCryptContext::generateProviderKeys(providerPublicKey, providerPrivateKey);
+  DNSCryptContext::generateCertificate(1, now, now + (24 * 60 * 3600), DNSCryptExchangeVersion::VERSION1, providerPrivateKey, resolverPrivateKey, resolverCert);
+  auto ctx = std::make_shared<DNSCryptContext>("2.name", resolverCert, resolverPrivateKey);
 
   DNSName name("2.name.");
 
@@ -97,24 +96,24 @@ BOOST_AUTO_TEST_CASE(DNSCryptPlaintextQueryInvalidA) {
   pw.getHeader()->rd = 0;
   uint16_t len = plainQuery.size();
 
-  std::shared_ptr<DnsCryptQuery> query = std::make_shared<DnsCryptQuery>();
+  std::shared_ptr<DNSCryptQuery> query = std::make_shared<DNSCryptQuery>(ctx);
   uint16_t decryptedLen = 0;
 
-  ctx.parsePacket((char*) plainQuery.data(), len, query, false, &decryptedLen);
+  query->parsePacket((char*) plainQuery.data(), len, false, &decryptedLen, now);
 
-  BOOST_CHECK_EQUAL(query->valid, false);
+  BOOST_CHECK_EQUAL(query->isValid(), false);
 }
 
 // invalid plaintext query (wrong provider name)
 BOOST_AUTO_TEST_CASE(DNSCryptPlaintextQueryInvalidProviderName) {
-  DnsCryptPrivateKey resolverPrivateKey;
-  DnsCryptCert resolverCert;
+  DNSCryptPrivateKey resolverPrivateKey;
+  DNSCryptCert resolverCert;
   unsigned char providerPublicKey[DNSCRYPT_PROVIDER_PUBLIC_KEY_SIZE];
   unsigned char providerPrivateKey[DNSCRYPT_PROVIDER_PRIVATE_KEY_SIZE];
-  time_t now = time(NULL);
-  DnsCryptContext::generateProviderKeys(providerPublicKey, providerPrivateKey);
-  DnsCryptContext::generateCertificate(1, now, now + (24 * 60 * 3600), providerPrivateKey, resolverPrivateKey, resolverCert);
-  DnsCryptContext ctx("2.name", resolverCert, resolverPrivateKey);
+  time_t now = time(nullptr);
+  DNSCryptContext::generateProviderKeys(providerPublicKey, providerPrivateKey);
+  DNSCryptContext::generateCertificate(1, now, now + (24 * 60 * 3600), DNSCryptExchangeVersion::VERSION1, providerPrivateKey, resolverPrivateKey, resolverCert);
+  auto ctx = std::make_shared<DNSCryptContext>("2.name", resolverCert, resolverPrivateKey);
 
   DNSName name("2.WRONG.name.");
 
@@ -123,29 +122,29 @@ BOOST_AUTO_TEST_CASE(DNSCryptPlaintextQueryInvalidProviderName) {
   pw.getHeader()->rd = 0;
   uint16_t len = plainQuery.size();
 
-  std::shared_ptr<DnsCryptQuery> query = std::make_shared<DnsCryptQuery>();
+  std::shared_ptr<DNSCryptQuery> query = std::make_shared<DNSCryptQuery>(ctx);
   uint16_t decryptedLen = 0;
 
-  ctx.parsePacket((char*) plainQuery.data(), len, query, false, &decryptedLen);
+  query->parsePacket((char*) plainQuery.data(), len, false, &decryptedLen, now);
 
-  BOOST_CHECK_EQUAL(query->valid, false);
+  BOOST_CHECK_EQUAL(query->isValid(), false);
 }
 
 // valid encrypted query
 BOOST_AUTO_TEST_CASE(DNSCryptEncryptedQueryValid) {
-  DnsCryptPrivateKey resolverPrivateKey;
-  DnsCryptCert resolverCert;
+  DNSCryptPrivateKey resolverPrivateKey;
+  DNSCryptCert resolverCert;
   unsigned char providerPublicKey[DNSCRYPT_PROVIDER_PUBLIC_KEY_SIZE];
   unsigned char providerPrivateKey[DNSCRYPT_PROVIDER_PRIVATE_KEY_SIZE];
-  time_t now = time(NULL);
-  DnsCryptContext::generateProviderKeys(providerPublicKey, providerPrivateKey);
-  DnsCryptContext::generateCertificate(1, now, now + (24 * 60 * 3600), providerPrivateKey, resolverPrivateKey, resolverCert);
-  DnsCryptContext ctx("2.name", resolverCert, resolverPrivateKey);
+  time_t now = time(nullptr);
+  DNSCryptContext::generateProviderKeys(providerPublicKey, providerPrivateKey);
+  DNSCryptContext::generateCertificate(1, now, now + (24 * 60 * 3600), DNSCryptExchangeVersion::VERSION1, providerPrivateKey, resolverPrivateKey, resolverCert);
+  auto ctx = std::make_shared<DNSCryptContext>("2.name", resolverCert, resolverPrivateKey);
 
-  DnsCryptPrivateKey clientPrivateKey;
+  DNSCryptPrivateKey clientPrivateKey;
   unsigned char clientPublicKey[DNSCRYPT_PUBLIC_KEY_SIZE];
 
-  DnsCryptContext::generateResolverKeyPair(clientPrivateKey, clientPublicKey);
+  DNSCryptContext::generateResolverKeyPair(clientPrivateKey, clientPublicKey);
 
   unsigned char clientNonce[DNSCRYPT_NONCE_SIZE / 2] = { 0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x08, 0x09, 0x0A, 0x0B };
 
@@ -153,27 +152,27 @@ BOOST_AUTO_TEST_CASE(DNSCryptEncryptedQueryValid) {
   vector<uint8_t> plainQuery;
   DNSPacketWriter pw(plainQuery, name, QType::AAAA, QClass::IN, 0);
   pw.getHeader()->rd = 1;
-  size_t requiredSize = plainQuery.size() + sizeof(DnsCryptQueryHeader) + DNSCRYPT_MAC_SIZE;
-  if (requiredSize < DnsCryptQuery::minUDPLength) {
-    requiredSize = DnsCryptQuery::minUDPLength;
+  size_t requiredSize = plainQuery.size() + sizeof(DNSCryptQueryHeader) + DNSCRYPT_MAC_SIZE;
+  if (requiredSize < DNSCryptQuery::s_minUDPLength) {
+    requiredSize = DNSCryptQuery::s_minUDPLength;
   }
 
   plainQuery.reserve(requiredSize);
   uint16_t len = plainQuery.size();
   uint16_t encryptedResponseLen = 0;
 
-  int res = ctx.encryptQuery((char*) plainQuery.data(), len, plainQuery.capacity(), clientPublicKey, clientPrivateKey, clientNonce, false, &encryptedResponseLen);
+  int res = ctx->encryptQuery((char*) plainQuery.data(), len, plainQuery.capacity(), clientPublicKey, clientPrivateKey, clientNonce, false, &encryptedResponseLen, std::make_shared<DNSCryptCert>(resolverCert));
 
   BOOST_CHECK_EQUAL(res, 0);
   BOOST_CHECK(encryptedResponseLen > len);
 
-  std::shared_ptr<DnsCryptQuery> query = std::make_shared<DnsCryptQuery>();
+  std::shared_ptr<DNSCryptQuery> query = std::make_shared<DNSCryptQuery>(ctx);
   uint16_t decryptedLen = 0;
 
-  ctx.parsePacket((char*) plainQuery.data(), encryptedResponseLen, query, false, &decryptedLen);
+  query->parsePacket((char*) plainQuery.data(), encryptedResponseLen, false, &decryptedLen, now);
 
-  BOOST_CHECK_EQUAL(query->valid, true);
-  BOOST_CHECK_EQUAL(query->encrypted, true);
+  BOOST_CHECK_EQUAL(query->isValid(), true);
+  BOOST_CHECK_EQUAL(query->isEncrypted(), true);
 
   MOADNSParser mdp(true, (char*) plainQuery.data(), decryptedLen);
 
@@ -189,19 +188,19 @@ BOOST_AUTO_TEST_CASE(DNSCryptEncryptedQueryValid) {
 
 // valid encrypted query with not enough room
 BOOST_AUTO_TEST_CASE(DNSCryptEncryptedQueryValidButShort) {
-  DnsCryptPrivateKey resolverPrivateKey;
-  DnsCryptCert resolverCert;
+  DNSCryptPrivateKey resolverPrivateKey;
+  DNSCryptCert resolverCert;
   unsigned char providerPublicKey[DNSCRYPT_PROVIDER_PUBLIC_KEY_SIZE];
   unsigned char providerPrivateKey[DNSCRYPT_PROVIDER_PRIVATE_KEY_SIZE];
-  time_t now = time(NULL);
-  DnsCryptContext::generateProviderKeys(providerPublicKey, providerPrivateKey);
-  DnsCryptContext::generateCertificate(1, now, now + (24 * 60 * 3600), providerPrivateKey, resolverPrivateKey, resolverCert);
-  DnsCryptContext ctx("2.name", resolverCert, resolverPrivateKey);
+  time_t now = time(nullptr);
+  DNSCryptContext::generateProviderKeys(providerPublicKey, providerPrivateKey);
+  DNSCryptContext::generateCertificate(1, now, now + (24 * 60 * 3600), DNSCryptExchangeVersion::VERSION1, providerPrivateKey, resolverPrivateKey, resolverCert);
+  auto ctx = std::make_shared<DNSCryptContext>("2.name", resolverCert, resolverPrivateKey);
 
-  DnsCryptPrivateKey clientPrivateKey;
+  DNSCryptPrivateKey clientPrivateKey;
   unsigned char clientPublicKey[DNSCRYPT_PUBLIC_KEY_SIZE];
 
-  DnsCryptContext::generateResolverKeyPair(clientPrivateKey, clientPublicKey);
+  DNSCryptContext::generateResolverKeyPair(clientPrivateKey, clientPublicKey);
 
   unsigned char clientNonce[DNSCRYPT_NONCE_SIZE / 2] = { 0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x08, 0x09, 0x0A, 0x0B };
 
@@ -213,26 +212,26 @@ BOOST_AUTO_TEST_CASE(DNSCryptEncryptedQueryValidButShort) {
   uint16_t len = plainQuery.size();
   uint16_t encryptedResponseLen = 0;
 
-  int res = ctx.encryptQuery((char*) plainQuery.data(), len, plainQuery.capacity(), clientPublicKey, clientPrivateKey, clientNonce, false, &encryptedResponseLen);
+  int res = ctx->encryptQuery((char*) plainQuery.data(), len, plainQuery.capacity(), clientPublicKey, clientPrivateKey, clientNonce, false, &encryptedResponseLen, std::make_shared<DNSCryptCert>(resolverCert));
 
   BOOST_CHECK_EQUAL(res, ENOBUFS);
 }
 
 // valid encrypted query with old key
 BOOST_AUTO_TEST_CASE(DNSCryptEncryptedQueryValidWithOldKey) {
-  DnsCryptPrivateKey resolverPrivateKey;
-  DnsCryptCert resolverCert;
+  DNSCryptPrivateKey resolverPrivateKey;
+  DNSCryptCert resolverCert;
   unsigned char providerPublicKey[DNSCRYPT_PROVIDER_PUBLIC_KEY_SIZE];
   unsigned char providerPrivateKey[DNSCRYPT_PROVIDER_PRIVATE_KEY_SIZE];
-  time_t now = time(NULL);
-  DnsCryptContext::generateProviderKeys(providerPublicKey, providerPrivateKey);
-  DnsCryptContext::generateCertificate(1, now, now + (24 * 60 * 3600), providerPrivateKey, resolverPrivateKey, resolverCert);
-  DnsCryptContext ctx("2.name", resolverCert, resolverPrivateKey);
+  time_t now = time(nullptr);
+  DNSCryptContext::generateProviderKeys(providerPublicKey, providerPrivateKey);
+  DNSCryptContext::generateCertificate(1, now, now + (24 * 60 * 3600), DNSCryptExchangeVersion::VERSION1, providerPrivateKey, resolverPrivateKey, resolverCert);
+  auto ctx = std::make_shared<DNSCryptContext>("2.name", resolverCert, resolverPrivateKey);
 
-  DnsCryptPrivateKey clientPrivateKey;
+  DNSCryptPrivateKey clientPrivateKey;
   unsigned char clientPublicKey[DNSCRYPT_PUBLIC_KEY_SIZE];
 
-  DnsCryptContext::generateResolverKeyPair(clientPrivateKey, clientPublicKey);
+  DNSCryptContext::generateResolverKeyPair(clientPrivateKey, clientPublicKey);
 
   unsigned char clientNonce[DNSCRYPT_NONCE_SIZE / 2] = { 0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x08, 0x09, 0x0A, 0x0B };
 
@@ -241,9 +240,9 @@ BOOST_AUTO_TEST_CASE(DNSCryptEncryptedQueryValidWithOldKey) {
   DNSPacketWriter pw(plainQuery, name, QType::AAAA, QClass::IN, 0);
   pw.getHeader()->rd = 1;
 
-  size_t requiredSize = plainQuery.size() + sizeof(DnsCryptQueryHeader) + DNSCRYPT_MAC_SIZE;
-  if (requiredSize < DnsCryptQuery::minUDPLength) {
-    requiredSize = DnsCryptQuery::minUDPLength;
+  size_t requiredSize = plainQuery.size() + sizeof(DNSCryptQueryHeader) + DNSCRYPT_MAC_SIZE;
+  if (requiredSize < DNSCryptQuery::s_minUDPLength) {
+    requiredSize = DNSCryptQuery::s_minUDPLength;
   }
 
   plainQuery.reserve(requiredSize);
@@ -251,21 +250,23 @@ BOOST_AUTO_TEST_CASE(DNSCryptEncryptedQueryValidWithOldKey) {
   uint16_t len = plainQuery.size();
   uint16_t encryptedResponseLen = 0;
 
-  int res = ctx.encryptQuery((char*) plainQuery.data(), len, plainQuery.capacity(), clientPublicKey, clientPrivateKey, clientNonce, false, &encryptedResponseLen);
+  int res = ctx->encryptQuery((char*) plainQuery.data(), len, plainQuery.capacity(), clientPublicKey, clientPrivateKey, clientNonce, false, &encryptedResponseLen, std::make_shared<DNSCryptCert>(resolverCert));
 
   BOOST_CHECK_EQUAL(res, 0);
   BOOST_CHECK(encryptedResponseLen > len);
 
-  DnsCryptContext::generateCertificate(1, now, now + (24 * 60 * 3600), providerPrivateKey, resolverPrivateKey, resolverCert);
-  ctx.setNewCertificate(resolverCert, resolverPrivateKey);
+  DNSCryptCert newResolverCert;
+  DNSCryptContext::generateCertificate(2, now, now + (24 * 60 * 3600), DNSCryptExchangeVersion::VERSION1, providerPrivateKey, resolverPrivateKey, newResolverCert);
+  ctx->addNewCertificate(newResolverCert, resolverPrivateKey);
+  ctx->markInactive(resolverCert.getSerial());
 
-  std::shared_ptr<DnsCryptQuery> query = std::make_shared<DnsCryptQuery>();
+  std::shared_ptr<DNSCryptQuery> query = std::make_shared<DNSCryptQuery>(ctx);
   uint16_t decryptedLen = 0;
 
-  ctx.parsePacket((char*) plainQuery.data(), encryptedResponseLen, query, false, &decryptedLen);
+  query->parsePacket((char*) plainQuery.data(), encryptedResponseLen, false, &decryptedLen, now);
 
-  BOOST_CHECK_EQUAL(query->valid, true);
-  BOOST_CHECK_EQUAL(query->encrypted, true);
+  BOOST_CHECK_EQUAL(query->isValid(), true);
+  BOOST_CHECK_EQUAL(query->isEncrypted(), true);
 
   MOADNSParser mdp(true, (char*) plainQuery.data(), decryptedLen);
 
@@ -281,19 +282,19 @@ BOOST_AUTO_TEST_CASE(DNSCryptEncryptedQueryValidWithOldKey) {
 
 // valid encrypted query with wrong key
 BOOST_AUTO_TEST_CASE(DNSCryptEncryptedQueryInvalidWithWrongKey) {
-  DnsCryptPrivateKey resolverPrivateKey;
-  DnsCryptCert resolverCert;
+  DNSCryptPrivateKey resolverPrivateKey;
+  DNSCryptCert resolverCert;
   unsigned char providerPublicKey[DNSCRYPT_PROVIDER_PUBLIC_KEY_SIZE];
   unsigned char providerPrivateKey[DNSCRYPT_PROVIDER_PRIVATE_KEY_SIZE];
-  time_t now = time(NULL);
-  DnsCryptContext::generateProviderKeys(providerPublicKey, providerPrivateKey);
-  DnsCryptContext::generateCertificate(1, now, now + (24 * 60 * 3600), providerPrivateKey, resolverPrivateKey, resolverCert);
-  DnsCryptContext ctx("2.name", resolverCert, resolverPrivateKey);
+  time_t now = time(nullptr);
+  DNSCryptContext::generateProviderKeys(providerPublicKey, providerPrivateKey);
+  DNSCryptContext::generateCertificate(1, now, now + (24 * 60 * 3600), DNSCryptExchangeVersion::VERSION1, providerPrivateKey, resolverPrivateKey, resolverCert);
+  auto ctx = std::make_shared<DNSCryptContext>("2.name", resolverCert, resolverPrivateKey);
 
-  DnsCryptPrivateKey clientPrivateKey;
+  DNSCryptPrivateKey clientPrivateKey;
   unsigned char clientPublicKey[DNSCRYPT_PUBLIC_KEY_SIZE];
 
-  DnsCryptContext::generateResolverKeyPair(clientPrivateKey, clientPublicKey);
+  DNSCryptContext::generateResolverKeyPair(clientPrivateKey, clientPublicKey);
 
   unsigned char clientNonce[DNSCRYPT_NONCE_SIZE / 2] = { 0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x08, 0x09, 0x0A, 0x0B };
 
@@ -302,9 +303,9 @@ BOOST_AUTO_TEST_CASE(DNSCryptEncryptedQueryInvalidWithWrongKey) {
   DNSPacketWriter pw(plainQuery, name, QType::AAAA, QClass::IN, 0);
   pw.getHeader()->rd = 1;
 
-  size_t requiredSize = plainQuery.size() + sizeof(DnsCryptQueryHeader) + DNSCRYPT_MAC_SIZE;
-  if (requiredSize < DnsCryptQuery::minUDPLength) {
-    requiredSize = DnsCryptQuery::minUDPLength;
+  size_t requiredSize = plainQuery.size() + sizeof(DNSCryptQueryHeader) + DNSCRYPT_MAC_SIZE;
+  if (requiredSize < DNSCryptQuery::s_minUDPLength) {
+    requiredSize = DNSCryptQuery::s_minUDPLength;
   }
 
   plainQuery.reserve(requiredSize);
@@ -312,25 +313,25 @@ BOOST_AUTO_TEST_CASE(DNSCryptEncryptedQueryInvalidWithWrongKey) {
   uint16_t len = plainQuery.size();
   uint16_t encryptedResponseLen = 0;
 
-  int res = ctx.encryptQuery((char*) plainQuery.data(), len, plainQuery.capacity(), clientPublicKey, clientPrivateKey, clientNonce, false, &encryptedResponseLen);
+  int res = ctx->encryptQuery((char*) plainQuery.data(), len, plainQuery.capacity(), clientPublicKey, clientPrivateKey, clientNonce, false, &encryptedResponseLen, std::make_shared<DNSCryptCert>(resolverCert));
 
   BOOST_CHECK_EQUAL(res, 0);
   BOOST_CHECK(encryptedResponseLen > len);
 
-  DnsCryptContext::generateCertificate(1, now, now + (24 * 60 * 3600), providerPrivateKey, resolverPrivateKey, resolverCert);
-  ctx.setNewCertificate(resolverCert, resolverPrivateKey);
+  DNSCryptCert newResolverCert;
+  DNSCryptContext::generateCertificate(2, now, now + (24 * 60 * 3600), DNSCryptExchangeVersion::VERSION1, providerPrivateKey, resolverPrivateKey, newResolverCert);
+  ctx->addNewCertificate(newResolverCert, resolverPrivateKey);
+  ctx->markInactive(resolverCert.getSerial());
+  ctx->removeInactiveCertificate(resolverCert.getSerial());
 
-  DnsCryptContext::generateCertificate(1, now, now + (24 * 60 * 3600), providerPrivateKey, resolverPrivateKey, resolverCert);
-  ctx.setNewCertificate(resolverCert, resolverPrivateKey);
+  /* we have removed the old certificate, we can't decrypt this query */
 
-  /* we have changed the key two times, we don't have the one used to encrypt this query */
-
-  std::shared_ptr<DnsCryptQuery> query = std::make_shared<DnsCryptQuery>();
+  std::shared_ptr<DNSCryptQuery> query = std::make_shared<DNSCryptQuery>(ctx);
   uint16_t decryptedLen = 0;
 
-  ctx.parsePacket((char*) plainQuery.data(), encryptedResponseLen, query, false, &decryptedLen);
+  query->parsePacket((char*) plainQuery.data(), encryptedResponseLen, false, &decryptedLen, now);
 
-  BOOST_CHECK_EQUAL(query->valid, false);
+  BOOST_CHECK_EQUAL(query->isValid(), false);
 }
 
 #endif

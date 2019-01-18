@@ -35,7 +35,7 @@ The following webserver related configuration items are available:
 Enabling the API
 ----------------
 
-To enable the API, the webserver and the HTTP API need to be enbaled.
+To enable the API, the webserver and the HTTP API need to be enabled.
 Add these lines to the ``recursor.conf``::
 
     webserver=yes
@@ -62,5 +62,5 @@ All API endpoints for the PowerDNS Recursor are documented here:
   endpoint-zones
   endpoint-trace
   endpoint-cache
-  ../common/api/endpoint-logging.rst
   endpoint-failure
+  endpoint-rpz-stats

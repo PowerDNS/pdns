@@ -21,12 +21,14 @@ These two equivalent configurations give you sane load balancing using a very se
 Many users will simply be done with this configuration.
 It works as well for authoritative as for recursive servers.
 
+.. _Healthcheck:
+
 Healthcheck
 -----------
 dnsdist uses a health check, sent once every second, to determine the availability of a backend server.
 
 By default, an A query for "a.root-servers.net." is sent.
-A different query type and target can be specified by passing, respectively, the ``checkType`` and ``checkName`` parameters to :func:`newServer`.
+A different query type, class and target can be specified by passing, respectively, the ``checkType``, ``checkClass`` and ``checkName`` parameters to :func:`newServer`.
 
 The default behavior is to consider any valid response with an RCODE different from ServFail as valid.
 If the ``mustResolve`` parameter of :func:`newServer` is set to ``true``, a response will only be considered valid if its RCODE differs from NXDomain, ServFail and Refused.
@@ -35,7 +37,25 @@ The number of health check failures before a server is considered down is config
 The CD flag can be set on the query by setting ``setCD`` to true.
 e.g.::
 
-  newServer({address="192.0.2.1", checkType="AAAA", checkName="a.root-servers.net.", mustResolve=true})
+  newServer({address="192.0.2.1", checkType="AAAA", checkType=DNSClass.CHAOS, checkName="a.root-servers.net.", mustResolve=true})
+
+You can turn on logging of health check errors using the :func:`setVerboseHealthChecks` function.
+
+Since the 1.3.0 release, the ``checkFunction`` option is also supported, taking a ``Lua`` function as parameter. This function receives a DNSName, two integers and a ``DNSHeader`` object (:ref:`DNSHeader`)
+representing the QName, QType and QClass of the health check query as well as the DNS header, as they are defined before the function was called. The function must return a DNSName and two integers
+representing the new QName, QType and QClass, and can directly modify the ``DNSHeader`` object.
+
+The following example sets the CD flag to true and change the QName to "powerdns.com." and the QType to AAAA while keeping the initial QClass.
+
+.. code-block:: lua
+
+    function myHealthCheck(qname, qtype, qclass, dh)
+      dh:setCD(true)
+
+      return newDNSName("powerdns.com."), dnsdist.AAAA, qclass
+    end
+
+    newServer("2620:0:0ccd::2")
 
 Source address selection
 ------------------------

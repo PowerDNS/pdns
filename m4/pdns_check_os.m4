@@ -19,7 +19,7 @@ AC_DEFUN([PDNS_CHECK_OS],[
     have_linux="yes"
     ;;
   darwin*)
-    CXXFLAGS="-D__APPLE_USE_RFC_3542 -D_XOPEN_SOURCE $CXXFLAGS"
+    CXXFLAGS="-D__APPLE_USE_RFC_3542 -D_XOPEN_SOURCE -D_DARWIN_C_SOURCE $CXXFLAGS"
     ;;
   freebsd*)
     THREADFLAGS="-pthread"

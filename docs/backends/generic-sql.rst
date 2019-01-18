@@ -124,17 +124,6 @@ domain is disabled, slaving still works. Slaving considers a disabled
 domain to have a serial of 0; this implies that a slaved domain will not
 stay disabled.
 
-.. _autoserial:
-
-Autoserial
-^^^^^^^^^^
-
-The autoserial functionality makes PowerDNS generate the SOA serial when
-the SOA serial set to ``0`` in the database. The serial in SOA responses
-is set to what's provided by ``zone-lastchange-query``. By default, this
-is the highest value of the ``change_date`` field in the "records"
-table).
-
 .. _generic-sql-handling-dnssec-signed-zones:
 
 Handling DNSSEC signed zones
@@ -333,14 +322,11 @@ On masters
    which the server is master.
 -  ``update-serial-query`` Called to update the last notified serial of
    a master domain.
--  ``zone-lastchange-query``: Called to determine the last change to a
-   zone, used for autoserial.
 
 On slaves
 ~~~~~~~~~
 
 -  ``info-all-slaves-query``: Called to retrieve all slave domains.
--  ``master-zone-query``: Called to determine the master of a zone.
 -  ``update-lastcheck-query``: Called to update the last time a slave
    domain was successfully checked for freshness.
 -  ``update-master-query``: Called to update the master address of a

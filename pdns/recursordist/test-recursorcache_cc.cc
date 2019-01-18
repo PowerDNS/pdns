@@ -173,9 +173,19 @@ BOOST_AUTO_TEST_CASE(test_RecursorCacheSimple) {
     // QType::ADDR should return both A and AAAA but no TXT, so two entries from the right subnet
     BOOST_CHECK_EQUAL(MRC.get(now, power, QType(QType::ADDR), false, &retrieved, ComboAddress("192.0.2.3"), nullptr), (ttd-now));
     BOOST_CHECK_EQUAL(retrieved.size(), 2);
+    bool gotA = false;
+    bool gotAAAA = false;
     for (const auto& rec : retrieved) {
       BOOST_CHECK(rec.d_type == QType::A || rec.d_type == QType::AAAA);
+      if (rec.d_type == QType::A) {
+        gotA = true;
+      }
+      else if (rec.d_type == QType::AAAA) {
+        gotAAAA = true;
+      }
     }
+    BOOST_CHECK(gotA);
+    BOOST_CHECK(gotAAAA);
     retrieved.clear();
 
     // but only the non-subnet specific one from the another subnet
@@ -328,6 +338,46 @@ BOOST_AUTO_TEST_CASE(test_RecursorCacheSimple) {
     cerr<<"Had error: "<<e.reason<<endl;
     throw;
   }
+}
+
+BOOST_AUTO_TEST_CASE(test_RecursorCacheGhost) {
+  MemRecursorCache MRC;
+
+  std::vector<DNSRecord> records;
+  std::vector<std::shared_ptr<DNSRecord>> authRecords;
+  std::vector<std::shared_ptr<RRSIGRecordContent>> signatures;
+  time_t now = time(nullptr);
+
+  BOOST_CHECK_EQUAL(MRC.size(), 0);
+
+  /* insert NS coming from a delegation */
+  time_t ttd = now + 30;
+  DNSName ghost("ghost.powerdns.com.");
+  DNSRecord ns1;
+  std::string ns1Content("ns1.ghost.powerdns.com.");
+  ns1.d_name = ghost;
+  ns1.d_type = QType::NS;
+  ns1.d_class = QClass::IN;
+  ns1.d_content = std::make_shared<NSRecordContent>(ns1Content);
+  ns1.d_ttl = static_cast<uint32_t>(ttd);
+  ns1.d_place = DNSResourceRecord::ANSWER;
+  records.push_back(ns1);
+  MRC.replace(now, ns1.d_name, QType(ns1.d_type), records, signatures, authRecords, true, boost::none);
+  BOOST_CHECK_EQUAL(MRC.size(), 1);
+
+  /* try to raise the TTL, simulating the delegated authoritative server
+     raising the TTL so the zone stays alive */
+  records.clear();
+  ns1.d_ttl = static_cast<uint32_t>(ttd + 3600);
+  records.push_back(ns1);
+  MRC.replace(now, ns1.d_name, QType(ns1.d_type), records, signatures, authRecords, true, boost::none);
+  BOOST_CHECK_EQUAL(MRC.size(), 1);
+
+  /* the TTL should not have been raisd */
+  std::vector<DNSRecord> retrieved;
+  BOOST_CHECK_EQUAL(MRC.get(now, ghost, QType(QType::NS), false, &retrieved, ComboAddress("192.0.2.2"), nullptr), (ttd-now));
+  BOOST_REQUIRE_EQUAL(retrieved.size(), 1);
+  BOOST_CHECK_EQUAL(retrieved.at(0).d_ttl, static_cast<uint32_t>(ttd));
 }
 
 BOOST_AUTO_TEST_CASE(test_RecursorCache_ExpungingExpiredEntries) {
@@ -574,12 +624,12 @@ BOOST_AUTO_TEST_CASE(test_RecursorCache_ExpungingValidEntries) {
   size_t found = 0;
   for (size_t i = 0; i <= 255; i++) {
     retrieved.clear();
-    ComboAddress who("192.0.2." + std::to_string(i));
+    ComboAddress whoLoop("192.0.2." + std::to_string(i));
 
-    auto ret = MRC.get(now, power1, QType(QType::A), false, &retrieved, who);
+    auto ret = MRC.get(now, power1, QType(QType::A), false, &retrieved, whoLoop);
     if (ret > 0) {
       BOOST_REQUIRE_EQUAL(retrieved.size(), 1);
-      BOOST_CHECK_EQUAL(getRR<ARecordContent>(retrieved.at(0))->getCA().toString(), who.toString());
+      BOOST_CHECK_EQUAL(getRR<ARecordContent>(retrieved.at(0))->getCA().toString(), whoLoop.toString());
       found++;
     }
     else {
@@ -679,6 +729,16 @@ BOOST_AUTO_TEST_CASE(test_RecursorCacheECSIndex) {
   BOOST_CHECK_EQUAL(MRC.ecsIndexSize(), 0);
   BOOST_CHECK_EQUAL(MRC.size(), 1);
 
+  /* add back the entry while it still exists in the cache but has been removed from the ECS index.
+     It should be added back to the ECS index, and we should be able to retrieve it */
+  MRC.replace(now + ttl + 1, power, QType(QType::A), records, signatures, authRecords, true, Netmask("192.0.2.0/31"));
+  BOOST_CHECK_EQUAL(MRC.size(), 1);
+  BOOST_CHECK_EQUAL(MRC.ecsIndexSize(), 1);
+  retrieved.clear();
+  BOOST_CHECK_EQUAL(MRC.get(now, power, QType(QType::A), false, &retrieved, ComboAddress("192.0.2.1")), ttd - now);
+  BOOST_REQUIRE_EQUAL(retrieved.size(), 1);
+  BOOST_CHECK_EQUAL(getRR<ARecordContent>(retrieved.at(0))->getCA().toString(), dr1Content.toString());
+
   /* wipe everything */
   MRC.doPrune(0);
   BOOST_CHECK_EQUAL(MRC.size(), 0);
@@ -748,6 +808,95 @@ BOOST_AUTO_TEST_CASE(test_RecursorCacheECSIndex) {
 
   /* wipe everything */
   MRC.doPrune(0);
+  BOOST_CHECK_EQUAL(MRC.size(), 0);
+  BOOST_CHECK_EQUAL(MRC.ecsIndexSize(), 0);
+}
+
+BOOST_AUTO_TEST_CASE(test_RecursorCache_Wipe) {
+  MemRecursorCache MRC;
+
+  const DNSName power("powerdns.com.");
+  std::vector<DNSRecord> records;
+  std::vector<std::shared_ptr<DNSRecord>> authRecords;
+  std::vector<std::shared_ptr<RRSIGRecordContent>> signatures;
+  time_t now = time(nullptr);
+  std::vector<DNSRecord> retrieved;
+  ComboAddress who("192.0.2.1");
+
+  time_t ttl = 10;
+  time_t ttd = now + ttl;
+  DNSRecord dr1;
+  ComboAddress dr1Content("192.0.2.255");
+  dr1.d_name = power;
+  dr1.d_type = QType::A;
+  dr1.d_class = QClass::IN;
+  dr1.d_content = std::make_shared<ARecordContent>(dr1Content);
+  dr1.d_ttl = static_cast<uint32_t>(ttd);
+  dr1.d_place = DNSResourceRecord::ANSWER;
+
+  BOOST_CHECK_EQUAL(MRC.size(), 0);
+  BOOST_CHECK_EQUAL(MRC.ecsIndexSize(), 0);
+
+  /* no entry in the ECS index, no non-specific entry either */
+  retrieved.clear();
+  BOOST_CHECK_EQUAL(MRC.get(now, power, QType(QType::A), false, &retrieved, who), -1);
+
+  /* insert a specific entry */
+  records.push_back(dr1);
+  MRC.replace(now, power, QType(QType::A), records, signatures, authRecords, true, Netmask("192.0.2.0/31"));
+
+  BOOST_CHECK_EQUAL(MRC.size(), 1);
+  BOOST_CHECK_EQUAL(MRC.ecsIndexSize(), 1);
+
+  /* insert two sub-domains entries */
+  DNSName sub1("a.powerdns.com.");
+  dr1.d_name = sub1;
+  records.clear();
+  records.push_back(dr1);
+  MRC.replace(now, sub1, QType(QType::A), records, signatures, authRecords, true, Netmask("192.0.2.0/31"));
+
+  BOOST_CHECK_EQUAL(MRC.size(), 2);
+  BOOST_CHECK_EQUAL(MRC.ecsIndexSize(), 2);
+
+  DNSName sub2("z.powerdns.com.");
+  dr1.d_name = sub2;
+  records.clear();
+  records.push_back(dr1);
+  MRC.replace(now, sub2, QType(QType::A), records, signatures, authRecords, true, Netmask("192.0.2.0/31"));
+
+  BOOST_CHECK_EQUAL(MRC.size(), 3);
+  BOOST_CHECK_EQUAL(MRC.ecsIndexSize(), 3);
+
+  /* insert two entries for different domains */
+  DNSName other1("b\bpowerdns.com.");
+  dr1.d_name = other1;
+  records.clear();
+  records.push_back(dr1);
+  MRC.replace(now, other1, QType(QType::A), records, signatures, authRecords, true, Netmask("192.0.2.0/31"));
+
+  BOOST_CHECK_EQUAL(MRC.size(), 4);
+  BOOST_CHECK_EQUAL(MRC.ecsIndexSize(), 4);
+
+  DNSName other2("c\bpowerdns.com.");
+  dr1.d_name = other2;
+  records.clear();
+  records.push_back(dr1);
+  MRC.replace(now, other2, QType(QType::A), records, signatures, authRecords, true, Netmask("192.0.2.0/31"));
+
+  BOOST_CHECK_EQUAL(MRC.size(), 5);
+  BOOST_CHECK_EQUAL(MRC.ecsIndexSize(), 5);
+
+  /* wipe everything under the powerdns.com domain */
+  BOOST_CHECK_EQUAL(MRC.doWipeCache(power, true), 3);
+  BOOST_CHECK_EQUAL(MRC.size(), 2);
+  BOOST_CHECK_EQUAL(MRC.ecsIndexSize(), 2);
+
+  /* now wipe the other domains too */
+  BOOST_CHECK_EQUAL(MRC.doWipeCache(other1, true), 1);
+  BOOST_CHECK_EQUAL(MRC.size(), 1);
+  BOOST_CHECK_EQUAL(MRC.ecsIndexSize(), 1);
+
+  BOOST_CHECK_EQUAL(MRC.doWipeCache(other2, true), 1);
   BOOST_CHECK_EQUAL(MRC.size(), 0);
   BOOST_CHECK_EQUAL(MRC.ecsIndexSize(), 0);
 }

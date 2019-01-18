@@ -33,7 +33,7 @@
 class BindDomainInfo 
 {
 public:
-  BindDomainInfo() : d_dev(0), d_ino(0)
+  BindDomainInfo() : hadFileDirective(false), d_dev(0), d_ino(0)
   {}
 
   void clear() 
@@ -48,9 +48,10 @@ public:
   DNSName name;
   string viewName;
   string filename;
-  vector<string> masters;
+  vector<ComboAddress> masters;
   set<string> alsoNotify;
   string type;
+  bool hadFileDirective;
     
   dev_t d_dev;
   ino_t d_ino;

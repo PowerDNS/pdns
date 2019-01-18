@@ -8,20 +8,18 @@ env:
   - PDNS_BUILD_PRODUCT=auth
   - PDNS_BUILD_PRODUCT=recursor
   - PDNS_BUILD_PRODUCT=dnsdist
+  - PDNS_BUILD_PRODUCT=ixfrdist
 
 matrix:
-  exclude:
-    - compiler: clang
-      env: PDNS_BUILD_PRODUCT=recursor
   include:
-    - compiler: clang
-      env: PDNS_BUILD_PRODUCT=recursor COMPILER=clang++-3.6
-      addons:
-        apt:
-          packages: ['clang-3.6']
+  - env: PDNS_BUILD_PRODUCT=none
+
+cache:
+  - pip
 
 before_script:
   - git describe --always --dirty=+
+  - sudo rm -f /etc/apt/sources.list.d/*.list
 
   ### setup travis environment ###
   - sudo sysctl net.ipv6.conf.lo.disable_ipv6=0
@@ -30,6 +28,10 @@ before_script:
   - export CXXFLAGS=-O0
   - export OPTFLAGS=-O0
   - sudo apt-get -qq update
+  # you can remove this when updating dist to something newer than trusty
+  - pyenv global 2.7
+  # needed for virtualenv to use the pyenv python
+  - pip install virtualenv
 
 script:
   - ./build-scripts/travis.sh
@@ -37,7 +39,7 @@ script:
 notifications:
   irc:
     channels:
-      - "irc.oftc.net#powerdns-dev"
+      - secure: "RDw5WKYf/gS3JnfIdkK51U4K2Xg/WNMn1uB/5AZbHbcqZJ/ZnbILCu0eBC83blQr+UuaQG7/sUFhWbtwoivD2I/4wOQGWIysBEZ8bSoySPSc4u0YU45aPjN+Ohrrp9qw7Smts3tYHbrOqfLfZ39L8lJq06vuMoBp6eHVkSBT7AY="
     template:
       - "%{author} @ %{repository} / %{branch} - Build:#%{build_number} : %{message} - Changes: %{compare_url} - Build details: %{build_url}"
     use_notice: true

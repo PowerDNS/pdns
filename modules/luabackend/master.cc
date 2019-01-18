@@ -34,7 +34,7 @@ void LUABackend::getUpdatedMasters(vector<DomainInfo>* domains) {
 	return;
 
     if (logging)
-	L << Logger::Info << backend_name << "(getUpdatedMasters) BEGIN" << endl;
+	g_log << Logger::Info << backend_name << "(getUpdatedMasters) BEGIN" << endl;
 
     lua_rawgeti(lua, LUA_REGISTRYINDEX, f_lua_getupdatedmasters);
 
@@ -55,7 +55,7 @@ void LUABackend::getUpdatedMasters(vector<DomainInfo>* domains) {
     domains_from_table(domains, "getUpdatedMasters");
     
     if (logging)
-	L << Logger::Info << backend_name << "(getUpdatedMasters) END" << endl;
+	g_log << Logger::Info << backend_name << "(getUpdatedMasters) END" << endl;
 }
 
 void LUABackend::setNotified(uint32_t id, uint32_t serial) {
@@ -64,7 +64,7 @@ void LUABackend::setNotified(uint32_t id, uint32_t serial) {
 	return;
 
     if (logging)
-	L << Logger::Info << backend_name << "(setNotified) BEGIN" << endl;
+	g_log << Logger::Info << backend_name << "(setNotified) BEGIN" << endl;
 
     lua_rawgeti(lua, LUA_REGISTRYINDEX, f_lua_setnotified);
 
@@ -80,6 +80,6 @@ void LUABackend::setNotified(uint32_t id, uint32_t serial) {
     }
 
     if (logging)
-	L << Logger::Info << backend_name << "(setNotified) END" << endl;
+	g_log << Logger::Info << backend_name << "(setNotified) END" << endl;
 }
 

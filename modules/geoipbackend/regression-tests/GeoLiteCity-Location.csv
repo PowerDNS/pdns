@@ -2,3 +2,5 @@ locId,country,region,city,postalCode,latitude,longitude,metroCode,areaCode
 1,"O1","L1","C1","00001",0,0,1,1
 2,"O1","L2","C2","00002",0,0,2,2
 3,"O1","L3","C3","00003",0,0,3,3
+4,"AU","OC","Melbourne","3095",1.0,1.0,4,4
+5,"US","NA","Mukilteo","98275",47.910000,-122.300000,819,5

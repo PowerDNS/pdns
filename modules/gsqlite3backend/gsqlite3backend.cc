@@ -54,11 +54,11 @@ gSQLite3Backend::gSQLite3Backend( const std::string & mode, const std::string & 
   }  
   catch( SSqlException & e ) 
   {
-    L << Logger::Error << mode << ": connection failed: " << e.txtReason() << std::endl;
+    g_log << Logger::Error << mode << ": connection failed: " << e.txtReason() << std::endl;
     throw PDNSException( "Unable to launch " + mode + " connection: " + e.txtReason());
   }
 
-  L << Logger::Info << mode << ": connection to '"<<getArg("database")<<"' successful" << std::endl;
+  g_log << Logger::Info << mode << ": connection to '"<<getArg("database")<<"' successful" << std::endl;
 }
 
 
@@ -92,8 +92,6 @@ public:
 
     declare(suffix, "remove-empty-non-terminals-from-zone-query", "remove all empty non-terminals from zone", "delete from records where domain_id=:domain_id and type is null");
     declare(suffix, "delete-empty-non-terminal-query", "delete empty non-terminal from zone", "delete from records where domain_id=:domain_id and name=:qname and type is null");
-    
-    declare(suffix, "master-zone-query", "Data", "select master from domains where name=:domain and type='SLAVE'");
 
     declare(suffix, "info-zone-query", "","select id,name,master,last_check,notified_serial,type,account from domains where name=:domain");
 
@@ -103,8 +101,8 @@ public:
 
     declare(suffix, "insert-zone-query", "", "insert into domains (type,name,master,account,last_check,notified_serial) values(:type, :domain, :masters, :account, null, null)");
 
-    declare(suffix, "insert-record-query", "", "insert into records (content,ttl,prio,type,domain_id,disabled,name,ordername,auth,change_date) values (:content,:ttl,:priority,:qtype,:domain_id,:disabled,:qname,:ordername,:auth,null)");
-    declare(suffix, "insert-empty-non-terminal-order-query", "insert empty non-terminal in zone", "insert into records (type,domain_id,disabled,name,ordername,auth,ttl,prio,change_date,content) values (null,:domain_id,0,:qname,:ordername,:auth,null,null,null,null)");
+    declare(suffix, "insert-record-query", "", "insert into records (content,ttl,prio,type,domain_id,disabled,name,ordername,auth) values (:content,:ttl,:priority,:qtype,:domain_id,:disabled,:qname,:ordername,:auth)");
+    declare(suffix, "insert-empty-non-terminal-order-query", "insert empty non-terminal in zone", "insert into records (type,domain_id,disabled,name,ordername,auth,ttl,prio,content) values (null,:domain_id,0,:qname,:ordername,:auth,null,null,null)");
 
     declare(suffix, "get-order-first-query", "DNSSEC Ordering Query, first", "select ordername from records where disabled=0 and domain_id=:domain_id and ordername is not null order by 1 asc limit 1");
     declare(suffix, "get-order-before-query", "DNSSEC Ordering Query, before", "select ordername, name from records where disabled=0 and ordername <= :ordername and domain_id=:domain_id and ordername is not null order by 1 desc limit 1");
@@ -121,7 +119,6 @@ public:
     declare(suffix, "update-account-query","", "update domains set account=:account where name=:domain");
     declare(suffix, "update-serial-query", "", "update domains set notified_serial=:serial where id=:domain_id");
     declare(suffix, "update-lastcheck-query", "", "update domains set last_check=:last_check where id=:domain_id");
-    declare(suffix, "zone-lastchange-query", "", "select max(change_date) from records where domain_id=:domain_id");
     declare(suffix, "info-all-master-query", "", "select id,name,master,last_check,notified_serial,type from domains where type='MASTER'");
     declare(suffix, "delete-domain-query","", "delete from domains where name=:domain");
     declare(suffix, "delete-zone-query", "", "delete from records where domain_id=:domain_id");
@@ -174,7 +171,7 @@ public:
   gSQLite3Loader()
   {
     BackendMakers().report( new gSQLite3Factory( "gsqlite3" ));
-    L << Logger::Info << "[gsqlite3] This is the gsqlite3 backend version " VERSION
+    g_log << Logger::Info << "[gsqlite3] This is the gsqlite3 backend version " VERSION
 #ifndef REPRODUCIBLE
       << " (" __DATE__ " " __TIME__ ")"
 #endif

@@ -21,14 +21,6 @@
  */
 #ifndef DNSPACKET_HH
 
-#if __GNUC__ == 2
-#if __GNUC_MINOR__ < 95
-        #error Your compiler is too old! Try g++ 3.3 or higher
-#else
-        #warning There are known problems with PowerDNS binaries compiled by gcc version 2.95 and 2.96!
-#endif
-#endif
-
 #define DNSPACKET_HH
 
 #include <cstdio>
@@ -37,7 +29,7 @@
 #include <sys/types.h>
 #include "iputils.hh"
 #include "ednssubnet.hh"
-
+#include <unordered_set>
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <sys/time.h>
@@ -128,7 +120,7 @@ public:
   void setMaxReplyLen(int bytes); //!< set the max reply len (used when retrieving from the packet cache, and this changed)
 
   bool couldBeCached(); //!< returns 0 if this query should bypass the packet cache
-  bool hasEDNSSubnet();
+  bool hasEDNSSubnet() const;
   bool hasEDNS();
   uint8_t getEDNSVersion() const { return d_ednsversion; };
   void setEDNSRcode(uint16_t extRCode)
@@ -170,7 +162,8 @@ public:
   bool checkForCorrectTSIG(UeberBackend* B, DNSName* keyname, string* secret, TSIGRecordContent* trc) const;
 
   static bool s_doEDNSSubnetProcessing;
-  static uint16_t s_udpTruncationThreshold; //2
+  static uint16_t s_udpTruncationThreshold; 
+  int d_ednsRawPacketSizeLimit; // only used for Lua record
 private:
   void pasteQ(const char *question, int length); //!< set the question of this packet, useful for crafting replies
 
@@ -182,11 +175,12 @@ private:
   string d_tsigprevious;
 
   vector<DNSZoneRecord> d_rrs; // 8
+  std::unordered_set<size_t> d_dedup;
   string d_rawpacket; // this is where everything lives 8
-  string d_ednsping;
   EDNSSubnetOpts d_eso;
 
   int d_maxreplylen;
+
   uint8_t d_ednsversion;
   // WARNING! This is really 12 bits
   uint16_t d_ednsrcode;

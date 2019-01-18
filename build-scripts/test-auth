@@ -101,6 +101,8 @@ if [ -z "$context" ]; then
 	./timestamp timeout 120s ./start-test-stop 5300 remotebackend-http || EXITCODE=1
 	./timestamp timeout 120s ./start-test-stop 5300 remotebackend-http-dnssec || EXITCODE=1
 
+	./timestamp timeout 120s ./start-test-stop 5300 lua2
+	./timestamp timeout 120s ./start-test-stop 5300 lua2-dnssec
 
 	# No 0MQ in the PowerDNS packages
 	#./timestamp timeout 120s ./start-test-stop 5300 remotebackend-zeromq || EXITCODE=1

@@ -1,0 +1,16 @@
+# Proxy for web UI development without recompiling
+#
+# Simply run the `caddy` command in this directory to start the server.
+# See: https://caddyserver.com/tutorial/caddyfile
+#
+# Run the recursor like this:
+# ./pdns_recursor --local-port=5053 --webserver --webserver-port=5080 --socket-dir=. --api-key=x
+#
+# Run queries like this:
+# dig @localhost -p 5053 www.powerdns.com
+
+http://localhost:5081
+log stdout
+proxy /api http://localhost:5080
+proxy /jsonstat http://localhost:5080
+root ./html/

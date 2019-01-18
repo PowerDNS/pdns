@@ -3,33 +3,39 @@ import json
 import unittest
 import os
 
-from test_helper import ApiTestCase, is_auth
+from test_helper import ApiTestCase, is_auth, pdnsutil, unique_zone_name
 
 @unittest.skipIf(not is_auth(), "Not applicable")
 class Cryptokeys(ApiTestCase):
 
-    def __init__(self, *args, **kwds):
-        super(Cryptokeys, self).__init__(*args, **kwds)
+    def setUp(self):
+        super(Cryptokeys, self).setUp()
         self.keyid = 0
-        self.zone = "cryptokeys.org"
+        self.zone = unique_zone_name()
+        self.zone_nodot = self.zone[:-1]
+        payload = {
+            'name': self.zone,
+            'kind': 'Native',
+            'nameservers': ['ns1.example.com.', 'ns2.example.com.']
+        }
+        r = self.session.post(
+            self.url("/api/v1/servers/localhost/zones"),
+            data=json.dumps(payload),
+            headers={'content-type': 'application/json'})
+        self.assert_success_json(r)
+        self.assertEquals(r.status_code, 201)
 
     def tearDown(self):
-        super(Cryptokeys,self).tearDown()
+        super(Cryptokeys, self).tearDown()
         self.remove_zone_key(self.keyid)
 
     # Adding a key to self.zone using the pdnsutil command
     def add_zone_key(self, status='inactive'):
-        try:
-            return subprocess.check_output(["../pdns/pdnsutil", "--config-dir=.", "add-zone-key", self.zone, "ksk", status], stderr=open(os.devnull, 'wb'))
-        except subprocess.CalledProcessError as e:
-            self.fail("pdnsutil add-zone-key failed: "+e.output)
+        return pdnsutil("add-zone-key", self.zone_nodot, "ksk", status)
 
     # Removes a key from self.zone by id using the pdnsutil command
     def remove_zone_key(self, key_id):
-        try:
-            subprocess.check_output(["../pdns/pdnsutil", "--config-dir=.", "remove-zone-key", self.zone, str(key_id)])
-        except subprocess.CalledProcessError as e:
-            self.fail("pdnsutil remove-zone-key failed: "+e.output)
+        return pdnsutil("remove-zone-key", self.zone_nodot, str(key_id))
 
     # This method tests the DELETE api call.
     def test_delete(self):
@@ -37,47 +43,49 @@ class Cryptokeys(ApiTestCase):
 
         #checks the status code. I don't know how to test explicit that the backend fail removing a key.
         r = self.session.delete(self.url("/api/v1/servers/localhost/zones/"+self.zone+"/cryptokeys/"+self.keyid))
-        self.assertEquals(r.status_code, 200)
-        self.assertEquals(r.content, "")
+        self.assertEquals(r.status_code, 204)
+        self.assertEquals(r.content, b"")
 
         # Check that the key is actually deleted
-        try:
-            out = subprocess.check_output(["../pdns/pdnsutil", "--config-dir=.", "list-keys", self.zone])
-            self.assertNotIn(self.zone, out)
-        except subprocess.CalledProcessError as e:
-            self.fail("pdnsutil list-keys failed: " + e.output)
+        out = pdnsutil("list-keys", self.zone)
+        self.assertNotIn(self.zone, out)
+
+    def test_get_wrong_zone(self):
+        self.keyid = self.add_zone_key()
+        r = self.session.get(self.url("/api/v1/servers/localhost/zones/"+self.zone+"fail/cryptokeys/"+self.keyid))
+        self.assertEquals(r.status_code, 404)
+
+    def test_delete_wrong_id(self):
+        self.keyid = self.add_zone_key()
+        r = self.session.delete(self.url("/api/v1/servers/localhost/zones/"+self.zone+"/cryptokeys/1234567"))
+        self.assertEquals(r.status_code, 404)
 
     def test_delete_wrong_zone(self):
         self.keyid = self.add_zone_key()
         #checks for not covered zonename
         r = self.session.delete(self.url("/api/v1/servers/localhost/zones/"+self.zone+"fail/cryptokeys/"+self.keyid))
-        self.assertEquals(r.status_code, 400)
+        self.assertEquals(r.status_code, 404)
 
     def test_delete_key_is_gone(self):
         self.keyid = self.add_zone_key()
         self.remove_zone_key(self.keyid)
         #checks for key is gone. Its ok even if no key had to be deleted. Or something went wrong with the backend.
         r = self.session.delete(self.url("/api/v1/servers/localhost/zones/"+self.zone+"/cryptokeys/"+self.keyid))
-        self.assertEquals(r.status_code, 200)
-        self.assertEquals(r.content, "")
+        self.assertEquals(r.status_code, 404)
 
     # Prepares the json object for Post and sends it to the server
-    def add_key(self, content='', type='ksk', active='true' , algo='', bits=0):
-        if algo == '':
-            payload = {
-                'keytype': type,
-                'active' : active
-            }
-        else:
-            payload = {
-                'keytype': type,
-                'active' : active,
-                'algo' : algo
-            }
-        if bits > 0:
+    def add_key(self, content='', type='ksk', active='true', algo='', bits=None):
+        payload = {
+            'keytype': type,
+            'active': active,
+        }
+        if algo:
+            payload['algorithm'] = algo
+        if bits is not None:
             payload['bits'] = bits
         if content != '':
             payload['content'] = content
+        print("create key with payload:", payload)
         r = self.session.post(
             self.url("/api/v1/servers/localhost/zones/"+self.zone+"/cryptokeys"),
             data=json.dumps(payload),
@@ -86,7 +94,7 @@ class Cryptokeys(ApiTestCase):
         return r
 
     # Test POST for a positive result and delete the added key
-    def post_helper(self,content='', algo='', bits=0):
+    def post_helper(self, content='', algo='', bits=None):
         r = self.add_key(content=content, algo=algo, bits=bits)
         self.assert_success_json(r)
         self.assertEquals(r.status_code, 201)
@@ -95,11 +103,8 @@ class Cryptokeys(ApiTestCase):
         self.assertEquals(response['keytype'], 'csk')
         self.keyid = response['id']
         # Check if the key is actually added
-        try:
-            out = subprocess.check_output(["../pdns/pdnsutil", "--config-dir=.", "list-keys", self.zone])
-            self.assertIn(self.zone, out)
-        except subprocess.CalledProcessError as e:
-            self.fail("pdnsutil list-keys failed: " + e.output)
+        out = pdnsutil("list-keys", self.zone_nodot)
+        self.assertIn(self.zone_nodot, out)
 
     # Test POST to add a key with default algorithm
     def test_post(self):
@@ -107,11 +112,11 @@ class Cryptokeys(ApiTestCase):
 
     # Test POST to add a key with specific algorithm number
     def test_post_specific_number(self):
-        self.post_helper(algo=10, bits=512)
+        self.post_helper(algo=10, bits=1024)
 
     # Test POST to add a key with specific name and bits
     def test_post_specific_name_bits(self):
-        self.post_helper(algo="rsasha256", bits=256)
+        self.post_helper(algo="rsasha256", bits=2048)
 
     # Test POST to add a key with specific name
     def test_post_specific_name(self):
@@ -193,17 +198,14 @@ class Cryptokeys(ApiTestCase):
             data=json.dumps(payload),
             headers={'content-type': 'application/json'})
         self.assertEquals(r.status_code, 204)
-        self.assertEquals(r.content, "")
+        self.assertEquals(r.content, b"")
 
         # check if key is activated
-        try:
-            out = subprocess.check_output(["../pdns/pdnsutil", "--config-dir=.", "show-zone", self.zone])
-            self.assertIn("Active", out)
-        except subprocess.CalledProcessError as e:
-            self.fail("pdnsutil show-zone failed: " + e.output)
+        out = pdnsutil("show-zone", self.zone_nodot)
+        self.assertIn("Active", out)
 
     def test_put_deactivate_key(self):
-        self.keyid= self.add_zone_key(status='active')
+        self.keyid = self.add_zone_key(status='active')
         # deactivate key
         payload2 = {
             'active': False
@@ -214,14 +216,11 @@ class Cryptokeys(ApiTestCase):
             data=json.dumps(payload2),
             headers={'content-type': 'application/json'})
         self.assertEquals(r.status_code, 204)
-        self.assertEquals(r.content, "")
+        self.assertEquals(r.content, b"")
 
         # check if key is deactivated
-        try:
-            out = subprocess.check_output(["../pdns/pdnsutil", "--config-dir=.", "show-zone", self.zone])
-            self.assertIn("Inactive", out)
-        except subprocess.CalledProcessError as e:
-            self.fail("pdnsutil show-zone failed: " + e.output)
+        out = pdnsutil("show-zone", self.zone_nodot)
+        self.assertIn("Inactive", out)
 
     def test_put_deactivate_inactive_key(self):
         self.keyid = self.add_zone_key()
@@ -236,14 +235,11 @@ class Cryptokeys(ApiTestCase):
             data=json.dumps(payload),
             headers={'content-type': 'application/json'})
         self.assertEquals(r.status_code, 204)
-        self.assertEquals(r.content, "")
+        self.assertEquals(r.content, b"")
 
         # check if key is still deactivated
-        try:
-            out = subprocess.check_output(["../pdns/pdnsutil", "--config-dir=.", "show-zone", self.zone])
-            self.assertIn("Inactive", out)
-        except subprocess.CalledProcessError as e:
-            self.fail("pdnsutil show-zone failed: " + e.output)
+        out = pdnsutil("show-zone", self.zone_nodot)
+        self.assertIn("Inactive", out)
 
     def test_put_activate_active_key(self):
         self.keyid =self.add_zone_key(status='active')
@@ -257,11 +253,8 @@ class Cryptokeys(ApiTestCase):
             data=json.dumps(payload2),
             headers={'content-type': 'application/json'})
         self.assertEquals(r.status_code, 204)
-        self.assertEquals(r.content, "")
+        self.assertEquals(r.content, b"")
 
         # check if key is activated
-        try:
-            out = subprocess.check_output(["../pdns/pdnsutil", "--config-dir=.", "show-zone", self.zone])
-            self.assertIn("Active", out)
-        except subprocess.CalledProcessError as e:
-            self.fail("pdnsutil show-zone failed: " + e.output)
+        out = pdnsutil("show-zone", self.zone_nodot)
+        self.assertIn("Active", out)

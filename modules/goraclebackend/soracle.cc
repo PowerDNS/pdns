@@ -29,7 +29,7 @@
 #include "pdns/logger.hh"
 #include "pdns/dns.hh"
 #include "pdns/namespaces.hh"
-#include "pdns/md5.hh"
+#include "pdns/digests.hh"
 
 static AtomicCounter s_txid;
 
@@ -178,7 +178,7 @@ public:
     prepareStatement();
 
     if (d_dolog)
-      L<<Logger::Warning<<"Query: "<<d_query<<endl;
+      g_log<<Logger::Warning<<"Query: "<<d_query<<endl;
     ub2 fntype;
     ub4 iters;
 
@@ -496,7 +496,7 @@ SOracle::~SOracle()
   if (d_serviceContextHandle != NULL) {
     err=OCILogoff(d_serviceContextHandle, d_errorHandle);
     if (err) {
-      L<<Logger::Warning<<"Problems logging out: "+getOracleError()<<endl;
+      g_log<<Logger::Warning<<"Problems logging out: "+getOracleError()<<endl;
     }
   }
 

@@ -8,203 +8,216 @@ The DNSQuestion object contains at least the following fields:
 
 .. class:: DNSQuestion
 
-    An object that contains everything about the current query.
+  An object that contains everything about the current query.
+  This object has the following attributes:
 
-.. attribute:: DNSQuestion.qname
+  .. attribute:: DNSQuestion.qname
 
-    :class:`DNSName` of the name this query is for.
+      :class:`DNSName` of the name this query is for.
 
-.. attribute:: DNSQuestion.qtype
+  .. attribute:: DNSQuestion.qtype
 
-    Type this query is for as an integer, can be compared against ``pdns.A``, ``pdns.AAAA``.
+      Type this query is for as an integer, can be compared against ``pdns.A``, ``pdns.AAAA``.
 
-.. attribute:: DNSQuestion.rcode
+  .. attribute:: DNSQuestion.rcode
 
-    current DNS Result Code, which can be overridden, including to several magical values
-    The rcode can be set to pdns.DROP to drop the query.
-    Other statuses are normal DNS return codes, like ``pdns.NOERROR``, ``pdns.NXDOMAIN`` etc.
+      current DNS Result Code, which can be overridden, including to several magical values
+      The rcode can be set to pdns.DROP to drop the query.
+      Other statuses are normal DNS return codes, like ``pdns.NOERROR``, ``pdns.NXDOMAIN`` etc.
 
-.. attribute:: DNSQuestion.isTcp
+  .. attribute:: DNSQuestion.isTcp
 
-    Boolean whether the query have been received over TCP.
+      Whether the query was received over TCP.
 
-.. attribute:: DNSQuestion.remoteaddr -> ComboAddress
+  .. attribute:: DNSQuestion.remoteaddr
 
-    :class:`ComboAddress` of the requestor.
+      :class:`ComboAddress` of the requestor.
 
-.. attribute:: DNSQuestion.localaddr -> ComboAddress
+  .. attribute:: DNSQuestion.localaddr
 
-    :class:`ComboAddress` where this query was received on.
+      :class:`ComboAddress` where this query was received on.
 
-.. attribute:: DNSQuestion.variable
+  .. attribute:: DNSQuestion.variable
 
-    Boolean which, if set, indicates the recursor should not packet cache this answer.
-    Honored even when returning false from a hook!
-    Important when providing answers that vary over time or based on sender details.
+      Boolean which, if set, indicates the recursor should not packet cache this answer.
+      Honored even when returning false from a hook!
+      Important when providing answers that vary over time or based on sender details.
 
-.. attribute:: DNSQuestion.followupFunction
+  .. attribute:: DNSQuestion.followupFunction
 
-    String that signals the nameserver to take one an additional action:
+      String that signals the nameserver to take one an additional action:
 
-    - followCNAMERecords: When adding a CNAME to the answer, this tells the recursor to follow that CNAME. See :ref:`CNAME Chain Resolution <cnamechainresolution>`
-    - getFakeAAAARecords: Get a fake AAAA record, see :doc:`DNS64 <../dns64>`
-    - getFakePTRRecords: Get a fake PTR record, see :doc:`DNS64 <../dns64>`
-    - udpQueryResponse: Do a UDP query and call a handler, see :ref:`UDP Query Response <udpqueryresponse>`
+      - followCNAMERecords: When adding a CNAME to the answer, this tells the recursor to follow that CNAME. See :ref:`CNAME Chain Resolution <cnamechainresolution>`
+      - getFakeAAAARecords: Get a fake AAAA record, see :doc:`DNS64 <../dns64>`
+      - getFakePTRRecords: Get a fake PTR record, see :doc:`DNS64 <../dns64>`
+      - udpQueryResponse: Do a UDP query and call a handler, see :ref:`UDP Query Response <udpqueryresponse>`
 
-.. attribute:: DNSQuestion.appliedPolicy
+  .. attribute:: DNSQuestion.appliedPolicy
 
     The decision that was made by the policy engine, see :ref:`modifyingpolicydecisions`.
 
-.. attribute:: DNSQuestion.appliedPolicy.policyName
+    .. attribute:: DNSQuestion.appliedPolicy.policyName
 
-  A string with the name of the policy.
-  Set by :ref:`policyName <rpz-policyName>` in the :func:`rpzFile` and :func:`rpzMaster` configuration items.
-  It is advised to overwrite this when modifying the :attr:`DNSQuestion.appliedPolicy.policyKind`
+      A string with the name of the policy.
+      Set by :ref:`policyName <rpz-policyName>` in the :func:`rpzFile` and :func:`rpzMaster` configuration items.
+      It is advised to overwrite this when modifying the :attr:`DNSQuestion.appliedPolicy.policyKind`
 
-.. attribute:: DNSQuestion.appliedPolicy.policyAction
+    .. attribute:: DNSQuestion.appliedPolicy.policyAction
 
-    The action taken by the engine
+        The action taken by the engine
 
-.. attribute:: DNSQuestion.appliedPolicy.policyCustom
+    .. attribute:: DNSQuestion.appliedPolicy.policyCustom
 
-    The CNAME content for the ``pdns.policyactions.Custom`` response, a string
+        The CNAME content for the ``pdns.policyactions.Custom`` response, a string
 
-.. attribute:: DNSQuestion.appliedPolicy.policyKind
+    .. attribute:: DNSQuestion.appliedPolicy.policyKind
 
-  The kind of policy response, there are several policy kinds:
+      The kind of policy response, there are several policy kinds:
 
-  -  ``pdns.policykinds.Custom`` will return a NoError, CNAME answer with the value specified in :attr:`DNSQuestion.appliedPolicy.policyCustom`
-  -  ``pdns.policykinds.Drop`` will simply cause the query to be dropped
-  -  ``pdns.policykinds.NoAction`` will continue normal processing of the query
-  -  ``pdns.policykinds.NODATA`` will return a NoError response with no value in the answer section
-  -  ``pdns.policykinds.NXDOMAIN`` will return a response with a NXDomain rcode
-  -  ``pdns.policykinds.Truncate`` will return a NoError, no answer, truncated response over UDP. Normal processing will continue over TCP
+      -  ``pdns.policykinds.Custom`` will return a NoError, CNAME answer with the value specified in :attr:`DNSQuestion.appliedPolicy.policyCustom`
+      -  ``pdns.policykinds.Drop`` will simply cause the query to be dropped
+      -  ``pdns.policykinds.NoAction`` will continue normal processing of the query
+      -  ``pdns.policykinds.NODATA`` will return a NoError response with no value in the answer section
+      -  ``pdns.policykinds.NXDOMAIN`` will return a response with a NXDomain rcode
+      -  ``pdns.policykinds.Truncate`` will return a NoError, no answer, truncated response over UDP. Normal processing will continue over TCP
 
-.. attribute:: DNSQuestion.appliedPolicy.policyTTL
+    .. attribute:: DNSQuestion.appliedPolicy.policyTTL
 
-    The TTL in seconds for the ``pdns.policyactions.Custom`` response
+        The TTL in seconds for the ``pdns.policyactions.Custom`` response
 
-.. attribute:: DNSQuestion.wantsRPZ
+  .. attribute:: DNSQuestion.wantsRPZ
 
-    A boolean that indicates the use of the Policy Engine.
-    Can be set to ``false`` in ``prerpz`` to disable RPZ for this query.
+      A boolean that indicates the use of the Policy Engine.
+      Can be set to ``false`` in ``prerpz`` to disable RPZ for this query.
 
-.. attribute:: DNSQuestion.data
+  .. attribute:: DNSQuestion.data
 
-    A Lua object reference that is persistent throughout the lifetime of the :class:`DNSQuestion` object for a single query.
-    It can be used to store custom data.
-    Most scripts initialise this to an empty table early on so they can store multiple items.
+      A Lua object reference that is persistent throughout the lifetime of the :class:`DNSQuestion` object for a single query.
+      It can be used to store custom data.
+      Most scripts initialise this to an empty table early on so they can store multiple items.
 
-.. attribute:: DNSQuestion.requestorId str
+  .. attribute:: DNSQuestion.requestorId
 
-    .. versionadded:: 4.1.0
+      .. versionadded:: 4.1.0
 
-    A string that will be used to set the ``requestorId`` field in :doc:`protobuf <../lua-config/protobuf>` messages.
+      A string that will be used to set the ``requestorId`` field in :doc:`protobuf <../lua-config/protobuf>` messages.
 
-.. attribute:: DNSQuestion.deviceId str
+  .. attribute:: DNSQuestion.deviceId
 
-    .. versionadded:: 4.1.0
+      .. versionadded:: 4.1.0
 
-    A string that will be used to set the ``deviceId`` field in :doc:`protobuf <../lua-config/protobuf>` messages.
+      A string that will be used to set the ``deviceId`` field in :doc:`protobuf <../lua-config/protobuf>` messages.
 
-.. attribute:: DNSQuestion.udpAnswer -> str
+  .. attribute:: DNSQuestion.udpAnswer
 
-    Answer to the :attr:`udpQuery <DNSQuestion.udpQuery>` when when using the ``udpQueryResponse`` :attr:`followupFunction <DNSQuestion.followupFunction>`.
-    Only filled when the call-back function is invoked.
+      Answer to the :attr:`udpQuery <DNSQuestion.udpQuery>` when when using the ``udpQueryResponse`` :attr:`followupFunction <DNSQuestion.followupFunction>`.
+      Only filled when the call-back function is invoked.
 
-.. attribute:: DNSQuestion.udpQueryDest -> str
+  .. attribute:: DNSQuestion.udpQueryDest
 
-    Destination IP address to send the UDP packet to when using the ``udpQueryResponse`` :attr:`followupFunction <DNSQuestion.followupFunction>`
+      Destination IP address to send the UDP packet to when using the ``udpQueryResponse`` :attr:`followupFunction <DNSQuestion.followupFunction>`
 
-.. attribute:: DNSQuestion.udpQuery -> str
+  .. attribute:: DNSQuestion.udpQuery
 
-    The content of the UDP payload when using the ``udpQueryResponse`` :attr:`followupFunction <DNSQuestion.followupFunction>`
+      The content of the UDP payload when using the ``udpQueryResponse`` :attr:`followupFunction <DNSQuestion.followupFunction>`
 
-.. attribute:: DNSQuestion.udpCallback -> str
+  .. attribute:: DNSQuestion.udpCallback
 
-    The name of the callback function that is called when using the ``udpQueryResponse`` :attr:`followupFunction <DNSQuestion.followupFunction>` when an answer is received.
+      The name of the callback function that is called when using the ``udpQueryResponse`` :attr:`followupFunction <DNSQuestion.followupFunction>` when an answer is received.
 
-It also supports the following methods:
+  .. attribute:: DNSQuestion.validationState
 
-.. classmethod:: DNSQuestion:addAnswer(type, content, [ttl, name])
+      .. versionadded:: 4.1.0
 
-   Add an answer to the record of ``type`` with ``content``.
+      The result of the DNSSEC validation, accessible from the ``postresolve``, ``nxdomain`` and ``nodata`` hooks.
+      Possible states are ``pdns.validationstates.Indeterminate``, ``pdns.validationstates.Bogus``, ``pdns.validationstates.Insecure`` and ``pdns.validationstates.Secure``.
+      The result will always be ``pdns.validationstates.Indeterminate`` is validation is disabled or was not requested.
 
-   :param int type: The type of record to add, can be ``pdns.AAAA`` etc.
-   :param str content: The content of the record, will be parsed into wireformat based on the ``type``
-   :param int ttl: The TTL in seconds for this record
-   :param ??? name: The name of this record, defaults to :attr:`DNSQuestion.qname`
+  .. attribute:: DNSQuestion.logResponse
 
-.. classmethod:: DNSQuestion:addPolicyTag(tag)
+      .. versionadded:: 4.2.0
 
-   Add a policy tag.
+      Whether the response to this query will be exported to a remote protobuf logger, if one has been configured.
 
-   :param str tag: The tag to add
+  It also supports the following methods:
 
-.. classmethod:: DNSQuestion:discardPolicy(policyname)
+  .. method:: DNSQuestion:addAnswer(type, content, [ttl, name])
 
-    Skip the filtering policy (for example RPZ) named ``policyname`` for this query.
-    This is mostly useful in the ``prerpz`` hook.
+     Add an answer to the record of ``type`` with ``content``.
 
-    :param str policyname: The name of the policy to ignore.
+     :param int type: The type of record to add, can be ``pdns.AAAA`` etc.
+     :param str content: The content of the record, will be parsed into wireformat based on the ``type``
+     :param int ttl: The TTL in seconds for this record
+     :param DNSName name: The name of this record, defaults to :attr:`DNSQuestion.qname`
 
-.. classmethod:: DNSQuestion:getDH() -> DNSHeader
+  .. method:: DNSQuestion:addPolicyTag(tag)
 
-    Returns the :class:`DNSHeader` of the query or nil.
+     Add a policy tag.
 
-.. classmethod:: DNSQuestion:getPolicyTags() -> {str}
+     :param str tag: The tag to add
 
-    Get the current policy tags as a table of strings.
+  .. method:: DNSQuestion:discardPolicy(policyname)
 
-.. classmethod:: DNSQuestion:getRecords() -> {DNSRecord}
+     Skip the filtering policy (for example RPZ) named ``policyname`` for this query.
+     This is mostly useful in the ``prerpz`` hook.
 
-    Get a table of DNS Records in this DNS Question (or answer by now).
+     :param str policyname: The name of the policy to ignore.
 
-.. classmethod:: DNSQuestion:setPolicyTags(tags)
+  .. method:: DNSQuestion:getDH() -> DNSHeader
 
-    Set the policy tags to ``tags``, overwriting any existing policy tags.
+      Returns the :class:`DNSHeader` of the query or nil.
 
-    :param {str} tags: The policy tags
+  .. method:: DNSQuestion:getPolicyTags() -> {str}
 
-.. classmethod:: DNSQuestion:setRecords(records)
+      Get the current policy tags as a table of strings.
 
-    After your edits, update the answers of this question
+  .. method:: DNSQuestion:getRecords() -> {DNSRecord}
 
-    :param {DNSRecord} records: The records to put in the packet
+      Get a table of DNS Records in this DNS Question (or answer by now).
 
-.. classmethod:: DNSQuestion:getEDNSFlag(name) -> bool
+  .. method:: DNSQuestion:setPolicyTags(tags)
 
-    Returns true if the EDNS flag with ``name`` is set in the query.
+      Set the policy tags to ``tags``, overwriting any existing policy tags.
 
-    :param string name: Name of the flag.
+      :param {str} tags: The policy tags
 
-.. classmethod:: DNSQuestion:getEDNSFlags() -> {str}
+  .. method:: DNSQuestion:setRecords(records)
 
-    Returns a list of strings with all the EDNS flag mnemonics in the query.
+      After your edits, update the answers of this question
 
-.. classmethod:: DNSQuestion:getEDNSOption(num) -> str
+      :param {DNSRecord} records: The records to put in the packet
 
-    Get the EDNS Option with number ``num`` as a bytestring.
+  .. method:: DNSQuestion:getEDNSFlag(name) -> bool
 
-.. classmethod:: DNSQuestion:getEDNSOptions() {str: str}
+      Returns true if the EDNS flag with ``name`` is set in the query.
 
-    Get a map of all EDNS Options
+      :param string name: Name of the flag.
 
-.. classmethod:: DNSQuestion:getEDNSSubnet() -> Netmask
+  .. method:: DNSQuestion:getEDNSFlags() -> {str}
 
-    Returns the netmask specified in the EDNSSubnet option, or empty if there was none.
+      Returns a list of strings with all the EDNS flag mnemonics in the query.
 
-.. classmethod:: DNSQuestion:addPolicyTag(tag)
+  .. method:: DNSQuestion:getEDNSOption(num) -> str
 
-    Add policyTag ``tag`` to the list of policyTags
+      Get the EDNS Option with number ``num`` as a bytestring.
 
-    :param str tag: The tag to add
+  .. method:: DNSQuestion:getEDNSOptions() -> {str: str}
 
-.. classmethod:: DNSQuestion:getPolicyTags() -> {str}
+      Get a map of all EDNS Options
 
-    Get a list the policyTags for this message.
+  .. method:: DNSQuestion:getEDNSSubnet() -> Netmask
 
+      Returns the :class:`Netmask` specified in the EDNSSubnet option, or empty if there was none.
 
+  .. method:: DNSQuestion:addPolicyTag(tag)
+
+      Add policyTag ``tag`` to the list of policyTags
+
+      :param str tag: The tag to add
+
+  .. method:: DNSQuestion:getPolicyTags() -> {str}
+
+      Get a list the policyTags for this message.
 
 DNSHeader Object
 ================
@@ -215,49 +228,59 @@ The DNS header as returned by :meth:`DNSQuestion:getDH()` represents a header of
 
     represents a header of a DNS message.
 
-.. classmethod:: DNSHeader:getRD() -> bool
+  .. method:: DNSHeader:getRD() -> bool
 
-    The value of the Recursion Desired bit.
+      The value of the Recursion Desired bit.
 
-.. classmethod:: DNSHeader:getAA() -> bool
+  .. method:: DNSHeader:getAA() -> bool
 
-    The value of the Authoritative Answer bit.
+      The value of the Authoritative Answer bit.
 
-.. classmethod:: DNSHeader:getAD() -> bool
+  .. method:: DNSHeader:getAD() -> bool
 
-    The value of the Authenticated Data bit.
+      The value of the Authenticated Data bit.
 
-.. classmethod:: DNSHeader:getCD() -> bool
+  .. method:: DNSHeader:getCD() -> bool
 
-    The value of the Checking Disabled bit.
+      The value of the Checking Disabled bit.
 
-.. classmethod:: DNSHeader:getTC() -> bool
+  .. method:: DNSHeader:getTC() -> bool
 
-    The value of the Truncation bit.
+      The value of the Truncation bit.
 
-.. classmethod:: DNSHeader:getRCODE() -> int
+  .. method:: DNSHeader:getRCODE() -> int
 
-    The Response Code of the query
+      The Response Code of the query
 
-.. classmethod:: DNSHeader:getOPCODE() -> int
+  .. method:: DNSHeader:getOPCODE() -> int
 
-    The Operation Code of the query
+      The Operation Code of the query
 
-.. classmethod:: DNSHeader:getID() -> int
+  .. method:: DNSHeader:getID() -> int
 
-    The ID of the query
+      The ID of the query
 
 The EDNSOptionView Class
 ========================
 
 .. class:: EDNSOptionView
 
-  An object that represents a single EDNS option
+  An object that represents the values of a single EDNS option
 
-.. attribute:: EDNSOptionView.size -> int
+  .. method:: EDNSOptionView:count()
+     .. versionadded:: 4.2.0
 
-  The size in bytes of the EDNS option.
+    The number of values for this EDNS option.
 
-.. classmethod:: EDNSOptionView:getContent() -> str
+  .. method:: EDNSOptionView:getValues()
+     .. versionadded:: 4.2.0
 
-  Returns a NULL-safe string object of the EDNS option's content
+    Return a table of NULL-safe strings values for this EDNS option.
+
+  .. attribute:: EDNSOptionView.size
+
+    The size in bytes of the first value of this EDNS option.
+
+  .. method:: EDNSOptionView:getContent()
+
+    Returns a NULL-safe string object of the first value of this EDNS option.

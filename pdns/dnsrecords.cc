@@ -104,6 +104,7 @@ AAAARecordContent::AAAARecordContent(const ComboAddress& ca)
 }
 
 
+
 ComboAddress ARecordContent::getCA(int port) const
 {
   ComboAddress ret;
@@ -116,7 +117,7 @@ ComboAddress ARecordContent::getCA(int port) const
 ComboAddress AAAARecordContent::getCA(int port) const
 {
   ComboAddress ret;
-  memset(&ret, 0, sizeof(ret));
+  ret.reset();
 
   ret.sin4.sin_family=AF_INET6;
   ret.sin6.sin6_port = htons(port);
@@ -136,11 +137,16 @@ boilerplate_conv(AAAA, QType::AAAA, conv.xfrIP6(d_ip6); );
 boilerplate_conv(NS, QType::NS, conv.xfrName(d_content, true));
 boilerplate_conv(PTR, QType::PTR, conv.xfrName(d_content, true));
 boilerplate_conv(CNAME, QType::CNAME, conv.xfrName(d_content, true));
-boilerplate_conv(ALIAS, QType::ALIAS, conv.xfrName(d_content, true));
+boilerplate_conv(ALIAS, QType::ALIAS, conv.xfrName(d_content, false));
 boilerplate_conv(DNAME, QType::DNAME, conv.xfrName(d_content));
+boilerplate_conv(MB, QType::MB, conv.xfrName(d_madname, true));
+boilerplate_conv(MG, QType::MG, conv.xfrName(d_mgmname, true));
 boilerplate_conv(MR, QType::MR, conv.xfrName(d_alias, true));
 boilerplate_conv(MINFO, QType::MINFO, conv.xfrName(d_rmailbx, true); conv.xfrName(d_emailbx, true));
 boilerplate_conv(TXT, QType::TXT, conv.xfrText(d_text, true));
+#ifdef HAVE_LUA_RECORDS
+boilerplate_conv(LUA, QType::LUA, conv.xfrType(d_type); conv.xfrText(d_code, true));
+#endif
 boilerplate_conv(ENT, 0, );
 boilerplate_conv(SPF, 99, conv.xfrText(d_text, true));
 boilerplate_conv(HINFO, QType::HINFO,  conv.xfrText(d_cpu);   conv.xfrText(d_host));
@@ -154,6 +160,21 @@ boilerplate_conv(RP, QType::RP,
 boilerplate_conv(OPT, QType::OPT, 
                    conv.xfrBlob(d_data)
                  );
+
+#ifdef HAVE_LUA_RECORDS
+string LUARecordContent::getCode() const
+{
+  // in d_code, series of "part1" "part2"
+  vector<string> parts;
+  stringtok(parts, d_code, "\"");
+  string ret;
+  for(const auto& p : parts) {
+    ret += p;
+    ret.append(1, ' ');
+  }
+  return ret;
+}
+#endif
 
 void OPTRecordContent::getData(vector<pair<uint16_t, string> >& options)
 {
@@ -263,12 +284,11 @@ boilerplate_conv(SRV, QType::SRV,
                  )
 
 SOARecordContent::SOARecordContent(const DNSName& mname, const DNSName& rname, const struct soatimes& st) 
-: d_mname(mname), d_rname(rname)
+: d_mname(mname), d_rname(rname), d_st(st)
 {
-  d_st=st;
 }
 
-boilerplate_conv(SOA, QType::SOA, 
+boilerplate_conv(SOA, QType::SOA,
                  conv.xfrName(d_mname, true);
                  conv.xfrName(d_rname, true);
                  conv.xfr32BitInt(d_st.serial);
@@ -385,19 +405,19 @@ void EUI48RecordContent::report(void)
 {
   regist(1, QType::EUI48, &make, &make, "EUI48");
 }
-DNSRecordContent* EUI48RecordContent::make(const DNSRecord &dr, PacketReader& pr)
+std::shared_ptr<DNSRecordContent> EUI48RecordContent::make(const DNSRecord &dr, PacketReader& pr)
 {
     if(dr.d_clen!=6)
       throw MOADNSException("Wrong size for EUI48 record");
 
-    EUI48RecordContent* ret=new EUI48RecordContent();
+    auto ret=std::make_shared<EUI48RecordContent>();
     pr.copyRecord((uint8_t*) &ret->d_eui48, 6);
     return ret;
 }
-DNSRecordContent* EUI48RecordContent::make(const string& zone)
+std::shared_ptr<DNSRecordContent> EUI48RecordContent::make(const string& zone)
 {
     // try to parse
-    EUI48RecordContent *ret=new EUI48RecordContent();
+    auto ret=std::make_shared<EUI48RecordContent>();
     // format is 6 hex bytes and dashes    
     if (sscanf(zone.c_str(), "%2hhx-%2hhx-%2hhx-%2hhx-%2hhx-%2hhx", 
            ret->d_eui48, ret->d_eui48+1, ret->d_eui48+2, 
@@ -428,19 +448,19 @@ void EUI64RecordContent::report(void)
 {
   regist(1, QType::EUI64, &make, &make, "EUI64");
 }
-DNSRecordContent* EUI64RecordContent::make(const DNSRecord &dr, PacketReader& pr)
+std::shared_ptr<DNSRecordContent> EUI64RecordContent::make(const DNSRecord &dr, PacketReader& pr)
 {
     if(dr.d_clen!=8)
       throw MOADNSException("Wrong size for EUI64 record");
 
-    EUI64RecordContent* ret=new EUI64RecordContent();
+    auto ret=std::make_shared<EUI64RecordContent>();
     pr.copyRecord((uint8_t*) &ret->d_eui64, 8);
     return ret;
 }
-DNSRecordContent* EUI64RecordContent::make(const string& zone)
+std::shared_ptr<DNSRecordContent> EUI64RecordContent::make(const string& zone)
 {
     // try to parse
-    EUI64RecordContent *ret=new EUI64RecordContent();
+    auto ret=std::make_shared<EUI64RecordContent>();
     // format is 8 hex bytes and dashes
     if (sscanf(zone.c_str(), "%2hhx-%2hhx-%2hhx-%2hhx-%2hhx-%2hhx-%2hhx-%2hhx", 
            ret->d_eui64, ret->d_eui64+1, ret->d_eui64+2,
@@ -523,23 +543,22 @@ uint16_t DNSKEYRecordContent::getTag()
  */
 bool getEDNSOpts(const MOADNSParser& mdp, EDNSOpts* eo)
 {
-  eo->d_Z=0;
+  eo->d_extFlags=0;
   if(mdp.d_header.arcount && !mdp.d_answers.empty()) {
     for(const MOADNSParser::answers_t::value_type& val :  mdp.d_answers) {
       if(val.first.d_place == DNSResourceRecord::ADDITIONAL && val.first.d_type == QType::OPT) {
         eo->d_packetsize=val.first.d_class;
-       
+
         EDNS0Record stuff;
         uint32_t ttl=ntohl(val.first.d_ttl);
         static_assert(sizeof(EDNS0Record) == sizeof(uint32_t), "sizeof(EDNS0Record) must match sizeof(uint32_t)");
         memcpy(&stuff, &ttl, sizeof(stuff));
-        
+
         eo->d_extRCode=stuff.extRCode;
         eo->d_version=stuff.version;
-        eo->d_Z = ntohs(stuff.Z);
-        OPTRecordContent* orc = 
-          dynamic_cast<OPTRecordContent*>(val.first.d_content.get());
-        if(!orc)
+        eo->d_extFlags = ntohs(stuff.extFlags);
+        auto orc = getRR<OPTRecordContent>(val.first);
+        if(orc == nullptr)
           return false;
         orc->getData(eo->d_options);
         return true;
@@ -549,12 +568,12 @@ bool getEDNSOpts(const MOADNSParser& mdp, EDNSOpts* eo)
   return false;
 }
 
-DNSRecord makeOpt(int udpsize, int extRCode, int Z)
+DNSRecord makeOpt(const uint16_t udpsize, const uint16_t extRCode, const uint16_t extFlags)
 {
   EDNS0Record stuff;
   stuff.extRCode=0;
   stuff.version=0;
-  stuff.Z=htons(Z);
+  stuff.extFlags=htons(extFlags);
   DNSRecord dr;
   static_assert(sizeof(EDNS0Record) == sizeof(dr.d_ttl), "sizeof(EDNS0Record) must match sizeof(DNSRecord.d_ttl)");
   memcpy(&dr.d_ttl, &stuff, sizeof(stuff));
@@ -568,7 +587,6 @@ DNSRecord makeOpt(int udpsize, int extRCode, int Z)
   return dr;
 }
 
-
 void reportBasicTypes()
 {
   ARecordContent::report();
@@ -581,6 +599,9 @@ void reportBasicTypes()
   PTRRecordContent::report();
   DNSRecordContent::regist(QClass::CHAOS, QType::TXT, &TXTRecordContent::make, &TXTRecordContent::make, "TXT");
   TXTRecordContent::report();
+#ifdef HAVE_LUA_RECORDS
+  LUARecordContent::report();
+#endif
   DNSRecordContent::regist(QClass::IN, QType::ANY, 0, 0, "ANY");
   DNSRecordContent::regist(QClass::IN, QType::AXFR, 0, 0, "AXFR");
   DNSRecordContent::regist(QClass::IN, QType::IXFR, 0, 0, "IXFR");
@@ -588,6 +609,9 @@ void reportBasicTypes()
 
 void reportOtherTypes()
 {
+   MBRecordContent::report();
+   MGRecordContent::report();
+   MRRecordContent::report();
    AFSDBRecordContent::report();
    DNAMERecordContent::report();
    ALIASRecordContent::report();
@@ -640,6 +664,35 @@ ComboAddress getAddr(const DNSRecord& dr, uint16_t defport)
     return getRR<AAAARecordContent>(dr)->getCA(defport);
 }
 
+/**
+ * Check if the DNSNames that should be hostnames, are hostnames
+ */
+void checkHostnameCorrectness(const DNSResourceRecord& rr)
+{
+  if (rr.qtype.getCode() == QType::NS || rr.qtype.getCode() == QType::MX || rr.qtype.getCode() == QType::SRV) {
+    DNSName toCheck;
+    if (rr.qtype.getCode() == QType::SRV) {
+      vector<string> parts;
+      stringtok(parts, rr.getZoneRepresentation());
+      if (parts.size() == 4) toCheck = DNSName(parts[3]);
+    } else if (rr.qtype.getCode() == QType::MX) {
+      vector<string> parts;
+      stringtok(parts, rr.getZoneRepresentation());
+      if (parts.size() == 2) toCheck = DNSName(parts[1]);
+    } else {
+      toCheck = DNSName(rr.content);
+    }
+
+    if (toCheck.empty()) {
+      throw std::runtime_error("unable to extract hostname from content");
+    }
+    else if ((rr.qtype.getCode() == QType::MX || rr.qtype.getCode() == QType::SRV) && toCheck == g_rootdnsname) {
+      // allow null MX/SRV
+    } else if(!toCheck.isHostname()) {
+      throw std::runtime_error(boost::str(boost::format("non-hostname content %s") % toCheck.toString()));
+    }
+  }
+}
 
 #if 0
 static struct Reporter

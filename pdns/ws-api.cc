@@ -30,14 +30,24 @@
 #include "json.hh"
 #include "version.hh"
 #include "arguments.hh"
+#include "dnsparser.hh"
+#include "responsestats.hh"
+#ifndef RECURSOR
+#include "statbag.hh"
+#endif
 #include <stdio.h>
 #include <string.h>
 #include <ctype.h>
 #include <sys/types.h>
 #include <iomanip>
 
-extern string s_programname;
 using json11::Json;
+
+extern string s_programname;
+extern ResponseStats g_rs;
+#ifndef RECURSOR
+extern StatBag S;
+#endif
 
 #ifndef HAVE_STRCASESTR
 
@@ -145,69 +155,85 @@ void apiServerConfig(HttpRequest* req, HttpResponse* resp) {
   resp->setBody(doc);
 }
 
-static Json logGrep(const string& q, const string& fname, const string& prefix)
-{
-  FILE* ptr = fopen(fname.c_str(), "r");
-  if(!ptr) {
-    throw ApiException("Opening \"" + fname + "\" failed: " + stringerror());
-  }
-  std::shared_ptr<FILE> fp(ptr, fclose);
-
-  string line;
-  string needle = q;
-  trim_right(needle);
-
-  boost::replace_all(needle, "%20", " ");
-  boost::replace_all(needle, "%22", "\"");
-
-  boost::tokenizer<boost::escaped_list_separator<char> > t(needle, boost::escaped_list_separator<char>("\\", " ", "\""));
-  vector<string> matches(t.begin(), t.end());
-  matches.push_back(prefix);
-
-  boost::circular_buffer<string> lines(200);
-  while(stringfgets(fp.get(), line)) {
-    vector<string>::const_iterator iter;
-    for(iter = matches.begin(); iter != matches.end(); ++iter) {
-      if(!strcasestr(line.c_str(), iter->c_str()))
-        break;
-    }
-    if(iter == matches.end()) {
-      trim_right(line);
-      lines.push_front(line);
-    }
-  }
-
-  Json::array items;
-  for(const string& iline : lines) {
-    items.push_back(iline);
-  }
-  return items;
-}
-
-void apiServerSearchLog(HttpRequest* req, HttpResponse* resp) {
-  if(req->method != "GET")
-    throw HttpMethodNotAllowedException();
-
-  string prefix = " " + s_programname + "[";
-  resp->setBody(logGrep(req->getvars["q"], ::arg()["api-logfile"], prefix));
-}
-
 void apiServerStatistics(HttpRequest* req, HttpResponse* resp) {
   if(req->method != "GET")
     throw HttpMethodNotAllowedException();
 
-  map<string,string> items;
-  productServerStatisticsFetch(items);
+  typedef map<string, string> stat_items_t;
+  stat_items_t general_stats;
+  productServerStatisticsFetch(general_stats);
+
+  auto resp_qtype_stats = g_rs.getQTypeResponseCounts();
+  auto resp_size_stats = g_rs.getSizeResponseCounts();
 
   Json::array doc;
-  typedef map<string, string> items_t;
-  for(const items_t::value_type& item : items) {
+  for(const auto& item : general_stats) {
     doc.push_back(Json::object {
       { "type", "StatisticItem" },
       { "name", item.first },
       { "value", item.second },
     });
   }
+
+  {
+    Json::array values;
+    for(const auto& item : resp_qtype_stats) {
+      if (item.second == 0)
+        continue;
+      values.push_back(Json::object {
+        { "name", DNSRecordContent::NumberToType(item.first) },
+        { "value", std::to_string(item.second) },
+      });
+    }
+
+    doc.push_back(Json::object {
+      { "type", "MapStatisticItem" },
+      { "name", "queries-by-qtype" },
+      { "value", values },
+    });
+  }
+
+  {
+    Json::array values;
+    for(const auto& item : resp_size_stats) {
+      if (item.second == 0)
+        continue;
+
+      values.push_back(Json::object {
+        { "name", std::to_string(item.first) },
+        { "value", std::to_string(item.second) },
+      });
+    }
+
+    doc.push_back(Json::object {
+      { "type", "MapStatisticItem" },
+      { "name", "response-sizes" },
+      { "value", values },
+    });
+  }
+
+#ifndef RECURSOR
+  for(const auto& ringName : S.listRings()) {
+    Json::array values;
+    const auto& ring = S.getRing(ringName);
+    for(const auto& item : ring) {
+      if (item.second == 0)
+        continue;
+
+      values.push_back(Json::object {
+        { "name", item.first },
+        { "value", std::to_string(item.second) },
+      });
+    }
+
+    doc.push_back(Json::object {
+      { "type", "RingStatisticItem" },
+      { "name", ringName },
+      { "size", std::to_string(S.getRingSize(ringName)) },
+      { "value", values },
+    });
+  }
+#endif
 
   resp->setBody(doc);
 }

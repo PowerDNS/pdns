@@ -97,27 +97,54 @@ try
       continue;
     }
 
-    d_ether=reinterpret_cast<struct ether_header*>(d_buffer);
-    d_lcc=reinterpret_cast<struct pdns_lcc_header*>(d_buffer);
+    if (d_pheader.caplen < d_skipMediaHeader) {
+      d_runts++;
+      continue;
+    }
 
     d_ip=reinterpret_cast<struct ip*>(d_buffer + d_skipMediaHeader);
     d_ip6=reinterpret_cast<struct ip6_hdr*>(d_buffer + d_skipMediaHeader);
     uint16_t contentCode=0;
-    if(d_pfh.linktype==1) 
+
+    if(d_pfh.linktype==1) {
+      if (d_pheader.caplen < sizeof(*d_ether)) {
+        d_runts++;
+        continue;
+      }
+      d_ether=reinterpret_cast<struct ether_header*>(d_buffer);
       contentCode=ntohs(d_ether->ether_type);
+    }
     else if(d_pfh.linktype==101) {
+      if (d_pheader.caplen < (d_skipMediaHeader + sizeof(*d_ip))) {
+        d_runts++;
+        continue;
+      }
       if(d_ip->ip_v==4)
 	contentCode = 0x0800;
       else
 	contentCode = 0x86dd;
     }
-    else if(d_pfh.linktype==113)
+    else if(d_pfh.linktype==113) {
+      if (d_pheader.caplen < sizeof(*d_lcc)) {
+        d_runts++;
+        continue;
+      }
+      d_lcc=reinterpret_cast<struct pdns_lcc_header*>(d_buffer);
       contentCode=ntohs(d_lcc->lcc_protocol);
+    }
 
     if(contentCode==0x0800 && d_ip->ip_p==17) { // udp
+      if (d_pheader.caplen < (d_skipMediaHeader + (4 * d_ip->ip_hl) + sizeof(*d_udp))) {
+        d_runts++;
+        continue;
+      }
       d_udp=reinterpret_cast<const struct udphdr*>(d_buffer + d_skipMediaHeader + 4 * d_ip->ip_hl);
       d_payload = (unsigned char*)d_udp + sizeof(struct udphdr);
       d_len = ntohs(d_udp->uh_ulen) - sizeof(struct udphdr);
+      if (d_pheader.caplen < (d_skipMediaHeader + (4 * d_ip->ip_hl) + sizeof(*d_udp) + d_len)) {
+        d_runts++;
+        continue;
+      }
       if((const char*)d_payload + d_len > d_buffer + d_pheader.caplen) {
 	d_runts++;
 	continue;
@@ -125,10 +152,18 @@ try
       d_correctpackets++;
       return true;
     }
-    if(contentCode==0x86dd && d_ip6->ip6_ctlun.ip6_un1.ip6_un1_nxt==17) { // udpv6, we ignore anything with extension hdr
+    else if(contentCode==0x86dd && d_ip6->ip6_ctlun.ip6_un1.ip6_un1_nxt==17) { // udpv6, we ignore anything with extension hdr
+      if (d_pheader.caplen < (d_skipMediaHeader + sizeof(struct ip6_hdr) + sizeof(struct udphdr))) {
+        d_runts++;
+        continue;
+      }
       d_udp=reinterpret_cast<const struct udphdr*>(d_buffer + d_skipMediaHeader + sizeof(struct ip6_hdr));
       d_payload = (unsigned char*)d_udp + sizeof(struct udphdr);
       d_len = ntohs(d_udp->uh_ulen) - sizeof(struct udphdr);
+      if (d_pheader.caplen < (d_skipMediaHeader + sizeof(struct ip6_hdr) + sizeof(struct udphdr) + d_len)) {
+        d_runts++;
+        continue;
+      }
       if((const char*)d_payload + d_len > d_buffer + d_pheader.caplen) {
 	d_runts++;
 	continue;
@@ -142,7 +177,7 @@ try
     }
   }
 }
-catch(EofException) {
+catch(const EofException&) {
   return false;
 }
 

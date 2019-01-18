@@ -1,8 +1,6 @@
 pdnsutil
 ========
 
-pdnsutil - PowerDNS dnssec command and control
-
 Synopsis
 --------
 
@@ -42,9 +40,10 @@ algorithms are supported:
 -  rsasha1
 -  rsasha256
 -  rsasha512
--  gost
 -  ecdsa256
 -  ecdsa384
+-  ed25519
+-  ed448
 
 activate-zone-key *ZONE* *KEY-ID*
     Activate a key with id *KEY-ID* within a zone called *ZONE*.
@@ -69,9 +68,11 @@ export-zone-key *ZONE* *KEY-ID*
     and NSD/LDNS.
 generate-zone-key {**KSK**,\ **ZSK**} [*ALGORITHM*] [*KEYBITS*]
     Generate a ZSK or KSK to stdout with specified algorithm and bits
-    and print it on STDOUT. If *ALGORITHM* is not set, RSASHA512 is
+    and print it on STDOUT. If *ALGORITHM* is not set, ECDSA256 is
     used. If *KEYBITS* is not set, an appropriate keysize is selected
-    for *ALGORITHM*.
+    for *ALGORITHM*. Each ECC-based algorithm supports only one valid
+    *KEYBITS* value: For ECDSA256 and ED25519, it is 256; for ECDSA384,
+    it is 384; and for ED448, it is 456.
 import-zone-key *ZONE* *FILE* {**KSK**,\ **ZSK**}
     Import from *FILE* a full (private) key for zone called *ZONE*. The
     format used is compatible with BIND and NSD/LDNS. **KSK** or **ZSK**
@@ -88,13 +89,13 @@ set-nsec3 *ZONE* '*HASH-ALGORITHM* *FLAGS* *ITERATIONS* *SALT*' [**narrow**]
     know you need it. For *ITERATIONS*, please consult RFC 5155, section
     10.3. And be aware that a high number might overload validating
     resolvers. The *SALT* is a hexadecimal string encoding the bits for
-    the salt. Setting **narrow** will make PowerDNS send out "white
-    lies" about the next secure record. Instead of looking it up in the
-    database, it will send out the hash + 1 as the next secure record. A
-    sample commandline is: "pdnsutil set-nsec3 powerdnssec.org '1 1 1
-    ab' narrow". **WARNING**: If running in RSASHA1 mode (algorithm 5 or
-    7), switching from NSEC to NSEC3 will require a DS update in the
-    parent zone.
+    the salt, or - to use no salt. Setting **narrow** will make PowerDNS
+    send out "white lies" about the next secure record. Instead of
+    looking it up in the database, it will send out the hash + 1 as the
+    next secure record. A sample commandline is: "pdnsutil set-nsec3
+    powerdnssec.org '1 1 1 ab' narrow". **WARNING**: If running in
+    RSASHA1 mode (algorithm 5 or 7), switching from NSEC to NSEC3 will
+    require a DS update in the parent zone.
 unset-nsec3 *ZONE*
     Converts *ZONE* to NSEC operations. **WARNING**: If running in
     RSASHA1 mode (algorithm 5 or 7), switching from NSEC to NSEC3 will
@@ -137,12 +138,23 @@ generate-tsig-key *NAME* *ALGORITHM*
     Generate new TSIG key with name *NAME* and the specified algorithm.
 import-tsig-key *NAME* *ALGORITHM* *KEY*
     Import *KEY* of the specified algorithm as *NAME*.
+list-tsig-keys
+    Show a list of all configured TSIG keys.
 
 ZONE MANIPULATION COMMANDS
 --------------------------
 
+add-record *ZONE* *NAME* *TYPE* [*TTL*] *CONTENT*
+    Add one or more records of *NAME* and *TYPE* to *ZONE* with *CONTENT* 
+    and optional *TTL*. If *TTL* is not set, default will be used. 
 create-zone *ZONE*
     Create an empty zone named *ZONE*.
+create-slave-zone *ZONE* *MASTER* [*MASTER*]..
+    Create a new slave zone *ZONE* with masters *MASTER*. All *MASTER*\ s
+    need to to be space-separated IP addresses with an optional port.
+change-slave-zone-master *ZONE* *MASTER* [*MASTER*]..
+    Change the masters for slave zone *ZONE* to new masters *MASTER*. All
+    *MASTER*\ s need to to be space-separated IP addresses with an optional port.
 check-all-zones
     Check all zones for correctness.
 check-zone *ZONE*
@@ -192,7 +204,11 @@ set-kind *ZONE* *KIND*
     Change the kind of *ZONE* to *KIND* (master, slave, native).
 set-account *ZONE* *ACCOUNT*
     Change the account (owner) of *ZONE* to *ACCOUNT*.
-set-meta *ZONE* *ATTRIBUTE* [*VALUE*]
+add-meta *ZONE* *ATTRIBUTE* *VALUE* [*VALUE*]...
+    Append *VALUE* to the existing *ATTRIBUTE* metadata for *ZONE*.
+    Will return an error if *ATTRIBUTE* does not support multiple values, use
+    **set-meta** for these values.
+set-meta *ZONE* *ATTRIBUTE* [*VALUE*]...
     Set domainmetadata *ATTRIBUTE* for *ZONE* to *VALUE*. An empty value
     clears it.
 set-presigned *ZONE*
@@ -211,6 +227,10 @@ backend-cmd *BACKEND* *CMD* [*CMD..*]
     Send a text command to a backend for execution. GSQL backends will
     take SQL commands, other backends may take different things. Be
     careful!
+bench-db [*FILE*]
+    Perform a benchmark of the backend-database.
+    *FILE* can be a file with a list, one per line, of domain names to use for this.
+    If *FILE* is not specified, powerdns.com is used.
 
 See also
 --------

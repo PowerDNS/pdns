@@ -46,13 +46,11 @@ ZoneParserTNG::ZoneParserTNG(const string& fname, const DNSName& zname, const st
 }
 
 ZoneParserTNG::ZoneParserTNG(const vector<string> zonedata, const DNSName& zname):
-                                                                        d_zonename(zname), d_defaultttl(3600), 
-                                                                        d_templatecounter(0), d_templatestop(0),
-                                                                        d_templatestep(0), d_havedollarttl(false)
+  d_zonename(zname), d_zonedata(zonedata), d_defaultttl(3600),
+  d_templatecounter(0), d_templatestop(0), d_templatestep(0),
+  d_havedollarttl(false), d_fromfile(false)
 {
-  d_zonedata = zonedata;
   d_zonedataline = d_zonedata.begin();
-  d_fromfile = false;
 }
 
 void ZoneParserTNG::stackFile(const std::string& fname)
@@ -195,11 +193,11 @@ bool ZoneParserTNG::getTemplateLine()
         char radix='d';
         sscanf(spec.c_str(), "%d,%d,%c", &offset, &width, &radix);  // parse format specifier
 
-        char format[12];
-        snprintf(format, sizeof(format) - 1, "%%0%d%c", width, radix); // make into printf-style format
+        char sformat[12];
+        snprintf(sformat, sizeof(sformat), "%%0%d%c", width, radix); // make into printf-style format
 
         char tmp[80];
-        snprintf(tmp, sizeof(tmp)-1, format, d_templatecounter + offset); // and do the actual printing
+        snprintf(tmp, sizeof(tmp), sformat, d_templatecounter + offset); // and do the actual printing
         outpart+=tmp;
       }
       else
@@ -268,7 +266,10 @@ string ZoneParserTNG::getLineOfFile()
 
 pair<string,int> ZoneParserTNG::getLineNumAndFile()
 {
-  return {d_filestates.top().d_filename, d_filestates.top().d_lineno};
+  if (d_filestates.empty())
+    return {"", 0};
+  else
+    return {d_filestates.top().d_filename, d_filestates.top().d_lineno};
 }
 
 bool ZoneParserTNG::get(DNSResourceRecord& rr, std::string* comment)
@@ -311,7 +312,7 @@ bool ZoneParserTNG::get(DNSResourceRecord& rr, std::string* comment)
       string range=makeString(d_line, parts[1]);
       d_templatestep=1;
       d_templatestop=0;
-      sscanf(range.c_str(),"%d-%d/%d", &d_templatecounter, &d_templatestop, &d_templatestep);
+      sscanf(range.c_str(),"%u-%u/%u", &d_templatecounter, &d_templatestop, &d_templatestep);
       d_templateline=d_line;
       parts.pop_front();
       parts.pop_front();
@@ -426,7 +427,7 @@ bool ZoneParserTNG::get(DNSResourceRecord& rr, std::string* comment)
         try {
           recparts[1] = toCanonic(d_zonename, recparts[1]).toStringRootDot();
         } catch (std::exception &e) {
-          throw PDNSException("Error in record '" + rr.qname.toString() + " " + rr.qtype.getName() + "': " + e.what());
+          throw PDNSException("Error in record '" + rr.qname.toLogString() + " " + rr.qtype.getName() + "': " + e.what());
         }
       }
       rr.content=recparts[0]+" "+recparts[1];
@@ -449,7 +450,7 @@ bool ZoneParserTNG::get(DNSResourceRecord& rr, std::string* comment)
         try {
           recparts[3] = toCanonic(d_zonename, recparts[3]).toStringRootDot();
         } catch (std::exception &e) {
-          throw PDNSException("Error in record '" + rr.qname.toString() + " " + rr.qtype.getName() + "': " + e.what());
+          throw PDNSException("Error in record '" + rr.qname.toLogString() + " " + rr.qtype.getName() + "': " + e.what());
         }
       }
       rr.content=recparts[0]+" "+recparts[1]+" "+recparts[2]+" "+recparts[3];
@@ -464,7 +465,7 @@ bool ZoneParserTNG::get(DNSResourceRecord& rr, std::string* comment)
     try {
       rr.content = toCanonic(d_zonename, rr.content).toStringRootDot();
     } catch (std::exception &e) {
-      throw PDNSException("Error in record '" + rr.qname.toString() + " " + rr.qtype.getName() + "': " + e.what());
+      throw PDNSException("Error in record '" + rr.qname.toLogString() + " " + rr.qtype.getName() + "': " + e.what());
     }
     break;
   case QType::AFSDB:
@@ -473,10 +474,10 @@ bool ZoneParserTNG::get(DNSResourceRecord& rr, std::string* comment)
       try {
         recparts[1]=toCanonic(d_zonename, recparts[1]).toStringRootDot();
       } catch (std::exception &e) {
-        throw PDNSException("Error in record '" + rr.qname.toString() + " " + rr.qtype.getName() + "': " + e.what());
+        throw PDNSException("Error in record '" + rr.qname.toLogString() + " " + rr.qtype.getName() + "': " + e.what());
       }
     } else {
-      throw PDNSException("AFSDB record for "+rr.qname.toString()+" invalid");
+      throw PDNSException("AFSDB record for "+rr.qname.toLogString()+" invalid");
     }
     rr.content.clear();
     for(string::size_type n = 0; n < recparts.size(); ++n) {
@@ -489,13 +490,13 @@ bool ZoneParserTNG::get(DNSResourceRecord& rr, std::string* comment)
   case QType::SOA:
     stringtok(recparts, rr.content);
     if(recparts.size() > 7)
-      throw PDNSException("SOA record contents for "+rr.qname.toString()+" contains too many parts");
+      throw PDNSException("SOA record contents for "+rr.qname.toLogString()+" contains too many parts");
     if(recparts.size() > 1) {
       try {
         recparts[0]=toCanonic(d_zonename, recparts[0]).toStringRootDot();
         recparts[1]=toCanonic(d_zonename, recparts[1]).toStringRootDot();
       } catch (std::exception &e) {
-        throw PDNSException("Error in record '" + rr.qname.toString() + " " + rr.qtype.getName() + "': " + e.what());
+        throw PDNSException("Error in record '" + rr.qname.toLogString() + " " + rr.qtype.getName() + "': " + e.what());
       }
     }
     rr.content.clear();
@@ -520,7 +521,7 @@ bool ZoneParserTNG::getLine()
   if (d_zonedata.size() > 0) {
     if (d_zonedataline != d_zonedata.end()) {
       d_line = *d_zonedataline;
-      d_zonedataline++;
+      ++d_zonedataline;
       return true;
     }
     return false;

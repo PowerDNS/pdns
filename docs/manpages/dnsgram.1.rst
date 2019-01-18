@@ -1,8 +1,6 @@
 dnsgram
 =======
 
-:program:`dnsgram` - A debugging tool for intermittent resolver failures
-
 Synopsis
 --------
 

@@ -13,7 +13,7 @@ Generic SQLite 3 backend
 
 .. warning::
   When importing large amounts of data, be sure to run
-  ``analyze;`` afterwards as SQLite3 has a tendency to use sub-optimal
+  ``analyze;`` afterwards as SQLite3 has a tendency to use very sub-optimal
   indexes otherwise.
 
 This backend retrieves all data from a SQLite database, which is an
@@ -33,12 +33,19 @@ Setting up the database
 ------------------------
 
 Before you can use this backend you first have to set it up and fill it
-with data. The default setup conforms to the following schema:
+with data. The default setup conforms to the following schema in 4.2.
+If you have not upgraded to 4.2, please use `the 4.1 schema on GitHub <https://github.com/PowerDNS/pdns/blob/rel/auth-4.1.x/modules/gsqlite3backend/schema.sqlite3.sql>`_.
 
 .. literalinclude:: ../../modules/gsqlite3backend/schema.sqlite3.sql
 
 This schema contains all elements needed for master, slave and
 superslave operation.
+
+.. warning::
+  It is not possible to replace the sqlite3 database file while PowerDNS is
+  running. Specifically, using ``rsync`` to distribute sqlite3 databases
+  does not work without stopping PowerDNS first and restarting it after the
+  change.
 
 After you have created the database you probably want to fill it with
 data. If you have a BIND zone file it's as easy as:

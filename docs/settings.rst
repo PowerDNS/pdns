@@ -43,8 +43,9 @@ AXFR.
 ------------------------
 
 -  IP ranges, separated by commas
+-  Default: 127.0.0.0/8,::1
 
-Allow DNS updates from these IP ranges.
+Allow DNS updates from these IP ranges. Set to empty string to honour ``ALLOW-DNSUPDATE-FROM`` in :ref:`metadata-allow-dnsupdate-from`.
 
 .. _setting-allow-notify-from:
 
@@ -176,6 +177,20 @@ Also AXFR a zone from a master with a lower serial.
 
 Seconds to store packets in the :ref:`packet-cache`.
 
+.. _setting-carbon-namespace:
+
+``carbon-namespace``
+--------------------
+
+-  String
+-  Default: pdns
+
+.. versionadded:: 4.2.0
+
+Set the namespace or first string of the metric key. Be careful not to include
+any dots in this setting, unless you know what you are doing.
+See :ref:`metricscarbon`
+
 .. _setting-carbon-ourname:
 
 ``carbon-ourname``
@@ -187,6 +202,20 @@ Seconds to store packets in the :ref:`packet-cache`.
 If sending carbon updates, if set, this will override our hostname. Be
 careful not to include any dots in this setting, unless you know what
 you are doing. See :ref:`metricscarbon`
+
+.. _setting-carbon-instance:
+
+``carbon-instance``
+-------------------
+
+-  String
+-  Default: auth
+
+.. versionadded:: 4.2.0
+
+Set the instance or third string of the metric key. Be careful not to include
+any dots in this setting, unless you know what you are doing.
+See :ref:`metricscarbon`
 
 .. _setting-carbon-server:
 
@@ -271,6 +300,20 @@ Debugging switch - don't use.
 
 Operate as a daemon.
 
+.. _setting-default-api-rectify:
+
+``default-api-rectify``
+-----------------------
+-  Boolean
+-  Default: yes
+
+.. versionadded:: 4.2.0
+
+The value of :ref:`metadata-api-rectify` if it is not set on the zone.
+
+.. note::
+  Pre 4.2.0 the default was always no.
+
 .. _setting-default-ksk-algorithms:
 .. _setting-default-ksk-algorithm:
 
@@ -284,20 +327,16 @@ Operate as a daemon.
   Renamed from ``default-ksk-algorithms``. No longer supports multiple algorithm names.
 
 The algorithm that should be used for the KSK when running
-:doc:`pdnsutil secure-zone <manpages/pdnsutil.1>` or using the :doc:`Zone API endpoint <http-api/endpoint-zones>`
+:doc:`pdnsutil secure-zone <manpages/pdnsutil.1>` or using the :doc:`Zone API endpoint <http-api/cryptokey>`
 to enable DNSSEC. Must be one of:
 
-* rsamd5
-* dh
-* dsa
-* ecc
 * rsasha1
 * rsasha256
 * rsasha512
-* ecc-gost
 * ecdsa256 (ECDSA P-256 with SHA256)
 * ecdsa384 (ECDSA P-384 with SHA384)
 * ed25519
+* ed448
 
 .. note::
   Actual supported algorithms depend on the crypto-libraries
@@ -380,20 +419,16 @@ TTL to use when none is provided.
   Renamed from ``default-zsk-algorithms``. Does no longer support multiple algorithm names.
 
 The algorithm that should be used for the ZSK when running
-:doc:`pdnsutil secure-zone <manpages/pdnsutil.1>` or using the :doc:`Zone API endpoint <http-api/endpoint-zones>`
+:doc:`pdnsutil secure-zone <manpages/pdnsutil.1>` or using the :doc:`Zone API endpoint <http-api/cryptokey>`
 to enable DNSSEC. Must be one of:
 
-* rsamd5
-* dh
-* dsa
-* ecc
 * rsasha1
 * rsasha256
 * rsasha512
-* ecc-gost
 * ecdsa256 (ECDSA P-256 with SHA256)
 * ecdsa384 (ECDSA P-384 with SHA384)
 * ed25519
+* ed448
 
 .. note::
   Actual supported algorithms depend on the crypto-libraries
@@ -419,8 +454,8 @@ Only relevant for algorithms with non-fixed keysizes (like RSA).
 -  Boolean
 -  Default: no
 
-Read additional ZSKs from the records table/your BIND zonefile. If not
-set, DNSKEY records in the zonefiles are ignored.
+Read additional DNSKEY, CDS and CDNSKEY records from the records table/your BIND zonefile. If not
+set, DNSKEY, CDS and CDNSKEY records in the zonefiles are ignored.
 
 .. _setting-disable-axfr:
 
@@ -454,7 +489,7 @@ regression testing.
 Do not log to syslog, only to stdout. Use this setting when running
 inside a supervisor that handles logging (like systemd).
 
-..warning::
+.. warning::
   Do not use this setting in combination with :ref:`setting-daemon` as all
   logging will disappear.
 
@@ -542,6 +577,16 @@ disables caching.
 -  Default: no
 
 Enables EDNS subnet processing, for backends that support it.
+
+.. _setting-enable-lua-records:
+
+``enable-lua-records``
+----------------------
+
+-  Boolean
+-  Default: no
+
+Enable globally the LUA records feature
 
 .. _setting-entropy-source:
 
@@ -648,6 +693,8 @@ configuration item names change: e.g. ``gmysql-host`` is available to
 configure the ``host`` setting of the first or main instance, and
 ``gmysql-server2-host`` for the second one.
 
+Running multiple instances of the bind backend is not allowed.
+
 .. _setting-load-modules:
 
 ``load-modules``
@@ -672,6 +719,33 @@ specific interfaces and not use the default 'bind to any'. This causes
 big problems if you have multiple IP addresses. Unix does not provide a
 way of figuring out what IP address a packet was sent to when binding to
 any.
+
+.. _setting-log-timestamp:
+
+``log-timestamp``
+-----------------
+
+.. versionadded:: 4.1.0
+
+- Bool
+- Default: yes
+
+When printing log lines to stdout, prefix them with timestamps.
+Disable this if the process supervisor timestamps these lines already.
+
+.. note::
+  The systemd unit file supplied with the source code already disables timestamp printing
+
+.. _setting-lua-records-exec-limit:
+
+``lua-records-exec-limit``
+-----------------------------
+
+-  Integer
+-  Default: 1000
+
+Limit LUA records scripts to ``lua-records-exec-limit`` instructions.
+Setting this to any value less than or equal to 0 will set no limit.
 
 .. _setting-non-local-bind:
 
@@ -698,7 +772,7 @@ this reason it is disabled by default.
 
 .. versionadded:: 4.1.0
 
-Script to be used to edit incoming AXFRs, see :ref:_modes-of-operation-axfrfilter`
+Script to be used to edit incoming AXFRs, see :ref:`modes-of-operation-axfrfilter`
 
 .. _setting-local-address-nonexist-fail:
 
@@ -771,7 +845,8 @@ Do not pass names like 'local0'!
 -  Integer
 -  Default: 4
 
-Amount of logging. Higher is more. Do not set below 3
+Amount of logging. Higher is more. Do not set below 3. Corresponds to "syslog" level values,
+e.g. error = 3, warning = 4, notice = 5, info = 6
 
 .. _setting-log-dns-queries:
 
@@ -870,7 +945,7 @@ situation hopeless and respawn.
 -------------------------------
 
 -  Integer
--  Default: 2^64 (on 64-bit systems)
+-  Default: 2^31-1 (on most systems), 2^63-1 (on ILP64 systems)
 
 Maximum number of signatures cache entries
 
@@ -988,6 +1063,26 @@ or may not be a good idea. You could use this to enable transparent
 restarts, but it may also mask configuration issues and for this reason
 it is disabled by default.
 
+.. _setting-rng:
+
+``rng``
+-------
+
+- String
+- Default: auto
+
+Specify which random number generator to use. Permissible choises are
+ - auto - choose automatically
+ - sodium - Use libsodium ``randombytes_uniform``
+ - openssl - Use libcrypto ``RAND_bytes``
+ - getrandom - Use libc getrandom, falls back to urandom if it does not really work
+ - arc4random - Use BSD ``arc4random_uniform``
+ - urandom - Use ``/dev/urandom``
+ - kiss - Use simple settable deterministic RNG. **FOR TESTING PURPOSES ONLY!**
+
+.. note::
+  Not all choises are available on all systems.
+
 .. _setting-security-poll-suffix:
 
 ``security-poll-suffix``
@@ -1026,6 +1121,11 @@ of this setting, the IP addresses or netmasks configured with
 :ref:`setting-also-notify` and ``ALSO-NOTIFY`` domain metadata
 always receive AXFR NOTIFYs.
 
+IP addresses and netmasks can be excluded by prefixing them with a ``!``.
+To notify all IP addresses apart from the 192.168.0.0/24 subnet use the following::
+
+  only-notify=0.0.0.0/0, ::/0, !192.168.0.0/24
+
 .. note::
   Even if NOTIFYs are limited by a netmask, PowerDNS first has to
   resolve all the hostnames to check their IP addresses against the
@@ -1037,10 +1137,23 @@ always receive AXFR NOTIFYs.
   explicitly using :ref:`setting-also-notify` and/or
   :ref:`metadata-also-notify` domain metadata to avoid this potential bottleneck.
 
+.. note::
+  If your slaves support Internet Protocol version, which your master does not, 
+  then set ``only-notify`` to include only supported protocol version. 
+  Otherwise there will be error trying to resolve address.
+  
+  For example, slaves support both IPv4 and IPv6, but PowerDNS master have only IPv4, 
+  so allow only IPv4 with ``only-notify``::
+  
+    only-notify=0.0.0.0/0
+
 .. _setting-out-of-zone-additional-processing:
 
 ``out-of-zone-additional-processing``
 -------------------------------------
+
+.. versionchanged:: 4.2.0
+  This setting has been removed.
 
 -  Boolean
 -  Default: yes
@@ -1189,6 +1302,20 @@ resolvers.
 
 Number of AXFR slave threads to start.
 
+.. _setting-send-signed-notify:
+
+``send-signed-notify``
+----------------------
+
+-  Boolean
+-  Default: yes
+
+If yes, outgoing NOTIFYs will be signed if a TSIG key is configured for the zone.
+If there are multiple TSIG keys configured for a domain, PowerDNS will use the
+first one retrieved from the backend, which may not be the correct one for the
+respective slave. Hence, in setups with multiple slaves with different TSIG keys
+it may be required to send NOTIFYs unsigned.
+
 .. _setting-setgid:
 
 ``setgid``
@@ -1308,6 +1435,18 @@ This path will also contain the pidfile for this instance of PowerDNS
 called ``pdns.pid`` by default. See :ref:`setting-config-name`
 and :doc:`Virtual Hosting <guides/virtual-instances>` how this can differ.
 
+.. _setting-supermaster:
+
+``supermaster``
+---------------
+
+-  Boolean
+-  Default: no
+
+.. versionadded:: 4.2.0
+
+Turn on supermaster support. See :ref:`supermaster-operation`.
+
 .. _setting-tcp-control-address:
 
 ``tcp-control-address``
@@ -1396,15 +1535,17 @@ IP address of incoming notification proxy
 ----------------------------
 
 -  Integer
--  Default: 1680
+-  Default: 1232
 
 EDNS0 allows for large UDP response datagrams, which can potentially
 raise performance. Large responses however also have downsides in terms
-of reflection attacks. Up till PowerDNS Authoritative Server 3.3, the
-truncation limit was set at 1680 bytes, regardless of EDNS0 buffer size
-indications from the client. Beyond 3.3, this setting makes our
-truncation limit configurable. Maximum value is 65535, but values above
+of reflection attacks. Maximum value is 65535, but values above
 4096 should probably not be attempted.
+
+.. note:: Why 1232?
+
+  1232 is the largest number of payload bytes that can fit in the smallest IPv6 packet.
+  IPv6 has a minimum MTU of 1280 bytes (:rfc:`RFC 8200, section 5 <8200#section-5>`), minus 40 bytes for the IPv6 header, minus 8 bytes for the UDP header gives 1232, the maximum payload size for the DNS response.
 
 .. _setting-version-string:
 
@@ -1456,7 +1597,7 @@ IP Address for webserver/API to listen on.
 
 .. versionchanged:: 4.1.0
 
-    Default is now 127.0.0.1,::1, was 0.0.0.0,::/0 before.
+    Default is now 127.0.0.1,::1, was 0.0.0.0/0,::/0 before.
 
 Webserver/API access is only allowed from these subnets.
 

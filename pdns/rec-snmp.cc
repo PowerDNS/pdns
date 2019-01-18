@@ -107,6 +107,12 @@ static const oid policyResultNxdomainOID[] = { RECURSOR_STATS_OID, 88 };
 static const oid policyResultNodataOID[] = { RECURSOR_STATS_OID, 89 };
 static const oid policyResultTruncateOID[] = { RECURSOR_STATS_OID, 90 };
 static const oid policyResultCustomOID[] = { RECURSOR_STATS_OID, 91 };
+static const oid queryPipeFullDropsOID[] = { RECURSOR_STATS_OID, 92 };
+static const oid truncatedDropsOID[] = { RECURSOR_STATS_OID, 93 };
+static const oid emptyQueriesOID[] = { RECURSOR_STATS_OID, 94 };
+static const oid dnssecAuthenticDataQueriesOID[] = { RECURSOR_STATS_OID, 95 };
+static const oid dnssecCheckDisabledQueriesOID[] = { RECURSOR_STATS_OID, 96 };
+static const oid variableResponsesOID[] = { RECURSOR_STATS_OID, 97 };
 
 static std::unordered_map<oid, std::string> s_statsMap;
 
@@ -144,12 +150,12 @@ static int handleCounter64Stats(netsnmp_mib_handler* handler,
 static void registerCounter64Stat(const char* name, const oid statOID[], size_t statOIDLength)
 {
   if (statOIDLength != OID_LENGTH(questionsOID)) {
-    L<<Logger::Error<<"Invalid OID for SNMP Counter64 statistic "<<std::string(name)<<endl;
+    g_log<<Logger::Error<<"Invalid OID for SNMP Counter64 statistic "<<std::string(name)<<endl;
     return;
   }
 
   if (s_statsMap.find(statOID[statOIDLength - 1]) != s_statsMap.end()) {
-    L<<Logger::Error<<"OID for SNMP Counter64 statistic "<<std::string(name)<<" has already been registered"<<endl;
+    g_log<<Logger::Error<<"OID for SNMP Counter64 statistic "<<std::string(name)<<" has already been registered"<<endl;
     return;
   }
 
@@ -218,6 +224,10 @@ RecursorSNMPAgent::RecursorSNMPAgent(const std::string& name, const std::string&
   registerCounter64Stat("client-parse-errors", clientParseErrorsOID, OID_LENGTH(clientParseErrorsOID));
   registerCounter64Stat("server-parse-errors", serverParseErrorsOID, OID_LENGTH(serverParseErrorsOID));
   registerCounter64Stat("too-old-drops", tooOldDropsOID, OID_LENGTH(tooOldDropsOID));
+  registerCounter64Stat("query-pipe-full-drops", queryPipeFullDropsOID, OID_LENGTH(queryPipeFullDropsOID));
+  registerCounter64Stat("truncated-drops", truncatedDropsOID, OID_LENGTH(truncatedDropsOID));
+  registerCounter64Stat("empty-queries", emptyQueriesOID, OID_LENGTH(emptyQueriesOID));
+  registerCounter64Stat("variable-responses", variableResponsesOID, OID_LENGTH(variableResponsesOID));
   registerCounter64Stat("answers0-1", answers01OID, OID_LENGTH(answers01OID));
   registerCounter64Stat("answers1-10", answers110OID, OID_LENGTH(answers110OID));
   registerCounter64Stat("answers10-100", answers10100OID, OID_LENGTH(answers10100OID));
@@ -271,6 +281,8 @@ RecursorSNMPAgent::RecursorSNMPAgent(const std::string& name, const std::string&
   registerCounter64Stat("edns-ping-matches", ednsPingMatchesOID, OID_LENGTH(ednsPingMatchesOID));
   registerCounter64Stat("edns-ping-mismatches", ednsPingMismatchesOID, OID_LENGTH(ednsPingMismatchesOID));
   registerCounter64Stat("dnssec-queries", dnssecQueriesOID, OID_LENGTH(dnssecQueriesOID));
+  registerCounter64Stat("dnssec-authentic-data-queries", dnssecAuthenticDataQueriesOID, OID_LENGTH(dnssecAuthenticDataQueriesOID));
+  registerCounter64Stat("dnssec-check-disabled-queries", dnssecCheckDisabledQueriesOID, OID_LENGTH(dnssecCheckDisabledQueriesOID));
   registerCounter64Stat("noping-outqueries", nopingOutqueriesOID, OID_LENGTH(nopingOutqueriesOID));
   registerCounter64Stat("noedns-outqueries", noednsOutqueriesOID, OID_LENGTH(noednsOutqueriesOID));
   registerCounter64Stat("uptime", uptimeOID, OID_LENGTH(uptimeOID));

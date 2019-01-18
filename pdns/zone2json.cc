@@ -96,9 +96,7 @@ try
   vector<string> lines;
 
     reportAllTypes();
-#if __GNUC__ >= 3
     std::ios_base::sync_with_stdio(false);
-#endif
    
     ::arg().setSwitch("verbose","Verbose comments on operation")="no";
     ::arg().setSwitch("on-error-resume-next","Continue after errors")="no";

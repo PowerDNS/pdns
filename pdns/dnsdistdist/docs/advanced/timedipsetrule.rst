@@ -17,26 +17,26 @@ added in :class:`ComboAddress` form.
 
 .. class:: TimedIPSetRule
 
-  Can be used to handle IP addresses differentlt based on the date and time
+  Can be used to handle IP addresses differently for a certain time.
 
-.. classmethod:: TimedIPSetRule:add(address, seconds)
+  .. method:: TimedIPSetRule:add(address, seconds)
 
-  Add an IP address to the set for the next ``second`` seconds.
+    Add an IP address to the set for the next ``second`` seconds.
 
-  :param ComboAddress address: The address to add
-  :param int seconds: Time to keep the address in the Rule
+    :param ComboAddress address: The address to add
+    :param int seconds: Time to keep the address in the Rule
 
-.. classmethod:: TimedIPSetRule:cleanup()
+  .. method:: TimedIPSetRule:cleanup()
 
-  Purge the set from expired IP addresses
+    Purge the set from expired IP addresses
 
-.. classmethod:: TimedIPSetRule:clear()
+  .. method:: TimedIPSetRule:clear()
 
-  Clear the entire set
+    Clear the entire set
 
-.. classmethod:: TimedIPSetRule:slice()
+  .. method:: TimedIPSetRule:slice()
 
-  Convert the TimedIPSetRule into a DNSRule that can be passed to :func:`addAction`
+    Convert the TimedIPSetRule into a DNSRule that can be passed to :func:`addAction`
 
 A working example:
 

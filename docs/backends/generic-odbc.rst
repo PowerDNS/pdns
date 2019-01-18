@@ -5,7 +5,7 @@ Generic ODBC Backend
 * Master: Yes
 * Slave: Yes
 * Superslave: Yes
-* Autoserial: Yes
+* Autoserial: No
 * Case: All lower
 * DNSSEC: Yes
 * Disabled data: Yes
@@ -110,6 +110,8 @@ Loading the schema into the database
 For convenience, a schema for MS SQL Server has been created: (Note:
 This schema can also be found in the PowerDNS source as
 ``modules/godbcbackend/schema.mssql.sql``).
+
+This is the schema for 4.2. For 4.1, please find `the 4.1 schema on GitHub <https://github.com/PowerDNS/pdns/blob/rel/auth-4.1.x/modules/godbcbackend/schema.mssql.sql>`_.
 
 .. literalinclude:: ../../modules/godbcbackend/schema.mssql.sql
 

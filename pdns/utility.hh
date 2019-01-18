@@ -64,6 +64,8 @@ private:
 
 protected:
 public:
+  Semaphore(const Semaphore&) = delete;
+  void operator=(const Semaphore&) = delete;
   //! Default constructor.
   Semaphore( unsigned int value = 0 );
 

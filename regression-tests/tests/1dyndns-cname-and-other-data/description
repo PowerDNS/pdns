@@ -1,0 +1,3 @@
+A test to check whether the server detects that the update is trying to add
+records for names where CNAMEs exists or where adding a CNAME is attempted when
+other data exists.

@@ -5,11 +5,13 @@ import os
 import string
 import time
 import dns
+import clientsubnetoption
 from dnsdisttests import DNSDistTest
 
 class TestAdvancedAllow(DNSDistTest):
 
     _config_template = """
+    addAction(AllRule(), NoneAction())
     addAction(makeRule("allowed.advanced.tests.powerdns.com."), AllowAction())
     addAction(AllRule(), DropAction())
     newServer{address="127.0.0.1:%s"}
@@ -107,7 +109,7 @@ class TestAdvancedFixupCase(DNSDistTest):
 class TestAdvancedRemoveRD(DNSDistTest):
 
     _config_template = """
-    addNoRecurseRule("norecurse.advanced.tests.powerdns.com.")
+    addAction("norecurse.advanced.tests.powerdns.com.", NoRecurseAction())
     newServer{address="127.0.0.1:%s"}
     """
 
@@ -181,7 +183,7 @@ class TestAdvancedRemoveRD(DNSDistTest):
 class TestAdvancedAddCD(DNSDistTest):
 
     _config_template = """
-    addDisableValidationRule("setcd.advanced.tests.powerdns.com.")
+    addAction("setcd.advanced.tests.powerdns.com.", DisableValidationAction())
     addAction(makeRule("setcdviaaction.advanced.tests.powerdns.com."), DisableValidationAction())
     newServer{address="127.0.0.1:%s"}
     """
@@ -289,7 +291,7 @@ class TestAdvancedAddCD(DNSDistTest):
 class TestAdvancedClearRD(DNSDistTest):
 
     _config_template = """
-    addNoRecurseRule("clearrd.advanced.tests.powerdns.com.")
+    addAction("clearrd.advanced.tests.powerdns.com.", NoRecurseAction())
     addAction(makeRule("clearrdviaaction.advanced.tests.powerdns.com."), NoRecurseAction())
     newServer{address="127.0.0.1:%s"}
     """
@@ -921,7 +923,7 @@ class TestAdvancedRestoreFlagsOnSelfResponse(DNSDistTest):
 class TestAdvancedQPS(DNSDistTest):
 
     _config_template = """
-    addQPSLimit("qps.advanced.tests.powerdns.com", 10)
+    addAction("qps.advanced.tests.powerdns.com", QPSAction(10))
     newServer{address="127.0.0.1:%s"}
     """
 
@@ -969,7 +971,7 @@ class TestAdvancedQPS(DNSDistTest):
 class TestAdvancedQPSNone(DNSDistTest):
 
     _config_template = """
-    addQPSLimit("qpsnone.advanced.tests.powerdns.com", 100)
+    addAction("qpsnone.advanced.tests.powerdns.com", QPSAction(100))
     addAction(AllRule(), RCodeAction(dnsdist.REFUSED))
     newServer{address="127.0.0.1:%s"}
     """
@@ -1010,6 +1012,33 @@ class TestAdvancedNMGRule(DNSDistTest):
         check that we are getting a REFUSED response.
         """
         name = 'nmgrule.advanced.tests.powerdns.com.'
+        query = dns.message.make_query(name, 'A', 'IN')
+        expectedResponse = dns.message.make_response(query)
+        expectedResponse.set_rcode(dns.rcode.REFUSED)
+
+        (_, receivedResponse) = self.sendUDPQuery(query, response=None, useQueue=False)
+        self.assertEquals(receivedResponse, expectedResponse)
+
+        (_, receivedResponse) = self.sendTCPQuery(query, response=None, useQueue=False)
+        self.assertEquals(receivedResponse, expectedResponse)
+
+class TestDSTPortRule(DNSDistTest):
+
+    _config_params = ['_dnsDistPort', '_testServerPort']
+    _config_template = """
+    addAction(DSTPortRule(%d), RCodeAction(dnsdist.REFUSED))
+    newServer{address="127.0.0.1:%s"}
+    """
+
+    def testDSTPortRule(self):
+        """
+        Advanced: DSTPortRule should capture our queries
+
+        Send queries to "dstportrule.advanced.tests.powerdns.com.",
+        check that we are getting a REFUSED response.
+        """
+
+        name = 'dstportrule.advanced.tests.powerdns.com.'
         query = dns.message.make_query(name, 'A', 'IN')
         expectedResponse = dns.message.make_response(query)
         expectedResponse.set_rcode(dns.rcode.REFUSED)
@@ -1196,7 +1225,7 @@ class TestAdvancedLuaDO(DNSDistTest):
         end
         return DNSAction.None, ""
     end
-    addLuaAction(AllRule(), nxDOLua)
+    addAction(AllRule(), LuaAction(nxDOLua))
     newServer{address="127.0.0.1:%s"}
     """
 
@@ -1249,7 +1278,7 @@ class TestAdvancedLuaRefused(DNSDistTest):
     function refuse(dq)
         return DNSAction.Refused, ""
     end
-    addLuaAction(AllRule(), refuse)
+    addAction(AllRule(), LuaAction(refuse))
     newServer{address="127.0.0.1:%s"}
     """
 
@@ -1258,6 +1287,42 @@ class TestAdvancedLuaRefused(DNSDistTest):
         Advanced: Refused via Lua
         """
         name = 'refused.advanced.tests.powerdns.com.'
+        query = dns.message.make_query(name, 'A', 'IN')
+        response = dns.message.make_response(query)
+        rrset = dns.rrset.from_text(name,
+                                    3600,
+                                    dns.rdataclass.IN,
+                                    dns.rdatatype.AAAA,
+                                    '::1')
+        response.answer.append(rrset)
+        refusedResponse = dns.message.make_response(query)
+        refusedResponse.set_rcode(dns.rcode.REFUSED)
+
+        (_, receivedResponse) = self.sendUDPQuery(query, response=None, useQueue=False)
+        self.assertTrue(receivedResponse)
+        refusedResponse.id = receivedResponse.id
+        self.assertEquals(receivedResponse, refusedResponse)
+
+        (_, receivedResponse) = self.sendTCPQuery(query, response=None, useQueue=False)
+        self.assertTrue(receivedResponse)
+        refusedResponse.id = receivedResponse.id
+        self.assertEquals(receivedResponse, refusedResponse)
+
+class TestAdvancedLuaActionReturnSyntax(DNSDistTest):
+
+    _config_template = """
+    function refuse(dq)
+        return DNSAction.Refused
+    end
+    addAction(AllRule(), LuaAction(refuse))
+    newServer{address="127.0.0.1:%s"}
+    """
+
+    def testRefusedWithEmptyRule(self):
+        """
+        Advanced: Short syntax for LuaAction return values
+        """
+        name = 'short.refused.advanced.tests.powerdns.com.'
         query = dns.message.make_query(name, 'A', 'IN')
         response = dns.message.make_response(query)
         rrset = dns.rrset.from_text(name,
@@ -1288,7 +1353,7 @@ class TestAdvancedLuaTruncated(DNSDistTest):
         end
         return DNSAction.None, ""
     end
-    addLuaAction(AllRule(), trunc)
+    addAction(AllRule(), LuaAction(trunc))
     newServer{address="127.0.0.1:%s"}
     """
 
@@ -1325,7 +1390,7 @@ class TestAdvancedLuaTruncated(DNSDistTest):
 class TestStatNodeRespRingSince(DNSDistTest):
 
     _consoleKey = DNSDistTest.generateConsoleKey()
-    _consoleKeyB64 = base64.b64encode(_consoleKey)
+    _consoleKeyB64 = base64.b64encode(_consoleKey).decode('ascii')
     _config_params = ['_consoleKeyB64', '_consolePort', '_testServerPort']
     _config_template = """
     setKey("%s")
@@ -1362,7 +1427,7 @@ class TestStatNodeRespRingSince(DNSDistTest):
         self.sendConsoleCommand("nodesSeen = {}")
         self.sendConsoleCommand("statNodeRespRing(visitor)")
         nodes = self.sendConsoleCommand("str = '' for key,value in pairs(nodesSeen) do str = str..value..\"\\n\" end return str")
-        nodes = string.strip(nodes, "\n")
+        nodes = nodes.strip("\n")
         self.assertEquals(nodes, """statnodesince.advanced.tests.powerdns.com.
 advanced.tests.powerdns.com.
 tests.powerdns.com.
@@ -1372,7 +1437,7 @@ com.""")
         self.sendConsoleCommand("nodesSeen = {}")
         self.sendConsoleCommand("statNodeRespRing(visitor, 0)")
         nodes = self.sendConsoleCommand("str = '' for key,value in pairs(nodesSeen) do str = str..value..\"\\n\" end return str")
-        nodes = string.strip(nodes, "\n")
+        nodes = nodes.strip("\n")
         self.assertEquals(nodes, """statnodesince.advanced.tests.powerdns.com.
 advanced.tests.powerdns.com.
 tests.powerdns.com.
@@ -1384,7 +1449,7 @@ com.""")
         self.sendConsoleCommand("nodesSeen = {}")
         self.sendConsoleCommand("statNodeRespRing(visitor)")
         nodes = self.sendConsoleCommand("str = '' for key,value in pairs(nodesSeen) do str = str..value..\"\\n\" end return str")
-        nodes = string.strip(nodes, "\n")
+        nodes = nodes.strip("\n")
         self.assertEquals(nodes, """statnodesince.advanced.tests.powerdns.com.
 advanced.tests.powerdns.com.
 tests.powerdns.com.
@@ -1394,13 +1459,13 @@ com.""")
         self.sendConsoleCommand("nodesSeen = {}")
         self.sendConsoleCommand("statNodeRespRing(visitor, 5)")
         nodes = self.sendConsoleCommand("str = '' for key,value in pairs(nodesSeen) do str = str..value..\"\\n\" end return str")
-        nodes = string.strip(nodes, "\n")
+        nodes = nodes.strip("\n")
         self.assertEquals(nodes, """""")
 
         self.sendConsoleCommand("nodesSeen = {}")
         self.sendConsoleCommand("statNodeRespRing(visitor, 10)")
         nodes = self.sendConsoleCommand("str = '' for key,value in pairs(nodesSeen) do str = str..value..\"\\n\" end return str")
-        nodes = string.strip(nodes, "\n")
+        nodes = nodes.strip("\n")
         self.assertEquals(nodes, """statnodesince.advanced.tests.powerdns.com.
 advanced.tests.powerdns.com.
 tests.powerdns.com.
@@ -1455,7 +1520,7 @@ class TestAdvancedGetLocalPort(DNSDistTest):
       local port = dq.localaddr:getPort()
       return DNSAction.Spoof, "port-was-"..port..".local-port.advanced.tests.powerdns.com."
     end
-    addLuaAction("local-port.advanced.tests.powerdns.com.", answerBasedOnLocalPort)
+    addAction("local-port.advanced.tests.powerdns.com.", LuaAction(answerBasedOnLocalPort))
     newServer{address="127.0.0.1:%s"}
     """
 
@@ -1489,7 +1554,7 @@ class TestAdvancedGetLocalPortOnAnyBind(DNSDistTest):
       local port = dq.localaddr:getPort()
       return DNSAction.Spoof, "port-was-"..port..".local-port-any.advanced.tests.powerdns.com."
     end
-    addLuaAction("local-port-any.advanced.tests.powerdns.com.", answerBasedOnLocalPort)
+    addAction("local-port-any.advanced.tests.powerdns.com.", LuaAction(answerBasedOnLocalPort))
     newServer{address="127.0.0.1:%s"}
     """
     _dnsDistListeningAddr = "0.0.0.0"
@@ -1515,4 +1580,137 @@ class TestAdvancedGetLocalPortOnAnyBind(DNSDistTest):
         self.assertEquals(receivedResponse, response)
 
         (_, receivedResponse) = self.sendTCPQuery(query, response=None, useQueue=False)
+        self.assertEquals(receivedResponse, response)
+
+class TestAdvancedGetLocalAddressOnAnyBind(DNSDistTest):
+
+    _config_template = """
+    function answerBasedOnLocalAddress(dq)
+      local dest = dq.localaddr:toString()
+      local i, j = string.find(dest, "[0-9.]+")
+      local addr = string.sub(dest, i, j)
+      local dashAddr = string.gsub(addr, "[.]", "-")
+      return DNSAction.Spoof, "address-was-"..dashAddr..".local-address-any.advanced.tests.powerdns.com."
+    end
+    addAction("local-address-any.advanced.tests.powerdns.com.", LuaAction(answerBasedOnLocalAddress))
+    newServer{address="127.0.0.1:%s"}
+    """
+    _dnsDistListeningAddr = "0.0.0.0"
+
+    def testAdvancedGetLocalAddressOnAnyBind(self):
+        """
+        Advanced: Return CNAME containing the local address for an ANY bind
+        """
+        name = 'local-address-any.advanced.tests.powerdns.com.'
+        query = dns.message.make_query(name, 'A', 'IN')
+        # dnsdist set RA = RD for spoofed responses
+        query.flags &= ~dns.flags.RD
+
+        response = dns.message.make_response(query)
+        rrset = dns.rrset.from_text(name,
+                                    60,
+                                    dns.rdataclass.IN,
+                                    dns.rdatatype.CNAME,
+                                    'address-was-127-0-0-1.local-address-any.advanced.tests.powerdns.com.')
+        response.answer.append(rrset)
+
+        (_, receivedResponse) = self.sendUDPQuery(query, response=None, useQueue=False)
+        self.assertEquals(receivedResponse, response)
+
+        (_, receivedResponse) = self.sendTCPQuery(query, response=None, useQueue=False)
+        self.assertEquals(receivedResponse, response)
+
+class TestAdvancedLuaTempFailureTTL(DNSDistTest):
+
+    _config_template = """
+    function testAction(dq)
+      if dq.tempFailureTTL ~= nil then
+        return DNSAction.Spoof, "initially.not.nil.but." + dq.tempFailureTTL + ".tests.powerdns.com."
+      end
+      dq.tempFailureTTL = 30
+      if dq.tempFailureTTL ~= 30 then
+        return DNSAction.Spoof, "after.set.not.expected.value.but." + dq.tempFailureTTL + ".tests.powerdns.com."
+      end
+      dq.tempFailureTTL = nil
+      if dq.tempFailureTTL ~= nil then
+        return DNSAction.Spoof, "after.unset.not.nil.but." + dq.tempFailureTTL + ".tests.powerdns.com."
+      end
+      return DNSAction.None, ""
+    end
+    addAction(AllRule(), LuaAction(testAction))
+    newServer{address="127.0.0.1:%s"}
+    """
+
+    def testTempFailureTTLBinding(self):
+        """
+        Advanced: Exercise dq.tempFailureTTL Lua binding
+        """
+        name = 'tempfailurettlbinding.advanced.tests.powerdns.com.'
+        query = dns.message.make_query(name, 'A', 'IN')
+        response = dns.message.make_response(query)
+        rrset = dns.rrset.from_text(name,
+                                    3600,
+                                    dns.rdataclass.IN,
+                                    dns.rdatatype.AAAA,
+                                    '::1')
+        response.answer.append(rrset)
+
+        (receivedQuery, receivedResponse) = self.sendUDPQuery(query, response)
+        self.assertTrue(receivedQuery)
+        self.assertTrue(receivedResponse)
+        receivedQuery.id = query.id
+        self.assertEquals(query, receivedQuery)
+        self.assertEquals(receivedResponse, response)
+
+class TestAdvancedEDNSOptionRule(DNSDistTest):
+
+    _config_template = """
+    newServer{address="127.0.0.1:%s"}
+    addAction(EDNSOptionRule(EDNSOptionCode.ECS), DropAction())
+    """
+
+    def testDropped(self):
+        """
+        Advanced: A question with ECS is dropped
+        """
+
+        name = 'ednsoptionrule.advanced.tests.powerdns.com.'
+
+        ecso = clientsubnetoption.ClientSubnetOption('127.0.0.1', 24)
+        query = dns.message.make_query(name, 'A', 'IN', use_edns=True, options=[ecso], payload=512)
+
+        (_, receivedResponse) = self.sendUDPQuery(query, response=None)
+        self.assertEquals(receivedResponse, None)
+        (_, receivedResponse) = self.sendTCPQuery(query, response=None)
+        self.assertEquals(receivedResponse, None)
+
+    def testReplied(self):
+        """
+        Advanced: A question without ECS is answered
+        """
+
+        name = 'ednsoptionrule.advanced.tests.powerdns.com.'
+
+        # both with EDNS
+        query = dns.message.make_query(name, 'A', 'IN', use_edns=True, options=[], payload=512)
+        response = dns.message.make_response(query)
+
+        (receivedQuery, receivedResponse) = self.sendUDPQuery(query, response)
+        self.assertTrue(receivedQuery)
+        self.assertTrue(receivedResponse)
+
+        receivedQuery.id = query.id
+        self.assertEquals(query, receivedQuery)
+        self.assertEquals(receivedResponse, response)
+
+        # and with no EDNS at all
+        query = dns.message.make_query(name, 'A', 'IN', use_edns=False)
+        response = dns.message.make_response(query)
+
+        (receivedQuery, receivedResponse) = self.sendUDPQuery(query, response)
+        self.assertTrue(receivedQuery)
+        self.assertTrue(receivedResponse)
+
+        receivedQuery.id = query.id
+        self.assertEquals(query, receivedQuery)
         self.assertEquals(receivedResponse, response)

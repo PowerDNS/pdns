@@ -11,7 +11,7 @@ case $context in
 		mysql --user="$MYDNSUSER" --password="$MYDNSPASSWD" --host="$MYDNSHOST" \
 			"$MYDNSDB" < ../modules/mydnsbackend/schema.mydns.sql
 
-		tosql mydns | grep -v 'double\.example\.com' | mysql --user="$MYDNSUSER" --password="$MYDNSPASSWD" --host="$MYDNSHOST" \
+		tosql mydns | grep -v 'double\.example\.com' | grep -v 'very-long-txt\.test\.com' | mysql --user="$MYDNSUSER" --password="$MYDNSPASSWD" --host="$MYDNSHOST" \
 			"$MYDNSDB"
 
 		cat > pdns-mydns.conf << __EOF__

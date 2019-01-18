@@ -1,10 +1,10 @@
 JSON11_LIBS = $(top_srcdir)/ext/json11/libjson11.la
+PROBDS_LIBS = $(top_srcdir)/ext/probds/libprobds.la
 
-AM_CPPFLAGS = $(LUA_CFLAGS) $(YAHTTP_CFLAGS) $(BOOST_CPPFLAGS) $(BOTAN110_CFLAGS) $(NET_SNMP_CFLAGS) $(SANITIZER_FLAGS) -O3 -Wall -pthread -DSYSCONFDIR=\"${sysconfdir}\" $(SYSTEMD_CFLAGS)
+AM_CPPFLAGS = $(LUA_CFLAGS) $(YAHTTP_CFLAGS) $(BOOST_CPPFLAGS) $(LIBSODIUM_CFLAGS) $(NET_SNMP_CFLAGS) $(LIBCAP_CFLAGS) $(SANITIZER_FLAGS) -O3 -Wall -pthread -DSYSCONFDIR=\"${sysconfdir}\" $(SYSTEMD_CFLAGS)
 
 AM_CPPFLAGS += \
 	-I$(top_srcdir)/ext/json11 \
-	-I$(top_srcdir)/ext/rapidjson/include \
 	$(YAHTTP_CFLAGS) \
 	$(LIBCRYPTO_INCLUDES)
 
@@ -12,6 +12,11 @@ AM_CXXFLAGS = \
 	-DSYSCONFDIR=\"$(sysconfdir)\" \
 	-DPKGLIBDIR=\"$(pkglibdir)\" \
 	-DLOCALSTATEDIR=\"$(socketdir)\"
+
+if NOD_ENABLED
+AM_CXXFLAGS += \
+	-DNODCACHEDIR=\"$(nodcachedir)\"
+endif
 
 AM_LDFLAGS = \
 	$(PROGRAM_LDFLAGS) \
@@ -24,7 +29,8 @@ BUILT_SOURCES=htmlfiles.h \
 
 CLEANFILES = htmlfiles.h \
 	dnsmessage.pb.cc \
-	dnsmessage.pb.h
+	dnsmessage.pb.h \
+	recursor.conf-dist
 
 htmlfiles.h: html/*
 	./incfiles > $@
@@ -36,11 +42,8 @@ AM_CPPFLAGS +=$(LUA_CFLAGS)
 endif
 
 EXTRA_DIST = \
-	NOTICE \
-	.version \
-	botan110signers.cc \
-	build-aux/gen-version \
 	contrib/* \
+	COPYING \
 	devpollmplexer.cc \
 	dnslabeltext.cc \
 	dnslabeltext.rl \
@@ -53,13 +56,15 @@ EXTRA_DIST = \
 	mkpubsuffixcc \
 	mtasker.cc \
 	mtasker_fcontext.cc mtasker_ucontext.cc \
+	NOTICE \
 	opensslsigners.hh opensslsigners.cc \
 	portsmplexer.cc \
 	rrd/* \
 	html incfiles \
 	test_libcrypto \
 	pdns-recursor.service.in \
-	RECURSOR-MIB.txt
+	RECURSOR-MIB.txt \
+	builder-support/gen-version
 
 dist-hook:
 	for file in $$(find $(distdir)/docs -type l); do \
@@ -88,6 +93,7 @@ pdns_recursor_SOURCES = \
 	base32.cc base32.hh \
 	base64.cc base64.hh \
 	cachecleaner.hh \
+	capabilities.cc capabilities.hh \
 	comment.hh \
 	dns.hh dns.cc \
 	dns_random.hh dns_random.cc \
@@ -111,7 +117,9 @@ pdns_recursor_SOURCES = \
 	lazy_allocator.hh \
 	lock.hh \
 	logger.hh logger.cc \
+	lua-base4.cc lua-base4.hh \
 	lua-recursor4.cc lua-recursor4.hh \
+	lua-recursor4-ffi.hh \
 	lwres.cc lwres.hh \
 	misc.hh misc.cc \
 	mplexer.hh \
@@ -124,10 +132,11 @@ pdns_recursor_SOURCES = \
 	packetcache.hh \
 	pdns_recursor.cc \
 	pdnsexception.hh \
+	pollmplexer.cc \
 	protobuf.cc protobuf.hh \
 	pubsuffix.hh pubsuffix.cc \
+	pubsuffixloader.cc \
 	qtype.hh qtype.cc \
-	randomhelper.cc \
 	rcpgenerator.cc rcpgenerator.hh \
 	rec-carbon.cc \
 	rec-lua-conf.hh rec-lua-conf.cc \
@@ -147,13 +156,14 @@ pdns_recursor_SOURCES = \
 	rpzloader.cc rpzloader.hh \
 	secpoll-recursor.cc \
 	secpoll-recursor.hh \
-	selectmplexer.cc \
 	sholder.hh \
 	sillyrecords.cc \
 	snmp-agent.hh snmp-agent.cc \
 	sortlist.cc sortlist.hh \
 	sstuff.hh \
+	stable-bloom.hh \
 	syncres.cc syncres.hh \
+	threadname.hh threadname.cc \
 	tsigverifier.cc tsigverifier.hh \
 	ueberbackend.hh \
 	unix_utility.cc \
@@ -163,6 +173,7 @@ pdns_recursor_SOURCES = \
 	webserver.cc webserver.hh \
 	ws-api.cc ws-api.hh \
 	ws-recursor.cc ws-recursor.hh \
+	xpf.cc xpf.hh \
 	zoneparser-tng.cc zoneparser-tng.hh
 
 if !HAVE_LUA_HPP
@@ -178,10 +189,22 @@ pdns_recursor_LDADD = \
 	$(BOOST_CONTEXT_LIBS) \
 	$(NET_SNMP_LIBS) \
 	$(SYSTEMD_LIBS) \
-	$(RT_LIBS)
+	$(RT_LIBS) \
+	$(BOOST_SYSTEM_LIBS) \
+	$(PROBDS_LIBS) \
+	$(LIBCAP_LIBS)
 
 pdns_recursor_LDFLAGS = $(AM_LDFLAGS) \
-	$(LIBCRYPTO_LDFLAGS) $(BOOST_CONTEXT_LDFLAGS)
+	$(LIBCRYPTO_LDFLAGS) $(BOOST_CONTEXT_LDFLAGS) \
+	$(BOOST_SYSTEM_LDFLAGS)
+
+if NOD_ENABLED
+pdns_recursor_SOURCES += nod.hh nod.cc
+pdns_recursor_LDADD += \
+	$(BOOST_FILESYSTEM_LIBS)
+pdns_recursor_LDFLAGS += \
+	$(BOOST_FILESYSTEM_LDFLAGS)
+endif
 
 testrunner_SOURCES = \
 	arguments.cc \
@@ -206,6 +229,7 @@ testrunner_SOURCES = \
 	ixfr.cc ixfr.hh \
 	logger.cc logger.hh \
 	misc.cc misc.hh \
+	mtasker_context.cc \
 	negcache.hh negcache.cc \
 	namespaces.hh \
 	nsecrecords.cc \
@@ -213,7 +237,6 @@ testrunner_SOURCES = \
 	opensslsigners.cc opensslsigners.hh \
 	protobuf.cc protobuf.hh \
 	qtype.cc qtype.hh \
-	randomhelper.cc \
 	rcpgenerator.cc \
 	rec-protobuf.cc rec-protobuf.hh \
 	recpacketcache.cc recpacketcache.hh \
@@ -223,6 +246,7 @@ testrunner_SOURCES = \
 	sillyrecords.cc \
 	sholder.hh \
 	sstuff.hh \
+	stable-bloom.hh \
 	syncres.cc syncres.hh \
 	test-arguments_cc.cc \
 	test-base32_cc.cc \
@@ -234,37 +258,53 @@ testrunner_SOURCES = \
 	test-dnsparser_hh.cc \
 	test-dnsrecords_cc.cc \
 	test-ednsoptions_cc.cc \
+	test-filterpo_cc.cc \
 	test-iputils_hh.cc \
 	test-ixfr_cc.cc \
 	test-misc_hh.cc \
-	test-nmtree.cc \
+	test-mtasker.cc \
 	test-negcache_cc.cc \
+	test-packetcache_hh.cc \
 	test-rcpgenerator_cc.cc \
 	test-recpacketcache_cc.cc \
 	test-recursorcache_cc.cc \
+	test-signers.cc \
 	test-syncres_cc.cc \
 	test-tsig.cc \
+	test-xpf_cc.cc \
 	testrunner.cc \
+	threadname.hh threadname.cc \
 	tsigverifier.cc tsigverifier.hh \
 	unix_utility.cc \
 	validate.cc validate.hh \
 	validate-recursor.cc validate-recursor.hh \
+	xpf.cc xpf.hh \
 	zoneparser-tng.cc zoneparser-tng.hh
 
 testrunner_LDFLAGS = \
 	$(AM_LDFLAGS) \
+	$(BOOST_CONTEXT_LDFLAGS) \
 	$(BOOST_UNIT_TEST_FRAMEWORK_LDFLAGS) \
-	$(LIBCRYPTO_LDFLAGS)
+	$(LIBCRYPTO_LDFLAGS) \
+	$(BOOST_SYSTEM_LDFLAGS)
 
 testrunner_LDADD = \
+	$(BOOST_CONTEXT_LIBS) \
 	$(BOOST_UNIT_TEST_FRAMEWORK_LIBS) \
 	$(LIBCRYPTO_LIBS) \
-	$(RT_LIBS)
+	$(RT_LIBS) \
+	$(BOOST_SYSTEM_LIBS) \
+	$(PROBDS_LIBS) \
+	$(LIBCAP_LIBS)
 
-if BOTAN110
-pdns_recursor_SOURCES += \
-	botan110signers.cc
-pdns_recursor_LDADD += $(BOTAN110_LIBS)
+if NOD_ENABLED
+testrunner_SOURCES +=   nod.hh nod.cc \
+			test-nod_cc.cc
+
+testrunner_LDADD += \
+	$(BOOST_FILESYSTEM_LIBS)
+testrunner_LDFLAGS += \
+	$(BOOST_FILESYSTEM_LDFLAGS)
 endif
 
 if LIBSODIUM
@@ -361,7 +401,7 @@ dist_man_MANS=$(MANPAGES)
 
 if HAVE_VIRTUALENV
 if !HAVE_MANPAGES
-$(MANPAGES): %.1: docs/manpages/%.rst .venv
+$(MANPAGES): %: docs/manpages/%.rst .venv
 	.venv/bin/python -msphinx -b man docs . $<
 endif # if !HAVE_MANPAGES
 
@@ -417,6 +457,11 @@ systemdsystemunitdir = $(SYSTEMD_DIR)
 systemdsystemunit_DATA = \
 	pdns-recursor.service \
 	pdns-recursor@.service
+
+CLEANFILES += \
+	pdns-recursor.service \
+	pdns-recursor@.service
+
 endif
 
 if !HAVE_LUA_HPP

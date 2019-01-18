@@ -32,6 +32,10 @@ static void RuntimeError(const boost::format& fmt)
   throw runtime_error(fmt.str());
 }
 
+static void NetworkErr(const boost::format& fmt)
+{
+  throw NetworkError(fmt.str());
+}
 
 int SSocket(int family, int type, int flags)
 {
@@ -57,6 +61,10 @@ int SConnectWithTimeout(int sockfd, const ComboAddress& remote, int timeout)
   if(ret < 0) {
     int savederrno = errno;
     if (savederrno == EINPROGRESS) {
+      if (timeout <= 0) {
+        return ret;
+      }
+
       /* we wait until the connection has been established */
       bool error = false;
       bool disconnected = false;
@@ -66,26 +74,26 @@ int SConnectWithTimeout(int sockfd, const ComboAddress& remote, int timeout)
           savederrno = 0;
           socklen_t errlen = sizeof(savederrno);
           if (getsockopt(sockfd, SOL_SOCKET, SO_ERROR, (void *)&savederrno, &errlen) == 0) {
-            RuntimeError(boost::format("connecting to %s failed: %s") % remote.toStringWithPort() % string(strerror(savederrno)));
+            NetworkErr(boost::format("connecting to %s failed: %s") % remote.toStringWithPort() % string(strerror(savederrno)));
           }
           else {
-            RuntimeError(boost::format("connecting to %s failed") % remote.toStringWithPort());
+            NetworkErr(boost::format("connecting to %s failed") % remote.toStringWithPort());
           }
         }
         if (disconnected) {
-          RuntimeError(boost::format("%s closed the connection") % remote.toStringWithPort());
+          NetworkErr(boost::format("%s closed the connection") % remote.toStringWithPort());
         }
         return 0;
       }
       else if (res == 0) {
-        RuntimeError(boost::format("timeout while connecting to %s") % remote.toStringWithPort());
+        NetworkErr(boost::format("timeout while connecting to %s") % remote.toStringWithPort());
       } else if (res < 0) {
         savederrno = errno;
-        RuntimeError(boost::format("waiting to connect to %s: %s") % remote.toStringWithPort() % string(strerror(savederrno)));
+        NetworkErr(boost::format("waiting to connect to %s: %s") % remote.toStringWithPort() % string(strerror(savederrno)));
       }
     }
     else {
-      RuntimeError(boost::format("connecting to %s: %s") % remote.toStringWithPort() % string(strerror(savederrno)));
+      NetworkErr(boost::format("connecting to %s: %s") % remote.toStringWithPort() % string(strerror(savederrno)));
     }
   }
 
@@ -145,8 +153,12 @@ bool HarvestTimestamp(struct msghdr* msgh, struct timeval* tv)
 }
 bool HarvestDestinationAddress(const struct msghdr* msgh, ComboAddress* destination)
 {
-  memset(destination, 0, sizeof(*destination));
+  destination->reset();
+#ifdef __NetBSD__
+  struct cmsghdr* cmsg;
+#else
   const struct cmsghdr* cmsg;
+#endif
   for (cmsg = CMSG_FIRSTHDR(msgh); cmsg != NULL; cmsg = CMSG_NXTHDR(const_cast<struct msghdr*>(msgh), const_cast<struct cmsghdr*>(cmsg))) {
 #if defined(IP_PKTINFO)
      if ((cmsg->cmsg_level == IPPROTO_IP) && (cmsg->cmsg_type == IP_PKTINFO)) {
@@ -425,7 +437,7 @@ bool isTCPSocketUsable(int sock)
       return false;
     }
     else {
-      int err = errno;
+      err = errno;
 
       if (err == EAGAIN || err == EWOULDBLOCK) {
         /* socket is usable, no data waiting */

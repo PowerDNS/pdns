@@ -8,11 +8,21 @@ Please upgrade to the PowerDNS Authoritative Server 4.0.0 from 3.4.2+.
 See the `3.X <https://doc.powerdns.com/3/authoritative/upgrading/>`__
 upgrade notes if your version is older than 3.4.2.
 
+4.1.0 to 4.1.1
+--------------
+
+- The :doc:`Generic MySQL backend <backends/generic-mysql>` schema has
+  changed: the ``notified_serial`` column default in the ``domains``
+  table has been changed from ``INT DEFAULT NULL`` to ``INT UNSIGNED
+  DEFAULT NULL``:
+
+  - ``ALTER TABLE domains MODIFY notified_serial INT UNSIGNED DEFAULT NULL;``
+
 4.0.X to 4.1.0
 --------------
 
 - Recursion has been removed, see the :doc:`dedicated migration guide <guides/recursion>`.
-- ALIAS record expension is disabled by default, use :ref:`setting-expand-alias` to enable.
+- ALIAS record expansion is disabled by default, use :ref:`setting-expand-alias` to enable.
 - *Your LDAP schema might need to be updated*, because new record types
   have been added (see below) and the ``dNSDomain2`` type has been
   changed.
@@ -48,6 +58,8 @@ Changed options
 Changed defaults
 ~~~~~~~~~~~~~~~~
 
+- The default value of :ref:`setting-webserver-allow-from` has been changed from ``0.0.0.0, ::/0`` to ``127.0.0.1, ::1``.
+
 Other changes
 ^^^^^^^^^^^^^
 
@@ -57,6 +69,9 @@ and ``--with-pgsql-config`` ``configure`` options have been deprecated.
 ``pkg-config``, falling back to detecting ``pg_config``. Use
 ``--with-pg-config`` to specify a path to a non-default ``pg_config`` if
 you have Postgresql installed in a non-default location.
+
+The ``--with-libsodium`` configure flag has changed from 'no' to 'auto'.
+This means that if libsodium and its development header are installed, it will be linked in.
 
 The improved :doc:`LDAP Backend <backends/ldap>` backend now requires Kerberos headers to be installed.
 Specifically, it needs `krb5.h` to be installed.

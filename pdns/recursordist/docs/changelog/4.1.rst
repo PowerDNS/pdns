@@ -2,7 +2,1002 @@ Changelogs for 4.1.x
 ====================
 
 .. changelog::
-  :version: 4.1.0-alpha2
+  :version: 4.1.8
+  :released: 26th of November 2018
+
+  This release fixes :doc:`Security Advisory 2018-09 <../security-advisories/powerdns-advisory-2018-09>` that we recently discovered, affecting PowerDNS Recursor up to and including 4.1.7.
+
+  The issue is that a remote attacker can trigger an out-of-bounds memory read via a crafted query, while computing the hash of the query for a packet cache lookup, possibly leading to a crash.
+
+  When the PowerDNS Recursor is run inside a supervisor like supervisord or systemd, a crash will lead to an automatic restart, limiting the impact to a somewhat degraded service.
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 7221
+
+    Crafted query can cause a denial of service (CVE-2018-16855, PowerDNS Security Advisory :doc:`2018-09 <../security-advisories/powerdns-advisory-2018-09>`)
+
+.. changelog::
+  :version: 4.1.7
+  :released: 9th of November 2018
+
+  This release updates the mitigation for :doc:`Security Advisory 2018-07 <../security-advisories/powerdns-advisory-2018-07>`, reverting the EDNS fallback strictness increase. This is necessary because there are a lot of broken name servers on the Internet.
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 7172
+
+    Revert 'Keep the EDNS status of a server on FormErr with EDNS'
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 7174
+
+    Refuse queries for all meta-types
+
+.. changelog::
+  :version: 4.1.6
+  :released: 7th of November 2018
+
+  This release reverts `#6980 <https://github.com/PowerDNS/pdns/pull/6980>`__, it could lead to DNSSEC validation issues.
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 7159
+    :tickets: 7158
+
+    Revert "rec: Authority records in AA=1 CNAME answer are authoritative".
+
+.. changelog::
+  :version: 4.1.5
+  :released: 6th of November 2018
+
+  This release fixes the following security advisories:
+
+  - PowerDNS Security Advisory :doc:`2018-04 <../security-advisories/powerdns-advisory-2018-04>` (CVE-2018-10851)
+  - PowerDNS Security Advisory :doc:`2018-06 <../security-advisories/powerdns-advisory-2018-06>` (CVE-2018-14626)
+  - PowerDNS Security Advisory :doc:`2018-07 <../security-advisories/powerdns-advisory-2018-07>` (CVE-2018-14644)
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 7151
+
+    Crafted answer can cause a denial of service (CVE-2018-10851, PowerDNS Security Advisory :doc:`2018-04 <../security-advisories/powerdns-advisory-2018-04>`)
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 7151
+
+    Packet cache pollution via crafted query (CVE-2018-14626, PowerDNS Security Advisory :doc:`2018-06 <../security-advisories/powerdns-advisory-2018-06>`)
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 7151
+
+    Crafted query for meta-types can cause a denial of service (CVE-2018-14644, PowerDNS Security Advisory :doc:`2018-07 <../security-advisories/powerdns-advisory-2018-07>`)
+
+  Additionally there are some other minor fixes and improvements listed below.
+
+  .. change::
+    :tags: Improvements, Lua
+    :pullreq: 6919
+    :tickets: 6848
+
+    Add pdnslog to lua configuration scripts (Chris Hofstaedtler)
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 6961
+    :tickets: 6960
+
+    Cleanup the netmask trees used for the ecs index on removals
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 6963
+    :tickets: 6605
+
+    Make sure that the ECS scope from the auth is < to the source
+
+  .. change::
+    :tags: Bug Fixes, RPZ, Internals
+    :pullreq: 6984
+    :tickets: 6792
+
+    Delay the creation of rpz threads until we have dropped privileges
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 6980
+    :tickets: 6979
+
+    Authority records in aa=1 cname answer are authoritative
+
+  .. change::
+    :tags: Bug Fixes, Internals
+    :pullreq: 7073
+
+    Avoid a memory leak in catch-all exception handler
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 6741
+    :tickets: 6340
+
+    Don't require authoritative answers for forward-recurse zones
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 6948
+    :tickets: 6943
+
+    Fix compilation with libressl 2.7.0+
+
+  .. change::
+    :tags: Bug Fixes, Internals
+    :pullreq: 6917
+
+    Release memory in case of error in the openssl ecdsa constructor
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 6925
+    :tickets: 6924
+
+    Convert a few uses to toLogString to print DNSName's that may be empty in a safer manner
+
+  .. change::
+    :tags: Bug Fixes, Internals
+    :pullreq: 6945
+
+    Avoid a crash on DEC Alpha systems
+
+  .. change::
+    :tags: Bug Fixes, Internals
+    :pullreq: 6951
+    :tickets: 6949
+
+    Clear all caches on (N)TA changes
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 7004
+    :tickets: 6989, 6991
+
+    Export outgoing ECS value and server ID in protobuf (if any)
+
+  .. change::
+    :tags: Improvements, Internals
+    :pullreq: 7122
+    :tickets: 7040
+
+    Switch to devtoolset 7 for el6
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 7125
+    :tickets: 7081
+
+    Allow the signature inception to be off by a number of seconds. (Kees Monshouwer)
+
+.. changelog::
+  :version: 4.1.4
+  :released: 31st of August 2018
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 6436
+
+    Split ``pdns_enable_unit_tests``. (Chris Hofstaedtler)
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 6465
+    :tickets: 6462
+
+    Don't account chained queries more than once.
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 6518
+
+    Add a new :ref:`setting-max-udp-queries-per-round` setting.
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 6557
+    :tickets: 6536
+
+    Make :doc:`rec_control` respect :ref:`setting-include-dir`.
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 6590
+
+    Fix warnings reported by gcc 8.1.0.
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 6809
+
+    Tests: replace awk command by perl.
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 6812
+    :tickets: 6567
+
+    Load lua scripts only in worker threads.
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 6720
+
+    Allow the snmp thread to retrieve statistics.
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 6873
+
+    Purge all auth/forward zone data including subtree. (@phonedph1)
+
+.. changelog::
+  :version: 4.1.3
+  :released: 22nd of May 2018
+
+  This release improves the stability and resiliency of the RPZ implementation, prevents metrics gathering from slowing down the processing of DNS queries and fixes an issue related to the cleaning of EDNS Client Subnet entries from the cache.
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 6469
+
+    Respect the ``AXFR`` timeout while connecting to the ``RPZ`` server.
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 6467
+
+    Don't increase the ``DNSSEC`` validations counters when running with ``process-no-validate``.
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 6313
+
+    Count a lookup into an internal auth zone as a cache miss.
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 6588
+    :tickets: 6237
+
+    Delay the loading of ``RPZ`` zones until the parsing is done, fixing a race condition.
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 6567
+
+    Move carbon/webserver/control/stats handling to a separate thread.
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 6566
+
+    Use a separate, non-blocking pipe to distribute queries.
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 6562
+    :tickets: 6550
+
+    Add a subtree option to the :doc:`API <../http-api/index>` cache flush endpoint.
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 6595
+    :tickets: 6542, 6516, 6358, 6517
+
+    Reorder includes to avoid boost ``L`` conflict.
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 6611
+    :tickets: 6130, 6610
+
+    Update copyright years to 2018 (Matt Nordhoff).
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 6596, 6478
+    :tickets: 6474
+
+    Fix a warning on botan >= 2.5.0.
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 6583
+
+    Add ``_raw`` versions for ``QName`` / ``ComboAddresses`` to the ``FFI`` API.
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 6586
+    :tickets: 6505
+
+     Use canonical ordering in the ``ECS`` index.
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 6514, 6630
+
+    Add ``-rdynamic`` to ``C{,XX}FLAGS`` when we build with ``LuaJIT``.
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 6418
+    :tickets: 6179
+
+    Increase ``MTasker`` stacksize to avoid crash in exception unwinding (Chris Hofstaedtler).
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 6419
+    :tickets: 6086
+
+    Use the SyncRes time in our unit tests when checking cache validity (Chris Hofstaedtler).
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 6850
+    :tickets: 6849
+
+    Disable only our own tcp listening socket when reuseport is enabled
+
+.. changelog::
+  :version: 4.1.2
+  :released: 29th of March 2018
+
+  This release improves the stability and resiliency of the RPZ implementation and fixes several issues related to EDNS Client Subnet.
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 6298, 6303, 6290, 6268
+
+    Add the option to set the AXFR timeout for RPZs.
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 6336, 6237, 6293
+    :tickets: 6238
+
+    Retry loading RPZ zones from server when they fail initially.
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 6172
+
+    IXFR: correct behavior of dealing with DNS Name with multiple records and speed up IXFR transaction (Leon Xu).
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 6300
+
+    Fix ECS-based cache entry refresh code.
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 6320
+    :tickets: 6319
+
+    Fix ECS-specific NS AAAA not being returned from the cache.
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 6379
+    :tickets: 6225
+
+    Add :doc:`RPZ statistics endpoint <../http-api/endpoint-rpz-stats>` to the :doc:`API <../http-api/index>`.
+
+  .. change::
+    :tags: New Features
+    :pullreq: 6344
+
+    Add FFI version of :func:`gettag`.
+
+.. changelog::
+  :version: 4.1.1
+  :released: 22nd of January 2018
+
+  This is the second release in the 4.1 train.
+
+  This release fixes PowerDNS Security Advisory :doc:`2018-01 <../security-advisories/powerdns-advisory-2018-01>`.
+
+  The full release notes can be read `on the blog <https://blog.powerdns.com/2018/01/22/powerdns-recursor-4-1-1/>`__.
+
+  This is a release on the stable branch, containing a fix for the
+  abovementioned security issue and several bug fixes from the
+  development branch.
+
+  .. change::
+    :tags: DNSSEC, Bug Fixes
+    :pullreq: 6215
+
+    Correctly handle ancestor delegation NSEC{,3} for children. Fixes
+    the DNSSEC validation issue found in Knot Resolver, where a NSEC{3}
+    ancestor delegation is wrongly use to prove the non-existence of a
+    RR below the delegation.
+    We already had the correct check for the exact owner name, but not
+    for RRs below the delegation.
+    (Security Advisory :doc:`2018-01 <../security-advisories/powerdns-advisory-2018-01>`)
+
+  .. change::
+    :tags: Internals, Bug Fixes
+    :pullreq: 6209
+    :tickets: 6212
+
+    Fix to make ``primeHints`` threadsafe, otherwise there's a small
+    chance on startup that the root-server IPs will be incorrect.
+
+  .. change::
+    :tags: Internals, Improvements
+    :pullreq: 6085
+    :tickets: 6198
+
+    Don't process records for another class than IN. We don't use
+    records of another class than IN, but we used to store some of them
+    in the cache which is useless. Just skip them.
+
+  .. change::
+    :tags: DNSSEC, Bug Fixes
+    :pullreq: 6092
+    :tickets: 6199
+
+    Fix the computation of the closest encloser for positive
+    answers. When the positive answer is expanded from a wildcard with
+    NSEC3, the closest encloser is not always parent of the qname,
+    depending on the number of labels in the initial wildcard.
+
+  .. change::
+    :tags: DNSSEC, Bug Fixes
+    :pullreq: 6095
+    :tickets: 6200
+
+    Pass the correct buffer size to ``arecvfrom()``. The incorrect size
+    could possibly cause DNSSEC failures.
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 6137
+    :tickets: 6201
+
+    Don't validate signature for "glue" CNAME, since anything else than
+    the initial CNAME can't be considered authoritative.
+
+.. changelog::
+  :version: 4.1.0
+  :released: 4th of December 2017
+
+  This is the first release in the 4.1 train.
+
+  The full release notes can be read `on the blog <https://blog.powerdns.com/2017/12/04/powerdns-recursor-4-1/>`__.
+
+  This is a major release containing significant speedups (both in throughput and latency), enhanced capabilities and a highly conformant and robust DNSSEC validation implementation that is ready for heavy production use. In addition, our EDNS Client Subnet implementation now scales effortlessly to networks needing very fine grained scopes (as used by some ‘country sized’ service providers).
+
+  - Improved DNSSEC support,
+  - Improved documentation,
+  - Improved RPZ support,
+  - Improved EDNS Client Subnet support,
+  - Support for Botan 2.x (and removal of support for Botan 1.10),
+  - SNMP support,
+  - Lua engine has gained access to more parts of the recursor,
+  - CPU affinity can now be specified,
+  - TCP Fast Open support,
+  - New performance metrics.
+
+  Changes since 4.1.0-rc3:
+
+  .. change::
+    :tags: Internals, DNSSEC, Bug Fixes
+    :pullreq: 5972
+
+    Dump the validation status of negcache entries, fix DNSSEC type.
+
+  .. change::
+    :tags: Internals, Bug Fixes
+    :pullreq: 5980
+
+    Cache Secure validation state when inserting negcache entries.
+
+  .. change::
+    :tags: DNSSEC, Bug Fixes
+    :pullreq: 5978
+
+    Fix DNSSEC validation of DS denial from the negative cache.
+
+  .. change::
+    :tags: DNSSEC, Bug Fixes
+    :pullreq: 5997
+
+    Store additional records as non-auth, even on AA=1 answers.
+
+  .. change::
+    :tags: DNSSEC, Bug Fixes
+    :pullreq: 6008
+
+    Don't leak when the loading a public ECDSA key fails.
+
+  .. change::
+    :tags: DNSSEC, Bug Fixes
+    :pullreq: 6009
+
+    When validating DNSKeys, the zone should be part of the signer.
+
+.. changelog::
+  :version: 4.1.0-rc3
+  :released: 17th of November 2017
+
+  The third Release Candidate adds support for Botan 2.x (and removes
+  support for Botan 1.10!), has a lot of DNSSEC fixes, features a
+  cleaned up web UI and has miscellaneous minor improvements.
+
+  .. change::
+    :tags: Internals, Bug Fixes
+    :pullreq: 5877
+    :tickets: 1066
+
+    Sort NS addresses by speed and remove old ones.
+
+  .. change::
+    :tags: Internals, Improvements
+    :pullreq: 5498
+    :tickets: 2250, 5797
+
+    Add support for Botan 2.x and remove support for Botan 1.10.
+
+  .. change::
+    :tags: Internals, Bug Fixes
+    :pullreq: 5896
+
+    Purge ``nsSpeeds`` entries even if we get less than 2 new entries.
+
+  .. change::
+    :tags: DNSSEC, Bug Fixes
+    :pullreq: 5889
+
+    Prevent possible downgrade attacks in the recursor.
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 5876
+
+    Print more details of trust anchors. In addition, the
+    :ref:`setting-trace` output that mentions if data from authoritative
+    servers gets accepted now also prints the TTL and clarifies the
+    'place' number previously printed.
+
+  .. change::
+    :tags: DNSSEC, Bug Fixes
+    :pullreq: 5885
+    :tickets: 5882
+
+    Split NODATA / NXDOMAIN NSEC wildcard denial proof of
+    existence. Otherwise there is a very real risk that a NSEC will
+    cover a more specific wildcard and we end up with what looks like a
+    NXDOMAIN proof but is a NODATA one.
+
+  .. change::
+    :tags: DNSSEC, Bug Fixes
+    :pullreq: 5904
+
+    Fix incomplete validation of cached entries.
+
+  .. change::
+    :tags: DNSSEC, Bug Fixes
+    :pullreq: 5912
+
+    Fix going Insecure on NSEC3 hashes with too many iterations, since
+    we could have gone Bogus on a positive answer synthetized from a
+    wildcard if the corresponding NSEC3 had more iterations that we were
+    willing to accept, while the correct result is Insecure.
+
+  .. change::
+    :tags: Internals, Bug Fixes
+    :pullreq: 5881
+    :tickets: 5618
+
+    Add EDNS to truncated, servfail answers.
+
+  .. change::
+    :tags: Internals, Improvements
+    :pullreq: 5616
+
+    Better support for deleting entries in ``NetmaskTree`` and
+    ``NetmaskGroup``.
+
+  .. change::
+    :tags: Internals, Bug Fixes
+    :pullreq: 5917
+
+    Use ``_exit()`` when we really really want to exit, for example
+    after a fatal error. This stops us dying while we die. A call to
+    ``exit()`` will trigger destructors, which may paradoxically stop
+    the process from exiting, taking down only one thread, but harming
+    the rest of the process.
+
+  .. change::
+    :tags: Lua, DNSSEC, Improvements
+    :pullreq: 5895
+    :tickets: 5888
+
+    Add the DNSSEC validation state to the ``DNSQuestion`` Lua object
+    (although the ability to update the validation state from these
+    hooks is postponed to after 4.1.0).
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 5930
+
+    In the recursor secpoll code, we assumed the TXT record would be the
+    first record first record we received. Sometimes it was the RRSIG,
+    leading to a silent error, and no secpoll check. Fixed the
+    assumption, added an error.
+
+  .. change::
+    :tags: Internals, Bug Fixes
+    :pullreq: 5938
+
+    Don't crash when asked to run with zero threads.
+
+  .. change::
+    :tags: Internals, Bug Fixes
+    :pullreq: 5939
+    :tickets: 5934
+
+    Only accept types not matching the query if we asked for ANY. Even
+    from forward-recurse servers.
+
+  .. change::
+    :tags: Internals, Bug Fixes
+    :pullreq: 5937
+    :tickets: 2758
+
+    Allow the use of a 'self-resolving' NS if cached A / AAAA
+    exists. Before this, we could skip a perfectly valid NS for which we
+    had retrieved the A and / or AAAA entries, for example via a glue.
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 5961
+
+    Add the config-name argument to the definition of configname. There
+    was a bug where the config-name parameter was not used to change the
+    path of the config file. This meant that some commands via
+    rec_control (e.g. reload-acls) would fail when run against a
+    recursor which had config-name defined. The correct behaviour was
+    present in some, but not all, definitions of configname. (@jake2184)
+
+.. changelog::
+  :version: 4.1.0-rc2
+  :released: 30th of October 2017
+
+  The second Release Candidate contains several correctness fixes for DNSSEC,
+  mostly in the area of verifying negative responses.
+
+  .. change::
+    :tags: API, Improvements
+    :pullreq: 5805
+
+    Improve logging for the built-in :doc:`webserver <../../http-api/index>`
+    and the :ref:`Carbon <metricscarbon>` sender.
+
+  .. change::
+    :tags: DNSSEC, Bug Fixes
+    :pullreq: 5808
+
+    Check that the NSEC covers an empty non-terminal when looking for NODATA.
+
+  .. change::
+    :tags: Improvements, Internals
+    :pullreq: 5824
+    :tickets: 5663
+
+    New b.root ipv4 address (Kees Monshouwer).
+
+  .. change::
+    :tags: Bug Fixes, Internals
+    :pullreq: 5740
+
+    Lowercase all outgoing qnames when :ref:`setting-lowercase-outgoing` is set.
+
+  .. change::
+    :tags: DNSSEC, Improvements
+    :pullreq: 5834
+
+    Don't directly store NSEC3 records in the positive cache.
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 5774
+
+    Add :ref:`experimental metrics <stat-x-our-latency>` that track the time spent inside PowerDNS per query.
+    These metrics ignore time spent waiting for the network.
+
+  .. change::
+    :tags: DNSSEC, Bug Fixes
+    :pullreq: 5835
+    :tickets: 5827
+
+    Disable validation for infrastructure queries (e.g. when recursing for a name).
+    Also validate entries from the Negative cache if they were not validated before.
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 5842
+
+    Add :ref:`setting-log-timestamp` setting. This option can be used to disable
+    printing timestamps to stdout, this is useful when using ``systemd-journald``
+    or another supervisor that timestamps output by itself.
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 5762
+    :tickets: 5439
+
+    Create :ref:`setting-socket-dir` from the init-script.
+
+  .. change::
+    :tags: DNSSEC, Bug Fixes
+    :pullreq: 5868
+    :tickets: 5861
+
+    Fix DNSSEC validation for denial of wildcards in negative answers and
+    denial of existence proofs in wildcard-expanded positive responses.
+
+  .. change::
+    :tags: DNSSEC, Bug Fixes
+    :pullreq: 5873
+
+    Fix DNSSEC validation when using ``-flto``.
+
+  .. change::
+    :tags: Bug Fixes, Internals
+    :pullreq: 5803
+
+    Fix crashes with uncaught exceptions in MThreads.
+
+.. changelog::
+  :version: 4.1.0-rc1
+  :released: 9th of October 2017
+
+  The RC1 release features many fixes to the DNSSEC validation code, reported by different users. Other improvements include: logging, RPZ and the Remote Logger.
+
+  While not specifically mentioned in the ChangeLog, also thanks to Winfried Angele for bringing a documentation issue to our attention!
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 5530
+
+    Add a missing header for PRId64 in the negative cache, required on EL5/EL6.
+
+  .. change::
+    :tags: Internals, Improvements
+    :pullreq: 5543
+
+    Wrap the webserver's and Resolver::tryGetSOASerial objects into smart pointers (also thanks to Christian Hofstaedtler for reviewing!)
+
+  .. change::
+    :tags: Internals, Improvements
+    :pullreq: 5545
+
+    Add more unit tests for the NetmaskTree and ECS cache index.
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 5549
+
+    Prevent an infinite loop if we need auth and the best match is not.
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 5570
+
+    Be more careful about the validation of negative answers.
+
+  .. change::
+    :tags: Bug Fixes, DNSSEC
+    :pullreq: 5569
+
+    Don't fetch the DNSKEY of a zone to validate the DS of the same zone.
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 5599
+    :tickets: 5456
+
+    Fix libatomic detection on ppc64. (Sander Hoentjen)
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 5588
+
+    Switch the default webserver's ACL to ``127.0.0.1, ::1``.
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 5598
+    :tickets: 5524
+
+    Add help text on autodetecting systemd support. (Ruben Kerkhof thanks for reporting!)
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 5615
+    :tickets: 5357
+
+    Fix sortlist in the presence of CNAME. (Benoit Perroud thanks for
+    reporting this issue!)
+
+  .. change::
+    :tags: Bug Fixes, DNSSEC
+    :pullreq: 5614
+
+    Improve DNSSEC debug logging,
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 5622
+
+    Add ``log-rpz-changes`` to log RPZ additions and removals.
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 5621
+
+    Log the policy type (QName, Client IP, NS IP...) over protobuf.
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 5515
+
+    Fix cache handling of ECS queries with a source length of 0.
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 5637
+
+    Remove unused SortList compare operator for ComboAddress.
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 5620
+
+    Add support for dumping the in-memory RPZ zones to a file.
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 5328
+    :tickets: 5327
+
+    Handle SNMP alarms so we can reconnect to the master.
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 5646
+
+    Support for identifying devices by id such as mac address.
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 5662
+
+    Fix Recursor 4.1.0 alpha 1 compilation on FreeBSD. (@RvdE)
+
+  .. change::
+    :tags: Bug Fixes, DNSSEC
+    :pullreq: 5672
+    :tickets: 5649
+
+    Add NSEC records on nx-trust cache hits.
+
+  .. change::
+    :tags: Bug Fixes, DNSSEC
+    :pullreq: 5671
+    :tickets: 5650
+
+    Handle NSEC wrap-around.
+
+  .. change::
+    :tags: Bug Fixes, DNSSEC
+    :pullreq: 5670
+    :tickets: 5648, 5651
+
+    Fix erroneous check for section 4.1 of rfc6840.
+
+  .. change::
+    :tags: Bug Fixes, DNSSEC
+    :pullreq: 5715
+    :tickets: 5705
+
+    Handle direct NSEC queries.
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 5739
+
+    Remove pdns.PASS and pdns.TRUNCATE.
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 5734
+
+    Fix a crash when getting a public GOST key if the private one is not set.
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 5699
+
+    Implement dynamic cache sizeing.
+
+  .. change::
+    :tags: Bug Fixes, DNSSEC
+    :pullreq: 5716
+    :tickets: 5681
+
+    Detect zone cuts by asking for DS instead of NS.
+
+  .. change::
+    :tags: Bug Fixes, DNSSEC
+    :pullreq: 5738
+    :tickets: 5735
+
+    Do not allow direct queries for RRSIG or NSEC3.
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 5755
+
+    Improve dnsbulktest experience in Travis for more robustness.
+
+  .. change::
+    :tags: Improvements, DNSSEC
+    :pullreq: 5756
+
+    Improve ``--quiet=false`` output to include DNSSEC and more timing details.
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 5772
+
+    Set ``TC=1`` if we had to omit part of the AUTHORITY section.
+
+  .. change::
+    :tags: Bug Fixes, DNSSEC
+    :pullreq: 5771
+
+    The target zone being insecure doesn't mean that the denial of the DS is too, if the parent zone is Secure..
+
+  .. change::
+    :tags: Improvements, DNSSEC
+    :pullreq: 5733
+
+    Add DNSSEC test vectors for RSA, ECDSA, ed25519 and GOST.
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 5773
+
+    Don't negcache entries for longer than their RRSIG validity.
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 5764
+
+    autoconf: set ``--with-libsodium`` to ``auto``.
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 5792
+
+    Gracefully handle Socket::accept() returning a null pointer on EAGAIN.
 
 .. changelog::
   :version: 4.1.0-alpha1

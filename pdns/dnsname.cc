@@ -253,6 +253,27 @@ void DNSName::makeUsRelative(const DNSName& zone)
     clear();
 }
 
+DNSName DNSName::getCommonLabels(const DNSName& other) const
+{
+  DNSName result;
+
+  const std::vector<std::string> ours = getRawLabels();
+  const std::vector<std::string> others = other.getRawLabels();
+
+  for (size_t pos = 0; ours.size() > pos && others.size() > pos; pos++) {
+    const std::string& ourLabel = ours.at(ours.size() - pos - 1);
+    const std::string& otherLabel = others.at(others.size() - pos - 1);
+
+    if (!pdns_iequals(ourLabel, otherLabel)) {
+      break;
+    }
+
+    result.prependRawLabel(ourLabel);
+  }
+
+  return result;
+}
+
 DNSName DNSName::labelReverse() const
 {
   DNSName ret;
@@ -402,7 +423,7 @@ string DNSName::escapeLabel(const std::string& label)
       ret+="\\.";
     else if(p=='\\')
       ret+="\\\\";
-    else if(p > 0x21 && p < 0x7e)
+    else if(p > 0x20 && p < 0x7f)
       ret.append(1, (char)p);
     else {
       ret+="\\" + (boost::format("%03d") % (unsigned int)p).str();

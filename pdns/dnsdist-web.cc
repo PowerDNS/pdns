@@ -25,6 +25,7 @@
 #include "ext/incbin/incbin.h"
 #include "dolog.hh"
 #include <thread>
+#include "threadname.hh"
 #include <sstream>
 #include <yahttp/yahttp.hpp>
 #include "namespaces.hh"
@@ -34,8 +35,10 @@
 #include "htmlfiles.h"
 #include "base64.hh"
 #include "gettime.hh"
+#include  <boost/format.hpp>
 
 bool g_apiReadWrite{false};
+WebserverConfig g_webserverConfig;
 std::string g_apiConfigDirectory;
 
 static bool apiWriteConfigFile(const string& filebasename, const string& content)
@@ -65,7 +68,7 @@ static bool apiWriteConfigFile(const string& filebasename, const string& content
 static void apiSaveACL(const NetmaskGroup& nmg)
 {
   vector<string> vec;
-  g_ACL.getCopy().toStringVector(&vec);
+  nmg.toStringVector(&vec);
 
   string acl;
   for(const auto& s : vec) {
@@ -128,26 +131,28 @@ static bool isAnAPIRequestAllowedWithWebAuth(const YaHTTP::Request& req)
 
 static bool isAStatsRequest(const YaHTTP::Request& req)
 {
-  return req.url.path == "/jsonstat";
+  return req.url.path == "/jsonstat" || req.url.path == "/metrics";
 }
 
-static bool compareAuthorization(const YaHTTP::Request& req, const string &expected_password, const string& expectedApiKey)
+static bool compareAuthorization(const YaHTTP::Request& req)
 {
+  std::lock_guard<std::mutex> lock(g_webserverConfig.lock);
+
   if (isAnAPIRequest(req)) {
     /* Access to the API requires a valid API key */
-    if (checkAPIKey(req, expectedApiKey)) {
+    if (checkAPIKey(req, g_webserverConfig.apiKey)) {
       return true;
     }
 
-    return isAnAPIRequestAllowedWithWebAuth(req) && checkWebPassword(req, expected_password);
+    return isAnAPIRequestAllowedWithWebAuth(req) && checkWebPassword(req, g_webserverConfig.password);
   }
 
   if (isAStatsRequest(req)) {
     /* Access to the stats is allowed for both API and Web users */
-    return checkAPIKey(req, expectedApiKey) || checkWebPassword(req, expected_password);
+    return checkAPIKey(req, g_webserverConfig.apiKey) || checkWebPassword(req, g_webserverConfig.password);
   }
 
-  return checkWebPassword(req, expected_password);
+  return checkWebPassword(req, g_webserverConfig.password);
 }
 
 static bool isMethodAllowed(const YaHTTP::Request& req)
@@ -219,8 +224,31 @@ static void addCustomHeaders(YaHTTP::Response& resp, const boost::optional<std::
   }
 }
 
-static void connectionThread(int sock, ComboAddress remote, string password, string apiKey, const boost::optional<std::map<std::string, std::string> >& customHeaders)
+template<typename T>
+static json11::Json::array someResponseRulesToJson(GlobalStateHolder<vector<T>>* someResponseRules)
 {
+  using namespace json11;
+  Json::array responseRules;
+  int num=0;
+  auto localResponseRules = someResponseRules->getLocal();
+  for(const auto& a : *localResponseRules) {
+    Json::object rule{
+      {"id", num++},
+      {"creationOrder", (double)a.d_creationOrder},
+      {"uuid", boost::uuids::to_string(a.d_id)},
+      {"matches", (double)a.d_rule->d_matches},
+      {"rule", a.d_rule->toString()},
+      {"action", a.d_action->toString()},
+    };
+    responseRules.push_back(rule);
+  }
+  return responseRules;
+}
+
+static void connectionThread(int sock, ComboAddress remote)
+{
+  setThreadName("dnsdist/webConn");
+
   using namespace json11;
   vinfolog("Webserver handling connection from %s", remote.toStringWithPort());
 
@@ -252,8 +280,14 @@ static void connectionThread(int sock, ComboAddress remote, string password, str
     resp.version = req.version;
     const string charset = "; charset=utf-8";
 
-    addCustomHeaders(resp, customHeaders);
-    addSecurityHeaders(resp, customHeaders);
+    {
+      std::lock_guard<std::mutex> lock(g_webserverConfig.lock);
+
+      addCustomHeaders(resp, g_webserverConfig.customHeaders);
+      addSecurityHeaders(resp, g_webserverConfig.customHeaders);
+    }
+    /* indicate that the connection will be closed after completion of the response */
+    resp.headers["Connection"] = "close";
 
     /* no need to send back the API key if any */
     resp.headers.erase("X-API-Key");
@@ -263,7 +297,7 @@ static void connectionThread(int sock, ComboAddress remote, string password, str
       handleCORS(req, resp);
       resp.status=200;
     }
-    else if (!compareAuthorization(req, password, apiKey)) {
+    else if (!compareAuthorization(req)) {
       YaHTTP::strstr_map_t::iterator header = req.headers.find("authorization");
       if (header != req.headers.end())
         errlog("HTTP Request \"%s\" from %s: Web Authentication failed", req.url.path, remote.toStringWithPort());
@@ -294,7 +328,7 @@ static void connectionThread(int sock, ComboAddress remote, string password, str
           else if (const auto& dval = boost::get<double*>(&e.second))
             obj.insert({e.first, (**dval)});
           else
-            obj.insert({e.first, (int)(*boost::get<DNSDistStats::statfunction_t>(&e.second))(e.first)});
+            obj.insert({e.first, (double)(*boost::get<DNSDistStats::statfunction_t>(&e.second))(e.first)});
         }
         Json my_json = obj;
         resp.body=my_json.dump();
@@ -302,29 +336,34 @@ static void connectionThread(int sock, ComboAddress remote, string password, str
       }
       else if(command=="dynblocklist") {
         Json::object obj;
-        auto slow = g_dynblockNMG.getCopy();
+        auto nmg = g_dynblockNMG.getLocal();
         struct timespec now;
         gettime(&now);
-        for(const auto& e: slow) {
+        for(const auto& e: *nmg) {
           if(now < e->second.until ) {
             Json::object thing{
               {"reason", e->second.reason},
               {"seconds", (double)(e->second.until.tv_sec - now.tv_sec)},
-              {"blocks", (double)e->second.blocks}
+              {"blocks", (double)e->second.blocks},
+              {"action", DNSAction::typeToString(e->second.action != DNSAction::Action::None ? e->second.action : g_dynBlockAction) },
+              {"warning", e->second.warning }
             };
             obj.insert({e->first.toString(), thing});
           }
         }
 
-        auto slow2 = g_dynblockSMT.getCopy();
-        slow2.visit([&now,&obj](const SuffixMatchTree<DynBlock>& node) {
+        auto smt = g_dynblockSMT.getLocal();
+        smt->visit([&now,&obj](const SuffixMatchTree<DynBlock>& node) {
             if(now <node.d_value.until) {
               string dom("empty");
               if(!node.d_value.domain.empty())
                 dom = node.d_value.domain.toString();
-              Json::object thing{{"reason", node.d_value.reason}, {"seconds", (double)(node.d_value.until.tv_sec - now.tv_sec)},
-							     {"blocks", (double)node.d_value.blocks} };
-
+              Json::object thing{
+                {"reason", node.d_value.reason},
+                {"seconds", (double)(node.d_value.until.tv_sec - now.tv_sec)},
+                {"blocks", (double)node.d_value.blocks},
+                {"action", DNSAction::typeToString(node.d_value.action != DNSAction::Action::None ? node.d_value.action : g_dynBlockAction) }
+              };
               obj.insert({dom, thing});
           }
         });
@@ -360,39 +399,167 @@ static void connectionThread(int sock, ComboAddress remote, string password, str
         resp.status=404;
       }
     }
+    else if (req.url.path == "/metrics") {
+        handleCORS(req, resp);
+        resp.status = 200;
+
+        std::ostringstream output;
+        for (const auto& e : g_stats.entries) {
+          std::string metricName = std::get<0>(e);
+
+          // Prometheus suggest using '_' instead of '-'
+          std::string prometheusMetricName = "dnsdist_" + boost::replace_all_copy(metricName, "-", "_");
+
+          MetricDefinition metricDetails;
+
+          if (!g_metricDefinitions.getMetricDetails(metricName, metricDetails)) {
+              vinfolog("Do not have metric details for %s", metricName);
+              continue;
+          }
+
+          std::string prometheusTypeName = g_metricDefinitions.getPrometheusStringMetricType(metricDetails.prometheusType);
+
+          if (prometheusTypeName == "") {
+              vinfolog("Unknown Prometheus type for %s", metricName);
+              continue;
+          }
+
+          // for these we have the help and types encoded in the sources:
+          output << "# HELP " << prometheusMetricName << " " << metricDetails.description    << "\n";
+          output << "# TYPE " << prometheusMetricName << " " << prometheusTypeName << "\n";
+          output << prometheusMetricName << " ";
+
+          if (const auto& val = boost::get<DNSDistStats::stat_t*>(&std::get<1>(e)))
+            output << (*val)->load();
+          else if (const auto& dval = boost::get<double*>(&std::get<1>(e)))
+            output << **dval;
+          else
+            output << (*boost::get<DNSDistStats::statfunction_t>(&std::get<1>(e)))(std::get<0>(e));
+
+          output << "\n";
+        }
+
+        auto states = g_dstates.getLocal();
+        const string statesbase = "dnsdist_server_";
+
+        output << "# HELP " << statesbase << "queries "     << "Amount of queries relayed to server"                               << "\n";
+        output << "# TYPE " << statesbase << "queries "     << "counter"                                                           << "\n";
+        output << "# HELP " << statesbase << "drops "       << "Amount of queries not answered by server"                          << "\n";
+        output << "# TYPE " << statesbase << "drops "       << "counter"                                                           << "\n";
+        output << "# HELP " << statesbase << "latency "     << "Server's latency when answering questions in miliseconds"          << "\n";
+        output << "# TYPE " << statesbase << "latency "     << "gauge"                                                             << "\n";
+        output << "# HELP " << statesbase << "senderrors "  << "Total number of OS snd errors while relaying queries"              << "\n";
+        output << "# TYPE " << statesbase << "senderrors "  << "counter"                                                           << "\n";
+        output << "# HELP " << statesbase << "outstanding " << "Current number of queries that are waiting for a backend response" << "\n";
+        output << "# TYPE " << statesbase << "outstanding " << "gauge"                                                             << "\n";
+        output << "# HELP " << statesbase << "order "       << "The order in which this server is picked"                          << "\n";
+        output << "# TYPE " << statesbase << "order "       << "gauge"                                                             << "\n";
+        output << "# HELP " << statesbase << "weight "      << "The weight within the order in which this server is picked"        << "\n";
+        output << "# TYPE " << statesbase << "weight "      << "gauge"                                                             << "\n";
+
+        for (const auto& state : *states) {
+          string serverName;
+
+          if (state->name.empty())
+              serverName = state->remote.toStringWithPort();
+          else
+              serverName = state->getName();
+
+          boost::replace_all(serverName, ".", "_");
+
+          const std::string label = boost::str(boost::format("{server=\"%1%\",address=\"%2%\"}")
+            % serverName % state->remote.toStringWithPort());
+
+          output << statesbase << "queries"     << label << " " << state->queries.load()     << "\n";
+          output << statesbase << "drops"       << label << " " << state->reuseds.load()     << "\n";
+          output << statesbase << "latency"     << label << " " << state->latencyUsec/1000.0 << "\n";
+          output << statesbase << "senderrors"  << label << " " << state->sendErrors.load()  << "\n";
+          output << statesbase << "outstanding" << label << " " << state->outstanding.load() << "\n";
+          output << statesbase << "order"       << label << " " << state->order              << "\n";
+          output << statesbase << "weight"      << label << " " << state->weight             << "\n";
+        }
+
+        for (const auto& front : g_frontends) {
+          if (front->udpFD == -1 && front->tcpFD == -1)
+            continue;
+
+          string frontName = front->local.toString() + ":" + std::to_string(front->local.getPort());
+          string proto = (front->udpFD >= 0 ? "udp" : "tcp");
+
+          output << "dnsdist_frontend_queries{frontend=\"" << frontName << "\",proto=\"" << proto
+              << "\"} " << front->queries.load() << "\n";
+        }
+
+        auto localPools = g_pools.getLocal();
+        const string cachebase = "dnsdist_pool_";
+
+        for (const auto& entry : *localPools) {
+          string poolName = entry.first;
+
+          if (poolName.empty()) {
+            poolName = "_default_";
+          }
+          const string label = "{pool=\"" + poolName + "\"}";
+          const std::shared_ptr<ServerPool> pool = entry.second;
+          output << "dnsdist_pool_servers" << label << " " << pool->countServers(false) << "\n";
+          output << "dnsdist_pool_active_servers" << label << " " << pool->countServers(true) << "\n";
+
+          if (pool->packetCache != nullptr) {
+            const auto& cache = pool->packetCache;
+
+            output << cachebase << "cache_size"              <<label << " " << cache->getMaxEntries()       << "\n";
+            output << cachebase << "cache_entries"           <<label << " " << cache->getEntriesCount()     << "\n";
+            output << cachebase << "cache_hits"              <<label << " " << cache->getHits()             << "\n";
+            output << cachebase << "cache_misses"            <<label << " " << cache->getMisses()           << "\n";
+            output << cachebase << "cache_deferred_inserts"  <<label << " " << cache->getDeferredInserts()  << "\n";
+            output << cachebase << "cache_deferred_lookups"  <<label << " " << cache->getDeferredLookups()  << "\n";
+            output << cachebase << "cache_lookup_collisions" <<label << " " << cache->getLookupCollisions() << "\n";
+            output << cachebase << "cache_insert_collisions" <<label << " " << cache->getInsertCollisions() << "\n";
+            output << cachebase << "cache_ttl_too_shorts"    <<label << " " << cache->getTTLTooShorts()     << "\n";
+          }
+        }
+
+        resp.body = output.str();
+        resp.headers["Content-Type"] = "text/plain";
+    }
+
     else if(req.url.path=="/api/v1/servers/localhost") {
       handleCORS(req, resp);
       resp.status=200;
 
       Json::array servers;
-      auto localServers = g_dstates.getCopy();
+      auto localServers = g_dstates.getLocal();
       int num=0;
-      for(const auto& a : localServers) {
+      for(const auto& a : *localServers) {
 	string status;
-	if(a->availability == DownstreamState::Availability::Up) 
+	if(a->availability == DownstreamState::Availability::Up)
 	  status = "UP";
-	else if(a->availability == DownstreamState::Availability::Down) 
+	else if(a->availability == DownstreamState::Availability::Down)
 	  status = "DOWN";
-	else 
+	else
 	  status = (a->upStatus ? "up" : "down");
+
 	Json::array pools;
 	for(const auto& p: a->pools)
 	  pools.push_back(p);
 
-	Json::object server{ 
+	Json::object server{
 	  {"id", num++},
 	  {"name", a->name},
           {"address", a->remote.toStringWithPort()},
           {"state", status},
-          {"qps", (int)a->queryLoad},
-          {"qpsLimit", (int)a->qps.getRate()},
-          {"outstanding", (int)a->outstanding},
-          {"reuseds", (int)a->reuseds},
-          {"weight", (int)a->weight},
-          {"order", (int)a->order},
+          {"qps", (double)a->queryLoad},
+          {"qpsLimit", (double)a->qps.getRate()},
+          {"outstanding", (double)a->outstanding},
+          {"reuseds", (double)a->reuseds},
+          {"weight", (double)a->weight},
+          {"order", (double)a->order},
           {"pools", pools},
-          {"latency", (int)(a->latencyUsec/1000.0)},
-          {"queries", (double)a->queries}};
+          {"latency", (double)(a->latencyUsec/1000.0)},
+          {"queries", (double)a->queries},
+          {"sendErrors", (double)a->sendErrors},
+          {"dropRate", (double)a->dropRate}
+        };
 
         /* sending a latency for a DOWN server doesn't make sense */
         if (a->availability == DownstreamState::Availability::Down) {
@@ -417,57 +584,75 @@ static void connectionThread(int sock, ComboAddress remote, string password, str
         frontends.push_back(frontend);
       }
 
-      Json::array rules;
-      auto localRules = g_rulactions.getCopy();
+      Json::array pools;
+      auto localPools = g_pools.getLocal();
       num=0;
-      for(const auto& a : localRules) {
+      for(const auto& pool : *localPools) {
+        const auto& cache = pool.second->packetCache;
+        Json::object entry {
+          { "id", num++ },
+          { "name", pool.first },
+          { "serversCount", (double) pool.second->countServers(false) },
+          { "cacheSize", (double) (cache ? cache->getMaxEntries() : 0) },
+          { "cacheEntries", (double) (cache ? cache->getEntriesCount() : 0) },
+          { "cacheHits", (double) (cache ? cache->getHits() : 0) },
+          { "cacheMisses", (double) (cache ? cache->getMisses() : 0) },
+          { "cacheDeferredInserts", (double) (cache ? cache->getDeferredInserts() : 0) },
+          { "cacheDeferredLookups", (double) (cache ? cache->getDeferredLookups() : 0) },
+          { "cacheLookupCollisions", (double) (cache ? cache->getLookupCollisions() : 0) },
+          { "cacheInsertCollisions", (double) (cache ? cache->getInsertCollisions() : 0) },
+          { "cacheTTLTooShorts", (double) (cache ? cache->getTTLTooShorts() : 0) }
+        };
+        pools.push_back(entry);
+      }
+
+      Json::array rules;
+      auto localRules = g_rulactions.getLocal();
+      num=0;
+      for(const auto& a : *localRules) {
 	Json::object rule{
-	  {"id", num++},
-	  {"matches", (double)a.first->d_matches},
-	  {"rule", a.first->toString()},
-          {"action", a.second->toString()}, 
-          {"action-stats", a.second->getStats()} 
+          {"id", num++},
+          {"creationOrder", (double)a.d_creationOrder},
+          {"uuid", boost::uuids::to_string(a.d_id)},
+          {"matches", (double)a.d_rule->d_matches},
+          {"rule", a.d_rule->toString()},
+          {"action", a.d_action->toString()},
+          {"action-stats", a.d_action->getStats()}
         };
 	rules.push_back(rule);
       }
-      
-      Json::array responseRules;
-      auto localResponseRules = g_resprulactions.getCopy();
-      num=0;
-      for(const auto& a : localResponseRules) {
-        Json::object rule{
-          {"id", num++},
-          {"matches", (double)a.first->d_matches},
-          {"rule", a.first->toString()},
-          {"action", a.second->toString()},
-        };
-        responseRules.push_back(rule);
-      }
+
+      auto responseRules = someResponseRulesToJson(&g_resprulactions);
+      auto cacheHitResponseRules = someResponseRulesToJson(&g_cachehitresprulactions);
+      auto selfAnsweredResponseRules = someResponseRulesToJson(&g_selfansweredresprulactions);
 
       string acl;
 
       vector<string> vec;
-      g_ACL.getCopy().toStringVector(&vec);
+      g_ACL.getLocal()->toStringVector(&vec);
 
       for(const auto& s : vec) {
         if(!acl.empty()) acl += ", ";
-        acl+=s;      
+        acl+=s;
       }
       string localaddresses;
       for(const auto& loc : g_locals) {
         if(!localaddresses.empty()) localaddresses += ", ";
         localaddresses += std::get<0>(loc).toStringWithPort();
       }
- 
+
       Json my_json = Json::object {
-	{ "daemon_type", "dnsdist" },
-	{ "version", VERSION},
-	{ "servers", servers},
-	{ "frontends", frontends },
-	{ "rules", rules},
-	{ "response-rules", responseRules},
-	{ "acl", acl},
-	{ "local", localaddresses}
+        { "daemon_type", "dnsdist" },
+        { "version", VERSION},
+        { "servers", servers},
+        { "frontends", frontends },
+        { "pools", pools },
+        { "rules", rules},
+        { "response-rules", responseRules},
+        { "cache-hit-response-rules", cacheHitResponseRules},
+        { "self-answered-response-rules", selfAnsweredResponseRules},
+        { "acl", acl},
+        { "local", localaddresses}
       };
       resp.headers["Content-Type"] = "application/json";
       resp.body=my_json.dump();
@@ -496,7 +681,7 @@ static void connectionThread(int sock, ComboAddress remote, string password, str
           doc.push_back(Json::object {
               { "type", "StatisticItem" },
               { "name", item.first },
-              { "value", (int)(*boost::get<DNSDistStats::statfunction_t>(&item.second))(item.first) }
+              { "value", (double)(*boost::get<DNSDistStats::statfunction_t>(&item.second))(item.first) }
             });
         }
       }
@@ -511,7 +696,7 @@ static void connectionThread(int sock, ComboAddress remote, string password, str
       Json::array doc;
       typedef boost::variant<bool, double, std::string> configentry_t;
       std::vector<std::pair<std::string, configentry_t> > configEntries {
-        { "acl", g_ACL.getCopy().toString() },
+        { "acl", g_ACL.getLocal()->toString() },
         { "control-socket", g_serverControl.toStringWithPort() },
         { "ecs-override", g_ECSOverride },
         { "ecs-source-prefix-v4", (double) g_ECSSourcePrefixV4 },
@@ -594,7 +779,7 @@ static void connectionThread(int sock, ComboAddress remote, string password, str
       if (resp.status == 200) {
         Json::array acl;
         vector<string> vec;
-        g_ACL.getCopy().toStringVector(&vec);
+        g_ACL.getLocal()->toStringVector(&vec);
 
         for(const auto& s : vec) {
           acl.push_back(s);
@@ -655,15 +840,42 @@ static void connectionThread(int sock, ComboAddress remote, string password, str
     close(sock);
   }
 }
-void dnsdistWebserverThread(int sock, const ComboAddress& local, const std::string& password, const std::string& apiKey, const boost::optional<std::map<std::string, std::string> >& customHeaders)
+
+void setWebserverAPIKey(const boost::optional<std::string> apiKey)
 {
+  std::lock_guard<std::mutex> lock(g_webserverConfig.lock);
+
+  if (apiKey) {
+    g_webserverConfig.apiKey = *apiKey;
+  } else {
+    g_webserverConfig.apiKey.clear();
+  }
+}
+
+void setWebserverPassword(const std::string& password)
+{
+  std::lock_guard<std::mutex> lock(g_webserverConfig.lock);
+
+  g_webserverConfig.password = password;
+}
+
+void setWebserverCustomHeaders(const boost::optional<std::map<std::string, std::string> > customHeaders)
+{
+  std::lock_guard<std::mutex> lock(g_webserverConfig.lock);
+
+  g_webserverConfig.customHeaders = customHeaders;
+}
+
+void dnsdistWebserverThread(int sock, const ComboAddress& local)
+{
+  setThreadName("dnsdist/webserv");
   warnlog("Webserver launched on %s", local.toStringWithPort());
   for(;;) {
     try {
       ComboAddress remote(local);
       int fd = SAccept(sock, remote);
       vinfolog("Got connection from %s", remote.toStringWithPort());
-      std::thread t(connectionThread, fd, remote, password, apiKey, customHeaders);
+      std::thread t(connectionThread, fd, remote);
       t.detach();
     }
     catch(std::exception& e) {

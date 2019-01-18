@@ -31,17 +31,30 @@
 
 #include "iputils.hh"
 
-class RemoteLogger
+class RemoteLoggerInterface
+{
+public:
+  virtual ~RemoteLoggerInterface() {};
+  virtual void queueData(const std::string& data) = 0;
+  virtual std::string toString() const = 0;
+};
+
+class RemoteLogger : public RemoteLoggerInterface
 {
 public:
   RemoteLogger(const ComboAddress& remote, uint16_t timeout=2, uint64_t maxQueuedEntries=100, uint8_t reconnectWaitTime=1, bool asyncConnect=false);
-  ~RemoteLogger();
-  void queueData(const std::string& data);
-  std::string toString()
+  virtual ~RemoteLogger();
+  virtual void queueData(const std::string& data) override;
+  virtual std::string toString() const override
   {
-    return d_remote.toStringWithPort();
+    return "RemoteLogger to " + d_remote.toStringWithPort();
+  }
+  void stop()
+  {
+    d_exiting = true;
   }
 private:
+  void busyReconnectLoop();
   bool reconnect();
   void worker();
 
@@ -55,5 +68,6 @@ private:
   uint8_t d_reconnectWaitTime;
   std::atomic<bool> d_exiting{false};
   bool d_asyncConnect{false};
+  bool d_connected{false};
   std::thread d_thread;
 };

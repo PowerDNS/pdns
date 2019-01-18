@@ -1,8 +1,6 @@
 pdns_control
 ============
 
-:program:`pdns_control` - Control the PowerDNS nameserver
-
 Synopsis
 --------
 

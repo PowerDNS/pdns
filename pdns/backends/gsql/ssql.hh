@@ -32,9 +32,8 @@
 class SSqlException 
 {
 public: 
-  SSqlException(const string &reason) 
+  SSqlException(const string &reason) : d_reason(reason)
   {
-      d_reason=reason;
   }
   
   string txtReason()
@@ -60,7 +59,7 @@ public:
   virtual SSqlStatement* bind(const string& name, unsigned long long value)=0;
   virtual SSqlStatement* bind(const string& name, const std::string& value)=0;
   SSqlStatement* bind(const string& name, const DNSName& value) {
-    return bind(name, toLower(value.toStringRootDot()));
+    return bind(name, value.makeLowerCase().toStringRootDot());
   }
   virtual SSqlStatement* bindNull(const string& name)=0;
   virtual SSqlStatement* execute()=0;;

@@ -1,8 +1,6 @@
 dnsreplay
 =========
 
-:program:`dnsreplay` - A PowerDNS nameserver debugging tool
-
 Synopsis
 --------
 
@@ -35,6 +33,7 @@ PORT
 --ecs-mask <VAL>         When EDNS forwarding an IP address, mask out first octet with this value
 --ecs-stamp <FLAG>       Add original IP address as EDNS Client Subnet Option when 
                          forwarding to reference server
+--pcap-dns-port <VAL>    Look at packets from or to this port in the PCAP. Default is 53.
 --packet-limit <NUM>     Stop after replaying *NUM* packets. Default for *NUM* is 0, which
                          means no limit.
 --quiet <FLAG>           If *FLAG* is set to 1. dnsreplay will not be very noisy with its

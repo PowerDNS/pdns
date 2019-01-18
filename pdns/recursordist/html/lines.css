@@ -15,7 +15,6 @@ div, span, p, td {
 	bottom: 26px;
 	width: 0;
 }
-#chart_container {
-	float: left;
+.chart_container {
 	position: relative;
 }

@@ -63,19 +63,19 @@ void doSecPoll(bool first)
   else {
     string pkgv(PACKAGEVERSION);
     if(pkgv.find("0.0.") != 0)
-      L<<Logger::Warning<<"Could not retrieve security status update for '" + pkgv + "' on '"+query+"', RCODE = "<< RCode::to_s(res)<<endl;
+      g_log<<Logger::Warning<<"Could not retrieve security status update for '" + pkgv + "' on '"+query+"', RCODE = "<< RCode::to_s(res)<<endl;
     else
-      L<<Logger::Warning<<"Not validating response for security status update, this is a non-release version."<<endl;
+      g_log<<Logger::Warning<<"Not validating response for security status update, this is a non-release version."<<endl;
   }
 
   if(security_status == 1 && first) {
-    L<<Logger::Warning << "Polled security status of version "<<PACKAGEVERSION<<" at startup, no known issues reported: " <<g_security_message<<endl;
+    g_log<<Logger::Warning << "Polled security status of version "<<PACKAGEVERSION<<" at startup, no known issues reported: " <<g_security_message<<endl;
   }
   if(security_status == 2) {
-    L<<Logger::Error<<"PowerDNS Security Update Recommended: "<<g_security_message<<endl;
+    g_log<<Logger::Error<<"PowerDNS Security Update Recommended: "<<g_security_message<<endl;
   }
   else if(security_status == 3) {
-    L<<Logger::Error<<"PowerDNS Security Update Mandatory: "<<g_security_message<<endl;
+    g_log<<Logger::Error<<"PowerDNS Security Update Mandatory: "<<g_security_message<<endl;
   }
 
   S.set("security-status",security_status);

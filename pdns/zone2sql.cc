@@ -111,7 +111,7 @@ static void startNewTransaction()
     cout<<"BEGIN TRANSACTION;"<<endl;
 }
 
-static void emitDomain(const DNSName& domain, const vector<string> *masters = 0) {
+static void emitDomain(const DNSName& domain, const vector<ComboAddress> *masters = 0) {
   string iDomain = domain.toStringRootDot();
   if(!::arg().mustDo("slave")) {
     if(g_mode==POSTGRES || g_mode==MYSQL || g_mode==SQLITE) {
@@ -130,8 +130,8 @@ static void emitDomain(const DNSName& domain, const vector<string> *masters = 0)
     if(g_mode==POSTGRES || g_mode==MYSQL || g_mode==SQLITE) {
       string mstrs;
       if (masters != 0 && ! masters->empty()) {
-        for(const string& mstr :  *masters) {
-          mstrs.append(mstr);
+        for(const auto& mstr :  *masters) {
+          mstrs.append(mstr.toStringWithPortExcept(53));
           mstrs.append(1, ' ');
         }
       }
@@ -267,10 +267,8 @@ int main(int argc, char **argv)
 try
 {
     reportAllTypes();
-#if __GNUC__ >= 3
     std::ios_base::sync_with_stdio(false);
-#endif
-   
+  
     ::arg().setSwitch("gpgsql","Output in format suitable for default gpgsqlbackend")="no";
     ::arg().setSwitch("gmysql","Output in format suitable for default gmysqlbackend")="no";
     ::arg().setSwitch("mydns","Output in format suitable for default mydnsbackend")="no";

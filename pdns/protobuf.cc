@@ -147,9 +147,8 @@ void DNSProtoBufMessage::addRRsFromPacket(const char* packet, const size_t len, 
   if (!response)
     return;
 
-  vector<uint8_t> content(len - sizeof(dnsheader));
-  copy(packet + sizeof(dnsheader), packet + len, content.begin());
-  PacketReader pr(content);
+  std::string packetStr(packet, len);
+  PacketReader pr(packetStr);
 
   size_t idx = 0;
   DNSName rrname;
@@ -243,6 +242,13 @@ void DNSProtoBufMessage::setDeviceId(const std::string& deviceId)
 #endif /* HAVE_PROTOBUF */
 }
 
+void DNSProtoBufMessage::setServerIdentity(const std::string& serverId)
+{
+#ifdef HAVE_PROTOBUF
+  d_message.set_serveridentity(serverId);
+#endif /* HAVE_PROTOBUF */
+}
+
 void DNSProtoBufMessage::setResponder(const std::string& responder)
 {
 #ifdef HAVE_PROTOBUF
@@ -329,6 +335,11 @@ DNSProtoBufMessage::DNSProtoBufMessage(DNSProtoBufMessageType type, const boost:
 
   setBytes(bytes);
   setQuestion(domain, qtype, qclass);
+}
+
+void DNSProtoBufMessage::copyFrom(const DNSProtoBufMessage& msg)
+{
+  d_message.CopyFrom(msg.d_message);
 }
 
 #endif /* HAVE_PROTOBUF */

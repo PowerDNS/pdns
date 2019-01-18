@@ -14,9 +14,6 @@
 #include "ednssubnet.hh"
 #include "iputils.hh"
 
-/* extract a specific EDNS0 option from a pointer on the beginning rdLen of the OPT RR */
-int getEDNSOption(char* optRR, size_t len, uint16_t wantedOption, char ** optionValue, size_t * optionValueSize);
-
 BOOST_AUTO_TEST_SUITE(ednsoptions_cc)
 
 static void getRawQueryWithECSAndCookie(const DNSName& name, const Netmask& ecs, const std::string& clientCookie, const std::string& serverCookie, std::vector<uint8_t>& query)
@@ -90,26 +87,30 @@ BOOST_AUTO_TEST_CASE(test_getEDNSOptions) {
   BOOST_REQUIRE_EQUAL(query.at(pos), 0);
   BOOST_REQUIRE(query.at(pos+2) == QType::OPT);
 
-  std::map<uint16_t, EDNSOptionView> options;
+  EDNSOptionViewMap options;
   int res = getEDNSOptions(reinterpret_cast<char*>(query.data())+pos+9, questionLen - pos - 9, options);
   BOOST_REQUIRE_EQUAL(res, 0);
 
-  /* 3 EDNS options but two of them are EDNS Cookie, so we only keep one */
+  /* 3 EDNS options but two of them are EDNS Cookie, so we only have two entries in the map */
   BOOST_CHECK_EQUAL(options.size(), 2);
 
   auto it = options.find(EDNSOptionCode::ECS);
   BOOST_REQUIRE(it != options.end());
-  BOOST_REQUIRE(it->second.content != nullptr);
-  BOOST_REQUIRE_GT(it->second.size, 0);
+  BOOST_REQUIRE_EQUAL(it->second.values.size(), 1);
+  BOOST_REQUIRE(it->second.values.at(0).content != nullptr);
+  BOOST_REQUIRE_GT(it->second.values.at(0).size, 0);
 
   EDNSSubnetOpts eso;
-  BOOST_REQUIRE(getEDNSSubnetOptsFromString(it->second.content, it->second.size, &eso));
+  BOOST_REQUIRE(getEDNSSubnetOptsFromString(it->second.values.at(0).content, it->second.values.at(0).size, &eso));
   BOOST_CHECK(eso.source == ecs);
 
   it = options.find(EDNSOptionCode::COOKIE);
   BOOST_REQUIRE(it != options.end());
-  BOOST_REQUIRE(it->second.content != nullptr);
-  BOOST_REQUIRE_GT(it->second.size, 0);
+  BOOST_REQUIRE_EQUAL(it->second.values.size(), 2);
+  BOOST_REQUIRE(it->second.values.at(0).content != nullptr);
+  BOOST_REQUIRE_GT(it->second.values.at(0).size, 0);
+  BOOST_REQUIRE(it->second.values.at(1).content != nullptr);
+  BOOST_REQUIRE_GT(it->second.values.at(1).size, 0);
 }
 
 static void checkECSOptionValidity(const std::string& sourceStr, uint8_t sourceMask, uint8_t scopeMask)

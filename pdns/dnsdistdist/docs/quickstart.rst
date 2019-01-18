@@ -6,7 +6,7 @@ This guide gives an overview of dnsdist features and operations.
 Running in the Foreground
 -------------------------
 
-After :doc:`installing <install>` dnsdist, the quickest way to start experimenting is lanching it on the foreground with::
+After :doc:`installing <install>` dnsdist, the quickest way to start experimenting is launching it on the foreground with::
 
    dnsdist -l 127.0.0.1:5300 8.8.8.8 2001:4860:4860::8888
 
@@ -39,7 +39,7 @@ Now run dnsdist again, reading this configuration::
 
 You can now send queries to port 5300, and get answers::
 
-  $ dig -t aaaa powerdns.com @127.0.0.1 -p 5300 +short
+  $ dig -t aaaa powerdns.com @127.0.0.1 -p 5300 +short +nocookie
   2001:888:2000:1d::2
 
 Note that dnsdist dropped us in a prompt above, where we can get some statistics::
@@ -59,7 +59,7 @@ Here we also see our configuration. 5 downstream servers have been configured, o
 
 The final server has no limit, which we can easily test::
 
-  $ for a in {0..1000}; do dig powerdns.com @127.0.0.1 -p 5300 +noall > /dev/null; done
+  $ for a in {0..1000}; do dig powerdns.com @127.0.0.1 -p 5300 +noall +nocookie > /dev/null; done
 
 ::
 

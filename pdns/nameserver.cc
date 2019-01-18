@@ -61,8 +61,8 @@ extern StatBag S;
 
     A DNSBackend is an entity that returns DNSResourceRecord objects in return to explicit questions for domains with a specified QType
 
-    PowerDNS uses the UeberBackend as its DNSBackend. The UeberBackend by default has no DNSBackends within itself, those are loaded
-    using the pdns_control tool. This way DNSBackend implementations can be kept completely separate (but they often aren't).s
+    PowerDNS uses the UeberBackend, which hosts DNSBackends. By default it has no DNSBackends within itself, those are loaded
+    by setting --load=<list of backends>. This way DNSBackend implementations can be kept completely separate, but most aren't.
 
     If one or more DNSBackends are loaded, the UeberBackend fields the queries to all of them until one answers.
 
@@ -103,7 +103,7 @@ void UDPNameserver::bindIPv4()
     s=socket(AF_INET,SOCK_DGRAM,0);
 
     if(s<0) {
-      L<<Logger::Error<<"Unable to acquire UDP socket: "+string(strerror(errno)) << endl;
+      g_log<<Logger::Error<<"Unable to acquire UDP socket: "+string(strerror(errno)) << endl;
       throw PDNSException("Unable to acquire a UDP socket: "+string(strerror(errno)));
     }
   
@@ -111,15 +111,17 @@ void UDPNameserver::bindIPv4()
   
     if(!setNonBlocking(s))
       throw PDNSException("Unable to set UDP socket to non-blocking: "+stringerror());
-  
-    memset(&locala,0,sizeof(locala));
-    locala.sin4.sin_family=AF_INET;
 
-    if(localname=="0.0.0.0")
+    locala=ComboAddress(localname, ::arg().asNum("local-port"));
+
+    if(locala.sin4.sin_family != AF_INET)
+      throw PDNSException("Attempting to bind IPv4 socket to IPv6 address");
+
+    if(IsAnyAddress(locala))
       setsockopt(s, IPPROTO_IP, GEN_IP_PKTINFO, &one, sizeof(one));
 
     if (!setSocketTimestamps(s))
-      L<<Logger::Warning<<"Unable to enable timestamp reporting for socket"<<endl;
+      g_log<<Logger::Warning<<"Unable to enable timestamp reporting for socket"<<endl;
 
 #ifdef SO_REUSEPORT
     if( d_can_reuseport )
@@ -130,9 +132,6 @@ void UDPNameserver::bindIPv4()
     if( ::arg().mustDo("non-local-bind") )
 	Utility::setBindAny(AF_INET, s);
 
-    locala=ComboAddress(localname, ::arg().asNum("local-port"));
-    if(locala.sin4.sin_family != AF_INET) 
-      throw PDNSException("Attempting to bind IPv4 socket to IPv6 address");
 
     if( !d_additional_socket )
         g_localaddresses.push_back(locala);
@@ -141,15 +140,15 @@ void UDPNameserver::bindIPv4()
       string binderror = strerror(errno);
       close(s);
       if( errno == EADDRNOTAVAIL && ! ::arg().mustDo("local-address-nonexist-fail") ) {
-        L<<Logger::Error<<"IPv4 Address " << localname << " does not exist on this server - skipping UDP bind" << endl;
+        g_log<<Logger::Error<<"IPv4 Address " << localname << " does not exist on this server - skipping UDP bind" << endl;
         continue;
       } else {
-        L<<Logger::Error<<"Unable to bind UDP socket to '"+locala.toStringWithPort()+"': "<<binderror<<endl;
+        g_log<<Logger::Error<<"Unable to bind UDP socket to '"+locala.toStringWithPort()+"': "<<binderror<<endl;
         throw PDNSException("Unable to bind to UDP socket");
       }
     }
     d_sockets.push_back(s);
-    L<<Logger::Error<<"UDP server bound to "<<locala.toStringWithPort()<<endl;
+    g_log<<Logger::Error<<"UDP server bound to "<<locala.toStringWithPort()<<endl;
     struct pollfd pfd;
     pfd.fd = s;
     pfd.events = POLLIN;
@@ -207,10 +206,10 @@ void UDPNameserver::bindIPv6()
     s=socket(AF_INET6,SOCK_DGRAM,0);
     if(s<0) {
       if( errno == EAFNOSUPPORT ) {
-        L<<Logger::Error<<"IPv6 Address Family is not supported - skipping UDPv6 bind" << endl;
+        g_log<<Logger::Error<<"IPv6 Address Family is not supported - skipping UDPv6 bind" << endl;
         return;
       } else {
-        L<<Logger::Error<<"Unable to acquire a UDPv6 socket: "+string(strerror(errno)) << endl;
+        g_log<<Logger::Error<<"Unable to acquire a UDPv6 socket: "+string(strerror(errno)) << endl;
         throw PDNSException("Unable to acquire a UDPv6 socket: "+string(strerror(errno)));
       }
     }
@@ -230,7 +229,7 @@ void UDPNameserver::bindIPv6()
     }
 
     if (!setSocketTimestamps(s))
-      L<<Logger::Warning<<"Unable to enable timestamp reporting for socket"<<endl;
+      g_log<<Logger::Warning<<"Unable to enable timestamp reporting for socket"<<endl;
 
 #ifdef SO_REUSEPORT
     if( d_can_reuseport )
@@ -246,10 +245,10 @@ void UDPNameserver::bindIPv6()
     if(::bind(s, (sockaddr*)&locala, sizeof(locala))<0) {
       close(s);
       if( errno == EADDRNOTAVAIL && ! ::arg().mustDo("local-ipv6-nonexist-fail") ) {
-        L<<Logger::Error<<"IPv6 Address " << localname << " does not exist on this server - skipping UDP bind" << endl;
+        g_log<<Logger::Error<<"IPv6 Address " << localname << " does not exist on this server - skipping UDP bind" << endl;
         continue;
       } else {
-        L<<Logger::Error<<"Unable to bind to UDPv6 socket "<< localname <<": "<<strerror(errno)<<endl;
+        g_log<<Logger::Error<<"Unable to bind to UDPv6 socket "<< localname <<": "<<strerror(errno)<<endl;
         throw PDNSException("Unable to bind to UDPv6 socket");
       }
     }
@@ -259,7 +258,7 @@ void UDPNameserver::bindIPv6()
     pfd.events = POLLIN;
     pfd.revents = 0;
     d_rfds.push_back(pfd);
-    L<<Logger::Error<<"UDPv6 server bound to "<<locala.toStringWithPort()<<endl;
+    g_log<<Logger::Error<<"UDPv6 server bound to "<<locala.toStringWithPort()<<endl;
   }
 }
 
@@ -277,7 +276,7 @@ UDPNameserver::UDPNameserver( bool additional_socket )
     bindIPv6();
 
   if(::arg()["local-address"].empty() && ::arg()["local-ipv6"].empty()) 
-    L<<Logger::Critical<<"PDNS is deaf and mute! Not listening on any interfaces"<<endl;    
+    g_log<<Logger::Critical<<"PDNS is deaf and mute! Not listening on any interfaces"<<endl;    
 }
 
 void UDPNameserver::send(DNSPacket *p)
@@ -295,20 +294,19 @@ void UDPNameserver::send(DNSPacket *p)
   if(p->d_anyLocal) {
     addCMsgSrcAddr(&msgh, cbuf, p->d_anyLocal.get_ptr(), 0);
   }
-  DLOG(L<<Logger::Notice<<"Sending a packet to "<< p->getRemote() <<" ("<< buffer.length()<<" octets)"<<endl);
+  DLOG(g_log<<Logger::Notice<<"Sending a packet to "<< p->getRemote() <<" ("<< buffer.length()<<" octets)"<<endl);
   if(buffer.length() > p->getMaxReplyLen()) {
-    L<<Logger::Error<<"Weird, trying to send a message that needs truncation, "<< buffer.length()<<" > "<<p->getMaxReplyLen()<<endl;
+    g_log<<Logger::Error<<"Weird, trying to send a message that needs truncation, "<< buffer.length()<<" > "<<p->getMaxReplyLen()<<". Question was for "<<p->qdomain<<"|"<<p->qtype.getName()<<endl;
   }
   if(sendmsg(p->getSocket(), &msgh, 0) < 0)
-    L<<Logger::Error<<"Error sending reply with sendmsg (socket="<<p->getSocket()<<", dest="<<p->d_remote.toStringWithPort()<<"): "<<strerror(errno)<<endl;
+    g_log<<Logger::Error<<"Error sending reply with sendmsg (socket="<<p->getSocket()<<", dest="<<p->d_remote.toStringWithPort()<<"): "<<strerror(errno)<<endl;
 }
 
-DNSPacket *UDPNameserver::receive(DNSPacket *prefilled)
+DNSPacket *UDPNameserver::receive(DNSPacket *prefilled, std::string& buffer)
 {
   ComboAddress remote;
   extern StatBag S;
   ssize_t len=-1;
-  char mesg[DNSPacket::s_udpTruncationThreshold];
   Utility::sock_t sock=-1;
 
   struct msghdr msgh;
@@ -316,7 +314,7 @@ DNSPacket *UDPNameserver::receive(DNSPacket *prefilled)
   char cbuf[256];
 
   remote.sin6.sin6_family=AF_INET6; // make sure it is big enough
-  fillMSGHdr(&msgh, &iov, cbuf, sizeof(cbuf), mesg, sizeof(mesg), &remote);
+  fillMSGHdr(&msgh, &iov, cbuf, sizeof(cbuf), &buffer.at(0), buffer.size(), &remote);
   
   int err;
   vector<struct pollfd> rfds= d_rfds;
@@ -340,7 +338,7 @@ DNSPacket *UDPNameserver::receive(DNSPacket *prefilled)
       sock=pfd.fd;        
       if((len=recvmsg(sock, &msgh, 0)) < 0 ) {
         if(errno != EAGAIN)
-          L<<Logger::Error<<"recvfrom gave error, ignoring: "<<strerror(errno)<<endl;
+          g_log<<Logger::Error<<"recvfrom gave error, ignoring: "<<strerror(errno)<<endl;
         return 0;
       }
       break;
@@ -349,7 +347,7 @@ DNSPacket *UDPNameserver::receive(DNSPacket *prefilled)
   if(sock==-1)
     throw PDNSException("poll betrayed us! (should not happen)");
   
-  DLOG(L<<"Received a packet " << len <<" bytes long from "<< remote.toString()<<endl);
+  DLOG(g_log<<"Received a packet " << len <<" bytes long from "<< remote.toString()<<endl);
 
   BOOST_STATIC_ASSERT(offsetof(sockaddr_in, sin_port) == offsetof(sockaddr_in6, sin6_port));
 
@@ -378,7 +376,7 @@ DNSPacket *UDPNameserver::receive(DNSPacket *prefilled)
   else
     packet->d_dt.set(); // timing    
 
-  if(packet->parse(mesg, (size_t) len)<0) {
+  if(packet->parse(&buffer.at(0), (size_t) len)<0) {
     S.inc("corrupt-packets");
     S.ringAccount("remotes-corrupt", packet->d_remote);
 

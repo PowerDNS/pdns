@@ -19,15 +19,18 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
-#include "dnsdist.hh"
-#include "lock.hh"
+
+#include "dnsdist-rings.hh"
 
 size_t Rings::numDistinctRequestors()
 {
   std::set<ComboAddress, ComboAddress::addressOnlyLessThan> s;
-  ReadLock rl(&queryLock);
-  for(const auto& q : queryRing)
-    s.insert(q.requestor);
+  for (const auto& shard : d_shards) {
+    std::lock_guard<std::mutex> rl(shard->queryLock);
+    for(const auto& q : shard->queryRing) {
+      s.insert(q.requestor);
+    }
+  }
   return s.size();
 }
 
@@ -35,19 +38,20 @@ std::unordered_map<int, vector<boost::variant<string,double>>> Rings::getTopBand
 {
   map<ComboAddress, unsigned int, ComboAddress::addressOnlyLessThan> counts;
   uint64_t total=0;
-  {
-    ReadLock rl(&queryLock);
-    for(const auto& q : queryRing) {
-      counts[q.requestor]+=q.size;
-      total+=q.size;
+  for (const auto& shard : d_shards) {
+    {
+      std::lock_guard<std::mutex> rl(shard->queryLock);
+      for(const auto& q : shard->queryRing) {
+        counts[q.requestor]+=q.size;
+        total+=q.size;
+      }
     }
-  }
-
-  {
-    std::lock_guard<std::mutex> lock(respMutex);
-    for(const auto& r : respRing) {
-      counts[r.requestor]+=r.size;
-      total+=r.size;
+    {
+      std::lock_guard<std::mutex> rl(shard->respLock);
+      for(const auto& r : shard->respRing) {
+        counts[r.requestor]+=r.size;
+        total+=r.size;
+      }
     }
   }
 

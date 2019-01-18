@@ -44,7 +44,7 @@ public:
 
   uint64_t getStat(const std::string& name);
 
-  void send(const std::string& msg, const std::string* remote=0);
+  void send(const std::string& msg, const std::string* remote=nullptr, unsigned int timeout=5);
   std::string recv(std::string* remote=0, unsigned int timeout=5);
 
   int d_fd;
@@ -65,12 +65,14 @@ public:
 
 std::map<std::string, std::string> getAllStatsMap();
 extern pthread_mutex_t g_carbon_config_lock;
-void sortPublicSuffixList();
 std::vector<std::pair<DNSName, uint16_t> >* pleaseGetQueryRing();
 std::vector<std::pair<DNSName, uint16_t> >* pleaseGetServfailQueryRing();
+std::vector<std::pair<DNSName, uint16_t> >* pleaseGetBogusQueryRing();
 std::vector<ComboAddress>* pleaseGetRemotes();
 std::vector<ComboAddress>* pleaseGetServfailRemotes();
+std::vector<ComboAddress>* pleaseGetBogusRemotes();
 std::vector<ComboAddress>* pleaseGetLargeAnswerRemotes();
+std::vector<ComboAddress>* pleaseGetTimeouts();
 DNSName getRegisteredName(const DNSName& dom);
 std::atomic<unsigned long>* getDynMetric(const std::string& str);
 optional<uint64_t> getStatByName(const std::string& name);

@@ -118,7 +118,7 @@ libtestremotebackend_la_SOURCES = \
 	../../pdns/statbag.cc \
 	../../pdns/ueberbackend.hh ../../pdns/ueberbackend.cc \
 	../../pdns/dns.hh ../../pdns/dns.cc \
-	../../pdns/dns_random.cc \
+	../../pdns/dns_random_urandom.cc \
 	../../pdns/dnswriter.cc \
 	../../pdns/nameserver.cc \
 	../../pdns/rcpgenerator.cc \

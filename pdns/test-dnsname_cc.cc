@@ -12,9 +12,16 @@
 using namespace boost;
 using std::string;
 
-BOOST_AUTO_TEST_SUITE(dnsname_cc)
+BOOST_AUTO_TEST_SUITE(test_dnsname_cc)
 
 BOOST_AUTO_TEST_CASE(test_basic) {
+  DNSName aroot("a.root-servers.net"), broot("b.root-servers.net");
+  BOOST_CHECK(aroot < broot);
+  BOOST_CHECK(!(broot < aroot));  
+  BOOST_CHECK(aroot.canonCompare(broot));
+  BOOST_CHECK(!broot.canonCompare(aroot));  
+  
+
   string before("www.ds9a.nl.");
   DNSName b(before);
   BOOST_CHECK_EQUAL(b.getRawLabels().size(), 3);
@@ -128,15 +135,17 @@ BOOST_AUTO_TEST_CASE(test_basic) {
 
   BOOST_CHECK_EQUAL(unset.toString(), "www.powerdns\\.com.com.");
 
+  DNSName rfc4343_2_1("~!.example.");
   DNSName rfc4343_2_2(R"(Donald\032E\.\032Eastlake\0323rd.example.)");
   DNSName example("example.");
+  BOOST_CHECK(rfc4343_2_1.isPartOf(example));
   BOOST_CHECK(rfc4343_2_2.isPartOf(example));
+  BOOST_CHECK_EQUAL(rfc4343_2_1.toString(), "~!.example.");
 
   auto labels=rfc4343_2_2.getRawLabels();
   BOOST_CHECK_EQUAL(*labels.begin(), "Donald E. Eastlake 3rd");
   BOOST_CHECK_EQUAL(*labels.rbegin(), "example");
   BOOST_CHECK_EQUAL(labels.size(), 2);
-
 
   DNSName build;
   build.appendRawLabel("Donald E. Eastlake 3rd");
@@ -390,7 +399,7 @@ BOOST_AUTO_TEST_CASE(test_QuestionHash) {
  
   for(unsigned int n=0; n < 100000; ++n) {
     packet.clear();
-    DNSPacketWriter dpw1(packet, DNSName(std::to_string(n)+"."+std::to_string(n*2)+"."), QType::AAAA);
+    DNSPacketWriter dpw3(packet, DNSName(std::to_string(n)+"."+std::to_string(n*2)+"."), QType::AAAA);
     counts[hashQuestion((char*)&packet[0], packet.size(), 0) % counts.size()]++;
   }
   
@@ -597,17 +606,17 @@ BOOST_AUTO_TEST_CASE(test_compare_canonical) {
   BOOST_CHECK(!a(DNSName("www.powerdns.net"), g_rootdnsname));
 
   vector<DNSName> vec;
-  for(const std::string& a : {"bert.com.", "alpha.nl.", "articles.xxx.",
+  for(const std::string& b : {"bert.com.", "alpha.nl.", "articles.xxx.",
 	"Aleph1.powerdns.com.", "ZOMG.powerdns.com.", "aaa.XXX.", "yyy.XXX.", 
 	"test.powerdns.com.", "\\128.com"}) {
-    vec.push_back(DNSName(a));
+    vec.push_back(DNSName(b));
   }
   sort(vec.begin(), vec.end(), CanonDNSNameCompare());
   //  for(const auto& v : vec)
-  //    cerr<<'"'<<v.toString()<<'"'<<endl;
+  //    cerr<<'"'<<v<<'"'<<endl;
 
   vector<DNSName> right;
-  for(const auto& a: {"bert.com.",  "Aleph1.powerdns.com.",
+  for(const auto& b: {"bert.com.",  "Aleph1.powerdns.com.",
 	"test.powerdns.com.",
 	"ZOMG.powerdns.com.",
 	"\\128.com.",
@@ -615,7 +624,7 @@ BOOST_AUTO_TEST_CASE(test_compare_canonical) {
 	"aaa.XXX.",
 	"articles.xxx.",
 	"yyy.XXX."})
-    right.push_back(DNSName(a));
+    right.push_back(DNSName(b));
 
   
   BOOST_CHECK(vec==right);
@@ -868,4 +877,26 @@ BOOST_AUTO_TEST_CASE(test_getlastlabel) {
   // Check if the last label is indeed returned
   BOOST_CHECK_EQUAL(ans, DNSName("com"));
 }
+
+BOOST_AUTO_TEST_CASE(test_getcommonlabels) {
+  const DNSName name1("www.powerdns.com");
+  const DNSName name2("a.long.list.of.labels.powerdns.com");
+
+  BOOST_CHECK_EQUAL(name1.getCommonLabels(name1), name1);
+  BOOST_CHECK_EQUAL(name2.getCommonLabels(name2), name2);
+
+  BOOST_CHECK_EQUAL(name1.getCommonLabels(name2), DNSName("powerdns.com"));
+  BOOST_CHECK_EQUAL(name2.getCommonLabels(name1), DNSName("powerdns.com"));
+
+  const DNSName name3("www.powerdns.org");
+  BOOST_CHECK_EQUAL(name1.getCommonLabels(name3), DNSName());
+  BOOST_CHECK_EQUAL(name2.getCommonLabels(name3), DNSName());
+  BOOST_CHECK_EQUAL(name3.getCommonLabels(name1), DNSName());
+  BOOST_CHECK_EQUAL(name3.getCommonLabels(name2), DNSName());
+
+  const DNSName name4("WWw.PowErDnS.org");
+  BOOST_CHECK_EQUAL(name3.getCommonLabels(name4), name3);
+  BOOST_CHECK_EQUAL(name4.getCommonLabels(name3), name4);
+}
+
 BOOST_AUTO_TEST_SUITE_END()

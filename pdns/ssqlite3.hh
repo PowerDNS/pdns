@@ -43,19 +43,19 @@ public:
   ~SSQLite3();
 
   std::unique_ptr<SSqlStatement> prepare(const string& query, int nparams) override;
-  void execute(const string& query);
-  void setLog(bool state);
+  void execute(const string& query) override;
+  void setLog(bool state) override;
 
-  void startTransaction();
-  void commit();
-  void rollback();
+  void startTransaction() override;
+  void commit() override;
+  void rollback() override;
 
   sqlite3 *db() { return this->m_pDB; };
 
   bool inTransaction() { return m_in_transaction; };
 
   //! Used to create an backend specific exception message.
-  SSqlException sPerrorException( const std::string & reason );
+  SSqlException sPerrorException( const std::string & reason ) override;
 };
 
 #endif // SSQLITE3_HH

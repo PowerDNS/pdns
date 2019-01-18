@@ -12,6 +12,7 @@ dist_doc_DATA = \
 
 libldapbackend_la_SOURCES = \
 	ldapbackend.cc ldapbackend.hh \
+  master.cc native.cc \
 	powerldap.cc powerldap.hh \
 	utils.hh exceptions.hh \
 	ldaputils.hh ldaputils.cc \

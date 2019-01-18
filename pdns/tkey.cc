@@ -10,7 +10,7 @@ void PacketHandler::tkeyHandler(DNSPacket *p, DNSPacket *r) {
   bool sign = false;
 
   if (!p->getTKEYRecord(&tkey_in, &name)) {
-    L<<Logger::Error<<"TKEY request but no TKEY RR found"<<endl;
+    g_log<<Logger::Error<<"TKEY request but no TKEY RR found"<<endl;
     r->setRcode(RCode::FormErr);
     return;
   }

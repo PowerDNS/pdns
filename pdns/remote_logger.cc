@@ -1,6 +1,9 @@
 #include <unistd.h>
+#include "threadname.hh"
 #include "remote_logger.hh"
+#ifdef HAVE_CONFIG_H
 #include "config.h"
+#endif
 #ifdef PDNS_CONFIG_ARGS
 #include "logger.hh"
 #define WE_ARE_RECURSOR
@@ -14,6 +17,7 @@ bool RemoteLogger::reconnect()
     close(d_socket);
     d_socket = -1;
   }
+  d_connected = false;
   try {
     d_socket = SSocket(d_remote.sin4.sin_family, SOCK_STREAM, 0);
     setNonBlocking(d_socket);
@@ -21,21 +25,31 @@ bool RemoteLogger::reconnect()
   }
   catch(const std::exception& e) {
 #ifdef WE_ARE_RECURSOR
-    L<<Logger::Warning<<"Error connecting to remote logger "<<d_remote.toStringWithPort()<<": "<<e.what()<<std::endl;
+    g_log<<Logger::Warning<<"Error connecting to remote logger "<<d_remote.toStringWithPort()<<": "<<e.what()<<std::endl;
 #else
     warnlog("Error connecting to remote logger %s: %s", d_remote.toStringWithPort(), e.what());
 #endif
     return false;
   }
+  d_connected = true;
   return true;
+}
+
+void RemoteLogger::busyReconnectLoop()
+{
+  while (!reconnect()) {
+    sleep(d_reconnectWaitTime);
+  }
 }
 
 void RemoteLogger::worker()
 {
-  if (d_asyncConnect) {
-    reconnect();
-  }
-
+#ifdef WE_ARE_RECURSOR
+  string threadName = "pdns-r/remLog";
+#else
+  string threadName = "dnsdist/remLog";
+#endif
+  setThreadName(threadName);
   while(true) {
     std::string data;
     {
@@ -48,19 +62,21 @@ void RemoteLogger::worker()
       d_writeQueue.pop();
     }
 
+    if (!d_connected) {
+      busyReconnectLoop();
+    }
+
     try {
       uint16_t len = static_cast<uint16_t>(data.length());
       sendSizeAndMsgWithTimeout(d_socket, len, data.c_str(), static_cast<int>(d_timeout), nullptr, nullptr, 0, 0, 0);
     }
     catch(const std::runtime_error& e) {
 #ifdef WE_ARE_RECURSOR
-      L<<Logger::Info<<"Error sending data to remote logger "<<d_remote.toStringWithPort()<<": "<< e.what()<<endl;
+      g_log<<Logger::Info<<"Error sending data to remote logger "<<d_remote.toStringWithPort()<<": "<< e.what()<<endl;
 #else
       vinfolog("Error sending data to remote logger (%s): %s", d_remote.toStringWithPort(), e.what());
 #endif
-      while (!reconnect()) {
-        sleep(d_reconnectWaitTime);
-      }
+      busyReconnectLoop();
     }
   }
 }
@@ -68,7 +84,7 @@ void RemoteLogger::worker()
 void RemoteLogger::queueData(const std::string& data)
 {
   {
-    std::unique_lock<std::mutex> lock(d_writeMutex);
+    std::lock_guard<std::mutex> lock(d_writeMutex);
     if (d_writeQueue.size() >= d_maxQueuedEntries) {
       d_writeQueue.pop();
     }
@@ -90,6 +106,7 @@ RemoteLogger::~RemoteLogger()
   if (d_socket >= 0) {
     close(d_socket);
     d_socket = -1;
+    d_connected = false;
   }
   d_queueCond.notify_one();
   d_thread.join();

@@ -15,7 +15,7 @@ setting to an existing resolver and enable
     expand-alias=yes
 
 .. note::
-  If :ref:`setting-resolver` is unset, ALIAS expension is disabled!
+  If :ref:`setting-resolver` is unset, ALIAS expansion is disabled!
 
 Then add the ALIAS record to your zone apex. e.g.:
 

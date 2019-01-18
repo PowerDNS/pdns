@@ -1,7 +1,5 @@
-dnsdist manual page
-===================
-
-**dnsdist** - tool to balance DNS queries over downstream servers
+dnsdist
+=======
 
 Synopsis
 --------
@@ -58,9 +56,9 @@ Options
 -k <key>, --setkey <key>               When operating as a client(**-c**, **--client**), use *key* as
                                        shared secret to connect to dnsdist. This should be the same key
                                        that is used on the server (set with **setKey()**). Note that this
-                                       will leak the key into your shell's history. Only available when
-                                       dnsdist is compiled with libsodium support.
--d, --daemon                           Operate as a daemon.
+                                       will leak the key into your shell's history and into the systems
+                                       running process list. Only available when dnsdist is compiled with
+                                       libsodium support.
 -e, --execute <command>                Connect to dnsdist and execute *command*.
 -h, --help                             Display a helpful message and exit.
 -l, --local <address>                  Bind to *address*, Supply as many addresses (using multiple
@@ -70,9 +68,7 @@ Options
                                        run dnsdist inside a supervisor (use with e.g. systemd and
                                        daemontools).
 --disable-syslog                       Disable logging to syslog. Use this when running inside a supervisor
-                                       that handles logging (like systemd). Do not use in combination with
-                                       **--daemon**.
--p, --pidfile <file>                   Write a pidfile to *file*, works only with **--daemon**.
+                                       that handles logging (like systemd).
 -u, --uid <uid>                        Change the process user to *uid* after binding sockets. *uid* can be
                                        a name or number.
 -g, --gid <gid>                        Change the process group to *gid* after binding sockets. *gid* Can

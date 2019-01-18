@@ -1,2 +1,2 @@
 #!/bin/sh
-curl -s -H 'X-API-Key: secret' 127.0.0.1:8082/api/v1/servers/localhost/zones | jq '.[] | select(.kind=="Forwarded")' | sort | sed 's/,$//'
+curl -s -H 'X-API-Key: secret' 127.0.0.1:8082/api/v1/servers/localhost/zones | jq '.[] | select(.kind=="Forwarded")' | LC_ALL=C sort | sed 's/,$//'

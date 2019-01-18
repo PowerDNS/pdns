@@ -48,10 +48,10 @@ gPgSQLBackend::gPgSQLBackend(const string &mode, const string &suffix)  : GSQLBa
   }
 
   catch(SSqlException &e) {
-    L<<Logger::Error<<mode<<" Connection failed: "<<e.txtReason()<<endl;
+    g_log<<Logger::Error<<mode<<" Connection failed: "<<e.txtReason()<<endl;
     throw PDNSException("Unable to launch "+mode+" connection: "+e.txtReason());
   }
-  L<<Logger::Info<<mode<<" Connection successful. Connected to database '"<<getArg("dbname")<<"' on '"<<getArg("host")<<"'."<<endl;
+  g_log<<Logger::Info<<mode<<" Connection successful. Connected to database '"<<getArg("dbname")<<"' on '"<<getArg("host")<<"'."<<endl;
 }
 
 void gPgSQLBackend::reconnect()
@@ -60,6 +60,8 @@ void gPgSQLBackend::reconnect()
 
   if (d_db) {
     d_db->reconnect();
+
+    allocateStatements();
   }
 }
 
@@ -79,11 +81,11 @@ public:
 
   void declareArguments(const string &suffix="")
   {
-    declare(suffix,"dbname","Pdns backend database name to connect to","");
-    declare(suffix,"user","Pdns backend user to connect as","");
-    declare(suffix,"host","Pdns backend host to connect to","");
+    declare(suffix,"dbname","Backend database name to connect to","");
+    declare(suffix,"user","Database backend user to connect as","");
+    declare(suffix,"host","Database backend host to connect to","");
     declare(suffix,"port","Database backend port to connect to","");
-    declare(suffix,"password","Pdns backend password to connect with","");
+    declare(suffix,"password","Database backend password to connect with","");
     declare(suffix,"extra-connection-parameters", "Extra parameters to add to connection string","");
 
     declare(suffix,"dnssec","Enable DNSSEC processing","no");
@@ -101,8 +103,6 @@ public:
     declare(suffix,"remove-empty-non-terminals-from-zone-query", "remove all empty non-terminals from zone", "delete from records where domain_id=$1 and type is null");
     declare(suffix,"delete-empty-non-terminal-query", "delete empty non-terminal from zone", "delete from records where domain_id=$1 and name=$2 and type is null");
 
-    declare(suffix,"master-zone-query","Data", "select master from domains where name=$1 and type='SLAVE'");
-
     declare(suffix,"info-zone-query","","select id,name,master,last_check,notified_serial,type,account from domains where name=$1");
 
     declare(suffix,"info-all-slaves-query","","select id,name,master,last_check from domains where type='SLAVE'");
@@ -111,8 +111,8 @@ public:
 
     declare(suffix,"insert-zone-query","", "insert into domains (type,name,master,account,last_check, notified_serial) values($1,$2,$3,$4,null,null)");
 
-    declare(suffix, "insert-record-query", "", "insert into records (content,ttl,prio,type,domain_id,disabled,name,ordername,auth,change_date) values ($1,$2,$3,$4,$5,$6,$7,$8,$9,null)");
-    declare(suffix, "insert-empty-non-terminal-order-query", "insert empty non-terminal in zone", "insert into records (type,domain_id,disabled,name,ordername,auth,ttl,prio,change_date,content) values (null,$1,false,$2,$3,$4,null,null,null,null)");
+    declare(suffix, "insert-record-query", "", "insert into records (content,ttl,prio,type,domain_id,disabled,name,ordername,auth) values ($1,$2,$3,$4,$5,$6,$7,$8,$9)");
+    declare(suffix, "insert-empty-non-terminal-order-query", "insert empty non-terminal in zone", "insert into records (type,domain_id,disabled,name,ordername,auth,ttl,prio,content) values (null,$1,false,$2,$3,$4,null,null,null)");
 
     declare(suffix, "get-order-first-query", "DNSSEC Ordering Query, last", "select ordername from records where disabled=false and domain_id=$1 and ordername is not null order by 1 using ~<~ limit 1");
     declare(suffix, "get-order-before-query", "DNSSEC Ordering Query, before", "select ordername, name from records where disabled=false and ordername ~<=~ $1 and domain_id=$2 and ordername is not null order by 1 using ~>~ limit 1");
@@ -129,7 +129,6 @@ public:
     declare(suffix,"update-account-query","", "update domains set account=$1 where name=$2");
     declare(suffix,"update-serial-query","", "update domains set notified_serial=$1 where id=$2");
     declare(suffix,"update-lastcheck-query","", "update domains set last_check=$1 where id=$2");
-    declare(suffix,"zone-lastchange-query", "", "select max(change_date) from records where domain_id=$1");
     declare(suffix,"info-all-master-query","", "select id,name,master,last_check,notified_serial,type from domains where type='MASTER'");
     declare(suffix,"delete-domain-query","", "delete from domains where name=$1");
     declare(suffix,"delete-zone-query","", "delete from records where domain_id=$1");
@@ -181,7 +180,7 @@ public:
   gPgSQLLoader()
   {
     BackendMakers().report(new gPgSQLFactory("gpgsql"));
-    L << Logger::Info << "[gpgsqlbackend] This is the gpgsql backend version " VERSION
+    g_log << Logger::Info << "[gpgsqlbackend] This is the gpgsql backend version " VERSION
 #ifndef REPRODUCIBLE
       << " (" __DATE__ " " __TIME__ ")"
 #endif

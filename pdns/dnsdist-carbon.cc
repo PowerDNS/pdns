@@ -27,8 +27,8 @@
 #include "sstuff.hh"
 
 #include "namespaces.hh"
-#undef L
 #include "dnsdist.hh"
+#include "threadname.hh"
 
 GlobalStateHolder<vector<CarbonConfig> > g_carbon;
 static time_t s_start=time(0);
@@ -37,9 +37,10 @@ uint64_t uptimeOfProcess(const std::string& str)
   return time(0) - s_start;
 }
 
-void* carbonDumpThread()
+void carbonDumpThread()
 try
 {
+  setThreadName("dnsdist/carbon");
   auto localCarbon = g_carbon.getLocal();
   for(int numloops=0;;++numloops) {
     if(localCarbon->empty()) {
@@ -55,6 +56,7 @@ try
 
     for (const auto& conf : *localCarbon) {
       const auto& server = conf.server;
+      const std::string& namespace_name = conf.namespace_name;
       std::string hostname = conf.ourname;
       if(hostname.empty()) {
         char tmp[80];
@@ -65,6 +67,7 @@ try
         hostname=tmp;
         boost::replace_all(hostname, ".", "_");
       }
+      const std::string& instance_name = conf.instance_name;
 
       try {
         Socket s(server.sin4.sin_family, SOCK_STREAM);
@@ -73,7 +76,7 @@ try
         ostringstream str;
         time_t now=time(0);
         for(const auto& e : g_stats.entries) {
-          str<<"dnsdist."<<hostname<<".main."<<e.first<<' ';
+          str<<namespace_name<<"."<<hostname<<"."<<instance_name<<"."<<e.first<<' ';
           if(const auto& val = boost::get<DNSDistStats::stat_t*>(&e.second))
             str<<(*val)->load();
           else if (const auto& dval = boost::get<double*>(&e.second))
@@ -82,11 +85,11 @@ try
             str<<(*boost::get<DNSDistStats::statfunction_t>(&e.second))(e.first);
           str<<' '<<now<<"\r\n";
         }
-        const auto states = g_dstates.getCopy();
-        for(const auto& state : states) {
+        auto states = g_dstates.getLocal();
+        for(const auto& state : *states) {
           string serverName = state->name.empty() ? (state->remote.toString() + ":" + std::to_string(state->remote.getPort())) : state->getName();
           boost::replace_all(serverName, ".", "_");
-          const string base = "dnsdist." + hostname + ".main.servers." + serverName + ".";
+          const string base = namespace_name + "." + hostname + "." + instance_name + ".servers." + serverName + ".";
           str<<base<<"queries" << ' ' << state->queries.load() << " " << now << "\r\n";
           str<<base<<"drops" << ' ' << state->reuseds.load() << " " << now << "\r\n";
           str<<base<<"latency" << ' ' << (state->availability != DownstreamState::Availability::Down ? state->latencyUsec/1000.0 : 0) << " " << now << "\r\n";
@@ -99,19 +102,20 @@ try
 
           string frontName = front->local.toString() + ":" + std::to_string(front->local.getPort()) +  (front->udpFD >= 0 ? "_udp" : "_tcp");
           boost::replace_all(frontName, ".", "_");
-          const string base = "dnsdist." + hostname + ".main.frontends." + frontName + ".";
+          const string base = namespace_name + "." + hostname + "." + instance_name + ".frontends." + frontName + ".";
           str<<base<<"queries" << ' ' << front->queries.load() << " " << now << "\r\n";
         }
-        const auto localPools = g_pools.getCopy();
-        for (const auto& entry : localPools) {
+        auto localPools = g_pools.getLocal();
+        for (const auto& entry : *localPools) {
           string poolName = entry.first;
           boost::replace_all(poolName, ".", "_");
           if (poolName.empty()) {
             poolName = "_default_";
           }
-          const string base = "dnsdist." + hostname + ".main.pools." + poolName + ".";
+          const string base = namespace_name + "." + hostname + "." + instance_name + ".pools." + poolName + ".";
           const std::shared_ptr<ServerPool> pool = entry.second;
-          str<<base<<"servers" << " " << pool->servers.size() << " " << now << "\r\n";
+          str<<base<<"servers" << " " << pool->countServers(false) << " " << now << "\r\n";
+          str<<base<<"servers-up" << " " << pool->countServers(true) << " " << now << "\r\n";
           if (pool->packetCache != nullptr) {
             const auto& cache = pool->packetCache;
             str<<base<<"cache-size" << " " << cache->getMaxEntries() << " " << now << "\r\n";
@@ -152,20 +156,16 @@ try
       }
     }
   }
-  return 0;
 }
 catch(std::exception& e)
 {
   errlog("Carbon thread died: %s", e.what());
-  return 0;
 }
 catch(PDNSException& e)
 {
   errlog("Carbon thread died, PDNSException: %s", e.reason);
-  return 0;
 }
 catch(...)
 {
   errlog("Carbon thread died");
-  return 0;
 }

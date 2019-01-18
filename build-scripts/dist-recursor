@@ -10,6 +10,6 @@ set -x
 
 cd pdns/recursordist
 
-./bootstrap
+autoreconf -vi
 ./configure
 make dist

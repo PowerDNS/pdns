@@ -46,6 +46,20 @@ Each ACL has its own row in the database:
 To disallow all IP's, except those explicitly allowed by domainmetadata
 records, add ``allow-axfr-ips=`` to ``pdns.conf``.
 
+.. _metadata-api-rectify:
+
+API-RECTIFY
+-----------
+.. versionadded:: 4.1.0
+
+This metadata item controls whether or not a zone is fully rectified on changes
+to the contents of a zone made through the :doc:`API <http-api/index>`.
+
+When the ``API-RECTIFY`` value is "1", the zone will be rectified on changes.
+Any other other value means that it will not be rectified. If this is not set
+at all, rectifying of the zone depends on the config variable
+:ref:`setting-default-api-rectify`.
+
 .. _metadata-axfr-source:
 
 AXFR-SOURCE

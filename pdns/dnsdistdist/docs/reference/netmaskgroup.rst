@@ -1,32 +1,32 @@
 NetmaskGroup
 ============
 
-.. class:: NetmaskGroup
-
-   Represents a group of netmasks that can be used to match :class:`ComboAddress`\ es against.
-
 .. function:: newNMG() -> NetmaskGroup
 
   Returns a NetmaskGroup
 
-.. classmethod:: NetmaskGroup:addMask(mask)
-                 NetmaskGroup:addMask(masks)
+.. class:: NetmaskGroup
 
-  Add one or more masks to the NMG.
+   Represents a group of netmasks that can be used to match :class:`ComboAddress`\ es against.
 
-  :param string mask: Add this mask, prefix with `!` to exclude this mask from matching.
-  :param table masks: Adds the keys of the table to the :class:`NetmaskGroup`. It should be a table whose keys are :class:`ComboAddress` objects and values are integers, as returned by `exceed*` functions.
+  .. method:: NetmaskGroup:addMask(mask)
+              NetmaskGroup:addMask(masks)
 
-.. classmethod:: NetmaskGroup:match(address) -> bool
+    Add one or more masks to the NMG.
 
-  Checks if ``address`` is matched by this NetmaskGroup.
+    :param string mask: Add this mask, prefix with `!` to exclude this mask from matching.
+    :param table masks: Adds the keys of the table to the :class:`NetmaskGroup`. It should be a table whose keys are :class:`ComboAddress` objects and values are integers, as returned by `exceed*` functions.
 
-  :param ComboAddress address: The address to match.
+  .. method:: NetmaskGroup:match(address) -> bool
 
-.. classmethod:: NetmaskGroup:clear()
+    Checks if ``address`` is matched by this NetmaskGroup.
 
-  Clears the NetmaskGroup.
+    :param ComboAddress address: The address to match.
 
-.. classmethod:: NetmaskGroup:size() -> int
+  .. method:: NetmaskGroup:clear()
 
-  Returns number of netmasks in this NetmaskGroup.
+    Clears the NetmaskGroup.
+
+  .. method:: NetmaskGroup:size() -> int
+
+    Returns number of netmasks in this NetmaskGroup.

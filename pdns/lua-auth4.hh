@@ -1,30 +1,28 @@
 #pragma once
 #include "iputils.hh"
 #include "dnsname.hh"
-#include "namespaces.hh"
-#include "dnsrecords.hh"
 #include "dnspacket.hh"
+#include "dnsparser.hh"
 #include <unordered_map>
-#include <boost/variant/variant.hpp>
 #ifdef HAVE_CONFIG_H
 #include "config.h"
 #endif
+#include "lua-base4.hh"
 
-class LuaContext;
-
-class AuthLua4 : public boost::noncopyable
+class AuthLua4 : public BaseLua4
 {
-private:
-#ifdef HAVE_LUA
-  std::unique_ptr<LuaContext> d_lw; // this is way on top because it must get destroyed _last_
-#endif
-
 public:
-  explicit AuthLua4(const std::string& fname);
+  AuthLua4();
   bool updatePolicy(const DNSName &qname, QType qtype, const DNSName &zonename, DNSPacket *packet);
   bool axfrfilter(const ComboAddress&, const DNSName&, const DNSResourceRecord&, std::vector<DNSResourceRecord>&);
+  LuaContext* getLua();
+
+  DNSPacket *prequery(DNSPacket *p);
 
   ~AuthLua4(); // this is so unique_ptr works with an incomplete type
+protected:
+  virtual void postPrepareContext() override;
+  virtual void postLoad() override;
 private:
   struct UpdatePolicyQuery {
     DNSName qname;
@@ -38,7 +36,11 @@ private:
 
   typedef std::function<bool(const UpdatePolicyQuery&)> luacall_update_policy_t;
   typedef std::function<std::tuple<int, std::unordered_map<int, std::unordered_map<std::string,boost::variant<unsigned int,std::string> > > >(const ComboAddress&, const DNSName&, const DNSResourceRecord&)> luacall_axfr_filter_t;
+  typedef std::function<bool(DNSPacket*)> luacall_prequery_t;
 
   luacall_update_policy_t d_update_policy;
   luacall_axfr_filter_t d_axfr_filter;
+  luacall_prequery_t d_prequery;
 };
+std::vector<shared_ptr<DNSRecordContent>> luaSynth(const std::string& code, const DNSName& qname,
+                                                   const DNSName& zone, int zoneid, const DNSPacket& dnsp, uint16_t qtype);

@@ -21,8 +21,9 @@
  */
 #ifndef PDNS_DNS_RANDOM
 #define PDNS_DNS_RANDOM
+#include <cstdint>
 
-void dns_random_init(const char data[16]);
-unsigned int dns_random(unsigned int n);
+void dns_random_init(const std::string& data = "", bool force_reinit = false);
+uint32_t dns_random(uint32_t n);
 
 #endif

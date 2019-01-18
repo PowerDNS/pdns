@@ -1,1 +1,1 @@
-ldapbackend.lo powerldap.lo ldaputils.lo ldapauthenticator.lo
+ldapbackend.lo master.lo native.lo powerldap.lo ldaputils.lo ldapauthenticator.lo

@@ -1,14 +1,8 @@
 case $context in
 	geoip|geoip-nsec3-narrow)
 		set +e
-                if test "x$geoipregion" = "x"; then
-                        echo "This test suite requires that you provide geoipregion which defines the region name produced by MaxMind database with geoipregionip address."
-                        exit 1
-                fi
-                if test "x$geoipregionip" = "x"; then
-                        echo "This test suite requires that you have IP address bound to localhost interface and exported as variable geoipregionip"
-                        exit 1
-                fi
+		export geoipregion=${geoipregion:-oc}
+		export geoipregionip=${geoipregionip:-1.1.1.1}
 		set -e
                 testsdir=../modules/geoipbackend/regression-tests/
 		if test "$context" = "geoip-nsec3-narrow"; then
@@ -32,6 +26,12 @@ domains:
       - ns: ns1.example.com
       - ns: ns2.example.com
       - mx: 10 mx.example.com
+    ip.geo.example.com:
+      - a: "%ip4"
+      - aaaa: "%ip6"
+    loc.geo.example.com:
+      - loc: "%loc"
+      - txt: "%lat %lon"
     c1.l1.o1.city.geo.example.com:
       - a: 127.0.1.1
     c2.l2.o1.city.geo.example.com:
@@ -39,9 +39,9 @@ domains:
     c3.l3.o1.city.geo.example.com:
       - a: 127.0.3.1
     continent.geo.example.com:
-      - txt: Your continent is %cn
+      - txt: "Your continent is %cn"
     $geoipregion.service.geo.example.com:
-      - a: 62.236.200.4
+      - a: $geoipregionip
     unknown.service.geo.example.com:
       - a: 127.0.0.1
   services:
@@ -51,19 +51,19 @@ domains:
     city.geo.example.com: '%ci.%re.%cc.city.geo.example.com'
 EOF
 		cat > $testsdir/region-a-resolution/expected_result <<EOF
-0	www.geo.example.com.	IN	A	30	62.236.200.4
-2	.	IN	OPT	0	AAgACAABIBgBAgME
+0	www.geo.example.com.	IN	A	30	$geoipregionip
+2	.	IN	OPT	0	AAgACAABIBgBAQEB
 Rcode: 0 (No Error), RD: 0, QR: 1, TC: 0, AA: 1, opcode: 0
 Reply to question for qname='www.geo.example.com.', qtype=A
 EOF
                 cat > $testsdir/region-cname-resolution/expected_result <<EOF
 0	indirect.geo.example.com.	IN	CNAME	30	$geoipregion.elsewhere.example.com.
-2	.	IN	OPT	0	AAgACAABIBgBAgME
+2	.	IN	OPT	0	AAgACAABIBgBAQEB
 Rcode: 0 (No Error), RD: 0, QR: 1, TC: 0, AA: 1, opcode: 0
 Reply to question for qname='indirect.geo.example.com.', qtype=A
 EOF
                 cat > $testsdir/text-interpolation/expected_result <<EOF
-0	continent.geo.example.com.	IN	TXT	30	"Your continent is $geoipregion"
+0	continent.geo.example.com.	IN	TXT	30	"Your continent is na"
 2	.	IN	OPT	0	AAgACAABIBgBAgME
 Rcode: 0 (No Error), RD: 0, QR: 1, TC: 0, AA: 1, opcode: 0
 Reply to question for qname='continent.geo.example.com.', qtype=TXT
@@ -73,7 +73,7 @@ EOF
 module-dir=./modules
 launch=geoip
 geoip-zones-file=$testsdir/geo.yaml
-geoip-database-files=/usr/share/GeoIP/GeoIP.dat
+geoip-database-files=$geoipdatabase
 EOF
 
 		if [ "$geoipdosec" = "yes" ]
@@ -83,13 +83,13 @@ EOF
 			geoipkeydir="--geoip-dnssec-keydir=$testsdir/geosec"
 		fi
 
-		base64 -d < $testsdir/GeoLiteCity.dat.b64 > $testsdir/GeoLiteCity.dat
+		geoipdatabase=${geoipdatabase:-$testsdir/GeoLiteCity.dat}
 
 		$RUNWRAPPER $PDNS --daemon=no --local-address=$address --local-port=$port --socket-dir=./ \
 			--no-shuffle --launch=geoip \
 			--cache-ttl=$cachettl --dname-processing --no-config \
 			--distributor-threads=1 \
-                        --geoip-zones-file=$testsdir/geo.yaml --geoip-database-files="/usr/share/GeoIP/GeoIP.dat $testsdir/GeoLiteCity.dat" \
+                        --geoip-zones-file=$testsdir/geo.yaml --geoip-database-files="$geoipdatabase" \
                         --module-dir=./modules --edns-subnet-processing=yes \
 			$geoipkeydir &
 		;;

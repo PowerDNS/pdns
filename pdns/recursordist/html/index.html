@@ -1,104 +1,198 @@
 <!DOCTYPE html>
-<head>                                                                  
-<meta charset="utf-8" />
-<script src="js/jquery-1.8.3.min.js"></script>        
-<script src="js/d3.v3.js"></script>        
-<script src="js/rickshaw.min.js"></script>        
-<script src="js/purl.js"></script>
-<script src="js/moment.min.js"></script>
-<link type="text/css" rel="stylesheet" href="graph.css">
-<link type="text/css" rel="stylesheet" href="detail.css">
-<link type="text/css" rel="stylesheet" href="legend.css">
-<link type="text/css" rel="stylesheet" href="lines.css">
+<html>
+<head>
+    <meta charset="utf-8"/>
+    <script src="js/jquery-1.8.3.min.js"></script>
+    <script src="js/d3.v3.js"></script>
+    <script src="js/rickshaw.min.js"></script>
+    <script src="js/handlebars-v4.0.11.js"></script>
+    <script src="js/moment.min.js"></script>
+    <link type="text/css" rel="stylesheet" href="graph.css">
+    <link type="text/css" rel="stylesheet" href="detail.css">
+    <link type="text/css" rel="stylesheet" href="legend.css">
+    <link type="text/css" rel="stylesheet" href="lines.css">
+    <link type="text/css" rel="stylesheet" href="styling.css">
 
-<script src="local.js"></script>
-<body>                                                                  
-<style>
-#qpschart {
-	position: relative;
-	left: 40px;
-}
-#qpsy_axis {
-	position: absolute;
-	top: 0;
-	bottom: 0;
-	width: 40px;
-}
+    <script src="local.js"></script>
 
-#cpuchart {
-	position: relative; 
-	left: 40px;
-}
-#cpuy_axis {
-	position: absolute;
-	top: 0;
-	bottom: 0;
-	width: 40px;
-}
+</head>
 
+<body>
 
-</style>
+<!-- ========================= CONTENT ========================= -->
 
-
-<table width="100%" border="0"><tr><td><img src="powerdns-logo-220px.png"/></td>
-<td width="75%">
-<form id="serverform" action="javascript:void();">Password: <input type="password" id="password" value="no">
-<span id="connection-status" style="color:red; display:none">No server connection!</span>
-<span id="connection-error" style="color:red"></span>
-</form> 
-</td>
-</tr></table>
-<p>
-Version: <span id="version"></span>, uptime: <span id="uptime"></span>, Number of queries: <span id="questions"></span> (<span id="qps"></span> qps)<br/>
-Over-capacity-drops: <span id="over-capacity-drops"></span>, too old: <span id="too-old"></span><br/>
-Packet cache hitrate: <span id="phitrate"></span>%, 
-Average response time: <span id="latency"></span> ms, CPU Usage: <span id="cpu"></span>% <br/>
-</p>
-<table width="100%" cellpadding="20">
-  <tr valign="top">
-    <td>
-      <table cellpadding="12">
-	<tr><td align="center">QPS / SERVFAILPS</td></tr>
-	<tr><td>
-	    <div id="chart_container">
-	      <div id="qpsy_axis"></div>
-	      <div id="qpschart"></div>
-	    </div>
-	</td></tr>
-	<tr><td align="center">CPU</td></tr>
-	<tr><td>
-	    <div id="chart_container">
-	      <div id="cpuy_axis"></div>
-	      <div id="cpuchart"></div>
-	    </div>
-	  </td>
-	</tr>
-      </table>
-    </td>
-    
-    <td>
-      <table cellpadding="15">
-	<tr>
-	  <td><form>Public filtered: <input id="filter1" type="checkbox"></input></form></td>
-	  <td><form>Public filtered: <input id="filter2" type="checkbox"></input></form></td>
-	</tr>
-	<tr>
-	
-	  <td><div id="queryring"></div> </td>
-	  <td><div id="servfailqueryring"></div></td>
-	</tr>
-	<tr>
-	  <td><div id="remotering"></div></td>
-	  <td><div id="servfailremotering"></div></td>
-	</tr>
-      </table>
-    </td>
-  </tr>
-</table>
-
-<div>
-  <br/><br/>
-  <p></p><p></p>
+<div class="topbar">
+    <label>API Key: <input type="password" id="password" value=""></label>
+    <button>Submit</button><!-- Just a trick to make the user click outside of the input field -->
+    <span id="connection-status" style="display:none">No server connection or incorrect key</span>
+    <span id="connection-error"></span>
 </div>
-</body>                                                                 
+
+<div id="content-hidden-on-load" style="display: none">
+
+    <div id="top-stats"></div>
+
+    <div class="charts-container">
+        <div class="qps-chart-container chart">
+            <h2>QPS / SERVFAILPS</h2>
+            <div class="chart_container">
+                <div id="qpsy_axis" class="pdns-axis"></div>
+                <div id="qpschart" class="pdns-chart"></div>
+            </div>
+        </div>
+        <div class="qps-chart-container chart">
+            <h2>CPU</h2>
+            <div class="chart_container">
+                <div id="cpuy_axis" class="pdns-axis"></div>
+                <div id="cpuchart" class="pdns-chart"></div>
+            </div>
+        </div>
+    </div>
+
+    <div class="all-tables">
+        <div class="table-container">
+            <h2>Queries</h2>
+            <div class="filter">
+                <label><input id="filter1" type="checkbox"> Group by public suffixes</label>
+            </div>
+            <div class="stats-table" id="queryring"></div>
+            <div class="stats-table" id="servfailqueryring"></div>
+            <div class="stats-table" id="bogusqueryring"></div>
+        </div>
+
+        <div class="table-container">
+            <h2>Remotes</h2>
+            <div class="filter"></div>
+            <div class="stats-table" id="remotering"></div>
+            <div class="stats-table" id="servfailremotering"></div>
+            <div class="stats-table" id="bogusremotering"></div>
+            <div class="stats-table" id="timeouts"></div>
+        </div>
+    </div>
+
+</div><!-- content-hidden-on-load -->
+
+<!-- ========================= TEMPLATES ========================= -->
+
+<script id="top-stats-template" type="text/x-handlebars-template">
+    <p>
+        Version: {{version}}, uptime: {{uptime}}, Number of queries: {{questions}} ({{qps}} qps)<br/>
+        Over-capacity-drops: {{over_capacity_drops}}, too old: {{too_old}}<br/>
+        Packet cache hitrate: {{phitrate}}%,
+        Average response time: {{latency}} ms, CPU Usage: {{cpu}}% <br/>
+    </p>
+</script>
+
+<script id="queryring-template" type="text/x-handlebars-template">
+    <table class="three-col">
+        <tr>
+            <th>Number</th>
+            <th>Domain</th>
+            <th>Type</th>
+        </tr>
+        {{#each rows}}
+        <tr>
+            <td>{{0}}</td>
+            <td>{{1}}</td>
+            <td>{{2}}</td>
+        </tr>
+        {{/each}}
+    </table>
+</script>
+
+<script id="servfailqueryring-template" type="text/x-handlebars-template">
+    <table class="three-col">
+        <tr>
+            <th>Number</th>
+            <th>Servfail domain</th>
+            <th>Type</th>
+        </tr>
+        {{#each rows}}
+        <tr>
+            <td>{{0}}</td>
+            <td>{{1}}</td>
+            <td>{{2}}</td>
+        </tr>
+        {{/each}}
+    </table>
+</script>
+
+<script id="bogusqueryring-template" type="text/x-handlebars-template">
+    <table class="three-col">
+        <tr>
+            <th>Number</th>
+            <th>Bogus domain</th>
+            <th>Type</th>
+        </tr>
+        {{#each rows}}
+        <tr>
+            <td>{{0}}</td>
+            <td>{{1}}</td>
+            <td>{{2}}</td>
+        </tr>
+        {{/each}}
+    </table>
+</script>
+
+<script id="remotering-template" type="text/x-handlebars-template">
+    <table class="two-col">
+        <tr>
+            <th>Number</th>
+            <th>Remote</th>
+        </tr>
+        {{#each rows}}
+        <tr>
+            <td>{{0}}</td>
+            <td>{{1}}</td>
+        </tr>
+        {{/each}}
+    </table>
+</script>
+
+<script id="servfailremotering-template" type="text/x-handlebars-template">
+    <table class="two-col">
+        <tr>
+            <th>Number</th>
+            <th>Servfail remote</th>
+        </tr>
+        {{#each rows}}
+        <tr>
+            <td>{{0}}</td>
+            <td>{{1}}</td>
+        </tr>
+        {{/each}}
+    </table>
+</script>
+
+<script id="bogusremotering-template" type="text/x-handlebars-template">
+    <table class="two-col">
+        <tr>
+            <th>Number</th>
+            <th>Bogus remote</th>
+        </tr>
+        {{#each rows}}
+        <tr>
+            <td>{{0}}</td>
+            <td>{{1}}</td>
+        </tr>
+        {{/each}}
+    </table>
+</script>
+
+<script id="timeouts-template" type="text/x-handlebars-template">
+    <table class="two-col">
+        <tr>
+            <th>Number</th>
+            <th>Downstream timeouts</th>
+        </tr>
+        {{#each rows}}
+        <tr>
+            <td>{{0}}</td>
+            <td>{{1}}</td>
+        </tr>
+        {{/each}}
+    </table>
+</script>
+
+</body>
 </html>

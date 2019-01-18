@@ -1,6 +1,9 @@
 --- ldns-verify-zone -V2 test.com
 RETVAL: 0
 
+--- validns test.com
+RETVAL: 0
+
 --- jdnssec-verifyzone test.com
 zone verified.
 RETVAL: 0
@@ -15,6 +18,9 @@ RETVAL: 0
 --- ldns-verify-zone -V2 test.dyndns
 RETVAL: 0
 
+--- validns test.dyndns
+RETVAL: 0
+
 --- jdnssec-verifyzone test.dyndns
 zone verified.
 RETVAL: 0
@@ -24,7 +30,25 @@ zone test.dyndns/IN: loaded serial 2012060701 (DNSSEC signed)
 OK
 RETVAL: 0
 
+--- ldns-verify-zone -V2 sub.test.dyndns
+RETVAL: 0
+
+--- validns sub.test.dyndns
+RETVAL: 0
+
+--- jdnssec-verifyzone sub.test.dyndns
+zone verified.
+RETVAL: 0
+
+--- named-checkzone sub.test.dyndns
+zone sub.test.dyndns/IN: loaded serial 2012060701 (DNSSEC signed)
+OK
+RETVAL: 0
+
 --- ldns-verify-zone -V2 wtest.com
+RETVAL: 0
+
+--- validns wtest.com
 RETVAL: 0
 
 --- jdnssec-verifyzone wtest.com
@@ -40,6 +64,9 @@ RETVAL: 0
 --- ldns-verify-zone -V2 dnssec-parent.com
 RETVAL: 0
 
+--- validns dnssec-parent.com
+RETVAL: 0
+
 --- jdnssec-verifyzone dnssec-parent.com
 zone verified.
 RETVAL: 0
@@ -50,6 +77,9 @@ OK
 RETVAL: 0
 
 --- ldns-verify-zone -V2 delegated.dnssec-parent.com
+RETVAL: 0
+
+--- validns delegated.dnssec-parent.com
 RETVAL: 0
 
 --- jdnssec-verifyzone delegated.dnssec-parent.com
@@ -64,6 +94,9 @@ RETVAL: 0
 --- ldns-verify-zone -V2 secure-delegated.dnssec-parent.com
 RETVAL: 0
 
+--- validns secure-delegated.dnssec-parent.com
+RETVAL: 0
+
 --- jdnssec-verifyzone secure-delegated.dnssec-parent.com
 zone verified.
 RETVAL: 0
@@ -74,6 +107,9 @@ OK
 RETVAL: 0
 
 --- ldns-verify-zone -V2 minimal.com
+RETVAL: 0
+
+--- validns minimal.com
 RETVAL: 0
 
 --- jdnssec-verifyzone minimal.com
@@ -88,6 +124,9 @@ RETVAL: 0
 --- ldns-verify-zone -V2 tsig.com
 RETVAL: 0
 
+--- validns tsig.com
+RETVAL: 0
+
 --- jdnssec-verifyzone tsig.com
 zone verified.
 RETVAL: 0
@@ -98,6 +137,9 @@ OK
 RETVAL: 0
 
 --- ldns-verify-zone -V2 stest.com
+RETVAL: 0
+
+--- validns stest.com
 RETVAL: 0
 
 --- jdnssec-verifyzone stest.com
@@ -112,6 +154,9 @@ RETVAL: 0
 --- ldns-verify-zone -V2 cdnskey-cds-test.com
 RETVAL: 0
 
+--- validns cdnskey-cds-test.com
+RETVAL: 0
+
 --- jdnssec-verifyzone cdnskey-cds-test.com
 zone verified.
 RETVAL: 0
@@ -122,6 +167,9 @@ OK
 RETVAL: 0
 
 --- ldns-verify-zone -V2 2.0.192.in-addr.arpa
+RETVAL: 0
+
+--- validns 2.0.192.in-addr.arpa
 RETVAL: 0
 
 --- jdnssec-verifyzone 2.0.192.in-addr.arpa

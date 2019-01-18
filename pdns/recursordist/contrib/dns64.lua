@@ -6,6 +6,11 @@ function nodata ( dq )
     return false
   end  --  only AAAA records
 
+  -- don't fake AAAA records if DNSSEC validation failed
+  if dq.validationState == pdns.validationstates.Bogus then
+     return false
+  end
+
   dq.followupFunction = "getFakeAAAARecords"
   dq.followupPrefix = prefix
   dq.followupName = dq.qname

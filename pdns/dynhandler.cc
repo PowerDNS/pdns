@@ -56,7 +56,7 @@ string DLQuitHandler(const vector<string>&parts, Utility::pid_t ppid)
   if(parts[0]=="QUIT") {
     s_pleasequit=true;
     ret="Scheduling exit";
-    L<<Logger::Error<<"Scheduling exit on remote request"<<endl;
+    g_log<<Logger::Error<<"Scheduling exit on remote request"<<endl;
   }
   return ret;
 }
@@ -252,7 +252,7 @@ string DLNotifyRetrieveHandler(const vector<string>&parts, Utility::pid_t ppid)
 
   random_shuffle(di.masters.begin(), di.masters.end());
   Communicator.addSuckRequest(domain, di.masters.front()); 
-  return "Added retrieval request for '"+domain.toString()+"' from master "+di.masters.front();
+  return "Added retrieval request for '"+domain.toString()+"' from master "+di.masters.front().toLogString();
 }
 
 string DLNotifyHostHandler(const vector<string>&parts, Utility::pid_t ppid)
@@ -261,7 +261,7 @@ string DLNotifyHostHandler(const vector<string>&parts, Utility::pid_t ppid)
   ostringstream os;
   if(parts.size()!=3)
     return "syntax: notify-host domain ip";
-  if(!::arg().mustDo("master") && !::arg().mustDo("slave-renotify"))
+  if(!::arg().mustDo("master") && !(::arg().mustDo("slave") && ::arg().mustDo("slave-renotify")))
       return "PowerDNS not configured as master or slave with re-notifications";
 
   DNSName domain;
@@ -278,7 +278,7 @@ string DLNotifyHostHandler(const vector<string>&parts, Utility::pid_t ppid)
     return "Unable to convert '"+parts[2]+"' to an IP address";
   }
   
-  L<<Logger::Warning<<"Notification request to host "<<parts[2]<<" for domain '"<<domain<<"' received from operator"<<endl;
+  g_log<<Logger::Warning<<"Notification request to host "<<parts[2]<<" for domain '"<<domain<<"' received from operator"<<endl;
   Communicator.notify(domain, parts[2]);
   return "Added to queue";
 }
@@ -289,9 +289,9 @@ string DLNotifyHandler(const vector<string>&parts, Utility::pid_t ppid)
   UeberBackend B;
   if(parts.size()!=2)
     return "syntax: notify domain";
-  if(!::arg().mustDo("master") && !::arg().mustDo("slave-renotify"))
+  if(!::arg().mustDo("master") && !(::arg().mustDo("slave") && ::arg().mustDo("slave-renotify")))
       return "PowerDNS not configured as master or slave with re-notifications";
-  L<<Logger::Warning<<"Notification request for domain '"<<parts[1]<<"' received from operator"<<endl;
+  g_log<<Logger::Warning<<"Notification request for domain '"<<parts[1]<<"' received from operator"<<endl;
 
   if (parts[1] == "*") {
     vector<DomainInfo> domains;
@@ -299,17 +299,17 @@ string DLNotifyHandler(const vector<string>&parts, Utility::pid_t ppid)
 
     int total = 0;
     int notified = 0;
-    for (vector<DomainInfo>::const_iterator di=domains.begin(); di != domains.end(); di++) {
-      if (di->kind == 0) { // MASTER
+    for (const auto& di : domains) {
+      if (di.kind == DomainInfo::Master || di.kind == DomainInfo::Slave) { // MASTER and Slave if slave-renotify is enabled
         total++;
-        if(Communicator.notifyDomain(di->zone))
+        if(Communicator.notifyDomain(di.zone))
           notified++;
       }
     }
 
     if (total != notified)
       return itoa(notified)+" out of "+itoa(total)+" zones added to queue - see log";
-    return "Added "+itoa(total)+" MASTER zones to queue";
+    return "Added "+itoa(total)+" MASTER/SLAVE zones to queue";
   } else {
     DNSName domain;
     try {
@@ -327,7 +327,7 @@ string DLRediscoverHandler(const vector<string>&parts, Utility::pid_t ppid)
 {
   UeberBackend B;
   try {
-    L<<Logger::Error<<"Rediscovery was requested"<<endl;
+    g_log<<Logger::Error<<"Rediscovery was requested"<<endl;
     string status="Ok";
     B.rediscover(&status);
     return status;
@@ -342,7 +342,7 @@ string DLReloadHandler(const vector<string>&parts, Utility::pid_t ppid)
 {
   UeberBackend B;
   B.reload();
-  L<<Logger::Error<<"Reload was requested"<<endl;
+  g_log<<Logger::Error<<"Reload was requested"<<endl;
   return "Ok";
 }
 
@@ -350,7 +350,7 @@ string DLReloadHandler(const vector<string>&parts, Utility::pid_t ppid)
 string DLListZones(const vector<string>&parts, Utility::pid_t ppid)
 {
   UeberBackend B;
-  L<<Logger::Notice<<"Received request to list zones."<<endl;
+  g_log<<Logger::Notice<<"Received request to list zones."<<endl;
   vector<DomainInfo> domains;
   B.getAllDomains(&domains);
   ostringstream ret;
@@ -366,9 +366,9 @@ string DLListZones(const vector<string>&parts, Utility::pid_t ppid)
 
   int count = 0;
 
-  for (vector<DomainInfo>::const_iterator di=domains.begin(); di != domains.end(); di++) {
-    if (di->kind == kindFilter || kindFilter == -1) {
-      ret<<di->zone.toString()<<endl;
+  for (const auto& di: domains) {
+    if (di.kind == kindFilter || kindFilter == -1) {
+      ret<<di.zone.toString()<<endl;
       count++;
     }
   }

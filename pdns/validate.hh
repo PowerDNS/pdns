@@ -28,6 +28,7 @@
 #include "dnsrecords.hh"
  
 extern bool g_dnssecLOG;
+extern time_t g_signatureInceptionSkew;
 extern uint16_t g_maxNSEC3Iterations;
 
 // 4033 5
@@ -71,7 +72,8 @@ vState getKeysFor(DNSRecordOracle& dro, const DNSName& zone, skeyset_t& keyset);
 bool getTrustAnchor(const map<DNSName,dsmap_t>& anchors, const DNSName& zone, dsmap_t &res);
 bool haveNegativeTrustAnchor(const map<DNSName,std::string>& negAnchors, const DNSName& zone, std::string& reason);
 void validateDNSKeysAgainstDS(time_t now, const DNSName& zone, const dsmap_t& dsmap, const skeyset_t& tkeys, vector<shared_ptr<DNSRecordContent> >& toSign, const vector<shared_ptr<RRSIGRecordContent> >& sigs, skeyset_t& validkeys);
-dState getDenial(const cspmap_t &validrrsets, const DNSName& qname, const uint16_t qtype, bool referralToUnsigned);
+dState getDenial(const cspmap_t &validrrsets, const DNSName& qname, const uint16_t qtype, bool referralToUnsigned, bool wantsNoDataProof, bool needsWildcardProof=true, unsigned int wildcardLabelsCount=0);
 bool isSupportedDS(const DSRecordContent& ds);
 DNSName getSigner(const std::vector<std::shared_ptr<RRSIGRecordContent> >& signatures);
 bool denialProvesNoDelegation(const DNSName& zone, const std::vector<DNSRecord>& dsrecords);
+bool isRRSIGNotExpired(const time_t now, const shared_ptr<RRSIGRecordContent> sig);

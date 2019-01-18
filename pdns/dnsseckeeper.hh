@@ -87,23 +87,37 @@ public:
     }
   }
 
+  /*
+   * Returns the algorithm number based on the mnemonic (or old PowerDNS value of) a string.
+   * See https://www.iana.org/assignments/dns-sec-alg-numbers/dns-sec-alg-numbers.xhtml for the mapping
+   */
   static int shorthand2algorithm(const string &algorithm)
   {
-    if (!algorithm.compare("rsamd5")) return RSAMD5;
-    if (!algorithm.compare("dh")) return DH;
-    if (!algorithm.compare("dsa")) return DSA;
-    if (!algorithm.compare("rsasha1")) return RSASHA1;
-    if (!algorithm.compare("rsasha256")) return RSASHA256;
-    if (!algorithm.compare("rsasha512")) return RSASHA512;
-    if (!algorithm.compare("ecc-gost")) return ECCGOST;
-    if (!algorithm.compare("gost")) return ECCGOST;
-    if (!algorithm.compare("ecdsa256")) return ECDSA256;
-    if (!algorithm.compare("ecdsa384")) return ECDSA384;
-    if (!algorithm.compare("ed25519")) return ED25519;
-    if (!algorithm.compare("ed448")) return ED448;
+    if (pdns_iequals(algorithm, "rsamd5")) return RSAMD5;
+    if (pdns_iequals(algorithm, "dh")) return DH;
+    if (pdns_iequals(algorithm, "dsa")) return DSA;
+    if (pdns_iequals(algorithm, "rsasha1")) return RSASHA1;
+    if (pdns_iequals(algorithm, "dsa-nsec3-sha1")) return DSANSEC3SHA1;
+    if (pdns_iequals(algorithm, "rsasha1-nsec3-sha1")) return RSASHA1NSEC3SHA1;
+    if (pdns_iequals(algorithm, "rsasha256")) return RSASHA256;
+    if (pdns_iequals(algorithm, "rsasha512")) return RSASHA512;
+    if (pdns_iequals(algorithm, "ecc-gost")) return ECCGOST;
+    if (pdns_iequals(algorithm, "gost")) return ECCGOST;
+    if (pdns_iequals(algorithm, "ecdsa256")) return ECDSA256;
+    if (pdns_iequals(algorithm, "ecdsap256sha256")) return ECDSA256;
+    if (pdns_iequals(algorithm, "ecdsa384")) return ECDSA384;
+    if (pdns_iequals(algorithm, "ecdsap384sha384")) return ECDSA384;
+    if (pdns_iequals(algorithm, "ed25519")) return ED25519;
+    if (pdns_iequals(algorithm, "ed448")) return ED448;
+    if (pdns_iequals(algorithm, "indirect")) return 252;
+    if (pdns_iequals(algorithm, "privatedns")) return 253;
+    if (pdns_iequals(algorithm, "privateoid")) return 254;
     return -1;
   }
 
+  /*
+   * Returns the mnemonic from https://www.iana.org/assignments/dns-sec-alg-numbers/dns-sec-alg-numbers.xhtml
+   */
   static string algorithm2name(uint8_t algo) {
     switch(algo) {
       case 0:
@@ -178,9 +192,10 @@ public:
   bool removeKey(const DNSName& zname, unsigned int id);
   bool activateKey(const DNSName& zname, unsigned int id);
   bool deactivateKey(const DNSName& zname, unsigned int id);
-  bool checkKeys(const DNSName& zname);
+  bool checkKeys(const DNSName& zname, vector<string>* errorMessages = nullptr);
 
   bool getNSEC3PARAM(const DNSName& zname, NSEC3PARAMRecordContent* n3p=0, bool* narrow=0);
+  bool checkNSEC3PARAM(const NSEC3PARAMRecordContent& ns3p, string& msg);
   bool setNSEC3PARAM(const DNSName& zname, const NSEC3PARAMRecordContent& n3p, const bool& narrow=false);
   bool unsetNSEC3PARAM(const DNSName& zname);
   void clearAllCaches();
@@ -195,7 +210,7 @@ public:
   bool unsetPublishCDS(const DNSName& zname);
 
   bool TSIGGrantsAccess(const DNSName& zone, const DNSName& keyname);
-  bool getTSIGForAccess(const DNSName& zone, const string& master, DNSName* keyname);
+  bool getTSIGForAccess(const DNSName& zone, const ComboAddress& master, DNSName* keyname);
   
   void startTransaction(const DNSName& zone, int zone_id)
   {
@@ -209,6 +224,8 @@ public:
   
   void getFromMeta(const DNSName& zname, const std::string& key, std::string& value);
   void getSoaEdit(const DNSName& zname, std::string& value);
+  bool unSecureZone(const DNSName& zone, std::string& error, std::string& info);
+  bool rectifyZone(const DNSName& zone, std::string& error, std::string& info, bool doTransaction);
 private:
 
 
@@ -281,11 +298,8 @@ public:
 class DNSPacket;
 uint32_t localtime_format_YYYYMMDDSS(time_t t, uint32_t seq);
 // for SOA-EDIT
-uint32_t calculateEditSOA(const DNSZoneRecord& rr, const string& kind);
-uint32_t calculateEditSOA(const SOAData& sd, const string& kind);
-bool editSOA(DNSSECKeeper& dk, const DNSName& qname, DNSPacket* dp);
-bool editSOARecord(DNSZoneRecord& rr, const string& kind);
+uint32_t calculateEditSOA(uint32_t old_serial, DNSSECKeeper& dk, const DNSName& zonename);
+uint32_t calculateEditSOA(uint32_t old_serial, const string& kind, const DNSName& zonename);
 // for SOA-EDIT-DNSUPDATE/API
-uint32_t calculateIncreaseSOA(SOAData sd, const string& increaseKind, const string& editKind);
-bool increaseSOARecord(DNSResourceRecord& rr, const string& increaseKind, const string& editKind);
-bool increaseSOARecord(DNSZoneRecord& rr, const string& increaseKind, const string& editKind);
+bool increaseSOARecord(DNSResourceRecord& dr, const string& increaseKind, const string& editKind);
+bool makeIncreasedSOARecord(SOAData& sd, const string& increaseKind, const string& editKind, DNSResourceRecord& rrout);

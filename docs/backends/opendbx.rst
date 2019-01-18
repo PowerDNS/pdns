@@ -131,7 +131,7 @@ Mysql
 ^^^^^
 
 The file below also contains trigger definitions which are necessary for
-:ref:`autoserial` support, but they
+``autoserial`` support, but they
 are only available in MySQL 5 and later. If you are still using MySQL
 4.x and don't want to utilize the automatically generated zone serials,
 you can safely remove the "CREATE TRIGGER" statements from the file

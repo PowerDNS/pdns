@@ -46,6 +46,8 @@ static const oid cpuSysMSecOID[] = { DNSDIST_STATS_OID, 33 };
 static const oid fdUsageOID[] = { DNSDIST_STATS_OID, 34 };
 static const oid dynBlockedOID[] = { DNSDIST_STATS_OID, 35 };
 static const oid dynBlockedNMGSizeOID[] = { DNSDIST_STATS_OID, 36 };
+static const oid ruleServFailOID[] = { DNSDIST_STATS_OID, 37 };
+static const oid securityStatusOID[] = { DNSDIST_STATS_OID, 38 };
 
 static std::unordered_map<oid, DNSDistStats::entry_t> s_statsMap;
 
@@ -256,10 +258,10 @@ static netsnmp_variable_list* backendStatTable_get_first_data_point(void** loop_
 
   /* get a copy of the shared_ptrs so they are not
      destroyed while we process the request */
-  const auto& dstates = g_dstates.getCopy();
+  auto dstates = g_dstates.getLocal();
   s_servers.clear();
-  s_servers.reserve(dstates.size());
-  for (const auto& server : dstates) {
+  s_servers.reserve(dstates->size());
+  for (const auto& server : *dstates) {
     s_servers.push_back(server);
   }
 
@@ -366,7 +368,7 @@ static int backendStatTable_handler(netsnmp_mib_handler* handler,
 }
 #endif /* HAVE_NET_SNMP */
 
-bool DNSDistSNMPAgent::sendBackendStatusChangeTrap(const std::shared_ptr<DownstreamState> dss)
+bool DNSDistSNMPAgent::sendBackendStatusChangeTrap(const std::shared_ptr<DownstreamState>& dss)
 {
 #ifdef HAVE_NET_SNMP
   const string backendAddress = dss->remote.toStringWithPort();
@@ -403,8 +405,9 @@ bool DNSDistSNMPAgent::sendBackendStatusChangeTrap(const std::shared_ptr<Downstr
                             backendStatus.size());
 
   return sendTrap(d_trapPipe[1], varList);
-#endif /* HAVE_NET_SNMP */
+#else
   return true;
+#endif /* HAVE_NET_SNMP */
 }
 
 bool DNSDistSNMPAgent::sendCustomTrap(const std::string& reason)
@@ -427,8 +430,9 @@ bool DNSDistSNMPAgent::sendCustomTrap(const std::string& reason)
                             reason.size());
 
   return sendTrap(d_trapPipe[1], varList);
-#endif /* HAVE_NET_SNMP */
+#else
   return true;
+#endif /* HAVE_NET_SNMP */
 }
 
 bool DNSDistSNMPAgent::sendDNSTrap(const DNSQuestion& dq, const std::string& reason)
@@ -532,8 +536,9 @@ bool DNSDistSNMPAgent::sendDNSTrap(const DNSQuestion& dq, const std::string& rea
                             reason.size());
 
   return sendTrap(d_trapPipe[1], varList);
-#endif /* HAVE_NET_SNMP */
+#else
   return true;
+#endif /* HAVE_NET_SNMP */
 }
 
 DNSDistSNMPAgent::DNSDistSNMPAgent(const std::string& name, const std::string& masterSocket): SNMPAgent(name, masterSocket)
@@ -547,6 +552,7 @@ DNSDistSNMPAgent::DNSDistSNMPAgent(const std::string& name, const std::string& m
   registerCounter64Stat("ruleDrop", ruleDropOID, OID_LENGTH(ruleDropOID), &g_stats.ruleDrop);
   registerCounter64Stat("ruleNXDomain", ruleNXDomainOID, OID_LENGTH(ruleNXDomainOID), &g_stats.ruleNXDomain);
   registerCounter64Stat("ruleRefused", ruleRefusedOID, OID_LENGTH(ruleRefusedOID), &g_stats.ruleRefused);
+  registerCounter64Stat("ruleServFail", ruleServFailOID, OID_LENGTH(ruleServFailOID), &g_stats.ruleServFail);
   registerCounter64Stat("selfAnswered", selfAnsweredOID, OID_LENGTH(selfAnsweredOID), &g_stats.selfAnswered);
   registerCounter64Stat("downstreamTimeouts", downstreamTimeoutsOID, OID_LENGTH(downstreamTimeoutsOID), &g_stats.downstreamTimeouts);
   registerCounter64Stat("downstreamSendErrors", downstreamSendErrorsOID, OID_LENGTH(downstreamSendErrorsOID), &g_stats.downstreamSendErrors);
@@ -575,6 +581,7 @@ DNSDistSNMPAgent::DNSDistSNMPAgent(const std::string& name, const std::string& m
   registerGauge64Stat("cpuSysMSec", cpuSysMSecOID, OID_LENGTH(cpuSysMSecOID), &getCPUTimeSystem);
   registerGauge64Stat("fdUsage", fdUsageOID, OID_LENGTH(fdUsageOID), &getOpenFileDescriptors);
   registerGauge64Stat("dynBlockedNMGSize", dynBlockedNMGSizeOID, OID_LENGTH(dynBlockedNMGSizeOID), [](const std::string&) { return g_dynblockNMG.getLocal()->size(); });
+  registerGauge64Stat("securityStatus", securityStatusOID, OID_LENGTH(securityStatusOID), [](const std::string&) { return g_stats.securityStatus.load(); });
 
 
   netsnmp_table_registration_info* table_info = SNMP_MALLOC_TYPEDEF(netsnmp_table_registration_info);

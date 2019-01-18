@@ -1,0 +1,24 @@
+[Unit]
+Description=PowerDNS IXFR Distributor
+Documentation=man:ixfrdist(1)
+Documentation=man:ixfrdist.yml(5)
+Documentation=https://doc.powerdns.com
+Wants=network-online.target
+After=network-online.target
+
+[Service]
+Type=simple
+ExecStart=@bindir@/ixfrdist
+Restart=on-failure
+RestartSec=1
+StartLimitInterval=0
+PrivateTmp=true
+PrivateDevices=true
+CapabilityBoundingSet=CAP_NET_BIND_SERVICE CAP_SETGID CAP_SETUID
+NoNewPrivileges=true
+ProtectSystem=full
+ProtectHome=true
+RestrictAddressFamilies=AF_INET AF_INET6
+
+[Install]
+WantedBy=multi-user.target

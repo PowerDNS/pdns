@@ -2,6 +2,838 @@ Changelog
 =========
 
 .. changelog::
+  :version: 1.3.3
+  :released: 8th of November 2018
+
+  .. change::
+    :tags: New Features
+    :pullreq: 6737, 6939
+    :tickets: 6932
+
+    Add consistent hash builtin policy
+
+  .. change::
+    :tags: New Features
+    :pullreq: 6803
+
+    Add EDNSOptionRule
+
+  .. change::
+    :tags: New Features
+    :pullreq: 6813
+
+    Add DSTPortRule (phonedph1)
+
+  .. change::
+    :tags: New Features
+    :pullreq: 6826
+
+    Make getOutstanding usable from both lua and console (phonedph1)
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 6831
+
+    Get rid of some allocs/copies in DNS parsing
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 6835
+
+    Display dynblocks' default action, None, as the global one
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 6847
+    :tickets: 6348, 4857
+
+    Set a correct EDNS OPT RR for self-generated answers
+
+  .. change::
+    :tags: New Features
+    :pullreq: 6856
+
+    Added :excludeRange and :includeRange methods to DynBPFFilter class (Reinier Schoof)
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 6877
+
+    Fix a sign-comparison warning in isEDNSOptionInOPT()
+
+  .. change::
+    :tags: New Features
+    :pullreq: 3935, 6343, 6901, 7007, 7089
+    :tickets: 4947, 6002
+
+    Add Prometheus stats support (Pavel Odintsov, Kai S)
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 6956
+
+    Fix compilation when SO_REUSEPORT is not defined
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 6986
+    :tickets: 6907, 6907
+
+    Add warning rates to DynBlockRulesGroup rules
+
+  .. change::
+    :tags: New Features
+    :pullreq: 6997
+    :tickets: 6974
+
+    Name threads in the programs
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 7015
+    :tickets: 7004, 6990
+
+     Add support for exporting a server id in protobuf
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 7030
+
+    dnsdist did not set TCP_NODELAY, causing needless latency
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 7060
+
+    Release memory on DNS over TLS handshake failure
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 7062
+
+    Add a setting to control the number of stored sessions
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 7064
+    :tickets: 7060
+
+     Wrap GnuTLS and OpenSSL pointers in smart pointers
+
+  .. change::
+    :tags: New Features
+    :pullreq: 7075
+    :tickets: 6908
+
+    Support the NXDomain action with dynamic blocks
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 7078
+    :tickets: 6909
+
+    Add a 'creationOrder' field to rules
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 7092
+    :tickets: 7091
+
+    Fix return-type detection with boost 1.69's tribool
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 7104
+    :tickets: 7096
+
+    Fix format string issue on 32bits ARM
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 7108
+
+    Wrap TCP connection objects in smart pointers
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 7109
+    :tickets: 7084
+
+    Add the setConsoleOutputMaxMsgSize function
+
+  .. change::
+    :tags: New Features
+    :pullreq: 7115
+
+    Add security polling
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 7117
+    :tickets: 7112
+
+    Add the ability to update webserver credentials
+
+  .. change::
+    :tags: New Features
+    :pullreq: 7140
+
+    Add a PoolAvailableRule to easily add backup pools (Robin Geuze)
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 7165
+    :tickets: 6896
+
+    Handle trailing data correctly when adding OPT or ECS info
+
+.. changelog::
+  :version: 1.3.2
+  :released: 10th of July 2018
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 6785
+
+    Add missing include for PRId64, fix build on CentOS 6 / SLES 12
+
+.. changelog::
+  :version: 1.3.1
+  :released: 10th of July 2018
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 6358
+    :tickets: 6357
+
+    Remove `thelog` and `thel` and replace this with a global g_log
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 6422
+
+    Fix two small nits on the documentation
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 6426
+    :tickets: 6394
+
+    Move the el6 dnsdist package to upstart
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 6425
+
+    Initialize the done variable in the rings' unit tests
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 6429
+
+    Reorder headers to fix OpenBSD build
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 6435
+    :tickets: 6433
+
+    CLI option improvements (Chris Hofstaedtler)
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 6436
+
+    Split pdns_enable_unit_tests (Chris Hofstaedtler)
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 6448
+
+    Restrict value range for weight parameter, avoid sum overflows dropping queries (Dan McCombs)
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 6445, 6457, 6470
+    :tickets: 6423
+
+    Re-do lua detection
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 6460
+
+    Docs: fix missing ref in the dnsdist docs
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 6502
+
+    Be more permissive in wrandom tests, log values on failure
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 6523
+    :tickets: 6430
+
+     Tests: avoid failure on not-so-optimal distribution
+
+  .. change::
+    :tags: New Features
+    :pullreq: 6524
+    :tickets: 6450
+
+    Add support for more than one TLS certificate
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 6577
+
+    Add syntax to dns.proto to silence compilation warning.
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 6590
+
+    Fix warnings reported by gcc 8.1.0
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 6592
+    :tickets: 6483
+
+    Document setVerboseHealthchecks()
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 6615
+
+    Update dq.rst (phonedph1)
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 6641
+
+    Fix rpm scriptlets
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 6637
+
+    Don't copy unitialized values of SuffixMatchTree
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 6684
+
+    Expose toString of various objects to Lua (Chris Hofstaedtler)
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 6674
+
+    Remove 'expired' states from MaxQPSIPRule
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 6672
+
+     Fix reconnection handling
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 6688
+    :tickets: 6664
+
+    Mark the remote member of DownstreamState as const
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 6706
+
+    Dynamic blocks were being created with the wrong duration (David Freedman)
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 6710
+    :tickets: 6706
+
+    Test the content of dynamic blocks using the API
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 6711
+    :tickets: 6532
+
+    Default set "connection: close" header for web requests
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 6717
+
+    Update timedipsetrule.rst (phonedph1)
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 6716
+    :tickets: 6712
+
+    Don't access the TCP buffer vector past its size
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 6563
+
+    Show droprate in API output
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 6718
+    :tickets: 6442
+
+    Limit qps and latency to two decimals in the web view
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 6715
+    :tickets: 6683, 6709
+
+    Refuse console connection without a proper key set
+
+  .. change::
+    :tags: New Features
+    :pullreq: 6740
+    :tickets: 6579
+
+    Add a negative ttl option to the packet cache
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 6747
+
+    Check the flags to detect collisions in the packet cache
+
+  .. change::
+    :tags: New Features
+    :pullreq: 6749
+
+    Add the ability to dump a summary of the cache content
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 6762
+
+    Fix iterating over the results of exceed*() functions
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 6767
+
+    Fix duration false positive in the dynblock regression tests
+
+  .. change::
+    :tags: New Features
+    :pullreq: 6760
+
+    Add netmask-based {ex,in}clusions to DynblockRulesGroup
+
+  .. change::
+    :tags: New Features
+    :pullreq: 6776
+    :tickets: 6703
+
+    Add DNSAction.NoOp to debug dynamic blocks
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 6775
+    :tickets: 6758
+
+    Implement NoneAction()
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 6754
+    :tickets: 6747
+
+    Detect ECS collisions in the packet cache
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 6773
+
+    Fix an outstanding counter race when reusing states
+
+  .. change::
+    :tags: New Features
+    :pullreq: 6734
+    :tickets: 6404
+
+    Add SetECSAction to set an arbitrary outgoing ecs value
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 6726
+
+    Use LRU to clean the MaxQPSIPRule's store
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 6769
+
+    Disable maybe uninitialized warnings with boost optional
+
+  .. change::
+    :tags: New Features
+    :pullreq: 6764
+
+    Add support for rotating certificates and keys
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 6658
+    :tickets: 6541
+
+    Luawrapper: report caught std::exception as lua_error
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 6602
+
+    Dnstap.rst: fix some editing errors (Chris Hofstaedtler)
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 6541
+    :tickets: 6535
+
+    Allow known exception types to be converted to string
+
+
+.. changelog::
+  :version: 1.3.0
+  :released: 30th of March 2018
+
+  .. change::
+    :tags: Improvements, New Features
+    :pullreq: 5576, 5860
+    :tickets: 5202, 5859
+
+    Add cache sharding, ``recvmmsg`` and CPU pinning support.
+    With these, the scalability of :program:`dnsdist` is drastically improved.
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 5970
+
+    Add burst option to :func:`MaxQPSIPRule` (42wim).
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 5328
+    :tickets: 5327
+
+    Handle SNMP alarms so we can reconnect to the master.
+
+  .. change::
+    :tags: New Features
+    :pullreq: 5625
+
+    Add an optional `status` parameter to :func:`Server:setAuto`.
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 5597
+    :tickets: 5489
+
+    Fix signed/unsigned comparison warnings on ARM.
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 6022
+
+    Add Pools, cacheHitResponseRules to the API.
+
+  .. change::
+    :tags: New Features
+    :pullreq: 6072
+
+    Add :func:`inClientStartup` function.
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 5929
+    :tickets: 5748
+
+    Add a class option to health checks.
+
+  .. change::
+    :tags: New Features
+    :pullreq: 6037
+
+    Add tag-based routing of queries.
+
+  .. change::
+    :tags: New Features
+    :pullreq: 6117, 6175, 6176, 6177, 6189
+
+    Add experimental :doc:`DNS-over-TLS <guides/dns-over-tls>` support.
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 6030
+
+    Add UUIDs to rules, this allows tracking rules through modifications and moving them around.
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 5770
+
+    Keep trying if the first connection to the remote logger failed
+
+  .. change::
+    :tags: New Features
+    :pullreq: 5201, 6170
+
+    Add simple :doc:`dnstap <reference/dnstap>` support (Justin Valentini, Chris Hofstaedtler).
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 6185
+    :tickets: 6182
+
+    Apply ResponseRules to locally generated answers (Chris Hofstaedtler).
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 6283
+
+    Report :func:`LuaAction` and :func:`LuaResponseAction` failures in the log and send SERVFAIL instead of not answering the query (Chris Hofstaedtler).
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 6289
+
+    Unify global statistics accounting (Chris Hofstaedtler).
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 6350, 6366
+
+    Speed up the processing of large ring buffers.
+    This change will make :program:`dnsdist` more scalable with a large number of different clients.
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 6363
+    :tickets: 6346
+
+    Make custom :func:`addLuaAction` and :func:`addLuaResponseAction` callback's second return value optional.
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 6327
+
+    Add "server-up" metric count to Carbon Reporting (Lowell Mower).
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 6045, 6382
+
+    Add xchacha20 support for :doc:`DNSCrypt <guides/dnscrypt>`.
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 6317
+
+    Scalability improvement: Add an option to use several source ports towards a backend.
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 6375, 5866
+    :tickets: 4845
+
+   Add '?' and 'help' for providing help() output on ``dnsdist -c`` (Kirill Ponomarev, Chris Hofstaedtler).
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 6190, 6381
+
+    Replace the Lua mutex with a rw lock to limit contention.
+    This improves the processing speed and parallelism of the policies.
+
+  .. change::
+    :tags: New Features
+    :pullreq: 6220, 5594
+    :tickets: 5079, 5654
+
+    Add experimental XPF support based on `draft-bellis-dnsop-xpf-04 <https://tools.ietf.org/html/draft-bellis-dnsop-xpf-04>`__.
+
+  .. change::
+    :tags: New Features
+    :pullreq: 6147
+
+    Add :func:`ERCodeRule` to match on extended RCodes (Chris Hofstaedtler).
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 6018
+
+    Fix escaping unusual DNS label octets in DNSName is off by one (Kees Monshouwer).
+
+  .. change::
+    :tags: New Features
+    :pullreq: 6003
+
+    Add :func:`TempFailureCacheTTLAction` (Chris Hofstaedtler).
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 6146
+
+    Ensure :program:`dnsdist` compiles on NetBSD (Tom Ivar Helbekkmo).
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 5845
+    :tickets: 5845
+
+    Also log eBPF dynamic blocks, as regular dynamic block already are.
+
+  .. change::
+    :tags: New Features, Improvements
+    :pullreq: 6391
+
+    Add :ref:`DynBlockRulesGroup` to improve processing speed of the :func:`maintenance` function by reducing memory usage and not walking the ringbuffers multiple times.
+
+  .. change::
+    :tags: Removals
+    :pullreq: 6394
+    :tickets: 6329
+
+    Remove the ``--daemon`` option from :program:`dnsdist`.
+
+  .. change::
+    :tags: New Features
+    :pullreq: 6399
+    :tickets: 4654
+
+    Add :func:`console ACL <addConsoleACL>` functions.
+
+  .. change::
+    :tags: New Features
+    :pullreq: 6400
+    :tickets: 6098
+
+    Allow adding :meth:`EDNS Client Subnet information <ServerPool:setECS>` to a query before looking in the cache.
+    This allows serving ECS enabled answers from the cache when all servers in a pool are down.
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 6401
+    :tickets: 6211
+
+    Ensure large numbers are shown correctly in the API.
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 6402
+    :tickets: 5763
+
+    Add option to :func:`showRules` to truncate the output length.
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 6403
+
+    Avoid assertion errors in :func:`NewServer` (Chris Hofstaedtler).
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 6407
+
+    Fix several warnings reported by clang's analyzer and cppcheck, should lead to small performance increases.
+
+
+.. changelog::
+  :version: 1.2.1
+  :released: 16th of February 2018
+
+  .. change::
+    :tags: New Features
+    :pullreq: 5880
+
+    Add configuration option to disable IP_BIND_ADDRESS_NO_PORT (Dan McCombs).
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 6057
+
+    Handle bracketed IPv6 addresses without ports (Chris Hofstaedtler).
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 5647
+
+    Make dnsdist dynamic truncate do right thing on TCP/IP.
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 5686
+
+    Add missing QPSAction
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 5847
+
+    Don't create a Remote Logger in client mode.
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 5858
+
+    Use libsodium's CFLAGS, we might need them to find the includes.
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 6012
+
+    Keep the TCP connection open on cache hit, generated answers.
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 6041
+
+    Add the missing <sys/time.h> include to mplexer.hh for struct timeval.
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 6043
+
+    Sort the servers based on their 'order' after it has been set.
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 6073
+
+    Quiet unused variable warning on macOS (Chris Hofstaedtler).
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 6094
+    :tickets: 5652
+
+    Fix the outstanding counter when an exception is raised.
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 6164
+    :tickets: 6163
+
+    Do not connect the snmpAgent from a dnsdist client.
+
+.. changelog::
   :version: 1.2.0
   :released: 21st of August 2017
 

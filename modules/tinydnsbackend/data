@@ -20100,19 +20100,25 @@
 +toomuchinfo-b.example.com:192.168.99.90:120
 +usa-ns1.usa.example.com:192.168.4.1:120
 +usa-ns2.usa.example.com:192.168.4.2:120
+3ipv6.example.com:200106a80000000102104bfffe4b4c61:120
+:_imap._tcp.example.com:33:\000\000\000\001\000\217\004blah\004test\003com\000:120
 :dsdelegation.example.com:43:m\341\010\001\312\361\352\256\315\253\347afpx\217\220\042EK\365\375\237\332:120
 :escapedtext.example.com:16:\005begin\022the\040\042middle\042\040p\134art\007the\040end:120
-:google-alias.example.com:65401:\023google-public-dns-a\006google\300\024:120
+:google-alias.example.com:65401:\023google-public-dns-a\006google\003com\000:120
 :hightype.example.com:65534:\007\355\046\000\001:120
 :host-0.example.com:108:\000PV\233\000\347:120
 :host-1.example.com:109:\000PV\233\000\347\176W:120
+:hostmaster.mb.example.com:8:\004phil\303\231:120
+:hostmaster.mb.example.com:8:\006sheila\303\231:120
 :hwinfo.example.com:13:\003abc\003def:120
-:ipv6.example.com:28:\040\001\006\250\000\000\000\001\002\020K\377\376KLa:120
 :location.example.com:29:\0002\026\023\213\044\323e\176\273\347\100\000\230\230\020:120
 :location.example.com:29:\000B\026\023t\333\053\274\176\273\347\100\000\230\230\020:120
 :location.example.com:29:\000\022\026\023\213\044\310\373\201D\030\300\000\230\230\020:120
 :location.example.com:29:\000\042\026\023t\3331\320\201D\030\300\000\230\230\020:120
 :multitext.example.com:16:\015text\040part\040one\015text\040part\040two\017text\040part\040three:120
+:phil.mb.example.com:7:\002pc\303\231:120
+:philip.mb.example.com:9:\303\250:120
+:sheila.mb.example.com:7:\004bill\303\231:120
 :text.example.com:16:\025Hi\054\040this\040is\040some\040text:120
 :text0.example.com:16:\014k\075rsa\073\040p\075one:120
 :text1.example.com:16:\014k\075rsa\073\040p\075one:120
@@ -20181,6 +20187,8 @@ Cwithin-server.test.com:outpost.example.com.:3600
 Cwww.test.com:server1.test.com.:3600
 Ztest.com:ns1.test.com.:ahu.example.com.:2005092501:28800:7200:604800:86400:3600
 #2012060701 auto axfr-get
+&sub.test.dyndns::ns1.test.dyndns.:3600
+&sub.test.dyndns::ns2.test.dyndns.:3600
 &test.dyndns::ns1.test.dyndns.:3600
 &test.dyndns::ns2.test.dyndns.:3600
 +\052.wild.test.dyndns:127.0.1.255:3600
@@ -20204,6 +20212,10 @@ Ztest.com:ns1.test.com.:ahu.example.com.:2005092501:28800:7200:604800:86400:3600
 Ccname1.test.dyndns:host-1.test.dyndns.:3600
 Ccname2.test.dyndns:host-2.test.dyndns.:3600
 Ztest.dyndns:ns1.test.dyndns.:ahu.example.dyndns.:2012060701:28800:7200:604800:86400:3600
+#2012060701 auto axfr-get
+&sub.test.dyndns::ns1.test.dyndns.:3600
+&sub.test.dyndns::ns2.test.dyndns.:3600
+Zsub.test.dyndns:ns1.test.dyndns.:ahu.example.dyndns.:2012060701:28800:7200:604800:86400:3600
 #2005092501 auto axfr-get
 &wtest.com::..:3600
 &wtest.com::ns1.wtest.com.:3600
@@ -20213,12 +20225,6 @@ Ztest.dyndns:ns1.test.dyndns.:ahu.example.dyndns.:2012060701:28800:7200:604800:8
 +ns1.wtest.com:2.3.4.5:3600
 +server1.wtest.com:1.2.3.4:3600
 +wtest.com:9.9.9.9:3600
-:a.b.c.d.e.wtest.com:16:\011non-empty:3600
-:b.c.d.e.wtest.com:16:\011non-empty:3600
-:c.d.e.wtest.com:16:\011non-empty:3600
-:d.e.wtest.com:16:\011non-empty:3600
-:e.wtest.com:16:\011non-empty:3600
-:something.wtest.com:16:\045make\040the\040empty\040non-terminal\040non-empty:3600
 @secure.wtest.com::server1.wtest.com.:10:3600
 @wtest.com::smtp-servers.example.com.:10:3600
 @wtest.com::smtp-servers.wtest.com.:15:3600

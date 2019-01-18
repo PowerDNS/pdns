@@ -26,7 +26,6 @@
 #include <iostream>
 #include <sstream>
 #include <syslog.h>
-#include <pthread.h>
 
 #include "namespaces.hh"
 #include "dnsname.hh"
@@ -60,46 +59,53 @@ public:
     d_disableSyslog = d;
   }
 
+  void setTimestamps(bool t) {
+    d_timestamps = t;
+  }
+
+  void setPrefixed(bool p) {
+    d_prefixed = p;
+  }
+
   //! Log to a file.
   void toFile( const string & filename );
   
   void resetFlags(){flags=0;open();} //!< zero the flags
   /** Use this to stream to your log, like this:
       \code
-      L<<"This is an informational message"<<endl; // logged at default loglevel (Info)
-      L<<Logger::Warning<<"Out of diskspace"<<endl; // Logged as a warning 
-      L<<"This is an informational message"<<endl; // logged AGAIN at default loglevel (Info)
+      g_log<<"This is an informational message"<<endl; // logged at default loglevel (Info)
+      g_log<<Logger::Warning<<"Out of diskspace"<<endl; // Logged as a warning 
+      g_log<<"This is an informational message"<<endl; // logged AGAIN at default loglevel (Info)
       \endcode
   */
   Logger& operator<<(const char *s);
   Logger& operator<<(const string &s);   //!< log a string
-  Logger& operator<<(int);   //!< log an int
-  Logger& operator<<(double);   //!< log a double
-  Logger& operator<<(unsigned int);   //!< log an unsigned int
-  Logger& operator<<(long);   //!< log an unsigned int
-  Logger& operator<<(unsigned long);   //!< log an unsigned int
-  Logger& operator<<(unsigned long long);   //!< log an unsigned 64 bit int
   Logger& operator<<(const DNSName&); 
   Logger& operator<<(const ComboAddress&); //!< log an address
   Logger& operator<<(Urgency);    //!< set the urgency, << style
+
+  // Using const & since otherwise SyncRes:: values induce (illegal) copies
+  template<typename T> Logger & operator<<(const T & i) {
+	ostringstream tmp;
+	tmp<<i;
+	*this<<tmp.str();
+	return *this;
+  }
 
   Logger& operator<<(std::ostream & (&)(std::ostream &)); //!< this is to recognise the endl, and to commit the log
 
 private:
   struct PerThread
   {
-    PerThread() 
-    {
-      d_urgency=Info;
-    }
+    PerThread() : d_urgency(Info)
+    {}
     string d_output;
     Urgency d_urgency;
   };
-  static void initKey();
-  static void perThreadDestructor(void *);
-  PerThread* getPerThread();
+  PerThread& getPerThread();
   void open();
 
+  static thread_local PerThread t_perThread;
   string name;
   int flags;
   int d_facility;
@@ -107,11 +113,13 @@ private:
   Urgency consoleUrgency;
   bool opened;
   bool d_disableSyslog;
-  static pthread_once_t s_once;
-  static pthread_key_t s_loggerKey;
+  bool d_timestamps{true};
+  bool d_prefixed{false};
 };
 
-extern Logger &theL(const string &pname="");
+Logger& getLogger();
+
+#define g_log getLogger()
 
 #ifdef VERBOSELOG
 #define DLOG(x) x

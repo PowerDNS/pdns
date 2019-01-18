@@ -52,7 +52,7 @@ The quoted part is the content of the NSEC3PARAM records, as defined in
    set as ``0``
 -  Number of iterations of the hash function, read :rfc:`RFC 5155, Section
    10.3 <5155#section-10.3>` for recommendations
--  Salt (in hexadecimal) to apply during hashing
+-  Salt to apply during hashing, in hexadecimal, or ``-`` to use no salt
 
 To convert a zone from NSEC3 to NSEC operations, run:
 
@@ -150,6 +150,9 @@ January 2016.
 INCEPTION (not recommended)
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+.. deprecated:: 4.1.0
+  Removed in this release
+
 Sets the SOA serial to the last inception time in YYYYMMDD01 format.
 Uses localtime to find the day for inception time.
 
@@ -158,18 +161,17 @@ Uses localtime to find the day for inception time.
   changes to the zone will get visible on slaves only on the following
   inception day.
 
-.. deprecated:: 4.1.0
-
 INCEPTION-WEEK (not recommended)
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+.. deprecated:: 4.1.0
+  Removed in this release
 
 Sets the SOA serial to the number of weeks since the epoch, which is the
 last inception time in weeks.
 
 .. warning::
   Same problem as INCEPTION.
-
-.. deprecated:: 4.1.0
 
 EPOCH
 ^^^^^
@@ -181,8 +183,6 @@ Sets the SOA serial to the number of seconds since the epoch.
   refreshing all the time. If you need fast updates, sync the backend
   databases directly with incremental updates (or use the same database
   server on the slaves)
-
-.. deprecated:: 4.1.0
 
 NONE
 ^^^^

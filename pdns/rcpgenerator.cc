@@ -28,13 +28,18 @@
 #include "misc.hh"
 #include "utility.hh"
 #include <boost/algorithm/string.hpp>
+#include <boost/algorithm/string/classification.hpp>
+
 #include <iostream>
 #include "base32.hh"
 #include "base64.hh"
 #include "namespaces.hh"
 
-RecordTextReader::RecordTextReader(const string& str, const string& zone) : d_string(str), d_zone(zone), d_pos(0), d_end(str.size())
+RecordTextReader::RecordTextReader(const string& str, const DNSName& zone) : d_string(str), d_zone(zone), d_pos(0)
 {
+   /* remove whitespace */
+   boost::trim_if(d_string, boost::algorithm::is_space());
+   d_end = d_string.size();
 }
 
 void RecordTextReader::xfr48BitInt(uint64_t &val)
@@ -79,6 +84,12 @@ void RecordTextReader::xfrTime(uint32_t &val)
   uint64_t itmp;
   xfr64BitInt(itmp);
 
+  if (itmp <= (uint32_t)~0) {
+    // formatted as seconds since epoch, not as YYYYMMDDHHmmSS:
+    val = (uint32_t) itmp;
+    return;
+  }
+
   ostringstream tmp;
 
   tmp<<itmp;
@@ -102,17 +113,22 @@ void RecordTextReader::xfrIP(uint32_t &val)
   uint32_t octet=0;
   val=0;
   char count=0;
-  
+  bool last_was_digit = false;
+
   for(;;) {
     if(d_string.at(d_pos)=='.') {
+      if (!last_was_digit)
+        throw RecordTextException(string("unable to parse IP address, dot without previous digit"));
+      last_was_digit = false;
       val<<=8;
       val+=octet;
       octet=0;
       count++;
       if(count > 3)
-        break;
+        throw RecordTextException(string("unable to parse IP address, too many dots"));
     }
     else if(isdigit(d_string.at(d_pos))) {
+      last_was_digit = true;
       octet*=10;
       octet+=d_string.at(d_pos) - '0';
       if(octet > 255)
@@ -127,10 +143,12 @@ void RecordTextReader::xfrIP(uint32_t &val)
     if(d_pos == d_string.length())
       break;
   }
-  if(count<=3) {
-    val<<=8;
-    val+=octet;
-  }
+  if (count != 3)
+    throw RecordTextException(string("unable to parse IP address, not enough dots"));
+  if (!last_was_digit)
+    throw RecordTextException(string("unable to parse IP address, trailing dot"));
+  val<<=8;
+  val+=octet;
   val=ntohl(val);
 }
 
@@ -162,6 +180,28 @@ void RecordTextReader::xfrIP6(std::string &val)
   d_pos += len;
 }
 
+void RecordTextReader::xfrCAWithoutPort(uint8_t version, ComboAddress &val)
+{
+  if (version == 4) {
+    uint32_t ip;
+    xfrIP(ip);
+    val = makeComboAddressFromRaw(4, string((const char*) &ip, 4));
+  }
+  else if (version == 6) {
+    string ip;
+    xfrIP6(ip);
+    val = makeComboAddressFromRaw(6, ip);
+  }
+  else throw RecordTextException("invalid address family");
+}
+
+void RecordTextReader::xfrCAPort(ComboAddress &val)
+{
+  uint16_t port;
+  xfr16BitInt(port);
+  val.sin4.sin_port = port;
+}
+
 bool RecordTextReader::eof()
 {
   return d_pos==d_end;
@@ -189,8 +229,7 @@ void RecordTextReader::xfr8BitInt(uint8_t &val)
 void RecordTextReader::xfrName(DNSName& val, bool, bool)
 {
   skipSpaces();
-  string sval;
-  sval.reserve(d_end - d_pos);
+  DNSName sval;
 
   const char* strptr=d_string.c_str();
   string::size_type begin_pos = d_pos;
@@ -200,19 +239,13 @@ void RecordTextReader::xfrName(DNSName& val, bool, bool)
       
     d_pos++;
   }
-  sval.append(strptr+begin_pos, strptr+d_pos);      
+  sval = DNSName(std::string(strptr+begin_pos, strptr+d_pos));
 
   if(sval.empty())
     sval=d_zone;
-  else if(!d_zone.empty()) {
-    char last=sval[sval.size()-1];
-   
-    if(last =='.')
-      sval.resize(sval.size()-1);
-    else if(last != '.' && !isdigit(last)) // don't add zone to IP address
-      sval+="."+d_zone;
-  }
-  val = DNSName(sval);
+  else if(!d_zone.empty())
+    sval+=d_zone;
+  val = sval;
 }
 
 static bool isbase64(char c, bool acceptspace)
@@ -488,6 +521,21 @@ void RecordTextWriter::xfrIP6(const std::string& val)
   d_string += std::string(addrbuf);
 }
 
+void RecordTextWriter::xfrCAWithoutPort(uint8_t version, ComboAddress &val)
+{
+  string ip = val.toString();
+
+  if(!d_string.empty())
+    d_string.append(1,' ');
+
+  d_string += ip;
+}
+
+void RecordTextWriter::xfrCAPort(ComboAddress &val)
+{
+  xfr16BitInt(val.sin4.sin_port);
+}
+
 void RecordTextWriter::xfrTime(const uint32_t& val)
 {
   if(!d_string.empty())
@@ -497,12 +545,8 @@ void RecordTextWriter::xfrTime(const uint32_t& val)
   time_t time=val; // Y2038 bug!
   gmtime_r(&time, &tm);
 
-  char tmp[16];
-  snprintf(tmp,sizeof(tmp)-1, "%04d%02d%02d" "%02d%02d%02d", 
-           tm.tm_year+1900, tm.tm_mon+1, tm.tm_mday, 
-           tm.tm_hour, tm.tm_min, tm.tm_sec);
-  
-  d_string += tmp;
+  static const boost::format fmt("%04d%02d%02d" "%02d%02d%02d");
+  d_string += boost::str(boost::format(fmt) % (tm.tm_year+1900) % (tm.tm_mon+1) % tm.tm_mday % tm.tm_hour % tm.tm_min % tm.tm_sec);
 }
 
 
@@ -557,7 +601,7 @@ void RecordTextWriter::xfrHexBlob(const string& val, bool)
   string::size_type limit=val.size();
   char tmp[5];
   for(string::size_type n = 0; n < limit; ++n) {
-    snprintf(tmp, sizeof(tmp)-1, "%02x", (unsigned char)val[n]);
+    snprintf(tmp, sizeof(tmp), "%02x", (unsigned char)val[n]);
     d_string+=tmp;
   }
 }

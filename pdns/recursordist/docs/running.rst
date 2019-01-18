@@ -57,7 +57,7 @@ To log only info messages, use ``local0.=info``
 Cache Management
 ----------------
 Sometimes a domain fails to resolve due to an error on the domain owner's end, or records for your own domain have updated and you want your users to immediatly see them without waiting for the TTL to expire.
-The :doc:`rec_control <manpages/rec_control>` tool can be used to selectively wipe the cache.
+The :doc:`rec_control <manpages/rec_control.1>` tool can be used to selectively wipe the cache.
 
 To wipe all records for the exact name 'www.example.com'::
 
@@ -72,24 +72,24 @@ Whole subtrees can we wiped as well, to wipe all cache entries for 'example.com'
   When wiping cache entries, matching entries in *all* caches (packet cache, recursor cache, negative cache) are removed.
 
 When debugging resolving issues, it can be advantagious to have a dump of all the cache entries.
-:doc:`rec_control <manpages/rec_control>` can write the caches of all threads to a file::
+:doc:`rec_control <manpages/rec_control.1>` can write the caches of all threads to a file::
 
   rec_control dump-cache /tmp/cache
 
 Tracing Queries
 ---------------
-To investigate failures with resolving resolving certain domain names, the PowerDNS Recursor features a "tracing" infrastructure.
+To investigate failures with resolving certain domain names, the PowerDNS Recursor features a "tracing" infrastructure.
 This infrastructure will log every step the Recursor takes to resolve a name and will log all DNSSEC related information as well.
 
 To enable tracing for all queries, enable the :ref:`setting-trace` setting.
 
 .. warning::
 
-  Enabling tracing for all queries on a system with a high query rate can severely performance.
+  Enabling tracing for all queries on a system with a high query rate can severely impact performance.
 
 Tracing can also be enabled at runtime, without restarting the Recursor, for specific domains.
 These specific domains can be specified as a regular expression.
-This can be done using :doc:`rec_control trace-regex <manpages/rec_control>`::
+This can be done using :doc:`rec_control trace-regex <manpages/rec_control.1>`::
 
     rec_control trace-regex '.*\.example.com\.$'
 

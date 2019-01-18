@@ -1,0 +1,35 @@
+#!/usr/bin/env bash
+set -e
+
+readonly PYTHON=${PYTHON:-python2}
+
+if [ ! -d .venv ]; then
+    virtualenv -p ${PYTHON} .venv
+fi
+
+. .venv/bin/activate
+python -V
+pip install -q -r requirements.txt
+
+mkdir -p configs
+
+[ -f ./vars ] && . ./vars
+
+export PDNS=${PDNS:-${PWD}/../pdns/pdns_server}
+export PDNSUTIL=${PDNSUTIL:-${PWD}/../pdns/pdnsutil}
+
+export PREFIX=127.0.0
+
+for bin in "$PDNS" "$PDNSUTIL"; do
+    if [ -n "$bin" -a ! -e "$bin" ]; then
+        echo "E: Required binary $bin not found. Please install the binary and/or edit ./vars."
+        exit 1
+  fi
+done
+
+set -e
+if [ "${PDNS_DEBUG}" = "YES" ]; then
+  set -x
+fi
+
+nosetests --with-xunit $@

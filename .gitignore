@@ -49,4 +49,4 @@ pdns_recursor.pid
 *.gcda
 *.gcno
 *.gcov
-modules/geoipbackend/regression-tests/GeoLiteCity.dat
+built_pkgs

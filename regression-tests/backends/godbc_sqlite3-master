@@ -44,14 +44,13 @@ godbc-info-all-master-query=select id,name,master,last_check,notified_serial,typ
 godbc-info-all-slaves-query=select id,name,master,last_check from domains where type='SLAVE'
 godbc-info-zone-query=select id,name,master,last_check,notified_serial,type,account from domains where name=?
 godbc-insert-comment-query=INSERT INTO comments (domain_id, name, type, modified_at, account, comment) VALUES (?, ?, ?, ?, ?, ?)
-godbc-insert-empty-non-terminal-order-query=insert into records (type,domain_id,disabled,name,ordername,auth,ttl,prio,change_date,content) values (null,?,0,?,?,?,null,null,null,null)
-godbc-insert-record-query=insert into records (content,ttl,prio,type,domain_id,disabled,name,ordername,auth,change_date) values (?,?,?,?,?,?,?,?,?,null)
+godbc-insert-empty-non-terminal-order-query=insert into records (type,domain_id,disabled,name,ordername,auth,ttl,prio,content) values (null,?,0,?,?,?,null,null,null)
+godbc-insert-record-query=insert into records (content,ttl,prio,type,domain_id,disabled,name,ordername,auth) values (?,?,?,?,?,?,?,?,?)
 godbc-insert-zone-query=insert into domains (type,name,master,account,last_check,notified_serial) values(?, ?, ?, ?, null, null)
 godbc-list-comments-query=SELECT domain_id,name,type,modified_at,account,comment FROM comments WHERE domain_id=?
 godbc-list-domain-keys-query=select cryptokeys.id, flags, active, content from domains, cryptokeys where cryptokeys.domain_id=domains.id and name=?
 godbc-list-query=SELECT content,ttl,prio,type,domain_id,disabled,name,auth FROM records WHERE (disabled=0 OR ?) and domain_id=? order by name, type
 godbc-list-subzone-query=SELECT content,ttl,prio,type,domain_id,disabled,name,auth FROM records WHERE disabled=0 and (name=? OR name like ?) and domain_id=?
-godbc-master-zone-query=select master from domains where name=? and type='SLAVE'
 godbc-nullify-ordername-and-update-auth-query=update records set ordername=NULL,auth=? where domain_id=? and name=? and disabled=0
 godbc-nullify-ordername-and-update-auth-type-query=update records set ordername=NULL,auth=? where domain_id=? and name=? and type=? and disabled=0
 godbc-remove-domain-key-query=delete from cryptokeys where domain_id=(select id from domains where name=?) and cryptokeys.id=?
@@ -68,7 +67,6 @@ godbc-update-master-query=update domains set master=? where name=?
 godbc-update-ordername-and-auth-query=update records set ordername=?,auth=? where domain_id=? and name=? and disabled=0
 godbc-update-ordername-and-auth-type-query=update records set ordername=?,auth=? where domain_id=? and name=? and type=? and disabled=0
 godbc-update-serial-query=update domains set notified_serial=? where id=?
-godbc-zone-lastchange-query=select max(change_date) from records where domain_id=?
 __EOF__
 
 		gsql_master godbc_sqlite3 nodyndns

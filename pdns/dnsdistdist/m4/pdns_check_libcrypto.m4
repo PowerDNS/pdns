@@ -1,0 +1,1 @@
+../../../m4/pdns_check_libcrypto.m4

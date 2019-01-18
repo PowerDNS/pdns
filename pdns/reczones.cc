@@ -27,10 +27,6 @@
 #include "zoneparser-tng.hh"
 #include "logger.hh"
 #include "dnsrecords.hh"
-#include "rec-lua-conf.hh"
-#include <thread>
-#include "ixfr.hh"
-#include "rpzloader.hh"
 #include "root-addresses.hh"
 
 extern int g_argc;
@@ -53,7 +49,7 @@ void primeHints(void)
     arr.d_ttl=aaaarr.d_ttl=nsrr.d_ttl=time(0)+3600000;
     
     for(char c='a';c<='m';++c) {
-      static char templ[40];
+      char templ[40];
       strncpy(templ,"a.root-servers.net.", sizeof(templ) - 1);
       templ[sizeof(templ)-1] = '\0';
       *templ=c;
@@ -123,10 +119,10 @@ static void makeNameToIPZone(std::shared_ptr<SyncRes::domainmap_t> newMap, const
   ad.d_records.insert(dr);
   
   if(newMap->count(dr.d_name)) {  
-    L<<Logger::Warning<<"Hosts file will not overwrite zone '"<<dr.d_name<<"' already loaded"<<endl;
+    g_log<<Logger::Warning<<"Hosts file will not overwrite zone '"<<dr.d_name<<"' already loaded"<<endl;
   }
   else {
-    L<<Logger::Warning<<"Inserting forward zone '"<<dr.d_name<<"' based on hosts file"<<endl;
+    g_log<<Logger::Warning<<"Inserting forward zone '"<<dr.d_name<<"' based on hosts file"<<endl;
     ad.d_name=dr.d_name;
     (*newMap)[ad.d_name]=ad;
   }
@@ -169,11 +165,11 @@ static void makeIPToNamesZone(std::shared_ptr<SyncRes::domainmap_t> newMap, cons
     }
 
   if(newMap->count(dr.d_name)) {  
-    L<<Logger::Warning<<"Will not overwrite zone '"<<dr.d_name<<"' already loaded"<<endl;
+    g_log<<Logger::Warning<<"Will not overwrite zone '"<<dr.d_name<<"' already loaded"<<endl;
   }
   else {
     if(ipparts.size()==4)
-      L<<Logger::Warning<<"Inserting reverse zone '"<<dr.d_name<<"' based on hosts file"<<endl;
+      g_log<<Logger::Warning<<"Inserting reverse zone '"<<dr.d_name<<"' based on hosts file"<<endl;
     ad.d_name = dr.d_name;
     (*newMap)[ad.d_name]=ad;
   }
@@ -219,15 +215,15 @@ void convertServersForAD(const std::string& input, SyncRes::AuthDomain& ad, cons
 
   for(vector<string>::const_iterator iter = servers.begin(); iter != servers.end(); ++iter) {
     if(verbose && iter != servers.begin()) 
-      L<<", ";
+      g_log<<", ";
 
     ComboAddress addr=parseIPAndPort(*iter, 53);
     if(verbose)
-      L<<addr.toStringWithPort();
+      g_log<<addr.toStringWithPort();
     ad.d_servers.push_back(addr);
   }
   if(verbose)
-    L<<endl;
+    g_log<<endl;
 }
 
 void* pleaseWipeNegCache()
@@ -247,16 +243,12 @@ string reloadAuthAndForwards()
   std::shared_ptr<SyncRes::domainmap_t> original=SyncRes::getDomainMap();
   
   try {
-    L<<Logger::Warning<<"Reloading zones, purging data from cache"<<endl;
-
-    if (original) {
-      for(const auto& i : *original) {
-        for(const auto& j : i.second.d_records)
-          broadcastAccFunction<uint64_t>(boost::bind(pleaseWipeCache, j.d_name, false));
-      }
-    }
+    g_log<<Logger::Warning<<"Reloading zones, purging data from cache"<<endl;
 
     string configname=::arg()["config-dir"]+"/recursor.conf";
+    if(::arg()["config-name"]!="") {
+      configname=::arg()["config-dir"]+"/recursor-"+::arg()["config-name"]+".conf";
+    }
     cleanSlashes(configname);
     
     if(!::arg().preParseFile(configname.c_str(), "forward-zones"))
@@ -291,115 +283,38 @@ string reloadAuthAndForwards()
     ::arg().preParse(g_argc, g_argv, "serve-rfc1918");
 
     std::shared_ptr<SyncRes::domainmap_t> newDomainMap = parseAuthAndForwards();
-    
-    // purge again - new zones need to blank out the cache
+
+    // purge both original and new names
+    std::set<DNSName> oldAndNewDomains;
     for(const auto& i : *newDomainMap) {
-        broadcastAccFunction<uint64_t>(boost::bind(pleaseWipeCache, i.first, true));
-        broadcastAccFunction<uint64_t>(boost::bind(pleaseWipePacketCache, i.first, true));
-        broadcastAccFunction<uint64_t>(boost::bind(pleaseWipeAndCountNegCache, i.first, true));
+      oldAndNewDomains.insert(i.first);
+    }
+
+    if(original) {
+      for(const auto& i : *original) {
+        oldAndNewDomains.insert(i.first);
+      }
+    }
+
+    for(const auto i : oldAndNewDomains) {
+        broadcastAccFunction<uint64_t>(boost::bind(pleaseWipeCache, i, true));
+        broadcastAccFunction<uint64_t>(boost::bind(pleaseWipePacketCache, i, true));
+        broadcastAccFunction<uint64_t>(boost::bind(pleaseWipeAndCountNegCache, i, true));
     }
 
     broadcastFunction(boost::bind(pleaseUseNewSDomainsMap, newDomainMap));
     return "ok\n";
   }
   catch(std::exception& e) {
-    L<<Logger::Error<<"Encountered error reloading zones, keeping original data: "<<e.what()<<endl;
+    g_log<<Logger::Error<<"Encountered error reloading zones, keeping original data: "<<e.what()<<endl;
   }
   catch(PDNSException& ae) {
-    L<<Logger::Error<<"Encountered error reloading zones, keeping original data: "<<ae.reason<<endl;
+    g_log<<Logger::Error<<"Encountered error reloading zones, keeping original data: "<<ae.reason<<endl;
   }
   catch(...) {
-    L<<Logger::Error<<"Encountered unknown error reloading zones, keeping original data"<<endl;
+    g_log<<Logger::Error<<"Encountered unknown error reloading zones, keeping original data"<<endl;
   }
   return "reloading failed, see log\n";
-}
-
-
-void RPZIXFRTracker(const ComboAddress& master, const DNSName& zoneName, boost::optional<DNSFilterEngine::Policy> defpol, uint32_t maxTTL, size_t zoneIdx, const TSIGTriplet& tt, shared_ptr<SOARecordContent> oursr, size_t maxReceivedBytes, const ComboAddress& localAddress)
-{
-  uint32_t refresh = oursr->d_st.refresh;
-  for(;;) {
-    DNSRecord dr;
-    dr.d_content=oursr;
-
-    sleep(refresh);
-    
-    L<<Logger::Info<<"Getting IXFR deltas for "<<zoneName<<" from "<<master.toStringWithPort()<<", our serial: "<<getRR<SOARecordContent>(dr)->d_st.serial<<endl;
-    vector<pair<vector<DNSRecord>, vector<DNSRecord> > > deltas;
-
-    ComboAddress local(localAddress);
-    if (local == ComboAddress())
-      local = getQueryLocalAddress(master.sin4.sin_family, 0);
-
-    try {
-      deltas = getIXFRDeltas(master, zoneName, dr, tt, &local, maxReceivedBytes);
-    } catch(std::runtime_error& e ){
-      L<<Logger::Warning<<e.what()<<endl;
-      continue;
-    }
-    if(deltas.empty())
-      continue;
-    L<<Logger::Info<<"Processing "<<deltas.size()<<" delta"<<addS(deltas)<<" for RPZ "<<zoneName<<endl;
-
-    auto luaconfsLocal = g_luaconfs.getLocal();
-    const std::shared_ptr<DNSFilterEngine::Zone> oldZone = luaconfsLocal->dfe.getZone(zoneIdx);
-    /* we need to make a _full copy_ of the zone we are going to work on */
-    std::shared_ptr<DNSFilterEngine::Zone> newZone = std::make_shared<DNSFilterEngine::Zone>(*oldZone);
-
-    int totremove=0, totadd=0;
-    for(const auto& delta : deltas) {
-      const auto& remove = delta.first;
-      const auto& add = delta.second;
-      if(remove.empty()) {
-        L<<Logger::Warning<<"IXFR update is a whole new zone"<<endl;
-        newZone->clear();
-      }
-      for(const auto& rr : remove) { // should always contain the SOA
-        if(rr.d_type == QType::NS)
-          continue;
-	if(rr.d_type == QType::SOA) {
-	  auto oldsr = getRR<SOARecordContent>(rr);
-	  if(oldsr && oldsr->d_st.serial == oursr->d_st.serial) {
-	    //	    cout<<"Got good removal of SOA serial "<<oldsr->d_st.serial<<endl;
-	  }
-	  else
-	    L<<Logger::Error<<"GOT WRONG SOA SERIAL REMOVAL, SHOULD TRIGGER WHOLE RELOAD"<<endl;
-	}
-	else {
-          totremove++;
-	  L<<(g_logRPZChanges ? Logger::Info : Logger::Debug)<<"Had removal of "<<rr.d_name<<" from RPZ zone "<<zoneName.toStringNoDot()<<endl;
-	  RPZRecordToPolicy(rr, newZone, false, defpol, maxTTL);
-	}
-      }
-
-      for(const auto& rr : add) { // should always contain the new SOA
-        if(rr.d_type == QType::NS)
-          continue;
-	if(rr.d_type == QType::SOA) {
-	  auto newsr = getRR<SOARecordContent>(rr);
-	  //	  L<<Logger::Info<<"New SOA serial for "<<zoneName<<": "<<newsr->d_st.serial<<endl;
-	  if (newsr) {
-	    oursr = newsr;
-	  }
-	}
-	else {
-          totadd++;
-	  L<<(g_logRPZChanges ? Logger::Info : Logger::Debug)<<"Had addition of "<<rr.d_name<<" to RPZ zone "<<zoneName.toStringNoDot()<<endl;
-	  RPZRecordToPolicy(rr, newZone, true, defpol, maxTTL);
-	}
-      }
-    }
-    L<<Logger::Info<<"Had "<<totremove<<" RPZ removal"<<addS(totremove)<<", "<<totadd<<" addition"<<addS(totadd)<<" for "<<zoneName<<" New serial: "<<oursr->d_st.serial<<endl;
-    newZone->setSerial(oursr->d_st.serial);
-
-    /* we need to replace the existing zone with the new one,
-       but we don't want to touch anything else, especially other zones,
-       since they might have been updated by another RPZ IXFR tracker thread.
-    */
-    g_luaconfs.modify([zoneIdx, &newZone](LuaConfigItems& lci) {
-                        lci.dfe.setZone(zoneIdx, newZone);
-                      });
-  }
 }
 
 std::shared_ptr<SyncRes::domainmap_t> parseAuthAndForwards()
@@ -425,7 +340,7 @@ std::shared_ptr<SyncRes::domainmap_t> parseAuthAndForwards()
       // headers.first=toCanonic("", headers.first);
       if(n==0) {
         ad.d_rdForward = false;
-        L<<Logger::Error<<"Parsing authoritative data for zone '"<<headers.first<<"' from file '"<<headers.second<<"'"<<endl;
+        g_log<<Logger::Error<<"Parsing authoritative data for zone '"<<headers.first<<"' from file '"<<headers.second<<"'"<<endl;
         ZoneParserTNG zpt(headers.second, DNSName(headers.first));
         DNSResourceRecord rr;
 	DNSRecord dr;
@@ -435,23 +350,23 @@ std::shared_ptr<SyncRes::domainmap_t> parseAuthAndForwards()
 	    dr.d_place=DNSResourceRecord::ANSWER;
           }
           catch(std::exception &e) {
-            throw PDNSException("Error parsing record '"+rr.qname.toString()+"' of type "+rr.qtype.getName()+" in zone '"+headers.first+"' from file '"+headers.second+"': "+e.what());
+            throw PDNSException("Error parsing record '"+rr.qname.toLogString()+"' of type "+rr.qtype.getName()+" in zone '"+headers.first+"' from file '"+headers.second+"': "+e.what());
           }
           catch(...) {
-            throw PDNSException("Error parsing record '"+rr.qname.toString()+"' of type "+rr.qtype.getName()+" in zone '"+headers.first+"' from file '"+headers.second+"'");
+            throw PDNSException("Error parsing record '"+rr.qname.toLogString()+"' of type "+rr.qtype.getName()+" in zone '"+headers.first+"' from file '"+headers.second+"'");
           }
 
           ad.d_records.insert(dr);
         }
       }
       else {
-        L<<Logger::Error<<"Redirecting queries for zone '"<<headers.first<<"' ";
+        g_log<<Logger::Error<<"Redirecting queries for zone '"<<headers.first<<"' ";
         if(n == 2) {
-          L<<"with recursion ";
+          g_log<<"with recursion ";
           ad.d_rdForward = true;
         }
         else ad.d_rdForward = false;
-        L<<"to: ";
+        g_log<<"to: ";
         
         convertServersForAD(headers.second, ad, ";");
         if(n == 2) {
@@ -465,7 +380,7 @@ std::shared_ptr<SyncRes::domainmap_t> parseAuthAndForwards()
   }
   
   if(!::arg()["forward-zones-file"].empty()) {
-    L<<Logger::Warning<<"Reading zone forwarding information from '"<<::arg()["forward-zones-file"]<<"'"<<endl;
+    g_log<<Logger::Warning<<"Reading zone forwarding information from '"<<::arg()["forward-zones-file"]<<"'"<<endl;
     SyncRes::AuthDomain ad;
     FILE *rfp=fopen(::arg()["forward-zones-file"].c_str(), "r");
 
@@ -510,7 +425,7 @@ std::shared_ptr<SyncRes::domainmap_t> parseAuthAndForwards()
       ad.d_name = DNSName(domain);
       (*newMap)[ad.d_name]=ad;
     }
-    L<<Logger::Warning<<"Done parsing " << newMap->size() - before<<" forwarding instructions from file '"<<::arg()["forward-zones-file"]<<"'"<<endl;
+    g_log<<Logger::Warning<<"Done parsing " << newMap->size() - before<<" forwarding instructions from file '"<<::arg()["forward-zones-file"]<<"'"<<endl;
   }
 
   if(::arg().mustDo("export-etc-hosts")) {
@@ -519,7 +434,7 @@ std::shared_ptr<SyncRes::domainmap_t> parseAuthAndForwards()
     
     ifstream ifs(fname.c_str());
     if(!ifs) {
-      L<<Logger::Warning<<"Could not open /etc/hosts for reading"<<endl;
+      g_log<<Logger::Warning<<"Could not open "<<fname<<" for reading"<<endl;
     }
     else {
       string searchSuffix = ::arg()["export-etc-hosts-search-suffix"];
@@ -551,7 +466,7 @@ std::shared_ptr<SyncRes::domainmap_t> parseAuthAndForwards()
     }
   }
   if(::arg().mustDo("serve-rfc1918")) {
-    L<<Logger::Warning<<"Inserting rfc 1918 private space zones"<<endl;
+    g_log<<Logger::Warning<<"Inserting rfc 1918 private space zones"<<endl;
     parts.clear();
     parts.push_back("127");
     makeIPToNamesZone(newMap, parts);

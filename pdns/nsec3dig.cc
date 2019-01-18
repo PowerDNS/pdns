@@ -171,15 +171,18 @@ try
     {
       // cerr<<"got nsec3 ["<<i->first.d_name<<"]"<<endl;
       // cerr<<i->first.d_content->getZoneRepresentation()<<endl;
-      NSEC3RecordContent r = dynamic_cast<NSEC3RecordContent&> (*(i->first.d_content));
+      const auto r = std::dynamic_pointer_cast<NSEC3RecordContent>(i->first.d_content);
+      if (!r) {
+        continue;
+      }
       // nsec3.insert(new nsec3()
       // cerr<<toBase32Hex(r.d_nexthash)<<endl;
       vector<string> parts;
       string sname=i->first.d_name.toString();
       boost::split(parts, sname /* FIXME400 */, boost::is_any_of("."));
-      nsec3s.insert(make_pair(toLower(parts[0]), toBase32Hex(r.d_nexthash)));
-      nsec3salt = r.d_salt;
-      nsec3iters = r.d_iterations;
+      nsec3s.insert(make_pair(toLower(parts[0]), toBase32Hex(r->d_nexthash)));
+      nsec3salt = r->d_salt;
+      nsec3iters = r->d_iterations;
     }
     else
     {
@@ -212,17 +215,17 @@ try
   set<DNSName> proven;
   set<DNSName> denied;
   namesseen.insert(qname);
-  for(const auto &n: namesseen)
+  for(const auto &name: namesseen)
   {
-    DNSName shorter(n);
+    DNSName shorter(name);
     do {
       namestocheck.insert(shorter);
     } while(shorter.chopOff());
   }
-  for(const auto &n: namestocheck)
+  for(const auto &name: namestocheck)
   {
-    proveOrDeny(nsec3s, n, nsec3salt, nsec3iters, proven, denied);
-    proveOrDeny(nsec3s, g_wildcarddnsname+n, nsec3salt, nsec3iters, proven, denied);
+    proveOrDeny(nsec3s, name, nsec3salt, nsec3iters, proven, denied);
+    proveOrDeny(nsec3s, g_wildcarddnsname+name, nsec3salt, nsec3iters, proven, denied);
   }
 
   if(names.count(qname))

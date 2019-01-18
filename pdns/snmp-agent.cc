@@ -1,5 +1,11 @@
 #include "snmp-agent.hh"
 #include "misc.hh"
+#include "threadname.hh"
+#ifdef RECURSOR
+#include "logger.hh"
+#else
+#include "dolog.hh"
+#endif
 
 #ifdef HAVE_NET_SNMP
 
@@ -90,31 +96,22 @@ void SNMPAgent::handleSNMPQueryCB(int fd, FDMultiplexer::funcparam_t& var)
   (*agent)->handleSNMPQueryEvent(fd);
 }
 
-static FDMultiplexer* getMultiplexer()
-{
-  FDMultiplexer* ret = nullptr;
-  for(const auto& i : FDMultiplexer::getMultiplexerMap()) {
-    try {
-      ret = i.second();
-      return ret;
-    }
-    catch(const FDMultiplexerException& fe) {
-    }
-    catch(...) {
-    }
-  }
-  return ret;
-}
-
 #endif /* HAVE_NET_SNMP */
 
 void SNMPAgent::worker()
 {
 #ifdef HAVE_NET_SNMP
-  FDMultiplexer* mplexer = getMultiplexer();
+  FDMultiplexer* mplexer = FDMultiplexer::getMultiplexerSilent();
   if (mplexer == nullptr) {
     throw std::runtime_error("No FD multiplexer found for the SNMP agent!");
   }
+
+#ifdef RECURSOR
+  string threadName = "pdns-r/SNMP";
+#else
+  string threadName = "dnsdist/SNMP";
+#endif
+  setThreadName(threadName);
 
   int maxfd = 0;
   int block = 1;

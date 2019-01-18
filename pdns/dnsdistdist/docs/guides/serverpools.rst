@@ -9,7 +9,7 @@ Either we block it outright, like this:
 
 .. code-block:: lua
 
-  addAction("bad-domain.example.", dropAction())
+  addAction("bad-domain.example.", DropAction())
 
 Or we configure a server pool dedicated to receiving the nasty stuff:
 

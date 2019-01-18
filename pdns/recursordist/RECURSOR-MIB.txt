@@ -15,7 +15,7 @@ IMPORTS
         FROM SNMPv2-CONF;
 
 rec MODULE-IDENTITY
-    LAST-UPDATED "201611290000Z"
+    LAST-UPDATED "201812240000Z"
     ORGANIZATION "PowerDNS BV"
     CONTACT-INFO "support@powerdns.com"
     DESCRIPTION
@@ -23,6 +23,9 @@ rec MODULE-IDENTITY
 
     REVISION "201611290000Z"
     DESCRIPTION "Initial revision."
+
+    REVISION "201812240000Z"
+    DESCRIPTION "Added the dnssecAuthenticDataQueries and dnssecCheckDisabledQueries stats."
 
     ::= { powerdns 2 }
 
@@ -195,7 +198,7 @@ tooOldDrops OBJECT-TYPE
     MAX-ACCESS read-only
     STATUS current
     DESCRIPTION
-        "Number of responses dropped because of a timeout"
+        "Number of queries dropped because of a timeout"
     ::= { stats 21 }
 
 answers01 OBJECT-TYPE
@@ -387,7 +390,7 @@ noPacketError OBJECT-TYPE
     MAX-ACCESS read-only
     STATUS current
     DESCRIPTION
-        "Number of noPacketError"
+        "Number of calls to recvmsg() that returned no packet even though the socket was ready"
     ::= { stats 45 }
 
 dlgOnlyDrops OBJECT-TYPE
@@ -758,6 +761,54 @@ policyResultCustom OBJECT-TYPE
         "Number of policy-mandated custom results"
     ::= { stats 91 }
 
+queryPipeFullDrops OBJECT-TYPE
+    SYNTAX Counter64
+    MAX-ACCESS read-only
+    STATUS current
+    DESCRIPTION
+        "Number of queries dropped because the query distribution pipe was full"
+    ::= { stats 92 }
+
+truncatedDrops OBJECT-TYPE
+    SYNTAX Counter64
+    MAX-ACCESS read-only
+    STATUS current
+    DESCRIPTION
+        "Number of queries dropped because they were larger than 512 bytes"
+    ::= { stats 93 }
+
+emptyQueries OBJECT-TYPE
+    SYNTAX Counter64
+    MAX-ACCESS read-only
+    STATUS current
+    DESCRIPTION
+        "Number of queries dropped because they had a QD count of 0"
+    ::= { stats 94 }
+
+dnssecAuthenticDataQueries OBJECT-TYPE
+    SYNTAX Counter64
+    MAX-ACCESS read-only
+    STATUS current
+    DESCRIPTION
+        "Number of queries received with the AD bit set"
+    ::= { stats 95 }
+
+dnssecCheckDisabledQueries OBJECT-TYPE
+    SYNTAX Counter64
+    MAX-ACCESS read-only
+    STATUS current
+    DESCRIPTION
+        "Number of queries received with the CD bit set"
+    ::= { stats 96 }
+
+variableResponses OBJECT-TYPE
+    SYNTAX Counter64
+    MAX-ACCESS read-only
+    STATUS current
+    DESCRIPTION
+        "Number of variable responses"
+    ::= { stats 97 }
+
 ---
 --- Traps / Notifications
 ---
@@ -891,6 +942,12 @@ recGroup OBJECT-GROUP
         policyResultNodata,
         policyResultTruncate,
         policyResultCustom,
+        queryPipeFullDrops,
+        truncatedDrops,
+        emptyQueries,
+        dnssecAuthenticDataQueries,
+        dnssecCheckDisabledQueries,
+        variableResponses,
         trapReason
     }
     STATUS current

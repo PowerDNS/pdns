@@ -20,16 +20,16 @@ class TestBasics(ApiTestCase):
         print("Sending request")
         for part in parts:
             print("Sending %s" % part)
-            s.sendall(part)
+            s.sendall(part.encode('ascii'))
             time.sleep(0.5)
 
         resp = s.recv(4096, socket.MSG_WAITALL)
         s.close()
 
-        print "response", repr(resp)
+        print("response", repr(resp))
 
         status = resp.splitlines(0)[0]
-        if '400' in status:
+        if b'400' in status:
             raise Exception('Got unwanted response: %s' % status)
 
     def test_cors(self):
@@ -41,4 +41,4 @@ class TestBasics(ApiTestCase):
         self.assertEquals(r.headers['access-control-allow-headers'], 'Content-Type, X-API-Key')
         self.assertEquals(r.headers['access-control-allow-methods'], 'GET, POST, PUT, PATCH, DELETE, OPTIONS')
 
-        print "response", repr(r.headers)
+        print("response", repr(r.headers))

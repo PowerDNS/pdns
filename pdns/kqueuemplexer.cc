@@ -28,7 +28,7 @@
 #include <unistd.h>
 #include "misc.hh"
 #include <sys/types.h>
-#if defined(__FreeBSD__) || defined(__FreeBSD_kernel__)
+#if defined(__FreeBSD__) || defined(__FreeBSD_kernel__) || defined(__NetBSD__)
 #include <sys/event.h>
 #endif
 #include <sys/time.h>
@@ -44,11 +44,12 @@ public:
     close(d_kqueuefd);
   }
 
-  virtual int run(struct timeval* tv, int timeout=500);
+  virtual int run(struct timeval* tv, int timeout=500) override;
+  virtual void getAvailableFDs(std::vector<int>& fds, int timeout) override;
 
-  virtual void addFD(callbackmap_t& cbmap, int fd, callbackfunc_t toDo, const boost::any& parameter);
-  virtual void removeFD(callbackmap_t& cbmap, int fd);
-  string getName()
+  virtual void addFD(callbackmap_t& cbmap, int fd, callbackfunc_t toDo, const boost::any& parameter) override;
+  virtual void removeFD(callbackmap_t& cbmap, int fd) override;
+  string getName() const override
   {
     return "kqueue";
   }
@@ -85,7 +86,7 @@ void KqueueFDMultiplexer::addFD(callbackmap_t& cbmap, int fd, callbackfunc_t toD
 
   struct kevent kqevent;
   EV_SET(&kqevent, fd, (&cbmap == &d_readCallbacks) ? EVFILT_READ : EVFILT_WRITE, EV_ADD, 0,0,0);
-  
+
   if(kevent(d_kqueuefd, &kqevent, 1, 0, 0, 0) < 0) {
     cbmap.erase(fd);
     throw FDMultiplexerException("Adding fd to kqueue set: "+stringerror());
@@ -103,6 +104,22 @@ void KqueueFDMultiplexer::removeFD(callbackmap_t& cbmap, int fd)
     throw FDMultiplexerException("Removing fd from kqueue set: "+stringerror());
 }
 
+void KqueueFDMultiplexer::getAvailableFDs(std::vector<int>& fds, int timeout)
+{
+  struct timespec ts;
+  ts.tv_sec=timeout/1000;
+  ts.tv_nsec=(timeout % 1000) * 1000000;
+
+  int ret = kevent(d_kqueuefd, 0, 0, d_kevents.get(), s_maxevents, &ts);
+
+  if(ret < 0 && errno != EINTR)
+    throw FDMultiplexerException("kqueue returned error: "+stringerror());
+
+  for(int n=0; n < ret; ++n) {
+    fds.push_back(d_kevents[n].ident);
+  }
+}
+
 int KqueueFDMultiplexer::run(struct timeval* now, int timeout)
 {
   if(d_inrun) {
@@ -115,7 +132,7 @@ int KqueueFDMultiplexer::run(struct timeval* now, int timeout)
 
   int ret=kevent(d_kqueuefd, 0, 0, d_kevents.get(), s_maxevents, &ts);
   gettimeofday(now,0); // MANDATORY!
-  
+
   if(ret < 0 && errno!=EINTR)
     throw FDMultiplexerException("kqueue returned error: "+stringerror());
 

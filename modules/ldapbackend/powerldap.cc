@@ -31,13 +31,124 @@
 #include <sys/time.h>
 
 
+PowerLDAP::SearchResult::SearchResult( int msgid, LDAP* ld )
+  : d_ld( ld ), d_msgid( msgid ), d_finished( false )
+{
+}
 
-PowerLDAP::PowerLDAP( const string& hosts, uint16_t port, bool tls )
+
+PowerLDAP::SearchResult::~SearchResult()
+{
+  if ( !d_finished )
+    ldap_abandon_ext( d_ld, d_msgid, NULL, NULL ); // We don't really care about the return code as there's
+                                                   // not much we can do now
+}
+
+
+bool PowerLDAP::SearchResult::getNext( PowerLDAP::sentry_t& entry, bool dn, int timeout )
+{
+  int i;
+  char* attr;
+  BerElement* ber;
+  struct berval** berval;
+  vector<string> values;
+  LDAPMessage* result = NULL;
+  LDAPMessage* object;
+
+  while ( !d_finished && result == NULL ) {
+    i = ldapWaitResult( d_ld, d_msgid, 5, &result );
+    switch ( i ) {
+      case -1:
+        int err_code;
+        ldapGetOption( d_ld, LDAP_OPT_ERROR_NUMBER, &err_code );
+        if ( err_code == LDAP_SERVER_DOWN || err_code == LDAP_CONNECT_ERROR )
+          throw LDAPNoConnection();
+        else
+          throw LDAPException( "Error waiting for LDAP result: " + ldapGetError( d_ld, err_code ) );
+        break;
+      case 0:
+        throw LDAPTimeout();
+        break;
+      case LDAP_NO_SUCH_OBJECT:
+        return false;
+      case LDAP_RES_SEARCH_REFERENCE:
+        ldap_msgfree( result );
+        result = NULL;
+        break;
+      case LDAP_RES_SEARCH_RESULT:
+        d_finished = true;
+        ldap_msgfree( result );
+        break;
+      case LDAP_RES_SEARCH_ENTRY:
+        // Yay!
+        break;
+    }
+  }
+
+  if ( d_finished )
+    return false;
+
+  if( ( object = ldap_first_entry( d_ld, result ) ) == NULL )
+  {
+    ldap_msgfree( result );
+    throw LDAPException( "Couldn't get first result entry: " + ldapGetError( d_ld, -1 ) );
+  }
+
+  entry.clear();
+
+  if( dn )
+  {
+    attr = ldap_get_dn( d_ld, object );
+    values.push_back( string( attr ) );
+    ldap_memfree( attr );
+    entry["dn"] = values;
+  }
+
+  if( ( attr = ldap_first_attribute( d_ld, object, &ber ) ) != NULL )
+  {
+    do
+    {
+      if( ( berval = ldap_get_values_len( d_ld, object, attr ) ) != NULL )
+      {
+        values.clear();
+        for( i = 0; i < ldap_count_values_len( berval ); i++ )
+        {
+          values.push_back( berval[i]->bv_val );   // use berval[i]->bv_len for non string values?
+        }
+
+        entry[attr] = values;
+        ldap_value_free_len( berval );
+      }
+      ldap_memfree( attr );
+    }
+    while( ( attr = ldap_next_attribute( d_ld, object, ber ) ) != NULL );
+
+    ber_free( ber, 0 );
+  }
+
+  ldap_msgfree( result );
+  return true;
+}
+
+
+void PowerLDAP::SearchResult::getAll( PowerLDAP::sresult_t& results, bool dn, int timeout )
+{
+  PowerLDAP::sentry_t entry;
+
+  while( getNext( entry, dn, timeout ) )
+  {
+    results.push_back( entry );
+  }
+}
+
+
+PowerLDAP::PowerLDAP( const string& hosts, uint16_t port, bool tls, int timeout )
 {
   d_ld = 0;
   d_hosts = hosts;
   d_port = port;
   d_tls = tls;
+  d_timeout = timeout;
   ensureConnect();
 }
 
@@ -131,7 +242,7 @@ void PowerLDAP::bind( LdapAuthenticator* authenticator )
 }
 
 
-void PowerLDAP::bind( const string& ldapbinddn, const string& ldapsecret, int method, int timeout )
+void PowerLDAP::bind( const string& ldapbinddn, const string& ldapsecret, int method)
 {
   int msgid;
 
@@ -153,7 +264,7 @@ void PowerLDAP::bind( const string& ldapbinddn, const string& ldapsecret, int me
   }
 #endif
 
-  waitResult( msgid, timeout, NULL );
+  ldapWaitResult( d_ld, msgid, d_timeout, NULL );
 }
 
 
@@ -163,7 +274,19 @@ void PowerLDAP::bind( const string& ldapbinddn, const string& ldapsecret, int me
 
 void PowerLDAP::simpleBind( const string& ldapbinddn, const string& ldapsecret )
 {
-  this->bind( ldapbinddn, ldapsecret, LDAP_AUTH_SIMPLE, 30 );
+  this->bind( ldapbinddn, ldapsecret, LDAP_AUTH_SIMPLE );
+}
+
+
+void PowerLDAP::add( const string &dn, LDAPMod *mods[] )
+{
+  int rc;
+
+  rc = ldap_add_ext_s( d_ld, dn.c_str(), mods, NULL, NULL );
+  if ( rc == LDAP_SERVER_DOWN || rc == LDAP_CONNECT_ERROR )
+    throw LDAPNoConnection();
+  else if ( rc != LDAP_SUCCESS )
+    throw LDAPException( "Error adding LDAP entry " + dn + ": " + getError( rc ) );
 }
 
 
@@ -179,7 +302,19 @@ void PowerLDAP::modify( const string &dn, LDAPMod *mods[], LDAPControl **scontro
 }
 
 
-int PowerLDAP::search( const string& base, int scope, const string& filter, const char** attr )
+void PowerLDAP::del( const string& dn )
+{
+  int rc;
+
+  rc = ldap_delete_ext_s( d_ld, dn.c_str(), NULL, NULL );
+  if ( rc == LDAP_SERVER_DOWN || rc == LDAP_CONNECT_ERROR )
+    throw LDAPNoConnection();
+  else if ( rc != LDAP_SUCCESS && rc != LDAP_NO_SUCH_OBJECT )
+    throw LDAPException( "Error deleting LDAP entry " + dn + ": " + getError( rc ) );
+}
+
+
+PowerLDAP::SearchResult::Ptr PowerLDAP::search( const string& base, int scope, const string& filter, const char** attr )
 {
   int msgid, rc;
 
@@ -187,7 +322,7 @@ int PowerLDAP::search( const string& base, int scope, const string& filter, cons
     throw LDAPException( "Starting LDAP search: " + getError( rc ) );
   }
 
-  return msgid;
+  return SearchResult::Ptr( new SearchResult( msgid, d_ld ) );
 }
 
 
@@ -197,13 +332,13 @@ int PowerLDAP::search( const string& base, int scope, const string& filter, cons
  * ldap_msgfree!
  */
 
-int PowerLDAP::waitResult( int msgid, int timeout, LDAPMessage** result )
+int PowerLDAP::waitResult( int msgid, LDAPMessage** result )
 {
-  return ldapWaitResult( d_ld, msgid, timeout, result );
+  return ldapWaitResult( d_ld, msgid, d_timeout, result );
 }
 
 
-bool PowerLDAP::getSearchEntry( int msgid, sentry_t& entry, bool dn, int timeout )
+bool PowerLDAP::getSearchEntry( int msgid, sentry_t& entry, bool dn )
 {
   int i;
   char* attr;
@@ -215,7 +350,7 @@ bool PowerLDAP::getSearchEntry( int msgid, sentry_t& entry, bool dn, int timeout
   bool hasResult = false;
 
   while ( !hasResult ) {
-    i = waitResult( msgid, timeout, &result );
+    i = waitResult( msgid, &result );
     // Here we deliberately ignore LDAP_RES_SEARCH_REFERENCE as we don't follow them.
     // Instead we get the next result.
     // If the function returned an error (i <= 0) we'll deal with after this loop too.
@@ -287,12 +422,12 @@ bool PowerLDAP::getSearchEntry( int msgid, sentry_t& entry, bool dn, int timeout
 }
 
 
-void PowerLDAP::getSearchResults( int msgid, sresult_t& result, bool dn, int timeout )
+void PowerLDAP::getSearchResults( int msgid, sresult_t& result, bool dn )
 {
   sentry_t entry;
 
   result.clear();
-  while( getSearchEntry( msgid, entry, dn, timeout ) )
+  while( getSearchEntry( msgid, entry, dn ) )
   {
     result.push_back( entry );
   }
@@ -314,12 +449,12 @@ const string PowerLDAP::escape( const string& str )
   for( i = str.begin(); i != str.end(); i++ )
   {
       // RFC4515 3
-      if( *i == '*' ||
-          *i == '(' ||
-          *i == ')' ||
-          *i == '\\' ||
-          *i == '\0' ||
-          *i > 127)
+      if( (unsigned char)*i == '*' ||
+          (unsigned char)*i == '(' ||
+          (unsigned char)*i == ')' ||
+          (unsigned char)*i == '\\' ||
+          (unsigned char)*i == '\0' ||
+          (unsigned char)*i > 127)
       {
           sprintf(tmp,"\\%02x", (unsigned char)*i);
 

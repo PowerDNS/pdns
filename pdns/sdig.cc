@@ -2,6 +2,7 @@
 #include "config.h"
 #endif
 #include "dnsparser.hh"
+#include "ednsoptions.hh"
 #include "sstuff.hh"
 #include "misc.hh"
 #include "dnswriter.hh"
@@ -23,7 +24,20 @@ string ttl(uint32_t ttl)
 
 void usage() {
   cerr<<"sdig"<<endl;
-  cerr<<"Syntax: sdig IP-ADDRESS PORT QUESTION QUESTION-TYPE [dnssec] [recurse] [showflags] [hidesoadetails] [hidettl] [tcp] [ednssubnet SUBNET/MASK]"<<endl;
+  cerr<<"Syntax: sdig IP-ADDRESS PORT QUESTION QUESTION-TYPE [dnssec] [recurse] [showflags] [hidesoadetails] [hidettl] [tcp] [ednssubnet SUBNET/MASK] [xpf XPFDATA]"<<endl;
+}
+
+const string nameForClass(uint16_t qclass, uint16_t qtype)
+{
+  if (qtype == QType::OPT) return "IN";
+
+  switch(qclass) {
+    case QClass::IN:    return "IN";
+    case QClass::CHAOS: return "CHAOS";
+    case QClass::NONE:  return "NONE";
+    case QClass::ANY:   return "ANY";
+    default:            return string("CLASS")+std::to_string(qclass);
+  }
 }
 
 int main(int argc, char** argv)
@@ -35,7 +49,8 @@ try
   bool showflags=false;
   bool hidesoadetails=false;
   boost::optional<Netmask> ednsnm;
-
+  uint16_t xpfcode = 0, xpfversion = 0, xpfproto = 0;
+  char *xpfsrc = NULL, *xpfdst = NULL;
 
   for(int i=1; i<argc; i++) {
     if ((string) argv[i] == "--help") {
@@ -71,7 +86,22 @@ try
       if (strcmp(argv[i], "tcp") == 0)
         tcp=true;
       if (strcmp(argv[i], "ednssubnet") == 0) {
+        if(argc < i+2) {
+          cerr<<"ednssubnet needs an argument"<<endl;
+          exit(EXIT_FAILURE);
+        }
         ednsnm=Netmask(argv[++i]);
+      }
+      if (strcmp(argv[i], "xpf") == 0) {
+        if(argc < i+6) {
+          cerr<<"xpf needs five arguments"<<endl;
+          exit(EXIT_FAILURE);
+        }
+        xpfcode = atoi(argv[++i]);
+        xpfversion = atoi(argv[++i]);
+        xpfproto = atoi(argv[++i]);
+        xpfsrc = argv[++i];
+        xpfdst = argv[++i];
       }
     }
   }
@@ -92,10 +122,24 @@ try
     if(ednsnm) {
       EDNSSubnetOpts eo;
       eo.source = *ednsnm;
-      opts.push_back(make_pair(8, makeEDNSSubnetOptsString(eo)));
+      opts.push_back(make_pair(EDNSOptionCode::ECS, makeEDNSSubnetOptsString(eo)));
     }
 
     pw.addOpt(bufsize, 0, dnssec ? EDNSOpts::DNSSECOK : 0, opts);
+    pw.commit();
+  }
+
+  if(xpfcode)
+  {
+    ComboAddress src(xpfsrc), dst(xpfdst);
+    pw.startRecord(DNSName("."), xpfcode, 0, 1, DNSResourceRecord::ADDITIONAL);
+    // xpf->toPacket(pw);
+    pw.xfr8BitInt(xpfversion);
+    pw.xfr8BitInt(xpfproto);
+    pw.xfrCAWithoutPort(xpfversion, src);
+    pw.xfrCAWithoutPort(xpfversion, dst);
+    pw.xfrCAPort(src);
+    pw.xfrCAPort(dst);
     pw.commit();
   }
 
@@ -151,43 +195,46 @@ try
   cout<<", TC: "<<mdp.d_header.tc<<", AA: "<<mdp.d_header.aa<<", opcode: "<<mdp.d_header.opcode<<endl;
 
   for(MOADNSParser::answers_t::const_iterator i=mdp.d_answers.begin(); i!=mdp.d_answers.end(); ++i) {          
-    cout<<i->first.d_place-1<<"\t"<<i->first.d_name.toString()<<"\tIN\t"<<DNSRecordContent::NumberToType(i->first.d_type);
-    if(i->first.d_type == QType::RRSIG) 
+    cout<<i->first.d_place-1<<"\t"<<i->first.d_name.toString()<<"\t"<<nameForClass(i->first.d_class, i->first.d_type)<<"\t"<<DNSRecordContent::NumberToType(i->first.d_type);
+    if(i->first.d_class == QClass::IN)
     {
-      string zoneRep = i->first.d_content->getZoneRepresentation();
-      vector<string> parts;
-      stringtok(parts, zoneRep);
-      cout<<"\t"<<ttl(i->first.d_ttl)<<"\t"<< parts[0]<<" "<<parts[1]<<" "<<parts[2]<<" "<<parts[3]<<" [expiry] [inception] [keytag] "<<parts[7]<<" ...\n";
+      if(i->first.d_type == QType::RRSIG) 
+      {
+        string zoneRep = i->first.d_content->getZoneRepresentation();
+        vector<string> parts;
+        stringtok(parts, zoneRep);
+        cout<<"\t"<<ttl(i->first.d_ttl)<<"\t"<< parts[0]<<" "<<parts[1]<<" "<<parts[2]<<" "<<parts[3]<<" [expiry] [inception] [keytag] "<<parts[7]<<" ...\n";
+        continue;
+      }
+      if(!showflags && i->first.d_type == QType::NSEC3)
+      {
+        string zoneRep = i->first.d_content->getZoneRepresentation();
+        vector<string> parts;
+        stringtok(parts, zoneRep);
+        cout<<"\t"<<ttl(i->first.d_ttl)<<"\t"<< parts[0]<<" [flags] "<<parts[2]<<" "<<parts[3]<<" "<<parts[4];
+        for(vector<string>::iterator iter = parts.begin()+5; iter != parts.end(); ++iter)
+          cout<<" "<<*iter;
+        cout<<"\n";
+        continue;
+      }
+      if(i->first.d_type == QType::DNSKEY)
+      {
+        string zoneRep = i->first.d_content->getZoneRepresentation();
+        vector<string> parts;
+        stringtok(parts, zoneRep);
+        cout<<"\t"<<ttl(i->first.d_ttl)<<"\t"<< parts[0]<<" "<<parts[1]<<" "<<parts[2]<<" ...\n";
+        continue;
+      }
+      if (i->first.d_type == QType::SOA && hidesoadetails)
+      {
+        string zoneRep = i->first.d_content->getZoneRepresentation();
+        vector<string> parts;
+        stringtok(parts, zoneRep);
+        cout<<"\t"<<ttl(i->first.d_ttl)<<"\t"<<parts[0]<<" "<<parts[1]<<" [serial] "<<parts[3]<<" "<<parts[4]<<" "<<parts[5]<<" "<<parts[6]<<"\n";
+        continue;
+      }
     }
-    else if(!showflags && i->first.d_type == QType::NSEC3)
-    {
-      string zoneRep = i->first.d_content->getZoneRepresentation();
-      vector<string> parts;
-      stringtok(parts, zoneRep);
-      cout<<"\t"<<ttl(i->first.d_ttl)<<"\t"<< parts[0]<<" [flags] "<<parts[2]<<" "<<parts[3]<<" "<<parts[4];
-      for(vector<string>::iterator iter = parts.begin()+5; iter != parts.end(); ++iter)
-        cout<<" "<<*iter;
-      cout<<"\n";
-    }
-    else if(i->first.d_type == QType::DNSKEY)
-    {
-      string zoneRep = i->first.d_content->getZoneRepresentation();
-      vector<string> parts;
-      stringtok(parts, zoneRep);
-      cout<<"\t"<<ttl(i->first.d_ttl)<<"\t"<< parts[0]<<" "<<parts[1]<<" "<<parts[2]<<" ...\n";
-    }
-    else if (i->first.d_type == QType::SOA && hidesoadetails)
-    {
-      string zoneRep = i->first.d_content->getZoneRepresentation();
-      vector<string> parts;
-      stringtok(parts, zoneRep);
-      cout<<"\t"<<ttl(i->first.d_ttl)<<"\t"<<parts[0]<<" "<<parts[1]<<" [serial] "<<parts[3]<<" "<<parts[4]<<" "<<parts[5]<<" "<<parts[6]<<"\n";
-    }
-    else
-    {
-      cout<<"\t"<<ttl(i->first.d_ttl)<<"\t"<< i->first.d_content->getZoneRepresentation()<<"\n";
-    }
-
+    cout<<"\t"<<ttl(i->first.d_ttl)<<"\t"<< i->first.d_content->getZoneRepresentation()<<"\n";
   }
 
   EDNSOpts edo;
@@ -196,12 +243,7 @@ try
     for(vector<pair<uint16_t, string> >::const_iterator iter = edo.d_options.begin();
         iter != edo.d_options.end(); 
         ++iter) {
-      if(iter->first == 5) {// 'EDNS PING'
-        cerr<<"Have ednsping: '"<<iter->second<<"'\n";
-        //if(iter->second == ping) 
-         // cerr<<"It is correct!"<<endl;
-      }
-      if(iter->first == 8) {// 'EDNS subnet'
+      if(iter->first == EDNSOptionCode::ECS) {// 'EDNS subnet'
 	EDNSSubnetOpts reso;
         if(getEDNSSubnetOptsFromString(iter->second, &reso)) {
           cerr<<"EDNS Subnet response: "<<reso.source.toString()<<", scope: "<<reso.scope.toString()<<", family = "<<reso.scope.getNetwork().sin4.sin_family<<endl;

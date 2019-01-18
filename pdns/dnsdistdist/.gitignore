@@ -1,6 +1,7 @@
 *.tar.gz
 *.tar.bz2
 .version
+.venv
 .dnsdist_history
 /stamp-h1
 /compile
@@ -30,9 +31,10 @@
 /missing
 /testrunner
 /dnsdist
-/dnsmessage.pb.cc
-/dnsmessage.pb.h
+/*.pb.cc
+/*.pb.h
 /dnsdist.service
+/dnsdist@.service
 /lua.hpp
 /test-driver
 dnsdist.pdf

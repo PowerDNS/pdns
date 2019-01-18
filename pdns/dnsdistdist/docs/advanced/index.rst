@@ -16,3 +16,4 @@ These chapters contain information on the advanced features of dnsdist
    tuning
    snmp
    axfr
+   multiple-instance

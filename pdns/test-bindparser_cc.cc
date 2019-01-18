@@ -13,10 +13,11 @@
 #include <cstdlib>
 #include "dnsname.hh"
 #include "bindparserclasses.hh"
+#include "iputils.hh"
 
 using std::string;
 
-BOOST_AUTO_TEST_SUITE(bindparser_cc)
+BOOST_AUTO_TEST_SUITE(test_bindparser_cc)
 
 BOOST_AUTO_TEST_CASE(test_parser) {
         const char *srcdir;
@@ -43,7 +44,7 @@ BOOST_AUTO_TEST_CASE(test_parser) {
 
         checkzone(0, example.com, "./zones//example.com", master, 0);
         checkzone(1, test.com, "./zones//test.com", slave, 1);
-        BOOST_CHECK_EQUAL(domains[1].masters[0], "1.2.3.4:5678");
+        BOOST_CHECK_EQUAL(domains[1].masters[0].toString(), ComboAddress("1.2.3.4", 5678).toString());
         checkzone(2, test.dyndns, "./zones//test.dyndns", garblewarble, 0);
         checkzone(3, wtest.com, "./zones//wtest.com", master, 0);
         checkzone(4, nztest.com, "./zones//nztest.com", master, 0);

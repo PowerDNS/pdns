@@ -1,8 +1,6 @@
 pdns_server
 ===========
 
-:program:`pdns_server` - The PowerDNS Authoritative Namserver
-
 Synopsis
 --------
 

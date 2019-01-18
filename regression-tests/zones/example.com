@@ -20193,3 +20193,12 @@ rhs-at-expansion	IN   CNAME      @
 google-alias		IN 	ALIAS 	google-public-dns-a.google.com.
 ;
 host-for-auto-ptr	IN	A 192.0.2.1
+;
+phil.mb            IN      MB      pc.mb.example.com.
+sheila.mb          IN      MB      bill.mb.example.com.
+hostmaster.mb      IN      MG      phil.mb.example.com.
+                   IN      MG      sheila.mb.example.com.
+philip.mb          IN      MR      phil.mb.example.com.
+
+; Test that no out of zone data is sent
+_imap._tcp IN SRV 0 1 143 blah.test.com.

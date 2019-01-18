@@ -19,6 +19,15 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
-#ifndef PDNS_PUBSUFFIX_HH
-extern const char* g_pubsuffix[];
-#endif
+#pragma once
+
+#include <string>
+#include <vector>
+
+extern std::vector<std::vector<std::string>> g_pubs;
+
+/* initialize the g_pubs variable with the public suffix list,
+   using the file passed in parameter if any, or the built-in
+   list otherwise.
+*/
+void initPublicSuffixList(const std::string& file);

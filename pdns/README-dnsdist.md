@@ -7,4 +7,23 @@ to legitimate users while shunting or blocking abusive traffic.
 runtime, and that its statistics can be queried from a console-like
 interface.
 
-All `dnsdist` features are documented at [dnsdist.org](http://dnsdist.org).
+All `dnsdist` features are documented at [dnsdist.org](https://dnsdist.org).
+
+## Compiling from git
+
+Make sure to `autoreconf -vi` before running `configure`.
+
+## macOS Notes
+
+Install dependencies from Homebrew:
+
+```sh
+brew install autoconf automake boost libedit libsodium libtool lua pkg-config protobuf
+```
+
+Let configure know where to find libedit:
+
+```sh
+./configure 'PKG_CONFIG_PATH=/usr/local/opt/libedit/lib/pkgconfig'
+make
+```

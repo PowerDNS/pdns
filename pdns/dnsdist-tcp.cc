@@ -21,20 +21,26 @@
  */
 #include "dnsdist.hh"
 #include "dnsdist-ecs.hh"
+#include "dnsdist-rings.hh"
+#include "dnsdist-xpf.hh"
+
 #include "dnsparser.hh"
 #include "ednsoptions.hh"
 #include "dolog.hh"
 #include "lock.hh"
 #include "gettime.hh"
+#include "tcpiohandler.hh"
+#include "threadname.hh"
 #include <thread>
 #include <atomic>
+#include <netinet/tcp.h>
 
 using std::thread;
 using std::atomic;
 
-/* TCP: the grand design. 
-   We forward 'messages' between clients and downstream servers. Messages are 65k bytes large, tops. 
-   An answer might theoretically consist of multiple messages (for example, in the case of AXFR), initially 
+/* TCP: the grand design.
+   We forward 'messages' between clients and downstream servers. Messages are 65k bytes large, tops.
+   An answer might theoretically consist of multiple messages (for example, in the case of AXFR), initially
    we will not go there.
 
    In a sense there is a strong symmetry between UDP and TCP, once a connection to a downstream has been setup.
@@ -56,7 +62,9 @@ static int setupTCPDownstream(shared_ptr<DownstreamState> ds, uint16_t& downstre
       if (!IsAnyAddress(ds->sourceAddr)) {
         SSetsockopt(sock, SOL_SOCKET, SO_REUSEADDR, 1);
 #ifdef IP_BIND_ADDRESS_NO_PORT
-        SSetsockopt(sock, SOL_IP, IP_BIND_ADDRESS_NO_PORT, 1);
+        if (ds->ipBindAddrNoPort) {
+          SSetsockopt(sock, SOL_IP, IP_BIND_ADDRESS_NO_PORT, 1);
+        }
 #endif
         SBind(sock, ds->sourceAddr);
       }
@@ -85,9 +93,34 @@ static int setupTCPDownstream(shared_ptr<DownstreamState> ds, uint16_t& downstre
 
 struct ConnectionInfo
 {
-  int fd;
+  ConnectionInfo(): cs(nullptr), fd(-1)
+  {
+  }
+
+  ConnectionInfo(const ConnectionInfo& rhs) = delete;
+  ConnectionInfo& operator=(const ConnectionInfo& rhs) = delete;
+
+  ConnectionInfo& operator=(ConnectionInfo&& rhs)
+  {
+    remote = rhs.remote;
+    cs = rhs.cs;
+    rhs.cs = nullptr;
+    fd = rhs.fd;
+    rhs.fd = -1;
+    return *this;
+  }
+
+  ~ConnectionInfo()
+  {
+    if (fd != -1) {
+      close(fd);
+      fd = -1;
+    }
+  }
+
   ComboAddress remote;
-  ClientState* cs;
+  ClientState* cs{nullptr};
+  int fd{-1};
 };
 
 uint64_t g_maxTCPQueuedConnections{1000};
@@ -99,7 +132,7 @@ static std::map<ComboAddress,size_t,ComboAddress::addressOnlyLessThan> tcpClient
 bool g_useTCPSinglePipe{false};
 std::atomic<uint16_t> g_downstreamTCPCleanupInterval{60};
 
-void* tcpClientThread(int pipefd);
+void tcpClientThread(int pipefd);
 
 static void decrementTCPClientCount(const ComboAddress& client)
 {
@@ -182,9 +215,18 @@ catch(...) {
   return false;
 }
 
-static bool sendResponseToClient(int fd, const char* response, uint16_t responseLen)
+static bool getNonBlockingMsgLenFromClient(TCPIOHandler& handler, uint16_t* len)
+try
 {
-  return sendSizeAndMsgWithTimeout(fd, responseLen, response, g_tcpSendTimeout, nullptr, nullptr, 0, 0, 0);
+  uint16_t raw;
+  size_t ret = handler.read(&raw, sizeof raw, g_tcpRecvTimeout);
+  if(ret != sizeof raw)
+    return false;
+  *len = ntohs(raw);
+  return true;
+}
+catch(...) {
+  return false;
 }
 
 static bool maxConnectionDurationReached(unsigned int maxConnectionDuration, time_t start, unsigned int& remainingTime)
@@ -218,11 +260,13 @@ void cleanupClosedTCPConnections(std::map<ComboAddress,int>& sockets)
 
 std::shared_ptr<TCPClientCollection> g_tcpclientthreads;
 
-void* tcpClientThread(int pipefd)
+void tcpClientThread(int pipefd)
 {
   /* we get launched with a pipe on which we receive file descriptors from clients that we own
      from that point on */
-     
+
+  setThreadName("dnsdist/tcpClie");
+
   bool outstanding = false;
   time_t lastTCPCleanup = time(nullptr);
   
@@ -246,42 +290,46 @@ void* tcpClientThread(int pipefd)
     }
 
     g_tcpclientthreads->decrementQueuedCount();
-    ci=*citmp;
-    delete citmp;    
+    ci=std::move(*citmp);
+    delete citmp;
 
     uint16_t qlen, rlen;
     vector<uint8_t> rewrittenResponse;
     shared_ptr<DownstreamState> ds;
     ComboAddress dest;
-    memset(&dest, 0, sizeof(dest));
+    dest.reset();
     dest.sin4.sin_family = ci.remote.sin4.sin_family;
     socklen_t len = dest.getSocklen();
     size_t queriesCount = 0;
     time_t connectionStartTime = time(NULL);
     std::vector<char> queryBuffer;
+    std::vector<char> answerBuffer;
 
     if (getsockname(ci.fd, (sockaddr*)&dest, &len)) {
       dest = ci.cs->local;
     }
 
     try {
+      TCPIOHandler handler(ci.fd, g_tcpRecvTimeout, ci.cs->tlsFrontend ? ci.cs->tlsFrontend->getContext() : nullptr, connectionStartTime);
+
       for(;;) {
         unsigned int remainingTime = 0;
         ds = nullptr;
         outstanding = false;
 
-        if(!getNonBlockingMsgLen(ci.fd, &qlen, g_tcpRecvTimeout))
+        if(!getNonBlockingMsgLenFromClient(handler, &qlen)) {
           break;
+        }
 
         queriesCount++;
 
         if (qlen < sizeof(dnsheader)) {
-          g_stats.nonCompliantQueries++;
+          ++g_stats.nonCompliantQueries;
           break;
         }
 
         ci.cs->queries++;
-        g_stats.queries++;
+        ++g_stats.queries;
 
         if (g_maxTCPQueriesPerConn && queriesCount > g_maxTCPQueriesPerConn) {
           vinfolog("Terminating TCP connection from %s because it reached the maximum number of queries per conn (%d / %d)", ci.remote.toStringWithPort(), queriesCount, g_maxTCPQueriesPerConn);
@@ -297,23 +345,29 @@ void* tcpClientThread(int pipefd)
         bool ecsAdded = false;
         /* allocate a bit more memory to be able to spoof the content,
            or to add ECS without allocating a new buffer */
-        queryBuffer.reserve(qlen + 512);
+        queryBuffer.resize(qlen + 512);
 
         char* query = &queryBuffer[0];
-        readn2WithTimeout(ci.fd, query, qlen, g_tcpRecvTimeout, remainingTime);
+        handler.read(query, qlen, g_tcpRecvTimeout, remainingTime);
+
+        /* we need this one to be accurate ("real") for the protobuf message */
+	struct timespec queryRealTime;
+	struct timespec now;
+	gettime(&now);
+	gettime(&queryRealTime, true);
 
 #ifdef HAVE_DNSCRYPT
-        std::shared_ptr<DnsCryptQuery> dnsCryptQuery = nullptr;
+        std::shared_ptr<DNSCryptQuery> dnsCryptQuery = nullptr;
 
         if (ci.cs->dnscryptCtx) {
-          dnsCryptQuery = std::make_shared<DnsCryptQuery>();
+          dnsCryptQuery = std::make_shared<DNSCryptQuery>(ci.cs->dnscryptCtx);
           uint16_t decryptedQueryLen = 0;
           vector<uint8_t> response;
-          bool decrypted = handleDnsCryptQuery(ci.cs->dnscryptCtx, query, qlen, dnsCryptQuery, &decryptedQueryLen, true, response);
+          bool decrypted = handleDNSCryptQuery(query, qlen, dnsCryptQuery, &decryptedQueryLen, true, queryRealTime.tv_sec, response);
 
           if (!decrypted) {
             if (response.size() > 0) {
-              sendResponseToClient(ci.fd, reinterpret_cast<char*>(response.data()), (uint16_t) response.size());
+              handler.writeSizeAndMsg(response.data(), response.size(), g_tcpSendTimeout);
             }
             break;
           }
@@ -326,68 +380,116 @@ void* tcpClientThread(int pipefd)
           goto drop;
         }
 
+	string poolname;
+	int delayMsec=0;
+
 	const uint16_t* flags = getFlagsFromDNSHeader(dh);
 	uint16_t origFlags = *flags;
 	uint16_t qtype, qclass;
 	unsigned int consumed = 0;
 	DNSName qname(query, qlen, sizeof(dnsheader), false, &qtype, &qclass, &consumed);
-	DNSQuestion dq(&qname, qtype, qclass, &dest, &ci.remote, dh, queryBuffer.capacity(), qlen, true);
-
-	string poolname;
-	int delayMsec=0;
-	/* we need this one to be accurate ("real") for the protobuf message */
-	struct timespec queryRealTime;
-	struct timespec now;
-	gettime(&now);
-	gettime(&queryRealTime, true);
+	DNSQuestion dq(&qname, qtype, qclass, consumed, &dest, &ci.remote, dh, queryBuffer.size(), qlen, true, &queryRealTime);
 
 	if (!processQuery(holders, dq, poolname, &delayMsec, now)) {
 	  goto drop;
 	}
 
 	if(dq.dh->qr) { // something turned it into a response
-          restoreFlags(dh, origFlags);
+          fixUpQueryTurnedResponse(dq, origFlags);
+
+          DNSResponse dr(dq.qname, dq.qtype, dq.qclass, dq.consumed, dq.local, dq.remote, reinterpret_cast<dnsheader*>(query), dq.size, dq.len, true, &queryRealTime);
+#ifdef HAVE_PROTOBUF
+          dr.uniqueId = dq.uniqueId;
+#endif
+          dr.qTag = dq.qTag;
+
+          if (!processResponse(holders.selfAnsweredRespRulactions, dr, &delayMsec)) {
+            goto drop;
+          }
+
 #ifdef HAVE_DNSCRYPT
           if (!encryptResponse(query, &dq.len, dq.size, true, dnsCryptQuery, nullptr, nullptr)) {
             goto drop;
           }
 #endif
-          sendResponseToClient(ci.fd, query, dq.len);
-	  g_stats.selfAnswered++;
-	  goto drop;
-	}
+          handler.writeSizeAndMsg(query, dq.len, g_tcpSendTimeout);
+          ++g_stats.selfAnswered;
+          continue;
+        }
 
         std::shared_ptr<ServerPool> serverPool = getPool(*holders.pools, poolname);
-        std::shared_ptr<DNSDistPacketCache> packetCache = nullptr;
-        auto policy = holders.policy->policy;
+        std::shared_ptr<DNSDistPacketCache> packetCache = serverPool->packetCache;
+
+        auto policy = *(holders.policy);
         if (serverPool->policy != nullptr) {
-          policy = serverPool->policy->policy;
+          policy = *(serverPool->policy);
         }
-        {
+        auto servers = serverPool->getServers();
+        if (policy.isLua) {
           std::lock_guard<std::mutex> lock(g_luamutex);
-          ds = policy(serverPool->servers, &dq);
-          packetCache = serverPool->packetCache;
+          ds = policy.policy(servers, &dq);
+        }
+        else {
+          ds = policy.policy(servers, &dq);
         }
 
-        if (dq.useECS && ds && ds->useECS) {
-          uint16_t newLen = dq.len;
-          if (!handleEDNSClientSubnet(query, dq.size, consumed, &newLen, &ednsAdded, &ecsAdded, ci.remote, dq.ecsOverride, dq.ecsPrefixLength)) {
+        uint32_t cacheKeyNoECS = 0;
+        uint32_t cacheKey = 0;
+        boost::optional<Netmask> subnet;
+        char cachedResponse[4096];
+        uint16_t cachedResponseSize = sizeof cachedResponse;
+        uint32_t allowExpired = ds ? 0 : g_staleCacheEntriesTTL;
+        bool useZeroScope = false;
+
+        bool dnssecOK = false;
+        if (packetCache && !dq.skipCache) {
+          dnssecOK = (getEDNSZ(dq) & EDNS_HEADER_FLAG_DO);
+        }
+
+        if (dq.useECS && ((ds && ds->useECS) || (!ds && serverPool->getECS()))) {
+          // we special case our cache in case a downstream explicitly gave us a universally valid response with a 0 scope
+          if (packetCache && !dq.skipCache && (!ds || !ds->disableZeroScope) && packetCache->isECSParsingEnabled()) {
+            if (packetCache->get(dq, consumed, dq.dh->id, cachedResponse, &cachedResponseSize, &cacheKeyNoECS, subnet, dnssecOK, allowExpired)) {
+              DNSResponse dr(dq.qname, dq.qtype, dq.qclass, dq.consumed, dq.local, dq.remote, (dnsheader*) cachedResponse, sizeof cachedResponse, cachedResponseSize, true, &queryRealTime);
+#ifdef HAVE_PROTOBUF
+              dr.uniqueId = dq.uniqueId;
+#endif
+              dr.qTag = dq.qTag;
+
+              if (!processResponse(holders.cacheHitRespRulactions, dr, &delayMsec)) {
+                goto drop;
+              }
+
+#ifdef HAVE_DNSCRYPT
+              if (!encryptResponse(cachedResponse, &cachedResponseSize, sizeof cachedResponse, true, dnsCryptQuery, nullptr, nullptr)) {
+                goto drop;
+              }
+#endif
+              handler.writeSizeAndMsg(cachedResponse, cachedResponseSize, g_tcpSendTimeout);
+              g_stats.cacheHits++;
+              continue;
+            }
+
+            if (!subnet) {
+              /* there was no existing ECS on the query, enable the zero-scope feature */
+              useZeroScope = true;
+            }
+          }
+
+          if (!handleEDNSClientSubnet(dq, &(ednsAdded), &(ecsAdded), g_preserveTrailingData)) {
             vinfolog("Dropping query from %s because we couldn't insert the ECS value", ci.remote.toStringWithPort());
             goto drop;
           }
-          dq.len = newLen;
         }
 
-        uint32_t cacheKey = 0;
         if (packetCache && !dq.skipCache) {
-          char cachedResponse[4096];
-          uint16_t cachedResponseSize = sizeof cachedResponse;
-          uint32_t allowExpired = ds ? 0 : g_staleCacheEntriesTTL;
-          if (packetCache->get(dq, (uint16_t) consumed, dq.dh->id, cachedResponse, &cachedResponseSize, &cacheKey, allowExpired)) {
-            DNSResponse dr(dq.qname, dq.qtype, dq.qclass, dq.local, dq.remote, (dnsheader*) cachedResponse, sizeof cachedResponse, cachedResponseSize, true, &queryRealTime);
+          if (packetCache->get(dq, (uint16_t) consumed, dq.dh->id, cachedResponse, &cachedResponseSize, &cacheKey, subnet, dnssecOK, allowExpired)) {
+            DNSResponse dr(dq.qname, dq.qtype, dq.qclass, dq.consumed, dq.local, dq.remote, (dnsheader*) cachedResponse, sizeof cachedResponse, cachedResponseSize, true, &queryRealTime);
 #ifdef HAVE_PROTOBUF
             dr.uniqueId = dq.uniqueId;
 #endif
+            dr.qTag = dq.qTag;
+
             if (!processResponse(holders.cacheHitRespRulactions, dr, &delayMsec)) {
               goto drop;
             }
@@ -397,30 +499,47 @@ void* tcpClientThread(int pipefd)
               goto drop;
             }
 #endif
-            sendResponseToClient(ci.fd, cachedResponse, cachedResponseSize);
-            g_stats.cacheHits++;
-            goto drop;
+            handler.writeSizeAndMsg(cachedResponse, cachedResponseSize, g_tcpSendTimeout);
+            ++g_stats.cacheHits;
+            continue;
           }
-          g_stats.cacheMisses++;
+          ++g_stats.cacheMisses;
         }
 
         if(!ds) {
-          g_stats.noPolicy++;
+          ++g_stats.noPolicy;
 
           if (g_servFailOnNoPolicy) {
             restoreFlags(dh, origFlags);
             dq.dh->rcode = RCode::ServFail;
             dq.dh->qr = true;
 
+            DNSResponse dr(dq.qname, dq.qtype, dq.qclass, dq.consumed, dq.local, dq.remote, reinterpret_cast<dnsheader*>(query), dq.size, dq.len, false, &queryRealTime);
+#ifdef HAVE_PROTOBUF
+            dr.uniqueId = dq.uniqueId;
+#endif
+            dr.qTag = dq.qTag;
+
+            if (!processResponse(holders.selfAnsweredRespRulactions, dr, &delayMsec)) {
+              goto drop;
+            }
+
 #ifdef HAVE_DNSCRYPT
             if (!encryptResponse(query, &dq.len, dq.size, true, dnsCryptQuery, nullptr, nullptr)) {
               goto drop;
             }
 #endif
-            sendResponseToClient(ci.fd, query, dq.len);
+            handler.writeSizeAndMsg(query, dq.len, g_tcpSendTimeout);
+
+            // no response-only statistics counter to update.
+            continue;
           }
 
           break;
+        }
+
+        if (dq.addXPF && ds->xpfRRCode != 0) {
+          addXPF(dq, ds->xpfRRCode, g_preserveTrailingData);
         }
 
 	int dsock = -1;
@@ -467,7 +586,7 @@ void* tcpClientThread(int pipefd)
           sendSizeAndMsgWithTimeout(dsock, dq.len, query, ds->tcpSendTimeout, &ds->remote, &ds->sourceAddr, ds->sourceItf, 0, socketFlags);
         }
         catch(const runtime_error& e) {
-          vinfolog("Downstream connection to %s died on us, getting a new one!", ds->getName());
+          vinfolog("Downstream connection to %s died on us (%s), getting a new one!", ds->getName(), e.what());
           close(dsock);
           dsock=-1;
           sockets.erase(ds->remote);
@@ -485,7 +604,7 @@ void* tcpClientThread(int pipefd)
         if (isXFR) {
           dq.skipCache = true;
         }
-
+        bool firstPacket=true;
       getpacket:;
 
         if(!getNonBlockingMsgLen(dsock, &rlen, ds->tcpRecvTimeout)) {
@@ -513,9 +632,9 @@ void* tcpClientThread(int pipefd)
         }
 #endif
         responseSize += addRoom;
-        char answerbuffer[responseSize];
-        readn2WithTimeout(dsock, answerbuffer, rlen, ds->tcpRecvTimeout);
-        char* response = answerbuffer;
+        answerBuffer.resize(responseSize);
+        char* response = answerBuffer.data();
+        readn2WithTimeout(dsock, response, rlen, ds->tcpRecvTimeout);
         uint16_t responseLen = rlen;
         if (outstanding) {
           /* might be false for {A,I}XFR */
@@ -527,25 +646,41 @@ void* tcpClientThread(int pipefd)
           break;
         }
 
-        if (!responseContentMatches(response, responseLen, qname, qtype, qclass, ds->remote)) {
+        consumed = 0;
+        if (firstPacket && !responseContentMatches(response, responseLen, qname, qtype, qclass, ds->remote, consumed)) {
           break;
         }
-
-        if (!fixUpResponse(&response, &responseLen, &responseSize, qname, origFlags, ednsAdded, ecsAdded, rewrittenResponse, addRoom)) {
+        firstPacket=false;
+        bool zeroScope = false;
+        if (!fixUpResponse(&response, &responseLen, &responseSize, qname, origFlags, ednsAdded, ecsAdded, rewrittenResponse, addRoom, useZeroScope ? &zeroScope : nullptr)) {
           break;
         }
 
         dh = (struct dnsheader*) response;
-        DNSResponse dr(&qname, qtype, qclass, &dest, &ci.remote, dh, responseSize, responseLen, true, &queryRealTime);
+        DNSResponse dr(&qname, qtype, qclass, consumed, &dest, &ci.remote, dh, responseSize, responseLen, true, &queryRealTime);
 #ifdef HAVE_PROTOBUF
         dr.uniqueId = dq.uniqueId;
 #endif
+        dr.qTag = dq.qTag;
+
         if (!processResponse(localRespRulactions, dr, &delayMsec)) {
           break;
         }
 
 	if (packetCache && !dq.skipCache) {
-	  packetCache->insert(cacheKey, qname, qtype, qclass, response, responseLen, true, dh->rcode);
+          if (!useZeroScope) {
+            /* if the query was not suitable for zero-scope, for
+               example because it had an existing ECS entry so the hash is
+               not really 'no ECS', so just insert it for the existing subnet
+               since:
+               - we don't have the correct hash for a non-ECS query
+               - inserting with hash computed before the ECS replacement but with
+               the subnet extracted _after_ the replacement would not work.
+            */
+            zeroScope = false;
+          }
+          // if zeroScope, pass the pre-ECS hash-key and do not pass the subnet to the cache
+          packetCache->insert(zeroScope ? cacheKeyNoECS : cacheKey, zeroScope ? boost::none : subnet, origFlags, dnssecOK, qname, qtype, qclass, response, responseLen, true, dh->rcode, dq.tempFailureTTL);
 	}
 
 #ifdef HAVE_DNSCRYPT
@@ -553,7 +688,7 @@ void* tcpClientThread(int pipefd)
           goto drop;
         }
 #endif
-        if (!sendResponseToClient(ci.fd, response, responseLen)) {
+        if (!handler.writeSizeAndMsg(response, responseLen, g_tcpSendTimeout)) {
           break;
         }
 
@@ -575,27 +710,21 @@ void* tcpClientThread(int pipefd)
           sockets.erase(ds->remote);
         }
 
-        g_stats.responses++;
+        ++g_stats.responses;
         struct timespec answertime;
         gettime(&answertime);
         unsigned int udiff = 1000000.0*DiffTime(now,answertime);
-        {
-          std::lock_guard<std::mutex> lock(g_rings.respMutex);
-          g_rings.respRing.push_back({answertime, ci.remote, qname, dq.qtype, (unsigned int)udiff, (unsigned int)responseLen, *dh, ds->remote});
-        }
+        g_rings.insertResponse(answertime, ci.remote, qname, dq.qtype, (unsigned int)udiff, (unsigned int)responseLen, *dh, ds->remote);
 
         rewrittenResponse.clear();
       }
     }
-    catch(...){}
+    catch(...) {}
 
   drop:;
-    
+
     vinfolog("Closing TCP client connection with %s", ci.remote.toStringWithPort());
-    if (ci.fd >= 0) {
-      close(ci.fd);
-    }
-    ci.fd = -1;
+
     if (ds && outstanding) {
       outstanding = false;
       --ds->outstanding;
@@ -607,14 +736,14 @@ void* tcpClientThread(int pipefd)
       lastTCPCleanup = time(nullptr);
     }
   }
-  return 0;
 }
 
 /* spawn as many of these as required, they call Accept on a socket on which they will accept queries, and 
    they will hand off to worker threads & spawn more of them if required
 */
-void* tcpAcceptorThread(void* p)
+void tcpAcceptorThread(void* p)
 {
+  setThreadName("dnsdist/tcpAcce");
   ClientState* cs = (ClientState*) p;
   bool tcpClientCountIncremented = false;
   ComboAddress remote;
@@ -625,13 +754,12 @@ void* tcpAcceptorThread(void* p)
   auto acl = g_ACL.getLocal();
   for(;;) {
     bool queuedCounterIncremented = false;
-    ConnectionInfo* ci = nullptr;
+    std::unique_ptr<ConnectionInfo> ci;
     tcpClientCountIncremented = false;
     try {
       socklen_t remlen = remote.getSocklen();
-      ci = new ConnectionInfo;
+      ci = std::unique_ptr<ConnectionInfo>(new ConnectionInfo);
       ci->cs = cs;
-      ci->fd = -1;
 #ifdef HAVE_ACCEPT4
       ci->fd = accept4(cs->tcpFD, (struct sockaddr*)&remote, &remlen, SOCK_NONBLOCK);
 #else
@@ -642,27 +770,18 @@ void* tcpAcceptorThread(void* p)
       }
 
       if(!acl->match(remote)) {
-	g_stats.aclDrops++;
-	close(ci->fd);
-	delete ci;
-	ci=nullptr;
+	++g_stats.aclDrops;
 	vinfolog("Dropped TCP connection from %s because of ACL", remote.toStringWithPort());
 	continue;
       }
 
 #ifndef HAVE_ACCEPT4
       if (!setNonBlocking(ci->fd)) {
-        close(ci->fd);
-        delete ci;
-        ci=nullptr;
         continue;
       }
 #endif
-
+      setTCPNoDelay(ci->fd);  // disable NAGLE
       if(g_maxTCPQueuedConnections > 0 && g_tcpclientthreads->getQueuedCount() >= g_maxTCPQueuedConnections) {
-        close(ci->fd);
-        delete ci;
-        ci=nullptr;
         vinfolog("Dropping TCP connection from %s because we have too many queued already", remote.toStringWithPort());
         continue;
       }
@@ -671,9 +790,6 @@ void* tcpAcceptorThread(void* p)
         std::lock_guard<std::mutex> lock(tcpClientsCountMutex);
 
         if (tcpClientsCount[remote] >= g_maxTCPConnectionsPerClient) {
-          close(ci->fd);
-          delete ci;
-          ci=nullptr;
           vinfolog("Dropping TCP connection from %s because we have too many from this client already", remote.toStringWithPort());
           continue;
         }
@@ -687,14 +803,19 @@ void* tcpAcceptorThread(void* p)
       int pipe = g_tcpclientthreads->getThread();
       if (pipe >= 0) {
         queuedCounterIncremented = true;
-        writen2WithTimeout(pipe, &ci, sizeof(ci), 0);
+        auto tmp = ci.release();
+        try {
+          writen2WithTimeout(pipe, &tmp, sizeof(tmp), 0);
+        }
+        catch(...) {
+          delete tmp;
+          tmp = nullptr;
+          throw;
+        }
       }
       else {
         g_tcpclientthreads->decrementQueuedCount();
         queuedCounterIncremented = false;
-        close(ci->fd);
-        delete ci;
-        ci=nullptr;
         if(tcpClientCountIncremented) {
           decrementTCPClientCount(remote);
         }
@@ -702,47 +823,13 @@ void* tcpAcceptorThread(void* p)
     }
     catch(std::exception& e) {
       errlog("While reading a TCP question: %s", e.what());
-      if(ci && ci->fd >= 0) 
-	close(ci->fd);
       if(tcpClientCountIncremented) {
         decrementTCPClientCount(remote);
       }
-      delete ci;
-      ci = nullptr;
       if (queuedCounterIncremented) {
         g_tcpclientthreads->decrementQueuedCount();
       }
     }
     catch(...){}
   }
-
-  return 0;
-}
-
-
-bool getMsgLen32(int fd, uint32_t* len)
-try
-{
-  uint32_t raw;
-  size_t ret = readn2(fd, &raw, sizeof raw);
-  if(ret != sizeof raw)
-    return false;
-  *len = ntohl(raw);
-  if(*len > 10000000) // arbitrary 10MB limit
-    return false;
-  return true;
-}
-catch(...) {
-   return false;
-}
-
-bool putMsgLen32(int fd, uint32_t len)
-try
-{
-  uint32_t raw = htonl(len);
-  size_t ret = writen2(fd, &raw, sizeof raw);
-  return ret==sizeof raw;
-}
-catch(...) {
-  return false;
 }

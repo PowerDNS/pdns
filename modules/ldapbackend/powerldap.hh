@@ -20,7 +20,9 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
+#include <list>
 #include <map>
+#include <memory>
 #include <string>
 #include <vector>
 #include <stdexcept>
@@ -35,6 +37,7 @@
 #ifndef POWERLDAP_HH
 #define POWERLDAP_HH
 
+using std::list;
 using std::map;
 using std::string;
 using std::vector;
@@ -47,16 +50,35 @@ class PowerLDAP
     string d_hosts;
     int d_port;
     bool d_tls;
-  
+    int d_timeout;
+
     const string getError( int rc = -1 );
-    int waitResult( int msgid = LDAP_RES_ANY, int timeout = 0, LDAPMessage** result = NULL );
+    int waitResult( int msgid = LDAP_RES_ANY, LDAPMessage** result = NULL );
     void ensureConnect();
-    
+
   public:
     typedef map<string, vector<string> > sentry_t;
     typedef vector<sentry_t> sresult_t;
-  
-    PowerLDAP( const string& hosts = "ldap://127.0.0.1/", uint16_t port = LDAP_PORT, bool tls = false );
+
+    class SearchResult {
+        LDAP* d_ld;
+        int d_msgid;
+        bool d_finished;
+
+        SearchResult( const SearchResult& other );
+        SearchResult& operator=( const SearchResult& other );
+
+      public:
+        typedef std::unique_ptr<SearchResult> Ptr;
+
+        SearchResult( int msgid, LDAP* ld );
+        ~SearchResult();
+
+        bool getNext( PowerLDAP::sentry_t& entry, bool dn = false, int timeout = 5 );
+        void getAll( PowerLDAP::sresult_t& results, bool dn = false, int timeout = 5 );
+    };
+
+    PowerLDAP( const string& hosts, uint16_t port, bool tls, int timeout );
     ~PowerLDAP();
   
     bool connect();
@@ -65,13 +87,15 @@ class PowerLDAP
     void setOption( int option, int value );
   
     void bind( LdapAuthenticator *authenticator );
-    void bind( const string& ldapbinddn = "", const string& ldapsecret = "", int method = LDAP_AUTH_SIMPLE, int timeout = 5 );
+    void bind( const string& ldapbinddn = "", const string& ldapsecret = "", int method = LDAP_AUTH_SIMPLE );
     void simpleBind( const string& ldapbinddn = "", const string& ldapsecret = "" );
-    int search( const string& base, int scope, const string& filter, const char** attr = 0 );
+    SearchResult::Ptr search( const string& base, int scope, const string& filter, const char** attr = 0 );
+    void add( const string &dn, LDAPMod *mods[] );
     void modify( const string& dn, LDAPMod *mods[], LDAPControl **scontrols = 0, LDAPControl **ccontrols = 0 );
+    void del( const string& dn );
   
-    bool getSearchEntry( int msgid, sentry_t& entry, bool dn = false, int timeout = 5 );
-    void getSearchResults( int msgid, sresult_t& result, bool dn = false, int timeout = 5 );
+    bool getSearchEntry( int msgid, sentry_t& entry, bool dn = false );
+    void getSearchResults( int msgid, sresult_t& result, bool dn = false );
   
     static const string escape( const string& tobe );
 };

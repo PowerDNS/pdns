@@ -111,9 +111,12 @@ class PDNSPBConnHandler(object):
             for rr in response.rrs:
                 rrclass = 1
                 rdatastr = ''
+                rrudr = 0
                 if rr.HasField('class'):
                     rrclass = getattr(rr, 'class')
                 rrtype = rr.type
+                if rr.HasField('udr'):
+                    rrudr = rr.udr
                 if (rrclass == 1 or rrclass == 255) and rr.HasField('rdata'):
                     if rrtype == 1:
                         rdatastr = socket.inet_ntop(socket.AF_INET, rr.rdata)
@@ -122,11 +125,12 @@ class PDNSPBConnHandler(object):
                     elif rrtype == 28:
                         rdatastr = socket.inet_ntop(socket.AF_INET6, rr.rdata)
 
-                print("\t - %d, %d, %s, %d, %s" % (rrclass,
+                print("\t - %d, %d, %s, %d, %s, %d" % (rrclass,
                                                    rrtype,
                                                    rr.name,
                                                    rr.ttl,
-                                                   rdatastr))
+                                                   rdatastr,
+                                                   rrudr))
 
     def printSummary(self, msg, typestr):
         datestr = datetime.datetime.fromtimestamp(msg.timeSec).strftime('%Y-%m-%d %H:%M:%S')
@@ -152,9 +156,14 @@ class PDNSPBConnHandler(object):
             protostr = 'TCP'
 
         messageidstr = binascii.hexlify(bytearray(msg.messageId))
+
+        serveridstr = 'N/A'
+        if msg.HasField('serverIdentity'):
+            serveridstr = msg.serverIdentity
+
         initialrequestidstr = ''
         if msg.HasField('initialRequestId'):
-            initialrequestidstr = ', initial uuid: ' + binascii.hexlify(bytearray(msg.initialRequestId))
+            initialrequestidstr = ', initial uuid: %s ' % (binascii.hexlify(bytearray(msg.initialRequestId)))
 
         requestorstr = ''
         requestor = self.getRequestorSubnet(msg)
@@ -163,9 +172,12 @@ class PDNSPBConnHandler(object):
 
         deviceId = binascii.hexlify(bytearray(msg.deviceId))
         requestorId = msg.requestorId
+        nod = 0
+        if (msg.HasField('newlyObservedDomain')):
+            nod = msg.newlyObservedDomain
 
         print('[%s] %s of size %d: %s%s -> %s (%s), id: %d, uuid: %s%s '
-                  'requestorid: %s deviceid: %s' % (datestr,
+                  'requestorid: %s deviceid: %s serverid: %s nod: %d' % (datestr,
                                                     typestr,
                                                     msg.inBytes,
                                                     ipfromstr,
@@ -176,7 +188,9 @@ class PDNSPBConnHandler(object):
                                                     messageidstr,
                                                     initialrequestidstr,
                                                     requestorId,
-                                                    deviceId))
+                                                    deviceId,
+                                                    serveridstr,
+                                                    nod))
 
     def getRequestorSubnet(self, msg):
         requestorstr = None

@@ -10,17 +10,29 @@ dnsdist keeps statistics on the queries is receives and send out. They can be ac
 - via Carbon / Graphite / Metronome export (see :doc:`../guides/carbon`)
 - via SNMP (see :doc:`../advanced/snmp`)
 
+To make sense of the statistics, the following relation should hold:
+
+	queries - noncompliant-queries
+	=
+	responses - noncompliant-responses + cache-hits + downstream-timeouts + self-answered + no-policy
+	+ rule-drop
+
+Note that packets dropped by eBPF (see :doc:`../advanced/ebpf`) are
+accounted for in the eBPF statistics, and do not show up in the metrics
+described on this page.
+
 acl-drops
 ---------
-The number of packets dropped bacause of the :doc:`ACL <advanced/acl>`.
+The number of packets (or TCP messages) dropped because of the :doc:`ACL <advanced/acl>`.
+If a packet or message is dropped, it is not counted in the `queries` statistic.
 
 cache-hits
 ----------
-Number of times an answer was retrieved from :doc:`cache <guides/cache>`.
+Number of times a response was sent using data found in the :doc:`packet cache <guides/cache>`.
 
 cache-misses
 ------------
-Number of times an answer was not found in the :doc:`cache <guides/cache>`.
+Number of times an answer was not found in the :doc:`packet cache <guides/cache>`. Only counted if a packet cache was setup for the selected pool.
 
 cpu-sys-msec
 ------------
@@ -48,7 +60,8 @@ Number of queries dropped because of a dynamic block.
 
 empty-queries
 -------------
-Number of empty queries received from clients.
+Number of empty queries received from clients. Every empty-query is also
+counted as a `query`.
 
 fd-usage
 --------
@@ -56,19 +69,19 @@ Number of currently used file descriptors.
 
 latency-avg100
 --------------
-Average response latency of the last 100 packets.
+Average response latency in microseconds of the last 100 packets
 
 latency-avg1000
 ---------------
-Average response latency of the last 1000 packets.
+Average response latency in microseconds of the last 1000 packets.
 
 latency-avg10000
 ----------------
-Average response latency of the last 10000 packets.
+Average response latency in microseconds of the last 10000 packets.
 
 latency-avg1000000
 ------------------
-Average response latency of the last 1000000 packets.
+Average response latency in microseconds of the last 1000000 packets.
 
 latency-slow
 ------------
@@ -120,7 +133,9 @@ Current memory usage.
 
 responses
 ---------
-Number of responses received from backends.
+Number of responses received from backends. Note! This is not the number of
+responses sent to clients. To get that number, add 'cache-hits' and
+'responses'.
 
 rule-drop
 ---------
@@ -133,6 +148,21 @@ Number of NXDomain answers returned because of a rule.
 rule-refused
 ------------
 Number of Refused answers returned because of a rule.
+
+rule-servfail
+-------------
+Number of ServFail answers returned because of a rule.
+
+security-status
+---------------
+.. versionadded:: 1.3.4
+
+The security status of :program:`dnsdist`. This is regularly polled.
+
+ * 0 = Unknown status or unreleased version
+ * 1 = OK
+ * 2 = Upgrade recommended
+ * 3 = Upgrade required (most likely because there is a known security issue)
 
 self-answered
 -------------

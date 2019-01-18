@@ -1,10 +1,9 @@
 #!/usr/bin/env python
-import Queue
 import threading
 import socket
 import sys
 import time
-from dnsdisttests import DNSDistTest
+from dnsdisttests import DNSDistTest, Queue
 
 class TestCarbon(DNSDistTest):
 
@@ -12,12 +11,19 @@ class TestCarbon(DNSDistTest):
     _carbonServer1Name = "carbonname1"
     _carbonServer2Port = 8001
     _carbonServer2Name = "carbonname2"
-    _carbonQueue1 = Queue.Queue()
-    _carbonQueue2 = Queue.Queue()
+    _carbonQueue1 = Queue()
+    _carbonQueue2 = Queue()
     _carbonInterval = 2
     _carbonCounters = {}
-    _config_params = ['_carbonServer1Port', '_carbonServer1Name', '_carbonInterval', '_carbonServer2Port', '_carbonServer2Name', '_carbonInterval']
+    _config_params = ['_carbonServer1Port', '_carbonServer1Name', '_carbonInterval',
+                      '_carbonServer2Port', '_carbonServer2Name', '_carbonInterval']
     _config_template = """
+    s = newServer{address="127.0.0.1:5353"}
+    s:setDown()
+    s = newServer{address="127.0.0.1:5354"}
+    s:setUp()
+    s = newServer{address="127.0.0.1:5355"}
+    s:setUp()
     carbonServer("127.0.0.1:%s", "%s", %s)
     carbonServer("127.0.0.1:%s", "%s", %s)
     """
@@ -36,7 +42,7 @@ class TestCarbon(DNSDistTest):
         while True:
             (conn, _) = sock.accept()
             conn.settimeout(2.0)
-            lines = ""
+            lines = b''
             while True:
                 data = conn.recv(4096)
                 if not data:
@@ -82,10 +88,10 @@ class TestCarbon(DNSDistTest):
 
         self.assertTrue(data1)
         self.assertTrue(len(data1.splitlines()) > 1)
-        expectedStart = "dnsdist." + self._carbonServer1Name + ".main."
+        expectedStart = b"dnsdist.%s.main." % self._carbonServer1Name.encode('UTF-8')
         for line in data1.splitlines():
             self.assertTrue(line.startswith(expectedStart))
-            parts = line.split(' ')
+            parts = line.split(b' ')
             self.assertEquals(len(parts), 3)
             self.assertTrue(parts[1].isdigit())
             self.assertTrue(parts[2].isdigit())
@@ -93,10 +99,10 @@ class TestCarbon(DNSDistTest):
 
         self.assertTrue(data2)
         self.assertTrue(len(data2.splitlines()) > 1)
-        expectedStart = "dnsdist." + self._carbonServer2Name + ".main."
+        expectedStart = b"dnsdist.%s.main." % self._carbonServer2Name.encode('UTF-8')
         for line in data2.splitlines():
             self.assertTrue(line.startswith(expectedStart))
-            parts = line.split(' ')
+            parts = line.split(b' ')
             self.assertEquals(len(parts), 3)
             self.assertTrue(parts[1].isdigit())
             self.assertTrue(parts[2].isdigit())
@@ -106,3 +112,63 @@ class TestCarbon(DNSDistTest):
         for key in self._carbonCounters:
             value = self._carbonCounters[key]
             self.assertTrue(value >= 1)
+
+    def testCarbonServerUp(self):
+        """
+        Carbon: set up 2 carbon servers
+        """
+        # wait for the carbon data to be sent
+        time.sleep(self._carbonInterval + 1)
+
+        # first server
+        self.assertFalse(self._carbonQueue1.empty())
+        data1 = self._carbonQueue1.get(False)
+        # second server
+        self.assertFalse(self._carbonQueue2.empty())
+        data2 = self._carbonQueue2.get(False)
+        after = time.time()
+
+        # check the first carbon server got both servers and
+        # servers-up metrics and that they are the same as
+        # configured in the class definition
+        self.assertTrue(data1)
+        self.assertTrue(len(data1.splitlines()) > 1)
+        expectedStart = b"dnsdist.%s.main.pools._default_.servers" % self._carbonServer1Name.encode('UTF-8')
+        for line in data1.splitlines():
+            if expectedStart in line:
+                parts = line.split(b' ')
+                if 'servers-up' in line:
+                    self.assertEquals(len(parts), 3)
+                    self.assertTrue(parts[1].isdigit())
+                    self.assertEquals(int(parts[1]), 2)
+                    self.assertTrue(parts[2].isdigit())
+                    self.assertTrue(int(parts[2]) <= int(after))
+                else:
+                    self.assertEquals(len(parts), 3)
+                    self.assertTrue(parts[1].isdigit())
+                    self.assertEquals(int(parts[1]), 3)
+                    self.assertTrue(parts[2].isdigit())
+                    self.assertTrue(int(parts[2]) <= int(after))
+
+        # check the second carbon server got both servers and
+        # servers-up metrics and that they are the same as
+        # configured in the class definition and the same as
+        # the first carbon server
+        self.assertTrue(data2)
+        self.assertTrue(len(data2.splitlines()) > 1)
+        expectedStart = b"dnsdist.%s.main.pools._default_.servers" % self._carbonServer2Name.encode('UTF-8')
+        for line in data2.splitlines():
+            if expectedStart in line:
+                parts = line.split(b' ')
+                if 'servers-up' in line:
+                    self.assertEquals(len(parts), 3)
+                    self.assertTrue(parts[1].isdigit())
+                    self.assertEquals(int(parts[1]), 2)
+                    self.assertTrue(parts[2].isdigit())
+                    self.assertTrue(int(parts[2]) <= int(after))
+                else:
+                    self.assertEquals(len(parts), 3)
+                    self.assertTrue(parts[1].isdigit())
+                    self.assertEquals(int(parts[1]), 3)
+                    self.assertTrue(parts[2].isdigit())
+                    self.assertTrue(int(parts[2]) <= int(after))

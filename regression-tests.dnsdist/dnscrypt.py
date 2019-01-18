@@ -6,11 +6,13 @@ import dns
 import dns.message
 import libnacl
 import libnacl.utils
+import binascii
+from builtins import bytes
 
 class DNSCryptResolverCertificate(object):
-    DNSCRYPT_CERT_MAGIC = '\x44\x4e\x53\x43'
-    DNSCRYPT_ES_VERSION = '\x00\x01'
-    DNSCRYPT_PROTOCOL_MIN_VERSION = '\x00\x00'
+    DNSCRYPT_CERT_MAGIC = b'\x44\x4e\x53\x43'
+    DNSCRYPT_ES_VERSION = b'\x00\x01'
+    DNSCRYPT_PROTOCOL_MIN_VERSION = b'\x00\x00'
 
     def __init__(self, serial, validFrom, validUntil, publicKey, clientMagic):
         self.serial = serial
@@ -39,7 +41,7 @@ class DNSCryptResolverCertificate(object):
 
         resolverPK = orig[0:32]
         clientMagic = orig[32:40]
-        serial = struct.unpack_from("I", orig[40:44])[0]
+        serial = struct.unpack_from("!I", orig[40:44])[0]
         validFrom = struct.unpack_from("!I", orig[44:48])[0]
         validUntil = struct.unpack_from("!I", orig[48:52])[0]
         return DNSCryptResolverCertificate(serial, validFrom, validUntil, resolverPK, clientMagic)
@@ -49,7 +51,7 @@ class DNSCryptClient(object):
     DNSCRYPT_MAC_SIZE = 16
     DNSCRYPT_PADDED_BLOCK_SIZE = 64
     DNSCRYPT_MIN_UDP_LENGTH = 256
-    DNSCRYPT_RESOLVER_MAGIC = '\x72\x36\x66\x6e\x76\x57\x6a\x38'
+    DNSCRYPT_RESOLVER_MAGIC = b'\x72\x36\x66\x6e\x76\x57\x6a\x38'
 
     @staticmethod
     def _addrToSocketType(addr):
@@ -65,7 +67,7 @@ class DNSCryptClient(object):
 
     def __init__(self, providerName, providerFingerprint, resolverAddress, resolverPort=443, timeout=2):
         self._providerName = providerName
-        self._providerFingerprint = providerFingerprint.lower().replace(':', '').decode('hex')
+        self._providerFingerprint = binascii.unhexlify(providerFingerprint.lower().replace(':', ''))
         self._resolverAddress = resolverAddress
         self._resolverPort = resolverPort
         self._resolverCertificates = []
@@ -92,7 +94,6 @@ class DNSCryptClient(object):
         data = None
         if tcp:
             got = sock.recv(2)
-            print(len(got))
             if got:
                 (rlen,) = struct.unpack("!H", got)
                 data = sock.recv(rlen)
@@ -132,6 +133,8 @@ class DNSCryptClient(object):
         if an.rdclass != dns.rdataclass.IN or an.rdtype != dns.rdatatype.TXT or len(an.items) == 0:
             raise Exception("Invalid response to public key request")
 
+        self._resolverCertificates = []
+
         for item in an.items:
             if len(item.strings) != 1:
                 continue
@@ -150,10 +153,19 @@ class DNSCryptClient(object):
 
         return result
 
+    def getAllResolverCertificates(self, onlyValid=False):
+        certs = self._resolverCertificates
+        result = []
+        for cert in certs:
+            if not onlyValid or cert.isValid():
+                result.append(cert)
+
+        return result
+
     @staticmethod
     def _generateNonce():
         nonce = libnacl.utils.rand_nonce()
-        return nonce[:(DNSCryptClient.DNSCRYPT_NONCE_SIZE / 2)]
+        return nonce[:int(DNSCryptClient.DNSCRYPT_NONCE_SIZE / 2)]
 
     def _encryptQuery(self, queryContent, resolverCert, nonce, tcp=False):
         header = resolverCert.clientMagic + self._publicKey + nonce
@@ -164,14 +176,14 @@ class DNSCryptClient(object):
             paddingSize += self.DNSCRYPT_MIN_UDP_LENGTH - requiredSize
             requiredSize = self.DNSCRYPT_MIN_UDP_LENGTH
 
-        padding = '\x80'
+        padding = b'\x80'
         idx = 0
         while idx < (paddingSize - 1):
-            padding = padding + '\x00'
+            padding = padding + b'\x00'
             idx += 1
 
         data = queryContent + padding
-        nonce = nonce + ('\x00'*(self.DNSCRYPT_NONCE_SIZE / 2))
+        nonce = nonce + (b'\x00'*int(self.DNSCRYPT_NONCE_SIZE / 2))
         box = libnacl.crypto_box(data, nonce, resolverCert.publicKey, self._privateKey)
         return header + box
 
@@ -181,21 +193,22 @@ class DNSCryptClient(object):
             raise Exception("Invalid encrypted response: bad resolver magic")
 
         nonce = encryptedResponse[8:32]
-        if nonce[0:self.DNSCRYPT_NONCE_SIZE / 2] != clientNonce:
+        if nonce[0:int(self.DNSCRYPT_NONCE_SIZE / 2)] != clientNonce:
             raise Exception("Invalid encrypted response: bad nonce")
 
         cleartext = libnacl.crypto_box_open(encryptedResponse[32:], nonce, resolverCert.publicKey, self._privateKey)
-        idx = len(cleartext) - 1
+        cleartextBytes = bytes(cleartext)
+        idx = len(cleartextBytes) - 1
         while idx > 0:
-            if cleartext[idx] != '\x00':
+            if cleartextBytes[idx] != 0:
                 break
             idx -= 1
 
-        if idx == 0 or cleartext[idx] != '\x80':
+        if idx == 0 or cleartextBytes[idx] != 128:
             raise Exception("Invalid encrypted response: invalid padding")
 
         idx -= 1
-        paddingLen = len(cleartext) - idx
+        paddingLen = len(cleartextBytes) - idx
 
         return cleartext[:idx+1]
 

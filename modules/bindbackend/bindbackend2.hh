@@ -159,9 +159,10 @@ public:
   void setCheckInterval(time_t seconds);
 
   DNSName d_name;   //!< actual name of the domain
+  DomainInfo::DomainKind d_kind; //!< the kind of domain
   string d_filename; //!< full absolute filename of the zone on disk
   string d_status; //!< message describing status of a domain, for human consumption
-  vector<string> d_masters;     //!< IP address of the master of this domain
+  vector<ComboAddress> d_masters;     //!< IP address of the master of this domain
   set<string> d_also_notify; //!< IP list of hosts to also notify
   LookButDontTouch<recordstorage_t> d_records;  //!< the actual records belonging to this domain
   time_t d_ctime;  //!< last known ctime of the file on disk
@@ -190,7 +191,7 @@ public:
   ~Bind2Backend();
   void getUnfreshSlaveInfos(vector<DomainInfo> *unfreshDomains) override;
   void getUpdatedMasters(vector<DomainInfo> *changedDomains) override;
-  bool getDomainInfo(const DNSName &domain, DomainInfo &di) override;
+  bool getDomainInfo(const DNSName &domain, DomainInfo &di, bool getSerial=true ) override;
   time_t getCtime(const string &fname);
    // DNSSEC
   bool getBeforeAndAfterNamesAbsolute(uint32_t id, const DNSName& qname, DNSName& unhashed, DNSName& before, DNSName& after) override;
@@ -238,7 +239,6 @@ public:
   void insertRecord(BB2DomainInfo& bbd, const DNSName &qname, const QType &qtype, const string &content, int ttl, const std::string& hashed=string(), bool *auth=0);
   void rediscover(string *status=0) override;
 
-  bool isMaster(const DNSName &name, const string &ip) override;
 
   // for supermaster support
   bool superMasterBackend(const string &ip, const DNSName &domain, const vector<DNSResourceRecord>&nsset, string *nameserver, string *account, DNSBackend **db) override;

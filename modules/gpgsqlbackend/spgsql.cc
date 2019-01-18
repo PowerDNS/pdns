@@ -78,17 +78,22 @@ public:
   SSqlStatement* execute() {
     prepareStatement();
     if (d_dolog) {
-      L<<Logger::Warning<<"Query: "<<d_query<<endl;
+      g_log<<Logger::Warning<< "Query "<<((long)(void*)this)<<": " << d_query << endl;
+      d_dtime.set();
     }
     d_res_set = PQexecPrepared(d_db(), d_stmt.c_str(), d_nparams, paramValues, paramLengths, NULL, 0);
     ExecStatusType status = PQresultStatus(d_res_set);
-    string errmsg(PQresultErrorMessage(d_res_set));
     if (status != PGRES_COMMAND_OK && status != PGRES_TUPLES_OK && status != PGRES_NONFATAL_ERROR) {
       string errmsg(PQresultErrorMessage(d_res_set));
       releaseStatement();
       throw SSqlException("Fatal error during query: " + d_query + string(": ") + errmsg);
     }
     d_cur_set = 0;
+    if(d_dolog) {
+      auto diff = d_dtime.udiffNoReset();
+      g_log<<Logger::Warning<< "Query "<<((long)(void*)this)<<": "<< diff <<" usec to execute"<<endl;
+    }
+
     nextResult();
     return this;
   }
@@ -116,7 +121,7 @@ public:
 #endif
       // execute FETCH
       if (d_dolog)
-         L<<Logger::Warning<<"Query: "<<cmd<<endl;
+         g_log<<Logger::Warning<<"Query: "<<cmd<<endl;
       d_res = PQexec(d_db(),cmd.c_str());
       d_resnum = PQntuples(d_res);
       d_fnum = PQnfields(d_res);
@@ -131,6 +136,10 @@ public:
 
   bool hasNextRow()
   {
+    if(d_dolog && d_residx == d_resnum) {
+      g_log<<Logger::Warning<< "Query "<<((long)(void*)this)<<": "<<d_dtime.udiff()<<" total usec to last row"<<endl;
+    }
+
     return d_residx<d_resnum;
   }
 
@@ -241,6 +250,7 @@ private:
   PGresult *d_res_set;
   PGresult *d_res;
   bool d_dolog;
+  DTime d_dtime; // only used if d_dolog is set
   bool d_prepared;
   int d_nparams;
   int d_paridx;

@@ -229,12 +229,6 @@ BOOST_AUTO_TEST_CASE(test_method_getAllDomains) {
    BOOST_CHECK_EQUAL(di.backend, be);
 }
 
-BOOST_AUTO_TEST_CASE(test_method_isMaster) {
-   BOOST_TEST_MESSAGE("Testing isMaster method");
-   BOOST_CHECK(be->isMaster(DNSName("ns1.unit.test."), "10.0.0.1"));
-   BOOST_CHECK(!be->isMaster(DNSName("ns2.unit.test."), "10.0.0.2"));
-}
-
 BOOST_AUTO_TEST_CASE(test_method_superMasterBackend) {
    DNSResourceRecord rr;
    std::vector<DNSResourceRecord> nsset; 
@@ -322,16 +316,6 @@ BOOST_AUTO_TEST_CASE(test_method_abortTransaction) {
    BOOST_TEST_MESSAGE("Testing abortTransaction method");
    be->startTransaction(DNSName("example.com."),2);
    BOOST_CHECK(be->abortTransaction());
-}
-
-BOOST_AUTO_TEST_CASE(test_method_calculateSOASerial) {
-   SOAData sd;
-   time_t serial;
- 
-   be->getSOA(DNSName("unit.test."),sd);
-   BOOST_CHECK(be->calculateSOASerial(DNSName("unit.test."),sd,serial));
-
-   BOOST_CHECK_EQUAL(serial, 2013060300);
 }
 
 BOOST_AUTO_TEST_CASE(test_method_directBackendCmd) {

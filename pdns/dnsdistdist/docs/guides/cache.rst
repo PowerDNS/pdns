@@ -8,10 +8,17 @@ The first step is to define a cache with :func:`newPacketCache`, then to assign 
   pc = newPacketCache(10000, 86400, 0, 60, 60, false)
   getPool(""):setCache(pc)
 
-The first parameter (10000) is the maximum number of entries stored in the cache, and is the only one required.
-All the other parameters are optional and in seconds, except the last one which is a boolean.
-The second one (86400) is the maximum lifetime of an entry in the cache, the third one (0) is the minimum TTL an entry should have to be considered for insertion in the cache, the fourth one (60) is the TTL used for a Server Failure or a Refused response.
-The fifth one (60) is the TTL that will be used when a stale cache entry is returned. The sixth one is a boolean that when set to true, avoids reducing the TTL of cached entries.
+ + The first parameter (10000) is the maximum number of entries stored in the cache, and is the only one required. All the other parameters are optional and in seconds, except the last one which is a boolean.
+
++ The second one (86400) is the maximum lifetime of an entry in the cache.
+
++ The third one (0) is the minimum TTL an entry should have to be considered for insertion in the cache.
+
++ The fourth one (60) is the TTL used for a Server Failure or a Refused response.
+
++ The fifth one (60) is the TTL that will be used when a stale cache entry is returned.
+
++ The sixth one is a boolean that when set to true, avoids reducing the TTL of cached entries.
 
 For performance reasons the cache will pre-allocate buckets based on the maximum number of entries, so be careful to set the first parameter to a reasonable value.
 Something along the lines of a dozen bytes per pre-allocated entry can be expected on 64-bit.
@@ -32,6 +39,8 @@ And removed with::
 Cache usage stats (hits, misses, deferred inserts and lookups, collisions) can be displayed by using the :meth:`PacketCache:printStats` method::
 
   getPool("poolname"):getCache():printStats()
+
+The same values can also be returned as a Lua table, which is easier to work with from a script, using the :meth:`PacketCache:getStats` method.
 
 Expired cached entries can be removed from a cache using the :meth:`PacketCache:purgeExpired` method, which will remove expired entries from the cache until at most n entries remain in the cache.
 For example, to remove all expired entries::

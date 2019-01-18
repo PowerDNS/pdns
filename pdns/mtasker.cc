@@ -268,10 +268,10 @@ template<class Key, class Val>void MTasker<Key,Val>::makeThread(tfunc_t *start, 
   auto uc=std::make_shared<pdns_ucontext_t>();
   
   uc->uc_link = &d_kernel; // come back to kernel after dying
-  uc->uc_stack.resize (d_stacksize);
+  uc->uc_stack.resize (d_stacksize+1);
 #ifdef PDNS_USE_VALGRIND
   uc->valgrind_id = VALGRIND_STACK_REGISTER(&uc->uc_stack[0],
-                                            &uc->uc_stack[uc->uc_stack.size()]);
+                                            &uc->uc_stack[uc->uc_stack.size()-1]);
 #endif /* PDNS_USE_VALGRIND */
 
   auto& thread = d_threads[d_maxtid];
@@ -344,6 +344,8 @@ template<class Key, class Val>bool MTasker<Key,Val>::schedule(struct timeval*  n
       }
       else if(i->ttd.tv_sec)
         break;
+      else
+	++i;
     }
   }
   return false;

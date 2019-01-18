@@ -7,7 +7,7 @@ class testSimple(RecursorTest):
     _config_template = """dnssec=validate"""
     _lua_config_file = """addNTA("bogus.example")
 addNTA('secure.optout.example', 'Should be Insecure, even with DS configured')
-addDS('secure.optout.example', '64215 13 1 b88284d7a8d8605c398e8942262f97b9a5a31787')"""
+addTA('secure.optout.example', '64215 13 1 b88284d7a8d8605c398e8942262f97b9a5a31787')"""
 
     def testDirectNTA(self):
         """Ensure a direct query to a bogus name with an NTA is Insecure"""

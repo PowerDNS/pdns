@@ -19,6 +19,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
+#pragma once
 #include "namespaces.hh"
 #include "iputils.hh"
 #include "dnsparser.hh"
@@ -29,4 +30,4 @@ vector<pair<vector<DNSRecord>, vector<DNSRecord> > >   getIXFRDeltas(const Combo
                                                                      const ComboAddress* laddr=0, size_t maxReceivedBytes=0);
 
 vector<pair<vector<DNSRecord>, vector<DNSRecord> > > processIXFRRecords(const ComboAddress& master, const DNSName& zone,
-                                                                        const vector<DNSRecord>& records, const std::shared_ptr<SOARecordContent> masterSOA);
+                                                                        const vector<DNSRecord>& records, const std::shared_ptr<SOARecordContent>& masterSOA);

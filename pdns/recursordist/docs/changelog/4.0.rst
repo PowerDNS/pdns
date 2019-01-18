@@ -3,6 +3,81 @@ Changelogs for 4.0.x
 
 This page has all the changelogs for the PowerDNS Recursor 4.0 release train.
 
+PowerDNS Recursor 4.0.9
+-----------------------
+
+Released 6th of November 2018
+
+This release fixes the following security advisories:
+
+- PowerDNS Security Advisory :doc:`2018-04 <../security-advisories/powerdns-advisory-2018-04>`: Crafted answer can cause a denial of service (CVE-2018-10851)
+- PowerDNS Security Advisory :doc:`2018-06 <../security-advisories/powerdns-advisory-2018-06>`: Packet cache pollution via crafted query (CVE-2018-14626)
+- PowerDNS Security Advisory :doc:`2018-07 <../security-advisories/powerdns-advisory-2018-07>`: Crafted query for meta-types can cause a denial of service (CVE-2018-14644)
+
+Bug fixes
+^^^^^^^^^
+
+- `#7152 <https://github.com/PowerDNS/pdns/pull/7152>`__: Crafted answer can cause a denial of service (CVE-2018-10851)
+- `#7152 <https://github.com/PowerDNS/pdns/pull/7152>`__: Packet cache pollution via crafted query (CVE-2018-14626)
+- `#7152 <https://github.com/PowerDNS/pdns/pull/7152>`__: Crafted query for meta-types can cause a denial of service (CVE-2018-14644)
+
+PowerDNS Recursor 4.0.8
+-----------------------
+
+Released 11th of December 2017
+
+This release fixes PowerDNS Security Advisory :doc:`2017-08 <../security-advisories/powerdns-advisory-2017-08>`.
+
+Bug fixes
+^^^^^^^^^
+
+- `#5930 <https://github.com/PowerDNS/pdns/pull/5930>`__: Don't assume TXT record is first record for secpoll
+- `#6082 <https://github.com/PowerDNS/pdns/pull/6082>`__: Don't add non-IN records to the cache
+
+PowerDNS Recursor 4.0.7
+-----------------------
+
+Released 27th of November 2017
+
+This release fixes PowerDNS Security Advisories :doc:`2017-03 <../security-advisories/powerdns-advisory-2017-03>`,
+:doc:`2017-05 <../security-advisories/powerdns-advisory-2017-05>`, :doc:`2017-06 <../security-advisories/powerdns-advisory-2017-06>`
+and :doc:`2017-07 <../security-advisories/powerdns-advisory-2017-07>`.
+
+Bug fixes
+^^^^^^^^^
+
+- `#4561 <https://github.com/PowerDNS/pdns/pull/4561>`__: Update rec_control manpage (Winfried Angele)
+- `#4824 <https://github.com/PowerDNS/pdns/pull/4824>`__: Check in the detected OpenSSL/libcrypto for ECDSA
+- `#5406 <https://github.com/PowerDNS/pdns/pull/5406>`__: Make more specific Netmasks < to less specific ones
+- `#5525 <https://github.com/PowerDNS/pdns/pull/5525>`__: Fix validation at the exact RRSIG inception or expiration time
+- `#5740 <https://github.com/PowerDNS/pdns/pull/5740>`__: Lowercase all outgoing qnames when lowercase-outgoing is set
+- `#5599 <https://github.com/PowerDNS/pdns/pull/5599>`__: Fix libatomic detection on ppc64
+- `#5961 <https://github.com/PowerDNS/pdns/pull/5961>`__: Edit configname definition to include the 'config-name' argument (Jake Reynolds)
+- `#5995 <https://github.com/PowerDNS/pdns/pull/5995>`__: Security Advisories :doc:`2017-03 <../security-advisories/powerdns-advisory-2017-03>`,
+  :doc:`2017-05 <../security-advisories/powerdns-advisory-2017-05>`, :doc:`2017-06 <../security-advisories/powerdns-advisory-2017-06>` and
+  :doc:`2017-07 <../security-advisories/powerdns-advisory-2017-07>`.
+
+Improvements
+^^^^^^^^^^^^
+
+- `#4646 <https://github.com/PowerDNS/pdns/pull/4646>`__: Extract nested exception from Luawrapper
+- `#4960 <https://github.com/PowerDNS/pdns/pull/4960>`__: Use explicit yes for default-enabled settings (Christian Hofstaedtler)
+- `#5078 <https://github.com/PowerDNS/pdns/pull/5078>`__: Throw an error when lua-conf-file can't be loaded
+- `#5261 <https://github.com/PowerDNS/pdns/pull/5261>`__: get-remote-ring's "other" report should only have two items. (Patrick Cloke)
+- `#5320 <https://github.com/PowerDNS/pdns/pull/5320>`__: PowerDNS sdig does not truncate trailing bits of EDNS Client Subnet mask
+- `#5488 <https://github.com/PowerDNS/pdns/pull/5488>`__: Only increase `no-packet-error` on the first read
+- `#5498 <https://github.com/PowerDNS/pdns/pull/5498>`__: Add support for Botan 2.x
+- `#5511 <https://github.com/PowerDNS/pdns/pull/5511>`__: Add more information to recursor cache dumps
+- `#5523 <https://github.com/PowerDNS/pdns/pull/5523>`__: Fix typo in two log messages (Ruben Kerkhof)
+- `#5598 <https://github.com/PowerDNS/pdns/pull/5598>`__: Add help text on autodetecting systemd support
+- `#5726 <https://github.com/PowerDNS/pdns/pull/5726>`__: Be more resilient with broken auths
+- `#5739 <https://github.com/PowerDNS/pdns/pull/5739>`__: Remove pdns.PASS and pdns.TRUNCATE
+- `#5755 <https://github.com/PowerDNS/pdns/pull/5755>`__: Improve dnsbulktest experience in travis for more robustness
+- `#5762 <https://github.com/PowerDNS/pdns/pull/5762>`__: Create socket-dir from init-script
+- `#5843 <https://github.com/PowerDNS/pdns/pull/5843>`__: b.root renumbering, effective 2017-10-24
+- `#5921 <https://github.com/PowerDNS/pdns/pull/5921>`__: Don't retry security polling too often when it fails
+
+
 PowerDNS Recursor 4.0.6
 -----------------------
 

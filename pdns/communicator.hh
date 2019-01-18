@@ -47,7 +47,7 @@ using namespace boost::multi_index;
 struct SuckRequest
 {
   DNSName domain;
-  string master;
+  ComboAddress master;
   bool operator<(const SuckRequest& b) const
   {
     return tie(domain, master) < tie(b.domain, b.master);
@@ -167,7 +167,7 @@ public:
   
   void drillHole(const DNSName &domain, const string &ip);
   bool justNotified(const DNSName &domain, const string &ip);
-  void addSuckRequest(const DNSName &domain, const string &master);
+  void addSuckRequest(const DNSName &domain, const ComboAddress& master);
   void addSlaveCheckRequest(const DomainInfo& di, const ComboAddress& remote);
   void addTrySuperMasterRequest(DNSPacket *p);
   void notify(const DNSName &domain, const string &ip);
@@ -193,7 +193,7 @@ private:
   int d_nsock4, d_nsock6;
   map<pair<DNSName,string>,time_t>d_holes;
   pthread_mutex_t d_holelock;
-  void suck(const DNSName &domain, const string &remote);
+  void suck(const DNSName &domain, const ComboAddress& remote);
   void ixfrSuck(const DNSName &domain, const TSIGTriplet& tt, const ComboAddress& laddr, const ComboAddress& remote, boost::scoped_ptr<AuthLua4>& pdl,
                 ZoneStatus& zs, vector<DNSRecord>* axfr);
 
@@ -208,7 +208,14 @@ private:
   Semaphore d_any_sem;
   time_t d_tickinterval;
   set<DomainInfo> d_tocheck;
-  vector<DNSPacket> d_potentialsupermasters;
+  struct cmp {
+    bool operator()(const DNSPacket& a, const DNSPacket& b) {
+      return a.qdomain < b.qdomain;
+    };
+  };
+
+  std::set<DNSPacket, cmp> d_potentialsupermasters;
+
   set<string> d_alsoNotify;
   NotificationQueue d_nq;
   NetmaskGroup d_onlyNotify;
@@ -275,7 +282,7 @@ private:
         struct addrinfo* address = res;
         do {
           if (address->ai_addrlen <= sizeof(remote)) {
-            memcpy(&remote, address->ai_addr, address->ai_addrlen);
+            remote.setSockaddr(address->ai_addr, address->ai_addrlen);
             addresses->push_back(remote.toString());
           }
         } while((address = address->ai_next));

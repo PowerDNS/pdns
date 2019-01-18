@@ -39,35 +39,35 @@
 
 static const char *basicQueryKey = "PDNS_Basic_Query";
 static const char *basicQueryDefaultAuthSQL =
-  "SELECT fqdn, ttl, type, content, zone_id, last_change, auth "
+  "SELECT fqdn, ttl, type, content, zone_id, auth "
   "FROM Records "
   "WHERE type = :type AND fqdn = lower(:name)";
 
-static const char *basicQueryDefaultSQL = "SELECT fqdn, ttl, type, content, zone_id, last_change "
+static const char *basicQueryDefaultSQL = "SELECT fqdn, ttl, type, content, zone_id, "
   "FROM Records "
   "WHERE type = :type AND fqdn = lower(:name)";
 
 static const char *basicIdQueryKey = "PDNS_Basic_Id_Query";
 static const char *basicIdQueryDefaultAuthSQL =
-  "SELECT fqdn, ttl, type, content, zone_id, last_change, auth "
+  "SELECT fqdn, ttl, type, content, zone_id, auth "
   "FROM Records "
   "WHERE type = :type AND fqdn = lower(:name) AND zone_id = :zoneid";
 
 static const char *basicIdQueryDefaultSQL = 
-  "SELECT fqdn, ttl, type, content, zone_id, last_change "
+  "SELECT fqdn, ttl, type, content, zone_id, "
   "FROM Records "
   "WHERE type = :type AND fqdn = lower(:name) AND zone_id = :zoneid";
 
 static const char *anyQueryKey = "PDNS_ANY_Query";
 static const char *anyQueryDefaultAuthSQL =
-  "SELECT fqdn, ttl, type, content, zone_id, last_change, auth "
+  "SELECT fqdn, ttl, type, content, zone_id, auth "
   "FROM Records "
   "WHERE fqdn = lower(:name)"
   "  AND type IS NOT NULL "
   "ORDER BY type";
 
 static const char *anyQueryDefaultSQL =
-  "SELECT fqdn, ttl, type, content, zone_id, last_change "
+  "SELECT fqdn, ttl, type, content, zone_id, "
   "FROM Records "
   "WHERE fqdn = lower(:name)"
   "  AND type IS NOT NULL "
@@ -75,7 +75,7 @@ static const char *anyQueryDefaultSQL =
 
 static const char *anyIdQueryKey = "PDNS_ANY_Id_Query";
 static const char *anyIdQueryDefaultAuthSQL =
-  "SELECT fqdn, ttl, type, content, zone_id, last_change, auth "
+  "SELECT fqdn, ttl, type, content, zone_id, auth "
   "FROM Records "
   "WHERE fqdn = lower(:name)"
   "  AND zone_id = :zoneid"
@@ -83,7 +83,7 @@ static const char *anyIdQueryDefaultAuthSQL =
   "ORDER BY type";
 
 static const char *anyIdQueryDefaultSQL =
-  "SELECT fqdn, ttl, type, content, zone_id, last_change "
+  "SELECT fqdn, ttl, type, content, zone_id, "
   "FROM Records "
   "WHERE fqdn = lower(:name)"
   "  AND zone_id = :zoneid"
@@ -93,14 +93,14 @@ static const char *anyIdQueryDefaultSQL =
 
 static const char *listQueryKey = "PDNS_List_Query";
 static const char *listQueryDefaultAuthSQL =
-  "SELECT fqdn, ttl, type, content, zone_id, last_change, auth "
+  "SELECT fqdn, ttl, type, content, zone_id, auth "
   "FROM Records "
   "WHERE zone_id = :zoneid"
   "  AND type IS NOT NULL "
   "ORDER BY fqdn, type";
 
 static const char *listQueryDefaultSQL =
-  "SELECT fqdn, ttl, type, content, zone_id, last_change "
+  "SELECT fqdn, ttl, type, content, zone_id, "
   "FROM Records "
   "WHERE zone_id = :zoneid"
   "  AND type IS NOT NULL "
@@ -124,12 +124,6 @@ static const char *zoneMastersQueryDefaultSQL =
   "SELECT master "
   "FROM Zonemasters "
   "WHERE zone_id = :zoneid";
-
-static const char *isZoneMasterQueryKey = "PDNS_Is_Zone_Master_Query";
-static const char *isZoneMasterQueryDefaultSQL =
-  "SELECT zm.master "
-  "FROM Zones z JOIN Zonemasters zm ON z.id = zm.zone_id "
-  "WHERE z.name = lower(:name) AND zm.master = :master";
 
 static const char *deleteZoneQueryKey = "PDNS_Delete_Zone_Query";
 static const char *deleteZoneQueryDefaultSQL =
@@ -338,7 +332,6 @@ OracleBackend::OracleBackend (const string &suffix, OCIEnv *envh,
   zoneInfoQuerySQL = getArg("zone-info-query");
   alsoNotifyQuerySQL = getArg("also-notify-query");
   zoneMastersQuerySQL = getArg("zone-masters-query");
-  isZoneMasterQuerySQL = getArg("is-zone-master-query");
   deleteZoneQuerySQL = getArg("delete-zone-query");
   zoneSetLastCheckQuerySQL = getArg("zone-set-last-check-query");
   insertRecordQuerySQL = getArg("insert-record-query");
@@ -605,43 +598,6 @@ OracleBackend::getDomainMasters (const DNSName& domain, int zoneId)
   release_query(stmt, zoneMastersQueryKey);
 
   return masters;
-}
-
-bool
-OracleBackend::isMaster (const DNSName& domain, const string &master)
-{
-  sword rc;
-  OCIStmt *stmt;
-
-  openMasterConnection();
-
-  stmt = prepare_query(masterSvcCtx, isZoneMasterQuerySQL, isZoneMasterQueryKey);
-
-  DNSName_to_cbuf(mQueryZone, domain, sizeof(mQueryZone));
-  string_to_cbuf(mQueryName, master, sizeof(mQueryName));
-
-  char res_master[512];
-  sb2 res_master_ind;
-
-  bind_str_failokay(stmt, ":nsname", myServerName, sizeof(myServerName));
-  bind_str(stmt, ":name", mQueryZone, sizeof(mQueryZone));
-  bind_str(stmt, ":master", mQueryName, sizeof(mQueryName));
-  define_output_str(stmt, 1, &res_master_ind, res_master, sizeof(res_master));
-
-  rc = OCIStmtExecute(masterSvcCtx, stmt, oraerr, 1, 0, NULL, NULL, OCI_DEFAULT);
-
-  if (rc == OCI_ERROR) {
-    throw OracleException("Oracle isMaster", oraerr);
-  }
-
-  release_query(stmt, isZoneMasterQueryKey);
-
-  if (rc != OCI_NO_DATA) {
-    check_indicator(res_master_ind, false);
-    return true;
-  }
-
-  return false;
 }
 
 bool
@@ -2155,7 +2111,7 @@ private:
         throw OracleException("Setting session pool get mode", oraerr);
       }
     } catch (OracleException &theException) {
-      L << Logger::Critical << "OracleFactory: "
+      g_log << Logger::Critical << "OracleFactory: "
         << theException.reason << endl;
       Cleanup();
       throw theException;
@@ -2176,7 +2132,7 @@ private:
           throw OracleException("OCISessionPoolDestroy", oraerr);
         }
       } catch (OracleException &theException) {
-        L << Logger::Error << "Failed to destroy Oracle session pool: "
+        g_log << Logger::Error << "Failed to destroy Oracle session pool: "
           << theException.reason << endl;
       }
     }
@@ -2238,7 +2194,6 @@ OracleFactory () : BackendFactory("oracle") {
     declare(suffix, "zone-info-query", "", zoneInfoQueryDefaultSQL);
     declare(suffix, "also-notify-query", "", alsoNotifyQueryDefaultSQL);
     declare(suffix, "zone-masters-query", "", zoneMastersQueryDefaultSQL);
-    declare(suffix, "is-zone-master-query", "", isZoneMasterQueryDefaultSQL);
     declare(suffix, "delete-zone-query", "", deleteZoneQueryDefaultSQL);
     declare(suffix, "zone-set-last-check-query", "", zoneSetLastCheckQueryDefaultSQL);
     declare(suffix, "zone-set-notified-serial-query", "", zoneSetNotifiedSerialQueryDefaultSQL);
@@ -2290,7 +2245,7 @@ public:
   OracleLoader()
   {
     BackendMakers().report(new OracleFactory);
-    L << Logger::Info << "[oraclebackend] This is the oracle backend version " VERSION
+    g_log << Logger::Info << "[oraclebackend] This is the oracle backend version " VERSION
 #ifndef REPRODUCIBLE
       << " (" __DATE__ " " __TIME__ ")"
 #endif

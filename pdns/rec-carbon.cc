@@ -14,17 +14,24 @@ void doCarbonDump(void*)
 try
 {
   string hostname;
+  string instance_name;
+  string namespace_name;
   vector<string> carbonServers;
 
   {
     Lock l(&g_carbon_config_lock);
     stringtok(carbonServers, arg()["carbon-server"], ", ");
+    namespace_name=arg()["carbon-namespace"];
     hostname=arg()["carbon-ourname"];
+    instance_name=arg()["carbon-instance"];
   }
 
   if(carbonServers.empty())
     return;
 
+  if(namespace_name.empty()) {
+    namespace_name="pdns";
+  }
   if(hostname.empty()) {
     char tmp[80];
     memset(tmp, 0, sizeof(tmp));
@@ -34,6 +41,9 @@ try
 
     hostname=tmp;
     boost::replace_all(hostname, ".", "_");    
+  }
+  if(instance_name.empty()) {
+    instance_name="recursor";
   }
 
   registerAllStats();
@@ -53,23 +63,27 @@ try
       time_t now=time(0);
       
       for(const all_t::value_type& val :  all) {
-        str<<"pdns."<<hostname<<".recursor."<<val.first<<' '<<val.second<<' '<<now<<"\r\n";
+        str<<namespace_name<<'.'<<hostname<<'.'<<instance_name<<'.'<<val.first<<' '<<val.second<<' '<<now<<"\r\n";
       }
       msg = str.str();
     }
 
     int ret=asendtcp(msg, &s);     // this will actually do the right thing waiting on the connect
     if(ret < 0)
-      L<<Logger::Warning<<"Error writing carbon data to "<<remote.toStringWithPort()<<": "<<strerror(errno)<<endl;
+      g_log<<Logger::Warning<<"Error writing carbon data to "<<remote.toStringWithPort()<<": "<<strerror(errno)<<endl;
     if(ret==0)
-      L<<Logger::Warning<<"Timeout connecting/writing carbon data to "<<remote.toStringWithPort()<<endl;
+      g_log<<Logger::Warning<<"Timeout connecting/writing carbon data to "<<remote.toStringWithPort()<<endl;
   }
  }
 catch(PDNSException& e)
 {
-  L<<Logger::Error<<"Error in carbon thread: "<<e.reason<<endl;
+  g_log<<Logger::Error<<"Error in carbon thread: "<<e.reason<<endl;
 }
 catch(std::exception& e)
 {
-  L<<Logger::Error<<"Error in carbon thread: "<<e.what()<<endl;
+  g_log<<Logger::Error<<"Error in carbon thread: "<<e.what()<<endl;
+}
+catch(...)
+{
+  g_log<<Logger::Error<<"Unknown error in carbon thread"<<endl;
 }

@@ -1,0 +1,95 @@
+# Listen addresses. ixfrdist will listen on both UDP and TCP.
+# When no port is specified, 53 is used. When specifying ports for IPv6, use the
+# "bracket" notation:
+#
+#    listen:
+#      - '127.0.0.1'
+#      - '::1'
+#      - '192.0.2.3:5300'
+#      - '[2001:DB8:1234::334]:5353'
+#
+# By default, or when unset, ixfrdist listens on local loopback addresses.
+listen:
+  - '127.0.0.1'
+  - '::1'
+
+# Netmasks or IP addresses of hosts that are allowed to query ixfrdist. Hosts
+# do not need a netmask:
+#
+#    acl:
+#      - '127.0.0.0/8'
+#      - '::1'
+#      - '192.0.2.55'
+#      - '2001:DB8:ABCD::/48'
+#
+# By default (or when unset), only loopback addresses are allowed.
+#
+acl:
+  - '127.0.0.0/8'
+  - '::1'
+
+# Timeout in seconds an AXFR transaction requested by ixfrdist may take.
+# Increase this when the network to the authoritative servers is slow or the
+# domains are very large and you experience timeouts. Set to 20 by default or
+# when unset.
+#
+axfr-timeout: 20
+
+# Time in seconds between retries of the SOA query for a zone we have never
+# transferred.
+
+failed-soa-retry: 30
+
+# Whether record compression should be enabled, leading to smaller answers
+# at the cost of an increased CPU and memory usage. Defaults to false.
+#
+compress: false
+
+# Amount of older copies/IXFR diffs to keep for every domain. This is set to
+# 20 by default or when unset.
+#
+keep: 20
+
+# Number of threads to spawn for TCP connections (AXFRs) from downstream hosts.
+# This is set to 10 by default or when unset.
+#
+tcp-in-threads: 10
+
+# The directory where the domain data is stored. When unset, the current
+# working directory is used. Note that this directory must be writable for the
+# user or group ixfrdist runs as.
+#
+# work-dir: '/var/lib/ixfrdist'
+
+# User to drop privileges to once all listen-sockets are bound. May be either
+# a username or numerical ID.
+#
+# uid: ixfrdist
+
+# Group to drop privileges to once all listen-sockets are bound. May be either
+# a username or numerical ID.
+#
+# gid: ixfrdist
+
+# The IP address and port where the webserver should listen
+#
+webserver-address: 127.0.0.1:8080
+
+# The IP address(masks) that allowed to access the webserver. When not set,
+# it defaults to 127.0.0.0/8, ::1/128
+#
+webserver-acl:
+  - 127.0.0.0/8
+  - ::1/128
+
+# The domains to redistribute, the 'master' and 'domains' keys are mandatory.
+# When no port is specified, 53 is used. When specifying ports for IPv6, use the
+# "bracket" notation:
+#
+#    domains:
+#      - domain: example.com
+#        master: 192.0.2.15
+#      - domain: rpz.example
+#        master: [2001:DB8:a34:543::53]:5353
+#
+domains: []

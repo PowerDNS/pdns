@@ -206,10 +206,19 @@ install_auth() {
   run "sudo apt-get -qq --no-install-recommends install \
     libp11-kit-dev"
 
+  # for validns
+  run "sudo add-apt-repository -y ppa:jelu/validns"
+  run 'curl "http://keyserver.ubuntu.com:11371/pks/lookup?op=get&search=0x7AA4AC1F04A52E842B88094F01B7B7D6564DECD0" | sudo apt-key add - '
+
   # geoip-backend
+  run "sudo add-apt-repository -y ppa:maxmind/ppa"
+  run "gpg --keyserver keyserver.ubuntu.com --recv-keys DE742AFA"
+  run "gpg --export DE742AFA | sudo apt-key add -"
+  run "sudo apt-get update"
   run "sudo apt-get -qq --no-install-recommends install \
     libgeoip-dev \
-    libyaml-cpp-dev"
+    libyaml-cpp-dev \
+    libmaxminddb-dev"
 
   # ldap-backend
   run "sudo apt-get -qq --no-install-recommends install \
@@ -240,8 +249,8 @@ install_auth() {
     jq"
 
   run "cd .."
-  run "wget https://www.monshouwer.eu/download/3rd_party/jdnssec-tools-0.13.ecdsafix.tar.gz"
-  run "sudo tar xfz jdnssec-tools-0.13.ecdsafix.tar.gz --strip-components=1 -C /"
+  run "wget https://github.com/dblacka/jdnssec-tools/releases/download/0.14/jdnssec-tools-0.14.tar.gz"
+  run "sudo tar xfz jdnssec-tools-0.14.tar.gz --strip-components=1 -C /"
   run "cd ${TRAVIS_BUILD_DIR}"
 
   # pkcs11 test requirements / setup
@@ -261,7 +270,7 @@ install_auth() {
     alien\
     fakeroot"
   run "cd .."
-  run "wget ftp://ftp.nominum.com/pub/nominum/dnsperf/2.0.0.0/dnsperf-2.0.0.0-1-rhel-6-x86_64.tar.gz"
+  run "wget https://downloads.powerdns.com/tmp/dnsperf-2.0.0.0-1-rhel-6-x86_64.tar.gz"
   run "tar xzvf dnsperf-2.0.0.0-1-rhel-6-x86_64.tar.gz"
   run "fakeroot alien --to-deb dnsperf-2.0.0.0-1/dnsperf-2.0.0.0-1.el6.x86_64.rpm"
   run "sudo dpkg -i dnsperf_2.0.0.0-2_amd64.deb"
@@ -303,6 +312,7 @@ install_auth() {
     ruby-json \
     rubygems-integration \
     socat"
+  run "gem update --system"
   run "gem install bundler --no-rdoc --no-ri"
   run "cd modules/remotebackend"
   run "ruby -S bundle install"
@@ -320,14 +330,22 @@ install_auth() {
   run "sudo chmod 755 /etc/authbind/byport/53"
 }
 
+install_ixfrdist() {
+  run "sudo apt-get -qq --no-install-recommends install \
+    libyaml-cpp-dev"
+}
+
 install_recursor() {
   # recursor test requirements / setup
+  # lua-posix is required for the ghost tests
+  # (used by the prequery script in the auth)
   run "sudo apt-get -qq --no-install-recommends install \
     authbind \
     daemontools \
     jq \
     libfaketime \
     libsnmp-dev \
+    lua-posix \
     moreutils \
     snmpd"
   run "cd .."
@@ -343,13 +361,23 @@ install_recursor() {
   run "sudo touch /etc/authbind/byport/53"
   run "sudo chmod 755 /etc/authbind/byport/53"
   run "cd ${TRAVIS_BUILD_DIR}"
+  # install SNMP
+  run "sudo sed -i \"s/agentxperms 0700 0755 recursor/agentxperms 0700 0755 ${USER}/g\" regression-tests.recursor-dnssec/snmpd.conf"
+  run "sudo cp -f regression-tests.recursor-dnssec/snmpd.conf /etc/snmp/snmpd.conf"
+  run "sudo service snmpd restart"
+  ## fun story, the directory perms are only applied if it doesn't exist yet, and it is created by the init script, so..
+  run "sudo chmod 0755 /var/agentx"
 }
 
 install_dnsdist() {
   # test requirements / setup
+  run "sudo add-apt-repository -y ppa:zeha/libfstrm-ppa"
+  run 'curl "http://keyserver.ubuntu.com:11371/pks/lookup?op=get&search=0x396160EF8126A2E2" | sudo apt-key add - '
+  run "sudo apt-get -qq update"
   run "sudo apt-get -qq --no-install-recommends install \
     snmpd \
-    libsnmp-dev"
+    libsnmp-dev \
+    libfstrm-dev"
   run "sudo sed -i \"s/agentxperms 0700 0755 dnsdist/agentxperms 0700 0755 ${USER}/g\" regression-tests.dnsdist/snmpd.conf"
   run "sudo cp -f regression-tests.dnsdist/snmpd.conf /etc/snmp/snmpd.conf"
   run "sudo service snmpd restart"
@@ -357,19 +385,24 @@ install_dnsdist() {
   run "sudo chmod 0755 /var/agentx"
 }
 
+check_for_dangling_symlinks() {
+  run '! find -L . -name missing-sources -prune -o ! -name pubsuffix.cc -type l | grep .'
+}
+
 build_auth() {
-  run "./bootstrap"
-  # Build without --enable-botan1.10 option, Botan/SoftHSM conflict #2496
-  run "CFLAGS='-O1' CXXFLAGS='-O1' ./configure \
-    --with-dynmodules='bind gmysql geoip gpgsql gsqlite3 ldap lua mydns opendbx pipe random remote tinydns godbc' \
+  run "autoreconf -vi"
+  run "./configure \
+    ${sanitizerflags} \
+    --with-dynmodules='bind gmysql geoip gpgsql gsqlite3 ldap lua mydns opendbx pipe random remote tinydns godbc lua2' \
     --with-modules='' \
     --with-sqlite3 \
-    --enable-libsodium \
+    --with-libsodium \
     --enable-experimental-pkcs11 \
     --enable-remotebackend-zeromq \
     --enable-tools \
     --enable-unit-tests \
     --enable-backend-unit-tests \
+    --enable-fuzz-targets \
     --disable-dependency-tracking \
     --disable-silent-rules"
   run "make -k dist"
@@ -378,17 +411,39 @@ build_auth() {
   run "find /tmp/pdns-install-dir -ls"
 }
 
+build_ixfrdist() {
+  run "autoreconf -vi"
+  run "./configure \
+    ${sanitizerflags} \
+    --with-dynmodules='bind' \
+    --with-modules='' \
+    --enable-ixfrdist \
+    --enable-unit-tests \
+    --disable-dependency-tracking \
+    --disable-silent-rules"
+  run "make -C ext -k -j3"
+  run "cd pdns"
+  run "make -k -j3 ixfrdist"
+  run "cd .."
+}
+
 build_recursor() {
   export PDNS_RECURSOR_DIR=$HOME/pdns_recursor
+  run "cd pdns/recursordist"
+  check_for_dangling_symlinks
+  run "cd ../.."
   # distribution build
   run "./build-scripts/dist-recursor"
   run "cd pdns/recursordist"
   run "tar xf pdns-recursor-*.tar.bz2"
   run "rm -f pdns-recursor-*.tar.bz2"
   run "cd pdns-recursor-*"
-  run "CFLAGS='-O1' CXXFLAGS='-O1' CXX=${COMPILER} ./configure \
+  run "./configure \
+    ${sanitizerflags} \
     --prefix=$PDNS_RECURSOR_DIR \
+    --with-libsodium \
     --enable-unit-tests \
+    --enable-nod \
     --disable-silent-rules"
   run "make -k -j3"
   run "make install"
@@ -397,14 +452,20 @@ build_recursor() {
 }
 
 build_dnsdist(){
+  run "cd pdns/dnsdistdist"
+  check_for_dangling_symlinks
+  run "cd ../.."
   run "./build-scripts/dist-dnsdist"
   run "cd pdns/dnsdistdist"
   run "tar xf dnsdist*.tar.bz2"
   run "cd dnsdist-*"
-  run "CFLAGS='-O1' CXXFLAGS='-O1' ./configure \
+  run "./configure \
+    ${sanitizerflags} \
     --enable-unit-tests \
-    --enable-libsodium \
+    --with-libsodium \
     --enable-dnscrypt \
+    --enable-dns-over-tls \
+    --enable-dnstap \
     --prefix=$HOME/dnsdist \
     --disable-silent-rules"
   run "make -k -j3"
@@ -417,7 +478,7 @@ build_dnsdist(){
 }
 
 test_auth() {
-  run "make -j3 check"
+  run "make -j3 check || (cat pdns/test-suite.log; false)"
   run "test -f pdns/test-suite.log && cat pdns/test-suite.log || true"
   run "test -f modules/remotebackend/test-suite.log && cat modules/remotebackend/test-suite.log || true"
 
@@ -445,9 +506,10 @@ test_auth() {
   run "./timestamp ./start-test-stop 5300 bind-hybrid-nsec3"
   #ecdsa - ./timestamp ./start-test-stop 5300 bind-dnssec-pkcs11
 
-  run "export geoipregion=oc geoipregionip=1.2.3.4"
   run "./timestamp ./start-test-stop 5300 geoip"
   run "./timestamp ./start-test-stop 5300 geoip-nsec3-narrow"
+  run "export geoipdatabase=../modules/geoipbackend/regression-tests/GeoLiteCity.mmdb"
+  run "./timestamp ./start-test-stop 5300 geoip"
 
   run "./timestamp ./start-test-stop 5300 gmysql-nodnssec-both"
   run "./timestamp ./start-test-stop 5300 gmysql-both"
@@ -518,6 +580,9 @@ test_auth() {
   run "./timestamp ./start-test-stop 5300 gsqlite3-nsec3-optout-both"
   run "./timestamp ./start-test-stop 5300 gsqlite3-nsec3-narrow"
 
+  run "./timestamp ./start-test-stop 5300 lua2"
+  run "./timestamp ./start-test-stop 5300 lua2-dnssec"
+
   run "cd .."
 
   ### api ###
@@ -531,7 +596,18 @@ test_auth() {
   run "test ! -s ./failed_tests"
   run "cd .."
 
+  ### Lua rec tests ###
+  run "cd regression-tests.auth-py"
+  run "./runtests -v || (cat ./configs/auth/pdns.log; false)"
+  run "cd .."
+
   run "rm -f regression-tests/zones/*-slave.*" #FIXME
+}
+
+test_ixfrdist(){
+  run "cd regression-tests.ixfrdist"
+  run "IXFRDISTBIN=${TRAVIS_BUILD_DIR}/pdns/ixfrdist ./runtests -v || (cat ixfrdist.log; false)"
+  run "cd .."
 }
 
 test_recursor() {
@@ -544,7 +620,7 @@ test_recursor() {
   run "./build-scripts/test-recursor"
   export RECURSOR="${PDNSRECURSOR}"
   run "cd regression-tests"
-  run "THRESHOLD=95 TRACE=no ./timestamp ./recursor-test 5300 50000"
+  run "THRESHOLD=50 TRACE=no ./timestamp ./recursor-test 5300 50000"
   run "cd .."
 
   run "cd regression-tests.api"
@@ -564,13 +640,17 @@ test_repo(){
   run "git status | grep -q clean"
 }
 
+test_none() {
+  run "build-scripts/test-spelling-unknown-words"
+}
+
+if [ $PDNS_BUILD_PRODUCT != "none" ]; then
 # global build requirements
 run "sudo apt-get -qq --no-install-recommends install \
   libboost-all-dev \
-  liblua5.1-dev \
+  libluajit-5.1-dev \
   libedit-dev \
   libprotobuf-dev \
-  pandoc\
   protobuf-compiler"
 
 run "cd .."
@@ -579,9 +659,31 @@ run "wget http://ppa.launchpad.net/kalon33/gamesgiroll/ubuntu/pool/main/libs/lib
 run "sudo dpkg -i libsodium-dev_1.0.3-1~ppa14.04+1_amd64.deb libsodium13_1.0.3-1~ppa14.04+1_amd64.deb"
 run "cd ${TRAVIS_BUILD_DIR}"
 
+compilerflags="-O1 -Werror=vla"
+sanitizerflags=""
+if [ "$CC" = "clang" ]
+then
+  compilerflags="$compilerflags -Werror=string-plus-int"
+  if [ "${PDNS_BUILD_PRODUCT}" = "recursor" ]; then
+    sanitizerflags="${sanitizerflags} --enable-asan"
+  elif [ "${PDNS_BUILD_PRODUCT}" = "dnsdist" ]; then
+    sanitizerflags="${sanitizerflags} --enable-asan --enable-ubsan"
+  elif [ "${PDNS_BUILD_PRODUCT}" = "ixfrdist" ]; then
+    sanitizerflags="${sanitizerflags} --enable-asan --enable-ubsan"
+  fi
+fi
+export CFLAGS=$compilerflags
+export CXXFLAGS=$compilerflags
+export sanitizerflags
+# We need a suppression for UndefinedBehaviorSanitizer with ixfrdist,
+# because of a vptr bug fixed in Boost 1.57.0:
+# https://github.com/boostorg/any/commit/c92ab03ab35775b6aab30f6cdc3d95b7dd8fc5c6
+export UBSAN_OPTIONS="print_stacktrace=1:halt_on_error=1:suppressions=${TRAVIS_BUILD_DIR}/build-scripts/UBSan.supp"
+
 install_$PDNS_BUILD_PRODUCT
 
 build_$PDNS_BUILD_PRODUCT
+fi
 
 test_$PDNS_BUILD_PRODUCT
 

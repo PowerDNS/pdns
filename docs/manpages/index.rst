@@ -9,3 +9,4 @@ The manual pages for these programs are included here:
   :glob:
 
   *.1
+  *.5

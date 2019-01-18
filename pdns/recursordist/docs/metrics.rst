@@ -17,7 +17,7 @@ There are 309 items in the negative cache, items of which it is known that don't
 The outpacket/query ratio means that on average, 0.37 packets were needed to answer a question.
 Initially this ratio may be well over 100% as additional queries may be needed to actually recurse the DNS and figure out the addresses of nameservers.
 
-Finally, 12% of queries were not performed because identical queries had gone out previously, saving load on servers worldwide.
+Finally, 12% of queries were not performed because identical queries had gone out previously and failed, saving load on servers worldwide.
 
 .. _metricscarbon:
 
@@ -59,7 +59,7 @@ This endpoint exports all statistics in a single JSON document.
 
 Using ``rec_control``
 ^^^^^^^^^^^^^^^^^^^^^
-Metrics can also be gathered on the system itself by invoking :doc:`rec_control <manpages/rec_control>`::
+Metrics can also be gathered on the system itself by invoking :doc:`rec_control <manpages/rec_control.1>`::
 
    rec_control get-all
 
@@ -144,6 +144,10 @@ auth6-answers100-1000
 ^^^^^^^^^^^^^^^^^^^^^
 counts the number of queries answered by auth6s within 1 second (4.0)
 
+auth-zone-queries
+^^^^^^^^^^^^^^^^^
+counts the number of queries to locally hosted authoritative zones (:ref:`setting-auth-zones`) since starting
+
 cache-bytes
 ^^^^^^^^^^^
 size of the cache in bytes
@@ -179,6 +183,18 @@ shows the number of MThreads currently   running
 dlg-only-drops
 ^^^^^^^^^^^^^^
 number of records dropped because of :ref:`setting-delegation-only` setting
+
+dnssec-authentic-data-queries
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+.. versionadded:: 4.2
+
+number of queries received with the AD bit set
+
+dnssec-check-disabled-queries
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+.. versionadded:: 4.2
+
+number of queries received with the CD bit set
 
 dnssec-queries
 ^^^^^^^^^^^^^^
@@ -253,7 +269,7 @@ max-cache-entries
 currently configured maximum number of cache entries
 
 max-packetcache-entries
-^^^^^^^^^^^^^^^^^
+^^^^^^^^^^^^^^^^^^^^^^^
 currently configured maximum number of packet cache entries
 
 max-mthread-stack
@@ -356,6 +372,12 @@ qa-latency
 ^^^^^^^^^^
 shows the current latency average, in microseconds,   exponentially weighted over past 'latency-statistic-size' packets
 
+query-pipe-full-drops
+^^^^^^^^^^^^^^^^^^^^^
+.. versionadded:: 4.2
+
+questions dropped because the query distribution pipe was full
+
 questions
 ^^^^^^^^^
 counts all end-user initiated queries with the RD bit   set
@@ -416,6 +438,18 @@ too-old-drops
 ^^^^^^^^^^^^^
 questions dropped that were too old
 
+truncated-drops
+^^^^^^^^^^^^^^^
+.. versionadded:: 4.2
+
+questions dropped because they were larger than 512 bytes
+
+empty-queries
+^^^^^^^^^^^^^
+.. versionadded:: 4.2
+
+questions dropped because they had a QD count of 0
+
 unauthorized-tcp
 ^^^^^^^^^^^^^^^^
 number of TCP questions denied because of   allow-from restrictions
@@ -439,3 +473,79 @@ number of seconds process has been running (since 3.1.5)
 user-msec
 ^^^^^^^^^
 number of CPU milliseconds spent in 'user' mode
+
+.. _stat-x-our-latency:
+
+variable-responses
+^^^^^^^^^^^^^^^^^^
+.. versionadded:: 4.2
+
+Responses that were marked as 'variable'. This could be because of EDNS
+Client Subnet or Lua rules that indicate this variable status (dependent on
+time or who is asking, for example).
+
+x-our-latency
+^^^^^^^^^^^^^
+.. versionadded:: 4.1
+  Not yet proven to be reliable
+
+PowerDNS measures per query how much time has been spent waiting on authoritative servers.
+In addition, the Recursor measures the total amount of time needed to answer a question.
+The difference between these two durations is a measure of how much time was spent within PowerDNS.
+This metric is the average of that difference, in microseconds.
+
+x-ourtime0-1
+^^^^^^^^^^^^
+.. versionadded:: 4.1
+  Not yet proven to be reliable
+
+Counts responses where between 0 and 1 milliseconds was spent within the Recursor.
+See :ref:`stat-x-our-latency` for further details.
+
+x-ourtime1-2
+^^^^^^^^^^^^
+.. versionadded:: 4.1
+  Not yet proven to be reliable
+
+Counts responses where between 1 and 2 milliseconds was spent within the Recursor.
+See :ref:`stat-x-our-latency` for further details.
+
+x-ourtime2-4
+^^^^^^^^^^^^
+.. versionadded:: 4.1
+  Not yet proven to be reliable
+
+Counts responses where between 2 and 4 milliseconds was spent within the Recursor. Since 4.1.
+See :ref:`stat-x-our-latency` for further details.
+
+x-ourtime4-8
+^^^^^^^^^^^^
+.. versionadded:: 4.1
+  Not yet proven to be reliable
+
+Counts responses where between 4 and 8 milliseconds was spent within the Recursor.
+See :ref:`stat-x-our-latency` for further details.
+
+x-ourtime8-16
+^^^^^^^^^^^^^
+.. versionadded:: 4.1
+  Not yet proven to be reliable
+
+Counts responses where between 8 and 16 milliseconds was spent within the Recursor.
+See :ref:`stat-x-our-latency` for further details.
+
+x-ourtime16-32
+^^^^^^^^^^^^^^
+.. versionadded:: 4.1
+  Not yet proven to be reliable
+
+Counts responses where between 16 and 32 milliseconds was spent within the Recursor.
+See :ref:`stat-x-our-latency` for further details.
+
+x-ourtime-slow
+^^^^^^^^^^^^^^
+.. versionadded:: 4.1
+  Not yet proven to be reliable
+
+Counts responses where more than 32 milliseconds was spent within the Recursor.
+See :ref:`stat-x-our-latency` for further details.

@@ -50,7 +50,7 @@ bool Connector::recv(Json& value) {
        if (value["result"].is_bool() && boolFromJson(value, "result", false) == false)
          rv = false;
        for(const auto& message: value["log"].array_items())
-         L<<Logger::Info<<"[remotebackend]: "<< message.string_value() <<std::endl;
+         g_log<<Logger::Info<<"[remotebackend]: "<< message.string_value() <<std::endl;
        return rv;
     }
     return false;
@@ -81,7 +81,7 @@ bool RemoteBackend::send(Json& value) {
    try {
      return connector->send(value);
    } catch (PDNSException &ex) {
-     L<<Logger::Error<<"Exception caught when sending: "<<ex.reason<<std::endl;
+     g_log<<Logger::Error<<"Exception caught when sending: "<<ex.reason<<std::endl;
    }
 
    delete this->connector;
@@ -93,9 +93,9 @@ bool RemoteBackend::recv(Json& value) {
    try {
      return connector->recv(value);
    } catch (PDNSException &ex) {
-     L<<Logger::Error<<"Exception caught when receiving: "<<ex.reason<<std::endl;
+     g_log<<Logger::Error<<"Exception caught when receiving: "<<ex.reason<<std::endl;
    } catch (...) {
-     L<<Logger::Error<<"Exception caught when receiving"<<std::endl;;
+     g_log<<Logger::Error<<"Exception caught when receiving"<<std::endl;;
    }
 
    delete this->connector;
@@ -557,7 +557,7 @@ void RemoteBackend::parseDomainInfo(const Json &obj, DomainInfo &di)
    di.id = intFromJson(obj, "id", -1);
    di.zone = DNSName(stringFromJson(obj, "zone"));
    for(const auto& master: obj["masters"].array_items())
-     di.masters.push_back(master.string_value());
+     di.masters.push_back(ComboAddress(master.string_value(), 53));
 
    di.notified_serial = static_cast<unsigned int>(doubleFromJson(obj, "notified_serial", -1));
    di.serial = static_cast<unsigned int>(obj["serial"].number_value());
@@ -577,7 +577,7 @@ void RemoteBackend::parseDomainInfo(const Json &obj, DomainInfo &di)
    di.backend = this;
 }
 
-bool RemoteBackend::getDomainInfo(const DNSName& domain, DomainInfo &di) {
+bool RemoteBackend::getDomainInfo(const DNSName& domain, DomainInfo &di, bool getSerial) {
    if (domain.empty()) return false;
    Json query = Json::object{
      { "method", "getDomainInfo" },
@@ -605,25 +605,8 @@ void RemoteBackend::setNotified(uint32_t id, uint32_t serial) {
 
    Json answer;
    if (this->send(query) == false || this->recv(answer) == false) {
-      L<<Logger::Error<<kBackendId<<" Failed to execute RPC for RemoteBackend::setNotified("<<id<<","<<serial<<")"<<endl;
+      g_log<<Logger::Error<<kBackendId<<" Failed to execute RPC for RemoteBackend::setNotified("<<id<<","<<serial<<")"<<endl;
    }
-}
-
-bool RemoteBackend::isMaster(const DNSName& name, const string &ip)
-{
-   Json query = Json::object{
-     { "method", "isMaster" },
-     { "parameters", Json::object {
-       { "name", name.toString() },
-       { "ip", ip }
-     }}
-   };
-
-   Json answer;
-   if (this->send(query) == false || this->recv(answer) == false)
-     return false;
-
-   return true;
 }
 
 bool RemoteBackend::superMasterBackend(const string &ip, const DNSName& domain, const vector<DNSResourceRecord>&nsset, string* nameserver, string *account, DNSBackend **ddb)
@@ -845,35 +828,6 @@ bool RemoteBackend::abortTransaction() {
    return true;
 }
 
-bool RemoteBackend::calculateSOASerial(const DNSName& domain, const SOAData& sd, time_t& serial) {
-   Json query = Json::object{
-     { "method", "calculateSOASerial" },
-     { "parameters", Json::object{
-       { "domain", domain.toString() },
-       { "sd", Json::object{
-         { "qname", sd.qname.toString() },
-         { "nameserver", sd.nameserver.toString() },
-         { "hostmaster", sd.hostmaster.toString() },
-         { "ttl", static_cast<int>(sd.ttl) },
-         { "serial", static_cast<double>(sd.serial) },
-         { "refresh", static_cast<int>(sd.refresh) },
-         { "retry", static_cast<int>(sd.retry) },
-         { "expire", static_cast<int>(sd.expire) },
-         { "default_ttl", static_cast<int>(sd.default_ttl) },
-         { "domain_id", static_cast<int>(sd.domain_id) },
-         { "scopeMask", sd.scopeMask }
-       }}
-     }}
-   };
-
-   Json answer;
-   if (this->send(query) == false || this->recv(answer) == false)
-     return false;
-
-   serial = static_cast<unsigned int>(doubleFromJson(answer,"result"));
-   return true;
-}
-
 string RemoteBackend::directBackendCmd(const string& querystr) {
    Json query = Json::object{
      { "method", "directBackendCmd" },
@@ -960,7 +914,7 @@ DNSBackend *RemoteBackend::maker()
       return new RemoteBackend();
    }
    catch(...) {
-      L<<Logger::Error<<kBackendId<<" Unable to instantiate a remotebackend!"<<endl;
+      g_log<<Logger::Error<<kBackendId<<" Unable to instantiate a remotebackend!"<<endl;
       return 0;
    };
 }
@@ -993,7 +947,7 @@ public:
 
 RemoteLoader::RemoteLoader() {
     BackendMakers().report(new RemoteBackendFactory);
-    L << Logger::Info << kBackendId << " This is the remote backend version " VERSION
+    g_log << Logger::Info << kBackendId << " This is the remote backend version " VERSION
 #ifndef REPRODUCIBLE
       << " (" __DATE__ " " __TIME__ ")"
 #endif

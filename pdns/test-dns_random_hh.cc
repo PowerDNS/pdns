@@ -15,6 +15,7 @@
 #include <boost/accumulators/accumulators.hpp>
 #include <boost/accumulators/statistics.hpp>
 
+#include "arguments.hh"
 #include "dns_random.hh"
 #include "namespaces.hh"
 
@@ -33,11 +34,13 @@ typedef accumulator_set<
 
 BOOST_AUTO_TEST_SUITE(test_dns_random_hh)
 
+BOOST_AUTO_TEST_CASE(test_dns_random_auto_average) {
 
+  ::arg().set("rng")="auto";
+  ::arg().set("entropy-source")="/dev/urandom";
 
-BOOST_AUTO_TEST_CASE(test_dns_random_average) {
+  dns_random_init("", true);
 
-  dns_random_init("loremipsumdolorx");
   acc_t acc;
 
   for(unsigned int n=0; n < 100000; ++n)  {
@@ -45,11 +48,135 @@ BOOST_AUTO_TEST_CASE(test_dns_random_average) {
   }
   BOOST_CHECK_CLOSE(0.5, median(acc), 2.0); // within 2%
   BOOST_CHECK_CLOSE(0.5, mean(acc), 2.0);
-  
 
   // please add covariance tests, chi-square, Kolmogorov-Smirnov
 }
 
+BOOST_AUTO_TEST_CASE(test_dns_random_urandom_average) {
+
+  ::arg().set("rng")="urandom";
+  ::arg().set("entropy-source")="/dev/urandom";
+
+  dns_random_init("", true);
+
+  acc_t acc;
+
+  for(unsigned int n=0; n < 100000; ++n)  {
+    acc(dns_random(100000)/100000.0);
+  }
+  BOOST_CHECK_CLOSE(0.5, median(acc), 2.0); // within 2%
+  BOOST_CHECK_CLOSE(0.5, mean(acc), 2.0);
+
+  // please add covariance tests, chi-square, Kolmogorov-Smirnov
+}
+
+BOOST_AUTO_TEST_CASE(test_dns_random_garbage) {
+
+  ::arg().set("rng")="garbage";
+  ::arg().set("entropy-source")="/dev/urandom";
+
+  BOOST_CHECK_THROW(dns_random_init("", true), std::runtime_error);
+}
+
+#if defined(HAVE_GETRANDOM)
+BOOST_AUTO_TEST_CASE(test_dns_random_getrandom_average) {
+
+  ::arg().set("rng")="getrandom";
+  ::arg().set("entropy-source")="/dev/urandom";
+
+  dns_random_init("", true);
+
+  acc_t acc;
+
+  for(unsigned int n=0; n < 100000; ++n)  {
+    acc(dns_random(100000)/100000.0);
+  }
+  BOOST_CHECK_CLOSE(0.5, median(acc), 2.0); // within 2%
+  BOOST_CHECK_CLOSE(0.5, mean(acc), 2.0);
+
+  // please add covariance tests, chi-square, Kolmogorov-Smirnov
+}
+#endif
+
+#if defined(HAVE_ARC4RANDOM)
+BOOST_AUTO_TEST_CASE(test_dns_random_getrandom_average) {
+
+  ::arg().set("rng")="arc4random";
+  ::arg().set("entropy-source")="/dev/urandom";
+
+  dns_random_init("", true);
+
+  acc_t acc;
+
+  for(unsigned int n=0; n < 100000; ++n)  {
+    acc(dns_random(100000)/100000.0);
+  }
+  BOOST_CHECK_CLOSE(0.5, median(acc), 2.0); // within 2%
+  BOOST_CHECK_CLOSE(0.5, mean(acc), 2.0);
+
+  // please add covariance tests, chi-square, Kolmogorov-Smirnov
+}
+#endif
+
+#if defined(HAVE_RANDOMBYTES_STIR)
+BOOST_AUTO_TEST_CASE(test_dns_random_sodium_average) {
+
+  ::arg().set("rng")="sodium";
+  ::arg().set("entropy-source")="/dev/urandom";
+
+  dns_random_init("", true);
+
+  acc_t acc;
+
+  for(unsigned int n=0; n < 100000; ++n)  {
+    acc(dns_random(100000)/100000.0);
+  }
+  BOOST_CHECK_CLOSE(0.5, median(acc), 2.0); // within 2%
+  BOOST_CHECK_CLOSE(0.5, mean(acc), 2.0);
+
+  // please add covariance tests, chi-square, Kolmogorov-Smirnov
+}
+#endif
+
+#if defined(HAVE_RAND_BYTES)
+BOOST_AUTO_TEST_CASE(test_dns_random_openssl_average) {
+
+  ::arg().set("rng")="openssl";
+  ::arg().set("entropy-source")="/dev/urandom";
+
+  dns_random_init("", true);
+
+  acc_t acc;
+
+  for(unsigned int n=0; n < 100000; ++n)  {
+    acc(dns_random(100000)/100000.0);
+  }
+  BOOST_CHECK_CLOSE(0.5, median(acc), 2.0); // within 2%
+  BOOST_CHECK_CLOSE(0.5, mean(acc), 2.0);
+
+  // please add covariance tests, chi-square, Kolmogorov-Smirnov
+}
+#endif
+
+#if defined(HAVE_KISS_RNG)
+BOOST_AUTO_TEST_CASE(test_dns_random_kiss_average) {
+
+  ::arg().set("rng")="kiss";
+  ::arg().set("entropy-source")="/dev/urandom";
+
+  dns_random_init("", true);
+
+  acc_t acc;
+
+  for(unsigned int n=0; n < 100000; ++n)  {
+    acc(dns_random(100000)/100000.0);
+  }
+  BOOST_CHECK_CLOSE(0.5, median(acc), 2.0); // within 2%
+  BOOST_CHECK_CLOSE(0.5, mean(acc), 2.0);
+
+  // please add covariance tests, chi-square, Kolmogorov-Smirnov
+}
+#endif
 
 
 BOOST_AUTO_TEST_SUITE_END()

@@ -6,8 +6,8 @@ dnl determine the CFLAGS and LIBS
 dnl
 AC_DEFUN([PDNS_WITH_POSTGRESQL], [
   PG_CONFIG=""
-  AC_ARG_WITH([pg-config], [
-    AS_HELP_STRING([--with-pg-config=<path>], [path to pg_config])
+  AC_ARG_WITH([pg-config],
+    [AS_HELP_STRING([--with-pg-config=<path>], [path to pg_config])
   ], [
     PG_CONFIG="$withval"
     AS_IF([test "x$PG_CONFIG" = "xyes" -o ! -x "$PG_CONFIG"], [

@@ -1,8 +1,6 @@
 saxfr
 =====
 
-:program:`saxfr` - Perform AXFRs and show information about it
-
 Synopsis
 --------
 

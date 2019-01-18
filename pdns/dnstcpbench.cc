@@ -34,6 +34,7 @@
 #include "dnswriter.hh"
 #include "dnsrecords.hh"
 #include "statbag.hh"
+#include "threadname.hh"
 #include <netinet/tcp.h>
 #include <boost/array.hpp>
 #include <boost/program_options.hpp>
@@ -174,6 +175,7 @@ vector<BenchQuery> g_queries;
 
 static void* worker(void*)
 {
+  setThreadName("dnstcpb/worker");
   for(;;) {
     unsigned int pos = g_pos++; 
     if(pos >= g_queries.size())
@@ -250,7 +252,7 @@ try
   }
 
 
-  pthread_t workers[numworkers];
+  std::vector<pthread_t> workers(numworkers);
 
   FILE* fp;
   if(!g_vm.count("file"))

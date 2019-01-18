@@ -1,9 +1,6 @@
 dnspcap2protobuf
 ================
 
-:program:`dnspcap2protobuf` - A tool to convert PCAPs of DNS traffic to
-PowerDNS Protobuf
-
 Synopsis
 --------
 

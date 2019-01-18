@@ -143,25 +143,63 @@ Rule Generators
   :param string domain: Domain name to spoof for
   :param string cname: Domain name to add CNAME to
 
-.. function:: addLuaAction(DNSrule, function)
+.. function:: addLuaAction(DNSrule, function [, options])
+
+  .. versionchanged:: 1.3.0
+    Added the optional parameter ``options``.
+
+  .. versionchanged:: 1.3.0
+    The second argument returned by the ``function`` can be omitted. For earlier releases, simply return an empty string.
 
   Invoke a Lua function that accepts a :class:`DNSQuestion`.
   This function works similar to using :func:`LuaAction`.
-
-  The ``function`` should return a :ref:`DNSAction`.
-
-  :param DNSRule: match queries based on this rule
-  :param string function: the name of a Lua function
-
-.. function:: addLuaResponseAction(DNSrule, function)
-
-  Invoke a Lua function that accepts a :class:`DNSQuestion` on the response.
-  This function works similar to using :func:`LuaAction`.
-
-  The ``function`` should return a :ref:`DNSAction`.
+  The ``function`` should return both a :ref:`DNSAction` and its argument `rule`. The `rule` is used as an argument
+  of the following :ref:`DNSAction`: `DNSAction.Spoof`, `DNSAction.Pool` and `DNSAction.Delay`.
+  If the Lua code fails, ServFail is returned.
 
   :param DNSRule: match queries based on this rule
   :param string function: the name of a Lua function
+  :param table options: A table with key: value pairs with options.
+
+  Options:
+
+  * ``uuid``: string - UUID to assign to the new rule. By default a random UUID is generated for each rule.
+
+  ::
+
+    function luarule(dq)
+      if(dq.qtype==dnsdist.NAPTR)
+      then
+        return DNSAction.Pool, "abuse" -- send to abuse pool
+      else
+        return DNSAction.None, ""      -- no action
+        -- return DNSAction.None       -- as of dnsdist version 1.3.0
+      end
+    end
+
+    addLuaAction(AllRule(), luarule)
+
+.. function:: addLuaResponseAction(DNSrule, function [, options])
+
+  .. versionchanged:: 1.3.0
+    Added the optional parameter ``options``.
+
+  .. versionchanged:: 1.3.0
+    The second argument returned by the ``function`` can be omitted. For earlier releases, simply return an empty string.
+
+  Invoke a Lua function that accepts a :class:`DNSResponse`.
+  This function works similar to using :func:`LuaResponseAction`.
+  The ``function`` should return both a :ref:`DNSResponseAction` and its argument `rule`. The `rule` is used as an argument
+  of the `DNSResponseAction.Delay`.
+  If the Lua code fails, ServFail is returned.
+
+  :param DNSRule: match queries based on this rule
+  :param string function: the name of a Lua function
+  :param table options: A table with key: value pairs with options.
+
+  Options:
+
+  * ``uuid``: string - UUID to assign to the new rule. By default a random UUID is generated for each rule.
 
 .. function:: addNoRecurseRule(DNSrule)
 
@@ -198,7 +236,7 @@ Rule Generators
   All queries over the limit are dropped.
   This function is deprecated as of 1.2.0 and will be removed in 1.3.0, please use:
 
-    addAction(DNSRule, QPSLimitAction(limit))
+    addAction(DNSRule, QPSAction(limit))
 
   :param DNSRule: match queries based on this rule
   :param int limit: QPS limit for this rule
@@ -222,9 +260,9 @@ Managing Rules
 
 Active Rules can be shown with :func:`showRules` and removed with :func:`rmRule`::
 
-  > addAction("h4xorbooter.xyz.", QPSLimitAction(10))
-  > addAction({"130.161.0.0/16", "145.14.0.0/16"} , QPSLimitAction(20))
-  > addAction({"nl.", "be."}, QPSLimitAction(1))
+  > addAction("h4xorbooter.xyz.", QPSAction(10))
+  > addAction({"130.161.0.0/16", "145.14.0.0/16"} , QPSAction(20))
+  > addAction({"nl.", "be."}, QPSAction(1))
   > showRules()
   #     Matches Rule                                               Action
   0           0 h4xorbooter.xyz.                                   qps limit to 10
@@ -233,12 +271,20 @@ Active Rules can be shown with :func:`showRules` and removed with :func:`rmRule`
 
 For Rules related to the incoming query:
 
-.. function:: addAction(DNSrule, action)
+.. function:: addAction(DNSrule, action [, options])
+
+  .. versionchanged:: 1.3.0
+    Added the optional parameter ``options``.
 
   Add a Rule and Action to the existing rules.
 
   :param DNSrule rule: A DNSRule, e.g. an :func:`allRule` or a compounded bunch of rules using e.g. :func:`AndRule`
   :param action: The action to take
+  :param table options: A table with key: value pairs with options.
+
+  Options:
+
+  * ``uuid``: string - UUID to assign to the new rule. By default a random UUID is generated for each rule.
 
 .. function:: clearRules()
 
@@ -258,12 +304,20 @@ For Rules related to the incoming query:
   :param int from: Rule number to move
   :param int to: Location to more the Rule to
 
-.. function:: newRuleAction(rule, action)
+.. function:: newRuleAction(rule, action[, options])
+
+  .. versionchanged:: 1.3.0
+    Added the optional parameter ``options``.
 
   Return a pair of DNS Rule and DNS Action, to be used with :func:`setRules`.
 
   :param Rule rule: A `Rule <#traffic-matching>`_
   :param Action action: The `Action <#actions>`_ to apply to the matched traffic
+  :param table options: A table with key: value pairs with options.
+
+  Options:
+
+  * ``uuid``: string - UUID to assign to the new rule. By default a random UUID is generated for each rule.
 
 .. function:: setRules(rules)
 
@@ -271,28 +325,49 @@ For Rules related to the incoming query:
 
   :param [RuleAction] rules: A list of RuleActions
 
-.. function:: showRules()
+.. function:: showRules([options])
 
-  Show all defined rules for queries.
+  .. versionchanged:: 1.3.0
+    ``options`` optional parameter added
+
+  Show all defined rules for queries, optionally displaying their UUIDs.
+
+  :param table options: A table with key: value pairs with display options.
+
+  Options:
+
+  * ``showUUIDs=false``: bool - Whether to display the UUIDs, defaults to false.
+  * ``truncateRuleWidth=-1``: int - Truncate rules output to ``truncateRuleWidth`` size. Defaults to ``-1`` to display the full rule.
 
 .. function:: topRule()
 
   Move the last rule to the first position.
 
-.. function:: rmRule(n)
+.. function:: rmRule(id)
 
-  Remove rule ``n``.
+  .. versionchanged:: 1.3.0
+    ``id`` can now be an UUID.
 
-  :param int n: Rule number to remove
+  Remove rule ``id``.
+
+  :param int id: The UUID of the rule to remove if ``id`` is an UUID, its position otherwise
 
 For Rules related to responses:
 
-.. function:: addResponseAction(DNSRule, action)
+.. function:: addResponseAction(DNSRule, action [, options])
+
+  .. versionchanged:: 1.3.0
+    Added the optional parameter ``options``.
 
   Add a Rule and Action for responses to the existing rules.
 
   :param DNSRule: A DNSRule, e.g. an :func:`allRule` or a compounded bunch of rules using e.g. :func:`AndRule`
   :param action: The action to take
+  :param table options: A table with key: value pairs with options.
+
+  Options:
+
+  * ``uuid``: string - UUID to assign to the new rule. By default a random UUID is generated for each rule.
 
 .. function:: mvResponseRule(from, to)
 
@@ -302,30 +377,51 @@ For Rules related to responses:
   :param int from: Rule number to move
   :param int to: Location to more the Rule to
 
-.. function:: rmResponseRule(n)
+.. function:: rmResponseRule(id)
 
-  Remove response rule ``n``.
+  .. versionchanged:: 1.3.0
+    ``id`` can now be an UUID.
 
-  :param int n: Rule number to remove
+  Remove response rule ``id``.
 
-.. function:: showResponseRules()
+  :param int id: The UUID of the rule to remove if ``id`` is an UUID, its position otherwise
 
-  Show all defined response rules.
+.. function:: showResponseRules([options])
+
+  .. versionchanged:: 1.3.0
+    ``options`` optional parameter added
+
+  Show all defined response rules, optionally displaying their UUIDs.
+
+  :param table options: A table with key: value pairs with display options.
+
+  Options:
+
+  * ``showUUIDs=false``: bool - Whether to display the UUIDs, defaults to false.
+  * ``truncateRuleWidth=-1``: int - Truncate rules output to ``truncateRuleWidth`` size. Defaults to ``-1`` to display the full rule.
 
 .. function:: topResponseRule()
 
   Move the last response rule to the first position.
 
-Functions for manipulation Cache Hit Rules:
+Functions for manipulating Cache Hit Respone Rules:
 
-.. function:: addCacheHitAction(DNSRule, action)
+.. function:: addCacheHitResponseAction(DNSRule, action [, options])
 
   .. versionadded:: 1.2.0
 
-  Add a Rule and Action for Cache Hits to the existing rules.
+  .. versionchanged:: 1.3.0
+    Added the optional parameter ``options``.
+
+  Add a Rule and ResponseAction for Cache Hits to the existing rules.
 
   :param DNSRule: A DNSRule, e.g. an :func:`allRule` or a compounded bunch of rules using e.g. :func:`AndRule`
   :param action: The action to take
+  :param table options: A table with key: value pairs with options.
+
+  Options:
+
+  * ``uuid``: string - UUID to assign to the new rule. By default a random UUID is generated for each rule.
 
 .. function:: mvCacheHitResponseRule(from, to)
 
@@ -337,25 +433,94 @@ Functions for manipulation Cache Hit Rules:
   :param int from: Rule number to move
   :param int to: Location to more the Rule to
 
-.. function:: rmCacheHitResponseRule(n)
+.. function:: rmCacheHitResponseRule(id)
 
   .. versionadded:: 1.2.0
 
-  Remove cache hit response rule ``n``.
+  .. versionchanged:: 1.3.0
+    ``id`` can now be an UUID.
 
-  :param int n: Rule number to remove
+  :param int id: The UUID of the rule to remove if ``id`` is an UUID, its position otherwise
 
-.. function:: showCacheHitResponseRules()
+.. function:: showCacheHitResponseRules([options])
 
   .. versionadded:: 1.2.0
 
-  Show all defined cache hit response rules.
+  .. versionchanged:: 1.3.0
+    ``options`` optional parameter added
+
+  Show all defined cache hit response rules, optionally displaying their UUIDs.
+
+  :param table options: A table with key: value pairs with display options.
+
+  Options:
+
+  * ``showUUIDs=false``: bool - Whether to display the UUIDs, defaults to false.
+  * ``truncateRuleWidth=-1``: int - Truncate rules output to ``truncateRuleWidth`` size. Defaults to ``-1`` to display the full rule.
 
 .. function:: topCacheHitResponseRule()
 
   .. versionadded:: 1.2.0
 
   Move the last cache hit response rule to the first position.
+
+Functions for manipulating Self-Answered Response Rules:
+
+.. function:: addSelfAnsweredResponseAction(DNSRule, action [, options])
+
+  .. versionadded:: 1.3.0
+
+  Add a Rule and Action for Self-Answered queries to the existing rules.
+
+  :param DNSRule: A DNSRule, e.g. an :func:`allRule` or a compounded bunch of rules using e.g. :func:`AndRule`
+  :param action: The action to take
+
+.. function:: mvSelfAnsweredResponseRule(from, to)
+
+  .. versionadded:: 1.3.0
+
+  Move self answered response rule ``from`` to a position where it is in front of ``to``.
+  ``to`` can be one larger than the largest rule, in which case the rule will be moved to the last position.
+
+  :param int from: Rule number to move
+  :param int to: Location to more the Rule to
+
+.. function:: rmSelfAnsweredResponseRule(id)
+
+  .. versionadded:: 1.3.0
+
+  Remove self answered response rule ``id``.
+
+  :param int id: The UUID of the rule to remove if ``id`` is an UUID, its position otherwise
+
+.. function:: showSelfAnsweredResponseRules([options])
+
+  .. versionadded:: 1.3.0
+
+  Show all defined self answered response rules, optionally displaying their UUIDs.
+
+  :param table options: A table with key: value pairs with display options.
+
+  Options:
+
+  * ``showUUIDs=false``: bool - Whether to display the UUIDs, defaults to false.
+  * ``truncateRuleWidth=-1``: int - Truncate rules output to ``truncateRuleWidth`` size. Defaults to ``-1`` to display the full rule.
+
+.. function:: topSelfAnsweredResponseRule()
+
+  .. versionadded:: 1.3.0
+
+  Move the last self answered response rule to the first position.
+
+Function for pool related rules
+
+.. function:: PoolAvailableRule(poolname)
+
+  .. versionadded:: 1.3.3
+
+  Check whether a pool has any servers available to handle queries
+
+  :param string poolname: Pool to check
 
 .. _RulesIntro:
 
@@ -382,27 +547,35 @@ These ``DNSRule``\ s be one of the following items:
 
   Matches queries with the DO flag set
 
-.. function:: MaxQPSIPRule(qps[, v4Mask[, v6Mask]])
+.. function:: MaxQPSIPRule(qps[, v4Mask[, v6Mask[, burst[, expiration[, cleanupDelay[, scanFraction]]]]]])
+  .. versionchanged:: 1.3.1
+    Added the optional parameters ``expiration``, ``cleanupDelay`` and ``scanFraction``.
 
-  Matches traffic for a subnet specified by ``v4Mask`` or ``v6Mask`` exceeding ``qps`` queries per second
+  Matches traffic for a subnet specified by ``v4Mask`` or ``v6Mask`` exceeding ``qps`` queries per second up to ``burst`` allowed.
+  This rule keeps track of QPS by netmask or source IP. This state is cleaned up regularly if  ``cleanupDelay`` is greater than zero,
+  removing existing netmasks or IP addresses that have not been seen in the last ``expiration`` seconds.
 
   :param int qps: The number of queries per second allowed, above this number traffic is matched
   :param int v4Mask: The IPv4 netmask to match on. Default is 32 (the whole address)
   :param int v6Mask: The IPv6 netmask to match on. Default is 64
+  :param int burst: The number of burstable queries per second allowed. Default is same as qps
+  :param int expiration: How long to keep netmask or IP addresses after they have last been seen, in seconds. Default is 300
+  :param int cleanupDelay: The number of seconds between two cleanups. Default is 60
+  :param int scanFraction: The maximum fraction of the store to scan for expired entries, for example 5 would scan at most 20% of it. Default is 10 so 10%
 
 .. function:: MaxQPSRule(qps)
 
-  Matches traffic exceeding this qps limit. If e.g. this is set to 50, starting at the 51st query of the current second traffic is matched.
+  Matches traffic **not** exceeding this qps limit. If e.g. this is set to 50, starting at the 51st query of the current second traffic stops being matched.
   This can be used to enforce a global QPS limit.
 
-  :param int qps: The number of queries per second allowed, above this number traffic is matched
+  :param int qps: The number of queries per second allowed, above this number the traffic is **not** matched anymore
 
 .. function:: NetmaskGroupRule(nmg[, src])
 
   Matches traffic from/to the network range specified in ``nmg``.
 
   Set the ``src`` parameter to false to match ``nmg`` against destination address instead of source address.
-  This can be used to differentiate between clients 
+  This can be used to differentiate between clients
 
   :param NetMaskGroup nmg: The NetMaskGroup to match on
   :param bool src: Whether to match source or destination address of the packet. Defaults to true (matches source)
@@ -410,7 +583,7 @@ These ``DNSRule``\ s be one of the following items:
 .. function:: OpcodeRule(code)
 
   Matches queries with opcode ``code``.
-  ``code`` can be directly specified as an integer, or one of the `built-in DNSOpcode <#opcode>`_.
+  ``code`` can be directly specified as an integer, or one of the :ref:`built-in DNSOpcodes <DNSOpcode>`.
 
   :param int code: The opcode to match
 
@@ -425,7 +598,7 @@ These ``DNSRule``\ s be one of the following items:
 .. function:: QClassRule(qclass)
 
   Matches queries with the specified ``qclass``.
-  ``class`` can be specified as an integer or as one of the built-in `QClass <#qclass>`_.
+  ``class`` can be specified as an integer or as one of the built-in :ref:`DNSQClass`.
 
   :param int qclass: The Query Class to match on
 
@@ -461,10 +634,26 @@ These ``DNSRule``\ s be one of the following items:
 
 .. function:: RCodeRule(rcode)
 
-  Matches queries or responses the specified ``rcode``.
-  ``rcode`` can be specified as an integer or as one of the built-in `RCode <#rcode>`_.
+  Matches queries or responses with the specified ``rcode``.
+  ``rcode`` can be specified as an integer or as one of the built-in :ref:`DNSRCode`.
+  Only the non-extended RCode is matched (lower 4bits).
 
   :param int rcode: The RCODE to match on
+
+.. function:: ERCodeRule(rcode)
+
+  Matches queries or responses with the specified ``rcode``.
+  ``rcode`` can be specified as an integer or as one of the built-in :ref:`DNSRCode`.
+  The full 16bit RCode will be matched. If no EDNS OPT RR is present, the upper 12 bits are treated as 0.
+
+  :param int rcode: The RCODE to match on
+
+.. function:: EDNSOptionRule(optcode)
+
+  .. versionadded:: 1.4.0
+
+  Matches queries or responses with the specified EDNS option present.
+  ``optcode`` is specified as an integer, or a constant such as `EDNSOptionCode.ECS`.
 
 .. function:: RDRule()
 
@@ -527,11 +716,26 @@ These ``DNSRule``\ s be one of the following items:
   :param SuffixMatchNode smb: The SuffixMatchNode to match on
   :param bool quiet: Do not return the list of matched domains. Default is false.
 
+.. function:: TagRule(name [, value])
+
+  .. versionadded:: 1.3.0
+
+  Matches question or answer with a tag named ``name`` set. If ``value`` is specified, the existing tag value should match too.
+
+  :param bool name: The name of the tag that has to be set
+  :param bool value: If set, the value the tag has to be set to. Default is unset
+
 .. function:: TCPRule([tcp])
 
   Matches question received over TCP if ``tcp`` is true, over UDP otherwise.
 
   :param bool tcp: Match TCP traffic. Default is true.
+
+.. function:: DSTPortRule(port)
+
+  Matches questions received to the destination port.
+
+  :param int port: Match destination port.
 
 .. function:: TrailingDataRule()
 
@@ -540,7 +744,7 @@ These ``DNSRule``\ s be one of the following items:
 Combining Rules
 ~~~~~~~~~~~~~~~
 
-.. function:: andRule(selectors)
+.. function:: AndRule(selectors)
 
   Matches traffic if all ``selectors`` match.
 
@@ -558,8 +762,8 @@ Combining Rules
 
   :param {Rule} selector: A table of Rules
 
-Convience Functions
-~~~~~~~~~~~~~~~~~~~
+Convenience Functions
+~~~~~~~~~~~~~~~~~~~~~
 
 .. function:: makeRule(rule)
 
@@ -607,6 +811,28 @@ The following actions exist.
 
   Set the CD bit in the query and let it go through.
 
+.. function:: DnstapLogAction(identity, logger[, alterFunction])
+
+  .. versionadded:: 1.3.0
+
+  Send the the current query to a remote logger as a :doc:`dnstap <reference/dnstap>` message.
+  ``alterFunction`` is a callback, receiving a :class:`DNSQuestion` and a :class:`DnstapMessage`, that can be used to modify the message.
+
+  :param string identity: Server identity to store in the dnstap message
+  :param logger: The :func:`FrameStreamLogger <newFrameStreamUnixLogger>` or :func:`RemoteLogger <newRemoteLogger>` object to write to
+  :param alterFunction: A Lua function to alter the message before sending
+
+.. function:: DnstapLogResponseAction(identity, logger[, alterFunction])
+
+  .. versionadded:: 1.3.0
+
+  Send the the current response to a remote logger as a :doc:`dnstap <reference/dnstap>` message.
+  ``alterFunction`` is a callback, receiving a :class:`DNSQuestion` and a :class:`DnstapMessage`, that can be used to modify the message.
+
+  :param string identity: Server identity to store in the dnstap message
+  :param logger: The :func:`FrameStreamLogger <newFrameStreamUnixLogger>` or :func:`RemoteLogger <newRemoteLogger>` object to write to
+  :param alterFunction: A Lua function to alter the message before sending
+
 .. function:: DropAction()
 
   Drop the packet.
@@ -638,10 +864,26 @@ The following actions exist.
   The ``buffered`` optional parameter specifies whether writes to the file are buffered (default) or not.
   Subsequent rules are processed after this rule.
 
-  :param string filename: File to log to
+  :param string filename: File to log to. Set to an empty string to log to the normal stdout log, this only works when ``-v`` is set on the command line.
   :param bool binary: Do binary logging. Default true
   :param bool append: Append to the log. Default false
   :param bool buffered: Use buffered I/O. default true
+
+.. function:: LuaAction(function)
+
+  Invoke a Lua function that accepts a :class:`DNSQuestion`.
+
+  The ``function`` should return a :ref:`DNSAction`. If the Lua code fails, ServFail is returned.
+
+  :param string function: the name of a Lua function
+
+.. function:: LuaResponseAction(function)
+
+  Invoke a Lua function that accepts a :class:`DNSResponse`.
+
+  The ``function`` should return a :ref:`DNSResponseAction`. If the Lua code fails, ServFail is returned.
+
+  :param string function: the name of a Lua function
 
 .. function:: MacAddrAction(option)
 
@@ -667,6 +909,13 @@ The following actions exist.
 
   :param string poolname: The name of the pool
 
+.. function:: QPSAction(maxqps)
+
+  Drop a packet if it does exceed the ``maxqps`` queries per second limits.
+  Letting the subsequent rules apply otherwise.
+
+  :param int maxqps: The QPS limit
+
 .. function:: QPSPoolAction(maxqps, poolname)
 
   Send the packet into the specified pool only if it does not exceed the ``maxqps`` queries per second limits.
@@ -678,28 +927,57 @@ The following actions exist.
 .. function:: RCodeAction(rcode)
 
   Reply immediatly by turning the query into a response with the specified ``rcode``.
-  ``rcode`` can be specified as an integer or as one of the built-in `RCode <#rcode>`_.
+  ``rcode`` can be specified as an integer or as one of the built-in :ref:`DNSRCode`.
 
   :param int rcode: The RCODE to respond with.
 
-.. function:: RemoteLogAction(remoteLogger[, alterFunction])
+.. function:: RemoteLogAction(remoteLogger[, alterFunction [, options]])
+
+  .. versionchanged:: 1.3.0
+    ``options`` optional parameter added.
 
   Send the content of this query to a remote logger via Protocol Buffer.
   ``alterFunction`` is a callback, receiving a :class:`DNSQuestion` and a :class:`DNSDistProtoBufMessage`, that can be used to modify the Protocol Buffer content, for example for anonymization purposes
 
-  :param string remoteLogger: An IP:PORT combo to send the remote log to
+  :param string remoteLogger: The :func:`remoteLogger <newRemoteLogger>` object to write to
   :param string alterFunction: Name of a function to modify the contents of the logs before sending
+  :param table options: A table with key: value pairs.
 
-.. function:: RemoteLogResponseAction(remoteLogger[, alterFunction[, includeCNAME]])
+  Options:
+
+  * ``serverID=""``: str - Set the Server Identity field.
+
+.. function:: RemoteLogResponseAction(remoteLogger[, alterFunction[, includeCNAME [, options]]])
+
+  .. versionchanged:: 1.3.0
+    ``options`` optional parameter added.
 
   Send the content of this response to a remote logger via Protocol Buffer.
   ``alterFunction`` is the same callback that receiving a :class:`DNSQuestion` and a :class:`DNSDistProtoBufMessage`, that can be used to modify the Protocol Buffer content, for example for anonymization purposes
   ``includeCNAME`` indicates whether CNAME records inside the response should be parsed and exported.
   The default is to only exports A and AAAA records
 
-  :param string remoteLogger: An IP:PORT combo to send the remote log to
+  :param string remoteLogger: The :func:`remoteLogger <newRemoteLogger>` object to write to
   :param string alterFunction: Name of a function to modify the contents of the logs before sending
   :param bool includeCNAME: Whether or not to parse and export CNAMEs. Default false
+  :param table options: A table with key: value pairs.
+
+  Options:
+
+  * ``serverID=""``: str - Set the Server Identity field.
+
+.. function:: SetECSAction(v4 [, v6])
+
+  .. versionadded:: 1.3.1
+
+  Set the ECS prefix and prefix length sent to backends to an arbitrary value.
+  If both IPv4 and IPv6 masks are supplied the IPv4 one will be used for IPv4 clients
+  and the IPv6 one for IPv6 clients. Otherwise the first mask is used for both, and
+  can actually be an IPv6 mask.
+  Subsequent rules are processed after this rule.
+
+  :param string v4: The IPv4 netmask, for example "192.0.2.1/32"
+  :param string v6: The IPv6 netmask, if any
 
 .. function:: SkipCacheAction()
 
@@ -734,6 +1012,24 @@ The following actions exist.
 
   :param string cname: The name to respond with
 
+.. function:: TagAction(name, value)
+
+  .. versionadded:: 1.3.0
+
+  Associate a tag named ``name`` with a value of ``value`` to this query, that will be passed on to the response.
+
+  :param string name: The name of the tag to set
+  :param string cname: The value of the tag
+
+.. function:: TagResponseAction(name, value)
+
+  .. versionadded:: 1.3.0
+
+  Associate a tag named ``name`` with a value of ``value`` to this response.
+
+  :param string name: The name of the tag to set
+  :param string cname: The value of the tag
+
 .. function:: TCAction()
 
   Create answer to query with TC and RD bits set, to force the client to TCP.
@@ -746,4 +1042,8 @@ The following actions exist.
   :param string remote: An IP:PORT conbination to send the copied queries to
   :param bool addECS: Whether or not to add ECS information. Default false
 
+.. function:: TempFailureCacheTTLAction(ttl)
 
+  Set the cache TTL to use for ServFail and Refused replies. TTL is not applied for successful replies.
+
+  :param int ttl: Cache TTL for temporary failure replies

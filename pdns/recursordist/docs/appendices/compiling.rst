@@ -9,6 +9,20 @@ As the PowerDNS Recursor is distributed with a configure script, compiling it is
   make
   make install
 
+Getting the sources
+-------------------
+
+There are 3 ways of getting the source.
+
+If you want the bleeding edge, you can clone the `repository at GitHub <https://github.com/PowerDNS/pdns>`__ and run ``autoreconf -vi`` in the ``pdns/recursordist`` directory of the clone.
+
+You can also download snapshot tarballs `here <https://downloads.powerdns.com/autobuilt_browser/#/recursor>`__.
+
+You can also download releases on the `website <https://downloads.powerdns.com/releases/>`__.
+These releases are PGP-signed with one of these key-ids:
+
+.. include:: ../common/tarball-pgp-keys.rst
+
 Dependencies
 ------------
 
@@ -32,13 +46,19 @@ ed25519 support with libsodium
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 The PowerDNS Recursor can link with `libsodium <https://download.libsodium.org/doc/>`_ to support ed25519 (DNSSEC algorithm 15).
-To detect libsodium, use the ``--enable-libsodium`` configure option.
+To detect libsodium, use the ``--with-libsodium`` configure option.
+
+.. versionchanged:: 4.2.0
+  This option was previously ``--enable-libsodium``
 
 ed25519 and ed448 support with libdecaf
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 `libdecaf <https://sourceforge.net/projects/ed448goldilocks/>`_ is a library that allows the PowerDNS Recursor to support ed25519 and Ed448 (DNSSEC algorithms 15 and 16).
-To detect libsodium, use the ``--enable-libsodium`` configure option.
+To detect libdecaf, use the ``--with-libdecaf`` configure option.
+
+.. versionchanged:: 4.2.0
+  This option was previously ``--enable-libdecaf``
 
 Protobuf to emit DNS logs
 ^^^^^^^^^^^^^^^^^^^^^^^^^

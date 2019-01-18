@@ -11,7 +11,7 @@ def ensure(data, offset, value):
 def main(host, port):
   s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
 
-  msg = "\xaa\x77\x00\x00\x00\x01\x00\x00\x00\x00\x00\x01\x04tkey\x04unit\x04test\x00\x00\xf9\x00\xff\x04tkey\x04unit\x04test\x00\x00\xf9\x00\xff\x00\x00\x00\x00\x00\x22\x03bad\04algo\x00\x00\x00\x30\x39\x00\x00\x30\x39\x00\x03\x00\x00\x00\x04test\x00\x00"
+  msg = b"\xaa\x77\x00\x00\x00\x01\x00\x00\x00\x00\x00\x01\x04tkey\x04unit\x04test\x00\x00\xf9\x00\xff\x04tkey\x04unit\x04test\x00\x00\xf9\x00\xff\x00\x00\x00\x00\x00\x22\x03bad\04algo\x00\x00\x00\x30\x39\x00\x00\x30\x39\x00\x03\x00\x00\x00\x04test\x00\x00"
 
   s.sendto(msg, (host, port))
   s.settimeout(2)
@@ -23,22 +23,22 @@ def main(host, port):
   ensure(data, 0, msg[0:2])
 
   # has one question, one answer
-  ensure(data, 4, "\x00\x01")
-  ensure(data, 6, "\x00\x01")
+  ensure(data, 4, b"\x00\x01")
+  ensure(data, 6, b"\x00\x01")
 
   # question is tkey.unit.test ANY TKEY?
-  ensure(data, 12, "\x04tkey\x04unit\x04test\x00\x00\xf9\x00\xff")
+  ensure(data, 12, b"\x04tkey\x04unit\x04test\x00\x00\xf9\x00\xff")
   # answer is called tkey.unit.test ANY TKEY (compressed it seems)
-  ensure(data, 32, "\xc0\x0c\x00\xf9\x00\xff")
+  ensure(data, 32, b"\xc0\x0c\x00\xf9\x00\xff")
 
   # and then ensure we get an BADALGO or error, at least.
   if (data[64:66] == "\x00\x00"):
     raise Exception("At packet offset {0!s}: expected {2!r}, got {1!r}".format(offset,data[offset:offset+len(value)], value))
 
-  print "Got expected TKEY response\n"
+  print("Got expected TKEY response\n")
 
 if (len(sys.argv) < 3):
-  print "Usage: tkey.py host port"
+  print("Usage: tkey.py host port")
   sys.exit(1)
 
 if __name__ == '__main__':

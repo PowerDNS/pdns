@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 import base64
+import socket
 import time
 import dns
 import dns.message
@@ -18,7 +19,7 @@ class DNSCryptTest(DNSDistTest):
     _dnsDistPortDNSCrypt = 8443
 
     _consoleKey = DNSDistTest.generateConsoleKey()
-    _consoleKeyB64 = base64.b64encode(_consoleKey)
+    _consoleKeyB64 = base64.b64encode(_consoleKey).decode('ascii')
 
     _providerFingerprint = 'E1D7:2108:9A59:BF8D:F101:16FA:ED5E:EA6A:9F6C:C78F:7F91:AF6B:027E:62F4:69C3:B1AA'
     _providerName = "2.provider.name"
@@ -136,16 +137,16 @@ class TestDNSCrypt(DNSCryptTest):
 
         # generate a new certificate
         self.sendConsoleCommand("generateDNSCryptCertificate('DNSCryptProviderPrivate.key', 'DNSCryptResolver.cert.2', 'DNSCryptResolver.key.2', {!s}, {:.0f}, {:.0f})".format(self._resolverCertificateSerial + 1, self._resolverCertificateValidFrom, self._resolverCertificateValidUntil))
-        # switch to that new certificate
+        # add that new certificate
         self.sendConsoleCommand("getDNSCryptBind(0):loadNewCertificate('DNSCryptResolver.cert.2', 'DNSCryptResolver.key.2')")
 
-        oldSerial = self.sendConsoleCommand("getDNSCryptBind(0):getOldCertificate():getSerial()")
+        oldSerial = self.sendConsoleCommand("getDNSCryptBind(0):getCertificate(0):getSerial()")
         self.assertEquals(int(oldSerial), self._resolverCertificateSerial)
-        effectiveSerial = self.sendConsoleCommand("getDNSCryptBind(0):getCurrentCertificate():getSerial()")
+        effectiveSerial = self.sendConsoleCommand("getDNSCryptBind(0):getCertificate(1):getSerial()")
         self.assertEquals(int(effectiveSerial), self._resolverCertificateSerial + 1)
-        tsStart = self.sendConsoleCommand("getDNSCryptBind(0):getCurrentCertificate():getTSStart()")
+        tsStart = self.sendConsoleCommand("getDNSCryptBind(0):getCertificate(1):getTSStart()")
         self.assertEquals(int(tsStart), self._resolverCertificateValidFrom)
-        tsEnd = self.sendConsoleCommand("getDNSCryptBind(0):getCurrentCertificate():getTSEnd()")
+        tsEnd = self.sendConsoleCommand("getDNSCryptBind(0):getCertificate(1):getTSEnd()")
         self.assertEquals(int(tsEnd), self._resolverCertificateValidUntil)
 
         # we should still be able to send queries with the previous certificate
@@ -160,6 +161,11 @@ class TestDNSCrypt(DNSCryptTest):
         cert = client.getResolverCertificate()
         self.assertTrue(cert)
         self.assertEquals(cert.serial, self._resolverCertificateSerial + 1)
+        # we should still get the old ones
+        certs = client.getAllResolverCertificates(True)
+        self.assertEquals(len(certs), 2)
+        self.assertEquals(certs[0].serial, self._resolverCertificateSerial)
+        self.assertEquals(certs[1].serial, self._resolverCertificateSerial + 1)
 
         # generate a third certificate, this time in memory
         self.sendConsoleCommand("getDNSCryptBind(0):generateAndLoadInMemoryCertificate('DNSCryptProviderPrivate.key', {!s}, {:.0f}, {:.0f})".format(self._resolverCertificateSerial + 2, self._resolverCertificateValidFrom, self._resolverCertificateValidUntil))
@@ -176,6 +182,52 @@ class TestDNSCrypt(DNSCryptTest):
         cert = client.getResolverCertificate()
         self.assertTrue(cert)
         self.assertEquals(cert.serial, self._resolverCertificateSerial + 2)
+        # we should still get the old ones
+        certs = client.getAllResolverCertificates(True)
+        self.assertEquals(len(certs), 3)
+        self.assertEquals(certs[0].serial, self._resolverCertificateSerial)
+        self.assertEquals(certs[1].serial, self._resolverCertificateSerial + 1)
+        self.assertEquals(certs[2].serial, self._resolverCertificateSerial + 2)
+
+        # generate a fourth certificate, still in memory
+        self.sendConsoleCommand("getDNSCryptBind(0):generateAndLoadInMemoryCertificate('DNSCryptProviderPrivate.key', {!s}, {:.0f}, {:.0f})".format(self._resolverCertificateSerial + 3, self._resolverCertificateValidFrom, self._resolverCertificateValidUntil))
+
+        # mark the old ones as inactive
+        self.sendConsoleCommand("getDNSCryptBind(0):markInactive({!s})".format(self._resolverCertificateSerial))
+        self.sendConsoleCommand("getDNSCryptBind(0):markInactive({!s})".format(self._resolverCertificateSerial + 1))
+        self.sendConsoleCommand("getDNSCryptBind(0):markInactive({!s})".format(self._resolverCertificateSerial + 2))
+        # we should still be able to send queries with the third one
+        self.doDNSCryptQuery(client, query, response, False)
+        self.doDNSCryptQuery(client, query, response, True)
+        cert = client.getResolverCertificate()
+        self.assertTrue(cert)
+        self.assertEquals(cert.serial, self._resolverCertificateSerial + 2)
+        # now remove them
+        self.sendConsoleCommand("getDNSCryptBind(0):removeInactiveCertificate({!s})".format(self._resolverCertificateSerial))
+        self.sendConsoleCommand("getDNSCryptBind(0):removeInactiveCertificate({!s})".format(self._resolverCertificateSerial + 1))
+        self.sendConsoleCommand("getDNSCryptBind(0):removeInactiveCertificate({!s})".format(self._resolverCertificateSerial + 2))
+
+        # we should not be able to send with the old ones anymore
+        try:
+            data = client.query(query.to_wire())
+        except socket.timeout:
+            data = None
+        self.assertEquals(data, None)
+
+        # refreshing should get us the fourth one
+        client.refreshResolverCertificates()
+        cert = client.getResolverCertificate()
+        self.assertTrue(cert)
+        self.assertEquals(cert.serial, self._resolverCertificateSerial + 3)
+        # and only that one
+        certs = client.getAllResolverCertificates(True)
+        self.assertEquals(len(certs), 1)
+        # and we should be able to query with it
+        self.doDNSCryptQuery(client, query, response, False)
+        self.doDNSCryptQuery(client, query, response, True)
+        cert = client.getResolverCertificate()
+        self.assertTrue(cert)
+        self.assertEquals(cert.serial, self._resolverCertificateSerial + 3)
 
 class TestDNSCryptWithCache(DNSCryptTest):
 

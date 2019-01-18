@@ -19,19 +19,34 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
-#include <sys/types.h>
+
+#include <dirent.h>
+#include <fstream>
+
+// for OpenBSD, sys/socket.h needs to come before net/if.h
 #include <sys/socket.h>
 #include <net/if.h>
-#include "dnsdist.hh"
-#include "dnsrulactions.hh"
+
+#include <sys/types.h>
+#include <sys/stat.h>
 #include <thread>
-#include "dolog.hh"
-#include "sodcrypto.hh"
-#include "base64.hh"
-#include <fstream>
-#include "dnswriter.hh"
-#include "lock.hh"
+
+#include "dnsdist.hh"
+#include "dnsdist-console.hh"
+#include "dnsdist-ecs.hh"
 #include "dnsdist-lua.hh"
+#include "dnsdist-rings.hh"
+#include "dnsdist-secpoll.hh"
+
+#include "base64.hh"
+#include "dnswriter.hh"
+#include "dolog.hh"
+#include "lock.hh"
+#include "protobuf.hh"
+#include "sodcrypto.hh"
+
+#include <boost/logic/tribool.hpp>
+#include <boost/lexical_cast.hpp>
 
 #ifdef HAVE_SYSTEMD
 #include <systemd/sd-daemon.h>
@@ -39,145 +54,42 @@
 
 using std::thread;
 
-static vector<std::function<void(void)>>* g_launchWork;
+static vector<std::function<void(void)>>* g_launchWork = nullptr;
 
-class LuaAction : public DNSAction
+boost::tribool g_noLuaSideEffect;
+static bool g_included{false};
+
+/* this is a best effort way to prevent logging calls with no side-effects in the output of delta()
+   Functions can declare setLuaNoSideEffect() and if nothing else does declare a side effect, or nothing
+   has done so before on this invocation, this call won't be part of delta() output */
+void setLuaNoSideEffect()
 {
-public:
-  typedef std::function<std::tuple<int, string>(DNSQuestion* dq)> func_t;
-  LuaAction(LuaAction::func_t func) : d_func(func)
-  {}
-
-  Action operator()(DNSQuestion* dq, string* ruleresult) const override
-  {
-    std::lock_guard<std::mutex> lock(g_luamutex);
-    auto ret = d_func(dq);
-    if(ruleresult)
-      *ruleresult=std::get<1>(ret);
-    return (Action)std::get<0>(ret);
-  }
-
-  string toString() const override
-  {
-    return "Lua script";
-  }
-
-private:
-  func_t d_func;
-};
-
-class LuaResponseAction : public DNSResponseAction
-{
-public:
-  typedef std::function<std::tuple<int, string>(DNSResponse* dr)> func_t;
-  LuaResponseAction(LuaResponseAction::func_t func) : d_func(func)
-  {}
-
-  Action operator()(DNSResponse* dr, string* ruleresult) const override
-  {
-    std::lock_guard<std::mutex> lock(g_luamutex);
-    auto ret = d_func(dr);
-    if(ruleresult)
-      *ruleresult=std::get<1>(ret);
-    return (Action)std::get<0>(ret);
-  }
-
-  string toString() const override
-  {
-    return "Lua response script";
-  }
-
-private:
-  func_t d_func;
-};
-
-std::shared_ptr<DNSRule> makeRule(const luadnsrule_t& var)
-{
-  if (var.type() == typeid(std::shared_ptr<DNSRule>))
-    return *boost::get<std::shared_ptr<DNSRule>>(&var);
-
-  SuffixMatchNode smn;
-  NetmaskGroup nmg;
-  auto add=[&](string src) {
-    try {
-      nmg.addMask(src); // need to try mask first, all masks are domain names!
-    } catch(...) {
-      smn.add(DNSName(src));
-    }
-  };
-
-  if (var.type() == typeid(string))
-    add(*boost::get<string>(&var));
-
-  else if (var.type() == typeid(vector<pair<int, string>>))
-    for(const auto& a : *boost::get<vector<pair<int, string>>>(&var))
-      add(a.second);
-
-  else if (var.type() == typeid(DNSName))
-    smn.add(*boost::get<DNSName>(&var));
-
-  else if (var.type() == typeid(vector<pair<int, DNSName>>))
-    for(const auto& a : *boost::get<vector<pair<int, DNSName>>>(&var))
-      smn.add(a.second);
-
-  if(nmg.empty())
-    return std::make_shared<SuffixMatchNodeRule>(smn);
-  else
-    return std::make_shared<NetmaskGroupRule>(nmg, true);
+  if(g_noLuaSideEffect==false) // there has been a side effect already
+    return;
+  g_noLuaSideEffect=true;
 }
 
-std::unordered_map<int, vector<boost::variant<string,double>>> getGenResponses(unsigned int top, boost::optional<int> labels, std::function<bool(const Rings::Response&)> pred) 
+void setLuaSideEffect()
 {
-  setLuaNoSideEffect();
-  map<DNSName, int> counts;
-  unsigned int total=0;
-  {
-    std::lock_guard<std::mutex> lock(g_rings.respMutex);
-    if(!labels) {
-      for(const auto& a : g_rings.respRing) {
-        if(!pred(a))
-          continue;
-        counts[a.name]++;
-        total++;
-      }
-    }
-    else {
-      unsigned int lab = *labels;
-      for(auto a : g_rings.respRing) {
-        if(!pred(a))
-          continue;
-        
-        a.name.trimToLabels(lab);
-        counts[a.name]++;
-        total++;
-      }
-      
-    }
-  }
-  //      cout<<"Looked at "<<total<<" responses, "<<counts.size()<<" different ones"<<endl;
-  vector<pair<int, DNSName>> rcounts;
-  rcounts.reserve(counts.size());
-  for(const auto& c : counts) 
-    rcounts.push_back(make_pair(c.second, c.first.makeLowerCase()));
-  
-  sort(rcounts.begin(), rcounts.end(), [](const decltype(rcounts)::value_type& a, 
-                                          const decltype(rcounts)::value_type& b) {
-         return b.first < a.first;
-       });
-  
-  std::unordered_map<int, vector<boost::variant<string,double>>> ret;
-  unsigned int count=1, rest=0;
-  for(const auto& rc : rcounts) {
-    if(count==top+1)
-      rest+=rc.first;
-    else
-      ret.insert({count++, {rc.second.toString(), rc.first, 100.0*rc.first/total}});
-  }
-  ret.insert({count, {"Rest", rest, total > 0 ? 100.0*rest/total : 100.0}});
-  return ret;
+  g_noLuaSideEffect=false;
 }
 
-void parseLocalBindVars(boost::optional<localbind_t> vars, bool& doTCP, bool& reusePort, int& tcpFastOpenQueueSize, std::string& interface, std::set<int>& cpus)
+bool getLuaNoSideEffect()
+{
+  if (g_noLuaSideEffect) {
+    return true;
+  }
+  return false;
+}
+
+void resetLuaSideEffect()
+{
+  g_noLuaSideEffect = boost::logic::indeterminate;
+}
+
+typedef std::unordered_map<std::string, boost::variant<bool, int, std::string, std::vector<std::pair<int,int> > > > localbind_t;
+
+static void parseLocalBindVars(boost::optional<localbind_t> vars, bool& doTCP, bool& reusePort, int& tcpFastOpenQueueSize, std::string& interface, std::set<int>& cpus)
 {
   if (vars) {
     if (vars->count("doTCP")) {
@@ -200,133 +112,91 @@ void parseLocalBindVars(boost::optional<localbind_t> vars, bool& doTCP, bool& re
   }
 }
 
-vector<std::function<void(void)>> setupLua(bool client, const std::string& config)
+#ifdef HAVE_DNS_OVER_TLS
+static bool loadTLSCertificateAndKeys(shared_ptr<TLSFrontend>& frontend, boost::variant<std::string, std::vector<std::pair<int,std::string>>> certFiles, boost::variant<std::string, std::vector<std::pair<int,std::string>>> keyFiles)
 {
-  g_launchWork= new vector<std::function<void(void)>>();
-  typedef std::unordered_map<std::string, boost::variant<bool, std::string, vector<pair<int, std::string> > > > newserver_t;
+  if (certFiles.type() == typeid(std::string) && keyFiles.type() == typeid(std::string)) {
+    auto certFile = boost::get<std::string>(certFiles);
+    auto keyFile = boost::get<std::string>(keyFiles);
+    frontend->d_certKeyPairs.clear();
+    frontend->d_certKeyPairs.push_back({certFile, keyFile});
+  }
+  else if (certFiles.type() == typeid(std::vector<std::pair<int,std::string>>) && keyFiles.type() == typeid(std::vector<std::pair<int,std::string>>))
+  {
+    auto certFilesVect = boost::get<std::vector<std::pair<int,std::string>>>(certFiles);
+    auto keyFilesVect = boost::get<std::vector<std::pair<int,std::string>>>(keyFiles);
+    if (certFilesVect.size() == keyFilesVect.size()) {
+      frontend->d_certKeyPairs.clear();
+      for (size_t idx = 0; idx < certFilesVect.size(); idx++) {
+        frontend->d_certKeyPairs.push_back({certFilesVect.at(idx).second, keyFilesVect.at(idx).second});
+      }
+    }
+    else {
+      errlog("Error, mismatching number of certificates and keys in call to addTLSLocal()!");
+      g_outputBuffer="Error, mismatching number of certificates and keys in call to addTLSLocal()!";
+      return false;
+    }
+  }
+  else {
+    errlog("Error, mismatching number of certificates and keys in call to addTLSLocal()!");
+    g_outputBuffer="Error, mismatching number of certificates and keys in call to addTLSLocal()!";
+    return false;
+  }
 
-  g_lua.writeVariable("DNSAction", std::unordered_map<string,int>{
-      {"Drop", (int)DNSAction::Action::Drop},
-      {"Nxdomain", (int)DNSAction::Action::Nxdomain},
-      {"Refused", (int)DNSAction::Action::Refused},
-      {"Spoof", (int)DNSAction::Action::Spoof},
-      {"Allow", (int)DNSAction::Action::Allow},
-      {"HeaderModify", (int)DNSAction::Action::HeaderModify},
-      {"Pool", (int)DNSAction::Action::Pool},
-      {"None",(int)DNSAction::Action::None},
-      {"Delay", (int)DNSAction::Action::Delay},
-      {"Truncate", (int)DNSAction::Action::Truncate}
-    });
+  return true;
+}
+#endif /* HAVE_DNS_OVER_TLS */
 
-  g_lua.writeVariable("DNSResponseAction", std::unordered_map<string,int>{
-      {"Allow",        (int)DNSResponseAction::Action::Allow        },
-      {"Delay",        (int)DNSResponseAction::Action::Delay        },
-      {"HeaderModify", (int)DNSResponseAction::Action::HeaderModify },
-      {"None",         (int)DNSResponseAction::Action::None         }
-    });
+void setupLuaConfig(bool client)
+{
+  typedef std::unordered_map<std::string, boost::variant<bool, std::string, vector<pair<int, std::string> >, DownstreamState::checkfunc_t > > newserver_t;
+  g_lua.writeFunction("inClientStartup", [client]() {
+        return client && !g_configurationDone;
+  });
 
-  g_lua.writeVariable("DNSClass", std::unordered_map<string,int>{
-      {"IN",    QClass::IN    },
-      {"CHAOS", QClass::CHAOS },
-      {"NONE",  QClass::NONE  },
-      {"ANY",   QClass::ANY   }
-    });
+  g_lua.writeFunction("newServer",
+      [client](boost::variant<string,newserver_t> pvars, boost::optional<int> qps) {
+      setLuaSideEffect();
 
-  g_lua.writeVariable("DNSOpcode", std::unordered_map<string,int>{
-      {"Query",  Opcode::Query  },
-      {"IQuery", Opcode::IQuery },
-      {"Status", Opcode::Status },
-      {"Notify", Opcode::Notify },
-      {"Update", Opcode::Update }
-    });
+      std::shared_ptr<DownstreamState> ret = std::make_shared<DownstreamState>(ComboAddress());
+      newserver_t vars;
 
-  g_lua.writeVariable("DNSSection", std::unordered_map<string,int>{
-      {"Question",  0 },
-      {"Answer",    1 },
-      {"Authority", 2 },
-      {"Additional",3 }
-    });
+      ComboAddress serverAddr;
+      std::string serverAddressStr;
+      if(auto addrStr = boost::get<string>(&pvars)) {
+        serverAddressStr = *addrStr;
+        if(qps) {
+          vars["qps"] = std::to_string(*qps);
+        }
+      } else {
+        vars = boost::get<newserver_t>(pvars);
+        serverAddressStr = boost::get<string>(vars["address"]);
+      }
 
-  vector<pair<string, int> > rcodes = {{"NOERROR",  RCode::NoError  },
-                                       {"FORMERR",  RCode::FormErr  },
-                                       {"SERVFAIL", RCode::ServFail },
-                                       {"NXDOMAIN", RCode::NXDomain },
-                                       {"NOTIMP",   RCode::NotImp   },
-                                       {"REFUSED",  RCode::Refused  },
-                                       {"YXDOMAIN", RCode::YXDomain },
-                                       {"YXRRSET",  RCode::YXRRSet  },
-                                       {"NXRRSET",  RCode::NXRRSet  },
-                                       {"NOTAUTH",  RCode::NotAuth  },
-                                       {"NOTZONE",  RCode::NotZone  }
-  };
-  vector<pair<string, int> > dd;
-  for(const auto& n : QType::names)
-    dd.push_back({n.first, n.second});
-  for(const auto& n : rcodes)
-    dd.push_back({n.first, n.second});
-  g_lua.writeVariable("dnsdist", dd);
-  
-  g_lua.writeFunction("newServer", 
-		      [client](boost::variant<string,newserver_t> pvars, boost::optional<int> qps)
-		      { 
-                        setLuaSideEffect();
-			if(client) {
-			  return std::make_shared<DownstreamState>(ComboAddress());
-			}
-			ComboAddress sourceAddr;
-			unsigned int sourceItf = 0;
-                        std::set<int> cpus;
-			if(auto addressStr = boost::get<string>(&pvars)) {
-			  std::shared_ptr<DownstreamState> ret;
-			  try {
-			    ComboAddress address(*addressStr, 53);
-			    if(IsAnyAddress(address)) {
-			      g_outputBuffer="Error creating new server: invalid address for a downstream server.";
-			      errlog("Error creating new server: %s is not a valid address for a downstream server", *addressStr);
-			      return ret;
-			    }
-			    ret=std::make_shared<DownstreamState>(address);
-			  }
-			  catch(const PDNSException& e) {
-			    g_outputBuffer="Error creating new server: "+string(e.reason);
-			    errlog("Error creating new server with address %s: %s", addressStr, e.reason);
-			    return ret;
-			  }
-			  catch(std::exception& e) {
-			    g_outputBuffer="Error creating new server: "+string(e.what());
-			    errlog("Error creating new server with address %s: %s", addressStr, e.what());
-			    return ret;
-			  }
+      try {
+        serverAddr = ComboAddress(serverAddressStr, 53);
+      }
+      catch(const PDNSException& e) {
+        g_outputBuffer="Error creating new server: "+string(e.reason);
+        errlog("Error creating new server with address %s: %s", serverAddressStr, e.reason);
+        return ret;
+      }
+      catch(std::exception& e) {
+        g_outputBuffer="Error creating new server: "+string(e.what());
+        errlog("Error creating new server with address %s: %s", serverAddressStr, e.what());
+        return ret;
+      }
 
-			  if(qps) {
-			    ret->qps=QPSLimiter(*qps, *qps);
-			  }
-			  g_dstates.modify([ret](servers_t& servers) { 
-			      servers.push_back(ret); 
-			      std::stable_sort(servers.begin(), servers.end(), [](const decltype(ret)& a, const decltype(ret)& b) {
-				  return a->order < b->order;
-				});
+      if(IsAnyAddress(serverAddr)) {
+        g_outputBuffer="Error creating new server: invalid address for a downstream server.";
+        errlog("Error creating new server: %s is not a valid address for a downstream server", serverAddressStr);
+        return ret;
+      }
 
-			    });
-
-			  auto localPools = g_pools.getCopy();
-			  addServerToPool(localPools, "", ret);
-			  g_pools.setState(localPools);
-
-			  if (ret->connected) {
-			    if(g_launchWork) {
-			      g_launchWork->push_back([ret]() {
-			        ret->tid = thread(responderThread, ret);
-			      });
-			    }
-			    else {
-			      ret->tid = thread(responderThread, ret);
-			    }
-			  }
-
-			  return ret;
-			}
-			auto vars=boost::get<newserver_t>(pvars);
+      ComboAddress sourceAddr;
+      unsigned int sourceItf = 0;
+      size_t numberOfSockets = 1;
+      std::set<int> cpus;
 
 			if(vars.count("source")) {
 			  /* handle source in the following forms:
@@ -374,56 +244,45 @@ vector<std::function<void(void)>> setupLua(bool client, const std::string& confi
 			  }
 			}
 
-			std::shared_ptr<DownstreamState> ret;
-			try {
-			  ComboAddress address(boost::get<string>(vars["address"]), 53);
-			  if(IsAnyAddress(address)) {
-			    g_outputBuffer="Error creating new server: invalid address for a downstream server.";
-			    errlog("Error creating new server: %s is not a valid address for a downstream server", boost::get<string>(vars["address"]));
-			    return ret;
-			  }
-			  ret=std::make_shared<DownstreamState>(address, sourceAddr, sourceItf);
-			}
-			catch(const PDNSException& e) {
-			  g_outputBuffer="Error creating new server: "+string(e.reason);
-			  errlog("Error creating new server with address %s: %s", boost::get<string>(vars["address"]), e.reason);
-			  return ret;
-			}
-			catch(std::exception& e) {
-			  g_outputBuffer="Error creating new server: "+string(e.what());
-			  errlog("Error creating new server with address %s: %s", boost::get<string>(vars["address"]), e.what());
-			  return ret;
-			}
+                        if (vars.count("sockets")) {
+                          numberOfSockets = std::stoul(boost::get<string>(vars["sockets"]));
+                          if (numberOfSockets == 0) {
+                            warnlog("Dismissing invalid number of sockets '%s', using 1 instead", boost::get<string>(vars["sockets"]));
+                            numberOfSockets = 1;
+                          }
+                        }
+
+      if(client) {
+        // do not construct DownstreamState now, it would try binding sockets.
+        return ret;
+      }
+      ret=std::make_shared<DownstreamState>(serverAddr, sourceAddr, sourceItf, numberOfSockets);
 
 			if(vars.count("qps")) {
 			  int qpsVal=std::stoi(boost::get<string>(vars["qps"]));
 			  ret->qps=QPSLimiter(qpsVal, qpsVal);
 			}
 
-			auto localPools = g_pools.getCopy();
-			if(vars.count("pool")) {
-			  if(auto* pool = boost::get<string>(&vars["pool"]))
-			    ret->pools.insert(*pool);
-			  else {
-			    auto pools = boost::get<vector<pair<int, string> > >(vars["pool"]);
-			    for(auto& p : pools)
-			      ret->pools.insert(p.second);
-			  }
-			  for(const auto& poolName: ret->pools) {
-			    addServerToPool(localPools, poolName, ret);
-			  }
-			}
-			else {
-			  addServerToPool(localPools, "", ret);
-			}
-			g_pools.setState(localPools);
-
 			if(vars.count("order")) {
 			  ret->order=std::stoi(boost::get<string>(vars["order"]));
 			}
 
 			if(vars.count("weight")) {
-			  ret->weight=std::stoi(boost::get<string>(vars["weight"]));
+			  try {
+			    int weightVal=std::stoi(boost::get<string>(vars["weight"]));
+
+			    if(weightVal < 1) {
+			      errlog("Error creating new server: downstream weight value must be greater than 0.");
+			      return ret;
+			    }
+
+			    ret->setWeight(weightVal);
+			  }
+			  catch(std::exception& e) {
+			    // std::stoi will throw an exception if the string isn't in a value int range
+			    errlog("Error creating new server: downstream weight value must be between %s and %s", 1, std::numeric_limits<int>::max());
+			    return ret;
+			  }
 			}
 
 			if(vars.count("retries")) {
@@ -457,12 +316,28 @@ vector<std::function<void(void)>> setupLua(bool client, const std::string& confi
 			  ret->name=boost::get<string>(vars["name"]);
 			}
 
+                        if (vars.count("id")) {
+                          ret->setId(boost::lexical_cast<boost::uuids::uuid>(boost::get<string>(vars["id"])));
+                        }
+
 			if(vars.count("checkName")) {
 			  ret->checkName=DNSName(boost::get<string>(vars["checkName"]));
 			}
 
 			if(vars.count("checkType")) {
 			  ret->checkType=boost::get<string>(vars["checkType"]);
+			}
+
+			if(vars.count("checkClass")) {
+			  ret->checkClass=std::stoi(boost::get<string>(vars["checkClass"]));
+			}
+
+                        if(vars.count("checkFunction")) {
+			  ret->checkFunction= boost::get<DownstreamState::checkfunc_t>(vars["checkFunction"]);
+			}
+
+			if(vars.count("checkTimeout")) {
+			  ret->checkTimeout = std::stoi(boost::get<string>(vars["checkTimeout"]));
 			}
 
 			if(vars.count("setCD")) {
@@ -477,9 +352,25 @@ vector<std::function<void(void)>> setupLua(bool client, const std::string& confi
 			  ret->useECS=boost::get<bool>(vars["useClientSubnet"]);
 			}
 
+			if(vars.count("disableZeroScope")) {
+			  ret->disableZeroScope=boost::get<bool>(vars["disableZeroScope"]);
+			}
+
+			if(vars.count("ipBindAddrNoPort")) {
+			  ret->ipBindAddrNoPort=boost::get<bool>(vars["ipBindAddrNoPort"]);
+			}
+
+			if(vars.count("addXPF")) {
+                          ret->xpfRRCode=std::stoi(boost::get<string>(vars["addXPF"]));
+			}
+
 			if(vars.count("maxCheckFailures")) {
 			  ret->maxCheckFailures=std::stoi(boost::get<string>(vars["maxCheckFailures"]));
 			}
+
+                        if(vars.count("rise")) {
+                          ret->minRiseSuccesses=std::stoi(boost::get<string>(vars["rise"]));
+                        }
 
                         if(vars.count("cpus")) {
                           for (const auto cpu : boost::get<vector<pair<int,string>>>(vars["cpus"])) {
@@ -487,17 +378,41 @@ vector<std::function<void(void)>> setupLua(bool client, const std::string& confi
                           }
 			}
 
+                        /* this needs to be done _AFTER_ the order has been set,
+                           since the server are kept ordered inside the pool */
+                        auto localPools = g_pools.getCopy();
+                        if(vars.count("pool")) {
+                          if(auto* pool = boost::get<string>(&vars["pool"])) {
+                            ret->pools.insert(*pool);
+                          }
+                          else {
+                            auto pools = boost::get<vector<pair<int, string> > >(vars["pool"]);
+                            for(auto& p : pools) {
+			      ret->pools.insert(p.second);
+                            }
+                          }
+                          for(const auto& poolName: ret->pools) {
+                            addServerToPool(localPools, poolName, ret);
+                          }
+                        }
+                        else {
+                          addServerToPool(localPools, "", ret);
+                        }
+                        g_pools.setState(localPools);
+
 			if (ret->connected) {
+			  ret->threadStarted.test_and_set();
+
 			  if(g_launchWork) {
 			    g_launchWork->push_back([ret,cpus]() {
-			      ret->tid = thread(responderThread, ret);
+                              ret->tid = thread(responderThread, ret);
                               if (!cpus.empty()) {
                                 mapThreadToCPUList(ret->tid.native_handle(), cpus);
                               }
 			    });
 			  }
 			  else {
-			    ret->tid = thread(responderThread, ret);
+                            ret->tid = thread(responderThread, ret);
                             if (!cpus.empty()) {
                               mapThreadToCPUList(ret->tid.native_handle(), cpus);
                             }
@@ -513,88 +428,9 @@ vector<std::function<void(void)>> setupLua(bool client, const std::string& confi
 			return ret;
 		      } );
 
-  g_lua.writeFunction("makeRule", makeRule);
-
-  g_lua.writeFunction("addAnyTCRule", []() {
-      setLuaSideEffect();
-      warnlog("addAnyTCRule() is deprecated and will be removed in 1.3.0, please use addAction(AndRule{QTypeRule(dnsdist.ANY), TCPRule(false)}, TCAction()) instead");
-
-      auto rules=g_rulactions.getCopy();
-      std::vector<pair<int, shared_ptr<DNSRule> >> v;
-      v.push_back({1, std::make_shared<QTypeRule>(0xff)});
-      v.push_back({2, std::make_shared<TCPRule>(false)});
-      rules.push_back({ std::shared_ptr<DNSRule>(new AndRule(v)), std::make_shared<TCAction>()});
-      g_rulactions.setState(rules);
-    });
-
-  g_lua.writeFunction("rmRule", [](unsigned int num) {
-      setLuaSideEffect();
-      auto rules = g_rulactions.getCopy();
-      if(num >= rules.size()) {
-	g_outputBuffer = "Error: attempt to delete non-existing rule\n";
-	return;
-      }
-      rules.erase(rules.begin()+num);
-      g_rulactions.setState(rules);
-    });
-
-  g_lua.writeFunction("topRule", []() {
-      setLuaSideEffect();
-      auto rules = g_rulactions.getCopy();
-      if(rules.empty())
-	return;
-      auto subject = *rules.rbegin();
-      rules.erase(std::prev(rules.end()));
-      rules.insert(rules.begin(), subject);
-      g_rulactions.setState(rules);
-    });
-  g_lua.writeFunction("mvRule", [](unsigned int from, unsigned int to) {
-      setLuaSideEffect();
-      auto rules = g_rulactions.getCopy();
-      if(from >= rules.size() || to > rules.size()) {
-	g_outputBuffer = "Error: attempt to move rules from/to invalid index\n";
-	return;
-      }
-
-      auto subject = rules[from];
-      rules.erase(rules.begin()+from);
-      if(to == rules.size())
-	rules.push_back(subject);
-      else {
-	if(from < to)
-	  --to;
-	rules.insert(rules.begin()+to, subject);
-      }
-      g_rulactions.setState(rules);
-    });
-  g_lua.writeFunction("clearRules", []() {
-      setLuaSideEffect();
-      g_rulactions.modify([](decltype(g_rulactions)::value_type& rulactions) {
-          rulactions.clear();
-        });
-    });
-
-  g_lua.writeFunction("newRuleAction", [](luadnsrule_t dnsrule, std::shared_ptr<DNSAction> action) {
-      auto rule=makeRule(dnsrule);
-      return std::make_shared<std::pair< luadnsrule_t, std::shared_ptr<DNSAction> > >(rule, action);
-    });
-
-  g_lua.writeFunction("setRules", [](std::vector< std::pair<int, std::shared_ptr<std::pair<luadnsrule_t, std::shared_ptr<DNSAction> > > > > newruleactions) {
-      setLuaSideEffect();
-      g_rulactions.modify([newruleactions](decltype(g_rulactions)::value_type& gruleactions) {
-          gruleactions.clear();
-          for (const auto& newruleaction : newruleactions) {
-            if (newruleaction.second) {
-              auto rule=makeRule(newruleaction.second->first);
-              gruleactions.push_back({rule, newruleaction.second->second});
-            }
-          }
-        });
-    });
-
-  g_lua.writeFunction("rmServer", 
+  g_lua.writeFunction("rmServer",
 		      [](boost::variant<std::shared_ptr<DownstreamState>, int> var)
-		      { 
+		      {
                         setLuaSideEffect();
                         shared_ptr<DownstreamState> server;
                         auto* rem = boost::get<shared_ptr<DownstreamState>>(&var);
@@ -617,14 +453,13 @@ vector<std::function<void(void)>> setupLua(bool client, const std::string& confi
                         g_dstates.setState(states);
 		      } );
 
-
   g_lua.writeFunction("setServerPolicy", [](ServerPolicy policy)  {
       setLuaSideEffect();
       g_policy.setState(policy);
     });
   g_lua.writeFunction("setServerPolicyLua", [](string name, policyfunc_t policy)  {
       setLuaSideEffect();
-      g_policy.setState(ServerPolicy{name, policy});
+      g_policy.setState(ServerPolicy{name, policy, true});
     });
 
   g_lua.writeFunction("showServerPolicy", []() {
@@ -635,14 +470,6 @@ vector<std::function<void(void)>> setupLua(bool client, const std::string& confi
   g_lua.writeFunction("truncateTC", [](bool tc) { setLuaSideEffect(); g_truncateTC=tc; });
   g_lua.writeFunction("fixupCase", [](bool fu) { setLuaSideEffect(); g_fixupCase=fu; });
 
-  g_lua.registerMember("name", &ServerPolicy::name);
-  g_lua.registerMember("policy", &ServerPolicy::policy);
-  g_lua.writeFunction("newServerPolicy", [](string name, policyfunc_t policy) { return ServerPolicy{name, policy};});
-  g_lua.writeVariable("firstAvailable", ServerPolicy{"firstAvailable", firstAvailable});
-  g_lua.writeVariable("roundrobin", ServerPolicy{"roundrobin", roundrobin});
-  g_lua.writeVariable("wrandom", ServerPolicy{"wrandom", wrandom});
-  g_lua.writeVariable("whashed", ServerPolicy{"whashed", whashed});
-  g_lua.writeVariable("leastOutstanding", ServerPolicy{"leastOutstanding", leastOutstanding});
   g_lua.writeFunction("addACL", [](const std::string& domain) {
       setLuaSideEffect();
       g_ACL.modify([domain](NetmaskGroup& nmg) { nmg.addMask(domain); });
@@ -698,6 +525,7 @@ vector<std::function<void(void)>> setupLua(bool client, const std::string& confi
 	g_outputBuffer="Error: "+string(e.what())+"\n";
       }
     });
+
   g_lua.writeFunction("setACL", [](boost::variant<string,vector<pair<int, string>>> inp) {
       setLuaSideEffect();
       NetmaskGroup nmg;
@@ -709,466 +537,97 @@ vector<std::function<void(void)>> setupLua(bool client, const std::string& confi
       }
       g_ACL.setState(nmg);
   });
+
   g_lua.writeFunction("showACL", []() {
       setLuaNoSideEffect();
       vector<string> vec;
 
-      g_ACL.getCopy().toStringVector(&vec);
+      g_ACL.getLocal()->toStringVector(&vec);
 
       for(const auto& s : vec)
         g_outputBuffer+=s+"\n";
 
     });
+
   g_lua.writeFunction("shutdown", []() {
 #ifdef HAVE_SYSTEMD
       sd_notify(0, "STOPPING=1");
-#endif
+#endif /* HAVE_SYSTEMD */
+#if 0
+      // Useful for debugging leaks, but might lead to race under load
+      // since other threads are still runing.
+      for(auto& frontend : g_tlslocals) {
+        frontend->cleanup();
+      }
+      g_tlslocals.clear();
+#ifdef HAVE_PROTOBUF
+      google::protobuf::ShutdownProtobufLibrary();
+#endif /* HAVE_PROTOBUF */
+#endif /* 0 */
       _exit(0);
   } );
 
+  typedef std::unordered_map<std::string, boost::variant<bool, std::string> > showserversopts_t;
 
-  g_lua.writeFunction("addDomainBlock", [](const std::string& domain) { 
-      setLuaSideEffect();
-      warnlog("addDomainBlock() is deprecated and will be removed in 1.3.0, please use addAction(\"%s\", DropAction()) instead", domain);
-      SuffixMatchNode smn;
-      smn.add(DNSName(domain));
-	g_rulactions.modify([smn](decltype(g_rulactions)::value_type& rulactions) {
-	    rulactions.push_back({
-				   std::make_shared<SuffixMatchNodeRule>(smn), 
-				   std::make_shared<DropAction>()  });
-	  });
-
-    });
-  g_lua.writeFunction("showServers", []() {  
+  g_lua.writeFunction("showServers", [](boost::optional<showserversopts_t> vars) {
       setLuaNoSideEffect();
-      try {
-      ostringstream ret;
-      boost::format fmt("%1$-3d %2$-20.20s %|25t|%3% %|55t|%4$5s %|51t|%5$7.1f %|66t|%6$7d %|69t|%7$3d %|78t|%8$2d %|80t|%9$10d %|86t|%10$7d %|91t|%11$5.1f %|109t|%12$5.1f %|115t|%13$11d %14%" );
-      //             1        2          3       4        5       6       7       8           9        10        11       12     13              14
-      ret << (fmt % "#" % "Name" % "Address" % "State" % "Qps" % "Qlim" % "Ord" % "Wt" % "Queries" % "Drops" % "Drate" % "Lat" % "Outstanding" % "Pools") << endl;
-
-      uint64_t totQPS{0}, totQueries{0}, totDrops{0};
-      int counter=0;
-      auto states = g_dstates.getCopy();
-      for(const auto& s : states) {
-	string status = s->getStatus();
-	string pools;
-	for(auto& p : s->pools) {
-	  if(!pools.empty())
-	    pools+=" ";
-	  pools+=p;
-	}
-
-	ret << (fmt % counter % s->name % s->remote.toStringWithPort() %
-		status % 
-		s->queryLoad % s->qps.getRate() % s->order % s->weight % s->queries.load() % s->reuseds.load() % (s->dropRate) % (s->latencyUsec/1000.0) % s->outstanding.load() % pools) << endl;
-
-	totQPS += s->queryLoad;
-	totQueries += s->queries.load();
-	totDrops += s->reuseds.load();
-	++counter;
-      }
-      ret<< (fmt % "All" % "" % "" % ""
-		% 
-	     (double)totQPS % "" % "" % "" % totQueries % totDrops % "" % "" % "" % "" ) << endl;
-
-      g_outputBuffer=ret.str();
-      }catch(std::exception& e) { g_outputBuffer=e.what(); throw; }
-    });
-
-  g_lua.writeFunction("addLuaAction", [](luadnsrule_t var, LuaAction::func_t func) 
-		      {
-                        setLuaSideEffect();
-			auto rule=makeRule(var);
-			g_rulactions.modify([rule,func](decltype(g_rulactions)::value_type& rulactions){
-			    rulactions.push_back({rule,
-				  std::make_shared<LuaAction>(func)});
-			  });
-		      });
-
-  g_lua.writeFunction("addLuaResponseAction", [](luadnsrule_t var, LuaResponseAction::func_t func) {
-      setLuaSideEffect();
-      auto rule=makeRule(var);
-      g_resprulactions.modify([rule,func](decltype(g_resprulactions)::value_type& rulactions){
-          rulactions.push_back({rule,
-                std::make_shared<LuaResponseAction>(func)});
-        });
-    });
-
-  g_lua.writeFunction("NoRecurseAction", []() {
-      return std::shared_ptr<DNSAction>(new NoRecurseAction);
-    });
-
-  g_lua.writeFunction("MacAddrAction", [](int code) {
-      return std::shared_ptr<DNSAction>(new MacAddrAction(code));
-    });
-
-
-  g_lua.writeFunction("PoolAction", [](const string& a) {
-      return std::shared_ptr<DNSAction>(new PoolAction(a));
-    });
-
-  g_lua.writeFunction("QPSPoolAction", [](int limit, const string& a) {
-      return std::shared_ptr<DNSAction>(new QPSPoolAction(limit, a));
-    });
-
-  g_lua.writeFunction("SpoofAction", [](boost::variant<string,vector<pair<int, string>>> inp, boost::optional<string> b ) {
-      vector<ComboAddress> addrs;
-      if(auto s = boost::get<string>(&inp))
-        addrs.push_back(ComboAddress(*s));
-      else {
-        const auto& v = boost::get<vector<pair<int,string>>>(inp);
-        for(const auto& a: v)
-          addrs.push_back(ComboAddress(a.second));
-      }
-      if(b)
-        addrs.push_back(ComboAddress(*b));
-      return std::shared_ptr<DNSAction>(new SpoofAction(addrs));
-    });
-
-  g_lua.writeFunction("SpoofCNAMEAction", [](const string& a) {
-      return std::shared_ptr<DNSAction>(new SpoofAction(a));
-    });
-
-  g_lua.writeFunction("addDomainSpoof", [](const std::string& domain, boost::variant<string,vector<pair<int, string>>> inp, boost::optional<string> b) { 
-      setLuaSideEffect();
-      warnlog("addDomainSpoof() is deprecated and will be removed in 1.3.0, please use addAction(\"%s\", SpoofAction(...)) instead", domain);
-
-      SuffixMatchNode smn;
-      vector<ComboAddress> outp;
-      try
-      {
-	smn.add(DNSName(domain));
-
-        if(auto s = boost::get<string>(&inp))
-          outp.push_back(ComboAddress(*s));
-        else {
-          const auto& v = boost::get<vector<pair<int,string>>>(inp);
-          for(const auto& a: v)
-            outp.push_back(ComboAddress(a.second));
+      bool showUUIDs = false;
+      if (vars) {
+        if (vars->count("showUUIDs")) {
+          showUUIDs = boost::get<bool>((*vars)["showUUIDs"]);
         }
-        if(b)
-          outp.push_back(ComboAddress(*b));
-          
       }
-      catch(std::exception& e) {
-	g_outputBuffer="Error parsing parameters: "+string(e.what());
-	return;
-      }
-      g_rulactions.modify([&smn,&outp](decltype(g_rulactions)::value_type& rulactions) {
-	  rulactions.push_back({
-	      std::make_shared<SuffixMatchNodeRule>(smn), 
-		std::make_shared<SpoofAction>(outp)  });
-	});
+      try {
+        ostringstream ret;
+        boost::format fmt;
+        if (showUUIDs) {
+          fmt = boost::format("%1$-3d %15$-36s %2$-20.20s %|62t|%3% %|92t|%4$5s %|88t|%5$7.1f %|103t|%6$7d %|106t|%7$3d %|115t|%8$2d %|117t|%9$10d %|123t|%10$7d %|128t|%11$5.1f %|146t|%12$5.1f %|152t|%13$11d %14%" );
+          //             1        2          3       4        5       6       7       8           9        10        11       12     13              14        15
+          ret << (fmt % "#" % "Name" % "Address" % "State" % "Qps" % "Qlim" % "Ord" % "Wt" % "Queries" % "Drops" % "Drate" % "Lat" % "Outstanding" % "Pools" % "UUID") << endl;
+        } else {
+          fmt = boost::format("%1$-3d %2$-20.20s %|25t|%3% %|55t|%4$5s %|51t|%5$7.1f %|66t|%6$7d %|69t|%7$3d %|78t|%8$2d %|80t|%9$10d %|86t|%10$7d %|91t|%11$5.1f %|109t|%12$5.1f %|115t|%13$11d %14%" );
+          ret << (fmt % "#" % "Name" % "Address" % "State" % "Qps" % "Qlim" % "Ord" % "Wt" % "Queries" % "Drops" % "Drate" % "Lat" % "Outstanding" % "Pools") << endl;
+        }
 
-    });
+        uint64_t totQPS{0}, totQueries{0}, totDrops{0};
+        int counter=0;
+        auto states = g_dstates.getLocal();
+        for(const auto& s : *states) {
+          string status = s->getStatus();
+          string pools;
+          for(auto& p : s->pools) {
+            if(!pools.empty())
+              pools+=" ";
+            pools+=p;
+          }
+          if (showUUIDs) {
+            ret << (fmt % counter % s->name % s->remote.toStringWithPort() %
+                    status %
+                    s->queryLoad % s->qps.getRate() % s->order % s->weight % s->queries.load() % s->reuseds.load() % (s->dropRate) % (s->latencyUsec/1000.0) % s->outstanding.load() % pools % s->id) << endl;
+          } else {
+            ret << (fmt % counter % s->name % s->remote.toStringWithPort() %
+                    status %
+                    s->queryLoad % s->qps.getRate() % s->order % s->weight % s->queries.load() % s->reuseds.load() % (s->dropRate) % (s->latencyUsec/1000.0) % s->outstanding.load() % pools) << endl;
+          }
+          totQPS += s->queryLoad;
+          totQueries += s->queries.load();
+          totDrops += s->reuseds.load();
+          ++counter;
+        }
+        if (showUUIDs) {
+          ret<< (fmt % "All" % "" % "" % ""
+                 %
+                 (double)totQPS % "" % "" % "" % totQueries % totDrops % "" % "" % "" % "" % "" ) << endl;
+        } else {
+          ret<< (fmt % "All" % "" % "" % ""
+                 %
+                 (double)totQPS % "" % "" % "" % totQueries % totDrops % "" % "" % "" % "" ) << endl;
+        }
 
-  g_lua.writeFunction("addDomainCNAMESpoof", [](const std::string& domain, const std::string& cname) {
-      setLuaSideEffect();
-      warnlog("addDomainCNAMESpoof() is deprecated and will be removed in 1.3.0, please use addAction(\"%s\", SpoofCNAMEAction(\"%s\")) instead", domain, cname);
-
-      SuffixMatchNode smn;
-      try
-      {
-	smn.add(DNSName(domain));
-      }
-      catch(std::exception& e) {
-	g_outputBuffer="Error parsing parameters: "+string(e.what());
-	return;
-      }
-      g_rulactions.modify([&smn,&cname](decltype(g_rulactions)::value_type& rulactions) {
-	  rulactions.push_back({
-	      std::make_shared<SuffixMatchNodeRule>(smn),
-		std::make_shared<SpoofAction>(cname)  });
-	});
-    });
-
-  g_lua.writeFunction("DropAction", []() {
-      return std::shared_ptr<DNSAction>(new DropAction);
-    });
-
-  g_lua.writeFunction("AllowAction", []() {
-      return std::shared_ptr<DNSAction>(new AllowAction);
-    });
-
-  g_lua.writeFunction("DelayAction", [](int msec) {
-      return std::shared_ptr<DNSAction>(new DelayAction(msec));
-    });
-
-  g_lua.writeFunction("TCAction", []() {
-      return std::shared_ptr<DNSAction>(new TCAction);
-    });
-
-  g_lua.writeFunction("DisableValidationAction", []() {
-      return std::shared_ptr<DNSAction>(new DisableValidationAction);
-    });
-
-  g_lua.writeFunction("LogAction", [](const std::string& fname, boost::optional<bool> binary, boost::optional<bool> append, boost::optional<bool> buffered) {
-      return std::shared_ptr<DNSAction>(new LogAction(fname, binary ? *binary : true, append ? *append : false, buffered ? *buffered : false));
-    });
-
-  g_lua.writeFunction("RCodeAction", [](int rcode) {
-      return std::shared_ptr<DNSAction>(new RCodeAction(rcode));
-    });
-
-  g_lua.writeFunction("SkipCacheAction", []() {
-      return std::shared_ptr<DNSAction>(new SkipCacheAction);
-    });
-
-  g_lua.writeFunction("MaxQPSIPRule", [](unsigned int qps, boost::optional<int> ipv4trunc, boost::optional<int> ipv6trunc) {
-      return std::shared_ptr<DNSRule>(new MaxQPSIPRule(qps, ipv4trunc.get_value_or(32), ipv6trunc.get_value_or(64)));
-    });
-
-
-  g_lua.writeFunction("MaxQPSRule", [](unsigned int qps, boost::optional<int> burst) {
-      if(!burst)
-        return std::shared_ptr<DNSRule>(new MaxQPSRule(qps));
-      else
-        return std::shared_ptr<DNSRule>(new MaxQPSRule(qps, *burst));      
-    });
-
-
-  g_lua.writeFunction("RegexRule", [](const std::string& str) {
-      return std::shared_ptr<DNSRule>(new RegexRule(str));
-    });
-
-#ifdef HAVE_RE2
-  g_lua.writeFunction("RE2Rule", [](const std::string& str) {
-      return std::shared_ptr<DNSRule>(new RE2Rule(str));
-    });
-#endif
-
-  g_lua.writeFunction("SuffixMatchNodeRule", [](const SuffixMatchNode& smn, boost::optional<bool> quiet) {
-      return std::shared_ptr<DNSRule>(new SuffixMatchNodeRule(smn, quiet ? *quiet : false));
-    });
-
-  g_lua.writeFunction("NetmaskGroupRule", [](const NetmaskGroup& nmg, boost::optional<bool> src) {
-      return std::shared_ptr<DNSRule>(new NetmaskGroupRule(nmg, src ? *src : true));
-    });
-
-  g_lua.writeFunction("benchRule", [](std::shared_ptr<DNSRule> rule, boost::optional<int> times_, boost::optional<string> suffix_)  {
-      setLuaNoSideEffect();
-      int times = times_.get_value_or(100000);
-      DNSName suffix(suffix_.get_value_or("powerdns.com"));
-      struct item {
-        vector<uint8_t> packet;        
-        ComboAddress rem;
-        DNSName qname;
-        uint16_t qtype, qclass;
-      };
-      vector<item> items;
-      items.reserve(1000);
-      for(int n=0; n < 1000; ++n) {
-        struct item i;
-        i.qname=DNSName(std::to_string(random()));
-        i.qname += suffix;
-        i.qtype = random() % 0xff;
-        i.qclass = 1;
-        i.rem=ComboAddress("127.0.0.1");
-        i.rem.sin4.sin_addr.s_addr = random();
-        DNSPacketWriter pw(i.packet, i.qname, i.qtype);
-        items.push_back(i);
-      }
-
-      int matches=0;
-      ComboAddress dummy("127.0.0.1");
-      DTime dt;
-      dt.set();
-      for(int n=0; n < times; ++n) {
-        const item& i = items[n % items.size()];
-        DNSQuestion dq(&i.qname, i.qtype, i.qclass, &i.rem, &i.rem, (struct dnsheader*)&i.packet[0], i.packet.size(), i.packet.size(), false);
-        if(rule->matches(&dq))
-          matches++;
-      }
-      double udiff=dt.udiff();
-      g_outputBuffer=(boost::format("Had %d matches out of %d, %.1f qps, in %.1f usec\n") % matches % times % (1000000*(1.0*times/udiff)) % udiff).str();
-
-    });
-
-  g_lua.writeFunction("AllRule", []() {
-      return std::shared_ptr<DNSRule>(new AllRule());
-    });
-
-  g_lua.writeFunction("ProbaRule", [](double proba) {
-      return std::shared_ptr<DNSRule>(new ProbaRule(proba));
-    });
-
-  
-  g_lua.writeFunction("QNameRule", [](const std::string& qname) {
-      return std::shared_ptr<DNSRule>(new QNameRule(DNSName(qname)));
-    });
-  
-  g_lua.writeFunction("QTypeRule", [](boost::variant<int, std::string> str) {
-      uint16_t qtype;
-      if(auto dir = boost::get<int>(&str)) {
-        qtype = *dir;
-      }
-      else {
-        string val=boost::get<string>(str);
-        qtype = QType::chartocode(val.c_str());
-        if(!qtype)
-          throw std::runtime_error("Unable to convert '"+val+"' to a DNS type");
-      }
-      return std::shared_ptr<DNSRule>(new QTypeRule(qtype));
-    });
-  g_lua.writeFunction("QClassRule", [](int c) {
-      return std::shared_ptr<DNSRule>(new QClassRule(c));
-    });
-
-  g_lua.writeFunction("OpcodeRule", [](uint8_t code) {
-      return std::shared_ptr<DNSRule>(new OpcodeRule(code));
-    });
-
-  g_lua.writeFunction("AndRule", [](vector<pair<int, std::shared_ptr<DNSRule> > >a) {
-      return std::shared_ptr<DNSRule>(new AndRule(a));
-    });
-
-  g_lua.writeFunction("OrRule", [](vector<pair<int, std::shared_ptr<DNSRule> > >a) {
-      return std::shared_ptr<DNSRule>(new OrRule(a));
-    });
-
-  g_lua.writeFunction("TCPRule", [](bool tcp) {
-      return std::shared_ptr<DNSRule>(new TCPRule(tcp));
-    });
-
-  g_lua.writeFunction("DNSSECRule", []() {
-      return std::shared_ptr<DNSRule>(new DNSSECRule());
-    });
-
-  g_lua.writeFunction("NotRule", [](std::shared_ptr<DNSRule>rule) {
-      return std::shared_ptr<DNSRule>(new NotRule(rule));
-    });
-
-  g_lua.writeFunction("RecordsCountRule", [](uint8_t section, uint16_t minCount, uint16_t maxCount) {
-      return std::shared_ptr<DNSRule>(new RecordsCountRule(section, minCount, maxCount));
-    });
-
-  g_lua.writeFunction("RecordsTypeCountRule", [](uint8_t section, uint16_t type, uint16_t minCount, uint16_t maxCount) {
-      return std::shared_ptr<DNSRule>(new RecordsTypeCountRule(section, type, minCount, maxCount));
-    });
-
-  g_lua.writeFunction("TrailingDataRule", []() {
-      return std::shared_ptr<DNSRule>(new TrailingDataRule());
-    });
-
-  g_lua.writeFunction("QNameLabelsCountRule", [](unsigned int minLabelsCount, unsigned int maxLabelsCount) {
-      return std::shared_ptr<DNSRule>(new QNameLabelsCountRule(minLabelsCount, maxLabelsCount));
-    });
-
-  g_lua.writeFunction("QNameWireLengthRule", [](size_t min, size_t max) {
-      return std::shared_ptr<DNSRule>(new QNameWireLengthRule(min, max));
-    });
-
-  g_lua.writeFunction("RCodeRule", [](int rcode) {
-      return std::shared_ptr<DNSRule>(new RCodeRule(rcode));
-    });
-
-  g_lua.writeFunction("addAction", [](luadnsrule_t var, boost::variant<std::shared_ptr<DNSAction>, std::shared_ptr<DNSResponseAction> > era)
-		      {
-                        if (era.type() == typeid(std::shared_ptr<DNSResponseAction>)) {
-                          throw std::runtime_error("addAction() can only be called with query-related actions, not response-related ones. Are you looking for addResponseAction()?");
-                        }
-
-                        auto ea = *boost::get<std::shared_ptr<DNSAction>>(&era);
-                        setLuaSideEffect();
-			auto rule=makeRule(var);
-			g_rulactions.modify([rule, ea](decltype(g_rulactions)::value_type& rulactions){
-			    rulactions.push_back({rule, ea});
-			  });
-		      });
-
-
-  g_lua.writeFunction("addPoolRule", [](luadnsrule_t var, string pool) {
-      setLuaSideEffect();
-      warnlog("addPoolRule() is deprecated and will be removed in 1.3.0, please use addAction(..., PoolAction(\"%s\")) instead", pool);
-
-      auto rule=makeRule(var);
-	g_rulactions.modify([rule, pool](decltype(g_rulactions)::value_type& rulactions) {
-	    rulactions.push_back({
-		rule,
-		  std::make_shared<PoolAction>(pool)  });
-	  });
-    });
-
-  g_lua.writeFunction("addNoRecurseRule", [](luadnsrule_t var) {
-      setLuaSideEffect();
-      warnlog("addNoRecurseRule() is deprecated and will be removed in 1.3.0, please use addAction(..., NoRecurseAction()) instead");
-
-      auto rule=makeRule(var);
-	g_rulactions.modify([rule](decltype(g_rulactions)::value_type& rulactions) {
-	    rulactions.push_back({
-		rule,
-		  std::make_shared<NoRecurseAction>()  });
-	  });
-    });
-
-  g_lua.writeFunction("addDisableValidationRule", [](luadnsrule_t var) {
-      setLuaSideEffect();
-      warnlog("addDisableValidationRule() is deprecated and will be removed in 1.3.0, please use addAction(..., DisableValidationAction()) instead");
-
-      auto rule=makeRule(var);
-	g_rulactions.modify([rule](decltype(g_rulactions)::value_type& rulactions) {
-	    rulactions.push_back({
-		rule,
-		  std::make_shared<DisableValidationAction>()  });
-	  });
-    });
-
-
-  g_lua.writeFunction("addQPSPoolRule", [](luadnsrule_t var, int limit, string pool) {
-      setLuaSideEffect();
-      warnlog("addQPSPoolRule() is deprecated and will be removed in 1.3.0, please use addAction(..., QPSPoolAction(%d, \"%s\")) instead", limit, pool);
-
-      auto rule = makeRule(var);
-      g_rulactions.modify([rule, pool,limit](decltype(g_rulactions)::value_type& rulactions) {
-	  rulactions.push_back({
-	      rule, 
-		std::make_shared<QPSPoolAction>(limit, pool)  });
-	});
-    });
-
-  g_lua.writeFunction("setDNSSECPool", [](const std::string& pool) {
-      setLuaSideEffect();
-      warnlog("setDNSSECPool() is deprecated and will be removed in 1.3.0, please use addAction(DNSSECRule(), PoolAction(\"%s\")) instead", pool);
-
-      g_rulactions.modify([pool](decltype(g_rulactions)::value_type& rulactions) {
-	  rulactions.push_back({std::make_shared<DNSSECRule>(), 
-		std::make_shared<PoolAction>(pool)}); 
-	});
-    });
-
-  g_lua.writeFunction("addQPSLimit", [](luadnsrule_t var, int lim) {
-      setLuaSideEffect();
-      warnlog("addQPSLimit() is deprecated and will be removed in 1.3.0, please use addAction(..., QPSAction(%d)) instead", lim);
-
-      auto rule = makeRule(var);
-      g_rulactions.modify([lim,rule](decltype(g_rulactions)::value_type& rulactions) {
-	  rulactions.push_back({rule, 
-		std::make_shared<QPSAction>(lim)});
-	});
-    });
-
-  g_lua.writeFunction("addDelay", [](luadnsrule_t var, int msec) {
-      setLuaSideEffect();
-      warnlog("addDelay() is deprecated and will be removed in 1.3.0, please use addAction(..., DelayAction(%d)) instead", msec);
-
-      auto rule = makeRule(var);
-      g_rulactions.modify([msec,rule](decltype(g_rulactions)::value_type& rulactions) {
-	  rulactions.push_back({rule, 
-		std::make_shared<DelayAction>(msec)});
-	});
-    });
-
-
-  g_lua.writeFunction("showRules", []() {
-     setLuaNoSideEffect();
-     boost::format fmt("%-3d %9d %-50s %s\n");
-     g_outputBuffer += (fmt % "#" % "Matches" % "Rule" % "Action").str();
-     int num=0;
-      for(const auto& lim : g_rulactions.getCopy()) {  
-        string name = lim.first->toString();
-	g_outputBuffer += (fmt % num % lim.first->d_matches % name % lim.second->toString()).str();
-	++num;
+        g_outputBuffer=ret.str();
+      } catch(std::exception& e) {
+        g_outputBuffer=e.what();
+        throw;
       }
     });
 
@@ -1192,108 +651,20 @@ vector<std::function<void(void)>> setupLua(bool client, const std::string& confi
       return g_dstates.getCopy().at(i);
     });
 
-  g_lua.registerFunction<void(DownstreamState::*)(int)>("setQPS", [](DownstreamState& s, int lim) { s.qps = lim ? QPSLimiter(lim, lim) : QPSLimiter(); });
-  g_lua.registerFunction<void(std::shared_ptr<DownstreamState>::*)(string)>("addPool", [](std::shared_ptr<DownstreamState> s, string pool) {
-      auto localPools = g_pools.getCopy();
-      addServerToPool(localPools, pool, s);
-      g_pools.setState(localPools);
-      s->pools.insert(pool);
-    });
-  g_lua.registerFunction<void(std::shared_ptr<DownstreamState>::*)(string)>("rmPool", [](std::shared_ptr<DownstreamState> s, string pool) {
-      auto localPools = g_pools.getCopy();
-      removeServerFromPool(localPools, pool, s);
-      g_pools.setState(localPools);
-      s->pools.erase(pool);
-    });
-
-  g_lua.registerFunction<void(DownstreamState::*)()>("getOutstanding", [](const DownstreamState& s) { g_outputBuffer=std::to_string(s.outstanding.load()); });
-
-
-  g_lua.registerFunction("isUp", &DownstreamState::isUp);
-  g_lua.registerFunction("setDown", &DownstreamState::setDown);
-  g_lua.registerFunction("setUp", &DownstreamState::setUp);
-  g_lua.registerFunction("setAuto", &DownstreamState::setAuto);
-  g_lua.registerFunction("getName", &DownstreamState::getName);
-  g_lua.registerFunction("getNameWithAddr", &DownstreamState::getNameWithAddr);
-  g_lua.registerMember("upStatus", &DownstreamState::upStatus);
-  g_lua.registerMember("weight", &DownstreamState::weight);
-  g_lua.registerMember("order", &DownstreamState::order);
-  g_lua.registerMember("name", &DownstreamState::name);
-  
-  g_lua.writeFunction("infolog", [](const string& arg) {
-      infolog("%s", arg);
-    });
-  g_lua.writeFunction("errlog", [](const string& arg) {
-      errlog("%s", arg);
-    });
-  g_lua.writeFunction("warnlog", [](const string& arg) {
-      warnlog("%s", arg);
-    });
-
-
-  g_lua.writeFunction("show", [](const string& arg) {
-      g_outputBuffer+=arg;
-      g_outputBuffer+="\n";
-    });
-
-  g_lua.registerFunction<void(dnsheader::*)(bool)>("setRD", [](dnsheader& dh, bool v) {
-      dh.rd=v;
-    });
-
-  g_lua.registerFunction<bool(dnsheader::*)()>("getRD", [](dnsheader& dh) {
-      return (bool)dh.rd;
-    });
-
-  g_lua.registerFunction<void(dnsheader::*)(bool)>("setCD", [](dnsheader& dh, bool v) {
-      dh.cd=v;
-    });
-
-  g_lua.registerFunction<bool(dnsheader::*)()>("getCD", [](dnsheader& dh) {
-      return (bool)dh.cd;
-    });
-
-
-  g_lua.registerFunction<void(dnsheader::*)(bool)>("setTC", [](dnsheader& dh, bool v) {
-      dh.tc=v;
-      if(v) dh.ra = dh.rd; // you'll always need this, otherwise TC=1 gets ignored
-    });
-
-  g_lua.registerFunction<void(dnsheader::*)(bool)>("setQR", [](dnsheader& dh, bool v) {
-      dh.qr=v;
-    });
-
-  g_lua.registerFunction<string(std::shared_ptr<DNSRule>::*)()>("toString", [](const std::shared_ptr<DNSRule>& rule) { return rule->toString(); });
-
-  g_lua.registerFunction<string(ComboAddress::*)()>("tostring", [](const ComboAddress& ca) { return ca.toString(); });
-  g_lua.registerFunction<string(ComboAddress::*)()>("tostringWithPort", [](const ComboAddress& ca) { return ca.toStringWithPort(); });
-  g_lua.registerFunction<string(ComboAddress::*)()>("toString", [](const ComboAddress& ca) { return ca.toString(); });
-  g_lua.registerFunction<string(ComboAddress::*)()>("toStringWithPort", [](const ComboAddress& ca) { return ca.toStringWithPort(); });
-  g_lua.registerFunction<uint16_t(ComboAddress::*)()>("getPort", [](const ComboAddress& ca) { return ntohs(ca.sin4.sin_port); } );
-  g_lua.registerFunction<void(ComboAddress::*)(unsigned int)>("truncate", [](ComboAddress& ca, unsigned int bits) { ca.truncate(bits); });
-  g_lua.registerFunction<bool(ComboAddress::*)()>("isIPv4", [](const ComboAddress& ca) { return ca.sin4.sin_family == AF_INET; });
-  g_lua.registerFunction<bool(ComboAddress::*)()>("isIPv6", [](const ComboAddress& ca) { return ca.sin4.sin_family == AF_INET6; });
-  g_lua.registerFunction<bool(ComboAddress::*)()>("isMappedIPv4", [](const ComboAddress& ca) { return ca.isMappedIPv4(); });
-  g_lua.registerFunction<ComboAddress(ComboAddress::*)()>("mapToIPv4", [](const ComboAddress& ca) { return ca.mapToIPv4(); });
-
-  g_lua.registerFunction("isPartOf", &DNSName::isPartOf);
-  g_lua.registerFunction<bool(DNSName::*)()>("chopOff", [](DNSName&dn ) { return dn.chopOff(); });
-  g_lua.registerFunction<unsigned int(DNSName::*)()>("countLabels", [](const DNSName& name) { return name.countLabels(); });
-  g_lua.registerFunction<size_t(DNSName::*)()>("wirelength", [](const DNSName& name) { return name.wirelength(); });
-  g_lua.registerFunction<string(DNSName::*)()>("tostring", [](const DNSName&dn ) { return dn.toString(); });
-  g_lua.registerFunction<string(DNSName::*)()>("toString", [](const DNSName&dn ) { return dn.toString(); });
-  g_lua.writeFunction("newDNSName", [](const std::string& name) { return DNSName(name); });
-  g_lua.writeFunction("newSuffixMatchNode", []() { return SuffixMatchNode(); });
-
-  g_lua.registerFunction("add",(void (SuffixMatchNode::*)(const DNSName&)) &SuffixMatchNode::add);
-  g_lua.registerFunction("check",(bool (SuffixMatchNode::*)(const DNSName&) const) &SuffixMatchNode::check);
-
   g_lua.writeFunction("carbonServer", [](const std::string& address, boost::optional<string> ourName,
-					 boost::optional<unsigned int> interval) {
-                        setLuaSideEffect();
-			auto ours = g_carbon.getCopy();
-			ours.push_back({ComboAddress(address, 2003), ourName ? *ourName : "", interval ? *interval : 30});
-			g_carbon.setState(ours);
-		      });
+					 boost::optional<unsigned int> interval, boost::optional<string> namespace_name,
+                                         boost::optional<string> instance_name) {
+      setLuaSideEffect();
+      auto ours = g_carbon.getCopy();
+      ours.push_back({
+        ComboAddress(address, 2003),
+        (namespace_name && !namespace_name->empty()) ? *namespace_name : "dnsdist",
+        ourName ? *ourName : "",
+        (instance_name && !instance_name->empty()) ? *instance_name : "main" ,
+        interval ? *interval : 30
+      });
+      g_carbon.setState(ours);
+  });
 
   g_lua.writeFunction("webserver", [client](const std::string& address, const std::string& password, const boost::optional<std::string> apiKey, const boost::optional<std::map<std::string, std::string> > customHeaders) {
       setLuaSideEffect();
@@ -1306,13 +677,16 @@ vector<std::function<void(void)>> setupLua(bool client, const std::string& confi
 	SBind(sock, local);
 	SListen(sock, 5);
 	auto launch=[sock, local, password, apiKey, customHeaders]() {
-	  thread t(dnsdistWebserverThread, sock, local, password, apiKey ? *apiKey : "", customHeaders);
+          setWebserverPassword(password);
+          setWebserverAPIKey(apiKey);
+          setWebserverCustomHeaders(customHeaders);
+          thread t(dnsdistWebserverThread, sock, local);
 	  t.detach();
 	};
-	if(g_launchWork) 
+	if(g_launchWork)
 	  g_launchWork->push_back(launch);
 	else
-	  launch();	    
+	  launch();
       }
       catch(std::exception& e) {
 	g_outputBuffer="Unable to bind to webserver socket on " + local.toStringWithPort() + ": " + e.what();
@@ -1320,6 +694,32 @@ vector<std::function<void(void)>> setupLua(bool client, const std::string& confi
       }
 
     });
+
+  typedef std::unordered_map<std::string, boost::variant<std::string, std::map<std::string, std::string>> > webserveropts_t;
+
+  g_lua.writeFunction("setWebserverConfig", [](boost::optional<webserveropts_t> vars) {
+      setLuaSideEffect();
+
+      if (!vars) {
+        return ;
+      }
+      if(vars->count("password")) {
+        const std::string password = boost::get<std::string>(vars->at("password"));
+
+        setWebserverPassword(password);
+      }
+      if(vars->count("apiKey")) {
+        const std::string apiKey = boost::get<std::string>(vars->at("apiKey"));
+
+        setWebserverAPIKey(apiKey);
+      }
+      if(vars->count("customHeaders")) {
+        const boost::optional<std::map<std::string, std::string> > headers = boost::get<std::map<std::string, std::string> >(vars->at("customHeaders"));
+
+        setWebserverCustomHeaders(headers);
+      }
+    });
+
   g_lua.writeFunction("controlSocket", [client](const std::string& str) {
       setLuaSideEffect();
       ComboAddress local(str, 5199);
@@ -1328,7 +728,14 @@ vector<std::function<void(void)>> setupLua(bool client, const std::string& confi
 	g_serverControl = local;
 	return;
       }
-      
+
+      g_consoleEnabled = true;
+#ifdef HAVE_LIBSODIUM
+      if (g_configurationDone && g_consoleKey.empty()) {
+        warnlog("Warning, the console has been enabled via 'controlSocket()' but no key has been set with 'setKey()' so all connections will fail until a key has been set");
+      }
+#endif
+
       try {
 	int sock = SSocket(local.sin4.sin_family, SOCK_STREAM, 0);
 	SSetsockopt(sock, SOL_SOCKET, SO_REUSEADDR, 1);
@@ -1338,11 +745,11 @@ vector<std::function<void(void)>> setupLua(bool client, const std::string& confi
 	    thread t(controlThread, sock, local);
 	    t.detach();
 	};
-	if(g_launchWork) 
+	if(g_launchWork)
 	  g_launchWork->push_back(launch);
 	else
 	  launch();
-	    
+
       }
       catch(std::exception& e) {
 	g_outputBuffer="Unable to bind to control socket on " + local.toStringWithPort() + ": " + e.what();
@@ -1350,84 +757,46 @@ vector<std::function<void(void)>> setupLua(bool client, const std::string& confi
       }
     });
 
+  g_lua.writeFunction("addConsoleACL", [](const std::string& netmask) {
+      setLuaSideEffect();
+#ifndef HAVE_LIBSODIUM
+      warnlog("Allowing remote access to the console while libsodium support has not been enabled is not secure, and will result in cleartext communications");
+#endif
 
-  g_lua.writeFunction("topClients", [](boost::optional<unsigned int> top_) {
-      setLuaNoSideEffect();
-      auto top = top_.get_value_or(10);
-      map<ComboAddress, int,ComboAddress::addressOnlyLessThan > counts;
-      unsigned int total=0;
-      {
-        ReadLock rl(&g_rings.queryLock);
-        for(const auto& c : g_rings.queryRing) {
-          counts[c.requestor]++;
-          total++;
-        }
-      }
-      vector<pair<int, ComboAddress>> rcounts;
-      rcounts.reserve(counts.size());
-      for(const auto& c : counts) 
-	rcounts.push_back(make_pair(c.second, c.first));
-
-      sort(rcounts.begin(), rcounts.end(), [](const decltype(rcounts)::value_type& a, 
-					      const decltype(rcounts)::value_type& b) {
-	     return b.first < a.first;
-	   });
-      unsigned int count=1, rest=0;
-      boost::format fmt("%4d  %-40s %4d %4.1f%%\n");
-      for(const auto& rc : rcounts) {
-	if(count==top+1)
-	  rest+=rc.first;
-	else
-	  g_outputBuffer += (fmt % (count++) % rc.second.toString() % rc.first % (100.0*rc.first/total)).str();
-      }
-      g_outputBuffer += (fmt % (count) % "Rest" % rest % (total > 0 ? 100.0*rest/total : 100.0)).str();
+      g_consoleACL.modify([netmask](NetmaskGroup& nmg) { nmg.addMask(netmask); });
     });
 
-  g_lua.writeFunction("getTopQueries", [](unsigned int top, boost::optional<int> labels) {
+  g_lua.writeFunction("setConsoleACL", [](boost::variant<string,vector<pair<int, string>>> inp) {
+      setLuaSideEffect();
+
+#ifndef HAVE_LIBSODIUM
+      warnlog("Allowing remote access to the console while libsodium support has not been enabled is not secure, and will result in cleartext communications");
+#endif
+
+      NetmaskGroup nmg;
+      if(auto str = boost::get<string>(&inp)) {
+	nmg.addMask(*str);
+      }
+      else for(const auto& p : boost::get<vector<pair<int,string>>>(inp)) {
+	nmg.addMask(p.second);
+      }
+      g_consoleACL.setState(nmg);
+  });
+
+  g_lua.writeFunction("showConsoleACL", []() {
       setLuaNoSideEffect();
-      map<DNSName, int> counts;
-      unsigned int total=0;
-      if(!labels) {
-	ReadLock rl(&g_rings.queryLock);
-	for(const auto& a : g_rings.queryRing) {
-	  counts[a.name]++;
-	  total++;
-	}
-      }
-      else {
-	unsigned int lab = *labels;
-	ReadLock rl(&g_rings.queryLock);
-	for(auto a : g_rings.queryRing) {
-	  a.name.trimToLabels(lab);
-	  counts[a.name]++;
-	  total++;
-	}
-      }
-      // cout<<"Looked at "<<total<<" queries, "<<counts.size()<<" different ones"<<endl;
-      vector<pair<int, DNSName>> rcounts;
-      rcounts.reserve(counts.size());
-      for(const auto& c : counts) 
-	rcounts.push_back(make_pair(c.second, c.first.makeLowerCase()));
 
-      sort(rcounts.begin(), rcounts.end(), [](const decltype(rcounts)::value_type& a, 
-					      const decltype(rcounts)::value_type& b) {
-	     return b.first < a.first;
-	   });
+#ifndef HAVE_LIBSODIUM
+      warnlog("Allowing remote access to the console while libsodium support has not been enabled is not secure, and will result in cleartext communications");
+#endif
 
-      std::unordered_map<int, vector<boost::variant<string,double>>> ret;
-      unsigned int count=1, rest=0;
-      for(const auto& rc : rcounts) {
-	if(count==top+1)
-	  rest+=rc.first;
-	else
-	  ret.insert({count++, {rc.second.toString(), rc.first, 100.0*rc.first/total}});
+      vector<string> vec;
+      g_consoleACL.getLocal()->toStringVector(&vec);
+
+      for(const auto& s : vec) {
+        g_outputBuffer += s + "\n";
       }
-      ret.insert({count, {"Rest", rest, total > 0 ? 100.0*rest/total : 100.0}});
-      return ret;
-
     });
-
-  g_lua.executeCode(R"(function topQueries(top, labels) top = top or 10; for k,v in ipairs(getTopQueries(top,labels)) do show(string.format("%4d  %-40s %4d %4.1f%%",k,v[1],v[2], v[3])) end end)");
 
   g_lua.writeFunction("clearQueryCounters", []() {
       unsigned int size{0};
@@ -1458,114 +827,23 @@ vector<std::function<void(void)>> setupLua(bool client, const std::string& confi
     });
 
   g_lua.writeFunction("setQueryCount", [](bool enabled) { g_qcount.enabled=enabled; });
+
   g_lua.writeFunction("setQueryCountFilter", [](QueryCountFilter func) {
       g_qcount.filter = func;
     });
-
-  g_lua.writeFunction("getResponseRing", []() {
-      setLuaNoSideEffect();
-      decltype(g_rings.respRing) ring;
-      {
-	std::lock_guard<std::mutex> lock(g_rings.respMutex);
-	ring = g_rings.respRing;
-      }
-      vector<std::unordered_map<string, boost::variant<string, unsigned int> > > ret;
-      ret.reserve(ring.size());
-      decltype(ret)::value_type item;
-      for(const auto& r : ring) {
-	item["name"]=r.name.toString();
-	item["qtype"]=r.qtype;
-	item["rcode"]=r.dh.rcode;
-	item["usec"]=r.usec;
-	ret.push_back(item);
-      }
-      return ret;
-    });
-
-  g_lua.writeFunction("getTopResponses", [](unsigned int top, unsigned int kind, boost::optional<int> labels) {
-      return getGenResponses(top, labels, [kind](const Rings::Response& r) { return r.dh.rcode == kind; });
-    });
-
-  g_lua.executeCode(R"(function topResponses(top, kind, labels) top = top or 10; kind = kind or 0; for k,v in ipairs(getTopResponses(top, kind, labels)) do show(string.format("%4d  %-40s %4d %4.1f%%",k,v[1],v[2],v[3])) end end)");
-
-
-  g_lua.writeFunction("getSlowResponses", [](unsigned int top, unsigned int msec, boost::optional<int> labels) {
-      return getGenResponses(top, labels, [msec](const Rings::Response& r) { return r.usec > msec*1000; });
-    });
-
-
-  g_lua.executeCode(R"(function topSlow(top, msec, labels) top = top or 10; msec = msec or 500; for k,v in ipairs(getSlowResponses(top, msec, labels)) do show(string.format("%4d  %-40s %4d %4.1f%%",k,v[1],v[2],v[3])) end end)");
-
-
-  g_lua.writeFunction("showResponseLatency", []() {
-      setLuaNoSideEffect();
-      map<double, unsigned int> histo;
-      double bin=100;
-      for(int i=0; i < 15; ++i) {
-	histo[bin];
-	bin*=2;
-      }
-
-      double totlat=0;
-      unsigned int size=0;
-      {
-	std::lock_guard<std::mutex> lock(g_rings.respMutex);
-	for(const auto& r : g_rings.respRing) {
-          /* skip actively discovered timeouts */
-          if (r.usec == std::numeric_limits<unsigned int>::max())
-            continue;
-
-	  ++size;
-	  auto iter = histo.lower_bound(r.usec);
-	  if(iter != histo.end())
-	    iter->second++;
-	  else
-	    histo.rbegin()++;
-	  totlat+=r.usec;
-	}
-      }
-
-      if (size == 0) {
-        g_outputBuffer = "No traffic yet.\n";
-        return;
-      }
-
-      g_outputBuffer = (boost::format("Average response latency: %.02f msec\n") % (0.001*totlat/size)).str();
-      double highest=0;
-      
-      for(auto iter = histo.cbegin(); iter != histo.cend(); ++iter) {
-	highest=std::max(highest, iter->second*1.0);
-      }
-      boost::format fmt("%7.2f\t%s\n");
-      g_outputBuffer += (fmt % "msec" % "").str();
-
-      for(auto iter = histo.cbegin(); iter != histo.cend(); ++iter) {
-	int stars = (70.0 * iter->second/highest);
-	char c='*';
-	if(!stars && iter->second) {
-	  stars=1; // you get 1 . to show something is there..
-	  if(70.0*iter->second/highest > 0.5)
-	    c=':';
-	  else
-	    c='.';
-	}
-	g_outputBuffer += (fmt % (iter->first/1000.0) % string(stars, c)).str();
-      }
-    });
-
-  g_lua.writeFunction("newQPSLimiter", [](int rate, int burst) { return QPSLimiter(rate, burst); });
-  g_lua.registerFunction("check", &QPSLimiter::check);
-
 
   g_lua.writeFunction("makeKey", []() {
       setLuaNoSideEffect();
       g_outputBuffer="setKey("+newKey()+")\n";
     });
-  
+
   g_lua.writeFunction("setKey", [](const std::string& key) {
-      if(!g_configurationDone && ! g_key.empty()) { // this makes sure the commandline -k key prevails over dnsdist.conf
+      if(!g_configurationDone && ! g_consoleKey.empty()) { // this makes sure the commandline -k key prevails over dnsdist.conf
         return;                                     // but later setKeys() trump the -k value again
       }
+#ifndef HAVE_LIBSODIUM
+      warnlog("Calling setKey() while libsodium support has not been enabled is not secure, and will result in cleartext communications");
+#endif
 
       setLuaSideEffect();
       string newkey;
@@ -1574,10 +852,9 @@ vector<std::function<void(void)>> setupLua(bool client, const std::string& confi
         errlog("%s", g_outputBuffer);
       }
       else
-	g_key=newkey;
+	g_consoleKey=newkey;
     });
 
-  
   g_lua.writeFunction("testCrypto", [](boost::optional<string> optTestMsg)
    {
      setLuaNoSideEffect();
@@ -1595,20 +872,20 @@ vector<std::function<void(void)>> setupLua(bool client, const std::string& confi
        SodiumNonce sn, sn2;
        sn.init();
        sn2=sn;
-       string encrypted = sodEncryptSym(testmsg, g_key, sn);
-       string decrypted = sodDecryptSym(encrypted, g_key, sn2);
-       
+       string encrypted = sodEncryptSym(testmsg, g_consoleKey, sn);
+       string decrypted = sodDecryptSym(encrypted, g_consoleKey, sn2);
+
        sn.increment();
        sn2.increment();
 
-       encrypted = sodEncryptSym(testmsg, g_key, sn);
-       decrypted = sodDecryptSym(encrypted, g_key, sn2);
+       encrypted = sodEncryptSym(testmsg, g_consoleKey, sn);
+       decrypted = sodDecryptSym(encrypted, g_consoleKey, sn2);
 
        if(testmsg == decrypted)
 	 g_outputBuffer="Everything is ok!\n";
        else
 	 g_outputBuffer="Crypto failed..\n";
-       
+
      }
      catch(...) {
        g_outputBuffer="Crypto failed..\n";
@@ -1630,102 +907,6 @@ vector<std::function<void(void)>> setupLua(bool client, const std::string& confi
       } else {
         g_outputBuffer="Max UDP outstanding cannot be altered at runtime!\n";
       }
-    });
-
-  g_lua.registerFunction<void(DNSQuestion::*)(std::string, std::string)>("setTag", [](DNSQuestion& dq, const std::string& strLabel, const std::string& strValue) {
-
-      if(dq.qTag == nullptr) {
-        dq.qTag = std::make_shared<QTag>();
-      }
-      dq.qTag->add(strLabel, strValue);
-
-    });
-
-  g_lua.registerFunction<void(DNSQuestion::*)(vector<pair<string, string>>)>("setTagArray", [](DNSQuestion& dq, const vector<pair<string, string>>&tags) {
-
-      if(dq.qTag == nullptr) {
-        dq.qTag = std::make_shared<QTag>();
-      }
-
-      for (const auto& tag : tags) {
-        dq.qTag->add(tag.first, tag.second);
-      }
-
-    });
-
-  g_lua.registerFunction<string(DNSQuestion::*)(std::string)>("getTag", [](const DNSQuestion& dq, const std::string& strLabel) {
-
-      std::string strValue;
-      if(dq.qTag != nullptr) {
-        strValue = dq.qTag->getMatch(strLabel);
-      }
-      return strValue;
-
-    });
-
-
-  g_lua.registerFunction<std::unordered_map<string, string>(DNSQuestion::*)(void)>("getTagArray", [](const DNSQuestion& dq) {
-
-      if(dq.qTag != nullptr) {
-        return dq.qTag->tagData;
-      } else {
-        std::unordered_map<string, string> XX;
-        return XX;
-      }
-    });
-
-
-  /* DNSQuestion bindings */
-  /* PowerDNS DNSQuestion compat */
-  g_lua.registerMember<const ComboAddress (DNSQuestion::*)>("localaddr", [](const DNSQuestion& dq) -> const ComboAddress { return *dq.local; }, [](DNSQuestion& dq, const ComboAddress newLocal) { (void) newLocal; });
-  g_lua.registerMember<const DNSName (DNSQuestion::*)>("qname", [](const DNSQuestion& dq) -> const DNSName { return *dq.qname; }, [](DNSQuestion& dq, const DNSName newName) { (void) newName; });
-  g_lua.registerMember<uint16_t (DNSQuestion::*)>("qtype", [](const DNSQuestion& dq) -> uint16_t { return dq.qtype; }, [](DNSQuestion& dq, uint16_t newType) { (void) newType; });
-  g_lua.registerMember<uint16_t (DNSQuestion::*)>("qclass", [](const DNSQuestion& dq) -> uint16_t { return dq.qclass; }, [](DNSQuestion& dq, uint16_t newClass) { (void) newClass; });
-  g_lua.registerMember<int (DNSQuestion::*)>("rcode", [](const DNSQuestion& dq) -> int { return dq.dh->rcode; }, [](DNSQuestion& dq, int newRCode) { dq.dh->rcode = newRCode; });
-  g_lua.registerMember<const ComboAddress (DNSQuestion::*)>("remoteaddr", [](const DNSQuestion& dq) -> const ComboAddress { return *dq.remote; }, [](DNSQuestion& dq, const ComboAddress newRemote) { (void) newRemote; });
-  /* DNSDist DNSQuestion */
-  g_lua.registerMember("dh", &DNSQuestion::dh);
-  g_lua.registerMember<uint16_t (DNSQuestion::*)>("len", [](const DNSQuestion& dq) -> uint16_t { return dq.len; }, [](DNSQuestion& dq, uint16_t newlen) { dq.len = newlen; });
-  g_lua.registerMember<uint8_t (DNSQuestion::*)>("opcode", [](const DNSQuestion& dq) -> uint8_t { return dq.dh->opcode; }, [](DNSQuestion& dq, uint8_t newOpcode) { (void) newOpcode; });
-  g_lua.registerMember<size_t (DNSQuestion::*)>("size", [](const DNSQuestion& dq) -> size_t { return dq.size; }, [](DNSQuestion& dq, size_t newSize) { (void) newSize; });
-  g_lua.registerMember<bool (DNSQuestion::*)>("tcp", [](const DNSQuestion& dq) -> bool { return dq.tcp; }, [](DNSQuestion& dq, bool newTcp) { (void) newTcp; });
-  g_lua.registerMember<bool (DNSQuestion::*)>("skipCache", [](const DNSQuestion& dq) -> bool { return dq.skipCache; }, [](DNSQuestion& dq, bool newSkipCache) { dq.skipCache = newSkipCache; });
-  g_lua.registerMember<bool (DNSQuestion::*)>("useECS", [](const DNSQuestion& dq) -> bool { return dq.useECS; }, [](DNSQuestion& dq, bool useECS) { dq.useECS = useECS; });
-  g_lua.registerMember<bool (DNSQuestion::*)>("ecsOverride", [](const DNSQuestion& dq) -> bool { return dq.ecsOverride; }, [](DNSQuestion& dq, bool ecsOverride) { dq.ecsOverride = ecsOverride; });
-  g_lua.registerMember<uint16_t (DNSQuestion::*)>("ecsPrefixLength", [](const DNSQuestion& dq) -> uint16_t { return dq.ecsPrefixLength; }, [](DNSQuestion& dq, uint16_t newPrefixLength) { dq.ecsPrefixLength = newPrefixLength; });
-  g_lua.registerFunction<bool(DNSQuestion::*)()>("getDO", [](const DNSQuestion& dq) {
-      return getEDNSZ((const char*)dq.dh, dq.len) & EDNS_HEADER_FLAG_DO;
-    });
-  g_lua.registerFunction<void(DNSQuestion::*)(std::string)>("sendTrap", [](const DNSQuestion& dq, boost::optional<std::string> reason) {
-#ifdef HAVE_NET_SNMP
-      if (g_snmpAgent && g_snmpTrapsEnabled) {
-        g_snmpAgent->sendDNSTrap(dq, reason ? *reason : "");
-      }
-#endif /* HAVE_NET_SNMP */
-    });
-
-  /* LuaWrapper doesn't support inheritance */
-  g_lua.registerMember<const ComboAddress (DNSResponse::*)>("localaddr", [](const DNSResponse& dq) -> const ComboAddress { return *dq.local; }, [](DNSResponse& dq, const ComboAddress newLocal) { (void) newLocal; });
-  g_lua.registerMember<const DNSName (DNSResponse::*)>("qname", [](const DNSResponse& dq) -> const DNSName { return *dq.qname; }, [](DNSResponse& dq, const DNSName newName) { (void) newName; });
-  g_lua.registerMember<uint16_t (DNSResponse::*)>("qtype", [](const DNSResponse& dq) -> uint16_t { return dq.qtype; }, [](DNSResponse& dq, uint16_t newType) { (void) newType; });
-  g_lua.registerMember<uint16_t (DNSResponse::*)>("qclass", [](const DNSResponse& dq) -> uint16_t { return dq.qclass; }, [](DNSResponse& dq, uint16_t newClass) { (void) newClass; });
-  g_lua.registerMember<int (DNSResponse::*)>("rcode", [](const DNSResponse& dq) -> int { return dq.dh->rcode; }, [](DNSResponse& dq, int newRCode) { dq.dh->rcode = newRCode; });
-  g_lua.registerMember<const ComboAddress (DNSResponse::*)>("remoteaddr", [](const DNSResponse& dq) -> const ComboAddress { return *dq.remote; }, [](DNSResponse& dq, const ComboAddress newRemote) { (void) newRemote; });
-  g_lua.registerMember("dh", &DNSResponse::dh);
-  g_lua.registerMember<uint16_t (DNSResponse::*)>("len", [](const DNSResponse& dq) -> uint16_t { return dq.len; }, [](DNSResponse& dq, uint16_t newlen) { dq.len = newlen; });
-  g_lua.registerMember<uint8_t (DNSResponse::*)>("opcode", [](const DNSResponse& dq) -> uint8_t { return dq.dh->opcode; }, [](DNSResponse& dq, uint8_t newOpcode) { (void) newOpcode; });
-  g_lua.registerMember<size_t (DNSResponse::*)>("size", [](const DNSResponse& dq) -> size_t { return dq.size; }, [](DNSResponse& dq, size_t newSize) { (void) newSize; });
-  g_lua.registerMember<bool (DNSResponse::*)>("tcp", [](const DNSResponse& dq) -> bool { return dq.tcp; }, [](DNSResponse& dq, bool newTcp) { (void) newTcp; });
-  g_lua.registerMember<bool (DNSResponse::*)>("skipCache", [](const DNSResponse& dq) -> bool { return dq.skipCache; }, [](DNSResponse& dq, bool newSkipCache) { dq.skipCache = newSkipCache; });
-  g_lua.registerFunction<void(DNSResponse::*)(std::function<uint32_t(uint8_t section, uint16_t qclass, uint16_t qtype, uint32_t ttl)> editFunc)>("editTTLs", [](const DNSResponse& dr, std::function<uint32_t(uint8_t section, uint16_t qclass, uint16_t qtype, uint32_t ttl)> editFunc) {
-        editDNSPacketTTL((char*) dr.dh, dr.len, editFunc);
-      });
-  g_lua.registerFunction<void(DNSResponse::*)(std::string)>("sendTrap", [](const DNSResponse& dr, boost::optional<std::string> reason) {
-#ifdef HAVE_NET_SNMP
-      if (g_snmpAgent && g_snmpTrapsEnabled) {
-        g_snmpAgent->sendDNSTrap(dr, reason ? *reason : "");
-      }
-#endif /* HAVE_NET_SNMP */
     });
 
   g_lua.writeFunction("setMaxTCPClientThreads", [](uint64_t max) {
@@ -1768,15 +949,8 @@ vector<std::function<void(void)>> setupLua(bool client, const std::string& confi
       }
     });
 
-  g_lua.writeFunction("showTCPStats", [] {
-      setLuaNoSideEffect();
-      boost::format fmt("%-10d %-10d %-10d %-10d\n");
-      g_outputBuffer += (fmt % "Clients" % "MaxClients" % "Queued" % "MaxQueued").str();
-      g_outputBuffer += (fmt % g_tcpclientthreads->getThreadsCount() % g_maxTCPClientThreads % g_tcpclientthreads->getQueuedCount() % g_maxTCPQueuedConnections).str();
-      g_outputBuffer += "Query distribution mode is: " + std::string(g_useTCPSinglePipe ? "single queue" : "per-thread queues") + "\n";
-    });
-
   g_lua.writeFunction("setCacheCleaningDelay", [](uint32_t delay) { g_cacheCleaningDelay = delay; });
+
   g_lua.writeFunction("setCacheCleaningPercentage", [](uint16_t percentage) { if (percentage < 100) g_cacheCleaningPercentage = percentage; else g_cacheCleaningPercentage = 100; });
 
   g_lua.writeFunction("setECSSourcePrefixV4", [](uint16_t prefix) { g_ECSSourcePrefixV4=prefix; });
@@ -1785,62 +959,832 @@ vector<std::function<void(void)>> setupLua(bool client, const std::string& confi
 
   g_lua.writeFunction("setECSOverride", [](bool override) { g_ECSOverride=override; });
 
-  g_lua.writeFunction("dumpStats", [] {
+  g_lua.writeFunction("setPreserveTrailingData", [](bool preserve) { g_preserveTrailingData = preserve; });
+
+  g_lua.writeFunction("showDynBlocks", []() {
       setLuaNoSideEffect();
-      vector<string> leftcolumn, rightcolumn;
-
-      boost::format fmt("%-23s\t%+11s");
-      g_outputBuffer.clear();
-      auto entries = g_stats.entries;
-      sort(entries.begin(), entries.end(), 
-	   [](const decltype(entries)::value_type& a, const decltype(entries)::value_type& b) {
-	     return a.first < b.first;
-	   });
-      boost::format flt("    %9.1f");
-      for(const auto& e : entries) {
-	string second;
-	if(const auto& val = boost::get<DNSDistStats::stat_t*>(&e.second))
-	  second=std::to_string((*val)->load());
-	else if (const auto& dval = boost::get<double*>(&e.second))
-	  second=(flt % (**dval)).str();
-	else
-	  second=std::to_string((*boost::get<DNSDistStats::statfunction_t>(&e.second))(e.first));
-
-	if(leftcolumn.size() < g_stats.entries.size()/2)
-	  leftcolumn.push_back((fmt % e.first % second).str());
-	else
-	  rightcolumn.push_back((fmt % e.first % second).str());
+      auto slow = g_dynblockNMG.getCopy();
+      struct timespec now;
+      gettime(&now);
+      boost::format fmt("%-24s %8d %8d %-10s %-20s %s\n");
+      g_outputBuffer = (fmt % "What" % "Seconds" % "Blocks" % "Warning" % "Action" % "Reason").str();
+      for(const auto& e: slow) {
+	if(now < e->second.until)
+	  g_outputBuffer+= (fmt % e->first.toString() % (e->second.until.tv_sec - now.tv_sec) % e->second.blocks % (e->second.warning ? "true" : "false") % DNSAction::typeToString(e->second.action != DNSAction::Action::None ? e->second.action : g_dynBlockAction) % e->second.reason).str();
       }
+      auto slow2 = g_dynblockSMT.getCopy();
+      slow2.visit([&now, &fmt](const SuffixMatchTree<DynBlock>& node) {
+          if(now <node.d_value.until) {
+            string dom("empty");
+            if(!node.d_value.domain.empty())
+              dom = node.d_value.domain.toString();
+            g_outputBuffer+= (fmt % dom % (node.d_value.until.tv_sec - now.tv_sec) % node.d_value.blocks % (node.d_value.warning ? "true" : "false") % DNSAction::typeToString(node.d_value.action != DNSAction::Action::None ? node.d_value.action : g_dynBlockAction) % node.d_value.reason).str();
+          }
+        });
 
-      auto leftiter=leftcolumn.begin(), rightiter=rightcolumn.begin();
-      boost::format clmn("%|0t|%1% %|39t|%2%\n");
+    });
 
-      for(;leftiter != leftcolumn.end() || rightiter != rightcolumn.end();) {
-	string lentry, rentry;
-	if(leftiter!= leftcolumn.end()) {
-	  lentry = *leftiter;
-	  leftiter++;
-	}
-	if(rightiter!= rightcolumn.end()) {
-	  rentry = *rightiter;
-	  rightiter++;
-	}
-	g_outputBuffer += (clmn % lentry % rentry).str();
+  g_lua.writeFunction("clearDynBlocks", []() {
+      setLuaSideEffect();
+      nmts_t nmg;
+      g_dynblockNMG.setState(nmg);
+      SuffixMatchTree<DynBlock> smt;
+      g_dynblockSMT.setState(smt);
+    });
+
+  g_lua.writeFunction("addDynBlocks",
+                      [](const std::unordered_map<ComboAddress,unsigned int, ComboAddress::addressOnlyHash, ComboAddress::addressOnlyEqual>& m, const std::string& msg, boost::optional<int> seconds, boost::optional<DNSAction::Action> action) {
+                           if (m.empty()) {
+                             return;
+                           }
+                           setLuaSideEffect();
+			   auto slow = g_dynblockNMG.getCopy();
+			   struct timespec until, now;
+			   gettime(&now);
+			   until=now;
+                           int actualSeconds = seconds ? *seconds : 10;
+			   until.tv_sec += actualSeconds;
+			   for(const auto& capair : m) {
+			     unsigned int count = 0;
+                             auto got = slow.lookup(Netmask(capair.first));
+                             bool expired=false;
+			     if(got) {
+			       if(until < got->second.until) // had a longer policy
+				 continue;
+			       if(now < got->second.until) // only inherit count on fresh query we are extending
+				 count=got->second.blocks;
+                               else
+                                 expired=true;
+			     }
+			     DynBlock db{msg,until,DNSName(),(action ? *action : DNSAction::Action::None)};
+			     db.blocks=count;
+                             if(!got || expired)
+                               warnlog("Inserting dynamic block for %s for %d seconds: %s", capair.first.toString(), actualSeconds, msg);
+			     slow.insert(Netmask(capair.first)).second=db;
+			   }
+			   g_dynblockNMG.setState(slow);
+			 });
+
+  g_lua.writeFunction("addDynBlockSMT",
+                      [](const vector<pair<unsigned int, string> >&names, const std::string& msg, boost::optional<int> seconds, boost::optional<DNSAction::Action> action) {
+                           if (names.empty()) {
+                             return;
+                           }
+                           setLuaSideEffect();
+			   auto slow = g_dynblockSMT.getCopy();
+			   struct timespec until, now;
+			   gettime(&now);
+			   until=now;
+                           int actualSeconds = seconds ? *seconds : 10;
+			   until.tv_sec += actualSeconds;
+
+			   for(const auto& capair : names) {
+			     unsigned int count = 0;
+                             DNSName domain(capair.second);
+                             auto got = slow.lookup(domain);
+                             bool expired=false;
+			     if(got) {
+			       if(until < got->until) // had a longer policy
+				 continue;
+			       if(now < got->until) // only inherit count on fresh query we are extending
+				 count=got->blocks;
+                               else
+                                 expired=true;
+			     }
+
+			     DynBlock db{msg,until,domain,(action ? *action : DNSAction::Action::None)};
+			     db.blocks=count;
+                             if(!got || expired)
+                               warnlog("Inserting dynamic block for %s for %d seconds: %s", domain, actualSeconds, msg);
+			     slow.add(domain, db);
+			   }
+			   g_dynblockSMT.setState(slow);
+			 });
+
+  g_lua.writeFunction("setDynBlocksAction", [](DNSAction::Action action) {
+      if (!g_configurationDone) {
+        if (action == DNSAction::Action::Drop || action == DNSAction::Action::NoOp || action == DNSAction::Action::Nxdomain || action == DNSAction::Action::Refused || action == DNSAction::Action::Truncate || action == DNSAction::Action::NoRecurse) {
+          g_dynBlockAction = action;
+        }
+        else {
+          errlog("Dynamic blocks action can only be Drop, NoOp, NXDomain, Refused, Truncate or NoRecurse!");
+          g_outputBuffer="Dynamic blocks action can only be Drop, NoOp, NXDomain, Refused, Truncate or NoRecurse!\n";
+        }
+      } else {
+        g_outputBuffer="Dynamic blocks action cannot be altered at runtime!\n";
       }
     });
 
-  moreLua(client);
-  
+  g_lua.writeFunction("addDNSCryptBind", [](const std::string& addr, const std::string& providerName, const std::string& certFile, const std::string keyFile, boost::optional<localbind_t> vars) {
+      if (g_configurationDone) {
+        g_outputBuffer="addDNSCryptBind cannot be used at runtime!\n";
+        return;
+      }
+#ifdef HAVE_DNSCRYPT
+      bool doTCP = true;
+      bool reusePort = false;
+      int tcpFastOpenQueueSize = 0;
+      std::string interface;
+      std::set<int> cpus;
+
+      parseLocalBindVars(vars, doTCP, reusePort, tcpFastOpenQueueSize, interface, cpus);
+
+      try {
+        auto ctx = std::make_shared<DNSCryptContext>(providerName, certFile, keyFile);
+        g_dnsCryptLocals.push_back(std::make_tuple(ComboAddress(addr, 443), ctx, reusePort, tcpFastOpenQueueSize, interface, cpus));
+      }
+      catch(std::exception& e) {
+        errlog(e.what());
+	g_outputBuffer="Error: "+string(e.what())+"\n";
+      }
+#else
+      g_outputBuffer="Error: DNSCrypt support is not enabled.\n";
+#endif
+
+    });
+
+  g_lua.writeFunction("showDNSCryptBinds", []() {
+      setLuaNoSideEffect();
+#ifdef HAVE_DNSCRYPT
+      ostringstream ret;
+      boost::format fmt("%1$-3d %2% %|25t|%3$-20.20s");
+      ret << (fmt % "#" % "Address" % "Provider Name") << endl;
+      size_t idx = 0;
+
+      for (const auto& local : g_dnsCryptLocals) {
+        const std::shared_ptr<DNSCryptContext> ctx = std::get<1>(local);
+        ret<< (fmt % idx % std::get<0>(local).toStringWithPort() % ctx->getProviderName()) << endl;
+        idx++;
+      }
+
+      g_outputBuffer=ret.str();
+#else
+      g_outputBuffer="Error: DNSCrypt support is not enabled.\n";
+#endif
+    });
+
+  g_lua.writeFunction("getDNSCryptBind", [](size_t idx) {
+      setLuaNoSideEffect();
+#ifdef HAVE_DNSCRYPT
+      std::shared_ptr<DNSCryptContext> ret = nullptr;
+      if (idx < g_dnsCryptLocals.size()) {
+        ret = std::get<1>(g_dnsCryptLocals.at(idx));
+      }
+      return ret;
+#else
+      g_outputBuffer="Error: DNSCrypt support is not enabled.\n";
+#endif
+    });
+
+  g_lua.writeFunction("generateDNSCryptProviderKeys", [](const std::string& publicKeyFile, const std::string privateKeyFile) {
+      setLuaNoSideEffect();
+#ifdef HAVE_DNSCRYPT
+      unsigned char publicKey[DNSCRYPT_PROVIDER_PUBLIC_KEY_SIZE];
+      unsigned char privateKey[DNSCRYPT_PROVIDER_PRIVATE_KEY_SIZE];
+      sodium_mlock(privateKey, sizeof(privateKey));
+
+      try {
+        DNSCryptContext::generateProviderKeys(publicKey, privateKey);
+
+        ofstream pubKStream(publicKeyFile);
+        pubKStream.write((char*) publicKey, sizeof(publicKey));
+        pubKStream.close();
+
+        ofstream privKStream(privateKeyFile);
+        privKStream.write((char*) privateKey, sizeof(privateKey));
+        privKStream.close();
+
+        g_outputBuffer="Provider fingerprint is: " + DNSCryptContext::getProviderFingerprint(publicKey) + "\n";
+      }
+      catch(std::exception& e) {
+        errlog(e.what());
+        g_outputBuffer="Error: "+string(e.what())+"\n";
+      }
+
+      sodium_memzero(privateKey, sizeof(privateKey));
+      sodium_munlock(privateKey, sizeof(privateKey));
+#else
+      g_outputBuffer="Error: DNSCrypt support is not enabled.\n";
+#endif
+    });
+
+  g_lua.writeFunction("printDNSCryptProviderFingerprint", [](const std::string& publicKeyFile) {
+      setLuaNoSideEffect();
+#ifdef HAVE_DNSCRYPT
+      unsigned char publicKey[DNSCRYPT_PROVIDER_PUBLIC_KEY_SIZE];
+
+      try {
+        ifstream file(publicKeyFile);
+        file.read((char *) &publicKey, sizeof(publicKey));
+
+        if (file.fail())
+          throw std::runtime_error("Invalid dnscrypt provider public key file " + publicKeyFile);
+
+        file.close();
+        g_outputBuffer="Provider fingerprint is: " + DNSCryptContext::getProviderFingerprint(publicKey) + "\n";
+      }
+      catch(std::exception& e) {
+        errlog(e.what());
+        g_outputBuffer="Error: "+string(e.what())+"\n";
+      }
+#else
+      g_outputBuffer="Error: DNSCrypt support is not enabled.\n";
+#endif
+    });
+
+#ifdef HAVE_DNSCRYPT
+  g_lua.writeFunction("generateDNSCryptCertificate", [](const std::string& providerPrivateKeyFile, const std::string& certificateFile, const std::string privateKeyFile, uint32_t serial, time_t begin, time_t end, boost::optional<DNSCryptExchangeVersion> version) {
+      setLuaNoSideEffect();
+      DNSCryptPrivateKey privateKey;
+      DNSCryptCert cert;
+
+      try {
+        if (generateDNSCryptCertificate(providerPrivateKeyFile, serial, begin, end, version ? *version : DNSCryptExchangeVersion::VERSION1, cert, privateKey)) {
+          privateKey.saveToFile(privateKeyFile);
+          DNSCryptContext::saveCertFromFile(cert, certificateFile);
+        }
+      }
+      catch(const std::exception& e) {
+        errlog(e.what());
+        g_outputBuffer="Error: "+string(e.what())+"\n";
+      }
+    });
+#endif
+
+  g_lua.writeFunction("showPools", []() {
+      setLuaNoSideEffect();
+      try {
+        ostringstream ret;
+        boost::format fmt("%1$-20.20s %|25t|%2$20s %|25t|%3$20s %|50t|%4%" );
+        //             1        2         3                4
+        ret << (fmt % "Name" % "Cache" % "ServerPolicy" % "Servers" ) << endl;
+
+        const auto localPools = g_pools.getCopy();
+        for (const auto& entry : localPools) {
+          const string& name = entry.first;
+          const std::shared_ptr<ServerPool> pool = entry.second;
+          string cache = pool->packetCache != nullptr ? pool->packetCache->toString() : "";
+          string policy = g_policy.getLocal()->name;
+          if (pool->policy != nullptr) {
+            policy = pool->policy->name;
+          }
+          string servers;
+
+          for (const auto& server: pool->getServers()) {
+            if (!servers.empty()) {
+              servers += ", ";
+            }
+            if (!server.second->name.empty()) {
+              servers += server.second->name;
+              servers += " ";
+            }
+            servers += server.second->remote.toStringWithPort();
+          }
+
+          ret << (fmt % name % cache % policy % servers) << endl;
+        }
+        g_outputBuffer=ret.str();
+      }catch(std::exception& e) { g_outputBuffer=e.what(); throw; }
+    });
+
+  g_lua.writeFunction("getPool", [client](const string& poolName) {
+      if (client) {
+        return std::make_shared<ServerPool>();
+      }
+      auto localPools = g_pools.getCopy();
+      std::shared_ptr<ServerPool> pool = createPoolIfNotExists(localPools, poolName);
+      g_pools.setState(localPools);
+      return pool;
+    });
+
+  g_lua.writeFunction("setVerboseHealthChecks", [](bool verbose) { g_verboseHealthChecks=verbose; });
+  g_lua.writeFunction("setStaleCacheEntriesTTL", [](uint32_t ttl) { g_staleCacheEntriesTTL = ttl; });
+
+  g_lua.writeFunction("showBinds", []() {
+      setLuaNoSideEffect();
+      try {
+        ostringstream ret;
+        boost::format fmt("%1$-3d %2$-20.20s %|25t|%3$-8.8s %|35t|%4%" );
+        //             1    2           3            4
+        ret << (fmt % "#" % "Address" % "Protocol" % "Queries" ) << endl;
+
+        size_t counter = 0;
+        for (const auto& front : g_frontends) {
+          ret << (fmt % counter % front->local.toStringWithPort() % (front->udpFD != -1 ? "UDP" : "TCP") % front->queries) << endl;
+          counter++;
+        }
+        g_outputBuffer=ret.str();
+      }catch(std::exception& e) { g_outputBuffer=e.what(); throw; }
+    });
+
+  g_lua.writeFunction("getBind", [](size_t num) {
+      setLuaNoSideEffect();
+      ClientState* ret = nullptr;
+      if(num < g_frontends.size()) {
+        ret=g_frontends[num];
+      }
+      return ret;
+      });
+
+  g_lua.writeFunction("help", [](boost::optional<std::string> command) {
+      setLuaNoSideEffect();
+      g_outputBuffer = "";
+      for (const auto& keyword : g_consoleKeywords) {
+        if (!command) {
+          g_outputBuffer += keyword.toString() + "\n";
+        }
+        else if (keyword.name == command) {
+          g_outputBuffer = keyword.toString() + "\n";
+          return;
+        }
+      }
+      if (command) {
+        g_outputBuffer = "Nothing found for " + *command + "\n";
+      }
+    });
+
+  g_lua.writeFunction("showVersion", []() {
+      setLuaNoSideEffect();
+      g_outputBuffer = "dnsdist " + std::string(VERSION) + "\n";
+    });
+
+  g_lua.writeFunction("showSecurityStatus", []() {
+      setLuaNoSideEffect();
+      g_outputBuffer = std::to_string(g_stats.securityStatus) + "\n";
+    });
+
+#ifdef HAVE_EBPF
+  g_lua.writeFunction("setDefaultBPFFilter", [](std::shared_ptr<BPFFilter> bpf) {
+      if (g_configurationDone) {
+        g_outputBuffer="setDefaultBPFFilter() cannot be used at runtime!\n";
+        return;
+      }
+      g_defaultBPFFilter = bpf;
+    });
+
+  g_lua.writeFunction("registerDynBPFFilter", [](std::shared_ptr<DynBPFFilter> dbpf) {
+      if (dbpf) {
+        g_dynBPFFilters.push_back(dbpf);
+      }
+    });
+
+  g_lua.writeFunction("unregisterDynBPFFilter", [](std::shared_ptr<DynBPFFilter> dbpf) {
+      if (dbpf) {
+        for (auto it = g_dynBPFFilters.begin(); it != g_dynBPFFilters.end(); it++) {
+          if (*it == dbpf) {
+            g_dynBPFFilters.erase(it);
+            break;
+          }
+        }
+      }
+    });
+
+  g_lua.writeFunction("addBPFFilterDynBlocks", [](const std::unordered_map<ComboAddress,unsigned int, ComboAddress::addressOnlyHash, ComboAddress::addressOnlyEqual>& m, std::shared_ptr<DynBPFFilter> dynbpf, boost::optional<int> seconds, boost::optional<std::string> msg) {
+      setLuaSideEffect();
+      struct timespec until, now;
+      clock_gettime(CLOCK_MONOTONIC, &now);
+      until=now;
+      int actualSeconds = seconds ? *seconds : 10;
+      until.tv_sec += actualSeconds;
+      for(const auto& capair : m) {
+        if (dynbpf->block(capair.first, until)) {
+          warnlog("Inserting eBPF dynamic block for %s for %d seconds: %s", capair.first.toString(), actualSeconds, msg ? *msg : "");
+        }
+      }
+    });
+
+#endif /* HAVE_EBPF */
+
+  g_lua.writeFunction<std::unordered_map<string,uint64_t>()>("getStatisticsCounters", []() {
+      setLuaNoSideEffect();
+      std::unordered_map<string,uint64_t> res;
+      for(const auto& entry : g_stats.entries) {
+        if(const auto& val = boost::get<DNSDistStats::stat_t*>(&entry.second))
+          res[entry.first] = (*val)->load();
+      }
+      return res;
+    });
+
+  g_lua.writeFunction("includeDirectory", [](const std::string& dirname) {
+      if (g_configurationDone) {
+        errlog("includeDirectory() cannot be used at runtime!");
+        g_outputBuffer="includeDirectory() cannot be used at runtime!\n";
+        return;
+      }
+
+      if (g_included) {
+        errlog("includeDirectory() cannot be used recursively!");
+        g_outputBuffer="includeDirectory() cannot be used recursively!\n";
+        return;
+      }
+
+      g_included = true;
+      struct stat st;
+      if (stat(dirname.c_str(), &st)) {
+        errlog("The included directory %s does not exist!", dirname.c_str());
+        g_outputBuffer="The included directory " + dirname + " does not exist!";
+        return;
+      }
+
+      if (!S_ISDIR(st.st_mode)) {
+        errlog("The included directory %s is not a directory!", dirname.c_str());
+        g_outputBuffer="The included directory " + dirname + " is not a directory!";
+        return;
+      }
+
+      DIR *dirp;
+      struct dirent *ent;
+      std::list<std::string> files;
+      if (!(dirp = opendir(dirname.c_str()))) {
+        errlog("Error opening the included directory %s!", dirname.c_str());
+        g_outputBuffer="Error opening the included directory " + dirname + "!";
+        return;
+      }
+
+      while((ent = readdir(dirp)) != NULL) {
+        if (ent->d_name[0] == '.') {
+          continue;
+        }
+
+        if (boost::ends_with(ent->d_name, ".conf")) {
+          std::ostringstream namebuf;
+          namebuf << dirname.c_str() << "/" << ent->d_name;
+
+          if (stat(namebuf.str().c_str(), &st) || !S_ISREG(st.st_mode)) {
+            continue;
+          }
+
+          files.push_back(namebuf.str());
+        }
+      }
+
+      closedir(dirp);
+      files.sort();
+
+      for (auto file = files.begin(); file != files.end(); ++file) {
+        std::ifstream ifs(*file);
+        if (!ifs) {
+          warnlog("Unable to read configuration from '%s'", *file);
+        } else {
+          vinfolog("Read configuration from '%s'", *file);
+        }
+
+        g_lua.executeCode(ifs);
+      }
+
+      g_included = false;
+    });
+
+  g_lua.writeFunction("setAPIWritable", [](bool writable, boost::optional<std::string> apiConfigDir) {
+      setLuaSideEffect();
+      g_apiReadWrite = writable;
+      if (apiConfigDir) {
+        if (!(*apiConfigDir).empty()) {
+          g_apiConfigDirectory = *apiConfigDir;
+        }
+        else {
+          errlog("The API configuration directory value cannot be empty!");
+          g_outputBuffer="The API configuration directory value cannot be empty!";
+        }
+      }
+    });
+
+  g_lua.writeFunction("setServFailWhenNoServer", [](bool servfail) {
+      setLuaSideEffect();
+      g_servFailOnNoPolicy = servfail;
+    });
+
+  g_lua.writeFunction("setRingBuffersSize", [](size_t capacity, boost::optional<size_t> numberOfShards) {
+      setLuaSideEffect();
+      if (g_configurationDone) {
+        errlog("setRingBuffersSize() cannot be used at runtime!");
+        g_outputBuffer="setRingBuffersSize() cannot be used at runtime!\n";
+        return;
+      }
+      g_rings.setCapacity(capacity, numberOfShards ? *numberOfShards : 1);
+    });
+
+  g_lua.writeFunction("setRingBuffersLockRetries", [](size_t retries) {
+      setLuaSideEffect();
+      g_rings.setNumberOfLockRetries(retries);
+    });
+
+  g_lua.writeFunction("setWHashedPertubation", [](uint32_t pertub) {
+      setLuaSideEffect();
+      g_hashperturb = pertub;
+    });
+
+  g_lua.writeFunction("setTCPUseSinglePipe", [](bool flag) {
+      if (g_configurationDone) {
+        g_outputBuffer="setTCPUseSinglePipe() cannot be used at runtime!\n";
+        return;
+      }
+      setLuaSideEffect();
+      g_useTCPSinglePipe = flag;
+    });
+
+  g_lua.writeFunction("snmpAgent", [client](bool enableTraps, boost::optional<std::string> masterSocket) {
+      if(client)
+        return;
+#ifdef HAVE_NET_SNMP
+      if (g_configurationDone) {
+        errlog("snmpAgent() cannot be used at runtime!");
+        g_outputBuffer="snmpAgent() cannot be used at runtime!\n";
+        return;
+      }
+
+      if (g_snmpEnabled) {
+        errlog("snmpAgent() cannot be used twice!");
+        g_outputBuffer="snmpAgent() cannot be used twice!\n";
+        return;
+      }
+
+      g_snmpEnabled = true;
+      g_snmpTrapsEnabled = enableTraps;
+      g_snmpAgent = new DNSDistSNMPAgent("dnsdist", masterSocket ? *masterSocket : std::string());
+#else
+      errlog("NET SNMP support is required to use snmpAgent()");
+      g_outputBuffer="NET SNMP support is required to use snmpAgent()\n";
+#endif /* HAVE_NET_SNMP */
+    });
+
+  g_lua.writeFunction("sendCustomTrap", [](const std::string& str) {
+#ifdef HAVE_NET_SNMP
+      if (g_snmpAgent && g_snmpTrapsEnabled) {
+        g_snmpAgent->sendCustomTrap(str);
+      }
+#endif /* HAVE_NET_SNMP */
+    });
+
+  g_lua.writeFunction("setPoolServerPolicy", [](ServerPolicy policy, string pool) {
+      setLuaSideEffect();
+      auto localPools = g_pools.getCopy();
+      setPoolPolicy(localPools, pool, std::make_shared<ServerPolicy>(policy));
+      g_pools.setState(localPools);
+    });
+
+  g_lua.writeFunction("setPoolServerPolicyLua", [](string name, policyfunc_t policy, string pool) {
+      setLuaSideEffect();
+      auto localPools = g_pools.getCopy();
+      setPoolPolicy(localPools, pool, std::make_shared<ServerPolicy>(ServerPolicy{name, policy, true}));
+      g_pools.setState(localPools);
+    });
+
+  g_lua.writeFunction("showPoolServerPolicy", [](string pool) {
+      setLuaSideEffect();
+      auto localPools = g_pools.getCopy();
+      auto poolObj = getPool(localPools, pool);
+      if (poolObj->policy == nullptr) {
+        g_outputBuffer=g_policy.getLocal()->name+"\n";
+      } else {
+        g_outputBuffer=poolObj->policy->name+"\n";
+      }
+    });
+
+  g_lua.writeFunction("setTCPDownstreamCleanupInterval", [](uint16_t interval) {
+      setLuaSideEffect();
+      g_downstreamTCPCleanupInterval = interval;
+    });
+
+  g_lua.writeFunction("setConsoleConnectionsLogging", [](bool enabled) {
+      g_logConsoleConnections = enabled;
+    });
+
+  g_lua.writeFunction("setConsoleOutputMaxMsgSize", [](uint32_t size) {
+      g_consoleOutputMsgMaxSize = size;
+    });
+
+  g_lua.writeFunction("setUDPMultipleMessagesVectorSize", [](size_t vSize) {
+      if (g_configurationDone) {
+        errlog("setUDPMultipleMessagesVectorSize() cannot be used at runtime!");
+        g_outputBuffer="setUDPMultipleMessagesVectorSize() cannot be used at runtime!\n";
+        return;
+      }
+#if defined(HAVE_RECVMMSG) && defined(HAVE_SENDMMSG) && defined(MSG_WAITFORONE)
+      setLuaSideEffect();
+      g_udpVectorSize = vSize;
+#else
+      errlog("recvmmsg() support is not available!");
+      g_outputBuffer="recvmmsg support is not available!\n";
+#endif
+    });
+
+  g_lua.writeFunction("setAddEDNSToSelfGeneratedResponses", [](bool add) {
+      g_addEDNSToSelfGeneratedResponses = add;
+  });
+
+  g_lua.writeFunction("setPayloadSizeOnSelfGeneratedAnswers", [](uint16_t payloadSize) {
+      if (payloadSize < 512) {
+        warnlog("setPayloadSizeOnSelfGeneratedAnswers() is set too low, using 512 instead!");
+        g_outputBuffer="setPayloadSizeOnSelfGeneratedAnswers() is set too low, using 512 instead!";
+        payloadSize = 512;
+      }
+      if (payloadSize > s_udpIncomingBufferSize) {
+        warnlog("setPayloadSizeOnSelfGeneratedAnswers() is set too high, capping to %d instead!", s_udpIncomingBufferSize);
+        g_outputBuffer="setPayloadSizeOnSelfGeneratedAnswers() is set too high, capping to " + std::to_string(s_udpIncomingBufferSize) + " instead";
+        payloadSize = s_udpIncomingBufferSize;
+      }
+      g_PayloadSizeSelfGenAnswers = payloadSize;
+  });
+
+  g_lua.writeFunction("setSecurityPollSuffix", [](const std::string& suffix) {
+      if (g_configurationDone) {
+        g_outputBuffer="setSecurityPollSuffix() cannot be used at runtime!\n";
+        return;
+      }
+
+      g_secPollSuffix = suffix;
+  });
+
+  g_lua.writeFunction("setSecurityPollInterval", [](time_t newInterval) {
+      if (newInterval <= 0) {
+        warnlog("setSecurityPollInterval() should be > 0, skipping");
+        g_outputBuffer="setSecurityPollInterval() should be > 0, skipping";
+      }
+
+      g_secPollInterval = newInterval;
+  });
+
+  g_lua.writeFunction("addTLSLocal", [client](const std::string& addr, boost::variant<std::string, std::vector<std::pair<int,std::string>>> certFiles, boost::variant<std::string, std::vector<std::pair<int,std::string>>> keyFiles, boost::optional<localbind_t> vars) {
+        if (client)
+          return;
+#ifdef HAVE_DNS_OVER_TLS
+        setLuaSideEffect();
+        if (g_configurationDone) {
+          g_outputBuffer="addTLSLocal cannot be used at runtime!\n";
+          return;
+        }
+        shared_ptr<TLSFrontend> frontend = std::make_shared<TLSFrontend>();
+
+        if (!loadTLSCertificateAndKeys(frontend, certFiles, keyFiles)) {
+          return;
+        }
+
+        if (vars) {
+          bool doTCP = true;
+          parseLocalBindVars(vars, doTCP, frontend->d_reusePort, frontend->d_tcpFastOpenQueueSize, frontend->d_interface, frontend->d_cpus);
+
+          if (vars->count("provider")) {
+            frontend->d_provider = boost::get<const string>((*vars)["provider"]);
+          }
+
+          if (vars->count("ciphers")) {
+            frontend->d_ciphers = boost::get<const string>((*vars)["ciphers"]);
+          }
+
+          if (vars->count("ticketKeyFile")) {
+            frontend->d_ticketKeyFile = boost::get<const string>((*vars)["ticketKeyFile"]);
+          }
+
+          if (vars->count("ticketsKeysRotationDelay")) {
+            frontend->d_ticketsKeyRotationDelay = boost::get<int>((*vars)["ticketsKeysRotationDelay"]);
+          }
+
+          if (vars->count("numberOfTicketsKeys")) {
+            frontend->d_numberOfTicketsKeys = boost::get<int>((*vars)["numberOfTicketsKeys"]);
+          }
+
+          if (vars->count("sessionTickets")) {
+            frontend->d_enableTickets = boost::get<bool>((*vars)["sessionTickets"]);
+          }
+
+          if (vars->count("numberOfStoredSessions")) {
+            auto value = boost::get<int>((*vars)["numberOfStoredSessions"]);
+            if (value < 0) {
+              errlog("Invalid value '%d' for addTLSLocal() parameter 'numberOfStoredSessions', should be >= 0, dismissing", value);
+              g_outputBuffer="Invalid value '" +  std::to_string(value) + "' for addTLSLocal() parameter 'numberOfStoredSessions', should be >= 0, dimissing";
+              return;
+            }
+            frontend->d_maxStoredSessions = value;
+          }
+        }
+
+        try {
+          frontend->d_addr = ComboAddress(addr, 853);
+          vinfolog("Loading TLS provider %s", frontend->d_provider);
+          g_tlslocals.push_back(frontend); /// only works pre-startup, so no sync necessary
+        }
+        catch(const std::exception& e) {
+          g_outputBuffer="Error: "+string(e.what())+"\n";
+        }
+#else
+        g_outputBuffer="DNS over TLS support is not present!\n";
+#endif
+      });
+
+    g_lua.writeFunction("showTLSContexts", []() {
+#ifdef HAVE_DNS_OVER_TLS
+        setLuaNoSideEffect();
+        try {
+          ostringstream ret;
+          boost::format fmt("%1$-3d %2$-20.20s %|25t|%3$-14d %|40t|%4$-14d %|54t|%5$-21.21s");
+          //             1    2           3                 4                  5
+          ret << (fmt % "#" % "Address" % "# ticket keys" % "Rotation delay" % "Next rotation" ) << endl;
+          size_t counter = 0;
+          for (const auto& ctx : g_tlslocals) {
+            ret << (fmt % counter % ctx->d_addr.toStringWithPort() % ctx->getTicketsKeysCount() % ctx->getTicketsKeyRotationDelay() % ctx->getNextTicketsKeyRotation()) << endl;
+            counter++;
+          }
+          g_outputBuffer = ret.str();
+        }
+        catch(const std::exception& e) {
+          g_outputBuffer = e.what();
+          throw;
+        }
+#else
+        g_outputBuffer="DNS over TLS support is not present!\n";
+#endif
+      });
+
+    g_lua.writeFunction("getTLSContext", [](size_t index) {
+        std::shared_ptr<TLSCtx> result = nullptr;
+#ifdef HAVE_DNS_OVER_TLS
+        setLuaNoSideEffect();
+        try {
+          if (index < g_tlslocals.size()) {
+            result = g_tlslocals.at(index)->getContext();
+          }
+          else {
+            errlog("Error: trying to get TLS context with index %zu but we only have %zu\n", index, g_tlslocals.size());
+            g_outputBuffer="Error: trying to get TLS context with index " + std::to_string(index) + " but we only have " + std::to_string(g_tlslocals.size()) + "\n";
+          }
+        }
+        catch(const std::exception& e) {
+          g_outputBuffer="Error: "+string(e.what())+"\n";
+          errlog("Error: %s\n", string(e.what()));
+        }
+#else
+        g_outputBuffer="DNS over TLS support is not present!\n";
+#endif
+        return result;
+      });
+
+    g_lua.writeFunction("getTLSFrontend", [](size_t index) {
+        std::shared_ptr<TLSFrontend> result = nullptr;
+#ifdef HAVE_DNS_OVER_TLS
+        setLuaNoSideEffect();
+        try {
+          if (index < g_tlslocals.size()) {
+            result = g_tlslocals.at(index);
+          }
+          else {
+            errlog("Error: trying to get TLS frontend with index %zu but we only have %zu\n", index, g_tlslocals.size());
+            g_outputBuffer="Error: trying to get TLS frontend with index " + std::to_string(index) + " but we only have " + std::to_string(g_tlslocals.size()) + "\n";
+          }
+        }
+        catch(const std::exception& e) {
+          g_outputBuffer="Error: "+string(e.what())+"\n";
+          errlog("Error: %s\n", string(e.what()));
+        }
+#else
+        g_outputBuffer="DNS over TLS support is not present!\n";
+#endif
+        return result;
+      });
+
+    g_lua.registerFunction<void(std::shared_ptr<TLSCtx>::*)()>("rotateTicketsKey", [](std::shared_ptr<TLSCtx> ctx) {
+        if (ctx != nullptr) {
+          ctx->rotateTicketsKey(time(nullptr));
+        }
+      });
+
+    g_lua.registerFunction<void(std::shared_ptr<TLSCtx>::*)(const std::string&)>("loadTicketsKeys", [](std::shared_ptr<TLSCtx> ctx, const std::string& file) {
+        if (ctx != nullptr) {
+          ctx->loadTicketsKeys(file);
+        }
+      });
+
+    g_lua.registerFunction<void(std::shared_ptr<TLSFrontend>::*)(boost::variant<std::string, std::vector<std::pair<int,std::string>>> certFiles, boost::variant<std::string, std::vector<std::pair<int,std::string>>> keyFiles)>("loadNewCertificatesAndKeys", [](std::shared_ptr<TLSFrontend>& frontend, boost::variant<std::string, std::vector<std::pair<int,std::string>>> certFiles, boost::variant<std::string, std::vector<std::pair<int,std::string>>> keyFiles) {
+#ifdef HAVE_DNS_OVER_TLS
+        if (loadTLSCertificateAndKeys(frontend, certFiles, keyFiles)) {
+          frontend->setupTLS();
+        }
+#endif
+      });
+}
+
+vector<std::function<void(void)>> setupLua(bool client, const std::string& config)
+{
+  g_launchWork= new vector<std::function<void(void)>>();
+
+  setupLuaActions();
+  setupLuaConfig(client);
+  setupLuaBindings(client);
+  setupLuaBindingsDNSQuestion();
+  setupLuaInspection();
+  setupLuaRules();
+  setupLuaVars();
+
   std::ifstream ifs(config);
-  if(!ifs) 
+  if(!ifs)
     warnlog("Unable to read configuration from '%s'", config);
   else
     vinfolog("Read configuration from '%s'", config);
 
   g_lua.executeCode(ifs);
 
-  auto ret=*g_launchWork;
+  auto ret = *g_launchWork;
   delete g_launchWork;
-  g_launchWork=0;
+  g_launchWork = nullptr;
   return ret;
 }

@@ -1,11 +1,10 @@
 #!/usr/bin/env python
-import Queue
 import threading
 import socket
 import struct
 import sys
 import time
-from dnsdisttests import DNSDistTest
+from dnsdisttests import DNSDistTest, Queue
 
 import dns
 import dnsmessage_pb2
@@ -13,9 +12,10 @@ import dnsmessage_pb2
 
 class TestProtobuf(DNSDistTest):
     _protobufServerPort = 4242
-    _protobufQueue = Queue.Queue()
+    _protobufQueue = Queue()
+    _protobufServerID = 'dnsdist-server-1'
     _protobufCounter = 0
-    _config_params = ['_testServerPort', '_protobufServerPort']
+    _config_params = ['_testServerPort', '_protobufServerPort', '_protobufServerID', '_protobufServerID']
     _config_template = """
     luasmn = newSuffixMatchNode()
     luasmn:add(newDNSName('lua.protobuf.tests.powerdns.com.'))
@@ -115,11 +115,11 @@ class TestProtobuf(DNSDistTest):
     newServer{address="127.0.0.1:%s", useClientSubnet=true}
     rl = newRemoteLogger('127.0.0.1:%s')
 
-    addLuaAction(AllRule(), alterLuaFirst)							-- Add tags to DNSQuery first
+    addAction(AllRule(), LuaAction(alterLuaFirst))							-- Add tags to DNSQuery first
 
-    addAction(AllRule(), RemoteLogAction(rl, alterProtobufQuery))				-- Send protobuf message before lookup
+    addAction(AllRule(), RemoteLogAction(rl, alterProtobufQuery, {serverID='%s'}))				-- Send protobuf message before lookup
 
-    addResponseAction(AllRule(), RemoteLogResponseAction(rl, alterProtobufResponse, true))	-- Send protobuf message after lookup
+    addResponseAction(AllRule(), RemoteLogResponseAction(rl, alterProtobufResponse, true, {serverID='%s'}))	-- Send protobuf message after lookup
 
     """
 
@@ -153,11 +153,11 @@ class TestProtobuf(DNSDistTest):
 
     @classmethod
     def startResponders(cls):
-        cls._UDPResponder = threading.Thread(name='UDP Responder', target=cls.UDPResponder, args=[cls._testServerPort])
+        cls._UDPResponder = threading.Thread(name='UDP Responder', target=cls.UDPResponder, args=[cls._testServerPort, cls._toResponderQueue, cls._fromResponderQueue])
         cls._UDPResponder.setDaemon(True)
         cls._UDPResponder.start()
 
-        cls._TCPResponder = threading.Thread(name='TCP Responder', target=cls.TCPResponder, args=[cls._testServerPort])
+        cls._TCPResponder = threading.Thread(name='TCP Responder', target=cls.TCPResponder, args=[cls._testServerPort, cls._toResponderQueue, cls._fromResponderQueue])
         cls._TCPResponder.setDaemon(True)
         cls._TCPResponder.start()
 
@@ -187,6 +187,9 @@ class TestProtobuf(DNSDistTest):
         self.assertTrue(msg.HasField('id'))
         self.assertEquals(msg.id, query.id)
         self.assertTrue(msg.HasField('inBytes'))
+        self.assertTrue(msg.HasField('serverIdentity'))
+        self.assertEquals(msg.serverIdentity, self._protobufServerID)
+
         if normalQueryResponse:
           # compare inBytes with length of query/response
           self.assertEquals(msg.inBytes, len(query.to_wire()))

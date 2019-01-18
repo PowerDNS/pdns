@@ -20,42 +20,47 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
 #pragma once
+
+#ifdef HAVE_CONFIG_H
+#include "config.h"
+#endif
+
 #include "iputils.hh"
 #include "dnsname.hh"
 #include "namespaces.hh"
 #include "dnsrecords.hh"
 #include "filterpo.hh"
 #include "ednsoptions.hh"
-
+#include "validate.hh"
+#include "lua-base4.hh"
 #include <unordered_map>
 
-#ifdef HAVE_CONFIG_H
-#include "config.h"
-#endif
+#include "lua-recursor4-ffi.hh"
 
 string GenUDPQueryResponse(const ComboAddress& dest, const string& query);
 unsigned int getRecursorThreadId();
 
-class LuaContext;
+// pdns_ffi_param_t is a lightuserdata
+template<>
+struct LuaContext::Pusher<pdns_ffi_param*> {
+    static const int minSize = 1;
+    static const int maxSize = 1;
 
-#if defined(HAVE_LUA)
-#undef L
-#include "ext/luawrapper/include/LuaContext.hpp"
-#define L theL()
-#endif
+    static PushedObject push(lua_State* state, pdns_ffi_param* ptr) noexcept {
+        lua_pushlightuserdata(state, ptr);
+        return PushedObject{state, 1};
+    }
+};
 
-class RecursorLua4 : public boost::noncopyable
+class RecursorLua4 : public BaseLua4
 {
-private:
-  std::unique_ptr<LuaContext> d_lw; // this is way on top because it must get destroyed _last_
-
 public:
-  explicit RecursorLua4(const std::string& fname);
+  RecursorLua4();
   ~RecursorLua4(); // this is so unique_ptr works with an incomplete type
 
   struct DNSQuestion
   {
-    DNSQuestion(const ComboAddress& rem, const ComboAddress& loc, const DNSName& query, uint16_t type, bool tcp, bool& variable_, bool& wantsRPZ_): qname(query), qtype(type), local(loc), remote(rem), isTcp(tcp), variable(variable_), wantsRPZ(wantsRPZ_)
+    DNSQuestion(const ComboAddress& rem, const ComboAddress& loc, const DNSName& query, uint16_t type, bool tcp, bool& variable_, bool& wantsRPZ_, bool& logResponse_): qname(query), qtype(type), local(loc), remote(rem), isTcp(tcp), variable(variable_), wantsRPZ(wantsRPZ_), logResponse(logResponse_)
     {
     }
     const DNSName& qname;
@@ -72,8 +77,10 @@ public:
     std::unordered_map<std::string,bool>* discardedPolicies{nullptr};
     std::string requestorId;
     std::string deviceId;
+    vState validationState{Indeterminate};
     bool& variable;
     bool& wantsRPZ;
+    bool& logResponse;
     unsigned int tag{0};
 
     void addAnswer(uint16_t type, const std::string& content, boost::optional<int> ttl, boost::optional<string> name);
@@ -103,16 +110,18 @@ public:
     DNSName followupName;
   };
 
-  unsigned int gettag(const ComboAddress& remote, const Netmask& ednssubnet, const ComboAddress& local, const DNSName& qname, uint16_t qtype, std::vector<std::string>* policyTags, LuaContext::LuaObject& data, const std::map<uint16_t, EDNSOptionView>&, bool tcp, std::string& requestorId, std::string& deviceId);
+  unsigned int gettag(const ComboAddress& remote, const Netmask& ednssubnet, const ComboAddress& local, const DNSName& qname, uint16_t qtype, std::vector<std::string>* policyTags, LuaContext::LuaObject& data, const EDNSOptionViewMap&, bool tcp, std::string& requestorId, std::string& deviceId) const;
+  unsigned int gettag_ffi(const ComboAddress& remote, const Netmask& ednssubnet, const ComboAddress& local, const DNSName& qname, uint16_t qtype, std::vector<std::string>* policyTags, LuaContext::LuaObject& data, const EDNSOptionViewMap&, bool tcp, std::string& requestorId, std::string& deviceId, uint32_t& ttlCap, bool& variable, bool& logQuery) const;
 
-  bool prerpz(DNSQuestion& dq, int& ret);
-  bool preresolve(DNSQuestion& dq, int& ret);
-  bool nxdomain(DNSQuestion& dq, int& ret);
-  bool nodata(DNSQuestion& dq, int& ret);
-  bool postresolve(DNSQuestion& dq, int& ret);
+  void maintenance() const;
+  bool prerpz(DNSQuestion& dq, int& ret) const;
+  bool preresolve(DNSQuestion& dq, int& ret) const;
+  bool nxdomain(DNSQuestion& dq, int& ret) const;
+  bool nodata(DNSQuestion& dq, int& ret) const ;
+  bool postresolve(DNSQuestion& dq, int& ret) const;
 
-  bool preoutquery(const ComboAddress& ns, const ComboAddress& requestor, const DNSName& query, const QType& qtype, bool isTcp, vector<DNSRecord>& res, int& ret);
-  bool ipfilter(const ComboAddress& remote, const ComboAddress& local, const struct dnsheader&);
+  bool preoutquery(const ComboAddress& ns, const ComboAddress& requestor, const DNSName& query, const QType& qtype, bool isTcp, vector<DNSRecord>& res, int& ret) const;
+  bool ipfilter(const ComboAddress& remote, const ComboAddress& local, const struct dnsheader&) const;
 
   bool needDQ() const
   {
@@ -123,13 +132,20 @@ public:
             d_postresolve);
   }
 
-  typedef std::function<std::tuple<unsigned int,boost::optional<std::unordered_map<int,string> >,boost::optional<LuaContext::LuaObject>,boost::optional<std::string>,boost::optional<std::string> >(ComboAddress, Netmask, ComboAddress, DNSName, uint16_t, const std::map<uint16_t, EDNSOptionView>&, bool)> gettag_t;
+  typedef std::function<std::tuple<unsigned int,boost::optional<std::unordered_map<int,string> >,boost::optional<LuaContext::LuaObject>,boost::optional<std::string>,boost::optional<std::string> >(ComboAddress, Netmask, ComboAddress, DNSName, uint16_t, const EDNSOptionViewMap&, bool)> gettag_t;
   gettag_t d_gettag; // public so you can query if we have this hooked
+  typedef std::function<boost::optional<LuaContext::LuaObject>(pdns_ffi_param_t*)> gettag_ffi_t;
+  gettag_ffi_t d_gettag_ffi;
 
+protected:
+  virtual void postPrepareContext() override;
+  virtual void postLoad() override;
 private:
+  typedef std::function<void()> luamaintenance_t;
+  luamaintenance_t d_maintenance;
   typedef std::function<bool(DNSQuestion*)> luacall_t;
   luacall_t d_prerpz, d_preresolve, d_nxdomain, d_nodata, d_postresolve, d_preoutquery, d_postoutquery;
-  bool genhook(luacall_t& func, DNSQuestion& dq, int& ret);
+  bool genhook(const luacall_t& func, DNSQuestion& dq, int& ret) const;
   typedef std::function<bool(ComboAddress,ComboAddress, struct dnsheader)> ipfilter_t;
   ipfilter_t d_ipfilter;
 };

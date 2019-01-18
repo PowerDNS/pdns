@@ -5,7 +5,7 @@ Generic MySQL backend
 * Master: Yes
 * Slave: Yes
 * Superslave: Yes
-* Autoserial: Yes
+* Autoserial: No
 * Case: All lower
 * DNSSEC: Yes (set ``gmysql-dnssec``)
 * Disabled data: Yes
@@ -64,7 +64,7 @@ Host (ip address) to connect to. Mutually exclusive with :ref:`setting-gmysql-so
 ``gmysql-port``
 ^^^^^^^^^^^^^^^
 
-The port to connect to on :ref:`setting-gmysql-host`. Default: 3306
+The port to connect to on :ref:`setting-gmysql-host`. Default: 3306.
 
 .. _setting-gmysql-socket:
 
@@ -78,7 +78,7 @@ Connect to the UNIX socket at this path. Mutually exclusive with :ref:`setting-g
 ``gmysql-dbname``
 ^^^^^^^^^^^^^^^^^
 
-Name of the database to connect to. Default: "pdns".
+Name of the database to connect to. Default: "powerdns".
 
 .. _setting-gmysql-user:
 
@@ -106,14 +106,14 @@ The password to for :ref:`setting-gmysql-user`.
 ``gmysql-dnssec``
 ^^^^^^^^^^^^^^^^^
 
-Enable DNSSEC processing for this backend. Default=no.
+Enable DNSSEC processing for this backend. Default: no.
 
 .. _setting-gmysql-innodb-read-committed:
 
 ``gmysql-innodb-read-committed``
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Use the InnoDB READ-COMMITTED transaction isolation level. Default=yes.
+Use the InnoDB READ-COMMITTED transaction isolation level. Default: yes.
 
 .. _setting-gmysql-timeout:
 
@@ -125,5 +125,7 @@ server. A value of 0 will disable the timeout. Default: 10
 
 Default Schema
 --------------
+
+This is the 4.2 schema. Please find `the 4.1 schema on GitHub <https://github.com/PowerDNS/pdns/blob/rel/auth-4.1.x/modules/gmysqlbackend/schema.mysql.sql>`_.
 
 .. literalinclude:: ../../modules/gmysqlbackend/schema.mysql.sql

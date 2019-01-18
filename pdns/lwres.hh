@@ -45,7 +45,7 @@
 
 int asendto(const char *data, size_t len, int flags, const ComboAddress& ip, uint16_t id,
             const DNSName& domain, uint16_t qtype,  int* fd);
-int arecvfrom(char *data, size_t len, int flags, const ComboAddress& ip, size_t *d_len, uint16_t id,
+int arecvfrom(std::string& packet, int flags, const ComboAddress& ip, size_t *d_len, uint16_t id,
               const DNSName& domain, uint16_t qtype, int fd, struct timeval* now);
 
 class LWResException : public PDNSException
@@ -62,10 +62,11 @@ public:
 
   vector<DNSRecord> d_records;
   int d_rcode{0};
+  bool d_validpacket{false};
   bool d_aabit{false}, d_tcbit{false};
   uint32_t d_usec{0};
   bool d_haveEDNS{false};
 };
 
-int asyncresolve(const ComboAddress& ip, const DNSName& domain, int type, bool doTCP, bool sendRDQuery, int EDNS0Level, struct timeval* now, boost::optional<Netmask>& srcmask, boost::optional<const ResolveContext&> context, std::shared_ptr<RemoteLogger> outgoingLogger, LWResult* res);
+int asyncresolve(const ComboAddress& ip, const DNSName& domain, int type, bool doTCP, bool sendRDQuery, int EDNS0Level, struct timeval* now, boost::optional<Netmask>& srcmask, boost::optional<const ResolveContext&> context, const std::shared_ptr<std::vector<std::unique_ptr<RemoteLogger>>>& outgoingLoggers, const std::set<uint16_t>& exportTypes, LWResult* res, bool* chained);
 #endif // PDNS_LWRES_HH

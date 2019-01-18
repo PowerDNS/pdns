@@ -1,5 +1,6 @@
 #!/usr/bin/env python2
 
+from __future__ import print_function
 import errno
 import shutil
 import os
@@ -42,6 +43,7 @@ disable-syslog=yes
 """
     _config_params = []
     _lua_config_file = None
+    _lua_dns_script_file = None
     _roothints = """
 .                        3600 IN NS  ns.root.
 ns.root.                 3600 IN A   %s.8
@@ -289,7 +291,7 @@ PrivateKey: kvoV/g4IO/tefSro+FLJ5UC7H3BUf0IUtZQSUOfQGyA=
         except OSError as e:
             if e.errno != errno.ENOENT:
                 raise
-        os.mkdir(confdir, 0755)
+        os.mkdir(confdir, 0o755)
 
     @classmethod
     def generateAuthZone(cls, confdir, zonename, zonecontent):
@@ -339,12 +341,11 @@ distributor-threads=1""".format(confdir=confdir,
                        'create-bind-db',
                        bind_dnssec_db]
 
-        print ' '.join(pdnsutilCmd)
+        print(' '.join(pdnsutilCmd))
         try:
             subprocess.check_output(pdnsutilCmd, stderr=subprocess.STDOUT)
         except subprocess.CalledProcessError as e:
-            print e.output
-            raise
+            raise AssertionError('%s failed (%d): %s' % (pdnsutilCmd, e.returncode, e.output))
 
     @classmethod
     def secureZone(cls, confdir, zonename, key=None):
@@ -367,12 +368,11 @@ distributor-threads=1""".format(confdir=confdir,
                            'active',
                            'ksk']
 
-        print ' '.join(pdnsutilCmd)
+        print(' '.join(pdnsutilCmd))
         try:
             subprocess.check_output(pdnsutilCmd, stderr=subprocess.STDOUT)
         except subprocess.CalledProcessError as e:
-            print e.output
-            raise
+            raise AssertionError('%s failed (%d): %s' % (pdnsutilCmd, e.returncode, e.output))
 
     @classmethod
     def generateAllAuthConfig(cls, confdir):
@@ -423,7 +423,7 @@ distributor-threads=1""".format(confdir=confdir,
                 if e.errno != errno.ESRCH:
                     raise
                 with open(logFile, 'r') as fdLog:
-                    print fdLog.read()
+                    print(fdLog.read())
             sys.exit(cls._auths[ipaddress].returncode)
 
     @classmethod
@@ -444,10 +444,15 @@ distributor-threads=1""".format(confdir=confdir,
                 luaconfpath = os.path.join(confdir, 'conffile.lua')
                 with open(luaconfpath, 'w') as luaconf:
                     if cls._root_DS:
-                        luaconf.write("addDS('.', '%s')" % cls._root_DS)
+                        luaconf.write("addTA('.', '%s')\n" % cls._root_DS)
                     if cls._lua_config_file:
                         luaconf.write(cls._lua_config_file)
                 conf.write("lua-config-file=%s\n" % luaconfpath)
+            if cls._lua_dns_script_file:
+                luascriptpath = os.path.join(confdir, 'dnsscript.lua')
+                with open(luascriptpath, 'w') as luascript:
+                    luascript.write(cls._lua_dns_script_file)
+                conf.write("lua-dns-script=%s\n" % luascriptpath)
             if cls._roothints:
                 roothintspath = os.path.join(confdir, 'root.hints')
                 with open(roothintspath, 'w') as roothints:
@@ -486,7 +491,7 @@ distributor-threads=1""".format(confdir=confdir,
                 if e.errno != errno.ESRCH:
                     raise
                 with open(logFile, 'r') as fdLog:
-                    print fdLog.read()
+                    print(fdLog.read())
             sys.exit(cls._recursor.returncode)
 
     @classmethod
@@ -498,8 +503,7 @@ distributor-threads=1""".format(confdir=confdir,
         try:
             subprocess.check_output(rec_controlCmd, stderr=subprocess.STDOUT)
         except subprocess.CalledProcessError as e:
-            print e.output
-            raise
+            raise AssertionError('%s failed (%d): %s' % (rec_controlCmd, e.returncode, e.output))
 
     @classmethod
     def setUpSockets(cls):
@@ -575,7 +579,7 @@ distributor-threads=1""".format(confdir=confdir,
                 raise
 
     @classmethod
-    def sendUDPQuery(cls, query, timeout=2.0, fwparams=dict()):
+    def sendUDPQuery(cls, query, timeout=2.0, decode=True, fwparams=dict()):
         if timeout:
             cls._sock.settimeout(timeout)
 
@@ -590,6 +594,8 @@ distributor-threads=1""".format(confdir=confdir,
 
         message = None
         if data:
+            if not decode:
+                return data
             message = dns.message.from_wire(data, **fwparams)
         return message
 
@@ -655,7 +661,7 @@ distributor-threads=1""".format(confdir=confdir,
         msgFlags = dns.flags.to_text(msg.flags).split()
         missingFlags = [flag for flag in flags if flag not in msgFlags]
 
-        msgEdnsFlags = dns.flags.edns_to_text(msg.flags).split()
+        msgEdnsFlags = dns.flags.edns_to_text(msg.ednsflags).split()
         missingEdnsFlags = [ednsflag for ednsflag in ednsflags if ednsflag not in msgEdnsFlags]
 
         if len(missingFlags) or len(missingEdnsFlags) or len(msgFlags) > len(flags):
@@ -693,7 +699,7 @@ distributor-threads=1""".format(confdir=confdir,
         for ans in msg.answer:
             ret += "%s\n" % ans.to_text()
             if ans.match(rrset.name, rrset.rdclass, rrset.rdtype, 0, None):
-                self.assertEqual(ans, rrset)
+                self.assertEqual(ans, rrset, "'%s' != '%s'" % (ans.to_text(), rrset.to_text()))
                 found = True
 
         if not found:

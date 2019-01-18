@@ -141,9 +141,9 @@ void TinyDNSBackend::setNotified(uint32_t id, uint32_t serial) {
   TDIById_t& domain_index = domains->get<tag_domainid>();
   TDIById_t::iterator itById = domain_index.find(id);
   if (itById == domain_index.end()) {
-    L<<Logger::Error<<backendname<<"Received updated serial("<<serial<<"), but domain ID ("<<id<<") is not known in this backend."<<endl;
+    g_log<<Logger::Error<<backendname<<"Received updated serial("<<serial<<"), but domain ID ("<<id<<") is not known in this backend."<<endl;
   } else {
-    DLOG(L<<Logger::Debug<<backendname<<"Setting serial for "<<itById->zone<<" to "<<serial<<endl);
+    DLOG(g_log<<Logger::Debug<<backendname<<"Setting serial for "<<itById->zone<<" to "<<serial<<endl);
     domain_index.modify(itById, TDI_SerialModifier(serial));
   }
   s_domainInfo[d_suffix] = *domains;
@@ -177,7 +177,7 @@ void TinyDNSBackend::getAllDomains(vector<DomainInfo> *domains, bool include_dis
 
 bool TinyDNSBackend::list(const DNSName &target, int domain_id, bool include_disabled) {
   d_isAxfr=true;
-  string key = target.toDNSString(); // FIXME400 bug: no lowercase here? or promise that from core?
+  string key = target.toDNSStringLC();
   d_cdbReader=std::unique_ptr<CDB>(new CDB(getArg("dbfile")));
   return d_cdbReader->searchSuffix(key);
 }
@@ -188,8 +188,8 @@ void TinyDNSBackend::lookup(const QType &qtype, const DNSName &qdomain, DNSPacke
 
   string key=simpleCompress(queryDomain);
 
-  DLOG(L<<Logger::Debug<<backendname<<"[lookup] query for qtype ["<<qtype.getName()<<"] qdomain ["<<qdomain<<"]"<<endl);
-  DLOG(L<<Logger::Debug<<"[lookup] key ["<<makeHexDump(key)<<"]"<<endl);
+  DLOG(g_log<<Logger::Debug<<backendname<<"[lookup] query for qtype ["<<qtype.getName()<<"] qdomain ["<<qdomain<<"]"<<endl);
+  DLOG(g_log<<Logger::Debug<<"[lookup] key ["<<makeHexDump(key)<<"]"<<endl);
 
   d_isWildcardQuery = false;
   if (key[0] == '\001' && key[1] == '\052') {
@@ -213,8 +213,8 @@ bool TinyDNSBackend::get(DNSResourceRecord &rr)
     string val = record.second;
     string key = record.first;
 
-    //DLOG(L<<Logger::Debug<<"[GET] Key: "<<makeHexDump(key)<<endl);
-    //DLOG(L<<Logger::Debug<<"[GET] Val: "<<makeHexDump(val)<<endl);
+    //DLOG(g_log<<Logger::Debug<<"[GET] Key: "<<makeHexDump(key)<<endl);
+    //DLOG(g_log<<Logger::Debug<<"[GET] Val: "<<makeHexDump(val)<<endl);
     if (key[0] == '\000' && key[1] == '\045') { // skip locations
       continue;
     }
@@ -232,12 +232,7 @@ bool TinyDNSBackend::get(DNSResourceRecord &rr)
     }
 
 
-    vector<uint8_t> bytes;
-    const char *sval = val.c_str();
-    unsigned int len = val.size();
-    bytes.resize(len);
-    copy(sval, sval+len, bytes.begin());
-    PacketReader pr(bytes);
+    PacketReader pr(val, 0);
     rr.qtype = QType(pr.get16BitInt());
 
     if(d_isAxfr || d_qtype.getCode() == QType::ANY || rr.qtype == d_qtype) {
@@ -298,24 +293,27 @@ bool TinyDNSBackend::get(DNSResourceRecord &rr)
         DNSRecord dr;
         dr.d_class = 1;
         dr.d_type = rr.qtype.getCode();
-        dr.d_clen = val.size()-pr.d_pos;
+        dr.d_clen = val.size()-pr.getPosition();
 
         auto drc = DNSRecordContent::mastermake(dr, pr);
         rr.content = drc->getZoneRepresentation();
         DLOG(cerr<<"CONTENT: "<<rr.content<<endl);
       }
       catch (...) {
+        g_log<<Logger::Error<<backendname<<"Failed to parse record content for "<<rr.qname<<" with type "<<rr.qtype.getName();
         if (d_ignorebogus) {
-          L<<Logger::Error<<backendname<<"Failed to parse record content for "<<rr.qname<<" with type "<<rr.qtype.getName()<<". Ignoring!"<<endl;
+          g_log<<". Ignoring!"<<endl;
           continue;
-        } else
+        } else {
+          g_log<<". Erroring out!"<<endl;
           throw;
+        }
       }
-//      DLOG(L<<Logger::Debug<<backendname<<"Returning ["<<rr.content<<"] for ["<<rr.qname<<"] of RecordType ["<<rr.qtype.getName()<<"]"<<endl;);
+//      DLOG(g_log<<Logger::Debug<<backendname<<"Returning ["<<rr.content<<"] for ["<<rr.qname<<"] of RecordType ["<<rr.qtype.getName()<<"]"<<endl;);
       return true;
     }
   } // end of while
-  DLOG(L<<Logger::Debug<<backendname<<"No more records to return."<<endl);
+  DLOG(g_log<<Logger::Debug<<backendname<<"No more records to return."<<endl);
 
   d_cdbReader = nullptr;
   return false;
@@ -346,7 +344,7 @@ class TinyDNSLoader
 public:
   TinyDNSLoader() {
     BackendMakers().report(new TinyDNSFactory);
-    L << Logger::Info << "[tinydnsbackend] This is the tinydns backend version " VERSION
+    g_log << Logger::Info << "[tinydnsbackend] This is the tinydns backend version " VERSION
 #ifndef REPRODUCIBLE
       << " (" __DATE__ " " __TIME__ ")"
 #endif

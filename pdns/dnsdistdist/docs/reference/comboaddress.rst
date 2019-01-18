@@ -3,12 +3,8 @@
 ComboAddress
 ============
 
-.. class:: ComboAddress
-
-  A ``ComboAddress`` represents an IP address with possibly a port number.
-  The object can be an IPv4 or an IPv6 address.
-
-Functions and methods related to ``ComboAddress``
+IP addresses are moved around in a native format, called a ComboAddress.
+ComboAddresses can be IPv4 or IPv6, and unless you want to know, you don't need to.
 
 .. function:: newCA(address) -> :class:`ComboAddress`
 
@@ -16,40 +12,46 @@ Functions and methods related to ``ComboAddress``
 
   :param string address: The IP address, with optional port, to represent.
 
-.. classmethod:: ComboAddress:getPort() -> int
+.. class:: ComboAddress
 
-  Returns the port number.
+  A ``ComboAddress`` represents an IP address with possibly a port number.
+  The object can be an IPv4 or an IPv6 address.
+  It has these methods:
 
-.. classmethod:: ComboAddress:isIPv4() -> bool
+  .. method:: ComboAddress:getPort() -> int
 
-  Returns true if the address is an IPv4, false otherwise
+    Returns the port number.
 
-.. classmethod:: ComboAddress:isIPv6() -> bool
+  .. method:: ComboAddress:isIPv4() -> bool
 
-  Returns true if the address is an IPv6, false otherwise
+    Returns true if the address is an IPv4, false otherwise
 
-.. classmethod:: ComboAddress:isMappedIPv4() -> bool
+  .. method:: ComboAddress:isIPv6() -> bool
 
-  Returns true if the address is an IPv4 mapped into an IPv6, false otherwise
+    Returns true if the address is an IPv6, false otherwise
 
-.. classmethod:: ComboAddress:mapToIPv4() -> ComboAddress
+  .. method:: ComboAddress:isMappedIPv4() -> bool
 
-  Convert an IPv4 address mapped in a v6 one into an IPv4.
-  Returns a new ComboAddress
+    Returns true if the address is an IPv4 mapped into an IPv6, false otherwise
 
-.. classmethod:: ComboAddress:tostring() -> string
-                 ComboAddress:toString() -> string
+  .. method:: ComboAddress:mapToIPv4() -> ComboAddress
 
-  Returns in human-friendly format
+    Convert an IPv4 address mapped in a v6 one into an IPv4.
+    Returns a new ComboAddress
 
-.. classmethod:: ComboAddress:tostringWithPort() -> string
-                 ComboAddress:toStringWithPort() -> string
+  .. method:: ComboAddress:tostring() -> string
+                   ComboAddress:toString() -> string
 
-  Returns in human-friendly format, with port number
+    Returns in human-friendly format
 
-.. classmethod:: ComboAddress:truncate(bits)
+  .. method:: ComboAddress:tostringWithPort() -> string
+                   ComboAddress:toStringWithPort() -> string
 
-  Truncate the ComboAddress to the specified number of bits.
-  This essentially zeroes all bits after ``bits``.
+    Returns in human-friendly format, with port number
 
-  :param int bits: Amount of bits to truncate to
+  .. method:: ComboAddress:truncate(bits)
+
+    Truncate the ComboAddress to the specified number of bits.
+    This essentially zeroes all bits after ``bits``.
+
+    :param int bits: Amount of bits to truncate to

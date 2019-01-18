@@ -30,7 +30,7 @@ ZeroMQConnector::ZeroMQConnector(std::map<std::string,std::string> options) {
 
   // lookup timeout, target and stuff
   if (options.count("endpoint") == 0) {
-    L<<Logger::Error<<"Cannot find 'endpoint' option in connection string"<<endl;
+    g_log<<Logger::Error<<"Cannot find 'endpoint' option in connection string"<<endl;
     throw PDNSException("Cannot find 'endpoint' option in connection string");
   }
   this->d_endpoint = options.find("endpoint")->second;
@@ -47,7 +47,7 @@ ZeroMQConnector::ZeroMQConnector(std::map<std::string,std::string> options) {
 
   if(zmq_connect(this->d_sock, this->d_endpoint.c_str()) < 0)
   {
-    L<<Logger::Error<<"zmq_connect() failed"<< zmq_strerror(errno)<<std::endl;;
+    g_log<<Logger::Error<<"zmq_connect() failed"<< zmq_strerror(errno)<<std::endl;;
     throw PDNSException("Cannot find 'endpoint' option in connection string");
   }
 
@@ -60,7 +60,7 @@ ZeroMQConnector::ZeroMQConnector(std::map<std::string,std::string> options) {
   this->send(msg);
   msg = nullptr;
   if (this->recv(msg)==false) {
-    L<<Logger::Error<<"Failed to initialize zeromq"<<std::endl;
+    g_log<<Logger::Error<<"Failed to initialize zeromq"<<std::endl;
     throw PDNSException("Failed to initialize zeromq");
   } 
 };
@@ -88,13 +88,13 @@ int ZeroMQConnector::send_message(const Json& input) {
        if (zmq_poll(&item, 1, 1)>0) {
          if(zmq_msg_send(&message, this->d_sock, 0) == -1) {
            // message was not sent
-           L<<Logger::Error<<"Cannot send to " << this->d_endpoint << ": " << zmq_strerror(errno)<<std::endl;
+           g_log<<Logger::Error<<"Cannot send to " << this->d_endpoint << ": " << zmq_strerror(errno)<<std::endl;
          } else
            return line.size();
        }
      }
    } catch (std::exception &ex) {
-     L<<Logger::Error<<"Cannot send to " << this->d_endpoint << ": " << ex.what()<<std::endl;
+     g_log<<Logger::Error<<"Cannot send to " << this->d_endpoint << ": " << ex.what()<<std::endl;
      throw PDNSException(ex.what());
    }
 
@@ -131,7 +131,7 @@ int ZeroMQConnector::recv_message(Json& output) {
                if (output != nullptr)
                  rv = msg_size;
                else 
-                 L<<Logger::Error<<"Cannot parse JSON reply from " << this->d_endpoint << ": " << err << endl;
+                 g_log<<Logger::Error<<"Cannot parse JSON reply from " << this->d_endpoint << ": " << err << endl;
                break;
              } else if (errno == EAGAIN) { continue; // try again }
              } else {
@@ -141,7 +141,7 @@ int ZeroMQConnector::recv_message(Json& output) {
         }
      }
    } catch (std::exception &ex) {
-     L<<Logger::Error<<"Cannot receive from " << this->d_endpoint << ": " << ex.what()<<std::endl;
+     g_log<<Logger::Error<<"Cannot receive from " << this->d_endpoint << ": " << ex.what()<<std::endl;
      throw PDNSException(ex.what());
    }
 

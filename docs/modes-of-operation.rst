@@ -23,6 +23,12 @@ PowerDNS users employ Oracle replication which also works very well.
 To use native replication, configure your backend storage to do the
 replication and do not configure PowerDNS to do so.
 
+Typically, a database slave will be configured as read-only as
+uni-directional database replication is usually sufficient. A PowerDNS
+server only requires database write access if it is participating as a
+master or slave in zone transfers, or has a frontend attached for
+managing records etc.
+
 .. _master-operation:
 
 Master operation
@@ -48,7 +54,7 @@ enabled.
 
 .. warning::
   Notifications are only sent for domains with type MASTER in
-  your backend.
+  your backend unless :ref:`setting-slave-renotify` is enabled.
 
 Left open by :rfc:`1996` is who is to be notified - which is harder to
 figure out than it sounds. All slaves for this domain must receive a
@@ -103,7 +109,12 @@ back on checking the domain for
 :ref:`setting-soa-retry-default` seconds
 between checks. With default settings, this means that PowerDNS will
 back off for 1, then 2, then 3 etc. minutes, to a maximum of 60 minutes
-between checks.
+between checks. The same hold back algorithm is also applied if the zone
+transfer fails due to problems on the master, i.e. if zone transfer is
+not allowed.
+
+Receiving a NOTIFY immediately clears the back off period for the
+respective domain to allow immediately freshness checks for this domain.
 
 .. warning::
   Slave support is OFF by default, turn it on by adding
@@ -190,6 +201,7 @@ itself as a slave for that zone.
 Before a supermaster notification succeeds, the following conditions
 must be met:
 
+ - :ref:`setting-supermaster` support must be enabled
  - The supermaster must carry a SOA record for the notified domain
  - The supermaster IP must be present in the 'supermaster' table
  - The set of NS records for the domain, as retrieved by the slave from the supermaster, must include the name that goes with the IP address in the supermaster table
@@ -266,7 +278,7 @@ Consider the following simple example:
            if record:qtype() == pdns.HINFO then
               resp = {}
               resp[1] = {
-                qname   = record:qname:toString(),
+                qname   = record:qname():toString(),
                 qtype   = pdns.TXT,
                 ttl     = 99,
                 content = "Hello Ahu!"
@@ -275,7 +287,7 @@ Consider the following simple example:
            end
 
            -- Grab each _tstamp TXT record and add a time stamp
-           if record:qtype() == pdns.TXT and string.starts(record:qname:toString(), "_tstamp.") then
+           if record:qtype() == pdns.TXT and string.starts(record:qname():toString(), "_tstamp.") then
               resp = {}
               resp[1] = {
                 qname   = record:qname():toString(),
@@ -290,7 +302,7 @@ Consider the following simple example:
            if record:qtype() == pdns.A then
               resp = {}
               resp[1] = {
-                qname   = record:qname:toString(),
+                qname   = record:qname():toString(),
                 qtype   = pdns.TXT,
                 ttl     = 99,
                 content = "Hello Ahu, again!"

@@ -1,3 +1,2 @@
 #!/bin/sh
 cleandig geo.example.com A
-

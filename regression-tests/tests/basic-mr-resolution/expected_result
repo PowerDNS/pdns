@@ -1,0 +1,3 @@
+0	philip.mb.example.com.	IN	MR	120	phil.mb.example.com.
+Rcode: 0 (No Error), RD: 0, QR: 1, TC: 0, AA: 1, opcode: 0
+Reply to question for qname='philip.mb.example.com.', qtype=MR

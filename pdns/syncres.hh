@@ -72,12 +72,17 @@ typedef map<
 template<class Thing> class Throttle : public boost::noncopyable
 {
 public:
-  Throttle()
+  Throttle() : d_limit(3), d_ttl(60), d_last_clean(time(nullptr))
   {
-    d_limit=3;
-    d_ttl=60;
-    d_last_clean=time(0);
   }
+
+  struct entry
+  {
+    time_t ttd;
+    unsigned int count;
+  };
+  typedef map<Thing,entry> cont_t;
+
   bool shouldThrottle(time_t now, const Thing& t)
   {
     if(now > d_last_clean + 300 ) {
@@ -120,20 +125,20 @@ public:
     return (unsigned int)d_cont.size();
   }
 
+  const cont_t& getThrottleMap() const
+  {
+    return d_cont;
+  }
+
   void clear()
   {
     d_cont.clear();
   }
+
 private:
   unsigned int d_limit;
   time_t d_ttl;
   time_t d_last_clean;
-  struct entry
-  {
-    time_t ttd;
-    unsigned int count;
-  };
-  typedef map<Thing,entry> cont_t;
   cont_t d_cont;
 };
 
@@ -266,7 +271,7 @@ class SyncRes : public boost::noncopyable
 {
 public:
   enum LogMode { LogNone, Log, Store};
-  typedef std::function<int(const ComboAddress& ip, const DNSName& qdomain, int qtype, bool doTCP, bool sendRDQuery, int EDNS0Level, struct timeval* now, boost::optional<Netmask>& srcmask, boost::optional<const ResolveContext&> context, std::shared_ptr<RemoteLogger> outgoingLogger, LWResult *lwr)> asyncresolve_t;
+  typedef std::function<int(const ComboAddress& ip, const DNSName& qdomain, int qtype, bool doTCP, bool sendRDQuery, int EDNS0Level, struct timeval* now, boost::optional<Netmask>& srcmask, boost::optional<const ResolveContext&> context, LWResult *lwr, bool* chained)> asyncresolve_t;
 
   struct EDNSStatus
   {
@@ -282,18 +287,7 @@ public:
   {
     void submit(const ComboAddress& remote, int usecs, const struct timeval* now)
     {
-      collection_t::iterator pos;
-      for(pos=d_collection.begin(); pos != d_collection.end(); ++pos)
-        if(pos->first==remote)
-          break;
-      if(pos!=d_collection.end()) {
-        pos->second.submit(usecs, now);
-      }
-      else {
-        DecayingEwma de;
-        de.submit(usecs, now);
-        d_collection.push_back(make_pair(remote, de));
-      }
+      d_collection[remote].submit(usecs, now);
     }
 
     double get(const struct timeval* now)
@@ -302,10 +296,10 @@ public:
         return 0;
       double ret=std::numeric_limits<double>::max();
       double tmp;
-      for(collection_t::iterator pos=d_collection.begin(); pos != d_collection.end(); ++pos) {
-        if((tmp=pos->second.get(now)) < ret) {
+      for (auto& entry : d_collection) {
+        if((tmp = entry.second.get(now)) < ret) {
           ret=tmp;
-          d_best=pos->first;
+          d_best=entry.first;
         }
       }
 
@@ -314,19 +308,33 @@ public:
 
     bool stale(time_t limit) const
     {
-      for(collection_t::const_iterator pos=d_collection.begin(); pos != d_collection.end(); ++pos)
-        if(!pos->second.stale(limit))
+      for(const auto& entry : d_collection)
+        if(!entry.second.stale(limit))
           return false;
       return true;
     }
 
-    typedef vector<pair<ComboAddress, DecayingEwma> > collection_t;
+    void purge(const std::map<ComboAddress, double>& keep)
+    {
+      for (auto iter = d_collection.begin(); iter != d_collection.end(); ) {
+        if (keep.find(iter->first) != keep.end()) {
+          ++iter;
+        }
+        else {
+          iter = d_collection.erase(iter);
+        }
+      }
+    }
+
+    typedef std::map<ComboAddress, DecayingEwma> collection_t;
     collection_t d_collection;
     ComboAddress d_best;
   };
 
   typedef map<DNSName, DecayingEwmaCollection> nsspeeds_t;
   typedef map<ComboAddress, EDNSStatus> ednsstatus_t;
+
+  vState getDSRecords(const DNSName& zone, dsmap_t& ds, bool onlyTA, unsigned int depth, bool bogusOnNXD=true, bool* foundCut=nullptr);
 
   class AuthDomain
   {
@@ -388,8 +396,9 @@ public:
   {
     s_lm = lm;
   }
-  static void doEDNSDumpAndClose(int fd);
+  static uint64_t doEDNSDump(int fd);
   static uint64_t doDumpNSSpeeds(int fd);
+  static uint64_t doDumpThrottleMap(int fd);
   static int getRootNS(struct timeval now, asyncresolve_t asyncCallback);
   static void clearDelegationOnly()
   {
@@ -418,17 +427,26 @@ public:
     s_dontQuery = nullptr;
   }
   static void parseEDNSSubnetWhitelist(const std::string& wlist);
-  static void addEDNSSubnet(const Netmask& subnet)
+  static void parseEDNSSubnetAddFor(const std::string& subnetlist);
+  static void addEDNSLocalSubnet(const std::string& subnet)
   {
-    s_ednssubnets.addMask(subnet);
+    s_ednslocalsubnets.addMask(subnet);
+  }
+  static void addEDNSRemoteSubnet(const std::string& subnet)
+  {
+    s_ednsremotesubnets.addMask(subnet);
   }
   static void addEDNSDomain(const DNSName& domain)
   {
     s_ednsdomains.add(domain);
   }
-  static void clearEDNSSubnets()
+  static void clearEDNSLocalSubnets()
   {
-    s_ednssubnets.clear();
+    s_ednslocalsubnets.clear();
+  }
+  static void clearEDNSRemoteSubnets()
+  {
+    s_ednsremotesubnets.clear();
   }
   static void clearEDNSDomains()
   {
@@ -585,6 +603,11 @@ public:
     return d_DNSSECValidationRequested;
   }
 
+  bool shouldValidate() const
+  {
+    return d_DNSSECValidationRequested && !d_wasOutOfBand;
+  }
+
   void setWantsRPZ(bool state=true)
   {
     d_wantsRPZ=state;
@@ -593,11 +616,6 @@ public:
   bool getWantsRPZ() const
   {
     return d_wantsRPZ;
-  }
-
-  void setIncomingECSFound(bool state=true)
-  {
-    d_incomingECSFound=state;
   }
 
   string getTrace() const
@@ -630,12 +648,17 @@ public:
     d_skipCNAMECheck = skip;
   }
 
-  void setIncomingECS(boost::optional<const EDNSSubnetOpts&> incomingECS);
+  void setQuerySource(const ComboAddress& requestor, boost::optional<const EDNSSubnetOpts&> incomingECS);
 
 #ifdef HAVE_PROTOBUF
   void setInitialRequestId(boost::optional<const boost::uuids::uuid&> initialRequestId)
   {
     d_initialRequestId = initialRequestId;
+  }
+
+  void setOutgoingProtobufServers(std::shared_ptr<std::vector<std::unique_ptr<RemoteLogger>>>& servers)
+  {
+    d_outgoingProtobufServers = servers;
   }
 #endif
 
@@ -657,6 +680,7 @@ public:
   static std::atomic<uint64_t> s_outgoing6timeouts;
   static std::atomic<uint64_t> s_throttledqueries;
   static std::atomic<uint64_t> s_dontqueries;
+  static std::atomic<uint64_t> s_authzonequeries;
   static std::atomic<uint64_t> s_outqueries;
   static std::atomic<uint64_t> s_tcpoutqueries;
   static std::atomic<uint64_t> s_nodelegated;
@@ -685,18 +709,21 @@ public:
 
   std::unordered_map<std::string,bool> d_discardedPolicies;
   DNSFilterEngine::Policy d_appliedPolicy;
+  unsigned int d_authzonequeries;
   unsigned int d_outqueries;
   unsigned int d_tcpoutqueries;
   unsigned int d_throttledqueries;
   unsigned int d_timeouts;
   unsigned int d_unreachables;
   unsigned int d_totUsec;
-  ComboAddress d_requestor;
 
 private:
+  ComboAddress d_requestor;
+  ComboAddress d_cacheRemote;
 
   static std::unordered_set<DNSName> s_delegationOnly;
-  static NetmaskGroup s_ednssubnets;
+  static NetmaskGroup s_ednslocalsubnets;
+  static NetmaskGroup s_ednsremotesubnets;
   static SuffixMatchNode s_ednsdomains;
   static EDNSSubnetOpts s_ecsScopeZero;
   static LogMode s_lm;
@@ -722,40 +749,42 @@ private:
   bool processAnswer(unsigned int depth, LWResult& lwr, const DNSName& qname, const QType& qtype, DNSName& auth, bool wasForwarded, const boost::optional<Netmask> ednsmask, bool sendRDQuery, NsSet &nameservers, std::vector<DNSRecord>& ret, const DNSFilterEngine& dfe, bool* gotNewServers, int* rcode, vState& state);
 
   int doResolve(const DNSName &qname, const QType &qtype, vector<DNSRecord>&ret, unsigned int depth, set<GetBestNSAnswer>& beenthere, vState& state);
-  bool doOOBResolve(const AuthDomain& domain, const DNSName &qname, const QType &qtype, vector<DNSRecord>&ret, int& res) const;
+  bool doOOBResolve(const AuthDomain& domain, const DNSName &qname, const QType &qtype, vector<DNSRecord>&ret, int& res);
   bool doOOBResolve(const DNSName &qname, const QType &qtype, vector<DNSRecord>&ret, unsigned int depth, int &res);
   domainmap_t::const_iterator getBestAuthZone(DNSName* qname) const;
-  bool doCNAMECacheCheck(const DNSName &qname, const QType &qtype, vector<DNSRecord>&ret, unsigned int depth, int &res, vState& state);
-  bool doCacheCheck(const DNSName &qname, const QType &qtype, vector<DNSRecord>&ret, unsigned int depth, int &res, vState& state);
+  bool doCNAMECacheCheck(const DNSName &qname, const QType &qtype, vector<DNSRecord>&ret, unsigned int depth, int &res, vState& state, bool wasAuthZone, bool wasForwardRecurse);
+  bool doCacheCheck(const DNSName &qname, const DNSName& authname, bool wasForwardedOrAuthZone, bool wasAuthZone, bool wasForwardRecurse, const QType &qtype, vector<DNSRecord>&ret, unsigned int depth, int &res, vState& state);
   void getBestNSFromCache(const DNSName &qname, const QType &qtype, vector<DNSRecord>&bestns, bool* flawedNSSet, unsigned int depth, set<GetBestNSAnswer>& beenthere);
   DNSName getBestNSNamesFromCache(const DNSName &qname, const QType &qtype, NsSet& nsset, bool* flawedNSSet, unsigned int depth, set<GetBestNSAnswer>&beenthere);
 
   inline vector<DNSName> shuffleInSpeedOrder(NsSet &nameservers, const string &prefix);
+  inline vector<ComboAddress> shuffleForwardSpeed(const vector<ComboAddress> &rnameservers, const string &prefix, const bool wasRd);
   bool moreSpecificThan(const DNSName& a, const DNSName &b) const;
-  vector<ComboAddress> getAddrs(const DNSName &qname, unsigned int depth, set<GetBestNSAnswer>& beenthere);
+  vector<ComboAddress> getAddrs(const DNSName &qname, unsigned int depth, set<GetBestNSAnswer>& beenthere, bool cacheOnly);
 
   bool nameserversBlockedByRPZ(const DNSFilterEngine& dfe, const NsSet& nameservers);
   bool nameserverIPBlockedByRPZ(const DNSFilterEngine& dfe, const ComboAddress&);
   bool throttledOrBlocked(const std::string& prefix, const ComboAddress& remoteIP, const DNSName& qname, const QType& qtype, bool pierceDontQuery);
 
-  vector<ComboAddress> retrieveAddressesForNS(const std::string& prefix, const DNSName& qname, vector<DNSName >::const_iterator& tns, const unsigned int depth, set<GetBestNSAnswer>& beenthere, const vector<DNSName >& rnameservers, NsSet& nameservers, bool& sendRDQuery, bool& pierceDontQuery, bool& flawedNSSet);
-  RCode::rcodes_ updateCacheFromRecords(unsigned int depth, LWResult& lwr, const DNSName& qname, const QType& qtype, const DNSName& auth, bool wasForwarded, const boost::optional<Netmask>, vState& state, bool& needWildcardProof);
-  bool processRecords(const std::string& prefix, const DNSName& qname, const QType& qtype, const DNSName& auth, LWResult& lwr, const bool sendRDQuery, vector<DNSRecord>& ret, set<DNSName>& nsset, DNSName& newtarget, DNSName& newauth, bool& realreferral, bool& negindic, vState& state, bool needWildcardProof);
+  vector<ComboAddress> retrieveAddressesForNS(const std::string& prefix, const DNSName& qname, vector<DNSName >::const_iterator& tns, const unsigned int depth, set<GetBestNSAnswer>& beenthere, const vector<DNSName >& rnameservers, NsSet& nameservers, bool& sendRDQuery, bool& pierceDontQuery, bool& flawedNSSet, bool cacheOnly);
+  RCode::rcodes_ updateCacheFromRecords(unsigned int depth, LWResult& lwr, const DNSName& qname, const QType& qtype, const DNSName& auth, bool wasForwarded, const boost::optional<Netmask>, vState& state, bool& needWildcardProof, unsigned int& wildcardLabelsCount, bool rdQuery);
+  bool processRecords(const std::string& prefix, const DNSName& qname, const QType& qtype, const DNSName& auth, LWResult& lwr, const bool sendRDQuery, vector<DNSRecord>& ret, set<DNSName>& nsset, DNSName& newtarget, DNSName& newauth, bool& realreferral, bool& negindic, vState& state, const bool needWildcardProof, const unsigned int wildcardLabelsCount);
 
   bool doSpecialNamesResolve(const DNSName &qname, const QType &qtype, const uint16_t qclass, vector<DNSRecord> &ret);
 
-  int asyncresolveWrapper(const ComboAddress& ip, bool ednsMANDATORY, const DNSName& domain, int type, bool doTCP, bool sendRDQuery, struct timeval* now, boost::optional<Netmask>& srcmask, LWResult* res) const;
+  int asyncresolveWrapper(const ComboAddress& ip, bool ednsMANDATORY, const DNSName& domain, int type, bool doTCP, bool sendRDQuery, struct timeval* now, boost::optional<Netmask>& srcmask, LWResult* res, bool* chained) const;
 
-  boost::optional<Netmask> getEDNSSubnetMask(const ComboAddress& local, const DNSName&dn, const ComboAddress& rem);
+  boost::optional<Netmask> getEDNSSubnetMask(const DNSName&dn, const ComboAddress& rem);
 
   bool validationEnabled() const;
   uint32_t computeLowestTTD(const std::vector<DNSRecord>& records, const std::vector<std::shared_ptr<RRSIGRecordContent> >& signatures, uint32_t signaturesTTL) const;
   void updateValidationState(vState& state, const vState stateUpdate);
   vState validateRecordsWithSigs(unsigned int depth, const DNSName& qname, const QType& qtype, const DNSName& name, const std::vector<DNSRecord>& records, const std::vector<std::shared_ptr<RRSIGRecordContent> >& signatures);
   vState validateDNSKeys(const DNSName& zone, const std::vector<DNSRecord>& dnskeys, const std::vector<std::shared_ptr<RRSIGRecordContent> >& signatures, unsigned int depth);
-  vState getDSRecords(const DNSName& zone, dsmap_t& ds, bool onlyTA, unsigned int depth, bool bogusOnNXD=true, bool* foundCut=nullptr);
   vState getDNSKeys(const DNSName& signer, skeyset_t& keys, unsigned int depth);
-  void getDenialValidationState(NegCache::NegCacheEntry& ne, vState& state, const dState expectedState, bool allowOptOut, bool referralToUnsigned);
+  dState getDenialValidationState(const NegCache::NegCacheEntry& ne, const vState state, const dState expectedState, bool referralToUnsigned);
+  void updateDenialValidationState(vState& neValidationState, const DNSName& neName, vState& state, const dState denialState, const dState expectedState, bool allowOptOut);
+  void computeNegCacheValidationStatus(const NegCache::NegCacheEntry* ne, const DNSName& qname, const QType& qtype, const int res, vState& state, unsigned int depth);
   vState getTA(const DNSName& zone, dsmap_t& ds);
   bool haveExactValidationStatus(const DNSName& domain);
   vState getValidationStatus(const DNSName& subdomain, bool allowIndeterminate=true);
@@ -771,8 +800,8 @@ private:
   zonesStates_t d_cutStates;
   ostringstream d_trace;
   shared_ptr<RecursorLua4> d_pdl;
-  boost::optional<EDNSSubnetOpts> d_incomingECS;
-  ComboAddress d_incomingECSNetwork;
+  boost::optional<Netmask> d_outgoingECSNetwork;
+  std::shared_ptr<std::vector<std::unique_ptr<RemoteLogger>>> d_outgoingProtobufServers{nullptr};
 #ifdef HAVE_PROTOBUF
   boost::optional<const boost::uuids::uuid&> d_initialRequestId;
 #endif
@@ -788,7 +817,6 @@ private:
   bool d_doDNSSEC;
   bool d_DNSSECValidationRequested{false};
   bool d_doEDNS0{true};
-  bool d_incomingECSFound{false};
   bool d_requireAuthData{true};
   bool d_skipCNAMECheck{false};
   bool d_updatingRootNS{false};
@@ -809,7 +837,7 @@ struct PacketID
 {
   PacketID() : id(0), type(0), sock(0), inNeeded(0), inIncompleteOkay(false), outPos(0), nearMisses(0), fd(-1)
   {
-    memset(&remote, 0, sizeof(remote));
+    remote.reset();
   }
 
   uint16_t id;  // wait for a specific id/remote pair
@@ -870,7 +898,9 @@ struct RecursorStats
   std::atomic<uint64_t> answers0_1, answers1_10, answers10_100, answers100_1000, answersSlow;
   std::atomic<uint64_t> auth4Answers0_1, auth4Answers1_10, auth4Answers10_100, auth4Answers100_1000, auth4AnswersSlow;
   std::atomic<uint64_t> auth6Answers0_1, auth6Answers1_10, auth6Answers10_100, auth6Answers100_1000, auth6AnswersSlow;
-  double avgLatencyUsec;
+  std::atomic<uint64_t> ourtime0_1, ourtime1_2, ourtime2_4, ourtime4_8, ourtime8_16, ourtime16_32, ourtimeSlow;
+  double avgLatencyUsec{0};
+  double avgLatencyOursUsec{0};
   std::atomic<uint64_t> qcounter;     // not increased for unauth packets
   std::atomic<uint64_t> ipv6qcounter;
   std::atomic<uint64_t> tcpqcounter;
@@ -881,6 +911,8 @@ struct RecursorStats
   std::atomic<uint64_t> clientParseError;
   std::atomic<uint64_t> serverParseError;
   std::atomic<uint64_t> tooOldDrops;
+  std::atomic<uint64_t> truncatedDrops;
+  std::atomic<uint64_t> queryPipeFullDrops;
   std::atomic<uint64_t> unexpectedCount;
   std::atomic<uint64_t> caseMismatchCount;
   std::atomic<uint64_t> spoofCount;
@@ -895,8 +927,12 @@ struct RecursorStats
   std::atomic<uint64_t> packetCacheHits;
   std::atomic<uint64_t> noPacketError;
   std::atomic<uint64_t> ignoredCount;
+  std::atomic<uint64_t> emptyQueriesCount;
   time_t startupTime;
   std::atomic<uint64_t> dnssecQueries;
+  std::atomic<uint64_t> dnssecAuthenticDataQueries;
+  std::atomic<uint64_t> dnssecCheckDisabledQueries;
+  std::atomic<uint64_t> variableResponses;
   unsigned int maxMThreadStackUsage;
   std::atomic<uint64_t> dnssecValidations; // should be the sum of all dnssecResult* stats
   std::map<vState, std::atomic<uint64_t> > dnssecResults;
@@ -914,12 +950,13 @@ public:
   {
     return d_fd;
   }
+
+  std::string data;
+  const ComboAddress d_remote;
+  size_t queriesCount{0};
   enum stateenum {BYTE0, BYTE1, GETQUESTION, DONE} state{BYTE0};
   uint16_t qlen{0};
   uint16_t bytesread{0};
-  const ComboAddress d_remote;
-  char data[65535]; // damn
-  size_t queriesCount{0};
 
   static unsigned int getCurrentConnections() { return s_currentConnections; }
 private:
@@ -930,39 +967,37 @@ private:
 class ImmediateServFailException
 {
 public:
-  ImmediateServFailException(string r){reason=r;};
+  ImmediateServFailException(string r) : reason(r) {};
 
   string reason; //! Print this to tell the user what went wrong
 };
 
-#if (__GNUC__ == 4 && __GNUC_MINOR__ == 2)
-typedef boost::circular_buffer<SComboAddress> addrringbuf_t;
-#else
 typedef boost::circular_buffer<ComboAddress> addrringbuf_t;
-#endif
-extern thread_local std::unique_ptr<addrringbuf_t> t_servfailremotes, t_largeanswerremotes, t_remotes;
+extern thread_local std::unique_ptr<addrringbuf_t> t_servfailremotes, t_largeanswerremotes, t_remotes, t_bogusremotes, t_timeouts;
 
-extern thread_local std::unique_ptr<boost::circular_buffer<pair<DNSName,uint16_t> > > t_queryring, t_servfailqueryring;
+extern thread_local std::unique_ptr<boost::circular_buffer<pair<DNSName,uint16_t> > > t_queryring, t_servfailqueryring, t_bogusqueryring;
 extern thread_local std::shared_ptr<NetmaskGroup> t_allowFrom;
 string doQueueReloadLuaScript(vector<string>::const_iterator begin, vector<string>::const_iterator end);
 string doTraceRegex(vector<string>::const_iterator begin, vector<string>::const_iterator end);
 void parseACLs();
 extern RecursorStats g_stats;
+extern unsigned int g_networkTimeoutMsec;
 extern unsigned int g_numThreads;
 extern uint16_t g_outgoingEDNSBufsize;
 extern std::atomic<uint32_t> g_maxCacheEntries, g_maxPacketCacheEntries;
+extern bool g_lowercaseOutgoing;
 
 
 std::string reloadAuthAndForwards();
 ComboAddress parseIPAndPort(const std::string& input, uint16_t port);
 ComboAddress getQueryLocalAddress(int family, uint16_t port);
 typedef boost::function<void*(void)> pipefunc_t;
-void broadcastFunction(const pipefunc_t& func, bool skipSelf = false);
+void broadcastFunction(const pipefunc_t& func);
 void distributeAsyncFunction(const std::string& question, const pipefunc_t& func);
 
 int directResolve(const DNSName& qname, const QType& qtype, int qclass, vector<DNSRecord>& ret);
 
-template<class T> T broadcastAccFunction(const boost::function<T*()>& func, bool skipSelf=false);
+template<class T> T broadcastAccFunction(const boost::function<T*()>& func);
 
 std::shared_ptr<SyncRes::domainmap_t> parseAuthAndForwards();
 uint64_t* pleaseGetNsSpeedsSize();

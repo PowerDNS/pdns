@@ -1,8 +1,6 @@
 dnsbulktest
 ===========
 
-:program:`dnsbulktest` - A debugging tool for intermittent resolver failures
-
 Synopsis
 --------
 

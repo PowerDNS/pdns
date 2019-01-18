@@ -24,11 +24,13 @@
 /dnsdemog
 /dnsdist
 /dnsgram
+/dnspcap2calidns
 /dnspcap2protobuf
 /dnsscan
 /dnsscope
 /dnstcpbench
 /dnswasher
+/ixfrdist
 /ixplore
 /kvresp
 /pdns_notify
@@ -57,7 +59,10 @@ version_generated.h
 effective_tld_names.dat
 /dnsmessage.pb.cc
 /dnsmessage.pb.h
-/pdns.service
-/pdns@.service
+/*.service
 /pdns.conf-dist
 /stubquery
+/fuzz_target_dnsdistcache
+/fuzz_target_moadnsparser
+/fuzz_target_packetcache
+/fuzz_target_zoneparsertng

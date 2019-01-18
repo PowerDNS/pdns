@@ -33,6 +33,10 @@
 #include "dnspacket.hh"
 #include "dns.hh"
 
+// this has to be somewhere central, and not in a file that requires Lua
+// this is so the geoipbackend can set this pointer if loaded for lua-record.cc
+std::function<std::string(const std::string&, int)> g_getGeo;
+
 bool DNSBackend::getAuth(const DNSName &target, SOAData *sd)
 {
   return this->getSOA(target, *sd);
@@ -96,7 +100,7 @@ void BackendMakerClass::load_all()
   // TODO: Implement this?
   DIR *dir=opendir(arg()["module-dir"].c_str());
   if(!dir) {
-    L<<Logger::Error<<"Unable to open module directory '"<<arg()["module-dir"]<<"'"<<endl;
+    g_log<<Logger::Error<<"Unable to open module directory '"<<arg()["module-dir"]<<"'"<<endl;
     return;
   }
   struct dirent *entry;
@@ -121,7 +125,7 @@ void BackendMakerClass::load(const string &module)
     res=UeberBackend::loadmodule(arg()["module-dir"]+"/"+module);
 
   if(res==false) {
-    L<<Logger::Error<<"DNSBackend unable to load module in "<<module<<endl;
+    g_log<<Logger::Error<<"DNSBackend unable to load module in "<<module<<endl;
     exit(1);
   }
 }
@@ -184,14 +188,14 @@ vector<DNSBackend *>BackendMakerClass::all(bool metadataOnly)
     }
   }
   catch(PDNSException &ae) {
-    L<<Logger::Error<<"Caught an exception instantiating a backend: "<<ae.reason<<endl;
-    L<<Logger::Error<<"Cleaning up"<<endl;
+    g_log<<Logger::Error<<"Caught an exception instantiating a backend: "<<ae.reason<<endl;
+    g_log<<Logger::Error<<"Cleaning up"<<endl;
     for(vector<DNSBackend *>::const_iterator i=ret.begin();i!=ret.end();++i)
       delete *i;
     throw;
   } catch(...) {
     // and cleanup
-    L<<Logger::Error<<"Caught an exception instantiating a backend, cleaning up"<<endl;
+    g_log<<Logger::Error<<"Caught an exception instantiating a backend, cleaning up"<<endl;
     for(vector<DNSBackend *>::const_iterator i=ret.begin();i!=ret.end();++i)
       delete *i;
     throw;
@@ -213,6 +217,7 @@ vector<DNSBackend *>BackendMakerClass::all(bool metadataOnly)
 
     \param domain Domain we want to get the SOA details of
     \param sd SOAData which is filled with the SOA details
+    \param unmodifiedSerial bool if set, serial will be returned as stored in the backend (maybe 0)
 */
 bool DNSBackend::getSOA(const DNSName &domain, SOAData &sd)
 {
@@ -229,7 +234,6 @@ bool DNSBackend::getSOA(const DNSName &domain, SOAData &sd)
     fillSOAData(rr.content, sd);
     sd.domain_id=rr.domain_id;
     sd.ttl=rr.ttl;
-    sd.scopeMask = rr.scopeMask;
   }
 
   if(!hits)
@@ -247,18 +251,6 @@ bool DNSBackend::getSOA(const DNSName &domain, SOAData &sd)
       sd.hostmaster=DNSName("hostmaster")+domain;
   }
 
-  if(!sd.serial) { // magic time!
-    DLOG(L<<Logger::Warning<<"Doing SOA serial number autocalculation for "<<rr.qname<<endl);
-
-    time_t serial;
-    if (calculateSOASerial(domain, sd, serial)) {
-      sd.serial = serial;
-      //DLOG(L<<"autocalculated soa serialnumber for "<<rr.qname<<" is "<<newest<<endl);
-    } else {
-      DLOG(L<<"soa serialnumber calculation failed for "<<rr.qname<<endl);
-    }
-
-  }
   sd.db=this;
   return true;
 }
@@ -319,38 +311,6 @@ bool DNSBackend::getBeforeAndAfterNames(uint32_t id, const DNSName& zonename, co
   return ret;
 }
 
-/**
- * Calculates a SOA serial for the zone and stores it in the third
- * argument. Returns false if calculation is not possible for some
- * reason (in this case, the third argument is not inspected). If it
- * returns true, the value returned in the third argument will be set
- * as the SOA serial.
- *
- * \param domain The name of the domain
- * \param sd Information about the SOA record already available
- * \param serial Output parameter. Only inspected when we return true
- */
-bool DNSBackend::calculateSOASerial(const DNSName& domain, const SOAData& sd, time_t& serial)
-{
-    // we do this by listing the domain and taking the maximum last modified timestamp
-
-    DNSResourceRecord i;
-    time_t newest=0;
-
-    if(!(this->list(domain, sd.domain_id))) {
-      DLOG(L<<Logger::Warning<<"Backend error trying to determine magic serial number of zone '"<<domain<<"'"<<endl);
-      return false;
-    }
-
-    while(this->get(i)) {
-      if(i.last_modified>newest)
-        newest=i.last_modified;
-    }
-
-    serial=newest;
-
-    return true;
-}
 void fillSOAData(const DNSZoneRecord& in, SOAData& sd)
 {
   sd.domain_id = in.domain_id;
@@ -415,13 +375,4 @@ void fillSOAData(const string &content, SOAData &data)
   catch(const std::out_of_range& oor) {
     throw PDNSException("Out of range exception parsing "+content);
   }
-}
-
-string serializeSOAData(const SOAData &d)
-{
-  ostringstream o;
-  //  nameservername hostmaster serial-number [refresh [retry [expire [ minimum] ] ] ]
-  o<<d.nameserver.toString()<<" "<< d.hostmaster.toString() <<" "<< d.serial <<" "<< d.refresh << " "<< d.retry << " "<< d.expire << " "<< d.default_ttl;
-
-  return o.str();
 }

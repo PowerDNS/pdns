@@ -1,7 +1,7 @@
 AC_PREREQ([2.61])
 
 AC_INIT([dnsdist], m4_esyscmd(build-aux/gen-version))
-AM_INIT_AUTOMAKE([foreign dist-bzip2 parallel-tests 1.11 subdir-objects])
+AM_INIT_AUTOMAKE([foreign dist-bzip2 no-dist-gzip parallel-tests 1.11 subdir-objects])
 AM_SILENT_RULES([yes])
 AC_CONFIG_MACRO_DIR([m4])
 AC_CONFIG_HEADERS([config.h])
@@ -10,34 +10,37 @@ AC_PROG_CXX
 AC_LANG([C++])
 AC_GNU_SOURCE
 
+AC_DEFINE([DNSDIST], [1],
+  [This is dnsdist]
+)
+
 LT_PREREQ([2.2.2])
 LT_INIT([disable-static])
 
-PDNS_CHECK_LIBSODIUM
-DNSDIST_CHECK_RAGEL
+PDNS_WITH_LIBSODIUM
+PDNS_CHECK_DNSTAP
+PDNS_CHECK_RAGEL([dnslabeltext.cc], [www.dnsdist.org])
 PDNS_CHECK_LIBEDIT
 PDNS_CHECK_CLOCK_GETTIME
 
 PDNS_CHECK_OS
+PTHREAD_SET_NAME
 PDNS_CHECK_NETWORK_LIBS
 PDNS_CHECK_PTHREAD_NP
+PDNS_CHECK_SECURE_MEMSET
 
-boost_required_version=1.35
 
 PDNS_WITH_PROTOBUF
-AS_IF([test "x$PROTOBUF_LIBS" != "x" -a x"$PROTOC" != "x"],
-  # The protobuf code needs boost::uuid, which is available from 1.42 onward
-  [AC_MSG_WARN([Bumping minimal Boost requirement to 1.42. To keep the requirement at 1.35, disable protobuf support])
-  boost_required_version=1.42]
-)
 
+boost_required_version=1.42
 BOOST_REQUIRE([$boost_required_version])
 
 PDNS_ENABLE_UNIT_TESTS
-PDNS_CHECK_RE2
+PDNS_WITH_RE2
 DNSDIST_ENABLE_DNSCRYPT
 PDNS_WITH_EBPF
 PDNS_WITH_NET_SNMP
+PDNS_WITH_LIBCAP
 
 AX_AVAILABLE_SYSTEMD
 AM_CONDITIONAL([HAVE_SYSTEMD], [ test x"$systemd" = "xy" ])
@@ -45,14 +48,21 @@ AM_CONDITIONAL([HAVE_SYSTEMD], [ test x"$systemd" = "xy" ])
 AC_SUBST([YAHTTP_CFLAGS], ['-I$(top_srcdir)/ext/yahttp'])
 AC_SUBST([YAHTTP_LIBS], ['$(top_builddir)/ext/yahttp/yahttp/libyahttp.la'])
 
-PDNS_WITH_LUAJIT
-AS_IF([test "x$with_luajit" = "xno"], [
-  PDNS_WITH_LUA
-])
-AS_IF([test "x$LUAPC" = "x" -a "x$LUAJITPC" = "x"], [
-  AC_MSG_ERROR([Neither Lua nor LuaJIT found, Lua support is not optional])
-])
+PDNS_WITH_LUA([mandatory])
 PDNS_CHECK_LUA_HPP
+
+DNSDIST_ENABLE_DNS_OVER_TLS
+DNSDIST_WITH_GNUTLS
+DNSDIST_WITH_LIBSSL
+AS_IF([test "x$enable_dns_over_tls" != "xno"], [
+  AS_IF([test "$HAVE_LIBSSL" = "1"], [
+    # we need libcrypto if libssl is enabled
+    PDNS_CHECK_LIBCRYPTO
+  ])
+  AS_IF([test "$HAVE_GNUTLS" = "0" -a "$HAVE_LIBSSL" = "0"], [
+    AC_MSG_ERROR([DNS over TLS support requested but neither GnuTLS nor OpenSSL are available])
+  ])
+])
 
 AX_CXX_COMPILE_STDCXX_11([ext], [mandatory])
 
@@ -87,6 +97,11 @@ AC_SUBST([AM_CPPFLAGS],
   ["AS_ESCAPE([-I$(top_builddir) -I$(top_srcdir)]) -Wall -O3 -pthread $BOOST_CPPFLAGS"]
 )
 
+AC_ARG_VAR(PACKAGEVERSION, [The version used in secpoll queries])
+AS_IF([test "x$PACKAGEVERSION" != "x"],
+  [AC_DEFINE_UNQUOTED([PACKAGEVERSION], "$PACKAGEVERSION", [Set to the package version used for secpoll])]
+)
+
 AC_CONFIG_FILES([Makefile
 	ext/yahttp/Makefile
 	ext/yahttp/yahttp/Makefile])
@@ -115,12 +130,7 @@ AC_MSG_NOTICE([BOOST_CPPFLAGS: $BOOST_CPPFLAGS])
 AC_MSG_NOTICE([])
 AC_MSG_NOTICE([Features enabled])
 AC_MSG_NOTICE([----------------])
-AS_IF([test "x$LUAPC" != "x"],
-  [AC_MSG_NOTICE([Lua: $LUAPC])],
-  [AS_IF([test "x$LUAJITPC" != "x"],
-    [AC_MSG_NOTICE([LuaJit: $LUAJITPC])],
-    [AC_MSG_NOTICE([Lua/LuaJit: no])])
-])
+AC_MSG_NOTICE([Lua: $LUAPC])
 AS_IF([test "x$PROTOBUF_LIBS" != "x" -a x"$PROTOC" != "x"],
   [AC_MSG_NOTICE([Protobuf: yes])],
   [AC_MSG_NOTICE([Protobuf: no])]
@@ -137,6 +147,10 @@ AS_IF([test "x$enable_dnscrypt" != "xno"],
   [AC_MSG_NOTICE([DNSCrypt: yes])],
   [AC_MSG_NOTICE([DNSCrypt: no])]
 )
+AS_IF([test "x$FSTRM_LIBS" != "x"],
+  [AC_MSG_NOTICE([dnstap: yes])],
+  [AC_MSG_NOTICE([dnstap: no])]
+)
 AS_IF([test "x$RE2_LIBS" != "x"],
   [AC_MSG_NOTICE([re2: yes])],
   [AC_MSG_NOTICE([re2: no])]
@@ -144,5 +158,17 @@ AS_IF([test "x$RE2_LIBS" != "x"],
 AS_IF([test "x$NET_SNMP_LIBS" != "x"],
   [AC_MSG_NOTICE([SNMP: yes])],
   [AC_MSG_NOTICE([SNMP: no])]
+)
+AS_IF([test "x$enable_dns_over_tls" != "xno"],
+  [AC_MSG_NOTICE([DNS over TLS: yes])],
+  [AC_MSG_NOTICE([DNS over TLS: no])]
+)
+AS_IF([test "x$GNUTLS_LIBS" != "x"],
+  [AC_MSG_NOTICE([GnuTLS: yes])],
+  [AC_MSG_NOTICE([GnuTLS: no])]
+)
+AS_IF([test "x$LIBSSL_LIBS" != "x"],
+  [AC_MSG_NOTICE([OpenSSL: yes])],
+  [AC_MSG_NOTICE([OpenSSL: no])]
 )
 AC_MSG_NOTICE([])

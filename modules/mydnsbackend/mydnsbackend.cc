@@ -75,7 +75,7 @@ MyDNSBackend::MyDNSBackend(const string &suffix) {
     d_db->setLog(::arg().mustDo("query-logging"));
   }
   catch(SSqlException &e) {
-    L<<Logger::Error<<backendName<<" Connection failed: "<<e.txtReason()<<endl;
+    g_log<<Logger::Error<<backendName<<" Connection failed: "<<e.txtReason()<<endl;
     throw PDNSException(backendName+"Unable to launch connection: "+e.txtReason());
   }
 
@@ -90,7 +90,7 @@ MyDNSBackend::MyDNSBackend(const string &suffix) {
   d_useminimalttl=mustDo("use-minimal-ttl");
   d_minimum=0;
 
-  L<<Logger::Warning<<backendName<<" Connection successful"<<endl;
+  g_log<<Logger::Warning<<backendName<<" Connection successful"<<endl;
 
   try {
 
@@ -135,7 +135,7 @@ MyDNSBackend::MyDNSBackend(const string &suffix) {
     d_basicQuery_stmt = d_db->prepare(basicQuery, 4);
     d_anyQuery_stmt = d_db->prepare(anyQuery, 5);
   } catch (SSqlException &e) {
-    L<<Logger::Error<<"Cannot prepare statements: " << e.txtReason() <<endl;
+    g_log<<Logger::Error<<"Cannot prepare statements: " << e.txtReason() <<endl;
     throw PDNSException("Cannot prepare statements: " + e.txtReason());
   }
   // keeps static analyzers happy
@@ -179,7 +179,7 @@ bool MyDNSBackend::list(const DNSName &target, int zoneId, bool include_disabled
   d_minimum = pdns_stou(d_result[0][1]);
 
   if (d_result.size()>1) {
-    L<<Logger::Warning<<backendName<<" Found more than one matching origin for zone ID: "<<zoneId<<endl;
+    g_log<<Logger::Warning<<backendName<<" Found more than one matching origin for zone ID: "<<zoneId<<endl;
   };
 
   try {
@@ -211,7 +211,7 @@ bool MyDNSBackend::getSOA(const DNSName& name, SOAData& soadata) {
       reset();
   }
   catch (SSqlException &e) {
-    throw PDNSException("MyDNSBackend unable to get soa for domain "+name.toString()+": "+e.txtReason());
+    throw PDNSException("MyDNSBackend unable to get soa for domain "+name.toLogString()+": "+e.txtReason());
   }
 
   if (d_result.empty()) {
@@ -236,7 +236,7 @@ bool MyDNSBackend::getSOA(const DNSName& name, SOAData& soadata) {
   soadata.db = this;
 
   if (d_result.size()>1) {
-    L<<Logger::Warning<<backendName<<" Found more than one matching zone for: "<<name<<endl;
+    g_log<<Logger::Warning<<backendName<<" Found more than one matching zone for: "<<name<<endl;
   };
 
   return true;
@@ -253,7 +253,7 @@ void MyDNSBackend::lookup(const QType &qtype, const DNSName &qname, DNSPacket *p
     return;
   }
 
-  DLOG(L<<Logger::Debug<<"MyDNSBackend::lookup(" << qtype.getName() << "," << qname << ",p," << zoneId << ")" << endl);
+  DLOG(g_log<<Logger::Debug<<"MyDNSBackend::lookup(" << qtype.getName() << "," << qname << ",p," << zoneId << ")" << endl);
 
   if (zoneId < 0) {
     // First off we need to work out what zone we're working with
@@ -269,7 +269,7 @@ void MyDNSBackend::lookup(const QType &qtype, const DNSName &qname, DNSPacket *p
           reset();
       }
       catch (SSqlException &e) {
-        throw PDNSException("MyDNSBackend unable to lookup "+qname.toString()+": "+e.txtReason());
+        throw PDNSException("MyDNSBackend unable to lookup "+qname.toLogString()+": "+e.txtReason());
       }
 
       if (d_result.empty() == false) {
@@ -292,7 +292,7 @@ void MyDNSBackend::lookup(const QType &qtype, const DNSName &qname, DNSPacket *p
         reset();
     }
     catch (SSqlException &e) {
-      throw PDNSException("MyDNSBackend unable to lookup "+qname.toString()+": "+e.txtReason());
+      throw PDNSException("MyDNSBackend unable to lookup "+qname.toLogString()+": "+e.txtReason());
     }
 
     if(d_result.empty()) {
@@ -309,7 +309,7 @@ void MyDNSBackend::lookup(const QType &qtype, const DNSName &qname, DNSPacket *p
   if (found) {
 
     while (d_result.size()>1) {
-      L<<Logger::Warning<<backendName<<" Found more than one matching zone for: "+d_origin<<endl;
+      g_log<<Logger::Warning<<backendName<<" Found more than one matching zone for: "+d_origin<<endl;
     };
     // We found the zoneId, so we can work out how to find our rr
     string host;
@@ -321,7 +321,7 @@ void MyDNSBackend::lookup(const QType &qtype, const DNSName &qname, DNSPacket *p
     try {
 
       if (qtype.getCode()==QType::ANY) {
-        DLOG(L<<Logger::Debug<<"Running d_anyQuery_stmt with " << zoneId << ", " << host << ", " << sdom  << ", " << zoneId <<" , "<< qname << ", " << qtype.getName() << endl);
+        DLOG(g_log<<Logger::Debug<<"Running d_anyQuery_stmt with " << zoneId << ", " << host << ", " << sdom  << ", " << zoneId <<" , "<< qname << ", " << qtype.getName() << endl);
         d_query_stmt = &d_anyQuery_stmt;
         (*d_query_stmt)->
           bind("domain_id", zoneId)->
@@ -331,7 +331,7 @@ void MyDNSBackend::lookup(const QType &qtype, const DNSName &qname, DNSPacket *p
           bind("qname2", sdom.toString())->
           execute();
       } else {
-        DLOG(L<<Logger::Debug<<"Running d_basicQuery_stmt with " << zoneId << ", " << host << ", " << qname << ", " << qtype.getName() << endl);
+        DLOG(g_log<<Logger::Debug<<"Running d_basicQuery_stmt with " << zoneId << ", " << host << ", " << qname << ", " << qtype.getName() << endl);
         d_query_stmt = &d_basicQuery_stmt;
         (*d_query_stmt)->
           bind("domain_id", zoneId)->
@@ -342,7 +342,7 @@ void MyDNSBackend::lookup(const QType &qtype, const DNSName &qname, DNSPacket *p
       }
     }
     catch (SSqlException &e) {
-      throw PDNSException("MyDNSBackend unable to lookup "+qname.toString()+": "+e.txtReason());
+      throw PDNSException("MyDNSBackend unable to lookup "+qname.toLogString()+": "+e.txtReason());
     }
 
     d_qname = qname.toString();
@@ -489,7 +489,7 @@ class MyDNSLoader {
 public:
   MyDNSLoader() {
     BackendMakers().report(new MyDNSFactory());
-    L << Logger::Info << "[mydnsbackend] This is the mydns backend version " VERSION
+    g_log << Logger::Info << "[mydnsbackend] This is the mydns backend version " VERSION
 #ifndef REPRODUCIBLE
       << " (" __DATE__ " " __TIME__ ")"
 #endif

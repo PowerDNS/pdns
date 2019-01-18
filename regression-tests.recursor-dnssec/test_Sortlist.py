@@ -18,7 +18,7 @@ class testSortlist(RecursorTest):
 
         res = self.sendUDPQuery(msg, fwparams=dict(one_rr_per_rrset=True))
 
-        self.assertMessageHasFlags(res, ['QR', 'RA', 'RD'], ['DO'])
+        self.assertMessageHasFlags(res, ['QR', 'RA', 'RD'], [])
         self.assertRcodeEqual(res, dns.rcode.NOERROR)
 
         indexCNAME = -1

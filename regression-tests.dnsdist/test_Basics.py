@@ -142,6 +142,48 @@ class TestBasics(DNSDistTest):
 
         response.answer.append(rrset)
         response.flags |= dns.flags.TC
+        expectedResponse = dns.message.make_response(query)
+        expectedResponse.flags |= dns.flags.TC
+
+        (receivedQuery, receivedResponse) = self.sendUDPQuery(query, response)
+        receivedQuery.id = query.id
+        self.assertEquals(query, receivedQuery)
+        self.assertEquals(expectedResponse.flags, receivedResponse.flags)
+        self.assertEquals(expectedResponse.question, receivedResponse.question)
+        self.assertFalse(response.answer == receivedResponse.answer)
+        self.assertEquals(len(receivedResponse.answer), 0)
+        self.assertEquals(len(receivedResponse.authority), 0)
+        self.assertEquals(len(receivedResponse.additional), 0)
+        self.checkMessageNoEDNS(expectedResponse, receivedResponse)
+
+    def testTruncateTCEDNS(self):
+        """
+        Basics: Truncate TC with EDNS
+
+        dnsdist is configured to truncate TC (default),
+        we make the backend send responses
+        with TC set and additional content,
+        and check that the received response has been fixed.
+        Note that the query and initial response had EDNS,
+        so the final response should have it too.
+        """
+        name = 'atruncatetc.tests.powerdns.com.'
+        query = dns.message.make_query(name, 'A', 'IN', use_edns=True, payload=4096, want_dnssec=True)
+        response = dns.message.make_response(query)
+        # force a different responder payload than the one in the query,
+        # so we check that we don't just mirror it
+        response.payload = 4242
+        rrset = dns.rrset.from_text(name,
+                                    3600,
+                                    dns.rdataclass.IN,
+                                    dns.rdatatype.A,
+                                    '127.0.0.1')
+
+        response.answer.append(rrset)
+        response.flags |= dns.flags.TC
+        expectedResponse = dns.message.make_response(query)
+        expectedResponse.payload = 4242
+        expectedResponse.flags |= dns.flags.TC
 
         (receivedQuery, receivedResponse) = self.sendUDPQuery(query, response)
         receivedQuery.id = query.id
@@ -152,6 +194,11 @@ class TestBasics(DNSDistTest):
         self.assertEquals(len(receivedResponse.answer), 0)
         self.assertEquals(len(receivedResponse.authority), 0)
         self.assertEquals(len(receivedResponse.additional), 0)
+        print(expectedResponse)
+        print(receivedResponse)
+        self.checkMessageEDNSWithoutOptions(expectedResponse, receivedResponse)
+        self.assertFalse(receivedResponse.ednsflags & dns.flags.DO)
+        self.assertEquals(receivedResponse.payload, 4242)
 
     def testRegexReturnsRefused(self):
         """

@@ -1,6 +1,76 @@
 Changelogs for 4.0.x
 ====================
 
+PowerDNS Authoritative Server 4.0.6
+-----------------------------------
+
+Released 6th of November 2018
+
+This release fixes PowerDNS Security Advisory
+:doc:`2018-03 <../security-advisories/powerdns-advisory-2018-03>`: Crafted zone record can cause a denial of service (CVE-2018-10851)
+
+Bug fixes
+~~~~~~~~~
+
+- `#7150 <https://github.com/PowerDNS/pdns/pull/7150>`__: Crafted zone record can cause a denial of service (CVE-2018-10851)
+- `#7135 <https://github.com/PowerDNS/pdns/pull/7135>`__: Fix el6 builds
+
+Improvements
+~~~~~~~~~~~~
+
+- `#6315 <https://github.com/PowerDNS/pdns/pull/6315>`__: Prevent cname + other data with dnsupdate
+- `#7119 <https://github.com/PowerDNS/pdns/pull/7119>`__: Switch to devtoolset 7 for el6
+
+PowerDNS Authoritative Server 4.0.5
+-----------------------------------
+
+Released 27th of November 2017
+
+This release fixes PowerDNS Security Advisory
+:doc:`2017-04 <../security-advisories/powerdns-advisory-2017-04>`: Missing check on API operations (CVE-2017-15091).
+
+Bug fixes
+~~~~~~~~~
+
+- `#4650 <https://github.com/PowerDNS/pdns/pull/4650>`__: Bindbackend: do not corrupt data supplied by other backends in getAllDomains (Christian Hofstaedtler)
+- `#4751 <https://github.com/PowerDNS/pdns/pull/4751>`__: API: prevent sending nameservers list and zone-level NS in rrsets (Christian Hofstaedtler)
+- `#4929 <https://github.com/PowerDNS/pdns/pull/4929>`__: gpgsql: make statement names actually unique (Christian Hofstaedtler)
+- `#4997 <https://github.com/PowerDNS/pdns/pull/4997>`__: Fix remotebackend params (Aki Tuomi)
+- `#5051 <https://github.com/PowerDNS/pdns/pull/5051>`__: Fix godbc query logging
+- `#5125 <https://github.com/PowerDNS/pdns/pull/5125>`__: For create-slave-zone, actually add all slaves, and not only first n times
+- `#5161 <https://github.com/PowerDNS/pdns/pull/5161>`__: Fix a regression in axfr-rectify + test (Arthur Gautier)
+- `#5408 <https://github.com/PowerDNS/pdns/pull/5408>`__: When making a netmask from a comboaddress, we neglected to zero the port
+- `#5599 <https://github.com/PowerDNS/pdns/pull/5599>`__: Fix libatomic detection on ppc64
+- `#5641 <https://github.com/PowerDNS/pdns/pull/5641>`__: Catch DNSName exception in the Zoneparser
+- `#5722 <https://github.com/PowerDNS/pdns/pull/5722>`__: Publish inactive KSK/CSK as CDNSKEY/CDS
+- `#5730 <https://github.com/PowerDNS/pdns/pull/5730>`__: Handle AFSDB record separately due to record structure. Fixes #4703 (Johan Jatko)
+- `#5678 <https://github.com/PowerDNS/pdns/pull/5678>`__: Treat requestor's payload size lower than 512 as equal to 512
+- `#5766 <https://github.com/PowerDNS/pdns/pull/5766>`__: Correctly purge entries from the caches after a transfer
+- `#5777 <https://github.com/PowerDNS/pdns/pull/5777>`__: Handle a signing pipe worker dying with work still pending
+- `#5815 <https://github.com/PowerDNS/pdns/pull/5815>`__: Ignore SOA-EDIT for PRESIGNED zones. Fixes #5814
+- `#5933 <https://github.com/PowerDNS/pdns/pull/5933>`__: Check return value for all getTSIGKey calls. Fixes #5931
+- `#5996 <https://github.com/PowerDNS/pdns/pull/5996>`__: Deny cache flush, zone retrieve and notify if the API is RO (Security Advisory
+   :doc:`2017-04 <../security-advisories/powerdns-advisory-2017-04>`)
+
+Improvements
+~~~~~~~~~~~~
+
+- `#4922 <https://github.com/PowerDNS/pdns/pull/4922>`__: Fix ldap-strict autoptr feature, including a test
+- `#5043 <https://github.com/PowerDNS/pdns/pull/5043>`__: mydnsbackend: Add getAllDomains (Aki Tuomi)
+- `#5112 <https://github.com/PowerDNS/pdns/pull/5112>`__: Stubresolver: Use only ``recursor`` setting if given
+- `#5147 <https://github.com/PowerDNS/pdns/pull/5147>`__: LuaWrapper: Allow embedded NULs in strings received from Lua
+- `#5277 <https://github.com/PowerDNS/pdns/pull/5277>`__: sdig: Clarify that the ``ednssubnet`` option takes "subnet/mask"
+- `#5309 <https://github.com/PowerDNS/pdns/pull/5309>`__: Tests: Ensure all required tools are available (Arthur Gautier)
+- `#5320 <https://github.com/PowerDNS/pdns/pull/5320>`__: PowerDNS sdig does not truncate trailing bits of EDNS Client Subnet mask
+- `#5349 <https://github.com/PowerDNS/pdns/pull/5349>`__: LuaJIT 2.1: Lua fallback functionality no longer uses Lua namespace
+- `#5498 <https://github.com/PowerDNS/pdns/pull/5498>`__: Add support for Botan 2.x
+- `#5509 <https://github.com/PowerDNS/pdns/pull/5509>`__: Ship ldapbackend schema files in tarball (Christian Hofstaedtler)
+- `#5518 <https://github.com/PowerDNS/pdns/pull/5518>`__: Collection of schema changes (Kees Monshouwer)
+- `#5523 <https://github.com/PowerDNS/pdns/pull/5523>`__: Fix typo in two log messages (Ruben Kerkhof)
+- `#5598 <https://github.com/PowerDNS/pdns/pull/5598>`__: Add help text on autodetecting systemd support
+- `#5723 <https://github.com/PowerDNS/pdns/pull/5723>`__: Use a unique pointer for bind backend's ``d_of``
+- `#5826 <https://github.com/PowerDNS/pdns/pull/5826>`__: Fix some of the issues found by @jpmens
+
 PowerDNS Authoritative Server 4.0.4
 -----------------------------------
 

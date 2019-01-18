@@ -1,10 +1,16 @@
-AM_CPPFLAGS += $(SYSTEMD_CFLAGS) $(LUA_CFLAGS) $(LIBEDIT_CFLAGS) $(YAHTTP_CFLAGS) $(SANITIZER_FLAGS) $(NET_SNMP_CFLAGS) -DSYSCONFDIR=\"${sysconfdir}\"
+AM_CPPFLAGS += $(SYSTEMD_CFLAGS) $(LUA_CFLAGS) $(LIBEDIT_CFLAGS) $(LIBSODIUM_CFLAGS) $(FSTRM_CFLAGS) $(YAHTTP_CFLAGS) $(SANITIZER_FLAGS) $(NET_SNMP_CFLAGS) $(LIBCAP_CFLAGS) -DSYSCONFDIR=\"${sysconfdir}\"
 
 ACLOCAL_AMFLAGS = -I m4
 
 SUBDIRS=ext/yahttp
 
-CLEANFILES = dnsmessage.pb.cc dnsmessage.pb.h htmlfiles.h.tmp htmlfiles.h
+CLEANFILES = \
+	dnsmessage.pb.cc \
+	dnsmessage.pb.h \
+	htmlfiles.h.tmp \
+	htmlfiles.h \
+	dnstap.pb.cc \
+	dnstap.pb.h
 
 dnslabeltext.cc: dnslabeltext.rl
 	$(AM_V_GEN)$(RAGEL) $< -o dnslabeltext.cc
@@ -28,16 +34,25 @@ if HAVE_RE2
 AM_CPPFLAGS += $(RE2_CFLAGS)
 endif
 
+if HAVE_DNS_OVER_TLS
+if HAVE_LIBSSL
+AM_CPPFLAGS += $(LIBSSL_CFLAGS)
+endif
 
-EXTRA_DIST=dnslabeltext.rl \
+if HAVE_GNUTLS
+AM_CPPFLAGS += $(GNUTLS_CFLAGS)
+endif
+endif
+
+EXTRA_DIST=COPYING \
+	   dnslabeltext.rl \
 	   dnsdistconf.lua \
 	   dnsmessage.proto \
+	   dnstap.proto \
 	   README.md \
 	   delaypipe.cc delaypipe.hh \
 	   html \
-	   .version \
 	   contrib \
-	   build-aux/gen-version \
 	   ext/incbin/UNLICENSE \
 	   incfiles \
 	   src_js \
@@ -50,7 +65,8 @@ EXTRA_DIST=dnslabeltext.rl \
 	   devpollmplexer.cc \
 	   epollmplexer.cc \
 	   kqueuemplexer.cc \
-	   portsmplexer.cc
+	   portsmplexer.cc \
+	   builder-support/gen-version
 
 bin_PROGRAMS = dnsdist
 
@@ -70,31 +86,42 @@ dnsdist_SOURCES = \
 	ascii.hh \
 	base64.hh \
 	bpf-filter.cc bpf-filter.hh \
+	cachecleaner.hh \
+	capabilities.cc capabilities.hh \
 	dns.cc dns.hh \
 	dnscrypt.cc dnscrypt.hh \
 	dnsdist.cc dnsdist.hh \
 	dnsdist-dynbpf.cc dnsdist-dynbpf.hh \
 	dnsdist-cache.cc dnsdist-cache.hh \
 	dnsdist-carbon.cc \
-	dnsdist-console.cc \
+	dnsdist-console.cc dnsdist-console.hh \
 	dnsdist-dnscrypt.cc \
+	dnsdist-dynblocks.hh \
 	dnsdist-ecs.cc dnsdist-ecs.hh \
 	dnsdist-lua.hh dnsdist-lua.cc \
-	dnsdist-lua2.cc \
+	dnsdist-lua-actions.cc \
+	dnsdist-lua-bindings.cc \
+	dnsdist-lua-bindings-dnsquestion.cc \
+	dnsdist-lua-inspection.cc \
+	dnsdist-lua-rules.cc \
+	dnsdist-lua-vars.cc \
 	dnsdist-protobuf.cc dnsdist-protobuf.hh \
-	dnsdist-rings.cc \
+	dnsdist-rings.cc dnsdist-rings.hh \
+	dnsdist-rules.hh \
+	dnsdist-secpoll.cc dnsdist-secpoll.hh \
 	dnsdist-snmp.cc dnsdist-snmp.hh \
 	dnsdist-tcp.cc \
 	dnsdist-web.cc \
+	dnsdist-xpf.cc dnsdist-xpf.hh \
 	dnslabeltext.cc \
 	dnsname.cc dnsname.hh \
 	dnsparser.hh dnsparser.cc \
-	dnsrulactions.cc dnsrulactions.hh \
 	dnswriter.cc dnswriter.hh \
 	dolog.hh \
 	ednsoptions.cc ednsoptions.hh \
 	ednscookies.cc ednscookies.hh \
 	ednssubnet.cc ednssubnet.hh \
+	fstrm_logger.cc fstrm_logger.hh \
 	gettime.cc gettime.hh \
 	htmlfiles.h \
 	iputils.cc iputils.hh \
@@ -104,14 +131,18 @@ dnsdist_SOURCES = \
 	namespaces.hh \
 	pdnsexception.hh \
 	protobuf.cc protobuf.hh \
+	dnstap.cc dnstap.hh \
 	qtype.cc qtype.hh \
 	remote_logger.cc remote_logger.hh \
-	selectmplexer.cc \
+	pollmplexer.cc \
 	sholder.hh \
 	snmp-agent.cc snmp-agent.hh \
 	sodcrypto.cc sodcrypto.hh \
 	sstuff.hh \
 	statnode.cc statnode.hh \
+	tcpiohandler.cc tcpiohandler.hh \
+	threadname.hh threadname.cc \
+	xpf.cc xpf.hh \
 	ext/luawrapper/include/LuaContext.hpp \
 	ext/json11/json11.cpp \
 	ext/json11/json11.hpp \
@@ -129,12 +160,24 @@ dnsdist_LDADD = \
 	$(RT_LIBS) \
 	$(YAHTTP_LIBS) \
 	$(LIBSODIUM_LIBS) \
+	$(FSTRM_LIBS) \
 	$(SANITIZER_FLAGS) \
 	$(SYSTEMD_LIBS) \
-	$(NET_SNMP_LIBS)
+	$(NET_SNMP_LIBS) \
+	$(LIBCAP_LIBS)
 
 if HAVE_RE2
 dnsdist_LDADD += $(RE2_LIBS)
+endif
+
+if HAVE_DNS_OVER_TLS
+if HAVE_GNUTLS
+dnsdist_LDADD += -lgnutls
+endif
+
+if HAVE_LIBSSL
+dnsdist_LDADD += $(LIBSSL_LIBS) $(LIBCRYPTO_LIBS)
+endif
 endif
 
 if !HAVE_LUA_HPP
@@ -148,12 +191,15 @@ if HAVE_PROTOC
 dnsmessage.pb.cc: dnsmessage.proto
 	$(AM_V_GEN)$(PROTOC) -I$(srcdir) --cpp_out=./ $<
 
-BUILT_SOURCES += dnsmessage.pb.cc
+dnstap.pb.cc: dnstap.proto
+	$(AM_V_GEN)$(PROTOC) -I$(srcdir) --cpp_out=./ $<
 
-nodist_dnsdist_SOURCES = dnsmessage.pb.cc dnsmessage.pb.h
+BUILT_SOURCES += dnsmessage.pb.cc dnstap.pb.cc
+
+nodist_dnsdist_SOURCES = dnsmessage.pb.cc dnsmessage.pb.h dnstap.pb.cc dnstap.pb.h
 dnsdist_LDADD += $(PROTOBUF_LIBS)
 
-dnsdist.$(OBJEXT): dnsmessage.pb.cc
+dnsdist.$(OBJEXT): dnsmessage.pb.cc dnstap.pb.cc
 endif
 endif
 
@@ -175,12 +221,20 @@ testrunner_SOURCES = \
 	base64.hh \
 	dns.hh \
 	test-base64_cc.cc \
-	test-dnsdist_cc.cc \
-	test-dnsdistpacketcache_cc.cc \
+	test-delaypipe_hh.cc \
 	test-dnscrypt_cc.cc \
+	test-dnsdist_cc.cc \
+	test-dnsdistdynblocks_hh.cc \
+	test-dnsdistpacketcache_cc.cc \
+	test-dnsdistrings_cc.cc \
+	test-dnsdistrules_cc.cc \
+	test-dnsparser_cc.cc \
+	test-iputils_hh.cc \
+	cachecleaner.hh \
 	dnsdist.hh \
 	dnsdist-cache.cc dnsdist-cache.hh \
 	dnsdist-ecs.cc dnsdist-ecs.hh \
+	dnsdist-xpf.cc dnsdist-xpf.hh \
 	dnscrypt.cc dnscrypt.hh \
 	dnslabeltext.cc \
 	dnsname.cc dnsname.hh \
@@ -199,7 +253,9 @@ testrunner_SOURCES = \
 	sholder.hh \
 	sodcrypto.cc \
 	sstuff.hh \
-	testrunner.cc
+	threadname.hh threadname.cc \
+	testrunner.cc \
+	xpf.cc xpf.hh
 
 testrunner_LDFLAGS = \
 	$(AM_LDFLAGS) \
@@ -210,8 +266,10 @@ testrunner_LDFLAGS = \
 testrunner_LDADD = \
 	$(BOOST_UNIT_TEST_FRAMEWORK_LIBS) \
 	$(LIBSODIUM_LIBS) \
+	$(FSTRM_LIBS) \
 	$(RT_LIBS) \
-	$(SANITIZER_FLAGS)
+	$(SANITIZER_FLAGS) \
+	$(LIBCAP_LIBS)
 
 MANPAGES=dnsdist.1
 
@@ -265,10 +323,18 @@ if HAVE_SYSTEMD
 dnsdist.service: dnsdist.service.in
 	$(AM_V_GEN)sed -e 's![@]bindir[@]!$(bindir)!' < $< > $@
 
+dnsdist@.service: dnsdist.service
+	$(AM_V_GEN)sed -e 's!/dnsdist !&--config $(sysconfdir)/dnsdist-%i.conf !' < $< >$@
+
 systemdsystemunitdir = $(SYSTEMD_DIR)
 
 systemdsystemunit_DATA = \
-	dnsdist.service
+	dnsdist.service \
+	dnsdist@.service
+
+CLEANFILES += \
+	dnsdist.service \
+	dnsdist@.service
 endif
 
 if !HAVE_LUA_HPP

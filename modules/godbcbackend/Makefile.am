@@ -3,7 +3,8 @@ pkglib_LTLIBRARIES = libgodbcbackend.la
 
 EXTRA_DIST=OBJECTFILES OBJECTLIBS
 
-dist_doc_DATA=schema.mssql.sql
+dist_doc_DATA=schema.mssql.sql \
+	4.0.0_to_4.2.0_schema.mssql.sql
 
 libgodbcbackend_la_SOURCES=godbcbackend.cc godbcbackend.hh \
                 sodbc.hh sodbc.cc

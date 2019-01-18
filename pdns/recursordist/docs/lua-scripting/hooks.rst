@@ -173,8 +173,7 @@ DNS64
 -----
 
 The ``getFakeAAAARecords`` and ``getFakePTRRecords`` followupFunctions
-can be used to implement DNS64. See `DNS64 support in the PowerDNS
-Recursor <dns64.md>`__ for more information.
+can be used to implement DNS64. See :doc:`../dns64` for more information.
 
 To get fake AAAA records for DNS64 usage, set dq.followupFunction to
 ``getFakeAAAARecords``, dq.followupPrefix to e.g. "64:ff9b::" and
@@ -272,13 +271,14 @@ Example script
     myDomain = newDN("example.com")
 
     myNetblock = newNMG()
-    myNetblock:addMasks("192.0.2.0/24")
+    myNetblock:addMasks({"192.0.2.0/24"})
 
     function preresolve(dq)
       if dq.qname:isPartOf(myDomain) and dq.appliedPolicy.policyKind ~= pdns.policykinds.NoAction then
         pdnslog("Not blocking our own domain!")
         dq.appliedPolicy.policyKind = pdns.policykinds.NoAction
       end
+      return false
     end
 
     function postresolve(dq)
@@ -294,6 +294,7 @@ Example script
           end
         end
       end
+      return false
     end
 
 .. _snmp:
@@ -319,3 +320,19 @@ MIB
 ^^^
 
 .. literalinclude:: ../../RECURSOR-MIB.txt
+
+.. _hooks-maintenance-callback:
+
+Maintenance callback
+--------------------
+Starting with version 4.1.4 of the recursor, it is possible to define a `maintenance()` callback function that will be called periodically.
+This function expects no argument and doesn't return any value
+
+.. code-block:: Lua
+
+    function maintenance()
+        -- This would be called every second
+        -- Perform here your maintenance
+    end
+
+The interval can be configured through the :ref:`setting-maintenance-interval` setting.

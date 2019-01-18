@@ -54,7 +54,7 @@ LUABackend::LUABackend(const string &suffix) {
     }
 
     catch(LUAException &e) {
-        L<<Logger::Error<<backend_name<<"Error: "<<e.what<<endl;
+        g_log<<Logger::Error<<backend_name<<"Error: "<<e.what<<endl;
         throw PDNSException(e.what);
     }
 
@@ -62,7 +62,7 @@ LUABackend::LUABackend(const string &suffix) {
 
 LUABackend::~LUABackend() {
     try {
-        L<<Logger::Info<<backend_name<<"Closing..." << endl;
+        g_log<<Logger::Info<<backend_name<<"Closing..." << endl;
     }
     catch (...) {
     }
@@ -72,7 +72,7 @@ LUABackend::~LUABackend() {
 
 bool LUABackend::list(const DNSName &target, int domain_id, bool include_disabled) {
     if (logging)
-	L << Logger::Info << backend_name << "(list) BEGIN" << endl;
+	g_log << Logger::Info << backend_name << "(list) BEGIN" << endl;
 
     lua_rawgeti(lua, LUA_REGISTRYINDEX, f_lua_list);
 
@@ -95,14 +95,14 @@ bool LUABackend::list(const DNSName &target, int domain_id, bool include_disable
     lua_pop(lua, 1);
 
     if (logging)
-	L << Logger::Info << backend_name << "(list) END" << endl;
+	g_log << Logger::Info << backend_name << "(list) END" << endl;
 
     return ok;
 }
 
 void LUABackend::lookup(const QType &qtype, const DNSName &qname, DNSPacket *p, int domain_id) {
     if (logging)
-	L << Logger::Info << backend_name << "(lookup) BEGIN" << endl;
+	g_log << Logger::Info << backend_name << "(lookup) BEGIN" << endl;
 
     dnspacket = p;
 
@@ -126,12 +126,12 @@ void LUABackend::lookup(const QType &qtype, const DNSName &qname, DNSPacket *p, 
     dnspacket = NULL;
 
     if (logging)
-	L << Logger::Info << backend_name << "(lookup) END" << endl;
+	g_log << Logger::Info << backend_name << "(lookup) END" << endl;
 }
 
 bool LUABackend::get(DNSResourceRecord &rr) {
     if (logging)
-	L << Logger::Info << backend_name << "(get) BEGIN" << endl;
+	g_log << Logger::Info << backend_name << "(get) BEGIN" << endl;
 
     lua_rawgeti(lua, LUA_REGISTRYINDEX, f_lua_get);
 
@@ -171,14 +171,14 @@ bool LUABackend::get(DNSResourceRecord &rr) {
     lua_pop(lua, 1 );
 
     if (logging)
-	L << Logger::Info << backend_name << "(get) END" << endl;
+	g_log << Logger::Info << backend_name << "(get) END" << endl;
 
     return !rr.content.empty();
 }
 
 bool LUABackend::getSOA(const DNSName &name, SOAData &soadata) {
     if (logging)
-	L << Logger::Info << backend_name << "(getsoa) BEGIN" << endl;
+	g_log << Logger::Info << backend_name << "(getsoa) BEGIN" << endl;
 
     lua_rawgeti(lua, LUA_REGISTRYINDEX, f_lua_getsoa);
 
@@ -225,7 +225,7 @@ bool LUABackend::getSOA(const DNSName &name, SOAData &soadata) {
     if (!getValueFromTable(lua, "nameserver", soadata.nameserver)) {
         soadata.nameserver = DNSName(arg()["default-soa-name"]);
         if (soadata.nameserver.empty()) {
-    	    L<<Logger::Error << backend_name << "(getSOA)" << " Error: SOA Record is missing nameserver for the domain '" << name << "'" << endl;
+    	    g_log<<Logger::Error << backend_name << "(getSOA)" << " Error: SOA Record is missing nameserver for the domain '" << name << "'" << endl;
 	    lua_pop(lua, 1 );
             return false;
         }
@@ -237,7 +237,7 @@ bool LUABackend::getSOA(const DNSName &name, SOAData &soadata) {
     lua_pop(lua, 1 );
 
     if (logging)
-	L << Logger::Info << backend_name << "(getsoa) END" << endl;
+	g_log << Logger::Info << backend_name << "(getsoa) END" << endl;
 
     return true;
 }

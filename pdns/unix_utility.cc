@@ -84,22 +84,22 @@ void Utility::setBindAny(int af, sock_t sock)
   (void) one; // avoids 'unused var' warning on systems that have none of the defines checked below
 #ifdef IP_FREEBIND
   if (setsockopt(sock, IPPROTO_IP, IP_FREEBIND, &one, sizeof(one)) < 0)
-      theL()<<Logger::Warning<<"Warning: IP_FREEBIND setsockopt failed: "<<strerror(errno)<<endl;
+      g_log<<Logger::Warning<<"Warning: IP_FREEBIND setsockopt failed: "<<strerror(errno)<<endl;
 #endif
 
 #ifdef IP_BINDANY
   if (af == AF_INET)
     if (setsockopt(sock, IPPROTO_IP, IP_BINDANY, &one, sizeof(one)) < 0)
-      theL()<<Logger::Warning<<"Warning: IP_BINDANY setsockopt failed: "<<strerror(errno)<<endl;
+      g_log<<Logger::Warning<<"Warning: IP_BINDANY setsockopt failed: "<<strerror(errno)<<endl;
 #endif
 #ifdef IPV6_BINDANY
   if (af == AF_INET6)
     if (setsockopt(sock, IPPROTO_IPV6, IPV6_BINDANY, &one, sizeof(one)) < 0)
-      theL()<<Logger::Warning<<"Warning: IPV6_BINDANY setsockopt failed: "<<strerror(errno)<<endl;
+      g_log<<Logger::Warning<<"Warning: IPV6_BINDANY setsockopt failed: "<<strerror(errno)<<endl;
 #endif
 #ifdef SO_BINDANY
   if (setsockopt(sock, SOL_SOCKET, SO_BINDANY, &one, sizeof(one)) < 0)
-      theL()<<Logger::Warning<<"Warning: SO_BINDANY setsockopt failed: "<<strerror(errno)<<endl;
+      g_log<<Logger::Warning<<"Warning: SO_BINDANY setsockopt failed: "<<strerror(errno)<<endl;
 #endif
 }
 
@@ -128,22 +128,22 @@ void Utility::dropGroupPrivs( int uid, int gid )
 {
   if(gid) {
     if(setgid(gid)<0) {
-      theL()<<Logger::Critical<<"Unable to set effective group id to "<<gid<<": "<<stringerror()<<endl;
+      g_log<<Logger::Critical<<"Unable to set effective group id to "<<gid<<": "<<stringerror()<<endl;
       exit(1);
     }
     else
-      theL()<<Logger::Info<<"Set effective group id to "<<gid<<endl;
+      g_log<<Logger::Info<<"Set effective group id to "<<gid<<endl;
 
     struct passwd *pw=getpwuid(uid);
     if(!pw) {
-      theL()<<Logger::Warning<<"Unable to determine user name for uid "<<uid<<endl;
+      g_log<<Logger::Warning<<"Unable to determine user name for uid "<<uid<<endl;
       if (setgroups(0, NULL)<0) {
-        theL()<<Logger::Critical<<"Unable to drop supplementary gids: "<<stringerror()<<endl;
+        g_log<<Logger::Critical<<"Unable to drop supplementary gids: "<<stringerror()<<endl;
         exit(1);
       }
     } else {
       if (initgroups(pw->pw_name, gid)<0) {
-        theL()<<Logger::Critical<<"Unable to set supplementary groups: "<<stringerror()<<endl;
+        g_log<<Logger::Critical<<"Unable to set supplementary groups: "<<stringerror()<<endl;
         exit(1);
       }
     }
@@ -156,11 +156,11 @@ void Utility::dropUserPrivs( int uid )
 {
   if(uid) {
     if(setuid(uid)<0) {
-      theL()<<Logger::Critical<<"Unable to set effective user id to "<<uid<<":  "<<stringerror()<<endl;
+      g_log<<Logger::Critical<<"Unable to set effective user id to "<<uid<<": "<<stringerror()<<endl;
       exit(1);
     }
     else
-      theL()<<Logger::Info<<"Set effective user id to "<<uid<<endl;
+      g_log<<Logger::Info<<"Set effective user id to "<<uid<<endl;
   }
 }
 
@@ -188,7 +188,7 @@ int Utility::makeGidNumeric(const string &group)
     errno=0;
     struct group *gr=getgrnam(group.c_str());
     if(!gr) {
-      theL()<<Logger::Critical<<"Unable to look up gid of group '"<<group<<"': "<< (errno ? strerror(errno) : "not found") <<endl;
+      g_log<<Logger::Critical<<"Unable to look up gid of group '"<<group<<"': "<< (errno ? strerror(errno) : "not found") <<endl;
       exit(1);
     }
     newgid=gr->gr_gid;
@@ -204,7 +204,7 @@ int Utility::makeUidNumeric(const string &username)
   if(!(newuid=atoi(username.c_str()))) {
     struct passwd *pw=getpwnam(username.c_str());
     if(!pw) {
-      theL()<<Logger::Critical<<"Unable to look up uid of user '"<<username<<"': "<< (errno ? strerror(errno) : "not found") <<endl;
+      g_log<<Logger::Critical<<"Unable to look up uid of user '"<<username<<"': "<< (errno ? strerror(errno) : "not found") <<endl;
       exit(1);
     }
     newuid=pw->pw_uid;

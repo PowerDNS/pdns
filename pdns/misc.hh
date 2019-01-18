@@ -63,6 +63,7 @@ string getHostname();
 string urlEncode(const string &text);
 int waitForData(int fd, int seconds, int useconds=0);
 int waitFor2Data(int fd1, int fd2, int seconds, int useconds, int* fd);
+int waitForMultiData(const set<int>& fds, const int seconds, const int useconds, int* fd);
 int waitForRWData(int fd, bool waitForRead, int seconds, int useconds, bool* error=nullptr, bool* disconnected=nullptr);
 uint16_t getShort(const unsigned char *p);
 uint16_t getShort(const char *p);
@@ -377,7 +378,7 @@ struct CIStringComparePOSIX
       while(a!=lhs.end()) {
           if (b==rhs.end() || std::tolower(*b,loc)<std::tolower(*a,loc)) return false;
           else if (std::tolower(*a,loc)<std::tolower(*b,loc)) return true;
-          a++;b++;
+          ++a;++b;
       }
       return (b!=rhs.end());
    }
@@ -427,7 +428,6 @@ inline DNSName toCanonic(const DNSName& zone, const string& qname)
 
 string stripDot(const string& dom);
 
-void seedRandom(const string& source);
 int makeIPv6sockaddr(const std::string& addr, struct sockaddr_in6* ret);
 int makeIPv4sockaddr(const std::string& str, struct sockaddr_in* ret);
 int makeUNsockaddr(const std::string& path, struct sockaddr_un* ret);
@@ -470,26 +470,24 @@ private:
 class SimpleMatch
 {
 public:
-  SimpleMatch(const string &mask, bool caseFold = false)
+  SimpleMatch(const string &mask, bool caseFold = false): d_mask(mask), d_fold(caseFold)
   {
-    this->d_mask = mask;
-    this->d_fold = caseFold;
   }
  
   bool match(string::const_iterator mi, string::const_iterator mend, string::const_iterator vi, string::const_iterator vend)
   {
-    for(;;mi++) {
+    for(;;++mi) {
       if (mi == mend) {
         return vi == vend;
       } else if (*mi == '?') {
         if (vi == vend) return false;
-        vi++;
+        ++vi;
       } else if (*mi == '*') {
-        while(*mi == '*') mi++;
+        while(*mi == '*') ++mi;
         if (mi == d_mask.end()) return true;
         while(vi != vend) {
           if (match(mi,mend,vi,vend)) return true;
-          vi++;
+          ++vi;
         }
         return false;
       } else {
@@ -500,7 +498,7 @@ public:
         } else {
           if (*mi != *vi) return false;
         }
-        vi++;
+        ++vi;
       }
     }
   }
@@ -534,6 +532,7 @@ bool setBlocking( int sock );
 //! Sets the socket into non-blocking mode.
 bool setNonBlocking( int sock );
 bool setTCPNoDelay(int sock);
+bool setReuseAddr(int sock);
 bool isNonBlocking(int sock);
 int closesocket(int fd);
 bool setCloseOnExec(int sock);
@@ -597,3 +596,5 @@ unsigned int pdns_stou(const std::string& str, size_t * idx = 0, int base = 10);
 
 bool isSettingThreadCPUAffinitySupported();
 int mapThreadToCPUList(pthread_t tid, const std::set<int>& cpus);
+
+std::vector<ComboAddress> getResolvers(const std::string& resolvConfPath);

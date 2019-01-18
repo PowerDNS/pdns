@@ -28,6 +28,7 @@
 #include "dns.hh"
 #include "dnsname.hh"
 #include "namespaces.hh"
+#include "iputils.hh"
 #include <arpa/inet.h>
 
 
@@ -70,7 +71,7 @@ public:
 
   /** Shorthand way to add an Opt-record, for example for EDNS0 purposes */
   typedef vector<pair<uint16_t,std::string> > optvect_t;
-  void addOpt(uint16_t udpsize, int extRCode, int Z, const optvect_t& options=optvect_t(), uint8_t version=0);
+  void addOpt(const uint16_t udpsize, const uint16_t extRCode, const uint16_t ednsFlags, const optvect_t& options=optvect_t(), const uint8_t version=0);
 
   /** needs to be called after the last record is added, but can be called again and again later on. Is called internally by startRecord too.
       The content of the vector<> passed to the constructor is inconsistent until commit is called.
@@ -100,6 +101,25 @@ public:
   {
     xfrBlob(val,16);
   }
+
+  void xfrCAWithoutPort(uint8_t version, ComboAddress &val)
+  {
+    if (version == 4) xfrIP(val.sin4.sin_addr.s_addr);
+    else if (version == 6) {
+      string blob;
+      blob.assign((const char*)val.sin6.sin6_addr.s6_addr, 16);
+      xfrBlob(blob, 16);
+    }
+    else throw runtime_error("invalid IP protocol");
+  }
+
+  void xfrCAPort(ComboAddress &val)
+  {
+    uint16_t port;
+    port = val.sin4.sin_port;
+    xfr16BitInt(port);
+  }
+
   void xfrTime(const uint32_t& val)
   {
     xfr32BitInt(val);
@@ -132,6 +152,9 @@ public:
   }
   bool eof() { return true; } // we don't know how long the record should be
 
+  const string getRemaining() const {
+    return "";
+  }
 private:
   uint16_t lookupName(const DNSName& name, uint16_t* matchlen);
   vector<uint16_t> d_namepositions;

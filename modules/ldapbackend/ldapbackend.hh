@@ -23,6 +23,7 @@
 #include <algorithm>
 #include <sstream>
 #include <utility>
+#include <list>
 #include <string>
 #include <cstdlib>
 #include <cctype>
@@ -52,9 +53,10 @@ class LdapAuthenticator;
  *  Types which aren't active are currently not supported by PDNS
  */
 
-static const char* ldap_attrany[] = {
+__attribute__ ((unused)) static const char* ldap_attrany[] = {
   "associatedDomain",
   "dNSTTL",
+  "ALIASRecord",
   "aRecord",
   "nSRecord",
   "cNAMERecord",
@@ -75,7 +77,7 @@ static const char* ldap_attrany[] = {
   "kXRecord",
   "certRecord",
 //  "a6Record",
-//  "dNameRecord",
+  "dNameRecord",
 //  "aPLRecord",
   "dSRecord",
   "sSHFPRecord",
@@ -99,6 +101,9 @@ static const char* ldap_attrany[] = {
   "TYPE65226Record",
   "TYPE65534Record",
   "modifyTimestamp",
+  "PdnsRecordTTL",
+  "PdnsRecordAuth",
+  "PdnsRecordOrdername",
   NULL
 };
 
@@ -106,28 +111,41 @@ static const char* ldap_attrany[] = {
 
 class LdapBackend : public DNSBackend
 {
-    bool m_getdn;
-    bool m_qlog;
-    int m_msgid;
-    uint32_t m_ttl;
-    uint32_t m_default_ttl;
-    unsigned int m_axfrqlen;
-    time_t m_last_modified;
-    string m_myname;
-    DNSName m_qname;
-    PowerLDAP* m_pldap;
-    LdapAuthenticator *m_authenticator;
-    PowerLDAP::sentry_t m_result;
-    PowerLDAP::sentry_t::iterator m_attribute;
-    vector<string>::iterator m_value;
-    vector<DNSName>::iterator m_adomain;
-    vector<DNSName> m_adomains;
-    QType m_qtype;
-    int m_reconnect_attempts;
+    string d_myname;
 
-    bool (LdapBackend::*m_list_fcnt)( const DNSName&, int );
-    void (LdapBackend::*m_lookup_fcnt)( const QType&, const DNSName&, DNSPacket*, int );
-    bool (LdapBackend::*m_prepare_fcnt)();
+    bool d_qlog;
+    uint32_t d_default_ttl;
+    int d_reconnect_attempts;
+
+    bool d_getdn;
+    PowerLDAP::SearchResult::Ptr d_search;
+    PowerLDAP::sentry_t d_result;
+    bool d_in_list;
+
+    struct DNSResult {
+      QType qtype;
+      DNSName qname;
+      uint32_t ttl;
+      time_t lastmod;
+      std::string value;
+      bool auth;
+      std::string ordername;
+
+      DNSResult()
+        : ttl( 0 ), lastmod( 0 ), value( "" ), auth( true ), ordername( "" )
+      {
+      }
+    };
+    std::list<DNSResult> d_results_cache;
+
+    DNSName d_qname;
+    QType d_qtype;
+
+    PowerLDAP* d_pldap;
+    LdapAuthenticator *d_authenticator;
+
+    bool (LdapBackend::*d_list_fcnt)( const DNSName&, int );
+    void (LdapBackend::*d_lookup_fcnt)( const QType&, const DNSName&, DNSPacket*, int );
 
     bool list_simple( const DNSName& target, int domain_id );
     bool list_strict( const DNSName& target, int domain_id );
@@ -136,11 +154,18 @@ class LdapBackend : public DNSBackend
     void lookup_strict( const QType& qtype, const DNSName& qdomain, DNSPacket* p, int zoneid );
     void lookup_tree( const QType& qtype, const DNSName& qdomain, DNSPacket* p, int zoneid );
 
-    bool prepare();
-    bool prepare_simple();
-    bool prepare_strict();
-
     bool reconnect();
+
+    // Extracts common attributes from the current result stored in d_result and sets them in the given DNSResult.
+    // This will modify d_result by removing attributes that may interfere with the records extraction later.
+    void extract_common_attributes( DNSResult &result );
+
+    // Extract LDAP attributes for the current result stored in d_result and create a new DNSResult that will
+    // be appended in the results cache. The result parameter is used as a template that will be copied for
+    // each result extracted from the entry.
+    // The given domain will be added as the qname attribute of the result.
+    // The qtype parameter is used to filter extracted results.
+    void extract_entry_results( const DNSName& domain, const DNSResult& result, QType qtype );
 
   public:
 
@@ -152,7 +177,7 @@ class LdapBackend : public DNSBackend
     void lookup( const QType& qtype, const DNSName& qdomain, DNSPacket* p = 0, int zoneid = -1 ) override;
     bool get( DNSResourceRecord& rr ) override;
 
-    bool getDomainInfo( const DNSName& domain, DomainInfo& di ) override;
+    bool getDomainInfo( const DNSName& domain, DomainInfo& di, bool getSerial=true ) override;
 
     // Master backend
     void getUpdatedMasters( vector<DomainInfo>* domains ) override;

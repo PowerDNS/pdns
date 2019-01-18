@@ -29,6 +29,7 @@
 #include <sys/resource.h>
 #include "dynhandler.hh"
 #include "dnsseckeeper.hh"
+#include "threadname.hh"
 
 #ifdef HAVE_SYSTEMD
 #include <systemd/sd-daemon.h>
@@ -36,6 +37,10 @@
 
 bool g_anyToTcp;
 bool g_8bitDNS;
+#ifdef HAVE_LUA_RECORDS
+bool g_doLuaRecord;
+int g_luaRecordExecLimit;
+#endif
 typedef Distributor<DNSPacket,DNSPacket,PacketHandler> DNSDistributor;
 
 ArgvMap theArg;
@@ -58,10 +63,19 @@ ArgvMap &arg()
 
 void declareArguments()
 {
+  ::arg().set("config-dir","Location of configuration directory (pdns.conf)")=SYSCONFDIR;
+  ::arg().set("config-name","Name of this virtual configuration - will rename the binary image")="";
+  ::arg().set("socket-dir",string("Where the controlsocket will live, ")+LOCALSTATEDIR+" when unset and not chrooted" )="";
+  ::arg().set("module-dir","Default directory for modules")=PKGLIBDIR;
+  ::arg().set("chroot","If set, chroot to this directory for more security")="";
+  ::arg().set("logging-facility","Log under a specific facility")="";
+  ::arg().set("daemon","Operate as a daemon")="no";
+
   ::arg().set("local-port","The port on which we listen")="53";
   ::arg().setSwitch("dnsupdate","Enable/Disable DNS update (RFC2136) support. Default is no.")="no";
   ::arg().setSwitch("write-pid","Write a PID file")="yes";
   ::arg().set("allow-dnsupdate-from","A global setting to allow DNS updates from these IP ranges.")="127.0.0.0/8,::1";
+  ::arg().setSwitch("send-signed-notify","Send TSIG secured NOTIFY if TSIG key is configured for a domain")="yes";
   ::arg().set("allow-unsigned-notify","Allow unsigned notifications for TSIG secured domains")="yes"; //FIXME: change to 'no' later
   ::arg().set("allow-unsigned-supermaster", "Allow supermasters to create zones without TSIG signed NOTIFY")="yes";
   ::arg().setSwitch("forward-dnsupdate","A global setting to allow DNS update packages that are for a Slave domain, to be forwarded to the master.")="yes";
@@ -81,8 +95,7 @@ void declareArguments()
   ::arg().set("retrieval-threads", "Number of AXFR-retrieval threads for slave operation")="2";
   ::arg().setSwitch("api", "Enable/disable the REST API (including HTTP listener)")="no";
   ::arg().set("api-key", "Static pre-shared authentication key for access to the REST API")="";
-  ::arg().set("api-logfile", "Location of the server logfile (used by the REST API)")="/var/log/pdns.log";
-  ::arg().setSwitch("api-readonly", "Disallow data modification through the REST API when set")="no";
+  ::arg().setSwitch("default-api-rectify","Default API-RECTIFY value for zones")="yes";
   ::arg().setSwitch("dname-processing", "If we should support DNAME records")="no";
 
   ::arg().setCmd("help","Provide a helpful message");
@@ -95,6 +108,7 @@ void declareArguments()
   ::arg().set("control-console","Debugging switch - don't use")="no"; // but I know you will!
   ::arg().set("loglevel","Amount of logging. Higher is more. Do not set below 3")="4";
   ::arg().set("disable-syslog","Disable logging to syslog, useful when running inside a supervisor that logs stdout")="no";
+  ::arg().set("log-timestamp","Print timestamps in log lines")="yes";
   ::arg().set("default-soa-name","name to insert in the SOA record if none set in the backend")="a.misconfigured.powerdns.server";
   ::arg().set("default-soa-mail","mail address to insert in the SOA record if none set in the backend")="";
   ::arg().set("distributor-threads","Default number of Distributor (backend) threads to start")="3";
@@ -102,7 +116,7 @@ void declareArguments()
   ::arg().set("receiver-threads","Default number of receiver threads to start")="1";
   ::arg().set("queue-limit","Maximum number of milliseconds to queue a query")="1500"; 
   ::arg().set("resolver","Use this resolver for ALIAS and the internal stub resolver")="no";
-  ::arg().set("udp-truncation-threshold", "Maximum UDP response size before we truncate")="1680";
+  ::arg().set("udp-truncation-threshold", "Maximum UDP response size before we truncate")="1232";
   ::arg().set("disable-tcp","Do not listen to TCP queries")="no";
   
   ::arg().set("config-name","Name of this virtual configuration - will rename the binary image")="";
@@ -123,6 +137,7 @@ void declareArguments()
   
   ::arg().setSwitch("slave","Act as a slave")="no";
   ::arg().setSwitch("master","Act as a master")="no";
+  ::arg().setSwitch("supermaster", "Act as a supermaster")="no";
   ::arg().setSwitch("disable-axfr-rectify","Disable the rectify step during an outgoing AXFR. Only required for regression testing.")="no";
   ::arg().setSwitch("guardian","Run within a guardian process")="no";
   ::arg().setSwitch("prevent-self-notification","Don't send notifications to what we think is ourself")="yes";
@@ -136,11 +151,12 @@ void declareArguments()
   ::arg().set("webserver-password","Password required for accessing the webserver")="";
   ::arg().set("webserver-allow-from","Webserver/API access is only allowed from these subnets")="127.0.0.1,::1";
 
-  ::arg().setSwitch("out-of-zone-additional-processing","Do out of zone additional processing")="yes";
   ::arg().setSwitch("do-ipv6-additional-processing", "Do AAAA additional processing")="yes";
   ::arg().setSwitch("query-logging","Hint backends that queries should be logged")="no";
 
+  ::arg().set("carbon-namespace", "If set overwrites the first part of the carbon string")="pdns";
   ::arg().set("carbon-ourname", "If set, overrides our reported hostname for carbon stats")="";
+  ::arg().set("carbon-instance", "If set overwrites the the instance name default")="auth";
   ::arg().set("carbon-server", "If set, send metrics in carbon (graphite) format to this server IP address")="";
   ::arg().set("carbon-interval", "Number of seconds between carbon (graphite) updates")="30";
 
@@ -148,7 +164,7 @@ void declareArguments()
   ::arg().set("negquery-cache-ttl","Seconds to store negative query results in the QueryCache")="60";
   ::arg().set("query-cache-ttl","Seconds to store query results in the QueryCache")="20";
   ::arg().set("soa-minimum-ttl","Default SOA minimum ttl")="3600";
-  ::arg().set("server-id", "Returned when queried for 'server.id' TXT or NSID, defaults to hostname - disabled or custom")="";
+  ::arg().set("server-id", "Returned when queried for 'id.server' TXT or NSID, defaults to hostname - disabled or custom")="";
   ::arg().set("soa-refresh-default","Default SOA refresh")="10800";
   ::arg().set("soa-retry-default","Default SOA retry")="3600";
   ::arg().set("soa-expire-default","Default SOA expire")="604800";
@@ -164,9 +180,9 @@ void declareArguments()
   ::arg().set("default-ttl","Seconds a result is valid if not set otherwise")="3600";
   ::arg().set("max-tcp-connections","Maximum number of TCP connections")="20";
   ::arg().set("max-tcp-connections-per-client","Maximum number of simultaneous TCP connections per client")="0";
-  ::arg().set("max-tcp-transactions-per-conn")="0";
-  ::arg().set("max-tcp-connection-duration")="0";
-  ::arg().set("tcp-idle-timeout")="5";
+  ::arg().set("max-tcp-transactions-per-conn","Maximum number of subsequent queries per TCP connection")="0";
+  ::arg().set("max-tcp-connection-duration","Maximum time in seconds that a TCP DNS connection is allowed to stay open.")="0";
+  ::arg().set("tcp-idle-timeout","Maximum time in seconds that a TCP DNS connection is allowed to stay open while being idle")="5";
 
   ::arg().setSwitch("no-shuffle","Set this to prevent random shuffling of answers - for regression testing")="off";
 
@@ -183,7 +199,7 @@ void declareArguments()
   ::arg().set("lua-dnsupdate-policy-script", "Lua script with DNS update policy handler")="";
 
   ::arg().setSwitch("traceback-handler","Enable the traceback handler (Linux only)")="yes";
-  ::arg().setSwitch("direct-dnskey","Fetch DNSKEY RRs from backend during DNSKEY synthesis")="no";
+  ::arg().setSwitch("direct-dnskey","Fetch DNSKEY, CDS and CDNSKEY RRs from backend during DNSKEY or CDS/CDNSKEY synthesis")="no";
   ::arg().set("default-ksk-algorithm","Default KSK algorithm")="ecdsa256";
   ::arg().set("default-ksk-size","Default KSK size (0 means default)")="0";
   ::arg().set("default-zsk-algorithm","Default ZSK algorithm")="";
@@ -196,12 +212,18 @@ void declareArguments()
   ::arg().setSwitch("expand-alias", "Expand ALIAS records")="no";
   ::arg().setSwitch("outgoing-axfr-expand-alias", "Expand ALIAS records during outgoing AXFR")="no";
   ::arg().setSwitch("8bit-dns", "Allow 8bit dns queries")="no";
+#ifdef HAVE_LUA_RECORDS
+  ::arg().setSwitch("enable-lua-records", "Process LUA records for all zones (metadata overrides this)")="no";
+  ::arg().set("lua-records-exec-limit", "LUA records scripts execution limit (instructions count). Values <= 0 mean no limit")="1000";
+#endif
   ::arg().setSwitch("axfr-lower-serial", "Also AXFR a zone from a master with a lower serial")="no";
 
   ::arg().set("lua-axfr-script", "Script to be used to edit incoming AXFRs")="";
   ::arg().set("xfr-max-received-mbytes", "Maximum number of megabytes received from an incoming XFR")="100";
 
   ::arg().set("tcp-fast-open", "Enable TCP Fast Open support on the listening sockets, using the supplied numerical value as the queue size")="0";
+
+  ::arg().set("rng", "Specify the random number generator to use. Valid values are auto,sodium,openssl,getrandom,arc4random,urandom.")="auto";
 }
 
 static time_t s_start=time(0);
@@ -236,12 +258,12 @@ try
 }
 catch(std::exception& e)
 {
-  L<<Logger::Error<<"Had error retrieving queue sizes: "<<e.what()<<endl;
+  g_log<<Logger::Error<<"Had error retrieving queue sizes: "<<e.what()<<endl;
   return 0;
 }
 catch(PDNSException& e)
 {
-  L<<Logger::Error<<"Had error retrieving queue sizes: "<<e.reason<<endl;
+  g_log<<Logger::Error<<"Had error retrieving queue sizes: "<<e.reason<<endl;
   return 0;
 }
 
@@ -347,6 +369,8 @@ void sendout(DNSPacket* a)
 void *qthread(void *number)
 try
 {
+  setThreadName("pdns/receiver");
+
   DNSPacket *P;
   DNSDistributor *distributor = DNSDistributor::Create(::arg().asNum("distributor-threads", 1)); // the big dispatcher!
   int num = (int)(unsigned long)number;
@@ -365,6 +389,8 @@ try
   int diff;
   bool logDNSQueries = ::arg().mustDo("log-dns-queries");
   shared_ptr<UDPNameserver> NS;
+  std::string buffer;
+  buffer.resize(DNSPacket::s_udpTruncationThreshold);
 
   // If we have SO_REUSEPORT then create a new port for all receiver threads
   // other than the first one.
@@ -378,7 +404,7 @@ try
   }
 
   for(;;) {
-    if(!(P=NS->receive(&question))) { // receive a packet         inline
+    if(!(P=NS->receive(&question, buffer))) { // receive a packet         inline
       continue;                    // packet was broken, try again
     }
 
@@ -403,15 +429,18 @@ try
         remote = P->getRemote().toString() + "<-" + P->getRealRemote().toString();
       else
         remote = P->getRemote().toString();
-      L << Logger::Notice<<"Remote "<< remote <<" wants '" << P->qdomain<<"|"<<P->qtype.getName() << 
-            "', do = " <<P->d_dnssecOk <<", bufsize = "<< P->getMaxReplyLen()<<": ";
+      g_log << Logger::Notice<<"Remote "<< remote <<" wants '" << P->qdomain<<"|"<<P->qtype.getName() << 
+        "', do = " <<P->d_dnssecOk <<", bufsize = "<< P->getMaxReplyLen();
+      if(P->d_ednsRawPacketSizeLimit > 0 && P->getMaxReplyLen() != (unsigned int)P->d_ednsRawPacketSizeLimit)
+        g_log<<" ("<<P->d_ednsRawPacketSizeLimit<<")";
+      g_log<<": ";
     }
 
     if((P->d.opcode != Opcode::Notify && P->d.opcode != Opcode::Update) && P->couldBeCached()) {
       bool haveSomething=PC.get(P, &cached); // does the PacketCache recognize this question?
       if (haveSomething) {
         if(logDNSQueries)
-          L<<"packetcache HIT"<<endl;
+          g_log<<"packetcache HIT"<<endl;
         cached.setRemote(&P->d_remote);  // inlined
         cached.setSocket(P->getSocket());                               // inlined
         cached.d_anyLocal = P->d_anyLocal;
@@ -428,13 +457,13 @@ try
 
     if(distributor->isOverloaded()) {
       if(logDNSQueries) 
-        L<<"Dropped query, backends are overloaded"<<endl;
+        g_log<<"Dropped query, backends are overloaded"<<endl;
       overloadDrops++;
       continue;
     }
         
     if(logDNSQueries) 
-      L<<"packetcache MISS"<<endl;
+      g_log<<"packetcache MISS"<<endl;
 
     try {
       distributor->question(P, &sendout); // otherwise, give to the distributor
@@ -447,7 +476,7 @@ try
 }
 catch(PDNSException& pe)
 {
-  L<<Logger::Error<<"Fatal error in question thread: "<<pe.reason<<endl;
+  g_log<<Logger::Error<<"Fatal error in question thread: "<<pe.reason<<endl;
   _exit(1);
 }
 
@@ -478,6 +507,10 @@ void mainthread()
    
    g_anyToTcp = ::arg().mustDo("any-to-tcp");
    g_8bitDNS = ::arg().mustDo("8bit-dns");
+#ifdef HAVE_LUA_RECORDS
+   g_doLuaRecord = ::arg().mustDo("enable-lua-records");
+   g_luaRecordExecLimit = ::arg().asNum("lua-records-exec-limit");
+#endif
 
    DNSPacket::s_udpTruncationThreshold = std::max(512, ::arg().asNum("udp-truncation-threshold"));
    DNSPacket::s_doEDNSSubnetProcessing = ::arg().mustDo("edns-subnet-processing");
@@ -493,7 +526,7 @@ void mainthread()
      char *ns;
      ns = getenv("NOTIFY_SOCKET");
      if (ns != nullptr) {
-       L<<Logger::Error<<"Unable to chroot when running from systemd. Please disable chroot= or set the 'Type' for this service to 'simple'"<<endl;
+       g_log<<Logger::Error<<"Unable to chroot when running from systemd. Please disable chroot= or set the 'Type' for this service to 'simple'"<<endl;
        exit(1);
      }
 #endif
@@ -502,11 +535,11 @@ void mainthread()
         gethostbyname("a.root-servers.net"); // this forces all lookup libraries to be loaded
      Utility::dropGroupPrivs(newuid, newgid);
      if(chroot(::arg()["chroot"].c_str())<0 || chdir("/")<0) {
-       L<<Logger::Error<<"Unable to chroot to '"+::arg()["chroot"]+"': "<<strerror(errno)<<", exiting"<<endl; 
+       g_log<<Logger::Error<<"Unable to chroot to '"+::arg()["chroot"]+"': "<<strerror(errno)<<", exiting"<<endl; 
        exit(1);
      }   
      else
-       L<<Logger::Error<<"Chrooted to '"<<::arg()["chroot"]<<"'"<<endl;      
+       g_log<<Logger::Error<<"Chrooted to '"<<::arg()["chroot"]<<"'"<<endl;      
    } else {
      Utility::dropGroupPrivs(newuid, newgid);
    }
@@ -514,7 +547,6 @@ void mainthread()
   AuthWebServer webserver;
   Utility::dropUserPrivs(newuid);
 
-  // We need to start the Recursor Proxy before doing secpoll, see issue #2453
   if(::arg().mustDo("resolver")){
     DP=new DNSProxy(::arg()["resolver"]);
     DP->go();
@@ -525,15 +557,41 @@ void mainthread()
   }
   catch(...) {}
 
-  // Some sanity checking on default key settings
-  for (const string& algotype : {"ksk", "zsk"}) {
-    int algo, size;
-    algo = DNSSECKeeper::shorthand2algorithm(::arg()["default-"+algotype+"-algorithm"]);
-    size = ::arg().asNum("default-"+algotype+"-size");
-    if (algo == -1)
-      L<<Logger::Warning<<"Warning: default-"<<algotype<<"-algorithm set to unknown algorithm: "<<::arg()["default-"+algotype+"-algorithm"]<<endl;
-    else if (algo <= 10 && size == 0)
-      L<<Logger::Warning<<"Warning: default-"<<algotype<<"-algorithm is set to an algorithm ("<<::arg()["default-"+algotype+"-algorithm"]<<") that requires a non-zero default-"<<algotype<<"-size!"<<endl;
+  {
+    // Some sanity checking on default key settings
+    bool hadKeyError = false;
+    int kskAlgo{0}, zskAlgo{0};
+    for (const string& algotype : {"ksk", "zsk"}) {
+      int algo, size;
+      if (::arg()["default-"+algotype+"-algorithm"].empty())
+        continue;
+      algo = DNSSECKeeper::shorthand2algorithm(::arg()["default-"+algotype+"-algorithm"]);
+      size = ::arg().asNum("default-"+algotype+"-size");
+      if (algo == -1) {
+        g_log<<Logger::Error<<"Error: default-"<<algotype<<"-algorithm set to unknown algorithm: "<<::arg()["default-"+algotype+"-algorithm"]<<endl;
+        hadKeyError = true;
+      }
+      else if (algo <= 10 && size == 0) {
+        g_log<<Logger::Error<<"Error: default-"<<algotype<<"-algorithm is set to an algorithm ("<<::arg()["default-"+algotype+"-algorithm"]<<") that requires a non-zero default-"<<algotype<<"-size!"<<endl;
+        hadKeyError = true;
+      }
+      if (algotype == "ksk") {
+        kskAlgo = algo;
+      } else {
+        zskAlgo = algo;
+      }
+    }
+    if (hadKeyError) {
+      exit(1);
+    }
+    if (kskAlgo == 0 && zskAlgo != 0) {
+      g_log<<Logger::Error<<"Error: default-zsk-algorithm is set, but default-ksk-algorithm is not set."<<endl;
+      exit(1);
+    }
+    if (zskAlgo != 0 && zskAlgo != kskAlgo) {
+      g_log<<Logger::Error<<"Error: default-zsk-algorithm ("<<::arg()["default-zsk-algorithm"]<<"), when set, can not be different from default-ksk-algorithm ("<<::arg()["default-ksk-algorithm"]<<")."<<endl;
+      exit(1);
+    }
   }
 
   // NOW SAFE TO CREATE THREADS!
@@ -575,5 +633,5 @@ void mainthread()
     catch(...){}
   }
   
-  L<<Logger::Error<<"Mainthread exiting - should never happen"<<endl;
+  g_log<<Logger::Error<<"Mainthread exiting - should never happen"<<endl;
 }

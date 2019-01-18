@@ -5,7 +5,7 @@ void ldapSetOption( LDAP *conn, int option, void *value )
 {
   if( ldap_set_option( conn, option, value ) != LDAP_OPT_SUCCESS )
   {
-    throw( LDAPException( "Unable to set option" ) );
+    throw LDAPException( "Unable to set option" );
   }
 }
 
@@ -13,7 +13,7 @@ void ldapGetOption( LDAP *conn, int option, void *value )
 {
   if( ldap_get_option( conn, option, value ) != LDAP_OPT_SUCCESS )
   {
-    throw( LDAPException( "Unable to get option" ) );
+    throw LDAPException( "Unable to get option" );
   }
 }
 

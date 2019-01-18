@@ -2,13 +2,18 @@ MAIN_MANS = pdns_server.1 \
 	pdns_control.1 \
 	pdnsutil.1 \
 	zone2json.1 \
-	zone2ldap.1 \
 	zone2sql.1
 
 MANPAGES_INSTALL = $(MAIN_MANS)
-MANPAGES_DIST = $(MAIN_MANS)
+
+MANPAGES_DIST = $(MAIN_MANS) zone2ldap.1
+
+if LDAP
+MANPAGES_INSTALL += zone2ldap.1
+endif
 
 MANPAGES_TARGET_TOOLS = calidns.1 \
+	dnspcap2calidns.1 \
 	dnsgram.1 \
 	dnsreplay.1 \
 	dnsscan.1 \
@@ -22,7 +27,11 @@ MANPAGES_TARGET_TOOLS = calidns.1 \
 	saxfr.1 \
 	sdig.1
 
+MANPAGES_TARGET_IXFRDIST = ixfrdist.1 \
+	ixfrdist.yml.5
+
 MANPAGES_DIST += $(MANPAGES_TARGET_TOOLS) \
+	$(MANPAGES_TARGET_IXFRDIST) \
 	dnsbulktest.1 \
 	dnstcpbench.1 \
 	dnspcap2protobuf.1
@@ -42,6 +51,10 @@ if TOOLS
 MANPAGES_INSTALL += $(MANPAGES_TARGET_TOOLS)
 endif
 
+if IXFRDIST
+MANPAGES_INSTALL += $(MANPAGES_TARGET_IXFRDIST)
+endif
+
 man_MANS = $(MANPAGES_INSTALL)
 
 EXTRA_DIST = $(MANPAGES_DIST)
@@ -57,6 +70,19 @@ endif # if !HAVE_MANPAGES
 	virtualenv .venv
 	.venv/bin/pip install -U pip setuptools setuptools-git
 	.venv/bin/pip install -r requirements.txt
+
+.NOTPARALLEL: \
+	all-docs \
+	upload-docs \
+	html-docs \
+	$(MANPAGES_DIST) \
+	latex/PowerDNS-Authoritative.pdf \
+	PowerDNS-Authoritative.pdf \
+	html-docs.tar.bz2
+
+clean-local:
+	rm -f latex/PowerDNS-Authoritative.pdf $(MANPAGES_DIST) html-docs.tar.bz2
+	rm -rf mans
 
 html-docs: common/** manpages/** .venv *.rst
 	.venv/bin/python -msphinx -b html . html-docs

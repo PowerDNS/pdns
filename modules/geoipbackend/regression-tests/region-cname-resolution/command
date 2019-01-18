@@ -1,2 +1,2 @@
 #!/bin/sh
-cleandig indirect.geo.example.com A ednssubnet 1.2.3.4/32
+cleandig indirect.geo.example.com A ednssubnet $geoipregionip

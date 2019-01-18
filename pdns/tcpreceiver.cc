@@ -25,6 +25,7 @@
 #include <boost/algorithm/string.hpp>
 #include "auth-packetcache.hh"
 #include "utility.hh"
+#include "threadname.hh"
 #include "dnssecinfra.hh"
 #include "dnsseckeeper.hh"
 #include <cstdio>
@@ -78,13 +79,13 @@ std::map<ComboAddress,size_t,ComboAddress::addressOnlyLessThan> TCPNameserver::s
 
 void TCPNameserver::go()
 {
-  L<<Logger::Error<<"Creating backend connection for TCP"<<endl;
+  g_log<<Logger::Error<<"Creating backend connection for TCP"<<endl;
   s_P=0;
   try {
     s_P=new PacketHandler;
   }
   catch(PDNSException &ae) {
-    L<<Logger::Error<<"TCP server is unable to launch backends - will try again when questions come in: "<<ae.reason<<endl;
+    g_log<<Logger::Error<<"TCP server is unable to launch backends - will try again when questions come in: "<<ae.reason<<endl;
   }
   pthread_create(&d_tid, 0, launcher, static_cast<void *>(this));
 }
@@ -252,6 +253,7 @@ void TCPNameserver::decrementClientCount(const ComboAddress& remote)
 
 void *TCPNameserver::doConnection(void *data)
 {
+  setThreadName("pdns/tcpConnect");
   shared_ptr<DNSPacket> packet;
   // Fix gcc-4.0 error (on AMD64)
   int fd=(int)(long)data; // gotta love C (generates a harmless warning on opteron)
@@ -265,13 +267,13 @@ void *TCPNameserver::doConnection(void *data)
 
   pthread_detach(pthread_self());
   if(getpeername(fd, (struct sockaddr *)&remote, &remotelen) < 0) {
-    L<<Logger::Warning<<"Received question from socket which had no remote address, dropping ("<<stringerror()<<")"<<endl;
+    g_log<<Logger::Warning<<"Received question from socket which had no remote address, dropping ("<<stringerror()<<")"<<endl;
     d_connectionroom_sem->post();
     try {
       closesocket(fd);
     }
     catch(const PDNSException& e) {
-      L<<Logger::Error<<"Error closing TCP socket: "<<e.reason<<endl;
+      g_log<<Logger::Error<<"Error closing TCP socket: "<<e.reason<<endl;
     }
     return 0;
   }
@@ -281,17 +283,17 @@ void *TCPNameserver::doConnection(void *data)
     int mesgsize=65535;
     scoped_array<char> mesg(new char[mesgsize]);
     
-    DLOG(L<<"TCP Connection accepted on fd "<<fd<<endl);
+    DLOG(g_log<<"TCP Connection accepted on fd "<<fd<<endl);
     bool logDNSQueries= ::arg().mustDo("log-dns-queries");
     for(;;) {
       unsigned int remainingTime = 0;
       transactions++;
       if (d_maxTransactionsPerConn && transactions > d_maxTransactionsPerConn) {
-        L << Logger::Notice<<"TCP Remote "<< remote <<" exceeded the number of transactions per connection, dropping.";
+        g_log << Logger::Notice<<"TCP Remote "<< remote <<" exceeded the number of transactions per connection, dropping.";
         break;
       }
       if (maxConnectionDurationReached(d_maxConnectionDuration, start, remainingTime)) {
-        L << Logger::Notice<<"TCP Remote "<< remote <<" exceeded the maximum TCP connection duration, dropping.";
+        g_log << Logger::Notice<<"TCP Remote "<< remote <<" exceeded the maximum TCP connection duration, dropping.";
         break;
       }
 
@@ -309,12 +311,12 @@ void *TCPNameserver::doConnection(void *data)
       // do not remove this check as it will catch if someone
       // decreases the mesg buffer size for some reason. 
       if(pktlen > mesgsize) {
-        L<<Logger::Warning<<"Received an overly large question from "<<remote.toString()<<", dropping"<<endl;
+        g_log<<Logger::Warning<<"Received an overly large question from "<<remote.toString()<<", dropping"<<endl;
         break;
       }
       
       if (maxConnectionDurationReached(d_maxConnectionDuration, start, remainingTime)) {
-        L << Logger::Notice<<"TCP Remote "<< remote <<" exceeded the maximum TCP connection duration, dropping.";
+        g_log << Logger::Notice<<"TCP Remote "<< remote <<" exceeded the maximum TCP connection duration, dropping.";
         break;
       }
 
@@ -352,14 +354,14 @@ void *TCPNameserver::doConnection(void *data)
           remote_text = packet->getRemote().toString() + "<-" + packet->getRealRemote().toString();
         else
           remote_text = packet->getRemote().toString();
-        L << Logger::Notice<<"TCP Remote "<< remote_text <<" wants '" << packet->qdomain<<"|"<<packet->qtype.getName() <<
+        g_log << Logger::Notice<<"TCP Remote "<< remote_text <<" wants '" << packet->qdomain<<"|"<<packet->qtype.getName() <<
         "', do = " <<packet->d_dnssecOk <<", bufsize = "<< packet->getMaxReplyLen()<<": ";
       }
 
 
       if(packet->couldBeCached() && PC.get(packet.get(), cached.get())) { // short circuit - does the PacketCache recognize this question?
         if(logDNSQueries)
-          L<<"packetcache HIT"<<endl;
+          g_log<<"packetcache HIT"<<endl;
         cached->setRemote(&packet->d_remote);
         cached->d.id=packet->d.id;
         cached->d.rd=packet->d.rd; // copy in recursion desired bit 
@@ -369,11 +371,11 @@ void *TCPNameserver::doConnection(void *data)
         continue;
       }
       if(logDNSQueries)
-          L<<"packetcache MISS"<<endl;  
+          g_log<<"packetcache MISS"<<endl;  
       {
         Lock l(&s_plock);
         if(!s_P) {
-          L<<Logger::Error<<"TCP server is without backend connections, launching"<<endl;
+          g_log<<Logger::Error<<"TCP server is without backend connections, launching"<<endl;
           s_P=new PacketHandler;
         }
 
@@ -390,18 +392,18 @@ void *TCPNameserver::doConnection(void *data)
     Lock l(&s_plock);
     delete s_P;
     s_P = 0; // on next call, backend will be recycled
-    L<<Logger::Error<<"TCP nameserver had error, cycling backend: "<<ae.reason<<endl;
+    g_log<<Logger::Error<<"TCP nameserver had error, cycling backend: "<<ae.reason<<endl;
   }
   catch(NetworkError &e) {
-    L<<Logger::Info<<"TCP Connection Thread died because of network error: "<<e.what()<<endl;
+    g_log<<Logger::Info<<"TCP Connection Thread died because of network error: "<<e.what()<<endl;
   }
 
   catch(std::exception &e) {
-    L<<Logger::Error<<"TCP Connection Thread died because of STL error: "<<e.what()<<endl;
+    g_log<<Logger::Error<<"TCP Connection Thread died because of STL error: "<<e.what()<<endl;
   }
   catch( ... )
   {
-    L << Logger::Error << "TCP Connection Thread caught unknown exception." << endl;
+    g_log << Logger::Error << "TCP Connection Thread caught unknown exception." << endl;
   }
   d_connectionroom_sem->post();
 
@@ -409,7 +411,7 @@ void *TCPNameserver::doConnection(void *data)
     closesocket(fd);
   }
   catch(const PDNSException& e) {
-    L<<Logger::Error<<"Error closing TCP socket: "<<e.reason<<endl;
+    g_log<<Logger::Error<<"Error closing TCP socket: "<<e.reason<<endl;
   }
   decrementClientCount(remote);
 
@@ -434,39 +436,39 @@ bool TCPNameserver::canDoAXFR(shared_ptr<DNSPacket> q)
       if (q->d_tsig_algo == TSIG_GSS) {
         GssContext gssctx(keyname);
         if (!gssctx.getPeerPrincipal(q->d_peer_principal)) {
-          L<<Logger::Warning<<"Failed to extract peer principal from GSS context with keyname '"<<keyname<<"'"<<endl;
+          g_log<<Logger::Warning<<"Failed to extract peer principal from GSS context with keyname '"<<keyname<<"'"<<endl;
         }
       }
     }
 
-    DNSSECKeeper dk;
+    DNSSECKeeper dk(s_P->getBackend());
 
     if (q->d_tsig_algo == TSIG_GSS) {
       vector<string> princs;
       s_P->getBackend()->getDomainMetadata(q->qdomain, "GSS-ALLOW-AXFR-PRINCIPAL", princs);
       for(const std::string& princ :  princs) {
         if (q->d_peer_principal == princ) {
-          L<<Logger::Warning<<"AXFR of domain '"<<q->qdomain<<"' allowed: TSIG signed request with authorized principal '"<<q->d_peer_principal<<"' and algorithm 'gss-tsig'"<<endl;
+          g_log<<Logger::Warning<<"AXFR of domain '"<<q->qdomain<<"' allowed: TSIG signed request with authorized principal '"<<q->d_peer_principal<<"' and algorithm 'gss-tsig'"<<endl;
           return true;
         }
       }
-      L<<Logger::Warning<<"AXFR of domain '"<<q->qdomain<<"' denied: TSIG signed request with principal '"<<q->d_peer_principal<<"' and algorithm 'gss-tsig' is not permitted"<<endl;
+      g_log<<Logger::Warning<<"AXFR of domain '"<<q->qdomain<<"' denied: TSIG signed request with principal '"<<q->d_peer_principal<<"' and algorithm 'gss-tsig' is not permitted"<<endl;
       return false;
     }
 
     if(!dk.TSIGGrantsAccess(q->qdomain, keyname)) {
-      L<<Logger::Error<<"AXFR '"<<q->qdomain<<"' denied: key with name '"<<keyname<<"' and algorithm '"<<getTSIGAlgoName(q->d_tsig_algo)<<"' does not grant access to zone"<<endl;
+      g_log<<Logger::Error<<"AXFR '"<<q->qdomain<<"' denied: key with name '"<<keyname<<"' and algorithm '"<<getTSIGAlgoName(q->d_tsig_algo)<<"' does not grant access to zone"<<endl;
       return false;
     }
     else {
-      L<<Logger::Warning<<"AXFR of domain '"<<q->qdomain<<"' allowed: TSIG signed request with authorized key '"<<keyname<<"' and algorithm '"<<getTSIGAlgoName(q->d_tsig_algo)<<"'"<<endl;
+      g_log<<Logger::Warning<<"AXFR of domain '"<<q->qdomain<<"' allowed: TSIG signed request with authorized key '"<<keyname<<"' and algorithm '"<<getTSIGAlgoName(q->d_tsig_algo)<<"'"<<endl;
       return true;
     }
   }
   
   // cerr<<"checking allow-axfr-ips"<<endl;
   if(!(::arg()["allow-axfr-ips"].empty()) && d_ng.match( (ComboAddress *) &q->d_remote )) {
-    L<<Logger::Warning<<"AXFR of domain '"<<q->qdomain<<"' allowed: client IP "<<q->getRemote()<<" is in allow-axfr-ips"<<endl;
+    g_log<<Logger::Warning<<"AXFR of domain '"<<q->qdomain<<"' allowed: client IP "<<q->getRemote()<<" is in allow-axfr-ips"<<endl;
     return true;
   }
 
@@ -497,7 +499,7 @@ bool TCPNameserver::canDoAXFR(shared_ptr<DNSPacket> q)
             if(*k == q->getRemote().toString())
             {
               // cerr<<"got AUTO-NS hit"<<endl;
-              L<<Logger::Warning<<"AXFR of domain '"<<q->qdomain<<"' allowed: client IP "<<q->getRemote()<<" is in NSset"<<endl;
+              g_log<<Logger::Warning<<"AXFR of domain '"<<q->qdomain<<"' allowed: client IP "<<q->getRemote()<<" is in NSset"<<endl;
               return true;
             }
           }
@@ -508,7 +510,7 @@ bool TCPNameserver::canDoAXFR(shared_ptr<DNSPacket> q)
         Netmask nm = Netmask(*i);
         if(nm.match( (ComboAddress *) &q->d_remote ))
         {
-          L<<Logger::Warning<<"AXFR of domain '"<<q->qdomain<<"' allowed: client IP "<<q->getRemote()<<" is in per-domain ACL"<<endl;
+          g_log<<Logger::Warning<<"AXFR of domain '"<<q->qdomain<<"' allowed: client IP "<<q->getRemote()<<" is in per-domain ACL"<<endl;
           // cerr<<"hit!"<<endl;
           return true;
         }
@@ -519,32 +521,39 @@ bool TCPNameserver::canDoAXFR(shared_ptr<DNSPacket> q)
   extern CommunicatorClass Communicator;
 
   if(Communicator.justNotified(q->qdomain, q->getRemote().toString())) { // we just notified this ip
-    L<<Logger::Warning<<"Approved AXFR of '"<<q->qdomain<<"' from recently notified slave "<<q->getRemote()<<endl;
+    g_log<<Logger::Warning<<"Approved AXFR of '"<<q->qdomain<<"' from recently notified slave "<<q->getRemote()<<endl;
     return true;
   }
 
-  L<<Logger::Error<<"AXFR of domain '"<<q->qdomain<<"' denied: client IP "<<q->getRemote()<<" has no permission"<<endl;
+  g_log<<Logger::Error<<"AXFR of domain '"<<q->qdomain<<"' denied: client IP "<<q->getRemote()<<" has no permission"<<endl;
   return false;
 }
 
 namespace {
   struct NSECXEntry
   {
-    set<uint16_t> d_set;
+    NSECBitmap d_set;
     unsigned int d_ttl;
     bool d_auth;
   };
 
-  DNSResourceRecord makeDNSRRFromSOAData(const SOAData& sd)
+  DNSZoneRecord makeEditedDNSZRFromSOAData(DNSSECKeeper& dk, const SOAData& sd)
   {
-    DNSResourceRecord soa;
-    soa.qname= sd.qname;
-    soa.qtype=QType::SOA;
-    soa.content=serializeSOAData(sd);
-    soa.ttl=sd.ttl;
-    soa.domain_id=sd.domain_id;
-    soa.auth = true;
-    return soa;
+    SOAData edited = sd;
+    edited.serial = calculateEditSOA(sd.serial, dk, sd.qname);
+
+    DNSRecord soa;
+    soa.d_name = sd.qname;
+    soa.d_type = QType::SOA;
+    soa.d_ttl = sd.ttl;
+    soa.d_place = DNSResourceRecord::ANSWER;
+    soa.d_content = makeSOAContent(edited);
+
+    DNSZoneRecord dzr;
+    dzr.auth = true;
+    dzr.dr = soa;
+
+    return dzr;
   }
 
   shared_ptr<DNSPacket> getFreshAXFRPacket(shared_ptr<DNSPacket> q)
@@ -565,28 +574,28 @@ int TCPNameserver::doAXFR(const DNSName &target, shared_ptr<DNSPacket> q, int ou
   if(q->d_dnssecOk)
     outpacket->d_dnssecOk=true; // RFC 5936, 2.2.5 'SHOULD'
 
-  L<<Logger::Error<<"AXFR of domain '"<<target<<"' initiated by "<<q->getRemote()<<endl;
+  g_log<<Logger::Error<<"AXFR of domain '"<<target<<"' initiated by "<<q->getRemote()<<endl;
 
   // determine if zone exists and AXFR is allowed using existing backend before spawning a new backend.
   SOAData sd;
   {
     Lock l(&s_plock);
-    DLOG(L<<"Looking for SOA"<<endl);    // find domain_id via SOA and list complete domain. No SOA, no AXFR
+    DLOG(g_log<<"Looking for SOA"<<endl);    // find domain_id via SOA and list complete domain. No SOA, no AXFR
     if(!s_P) {
-      L<<Logger::Error<<"TCP server is without backend connections in doAXFR, launching"<<endl;
+      g_log<<Logger::Error<<"TCP server is without backend connections in doAXFR, launching"<<endl;
       s_P=new PacketHandler;
     }
 
+    // canDoAXFR does all the ACL checks, and has the if(disable-axfr) shortcut, call it first.
     if (!canDoAXFR(q)) {
-      L<<Logger::Error<<"AXFR of domain '"<<target<<"' failed: "<<q->getRemote()<<" cannot request AXFR"<<endl;
+      g_log<<Logger::Error<<"AXFR of domain '"<<target<<"' failed: "<<q->getRemote()<<" may not request AXFR"<<endl;
       outpacket->setRcode(RCode::NotAuth);
       sendPacket(outpacket,outsock);
       return 0;
     }
 
-    // canDoAXFR does all the ACL checks, and has the if(disable-axfr) shortcut, call it first.
     if(!s_P->getBackend()->getSOAUncached(target, sd)) {
-      L<<Logger::Error<<"AXFR of domain '"<<target<<"' failed: not authoritative"<<endl;
+      g_log<<Logger::Error<<"AXFR of domain '"<<target<<"' failed: not authoritative"<<endl;
       outpacket->setRcode(RCode::NotAuth);
       sendPacket(outpacket,outsock);
       return 0;
@@ -595,13 +604,13 @@ int TCPNameserver::doAXFR(const DNSName &target, shared_ptr<DNSPacket> q, int ou
 
   UeberBackend db;
   if(!db.getSOAUncached(target, sd)) {
-    L<<Logger::Error<<"AXFR of domain '"<<target<<"' failed: not authoritative in second instance"<<endl;
+    g_log<<Logger::Error<<"AXFR of domain '"<<target<<"' failed: not authoritative in second instance"<<endl;
     outpacket->setRcode(RCode::NotAuth);
     sendPacket(outpacket,outsock);
     return 0;
   }
 
-  DNSSECKeeper dk;
+  DNSSECKeeper dk(&db);
   dk.clearCaches(target);
   bool securedZone = dk.isSecuredZone(target);
   bool presignedZone = dk.isPresigned(target);
@@ -613,13 +622,13 @@ int TCPNameserver::doAXFR(const DNSName &target, shared_ptr<DNSPacket> q, int ou
   if(securedZone && dk.getNSEC3PARAM(target, &ns3pr, &narrow)) {
     NSEC3Zone=true;
     if(narrow) {
-      L<<Logger::Error<<"Not doing AXFR of an NSEC3 narrow zone '"<<target<<"' for "<<q->getRemote()<<endl;
+      g_log<<Logger::Error<<"Not doing AXFR of an NSEC3 narrow zone '"<<target<<"' for "<<q->getRemote()<<endl;
       noAXFRBecauseOfNSEC3Narrow=true;
     }
   }
 
   if(noAXFRBecauseOfNSEC3Narrow) {
-    L<<Logger::Error<<"AXFR of domain '"<<target<<"' denied to "<<q->getRemote()<<endl;
+    g_log<<Logger::Error<<"AXFR of domain '"<<target<<"' denied to "<<q->getRemote()<<endl;
     outpacket->setRcode(RCode::Refused);
     // FIXME: should actually figure out if we are auth over a zone, and send out 9 if we aren't
     sendPacket(outpacket,outsock);
@@ -638,31 +647,26 @@ int TCPNameserver::doAXFR(const DNSName &target, shared_ptr<DNSPacket> q, int ou
     if (algorithm == DNSName("hmac-md5.sig-alg.reg.int"))
       algorithm = DNSName("hmac-md5");
     if (algorithm != DNSName("gss-tsig")) {
-      Lock l(&s_plock);
-      s_P->getBackend()->getTSIGKey(tsigkeyname, &algorithm, &tsig64);
-      B64Decode(tsig64, tsigsecret);
+      if(!db.getTSIGKey(tsigkeyname, &algorithm, &tsig64)) {
+        g_log<<Logger::Error<<"TSIG key '"<<tsigkeyname<<"' for domain '"<<target<<"' not found"<<endl;
+        return 0;
+      }
+      if (B64Decode(tsig64, tsigsecret) == -1) {
+        g_log<<Logger::Error<<"Unable to Base-64 decode TSIG key '"<<tsigkeyname<<"' for domain '"<<target<<"'"<<endl;
+        return 0;
+      }
     }
   }
   
   
-  UeberBackend signatureDB; 
-  
   // SOA *must* go out first, our signing pipe might reorder
-  DLOG(L<<"Sending out SOA"<<endl);
-  DNSResourceRecord soa = makeDNSRRFromSOAData(sd);
-  DNSZoneRecord dzrsoa;
-  dzrsoa.auth=true;
-  dzrsoa.dr=DNSRecord(soa);
-
-  string kind;
-  dk.getSoaEdit(sd.qname, kind);
-  editSOARecord(dzrsoa, kind);
-
-  outpacket->addRecord(dzrsoa);
-  if(securedZone) {
+  DLOG(g_log<<"Sending out SOA"<<endl);
+  DNSZoneRecord soa = makeEditedDNSZRFromSOAData(dk, sd);
+  outpacket->addRecord(soa);
+  if(securedZone && !presignedZone) {
     set<DNSName> authSet;
     authSet.insert(target);
-    addRRSigs(dk, signatureDB, authSet, outpacket->getRRS());
+    addRRSigs(dk, db, authSet, outpacket->getRRS());
   }
   
   if(haveTSIGDetails && !tsigkeyname.empty())
@@ -673,9 +677,9 @@ int TCPNameserver::doAXFR(const DNSName &target, shared_ptr<DNSPacket> q, int ou
   trc.d_mac = outpacket->d_trc.d_mac;
   outpacket = getFreshAXFRPacket(q);
   
-  ChunkedSigningPipe csp(target, securedZone, "", ::arg().asNum("signing-threads", 1));
+  ChunkedSigningPipe csp(target, (securedZone && !presignedZone), ::arg().asNum("signing-threads", 1));
   
-  typedef map<string, NSECXEntry> nsecxrepo_t;
+  typedef map<DNSName, NSECXEntry, CanonDNSNameCompare> nsecxrepo_t;
   nsecxrepo_t nsecxrepo;
   
   // this is where the DNSKEYs go  in
@@ -700,10 +704,10 @@ int TCPNameserver::doAXFR(const DNSName &target, shared_ptr<DNSPacket> q, int ou
   for(const DNSSECKeeper::keyset_t::value_type& value :  keys) {
     zrr.dr.d_type = QType::DNSKEY;
     zrr.dr.d_content = std::make_shared<DNSKEYRecordContent>(value.first.getDNSKEY());
-    string keyname = NSEC3Zone ? hashQNameWithSalt(ns3pr, zrr.dr.d_name) : zrr.dr.d_name.labelReverse().toString(" ", false);
+    DNSName keyname = NSEC3Zone ? DNSName(toBase32Hex(hashQNameWithSalt(ns3pr, zrr.dr.d_name))) : zrr.dr.d_name;
     NSECXEntry& ne = nsecxrepo[keyname];
     
-    ne.d_set.insert(zrr.dr.d_type);
+    ne.d_set.set(zrr.dr.d_type);
     ne.d_ttl = sd.default_ttl;
     csp.submit(zrr);
 
@@ -743,16 +747,16 @@ int TCPNameserver::doAXFR(const DNSName &target, shared_ptr<DNSPacket> q, int ou
     ns3pr.d_flags = 0;
     zrr.dr.d_content = std::make_shared<NSEC3PARAMRecordContent>(ns3pr);
     ns3pr.d_flags = flags;
-    string keyname = hashQNameWithSalt(ns3pr, zrr.dr.d_name);
+    DNSName keyname = DNSName(toBase32Hex(hashQNameWithSalt(ns3pr, zrr.dr.d_name)));
     NSECXEntry& ne = nsecxrepo[keyname];
     
-    ne.d_set.insert(zrr.dr.d_type);
+    ne.d_set.set(zrr.dr.d_type);
     csp.submit(zrr);
   }
   
   // now start list zone
   if(!(sd.db->list(target, sd.domain_id))) {  
-    L<<Logger::Error<<"Backend signals error condition"<<endl;
+    g_log<<Logger::Error<<"Backend signals error condition"<<endl;
     outpacket->setRcode(RCode::ServFail);
     sendPacket(outpacket,outsock);
     return 0;
@@ -778,7 +782,7 @@ int TCPNameserver::doAXFR(const DNSName &target, shared_ptr<DNSPacket> q, int ou
         int ret1 = stubDoResolve(getRR<ALIASRecordContent>(zrr.dr)->d_content, QType::A, ips);
         int ret2 = stubDoResolve(getRR<ALIASRecordContent>(zrr.dr)->d_content, QType::AAAA, ips);
         if(ret1 != RCode::NoError || ret2 != RCode::NoError) {
-          L<<Logger::Error<<"Error resolving for ALIAS "<<zrr.dr.d_content->getZoneRepresentation()<<", aborting AXFR"<<endl;
+          g_log<<Logger::Error<<"Error resolving for ALIAS "<<zrr.dr.d_content->getZoneRepresentation()<<", aborting AXFR"<<endl;
           outpacket->setRcode(RCode::ServFail);
           sendPacket(outpacket,outsock);
           return 0;
@@ -804,26 +808,28 @@ int TCPNameserver::doAXFR(const DNSName &target, shared_ptr<DNSPacket> q, int ou
       zrrs.push_back(zrr);
     } else {
       if (zrr.dr.d_type)
-        L<<Logger::Warning<<"Zone '"<<target<<"' contains out-of-zone data '"<<zrr.dr.d_name<<"|"<<DNSRecordContent::NumberToType(zrr.dr.d_type)<<"', ignoring"<<endl;
+        g_log<<Logger::Warning<<"Zone '"<<target<<"' contains out-of-zone data '"<<zrr.dr.d_name<<"|"<<DNSRecordContent::NumberToType(zrr.dr.d_type)<<"', ignoring"<<endl;
     }
   }
 
   // Group records by name and type, signpipe stumbles over interrupted rrsets
-  sort(zrrs.begin(), zrrs.end(), [](const DNSZoneRecord& a, const DNSZoneRecord& b) {
-    return tie(a.dr.d_name, a.dr.d_type) < tie(b.dr.d_name, b.dr.d_type);
-  });
+  if(securedZone && !presignedZone) {
+    sort(zrrs.begin(), zrrs.end(), [](const DNSZoneRecord& a, const DNSZoneRecord& b) {
+      return tie(a.dr.d_name, a.dr.d_type) < tie(b.dr.d_name, b.dr.d_type);
+    });
+  }
 
   if(rectify) {
     // set auth
-    for(DNSZoneRecord &zrr :  zrrs) {
-      zrr.auth=true;
-      if (zrr.dr.d_type != QType::NS || zrr.dr.d_name!=target) {
-        DNSName shorter(zrr.dr.d_name);
+    for(DNSZoneRecord &loopZRR :  zrrs) {
+      loopZRR.auth=true;
+      if (loopZRR.dr.d_type != QType::NS || loopZRR.dr.d_name!=target) {
+        DNSName shorter(loopZRR.dr.d_name);
         do {
           if (shorter==target) // apex is always auth
             break;
-          if(nsset.count(shorter) && !(zrr.dr.d_name==shorter && zrr.dr.d_type == QType::DS)) {
-            zrr.auth=false;
+          if(nsset.count(shorter) && !(loopZRR.dr.d_name==shorter && loopZRR.dr.d_type == QType::DS)) {
+            loopZRR.auth=false;
             break;
           }
         } while(shorter.chopOff());
@@ -834,9 +840,9 @@ int TCPNameserver::doAXFR(const DNSName &target, shared_ptr<DNSPacket> q, int ou
       // ents are only required for NSEC3 zones
       uint32_t maxent = ::arg().asNum("max-ent-entries");
       set<DNSName> nsec3set, nonterm;
-      for (auto &zrr: zrrs) {
+      for (auto &loopZRR: zrrs) {
         bool skip=false;
-        DNSName shorter = zrr.dr.d_name;
+        DNSName shorter = loopZRR.dr.d_name;
         if (shorter != target && shorter.chopOff() && shorter != target) {
           do {
             if(nsset.count(shorter)) {
@@ -845,8 +851,8 @@ int TCPNameserver::doAXFR(const DNSName &target, shared_ptr<DNSPacket> q, int ou
             }
           } while(shorter.chopOff() && shorter != target);
         }
-        shorter = zrr.dr.d_name;
-        if(!skip && (zrr.dr.d_type != QType::NS || !ns3pr.d_flags)) {
+        shorter = loopZRR.dr.d_name;
+        if(!skip && (loopZRR.dr.d_type != QType::NS || !ns3pr.d_flags)) {
           do {
             if(!nsec3set.count(shorter)) {
               nsec3set.insert(shorter);
@@ -855,12 +861,12 @@ int TCPNameserver::doAXFR(const DNSName &target, shared_ptr<DNSPacket> q, int ou
         }
       }
 
-      for(DNSZoneRecord &zrr :  zrrs) {
-        DNSName shorter(zrr.dr.d_name);
+      for(DNSZoneRecord &loopZRR :  zrrs) {
+        DNSName shorter(loopZRR.dr.d_name);
         while(shorter != target && shorter.chopOff()) {
           if(!qnames.count(shorter) && !nonterm.count(shorter) && nsec3set.count(shorter)) {
             if(!(maxent)) {
-              L<<Logger::Warning<<"Zone '"<<target<<"' has too many empty non terminals."<<endl;
+              g_log<<Logger::Warning<<"Zone '"<<target<<"' has too many empty non terminals."<<endl;
               return 0;
             }
             nonterm.insert(shorter);
@@ -870,11 +876,11 @@ int TCPNameserver::doAXFR(const DNSName &target, shared_ptr<DNSPacket> q, int ou
       }
 
       for(const auto& nt :  nonterm) {
-        DNSZoneRecord zrr;
-        zrr.dr.d_name=nt;
-        zrr.dr.d_type=QType::ENT;
-        zrr.auth=true;
-        zrrs.push_back(zrr);
+        DNSZoneRecord tempRR;
+        tempRR.dr.d_name=nt;
+        tempRR.dr.d_type=QType::ENT;
+        tempRR.auth=true;
+        zrrs.push_back(tempRR);
       }
     }
   }
@@ -882,46 +888,44 @@ int TCPNameserver::doAXFR(const DNSName &target, shared_ptr<DNSPacket> q, int ou
 
   /* now write all other records */
   
-  string keyname;
-  set<string> ns3rrs;
+  DNSName keyname;
   unsigned int udiff;
   DTime dt;
   dt.set();
   int records=0;
-  for(DNSZoneRecord &zrr :  zrrs) {
-    if (zrr.dr.d_type == QType::RRSIG) {
-      if(presignedZone && getRR<RRSIGRecordContent>(zrr.dr)->d_type == QType::NSEC3) {
-        DNSName relative=zrr.dr.d_name.makeRelative(target);
-        ns3rrs.insert(fromBase32Hex(relative.toStringNoDot()));
-      }
+  for(DNSZoneRecord &loopZRR :  zrrs) {
+    if (!presignedZone && loopZRR.dr.d_type == QType::RRSIG)
       continue;
-    }
 
     // only skip the DNSKEY, CDNSKEY and CDS if direct-dnskey is enabled, to avoid changing behaviour
     // when it is not enabled.
-    if(::arg().mustDo("direct-dnskey") && (zrr.dr.d_type == QType::DNSKEY || zrr.dr.d_type == QType::CDNSKEY || zrr.dr.d_type == QType::CDS))
+    if(::arg().mustDo("direct-dnskey") && (loopZRR.dr.d_type == QType::DNSKEY || loopZRR.dr.d_type == QType::CDNSKEY || loopZRR.dr.d_type == QType::CDS))
       continue;
 
     records++;
-    if(securedZone && (zrr.auth || zrr.dr.d_type == QType::NS)) {
-      if (NSEC3Zone || zrr.dr.d_type) {
-        keyname = NSEC3Zone ? hashQNameWithSalt(ns3pr, zrr.dr.d_name) : zrr.dr.d_name.labelReverse().toString(" ", false);
+    if(securedZone && (loopZRR.auth || loopZRR.dr.d_type == QType::NS)) {
+      if (NSEC3Zone || loopZRR.dr.d_type) {
+        if (presignedZone && NSEC3Zone && loopZRR.dr.d_type == QType::RRSIG && getRR<RRSIGRecordContent>(loopZRR.dr)->d_type == QType::NSEC3) {
+          keyname = loopZRR.dr.d_name.makeRelative(sd.qname);
+        } else {
+          keyname = NSEC3Zone ? DNSName(toBase32Hex(hashQNameWithSalt(ns3pr, loopZRR.dr.d_name))) : loopZRR.dr.d_name;
+        }
         NSECXEntry& ne = nsecxrepo[keyname];
         ne.d_ttl = sd.default_ttl;
-        ne.d_auth = (ne.d_auth || zrr.auth || (NSEC3Zone && (!ns3pr.d_flags || (presignedZone && ns3pr.d_flags))));
-        if (zrr.dr.d_type) {
-          ne.d_set.insert(zrr.dr.d_type);
+        ne.d_auth = (ne.d_auth || loopZRR.auth || (NSEC3Zone && (!ns3pr.d_flags)));
+        if (loopZRR.dr.d_type && loopZRR.dr.d_type != QType::RRSIG) {
+          ne.d_set.set(loopZRR.dr.d_type);
         }
       }
     }
 
-    if (!zrr.dr.d_type)
+    if (!loopZRR.dr.d_type)
       continue; // skip empty non-terminals
 
-    if(zrr.dr.d_type == QType::SOA)
+    if(loopZRR.dr.d_type == QType::SOA)
       continue; // skip SOA - would indicate end of AXFR
 
-    if(csp.submit(zrr)) {
+    if(csp.submit(loopZRR)) {
       for(;;) {
         outpacket->getRRS() = csp.getChunk();
         if(!outpacket->getRRS().empty()) {
@@ -945,30 +949,32 @@ int TCPNameserver::doAXFR(const DNSName &target, shared_ptr<DNSPacket> q, int ou
   if(securedZone) {
     if(NSEC3Zone) {
       for(nsecxrepo_t::const_iterator iter = nsecxrepo.begin(); iter != nsecxrepo.end(); ++iter) {
-        if(iter->second.d_auth && (!presignedZone || !ns3pr.d_flags || ns3rrs.count(iter->first))) {
+        if(iter->second.d_auth) {
           NSEC3RecordContent n3rc;
-          n3rc.d_set = iter->second.d_set;
-          if (n3rc.d_set.size() && (n3rc.d_set.size() != 1 || !n3rc.d_set.count(QType::NS)))
-            n3rc.d_set.insert(QType::RRSIG);
-          n3rc.d_salt=ns3pr.d_salt;
+          n3rc.set(iter->second.d_set);
+          const auto numberOfTypesSet = n3rc.numberOfTypesSet();
+          if (numberOfTypesSet != 0 && (numberOfTypesSet != 1 || !n3rc.isSet(QType::NS))) {
+            n3rc.set(QType::RRSIG);
+          }
+          n3rc.d_salt = ns3pr.d_salt;
           n3rc.d_flags = ns3pr.d_flags;
           n3rc.d_iterations = ns3pr.d_iterations;
-          n3rc.d_algorithm = 1; // SHA1, fixed in PowerDNS for now
+          n3rc.d_algorithm = DNSSECKeeper::SHA1; // SHA1, fixed in PowerDNS for now
           nsecxrepo_t::const_iterator inext = iter;
-          inext++;
+          ++inext;
           if(inext == nsecxrepo.end())
             inext = nsecxrepo.begin();
-          while((!inext->second.d_auth || (presignedZone && ns3pr.d_flags && !ns3rrs.count(inext->first)))  && inext != iter)
+          while(!inext->second.d_auth && inext != iter)
           {
-            inext++;
+            ++inext;
             if(inext == nsecxrepo.end())
               inext = nsecxrepo.begin();
           }
-          n3rc.d_nexthash = inext->first;
-          zrr.dr.d_name = DNSName(toBase32Hex(iter->first))+DNSName(sd.qname);
+          n3rc.d_nexthash = fromBase32Hex(inext->first.toStringNoDot());
+          zrr.dr.d_name = iter->first+sd.qname;
 
           zrr.dr.d_ttl = sd.default_ttl;
-          zrr.dr.d_content = std::make_shared<NSEC3RecordContent>(n3rc);
+          zrr.dr.d_content = std::make_shared<NSEC3RecordContent>(std::move(n3rc));
           zrr.dr.d_type = QType::NSEC3;
           zrr.dr.d_place = DNSResourceRecord::ANSWER;
           zrr.auth=true;
@@ -991,19 +997,18 @@ int TCPNameserver::doAXFR(const DNSName &target, shared_ptr<DNSPacket> q, int ou
     }
     else for(nsecxrepo_t::const_iterator iter = nsecxrepo.begin(); iter != nsecxrepo.end(); ++iter) {
       NSECRecordContent nrc;
-      nrc.d_set = iter->second.d_set;
-      nrc.d_set.insert(QType::RRSIG);
-      nrc.d_set.insert(QType::NSEC);
-      if(boost::next(iter) != nsecxrepo.end()) {
-        nrc.d_next = DNSName(boost::replace_all_copy(boost::next(iter)->first, " ", ".")).labelReverse();  // XXX likely we need to do the spaces thing here
-      }
+      nrc.set(iter->second.d_set);
+      nrc.set(QType::RRSIG);
+      nrc.set(QType::NSEC);
+
+      if(boost::next(iter) != nsecxrepo.end())
+        nrc.d_next = boost::next(iter)->first;
       else
-        nrc.d_next=DNSName(boost::replace_all_copy(nsecxrepo.begin()->first," ", ".")).labelReverse();     // XXX likely we need to do the spaces thing here
-  
-      zrr.dr.d_name = DNSName(boost::replace_all_copy(iter->first, " ", ".")).labelReverse();  // XXX likely we need to do the spaces thing here
-  
+        nrc.d_next=nsecxrepo.begin()->first;
+      zrr.dr.d_name = iter->first;
+
       zrr.dr.d_ttl = sd.default_ttl;
-      zrr.dr.d_content = std::make_shared<NSECRecordContent>(nrc);
+      zrr.dr.d_content = std::make_shared<NSECRecordContent>(std::move(nrc));
       zrr.dr.d_type = QType::NSEC;
       zrr.dr.d_place = DNSResourceRecord::ANSWER;
       zrr.auth=true;
@@ -1044,19 +1049,19 @@ int TCPNameserver::doAXFR(const DNSName &target, shared_ptr<DNSPacket> q, int ou
   
   udiff=dt.udiffNoReset();
   if(securedZone) 
-    L<<Logger::Info<<"Done signing: "<<csp.d_signed/(udiff/1000000.0)<<" sigs/s, "<<endl;
+    g_log<<Logger::Info<<"Done signing: "<<csp.d_signed/(udiff/1000000.0)<<" sigs/s, "<<endl;
   
-  DLOG(L<<"Done writing out records"<<endl);
+  DLOG(g_log<<"Done writing out records"<<endl);
   /* and terminate with yet again the SOA record */
   outpacket=getFreshAXFRPacket(q);
-  outpacket->addRecord(dzrsoa);
+  outpacket->addRecord(soa);
   if(haveTSIGDetails && !tsigkeyname.empty())
     outpacket->setTSIGDetails(trc, tsigkeyname, tsigsecret, trc.d_mac, true); 
   
   sendPacket(outpacket, outsock);
   
-  DLOG(L<<"last packet - close"<<endl);
-  L<<Logger::Error<<"AXFR of domain '"<<target<<"' to "<<q->getRemote()<<" finished"<<endl;
+  DLOG(g_log<<"last packet - close"<<endl);
+  g_log<<Logger::Error<<"AXFR of domain '"<<target<<"' to "<<q->getRemote()<<" finished"<<endl;
 
   return 1;
 }
@@ -1079,40 +1084,40 @@ int TCPNameserver::doIXFR(shared_ptr<DNSPacket> q, int outsock)
           serial=pdns_stou(parts[2]);
         }
         catch(const std::out_of_range& oor) {
-          L<<Logger::Error<<"Invalid serial in IXFR query"<<endl;
+          g_log<<Logger::Error<<"Invalid serial in IXFR query"<<endl;
           outpacket->setRcode(RCode::FormErr);
           sendPacket(outpacket,outsock);
           return 0;
         }
       } else {
-        L<<Logger::Error<<"No serial in IXFR query"<<endl;
+        g_log<<Logger::Error<<"No serial in IXFR query"<<endl;
         outpacket->setRcode(RCode::FormErr);
         sendPacket(outpacket,outsock);
         return 0;
       }
     } else if (rr->d_type != QType::TSIG && rr->d_type != QType::OPT) {
-      L<<Logger::Error<<"Additional records in IXFR query, type: "<<QType(rr->d_type).getName()<<endl;
+      g_log<<Logger::Error<<"Additional records in IXFR query, type: "<<QType(rr->d_type).getName()<<endl;
       outpacket->setRcode(RCode::FormErr);
       sendPacket(outpacket,outsock);
       return 0;
     }
   }
 
-  L<<Logger::Error<<"IXFR of domain '"<<q->qdomain<<"' initiated by "<<q->getRemote()<<" with serial "<<serial<<endl;
+  g_log<<Logger::Error<<"IXFR of domain '"<<q->qdomain<<"' initiated by "<<q->getRemote()<<" with serial "<<serial<<endl;
 
   // determine if zone exists and AXFR is allowed using existing backend before spawning a new backend.
   SOAData sd;
   {
     Lock l(&s_plock);
-    DLOG(L<<"Looking for SOA"<<endl); // find domain_id via SOA and list complete domain. No SOA, no IXFR
+    DLOG(g_log<<"Looking for SOA"<<endl); // find domain_id via SOA and list complete domain. No SOA, no IXFR
     if(!s_P) {
-      L<<Logger::Error<<"TCP server is without backend connections in doIXFR, launching"<<endl;
+      g_log<<Logger::Error<<"TCP server is without backend connections in doIXFR, launching"<<endl;
       s_P=new PacketHandler;
     }
 
     // canDoAXFR does all the ACL checks, and has the if(disable-axfr) shortcut, call it first.
     if(!canDoAXFR(q) || !s_P->getBackend()->getSOAUncached(q->qdomain, sd)) {
-      L<<Logger::Error<<"IXFR of domain '"<<q->qdomain<<"' failed: not authoritative"<<endl;
+      g_log<<Logger::Error<<"IXFR of domain '"<<q->qdomain<<"' failed: not authoritative"<<endl;
       outpacket->setRcode(RCode::NotAuth);
       sendPacket(outpacket,outsock);
       return 0;
@@ -1127,8 +1132,8 @@ int TCPNameserver::doIXFR(shared_ptr<DNSPacket> q, int outsock)
   bool securedZone = dk.isSecuredZone(q->qdomain);
   if(dk.getNSEC3PARAM(q->qdomain, &ns3pr, &narrow)) {
     if(narrow) {
-      L<<Logger::Error<<"Not doing IXFR of an NSEC3 narrow zone."<<endl;
-      L<<Logger::Error<<"IXFR of domain '"<<q->qdomain<<"' denied to "<<q->getRemote()<<endl;
+      g_log<<Logger::Error<<"Not doing IXFR of an NSEC3 narrow zone."<<endl;
+      g_log<<Logger::Error<<"IXFR of domain '"<<q->qdomain<<"' denied to "<<q->getRemote()<<endl;
       outpacket->setRcode(RCode::Refused);
       sendPacket(outpacket,outsock);
       return 0;
@@ -1139,15 +1144,13 @@ int TCPNameserver::doIXFR(shared_ptr<DNSPacket> q, int outsock)
 
   UeberBackend db;
   if(!db.getSOAUncached(target, sd)) {
-    L<<Logger::Error<<"IXFR of domain '"<<target<<"' failed: not authoritative in second instance"<<endl;
+    g_log<<Logger::Error<<"IXFR of domain '"<<target<<"' failed: not authoritative in second instance"<<endl;
     outpacket->setRcode(RCode::NotAuth);
     sendPacket(outpacket,outsock);
     return 0;
   }
 
-  string soaedit;
-  dk.getSoaEdit(target, soaedit);
-  if (!rfc1982LessThan(serial, calculateEditSOA(sd, soaedit))) {
+  if (!rfc1982LessThan(serial, calculateEditSOA(sd.serial, dk, sd.qname))) {
     TSIGRecordContent trc;
     DNSName tsigkeyname;
     string tsigsecret;
@@ -1160,21 +1163,22 @@ int TCPNameserver::doIXFR(shared_ptr<DNSPacket> q, int outsock)
       if (algorithm == DNSName("hmac-md5.sig-alg.reg.int"))
         algorithm = DNSName("hmac-md5");
       Lock l(&s_plock);
-      s_P->getBackend()->getTSIGKey(tsigkeyname, &algorithm, &tsig64);
-      B64Decode(tsig64, tsigsecret);
+      if(!s_P->getBackend()->getTSIGKey(tsigkeyname, &algorithm, &tsig64)) {
+        g_log<<Logger::Error<<"TSIG key '"<<tsigkeyname<<"' for domain '"<<target<<"' not found"<<endl;
+        return 0;
+      }
+      if (B64Decode(tsig64, tsigsecret) == -1) {
+        g_log<<Logger::Error<<"Unable to Base-64 decode TSIG key '"<<tsigkeyname<<"' for domain '"<<target<<"'"<<endl;
+        return 0;
+      }
     }
 
     UeberBackend signatureDB;
 
     // SOA *must* go out first, our signing pipe might reorder
-    DLOG(L<<"Sending out SOA"<<endl);
-    DNSResourceRecord soa = makeDNSRRFromSOAData(sd);
-    DNSZoneRecord dzrsoa;
-    dzrsoa.dr=DNSRecord(soa);
-    dzrsoa.auth=true;
-    
-    outpacket->addRecord(dzrsoa);
-    editSOA(dk, sd.qname, outpacket.get());
+    DLOG(g_log<<"Sending out SOA"<<endl);
+    DNSZoneRecord soa = makeEditedDNSZRFromSOAData(dk, sd);
+    outpacket->addRecord(soa);
     if(securedZone) {
       set<DNSName> authSet;
       authSet.insert(target);
@@ -1186,12 +1190,12 @@ int TCPNameserver::doIXFR(shared_ptr<DNSPacket> q, int outsock)
 
     sendPacket(outpacket, outsock);
 
-    L<<Logger::Error<<"IXFR of domain '"<<target<<"' to "<<q->getRemote()<<" finished"<<endl;
+    g_log<<Logger::Error<<"IXFR of domain '"<<target<<"' to "<<q->getRemote()<<" finished"<<endl;
 
     return 1;
   }
 
-  L<<Logger::Error<<"IXFR fallback to AXFR for domain '"<<target<<"' our serial "<<sd.serial<<endl;
+  g_log<<Logger::Error<<"IXFR fallback to AXFR for domain '"<<target<<"' our serial "<<sd.serial<<endl;
   return doAXFR(q->qdomain, q, outsock);
 }
 
@@ -1235,18 +1239,18 @@ TCPNameserver::TCPNameserver()
       
     int tmp=1;
     if(setsockopt(s,SOL_SOCKET,SO_REUSEADDR,(char*)&tmp,sizeof tmp)<0) {
-      L<<Logger::Error<<"Setsockopt failed"<<endl;
-      exit(1);  
+      g_log<<Logger::Error<<"Setsockopt failed"<<endl;
+      _exit(1);  
     }
 
     if (::arg().asNum("tcp-fast-open") > 0) {
 #ifdef TCP_FASTOPEN
       int fastOpenQueueSize = ::arg().asNum("tcp-fast-open");
       if (setsockopt(s, IPPROTO_TCP, TCP_FASTOPEN, &fastOpenQueueSize, sizeof fastOpenQueueSize) < 0) {
-        L<<Logger::Error<<"Failed to enable TCP Fast Open for listening socket: "<<strerror(errno)<<endl;
+        g_log<<Logger::Error<<"Failed to enable TCP Fast Open for listening socket: "<<strerror(errno)<<endl;
       }
 #else
-      L<<Logger::Warning<<"TCP Fast Open configured but not supported for listening socket"<<endl;
+      g_log<<Logger::Warning<<"TCP Fast Open configured but not supported for listening socket"<<endl;
 #endif
     }
 
@@ -1256,16 +1260,16 @@ TCPNameserver::TCPNameserver()
     if(::bind(s, (sockaddr*)&local, local.getSocklen())<0) {
       close(s);
       if( errno == EADDRNOTAVAIL && ! ::arg().mustDo("local-address-nonexist-fail") ) {
-        L<<Logger::Error<<"IPv4 Address " << *laddr << " does not exist on this server - skipping TCP bind" << endl;
+        g_log<<Logger::Error<<"IPv4 Address " << *laddr << " does not exist on this server - skipping TCP bind" << endl;
         continue;
       } else {
-        L<<Logger::Error<<"Unable to bind to TCP socket " << *laddr << ": "<<strerror(errno)<<endl;
+        g_log<<Logger::Error<<"Unable to bind to TCP socket " << *laddr << ": "<<strerror(errno)<<endl;
         throw PDNSException("Unable to bind to TCP socket");
       }
     }
     
     listen(s,128);
-    L<<Logger::Error<<"TCP server bound to "<<local.toStringWithPort()<<endl;
+    g_log<<Logger::Error<<"TCP server bound to "<<local.toStringWithPort()<<endl;
     d_sockets.push_back(s);
     struct pollfd pfd;
     memset(&pfd, 0, sizeof(pfd));
@@ -1287,39 +1291,39 @@ TCPNameserver::TCPNameserver()
 
     int tmp=1;
     if(setsockopt(s,SOL_SOCKET,SO_REUSEADDR,(char*)&tmp,sizeof tmp)<0) {
-      L<<Logger::Error<<"Setsockopt failed"<<endl;
-      exit(1);  
+      g_log<<Logger::Error<<"Setsockopt failed"<<endl;
+      _exit(1);  
     }
 
     if (::arg().asNum("tcp-fast-open") > 0) {
 #ifdef TCP_FASTOPEN
       int fastOpenQueueSize = ::arg().asNum("tcp-fast-open");
       if (setsockopt(s, IPPROTO_TCP, TCP_FASTOPEN, &fastOpenQueueSize, sizeof fastOpenQueueSize) < 0) {
-        L<<Logger::Error<<"Failed to enable TCP Fast Open for listening socket: "<<strerror(errno)<<endl;
+        g_log<<Logger::Error<<"Failed to enable TCP Fast Open for listening socket: "<<strerror(errno)<<endl;
       }
 #else
-      L<<Logger::Warning<<"TCP Fast Open configured but not supported for listening socket"<<endl;
+      g_log<<Logger::Warning<<"TCP Fast Open configured but not supported for listening socket"<<endl;
 #endif
     }
 
     if( ::arg().mustDo("non-local-bind") )
 	Utility::setBindAny(AF_INET6, s);
     if(setsockopt(s, IPPROTO_IPV6, IPV6_V6ONLY, &tmp, sizeof(tmp)) < 0) {
-      L<<Logger::Error<<"Failed to set IPv6 socket to IPv6 only, continuing anyhow: "<<strerror(errno)<<endl;
+      g_log<<Logger::Error<<"Failed to set IPv6 socket to IPv6 only, continuing anyhow: "<<strerror(errno)<<endl;
     }
     if(bind(s, (const sockaddr*)&local, local.getSocklen())<0) {
       close(s);
       if( errno == EADDRNOTAVAIL && ! ::arg().mustDo("local-ipv6-nonexist-fail") ) {
-        L<<Logger::Error<<"IPv6 Address " << *laddr << " does not exist on this server - skipping TCP bind" << endl;
+        g_log<<Logger::Error<<"IPv6 Address " << *laddr << " does not exist on this server - skipping TCP bind" << endl;
         continue;
       } else {
-        L<<Logger::Error<<"Unable to bind to TCPv6 socket" << *laddr << ": "<<strerror(errno)<<endl;
+        g_log<<Logger::Error<<"Unable to bind to TCPv6 socket" << *laddr << ": "<<strerror(errno)<<endl;
         throw PDNSException("Unable to bind to TCPv6 socket");
       }
     }
     
     listen(s,128);
-    L<<Logger::Error<<"TCPv6 server bound to "<<local.toStringWithPort()<<endl; // this gets %eth0 right
+    g_log<<Logger::Error<<"TCPv6 server bound to "<<local.toStringWithPort()<<endl; // this gets %eth0 right
     d_sockets.push_back(s);
 
     struct pollfd pfd;
@@ -1335,6 +1339,7 @@ TCPNameserver::TCPNameserver()
 //! Start of TCP operations thread, we launch a new thread for each incoming TCP question
 void TCPNameserver::thread()
 {
+  setThreadName("pdns/tcpnameser");
   try {
     for(;;) {
       int fd;
@@ -1353,18 +1358,18 @@ void TCPNameserver::thread()
           addrlen=remote.getSocklen();
 
           if((fd=accept(sock, (sockaddr*)&remote, &addrlen))<0) {
-            L<<Logger::Error<<"TCP question accept error: "<<strerror(errno)<<endl;
+            g_log<<Logger::Error<<"TCP question accept error: "<<strerror(errno)<<endl;
             
             if(errno==EMFILE) {
-              L<<Logger::Error<<"TCP handler out of filedescriptors, exiting, won't recover from this"<<endl;
-              exit(1);
+              g_log<<Logger::Error<<"TCP handler out of filedescriptors, exiting, won't recover from this"<<endl;
+              _exit(1);
             }
           }
           else {
             if (d_maxConnectionsPerClient) {
               std::lock_guard<std::mutex> lock(s_clientsCountMutex);
               if (s_clientsCount[remote] >= d_maxConnectionsPerClient) {
-                L<<Logger::Notice<<"Limit of simultaneous TCP connections per client reached for "<< remote<<", dropping"<<endl;
+                g_log<<Logger::Notice<<"Limit of simultaneous TCP connections per client reached for "<< remote<<", dropping"<<endl;
                 close(fd);
                 continue;
               }
@@ -1377,10 +1382,10 @@ void TCPNameserver::thread()
             int room;
             d_connectionroom_sem->getValue( &room);
             if(room<1)
-              L<<Logger::Warning<<"Limit of simultaneous TCP connections reached - raise max-tcp-connections"<<endl;
+              g_log<<Logger::Warning<<"Limit of simultaneous TCP connections reached - raise max-tcp-connections"<<endl;
 
             if(pthread_create(&tid, 0, &doConnection, reinterpret_cast<void*>(fd))) {
-              L<<Logger::Error<<"Error creating thread: "<<stringerror()<<endl;
+              g_log<<Logger::Error<<"Error creating thread: "<<stringerror()<<endl;
               d_connectionroom_sem->post();
               close(fd);
               decrementClientCount(remote);
@@ -1391,12 +1396,12 @@ void TCPNameserver::thread()
     }
   }
   catch(PDNSException &AE) {
-    L<<Logger::Error<<"TCP Nameserver thread dying because of fatal error: "<<AE.reason<<endl;
+    g_log<<Logger::Error<<"TCP Nameserver thread dying because of fatal error: "<<AE.reason<<endl;
   }
   catch(...) {
-    L<<Logger::Error<<"TCPNameserver dying because of an unexpected fatal error"<<endl;
+    g_log<<Logger::Error<<"TCPNameserver dying because of an unexpected fatal error"<<endl;
   }
-  exit(1); // take rest of server with us
+  _exit(1); // take rest of server with us
 }
 
 
