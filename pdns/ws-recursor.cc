@@ -452,6 +452,7 @@ RecursorWebServer::RecursorWebServer(FDMultiplexer* fdm)
   d_ws = new AsyncWebServer(fdm, arg()["webserver-address"], arg().asNum("webserver-port"));
   d_ws->setApiKey(arg()["api-key"]);
   d_ws->setPassword(arg()["webserver-password"]);
+  d_ws->setLogLevel(arg()["webserver-log-level"]);
 
   NetmaskGroup acl;
   acl.toMasks(::arg()["webserver-allow-from"]);
