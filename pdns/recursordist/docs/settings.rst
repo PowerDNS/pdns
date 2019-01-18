@@ -58,7 +58,7 @@ Useful for mitigating ANY reflection attacks.
 
 ``allow-trust-anchor-query``
 ----------------------------
-.. versionadded:: 4.1.0
+.. versionadded:: 4.2.0
 
 -  Boolean
 -  Default: yes

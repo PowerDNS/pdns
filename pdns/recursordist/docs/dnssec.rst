@@ -164,7 +164,7 @@ Negative trust anchors (defined in :rfc:`7646`) can be used to temporarily disab
 This can be done when e.g. a TLD or high-traffic zone goes bogus.
 Note that it is good practice to verify that this is indeed the case and not because of malicious actions.
 
-Current trust anchors can be queried from the recursor by sending a query for "negativetrustanchor.server CH TXT".
+Current negative trust anchors can be queried from the recursor by sending a query for "negativetrustanchor.server CH TXT".
 This query will (if :ref:`setting-allow-trust-anchor-query` is enabled) return a TXT record per negative trust-anchor in the format ``"DOMAIN [REASON]"``.
 
 To configure a negative trust anchor, use the ``addNTA()`` function in the :ref:`setting-lua-config-file` and restart the recursor.
