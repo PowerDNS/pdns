@@ -610,7 +610,7 @@ See :doc:`../guides/cache` for a how to.
 
     .. versionadded:: 1.3.4
 
-    Return the cache stats (number of entries, hits, misses, deferred lookups, deferred inserts, lookup collisions, insert collisons and TTL too shorts) as a Lua table.
+    Return the cache stats (number of entries, hits, misses, deferred lookups, deferred inserts, lookup collisions, insert collisions and TTL too shorts) as a Lua table.
 
   .. method:: PacketCache:isFull() -> bool
 
@@ -618,7 +618,7 @@ See :doc:`../guides/cache` for a how to.
 
   .. method:: PacketCache:printStats()
 
-    Print the cache stats (number of entries, hits, misses, deferred lookups, deferred inserts, lookup collisions, insert collisons and TTL too shorts).
+    Print the cache stats (number of entries, hits, misses, deferred lookups, deferred inserts, lookup collisions, insert collisions and TTL too shorts).
 
   .. method:: PacketCache:purgeExpired(n)
 
