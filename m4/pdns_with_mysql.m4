@@ -2,6 +2,12 @@ AC_DEFUN([PDNS_WITH_MYSQL],[
   AC_ARG_WITH([mysql],
     [AS_HELP_STRING([--with-mysql=<path>], [root directory path of MySQL installation])],
     [
+      if test "$withval" = "no"; then
+        modules_without_gmysql=$(echo $modules|sed -e 's/gmysql//;s/  */ /g;')
+        dynmodules_without_gmysql=$(echo $dynmodules|sed -e 's/gmysql//;s/  */ /g;')
+        AC_MSG_ERROR([instead of --without-mysql try --with-modules="$modules_without_gmysql" --with-dyn-modules="$dynmodules_without_gmysql"])
+      fi
+
       MYSQL_LIBS_check="$withval/lib/mysql $with_mysql/lib"
       MYSQL_CFLAGS_check="$withval/include/mysql"
       MYSQL_config_check="$withval/bin/mysql_config"

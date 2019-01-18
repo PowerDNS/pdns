@@ -598,7 +598,7 @@ test_auth() {
 
   ### Lua rec tests ###
   run "cd regression-tests.auth-py"
-  run "./runtests -v || (cat pdns.log; false)"
+  run "./runtests -v || (cat ./configs/auth/pdns.log; false)"
   run "cd .."
 
   run "rm -f regression-tests/zones/*-slave.*" #FIXME
@@ -640,6 +640,11 @@ test_repo(){
   run "git status | grep -q clean"
 }
 
+test_none() {
+  run "build-scripts/test-spelling-unknown-words"
+}
+
+if [ $PDNS_BUILD_PRODUCT != "none" ]; then
 # global build requirements
 run "sudo apt-get -qq --no-install-recommends install \
   libboost-all-dev \
@@ -678,6 +683,7 @@ export UBSAN_OPTIONS="print_stacktrace=1:halt_on_error=1:suppressions=${TRAVIS_B
 install_$PDNS_BUILD_PRODUCT
 
 build_$PDNS_BUILD_PRODUCT
+fi
 
 test_$PDNS_BUILD_PRODUCT
 

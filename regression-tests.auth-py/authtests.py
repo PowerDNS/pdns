@@ -124,8 +124,7 @@ distributor-threads=1""".format(confdir=confdir, prefix=cls._PREFIX,
         try:
             subprocess.check_output(pdnsutilCmd, stderr=subprocess.STDOUT)
         except subprocess.CalledProcessError as e:
-            print(e.output)
-            raise
+            raise AssertionError('%s failed (%d): %s' % (pdnsutilCmd, e.returncode, e.output))
 
     @classmethod
     def secureZone(cls, confdir, zonename, key=None):
@@ -152,8 +151,7 @@ distributor-threads=1""".format(confdir=confdir, prefix=cls._PREFIX,
         try:
             subprocess.check_output(pdnsutilCmd, stderr=subprocess.STDOUT)
         except subprocess.CalledProcessError as e:
-            print(e.output)
-            raise
+            raise AssertionError('%s failed (%d): %s' % (pdnsutilCmd, e.returncode, e.output))
 
     @classmethod
     def generateAllAuthConfig(cls, confdir):

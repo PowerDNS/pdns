@@ -62,6 +62,8 @@ template<class Answer, class Question, class Backend> class SingleThreadDistribu
     : public Distributor<Answer, Question, Backend>
 {
 public:
+  SingleThreadDistributor(const SingleThreadDistributor&) = delete;
+  void operator=(const SingleThreadDistributor&) = delete;
   SingleThreadDistributor();
   typedef std::function<void(Answer*)> callback_t;
   int question(Question *, callback_t callback) override; //!< Submit a question to the Distributor
@@ -85,6 +87,8 @@ template<class Answer, class Question, class Backend> class MultiThreadDistribut
     : public Distributor<Answer, Question, Backend>
 {
 public:
+  MultiThreadDistributor(const MultiThreadDistributor&) = delete;
+  void operator=(const MultiThreadDistributor&) = delete;
   MultiThreadDistributor(int n);
   typedef std::function<void(Answer*)> callback_t;
   int question(Question *, callback_t callback) override; //!< Submit a question to the Distributor

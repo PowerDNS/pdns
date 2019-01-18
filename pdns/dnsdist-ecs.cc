@@ -488,7 +488,7 @@ int removeEDNSOptionFromOPT(char* optStart, size_t* optLen, const uint16_t optio
   return 0;
 }
 
-bool isEDNSOptionInOpt(const std::string& packet, const size_t optStart, const size_t optLen, const uint16_t optionCodeToFind)
+bool isEDNSOptionInOpt(const std::string& packet, const size_t optStart, const size_t optLen, const uint16_t optionCodeToFind, size_t* optContentStart, uint16_t* optContentLen)
 {
   /* we need at least:
    root label (1), type (2), class (2), ttl (4) + rdlen (2)*/
@@ -508,10 +508,20 @@ bool isEDNSOptionInOpt(const std::string& packet, const size_t optStart, const s
     p += sizeof(optionCode);
     const uint16_t optionLen = 0x100*packet.at(p) + packet.at(p+1);
     p += sizeof(optionLen);
+
     if ((p + optionLen) > rdEnd) {
       return false;
     }
+
     if (optionCode == optionCodeToFind) {
+      if (optContentStart != nullptr) {
+        *optContentStart = p;
+      }
+
+      if (optContentLen != nullptr) {
+        *optContentLen = optionLen;
+      }
+
       return true;
     }
     p += optionLen;
@@ -731,4 +741,3 @@ bool queryHasEDNS(const DNSQuestion& dq)
 
   return false;
 }
-

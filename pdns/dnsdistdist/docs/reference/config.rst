@@ -310,6 +310,9 @@ Servers
     - Added ``sockets`` to server_table
     - Added ``checkFunction`` to server_table
 
+  .. versionchanged:: 1.3.4
+    - Added ``checkTimeout`` to server_table
+    - Added ``rise`` to server_table.
 
   Add a new backend server. Call this function with either a string::
 
@@ -337,7 +340,8 @@ Servers
       checkClass=NUM,        -- Use NUM as QCLASS in the health-check query, default: DNSClass.IN
       checkName=STRING,      -- Use STRING as QNAME in the health-check query, default: "a.root-servers.net."
       checkType=STRING,      -- Use STRING as QTYPE in the health-check query, default: "A"
-      checkFunction=FUNCTION -- Use this function to dynamically set the QNAME, QTYPE and QCLASS to use in the health-check query (see :ref:`Healthcheck`)
+      checkFunction=FUNCTION,-- Use this function to dynamically set the QNAME, QTYPE and QCLASS to use in the health-check query (see :ref:`Healthcheck`)
+      checkTimeout=NUM,      -- The timeout (in milliseconds) of a health-check query, default: 1000 (1s)
       setCD=BOOL,            -- Set the CD (Checking Disabled) flag in the health-check query, default: false
       maxCheckFailures=NUM,  -- Allow NUM check failures before declaring the backend down, default: 1
       mustResolve=BOOL,      -- Set to true when the health check MUST return a NOERROR RCODE and an answer
@@ -349,7 +353,9 @@ Servers
                              --   "address@interface", e.g. "192.0.2.2@eth0"
       addXPF=NUM,            -- Add the client's IP address and port to the query, along with the original destination address and port,
                              -- using the experimental XPF record from `draft-bellis-dnsop-xpf <https://datatracker.ietf.org/doc/draft-bellis-dnsop-xpf/>`_ and the specified option code. Default is disabled (0)
-      sockets=NUM            -- Number of sockets (and thus source ports) used toward the backend server, defaults to a single one
+      sockets=NUM,           -- Number of sockets (and thus source ports) used toward the backend server, defaults to a single one
+      disableZeroScope=BOOL, -- Disable the EDNS Client Subnet 'zero scope' feature, which does a cache lookup for an answer valid for all subnets (ECS scope of 0) before adding ECS information to the query and doing the regular lookup
+      rise=NUM               -- Require NUM consecutive successful checks before declaring the backend up, default: 1
     })
 
   :param str server_string: A simple IP:PORT string.
@@ -531,7 +537,7 @@ PacketCache
 A Pool can have a packet cache to answer queries directly in stead of going to the backend.
 See :doc:`../guides/cache` for a how to.
 
-.. function:: newPacketCache(maxEntries[, maxTTL=86400[, minTTL=0[, temporaryFailureTTL=60[, staleTTL=60[, dontAge=false[, numberOfShards=1[, deferrableInsertLock=true[, maxNegativeTTL=3600[, parseECS=false]]]]]]]) -> PacketCache
+.. function:: newPacketCache(maxEntries[, maxTTL=86400[, minTTL=0[, temporaryFailureTTL=60[, staleTTL=60[, dontAge=false[, numberOfShards=1[, deferrableInsertLock=true[, maxNegativeTTL=3600[, parseECS=false [,options]]]]]]]]) -> PacketCache
 
   .. versionchanged:: 1.3.0
     ``numberOfShards`` and ``deferrableInsertLock`` parameters added.
@@ -539,7 +545,11 @@ See :doc:`../guides/cache` for a how to.
   .. versionchanged:: 1.3.1
     ``maxNegativeTTL`` and ``parseECS`` parameters added.
 
+  .. versionchanged:: 1.3.4
+    ``options`` parameter added.
+
   Creates a new :class:`PacketCache` with the settings specified.
+  Starting with 1.3.4, all parameters can be specified in the ``options`` table, overriding the value from the existing parameters if any.
 
   :param int maxEntries: The maximum number of entries in this cache
   :param int maxTTL: Cap the TTL for records to his number
@@ -551,6 +561,21 @@ See :doc:`../guides/cache` for a how to.
   :param bool deferrableInsertLock: Whether the cache should give up insertion if the lock is held by another thread, or simply wait to get the lock
   :param int maxNegativeTTL: Cache a NXDomain or NoData answer from the backend for at most this amount of seconds, even if the TTL of the SOA record is higher
   :param bool parseECS: Whether any EDNS Client Subnet option present in the query should be extracted and stored to be able to detect hash collisions involving queries with the same qname, qtype and qclass but a different incoming ECS value. Enabling this option adds a parsing cost and only makes sense if at least one backend might send different responses based on the ECS value, so it's disabled by default
+  :param table options: A table with key: value pairs with the options listed below:
+
+  Options:
+
+  * ``deferrableInsertLock=true``: bool - Whether the cache should give up insertion if the lock is held by another thread, or simply wait to get the lock.
+  * ``dontAge=false``: bool - Don't reduce TTLs when serving from the cache. Use this when :program:`dnsdist` fronts a cluster of authoritative servers.
+  * ``keepStaleData=false``: bool - Whether to suspend the removal of expired entries from the cache when there is no backend available in at least one of the pools using this cache.
+  * ``maxEntries``: int - The maximum number of entries in this cache.
+  * ``maxNegativeTTL=3600``: int - Cache a NXDomain or NoData answer from the backend for at most this amount of seconds, even if the TTL of the SOA record is higher.
+  * ``maxTTL=86400``: int - Cap the TTL for records to his number.
+  * ``minTTL=0``: int - Don't cache entries with a TTL lower than this.
+  * ``numberOfShards=1``: int - Number of shards to divide the cache into, to reduce lock contention.
+  * ``parseECS=false``: bool - Whether any EDNS Client Subnet option present in the query should be extracted and stored to be able to detect hash collisions involving queries with the same qname, qtype and qclass but a different incoming ECS value. Enabling this option adds a parsing cost and only makes sense if at least one backend might send different responses based on the ECS value, so it's disabled by default.
+  * ``staleTTL=60``: int - When the backend servers are not reachable, and global configuration ``setStaleCacheEntriesTTL`` is set appropriately, TTL that will be used when a stale cache entry is returned.
+  * ``temporaryFailureTTL=60``: int - On a SERVFAIL or REFUSED from the backend, cache for this amount of seconds..
 
 .. class:: PacketCache
 
@@ -581,13 +606,19 @@ See :doc:`../guides/cache` for a how to.
     :param int qtype: The type to expunge
     :param bool suffixMatch: When set to true, remove al entries under ``name``
 
+  .. method:: PacketCache:getStats()
+
+    .. versionadded:: 1.3.4
+
+    Return the cache stats (number of entries, hits, misses, deferred lookups, deferred inserts, lookup collisions, insert collisons and TTL too shorts) as a Lua table.
+
   .. method:: PacketCache:isFull() -> bool
 
     Return true if the cache has reached the maximum number of entries.
 
   .. method:: PacketCache:printStats()
 
-    Print the cache stats (hits, misses, deferred lookups and deferred inserts).
+    Print the cache stats (number of entries, hits, misses, deferred lookups, deferred inserts, lookup collisions, insert collisons and TTL too shorts).
 
   .. method:: PacketCache:purgeExpired(n)
 

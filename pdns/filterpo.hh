@@ -68,25 +68,36 @@ public:
   enum class PolicyKind { NoAction, Drop, NXDOMAIN, NODATA, Truncate, Custom};
   enum class PolicyType { None, QName, ClientIP, ResponseIP, NSDName, NSIP };
 
+  static std::string getKindToString(PolicyKind kind);
+  static std::string getTypeToString(PolicyType type);
+
   struct Policy
   {
-    Policy(): d_custom(nullptr), d_name(nullptr), d_kind(PolicyKind::NoAction), d_type(PolicyType::None), d_ttl(0)
+    Policy(): d_name(nullptr), d_kind(PolicyKind::NoAction), d_type(PolicyType::None), d_ttl(0)
     {
     }
+
+    Policy(PolicyKind kind, PolicyType type, int32_t ttl=0, std::shared_ptr<std::string> name=nullptr, const std::vector<std::shared_ptr<DNSRecordContent>>& custom={}): d_custom(custom), d_name(name), d_kind(kind), d_type(type), d_ttl(ttl)
+    {
+    }
+
     bool operator==(const Policy& rhs) const
     {
-      return d_kind == rhs.d_kind; // XXX check d_custom too!
+      return d_kind == rhs.d_kind && d_type == rhs.d_type && d_ttl == rhs.d_ttl && d_custom == rhs.d_custom;
     }
-    std::string getKindToString() const;
-    DNSRecord getCustomRecord(const DNSName& qname) const;
-    DNSRecord getRecord(const DNSName& qname) const;
+    std::vector<DNSRecord> getCustomRecords(const DNSName& qname, uint16_t qtype) const;
+    std::vector<DNSRecord> getRecords(const DNSName& qname) const;
 
-    std::shared_ptr<DNSRecordContent> d_custom;
-    std::shared_ptr<std::string> d_name;
+    std::vector<std::shared_ptr<DNSRecordContent>> d_custom;
+    std::shared_ptr<std::string> d_name; // the name of the policy
     PolicyKind d_kind;
     PolicyType d_type;
+    /* Yup, we are currently using the same TTL for every record for a given name */
     int32_t d_ttl;
-  };
+
+  private:
+    DNSRecord getRecordFromCustom(const DNSName& qname, const std::shared_ptr<DNSRecordContent>& custom) const;
+};
 
   class Zone {
   public:
@@ -133,6 +144,11 @@ public:
       return d_refresh;
     }
 
+    uint32_t getSerial() const
+    {
+      return d_serial;
+    }
+
     size_t size() const
     {
       return d_qpolAddr.size() + d_postpolAddr.size() + d_propolName.size() + d_propolNSAddr.size() + d_qpolName.size();
@@ -141,17 +157,17 @@ public:
 
     void dump(FILE * fp) const;
 
-    void addClientTrigger(const Netmask& nm, Policy pol);
-    void addQNameTrigger(const DNSName& nm, Policy pol);
-    void addNSTrigger(const DNSName& dn, Policy pol);
-    void addNSIPTrigger(const Netmask& nm, Policy pol);
-    void addResponseTrigger(const Netmask& nm, Policy pol);
+    void addClientTrigger(const Netmask& nm, Policy&& pol);
+    void addQNameTrigger(const DNSName& nm, Policy&& pol);
+    void addNSTrigger(const DNSName& dn, Policy&& pol);
+    void addNSIPTrigger(const Netmask& nm, Policy&& pol);
+    void addResponseTrigger(const Netmask& nm, Policy&& pol);
 
-    bool rmClientTrigger(const Netmask& nm, Policy& pol);
-    bool rmQNameTrigger(const DNSName& nm, Policy& pol);
-    bool rmNSTrigger(const DNSName& dn, Policy& pol);
-    bool rmNSIPTrigger(const Netmask& nm, Policy& pol);
-    bool rmResponseTrigger(const Netmask& nm, Policy& pol);
+    bool rmClientTrigger(const Netmask& nm, const Policy& pol);
+    bool rmQNameTrigger(const DNSName& nm, const Policy& pol);
+    bool rmNSTrigger(const DNSName& dn, const Policy& pol);
+    bool rmNSIPTrigger(const Netmask& nm, const Policy& pol);
+    bool rmResponseTrigger(const Netmask& nm, const Policy& pol);
 
     bool findQNamePolicy(const DNSName& qname, DNSFilterEngine::Policy& pol) const;
     bool findNSPolicy(const DNSName& qname, DNSFilterEngine::Policy& pol) const;

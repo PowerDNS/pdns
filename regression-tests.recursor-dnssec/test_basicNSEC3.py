@@ -32,8 +32,7 @@ class basicNSEC3(BasicDNSSEC):
         try:
             subprocess.check_output(pdnsutilCmd, stderr=subprocess.STDOUT)
         except subprocess.CalledProcessError as e:
-            print(e.output)
-            raise
+            raise AssertionError('%s failed (%d): %s' % (pdnsutilCmd, e.returncode, e.output))
 
         params = "1 0 100 AABBCCDDEEFF112233"
 
@@ -50,5 +49,4 @@ class basicNSEC3(BasicDNSSEC):
         try:
             subprocess.check_output(pdnsutilCmd, stderr=subprocess.STDOUT)
         except subprocess.CalledProcessError as e:
-            print(e.output)
-            raise
+            raise AssertionError('%s failed (%d): %s' % (pdnsutilCmd, e.returncode, e.output))

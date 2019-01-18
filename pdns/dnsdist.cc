@@ -196,12 +196,12 @@ DelayPipe<DelayedPacket> * g_delay = 0;
 
 void doLatencyStats(double udiff)
 {
-  if(udiff < 1000) g_stats.latency0_1++;
-  else if(udiff < 10000) g_stats.latency1_10++;
-  else if(udiff < 50000) g_stats.latency10_50++;
-  else if(udiff < 100000) g_stats.latency50_100++;
-  else if(udiff < 1000000) g_stats.latency100_1000++;
-  else g_stats.latencySlow++;
+  if(udiff < 1000) ++g_stats.latency0_1;
+  else if(udiff < 10000) ++g_stats.latency1_10;
+  else if(udiff < 50000) ++g_stats.latency10_50;
+  else if(udiff < 100000) ++g_stats.latency50_100;
+  else if(udiff < 1000000) ++g_stats.latency100_1000;
+  else ++g_stats.latencySlow;
 
   auto doAvg = [](double& var, double n, double weight) {
     var = (weight -1) * var/weight + n/weight;
@@ -228,7 +228,7 @@ bool responseContentMatches(const char* response, const uint16_t responseLen, co
       return true;
     }
     else {
-      g_stats.nonCompliantResponses++;
+      ++g_stats.nonCompliantResponses;
       return false;
     }
   }
@@ -239,7 +239,7 @@ bool responseContentMatches(const char* response, const uint16_t responseLen, co
   catch(std::exception& e) {
     if(responseLen > (ssize_t)sizeof(dnsheader))
       infolog("Backend %s sent us a response with id %d that did not parse: %s", remote.toStringWithPort(), ntohs(dh->id), e.what());
-    g_stats.nonCompliantResponses++;
+    ++g_stats.nonCompliantResponses;
     return false;
   }
 
@@ -271,7 +271,7 @@ bool fixUpQueryTurnedResponse(DNSQuestion& dq, const uint16_t origFlags)
   return addEDNSToQueryTurnedResponse(dq);
 }
 
-bool fixUpResponse(char** response, uint16_t* responseLen, size_t* responseSize, const DNSName& qname, uint16_t origFlags, bool ednsAdded, bool ecsAdded, std::vector<uint8_t>& rewrittenResponse, uint16_t addRoom)
+bool fixUpResponse(char** response, uint16_t* responseLen, size_t* responseSize, const DNSName& qname, uint16_t origFlags, bool ednsAdded, bool ecsAdded, std::vector<uint8_t>& rewrittenResponse, uint16_t addRoom, bool* zeroScope)
 {
   struct dnsheader* dh = (struct dnsheader*) *response;
 
@@ -301,6 +301,17 @@ bool fixUpResponse(char** response, uint16_t* responseLen, size_t* responseSize,
     int res = locateEDNSOptRR(responseStr, &optStart, &optLen, &last);
 
     if (res == 0) {
+      if (zeroScope) { // this finds if an EDNS Client Subnet scope was set, and if it is 0
+        size_t optContentStart = 0;
+        uint16_t optContentLen = 0;
+        /* we need at least 4 bytes after the option length (family: 2, source prefix-length: 1, scope prefix-length: 1) */
+        if (isEDNSOptionInOpt(responseStr, optStart, optLen, EDNSOptionCode::ECS, &optContentStart, &optContentLen) && optContentLen >= 4) {
+          /* see if the EDNS Client Subnet SCOPE PREFIX-LENGTH byte in position 3 is set to 0, which is the only thing
+             we care about. */
+          *zeroScope = responseStr.at(optContentStart + 3) == 0;
+        }
+      }
+
       if (ednsAdded) {
         /* we added the entire OPT RR,
            therefore we need to remove it entirely */
@@ -513,12 +524,25 @@ try {
           addRoom = DNSCRYPT_MAX_RESPONSE_PADDING_AND_MAC_SIZE;
         }
 #endif
-        if (!fixUpResponse(&response, &responseLen, &responseSize, ids->qname, ids->origFlags, ids->ednsAdded, ids->ecsAdded, rewrittenResponse, addRoom)) {
+        bool zeroScope = false;
+        if (!fixUpResponse(&response, &responseLen, &responseSize, ids->qname, ids->origFlags, ids->ednsAdded, ids->ecsAdded, rewrittenResponse, addRoom, ids->useZeroScope ? &zeroScope : nullptr)) {
           continue;
         }
 
         if (ids->packetCache && !ids->skipCache) {
-          ids->packetCache->insert(ids->cacheKey, ids->subnet, ids->origFlags, ids->dnssecOK, ids->qname, ids->qtype, ids->qclass, response, responseLen, false, dh->rcode, ids->tempFailureTTL);
+          if (!ids->useZeroScope) {
+            /* if the query was not suitable for zero-scope, for
+               example because it had an existing ECS entry so the hash is
+               not really 'no ECS', so just insert it for the existing subnet
+               since:
+               - we don't have the correct hash for a non-ECS query
+               - inserting with hash computed before the ECS replacement but with
+               the subnet extracted _after_ the replacement would not work.
+            */
+            zeroScope = false;
+          }
+          // if zeroScope, pass the pre-ECS hash-key and do not pass the subnet to the cache
+          ids->packetCache->insert(zeroScope ? ids->cacheKeyNoECS : ids->cacheKey, zeroScope ? boost::none : ids->subnet, ids->origFlags, ids->dnssecOK, ids->qname, ids->qtype, ids->qclass, response, responseLen, false, dh->rcode, ids->tempFailureTTL);
         }
 
         if (ids->cs && !ids->cs->muted) {
@@ -535,7 +559,7 @@ try {
           sendUDPResponse(origFD, response, responseLen, ids->delayMsec, ids->destHarvested ? ids->origDest : empty, ids->origRemote);
         }
 
-        g_stats.responses++;
+        ++g_stats.responses;
 
         double udiff = ids->sentTime.udiff();
         vinfolog("Got answer from %s, relayed to %s, took %f usec", dss->remote.toStringWithPort(), ids->origRemote.toStringWithPort(), udiff);
@@ -544,8 +568,9 @@ try {
         gettime(&ts);
         g_rings.insertResponse(ts, ids->origRemote, ids->qname, ids->qtype, (unsigned int)udiff, (unsigned int)got, *dh, dss->remote);
 
-        if(dh->rcode == RCode::ServFail)
-          g_stats.servfailResponses++;
+        if(dh->rcode == RCode::ServFail) {
+          ++g_stats.servfailResponses;
+        }
         dss->latencyUsec = (127.0 * dss->latencyUsec / 128.0) + udiff/128.0;
 
         doLatencyStats(udiff);
@@ -961,7 +986,7 @@ bool processQuery(LocalHolders& holders, DNSQuestion& dq, string& poolname, int*
 
   if(auto got = holders.dynNMGBlock->lookup(*dq.remote)) {
     auto updateBlockStats = [&got]() {
-      g_stats.dynBlocked++;
+      ++g_stats.dynBlocked;
       got->second.blocks++;
     };
 
@@ -1018,7 +1043,7 @@ bool processQuery(LocalHolders& holders, DNSQuestion& dq, string& poolname, int*
 
   if(auto got = holders.dynSMTBlock->lookup(*dq.qname)) {
     auto updateBlockStats = [&got]() {
-      g_stats.dynBlocked++;
+      ++g_stats.dynBlocked;
       got->blocks++;
     };
 
@@ -1083,25 +1108,25 @@ bool processQuery(LocalHolders& holders, DNSQuestion& dq, string& poolname, int*
         return true;
         break;
       case DNSAction::Action::Drop:
-        g_stats.ruleDrop++;
+        ++g_stats.ruleDrop;
         return false;
         break;
       case DNSAction::Action::Nxdomain:
         dq.dh->rcode = RCode::NXDomain;
         dq.dh->qr=true;
-        g_stats.ruleNXDomain++;
+        ++g_stats.ruleNXDomain;
         return true;
         break;
       case DNSAction::Action::Refused:
         dq.dh->rcode = RCode::Refused;
         dq.dh->qr=true;
-        g_stats.ruleRefused++;
+        ++g_stats.ruleRefused;
         return true;
         break;
       case DNSAction::Action::ServFail:
         dq.dh->rcode = RCode::ServFail;
         dq.dh->qr=true;
-        g_stats.ruleServFail++;
+        ++g_stats.ruleServFail;
         return true;
         break;
       case DNSAction::Action::Spoof:
@@ -1213,18 +1238,18 @@ static bool isUDPQueryAcceptable(ClientState& cs, LocalHolders& holders, const s
   if (msgh->msg_flags & MSG_TRUNC) {
     /* message was too large for our buffer */
     vinfolog("Dropping message too large for our buffer");
-    g_stats.nonCompliantQueries++;
+    ++g_stats.nonCompliantQueries;
     return false;
   }
 
   if(!holders.acl->match(remote)) {
     vinfolog("Query from %s dropped because of ACL", remote.toStringWithPort());
-    g_stats.aclDrops++;
+    ++g_stats.aclDrops;
     return false;
   }
 
   cs.queries++;
-  g_stats.queries++;
+  ++g_stats.queries;
 
   if (HarvestDestinationAddress(msgh, &dest)) {
     /* we don't get the port, only the address */
@@ -1264,17 +1289,17 @@ static bool checkDNSCryptQuery(const ClientState& cs, const char* query, uint16_
 bool checkQueryHeaders(const struct dnsheader* dh)
 {
   if (dh->qr) {   // don't respond to responses
-    g_stats.nonCompliantQueries++;
+    ++g_stats.nonCompliantQueries;
     return false;
   }
 
   if (dh->qdcount == 0) {
-    g_stats.emptyQueries++;
+    ++g_stats.emptyQueries;
     return false;
   }
 
   if (dh->rd) {
-    g_stats.rdQueries++;
+    ++g_stats.rdQueries;
   }
 
   return true;
@@ -1295,6 +1320,43 @@ static void queueResponse(const ClientState& cs, const char* response, uint16_t 
 }
 #endif /* defined(HAVE_RECVMMSG) && defined(HAVE_SENDMMSG) && defined(MSG_WAITFORONE) */
 
+static int sendAndEncryptUDPResponse(LocalHolders& holders, ClientState& cs, const DNSQuestion& dq, char* response, uint16_t responseLen, std::shared_ptr<DNSCryptQuery>& dnsCryptQuery, int delayMsec, const ComboAddress& dest, struct mmsghdr* responsesVect, unsigned int* queuedResponses, struct iovec* respIOV, char* respCBuf, bool cacheHit)
+{
+  DNSResponse dr(dq.qname, dq.qtype, dq.qclass, dq.consumed, dq.local, dq.remote, reinterpret_cast<dnsheader*>(response), dq.size, responseLen, false, dq.queryTime);
+#ifdef HAVE_PROTOBUF
+  dr.uniqueId = dq.uniqueId;
+#endif
+  dr.qTag = dq.qTag;
+
+  if (!processResponse(cacheHit ? holders.cacheHitRespRulactions : holders.selfAnsweredRespRulactions, dr, &delayMsec)) {
+    return -1;
+  }
+
+  if (!cs.muted) {
+#ifdef HAVE_DNSCRYPT
+    if (!encryptResponse(response, &responseLen, dq.size, false, dnsCryptQuery, nullptr, nullptr)) {
+      return -1;
+    }
+#endif
+#if defined(HAVE_RECVMMSG) && defined(HAVE_SENDMMSG) && defined(MSG_WAITFORONE)
+    if (delayMsec == 0 && responsesVect != nullptr) {
+      queueResponse(cs, response, responseLen, dest, *dq.remote, responsesVect[*queuedResponses], respIOV, respCBuf);
+      (*queuedResponses)++;
+    }
+    else
+#endif /* defined(HAVE_RECVMMSG) && defined(HAVE_SENDMMSG) && defined(MSG_WAITFORONE) */
+      {
+        sendUDPResponse(cs.udpFD, response, responseLen, delayMsec, dest, *dq.remote);
+      }
+  }
+
+  if (cacheHit) {
+    ++g_stats.cacheHits;
+  }
+  doLatencyStats(0);  // we're not going to measure this
+  return 0;
+}
+
 static void processUDPQuery(ClientState& cs, LocalHolders& holders, const struct msghdr* msgh, const ComboAddress& remote, ComboAddress& dest, char* query, uint16_t len, size_t queryBufferSize, struct mmsghdr* responsesVect, unsigned int* queuedResponses, struct iovec* respIOV, char* respCBuf)
 {
   assert(responsesVect == nullptr || (queuedResponses != nullptr && respIOV != nullptr && respCBuf != nullptr));
@@ -1313,9 +1375,9 @@ static void processUDPQuery(ClientState& cs, LocalHolders& holders, const struct
     gettime(&now);
     gettime(&queryRealTime, true);
 
-#ifdef HAVE_DNSCRYPT
     std::shared_ptr<DNSCryptQuery> dnsCryptQuery = nullptr;
 
+#ifdef HAVE_DNSCRYPT
     if (!checkDNSCryptQuery(cs, query, len, dnsCryptQuery, dest, remote, queryRealTime.tv_sec)) {
       return;
     }
@@ -1350,34 +1412,9 @@ static void processUDPQuery(ClientState& cs, LocalHolders& holders, const struct
         char* response = query;
         uint16_t responseLen = dq.len;
 
-        DNSResponse dr(dq.qname, dq.qtype, dq.qclass, consumed, dq.local, dq.remote, reinterpret_cast<dnsheader*>(response), dq.size, responseLen, false, &queryRealTime);
-#ifdef HAVE_PROTOBUF
-        dr.uniqueId = dq.uniqueId;
-#endif
-        dr.qTag = dq.qTag;
+        sendAndEncryptUDPResponse(holders, cs, dq, response, responseLen, dnsCryptQuery, delayMsec, dest, responsesVect, queuedResponses, respIOV, respCBuf, false);
 
-        if (!processResponse(holders.selfAnsweredRespRulactions, dr, &delayMsec)) {
-          return;
-        }
-
-#ifdef HAVE_DNSCRYPT
-        if (!encryptResponse(response, &responseLen, dq.size, false, dnsCryptQuery, nullptr, nullptr)) {
-          return;
-        }
-#endif
-#if defined(HAVE_RECVMMSG) && defined(HAVE_SENDMMSG) && defined(MSG_WAITFORONE)
-        if (delayMsec == 0 && responsesVect != nullptr) {
-          queueResponse(cs, response, responseLen, dest, remote, responsesVect[*queuedResponses], respIOV, respCBuf);
-          (*queuedResponses)++;
-        }
-        else
-#endif /* defined(HAVE_RECVMMSG) && defined(HAVE_SENDMMSG) && defined(MSG_WAITFORONE) */
-        {
-          sendUDPResponse(cs.udpFD, response, responseLen, delayMsec, dest, remote);
-        }
-
-        g_stats.selfAnswered++;
-        doLatencyStats(0);  // we're not going to measure this
+        ++g_stats.selfAnswered;
       }
 
       return;
@@ -1401,57 +1438,47 @@ static void processUDPQuery(ClientState& cs, LocalHolders& holders, const struct
 
     bool ednsAdded = false;
     bool ecsAdded = false;
+    uint32_t cacheKeyNoECS = 0;
+    uint32_t cacheKey = 0;
+    boost::optional<Netmask> subnet;
+    uint16_t cachedResponseSize = dq.size;
+    uint32_t allowExpired = ss ? 0 : g_staleCacheEntriesTTL;
+    bool useZeroScope = false;
+
+    if (packetCache && !dq.skipCache) {
+      dnssecOK = (getEDNSZ(dq) & EDNS_HEADER_FLAG_DO);
+    }
+
     if (dq.useECS && ((ss && ss->useECS) || (!ss && serverPool->getECS()))) {
+      // we special case our cache in case a downstream explicitly gave us a universally valid response with a 0 scope
+      if (packetCache && !dq.skipCache && (!ss || !ss->disableZeroScope) && packetCache->isECSParsingEnabled()) {
+        if (packetCache->get(dq, consumed, dh->id, query, &cachedResponseSize, &cacheKeyNoECS, subnet, dnssecOK, allowExpired)) {
+          sendAndEncryptUDPResponse(holders, cs, dq, query, cachedResponseSize, dnsCryptQuery, delayMsec, dest, responsesVect, queuedResponses, respIOV, respCBuf, true);
+          return;
+        }
+
+        if (!subnet) {
+          /* there was no existing ECS on the query, enable the zero-scope feature */
+          useZeroScope = true;
+        }
+      }
+
       if (!handleEDNSClientSubnet(dq, &(ednsAdded), &(ecsAdded), g_preserveTrailingData)) {
         vinfolog("Dropping query from %s because we couldn't insert the ECS value", remote.toStringWithPort());
         return;
       }
     }
 
-    uint32_t cacheKey = 0;
-    boost::optional<Netmask> subnet;
     if (packetCache && !dq.skipCache) {
-      uint16_t cachedResponseSize = dq.size;
-      uint32_t allowExpired = ss ? 0 : g_staleCacheEntriesTTL;
-      dnssecOK = (getEDNSZ(dq) & EDNS_HEADER_FLAG_DO);
       if (packetCache->get(dq, consumed, dh->id, query, &cachedResponseSize, &cacheKey, subnet, dnssecOK, allowExpired)) {
-        DNSResponse dr(dq.qname, dq.qtype, dq.qclass, dq.consumed, dq.local, dq.remote, reinterpret_cast<dnsheader*>(query), dq.size, cachedResponseSize, false, &queryRealTime);
-#ifdef HAVE_PROTOBUF
-        dr.uniqueId = dq.uniqueId;
-#endif
-        dr.qTag = dq.qTag;
-
-        if (!processResponse(holders.cacheHitRespRulactions, dr, &delayMsec)) {
-          return;
-        }
-
-        if (!cs.muted) {
-#ifdef HAVE_DNSCRYPT
-          if (!encryptResponse(query, &cachedResponseSize, dq.size, false, dnsCryptQuery, nullptr, nullptr)) {
-            return;
-          }
-#endif
-#if defined(HAVE_RECVMMSG) && defined(HAVE_SENDMMSG) && defined(MSG_WAITFORONE)
-          if (delayMsec == 0 && responsesVect != nullptr) {
-            queueResponse(cs, query, cachedResponseSize, dest, remote, responsesVect[*queuedResponses], respIOV, respCBuf);
-            (*queuedResponses)++;
-          }
-          else
-#endif /* defined(HAVE_RECVMMSG) && defined(HAVE_SENDMMSG) && defined(MSG_WAITFORONE) */
-          {
-            sendUDPResponse(cs.udpFD, query, cachedResponseSize, delayMsec, dest, remote);
-          }
-        }
-
-        g_stats.cacheHits++;
-        doLatencyStats(0);  // we're not going to measure this
+        sendAndEncryptUDPResponse(holders, cs, dq, query, cachedResponseSize, dnsCryptQuery, delayMsec, dest, responsesVect, queuedResponses, respIOV, respCBuf, true);
         return;
       }
-      g_stats.cacheMisses++;
+      ++g_stats.cacheMisses;
     }
 
     if(!ss) {
-      g_stats.noPolicy++;
+      ++g_stats.noPolicy;
 
       if (g_servFailOnNoPolicy && !cs.muted) {
         char* response = query;
@@ -1461,34 +1488,9 @@ static void processUDPQuery(ClientState& cs, LocalHolders& holders, const struct
         dq.dh->rcode = RCode::ServFail;
         dq.dh->qr = true;
 
-        DNSResponse dr(dq.qname, dq.qtype, dq.qclass, dq.consumed, dq.local, dq.remote, reinterpret_cast<dnsheader*>(response), dq.size, responseLen, false, &queryRealTime);
-#ifdef HAVE_PROTOBUF
-        dr.uniqueId = dq.uniqueId;
-#endif
-        dr.qTag = dq.qTag;
-
-        if (!processResponse(holders.selfAnsweredRespRulactions, dr, &delayMsec)) {
-          return;
-        }
-
-#ifdef HAVE_DNSCRYPT
-        if (!encryptResponse(response, &responseLen, dq.size, false, dnsCryptQuery, nullptr, nullptr)) {
-          return;
-        }
-#endif
-#if defined(HAVE_RECVMMSG) && defined(HAVE_SENDMMSG) && defined(MSG_WAITFORONE)
-        if (responsesVect != nullptr) {
-          queueResponse(cs, response, responseLen, dest, remote, responsesVect[*queuedResponses], respIOV, respCBuf);
-          (*queuedResponses)++;
-        }
-        else
-#endif /* defined(HAVE_RECVMMSG) && defined(HAVE_SENDMMSG) && defined(MSG_WAITFORONE) */
-        {
-          sendUDPResponse(cs.udpFD, response, responseLen, 0, dest, remote);
-        }
+        sendAndEncryptUDPResponse(holders, cs, dq, response, responseLen, dnsCryptQuery, delayMsec, dest, responsesVect, queuedResponses, respIOV, respCBuf, false);
 
         // no response-only statistics counter to update.
-        doLatencyStats(0);  // we're not going to measure this
       }
       vinfolog("%s query for %s|%s from %s, no policy applied", g_servFailOnNoPolicy ? "ServFailed" : "Dropped", dq.qname->toString(), QType(dq.qtype).getName(), remote.toStringWithPort());
       return;
@@ -1511,7 +1513,7 @@ static void processUDPQuery(ClientState& cs, LocalHolders& holders, const struct
     }
     else {
       ss->reuseds++;
-      g_stats.downstreamTimeouts++;
+      ++g_stats.downstreamTimeouts;
     }
 
     ids->cs = &cs;
@@ -1525,11 +1527,13 @@ static void processUDPQuery(ClientState& cs, LocalHolders& holders, const struct
     ids->tempFailureTTL = dq.tempFailureTTL;
     ids->origFlags = origFlags;
     ids->cacheKey = cacheKey;
+    ids->cacheKeyNoECS = cacheKeyNoECS;
     ids->subnet = subnet;
     ids->skipCache = dq.skipCache;
     ids->packetCache = packetCache;
     ids->ednsAdded = ednsAdded;
     ids->ecsAdded = ecsAdded;
+    ids->useZeroScope = useZeroScope;
     ids->qTag = dq.qTag;
     ids->dnssecOK = dnssecOK;
 
@@ -1561,7 +1565,7 @@ static void processUDPQuery(ClientState& cs, LocalHolders& holders, const struct
 
     if(ret < 0) {
       ss->sendErrors++;
-      g_stats.downstreamSendErrors++;
+      ++g_stats.downstreamSendErrors;
     }
 
     vinfolog("Got query for %s|%s from %s, relayed to %s", ids->qname.toString(), QType(ids->qtype).getName(), remote.toStringWithPort(), ss->getName());
@@ -1688,7 +1692,7 @@ try
       ssize_t got = recvmsg(cs->udpFD, &msgh, 0);
 
       if (got < 0 || static_cast<size_t>(got) < sizeof(struct dnsheader)) {
-        g_stats.nonCompliantQueries++;
+        ++g_stats.nonCompliantQueries;
         continue;
       }
 
@@ -1763,7 +1767,7 @@ try
     return false;
   }
 
-  int ret=waitForRWData(sock.getHandle(), true, 1, 0);
+  int ret = waitForRWData(sock.getHandle(), true, /* ms to seconds */ ds.checkTimeout / 1000, /* remaining ms to us */ (ds.checkTimeout % 1000) * 1000);
   if(ret < 0 || !ret) { // error, timeout, both are down!
     if (ret < 0) {
       ret = errno;
@@ -1879,14 +1883,42 @@ void maintThread()
 
     counter++;
     if (counter >= g_cacheCleaningDelay) {
+      /* keep track, for each cache, of whether we should keep
+       expired entries */
+      std::map<std::shared_ptr<DNSDistPacketCache>, bool> caches;
+
+      /* gather all caches actually used by at least one pool, and see
+         if something prevents us from cleaning the expired entries */
       auto localPools = g_pools.getLocal();
-      std::shared_ptr<DNSDistPacketCache> packetCache = nullptr;
       for (const auto& entry : *localPools) {
-        packetCache = entry.second->packetCache;
-        if (packetCache) {
-          size_t upTo = (packetCache->getMaxEntries()* (100 - g_cacheCleaningPercentage)) / 100;
-          packetCache->purgeExpired(upTo);
+        auto& pool = entry.second;
+
+        auto packetCache = pool->packetCache;
+        if (!packetCache) {
+          continue;
         }
+
+        auto pair = caches.insert({packetCache, false});
+        auto& iter = pair.first;
+        /* if we need to keep stale data for this cache (ie, not clear
+           expired entries when at least one pool using this cache
+           has all its backends down) */
+        if (packetCache->keepStaleData() && iter->second == false) {
+          /* so far all pools had at least one backend up */
+          if (pool->countServers(true) == 0) {
+            iter->second = true;
+          }
+        }
+      }
+
+      for (auto pair : caches) {
+        /* shall we keep expired entries ? */
+        if (pair.second == true) {
+          continue;
+        }
+        auto& packetCache = pair.first;
+        size_t upTo = (packetCache->getMaxEntries()* (100 - g_cacheCleaningPercentage)) / 100;
+        packetCache->purgeExpired(upTo);
       }
       counter = 0;
     }
@@ -1926,14 +1958,32 @@ static void healthChecksThread()
       if(dss->availability==DownstreamState::Availability::Auto) {
         bool newState=upCheck(*dss);
         if (newState) {
-          if (dss->currentCheckFailures != 0) {
-            dss->currentCheckFailures = 0;
+          /* check succeeded */
+          dss->currentCheckFailures = 0;
+
+          if (!dss->upStatus) {
+            /* we were marked as down */
+            dss->consecutiveSuccesfulChecks++;
+            if (dss->consecutiveSuccesfulChecks < dss->minRiseSuccesses) {
+              /* if we need more than one successful check to rise
+                 and we didn't reach the threshold yet,
+                 let's stay down */
+              newState = false;
+            }
           }
         }
-        else if (!newState && dss->upStatus) {
-          dss->currentCheckFailures++;
-          if (dss->currentCheckFailures < dss->maxCheckFailures) {
-            newState = true;
+        else {
+          /* check failed */
+          dss->consecutiveSuccesfulChecks = 0;
+
+          if (dss->upStatus) {
+            /* we are currently up */
+            dss->currentCheckFailures++;
+            if (dss->currentCheckFailures < dss->maxCheckFailures) {
+              /* we need more than one failure to be marked as down,
+                 and we did not reach the threshold yet, let's stay down */
+              newState = true;
+            }
           }
         }
 
@@ -1950,6 +2000,7 @@ static void healthChecksThread()
 
           dss->upStatus = newState;
           dss->currentCheckFailures = 0;
+          dss->consecutiveSuccesfulChecks = 0;
           if (g_snmpAgent && g_snmpTrapsEnabled) {
             g_snmpAgent->sendBackendStatusChangeTrap(dss);
           }
@@ -1981,7 +2032,7 @@ static void healthChecksThread()
           ids.age = 0;
           dss->reuseds++;
           --dss->outstanding;
-          g_stats.downstreamTimeouts++; // this is an 'actively' discovered timeout
+          ++g_stats.downstreamTimeouts; // this is an 'actively' discovered timeout
           vinfolog("Had a downstream timeout from %s (%s) for query for %s|%s from %s",
                    dss->remote.toStringWithPort(), dss->name,
                    ids.qname.toString(), QType(ids.qtype).getName(), ids.origRemote.toStringWithPort());

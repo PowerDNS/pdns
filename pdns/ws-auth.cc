@@ -56,12 +56,14 @@ static void patchZone(HttpRequest* req, HttpResponse* resp);
 static void storeChangedPTRs(UeberBackend& B, vector<DNSResourceRecord>& new_ptrs);
 static void makePtr(const DNSResourceRecord& rr, DNSResourceRecord* ptr);
 
-AuthWebServer::AuthWebServer()
+AuthWebServer::AuthWebServer() :
+  d_start(time(0)),
+  d_min10(0),
+  d_min5(0),
+  d_min1(0),
+  d_ws(nullptr),
+  d_tid(0)
 {
-  d_start=time(0);
-  d_min10=d_min5=d_min1=0;
-  d_ws = 0;
-  d_tid = 0;
   if(arg().mustDo("webserver") || arg().mustDo("api")) {
     d_ws = new WebServer(arg()["webserver-address"], arg().asNum("webserver-port"));
     d_ws->setApiKey(arg()["api-key"]);
@@ -288,7 +290,7 @@ void AuthWebServer::indexfunction(HttpRequest* req, HttpResponse* resp)
     printtable(ret,req->getvars["ring"],S.getRingTitle(req->getvars["ring"]),100);
 
   ret<<"</div></div>"<<endl;
-  ret<<"<footer class=\"row\">"<<fullVersionString()<<"<br>&copy; 2013 - 2018 <a href=\"http://www.powerdns.com/\">PowerDNS.COM BV</a>.</footer>"<<endl;
+  ret<<"<footer class=\"row\">"<<fullVersionString()<<"<br>&copy; 2013 - 2019 <a href=\"http://www.powerdns.com/\">PowerDNS.COM BV</a>.</footer>"<<endl;
   ret<<"</body></html>"<<endl;
 
   resp->body = ret.str();

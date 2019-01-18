@@ -49,13 +49,14 @@ int pdns_sqlite3_clear_bindings(sqlite3_stmt *pStmt){
 class SSQLite3Statement: public SSqlStatement
 {
 public:
-  SSQLite3Statement(SSQLite3 *db, bool dolog, const string& query) : d_prepared(false)
+  SSQLite3Statement(SSQLite3 *db, bool dolog, const string& query) :
+    d_prepared(false),
+    d_query(query),
+    d_dolog(dolog),
+    d_stmt(nullptr),
+    d_rc(0),
+    d_db(db)
   {
-    this->d_query = query;
-    this->d_dolog = dolog;
-    d_stmt = NULL;
-    d_rc = 0;
-    d_db = db;
   }
 
   int name2idx(const string& name) {

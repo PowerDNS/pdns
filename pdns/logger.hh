@@ -26,7 +26,6 @@
 #include <iostream>
 #include <sstream>
 #include <syslog.h>
-#include <pthread.h>
 
 #include "namespaces.hh"
 #include "dnsname.hh"
@@ -103,11 +102,10 @@ private:
     string d_output;
     Urgency d_urgency;
   };
-  static void initKey();
-  static void perThreadDestructor(void *);
-  PerThread* getPerThread();
+  PerThread& getPerThread();
   void open();
 
+  static thread_local PerThread t_perThread;
   string name;
   int flags;
   int d_facility;
@@ -117,11 +115,11 @@ private:
   bool d_disableSyslog;
   bool d_timestamps{true};
   bool d_prefixed{false};
-  static pthread_once_t s_once;
-  static pthread_key_t g_loggerKey;
 };
 
-extern Logger g_log;
+Logger& getLogger();
+
+#define g_log getLogger()
 
 #ifdef VERBOSELOG
 #define DLOG(x) x

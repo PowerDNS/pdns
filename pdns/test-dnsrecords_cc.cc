@@ -8,6 +8,8 @@
 
 #include <boost/tuple/tuple.hpp>
 #include <boost/scoped_ptr.hpp>
+
+#include "base32.hh"
 #include "dnsrecords.hh"
 
 namespace {
@@ -455,6 +457,112 @@ BOOST_AUTO_TEST_CASE(test_nsec_records_in) {
     MOADNSParser parser(false, reinterpret_cast<const char*>(packet.data()), packet.size());
 
     BOOST_CHECK_THROW(MOADNSParser failParser(false, reinterpret_cast<const char*>(packet.data()), packet.size()-1), MOADNSException);
+  }
+}
+
+BOOST_AUTO_TEST_CASE(test_nsec_records_types) {
+
+  {
+    auto validNSEC = DNSRecordContent::mastermake(QType::NSEC, QClass::IN, "host.example.com. A MX RRSIG NSEC TYPE1234");
+    auto nsecContent = std::dynamic_pointer_cast<NSECRecordContent>(validNSEC);
+    BOOST_REQUIRE(nsecContent);
+
+    for (const auto type : { QType::A, QType::MX, QType::RRSIG, QType::NSEC, static_cast<QType::typeenum>(1234) }) {
+      BOOST_CHECK(nsecContent->isSet(type));
+    }
+    BOOST_CHECK_EQUAL(nsecContent->isSet(QType::NSEC3), false);
+    BOOST_CHECK_EQUAL(nsecContent->numberOfTypesSet(), 5);
+  }
+
+  {
+    auto nsecContent = std::make_shared<NSECRecordContent>();
+    BOOST_CHECK_EQUAL(nsecContent->numberOfTypesSet(), 0);
+    BOOST_CHECK_EQUAL(nsecContent->isSet(QType::NSEC3), false);
+
+    for (size_t idx = 0; idx < 65536; idx++) {
+      nsecContent->set(idx);
+    }
+    BOOST_CHECK_EQUAL(nsecContent->isSet(QType::NSEC3), true);
+    BOOST_CHECK_EQUAL(nsecContent->numberOfTypesSet(), 65536);
+    for (size_t idx = 0; idx < 65536; idx++) {
+      BOOST_CHECK(nsecContent->isSet(idx));
+    }
+  }
+}
+
+BOOST_AUTO_TEST_CASE(test_nsec3_records_types) {
+
+  {
+    const std::string str = "1 1 12 aabbccdd 2vptu5timamqttgl4luu9kg21e0aor3s a mx rrsig nsec3 type1234 type65535";
+    auto validNSEC3 = DNSRecordContent::mastermake(QType::NSEC3, QClass::IN, str);
+    auto nsec3Content = std::dynamic_pointer_cast<NSEC3RecordContent>(validNSEC3);
+    BOOST_REQUIRE(nsec3Content);
+
+    for (const auto type : { QType::A, QType::MX, QType::RRSIG, QType::NSEC3, static_cast<QType::typeenum>(1234), static_cast<QType::typeenum>(65535) }) {
+      BOOST_CHECK(nsec3Content->isSet(type));
+    }
+    BOOST_CHECK_EQUAL(nsec3Content->isSet(QType::NSEC), false);
+    BOOST_CHECK_EQUAL(nsec3Content->numberOfTypesSet(), 6);
+    auto str2 = nsec3Content->getZoneRepresentation();
+    boost::to_lower(str2);
+    BOOST_CHECK_EQUAL(str2, str);
+  }
+
+  {
+    std::string str = "1 1 12 aabbccdd 2vptu5timamqttgl4luu9kg21e0aor3s";
+    auto nsec3Content = std::make_shared<NSEC3RecordContent>(str);
+    BOOST_CHECK_EQUAL(nsec3Content->numberOfTypesSet(), 0);
+    BOOST_CHECK_EQUAL(nsec3Content->isSet(QType::NSEC), false);
+
+    for (size_t idx = 0; idx < 65536; idx++) {
+      nsec3Content->set(idx);
+      str += " " + toLower(DNSRecordContent::NumberToType(idx));
+    }
+    BOOST_CHECK_EQUAL(nsec3Content->isSet(QType::NSEC), true);
+    BOOST_CHECK_EQUAL(nsec3Content->numberOfTypesSet(), 65536);
+    for (size_t idx = 0; idx < 65536; idx++) {
+      BOOST_CHECK(nsec3Content->isSet(idx));
+    }
+    auto str2 = nsec3Content->getZoneRepresentation();
+    boost::to_lower(str2);
+    BOOST_CHECK_EQUAL(str2, str);
+  }
+
+  {
+    DNSName qname("powerdns.com.");
+    /* check that we can have a NSEC3 with 0 types covered */
+    const std::string salt = "aabbccdd";
+    const std::string hash =  "2vptu5timamqttgl4luu9kg21e0aor3s";
+    const std::string str = "1 1 12 " + salt + " " + hash;
+    auto validNSEC3=DNSRecordContent::mastermake(QType::NSEC3, QClass::IN, str);
+
+    vector<uint8_t> packet;
+    DNSPacketWriter writer(packet, qname, QType::NSEC3, QClass::IN, 0);
+    writer.getHeader()->qr = 1;
+    writer.startRecord(qname, QType::NSEC3, 100, QClass::IN, DNSResourceRecord::ANSWER);
+    validNSEC3->toPacket(writer);
+    writer.commit();
+
+    static const size_t expectedSize = sizeof(dnsheader) + qname.wirelength() + 2 /* QType */ + 2 /* QClass */
+      + 2 /* name pointer */ + 2 /* QType */ + 2 /* QClass */
+      + 2 /* rd length */ + 1 /* hash algo */ + 1 /* flags */ + 2 /*iterations */ + 1 /* salt length */ + salt.size()
+      + 1 /* hash length */ + fromBase32Hex(hash).size();
+    BOOST_CHECK_EQUAL(packet.size(), expectedSize);
+
+    MOADNSParser parser(false, reinterpret_cast<const char*>(packet.data()), packet.size());
+    BOOST_REQUIRE_EQUAL(parser.d_answers.size(), 1);
+    const auto& record = parser.d_answers.at(0).first;
+    BOOST_REQUIRE(record.d_type == QType::NSEC3);
+    BOOST_REQUIRE(record.d_class == QClass::IN);
+    auto content = std::dynamic_pointer_cast<NSEC3RecordContent>(record.d_content);
+    BOOST_REQUIRE(content);
+    BOOST_CHECK_EQUAL(content->numberOfTypesSet(), 0);
+    for (size_t idx = 0; idx < 65536; idx++) {
+      BOOST_CHECK_EQUAL(content->isSet(idx), false);
+    }
+    auto str2 = content->getZoneRepresentation();
+    boost::to_lower(str2);
+    BOOST_CHECK_EQUAL(str2, str);
   }
 }
 

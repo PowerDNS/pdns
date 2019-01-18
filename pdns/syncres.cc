@@ -941,7 +941,7 @@ bool SyncRes::doCNAMECacheCheck(const DNSName &qname, const QType &qtype, vector
 
       if(j->d_ttl>(unsigned int) d_now.tv_sec) {
 
-        if (!wasAuthZone && shouldValidate() && wasAuth && state == Indeterminate && d_requireAuthData) {
+        if (!wasAuthZone && shouldValidate() && (wasAuth || wasForwardRecurse) && state == Indeterminate && d_requireAuthData) {
           /* This means we couldn't figure out the state when this entry was cached,
              most likely because we hadn't computed the zone cuts yet. */
           /* make sure they are computed before validating */
@@ -1137,9 +1137,7 @@ bool SyncRes::doCacheCheck(const DNSName &qname, const DNSName& authname, bool w
     giveNegative = true;
     cachedState = ne->d_validationState;
   }
-  else if (t_sstorage.negcache.get(qname, qtype, d_now, &ne) &&
-           !(wasForwardedOrAuthZone && ne->d_auth != authname)) { // Only the authname nameserver can neg cache entries
-
+  else if (t_sstorage.negcache.get(qname, qtype, d_now, &ne)) {
     /* If we are looking for a DS, discard NXD if auth == qname
        and ask for a specific denial instead */
     if (qtype != QType::DS || ne->d_qtype.getCode() || ne->d_auth != qname ||
@@ -1191,7 +1189,7 @@ bool SyncRes::doCacheCheck(const DNSName &qname, const DNSName& authname, bool w
 
     LOG(prefix<<sqname<<": Found cache hit for "<<sqt.getName()<<": ");
 
-    if (!wasAuthZone && shouldValidate() && wasCachedAuth && cachedState == Indeterminate && d_requireAuthData) {
+    if (!wasAuthZone && shouldValidate() && (wasCachedAuth || wasForwardRecurse) && cachedState == Indeterminate && d_requireAuthData) {
 
       /* This means we couldn't figure out the state when this entry was cached,
          most likely because we hadn't computed the zone cuts yet. */
@@ -1971,8 +1969,9 @@ vState SyncRes::validateRecordsWithSigs(unsigned int depth, const DNSName& qname
   return Bogus;
 }
 
-RCode::rcodes_ SyncRes::updateCacheFromRecords(unsigned int depth, LWResult& lwr, const DNSName& qname, const QType& qtype, const DNSName& auth, bool wasForwarded, const boost::optional<Netmask> ednsmask, vState& state, bool& needWildcardProof, unsigned int& wildcardLabelsCount)
+RCode::rcodes_ SyncRes::updateCacheFromRecords(unsigned int depth, LWResult& lwr, const DNSName& qname, const QType& qtype, const DNSName& auth, bool wasForwarded, const boost::optional<Netmask> ednsmask, vState& state, bool& needWildcardProof, unsigned int& wildcardLabelsCount, bool rdQuery)
 {
+  bool wasForwardRecurse = wasForwarded && rdQuery;
   tcache_t tcache;
 
   string prefix;
@@ -2123,7 +2122,11 @@ RCode::rcodes_ SyncRes::updateCacheFromRecords(unsigned int depth, LWResult& lwr
        set the TC bit solely because these RRSIG RRs didn't fit."
     */
     bool isAA = lwr.d_aabit && i->first.place != DNSResourceRecord::ADDITIONAL;
-    if (isAA && isCNAMEAnswer && (i->first.place != DNSResourceRecord::ANSWER || i->first.type != QType::CNAME || i->first.name != qname)) {
+    /* if we forwarded the query to a recursor, we can expect the answer to be signed,
+       even if the answer is not AA. Of course that's not only true inside a Secure
+       zone, but we check that below. */
+    bool expectSignature = isAA || wasForwardRecurse;
+    if (isCNAMEAnswer && (i->first.place != DNSResourceRecord::ANSWER || i->first.type != QType::CNAME || i->first.name != qname)) {
       /*
         rfc2181 states:
         Note that the answer section of an authoritative answer normally
@@ -2135,6 +2138,19 @@ RCode::rcodes_ SyncRes::updateCacheFromRecords(unsigned int depth, LWResult& lwr
         associated with the alias.
       */
       isAA = false;
+      expectSignature = false;
+    }
+
+    if (isCNAMEAnswer && i->first.place == DNSResourceRecord::AUTHORITY && i->first.type == QType::NS && auth == i->first.name) {
+      /* These NS can't be authoritative since we have a CNAME answer for which (see above) only the
+         record describing that alias is necessarily authoritative.
+         But if we allow the current auth, which might be serving the child zone, to raise the TTL
+         of non-authoritative NS in the cache, they might be able to keep a "ghost" zone alive forever,
+         even after the delegation is gone from the parent.
+         So let's just do nothing with them, we can fetch them directly if we need them.
+      */
+      LOG(d_prefix<<": skipping authority NS from '"<<auth<<"' nameservers in CNAME answer "<<i->first.name<<"|"<<DNSRecordContent::NumberToType(i->first.type)<<endl);
+      continue;
     }
 
     vState recordState = getValidationStatus(i->first.name, false);
@@ -2143,7 +2159,7 @@ RCode::rcodes_ SyncRes::updateCacheFromRecords(unsigned int depth, LWResult& lwr
     if (shouldValidate() && recordState == Secure) {
       vState initialState = recordState;
 
-      if (isAA) {
+      if (expectSignature) {
         if (i->first.place != DNSResourceRecord::ADDITIONAL) {
           /* the additional entries can be insecure,
              like glue:
@@ -2173,7 +2189,7 @@ RCode::rcodes_ SyncRes::updateCacheFromRecords(unsigned int depth, LWResult& lwr
         }
       }
 
-      if (initialState == Secure && state != recordState && isAA) {
+      if (initialState == Secure && state != recordState && expectSignature) {
         updateValidationState(state, recordState);
       }
     }
@@ -2566,7 +2582,7 @@ bool SyncRes::processAnswer(unsigned int depth, LWResult& lwr, const DNSName& qn
 
   bool needWildcardProof = false;
   unsigned int wildcardLabelsCount;
-  *rcode = updateCacheFromRecords(depth, lwr, qname, qtype, auth, wasForwarded, ednsmask, state, needWildcardProof, wildcardLabelsCount);
+  *rcode = updateCacheFromRecords(depth, lwr, qname, qtype, auth, wasForwarded, ednsmask, state, needWildcardProof, wildcardLabelsCount, sendRDQuery);
   if (*rcode != RCode::NoError) {
     return true;
   }
@@ -2634,7 +2650,7 @@ bool SyncRes::processAnswer(unsigned int depth, LWResult& lwr, const DNSName& qn
   if(nsset.empty() && !lwr.d_rcode && (negindic || lwr.d_aabit || sendRDQuery)) {
     LOG(prefix<<qname<<": status=noerror, other types may exist, but we are done "<<(negindic ? "(have negative SOA) " : "")<<(lwr.d_aabit ? "(have aa bit) " : "")<<endl);
 
-    if(state == Secure && lwr.d_aabit && !negindic) {
+    if(state == Secure && (lwr.d_aabit || sendRDQuery) && !negindic) {
       updateValidationState(state, Bogus);
     }
 

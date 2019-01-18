@@ -53,12 +53,9 @@ string StatBag::directory()
   string dir;
   ostringstream o;
 
-  for(map<string, AtomicCounter *>::const_iterator i=d_stats.begin();
-      i!=d_stats.end();
-      i++)
-    {
-      o<<i->first<<"="<<*(i->second)<<",";
-    }
+  for(const auto& i: d_stats) {
+    o<<i.first<<"="<<*(i.second)<<",";
+  }
 
 
   for(const funcstats_t::value_type& val :  d_funcstats) {
@@ -73,10 +70,9 @@ vector<string>StatBag::getEntries()
 {
   vector<string> ret;
 
-  for(map<string, AtomicCounter *>::const_iterator i=d_stats.begin();
-      i!=d_stats.end();
-      i++)
-      ret.push_back(i->first);
+  for(const auto& i: d_stats) {
+      ret.push_back(i.first);
+  }
 
   for(const funcstats_t::value_type& val :  d_funcstats) {
     ret.push_back(val.first);
@@ -154,12 +150,9 @@ AtomicCounter *StatBag::getPointer(const string &key)
 
 StatBag::~StatBag()
 {
-  for(map<string, AtomicCounter *>::const_iterator i=d_stats.begin();
-      i!=d_stats.end();
-      i++)
-    {
-      delete i->second;
-    }
+  for(const auto& i: d_stats) {
+    delete i.second;
+  }
   
 }
 

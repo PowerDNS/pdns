@@ -321,10 +321,11 @@ catch(...) {
   g_log<<Logger::Error<<"HTTP: Unknown exception"<<endl;
 }
 
-WebServer::WebServer(const string &listenaddress, int port) : d_server(nullptr)
+WebServer::WebServer(const string &listenaddress, int port) :
+  d_listenaddress(listenaddress),
+  d_port(port),
+  d_server(nullptr)
 {
-  d_listenaddress=listenaddress;
-  d_port=port;
 }
 
 void WebServer::bind()

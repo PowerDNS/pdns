@@ -839,7 +839,7 @@ static void handleRPZCustom(const DNSRecord& spoofed, const QType& qtype, SyncRe
     bool oldWantsRPZ = sr.getWantsRPZ();
     sr.setWantsRPZ(false);
     vector<DNSRecord> ans;
-    res = sr.beginResolve(DNSName(spoofed.d_content->getZoneRepresentation()), qtype, 1, ans);
+    res = sr.beginResolve(DNSName(spoofed.d_content->getZoneRepresentation()), qtype, QClass::IN, ans);
     for (const auto& rec : ans) {
       if(rec.d_place == DNSResourceRecord::ANSWER) {
         ret.push_back(rec);
@@ -1146,7 +1146,7 @@ static void startDoResolve(void *p)
     /* preresolve expects res (dq.rcode) to be set to RCode::NoError by default */
     int res = RCode::NoError;
     DNSFilterEngine::Policy appliedPolicy;
-    DNSRecord spoofed;
+    std::vector<DNSRecord> spoofed;
     RecursorLua4::DNSQuestion dq(dc->d_source, dc->d_destination, dc->d_mdp.d_qname, dc->d_mdp.d_qtype, dc->d_tcp, variableAnswer, wantsRPZ, logResponse);
     dq.ednsFlags = &edo.d_extFlags;
     dq.ednsOptions = &ednsOpts;
@@ -1224,9 +1224,11 @@ static void startDoResolve(void *p)
           case DNSFilterEngine::PolicyKind::Custom:
             g_stats.policyResults[appliedPolicy.d_kind]++;
             res=RCode::NoError;
-            spoofed=appliedPolicy.getCustomRecord(dc->d_mdp.d_qname);
-            ret.push_back(spoofed);
-            handleRPZCustom(spoofed, QType(dc->d_mdp.d_qtype), sr, res, ret);
+            spoofed=appliedPolicy.getCustomRecords(dc->d_mdp.d_qname, dc->d_mdp.d_qtype);
+            for (const auto& dr : spoofed) {
+              ret.push_back(dr);
+              handleRPZCustom(dr, QType(dc->d_mdp.d_qtype), sr, res, ret);
+            }
             goto haveAnswer;
           case DNSFilterEngine::PolicyKind::Truncate:
             if(!dc->d_tcp) {
@@ -1284,9 +1286,11 @@ static void startDoResolve(void *p)
           case DNSFilterEngine::PolicyKind::Custom:
             ret.clear();
             res=RCode::NoError;
-            spoofed=appliedPolicy.getCustomRecord(dc->d_mdp.d_qname);
-            ret.push_back(spoofed);
-            handleRPZCustom(spoofed, QType(dc->d_mdp.d_qtype), sr, res, ret);
+            spoofed=appliedPolicy.getCustomRecords(dc->d_mdp.d_qname, dc->d_mdp.d_qtype);
+            for (const auto& dr : spoofed) {
+              ret.push_back(dr);
+              handleRPZCustom(dr, QType(dc->d_mdp.d_qtype), sr, res, ret);
+            }
             goto haveAnswer;
         }
       }
@@ -1342,9 +1346,11 @@ static void startDoResolve(void *p)
           case DNSFilterEngine::PolicyKind::Custom:
             ret.clear();
             res=RCode::NoError;
-            spoofed=appliedPolicy.getCustomRecord(dc->d_mdp.d_qname);
-            ret.push_back(spoofed);
-            handleRPZCustom(spoofed, QType(dc->d_mdp.d_qtype), sr, res, ret);
+            spoofed=appliedPolicy.getCustomRecords(dc->d_mdp.d_qname, dc->d_mdp.d_qtype);
+            for (const auto& dr : spoofed) {
+              ret.push_back(dr);
+              handleRPZCustom(dr, QType(dc->d_mdp.d_qtype), sr, res, ret);
+            }
             goto haveAnswer;
         }
       }
@@ -1486,6 +1492,18 @@ static void startDoResolve(void *p)
     }
   sendit:;
 
+    if(g_useIncomingECS && dc->d_ecsFound && !sr.wasVariable() && !variableAnswer) {
+      //      cerr<<"Stuffing in a 0 scope because answer is static"<<endl;
+      EDNSSubnetOpts eo;
+      eo.source = dc->d_ednssubnet.source;
+      ComboAddress sa;
+      sa.reset();
+      sa.sin4.sin_family = eo.source.getNetwork().sin4.sin_family;
+      eo.scope = Netmask(sa, 0);
+
+      returnedEdnsOptions.push_back(make_pair(EDNSOptionCode::ECS, makeEDNSSubnetOptsString(eo)));
+    }
+
     if (haveEDNS) {
       /* we try to add the EDNS OPT RR even for truncated answers,
          as rfc6891 states:
@@ -1555,6 +1573,9 @@ static void startDoResolve(void *p)
       if(sendmsg(dc->d_socket, &msgh, 0) < 0 && g_logCommonErrors) 
         g_log<<Logger::Warning<<"Sending UDP reply to client "<<dc->getRemote()<<" failed with: "<<strerror(errno)<<endl;
 
+      if(variableAnswer || sr.wasVariable()) {
+        g_stats.variableResponses++;
+      }
       if(!SyncRes::s_nopacketcache && !variableAnswer && !sr.wasVariable() ) {
         t_packetCache->insertResponsePacket(dc->d_tag, dc->d_qhash, std::move(dc->d_query), dc->d_mdp.d_qname, dc->d_mdp.d_qtype, dc->d_mdp.d_qclass,
                                             string((const char*)&*packet.begin(), packet.size()),
@@ -2785,6 +2806,36 @@ void broadcastFunction(const pipefunc_t& func)
   }
 }
 
+static bool trySendingQueryToWorker(unsigned int target, ThreadMSG* tmsg)
+{
+  const auto& targetInfo = s_threadInfos[target];
+  if(!targetInfo.isWorker) {
+    g_log<<Logger::Error<<"distributeAsyncFunction() tried to assign a query to a non-worker thread"<<endl;
+    exit(1);
+  }
+
+  const auto& tps = targetInfo.pipes;
+
+  ssize_t written = write(tps.writeQueriesToThread, &tmsg, sizeof(tmsg));
+  if (written > 0) {
+    if (static_cast<size_t>(written) != sizeof(tmsg)) {
+      delete tmsg;
+      unixDie("write to thread pipe returned wrong size or error");
+    }
+  }
+  else {
+    int error = errno;
+    if (error == EAGAIN || error == EWOULDBLOCK) {
+      return false;
+    } else {
+      delete tmsg;
+      unixDie("write to thread pipe returned wrong size or error:" + std::to_string(error));
+    }
+  }
+
+  return true;
+}
+
 // This function is only called by the distributor threads, when pdns-distributes-queries is set
 void distributeAsyncFunction(const string& packet, const pipefunc_t& func)
 {
@@ -2796,31 +2847,21 @@ void distributeAsyncFunction(const string& packet, const pipefunc_t& func)
   unsigned int hash = hashQuestion(packet.c_str(), packet.length(), g_disthashseed);
   unsigned int target = /* skip handler */ 1 + g_numDistributorThreads + (hash % g_numWorkerThreads);
 
-  const auto& targetInfo = s_threadInfos[target];
-  if(!targetInfo.isWorker) {
-    g_log<<Logger::Error<<"distributeAsyncFunction() tried to assign a query to a non-worker thread"<<endl;
-    exit(1);
-  }
-
-  const auto& tps = targetInfo.pipes;
   ThreadMSG* tmsg = new ThreadMSG();
   tmsg->func = func;
   tmsg->wantAnswer = false;
 
-  ssize_t written = write(tps.writeQueriesToThread, &tmsg, sizeof(tmsg));
-  if (written > 0) {
-    if (static_cast<size_t>(written) != sizeof(tmsg)) {
-      delete tmsg;
-      unixDie("write to thread pipe returned wrong size or error");
-    }
-  }
-  else {
-    int error = errno;
-    delete tmsg;
-    if (error == EAGAIN || error == EWOULDBLOCK) {
+  if (!trySendingQueryToWorker(target, tmsg)) {
+    /* if this function failed but did not raise an exception, it means that the pipe
+       was full, let's try another one */
+    unsigned int newTarget = 0;
+    do {
+      newTarget = /* skip handler */ 1 + g_numDistributorThreads + dns_random(g_numWorkerThreads);
+    } while (newTarget == target);
+
+    if (!trySendingQueryToWorker(newTarget, tmsg)) {
       g_stats.queryPipeFullDrops++;
-    } else {
-      unixDie("write to thread pipe returned wrong size or error:" + std::to_string(error));
+      delete tmsg;
     }
   }
 }

@@ -116,7 +116,7 @@ void RPZRecordToPolicy(const DNSRecord& dr, std::shared_ptr<DNSFilterEngine::Zon
     }
     else {
       pol.d_kind = DNSFilterEngine::PolicyKind::Custom;
-      pol.d_custom = dr.d_content;
+      pol.d_custom.emplace_back(dr.d_content);
       // cerr<<"Wants custom "<<crcTarget<<" for "<<dr.d_name<<": ";
     }
   }
@@ -126,7 +126,7 @@ void RPZRecordToPolicy(const DNSRecord& dr, std::shared_ptr<DNSFilterEngine::Zon
     }
     else {
       pol.d_kind = DNSFilterEngine::PolicyKind::Custom;
-      pol.d_custom = dr.d_content;
+      pol.d_custom.emplace_back(dr.d_content);
       // cerr<<"Wants custom "<<dr.d_content->getZoneRepresentation()<<" for "<<dr.d_name<<": ";
     }
   }
@@ -142,37 +142,37 @@ void RPZRecordToPolicy(const DNSRecord& dr, std::shared_ptr<DNSFilterEngine::Zon
   if(dr.d_name.isPartOf(rpzNSDname)) {
     DNSName filt=dr.d_name.makeRelative(rpzNSDname);
     if(addOrRemove)
-      zone->addNSTrigger(filt, pol);
+      zone->addNSTrigger(filt, std::move(pol));
     else
-      zone->rmNSTrigger(filt, pol);
+      zone->rmNSTrigger(filt, std::move(pol));
   } else if(dr.d_name.isPartOf(rpzClientIP)) {
     DNSName filt=dr.d_name.makeRelative(rpzClientIP);
     auto nm=makeNetmaskFromRPZ(filt);
     if(addOrRemove)
-      zone->addClientTrigger(nm, pol);
+      zone->addClientTrigger(nm, std::move(pol));
     else
-      zone->rmClientTrigger(nm, pol);
+      zone->rmClientTrigger(nm, std::move(pol));
     
   } else if(dr.d_name.isPartOf(rpzIP)) {
     // cerr<<"Should apply answer content IP policy: "<<dr.d_name<<endl;
     DNSName filt=dr.d_name.makeRelative(rpzIP);
     auto nm=makeNetmaskFromRPZ(filt);
     if(addOrRemove)
-      zone->addResponseTrigger(nm, pol);
+      zone->addResponseTrigger(nm, std::move(pol));
     else
-      zone->rmResponseTrigger(nm, pol);
+      zone->rmResponseTrigger(nm, std::move(pol));
   } else if(dr.d_name.isPartOf(rpzNSIP)) {
     DNSName filt=dr.d_name.makeRelative(rpzNSIP);
     auto nm=makeNetmaskFromRPZ(filt);
     if(addOrRemove)
-      zone->addNSIPTrigger(nm, pol);
+      zone->addNSIPTrigger(nm, std::move(pol));
     else
-      zone->rmNSIPTrigger(nm, pol);
+      zone->rmNSIPTrigger(nm, std::move(pol));
   } else {
     if(addOrRemove)
-      zone->addQNameTrigger(dr.d_name, pol);
+      zone->addQNameTrigger(dr.d_name, std::move(pol));
     else
-      zone->rmQNameTrigger(dr.d_name, pol);
+      zone->rmQNameTrigger(dr.d_name, std::move(pol));
   }
 }
 
@@ -338,7 +338,7 @@ static bool dumpZoneToDisk(const DNSName& zoneName, const std::shared_ptr<DNSFil
   return true;
 }
 
-void RPZIXFRTracker(const std::vector<ComboAddress> masters, boost::optional<DNSFilterEngine::Policy> defpol, uint32_t maxTTL, size_t zoneIdx, const TSIGTriplet& tt, size_t maxReceivedBytes, const ComboAddress& localAddress, const uint16_t axfrTimeout, std::shared_ptr<SOARecordContent> sr, std::string dumpZoneFileName, uint64_t configGeneration)
+void RPZIXFRTracker(const std::vector<ComboAddress>& masters, boost::optional<DNSFilterEngine::Policy> defpol, uint32_t maxTTL, size_t zoneIdx, const TSIGTriplet& tt, size_t maxReceivedBytes, const ComboAddress& localAddress, const uint16_t axfrTimeout, std::shared_ptr<SOARecordContent> sr, std::string dumpZoneFileName, uint64_t configGeneration)
 {
   setThreadName("pdns-r/RPZIXFR");
   bool isPreloaded = sr != nullptr;

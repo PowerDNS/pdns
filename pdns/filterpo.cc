@@ -196,92 +196,99 @@ void DNSFilterEngine::assureZones(size_t zone)
     d_zones.resize(zone+1);
 }
 
-void DNSFilterEngine::Zone::addClientTrigger(const Netmask& nm, Policy pol)
+void DNSFilterEngine::Zone::addClientTrigger(const Netmask& nm, Policy&& pol)
 {
   pol.d_name = d_name;
   pol.d_type = PolicyType::ClientIP;
-  d_qpolAddr.insert(nm).second=pol;
+  d_qpolAddr.insert(nm).second=std::move(pol);
 }
 
-void DNSFilterEngine::Zone::addResponseTrigger(const Netmask& nm, Policy pol)
+void DNSFilterEngine::Zone::addResponseTrigger(const Netmask& nm, Policy&& pol)
 {
   pol.d_name = d_name;
   pol.d_type = PolicyType::ResponseIP;
-  d_postpolAddr.insert(nm).second=pol;
+  d_postpolAddr.insert(nm).second=std::move(pol);
 }
 
-void DNSFilterEngine::Zone::addQNameTrigger(const DNSName& n, Policy pol)
+void DNSFilterEngine::Zone::addQNameTrigger(const DNSName& n, Policy&& pol)
 {
-  pol.d_name = d_name;
-  pol.d_type = PolicyType::QName;
-  d_qpolName[n]=pol;
+  auto it = d_qpolName.find(n);
+
+  if (it != d_qpolName.end()) {
+    auto& existingPol = it->second;
+
+    if (pol.d_kind != PolicyKind::Custom) {
+      throw std::runtime_error("Adding a QName-based filter policy of kind " + getKindToString(pol.d_kind) + " but a policy of kind " + getKindToString(existingPol.d_kind) + " already exists for the following QName: " + n.toLogString());
+    }
+
+    if (existingPol.d_kind != PolicyKind::Custom) {
+      throw std::runtime_error("Adding a QName-based filter policy of kind " + getKindToString(existingPol.d_kind) + " but there was already an existing policy for the following QName: " + n.toLogString());
+    }
+
+    existingPol.d_custom.reserve(existingPol.d_custom.size() + pol.d_custom.size());
+
+    std::move(pol.d_custom.begin(), pol.d_custom.end(), std::back_inserter(existingPol.d_custom));
+  }
+  else {
+    auto& qpol = d_qpolName.insert({n, std::move(pol)}).first->second;
+    qpol.d_name = d_name;
+    qpol.d_type = PolicyType::QName;
+  }
 }
 
-void DNSFilterEngine::Zone::addNSTrigger(const DNSName& n, Policy pol)
+void DNSFilterEngine::Zone::addNSTrigger(const DNSName& n, Policy&& pol)
 {
   pol.d_name = d_name;
   pol.d_type = PolicyType::NSDName;
-  d_propolName[n]=pol;
+  d_propolName.insert({n, std::move(pol)});
 }
 
-void DNSFilterEngine::Zone::addNSIPTrigger(const Netmask& nm, Policy pol)
+void DNSFilterEngine::Zone::addNSIPTrigger(const Netmask& nm, Policy&& pol)
 {
   pol.d_name = d_name;
   pol.d_type = PolicyType::NSIP;
-  d_propolNSAddr.insert(nm).second = pol;
+  d_propolNSAddr.insert(nm).second = std::move(pol);
 }
 
-bool DNSFilterEngine::Zone::rmClientTrigger(const Netmask& nm, Policy& pol)
+bool DNSFilterEngine::Zone::rmClientTrigger(const Netmask& nm, const Policy& pol)
 {
   d_qpolAddr.erase(nm);
   return true;
 }
 
-bool DNSFilterEngine::Zone::rmResponseTrigger(const Netmask& nm, Policy& pol)
+bool DNSFilterEngine::Zone::rmResponseTrigger(const Netmask& nm, const Policy& pol)
 {
   d_postpolAddr.erase(nm);
   return true;
 }
 
-bool DNSFilterEngine::Zone::rmQNameTrigger(const DNSName& n, Policy& pol)
+bool DNSFilterEngine::Zone::rmQNameTrigger(const DNSName& n, const Policy& pol)
 {
-  d_qpolName.erase(n); // XXX verify we had identical policy?
-  return true;
-}
-
-bool DNSFilterEngine::Zone::rmNSTrigger(const DNSName& n, Policy& pol)
-{
-  d_propolName.erase(n); // XXX verify policy matched? =pol;
-  return true;
-}
-
-bool DNSFilterEngine::Zone::rmNSIPTrigger(const Netmask& nm, Policy& pol)
-{
-  d_propolNSAddr.erase(nm);
-  return true;
-}
-
-DNSRecord DNSFilterEngine::Policy::getCustomRecord(const DNSName& qname) const
-{
-  if (d_kind != PolicyKind::Custom) {
-    throw std::runtime_error("Asking for a custom record from a filtering policy of a non-custom type");
+  auto it = d_qpolName.find(n);
+  if (it == d_qpolName.end()) {
+    return false;
   }
 
-  DNSRecord result;
-  result.d_name = qname;
-  result.d_type = d_custom->getType();
-  result.d_ttl = d_ttl;
-  result.d_class = QClass::IN;
-  result.d_place = DNSResourceRecord::ANSWER;
-  result.d_content = d_custom;
+  auto& existing = it->second;
+  if (existing.d_kind != DNSFilterEngine::PolicyKind::Custom) {
+    d_qpolName.erase(it);
+    return true;
+  }
 
-  if (result.d_type == QType::CNAME) {
-    const auto content = std::dynamic_pointer_cast<CNAMERecordContent>(d_custom);
-    if (content) {
-      DNSName target = content->getTarget();
-      if (target.isWildcard()) {
-        target.chopOff();
-        result.d_content = std::make_shared<CNAMERecordContent>(qname + target);
+  /* for custom types, we might have more than one type,
+     and then we need to remove only the right ones. */
+  if (existing.d_custom.size() <= 1) {
+    d_qpolName.erase(it);
+    return true;
+  }
+
+  bool result = false;
+  for (auto& toRemove : pol.d_custom) {
+    for (auto it = existing.d_custom.begin(); it != existing.d_custom.end(); ++it) {
+      if (**it == *toRemove) {
+        existing.d_custom.erase(it);
+        result = true;
+        break;
       }
     }
   }
@@ -289,14 +296,88 @@ DNSRecord DNSFilterEngine::Policy::getCustomRecord(const DNSName& qname) const
   return result;
 }
 
-std::string DNSFilterEngine::Policy::getKindToString() const
+bool DNSFilterEngine::Zone::rmNSTrigger(const DNSName& n, const Policy& pol)
+{
+  d_propolName.erase(n); // XXX verify policy matched? =pol;
+  return true;
+}
+
+bool DNSFilterEngine::Zone::rmNSIPTrigger(const Netmask& nm, const Policy& pol)
+{
+  d_propolNSAddr.erase(nm);
+  return true;
+}
+
+DNSRecord DNSFilterEngine::Policy::getRecordFromCustom(const DNSName& qname, const std::shared_ptr<DNSRecordContent>& custom) const
+{
+  DNSRecord dr;
+  dr.d_name = qname;
+  dr.d_type = custom->getType();
+  dr.d_ttl = d_ttl;
+  dr.d_class = QClass::IN;
+  dr.d_place = DNSResourceRecord::ANSWER;
+  dr.d_content = custom;
+
+  if (dr.d_type == QType::CNAME) {
+    const auto content = std::dynamic_pointer_cast<CNAMERecordContent>(custom);
+    if (content) {
+      DNSName target = content->getTarget();
+      if (target.isWildcard()) {
+        target.chopOff();
+        dr.d_content = std::make_shared<CNAMERecordContent>(qname + target);
+      }
+    }
+  }
+
+  return dr;
+}
+
+std::vector<DNSRecord> DNSFilterEngine::Policy::getCustomRecords(const DNSName& qname, uint16_t qtype) const
+{
+  if (d_kind != PolicyKind::Custom) {
+    throw std::runtime_error("Asking for a custom record from a filtering policy of a non-custom type");
+  }
+
+  std::vector<DNSRecord> result;
+
+  for (const auto& custom : d_custom) {
+    if (qtype != QType::ANY && qtype != custom->getType() && custom->getType() != QType::CNAME) {
+      continue;
+    }
+
+    DNSRecord dr;
+    dr.d_name = qname;
+    dr.d_type = custom->getType();
+    dr.d_ttl = d_ttl;
+    dr.d_class = QClass::IN;
+    dr.d_place = DNSResourceRecord::ANSWER;
+    dr.d_content = custom;
+
+    if (dr.d_type == QType::CNAME) {
+      const auto content = std::dynamic_pointer_cast<CNAMERecordContent>(custom);
+      if (content) {
+        DNSName target = content->getTarget();
+        if (target.isWildcard()) {
+          target.chopOff();
+          dr.d_content = std::make_shared<CNAMERecordContent>(qname + target);
+        }
+      }
+    }
+
+    result.emplace_back(getRecordFromCustom(qname, custom));
+  }
+
+  return result;
+}
+
+std::string DNSFilterEngine::getKindToString(DNSFilterEngine::PolicyKind kind)
 {
   static const DNSName drop("rpz-drop."), truncate("rpz-tcp-only."), noaction("rpz-passthru.");
   static const DNSName rpzClientIP("rpz-client-ip"), rpzIP("rpz-ip"),
     rpzNSDname("rpz-nsdname"), rpzNSIP("rpz-nsip.");
   static const std::string rpzPrefix("rpz-");
 
-  switch(d_kind) {
+  switch(kind) {
   case DNSFilterEngine::PolicyKind::NoAction:
     return noaction.toString();
   case DNSFilterEngine::PolicyKind::Drop:
@@ -312,35 +393,59 @@ std::string DNSFilterEngine::Policy::getKindToString() const
   }
 }
 
-DNSRecord DNSFilterEngine::Policy::getRecord(const DNSName& qname) const
+std::string DNSFilterEngine::getTypeToString(DNSFilterEngine::PolicyType type)
 {
-  DNSRecord dr;
+  switch(type) {
+  case DNSFilterEngine::PolicyType::None:
+    return "none";
+  case DNSFilterEngine::PolicyType::QName:
+    return "QName";
+  case DNSFilterEngine::PolicyType::ClientIP:
+    return "Client IP";
+  case DNSFilterEngine::PolicyType::ResponseIP:
+    return "Response IP";
+  case DNSFilterEngine::PolicyType::NSDName:
+    return "Name Server Name";
+  case DNSFilterEngine::PolicyType::NSIP:
+    return "Name Server IP";
+  default:
+    throw std::runtime_error("Unexpected DNSFilterEngine::Policy type");
+  }
+}
+
+std::vector<DNSRecord> DNSFilterEngine::Policy::getRecords(const DNSName& qname) const
+{
+  std::vector<DNSRecord> result;
 
   if (d_kind == PolicyKind::Custom) {
-    dr = getCustomRecord(qname);
+    result = getCustomRecords(qname, QType::ANY);
   }
   else {
+    DNSRecord dr;
     dr.d_name = qname;
     dr.d_ttl = static_cast<uint32_t>(d_ttl);
     dr.d_type = QType::CNAME;
     dr.d_class = QClass::IN;
-    dr.d_content = DNSRecordContent::mastermake(QType::CNAME, QClass::IN, getKindToString());
+    dr.d_content = DNSRecordContent::mastermake(QType::CNAME, QClass::IN, getKindToString(d_kind));
+    result.push_back(std::move(dr));
   }
 
-  return dr;
+  return result;
 }
 
 void DNSFilterEngine::Zone::dumpNamedPolicy(FILE* fp, const DNSName& name, const Policy& pol) const
 {
-  DNSRecord dr = pol.getRecord(name);
-  fprintf(fp, "%s %" PRIu32 " IN %s %s\n", dr.d_name.toString().c_str(), dr.d_ttl, QType(dr.d_type).getName().c_str(), dr.d_content->getZoneRepresentation().c_str());
+  auto records = pol.getRecords(name);
+  for (const auto& dr : records) {
+    fprintf(fp, "%s %" PRIu32 " IN %s %s\n", dr.d_name.toString().c_str(), dr.d_ttl, QType(dr.d_type).getName().c_str(), dr.d_content->getZoneRepresentation().c_str());
+  }
 }
 
 DNSName DNSFilterEngine::Zone::maskToRPZ(const Netmask& nm)
 {
   int bits = nm.getBits();
   DNSName res(std::to_string(bits));
-  const auto addr = nm.getNetwork();
+  const auto& addr = nm.getNetwork();
 
   if (addr.isIPv4()) {
     const uint8_t* bytes = reinterpret_cast<const uint8_t*>(&addr.sin4.sin_addr.s_addr);
@@ -386,8 +491,10 @@ void DNSFilterEngine::Zone::dumpAddrPolicy(FILE* fp, const Netmask& nm, const DN
   DNSName full = maskToRPZ(nm);
   full += name;
 
-  DNSRecord dr = pol.getRecord(full);
-  fprintf(fp, "%s %" PRIu32 " IN %s %s\n", dr.d_name.toString().c_str(), dr.d_ttl, QType(dr.d_type).getName().c_str(), dr.d_content->getZoneRepresentation().c_str());
+  auto records = pol.getRecords(full);
+  for (const auto& dr : records) {
+    fprintf(fp, "%s %" PRIu32 " IN %s %s\n", dr.d_name.toString().c_str(), dr.d_ttl, QType(dr.d_type).getName().c_str(), dr.d_content->getZoneRepresentation().c_str());
+  }
 }
 
 void DNSFilterEngine::Zone::dump(FILE* fp) const
