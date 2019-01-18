@@ -10412,7 +10412,7 @@ BOOST_AUTO_TEST_CASE(test_cname_plus_authority_ns_ttl) {
           addRecordToLW(res, domain, QType::CNAME, cnameTarget.toString());
           addRecordToLW(res, cnameTarget, QType::A, "192.0.2.2");
           addRecordToLW(res, DNSName("powerdns.com."), QType::NS, "a.gtld-servers.net.", DNSResourceRecord::AUTHORITY, 172800);
-          addRecordToLW(res, DNSName("add.powerdns.com."), QType::A, "192.0.2.3", DNSResourceRecord::ADDITIONAL, 42);
+          addRecordToLW(res, DNSName("a.gtld-servers.net."), QType::A, "192.0.2.1", DNSResourceRecord::ADDITIONAL, 3600);
           return 1;
         }
         else if (domain == cnameTarget) {
@@ -10440,7 +10440,6 @@ BOOST_AUTO_TEST_CASE(test_cname_plus_authority_ns_ttl) {
      with auth=0 (or at least has not raised the TTL since it could otherwise
      be used to create a never-ending ghost zone even after the NS have been
      changed in the parent.
-     Also check that the the part in additional is still not auth
   */
   const ComboAddress who;
   vector<DNSRecord> cached;
@@ -10453,7 +10452,9 @@ BOOST_AUTO_TEST_CASE(test_cname_plus_authority_ns_ttl) {
   BOOST_CHECK_EQUAL(wasAuth, false);
 
   cached.clear();
-  BOOST_REQUIRE_GE(t_RC->get(now, DNSName("add.powerdns.com."), QType(QType::A), false, &cached, who, nullptr, nullptr, nullptr, nullptr, &wasAuth), 1);
+
+  /* Also check that the the part in additional is still not auth */
+  BOOST_REQUIRE_GE(t_RC->get(now, DNSName("a.gtld-servers.net."), QType(QType::A), false, &cached, who, nullptr, nullptr, nullptr, nullptr, &wasAuth), -1);
   BOOST_CHECK_EQUAL(cached.size(), 1);
   BOOST_CHECK_EQUAL(wasAuth, false);
 }
