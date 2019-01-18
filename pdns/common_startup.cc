@@ -150,6 +150,7 @@ void declareArguments()
   ::arg().set("webserver-port","Port of webserver/API to listen on")="8081";
   ::arg().set("webserver-password","Password required for accessing the webserver")="";
   ::arg().set("webserver-allow-from","Webserver/API access is only allowed from these subnets")="127.0.0.1,::1";
+  ::arg().set("webserver-log-level","Amount of logging in the webserver (none, common, detailed)")="common";
 
   ::arg().setSwitch("do-ipv6-additional-processing", "Do AAAA additional processing")="yes";
   ::arg().setSwitch("query-logging","Hint backends that queries should be logged")="no";

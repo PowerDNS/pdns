@@ -191,6 +191,25 @@ public:
     Detailed = 20,           // The full request headers and body, and the full response headers and body
   };
 
+  void setLogLevel(const string& level) {
+    if (level == "none") {
+      d_loglevel = LogLevel::None;
+      return;
+    }
+
+    if (level == "common") {
+      d_loglevel = LogLevel::Common;
+      return;
+    }
+
+    if (level == "detailed") {
+      d_loglevel = LogLevel::Detailed;
+      return;
+    }
+
+    throw PDNSException("Unknown webserver log level: " + level);
+  }
+
   void setLogLevel(const LogLevel level) {
     d_loglevel = level;
   };
