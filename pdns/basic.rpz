@@ -1,6 +1,6 @@
 $TTL 2h;
-$ORIGIN domain.example.com.
-@               SOA powerdns.example.com. hostmaster.example.com ( 
+$ORIGIN domain.example.net.
+@               SOA powerdns.example.net. hostmaster.example.net ( 
                 1 ; Serial
                 12h ; refresh
                 15m ; retry
@@ -14,12 +14,12 @@ $ORIGIN domain.example.com.
 
 ; QNAME Trigger NXDOMAIN Action
 ; kills whole domain
-nxdomain.org        CNAME .
-*.nxdomain.org      CNAME .
+example.net        CNAME .
+*.example.net      CNAME .
 
 ; QNAME Trigger PASSTHRU Action
 ; typically only used for bypass
-mail.nxdomain.org        CNAME rpz-passthru.
+mail.example.net        CNAME rpz-passthru.
 
 ; QNAME Trigger DROP Action
 ; kills whole domain
@@ -28,14 +28,14 @@ example.net        CNAME rpz-drop.
 
 ; QNAME Trigger Truncate Action
 ; kills whole domain
-truncate.org        CNAME rpz-tcp-only.
-*.truncate.org      CNAME rpz-tcp-only.
+example.net        CNAME rpz-tcp-only.
+*.example.net      CNAME rpz-tcp-only.
 
 ; QNAME Trigger Local-Data Action
 ; sends to a local website
 ; kills whole domain
-local.org        CNAME explanation.example.com.
-*.local.org      CNAME explanation.example.com.
+local.org        CNAME explanation.example.net.
+*.local.org      CNAME explanation.example.net.
 
 local-a.org        A 192.168.2.5
 *.local-a.org      A 192.168.2.5
@@ -74,17 +74,22 @@ local-a.org        A 192.168.2.5
 ; first value
 
 ;; NSDNAME Trigger
-;; if ns1.powerdns.net appears in the authority section
+;; if ns1.example.net appears in the authority section
 ;; of any answer
 
 ; NSDNAME Trigger NXDOMAIN Action
 ; - kills specific name server
-dns-eu1.powerdns.net.rpz-nsdname CNAME .
+; This will return a NXDOMAIN to any domains which
+; domains is delegated to dns-eu1.example.net
+dns-eu1.example.net.rpz-nsdname CNAME .
 
-; - this will kill any name servers from powerdns.net
-*.powerdns.net.rpz-nsdname   CNAME .
+; - this will kill any name servers from example.net
+; This will return a NXDOMAIN to any domains which
+; domains is delegated to a DNS server with any domainname
+; within the range of *.example.net
+*.example.net.rpz-nsdname   CNAME .
 
 ; NSDNAME Trigger TCP-ONLY Action
 ; - kills specific name server
-*.powerdns.net.rpz-nsdname CNAME rpz-tcp-only.
+*.example.net.rpz-nsdname CNAME rpz-tcp-only.
 
