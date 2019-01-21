@@ -53,7 +53,17 @@ public:
   uint64_t getTTLTooShorts() const { return d_ttlTooShorts; }
   uint64_t getEntriesCount();
   uint64_t dump(int fd);
+
   bool isECSParsingEnabled() const { return d_parseECS; }
+
+  bool keepStaleData() const
+  {
+    return d_keepStaleData;
+  }
+  void setKeepStaleData(bool keep)
+  {
+    d_keepStaleData = keep;
+  }
 
   static uint32_t getMinTTL(const char* packet, uint16_t length, bool* seenNoDataSOA);
   static uint32_t getKey(const std::string& qname, uint16_t consumed, const unsigned char* packet, uint16_t packetLen, bool tcp);
@@ -124,4 +134,5 @@ private:
   bool d_dontAge;
   bool d_deferrableInsertLock;
   bool d_parseECS;
+  bool d_keepStaleData{false};
 };

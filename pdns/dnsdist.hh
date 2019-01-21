@@ -711,7 +711,9 @@ struct DownstreamState
   uint16_t xpfRRCode{0};
   uint16_t checkTimeout{1000}; /* in milliseconds */
   uint8_t currentCheckFailures{0};
+  uint8_t consecutiveSuccesfulChecks{0};
   uint8_t maxCheckFailures{1};
+  uint8_t minRiseSuccesses{1};
   StopWatch sw;
   set<string> pools;
   enum class Availability { Up, Down, Auto} availability{Availability::Auto};
@@ -826,8 +828,8 @@ struct ServerPool
     for (const auto& server : d_servers) {
       if (!upOnly || std::get<1>(server)->isUp() ) {
         count++;
-      };
-    };
+      }
+    }
     return count;
   }
 
