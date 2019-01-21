@@ -2807,6 +2807,36 @@ void broadcastFunction(const pipefunc_t& func)
   }
 }
 
+static bool trySendingQueryToWorker(unsigned int target, ThreadMSG* tmsg)
+{
+  const auto& targetInfo = s_threadInfos[target];
+  if(!targetInfo.isWorker) {
+    g_log<<Logger::Error<<"distributeAsyncFunction() tried to assign a query to a non-worker thread"<<endl;
+    exit(1);
+  }
+
+  const auto& tps = targetInfo.pipes;
+
+  ssize_t written = write(tps.writeQueriesToThread, &tmsg, sizeof(tmsg));
+  if (written > 0) {
+    if (static_cast<size_t>(written) != sizeof(tmsg)) {
+      delete tmsg;
+      unixDie("write to thread pipe returned wrong size or error");
+    }
+  }
+  else {
+    int error = errno;
+    if (error == EAGAIN || error == EWOULDBLOCK) {
+      return false;
+    } else {
+      delete tmsg;
+      unixDie("write to thread pipe returned wrong size or error:" + std::to_string(error));
+    }
+  }
+
+  return true;
+}
+
 // This function is only called by the distributor threads, when pdns-distributes-queries is set
 void distributeAsyncFunction(const string& packet, const pipefunc_t& func)
 {
@@ -2818,31 +2848,21 @@ void distributeAsyncFunction(const string& packet, const pipefunc_t& func)
   unsigned int hash = hashQuestion(packet.c_str(), packet.length(), g_disthashseed);
   unsigned int target = /* skip handler */ 1 + g_numDistributorThreads + (hash % g_numWorkerThreads);
 
-  const auto& targetInfo = s_threadInfos[target];
-  if(!targetInfo.isWorker) {
-    g_log<<Logger::Error<<"distributeAsyncFunction() tried to assign a query to a non-worker thread"<<endl;
-    exit(1);
-  }
-
-  const auto& tps = targetInfo.pipes;
   ThreadMSG* tmsg = new ThreadMSG();
   tmsg->func = func;
   tmsg->wantAnswer = false;
 
-  ssize_t written = write(tps.writeQueriesToThread, &tmsg, sizeof(tmsg));
-  if (written > 0) {
-    if (static_cast<size_t>(written) != sizeof(tmsg)) {
-      delete tmsg;
-      unixDie("write to thread pipe returned wrong size or error");
-    }
-  }
-  else {
-    int error = errno;
-    delete tmsg;
-    if (error == EAGAIN || error == EWOULDBLOCK) {
+  if (!trySendingQueryToWorker(target, tmsg)) {
+    /* if this function failed but did not raise an exception, it means that the pipe
+       was full, let's try another one */
+    unsigned int newTarget = 0;
+    do {
+      newTarget = /* skip handler */ 1 + g_numDistributorThreads + dns_random(g_numWorkerThreads);
+    } while (newTarget == target);
+
+    if (!trySendingQueryToWorker(newTarget, tmsg)) {
       g_stats.queryPipeFullDrops++;
-    } else {
-      unixDie("write to thread pipe returned wrong size or error:" + std::to_string(error));
+      delete tmsg;
     }
   }
 }

@@ -220,8 +220,63 @@ void setupLuaBindings(bool client)
 #endif /* HAVE_EBPF */
 
   /* PacketCache */
-  g_lua.writeFunction("newPacketCache", [](size_t maxEntries, boost::optional<uint32_t> maxTTL, boost::optional<uint32_t> minTTL, boost::optional<uint32_t> tempFailTTL, boost::optional<uint32_t> staleTTL, boost::optional<bool> dontAge, boost::optional<size_t> numberOfShards, boost::optional<bool> deferrableInsertLock, boost::optional<uint32_t> maxNegativeTTL, boost::optional<bool> ecsParsing) {
-      return std::make_shared<DNSDistPacketCache>(maxEntries, maxTTL ? *maxTTL : 86400, minTTL ? *minTTL : 0, tempFailTTL ? *tempFailTTL : 60, maxNegativeTTL ? *maxNegativeTTL : 3600, staleTTL ? *staleTTL : 60, dontAge ? *dontAge : false, numberOfShards ? *numberOfShards : 1, deferrableInsertLock ? *deferrableInsertLock : true, ecsParsing ? *ecsParsing : false);
+  g_lua.writeFunction("newPacketCache", [](size_t maxEntries, boost::optional<uint32_t> maxTTL, boost::optional<uint32_t> minTTL, boost::optional<uint32_t> tempFailTTL, boost::optional<uint32_t> staleTTL, boost::optional<bool> dontAge, boost::optional<size_t> numberOfShards, boost::optional<bool> deferrableInsertLock, boost::optional<uint32_t> maxNegativeTTL, boost::optional<bool> ecsParsing, boost::optional<std::unordered_map<std::string, boost::variant<bool, size_t>>> vars) {
+
+      bool keepStaleData = false;
+
+      if (vars) {
+
+        if (vars->count("deferrableInsertLock")) {
+          deferrableInsertLock = boost::get<bool>((*vars)["deferrableInsertLock"]);
+        }
+
+        if (vars->count("dontAge")) {
+          dontAge = boost::get<bool>((*vars)["dontAge"]);
+        }
+
+        if (vars->count("keepStaleData")) {
+          keepStaleData = boost::get<bool>((*vars)["keepStaleData"]);
+        }
+
+        if (vars->count("maxEntries")) {
+          maxEntries = boost::get<size_t>((*vars)["maxEntries"]);
+        }
+
+        if (vars->count("maxNegativeTTL")) {
+          maxNegativeTTL = boost::get<size_t>((*vars)["maxNegativeTTL"]);
+        }
+
+        if (vars->count("maxTTL")) {
+          maxTTL = boost::get<size_t>((*vars)["maxTTL"]);
+        }
+
+        if (vars->count("minTTL")) {
+          minTTL = boost::get<size_t>((*vars)["minTTL"]);
+        }
+
+        if (vars->count("numberOfShards")) {
+          numberOfShards = boost::get<size_t>((*vars)["numberOfShards"]);
+        }
+
+        if (vars->count("parseECS")) {
+          ecsParsing = boost::get<bool>((*vars)["parseECS"]);
+        }
+
+        if (vars->count("staleTTL")) {
+          staleTTL = boost::get<size_t>((*vars)["staleTTL"]);
+        }
+
+        if (vars->count("temporaryFailureTTL")) {
+          tempFailTTL = boost::get<size_t>((*vars)["temporaryFailureTTL"]);
+        }
+
+      }
+
+      auto res = std::make_shared<DNSDistPacketCache>(maxEntries, maxTTL ? *maxTTL : 86400, minTTL ? *minTTL : 0, tempFailTTL ? *tempFailTTL : 60, maxNegativeTTL ? *maxNegativeTTL : 3600, staleTTL ? *staleTTL : 60, dontAge ? *dontAge : false, numberOfShards ? *numberOfShards : 1, deferrableInsertLock ? *deferrableInsertLock : true, ecsParsing ? *ecsParsing : false);
+
+      res->setKeepStaleData(keepStaleData);
+
+      return res;
     });
   g_lua.registerFunction("toString", &DNSDistPacketCache::toString);
   g_lua.registerFunction("isFull", &DNSDistPacketCache::isFull);
@@ -247,6 +302,21 @@ void setupLuaBindings(bool client)
         g_outputBuffer+="Insert Collisions: " + std::to_string(cache->getInsertCollisions()) + "\n";
         g_outputBuffer+="TTL Too Shorts: " + std::to_string(cache->getTTLTooShorts()) + "\n";
       }
+    });
+  g_lua.registerFunction<std::unordered_map<std::string, uint64_t>(std::shared_ptr<DNSDistPacketCache>::*)()>("getStats", [](const std::shared_ptr<DNSDistPacketCache> cache) {
+      std::unordered_map<std::string, uint64_t> stats;
+      if (cache) {
+        stats["entries"] = cache->getEntriesCount();
+        stats["maxEntries"] = cache->getMaxEntries();
+        stats["hits"] = cache->getHits();
+        stats["misses"] = cache->getMisses();
+        stats["deferredInserts"] = cache->getDeferredInserts();
+        stats["deferredLookups"] = cache->getDeferredLookups();
+        stats["lookupCollisions"] = cache->getLookupCollisions();
+        stats["insertCollisions"] = cache->getInsertCollisions();
+        stats["ttlTooShorts"] = cache->getTTLTooShorts();
+      }
+      return stats;
     });
   g_lua.registerFunction<void(std::shared_ptr<DNSDistPacketCache>::*)(const std::string& fname)>("dump", [](const std::shared_ptr<DNSDistPacketCache> cache, const std::string& fname) {
       if (cache) {

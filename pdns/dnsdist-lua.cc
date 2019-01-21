@@ -368,6 +368,10 @@ void setupLuaConfig(bool client)
 			  ret->maxCheckFailures=std::stoi(boost::get<string>(vars["maxCheckFailures"]));
 			}
 
+                        if(vars.count("rise")) {
+                          ret->minRiseSuccesses=std::stoi(boost::get<string>(vars["rise"]));
+                        }
+
                         if(vars.count("cpus")) {
                           for (const auto cpu : boost::get<vector<pair<int,string>>>(vars["cpus"])) {
                             cpus.insert(std::stoi(cpu.second));

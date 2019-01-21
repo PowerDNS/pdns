@@ -23,6 +23,7 @@ INFILE
                                        flag set. By default, we process all DNS packets in *INFILE*.
 --ipv4=<state>                         Process IPv4 packets. On by default, disable with **--ipv4 false**.
 --ipv6=<state>                         Process IPv6 packets. On by default, disable with **--ipv6 false**.
+-f, --filter-name=<domain>             Only process packets within this domain 
 --full-histogram <msec>                Write out histogram with specified bin-size to 'full-histogram'
 --log-histogram                        Write out a log-histogram of response times to 'log-histogram'
 --no-servfail-stats                    Remove servfail responses from latency statistics
