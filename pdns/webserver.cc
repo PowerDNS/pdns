@@ -33,6 +33,7 @@
 #include "dns.hh"
 #include "base64.hh"
 #include "json.hh"
+#include "uuid-utils.hh"
 #include <yahttp/router.hpp>
 
 json11::Json HttpRequest::json()
@@ -278,7 +279,7 @@ void WebServer::handleRequest(HttpRequest& req, HttpResponse& resp) const
 }
 
 void WebServer::serveConnection(std::shared_ptr<Socket> client) const {
-  const string logprefix = d_logprefix + "<" + "I should be a UUID" + "> ";
+  const string logprefix = d_logprefix + "<" + to_string(getUniqueID()) + "> ";
 
   HttpRequest req(logprefix);
   HttpResponse resp;

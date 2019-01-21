@@ -223,6 +223,7 @@ pdns_server_SOURCES = \
 	tsigutils.hh tsigutils.cc \
 	tkey.cc \
 	ueberbackend.cc ueberbackend.hh \
+	uuid-utils.hh uuid-utils.cc \
 	unix_semaphore.cc \
 	unix_utility.cc \
 	utility.hh \
@@ -639,6 +640,7 @@ ixfrdist_SOURCES = \
 	statbag.cc \
 	threadname.hh threadname.cc \
 	tsigverifier.cc tsigverifier.hh \
+	uuid-utils.hh uuid-utils.cc \
 	unix_utility.cc \
 	webserver.hh webserver.cc \
 	zoneparser-tng.cc
