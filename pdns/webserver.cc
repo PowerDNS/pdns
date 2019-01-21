@@ -315,40 +315,40 @@ void WebServer::serveConnection(std::shared_ptr<Socket> client) const {
     }
 
     if (d_loglevel >= WebServer::LogLevel::Detailed) {
-      g_log<<Logger::Info<<logprefix<<"Request Details:"<<endl;
+      g_log<<Logger::Notice<<logprefix<<"Request Details:"<<endl;
 
       bool first = true;
       for (const auto& r : req.getvars) {
         if (first) {
           first = false;
-          g_log<<Logger::Info<<logprefix<<" GET params:"<<endl;
+          g_log<<Logger::Notice<<logprefix<<" GET params:"<<endl;
         }
-        g_log<<Logger::Info<<logprefix<<"  "<<r.first<<": "<<r.second<<endl;
+        g_log<<Logger::Notice<<logprefix<<"  "<<r.first<<": "<<r.second<<endl;
       }
 
       first = true;
       for (const auto& r : req.postvars) {
         if (first) {
           first = false;
-          g_log<<Logger::Info<<logprefix<<" POST params:"<<endl;
+          g_log<<Logger::Notice<<logprefix<<" POST params:"<<endl;
         }
-        g_log<<Logger::Info<<logprefix<<"  "<<r.first<<": "<<r.second<<endl;
+        g_log<<Logger::Notice<<logprefix<<"  "<<r.first<<": "<<r.second<<endl;
       }
       first = true;
 
       for (const auto& h : req.headers) {
         if (first) {
           first = false;
-          g_log<<Logger::Info<<logprefix<<" Headers:"<<endl;
+          g_log<<Logger::Notice<<logprefix<<" Headers:"<<endl;
         }
-        g_log<<Logger::Info<<logprefix<<"  "<<h.first<<": "<<h.second<<endl;
+        g_log<<Logger::Notice<<logprefix<<"  "<<h.first<<": "<<h.second<<endl;
       }
 
       if (req.body.empty()) {
-        g_log<<Logger::Info<<logprefix<<" No body"<<endl;
+        g_log<<Logger::Notice<<logprefix<<" No body"<<endl;
       } else {
-        g_log<<Logger::Info<<logprefix<<" Full body: "<<endl;
-        g_log<<Logger::Info<<logprefix<<"  "<<req.body<<endl;
+        g_log<<Logger::Notice<<logprefix<<" Full body: "<<endl;
+        g_log<<Logger::Notice<<logprefix<<"  "<<req.body<<endl;
       }
     }
 
@@ -358,20 +358,20 @@ void WebServer::serveConnection(std::shared_ptr<Socket> client) const {
     reply = ss.str();
 
     if (d_loglevel >= WebServer::LogLevel::Detailed) {
-      g_log<<Logger::Info<<logprefix<<"Response details:"<<endl;
+      g_log<<Logger::Notice<<logprefix<<"Response details:"<<endl;
       bool first = true;
       for (const auto& h : resp.headers) {
         if (first) {
           first = false;
-          g_log<<Logger::Info<<logprefix<<" Headers:"<<endl;
+          g_log<<Logger::Notice<<logprefix<<" Headers:"<<endl;
         }
-        g_log<<Logger::Info<<logprefix<<"  "<<h.first<<": "<<h.second<<endl;
+        g_log<<Logger::Notice<<logprefix<<"  "<<h.first<<": "<<h.second<<endl;
       }
       if (resp.body.empty()) {
-        g_log<<Logger::Info<<logprefix<<" No body"<<endl;
+        g_log<<Logger::Notice<<logprefix<<" No body"<<endl;
       } else {
-        g_log<<Logger::Info<<logprefix<<" Full body: "<<endl;
-        g_log<<Logger::Info<<logprefix<<"  "<<resp.body<<endl;
+        g_log<<Logger::Notice<<logprefix<<" Full body: "<<endl;
+        g_log<<Logger::Notice<<logprefix<<"  "<<resp.body<<endl;
       }
     }
 
@@ -389,7 +389,7 @@ void WebServer::serveConnection(std::shared_ptr<Socket> client) const {
   }
 
   if (d_loglevel >= WebServer::LogLevel::Normal) {
-    g_log<<Logger::Info<<logprefix<<remote<<" \""<<req.method<<" "<<req.url.path<<" HTTP/"<<req.versionStr(req.version)<<"\" "<<resp.status<<" "<<reply.size()<<endl;
+    g_log<<Logger::Notice<<logprefix<<remote<<" \""<<req.method<<" "<<req.url.path<<" HTTP/"<<req.versionStr(req.version)<<"\" "<<resp.status<<" "<<reply.size()<<endl;
   }
 }
 
