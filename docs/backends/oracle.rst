@@ -12,6 +12,14 @@ Oracle backend
 * Launch name: ``oracle``
 
 This is the Oracle Database backend with easily configurable SQL statements, allowing you to graft
+
+.. warning::
+  The Oracle backends depend on non-free software that requires significant
+  resources from us to support. Consequently, we can not provide free
+  support to users of this backend. Before deploying PowerDNS with an Oracle
+  database, please head to `our commercial support page
+  <https://www.powerdns.com/support.html>`_.
+
 PowerDNS functionality onto any Oracle database of your choosing.
 
 The Oracle backend is difficult, and possibly illegal, to distribute in
