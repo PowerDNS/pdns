@@ -19,32 +19,29 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
-#pragma once
 
-#include <cstddef>
-#include <string>
+#include "uuid-utils.hh"
 
-#include "config.h"
+// see https://github.com/boostorg/random/issues/49
+#if BOOST_VERSION == 106900
+#ifndef BOOST_PENDING_INTEGER_LOG2_HPP
+#define BOOST_PENDING_INTEGER_LOG2_HPP
+#include <boost/integer/integer_log2.hpp>
+#endif /* BOOST_PENDING_INTEGER_LOG2_HPP */
+#endif /* BOOST_VERSION */
 
-#include "dnsname.hh"
-#include "iputils.hh"
+#include <boost/uuid/uuid_generators.hpp>
 
-#ifdef HAVE_PROTOBUF
-#include <boost/uuid/uuid.hpp>
-#include "dnstap.pb.h"
-#endif /* HAVE_PROTOBUF */
+thread_local boost::uuids::random_generator t_uuidGenerator;
 
-class DnstapMessage
+boost::uuids::uuid getUniqueID()
 {
-public:
-  DnstapMessage(const std::string& identity, const ComboAddress* requestor, const ComboAddress* responder, bool isTCP, const char* packet, const size_t len, const struct timespec* queryTime, const struct timespec* responseTime);
-  void serialize(std::string& data) const;
-  std::string toDebugString() const;
+  return t_uuidGenerator();
+}
 
-  void setExtra(const std::string& extra);
+boost::uuids::uuid getUniqueID(const std::string& str)
+{
+  boost::uuids::string_generator gen;
+  return gen(str);
+}
 
-#ifdef HAVE_PROTOBUF
-protected:
-  dnstap::Dnstap proto_message;
-#endif /* HAVE_PROTOBUF */
-};

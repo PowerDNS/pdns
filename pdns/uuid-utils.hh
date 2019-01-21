@@ -21,30 +21,8 @@
  */
 #pragma once
 
-#include <cstddef>
-#include <string>
-
-#include "config.h"
-
-#include "dnsname.hh"
-#include "iputils.hh"
-
-#ifdef HAVE_PROTOBUF
 #include <boost/uuid/uuid.hpp>
-#include "dnstap.pb.h"
-#endif /* HAVE_PROTOBUF */
+#include <boost/uuid/uuid_io.hpp>
 
-class DnstapMessage
-{
-public:
-  DnstapMessage(const std::string& identity, const ComboAddress* requestor, const ComboAddress* responder, bool isTCP, const char* packet, const size_t len, const struct timespec* queryTime, const struct timespec* responseTime);
-  void serialize(std::string& data) const;
-  std::string toDebugString() const;
-
-  void setExtra(const std::string& extra);
-
-#ifdef HAVE_PROTOBUF
-protected:
-  dnstap::Dnstap proto_message;
-#endif /* HAVE_PROTOBUF */
-};
+boost::uuids::uuid getUniqueID();
+boost::uuids::uuid getUniqueID(const std::string& str);

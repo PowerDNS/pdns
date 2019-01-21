@@ -1219,7 +1219,8 @@ dnspcap2protobuf_SOURCES = \
 	sillyrecords.cc \
 	statbag.cc \
 	unix_utility.cc \
-	utility.hh
+	utility.hh \
+	uuid-utils.hh uuid-utils.cc
 
 nodist_dnspcap2protobuf_SOURCES=dnsmessage.pb.cc dnsmessage.pb.h
 

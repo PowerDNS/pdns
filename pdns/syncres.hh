@@ -56,7 +56,6 @@
 
 #ifdef HAVE_PROTOBUF
 #include <boost/uuid/uuid.hpp>
-#include <boost/uuid/uuid_generators.hpp>
 #endif
 
 class RecursorLua4;
@@ -1016,7 +1015,3 @@ void doCarbonDump(void*);
 void primeHints(void);
 
 extern __thread struct timeval g_now;
-
-#ifdef HAVE_PROTOBUF
-extern thread_local std::unique_ptr<boost::uuids::random_generator> t_uuidGenerator;
-#endif
