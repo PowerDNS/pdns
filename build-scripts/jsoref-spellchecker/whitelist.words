@@ -4540,7 +4540,7 @@ localhost
 localip
 localname
 localsock
-LOCALSTATEDIR
+localstatedir
 localtime
 localtoc
 locat
