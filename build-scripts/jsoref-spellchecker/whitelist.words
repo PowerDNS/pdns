@@ -354,6 +354,7 @@ athread
 atid
 ATj
 Atlassian
+Ato
 atof
 atoi
 Atomia
@@ -1094,11 +1095,11 @@ cmsghdr
 Cmu
 cmval
 cn
+cnam
 cname
 cnameaction
 CNAMEAt
 cnamechainresolution
-CNAMEd
 CNAMEDNS
 CNAMENo
 CNAMENTA
@@ -2280,6 +2281,7 @@ Eriksson
 ERKSs
 ERMA
 errcode
+errfds
 errlen
 errlog
 ERRMEM
@@ -8237,6 +8239,7 @@ theirserial
 thel
 thelog
 ther
+Thessalonikefs
 Thfrt
 THg
 Thiago

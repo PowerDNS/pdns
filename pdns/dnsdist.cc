@@ -64,8 +64,6 @@
 #include "sstuff.hh"
 #include "threadname.hh"
 
-thread_local boost::uuids::random_generator t_uuidGenerator;
-
 /* Known sins:
 
    Receiver is currently single threaded
@@ -702,7 +700,7 @@ void DownstreamState::setWeight(int newWeight)
 DownstreamState::DownstreamState(const ComboAddress& remote_, const ComboAddress& sourceAddr_, unsigned int sourceItf_, size_t numberOfSockets): remote(remote_), sourceAddr(sourceAddr_), sourceItf(sourceItf_)
 {
   pthread_rwlock_init(&d_lock, nullptr);
-  id = t_uuidGenerator();
+  id = getUniqueID();
   threadStarted.clear();
 
   mplexer = std::unique_ptr<FDMultiplexer>(FDMultiplexer::getMultiplexerSilent());

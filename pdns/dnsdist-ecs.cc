@@ -221,7 +221,7 @@ int getEDNSOptionsStart(const char* packet, const size_t offset, const size_t le
   }
   pos += 1;
 
-  uint16_t qtype = (const unsigned char)packet[pos]*256 + (const unsigned char)packet[pos+1];
+  uint16_t qtype = (reinterpret_cast<const unsigned char*>(packet)[pos])*256 + reinterpret_cast<const unsigned char*>(packet)[pos+1];
   pos += DNS_TYPE_SIZE;
   pos += DNS_CLASS_SIZE;
 
@@ -669,7 +669,7 @@ bool addEDNSToQueryTurnedResponse(DNSQuestion& dq)
   char* optRDLen = reinterpret_cast<char*>(dq.dh) + optRDPosition;
   char * optPtr = (optRDLen - (/* root */ 1 + DNS_TYPE_SIZE + DNS_CLASS_SIZE + EDNS_EXTENDED_RCODE_SIZE + EDNS_VERSION_SIZE + /* Z */ 2));
 
-  const uint8_t* zPtr = (const uint8_t*) optPtr + /* root */ 1 + DNS_TYPE_SIZE + DNS_CLASS_SIZE + EDNS_EXTENDED_RCODE_SIZE + EDNS_VERSION_SIZE;
+  const uint8_t* zPtr = reinterpret_cast<const uint8_t*>(optPtr) + /* root */ 1 + DNS_TYPE_SIZE + DNS_CLASS_SIZE + EDNS_EXTENDED_RCODE_SIZE + EDNS_VERSION_SIZE;
   uint16_t z = 0x100 * (*zPtr) + *(zPtr + 1);
   bool dnssecOK = z & EDNS_HEADER_FLAG_DO;
 
@@ -713,7 +713,7 @@ try
 
   pos++;
 
-  uint16_t qtype = (const unsigned char)packet[pos]*256 + (const unsigned char)packet[pos+1];
+  uint16_t qtype = (reinterpret_cast<const unsigned char*>(packet)[pos])*256 + reinterpret_cast<const unsigned char*>(packet)[pos+1];
   pos += DNS_TYPE_SIZE;
   pos += DNS_CLASS_SIZE;
 
@@ -721,7 +721,7 @@ try
     return 0;
   }
 
-  const uint8_t* z = (const uint8_t*) packet + pos + EDNS_EXTENDED_RCODE_SIZE + EDNS_VERSION_SIZE;
+  const uint8_t* z = reinterpret_cast<const uint8_t*>(packet) + pos + EDNS_EXTENDED_RCODE_SIZE + EDNS_VERSION_SIZE;
   return 0x100 * (*z) + *(z+1);
 }
 catch(...)

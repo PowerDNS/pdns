@@ -23,7 +23,6 @@
 #include "config.h"
 #endif
 #include <boost/uuid/uuid.hpp>
-#include <boost/uuid/uuid_generators.hpp>
 
 #include "iputils.hh"
 #include "misc.hh"
@@ -32,6 +31,7 @@
 #include "dnspcap.hh"
 #include "dnsparser.hh"
 #include "protobuf.hh"
+#include "uuid-utils.hh"
 
 #include "statbag.hh"
 StatBag S;
@@ -75,7 +75,6 @@ try {
     ind=atoi(argv[3]);
 
   std::map<uint16_t,std::pair<boost::uuids::uuid,struct timeval> > ids;
-  boost::uuids::random_generator uuidGenerator;
   try {
     while (pr.getUDPPacket()) {
       const dnsheader* dh=(dnsheader*)pr.d_payload;
@@ -104,7 +103,7 @@ try {
       if (!dh->qr) {
         queryTime.tv_sec = pr.d_pheader.ts.tv_sec;
         queryTime.tv_usec = pr.d_pheader.ts.tv_usec;
-        uniqueId = uuidGenerator();
+        uniqueId = getUniqueID();
         ids[dh->id] = std::make_pair(uniqueId, queryTime);
       }
       else {
@@ -115,7 +114,7 @@ try {
           hasQueryTime = true;
         }
         else {
-          uniqueId = uuidGenerator();
+          uniqueId = getUniqueID();
         }
       }
 

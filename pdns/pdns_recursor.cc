@@ -102,6 +102,10 @@
 
 #include "namespaces.hh"
 
+#ifdef HAVE_PROTOBUF
+#include "uuid-utils.hh"
+#endif
+
 #include "xpf.hh"
 
 typedef map<ComboAddress, uint32_t, ComboAddress::addressOnlyLessThan> tcpClientCounts_t;
@@ -124,9 +128,6 @@ thread_local FDMultiplexer* t_fdm{nullptr};
 thread_local std::unique_ptr<addrringbuf_t> t_remotes, t_servfailremotes, t_largeanswerremotes, t_bogusremotes;
 thread_local std::unique_ptr<boost::circular_buffer<pair<DNSName, uint16_t> > > t_queryring, t_servfailqueryring, t_bogusqueryring;
 thread_local std::shared_ptr<NetmaskGroup> t_allowFrom;
-#ifdef HAVE_PROTOBUF
-thread_local std::unique_ptr<boost::uuids::random_generator> t_uuidGenerator;
-#endif
 #ifdef NOD_ENABLED
 thread_local std::shared_ptr<nod::NODDB> t_nodDBp;
 thread_local std::shared_ptr<nod::UniqueResponseDB> t_udrDBp;
@@ -1942,7 +1943,7 @@ static void handleRunningTCPQuestion(int fd, FDMultiplexer::funcparam_t& var)
       if(t_protobufServers || t_outgoingProtobufServers) {
         dc->d_requestorId = requestorId;
         dc->d_deviceId = deviceId;
-        dc->d_uuid = (*t_uuidGenerator)();
+        dc->d_uuid = getUniqueID();
       }
 
       if(t_protobufServers) {
@@ -2077,10 +2078,10 @@ static string* doProcessUDPQuestion(const std::string& question, const ComboAddr
   boost::uuids::uuid uniqueId;
   auto luaconfsLocal = g_luaconfs.getLocal();
   if (checkProtobufExport(luaconfsLocal)) {
-    uniqueId = (*t_uuidGenerator)();
+    uniqueId = getUniqueID();
     needECS = true;
   } else if (checkOutgoingProtobufExport(luaconfsLocal)) {
-    uniqueId = (*t_uuidGenerator)();
+    uniqueId = getUniqueID();
   }
   logQuery = t_protobufServers && luaconfsLocal->protobufExportConfig.logQueries;
   bool logResponse = t_protobufServers && luaconfsLocal->protobufExportConfig.logResponses;
@@ -3952,9 +3953,6 @@ try
 
   t_packetCache = std::unique_ptr<RecursorPacketCache>(new RecursorPacketCache());
 
-#ifdef HAVE_PROTOBUF
-  t_uuidGenerator = std::unique_ptr<boost::uuids::random_generator>(new boost::uuids::random_generator());
-#endif
   g_log<<Logger::Warning<<"Done priming cache with root hints"<<endl;
 
 #ifdef NOD_ENABLED

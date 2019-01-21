@@ -31,7 +31,6 @@
 
 #ifdef HAVE_PROTOBUF
 #include <boost/uuid/uuid.hpp>
-#include <boost/uuid/uuid_generators.hpp>
 #include "dnstap.pb.h"
 #endif /* HAVE_PROTOBUF */
 

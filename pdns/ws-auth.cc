@@ -57,12 +57,11 @@ static void storeChangedPTRs(UeberBackend& B, vector<DNSResourceRecord>& new_ptr
 static void makePtr(const DNSResourceRecord& rr, DNSResourceRecord* ptr);
 
 AuthWebServer::AuthWebServer() :
-  d_start(time(0)),
+  d_tid(0),
+  d_start(time(nullptr)),
   d_min10(0),
   d_min5(0),
-  d_min1(0),
-  d_ws(nullptr),
-  d_tid(0)
+  d_min1(0)
 {
   if(arg().mustDo("webserver") || arg().mustDo("api")) {
     d_ws = new WebServer(arg()["webserver-address"], arg().asNum("webserver-port"));

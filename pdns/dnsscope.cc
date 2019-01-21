@@ -366,9 +366,9 @@ try
 	      //	      cout<<"Clearing state for "<<qi<<endl<<endl;
 	      statmap.erase(qi);
 	    }
-	    else
-	      ;//	      cout<<"State for qi remains open, qcount="<<qd.d_qcount<<", answercount="<<qd.d_answercount<<endl;
-	     
+	    else {
+	      //	      cout<<"State for qi remains open, qcount="<<qd.d_qcount<<", answercount="<<qd.d_answercount<<endl;
+            }
 	  }
 	}
 	catch(std::exception& e) {
