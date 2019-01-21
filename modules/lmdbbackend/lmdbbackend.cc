@@ -600,7 +600,7 @@ bool LMDBBackend::get_list(DNSZoneRecord& rr)
     rr.auth = drr.auth;
   
     if(rr.dr.d_type == QType::NSEC3) {
-      cout << "Had a magic NSEC3, skipping it" << endl;
+      //      cout << "Had a magic NSEC3, skipping it" << endl;
       if(d_getcursor->next(keyv, val) || keyv.get<StringView>().rfind(d_matchkey, 0) != 0) {
         d_getcursor.reset();
       }
@@ -638,7 +638,7 @@ bool LMDBBackend::get_lookup(DNSZoneRecord& rr)
     rr.dr.d_type = compoundOrdername::getQType(key).getCode();
     rr.dr.d_ttl = drr.ttl;
     if(rr.dr.d_type == QType::NSEC3) {
-      cout << "Hit a magic NSEC3 skipping" << endl;
+      //      cout << "Hit a magic NSEC3 skipping" << endl;
       if(d_getcursor->next(keyv, val) || keyv.get<StringView>().rfind(d_matchkey, 0) != 0) {
         d_getcursor.reset();
         d_rotxn.reset();
@@ -988,7 +988,7 @@ bool LMDBBackend::getBeforeAndAfterNamesAbsolute(uint32_t id, const DNSName& qna
     unhashed = DNSName(rr.content.c_str(), rr.content.size(), 0, false) + di.zone;
 
     // now to find after .. at the beginning of the zone
-    if(cursor.find(co(id), key, val)) {
+    if(cursor.lower_bound(co(id), key, val)) {
       cout<<"hit end of zone find when we shouldn't"<<endl;
       return false;
     }
@@ -1011,15 +1011,33 @@ bool LMDBBackend::getBeforeAndAfterNamesAbsolute(uint32_t id, const DNSName& qna
 
   cout<<"Ended up at "<<co.getQName(key.get<StringView>()) <<endl;
 
-
+  before = co.getQName(key.get<StringView>());
   if(before == qname) { 
     cout << "Ended up on exact right node" << endl;
     before = co.getQName(key.get<StringView>());
     // unhashed should be correct now, maybe check?
     if(cursor.next(key, val)) {
-      cout << "XXX hit end of database in a case we don't handle" <<endl;
       // xxx should find first hash now
-      return false;
+
+      if(cursor.lower_bound(co(id), key, val)) {
+        cout<<"hit end of zone find when we shouldn't for id "<<id<< __LINE__<<endl;
+        return false;
+      }
+      for(;;) {
+        if(co.getQType(key.get<StringView>()) == QType::NSEC3) {
+          serFromString(val.get<StringView>(), rr);
+          if(!rr.ttl)
+            break;
+        }
+        
+        if(cursor.next(key, val) || co.getDomainID(key.get<StringView>()) != id) {
+          cout<<"hit end of zone or database when we shouldn't" << __LINE__<<endl;
+          return false;
+        }
+      }
+      after = co.getQName(key.get<StringView>());
+      cout<<"returning: before="<<before<<", after="<<after<<", unhashed: "<<unhashed<<endl;
+      return true;
     }
   }
   else {
@@ -1291,7 +1309,6 @@ bool LMDBBackend::updateDNSSECOrderNameAndAuth(uint32_t domain_id, const DNSName
   }
   DNSName rel = qname.makeRelative(di.zone);
   if(!qname.empty() && !ordername.getRawLabels().empty() && qname.getRawLabels()[0] != ordername.getRawLabels()[0]) {
-    cout << "NSEC3!" << endl;
 
     // XXX also need to remove OLD nsec3!
     compoundOrdername co;
