@@ -2218,6 +2218,17 @@ static void setUpLocalBind(std::unique_ptr<ClientState>& cs)
 #endif
   }
 
+  if (!cs->tcp) {
+    if (cs->local.isIPv4()) {
+      try {
+        setSocketIgnorePMTU(cs->udpFD);
+      }
+      catch(const std::exception& e) {
+        warnlog("Failed to set IP_MTU_DISCOVER on UDP server socket for local address '%s': %s", cs->local.toStringWithPort(), e.what());
+      }
+    }
+  }
+
   const std::string& itf = cs->interface;
   if (!itf.empty()) {
 #ifdef SO_BINDTODEVICE

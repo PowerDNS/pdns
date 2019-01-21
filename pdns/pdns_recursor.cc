@@ -2565,7 +2565,17 @@ static void makeUDPServerSockets(deferredAdd_t& deferredAdds)
         throw PDNSException("SO_REUSEPORT: "+stringerror());
     }
 #endif
-  socklen_t socklen=sin.getSocklen();
+
+    if (sin.isIPv4()) {
+      try {
+        setSocketIgnorePMTU(fd);
+      }
+      catch(const std::exception& e) {
+        g_log<<Logger::Warning<<"Failed to set IP_MTU_DISCOVER on UDP server socket: "<<e.what()<<endl;
+      }
+    }
+
+    socklen_t socklen=sin.getSocklen();
     if (::bind(fd, (struct sockaddr *)&sin, socklen)<0)
       throw PDNSException("Resolver binding to server socket on port "+ std::to_string(st.port) +" for "+ st.host+": "+stringerror());
 
