@@ -1,5 +1,5 @@
 case $context in
-    lmdb | lmdb-nodnssec)
+    lmdb | lmdb-nodnssec | lmdb-nsec3 | lmdb-nsec3-optout | lmdb-nsec3-narrow)
         cat > pdns-lmdb.conf << __EOF__
 module-dir=./modules
 launch=lmdb
@@ -15,11 +15,24 @@ __EOF__
             else
                         $PDNSUTIL --config-dir=. --config-name=lmdb load-zone $zone zones/$zone
             fi
-
             if [ $context != lmdb-nodnssec ]
             then
-                extracontexts="dnssec"
+                extracontexts="dnssec lmdb"
                 skipreasons="$skipreasons nodyndns"
+                if [ $context = lmdb-nsec3 ]
+                then
+                    extracontexts="dnssec nsec3 lmdb"
+                    $PDNSUTIL --config-dir=. --config-name=lmdb set-nsec3 $zone "1 0 1 abcd" 2>&1
+                elif [ $context =  lmdb-nsec3-optout ]
+                then
+                    extracontexts="dnssec nsec3-optout lmdb"
+                    $PDNSUTIL --config-dir=. --config-name=lmdb set-nsec3 $zone "1 1 1 abcd" 2>&1
+                elif [ $context = lmdb-nsec3-narrow ]
+                then
+                    $PDNSUTIL --config-dir=. --config-name=lmdb set-nsec3 $zone '1 1 1 abcd' narrow 2>&1
+                    extracontexts="dnssec narrow lmdb"
+                    skipreasons="$skipreasons narrow"
+                fi
                 securezone $zone lmdb
             else
                 skipreasons="$skipreasons nodnssec nodyndns"
