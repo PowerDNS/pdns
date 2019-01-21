@@ -6,7 +6,7 @@ launch=lmdb
 lmdb-filename=./pdns.lmdb
 __EOF__
 
-        skipreasons="$skipreasons lmdb nodyndns noent"
+        skipreasons="$skipreasons lmdb nodyndns"
         rm -f pdns.lmdb*
         for zone in $(grep 'zone ' named.conf  | cut -f2 -d\")
         do

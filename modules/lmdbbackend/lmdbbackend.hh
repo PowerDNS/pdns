@@ -237,7 +237,7 @@ private:
     shared_ptr<RecordsDB> db;
     MDBRWTransaction txn;
   };
-  
+
   vector<RecordsDB> d_trecords;;
 
   std::shared_ptr<MDBROCursor> d_getcursor;
@@ -255,7 +255,7 @@ private:
   std::shared_ptr<RecordsROTransaction> getRecordsROTransaction(uint32_t id);
   int genChangeDomain(const DNSName& domain, std::function<void(DomainInfo&)> func);
   int genChangeDomain(uint32_t id, std::function<void(DomainInfo&)> func);
-  void deleteDomainRecords(RecordsRWTransaction& txn, uint32_t domain_id);
+  void deleteDomainRecords(RecordsRWTransaction& txn, uint32_t domain_id, uint16_t qtype=QType::ANY);
   
   bool get_list(DNSZoneRecord &rr);
   bool get_lookup(DNSZoneRecord &rr);

@@ -171,9 +171,11 @@ BOOST_IS_BITWISE_SERIALIZABLE(ComboAddress);
 template<>
 std::string serToString(const DNSResourceRecord& rr)
 {
+  // only does content, ttl, auth
   std::string ret;
   uint16_t len = rr.content.length();
-  ret.reserve(2+len+8); 
+  ret.reserve(2+len+8);
+  
   ret.assign((const char*)&len, 2);
   ret += rr.content;
   ret.append((const char*)&rr.ttl, 4);
@@ -186,9 +188,9 @@ void serFromString(const string_view& str, DNSResourceRecord& rr)
 {
   uint16_t len;
   memcpy(&len, &str[0], 2);
-  rr.content.assign(&str[2], len);
+  rr.content.assign(&str[2], len);    // len bytes
   memcpy(&rr.ttl, &str[2] + len, 4);
-  rr.auth = str[2+len+4];
+  rr.auth = str[str.size()-1];
   rr.wildcardname.clear();
 }
 
@@ -223,7 +225,7 @@ std::shared_ptr<DNSRecordContent> unserializeContentZR(uint16_t qtype, const DNS
 #define StringView string_view
 #endif
 
-void LMDBBackend::deleteDomainRecords(RecordsRWTransaction& txn, uint32_t domain_id)
+void LMDBBackend::deleteDomainRecords(RecordsRWTransaction& txn, uint32_t domain_id, uint16_t qtype)
 {
   compoundOrdername co;
   string match = co(domain_id);
@@ -233,17 +235,44 @@ void LMDBBackend::deleteDomainRecords(RecordsRWTransaction& txn, uint32_t domain
   //  cout<<"Match: "<<makeHexDump(match);
   if(!cursor.lower_bound(match, key, val) ) {
     while(key.get<StringView>().rfind(match, 0) == 0) {
-      cursor.del(MDB_NODUPDATA);
+      if(qtype == QType::ANY || co.getQType(key.get<StringView>()) == qtype)
+        cursor.del(MDB_NODUPDATA);
       if(cursor.next(key, val)) break;
     } 
   }
 }
 
+/* Here's the complicated story. Other backends have just one transaction, which is either
+   on or not. 
+   
+   You can't call feedRecord without a transaction started with startTransaction.
+
+   However, other functions can be called after startTransaction() or without startTransaction()
+     (like updateDNSSECOrderNameAndAuth)
+
+
+
+*/
+
 bool LMDBBackend::startTransaction(const DNSName &domain, int domain_id)
 {
-  d_rwtxn = getRecordsRWTransaction(domain_id);
+  cout <<"startTransaction("<<domain<<", "<<domain_id<<")"<<endl;
+  int real_id = domain_id;
+  if(real_id < 0) {
+    auto rotxn = d_tdomains->getROTransaction();
+    DomainInfo di;
+    real_id = rotxn.get<0>(domain, di);
+    cout<<"real_id = "<<real_id << endl;
+    if(!real_id)
+      return false;
+  }
+  if(d_rwtxn) {
+    throw DBException("Attempt to start a transaction while one was open already");
+  }
+  d_rwtxn = getRecordsRWTransaction(real_id);
+    
   d_transactiondomain = domain;
-  d_transactiondomainid = domain_id;
+  d_transactiondomainid = real_id;
   if(domain_id >= 0) {
     deleteDomainRecords(*d_rwtxn, domain_id);
   }
@@ -268,6 +297,7 @@ bool LMDBBackend::abortTransaction()
   return true;
 }
 
+// d_rwtxn must be set here
 bool LMDBBackend::feedRecord(const DNSResourceRecord &r, const DNSName &ordername)
 {
   DNSResourceRecord rr2(r);
@@ -281,17 +311,20 @@ bool LMDBBackend::feedRecord(const DNSResourceRecord &r, const DNSName &ordernam
   return true;
 }
 
+// might be called within a transaction, might also be called alone
 bool LMDBBackend::replaceRRSet(uint32_t domain_id, const DNSName& qname, const QType& qt, const vector<DNSResourceRecord>& rrset)
 {
   // zonk qname/qtype within domain_id (go through qname, check domain_id && qtype)
   shared_ptr<RecordsRWTransaction> txn;
-  if(d_rwtxn) {
+  bool needCommit = false;
+  if(d_rwtxn && d_transactiondomainid==domain_id) {
     txn = d_rwtxn;
     cout<<"Reusing open transaction"<<endl;
   }
   else {
     cout<<"Making a new RW txn for replace rrset"<<endl;
     txn = getRecordsRWTransaction(domain_id);
+    needCommit = true;
   }
 
   DomainInfo di;
@@ -312,13 +345,14 @@ bool LMDBBackend::replaceRRSet(uint32_t domain_id, const DNSName& qname, const Q
     rr.qname.makeUsRelative(di.zone);
     txn->txn.put(txn->db->dbi, match, serToString(rr));
   }
-  
-  if(!d_rwtxn)
+
+  if(needCommit)
     txn->txn.commit();
 
   return true;
 }
 
+// tempting to templatize these two functions but the pain is not worth it
 std::shared_ptr<LMDBBackend::RecordsRWTransaction> LMDBBackend::getRecordsRWTransaction(uint32_t id)
 {
   auto& shard =d_trecords[id % d_shards];
@@ -340,7 +374,6 @@ std::shared_ptr<LMDBBackend::RecordsROTransaction> LMDBBackend::getRecordsROTran
     shard.env = getMDBEnv( (getArg("filename")+"-"+std::to_string(id % d_shards)).c_str(),
                            MDB_NOSUBDIR | d_asyncFlag, 0600);
     shard.dbi = shard.env->openDB("records", MDB_CREATE | MDB_DUPSORT);
-    
   }
   
   auto ret = std::make_shared<RecordsROTransaction>(shard.env->getROTransaction());
@@ -359,13 +392,15 @@ bool LMDBBackend::deleteDomain(const DNSName &domain)
     return false;
   
   shared_ptr<RecordsRWTransaction> txn;
-  if(d_rwtxn) {
+  bool needCommit = false;
+  if(d_rwtxn && d_transactiondomainid == id) {
     txn = d_rwtxn;
     cout<<"Reusing open transaction"<<endl;
   }
   else {
     cout<<"Making a new RW txn for delete domain"<<endl;
     txn = getRecordsRWTransaction(id);
+    needCommit = true;
   }
 
   
@@ -381,7 +416,7 @@ bool LMDBBackend::deleteDomain(const DNSName &domain)
     } while(!cursor.next(key, val) && key.get<StringView>().rfind(match, 0) == 0);
   }
 
-  if(!d_rwtxn)
+  if(needCommit)
     txn->txn.commit();
   
   doms.commit();
@@ -545,25 +580,38 @@ bool LMDBBackend::getSOA(const DNSName &domain, SOAData &sd)
 }
 bool LMDBBackend::get_list(DNSZoneRecord& rr)
 {
-  if(!d_getcursor)  {
-    d_rotxn.reset();
-    return false;
-  }
+  for(;;) {
+    if(!d_getcursor)  {
+      d_rotxn.reset();
+      return false;
+    }
+    
+    MDBOutVal keyv, val;
 
-  MDBOutVal keyv, val;
-  d_getcursor->current(keyv, val);
-  DNSResourceRecord drr;
-  serFromString(val.get<string>(), drr);
-
-  auto key = keyv.get<string_view>();
-  rr.dr.d_name = compoundOrdername::getQName(key) + d_lookupqname;
-  rr.domain_id = compoundOrdername::getDomainID(key);
-  rr.dr.d_type = compoundOrdername::getQType(key).getCode();
-  rr.dr.d_ttl = drr.ttl;
-  rr.dr.d_content = unserializeContentZR(rr.dr.d_type, rr.dr.d_name, drr.content);
-  rr.auth = drr.auth;
-  if(d_getcursor->next(keyv, val) || keyv.get<StringView>().rfind(d_matchkey, 0) != 0) {
-    d_getcursor.reset();
+    d_getcursor->current(keyv, val);
+    DNSResourceRecord drr;
+    serFromString(val.get<string>(), drr);
+  
+    auto key = keyv.get<string_view>();
+    rr.dr.d_name = compoundOrdername::getQName(key) + d_lookupqname;
+    rr.domain_id = compoundOrdername::getDomainID(key);
+    rr.dr.d_type = compoundOrdername::getQType(key).getCode();
+    rr.dr.d_ttl = drr.ttl;
+    rr.auth = drr.auth;
+  
+    if(rr.dr.d_type == QType::NSEC3) {
+      cout << "Had a magic NSEC3, skipping it" << endl;
+      if(d_getcursor->next(keyv, val) || keyv.get<StringView>().rfind(d_matchkey, 0) != 0) {
+        d_getcursor.reset();
+      }
+      continue;
+    }
+    rr.dr.d_content = unserializeContentZR(rr.dr.d_type, rr.dr.d_name, drr.content);
+    
+    if(d_getcursor->next(keyv, val) || keyv.get<StringView>().rfind(d_matchkey, 0) != 0) {
+      d_getcursor.reset();
+    }
+    break;
   }
   return true;
 }
@@ -571,29 +619,40 @@ bool LMDBBackend::get_list(DNSZoneRecord& rr)
 
 bool LMDBBackend::get_lookup(DNSZoneRecord& rr)
 {
-  if(!d_getcursor) {
-    d_rotxn.reset();
-    return false;
-  }
-  MDBOutVal keyv, val;
-  d_getcursor->current(keyv, val);
-  DNSResourceRecord drr;
-  serFromString(val.get<string>(), drr);
-
-  auto key = keyv.get<string_view>();
-
-  rr.dr.d_name = compoundOrdername::getQName(key) + d_lookupdomain;
-
-  rr.domain_id = compoundOrdername::getDomainID(key);
-  //  cout << "We found "<<rr.qname<< " in zone id "<<rr.domain_id <<endl;
-  rr.dr.d_type = compoundOrdername::getQType(key).getCode();
-  rr.dr.d_ttl = drr.ttl;
-  rr.dr.d_content = unserializeContentZR(rr.dr.d_type, rr.dr.d_name, drr.content);
-  rr.auth = drr.auth;
-  if(d_getcursor->next(keyv, val) || keyv.get<StringView>().rfind(d_matchkey, 0) != 0) {
-    d_getcursor.reset();
-    d_rotxn.reset();
-    //    cout<<"Signing EOF"<<endl;
+  for(;;) {
+    if(!d_getcursor) {
+      d_rotxn.reset();
+      return false;
+    }
+    MDBOutVal keyv, val;
+    d_getcursor->current(keyv, val);
+    DNSResourceRecord drr;
+    serFromString(val.get<string>(), drr);
+    
+    auto key = keyv.get<string_view>();
+    
+    rr.dr.d_name = compoundOrdername::getQName(key) + d_lookupdomain;
+    
+    rr.domain_id = compoundOrdername::getDomainID(key);
+    //  cout << "We found "<<rr.qname<< " in zone id "<<rr.domain_id <<endl;
+    rr.dr.d_type = compoundOrdername::getQType(key).getCode();
+    rr.dr.d_ttl = drr.ttl;
+    if(rr.dr.d_type == QType::NSEC3) {
+      cout << "Hit a magic NSEC3 skipping" << endl;
+      if(d_getcursor->next(keyv, val) || keyv.get<StringView>().rfind(d_matchkey, 0) != 0) {
+        d_getcursor.reset();
+        d_rotxn.reset();
+      }
+      continue;
+    }
+    
+    rr.dr.d_content = unserializeContentZR(rr.dr.d_type, rr.dr.d_name, drr.content);
+    rr.auth = drr.auth;
+    if(d_getcursor->next(keyv, val) || keyv.get<StringView>().rfind(d_matchkey, 0) != 0) {
+      d_getcursor.reset();
+      d_rotxn.reset();
+    }
+    break;
   }
 
   
@@ -677,7 +736,10 @@ void LMDBBackend::setNotified(uint32_t domain_id, uint32_t serial)
 bool LMDBBackend::setMaster(const DNSName &domain, const std::string& ips)
 {
   vector<ComboAddress> masters;
-  masters.push_back(ComboAddress(ips)); // XXX WRONG!! 
+  vector<string> parts;
+  stringtok(parts, ips, " \t;,");
+  for(const auto& ip : parts) 
+    masters.push_back(ComboAddress(ip)); 
   
   return genChangeDomain(domain, [&masters](DomainInfo& di) {
       di.masters = masters;
@@ -692,11 +754,23 @@ bool LMDBBackend::createDomain(const DNSName &domain)
 bool LMDBBackend::createDomain(const DNSName &domain, const string &type, const string &masters, const string &account)
 {
   DomainInfo di;
-  di.zone = domain;
-  di.kind = DomainInfo::Native;
-  di.account = account;
-  
+
   auto txn = d_tdomains->getRWTransaction();
+  if(txn.get<0>(domain, di)) {
+    throw DBException("Domain '"+domain.toLogString()+"' exists already");
+  }
+  
+  di.zone = domain;
+  if(pdns_iequals(type, "master"))
+    di.kind = DomainInfo::Master;
+  else if(pdns_iequals(type, "slave"))
+    di.kind = DomainInfo::Slave;
+  else if(pdns_iequals(type, "native"))
+    di.kind = DomainInfo::Native;
+  else
+    throw DBException("Unable to create domain of unknown type '"+type+"'");
+  di.account = account;
+
   txn.put(di);
   txn.commit();
 
@@ -870,94 +944,205 @@ bool LMDBBackend::deactivateDomainKey(const DNSName& name, unsigned int id)
 
 bool LMDBBackend::getBeforeAndAfterNamesAbsolute(uint32_t id, const DNSName& qname, DNSName& unhashed, DNSName& before, DNSName& after) 
 {
-  cout << __PRETTY_FUNCTION__<< ": "<<id <<", "<<qname << endl;
-#if 0
-  auto txn = getRecordsROTransaction(id);
-  compoundOrdername co;
-  DNSResourceRecord rr;
-  rr.domain_id = id;
-  
-  if(qname == zonename)
-    rr.wildcardname = DNSName(".");
-  else
-    rr.wildcardname = qname.makeRelative(zonename);
-  
-  auto iter = txn->lower_bound<2>(co(rr));
+  cout << __PRETTY_FUNCTION__<< ": "<<id <<", "<<qname << " " << unhashed<<endl;
 
-  if(iter == txn->end()) {
-    cout << "Found nothing.. need to pick the very last entry" << endl;
-    // this means name is beyond the end
-    // before now needs to be the last name that does exist
-    // after first name that exists
-
-    rr.domain_id++;
-    rr.wildcardname = DNSName(".");
-    auto iter2 = txn->rbegin<2>();
-    cout<<"Before = " <<iter2->qname<<", domain_id = "<<iter2->domain_id<<endl;
-    before = iter2->qname;
-
-    rr.domain_id--;
-    rr.wildcardname = DNSName(".");
-    auto iter3 = txn->find<2>(co(rr));
-    if(iter3 == txn->end()) {
-      cout <<"Hmf, zone has no beginning?!"<<endl;
-      cout << makeHexDump(co(rr)) << endl;
-      return false;
-    }
-    cout<<"Found: '"<<iter3->qname<<"'"<<endl;
-    after = iter3->qname;
-    return true;
-    
+  DomainInfo di;
+  if(!d_tdomains->getROTransaction().get(id, di)) {
+    // domain does not exist, tough luck
+    return false;
   }
-  else if((unsigned)iter->domain_id != id) {
-    cout << "We fell off the end of the domain!" <<endl;
-    --iter;
-    before = iter->qname; // this is now the last name
+  cout <<"Zone: "<<di.zone<<endl;
+  
+  compoundOrdername co;
+  auto txn = getRecordsROTransaction(id);
 
-    rr.wildcardname = DNSName(".");
-    auto iter3 = txn->find<2>(co(rr));
-    if(iter3 == txn->end()) {
-      cout <<"Hmf, zone has no beginning?!"<<endl;
-      cout << makeHexDump(co(rr)) << endl;
+  auto cursor = txn->txn.getCursor(txn->db->dbi);
+  MDBOutVal key, val;
+
+  DNSResourceRecord rr;
+  
+  string matchkey = co(id, qname, QType::NSEC3);
+  if(cursor.lower_bound(matchkey, key, val)) {
+    // this is beyond the end of the database
+    cout << "Beyond end of database!" << endl;
+    cursor.last(key, val);
+
+    for(;;) {
+      if(co.getDomainID(key.get<StringView>()) != id) {
+        //cout<<"Last record also not part of this zone!"<<endl;
+        // this implies something is wrong in the database, nothing we can do
+        return false;
+      }
+      
+      if(co.getQType(key.get<StringView>()) == QType::NSEC3) {
+        serFromString(val.get<StringView>(), rr);
+        if(!rr.ttl) // the kind of NSEC3 we need
+          break;
+      }
+      if(cursor.prev(key, val)) {
+        // hit beginning of database, again means something is wrong with it
+        return false;
+      }
+    }
+    before = co.getQName(key.get<StringView>());
+    unhashed = DNSName(rr.content.c_str(), rr.content.size(), 0, false) + di.zone;
+
+    // now to find after .. at the beginning of the zone
+    if(cursor.find(co(id), key, val)) {
+      cout<<"hit end of zone find when we shouldn't"<<endl;
       return false;
     }
-    cout<<"Found: '"<<iter3->qname<<"'"<<endl;
-    after = iter3->qname;
+    for(;;) {
+      if(co.getQType(key.get<StringView>()) == QType::NSEC3) {
+        serFromString(val.get<StringView>(), rr);
+        if(!rr.ttl)
+          break;
+      }
+
+      if(cursor.next(key, val) || co.getDomainID(key.get<StringView>()) != id) {
+        cout<<"hit end of zone or database when we shouldn't"<<endl;
+        return false;
+      }
+    }
+    after = co.getQName(key.get<StringView>());
+    cout<<"returning: before="<<before<<", after="<<after<<", unhashed: "<<unhashed<<endl;
     return true;
+  }
+
+  cout<<"Ended up at "<<co.getQName(key.get<StringView>()) <<endl;
+
+
+  if(before == qname) { 
+    cout << "Ended up on exact right node" << endl;
+    before = co.getQName(key.get<StringView>());
+    // unhashed should be correct now, maybe check?
+    if(cursor.next(key, val)) {
+      cout << "XXX hit end of database in a case we don't handle" <<endl;
+      // xxx should find first hash now
+      return false;
+    }
   }
   else {
-    if(iter->wildcardname == rr.wildcardname) {
-      cout<<"Name existed!" << endl;
-      before = iter->qname;
-      for(++iter; iter != txn->end();  ++iter) {
-        cout<<"Trying "<<iter.getID()<<" '" << iter->qname<< "' '" <<iter->domain_id << "' '" << iter->wildcardname<< "' < '" << rr.wildcardname << "' " <<iter->wildcardname.canonCompare(rr.wildcardname)<<endl;
-        if(iter->qname != before) {
-          cout<<"Hit!"<<endl;
-          after = iter->qname;
-          return true;
-        }
+    cout <<"Going backwards to find 'before'"<<endl;
+    int count=0;
+    for(;;) {
+      if(co.getQName(key.get<StringView>()).canonCompare(qname) && co.getQType(key.get<StringView>()) == QType::NSEC3) {
+        cout<<"Potentially stopping traverse at "<< co.getQName(key.get<StringView>()) <<", " << (co.getQName(key.get<StringView>()).canonCompare(qname))<<endl;
+        cout<<"qname = "<<qname<<endl;
+        cout<<"here  = "<<co.getQName(key.get<StringView>())<<endl;
+        serFromString(val.get<StringView>(), rr);
+        if(!rr.ttl) 
+          break;
       }
-      cout << "Shit, could not find the next name!" << endl;
-      return false;
+      
+      if(cursor.prev(key, val) || co.getDomainID(key.get<StringView>()) != id ) {
+        cout <<"XXX Hit *beginning* of zone or database"<<endl;
+        // this can happen, must deal with it
+        // should now find the last hash of the zone
+
+        if(cursor.lower_bound(co(id+1), key, val)) {
+          cout << "Could not find the next higher zone, going to the end of the database then"<<endl;
+          cursor.last(key, val);
+        }
+        else
+          cursor.prev(key, val);
+
+        for(;;) {
+          if(co.getDomainID(key.get<StringView>()) != id) {
+            //cout<<"Last record also not part of this zone!"<<endl;
+            // this implies something is wrong in the database, nothing we can do
+            return false;
+          }
+          
+          if(co.getQType(key.get<StringView>()) == QType::NSEC3) {
+            serFromString(val.get<StringView>(), rr);
+            if(!rr.ttl) // the kind of NSEC3 we need
+              break;
+          }
+          if(cursor.prev(key, val)) {
+            // hit beginning of database, again means something is wrong with it
+            return false;
+          }
+        }
+        before = co.getQName(key.get<StringView>());
+        unhashed = DNSName(rr.content.c_str(), rr.content.size(), 0, false) + di.zone;
+        cout <<"Should still find 'after'!"<<endl;
+        // for 'after', we need to find the first hash of this zone
+
+        if(cursor.lower_bound(co(id), key, val)) {
+          cout<<"hit end of zone find when we shouldn't"<<endl;
+          // means database is wrong, nothing we can do
+          return false;
+        }
+        for(;;) {
+          if(co.getQType(key.get<StringView>()) == QType::NSEC3) {
+            serFromString(val.get<StringView>(), rr);
+            if(!rr.ttl)
+              break;
+          }
+          
+          if(cursor.next(key, val)) {
+            // means database is wrong, nothing we can do
+            cout<<"hit end of zone when we shouldn't 2"<<endl;
+            return false;
+          }
+        }
+        after = co.getQName(key.get<StringView>());
+
         
+        cout<<"returning: before="<<before<<", after="<<after<<", unhashed: "<<unhashed<<endl;
+        return true;
+      }
+      ++count;
     }
-    after = iter->qname;    
-    try {
-      for(; iter != txn->end() && (unsigned) iter->domain_id == id; --iter) {
-        cout<<"Trying "<<iter.getID()<<" '" << iter->qname<< "' '" <<iter->domain_id << "' '" << iter->wildcardname<< "' < '" << rr.wildcardname << "' " <<iter->wildcardname.canonCompare(rr.wildcardname)<<endl;
-        if(iter->wildcardname.canonCompare(rr.wildcardname)) {
-          before = iter->qname;
-          cout << "Returning "<<before<<" " <<after<<endl;
-          return true;
+    before = co.getQName(key.get<StringView>());
+    unhashed = DNSName(rr.content.c_str(), rr.content.size(), 0, false) + di.zone;
+    cout<<"Went backwards, found "<<before<<endl;
+    // return us to starting point
+    while(count--)
+      cursor.next(key, val);
+  }
+  cout<<"Now going forward"<<endl;
+  for(int count = 0 ;;++count) {
+    if((count && cursor.next(key, val)) || co.getDomainID(key.get<StringView>()) != id ) {
+      cout <<"Hit end of database or zone, finding first hash then in zone "<<id<<endl;
+      if(cursor.lower_bound(co(id), key, val)) {
+        cout<<"hit end of zone find when we shouldn't"<<endl;
+        // means database is wrong, nothing we can do
+        return false;
+      }
+      for(;;) {
+        if(co.getQType(key.get<StringView>()) == QType::NSEC3) {
+          serFromString(val.get<StringView>(), rr);
+          if(!rr.ttl)
+            break;
         }
+        
+        if(cursor.next(key, val)) {
+          // means database is wrong, nothing we can do
+          cout<<"hit end of zone when we shouldn't 2"<<endl;
+          return false;
+        }
+        cout << "Next.. "<<endl;
+      }
+      after = co.getQName(key.get<StringView>());
+      
+      cout<<"returning: before="<<before<<", after="<<after<<", unhashed: "<<unhashed<<endl;
+      return true;
+    }
+    
+    cout<<"After "<<co.getQName(key.get<StringView>()) <<endl;
+    if(co.getQType(key.get<StringView>()) == QType::NSEC3) {
+      serFromString(val.get<StringView>(), rr);
+      cout<<"TTL: "<<rr.ttl<<endl;
+      if(!rr.ttl) {
+        break;
       }
     }
-    catch(std::runtime_error& e) {
-    }
-    cout << "We hit the beginning of the zone or the database.. now what" <<endl;
-  } 
-#endif   
-  return false;
+  }
+  after = co.getQName(key.get<StringView>());
+  cout<<"returning: before="<<before<<", after="<<after<<", unhashed: "<<unhashed<<endl;
+  return true;
 }
 
 bool LMDBBackend::getBeforeAndAfterNames(uint32_t id, const DNSName& zonenameU, const DNSName& qname, DNSName& before, DNSName& after)
@@ -985,7 +1170,7 @@ bool LMDBBackend::getBeforeAndAfterNames(uint32_t id, const DNSName& zonenameU, 
   }
   cout<<"Cursor is at "<<co.getQName(key.get<string_view>()) <<", in zone id "<<co.getDomainID(key.get<string_view>())<< endl;
 
-  if(co.getDomainID(key.get<string_view>()) ==id && co.getQName(key.get<string_view>()) == qname2) {
+  if(co.getQType(key.get<string_view>()).getCode() && co.getDomainID(key.get<string_view>()) ==id && co.getQName(key.get<string_view>()) == qname2) { // don't match ENTs
     cout << "Had an exact match!"<<endl;
     before = qname2 + zonename;
     int rc;
@@ -997,7 +1182,7 @@ bool LMDBBackend::getBeforeAndAfterNames(uint32_t id, const DNSName& zonenameU, 
         continue;
       DNSResourceRecord rr;
       serFromString(val.get<StringView>(), rr);
-      if(rr.auth || rr.qtype.getCode() == QType::NS)
+      if(co.getQType(key.get<string_view>()).getCode() && (rr.auth || co.getQType(key.get<string_view>()).getCode() == QType::NS))
         break;
     }
     if(rc || co.getDomainID(key.get<string_view>()) != id) {
@@ -1029,7 +1214,7 @@ bool LMDBBackend::getBeforeAndAfterNames(uint32_t id, const DNSName& zonenameU, 
       }
       DNSResourceRecord rr;
       serFromString(val.get<StringView>(), rr);
-      if(rr.auth || rr.qtype.getCode() == QType::NS)
+      if(co.getQType(key.get<string_view>()).getCode() && (rr.auth || co.getQType(key.get<string_view>()).getCode() == QType::NS))
         break;
     }
 
@@ -1044,12 +1229,13 @@ bool LMDBBackend::getBeforeAndAfterNames(uint32_t id, const DNSName& zonenameU, 
   for(; ;) {
     DNSResourceRecord rr;
     serFromString(val.get<StringView>(), rr);
-    if(rr.auth || rr.qtype.getCode() == QType::NS) {
+    if(co.getQType(key.get<string_view>()).getCode() && (rr.auth || co.getQType(key.get<string_view>()).getCode() == QType::NS)) {
       after = co.getQName(key.get<string_view>()) + zonename;
-      cout <<"Found auth or an NS record "<<after<<endl;
+      cout <<"Found auth ("<<rr.auth<<") or an NS record "<<after<<", type: "<<co.getQType(key.get<string_view>()).getName()<<", ttl = "<<rr.ttl<<endl;
+      cout << makeHexDump(val.get<string>()) << endl;
       break;
     }
-    cout <<"  oops, " << co.getQName(key.get<string_view>()) << " was not auth "<<rr.auth<< " " << rr.qtype.getName()<<" or NS, so need to skip ahead a bit more" << endl;
+    cout <<"  oops, " << co.getQName(key.get<string_view>()) << " was not auth "<<rr.auth<< " type=" << rr.qtype.getName()<<" or NS, so need to skip ahead a bit more" << endl;
     int rc = cursor.next(key, val);
     if(!rc)
       ++skips;
@@ -1074,7 +1260,7 @@ bool LMDBBackend::getBeforeAndAfterNames(uint32_t id, const DNSName& zonenameU, 
     DNSResourceRecord rr;
     serFromString(val.get<string_view>(), rr);
     cout<<"And before to "<<before<<", auth = "<<rr.auth<<endl;
-    if(rr.auth || co.getQType(key.get<string_view>()) == QType::NS)
+    if(co.getQType(key.get<string_view>()).getCode() && (rr.auth || co.getQType(key.get<string_view>()) == QType::NS))
       break;
     cout << "Oops, that was wrong, go back one more"<<endl;
   }
@@ -1083,18 +1269,19 @@ bool LMDBBackend::getBeforeAndAfterNames(uint32_t id, const DNSName& zonenameU, 
 
 }
 
-// XXX this function does not actually update ordername, which it should do for NSEC3
 bool LMDBBackend::updateDNSSECOrderNameAndAuth(uint32_t domain_id, const DNSName& qname, const DNSName& ordername, bool auth, const uint16_t qtype)
 {
   cout << __PRETTY_FUNCTION__<< ": "<< domain_id <<", '"<<qname <<"', '"<<ordername<<"', "<<auth<< ", " << qtype << endl;
   shared_ptr<RecordsRWTransaction> txn;
-  if(0 && d_rwtxn) { // we might reuse one for the wrong domain_id
+  bool needCommit = false;
+  if(d_rwtxn && d_transactiondomainid==domain_id) {
     txn = d_rwtxn;
-    //    cout<<"Reusing open transaction"<<endl;
+    cout<<"Reusing open transaction"<<endl;
   }
   else {
-    //    cout<<"Making a new RW txn for " << __PRETTY_FUNCTION__ <<endl;
+    cout<<"Making a new RW txn for " << __PRETTY_FUNCTION__ <<endl;
     txn = getRecordsRWTransaction(domain_id);
+    needCommit = true;
   }
 
   DomainInfo di;
@@ -1102,8 +1289,42 @@ bool LMDBBackend::updateDNSSECOrderNameAndAuth(uint32_t domain_id, const DNSName
     //    cout<<"Could not find domain_id "<<domain_id <<endl;
     return false;
   }
-
   DNSName rel = qname.makeRelative(di.zone);
+  if(!qname.empty() && !ordername.getRawLabels().empty() && qname.getRawLabels()[0] != ordername.getRawLabels()[0]) {
+    cout << "NSEC3!" << endl;
+
+    // XXX also need to remove OLD nsec3!
+    compoundOrdername co;
+    string key = co(domain_id,rel,QType::NSEC3);
+    MDBOutVal val;
+    DNSResourceRecord rr;
+    if(!txn->txn.get(txn->db->dbi, key, val)) {
+
+      cout <<"There was an existing NSEC3"<<endl;
+      serFromString(val.get<string_view>(), rr);
+      if(rr.content == ordername.toDNSStringLC()) {
+        cout << "  It was set correctly already. Still doing cleanup." << endl;
+      }
+      cout<<"del1: "<<txn->txn.del(txn->db->dbi, co(domain_id, DNSName(rr.content.c_str(), rr.content.size(), 0, false), QType::NSEC3)) <<endl;
+      cout<<"del2: "<<txn->txn.del(txn->db->dbi, key) << endl;
+    }
+    
+
+    std::string str;
+
+    rr.ttl=0;
+    rr.auth=0;
+    rr.content=rel.toDNSStringLC();
+    str = serToString(rr);
+    
+    txn->txn.put(txn->db->dbi, co(domain_id,ordername,QType::NSEC3), str);
+    rr.ttl = 1;
+    rr.content = ordername.toDNSStringLC();
+    str = serToString(rr);
+    txn->txn.put(txn->db->dbi, key, str);  // 2
+  }
+  
+
   
   compoundOrdername co;
   string matchkey;
@@ -1132,14 +1353,63 @@ bool LMDBBackend::updateDNSSECOrderNameAndAuth(uint32_t domain_id, const DNSName
       break;
   }
 
-  //  if(!d_rwtxn)
-  txn->txn.commit();
+  if(needCommit)
+    txn->txn.commit();
   return false;
 }
 
 bool LMDBBackend::updateEmptyNonTerminals(uint32_t domain_id, set<DNSName>& insert, set<DNSName>& erase, bool remove) 
 {
   cout << __PRETTY_FUNCTION__<< ": "<< domain_id << ", insert.size() "<<insert.size()<<", "<<erase.size()<<", " <<remove<<endl;
+
+  bool needCommit = false;
+  shared_ptr<RecordsRWTransaction> txn;
+  if(d_rwtxn && d_transactiondomainid == domain_id) {
+    txn = d_rwtxn;
+    cout<<"Reusing open transaction"<<endl;
+  }
+  else {
+    cout<<"Making a new RW txn for delete domain"<<endl;
+    txn = getRecordsRWTransaction(domain_id);
+    needCommit = true;
+  }
+
+  
+  // if remove is set, all ENTs should be removed & nothing else should be done
+  if(remove) {
+    deleteDomainRecords(*txn, domain_id, 0);
+  }
+  else {
+    DomainInfo di;
+    auto rotxn = d_tdomains->getROTransaction();
+    if(!rotxn.get(domain_id, di)) {
+      cout <<"No such domain with id "<<domain_id<<endl;
+      return false;
+    }
+    compoundOrdername co;
+    for(const auto& n : insert) {
+      DNSResourceRecord rr;
+      rr.qname = n.makeRelative(di.zone);
+      rr.ttl = 0;
+      rr.auth = true;
+
+      std::string ser = serToString(rr);
+
+      txn->txn.put(txn->db->dbi, co(domain_id, rr.qname, 0), ser);
+
+      DNSResourceRecord rr2;
+      serFromString(ser, rr2);
+      
+      cout <<" +"<<n<<endl;
+    }
+    for(auto n : erase) {
+      cout <<" -"<<n<<endl;
+      n.makeUsRelative(di.zone);
+      txn->txn.del(txn->db->dbi, co(domain_id, n, 0));
+    }
+  }
+  if(needCommit)
+    txn->txn.commit();
   return false;
 }
 

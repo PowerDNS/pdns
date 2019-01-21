@@ -554,6 +554,7 @@ bool GSQLBackend::doesDNSSEC()
 
 bool GSQLBackend::getBeforeAndAfterNamesAbsolute(uint32_t id, const DNSName& qname, DNSName& unhashed, DNSName& before, DNSName& after)
 {
+  cout<<"q for "<<qname<<", unhashed="<<unhashed<<endl;
   if(!d_dnssecQueries)
     return false;
   after.clear();
@@ -627,6 +628,7 @@ bool GSQLBackend::getBeforeAndAfterNamesAbsolute(uint32_t id, const DNSName& qna
     if(! unhashed.empty())
     {
       // cerr<<"unhashed="<<unhashed<<",before="<<before<<", after="<<after<<endl;
+      cout<<"returning: before="<<before<<", after="<<after<<", unhashed: "<<unhashed<<endl;
       return true;
     }
 
@@ -654,7 +656,7 @@ bool GSQLBackend::getBeforeAndAfterNamesAbsolute(uint32_t id, const DNSName& qna
   } else {
     before=qname;
   }
-
+  cout<<"returning: before="<<before<<", after="<<after<<", unhashed: "<<unhashed<<endl;
   return true;
 }
 
