@@ -2280,6 +2280,7 @@ Eriksson
 ERKSs
 ERMA
 errcode
+errfds
 errlen
 errlog
 ERRMEM

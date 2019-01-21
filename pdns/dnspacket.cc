@@ -54,25 +54,9 @@
 bool DNSPacket::s_doEDNSSubnetProcessing;
 uint16_t DNSPacket::s_udpTruncationThreshold;
  
-DNSPacket::DNSPacket(bool isQuery)
+DNSPacket::DNSPacket(bool isQuery): d_isQuery(isQuery)
 {
-  d_wrapped=false;
-  d_compress=true;
-  d_tcp=false;
-  d_wantsnsid=false;
-  d_haveednssubnet = false;
-  d_dnssecOk=false;
-  d_ednsversion=0;
-  d_ednsrcode=0;
   memset(&d, 0, sizeof(d));
-  qclass = QClass::IN;
-  d_tsig_algo = TSIG_MD5;
-  d_havetsig = false;
-  d_socket = -1;
-  d_maxreplylen = 0;
-  d_tsigtimersonly = false;
-  d_haveednssection = false;
-  d_isQuery = isQuery;
 }
 
 const string& DNSPacket::getString()
@@ -94,42 +78,44 @@ uint16_t DNSPacket::getRemotePort() const
 }
 
 DNSPacket::DNSPacket(const DNSPacket &orig) :
-  d_socket(orig.d_socket),
-  d_remote(orig.d_remote),
+  d_anyLocal(orig.d_anyLocal),
   d_dt(orig.d_dt),
-  d_compress(orig.d_compress),
-  d_tcp(orig.d_tcp),
-  qtype(orig.qtype),
-  qclass(orig.qclass),
   qdomain(orig.qdomain),
   qdomainwild(orig.qdomainwild),
   qdomainzone(orig.qdomainzone),
-  d_maxreplylen(orig.d_maxreplylen),
-  d_wantsnsid(orig.d_wantsnsid),
-  d_anyLocal(orig.d_anyLocal),
-  d_eso(orig.d_eso),
-  d_haveednssubnet(orig.d_haveednssubnet),
-  d_haveednssection(orig.d_haveednssection),
-  d_ednsversion(orig.d_ednsversion),
-  d_ednsrcode(orig.d_ednsrcode),
-  d_dnssecOk(orig.d_dnssecOk),
-  d_rrs(orig.d_rrs),
 
+  d(orig.d),
+  d_trc(orig.d_trc),
+  d_remote(orig.d_remote),
+  d_tsig_algo(orig.d_tsig_algo),
+
+  d_ednsRawPacketSizeLimit(orig.d_ednsRawPacketSizeLimit),
+  qclass(orig.qclass),
+  qtype(orig.qtype),
+  d_tcp(orig.d_tcp),
+  d_dnssecOk(orig.d_dnssecOk),
+  d_havetsig(orig.d_havetsig),
+
+  d_tsigsecret(orig.d_tsigsecret),
   d_tsigkeyname(orig.d_tsigkeyname),
   d_tsigprevious(orig.d_tsigprevious),
-  d_tsigtimersonly(orig.d_tsigtimersonly),
-  d_trc(orig.d_trc),
-  d_tsigsecret(orig.d_tsigsecret),
-  d_ednsRawPacketSizeLimit(orig.d_ednsRawPacketSizeLimit),
-  d_havetsig(orig.d_havetsig),
-  d_wrapped(orig.d_wrapped),
-
+  d_rrs(orig.d_rrs),
   d_rawpacket(orig.d_rawpacket),
-  d_tsig_algo(orig.d_tsig_algo),
-  d(orig.d),
+  d_eso(orig.d_eso),
+  d_maxreplylen(orig.d_maxreplylen),
+  d_socket(orig.d_socket),
+  d_hash(orig.d_hash),
+  d_ednsrcode(orig.d_ednsrcode),
+  d_ednsversion(orig.d_ednsversion),
 
-  d_isQuery(orig.d_isQuery),
-  d_hash(orig.d_hash)
+  d_wrapped(orig.d_wrapped),
+  d_compress(orig.d_compress),
+  d_tsigtimersonly(orig.d_tsigtimersonly),
+  d_wantsnsid(orig.d_wantsnsid),
+  d_haveednssubnet(orig.d_haveednssubnet),
+  d_haveednssection(orig.d_haveednssection),
+
+  d_isQuery(orig.d_isQuery)
 {
   DLOG(g_log<<"DNSPacket copy constructor called!"<<endl);
 }
