@@ -319,10 +319,10 @@ bool LMDBBackend::replaceRRSet(uint32_t domain_id, const DNSName& qname, const Q
   bool needCommit = false;
   if(d_rwtxn && d_transactiondomainid==domain_id) {
     txn = d_rwtxn;
-    cout<<"Reusing open transaction"<<endl;
+    //    cout<<"Reusing open transaction"<<endl;
   }
   else {
-    cout<<"Making a new RW txn for replace rrset"<<endl;
+    //    cout<<"Making a new RW txn for replace rrset"<<endl;
     txn = getRecordsRWTransaction(domain_id);
     needCommit = true;
   }
@@ -395,10 +395,10 @@ bool LMDBBackend::deleteDomain(const DNSName &domain)
   bool needCommit = false;
   if(d_rwtxn && d_transactiondomainid == id) {
     txn = d_rwtxn;
-    cout<<"Reusing open transaction"<<endl;
+    //    cout<<"Reusing open transaction"<<endl;
   }
   else {
-    cout<<"Making a new RW txn for delete domain"<<endl;
+    //    cout<<"Making a new RW txn for delete domain"<<endl;
     txn = getRecordsRWTransaction(id);
     needCommit = true;
   }
@@ -1271,15 +1271,15 @@ bool LMDBBackend::getBeforeAndAfterNames(uint32_t id, const DNSName& zonenameU, 
 
 bool LMDBBackend::updateDNSSECOrderNameAndAuth(uint32_t domain_id, const DNSName& qname, const DNSName& ordername, bool auth, const uint16_t qtype)
 {
-  cout << __PRETTY_FUNCTION__<< ": "<< domain_id <<", '"<<qname <<"', '"<<ordername<<"', "<<auth<< ", " << qtype << endl;
+  //  cout << __PRETTY_FUNCTION__<< ": "<< domain_id <<", '"<<qname <<"', '"<<ordername<<"', "<<auth<< ", " << qtype << endl;
   shared_ptr<RecordsRWTransaction> txn;
   bool needCommit = false;
   if(d_rwtxn && d_transactiondomainid==domain_id) {
     txn = d_rwtxn;
-    cout<<"Reusing open transaction"<<endl;
+    //    cout<<"Reusing open transaction"<<endl;
   }
   else {
-    cout<<"Making a new RW txn for " << __PRETTY_FUNCTION__ <<endl;
+    //    cout<<"Making a new RW txn for " << __PRETTY_FUNCTION__ <<endl;
     txn = getRecordsRWTransaction(domain_id);
     needCommit = true;
   }
@@ -1366,10 +1366,10 @@ bool LMDBBackend::updateEmptyNonTerminals(uint32_t domain_id, set<DNSName>& inse
   shared_ptr<RecordsRWTransaction> txn;
   if(d_rwtxn && d_transactiondomainid == domain_id) {
     txn = d_rwtxn;
-    cout<<"Reusing open transaction"<<endl;
+    //    cout<<"Reusing open transaction"<<endl;
   }
   else {
-    cout<<"Making a new RW txn for delete domain"<<endl;
+    //    cout<<"Making a new RW txn for delete domain"<<endl;
     txn = getRecordsRWTransaction(domain_id);
     needCommit = true;
   }
