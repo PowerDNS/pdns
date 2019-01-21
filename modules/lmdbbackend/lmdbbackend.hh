@@ -249,8 +249,6 @@ private:
   
   shared_ptr<RecordsROTransaction> d_rotxn; // for lookup and list
   shared_ptr<RecordsRWTransaction> d_rwtxn; // for feedrecord within begin/aborttransaction
-  uint32_t d_newrecordid;               // id to be used by next feedRecord
-  uint32_t d_newdomainid;                  // domain id to use on commitTransaction
   std::shared_ptr<RecordsRWTransaction> getRecordsRWTransaction(uint32_t id);
   std::shared_ptr<RecordsROTransaction> getRecordsROTransaction(uint32_t id);
   int genChangeDomain(const DNSName& domain, std::function<void(DomainInfo&)> func);
