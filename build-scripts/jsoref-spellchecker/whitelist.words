@@ -4558,7 +4558,7 @@ LOGGINGTOK
 Loginfo
 loging
 loglevel
-loglines
+logline
 logmessage
 logon
 logprefix
