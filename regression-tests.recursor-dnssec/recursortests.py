@@ -42,6 +42,7 @@ disable-syslog=yes
 """
     _config_params = []
     _lua_config_file = None
+    _lua_dns_script_file = None
     _roothints = """
 .                        3600 IN NS  ns.root.
 ns.root.                 3600 IN A   %s.8
@@ -448,6 +449,11 @@ distributor-threads=1""".format(confdir=confdir,
                     if cls._lua_config_file:
                         luaconf.write(cls._lua_config_file)
                 conf.write("lua-config-file=%s\n" % luaconfpath)
+                if cls._lua_dns_script_file:
+                    luascriptpath = os.path.join(confdir, 'dnsscript.lua')
+                    with open(luascriptpath, 'w') as luascript:
+                        luascript.write(cls._lua_dns_script_file)
+                    conf.write("lua-dns-script=%s\n" % luascriptpath)
             if cls._roothints:
                 roothintspath = os.path.join(confdir, 'root.hints')
                 with open(roothintspath, 'w') as roothints:
