@@ -388,7 +388,7 @@ void WebServer::serveConnection(std::shared_ptr<Socket> client) const {
     g_log<<Logger::Error<<logprefix<<"Unknown exception"<<endl;
   }
 
-  if (d_loglevel >= WebServer::LogLevel::Common) {
+  if (d_loglevel >= WebServer::LogLevel::Normal) {
     g_log<<Logger::Info<<logprefix<<remote<<" \""<<req.method<<" "<<req.url.path<<" HTTP/"<<req.versionStr(req.version)<<"\" "<<resp.status<<" "<<reply.size()<<endl;
   }
 }

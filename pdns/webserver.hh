@@ -187,7 +187,7 @@ public:
 
   enum class LogLevel : uint8_t {
     None = 0,                // No logs from requests at all
-    Common = 10,             // A "common log format"-like line e.g. '127.0.0.1 "GET /apache_pb.gif HTTP/1.0" 200 2326'
+    Normal = 10,             // A "common log format"-like line e.g. '127.0.0.1 "GET /apache_pb.gif HTTP/1.0" 200 2326'
     Detailed = 20,           // The full request headers and body, and the full response headers and body
   };
 
@@ -197,8 +197,8 @@ public:
       return;
     }
 
-    if (level == "common") {
-      d_loglevel = LogLevel::Common;
+    if (level == "normal") {
+      d_loglevel = LogLevel::Normal;
       return;
     }
 
