@@ -1307,7 +1307,7 @@ bool LMDBBackend::updateDNSSECOrderNameAndAuth(uint32_t domain_id, const DNSName
     return false;
   }
   DNSName rel = qname.makeRelative(di.zone);
-  if(!qname.empty() && !ordername.getRawLabels().empty() && qname.getRawLabels()[0] != ordername.getRawLabels()[0]) {
+  if((qname.isRoot() && !ordername.empty()) || (!qname.getRawLabels().empty() && !ordername.getRawLabels().empty() && qname.getRawLabels()[0] != ordername.getRawLabels()[0])) {
 
     // XXX also need to remove OLD nsec3!
     compoundOrdername co;
