@@ -944,7 +944,7 @@ bool LMDBBackend::deactivateDomainKey(const DNSName& name, unsigned int id)
 
 bool LMDBBackend::getBeforeAndAfterNamesAbsolute(uint32_t id, const DNSName& qname, DNSName& unhashed, DNSName& before, DNSName& after) 
 {
-  cout << __PRETTY_FUNCTION__<< ": "<<id <<", "<<qname << " " << unhashed<<endl;
+  //  cout << __PRETTY_FUNCTION__<< ": "<<id <<", "<<qname << " " << unhashed<<endl;
 
   DomainInfo di;
   if(!d_tdomains->getROTransaction().get(id, di)) {
@@ -1120,7 +1120,7 @@ bool LMDBBackend::getBeforeAndAfterNamesAbsolute(uint32_t id, const DNSName& qna
     while(count--)
       cursor.next(key, val);
   }
-  cout<<"Now going forward"<<endl;
+  //  cout<<"Now going forward"<<endl;
   for(int count = 0 ;;++count) {
     if((count && cursor.next(key, val)) || co.getDomainID(key.get<StringView>()) != id ) {
       cout <<"Hit end of database or zone, finding first hash then in zone "<<id<<endl;
@@ -1152,7 +1152,6 @@ bool LMDBBackend::getBeforeAndAfterNamesAbsolute(uint32_t id, const DNSName& qna
     cout<<"After "<<co.getQName(key.get<StringView>()) <<endl;
     if(co.getQType(key.get<StringView>()) == QType::NSEC3) {
       serFromString(val.get<StringView>(), rr);
-      cout<<"TTL: "<<rr.ttl<<endl;
       if(!rr.ttl) {
         break;
       }
@@ -1166,7 +1165,7 @@ bool LMDBBackend::getBeforeAndAfterNamesAbsolute(uint32_t id, const DNSName& qna
 bool LMDBBackend::getBeforeAndAfterNames(uint32_t id, const DNSName& zonenameU, const DNSName& qname, DNSName& before, DNSName& after)
 {
   DNSName zonename = zonenameU.makeLowerCase();
-  cout << __PRETTY_FUNCTION__<< ": "<<id <<", "<<zonename << ", '"<<qname<<"'"<<endl;
+  //  cout << __PRETTY_FUNCTION__<< ": "<<id <<", "<<zonename << ", '"<<qname<<"'"<<endl;
 
   auto txn = getRecordsROTransaction(id);
   compoundOrdername co;
