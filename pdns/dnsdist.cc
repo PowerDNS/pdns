@@ -160,7 +160,7 @@ try
   dh->ancount = dh->arcount = dh->nscount = 0;
 
   if (hadEDNS) {
-    addEDNS(dh, *len, responseSize, z & EDNS_HEADER_FLAG_DO, payloadSize);
+    addEDNS(dh, *len, responseSize, z & EDNS_HEADER_FLAG_DO, payloadSize, 0);
   }
 }
 catch(...)
@@ -1401,6 +1401,12 @@ static void processUDPQuery(ClientState& cs, LocalHolders& holders, const struct
     if (!processQuery(holders, dq, poolname, &delayMsec, now))
     {
       return;
+    }
+
+    if (queryHasEDNS(dq) && getEDNSVersion(dq) > 0) {
+        dq.dh->qr = true;
+        dq.dh->rcode = (16 & 0xF);
+        dq.ednsRCode = ((16 & 0xFFF0)>>4); // set rcode to BADVERS
     }
 
     if(dq.dh->qr) { // something turned it into a response

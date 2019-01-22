@@ -462,7 +462,7 @@ DNSAction::Action SpoofAction::operator()(DNSQuestion* dq, string* ruleresult) c
   dq->dh->ancount = htons(dq->dh->ancount);
 
   if (hadEDNS) {
-    addEDNS(dq->dh, dq->len, dq->size, dnssecOK, g_PayloadSizeSelfGenAnswers);
+    addEDNS(dq->dh, dq->len, dq->size, dnssecOK, g_PayloadSizeSelfGenAnswers, 0);
   }
 
   return Action::HeaderModify;
@@ -486,7 +486,7 @@ public:
     generateEDNSOption(d_code, mac, optRData);
 
     string res;
-    generateOptRR(optRData, res, g_EdnsUDPPayloadSize, false);
+    generateOptRR(optRData, res, g_EdnsUDPPayloadSize, 0, false);
 
     if ((dq->size - dq->len) < res.length())
       return Action::None;
