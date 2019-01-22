@@ -2285,6 +2285,9 @@ try
 #endif
       cout<<") ";
 #endif
+#ifdef HAVE_DNS_OVER_HTTPS
+      cout<<"DNS-over-HTTPS(DOH) ";
+#endif
 #ifdef HAVE_DNSCRYPT
       cout<<"dnscrypt ";
 #endif
