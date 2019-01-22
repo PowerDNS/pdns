@@ -606,6 +606,8 @@ test_auth() {
   run "./timestamp ./start-test-stop 5300 lua2-dnssec"
 
   run "./timestamp ./start-test-stop 5300 lmdb"
+  run "./timestamp ./start-test-stop 5300 lmdb-nodnssec"
+  run "./timestamp ./start-test-stop 5300 lmdb-nsec3"
 
   run "cd .."
 
