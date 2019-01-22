@@ -155,6 +155,17 @@ class GettagRecursorTest(RecursorTest):
         res = self.sendUDPQuery(query)
         self.assertResponseMatches(query, expected, res)
 
+    def testAAAA(self):
+        name = 'gettag-tcpaaaa.lua.'
+        expected = [
+            dns.rrset.from_text(name, 0, dns.rdataclass.IN, 'AAAA', '2001:db8::1'),
+            dns.rrset.from_text_list(name, 0, dns.rdataclass.IN, 'TXT', [ name, 'gettag-qtype-28', 'gettag-tcp'])
+            ]
+        query = dns.message.make_query(name, 'AAAA', want_dnssec=True)
+        query.flags |= dns.flags.CD
+        res = self.sendTCPQuery(query)
+        self.assertResponseMatches(query, expected, res)
+
     def testSubnet(self):
         name = 'gettag-subnet.lua.'
         subnet = '192.0.2.255'
@@ -189,6 +200,15 @@ class GettagRecursorTest(RecursorTest):
         query.flags |= dns.flags.CD
         res = self.sendUDPQuery(query)
         self.assertResponseMatches(query, expected, res)
+
+class GettagRecursorDistributesQueriesTest(GettagRecursorTest):
+    _confdir = 'LuaGettagDistributes'
+    _config_template = """
+    log-common-errors=yes
+    gettag-needs-edns-options=yes
+    pdns-distributes-queries=yes
+    threads=2
+    """
 
 hooksReactorRunning = False
 
@@ -320,51 +340,77 @@ quiet=no
     def testNoData(self):
         expected = dns.rrset.from_text('nodata.luahooks.example.', 3600, dns.rdataclass.IN, 'AAAA', '2001:DB8::1')
         query = dns.message.make_query('nodata.luahooks.example.', 'AAAA', 'IN')
-        res = self.sendUDPQuery(query)
 
-        self.assertRcodeEqual(res, dns.rcode.NOERROR)
-        self.assertRRsetInAnswer(res, expected)
+        for method in ("sendUDPQuery", "sendTCPQuery"):
+            sender = getattr(self, method)
+            res = sender(query)
+            self.assertRcodeEqual(res, dns.rcode.NOERROR)
+            self.assertRRsetInAnswer(res, expected)
 
     def testVanillaNXD(self):
         #expected = dns.rrset.from_text('nxdomain.luahooks.example.', 3600, dns.rdataclass.IN, 'A', '192.0.2.1')
         query = dns.message.make_query('nxdomain.luahooks.example.', 'AAAA', 'IN')
-        res = self.sendUDPQuery(query)
 
-        self.assertRcodeEqual(res, dns.rcode.NXDOMAIN)
+        for method in ("sendUDPQuery", "sendTCPQuery"):
+            sender = getattr(self, method)
+            res = sender(query)
+            self.assertRcodeEqual(res, dns.rcode.NXDOMAIN)
 
     def testHookedNXD(self):
         expected = dns.rrset.from_text('nxdomain.luahooks.example.', 3600, dns.rdataclass.IN, 'A', '192.0.2.1')
         query = dns.message.make_query('nxdomain.luahooks.example.', 'A', 'IN')
-        res = self.sendUDPQuery(query)
 
-        self.assertRcodeEqual(res, dns.rcode.NOERROR)
-        self.assertRRsetInAnswer(res, expected)
+        for method in ("sendUDPQuery", "sendTCPQuery"):
+            sender = getattr(self, method)
+            res = sender(query)
+            self.assertRcodeEqual(res, dns.rcode.NOERROR)
+            self.assertRRsetInAnswer(res, expected)
 
     def testPostResolve(self):
         expected = dns.rrset.from_text('postresolve.luahooks.example.', 1, dns.rdataclass.IN, 'A', '192.0.2.42')
         query = dns.message.make_query('postresolve.luahooks.example.', 'A', 'IN')
-        res = self.sendUDPQuery(query)
 
-        self.assertRcodeEqual(res, dns.rcode.NOERROR)
-        self.assertRRsetInAnswer(res, expected)
-        self.assertEqual(res.answer[0].ttl, 1)
+        for method in ("sendUDPQuery", "sendTCPQuery"):
+            sender = getattr(self, method)
+            res = sender(query)
+            self.assertRcodeEqual(res, dns.rcode.NOERROR)
+            self.assertRRsetInAnswer(res, expected)
+            self.assertEqual(res.answer[0].ttl, 1)
 
     def testIPFilterHeader(self):
         query = dns.message.make_query('ipfiler.luahooks.example.', 'A', 'IN')
         query.flags |= dns.flags.AD
-        res = self.sendUDPQuery(query)
-        self.assertEqual(res, None)
+
+        for method in ("sendUDPQuery", "sendTCPQuery"):
+            sender = getattr(self, method)
+            res = sender(query)
+            self.assertEqual(res, None)
 
     def testPreOutInterceptedQuery(self):
         query = dns.message.make_query('preout.luahooks.example.', 'A', 'IN')
-        res = self.sendUDPQuery(query)
-        self.assertRcodeEqual(res, dns.rcode.SERVFAIL)
+
+        for method in ("sendUDPQuery", "sendTCPQuery"):
+            sender = getattr(self, method)
+            res = sender(query)
+            self.assertRcodeEqual(res, dns.rcode.SERVFAIL)
 
     def testPreOutNotInterceptedQuery(self):
         query = dns.message.make_query('preout.luahooks.example.', 'AAAA', 'IN')
-        res = self.sendUDPQuery(query)
-        self.assertRcodeEqual(res, dns.rcode.NOERROR)
 
+        for method in ("sendUDPQuery", "sendTCPQuery"):
+            sender = getattr(self, method)
+            res = sender(query)
+            self.assertRcodeEqual(res, dns.rcode.NOERROR)
+
+class LuaHooksRecursorDistributesTest(LuaHooksRecursorTest):
+    _confdir = 'LuaHooksDistributes'
+    _config_template = """
+forward-zones=luahooks.example=%s.23
+log-common-errors=yes
+pdns-distributes-queries=yes
+threads=2
+quiet=no
+    """ % (os.environ['PREFIX'])
 
 class DNS64Test(RecursorTest):
     """Tests the dq.followupAction("getFakeAAAARecords")"""
@@ -398,12 +444,14 @@ class DNS64Test(RecursorTest):
         ]
         query = dns.message.make_query('ns.secure.example', 'AAAA')
 
-        res = self.sendUDPQuery(query)
+        for method in ("sendUDPQuery", "sendTCPQuery"):
+            sender = getattr(self, method)
+            res = sender(query)
 
-        self.assertRcodeEqual(res, dns.rcode.NOERROR)
-        self.assertEqual(len(res.answer), 1)
-        self.assertEqual(len(res.authority), 0)
-        self.assertResponseMatches(query, expected, res)
+            self.assertRcodeEqual(res, dns.rcode.NOERROR)
+            self.assertEqual(len(res.answer), 1)
+            self.assertEqual(len(res.authority), 0)
+            self.assertResponseMatches(query, expected, res)
 
     def testAtoCNAMEtoAAAA(self):
         expected = [
@@ -412,9 +460,11 @@ class DNS64Test(RecursorTest):
         ]
         query = dns.message.make_query('cname-to-insecure.secure.example.', 'AAAA')
 
-        res = self.sendUDPQuery(query)
+        for method in ("sendUDPQuery", "sendTCPQuery"):
+            sender = getattr(self, method)
+            res = sender(query)
 
-        self.assertRcodeEqual(res, dns.rcode.NOERROR)
-        self.assertEqual(len(res.answer), 2)
-        self.assertEqual(len(res.authority), 0)
-        self.assertResponseMatches(query, expected, res)
+            self.assertRcodeEqual(res, dns.rcode.NOERROR)
+            self.assertEqual(len(res.answer), 2)
+            self.assertEqual(len(res.authority), 0)
+            self.assertResponseMatches(query, expected, res)
