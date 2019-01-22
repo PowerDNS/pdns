@@ -57,12 +57,12 @@ bool DNSSECKeeper::doesDNSSEC()
   return d_keymetadb->doesDNSSEC();
 }
 
-bool DNSSECKeeper::isSecuredZone(const DNSName& zone) 
+bool DNSSECKeeper::isSecuredZone(const DNSName& zone, bool useCache)
 {
   if(isPresigned(zone))
     return true;
 
-  keyset_t keys = getKeys(zone); // does the cache
+  keyset_t keys = getKeys(zone, useCache);
 
   for(keyset_t::value_type& val :  keys) {
     if(val.second.active) {

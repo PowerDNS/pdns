@@ -182,7 +182,7 @@ public:
       delete d_keymetadb;
   }
   bool doesDNSSEC();
-  bool isSecuredZone(const DNSName& zone);
+  bool isSecuredZone(const DNSName& zone, bool useCache = true);
   static uint64_t dbdnssecCacheSizes(const std::string& str);
   keyset_t getEntryPoints(const DNSName& zname);
   keyset_t getKeys(const DNSName& zone, bool useCache = true);

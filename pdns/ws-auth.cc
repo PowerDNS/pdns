@@ -644,7 +644,7 @@ static void updateDomainSettingsFromDocument(UeberBackend& B, const DomainInfo& 
   }
   catch (const JsonException&) {}
 
-  bool isDNSSECZone = dk.isSecuredZone(zonename);
+  bool isDNSSECZone = dk.isSecuredZone(zonename, false);
 
   if (dnssecInJSON) {
     if (dnssecDocVal) {
