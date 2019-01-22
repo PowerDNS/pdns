@@ -25,7 +25,7 @@ __EOF__
                     $PDNSUTIL --config-dir=. --config-name=lmdb set-nsec3 $zone "1 0 1 abcd" 2>&1
                 elif [ $context =  lmdb-nsec3-optout ]
                 then
-                    extracontexts="dnssec nsec3-optout lmdb"
+                    extracontexts="dnssec nsec3 nsec3-optout lmdb"
                     $PDNSUTIL --config-dir=. --config-name=lmdb set-nsec3 $zone "1 1 1 abcd" 2>&1
                 elif [ $context = lmdb-nsec3-narrow ]
                 then
