@@ -28,6 +28,7 @@ override_dh_auto_clean:
 	dh_auto_clean
 
 override_dh_auto_configure:
+	PKG_CONFIG_PATH=/opt/lib/pkgconfig \
 	./configure \
 	  --host=$(DEB_HOST_GNU_TYPE) \
 	  --build=$(DEB_BUILD_GNU_TYPE) \
@@ -37,6 +38,7 @@ override_dh_auto_configure:
 	  --infodir=\$${prefix}/share/info \
 	  --libdir='$${prefix}/lib/$(DEB_HOST_MULTIARCH)' \
 	  --libexecdir='$${prefix}/lib' \
+	  --enable-dns-over-https \
 	  --enable-dns-over-tls \
 	  --enable-dnscrypt \
 	  --enable-dnstap \
