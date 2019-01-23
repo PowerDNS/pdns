@@ -1673,6 +1673,10 @@ static void apiServerZoneDetail(HttpRequest* req, HttpResponse* resp) {
     if(!di.backend->deleteDomain(zonename))
       throw ApiException("Deleting domain '"+zonename.toString()+"' failed: backend delete failed/unsupported");
 
+    // clear caches
+    DNSSECKeeper dk(&B);
+    dk.clearCaches(zonename);
+
     // empty body on success
     resp->body = "";
     resp->status = 204; // No Content: declare that the zone is gone now
