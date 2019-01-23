@@ -1339,7 +1339,6 @@ bool LMDBBackend::updateDNSSECOrderNameAndAuth(uint32_t domain_id, const DNSName
         rr.disabled = hasOrderName;
         string repl = serToString(rr);
         cursor.put(key, repl);
-        // cout<<"qname: "<<qname<<" qtype: "<<co.getQType(key.get<StringView>()).getName()<<" ordername: "<<hasOrderName<<" auth: "<<auth<<endl;
       }
     }
 
@@ -1347,46 +1346,29 @@ bool LMDBBackend::updateDNSSECOrderNameAndAuth(uint32_t domain_id, const DNSName
       break;
   }
 
-  cout<<"qname: "<<qname<<" Need NSEC3: "<<needNSEC3<<endl;
-
   bool del = false;
   DNSResourceRecord rr;
   matchkey = co(domain_id,rel,QType::NSEC3);
   if(!txn->txn.get(txn->db->dbi, matchkey, val)) {
-    cout<<"There is an existing NSEC3 for: "<<qname<<endl;
     serFromString(val.get<string_view>(), rr);
 
     if(needNSEC3) {
-      if(hasOrderName) {
-        if(rr.content == ordername.toDNSStringLC()) {
-          cout << "  It was set correctly already." << endl;
-        } else {
-          cout << "  Hash mismatch. Doing cleanup." << endl;
+      if(hasOrderName && rr.content != ordername.toDNSStringLC()) {
           del = true;
-        }
-      } else {
-        cout << "  Unable to verify, ordername is not set." << endl;
       }
     } else {
-      cout << "  Need to delete existing ordername." << endl;
       del = true;
     }
     if(del) {
-      cout << "  Delete existing ordername." << endl;
-      cout<<"  del1: "<<txn->txn.del(txn->db->dbi, co(domain_id, DNSName(rr.content.c_str(), rr.content.size(), 0, false), QType::NSEC3)) <<endl;
-      cout<<"  del2: "<<txn->txn.del(txn->db->dbi, matchkey) << endl;
+      txn->txn.del(txn->db->dbi, co(domain_id, DNSName(rr.content.c_str(), rr.content.size(), 0, false), QType::NSEC3));
+      txn->txn.del(txn->db->dbi, matchkey);
     }
   } else {
-    cout<<"There is no existing NSEC3 for: "<<qname<<endl;
     del = true;
   }
 
-  // cout<<"need: "<<needNSEC3<<" del: "<<del<<endl;
-
   if(hasOrderName && del) {
     matchkey = co(domain_id,rel,QType::NSEC3);
-
-    cout<<"  Insert NSEC3 for qname: "<<qname<<" ordername: "<<ordername<<endl;
 
     rr.ttl=0;
     rr.auth=0;
