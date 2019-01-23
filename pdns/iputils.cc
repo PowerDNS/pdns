@@ -138,6 +138,7 @@ int SSetsockopt(int sockfd, int level, int opname, int value)
 
 void setSocketIgnorePMTU(int sockfd)
 {
+#if defined(IP_MTU_DISCOVER) && defined(IP_PMTUDISC_DONT)
 #ifdef IP_PMTUDISC_OMIT
   /* Linux 3.15+ has IP_PMTUDISC_OMIT, which discards PMTU information to prevent
      poisoning, but still allows fragmentation if the packet size exceeds the
@@ -154,6 +155,7 @@ void setSocketIgnorePMTU(int sockfd)
 
   /* IP_PMTUDISC_DONT disables Path MTU discovery */
   SSetsockopt(sockfd, IPPROTO_IP, IP_MTU_DISCOVER, IP_PMTUDISC_DONT);
+#endif /* defined(IP_MTU_DISCOVER) && defined(IP_PMTUDISC_DONT) */
 }
 
 bool HarvestTimestamp(struct msghdr* msgh, struct timeval* tv) 
