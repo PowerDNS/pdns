@@ -10,8 +10,8 @@
 #include <boost/iostreams/stream_buffer.hpp>
 #include <boost/iostreams/device/back_inserter.hpp>
 #include <sstream>
-using std::cout;
-using std::endl;
+// using std::cout;
+// using std::endl;
 
 
 /* 

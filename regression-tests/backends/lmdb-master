@@ -49,7 +49,7 @@ __EOF__
 
         $RUNWRAPPER $PDNS --daemon=no --local-address=$address --local-port=$port --config-dir=. \
             --config-name=lmdb --socket-dir=./ --no-shuffle \
-            --query-logging --dnsupdate=no \
+            --dnsupdate=no \
             --expand-alias=yes --resolver=8.8.8.8 \
             --disable-axfr-rectify=yes --outgoing-axfr-expand-alias=yes \
             --cache-ttl=$cachettl --dname-processing $lua_prequery &
