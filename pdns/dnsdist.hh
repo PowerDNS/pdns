@@ -79,7 +79,7 @@ struct DNSQuestion
   unsigned int consumed{0};
   uint16_t len;
   uint16_t ecsPrefixLength;
-  uint16_t ednsRCode; // WARNING: this is really 12 bits
+  uint8_t ednsRCode;
   boost::optional<uint32_t> tempFailureTTL;
   const bool tcp;
   const struct timespec* queryTime;

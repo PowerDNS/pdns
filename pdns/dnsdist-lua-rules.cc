@@ -418,6 +418,10 @@ void setupLuaRules()
       return std::shared_ptr<DNSRule>(new ERCodeRule(rcode));
     });
 
+  g_lua.writeFunction("EDNSVersionRule", [](uint8_t version) {
+      return std::shared_ptr<DNSRule>(new EDNSVersionRule(version));
+    });
+
   g_lua.writeFunction("EDNSOptionRule", [](uint16_t optcode) {
       return std::shared_ptr<DNSRule>(new EDNSOptionRule(optcode));
     });

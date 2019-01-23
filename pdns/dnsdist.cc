@@ -1403,12 +1403,6 @@ static void processUDPQuery(ClientState& cs, LocalHolders& holders, const struct
       return;
     }
 
-    if (queryHasEDNS(dq) && getEDNSVersion(dq) > 0) {
-        dq.dh->qr = true;
-        dq.dh->rcode = (16 & 0xF);
-        dq.ednsRCode = ((16 & 0xFFF0)>>4); // set rcode to BADVERS
-    }
-
     if(dq.dh->qr) { // something turned it into a response
       fixUpQueryTurnedResponse(dq, origFlags);
 

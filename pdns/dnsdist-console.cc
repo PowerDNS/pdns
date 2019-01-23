@@ -374,6 +374,7 @@ const std::vector<ConsoleKeyword> g_consoleKeywords{
   { "DSTPortRule", true, "port", "matches questions received to the destination port specified" },
   { "dumpStats", true, "", "print all statistics we gather" },
   { "dynBlockRulesGroup", true, "", "return a new DynBlockRulesGroup object" },
+  { "EDNSVersionRule", true, "version", "matches queries with the specified EDNS version" },
   { "EDNSOptionRule", true, "optcode", "matches queries with the specified EDNS0 option present" },
   { "ERCodeRule", true, "rcode", "matches responses with the specified extended rcode (EDNS0)" },
   { "exceedNXDOMAINs", true, "rate, seconds", "get set of addresses that exceed `rate` NXDOMAIN/s over `seconds` seconds" },
