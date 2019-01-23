@@ -180,6 +180,7 @@ std::string serToString(const DNSResourceRecord& rr)
   ret += rr.content;
   ret.append((const char*)&rr.ttl, 4);
   ret.append(1, (char)rr.auth);
+  ret.append(1, (char)rr.disabled);
   return ret;
 }
 
@@ -190,7 +191,8 @@ void serFromString(const string_view& str, DNSResourceRecord& rr)
   memcpy(&len, &str[0], 2);
   rr.content.assign(&str[2], len);    // len bytes
   memcpy(&rr.ttl, &str[2] + len, 4);
-  rr.auth = str[str.size()-1];
+  rr.auth = str[str.size()-2];
+  rr.disabled = str[str.size()-1];
   rr.wildcardname.clear();
 }
 
@@ -1306,67 +1308,96 @@ bool LMDBBackend::updateDNSSECOrderNameAndAuth(uint32_t domain_id, const DNSName
     //    cout<<"Could not find domain_id "<<domain_id <<endl;
     return false;
   }
+
   DNSName rel = qname.makeRelative(di.zone);
-  if((qname.isRoot() && !ordername.empty()) || (!qname.getRawLabels().empty() && !ordername.getRawLabels().empty() && qname.getRawLabels()[0] != ordername.getRawLabels()[0])) {
 
-    // XXX also need to remove OLD nsec3!
-    compoundOrdername co;
-    string key = co(domain_id,rel,QType::NSEC3);
-    MDBOutVal val;
-    DNSResourceRecord rr;
-    if(!txn->txn.get(txn->db->dbi, key, val)) {
-
-      cout <<"There was an existing NSEC3"<<endl;
-      serFromString(val.get<string_view>(), rr);
-      if(rr.content == ordername.toDNSStringLC()) {
-        cout << "  It was set correctly already. Still doing cleanup." << endl;
-      }
-      cout<<"del1: "<<txn->txn.del(txn->db->dbi, co(domain_id, DNSName(rr.content.c_str(), rr.content.size(), 0, false), QType::NSEC3)) <<endl;
-      cout<<"del2: "<<txn->txn.del(txn->db->dbi, key) << endl;
-    }
-    
-
-    std::string str;
-
-    rr.ttl=0;
-    rr.auth=0;
-    rr.content=rel.toDNSStringLC();
-    str = serToString(rr);
-    
-    txn->txn.put(txn->db->dbi, co(domain_id,ordername,QType::NSEC3), str);
-    rr.ttl = 1;
-    rr.content = ordername.toDNSStringLC();
-    str = serToString(rr);
-    txn->txn.put(txn->db->dbi, key, str);  // 2
-  }
-  
-
-  
   compoundOrdername co;
-  string matchkey;
-  if(qtype ==QType::ANY)
-    matchkey = co(domain_id, rel);
-  else
-    matchkey = co(domain_id, rel, qtype);
+  string matchkey = co(domain_id, rel);
 
   auto cursor = txn->txn.getCursor(txn->db->dbi);
   MDBOutVal key, val;
   if(cursor.lower_bound(matchkey, key, val)) {
-    //    cout << "Could not find anything"<<endl;
+    // cout << "Could not find anything"<<endl;
     return false;
   }
-  
+
+  bool hasOrderName = !ordername.empty();
+  bool needNSEC3 = hasOrderName;
+
   for(; key.get<StringView>().rfind(matchkey,0) == 0; ) {
     DNSResourceRecord rr;
-    serFromString(val.get<StringView>(), rr);
-    if(rr.auth != auth) {
-      rr.auth = auth;
-      string repl = serToString(rr);
-      cursor.put(key, repl);
+    rr.qtype = co.getQType(key.get<StringView>());
+
+    if(rr.qtype != QType::NSEC3) {
+      serFromString(val.get<StringView>(), rr);
+      if(!needNSEC3 && qtype != QType::ANY) {
+        needNSEC3 = (rr.disabled && QType(qtype) != rr.qtype);
+      }
+
+      if((qtype == QType::ANY || QType(qtype) == rr.qtype) && (rr.disabled != hasOrderName || rr.auth != auth)) {
+        rr.auth = auth;
+        rr.disabled = hasOrderName;
+        string repl = serToString(rr);
+        cursor.put(key, repl);
+        // cout<<"qname: "<<qname<<" qtype: "<<co.getQType(key.get<StringView>()).getName()<<" ordername: "<<hasOrderName<<" auth: "<<auth<<endl;
+      }
     }
 
     if(cursor.next(key, val))
       break;
+  }
+
+  cout<<"qname: "<<qname<<" Need NSEC3: "<<needNSEC3<<endl;
+
+  bool del = false;
+  DNSResourceRecord rr;
+  matchkey = co(domain_id,rel,QType::NSEC3);
+  if(!txn->txn.get(txn->db->dbi, matchkey, val)) {
+    cout<<"There is an existing NSEC3 for: "<<qname<<endl;
+    serFromString(val.get<string_view>(), rr);
+
+    if(needNSEC3) {
+      if(hasOrderName) {
+        if(rr.content == ordername.toDNSStringLC()) {
+          cout << "  It was set correctly already." << endl;
+        } else {
+          cout << "  Hash mismatch. Doing cleanup." << endl;
+          del = true;
+        }
+      } else {
+        cout << "  Unable to verify, ordername is not set." << endl;
+      }
+    } else {
+      cout << "  Need to delete existing ordername." << endl;
+      del = true;
+    }
+    if(del) {
+      cout << "  Delete existing ordername." << endl;
+      cout<<"  del1: "<<txn->txn.del(txn->db->dbi, co(domain_id, DNSName(rr.content.c_str(), rr.content.size(), 0, false), QType::NSEC3)) <<endl;
+      cout<<"  del2: "<<txn->txn.del(txn->db->dbi, matchkey) << endl;
+    }
+  } else {
+    cout<<"There is no existing NSEC3 for: "<<qname<<endl;
+    del = true;
+  }
+
+  // cout<<"need: "<<needNSEC3<<" del: "<<del<<endl;
+
+  if(hasOrderName && del) {
+    matchkey = co(domain_id,rel,QType::NSEC3);
+
+    cout<<"  Insert NSEC3 for qname: "<<qname<<" ordername: "<<ordername<<endl;
+
+    rr.ttl=0;
+    rr.auth=0;
+    rr.content=rel.toDNSStringLC();
+
+    string str = serToString(rr);
+    txn->txn.put(txn->db->dbi, co(domain_id,ordername,QType::NSEC3), str);
+    rr.ttl = 1;
+    rr.content = ordername.toDNSStringLC();
+    str = serToString(rr);
+    txn->txn.put(txn->db->dbi, matchkey, str);  // 2
   }
 
   if(needCommit)

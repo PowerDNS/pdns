@@ -26,6 +26,7 @@ __EOF__
                 elif [ $context =  lmdb-nsec3-optout ]
                 then
                     extracontexts="dnssec nsec3 nsec3-optout lmdb"
+                    skipreasons="$skipreasons optout"
                     $PDNSUTIL --config-dir=. --config-name=lmdb set-nsec3 $zone "1 1 1 abcd" 2>&1
                 elif [ $context = lmdb-nsec3-narrow ]
                 then
@@ -49,8 +50,8 @@ __EOF__
         $RUNWRAPPER $PDNS --daemon=no --local-address=$address --local-port=$port --config-dir=. \
             --config-name=lmdb --socket-dir=./ --no-shuffle \
             --query-logging --dnsupdate=no \
-            --expand-alias=yes --outgoing-axfr-expand-alias=yes \
-            --resolver=8.8.8.8 \
+            --expand-alias=yes --resolver=8.8.8.8 \
+            --disable-axfr-rectify=yes --outgoing-axfr-expand-alias=yes \
             --cache-ttl=$cachettl --dname-processing $lua_prequery &
 
         ;;
