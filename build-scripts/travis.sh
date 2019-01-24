@@ -640,10 +640,6 @@ test_repo(){
   run "git status | grep -q clean"
 }
 
-test_none() {
-  run "build-scripts/test-spelling-unknown-words"
-}
-
 if [ $PDNS_BUILD_PRODUCT != "none" ]; then
 # global build requirements
 run "sudo apt-get -qq --no-install-recommends install \
