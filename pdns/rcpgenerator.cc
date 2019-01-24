@@ -38,7 +38,8 @@
 RecordTextReader::RecordTextReader(const string& str, const DNSName& zone) : d_string(str), d_zone(zone), d_pos(0)
 {
    /* remove whitespace */
-   boost::trim_if(d_string, boost::algorithm::is_space());
+   if(!d_string.empty() && ( dns_isspace(*d_string.begin()) || dns_isspace(*d_string.rbegin()) ))
+     boost::trim_if(d_string, dns_isspace);
    d_end = d_string.size();
 }
 
