@@ -2,6 +2,18 @@ Changelogs for 4.1.x
 ====================
 
 .. changelog::
+  :version: 4.1.10
+  :released: 24th of January 2019
+
+  This release fixes a bug when trying to build PowerDNS Recursor with protobuf support disabled.  Thus this release is only relevant to people building PowerDNS Recursor from source and not if you're installing it as a package from our repositories.
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 7403
+
+    PowerDNS Recursor release 4.1.9 introduced a call to the Lua :func:`ipfilter` hook that required access to the DNS header, but the corresponding variable was only declared when protobuf support had been enabled.
+
+.. changelog::
   :version: 4.1.9
   :released: 21st of January 2019
 
