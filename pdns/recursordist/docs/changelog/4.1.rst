@@ -5,7 +5,7 @@ Changelogs for 4.1.x
   :version: 4.1.10
   :released: 24th of January 2019
 
-  This release fixes a bug when trying to build PowerDNS Recursor with protobuf support disabled.  Thus this release is only relevant to people building PowerDNS Recursor from source and not if you're installing it as a package from our repositories.
+  This release fixes a bug when trying to build PowerDNS Recursor with protobuf support disabled, thus this release is only relevant to people building PowerDNS Recursor from source and not if you're installing it as a package from our repositories.
 
   .. change::
     :tags: Bug Fixes
