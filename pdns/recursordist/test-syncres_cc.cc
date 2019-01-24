@@ -8991,8 +8991,9 @@ BOOST_AUTO_TEST_CASE(test_dnssec_rrsig_cache_validity) {
   g_luaconfs.setState(luaconfsCopy);
 
   size_t queriesCount = 0;
+  const time_t tnow = sr->getNow().tv_sec;
 
-  sr->setAsyncCallback([target,targetAddr,&queriesCount,keys](const ComboAddress& ip, const DNSName& domain, int type, bool doTCP, bool sendRDQuery, int EDNS0Level, struct timeval* now, boost::optional<Netmask>& srcmask, boost::optional<const ResolveContext&> context, std::shared_ptr<RemoteLogger> outgoingLogger, LWResult* res, bool* chained) {
+  sr->setAsyncCallback([target,targetAddr,&queriesCount,keys,tnow](const ComboAddress& ip, const DNSName& domain, int type, bool doTCP, bool sendRDQuery, int EDNS0Level, struct timeval* now, boost::optional<Netmask>& srcmask, boost::optional<const ResolveContext&> context, std::shared_ptr<RemoteLogger> outgoingLogger, LWResult* res, bool* chained) {
       queriesCount++;
 
       DNSName auth = domain;
@@ -9004,14 +9005,13 @@ BOOST_AUTO_TEST_CASE(test_dnssec_rrsig_cache_validity) {
       else {
         setLWResult(res, RCode::NoError, true, false, true);
         addRecordToLW(res, domain, QType::A, targetAddr.toString(), DNSResourceRecord::ANSWER, 3600);
-        addRRSIG(keys, res->d_records, domain, 1);
+        addRRSIG(keys, res->d_records, domain, 1, false, boost::none, boost::none, tnow);
         return 1;
       }
 
       return 0;
     });
 
-  const time_t now = sr->getNow().tv_sec;
   vector<DNSRecord> ret;
   int res = sr->beginResolve(target, QType(QType::A), QClass::IN, ret);
   BOOST_CHECK_EQUAL(res, RCode::NoError);
@@ -9023,10 +9023,10 @@ BOOST_AUTO_TEST_CASE(test_dnssec_rrsig_cache_validity) {
   const ComboAddress who;
   vector<DNSRecord> cached;
   vector<std::shared_ptr<RRSIGRecordContent>> signatures;
-  BOOST_REQUIRE_EQUAL(t_RC->get(now, target, QType(QType::A), true, &cached, who, &signatures), 1);
+  BOOST_REQUIRE_EQUAL(t_RC->get(tnow, target, QType(QType::A), true, &cached, who, &signatures), 1);
   BOOST_REQUIRE_EQUAL(cached.size(), 1);
   BOOST_REQUIRE_EQUAL(signatures.size(), 1);
-  BOOST_CHECK_EQUAL((cached[0].d_ttl - now), 1);
+  BOOST_CHECK_EQUAL((cached[0].d_ttl - tnow), 1);
 
   /* again, to test the cache */
   ret.clear();
