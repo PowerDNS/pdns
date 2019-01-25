@@ -404,7 +404,7 @@ Important changes:
 
 -  Crypto++ and mbedTLS support is dropped, these are replaced by
    OpenSSL
--  The INCEPTION, INCEPTION-WEEK and EPOCH SOA-EDIT metadata values are
+-  The INCEPTION and INCEPTION-WEEK SOA-EDIT metadata values are
    marked as deprecated and will be removed in 4.1
 
 The final release has the following bug fixes compared to rc2:
