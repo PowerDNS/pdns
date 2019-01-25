@@ -700,13 +700,20 @@ These ``DNSRule``\ s be one of the following items:
 
 .. function:: RE2Rule(regex)
 
+	Where RegexRule accept any match the RE2Rule require a full query match against the regex.
   Matches the query name against the supplied regex using the RE2 engine.
 
-  For an example of usage, see :func:`RegexRule`.
+  For an example of usage.
+
+    addAction(RE2Rule("[0-9]{5,}"), DelayAction(750)) -- milliseconds
+    addAction(RE2Rule("^[0-9]{4,}\\.example$"), DropAction())
+
+  Versus a RegexRule, RE2Rule will not match any query for a domain name with 5 or more consecutive digits in it, as it recuire a full match.
+  The second rule will match with RE2Rule and drops anything with more than 4 consecutive digits in the beginning within a .EXAMPLE domain.
 
   :note: Only available when dnsdist was built with libre2 support.
 
-  :param str regex: The regular expression to match the QNAME.
+  :param str regex: The regular expression to match the full QNAME.
 
 .. function:: SuffixMatchNodeRule(smn[, quiet])
 
