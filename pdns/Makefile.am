@@ -1515,43 +1515,43 @@ if HAVE_SYSTEMD
 pdns.service: pdns.service.in
 	$(AM_V_GEN)sed -e 's![@]sbindir[@]!$(sbindir)!' < $< > $@
 if !HAVE_SYSTEMD_LOCK_PERSONALITY
-	$(AM_V_GEN)sed -i '' -e '/^LockPersonality/d' $@
+	$(AM_V_GEN)perl -ni -e 'print unless /^LockPersonality/' $@
 endif
 if !HAVE_SYSTEMD_PRIVATE_DEVICES
-	$(AM_V_GEN)sed -i '' -e '/^PrivateDevices/d' $@
+	$(AM_V_GEN)perl -ni -e 'print unless /^PrivateDevices/' $@
 endif
 if !HAVE_SYSTEMD_PRIVATE_TMP
-	$(AM_V_GEN)sed -i '' -e '/^PrivateTmp/d' $@
+	$(AM_V_GEN)perl -ni -e 'print unless /^PrivateTmp/' $@
 endif
 if !HAVE_SYSTEMD_PROTECT_CONTROL_GROUPS
-	$(AM_V_GEN)sed -i '' -e '/^ProtectControlGroups/d' $@
+	$(AM_V_GEN)perl -ni -e 'print unless /^ProtectControlGroups/' $@
 endif
 if !HAVE_SYSTEMD_PROTECT_HOME
-	$(AM_V_GEN)sed -i '' -e '/^ProtectHome/d' $@
+	$(AM_V_GEN)perl -ni -e 'print unless /^ProtectHome/' $@
 endif
 if !HAVE_SYSTEMD_PROTECT_KERNEL_MODULES
-	$(AM_V_GEN)sed -i '' -e '/^ProtectKernelModules/d' $@
+	$(AM_V_GEN)perl -ni -e 'print unless /^ProtectKernelModules/' $@
 endif
 if !HAVE_SYSTEMD_PROTECT_KERNEL_TUNABLES
-	$(AM_V_GEN)sed -i '' -e '/^ProtectKernelTunables/d' $@
+	$(AM_V_GEN)perl -ni -e 'print unless /^ProtectKernelTunables/' $@
 endif
 if !HAVE_SYSTEMD_PROTECT_SYSTEM
-	$(AM_V_GEN)sed -i '' -e '/^ProtectSystem/d' $@
+	$(AM_V_GEN)perl -ni -e 'print unless /^ProtectSystem/' $@
 endif
 if !HAVE_SYSTEMD_RESTRICT_ADDRESS_FAMILIES
-	$(AM_V_GEN)sed -i '' -e '/^RestrictAddressFamilies/d' $@
+	$(AM_V_GEN)perl -ni -e 'print unless /^RestrictAddressFamilies/' $@
 endif
 if !HAVE_SYSTEMD_RESTRICT_NAMESPACES
-	$(AM_V_GEN)sed -i '' -e '/^RestrictNamespaces/d' $@
+	$(AM_V_GEN)perl -ni -e 'print unless /^RestrictNamespaces/' $@
 endif
 if !HAVE_SYSTEMD_RESTRICT_REALTIME
-	$(AM_V_GEN)sed -i '' -e '/^RestrictRealtime/d' $@
+	$(AM_V_GEN)perl -ni -e 'print unless /^RestrictRealtime/' $@
 endif
 if !HAVE_SYSTEMD_SYSTEM_CALL_ARCHITECTURES
-	$(AM_V_GEN)sed -i '' -e '/^SystemCallArchitectures/d' $@
+	$(AM_V_GEN)perl -ni -e 'print unless /^SystemCallArchitectures/' $@
 endif
 if !HAVE_SYSTEMD_SYSTEM_CALL_FILTER
-	$(AM_V_GEN)sed -i '' -e '/^SystemCallFilter/d' $@
+	$(AM_V_GEN)perl -ni -e 'print unless /^SystemCallFilter/' $@
 endif
 
 pdns@.service: pdns.service
