@@ -41,6 +41,7 @@
 #include "ext/incbin/incbin.h"
 #include "rec-lua-conf.hh"
 #include "rpzloader.hh"
+#include "uuid-utils.hh"
 
 extern thread_local FDMultiplexer* t_fdm;
 
@@ -621,49 +622,119 @@ void AsyncServer::newConnection()
 }
 
 // This is an entry point from FDM, so it needs to catch everything.
-void AsyncWebServer::serveConnection(std::shared_ptr<Socket> client) const
-try {
-  HttpRequest req;
-  YaHTTP::AsyncRequestLoader yarl;
-  yarl.initialize(&req);
-  client->setNonBlocking();
+void AsyncWebServer::serveConnection(std::shared_ptr<Socket> client) const {
+  const string logprefix = d_logprefix + "<" + to_string(getUniqueID()) + "> ";
 
-  string data;
+  HttpRequest req(logprefix);
+  HttpResponse resp;
+  ComboAddress remote;
+  string reply;
+
   try {
-    while(!req.complete) {
-      int bytes = arecvtcp(data, 16384, client.get(), true);
-      if (bytes > 0) {
-        req.complete = yarl.feed(data);
+    YaHTTP::AsyncRequestLoader yarl;
+    yarl.initialize(&req);
+    client->setNonBlocking();
+
+    string data;
+    try {
+      while(!req.complete) {
+        int bytes = arecvtcp(data, 16384, client.get(), true);
+        if (bytes > 0) {
+          req.complete = yarl.feed(data);
+        } else {
+          // read error OR EOF
+          break;
+        }
+      }
+      yarl.finalize();
+    } catch (YaHTTP::ParseError &e) {
+      // request stays incomplete
+    }
+
+    if (d_loglevel >= WebServer::LogLevel::None) {
+      client->getRemote(remote);
+    }
+
+    if (d_loglevel >= WebServer::LogLevel::Detailed) {
+      g_log<<Logger::Notice<<logprefix<<"Request Details:"<<endl;
+
+      bool first = true;
+      for (const auto& r : req.getvars) {
+        if (first) {
+          first = false;
+          g_log<<Logger::Notice<<logprefix<<" GET params:"<<endl;
+        }
+        g_log<<Logger::Notice<<logprefix<<"  "<<r.first<<": "<<r.second<<endl;
+      }
+
+      first = true;
+      for (const auto& r : req.postvars) {
+        if (first) {
+          first = false;
+          g_log<<Logger::Notice<<logprefix<<" POST params:"<<endl;
+        }
+        g_log<<Logger::Notice<<logprefix<<"  "<<r.first<<": "<<r.second<<endl;
+      }
+      first = true;
+
+      for (const auto& h : req.headers) {
+        if (first) {
+          first = false;
+          g_log<<Logger::Notice<<logprefix<<" Headers:"<<endl;
+        }
+        g_log<<Logger::Notice<<logprefix<<"  "<<h.first<<": "<<h.second<<endl;
+      }
+
+      if (req.body.empty()) {
+        g_log<<Logger::Notice<<logprefix<<" No body"<<endl;
       } else {
-        // read error OR EOF
-        break;
+        g_log<<Logger::Notice<<logprefix<<" Full body: "<<endl;
+        g_log<<Logger::Notice<<logprefix<<"  "<<req.body<<endl;
       }
     }
-    yarl.finalize();
-  } catch (YaHTTP::ParseError &e) {
-    // request stays incomplete
+
+    WebServer::handleRequest(req, resp);
+    ostringstream ss;
+    resp.write(ss);
+    reply = ss.str();
+
+    if (d_loglevel >= WebServer::LogLevel::Detailed) {
+      g_log<<Logger::Notice<<logprefix<<"Response details:"<<endl;
+      bool first = true;
+      for (const auto& h : resp.headers) {
+        if (first) {
+          first = false;
+          g_log<<Logger::Notice<<logprefix<<" Headers:"<<endl;
+        }
+        g_log<<Logger::Notice<<logprefix<<"  "<<h.first<<": "<<h.second<<endl;
+      }
+      if (resp.body.empty()) {
+        g_log<<Logger::Notice<<logprefix<<" No body"<<endl;
+      } else {
+        g_log<<Logger::Notice<<logprefix<<" Full body: "<<endl;
+        g_log<<Logger::Notice<<logprefix<<"  "<<resp.body<<endl;
+      }
+    }
+
+    // now send the reply
+    if (asendtcp(reply, client.get()) == -1 || reply.empty()) {
+      g_log<<Logger::Error<<logprefix<<"Failed sending reply to HTTP client"<<endl;
+    }
+  }
+  catch(PDNSException &e) {
+    g_log<<Logger::Error<<logprefix<<"Exception: "<<e.reason<<endl;
+  }
+  catch(std::exception &e) {
+    if(strstr(e.what(), "timeout")==0)
+      g_log<<Logger::Error<<logprefix<<"STL Exception: "<<e.what()<<endl;
+  }
+  catch(...) {
+    g_log<<Logger::Error<<logprefix<<"Unknown exception"<<endl;
   }
 
-  HttpResponse resp;
-  handleRequest(req, resp);
-  ostringstream ss;
-  resp.write(ss);
-  data = ss.str();
-
-  // now send the reply
-  if (asendtcp(data, client.get()) == -1 || data.empty()) {
-    g_log<<Logger::Error<<"Failed sending reply to HTTP client"<<endl;
+  if (d_loglevel >= WebServer::LogLevel::Normal) {
+    g_log<<Logger::Notice<<logprefix<<remote<<" \""<<req.method<<" "<<req.url.path<<" HTTP/"<<req.versionStr(req.version)<<"\" "<<resp.status<<" "<<reply.size()<<endl;
   }
-}
-catch(PDNSException &e) {
-  g_log<<Logger::Error<<"HTTP Exception: "<<e.reason<<endl;
-}
-catch(std::exception &e) {
-  if(strstr(e.what(), "timeout")==0)
-    g_log<<Logger::Error<<"HTTP STL Exception: "<<e.what()<<endl;
-}
-catch(...) {
-  g_log<<Logger::Error<<"HTTP: Unknown exception"<<endl;
 }
 
 void AsyncWebServer::go() {
