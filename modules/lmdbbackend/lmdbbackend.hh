@@ -46,6 +46,7 @@ public:
   bool commitTransaction() override;
   bool abortTransaction() override;
   bool feedRecord(const DNSResourceRecord &r, const DNSName &ordername) override;
+  bool feedEnts(int domain_id, map<DNSName,bool>& nonterm) override;
   bool replaceRRSet(uint32_t domain_id, const DNSName& qname, const QType& qt, const vector<DNSResourceRecord>& rrset) override;
 
   void getAllDomains(vector<DomainInfo> *domains, bool include_disabled=false) override;

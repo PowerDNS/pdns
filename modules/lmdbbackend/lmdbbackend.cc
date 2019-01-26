@@ -313,6 +313,26 @@ bool LMDBBackend::feedRecord(const DNSResourceRecord &r, const DNSName &ordernam
   return true;
 }
 
+bool LMDBBackend::feedEnts(int domain_id, map<DNSName,bool>& nonterm)
+{
+  DomainInfo di;
+  if(!d_tdomains->getROTransaction().get(domain_id, di)) {
+    return false;
+  }
+
+  compoundOrdername co;
+  DNSResourceRecord rr;
+  rr.ttl = 0;
+  for(const auto& nt: nonterm) {
+    rr.qname = nt.first.makeRelative(di.zone);
+    rr.auth = nt.second;
+    std::string ser = serToString(rr);
+
+    d_rwtxn->txn.put(d_rwtxn->db->dbi, co(domain_id, rr.qname, 0), ser);
+  }
+  return true;
+}
+
 // might be called within a transaction, might also be called alone
 bool LMDBBackend::replaceRRSet(uint32_t domain_id, const DNSName& qname, const QType& qt, const vector<DNSResourceRecord>& rrset)
 {
