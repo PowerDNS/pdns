@@ -31,3 +31,4 @@
 /oracle2.log
 /remotebackend-access.log
 /pdns.lmdb*
+/pdns2.lmdb*

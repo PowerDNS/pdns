@@ -121,6 +121,10 @@ start_slave ()
 			source ./backends/gsqlite3-slave
 			;;
 
+		lmdb*)
+			source ./backends/lmdb-slave
+			;;
+
 		oracle*)
 			source ./backends/oracle-slave
 			;;
