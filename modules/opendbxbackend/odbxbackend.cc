@@ -629,7 +629,7 @@ bool OdbxBackend::createSlaveDomain( const string& ip, const DNSName& domain, co
 
 
 
-bool OdbxBackend::feedRecord( const DNSResourceRecord& rr, const DNSName& ordername )
+bool OdbxBackend::feedRecord( const DNSResourceRecord& rr, const DNSName& ordername, bool ordernameIsNSEC3 )
 {
         try
         {

@@ -33,7 +33,7 @@
    virtual bool startTransaction(const string &qname, int id);
    virtual bool commitTransaction();
    virtual bool abortTransaction();
-   virtual bool feedRecord(const DNSResourceRecord &rr, DNSName &ordername);
+   virtual bool feedRecord(const DNSResourceRecord &rr, DNSName &ordername, bool ordernameIsNSEC3);
 
    virtual bool getDomainInfo(const string &domain, DomainInfo &di);
    virtual void getUnfreshSlaveInfos(vector<DomainInfo>* domains);
@@ -135,7 +135,7 @@ bool LUABackend::abortTransaction() {
     return ok;
 }
 
-bool LUABackend::feedRecord(const DNSResourceRecord &rr, const DNSName &ordername) {
+bool LUABackend::feedRecord(const DNSResourceRecord &rr, const DNSName &ordername, bool ordernameIsNSEC3) {
 
     if (f_lua_feedrecord == 0)
         return false;
