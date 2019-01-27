@@ -26,6 +26,8 @@
 #include "pdns/dnsbackend.hh"
 #include "pdns/dns.hh"
 #include "pdns/dnspacket.hh"
+#include "pdns/base32.hh"
+#include "pdns/dnssecinfra.hh"
 #include "pdns/pdnsexception.hh"
 #include "pdns/logger.hh"
 #include "pdns/version.hh"
@@ -302,29 +304,35 @@ bool LMDBBackend::abortTransaction()
 // d_rwtxn must be set here
 bool LMDBBackend::feedRecord(const DNSResourceRecord &r, const DNSName &ordername)
 {
-  DNSResourceRecord rr2(r);
-  rr2.qname.makeUsRelative(d_transactiondomain);
-  //  rr2.wildcardname = ordername;
-  //  cout<<"Going to serialize '"<<rr2.content<<"': ";
-  rr2.content = serializeContent(rr2.qtype.getCode(), r.qname, rr2.content);
-  //  cout<<makeHexDump(rr2.content)<<endl;
+  DNSResourceRecord rr(r);
+  rr.qname.makeUsRelative(d_transactiondomain);
+  rr.content = serializeContent(rr.qtype.getCode(), r.qname, rr.content);
+
   compoundOrdername co;
-  d_rwtxn->txn.put(d_rwtxn->db->dbi, co(r.domain_id, rr2.qname, rr2.qtype.getCode()), serToString(rr2));
+  d_rwtxn->txn.put(d_rwtxn->db->dbi, co(r.domain_id, rr.qname, rr.qtype.getCode()), serToString(rr));
+
+  if(!ordername.empty()) {
+      rr.ttl = 0;
+      rr.auth = 0;
+      rr.content=rr.qname.toDNSStringLC();
+      string ser = serToString(rr);
+      d_rwtxn->txn.put(d_rwtxn->db->dbi, co(r.domain_id, ordername, QType::NSEC3), ser);
+
+      rr.ttl = 1;
+      rr.content = ordername.toDNSString();
+      ser = serToString(rr);
+      d_rwtxn->txn.put(d_rwtxn->db->dbi, co(r.domain_id, rr.qname, QType::NSEC3), ser);
+  }
   return true;
 }
 
 bool LMDBBackend::feedEnts(int domain_id, map<DNSName,bool>& nonterm)
 {
-  DomainInfo di;
-  if(!d_tdomains->getROTransaction().get(domain_id, di)) {
-    return false;
-  }
-
-  compoundOrdername co;
   DNSResourceRecord rr;
   rr.ttl = 0;
+  compoundOrdername co;
   for(const auto& nt: nonterm) {
-    rr.qname = nt.first.makeRelative(di.zone);
+    rr.qname = nt.first.makeRelative(d_transactiondomain);
     rr.auth = nt.second;
     std::string ser = serToString(rr);
 
@@ -332,6 +340,38 @@ bool LMDBBackend::feedEnts(int domain_id, map<DNSName,bool>& nonterm)
   }
   return true;
 }
+
+bool LMDBBackend::feedEnts3(int domain_id, const DNSName &domain, map<DNSName,bool> &nonterm, const NSEC3PARAMRecordContent& ns3prc, bool narrow)
+{
+  DNSName ordername;
+  DNSResourceRecord rr;
+  compoundOrdername co;
+  for(const auto& nt: nonterm) {
+    rr.qname = nt.first.makeRelative(domain);
+    rr.ttl = 0;
+    rr.auth = nt.second;
+    rr.disabled = true;
+    string ser = serToString(rr);
+
+    d_rwtxn->txn.put(d_rwtxn->db->dbi, co(domain_id, rr.qname, 0), ser);
+
+    if(!narrow && rr.auth) {
+      rr.auth=0;
+      rr.content=rr.qname.toDNSString();
+      ser = serToString(rr);
+
+      ordername=DNSName(toBase32Hex(hashQNameWithSalt(ns3prc, nt.first)));
+      d_rwtxn->txn.put(d_rwtxn->db->dbi, co(domain_id, ordername, QType::NSEC3), ser);
+
+      rr.ttl = 1;
+      rr.content = ordername.toDNSString();
+      ser = serToString(rr);
+      d_rwtxn->txn.put(d_rwtxn->db->dbi, co(domain_id, rr.qname, QType::NSEC3), ser);
+    }
+  }
+  return true;
+}
+
 
 // might be called within a transaction, might also be called alone
 bool LMDBBackend::replaceRRSet(uint32_t domain_id, const DNSName& qname, const QType& qt, const vector<DNSResourceRecord>& rrset)
@@ -801,12 +841,18 @@ bool LMDBBackend::createDomain(const DNSName &domain, const string &type, const 
 
 void LMDBBackend::getAllDomains(vector<DomainInfo> *domains, bool include_disabled)
 {
+  compoundOrdername co;
+  MDBOutVal val;
   domains->clear();
   auto txn = d_tdomains->getROTransaction();
   for(auto iter = txn.begin(); iter != txn.end(); ++iter) {
     DomainInfo di=*iter;
     di.id = iter.getID();
-    domains->push_back(di);
+
+    auto txn = getRecordsROTransaction(iter.getID());
+    if(!txn->txn.get(txn->db->dbi, co(di.id, g_rootdnsname, QType::SOA), val)) {
+      domains->push_back(di);
+    }
   }
 }
 
