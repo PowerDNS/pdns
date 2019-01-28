@@ -28,7 +28,7 @@ __EOF__
 			--config-name=ldap --socket-dir=./ --no-shuffle \
 			--query-logging --dnsupdate=yes \
       --expand-alias=yes --outgoing-axfr-expand-alias=yes \
-      --resolver=8.8.8.8 \
+      --resolver=$RESOLVERIP \
 			--cache-ttl=$cachettl --dname-processing $lua_prequery &
 
 		skipreasons="nodnssec noent nodyndns nometa noaxfr"
