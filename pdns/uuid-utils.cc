@@ -19,44 +19,29 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
-#ifndef SSQLITE3_HH
-#define SSQLITE3_HH
 
-#include <sqlite3.h>
-#include "pdns/backends/gsql/ssql.hh"
+#include "uuid-utils.hh"
 
-class SSQLite3 : public SSql
+// see https://github.com/boostorg/random/issues/49
+#if BOOST_VERSION == 106900
+#ifndef BOOST_PENDING_INTEGER_LOG2_HPP
+#define BOOST_PENDING_INTEGER_LOG2_HPP
+#include <boost/integer/integer_log2.hpp>
+#endif /* BOOST_PENDING_INTEGER_LOG2_HPP */
+#endif /* BOOST_VERSION */
+
+#include <boost/uuid/uuid_generators.hpp>
+
+thread_local boost::uuids::random_generator t_uuidGenerator;
+
+boost::uuids::uuid getUniqueID()
 {
-private:
-  //! Pointer to the SQLite database instance.
-  sqlite3 *m_pDB{nullptr};
+  return t_uuidGenerator();
+}
 
-  bool m_dolog;
-  bool m_in_transaction;
-  static int busyHandler(void*, int);
-protected:
-public:
-  //! Constructor.
-  SSQLite3( const std::string & database, bool creat=false );
-
-  //! Destructor.
-  ~SSQLite3();
-
-  std::unique_ptr<SSqlStatement> prepare(const string& query, int nparams) override;
-  void execute(const string& query) override;
-  void setLog(bool state) override;
-
-  void startTransaction() override;
-  void commit() override;
-  void rollback() override;
-
-  sqlite3 *db() { return this->m_pDB; };
-
-  bool inTransaction() { return m_in_transaction; };
-
-  //! Used to create an backend specific exception message.
-  SSqlException sPerrorException( const std::string & reason ) override;
-};
-
-#endif // SSQLITE3_HH
+boost::uuids::uuid getUniqueID(const std::string& str)
+{
+  boost::uuids::string_generator gen;
+  return gen(str);
+}
 

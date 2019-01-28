@@ -10,10 +10,6 @@ env:
   - PDNS_BUILD_PRODUCT=dnsdist
   - PDNS_BUILD_PRODUCT=ixfrdist
 
-matrix:
-  include:
-  - env: PDNS_BUILD_PRODUCT=none
-
 cache:
   - pip
 

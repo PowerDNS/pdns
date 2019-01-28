@@ -50,6 +50,8 @@
 
 #ifdef HAVE_PROTOBUF
 
+#include "uuid-utils.hh"
+
 static void logOutgoingQuery(const std::shared_ptr<std::vector<std::unique_ptr<RemoteLogger>>>& outgoingLoggers, boost::optional<const boost::uuids::uuid&> initialRequestId, const boost::uuids::uuid& uuid, const ComboAddress& ip, const DNSName& domain, int type, uint16_t qid, bool doTCP, size_t bytes, boost::optional<Netmask>& srcmask)
 {
   if(!outgoingLoggers)
@@ -160,7 +162,7 @@ int asyncresolve(const ComboAddress& ip, const DNSName& domain, int type, bool d
   const struct timeval queryTime = *now;
 
   if (outgoingLoggers) {
-    uuid = (*t_uuidGenerator)();
+    uuid = getUniqueID();
     logOutgoingQuery(outgoingLoggers, context ? context->d_initialRequestId : boost::none, uuid, ip, domain, type, qid, doTCP, vpacket.size(), srcmask);
   }
 #endif

@@ -288,7 +288,7 @@ void setupLuaBindings(bool client)
               boost::optional<uint16_t> qtype,
               boost::optional<bool> suffixMatch) {
                 if (cache) {
-                  cache->expungeByName(dname, qtype ? *qtype : QType::ANY, suffixMatch ? *suffixMatch : false);
+                  cache->expungeByName(dname, qtype ? *qtype : QType(QType::ANY).getCode(), suffixMatch ? *suffixMatch : false);
                 }
     });
   g_lua.registerFunction<void(std::shared_ptr<DNSDistPacketCache>::*)()>("printStats", [](const std::shared_ptr<DNSDistPacketCache> cache) {

@@ -36,7 +36,8 @@ static __u64 ptr_to_u64(void *ptr)
 int bpf_create_map(enum bpf_map_type map_type, int key_size, int value_size,
 		   int max_entries)
 {
-  union bpf_attr attr = { 0 };
+  union bpf_attr attr;
+  memset(&attr, 0, sizeof(attr));
   attr.map_type = map_type;
   attr.key_size = key_size;
   attr.value_size = value_size;
@@ -46,7 +47,8 @@ int bpf_create_map(enum bpf_map_type map_type, int key_size, int value_size,
 
 int bpf_update_elem(int fd, void *key, void *value, unsigned long long flags)
 {
-  union bpf_attr attr = { 0 };
+  union bpf_attr attr;
+  memset(&attr, 0, sizeof(attr));
   attr.map_fd = fd;
   attr.key = ptr_to_u64(key);
   attr.value = ptr_to_u64(value);
@@ -56,7 +58,8 @@ int bpf_update_elem(int fd, void *key, void *value, unsigned long long flags)
 
 int bpf_lookup_elem(int fd, void *key, void *value)
 {
-  union bpf_attr attr = { 0 };
+  union bpf_attr attr;
+  memset(&attr, 0, sizeof(attr));
   attr.map_fd = fd;
   attr.key = ptr_to_u64(key);
   attr.value = ptr_to_u64(value);
@@ -65,7 +68,8 @@ int bpf_lookup_elem(int fd, void *key, void *value)
 
 int bpf_delete_elem(int fd, void *key)
 {
-  union bpf_attr attr = { 0 };
+  union bpf_attr attr;
+  memset(&attr, 0, sizeof(attr));
   attr.map_fd = fd;
   attr.key = ptr_to_u64(key);
   return syscall(SYS_bpf, BPF_MAP_DELETE_ELEM, &attr, sizeof(attr));
@@ -73,7 +77,8 @@ int bpf_delete_elem(int fd, void *key)
 
 int bpf_get_next_key(int fd, void *key, void *next_key)
 {
-  union bpf_attr attr = { 0 };
+  union bpf_attr attr;
+  memset(&attr, 0, sizeof(attr));
   attr.map_fd = fd;
   attr.key = ptr_to_u64(key);
   attr.next_key = ptr_to_u64(next_key);
@@ -85,7 +90,8 @@ int bpf_prog_load(enum bpf_prog_type prog_type,
 		  const char *license, int kern_version)
 {
   char log_buf[65535];
-  union bpf_attr attr = { 0 };
+  union bpf_attr attr;
+  memset(&attr, 0, sizeof(attr));
   attr.prog_type = prog_type;
   attr.insns = ptr_to_u64((void *) insns);
   attr.insn_cnt = prog_len / sizeof(struct bpf_insn);
@@ -353,8 +359,8 @@ std::vector<std::pair<ComboAddress, uint64_t> > BPFFilter::getAddrStats()
   uint32_t nextV4Key;
   uint64_t value;
   int res = bpf_get_next_key(d_v4map.fd, &v4Key, &nextV4Key);
-  sockaddr_in v4Addr = { 0 };
-  v4Addr.sin_port = 0;
+  sockaddr_in v4Addr;
+  memset(&v4Addr, 0, sizeof(v4Addr));
   v4Addr.sin_family = AF_INET;
 
   while (res == 0) {
@@ -369,9 +375,10 @@ std::vector<std::pair<ComboAddress, uint64_t> > BPFFilter::getAddrStats()
 
   uint8_t v6Key[16];
   uint8_t nextV6Key[16];
-  sockaddr_in6 v6Addr = { 0 };
+  sockaddr_in6 v6Addr;
+  memset(&v6Addr, 0, sizeof(v6Addr));
   v6Addr.sin6_family = AF_INET6;
-  v6Addr.sin6_port = 0;
+
   static_assert(sizeof(v6Addr.sin6_addr.s6_addr) == sizeof(v6Key), "POSIX mandates s6_addr to be an array of 16 uint8_t");
   for (size_t idx = 0; idx < sizeof(v6Key); idx++) {
     v6Key[idx] = 0;

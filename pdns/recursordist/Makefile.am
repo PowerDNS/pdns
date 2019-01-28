@@ -362,6 +362,10 @@ testrunner_LDADD += $(PROTOBUF_LIBS)
 testrunner$(OBJEXT): dnsmessage.pb.cc
 
 endif
+
+pdns_recursor_SOURCES += \
+	uuid-utils.hh uuid-utils.cc
+
 endif
 
 rec_control_SOURCES = \
@@ -446,6 +450,45 @@ endif
 if HAVE_SYSTEMD
 pdns-recursor.service: pdns-recursor.service.in
 	$(AM_V_GEN)sed -e 's![@]sbindir[@]!$(sbindir)!' < $< > $@
+if !HAVE_SYSTEMD_LOCK_PERSONALITY
+	$(AM_V_GEN)perl -ni -e 'print unless /^LockPersonality/' $@
+endif
+if !HAVE_SYSTEMD_PRIVATE_DEVICES
+	$(AM_V_GEN)perl -ni -e 'print unless /^PrivateDevices/' $@
+endif
+if !HAVE_SYSTEMD_PRIVATE_TMP
+	$(AM_V_GEN)perl -ni -e 'print unless /^PrivateTmp/' $@
+endif
+if !HAVE_SYSTEMD_PROTECT_CONTROL_GROUPS
+	$(AM_V_GEN)perl -ni -e 'print unless /^ProtectControlGroups/' $@
+endif
+if !HAVE_SYSTEMD_PROTECT_HOME
+	$(AM_V_GEN)perl -ni -e 'print unless /^ProtectHome/' $@
+endif
+if !HAVE_SYSTEMD_PROTECT_KERNEL_MODULES
+	$(AM_V_GEN)perl -ni -e 'print unless /^ProtectKernelModules/' $@
+endif
+if !HAVE_SYSTEMD_PROTECT_KERNEL_TUNABLES
+	$(AM_V_GEN)perl -ni -e 'print unless /^ProtectKernelTunables/' $@
+endif
+if !HAVE_SYSTEMD_PROTECT_SYSTEM
+	$(AM_V_GEN)perl -ni -e 'print unless /^ProtectSystem/' $@
+endif
+if !HAVE_SYSTEMD_RESTRICT_ADDRESS_FAMILIES
+	$(AM_V_GEN)perl -ni -e 'print unless /^RestrictAddressFamilies/' $@
+endif
+if !HAVE_SYSTEMD_RESTRICT_NAMESPACES
+	$(AM_V_GEN)perl -ni -e 'print unless /^RestrictNamespaces/' $@
+endif
+if !HAVE_SYSTEMD_RESTRICT_REALTIME
+	$(AM_V_GEN)perl -ni -e 'print unless /^RestrictRealtime/' $@
+endif
+if !HAVE_SYSTEMD_SYSTEM_CALL_ARCHITECTURES
+	$(AM_V_GEN)perl -ni -e 'print unless /^SystemCallArchitectures/' $@
+endif
+if !HAVE_SYSTEMD_SYSTEM_CALL_FILTER
+	$(AM_V_GEN)perl -ni -e 'print unless /^SystemCallFilter/' $@
+endif
 
 pdns-recursor@.service: pdns-recursor.service
 	$(AM_V_GEN)sed -e 's!/pdns_recursor!& --config-name=%i!' \
