@@ -168,7 +168,7 @@ static void mvRule(GlobalStateHolder<vector<T> > *someRespRulActions, unsigned i
   }
   auto subject = rules[from];
   rules.erase(rules.begin()+from);
-  if(to == rules.size())
+  if(to > rules.size())
     rules.push_back(subject);
   else {
     if(from < to)

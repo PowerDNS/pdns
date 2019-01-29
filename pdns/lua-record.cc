@@ -896,7 +896,16 @@ std::vector<shared_ptr<DNSRecordContent>> luaSynth(const std::string& code, cons
         ret.push_back(DNSRecordContent::mastermake(qtype, QClass::IN, content ));
     }
   } catch(std::exception &e) {
-    g_log<<Logger::Error<<"Lua record reported: "<<e.what()<<endl;
+    g_log<<Logger::Error<<"Lua record reported: "<<e.what();
+    try {
+      std::rethrow_if_nested(e);
+      g_log<<endl;
+    } catch(const std::exception& ne) {
+      g_log << ": " << ne.what() << std::endl;
+    }
+    catch(const PDNSException& ne) {
+      g_log << ": " << ne.reason << std::endl;
+    }
     throw ;
   }
 
