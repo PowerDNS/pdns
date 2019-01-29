@@ -222,7 +222,7 @@ bool responseContentMatches(const char* response, const uint16_t responseLen, co
   }
 
   if (dh->qdcount == 0) {
-    if (dh->rcode != RCode::NoError && dh->rcode != RCode::NXDomain) {
+    if (dh->rcode != RCode::NXDomain) {
       return true;
     }
     else {
