@@ -9,6 +9,8 @@ fi
 python -V
 pip install -r requirements.txt
 
+protoc -I=../pdns/ --python_out=. ../pdns/dnsmessage.proto
+
 mkdir -p configs
 
 [ -f ./vars ] && . ./vars
