@@ -391,6 +391,37 @@ auth-zones=example=configs/%s/example.zone""" % _confdir
         self.assertEquals(socket.inet_ntop(socket.AF_INET, rr.rdata), '192.0.2.42')
         self.checkNoRemainingMessage()
 
+class ProtobufResponsesOnlyTest(TestRecursorProtobuf):
+    """
+    This test makes sure that we correctly export responses but not queries over protobuf.
+    """
+
+    _confdir = 'ProtobufResponsesOnly'
+    _config_template = """
+auth-zones=example=configs/%s/example.zone""" % _confdir
+    _lua_config_file = """
+    protobufServer("127.0.0.1:%d", 2, 100, 1, 32, 128, false, false, true)
+    """ % (protobufServersParameters[0].port)
+
+    def testA(self):
+        name = 'a.example.'
+        expected = dns.rrset.from_text(name, 0, dns.rdataclass.IN, 'A', '192.0.2.42')
+        query = dns.message.make_query(name, 'A', want_dnssec=True)
+        query.flags |= dns.flags.CD
+        res = self.sendUDPQuery(query)
+        self.assertRRsetInAnswer(res, expected)
+
+        # check the protobuf message corresponding to the UDP response
+        msg = self.getFirstProtobufMessage()
+        self.checkProtobufResponse(msg, dnsmessage_pb2.PBDNSMessage.UDP, res)
+        self.assertEquals(len(msg.response.rrs), 1)
+        rr = msg.response.rrs[0]
+        # we have max-cache-ttl set to 15
+        self.checkProtobufResponseRecord(rr, dns.rdataclass.IN, dns.rdatatype.A, name, 15)
+        self.assertEquals(socket.inet_ntop(socket.AF_INET, rr.rdata), '192.0.2.42')
+        # nothing else in the queue
+        self.checkNoRemainingMessage()
+
 class ProtobufTaggedOnlyTest(TestRecursorProtobuf):
     """
     This test makes sure that we correctly export queries and responses but only if they have been tagged.
