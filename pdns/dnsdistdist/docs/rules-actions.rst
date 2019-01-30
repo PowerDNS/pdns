@@ -661,6 +661,46 @@ These ``DNSRule``\ s be one of the following items:
 
   Matches queries with the RD flag set.
 
+.. function:: RE2Rule(regex)
+
+	RE2Rule are used to match a ''full query string'' where parts of the 
+	QNAME can be written in case insensitively PCRE formatted regex.
+	For regex to match partial QNAME queries see :func:`RegexRule`
+	
+	For an example of usage:
+	
+		addAction(RE2Rule("^[0-9]{4,}\\.example\\.org$"), DropAction()) -- first rule
+		addAction(RE2Rule("^example\\.[0-9a-z]\\.org$"), DropAction()) -- last rule
+
+	The first example will match any query to the domain example.org starting
+	 with a number 4 (four) or more times and if the query is true, drop the query.
+
+	Shown examples for first rule:
+
+		12345.example.org -- will be matched by the first rule and query dropped
+		54321.example.org -- will be matched by the first rule and query dropped
+		4321.abc.example.org -- will *not* match first rule and the query will proceed
+		123.example.org -- will *not* match first rule and the query will proceed
+
+	The second example will match any query starting with example.
+	 with a subset of any letter or number any number of times and ending in .org
+
+	Shown examples for last rule:
+
+		example.123abc.org -- will match the last rule and query dropped
+		example.abc321.org -- will match the last rule and query dropped
+		example.123.adc.org -- will *not* match first rule and the query will proceed
+		example.abc.321.org -- will *not* match first rule and the query will proceed
+
+    :quick-notes:
+    - case insensitively.
+    - match full QNAME queries
+
+  :note: Only available when dnsdist was built with libre2 support.
+
+  :param str regex: The regular expression to match full QNAME query.
+  :param str regex: case insensitively PCRE formatted
+
 .. function:: RegexRule(regex)
 
   Matches the query name against the ``regex``.
@@ -673,8 +713,8 @@ These ``DNSRule``\ s be one of the following items:
   This delays any query for a domain name with 5 or more consecutive digits in it.
   The second rule drops anything with more than 4 consecutive digits within a .EXAMPLE domain.
 
-  Note that the query name is presented without a trailing dot to the regex.
-  The regex is applied case insensitively.
+  :Note: that the query name is presented without a trailing dot to the regex.
+  - The regex is applied case insensitively.
 
   :param string regex: A regular expression to match the traffic on
 
@@ -697,23 +737,6 @@ These ``DNSRule``\ s be one of the following items:
   :param int qtype: The QTYPE to match on
   :param int minCount: The minimum number of entries
   :param int maxCount: The maximum number of entries
-
-.. function:: RE2Rule(regex)
-
-	Where RegexRule accept any match the RE2Rule require a full query match against the regex.
-  Matches the query name against the supplied regex using the RE2 engine.
-
-  For an example of usage.
-
-    addAction(RE2Rule("[0-9]{5,}"), DelayAction(750)) -- milliseconds
-    addAction(RE2Rule("^[0-9]{4,}\\.example$"), DropAction())
-
-  Versus a RegexRule, RE2Rule will not match any query for a domain name with 5 or more consecutive digits in it, as it recuire a full match.
-  The second rule will match with RE2Rule and drops anything with more than 4 consecutive digits in the beginning within a .EXAMPLE domain.
-
-  :note: Only available when dnsdist was built with libre2 support.
-
-  :param str regex: The regular expression to match the full QNAME.
 
 .. function:: SuffixMatchNodeRule(smn[, quiet])
 
