@@ -1,63 +1,103 @@
 $TTL 2h;
-$ORIGIN domain.example.com.
-@               SOA powerdns.example.net. hostmaster.example.com ( 1 12h 15m 3w 2h)
-                NS powerdns.example.net.  
+$ORIGIN domain.example.org.
+@               SOA powerdns.example.org. hostmaster.example.org ( 
+                1 ; Serial
+                12h ; refresh
+                15m ; retry
+                3w ; exspire
+                NS powerdns.example.org.  
+
 ; begin RPZ RR definitions
 
 ;; QNAME Trigger
 
 ; QNAME Trigger NXDOMAIN Action
 ; kills whole domain
-nxdomain.org        CNAME .
-*.nxdomain.org      CNAME .
+example.org        CNAME .
+*.example.org      CNAME .
 
 ; QNAME Trigger PASSTHRU Action
 ; typically only used for bypass
-mail.nxdomain.org        CNAME rpz-passthru.
+mail.example.org        CNAME rpz-passthru.
 
 ; QNAME Trigger DROP Action
 ; kills whole domain
-example.net        CNAME rpz-drop.
-*.example.net      CNAME rpz-drop.
+example.org        CNAME rpz-drop.
+*.example.org      CNAME rpz-drop.
 
 ; QNAME Trigger Truncate Action
 ; kills whole domain
-truncate.org        CNAME rpz-tcp-only.
-*.truncate.org      CNAME rpz-tcp-only.
+example.org        CNAME rpz-tcp-only.
+*.example.org      CNAME rpz-tcp-only.
 
 ; QNAME Trigger Local-Data Action
 ; sends to a local website
 ; kills whole domain
-local.org        CNAME explanation.example.com.
-*.local.org      CNAME explanation.example.com.
+local.org        CNAME explanation.example.org.
+*.local.org      CNAME explanation.example.org.
 
 local-a.org        A 192.168.2.5
 *.local-a.org      A 192.168.2.5
 
 ; CLIENT-IP Trigger DROP Action
-; kills all DNS activity from this client
+; kills all DNS activity from this client.
+; IP addresses are added in reversed order
+; like in .arpa zones, in addition to this
+; you have to add the cidr range as first
+; information. In this example we DROP all
+; request from the network 127.0.0.0/24
 24.0.0.0.127.rpz-client-ip CNAME rpz-drop.
 
+; for IPv6 you replace :: with zz as ex.
+; fe80:abcd:0123::1/128 will become
+128.1.zz.0123.abcd.fe80.rpz-client-ip CNAME rpz-drop.
+
 ; CLIENT-IP Trigger TCP-ONLY Action
-; slows-up all DNS activity from this client
+; slows-up all DNS activity from this client.
+; IP addresses are added in reversed order
+; like in .arpa zones, in addition to this
+; you have to add the cidr range as first
+; information. In this example we ask the
+; IP address 10.3.2.1/32 to query over TCP
 32.1.0.0.10.rpz-client-ip CNAME rpz-tcp-only.
 
-; IP Trigger NXDOMAIN Action
-; any answer containing IP range
-32.2.0.0.10.rpz-ip CNAME .
+; for IPv6 you replace :: with zz as ex.
+; fe80:abcd:0123::1/128 will become
+128.1.zz.0123.abcd.fe80.rpz-client-ip CNAME rpz-tcp-only.
 
-;; NSDNAME Trigger
-;; if ns1.example.org appears in the authority section
-;; of any answer
+; IP Trigger NXDOMAIN Action
+; IP addresses are added in reversed order
+; like in .arpa zones, in addition to this
+; you have to add the cidr range as first
+; information.
+; In this example we return NXDOMAIN to
+; any response that would have returned
+; an ip address of 10.4.3.2/32
+32.2.3.4.10.rpz-ip CNAME .
+
+; for IPv6 you replace :: with zz as ex.
+; fe80:abcd:0123::1/128 will become
+128.1.zz.0123.abcd.fe80.rpz-ip CNAME .
+
+; As you can see above, the CIDR value is
+; very important to notice and add as the
+; first value
+
+; NSDNAME Trigger
+; if ns1.example.org appears in the authority section
+; of any answer
 
 ; NSDNAME Trigger NXDOMAIN Action
-; kills specific name server
-dns-eu1.powerdns.net.rpz-nsdname CNAME .
+; - kills specific name server
+; by answer with a NXDOMAIN to any response
+; from dns-eu1.example.org
+dns-eu1.example.org.rpz-nsdname CNAME .
 
-; this will kill any name servers from example.org
-*.powerdns.net.rpz-nsdname   CNAME .
+; - This will kill any name servers from example.org
+; and return a NXDOMAIN as response for any answers 
+; from DNS server within the name range of *.example.org
+*.example.org.rpz-nsdname   CNAME .
 
 ; NSDNAME Trigger TCP-ONLY Action
-; kills specific name server
-*.gtld-servers.net.rpz-nsdname CNAME rpz-tcp-only.
-
+; - kills specific name server
+*.example.org.rpz-nsdname CNAME rpz-tcp-only
