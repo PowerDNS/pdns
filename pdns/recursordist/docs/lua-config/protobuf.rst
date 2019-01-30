@@ -12,7 +12,11 @@ Configuring Protocol Buffer logs
 --------------------------------
 Protobuf export to a server is enabled using the ``protobufServer()`` directive:
 
-.. function:: protobufServer(server [[[[[[[, timeout=2], maxQueuedEntries=100], reconnectWaitTime=1], maskV4=32], maskV6=128], asyncConnect=false], taggedOnly=false])
+.. function:: protobufServer(server [[[[[[[[, timeout=2], maxQueuedEntries=100], reconnectWaitTime=1], maskV4=32], maskV6=128], asyncConnect=false], taggedOnly=false], responsesOnly=false])
+
+  .. versionchanged:: 4.1.11
+
+    The optional ``responsesOnly`` parameter was added.
 
   :param string server: The IP and port to connect to
   :param int timeout: Time in seconds to wait when sending a message
@@ -22,6 +26,7 @@ Protobuf export to a server is enabled using the ``protobufServer()`` directive:
   :param int maskV6: Same as maskV4, but for IPv6. Defaults to 128.
   :param bool taggedOnly: Only entries with a policy or a policy tag set will be sent.
   :param bool asyncConnect: When set to false (default) the first connection to the server during startup will block up to ``timeout`` seconds, otherwise the connection is done in a separate thread.
+  :param bool responsesOnly: When set to true, protobuf messages will only be generated for responses, instead of being generated for queries and responses.
 
 Logging outgoing queries and responses
 --------------------------------------

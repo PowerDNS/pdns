@@ -1548,7 +1548,7 @@ static void handleRunningTCPQuestion(int fd, FDMultiplexer::funcparam_t& var)
       if(luaconfsLocal->protobufServer) {
         try {
 
-          if (!luaconfsLocal->protobufTaggedOnly) {
+          if (!luaconfsLocal->protobufResponsesOnly && !luaconfsLocal->protobufTaggedOnly) {
             protobufLogQuery(luaconfsLocal->protobufServer, luaconfsLocal->protobufMaskV4, luaconfsLocal->protobufMaskV6, dc->d_uuid, conn->d_remote, dest, dc->d_ednssubnet.source, true, dh->id, conn->qlen, qname, qtype, qclass, dc->d_policyTags, dc->d_requestorId, dc->d_deviceId);
           }
         }
@@ -1739,7 +1739,7 @@ static string* doProcessUDPQuestion(const std::string& question, const ComboAddr
 #ifdef HAVE_PROTOBUF
     pbMessage.setServerIdentity(SyncRes::s_serverID);
     if(luaconfsLocal->protobufServer) {
-      if (!luaconfsLocal->protobufTaggedOnly || !policyTags.empty()) {
+      if (!luaconfsLocal->protobufResponsesOnly && (!luaconfsLocal->protobufTaggedOnly || !policyTags.empty())) {
         protobufLogQuery(luaconfsLocal->protobufServer, luaconfsLocal->protobufMaskV4, luaconfsLocal->protobufMaskV6, uniqueId, fromaddr, destaddr, ednssubnet.source, false, dh->id, question.size(), qname, qtype, qclass, policyTags, requestorId, deviceId);
       }
     }
