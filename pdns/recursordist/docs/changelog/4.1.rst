@@ -245,7 +245,7 @@ Changelogs for 4.1.x
     :pullreq: 6557
     :tickets: 6536
 
-    Make :doc:`rec_control` respect :ref:`setting-include-dir`.
+    Make :doc:`../../manpages/rec_control.1` respect :ref:`setting-include-dir`.
 
   .. change::
     :tags: Improvements
