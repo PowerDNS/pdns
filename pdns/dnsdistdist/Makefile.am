@@ -171,13 +171,19 @@ if HAVE_RE2
 dnsdist_LDADD += $(RE2_LIBS)
 endif
 
+if HAVE_LIBCRYPTO
+dnsdist_LDADD += $(LIBCRYPTO_LIBS)
+dnsdist_SOURCES += ipcipher.cc ipcipher.hh ext/ipcrypt/ipcrypt.c ext/ipcrypt/ipcrypt.h
+endif
+
+if HAVE_DNS_OVER_TLS
 if HAVE_GNUTLS
 dnsdist_LDADD += -lgnutls
 endif
 
 if HAVE_LIBSSL
-dnsdist_LDADD += $(LIBSSL_LIBS) $(LIBCRYPTO_LIBS)
-dnsdist_SOURCES += ipcipher.cc ipcipher.hh ext/ipcrypt/ipcrypt.c ext/ipcrypt/ipcrypt.h 
+dnsdist_LDADD += $(LIBSSL_LIBS)
+endif
 endif
 
 if !HAVE_LUA_HPP

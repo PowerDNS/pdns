@@ -2330,6 +2330,9 @@ try
 #ifdef HAVE_FSTRM
       cout<<"fstrm ";
 #endif
+#ifdef HAVE_LIBCRYPTO
+      cout<<"ipcipher ";
+#endif
 #ifdef HAVE_LIBSODIUM
       cout<<"libsodium ";
 #endif
