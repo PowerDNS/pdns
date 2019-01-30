@@ -667,7 +667,7 @@ These ``DNSRule``\ s be one of the following items:
 	QNAME can be written in case insensitively PCRE formatted regex.
 	For regex to match partial QNAME queries see :func:`RegexRule`
 	
-	For an example of usage:
+	For an example of usage::
 	
 		addAction(RE2Rule("^[0-9]{4,}\\.example\\.org$"), DropAction()) -- first rule
 		addAction(RE2Rule("^example\\.[0-9a-z]\\.org$"), DropAction()) -- last rule
@@ -675,7 +675,7 @@ These ``DNSRule``\ s be one of the following items:
 	The first example will match any query to the domain example.org starting
 	 with a number 4 (four) or more times and if the query is true, drop the query.
 
-	Shown examples for first rule:
+	Shown examples for first rule::
 
 		12345.example.org -- will be matched by the first rule and query dropped
 		54321.example.org -- will be matched by the first rule and query dropped
@@ -685,7 +685,7 @@ These ``DNSRule``\ s be one of the following items:
 	The second example will match any query starting with example.
 	 with a subset of any letter or number any number of times and ending in .org
 
-	Shown examples for last rule:
+	Shown examples for last rule::
 
 		example.123abc.org -- will match the last rule and query dropped
 		example.abc321.org -- will match the last rule and query dropped
