@@ -16,9 +16,9 @@ int ipcrypt_encrypt(unsigned char out[IPCRYPT_BYTES],
 int ipcrypt_decrypt(unsigned char out[IPCRYPT_BYTES],
                     const unsigned char in[IPCRYPT_BYTES],
                     const unsigned char key[IPCRYPT_KEYBYTES]);
-  
+
 #ifdef __cplusplus
 }  /* End of the 'extern "C"' block */
 #endif
-  
+
 #endif

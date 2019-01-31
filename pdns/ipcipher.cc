@@ -22,7 +22,7 @@ static ComboAddress encryptCA4(const ComboAddress& ca, const std::string &key)
 {
   if(key.size() != 16)
     throw std::runtime_error("Need 128 bits of key for ipcrypt");
-  
+
   ComboAddress ret=ca;
 
   // always returns 0, has no failure mode
@@ -36,7 +36,7 @@ static ComboAddress decryptCA4(const ComboAddress& ca, const std::string &key)
 {
   if(key.size() != 16)
     throw std::runtime_error("Need 128 bits of key for ipcrypt");
-  
+
   ComboAddress ret=ca;
 
   // always returns 0, has no failure mode
@@ -57,7 +57,7 @@ static ComboAddress encryptCA6(const ComboAddress& ca, const std::string &key)
   AES_KEY wctx;
   AES_set_encrypt_key((const unsigned char*)key.c_str(), 128, &wctx);
   AES_encrypt((const unsigned char*)&ca.sin6.sin6_addr.s6_addr,
-              (unsigned char*)&ret.sin6.sin6_addr.s6_addr, &wctx);  
+              (unsigned char*)&ret.sin6.sin6_addr.s6_addr, &wctx);
 
   return ret;
 }
@@ -66,13 +66,13 @@ static ComboAddress decryptCA6(const ComboAddress& ca, const std::string &key)
 {
   if(key.size() != 16)
     throw std::runtime_error("Need 128 bits of key for ipcrypt");
-  
+
   ComboAddress ret=ca;
   AES_KEY wctx;
   AES_set_decrypt_key((const unsigned char*)key.c_str(), 128, &wctx);
   AES_decrypt((const unsigned char*)&ca.sin6.sin6_addr.s6_addr,
-              (unsigned char*)&ret.sin6.sin6_addr.s6_addr, &wctx);  
-  
+              (unsigned char*)&ret.sin6.sin6_addr.s6_addr, &wctx);
+
   return ret;
 }
 

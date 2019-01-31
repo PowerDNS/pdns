@@ -183,7 +183,7 @@ void setupLuaBindings(bool client)
       return makeIPCipherKey(password);
     });
 #endif /* HAVE_LIBCRYPTO */
-  
+
   /* DNSName */
   g_lua.registerFunction("isPartOf", &DNSName::isPartOf);
   g_lua.registerFunction<bool(DNSName::*)()>("chopOff", [](DNSName&dn ) { return dn.chopOff(); });

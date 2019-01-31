@@ -72,7 +72,7 @@ public:
   {
     return std::unique_ptr<IPObfuscator>(new IPSeqObfuscator());
   }
-  
+
   uint32_t obf4(uint32_t orig) override
   {
     if(d_romap.count(orig))
@@ -132,7 +132,7 @@ public:
   {
     return std::unique_ptr<IPObfuscator>(new IPCipherObfuscator(key, decrypt));
   }
-  
+
   uint32_t obf4(uint32_t orig) override
   {
     ComboAddress ca;
@@ -172,7 +172,7 @@ try
     ("key,k", po::value<string>(), "base64 encoded 128 bit key for ipcipher")
     ("passphrase,p", po::value<string>(), "passphrase for ipcipher (will be used to derive key)")
     ("decrypt,d", "decrypt IP addresses with ipcipher");
-  
+
   po::options_description alloptions;
   po::options_description hidden("hidden options");
   hidden.add_options()
@@ -206,7 +206,7 @@ try
   }
 
   bool doDecrypt = g_vm.count("decrypt");
-  
+
   PcapPacketWriter pw(g_vm["outfile"].as<string>());
   std::unique_ptr<IPObfuscator> ipo;
 
@@ -222,7 +222,7 @@ try
   }
   else if(!g_vm.count("key") && g_vm.count("passphrase")) {
     string key = makeIPCipherKey(g_vm["passphrase"].as<string>());
-    
+
     ipo = IPCipherObfuscator::make(key, doDecrypt);
   }
   else {
@@ -237,21 +237,21 @@ try
     while(pr.getUDPPacket()) {
       if(ntohs(pr.d_udp->uh_dport)==53 || (ntohs(pr.d_udp->uh_sport)==53 && pr.d_len > sizeof(dnsheader))) {
         dnsheader* dh=(dnsheader*)pr.d_payload;
-        
+
         if (pr.d_ip->ip_v == 4){
           uint32_t *src=(uint32_t*)&pr.d_ip->ip_src;
           uint32_t *dst=(uint32_t*)&pr.d_ip->ip_dst;
-          
+
           if(dh->qr)
             *dst=ipo->obf4(*dst);
           else
             *src=ipo->obf4(*src);
-          
+
           pr.d_ip->ip_sum=0;
         } else if (pr.d_ip->ip_v == 6) {
           auto src=&pr.d_ip6->ip6_src;
           auto dst=&pr.d_ip6->ip6_dst;
-          
+
           if(dh->qr)
             *dst=ipo->obf6(*dst);
           else
