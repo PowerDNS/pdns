@@ -389,7 +389,7 @@ paths:
   '/servers/{server_id}/statistics':
     get:
       summary: 'Query statistics.'
-      description: 'Query PowerDNS internal statistics. Returns a list of BaseStatisticItem derived elements.'
+      description: 'Query PowerDNS internal statistics.'
       operationId: getStats
       tags:
         - stats
@@ -405,10 +405,6 @@ paths:
           schema:
             type: array
             items:
-            # these can be commented because the swagger code generator fails on them
-            # and replaced with
-            # type: string
-            # or something like that
             - $ref: '#/definitions/StatisticItem'
             - $ref: '#/definitions/MapStatisticItem'
             - $ref: '#/definitions/RingStatisticItem'
@@ -1064,69 +1060,62 @@ definitions:
         type: string
         description: 'The value of setting name'
 
-  BaseStatisticItem:
-    title: BaseStatisticItem
+  SimpleStatisticItem:
+    title: SimpleStatisticItem
+    type: object
     properties:
       name:
-        type: string
-        description: 'The name of this item (e.g. ‘uptime’)'
+          type: string
+          description: 'Item name'
+      value:
+          type: string
+          description: 'Item value'
 
   StatisticItem:
     title: StatisticItem
-    allOf:
-    - $ref: "#/definitions/BaseStatisticItem"
-    - properties:
-        type:
-          enum: [StatisticItem]
-          description: 'set to "StatisticItem"'
-        value:
-          type: string
-          description: 'The value of item'
+    properties:
+      name:
+        type: string
+        description: 'Item name'
+      type:
+        type: string
+        description: 'set to "StatisticItem"'
+      value:
+        type: string
+        description: 'Item value'
 
   MapStatisticItem:
     title: MapStatisticItem
-    allOf:
-    - $ref: "#/definitions/BaseStatisticItem"
-    - properties:
-        type:
-          enum: [MapStatisticItem]
-          description: 'set to "MapStatisticItem"'
-        value:
-          type: array
-          description: 'named statistic values'
-          items:
-            type: array
-            properties:
-              name:
-                type: string
-                description: 'item name'
-              value:
-                type: string
-                description: 'item value'
+    properties:
+      name:
+        type: string
+        description: 'Item name'
+      type:
+        type: string
+        description: 'Set to "MapStatisticItem"'
+      value:
+        type: array
+        description: 'Named values'
+        items:
+          $ref: '#/definitions/SimpleStatisticItem'
 
   RingStatisticItem:
     title: RingStatisticItem
-    allOf:
-    - $ref: "#/definitions/BaseStatisticItem"
-    - properties:
-        type:
-          enum: [RingStatisticItem]
-          description: 'set to "RingStatisticItem"'
-        size:
-          type: integer
-          description: 'for RingStatisticItem objects, the size of the ring'
-        value:
-          type: array
-          description: 'named ring statistic values'
-          items:
-            type: array
-            properties:
-              name:
-                type: string
-                description: 'item name'
-              value:
-                type: string
-                description: 'item value'
+    properties:
+      name:
+        type: string
+        description: 'Item name'
+      type:
+        type: string
+        description: 'Set to "RingStatisticItem"'
+      size:
+        type: integer
+        description: 'Ring size'
+      value:
+        type: array
+        description: 'Named values'
+        items:
+          $ref: '#/definitions/SimpleStatisticItem'
 
   SearchResultZone:
     title: SearchResultZone

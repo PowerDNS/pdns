@@ -881,3 +881,10 @@ Changelogs for 4.2.x
     :tickets: 6028
 
     Forbid label compression in ALIAS wire format.
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 7359
+    :tickets: 7357
+
+    API: Add response-by-qtype and response-by-rcode on /statistics endpoint
