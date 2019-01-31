@@ -2,6 +2,24 @@ Changelogs for 4.1.x
 ====================
 
 .. changelog::
+  :version: 4.1.11
+  :released: 1th of February 2019
+
+  Since Spectre/Meltdown, system calls have become more expensive.  This caused performance issues in the PowerDNS Recursor.
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 7434
+
+    Add an option to export only responses over protobuf to the Lua :func:`protobufServer` directive.
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 7430
+
+    Reduce systemcall usage in protobuf logging.
+
+.. changelog::
   :version: 4.1.10
   :released: 24th of January 2019
 
