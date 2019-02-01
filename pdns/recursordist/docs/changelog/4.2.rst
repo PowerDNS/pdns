@@ -1,0 +1,10 @@
+Changelogs for 4.2.x
+====================
+
+.. changelog::
+  :version: 4.2.0-alpha1
+  :released: 1st of February 2019
+
+  Initial 4.2.x release, so no changelog.
+
+  .
