@@ -5,7 +5,7 @@ Changelogs for 4.1.x
   :version: 4.1.11
   :released: 1st of February 2019
 
-  Since Spectre/Meltdown, system calls have become more expensive.  This caused performance issues in the PowerDNS Recursor.
+  Since Spectre/Meltdown, system calls have become more expensive.  This made exporting a very high number of protobuf messages costly, which is addressed in this release by reducing the number of sycalls per message.
 
   .. change::
     :tags: Improvements
@@ -16,8 +16,9 @@ Changelogs for 4.1.x
   .. change::
     :tags: Improvements
     :pullreq: 7430
+    :tickets: 7428
 
-    Reduce systemcall usage in protobuf logging.
+    Reduce systemcall usage in protobuf logging.  (See #7428.)
 
 .. changelog::
   :version: 4.1.10
