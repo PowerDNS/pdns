@@ -3,7 +3,7 @@ Changelogs for 4.1.x
 
 .. changelog::
   :version: 4.1.11
-  :released: 1th of February 2019
+  :released: 1st of February 2019
 
   Since Spectre/Meltdown, system calls have become more expensive.  This caused performance issues in the PowerDNS Recursor.
 
