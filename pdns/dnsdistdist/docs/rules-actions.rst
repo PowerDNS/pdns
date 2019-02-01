@@ -650,7 +650,7 @@ These ``DNSRule``\ s be one of the following items:
 
 .. function:: EDNSOptionRule(optcode)
 
-  .. versionadded:: 1.4.0
+  .. versionadded:: 1.3.3
 
   Matches queries or responses with the specified EDNS option present.
   ``optcode`` is specified as an integer, or a constant such as `EDNSOptionCode.ECS`.
