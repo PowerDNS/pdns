@@ -323,4 +323,21 @@ BOOST_AUTO_TEST_CASE(test_method_directBackendCmd) {
    BOOST_CHECK_EQUAL(be->directBackendCmd("PING 1234"), "PING 1234");
 }
 
+BOOST_AUTO_TEST_CASE(test_method_getUpdatedMasters) {
+   DomainInfo di;
+   BOOST_TEST_MESSAGE("Testing getUpdatedMasters method");
+   vector<DomainInfo> result;
+
+   be->getUpdatedMasters(&result);
+
+   BOOST_CHECK(result.size() > 0);
+
+   di = result[0];
+   BOOST_CHECK_EQUAL(di.zone.toString(), "master.test.");
+   BOOST_CHECK_EQUAL(di.serial, 2);
+   BOOST_CHECK_EQUAL(di.notified_serial, 2);
+   BOOST_CHECK_EQUAL(di.kind, DomainInfo::Master);
+   BOOST_CHECK_EQUAL(di.backend, be);
+}
+
 BOOST_AUTO_TEST_SUITE_END();

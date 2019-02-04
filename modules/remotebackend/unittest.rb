@@ -171,6 +171,17 @@ class Handler
                :kind => 'native'
        }]
      end
+     if args["name"] == "master.test."
+       return [{
+               :id => 2,
+               :zone => "master.test.",
+               :masters => ["10.0.0.1"],
+               :notified_serial => $notified_serial,
+               :serial => $notified_serial,
+               :last_check => Time.now.to_i,
+               :kind => 'master'
+       }]
+     end
      [false]
    end
 
@@ -251,6 +262,10 @@ class Handler
 
    def do_getalldomains(args)
      [do_getdomaininfo({'name'=>'unit.test.'})]
+   end
+
+   def do_getupdatedmasters()
+     [do_getdomaininfo({'name'=>'master.test.'})]
    end
 end
 
