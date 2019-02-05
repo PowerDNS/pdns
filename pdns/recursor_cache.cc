@@ -404,7 +404,7 @@ bool MemRecursorCache::doAgeCache(time_t now, const DNSName& name, uint16_t qtyp
   return false;
 }
 
-bool MemRecursorCache::updateValidationStatus(time_t now, const DNSName &qname, const QType& qt, const ComboAddress& who, bool requireAuth, vState newState)
+bool MemRecursorCache::updateValidationStatus(time_t now, const DNSName &qname, const QType& qt, const ComboAddress& who, bool requireAuth, vState newState, boost::optional<time_t> capTTD)
 {
   bool updated = false;
   uint16_t qtype = qt.getCode();
@@ -415,6 +415,9 @@ bool MemRecursorCache::updateValidationStatus(time_t now, const DNSName &qname, 
     }
 
     entry->d_state = newState;
+    if (capTTD) {
+      entry->d_ttd = std::min(entry->d_ttd, *capTTD);
+    }
     return true;
   }
 
@@ -427,6 +430,9 @@ bool MemRecursorCache::updateValidationStatus(time_t now, const DNSName &qname, 
       continue;
 
     i->d_state = newState;
+    if (capTTD) {
+      i->d_ttd = std::min(i->d_ttd, *capTTD);
+    }
     updated = true;
 
     if(qtype != QType::ANY && qtype != QType::ADDR) // normally if we have a hit, we are done

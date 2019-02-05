@@ -693,6 +693,7 @@ public:
   static unsigned int s_maxtotusec;
   static unsigned int s_maxdepth;
   static unsigned int s_maxnegttl;
+  static unsigned int s_maxbogusttl;
   static unsigned int s_maxcachettl;
   static unsigned int s_packetcachettl;
   static unsigned int s_packetcacheservfailttl;
@@ -789,6 +790,7 @@ private:
   vState getTA(const DNSName& zone, dsmap_t& ds);
   bool haveExactValidationStatus(const DNSName& domain);
   vState getValidationStatus(const DNSName& subdomain, bool allowIndeterminate=true);
+  void updateValidationStatusInCache(const DNSName &qname, const QType& qt, bool aa, vState newState) const;
 
   bool lookForCut(const DNSName& qname, unsigned int depth, const vState existingState, vState& newState);
   void computeZoneCuts(const DNSName& begin, const DNSName& end, unsigned int depth);

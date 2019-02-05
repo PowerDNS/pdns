@@ -3634,6 +3634,7 @@ static int serviceMain(int argc, char*argv[])
   SyncRes::s_nopacketcache = ::arg().mustDo("disable-packetcache");
 
   SyncRes::s_maxnegttl=::arg().asNum("max-negative-ttl");
+  SyncRes::s_maxbogusttl=::arg().asNum("max-cache-bogus-ttl");
   SyncRes::s_maxcachettl=max(::arg().asNum("max-cache-ttl"), 15);
   SyncRes::s_packetcachettl=::arg().asNum("packetcache-ttl");
   // Cap the packetcache-servfail-ttl to the packetcache-ttl
@@ -4222,6 +4223,7 @@ int main(int argc, char **argv)
     ::arg().set("hint-file", "If set, load root hints from this file")="";
     ::arg().set("max-cache-entries", "If set, maximum number of entries in the main cache")="1000000";
     ::arg().set("max-negative-ttl", "maximum number of seconds to keep a negative cached entry in memory")="3600";
+    ::arg().set("max-cache-bogus-ttl", "maximum number of seconds to keep a Bogus (positive or negative) cached entry in memory")="3600";
     ::arg().set("max-cache-ttl", "maximum number of seconds to keep a cached entry in memory")="86400";
     ::arg().set("packetcache-ttl", "maximum number of seconds to keep a cached entry in packetcache")="3600";
     ::arg().set("max-packetcache-entries", "maximum number of entries to keep in the packetcache")="500000";
