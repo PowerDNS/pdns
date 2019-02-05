@@ -91,6 +91,13 @@
 union ComboAddress {
   struct sockaddr_in sin4;
   struct sockaddr_in6 sin6;
+  // struct sockaddr_in6 is *not* defined as containing two uint64_t for the
+  // address , but we like to read or write it like that.
+  // Force alignment by adding an uint64_t in the union. This makes sure
+  // the start of the struct and s6_addr gets aligned.
+  // This works because of the spot of s6_addr in struct sockaddr_in6.
+  // Needed for strict alignment architectures like sparc64.
+  uint64_t	force_align;
 
   bool operator==(const ComboAddress& rhs) const
   {
