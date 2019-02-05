@@ -786,14 +786,17 @@ int listZone(const DNSName &zone) {
   di.backend->list(zone, di.id);
   DNSResourceRecord rr;
   cout<<"$ORIGIN ."<<endl;
+  cout.sync_with_stdio(false);
+  
   while(di.backend->get(rr)) {
     if(rr.qtype.getCode()) {
       if ( (rr.qtype.getCode() == QType::NS || rr.qtype.getCode() == QType::SRV || rr.qtype.getCode() == QType::MX || rr.qtype.getCode() == QType::CNAME) && !rr.content.empty() && rr.content[rr.content.size()-1] != '.') 
 	rr.content.append(1, '.');
 	
-      cout<<rr.qname<<"\t"<<rr.ttl<<"\tIN\t"<<rr.qtype.getName()<<"\t"<<rr.content<<endl;
+      cout<<rr.qname<<"\t"<<rr.ttl<<"\tIN\t"<<rr.qtype.getName()<<"\t"<<rr.content<<"\n";
     }
   }
+  cout.flush();
   return EXIT_SUCCESS;
 }
 
