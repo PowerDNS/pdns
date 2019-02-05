@@ -328,6 +328,19 @@ install_auth() {
     faketime"
   run "sudo touch /etc/authbind/byport/53"
   run "sudo chmod 755 /etc/authbind/byport/53"
+
+  # Install dnsmasq to make lookups more robust
+  run "sudo apt-get -qq --no-install-recommends install \
+    dnsmasq"
+  run 'echo listen-address=127.0.0.53 | sudo tee /etc/dnsmasq.d/local.conf'
+  run 'echo bind-interfaces | sudo tee -a /etc/dnsmasq.d/local.conf'
+
+  ## WARNING
+  ## after this dnsmasq restart, DNS lookups will fail for a few seconds.
+  run 'sudo service dnsmasq restart'
+  run "sudo resolvconf --disable-updates"
+  run 'echo nameserver 127.0.0.53 | sudo tee /etc/resolv.conf'
+  run "export RESOLVERIP=127.0.0.53"
 }
 
 install_ixfrdist() {

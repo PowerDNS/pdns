@@ -16,6 +16,7 @@ export ZONE2SQL=${ZONE2SQL:-${PWD}/../pdns/zone2sql}
 export ZONE2LDAP=${ZONE2LDAP:-${PWD}/../pdns/zone2ldap}
 export PDNSUTIL=${PDNSUTIL:-${PWD}/../pdns/pdnsutil}
 export PDNSCONTROL=${PDNSCONTROL:-${PWD}/../pdns/pdns_control}
+export RESOLVERIP=${RESOLVERIP:-8.8.8.8}
 
 
 ALGORITHM=${ALGORITHM:="hmac-md5"}
