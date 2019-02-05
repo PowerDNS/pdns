@@ -2363,14 +2363,16 @@ try
     exit(listKeys(zname, dk));
   }
   else if(cmds[0] == "load-zone") {
-    if(cmds.size() != 3) {
-      cerr<<"Syntax: pdnsutil load-zone ZONE FILENAME"<<endl;
+    if(cmds.size() < 3) {
+      cerr<<"Syntax: pdnsutil load-zone ZONE FILENAME [ZONE FILENAME] .."<<endl;
       return 0;
     }
     if(cmds[1]==".")
       cmds[1].clear();
 
-    exit(loadZone(DNSName(cmds[1]), cmds[2]));
+    for(int n=1; n + 2 <= cmds.size(); n+=2)
+      loadZone(DNSName(cmds[n]), cmds[n+1]);
+    return 0;
   }
   else if(cmds[0] == "secure-zone") {
     if(cmds.size() < 2) {
