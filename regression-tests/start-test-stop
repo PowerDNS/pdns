@@ -181,6 +181,7 @@ goracle-nodnssec goracle goracle-nsec3 goracle-nsec3-optout goracle-nsec3-narrow
 godbc_sqlite3-nodnssec godbc_sqlite3 godbc_sqlite3-nsec3 godbc_sqlite3-nsec3-optout godbc_sqlite3-narrow
 gpgsql-nodnssec gpgsql gpgsql-nsec3 gpgsql-nsec3-optout gpgsql-nsec3-narrow
 gsqlite3-nodnssec gsqlite3 gsqlite3-nsec3 gsqlite3-nsec3-optout gsqlite3-nsec3-narrow
+lmdb-nodnssec lmdb
 mydns
 opendbx-sqlite3
 oracle-nodnssec oracle oracle-nsec3
