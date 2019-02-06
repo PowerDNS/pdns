@@ -375,7 +375,7 @@ void GSQLBackend::getUnfreshSlaveInfos(vector<DomainInfo> *unfreshDomains)
 void GSQLBackend::getUpdatedMasters(vector<DomainInfo> *updatedDomains)
 {
   /* list all domains that need notifications for which we are master, and insert into updatedDomains
-     id,name,master IP,serial */
+     id, name, notified_serial, serial */
   try {
     reconnectIfNeeded();
 
@@ -388,32 +388,33 @@ void GSQLBackend::getUpdatedMasters(vector<DomainInfo> *updatedDomains)
     throw PDNSException("GSQLBackend unable to retrieve list of master domains: "+e.txtReason());
   }
 
-  vector<DomainInfo> allMasters;
   size_t numanswers=d_result.size();
-  for(size_t n=0;n<numanswers;++n) { // id,name,master,last_check,notified_serial
-    DomainInfo sd;
-    ASSERT_ROW_COLUMNS("info-all-master-query", d_result[n], 6);
-    sd.id=pdns_stou(d_result[n][0]);
-    try {
-      sd.zone= DNSName(d_result[n][1]);
-    } catch (...) {
-      continue;
-    }
-    sd.last_check=pdns_stou(d_result[n][3]);
-    sd.notified_serial=pdns_stou(d_result[n][4]);
-    sd.backend=this;
-    sd.kind=DomainInfo::Master;
-    allMasters.push_back(sd);
-  }
+  vector<string>parts;
+  DomainInfo di;
 
-  for(vector<DomainInfo>::iterator i=allMasters.begin();i!=allMasters.end();++i) {
-    SOAData sdata;
-    sdata.serial=0;
-    sdata.refresh=0;
-    getSOA(i->zone,sdata);
-    if(i->notified_serial!=sdata.serial) {
-      i->serial=sdata.serial;
-      updatedDomains->push_back(*i);
+  di.backend = this;
+  di.kind = DomainInfo::Master;
+
+  for( size_t n = 0; n < numanswers; ++n ) { // id, name, notified_serial, content
+    ASSERT_ROW_COLUMNS( "info-all-master-query", d_result[n], 4 );
+
+    parts.clear();
+    stringtok( parts, d_result[n][3] );
+
+    try {
+      uint32_t serial = parts.size() > 2 ? pdns_stou(parts[2]) : 0;
+      uint32_t notified_serial = pdns_stou( d_result[n][2] );
+
+      if( serial != notified_serial ) {
+        di.id = pdns_stou( d_result[n][0] );
+        di.zone = DNSName( d_result[n][1] );
+        di.serial = serial;
+        di.notified_serial = notified_serial;
+
+        updatedDomains->emplace_back(di);
+      }
+    } catch ( ... ) {
+      continue;
     }
   }
 }
