@@ -1626,7 +1626,7 @@ The plaintext password required for accessing the webserver.
 ------------------
 
 -  Integer
--  Default: 8001
+-  Default: 8081
 
 The port where webserver/API will listen on.
 
