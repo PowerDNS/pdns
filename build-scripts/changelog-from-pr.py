@@ -10,7 +10,7 @@ argp = argparse.ArgumentParser()
 argp.add_argument('--oneline', action='store_true',
                   help='Make one-lined changelog entries (for 4.0 and older)')
 argp.add_argument('--username',
-                  help='Use the specified username for Basic Authentication to the GitHub API, allowing an higher rate limit')
+                  help='Use the specified username for Basic Authentication to the GitHub API, allowing a higher rate limit')
 argp.add_argument('--access_token',
                   help='Use API access token instead of username & password combination')
 argp.add_argument('pullrequest', metavar='PULL_REQUEST', nargs='+',
