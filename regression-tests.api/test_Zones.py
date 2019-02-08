@@ -1621,7 +1621,7 @@ fred   IN  A      192.168.0.4
         name = unique_zone_name()
         data_type = "zone"
         self.create_zone(name=name, serial=22, soa_edit_api='')
-        r = self.session.get(self.url("/api/v1/servers/localhost/search-data?q=" + name.rstrip('.') + "&type=" + data_type))
+        r = self.session.get(self.url("/api/v1/servers/localhost/search-data?q=" + name.rstrip('.') + "&object_type=" + data_type))
         self.assert_success_json(r)
         print(r.json())
         self.assertEquals(r.json(), [
@@ -1632,7 +1632,7 @@ fred   IN  A      192.168.0.4
         name = unique_zone_name()
         data_type = "record"
         self.create_zone(name=name, serial=22, soa_edit_api='')
-        r = self.session.get(self.url("/api/v1/servers/localhost/search-data?q=" + name.rstrip('.') + "&type=" + data_type))
+        r = self.session.get(self.url("/api/v1/servers/localhost/search-data?q=" + name.rstrip('.') + "&object_type=" + data_type))
         self.assert_success_json(r)
         print(r.json())
         self.assertEquals(r.json(), [

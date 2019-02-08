@@ -436,7 +436,7 @@ paths:
           required: true
           description: 'Maximum number of entries to return'
           type: integer
-        - name: type
+        - name: object_type
           in: query
           required: false
           description: 'Type of data to search for, one of “all”, “zone”, “record”, “comment”'
