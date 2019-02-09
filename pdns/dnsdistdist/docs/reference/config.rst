@@ -40,7 +40,7 @@ Global configuration
 
   Include configuration files from ``path``.
 
-  :param str path: The directory to load the configuration from
+  :param str path: The directory to load configuration files from. Each file must end in ``.conf``.
 
 Listen Sockets
 ~~~~~~~~~~~~~~
