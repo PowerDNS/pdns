@@ -60,7 +60,7 @@ static Netmask makeNetmaskFromRPZ(const DNSName& name)
   return Netmask(v6);
 }
 
-void RPZRecordToPolicy(const DNSRecord& dr, std::shared_ptr<DNSFilterEngine::Zone> zone, bool addOrRemove, boost::optional<DNSFilterEngine::Policy> defpol, uint32_t maxTTL)
+static void RPZRecordToPolicy(const DNSRecord& dr, std::shared_ptr<DNSFilterEngine::Zone> zone, bool addOrRemove, boost::optional<DNSFilterEngine::Policy> defpol, bool defpolOverrideLocal, uint32_t maxTTL)
 {
   static const DNSName drop("rpz-drop."), truncate("rpz-tcp-only."), noaction("rpz-passthru.");
   static const DNSName rpzClientIP("rpz-client-ip"), rpzIP("rpz-ip"),
@@ -68,6 +68,7 @@ void RPZRecordToPolicy(const DNSRecord& dr, std::shared_ptr<DNSFilterEngine::Zon
   static const std::string rpzPrefix("rpz-");
 
   DNSFilterEngine::Policy pol;
+  bool defpolApplied = false;
 
   if(dr.d_class != QClass::IN) {
     return;
@@ -81,6 +82,7 @@ void RPZRecordToPolicy(const DNSRecord& dr, std::shared_ptr<DNSFilterEngine::Zon
     auto crcTarget=crc->getTarget();
     if(defpol) {
       pol=*defpol;
+      defpolApplied = true;
     }
     else if(crcTarget.isRoot()) {
       // cerr<<"Wants NXDOMAIN for "<<dr.d_name<<": ";
@@ -121,8 +123,9 @@ void RPZRecordToPolicy(const DNSRecord& dr, std::shared_ptr<DNSFilterEngine::Zon
     }
   }
   else {
-    if (defpol) {
+    if (defpol && defpolOverrideLocal) {
       pol=*defpol;
+      defpolApplied = true;
     }
     else {
       pol.d_kind = DNSFilterEngine::PolicyKind::Custom;
@@ -131,7 +134,7 @@ void RPZRecordToPolicy(const DNSRecord& dr, std::shared_ptr<DNSFilterEngine::Zon
     }
   }
 
-  if (!defpol || defpol->d_ttl < 0) {
+  if (!defpolApplied || defpol->d_ttl < 0) {
     pol.d_ttl = static_cast<int32_t>(std::min(maxTTL, dr.d_ttl));
   } else {
     pol.d_ttl = static_cast<int32_t>(std::min(maxTTL, static_cast<uint32_t>(pol.d_ttl)));
@@ -169,14 +172,19 @@ void RPZRecordToPolicy(const DNSRecord& dr, std::shared_ptr<DNSFilterEngine::Zon
     else
       zone->rmNSIPTrigger(nm, std::move(pol));
   } else {
-    if(addOrRemove)
-      zone->addQNameTrigger(dr.d_name, std::move(pol));
-    else
+    if(addOrRemove) {
+      /* if we did override the existing policy with the default policy,
+         we might turn two A or AAAA into a CNAME, which would trigger
+         an exception. Let's just ignore it. */
+      zone->addQNameTrigger(dr.d_name, std::move(pol), defpolApplied);
+    }
+    else {
       zone->rmQNameTrigger(dr.d_name, std::move(pol));
+    }
   }
 }
 
-static shared_ptr<SOARecordContent> loadRPZFromServer(const ComboAddress& master, const DNSName& zoneName, std::shared_ptr<DNSFilterEngine::Zone> zone, boost::optional<DNSFilterEngine::Policy> defpol, uint32_t maxTTL, const TSIGTriplet& tt, size_t maxReceivedBytes, const ComboAddress& localAddress, uint16_t axfrTimeout)
+static shared_ptr<SOARecordContent> loadRPZFromServer(const ComboAddress& master, const DNSName& zoneName, std::shared_ptr<DNSFilterEngine::Zone> zone, boost::optional<DNSFilterEngine::Policy> defpol, bool defpolOverrideLocal, uint32_t maxTTL, const TSIGTriplet& tt, size_t maxReceivedBytes, const ComboAddress& localAddress, uint16_t axfrTimeout)
 {
   g_log<<Logger::Warning<<"Loading RPZ zone '"<<zoneName<<"' from "<<master.toStringWithPort()<<endl;
   if(!tt.name.empty())
@@ -206,7 +214,7 @@ static shared_ptr<SOARecordContent> loadRPZFromServer(const ComboAddress& master
 	continue;
       }
 
-      RPZRecordToPolicy(dr, zone, true, defpol, maxTTL);
+      RPZRecordToPolicy(dr, zone, true, defpol, defpolOverrideLocal, maxTTL);
       nrecords++;
     } 
     axfrNow = time(nullptr);
@@ -223,7 +231,7 @@ static shared_ptr<SOARecordContent> loadRPZFromServer(const ComboAddress& master
 }
 
 // this function is silent - you do the logging
-std::shared_ptr<SOARecordContent> loadRPZFromFile(const std::string& fname, std::shared_ptr<DNSFilterEngine::Zone> zone, boost::optional<DNSFilterEngine::Policy> defpol, uint32_t maxTTL)
+std::shared_ptr<SOARecordContent> loadRPZFromFile(const std::string& fname, std::shared_ptr<DNSFilterEngine::Zone> zone, boost::optional<DNSFilterEngine::Policy> defpol, bool defpolOverrideLocal, uint32_t maxTTL)
 {
   shared_ptr<SOARecordContent> sr = nullptr;
   ZoneParserTNG zpt(fname);
@@ -244,7 +252,7 @@ std::shared_ptr<SOARecordContent> loadRPZFromFile(const std::string& fname, std:
       }
       else {
 	dr.d_name=dr.d_name.makeRelative(domain);
-	RPZRecordToPolicy(dr, zone, true, defpol, maxTTL);
+	RPZRecordToPolicy(dr, zone, true, defpol, defpolOverrideLocal, maxTTL);
       }
     }
     catch(const PDNSException& pe) {
@@ -338,7 +346,7 @@ static bool dumpZoneToDisk(const DNSName& zoneName, const std::shared_ptr<DNSFil
   return true;
 }
 
-void RPZIXFRTracker(const std::vector<ComboAddress>& masters, boost::optional<DNSFilterEngine::Policy> defpol, uint32_t maxTTL, size_t zoneIdx, const TSIGTriplet& tt, size_t maxReceivedBytes, const ComboAddress& localAddress, const uint16_t axfrTimeout, std::shared_ptr<SOARecordContent> sr, std::string dumpZoneFileName, uint64_t configGeneration)
+void RPZIXFRTracker(const std::vector<ComboAddress>& masters, boost::optional<DNSFilterEngine::Policy> defpol, bool defpolOverrideLocal, uint32_t maxTTL, size_t zoneIdx, const TSIGTriplet& tt, size_t maxReceivedBytes, const ComboAddress& localAddress, const uint16_t axfrTimeout, std::shared_ptr<SOARecordContent> sr, std::string dumpZoneFileName, uint64_t configGeneration)
 {
   setThreadName("pdns-r/RPZIXFR");
   bool isPreloaded = sr != nullptr;
@@ -360,7 +368,7 @@ void RPZIXFRTracker(const std::vector<ComboAddress>& masters, boost::optional<DN
     std::shared_ptr<DNSFilterEngine::Zone> newZone = std::make_shared<DNSFilterEngine::Zone>(*oldZone);
     for (const auto& master : masters) {
       try {
-        sr = loadRPZFromServer(master, zoneName, newZone, defpol, maxTTL, tt, maxReceivedBytes, localAddress, axfrTimeout);
+        sr = loadRPZFromServer(master, zoneName, newZone, defpol, defpolOverrideLocal, maxTTL, tt, maxReceivedBytes, localAddress, axfrTimeout);
         if(refresh == 0) {
           refresh = sr->d_st.refresh;
         }
@@ -473,7 +481,7 @@ void RPZIXFRTracker(const std::vector<ComboAddress>& masters, boost::optional<DN
 	else {
           totremove++;
 	  g_log<<(g_logRPZChanges ? Logger::Info : Logger::Debug)<<"Had removal of "<<rr.d_name<<" from RPZ zone "<<zoneName<<endl;
-	  RPZRecordToPolicy(rr, newZone, false, defpol, maxTTL);
+	  RPZRecordToPolicy(rr, newZone, false, defpol, defpolOverrideLocal, maxTTL);
 	}
       }
 
@@ -490,7 +498,7 @@ void RPZIXFRTracker(const std::vector<ComboAddress>& masters, boost::optional<DN
 	else {
           totadd++;
 	  g_log<<(g_logRPZChanges ? Logger::Info : Logger::Debug)<<"Had addition of "<<rr.d_name<<" to RPZ zone "<<zoneName<<endl;
-	  RPZRecordToPolicy(rr, newZone, true, defpol, maxTTL);
+	  RPZRecordToPolicy(rr, newZone, true, defpol, defpolOverrideLocal, maxTTL);
 	}
       }
     }

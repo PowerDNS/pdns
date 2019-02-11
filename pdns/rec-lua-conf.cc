@@ -51,31 +51,36 @@ typename C::value_type::second_type constGet(const C& c, const std::string& name
   return iter->second;
 }
 
+typedef std::unordered_map<std::string, boost::variant<bool, uint32_t, std::string > > rpzOptions_t;
 
-static void parseRPZParameters(const std::unordered_map<string,boost::variant<uint32_t, string> >& have, std::string& polName, boost::optional<DNSFilterEngine::Policy>& defpol, uint32_t& maxTTL, size_t& zoneSizeHint)
+static void parseRPZParameters(rpzOptions_t& have, std::string& polName, boost::optional<DNSFilterEngine::Policy>& defpol, bool& defpolOverrideLocal, uint32_t& maxTTL, size_t& zoneSizeHint)
 {
   if(have.count("policyName")) {
-    polName = boost::get<std::string>(constGet(have, "policyName"));
+    polName = boost::get<std::string>(have["policyName"]);
   }
   if(have.count("defpol")) {
     defpol=DNSFilterEngine::Policy();
-    defpol->d_kind = (DNSFilterEngine::PolicyKind)boost::get<uint32_t>(constGet(have, "defpol"));
+    defpol->d_kind = (DNSFilterEngine::PolicyKind)boost::get<uint32_t>(have["defpol"]);
     defpol->d_name = std::make_shared<std::string>(polName);
     if(defpol->d_kind == DNSFilterEngine::PolicyKind::Custom) {
       defpol->d_custom.push_back(DNSRecordContent::mastermake(QType::CNAME, QClass::IN,
-                                                              boost::get<string>(constGet(have,"defcontent"))));
+                                                              boost::get<string>(have["defcontent"])));
 
       if(have.count("defttl"))
-        defpol->d_ttl = static_cast<int32_t>(boost::get<uint32_t>(constGet(have, "defttl")));
+        defpol->d_ttl = static_cast<int32_t>(boost::get<uint32_t>(have["defttl"]));
       else
         defpol->d_ttl = -1; // get it from the zone
     }
+
+    if (have.count("defpolOverrideLocalData")) {
+      defpolOverrideLocal = boost::get<bool>(have["defpolOverrideLocalData"]);
+    }
   }
   if(have.count("maxTTL")) {
-    maxTTL = boost::get<uint32_t>(constGet(have, "maxTTL"));
+    maxTTL = boost::get<uint32_t>(have["maxTTL"]);
   }
   if(have.count("zoneSizeHint")) {
-    zoneSizeHint = static_cast<size_t>(boost::get<uint32_t>(constGet(have, "zoneSizeHint")));
+    zoneSizeHint = static_cast<size_t>(boost::get<uint32_t>(have["zoneSizeHint"]));
   }
 }
 
@@ -186,23 +191,24 @@ void loadRecursorLuaConfig(const std::string& fname, luaConfigDelayedThreads& de
   };
   Lua.writeVariable("Policy", pmap);
 
-  Lua.writeFunction("rpzFile", [&lci](const string& filename, const boost::optional<std::unordered_map<string,boost::variant<uint32_t, string>>>& options) {
+  Lua.writeFunction("rpzFile", [&lci](const string& filename, boost::optional<rpzOptions_t> options) {
       try {
         boost::optional<DNSFilterEngine::Policy> defpol;
+        bool defpolOverrideLocal = true;
         std::string polName("rpzFile");
         std::shared_ptr<DNSFilterEngine::Zone> zone = std::make_shared<DNSFilterEngine::Zone>();
         uint32_t maxTTL = std::numeric_limits<uint32_t>::max();
         if(options) {
           auto& have = *options;
           size_t zoneSizeHint = 0;
-          parseRPZParameters(have, polName, defpol, maxTTL, zoneSizeHint);
+          parseRPZParameters(have, polName, defpol, defpolOverrideLocal, maxTTL, zoneSizeHint);
           if (zoneSizeHint > 0) {
             zone->reserve(zoneSizeHint);
           }
         }
         g_log<<Logger::Warning<<"Loading RPZ from file '"<<filename<<"'"<<endl;
         zone->setName(polName);
-        loadRPZFromFile(filename, zone, defpol, maxTTL);
+        loadRPZFromFile(filename, zone, defpol, defpolOverrideLocal, maxTTL);
         lci.dfe.addZone(zone);
         g_log<<Logger::Warning<<"Done loading RPZ from file '"<<filename<<"'"<<endl;
       }
@@ -211,9 +217,10 @@ void loadRecursorLuaConfig(const std::string& fname, luaConfigDelayedThreads& de
       }
     });
 
-  Lua.writeFunction("rpzMaster", [&lci, &delayedThreads](const boost::variant<string, std::vector<std::pair<int, string> > >& masters_, const string& zoneName, const boost::optional<std::unordered_map<string,boost::variant<uint32_t, string>>>& options) {
+  Lua.writeFunction("rpzMaster", [&lci, &delayedThreads](const boost::variant<string, std::vector<std::pair<int, string> > >& masters_, const string& zoneName, boost::optional<rpzOptions_t> options) {
 
       boost::optional<DNSFilterEngine::Policy> defpol;
+      bool defpolOverrideLocal = true;
       std::shared_ptr<DNSFilterEngine::Zone> zone = std::make_shared<DNSFilterEngine::Zone>();
       TSIGTriplet tt;
       uint32_t refresh=0;
@@ -242,40 +249,40 @@ void loadRecursorLuaConfig(const std::string& fname, luaConfigDelayedThreads& de
         if (options) {
           auto& have = *options;
           size_t zoneSizeHint = 0;
-          parseRPZParameters(have, polName, defpol, maxTTL, zoneSizeHint);
+          parseRPZParameters(have, polName, defpol, defpolOverrideLocal, maxTTL, zoneSizeHint);
           if (zoneSizeHint > 0) {
             zone->reserve(zoneSizeHint);
           }
 
           if(have.count("tsigname")) {
-            tt.name=DNSName(toLower(boost::get<string>(constGet(have, "tsigname"))));
-            tt.algo=DNSName(toLower(boost::get<string>(constGet(have, "tsigalgo"))));
-            if(B64Decode(boost::get<string>(constGet(have, "tsigsecret")), tt.secret))
+            tt.name=DNSName(toLower(boost::get<string>(have["tsigname"])));
+            tt.algo=DNSName(toLower(boost::get<string>(have[ "tsigalgo"])));
+            if(B64Decode(boost::get<string>(have[ "tsigsecret"]), tt.secret))
               throw std::runtime_error("TSIG secret is not valid Base-64 encoded");
           }
 
           if(have.count("refresh")) {
-            refresh = boost::get<uint32_t>(constGet(have,"refresh"));
+            refresh = boost::get<uint32_t>(have["refresh"]);
           }
 
           if(have.count("maxReceivedMBytes")) {
-            maxReceivedXFRMBytes = static_cast<size_t>(boost::get<uint32_t>(constGet(have,"maxReceivedMBytes")));
+            maxReceivedXFRMBytes = static_cast<size_t>(boost::get<uint32_t>(have["maxReceivedMBytes"]));
           }
 
           if(have.count("localAddress")) {
-            localAddress = ComboAddress(boost::get<string>(constGet(have,"localAddress")));
+            localAddress = ComboAddress(boost::get<string>(have["localAddress"]));
           }
 
           if(have.count("axfrTimeout")) {
-            axfrTimeout = static_cast<uint16_t>(boost::get<uint32_t>(constGet(have, "axfrTimeout")));
+            axfrTimeout = static_cast<uint16_t>(boost::get<uint32_t>(have["axfrTimeout"]));
           }
 
           if(have.count("seedFile")) {
-            seedFile = boost::get<std::string>(constGet(have, "seedFile"));
+            seedFile = boost::get<std::string>(have["seedFile"]);
           }
 
           if(have.count("dumpFile")) {
-            dumpFile = boost::get<std::string>(constGet(have, "dumpFile"));
+            dumpFile = boost::get<std::string>(have["dumpFile"]);
           }
         }
 
@@ -297,7 +304,7 @@ void loadRecursorLuaConfig(const std::string& fname, luaConfigDelayedThreads& de
         if (!seedFile.empty()) {
           g_log<<Logger::Info<<"Pre-loading RPZ zone "<<zoneName<<" from seed file '"<<seedFile<<"'"<<endl;
           try {
-            sr = loadRPZFromFile(seedFile, zone, defpol, maxTTL);
+            sr = loadRPZFromFile(seedFile, zone, defpol, defpolOverrideLocal, maxTTL);
 
             if (zone->getDomain() != domain) {
               throw PDNSException("The RPZ zone " + zoneName + " loaded from the seed file (" + zone->getDomain().toString() + ") does not match the one passed in parameter (" + domain.toString() + ")");
@@ -321,7 +328,7 @@ void loadRecursorLuaConfig(const std::string& fname, luaConfigDelayedThreads& de
         exit(1);  // FIXME proper exit code?
       }
 
-      delayedThreads.rpzMasterThreads.push_back(std::make_tuple(masters, defpol, maxTTL, zoneIdx, tt, maxReceivedXFRMBytes, localAddress, axfrTimeout, sr, dumpFile));
+      delayedThreads.rpzMasterThreads.push_back(std::make_tuple(masters, defpol, defpolOverrideLocal, maxTTL, zoneIdx, tt, maxReceivedXFRMBytes, localAddress, axfrTimeout, sr, dumpFile));
     });
 
   typedef vector<pair<int,boost::variant<string, vector<pair<int, string> > > > > argvec_t;
@@ -518,7 +525,7 @@ void startLuaConfigDelayedThreads(const luaConfigDelayedThreads& delayedThreads,
 {
   for (const auto& rpzMaster : delayedThreads.rpzMasterThreads) {
     try {
-      std::thread t(RPZIXFRTracker, std::get<0>(rpzMaster), std::get<1>(rpzMaster), std::get<2>(rpzMaster), std::get<3>(rpzMaster), std::get<4>(rpzMaster), std::get<5>(rpzMaster) * 1024 * 1024, std::get<6>(rpzMaster), std::get<7>(rpzMaster), std::get<8>(rpzMaster), std::get<9>(rpzMaster), generation);
+      std::thread t(RPZIXFRTracker, std::get<0>(rpzMaster), std::get<1>(rpzMaster), std::get<2>(rpzMaster), std::get<3>(rpzMaster), std::get<4>(rpzMaster), std::get<5>(rpzMaster), std::get<6>(rpzMaster) * 1024 * 1024, std::get<7>(rpzMaster), std::get<8>(rpzMaster), std::get<9>(rpzMaster), std::get<10>(rpzMaster), generation);
       t.detach();
     }
     catch(const std::exception& e) {

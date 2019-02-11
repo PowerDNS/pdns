@@ -210,18 +210,18 @@ void DNSFilterEngine::Zone::addResponseTrigger(const Netmask& nm, Policy&& pol)
   d_postpolAddr.insert(nm).second=std::move(pol);
 }
 
-void DNSFilterEngine::Zone::addQNameTrigger(const DNSName& n, Policy&& pol)
+void DNSFilterEngine::Zone::addQNameTrigger(const DNSName& n, Policy&& pol, bool ignoreDuplicate)
 {
   auto it = d_qpolName.find(n);
 
   if (it != d_qpolName.end()) {
     auto& existingPol = it->second;
 
-    if (pol.d_kind != PolicyKind::Custom) {
+    if (pol.d_kind != PolicyKind::Custom && !ignoreDuplicate) {
       throw std::runtime_error("Adding a QName-based filter policy of kind " + getKindToString(pol.d_kind) + " but a policy of kind " + getKindToString(existingPol.d_kind) + " already exists for the following QName: " + n.toLogString());
     }
 
-    if (existingPol.d_kind != PolicyKind::Custom) {
+    if (existingPol.d_kind != PolicyKind::Custom && ignoreDuplicate) {
       throw std::runtime_error("Adding a QName-based filter policy of kind " + getKindToString(existingPol.d_kind) + " but there was already an existing policy for the following QName: " + n.toLogString());
     }
 
