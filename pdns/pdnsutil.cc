@@ -2370,7 +2370,7 @@ try
     if(cmds[1]==".")
       cmds[1].clear();
 
-    for(int n=1; n + 2 <= cmds.size(); n+=2)
+    for(size_t n=1; n + 2 <= cmds.size(); n+=2)
       loadZone(DNSName(cmds[n]), cmds[n+1]);
     return 0;
   }
