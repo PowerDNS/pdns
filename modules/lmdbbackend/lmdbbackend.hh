@@ -45,7 +45,7 @@ public:
   bool startTransaction(const DNSName &domain, int domain_id=-1) override;
   bool commitTransaction() override;
   bool abortTransaction() override;
-  bool feedRecord(const DNSResourceRecord &r, const DNSName &ordername) override;
+  bool feedRecord(const DNSResourceRecord &r, const DNSName &ordername, bool ordernameIsNSEC3=false) override;
   bool feedEnts(int domain_id, map<DNSName,bool>& nonterm) override;
   bool feedEnts3(int domain_id, const DNSName &domain, map<DNSName,bool> &nonterm, const NSEC3PARAMRecordContent& ns3prc, bool narrow) override;
   bool replaceRRSet(uint32_t domain_id, const DNSName& qname, const QType& qt, const vector<DNSResourceRecord>& rrset) override;

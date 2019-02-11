@@ -173,7 +173,7 @@ class RemoteBackend : public DNSBackend
   bool superMasterBackend(const string &ip, const DNSName& domain, const vector<DNSResourceRecord>&nsset, string *nameserver, string *account, DNSBackend **ddb) override;
   bool createSlaveDomain(const string &ip, const DNSName& domain, const string& nameserver, const string &account) override;
   bool replaceRRSet(uint32_t domain_id, const DNSName& qname, const QType& qt, const vector<DNSResourceRecord>& rrset) override;
-  bool feedRecord(const DNSResourceRecord &r, const DNSName &ordername) override;
+  bool feedRecord(const DNSResourceRecord &r, const DNSName &ordername, bool ordernameIsNSEC3=false) override;
   bool feedEnts(int domain_id, map<DNSName,bool>& nonterm) override;
   bool feedEnts3(int domain_id, const DNSName& domain, map<DNSName,bool>& nonterm, const NSEC3PARAMRecordContent& ns3prc, bool narrow) override;
   bool startTransaction(const DNSName& domain, int domain_id) override;

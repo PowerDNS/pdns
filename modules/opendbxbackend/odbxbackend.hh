@@ -86,7 +86,7 @@ public:
         bool abortTransaction() override;
 
         bool getDomainInfo( const DNSName& domain, DomainInfo& di, bool getSerial=true ) override;
-        bool feedRecord( const DNSResourceRecord& rr, const DNSName& ordername ) override;
+        bool feedRecord( const DNSResourceRecord& rr, const DNSName& ordername, bool ordernameIsNSEC3=false ) override;
         bool createSlaveDomain( const string& ip, const DNSName& domain, const string &nameserver, const string& account ) override;
         bool superMasterBackend( const string& ip, const DNSName& domain, const vector<DNSResourceRecord>& nsset, string *nameserver, string* account, DNSBackend** ddb ) override;
 

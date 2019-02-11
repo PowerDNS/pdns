@@ -182,6 +182,7 @@ std::string serToString(const DNSResourceRecord& rr)
   ret += rr.content;
   ret.append((const char*)&rr.ttl, 4);
   ret.append(1, (char)rr.auth);
+  ret.append(1, (char)false);
   ret.append(1, (char)rr.disabled);
   return ret;
 }
@@ -193,7 +194,7 @@ void serFromString(const string_view& str, DNSResourceRecord& rr)
   memcpy(&len, &str[0], 2);
   rr.content.assign(&str[2], len);    // len bytes
   memcpy(&rr.ttl, &str[2] + len, 4);
-  rr.auth = str[str.size()-2];
+  rr.auth = str[str.size()-3];
   rr.disabled = str[str.size()-1];
   rr.wildcardname.clear();
 }
@@ -302,19 +303,22 @@ bool LMDBBackend::abortTransaction()
 }
 
 // d_rwtxn must be set here
-bool LMDBBackend::feedRecord(const DNSResourceRecord &r, const DNSName &ordername)
+bool LMDBBackend::feedRecord(const DNSResourceRecord &r, const DNSName &ordername, bool ordernameIsNSEC3)
 {
   DNSResourceRecord rr(r);
   rr.qname.makeUsRelative(d_transactiondomain);
   rr.content = serializeContent(rr.qtype.getCode(), r.qname, rr.content);
+  rr.disabled = false;
 
   compoundOrdername co;
   d_rwtxn->txn.put(d_rwtxn->db->dbi, co(r.domain_id, rr.qname, rr.qtype.getCode()), serToString(rr));
 
-  if(!ordername.empty()) {
+  if(ordernameIsNSEC3 && !ordername.empty()) {
+    MDBOutVal val;
+    if(d_rwtxn->txn.get(d_rwtxn->db->dbi, co(r.domain_id, rr.qname, QType::NSEC3), val)) {
       rr.ttl = 0;
-      rr.auth = 0;
       rr.content=rr.qname.toDNSStringLC();
+      rr.auth = 0;
       string ser = serToString(rr);
       d_rwtxn->txn.put(d_rwtxn->db->dbi, co(r.domain_id, ordername, QType::NSEC3), ser);
 
@@ -322,6 +326,7 @@ bool LMDBBackend::feedRecord(const DNSResourceRecord &r, const DNSName &ordernam
       rr.content = ordername.toDNSString();
       ser = serToString(rr);
       d_rwtxn->txn.put(d_rwtxn->db->dbi, co(r.domain_id, rr.qname, QType::NSEC3), ser);
+    }
   }
   return true;
 }
@@ -334,8 +339,9 @@ bool LMDBBackend::feedEnts(int domain_id, map<DNSName,bool>& nonterm)
   for(const auto& nt: nonterm) {
     rr.qname = nt.first.makeRelative(d_transactiondomain);
     rr.auth = nt.second;
-    std::string ser = serToString(rr);
+    rr.disabled = true;
 
+    std::string ser = serToString(rr);
     d_rwtxn->txn.put(d_rwtxn->db->dbi, co(domain_id, rr.qname, 0), ser);
   }
   return true;
@@ -343,6 +349,7 @@ bool LMDBBackend::feedEnts(int domain_id, map<DNSName,bool>& nonterm)
 
 bool LMDBBackend::feedEnts3(int domain_id, const DNSName &domain, map<DNSName,bool> &nonterm, const NSEC3PARAMRecordContent& ns3prc, bool narrow)
 {
+  string ser;
   DNSName ordername;
   DNSResourceRecord rr;
   compoundOrdername co;
@@ -350,14 +357,14 @@ bool LMDBBackend::feedEnts3(int domain_id, const DNSName &domain, map<DNSName,bo
     rr.qname = nt.first.makeRelative(domain);
     rr.ttl = 0;
     rr.auth = nt.second;
-    rr.disabled = true;
-    string ser = serToString(rr);
-
+    rr.disabled = nt.second;
+    ser = serToString(rr);
     d_rwtxn->txn.put(d_rwtxn->db->dbi, co(domain_id, rr.qname, 0), ser);
 
     if(!narrow && rr.auth) {
-      rr.auth=0;
-      rr.content=rr.qname.toDNSString();
+      rr.content = rr.qname.toDNSString();
+      rr.auth = false;
+      rr.disabled = false;
       ser = serToString(rr);
 
       ordername=DNSName(toBase32Hex(hashQNameWithSalt(ns3prc, nt.first)));
