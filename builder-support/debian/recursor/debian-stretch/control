@@ -15,7 +15,8 @@ Build-Depends: debhelper (>= 10~),
                libsystemd-dev [linux-any],
                pkg-config,
                protobuf-compiler,
-               ragel
+               ragel,
+               systemd [linux-any]
 Vcs-Git: https://anonscm.debian.org/git/pkg-dns/pdns-recursor.git
 Vcs-Browser: https://anonscm.debian.org/cgit/pkg-dns/pdns-recursor.git
 Homepage: https://www.powerdns.com/

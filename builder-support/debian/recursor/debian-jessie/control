@@ -16,7 +16,8 @@ Build-Depends: debhelper (>= 9~),
                libsystemd-dev [linux-any],
                pkg-config,
                protobuf-compiler,
-               ragel
+               ragel,
+               systemd [linux-any]
 Homepage: https://www.powerdns.com/
 
 Package: pdns-recursor

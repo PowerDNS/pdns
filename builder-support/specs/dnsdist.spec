@@ -20,6 +20,7 @@ BuildRequires: re2-devel
 %if 0%{?suse_version}
 BuildRequires: boost-devel
 BuildRequires: lua-devel
+BuildRequires: systemd
 BuildRequires: systemd-units
 BuildRequires: systemd-devel
 %endif
@@ -39,6 +40,7 @@ BuildRequires: net-snmp-devel
 BuildRequires: protobuf-compiler
 BuildRequires: protobuf-devel
 BuildRequires: re2-devel
+BuildRequires: systemd
 BuildRequires: systemd-devel
 BuildRequires: systemd-units
 %endif
