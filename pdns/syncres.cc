@@ -2693,7 +2693,12 @@ bool SyncRes::doResolveAtThisIP(const std::string& prefix, const DNSName& qname,
       LOG(prefix<<qname<<": error resolving from "<<remoteIP.toString()<< (doTCP ? " over TCP" : "") <<", possible error: "<<strerror(errno)<< endl);
     }
 
-    if(resolveret != -2 && !chained) { // don't account for resource limits, they are our own fault
+    auto dontThrottleNames = g_dontThrottleNames.getLocal();
+    auto dontThrottleNetmasks = g_dontThrottleNetmasks.getLocal();
+
+    if(resolveret != -2 && !chained && !(dontThrottleNames->check(nsName) || dontThrottleNetmasks->match(remoteIP))) {
+      // don't account for resource limits, they are our own fault
+      // And don't throttle when the IP address is on the dontThrottleNetmasks list or the name is part of dontThrottleNames
       t_sstorage.nsSpeeds[nsName.empty()? DNSName(remoteIP.toStringWithPort()) : nsName].submit(remoteIP, 1000000, &d_now); // 1 sec
 
       // code below makes sure we don't filter COM or the root
@@ -2707,7 +2712,7 @@ bool SyncRes::doResolveAtThisIP(const std::string& prefix, const DNSName& qname,
         t_sstorage.throttle.throttle(d_now.tv_sec, boost::make_tuple(remoteIP, qname, qtype.getCode()), 60, 100);
       }
       else {
-        // timeout
+        // timeout, 10 seconds or 5 queries
         t_sstorage.throttle.throttle(d_now.tv_sec, boost::make_tuple(remoteIP, qname, qtype.getCode()), 10, 5);
       }
     }

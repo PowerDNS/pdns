@@ -237,6 +237,10 @@ unsigned int g_numThreads;
 uint16_t g_outgoingEDNSBufsize;
 bool g_logRPZChanges{false};
 
+// Used in the Syncres to not throttle certain servers
+GlobalStateHolder<SuffixMatchNode> g_dontThrottleNames;
+GlobalStateHolder<NetmaskGroup> g_dontThrottleNetmasks;
+
 #define LOCAL_NETS "127.0.0.0/8, 10.0.0.0/8, 100.64.0.0/10, 169.254.0.0/16, 192.168.0.0/16, 172.16.0.0/12, ::1/128, fc00::/7, fe80::/10"
 #define LOCAL_NETS_INVERSE "!127.0.0.0/8, !10.0.0.0/8, !100.64.0.0/10, !169.254.0.0/16, !192.168.0.0/16, !172.16.0.0/12, !::1/128, !fc00::/7, !fe80::/10"
 // Bad Nets taken from both:
@@ -3715,6 +3719,23 @@ static int serviceMain(int argc, char*argv[])
 
   g_statisticsInterval = ::arg().asNum("statistics-interval");
 
+  {
+    SuffixMatchNode dontThrottleNames;
+    vector<string> parts;
+    stringtok(parts, ::arg()["dont-throttle-names"]);
+    for (const auto &p : parts) {
+      dontThrottleNames.add(DNSName(p));
+    }
+    g_dontThrottleNames.setState(dontThrottleNames);
+
+    NetmaskGroup dontThrottleNetmasks;
+    stringtok(parts, ::arg()["dont-throttle-netmasks"]);
+    for (const auto &p : parts) {
+      dontThrottleNetmasks.addMask(Netmask(p));
+    }
+    g_dontThrottleNetmasks.setState(dontThrottleNetmasks);
+  }
+
 #ifdef SO_REUSEPORT
   g_reusePort = ::arg().mustDo("reuseport");
 #endif
@@ -4219,6 +4240,8 @@ int main(int argc, char **argv)
     ::arg().set("max-tcp-clients","Maximum number of simultaneous TCP clients")="128";
     ::arg().set("server-down-max-fails","Maximum number of consecutive timeouts (and unreachables) to mark a server as down ( 0 => disabled )")="64";
     ::arg().set("server-down-throttle-time","Number of seconds to throttle all queries to a server after being marked as down")="60";
+    ::arg().set("dont-throttle-names", "Do not throttle nameservers with this name or suffix")="";
+    ::arg().set("dont-throttle-netmasks", "Do not throttle nameservers with this IP netmask")="";
     ::arg().set("hint-file", "If set, load root hints from this file")="";
     ::arg().set("max-cache-entries", "If set, maximum number of entries in the main cache")="1000000";
     ::arg().set("max-negative-ttl", "maximum number of seconds to keep a negative cached entry in memory")="3600";
