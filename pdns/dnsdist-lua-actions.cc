@@ -758,7 +758,7 @@ public:
   {
 #ifdef HAVE_PROTOBUF
     if (!dq->uniqueId) {
-      dq->uniqueId = t_uuidGenerator();
+      dq->uniqueId = getUniqueID();
     }
 
     DNSDistProtoBufMessage message(*dq);
@@ -878,7 +878,7 @@ public:
   {
 #ifdef HAVE_PROTOBUF
     if (!dr->uniqueId) {
-      dr->uniqueId = t_uuidGenerator();
+      dr->uniqueId = getUniqueID();
     }
 
     DNSDistProtoBufMessage message(*dr, d_includeCNAME);

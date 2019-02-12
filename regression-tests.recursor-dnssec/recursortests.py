@@ -345,8 +345,7 @@ distributor-threads=1""".format(confdir=confdir,
         try:
             subprocess.check_output(pdnsutilCmd, stderr=subprocess.STDOUT)
         except subprocess.CalledProcessError as e:
-            print(e.output)
-            raise
+            raise AssertionError('%s failed (%d): %s' % (pdnsutilCmd, e.returncode, e.output))
 
     @classmethod
     def secureZone(cls, confdir, zonename, key=None):
@@ -373,8 +372,7 @@ distributor-threads=1""".format(confdir=confdir,
         try:
             subprocess.check_output(pdnsutilCmd, stderr=subprocess.STDOUT)
         except subprocess.CalledProcessError as e:
-            print(e.output)
-            raise
+            raise AssertionError('%s failed (%d): %s' % (pdnsutilCmd, e.returncode, e.output))
 
     @classmethod
     def generateAllAuthConfig(cls, confdir):
@@ -505,8 +503,7 @@ distributor-threads=1""".format(confdir=confdir,
         try:
             subprocess.check_output(rec_controlCmd, stderr=subprocess.STDOUT)
         except subprocess.CalledProcessError as e:
-            print(e.output)
-            raise
+            raise AssertionError('%s failed (%d): %s' % (rec_controlCmd, e.returncode, e.output))
 
     @classmethod
     def setUpSockets(cls):
@@ -794,3 +791,16 @@ distributor-threads=1""".format(confdir=confdir,
 
         if not found:
             raise AssertionError("No SOA record found in the authority section:\n%s" % msg.to_text())
+
+    def assertResponseMatches(self, query, expectedRRs, response):
+        expectedResponse = dns.message.make_response(query)
+
+        if query.flags & dns.flags.RD:
+            expectedResponse.flags |= dns.flags.RA
+        if query.flags & dns.flags.CD:
+            expectedResponse.flags |= dns.flags.CD
+
+        expectedResponse.answer = expectedRRs
+        print(expectedResponse)
+        print(response)
+        self.assertEquals(response, expectedResponse)

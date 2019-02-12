@@ -1,5 +1,4 @@
-#ifndef _YAHTTP_ROUTER_HPP
-#define _YAHTTP_ROUTER_HPP 1
+#pragma once
 /* @file 
  * @brief Defines router class and support structures
  */
@@ -70,6 +69,4 @@ If method is left empty, it will match any method. Name is also optional, but ne
     TRouteList routes; //<! Instance variable for routes
   };
 };
-#endif
-
 #endif

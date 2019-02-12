@@ -1334,7 +1334,7 @@ bool GSQLBackend::replaceRRSet(uint32_t domain_id, const DNSName& qname, const Q
   return true;
 }
 
-bool GSQLBackend::feedRecord(const DNSResourceRecord &r, const DNSName &ordername)
+bool GSQLBackend::feedRecord(const DNSResourceRecord &r, const DNSName &ordername, bool ordernameIsNSEC3)
 {
   int prio=0;
   string content(r.content);

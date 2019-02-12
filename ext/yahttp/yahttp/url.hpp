@@ -1,5 +1,4 @@
-#ifndef _YAHTTP_URL_HPP
-#define _YAHTTP_URL_HPP 1
+#pragma once
 #include <sstream>
 #include <string>
 
@@ -188,4 +187,3 @@ namespace YaHTTP {
     };
   };
 };
-#endif

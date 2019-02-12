@@ -61,11 +61,10 @@ std::shared_ptr<DNSRule> makeRule(const luadnsrule_t& var)
 static boost::uuids::uuid makeRuleID(std::string& id)
 {
   if (id.empty()) {
-    return t_uuidGenerator();
+    return getUniqueID();
   }
 
-  boost::uuids::string_generator gen;
-  return gen(id);
+  return getUniqueID(id);
 }
 
 void parseRuleParams(boost::optional<luaruleparams_t> params, boost::uuids::uuid& uuid, uint64_t& creationOrder)
@@ -128,8 +127,7 @@ static void rmRule(GlobalStateHolder<vector<T> > *someRulActions, boost::variant
   setLuaSideEffect();
   auto rules = someRulActions->getCopy();
   if (auto str = boost::get<std::string>(&id)) {
-    boost::uuids::string_generator gen;
-    const auto uuid = gen(*str);
+    const auto uuid = getUniqueID(*str);
     if (rules.erase(std::remove_if(rules.begin(),
                                     rules.end(),
                                     [uuid](const T& a) { return a.d_id == uuid; }),
@@ -170,7 +168,7 @@ static void mvRule(GlobalStateHolder<vector<T> > *someRespRulActions, unsigned i
   }
   auto subject = rules[from];
   rules.erase(rules.begin()+from);
-  if(to == rules.size())
+  if(to > rules.size())
     rules.push_back(subject);
   else {
     if(from < to)

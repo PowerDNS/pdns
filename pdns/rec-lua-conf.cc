@@ -62,10 +62,8 @@ static void parseRPZParameters(const std::unordered_map<string,boost::variant<ui
     defpol->d_kind = (DNSFilterEngine::PolicyKind)boost::get<uint32_t>(constGet(have, "defpol"));
     defpol->d_name = std::make_shared<std::string>(polName);
     if(defpol->d_kind == DNSFilterEngine::PolicyKind::Custom) {
-      defpol->d_custom=
-          DNSRecordContent::mastermake(QType::CNAME, 1,
-                                       boost::get<string>(constGet(have,"defcontent"))
-            );
+      defpol->d_custom.push_back(DNSRecordContent::mastermake(QType::CNAME, QClass::IN,
+                                                              boost::get<string>(constGet(have,"defcontent"))));
 
       if(have.count("defttl"))
         defpol->d_ttl = static_cast<int32_t>(boost::get<uint32_t>(constGet(have, "defttl")));

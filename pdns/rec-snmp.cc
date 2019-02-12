@@ -112,6 +112,7 @@ static const oid truncatedDropsOID[] = { RECURSOR_STATS_OID, 93 };
 static const oid emptyQueriesOID[] = { RECURSOR_STATS_OID, 94 };
 static const oid dnssecAuthenticDataQueriesOID[] = { RECURSOR_STATS_OID, 95 };
 static const oid dnssecCheckDisabledQueriesOID[] = { RECURSOR_STATS_OID, 96 };
+static const oid variableResponsesOID[] = { RECURSOR_STATS_OID, 97 };
 
 static std::unordered_map<oid, std::string> s_statsMap;
 
@@ -226,6 +227,7 @@ RecursorSNMPAgent::RecursorSNMPAgent(const std::string& name, const std::string&
   registerCounter64Stat("query-pipe-full-drops", queryPipeFullDropsOID, OID_LENGTH(queryPipeFullDropsOID));
   registerCounter64Stat("truncated-drops", truncatedDropsOID, OID_LENGTH(truncatedDropsOID));
   registerCounter64Stat("empty-queries", emptyQueriesOID, OID_LENGTH(emptyQueriesOID));
+  registerCounter64Stat("variable-responses", variableResponsesOID, OID_LENGTH(variableResponsesOID));
   registerCounter64Stat("answers0-1", answers01OID, OID_LENGTH(answers01OID));
   registerCounter64Stat("answers1-10", answers110OID, OID_LENGTH(answers110OID));
   registerCounter64Stat("answers10-100", answers10100OID, OID_LENGTH(answers10100OID));

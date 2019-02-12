@@ -50,9 +50,7 @@
 #ifdef HAVE_DNS_OVER_HTTPS
 #include "doh.hh"
 #endif
-#include <boost/uuid/uuid.hpp>
-#include <boost/uuid/uuid_generators.hpp>
-#include <boost/uuid/uuid_io.hpp>
+#include "uuid-utils.hh"
 
 void carbonDumpThread();
 uint64_t uptimeOfProcess(const std::string& str);
@@ -60,8 +58,6 @@ uint64_t uptimeOfProcess(const std::string& str);
 extern uint16_t g_ECSSourcePrefixV4;
 extern uint16_t g_ECSSourcePrefixV6;
 extern bool g_ECSOverride;
-
-extern thread_local boost::uuids::random_generator t_uuidGenerator;
 
 typedef std::unordered_map<string, string> QTag;
 struct DOHUnit;
@@ -426,7 +422,8 @@ public:
   {
     auto delta = d_prev.udiffAndSet();
 
-    d_tokens += 1.0 * rate * (delta/1000000.0);
+    if(delta > 0.0) // time, frequently, does go backwards..
+      d_tokens += 1.0 * rate * (delta/1000000.0);
 
     if(d_tokens > burst) {
       d_tokens = burst;
@@ -547,7 +544,8 @@ struct IDState
   std::shared_ptr<DNSDistPacketCache> packetCache{nullptr};
   std::shared_ptr<QTag> qTag{nullptr};
   const ClientState* cs{nullptr};
-  uint32_t cacheKey;                                          // 8
+  uint32_t cacheKey;                                          // 4
+  uint32_t cacheKeyNoECS;                                     // 4
   uint16_t age;                                               // 4
   uint16_t qtype;                                             // 2
   uint16_t qclass;                                            // 2
@@ -560,6 +558,7 @@ struct IDState
   bool skipCache{false};
   bool destHarvested{false}; // if true, origDest holds the original dest addr, otherwise the listening addr
   bool dnssecOK{false};
+  bool useZeroScope;
 };
 
 typedef std::unordered_map<string, unsigned int> QueryCountRecords;
@@ -722,11 +721,16 @@ struct DownstreamState
   int tcpConnectTimeout{5};
   int tcpRecvTimeout{30};
   int tcpSendTimeout{30};
+  unsigned int checkInterval{1};
+  unsigned int lastCheck{0};
   const unsigned int sourceItf{0};
   uint16_t retries{5};
   uint16_t xpfRRCode{0};
+  uint16_t checkTimeout{1000}; /* in milliseconds */
   uint8_t currentCheckFailures{0};
+  uint8_t consecutiveSuccesfulChecks{0};
   uint8_t maxCheckFailures{1};
+  uint8_t minRiseSuccesses{1};
   StopWatch sw;
   set<string> pools;
   enum class Availability { Up, Down, Auto} availability{Availability::Auto};
@@ -734,6 +738,7 @@ struct DownstreamState
   bool upStatus{false};
   bool useECS{false};
   bool setCD{false};
+  bool disableZeroScope{false};
   std::atomic<bool> connected{false};
   std::atomic_flag threadStarted;
   bool tcpFastOpen{false};
@@ -840,8 +845,8 @@ struct ServerPool
     for (const auto& server : d_servers) {
       if (!upOnly || std::get<1>(server)->isUp() ) {
         count++;
-      };
-    };
+      }
+    }
     return count;
   }
 
@@ -1041,7 +1046,7 @@ bool responseContentMatches(const char* response, const uint16_t responseLen, co
 bool processQuery(LocalHolders& holders, DNSQuestion& dq, string& poolname, int* delayMsec, const struct timespec& now);
 bool processResponse(LocalStateHolder<vector<DNSDistResponseRuleAction> >& localRespRulactions, DNSResponse& dr, int* delayMsec);
 bool fixUpQueryTurnedResponse(DNSQuestion& dq, const uint16_t origFlags);
-bool fixUpResponse(char** response, uint16_t* responseLen, size_t* responseSize, const DNSName& qname, uint16_t origFlags, bool ednsAdded, bool ecsAdded, std::vector<uint8_t>& rewrittenResponse, uint16_t addRoom);
+bool fixUpResponse(char** response, uint16_t* responseLen, size_t* responseSize, const DNSName& qname, uint16_t origFlags, bool ednsAdded, bool ecsAdded, std::vector<uint8_t>& rewrittenResponse, uint16_t addRoom, bool* zeroScope);
 void restoreFlags(struct dnsheader* dh, uint16_t origFlags);
 bool checkQueryHeaders(const struct dnsheader* dh);
 

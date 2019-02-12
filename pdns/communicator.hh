@@ -209,7 +209,7 @@ private:
   time_t d_tickinterval;
   set<DomainInfo> d_tocheck;
   struct cmp {
-    bool operator()(const DNSPacket& a, const DNSPacket& b) {
+    bool operator()(const DNSPacket& a, const DNSPacket& b) const {
       return a.qdomain < b.qdomain;
     };
   };

@@ -221,7 +221,7 @@ int getEDNSOptionsStart(const char* packet, const size_t offset, const size_t le
   }
   pos += 1;
 
-  uint16_t qtype = (const unsigned char)packet[pos]*256 + (const unsigned char)packet[pos+1];
+  uint16_t qtype = (reinterpret_cast<const unsigned char*>(packet)[pos])*256 + reinterpret_cast<const unsigned char*>(packet)[pos+1];
   pos += DNS_TYPE_SIZE;
   pos += DNS_CLASS_SIZE;
 
@@ -488,7 +488,7 @@ int removeEDNSOptionFromOPT(char* optStart, size_t* optLen, const uint16_t optio
   return 0;
 }
 
-bool isEDNSOptionInOpt(const std::string& packet, const size_t optStart, const size_t optLen, const uint16_t optionCodeToFind)
+bool isEDNSOptionInOpt(const std::string& packet, const size_t optStart, const size_t optLen, const uint16_t optionCodeToFind, size_t* optContentStart, uint16_t* optContentLen)
 {
   /* we need at least:
    root label (1), type (2), class (2), ttl (4) + rdlen (2)*/
@@ -508,10 +508,20 @@ bool isEDNSOptionInOpt(const std::string& packet, const size_t optStart, const s
     p += sizeof(optionCode);
     const uint16_t optionLen = 0x100*packet.at(p) + packet.at(p+1);
     p += sizeof(optionLen);
+
     if ((p + optionLen) > rdEnd) {
       return false;
     }
+
     if (optionCode == optionCodeToFind) {
+      if (optContentStart != nullptr) {
+        *optContentStart = p;
+      }
+
+      if (optContentLen != nullptr) {
+        *optContentLen = optionLen;
+      }
+
       return true;
     }
     p += optionLen;
@@ -659,7 +669,7 @@ bool addEDNSToQueryTurnedResponse(DNSQuestion& dq)
   char* optRDLen = reinterpret_cast<char*>(dq.dh) + optRDPosition;
   char * optPtr = (optRDLen - (/* root */ 1 + DNS_TYPE_SIZE + DNS_CLASS_SIZE + EDNS_EXTENDED_RCODE_SIZE + EDNS_VERSION_SIZE + /* Z */ 2));
 
-  const uint8_t* zPtr = (const uint8_t*) optPtr + /* root */ 1 + DNS_TYPE_SIZE + DNS_CLASS_SIZE + EDNS_EXTENDED_RCODE_SIZE + EDNS_VERSION_SIZE;
+  const uint8_t* zPtr = reinterpret_cast<const uint8_t*>(optPtr) + /* root */ 1 + DNS_TYPE_SIZE + DNS_CLASS_SIZE + EDNS_EXTENDED_RCODE_SIZE + EDNS_VERSION_SIZE;
   uint16_t z = 0x100 * (*zPtr) + *(zPtr + 1);
   bool dnssecOK = z & EDNS_HEADER_FLAG_DO;
 
@@ -703,7 +713,7 @@ try
 
   pos++;
 
-  uint16_t qtype = (const unsigned char)packet[pos]*256 + (const unsigned char)packet[pos+1];
+  uint16_t qtype = (reinterpret_cast<const unsigned char*>(packet)[pos])*256 + reinterpret_cast<const unsigned char*>(packet)[pos+1];
   pos += DNS_TYPE_SIZE;
   pos += DNS_CLASS_SIZE;
 
@@ -711,7 +721,7 @@ try
     return 0;
   }
 
-  const uint8_t* z = (const uint8_t*) packet + pos + EDNS_EXTENDED_RCODE_SIZE + EDNS_VERSION_SIZE;
+  const uint8_t* z = reinterpret_cast<const uint8_t*>(packet) + pos + EDNS_EXTENDED_RCODE_SIZE + EDNS_VERSION_SIZE;
   return 0x100 * (*z) + *(z+1);
 }
 catch(...)
@@ -731,4 +741,3 @@ bool queryHasEDNS(const DNSQuestion& dq)
 
   return false;
 }
-

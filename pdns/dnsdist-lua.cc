@@ -291,6 +291,10 @@ void setupLuaConfig(bool client)
 			  ret->retries=std::stoi(boost::get<string>(vars["retries"]));
 			}
 
+			if(vars.count("checkInterval")) {
+			  ret->checkInterval=static_cast<unsigned int>(std::stoul(boost::get<string>(vars["checkInterval"])));
+			}
+
 			if(vars.count("tcpConnectTimeout")) {
 			  ret->tcpConnectTimeout=std::stoi(boost::get<string>(vars["tcpConnectTimeout"]));
 			}
@@ -338,6 +342,10 @@ void setupLuaConfig(bool client)
 			  ret->checkFunction= boost::get<DownstreamState::checkfunc_t>(vars["checkFunction"]);
 			}
 
+			if(vars.count("checkTimeout")) {
+			  ret->checkTimeout = std::stoi(boost::get<string>(vars["checkTimeout"]));
+			}
+
 			if(vars.count("setCD")) {
 			  ret->setCD=boost::get<bool>(vars["setCD"]);
 			}
@@ -348,6 +356,10 @@ void setupLuaConfig(bool client)
 
 			if(vars.count("useClientSubnet")) {
 			  ret->useECS=boost::get<bool>(vars["useClientSubnet"]);
+			}
+
+			if(vars.count("disableZeroScope")) {
+			  ret->disableZeroScope=boost::get<bool>(vars["disableZeroScope"]);
 			}
 
 			if(vars.count("ipBindAddrNoPort")) {
@@ -361,6 +373,10 @@ void setupLuaConfig(bool client)
 			if(vars.count("maxCheckFailures")) {
 			  ret->maxCheckFailures=std::stoi(boost::get<string>(vars["maxCheckFailures"]));
 			}
+
+                        if(vars.count("rise")) {
+                          ret->minRiseSuccesses=std::stoi(boost::get<string>(vars["rise"]));
+                        }
 
                         if(vars.count("cpus")) {
                           for (const auto cpu : boost::get<vector<pair<int,string>>>(vars["cpus"])) {

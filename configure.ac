@@ -215,6 +215,10 @@ for a in $modules $dynmodules; do
         [AC_MSG_ERROR([${a} backend needs lua but we cannot find it])]
       )
       ;;
+    lmdb)
+      PDNS_CHECK_LMDB
+      BOOST_SERIALIZATION
+      ;;
   esac
 done
 
@@ -270,6 +274,7 @@ for a in $dynmodules; do
 done
 
 AX_AVAILABLE_SYSTEMD
+AX_CHECK_SYSTEMD_FEATURES
 AM_CONDITIONAL([HAVE_SYSTEMD], [ test x"$systemd" = "xy" ])
 
 LDFLAGS="$RELRO_LDFLAGS $LDFLAGS"
@@ -320,6 +325,7 @@ AC_CONFIG_FILES([
   modules/gpgsqlbackend/Makefile
   modules/gsqlite3backend/Makefile
   modules/ldapbackend/Makefile
+  modules/lmdbbackend/Makefile
   modules/luabackend/Makefile
   modules/lua2backend/Makefile
   modules/mydnsbackend/Makefile

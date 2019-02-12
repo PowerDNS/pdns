@@ -66,12 +66,12 @@ private:
   void createSocketAndBind(int family, struct sockaddr*local, size_t len);
 
   NetmaskGroup d_tcprange;
-  int d_s;
-  int d_client;
-  pthread_t d_tid;
+  int d_s{-1};
+  int d_client{-1};
+  pthread_t d_tid{0};
   bool d_nonlocal;
-  bool d_tcp;
-  pid_t d_ppid;
+  bool d_tcp{false};
+  pid_t d_ppid{0};
   
   string d_socketname;
   ComboAddress d_socketaddress;

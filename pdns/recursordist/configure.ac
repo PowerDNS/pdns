@@ -149,9 +149,9 @@ AM_COND_IF([NOD_ENABLED],
   [])
 
 AC_SUBST([nodcachedir])
-nodcachedir='${prefix}/var/lib/pdns-recursor'
+nodcachedir='${localstatedir}/lib/pdns-recursor'
 AC_ARG_WITH([nod-cache-dir],
-  [AS_HELP_STRING([--with-nodcachedir], [where newly observed domain cache files live @<:@default=PREFIX/var/lib/pdns-recursor@:>@])],
+  [AS_HELP_STRING([--with-nodcachedir], [where newly observed domain cache files live @<:@default=LOCALSTATEDIR/lib/pdns-recursor@:>@])],
   [nodcachedir="$withval"]
 )
 
@@ -175,6 +175,7 @@ PDNS_ENABLE_SANITIZERS
 PDNS_ENABLE_MALLOC_TRACE
 PDNS_ENABLE_VALGRIND
 AX_AVAILABLE_SYSTEMD
+AX_CHECK_SYSTEMD_FEATURES
 AM_CONDITIONAL([HAVE_SYSTEMD], [ test x"$systemd" = "xy" ])
 PDNS_CHECK_VIRTUALENV
 
