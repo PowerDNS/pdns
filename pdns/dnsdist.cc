@@ -2733,6 +2733,13 @@ try
     }
   }
 
+#ifdef HAVE_DNS_OVER_HTTPS
+  for(auto& df : g_dohlocals) {
+    thread dohthread(dohThread, df);
+    dohthread.detach();
+  }
+#endif
+
   warnlog("dnsdist %s comes with ABSOLUTELY NO WARRANTY. This is free software, and you are welcome to redistribute it according to the terms of the GPL version 2", VERSION);
 
   vector<string> vec;
@@ -2843,13 +2850,6 @@ try
       t1.detach();
     }
   }
-
-#ifdef HAVE_DNS_OVER_HTTPS
-  for(auto& df : g_dohlocals) {
-    thread dohthread(dohThread, df);
-    dohthread.detach();
-  }
-#endif
   
   thread carbonthread(carbonDumpThread);
   carbonthread.detach();
