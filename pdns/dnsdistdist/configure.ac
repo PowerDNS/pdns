@@ -51,6 +51,8 @@ AM_CONDITIONAL([HAVE_SYSTEMD], [ test x"$systemd" = "xy" ])
 
 AC_SUBST([YAHTTP_CFLAGS], ['-I$(top_srcdir)/ext/yahttp'])
 AC_SUBST([YAHTTP_LIBS], ['$(top_builddir)/ext/yahttp/yahttp/libyahttp.la'])
+AC_SUBST([IPCRYPT_CFLAGS], ['-I$(top_srcdir)/ext/ipcrypt'])
+AC_SUBST([IPCRYPT_LIBS], ['$(top_builddir)/ext/ipcrypt/libipcrypt.la'])
 
 PDNS_WITH_LUA([mandatory])
 PDNS_CHECK_LUA_HPP
@@ -110,8 +112,9 @@ AS_IF([test "x$PACKAGEVERSION" != "x"],
 )
 
 AC_CONFIG_FILES([Makefile
-	ext/yahttp/Makefile
-	ext/yahttp/yahttp/Makefile])
+        ext/yahttp/Makefile
+        ext/yahttp/yahttp/Makefile
+        ext/ipcrypt/Makefile])
 
 AC_OUTPUT
 
