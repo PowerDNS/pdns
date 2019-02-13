@@ -1288,6 +1288,16 @@ static string* nopFunction()
   return new string("pong\n");
 }
 
+string getDontThrottleNames() {
+  auto dtn = g_dontThrottleNames.getLocal();
+  return dtn->toString() + "\n";
+}
+
+string getDontThrottleNetmasks() {
+  auto dtn = g_dontThrottleNetmasks.getLocal();
+  return dtn->toString() + "\n";
+}
+
 string RecursorControlParser::getAnswer(const string& question, RecursorControlParser::func_t** command)
 {
   *command=nop;
@@ -1315,6 +1325,8 @@ string RecursorControlParser::getAnswer(const string& question, RecursorControlP
 "dump-throttlemap <filename>      dump the contents of the throttle to the named file\n"
 "get [key1] [key2] ..             get specific statistics\n"
 "get-all                          get all statistics\n"
+"get-dont-throttle-names          get the list of names that are not allowed to be throttled\n"
+"get-dont-throttle-netmasks       get the list of netmasks that are not allowed to be throttled\n"
 "get-ntas                         get all configured Negative Trust Anchors\n"
 "get-tas                          get all configured Trust Anchors\n"
 "get-parameter [key1] [key2] ..   get configuration parameters\n"
@@ -1539,6 +1551,14 @@ string RecursorControlParser::getAnswer(const string& question, RecursorControlP
 
   if (cmd=="set-dnssec-log-bogus")
     return doSetDnssecLogBogus(begin, end);
+
+  if (cmd == "get-dont-throttle-names") {
+    return getDontThrottleNames();
+  }
+
+  if (cmd == "get-dont-throttle-netmasks") {
+    return getDontThrottleNetmasks();
+  }
 
   return "Unknown command '"+cmd+"', try 'help'\n";
 }
