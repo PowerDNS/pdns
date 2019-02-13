@@ -1373,6 +1373,105 @@ string addDontThrottleNetmasks(T begin, T end) {
   return ret + "\n";
 }
 
+template<typename T>
+string clearDontThrottleNames(T begin, T end) {
+  if(begin == end)
+    return "No names specified, doing nothing.\n";
+
+  if (begin + 1 == end && *begin == "*"){
+    SuffixMatchNode smn;
+    g_dontThrottleNames.setState(smn);
+    string ret = "Cleared list of nameserver names that may not be throttled";
+    g_log<<Logger::Warning<<ret<<", requested via control channel"<<endl;
+    return ret + "\n";
+  }
+
+  vector<DNSName> toRemove;
+  while (begin != end) {
+    try {
+      if (*begin == "*") {
+        return "Please don't mix '*' with other names, nothing removed\n";
+      }
+      toRemove.push_back(DNSName(*begin));
+    }
+    catch (const std::exception &e) {
+      return "Problem parsing '" + *begin + "': "+ e.what() + ", nothing removed\n";
+    }
+    begin++;
+  }
+
+  string ret = "Removed";
+  bool first = true;
+  auto dnt = g_dontThrottleNames.getCopy();
+  for (const auto &name : toRemove) {
+    if (!first) {
+      ret += ",";
+    }
+    first = false;
+    ret += " " + name.toLogString();
+    dnt.remove(name);
+  }
+
+  g_dontThrottleNames.setState(dnt);
+
+  ret += " from the list of nameservers that may not be throttled";
+  g_log<<Logger::Info<<ret<<", requested via control channel"<<endl;
+  return ret + "\n";
+}
+
+template<typename T>
+string clearDontThrottleNetmasks(T begin, T end) {
+  if(begin == end)
+    return "No netmasks specified, doing nothing.\n";
+
+  if (begin + 1 == end && *begin == "*"){
+    auto nmg = g_dontThrottleNetmasks.getCopy();
+    nmg.clear();
+    g_dontThrottleNetmasks.setState(nmg);
+
+    string ret = "Cleared list of nameserver addresses that may not be throttled";
+    g_log<<Logger::Warning<<ret<<", requested via control channel"<<endl;
+    return ret + "\n";
+  }
+
+  std::vector<Netmask> toRemove;
+  while (begin != end) {
+    try {
+      if (*begin == "*") {
+        return "Please don't mix '*' with other netmasks, nothing removed\n";
+      }
+      auto n = Netmask(*begin);
+      toRemove.push_back(n);
+    }
+    catch(const std::exception &e) {
+      return "Problem parsing '" + *begin + "': "+ e.what() + ", nothing added\n";
+    }
+    catch(const PDNSException &e) {
+      return "Problem parsing '" + *begin + "': "+ e.reason + ", nothing added\n";
+    }
+    begin++;
+  }
+
+  string ret = "Removed";
+  bool first = true;
+  auto dnt = g_dontThrottleNetmasks.getCopy();
+  for (const auto &mask : toRemove) {
+    if (!first) {
+      ret += ",";
+    }
+    first = false;
+    ret += " " + mask.toString();
+    dnt.deleteMask(mask);
+  }
+
+  g_dontThrottleNetmasks.setState(dnt);
+
+  ret += " from the list of nameservers that may not be throttled";
+  g_log<<Logger::Info<<ret<<", requested via control channel"<<endl;
+  return ret + "\n";
+}
+
+
 string RecursorControlParser::getAnswer(const string& question, RecursorControlParser::func_t** command)
 {
   *command=nop;
@@ -1394,6 +1493,9 @@ string RecursorControlParser::getAnswer(const string& question, RecursorControlP
 "add-nta DOMAIN [REASON]          add a Negative Trust Anchor for DOMAIN with the comment REASON\n"
 "add-ta DOMAIN DSRECORD           add a Trust Anchor for DOMAIN with data DSRECORD\n"
 "current-queries                  show currently active queries\n"
+"clear-dont-throttle-names [N...] remove names that are not allowed to be throttled. If N is '*', remove all\n"
+"clear-dont-throttle-netmasks [N...]\n"
+"                                 remove netmasks that are not allowed to be throttled. If N is '*', remove all\n"
 "clear-nta [DOMAIN]...            Clear the Negative Trust Anchor for DOMAINs, if no DOMAIN is specified, remove all\n"
 "clear-ta [DOMAIN]...             Clear the Trust Anchor for DOMAINs\n"
 "dump-cache <filename>            dump cache contents to the named file\n"
@@ -1644,6 +1746,14 @@ string RecursorControlParser::getAnswer(const string& question, RecursorControlP
 
   if (cmd == "add-dont-throttle-netmasks") {
     return addDontThrottleNetmasks(begin, end);
+  }
+
+  if (cmd == "clear-dont-throttle-names") {
+    return clearDontThrottleNames(begin, end);
+  }
+
+  if (cmd == "clear-dont-throttle-netmasks") {
+    return clearDontThrottleNetmasks(begin, end);
   }
 
   return "Unknown command '"+cmd+"', try 'help'\n";
