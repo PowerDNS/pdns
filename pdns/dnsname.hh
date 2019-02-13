@@ -348,6 +348,20 @@ struct SuffixMatchTree
     return child->lookup(labels);
   }
 
+  // Returns all end-nodes, fully qualified (not as separate labels)
+  std::vector<DNSName> getNodes() const {
+    std::vector<DNSName> ret;
+    if (endNode) {
+      ret.push_back(DNSName(d_name));
+    }
+    for (const auto& child : children) {
+      auto nodes = child.getNodes();
+      for (const auto &node: nodes) {
+        ret.push_back(node + DNSName(d_name));
+      }
+    }
+    return ret;
+  }
 };
 
 /* Quest in life: serve as a rapid block list. If you add a DNSName to a root SuffixMatchNode,
@@ -356,15 +370,10 @@ struct SuffixMatchNode
 {
   SuffixMatchNode()
   {}
-  std::string d_human;
   SuffixMatchTree<bool> d_tree;
 
   void add(const DNSName& dnsname)
   {
-    if(!d_human.empty())
-      d_human.append(", ");
-    d_human += dnsname.toString();
-
     d_tree.add(dnsname, true);
   }
 
@@ -390,7 +399,16 @@ struct SuffixMatchNode
 
   std::string toString() const
   {
-    return d_human;
+    std::string ret;
+    bool first = true;
+    for (const auto &n: d_tree.getNodes()) {
+      if (!first) {
+        ret += ", ";
+      }
+      first = false;
+      ret += n.toString();
+    }
+    return ret;
   }
 
 };
