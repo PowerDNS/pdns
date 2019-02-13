@@ -1218,7 +1218,7 @@ int addOrReplaceRecord(bool addOrReplace, const vector<string>& cmds) {
   di.backend->lookup(rr.qtype, name, 0, di.id);
   cout<<"New rrset:"<<endl;
   while(di.backend->get(rr)) {
-    cout<<rr.qname.toString()<<" IN "<<rr.qtype.getName()<<" "<<rr.ttl<<" "<<rr.content<<endl;      
+    cout<<rr.qname.toString()<<" "<<rr.ttl<<" IN "<<rr.qtype.getName()<<" "<<rr.content<<endl;
   }
   return EXIT_SUCCESS;
 }
