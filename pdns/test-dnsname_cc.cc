@@ -507,6 +507,11 @@ BOOST_AUTO_TEST_CASE(test_suffixmatch) {
   smn.add(net);
   BOOST_CHECK(smn.check(examplenet));
   BOOST_CHECK(smn.check(net));
+
+  // Remove .net and check that example.net still exists
+  smn.remove(net);
+  BOOST_CHECK_EQUAL(smn.check(net), false);
+  BOOST_CHECK(smn.check(examplenet));
 }
 
 BOOST_AUTO_TEST_CASE(test_suffixmatch_tree) {
@@ -558,6 +563,11 @@ BOOST_AUTO_TEST_CASE(test_suffixmatch_tree) {
   BOOST_CHECK_EQUAL(*smt.lookup(examplenet), examplenet);
   BOOST_REQUIRE(smt.lookup(net));
   BOOST_CHECK_EQUAL(*smt.lookup(net), net);
+
+  // Remove .net, and check that example.net remains
+  smt.remove(net);
+  BOOST_CHECK(smt.lookup(net) == nullptr);
+  BOOST_CHECK_EQUAL(*smt.lookup(examplenet), examplenet);
 }
 
 

@@ -286,6 +286,39 @@ struct SuffixMatchTree
     }
   }
 
+  void remove(const DNSName &name) const
+  {
+    remove(name.getRawLabels());
+  }
+
+  /* Removes the node at `labels`, also make sure that no empty
+   * children will be left behind in memory
+   */
+  void remove(std::vector<std::string> labels) const
+  {
+    SuffixMatchTree smt(*labels.rbegin());
+    auto child = children.find(smt);
+    if (child == children.end()) {
+      // No subnode found, we're done
+      return;
+    }
+
+    // We have found a child
+    labels.pop_back();
+    if (labels.empty()) {
+      // The child is no longer an endnode
+      child->endNode = false;
+      // If the child has no further children, just remove it from the set.
+      if (child->children.empty()) {
+        children.erase(child);
+      }
+      return;
+    }
+
+    // We are not at the end, let the child figure out what to do
+    child->remove(labels);
+  }
+
   T* lookup(const DNSName& name)  const
   {
     if(children.empty()) { // speed up empty set
@@ -338,6 +371,16 @@ struct SuffixMatchNode
   void add(std::vector<std::string> labels)
   {
     d_tree.add(labels, true);
+  }
+
+  void remove(const DNSName& name)
+  {
+    d_tree.remove(name);
+  }
+
+  void remove(std::vector<std::string> labels)
+  {
+    d_tree.remove(labels);
   }
 
   bool check(const DNSName& dnsname) const
