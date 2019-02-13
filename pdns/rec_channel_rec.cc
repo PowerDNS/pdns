@@ -1298,6 +1298,81 @@ string getDontThrottleNetmasks() {
   return dtn->toString() + "\n";
 }
 
+template<typename T>
+string addDontThrottleNames(T begin, T end) {
+  if (begin == end) {
+    return "No names specified, keeping existing list\n";
+  }
+  vector<DNSName> toAdd;
+  while (begin != end) {
+    try {
+      auto d = DNSName(*begin);
+      toAdd.push_back(d);
+    }
+    catch(const std::exception &e) {
+      return "Problem parsing '" + *begin + "': "+ e.what() + ", nothing added\n";
+    }
+    begin++;
+  }
+
+  string ret = "Added";
+  auto dnt = g_dontThrottleNames.getCopy();
+  bool first = true;
+  for (auto const &d : toAdd) {
+    if (!first) {
+      ret += ",";
+    }
+    first = false;
+    ret += " " + d.toLogString();
+    dnt.add(d);
+  }
+
+  g_dontThrottleNames.setState(dnt);
+
+  ret += " to the list of nameservers that may not be throttled";
+  g_log<<Logger::Info<<ret<<", requested via control channel"<<endl;
+  return ret + "\n";
+}
+
+template<typename T>
+string addDontThrottleNetmasks(T begin, T end) {
+  if (begin == end) {
+    return "No netmasks specified, keeping existing list\n";
+  }
+  vector<Netmask> toAdd;
+  while (begin != end) {
+    try {
+      auto n = Netmask(*begin);
+      toAdd.push_back(n);
+    }
+    catch(const std::exception &e) {
+      return "Problem parsing '" + *begin + "': "+ e.what() + ", nothing added\n";
+    }
+    catch(const PDNSException &e) {
+      return "Problem parsing '" + *begin + "': "+ e.reason + ", nothing added\n";
+    }
+    begin++;
+  }
+
+  string ret = "Added";
+  auto dnt = g_dontThrottleNetmasks.getCopy();
+  bool first = true;
+  for (auto const &t : toAdd) {
+    if (!first) {
+      ret += ",";
+    }
+    first = false;
+    ret += " " + t.toString();
+    dnt.addMask(t);
+  }
+
+  g_dontThrottleNetmasks.setState(dnt);
+
+  ret += " to the list of nameserver netmasks that may not be throttled";
+  g_log<<Logger::Info<<ret<<", requested via control channel"<<endl;
+  return ret + "\n";
+}
+
 string RecursorControlParser::getAnswer(const string& question, RecursorControlParser::func_t** command)
 {
   *command=nop;
@@ -1313,6 +1388,9 @@ string RecursorControlParser::getAnswer(const string& question, RecursorControlP
   // should probably have a smart dispatcher here, like auth has
   if(cmd=="help")
     return
+"add-dont-throttle-names [N...]   add names that are not allowed to be throttled\n"
+"add-dont-throttle-netmasks [N...]\n"
+"                                 add netmasks that are not allowed to be throttled\n"
 "add-nta DOMAIN [REASON]          add a Negative Trust Anchor for DOMAIN with the comment REASON\n"
 "add-ta DOMAIN DSRECORD           add a Trust Anchor for DOMAIN with data DSRECORD\n"
 "current-queries                  show currently active queries\n"
@@ -1558,6 +1636,14 @@ string RecursorControlParser::getAnswer(const string& question, RecursorControlP
 
   if (cmd == "get-dont-throttle-netmasks") {
     return getDontThrottleNetmasks();
+  }
+
+  if (cmd == "add-dont-throttle-names") {
+    return addDontThrottleNames(begin, end);
+  }
+
+  if (cmd == "add-dont-throttle-netmasks") {
+    return addDontThrottleNetmasks(begin, end);
   }
 
   return "Unknown command '"+cmd+"', try 'help'\n";
