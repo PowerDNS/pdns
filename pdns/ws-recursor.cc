@@ -623,7 +623,7 @@ void AsyncServer::newConnection()
 
 // This is an entry point from FDM, so it needs to catch everything.
 void AsyncWebServer::serveConnection(std::shared_ptr<Socket> client) const {
-  const string logprefix = d_logprefix + "<" + to_string(getUniqueID()) + "> ";
+  const string logprefix = d_logprefix + to_string(getUniqueID()) + " ";
 
   HttpRequest req(logprefix);
   HttpResponse resp;

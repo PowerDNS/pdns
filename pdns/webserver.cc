@@ -340,7 +340,7 @@ void WebServer::logResponse(const HttpResponse& resp, const ComboAddress& remote
 }
 
 void WebServer::serveConnection(std::shared_ptr<Socket> client) const {
-  const string logprefix = d_logprefix + "<" + to_string(getUniqueID()) + "> ";
+  const string logprefix = d_logprefix + to_string(getUniqueID()) + " ";
 
   HttpRequest req(logprefix);
   HttpResponse resp;
