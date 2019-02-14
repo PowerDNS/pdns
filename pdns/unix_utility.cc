@@ -212,6 +212,11 @@ int Utility::makeUidNumeric(const string &username)
   return newuid;
 }
 
+// Sets the random seed.
+void Utility::srandom( unsigned int seed )
+{
+  ::srandom(seed);
+}
 
 // Writes a vector.
 int Utility::writev(int socket, const iovec *vector, size_t count )
