@@ -87,6 +87,7 @@ uint16_t g_maxOutstanding{10240};
 bool g_verboseHealthChecks{false};
 uint32_t g_staleCacheEntriesTTL{0};
 bool g_syslog{true};
+bool g_allowEmptyResponse{false};
 
 GlobalStateHolder<NetmaskGroup> g_ACL;
 string g_outputBuffer;
@@ -222,7 +223,7 @@ bool responseContentMatches(const char* response, const uint16_t responseLen, co
   }
 
   if (dh->qdcount == 0) {
-    if (dh->rcode != RCode::NXDomain) {
+    if (dh->rcode != RCode::NXDomain && g_allowEmptyResponse) {
       return true;
     }
     else {

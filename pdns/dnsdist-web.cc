@@ -697,6 +697,7 @@ static void connectionThread(int sock, ComboAddress remote)
       typedef boost::variant<bool, double, std::string> configentry_t;
       std::vector<std::pair<std::string, configentry_t> > configEntries {
         { "acl", g_ACL.getLocal()->toString() },
+        { "allow-empty-response", g_allowEmptyResponse },
         { "control-socket", g_serverControl.toStringWithPort() },
         { "ecs-override", g_ECSOverride },
         { "ecs-source-prefix-v4", (double) g_ECSSourcePrefixV4 },
