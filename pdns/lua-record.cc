@@ -7,6 +7,7 @@
 #include "ueberbackend.hh"
 #include <boost/format.hpp>
 #include "dnsrecords.hh"
+#include "dns_random.hh"
 
 #include "../modules/geoipbackend/geoipinterface.hh" // only for the enum
 
@@ -249,7 +250,7 @@ static ComboAddress pickrandom(const vector<ComboAddress>& ips)
   if (ips.empty()) {
     throw std::invalid_argument("The IP list cannot be empty");
   }
-  return ips[random() % ips.size()];
+  return ips[dns_random(ips.size())];
 }
 
 static ComboAddress hashed(const ComboAddress& who, const vector<ComboAddress>& ips)
@@ -273,7 +274,7 @@ static ComboAddress pickwrandom(const vector<pair<int,ComboAddress> >& wips)
     sum += i.first;
     pick.push_back({sum, i.second});
   }
-  int r = random() % sum;
+  int r = dns_random(sum);
   auto p = upper_bound(pick.begin(), pick.end(),r, [](int r, const decltype(pick)::value_type& a) { return  r < a.first;});
   return p->second;
 }
@@ -379,7 +380,7 @@ static ComboAddress pickclosest(const ComboAddress& bestwho, const vector<ComboA
     //          cout<<"    distance: "<<sqrt(dist2) * 40000.0/360<<" km"<<endl; // length of a degree
     ranked[dist2].push_back(c);
   }
-  return ranked.begin()->second[random() % ranked.begin()->second.size()];
+  return ranked.begin()->second[dns_random(ranked.begin()->second.size())];
 }
 
 static std::vector<DNSZoneRecord> lookup(const DNSName& name, uint16_t qtype, int zoneid)
