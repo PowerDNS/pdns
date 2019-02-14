@@ -640,8 +640,8 @@ ixfrdist_SOURCES = \
 	statbag.cc \
 	threadname.hh threadname.cc \
 	tsigverifier.cc tsigverifier.hh \
-	uuid-utils.hh uuid-utils.cc \
 	unix_utility.cc \
+	uuid-utils.hh uuid-utils.cc \
 	webserver.hh webserver.cc \
 	zoneparser-tng.cc
 
