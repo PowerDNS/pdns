@@ -655,66 +655,14 @@ void AsyncWebServer::serveConnection(std::shared_ptr<Socket> client) const {
       client->getRemote(remote);
     }
 
-    if (d_loglevel >= WebServer::LogLevel::Detailed) {
-      g_log<<Logger::Notice<<logprefix<<"Request Details:"<<endl;
-
-      bool first = true;
-      for (const auto& r : req.getvars) {
-        if (first) {
-          first = false;
-          g_log<<Logger::Notice<<logprefix<<" GET params:"<<endl;
-        }
-        g_log<<Logger::Notice<<logprefix<<"  "<<r.first<<": "<<r.second<<endl;
-      }
-
-      first = true;
-      for (const auto& r : req.postvars) {
-        if (first) {
-          first = false;
-          g_log<<Logger::Notice<<logprefix<<" POST params:"<<endl;
-        }
-        g_log<<Logger::Notice<<logprefix<<"  "<<r.first<<": "<<r.second<<endl;
-      }
-      first = true;
-
-      for (const auto& h : req.headers) {
-        if (first) {
-          first = false;
-          g_log<<Logger::Notice<<logprefix<<" Headers:"<<endl;
-        }
-        g_log<<Logger::Notice<<logprefix<<"  "<<h.first<<": "<<h.second<<endl;
-      }
-
-      if (req.body.empty()) {
-        g_log<<Logger::Notice<<logprefix<<" No body"<<endl;
-      } else {
-        g_log<<Logger::Notice<<logprefix<<" Full body: "<<endl;
-        g_log<<Logger::Notice<<logprefix<<"  "<<req.body<<endl;
-      }
-    }
+    logRequest(req, remote);
 
     WebServer::handleRequest(req, resp);
     ostringstream ss;
     resp.write(ss);
     reply = ss.str();
 
-    if (d_loglevel >= WebServer::LogLevel::Detailed) {
-      g_log<<Logger::Notice<<logprefix<<"Response details:"<<endl;
-      bool first = true;
-      for (const auto& h : resp.headers) {
-        if (first) {
-          first = false;
-          g_log<<Logger::Notice<<logprefix<<" Headers:"<<endl;
-        }
-        g_log<<Logger::Notice<<logprefix<<"  "<<h.first<<": "<<h.second<<endl;
-      }
-      if (resp.body.empty()) {
-        g_log<<Logger::Notice<<logprefix<<" No body"<<endl;
-      } else {
-        g_log<<Logger::Notice<<logprefix<<" Full body: "<<endl;
-        g_log<<Logger::Notice<<logprefix<<"  "<<resp.body<<endl;
-      }
-    }
+    logResponse(resp, remote, logprefix);
 
     // now send the reply
     if (asendtcp(reply, client.get()) == -1 || reply.empty()) {

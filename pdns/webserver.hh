@@ -220,6 +220,8 @@ public:
 
 protected:
   void registerBareHandler(const string& url, HandlerFunction handler);
+  void logRequest(const HttpRequest& req, const ComboAddress& remote) const;
+  void logResponse(const HttpResponse& resp, const ComboAddress& remote, const string& logprefix) const;
 
   virtual std::shared_ptr<Server> createServer() {
     return std::make_shared<Server>(d_listenaddress, d_port);

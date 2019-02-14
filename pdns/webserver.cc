@@ -278,6 +278,67 @@ void WebServer::handleRequest(HttpRequest& req, HttpResponse& resp) const
   }
 }
 
+void WebServer::logRequest(const HttpRequest& req, const ComboAddress& remote) const {
+  if (d_loglevel >= WebServer::LogLevel::Detailed) {
+    auto logprefix = req.logprefix;
+    g_log<<Logger::Notice<<logprefix<<"Request details:"<<endl;
+
+    bool first = true;
+    for (const auto& r : req.getvars) {
+      if (first) {
+        first = false;
+        g_log<<Logger::Notice<<logprefix<<" GET params:"<<endl;
+      }
+      g_log<<Logger::Notice<<logprefix<<"  "<<r.first<<": "<<r.second<<endl;
+    }
+
+    first = true;
+    for (const auto& r : req.postvars) {
+      if (first) {
+        first = false;
+        g_log<<Logger::Notice<<logprefix<<" POST params:"<<endl;
+      }
+      g_log<<Logger::Notice<<logprefix<<"  "<<r.first<<": "<<r.second<<endl;
+    }
+
+    first = true;
+    for (const auto& h : req.headers) {
+      if (first) {
+        first = false;
+        g_log<<Logger::Notice<<logprefix<<" Headers:"<<endl;
+      }
+      g_log<<Logger::Notice<<logprefix<<"  "<<h.first<<": "<<h.second<<endl;
+    }
+
+    if (req.body.empty()) {
+      g_log<<Logger::Notice<<logprefix<<" No body"<<endl;
+    } else {
+      g_log<<Logger::Notice<<logprefix<<" Full body: "<<endl;
+      g_log<<Logger::Notice<<logprefix<<"  "<<req.body<<endl;
+    }
+  }
+}
+
+void WebServer::logResponse(const HttpResponse& resp, const ComboAddress& remote, const string& logprefix) const {
+  if (d_loglevel >= WebServer::LogLevel::Detailed) {
+    g_log<<Logger::Notice<<logprefix<<"Response details:"<<endl;
+    bool first = true;
+    for (const auto& h : resp.headers) {
+      if (first) {
+        first = false;
+        g_log<<Logger::Notice<<logprefix<<" Headers:"<<endl;
+      }
+      g_log<<Logger::Notice<<logprefix<<"  "<<h.first<<": "<<h.second<<endl;
+    }
+    if (resp.body.empty()) {
+      g_log<<Logger::Notice<<logprefix<<" No body"<<endl;
+    } else {
+      g_log<<Logger::Notice<<logprefix<<" Full body: "<<endl;
+      g_log<<Logger::Notice<<logprefix<<"  "<<resp.body<<endl;
+    }
+  }
+}
+
 void WebServer::serveConnection(std::shared_ptr<Socket> client) const {
   const string logprefix = d_logprefix + "<" + to_string(getUniqueID()) + "> ";
 
@@ -314,66 +375,14 @@ void WebServer::serveConnection(std::shared_ptr<Socket> client) const {
       client->getRemote(remote);
     }
 
-    if (d_loglevel >= WebServer::LogLevel::Detailed) {
-      g_log<<Logger::Notice<<logprefix<<"Request Details:"<<endl;
-
-      bool first = true;
-      for (const auto& r : req.getvars) {
-        if (first) {
-          first = false;
-          g_log<<Logger::Notice<<logprefix<<" GET params:"<<endl;
-        }
-        g_log<<Logger::Notice<<logprefix<<"  "<<r.first<<": "<<r.second<<endl;
-      }
-
-      first = true;
-      for (const auto& r : req.postvars) {
-        if (first) {
-          first = false;
-          g_log<<Logger::Notice<<logprefix<<" POST params:"<<endl;
-        }
-        g_log<<Logger::Notice<<logprefix<<"  "<<r.first<<": "<<r.second<<endl;
-      }
-      first = true;
-
-      for (const auto& h : req.headers) {
-        if (first) {
-          first = false;
-          g_log<<Logger::Notice<<logprefix<<" Headers:"<<endl;
-        }
-        g_log<<Logger::Notice<<logprefix<<"  "<<h.first<<": "<<h.second<<endl;
-      }
-
-      if (req.body.empty()) {
-        g_log<<Logger::Notice<<logprefix<<" No body"<<endl;
-      } else {
-        g_log<<Logger::Notice<<logprefix<<" Full body: "<<endl;
-        g_log<<Logger::Notice<<logprefix<<"  "<<req.body<<endl;
-      }
-    }
+    logRequest(req, remote);
 
     WebServer::handleRequest(req, resp);
     ostringstream ss;
     resp.write(ss);
     reply = ss.str();
 
-    if (d_loglevel >= WebServer::LogLevel::Detailed) {
-      g_log<<Logger::Notice<<logprefix<<"Response details:"<<endl;
-      bool first = true;
-      for (const auto& h : resp.headers) {
-        if (first) {
-          first = false;
-          g_log<<Logger::Notice<<logprefix<<" Headers:"<<endl;
-        }
-        g_log<<Logger::Notice<<logprefix<<"  "<<h.first<<": "<<h.second<<endl;
-      }
-      if (resp.body.empty()) {
-        g_log<<Logger::Notice<<logprefix<<" No body"<<endl;
-      } else {
-        g_log<<Logger::Notice<<logprefix<<" Full body: "<<endl;
-        g_log<<Logger::Notice<<logprefix<<"  "<<resp.body<<endl;
-      }
-    }
+    logResponse(resp, remote, logprefix);
 
     client->writenWithTimeout(reply.c_str(), reply.size(), timeout);
   }
