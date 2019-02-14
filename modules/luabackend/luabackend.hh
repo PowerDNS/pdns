@@ -75,7 +75,7 @@ public:
     bool startTransaction(const DNSName &qname, int id) override;
     bool commitTransaction() override;
     bool abortTransaction() override;
-    bool feedRecord(const DNSResourceRecord &rr, const DNSName &ordername) override;
+    bool feedRecord(const DNSResourceRecord &rr, const DNSName &ordername, bool ordernameIsNSEC3=false) override;
 
 
 //  SUPERMASTER BACKEND

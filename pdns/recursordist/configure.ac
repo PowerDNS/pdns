@@ -149,9 +149,9 @@ AM_COND_IF([NOD_ENABLED],
   [])
 
 AC_SUBST([nodcachedir])
-nodcachedir='${prefix}/var/lib/pdns-recursor'
+nodcachedir='${localstatedir}/lib/pdns-recursor'
 AC_ARG_WITH([nod-cache-dir],
-  [AS_HELP_STRING([--with-nodcachedir], [where newly observed domain cache files live @<:@default=PREFIX/var/lib/pdns-recursor@:>@])],
+  [AS_HELP_STRING([--with-nodcachedir], [where newly observed domain cache files live @<:@default=LOCALSTATEDIR/lib/pdns-recursor@:>@])],
   [nodcachedir="$withval"]
 )
 
