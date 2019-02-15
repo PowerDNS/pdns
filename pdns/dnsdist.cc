@@ -2708,8 +2708,8 @@ try
       tcpBindsCount++;
     }
     else {
-      delete cs;
       errlog("Error while setting up TLS on local address '%s', exiting", cs->local.toStringWithPort());
+      delete cs;
       _exit(EXIT_FAILURE);
     }
   }
