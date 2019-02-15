@@ -40,7 +40,6 @@
 pthread_mutex_t g_carbon_config_lock=PTHREAD_MUTEX_INITIALIZER;
 
 static map<string, const uint32_t*> d_get32bitpointers;
-static map<string, const uint64_t*> d_get64bitpointers;
 static map<string, const std::atomic<uint64_t>*> d_getatomics;
 static map<string, function< uint64_t() > >  d_get64bitmembers;
 static pthread_mutex_t d_dynmetricslock = PTHREAD_MUTEX_INITIALIZER;
@@ -79,8 +78,6 @@ static optional<uint64_t> get(const string& name)
 
   if(d_get32bitpointers.count(name))
     return *d_get32bitpointers.find(name)->second;
-  if(d_get64bitpointers.count(name))
-    return *d_get64bitpointers.find(name)->second;
   if(d_getatomics.count(name))
     return d_getatomics.find(name)->second->load();
   if(d_get64bitmembers.count(name))
@@ -105,9 +102,6 @@ map<string,string> getAllStatsMap()
   
   for(const auto& the32bits :  d_get32bitpointers) {
     ret.insert(make_pair(the32bits.first, std::to_string(*the32bits.second)));
-  }
-  for(const auto& the64bits :  d_get64bitpointers) {
-    ret.insert(make_pair(the64bits.first, std::to_string(*the64bits.second)));
   }
   for(const auto& atomic :  d_getatomics) {
     ret.insert(make_pair(atomic.first, std::to_string(atomic.second->load())));
@@ -138,7 +132,7 @@ string getAllStats()
 }
 
 template<typename T>
-string doGet(T begin, T end)
+static string doGet(T begin, T end)
 {
   string ret;
 
@@ -153,7 +147,7 @@ string doGet(T begin, T end)
 }
 
 template<typename T>
-string doGetParameter(T begin, T end)
+string static doGetParameter(T begin, T end)
 {
   string ret;
   string parm;
@@ -206,7 +200,7 @@ static uint64_t* pleaseDumpThrottleMap(int fd)
 }
 
 template<typename T>
-string doDumpNSSpeeds(T begin, T end)
+static string doDumpNSSpeeds(T begin, T end)
 {
   T i=begin;
   string fname;
@@ -237,7 +231,7 @@ string doDumpNSSpeeds(T begin, T end)
 }
 
 template<typename T>
-string doDumpCache(T begin, T end)
+static string doDumpCache(T begin, T end)
 {
   T i=begin;
   string fname;
@@ -259,7 +253,7 @@ string doDumpCache(T begin, T end)
 }
 
 template<typename T>
-string doDumpEDNSStatus(T begin, T end)
+static string doDumpEDNSStatus(T begin, T end)
 {
   T i=begin;
   string fname;
@@ -281,7 +275,7 @@ string doDumpEDNSStatus(T begin, T end)
 }
 
 template<typename T>
-string doDumpRPZ(T begin, T end)
+static string doDumpRPZ(T begin, T end)
 {
   T i=begin;
 
@@ -320,7 +314,7 @@ string doDumpRPZ(T begin, T end)
 }
 
 template<typename T>
-string doDumpThrottleMap(T begin, T end)
+static string doDumpThrottleMap(T begin, T end)
 {
   T i=begin;
   string fname;
@@ -360,7 +354,7 @@ uint64_t* pleaseWipeAndCountNegCache(const DNSName& canon, bool subtree)
 
 
 template<typename T>
-string doWipeCache(T begin, T end)
+static string doWipeCache(T begin, T end)
 {
   vector<pair<DNSName, bool> > toWipe;
   for(T i=begin; i != end; ++i) {
@@ -391,7 +385,7 @@ string doWipeCache(T begin, T end)
 }
 
 template<typename T>
-string doSetCarbonServer(T begin, T end)
+static string doSetCarbonServer(T begin, T end)
 {
   Lock l(&g_carbon_config_lock);
   if(begin==end) {
@@ -424,7 +418,7 @@ string doSetCarbonServer(T begin, T end)
 }
 
 template<typename T>
-string doSetDnssecLogBogus(T begin, T end)
+static string doSetDnssecLogBogus(T begin, T end)
 {
   if(checkDNSSECDisabled())
     return "DNSSEC is disabled in the configuration, not changing the Bogus logging setting\n";
@@ -454,7 +448,7 @@ string doSetDnssecLogBogus(T begin, T end)
 }
 
 template<typename T>
-string doAddNTA(T begin, T end)
+static string doAddNTA(T begin, T end)
 {
   if(checkDNSSECDisabled())
     return "DNSSEC is disabled in the configuration, not adding a Negative Trust Anchor\n";
@@ -492,7 +486,7 @@ string doAddNTA(T begin, T end)
 }
 
 template<typename T>
-string doClearNTA(T begin, T end)
+static string doClearNTA(T begin, T end)
 {
   if(checkDNSSECDisabled())
     return "DNSSEC is disabled in the configuration, not removing a Negative Trust Anchor\n";
@@ -558,7 +552,7 @@ static string getNTAs()
 }
 
 template<typename T>
-string doAddTA(T begin, T end)
+static string doAddTA(T begin, T end)
 {
   if(checkDNSSECDisabled())
     return "DNSSEC is disabled in the configuration, not adding a Trust Anchor\n";
@@ -603,7 +597,7 @@ string doAddTA(T begin, T end)
 }
 
 template<typename T>
-string doClearTA(T begin, T end)
+static string doClearTA(T begin, T end)
 {
   if(checkDNSSECDisabled())
     return "DNSSEC is disabled in the configuration, not removing a Trust Anchor\n";
@@ -666,7 +660,7 @@ static string getTAs()
 }
 
 template<typename T>
-string setMinimumTTL(T begin, T end)
+static string setMinimumTTL(T begin, T end)
 {
   if(end-begin != 1) 
     return "Need to supply new minimum TTL number\n";
@@ -675,7 +669,7 @@ string setMinimumTTL(T begin, T end)
 }
 
 template<typename T>
-string setMaxCacheEntries(T begin, T end)
+static string setMaxCacheEntries(T begin, T end)
 {
   if(end-begin != 1) 
     return "Need to supply new cache size\n";
@@ -684,7 +678,7 @@ string setMaxCacheEntries(T begin, T end)
 }
 
 template<typename T>
-string setMaxPacketCacheEntries(T begin, T end)
+static string setMaxPacketCacheEntries(T begin, T end)
 {
   if(end-begin != 1) 
     return "Need to supply new packet cache size\n";
@@ -709,7 +703,7 @@ static uint64_t getUserTimeMsec()
 
 static uint64_t calculateUptime()
 {
-  return time(0) - g_stats.startupTime;
+  return time(nullptr) - g_stats.startupTime;
 }
 
 static string* pleaseGetCurrentQueries()
@@ -762,17 +756,18 @@ uint64_t* pleaseGetNegCacheSize()
   return new uint64_t(tmp);
 }
 
-uint64_t getNegCacheSize()
+static uint64_t getNegCacheSize()
 {
   return broadcastAccFunction<uint64_t>(pleaseGetNegCacheSize);
 }
 
-uint64_t* pleaseGetFailedHostsSize()
+static uint64_t* pleaseGetFailedHostsSize()
 {
   uint64_t tmp=(SyncRes::getThrottledServersSize());
   return new uint64_t(tmp);
 }
-uint64_t getFailedHostsSize()
+
+static uint64_t getFailedHostsSize()
 {
   return broadcastAccFunction<uint64_t>(pleaseGetFailedHostsSize);
 }
@@ -782,7 +777,7 @@ uint64_t* pleaseGetNsSpeedsSize()
   return new uint64_t(SyncRes::getNSSpeedsSize());
 }
 
-uint64_t getNsSpeedsSize()
+static uint64_t getNsSpeedsSize()
 {
   return broadcastAccFunction<uint64_t>(pleaseGetNsSpeedsSize);
 }
@@ -802,24 +797,22 @@ uint64_t* pleaseGetCacheSize()
   return new uint64_t(t_RC ? t_RC->size() : 0);
 }
 
-uint64_t* pleaseGetCacheBytes()
+static uint64_t* pleaseGetCacheBytes()
 {
   return new uint64_t(t_RC ? t_RC->bytes() : 0);
 }
 
-
-uint64_t doGetCacheSize()
+static uint64_t doGetCacheSize()
 {
   return broadcastAccFunction<uint64_t>(pleaseGetCacheSize);
 }
 
-uint64_t doGetAvgLatencyUsec()
+static uint64_t doGetAvgLatencyUsec()
 {
   return (uint64_t) g_stats.avgLatencyUsec;
 }
 
-
-uint64_t doGetCacheBytes()
+static uint64_t doGetCacheBytes()
 {
   return broadcastAccFunction<uint64_t>(pleaseGetCacheBytes);
 }
@@ -829,7 +822,7 @@ uint64_t* pleaseGetCacheHits()
   return new uint64_t(t_RC ? t_RC->cacheHits : 0);
 }
 
-uint64_t doGetCacheHits()
+static uint64_t doGetCacheHits()
 {
   return broadcastAccFunction<uint64_t>(pleaseGetCacheHits);
 }
@@ -839,55 +832,52 @@ uint64_t* pleaseGetCacheMisses()
   return new uint64_t(t_RC ? t_RC->cacheMisses : 0);
 }
 
-uint64_t doGetCacheMisses()
+static uint64_t doGetCacheMisses()
 {
   return broadcastAccFunction<uint64_t>(pleaseGetCacheMisses);
 }
-
 
 uint64_t* pleaseGetPacketCacheSize()
 {
   return new uint64_t(t_packetCache ? t_packetCache->size() : 0);
 }
 
-uint64_t* pleaseGetPacketCacheBytes()
+static uint64_t* pleaseGetPacketCacheBytes()
 {
   return new uint64_t(t_packetCache ? t_packetCache->bytes() : 0);
 }
 
-
-uint64_t doGetPacketCacheSize()
+static uint64_t doGetPacketCacheSize()
 {
   return broadcastAccFunction<uint64_t>(pleaseGetPacketCacheSize);
 }
 
-uint64_t doGetPacketCacheBytes()
+static uint64_t doGetPacketCacheBytes()
 {
   return broadcastAccFunction<uint64_t>(pleaseGetPacketCacheBytes);
 }
-
 
 uint64_t* pleaseGetPacketCacheHits()
 {
   return new uint64_t(t_packetCache ? t_packetCache->d_hits : 0);
 }
 
-uint64_t doGetPacketCacheHits()
+static uint64_t doGetPacketCacheHits()
 {
   return broadcastAccFunction<uint64_t>(pleaseGetPacketCacheHits);
 }
 
-uint64_t* pleaseGetPacketCacheMisses()
+static uint64_t* pleaseGetPacketCacheMisses()
 {
   return new uint64_t(t_packetCache ? t_packetCache->d_misses : 0);
 }
 
-uint64_t doGetPacketCacheMisses()
+static uint64_t doGetPacketCacheMisses()
 {
   return broadcastAccFunction<uint64_t>(pleaseGetPacketCacheMisses);
 }
 
-uint64_t doGetMallocated()
+static uint64_t doGetMallocated()
 {
   // this turned out to be broken
 /*  struct mallinfo mi = mallinfo();
@@ -979,13 +969,13 @@ void registerAllStats()
   addGetStat("empty-queries", &g_stats.emptyQueriesCount);
   addGetStat("max-mthread-stack", &g_stats.maxMThreadStackUsage);
   
-  addGetStat("negcache-entries", boost::bind(getNegCacheSize));
-  addGetStat("throttle-entries", boost::bind(getThrottleSize)); 
+  addGetStat("negcache-entries", getNegCacheSize);
+  addGetStat("throttle-entries", getThrottleSize);
 
-  addGetStat("nsspeeds-entries", boost::bind(getNsSpeedsSize));
-  addGetStat("failed-host-entries", boost::bind(getFailedHostsSize));
+  addGetStat("nsspeeds-entries", getNsSpeedsSize);
+  addGetStat("failed-host-entries", getFailedHostsSize);
 
-  addGetStat("concurrent-queries", boost::bind(getConcurrentQueries)); 
+  addGetStat("concurrent-queries", getConcurrentQueries);
   addGetStat("security-status", &g_security_status);
   addGetStat("outgoing-timeouts", &SyncRes::s_outgoingtimeouts);
   addGetStat("outgoing4-timeouts", &SyncRes::s_outgoing4timeouts);
