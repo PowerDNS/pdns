@@ -158,16 +158,10 @@ public:
   virtual ~WebServer() { };
 
   void setApiKey(const string &apikey) {
-    if (d_registerApiHandlerCalled) {
-      throw PDNSException("registerApiHandler has been called, can not change apikey");
-    }
     d_apikey = apikey;
   }
 
   void setPassword(const string &password) {
-    if (d_registerWebHandlerCalled) {
-      throw PDNSException("registerWebHandler has been called, can not change password");
-    }
     d_webserverPassword = password;
   }
 
@@ -233,10 +227,9 @@ protected:
   std::shared_ptr<Server> d_server;
 
   std::string d_apikey;
-  bool d_registerApiHandlerCalled{false};
-
+  void apiWrapper(WebServer::HandlerFunction handler, HttpRequest* req, HttpResponse* resp);
   std::string d_webserverPassword;
-  bool d_registerWebHandlerCalled{false};
+  void webWrapper(WebServer::HandlerFunction handler, HttpRequest* req, HttpResponse* resp);
 
   NetmaskGroup d_acl;
 
