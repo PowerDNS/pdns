@@ -355,27 +355,26 @@ bool SyncRes::doOOBResolve(const DNSName &qname, const QType &qtype, vector<DNSR
 
 uint64_t SyncRes::doEDNSDump(int fd)
 {
-  FILE* fp=fdopen(dup(fd), "w");
+  auto fp = std::unique_ptr<FILE, int(*)(FILE*)>(fdopen(dup(fd), "w"), fclose);
   if (!fp) {
     return 0;
   }
   uint64_t count = 0;
 
-  fprintf(fp,"; edns from thread follows\n;\n");
+  fprintf(fp.get(),"; edns from thread follows\n;\n");
   for(const auto& eds : t_sstorage.ednsstatus) {
     count++;
-    fprintf(fp, "%s\t%d\t%s", eds.first.toString().c_str(), (int)eds.second.mode, ctime(&eds.second.modeSetAt));
+    fprintf(fp.get(), "%s\t%d\t%s", eds.first.toString().c_str(), (int)eds.second.mode, ctime(&eds.second.modeSetAt));
   }
-  fclose(fp);
   return count;
 }
 
 uint64_t SyncRes::doDumpNSSpeeds(int fd)
 {
-  FILE* fp=fdopen(dup(fd), "w");
+  auto fp = std::unique_ptr<FILE, int(*)(FILE*)>(fdopen(dup(fd), "w"), fclose);
   if(!fp)
     return 0;
-  fprintf(fp, "; nsspeed dump from thread follows\n;\n");
+  fprintf(fp.get(), "; nsspeed dump from thread follows\n;\n");
   uint64_t count=0;
 
   for(const auto& i : t_sstorage.nsSpeeds)
@@ -383,25 +382,24 @@ uint64_t SyncRes::doDumpNSSpeeds(int fd)
     count++;
 
     // an <empty> can appear hear in case of authoritative (hosted) zones
-    fprintf(fp, "%s -> ", i.first.toLogString().c_str());
+    fprintf(fp.get(), "%s -> ", i.first.toLogString().c_str());
     for(const auto& j : i.second.d_collection)
     {
       // typedef vector<pair<ComboAddress, DecayingEwma> > collection_t;
-      fprintf(fp, "%s/%f ", j.first.toString().c_str(), j.second.peek());
+      fprintf(fp.get(), "%s/%f ", j.first.toString().c_str(), j.second.peek());
     }
-    fprintf(fp, "\n");
+    fprintf(fp.get(), "\n");
   }
-  fclose(fp);
   return count;
 }
 
 uint64_t SyncRes::doDumpThrottleMap(int fd)
 {
-  FILE* fp=fdopen(dup(fd), "w");
+  auto fp = std::unique_ptr<FILE, int(*)(FILE*)>(fdopen(dup(fd), "w"), fclose);
   if(!fp)
     return 0;
-  fprintf(fp, "; throttle map dump follows\n");
-  fprintf(fp, "; remote IP\tqname\tqtype\tcount\tttd\n");
+  fprintf(fp.get(), "; throttle map dump follows\n");
+  fprintf(fp.get(), "; remote IP\tqname\tqtype\tcount\tttd\n");
   uint64_t count=0;
 
   const auto& throttleMap = t_sstorage.throttle.getThrottleMap();
@@ -409,9 +407,9 @@ uint64_t SyncRes::doDumpThrottleMap(int fd)
   {
     count++;
     // remote IP, dns name, qtype, count, ttd
-    fprintf(fp, "%s\t%s\t%d\t%u\t%s", i.first.get<0>().toString().c_str(), i.first.get<1>().toLogString().c_str(), i.first.get<2>(), i.second.count, ctime(&i.second.ttd));
+    fprintf(fp.get(), "%s\t%s\t%d\t%u\t%s", i.first.get<0>().toString().c_str(), i.first.get<1>().toLogString().c_str(), i.first.get<2>(), i.second.count, ctime(&i.second.ttd));
   }
-  fclose(fp);
+
   return count;
 }
 
