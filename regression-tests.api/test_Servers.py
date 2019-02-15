@@ -1,3 +1,5 @@
+import requests
+import unittest
 from test_helper import ApiTestCase, is_auth, is_recursor
 
 
@@ -68,3 +70,9 @@ class Servers(ApiTestCase):
         r = self.session.get(self.url("/api/v1/servers/localhost/statistics?statistic=uptimeAAAA"))
         self.assertEquals(r.status_code, 422)
         self.assertIn("Unknown statistic name", r.json()['error'])
+
+    @unittest.skipIf(is_auth(), "Not applicable")
+    def test_read_statistics_using_password(self):
+        r = requests.get(self.url("/api/v1/servers/localhost/statistics"), auth=('admin', self.server_web_password))
+        self.assertEquals(r.status_code, requests.codes.ok)
+        self.assert_success_json(r)

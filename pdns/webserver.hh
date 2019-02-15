@@ -176,7 +176,7 @@ public:
   void handleRequest(HttpRequest& request, HttpResponse& resp) const;
 
   typedef boost::function<void(HttpRequest* req, HttpResponse* resp)> HandlerFunction;
-  void registerApiHandler(const string& url, HandlerFunction handler);
+  void registerApiHandler(const string& url, HandlerFunction handler, bool allowPassword=false);
   void registerWebHandler(const string& url, HandlerFunction handler);
 
   enum class LogLevel : uint8_t {
@@ -227,7 +227,7 @@ protected:
   std::shared_ptr<Server> d_server;
 
   std::string d_apikey;
-  void apiWrapper(WebServer::HandlerFunction handler, HttpRequest* req, HttpResponse* resp);
+  void apiWrapper(WebServer::HandlerFunction handler, HttpRequest* req, HttpResponse* resp, bool allowPassword);
   std::string d_webserverPassword;
   void webWrapper(WebServer::HandlerFunction handler, HttpRequest* req, HttpResponse* resp);
 

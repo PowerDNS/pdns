@@ -10,6 +10,10 @@ class TestBasics(ApiTestCase):
         r = requests.get(self.url("/api/v1/servers/localhost"))
         self.assertEquals(r.status_code, requests.codes.unauthorized)
 
+    def test_index_html(self):
+        r = requests.get(self.url("/"), auth=('admin', self.server_web_password))
+        self.assertEquals(r.status_code, requests.codes.ok)
+
     def test_split_request(self):
         s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         s.setsockopt(socket.IPPROTO_TCP, socket.TCP_NODELAY, 1)
