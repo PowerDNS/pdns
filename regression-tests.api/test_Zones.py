@@ -1475,6 +1475,29 @@ $ORIGIN %NAME%
         self.assertNotEquals(serverset['records'], [])
         self.assertEquals(serverset['comments'], [])
 
+    def test_zone_comment_out_of_range_modified_at(self):
+        # Test if comments on an rrset stay intact if the rrset is replaced
+        name, payload, zone = self.create_zone()
+        rrset = {
+            'changetype': 'replace',
+            'name': name,
+            'type': 'NS',
+            'comments': [
+                {
+                    'account': 'test1',
+                    'content': 'oh hi there',
+                    'modified_at': '4294967297'
+                }
+            ]
+        }
+        payload = {'rrsets': [rrset]}
+        r = self.session.patch(
+            self.url("/api/v1/servers/localhost/zones/" + name),
+            data=json.dumps(payload),
+            headers={'content-type': 'application/json'})
+        self.assertEquals(r.status_code, 422)
+        self.assertIn("Value for key 'modified_at' is out of range", r.json()['error'])
+
     def test_zone_comment_stay_intact(self):
         # Test if comments on an rrset stay intact if the rrset is replaced
         name, payload, zone = self.create_zone()
