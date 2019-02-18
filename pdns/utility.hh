@@ -130,8 +130,8 @@ public:
   static int writev( Utility::sock_t socket, const iovec *vector, size_t count );
 
   //! Sets the random seed.
-  static void srandom( unsigned int seed );
-  
+  static void srandom(void);
+
   //! Drops the program's group privileges.
   static void dropGroupPrivs( int uid, int gid );
 

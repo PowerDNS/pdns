@@ -496,7 +496,7 @@ static void triggerLoadOfLibraries()
 
 void mainthread()
 {
-   Utility::srandom(time(0) ^ getpid());
+   Utility::srandom();
 
    int newgid=0;
    if(!::arg()["setgid"].empty()) 

@@ -213,9 +213,11 @@ int Utility::makeUidNumeric(const string &username)
 }
 
 // Sets the random seed.
-void Utility::srandom( unsigned int seed )
+void Utility::srandom(void)
 {
-  ::srandom(seed);
+  struct timeval tv;
+  gettimeofday(&tv, 0);
+  ::srandom(tv.tv_sec ^ tv.tv_usec ^ getpid());
 }
 
 // Writes a vector.

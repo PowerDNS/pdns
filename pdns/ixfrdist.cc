@@ -343,7 +343,7 @@ void updateThread(const string& workdir, const uint16_t& keep, const uint16_t& a
 
       // TODO Keep track of 'down' masters
       set<ComboAddress>::const_iterator it(domainConfig.second.masters.begin());
-      std::advance(it, random() % domainConfig.second.masters.size());
+      std::advance(it, dns_random(domainConfig.second.masters.size()));
       ComboAddress master = *it;
 
       string dir = workdir + "/" + domain.toString();

@@ -29,7 +29,7 @@ BOOST_AUTO_TEST_CASE(test_recPacketCacheSimple) {
   DNSPacketWriter pw(packet, qname, QType::A);
   pw.getHeader()->rd=true;
   pw.getHeader()->qr=false;
-  pw.getHeader()->id=random();
+  pw.getHeader()->id=dns_random(UINT16_MAX);
   string qpacket((const char*)&packet[0], packet.size());
   pw.startRecord(qname, QType::A, ttd);
 
@@ -68,7 +68,7 @@ BOOST_AUTO_TEST_CASE(test_recPacketCacheSimple) {
 
   pw2.getHeader()->rd=true;
   pw2.getHeader()->qr=false;
-  pw2.getHeader()->id=random();
+  pw2.getHeader()->id=dns_random(UINT16_MAX);
   qpacket.assign((const char*)&packet[0], packet.size());
 
   found = rpc.getResponsePacket(tag, qpacket, time(nullptr), &fpacket, &age, &qhash);
@@ -101,7 +101,7 @@ BOOST_AUTO_TEST_CASE(test_recPacketCache_Tags) {
   DNSPacketWriter pw(packet, qname, QType::A);
   pw.getHeader()->rd=true;
   pw.getHeader()->qr=false;
-  pw.getHeader()->id=random();
+  pw.getHeader()->id=dns_random(UINT16_MAX);
   string qpacket(reinterpret_cast<const char*>(&packet[0]), packet.size());
   pw.startRecord(qname, QType::A, ttd);
 

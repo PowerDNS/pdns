@@ -852,7 +852,7 @@ std::vector<shared_ptr<DNSRecordContent>> luaSynth(const std::string& code, cons
         for(const auto& nmpair : netmasks) {
           Netmask nm(nmpair.second);
           if(nm.match(bestwho)) {
-            return destinations[random() % destinations.size()].second;
+            return destinations[dns_random(destinations.size())].second;
           }
         }
       }

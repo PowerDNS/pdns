@@ -200,7 +200,7 @@ void dbBench(const std::string& fname)
   dt.set();
   unsigned int hits=0, misses=0;
   for(; n < 10000; ++n) {
-    DNSName domain(domains[random() % domains.size()]);
+    DNSName domain(domains[dns_random(domains.size())]);
     B.lookup(QType(QType::NS), domain);
     while(B.get(rr)) {
       hits++;
@@ -1319,7 +1319,7 @@ void testSpeed(DNSSECKeeper& dk, const DNSName& zone, const string& remote, int 
   DTime dt;
   dt.set();
   for(unsigned int n=0; n < 100000; ++n) {
-    rnd = random();
+    rnd = dns_random(UINT32_MAX);
     snprintf(tmp, sizeof(tmp), "%d.%d.%d.%d", 
       octets[0], octets[1], octets[2], octets[3]);
     rr.content=tmp;
