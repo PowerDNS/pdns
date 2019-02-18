@@ -1,3 +1,4 @@
+#include "version.hh"
 #include "ext/luawrapper/include/LuaContext.hpp"
 #include "lua-auth4.hh"
 #include <thread>
@@ -184,7 +185,11 @@ void IsUpOracle::checkURLThread(ComboAddress rem, std::string url, const opts_t&
   setDown(rem, url, opts);
   for(bool first=true;;first=false) {
     try {
-      MiniCurl mc;
+      string useragent = productName() + "/" + getPDNSVersion();
+      if (opts.count("useragent")) {
+        useragent = opts.at("useragent");
+      }
+      MiniCurl mc(useragent);
 
       string content;
       if(opts.count("source")) {
