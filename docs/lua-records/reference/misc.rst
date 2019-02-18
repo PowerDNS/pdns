@@ -20,3 +20,9 @@ Other functions
    - `pdns.loglevels.Notice`
    - `pdns.loglevels.Warning`
    - `pdns.loglevels.Error`
+
+.. function:: pdnsrandom([maximum])
+
+  Get a random number.
+
+  :param int maximum: The largest number to return. This is 2^32 by default.
