@@ -26,9 +26,12 @@
 #include <curl/curl.h>
 #include <stdexcept>
 
-MiniCurl::MiniCurl()
+MiniCurl::MiniCurl(const string& useragent)
 {
   d_curl = curl_easy_init();
+  if (d_curl != nullptr) {
+    curl_easy_setopt(d_curl, CURLOPT_USERAGENT, useragent.c_str());
+  }
 }
 
 MiniCurl::~MiniCurl()
