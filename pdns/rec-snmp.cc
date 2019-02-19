@@ -113,6 +113,7 @@ static const oid emptyQueriesOID[] = { RECURSOR_STATS_OID, 94 };
 static const oid dnssecAuthenticDataQueriesOID[] = { RECURSOR_STATS_OID, 95 };
 static const oid dnssecCheckDisabledQueriesOID[] = { RECURSOR_STATS_OID, 96 };
 static const oid variableResponsesOID[] = { RECURSOR_STATS_OID, 97 };
+static const oid specialMemoryUsageOID[] = { RECURSOR_STATS_OID, 98 };
 
 static std::unordered_map<oid, std::string> s_statsMap;
 
@@ -302,6 +303,7 @@ RecursorSNMPAgent::RecursorSNMPAgent(const std::string& name, const std::string&
   registerCounter64Stat("policy-result-nodata", policyResultNodataOID, OID_LENGTH(policyResultNodataOID));
   registerCounter64Stat("policy-result-truncate", policyResultTruncateOID, OID_LENGTH(policyResultTruncateOID));
   registerCounter64Stat("policy-result-custom", policyResultCustomOID, OID_LENGTH(policyResultCustomOID));
+  registerCounter64Stat("special-memory-usage", specialMemoryUsageOID, OID_LENGTH(specialMemoryUsageOID));
 
 #endif /* HAVE_NET_SNMP */
 }

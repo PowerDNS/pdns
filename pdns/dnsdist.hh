@@ -256,6 +256,7 @@ struct DNSDistStats
     {"latency-avg1000000", &latencyAvg1000000},
     {"uptime", uptimeOfProcess},
     {"real-memory-usage", getRealMemoryUsage},
+    {"special-memory-usage", getSpecialMemoryUsage},
     {"noncompliant-queries", &nonCompliantQueries},
     {"noncompliant-responses", &nonCompliantResponses},
     {"rdqueries", &rdQueries},

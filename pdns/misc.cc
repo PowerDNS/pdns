@@ -1241,6 +1241,26 @@ uint64_t getOpenFileDescriptors(const std::string&)
 uint64_t getRealMemoryUsage(const std::string&)
 {
 #ifdef __linux__
+  ifstream ifs("/proc/"+std::to_string(getpid())+"/statm");
+  if(!ifs)
+    return 0;
+
+  uint64_t size, resident, shared, text, lib, data;
+  ifs >> size >> resident >> shared >> text >> lib >> data;
+
+  return data * getpagesize();
+#else
+  struct rusage ru;
+  if (getrusage(RUSAGE_SELF, &ru) != 0)
+    return 0;
+  return ru.ru_maxrss * 1024;
+#endif
+}
+
+
+uint64_t getSpecialMemoryUsage(const std::string&)
+{
+#ifdef __linux__
   ifstream ifs("/proc/"+std::to_string(getpid())+"/smaps");
   if(!ifs)
     return 0;

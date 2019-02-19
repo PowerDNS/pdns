@@ -539,6 +539,7 @@ bool setCloseOnExec(int sock);
 uint64_t udpErrorStats(const std::string& str);
 
 uint64_t getRealMemoryUsage(const std::string&);
+uint64_t getSpecialMemoryUsage(const std::string&);
 uint64_t getOpenFileDescriptors(const std::string&);
 uint64_t getCPUTimeUser(const std::string&);
 uint64_t getCPUTimeSystem(const std::string&);
