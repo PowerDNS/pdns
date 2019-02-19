@@ -45,6 +45,12 @@ static map<string, function< uint64_t() > >  d_get64bitmembers;
 static pthread_mutex_t d_dynmetricslock = PTHREAD_MUTEX_INITIALIZER;
 static map<string, std::atomic<unsigned long>* > d_dynmetrics;
 
+bool isStatExpensive(const string& name)
+{
+  static const std::set<std::string> expensiveStats = { "cache-bytes", "packetcache-bytes", "special-memory-usage" };
+  return expensiveStats.count(name) != 0;
+}
+
 static void addGetStat(const string& name, const uint32_t* place)
 {
   d_get32bitpointers[name]=place;
@@ -101,19 +107,22 @@ map<string,string> getAllStatsMap()
   map<string,string> ret;
   
   for(const auto& the32bits :  d_get32bitpointers) {
-    ret.insert(make_pair(the32bits.first, std::to_string(*the32bits.second)));
+    if (!isStatExpensive(the32bits.first)) {
+      ret.insert(make_pair(the32bits.first, std::to_string(*the32bits.second)));
+    }
   }
   for(const auto& atomic :  d_getatomics) {
-    ret.insert(make_pair(atomic.first, std::to_string(atomic.second->load())));
+    if (!isStatExpensive(atomic.first)) {
+      ret.insert(make_pair(atomic.first, std::to_string(atomic.second->load())));
+    }
   }
 
-  for(const auto& the64bitmembers :  d_get64bitmembers) {
-    if(the64bitmembers.first == "cache-bytes" || the64bitmembers.first=="packetcache-bytes")
-      continue; // too slow for 'get-all'
-    if(the64bitmembers.first == "special-memory-usage")
-      continue; // too slow for 'get-all'
-    ret.insert(make_pair(the64bitmembers.first, std::to_string(the64bitmembers.second())));
+  for(const auto& the64bitmembers :  d_get64bitmembers) { 
+    if (!isStatExpensive(the64bitmembers.first)) {
+      ret.insert(make_pair(the64bitmembers.first, std::to_string(the64bitmembers.second())));
+    }
   }
+
   Lock l(&d_dynmetricslock);
   for(const auto& a : d_dynmetrics)
     ret.insert({a.first, std::to_string(*a.second)});

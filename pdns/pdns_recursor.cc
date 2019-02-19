@@ -3857,7 +3857,7 @@ static int serviceMain(int argc, char*argv[])
   s_maxUDPQueriesPerRound=::arg().asNum("max-udp-queries-per-round");
 
   if (::arg().mustDo("snmp-agent")) {
-    g_snmpAgent = std::make_shared<RecursorSNMPAgent>("recursor", ::arg()["snmp-master-socket"]);
+    g_snmpAgent = std::make_shared<RecursorSNMPAgent>("recursor", ::arg()["snmp-master-socket"], ::arg().mustDo("snmp-enable-expensive-stats"));
     g_snmpAgent->run();
   }
 
@@ -4278,6 +4278,7 @@ int main(int argc, char **argv)
 
     ::arg().setSwitch("snmp-agent", "If set, register as an SNMP agent")="no";
     ::arg().set("snmp-master-socket", "If set and snmp-agent is set, the socket to use to register to the SNMP master")="";
+    ::arg().setSwitch("snmp-enable-expensive-stats", "If set and snmp-agent is set, even statistics whose reporting can have an impact on production will be enabled")="no";
 
     ::arg().set("tcp-fast-open", "Enable TCP Fast Open support on the listening sockets, using the supplied numerical value as the queue size")="0";
     ::arg().set("nsec3-max-iterations", "Maximum number of iterations allowed for an NSEC3 record")="2500";

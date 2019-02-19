@@ -1225,6 +1225,17 @@ Use only a single socket for outgoing queries.
 
 If set to true and PowerDNS has been compiled with SNMP support, it will register as an SNMP agent to provide statistics and be able to send traps.
 
+.. _setting-snmp-enable-expensive-stats:
+
+``snmp-enable-expensive-stats``
+----------------------
+.. versionadded:: 4.2.0
+
+-  Boolean
+-  Default: no
+
+If set and snmp-agent is set, even statistics whose reporting can have an impact on production will be enabled
+
 .. _setting-snmp-master-socket:
 
 ``snmp-master-socket``

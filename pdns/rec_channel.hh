@@ -19,8 +19,9 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
-#ifndef PDNS_REC_CHANNEL
-#define PDNS_REC_CHANNEL
+
+#pragma once
+
 #include <string>
 #include <map>
 #include <vector>
@@ -76,5 +77,6 @@ std::vector<ComboAddress>* pleaseGetTimeouts();
 DNSName getRegisteredName(const DNSName& dom);
 std::atomic<unsigned long>* getDynMetric(const std::string& str);
 optional<uint64_t> getStatByName(const std::string& name);
+bool isStatExpensive(const std::string& name);
 void registerAllStats();
-#endif 
+
