@@ -603,17 +603,17 @@ static void throwUnableToSecure(const DNSName& zonename) {
 }
 
 static void updateDomainSettingsFromDocument(UeberBackend& B, const DomainInfo& di, const DNSName& zonename, const Json document) {
-  string zonemaster;
+  vector<string> zonemaster;
   bool shouldRectify = false;
   for(auto value : document["masters"].array_items()) {
     string master = value.string_value();
     if (master.empty())
       throw ApiException("Master can not be an empty string");
-    zonemaster += master + " ";
+    zonemaster.push_back(master);
   }
 
-  if (zonemaster != "") {
-    di.backend->setMaster(zonename, zonemaster);
+  if (zonemaster.size()) {
+    di.backend->setMaster(zonename, boost::join(zonemaster, ","));
   }
   if (document["kind"].is_string()) {
     di.backend->setKind(zonename, DomainInfo::stringToKind(stringFromJson(document, "kind")));
