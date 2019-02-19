@@ -25,4 +25,4 @@ Other functions
 
   Get a random number.
 
-  :param int maximum: The largest number to return. This is 2^32 by default.
+  :param int maximum: The largest number to return. This is 2^32-1 by default.
