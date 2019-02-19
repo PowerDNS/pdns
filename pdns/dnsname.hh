@@ -371,49 +371,75 @@ struct SuffixMatchTree
    anything part of that domain will return 'true' in check */
 struct SuffixMatchNode
 {
-  SuffixMatchNode()
-  {}
-  SuffixMatchTree<bool> d_tree;
+  public:
+    SuffixMatchNode()
+    {}
+    SuffixMatchTree<bool> d_tree;
 
-  void add(const DNSName& dnsname)
-  {
-    d_tree.add(dnsname, true);
-  }
-
-  void add(std::vector<std::string> labels)
-  {
-    d_tree.add(labels, true);
-  }
-
-  void remove(const DNSName& name)
-  {
-    d_tree.remove(name);
-  }
-
-  void remove(std::vector<std::string> labels)
-  {
-    d_tree.remove(labels);
-  }
-
-  bool check(const DNSName& dnsname) const
-  {
-    return d_tree.lookup(dnsname) != nullptr;
-  }
-
-  std::string toString() const
-  {
-    std::string ret;
-    bool first = true;
-    for (const auto &n: d_tree.getNodes()) {
-      if (!first) {
-        ret += ", ";
-      }
-      first = false;
-      ret += n.toString();
+    void add(const DNSName& dnsname)
+    {
+      d_tree.add(dnsname, true);
+      d_nodes.insert(dnsname);
+      updateHuman();
     }
-    return ret;
-  }
 
+    void add(std::vector<std::string> labels)
+    {
+      d_tree.add(labels, true);
+      DNSName tmp;
+      while (!labels.empty()) {
+        tmp.appendRawLabel(labels.back());
+        labels.pop_back(); // This is safe because we have a copy of labels
+      }
+      d_nodes.insert(tmp);
+      updateHuman();
+    }
+
+    void remove(const DNSName& name)
+    {
+      d_tree.remove(name);
+      d_nodes.erase(name);
+      updateHuman();
+    }
+
+    void remove(std::vector<std::string> labels)
+    {
+      d_tree.remove(labels);
+      DNSName tmp;
+      while (!labels.empty()) {
+        tmp.appendRawLabel(labels.back());
+        labels.pop_back(); // This is safe because we have a copy of labels
+      }
+      d_nodes.erase(tmp);
+      updateHuman();
+    }
+
+    bool check(const DNSName& dnsname) const
+    {
+      return d_tree.lookup(dnsname) != nullptr;
+    }
+
+    std::string toString() const
+    {
+      return d_human;
+    }
+
+  private:
+    mutable std::string d_human;
+    mutable std::set<DNSName> d_nodes; // Only used for string generation
+
+    void updateHuman() {
+      std::string tmp;
+      bool first = true;
+      for (const auto& n : d_nodes) {
+        if (!first) {
+          tmp += ", ";
+        }
+        first = false;
+        tmp += n.toString();
+      }
+      d_human = tmp;
+    }
 };
 
 std::ostream & operator<<(std::ostream &os, const DNSName& d);
