@@ -1044,7 +1044,6 @@ static void startDoResolve(void *p)
         maxanswersize = min(static_cast<uint16_t>(edo.d_packetsize >= 512 ? edo.d_packetsize : 512), g_udpTruncationThreshold);
       }
       ednsOpts = edo.d_options;
-      haveEDNS=true;
       maxanswersize -= 11; // EDNS header size
 
       for (const auto& o : edo.d_options) {

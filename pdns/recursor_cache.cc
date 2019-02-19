@@ -438,11 +438,11 @@ bool MemRecursorCache::updateValidationStatus(time_t now, const DNSName &qname, 
 
 uint64_t MemRecursorCache::doDump(int fd)
 {
-  FILE* fp=fdopen(dup(fd), "w");
+  auto fp = std::unique_ptr<FILE, int(*)(FILE*)>(fdopen(dup(fd), "w"), fclose);
   if(!fp) { // dup probably failed
     return 0;
   }
-  fprintf(fp, "; main record cache dump from thread follows\n;\n");
+  fprintf(fp.get(), "; main record cache dump from thread follows\n;\n");
   const auto& sidx=d_cache.get<SequencedTag>();
 
   uint64_t count=0;
@@ -451,23 +451,22 @@ uint64_t MemRecursorCache::doDump(int fd)
     for(const auto j : i.d_records) {
       count++;
       try {
-        fprintf(fp, "%s %" PRId64 " IN %s %s ; (%s) auth=%i %s\n", i.d_qname.toString().c_str(), static_cast<int64_t>(i.d_ttd - now), DNSRecordContent::NumberToType(i.d_qtype).c_str(), j->getZoneRepresentation().c_str(), vStates[i.d_state], i.d_auth, i.d_netmask.empty() ? "" : i.d_netmask.toString().c_str());
+        fprintf(fp.get(), "%s %" PRId64 " IN %s %s ; (%s) auth=%i %s\n", i.d_qname.toString().c_str(), static_cast<int64_t>(i.d_ttd - now), DNSRecordContent::NumberToType(i.d_qtype).c_str(), j->getZoneRepresentation().c_str(), vStates[i.d_state], i.d_auth, i.d_netmask.empty() ? "" : i.d_netmask.toString().c_str());
       }
       catch(...) {
-        fprintf(fp, "; error printing '%s'\n", i.d_qname.empty() ? "EMPTY" : i.d_qname.toString().c_str());
+        fprintf(fp.get(), "; error printing '%s'\n", i.d_qname.empty() ? "EMPTY" : i.d_qname.toString().c_str());
       }
     }
     for(const auto &sig : i.d_signatures) {
       count++;
       try {
-        fprintf(fp, "%s %" PRId64 " IN RRSIG %s ; %s\n", i.d_qname.toString().c_str(), static_cast<int64_t>(i.d_ttd - now), sig->getZoneRepresentation().c_str(), i.d_netmask.empty() ? "" : i.d_netmask.toString().c_str());
+        fprintf(fp.get(), "%s %" PRId64 " IN RRSIG %s ; %s\n", i.d_qname.toString().c_str(), static_cast<int64_t>(i.d_ttd - now), sig->getZoneRepresentation().c_str(), i.d_netmask.empty() ? "" : i.d_netmask.toString().c_str());
       }
       catch(...) {
-        fprintf(fp, "; error printing '%s'\n", i.d_qname.empty() ? "EMPTY" : i.d_qname.toString().c_str());
+        fprintf(fp.get(), "; error printing '%s'\n", i.d_qname.empty() ? "EMPTY" : i.d_qname.toString().c_str());
       }
     }
   }
-  fclose(fp);
   return count;
 }
 

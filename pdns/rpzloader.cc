@@ -297,35 +297,33 @@ static bool dumpZoneToDisk(const DNSName& zoneName, const std::shared_ptr<DNSFil
     return false;
   }
 
-  FILE * fp = fdopen(fd, "w+");
-  if (fp == nullptr) {
+  auto fp = std::unique_ptr<FILE, int(*)(FILE*)>(fdopen(fd, "w+"), fclose);
+  if (!fp) {
     close(fd);
     g_log<<Logger::Warning<<"Unable to open a file pointer to dump the content of the RPZ zone "<<zoneName.toLogString()<<endl;
     return false;
   }
-
   fd = -1;
 
   try {
-    newZone->dump(fp);
+    newZone->dump(fp.get());
   }
   catch(const std::exception& e) {
     g_log<<Logger::Warning<<"Error while dumping the content of the RPZ zone "<<zoneName.toLogString()<<": "<<e.what()<<endl;
-    fclose(fp);
     return false;
   }
 
-  if (fflush(fp) != 0) {
+  if (fflush(fp.get()) != 0) {
     g_log<<Logger::Warning<<"Error while flushing the content of the RPZ zone "<<zoneName.toLogString()<<" to the dump file: "<<strerror(errno)<<endl;
     return false;
   }
 
-  if (fsync(fileno(fp)) != 0) {
+  if (fsync(fileno(fp.get())) != 0) {
     g_log<<Logger::Warning<<"Error while syncing the content of the RPZ zone "<<zoneName.toLogString()<<" to the dump file: "<<strerror(errno)<<endl;
     return false;
   }
 
-  if (fclose(fp) != 0) {
+  if (fclose(fp.release()) != 0) {
     g_log<<Logger::Warning<<"Error while writing the content of the RPZ zone "<<zoneName.toLogString()<<" to the dump file: "<<strerror(errno)<<endl;
     return false;
   }
