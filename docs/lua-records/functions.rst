@@ -69,7 +69,7 @@ Record creation functions
   - ``backupSelector``: used to pick the IP address from list of all candidates if all addresses are down. Choices include 'pickclosest', 'random', 'hashed', 'all' (default to 'random').
   - ``source``: Source IP address to check from
   - ``stringmatch``: check ``url`` for this string, only declare 'up' if found
-  - ``useragent``: Set the HTTP "User-Agent" header in the requests. By default it is set to "PowerDNS Authoritative Server/" plus the version number
+  - ``useragent``: Set the HTTP "User-Agent" header in the requests. By default it is set to "PowerDNS Authoritative Server"
 
   An example of IP address sets:
 

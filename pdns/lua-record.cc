@@ -185,7 +185,7 @@ void IsUpOracle::checkURLThread(ComboAddress rem, std::string url, const opts_t&
   setDown(rem, url, opts);
   for(bool first=true;;first=false) {
     try {
-      string useragent = productName() + "/" + getPDNSVersion();
+      string useragent = productName();
       if (opts.count("useragent")) {
         useragent = opts.at("useragent");
       }
