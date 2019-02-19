@@ -41,7 +41,7 @@ To instead drop all queries matching a rule, while slaving from a master:
 
     rpzMaster("192.0.2.4", "policy.rpz", {defpol=Policy.Drop})
 
-Note that since 4.2.0, it is possible for the override policy specified via 'defpol' to no longer applied to local data entries present in the zone by setting the 'defpolOverrideLocalData' parameter to false.
+Note that since 4.2.0, it is possible for the override policy specified via 'defpol' to no longer be applied to local data entries present in the zone by setting the 'defpolOverrideLocalData' parameter to false.
 
 As of version 4.2.0, the first parameter of :func:`rpzMaster` can be a list of addresses for failover:
 
