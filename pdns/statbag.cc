@@ -218,7 +218,7 @@ vector<pair<T, unsigned int> >StatRing<T,Comp>::get() const
 
 void StatBag::declareRing(const string &name, const string &help, unsigned int size)
 {
-  d_rings[name]=StatRing<string>(size);
+  d_rings[name]=StatRing<string, CIStringCompare>(size);
   d_rings[name].setHelp(help);
 }
 
@@ -288,9 +288,9 @@ string StatBag::getRingTitle(const string &name)
 vector<string>StatBag::listRings()
 {
   vector<string> ret;
-  for(map<string,StatRing<string> >::const_iterator i=d_rings.begin();i!=d_rings.end();++i)
+  for(auto i=d_rings.begin();i!=d_rings.end();++i)
     ret.push_back(i->first);
-  for(map<string,StatRing<SComboAddress> >::const_iterator i=d_comborings.begin();i!=d_comborings.end();++i)
+  for(auto i=d_comborings.begin();i!=d_comborings.end();++i)
     ret.push_back(i->first);
 
   return ret;
@@ -301,5 +301,5 @@ bool StatBag::ringExists(const string &name)
   return d_rings.count(name) || d_comborings.count(name);
 }
 
-template class StatRing<std::string>;
+template class StatRing<std::string, CIStringCompare>;
 template class StatRing<SComboAddress>;

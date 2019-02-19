@@ -64,7 +64,7 @@ class StatBag
 {
   map<string, AtomicCounter *> d_stats;
   map<string, string> d_keyDescrips;
-  map<string,StatRing<string> >d_rings;
+  map<string,StatRing<string, CIStringCompare> >d_rings;
   map<string,StatRing<SComboAddress> >d_comborings;
   typedef boost::function<uint64_t(const std::string&)> func_t;
   typedef map<string, func_t> funcstats_t;
