@@ -147,7 +147,7 @@ The DNSQuestion object contains at least the following fields:
 
      :param int type: The type of record to add, can be ``pdns.AAAA`` etc.
      :param str content: The content of the record, will be parsed into wireformat based on the ``type``
-     :param int ttl: The TTL in seconds for this record
+     :param int ttl: The TTL in seconds for this record, defaults to 3600
      :param DNSName name: The name of this record, defaults to :attr:`DNSQuestion.qname`
 
   .. method:: DNSQuestion:addRecord(type, content, place, [ttl, name])
@@ -157,7 +157,7 @@ The DNSQuestion object contains at least the following fields:
      :param int type: The type of record to add, can be ``pdns.AAAA`` etc.
      :param str content: The content of the record, will be parsed into wireformat based on the ``type``
      :param int place: The section to place the record, see :attr:`DNSRecord.place`
-     :param int ttl: The TTL in seconds for this record
+     :param int ttl: The TTL in seconds for this record, defaults to 3600
      :param DNSName name: The name of this record, defaults to :attr:`DNSQuestion.qname`
 
   .. method:: DNSQuestion:addPolicyTag(tag)
