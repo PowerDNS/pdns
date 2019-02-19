@@ -25,7 +25,7 @@ void ResponseStats::submitResponse(DNSPacket &p, bool udpOrTCP) {
   if(p.d.aa) {
     if (p.d.rcode==RCode::NXDomain)
       S.ringAccount("nxdomain-queries",p.qdomain.toLogString()+"/"+p.qtype.getName());
-  } else if (p.isEmpty()) {
+  } else if (p.d.rcode == RCode::Refused) {
     S.ringAccount("unauth-queries",p.qdomain.toLogString()+"/"+p.qtype.getName());
     S.ringAccount("remotes-unauth",p.d_remote);
   }
