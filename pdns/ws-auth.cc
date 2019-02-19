@@ -503,6 +503,17 @@ void productServerStatisticsFetch(map<string,string>& out)
   out["uptime"] = std::to_string(time(0) - s_starttime);
 }
 
+boost::optional<uint64_t> productServerStatisticsFetch(const std::string& name)
+{
+  try {
+    // ::read() calls ::exists() which throws a PDNSException when the key does not exist
+    return S.read(name);
+  }
+  catch(...) {
+    return boost::none;
+  }
+}
+
 static void validateGatheredRRType(const DNSResourceRecord& rr) {
   if (rr.qtype.getCode() == QType::OPT || rr.qtype.getCode() == QType::TSIG) {
     throw ApiException("RRset "+rr.qname.toString()+" IN "+rr.qtype.getName()+": invalid type given");

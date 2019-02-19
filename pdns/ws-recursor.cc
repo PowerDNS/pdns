@@ -52,6 +52,11 @@ void productServerStatisticsFetch(map<string,string>& out)
   out.swap(stats);
 }
 
+boost::optional<uint64_t> productServerStatisticsFetch(const std::string& name)
+{
+  return getStatByName(name);
+}
+
 static void apiWriteConfigFile(const string& filebasename, const string& content)
 {
   if (::arg()["api-config-dir"].empty()) {
