@@ -675,6 +675,7 @@ dnsdistGroup OBJECT-GROUP
         latencyAVG1000000,
         uptime,
         realMemoryUsage,
+        specialMemoryUsage,
         nonCompliantQueries,
         nonCompliantResponses,
         rdQueries,

@@ -935,6 +935,7 @@ recGroup OBJECT-GROUP
         noednsOutqueries,
         uptime,
         realMemoryUsage,
+        specialMemoryUsage,
         fdUsage,
         userMsec,
         sysMsec,
