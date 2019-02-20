@@ -5,6 +5,7 @@
 #include "config.h"
 #endif
 #include <boost/test/unit_test.hpp>
+#include "arguments.hh"
 #include "dnswriter.hh"
 #include "dnsrecords.hh"
 #include "dns_random.hh"
@@ -23,6 +24,9 @@ BOOST_AUTO_TEST_CASE(test_recPacketCacheSimple) {
   uint32_t qhash=0;
   uint32_t ttd=3600;
   BOOST_CHECK_EQUAL(rpc.size(), 0);
+
+  ::arg().set("rng")="auto";
+  ::arg().set("entropy-source")="/dev/urandom";
 
   DNSName qname("www.powerdns.com");
   vector<uint8_t> packet;
@@ -95,6 +99,9 @@ BOOST_AUTO_TEST_CASE(test_recPacketCache_Tags) {
   uint32_t temphash=0;
   uint32_t ttd=3600;
   BOOST_CHECK_EQUAL(rpc.size(), 0);
+
+  ::arg().set("rng")="auto";
+  ::arg().set("entropy-source")="/dev/urandom";
 
   DNSName qname("www.powerdns.com");
   vector<uint8_t> packet;
