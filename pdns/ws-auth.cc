@@ -282,9 +282,10 @@ void AuthWebServer::indexfunction(HttpRequest* req, HttpResponse* resp)
 
   ret<<"Total queries: "<<S.read("udp-queries")<<". Question/answer latency: "<<S.read("latency")/1000.0<<"ms</p><br>"<<endl;
   if(req->getvars["ring"].empty()) {
-    vector<string>entries=S.listRings();
-    for(vector<string>::const_iterator i=entries.begin();i!=entries.end();++i)
-      printtable(ret,*i,S.getRingTitle(*i));
+    auto entries = S.listRings();
+    for(const auto &i: entries) {
+      printtable(ret, i, S.getRingTitle(i));
+    }
 
     printvars(ret);
     if(arg().mustDo("webserver-print-arguments"))
