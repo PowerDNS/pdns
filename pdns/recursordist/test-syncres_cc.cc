@@ -151,6 +151,8 @@ static void init(bool debug=false)
   SyncRes::clearFailedServers();
   BOOST_CHECK_EQUAL(SyncRes::getFailedServersSize(), 0);
 
+  SyncRes::clearECSStats();
+
   auto luaconfsCopy = g_luaconfs.getCopy();
   luaconfsCopy.dfe.clear();
   luaconfsCopy.dsAnchors.clear();
@@ -1079,7 +1081,7 @@ BOOST_AUTO_TEST_CASE(test_glueless_referral) {
   BOOST_CHECK_EQUAL(ret[0].d_name, target);
 }
 
-BOOST_AUTO_TEST_CASE(test_edns_submask_by_domain) {
+BOOST_AUTO_TEST_CASE(test_edns_subnet_by_domain) {
   std::unique_ptr<SyncRes> sr;
   initSR(sr);
 
@@ -1096,15 +1098,49 @@ BOOST_AUTO_TEST_CASE(test_edns_submask_by_domain) {
 
       BOOST_REQUIRE(srcmask);
       BOOST_CHECK_EQUAL(srcmask->toString(), "192.0.2.0/24");
+
+      if (isRootServer(ip)) {
+        setLWResult(res, 0, false, false, true);
+        addRecordToLW(res, domain, QType::NS, "a.gtld-servers.net.", DNSResourceRecord::AUTHORITY, 172800);
+        addRecordToLW(res, "a.gtld-servers.net.", QType::A, "192.0.2.1", DNSResourceRecord::ADDITIONAL, 3600);
+
+        /* this one did not use the ECS info */
+        srcmask = boost::none;
+
+        return 1;
+      } else if (ip == ComboAddress("192.0.2.1:53")) {
+
+        setLWResult(res, 0, true, false, false);
+        addRecordToLW(res, domain, QType::A, "192.0.2.2");
+
+        /* this one did, but only up to a precision of /16, not the full /24 */
+        srcmask = Netmask("192.0.0.0/16");
+
+        return 1;
+      }
+
       return 0;
     });
 
+  SyncRes::s_ecsqueries = 0;
+  SyncRes::s_ecsresponses = 0;
   vector<DNSRecord> ret;
   int res = sr->beginResolve(target, QType(QType::A), QClass::IN, ret);
-  BOOST_CHECK_EQUAL(res, RCode::ServFail);
+  BOOST_CHECK_EQUAL(res, RCode::NoError);
+  BOOST_REQUIRE_EQUAL(ret.size(), 1);
+  BOOST_CHECK(ret[0].d_type == QType::A);
+  BOOST_CHECK_EQUAL(ret[0].d_name, target);
+  BOOST_CHECK_EQUAL(SyncRes::s_ecsqueries, 2);
+  BOOST_CHECK_EQUAL(SyncRes::s_ecsresponses, 1);
+  for (const auto& entry : SyncRes::s_ecsResponsesBySubnetSize4) {
+    BOOST_CHECK_EQUAL(entry.second, entry.first == 15 ? 1 : 0);
+  }
+  for (const auto& entry : SyncRes::s_ecsResponsesBySubnetSize6) {
+    BOOST_CHECK_EQUAL(entry.second, 0);
+  }
 }
 
-BOOST_AUTO_TEST_CASE(test_edns_submask_by_addr) {
+BOOST_AUTO_TEST_CASE(test_edns_subnet_by_addr) {
   std::unique_ptr<SyncRes> sr;
   initSR(sr);
 
@@ -1139,12 +1175,22 @@ BOOST_AUTO_TEST_CASE(test_edns_submask_by_addr) {
       return 0;
     });
 
+  SyncRes::s_ecsqueries = 0;
+  SyncRes::s_ecsresponses = 0;
   vector<DNSRecord> ret;
   int res = sr->beginResolve(target, QType(QType::A), QClass::IN, ret);
   BOOST_CHECK_EQUAL(res, RCode::NoError);
   BOOST_REQUIRE_EQUAL(ret.size(), 1);
   BOOST_CHECK(ret[0].d_type == QType::A);
   BOOST_CHECK_EQUAL(ret[0].d_name, target);
+  BOOST_CHECK_EQUAL(SyncRes::s_ecsqueries, 1);
+  BOOST_CHECK_EQUAL(SyncRes::s_ecsresponses, 1);
+  for (const auto& entry : SyncRes::s_ecsResponsesBySubnetSize4) {
+    BOOST_CHECK_EQUAL(entry.second, 0);
+  }
+  for (const auto& entry : SyncRes::s_ecsResponsesBySubnetSize6) {
+    BOOST_CHECK_EQUAL(entry.second, entry.first == 55 ? 1 : 0);
+  }
 }
 
 BOOST_AUTO_TEST_CASE(test_ecs_use_requestor) {

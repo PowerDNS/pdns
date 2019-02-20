@@ -45,10 +45,16 @@ static map<string, function< uint64_t() > >  d_get64bitmembers;
 static pthread_mutex_t d_dynmetricslock = PTHREAD_MUTEX_INITIALIZER;
 static map<string, std::atomic<unsigned long>* > d_dynmetrics;
 
+static std::set<std::string> s_expensiveStats = { "cache-bytes", "packetcache-bytes", "special-memory-usage" };
+
 bool isStatExpensive(const string& name)
 {
-  static const std::set<std::string> expensiveStats = { "cache-bytes", "packetcache-bytes", "special-memory-usage" };
-  return expensiveStats.count(name) != 0;
+  return s_expensiveStats.count(name) != 0;
+}
+
+void markStatAsExpensive(const string& name)
+{
+  s_expensiveStats.insert(name);
 }
 
 static void addGetStat(const string& name, const uint32_t* place)
@@ -1049,6 +1055,19 @@ void registerAllStats()
   addGetStat("policy-result-nodata", &g_stats.policyResults[DNSFilterEngine::PolicyKind::NODATA]);
   addGetStat("policy-result-truncate", &g_stats.policyResults[DNSFilterEngine::PolicyKind::Truncate]);
   addGetStat("policy-result-custom", &g_stats.policyResults[DNSFilterEngine::PolicyKind::Custom]);
+
+  /* make sure that the ECS stats are properly initialized */
+  SyncRes::clearECSStats();
+  for (size_t idx = 0; idx < SyncRes::s_ecsResponsesBySubnetSize4.size(); idx++) {
+    const std::string name = "ecs-v4-response-bits-" + std::to_string(idx + 1);
+    addGetStat(name, &(SyncRes::s_ecsResponsesBySubnetSize4.at(idx)));
+    markStatAsExpensive(name);
+  }
+  for (size_t idx = 0; idx < SyncRes::s_ecsResponsesBySubnetSize6.size(); idx++) {
+    const std::string name = "ecs-v6-response-bits-" + std::to_string(idx + 1);
+    addGetStat(name, &(SyncRes::s_ecsResponsesBySubnetSize6.at(idx)));
+    markStatAsExpensive(name);
+  }
 }
 
 static void doExitGeneric(bool nicely)

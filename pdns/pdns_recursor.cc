@@ -3652,6 +3652,7 @@ static int serviceMain(int argc, char*argv[])
 
   SyncRes::s_ecsipv4limit = ::arg().asNum("ecs-ipv4-bits");
   SyncRes::s_ecsipv6limit = ::arg().asNum("ecs-ipv6-bits");
+  SyncRes::clearECSStats();
 
   if (!::arg().isEmpty("ecs-scope-zero-address")) {
     ComboAddress scopeZero(::arg()["ecs-scope-zero-address"]);

@@ -72,6 +72,9 @@ std::atomic<uint64_t> SyncRes::s_nodelegated;
 std::atomic<uint64_t> SyncRes::s_unreachables;
 std::atomic<uint64_t> SyncRes::s_ecsqueries;
 std::atomic<uint64_t> SyncRes::s_ecsresponses;
+std::map<uint8_t, std::atomic<uint64_t>> SyncRes::s_ecsResponsesBySubnetSize4;
+std::map<uint8_t, std::atomic<uint64_t>> SyncRes::s_ecsResponsesBySubnetSize6;
+
 uint8_t SyncRes::s_ecsipv4limit;
 uint8_t SyncRes::s_ecsipv6limit;
 bool SyncRes::s_doIPv6;
@@ -2700,6 +2703,14 @@ bool SyncRes::doResolveAtThisIP(const std::string& prefix, const DNSName& qname,
     if(ednsmask) {
       s_ecsresponses++;
       LOG(prefix<<qname<<": Received EDNS Client Subnet Mask "<<ednsmask->toString()<<" on response"<<endl);
+      if (ednsmask->getBits() > 0) {
+        if (ednsmask->isIpv4()) {
+          ++SyncRes::s_ecsResponsesBySubnetSize4.at(ednsmask->getBits()-1);
+        }
+        else {
+          ++SyncRes::s_ecsResponsesBySubnetSize6.at(ednsmask->getBits()-1);
+        }
+      }
     }
   }
 
