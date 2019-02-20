@@ -21,8 +21,6 @@ Generic MySQL backend
   point this is going to harm your database, for example when an incoming
   zone transfer fails.
 
- .. note:: If you are installing version prior 4.2 you have to use this sql scheme <https://github.com/PowerDNS/pdns/blob/rel/auth-4.1.x/modules/gmysqlbackend/schema.mysql.sql>`_.
-
 The default schema is included at the bottom of this page.
 :ref:`migration-zone2sql` with the ``--gmysql`` flag also
 assumes this layout is in place. For full migration notes, please see
@@ -128,6 +126,6 @@ server. A value of 0 will disable the timeout. Default: 10
 Default Schema
 --------------
 
-  .. note::  This is the 4.2 schema. for prior versions please use `the 4.1 schema from GitHub <https://github.com/PowerDNS/pdns/blob/rel/auth-4.1.x/modules/gmysqlbackend/schema.mysql.sql>`_.
+.. note:: **Prior version 4.2** you have to use the `sql 4.1 schema from GitHub <https://github.com/PowerDNS/pdns/blob/rel/auth-4.1.x/modules/gmysqlbackend/schema.mysql.sql>`_.
 
 .. literalinclude:: ../../modules/gmysqlbackend/schema.mysql.sql
