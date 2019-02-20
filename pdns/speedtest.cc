@@ -793,6 +793,20 @@ struct NOPTest
 
 };
 
+struct StatRingDNSNameQTypeToStringTest
+{
+  explicit StatRingDNSNameQTypeToStringTest(const DNSName &name, const QType type) : d_name(name), d_type(type) {}
+
+  string getName() const { return "StatRing test with DNSName and QType to string"; }
+
+  void operator()() const {
+    S.ringAccount("testring", d_name.toLogString()+"/"+d_type.getName());
+  };
+
+  DNSName d_name;
+  QType d_type;
+};
+
 
 
 int main(int argc, char** argv)
@@ -877,6 +891,13 @@ try
 
   doRun(DNSNameParseTest());
   doRun(DNSNameRootTest());
+
+#ifndef RECURSOR
+  S.doRings();
+
+  S.declareRing("testring", "Just some ring where we'll account things");
+  doRun(StatRingDNSNameQTypeToStringTest(DNSName("example.com"), QType(1)));
+#endif
 
   cerr<<"Total runs: " << g_totalRuns<<endl;
 
