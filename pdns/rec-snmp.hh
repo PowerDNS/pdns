@@ -10,7 +10,7 @@ class RecursorSNMPAgent;
 class RecursorSNMPAgent: public SNMPAgent
 {
 public:
-  RecursorSNMPAgent(const std::string& name, const std::string& masterSocket, bool enableExpensiveStatistics);
+  RecursorSNMPAgent(const std::string& name, const std::string& masterSocket);
   bool sendCustomTrap(const std::string& reason);
 };
 

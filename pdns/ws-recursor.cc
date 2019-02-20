@@ -48,7 +48,7 @@ using json11::Json;
 
 void productServerStatisticsFetch(map<string,string>& out)
 {
-  map<string,string> stats = getAllStatsMap();
+  map<string,string> stats = getAllStatsMap(StatComponent::API);
   out.swap(stats);
 }
 

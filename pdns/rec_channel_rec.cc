@@ -45,16 +45,26 @@ static map<string, function< uint64_t() > >  d_get64bitmembers;
 static pthread_mutex_t d_dynmetricslock = PTHREAD_MUTEX_INITIALIZER;
 static map<string, std::atomic<unsigned long>* > d_dynmetrics;
 
-static std::set<std::string> s_expensiveStats = { "cache-bytes", "packetcache-bytes", "special-memory-usage" };
+static std::map<StatComponent, std::set<std::string>> s_blacklistedStats;
 
-bool isStatExpensive(const string& name)
+bool isStatBlacklisted(StatComponent component, const string& name)
 {
-  return s_expensiveStats.count(name) != 0;
+  return s_blacklistedStats[component].count(name) != 0;
 }
 
-void markStatAsExpensive(const string& name)
+void blacklistStat(StatComponent component, const string& name)
 {
-  s_expensiveStats.insert(name);
+  s_blacklistedStats[component].insert(name);
+}
+
+void blacklistStats(StatComponent component, const string& stats)
+{
+  std::vector<std::string> blacklistedStats;
+  stringtok(blacklistedStats, stats, ", ");
+  auto& map = s_blacklistedStats[component];
+  for (const auto &st : blacklistedStats) {
+    map.insert(st);
+  }
 }
 
 static void addGetStat(const string& name, const uint32_t* place)
@@ -108,37 +118,44 @@ optional<uint64_t> getStatByName(const std::string& name)
   return get(name);
 }
 
-map<string,string> getAllStatsMap()
+map<string,string> getAllStatsMap(StatComponent component)
 {
   map<string,string> ret;
-  
+  const auto& blacklistMap = s_blacklistedStats.at(component);
+
   for(const auto& the32bits :  d_get32bitpointers) {
-    if (!isStatExpensive(the32bits.first)) {
+    if (blacklistMap.count(the32bits.first) == 0) {
       ret.insert(make_pair(the32bits.first, std::to_string(*the32bits.second)));
     }
   }
   for(const auto& atomic :  d_getatomics) {
-    if (!isStatExpensive(atomic.first)) {
+    if (blacklistMap.count(atomic.first) == 0) {
       ret.insert(make_pair(atomic.first, std::to_string(atomic.second->load())));
     }
   }
 
-  for(const auto& the64bitmembers :  d_get64bitmembers) { 
-    if (!isStatExpensive(the64bitmembers.first)) {
+  for(const auto& the64bitmembers :  d_get64bitmembers) {
+    if (blacklistMap.count(the64bitmembers.first) == 0) {
       ret.insert(make_pair(the64bitmembers.first, std::to_string(the64bitmembers.second())));
     }
   }
 
-  Lock l(&d_dynmetricslock);
-  for(const auto& a : d_dynmetrics)
-    ret.insert({a.first, std::to_string(*a.second)});
+  {
+    Lock l(&d_dynmetricslock);
+    for(const auto& a : d_dynmetrics) {
+      if (blacklistMap.count(a.first) == 0) {
+        ret.insert({a.first, std::to_string(*a.second)});
+      }
+    }
+  }
+
   return ret;
 }
 
-string getAllStats()
+static string getAllStats()
 {
   typedef map<string, string> varmap_t;
-  varmap_t varmap = getAllStatsMap();
+  varmap_t varmap = getAllStatsMap(StatComponent::RecControl);
   string ret;
   for(varmap_t::value_type& tup :  varmap) {
     ret += tup.first + "\t" + tup.second +"\n";
@@ -1061,12 +1078,10 @@ void registerAllStats()
   for (size_t idx = 0; idx < SyncRes::s_ecsResponsesBySubnetSize4.size(); idx++) {
     const std::string name = "ecs-v4-response-bits-" + std::to_string(idx + 1);
     addGetStat(name, &(SyncRes::s_ecsResponsesBySubnetSize4.at(idx)));
-    markStatAsExpensive(name);
   }
   for (size_t idx = 0; idx < SyncRes::s_ecsResponsesBySubnetSize6.size(); idx++) {
     const std::string name = "ecs-v6-response-bits-" + std::to_string(idx + 1);
     addGetStat(name, &(SyncRes::s_ecsResponsesBySubnetSize6.at(idx)));
-    markStatAsExpensive(name);
   }
 }
 

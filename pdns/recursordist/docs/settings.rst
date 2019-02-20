@@ -126,6 +126,46 @@ DNSSEC is not supported. Example:
 
     auth-zones=example.org=/var/zones/example.org, powerdns.com=/var/zones/powerdns.com
 
+.. _setting-blacklisted-stats-api:
+
+``blacklisted-stats-api``
+-------------------------
+.. versionadded:: 4.2.0
+
+-  String
+-  Default: "cache-bytes, packetcache-bytes, ecs-v4-response-bits-*, ecs-v6-response-bits-*"
+
+A list of comma-separated statistic names, that are disabled when retrieving the complete list of statistics via the API for performance reasons.
+These statistics can still be retrieved individually by specifically asking for it.
+
+``blacklisted-stats-carbon``
+---------------------------
+.. versionadded:: 4.2.0
+
+-  String
+-  Default: "cache-bytes, packetcache-bytes, ecs-v4-response-bits-*, ecs-v6-response-bits-*"
+
+A list of comma-separated statistic names, that are prevented from being exported via carbon for performance reasons.
+
+``blacklisted-stats-rec-control``
+---------------------------------
+.. versionadded:: 4.2.0
+
+-  String
+-  Default: "cache-bytes, packetcache-bytes, ecs-v4-response-bits-*, ecs-v6-response-bits-*"
+
+A list of comma-separated statistic names, that are disabled when retrieving the complete list of statistics via `rec_control get-all`, for performance reasons.
+These statistics can still be retrieved individually.
+
+``blacklisted-stats-snmp``
+--------------------------
+.. versionadded:: 4.2.0
+
+-  String
+-  Default: "cache-bytes, packetcache-bytes, ecs-v4-response-bits-*, ecs-v6-response-bits-*"
+
+A list of comma-separated statistic names, that are prevented from being exported via SNMP, for performance reasons.
+
 .. _setting-carbon-interval:
 
 ``carbon-interval``
@@ -1224,17 +1264,6 @@ Use only a single socket for outgoing queries.
 -  Default: no
 
 If set to true and PowerDNS has been compiled with SNMP support, it will register as an SNMP agent to provide statistics and be able to send traps.
-
-.. _setting-snmp-enable-expensive-stats:
-
-``snmp-enable-expensive-stats``
-----------------------
-.. versionadded:: 4.2.0
-
--  Boolean
--  Default: no
-
-If set and snmp-agent is set, even statistics whose reporting can have an impact on production will be enabled
 
 .. _setting-snmp-master-socket:
 

@@ -164,7 +164,7 @@ static int handleDisabledCounter64Stats(netsnmp_mib_handler* handler,
   return RecursorSNMPAgent::setCounter64Value(requests, 0);
 }
 
-static void registerCounter64Stat(const std::string& name, const oid statOID[], size_t statOIDLength, bool expensiveStats)
+static void registerCounter64Stat(const std::string& name, const oid statOID[], size_t statOIDLength)
 {
   if (statOIDLength != OID_LENGTH(questionsOID)) {
     g_log<<Logger::Error<<"Invalid OID for SNMP Counter64 statistic "<<name<<endl;
@@ -178,7 +178,7 @@ static void registerCounter64Stat(const std::string& name, const oid statOID[], 
 
   s_statsMap[statOID[statOIDLength - 1]] = name.c_str();
   netsnmp_register_scalar(netsnmp_create_handler_registration(name.c_str(),
-                                                              (expensiveStats || !isStatExpensive(name)) ? handleCounter64Stats : handleDisabledCounter64Stats,
+                                                              isStatBlacklisted(StatComponent::SNMP, name) ? handleCounter64Stats : handleDisabledCounter64Stats,
                                                               statOID,
                                                               statOIDLength,
                                                               HANDLER_CAN_RONLY));
@@ -213,112 +213,112 @@ bool RecursorSNMPAgent::sendCustomTrap(const std::string& reason)
 }
 
 
-RecursorSNMPAgent::RecursorSNMPAgent(const std::string& name, const std::string& masterSocket, bool enableExpensiveStatistics): SNMPAgent(name, masterSocket)
+RecursorSNMPAgent::RecursorSNMPAgent(const std::string& name, const std::string& masterSocket): SNMPAgent(name, masterSocket)
 {
 #ifdef HAVE_NET_SNMP
   /* This is done so that the statistics maps are
      initialized. */
   registerAllStats();
 
-  registerCounter64Stat("questions", questionsOID, OID_LENGTH(questionsOID), enableExpensiveStatistics);
-  registerCounter64Stat("ipv6-questions", ipv6QuestionsOID, OID_LENGTH(ipv6QuestionsOID), enableExpensiveStatistics);
-  registerCounter64Stat("tcp-questions", tcpQuestionsOID, OID_LENGTH(tcpQuestionsOID), enableExpensiveStatistics);
-  registerCounter64Stat("cache-hits", cacheHitsOID, OID_LENGTH(cacheHitsOID), enableExpensiveStatistics);
-  registerCounter64Stat("cache-misses", cacheMissesOID, OID_LENGTH(cacheMissesOID), enableExpensiveStatistics);
-  registerCounter64Stat("cache-entries", cacheEntriesOID, OID_LENGTH(cacheEntriesOID), enableExpensiveStatistics);
-  registerCounter64Stat("cache-bytes", cacheBytesOID, OID_LENGTH(cacheBytesOID), enableExpensiveStatistics);
-  registerCounter64Stat("packetcache-hits", packetcacheHitsOID, OID_LENGTH(packetcacheHitsOID), enableExpensiveStatistics);
-  registerCounter64Stat("packetcache-misses", packetcacheMissesOID, OID_LENGTH(packetcacheMissesOID), enableExpensiveStatistics);
-  registerCounter64Stat("packetcache-entries", packetcacheEntriesOID, OID_LENGTH(packetcacheEntriesOID), enableExpensiveStatistics);
-  registerCounter64Stat("packetcache-bytes", packetcacheBytesOID, OID_LENGTH(packetcacheBytesOID), enableExpensiveStatistics);
-  registerCounter64Stat("malloc-bytes", mallocBytesOID, OID_LENGTH(mallocBytesOID), enableExpensiveStatistics);
-  registerCounter64Stat("servfail-answers", servfailAnswersOID, OID_LENGTH(servfailAnswersOID), enableExpensiveStatistics);
-  registerCounter64Stat("nxdomain-answers", nxdomainAnswersOID, OID_LENGTH(nxdomainAnswersOID), enableExpensiveStatistics);
-  registerCounter64Stat("noerror-answers", noerrorAnswersOID, OID_LENGTH(noerrorAnswersOID), enableExpensiveStatistics);
-  registerCounter64Stat("unauthorized-udp", unauthorizedUdpOID, OID_LENGTH(unauthorizedUdpOID), enableExpensiveStatistics);
-  registerCounter64Stat("unauthorized-tcp", unauthorizedTcpOID, OID_LENGTH(unauthorizedTcpOID), enableExpensiveStatistics);
-  registerCounter64Stat("tcp-client-overflow", tcpClientOverflowOID, OID_LENGTH(tcpClientOverflowOID), enableExpensiveStatistics);
-  registerCounter64Stat("client-parse-errors", clientParseErrorsOID, OID_LENGTH(clientParseErrorsOID), enableExpensiveStatistics);
-  registerCounter64Stat("server-parse-errors", serverParseErrorsOID, OID_LENGTH(serverParseErrorsOID), enableExpensiveStatistics);
-  registerCounter64Stat("too-old-drops", tooOldDropsOID, OID_LENGTH(tooOldDropsOID), enableExpensiveStatistics);
-  registerCounter64Stat("query-pipe-full-drops", queryPipeFullDropsOID, OID_LENGTH(queryPipeFullDropsOID), enableExpensiveStatistics);
-  registerCounter64Stat("truncated-drops", truncatedDropsOID, OID_LENGTH(truncatedDropsOID), enableExpensiveStatistics);
-  registerCounter64Stat("empty-queries", emptyQueriesOID, OID_LENGTH(emptyQueriesOID), enableExpensiveStatistics);
-  registerCounter64Stat("variable-responses", variableResponsesOID, OID_LENGTH(variableResponsesOID), enableExpensiveStatistics);
-  registerCounter64Stat("answers0-1", answers01OID, OID_LENGTH(answers01OID), enableExpensiveStatistics);
-  registerCounter64Stat("answers1-10", answers110OID, OID_LENGTH(answers110OID), enableExpensiveStatistics);
-  registerCounter64Stat("answers10-100", answers10100OID, OID_LENGTH(answers10100OID), enableExpensiveStatistics);
-  registerCounter64Stat("answers100-1000", answers1001000OID, OID_LENGTH(answers1001000OID), enableExpensiveStatistics);
-  registerCounter64Stat("answers-slow", answersSlowOID, OID_LENGTH(answersSlowOID), enableExpensiveStatistics);
-  registerCounter64Stat("auth4-answers0-1", auth4Answers01OID, OID_LENGTH(auth4Answers01OID), enableExpensiveStatistics);
-  registerCounter64Stat("auth4-answers1-10", auth4Answers110OID, OID_LENGTH(auth4Answers110OID), enableExpensiveStatistics);
-  registerCounter64Stat("auth4-answers10-100", auth4Answers10100OID, OID_LENGTH(auth4Answers10100OID), enableExpensiveStatistics);
-  registerCounter64Stat("auth4-answers100-1000", auth4Answers1001000OID, OID_LENGTH(auth4Answers1001000OID), enableExpensiveStatistics);
-  registerCounter64Stat("auth4-answers-slow", auth4AnswersslowOID, OID_LENGTH(auth4AnswersslowOID), enableExpensiveStatistics);
-  registerCounter64Stat("auth6-answers0-1", auth6Answers01OID, OID_LENGTH(auth6Answers01OID), enableExpensiveStatistics);
-  registerCounter64Stat("auth6-answers1-10", auth6Answers110OID, OID_LENGTH(auth6Answers110OID), enableExpensiveStatistics);
-  registerCounter64Stat("auth6-answers10-100", auth6Answers10100OID, OID_LENGTH(auth6Answers10100OID), enableExpensiveStatistics);
-  registerCounter64Stat("auth6-answers100-1000", auth6Answers1001000OID, OID_LENGTH(auth6Answers1001000OID), enableExpensiveStatistics);
-  registerCounter64Stat("auth6-answers-slow", auth6AnswersSlowOID, OID_LENGTH(auth6AnswersSlowOID), enableExpensiveStatistics);
-  registerCounter64Stat("qa-latency", qaLatencyOID, OID_LENGTH(qaLatencyOID), enableExpensiveStatistics);
-  registerCounter64Stat("unexpected-packets", unexpectedPacketsOID, OID_LENGTH(unexpectedPacketsOID), enableExpensiveStatistics);
-  registerCounter64Stat("case-mismatches", caseMismatchesOID, OID_LENGTH(caseMismatchesOID), enableExpensiveStatistics);
-  registerCounter64Stat("spoof-prevents", spoofPreventsOID, OID_LENGTH(spoofPreventsOID), enableExpensiveStatistics);
-  registerCounter64Stat("nsset-invalidations", nssetInvalidationsOID, OID_LENGTH(nssetInvalidationsOID), enableExpensiveStatistics);
-  registerCounter64Stat("resource-limits", resourceLimitsOID, OID_LENGTH(resourceLimitsOID), enableExpensiveStatistics);
-  registerCounter64Stat("over-capacity-drops", overCapacityDropsOID, OID_LENGTH(overCapacityDropsOID), enableExpensiveStatistics);
-  registerCounter64Stat("policy-drops", policyDropsOID, OID_LENGTH(policyDropsOID), enableExpensiveStatistics);
-  registerCounter64Stat("no-packet-error", noPacketErrorOID, OID_LENGTH(noPacketErrorOID), enableExpensiveStatistics);
-  registerCounter64Stat("dlg-only-drops", dlgOnlyDropsOID, OID_LENGTH(dlgOnlyDropsOID), enableExpensiveStatistics);
-  registerCounter64Stat("ignored-packets", ignoredPacketsOID, OID_LENGTH(ignoredPacketsOID), enableExpensiveStatistics);
-  registerCounter64Stat("max-mthread-stack", maxMthreadStackOID, OID_LENGTH(maxMthreadStackOID), enableExpensiveStatistics);
-  registerCounter64Stat("negcache-entries", negcacheEntriesOID, OID_LENGTH(negcacheEntriesOID), enableExpensiveStatistics);
-  registerCounter64Stat("throttle-entries", throttleEntriesOID, OID_LENGTH(throttleEntriesOID), enableExpensiveStatistics);
-  registerCounter64Stat("nsspeeds-entries", nsspeedsEntriesOID, OID_LENGTH(nsspeedsEntriesOID), enableExpensiveStatistics);
-  registerCounter64Stat("failed-host-entries", failedHostEntriesOID, OID_LENGTH(failedHostEntriesOID), enableExpensiveStatistics);
-  registerCounter64Stat("concurrent-queries", concurrentQueriesOID, OID_LENGTH(concurrentQueriesOID), enableExpensiveStatistics);
-  registerCounter64Stat("security-status", securityStatusOID, OID_LENGTH(securityStatusOID), enableExpensiveStatistics);
-  registerCounter64Stat("outgoing-timeouts", outgoingTimeoutsOID, OID_LENGTH(outgoingTimeoutsOID), enableExpensiveStatistics);
-  registerCounter64Stat("outgoing4-timeouts", outgoing4TimeoutsOID, OID_LENGTH(outgoing4TimeoutsOID), enableExpensiveStatistics);
-  registerCounter64Stat("outgoing6-timeouts", outgoing6TimeoutsOID, OID_LENGTH(outgoing6TimeoutsOID), enableExpensiveStatistics);
-  registerCounter64Stat("tcp-outqueries", tcpOutqueriesOID, OID_LENGTH(tcpOutqueriesOID), enableExpensiveStatistics);
-  registerCounter64Stat("all-outqueries", allOutqueriesOID, OID_LENGTH(allOutqueriesOID), enableExpensiveStatistics);
-  registerCounter64Stat("ipv6-outqueries", ipv6OutqueriesOID, OID_LENGTH(ipv6OutqueriesOID), enableExpensiveStatistics);
-  registerCounter64Stat("throttled-outqueries", throttledOutqueriesOID, OID_LENGTH(throttledOutqueriesOID), enableExpensiveStatistics);
-  registerCounter64Stat("dont-outqueries", dontOutqueriesOID, OID_LENGTH(dontOutqueriesOID), enableExpensiveStatistics);
-  registerCounter64Stat("unreachables", unreachablesOID, OID_LENGTH(unreachablesOID), enableExpensiveStatistics);
-  registerCounter64Stat("chain-resends", chainResendsOID, OID_LENGTH(chainResendsOID), enableExpensiveStatistics);
-  registerCounter64Stat("tcp-clients", tcpClientsOID, OID_LENGTH(tcpClientsOID), enableExpensiveStatistics);
+  registerCounter64Stat("questions", questionsOID, OID_LENGTH(questionsOID));
+  registerCounter64Stat("ipv6-questions", ipv6QuestionsOID, OID_LENGTH(ipv6QuestionsOID));
+  registerCounter64Stat("tcp-questions", tcpQuestionsOID, OID_LENGTH(tcpQuestionsOID));
+  registerCounter64Stat("cache-hits", cacheHitsOID, OID_LENGTH(cacheHitsOID));
+  registerCounter64Stat("cache-misses", cacheMissesOID, OID_LENGTH(cacheMissesOID));
+  registerCounter64Stat("cache-entries", cacheEntriesOID, OID_LENGTH(cacheEntriesOID));
+  registerCounter64Stat("cache-bytes", cacheBytesOID, OID_LENGTH(cacheBytesOID));
+  registerCounter64Stat("packetcache-hits", packetcacheHitsOID, OID_LENGTH(packetcacheHitsOID));
+  registerCounter64Stat("packetcache-misses", packetcacheMissesOID, OID_LENGTH(packetcacheMissesOID));
+  registerCounter64Stat("packetcache-entries", packetcacheEntriesOID, OID_LENGTH(packetcacheEntriesOID));
+  registerCounter64Stat("packetcache-bytes", packetcacheBytesOID, OID_LENGTH(packetcacheBytesOID));
+  registerCounter64Stat("malloc-bytes", mallocBytesOID, OID_LENGTH(mallocBytesOID));
+  registerCounter64Stat("servfail-answers", servfailAnswersOID, OID_LENGTH(servfailAnswersOID));
+  registerCounter64Stat("nxdomain-answers", nxdomainAnswersOID, OID_LENGTH(nxdomainAnswersOID));
+  registerCounter64Stat("noerror-answers", noerrorAnswersOID, OID_LENGTH(noerrorAnswersOID));
+  registerCounter64Stat("unauthorized-udp", unauthorizedUdpOID, OID_LENGTH(unauthorizedUdpOID));
+  registerCounter64Stat("unauthorized-tcp", unauthorizedTcpOID, OID_LENGTH(unauthorizedTcpOID));
+  registerCounter64Stat("tcp-client-overflow", tcpClientOverflowOID, OID_LENGTH(tcpClientOverflowOID));
+  registerCounter64Stat("client-parse-errors", clientParseErrorsOID, OID_LENGTH(clientParseErrorsOID));
+  registerCounter64Stat("server-parse-errors", serverParseErrorsOID, OID_LENGTH(serverParseErrorsOID));
+  registerCounter64Stat("too-old-drops", tooOldDropsOID, OID_LENGTH(tooOldDropsOID));
+  registerCounter64Stat("query-pipe-full-drops", queryPipeFullDropsOID, OID_LENGTH(queryPipeFullDropsOID));
+  registerCounter64Stat("truncated-drops", truncatedDropsOID, OID_LENGTH(truncatedDropsOID));
+  registerCounter64Stat("empty-queries", emptyQueriesOID, OID_LENGTH(emptyQueriesOID));
+  registerCounter64Stat("variable-responses", variableResponsesOID, OID_LENGTH(variableResponsesOID));
+  registerCounter64Stat("answers0-1", answers01OID, OID_LENGTH(answers01OID));
+  registerCounter64Stat("answers1-10", answers110OID, OID_LENGTH(answers110OID));
+  registerCounter64Stat("answers10-100", answers10100OID, OID_LENGTH(answers10100OID));
+  registerCounter64Stat("answers100-1000", answers1001000OID, OID_LENGTH(answers1001000OID));
+  registerCounter64Stat("answers-slow", answersSlowOID, OID_LENGTH(answersSlowOID));
+  registerCounter64Stat("auth4-answers0-1", auth4Answers01OID, OID_LENGTH(auth4Answers01OID));
+  registerCounter64Stat("auth4-answers1-10", auth4Answers110OID, OID_LENGTH(auth4Answers110OID));
+  registerCounter64Stat("auth4-answers10-100", auth4Answers10100OID, OID_LENGTH(auth4Answers10100OID));
+  registerCounter64Stat("auth4-answers100-1000", auth4Answers1001000OID, OID_LENGTH(auth4Answers1001000OID));
+  registerCounter64Stat("auth4-answers-slow", auth4AnswersslowOID, OID_LENGTH(auth4AnswersslowOID));
+  registerCounter64Stat("auth6-answers0-1", auth6Answers01OID, OID_LENGTH(auth6Answers01OID));
+  registerCounter64Stat("auth6-answers1-10", auth6Answers110OID, OID_LENGTH(auth6Answers110OID));
+  registerCounter64Stat("auth6-answers10-100", auth6Answers10100OID, OID_LENGTH(auth6Answers10100OID));
+  registerCounter64Stat("auth6-answers100-1000", auth6Answers1001000OID, OID_LENGTH(auth6Answers1001000OID));
+  registerCounter64Stat("auth6-answers-slow", auth6AnswersSlowOID, OID_LENGTH(auth6AnswersSlowOID));
+  registerCounter64Stat("qa-latency", qaLatencyOID, OID_LENGTH(qaLatencyOID));
+  registerCounter64Stat("unexpected-packets", unexpectedPacketsOID, OID_LENGTH(unexpectedPacketsOID));
+  registerCounter64Stat("case-mismatches", caseMismatchesOID, OID_LENGTH(caseMismatchesOID));
+  registerCounter64Stat("spoof-prevents", spoofPreventsOID, OID_LENGTH(spoofPreventsOID));
+  registerCounter64Stat("nsset-invalidations", nssetInvalidationsOID, OID_LENGTH(nssetInvalidationsOID));
+  registerCounter64Stat("resource-limits", resourceLimitsOID, OID_LENGTH(resourceLimitsOID));
+  registerCounter64Stat("over-capacity-drops", overCapacityDropsOID, OID_LENGTH(overCapacityDropsOID));
+  registerCounter64Stat("policy-drops", policyDropsOID, OID_LENGTH(policyDropsOID));
+  registerCounter64Stat("no-packet-error", noPacketErrorOID, OID_LENGTH(noPacketErrorOID));
+  registerCounter64Stat("dlg-only-drops", dlgOnlyDropsOID, OID_LENGTH(dlgOnlyDropsOID));
+  registerCounter64Stat("ignored-packets", ignoredPacketsOID, OID_LENGTH(ignoredPacketsOID));
+  registerCounter64Stat("max-mthread-stack", maxMthreadStackOID, OID_LENGTH(maxMthreadStackOID));
+  registerCounter64Stat("negcache-entries", negcacheEntriesOID, OID_LENGTH(negcacheEntriesOID));
+  registerCounter64Stat("throttle-entries", throttleEntriesOID, OID_LENGTH(throttleEntriesOID));
+  registerCounter64Stat("nsspeeds-entries", nsspeedsEntriesOID, OID_LENGTH(nsspeedsEntriesOID));
+  registerCounter64Stat("failed-host-entries", failedHostEntriesOID, OID_LENGTH(failedHostEntriesOID));
+  registerCounter64Stat("concurrent-queries", concurrentQueriesOID, OID_LENGTH(concurrentQueriesOID));
+  registerCounter64Stat("security-status", securityStatusOID, OID_LENGTH(securityStatusOID));
+  registerCounter64Stat("outgoing-timeouts", outgoingTimeoutsOID, OID_LENGTH(outgoingTimeoutsOID));
+  registerCounter64Stat("outgoing4-timeouts", outgoing4TimeoutsOID, OID_LENGTH(outgoing4TimeoutsOID));
+  registerCounter64Stat("outgoing6-timeouts", outgoing6TimeoutsOID, OID_LENGTH(outgoing6TimeoutsOID));
+  registerCounter64Stat("tcp-outqueries", tcpOutqueriesOID, OID_LENGTH(tcpOutqueriesOID));
+  registerCounter64Stat("all-outqueries", allOutqueriesOID, OID_LENGTH(allOutqueriesOID));
+  registerCounter64Stat("ipv6-outqueries", ipv6OutqueriesOID, OID_LENGTH(ipv6OutqueriesOID));
+  registerCounter64Stat("throttled-outqueries", throttledOutqueriesOID, OID_LENGTH(throttledOutqueriesOID));
+  registerCounter64Stat("dont-outqueries", dontOutqueriesOID, OID_LENGTH(dontOutqueriesOID));
+  registerCounter64Stat("unreachables", unreachablesOID, OID_LENGTH(unreachablesOID));
+  registerCounter64Stat("chain-resends", chainResendsOID, OID_LENGTH(chainResendsOID));
+  registerCounter64Stat("tcp-clients", tcpClientsOID, OID_LENGTH(tcpClientsOID));
 #ifdef __linux__
-  registerCounter64Stat("udp-recvbuf-errors", udpRecvbufErrorsOID, OID_LENGTH(udpRecvbufErrorsOID), enableExpensiveStatistics);
-  registerCounter64Stat("udp-sndbuf-errors", udpSndbufErrorsOID, OID_LENGTH(udpSndbufErrorsOID), enableExpensiveStatistics);
-  registerCounter64Stat("udp-noport-errors", udpNoportErrorsOID, OID_LENGTH(udpNoportErrorsOID), enableExpensiveStatistics);
-  registerCounter64Stat("udp-in-errors", udpinErrorsOID, OID_LENGTH(udpinErrorsOID), enableExpensiveStatistics);
+  registerCounter64Stat("udp-recvbuf-errors", udpRecvbufErrorsOID, OID_LENGTH(udpRecvbufErrorsOID));
+  registerCounter64Stat("udp-sndbuf-errors", udpSndbufErrorsOID, OID_LENGTH(udpSndbufErrorsOID));
+  registerCounter64Stat("udp-noport-errors", udpNoportErrorsOID, OID_LENGTH(udpNoportErrorsOID));
+  registerCounter64Stat("udp-in-errors", udpinErrorsOID, OID_LENGTH(udpinErrorsOID));
 #endif /* __linux__ */
-  registerCounter64Stat("edns-ping-matches", ednsPingMatchesOID, OID_LENGTH(ednsPingMatchesOID), enableExpensiveStatistics);
-  registerCounter64Stat("edns-ping-mismatches", ednsPingMismatchesOID, OID_LENGTH(ednsPingMismatchesOID), enableExpensiveStatistics);
-  registerCounter64Stat("dnssec-queries", dnssecQueriesOID, OID_LENGTH(dnssecQueriesOID), enableExpensiveStatistics);
-  registerCounter64Stat("dnssec-authentic-data-queries", dnssecAuthenticDataQueriesOID, OID_LENGTH(dnssecAuthenticDataQueriesOID), enableExpensiveStatistics);
-  registerCounter64Stat("dnssec-check-disabled-queries", dnssecCheckDisabledQueriesOID, OID_LENGTH(dnssecCheckDisabledQueriesOID), enableExpensiveStatistics);
-  registerCounter64Stat("noping-outqueries", nopingOutqueriesOID, OID_LENGTH(nopingOutqueriesOID), enableExpensiveStatistics);
-  registerCounter64Stat("noedns-outqueries", noednsOutqueriesOID, OID_LENGTH(noednsOutqueriesOID), enableExpensiveStatistics);
-  registerCounter64Stat("uptime", uptimeOID, OID_LENGTH(uptimeOID), enableExpensiveStatistics);
-  registerCounter64Stat("real-memory-usage", realMemoryUsageOID, OID_LENGTH(realMemoryUsageOID), enableExpensiveStatistics);
-  registerCounter64Stat("fd-usage", fdUsageOID, OID_LENGTH(fdUsageOID), enableExpensiveStatistics);
-  registerCounter64Stat("user-msec", userMsecOID, OID_LENGTH(userMsecOID), enableExpensiveStatistics);
-  registerCounter64Stat("sys-msec", sysMsecOID, OID_LENGTH(sysMsecOID), enableExpensiveStatistics);
-  registerCounter64Stat("dnssec-validations", dnssecValidationsOID, OID_LENGTH(dnssecValidationsOID), enableExpensiveStatistics);
-  registerCounter64Stat("dnssec-result-insecure", dnssecResultInsecureOID, OID_LENGTH(dnssecResultInsecureOID), enableExpensiveStatistics);
-  registerCounter64Stat("dnssec-result-secure", dnssecResultSecureOID, OID_LENGTH(dnssecResultSecureOID), enableExpensiveStatistics);
-  registerCounter64Stat("dnssec-result-bogus", dnssecResultBogusOID, OID_LENGTH(dnssecResultBogusOID), enableExpensiveStatistics);
-  registerCounter64Stat("dnssec-result-indeterminate", dnssecResultIndeterminateOID, OID_LENGTH(dnssecResultIndeterminateOID), enableExpensiveStatistics);
-  registerCounter64Stat("dnssec-result-nta", dnssecResultNtaOID, OID_LENGTH(dnssecResultNtaOID), enableExpensiveStatistics);
-  registerCounter64Stat("policy-result-noaction", policyResultNoactionOID, OID_LENGTH(policyResultNoactionOID), enableExpensiveStatistics);
-  registerCounter64Stat("policy-result-drop", policyResultDropOID, OID_LENGTH(policyResultDropOID), enableExpensiveStatistics);
-  registerCounter64Stat("policy-result-nxdomain", policyResultNxdomainOID, OID_LENGTH(policyResultNxdomainOID), enableExpensiveStatistics);
-  registerCounter64Stat("policy-result-nodata", policyResultNodataOID, OID_LENGTH(policyResultNodataOID), enableExpensiveStatistics);
-  registerCounter64Stat("policy-result-truncate", policyResultTruncateOID, OID_LENGTH(policyResultTruncateOID), enableExpensiveStatistics);
-  registerCounter64Stat("policy-result-custom", policyResultCustomOID, OID_LENGTH(policyResultCustomOID), enableExpensiveStatistics);
-  registerCounter64Stat("special-memory-usage", specialMemoryUsageOID, OID_LENGTH(specialMemoryUsageOID), enableExpensiveStatistics);
+  registerCounter64Stat("edns-ping-matches", ednsPingMatchesOID, OID_LENGTH(ednsPingMatchesOID));
+  registerCounter64Stat("edns-ping-mismatches", ednsPingMismatchesOID, OID_LENGTH(ednsPingMismatchesOID));
+  registerCounter64Stat("dnssec-queries", dnssecQueriesOID, OID_LENGTH(dnssecQueriesOID));
+  registerCounter64Stat("dnssec-authentic-data-queries", dnssecAuthenticDataQueriesOID, OID_LENGTH(dnssecAuthenticDataQueriesOID));
+  registerCounter64Stat("dnssec-check-disabled-queries", dnssecCheckDisabledQueriesOID, OID_LENGTH(dnssecCheckDisabledQueriesOID));
+  registerCounter64Stat("noping-outqueries", nopingOutqueriesOID, OID_LENGTH(nopingOutqueriesOID));
+  registerCounter64Stat("noedns-outqueries", noednsOutqueriesOID, OID_LENGTH(noednsOutqueriesOID));
+  registerCounter64Stat("uptime", uptimeOID, OID_LENGTH(uptimeOID));
+  registerCounter64Stat("real-memory-usage", realMemoryUsageOID, OID_LENGTH(realMemoryUsageOID));
+  registerCounter64Stat("fd-usage", fdUsageOID, OID_LENGTH(fdUsageOID));
+  registerCounter64Stat("user-msec", userMsecOID, OID_LENGTH(userMsecOID));
+  registerCounter64Stat("sys-msec", sysMsecOID, OID_LENGTH(sysMsecOID));
+  registerCounter64Stat("dnssec-validations", dnssecValidationsOID, OID_LENGTH(dnssecValidationsOID));
+  registerCounter64Stat("dnssec-result-insecure", dnssecResultInsecureOID, OID_LENGTH(dnssecResultInsecureOID));
+  registerCounter64Stat("dnssec-result-secure", dnssecResultSecureOID, OID_LENGTH(dnssecResultSecureOID));
+  registerCounter64Stat("dnssec-result-bogus", dnssecResultBogusOID, OID_LENGTH(dnssecResultBogusOID));
+  registerCounter64Stat("dnssec-result-indeterminate", dnssecResultIndeterminateOID, OID_LENGTH(dnssecResultIndeterminateOID));
+  registerCounter64Stat("dnssec-result-nta", dnssecResultNtaOID, OID_LENGTH(dnssecResultNtaOID));
+  registerCounter64Stat("policy-result-noaction", policyResultNoactionOID, OID_LENGTH(policyResultNoactionOID));
+  registerCounter64Stat("policy-result-drop", policyResultDropOID, OID_LENGTH(policyResultDropOID));
+  registerCounter64Stat("policy-result-nxdomain", policyResultNxdomainOID, OID_LENGTH(policyResultNxdomainOID));
+  registerCounter64Stat("policy-result-nodata", policyResultNodataOID, OID_LENGTH(policyResultNodataOID));
+  registerCounter64Stat("policy-result-truncate", policyResultTruncateOID, OID_LENGTH(policyResultTruncateOID));
+  registerCounter64Stat("policy-result-custom", policyResultCustomOID, OID_LENGTH(policyResultCustomOID));
+  registerCounter64Stat("special-memory-usage", specialMemoryUsageOID, OID_LENGTH(specialMemoryUsageOID));
 #endif /* HAVE_NET_SNMP */
 }

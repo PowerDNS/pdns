@@ -3857,8 +3857,13 @@ static int serviceMain(int argc, char*argv[])
   g_tcpMaxQueriesPerConn=::arg().asNum("max-tcp-queries-per-connection");
   s_maxUDPQueriesPerRound=::arg().asNum("max-udp-queries-per-round");
 
+  blacklistStats(StatComponent::API, ::arg()["blacklisted-stats-api"]);
+  blacklistStats(StatComponent::Carbon, ::arg()["blacklisted-stats-carbon"]);
+  blacklistStats(StatComponent::RecControl, ::arg()["blacklisted-stats-rec-control"]);
+  blacklistStats(StatComponent::SNMP, ::arg()["blacklisted-stats-snmp"]);
+
   if (::arg().mustDo("snmp-agent")) {
-    g_snmpAgent = std::make_shared<RecursorSNMPAgent>("recursor", ::arg()["snmp-master-socket"], ::arg().mustDo("snmp-enable-expensive-stats"));
+    g_snmpAgent = std::make_shared<RecursorSNMPAgent>("recursor", ::arg()["snmp-master-socket"]);
     g_snmpAgent->run();
   }
 
@@ -4279,7 +4284,18 @@ int main(int argc, char **argv)
 
     ::arg().setSwitch("snmp-agent", "If set, register as an SNMP agent")="no";
     ::arg().set("snmp-master-socket", "If set and snmp-agent is set, the socket to use to register to the SNMP master")="";
-    ::arg().setSwitch("snmp-enable-expensive-stats", "If set and snmp-agent is set, even statistics whose reporting can have an impact on production will be enabled")="no";
+
+    std::string defaultBlacklistedStats = "cache-bytes, packetcache-bytes, special-memory-usage";
+    for (size_t idx = 0; idx < 32; idx++) {
+      defaultBlacklistedStats += ", ecs-v4-response-bits-" + std::to_string(idx + 1);
+    }
+    for (size_t idx = 0; idx < 128; idx++) {
+      defaultBlacklistedStats += ", ecs-v6-response-bits-" + std::to_string(idx + 1);
+    }
+    ::arg().set("blacklisted-stats-api", "List of statistics that are disabled when retrieving the complete list of statistics via the API")=defaultBlacklistedStats;
+    ::arg().set("blacklisted-stats-carbon", "List of statistics that are prevented from being exported via Carbon")=defaultBlacklistedStats;
+    ::arg().set("blacklisted-stats-rec-control", "List of statistics that are prevented from being exported via rec_control get-all")=defaultBlacklistedStats;
+    ::arg().set("blacklisted-stats-snmp", "List of statistics that are prevented from being exported via SNMP")=defaultBlacklistedStats;
 
     ::arg().set("tcp-fast-open", "Enable TCP Fast Open support on the listening sockets, using the supplied numerical value as the queue size")="0";
     ::arg().set("nsec3-max-iterations", "Maximum number of iterations allowed for an NSEC3 record")="2500";

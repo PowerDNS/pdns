@@ -64,7 +64,9 @@ public:
   std::string getAnswer(const std::string& question, func_t** func);
 };
 
-std::map<std::string, std::string> getAllStatsMap();
+enum class StatComponent { API, Carbon, RecControl, SNMP };
+
+std::map<std::string, std::string> getAllStatsMap(StatComponent component);
 extern pthread_mutex_t g_carbon_config_lock;
 std::vector<std::pair<DNSName, uint16_t> >* pleaseGetQueryRing();
 std::vector<std::pair<DNSName, uint16_t> >* pleaseGetServfailQueryRing();
@@ -77,6 +79,9 @@ std::vector<ComboAddress>* pleaseGetTimeouts();
 DNSName getRegisteredName(const DNSName& dom);
 std::atomic<unsigned long>* getDynMetric(const std::string& str);
 optional<uint64_t> getStatByName(const std::string& name);
-bool isStatExpensive(const std::string& name);
+bool isStatBlacklisted(StatComponent component, const std::string& name);
+void blacklistStat(StatComponent component, const string& name);
+void blacklistStats(StatComponent component, const string& stats);
+
 void registerAllStats();
 
