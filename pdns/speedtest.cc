@@ -814,7 +814,7 @@ struct StatRingDNSNameQTypeTest
   string getName() const { return "StatRing test with DNSName and QType"; }
 
   void operator()() const {
-    S.ringAccount("testring", d_name, d_type);
+    S.ringAccount("testringdnsname", d_name, d_type);
   };
 
   DNSName d_name;
@@ -912,7 +912,7 @@ try
   S.declareRing("testring", "Just some ring where we'll account things");
   doRun(StatRingDNSNameQTypeToStringTest(DNSName("example.com"), QType(1)));
 
-  S.declareDNSNameQTypeRing("testring", "Just some ring where we'll account things");
+  S.declareDNSNameQTypeRing("testringdnsname", "Just some ring where we'll account things");
   doRun(StatRingDNSNameQTypeTest(DNSName("example.com"), QType(1)));
 #endif
 
