@@ -807,6 +807,20 @@ struct StatRingDNSNameQTypeToStringTest
   QType d_type;
 };
 
+struct StatRingDNSNameQTypeTest
+{
+  explicit StatRingDNSNameQTypeTest(const DNSName &name, const QType type) : d_name(name), d_type(type) {}
+
+  string getName() const { return "StatRing test with DNSName and QType"; }
+
+  void operator()() const {
+    S.ringAccount("testring", d_name, d_type);
+  };
+
+  DNSName d_name;
+  QType d_type;
+};
+
 
 
 int main(int argc, char** argv)
@@ -897,6 +911,9 @@ try
 
   S.declareRing("testring", "Just some ring where we'll account things");
   doRun(StatRingDNSNameQTypeToStringTest(DNSName("example.com"), QType(1)));
+
+  S.declareDNSNameQTypeRing("testring", "Just some ring where we'll account things");
+  doRun(StatRingDNSNameQTypeTest(DNSName("example.com"), QType(1)));
 #endif
 
   cerr<<"Total runs: " << g_totalRuns<<endl;
