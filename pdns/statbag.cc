@@ -228,21 +228,33 @@ void StatBag::declareComboRing(const string &name, const string &help, unsigned 
   d_comborings[name].setHelp(help);
 }
 
+void StatBag::declareDNSNameQTypeRing(const string &name, const string &help, unsigned int size)
+{
+  d_dnsnameqtyperings[name] = StatRing<std::tuple<DNSName, QType> >(size);
+  d_dnsnameqtyperings[name].setHelp(help);
+}
+
 
 vector<pair<string, unsigned int> > StatBag::getRing(const string &name)
 {
-  if(d_rings.count(name))
+  if(d_rings.count(name)) {
     return d_rings[name].get();
-  else {
+  }
+  vector<pair<string, unsigned int> > ret;
+
+  if (d_comborings.count(name)) {
     typedef pair<SComboAddress, unsigned int> stor_t;
     vector<stor_t> raw =d_comborings[name].get();
-    vector<pair<string, unsigned int> > ret;
     for(const stor_t& stor :  raw) {
       ret.push_back(make_pair(stor.first.ca.toString(), stor.second));
     }
-    return ret;
+  } else if(d_dnsnameqtyperings.count(name)) {
+    auto raw = d_dnsnameqtyperings[name].get();
+    for (auto const &e : raw) {
+      ret.push_back(make_pair(std::get<0>(e.first).toLogString() + "/" + std::get<1>(e.first).getName(), e.second));
+    }
   }
-    
+  return ret;
 }
 
 template<typename T, typename Comp>
@@ -256,16 +268,20 @@ void StatBag::resetRing(const string &name)
 {
   if(d_rings.count(name))
     d_rings[name].reset();
-  else
+  if(d_comborings.count(name))
     d_comborings[name].reset();
+  if(d_dnsnameqtyperings.count(name))
+    d_dnsnameqtyperings[name].reset();
 }
 
 void StatBag::resizeRing(const string &name, unsigned int newsize)
 {
   if(d_rings.count(name))
     d_rings[name].resize(newsize);
-  else
+  if(d_comborings.count(name))
     d_comborings[name].resize(newsize);
+  if(d_dnsnameqtyperings.count(name))
+    return d_dnsnameqtyperings[name].resize(newsize);
 }
 
 
@@ -273,16 +289,22 @@ unsigned int StatBag::getRingSize(const string &name)
 {
   if(d_rings.count(name))
     return d_rings[name].getSize();
-  else
+  if(d_comborings.count(name))
     return d_comborings[name].getSize();
+  if(d_dnsnameqtyperings.count(name))
+    return d_dnsnameqtyperings[name].getSize();
+  return 0;
 }
 
 string StatBag::getRingTitle(const string &name)
 {
   if(d_rings.count(name))
     return d_rings[name].getHelp();
-  else 
+  if(d_comborings.count(name))
     return d_comborings[name].getHelp();
+  if(d_dnsnameqtyperings.count(name))
+    return d_dnsnameqtyperings[name].getHelp();
+  return "";
 }
 
 vector<string>StatBag::listRings()
@@ -292,14 +314,17 @@ vector<string>StatBag::listRings()
     ret.push_back(i->first);
   for(auto i=d_comborings.begin();i!=d_comborings.end();++i)
     ret.push_back(i->first);
+  for(const auto &i : d_dnsnameqtyperings)
+    ret.push_back(i.first);
 
   return ret;
 }
 
 bool StatBag::ringExists(const string &name)
 {
-  return d_rings.count(name) || d_comborings.count(name);
+  return d_rings.count(name) || d_comborings.count(name) || d_dnsnameqtyperings.count(name);
 }
 
 template class StatRing<std::string, CIStringCompare>;
 template class StatRing<SComboAddress>;
+template class StatRing<std::tuple<DNSName, QType> >;
