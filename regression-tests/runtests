@@ -49,7 +49,9 @@ do
 	testname=$(basename $a)
 	export testname
 	echo  "$testname: "
-	cat $a/description 
+	if [ "${PDNS_DEBUG}" = "YES" ]; then
+		cat $a/description
+	fi
 
 	echo  "$testname: " >> test-results
 	cat $a/description >> test-results

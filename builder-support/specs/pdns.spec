@@ -23,6 +23,7 @@ Requires(post): systemd-sysv
 Requires(post): systemd-units
 Requires(preun): systemd-units
 Requires(postun): systemd-units
+BuildRequires: systemd
 BuildRequires: systemd-units
 BuildRequires: systemd-devel
 

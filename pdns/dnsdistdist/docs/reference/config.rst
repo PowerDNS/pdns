@@ -40,7 +40,7 @@ Global configuration
 
   Include configuration files from ``path``.
 
-  :param str path: The directory to load the configuration from
+  :param str path: The directory to load configuration files from. Each file must end in ``.conf``.
 
 Listen Sockets
 ~~~~~~~~~~~~~~
@@ -344,6 +344,7 @@ Servers
       checkTimeout=NUM,      -- The timeout (in milliseconds) of a health-check query, default: 1000 (1s)
       setCD=BOOL,            -- Set the CD (Checking Disabled) flag in the health-check query, default: false
       maxCheckFailures=NUM,  -- Allow NUM check failures before declaring the backend down, default: 1
+      checkInterval=NUM      -- The time in seconds between health checks
       mustResolve=BOOL,      -- Set to true when the health check MUST return a NOERROR RCODE and an answer
       useClientSubnet=BOOL,  -- Add the client's IP address in the EDNS Client Subnet option when forwarding the query to this backend
       source=STRING,         -- The source address or interface to use for queries to this backend, by default this is left to the kernel's address selection

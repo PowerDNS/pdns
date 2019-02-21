@@ -224,6 +224,10 @@ install_auth() {
   run "sudo apt-get -qq --no-install-recommends install \
     libldap-dev"
 
+  # lmdb-backend
+  run "sudo apt-get -qq --no-install-recommends install \
+    liblmdb-dev"
+
   # opendbx-backend
   run "sudo apt-get -qq --no-install-recommends install \
     libopendbx1-dev \
@@ -328,6 +332,19 @@ install_auth() {
     faketime"
   run "sudo touch /etc/authbind/byport/53"
   run "sudo chmod 755 /etc/authbind/byport/53"
+
+  # Install dnsmasq to make lookups more robust
+  run "sudo apt-get -qq --no-install-recommends install \
+    dnsmasq"
+  run 'echo listen-address=127.0.0.53 | sudo tee /etc/dnsmasq.d/local.conf'
+  run 'echo bind-interfaces | sudo tee -a /etc/dnsmasq.d/local.conf'
+
+  ## WARNING
+  ## after this dnsmasq restart, DNS lookups will fail for a few seconds.
+  run 'sudo service dnsmasq restart'
+  run "sudo resolvconf --disable-updates"
+  run 'echo nameserver 127.0.0.53 | sudo tee /etc/resolv.conf'
+  run "export RESOLVERIP=127.0.0.53"
 }
 
 install_ixfrdist() {
@@ -393,7 +410,7 @@ build_auth() {
   run "autoreconf -vi"
   run "./configure \
     ${sanitizerflags} \
-    --with-dynmodules='bind gmysql geoip gpgsql gsqlite3 ldap lua mydns opendbx pipe random remote tinydns godbc lua2' \
+    --with-dynmodules='bind gmysql geoip gpgsql gsqlite3 ldap lmdb lua mydns opendbx pipe random remote tinydns godbc lua2' \
     --with-modules='' \
     --with-sqlite3 \
     --with-libsodium \
@@ -404,7 +421,8 @@ build_auth() {
     --enable-backend-unit-tests \
     --enable-fuzz-targets \
     --disable-dependency-tracking \
-    --disable-silent-rules"
+    --disable-silent-rules \
+    --with-lmdb=/usr"
   run "make -k dist"
   run "make -k -j3"
   run "make -k install DESTDIR=/tmp/pdns-install-dir"
@@ -547,6 +565,11 @@ test_auth() {
 
   run "./timestamp ./start-test-stop 5300 tinydns"
 
+  run "./timestamp ./start-test-stop 5300 lmdb-nodnssec-both"
+  run "./timestamp ./start-test-stop 5300 lmdb-both"
+  run "./timestamp ./start-test-stop 5300 lmdb-nsec3-both"
+  run "./timestamp ./start-test-stop 5300 lmdb-nsec3-optout-both"
+
   run "rm tests/ent-asterisk/fail.nsec"
 
   run "cd ../modules/luabackend/test2"
@@ -582,6 +605,11 @@ test_auth() {
 
   run "./timestamp ./start-test-stop 5300 lua2"
   run "./timestamp ./start-test-stop 5300 lua2-dnssec"
+
+  run "./timestamp ./start-test-stop 5300 lmdb-both"
+  run "./timestamp ./start-test-stop 5300 lmdb-nodnssec-both"
+  run "./timestamp ./start-test-stop 5300 lmdb-nsec3-both"
+  run "./timestamp ./start-test-stop 5300 lmdb-nsec3-optout-both"
 
   run "cd .."
 

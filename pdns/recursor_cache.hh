@@ -64,7 +64,7 @@ public:
 
   int doWipeCache(const DNSName& name, bool sub, uint16_t qtype=0xffff);
   bool doAgeCache(time_t now, const DNSName& name, uint16_t qtype, uint32_t newTTL);
-  bool updateValidationStatus(time_t now, const DNSName &qname, const QType& qt, const ComboAddress& who, bool requireAuth, vState newState);
+  bool updateValidationStatus(time_t now, const DNSName &qname, const QType& qt, const ComboAddress& who, bool requireAuth, vState newState, boost::optional<time_t> capTTD);
 
   uint64_t cacheHits, cacheMisses;
 
@@ -89,7 +89,7 @@ private:
     DNSName d_qname;
     Netmask d_netmask;
     mutable vState d_state;
-    time_t d_ttd;
+    mutable time_t d_ttd;
     uint16_t d_qtype;
     bool d_auth;
   };

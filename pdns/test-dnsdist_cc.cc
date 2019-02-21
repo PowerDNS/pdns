@@ -1533,8 +1533,10 @@ BOOST_AUTO_TEST_CASE(test_isEDNSOptionInOpt) {
 
     bool found = locateEDNSOption(query, EDNSOptionCode::ECS, &optContentStart, &optContentLen);
     BOOST_CHECK_EQUAL(found, true);
-    BOOST_CHECK_EQUAL(optContentStart, optRDExpectedOffset + sizeof(uint16_t) /* RD len */ + /* option code */ 2 + /* option length */ 2);
-    BOOST_CHECK_EQUAL(optContentLen, sizeOfECSContent);
+    if (found == true) {
+      BOOST_CHECK_EQUAL(optContentStart, optRDExpectedOffset + sizeof(uint16_t) /* RD len */ + /* option code */ 2 + /* option length */ 2);
+      BOOST_CHECK_EQUAL(optContentLen, sizeOfECSContent);
+    }
 
     /* truncated packet */
     query.resize(query.size() - 1);
@@ -1554,8 +1556,10 @@ BOOST_AUTO_TEST_CASE(test_isEDNSOptionInOpt) {
 
     bool found = locateEDNSOption(query, EDNSOptionCode::ECS, &optContentStart, &optContentLen);
     BOOST_CHECK_EQUAL(found, true);
-    BOOST_CHECK_EQUAL(optContentStart, optRDExpectedOffset + sizeof(uint16_t) /* RD len */ + sizeOfCookieOption + /* option code */ 2 + /* option length */ 2);
-    BOOST_CHECK_EQUAL(optContentLen, sizeOfECSContent);
+    if (found == true) {
+      BOOST_CHECK_EQUAL(optContentStart, optRDExpectedOffset + sizeof(uint16_t) /* RD len */ + sizeOfCookieOption + /* option code */ 2 + /* option length */ 2);
+      BOOST_CHECK_EQUAL(optContentLen, sizeOfECSContent);
+    }
 
     /* truncated packet */
     query.resize(query.size() - 1);

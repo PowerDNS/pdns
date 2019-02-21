@@ -91,7 +91,9 @@ valid TSIG signature. It will accept any existing key on slave.
 
 -  IP ranges, separated by commas
 -  Default: 0.0.0.0/0
--  Removed in: 4.1.0
+
+.. deprecated:: 4.1.0
+  Recursion has been removed, see :doc:`guides/recursion`
 
 By specifying ``allow-recursion``, recursion can be restricted to
 netmasks specified. The default is to allow recursion from everywhere.
@@ -605,7 +607,8 @@ Entropy source file to use.
 
 -  Boolean
 -  Default: no
--  Since: 4.1.0
+
+.. versionadded:: 4.1.0
 
 If this is enabled, ALIAS records are expanded (synthesised to their
 A/AAAA).
@@ -889,10 +892,13 @@ Turn on master support. See :ref:`master-operation`.
 -  Integer
 -  Default: 1000000
 
+.. versionchanged:: 4.1.0
+  The packet and query caches are distinct. Previously, this setting was used for
+  both the packet and query caches. See ref:`setting-max-packet-cache-entries` for
+  the packet-cache setting.
+
 Maximum number of entries in the query cache. 1 million (the default)
-will generally suffice for most installations. Starting with 4.1, the
-packet and query caches are distinct so you might also want to see
-``max-packet-cache-entries``.
+will generally suffice for most installations.
 
 .. _setting-max-ent-entries:
 
@@ -923,10 +929,10 @@ Limit the number of NSEC3 hash iterations
 -  Integer
 -  Default: 1000000
 
+.. versionadded:: 4.1.0
+
 Maximum number of entries in the packet cache. 1 million (the default)
-will generally suffice for most installations. This setting has been
-introduced in 4.1, previous used the ``max-cache-entries`` setting for
-both the packet and query caches.
+will generally suffice for most installations.
 
 .. _setting-max-queue-length:
 
@@ -1152,7 +1158,7 @@ To notify all IP addresses apart from the 192.168.0.0/24 subnet use the followin
 ``out-of-zone-additional-processing``
 -------------------------------------
 
-.. versionchanged:: 4.2.0
+.. deprecated:: 4.2.0
   This setting has been removed.
 
 -  Boolean
@@ -1265,7 +1271,9 @@ Number of receiver (listening) threads to start. See :doc:`performance`.
 
 -  Integer
 -  Default: 10
--  Removed in: 4.1.0
+
+.. deprecated:: 4.1.0
+  Recursion has been removed, see :doc:`guides/recursion`
 
 Seconds to store recursive packets in the :ref:`packet-cache`.
 
@@ -1277,6 +1285,7 @@ Seconds to store recursive packets in the :ref:`packet-cache`.
 -  IP Address
 
 .. deprecated:: 4.1.0
+  Recursion has been removed, see :doc:`guides/recursion`
 
 If set, recursive queries will be handed to the recursor specified here.
 
@@ -1286,7 +1295,8 @@ If set, recursive queries will be handed to the recursor specified here.
 ------------
 
 -  IP Addresses with optional port, separated by commas
--  Added in: 4.1.0
+
+.. versionadded:: 4.1.0
 
 Use these resolver addresses for ALIAS and the internal stub resolver.
 If this is not set, ``/etc/resolv.conf`` is parsed for upstream
@@ -1616,7 +1626,7 @@ The plaintext password required for accessing the webserver.
 ------------------
 
 -  Integer
--  Default: 8001
+-  Default: 8081
 
 The port where webserver/API will listen on.
 

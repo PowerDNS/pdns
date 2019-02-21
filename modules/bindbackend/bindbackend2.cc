@@ -251,7 +251,7 @@ bool Bind2Backend::abortTransaction()
   return true;
 }
 
-bool Bind2Backend::feedRecord(const DNSResourceRecord &rr, const DNSName &ordername)
+bool Bind2Backend::feedRecord(const DNSResourceRecord &rr, const DNSName &ordername, bool ordernameIsNSEC3)
 {
   BB2DomainInfo bbd;
   if (!safeGetBBDomainInfo(d_transaction_id, &bbd))

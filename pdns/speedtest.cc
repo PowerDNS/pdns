@@ -552,12 +552,11 @@ struct BigDNSPacketRefTest
 
 struct TCacheComp
 {
-  bool operator()(const pair<string, QType>& a, const pair<string, QType>& b) const
+  bool operator()(const pair<DNSName, QType>& a, const pair<DNSName, QType>& b) const
   {
-    int cmp=strcasecmp(a.first.c_str(), b.first.c_str());
-    if(cmp < 0)
+    if(a.first < b.first)
       return true;
-    if(cmp > 0)
+    if(b.first < a.first)
       return false;
 
     return a.second < b.second;
