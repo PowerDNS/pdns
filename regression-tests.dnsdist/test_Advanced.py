@@ -1774,3 +1774,60 @@ class TestAdvancedAllowHeaderOnly(DNSDistTest):
             receivedQuery.id = query.id
             self.assertEquals(query, receivedQuery)
             self.assertEquals(receivedResponse, response)
+
+class TestAdvancedEDNSVersionnRule(DNSDistTest):
+
+    _config_template = """
+    newServer{address="127.0.0.1:%s"}
+    addAction(EDNSVersionRule(0), ERCodeAction(dnsdist.BADVERS))
+    """
+
+    def testDropped(self):
+        """
+        Advanced: A question with ECS version larger than 0 is dropped
+        """
+
+        name = 'ednsversionrule.advanced.tests.powerdns.com.'
+
+        query = dns.message.make_query(name, 'A', 'IN', use_edns=1)
+        expectedResponse = dns.message.make_response(query)
+        expectedResponse.set_rcode(dns.rcode.BADVERS)
+
+        for method in ("sendUDPQuery", "sendTCPQuery"):
+            sender = getattr(self, method)
+            (_, receivedResponse) = sender(query, response=None)
+            self.assertEquals(receivedResponse, expectedResponse)
+
+    def testNoEDNS0Pass(self):
+        """
+        Advanced: A question with ECS version 0 goes through
+        """
+
+        name = 'ednsversionrule.advanced.tests.powerdns.com.'
+
+        query = dns.message.make_query(name, 'A', 'IN', use_edns=True)
+        response = dns.message.make_response(query)
+
+        for method in ("sendUDPQuery", "sendTCPQuery"):
+            sender = getattr(self, method)
+            (receivedQuery, receivedResponse) = sender(query, response)
+            receivedQuery.id = query.id
+            self.assertEquals(query, receivedQuery)
+            self.assertEquals(receivedResponse, response)
+
+    def testReplied(self):
+        """
+        Advanced: A question without ECS goes through
+        """
+
+        name = 'ednsoptionrule.advanced.tests.powerdns.com.'
+
+        query = dns.message.make_query(name, 'A', 'IN', use_edns=False)
+        response = dns.message.make_response(query)
+
+        for method in ("sendUDPQuery", "sendTCPQuery"):
+            sender = getattr(self, method)
+            (receivedQuery, receivedResponse) = sender(query, response)
+            receivedQuery.id = query.id
+            self.assertEquals(query, receivedQuery)
+            self.assertEquals(receivedResponse, response)
