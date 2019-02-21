@@ -380,7 +380,6 @@ struct SuffixMatchNode
     {
       d_tree.add(dnsname, true);
       d_nodes.insert(dnsname);
-      updateHuman();
     }
 
     void add(std::vector<std::string> labels)
@@ -392,14 +391,12 @@ struct SuffixMatchNode
         labels.pop_back(); // This is safe because we have a copy of labels
       }
       d_nodes.insert(tmp);
-      updateHuman();
     }
 
     void remove(const DNSName& name)
     {
       d_tree.remove(name);
       d_nodes.erase(name);
-      updateHuman();
     }
 
     void remove(std::vector<std::string> labels)
@@ -411,7 +408,6 @@ struct SuffixMatchNode
         labels.pop_back(); // This is safe because we have a copy of labels
       }
       d_nodes.erase(tmp);
-      updateHuman();
     }
 
     bool check(const DNSName& dnsname) const
@@ -421,25 +417,21 @@ struct SuffixMatchNode
 
     std::string toString() const
     {
-      return d_human;
+      std::string ret;
+      bool first = true;
+      for (const auto& n : d_nodes) {
+        if (!first) {
+          ret += ", ";
+        }
+        first = false;
+        ret += n.toString();
+      }
+      return ret;
     }
 
   private:
     mutable std::string d_human;
     mutable std::set<DNSName> d_nodes; // Only used for string generation
-
-    void updateHuman() {
-      std::string tmp;
-      bool first = true;
-      for (const auto& n : d_nodes) {
-        if (!first) {
-          tmp += ", ";
-        }
-        first = false;
-        tmp += n.toString();
-      }
-      d_human = tmp;
-    }
 };
 
 std::ostream & operator<<(std::ostream &os, const DNSName& d);
