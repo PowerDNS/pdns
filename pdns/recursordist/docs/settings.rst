@@ -1038,6 +1038,17 @@ maximizing the cache hit ratio. Starting with version 4.2.0, more than one distr
 setting.
 Improves performance on Linux.
 
+.. _settting-protobuf-use-kernel-timestamp:
+
+``protobuf-use-kernel-timestamp``
+---------------------------
+.. versionadded:: 4.2.0
+
+- Boolean
+- Default: false
+
+Whether to compute the latency of responses in protobuf messages using the timestamp set by the kernel when the query packet was received (when available), instead of computing it based on the moment we start processing the query.
+
 .. _settting-public-suffix-list-file:
 
 ``public-suffix-list-file``
