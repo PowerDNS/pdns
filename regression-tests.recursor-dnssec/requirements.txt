@@ -3,4 +3,5 @@ nose>=1.3.7
 protobuf>=2.5; sys_platform != 'darwin'
 protobuf>=3.0; sys_platform == 'darwin'
 pysnmp>=4.3.4
+requests>=2.1.0
 Twisted>0.15.0
