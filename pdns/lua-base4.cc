@@ -10,6 +10,7 @@
 #include "namespaces.hh"
 #include "ednssubnet.hh"
 #include "lua-base4.hh"
+#include "dns_random.hh"
 
 BaseLua4::BaseLua4() {
 }
@@ -190,6 +191,7 @@ void BaseLua4::prepareContext() {
 
   // pdnsload
   d_lw->writeFunction("pdnslog", [](const std::string& msg, boost::optional<int> loglevel) { g_log << (Logger::Urgency)loglevel.get_value_or(Logger::Warning) << msg<<endl; });
+  d_lw->writeFunction("pdnsrandom", [](boost::optional<uint32_t> maximum) { return dns_random(maximum.get_value_or(0xffffffff)); });
 
   // certain constants
   d_pd.push_back({"PASS", (int)PolicyDecision::PASS});

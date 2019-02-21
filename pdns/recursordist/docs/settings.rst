@@ -712,6 +712,17 @@ Path to a lua file to manipulate the Recursor's answers. See :doc:`lua-scripting
 The interval between calls to the Lua user defined `maintenance()` function in seconds.
 See :ref:`hooks-maintenance-callback`
 
+.. _setting-max-cache-bogus-ttl:
+
+``max-cache-bogus-ttl``
+-----------------------
+.. versionadded:: 4.2.0
+
+-  Integer
+-  Default: 3600
+
+Maximum number of seconds to cache an item in the DNS cache (negative or positive) if its DNSSEC validation failed, no matter what the original TTL specified, to reduce the impact of a broken domain.
+
 .. _setting-max-cache-entries:
 
 ``max-cache-entries``
