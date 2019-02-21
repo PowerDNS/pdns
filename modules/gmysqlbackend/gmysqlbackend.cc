@@ -59,7 +59,8 @@ void gMySQLBackend::reconnect()
                    getArg("password"),
                    getArg("group"),
                    mustDo("innodb-read-committed"),
-                   getArgAsNum("timeout")));
+                   getArgAsNum("timeout"),
+                   mustDo("thread-cleanup")));
 }
 
 class gMySQLFactory : public BackendFactory
@@ -78,6 +79,7 @@ public:
     declare(suffix,"group", "Database backend MySQL 'group' to connect as", "client");
     declare(suffix,"innodb-read-committed","Use InnoDB READ-COMMITTED transaction isolation level","yes");
     declare(suffix,"timeout", "The timeout in seconds for each attempt to read/write to the server", "10");
+    declare(suffix,"thread-cleanup","Explicitly call mysql_thread_end() when threads end","no");
 
     declare(suffix,"dnssec","Enable DNSSEC processing","no");
 
