@@ -22,7 +22,6 @@
 #ifndef PDNS_NAMESPACES_HH
 #define PDNS_NAMESPACES_HH
 #include <boost/tuple/tuple.hpp>
-
 #include <boost/shared_array.hpp>
 #include <boost/scoped_array.hpp>
 #include <boost/optional.hpp>
@@ -78,4 +77,5 @@ using boost::trim_right_copy_if;
 using boost::equals;
 using boost::ends_with;
 using boost::iends_with;
+
 #endif

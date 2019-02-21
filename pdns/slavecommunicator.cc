@@ -560,7 +560,7 @@ void CommunicatorClass::suck(const DNSName &domain, const ComboAddress& remote)
           // NSEC3
           ordername=DNSName(toBase32Hex(hashQNameWithSalt(zs.ns3pr, rr.qname)));
           if(!zs.isNarrow && (rr.auth || (rr.qtype.getCode() == QType::NS && (!zs.optOutFlag || zs.secured.count(ordername))))) {
-            di.backend->feedRecord(rr, ordername);
+            di.backend->feedRecord(rr, ordername, true);
           } else
             di.backend->feedRecord(rr, DNSName());
         } else {

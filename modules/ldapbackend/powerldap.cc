@@ -456,7 +456,7 @@ const string PowerLDAP::escape( const string& str )
           (unsigned char)*i == '\0' ||
           (unsigned char)*i > 127)
       {
-          sprintf(tmp,"\\%02x", (unsigned char)*i);
+          snprintf(tmp, sizeof(tmp), "\\%02x", (unsigned char)*i);
 
           a += tmp;
       }

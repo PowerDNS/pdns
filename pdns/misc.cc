@@ -582,7 +582,7 @@ string makeHexDump(const string& str)
   ret.reserve((int)(str.size()*2.2));
 
   for(string::size_type n=0;n<str.size();++n) {
-    sprintf(tmp,"%02x ", (unsigned char)str[n]);
+    snprintf(tmp, sizeof(tmp), "%02x ", (unsigned char)str[n]);
     ret+=tmp;
   }
   return ret;
@@ -866,11 +866,12 @@ bool stringfgets(FILE* fp, std::string& line)
 bool readFileIfThere(const char* fname, std::string* line)
 {
   line->clear();
-  FILE* fp = fopen(fname, "r");
+  auto fp = std::unique_ptr<FILE, int(*)(FILE*)>(fopen(fname, "r"), fclose);
   if(!fp)
     return false;
-  stringfgets(fp, *line);
-  fclose(fp);
+  stringfgets(fp.get(), *line);
+  fp.reset();
+
   return true;
 }
 

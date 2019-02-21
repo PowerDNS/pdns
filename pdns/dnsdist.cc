@@ -1953,6 +1953,9 @@ static void healthChecksThread()
 
     auto states = g_dstates.getLocal(); // this points to the actual shared_ptrs!
     for(auto& dss : *states) {
+      if(++dss->lastCheck < dss->checkInterval)
+        continue;
+      dss->lastCheck = 0;
       if(dss->availability==DownstreamState::Availability::Auto) {
         bool newState=upCheck(*dss);
         if (newState) {
@@ -2705,8 +2708,8 @@ try
       tcpBindsCount++;
     }
     else {
-      delete cs;
       errlog("Error while setting up TLS on local address '%s', exiting", cs->local.toStringWithPort());
+      delete cs;
       _exit(EXIT_FAILURE);
     }
   }

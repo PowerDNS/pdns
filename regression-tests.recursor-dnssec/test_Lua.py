@@ -468,3 +468,30 @@ class DNS64Test(RecursorTest):
             self.assertEqual(len(res.answer), 2)
             self.assertEqual(len(res.authority), 0)
             self.assertResponseMatches(query, expected, res)
+
+
+class PDNSRandomTest(RecursorTest):
+    """Tests if pdnsrandom works"""
+
+    _confdir = 'pdnsrandom'
+    _config_template = """
+    """
+    _lua_dns_script_file = """
+    function preresolve (dq)
+      dq.rcode = pdns.NOERROR
+      dq:addAnswer(pdns.TXT, pdnsrandom())
+      return true
+    end
+    """
+
+    def testRandom(self):
+        query = dns.message.make_query('whatever.example.', 'TXT')
+
+        ans = set()
+
+        ret = self.sendUDPQuery(query)
+        ans.add(ret.answer[0])
+        ret = self.sendUDPQuery(query)
+        ans.add(ret.answer[0])
+
+        self.assertEqual(len(ans), 2)

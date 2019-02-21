@@ -2,6 +2,16 @@ Changelogs for 4.1.x
 ====================
 
 .. changelog::
+  :version: 4.1.6
+  :released: January 31st 2019
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 7279
+
+    Prevent more than one CNAME/SOA record in the same RRset.
+
+.. changelog::
   :version: 4.1.5
   :released: November 6th 2018
 

@@ -173,14 +173,13 @@ string doGetParameter(T begin, T end)
 
 static uint64_t dumpNegCache(NegCache& negcache, int fd)
 {
-  FILE* fp=fdopen(dup(fd), "w");
+  auto fp = std::unique_ptr<FILE, int(*)(FILE*)>(fdopen(dup(fd), "w"), fclose);
   if(!fp) { // dup probably failed
     return 0;
   }
   uint64_t ret;
-  fprintf(fp, "; negcache dump from thread follows\n;\n");
-  ret = negcache.dumpToFile(fp);
-  fclose(fp);
+  fprintf(fp.get(), "; negcache dump from thread follows\n;\n");
+  ret = negcache.dumpToFile(fp.get());
   return ret;
 }
 
@@ -307,14 +306,13 @@ string doDumpRPZ(T begin, T end)
     return "Error opening dump file for writing: "+string(strerror(errno))+"\n";
   }
 
-  FILE* fp = fdopen(fd, "w");
+  auto fp = std::unique_ptr<FILE, int(*)(FILE*)>(fdopen(fd, "w"), fclose);
   if (!fp) {
     close(fd);
     return "Error converting file descriptor: "+string(strerror(errno))+"\n";
   }
 
-  zone->dump(fp);
-  fclose(fp);
+  zone->dump(fp.get());
 
   return "done\n";
 }
