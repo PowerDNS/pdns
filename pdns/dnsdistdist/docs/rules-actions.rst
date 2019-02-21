@@ -547,6 +547,35 @@ These ``DNSRule``\ s be one of the following items:
 
   Matches queries with the DO flag set
 
+.. function:: DSTPortRule(port)
+
+  Matches questions received to the destination port.
+
+  :param int port: Match destination port.
+
+.. function:: EDNSOptionRule(optcode)
+
+  .. versionadded:: 1.4.0
+
+  Matches queries or responses with the specified EDNS option present.
+  ``optcode`` is specified as an integer, or a constant such as `EDNSOptionCode.ECS`.
+
+.. function:: EDNSVersionRule(version)
+
+  .. versionadded:: 1.4.0
+
+  Matches queries or responses with an OPT record whose EDNS version is greater than the specified EDNS version.
+
+  :param int version: The EDNS version to match on
+
+.. function:: ERCodeRule(rcode)
+
+  Matches queries or responses with the specified ``rcode``.
+  ``rcode`` can be specified as an integer or as one of the built-in :ref:`DNSRCode`.
+  The full 16bit RCode will be matched. If no EDNS OPT RR is present, the upper 12 bits are treated as 0.
+
+  :param int rcode: The RCODE to match on
+
 .. function:: MaxQPSIPRule(qps[, v4Mask[, v6Mask[, burst[, expiration[, cleanupDelay[, scanFraction]]]]]])
   .. versionchanged:: 1.3.1
     Added the optional parameters ``expiration``, ``cleanupDelay`` and ``scanFraction``.
@@ -640,21 +669,6 @@ These ``DNSRule``\ s be one of the following items:
 
   :param int rcode: The RCODE to match on
 
-.. function:: ERCodeRule(rcode)
-
-  Matches queries or responses with the specified ``rcode``.
-  ``rcode`` can be specified as an integer or as one of the built-in :ref:`DNSRCode`.
-  The full 16bit RCode will be matched. If no EDNS OPT RR is present, the upper 12 bits are treated as 0.
-
-  :param int rcode: The RCODE to match on
-
-.. function:: EDNSOptionRule(optcode)
-
-  .. versionadded:: 1.3.3
-
-  Matches queries or responses with the specified EDNS option present.
-  ``optcode`` is specified as an integer, or a constant such as `EDNSOptionCode.ECS`.
-
 .. function:: RDRule()
 
   .. versionadded:: 1.2.0
@@ -730,12 +744,6 @@ These ``DNSRule``\ s be one of the following items:
   Matches question received over TCP if ``tcp`` is true, over UDP otherwise.
 
   :param bool tcp: Match TCP traffic. Default is true.
-
-.. function:: DSTPortRule(port)
-
-  Matches questions received to the destination port.
-
-  :param int port: Match destination port.
 
 .. function:: TrailingDataRule()
 
@@ -856,6 +864,16 @@ The following actions exist.
   :param int v4: The IPv4 netmask length
   :param int v6: The IPv6 netmask length
 
+
+.. function:: ERCodeAction(rcode)
+
+  .. versionadded:: 1.4.0
+
+  Reply immediately by turning the query into a response with the specified EDNS extended ``rcode``.
+  ``rcode`` can be specified as an integer or as one of the built-in :ref:`DNSRCode`.
+
+  :param int rcode: The extended RCODE to respond with.
+
 .. function:: LogAction([filename[, binary[, append[, buffered]]]])
 
   Log a line for each query, to the specified ``file`` if any, to the console (require verbose) otherwise.
@@ -926,7 +944,7 @@ The following actions exist.
 
 .. function:: RCodeAction(rcode)
 
-  Reply immediatly by turning the query into a response with the specified ``rcode``.
+  Reply immediately by turning the query into a response with the specified ``rcode``.
   ``rcode`` can be specified as an integer or as one of the built-in :ref:`DNSRCode`.
 
   :param int rcode: The RCODE to respond with.

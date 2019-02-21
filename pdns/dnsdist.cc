@@ -160,7 +160,7 @@ try
   dh->ancount = dh->arcount = dh->nscount = 0;
 
   if (hadEDNS) {
-    addEDNS(dh, *len, responseSize, z & EDNS_HEADER_FLAG_DO, payloadSize);
+    addEDNS(dh, *len, responseSize, z & EDNS_HEADER_FLAG_DO, payloadSize, 0);
   }
 }
 catch(...)
