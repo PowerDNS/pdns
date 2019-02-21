@@ -1714,3 +1714,63 @@ class TestAdvancedEDNSOptionRule(DNSDistTest):
         receivedQuery.id = query.id
         self.assertEquals(query, receivedQuery)
         self.assertEquals(receivedResponse, response)
+
+class TestAdvancedAllowHeaderOnly(DNSDistTest):
+
+    _config_template = """
+    newServer{address="127.0.0.1:%s"}
+    setAllowEmptyResponse(true)
+    """
+
+    def testHeaderOnlyRefused(self):
+        """
+        Advanced: Header-only refused response
+        """
+        name = 'header-only-refused-response.advanced.tests.powerdns.com.'
+        query = dns.message.make_query(name, 'A', 'IN')
+        response = dns.message.make_response(query)
+        response.set_rcode(dns.rcode.REFUSED)
+        response.question = []
+
+        for method in ("sendUDPQuery", "sendTCPQuery"):
+            sender = getattr(self, method)
+            (receivedQuery, receivedResponse) = sender(query, response)
+            self.assertTrue(receivedQuery)
+            receivedQuery.id = query.id
+            self.assertEquals(query, receivedQuery)
+            self.assertEquals(receivedResponse, response)
+
+    def testHeaderOnlyNoErrorResponse(self):
+        """
+        Advanced: Header-only NoError response should be allowed
+        """
+        name = 'header-only-noerror-response.advanced.tests.powerdns.com.'
+        query = dns.message.make_query(name, 'A', 'IN')
+        response = dns.message.make_response(query)
+        response.question = []
+
+        for method in ("sendUDPQuery", "sendTCPQuery"):
+            sender = getattr(self, method)
+            (receivedQuery, receivedResponse) = sender(query, response)
+            self.assertTrue(receivedQuery)
+            receivedQuery.id = query.id
+            self.assertEquals(query, receivedQuery)
+            self.assertEquals(receivedResponse, response)
+
+    def testHeaderOnlyNXDResponse(self):
+        """
+        Advanced: Header-only NXD response should be allowed
+        """
+        name = 'header-only-nxd-response.advanced.tests.powerdns.com.'
+        query = dns.message.make_query(name, 'A', 'IN')
+        response = dns.message.make_response(query)
+        response.set_rcode(dns.rcode.NXDOMAIN)
+        response.question = []
+
+        for method in ("sendUDPQuery", "sendTCPQuery"):
+            sender = getattr(self, method)
+            (receivedQuery, receivedResponse) = sender(query, response)
+            self.assertTrue(receivedQuery)
+            receivedQuery.id = query.id
+            self.assertEquals(query, receivedQuery)
+            self.assertEquals(receivedResponse, response)
