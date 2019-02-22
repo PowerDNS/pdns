@@ -278,7 +278,7 @@ For Rules related to the incoming query:
 
   Add a Rule and Action to the existing rules.
 
-  :param DNSrule rule: A DNSRule, e.g. an :func:`allRule` or a compounded bunch of rules using e.g. :func:`AndRule`
+  :param DNSrule rule: A DNSRule, e.g. an :func:`AllRule` or a compounded bunch of rules using e.g. :func:`AndRule`
   :param action: The action to take
   :param table options: A table with key: value pairs with options.
 
@@ -361,7 +361,7 @@ For Rules related to responses:
 
   Add a Rule and Action for responses to the existing rules.
 
-  :param DNSRule: A DNSRule, e.g. an :func:`allRule` or a compounded bunch of rules using e.g. :func:`AndRule`
+  :param DNSRule: A DNSRule, e.g. an :func:`AllRule` or a compounded bunch of rules using e.g. :func:`AndRule`
   :param action: The action to take
   :param table options: A table with key: value pairs with options.
 
@@ -415,7 +415,7 @@ Functions for manipulating Cache Hit Respone Rules:
 
   Add a Rule and ResponseAction for Cache Hits to the existing rules.
 
-  :param DNSRule: A DNSRule, e.g. an :func:`allRule` or a compounded bunch of rules using e.g. :func:`AndRule`
+  :param DNSRule: A DNSRule, e.g. an :func:`AllRule` or a compounded bunch of rules using e.g. :func:`AndRule`
   :param action: The action to take
   :param table options: A table with key: value pairs with options.
 
@@ -472,7 +472,7 @@ Functions for manipulating Self-Answered Response Rules:
 
   Add a Rule and Action for Self-Answered queries to the existing rules.
 
-  :param DNSRule: A DNSRule, e.g. an :func:`allRule` or a compounded bunch of rules using e.g. :func:`AndRule`
+  :param DNSRule: A DNSRule, e.g. an :func:`AllRule` or a compounded bunch of rules using e.g. :func:`AndRule`
   :param action: The action to take
 
 .. function:: mvSelfAnsweredResponseRule(from, to)
