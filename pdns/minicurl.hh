@@ -31,7 +31,7 @@
 class MiniCurl
 {
 public:
-  MiniCurl();
+  MiniCurl(const string& useragent="MiniCurl/0.0");
   ~MiniCurl();
   MiniCurl& operator=(const MiniCurl&) = delete;
   std::string getURL(const std::string& str, const ComboAddress* rem=0, const ComboAddress* src=0);
