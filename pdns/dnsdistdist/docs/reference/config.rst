@@ -997,6 +997,12 @@ Other functions
   If this function exists, it is called every second to so regular tasks.
   This can be used for e.g. :doc:`Dynamic Blocks <../guides/dynblocks>`.
 
+.. function: setAllowEmptyResponse()
+
+  .. versionadded:: 1.4.0
+
+  Set to true (defaults to false) to allow empty responses (qdcount=0) with a NoError or NXDomain rcode (default) from backends. dnsdist drops these responses by default because it can't match them against the initial query since they don't contain the qname, qtype and qclass, and therefore the risk of collision is much higher than with regular responses.
+
 TLSContext
 ~~~~~~~~~~
 
