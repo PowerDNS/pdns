@@ -165,6 +165,7 @@ void apiServerStatistics(HttpRequest* req, HttpResponse* resp) {
 
   auto resp_qtype_stats = g_rs.getQTypeResponseCounts();
   auto resp_size_stats = g_rs.getSizeResponseCounts();
+  auto resp_rcode_stats = g_rs.getRCodeResponseCounts();
 
   Json::array doc;
   for(const auto& item : general_stats) {
@@ -188,7 +189,7 @@ void apiServerStatistics(HttpRequest* req, HttpResponse* resp) {
 
     doc.push_back(Json::object {
       { "type", "MapStatisticItem" },
-      { "name", "queries-by-qtype" },
+      { "name", "response-by-qtype" },
       { "value", values },
     });
   }
@@ -208,6 +209,24 @@ void apiServerStatistics(HttpRequest* req, HttpResponse* resp) {
     doc.push_back(Json::object {
       { "type", "MapStatisticItem" },
       { "name", "response-sizes" },
+      { "value", values },
+    });
+  }
+
+  {
+    Json::array values;
+    for(const auto& item : resp_rcode_stats) {
+      if (item.second == 0)
+        continue;
+      values.push_back(Json::object {
+        { "name", RCode::to_s(item.first) },
+        { "value", std::to_string(item.second) },
+      });
+    }
+
+    doc.push_back(Json::object {
+      { "type", "MapStatisticItem" },
+      { "name", "response-by-rcode" },
       { "value", values },
     });
   }

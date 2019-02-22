@@ -43,14 +43,17 @@ class Servers(ApiTestCase):
         self.assertIn('uptime', [e['name'] for e in data])
         if is_auth():
             print(data)
-            qtype_stats, respsize_stats, queries_stats = None, None, None
+            qtype_stats, respsize_stats, queries_stats, rcode_stats = None, None, None, None
             for elem in data:
-                if elem['type'] == 'MapStatisticItem' and elem['name'] == 'queries-by-qtype':
+                if elem['type'] == 'MapStatisticItem' and elem['name'] == 'response-by-qtype':
                     qtype_stats = elem['value']
                 elif elem['type'] == 'MapStatisticItem' and elem['name'] == 'response-sizes':
                     respsize_stats = elem['value']
                 elif elem['type'] == 'RingStatisticItem' and elem['name'] == 'queries':
                     queries_stats = elem['value']
+                elif elem['type'] == 'MapStatisticItem' and elem['name'] == 'response-by-rcode':
+                    rcode_stats = elem['value']
             self.assertIn('A', [e['name'] for e in qtype_stats])
             self.assertIn('60', [e['name'] for e in respsize_stats])
             self.assertIn('example.com/A', [e['name'] for e in queries_stats])
+            self.assertIn('No Error', [e['name'] for e in rcode_stats])
