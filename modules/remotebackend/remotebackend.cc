@@ -908,6 +908,27 @@ void RemoteBackend::getAllDomains(vector<DomainInfo> *domains, bool include_disa
   }
 }
 
+void RemoteBackend::getUpdatedMasters(vector<DomainInfo>* domains)
+{
+  Json query = Json::object{
+   { "method", "getUpdatedMasters" },
+   { "parameters", Json::object{ } },
+  };
+
+  Json answer;
+  if (this->send(query) == false || this->recv(answer) == false)
+    return;
+
+  if (answer["result"].is_array() == false)
+    return;
+
+  for(const auto& row: answer["result"].array_items()) {
+    DomainInfo di;
+    this->parseDomainInfo(row, di);
+    domains->push_back(di);
+  }
+}
+
 DNSBackend *RemoteBackend::maker()
 {
    try {
