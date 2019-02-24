@@ -63,8 +63,14 @@ shared_ptr<DNSCryptoKeyEngine> DNSCryptoKeyEngine::makeFromISCFile(DNSKEYRecordC
   fp.reset();
 
   shared_ptr<DNSCryptoKeyEngine> dke = makeFromISCString(drc, isc);
-  if(!dke->checkKey()) {
-    throw runtime_error("Invalid DNS Private Key in file '"+string(fname));
+  vector<string> checkKeyErrors;
+
+  if(!dke->checkKey(&checkKeyErrors)) {
+    string reason;
+    if(checkKeyErrors.size()) {
+      reason = " ("+boost::algorithm::join(checkKeyErrors, ", ")+")";
+    }
+    throw runtime_error("Invalid DNS Private Key in file '"+string(fname)+"'"+reason);
   }
   return dke;
 }
