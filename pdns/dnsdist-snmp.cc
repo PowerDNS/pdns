@@ -48,6 +48,7 @@ static const oid dynBlockedOID[] = { DNSDIST_STATS_OID, 35 };
 static const oid dynBlockedNMGSizeOID[] = { DNSDIST_STATS_OID, 36 };
 static const oid ruleServFailOID[] = { DNSDIST_STATS_OID, 37 };
 static const oid securityStatusOID[] = { DNSDIST_STATS_OID, 38 };
+static const oid specialMemoryUsageOID[] = { DNSDIST_STATS_OID, 39 };
 
 static std::unordered_map<oid, DNSDistStats::entry_t> s_statsMap;
 
@@ -576,12 +577,13 @@ DNSDistSNMPAgent::DNSDistSNMPAgent(const std::string& name, const std::string& m
   registerFloatStat("latencyAvg10000", latencyAvg10000OID, OID_LENGTH(latencyAvg10000OID), &g_stats.latencyAvg10000);
   registerFloatStat("latencyAvg1000000", latencyAvg1000000OID, OID_LENGTH(latencyAvg1000000OID), &g_stats.latencyAvg1000000);
   registerGauge64Stat("uptime", uptimeOID, OID_LENGTH(uptimeOID), &uptimeOfProcess);
-  registerGauge64Stat("realMemoryUsage", realMemoryUsageOID, OID_LENGTH(realMemoryUsageOID), &getRealMemoryUsage);
+  registerGauge64Stat("specialMemoryUsage", specialMemoryUsageOID, OID_LENGTH(specialMemoryUsageOID), &getSpecialMemoryUsage);
   registerGauge64Stat("cpuUserMSec", cpuUserMSecOID, OID_LENGTH(cpuUserMSecOID), &getCPUTimeUser);
   registerGauge64Stat("cpuSysMSec", cpuSysMSecOID, OID_LENGTH(cpuSysMSecOID), &getCPUTimeSystem);
   registerGauge64Stat("fdUsage", fdUsageOID, OID_LENGTH(fdUsageOID), &getOpenFileDescriptors);
   registerGauge64Stat("dynBlockedNMGSize", dynBlockedNMGSizeOID, OID_LENGTH(dynBlockedNMGSizeOID), [](const std::string&) { return g_dynblockNMG.getLocal()->size(); });
   registerGauge64Stat("securityStatus", securityStatusOID, OID_LENGTH(securityStatusOID), [](const std::string&) { return g_stats.securityStatus.load(); });
+  registerGauge64Stat("realMemoryUsage", realMemoryUsageOID, OID_LENGTH(realMemoryUsageOID), &getRealMemoryUsage);
 
 
   netsnmp_table_registration_info* table_info = SNMP_MALLOC_TYPEDEF(netsnmp_table_registration_info);

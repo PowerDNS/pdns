@@ -113,8 +113,10 @@ map<string,string> getAllStatsMap()
     ret.insert(make_pair(atomic.first, std::to_string(atomic.second->load())));
   }
 
-  for(const auto& the64bitmembers :  d_get64bitmembers) { 
+  for(const auto& the64bitmembers :  d_get64bitmembers) {
     if(the64bitmembers.first == "cache-bytes" || the64bitmembers.first=="packetcache-bytes")
+      continue; // too slow for 'get-all'
+    if(the64bitmembers.first == "special-memory-usage")
       continue; // too slow for 'get-all'
     ret.insert(make_pair(the64bitmembers.first, std::to_string(the64bitmembers.second())));
   }
@@ -1022,7 +1024,8 @@ void registerAllStats()
 
   addGetStat("uptime", calculateUptime);
   addGetStat("real-memory-usage", boost::bind(getRealMemoryUsage, string()));
-  addGetStat("fd-usage", boost::bind(getOpenFileDescriptors, string()));  
+  addGetStat("special-memory-usage", boost::bind(getSpecialMemoryUsage, string()));
+  addGetStat("fd-usage", boost::bind(getOpenFileDescriptors, string()));
 
   //  addGetStat("query-rate", getQueryRate);
   addGetStat("user-msec", getUserTimeMsec);
