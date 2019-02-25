@@ -137,7 +137,7 @@ class TestCarbon(DNSDistTest):
         for line in data1.splitlines():
             if expectedStart in line:
                 parts = line.split(b' ')
-                if 'servers-up' in line:
+                if b'servers-up' in line:
                     self.assertEquals(len(parts), 3)
                     self.assertTrue(parts[1].isdigit())
                     self.assertEquals(int(parts[1]), 2)
@@ -160,7 +160,7 @@ class TestCarbon(DNSDistTest):
         for line in data2.splitlines():
             if expectedStart in line:
                 parts = line.split(b' ')
-                if 'servers-up' in line:
+                if b'servers-up' in line:
                     self.assertEquals(len(parts), 3)
                     self.assertTrue(parts[1].isdigit())
                     self.assertEquals(int(parts[1]), 2)

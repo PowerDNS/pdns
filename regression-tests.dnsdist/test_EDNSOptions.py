@@ -105,7 +105,7 @@ class TestEDNSOptions(EDNSOptionsBase):
         EDNS Options: Cookie
         """
         name = 'cookie.ednsoptions.tests.powerdns.com.'
-        eco = cookiesoption.CookiesOption('deadbeef', 'deadbeef')
+        eco = cookiesoption.CookiesOption(b'deadbeef', b'deadbeef')
         query = dns.message.make_query(name, 'A', 'IN', use_edns=True, payload=4096, options=[eco])
         response = dns.message.make_response(query)
         rrset = dns.rrset.from_text(name,
@@ -192,7 +192,7 @@ class TestEDNSOptions(EDNSOptionsBase):
         EDNS Options: Cookie + ECS6
         """
         name = 'cookie-ecs6.ednsoptions.tests.powerdns.com.'
-        eco = cookiesoption.CookiesOption('deadbeef', 'deadbeef')
+        eco = cookiesoption.CookiesOption(b'deadbeef', b'deadbeef')
         ecso = clientsubnetoption.ClientSubnetOption('2001:DB8::1', 128)
         query = dns.message.make_query(name, 'A', 'IN', use_edns=True, payload=4096, options=[ecso,eco])
         response = dns.message.make_response(query)
@@ -222,9 +222,9 @@ class TestEDNSOptions(EDNSOptionsBase):
         EDNS Options: Two Cookies + ECS6
         """
         name = 'multiplecookies-ecs6.ednsoptions.tests.powerdns.com.'
-        eco1 = cookiesoption.CookiesOption('deadbeef', 'deadbeef')
+        eco1 = cookiesoption.CookiesOption(b'deadbeef', b'deadbeef')
         ecso = clientsubnetoption.ClientSubnetOption('2001:DB8::1', 128)
-        eco2 = cookiesoption.CookiesOption('deadc0de', 'deadc0de')
+        eco2 = cookiesoption.CookiesOption(b'deadc0de', b'deadc0de')
         query = dns.message.make_query(name, 'A', 'IN', use_edns=True, payload=4096, options=[eco1, ecso, eco2])
         response = dns.message.make_response(query)
         rrset = dns.rrset.from_text(name,
@@ -294,7 +294,7 @@ class TestEDNSOptionsAddingECS(EDNSOptionsBase):
         EDNS Options: Cookie (adding ECS)
         """
         name = 'cookie.ednsoptions-ecs.tests.powerdns.com.'
-        eco = cookiesoption.CookiesOption('deadbeef', 'deadbeef')
+        eco = cookiesoption.CookiesOption(b'deadbeef', b'deadbeef')
         query = dns.message.make_query(name, 'A', 'IN', use_edns=True, payload=4096, options=[eco])
         ecso = clientsubnetoption.ClientSubnetOption('127.0.0.1', 24)
         expectedQuery = dns.message.make_query(name, 'A', 'IN', use_edns=True, options=[eco,ecso], payload=512)
@@ -387,7 +387,7 @@ class TestEDNSOptionsAddingECS(EDNSOptionsBase):
         EDNS Options: Cookie + ECS6 (adding ECS)
         """
         name = 'cookie-ecs6.ednsoptions-ecs.tests.powerdns.com.'
-        eco = cookiesoption.CookiesOption('deadbeef', 'deadbeef')
+        eco = cookiesoption.CookiesOption(b'deadbeef', b'deadbeef')
         ecso = clientsubnetoption.ClientSubnetOption('2001:DB8::1', 128)
         query = dns.message.make_query(name, 'A', 'IN', use_edns=True, payload=4096, options=[ecso,eco])
         ecsoResponse = clientsubnetoption.ClientSubnetOption('2001:DB8::1', 128, scope=56)
@@ -419,9 +419,9 @@ class TestEDNSOptionsAddingECS(EDNSOptionsBase):
         EDNS Options: Two Cookies + ECS6
         """
         name = 'multiplecookies-ecs6.ednsoptions.tests.powerdns.com.'
-        eco1 = cookiesoption.CookiesOption('deadbeef', 'deadbeef')
+        eco1 = cookiesoption.CookiesOption(b'deadbeef', b'deadbeef')
         ecso = clientsubnetoption.ClientSubnetOption('2001:DB8::1', 128)
-        eco2 = cookiesoption.CookiesOption('deadc0de', 'deadc0de')
+        eco2 = cookiesoption.CookiesOption(b'deadc0de', b'deadc0de')
         query = dns.message.make_query(name, 'A', 'IN', use_edns=True, payload=4096, options=[eco1, ecso, eco2])
         response = dns.message.make_response(query)
         rrset = dns.rrset.from_text(name,

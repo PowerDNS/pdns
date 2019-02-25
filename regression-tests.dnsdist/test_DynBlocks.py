@@ -4,7 +4,11 @@ import json
 import requests
 import time
 import dns
-from dnsdisttests import DNSDistTest, range
+from dnsdisttests import DNSDistTest
+try:
+  range = xrange
+except NameError:
+  pass
 
 class DynBlocksTest(DNSDistTest):
 
