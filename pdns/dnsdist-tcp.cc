@@ -296,16 +296,16 @@ void tcpClientThread(int pipefd)
     uint16_t qlen, rlen;
     vector<uint8_t> rewrittenResponse;
     shared_ptr<DownstreamState> ds;
-    ComboAddress dest;
-    dest.reset();
-    dest.sin4.sin_family = ci.remote.sin4.sin_family;
-    socklen_t len = dest.getSocklen();
     size_t queriesCount = 0;
     time_t connectionStartTime = time(NULL);
     std::vector<char> queryBuffer;
     std::vector<char> answerBuffer;
 
-    if (getsockname(ci.fd, (sockaddr*)&dest, &len)) {
+    ComboAddress dest;
+    dest.reset();
+    dest.sin4.sin_family = ci.remote.sin4.sin_family;
+    socklen_t socklen = dest.getSocklen();
+    if (getsockname(ci.fd, (sockaddr*)&dest, &socklen)) {
       dest = ci.cs->local;
     }
 
@@ -341,8 +341,6 @@ void tcpClientThread(int pipefd)
           break;
         }
 
-        bool ednsAdded = false;
-        bool ecsAdded = false;
         /* allocate a bit more memory to be able to spoof the content,
            or to add ECS without allocating a new buffer */
         queryBuffer.resize(qlen + 512);
@@ -350,219 +348,51 @@ void tcpClientThread(int pipefd)
         char* query = &queryBuffer[0];
         handler.read(query, qlen, g_tcpRecvTimeout, remainingTime);
 
-        /* we need this one to be accurate ("real") for the protobuf message */
-	struct timespec queryRealTime;
-	struct timespec now;
-	gettime(&now);
-	gettime(&queryRealTime, true);
+        /* we need an accurate ("real") value for the response and
+           to store into the IDS, but not for insertion into the
+           rings for example */
+        struct timespec now;
+        struct timespec queryRealTime;
+        gettime(&now);
+        gettime(&queryRealTime, true);
 
-#ifdef HAVE_DNSCRYPT
         std::shared_ptr<DNSCryptQuery> dnsCryptQuery = nullptr;
 
-        if (ci.cs->dnscryptCtx) {
-          dnsCryptQuery = std::make_shared<DNSCryptQuery>(ci.cs->dnscryptCtx);
-          uint16_t decryptedQueryLen = 0;
-          vector<uint8_t> response;
-          bool decrypted = handleDNSCryptQuery(query, qlen, dnsCryptQuery, &decryptedQueryLen, true, queryRealTime.tv_sec, response);
-
-          if (!decrypted) {
-            if (response.size() > 0) {
-              handler.writeSizeAndMsg(response.data(), response.size(), g_tcpSendTimeout);
-            }
-            break;
-          }
-          qlen = decryptedQueryLen;
-        }
-#endif
-        struct dnsheader* dh = reinterpret_cast<struct dnsheader*>(query);
-
-        if (!checkQueryHeaders(dh)) {
-          goto drop;
-        }
-
-	string poolname;
-	int delayMsec=0;
-
-	const uint16_t* flags = getFlagsFromDNSHeader(dh);
-	uint16_t origFlags = *flags;
-	uint16_t qtype, qclass;
-	unsigned int consumed = 0;
-	DNSName qname(query, qlen, sizeof(dnsheader), false, &qtype, &qclass, &consumed);
-	DNSQuestion dq(&qname, qtype, qclass, consumed, &dest, &ci.remote, dh, queryBuffer.size(), qlen, true, &queryRealTime);
-
-	if (!processQuery(holders, dq, poolname, &delayMsec, now)) {
-	  goto drop;
-	}
-
-	if(dq.dh->qr) { // something turned it into a response
-          fixUpQueryTurnedResponse(dq, origFlags);
-
-          DNSResponse dr(dq.qname, dq.qtype, dq.qclass, dq.consumed, dq.local, dq.remote, reinterpret_cast<dnsheader*>(query), dq.size, dq.len, true, &queryRealTime);
-#ifdef HAVE_PROTOBUF
-          dr.uniqueId = dq.uniqueId;
-#endif
-          dr.qTag = dq.qTag;
-
-          if (!processResponse(holders.selfAnsweredRespRulactions, dr, &delayMsec)) {
-            goto drop;
-          }
-
 #ifdef HAVE_DNSCRYPT
-          if (!encryptResponse(query, &dq.len, dq.size, true, dnsCryptQuery, nullptr, nullptr)) {
-            goto drop;
-          }
-#endif
-          handler.writeSizeAndMsg(query, dq.len, g_tcpSendTimeout);
-          ++g_stats.selfAnswered;
+        auto dnsCryptResponse = checkDNSCryptQuery(*ci.cs, query, qlen, dnsCryptQuery, queryRealTime.tv_sec, true);
+        if (dnsCryptResponse) {
+          handler.writeSizeAndMsg(reinterpret_cast<char*>(dnsCryptResponse->data()), static_cast<uint16_t>(dnsCryptResponse->size()), g_tcpSendTimeout);
           continue;
         }
-
-        std::shared_ptr<ServerPool> serverPool = getPool(*holders.pools, poolname);
-        std::shared_ptr<DNSDistPacketCache> packetCache = serverPool->packetCache;
-
-        auto policy = *(holders.policy);
-        if (serverPool->policy != nullptr) {
-          policy = *(serverPool->policy);
-        }
-        auto servers = serverPool->getServers();
-        if (policy.isLua) {
-          std::lock_guard<std::mutex> lock(g_luamutex);
-          ds = policy.policy(servers, &dq);
-        }
-        else {
-          ds = policy.policy(servers, &dq);
-        }
-
-        uint32_t cacheKeyNoECS = 0;
-        uint32_t cacheKey = 0;
-        boost::optional<Netmask> subnet;
-        char cachedResponse[4096];
-        uint16_t cachedResponseSize = sizeof cachedResponse;
-        uint32_t allowExpired = ds ? 0 : g_staleCacheEntriesTTL;
-        bool useZeroScope = false;
-
-        bool dnssecOK = false;
-        if (packetCache && !dq.skipCache) {
-          dnssecOK = (getEDNSZ(dq) & EDNS_HEADER_FLAG_DO);
-        }
-
-        if (dq.useECS && ((ds && ds->useECS) || (!ds && serverPool->getECS()))) {
-          // we special case our cache in case a downstream explicitly gave us a universally valid response with a 0 scope
-          if (packetCache && !dq.skipCache && (!ds || !ds->disableZeroScope) && packetCache->isECSParsingEnabled()) {
-            if (packetCache->get(dq, consumed, dq.dh->id, cachedResponse, &cachedResponseSize, &cacheKeyNoECS, subnet, dnssecOK, allowExpired)) {
-              DNSResponse dr(dq.qname, dq.qtype, dq.qclass, dq.consumed, dq.local, dq.remote, (dnsheader*) cachedResponse, sizeof cachedResponse, cachedResponseSize, true, &queryRealTime);
-#ifdef HAVE_PROTOBUF
-              dr.uniqueId = dq.uniqueId;
 #endif
-              dr.qTag = dq.qTag;
 
-              if (!processResponse(holders.cacheHitRespRulactions, dr, &delayMsec)) {
-                goto drop;
-              }
-
-#ifdef HAVE_DNSCRYPT
-              if (!encryptResponse(cachedResponse, &cachedResponseSize, sizeof cachedResponse, true, dnsCryptQuery, nullptr, nullptr)) {
-                goto drop;
-              }
-#endif
-              handler.writeSizeAndMsg(cachedResponse, cachedResponseSize, g_tcpSendTimeout);
-              g_stats.cacheHits++;
-              switch (dr.dh->rcode) {
-              case RCode::NXDomain:
-                ++g_stats.frontendNXDomain;
-                break;
-              case RCode::ServFail:
-                ++g_stats.frontendServFail;
-                break;
-              case RCode::NoError:
-                ++g_stats.frontendNoError;
-                break;
-              }
-              continue;
-            }
-
-            if (!subnet) {
-              /* there was no existing ECS on the query, enable the zero-scope feature */
-              useZeroScope = true;
-            }
-          }
-
-          if (!handleEDNSClientSubnet(dq, &(ednsAdded), &(ecsAdded), g_preserveTrailingData)) {
-            vinfolog("Dropping query from %s because we couldn't insert the ECS value", ci.remote.toStringWithPort());
-            goto drop;
-          }
-        }
-
-        if (packetCache && !dq.skipCache) {
-          if (packetCache->get(dq, (uint16_t) consumed, dq.dh->id, cachedResponse, &cachedResponseSize, &cacheKey, subnet, dnssecOK, allowExpired)) {
-            DNSResponse dr(dq.qname, dq.qtype, dq.qclass, dq.consumed, dq.local, dq.remote, (dnsheader*) cachedResponse, sizeof cachedResponse, cachedResponseSize, true, &queryRealTime);
-#ifdef HAVE_PROTOBUF
-            dr.uniqueId = dq.uniqueId;
-#endif
-            dr.qTag = dq.qTag;
-
-            if (!processResponse(holders.cacheHitRespRulactions, dr, &delayMsec)) {
-              goto drop;
-            }
-
-#ifdef HAVE_DNSCRYPT
-            if (!encryptResponse(cachedResponse, &cachedResponseSize, sizeof cachedResponse, true, dnsCryptQuery, nullptr, nullptr)) {
-              goto drop;
-            }
-#endif
-            handler.writeSizeAndMsg(cachedResponse, cachedResponseSize, g_tcpSendTimeout);
-            ++g_stats.cacheHits;
-            switch (dr.dh->rcode) {
-            case RCode::NXDomain:
-              ++g_stats.frontendNXDomain;
-              break;
-            case RCode::ServFail:
-              ++g_stats.frontendServFail;
-              break;
-            case RCode::NoError:
-              ++g_stats.frontendNoError;
-              break;
-            }
-            continue;
-          }
-          ++g_stats.cacheMisses;
-        }
-
-        if(!ds) {
-          ++g_stats.noPolicy;
-
-          if (g_servFailOnNoPolicy) {
-            restoreFlags(dh, origFlags);
-            dq.dh->rcode = RCode::ServFail;
-            dq.dh->qr = true;
-
-            DNSResponse dr(dq.qname, dq.qtype, dq.qclass, dq.consumed, dq.local, dq.remote, reinterpret_cast<dnsheader*>(query), dq.size, dq.len, false, &queryRealTime);
-#ifdef HAVE_PROTOBUF
-            dr.uniqueId = dq.uniqueId;
-#endif
-            dr.qTag = dq.qTag;
-
-            if (!processResponse(holders.selfAnsweredRespRulactions, dr, &delayMsec)) {
-              goto drop;
-            }
-
-#ifdef HAVE_DNSCRYPT
-            if (!encryptResponse(query, &dq.len, dq.size, true, dnsCryptQuery, nullptr, nullptr)) {
-              goto drop;
-            }
-#endif
-            handler.writeSizeAndMsg(query, dq.len, g_tcpSendTimeout);
-
-            // no response-only statistics counter to update.
-            continue;
-          }
-
+        struct dnsheader* dh = reinterpret_cast<struct dnsheader*>(query);
+        if (!checkQueryHeaders(dh)) {
           break;
         }
 
-        if (dq.addXPF && ds->xpfRRCode != 0) {
-          addXPF(dq, ds->xpfRRCode, g_preserveTrailingData);
+        uint16_t qtype, qclass;
+        unsigned int consumed = 0;
+        DNSName qname(query, qlen, sizeof(dnsheader), false, &qtype, &qclass, &consumed);
+        DNSQuestion dq(&qname, qtype, qclass, consumed, &dest, &ci.remote, dh, queryBuffer.size(), qlen, true, &queryRealTime);
+        dq.dnsCryptQuery = std::move(dnsCryptQuery);
+
+        responseSender sender = [&handler](const ClientState& cs, const char* data, uint16_t dataSize, int delayMsec, const ComboAddress& dest, const ComboAddress& remote) {
+          handler.writeSizeAndMsg(data, dataSize, g_tcpSendTimeout);
+        };
+
+        bool dropped = false;
+        auto ds = processQuery(dq, *ci.cs, holders, sender, dropped);
+        if (!ds) {
+          if (dropped) {
+            break;
+          }
+          continue;
         }
+
+        // check how that would work!!
+        char cachedResponse[4096];
+        uint16_t cachedResponseSize = sizeof cachedResponse;
 
 	int dsock = -1;
 	uint16_t downstreamFailures=0;
@@ -580,7 +410,6 @@ void tcpClientThread(int pipefd)
 #endif /* MSG_FASTOPEN */
         }
 
-        ds->queries++;
         ds->outstanding++;
         outstanding = true;
 
@@ -641,7 +470,7 @@ void tcpClientThread(int pipefd)
           freshConn=true;
 #endif /* MSG_FASTOPEN */
           if(xfrStarted) {
-            goto drop;
+            break;
           }
           goto retry;
         }
@@ -649,7 +478,7 @@ void tcpClientThread(int pipefd)
         size_t responseSize = rlen;
         uint16_t addRoom = 0;
 #ifdef HAVE_DNSCRYPT
-        if (dnsCryptQuery && (UINT16_MAX - rlen) > (uint16_t) DNSCRYPT_MAX_RESPONSE_PADDING_AND_MAC_SIZE) {
+        if (dq.dnsCryptQuery && (UINT16_MAX - rlen) > (uint16_t) DNSCRYPT_MAX_RESPONSE_PADDING_AND_MAC_SIZE) {
           addRoom = DNSCRYPT_MAX_RESPONSE_PADDING_AND_MAC_SIZE;
         }
 #endif
@@ -674,7 +503,7 @@ void tcpClientThread(int pipefd)
         }
         firstPacket=false;
         bool zeroScope = false;
-        if (!fixUpResponse(&response, &responseLen, &responseSize, qname, origFlags, ednsAdded, ecsAdded, rewrittenResponse, addRoom, useZeroScope ? &zeroScope : nullptr)) {
+        if (!fixUpResponse(&response, &responseLen, &responseSize, qname, dq.origFlags, dq.ednsAdded, dq.ecsAdded, rewrittenResponse, addRoom, dq.useZeroScope ? &zeroScope : nullptr)) {
           break;
         }
 
@@ -685,12 +514,12 @@ void tcpClientThread(int pipefd)
 #endif
         dr.qTag = dq.qTag;
 
-        if (!processResponse(localRespRulactions, dr, &delayMsec)) {
+        if (!processResponse(localRespRulactions, dr, &dq.delayMsec)) {
           break;
         }
 
-	if (packetCache && !dq.skipCache) {
-          if (!useZeroScope) {
+	if (dq.packetCache && !dq.skipCache) {
+          if (!dq.useZeroScope) {
             /* if the query was not suitable for zero-scope, for
                example because it had an existing ECS entry so the hash is
                not really 'no ECS', so just insert it for the existing subnet
@@ -702,12 +531,12 @@ void tcpClientThread(int pipefd)
             zeroScope = false;
           }
           // if zeroScope, pass the pre-ECS hash-key and do not pass the subnet to the cache
-          packetCache->insert(zeroScope ? cacheKeyNoECS : cacheKey, zeroScope ? boost::none : subnet, origFlags, dnssecOK, qname, qtype, qclass, response, responseLen, true, dh->rcode, dq.tempFailureTTL);
+          dq.packetCache->insert(zeroScope ? dq.cacheKeyNoECS : dq.cacheKey, zeroScope ? boost::none : dq.subnet, dq.origFlags, dq.dnssecOK, qname, qtype, qclass, response, responseLen, true, dh->rcode, dq.tempFailureTTL);
 	}
 
 #ifdef HAVE_DNSCRYPT
-        if (!encryptResponse(response, &responseLen, responseSize, true, dnsCryptQuery, &dh, &dhCopy)) {
-          goto drop;
+        if (!encryptResponse(response, &responseLen, responseSize, true, dq.dnsCryptQuery, &dh, &dhCopy)) {
+          break;
         }
 #endif
         if (!handler.writeSizeAndMsg(response, responseLen, g_tcpSendTimeout)) {
@@ -752,9 +581,11 @@ void tcpClientThread(int pipefd)
         rewrittenResponse.clear();
       }
     }
-    catch(...) {}
-
-  drop:;
+    catch(const std::exception& e) {
+      vinfolog("Got exception while handling TCP query: %s", e.what());
+    }
+    catch(...) {
+    }
 
     vinfolog("Closing TCP client connection with %s", ci.remote.toStringWithPort());
 

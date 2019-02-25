@@ -61,33 +61,47 @@ typedef std::unordered_map<string, string> QTag;
 struct DNSQuestion
 {
   DNSQuestion(const DNSName* name, uint16_t type, uint16_t class_, unsigned int consumed_, const ComboAddress* lc, const ComboAddress* rem, struct dnsheader* header, size_t bufferSize, uint16_t queryLen, bool isTcp, const struct timespec* queryTime_):
-    qname(name), qtype(type), qclass(class_), local(lc), remote(rem), dh(header), size(bufferSize), consumed(consumed_), len(queryLen), ecsPrefixLength(rem->sin4.sin_family == AF_INET ? g_ECSSourcePrefixV4 : g_ECSSourcePrefixV6), tempFailureTTL(boost::none), tcp(isTcp), queryTime(queryTime_), ecsOverride(g_ECSOverride) { }
+    qname(name), local(lc), remote(rem), dh(header), queryTime(queryTime_), size(bufferSize), consumed(consumed_), tempFailureTTL(boost::none), qtype(type), qclass(class_), len(queryLen), ecsPrefixLength(rem->sin4.sin_family == AF_INET ? g_ECSSourcePrefixV4 : g_ECSSourcePrefixV6), tcp(isTcp), ecsOverride(g_ECSOverride) {
+    const uint16_t* flags = getFlagsFromDNSHeader(dh);
+    origFlags = *flags;
+  }
 
 #ifdef HAVE_PROTOBUF
   boost::optional<boost::uuids::uuid> uniqueId;
 #endif
   Netmask ecs;
-  const DNSName* qname;
-  const uint16_t qtype;
-  const uint16_t qclass;
-  const ComboAddress* local;
-  const ComboAddress* remote;
+  boost::optional<Netmask> subnet;
+  const DNSName* qname{nullptr};
+  const ComboAddress* local{nullptr};
+  const ComboAddress* remote{nullptr};
   std::shared_ptr<QTag> qTag{nullptr};
   std::shared_ptr<std::map<uint16_t, EDNSOptionView> > ednsOptions;
-  struct dnsheader* dh;
+  std::shared_ptr<DNSCryptQuery> dnsCryptQuery{nullptr};
+  std::shared_ptr<DNSDistPacketCache> packetCache{nullptr};
+  struct dnsheader* dh{nullptr};
+  const struct timespec* queryTime{nullptr};
   size_t size;
   unsigned int consumed{0};
+  int delayMsec{0};
+  boost::optional<uint32_t> tempFailureTTL;
+  uint32_t cacheKeyNoECS;
+  uint32_t cacheKey;
+  const uint16_t qtype;
+  const uint16_t qclass;
   uint16_t len;
   uint16_t ecsPrefixLength;
+  uint16_t origFlags;
   uint8_t ednsRCode{0};
-  boost::optional<uint32_t> tempFailureTTL;
   const bool tcp;
-  const struct timespec* queryTime;
   bool skipCache{false};
   bool ecsOverride;
   bool useECS{true};
   bool addXPF{true};
   bool ecsSet{false};
+  bool ecsAdded{false};
+  bool ednsAdded{false};
+  bool useZeroScope{false};
+  bool dnssecOK{false};
 };
 
 struct DNSResponse : DNSQuestion
@@ -1032,11 +1046,9 @@ bool getLuaNoSideEffect(); // set if there were only explicit declarations of _n
 void resetLuaSideEffect(); // reset to indeterminate state
 
 bool responseContentMatches(const char* response, const uint16_t responseLen, const DNSName& qname, const uint16_t qtype, const uint16_t qclass, const ComboAddress& remote, unsigned int& consumed);
-bool processQuery(LocalHolders& holders, DNSQuestion& dq, string& poolname, int* delayMsec, const struct timespec& now);
 bool processResponse(LocalStateHolder<vector<DNSDistResponseRuleAction> >& localRespRulactions, DNSResponse& dr, int* delayMsec);
-bool fixUpQueryTurnedResponse(DNSQuestion& dq, const uint16_t origFlags);
 bool fixUpResponse(char** response, uint16_t* responseLen, size_t* responseSize, const DNSName& qname, uint16_t origFlags, bool ednsAdded, bool ecsAdded, std::vector<uint8_t>& rewrittenResponse, uint16_t addRoom, bool* zeroScope);
-void restoreFlags(struct dnsheader* dh, uint16_t origFlags);
+
 bool checkQueryHeaders(const struct dnsheader* dh);
 
 #ifdef HAVE_DNSCRYPT
@@ -1044,6 +1056,8 @@ extern std::vector<std::tuple<ComboAddress, std::shared_ptr<DNSCryptContext>, bo
 
 bool encryptResponse(char* response, uint16_t* responseLen, size_t responseSize, bool tcp, std::shared_ptr<DNSCryptQuery> dnsCryptQuery, dnsheader** dh, dnsheader* dhCopy);
 int handleDNSCryptQuery(char* packet, uint16_t len, std::shared_ptr<DNSCryptQuery> query, uint16_t* decryptedQueryLen, bool tcp, time_t now, std::vector<uint8_t>& response);
+
+boost::optional<std::vector<uint8_t>> checkDNSCryptQuery(const ClientState& cs, const char* query, uint16_t& len, std::shared_ptr<DNSCryptQuery>& dnsCryptQuery, time_t now, bool tcp);
 #endif
 
 bool addXPF(DNSQuestion& dq, uint16_t optionCode);
@@ -1058,3 +1072,7 @@ extern DNSDistSNMPAgent* g_snmpAgent;
 extern bool g_addEDNSToSelfGeneratedResponses;
 
 static const size_t s_udpIncomingBufferSize{1500};
+
+typedef std::function<void(const ClientState& cs, const char* data, uint16_t dataSize, int delayMsec, const ComboAddress& dest, const ComboAddress& remote)> responseSender;
+std::shared_ptr<DownstreamState> processQuery(DNSQuestion& dq, ClientState& cs, LocalHolders& holders, responseSender sender, bool& dropped);
+
