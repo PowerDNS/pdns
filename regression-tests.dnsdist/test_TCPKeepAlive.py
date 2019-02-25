@@ -2,7 +2,12 @@
 import struct
 import time
 import dns
-from dnsdisttests import DNSDistTest, range
+from dnsdisttests import DNSDistTest
+
+try:
+  range = xrange
+except NameError:
+  pass
 
 class TestTCPKeepAlive(DNSDistTest):
     """
