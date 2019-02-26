@@ -245,7 +245,7 @@ static bool maxConnectionDurationReached(unsigned int maxConnectionDuration, tim
   return false;
 }
 
-void cleanupClosedTCPConnections(std::map<ComboAddress,int>& sockets)
+static void cleanupClosedTCPConnections(std::map<ComboAddress,int>& sockets)
 {
   for(auto it = sockets.begin(); it != sockets.end(); ) {
     if (isTCPSocketUsable(it->second)) {
@@ -272,11 +272,9 @@ void tcpClientThread(int pipefd)
   
   LocalHolders holders;
   auto localRespRulactions = g_resprulactions.getLocal();
-#ifdef HAVE_DNSCRYPT
   /* when the answer is encrypted in place, we need to get a copy
      of the original header before encryption to fill the ring buffer */
-  dnsheader dhCopy;
-#endif
+  dnsheader cleartextDH;
 
   map<ComboAddress,int> sockets;
   for(;;) {
@@ -297,7 +295,7 @@ void tcpClientThread(int pipefd)
     vector<uint8_t> rewrittenResponse;
     shared_ptr<DownstreamState> ds;
     size_t queriesCount = 0;
-    time_t connectionStartTime = time(NULL);
+    time_t connectionStartTime = time(nullptr);
     std::vector<char> queryBuffer;
     std::vector<char> answerBuffer;
 
@@ -343,7 +341,7 @@ void tcpClientThread(int pipefd)
 
         /* allocate a bit more memory to be able to spoof the content,
            or to add ECS without allocating a new buffer */
-        queryBuffer.resize(qlen + 512);
+        queryBuffer.resize((static_cast<size_t>(qlen) + 512) < 4096 ? (static_cast<size_t>(qlen) + 512) : 4096);
 
         char* query = &queryBuffer[0];
         handler.read(query, qlen, g_tcpRecvTimeout, remainingTime);
@@ -357,7 +355,6 @@ void tcpClientThread(int pipefd)
         gettime(&queryRealTime, true);
 
         std::shared_ptr<DNSCryptQuery> dnsCryptQuery = nullptr;
-
 #ifdef HAVE_DNSCRYPT
         auto dnsCryptResponse = checkDNSCryptQuery(*ci.cs, query, qlen, dnsCryptQuery, queryRealTime.tv_sec, true);
         if (dnsCryptResponse) {
@@ -377,22 +374,21 @@ void tcpClientThread(int pipefd)
         DNSQuestion dq(&qname, qtype, qclass, consumed, &dest, &ci.remote, dh, queryBuffer.size(), qlen, true, &queryRealTime);
         dq.dnsCryptQuery = std::move(dnsCryptQuery);
 
-        responseSender sender = [&handler](const ClientState& cs, const char* data, uint16_t dataSize, int delayMsec, const ComboAddress& dest, const ComboAddress& remote) {
-          handler.writeSizeAndMsg(data, dataSize, g_tcpSendTimeout);
-        };
+        std::shared_ptr<DownstreamState> ds{nullptr};
+        auto result = processQuery(dq, *ci.cs, holders, ds);
 
-        bool dropped = false;
-        auto ds = processQuery(dq, *ci.cs, holders, sender, dropped);
-        if (!ds) {
-          if (dropped) {
-            break;
-          }
+        if (result == ProcessQueryResult::Drop) {
+          break;
+        }
+
+        if (result == ProcessQueryResult::SendAnswer) {
+          handler.writeSizeAndMsg(reinterpret_cast<char*>(dq.dh), dq.len, g_tcpSendTimeout);
           continue;
         }
 
-        // check how that would work!!
-        char cachedResponse[4096];
-        uint16_t cachedResponseSize = sizeof cachedResponse;
+        if (result != ProcessQueryResult::PassToBackend || ds == nullptr) {
+          break;
+        }
 
 	int dsock = -1;
 	uint16_t downstreamFailures=0;
@@ -478,7 +474,7 @@ void tcpClientThread(int pipefd)
         size_t responseSize = rlen;
         uint16_t addRoom = 0;
 #ifdef HAVE_DNSCRYPT
-        if (dq.dnsCryptQuery && (UINT16_MAX - rlen) > (uint16_t) DNSCRYPT_MAX_RESPONSE_PADDING_AND_MAC_SIZE) {
+        if (dq.dnsCryptQuery && (UINT16_MAX - rlen) > static_cast<uint16_t>(DNSCRYPT_MAX_RESPONSE_PADDING_AND_MAC_SIZE)) {
           addRoom = DNSCRYPT_MAX_RESPONSE_PADDING_AND_MAC_SIZE;
         }
 #endif
@@ -502,43 +498,36 @@ void tcpClientThread(int pipefd)
           break;
         }
         firstPacket=false;
-        bool zeroScope = false;
-        if (!fixUpResponse(&response, &responseLen, &responseSize, qname, dq.origFlags, dq.ednsAdded, dq.ecsAdded, rewrittenResponse, addRoom, dq.useZeroScope ? &zeroScope : nullptr)) {
-          break;
-        }
 
-        dh = (struct dnsheader*) response;
+        dh = reinterpret_cast<struct dnsheader*>(response);
         DNSResponse dr(&qname, qtype, qclass, consumed, &dest, &ci.remote, dh, responseSize, responseLen, true, &queryRealTime);
+        dr.origFlags = dq.origFlags;
+        dr.ecsAdded = dq.ecsAdded;
+        dr.ednsAdded = dq.ednsAdded;
+        dr.useZeroScope = dq.useZeroScope;
+        dr.packetCache = std::move(dq.packetCache);
+        dr.delayMsec = dq.delayMsec;
+        dr.skipCache = dq.skipCache;
+        dr.cacheKey = dq.cacheKey;
+        dr.cacheKeyNoECS = dq.cacheKeyNoECS;
+        dr.dnssecOK = dq.dnssecOK;
+        dr.tempFailureTTL = dq.tempFailureTTL;
+        dr.qTag = std::move(dq.qTag);
+        dr.subnet = std::move(dq.subnet);
 #ifdef HAVE_PROTOBUF
-        dr.uniqueId = dq.uniqueId;
+        dr.uniqueId = std::move(dq.uniqueId);
 #endif
-        dr.qTag = dq.qTag;
-
-        if (!processResponse(localRespRulactions, dr, &dq.delayMsec)) {
-          break;
-        }
-
-	if (dq.packetCache && !dq.skipCache) {
-          if (!dq.useZeroScope) {
-            /* if the query was not suitable for zero-scope, for
-               example because it had an existing ECS entry so the hash is
-               not really 'no ECS', so just insert it for the existing subnet
-               since:
-               - we don't have the correct hash for a non-ECS query
-               - inserting with hash computed before the ECS replacement but with
-               the subnet extracted _after_ the replacement would not work.
-            */
-            zeroScope = false;
-          }
-          // if zeroScope, pass the pre-ECS hash-key and do not pass the subnet to the cache
-          dq.packetCache->insert(zeroScope ? dq.cacheKeyNoECS : dq.cacheKey, zeroScope ? boost::none : dq.subnet, dq.origFlags, dq.dnssecOK, qname, qtype, qclass, response, responseLen, true, dh->rcode, dq.tempFailureTTL);
-	}
-
 #ifdef HAVE_DNSCRYPT
-        if (!encryptResponse(response, &responseLen, responseSize, true, dq.dnsCryptQuery, &dh, &dhCopy)) {
-          break;
+        if (dq.dnsCryptQuery) {
+          dr.dnsCryptQuery = std::move(dq.dnsCryptQuery);
         }
 #endif
+
+        memcpy(&cleartextDH, dr.dh, sizeof(cleartextDH));
+        if (!processResponse(&response, &responseLen, &responseSize, localRespRulactions, dr, addRoom, rewrittenResponse, false)) {
+          break;
+        }
+
         if (!handler.writeSizeAndMsg(response, responseLen, g_tcpSendTimeout)) {
           break;
         }
@@ -576,7 +565,7 @@ void tcpClientThread(int pipefd)
         struct timespec answertime;
         gettime(&answertime);
         unsigned int udiff = 1000000.0*DiffTime(now,answertime);
-        g_rings.insertResponse(answertime, ci.remote, qname, dq.qtype, (unsigned int)udiff, (unsigned int)responseLen, *dh, ds->remote);
+        g_rings.insertResponse(answertime, ci.remote, qname, dq.qtype, static_cast<unsigned int>(udiff), static_cast<unsigned int>(responseLen), cleartextDH, ds->remote);
 
         rewrittenResponse.clear();
       }
@@ -625,9 +614,9 @@ void tcpAcceptorThread(void* p)
       ci = std::unique_ptr<ConnectionInfo>(new ConnectionInfo);
       ci->cs = cs;
 #ifdef HAVE_ACCEPT4
-      ci->fd = accept4(cs->tcpFD, (struct sockaddr*)&remote, &remlen, SOCK_NONBLOCK);
+      ci->fd = accept4(cs->tcpFD, reinterpret_cast<struct sockaddr*>(&remote), &remlen, SOCK_NONBLOCK);
 #else
-      ci->fd = accept(cs->tcpFD, (struct sockaddr*)&remote, &remlen);
+      ci->fd = accept(cs->tcpFD, reinterpret_cast<struct sockaddr*>(&remote), &remlen);
 #endif
       if(ci->fd < 0) {
         throw std::runtime_error((boost::format("accepting new connection on socket: %s") % strerror(errno)).str());
@@ -685,7 +674,7 @@ void tcpAcceptorThread(void* p)
         }
       }
     }
-    catch(std::exception& e) {
+    catch(const std::exception& e) {
       errlog("While reading a TCP question: %s", e.what());
       if(tcpClientCountIncremented) {
         decrementTCPClientCount(remote);
