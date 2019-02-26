@@ -155,7 +155,7 @@ AC_ARG_WITH([nod-cache-dir],
   [nodcachedir="$withval"]
 )
 
-PDNS_ENABLE_DNSTAP
+PDNS_CHECK_DNSTAP
 
 AC_MSG_CHECKING([whether we will enable compiler security checks])
 AC_ARG_ENABLE([hardening],
@@ -253,7 +253,7 @@ AM_COND_IF([NOD_ENABLED],
   [AC_MSG_NOTICE([nod: yes])],
   [AC_MSG_NOTICE([nod: no])]
 )
-AM_COND_IF([DNSTAP_ENABLED],
+AM_COND_IF([FSTRM],
   [AC_MSG_NOTICE([dnstap: yes])],
   [AC_MSG_NOTICE([dnstap: no])]
 )

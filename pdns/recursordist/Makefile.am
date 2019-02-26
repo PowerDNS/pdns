@@ -18,6 +18,11 @@ AM_CXXFLAGS += \
 	-DNODCACHEDIR=\"$(nodcachedir)\"
 endif
 
+if FSTRM
+AM_CPPFLAGS += \
+	$(FSTRM_CFLAGS)
+endif
+
 AM_LDFLAGS = \
 	$(PROGRAM_LDFLAGS) \
 	$(THREADFLAGS)
@@ -352,7 +357,7 @@ if HAVE_PROTOC
 dnsmessage.pb.cc: dnsmessage.proto
 	$(AM_V_GEN)$(PROTOC) --cpp_out=./ $<
 
-if DNSTAP_ENABLED
+if FSTRM
 dnstap.pb.cc: dnstap.proto
 	$(AM_V_GEN)$(PROTOC) -I$(srcdir) --cpp_out=./ $<
 endif
@@ -361,12 +366,13 @@ endif
 BUILT_SOURCES += dnsmessage.pb.cc
 pdns_recursor_LDADD += $(PROTOBUF_LIBS)
 nodist_pdns_recursor_SOURCES = dnsmessage.pb.cc dnsmessage.pb.h
-pdns_recursor.$(OBJEXT): dnsmessage.pb.cc
 
-if DNSTAP_ENABLED
+if FSTRM
 BUILT_SOURCES += dnsmessage.pb.cc
 nodist_pdns_recursor_SOURCES += dnstap.pb.cc dnstap.pb.h
-pdns_recursor.$(OBJEXT): dnstap.pb.cc
+pdns_recursor.$(OBJEXT): dnstap.pb.cc  dnsmessage.pb.cc
+else
+pdns_recursor.$(OBJEXT): dnsmessage.pb.cc
 endif
 
 nodist_testrunner_SOURCES = dnsmessage.pb.cc dnsmessage.pb.h
@@ -380,9 +386,12 @@ pdns_recursor_SOURCES += \
 
 endif
 
-if DNSTAP_ENABLED
+if FSTRM
 pdns_recursor_SOURCES += \
-	dnstap.cc dnstap.hh
+	dnstap.cc dnstap.hh fstrm_logger.cc fstrm_logger.hh dolog.hh
+
+pdns_recursor_LDADD += \
+	$(FSTRM_LIBS)
 endif
 
 rec_control_SOURCES = \

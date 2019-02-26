@@ -37,7 +37,7 @@
 class DnstapMessage
 {
 public:
-  DnstapMessage(const std::string& identity, const ComboAddress* requestor, const ComboAddress* responder, bool isTCP, const char* packet, const size_t len, const struct timespec* queryTime, const struct timespec* responseTime);
+  DnstapMessage(const std::string& identity, const ComboAddress* requestor, const ComboAddress* responder, bool isTCP, const char* packet, const size_t len, const struct timespec* queryTime, const struct timespec* responseTime, bool recursor = false);
   void serialize(std::string& data) const;
   std::string toDebugString() const;
 
