@@ -52,3 +52,5 @@ html-docs
 doctrees
 latex
 PowerDNS-Recursor.pdf
+/*.pb.cc
+/*.pb.h

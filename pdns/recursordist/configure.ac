@@ -155,6 +155,8 @@ AC_ARG_WITH([nod-cache-dir],
   [nodcachedir="$withval"]
 )
 
+PDNS_ENABLE_DNSTAP
+
 AC_MSG_CHECKING([whether we will enable compiler security checks])
 AC_ARG_ENABLE([hardening],
   [AS_HELP_STRING([--disable-hardening], [disable compiler security checks @<:@default=no@:>@])],
@@ -250,6 +252,10 @@ AS_IF([test "x$systemd" != "xn"],
 AM_COND_IF([NOD_ENABLED],
   [AC_MSG_NOTICE([nod: yes])],
   [AC_MSG_NOTICE([nod: no])]
+)
+AM_COND_IF([DNSTAP_ENABLED],
+  [AC_MSG_NOTICE([dnstap: yes])],
+  [AC_MSG_NOTICE([dnstap: no])]
 )
 AC_MSG_NOTICE([Context library: $pdns_context_library])
 AC_MSG_NOTICE([])

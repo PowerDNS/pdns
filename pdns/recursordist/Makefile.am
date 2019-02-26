@@ -352,10 +352,22 @@ if HAVE_PROTOC
 dnsmessage.pb.cc: dnsmessage.proto
 	$(AM_V_GEN)$(PROTOC) --cpp_out=./ $<
 
+if DNSTAP_ENABLED
+dnstap.pb.cc: dnstap.proto
+	$(AM_V_GEN)$(PROTOC) -I$(srcdir) --cpp_out=./ $<
+endif
+
+
 BUILT_SOURCES += dnsmessage.pb.cc
 pdns_recursor_LDADD += $(PROTOBUF_LIBS)
 nodist_pdns_recursor_SOURCES = dnsmessage.pb.cc dnsmessage.pb.h
 pdns_recursor.$(OBJEXT): dnsmessage.pb.cc
+
+if DNSTAP_ENABLED
+BUILT_SOURCES += dnsmessage.pb.cc
+nodist_pdns_recursor_SOURCES += dnstap.pb.cc dnstap.pb.h
+pdns_recursor.$(OBJEXT): dnstap.pb.cc
+endif
 
 nodist_testrunner_SOURCES = dnsmessage.pb.cc dnsmessage.pb.h
 testrunner_LDADD += $(PROTOBUF_LIBS)
@@ -366,6 +378,11 @@ endif
 pdns_recursor_SOURCES += \
 	uuid-utils.hh uuid-utils.cc
 
+endif
+
+if DNSTAP_ENABLED
+pdns_recursor_SOURCES += \
+	dnstap.cc dnstap.hh
 endif
 
 rec_control_SOURCES = \
