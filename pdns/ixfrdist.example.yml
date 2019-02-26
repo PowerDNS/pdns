@@ -28,6 +28,12 @@ acl:
   - '127.0.0.0/8'
   - '::1'
 
+# Maximum number of records allowed in a single zone. ixfrdist will abort the
+# zone transfer from the master when more than this number of records have been
+# received. A value of 0 (the default) means unlimited
+#
+axfr-max-records: 0
+
 # Timeout in seconds an AXFR transaction requested by ixfrdist may take.
 # Increase this when the network to the authoritative servers is slow or the
 # domains are very large and you experience timeouts. Set to 20 by default or
