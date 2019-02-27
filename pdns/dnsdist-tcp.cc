@@ -355,13 +355,11 @@ void tcpClientThread(int pipefd)
         gettime(&queryRealTime, true);
 
         std::shared_ptr<DNSCryptQuery> dnsCryptQuery = nullptr;
-#ifdef HAVE_DNSCRYPT
         auto dnsCryptResponse = checkDNSCryptQuery(*ci.cs, query, qlen, dnsCryptQuery, queryRealTime.tv_sec, true);
         if (dnsCryptResponse) {
           handler.writeSizeAndMsg(reinterpret_cast<char*>(dnsCryptResponse->data()), static_cast<uint16_t>(dnsCryptResponse->size()), g_tcpSendTimeout);
           continue;
         }
-#endif
 
         struct dnsheader* dh = reinterpret_cast<struct dnsheader*>(query);
         if (!checkQueryHeaders(dh)) {
@@ -473,11 +471,10 @@ void tcpClientThread(int pipefd)
 
         size_t responseSize = rlen;
         uint16_t addRoom = 0;
-#ifdef HAVE_DNSCRYPT
         if (dq.dnsCryptQuery && (UINT16_MAX - rlen) > static_cast<uint16_t>(DNSCRYPT_MAX_RESPONSE_PADDING_AND_MAC_SIZE)) {
           addRoom = DNSCRYPT_MAX_RESPONSE_PADDING_AND_MAC_SIZE;
         }
-#endif
+
         responseSize += addRoom;
         answerBuffer.resize(responseSize);
         char* response = answerBuffer.data();
@@ -517,11 +514,9 @@ void tcpClientThread(int pipefd)
 #ifdef HAVE_PROTOBUF
         dr.uniqueId = std::move(dq.uniqueId);
 #endif
-#ifdef HAVE_DNSCRYPT
         if (dq.dnsCryptQuery) {
           dr.dnsCryptQuery = std::move(dq.dnsCryptQuery);
         }
-#endif
 
         memcpy(&cleartextDH, dr.dh, sizeof(cleartextDH));
         if (!processResponse(&response, &responseLen, &responseSize, localRespRulactions, dr, addRoom, rewrittenResponse, false)) {
