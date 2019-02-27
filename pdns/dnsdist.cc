@@ -156,7 +156,7 @@ try
     hadEDNS = getEDNSUDPPayloadSizeAndZ(packet, *len, &payloadSize, &z);
   }
 
-  *len=(uint16_t) (sizeof(dnsheader)+consumed+DNS_TYPE_SIZE+DNS_CLASS_SIZE);
+  *len=static_cast<uint16_t>(sizeof(dnsheader)+consumed+DNS_TYPE_SIZE+DNS_CLASS_SIZE);
   struct dnsheader* dh = reinterpret_cast<struct dnsheader*>(packet);
   dh->ancount = dh->arcount = dh->nscount = 0;
 
@@ -537,7 +537,7 @@ try {
         char * response = packet;
         size_t responseSize = sizeof(packet);
 
-        if (got < static_cast<ssize_t>(sizeof(dnsheader)))
+        if (got < 0 || static_cast<size_t>(got) < sizeof(dnsheader))
           continue;
 
         uint16_t responseLen = static_cast<uint16_t>(got);
