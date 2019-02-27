@@ -94,9 +94,7 @@ string g_outputBuffer;
 
 vector<std::tuple<ComboAddress, bool, bool, int, string, std::set<int>>> g_locals;
 std::vector<std::shared_ptr<TLSFrontend>> g_tlslocals;
-#ifdef HAVE_DNSCRYPT
 std::vector<std::tuple<ComboAddress,std::shared_ptr<DNSCryptContext>,bool, int, string, std::set<int> >> g_dnsCryptLocals;
-#endif
 #ifdef HAVE_EBPF
 shared_ptr<BPFFilter> g_defaultBPFFilter;
 std::vector<std::shared_ptr<DynBPFFilter> > g_dynBPFFilters;
@@ -389,7 +387,7 @@ static bool encryptResponse(char* response, uint16_t* responseLen, size_t respon
   }
   return true;
 }
-#endif
+#endif /* HAVE_DNSCRYPT */
 
 static bool applyRulesToResponse(LocalStateHolder<vector<DNSDistResponseRuleAction> >& localRespRulactions, DNSResponse& dr)
 {
@@ -459,7 +457,7 @@ bool processResponse(char** response, uint16_t* responseLen, size_t* responseSiz
       return false;
     }
   }
-#endif
+#endif /* HAVE_DNSCRYPT */
 
   return true;
 }
@@ -513,11 +511,7 @@ void responderThread(std::shared_ptr<DownstreamState> dss)
 try {
   setThreadName("dnsdist/respond");
   auto localRespRulactions = g_resprulactions.getLocal();
-#ifdef HAVE_DNSCRYPT
   char packet[4096 + DNSCRYPT_MAX_RESPONSE_PADDING_AND_MAC_SIZE];
-#else
-  char packet[4096];
-#endif
   static_assert(sizeof(packet) <= UINT16_MAX, "Packet size should fit in a uint16_t");
   /* when the answer is encrypted in place, we need to get a copy
      of the original header before encryption to fill the ring buffer */
@@ -597,12 +591,10 @@ try {
 #ifdef HAVE_PROTOBUF
         dr.uniqueId = std::move(ids->uniqueId);
 #endif
-#ifdef HAVE_DNSCRYPT
         if (ids->dnsCryptQuery) {
           addRoom = DNSCRYPT_MAX_RESPONSE_PADDING_AND_MAC_SIZE;
           dr.dnsCryptQuery = std::move(ids->dnsCryptQuery);
         }
-#endif
 
         memcpy(&cleartextDH, dr.dh, sizeof(cleartextDH));
         if (!processResponse(&response, &responseLen, &responseSize, localRespRulactions, dr, addRoom, rewrittenResponse, ids->cs && ids->cs->muted)) {
@@ -1286,10 +1278,10 @@ static bool isUDPQueryAcceptable(ClientState& cs, LocalHolders& holders, const s
   return true;
 }
 
-#ifdef HAVE_DNSCRYPT
 boost::optional<std::vector<uint8_t>> checkDNSCryptQuery(const ClientState& cs, const char* query, uint16_t& len, std::shared_ptr<DNSCryptQuery>& dnsCryptQuery, time_t now, bool tcp)
 {
   if (cs.dnscryptCtx) {
+#ifdef HAVE_DNSCRYPT
     vector<uint8_t> response;
     uint16_t decryptedQueryLen = 0;
 
@@ -1305,10 +1297,10 @@ boost::optional<std::vector<uint8_t>> checkDNSCryptQuery(const ClientState& cs, 
     }
 
     len = decryptedQueryLen;
+#endif /* HAVE_DNSCRYPT */
   }
   return boost::none;
 }
-#endif /* HAVE_DNSCRYPT */
 
 bool checkQueryHeaders(const struct dnsheader* dh)
 {
@@ -1362,13 +1354,13 @@ static bool prepareOutgoingResponse(LocalHolders& holders, ClientState& cs, DNSQ
   /* in case a rule changed it */
   dq.delayMsec = dr.delayMsec;
 
-  if (!cs.muted) {
 #ifdef HAVE_DNSCRYPT
+  if (!cs.muted) {
     if (!encryptResponse(reinterpret_cast<char*>(dq.dh), &dq.len, dq.size, dq.tcp, dq.dnsCryptQuery, nullptr, nullptr)) {
       return false;
     }
-#endif
   }
+#endif /* HAVE_DNSCRYPT */
 
   if (cacheHit) {
     ++g_stats.cacheHits;
@@ -1528,13 +1520,11 @@ static void processUDPQuery(ClientState& cs, LocalHolders& holders, const struct
     gettime(&queryRealTime, true);
 
     std::shared_ptr<DNSCryptQuery> dnsCryptQuery = nullptr;
-#ifdef HAVE_DNSCRYPT
     auto dnsCryptResponse = checkDNSCryptQuery(cs, query, len, dnsCryptQuery, queryRealTime.tv_sec, false);
     if (dnsCryptResponse) {
       sendUDPResponse(cs.udpFD, reinterpret_cast<char*>(dnsCryptResponse->data()), static_cast<uint16_t>(dnsCryptResponse->size()), 0, dest, remote);
       return;
     }
-#endif
 
     struct dnsheader* dh = reinterpret_cast<struct dnsheader*>(query);
     queryId = ntohs(dh->id);
@@ -1620,9 +1610,9 @@ static void processUDPQuery(ClientState& cs, LocalHolders& holders, const struct
       ids->origDest = cs.local;
       ids->destHarvested = false;
     }
-#ifdef HAVE_DNSCRYPT
+
     ids->dnsCryptQuery = std::move(dq.dnsCryptQuery);
-#endif
+
 #ifdef HAVE_PROTOBUF
     ids->uniqueId = std::move(dq.uniqueId);
 #endif
@@ -2628,7 +2618,6 @@ try
     tcpBindsCount++;
   }
 
-#ifdef HAVE_DNSCRYPT
   for(auto& dcLocal : g_dnsCryptLocals) {
     ClientState* cs = new ClientState;
     cs->local = std::get<0>(dcLocal);
@@ -2730,7 +2719,6 @@ try
     g_frontends.push_back(cs);
     tcpBindsCount++;
   }
-#endif
 
   for(auto& frontend : g_tlslocals) {
     ClientState* cs = new ClientState;

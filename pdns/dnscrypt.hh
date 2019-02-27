@@ -24,11 +24,24 @@
 
 #ifndef HAVE_DNSCRYPT
 
-class DNSCryptQuery
+/* let's just define a few types and values so that the rest of
+   the code can ignore whether DNSCrypt support is available */
+#define DNSCRYPT_MAX_RESPONSE_PADDING_AND_MAC_SIZE (0)
+
+class DNSCryptContext
 {
 };
 
-#else
+class DNSCryptQuery
+{
+  DNSCryptQuery(const std::shared_ptr<DNSCryptContext>& ctx): d_ctx(ctx)
+  {
+  }
+private:
+  std::shared_ptr<DNSCryptContext> d_ctx{nullptr};
+};
+
+#else /* HAVE_DNSCRYPT */
 
 #include <memory>
 #include <string>
