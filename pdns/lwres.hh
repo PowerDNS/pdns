@@ -43,6 +43,7 @@
 #include "remote_logger.hh"
 #include "resolve-context.hh"
 
+
 int asendto(const char *data, size_t len, int flags, const ComboAddress& ip, uint16_t id,
             const DNSName& domain, uint16_t qtype,  int* fd);
 int arecvfrom(std::string& packet, int flags, const ComboAddress& ip, size_t *d_len, uint16_t id,
@@ -68,5 +69,5 @@ public:
   bool d_haveEDNS{false};
 };
 
-int asyncresolve(const ComboAddress& ip, const DNSName& domain, int type, bool doTCP, bool sendRDQuery, int EDNS0Level, struct timeval* now, boost::optional<Netmask>& srcmask, boost::optional<const ResolveContext&> context, const std::shared_ptr<std::vector<std::unique_ptr<RemoteLogger>>>& outgoingLoggers, const std::set<uint16_t>& exportTypes, LWResult* res, bool* chained);
+int asyncresolve(const ComboAddress& ip, const DNSName& domain, int type, bool doTCP, bool sendRDQuery, int EDNS0Level, struct timeval* now, boost::optional<Netmask>& srcmask, boost::optional<const ResolveContext&> context, const std::shared_ptr<std::vector<std::unique_ptr<RemoteLogger>>>& outgoingLoggers, const std::shared_ptr<std::vector<std::unique_ptr<RemoteLoggerInterface>>>& fstrmLoggers, const std::set<uint16_t>& exportTypes, LWResult* res, bool* chained);
 #endif // PDNS_LWRES_HH

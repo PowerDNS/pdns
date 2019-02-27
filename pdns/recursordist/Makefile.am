@@ -366,18 +366,20 @@ endif
 BUILT_SOURCES += dnsmessage.pb.cc
 pdns_recursor_LDADD += $(PROTOBUF_LIBS)
 nodist_pdns_recursor_SOURCES = dnsmessage.pb.cc dnsmessage.pb.h
+nodist_testrunner_SOURCES = dnsmessage.pb.cc dnsmessage.pb.h
 
 if FSTRM
-BUILT_SOURCES += dnsmessage.pb.cc
-nodist_pdns_recursor_SOURCES += dnstap.pb.cc dnstap.pb.h
+BUILT_SOURCES += dnstap.pb.cc
 pdns_recursor.$(OBJEXT): dnstap.pb.cc  dnsmessage.pb.cc
+testrunner$(OBJEXT): dnstap.pb.cc dnsmessage.pb.cc
+nodist_pdns_recursor_SOURCES += dnstap.pb.cc dnstap.pb.h
+nodist_testrunner_SOURCES += dnstap.pb.cc dnstap.pb.h
 else
 pdns_recursor.$(OBJEXT): dnsmessage.pb.cc
+testrunner$(OBJEXT): dnsmessage.pb.cc
 endif
 
-nodist_testrunner_SOURCES = dnsmessage.pb.cc dnsmessage.pb.h
 testrunner_LDADD += $(PROTOBUF_LIBS)
-testrunner$(OBJEXT): dnsmessage.pb.cc
 
 endif
 

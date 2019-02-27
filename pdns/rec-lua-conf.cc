@@ -145,6 +145,17 @@ static void parseProtobufOptions(boost::optional<protobufOptions_t> vars, Protob
 }
 #endif /* HAVE_PROTOBUF */
 
+#ifdef HAVE_FSTRM
+typedef std::unordered_map<std::string, boost::variant<bool, uint64_t, std::string, std::vector<std::pair<int,std::string> > > > frameStreamOptions_t;
+
+static void parseFrameStreamOptions(boost::optional<frameStreamOptions_t> vars, FrameStreamExportConfig& config)
+{
+  if (!vars) {
+    return;
+  }
+}
+#endif /* HAVE_FSTRM */
+
 void loadRecursorLuaConfig(const std::string& fname, luaConfigDelayedThreads& delayedThreads)
 {
   LuaConfigItems lci;
@@ -494,6 +505,40 @@ void loadRecursorLuaConfig(const std::string& fname, luaConfigDelayedThreads& de
       }
     });
 #endif
+
+#ifdef HAVE_FSTRM
+  Lua.writeFunction("dnstapFrameStreamServer", [&lci](boost::variant<const std::string, const std::unordered_map<int, std::string>> servers, boost::optional<frameStreamOptions_t> vars) {
+      if (!lci.frameStreamExportConfig.enabled) {
+
+        lci.frameStreamExportConfig.enabled = true;
+
+          try {
+            if (servers.type() == typeid(std::string)) {
+              auto server = boost::get<const std::string>(servers);
+
+              lci.frameStreamExportConfig.servers.emplace_back(server);
+            }
+            else {
+              auto serversMap = boost::get<const std::unordered_map<int,std::string>>(servers);
+              for (const auto& serverPair : serversMap) {
+                lci.frameStreamExportConfig.servers.emplace_back(serverPair.second);
+              }
+            }
+
+            parseFrameStreamOptions(vars, lci.frameStreamExportConfig);
+          }
+          catch(std::exception& e) {
+            g_log<<Logger::Error<<"Error while starting dnstap framestream logger: "<<e.what()<<endl;
+          }
+          catch(PDNSException& e) {
+            g_log<<Logger::Error<<"Error while starting dnstap framestream logger: "<<e.reason<<endl;
+          }
+      }
+      else {
+        g_log<<Logger::Error<<"Only one dnstapFrameStreamServer() directive can be configured, we already have "<<lci.frameStreamExportConfig.servers.at(0).toString()<<endl;
+      }
+    });
+#endif /* HAVE_FSTRM */
 
   try {
     Lua.executeCode(ifs);

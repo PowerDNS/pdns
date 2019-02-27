@@ -41,6 +41,12 @@ struct ProtobufExportConfig
   bool taggedOnly{false};
 };
 
+struct FrameStreamExportConfig
+{
+  std::vector<ComboAddress> servers;
+  bool enabled{false};
+};
+
 struct TrustAnchorFileInfo {
   uint32_t interval{24};
   std::string fname;
@@ -57,6 +63,8 @@ public:
   map<DNSName,std::string> negAnchors;
   ProtobufExportConfig protobufExportConfig;
   ProtobufExportConfig outgoingProtobufExportConfig;
+  FrameStreamExportConfig frameStreamExportConfig;
+
   /* we need to increment this every time the configuration
      is reloaded, so we know if we need to reload the protobuf
      remote loggers */

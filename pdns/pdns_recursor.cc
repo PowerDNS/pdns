@@ -104,7 +104,7 @@
 
 #ifdef HAVE_PROTOBUF
 #include "uuid-utils.hh"
-#endif
+#endif /* HAVE_PROTOBUF */
 
 #include "xpf.hh"
 
@@ -120,6 +120,11 @@ static thread_local uint64_t t_protobufServersGeneration;
 static thread_local std::shared_ptr<std::vector<std::unique_ptr<RemoteLogger>>> t_outgoingProtobufServers{nullptr};
 static thread_local uint64_t t_outgoingProtobufServersGeneration;
 #endif /* HAVE_PROTOBUF */
+
+#ifdef HAVE_FSTRM
+static thread_local std::shared_ptr<std::vector<std::unique_ptr<RemoteLoggerInterface>>> t_frameStreamServers{nullptr};
+static thread_local uint64_t t_frameStreamServersGeneration;
+#endif /* HAVE_FSTRM */
 
 thread_local std::unique_ptr<MT_t> MT; // the big MTasker
 thread_local std::unique_ptr<MemRecursorCache> t_RC;
@@ -954,6 +959,56 @@ static bool checkOutgoingProtobufExport(LocalStateHolder<LuaConfigItems>& luacon
 
   return true;
 }
+
+#ifdef HAVE_FSTRM
+
+static std::shared_ptr<std::vector<std::unique_ptr<RemoteLoggerInterface>>> startFrameStreamServers(const FrameStreamExportConfig& config)
+{
+  auto result = std::make_shared<std::vector<std::unique_ptr<RemoteLoggerInterface>>>();
+
+  for (const auto& server : config.servers) {
+    try {
+      result->emplace_back(new FrameStreamLogger(server.sin4.sin_family, server.toStringWithPort(), true));
+    }
+    catch(const std::exception& e) {
+      g_log<<Logger::Error<<"Error while starting dnstap framestream logger to '"<<server<<": "<<e.what()<<endl;
+    }
+    catch(const PDNSException& e) {
+      g_log<<Logger::Error<<"Error while starting dnstap framestream logger to '"<<server<<": "<<e.reason<<endl;
+    }
+  }
+
+  return result;
+}
+
+static bool checkFrameStreamExport(LocalStateHolder<LuaConfigItems>& luaconfsLocal)
+{
+  if (!luaconfsLocal->frameStreamExportConfig.enabled) {
+    if (t_frameStreamServers) {
+      // dt's take care of cleanup
+      t_frameStreamServers.reset();
+    }
+
+    return false;
+  }
+
+  /* if the server was not running, or if it was running according to a
+     previous configuration */
+  if (!t_frameStreamServers ||
+      t_frameStreamServersGeneration < luaconfsLocal->generation) {
+
+    if (t_frameStreamServers) {
+      // dt's take care of cleanup
+      t_frameStreamServers.reset();
+    }
+
+    t_frameStreamServers = startFrameStreamServers(luaconfsLocal->frameStreamExportConfig);
+    t_frameStreamServersGeneration = luaconfsLocal->generation;
+  }
+
+  return true;
+}
+#endif /* HAVE_FSTRM */
 #endif /* HAVE_PROTOBUF */
 
 #ifdef NOD_ENABLED
@@ -1082,6 +1137,10 @@ static void startDoResolve(void *p)
     }
 #endif /* HAVE_PROTOBUF */
 
+#ifdef HAVE_FSTRM
+    checkFrameStreamExport(luaconfsLocal);
+#endif
+
     DNSPacketWriter pw(packet, dc->d_mdp.d_qname, dc->d_mdp.d_qtype, dc->d_mdp.d_qclass);
 
     pw.getHeader()->aa=0;
@@ -1137,7 +1196,9 @@ static void startDoResolve(void *p)
     sr.setInitialRequestId(dc->d_uuid);
     sr.setOutgoingProtobufServers(t_outgoingProtobufServers);
 #endif
-
+#ifdef HAVE_FSTRM
+    sr.setFrameStreamServers(t_frameStreamServers);
+#endif
     sr.setQuerySource(dc->d_remote, g_useIncomingECS && !dc->d_ednssubnet.source.empty() ? boost::optional<const EDNSSubnetOpts&>(dc->d_ednssubnet) : boost::none);
 
     bool tracedQuery=false; // we could consider letting Lua know about this too
@@ -1901,6 +1962,10 @@ static void handleRunningTCPQuestion(int fd, FDMultiplexer::funcparam_t& var)
         needECS = true;
       }
       logQuery = t_protobufServers && luaconfsLocal->protobufExportConfig.logQueries;
+#endif /* HAVE_PROTOBUF */
+
+#ifdef HAVE_FSTRM
+      checkFrameStreamExport(luaconfsLocal);
 #endif
 
       if(needECS || needXPF || (t_pdl && (t_pdl->d_gettag_ffi || t_pdl->d_gettag))) {
@@ -2093,6 +2158,9 @@ static string* doProcessUDPQuestion(const std::string& question, const ComboAddr
   }
   logQuery = t_protobufServers && luaconfsLocal->protobufExportConfig.logQueries;
   bool logResponse = t_protobufServers && luaconfsLocal->protobufExportConfig.logResponses;
+#endif
+#ifdef HAVE_FSTRM
+  checkFrameStreamExport(luaconfsLocal);
 #endif
   EDNSSubnetOpts ednssubnet;
   bool ecsFound = false;
@@ -4016,6 +4084,9 @@ try
   checkProtobufExport(luaconfsLocal);
   checkOutgoingProtobufExport(luaconfsLocal);
 #endif /* HAVE_PROTOBUF */
+#ifdef HAVE_FSTRM
+  checkFrameStreamExport(luaconfsLocal);
+#endif
 
   PacketID pident;
 
