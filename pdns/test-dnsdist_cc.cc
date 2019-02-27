@@ -1433,8 +1433,7 @@ BOOST_AUTO_TEST_CASE(test_isEDNSOptionInOpt) {
       return false;
     }
 
-    // root label (1), type (2), class (2), ttl (4) + rdlen (2)
-    if (optLen < 11) {
+    if (optLen < optRecordMinimumSize) {
       return false;
     }
 

@@ -21,6 +21,9 @@
  */
 #pragma once
 
+// root label (1), type (2), class (2), ttl (4) + rdlen (2)
+static const size_t optRecordMinimumSize = 11;
+
 extern size_t g_EdnsUDPPayloadSize;
 extern uint16_t g_PayloadSizeSelfGenAnswers;
 
@@ -42,3 +45,4 @@ bool parseEDNSOptions(DNSQuestion& dq);
 
 int getEDNSZ(const DNSQuestion& dq);
 bool queryHasEDNS(const DNSQuestion& dq);
+bool getEDNS0Record(const DNSQuestion& dq, EDNS0Record& edns0);

@@ -464,9 +464,7 @@ static int removeEDNSOptionFromOptions(unsigned char* optionsStart, const uint16
 
 int removeEDNSOptionFromOPT(char* optStart, size_t* optLen, const uint16_t optionCodeToRemove)
 {
-  /* we need at least:
-     root label (1), type (2), class (2), ttl (4) + rdlen (2)*/
-  if (*optLen < 11) {
+  if (*optLen < optRecordMinimumSize) {
     return EINVAL;
   }
   const unsigned char* end = (const unsigned char*) optStart + *optLen;
@@ -490,15 +488,13 @@ int removeEDNSOptionFromOPT(char* optStart, size_t* optLen, const uint16_t optio
 
 bool isEDNSOptionInOpt(const std::string& packet, const size_t optStart, const size_t optLen, const uint16_t optionCodeToFind, size_t* optContentStart, uint16_t* optContentLen)
 {
-  /* we need at least:
-   root label (1), type (2), class (2), ttl (4) + rdlen (2)*/
-  if (optLen < 11) {
+  if (optLen < optRecordMinimumSize) {
     return false;
   }
   size_t p = optStart + 9;
   uint16_t rdLen = (0x100*packet.at(p) + packet.at(p+1));
   p += sizeof(rdLen);
-  if (rdLen > (optLen - 11)) {
+  if (rdLen > (optLen - optRecordMinimumSize)) {
     return false;
   }
 
@@ -740,4 +736,32 @@ bool queryHasEDNS(const DNSQuestion& dq)
   }
 
   return false;
+}
+
+bool getEDNS0Record(const DNSQuestion& dq, EDNS0Record& edns0)
+{
+  uint16_t optStart;
+  size_t optLen = 0;
+  bool last = false;
+  const char * packet = reinterpret_cast<const char*>(dq.dh);
+  std::string packetStr(packet, dq.len);
+  int res = locateEDNSOptRR(packetStr, &optStart, &optLen, &last);
+  if (res != 0) {
+    // no EDNS OPT RR
+    return false;
+  }
+
+  if (optLen < optRecordMinimumSize) {
+    return false;
+  }
+
+  if (optStart < dq.len && packetStr.at(optStart) != 0) {
+    // OPT RR Name != '.'
+    return false;
+  }
+
+  static_assert(sizeof(EDNS0Record) == sizeof(uint32_t), "sizeof(EDNS0Record) must match sizeof(uint32_t) AKA RR TTL size");
+  // copy out 4-byte "ttl" (really the EDNS0 record), after root label (1) + type (2) + class (2).
+  memcpy(&edns0, packet + optStart + 5, sizeof edns0);
+  return true;
 }
