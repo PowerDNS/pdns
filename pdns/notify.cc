@@ -60,6 +60,8 @@ int main(int argc, char** argv)
 try
 {
   set<ComboAddress> addrs;
+  ::arg().set("rng")="auto";
+  ::arg().set("entropy-source")="/dev/urandom";
 
   for(int n=1 ; n < argc; ++n) {
     if ((string) argv[n] == "--help") {
