@@ -1510,7 +1510,7 @@ Response:
 
 
 ``getUpdatedMasters``
-~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~
 
 Used to find out any updates to master domains. This is used to trigger notifications in master mode.
 

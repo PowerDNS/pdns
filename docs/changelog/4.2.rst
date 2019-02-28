@@ -6,6 +6,256 @@ Changelogs for 4.2.x
   :released: *unreleased*
 
   .. change::
+    :tags: Bug Fixes, MySQL
+    :pullreq: 7496
+    :tickets: 7493
+
+    Fix invalid SOA record in MySQL crashing the server.
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 6872
+
+    ixfrdist: Add option to limit AXFR record count.
+
+  .. change::
+    :tags: Improvements, API
+    :pullreq: 7326
+    :tickets: 5430
+
+    Add ``type`` filter to search-data api.
+
+  .. change::
+    :tags: Improvements, Internals
+    :pullreq: 7502
+
+    Use a less expensive way to get memory stats for ``rel-memory-usage``.
+
+  .. change::
+    :tags: Improvements, API
+    :pullreq: 7359
+    :tickets: 7357
+
+    Add ``rcode`` response statistics on API.
+
+  .. change::
+    :tags: Improvements, Lua
+    :pullreq: 7490
+    :tickets: 7393
+
+    Lua records: Add ``useragent`` option to ``ifurlup`` and set a default.
+
+  .. change::
+    :tags: Improvements, Remote
+    :pullreq: 7448
+    :tickets: 7444
+
+    remotebackend: Implement ``getUpdatedMasters``.
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 7494
+
+    Correctly interpret an empty AXFR response to an IXFR query.
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 7505
+
+    Fix compilation of speedtest with GCC 8.0+.
+
+  .. change::
+    :tags: Improvements, Lua
+    :pullreq: 7492
+    :tickets: 6853
+
+    Lua: Expose ``dns_random`` as ``pdnsrandom``.
+
+  .. change::
+    :tags: Improvements, API
+    :pullreq: 7491
+    :tickets: 6451
+
+    Fix Zone Masters being set wrong via REST API.
+
+  .. change::
+    :tags: Bug Fixes, API
+    :pullreq: 7488
+    :tickets: 6114
+
+    Improve handling of out of range ``modified_at`` value.
+
+  .. change::
+    :tags: Bug Fixes, Tools
+    :pullreq: 7482
+
+    Fix output order of pdnsutil ``add-record``.
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 7352
+
+    Respect packet size limits, even with ECS and TSIG.
+
+  .. change::
+    :tags: Bug Fixes, Lua
+    :pullreq: 7459
+    :tickets: 7429
+
+    Fix dot stripping in ``setcontent()``.
+
+  .. change::
+    :tags: Improvements, API
+    :pullreq: 7463
+
+    Improve RRset validation.
+
+  .. change::
+    :tags: Bug Fixes, MySQL
+    :pullreq: 7475
+
+    Avoid infinite loop in mydnsbackend.
+
+  .. change::
+    :tags: Bug Fixes, LMDB
+    :pullreq: 7472
+    :tickets: 7471
+
+    Do not compress the root since LMDB backend cannot set a root zone
+    with a compressible SOA record.
+
+  .. change::
+    :tags: Bug Fixes, LMDB
+    :pullreq: 7470
+    :tickets: 7453
+
+    Avoid duplicate NSEC3 records in presigned zones in LMDB backend.
+
+  .. change::
+    :tags: New Features, LMDB
+    :pullreq: 7453
+
+    Authortitative LMDB backend.
+
+  .. change::
+    :tags: Improvements, Internals
+    :pullreq: 7412
+
+    Be smarter about trimming whitespace when creating records from ASCII.
+
+  .. change::
+    :tags: Improvements, Internals
+    :pullreq: 6634
+
+    More sandboxing using SystemD's features.
+
+  .. change::
+    :tags: Improvements, Internals
+    :pullreq: 7353
+
+    Fix attempt to restrict / speed-up additional processing to auth zone.
+
+  .. change::
+    :tags: Bug Fixes, Tools
+    :pullreq: 7148
+
+    sdig: Handle non-IN class records better.
+
+  .. change::
+    :tags: Improvements, DNSSEC
+    :pullreq: 7340
+
+    Error on DNSSEC default misconfiguration.
+
+  .. change::
+    :tags: Bug Fixes, Improvements, Tools
+    :pullreq: 7364
+
+    Dnsscope off-by-one + domain-filter.
+
+  .. change::
+    :tags: Bug Fixes, Internals
+    :pullreq: 7382
+
+    Fix ``dns_random()`` always returning 0 when the minimum acceptable value is 0.
+
+  .. change::
+    :tags: Bug Fixes, Internals
+    :pullreq: 7320
+
+    Lower ``udp-truncation-threshold`` by default to 1232.
+
+  .. change::
+    :tags: Improvements, Internals
+    :pullreq: 7293
+
+    Make ``pdns_control notify *`` also notify slaves zones.
+
+  .. change::
+    :tags: Improvements, Internals
+    :pullreq: 7348
+
+    Zero out QTYPE response numbers in our statistics. Makes Valgrind
+    usable on auth again.
+
+  .. change::
+    :tags: Bug Fixes, Tools
+    :pullreq: 7244
+    :tickets: 7319
+
+    pdns_notify: Support hostname for notification.
+
+  .. change::
+    :tags: Improvements, Internals
+    :pullreq: 7345
+
+    Improve memory handling for NSEC(3) records with lots of types.
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 7341
+
+    Fix replying from ANY address for non-standard port.
+
+  .. change::
+    :tags: Improvements, API
+    :pullreq: 7286
+
+    Fix a couple of Swagger / OpenAPI issues.
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 7288
+
+    Fix a few off-by-one errors.
+
+  .. change::
+    :tags: Bug Fixes, GeoIP
+    :pullreq: 7227
+    :tickets: 7219
+
+    Forbid 0 as weight value.
+
+  .. change::
+    :tags: Bug Fixes, Internals
+    :pullreq: 7294
+
+    Prevent leak of file descriptor if running out of ports for incoming AXFR.
+
+  .. change::
+    :tags: Improvements, DNSSEC
+    :pullreq: 7284
+
+    Fallback to SHA1 for the signatures cache if MD5 is not available.
+
+  .. change::
+    :tags: Bug Fixes, API
+    :pullreq: 7278
+    :tickets: 7277
+
+    Prevent more than one CNAME / SOA record in the same RRset.
+
+  .. change::
     :tags: Improvements, Internals
     :pullreq: 7245
 
