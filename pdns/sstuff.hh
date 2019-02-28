@@ -60,10 +60,17 @@ public:
     setCloseOnExec(d_socket);
   }
 
+  Socket(Socket&& rhs): d_buffer(std::move(rhs.d_buffer)), d_socket(rhs.d_socket)
+  {
+    rhs.d_socket = -1;
+  }
+
   ~Socket()
   {
     try {
-      closesocket(d_socket);
+      if (d_socket != -1) {
+        closesocket(d_socket);
+      }
     }
     catch(const PDNSException& e) {
     }
@@ -124,10 +131,10 @@ public:
   }
 
   //! Bind the socket to a specified endpoint
-  void bind(const ComboAddress &local)
+  void bind(const ComboAddress &local, bool reuseaddr=true)
   {
     int tmp=1;
-    if(setsockopt(d_socket, SOL_SOCKET, SO_REUSEADDR, reinterpret_cast<char*>(&tmp), sizeof tmp)<0)
+    if(reuseaddr && setsockopt(d_socket, SOL_SOCKET, SO_REUSEADDR, reinterpret_cast<char*>(&tmp), sizeof tmp)<0)
       throw NetworkError(string("Setsockopt failed: ")+strerror(errno));
 
     if(::bind(d_socket, reinterpret_cast<const struct sockaddr *>(&local), local.getSocklen())<0)

@@ -51,9 +51,9 @@ class FDMultiplexer
 {
 public:
   typedef boost::any funcparam_t;
+  typedef boost::function< void(int, funcparam_t&) > callbackfunc_t;
 protected:
 
-  typedef boost::function< void(int, funcparam_t&) > callbackfunc_t;
   struct Callback
   {
     callbackfunc_t d_callback;

@@ -257,10 +257,10 @@ void generateOptRR(const std::string& optRData, string& res, uint16_t udpPayload
   dh.d_class = htons(udpPayloadSize);
   static_assert(sizeof(EDNS0Record) == sizeof(dh.d_ttl), "sizeof(EDNS0Record) must match sizeof(dnsrecordheader.d_ttl)");
   memcpy(&dh.d_ttl, &edns0, sizeof edns0);
-  dh.d_clen = htons((uint16_t) optRData.length());
+  dh.d_clen = htons(static_cast<uint16_t>(optRData.length()));
   res.reserve(sizeof(name) + sizeof(dh) + optRData.length());
-  res.assign((const char *) &name, sizeof name);
-  res.append((const char *) &dh, sizeof dh);
+  res.assign(reinterpret_cast<const char *>(&name), sizeof name);
+  res.append(reinterpret_cast<const char *>(&dh), sizeof(dh));
   res.append(optRData.c_str(), optRData.length());
 }
 

@@ -574,26 +574,9 @@ try {
         dh->id = ids->origID;
 
         uint16_t addRoom = 0;
-        DNSResponse dr(&ids->qname, ids->qtype, ids->qclass, consumed, &ids->origDest, &ids->origRemote, dh, sizeof(packet), responseLen, false, &ids->sentTime.d_start);
-        dr.origFlags = ids->origFlags;
-        dr.ecsAdded = ids->ecsAdded;
-        dr.ednsAdded = ids->ednsAdded;
-        dr.useZeroScope = ids->useZeroScope;
-        dr.packetCache = std::move(ids->packetCache);
-        dr.delayMsec = ids->delayMsec;
-        dr.skipCache = ids->skipCache;
-        dr.cacheKey = ids->cacheKey;
-        dr.cacheKeyNoECS = ids->cacheKeyNoECS;
-        dr.dnssecOK = ids->dnssecOK;
-        dr.tempFailureTTL = ids->tempFailureTTL;
-        dr.qTag = std::move(ids->qTag);
-        dr.subnet = std::move(ids->subnet);
-#ifdef HAVE_PROTOBUF
-        dr.uniqueId = std::move(ids->uniqueId);
-#endif
-        if (ids->dnsCryptQuery) {
+        DNSResponse dr = makeDNSResponseFromIDState(*ids, dh, sizeof(packet), responseLen, false);
+        if (dr.dnsCryptQuery) {
           addRoom = DNSCRYPT_MAX_RESPONSE_PADDING_AND_MAC_SIZE;
-          dr.dnsCryptQuery = std::move(ids->dnsCryptQuery);
         }
 
         memcpy(&cleartextDH, dr.dh, sizeof(cleartextDH));
@@ -1577,24 +1560,7 @@ static void processUDPQuery(ClientState& cs, LocalHolders& holders, const struct
 
     ids->cs = &cs;
     ids->origID = dh->id;
-    ids->origRemote = remote;
-    ids->sentTime.set(queryRealTime);
-    ids->qname = std::move(qname);
-    ids->qtype = dq.qtype;
-    ids->qclass = dq.qclass;
-    ids->delayMsec = dq.delayMsec;
-    ids->tempFailureTTL = dq.tempFailureTTL;
-    ids->origFlags = dq.origFlags;
-    ids->cacheKey = dq.cacheKey;
-    ids->cacheKeyNoECS = dq.cacheKeyNoECS;
-    ids->subnet = dq.subnet;
-    ids->skipCache = dq.skipCache;
-    ids->packetCache = dq.packetCache;
-    ids->ednsAdded = dq.ednsAdded;
-    ids->ecsAdded = dq.ecsAdded;
-    ids->useZeroScope = dq.useZeroScope;
-    ids->qTag = dq.qTag;
-    ids->dnssecOK = dq.dnssecOK;
+    setIDStateFromDNSQuestion(*ids, dq, std::move(qname));
 
     /* If we couldn't harvest the real dest addr, still
        write down the listening addr since it will be useful
@@ -1610,12 +1576,6 @@ static void processUDPQuery(ClientState& cs, LocalHolders& holders, const struct
       ids->origDest = cs.local;
       ids->destHarvested = false;
     }
-
-    ids->dnsCryptQuery = std::move(dq.dnsCryptQuery);
-
-#ifdef HAVE_PROTOBUF
-    ids->uniqueId = std::move(dq.uniqueId);
-#endif
 
     dh->id = idOffset;
 

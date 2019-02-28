@@ -269,40 +269,112 @@ void ComboAddress::truncate(unsigned int bits) noexcept
   *place &= (~((1<<bitsleft)-1));
 }
 
-ssize_t sendMsgWithTimeout(int fd, const char* buffer, size_t len, int timeout, ComboAddress& dest, const ComboAddress& local, unsigned int localItf)
+size_t sendMsgWithTimeout(int fd, const char* buffer, size_t len, int idleTimeout, const ComboAddress* dest, const ComboAddress* local, unsigned int localItf, int totalTimeout, int flags)
 {
+  int remainingTime = totalTimeout;
+  time_t start = 0;
+  if (totalTimeout) {
+    start = time(nullptr);
+  }
+
   struct msghdr msgh;
   struct iovec iov;
   char cbuf[256];
+
+  /* Set up iov and msgh structures. */
+  memset(&msgh, 0, sizeof(struct msghdr));
+  msgh.msg_control = nullptr;
+  msgh.msg_controllen = 0;
+  if (dest) {
+    msgh.msg_name = reinterpret_cast<void*>(const_cast<ComboAddress*>(dest));
+    msgh.msg_namelen = dest->getSocklen();
+  }
+  else {
+    msgh.msg_name = nullptr;
+    msgh.msg_namelen = 0;
+  }
+
+  msgh.msg_flags = 0;
+
+  if (localItf != 0 && local) {
+    addCMsgSrcAddr(&msgh, cbuf, local, localItf);
+  }
+
+  if (localItf != 0 && local) {
+    addCMsgSrcAddr(&msgh, cbuf, local, localItf);
+  }
+
+  iov.iov_base = reinterpret_cast<void*>(const_cast<char*>(buffer));
+  iov.iov_len = len;
+  msgh.msg_iov = &iov;
+  msgh.msg_iovlen = 1;
+  msgh.msg_flags = 0;
+
+  size_t sent = 0;
   bool firstTry = true;
-  fillMSGHdr(&msgh, &iov, cbuf, sizeof(cbuf), const_cast<char*>(buffer), len, &dest);
-  addCMsgSrcAddr(&msgh, cbuf, &local, localItf);
 
   do {
-    ssize_t written = sendmsg(fd, &msgh, 0);
 
-    if (written > 0)
-      return written;
+#ifdef MSG_FASTOPEN
+    if (flags & MSG_FASTOPEN && firstTry == false) {
+      flags &= ~MSG_FASTOPEN;
+    }
+#endif /* MSG_FASTOPEN */
 
-    if (errno == EAGAIN) {
-      if (firstTry) {
-        int res = waitForRWData(fd, false, timeout, 0);
-        if (res > 0) {
-          /* there is room available */
-          firstTry = false;
+    ssize_t res = sendmsg(fd, &msgh, flags);
+
+    if (res > 0) {
+      size_t written = static_cast<size_t>(res);
+      sent += written;
+
+      if (sent == len) {
+        return sent;
+      }
+
+      /* partial write */
+      iov.iov_len -= written;
+      iov.iov_base = reinterpret_cast<void*>(reinterpret_cast<char*>(iov.iov_base) + written);
+      written = 0;
+    }
+    else if (res == -1) {
+      if (errno == EINTR) {
+        continue;
+      }
+      else if (errno == EAGAIN || errno == EWOULDBLOCK || errno == EINPROGRESS) {
+        /* EINPROGRESS might happen with non blocking socket,
+           especially with TCP Fast Open */
+        if (totalTimeout <= 0 && idleTimeout <= 0) {
+          return sent;
         }
-        else if (res == 0) {
+
+        if (firstTry) {
+          int res = waitForRWData(fd, false, (totalTimeout == 0 || idleTimeout <= remainingTime) ? idleTimeout : remainingTime, 0);
+          if (res > 0) {
+            /* there is room available */
+            firstTry = false;
+          }
+          else if (res == 0) {
+            throw runtime_error("Timeout while waiting to write data");
+          } else {
+            throw runtime_error("Error while waiting for room to write data");
+          }
+        }
+        else {
           throw runtime_error("Timeout while waiting to write data");
-        } else {
-          throw runtime_error("Error while waiting for room to write data");
         }
       }
       else {
-        throw runtime_error("Timeout while waiting to write data");
+        unixDie("failed in sendMsgWithTimeout");
       }
     }
-    else {
-      unixDie("failed in write2WithTimeout");
+    if (totalTimeout) {
+      time_t now = time(nullptr);
+      int elapsed = now - start;
+      if (elapsed >= remainingTime) {
+        throw runtime_error("Timeout while sending data");
+      }
+      start = now;
+      remainingTime -= elapsed;
     }
   }
   while (firstTry);
