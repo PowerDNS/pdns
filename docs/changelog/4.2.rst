@@ -10,7 +10,8 @@ Changelogs for 4.2.x
     :pullreq: 7496
     :tickets: 7493
 
-    Fix invalid SOA record in MySQL crashing the server.
+    Fix invalid SOA record in MySQL which prevented the authoritative
+    server from starting.
 
   .. change::
     :tags: Improvements
@@ -29,7 +30,7 @@ Changelogs for 4.2.x
     :tags: Improvements, Internals
     :pullreq: 7502
 
-    Use a less expensive way to get memory stats for ``rel-memory-usage``.
+    Use a less expensive way to get memory stats for ``real-memory-usage``.
 
   .. change::
     :tags: Improvements, API
@@ -39,7 +40,7 @@ Changelogs for 4.2.x
     Add ``rcode`` response statistics on API.
 
   .. change::
-    :tags: Improvements, Lua
+    :tags: Improvements
     :pullreq: 7490
     :tickets: 7393
 
@@ -59,13 +60,7 @@ Changelogs for 4.2.x
     Correctly interpret an empty AXFR response to an IXFR query.
 
   .. change::
-    :tags: Bug Fixes
-    :pullreq: 7505
-
-    Fix compilation of speedtest with GCC 8.0+.
-
-  .. change::
-    :tags: Improvements, Lua
+    :tags: Improvements
     :pullreq: 7492
     :tickets: 6853
 
@@ -76,7 +71,7 @@ Changelogs for 4.2.x
     :pullreq: 7491
     :tickets: 6451
 
-    Fix Zone Masters being set wrong via REST API.
+    Use commas instead of spaces when setting Zone Masters via the REST API.
 
   .. change::
     :tags: Bug Fixes, API
@@ -98,7 +93,7 @@ Changelogs for 4.2.x
     Respect packet size limits, even with ECS and TSIG.
 
   .. change::
-    :tags: Bug Fixes, Lua
+    :tags: Bug Fixes
     :pullreq: 7459
     :tickets: 7429
 
@@ -135,7 +130,7 @@ Changelogs for 4.2.x
     :tags: New Features, LMDB
     :pullreq: 7453
 
-    Authortitative LMDB backend.
+    Authoritative LMDB backend.
 
   .. change::
     :tags: Improvements, Internals
