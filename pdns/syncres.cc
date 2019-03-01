@@ -47,6 +47,7 @@ SuffixMatchNode SyncRes::s_ednsdomains;
 EDNSSubnetOpts SyncRes::s_ecsScopeZero;
 string SyncRes::s_serverID;
 SyncRes::LogMode SyncRes::s_lm;
+const std::unordered_set<uint16_t> SyncRes::s_redirectionQTypes = {QType::CNAME, QType::DNAME};
 
 unsigned int SyncRes::s_maxnegttl;
 unsigned int SyncRes::s_maxbogusttl;
@@ -2079,7 +2080,7 @@ void SyncRes::sanitizeRecords(const std::string& prefix, LWResult& lwr, const DN
       continue;
     }
 
-    if (rec->d_place == DNSResourceRecord::ANSWER && (qtype != QType::ANY && rec->d_type != qtype.getCode() && rec->d_type != QType::CNAME && rec->d_type != QType::SOA && rec->d_type != QType::RRSIG)) {
+    if (rec->d_place == DNSResourceRecord::ANSWER && (qtype != QType::ANY && rec->d_type != qtype.getCode() && s_redirectionQTypes.count(rec->d_type) == 0 && rec->d_type != QType::SOA && rec->d_type != QType::RRSIG)) {
       LOG(prefix<<"Removing irrelevant record '"<<rec->d_name<<"|"<<DNSRecordContent::NumberToType(rec->d_type)<<"|"<<rec->d_content->getZoneRepresentation()<<"' in the "<<(int)rec->d_place<<" section received from "<<auth<<endl);
       rec = lwr.d_records.erase(rec);
       continue;
@@ -2454,6 +2455,7 @@ dState SyncRes::getDenialValidationState(const NegCache::NegCacheEntry& ne, cons
 bool SyncRes::processRecords(const std::string& prefix, const DNSName& qname, const QType& qtype, const DNSName& auth, LWResult& lwr, const bool sendRDQuery, vector<DNSRecord>& ret, set<DNSName>& nsset, DNSName& newtarget, DNSName& newauth, bool& realreferral, bool& negindic, vState& state, const bool needWildcardProof, const unsigned int wildcardLabelsCount)
 {
   bool done = false;
+  DNSName dnameTarget, dnameOwner;
 
   for(auto& rec : lwr.d_records) {
     if (rec.d_type!=QType::OPT && rec.d_class!=QClass::IN)
@@ -2513,10 +2515,19 @@ bool SyncRes::processRecords(const std::string& prefix, const DNSName& qname, co
 
       negindic=true;
     }
-    else if(rec.d_place==DNSResourceRecord::ANSWER && rec.d_type==QType::CNAME && (!(qtype==QType(QType::CNAME))) && rec.d_name == qname) {
-      ret.push_back(rec);
-      if (auto content = getRR<CNAMERecordContent>(rec)) {
-        newtarget=content->getTarget();
+    else if(rec.d_place==DNSResourceRecord::ANSWER && s_redirectionQTypes.count(rec.d_type) > 0 && // CNAME or DNAME answer
+        s_redirectionQTypes.count(qtype.getCode()) == 0) { // But not in response to a CNAME or DNAME query
+      if (rec.d_type == QType::CNAME && rec.d_name == qname) {
+        ret.push_back(rec);
+        if (auto content = getRR<CNAMERecordContent>(rec)) {
+          newtarget=content->getTarget();
+        }
+      } else if (rec.d_type == QType::DNAME && qname.isPartOf(rec.d_name)) { // DNAME
+        ret.push_back(rec);
+        if (auto content = getRR<DNAMERecordContent>(rec)) {
+          dnameOwner = rec.d_name;
+          dnameTarget = content->getTarget();
+        }
       }
     }
     /* if we have a positive answer synthetized from a wildcard, we need to
@@ -2571,8 +2582,14 @@ bool SyncRes::processRecords(const std::string& prefix, const DNSName& qname, co
       ret.push_back(rec);
     }
     else if((rec.d_type==QType::RRSIG || rec.d_type==QType::NSEC || rec.d_type==QType::NSEC3) && rec.d_place==DNSResourceRecord::ANSWER) {
-      if(rec.d_type != QType::RRSIG || rec.d_name == qname)
+      if(rec.d_type != QType::RRSIG || rec.d_name == qname) {
         ret.push_back(rec); // enjoy your DNSSEC
+      } else if(rec.d_type == QType::RRSIG && qname.isPartOf(rec.d_name)) {
+        auto rrsig = getRR<RRSIGRecordContent>(rec);
+        if (rrsig != nullptr && rrsig->d_type == QType::DNAME) {
+           ret.push_back(rec);
+        }
+      }
     }
     else if(rec.d_place==DNSResourceRecord::AUTHORITY && rec.d_type==QType::NS && qname.isPartOf(rec.d_name)) {
       if(moreSpecificThan(rec.d_name,auth)) {
@@ -2662,6 +2679,14 @@ bool SyncRes::processRecords(const std::string& prefix, const DNSName& qname, co
     }
   }
 
+  if (!dnameTarget.empty() && !newtarget.empty()) {
+    DNSName substTarget = qname.makeRelative(dnameOwner) + dnameTarget;
+    if (substTarget != newtarget) {
+      throw ImmediateServFailException("Received wrong DNAME substitution. qname='" + qname.toLogString() +
+           "', DNAME owner='" + dnameOwner.toLogString() + "', DNAME target='" + dnameTarget.toLogString() +
+           "', received CNAME='" + newtarget.toLogString() + "', substituted CNAME='" + substTarget.toLogString() + "'");
+    }
+  }
   return done;
 }
 

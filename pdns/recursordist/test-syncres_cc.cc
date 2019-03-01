@@ -10792,6 +10792,72 @@ BOOST_AUTO_TEST_CASE(test_records_sanitization_scrubs_ns_nxd) {
   BOOST_CHECK_LT(t_RC->get(now, DNSName("spoofed.ns."), QType(QType::AAAA), false, &cached, who), 0);
 }
 
+BOOST_AUTO_TEST_CASE(test_dname_processing) {
+  std::unique_ptr<SyncRes> sr;
+  initSR(sr);
+
+  primeHints();
+
+  const DNSName dnameOwner("powerdns.com");
+  const DNSName dnameTarget("powerdns.net");
+
+  const DNSName target("dname.powerdns.com.");
+  const DNSName cnameTarget("dname.powerdns.net");
+
+  size_t queries = 0;
+
+  sr->setAsyncCallback([dnameOwner, dnameTarget, target, cnameTarget, &queries](const ComboAddress& ip, const DNSName& domain, int type, bool doTCP, bool sendRDQuery, int EDNS0Level, struct timeval* now, boost::optional<Netmask>& srcmask, boost::optional<const ResolveContext&> context, LWResult* res, bool* chained) {
+      queries++;
+
+      if (isRootServer(ip)) {
+        if (domain.isPartOf(dnameOwner)) {
+          setLWResult(res, 0, false, false, true);
+          addRecordToLW(res, dnameOwner, QType::NS, "a.gtld-servers.net.", DNSResourceRecord::AUTHORITY, 172800);
+          addRecordToLW(res, "a.gtld-servers.net.", QType::A, "192.0.2.1", DNSResourceRecord::ADDITIONAL, 3600);
+          return 1;
+        }
+        if (domain.isPartOf(dnameTarget)) {
+          setLWResult(res, 0, false, false, true);
+          addRecordToLW(res, dnameTarget, QType::NS, "b.gtld-servers.net.", DNSResourceRecord::AUTHORITY, 172800);
+          addRecordToLW(res, "b.gtld-servers.net.", QType::A, "192.0.2.2", DNSResourceRecord::ADDITIONAL, 3600);
+          return 1;
+        }
+      } else if (ip == ComboAddress("192.0.2.1:53")) {
+        if (domain == target) {
+          setLWResult(res, 0, true, false, false);
+          addRecordToLW(res, dnameOwner, QType::DNAME, dnameTarget.toString());
+          addRecordToLW(res, domain, QType::CNAME, cnameTarget.toString());
+          return 1;
+        }
+      } else if (ip == ComboAddress("192.0.2.2:53")) {
+        if (domain == cnameTarget) {
+          setLWResult(res, 0, true, false, false);
+          addRecordToLW(res, domain, QType::A, "192.0.2.2");
+        }
+        return 1;
+      }
+      return 0;
+    });
+
+  vector<DNSRecord> ret;
+  int res = sr->beginResolve(target, QType(QType::A), QClass::IN, ret);
+
+  BOOST_CHECK_EQUAL(res, RCode::NoError);
+  BOOST_REQUIRE_EQUAL(ret.size(), 3);
+
+  BOOST_CHECK_EQUAL(queries, 4);
+
+  BOOST_CHECK(ret[0].d_type == QType::DNAME);
+  BOOST_CHECK(ret[0].d_name == dnameOwner);
+  BOOST_CHECK_EQUAL(getRR<DNAMERecordContent>(ret[0])->getTarget(), dnameTarget);
+
+  BOOST_CHECK(ret[1].d_type == QType::CNAME);
+  BOOST_CHECK_EQUAL(ret[1].d_name, target);
+
+  BOOST_CHECK(ret[2].d_type == QType::A);
+  BOOST_CHECK_EQUAL(ret[2].d_name, cnameTarget);
+}
+
 /*
 // cerr<<"asyncresolve called to ask "<<ip.toStringWithPort()<<" about "<<domain.toString()<<" / "<<QType(type).getName()<<" over "<<(doTCP ? "TCP" : "UDP")<<" (rd: "<<sendRDQuery<<", EDNS0 level: "<<EDNS0Level<<")"<<endl;
 
