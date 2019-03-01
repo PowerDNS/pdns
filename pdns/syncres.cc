@@ -2171,6 +2171,7 @@ RCode::rcodes_ SyncRes::updateCacheFromRecords(unsigned int depth, LWResult& lwr
   std::vector<std::shared_ptr<DNSRecord>> authorityRecs;
   const unsigned int labelCount = qname.countLabels();
   bool isCNAMEAnswer = false;
+  bool isDNAMEAnswer = false;
   for(const auto& rec : lwr.d_records) {
     if (rec.d_class != QClass::IN) {
       continue;
@@ -2178,6 +2179,9 @@ RCode::rcodes_ SyncRes::updateCacheFromRecords(unsigned int depth, LWResult& lwr
 
     if(!isCNAMEAnswer && rec.d_place == DNSResourceRecord::ANSWER && rec.d_type == QType::CNAME && (!(qtype==QType(QType::CNAME))) && rec.d_name == qname) {
       isCNAMEAnswer = true;
+    }
+    if(!isDNAMEAnswer && rec.d_place == DNSResourceRecord::ANSWER && rec.d_type == QType::DNAME && (!(qtype==QType(QType::DNAME))) && qname.isPartOf(rec.d_name)) {
+      isDNAMEAnswer = true;
     }
 
     /* if we have a positive answer synthetized from a wildcard,
@@ -2338,6 +2342,10 @@ RCode::rcodes_ SyncRes::updateCacheFromRecords(unsigned int depth, LWResult& lwr
       expectSignature = false;
     }
 
+    if (isDNAMEAnswer && !isAA && i->first.place == DNSResourceRecord::ANSWER && i->first.type == QType::DNAME && qname.isPartOf(i->first.name)) {
+      isAA = true;
+    }
+
     if (isCNAMEAnswer && i->first.place == DNSResourceRecord::AUTHORITY && i->first.type == QType::NS && auth == i->first.name) {
       /* These NS can't be authoritative since we have a CNAME answer for which (see above) only the
          record describing that alias is necessarily authoritative.
@@ -2367,11 +2375,25 @@ RCode::rcodes_ SyncRes::updateCacheFromRecords(unsigned int depth, LWResult& lwr
             recordState = validateDNSKeys(i->first.name, i->second.records, i->second.signatures, depth);
           }
           else {
-            LOG(d_prefix<<"Validating non-additional record for "<<i->first.name<<endl);
-            recordState = validateRecordsWithSigs(depth, qname, qtype, i->first.name, i->second.records, i->second.signatures);
-            /* we might have missed a cut (zone cut within the same auth servers), causing the NS query for an Insecure zone to seem Bogus during zone cut determination */
-            if (qtype == QType::NS && i->second.signatures.empty() && recordState == Bogus && haveExactValidationStatus(i->first.name) && getValidationStatus(i->first.name) == Indeterminate) {
-              recordState = Indeterminate;
+            /*
+             * RFC 6672 section 5.3.1
+             *  In any response, a signed DNAME RR indicates a non-terminal
+             *  redirection of the query.  There might or might not be a server-
+             *  synthesized CNAME in the answer section; if there is, the CNAME will
+             *  never be signed.  For a DNSSEC validator, verification of the DNAME
+             *  RR and then that the CNAME was properly synthesized is sufficient
+             *  proof.
+             *
+             * We do the synthesis check in processRecords, here we make sure we
+             * don't validate the CNAME.
+             */
+            if (!(isDNAMEAnswer && i->first.type == QType::CNAME)) {
+              LOG(d_prefix<<"Validating non-additional record for "<<i->first.name<<endl);
+              recordState = validateRecordsWithSigs(depth, qname, qtype, i->first.name, i->second.records, i->second.signatures);
+              /* we might have missed a cut (zone cut within the same auth servers), causing the NS query for an Insecure zone to seem Bogus during zone cut determination */
+              if (qtype == QType::NS && i->second.signatures.empty() && recordState == Bogus && haveExactValidationStatus(i->first.name) && getValidationStatus(i->first.name) == Indeterminate) {
+                recordState = Indeterminate;
+              }
             }
           }
         }
