@@ -1676,6 +1676,7 @@ static void apiServerZoneDetail(HttpRequest* req, HttpResponse* resp) {
     // clear caches
     DNSSECKeeper dk(&B);
     dk.clearCaches(zonename);
+    purgeAuthCaches(zonename.toString() + "$");
 
     // empty body on success
     resp->body = "";
