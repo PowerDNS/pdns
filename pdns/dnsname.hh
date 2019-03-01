@@ -308,8 +308,6 @@ struct SuffixMatchTree
     if (labels.empty()) {
       // The child is no longer an endnode
       child->endNode = false;
-      // TODO clear d_value for this node as d_value = T() would break for types
-      // that require initialization
 
       // If the child has no further children, just remove it from the set.
       if (child->children.empty()) {
