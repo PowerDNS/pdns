@@ -459,4 +459,8 @@ void setupLuaRules()
   g_lua.registerFunction<std::shared_ptr<DNSRule>(std::shared_ptr<TimedIPSetRule>::*)()>("slice", [](std::shared_ptr<TimedIPSetRule> tisr) {
       return std::dynamic_pointer_cast<DNSRule>(tisr);
     });
+
+  g_lua.writeFunction("QNameSetRule", [](const DNSNameSet& names) {
+      return std::shared_ptr<DNSRule>(new QNameSetRule(names));
+    });
 }

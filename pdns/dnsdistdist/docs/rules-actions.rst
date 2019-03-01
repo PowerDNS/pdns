@@ -610,6 +610,11 @@ These ``DNSRule``\ s be one of the following items:
 
    :param string qname: Qname to match
 
+.. function:: QNameSetRule(set)
+   Matches if the set contains qname.
+
+  :param DNSNameSet set: Set with qnames.
+
 .. function:: QNameLabelsCountRule(min, max)
 
   Matches if the qname has less than ``min`` or more than ``max`` labels.
