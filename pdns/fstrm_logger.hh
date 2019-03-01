@@ -25,6 +25,7 @@
 
 #ifdef HAVE_FSTRM
 
+#include <unordered_map>
 #include <fstrm.h>
 #include <fstrm/iothr.h>
 #include <fstrm/unix_writer.h>
@@ -35,14 +36,20 @@
 class FrameStreamLogger : public RemoteLoggerInterface, boost::noncopyable
 {
 public:
-  FrameStreamLogger(int family, const std::string& address, bool connect);
+  FrameStreamLogger(int family, const std::string& address, bool connect, const std::unordered_map<string,unsigned>& options = std::unordered_map<string,unsigned>());
   virtual ~FrameStreamLogger();
   virtual void queueData(const std::string& data) override;
   virtual std::string toString() const override
   {
     return "FrameStreamLogger to " + d_address;
   }
+  bool logQueries(void) const { return d_logQueries; }
+  bool logResponses(void) const { return d_logResponses; }
+  void setLogQueries(bool flag) { d_logQueries = flag; }
+  void setLogResponses(bool flag) { d_logResponses = flag; }
+
 private:
+
   const int d_family;
   const std::string d_address;
   struct fstrm_iothr_queue *d_ioqueue{nullptr};
@@ -56,6 +63,9 @@ private:
   struct fstrm_iothr *d_iothr{nullptr};
 
   void cleanup();
+
+  bool d_logQueries{true};
+  bool d_logResponses{true};
 };
 
 #endif /* HAVE_FSTRM */

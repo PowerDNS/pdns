@@ -153,6 +153,32 @@ static void parseFrameStreamOptions(boost::optional<frameStreamOptions_t> vars, 
   if (!vars) {
     return;
   }
+
+  if (vars->count("logQueries")) {
+    config.logQueries = boost::get<bool>((*vars)["logQueries"]);
+  }
+  if (vars->count("logResponses")) {
+    config.logResponses = boost::get<bool>((*vars)["logResponses"]);
+  }
+
+  if (vars->count("bufferHint")) {
+    config.bufferHint = boost::get<uint64_t>((*vars)["bufferHint"]);
+  }
+  if (vars->count("flushTimeout")) {
+    config.flushTimeout = boost::get<uint64_t>((*vars)["flushTimeout"]);
+  }
+  if (vars->count("inputQueueSize")) {
+    config.inputQueueSize = boost::get<uint64_t>((*vars)["inputQueueSize"]);
+  }
+  if (vars->count("outputQueueSize")) {
+    config.outputQueueSize = boost::get<uint64_t>((*vars)["outputQueueSize"]);
+  }
+  if (vars->count("queueNotifyThreshold")) {
+    config.queueNotifyThreshold = boost::get<uint64_t>((*vars)["queueNotifyThreshold"]);
+  }
+  if (vars->count("reopenInterval")) {
+    config.reopenInterval = boost::get<uint64_t>((*vars)["reopenInterval"]);
+  }
 }
 #endif /* HAVE_FSTRM */
 

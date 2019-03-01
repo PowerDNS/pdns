@@ -968,7 +968,17 @@ static std::shared_ptr<std::vector<std::unique_ptr<RemoteLoggerInterface>>> star
 
   for (const auto& server : config.servers) {
     try {
-      result->emplace_back(new FrameStreamLogger(server.sin4.sin_family, server.toStringWithPort(), true));
+      std::unordered_map<string,unsigned> options;
+      options["bufferHint"] = config.bufferHint;
+      options["flushTimeout"] = config.flushTimeout;
+      options["inputQueueSize"] = config.inputQueueSize;
+      options["outputQueueSize"] = config.outputQueueSize;
+      options["queueNotifyThreshold"] = config.queueNotifyThreshold;
+      options["reopenInterval"] = config.reopenInterval;
+      auto fsl = new FrameStreamLogger(server.sin4.sin_family, server.toStringWithPort(), true, options);
+      fsl->setLogQueries(config.logQueries);
+      fsl->setLogResponses(config.logResponses);
+      result->emplace_back(fsl);
     }
     catch(const std::exception& e) {
       g_log<<Logger::Error<<"Error while starting dnstap framestream logger to '"<<server<<": "<<e.what()<<endl;

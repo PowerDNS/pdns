@@ -57,6 +57,21 @@
 #include "fstrm_logger.hh"
 bool g_syslog;
 
+static bool isEnabledForQueries(const std::shared_ptr<std::vector<std::unique_ptr<RemoteLoggerInterface>>>& fstreamLoggers)
+{
+  if (fstreamLoggers == nullptr) {
+    return false;
+  }
+  for (auto& logger : *fstreamLoggers) {
+    // We know this is safe since fstreamLoggers is filled with FrameStreamLogger objects only
+    auto fsl = static_cast<const FrameStreamLogger*>(logger.get());
+    if (fsl->logQueries()) {
+      return true;
+    }
+  }
+  return false;
+}
+
 static void logFstreamQuery(const std::shared_ptr<std::vector<std::unique_ptr<RemoteLoggerInterface>>>& fstreamLoggers, const struct timeval &queryTime, const ComboAddress& ip, bool doTCP, const vector<uint8_t>& packet)
 {
   if (fstreamLoggers == nullptr)
@@ -71,6 +86,21 @@ static void logFstreamQuery(const std::shared_ptr<std::vector<std::unique_ptr<Re
   for (auto& logger : *fstreamLoggers) {
     logger->queueData(str);
   }
+}
+
+static bool isEnabledForResponses(const std::shared_ptr<std::vector<std::unique_ptr<RemoteLoggerInterface>>>& fstreamLoggers)
+{
+  if (fstreamLoggers == nullptr) {
+    return false;
+  }
+  for (auto& logger : *fstreamLoggers) {
+    // We know this is safe since fstreamLoggers is filled with FrameStreamLogger objects only
+    auto fsl = static_cast<const FrameStreamLogger*>(logger.get());
+    if (fsl->logResponses()) {
+      return true;
+    }
+  }
+  return false;
 }
 
 static void logFstreamResponse(const std::shared_ptr<std::vector<std::unique_ptr<RemoteLoggerInterface>>>& fstreamLoggers, const ComboAddress& ip, bool doTCP, const std::string& packet, const struct timeval& queryTime, const struct timeval& replyTime)
@@ -207,7 +237,7 @@ int asyncresolve(const ComboAddress& ip, const DNSName& domain, int type, bool d
   }
 #endif /* HAVE_PROTOBUF */
 #ifdef HAVE_FSTRM
-  if (fstrmLoggers) {
+  if (isEnabledForQueries(fstrmLoggers)) {
     logFstreamQuery(fstrmLoggers, queryTime, ip, doTCP, vpacket);
   }
 #endif /* HAVE_FSTRM */
@@ -286,7 +316,7 @@ int asyncresolve(const ComboAddress& ip, const DNSName& domain, int type, bool d
   buf.resize(len);
 
 #ifdef HAVE_FSTRM
-  if (fstrmLoggers) {
+  if (isEnabledForResponses(fstrmLoggers)) {
     logFstreamResponse(fstrmLoggers, ip, doTCP, buf, queryTime, *now);
   }
 #endif /* HAVE_FSTRM */

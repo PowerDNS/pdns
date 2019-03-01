@@ -45,6 +45,14 @@ struct FrameStreamExportConfig
 {
   std::vector<ComboAddress> servers;
   bool enabled{false};
+  bool logQueries{true};
+  bool logResponses{true};
+  unsigned bufferHint{0};
+  unsigned flushTimeout{0};
+  unsigned inputQueueSize{0};
+  unsigned outputQueueSize{0};
+  unsigned queueNotifyThreshold{0};
+  unsigned reopenInterval{0};
 };
 
 struct TrustAnchorFileInfo {
