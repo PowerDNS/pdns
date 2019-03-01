@@ -428,7 +428,6 @@ struct SuffixMatchNode
     }
 
   private:
-    mutable std::string d_human;
     mutable std::set<DNSName> d_nodes; // Only used for string generation
 };
 
