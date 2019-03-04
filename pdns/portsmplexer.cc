@@ -25,7 +25,7 @@ public:
 
   virtual int run(struct timeval* tv, int timeout=500);
 
-  virtual void addFD(callbackmap_t& cbmap, int fd, callbackfunc_t toDo, const boost::any& parameter);
+  virtual void addFD(callbackmap_t& cbmap, int fd, callbackfunc_t toDo, const boost::any& parameter, const struct timeval* ttd=nullptr);
   virtual void removeFD(callbackmap_t& cbmap, int fd);
   string getName()
   {
@@ -59,9 +59,9 @@ PortsFDMultiplexer::PortsFDMultiplexer() : d_pevents(new port_event_t[s_maxevent
     throw FDMultiplexerException("Setting up port: "+stringerror());
 }
 
-void PortsFDMultiplexer::addFD(callbackmap_t& cbmap, int fd, callbackfunc_t toDo, const boost::any& parameter)
+void PortsFDMultiplexer::addFD(callbackmap_t& cbmap, int fd, callbackfunc_t toDo, const boost::any& parameter, const struct timeval* ttd)
 {
-  accountingAddFD(cbmap, fd, toDo, parameter);
+  accountingAddFD(cbmap, fd, toDo, parameter, ttd);
 
   if(port_associate(d_portfd, PORT_SOURCE_FD, fd, (&cbmap == &d_readCallbacks) ? POLLIN : POLLOUT, 0) < 0) {
     cbmap.erase(fd);
