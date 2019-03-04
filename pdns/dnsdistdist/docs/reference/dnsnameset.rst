@@ -4,7 +4,7 @@ DNSNameSet objects
 ==================
 
 A :class:`DNSNameSet` object is a set of :class:`DNSName` objects. 
-Based on std::set (usually implemented as red-black trees).
+Based on std::unordered_set (hash table).
 Creating a ``DNSName`` is done with the :func:`newDNSNameSet`::
 
   myset = newDNSNameSet()
