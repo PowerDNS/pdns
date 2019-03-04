@@ -180,7 +180,7 @@ void setupLuaBindings(bool client)
   /* DNSNameSet */
   g_lua.registerFunction<string(DNSNameSet::*)()>("toString", [](const DNSNameSet&dns ) { return dns.toString(); });
   g_lua.registerFunction<void(DNSNameSet::*)(DNSName&)>("add", [](DNSNameSet& dns, DNSName& dn) { dns.insert(dn); });
-  g_lua.registerFunction<bool(DNSNameSet::*)(DNSName&)>("contains", [](DNSNameSet& dns, DNSName& dn) { return dns.find(dn) != dns.end(); });
+  g_lua.registerFunction<bool(DNSNameSet::*)(DNSName&)>("check", [](DNSNameSet& dns, DNSName& dn) { return dns.find(dn) != dns.end(); });
   g_lua.registerFunction("delete",(size_t (DNSNameSet::*)(const DNSName&)) &DNSNameSet::erase);
   g_lua.registerFunction("size",(size_t (DNSNameSet::*)() const) &DNSNameSet::size);
   g_lua.registerFunction("clear",(void (DNSNameSet::*)()) &DNSNameSet::clear);

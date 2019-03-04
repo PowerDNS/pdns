@@ -545,7 +545,7 @@ private:
 
 class QNameSetRule : public DNSRule {
 public:
-    QNameSetRule(const DNSNameSet names) : qname_idx(names) {}
+    QNameSetRule(const DNSNameSet& names) : qname_idx(names) {}
 
     bool matches(const DNSQuestion* dq) const override {
         return qname_idx.find(*dq->qname) != qname_idx.end();

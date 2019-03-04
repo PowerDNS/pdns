@@ -53,7 +53,7 @@ Functions and methods of a ``DNSNameSet``
 
    :param DNSName name The name to remove.
 
-  .. method:: DNSNameSet:contains(name) -> bool
+  .. method:: DNSNameSet:check(name) -> bool
 
     Returns true if the set contains the name.
 

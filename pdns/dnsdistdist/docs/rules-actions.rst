@@ -611,9 +611,11 @@ These ``DNSRule``\ s be one of the following items:
    :param string qname: Qname to match
 
 .. function:: QNameSetRule(set)
-   Matches if the set contains qname.
+  Matches if the set contains excact qname.
 
-  :param DNSNameSet set: Set with qnames.
+   To match subdomain names, see :func:`SuffixMatchNodeRule`.
+
+   :param DNSNameSet set: Set with qnames.
 
 .. function:: QNameLabelsCountRule(min, max)
 
@@ -717,6 +719,8 @@ These ``DNSRule``\ s be one of the following items:
 
   Matches based on a group of domain suffixes for rapid testing of membership.
   Pass true as second parameter to prevent listing of all domains matched.
+
+  To match domain names exactly, see :func:`QNameSetRule`.
 
   :param SuffixMatchNode smb: The SuffixMatchNode to match on
   :param bool quiet: Do not return the list of matched domains. Default is false.
