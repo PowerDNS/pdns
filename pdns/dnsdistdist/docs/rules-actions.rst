@@ -611,7 +611,7 @@ These ``DNSRule``\ s be one of the following items:
    :param string qname: Qname to match
 
 .. function:: QNameSetRule(set)
-  Matches if the set contains excact qname.
+  Matches if the set contains exact qname.
 
    To match subdomain names, see :func:`SuffixMatchNodeRule`.
 
