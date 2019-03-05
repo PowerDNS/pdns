@@ -11024,6 +11024,144 @@ BOOST_AUTO_TEST_CASE(test_dname_dnssec_secure) {
 
 }
 
+BOOST_AUTO_TEST_CASE(test_dname_dnssec_insecure) {
+  /*
+   * The DNAME itself is signed, but the final A record is not
+   */
+  std::unique_ptr<SyncRes> sr;
+  initSR(sr, true);
+  setDNSSECValidation(sr, DNSSECMode::ValidateAll);
+
+  primeHints();
+
+  const DNSName dnameOwner("powerdns");
+  const DNSName dnameTarget("example");
+
+  const DNSName target("dname.powerdns");
+  const DNSName cnameTarget("dname.example");
+
+  testkeysset_t keys;
+
+  auto luaconfsCopy = g_luaconfs.getCopy();
+  luaconfsCopy.dsAnchors.clear();
+  generateKeyMaterial(g_rootdnsname, DNSSECKeeper::ECDSA256, DNSSECKeeper::SHA256, keys, luaconfsCopy.dsAnchors);
+  generateKeyMaterial(dnameOwner, DNSSECKeeper::ECDSA256, DNSSECKeeper::SHA256, keys);
+  g_luaconfs.setState(luaconfsCopy);
+
+  size_t queries = 0;
+
+  sr->setAsyncCallback([dnameOwner, dnameTarget, target, cnameTarget, keys, &queries](const ComboAddress& ip, const DNSName& domain, int type, bool doTCP, bool sendRDQuery, int EDNS0Level, struct timeval* now, boost::optional<Netmask>& srcmask, boost::optional<const ResolveContext&> context, LWResult* res, bool* chained) {
+      queries++;
+
+      if (isRootServer(ip)) {
+        if (domain.countLabels() == 0 && type == QType::DNSKEY) { // .|DNSKEY
+          setLWResult(res, 0, true, false, true);
+          addDNSKEY(keys, domain, 300, res->d_records);
+          addRRSIG(keys, res->d_records, DNSName("."), 300);
+          return 1;
+        }
+        if (domain == dnameOwner && type == QType::DS) { // powerdns|DS
+          setLWResult(res, 0, true, false, true);
+          addDS(domain, 300, res->d_records, keys);
+          addRRSIG(keys, res->d_records, DNSName("."), 300);
+          return 1;
+        }
+        if (domain == dnameTarget && type == QType::DS) { // example|DS
+          return genericDSAndDNSKEYHandler(res, domain, DNSName("."), type, keys);
+        }
+        // For the rest, delegate!
+        if (domain.isPartOf(dnameOwner)) {
+          setLWResult(res, 0, false, false, true);
+          addRecordToLW(res, dnameOwner, QType::NS, "a.gtld-servers.net.", DNSResourceRecord::AUTHORITY, 172800);
+          addDS(dnameOwner, 300, res->d_records, keys);
+          addRRSIG(keys, res->d_records, DNSName("."), 300);
+          addRecordToLW(res, "a.gtld-servers.net.", QType::A, "192.0.2.1", DNSResourceRecord::ADDITIONAL, 3600);
+          return 1;
+        }
+        if (domain.isPartOf(dnameTarget)) {
+          setLWResult(res, 0, false, false, true);
+          addRecordToLW(res, dnameTarget, QType::NS, "b.gtld-servers.net.", DNSResourceRecord::AUTHORITY, 172800);
+          addDS(dnameTarget, 300, res->d_records, keys);
+          addRRSIG(keys, res->d_records, DNSName("."), 300);
+          addRecordToLW(res, "b.gtld-servers.net.", QType::A, "192.0.2.2", DNSResourceRecord::ADDITIONAL, 3600);
+          return 1;
+        }
+      } else if (ip == ComboAddress("192.0.2.1:53")) {
+        if (domain.countLabels() == 1 && type == QType::DNSKEY) { // powerdns|DNSKEY
+          setLWResult(res, 0, true, false, true);
+          addDNSKEY(keys, domain, 300, res->d_records);
+          addRRSIG(keys, res->d_records, domain, 300);
+          return 1;
+        }
+        if (domain == target && type == QType::DS) { // dname.powerdns|DS
+          return genericDSAndDNSKEYHandler(res, domain, dnameOwner, type, keys);
+        }
+        if (domain == target) {
+          setLWResult(res, 0, true, false, false);
+          addRecordToLW(res, dnameOwner, QType::DNAME, dnameTarget.toString());
+          addRRSIG(keys, res->d_records, dnameOwner, 300);
+          addRecordToLW(res, domain, QType::CNAME, cnameTarget.toString());
+          return 1;
+        }
+      } else if (ip == ComboAddress("192.0.2.2:53")) {
+        if (domain == target && type == QType::DS) { // dname.example|DS
+          return genericDSAndDNSKEYHandler(res, domain, dnameTarget, type, keys);
+        }
+        if (domain == cnameTarget) {
+          setLWResult(res, 0, true, false, false);
+          addRecordToLW(res, domain, QType::A, "192.0.2.2");
+        }
+        return 1;
+      }
+      return 0;
+    });
+
+  vector<DNSRecord> ret;
+  int res = sr->beginResolve(target, QType(QType::A), QClass::IN, ret);
+
+  BOOST_CHECK_EQUAL(res, RCode::NoError);
+  BOOST_CHECK_EQUAL(sr->getValidationState(), Insecure);
+  BOOST_REQUIRE_EQUAL(ret.size(), 4); /* DNAME + RRSIG(DNAME) + CNAME + A */
+
+  BOOST_CHECK_EQUAL(queries, 9);
+
+  BOOST_CHECK(ret[0].d_type == QType::DNAME);
+  BOOST_CHECK(ret[0].d_name == dnameOwner);
+  BOOST_CHECK_EQUAL(getRR<DNAMERecordContent>(ret[0])->getTarget(), dnameTarget);
+
+  BOOST_CHECK(ret[1].d_type == QType::RRSIG);
+  BOOST_CHECK_EQUAL(ret[1].d_name, dnameOwner);
+
+  BOOST_CHECK(ret[2].d_type == QType::CNAME);
+  BOOST_CHECK_EQUAL(ret[2].d_name, target);
+
+  BOOST_CHECK(ret[3].d_type == QType::A);
+  BOOST_CHECK_EQUAL(ret[3].d_name, cnameTarget);
+
+  // And the cache
+  ret.clear();
+  res = sr->beginResolve(target, QType(QType::A), QClass::IN, ret);
+
+  BOOST_CHECK_EQUAL(res, RCode::NoError);
+  BOOST_CHECK_EQUAL(sr->getValidationState(), Insecure);
+  BOOST_REQUIRE_EQUAL(ret.size(), 4); /* DNAME + RRSIG(DNAME) + CNAME + A */
+
+  BOOST_CHECK_EQUAL(queries, 9);
+
+  BOOST_CHECK(ret[0].d_type == QType::DNAME);
+  BOOST_CHECK(ret[0].d_name == dnameOwner);
+  BOOST_CHECK_EQUAL(getRR<DNAMERecordContent>(ret[0])->getTarget(), dnameTarget);
+
+  BOOST_CHECK(ret[1].d_type == QType::RRSIG);
+  BOOST_CHECK_EQUAL(ret[1].d_name, dnameOwner);
+
+  BOOST_CHECK(ret[2].d_type == QType::CNAME);
+  BOOST_CHECK_EQUAL(ret[2].d_name, target);
+
+  BOOST_CHECK(ret[3].d_type == QType::A);
+  BOOST_CHECK_EQUAL(ret[3].d_name, cnameTarget);
+}
+
 /*
 // cerr<<"asyncresolve called to ask "<<ip.toStringWithPort()<<" about "<<domain.toString()<<" / "<<QType(type).getName()<<" over "<<(doTCP ? "TCP" : "UDP")<<" (rd: "<<sendRDQuery<<", EDNS0 level: "<<EDNS0Level<<")"<<endl;
 
