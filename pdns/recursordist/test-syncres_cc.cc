@@ -10804,9 +10804,15 @@ BOOST_AUTO_TEST_CASE(test_dname_processing) {
   const DNSName target("dname.powerdns.com.");
   const DNSName cnameTarget("dname.powerdns.net");
 
+  const DNSName uncachedTarget("dname-uncached.powerdns.com.");
+  const DNSName uncachedCNAMETarget("dname-uncached.powerdns.net.");
+
+  const DNSName synthCNAME("cname-uncached.powerdns.com.");
+  const DNSName synthCNAMETarget("cname-uncached.powerdns.net.");
+
   size_t queries = 0;
 
-  sr->setAsyncCallback([dnameOwner, dnameTarget, target, cnameTarget, &queries](const ComboAddress& ip, const DNSName& domain, int type, bool doTCP, bool sendRDQuery, int EDNS0Level, struct timeval* now, boost::optional<Netmask>& srcmask, boost::optional<const ResolveContext&> context, LWResult* res, bool* chained) {
+  sr->setAsyncCallback([dnameOwner, dnameTarget, target, cnameTarget, uncachedTarget, uncachedCNAMETarget, &queries](const ComboAddress& ip, const DNSName& domain, int type, bool doTCP, bool sendRDQuery, int EDNS0Level, struct timeval* now, boost::optional<Netmask>& srcmask, boost::optional<const ResolveContext&> context, LWResult* res, bool* chained) {
       queries++;
 
       if (isRootServer(ip)) {
@@ -10833,6 +10839,10 @@ BOOST_AUTO_TEST_CASE(test_dname_processing) {
         if (domain == cnameTarget) {
           setLWResult(res, 0, true, false, false);
           addRecordToLW(res, domain, QType::A, "192.0.2.2");
+        }
+        if (domain == uncachedCNAMETarget) {
+          setLWResult(res, 0, true, false, false);
+          addRecordToLW(res, domain, QType::A, "192.0.2.3");
         }
         return 1;
       }
@@ -10875,6 +10885,48 @@ BOOST_AUTO_TEST_CASE(test_dname_processing) {
 
   BOOST_CHECK(ret[2].d_type == QType::A);
   BOOST_CHECK_EQUAL(ret[2].d_name, cnameTarget);
+
+  // Check if we correctly return a synthesizd CNAME, should send out just 1 more query
+  ret.clear();
+  res = sr->beginResolve(uncachedTarget, QType(QType::A), QClass::IN, ret);
+
+  BOOST_CHECK_EQUAL(res, RCode::NoError);
+  BOOST_CHECK_EQUAL(queries, 5);
+
+  BOOST_CHECK(ret[0].d_type == QType::DNAME);
+  BOOST_CHECK(ret[0].d_name == dnameOwner);
+  BOOST_CHECK_EQUAL(getRR<DNAMERecordContent>(ret[0])->getTarget(), dnameTarget);
+
+  BOOST_CHECK(ret[1].d_type == QType::CNAME);
+  BOOST_CHECK_EQUAL(ret[1].d_name, uncachedTarget);
+  BOOST_CHECK_EQUAL(getRR<CNAMERecordContent>(ret[1])->getTarget(), uncachedCNAMETarget);
+
+  BOOST_CHECK(ret[2].d_type == QType::A);
+  BOOST_CHECK_EQUAL(ret[2].d_name, uncachedCNAMETarget);
+
+  // Check if we correctly return the DNAME from cache when asked
+  ret.clear();
+  res = sr->beginResolve(dnameOwner, QType(QType::DNAME), QClass::IN, ret);
+  BOOST_CHECK_EQUAL(res, RCode::NoError);
+  BOOST_CHECK_EQUAL(queries, 5);
+
+  BOOST_CHECK(ret[0].d_type == QType::DNAME);
+  BOOST_CHECK(ret[0].d_name == dnameOwner);
+  BOOST_CHECK_EQUAL(getRR<DNAMERecordContent>(ret[0])->getTarget(), dnameTarget);
+
+  // Check if we correctly return the synthesized CNAME from cache when asked
+  ret.clear();
+  res = sr->beginResolve(synthCNAME, QType(QType::CNAME), QClass::IN, ret);
+  BOOST_CHECK_EQUAL(res, RCode::NoError);
+  BOOST_CHECK_EQUAL(queries, 5);
+
+  BOOST_CHECK(ret[0].d_type == QType::DNAME);
+  BOOST_CHECK(ret[0].d_name == dnameOwner);
+  BOOST_CHECK_EQUAL(getRR<DNAMERecordContent>(ret[0])->getTarget(), dnameTarget);
+
+  BOOST_CHECK(ret[1].d_type == QType::CNAME);
+  BOOST_CHECK(ret[1].d_name == synthCNAME);
+  BOOST_CHECK_EQUAL(getRR<CNAMERecordContent>(ret[1])->getTarget(), synthCNAMETarget);
 }
 
 BOOST_AUTO_TEST_CASE(test_dname_dnssec_secure) {
