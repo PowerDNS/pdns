@@ -47,7 +47,7 @@ int SSocket(int family, int type, int flags)
 
 int SConnect(int sockfd, const ComboAddress& remote)
 {
-  int ret = connect(sockfd, (struct sockaddr*)&remote, remote.getSocklen());
+  int ret = connect(sockfd, reinterpret_cast<const struct sockaddr*>(&remote), remote.getSocklen());
   if(ret < 0) {
     int savederrno = errno;
     RuntimeError(boost::format("connecting socket to %s: %s") % remote.toStringWithPort() % strerror(savederrno));
@@ -57,12 +57,12 @@ int SConnect(int sockfd, const ComboAddress& remote)
 
 int SConnectWithTimeout(int sockfd, const ComboAddress& remote, int timeout)
 {
-  int ret = connect(sockfd, (struct sockaddr*)&remote, remote.getSocklen());
+  int ret = connect(sockfd, reinterpret_cast<const struct sockaddr*>(&remote), remote.getSocklen());
   if(ret < 0) {
     int savederrno = errno;
     if (savederrno == EINPROGRESS) {
       if (timeout <= 0) {
-        return ret;
+        return savederrno;
       }
 
       /* we wait until the connection has been established */
@@ -97,7 +97,7 @@ int SConnectWithTimeout(int sockfd, const ComboAddress& remote, int timeout)
     }
   }
 
-  return ret;
+  return 0;
 }
 
 int SBind(int sockfd, const ComboAddress& local)
