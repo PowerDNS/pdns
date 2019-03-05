@@ -10857,7 +10857,7 @@ BOOST_AUTO_TEST_CASE(test_dname_processing) {
 
   BOOST_CHECK_EQUAL(queries, 4);
 
-  BOOST_CHECK(ret[0].d_type == QType::DNAME);
+  BOOST_REQUIRE(ret[0].d_type == QType::DNAME);
   BOOST_CHECK(ret[0].d_name == dnameOwner);
   BOOST_CHECK_EQUAL(getRR<DNAMERecordContent>(ret[0])->getTarget(), dnameTarget);
 
@@ -10876,7 +10876,7 @@ BOOST_AUTO_TEST_CASE(test_dname_processing) {
 
   BOOST_CHECK_EQUAL(queries, 4);
 
-  BOOST_CHECK(ret[0].d_type == QType::DNAME);
+  BOOST_REQUIRE(ret[0].d_type == QType::DNAME);
   BOOST_CHECK(ret[0].d_name == dnameOwner);
   BOOST_CHECK_EQUAL(getRR<DNAMERecordContent>(ret[0])->getTarget(), dnameTarget);
 
@@ -10893,11 +10893,11 @@ BOOST_AUTO_TEST_CASE(test_dname_processing) {
   BOOST_CHECK_EQUAL(res, RCode::NoError);
   BOOST_CHECK_EQUAL(queries, 5);
 
-  BOOST_CHECK(ret[0].d_type == QType::DNAME);
+  BOOST_REQUIRE(ret[0].d_type == QType::DNAME);
   BOOST_CHECK(ret[0].d_name == dnameOwner);
   BOOST_CHECK_EQUAL(getRR<DNAMERecordContent>(ret[0])->getTarget(), dnameTarget);
 
-  BOOST_CHECK(ret[1].d_type == QType::CNAME);
+  BOOST_REQUIRE(ret[1].d_type == QType::CNAME);
   BOOST_CHECK_EQUAL(ret[1].d_name, uncachedTarget);
   BOOST_CHECK_EQUAL(getRR<CNAMERecordContent>(ret[1])->getTarget(), uncachedCNAMETarget);
 
@@ -10910,7 +10910,7 @@ BOOST_AUTO_TEST_CASE(test_dname_processing) {
   BOOST_CHECK_EQUAL(res, RCode::NoError);
   BOOST_CHECK_EQUAL(queries, 5);
 
-  BOOST_CHECK(ret[0].d_type == QType::DNAME);
+  BOOST_REQUIRE(ret[0].d_type == QType::DNAME);
   BOOST_CHECK(ret[0].d_name == dnameOwner);
   BOOST_CHECK_EQUAL(getRR<DNAMERecordContent>(ret[0])->getTarget(), dnameTarget);
 
@@ -10920,11 +10920,11 @@ BOOST_AUTO_TEST_CASE(test_dname_processing) {
   BOOST_CHECK_EQUAL(res, RCode::NoError);
   BOOST_CHECK_EQUAL(queries, 5);
 
-  BOOST_CHECK(ret[0].d_type == QType::DNAME);
+  BOOST_REQUIRE(ret[0].d_type == QType::DNAME);
   BOOST_CHECK(ret[0].d_name == dnameOwner);
   BOOST_CHECK_EQUAL(getRR<DNAMERecordContent>(ret[0])->getTarget(), dnameTarget);
 
-  BOOST_CHECK(ret[1].d_type == QType::CNAME);
+  BOOST_REQUIRE(ret[1].d_type == QType::CNAME);
   BOOST_CHECK(ret[1].d_name == synthCNAME);
   BOOST_CHECK_EQUAL(getRR<CNAMERecordContent>(ret[1])->getTarget(), synthCNAMETarget);
 }
@@ -11032,11 +11032,11 @@ BOOST_AUTO_TEST_CASE(test_dname_dnssec_secure) {
 
   BOOST_CHECK_EQUAL(queries, 11);
 
-  BOOST_CHECK(ret[0].d_type == QType::DNAME);
+  BOOST_REQUIRE(ret[0].d_type == QType::DNAME);
   BOOST_CHECK(ret[0].d_name == dnameOwner);
   BOOST_CHECK_EQUAL(getRR<DNAMERecordContent>(ret[0])->getTarget(), dnameTarget);
 
-  BOOST_CHECK(ret[1].d_type == QType::RRSIG);
+  BOOST_REQUIRE(ret[1].d_type == QType::RRSIG);
   BOOST_CHECK_EQUAL(ret[1].d_name, dnameOwner);
 
   BOOST_CHECK(ret[2].d_type == QType::CNAME);
@@ -11058,7 +11058,7 @@ BOOST_AUTO_TEST_CASE(test_dname_dnssec_secure) {
 
   BOOST_CHECK_EQUAL(queries, 11);
 
-  BOOST_CHECK(ret[0].d_type == QType::DNAME);
+  BOOST_REQUIRE(ret[0].d_type == QType::DNAME);
   BOOST_CHECK(ret[0].d_name == dnameOwner);
   BOOST_CHECK_EQUAL(getRR<DNAMERecordContent>(ret[0])->getTarget(), dnameTarget);
 
@@ -11177,7 +11177,7 @@ BOOST_AUTO_TEST_CASE(test_dname_dnssec_insecure) {
 
   BOOST_CHECK_EQUAL(queries, 9);
 
-  BOOST_CHECK(ret[0].d_type == QType::DNAME);
+  BOOST_REQUIRE(ret[0].d_type == QType::DNAME);
   BOOST_CHECK(ret[0].d_name == dnameOwner);
   BOOST_CHECK_EQUAL(getRR<DNAMERecordContent>(ret[0])->getTarget(), dnameTarget);
 
@@ -11200,7 +11200,7 @@ BOOST_AUTO_TEST_CASE(test_dname_dnssec_insecure) {
 
   BOOST_CHECK_EQUAL(queries, 9);
 
-  BOOST_CHECK(ret[0].d_type == QType::DNAME);
+  BOOST_REQUIRE(ret[0].d_type == QType::DNAME);
   BOOST_CHECK(ret[0].d_name == dnameOwner);
   BOOST_CHECK_EQUAL(getRR<DNAMERecordContent>(ret[0])->getTarget(), dnameTarget);
 
