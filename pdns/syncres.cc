@@ -1012,7 +1012,7 @@ bool SyncRes::doCNAMECacheCheck(const DNSName &qname, const QType &qtype, vector
         dr.d_ttl -= d_now.tv_sec;
         dr.d_ttl = std::min(dr.d_ttl, capTTL);
         const uint32_t ttl = dr.d_ttl;
-        ret.reserve(ret.size() + 1 + signatures.size() + authorityRecs.size());
+        ret.reserve(ret.size() + 2 + signatures.size() + authorityRecs.size());
         ret.push_back(dr);
 
         for(const auto& signature : signatures) {
