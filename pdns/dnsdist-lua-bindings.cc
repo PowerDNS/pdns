@@ -175,6 +175,16 @@ void setupLuaBindings(bool client)
   g_lua.registerFunction<string(DNSName::*)()>("toString", [](const DNSName&dn ) { return dn.toString(); });
   g_lua.writeFunction("newDNSName", [](const std::string& name) { return DNSName(name); });
   g_lua.writeFunction("newSuffixMatchNode", []() { return SuffixMatchNode(); });
+  g_lua.writeFunction("newDNSNameSet", []() { return DNSNameSet(); });
+
+  /* DNSNameSet */
+  g_lua.registerFunction<string(DNSNameSet::*)()>("toString", [](const DNSNameSet&dns ) { return dns.toString(); });
+  g_lua.registerFunction<void(DNSNameSet::*)(DNSName&)>("add", [](DNSNameSet& dns, DNSName& dn) { dns.insert(dn); });
+  g_lua.registerFunction<bool(DNSNameSet::*)(DNSName&)>("check", [](DNSNameSet& dns, DNSName& dn) { return dns.find(dn) != dns.end(); });
+  g_lua.registerFunction("delete",(size_t (DNSNameSet::*)(const DNSName&)) &DNSNameSet::erase);
+  g_lua.registerFunction("size",(size_t (DNSNameSet::*)() const) &DNSNameSet::size);
+  g_lua.registerFunction("clear",(void (DNSNameSet::*)()) &DNSNameSet::clear);
+  g_lua.registerFunction("empty",(bool (DNSNameSet::*)()) &DNSNameSet::empty);
 
   /* SuffixMatchNode */
   g_lua.registerFunction("add",(void (SuffixMatchNode::*)(const DNSName&)) &SuffixMatchNode::add);

@@ -418,6 +418,7 @@ const std::vector<ConsoleKeyword> g_consoleKeywords{
   { "newServer", true, "{address=\"ip:port\", qps=1000, order=1, weight=10, pool=\"abuse\", retries=5, tcpConnectTimeout=5, tcpSendTimeout=30, tcpRecvTimeout=30, checkName=\"a.root-servers.net.\", checkType=\"A\", maxCheckFailures=1, mustResolve=false, useClientSubnet=true, source=\"address|interface name|address@interface\", sockets=1}", "instantiate a server" },
   { "newServerPolicy", true, "name, function", "create a policy object from a Lua function" },
   { "newSuffixMatchNode", true, "", "returns a new SuffixMatchNode" },
+  { "newDNSNameSet", true, "", "returns a new DNSNameSet" },
   { "NoRecurseAction", true, "", "strip RD bit from the question, let it go through" },
   { "PoolAction", true, "poolname", "set the packet into the specified pool" },
   { "printDNSCryptProviderFingerprint", true, "\"/path/to/providerPublic.key\"", "display the fingerprint of the provided resolver public key" },

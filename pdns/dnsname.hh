@@ -26,6 +26,9 @@
 #include <deque>
 #include <strings.h>
 #include <stdexcept>
+#include <sstream>
+#include <iterator>
+#include <unordered_set>
 
 #include <boost/version.hpp>
 
@@ -376,3 +379,11 @@ bool DNSName::operator==(const DNSName& rhs) const
 }
 
 extern const DNSName g_rootdnsname, g_wildcarddnsname;
+
+struct DNSNameSet: public std::unordered_set<DNSName> {
+    std::string toString() const {
+        std::ostringstream oss;
+        std::copy(begin(), end(), std::ostream_iterator<DNSName>(oss, "\n"));
+        return oss.str();
+    }
+};
