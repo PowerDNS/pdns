@@ -2405,10 +2405,6 @@ RCode::rcodes_ SyncRes::updateCacheFromRecords(unsigned int depth, LWResult& lwr
       expectSignature = false;
     }
 
-    if (isDNAMEAnswer && !isAA && i->first.place == DNSResourceRecord::ANSWER && i->first.type == QType::DNAME && qname.isPartOf(i->first.name)) {
-      isAA = true;
-    }
-
     if (isCNAMEAnswer && i->first.place == DNSResourceRecord::AUTHORITY && i->first.type == QType::NS && auth == i->first.name) {
       /* These NS can't be authoritative since we have a CNAME answer for which (see above) only the
          record describing that alias is necessarily authoritative.
