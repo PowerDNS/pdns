@@ -147,3 +147,128 @@ class BasicDNSSEC(RecursorTest):
         self.assertRRsetInAnswer(res, expectedA)
         self.assertMatchingRRSIGInAnswer(res, expectedCNAME)
 
+    def testSecureDNAMEToSecureAnswer(self):
+        res = self.sendQuery('host1.dname-secure.secure.example.', 'A')
+        expectedDNAME = dns.rrset.from_text('dname-secure.secure.example.', 0, dns.rdataclass.IN, 'DNAME', 'dname-secure.example.')
+        expectedCNAME = dns.rrset.from_text('host1.dname-secure.secure.example.', 0, dns.rdataclass.IN, 'CNAME', 'host1.dname-secure.example.')
+        expectedA = dns.rrset.from_text('host1.dname-secure.example.', 0, dns.rdataclass.IN, 'A', '192.0.2.21')
+
+        self.assertRcodeEqual(res, dns.rcode.NOERROR)
+        self.assertMessageHasFlags(res, ['QR', 'RD', 'RA', 'AD'], ['DO'])
+        self.assertRRsetInAnswer(res, expectedA)
+        self.assertRRsetInAnswer(res, expectedCNAME)
+        self.assertRRsetInAnswer(res, expectedDNAME)
+        self.assertMatchingRRSIGInAnswer(res, expectedDNAME)
+        self.assertMatchingRRSIGInAnswer(res, expectedA)
+
+    def testSecureDNAMEToSecureNXDomain(self):
+        res = self.sendQuery('nxd.dname-secure.secure.example.', 'A')
+        expectedDNAME = dns.rrset.from_text('dname-secure.secure.example.', 0, dns.rdataclass.IN, 'DNAME', 'dname-secure.example.')
+        expectedCNAME = dns.rrset.from_text('nxd.dname-secure.secure.example.', 0, dns.rdataclass.IN, 'CNAME', 'nxd.dname-secure.example.')
+
+        self.assertRcodeEqual(res, dns.rcode.NXDOMAIN)
+        self.assertMessageHasFlags(res, ['QR', 'RD', 'RA', 'AD'], ['DO'])
+        self.assertRRsetInAnswer(res, expectedCNAME)
+        self.assertRRsetInAnswer(res, expectedDNAME)
+        self.assertMatchingRRSIGInAnswer(res, expectedDNAME)
+
+    def testSecureDNAMEToInsecureAnswer(self):
+        res = self.sendQuery('node1.dname-insecure.secure.example.', 'A')
+        expectedDNAME = dns.rrset.from_text('dname-insecure.secure.example.', 0, dns.rdataclass.IN, 'DNAME', 'insecure.example.')
+        expectedCNAME = dns.rrset.from_text('node1.dname-insecure.secure.example.', 0, dns.rdataclass.IN, 'CNAME', 'node1.insecure.example.')
+        expectedA = dns.rrset.from_text('node1.insecure.example.', 0, dns.rdataclass.IN, 'A', '192.0.2.6')
+
+        self.assertRcodeEqual(res, dns.rcode.NOERROR)
+        self.assertMessageHasFlags(res, ['QR', 'RD', 'RA'], ['DO'])
+        self.assertRRsetInAnswer(res, expectedA)
+        self.assertRRsetInAnswer(res, expectedCNAME)
+        self.assertRRsetInAnswer(res, expectedDNAME)
+        self.assertMatchingRRSIGInAnswer(res, expectedDNAME)
+
+    def testSecureDNAMEToInsecureNXDomain(self):
+        res = self.sendQuery('nxd.dname-insecure.secure.example.', 'A')
+        expectedDNAME = dns.rrset.from_text('dname-insecure.secure.example.', 0, dns.rdataclass.IN, 'DNAME', 'insecure.example.')
+        expectedCNAME = dns.rrset.from_text('nxd.dname-insecure.secure.example.', 0, dns.rdataclass.IN, 'CNAME', 'nxd.insecure.example.')
+
+        self.assertRcodeEqual(res, dns.rcode.NXDOMAIN)
+        self.assertMessageHasFlags(res, ['QR', 'RD', 'RA'], ['DO'])
+        self.assertRRsetInAnswer(res, expectedCNAME)
+        self.assertRRsetInAnswer(res, expectedDNAME)
+        self.assertMatchingRRSIGInAnswer(res, expectedDNAME)
+
+    def testSecureDNAMEToBogusAnswer(self):
+        res = self.sendQuery('ted.dname-bogus.secure.example.', 'A')
+
+        self.assertRcodeEqual(res, dns.rcode.SERVFAIL)
+        self.assertAnswerEmpty(res)
+
+    def testSecureDNAMEToBogusNXDomain(self):
+        res = self.sendQuery('nxd.dname-bogus.secure.example.', 'A')
+
+        self.assertRcodeEqual(res, dns.rcode.SERVFAIL)
+        self.assertAnswerEmpty(res)
+
+    def testInsecureDNAMEtoSecureAnswer(self):
+        res = self.sendQuery('host1.dname-to-secure.insecure.example.', 'A')
+        expectedDNAME = dns.rrset.from_text('dname-to-secure.insecure.example.', 0, dns.rdataclass.IN, 'DNAME', 'dname-secure.example.')
+        expectedCNAME = dns.rrset.from_text('host1.dname-to-secure.insecure.example.', 0, dns.rdataclass.IN, 'CNAME', 'host1.dname-secure.example.')
+        expectedA = dns.rrset.from_text('host1.dname-secure.example.', 0, dns.rdataclass.IN, 'A', '192.0.2.21')
+
+        self.assertRcodeEqual(res, dns.rcode.NOERROR)
+        self.assertMessageHasFlags(res, ['QR', 'RD', 'RA'], ['DO'])
+        self.assertRRsetInAnswer(res, expectedA)
+        self.assertRRsetInAnswer(res, expectedCNAME)
+        self.assertRRsetInAnswer(res, expectedDNAME)
+        self.assertMatchingRRSIGInAnswer(res, expectedA)
+
+    def testSecureDNAMEToSecureCNAMEAnswer(self):
+        res = self.sendQuery('cname-to-secure.dname-secure.secure.example.', 'A')
+
+        expectedDNAME = dns.rrset.from_text('dname-secure.secure.example.', 0, dns.rdataclass.IN, 'DNAME', 'dname-secure.example.')
+        expectedCNAME1 = dns.rrset.from_text('cname-to-secure.dname-secure.secure.example.', 0, dns.rdataclass.IN, 'CNAME', 'cname-to-secure.dname-secure.example.')
+        expectedCNAME2 = dns.rrset.from_text('cname-to-secure.dname-secure.example.', 0, dns.rdataclass.IN, 'CNAME', 'host1.secure.example.')
+        expectedA = dns.rrset.from_text('host1.secure.example.', 0, dns.rdataclass.IN, 'A', '192.0.2.2')
+
+        self.assertRcodeEqual(res, dns.rcode.NOERROR)
+        self.assertMessageHasFlags(res, ['QR', 'RD', 'RA', 'AD'], ['DO'])
+        self.assertRRsetInAnswer(res, expectedA)
+        self.assertRRsetInAnswer(res, expectedCNAME1)
+        self.assertRRsetInAnswer(res, expectedCNAME2)
+        self.assertMatchingRRSIGInAnswer(res, expectedCNAME2)
+        self.assertRRsetInAnswer(res, expectedDNAME)
+        self.assertMatchingRRSIGInAnswer(res, expectedDNAME)
+        self.assertMatchingRRSIGInAnswer(res, expectedA)
+
+    def testSecureDNAMEToInsecureCNAMEAnswer(self):
+        res = self.sendQuery('cname-to-insecure.dname-secure.secure.example.', 'A')
+
+        expectedDNAME = dns.rrset.from_text('dname-secure.secure.example.', 0, dns.rdataclass.IN, 'DNAME', 'dname-secure.example.')
+        expectedCNAME1 = dns.rrset.from_text('cname-to-insecure.dname-secure.secure.example.', 0, dns.rdataclass.IN, 'CNAME', 'cname-to-insecure.dname-secure.example.')
+        expectedCNAME2 = dns.rrset.from_text('cname-to-insecure.dname-secure.example.', 0, dns.rdataclass.IN, 'CNAME', 'node1.insecure.example.')
+        expectedA = dns.rrset.from_text('node1.insecure.example.', 0, dns.rdataclass.IN, 'A', '192.0.2.6')
+
+        self.assertRcodeEqual(res, dns.rcode.NOERROR)
+        self.assertMessageHasFlags(res, ['QR', 'RD', 'RA'], ['DO'])
+        self.assertRRsetInAnswer(res, expectedA)
+        self.assertRRsetInAnswer(res, expectedCNAME1)
+        self.assertRRsetInAnswer(res, expectedCNAME2)
+        self.assertMatchingRRSIGInAnswer(res, expectedCNAME2)
+        self.assertRRsetInAnswer(res, expectedDNAME)
+        self.assertMatchingRRSIGInAnswer(res, expectedDNAME)
+
+    def testSecureDNAMEToBogusCNAMEAnswer(self):
+        res = self.sendQuery('cname-to-bogus.dname-secure.secure.example.', 'A')
+
+        self.assertRcodeEqual(res, dns.rcode.SERVFAIL)
+        self.assertAnswerEmpty(res)
+
+    def testInsecureDNAMEtoSecureNXDomain(self):
+        res = self.sendQuery('nxd.dname-to-secure.insecure.example.', 'A')
+        expectedDNAME = dns.rrset.from_text('dname-to-secure.insecure.example.', 0, dns.rdataclass.IN, 'DNAME', 'dname-secure.example.')
+        expectedCNAME = dns.rrset.from_text('nxd.dname-to-secure.insecure.example.', 0, dns.rdataclass.IN, 'CNAME', 'nxd.dname-secure.example.')
+
+        self.assertRcodeEqual(res, dns.rcode.NXDOMAIN)
+        self.assertMessageHasFlags(res, ['QR', 'RD', 'RA'], ['DO'])
+        self.assertRRsetInAnswer(res, expectedCNAME)
+        self.assertRRsetInAnswer(res, expectedDNAME)
+        self.assertMatchingRRSIGInAnswer(res, expectedDNAME)
