@@ -11000,7 +11000,7 @@ BOOST_AUTO_TEST_CASE(test_dname_dnssec_secure) {
           setLWResult(res, 0, true, false, false);
           addRecordToLW(res, dnameOwner, QType::DNAME, dnameTarget.toString());
           addRRSIG(keys, res->d_records, dnameOwner, 300);
-          addRecordToLW(res, domain, QType::CNAME, cnameTarget.toString());
+          addRecordToLW(res, domain, QType::CNAME, cnameTarget.toString()); // CNAME from a DNAME is not signed
           return 1;
         }
       } else if (ip == ComboAddress("192.0.2.2:53")) {
@@ -11152,7 +11152,7 @@ BOOST_AUTO_TEST_CASE(test_dname_dnssec_insecure) {
           setLWResult(res, 0, true, false, false);
           addRecordToLW(res, dnameOwner, QType::DNAME, dnameTarget.toString());
           addRRSIG(keys, res->d_records, dnameOwner, 300);
-          addRecordToLW(res, domain, QType::CNAME, cnameTarget.toString());
+          addRecordToLW(res, domain, QType::CNAME, cnameTarget.toString()); // CNAME from a DNAME is not signed
           return 1;
         }
       } else if (ip == ComboAddress("192.0.2.2:53")) {
