@@ -271,4 +271,3 @@ class BasicDNSSEC(RecursorTest):
         self.assertMessageHasFlags(res, ['QR', 'RD', 'RA'], ['DO'])
         self.assertRRsetInAnswer(res, expectedCNAME)
         self.assertRRsetInAnswer(res, expectedDNAME)
-        self.assertMatchingRRSIGInAnswer(res, expectedDNAME)
