@@ -72,7 +72,7 @@ AuthWebServer::AuthWebServer() :
     d_ws = new WebServer(arg()["webserver-address"], arg().asNum("webserver-port"));
     d_ws->setApiKey(arg()["api-key"]);
     d_ws->setPassword(arg()["webserver-password"]);
-    d_ws->setLogLevel(arg()["webserver-log-level"]);
+    d_ws->setLogLevel(arg()["webserver-loglevel"]);
 
     NetmaskGroup acl;
     acl.toMasks(::arg()["webserver-allow-from"]);
