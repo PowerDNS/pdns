@@ -1045,11 +1045,20 @@ bool SyncRes::doCNAMECacheCheck(const DNSName &qname, const QType &qtype, vector
           }
           auto dnameSuffix = dnameRR->getTarget();
           DNSName targetPrefix = qname.makeRelative(foundName);
-          dr.d_type = QType::CNAME;
-          dr.d_name = targetPrefix + foundName;
-          newTarget = targetPrefix + dnameSuffix;
-          dr.d_content = std::make_shared<CNAMERecordContent>(CNAMERecordContent(newTarget));
-          ret.push_back(dr);
+          try {
+            dr.d_type = QType::CNAME;
+            dr.d_name = targetPrefix + foundName;
+            newTarget = targetPrefix + dnameSuffix;
+            dr.d_content = std::make_shared<CNAMERecordContent>(CNAMERecordContent(newTarget));
+            ret.push_back(dr);
+          } catch (const std::exception &e) {
+            // We should probably catch an std::range_error here and set the rcode to YXDOMAIN (RFC 6672, section 2.2)
+            // But this is consistent with processRecords
+            throw ImmediateServFailException("Unable to perform DNAME substitution(DNAME owner: '" + foundName.toLogString() +
+                                             "', DNAME target: '" + dnameSuffix.toLogString() + "', substituted name: '" +
+                                             targetPrefix.toLogString() + "." + dnameSuffix.toLogString() +
+                                             "' : " + e.what());
+          }
 
           LOG(prefix<<qname<<": Synthesized "<<dr.d_name<<"|CNAME "<<newTarget<<endl);
         }
@@ -2537,6 +2546,7 @@ bool SyncRes::processRecords(const std::string& prefix, const DNSName& qname, co
 {
   bool done = false;
   DNSName dnameTarget, dnameOwner;
+  uint32_t dnameTTL = 0;
 
   for(auto& rec : lwr.d_records) {
     if (rec.d_type!=QType::OPT && rec.d_class!=QClass::IN)
@@ -2599,6 +2609,9 @@ bool SyncRes::processRecords(const std::string& prefix, const DNSName& qname, co
     else if(rec.d_place==DNSResourceRecord::ANSWER && s_redirectionQTypes.count(rec.d_type) > 0 && // CNAME or DNAME answer
         s_redirectionQTypes.count(qtype.getCode()) == 0) { // But not in response to a CNAME or DNAME query
       if (rec.d_type == QType::CNAME && rec.d_name == qname) {
+        if (!dnameOwner.empty()) { // We synthesize ourselves
+          continue;
+        }
         ret.push_back(rec);
         if (auto content = getRR<CNAMERecordContent>(rec)) {
           newtarget=content->getTarget();
@@ -2608,6 +2621,17 @@ bool SyncRes::processRecords(const std::string& prefix, const DNSName& qname, co
         if (auto content = getRR<DNAMERecordContent>(rec)) {
           dnameOwner = rec.d_name;
           dnameTarget = content->getTarget();
+          dnameTTL = rec.d_ttl;
+          try {
+            newtarget = qname.makeRelative(dnameOwner) + dnameTarget;
+          } catch (const std::exception &e) {
+            // We should probably catch an std::range_error here and set the rcode to YXDOMAIN (RFC 6672, section 2.2)
+            // But there is no way to set the RCODE from this function
+            throw ImmediateServFailException("Unable to perform DNAME substitution(DNAME owner: '" + dnameOwner.toLogString() +
+                                             "', DNAME target: '" + dnameTarget.toLogString() + "', substituted name: '" +
+                                             qname.makeRelative(dnameOwner).toLogString() + "." + dnameTarget.toLogString() +
+                                             "' : " + e.what());
+          }
         }
       }
     }
@@ -2760,13 +2784,14 @@ bool SyncRes::processRecords(const std::string& prefix, const DNSName& qname, co
     }
   }
 
-  if (!dnameTarget.empty() && !newtarget.empty()) {
-    DNSName substTarget = qname.makeRelative(dnameOwner) + dnameTarget;
-    if (substTarget != newtarget) {
-      throw ImmediateServFailException("Received wrong DNAME substitution. qname='" + qname.toLogString() +
-           "', DNAME owner='" + dnameOwner.toLogString() + "', DNAME target='" + dnameTarget.toLogString() +
-           "', received CNAME='" + newtarget.toLogString() + "', substituted CNAME='" + substTarget.toLogString() + "'");
-    }
+  if (!dnameTarget.empty()) {
+    // Synthesize a CNAME
+    auto cnamerec = DNSRecord();
+    cnamerec.d_name = qname;
+    cnamerec.d_type = QType::CNAME;
+    cnamerec.d_ttl = dnameTTL;
+    cnamerec.d_content = std::make_shared<CNAMERecordContent>(CNAMERecordContent(newtarget));
+    ret.push_back(cnamerec);
   }
   return done;
 }
