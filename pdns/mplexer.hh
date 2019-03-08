@@ -83,9 +83,9 @@ public:
   }
 
   //! Add an fd to the write watch list - currently an fd can only be on one list at a time!
-  virtual void addWriteFD(int fd, callbackfunc_t toDo, const funcparam_t& parameter=funcparam_t())
+  virtual void addWriteFD(int fd, callbackfunc_t toDo, const funcparam_t& parameter=funcparam_t(), const struct timeval* ttd=nullptr)
   {
-    this->addFD(d_writeCallbacks, fd, toDo, parameter);
+    this->addFD(d_writeCallbacks, fd, toDo, parameter, ttd);
   }
 
   //! Remove an fd from the read watch list. You can't call this function on an fd that is closed already!
@@ -113,6 +113,17 @@ public:
     it->second.d_ttd = tv;
   }
 
+  virtual void setWriteTTD(int fd, struct timeval tv, int timeout)
+  {
+    const auto& it = d_writeCallbacks.find(fd);
+    if (it == d_writeCallbacks.end()) {
+      throw FDMultiplexerException("attempt to timestamp fd not in the multiplexer");
+    }
+
+    tv.tv_sec += timeout;
+    it->second.d_ttd = tv;
+  }
+
   virtual funcparam_t& getReadParameter(int fd) 
   {
     const auto& it = d_readCallbacks.find(fd);
@@ -123,12 +134,12 @@ public:
     return it->second.d_parameter;
   }
 
-  virtual std::vector<std::pair<int, funcparam_t> > getTimeouts(const struct timeval& tv)
+  virtual std::vector<std::pair<int, funcparam_t> > getTimeouts(const struct timeval& tv, bool writes=false)
   {
     const auto tied = boost::tie(tv.tv_sec, tv.tv_usec);
     std::vector<std::pair<int, funcparam_t> > ret;
 
-    for(const auto& entry : d_readCallbacks) {
+    for(const auto& entry : (writes ? d_writeCallbacks : d_readCallbacks)) {
       if(entry.second.d_ttd.tv_sec && tied > boost::tie(entry.second.d_ttd.tv_sec, entry.second.d_ttd.tv_usec)) {
         ret.push_back(std::make_pair(entry.first, entry.second.d_parameter));
       }
