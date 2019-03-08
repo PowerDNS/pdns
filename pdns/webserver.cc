@@ -352,12 +352,14 @@ void WebServer::serveConnection(std::shared_ptr<Socket> client) const {
 
   HttpRequest req(logprefix);
   HttpResponse resp;
+  resp.max_response_size=d_maxbodysize;
   ComboAddress remote;
   string reply;
 
   try {
     YaHTTP::AsyncRequestLoader yarl;
     yarl.initialize(&req);
+    req.max_request_size=d_maxbodysize;
     int timeout = 5;
     client->setNonBlocking();
 
@@ -414,7 +416,8 @@ void WebServer::serveConnection(std::shared_ptr<Socket> client) const {
 WebServer::WebServer(const string &listenaddress, int port) :
   d_listenaddress(listenaddress),
   d_port(port),
-  d_server(nullptr)
+  d_server(nullptr),
+  d_maxbodysize(2*1024*1024)
 {
 }
 
