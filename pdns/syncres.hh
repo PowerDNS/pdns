@@ -665,7 +665,7 @@ public:
 #endif
 
 #ifdef HAVE_FSTRM
-  void setFrameStreamServers(std::shared_ptr<std::vector<std::unique_ptr<RemoteLoggerInterface>>>& servers)
+  void setFrameStreamServers(std::shared_ptr<std::vector<std::unique_ptr<FrameStreamLogger>>>& servers)
   {
     d_frameStreamServers = servers;
   }
@@ -815,7 +815,7 @@ private:
   shared_ptr<RecursorLua4> d_pdl;
   boost::optional<Netmask> d_outgoingECSNetwork;
   std::shared_ptr<std::vector<std::unique_ptr<RemoteLogger>>> d_outgoingProtobufServers{nullptr};
-  std::shared_ptr<std::vector<std::unique_ptr<RemoteLoggerInterface>>> d_frameStreamServers{nullptr};
+  std::shared_ptr<std::vector<std::unique_ptr<FrameStreamLogger>>> d_frameStreamServers{nullptr};
 #ifdef HAVE_PROTOBUF
   boost::optional<const boost::uuids::uuid&> d_initialRequestId;
 #endif

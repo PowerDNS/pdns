@@ -114,6 +114,7 @@ pdns_recursor_SOURCES = \
 	ednsoptions.cc ednsoptions.hh \
 	ednssubnet.cc ednssubnet.hh \
 	filterpo.cc filterpo.hh \
+	fstrm_logger.cc fstrm_logger.hh \
 	gettime.cc gettime.hh \
 	gss_context.cc gss_context.hh \
 	iputils.hh iputils.cc \
@@ -390,7 +391,7 @@ endif
 
 if FSTRM
 pdns_recursor_SOURCES += \
-	dnstap.cc dnstap.hh fstrm_logger.cc fstrm_logger.hh rec-dnstap.hh
+	dnstap.cc dnstap.hh rec-dnstap.hh
 
 pdns_recursor_LDADD += \
 	$(FSTRM_LIBS)

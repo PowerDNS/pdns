@@ -68,4 +68,6 @@ private:
   bool d_logResponses{true};
 };
 
+#else
+class FrameStreamLogger : public RemoteLoggerInterface, boost::noncopyable {};
 #endif /* HAVE_FSTRM */

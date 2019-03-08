@@ -122,7 +122,7 @@ static thread_local uint64_t t_outgoingProtobufServersGeneration;
 #endif /* HAVE_PROTOBUF */
 
 #ifdef HAVE_FSTRM
-static thread_local std::shared_ptr<std::vector<std::unique_ptr<RemoteLoggerInterface>>> t_frameStreamServers{nullptr};
+static thread_local std::shared_ptr<std::vector<std::unique_ptr<FrameStreamLogger>>> t_frameStreamServers{nullptr};
 static thread_local uint64_t t_frameStreamServersGeneration;
 #endif /* HAVE_FSTRM */
 
@@ -963,9 +963,9 @@ static bool checkOutgoingProtobufExport(LocalStateHolder<LuaConfigItems>& luacon
 
 #ifdef HAVE_FSTRM
 
-static std::shared_ptr<std::vector<std::unique_ptr<RemoteLoggerInterface>>> startFrameStreamServers(const FrameStreamExportConfig& config)
+static std::shared_ptr<std::vector<std::unique_ptr<FrameStreamLogger>>> startFrameStreamServers(const FrameStreamExportConfig& config)
 {
-  auto result = std::make_shared<std::vector<std::unique_ptr<RemoteLoggerInterface>>>();
+  auto result = std::make_shared<std::vector<std::unique_ptr<FrameStreamLogger>>>();
 
   for (const auto& server : config.servers) {
     try {
