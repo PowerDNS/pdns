@@ -369,6 +369,7 @@ void WebServer::serveConnection(std::shared_ptr<Socket> client) const {
       yarl.finalize();
     } catch (YaHTTP::ParseError &e) {
       // request stays incomplete
+      g_log<<Logger::Warning<<logprefix<<"Unable to parse request: "<<e.what()<<endl;
     }
 
     if (d_loglevel >= WebServer::LogLevel::None) {
