@@ -541,8 +541,8 @@ test_auth() {
   run "./timestamp ./start-test-stop 5300 gpgsql-nodnssec-both"
   run "./timestamp ./start-test-stop 5300 gpgsql-both"
   run "./timestamp ./start-test-stop 5300 gpgsql-nsec3-both"
-  run "./timestamp ./start-test-stop 5300 gpgsql-nsec3-optout-both"
-  run "./timestamp ./start-test-stop 5300 gpgsql-nsec3-narrow"
+  #run "./timestamp ./start-test-stop 5300 gpgsql-nsec3-optout-both"
+  #run "./timestamp ./start-test-stop 5300 gpgsql-nsec3-narrow"
 
   run "./timestamp ./start-test-stop 5300 gsqlite3-nodnssec-both"
   run "./timestamp ./start-test-stop 5300 gsqlite3-both"
@@ -556,11 +556,11 @@ test_auth() {
 
   run "./timestamp ./start-test-stop 5300 remotebackend-pipe"
   run "./timestamp ./start-test-stop 5300 remotebackend-pipe-dnssec"
-  run "./timestamp ./start-test-stop 5300 remotebackend-unix"
+  #run "./timestamp ./start-test-stop 5300 remotebackend-unix"
   run "./timestamp ./start-test-stop 5300 remotebackend-unix-dnssec"
-  run "./timestamp ./start-test-stop 5300 remotebackend-http"
+  #run "./timestamp ./start-test-stop 5300 remotebackend-http"
   run "./timestamp ./start-test-stop 5300 remotebackend-http-dnssec"
-  run "./timestamp ./start-test-stop 5300 remotebackend-zeromq"
+  #run "./timestamp ./start-test-stop 5300 remotebackend-zeromq"
   run "./timestamp ./start-test-stop 5300 remotebackend-zeromq-dnssec"
 
   run "./timestamp ./start-test-stop 5300 tinydns"
