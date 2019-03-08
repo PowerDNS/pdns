@@ -358,7 +358,7 @@ void WebServer::serveConnection(std::shared_ptr<Socket> client) const {
     try {
       while(!req.complete) {
         int bytes;
-        char buf[1024];
+        char buf[16000];
         bytes = client->readWithTimeout(buf, sizeof(buf), timeout);
         if (bytes > 0) {
           string data = string(buf, bytes);
