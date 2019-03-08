@@ -534,6 +534,7 @@ bool setNonBlocking( int sock );
 bool setTCPNoDelay(int sock);
 bool setReuseAddr(int sock);
 bool isNonBlocking(int sock);
+bool setReceiveSocketErrors(int sock, int af);
 int closesocket(int fd);
 bool setCloseOnExec(int sock);
 uint64_t udpErrorStats(const std::string& str);

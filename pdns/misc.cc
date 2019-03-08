@@ -1101,6 +1101,22 @@ bool isNonBlocking(int sock)
   return flags & O_NONBLOCK;
 }
 
+bool setReceiveSocketErrors(int sock, int af)
+{
+#ifdef __linux__
+  int tmp = 1, ret;
+  if (af == AF_INET) {
+    ret = setsockopt(sock, IPPROTO_IP, IP_RECVERR, &tmp, sizeof(tmp));
+  } else {
+    ret = setsockopt(sock, IPPROTO_IPV6, IPV6_RECVERR, &tmp, sizeof(tmp));
+  }
+  if (ret < 0) {
+    throw PDNSException(string("Setsockopt failed: ") + strerror(errno));
+  }
+#endif
+  return true;
+}
+
 // Closes a socket.
 int closesocket( int socket )
 {

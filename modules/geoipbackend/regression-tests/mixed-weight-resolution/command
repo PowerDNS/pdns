@@ -1,0 +1,5 @@
+#!/bin/sh
+cleandig mixed_weight.geo.example.com A
+cleandig mixed_weight.geo.example.com TXT
+cleandig mixed_weight.geo.example.com ANY tcp
+

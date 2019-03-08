@@ -628,6 +628,7 @@ public:
     if(!tries)
       throw PDNSException("Resolver binding to local query client socket on "+sin.toString()+": "+stringerror());
 
+    setReceiveSocketErrors(ret, family);
     setNonBlocking(ret);
     return ret;
   }
