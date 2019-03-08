@@ -3,7 +3,12 @@
 
 #include "config.h"
 #include "fstrm_logger.hh"
+
+#ifdef RECURSOR
+#include "logger.hh"
+#else
 #include "dolog.hh"
+#endif
 
 #define DNSTAP_CONTENT_TYPE		"protobuf:dnstap.Dnstap"
 
@@ -176,7 +181,11 @@ void FrameStreamLogger::queueData(const std::string& data)
   }
   uint8_t *frame = (uint8_t*)malloc(data.length());
   if (!frame) {
+#ifdef RECURSOR
+    g_log<<Logger::Warning<<"FrameStreamLogger: cannot allocate memory for stream."<<std::endl;
+#else
     warnlog("FrameStreamLogger: cannot allocate memory for stream.");
+#endif
     return;
   }
   memcpy(frame, data.c_str(), data.length());
@@ -188,11 +197,19 @@ void FrameStreamLogger::queueData(const std::string& data)
     // Frame successfully queued.
   } else if (res == fstrm_res_again) {
     free(frame);
+#ifdef RECURSOR
+    g_log<<Logger::Warning<<"FrameStreamLogger: queue full, dropping."<<std::endl;
+#else
     warnlog("FrameStreamLogger: queue full, dropping.");
-  } else {
+#endif
+ } else {
     // Permanent failure.
     free(frame);
+#ifdef RECURSOR
+    g_log<<Logger::Warning<<"FrameStreamLogger: submitting to queue failed."<<std::endl;
+#else
     warnlog("FrameStreamLogger: submitting to queue failed.");
+#endif
   }
 }
 

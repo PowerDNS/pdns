@@ -390,7 +390,7 @@ endif
 
 if FSTRM
 pdns_recursor_SOURCES += \
-	dnstap.cc dnstap.hh fstrm_logger.cc fstrm_logger.hh dolog.hh
+	dnstap.cc dnstap.hh fstrm_logger.cc fstrm_logger.hh
 
 pdns_recursor_LDADD += \
 	$(FSTRM_LIBS)
