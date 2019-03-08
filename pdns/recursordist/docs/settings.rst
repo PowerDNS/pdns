@@ -12,17 +12,6 @@ As an example:
  - ``serve-rfc1918=off`` or ``serve-rfc1918=no`` means: do not serve those zones.
  - Anything else means: do serve those zones.
 
-.. _setting-aaaa-additional-processing:
-
-``aaaa-additional-processing``
-------------------------------
--  Boolean
--  Default: No
-
-If turned on, the recursor will attempt to add AAAA IPv6 records to questions for MX records and NS records.
-Can be quite slow as absence of these records in earlier answers does not guarantee their non-existence.
-Can double the amount of queries needed.
-
 .. _setting-allow-from:
 
 ``allow-from``
