@@ -1043,7 +1043,7 @@ bool SyncRes::doCNAMECacheCheck(const DNSName &qname, const QType &qtype, vector
           if (dnameRR == nullptr) {
             throw ImmediateServFailException("Unable to get record content for "+foundName.toLogString()+"|DNAME cache entry");
           }
-          auto dnameSuffix = dnameRR->getTarget();
+          const auto& dnameSuffix = dnameRR->getTarget();
           DNSName targetPrefix = qname.makeRelative(foundName);
           try {
             dr.d_type = QType::CNAME;
