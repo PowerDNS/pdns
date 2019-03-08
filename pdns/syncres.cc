@@ -680,12 +680,9 @@ struct speedOrderCA
 vector<ComboAddress> SyncRes::getAddrs(const DNSName &qname, unsigned int depth, set<GetBestNSAnswer>& beenthere, bool cacheOnly)
 {
   typedef vector<DNSRecord> res_t;
-  res_t res;
-
   typedef vector<ComboAddress> ret_t;
   ret_t ret;
 
-  QType type;
   bool oldCacheOnly = d_cacheonly;
   bool oldRequireAuthData = d_requireAuthData;
   bool oldValidationRequested = d_DNSSECValidationRequested;
@@ -693,48 +690,45 @@ vector<ComboAddress> SyncRes::getAddrs(const DNSName &qname, unsigned int depth,
   d_DNSSECValidationRequested = false;
   d_cacheonly = cacheOnly;
 
-  for(int j=1; j<2+s_doIPv6; j++)
-  {
-    bool done=false;
-    switch(j) {
-      case 0:
-        type = QType::ANY;
-        break;
-      case 1:
-        type = QType::A;
-        break;
-      case 2:
-        type = QType::AAAA;
-        break;
-    }
-
+  if (true) { // IPv4 always matters
     vState newState = Indeterminate;
-    if(!doResolve(qname, type, res,depth+1, beenthere, newState) && !res.empty()) {  // this consults cache, OR goes out
-      for(res_t::const_iterator i=res.begin(); i!= res.end(); ++i) {
-        if(i->d_type == QType::A || i->d_type == QType::AAAA) {
-	  if(auto rec = getRR<ARecordContent>(*i))
-	    ret.push_back(rec->getCA(53));
-	  else if(auto aaaarec = getRR<AAAARecordContent>(*i))
-	    ret.push_back(aaaarec->getCA(53));
-          done=true;
+    res_t res;
+    if (doResolve(qname, QType::A, res, depth+1, beenthere, newState) == 0) {  // this consults cache, OR goes out
+      for (res_t::const_iterator i = res.begin(); i != res.end(); ++i) {
+        if (i->d_type == QType::A) {
+          if (auto rec = getRR<ARecordContent>(*i)) {
+            ret.push_back(rec->getCA(53));
+          }
         }
       }
     }
-    if(done) {
-      if(j==1 && s_doIPv6) { // we got an A record, see if we have some AAAA lying around
-	vector<DNSRecord> cset;
-	if(t_RC->get(d_now.tv_sec, qname, QType(QType::AAAA), false, &cset, d_cacheRemote) > 0) {
-	  for(auto k=cset.cbegin();k!=cset.cend();++k) {
-	    if(k->d_ttl > (unsigned int)d_now.tv_sec ) {
-	      if (auto drc = getRR<AAAARecordContent>(*k)) {
-	        ComboAddress ca=drc->getCA(53);
-	        ret.push_back(ca);
-	      }
-	    }
-	  }
-	}
+  }
+  if (s_doIPv6) {
+    if (ret.empty()) {
+      // We did not find IPv4 addresses, try to get IPv6 ones
+      vState newState = Indeterminate;
+      res_t res;
+      if (doResolve(qname, QType::AAAA, res,depth+1, beenthere, newState) == 0) {  // this consults cache, OR goes out
+        for (res_t::const_iterator i = res.begin(); i != res.end(); ++i) {
+          if (i->d_type == QType::AAAA) {
+            if (auto rec = getRR<AAAARecordContent>(*i))
+              ret.push_back(rec->getCA(53));
+          }
+        }
       }
-      break;
+    } else {
+      // We have some IPv4 records, don't bother with going out to get IPv6, but do consult the cache
+      // Once IPv6 adoption matters, this needs to be revisited
+      res_t cset;
+      if (t_RC->get(d_now.tv_sec, qname, QType(QType::AAAA), false, &cset, d_cacheRemote) > 0) {
+        for (auto k = cset.cbegin(); k != cset.cend(); ++k) {
+          if (k->d_ttl > (unsigned int)d_now.tv_sec ) {
+            if (auto rec = getRR<AAAARecordContent>(*k)) {
+              ret.push_back(rec->getCA(53));
+            }
+          }
+        }
+      }
     }
   }
 
