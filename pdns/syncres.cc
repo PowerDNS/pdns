@@ -690,15 +690,14 @@ vector<ComboAddress> SyncRes::getAddrs(const DNSName &qname, unsigned int depth,
   d_DNSSECValidationRequested = false;
   d_cacheonly = cacheOnly;
 
-  if (true) { // IPv4 always matters
-    vState newState = Indeterminate;
-    res_t res;
-    if (doResolve(qname, QType::A, res, depth+1, beenthere, newState) == 0) {  // this consults cache, OR goes out
-      for (res_t::const_iterator i = res.begin(); i != res.end(); ++i) {
-        if (i->d_type == QType::A) {
-          if (auto rec = getRR<ARecordContent>(*i)) {
-            ret.push_back(rec->getCA(53));
-          }
+  vState newState = Indeterminate;
+  res_t res;
+  // If IPv4 ever becomes second class, we should revisit this
+  if (doResolve(qname, QType::A, res, depth+1, beenthere, newState) == 0) {  // this consults cache, OR goes out
+    for (res_t::const_iterator i = res.begin(); i != res.end(); ++i) {
+      if (i->d_type == QType::A) {
+        if (auto rec = getRR<ARecordContent>(*i)) {
+          ret.push_back(rec->getCA(53));
         }
       }
     }
