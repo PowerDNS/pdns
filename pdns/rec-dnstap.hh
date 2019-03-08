@@ -21,30 +21,17 @@
  */
 #pragma once
 
-#include <cstddef>
-#include <string>
+#ifdef HAVE_FSTRM
+#include "dnstap.hh"
+#endif /* HAVE_FSTRM */
 
-#include "config.h"
-
-#include "dnsname.hh"
-#include "iputils.hh"
-
-#ifdef HAVE_PROTOBUF
-#include <boost/uuid/uuid.hpp>
-#include "dnstap.pb.h"
-#endif /* HAVE_PROTOBUF */
-
-class DnstapMessage
+class RecDnstapMessage : public DnstapMessage
 {
 public:
-  DnstapMessage(const std::string& identity, const ComboAddress* requestor, const ComboAddress* responder, bool isTCP, const char* packet, const size_t len, const struct timespec* queryTime, const struct timespec* responseTime);
-  void serialize(std::string& data) const;
-  std::string toDebugString() const;
-
-  void setExtra(const std::string& extra);
-
-#ifdef HAVE_PROTOBUF
-protected:
-  dnstap::Dnstap proto_message;
-#endif /* HAVE_PROTOBUF */
+  RecDnstapMessage(const std::string& identity, const ComboAddress* requestor, const ComboAddress* responder, bool isTCP, const char* packet, const size_t len, const struct timespec* queryTime, const struct timespec* responseTime)
+      : DnstapMessage(identity, requestor, responder, isTCP, packet, len, queryTime, responseTime) {
+    const struct dnsheader* dh = reinterpret_cast<const struct dnsheader*>(packet);
+    dnstap::Message* message = proto_message.mutable_message();
+    message->set_type(!dh->qr ? dnstap::Message_Type_RESOLVER_QUERY : dnstap::Message_Type_RESOLVER_RESPONSE);
+  }
 };

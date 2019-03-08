@@ -2,7 +2,7 @@
 #include "gettime.hh"
 #include "dnstap.hh"
 
-DnstapMessage::DnstapMessage(const std::string& identity, const ComboAddress* requestor, const ComboAddress* responder, bool isTCP, const char* packet, const size_t len, const struct timespec* queryTime, const struct timespec* responseTime, bool recursor)
+DnstapMessage::DnstapMessage(const std::string& identity, const ComboAddress* requestor, const ComboAddress* responder, bool isTCP, const char* packet, const size_t len, const struct timespec* queryTime, const struct timespec* responseTime)
 {
 #ifdef HAVE_PROTOBUF
   const struct dnsheader* dh = reinterpret_cast<const struct dnsheader*>(packet);
@@ -13,11 +13,7 @@ DnstapMessage::DnstapMessage(const std::string& identity, const ComboAddress* re
 
   dnstap::Message* message = proto_message.mutable_message();
 
-  if (recursor) {
-    message->set_type(!dh->qr ? dnstap::Message_Type_RESOLVER_QUERY : dnstap::Message_Type_RESOLVER_RESPONSE);
-  } else {
-    message->set_type(!dh->qr ? dnstap::Message_Type_CLIENT_QUERY : dnstap::Message_Type_CLIENT_RESPONSE);
-  }
+  message->set_type(!dh->qr ? dnstap::Message_Type_CLIENT_QUERY : dnstap::Message_Type_CLIENT_RESPONSE);
   message->set_socket_protocol(isTCP ? dnstap::TCP : dnstap::UDP);
 
   if (requestor != nullptr) {

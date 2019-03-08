@@ -370,7 +370,7 @@ nodist_testrunner_SOURCES = dnsmessage.pb.cc dnsmessage.pb.h
 
 if FSTRM
 BUILT_SOURCES += dnstap.pb.cc
-pdns_recursor.$(OBJEXT): dnstap.pb.cc  dnsmessage.pb.cc
+pdns_recursor.$(OBJEXT): dnstap.pb.cc dnsmessage.pb.cc
 testrunner$(OBJEXT): dnstap.pb.cc dnsmessage.pb.cc
 nodist_pdns_recursor_SOURCES += dnstap.pb.cc dnstap.pb.h
 nodist_testrunner_SOURCES += dnstap.pb.cc dnstap.pb.h
@@ -390,7 +390,7 @@ endif
 
 if FSTRM
 pdns_recursor_SOURCES += \
-	dnstap.cc dnstap.hh fstrm_logger.cc fstrm_logger.hh
+	dnstap.cc dnstap.hh fstrm_logger.cc fstrm_logger.hh rec-dnstap.hh
 
 pdns_recursor_LDADD += \
 	$(FSTRM_LIBS)

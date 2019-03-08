@@ -53,7 +53,7 @@
 #include "uuid-utils.hh"
 
 #ifdef HAVE_FSTRM
-#include "dnstap.hh"
+#include "rec-dnstap.hh"
 #include "fstrm_logger.hh"
 bool g_syslog;
 
@@ -79,7 +79,7 @@ static void logFstreamQuery(const std::shared_ptr<std::vector<std::unique_ptr<Re
 
   struct timespec ts;
   TIMEVAL_TO_TIMESPEC(&queryTime, &ts);
-  DnstapMessage message(SyncRes::s_serverID, nullptr, &ip, doTCP, reinterpret_cast<const char*>(&*packet.begin()), packet.size(), &ts, nullptr, true);
+  DnstapMessage message(SyncRes::s_serverID, nullptr, &ip, doTCP, reinterpret_cast<const char*>(&*packet.begin()), packet.size(), &ts, nullptr);
   std::string str;
   message.serialize(str);
 
@@ -111,7 +111,7 @@ static void logFstreamResponse(const std::shared_ptr<std::vector<std::unique_ptr
   struct timespec ts1, ts2;
   TIMEVAL_TO_TIMESPEC(&queryTime, &ts1);
   TIMEVAL_TO_TIMESPEC(&replyTime, &ts2);
-  DnstapMessage message(SyncRes::s_serverID, nullptr, &ip, doTCP, static_cast<const char*>(&*packet.begin()), packet.size(), &ts1, &ts2, true);
+  RecDnstapMessage message(SyncRes::s_serverID, nullptr, &ip, doTCP, static_cast<const char*>(&*packet.begin()), packet.size(), &ts1, &ts2);
   std::string str;
   message.serialize(str);
 
