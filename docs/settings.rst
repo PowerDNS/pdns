@@ -228,7 +228,9 @@ See :ref:`metricscarbon`
 
 Send all available metrics to this server via the carbon protocol, which
 is used by graphite and metronome. It has to be an address (no
-hostnames). You may specify an alternate port by appending :port, ex:
+hostnames). Moreover you can specify more than one server using a comma delimited list, ex:
+carbon-server=10.10.10.10,10.10.10.20.
+You may specify an alternate port by appending :port, ex:
 127.0.0.1:2004. See :ref:`metricscarbon`.
 
 .. _setting-carbon-interval:
@@ -1144,13 +1146,13 @@ To notify all IP addresses apart from the 192.168.0.0/24 subnet use the followin
   :ref:`metadata-also-notify` domain metadata to avoid this potential bottleneck.
 
 .. note::
-  If your slaves support Internet Protocol version, which your master does not, 
-  then set ``only-notify`` to include only supported protocol version. 
+  If your slaves support Internet Protocol version, which your master does not,
+  then set ``only-notify`` to include only supported protocol version.
   Otherwise there will be error trying to resolve address.
-  
-  For example, slaves support both IPv4 and IPv6, but PowerDNS master have only IPv4, 
+
+  For example, slaves support both IPv4 and IPv6, but PowerDNS master have only IPv4,
   so allow only IPv4 with ``only-notify``::
-  
+
     only-notify=0.0.0.0/0
 
 .. _setting-out-of-zone-additional-processing:
@@ -1638,7 +1640,7 @@ The port where webserver/API will listen on.
 -  Boolean
 -  Default: no
 
-If the webserver should print arguments. 
+If the webserver should print arguments.
 
 .. _setting-write-pid:
 
