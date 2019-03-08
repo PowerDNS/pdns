@@ -1725,6 +1725,15 @@ The value between the hooks is a UUID that is generated for each request. This c
 .. note::
   The webserver logs these line on the NOTICE level. The :ref:`settings-loglevel` seting must be 5 or higher for these lines to end up in the log.
 
+.. _setting-webserver-max-bodysize:
+
+``webserver-max-bodysize``
+--------------------------
+-  Integer
+-  Default: 2
+
+Maximum request/response body size in megabytes.
+
 .. _setting-webserver-password:
 
 ``webserver-password``

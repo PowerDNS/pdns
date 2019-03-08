@@ -171,6 +171,10 @@ public:
     d_webserverPassword = password;
   }
 
+  void setMaxBodySize(ssize_t s) { // in megabytes
+    d_maxbodysize = s * 1024 * 1024;
+  }
+
   void setACL(const NetmaskGroup &nmg) {
     d_acl = nmg;
   }
@@ -237,6 +241,8 @@ protected:
 
   std::string d_webserverPassword;
   bool d_registerWebHandlerCalled{false};
+
+  ssize_t d_maxbodysize; // in bytes
 
   NetmaskGroup d_acl;
 
