@@ -316,11 +316,6 @@ For example, to send a custom SNMP trap containing the qname from the
       return false
     end
 
-MIB
-^^^
-
-.. literalinclude:: ../../RECURSOR-MIB.txt
-
 .. _hooks-maintenance-callback:
 
 Maintenance callback
