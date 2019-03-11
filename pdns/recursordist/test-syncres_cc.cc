@@ -10955,6 +10955,9 @@ BOOST_AUTO_TEST_CASE(test_dname_dnssec_secure) {
 
   sr->setAsyncCallback([dnameOwner, dnameTarget, target, cnameTarget, keys, &queries](const ComboAddress& ip, const DNSName& domain, int type, bool doTCP, bool sendRDQuery, int EDNS0Level, struct timeval* now, boost::optional<Netmask>& srcmask, boost::optional<const ResolveContext&> context, LWResult* res, bool* chained) {
       queries++;
+      /* We don't use the genericDSAndDNSKEYHandler here, as it would deny names existing at the wrong level of the tree, due to the way computeZoneCuts works
+       * As such, we need to do some more work to make the answers correct.
+       */
 
       if (isRootServer(ip)) {
         if (domain.countLabels() == 0 && type == QType::DNSKEY) { // .|DNSKEY
