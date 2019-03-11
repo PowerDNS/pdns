@@ -64,6 +64,7 @@ EXTRA_DIST = \
 	NOTICE \
 	opensslsigners.hh opensslsigners.cc \
 	portsmplexer.cc \
+	dnstap.proto dnstap.cc dnstap.hh fstrm_logger.cc fstrm_logger.hh rec-dnstap.hh \
 	rrd/* \
 	html incfiles \
 	test_libcrypto \
