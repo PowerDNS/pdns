@@ -161,7 +161,7 @@ Change the instance or third string of the metric key. The default is recursor.
 -----------------
 -  IP address
 
-If set to an IP or IPv6 address, will send all available metrics to this server via the carbon protocol, which is used by graphite and metronome.
+If set to an IP or IPv6 address, will send all available metrics to this server via the carbon protocol, which is used by graphite and metronome. Moreover you can specify more than one server using a comma delimited list, ex: carbon-server=10.10.10.10,10.10.10.20.
 You may specify an alternate port by appending :port, for example: ``127.0.0.1:2004``.
 See :doc:`metrics`.
 
@@ -483,7 +483,7 @@ An entry called 'server1.home' will be stored as 'server1.home', regardless of t
 -----------------
 -  'zonename=IP' pairs, comma separated
 
-Queries for zones listed here will be forwarded to the IP address listed. i.e. 
+Queries for zones listed here will be forwarded to the IP address listed. i.e.
 
 .. code-block:: none
 
@@ -918,7 +918,7 @@ The default size of the stable bloom filter used to store previously
 observed domains is 67108864. To change the number of cells, use this
 setting. For each cell, the SBF uses 1 bit of memory, and one byte of
 disk for the persistent file.
-If there are already persistent files saved to disk, this setting will 
+If there are already persistent files saved to disk, this setting will
 have no effect unless you remove the existing files.
 
 .. _setting-new-domain-history-dir:
@@ -940,7 +940,7 @@ a history of previously observed domains. The data structure is
 synchronized to disk every 10 minutes, and is also initialized from
 disk on startup. This ensures that previously observed domains are
 preserved across recursor restarts.
-If you change the new-domain-db-size setting, you must remove any files 
+If you change the new-domain-db-size setting, you must remove any files
 from this directory.
 
 .. _setting-new-domain-whitelist:
@@ -969,7 +969,7 @@ feature.
 - Default: pnds-nod
 
 If protobuf is configured, then this tag will be added to all protobuf response messages when
-a new domain is observed. 
+a new domain is observed.
 
 .. _setting-network-timeout:
 
@@ -1382,7 +1382,7 @@ To know why 1232, see the note at :ref:`setting-edns-outgoing-bufsize`.
 
 Whether to track unique DNS responses, i.e. never seen before combinations
 of the triplet (query name, query type, RR[rrname, rrtype, rrdata]).
-This can be useful for tracking potentially suspicious domains and 
+This can be useful for tracking potentially suspicious domains and
 behaviour, e.g. DNS fast-flux.
 If protobuf is enabled and configured, then the Protobuf Response message
 will contain a flag with udr set to true for each RR that is considered
@@ -1419,7 +1419,7 @@ The default size of the stable bloom filter used to store previously
 observed responses is 67108864. To change the number of cells, use this
 setting. For each cell, the SBF uses 1 bit of memory, and one byte of
 disk for the persistent file.
-If there are already persistent files saved to disk, this setting will 
+If there are already persistent files saved to disk, this setting will
 have no effect unless you remove the existing files.
 
 .. _setting-unique-response-history-dir:
@@ -1440,7 +1440,7 @@ The newly observed domain feature uses a stable bloom filter to store
 a history of previously observed responses. The data structure is
 synchronized to disk every 10 minutes, and is also initialized from
 disk on startup. This ensures that previously observed responses are
-preserved across recursor restarts. If you change the 
+preserved across recursor restarts. If you change the
 unique-response-db-size, you must remove any files from this directory.
 
 .. _setting-unique-response-pb-tag:
@@ -1453,7 +1453,7 @@ unique-response-db-size, you must remove any files from this directory.
 - Default: pnds-udr
 
 If protobuf is configured, then this tag will be added to all protobuf response messages when
-a unique DNS response is observed. 
+a unique DNS response is observed.
 
 .. _setting-use-incoming-edns-subnet:
 
