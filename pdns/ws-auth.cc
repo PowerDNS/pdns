@@ -1679,7 +1679,11 @@ static void apiServerZones(HttpRequest* req, HttpResponse* resp) {
       domains.push_back(di);
     }
   } else {
-    B.getAllDomains(&domains, true); // incl. disabled
+    try {
+      B.getAllDomains(&domains, true); // incl. disabled
+    } catch(const PDNSException &e) {
+      throw HttpInternalServerErrorException("Could not retrieve all domain information: " + e.reason);
+    }
   }
 
   Json::array doc;

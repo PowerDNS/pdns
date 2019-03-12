@@ -1304,8 +1304,13 @@ void GSQLBackend::getAllDomains(vector<DomainInfo> *domains, bool include_disabl
       if (!row[4].empty()) {
         vector<string> masters;
         stringtok(masters, row[4], " ,\t");
-        for(const auto& m : masters)
-          di.masters.emplace_back(m, 53);
+        for(const auto& m : masters) {
+          try {
+            di.masters.emplace_back(m, 53);
+          } catch(const PDNSException &e) {
+            throw PDNSException("Could not parse master address (" + m + ") for zone '" + di.zone.toLogString() + "': " + e.reason);
+          }
+        }
       }
 
       SOAData sd;
