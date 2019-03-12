@@ -292,14 +292,16 @@ bool GSQLBackend::getDomainInfo(const DNSName &domain, DomainInfo &di, bool getS
   } catch (...) {
     return false;
   }
+  string type=d_result[0][5];
+  di.account=d_result[0][6];
+  di.kind = DomainInfo::stringToKind(type);
+
   vector<string> masters;
   stringtok(masters, d_result[0][2], " ,\t");
   for(const auto& m : masters)
     di.masters.emplace_back(m, 53);
   di.last_check=pdns_stou(d_result[0][3]);
   di.notified_serial = pdns_stou(d_result[0][4]);
-  string type=d_result[0][5];
-  di.account=d_result[0][6];
   di.backend=this;
 
   di.serial = 0;
@@ -315,8 +317,6 @@ bool GSQLBackend::getDomainInfo(const DNSName &domain, DomainInfo &di, bool getS
       g_log<<Logger::Error<<"Error retrieving serial for '"<<domain<<"': "<<ae.reason<<endl;
     }
   }
-
-  di.kind = DomainInfo::stringToKind(type);
 
   return true;
 }
@@ -1265,6 +1265,13 @@ void GSQLBackend::getAllDomains(vector<DomainInfo> *domains, bool include_disabl
       } catch (...) {
         continue;
       }
+
+      if (pdns_iequals(row[3], "MASTER"))
+        di.kind = DomainInfo::Master;
+      else if (pdns_iequals(row[3], "SLAVE"))
+        di.kind = DomainInfo::Slave;
+      else
+        di.kind = DomainInfo::Native;
   
       if (!row[4].empty()) {
         vector<string> masters;
@@ -1280,13 +1287,6 @@ void GSQLBackend::getAllDomains(vector<DomainInfo> *domains, bool include_disabl
       di.last_check = pdns_stou(row[6]);
       di.account = row[7];
 
-      if (pdns_iequals(row[3], "MASTER"))
-        di.kind = DomainInfo::Master;
-      else if (pdns_iequals(row[3], "SLAVE"))
-        di.kind = DomainInfo::Slave;
-      else
-        di.kind = DomainInfo::Native;
-  
       di.backend = this;
   
       domains->push_back(di);

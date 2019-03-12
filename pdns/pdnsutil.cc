@@ -239,10 +239,23 @@ bool rectifyAllZones(DNSSECKeeper &dk, bool quiet = false)
 
 int checkZone(DNSSECKeeper &dk, UeberBackend &B, const DNSName& zone, const vector<DNSResourceRecord>* suppliedrecords=0)
 {
+  uint64_t numerrors=0, numwarnings=0;
+
+  DomainInfo di;
+  try {
+    B.getDomainInfo(zone, di);
+  } catch(const PDNSException &e) {
+    if (di.kind == DomainInfo::Slave) {
+      cout<<"[Error] non-IP address for masters: "<<e.reason<<endl;
+      numerrors++;
+    }
+  }
+
   SOAData sd;
   if(!B.getSOAUncached(zone, sd)) {
     cout<<"[Error] No SOA record present, or active, in zone '"<<zone<<"'"<<endl;
-    cout<<"Checked 0 records of '"<<zone<<"', 1 errors, 0 warnings."<<endl;
+    numerrors++;
+    cout<<"Checked 0 records of '"<<zone<<"', "<<numerrors<<" errors, 0 warnings."<<endl;
     return 1;
   }
 
@@ -255,8 +268,6 @@ int checkZone(DNSSECKeeper &dk, UeberBackend &B, const DNSName& zone, const vect
   bool presigned=dk.isPresigned(zone);
   vector<string> checkKeyErrors;
   bool validKeys=dk.checkKeys(zone, &checkKeyErrors);
-
-  uint64_t numerrors=0, numwarnings=0;
 
   if (haveNSEC3) {
     if(isSecure && zone.wirelength() > 222) {
