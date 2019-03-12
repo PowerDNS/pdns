@@ -341,23 +341,51 @@ void GSQLBackend::getUnfreshSlaveInfos(vector<DomainInfo> *unfreshDomains)
 
   for(const auto& row : d_result) { // id,name,master,last_check
     DomainInfo sd;
-    ASSERT_ROW_COLUMNS("info-all-slaves-query", row, 4);
     try {
-      sd.id=pdns_stou(row[0]);
-      sd.zone= DNSName(row[1]);
-
-      vector<string> masters;
-      stringtok(masters, row[2], ", \t");
-      for(const auto& m : masters)
-        sd.masters.emplace_back(m, 53);
-
-      sd.last_check=pdns_stou(row[3]);
-      sd.backend=this;
-      sd.kind=DomainInfo::Slave;
-      allSlaves.push_back(sd);
-    } catch (...) {
+      ASSERT_ROW_COLUMNS("info-all-slaves-query", row, 4);
+    } catch(const PDNSException &e) {
+      g_log<<Logger::Warning<<e.reason<<endl;
       continue;
     }
+
+    try {
+      sd.zone = DNSName(row[1]);
+    } catch(const PDNSException &e) {
+      g_log<<Logger::Warning<<"Domain name '"<<row[1]<<"' is not a valid DNS name: "<<e.reason<<endl;
+      continue;
+    }
+
+    try {
+      sd.id=pdns_stou(row[0]);
+    } catch (const std::exception &e) {
+      g_log<<Logger::Warning<<"Could not convert id ("<<row[0]<<") for domain '"<<sd.zone<<"' into an integer: "<<e.what()<<endl;
+      continue;
+    }
+
+    vector<string> masters;
+    stringtok(masters, row[2], ", \t");
+    for(const auto& m : masters) {
+      try {
+        sd.masters.emplace_back(m, 53);
+      } catch(const PDNSException &e) {
+        g_log<<Logger::Warning<<"Could not parse master address ("<<m<<") for zone '"<<sd.zone<<"': "<<e.reason<<endl;
+      }
+    }
+    if (sd.masters.empty()) {
+      g_log<<Logger::Warning<<"No masters for slave zone '"<<sd.zone<<"' found in the database"<<endl;
+      continue;
+    }
+
+    try {
+      sd.last_check=pdns_stou(row[3]);
+    } catch (const std::exception &e) {
+      g_log<<Logger::Warning<<"Could not convert last_check ("<<row[3]<<") for domain '"<<sd.zone<<"' into an integer: "<<e.what()<<endl;
+      continue;
+    }
+
+    sd.backend=this;
+    sd.kind=DomainInfo::Slave;
+    allSlaves.push_back(sd);
   }
 
   for (auto& slave : allSlaves) {
