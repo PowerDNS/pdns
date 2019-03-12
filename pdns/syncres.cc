@@ -78,6 +78,8 @@ std::map<uint8_t, std::atomic<uint64_t>> SyncRes::s_ecsResponsesBySubnetSize6;
 
 uint8_t SyncRes::s_ecsipv4limit;
 uint8_t SyncRes::s_ecsipv6limit;
+uint8_t SyncRes::s_ecsipv4cachelimit;
+uint8_t SyncRes::s_ecsipv6cachelimit;
 bool SyncRes::s_doIPv6;
 bool SyncRes::s_nopacketcache;
 bool SyncRes::s_rootNXTrust;
