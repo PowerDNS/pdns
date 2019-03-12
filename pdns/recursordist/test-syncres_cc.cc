@@ -130,6 +130,8 @@ static void init(bool debug=false)
   SyncRes::s_doIPv6 = true;
   SyncRes::s_ecsipv4limit = 24;
   SyncRes::s_ecsipv6limit = 56;
+  SyncRes::s_ecsipv4cachelimit = 24;
+  SyncRes::s_ecsipv6cachelimit = 56;
   SyncRes::s_rootNXTrust = true;
   SyncRes::s_minimumTTL = 0;
   SyncRes::s_minimumECSTTL = 0;
@@ -2069,6 +2071,8 @@ BOOST_AUTO_TEST_CASE(test_skip_negcache_for_variable_response) {
         setLWResult(res, 0, false, false, true);
         addRecordToLW(res, "powerdns.com.", QType::NS, "pdns-public-ns1.powerdns.com.", DNSResourceRecord::AUTHORITY, 172800);
         addRecordToLW(res, "pdns-public-ns1.powerdns.com.", QType::A, "192.0.2.1", DNSResourceRecord::ADDITIONAL, 3600);
+
+        srcmask = boost::none;
 
         return 1;
       } else if (ip == ComboAddress("192.0.2.1:53")) {
