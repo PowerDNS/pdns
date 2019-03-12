@@ -620,6 +620,11 @@ static void updateDomainSettingsFromDocument(UeberBackend& B, const DomainInfo& 
     string master = value.string_value();
     if (master.empty())
       throw ApiException("Master can not be an empty string");
+    try {
+      ComboAddress m(master);
+    } catch (const PDNSException &e) {
+      throw ApiException("Master (" + master + ") is not an IP address: " + e.reason);
+    }
     zonemaster.push_back(master);
   }
 
@@ -1689,8 +1694,12 @@ static void apiServerZoneDetail(HttpRequest* req, HttpResponse* resp) {
 
   UeberBackend B;
   DomainInfo di;
-  if (!B.getDomainInfo(zonename, di)) {
-    throw HttpNotFoundException();
+  try {
+    if (!B.getDomainInfo(zonename, di)) {
+      throw HttpNotFoundException();
+    }
+  } catch(const PDNSException &e) {
+    throw HttpInternalServerErrorException("Could not retrieve Domain Info: " + e.reason);
   }
 
   if(req->method == "PUT") {
