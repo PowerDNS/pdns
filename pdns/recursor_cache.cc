@@ -262,6 +262,12 @@ bool MemRecursorCache::attemptToRefreshNSTTL(const QType& qt, const vector<DNSRe
 
 void MemRecursorCache::replace(time_t now, const DNSName &qname, const QType& qt, const vector<DNSRecord>& content, const vector<shared_ptr<RRSIGRecordContent>>& signatures, const std::vector<std::shared_ptr<DNSRecord>>& authorityRecs, bool auth, boost::optional<Netmask> ednsmask, vState state)
 {
+  if(ednsmask) {
+    if(ednsmask->isIpv4() && ednsmask->getBits() > SyncRes::s_ecsipv4cachelimit)
+      return;
+    if(ednsmask->isIpv6() && ednsmask->getBits() > SyncRes::s_ecsipv6cachelimit)
+      return;
+  }
   d_cachecachevalid = false;
   //  cerr<<"Replacing "<<qname<<" for "<< (ednsmask ? ednsmask->toString() : "everyone") << endl;
   auto key = boost::make_tuple(qname, qt.getCode(), ednsmask ? *ednsmask : Netmask());
