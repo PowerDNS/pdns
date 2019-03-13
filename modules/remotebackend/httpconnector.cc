@@ -34,7 +34,7 @@
 #define UNIX_PATH_MAX 108
 #endif
 
-HTTPConnector::HTTPConnector(std::map<std::string,std::string> options) {
+HTTPConnector::HTTPConnector(std::map<std::string,std::string> options): d_socket(nullptr) {
     this->d_url = options.find("url")->second;
     if (options.find("url-suffix") != options.end()) {
       this->d_url_suffix = options.find("url-suffix")->second;
@@ -44,7 +44,6 @@ HTTPConnector::HTTPConnector(std::map<std::string,std::string> options) {
     this->timeout = 2;
     this->d_post = false;
     this->d_post_json = false;
-    this->d_socket = NULL;
 
     if (options.find("timeout") != options.end()) {
       this->timeout = std::stoi(options.find("timeout")->second)/1000;
@@ -63,10 +62,7 @@ HTTPConnector::HTTPConnector(std::map<std::string,std::string> options) {
     }
 }
 
-HTTPConnector::~HTTPConnector() {
-    if (d_socket != NULL)
-      delete d_socket;
-}
+HTTPConnector::~HTTPConnector() { }
 
 void HTTPConnector::addUrlComponent(const Json &parameters, const string& element, std::stringstream& ss) {
     std::string sparam;
@@ -305,7 +301,7 @@ int HTTPConnector::send_message(const Json& input) {
     out << req;
 
     // try sending with current socket, if it fails retry with new socket
-    if (this->d_socket != NULL) {
+    if (this->d_socket != nullptr) {
       fd = this->d_socket->getHandle();
       // there should be no data waiting
       if (waitForRWData(fd, true, 0, 1000) < 1) {
@@ -322,8 +318,7 @@ int HTTPConnector::send_message(const Json& input) {
 
     if (rv == 1) return rv;
 
-    delete this->d_socket;
-    this->d_socket = NULL;
+    this->d_socket.reset();
 
     if (req.url.protocol == "unix") {
       // connect using unix socket
@@ -342,7 +337,7 @@ int HTTPConnector::send_message(const Json& input) {
   
         while(gAddrPtr) {
           try {
-            d_socket = new Socket(gAddrPtr->ai_family, gAddrPtr->ai_socktype, gAddrPtr->ai_protocol);
+            d_socket = std::unique_ptr<Socket>(new Socket(gAddrPtr->ai_family, gAddrPtr->ai_socktype, gAddrPtr->ai_protocol));
             d_addr.setSockaddr(gAddrPtr->ai_addr, gAddrPtr->ai_addrlen);
             d_socket->connect(d_addr);
             d_socket->setNonBlocking();
@@ -355,8 +350,7 @@ int HTTPConnector::send_message(const Json& input) {
           }
 
           if (rv > -1) break;
-          delete d_socket;
-          d_socket = NULL;
+          d_socket.reset();
           gAddrPtr = gAddrPtr->ai_next;
           
         }
@@ -373,7 +367,7 @@ int HTTPConnector::recv_message(Json& output) {
     YaHTTP::AsyncResponseLoader arl;
     YaHTTP::Response resp;
 
-    if (d_socket == NULL ) return -1; // cannot receive :(
+    if (d_socket == nullptr ) return -1; // cannot receive :(
     char buffer[4096];
     int rd = -1;
     bool fail = false;
@@ -396,12 +390,11 @@ int HTTPConnector::recv_message(Json& output) {
         throw NetworkError("timeout");
     } catch (NetworkError &ne) {
       g_log<<Logger::Error<<"While reading from HTTP endpoint "<<d_addr.toStringWithPort()<<": "<<ne.what()<<std::endl; 
-      delete d_socket;
-      d_socket = NULL;
+      d_socket.reset();
       fail = true;
     } catch (...) {
       g_log<<Logger::Error<<"While reading from HTTP endpoint "<<d_addr.toStringWithPort()<<": exception caught"<<std::endl;
-      delete d_socket;
+      d_socket.reset();
       fail = true;
     }
 
