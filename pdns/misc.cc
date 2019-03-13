@@ -1485,3 +1485,36 @@ std::vector<ComboAddress> getResolvers(const std::string& resolvConfPath)
 
   return results;
 }
+
+size_t getPipeBufferSize(int fd)
+{
+#ifdef F_GETPIPE_SZ
+  int res = fcntl(fd, F_GETPIPE_SZ);
+  if (res == -1) {
+    return 0;
+  }
+  return res;
+#else
+  errno = ENOSYS;
+  return 0;
+#endif /* F_GETPIPE_SZ */
+}
+
+bool setPipeBufferSize(int fd, size_t size)
+{
+#ifdef F_SETPIPE_SZ
+  if (size > std::numeric_limits<int>::max()) {
+    errno = EINVAL;
+    return false;
+  }
+  int newSize = static_cast<int>(size);
+  int res = fcntl(fd, F_SETPIPE_SZ, newSize);
+  if (res == -1) {
+    return false;
+  }
+  return true;
+#else
+  errno = ENOSYS;
+  return false;
+#endif /* F_SETPIPE_SZ */
+}

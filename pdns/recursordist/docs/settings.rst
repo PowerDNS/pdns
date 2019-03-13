@@ -331,6 +331,21 @@ average load. This helps making sure that all the workers have roughly the same
 share of queries, even if the incoming traffic is very skewed, with a larger
 number of requests asking for the same qname.
 
+.. _setting-distribution-pipe-buffer-size:
+
+``distribution-pipe-buffer-size``
+---------------------------------
+.. versionadded:: 4.2.0
+
+-  Integer
+-  Default: 0
+
+Size in bytes of the internal buffer of the pipe used by the distributor to pass incoming queries to a worker thread.
+Requires support for `F_SETPIPE_SZ` which is present in Linux since 2.6.35. The actual size might be rounded up to
+a multiple of a page size. 0 means that the OS default size is used.
+A large buffer might allow the recursor to deal with very short-lived load spikes during which a worker thread gets
+overloaded, but it will be at the cost of an increased latency.
+
 .. _setting-distributor-threads:
 
 ``distributor-threads``
