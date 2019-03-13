@@ -71,7 +71,7 @@ HTTPConnector::~HTTPConnector() {
 void HTTPConnector::addUrlComponent(const Json &parameters, const string& element, std::stringstream& ss) {
     std::string sparam;
     if (parameters[element] != Json())
-       ss << "/" << asString(parameters[element]);
+       ss << "/" << YaHTTP::Utility::encodeURL(asString(parameters[element]), false);
 }
 
 std::string HTTPConnector::buildMemberListArgs(std::string prefix, const Json& args) {
@@ -81,9 +81,9 @@ std::string HTTPConnector::buildMemberListArgs(std::string prefix, const Json& a
         if (pair.second.is_bool()) {
           stream << (pair.second.bool_value()?"1":"0");
         } else if (pair.second.is_null()) {
-          stream << prefix << "[" << pair.first << "]=";
+          stream << prefix << "[" << YaHTTP::Utility::encodeURL(pair.first, false) << "]=";
         } else {
-          stream << prefix << "[" << pair.first << "]=" << this->asString(pair.second);
+          stream << prefix << "[" << YaHTTP::Utility::encodeURL(pair.first, false) << "]=" << YaHTTP::Utility::encodeURL(this->asString(pair.second), false);
         }
         stream << "&";
     }
