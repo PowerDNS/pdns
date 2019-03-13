@@ -944,7 +944,14 @@ bool SyncRes::doCNAMECacheCheck(const DNSName &qname, const QType &qtype, vector
   DNSName foundName;
   QType foundQT = QType(0); // 0 == QTYPE::ENT
 
-  if (qname != g_rootdnsname) {
+  LOG(prefix<<qname<<": Looking for CNAME cache hit of '"<<qname<<"|CNAME"<<"'"<<endl);
+  /* we don't require auth data for forward-recurse lookups */
+  if (t_RC->get(d_now.tv_sec, qname, QType(QType::CNAME), !wasForwardRecurse && d_requireAuthData, &cset, d_cacheRemote, d_doDNSSEC ? &signatures : nullptr, d_doDNSSEC ? &authorityRecs : nullptr, &d_wasVariable, &state, &wasAuth) > 0) {
+    foundName = qname;
+    foundQT = QType(QType::CNAME);
+  }
+
+  if (foundName.empty() && qname != g_rootdnsname) {
     // look for a DNAME cache hit
     auto labels = qname.getRawLabels();
     DNSName dnameName(g_rootdnsname);
@@ -962,15 +969,6 @@ bool SyncRes::doCNAMECacheCheck(const DNSName &qname, const QType &qtype, vector
         break;
       }
     } while(!labels.empty());
-  }
-
-  if (foundName.empty()) {
-    LOG(prefix<<qname<<": Looking for CNAME cache hit of '"<<qname<<"|CNAME"<<"'"<<endl);
-    /* we don't require auth data for forward-recurse lookups */
-    if (t_RC->get(d_now.tv_sec, qname, QType(QType::CNAME), !wasForwardRecurse && d_requireAuthData, &cset, d_cacheRemote, d_doDNSSEC ? &signatures : nullptr, d_doDNSSEC ? &authorityRecs : nullptr, &d_wasVariable, &state, &wasAuth) > 0) {
-      foundName = qname;
-      foundQT = QType(QType::CNAME);
-    }
   }
 
   if(!foundName.empty()) {
