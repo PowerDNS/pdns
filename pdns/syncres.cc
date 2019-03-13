@@ -2620,6 +2620,15 @@ bool SyncRes::processRecords(const std::string& prefix, const DNSName& qname, co
           dnameOwner = rec.d_name;
           dnameTarget = content->getTarget();
           dnameTTL = rec.d_ttl;
+          if (!newtarget.empty()) { // We had a CNAME before, remove it from ret so we don't cache it
+            ret.erase(std::remove_if(
+                  ret.begin(),
+                  ret.end(),
+                  [&qname](DNSRecord& rr) {
+                    return (rr.d_place == DNSResourceRecord::ANSWER && rr.d_type == QType::CNAME && rr.d_name == qname);
+                  }),
+                  ret.end());
+          }
           try {
             newtarget = qname.makeRelative(dnameOwner) + dnameTarget;
           } catch (const std::exception &e) {
