@@ -127,6 +127,7 @@ server. A value of 0 will disable the timeout. Default: 10
 
 ``gmysql-thread-closer``
 ^^^^^^^^^^^^^^^^^^^^^^^^
+.. versionadded:: 4.1.7
 
 Older versions (such as those shipped on RHEL 7) of the MySQL/MariaDB client libraries leak memory unless applications explicitly report the end of each thread to the library. Enabling ``gmysql-thread-closer`` tells PowerDNS to call ``mysql_thread_end()`` whenever a thread ends.
 
