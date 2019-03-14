@@ -102,8 +102,10 @@ class HTTPConnector: public Connector {
     void post_requestbuilder(const Json &input, YaHTTP::Request& req);
     void addUrlComponent(const Json &parameters, const string& element, std::stringstream& ss);
     std::string buildMemberListArgs(std::string prefix, const Json& args);
-    Socket* d_socket;
+    std::unique_ptr<Socket> d_socket;
     ComboAddress d_addr;
+    std::string d_host;
+    uint16_t d_port;
 };
 
 #ifdef REMOTEBACKEND_ZEROMQ
@@ -119,8 +121,8 @@ class ZeroMQConnector: public Connector {
     int d_timeout;
     int d_timespent;
     std::map<std::string,std::string> d_options;
-    void *d_ctx;
-    void *d_sock; 
+    std::unique_ptr<void, int(*)(void*)> d_ctx;
+    std::unique_ptr<void, int(*)(void*)> d_sock;
 };
 #endif
 
@@ -144,7 +146,7 @@ class PipeConnector: public Connector {
   int d_fd1[2], d_fd2[2];
   int d_pid;
   int d_timeout;
-  FILE *d_fp;
+  std::unique_ptr<FILE, int(*)(FILE*)> d_fp{nullptr, fclose};
 };
 
 class RemoteBackend : public DNSBackend
@@ -192,7 +194,7 @@ class RemoteBackend : public DNSBackend
 
   private:
     int build();
-    Connector *connector;
+    std::unique_ptr<Connector> connector;
     bool d_dnssec;
     Json d_result;
     int d_index;
