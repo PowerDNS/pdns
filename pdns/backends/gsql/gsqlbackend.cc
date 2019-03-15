@@ -586,7 +586,7 @@ bool GSQLBackend::getBeforeAndAfterNamesAbsolute(uint32_t id, const DNSName& qna
     d_afterOrderQuery_stmt->reset();
   }
   catch(SSqlException &e) {
-    throw PDNSException("GSQLBackend unable to find before/after (after) for domain_id "+itoa(id)+": "+e.txtReason());
+    throw PDNSException("GSQLBackend unable to find before/after (after) for domain_id "+itoa(id)+" and qname '"+ qname.toLogString() +"': "+e.txtReason());
   }
 
   if(after.empty()) {
@@ -604,7 +604,7 @@ bool GSQLBackend::getBeforeAndAfterNamesAbsolute(uint32_t id, const DNSName& qna
       d_firstOrderQuery_stmt->reset();
     }
     catch(SSqlException &e) {
-      throw PDNSException("GSQLBackend unable to find before/after (first) for domain_id "+itoa(id)+": "+e.txtReason());
+      throw PDNSException("GSQLBackend unable to find before/after (first) for domain_id "+itoa(id)+" and qname '"+ qname.toLogString() + "': "+e.txtReason());
     }
   }
 
@@ -631,7 +631,7 @@ bool GSQLBackend::getBeforeAndAfterNamesAbsolute(uint32_t id, const DNSName& qna
       d_beforeOrderQuery_stmt->reset();
     }
     catch(SSqlException &e) {
-      throw PDNSException("GSQLBackend unable to find before/after (before) for domain_id "+itoa(id)+": "+e.txtReason());
+      throw PDNSException("GSQLBackend unable to find before/after (before) for domain_id "+itoa(id)+" and qname '"+ qname.toLogString() + ": "+e.txtReason());
     }
 
     if(! unhashed.empty())
@@ -659,7 +659,7 @@ bool GSQLBackend::getBeforeAndAfterNamesAbsolute(uint32_t id, const DNSName& qna
       d_lastOrderQuery_stmt->reset();
     }
     catch(SSqlException &e) {
-      throw PDNSException("GSQLBackend unable to find before/after (last) for domain_id "+itoa(id)+": "+e.txtReason());
+      throw PDNSException("GSQLBackend unable to find before/after (last) for domain_id "+itoa(id)+" and qname '"+ qname.toLogString() + ": "+e.txtReason());
     }
   } else {
     before=qname;
