@@ -937,7 +937,7 @@ bool GSQLBackend::getAllDomainMetadata(const DNSName& name, std::map<std::string
     d_GetAllDomainMetadataQuery_stmt->reset();
   }
   catch (SSqlException &e) {
-    throw PDNSException("GSQLBackend unable to list metadata: "+e.txtReason());
+    throw PDNSException("GSQLBackend unable to list metadata for domain '" + name.toLogString() + "': "+e.txtReason());
   }
 
   return true;
@@ -968,7 +968,7 @@ bool GSQLBackend::getDomainMetadata(const DNSName& name, const std::string& kind
     d_GetDomainMetadataQuery_stmt->reset();
   }
   catch (SSqlException &e) {
-    throw PDNSException("GSQLBackend unable to list metadata: "+e.txtReason());
+    throw PDNSException("GSQLBackend unable to get metadata kind '" + kind + "' for domain '" + name.toLogString() + "': "+e.txtReason());
   }
 
   return true;
@@ -999,7 +999,7 @@ bool GSQLBackend::setDomainMetadata(const DNSName& name, const std::string& kind
     }
   }
   catch (SSqlException &e) {
-    throw PDNSException("GSQLBackend unable to store metadata key: "+e.txtReason());
+    throw PDNSException("GSQLBackend unable to set metadata kind '" + kind + "' for domain '" + name.toLogString() + "': "+e.txtReason());
   }
   
   return true;
