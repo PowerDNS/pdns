@@ -1623,9 +1623,8 @@ string GSQLBackend::pattern2SQLPattern(const string &pattern)
 bool GSQLBackend::searchRecords(const string &pattern, int maxResults, vector<DNSResourceRecord>& result)
 {
   d_qname.clear();
+  string escaped_pattern = pattern2SQLPattern(pattern);
   try {
-    string escaped_pattern = pattern2SQLPattern(pattern);
-
     reconnectIfNeeded();
 
     d_SearchRecordsQuery_stmt->
@@ -1653,7 +1652,7 @@ bool GSQLBackend::searchRecords(const string &pattern, int maxResults, vector<DN
     return true;
   }
   catch (SSqlException &e) {
-    throw PDNSException("GSQLBackend unable to execute query: "+e.txtReason());
+    throw PDNSException("GSQLBackend unable to search for records with pattern '" + pattern + "' (escaped pattern '" + escaped_pattern + "'): "+e.txtReason());
   }
 
   return false;
