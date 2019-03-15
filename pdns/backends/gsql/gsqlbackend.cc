@@ -277,7 +277,7 @@ bool GSQLBackend::getDomainInfo(const DNSName &domain, DomainInfo &di, bool getS
       reset();
   }
   catch(SSqlException &e) {
-    throw PDNSException("GSQLBackend unable to retrieve information about a domain: "+e.txtReason());
+    throw PDNSException("GSQLBackend unable to retrieve information about domain '" + domain.toLogString() + "': "+e.txtReason());
   }
 
   int numanswers=d_result.size();
