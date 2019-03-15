@@ -258,7 +258,7 @@ bool GSQLBackend::setAccount(const DNSName &domain, const string &account)
             reset();
   }
   catch (SSqlException &e) {
-    throw PDNSException("GSQLBackend unable to set account of domain '"+domain.toLogString()+"': "+e.txtReason());
+    throw PDNSException("GSQLBackend unable to set account of domain '"+domain.toLogString()+"' to '" + account + "': "+e.txtReason());
   }
   return true;
 }
