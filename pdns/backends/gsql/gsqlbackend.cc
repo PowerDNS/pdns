@@ -1066,7 +1066,7 @@ bool GSQLBackend::list(const DNSName &target, int domain_id, bool include_disabl
       execute();
   }
   catch(SSqlException &e) {
-    throw PDNSException("GSQLBackend list query: "+e.txtReason());
+    throw PDNSException("GSQLBackend unable to list domain '" + target.toLogString() + "': "+e.txtReason());
   }
 
   d_qname.clear();
