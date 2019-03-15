@@ -1661,9 +1661,8 @@ bool GSQLBackend::searchRecords(const string &pattern, int maxResults, vector<DN
 bool GSQLBackend::searchComments(const string &pattern, int maxResults, vector<Comment>& result)
 {
   Comment c;
+  string escaped_pattern = pattern2SQLPattern(pattern);
   try {
-    string escaped_pattern = pattern2SQLPattern(pattern);
-
     reconnectIfNeeded();
 
     d_SearchCommentsQuery_stmt->
@@ -1686,7 +1685,7 @@ bool GSQLBackend::searchComments(const string &pattern, int maxResults, vector<C
     return true;
   }
   catch (SSqlException &e) {
-    throw PDNSException("GSQLBackend unable to execute query: "+e.txtReason());
+    throw PDNSException("GSQLBackend unable to search for comments with pattern '" + pattern + "' (escaped pattern '" + escaped_pattern + "'): "+e.txtReason());
   }
 
   return false;
