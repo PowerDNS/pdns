@@ -685,7 +685,7 @@ bool GSQLBackend::addDomainKey(const DNSName& name, const KeyData& key, int64_t&
       reset();
   }
   catch (SSqlException &e) {
-    throw PDNSException("GSQLBackend unable to store key: "+e.txtReason());
+    throw PDNSException("GSQLBackend unable to store key for domain '"+ name.toLogString() + "': "+e.txtReason());
   }
 
   try {
@@ -726,7 +726,7 @@ bool GSQLBackend::activateDomainKey(const DNSName& name, unsigned int id)
       reset();
   }
   catch (SSqlException &e) {
-    throw PDNSException("GSQLBackend unable to activate key: "+e.txtReason());
+    throw PDNSException("GSQLBackend unable to activate key with id "+ std::to_string(id) + " for domain '" + name.toLogString() + "': "+e.txtReason());
   }
   return true;
 }
@@ -746,7 +746,7 @@ bool GSQLBackend::deactivateDomainKey(const DNSName& name, unsigned int id)
       reset();
   }
   catch (SSqlException &e) {
-    throw PDNSException("GSQLBackend unable to deactivate key: "+e.txtReason());
+    throw PDNSException("GSQLBackend unable to deactivate key with id "+ std::to_string(id) + " for domain '" + name.toLogString() + "': "+e.txtReason());
   }
   return true;
 }
@@ -766,7 +766,7 @@ bool GSQLBackend::removeDomainKey(const DNSName& name, unsigned int id)
       reset();
   }
   catch (SSqlException &e) {
-    throw PDNSException("GSQLBackend unable to remove key: "+e.txtReason());
+    throw PDNSException("GSQLBackend unable to remove key with id "+ std::to_string(id) + " for domain '" + name.toLogString() + "': "+e.txtReason());
   }
   return true;
 }
