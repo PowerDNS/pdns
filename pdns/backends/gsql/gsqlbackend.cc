@@ -350,8 +350,8 @@ void GSQLBackend::getUnfreshSlaveInfos(vector<DomainInfo> *unfreshDomains)
 
     try {
       sd.zone = DNSName(row[1]);
-    } catch(const PDNSException &e) {
-      g_log<<Logger::Warning<<"Domain name '"<<row[1]<<"' is not a valid DNS name: "<<e.reason<<endl;
+    } catch(const std::runtime_error &e) {
+      g_log<<Logger::Warning<<"Domain name '"<<row[1]<<"' is not a valid DNS name: "<<e.what()<<endl;
       continue;
     }
 
@@ -1294,12 +1294,16 @@ void GSQLBackend::getAllDomains(vector<DomainInfo> *domains, bool include_disabl
         continue;
       }
 
-      if (pdns_iequals(row[3], "MASTER"))
+      if (pdns_iequals(row[3], "MASTER")) {
         di.kind = DomainInfo::Master;
-      else if (pdns_iequals(row[3], "SLAVE"))
+      } else if (pdns_iequals(row[3], "SLAVE")) {
         di.kind = DomainInfo::Slave;
-      else
+      } else if (pdns_iequals(row[3], "NATIVE")) {
         di.kind = DomainInfo::Native;
+      } else {
+        g_log<<Logger::Warning<<"Could not parse domain kind '"<<row[3]<<"' as one of 'MASTER', 'SLAVE' or 'NATIVE'. Setting zone kind to 'NATIVE'"<<endl;
+        di.kind = DomainInfo::Native;
+      }
   
       if (!row[4].empty()) {
         vector<string> masters;
