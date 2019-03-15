@@ -1045,7 +1045,7 @@ void GSQLBackend::lookup(const QType &qtype,const DNSName &qname, DNSPacket *pkt
       execute();
   }
   catch(SSqlException &e) {
-    throw PDNSException("GSQLBackend lookup query:"+e.txtReason());
+    throw PDNSException("GSQLBackend unable to lookup '" + qname.toLogString() + "|" + qtype.getName() + "':"+e.txtReason());
   }
 
   d_qname=qname;
