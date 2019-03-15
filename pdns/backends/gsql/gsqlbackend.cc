@@ -1384,7 +1384,7 @@ bool GSQLBackend::feedRecord(const DNSResourceRecord &r, const DNSName &ordernam
       reset();
   }
   catch (SSqlException &e) {
-    throw PDNSException("GSQLBackend unable to feed record: "+e.txtReason());
+    throw PDNSException("GSQLBackend unable to feed record " + r.qname.toLogString() + "|" + r.qtype.getName() + ": "+e.txtReason());
   }
   return true; // XXX FIXME this API should not return 'true' I think -ahu 
 }
