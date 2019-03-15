@@ -692,7 +692,7 @@ bool DNSSECKeeper::rectifyZone(const DNSName& zone, string& error, string& info,
   }
 
   set<DNSName> nsec3set;
-  if (haveNSEC3) {
+  if (haveNSEC3 && (!narrow || !isOptOut)) {
     for (auto &loopRR: rrs) {
       bool skip=false;
       DNSName shorter = loopRR.qname;
