@@ -609,7 +609,7 @@ class TestCachingNoStale(DNSDistTest):
         Cache: Cache entry, set backend down, we should not get a stale entry
 
         """
-        ttl = 1
+        ttl = 2
         name = 'nostale.cache.tests.powerdns.com.'
         query = dns.message.make_query(name, 'A', 'IN')
         response = dns.message.make_response(query)
@@ -663,7 +663,7 @@ class TestCachingStale(DNSDistTest):
 
         """
         misses = 0
-        ttl = 1
+        ttl = 2
         name = 'stale.cache.tests.powerdns.com.'
         query = dns.message.make_query(name, 'A', 'IN')
         response = dns.message.make_response(query)
@@ -729,7 +729,7 @@ class TestCachingStaleExpunged(DNSDistTest):
         """
         misses = 0
         drops = 0
-        ttl = 1
+        ttl = 2
         name = 'stale-but-expunged.cache.tests.powerdns.com.'
         query = dns.message.make_query(name, 'A', 'IN')
         response = dns.message.make_response(query)
@@ -803,7 +803,7 @@ class TestCachingStaleExpungePrevented(DNSDistTest):
         Cache: Cache entry, set backend down, wait for the cache cleaning to run and remove the entry, still get a cache HIT because the stale entry was not removed
         """
         misses = 0
-        ttl = 1
+        ttl = 2
         name = 'stale-not-expunged.cache.tests.powerdns.com.'
         query = dns.message.make_query(name, 'A', 'IN')
         response = dns.message.make_response(query)
@@ -1578,7 +1578,7 @@ class TestCachingNegativeTTL(DNSDistTest):
 
         time.sleep(self._negCacheTTL + 1)
 
-        # we should not have cached for longer than the negativel TTL
+        # we should not have cached for longer than the negative TTL
         # so it should be a miss
         (receivedQuery, receivedResponse) = self.sendUDPQuery(query, response)
         self.assertTrue(receivedQuery)
