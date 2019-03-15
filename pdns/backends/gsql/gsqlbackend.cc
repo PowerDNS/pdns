@@ -797,7 +797,7 @@ bool GSQLBackend::getTSIGKey(const DNSName& name, DNSName* algorithm, string* co
     d_getTSIGKeyQuery_stmt->reset();
   }
   catch (SSqlException &e) {
-    throw PDNSException("GSQLBackend unable to retrieve named TSIG key: "+e.txtReason());
+    throw PDNSException("GSQLBackend unable to retrieve TSIG key with name '" + name.toLogString() + "': "+e.txtReason());
   }
 
   return !content->empty();
@@ -816,7 +816,7 @@ bool GSQLBackend::setTSIGKey(const DNSName& name, const DNSName& algorithm, cons
       reset();
   }
   catch (SSqlException &e) {
-    throw PDNSException("GSQLBackend unable to store named TSIG key: "+e.txtReason());
+    throw PDNSException("GSQLBackend unable to store TSIG key with name '" + name.toLogString() + "' and algorithm '" + algorithm.toString() + "': "+e.txtReason());
   }
   return true;
 }
@@ -832,7 +832,7 @@ bool GSQLBackend::deleteTSIGKey(const DNSName& name)
       reset();
   }
   catch (SSqlException &e) {
-    throw PDNSException("GSQLBackend unable to store named TSIG key: "+e.txtReason());
+    throw PDNSException("GSQLBackend unable to delete TSIG key with name '" + name.toLogString() + "': "+e.txtReason());
   }
   return true;
 }
