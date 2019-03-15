@@ -1312,7 +1312,7 @@ void GSQLBackend::getAllDomains(vector<DomainInfo> *domains, bool include_disabl
           try {
             di.masters.emplace_back(m, 53);
           } catch(const PDNSException &e) {
-            throw PDNSException("Could not parse master address (" + m + ") for zone '" + di.zone.toLogString() + "': " + e.reason);
+            g_log<<Logger::Warning<<"Could not parse master address ("<<m<<") for zone '"<<di.zone<<"': "<<e.reason;
           }
         }
       }
