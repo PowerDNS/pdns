@@ -71,11 +71,7 @@ RemoteBackend::RemoteBackend(const std::string &suffix)
       build();
 }
 
-RemoteBackend::~RemoteBackend() {
-    if (connector != NULL) {
- 	delete connector;
-     }
-}
+RemoteBackend::~RemoteBackend() { }
 
 bool RemoteBackend::send(Json& value) {
    try {
@@ -84,7 +80,7 @@ bool RemoteBackend::send(Json& value) {
      g_log<<Logger::Error<<"Exception caught when sending: "<<ex.reason<<std::endl;
    }
 
-   delete this->connector;
+   this->connector.reset();
    build();
    return false;
 }
@@ -98,7 +94,7 @@ bool RemoteBackend::recv(Json& value) {
      g_log<<Logger::Error<<"Exception caught when receiving"<<std::endl;;
    }
 
-   delete this->connector;
+   this->connector.reset();
    build();
    return false;
 }
@@ -147,17 +143,17 @@ int RemoteBackend::build() {
 
       // connectors know what they are doing
       if (type == "unix") {
-        this->connector = new UnixsocketConnector(options);
+        this->connector = std::unique_ptr<Connector>(new UnixsocketConnector(options));
       } else if (type == "http") {
-        this->connector = new HTTPConnector(options);
+        this->connector = std::unique_ptr<Connector>(new HTTPConnector(options));
       } else if (type == "zeromq") {
 #ifdef REMOTEBACKEND_ZEROMQ
-        this->connector = new ZeroMQConnector(options);
+        this->connector = std::unique_ptr<Connector>(new ZeroMQConnector(options));
 #else
         throw PDNSException("Invalid connection string: zeromq connector support not enabled. Recompile with --enable-remotebackend-zeromq");
 #endif
       } else if (type == "pipe") {
-        this->connector = new PipeConnector(options);
+        this->connector = std::unique_ptr<Connector>(new PipeConnector(options));
       } else {
         throw PDNSException("Invalid connection string: unknown connector");
       }

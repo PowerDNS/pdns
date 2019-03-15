@@ -82,5 +82,5 @@ action is applied.
 
   local dbr = dynBlockRulesGroup()
   -- generate a warning above 100 qps for 10s, and start dropping incoming queries above 300 qps for 10s
-  dbr:setQueryRate(300, 10, "Exceeded query rate", 60, 100)
+  dbr:setQueryRate(300, 10, "Exceeded query rate", 60, DNSAction.Drop, 100)
 

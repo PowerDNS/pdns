@@ -946,14 +946,14 @@ definitions:
         items:
           type: string
         description: 'MAY be sent in client bodies during creation, and MUST NOT be sent by the server. Simple list of strings of nameserver names, including the trailing dot. Not required for slave zones.'
-      tsig_master_key_ids:
+      master_tsig_key_ids:
         type: array
         items:
           type: string
         description: 'The id of the TSIG keys used for master operation in this zone'
         externalDocs:
           url: 'https://doc.powerdns.com/authoritative/tsig.html#provisioning-outbound-axfr-access'
-      tsig_slave_key_ids:
+      slave_tsig_key_ids:
         type: array
         items:
           type: string
