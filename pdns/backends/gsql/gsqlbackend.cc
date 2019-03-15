@@ -224,7 +224,7 @@ bool GSQLBackend::setMaster(const DNSName &domain, const string &ip)
       reset();
   }
   catch (SSqlException &e) {
-    throw PDNSException("GSQLBackend unable to set master of domain '"+domain.toLogString()+"': "+e.txtReason());
+    throw PDNSException("GSQLBackend unable to set master of domain '"+domain.toLogString()+"' to IP address " + ip + ": "+e.txtReason());
   }
   return true;
 }
