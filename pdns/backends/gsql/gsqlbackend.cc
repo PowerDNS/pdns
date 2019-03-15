@@ -1606,7 +1606,7 @@ string GSQLBackend::directBackendCmd(const string &query)
    return out.str();
  }
  catch (SSqlException &e) {
-   throw PDNSException("GSQLBackend unable to execute query: "+e.txtReason());
+   throw PDNSException("GSQLBackend unable to execute direct command query '" + query + "': "+e.txtReason());
  }
 }
 
