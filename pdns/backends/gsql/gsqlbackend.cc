@@ -339,12 +339,16 @@ void GSQLBackend::getUnfreshSlaveInfos(vector<DomainInfo> *unfreshDomains)
 
   vector<DomainInfo> allSlaves;
 
+  bool loggedAssertRowColumns = false;
   for(const auto& row : d_result) { // id,name,master,last_check
     DomainInfo sd;
     try {
       ASSERT_ROW_COLUMNS("info-all-slaves-query", row, 4);
     } catch(const PDNSException &e) {
-      g_log<<Logger::Warning<<e.reason<<endl;
+      if (!loggedAssertRowColumns) {
+        g_log<<Logger::Warning<<e.reason<<endl;
+      }
+      loggedAssertRowColumns = true;
       continue;
     }
 
