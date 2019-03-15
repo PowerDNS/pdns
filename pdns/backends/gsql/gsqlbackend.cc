@@ -1089,7 +1089,7 @@ bool GSQLBackend::listSubZone(const DNSName &zone, int domain_id) {
       execute();      
   }
   catch(SSqlException &e) {
-    throw PDNSException("GSQLBackend listSubZone query: "+e.txtReason());
+    throw PDNSException("GSQLBackend unable to list SubZones for domain '" + zone.toLogString() + "': "+e.txtReason());
   }
   d_qname.clear();
   return true;
