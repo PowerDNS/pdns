@@ -1140,7 +1140,7 @@ bool GSQLBackend::superMasterBackend(const string &ip, const DNSName &domain, co
         reset();
     }
     catch (SSqlException &e) {
-      throw PDNSException("GSQLBackend unable to search for a domain: "+e.txtReason());
+      throw PDNSException("GSQLBackend unable to search for a supermaster with IP " + ip + " and nameserver name '" + i->content + "' for domain '" + domain.toLogString() + "': "+e.txtReason());
     }
     if(!d_result.empty()) {
       ASSERT_ROW_COLUMNS("supermaster-query", d_result[0], 1);
