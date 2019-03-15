@@ -1460,7 +1460,7 @@ bool GSQLBackend::startTransaction(const DNSName &domain, int domain_id)
   }
   catch (SSqlException &e) {
     d_inTransaction = false;
-    throw PDNSException("Database failed to start transaction: "+e.txtReason());
+    throw PDNSException("Database failed to start transaction for domain '" + domain.toLogString() + "': "+e.txtReason());
   }
 
   return true;
