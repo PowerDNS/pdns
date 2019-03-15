@@ -241,7 +241,7 @@ bool GSQLBackend::setKind(const DNSName &domain, const DomainInfo::DomainKind ki
       reset();
   }
   catch (SSqlException &e) {
-    throw PDNSException("GSQLBackend unable to set kind of domain '"+domain.toLogString()+"': "+e.txtReason());
+    throw PDNSException("GSQLBackend unable to set kind of domain '"+domain.toLogString()+"' to " + toUpper(DomainInfo::getKindString(kind)) + ": "+e.txtReason());
   }
   return true;
 }
