@@ -1404,7 +1404,7 @@ bool GSQLBackend::feedEnts(int domain_id, map<DNSName,bool>& nonterm)
         reset();
     }
     catch (SSqlException &e) {
-      throw PDNSException("GSQLBackend unable to feed empty non-terminal: "+e.txtReason());
+      throw PDNSException("GSQLBackend unable to feed empty non-terminal with name '" + nt.first.toLogString() + "': "+e.txtReason());
     }
   }
   return true;
@@ -1438,7 +1438,7 @@ bool GSQLBackend::feedEnts3(int domain_id, const DNSName &domain, map<DNSName,bo
         reset();
     }
     catch (SSqlException &e) {
-      throw PDNSException("GSQLBackend unable to feed empty non-terminal: "+e.txtReason());
+      throw PDNSException("GSQLBackend unable to feed empty non-terminal with name '" + nt.first.toLogString() + "' (hashed name '"+ toBase32Hex(hashQNameWithSalt(ns3prc, nt.first)) + "') : "+e.txtReason());
     }
   }
   return true;
