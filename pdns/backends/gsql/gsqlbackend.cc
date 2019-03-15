@@ -1504,7 +1504,7 @@ bool GSQLBackend::listComments(const uint32_t domain_id)
       execute();
   }
   catch(SSqlException &e) {
-    throw PDNSException("GSQLBackend list comments query: "+e.txtReason());
+    throw PDNSException("GSQLBackend unable to list comments for domain id " + std::to_string(domain_id) + ": "+e.txtReason());
   }
 
   return true;
@@ -1556,7 +1556,7 @@ void GSQLBackend::feedComment(const Comment& comment)
       reset();
   }
   catch (SSqlException &e) {
-    throw PDNSException("GSQLBackend unable to feed comment: "+e.txtReason());
+    throw PDNSException("GSQLBackend unable to feed comment for RRSet '" + comment.qname.toLogString() + "|" + comment.qtype.getName() + "': "+e.txtReason());
   }
 }
 
@@ -1573,7 +1573,7 @@ bool GSQLBackend::replaceComments(const uint32_t domain_id, const DNSName& qname
       reset();
   }
   catch (SSqlException &e) {
-    throw PDNSException("GSQLBackend unable to delete comment: "+e.txtReason());
+    throw PDNSException("GSQLBackend unable to delete comment for RRSet '" + qname.toLogString() + "|" + qt.getName() + "': "+e.txtReason());
   }
 
   for(const auto& comment: comments) {
