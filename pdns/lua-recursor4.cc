@@ -463,6 +463,10 @@ void RecursorLua4::postPrepareContext()
         g_snmpAgent->sendCustomTrap(str);
       }
     });
+
+  d_lw->writeFunction("getregisteredname", [](const DNSName &dname) {
+      return getRegisteredName(dname);
+  });
 }
 
 void RecursorLua4::postLoad() {
