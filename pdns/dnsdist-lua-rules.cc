@@ -251,14 +251,15 @@ void setupLuaRules()
         });
     });
 
-  g_lua.writeFunction("setRules", [](std::vector<DNSDistRuleAction>& newruleactions) {
+  g_lua.writeFunction("setRules", [](const std::vector<std::pair<int, std::shared_ptr<DNSDistRuleAction>>>& newruleactions) {
       setLuaSideEffect();
       g_rulactions.modify([newruleactions](decltype(g_rulactions)::value_type& gruleactions) {
           gruleactions.clear();
-          for (const auto& newruleaction : newruleactions) {
-            if (newruleaction.d_action) {
-              auto rule=makeRule(newruleaction.d_rule);
-              gruleactions.push_back({rule, newruleaction.d_action, newruleaction.d_id});
+          for (const auto& pair : newruleactions) {
+            const auto& newruleaction = pair.second;
+            if (newruleaction->d_action) {
+              auto rule=makeRule(newruleaction->d_rule);
+              gruleactions.push_back({rule, newruleaction->d_action, newruleaction->d_id});
             }
           }
         });
