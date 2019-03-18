@@ -77,7 +77,7 @@ static void logFstreamQuery(const std::shared_ptr<std::vector<std::unique_ptr<Fr
 
   struct timespec ts;
   TIMEVAL_TO_TIMESPEC(&queryTime, &ts);
-  DnstapMessage message(SyncRes::s_serverID, nullptr, &ip, doTCP, reinterpret_cast<const char*>(&*packet.begin()), packet.size(), &ts, nullptr);
+  RecDnstapMessage message(SyncRes::s_serverID, nullptr, &ip, doTCP, reinterpret_cast<const char*>(&*packet.begin()), packet.size(), &ts, nullptr);
   std::string str;
   message.serialize(str);
 
