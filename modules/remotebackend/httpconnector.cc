@@ -35,7 +35,22 @@
 #endif
 
 HTTPConnector::HTTPConnector(std::map<std::string,std::string> options) {
+
+    if (options.find("url") == options.end()) {
+      throw PDNSException("Cannot find 'url' option in the remote backend HTTP connector's parameters");
+    }
+
     this->d_url = options.find("url")->second;
+
+    try {
+      YaHTTP::URL url(d_url);
+      d_host = url.host;
+      d_port = url.port;
+    }
+    catch(const std::exception& e) {
+      throw PDNSException("Error parsing the 'url' option provided to the remote backend HTTP connector: " + std::string(e.what()));
+    }
+
     if (options.find("url-suffix") != options.end()) {
       this->d_url_suffix = options.find("url-suffix")->second;
     } else {
@@ -71,7 +86,7 @@ HTTPConnector::~HTTPConnector() {
 void HTTPConnector::addUrlComponent(const Json &parameters, const string& element, std::stringstream& ss) {
     std::string sparam;
     if (parameters[element] != Json())
-       ss << "/" << asString(parameters[element]);
+       ss << "/" << YaHTTP::Utility::encodeURL(asString(parameters[element]), false);
 }
 
 std::string HTTPConnector::buildMemberListArgs(std::string prefix, const Json& args) {
@@ -81,9 +96,9 @@ std::string HTTPConnector::buildMemberListArgs(std::string prefix, const Json& a
         if (pair.second.is_bool()) {
           stream << (pair.second.bool_value()?"1":"0");
         } else if (pair.second.is_null()) {
-          stream << prefix << "[" << pair.first << "]=";
+          stream << prefix << "[" << YaHTTP::Utility::encodeURL(pair.first, false) << "]=";
         } else {
-          stream << prefix << "[" << pair.first << "]=" << this->asString(pair.second);
+          stream << prefix << "[" << YaHTTP::Utility::encodeURL(pair.first, false) << "]=" << YaHTTP::Utility::encodeURL(this->asString(pair.second), false);
         }
         stream << "&";
     }
@@ -334,45 +349,41 @@ int HTTPConnector::send_message(const Json& input) {
     delete this->d_socket;
     this->d_socket = NULL;
 
-    if (req.url.protocol == "unix") {
-      // connect using unix socket
-    } else {
-      // connect using tcp
-      struct addrinfo *gAddr, *gAddrPtr, hints;
-      std::string sPort = std::to_string(req.url.port);
-      memset(&hints,0,sizeof hints);
-      hints.ai_family = AF_UNSPEC;
-      hints.ai_flags = AI_ADDRCONFIG; 
-      hints.ai_socktype = SOCK_STREAM;
-      hints.ai_protocol = 6; // tcp
-      if ((ec = getaddrinfo(req.url.host.c_str(), sPort.c_str(), &hints, &gAddr)) == 0) {
-        // try to connect to each address. 
-        gAddrPtr = gAddr;
+    // connect using tcp
+    struct addrinfo *gAddr, *gAddrPtr, hints;
+    std::string sPort = std::to_string(d_port);
+    memset(&hints,0,sizeof hints);
+    hints.ai_family = AF_UNSPEC;
+    hints.ai_flags = AI_ADDRCONFIG; 
+    hints.ai_socktype = SOCK_STREAM;
+    hints.ai_protocol = 6; // tcp
+    if ((ec = getaddrinfo(d_host.c_str(), sPort.c_str(), &hints, &gAddr)) == 0) {
+      // try to connect to each address. 
+      gAddrPtr = gAddr;
   
-        while(gAddrPtr) {
-          try {
-            d_socket = new Socket(gAddrPtr->ai_family, gAddrPtr->ai_socktype, gAddrPtr->ai_protocol);
-            d_addr.setSockaddr(gAddrPtr->ai_addr, gAddrPtr->ai_addrlen);
-            d_socket->connect(d_addr);
-            d_socket->setNonBlocking();
-            d_socket->writenWithTimeout(out.str().c_str(), out.str().size(), timeout);
-            rv = 1;
-          } catch (NetworkError& ne) {
-            L<<Logger::Error<<"While writing to HTTP endpoint "<<d_addr.toStringWithPort()<<": "<<ne.what()<<std::endl;
-          } catch (...) {
-            L<<Logger::Error<<"While writing to HTTP endpoint "<<d_addr.toStringWithPort()<<": exception caught"<<std::endl;
-          }
-
-          if (rv > -1) break;
-          delete d_socket;
-          d_socket = NULL;
-          gAddrPtr = gAddrPtr->ai_next;
-          
+      while(gAddrPtr) {
+        try {
+          d_socket = new Socket(gAddrPtr->ai_family, gAddrPtr->ai_socktype, gAddrPtr->ai_protocol);
+          d_addr.setSockaddr(gAddrPtr->ai_addr, gAddrPtr->ai_addrlen);
+          d_socket->connect(d_addr);
+          d_socket->setNonBlocking();
+          d_socket->writenWithTimeout(out.str().c_str(), out.str().size(), timeout);
+          rv = 1;
+        } catch (NetworkError& ne) {
+          L<<Logger::Error<<"While writing to HTTP endpoint "<<d_addr.toStringWithPort()<<": "<<ne.what()<<std::endl;
+        } catch (...) {
+          L<<Logger::Error<<"While writing to HTTP endpoint "<<d_addr.toStringWithPort()<<": exception caught"<<std::endl;
         }
-        freeaddrinfo(gAddr);
-      } else {
-        L<<Logger::Error<<"Unable to resolve " << req.url.host << ": " << gai_strerror(ec) << std::endl;
+
+        if (rv > -1) break;
+        delete d_socket;
+        d_socket = NULL;
+        gAddrPtr = gAddrPtr->ai_next;
+          
       }
+      freeaddrinfo(gAddr);
+    } else {
+      L<<Logger::Error<<"Unable to resolve " << d_host << ": " << gai_strerror(ec) << std::endl;
     }
 
     return rv;
