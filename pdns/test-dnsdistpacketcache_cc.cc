@@ -40,7 +40,7 @@ BOOST_AUTO_TEST_CASE(test_PacketCacheSimple) {
       pwR.getHeader()->ra = 1;
       pwR.getHeader()->qr = 1;
       pwR.getHeader()->id = pwQ.getHeader()->id;
-      pwR.startRecord(a, QType::A, 100, QClass::IN, DNSResourceRecord::ANSWER);
+      pwR.startRecord(a, QType::A, 7200, QClass::IN, DNSResourceRecord::ANSWER);
       pwR.xfr32BitInt(0x01020304);
       pwR.commit();
       uint16_t responseLen = response.size();
@@ -86,12 +86,12 @@ BOOST_AUTO_TEST_CASE(test_PacketCacheSimple) {
       DNSQuestion dq(&a, QType::A, QClass::IN, 0, &remote, &remote, (struct dnsheader*) query.data(), query.size(), query.size(), false, &queryTime);
       bool found = PC.get(dq, a.wirelength(), 0, responseBuf, &responseBufSize, &key, subnet, dnssecOK);
       if (found == true) {
-        PC.expungeByName(a);
-        deleted++;
+        auto removed = PC.expungeByName(a);
+        BOOST_CHECK_EQUAL(removed, 1);
+        deleted += removed;
       }
     }
     BOOST_CHECK_EQUAL(PC.getSize(), counter - skipped - deleted);
-
 
     size_t matches=0;
     vector<DNSResourceRecord> entry;
@@ -111,10 +111,15 @@ BOOST_AUTO_TEST_CASE(test_PacketCacheSimple) {
         matches++;
       }
     }
-    BOOST_CHECK_EQUAL(matches, expected);
 
-    PC.expungeByName(DNSName(" hello"), QType::ANY, true);
+    /* in the unlikely event that the test took so long that entries did expire.. */
+    auto expired = PC.purgeExpired();
+    BOOST_CHECK_EQUAL(matches + expired, expected);
+
+    auto remaining = PC.getSize();
+    auto removed = PC.expungeByName(DNSName(" hello"), QType::ANY, true);
     BOOST_CHECK_EQUAL(PC.getSize(), 0);
+    BOOST_CHECK_EQUAL(removed, remaining);
   }
   catch(PDNSException& e) {
     cerr<<"Had error: "<<e.reason<<endl;
