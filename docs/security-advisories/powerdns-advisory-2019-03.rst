@@ -11,10 +11,11 @@ PowerDNS Security Advisory 2019-03: Insufficient validation in the HTTP remote b
 -  Risk of system compromise: No
 -  Solution: Upgrade to a non-affected version
 
-An issue has been found in PowerDNS Authoritative Server allowing a
-remote user to cause the HTTP connector of the remote backend to
-connect to an attacker-specified host instead of the configured one,
-via a crafted DNS query.
+An issue has been found in PowerDNS Authoritative Server when the
+HTTP remote backend is used in RESTful mode (without post=1 set),
+allowing a remote user to cause the HTTP backend to connect to
+an attacker-specified host instead of the configured one, via a
+crafted DNS query.
 This can be used to cause a denial of service by preventing the remote
 backend from getting a response, content spoofing if the attacker can
 time its own query so that subsequent queries will use an attacker-controlled
