@@ -104,6 +104,8 @@ class HTTPConnector: public Connector {
     std::string buildMemberListArgs(std::string prefix, const Json& args);
     Socket* d_socket;
     ComboAddress d_addr;
+    std::string d_host;
+    uint16_t d_port;
 };
 
 #ifdef REMOTEBACKEND_ZEROMQ
