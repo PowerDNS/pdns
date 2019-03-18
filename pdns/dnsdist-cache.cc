@@ -335,7 +335,7 @@ size_t DNSDistPacketCache::purgeExpired(size_t upTo)
    entries in the cache */
 size_t DNSDistPacketCache::expunge(size_t upTo)
 {
-  bool removed = 0;
+  size_t removed = 0;
   const uint64_t size = getSize();
 
   if (upTo >= size) {

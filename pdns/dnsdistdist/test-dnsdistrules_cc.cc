@@ -45,7 +45,7 @@ BOOST_AUTO_TEST_CASE(test_MaxQPSIPRule) {
   BOOST_CHECK_EQUAL(rule.matches(&dq), true);
   BOOST_CHECK_EQUAL(rule.getEntriesCount(), 1);
 
-  /* remove all entries that have not been since 'now' + 1,
+  /* remove all entries that have not been updated since 'now' + 1,
      so all of them */
   expiredTime.tv_sec += 1;
   rule.cleanup(expiredTime);

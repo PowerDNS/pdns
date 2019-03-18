@@ -112,7 +112,7 @@ BOOST_AUTO_TEST_CASE(test_PacketCacheSimple) {
       }
     }
 
-    /* in the unlikely event that the test took so long that entries did expire.. */
+    /* in the unlikely event that the test took so long that the entries did expire.. */
     auto expired = PC.purgeExpired();
     BOOST_CHECK_EQUAL(matches + expired, expected);
 
