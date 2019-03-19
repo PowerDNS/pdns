@@ -268,6 +268,7 @@ static bool fixUpQueryTurnedResponse(DNSQuestion& dq, const uint16_t origFlags)
   return addEDNSToQueryTurnedResponse(dq);
 }
 
+/* returns false if the response should be dropped, true otherwise */
 static bool fixUpResponse(char** response, uint16_t* responseLen, size_t* responseSize, const DNSName& qname, uint16_t origFlags, bool ednsAdded, bool ecsAdded, std::vector<uint8_t>& rewrittenResponse, uint16_t addRoom, bool* zeroScope)
 {
   if (*responseLen < sizeof(dnsheader)) {
@@ -365,6 +366,7 @@ static bool fixUpResponse(char** response, uint16_t* responseLen, size_t* respon
 }
 
 #ifdef HAVE_DNSCRYPT
+/* returns false if the response should be dropped, true otherwise */
 static bool encryptResponse(char* response, uint16_t* responseLen, size_t responseSize, bool tcp, std::shared_ptr<DNSCryptQuery> dnsCryptQuery, dnsheader** dh, dnsheader* dhCopy)
 {
   if (dnsCryptQuery) {
@@ -389,6 +391,7 @@ static bool encryptResponse(char* response, uint16_t* responseLen, size_t respon
 }
 #endif /* HAVE_DNSCRYPT */
 
+/* returns false if the response should be dropped, true otherwise */
 static bool applyRulesToResponse(LocalStateHolder<vector<DNSDistResponseRuleAction> >& localRespRulactions, DNSResponse& dr)
 {
   DNSResponseAction::Action action=DNSResponseAction::Action::None;
@@ -424,6 +427,7 @@ static bool applyRulesToResponse(LocalStateHolder<vector<DNSDistResponseRuleActi
   return true;
 }
 
+/* returns false if the response should be dropped, true otherwise */
 bool processResponse(char** response, uint16_t* responseLen, size_t* responseSize, LocalStateHolder<vector<DNSDistResponseRuleAction> >& localRespRulactions, DNSResponse& dr, size_t addRoom, std::vector<uint8_t>& rewrittenResponse, bool muted)
 {
   if (!applyRulesToResponse(localRespRulactions, dr)) {
@@ -1005,6 +1009,7 @@ static void spoofResponseFromString(DNSQuestion& dq, const string& spoofContent)
   }
 }
 
+/* returns false if the query should be dropped, true otherwise */
 static bool applyRulesToQuery(LocalHolders& holders, DNSQuestion& dq, string& poolname, const struct timespec& now)
 {
   g_rings.insertQuery(now, *dq.remote, *dq.qname, dq.qtype, dq.len, *dq.dh);
