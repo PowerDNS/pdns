@@ -381,7 +381,7 @@ export CPPFLAGS="-DLDAP_DEPRECATED"
 	--enable-remotebackend-http \
 	--enable-unit-tests \
 	--with-boost=/usr/include/boost148/ LDFLAGS=-L/usr/lib64/boost148 \
-	CXXFLAGS=-std=gnu++11
+	CXXFLAGS='-std=gnu++11 -O2 -g -Wall'
 
 make %{?_smp_mflags}
 
