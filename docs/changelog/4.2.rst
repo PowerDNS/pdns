@@ -6,6 +6,32 @@ Changelogs for 4.2.x
   :released: *unreleased*
 
   .. change::
+    :tags: Bug Fixes
+    :pullreq: 7576
+    :tickets: 7573
+
+    Insufficient validation in the HTTP remote backend (CVE-2019-3871, PowerDNS Security Advisory :doc:`2019-03 <../security-advisories/powerdns-advisory-2019-03>`)
+
+  .. change::
+    :tags: Bug Fixes, API
+    :pullreq: 7546
+    :tickets: 7545
+
+    Fix API search failed with "Commands out of sync; you can't run this command now".
+
+  .. change::
+    :tags: Bug Fixes, GeoIP
+    :pullreq: 7219
+
+    Fix static lookup when using weighted records on multiple record types.
+
+  .. change::
+    :tags: Improvements, DNSSEC
+    :pullreq: 7516
+
+    Report ``checkKey`` errors upwards.
+
+  .. change::
     :tags: Bug Fixes, MySQL
     :pullreq: 7496
     :tickets: 7493
