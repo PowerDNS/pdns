@@ -2979,27 +2979,27 @@ template vector<pair<DNSName,uint16_t> > broadcastAccFunction(const boost::funct
 
 static void handleRCC(int fd, FDMultiplexer::funcparam_t& var)
 {
-  string remote;
-  string msg=s_rcc.recv(&remote);
-  RecursorControlParser rcp;
-  RecursorControlParser::func_t* command;
-
-  string answer=rcp.getAnswer(msg, &command);
-
-  // If we are inside a chroot, we need to strip
-  if (!arg()["chroot"].empty()) {
-    size_t len = arg()["chroot"].length();
-    remote = remote.substr(len);
-  }
-
   try {
+    string remote;
+    string msg=s_rcc.recv(&remote);
+    RecursorControlParser rcp;
+    RecursorControlParser::func_t* command;
+
+    string answer=rcp.getAnswer(msg, &command);
+
+    // If we are inside a chroot, we need to strip
+    if (!arg()["chroot"].empty()) {
+      size_t len = arg()["chroot"].length();
+      remote = remote.substr(len);
+    }
+
     s_rcc.send(answer, &remote);
     command();
   }
-  catch(std::exception& e) {
+  catch(const std::exception& e) {
     g_log<<Logger::Error<<"Error dealing with control socket request: "<<e.what()<<endl;
   }
-  catch(PDNSException& ae) {
+  catch(const PDNSException& ae) {
     g_log<<Logger::Error<<"Error dealing with control socket request: "<<ae.reason<<endl;
   }
 }
