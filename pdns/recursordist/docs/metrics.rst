@@ -241,6 +241,18 @@ ecs-responses
 ^^^^^^^^^^^^^
 number of responses received from authoritative servers with an EDNS Client Subnet option we used (since 4.1)
 
+ecs-v4-response-bits-*
+^^^^^^^^^^^^^^^^^^^^^^
+.. versionadded:: 4.2.0
+
+number of responses received from authoritative servers with an IPv4 EDNS Client Subnet option we used, of this subnet size (1 to 32).
+
+ecs-v6-response-bits-*
+^^^^^^^^^^^^^^^^^^^^^^
+.. versionadded:: 4.2.0
+
+number of responses received from authoritative servers with an IPv6 EDNS Client Subnet option we used, of this subnet size (1 to 128).
+
 edns-ping-matches
 ^^^^^^^^^^^^^^^^^
 number of servers that sent a valid EDNS PING   response

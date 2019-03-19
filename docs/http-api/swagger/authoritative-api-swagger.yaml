@@ -399,6 +399,14 @@ paths:
           required: true
           description: The id of the server to retrieve
           type: string
+        - name: statistic
+          in: query
+          required: false
+          type: string
+          description: |
+            When set to the name of a specific statistic, only this value is returned.
+            If no statistic with that name exists, the response has a 422 status and an error message.
+
       responses:
         '200':
           description: List of Statistic Items
@@ -408,6 +416,8 @@ paths:
             - $ref: '#/definitions/StatisticItem'
             - $ref: '#/definitions/MapStatisticItem'
             - $ref: '#/definitions/RingStatisticItem'
+        '422':
+          description: 'Returned when a non-existing statistic name has been requested. Contains an error message'
 
   '/servers/{server_id}/search-data':
     get:

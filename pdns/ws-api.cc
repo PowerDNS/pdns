@@ -159,15 +159,29 @@ void apiServerStatistics(HttpRequest* req, HttpResponse* resp) {
   if(req->method != "GET")
     throw HttpMethodNotAllowedException();
 
+  Json::array doc;
+  string name = req->getvars["statistic"];
+  if (!name.empty()) {
+    auto stat = productServerStatisticsFetch(name);
+    if (!stat) {
+      throw ApiException("Unknown statistic name");
+    }
+
+    doc.push_back(Json::object {
+      { "type", "StatisticItem" },
+      { "name", name },
+      { "value", std::to_string(*stat) },
+    });
+
+    resp->setBody(doc);
+
+    return;
+  }
+
   typedef map<string, string> stat_items_t;
   stat_items_t general_stats;
   productServerStatisticsFetch(general_stats);
 
-  auto resp_qtype_stats = g_rs.getQTypeResponseCounts();
-  auto resp_size_stats = g_rs.getSizeResponseCounts();
-  auto resp_rcode_stats = g_rs.getRCodeResponseCounts();
-
-  Json::array doc;
   for(const auto& item : general_stats) {
     doc.push_back(Json::object {
       { "type", "StatisticItem" },
@@ -176,6 +190,9 @@ void apiServerStatistics(HttpRequest* req, HttpResponse* resp) {
     });
   }
 
+  auto resp_qtype_stats = g_rs.getQTypeResponseCounts();
+  auto resp_size_stats = g_rs.getSizeResponseCounts();
+  auto resp_rcode_stats = g_rs.getRCodeResponseCounts();
   {
     Json::array values;
     for(const auto& item : resp_qtype_stats) {

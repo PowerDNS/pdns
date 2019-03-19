@@ -1271,6 +1271,41 @@ Size of the stack per thread.
 Interval between logging statistical summary on recursor performance.
 Use 0 to disable.
 
+.. _setting-stats-api-blacklist:
+
+``stats-api-blacklist``
+-----------------------
+.. versionadded:: 4.2.0
+
+-  String
+-  Default: "cache-bytes, packetcache-bytes, ecs-v4-response-bits-*, ecs-v6-response-bits-*"
+
+A list of comma-separated statistic names, that are disabled when retrieving the complete list of statistics via the API for performance reasons.
+These statistics can still be retrieved individually by specifically asking for it.
+
+.. _setting-stats-carbon-blacklist:
+
+``stats-carbon-blacklist``
+--------------------------
+.. versionadded:: 4.2.0
+
+-  String
+-  Default: "cache-bytes, packetcache-bytes, ecs-v4-response-bits-*, ecs-v6-response-bits-*"
+
+A list of comma-separated statistic names, that are prevented from being exported via carbon for performance reasons.
+
+.. _setting-stats-rec-control-blacklist:
+
+``stats-rec-control-blacklist``
+-------------------------------
+.. versionadded:: 4.2.0
+
+-  String
+-  Default: "cache-bytes, packetcache-bytes, ecs-v4-response-bits-*, ecs-v6-response-bits-*"
+
+A list of comma-separated statistic names, that are disabled when retrieving the complete list of statistics via `rec_control get-all`, for performance reasons.
+These statistics can still be retrieved individually.
+
 .. _setting-stats-ringbuffer-entries:
 
 ``stats-ringbuffer-entries``
@@ -1280,6 +1315,17 @@ Use 0 to disable.
 
 Number of entries in the remotes ringbuffer, which keeps statistics on who is querying your server.
 Can be read out using ``rec_control top-remotes``.
+
+.. _setting-stats-snmp-blacklist:
+
+``stats-snmp-blacklist``
+------------------------
+.. versionadded:: 4.2.0
+
+-  String
+-  Default: "cache-bytes, packetcache-bytes, ecs-v4-response-bits-*, ecs-v6-response-bits-*"
+
+A list of comma-separated statistic names, that are prevented from being exported via SNMP, for performance reasons.
 
 .. _setting-tcp-fast-open:
 
