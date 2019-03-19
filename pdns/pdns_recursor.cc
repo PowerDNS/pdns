@@ -4165,6 +4165,7 @@ int main(int argc, char **argv)
   g_argc = argc;
   g_argv = argv;
   g_stats.startupTime=time(0);
+  Utility::srandom();
   versionSetProduct(ProductRecursor);
   reportBasicTypes();
   reportOtherTypes();

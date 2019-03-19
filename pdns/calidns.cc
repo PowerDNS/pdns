@@ -377,7 +377,7 @@ try
 
     DNSPacketWriter pw(packet, DNSName(qname), DNSRecordContent::TypeToNumber(qtype));
     pw.getHeader()->rd=wantRecursion;
-    pw.getHeader()->id=random();
+    pw.getHeader()->id=dns_random(UINT16_MAX);
 
     if(!subnet.empty() || !ecsRange.empty()) {
       EDNSSubnetOpts opt;
@@ -454,7 +454,7 @@ try
       known.push_back(ptr);
     }
     for(;n < total; ++n) {
-      toSend.push_back(known[random()%known.size()].get());
+      toSend.push_back(known[dns_random(known.size())].get());
     }
     random_shuffle(toSend.begin(), toSend.end());
     g_recvcounter.store(0);

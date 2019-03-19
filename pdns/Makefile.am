@@ -1058,7 +1058,8 @@ pdns_notify_SOURCES = \
 	rcpgenerator.cc rcpgenerator.hh \
 	sillyrecords.cc \
 	statbag.cc \
-	unix_utility.cc
+	unix_utility.cc \
+	dns_random.cc
 
 pdns_notify_LDFLAGS = \
 	$(AM_LDFLAGS) \
@@ -1068,6 +1069,10 @@ pdns_notify_LDFLAGS = \
 pdns_notify_LDADD = \
 	$(LIBCRYPTO_LIBS) \
 	$(BOOST_PROGRAM_OPTIONS_LIBS)
+
+if LIBSODIUM
+pdns_notify_LDADD += $(LIBSODIUM_LIBS)
+endif
 
 dnsscope_SOURCES = \
 	arguments.cc \
