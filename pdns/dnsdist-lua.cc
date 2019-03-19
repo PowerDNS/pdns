@@ -1798,6 +1798,8 @@ void setupLuaConfig(bool client)
         }
 #endif
       });
+
+  g_lua.writeFunction("setAllowEmptyResponse", [](bool allow) { g_allowEmptyResponse=allow; });
 }
 
 vector<std::function<void(void)>> setupLua(bool client, const std::string& config)

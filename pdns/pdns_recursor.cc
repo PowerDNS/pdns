@@ -623,6 +623,7 @@ public:
     if(!tries)
       throw PDNSException("Resolver binding to local query client socket on "+sin.toString()+": "+stringerror());
 
+    setReceiveSocketErrors(ret, family);
     setNonBlocking(ret);
     return ret;
   }
@@ -1044,7 +1045,6 @@ static void startDoResolve(void *p)
         maxanswersize = min(static_cast<uint16_t>(edo.d_packetsize >= 512 ? edo.d_packetsize : 512), g_udpTruncationThreshold);
       }
       ednsOpts = edo.d_options;
-      haveEDNS=true;
       maxanswersize -= 11; // EDNS header size
 
       for (const auto& o : edo.d_options) {
@@ -3634,6 +3634,7 @@ static int serviceMain(int argc, char*argv[])
   SyncRes::s_nopacketcache = ::arg().mustDo("disable-packetcache");
 
   SyncRes::s_maxnegttl=::arg().asNum("max-negative-ttl");
+  SyncRes::s_maxbogusttl=::arg().asNum("max-cache-bogus-ttl");
   SyncRes::s_maxcachettl=max(::arg().asNum("max-cache-ttl"), 15);
   SyncRes::s_packetcachettl=::arg().asNum("packetcache-ttl");
   // Cap the packetcache-servfail-ttl to the packetcache-ttl
@@ -3652,6 +3653,7 @@ static int serviceMain(int argc, char*argv[])
 
   SyncRes::s_ecsipv4limit = ::arg().asNum("ecs-ipv4-bits");
   SyncRes::s_ecsipv6limit = ::arg().asNum("ecs-ipv6-bits");
+  SyncRes::clearECSStats();
 
   if (!::arg().isEmpty("ecs-scope-zero-address")) {
     ComboAddress scopeZero(::arg()["ecs-scope-zero-address"]);
@@ -3855,6 +3857,11 @@ static int serviceMain(int argc, char*argv[])
   g_maxTCPPerClient=::arg().asNum("max-tcp-per-client");
   g_tcpMaxQueriesPerConn=::arg().asNum("max-tcp-queries-per-connection");
   s_maxUDPQueriesPerRound=::arg().asNum("max-udp-queries-per-round");
+
+  blacklistStats(StatComponent::API, ::arg()["stats-api-blacklist"]);
+  blacklistStats(StatComponent::Carbon, ::arg()["stats-carbon-blacklist"]);
+  blacklistStats(StatComponent::RecControl, ::arg()["stats-rec-control-blacklist"]);
+  blacklistStats(StatComponent::SNMP, ::arg()["stats-snmp-blacklist"]);
 
   if (::arg().mustDo("snmp-agent")) {
     g_snmpAgent = std::make_shared<RecursorSNMPAgent>("recursor", ::arg()["snmp-master-socket"]);
@@ -4222,6 +4229,7 @@ int main(int argc, char **argv)
     ::arg().set("hint-file", "If set, load root hints from this file")="";
     ::arg().set("max-cache-entries", "If set, maximum number of entries in the main cache")="1000000";
     ::arg().set("max-negative-ttl", "maximum number of seconds to keep a negative cached entry in memory")="3600";
+    ::arg().set("max-cache-bogus-ttl", "maximum number of seconds to keep a Bogus (positive or negative) cached entry in memory")="3600";
     ::arg().set("max-cache-ttl", "maximum number of seconds to keep a cached entry in memory")="86400";
     ::arg().set("packetcache-ttl", "maximum number of seconds to keep a cached entry in packetcache")="3600";
     ::arg().set("max-packetcache-entries", "maximum number of entries to keep in the packetcache")="500000";
@@ -4277,6 +4285,18 @@ int main(int argc, char **argv)
 
     ::arg().setSwitch("snmp-agent", "If set, register as an SNMP agent")="no";
     ::arg().set("snmp-master-socket", "If set and snmp-agent is set, the socket to use to register to the SNMP master")="";
+
+    std::string defaultBlacklistedStats = "cache-bytes, packetcache-bytes, special-memory-usage";
+    for (size_t idx = 0; idx < 32; idx++) {
+      defaultBlacklistedStats += ", ecs-v4-response-bits-" + std::to_string(idx + 1);
+    }
+    for (size_t idx = 0; idx < 128; idx++) {
+      defaultBlacklistedStats += ", ecs-v6-response-bits-" + std::to_string(idx + 1);
+    }
+    ::arg().set("stats-api-blacklist", "List of statistics that are disabled when retrieving the complete list of statistics via the API")=defaultBlacklistedStats;
+    ::arg().set("stats-carbon-blacklist", "List of statistics that are prevented from being exported via Carbon")=defaultBlacklistedStats;
+    ::arg().set("stats-rec-control-blacklist", "List of statistics that are prevented from being exported via rec_control get-all")=defaultBlacklistedStats;
+    ::arg().set("stats-snmp-blacklist", "List of statistics that are prevented from being exported via SNMP")=defaultBlacklistedStats;
 
     ::arg().set("tcp-fast-open", "Enable TCP Fast Open support on the listening sockets, using the supplied numerical value as the queue size")="0";
     ::arg().set("nsec3-max-iterations", "Maximum number of iterations allowed for an NSEC3 record")="2500";

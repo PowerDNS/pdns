@@ -150,13 +150,6 @@ bool RecursorPacketCache::getResponsePacket(unsigned int tag, const std::string&
 }
 
 
-void RecursorPacketCache::insertResponsePacket(unsigned int tag, uint32_t qhash, std::string&& query, const DNSName& qname, uint16_t qtype, uint16_t qclass, std::string&& responsePacket, time_t now, uint32_t ttl, uint16_t ecsBegin, uint16_t ecsEnd)
-{
-  vState valState;
-  boost::optional<RecProtoBufMessage> pb(boost::none);
-  insertResponsePacket(tag, qhash, std::move(query), qname, qtype, qclass, std::move(responsePacket), now, ttl, valState, ecsBegin, ecsEnd, std::move(pb));
-}
-
 void RecursorPacketCache::insertResponsePacket(unsigned int tag, uint32_t qhash, std::string&& query, const DNSName& qname, uint16_t qtype, uint16_t qclass, std::string&& responsePacket, time_t now, uint32_t ttl, const vState& valState, uint16_t ecsBegin, uint16_t ecsEnd, boost::optional<RecProtoBufMessage>&& protobufMessage)
 {
   auto& idx = d_packetCache.get<HashTag>();
@@ -226,11 +219,11 @@ void RecursorPacketCache::doPruneTo(unsigned int maxCached)
 
 uint64_t RecursorPacketCache::doDump(int fd)
 {
-  FILE* fp=fdopen(dup(fd), "w");
+  auto fp = std::unique_ptr<FILE, int(*)(FILE*)>(fdopen(dup(fd), "w"), fclose);
   if(!fp) { // dup probably failed
     return 0;
   }
-  fprintf(fp, "; main packet cache dump from thread follows\n;\n");
+  fprintf(fp.get(), "; main packet cache dump from thread follows\n;\n");
   const auto& sidx=d_packetCache.get<1>();
 
   uint64_t count=0;
@@ -238,13 +231,12 @@ uint64_t RecursorPacketCache::doDump(int fd)
   for(auto i=sidx.cbegin(); i != sidx.cend(); ++i) {
     count++;
     try {
-      fprintf(fp, "%s %" PRId64 " %s  ; tag %d\n", i->d_name.toString().c_str(), static_cast<int64_t>(i->d_ttd - now), DNSRecordContent::NumberToType(i->d_type).c_str(), i->d_tag);
+      fprintf(fp.get(), "%s %" PRId64 " %s  ; tag %d\n", i->d_name.toString().c_str(), static_cast<int64_t>(i->d_ttd - now), DNSRecordContent::NumberToType(i->d_type).c_str(), i->d_tag);
     }
     catch(...) {
-      fprintf(fp, "; error printing '%s'\n", i->d_name.empty() ? "EMPTY" : i->d_name.toString().c_str());
+      fprintf(fp.get(), "; error printing '%s'\n", i->d_name.empty() ? "EMPTY" : i->d_name.toString().c_str());
     }
   }
-  fclose(fp);
   return count;
 
 }

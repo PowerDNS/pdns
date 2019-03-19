@@ -113,6 +113,7 @@ static const oid emptyQueriesOID[] = { RECURSOR_STATS_OID, 94 };
 static const oid dnssecAuthenticDataQueriesOID[] = { RECURSOR_STATS_OID, 95 };
 static const oid dnssecCheckDisabledQueriesOID[] = { RECURSOR_STATS_OID, 96 };
 static const oid variableResponsesOID[] = { RECURSOR_STATS_OID, 97 };
+static const oid specialMemoryUsageOID[] = { RECURSOR_STATS_OID, 98 };
 
 static std::unordered_map<oid, std::string> s_statsMap;
 
@@ -147,21 +148,37 @@ static int handleCounter64Stats(netsnmp_mib_handler* handler,
   }
 }
 
-static void registerCounter64Stat(const char* name, const oid statOID[], size_t statOIDLength)
+static int handleDisabledCounter64Stats(netsnmp_mib_handler* handler,
+                                        netsnmp_handler_registration* reginfo,
+                                        netsnmp_agent_request_info* reqinfo,
+                                        netsnmp_request_info* requests)
+{
+  if (reqinfo->mode != MODE_GET) {
+    return SNMP_ERR_GENERR;
+  }
+
+  if (reginfo->rootoid_len != OID_LENGTH(questionsOID) + 1) {
+    return SNMP_ERR_GENERR;
+  }
+
+  return RecursorSNMPAgent::setCounter64Value(requests, 0);
+}
+
+static void registerCounter64Stat(const std::string& name, const oid statOID[], size_t statOIDLength)
 {
   if (statOIDLength != OID_LENGTH(questionsOID)) {
-    g_log<<Logger::Error<<"Invalid OID for SNMP Counter64 statistic "<<std::string(name)<<endl;
+    g_log<<Logger::Error<<"Invalid OID for SNMP Counter64 statistic "<<name<<endl;
     return;
   }
 
   if (s_statsMap.find(statOID[statOIDLength - 1]) != s_statsMap.end()) {
-    g_log<<Logger::Error<<"OID for SNMP Counter64 statistic "<<std::string(name)<<" has already been registered"<<endl;
+    g_log<<Logger::Error<<"OID for SNMP Counter64 statistic "<<name<<" has already been registered"<<endl;
     return;
   }
 
-  s_statsMap[statOID[statOIDLength - 1]] = name;
-  netsnmp_register_scalar(netsnmp_create_handler_registration(name,
-                                                              handleCounter64Stats,
+  s_statsMap[statOID[statOIDLength - 1]] = name.c_str();
+  netsnmp_register_scalar(netsnmp_create_handler_registration(name.c_str(),
+                                                              isStatBlacklisted(StatComponent::SNMP, name) ? handleCounter64Stats : handleDisabledCounter64Stats,
                                                               statOID,
                                                               statOIDLength,
                                                               HANDLER_CAN_RONLY));
@@ -302,6 +319,6 @@ RecursorSNMPAgent::RecursorSNMPAgent(const std::string& name, const std::string&
   registerCounter64Stat("policy-result-nodata", policyResultNodataOID, OID_LENGTH(policyResultNodataOID));
   registerCounter64Stat("policy-result-truncate", policyResultTruncateOID, OID_LENGTH(policyResultTruncateOID));
   registerCounter64Stat("policy-result-custom", policyResultCustomOID, OID_LENGTH(policyResultCustomOID));
-
+  registerCounter64Stat("special-memory-usage", specialMemoryUsageOID, OID_LENGTH(specialMemoryUsageOID));
 #endif /* HAVE_NET_SNMP */
 }

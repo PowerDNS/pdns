@@ -47,6 +47,11 @@ Sending metrics over SNMP
 
 The recursor can export statistics over SNMP and send traps from :doc:`Lua <lua-scripting/index>`, provided support is compiled into the Recursor and :ref:`setting-snmp-agent` set.
 
+MIB
+^^^
+
+.. literalinclude:: ../RECURSOR-MIB.txt
+
 Getting Metrics from the Recursor
 ---------------------------------
 
@@ -235,6 +240,18 @@ number of outgoing queries adorned with an EDNS Client Subnet option (since 4.1)
 ecs-responses
 ^^^^^^^^^^^^^
 number of responses received from authoritative servers with an EDNS Client Subnet option we used (since 4.1)
+
+ecs-v4-response-bits-*
+^^^^^^^^^^^^^^^^^^^^^^
+.. versionadded:: 4.2.0
+
+number of responses received from authoritative servers with an IPv4 EDNS Client Subnet option we used, of this subnet size (1 to 32).
+
+ecs-v6-response-bits-*
+^^^^^^^^^^^^^^^^^^^^^^
+.. versionadded:: 4.2.0
+
+number of responses received from authoritative servers with an IPv6 EDNS Client Subnet option we used, of this subnet size (1 to 128).
 
 edns-ping-matches
 ^^^^^^^^^^^^^^^^^

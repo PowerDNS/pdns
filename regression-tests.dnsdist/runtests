@@ -20,6 +20,8 @@ pip install -r requirements.txt
 protoc -I=../pdns/ --python_out=. ../pdns/dnsmessage.proto
 protoc -I=../pdns/ --python_out=. ../pdns/dnstap.proto
 
+mkdir -p configs
+
 if [ -z "${DNSDISTBIN}" ]; then
   DNSDISTBIN=$(ls ../pdns/dnsdistdist/dnsdist-*/dnsdist)
 fi
@@ -39,6 +41,12 @@ openssl x509 -req -days 1 -CA ca.pem -CAkey ca.key -CAcreateserial -in server.cs
 # Generate a chain
 cat server.pem ca.pem >> server.chain
 
-nosetests --with-xunit $@
+if ! nosetests --with-xunit $@; then
+    for log in configs/*.log; do
+        echo "=== ${log} ==="
+        cat "${log}"
+    done
+    false
+fi
 
 rm ca.key ca.pem ca.srl server.csr server.key server.pem server.chain

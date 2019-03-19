@@ -48,8 +48,13 @@ using json11::Json;
 
 void productServerStatisticsFetch(map<string,string>& out)
 {
-  map<string,string> stats = getAllStatsMap();
+  map<string,string> stats = getAllStatsMap(StatComponent::API);
   out.swap(stats);
+}
+
+boost::optional<uint64_t> productServerStatisticsFetch(const std::string& name)
+{
+  return getStatByName(name);
 }
 
 static void apiWriteConfigFile(const string& filebasename, const string& content)

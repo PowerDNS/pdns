@@ -809,6 +809,14 @@ variableResponses OBJECT-TYPE
         "Number of variable responses"
     ::= { stats 97 }
 
+specialMemoryUsage OBJECT-TYPE
+    SYNTAX CounterBasedGauge64
+    MAX-ACCESS read-only
+    STATUS current
+    DESCRIPTION
+        "Memory usage (more precise bbut expensive to retrieve)"
+    ::= { stats 98 }
+
 ---
 --- Traps / Notifications
 ---
@@ -927,6 +935,7 @@ recGroup OBJECT-GROUP
         noednsOutqueries,
         uptime,
         realMemoryUsage,
+        specialMemoryUsage,
         fdUsage,
         userMsec,
         sysMsec,

@@ -90,6 +90,7 @@ uint16_t g_maxOutstanding{10240};
 bool g_verboseHealthChecks{false};
 uint32_t g_staleCacheEntriesTTL{0};
 bool g_syslog{true};
+bool g_allowEmptyResponse{false};
 
 GlobalStateHolder<NetmaskGroup> g_ACL;
 string g_outputBuffer;
@@ -166,7 +167,7 @@ try
   dh->ancount = dh->arcount = dh->nscount = 0;
 
   if (hadEDNS) {
-    addEDNS(dh, *len, responseSize, z & EDNS_HEADER_FLAG_DO, payloadSize);
+    addEDNS(dh, *len, responseSize, z & EDNS_HEADER_FLAG_DO, payloadSize, 0);
   }
 }
 catch(...)
@@ -228,7 +229,7 @@ bool responseContentMatches(const char* response, const uint16_t responseLen, co
   }
 
   if (dh->qdcount == 0) {
-    if (dh->rcode != RCode::NoError && dh->rcode != RCode::NXDomain) {
+    if ((dh->rcode != RCode::NoError && dh->rcode != RCode::NXDomain) || g_allowEmptyResponse) {
       return true;
     }
     else {
@@ -2727,8 +2728,8 @@ try
       tcpBindsCount++;
     }
     else {
-      delete cs;
       errlog("Error while setting up TLS on local address '%s', exiting", cs->local.toStringWithPort());
+      delete cs;
       _exit(EXIT_FAILURE);
     }
   }

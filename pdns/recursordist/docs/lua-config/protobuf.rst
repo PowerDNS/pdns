@@ -18,8 +18,9 @@ Protobuf export to a server is enabled using the ``protobufServer()`` directive:
 
   Send protocol buffer messages to one or more servers for incoming queries and/or outgoing responses. The client address may be masked using :func:`setProtobufMasks`, for anonymization purposes.
 
-  :param string or list of strings servers: The IP and port to connect to, or a list of those. If more than one server is configured, all messages are sent to every server.
-  :param table options: A table with key: value pairs with options.
+  :param servers: The IP and port to connect to, or a list of those. If more than one server is configured, all messages are sent to every server.
+  :type servers: string or list of strings
+  :param table options: A table with ``key=value`` pairs with options.
 
   Options:
 
@@ -63,8 +64,9 @@ While :func:`protobufServer` only exports the queries sent to the recursor from 
 
   Send protocol buffer messages to one or more servers for outgoing queries and/or incoming responses.
 
-  :param string or list of strings servers: The IP and port to connect to, or a list of those. If more than one server is configured, all messages are sent to every server.
-  :param table options: A table with key: value pairs with options.
+  :param servers: The IP and port to connect to, or a list of those. If more than one server is configured, all messages are sent to every server.
+  :type servers: string or list of strings
+  :param table options: A table with ``key=value`` pairs with options.
 
   Options:
 

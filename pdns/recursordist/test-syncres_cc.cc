@@ -121,6 +121,7 @@ static void init(bool debug=false)
   SyncRes::s_maxtotusec = 1000*7000;
   SyncRes::s_maxdepth = 40;
   SyncRes::s_maxnegttl = 3600;
+  SyncRes::s_maxbogusttl = 3600;
   SyncRes::s_maxcachettl = 86400;
   SyncRes::s_packetcachettl = 3600;
   SyncRes::s_packetcacheservfailttl = 60;
@@ -149,6 +150,8 @@ static void init(bool debug=false)
   BOOST_CHECK_EQUAL(SyncRes::getThrottledServersSize(), 0);
   SyncRes::clearFailedServers();
   BOOST_CHECK_EQUAL(SyncRes::getFailedServersSize(), 0);
+
+  SyncRes::clearECSStats();
 
   auto luaconfsCopy = g_luaconfs.getCopy();
   luaconfsCopy.dfe.clear();
@@ -1078,7 +1081,7 @@ BOOST_AUTO_TEST_CASE(test_glueless_referral) {
   BOOST_CHECK_EQUAL(ret[0].d_name, target);
 }
 
-BOOST_AUTO_TEST_CASE(test_edns_submask_by_domain) {
+BOOST_AUTO_TEST_CASE(test_edns_subnet_by_domain) {
   std::unique_ptr<SyncRes> sr;
   initSR(sr);
 
@@ -1095,15 +1098,49 @@ BOOST_AUTO_TEST_CASE(test_edns_submask_by_domain) {
 
       BOOST_REQUIRE(srcmask);
       BOOST_CHECK_EQUAL(srcmask->toString(), "192.0.2.0/24");
+
+      if (isRootServer(ip)) {
+        setLWResult(res, 0, false, false, true);
+        addRecordToLW(res, domain, QType::NS, "a.gtld-servers.net.", DNSResourceRecord::AUTHORITY, 172800);
+        addRecordToLW(res, "a.gtld-servers.net.", QType::A, "192.0.2.1", DNSResourceRecord::ADDITIONAL, 3600);
+
+        /* this one did not use the ECS info */
+        srcmask = boost::none;
+
+        return 1;
+      } else if (ip == ComboAddress("192.0.2.1:53")) {
+
+        setLWResult(res, 0, true, false, false);
+        addRecordToLW(res, domain, QType::A, "192.0.2.2");
+
+        /* this one did, but only up to a precision of /16, not the full /24 */
+        srcmask = Netmask("192.0.0.0/16");
+
+        return 1;
+      }
+
       return 0;
     });
 
+  SyncRes::s_ecsqueries = 0;
+  SyncRes::s_ecsresponses = 0;
   vector<DNSRecord> ret;
   int res = sr->beginResolve(target, QType(QType::A), QClass::IN, ret);
-  BOOST_CHECK_EQUAL(res, RCode::ServFail);
+  BOOST_CHECK_EQUAL(res, RCode::NoError);
+  BOOST_REQUIRE_EQUAL(ret.size(), 1);
+  BOOST_CHECK(ret[0].d_type == QType::A);
+  BOOST_CHECK_EQUAL(ret[0].d_name, target);
+  BOOST_CHECK_EQUAL(SyncRes::s_ecsqueries, 2);
+  BOOST_CHECK_EQUAL(SyncRes::s_ecsresponses, 1);
+  for (const auto& entry : SyncRes::s_ecsResponsesBySubnetSize4) {
+    BOOST_CHECK_EQUAL(entry.second, entry.first == 15 ? 1 : 0);
+  }
+  for (const auto& entry : SyncRes::s_ecsResponsesBySubnetSize6) {
+    BOOST_CHECK_EQUAL(entry.second, 0);
+  }
 }
 
-BOOST_AUTO_TEST_CASE(test_edns_submask_by_addr) {
+BOOST_AUTO_TEST_CASE(test_edns_subnet_by_addr) {
   std::unique_ptr<SyncRes> sr;
   initSR(sr);
 
@@ -1138,12 +1175,22 @@ BOOST_AUTO_TEST_CASE(test_edns_submask_by_addr) {
       return 0;
     });
 
+  SyncRes::s_ecsqueries = 0;
+  SyncRes::s_ecsresponses = 0;
   vector<DNSRecord> ret;
   int res = sr->beginResolve(target, QType(QType::A), QClass::IN, ret);
   BOOST_CHECK_EQUAL(res, RCode::NoError);
   BOOST_REQUIRE_EQUAL(ret.size(), 1);
   BOOST_CHECK(ret[0].d_type == QType::A);
   BOOST_CHECK_EQUAL(ret[0].d_name, target);
+  BOOST_CHECK_EQUAL(SyncRes::s_ecsqueries, 1);
+  BOOST_CHECK_EQUAL(SyncRes::s_ecsresponses, 1);
+  for (const auto& entry : SyncRes::s_ecsResponsesBySubnetSize4) {
+    BOOST_CHECK_EQUAL(entry.second, 0);
+  }
+  for (const auto& entry : SyncRes::s_ecsResponsesBySubnetSize6) {
+    BOOST_CHECK_EQUAL(entry.second, entry.first == 55 ? 1 : 0);
+  }
 }
 
 BOOST_AUTO_TEST_CASE(test_ecs_use_requestor) {
@@ -1852,6 +1899,8 @@ BOOST_AUTO_TEST_CASE(test_root_nx_trust) {
       return 0;
     });
 
+  SyncRes::s_maxnegttl = 3600;
+
   vector<DNSRecord> ret;
   int res = sr->beginResolve(target1, QType(QType::A), QClass::IN, ret);
   BOOST_CHECK_EQUAL(res, RCode::NXDomain);
@@ -1862,7 +1911,8 @@ BOOST_AUTO_TEST_CASE(test_root_nx_trust) {
   ret.clear();
   res = sr->beginResolve(target2, QType(QType::A), QClass::IN, ret);
   BOOST_CHECK_EQUAL(res, RCode::NXDomain);
-  BOOST_CHECK_EQUAL(ret.size(), 1);
+  BOOST_REQUIRE_EQUAL(ret.size(), 1);
+  BOOST_CHECK_LE(ret[0].d_ttl, SyncRes::s_maxnegttl);
   /* one for target1 and one for the entire TLD */
   BOOST_CHECK_EQUAL(SyncRes::getNegCacheSize(), 2);
 
@@ -1926,8 +1976,8 @@ BOOST_AUTO_TEST_CASE(test_root_nx_trust_specific) {
   res = sr->beginResolve(target2, QType(QType::A), QClass::IN, ret);
   BOOST_CHECK_EQUAL(res, RCode::NoError);
   BOOST_REQUIRE_EQUAL(ret.size(), 1);
-  BOOST_REQUIRE(ret[0].d_type == QType::A);
   BOOST_CHECK_EQUAL(ret[0].d_name, target2);
+  BOOST_REQUIRE(ret[0].d_type == QType::A);
   BOOST_CHECK(getRR<ARecordContent>(ret[0])->getCA() == ComboAddress("192.0.2.2"));
 
   BOOST_CHECK_EQUAL(SyncRes::t_sstorage.negcache.size(), 1);
@@ -4414,7 +4464,7 @@ BOOST_AUTO_TEST_CASE(test_dnssec_bogus_no_rrsig) {
         char addr[] = "a.root-servers.net.";
         for (char idx = 'a'; idx <= 'm'; idx++) {
           addr[0] = idx;
-          addRecordToLW(res, domain, QType::NS, std::string(addr), DNSResourceRecord::ANSWER, 3600);
+          addRecordToLW(res, domain, QType::NS, std::string(addr), DNSResourceRecord::ANSWER, 86400);
         }
 
         /* No RRSIG */
@@ -4436,6 +4486,9 @@ BOOST_AUTO_TEST_CASE(test_dnssec_bogus_no_rrsig) {
       return 0;
     });
 
+  SyncRes::s_maxcachettl = 86400;
+  SyncRes::s_maxbogusttl = 3600;
+
   vector<DNSRecord> ret;
   int res = sr->beginResolve(target, QType(QType::NS), QClass::IN, ret);
   BOOST_CHECK_EQUAL(res, RCode::NoError);
@@ -4451,6 +4504,10 @@ BOOST_AUTO_TEST_CASE(test_dnssec_bogus_no_rrsig) {
   BOOST_CHECK_EQUAL(res, RCode::NoError);
   BOOST_CHECK_EQUAL(sr->getValidationState(), Bogus);
   BOOST_REQUIRE_EQUAL(ret.size(), 13);
+  /* check that we capped the TTL to max-cache-bogus-ttl */
+  for (const auto& record : ret) {
+    BOOST_CHECK_LE(record.d_ttl, SyncRes::s_maxbogusttl);
+  }
   BOOST_CHECK_EQUAL(queriesCount, 1);
 }
 
@@ -9321,6 +9378,76 @@ BOOST_AUTO_TEST_CASE(test_dnssec_rrsig_negcache_validity) {
   BOOST_CHECK_EQUAL(queriesCount, 4);
 }
 
+BOOST_AUTO_TEST_CASE(test_dnssec_rrsig_negcache_bogus_validity) {
+  std::unique_ptr<SyncRes> sr;
+  initSR(sr, true);
+
+  setDNSSECValidation(sr, DNSSECMode::ValidateAll);
+
+  primeHints();
+  const DNSName target("com.");
+  testkeysset_t keys;
+
+  auto luaconfsCopy = g_luaconfs.getCopy();
+  luaconfsCopy.dsAnchors.clear();
+  generateKeyMaterial(g_rootdnsname, DNSSECKeeper::ECDSA256, DNSSECKeeper::SHA256, keys, luaconfsCopy.dsAnchors);
+  generateKeyMaterial(DNSName("com."), DNSSECKeeper::ECDSA256, DNSSECKeeper::SHA256, keys);
+  g_luaconfs.setState(luaconfsCopy);
+
+  size_t queriesCount = 0;
+  const time_t fixedNow = sr->getNow().tv_sec;
+
+  sr->setAsyncCallback([target,&queriesCount,keys,fixedNow](const ComboAddress& ip, const DNSName& domain, int type, bool doTCP, bool sendRDQuery, int EDNS0Level, struct timeval* now, boost::optional<Netmask>& srcmask, boost::optional<const ResolveContext&> context, LWResult* res, bool* chained) {
+      queriesCount++;
+
+      DNSName auth = domain;
+      auth.chopOff();
+
+      if (type == QType::DS || type == QType::DNSKEY) {
+        return genericDSAndDNSKEYHandler(res, domain, auth, type, keys);
+      }
+      else {
+        setLWResult(res, RCode::NoError, true, false, true);
+        addRecordToLW(res, domain, QType::SOA, "pdns-public-ns1.powerdns.com. pieter\\.lexis.powerdns.com. 2017032301 10800 3600 604800 3600", DNSResourceRecord::AUTHORITY, 86400);
+        addRRSIG(keys, res->d_records, domain, 86400);
+        addNSECRecordToLW(domain, DNSName("z."), { QType::NSEC, QType::RRSIG }, 86400, res->d_records);
+        /* no RRSIG */
+        return 1;
+      }
+
+      return 0;
+    });
+
+  SyncRes::s_maxnegttl = 3600;
+  SyncRes::s_maxbogusttl = 360;
+
+  vector<DNSRecord> ret;
+  int res = sr->beginResolve(target, QType(QType::A), QClass::IN, ret);
+  BOOST_CHECK_EQUAL(res, RCode::NoError);
+  BOOST_CHECK_EQUAL(sr->getValidationState(), Bogus);
+  BOOST_REQUIRE_EQUAL(ret.size(), 3);
+  BOOST_CHECK_EQUAL(queriesCount, 4);
+
+  /* check that the entry has been negatively cached but not longer than s_maxbogusttl */
+  const NegCache::NegCacheEntry* ne = nullptr;
+  BOOST_CHECK_EQUAL(SyncRes::t_sstorage.negcache.size(), 1);
+  BOOST_REQUIRE_EQUAL(SyncRes::t_sstorage.negcache.get(target, QType(QType::A), sr->getNow(), &ne), true);
+  BOOST_CHECK_EQUAL(ne->d_ttd, fixedNow + SyncRes::s_maxbogusttl);
+  BOOST_CHECK_EQUAL(ne->d_validationState, Bogus);
+  BOOST_CHECK_EQUAL(ne->authoritySOA.records.size(), 1);
+  BOOST_CHECK_EQUAL(ne->authoritySOA.signatures.size(), 1);
+  BOOST_CHECK_EQUAL(ne->DNSSECRecords.records.size(), 1);
+  BOOST_CHECK_EQUAL(ne->DNSSECRecords.signatures.size(), 0);
+
+  /* again, to test the cache */
+  ret.clear();
+  res = sr->beginResolve(target, QType(QType::A), QClass::IN, ret);
+  BOOST_CHECK_EQUAL(res, RCode::NoError);
+  BOOST_CHECK_EQUAL(sr->getValidationState(), Bogus);
+  BOOST_REQUIRE_EQUAL(ret.size(), 3);
+  BOOST_CHECK_EQUAL(queriesCount, 4);
+}
+
 BOOST_AUTO_TEST_CASE(test_dnssec_rrsig_cache_validity) {
   std::unique_ptr<SyncRes> sr;
   initSR(sr, true);
@@ -9390,7 +9517,7 @@ BOOST_AUTO_TEST_CASE(test_dnssec_validation_from_cache_secure) {
     Validation is optional, and the first query does not ask for it,
     so the answer is cached as Indeterminate.
     The second query asks for validation, answer should be marked as
-    Secure.
+    Secure, after just-in-time validation.
   */
   std::unique_ptr<SyncRes> sr;
   initSR(sr, true);
@@ -9549,7 +9676,7 @@ BOOST_AUTO_TEST_CASE(test_dnssec_validation_from_cache_bogus) {
       else {
         if (domain == target && type == QType::A) {
           setLWResult(res, 0, true, false, true);
-          addRecordToLW(res, target, QType::A, "192.0.2.1");
+          addRecordToLW(res, target, QType::A, "192.0.2.1", DNSResourceRecord::ANSWER, 86400);
           /* no RRSIG */
           return 1;
         }
@@ -9557,6 +9684,8 @@ BOOST_AUTO_TEST_CASE(test_dnssec_validation_from_cache_bogus) {
 
       return 0;
     });
+
+  SyncRes::s_maxbogusttl = 3600;
 
   vector<DNSRecord> ret;
   /* first query does not require validation */
@@ -9567,6 +9696,7 @@ BOOST_AUTO_TEST_CASE(test_dnssec_validation_from_cache_bogus) {
   BOOST_REQUIRE_EQUAL(ret.size(), 1);
   for (const auto& record : ret) {
     BOOST_CHECK(record.d_type == QType::A);
+    BOOST_CHECK_EQUAL(record.d_ttl, 86400);
   }
   BOOST_CHECK_EQUAL(queriesCount, 1);
 
@@ -9577,9 +9707,26 @@ BOOST_AUTO_TEST_CASE(test_dnssec_validation_from_cache_bogus) {
   res = sr->beginResolve(target, QType(QType::A), QClass::IN, ret);
   BOOST_CHECK_EQUAL(res, RCode::NoError);
   BOOST_CHECK_EQUAL(sr->getValidationState(), Bogus);
+  /* check that we correctly capped the TTD for a Bogus record after
+     just-in-time validation */
   BOOST_REQUIRE_EQUAL(ret.size(), 1);
   for (const auto& record : ret) {
     BOOST_CHECK(record.d_type == QType::A);
+    BOOST_CHECK_EQUAL(record.d_ttl, SyncRes::s_maxbogusttl);
+  }
+  BOOST_CHECK_EQUAL(queriesCount, 3);
+
+  ret.clear();
+  /* third time also _does_ require validation, so we
+     can check that the cache has been updated */
+  sr->setDNSSECValidationRequested(true);
+  res = sr->beginResolve(target, QType(QType::A), QClass::IN, ret);
+  BOOST_CHECK_EQUAL(res, RCode::NoError);
+  BOOST_CHECK_EQUAL(sr->getValidationState(), Bogus);
+  BOOST_REQUIRE_EQUAL(ret.size(), 1);
+  for (const auto& record : ret) {
+    BOOST_CHECK(record.d_type == QType::A);
+    BOOST_CHECK_EQUAL(record.d_ttl, SyncRes::s_maxbogusttl);
   }
   BOOST_CHECK_EQUAL(queriesCount, 3);
 }
@@ -9763,13 +9910,13 @@ BOOST_AUTO_TEST_CASE(test_dnssec_validation_from_cname_cache_bogus) {
       else {
         if (domain == target && type == QType::A) {
           setLWResult(res, 0, true, false, true);
-          addRecordToLW(res, target, QType::CNAME, cnameTarget.toString());
-          addRecordToLW(res, cnameTarget, QType::A, "192.0.2.1");
+          addRecordToLW(res, target, QType::CNAME, cnameTarget.toString(), DNSResourceRecord::ANSWER, 86400);
+          addRecordToLW(res, cnameTarget, QType::A, "192.0.2.1", DNSResourceRecord::ANSWER, 86400);
           /* no RRSIG */
           return 1;
         } else if (domain == cnameTarget && type == QType::A) {
           setLWResult(res, 0, true, false, true);
-          addRecordToLW(res, cnameTarget, QType::A, "192.0.2.1");
+          addRecordToLW(res, cnameTarget, QType::A, "192.0.2.1", DNSResourceRecord::ANSWER, 86400);
           /* no RRSIG */
           return 1;
         }
@@ -9777,6 +9924,9 @@ BOOST_AUTO_TEST_CASE(test_dnssec_validation_from_cname_cache_bogus) {
 
       return 0;
     });
+
+  SyncRes::s_maxbogusttl = 60;
+  SyncRes::s_maxnegttl = 3600;
 
   vector<DNSRecord> ret;
   /* first query does not require validation */
@@ -9787,6 +9937,7 @@ BOOST_AUTO_TEST_CASE(test_dnssec_validation_from_cname_cache_bogus) {
   BOOST_REQUIRE_EQUAL(ret.size(), 2);
   for (const auto& record : ret) {
     BOOST_CHECK(record.d_type == QType::CNAME || record.d_type == QType::A);
+    BOOST_CHECK_EQUAL(record.d_ttl, 86400);
   }
   BOOST_CHECK_EQUAL(queriesCount, 2);
 
@@ -9798,8 +9949,25 @@ BOOST_AUTO_TEST_CASE(test_dnssec_validation_from_cname_cache_bogus) {
   BOOST_CHECK_EQUAL(res, RCode::NoError);
   BOOST_CHECK_EQUAL(sr->getValidationState(), Bogus);
   BOOST_REQUIRE_EQUAL(ret.size(), 2);
+  /* check that we correctly capped the TTD for a Bogus record after
+     just-in-time validation */
   for (const auto& record : ret) {
     BOOST_CHECK(record.d_type == QType::CNAME || record.d_type == QType::A);
+    BOOST_CHECK_EQUAL(record.d_ttl, SyncRes::s_maxbogusttl);
+  }
+  BOOST_CHECK_EQUAL(queriesCount, 5);
+
+  ret.clear();
+  /* and a third time to make sure that the validation status (and TTL!)
+     was properly updated in the cache */
+  sr->setDNSSECValidationRequested(true);
+  res = sr->beginResolve(target, QType(QType::A), QClass::IN, ret);
+  BOOST_CHECK_EQUAL(res, RCode::NoError);
+  BOOST_CHECK_EQUAL(sr->getValidationState(), Bogus);
+  BOOST_REQUIRE_EQUAL(ret.size(), 2);
+  for (const auto& record : ret) {
+    BOOST_CHECK(record.d_type == QType::CNAME || record.d_type == QType::A);
+    BOOST_CHECK_EQUAL(record.d_ttl, SyncRes::s_maxbogusttl);
   }
   BOOST_CHECK_EQUAL(queriesCount, 5);
 }
@@ -10134,14 +10302,18 @@ BOOST_AUTO_TEST_CASE(test_dnssec_validation_from_negcache_bogus) {
       }
       else {
         setLWResult(res, RCode::NoError, true, false, true);
-        addRecordToLW(res, domain, QType::SOA, "pdns-public-ns1.powerdns.com. pieter\\.lexis.powerdns.com. 2017032301 10800 3600 604800 3600", DNSResourceRecord::AUTHORITY, 3600);
-        addRRSIG(keys, res->d_records, domain, 300);
+        addRecordToLW(res, domain, QType::SOA, "pdns-public-ns1.powerdns.com. pieter\\.lexis.powerdns.com. 2017032301 10800 3600 604800 3600", DNSResourceRecord::AUTHORITY, 86400);
+        addRRSIG(keys, res->d_records, domain, 86400);
         /* no denial */
         return 1;
       }
 
       return 0;
     });
+
+  SyncRes::s_maxbogusttl = 60;
+  SyncRes::s_maxnegttl = 3600;
+  const auto now = sr->getNow().tv_sec;
 
   vector<DNSRecord> ret;
   /* first query does not require validation */
@@ -10150,6 +10322,11 @@ BOOST_AUTO_TEST_CASE(test_dnssec_validation_from_negcache_bogus) {
   BOOST_CHECK_EQUAL(res, RCode::NoError);
   BOOST_CHECK_EQUAL(sr->getValidationState(), Indeterminate);
   BOOST_REQUIRE_EQUAL(ret.size(), 2);
+  for (const auto& record : ret) {
+    if (record.d_type == QType::SOA) {
+      BOOST_CHECK_EQUAL(record.d_ttl, SyncRes::s_maxnegttl);
+    }
+  }
   BOOST_CHECK_EQUAL(queriesCount, 1);
   const NegCache::NegCacheEntry* ne = nullptr;
   BOOST_CHECK_EQUAL(SyncRes::t_sstorage.negcache.size(), 1);
@@ -10157,6 +10334,7 @@ BOOST_AUTO_TEST_CASE(test_dnssec_validation_from_negcache_bogus) {
   BOOST_CHECK_EQUAL(ne->d_validationState, Indeterminate);
   BOOST_CHECK_EQUAL(ne->authoritySOA.records.size(), 1);
   BOOST_CHECK_EQUAL(ne->authoritySOA.signatures.size(), 1);
+  BOOST_CHECK_EQUAL(ne->d_ttd, now + SyncRes::s_maxnegttl);
   BOOST_CHECK_EQUAL(ne->DNSSECRecords.records.size(), 0);
   BOOST_CHECK_EQUAL(ne->DNSSECRecords.signatures.size(), 0);
 
@@ -10167,11 +10345,35 @@ BOOST_AUTO_TEST_CASE(test_dnssec_validation_from_negcache_bogus) {
   BOOST_CHECK_EQUAL(res, RCode::NoError);
   BOOST_CHECK_EQUAL(sr->getValidationState(), Bogus);
   BOOST_REQUIRE_EQUAL(ret.size(), 2);
+  for (const auto& record : ret) {
+    BOOST_CHECK_EQUAL(record.d_ttl, SyncRes::s_maxbogusttl);
+  }
   BOOST_CHECK_EQUAL(queriesCount, 4);
   BOOST_REQUIRE_EQUAL(SyncRes::t_sstorage.negcache.get(target, QType(QType::A), sr->getNow(), &ne), true);
   BOOST_CHECK_EQUAL(ne->d_validationState, Bogus);
   BOOST_CHECK_EQUAL(ne->authoritySOA.records.size(), 1);
   BOOST_CHECK_EQUAL(ne->authoritySOA.signatures.size(), 1);
+  BOOST_CHECK_EQUAL(ne->d_ttd, now + SyncRes::s_maxbogusttl);
+  BOOST_CHECK_EQUAL(ne->DNSSECRecords.records.size(), 0);
+  BOOST_CHECK_EQUAL(ne->DNSSECRecords.signatures.size(), 0);
+
+  ret.clear();
+  /* third one _does_ not require validation, we just check that
+     the cache (status and TTL) has been correctly updated */
+  sr->setDNSSECValidationRequested(false);
+  res = sr->beginResolve(target, QType(QType::A), QClass::IN, ret);
+  BOOST_CHECK_EQUAL(res, RCode::NoError);
+  BOOST_CHECK_EQUAL(sr->getValidationState(), Bogus);
+  BOOST_REQUIRE_EQUAL(ret.size(), 2);
+  for (const auto& record : ret) {
+    BOOST_CHECK_EQUAL(record.d_ttl, SyncRes::s_maxbogusttl);
+  }
+  BOOST_CHECK_EQUAL(queriesCount, 4);
+  BOOST_REQUIRE_EQUAL(SyncRes::t_sstorage.negcache.get(target, QType(QType::A), sr->getNow(), &ne), true);
+  BOOST_CHECK_EQUAL(ne->d_validationState, Bogus);
+  BOOST_CHECK_EQUAL(ne->authoritySOA.records.size(), 1);
+  BOOST_CHECK_EQUAL(ne->authoritySOA.signatures.size(), 1);
+  BOOST_CHECK_EQUAL(ne->d_ttd, now + SyncRes::s_maxbogusttl);
   BOOST_CHECK_EQUAL(ne->DNSSECRecords.records.size(), 0);
   BOOST_CHECK_EQUAL(ne->DNSSECRecords.signatures.size(), 0);
 }

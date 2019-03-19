@@ -554,6 +554,7 @@ public:
   QNameRule(const DNSName& qname) : d_qname(qname)
   {
   }
+
   bool matches(const DNSQuestion* dq) const override
   {
     return d_qname==*dq->qname;
@@ -566,6 +567,22 @@ private:
   DNSName d_qname;
 };
 
+class QNameSetRule : public DNSRule {
+public:
+    QNameSetRule(const DNSNameSet& names) : qname_idx(names) {}
+
+    bool matches(const DNSQuestion* dq) const override {
+        return qname_idx.find(*dq->qname) != qname_idx.end();
+    }
+
+    string toString() const override {
+        std::stringstream ss;
+        ss << "qname in DNSNameSet(" << qname_idx.size() << " FQDNs)";
+        return ss.str();
+    }
+private:
+    DNSNameSet qname_idx;
+};
 
 class QTypeRule : public DNSRule
 {
@@ -904,6 +921,49 @@ public:
 private:
   uint8_t d_rcode;     // plain DNS Rcode
   uint8_t d_extrcode;  // upper bits in EDNS0 record
+};
+
+class EDNSVersionRule : public DNSRule
+{
+public:
+  EDNSVersionRule(uint8_t version) : d_version(version)
+  {
+  }
+  bool matches(const DNSQuestion* dq) const override
+  {
+    uint16_t optStart;
+    size_t optLen = 0;
+    bool last = false;
+    const char * packet = reinterpret_cast<const char*>(dq->dh);
+    std::string packetStr(packet, dq->len);
+    int res = locateEDNSOptRR(packetStr, &optStart, &optLen, &last);
+    if (res != 0) {
+      // no EDNS OPT RR
+      return false;
+    }
+
+    // root label (1), type (2), class (2), ttl (4) + rdlen (2)
+    if (optLen < 11) {
+      return false;
+    }
+
+    if (optStart < dq->len && packetStr.at(optStart) != 0) {
+      // OPT RR Name != '.'
+      return false;
+    }
+    EDNS0Record edns0;
+    static_assert(sizeof(EDNS0Record) == sizeof(uint32_t), "sizeof(EDNS0Record) must match sizeof(uint32_t) AKA RR TTL size");
+    // copy out 4-byte "ttl" (really the EDNS0 record), after root label (1) + type (2) + class (2).
+    memcpy(&edns0, packet + optStart + 5, sizeof edns0);
+
+    return d_version < edns0.version;
+  }
+  string toString() const override
+  {
+    return "ednsversion>"+std::to_string(d_version);
+  }
+private:
+  uint8_t d_version;
 };
 
 class EDNSOptionRule : public DNSRule

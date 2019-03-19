@@ -41,6 +41,7 @@ Build-Depends: autoconf,
                po-debconf,
                protobuf-compiler,
                ragel,
+               systemd [linux-any],
                unixodbc-dev (>= 2.3.1)
 Homepage: http://www.powerdns.com/
 

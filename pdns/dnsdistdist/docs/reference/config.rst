@@ -284,13 +284,15 @@ Ringbuffers
 ~~~~~~~~~~~
 
 .. function:: setRingBuffersLockRetries(num)
+
   .. versionadded:: 1.3.0
 
   Set the number of shards to attempt to lock without blocking before giving up and simply blocking while waiting for the next shard to be available
 
-  :param int num: The maximum number of attempts. Defaults to 5 if there are more than one shard, 0 otherwise.
+  :param int num: The maximum number of attempts. Defaults to 5 if there is more than one shard, 0 otherwise.
 
 .. function:: setRingBuffersSize(num [, numberOfShards])
+
   .. versionchanged:: 1.3.0
     ``numberOfShards`` optional parameter added.
 
@@ -306,13 +308,10 @@ Servers
               newServer(server_table)
 
   .. versionchanged:: 1.3.0
-    - Added ``checkClass`` to server_table.
-    - Added ``sockets`` to server_table
-    - Added ``checkFunction`` to server_table
+    Added ``checkClass``, ``sockets`` and ``checkFunction`` to server_table.
 
   .. versionchanged:: 1.3.4
-    - Added ``checkTimeout`` to server_table
-    - Added ``rise`` to server_table.
+    Added ``checkTimeout`` and ``rise`` to server_table.
 
   Add a new backend server. Call this function with either a string::
 
@@ -996,6 +995,12 @@ Other functions
 
   If this function exists, it is called every second to so regular tasks.
   This can be used for e.g. :doc:`Dynamic Blocks <../guides/dynblocks>`.
+
+.. function: setAllowEmptyResponse()
+
+  .. versionadded:: 1.4.0
+
+  Set to true (defaults to false) to allow empty responses (qdcount=0) with a NoError or NXDomain rcode (default) from backends. dnsdist drops these responses by default because it can't match them against the initial query since they don't contain the qname, qtype and qclass, and therefore the risk of collision is much higher than with regular responses.
 
 TLSContext
 ~~~~~~~~~~
