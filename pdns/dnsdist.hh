@@ -710,7 +710,7 @@ struct DownstreamState
   uint16_t xpfRRCode{0};
   uint16_t checkTimeout{1000}; /* in milliseconds */
   uint8_t currentCheckFailures{0};
-  uint8_t consecutiveSuccesfulChecks{0};
+  uint8_t consecutiveSuccessfulChecks{0};
   uint8_t maxCheckFailures{1};
   uint8_t minRiseSuccesses{1};
   StopWatch sw;
