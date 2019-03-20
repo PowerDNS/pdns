@@ -1726,7 +1726,7 @@ bool GSQLBackend::searchComments(const string &pattern, int maxResults, vector<C
       result.push_back(comment);
     }
 
-    d_SearchRecordsQuery_stmt->reset();
+    d_SearchCommentsQuery_stmt->reset();
 
     return true;
   }
