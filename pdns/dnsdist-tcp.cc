@@ -302,7 +302,7 @@ IOState tryRead(int fd, std::vector<uint8_t>& buffer, size_t& pos, size_t toRead
   return IOState::Done;
 }
 
-std::shared_ptr<TCPClientCollection> g_tcpclientthreads;
+std::unique_ptr<TCPClientCollection> g_tcpclientthreads;
 
 class TCPClientThreadData
 {

@@ -2795,7 +2795,7 @@ try
     g_snmpAgent->run();
   }
 
-  g_tcpclientthreads = std::make_shared<TCPClientCollection>(g_maxTCPClientThreads, g_useTCPSinglePipe);
+  g_tcpclientthreads = std::unique_ptr<TCPClientCollection>(new TCPClientCollection(g_maxTCPClientThreads, g_useTCPSinglePipe));
 
   for(auto& t : todo)
     t();

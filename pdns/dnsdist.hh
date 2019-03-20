@@ -669,7 +669,7 @@ public:
   void addTCPClientThread();
 };
 
-extern std::shared_ptr<TCPClientCollection> g_tcpclientthreads;
+extern std::unique_ptr<TCPClientCollection> g_tcpclientthreads;
 
 struct DownstreamState
 {
