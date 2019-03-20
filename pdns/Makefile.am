@@ -1436,6 +1436,7 @@ fuzz_target_packetcache_SOURCES = \
 	ednsoptions.cc ednsoptions.hh \
 	misc.cc misc.hh \
 	packetcache.hh \
+	qtype.cc qtype.hh \
 	statbag.cc statbag.hh
 
 fuzz_target_packetcache_DEPENDENCIES = $(fuzz_targets_deps)

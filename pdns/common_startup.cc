@@ -336,11 +336,11 @@ void declareStats(void)
   S.declare("latency","Average number of microseconds needed to answer a question", getLatency);
   S.declare("timedout-packets","Number of packets which weren't answered within timeout set");
   S.declare("security-status", "Security status based on regular polling");
-  S.declareRing("queries","UDP Queries Received");
-  S.declareRing("nxdomain-queries","Queries for non-existent records within existent domains");
-  S.declareRing("noerror-queries","Queries for existing records, but for type we don't have");
-  S.declareRing("servfail-queries","Queries that could not be answered due to backend errors");
-  S.declareRing("unauth-queries","Queries for domains that we are not authoritative for");
+  S.declareDNSNameQTypeRing("queries","UDP Queries Received");
+  S.declareDNSNameQTypeRing("nxdomain-queries","Queries for non-existent records within existent domains");
+  S.declareDNSNameQTypeRing("noerror-queries","Queries for existing records, but for type we don't have");
+  S.declareDNSNameQTypeRing("servfail-queries","Queries that could not be answered due to backend errors");
+  S.declareDNSNameQTypeRing("unauth-queries","Queries for domains that we are not authoritative for");
   S.declareRing("logmessages","Log Messages");
   S.declareComboRing("remotes","Remote server IP addresses");
   S.declareComboRing("remotes-unauth","Remote hosts querying domains for which we are not auth");
@@ -422,7 +422,7 @@ try
      if(P->d.qr)
        continue;
 
-    S.ringAccount("queries", P->qdomain.toLogString()+"/"+P->qtype.getName());
+    S.ringAccount("queries", P->qdomain, P->qtype);
     S.ringAccount("remotes",P->d_remote);
     if(logDNSQueries) {
       string remote;
