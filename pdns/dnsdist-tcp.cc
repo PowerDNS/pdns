@@ -1026,6 +1026,7 @@ void tcpClientThread(int pipefd)
 
   data.mplexer->addReadFD(pipefd, handleIncomingTCPQuery, &data);
   time_t lastTCPCleanup = time(nullptr);
+  time_t lastTimeoutScan = time(nullptr);
   struct timeval now;
   gettimeofday(&now, 0);
 
@@ -1037,30 +1038,33 @@ void tcpClientThread(int pipefd)
       lastTCPCleanup = now.tv_sec;
     }
 
-    auto expiredReadConns = data.mplexer->getTimeouts(now, false);
-    for(const auto& conn : expiredReadConns) {
-      auto state = boost::any_cast<std::shared_ptr<IncomingTCPConnectionState>>(conn.second);
-      if (conn.first == state->d_ci.fd) {
-        vinfolog("Timeout (read) from remote TCP client %s", state->d_ci.remote.toStringWithPort());
+    if (now.tv_sec > lastTimeoutScan) {
+      lastTimeoutScan = now.tv_sec;
+      auto expiredReadConns = data.mplexer->getTimeouts(now, false);
+      for(const auto& conn : expiredReadConns) {
+        auto state = boost::any_cast<std::shared_ptr<IncomingTCPConnectionState>>(conn.second);
+        if (conn.first == state->d_ci.fd) {
+          vinfolog("Timeout (read) from remote TCP client %s", state->d_ci.remote.toStringWithPort());
+        }
+        else if (state->d_ds) {
+          vinfolog("Timeout (read) from remote backend %s", state->d_ds->getName());
+        }
+        data.mplexer->removeReadFD(conn.first);
+        state->d_lastIOState = IOState::Done;
       }
-      else if (state->d_ds) {
-        vinfolog("Timeout (read) from remote backend %s", state->d_ds->getName());
-      }
-      data.mplexer->removeReadFD(conn.first);
-      state->d_lastIOState = IOState::Done;
-    }
 
-    auto expiredWriteConns = data.mplexer->getTimeouts(now, true);
-    for(const auto& conn : expiredWriteConns) {
-      auto state = boost::any_cast<std::shared_ptr<IncomingTCPConnectionState>>(conn.second);
-      if (conn.first == state->d_ci.fd) {
-        vinfolog("Timeout (write) from remote TCP client %s", state->d_ci.remote.toStringWithPort());
+      auto expiredWriteConns = data.mplexer->getTimeouts(now, true);
+      for(const auto& conn : expiredWriteConns) {
+        auto state = boost::any_cast<std::shared_ptr<IncomingTCPConnectionState>>(conn.second);
+        if (conn.first == state->d_ci.fd) {
+          vinfolog("Timeout (write) from remote TCP client %s", state->d_ci.remote.toStringWithPort());
+        }
+        else if (state->d_ds) {
+          vinfolog("Timeout (write) from remote backend %s", state->d_ds->getName());
+        }
+        data.mplexer->removeWriteFD(conn.first);
+        state->d_lastIOState = IOState::Done;
       }
-      else if (state->d_ds) {
-        vinfolog("Timeout (write) from remote backend %s", state->d_ds->getName());
-      }
-      data.mplexer->removeWriteFD(conn.first);
-      state->d_lastIOState = IOState::Done;
     }
   }
 }
