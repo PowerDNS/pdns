@@ -370,31 +370,42 @@ void GSQLBackend::getUnfreshSlaveInfos(vector<DomainInfo> *unfreshDomains)
   }
 
   vector<DomainInfo> allSlaves;
-  int numanswers=d_result.size();
-  for(int n=0;n<numanswers;++n) { // id,name,master,last_check
+
+  for(const auto& row : d_result) { // id,name,master,last_check
     DomainInfo sd;
-    ASSERT_ROW_COLUMNS("info-all-slaves-query", d_result[n], 4);
-    sd.id=pdns_stou(d_result[n][0]);
+    ASSERT_ROW_COLUMNS("info-all-slaves-query", row, 4);
     try {
-      sd.zone= DNSName(d_result[n][1]);
+      sd.id=pdns_stou(row[0]);
+      sd.zone= DNSName(row[1]);
+
+      stringtok(sd.masters, row[2], ", \t");
+      sd.last_check=pdns_stou(row[3]);
+      sd.backend=this;
+      sd.kind=DomainInfo::Slave;
+      allSlaves.push_back(sd);
     } catch (...) {
       continue;
     }
-    stringtok(sd.masters, d_result[n][2], ", \t");
-    sd.last_check=pdns_stou(d_result[n][3]);
-    sd.backend=this;
-    sd.kind=DomainInfo::Slave;
-    allSlaves.push_back(sd);
   }
 
-  for(vector<DomainInfo>::iterator i=allSlaves.begin();i!=allSlaves.end();++i) {
-    SOAData sdata;
-    sdata.serial=0;
-    sdata.refresh=0;
-    getSOA(i->zone,sdata);
-    if((time_t)(i->last_check+sdata.refresh) < time(0)) {
-      i->serial=sdata.serial;
-      unfreshDomains->push_back(*i);
+  for (auto& slave : allSlaves) {
+    try {
+      SOAData sdata;
+      sdata.serial=0;
+      sdata.refresh=0;
+      getSOA(slave.zone, sdata);
+      if(static_cast<time_t>(slave.last_check + sdata.refresh) < time(nullptr)) {
+        slave.serial=sdata.serial;
+        unfreshDomains->push_back(slave);
+      }
+    }
+    catch(const std::exception& exp) {
+      L<<Logger::Warning<<"Error while parsing SOA data for slave zone '"<<slave.zone.toLogString()<<"': "<<exp.what()<<endl;
+      continue;
+    }
+    catch(...) {
+      L<<Logger::Warning<<"Error while parsing SOA data for slave zone '"<<slave.zone.toLogString()<<"', skipping"<<endl;
+      continue;
     }
   }
 }
