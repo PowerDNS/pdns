@@ -992,11 +992,18 @@ static void handleIncomingTCPQuery(int pipefd, FDMultiplexer::funcparam_t& param
 
   ConnectionInfo* citmp{nullptr};
 
-  try {
-    readn2(pipefd, &citmp, sizeof(citmp));
+  ssize_t got = read(pipefd, &citmp, sizeof(citmp));
+  if (got == 0) {
+    throw std::runtime_error("EOF while reading from the TCP acceptor pipe (" + std::to_string(pipefd) + ") in " + std::string(isNonBlocking(pipefd) ? "non-blocking" : "blocking") + " mod");
   }
-  catch(const std::runtime_error& e) {
-    throw std::runtime_error("Error reading from TCP acceptor pipe (" + std::to_string(pipefd) + ") in " + std::string(isNonBlocking(pipefd) ? "non-blocking" : "blocking") + " mode: " + e.what());
+  else if (got == -1) {
+    if (errno == EAGAIN || errno == EINTR) {
+      return;
+    }
+    throw std::runtime_error("Error while reading from the TCP acceptor pipe (" + std::to_string(pipefd) + ") in " + std::string(isNonBlocking(pipefd) ? "non-blocking" : "blocking") + " mde:" + strerror(errno));
+  }
+  else if (got != sizeof(citmp)) {
+    throw std::runtime_error("Partial read while reading from the TCP acceptor pipe (" + std::to_string(pipefd) + ") in " + std::string(isNonBlocking(pipefd) ? "non-blocking" : "blocking") + " mode");
   }
 
   g_tcpclientthreads->decrementQueuedCount();
