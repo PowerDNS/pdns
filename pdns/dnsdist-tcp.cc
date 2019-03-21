@@ -209,6 +209,13 @@ void TCPClientCollection::addTCPClientThread()
       return;
     }
 
+    if (!setNonBlocking(pipefds[0])) {
+      close(pipefds[0]);
+      close(pipefds[1]);
+      errlog("Error setting the TCP thread communication pipe non-blocking: %s", strerror(errno));
+      return;
+    }
+
     if (!setNonBlocking(pipefds[1])) {
       close(pipefds[0]);
       close(pipefds[1]);
