@@ -211,7 +211,14 @@ BOOST_AUTO_TEST_CASE(test_ixfr_same_serial) {
 
   auto ret = processIXFRRecords(master, zone, records, std::dynamic_pointer_cast<SOARecordContent>(masterSOA));
 
-  BOOST_CHECK_EQUAL(ret.size(), 0);
+  // this is actually an empty AXFR
+  BOOST_CHECK_EQUAL(ret.size(), 1);
+  // nothing in the deletion part then
+  BOOST_CHECK_EQUAL(ret.at(0).first.size(), 0);
+  // and the two SOAs in the addition part
+  BOOST_CHECK_EQUAL(ret.at(0).second.size(), 2);
+  BOOST_CHECK_EQUAL(ret.at(0).second.at(0).d_type, QType(QType::SOA).getCode());
+  BOOST_CHECK_EQUAL(ret.at(0).second.at(1).d_type, QType(QType::SOA).getCode());
 }
 
 BOOST_AUTO_TEST_CASE(test_ixfr_invalid_no_records) {
