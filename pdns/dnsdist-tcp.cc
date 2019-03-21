@@ -341,6 +341,7 @@ public:
     if (d_ds != nullptr) {
       if (d_outstanding) {
         --d_ds->outstanding;
+        d_outstanding = false;
       }
 
       if (d_downstreamSocket) {
@@ -870,6 +871,7 @@ static void handleDownstreamIOCallback(int fd, FDMultiplexer::funcparam_t& param
     ++state->d_downstreamFailures;
     if (state->d_outstanding && state->d_ds != nullptr) {
       --state->d_ds->outstanding;
+      state->d_outstanding = false;
     }
     iostate = IOState::Done;
     connectionDied = true;
