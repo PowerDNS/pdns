@@ -1291,6 +1291,7 @@ testrunner_SOURCES = \
 	nameserver.cc \
 	nsecrecords.cc \
 	opensslsigners.cc opensslsigners.hh \
+	pollmplexer.cc \
 	qtype.cc \
 	rcpgenerator.cc \
 	responsestats.cc \
@@ -1316,6 +1317,7 @@ testrunner_SOURCES = \
 	test-lock_hh.cc \
 	test-lua_auth4_cc.cc \
 	test-misc_hh.cc \
+	test-mplexer.cc \
 	test-nameserver_cc.cc \
 	test-packetcache_cc.cc \
 	test-packetcache_hh.cc \
@@ -1358,6 +1360,25 @@ endif
 if LIBDECAF
 testrunner_SOURCES += decafsigners.cc
 testrunner_LDADD += $(LIBDECAF_LIBS)
+endif
+
+if HAVE_FREEBSD
+ixfrdist_SOURCES += kqueuemplexer.cc
+testrunner_SOURCES += kqueuemplexer.cc
+endif
+
+if HAVE_LINUX
+ixfrdist_SOURCES += epollmplexer.cc
+testrunner_SOURCES += epollmplexer.cc
+endif
+
+if HAVE_SOLARIS
+ixfrdist_SOURCES += \
+	devpollmplexer.cc \
+	portsmplexer.cc
+testrunner_SOURCES += \
+	devpollmplexer.cc \
+	portsmplexer.cc
 endif
 
 pdns_control_SOURCES = \
