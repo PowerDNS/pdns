@@ -144,14 +144,14 @@ int KqueueFDMultiplexer::run(struct timeval* now, int timeout)
   for(int n=0; n < ret; ++n) {
     d_iter=d_readCallbacks.find(d_kevents[n].ident);
     if(d_iter != d_readCallbacks.end()) {
-      d_iter->second.d_callback(d_iter->first, d_iter->second.d_parameter);
+      d_iter->d_callback(d_iter->d_fd, d_iter->d_parameter);
       continue; // so we don't find ourselves as writable again
     }
 
     d_iter=d_writeCallbacks.find(d_kevents[n].ident);
 
     if(d_iter != d_writeCallbacks.end()) {
-      d_iter->second.d_callback(d_iter->first, d_iter->second.d_parameter);
+      d_iter->d_callback(d_iter->f_fd, d_iter->d_parameter);
     }
   }
 

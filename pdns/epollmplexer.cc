@@ -156,13 +156,13 @@ int EpollFDMultiplexer::run(struct timeval* now, int timeout)
     d_iter=d_readCallbacks.find(d_eevents[n].data.fd);
     
     if(d_iter != d_readCallbacks.end()) {
-      d_iter->second.d_callback(d_iter->first, d_iter->second.d_parameter);
+      d_iter->d_callback(d_iter->d_fd, d_iter->d_parameter);
       continue; // so we don't refind ourselves as writable!
     }
     d_iter=d_writeCallbacks.find(d_eevents[n].data.fd);
     
     if(d_iter != d_writeCallbacks.end()) {
-      d_iter->second.d_callback(d_iter->first, d_iter->second.d_parameter);
+      d_iter->d_callback(d_iter->d_fd, d_iter->d_parameter);
     }
   }
   d_inrun=false;
