@@ -27,11 +27,11 @@ Changelogs for 4.1.x
     Fix rectify for ENT records in narrow zones.
 
   .. change::
-    :tags: Bug Fixes, LMDB
+    :tags: Bug Fixes
     :pullreq: 7607
     :tickets: 7472
 
-    Do not compress the root since LMDB backend cannot set a root zone with a compressible SOA record.
+    Do not compress the root.
 
   .. change::
     :tags: Bug Fixes
