@@ -313,21 +313,52 @@ private:
 class ERCodeAction : public DNSAction
 {
 public:
-  ERCodeAction(uint8_t rcode) : d_rcode(rcode) {}
+  ERCodeAction(uint8_t rcode, uint16_t info_code, const std::string& extra_text, bool retry) : d_rcode(rcode), d_info_code(info_code), d_extra_text(extra_text), d_retry(retry) {}
   DNSAction::Action operator()(DNSQuestion* dq, std::string* ruleresult) const override
   {
+    // Check to make sure that INFO-CODE is not too big before we
+    // start poking around in our header.
+    if (d_info_code >= 4096) {
+      warnlog("ERCodeAction failed because the info_code %d is bigger than 4095", d_info_code);
+      return Action::None;
+    }
+
+    // It would be nice if we could check the EXTRA-TEXT to ensure
+    // that it is not too big. However, the field has no limit beyond
+    // the size limit of any OPT RR (65535). There can only be a
+    // single OPT record in a DNS message, which is also limited to
+    // 65535 bytes - shared by all OPT RR in the message.
+    //
+    // Presumably the OPT record is checked to make sure that the
+    // combined OPT RR sizes are not too big at some point when we
+    // finish composing a DNS message.
+
     dq->dh->rcode = (d_rcode & 0xF);
     dq->ednsRCode = ((d_rcode & 0xFFF0) >> 4);
     dq->dh->qr = true; // for good measure
+    if (d_info_code > 0) {
+      dq->ednsExtendedError = std::make_shared<EDNSExtendedError>();
+      dq->ednsExtendedError->retry = d_retry;
+      dq->ednsExtendedError->info_code = d_info_code;
+      dq->ednsExtendedError->extra_text = d_extra_text;
+    }
     return Action::HeaderModify;
   }
   std::string toString() const override
   {
-    return "set ercode "+ERCode::to_s(d_rcode);
+    if (d_info_code > 0) {
+        std::string retry_str = d_retry ? "1" : "0";
+        return "set ercode "+ERCode::to_s(d_rcode)+" (info_code='"+ExErrInfoCode::to_s(d_rcode,d_info_code)+"',extra_text='"+d_extra_text+"',retry="+retry_str+")";
+    } else {
+        return "set ercode "+ERCode::to_s(d_rcode);
+    }
   }
 
 private:
   uint8_t d_rcode;
+  uint16_t d_info_code;
+  std::string d_extra_text;
+  bool d_retry;
 };
 
 class TCAction : public DNSAction
@@ -1183,8 +1214,8 @@ void setupLuaActions()
       return std::shared_ptr<DNSAction>(new RCodeAction(rcode));
     });
 
-  g_lua.writeFunction("ERCodeAction", [](uint8_t rcode) {
-      return std::shared_ptr<DNSAction>(new ERCodeAction(rcode));
+  g_lua.writeFunction("ERCodeAction", [](uint8_t rcode, boost::optional<int> info_code, boost::optional<std::string> extra_text, boost::optional<bool> retry) {
+      return std::shared_ptr<DNSAction>(new ERCodeAction(rcode, info_code ? *info_code : -1, extra_text ? *extra_text : "", retry ? *retry : false));
     });
 
   g_lua.writeFunction("SkipCacheAction", []() {

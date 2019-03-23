@@ -80,6 +80,7 @@ struct DNSQuestion
   uint16_t len;
   uint16_t ecsPrefixLength;
   uint8_t ednsRCode{0};
+  std::shared_ptr<EDNSExtendedError> ednsExtendedError{nullptr};
   boost::optional<uint32_t> tempFailureTTL;
   const bool tcp;
   const struct timespec* queryTime;
