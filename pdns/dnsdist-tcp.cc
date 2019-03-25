@@ -568,15 +568,21 @@ static void sendResponse(std::shared_ptr<IncomingTCPConnectionState>& state)
 
   state->d_currentPos = 0;
 
-  auto iostate = state->d_handler.tryWrite(state->d_responseBuffer, state->d_currentPos, state->d_responseBuffer.size());
-  if (iostate == IOState::Done) {
+  try {
+    auto iostate = state->d_handler.tryWrite(state->d_responseBuffer, state->d_currentPos, state->d_responseBuffer.size());
+    if (iostate == IOState::Done) {
 
-    handleResponseSent(state);
-    return;
+      handleResponseSent(state);
+      return;
+    }
+    else {
+      //cerr<<__func__<<": adding client write FD "<<state->d_ci.fd<<endl;
+      handleNewIOState(state, IOState::NeedWrite, state->d_ci.fd, handleIOCallback, state->getClientWriteTTD());
+    }
   }
-  else {
-    //cerr<<__func__<<": adding client write FD "<<state->d_ci.fd<<endl;
-    handleNewIOState(state, IOState::NeedWrite, state->d_ci.fd, handleIOCallback, state->getClientWriteTTD());
+  catch (const std::exception& e) {
+    vinfolog("Got an exception while writing TCP response to %s: %s", state->d_ci.remote.toStringWithPort(), e.what());
+    handleNewIOState(state, IOState::Done, state->d_ci.fd, handleIOCallback);
   }
 }
 
