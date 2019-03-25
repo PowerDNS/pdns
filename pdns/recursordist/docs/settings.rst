@@ -388,6 +388,17 @@ Number of bits of client IPv4 address to pass when sending EDNS Client Subnet ad
 
 Number of bits of client IPv6 address to pass when sending EDNS Client Subnet address information.
 
+.. _setting-ecs-minimum-ttl-override:
+
+``ecs-minimum-ttl-override``
+----------------------------
+-  Integer
+-  Default: 0 (disabled)
+
+This setting artificially raises the TTLs of records in the ANSWER section of ECS-specific answers to be at least this long.
+While this is a gross hack, and violates RFCs, under conditions of DoS, it may enable you to continue serving your customers.
+Can be set at runtime using ``rec_control set-ecs-minimum-ttl 3600``.
+
 .. _setting-ecs-scope-zero-address:
 
 ``ecs-scope-zero-address``

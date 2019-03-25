@@ -694,10 +694,29 @@ static string getTAs()
 template<typename T>
 static string setMinimumTTL(T begin, T end)
 {
-  if(end-begin != 1) 
+  if(end-begin != 1)
     return "Need to supply new minimum TTL number\n";
-  SyncRes::s_minimumTTL = pdns_stou(*begin);
-  return "New minimum TTL: " + std::to_string(SyncRes::s_minimumTTL) + "\n";
+  try {
+    SyncRes::s_minimumTTL = pdns_stou(*begin);
+    return "New minimum TTL: " + std::to_string(SyncRes::s_minimumTTL) + "\n";
+  }
+  catch (const std::exception& e) {
+    return "Error parsing the new minimum TTL number: " + std::string(e.what()) + "\n";
+  }
+}
+
+template<typename T>
+static string setMinimumECSTTL(T begin, T end)
+{
+  if(end-begin != 1)
+    return "Need to supply new ECS minimum TTL number\n";
+  try {
+    SyncRes::s_minimumECSTTL = pdns_stou(*begin);
+    return "New minimum ECS TTL: " + std::to_string(SyncRes::s_minimumECSTTL) + "\n";
+  }
+  catch (const std::exception& e) {
+    return "Error parsing the new ECS minimum TTL number: " + std::string(e.what()) + "\n";
+  }
 }
 
 template<typename T>
@@ -705,8 +724,13 @@ static string setMaxCacheEntries(T begin, T end)
 {
   if(end-begin != 1) 
     return "Need to supply new cache size\n";
-  g_maxCacheEntries = pdns_stou(*begin);
-  return "New max cache entries: " + std::to_string(g_maxCacheEntries) + "\n";
+  try {
+    g_maxCacheEntries = pdns_stou(*begin);
+    return "New max cache entries: " + std::to_string(g_maxCacheEntries) + "\n";
+  }
+  catch (const std::exception& e) {
+    return "Error parsing the new cache size: " + std::string(e.what()) + "\n";
+  }
 }
 
 template<typename T>
@@ -714,8 +738,13 @@ static string setMaxPacketCacheEntries(T begin, T end)
 {
   if(end-begin != 1) 
     return "Need to supply new packet cache size\n";
-  g_maxPacketCacheEntries = pdns_stou(*begin);
-  return "New max packetcache entries: " + std::to_string(g_maxPacketCacheEntries) + "\n";
+  try {
+    g_maxPacketCacheEntries = pdns_stou(*begin);
+    return "New max packetcache entries: " + std::to_string(g_maxPacketCacheEntries) + "\n";
+  }
+  catch (const std::exception& e) {
+    return "Error parsing the new packet cache size: " + std::string(e.what()) + "\n";
+  }
 }
 
 
@@ -1362,6 +1391,7 @@ string RecursorControlParser::getAnswer(const string& question, RecursorControlP
 "reload-lua-script [filename]     (re)load Lua script\n"
 "reload-lua-config [filename]     (re)load Lua configuration file\n"
 "reload-zones                     reload all auth and forward zones\n"
+"set-ecs-minimum-ttl value        set ecs-minimum-ttl-override\n"
 "set-max-cache-entries value      set new maximum cache size\n"
 "set-max-packetcache-entries val  set new maximum packet cache size\n"      
 "set-minimum-ttl value            set minimum-ttl-override\n"
@@ -1530,6 +1560,10 @@ string RecursorControlParser::getAnswer(const string& question, RecursorControlP
       return "Unable to reload zones and forwards when chroot()'ed, please restart\n";
     }
     return reloadAuthAndForwards();
+  }
+
+  if(cmd=="set-ecs-minimum-ttl") {
+    return setMinimumECSTTL(begin, end);
   }
 
   if(cmd=="set-max-cache-entries") {
