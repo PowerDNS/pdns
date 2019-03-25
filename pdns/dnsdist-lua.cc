@@ -3181,10 +3181,17 @@ vector<std::function<void(void)>> setupLua(LuaContext& luaCtx, bool client, bool
 #endif
 
   std::ifstream ifs(config);
-  if (!ifs)
-    warnlog("Unable to read configuration from '%s'", config);
-  else
+  if (!ifs) {
+    if (configCheck) {
+      throw std::runtime_error("Unable to read configuration file from " + config);
+    }
+    else {
+      warnlog("Unable to read configuration from '%s'", config);
+    }
+  }
+  else {
     vinfolog("Read configuration from '%s'", config);
+  }
 
   luaCtx.executeCode(ifs);
 
