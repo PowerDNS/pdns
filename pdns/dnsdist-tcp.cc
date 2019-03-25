@@ -880,12 +880,15 @@ static void handleDownstreamIOCallback(int fd, FDMultiplexer::funcparam_t& param
        Let's just drop the connection
     */
     vinfolog("Got an exception while handling (%s backend) TCP query from %s: %s", (state->d_lastIOState == IOState::NeedRead ? "reading from" : "writing to"), state->d_ci.remote.toStringWithPort(), e.what());
-    /* remove this FD from the IO multiplexer */
-    ++state->d_downstreamFailures;
+    /* don't increase this counter when reusing connections */
+    if (state->d_freshDownstreamConnection) {
+      ++state->d_downstreamFailures;
+    }
     if (state->d_outstanding && state->d_ds != nullptr) {
       --state->d_ds->outstanding;
       state->d_outstanding = false;
     }
+    /* remove this FD from the IO multiplexer */
     iostate = IOState::Done;
     connectionDied = true;
   }
