@@ -125,6 +125,10 @@ static std::unique_ptr<Socket> getConnectionToDownstream(std::shared_ptr<Downstr
 
 static void releaseDownstreamConnection(std::shared_ptr<DownstreamState>& ds, std::unique_ptr<Socket>&& socket)
 {
+  if (socket == nullptr) {
+    return;
+  }
+
   const auto& it = t_downstreamSockets.find(ds->remote);
   if (it != t_downstreamSockets.end()) {
     auto& list = it->second;
@@ -582,6 +586,7 @@ static void sendResponse(std::shared_ptr<IncomingTCPConnectionState>& state)
   }
   catch (const std::exception& e) {
     vinfolog("Got an exception while writing TCP response to %s: %s", state->d_ci.remote.toStringWithPort(), e.what());
+    ++state->d_ci.cs->tcpDiedSendingResponse;
     handleNewIOState(state, IOState::Done, state->d_ci.fd, handleIOCallback);
   }
 }
@@ -663,6 +668,8 @@ static void sendQueryToBackend(std::shared_ptr<IncomingTCPConnectionState>& stat
     state->d_downstreamSocket = getConnectionToDownstream(ds, state->d_downstreamFailures, state->d_freshDownstreamConnection);
 
     if (!state->d_downstreamSocket) {
+      ++ds->tcpGaveUp;
+      ++state->d_ci.cs->tcpGaveUp;
       vinfolog("Downstream connection to %s failed %d times in a row, giving up.", ds->getName(), state->d_downstreamFailures);
       return;
     }
@@ -672,6 +679,8 @@ static void sendQueryToBackend(std::shared_ptr<IncomingTCPConnectionState>& stat
     return;
   }
 
+  ++ds->tcpGaveUp;
+  ++state->d_ci.cs->tcpGaveUp;
   vinfolog("Downstream connection to %s failed %u times in a row, giving up.", ds->getName(), state->d_downstreamFailures);
 }
 
@@ -880,6 +889,13 @@ static void handleDownstreamIOCallback(int fd, FDMultiplexer::funcparam_t& param
        Let's just drop the connection
     */
     vinfolog("Got an exception while handling (%s backend) TCP query from %s: %s", (state->d_lastIOState == IOState::NeedRead ? "reading from" : "writing to"), state->d_ci.remote.toStringWithPort(), e.what());
+    if (state->d_state == IncomingTCPConnectionState::State::sendingQueryToBackend) {
+      ++state->d_ds->tcpDiedSendingQuery;
+    }
+    else {
+      ++state->d_ds->tcpDiedReadingResponse;
+    }
+
     /* don't increase this counter when reusing connections */
     if (state->d_freshDownstreamConnection) {
       ++state->d_downstreamFailures;
@@ -977,6 +993,15 @@ static void handleIOCallback(int fd, FDMultiplexer::funcparam_t& param)
        but it might also be a real IO error or something else.
        Let's just drop the connection
     */
+    if (state->d_state == IncomingTCPConnectionState::State::doingHandshake ||
+        state->d_state == IncomingTCPConnectionState::State::readingQuerySize ||
+        state->d_state == IncomingTCPConnectionState::State::readingQuery) {
+      ++state->d_ci.cs->tcpDiedReadingQuery;
+    }
+    else if (state->d_state == IncomingTCPConnectionState::State::sendingResponse) {
+      ++state->d_ci.cs->tcpDiedSendingResponse;
+    }
+
     if (state->d_lastIOState == IOState::NeedWrite || state->d_readingFirstQuery) {
       vinfolog("Got an exception while handling (%s) TCP query from %s: %s", (state->d_lastIOState == IOState::NeedRead ? "reading" : "writing"), state->d_ci.remote.toStringWithPort(), e.what());
     }
@@ -1061,9 +1086,12 @@ void tcpClientThread(int pipefd)
         auto state = boost::any_cast<std::shared_ptr<IncomingTCPConnectionState>>(conn.second);
         if (conn.first == state->d_ci.fd) {
           vinfolog("Timeout (read) from remote TCP client %s", state->d_ci.remote.toStringWithPort());
+          ++state->d_ci.cs->tcpClientTimeouts;
         }
         else if (state->d_ds) {
           vinfolog("Timeout (read) from remote backend %s", state->d_ds->getName());
+          ++state->d_ci.cs->tcpDownstreamTimeouts;
+          ++state->d_ds->tcpReadTimeouts;
         }
         data.mplexer->removeReadFD(conn.first);
         state->d_lastIOState = IOState::Done;
@@ -1074,9 +1102,12 @@ void tcpClientThread(int pipefd)
         auto state = boost::any_cast<std::shared_ptr<IncomingTCPConnectionState>>(conn.second);
         if (conn.first == state->d_ci.fd) {
           vinfolog("Timeout (write) from remote TCP client %s", state->d_ci.remote.toStringWithPort());
+          ++state->d_ci.cs->tcpClientTimeouts;
         }
         else if (state->d_ds) {
           vinfolog("Timeout (write) from remote backend %s", state->d_ds->getName());
+          ++state->d_ci.cs->tcpDownstreamTimeouts;
+          ++state->d_ds->tcpWriteTimeouts;
         }
         data.mplexer->removeWriteFD(conn.first);
         state->d_lastIOState = IOState::Done;

@@ -446,20 +446,30 @@ static void connectionThread(int sock, ComboAddress remote)
         auto states = g_dstates.getLocal();
         const string statesbase = "dnsdist_server_";
 
-        output << "# HELP " << statesbase << "queries "     << "Amount of queries relayed to server"                               << "\n";
-        output << "# TYPE " << statesbase << "queries "     << "counter"                                                           << "\n";
-        output << "# HELP " << statesbase << "drops "       << "Amount of queries not answered by server"                          << "\n";
-        output << "# TYPE " << statesbase << "drops "       << "counter"                                                           << "\n";
-        output << "# HELP " << statesbase << "latency "     << "Server's latency when answering questions in miliseconds"          << "\n";
-        output << "# TYPE " << statesbase << "latency "     << "gauge"                                                             << "\n";
-        output << "# HELP " << statesbase << "senderrors "  << "Total number of OS snd errors while relaying queries"              << "\n";
-        output << "# TYPE " << statesbase << "senderrors "  << "counter"                                                           << "\n";
-        output << "# HELP " << statesbase << "outstanding " << "Current number of queries that are waiting for a backend response" << "\n";
-        output << "# TYPE " << statesbase << "outstanding " << "gauge"                                                             << "\n";
-        output << "# HELP " << statesbase << "order "       << "The order in which this server is picked"                          << "\n";
-        output << "# TYPE " << statesbase << "order "       << "gauge"                                                             << "\n";
-        output << "# HELP " << statesbase << "weight "      << "The weight within the order in which this server is picked"        << "\n";
-        output << "# TYPE " << statesbase << "weight "      << "gauge"                                                             << "\n";
+        output << "# HELP " << statesbase << "queries "                << "Amount of queries relayed to server"                               << "\n";
+        output << "# TYPE " << statesbase << "queries "                << "counter"                                                           << "\n";
+        output << "# HELP " << statesbase << "drops "                  << "Amount of queries not answered by server"                          << "\n";
+        output << "# TYPE " << statesbase << "drops "                  << "counter"                                                           << "\n";
+        output << "# HELP " << statesbase << "latency "                << "Server's latency when answering questions in miliseconds"          << "\n";
+        output << "# TYPE " << statesbase << "latency "                << "gauge"                                                             << "\n";
+        output << "# HELP " << statesbase << "senderrors "             << "Total number of OS snd errors while relaying queries"              << "\n";
+        output << "# TYPE " << statesbase << "senderrors "             << "counter"                                                           << "\n";
+        output << "# HELP " << statesbase << "outstanding "            << "Current number of queries that are waiting for a backend response" << "\n";
+        output << "# TYPE " << statesbase << "outstanding "            << "gauge"                                                             << "\n";
+        output << "# HELP " << statesbase << "order "                  << "The order in which this server is picked"                          << "\n";
+        output << "# TYPE " << statesbase << "order "                  << "gauge"                                                             << "\n";
+        output << "# HELP " << statesbase << "weight "                 << "The weight within the order in which this server is picked"        << "\n";
+        output << "# TYPE " << statesbase << "weight "                 << "gauge"                                                             << "\n";
+        output << "# HELP " << statesbase << "tcpdiedsendingquery "    << "The number of TCP I/O errors while sending the query"              << "\n";
+        output << "# TYPE " << statesbase << "tcpdiedsendingquery "    << "counter"                                                           << "\n";
+        output << "# HELP " << statesbase << "tcpdiedreadingresponse " << "The number of TCP I/O errors while reading the response"           << "\n";
+        output << "# TYPE " << statesbase << "tcpdiedreadingresponse " << "counter"                                                           << "\n";
+        output << "# HELP " << statesbase << "tcpgaveup "              << "The number of TCP connections failing after too many attempts"     << "\n";
+        output << "# TYPE " << statesbase << "tcpgaveup "              << "counter"                                                           << "\n";
+        output << "# HELP " << statesbase << "tcpreadtimeouts "        << "The number of TCP read timeouts"                                   << "\n";
+        output << "# TYPE " << statesbase << "tcpreadtimeouts "        << "counter"                                                           << "\n";
+        output << "# HELP " << statesbase << "tcpwritetimeouts "       << "The number of TCP write timeouts"                                  << "\n";
+        output << "# TYPE " << statesbase << "tcpwritetimeouts "       << "counter"                                                           << "\n";
 
         for (const auto& state : *states) {
           string serverName;
@@ -474,13 +484,18 @@ static void connectionThread(int sock, ComboAddress remote)
           const std::string label = boost::str(boost::format("{server=\"%1%\",address=\"%2%\"}")
             % serverName % state->remote.toStringWithPort());
 
-          output << statesbase << "queries"     << label << " " << state->queries.load()     << "\n";
-          output << statesbase << "drops"       << label << " " << state->reuseds.load()     << "\n";
-          output << statesbase << "latency"     << label << " " << state->latencyUsec/1000.0 << "\n";
-          output << statesbase << "senderrors"  << label << " " << state->sendErrors.load()  << "\n";
-          output << statesbase << "outstanding" << label << " " << state->outstanding.load() << "\n";
-          output << statesbase << "order"       << label << " " << state->order              << "\n";
-          output << statesbase << "weight"      << label << " " << state->weight             << "\n";
+          output << statesbase << "queries"                << label << " " << state->queries.load()         << "\n";
+          output << statesbase << "drops"                  << label << " " << state->reuseds.load()         << "\n";
+          output << statesbase << "latency"                << label << " " << state->latencyUsec/1000.0     << "\n";
+          output << statesbase << "senderrors"             << label << " " << state->sendErrors.load()      << "\n";
+          output << statesbase << "outstanding"            << label << " " << state->outstanding.load()     << "\n";
+          output << statesbase << "order"                  << label << " " << state->order                  << "\n";
+          output << statesbase << "weight"                 << label << " " << state->weight                 << "\n";
+          output << statesbase << "tcpdiedsendingquery"    << label << " " << state->tcpDiedSendingQuery    << "\n";
+          output << statesbase << "tcpdiedreadingresponse" << label << " " << state->tcpDiedReadingResponse << "\n";
+          output << statesbase << "tcpgaveup"              << label << " " << state->tcpGaveUp              << "\n";
+          output << statesbase << "tcpreadtimeouts"        << label << " " << state->tcpReadTimeouts        << "\n";
+          output << statesbase << "tcpwritetimeouts"       << label << " " << state->tcpWriteTimeouts       << "\n";
         }
 
         for (const auto& front : g_frontends) {
@@ -562,6 +577,11 @@ static void connectionThread(int sock, ComboAddress remote)
           {"latency", (double)(a->latencyUsec/1000.0)},
           {"queries", (double)a->queries},
           {"sendErrors", (double)a->sendErrors},
+          {"tcpDiedSendingQuery", (double)a->tcpDiedSendingQuery},
+          {"tcpDiedReadingResponse", (double)a->tcpDiedReadingResponse},
+          {"tcpGaveUp", (double)a->tcpGaveUp},
+          {"tcpReadTimeouts", (double)a->tcpReadTimeouts},
+          {"tcpWriteTimeouts", (double)a->tcpWriteTimeouts},
           {"dropRate", (double)a->dropRate}
         };
 
@@ -583,7 +603,12 @@ static void connectionThread(int sock, ComboAddress remote)
           { "address", front->local.toStringWithPort() },
           { "udp", front->udpFD >= 0 },
           { "tcp", front->tcpFD >= 0 },
-          { "queries", (double) front->queries.load() }
+          { "queries", (double) front->queries.load() },
+          { "tcpDiedReadingQuery", (double) front->tcpDiedReadingQuery.load() },
+          { "tcpDiedSendingResponse", (double) front->tcpDiedSendingResponse.load() },
+          { "tcpGaveUp", (double) front->tcpGaveUp.load() },
+          { "tcpClientTimeouts", (double) front->tcpClientTimeouts },
+          { "tcpDownstreamTimeouts", (double) front->tcpDownstreamTimeouts },
         };
         frontends.push_back(frontend);
       }

@@ -586,6 +586,11 @@ struct ClientState
   std::shared_ptr<DNSCryptContext> dnscryptCtx{nullptr};
   shared_ptr<TLSFrontend> tlsFrontend;
   std::atomic<uint64_t> queries{0};
+  std::atomic<uint64_t> tcpDiedReadingQuery{0};
+  std::atomic<uint64_t> tcpDiedSendingResponse{0};
+  std::atomic<uint64_t> tcpGaveUp{0};
+  std::atomic<uint64_t> tcpClientTimeouts{0};
+  std::atomic<uint64_t> tcpDownstreamTimeouts{0};
   int udpFD{-1};
   int tcpFD{-1};
   bool muted{false};
@@ -720,6 +725,11 @@ struct DownstreamState
     std::atomic<uint64_t> reuseds{0};
     std::atomic<uint64_t> queries{0};
   } prev;
+  std::atomic<uint64_t> tcpDiedSendingQuery{0};
+  std::atomic<uint64_t> tcpDiedReadingResponse{0};
+  std::atomic<uint64_t> tcpGaveUp{0};
+  std::atomic<uint64_t> tcpReadTimeouts{0};
+  std::atomic<uint64_t> tcpWriteTimeouts{0};
   string name;
   size_t socketsOffset{0};
   double queryLoad{0.0};
