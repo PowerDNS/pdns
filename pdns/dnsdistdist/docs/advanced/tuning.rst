@@ -15,6 +15,7 @@ First, a few words about :program:`dnsdist` architecture:
 The maximum number of threads in the TCP pool is controlled by the :func:`setMaxTCPClientThreads` directive, and defaults to 10.
 This number can be increased to handle a large number of simultaneous TCP connections.
 If all the TCP threads are busy, new TCP connections are queued while they wait to be picked up.
+Before 1.4.0, a TCP thread could only handle a single incoming connection at a time. Starting with 1.4.0 the handling of TCP connections is now event-based, so a single TCP worker can handle a large number of TCP incoming connections simultaneously.
 
 The maximum number of queued connections can be configured with :func:`setMaxTCPQueuedConnections` and defaults to 1000.
 Any value larger than 0 will cause new connections to be dropped if there are already too many queued.
