@@ -46,7 +46,7 @@ Zone Signing Keys (ZSKs). During normal operations, this means that only
 
 Should it be desired to 'roll over' to a new key, both keys can
 temporarily be active (and used for signing), and after a while the old
-key can be inactivated. Subsequently it can be removed.
+key can be deactivated. Subsequently it can be removed.
 
 As elucidated above, there are several ways in which DNSSEC can deny the
 existence of a record, and this setting too is stored away from zone
