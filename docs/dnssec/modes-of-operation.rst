@@ -127,7 +127,7 @@ Pre-signed records
 
 In this mode, PowerDNS serves zones that already contain DNSSEC records.
 Such zones can either be slaved from a remote master, or can be signed
-using tools like OpenDNSSEC, ldns-signzone or dnssec-signzone.
+using tools like OpenDNSSEC, ldns-signzone, and dnssec-signzone.
 
 Even in this mode, PowerDNS will synthesize NSEC(3) records itself
 because of its architecture. RRSIGs of these NSEC(3) will still need to
