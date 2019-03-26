@@ -49,8 +49,8 @@ temporarily be active (and used for signing), and after a while the old
 key can be deactivated. Subsequently it can be removed.
 
 As described above, there are several ways in which DNSSEC can deny the
-existence of a record, and this setting too is stored away from zone
-records, and lives with the DNSSEC keying material.
+existence of a record, and this setting, which is also stored away from zone
+records, lives with the DNSSEC keying material.
 
 (Hashed) Denial of Existence
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~
