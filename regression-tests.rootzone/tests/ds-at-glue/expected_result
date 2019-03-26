@@ -1,0 +1,5 @@
+1	uk.	IN	NS	172800	nsa.nic.uk.
+2	nsa.nic.uk.	IN	A	172800	156.154.100.3
+2	nsa.nic.uk.	IN	AAAA	172800	2001:502:ad09::3
+Rcode: 0 (No Error), RD: 0, QR: 1, TC: 0, AA: 0, opcode: 0
+Reply to question for qname='barney.advsys.co.uk.', qtype=DS
