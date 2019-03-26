@@ -603,6 +603,7 @@ static void connectionThread(int sock, ComboAddress remote)
           { "address", front->local.toStringWithPort() },
           { "udp", front->udpFD >= 0 },
           { "tcp", front->tcpFD >= 0 },
+          { "type", front->getType() },
           { "queries", (double) front->queries.load() },
           { "tcpDiedReadingQuery", (double) front->tcpDiedReadingQuery.load() },
           { "tcpDiedSendingResponse", (double) front->tcpDiedSendingResponse.load() },
