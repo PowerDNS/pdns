@@ -98,6 +98,7 @@ dnsdist_SOURCES = \
 	dnsdist-dnscrypt.cc \
 	dnsdist-dynblocks.hh \
 	dnsdist-ecs.cc dnsdist-ecs.hh \
+	dnsdist-extended-error.cc dns-extended-error.hh \
 	dnsdist-lua.hh dnsdist-lua.cc \
 	dnsdist-lua-actions.cc \
 	dnsdist-lua-bindings.cc \
