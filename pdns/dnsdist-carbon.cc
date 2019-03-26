@@ -95,11 +95,11 @@ try
           str<<base<<"latency" << ' ' << (state->availability != DownstreamState::Availability::Down ? state->latencyUsec/1000.0 : 0) << " " << now << "\r\n";
           str<<base<<"senderrors" << ' ' << state->sendErrors.load() << " " << now << "\r\n";
           str<<base<<"outstanding" << ' ' << state->outstanding.load() << " " << now << "\r\n";
-          str<<base<<"tcpdiedsendingquery" << "' '"<< state->tcpDiedSendingQuery.load() << " " << now << "\r\n";
-          str<<base<<"tcpdiedreaddingresponse" << "' '"<< state->tcpDiedReadingResponse.load() << " " << now << "\r\n";
-          str<<base<<"tcpgaveup" << "' '"<< state->tcpGaveUp.load() << " " << now << "\r\n";
-          str<<base<<"tcpreadimeouts" << "' '"<< state->tcpReadTimeouts.load() << " " << now << "\r\n";
-          str<<base<<"tcpwritetimeouts" << "' '"<< state->tcpWriteTimeouts.load() << " " << now << "\r\n";
+          str<<base<<"tcpdiedsendingquery" << ' '<< state->tcpDiedSendingQuery.load() << " " << now << "\r\n";
+          str<<base<<"tcpdiedreaddingresponse" << ' '<< state->tcpDiedReadingResponse.load() << " " << now << "\r\n";
+          str<<base<<"tcpgaveup" << ' '<< state->tcpGaveUp.load() << " " << now << "\r\n";
+          str<<base<<"tcpreadimeouts" << ' '<< state->tcpReadTimeouts.load() << " " << now << "\r\n";
+          str<<base<<"tcpwritetimeouts" << ' '<< state->tcpWriteTimeouts.load() << " " << now << "\r\n";
         }
         for(const auto& front : g_frontends) {
           if (front->udpFD == -1 && front->tcpFD == -1)
@@ -109,11 +109,11 @@ try
           boost::replace_all(frontName, ".", "_");
           const string base = namespace_name + "." + hostname + "." + instance_name + ".frontends." + frontName + ".";
           str<<base<<"queries" << ' ' << front->queries.load() << " " << now << "\r\n";
-          str<<base<<"tcpdiedreadingquery" << "' '"<< front->tcpDiedReadingQuery.load() << " " << now << "\r\n";
-          str<<base<<"tcpdiedsendingresponse" << "' '"<< front->tcpDiedSendingResponse.load() << " " << now << "\r\n";
-          str<<base<<"tcpgaveup" << "' '"<< front->tcpGaveUp.load() << " " << now << "\r\n";
-          str<<base<<"tcpclientimeouts" << "' '"<< front->tcpClientTimeouts.load() << " " << now << "\r\n";
-          str<<base<<"tcpdownstreamtimeouts" << "' '"<< front->tcpDownstreamTimeouts.load() << " " << now << "\r\n";
+          str<<base<<"tcpdiedreadingquery" << ' '<< front->tcpDiedReadingQuery.load() << " " << now << "\r\n";
+          str<<base<<"tcpdiedsendingresponse" << ' '<< front->tcpDiedSendingResponse.load() << " " << now << "\r\n";
+          str<<base<<"tcpgaveup" << ' '<< front->tcpGaveUp.load() << " " << now << "\r\n";
+          str<<base<<"tcpclientimeouts" << ' '<< front->tcpClientTimeouts.load() << " " << now << "\r\n";
+          str<<base<<"tcpdownstreamtimeouts" << ' '<< front->tcpDownstreamTimeouts.load() << " " << now << "\r\n";
         }
         auto localPools = g_pools.getLocal();
         for (const auto& entry : *localPools) {
