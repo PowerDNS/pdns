@@ -16,15 +16,15 @@ OPCode
 
 Reference: https://www.iana.org/assignments/dns-parameters/dns-parameters.xhtml#dns-parameters-5
 
-.. _DNSQClass:
+.. _DNSClass:
 
-QClass
+DNSClass
 ------
 
-- ``QClass.IN``
-- ``QClass.CHAOS``
-- ``QClass.NONE``
-- ``QClass.ANY``
+- ``DNSClass.IN``
+- ``DNSClass.CHAOS``
+- ``DNSClass.NONE``
+- ``DNSClass.ANY``
 
 Reference: https://www.iana.org/assignments/dns-parameters/dns-parameters.xhtml#dns-parameters-2
 
