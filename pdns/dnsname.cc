@@ -165,15 +165,18 @@ std::string DNSName::toString(const std::string& separator, const bool trailing)
     throw std::out_of_range("Attempt to print an unset dnsname");
   }
 
- if(isRoot())
+  if(isRoot())
     return trailing ? separator : "";
 
   std::string ret;
+  ret.reserve(d_storage.size());
   for(const auto& s : getRawLabels()) {
     ret+= escapeLabel(s) + separator;
   }
-
-  return ret.substr(0, ret.size()-!trailing);
+  if (!trailing) {
+    ret.resize(ret.size() - separator.size());
+  }
+  return ret;
 }
 
 std::string DNSName::toLogString() const
