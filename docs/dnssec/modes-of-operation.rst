@@ -18,7 +18,7 @@ Online Signing
 --------------
 
 In the simplest situation, there is a single "SQL" database that
-contains, in separate tables, all domain data, keying material and other
+contains, in separate tables, all domain data, keying material, and other
 DNSSEC related settings.
 
 This database is then replicated to all PowerDNS instances, which all
