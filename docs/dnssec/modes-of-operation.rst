@@ -7,7 +7,7 @@ authoritative server. PowerDNS supports this mode fully.
 
 In addition, PowerDNS supports taking care of the signing itself, in
 which case PowerDNS operates differently from most tutorials and
-handbooks. This mode is easier however.
+handbooks. This mode is easier, however.
 
 For relevant tradeoffs, please see :doc:`../security` and
 :doc:`../performance`.
