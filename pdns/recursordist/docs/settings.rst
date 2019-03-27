@@ -400,6 +400,8 @@ Can be set at runtime using ``rec_control set-ecs-minimum-ttl 3600``.
 
 ``ecs-cache-limit-ttl``
 -----------------------
+.. versionadded:: 4.1.12
+
 -  Integer
 -  Default: 0 (disabled)
 

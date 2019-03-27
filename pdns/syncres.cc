@@ -114,8 +114,8 @@ static void accountAuthLatency(int usec, int family)
 SyncRes::SyncRes(const struct timeval& now) :  d_authzonequeries(0), d_outqueries(0), d_tcpoutqueries(0), d_throttledqueries(0), d_timeouts(0), d_unreachables(0),
 					       d_totUsec(0), d_now(now),
 					       d_cacheonly(false), d_doDNSSEC(false), d_doEDNS0(false), d_lm(s_lm)
-
-{
+                                                 
+{ 
 }
 
 /** everything begins here - this is the entry point just after receiving a packet */
@@ -407,10 +407,10 @@ uint64_t SyncRes::doDumpNSSpeeds(int fd)
    Another cause of "No answer" may simply be a network condition.
    Nonsense answers are a clearer indication this host won't be able to do DNSSEC evah.
 
-   Previous implementations have suffered from turning off DNSSEC questions for an authoritative server based on timeouts.
+   Previous implementations have suffered from turning off DNSSEC questions for an authoritative server based on timeouts. 
    A clever idea is to only turn off DNSSEC if we know a domain isn't signed anyhow. The problem with that really
-   clever idea however is that at this point in PowerDNS, we may simply not know that yet. All the DNSSEC thinking happens
-   elsewhere. It may not have happened yet.
+   clever idea however is that at this point in PowerDNS, we may simply not know that yet. All the DNSSEC thinking happens 
+   elsewhere. It may not have happened yet. 
 
    For now this means we can't be clever, but will turn off DNSSEC if you reply with FormError or gibberish.
 */
@@ -421,19 +421,19 @@ int SyncRes::asyncresolveWrapper(const ComboAddress& ip, bool ednsMANDATORY, con
      the goal is to get as many remotes as possible on the highest level of EDNS support
      The levels are:
 
-     0) UNKNOWN Unknown state
+     0) UNKNOWN Unknown state 
      1) EDNS: Honors EDNS0
      2) EDNSIGNORANT: Ignores EDNS0, gives replies without EDNS0
      3) NOEDNS: Generates FORMERR/NOTIMP on EDNS queries
 
      Everybody starts out assumed to be '0'.
      If '0', send out EDNS0
-        If you FORMERR us, go to '3',
+        If you FORMERR us, go to '3', 
         If no EDNS in response, go to '2'
      If '1', send out EDNS0
         If FORMERR, downgrade to 3
      If '2', keep on including EDNS0, see what happens
-        Same behaviour as 0
+        Same behaviour as 0 
      If '3', send bare queries
   */
 
@@ -457,7 +457,7 @@ int SyncRes::asyncresolveWrapper(const ComboAddress& ip, bool ednsMANDATORY, con
   int ret;
   for(int tries = 0; tries < 3; ++tries) {
     //    cerr<<"Remote '"<<ip.toString()<<"' currently in mode "<<mode<<endl;
-
+    
     if(mode==EDNSStatus::NOEDNS) {
       g_stats.noEdnsOutQueries++;
       EDNSLevel = 0; // level != mode
@@ -503,11 +503,11 @@ int SyncRes::asyncresolveWrapper(const ComboAddress& ip, bool ednsMANDATORY, con
 	mode = EDNSStatus::EDNSOK;
 	//	cerr<<"We find that "<<ip.toString()<<" is EDNS OK!"<<endl;
       }
-
+      
     }
     if(oldmode != mode || !ednsstatus->modeSetAt)
       ednsstatus->modeSetAt=d_now.tv_sec;
-    //    cerr<<"Result: ret="<<ret<<", EDNS-level: "<<EDNSLevel<<", haveEDNS: "<<res->d_haveEDNS<<", new mode: "<<mode<<endl;
+    //    cerr<<"Result: ret="<<ret<<", EDNS-level: "<<EDNSLevel<<", haveEDNS: "<<res->d_haveEDNS<<", new mode: "<<mode<<endl;  
     return ret;
   }
   return ret;
@@ -1225,7 +1225,7 @@ bool SyncRes::doCacheCheck(const DNSName &qname, const DNSName& authname, bool w
       DNSRecord dr;
       dr.d_type=QType::RRSIG;
       dr.d_name=sqname;
-      dr.d_ttl=ttl;
+      dr.d_ttl=ttl; 
       dr.d_content=signature;
       dr.d_place = DNSResourceRecord::ANSWER;
       dr.d_class=QClass::IN;
@@ -2887,7 +2887,7 @@ int directResolve(const DNSName& qname, const QType& qtype, int qclass, vector<D
     g_log<<Logger::Error<<"Failed to resolve "<<qname.toLogString()<<", got an exception"<<endl;
     ret.clear();
   }
-
+  
   return res;
 }
 
