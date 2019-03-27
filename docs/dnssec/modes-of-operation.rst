@@ -182,7 +182,7 @@ Hybrid BIND-mode operation
 --------------------------
 
 PowerDNS can also operate based on 'BIND'-style zone & configuration
-files. This 'bindbackend' has full knowledge of DNSSEC, but has no
+files. This 'bindbackend' has full knowledge of DNSSEC but has no
 native way of storing keying material.
 
 However, since PowerDNS supports operation with multiple simultaneous
