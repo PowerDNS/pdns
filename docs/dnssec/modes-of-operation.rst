@@ -155,7 +155,7 @@ required for the receiving party to rectify the zone without knowing the
 keys, such as signed NSEC3 records for empty non-terminals. The zone is
 not required to be rectified on the master.
 
-Signatures and Hashing is similar as described in :ref:`dnssec-online-signing`.
+The signing and hashing algorithms are described in :ref:`dnssec-online-signing`.
 
 .. _dnssec-modes-bind-mode:
 
