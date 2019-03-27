@@ -22,7 +22,7 @@ contains, in separate tables, all domain data, keying material, and other
 DNSSEC related settings.
 
 This database is then replicated to all PowerDNS instances, which all
-serve identical records, keys and signatures.
+serve identical records, keys, and signatures.
 
 In this mode of operation, care should be taken that the database
 replication occurs over a secure network, or over an encrypted
