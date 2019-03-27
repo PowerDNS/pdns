@@ -171,7 +171,7 @@ To use this mode, add
 restart PowerDNS.
 
 .. note::
-  This sqlite database is different from the database used for the regular :doc:`SQLite 3 backend <../backends/generic-sqlite3>`.
+  This SQLite database is different from the database used for the regular :doc:`SQLite 3 backend <../backends/generic-sqlite3>`.
 
 After this, you can use ``pdnsutil secure-zone`` and all other pdnsutil
 commands on your BIND zones without trouble.
