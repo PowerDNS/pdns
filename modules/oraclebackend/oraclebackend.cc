@@ -529,7 +529,7 @@ OracleBackend::getBeforeAndAfterNamesAbsolute(uint32_t zoneId,
   bind_str_ind(stmt, ":prev", mResultPrevName, sizeof(mResultPrevName), &mResultPrevNameInd);
   bind_str_ind(stmt, ":next", mResultNextName, sizeof(mResultNextName), &mResultNextNameInd);
   bind_uint32(stmt, ":zoneid", &zoneId);
-  string_to_cbuf(mQueryName, name.labelReverse().toString(" ", false)), sizeof(mQueryName));
+  string_to_cbuf(mQueryName, name.labelReverse().toString(" ", false), sizeof(mQueryName));
   mResultNameInd = -1;
   mResultPrevNameInd = -1;
   mResultNextNameInd = -1;
@@ -547,8 +547,8 @@ OracleBackend::getBeforeAndAfterNamesAbsolute(uint32_t zoneId,
   check_indicator(mResultNextNameInd, false);
 
   unhashed = DNSName(mResultName);
-  before = DNSName(boost::replace_all_copy(mResultPrevName," ",".")).labelReverse();
-  after = DNSName(boost::replace_all_copy(mResultNextName," ",".")).labelReverse();
+  before = DNSName(mResultPrevName);
+  after = DNSName(mResultNextName);
 
   release_query(stmt, prevNextHashQueryKey);
   return true;
