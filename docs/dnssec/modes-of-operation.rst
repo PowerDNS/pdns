@@ -55,7 +55,7 @@ records, lives with the DNSSEC keying material.
 (Hashed) Denial of Existence
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-PowerDNS supports unhashed secure denial of existence using NSEC
+PowerDNS supports unhashed secure denial-of-existence using NSEC
 records. These are generated with the help of the (database) backend,
 which needs to be able to supply the 'previous' and 'next' records in
 canonical ordering.
@@ -63,7 +63,7 @@ canonical ordering.
 The Generic SQL Backends have fields that allow them to supply these
 relative record names.
 
-In addition, hashed secure denial of existence is supported using NSEC3
+In addition, hashed secure denial-of-existence is supported using NSEC3
 records, in two modes, one with help from the database, the other with
 the help of some additional calculations.
 
@@ -72,7 +72,7 @@ where the backend should be able to supply the previous and next domain
 names in hashed order.
 
 NSEC3 in 'narrow' mode uses additional hashing calculations to provide
-hashed secure denial of existence 'on the fly', without further
+hashed secure denial-of-existence 'on the fly', without further
 involving the database.
 
 .. _dnssec-signatures:
