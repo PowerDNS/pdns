@@ -115,8 +115,8 @@ At all times, only one RRSIG per signed RRset per ZSK is served when responding 
 .. note::
   Why Thursday? POSIX-based operating systems count the time
   since GMT midnight January 1st of 1970, which was a Thursday. PowerDNS
-  inception/expiration times are generated based on an integral number of
-  weeks having passed since the start of the 'epoch'.
+  inception/expiration times are generated based on the integral number of
+  weeks since the start of the 'epoch'.
 
 PowerDNS also serves the DNSKEY records in live-signing mode. Their TTL
 is derived from the SOA records *minimum* field. When using NSEC3, the
