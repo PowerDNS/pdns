@@ -260,7 +260,7 @@ bool MemRecursorCache::attemptToRefreshNSTTL(const QType& qt, const vector<DNSRe
   return true;
 }
 
-void MemRecursorCache::replace(time_t now, const DNSName &qname, const QType& qt, const vector<DNSRecord>& content, const vector<shared_ptr<RRSIGRecordContent>>& signatures, const std::vector<std::shared_ptr<DNSRecord>>& authorityRecs, bool auth, boost::optional<Netmask> ednsmask, vState state)
+void MemRecursorCache::replace(time_t now, const DNSName &qname, const QType& qt, const vector<DNSRecord>& content, const vector<shared_ptr<RRSIGRecordContent>>& signatures, const std::vector<std::shared_ptr<DNSRecord>>& authorityRecs, bool auth, boost::optional<Netmask> ednsmask, time_t minTTD, vState state)
 {
   d_cachecachevalid = false;
   //  cerr<<"Replacing "<<qname<<" for "<< (ednsmask ? ednsmask->toString() : "everyone") << endl;
@@ -322,10 +322,11 @@ void MemRecursorCache::replace(time_t now, const DNSName &qname, const QType& qt
   for(const auto i : content) {
     /* Yes, we have altered the d_ttl value by adding time(nullptr) to it
        prior to calling this function, so the TTL actually holds a TTD. */
-    ce.d_ttd=min(maxTTD, static_cast<time_t>(i.d_ttl));   // XXX this does weird things if TTLs differ in the set
-    //    cerr<<"To store: "<<i.d_content->getZoneRepresentation()<<" with ttl/ttd "<<i.d_ttl<<", capped at: "<<maxTTD<<endl;
-    ce.d_records.push_back(i.d_content);
-    // there was code here that did things with TTL and auth. Unsure if it was good. XXX
+    if (minTTD == 0 || static_cast<time_t>(i.d_ttl) >= minTTD) {
+      ce.d_ttd = min(maxTTD, static_cast<time_t>(i.d_ttl));   // XXX this does weird things if TTLs differ in the set
+      //    cerr<<"To store: "<<i.d_content->getZoneRepresentation()<<" with ttl/ttd "<<i.d_ttl<<", capped at: "<<maxTTD<<endl;
+      ce.d_records.push_back(i.d_content);
+    }
   }
 
   if (!isNew) {
