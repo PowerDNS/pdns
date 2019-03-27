@@ -84,7 +84,7 @@ In PowerDNS live signing mode, signatures, as served through RRSIG
 records, are calculated on the fly, and heavily cached. All CPU cores
 are used for the calculation.
 
-RRSIGs have a validity period, in PowerDNS this period is 3 weeks.
+RRSIGs have a validity period. In PowerDNS, the RRSIG validity period is 3 weeks.
 This period starts at most a week in the past, and continues at least a week into the future.
 This interval jumps with one-week increments every Thursday.
 
