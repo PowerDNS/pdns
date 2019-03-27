@@ -23,4 +23,4 @@
 
 #include "dnsdist.hh"
 
-bool addExtendedError(DNSQuestion& dq, const EDNSExtendedError& exerr);
+bool addEDNSExtendedError(DNSQuestion& dq);

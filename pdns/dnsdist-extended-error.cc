@@ -25,7 +25,7 @@
 #include "dnsdist-extended-error.hh"
 #include "ednsoptions.hh"
 
-std::string generateExtendedError(const DNSQuestion& dq)
+static std::string generateExtendedError(const DNSQuestion& dq)
 {
   std::string errbuf;
   const EDNSExtendedError& exerr = *(dq.ednsExtendedError);
@@ -44,7 +44,7 @@ std::string generateExtendedError(const DNSQuestion& dq)
   return errbuf;
 }
 
-bool handleEDNSExtendedError(DNSQuestion& dq)
+bool addEDNSExtendedError(DNSQuestion& dq)
 {
   char* packet = reinterpret_cast<char*>(dq.dh);
 

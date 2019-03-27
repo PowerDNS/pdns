@@ -324,10 +324,10 @@ public:
     }
 
     // It would be nice if we could check the EXTRA-TEXT to ensure
-    // that it is not too big. However, the field has no limit beyond
-    // the size limit of any OPT RR (65535). There can only be a
-    // single OPT record in a DNS message, which is also limited to
-    // 65535 bytes - shared by all OPT RR in the message.
+    // that it is not too big. However, in theory the field has no
+    // limit beyond the size limit of any OPT RR (65535). There can
+    // only be a single OPT record in a DNS message, which is also
+    // limited to 65535 bytes - shared by all OPT RR in the message.
     //
     // Presumably the OPT record is checked to make sure that the
     // combined OPT RR sizes are not too big at some point when we
