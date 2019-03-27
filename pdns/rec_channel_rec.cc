@@ -988,6 +988,8 @@ void registerAllStats()
   addGetStat("policy-result-nodata", &g_stats.policyResults[DNSFilterEngine::PolicyKind::NODATA]);
   addGetStat("policy-result-truncate", &g_stats.policyResults[DNSFilterEngine::PolicyKind::Truncate]);
   addGetStat("policy-result-custom", &g_stats.policyResults[DNSFilterEngine::PolicyKind::Custom]);
+
+  addGetStat("rebalanced-queries", &g_stats.rebalancedQueries);
 }
 
 static void doExitGeneric(bool nicely)

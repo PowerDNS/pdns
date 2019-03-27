@@ -370,6 +370,12 @@ questions
 ^^^^^^^^^
 counts all end-user initiated queries with the RD bit   set
 
+rebalanced-queries
+^^^^^^^^^^^^^^^^^^
+.. versionadded:: 4.1.12
+
+number of queries balanced to a different worker thread because the first selected one was above the target load configured with 'distribution-load-factor'
+
 resource-limits
 ^^^^^^^^^^^^^^^
 counts number of queries that could not be   performed because of resource limits

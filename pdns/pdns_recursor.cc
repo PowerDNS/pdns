@@ -2399,9 +2399,13 @@ static unsigned int selectWorker(unsigned int hash)
 
   unsigned int worker = hash % g_numWorkerThreads;
   /* at least one server has to be below the average load */
-  while(load[worker] > targetLoad) {
-    // cerr<<"worker "<<worker<<" is above the target load, selecting another one"<<endl;
-    worker = (worker + 1) % g_numWorkerThreads;
+  if (load[worker] > targetLoad) {
+    ++g_stats.rebalancedQueries;
+    do {
+      // cerr<<"worker "<<worker<<" is above the target load, selecting another one"<<endl;
+      worker = (worker + 1) % g_numWorkerThreads;
+    }
+    while(load[worker] > targetLoad);
   }
 
   return /* skip distributor */ 1 + worker;
