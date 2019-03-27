@@ -75,7 +75,7 @@ public:
                                       DNSName& before,
                                       DNSName& after) override;
   bool get(DNSResourceRecord &rr) override;
-  vector<string> getDomainMasters(const DNSName& domain, int zoneId) override;
+  vector<string> getDomainMasters(const DNSName& domain, int zoneId);
   bool getDomainInfo(const DNSName& domain, DomainInfo &di) override;
   void alsoNotifies(const DNSName& domain, set<string> *addrs) override;
   void getUnfreshSlaveInfos(vector<DomainInfo>* domains) override;
@@ -84,7 +84,7 @@ public:
   void setNotified(uint32_t zoneId, uint32_t serial) override;
   bool list(const DNSName& domain, int zoneId, bool include_disabled=false) override;
   bool startTransaction(const DNSName& domain, int zoneId) override;
-  bool feedRecord(const DNSResourceRecord &rr, const DNSName ordername) override;
+  bool feedRecord(const DNSResourceRecord &rr, const DNSName ordername);
   bool commitTransaction() override;
   bool abortTransaction() override;
   bool superMasterBackend(const string &ip, const DNSName& domain,
@@ -99,7 +99,7 @@ public:
   bool setDomainMetadata(const DNSName& name, const std::string& kind, const std::vector<std::string>& meta) override;
 
   bool getTSIGKey(const DNSName& name, DNSName* algorithm, string* content) override;
-  bool delTSIGKey(const DNSName& name) override;
+  bool delTSIGKey(const DNSName& name);
   bool setTSIGKey(const DNSName& name, const DNSName& algorithm, const string& content) override;
   bool getTSIGKeys(std::vector< struct TSIGKey > &keys) override;
 
