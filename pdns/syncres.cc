@@ -78,6 +78,8 @@ std::map<uint8_t, std::atomic<uint64_t>> SyncRes::s_ecsResponsesBySubnetSize6;
 
 uint8_t SyncRes::s_ecsipv4limit;
 uint8_t SyncRes::s_ecsipv6limit;
+uint8_t SyncRes::s_ecsipv4cachelimit;
+uint8_t SyncRes::s_ecsipv6cachelimit;
 bool SyncRes::s_doIPv6;
 bool SyncRes::s_nopacketcache;
 bool SyncRes::s_rootNXTrust;
@@ -2416,7 +2418,12 @@ RCode::rcodes_ SyncRes::updateCacheFromRecords(unsigned int depth, LWResult& lwr
        - NS, A and AAAA (used for infra queries)
     */
     if (i->first.type != QType::NSEC3 && (i->first.type == QType::DS || i->first.type == QType::NS || i->first.type == QType::A || i->first.type == QType::AAAA || isAA || wasForwardRecurse)) {
-      t_RC->replace(d_now.tv_sec, i->first.name, QType(i->first.type), i->second.records, i->second.signatures, authorityRecs, i->first.type == QType::DS ? true : isAA, i->first.place == DNSResourceRecord::ANSWER ? ednsmask : boost::none, recordState);
+      if (i->first.place != DNSResourceRecord::ANSWER ||
+          !ednsmask ||
+          (ednsmask->isIpv4() && ednsmask->getBits() <= SyncRes::s_ecsipv4cachelimit) ||
+          (ednsmask->isIpv6() && ednsmask->getBits() <= SyncRes::s_ecsipv6cachelimit)) {
+        t_RC->replace(d_now.tv_sec, i->first.name, QType(i->first.type), i->second.records, i->second.signatures, authorityRecs, i->first.type == QType::DS ? true : isAA, i->first.place == DNSResourceRecord::ANSWER ? ednsmask : boost::none, recordState);
+      }
     }
 
     if(i->first.place == DNSResourceRecord::ANSWER && ednsmask)
