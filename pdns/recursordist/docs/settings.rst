@@ -421,6 +421,15 @@ This setting artificially raises the TTLs of records in the ANSWER section of EC
 While this is a gross hack, and violates RFCs, under conditions of DoS, it may enable you to continue serving your customers.
 Can be set at runtime using ``rec_control set-ecs-minimum-ttl 3600``.
 
+.. _setting-ecs-cache-limit-ttl:
+
+``ecs-cache-limit-ttl``
+-----------------------
+-  Integer
+-  Default: 0 (disabled)
+
+The minumum TTL for an ECS-specific answer to be inserted into the query cache.
+
 .. _setting-ecs-scope-zero-address:
 
 ``ecs-scope-zero-address``
