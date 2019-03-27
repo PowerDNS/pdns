@@ -105,7 +105,7 @@ Graphically, it looks like this::
                               |----- RRSIG(1) served -----|----- RRSIG(2) served -----|
 
   |---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
-  thu fri sat sun mon tue wed thu fri sat sun mon tue wed thu fri sat sun mon tue wed thu fri sat sun mon tue wed thu
+  Thu Fri Sat Sun Mon Tue Wed Thu Fri Sat Sun Mon Tue Wed Thu Fri Sat Sun Mon Tue Wed Thu Fri Sat Sun Mon Tue Wed Thu
                                                           ^
                                                           |
                                                           RRSIG roll-over(1 to 2)
