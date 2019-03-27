@@ -26,8 +26,8 @@ serve identical records, keys, and signatures.
 
 In this mode of operation, care should be taken that the database
 replication occurs over a secure network, or over an encrypted
-connection. This is because keying material, if intercepted, could be
-used to counterfeit DNSSEC data using the original keys.
+connection. If intercepted, keying material could be used to counterfeit
+DNSSEC data using the original keys.
 
 Such a single replicated database requires no further attention beyond
 monitoring already required during non-DNSSEC operations.
