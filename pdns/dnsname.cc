@@ -170,8 +170,16 @@ std::string DNSName::toString(const std::string& separator, const bool trailing)
 
   std::string ret;
   ret.reserve(d_storage.size());
-  for(const auto& s : getRawLabels()) {
-    ret+= escapeLabel(s) + separator;
+
+  {
+    // iterate over the raw labels
+    const char* p = d_storage.c_str();
+    const char* end = p + d_storage.size();
+
+    while (p < end && *p) {
+      ret += escapeLabel(p + 1, static_cast<size_t>(*p)) + separator;
+      p += *p + 1;
+    }
   }
   if (!trailing) {
     ret.resize(ret.size() - separator.size());
@@ -341,9 +349,9 @@ bool DNSName::slowCanonCompare(const DNSName& rhs) const
   return std::lexicographical_compare(ours.rbegin(), ours.rend(), rhsLabels.rbegin(), rhsLabels.rend(), CIStringCompare());
 }
 
-vector<string> DNSName::getRawLabels() const
+vector<std::string> DNSName::getRawLabels() const
 {
-  vector<string> ret;
+  vector<std::string> ret;
   ret.reserve(countLabels());
   // 3www4ds9a2nl0
   for(const unsigned char* p = (const unsigned char*) d_storage.c_str(); p < ((const unsigned char*) d_storage.c_str()) + d_storage.size() && *p; p+=*p+1) {
@@ -400,8 +408,13 @@ bool DNSName::isHostname() const
 unsigned int DNSName::countLabels() const
 {
   unsigned int count=0;
-  for(const unsigned char* p = (const unsigned char*) d_storage.c_str(); p < ((const unsigned char*) d_storage.c_str()) + d_storage.size() && *p; p+=*p+1)
+  const unsigned char* p = reinterpret_cast<const unsigned char*>(d_storage.c_str());
+  const unsigned char* end = reinterpret_cast<const unsigned char*>(p + d_storage.size());
+
+  while (p < end && *p) {
     ++count;
+    p += *p + 1;
+  }
   return count;
 }
 
@@ -419,9 +432,17 @@ size_t hash_value(DNSName const& d)
 
 string DNSName::escapeLabel(const std::string& label)
 {
-  string ret;
-  ret.reserve(label.size()); // saves 15% on bulk .COM load
-  for(uint8_t p : label) {
+  return escapeLabel(label.c_str(), label.size());
+}
+
+string DNSName::escapeLabel(const char* orig, size_t len)
+{
+  std::string ret;
+  size_t pos = 0;
+
+  ret.reserve(len);
+  while (pos < len) {
+    auto p = static_cast<uint8_t>(orig[pos]);
     if(p=='.')
       ret+="\\.";
     else if(p=='\\')
@@ -431,6 +452,7 @@ string DNSName::escapeLabel(const std::string& label)
     else {
       ret+="\\" + (boost::format("%03d") % (unsigned int)p).str();
     }
+    ++pos;
   }
   return ret;
 }
