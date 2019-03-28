@@ -3774,6 +3774,10 @@ static int serviceMain(int argc, char*argv[])
   g_statisticsInterval = ::arg().asNum("statistics-interval");
 
   s_balancingFactor = ::arg().asDouble("distribution-load-factor");
+  if (s_balancingFactor != 0.0 && s_balancingFactor < 1.0) {
+    s_balancingFactor = 0.0;
+    g_log<<Logger::Warning<<"Asked to run with a distribution-load-factor below 1.0, disabling it instead"<<endl;
+  }
 
 #ifdef SO_REUSEPORT
   g_reusePort = ::arg().mustDo("reuseport");
