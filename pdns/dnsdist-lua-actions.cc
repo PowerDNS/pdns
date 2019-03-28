@@ -341,6 +341,8 @@ public:
       dq->ednsExtendedError->retry = d_retry;
       dq->ednsExtendedError->info_code = d_info_code;
       dq->ednsExtendedError->extra_text = d_extra_text;
+    } else {
+      dq->ednsExtendedError = nullptr;
     }
     return Action::HeaderModify;
   }
@@ -1215,7 +1217,7 @@ void setupLuaActions()
     });
 
   g_lua.writeFunction("ERCodeAction", [](uint8_t rcode, boost::optional<int> info_code, boost::optional<std::string> extra_text, boost::optional<bool> retry) {
-      return std::shared_ptr<DNSAction>(new ERCodeAction(rcode, info_code ? *info_code : -1, extra_text ? *extra_text : "", retry ? *retry : false));
+      return std::shared_ptr<DNSAction>(new ERCodeAction(rcode, info_code ? *info_code : 0, extra_text ? *extra_text : "", retry ? *retry : false));
     });
 
   g_lua.writeFunction("SkipCacheAction", []() {

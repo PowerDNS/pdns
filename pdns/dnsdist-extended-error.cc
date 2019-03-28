@@ -46,11 +46,17 @@ static std::string generateExtendedError(const DNSQuestion& dq)
 
 bool addEDNSExtendedError(DNSQuestion& dq)
 {
+  // We have nothing to do if we have no extended error code set.
+  if (dq.ednsExtendedError == nullptr) {
+    return true;
+  }
+
   char* packet = reinterpret_cast<char*>(dq.dh);
 
   uint16_t optRDPosition;
   size_t remaining;
   int res = getEDNSOptionsStart(packet, dq.consumed, dq.len, &optRDPosition, &remaining);
+
 
   // If we don't have an OPT RR, then we won't add extended error information.
   //
@@ -88,11 +94,11 @@ bool addEDNSExtendedError(DNSQuestion& dq)
   opt[1] = newOptLen & 0xFF;
 
   // Add our new OPT RR.
-  opt[optLen] = (EDNSOptionCode::EXTENDED_ERROR >> 8) & 0xFF;
-  opt[optLen+1] = EDNSOptionCode::EXTENDED_ERROR & 0xFF;
-  opt[optLen+2] = (errbuf.length() >> 8) & 0xFF;
-  opt[optLen+3] = errbuf.length() & 0xFF;
-  memcpy(opt + optLen + 4, errbuf.c_str(), errbuf.length());
+  packet[dq.len] = (EDNSOptionCode::EXTENDED_ERROR >> 8) & 0xFF;
+  packet[dq.len+1] = EDNSOptionCode::EXTENDED_ERROR & 0xFF;
+  packet[dq.len+2] = (errbuf.length() >> 8) & 0xFF;
+  packet[dq.len+3] = errbuf.length() & 0xFF;
+  memcpy(packet + dq.len + 4, errbuf.c_str(), errbuf.length());
 
   // Update the length of our packet.
   dq.len += 4 + errbuf.length();
