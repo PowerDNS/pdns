@@ -60,6 +60,7 @@ unsigned int SyncRes::s_packetcachettl;
 unsigned int SyncRes::s_packetcacheservfailttl;
 unsigned int SyncRes::s_serverdownmaxfails;
 unsigned int SyncRes::s_serverdownthrottletime;
+unsigned int SyncRes::s_ecscachelimitttl;
 std::atomic<uint64_t> SyncRes::s_authzonequeries;
 std::atomic<uint64_t> SyncRes::s_queries;
 std::atomic<uint64_t> SyncRes::s_outgoingtimeouts;
@@ -80,7 +81,6 @@ uint8_t SyncRes::s_ecsipv4limit;
 uint8_t SyncRes::s_ecsipv6limit;
 uint8_t SyncRes::s_ecsipv4cachelimit;
 uint8_t SyncRes::s_ecsipv6cachelimit;
-unsigned int SyncRes::s_ecscachelimitttl;
 
 bool SyncRes::s_doIPv6;
 bool SyncRes::s_nopacketcache;
@@ -2420,15 +2420,36 @@ RCode::rcodes_ SyncRes::updateCacheFromRecords(unsigned int depth, LWResult& lwr
        - NS, A and AAAA (used for infra queries)
     */
     if (i->first.type != QType::NSEC3 && (i->first.type == QType::DS || i->first.type == QType::NS || i->first.type == QType::A || i->first.type == QType::AAAA || isAA || wasForwardRecurse)) {
-      if (i->first.place != DNSResourceRecord::ANSWER ||
-          !ednsmask ||
-          (ednsmask->isIpv4() && ednsmask->getBits() <= SyncRes::s_ecsipv4cachelimit) ||
-          (ednsmask->isIpv6() && ednsmask->getBits() <= SyncRes::s_ecsipv6cachelimit)) {
-        time_t minTTD = 0;
-        if (ednsmask && SyncRes::s_ecscachelimitttl > 0) {
-          minTTD = SyncRes::s_ecscachelimitttl + d_now.tv_sec;
+
+      bool doCache = i->first.place != DNSResourceRecord::ANSWER || !ednsmask;
+      // if ednsmask is relevant, we do not want to cache if the scope > ecslimit and TTL < limitttl
+      if (!doCache && ednsmask) {
+        bool manyMaskBits = (ednsmask->isIpv4() && ednsmask->getBits() > SyncRes::s_ecsipv4cachelimit) ||
+            (ednsmask->isIpv6() && ednsmask->getBits() > SyncRes::s_ecsipv6cachelimit);
+
+        if (SyncRes::s_ecscachelimitttl > 0) {
+          if (manyMaskBits) {
+            uint32_t minttl = UINT32_MAX;
+            for (const auto &it : i->second.records) {
+              if (it.d_ttl < minttl)
+                minttl = it.d_ttl;
+            }
+            bool ttlIsSmall = minttl < SyncRes::s_ecscachelimitttl + d_now.tv_sec;
+            if (ttlIsSmall) {
+              // Case: many bits and ttlIsSmall
+              doCache = false;
+            }
+          } else {
+              // Case: few mask bits
+              doCache = true;
+          }
+        } else {
+          // no applicable TTL limit, scope determines cacheability
+          doCache = !manyMaskBits;
         }
-        t_RC->replace(d_now.tv_sec, i->first.name, QType(i->first.type), i->second.records, i->second.signatures, authorityRecs, i->first.type == QType::DS ? true : isAA, i->first.place == DNSResourceRecord::ANSWER ? ednsmask : boost::none, minTTD, recordState);
+      }
+      if (doCache) {
+        t_RC->replace(d_now.tv_sec, i->first.name, QType(i->first.type), i->second.records, i->second.signatures, authorityRecs, i->first.type == QType::DS ? true : isAA, i->first.place == DNSResourceRecord::ANSWER ? ednsmask : boost::none, recordState);
       }
     }
 
