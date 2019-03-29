@@ -274,6 +274,7 @@ template<class Key, class Val>void MTasker<Key,Val>::makeThread(tfunc_t *start, 
                                             &uc->uc_stack[uc->uc_stack.size()-1]);
 #endif /* PDNS_USE_VALGRIND */
 
+  ++d_threadsCount;
   auto& thread = d_threads[d_maxtid];
   auto mt = this;
   thread.start = [start, val, mt]() {
@@ -316,6 +317,7 @@ template<class Key, class Val>bool MTasker<Key,Val>::schedule(struct timeval*  n
   }
   if(!d_zombiesQueue.empty()) {
     d_threads.erase(d_zombiesQueue.front());
+    --d_threadsCount;
     d_zombiesQueue.pop();
     return true;
   }
@@ -357,7 +359,7 @@ template<class Key, class Val>bool MTasker<Key,Val>::schedule(struct timeval*  n
  */
 template<class Key, class Val>bool MTasker<Key,Val>::noProcesses() const
 {
-  return d_threads.empty();
+  return d_threadsCount == 0;
 }
 
 //! returns the number of processes running
@@ -366,7 +368,7 @@ template<class Key, class Val>bool MTasker<Key,Val>::noProcesses() const
  */
 template<class Key, class Val>unsigned int MTasker<Key,Val>::numProcesses() const
 {
-  return d_threads.size();
+  return d_threadsCount;
 }
 
 //! gives access to the list of Events threads are waiting for
