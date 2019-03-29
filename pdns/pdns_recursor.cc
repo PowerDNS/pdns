@@ -2398,7 +2398,7 @@ static unsigned int selectWorker(unsigned int hash)
   // cerr<<"total load is "<<currentLoad<<", number of workers is "<<g_numWorkerThreads<<", target load is "<<targetLoad<<endl;
 
   unsigned int worker = hash % g_numWorkerThreads;
-  /* at least one server has to be below the average load */
+  /* at least one server has to be at or below the average load */
   if (load[worker] > targetLoad) {
     ++g_stats.rebalancedQueries;
     do {
