@@ -64,6 +64,11 @@ slave DNSSEC-enabled domains (where the RRSIGS are in the AXFR), a
 :ref:`metadata-presigned` domain metadata is set
 during the zonetransfer.
 
+.. warning::
+   If this is left empty on slaves and a presigned zone is transferred,
+   it will (silently) serve it without DNSSEC. This in turn results in
+   serving the domain as bogus.
+
 .. _setting-bind-hybrid:
 
 ``bind-hybrid``
