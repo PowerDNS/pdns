@@ -162,13 +162,14 @@ Signatures and Hashing is similar as described in :ref:`dnssec-online-signing`.
 BIND-mode operation
 -------------------
 
-The :doc:`bindbackend <../backends/bind>` can manage keys in an
-SQLite3 database without launching a separate gsqlite3 backend.
+The :doc:`bindbackend <../backends/bind>` can manage keys and other
+DNSSEC-related :doc:`domain metadata <../domainmetadata>` in an SQLite3
+database without launching a separate gsqlite3 backend.
 
-To use this mode, add
-``bind-dnssec-db=/var/db/bind-dnssec-db.sqlite3`` to pdns.conf, and run
-``pdnsutil create-bind-db /var/db/bind-dnssec-db.sqlite3``. Then,
-restart PowerDNS.
+To use this mode, run
+``pdnsutil create-bind-db /var/db/bind-dnssec-db.sqlite3`` and set
+:ref:`setting-bind-dnssec-db` in pdns.conf to the path of the created
+database. Then, restart PowerDNS.
 
 .. note::
   This sqlite database is different from the database used for the regular :doc:`SQLite 3 backend <../backends/generic-sqlite3>`.
