@@ -96,8 +96,8 @@ available for serving, as they are parsed. So a ``named.conf`` with
 zones will already be available. While a domain is being loaded, it is
 not yet available, to prevent incomplete answers.
 
-Reloading is currently done only when a request for a zone comes in, and
-then only after :ref:`setting-bind-check-interval`.
+Reloading is currently done only when a request (or zone transfer) for a
+zone comes in, and then only after :ref:`setting-bind-check-interval`
 seconds have passed after the last check. If a change occurred, access
 to the zone is disabled, the file is reloaded, access is restored, and
 the question is answered. For regular zones, reloading is fast enough to
