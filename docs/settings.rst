@@ -734,10 +734,10 @@ any.
 ``log-timestamp``
 -----------------
 
-.. versionadded:: 4.1.0
-
 - Bool
 - Default: yes
+
+.. versionadded:: 4.1.0
 
 When printing log lines to stdout, prefix them with timestamps.
 Disable this if the process supervisor timestamps these lines already.
@@ -1166,11 +1166,11 @@ To notify all IP addresses apart from the 192.168.0.0/24 subnet use the followin
 ``out-of-zone-additional-processing``
 -------------------------------------
 
-.. deprecated:: 4.2.0
-  This setting has been removed.
-
 -  Boolean
 -  Default: yes
+
+.. deprecated:: 4.2.0
+  This setting has been removed.
 
 Do out of zone additional processing. This means that if a malicious
 user adds a '.com' zone to your server, it is not used for other domains
