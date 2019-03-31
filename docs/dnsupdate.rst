@@ -90,7 +90,7 @@ Per zone settings
 -----------------
 
 For permissions, a number of per zone settings are available via the
-:doc:`domain metadata `<domainmetadata>`.
+:doc:`domain metadata <domainmetadata>`.
 
 .. _metadata-allow-dnsupdate-from:
 
@@ -454,17 +454,18 @@ each record at a time and you can approve or reject any or all.
 
 The object has following methods available:
 
-- DNSName getQName() - name to update
-- DNSName getZonename() - zone name
-- int getQType() - record type, it can be 255(ANY) for delete.
-- ComboAddress getLocal() - local socket address
-- ComboAddress getRemote() - remote socket address
-- Netmask getRealRemote() - real remote address (or netmask if EDNS Subnet is used)
-- DNSName getTsigName() - TSIG **key** name (you can assume it is validated here)
-- string getPeerPrincipal() - Return peer principal name (user@DOMAIN, service/machine.name@DOMAIN, host/MACHINE$@DOMAIN)
+- ``DNSName getQName()`` - name to update
+- ``DNSName getZonename()`` - zone name
+- ``int getQType()`` - record type, it can be 255(ANY) for delete.
+- ``ComboAddress getLocal()`` - local socket address
+- ``ComboAddress getRemote()`` - remote socket address
+- ``Netmask getRealRemote()`` - real remote address (or netmask if EDNS Subnet is used)
+- ``DNSName getTsigName()`` - TSIG **key** name (you can assume it is validated here)
+- ``string getPeerPrincipal()`` - Return peer principal name (``user@DOMAIN``,
+  ``service/machine.name@DOMAIN``, ``host/MACHINE$@DOMAIN``)
 
 There are many same things available as in recursor Lua scripts, but
-there is also resolve(qname, qtype) which returns array of records.
+there is also ``resolve(qname, qtype)`` which returns array of records.
 Example:
 
 .. code-block:: lua
