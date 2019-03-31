@@ -122,12 +122,15 @@ PowerDNS also serves the DNSKEY records in live-signing mode. Their TTL
 is derived from the SOA records *minimum* field. When using NSEC3, the
 TTL of the NSEC3PARAM record is also derived from that field.
 
+.. _dnssec_presigned_records:
+
 Pre-signed records
 ------------------
 
 In this mode, PowerDNS serves zones that already contain DNSSEC records.
-Such zones can either be slaved from a remote master, or can be signed
-using tools like OpenDNSSEC, ldns-signzone, and dnssec-signzone.
+Such zones can either be slaved from a remote master in online signing
+mode, or can be pre-signed using tools like OpenDNSSEC, ldns-signzone,
+and dnssec-signzone.
 
 Even in this mode, PowerDNS will synthesize NSEC(3) records itself
 because of its architecture. RRSIGs of these NSEC(3) will still need to

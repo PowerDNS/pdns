@@ -203,6 +203,16 @@ In some settings, having such (private) keying material available online
 is considered undesirable. In this case, consider running in pre-signed
 mode.
 
+A slightly more complex approach is running a *hidden* master in simple
+online signing mode, but on a highly secured system unreachable for the
+public. Internet-connected slaves can then transfer the zones pre-signed
+from this master over a secure private network. This topology offers
+substantial security benefits with regards to key material while
+maintaining ease of daily operation by PowerDNS's features in online
+mode.
+
+See also :ref:`dnssec_presigned_records`.
+
 Performance
 -----------
 
