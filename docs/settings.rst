@@ -19,7 +19,7 @@ means ``yes``.
 ``8bit-dns``
 ------------
 
--  Allow 8 bit dns queries
+-  Boolean
 -  Default: no
 
 .. versionadded:: 4.0.0
