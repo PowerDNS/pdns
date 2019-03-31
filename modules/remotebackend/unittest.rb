@@ -9,7 +9,7 @@ $notified_serial = 1
 
 $domain = {
   "unit.test." => { 
-      "SOA" => ["ns.unit.test. hostmaster.unit.test. 1 2 3 4 5 6"],
+      "SOA" => ["ns.unit.test. hostmaster.unit.test. 1 2 3 4 5"],
       "NS" => ["ns1.unit.test.", "ns2.unit.test."],
   },
   "ns1.unit.test." => {
