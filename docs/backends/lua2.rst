@@ -76,6 +76,8 @@ OUTPUT:
 
 NOTES:
  This function is **optional**.
+
+.. _backends_lua2_dns_get_domaininfo:
  
 ``dns_get_domaininfo(domain)``
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -108,7 +110,8 @@ NOTES:
 Get domain information for all domains.
 
 OUTPUT:
- Return false if not supported or found, otherwise return a table of string, domaininfo. See ``dns_get_domaininfo```.
+ Return false if not supported or found, otherwise return a table of string,
+ domaininfo. See :ref:`dns_get_domaininfo() <backends_lua2_dns_get_domaininfo>`.
 
 NOTES:
  This function is **optional**, except if you need master functionality.
