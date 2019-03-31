@@ -119,7 +119,8 @@ the list in :ref:`setting-only-notify`.
 -  Boolean
 -  Default: yes
 
-.. versionchanged:: 4.0.1, was 'no' before.
+.. versionchanged:: 4.0.1
+  was 'no' before.
 
 Answer questions for the ANY on UDP with a truncated packet that refers
 the remote server to TCP. Useful for mitigating reflection attacks.
