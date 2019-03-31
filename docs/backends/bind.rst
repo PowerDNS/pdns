@@ -22,8 +22,13 @@ information about zones from it. It makes no attempt to honour other
 configuration flags, which you should configure (when available) using
 the PowerDNS native configuration.
 
+Unique to this PowerDNS backend is that it serves from plain zone files,
+which allows for hand-crafting zone files, only takes a tiny footprint
+in terms of server resource usage while being
+:ref:`performant efficiently <bind_performance>`.
+
 .. note::
-  Because this backend retrieves its configuration from a text file and
+  Because this backend retrieves its configuration from plain files and
   not a database, the HTTP API is unable to process changes for this
   backend. This effectively makes the API read-only for zones hosted by
   the BIND backend.
@@ -151,6 +156,8 @@ removed from memory.
 
 All zones with a changed timestamp are reloaded at the next incoming
 query for them.
+
+.. _bind_performance:
 
 Performance
 -----------
