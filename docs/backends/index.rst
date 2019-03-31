@@ -44,6 +44,7 @@ These backends have :doc:`features unique <generic-sql>` to the generic SQL back
 
 .. toctree::
   :maxdepth: 1
+  :hidden:
 
   bind
   generic-sql
