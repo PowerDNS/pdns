@@ -1367,7 +1367,7 @@ Turn on slave support. See :ref:`slave-operation`.
 ------------------------
 
 -  Integer
--  60
+-  Default: 60
 
 On a master, this is the amount of seconds between the master checking
 the SOA serials in its database to determine to send out NOTIFYs to the
