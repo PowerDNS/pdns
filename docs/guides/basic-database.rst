@@ -65,12 +65,11 @@ to launch in monitor mode and display no errors:
     15:39:55 [gMySQLbackend] MySQL connection succeeded
 
 In a different shell, a sample query sent to the server should now
-return quickly without data:
+return quickly *without* data:
 
 .. code-block:: shell
 
-    $ dig +short www.example.com @127.0.0.1
-    $
+    $ dig +short www.example.com @127.0.0.1  # should print nothing
 
 .. warning::
   When debugging DNS problems, don't use ``host``. Please use
