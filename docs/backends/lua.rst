@@ -66,6 +66,8 @@ This will give you back three parameters with ``remote_ip``,
 
 Can only be used in the functions ``list()`` and ``getsoa()``.
 
+.. _backends_lua_fun_getarg:
+
 ``getarg("PARAMETER")``
 ~~~~~~~~~~~~~~~~~~~~~~~
 
@@ -75,8 +77,8 @@ pdns.conf file.
 ``mustdo("PARAMETER")``
 ~~~~~~~~~~~~~~~~~~~~~~~
 
-This is the same as ```getarg()`` <#getarg>`__ but return a boolean
-instead of a string.
+This is the same as :ref:`getarg() <backends_lua_fun_getarg>`, but returns
+a boolean instead of a string.
 
 You also have all the different QTypes in a table called 'QTypes'.
 
