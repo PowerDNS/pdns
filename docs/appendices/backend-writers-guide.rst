@@ -462,7 +462,7 @@ available. The exact definitions:
 
   Returns the numerical value of a parameter. Uses ``atoi()`` internally
 
-  Sample usage from the BindBackend: getting the 'check-interval' setting:
+  Sample usage from the BIND backend: getting the 'check-interval' setting:
 
   .. code-block:: cpp
 

@@ -86,10 +86,10 @@ From zonefiles to PowerDNS
 Using the BIND backend
 ~~~~~~~~~~~~~~~~~~~~~~
 
-To use the bind backend, set ``launch=bind`` and
+To use the BIND backend, set ``launch=bind`` and
 ``bind-config=/path/to/named.conf`` in your ``pdns.conf``. Note that
 PowerDNS will not honor any options from named.conf, it will only use
-the ``zone`` statements. See the :doc:`Bind backend <backends/bind>`
+the ``zone`` statements. See the :doc:`BIND backend <backends/bind>`
 documentation for more information.
 
 To a Generic SQL backend
@@ -104,7 +104,7 @@ Using ``zone2sql``
 
 To migrate, the ``zone2sql`` tool is provided. This tool parses a BIND
 ``named.conf`` file and zone files and outputs SQL on standard out,
-which can then be fed to your database. It understands the Bind master
+which can then be fed to your database. It understands the BIND master
 file extension ``$GENERATE`` and will also honour ``$ORIGIN`` and
 ``$TTL``.
 
@@ -148,7 +148,7 @@ Syntax: ``pdnsutil b2b-migrate OLD NEW``
 
 This tool lets you migrate data from one backend to another, it moves
 all data, including zones, metadata and crypto keys (if present). Some
-example use cases are moving from Bind style zonefiles to SQL based, or
+example use cases are moving from BIND-style zonefiles to SQL based, or
 other way around, or moving from MyDNS to gMySQL.
 
 Prerequisites

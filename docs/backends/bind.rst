@@ -1,4 +1,4 @@
-Bind zone file backend
+BIND zone file backend
 ======================
 
 * Native: Yes
@@ -13,11 +13,11 @@ Bind zone file backend
 * Module name: bind
 * Launch: ``bind``
 
-The BindBackend started life as a demonstration of the versatility of
+The BIND backend started life as a demonstration of the versatility of
 PowerDNS but quickly gained in importance when there appeared to be
-demand for a Bind 'work-alike'.
+demand for a BIND 'work-alike'.
 
-The BindBackend parses a Bind-style ``named.conf`` and extracts
+The BIND backend parses a BIND-style ``named.conf`` and extracts
 information about zones from it. It makes no attempt to honour other
 configuration flags, which you should configure (when available) using
 the PowerDNS native configuration.
@@ -41,9 +41,9 @@ Configuration Parameters
 ``bind-config``
 ~~~~~~~~~~~~~~~
 
-Location of the Bind configuration file to parse.
+Location of the BIND configuration file to parse.
 
-PowerDNS does not support every directive supported by Bind.
+PowerDNS does not support every directive supported by BIND.
 It supports the following blocks and directives:
 
 * ``options``
@@ -94,7 +94,7 @@ when loading zone files.
 Operation
 ---------
 
-On launch, the BindBackend first parses the ``named.conf`` to determine
+On launch, the BIND backend first parses the ``named.conf`` to determine
 which zones need to be loaded. These will then be parsed and made
 available for serving, as they are parsed. So a ``named.conf`` with
 100.000 zones may take 20 seconds to load, but after 10 seconds, 50.000
@@ -118,7 +118,7 @@ pdns\_control commands
 ``bind-add-zone <domain> <filename>``
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-Add zone ``domain`` from ``filename`` to PowerDNS's bind backend. Zone
+Add zone ``domain`` from ``filename`` to PowerDNS's BIND backend. Zone
 will be loaded at first request.
 
 .. note::
@@ -146,7 +146,7 @@ Reloads a zone from disk NOW, reporting back results.
 ``rediscover``
 ~~~~~~~~~~~~~~
 
-Reread the bind configuration file (``named.conf``). If parsing fails,
+Reread the BIND configuration file (``named.conf``). If parsing fails,
 the old configuration remains in force and ``pdns_control`` reports the
 error. Any newly discovered domains are read, discarded domains are
 removed from memory.
@@ -162,7 +162,7 @@ query for them.
 Performance
 -----------
 
-The BindBackend does not benefit from the packet cache as it is fast
+The BIND backend does not benefit from the packet cache as it is fast
 enough on its own. Furthermore, on most systems, there will be no
 benefit in using multiple CPUs for the packetcache, so a noticeable
 speedup can be attained by specifying
@@ -175,7 +175,7 @@ Master
 ~~~~~~
 
 Works as expected. At startup, no notification storm is performed as
-this is generally not useful. Perhaps in the future the Bind Backend
+this is generally not useful. Perhaps in the future the BIND backend
 will attempt to store zone metadata in the zone, allowing it to
 determine if a zone has changed its serial since the last time
 notifications were sent out.
@@ -186,7 +186,7 @@ notifications however.
 Slave
 ~~~~~
 
-Also works as expected. The Bind backend expects to be able to write to
+Also works as expected. The BIND backend expects to be able to write to
 a directory where a slave domain lives. The incoming zone is stored as
 'zonename.RANDOM' and atomically renamed if it is retrieved
 successfully, and parsed only then.

@@ -310,7 +310,7 @@ Wildcards
 ^^^^^^^^^
 
 Wild-card domains are possible by using the asterisk in the
-``associatedDomain`` value like it is used in the bind zone files. The
+``associatedDomain`` value like it is used in the BIND zone files. The
 "dc" attribute can be set to any value in simple or strict mode - this
 doesn't matter.
 
@@ -471,15 +471,15 @@ instead all zones:
 See :doc:`its manpage <../manpages/zone2ldap.1>` for a complete list of
 options.
 
-Bind LDAP backend
+BIND LDAP backend
 ^^^^^^^^^^^^^^^^^
 
-When coming from the `Bind LDAP sdb
+When coming from the `BIND LDAP sdb
 backend <http://bind9-ldap.bayour.com/>`__, the records can be kept in
 the LDAP tree also for the PowerDNS LDAP backend. The schemas both
 backends utilize is almost the same except for one important thing:
 Domains for PowerDNS are stored in the attribute "associatedDomain"
-whereas Bind stores them split in "relativeDomainName" and "zoneName".
+whereas BIND stores them split in "relativeDomainName" and "zoneName".
 
 There is a `migration
 script <http://www.linuxnetworks.de/pdnsldap/bind2pdns-ldap>`__ which
@@ -519,7 +519,7 @@ Other name server
 ^^^^^^^^^^^^^^^^^
 
 The easiest way for migrating DNS records is to use the output of a zone
-transfer (AXFR). Save the output of the ``dig`` program provided by bind
+transfer (AXFR). Save the output of the ``dig`` program provided by BIND
 into a file and call ``zone2ldap`` with the file name as option to the
 ``--zone-file`` parameter. This will generate the appropriate ldif file,
 which can be imported into the LDAP tree. The bash script except below

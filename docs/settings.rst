@@ -701,7 +701,7 @@ configuration item names change: e.g. ``gmysql-host`` is available to
 configure the ``host`` setting of the first or main instance, and
 ``gmysql-server2-host`` for the second one.
 
-Running multiple instances of the bind backend is not allowed.
+Running multiple instances of the BIND backend is not allowed.
 
 .. _setting-load-modules:
 

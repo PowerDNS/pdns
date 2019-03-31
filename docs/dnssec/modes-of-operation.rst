@@ -168,7 +168,7 @@ The signing and hashing algorithms are described in :ref:`dnssec-online-signing`
 BIND-mode operation
 -------------------
 
-The :doc:`bindbackend <../backends/bind>` can manage keys and other
+The :doc:`BIND backend <../backends/bind>` can manage keys and other
 DNSSEC-related :doc:`domain metadata <../domainmetadata>` in an SQLite3
 database without launching a separate gsqlite3 backend.
 
@@ -189,14 +189,14 @@ Hybrid BIND-mode operation
 --------------------------
 
 PowerDNS can also operate based on 'BIND'-style zone & configuration
-files. This 'bindbackend' has full knowledge of DNSSEC but has no
+files. This 'BIND backend' has full knowledge of DNSSEC but has no
 native way of storing keying material.
 
 However, since PowerDNS supports operation with multiple simultaneous
 backends, this is not a problem.
 
 In hybrid mode, keying material and zone records are stored in different
-backends. This allows for 'bindbackend' operation in full DNSSEC mode.
+backends. This allows for 'BIND backend' operation in full DNSSEC mode.
 
 To benefit from this mode, include at least one database-based backend
 in the :ref:`setting-launch` statement. See the :doc:`backend specific documentation <../backends/index>`

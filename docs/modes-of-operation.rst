@@ -132,7 +132,7 @@ updated and if so, retransfering it.
 All backends which implement this feature must make sure that they can
 handle transactions so as to not leave the zone in a half updated state.
 MySQL configured with either BerkeleyDB or InnoDB meets this
-requirement, as do PostgreSQL and Oracle. The Bindbackend implements
+requirement, as do PostgreSQL and Oracle. The BIND backend implements
 transaction semantics by renaming files if and only if they have been
 retrieved completely and parsed correctly.
 
