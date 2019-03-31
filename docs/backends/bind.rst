@@ -122,9 +122,11 @@ will be loaded at first request.
 ``bind-domain-status <domain> [domain]``
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-Output status of domain or domains. Can be one of
-``seen in named.conf, not parsed``, ``parsed successfully at <time>`` or
-``error parsing at line ... at <time>``.
+Output status of domain or domains. Can be one of:
+
+* ``seen in named.conf, not parsed``,
+* ``parsed successfully at <time>`` or
+* ``error parsing at line ... at <time>``.
 
 ``bind-list-rejects``
 ~~~~~~~~~~~~~~~~~~~~~
