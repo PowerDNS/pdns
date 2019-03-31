@@ -20,9 +20,9 @@ This documentation is also available as a `PDF document <PowerDNS-Authoritative.
 Getting Started
 ---------------
 
- * :doc:`Install the Authoritative Server <installation>`
- * :doc:`Configure the Server <settings>`
- * :doc:`Configure the backend(s) <backends/index>`
+* :doc:`Install the Authoritative Server <installation>`
+* :doc:`Configure the Server <settings>`
+* :doc:`Configure the backend(s) <backends/index>`
 
 Getting Support
 ---------------
@@ -31,9 +31,9 @@ You may also help others (please do).
 
 Public support is available via several different channels:
 
-  * This documentation
-  * `The mailing list <https://www.powerdns.com/mailing-lists.html>`_
-  * ``#powerdns`` on `irc.oftc.net <irc://irc.oftc.net/#powerdns>`_
+* This documentation
+* `The mailing list <https://www.powerdns.com/mailing-lists.html>`_
+* ``#powerdns`` on `irc.oftc.net <irc://irc.oftc.net/#powerdns>`_
 
 The PowerDNS company can provide help or support you in private as well.
 For first class and rapid support, please contact powerdns.support@powerdns.com, or see the `.com website <https://www.powerdns.com/support-services-consulting.html>`__.

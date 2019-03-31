@@ -47,16 +47,16 @@ There is a couple of new functions for you to use in Lua:
 
 All these ``log_facilities`` is available: 
 
- * ``log_all`` 
- * ``log_ntlog`` 
- * ``log_alert`` 
- * ``log_critical`` 
- * ``log_error`` 
- * ``log_warning`` 
- * ``log_notice,`` 
- * ``log_info`` 
- * ``log_debug`` 
- * ``log_none``
+* ``log_all``
+* ``log_ntlog``
+* ``log_alert``
+* ``log_critical``
+* ``log_error``
+* ``log_warning``
+* ``log_notice,``
+* ``log_info``
+* ``log_debug``
+* ``log_none``
 
 ``dnspacket()``
 ~~~~~~~~~~~~~~~

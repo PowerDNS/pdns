@@ -326,9 +326,9 @@ Returns the value(s) for variable kind for zone name. You **must**
 always return something, if there are no values, you shall return empty
 set or false.
 
- *  Mandatory: No
- *  Parameters: name
- *  Reply: hash of key to array of strings
+*  Mandatory: No
+*  Parameters: name
+*  Reply: hash of key to array of strings
 
 Example JSON/RPC
 ''''''''''''''''

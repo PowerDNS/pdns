@@ -922,7 +922,7 @@ Changelogs for 4.1.x
     :tags: Tools, Improvements
     :pullreq: 4584
 
-     Allow setting the account of a zone via pdnsutil (Tuxis Internet Engineering).
+    Allow setting the account of a zone via pdnsutil (Tuxis Internet Engineering).
 
   .. change::
     :tags: Internals, New Features
