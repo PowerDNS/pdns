@@ -98,7 +98,7 @@ ALLOW-DNSUPDATE-FROM
 ~~~~~~~~~~~~~~~~~~~~
 
 This setting has the same function as described in the configuration
-options (See ref:`above <dnsupdate-configuration-options>`). Only one item is
+options (See :ref:`above <dnsupdate-configuration-options>`). Only one item is
 allowed per row, but multiple rows can be added. An example:
 
 ::

@@ -900,7 +900,7 @@ Turn on master support. See :ref:`master-operation`.
 
 .. versionchanged:: 4.1.0
   The packet and query caches are distinct. Previously, this setting was used for
-  both the packet and query caches. See ref:`setting-max-packet-cache-entries` for
+  both the packet and query caches. See :ref:`setting-max-packet-cache-entries` for
   the packet-cache setting.
 
 Maximum number of entries in the query cache. 1 million (the default)
@@ -1024,7 +1024,7 @@ compile-time.
 -  Integer
 -  Default: 60
 
-Seconds to store queries with no answer in the Query Cache. See ref:`query-cache`.
+Seconds to store queries with no answer in the Query Cache. See :ref:`query-cache`.
 
 .. _setting-no-config:
 
