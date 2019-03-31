@@ -74,7 +74,7 @@ To launch the ldap backend:
 ``ldap-host``
 ^^^^^^^^^^^^^
 
-(default "ldap://127.0.0.1:389/") : The values assigned to this
+(default "``ldap://127.0.0.1:389/``") : The values assigned to this
 parameter can be LDAP URIs (e.g. ``ldap://127.0.0.1/`` or
 ``ldaps://127.0.0.1/``) describing the connection to the LDAP server.
 There can be multiple LDAP URIs specified for load balancing and high
@@ -89,7 +89,7 @@ followed by a colon and the port).
 ^^^^^^^^^^^^^^^^^
 
 (default "no") : Use TLS encrypted connections to the LDAP server. This
-is only allowed if ldap-host is a ldap:// URI or a host name / IP
+is only allowed if ldap-host is an ``ldap://`` URI or a host name / IP
 address.
 
 .. _setting-ldap-timeout:
@@ -629,4 +629,4 @@ SASL support
 ^^^^^^^^^^^^
 
 Support for more authentication methods would be handy. Anyone
-interested may `contribute <https://github.com/PowerDNS/pdns>`__.?
+interested may `contribute <https://github.com/PowerDNS/pdns>`__.

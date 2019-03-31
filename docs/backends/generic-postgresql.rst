@@ -82,7 +82,7 @@ Enable DNSSEC processing for this backend. Default: no.
 .. _setting-gpgsql-extra-connection-parameters:
 
 ``gpgsql-extra-connection-parameters``
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 Extra connection parameters to forward to postgres. If you want to pin a
 specific certificate for the connection you should set this to

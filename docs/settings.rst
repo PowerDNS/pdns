@@ -155,7 +155,7 @@ Static pre-shared authentication key for access to the REST API.
 
 .. versionadded:: 4.0.0
 .. versionchanged:: 4.2.0
-This setting has been removed in 4.2.0.
+  This setting has been removed in 4.2.0.
 
 Disallow data modification through the REST API when set.
 
@@ -324,7 +324,7 @@ The value of :ref:`metadata-api-rectify` if it is not set on the zone.
 .. _setting-default-ksk-algorithm:
 
 ``default-ksk-algorithm``
---------------------------
+-------------------------
 
 -  String
 -  Default: ecdsa256
