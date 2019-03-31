@@ -53,6 +53,8 @@ records unless you AXFR regularly.
   Authoritative Server 4.0.x. Hence, ALIAS records are always expanded on
   a direct A or AAAA query.
 
+.. _alias_and_dnssec:
+
 ALIAS and DNSSEC
 ----------------
 

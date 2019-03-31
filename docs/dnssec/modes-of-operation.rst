@@ -32,6 +32,9 @@ DNSSEC data using the original keys.
 Such a single replicated database requires no further attention beyond
 monitoring already required during non-DNSSEC operations.
 
+Please note that the ALIAS record type is
+:ref:`not supported <alias_and_dnssec>` in this mode.
+
 Records, Keys, signatures, hashes within PowerDNS in online signing mode
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
