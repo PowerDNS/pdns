@@ -22,7 +22,11 @@ information about zones from it. It makes no attempt to honour other
 configuration flags, which you should configure (when available) using
 the PowerDNS native configuration.
 
-**note**: Because this backend retrieves its configuration from a text file and not a database, the HTTP API is unable to process changes for this backend. This effectively makes the API read-only for zones hosted by the BIND backend.  
+.. note::
+  Because this backend retrieves its configuration from a text file and
+  not a database, the HTTP API is unable to process changes for this
+  backend. This effectively makes the API read-only for zones hosted by
+  the BIND backend.
 
 Configuration Parameters
 ------------------------
@@ -195,5 +199,5 @@ are picked up in the same way as master and slave zones, see
 Native zones in the BIND backend are supported since version 4.1.0 of
 the PowerDNS Authoritative Server.
 
-**note**: Any zone with no ``type`` set (an error in BIND) is assumed to
-be native.
+.. note::
+  Any zone with no ``type`` set (an error in BIND) is assumed to be native.

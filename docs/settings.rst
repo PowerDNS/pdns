@@ -620,11 +620,12 @@ A/AAAA).
 If this is disabled (the default), ALIAS records will not expanded and
 the server will will return NODATA for A/AAAA queries for such names.
 
-**note**: :ref:`setting-resolver` must also be set for ALIAS
-expansion to work!
+.. note::
+  :ref:`setting-resolver` must also be set for ALIAS expansion to work!
 
-**note**: In PowerDNS Authoritative Server 4.0.x, this setting did not
-exist and ALIAS was always expanded.
+.. note::
+  In PowerDNS Authoritative Server 4.0.x, this setting did not exist and
+  ALIAS was always expanded.
 
 .. _setting-forward-dnsupdate:
 
