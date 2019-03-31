@@ -14,7 +14,7 @@ is used for verification. The private part is used for signing and is
 never published.
 
 To make sure that the internet knows that the key that is used for
-signing is the authentic key, confirmation can be gotten from the parent
+signing is the authentic key, confirmation can be obtained from the parent
 zone. This means that to become operational, a zone operator will have
 to publish a representation of the signing key to the parent zone, often
 a ccTLD or a gTLD. This representation is called a DS record, and is a
