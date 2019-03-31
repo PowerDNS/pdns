@@ -12,7 +12,7 @@ First, create a new inactive ZSK for the zone (if one already exists,
 you can skip this step), we add an ECDSA 256 bit key (algorithm 13)
 here:
 
-::
+.. code-block:: shell
 
     pdnsutil add-zone-key example.net zsk inactive ecdsa256
 
@@ -23,7 +23,7 @@ database and wait for the slaves to pickup the zone change.
 To change the RRSIGs on your records, the new key must be made active.
 Note: you can get the key-ids with ``pdnsutil show-zone example.net``:
 
-::
+.. code-block:: shell
 
     pdnsutil activate-zone-key example.net new-key-id
     pdnsutil deactivate-zone-key example.net previous-key-id
@@ -33,7 +33,7 @@ the "new RRSIGs" stage of the roll over.
 
 The last step is to remove the old key from the completely:
 
-::
+.. code-block:: shell
 
     pdnsutil remove-zone-key example.net previous-key-id
 

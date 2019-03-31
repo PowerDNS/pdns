@@ -643,9 +643,9 @@ Supermaster/Superslave capability
 A backend that wants to act as a 'superslave' for a master should
 implement the following method:
 
-::
+.. code-block:: cpp
 
-                class DNSBackend 
+                class DNSBackend
                 {
                    virtual bool superMasterBackend(const string &ip, const string &domain, const vector<DNSResourceRecord>&nsset, string *account, DNSBackend **db)
                 };

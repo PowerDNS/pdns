@@ -6,7 +6,7 @@ is called 'gmysql', and needs to be configured in ``pdns.conf``. Add the
 following lines, adjusted for your local setup (specifically, you may
 not want to use the 'root' user):
 
-::
+.. code-block:: ini
 
     launch=gmysql
     gmysql-host=127.0.0.1
@@ -49,6 +49,7 @@ Connect to MySQL as a user with sufficient privileges and issue the
 following commands:
 
 .. literalinclude:: ../../modules/gmysqlbackend/schema.mysql.sql
+   :language: SQL
 
 Now we have a database and an empty table. PowerDNS should now be able
 to launch in monitor mode and display no errors:
@@ -66,7 +67,7 @@ to launch in monitor mode and display no errors:
 In a different shell, a sample query sent to the server should now
 return quickly without data:
 
-::
+.. code-block:: shell
 
     $ dig +short www.example.com @127.0.0.1
     $
@@ -110,7 +111,7 @@ Now we need to add some records to our database (in a separate shell):
 
 If we now requery our database, ``www.example.com`` should be present:
 
-::
+.. code-block:: shell
 
     $ dig +short www.example.com @127.0.0.1
     192.0.2.10

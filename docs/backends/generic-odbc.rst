@@ -114,6 +114,7 @@ This schema can also be found in the PowerDNS source as
 This is the schema for 4.2. For 4.1, please find `the 4.1 schema on GitHub <https://github.com/PowerDNS/pdns/blob/rel/auth-4.1.x/modules/godbcbackend/schema.mssql.sql>`_.
 
 .. literalinclude:: ../../modules/godbcbackend/schema.mssql.sql
+   :language: SQL
 
 Load this into the database as follows:
 
@@ -133,7 +134,7 @@ Configuring PowerDNS
 
 Add the options required to your ``pdns.conf``:
 
-::
+.. code-block:: ini
 
     launch=godbc
     godbc-datasource=pdns1

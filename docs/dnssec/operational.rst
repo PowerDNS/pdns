@@ -19,7 +19,7 @@ zone.
 Going insecure
 --------------
 
-::
+.. code-block:: shell
 
     pdnsutil disable-dnssec ZONE
 
@@ -34,13 +34,13 @@ Setting the NSEC modes and parameters
 As stated earlier, PowerDNS uses NSEC by default. If you want to use
 NSEC3 instead, issue:
 
-::
+.. code-block:: shell
 
     pdnsutil set-nsec3 ZONE [PARAMETERS]
 
 e.g.
 
-::
+.. code-block:: shell
 
     pdnsutil set-nsec3 example.net '1 0 1 ab'
 
@@ -56,7 +56,7 @@ The quoted part is the content of the NSEC3PARAM records, as defined in
 
 To convert a zone from NSEC3 to NSEC operations, run:
 
-::
+.. code-block:: shell
 
     pdnsutil unset-nsec3 ZONE
 

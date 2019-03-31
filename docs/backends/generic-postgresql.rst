@@ -97,3 +97,4 @@ Default schema
 This is the 4.2 schema. Please find `the 4.1 schema on GitHub <https://github.com/PowerDNS/pdns/blob/rel/auth-4.1.x/modules/gpgsqlbackend/schema.pgsql.sql>`_.
 
 .. literalinclude:: ../../modules/gpgsqlbackend/schema.pgsql.sql
+   :language: SQL

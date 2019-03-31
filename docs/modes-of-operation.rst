@@ -246,7 +246,7 @@ the ``domainmetadata`` table for the domain. Supposing the domain we
 want has an ``id`` of 3, the following SQL statement will enable the Lua
 script ``my.lua`` for that domain:
 
-::
+.. code-block:: SQL
 
     INSERT INTO domainmetadata (domain_id, kind, content) VALUES (3, "LUA-AXFR-SCRIPT", "/lua/my.lua");
 
@@ -270,7 +270,7 @@ incoming record as normal.
 
 Consider the following simple example:
 
-::
+.. code-block:: lua
 
         function axfrfilter(remoteip, zone, record)
 

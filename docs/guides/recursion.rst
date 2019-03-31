@@ -50,7 +50,7 @@ should be removed:
 To make the authoritative server listen on the local loopback address
 and port 5300 change the following in ``pdns.conf``:
 
-::
+.. code-block:: ini
 
     local-ipv6=
     local-address=127.0.0.1
@@ -87,7 +87,7 @@ Authoritative Server. This is done using the
 ``recursor.conf``. The domains should be forwarded to 127.0.0.1:5300
 (the new address and port of the Authoritative Server):
 
-::
+.. code-block:: ini
 
     forward-zones=private.example.com=127.0.0.1:5300
     forward-zones+=another.example.com=127.0.0.1:5300
@@ -133,7 +133,7 @@ should be removed:
 To make the authoritative server listen on the local loopback address
 and port 5300 change the following in ``pdns.conf``:
 
-::
+.. code-block:: ini
 
     local-ipv6=
     local-address=127.0.0.1
@@ -153,7 +153,7 @@ Configure the recursor to listen on the local loopback interface on a
 different port than the Authoritative Server. Set the following in
 ``recursor.conf``:
 
-::
+.. code-block:: ini
 
     local-address=127.0.0.1
     local-port=5301
@@ -164,7 +164,7 @@ Authoritative Server. This is done using the
 ``recursor.conf``. The domains should be forwarded to 127.0.0.1:5300
 (the new address and port of the Authoritative Server):
 
-::
+.. code-block:: ini
 
     forward-zones=private.example.com=127.0.0.1:5300
     forward-zones+=another.example.com=127.0.0.1:5300

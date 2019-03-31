@@ -682,7 +682,7 @@ Which backends to launch and order to query them in. Launches backends.
 In its most simple form, supply all backends that need to be launched.
 e.g.
 
-::
+.. code-block:: ini
 
     launch=bind,gmysql,remote
 
@@ -690,7 +690,7 @@ If you find that you need to query a backend multiple times with
 different configuration, you can specify a name for later
 instantiations. e.g.:
 
-::
+.. code-block:: ini
 
     launch=gmysql,gmysql:server2
 
@@ -1153,7 +1153,9 @@ To notify all IP addresses apart from the 192.168.0.0/24 subnet use the followin
   Otherwise there will be error trying to resolve address.
 
   For example, slaves support both IPv4 and IPv6, but PowerDNS master have only IPv4,
-  so allow only IPv4 with ``only-notify``::
+  so allow only IPv4 with ``only-notify``:
+
+  .. code-block:: ini
 
     only-notify=0.0.0.0/0
 

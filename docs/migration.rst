@@ -28,7 +28,7 @@ In order to migrate to a Generic SQL backend, add all your domains to
 the 'domains' table with the IP of your current master. On your current
 master, make sure that this master allows AXFRs to this new slave.
 
-::
+.. code-block:: SQL
 
     INSERT INTO domains (name,type,master) VALUES ('example.net', 'SLAVE', '198.51.100.101');
 
@@ -36,7 +36,7 @@ Then start PowerDNS and wait for all the zones to be transferred. If
 this server is the new :ref:`master <master-operation>`, change the type of
 domain in the database:
 
-::
+.. code-block:: SQL
 
     UPDATE domains set type='MASTER' where type='SLAVE';
 
@@ -45,7 +45,7 @@ and restart PowerDNS.
 
 Or, if you want to use :ref:`native <native-operation>`:
 
-::
+.. code-block:: SQL
 
     UPDATE domains set type='NATIVE' where type='SLAVE';
 
@@ -116,7 +116,7 @@ See `its manpage <manpages/zone2sql.1>` for more information.
 
 An example call to ``zone2sql`` could be:
 
-::
+.. code-block:: shell
 
     zone2sql --named-conf=/path/to/named.conf --gmysql | mysql -u pdns -p pdns-db
 

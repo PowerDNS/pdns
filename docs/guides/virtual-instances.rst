@@ -40,13 +40,13 @@ Assuming your instance is called ``myinstance`` and
 ``pdns-myinstance.conf`` exists in the configuration directory, the
 following command will start the service:
 
-::
+.. code-block:: shell
 
     systemctl start pdns@myinstance.service
 
 Similarly you can enable it at boot:
 
-::
+.. code-block:: shell
 
     systemctl enable pdns@myinstance.service
 

@@ -65,7 +65,7 @@ Add them to the ``pdns.conf`` file.
 
 To launch the ldap backend:
 
-::
+.. code-block:: ini
 
     launch=ldap
 
@@ -450,7 +450,7 @@ standard compliant LDAP server. ``zone2ldap`` needs the BIND
 ``named.conf`` (usually located in /etc) as input and writes the dns
 record entries in ldif format to stdout:
 
-::
+.. code-block:: shell
 
     zone2ldap
        --basedn=YOUR_BASE_DN \
@@ -460,7 +460,7 @@ record entries in ldif format to stdout:
 Alternatively zone2ldap can be used to convert only single zone files
 instead all zones:
 
-::
+.. code-block:: shell
 
     zone2ldap
        --basedn=YOUR_BASE_DN \
@@ -487,7 +487,7 @@ creates a file in LDIF format with the necessary LDAP updates including
 the "associatedDomain" and "dc" attributes. The utility is executed on
 the command line by:
 
-::
+.. code-block:: shell
 
     ./bind2pdns-ldap
        --host=HOSTNAME_OR_IP \
@@ -525,7 +525,7 @@ into a file and call ``zone2ldap`` with the file name as option to the
 which can be imported into the LDAP tree. The bash script except below
 automates this:
 
-::
+.. code-block:: shell
 
     DNSSERVER=127.0.0.1
     DOMAINS="example.com 10.10.in-addr.arpa"
