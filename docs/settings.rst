@@ -1034,7 +1034,8 @@ Seconds to store queries with no answer in the Query Cache. See :ref:`query-cach
 -  Boolean
 -  Default: no
 
-Do not attempt to read the configuration file.
+Do not attempt to read the configuration file. Useful for configuration
+by parameters from the command line only.
 
 .. _setting-no-shuffle:
 
