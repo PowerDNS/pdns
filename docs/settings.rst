@@ -617,7 +617,7 @@ Entropy source file to use.
 If this is enabled, ALIAS records are expanded (synthesised to their
 A/AAAA).
 
-If this is disabled (the default), ALIAS records will not expanded and
+If this is disabled (the default), ALIAS records will not be expanded and
 the server will will return NODATA for A/AAAA queries for such names.
 
 .. note::
@@ -1149,7 +1149,7 @@ To notify all IP addresses apart from the 192.168.0.0/24 subnet use the followin
   :ref:`metadata-also-notify` domain metadata to avoid this potential bottleneck.
 
 .. note::
-  If your slaves support Internet Protocol version, which your master does not,
+  If your slaves support an Internet Protocol version, which your master does not,
   then set ``only-notify`` to include only supported protocol version.
   Otherwise there will be error trying to resolve address.
 
@@ -1369,7 +1369,7 @@ Turn on slave support. See :ref:`slave-operation`.
 -  Integer
 -  60
 
-On a master, this is the amounts of seconds between the master checking
+On a master, this is the amount of seconds between the master checking
 the SOA serials in its database to determine to send out NOTIFYs to the
 slaves. On slaves, this is the number of seconds between the slave
 checking for updates to zones.
