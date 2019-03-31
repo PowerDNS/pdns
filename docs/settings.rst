@@ -1083,14 +1083,15 @@ it is disabled by default.
 - String
 - Default: auto
 
-Specify which random number generator to use. Permissible choises are
- - auto - choose automatically
- - sodium - Use libsodium ``randombytes_uniform``
- - openssl - Use libcrypto ``RAND_bytes``
- - getrandom - Use libc getrandom, falls back to urandom if it does not really work
- - arc4random - Use BSD ``arc4random_uniform``
- - urandom - Use ``/dev/urandom``
- - kiss - Use simple settable deterministic RNG. **FOR TESTING PURPOSES ONLY!**
+Specify which random number generator to use. Permissible choises are:
+
+- auto - choose automatically
+- sodium - Use libsodium ``randombytes_uniform``
+- openssl - Use libcrypto ``RAND_bytes``
+- getrandom - Use libc getrandom, falls back to urandom if it does not really work
+- arc4random - Use BSD ``arc4random_uniform``
+- urandom - Use ``/dev/urandom``
+- kiss - Use simple settable deterministic RNG. **FOR TESTING PURPOSES ONLY!**
 
 .. note::
   Not all choises are available on all systems.
