@@ -180,6 +180,10 @@ concurrent-queries
 ^^^^^^^^^^^^^^^^^^
 shows the number of MThreads currently   running
 
+cpu-msec-thread-n
+^^^^^^^^^^^^^^^^^
+shows the number of milliseconds spent in thread n. Available since 4.1.12.
+
 dlg-only-drops
 ^^^^^^^^^^^^^^
 number of records dropped because of :ref:`setting-delegation-only` setting

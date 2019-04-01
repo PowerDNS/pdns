@@ -657,6 +657,35 @@ static uint64_t getUserTimeMsec()
   return (ru.ru_utime.tv_sec*1000ULL + ru.ru_utime.tv_usec/1000);
 }
 
+
+ThreadTimes* pleaseGetThreadCPUMsec()
+{
+  uint64_t ret=0;
+#ifdef RUSAGE_THREAD
+  struct rusage ru;
+  getrusage(RUSAGE_THREAD, &ru);
+  ret = (ru.ru_utime.tv_sec*1000ULL + ru.ru_utime.tv_usec/1000);
+  ret += (ru.ru_stime.tv_sec*1000ULL + ru.ru_stime.tv_usec/1000);
+#endif
+  return new ThreadTimes{ret};
+}
+
+uint64_t doGetThreadCPUMsec(int n)
+{
+  static std::mutex s_mut;
+  static time_t last;
+  static ThreadTimes tt;
+
+  std::lock_guard<std::mutex> l(s_mut);
+  if(last != time(0)) {
+   tt = broadcastAccFunction<ThreadTimes>(pleaseGetThreadCPUMsec);
+   last = time(0);
+  }
+
+  return tt.times.at(n);
+}
+
+
 static uint64_t calculateUptime()
 {
   return time(0) - g_stats.startupTime;
@@ -968,6 +997,9 @@ void registerAllStats()
   //  addGetStat("query-rate", getQueryRate);
   addGetStat("user-msec", getUserTimeMsec);
   addGetStat("sys-msec", getSysTimeMsec);
+
+  for(unsigned int n=0; n < g_numThreads; ++n)
+    addGetStat("cpu-msec-thread-"+std::to_string(n), boost::bind(&doGetThreadCPUMsec, n));
 
 #ifdef MALLOC_TRACE
   addGetStat("memory-allocs", boost::bind(&MallocTracer::getAllocs, g_mtracer, string()));
