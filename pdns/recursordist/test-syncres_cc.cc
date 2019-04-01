@@ -1982,7 +1982,7 @@ BOOST_AUTO_TEST_CASE(test_ecs_cache_limit_no_ttl_limit_allowed) {
   BOOST_CHECK_EQUAL(res, RCode::NoError);
   BOOST_CHECK_EQUAL(ret.size(), 1);
 
-  /* should have been cached because /24 is more specific than /16 but TTL limit is nof efective */
+  /* should have been cached because /24 is more specific than /16 but TTL limit is nof effective */
   const ComboAddress who("192.0.2.128");
   vector<DNSRecord> cached;
   BOOST_REQUIRE_GT(t_RC->get(now, target, QType(QType::A), true, &cached, who), 0);

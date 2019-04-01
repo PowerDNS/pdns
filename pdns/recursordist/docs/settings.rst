@@ -407,7 +407,7 @@ Can be set at runtime using ``rec_control set-ecs-minimum-ttl 3600``.
 -  Integer
 -  Default: 0 (disabled)
 
-The minumum TTL for an ECS-specific answer to be inserted into the query cache. This condition applies in conjunction with ``ecs-ipv4-cache-bits`` or ``ecs-ipv6-cache-bits``.
+The minimum TTL for an ECS-specific answer to be inserted into the query cache. This condition applies in conjunction with ``ecs-ipv4-cache-bits`` or ``ecs-ipv6-cache-bits``.
 That is, only if both the limits apply, the record will not be cached.
 
 .. _setting-ecs-scope-zero-address:
