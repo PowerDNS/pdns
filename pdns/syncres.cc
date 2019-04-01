@@ -2421,14 +2421,13 @@ RCode::rcodes_ SyncRes::updateCacheFromRecords(unsigned int depth, LWResult& lwr
     */
     if (i->first.type != QType::NSEC3 && (i->first.type == QType::DS || i->first.type == QType::NS || i->first.type == QType::A || i->first.type == QType::AAAA || isAA || wasForwardRecurse)) {
 
-      bool doCache = i->first.place != DNSResourceRecord::ANSWER || !ednsmask;
-      // if ednsmask is relevant, we do not want to cache if the scope > ecslimit and TTL < limitttl
-      if (!doCache && ednsmask) {
-        bool manyMaskBits = (ednsmask->isIpv4() && ednsmask->getBits() > SyncRes::s_ecsipv4cachelimit) ||
-            (ednsmask->isIpv6() && ednsmask->getBits() > SyncRes::s_ecsipv6cachelimit);
-        doCache = true;
-
+      bool doCache = true;
+      if (i->first.place == DNSResourceRecord::ANSWER && ednsmask) {
+        // If ednsmask is relevant, we do not want to cache if the scope prefix length is large and TTL is small
         if (SyncRes::s_ecscachelimitttl > 0) {
+          bool manyMaskBits = (ednsmask->isIpv4() && ednsmask->getBits() > SyncRes::s_ecsipv4cachelimit) ||
+            (ednsmask->isIpv6() && ednsmask->getBits() > SyncRes::s_ecsipv6cachelimit);
+
           if (manyMaskBits) {
             uint32_t minttl = UINT32_MAX;
             for (const auto &it : i->second.records) {
