@@ -1138,6 +1138,16 @@ static bool parseAndCheckConfig(const string& configpath, YAML::Node& config) {
     }
   }
 
+  if (config["webserver-loglevel"]) {
+    try {
+      config["webserver-loglevel"].as<string>();
+    }
+    catch (const runtime_error &e) {
+      g_log<<Logger::Error<<"Unable to read 'webserver-loglevel' value: "<<e.what()<<endl;
+      retval = false;
+    }
+  }
+
   return retval;
 }
 
@@ -1280,8 +1290,18 @@ int main(int argc, char** argv) {
       }
     }
 
+    string loglevel = "normal";
+    if (config["webserver-loglevel"]) {
+      loglevel = config["webserver-loglevel"].as<string>();
+    }
+
     // Launch the webserver!
-    std::thread(&IXFRDistWebServer::go, IXFRDistWebServer(config["webserver-address"].as<ComboAddress>(), wsACL)).detach();
+    try {
+      std::thread(&IXFRDistWebServer::go, IXFRDistWebServer(config["webserver-address"].as<ComboAddress>(), wsACL, loglevel)).detach();
+    } catch (const PDNSException &e) {
+      g_log<<Logger::Error<<"Unable to start webserver: "<<e.reason<<endl;
+      had_error = true;
+    }
   }
 
   int newuid = 0;
