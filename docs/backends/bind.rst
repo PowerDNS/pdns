@@ -119,6 +119,12 @@ If :ref:`setting-bind-check-interval` is specified as
 zero, no checks will be performed until the ``pdns_control reload`` is
 given.
 
+Please note that also the :ref:`setting-slave-cycle-interval` setting
+controls how often a master would notify a slave about changes.
+Especially in 'hidden master' configurations, where servers usually
+don't receive regular queries, you may want to lower that setting to a
+value as low as :ref:`setting-bind-check-interval`.
+
 pdns\_control commands
 ----------------------
 
