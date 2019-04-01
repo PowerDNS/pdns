@@ -1159,3 +1159,13 @@ Changelogs for 4.2.x
     :tickets: 7357
 
     API: Add response-by-qtype and response-by-rcode on /statistics endpoint
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 6021
+
+    Several improvements to processing of notifies.
+
+    * Turn off supermaster support by default (adds new setting).
+    * PowerDNS was wasting a lot of queries while processing notifies.
+    * Use comboaddress for IPs (was strings)

@@ -187,6 +187,10 @@ can not serve IXFR updates.
 Supermaster: automatic provisioning of slaves
 ---------------------------------------------
 
+.. versionchanged:: 4.2.0
+  Supermaster support needs to be explicitly enabled with the
+  :ref:`setting-supermaster` setting.
+
 PowerDNS can recognize so called 'supermasters'. A supermaster is a host
 which is master for domains and for which we are to be a slave. When a
 master (re)loads a domain, it sends out a notification to its slaves.

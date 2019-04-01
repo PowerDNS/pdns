@@ -1464,6 +1464,8 @@ and :doc:`Virtual Hosting <guides/virtual-instances>` how this can differ.
 -  Default: no
 
 .. versionadded:: 4.2.0
+  In versions before 4.2.x, this setting did not exist and supermaster support
+  was enabled by default.
 
 Turn on supermaster support. See :ref:`supermaster-operation`.
 
