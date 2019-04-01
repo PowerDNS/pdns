@@ -68,9 +68,10 @@ private:
 
   typedef std::map<int, ThreadInfo> mthreads_t;
   mthreads_t d_threads;
+  size_t d_stacksize;
+  size_t d_threadsCount;
   int d_tid;
   int d_maxtid;
-  size_t d_stacksize;
 
   EventVal d_waitval;
   enum waitstatusenum {Error=-1,TimeOut=0,Answer} d_waitstatus;
@@ -110,7 +111,7 @@ public:
       This limit applies solely to the stack, the heap is not limited in any way. If threads need to allocate a lot of data,
       the use of new/delete is suggested. 
    */
-  MTasker(size_t stacksize=16*8192) : d_tid(0), d_maxtid(0), d_stacksize(stacksize), d_waitstatus(Error)
+  MTasker(size_t stacksize=16*8192) : d_stacksize(stacksize), d_threadsCount(0), d_tid(0), d_maxtid(0), d_waitstatus(Error)
   {
     initMainStackBounds();
 
