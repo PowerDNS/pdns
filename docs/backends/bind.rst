@@ -60,7 +60,9 @@ It supports the following blocks and directives:
 ``bind-check-interval``
 ~~~~~~~~~~~~~~~~~~~~~~~
 
-How often to check for zone changes. See :ref:`bind-operation` section.
+Interval in seconds to check for zone file changes. Default is 0 (disabled).
+
+See :ref:`bind-operation` section for more information.
 
 .. _setting-bind-dnssec-db:
 
