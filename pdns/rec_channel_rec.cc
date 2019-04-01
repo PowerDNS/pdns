@@ -762,6 +762,48 @@ static uint64_t getUserTimeMsec()
   return (ru.ru_utime.tv_sec*1000ULL + ru.ru_utime.tv_usec/1000);
 }
 
+/* This is a pretty weird set of functions. To get per-thread cpu usage numbers,
+   we have to ask a thread over a pipe. We could do so surgically, so if you want to know about
+   thread 3, we pick pipe 3, but we lack that infrastructure.
+
+   We can however ask "execute this function on all threads and add up the results".
+   This is what the first function does using a custom object ThreadTimes, which if you add
+   to each other keeps filling the first one with CPU usage numbers
+*/
+
+static ThreadTimes* pleaseGetThreadCPUMsec()
+{
+  uint64_t ret=0;
+#ifdef RUSAGE_THREAD
+  struct rusage ru;
+  getrusage(RUSAGE_THREAD, &ru);
+  ret = (ru.ru_utime.tv_sec*1000ULL + ru.ru_utime.tv_usec/1000);
+  ret += (ru.ru_stime.tv_sec*1000ULL + ru.ru_stime.tv_usec/1000);
+#endif
+  return new ThreadTimes{ret};
+}
+
+/* Next up, when you want msec data for a specific thread, we check
+   if we recently executed pleaseGetThreadCPUMsec. If we didn't we do so
+   now and consult all threads.
+
+   We then answer you from the (re)fresh(ed) ThreadTimes.
+*/
+static uint64_t doGetThreadCPUMsec(int n)
+{
+  static std::mutex s_mut;
+  static time_t last = 0;
+  static ThreadTimes tt;
+
+  std::lock_guard<std::mutex> l(s_mut);
+  if(last != time(nullptr)) {
+   tt = broadcastAccFunction<ThreadTimes>(pleaseGetThreadCPUMsec);
+   last = time(nullptr);
+  }
+
+  return tt.times.at(n);
+}
+
 static uint64_t calculateUptime()
 {
   return time(nullptr) - g_stats.startupTime;
@@ -1081,6 +1123,9 @@ void registerAllStats()
   //  addGetStat("query-rate", getQueryRate);
   addGetStat("user-msec", getUserTimeMsec);
   addGetStat("sys-msec", getSysTimeMsec);
+
+  for(unsigned int n=0; n < g_numThreads; ++n)
+    addGetStat("cpu-msec-thread-"+std::to_string(n), boost::bind(&doGetThreadCPUMsec, n));
 
 #ifdef MALLOC_TRACE
   addGetStat("memory-allocs", boost::bind(&MallocTracer::getAllocs, g_mtracer, string()));
