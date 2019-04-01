@@ -162,6 +162,8 @@ check-zone *ZONE*
 clear-zone *ZONE*
     Clear the records in zone *ZONE*, but leave actual domain and
     settings unchanged
+delete-rrset *ZONE* *NAME* *TYPE*
+     Delete named RRSET from zone.
 delete-zone *ZONE*:
     Delete the zone named *ZONE*.
 edit-zone *ZONE*
@@ -192,6 +194,8 @@ rectify-all-zones
     Calculates the 'ordername' and 'auth' fields for all zones so they
     comply with DNSSEC settings. Can be used to fix up migrated data.
     Can always safely be run, it does no harm.
+replace-rrset *ZONE* *NAME* *TYPE* [*TTL*] *CONTENT* [*CONTENT*..]
+    Replace existing *NAME* in zone *ZONE* with a new set.
 secure-zone *ZONE*
     Configures a zone called *ZONE* with reasonable DNSSEC settings. You
     should manually run 'pdnsutil rectify-zone' afterwards.
