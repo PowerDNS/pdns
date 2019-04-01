@@ -1660,7 +1660,7 @@ When set to "detailed", all information about the request and response are logge
 The value between the hooks is a UUID that is generated for each request. This can be used to find all lines related to a single request.
 
 .. note::
-  The webserver logs these line on the NOTICE level. The :ref:`settings-loglevel` seting must be 5 or higher for these lines to end up in the log.
+  The webserver logs these line on the NOTICE level. The :ref:`setting-loglevel` seting must be 5 or higher for these lines to end up in the log.
 
 .. _setting-webserver-password:
 
