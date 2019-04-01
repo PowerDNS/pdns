@@ -2927,3 +2927,4 @@ int SyncRes::getRootNS(struct timeval now, asyncresolve_t asyncCallback) {
 
   return res;
 }
+

@@ -639,6 +639,12 @@ public:
     d_skipCNAMECheck = skip;
   }
 
+  void setQuerySource(const ComboAddress& requestor, boost::optional<const EDNSSubnetOpts&> incomingECS) {
+
+  	  setIncomingECSFound();
+	  setIncomingECS(incomingECS);
+  }
+
   void setIncomingECS(boost::optional<const EDNSSubnetOpts&> incomingECS);
 
 #ifdef HAVE_PROTOBUF
