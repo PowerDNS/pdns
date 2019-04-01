@@ -361,7 +361,8 @@ Number of bits of client IPv4 address to pass when sending EDNS Client Subnet ad
 -  Integer
 -  Default: 24
 
-Maximum number of bits of client IPv4 address used by the authoritative server (as indicated by the EDNS Client Subnet scope in the answer) for an answer to be inserted into the query cache.
+Maximum number of bits of client IPv4 address used by the authoritative server (as indicated by the EDNS Client Subnet scope in the answer) for an answer to be inserted into the query cache. This condition applies in conjunction with ``ecs-cache-limit-ttl``.
+That is, only if both the limits apply, the record will not be cached.
 
 .. _setting-ecs-ipv6-bits:
 
@@ -383,7 +384,8 @@ Number of bits of client IPv6 address to pass when sending EDNS Client Subnet ad
 -  Integer
 -  Default: 56
 
-Maximum number of bits of client IPv6 address used by the authoritative server (as indicated by the EDNS Client Subnet scope in the answer) for an answer to be inserted into the query cache.
+Maximum number of bits of client IPv6 address used by the authoritative server (as indicated by the EDNS Client Subnet scope in the answer) for an answer to be inserted into the query cache. This condition applies in conjunction with ``ecs-cache-limit-ttl``.
+That is, only if both the limits apply, the record will not be cached.
 
 .. _setting-ecs-minimum-ttl-override:
 
@@ -405,7 +407,8 @@ Can be set at runtime using ``rec_control set-ecs-minimum-ttl 3600``.
 -  Integer
 -  Default: 0 (disabled)
 
-The minumum TTL for an ECS-specific answer to be inserted into the query cache.
+The minumum TTL for an ECS-specific answer to be inserted into the query cache. This condition applies in conjunction with ``ecs-ipv4-cache-bits`` or ``ecs-ipv6-cache-bits``.
+That is, only if both the limits apply, the record will not be cached.
 
 .. _setting-ecs-scope-zero-address:
 

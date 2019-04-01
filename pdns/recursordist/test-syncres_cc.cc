@@ -1950,7 +1950,7 @@ BOOST_AUTO_TEST_CASE(test_ecs_cache_limit_allowed) {
   BOOST_REQUIRE_EQUAL(cached.size(), 1);
 }
 
-BOOST_AUTO_TEST_CASE(test_ecs_cache_limit_denied) {
+BOOST_AUTO_TEST_CASE(test_ecs_cache_limit_no_ttl_limit_allowed) {
   std::unique_ptr<SyncRes> sr;
   initSR(sr);
 
@@ -1982,11 +1982,11 @@ BOOST_AUTO_TEST_CASE(test_ecs_cache_limit_denied) {
   BOOST_CHECK_EQUAL(res, RCode::NoError);
   BOOST_CHECK_EQUAL(ret.size(), 1);
 
-  /* should have NOT been cached because /24 is more specific than /16 */
+  /* should have been cached because /24 is more specific than /16 but TTL limit is nof efective */
   const ComboAddress who("192.0.2.128");
   vector<DNSRecord> cached;
-  BOOST_REQUIRE_LT(t_RC->get(now, target, QType(QType::A), true, &cached, who), 0);
-  BOOST_REQUIRE_EQUAL(cached.size(), 0);
+  BOOST_REQUIRE_GT(t_RC->get(now, target, QType(QType::A), true, &cached, who), 0);
+  BOOST_REQUIRE_EQUAL(cached.size(), 1);
 }
 
 BOOST_AUTO_TEST_CASE(test_ecs_cache_ttllimit_allowed) {

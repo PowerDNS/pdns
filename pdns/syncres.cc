@@ -2147,6 +2147,7 @@ RCode::rcodes_ SyncRes::updateCacheFromRecords(unsigned int depth, LWResult& lwr
       if (!doCache && ednsmask) {
         bool manyMaskBits = (ednsmask->isIpv4() && ednsmask->getBits() > SyncRes::s_ecsipv4cachelimit) ||
             (ednsmask->isIpv6() && ednsmask->getBits() > SyncRes::s_ecsipv6cachelimit);
+        doCache = true;
 
         if (SyncRes::s_ecscachelimitttl > 0) {
           if (manyMaskBits) {
@@ -2160,13 +2161,7 @@ RCode::rcodes_ SyncRes::updateCacheFromRecords(unsigned int depth, LWResult& lwr
               // Case: many bits and ttlIsSmall
               doCache = false;
             }
-          } else {
-              // Case: few mask bits
-              doCache = true;
           }
-        } else {
-          // no applicable TTL limit, scope determines cacheability
-          doCache = !manyMaskBits;
         }
       }
       if (doCache) {
