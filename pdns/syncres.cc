@@ -2882,26 +2882,7 @@ int directResolve(const DNSName& qname, const QType& qtype, int qclass, vector<D
   gettimeofday(&now, 0);
 
   SyncRes sr(now);
-  int res = -1;
-  try {
-    res = sr.beginResolve(qname, QType(qtype), qclass, ret);
-  }
-  catch(const PDNSException& e) {
-    g_log<<Logger::Error<<"Failed to resolve "<<qname.toLogString()<<", got pdns exception: "<<e.reason<<endl;
-    ret.clear();
-  }
-  catch(const ImmediateServFailException& e) {
-    g_log<<Logger::Error<<"Failed to resolve "<<qname.toLogString()<<", got ImmediateServFailException: "<<e.reason<<endl;
-    ret.clear();
-  }
-  catch(const std::exception& e) {
-    g_log<<Logger::Error<<"Failed to resolve "<<qname.toLogString()<<", got STL error: "<<e.what()<<endl;
-    ret.clear();
-  }
-  catch(...) {
-    g_log<<Logger::Error<<"Failed to resolve "<<qname.toLogString()<<", got an exception"<<endl;
-    ret.clear();
-  }
+  int res = sr.beginResolve(qname, QType(qtype), qclass, ret); 
   
   return res;
 }

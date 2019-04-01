@@ -325,6 +325,7 @@ void MemRecursorCache::replace(time_t now, const DNSName &qname, const QType& qt
     ce.d_ttd=min(maxTTD, static_cast<time_t>(i.d_ttl));   // XXX this does weird things if TTLs differ in the set
     //    cerr<<"To store: "<<i.d_content->getZoneRepresentation()<<" with ttl/ttd "<<i.d_ttl<<", capped at: "<<maxTTD<<endl;
     ce.d_records.push_back(i.d_content);
+    // there was code here that did things with TTL and auth. Unsure if it was good. XXX
   }
 
   if (!isNew) {
