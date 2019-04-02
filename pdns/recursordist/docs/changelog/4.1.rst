@@ -2,6 +2,37 @@ Changelogs for 4.1.x
 ====================
 
 .. changelog::
+  :version: 4.1.12
+  :released: 2nd of April 2019
+
+  .. change::
+    :tags: Bug Fixes, Internals
+    :pullreq: 7495
+    :tickets: 7494
+
+    Correctly interpret an empty AXFR response to an IXFR query.
+
+  .. change::
+    :tags: Improvements, Internals
+    :pullreq: 7647
+
+    Provide CPU usage statistics per thread (worker & distributor).
+
+  .. change::
+    :tags: Improvements, Internals, Performance
+    :pullreq: 7634
+    :tickets: 7507
+
+    Use a bounded load-balancing algo to distribute queries.
+
+  .. change::
+    :tags: Improvements, Internals
+    :pullreq: 7651
+    :tickets: 7631, 7572
+
+    Implement a configurable ECS cache limit so responses with an ECS scope more specific than a certain threshold and a TTL smaller than a specific threshold are not inserted into the records cache at all.
+
+.. changelog::
   :version: 4.1.11
   :released: 1st of February 2019
 
