@@ -55,13 +55,16 @@ As described above, there are several ways in which DNSSEC can deny the
 existence of a record, and this setting, which is also stored away from zone
 records, lives with the DNSSEC keying material.
 
+.. _dnssec-nsec-modes:
+
 (Hashed) Denial of Existence
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 PowerDNS supports unhashed secure denial-of-existence using NSEC
 records. These are generated with the help of the (database) backend,
 which needs to be able to supply the 'previous' and 'next' records in
-canonical ordering.
+canonical ordering. NSEC is the default mode for secured zones in
+PowerDNS.
 
 The Generic SQL Backends have fields that allow them to supply these
 relative record names.
@@ -72,11 +75,15 @@ the help of some additional calculations.
 
 NSEC3 in 'broad' or 'inclusive' mode works with the aid of the backend,
 where the backend should be able to supply the previous and next domain
-names in hashed order.
+names in hashed order. This is the default mode for NSEC3 in PowerDNS.
 
 NSEC3 in 'narrow' mode uses additional hashing calculations to provide
-hashed secure denial-of-existence 'on the fly', without further
-involving the database.
+hashed secure denial-of-existence 'on the fly' per
+`RFC 7129 <https://tools.ietf.org/html/rfc7129>`__, without further
+involving the database. This mode will make PowerDNS to send out "white
+lies" and prevents zone enumeration, but these responses require online
+signing capabilities by all nameservers and therefore denies incoming
+AXFRs for zones in this mode.
 
 .. _dnssec-signatures:
 

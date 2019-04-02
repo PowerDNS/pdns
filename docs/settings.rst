@@ -910,7 +910,8 @@ protection measure to avoid database explosion due to long names.
 -  Integer
 -  Default: 500
 
-Limit the number of NSEC3 hash iterations
+Limit the number of NSEC3 hash iterations for zone configurations.
+For more information see :ref:`dnssec-operational-nsec-modes-params`.
 
 .. _setting-max-packet-cache-entries:
 

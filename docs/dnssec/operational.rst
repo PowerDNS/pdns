@@ -28,6 +28,8 @@ Going insecure
   parent zone will make the zone BOGUS. Make sure the parent zone removes
   the DS record *before* going insecure.
 
+.. _dnssec-operational-nsec-modes-params:
+
 Setting the NSEC modes and parameters
 -------------------------------------
 
@@ -36,7 +38,7 @@ NSEC3 instead, issue:
 
 .. code-block:: shell
 
-    pdnsutil set-nsec3 ZONE [PARAMETERS]
+    pdnsutil set-nsec3 ZONE [PARAMETERS] ['narrow']
 
 e.g.
 
@@ -51,8 +53,12 @@ The quoted part is the content of the NSEC3PARAM records, as defined in
 -  Flags, set to ``1`` for :rfc:`NSEC3 Opt-out <5155#section-6>`, this best
    set as ``0``
 -  Number of iterations of the hash function, read :rfc:`RFC 5155, Section
-   10.3 <5155#section-10.3>` for recommendations
+   10.3 <5155#section-10.3>` for recommendations. Limited by the
+   :ref:`setting-max-nsec3-iterations` setting.
 -  Salt to apply during hashing, in hexadecimal, or ``-`` to use no salt
+
+Optionally, NSEC3 can be set to 'narrow' mode. For more information refer
+to :ref:`dnssec-nsec-modes`.
 
 To convert a zone from NSEC3 to NSEC operations, run:
 
