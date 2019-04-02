@@ -659,10 +659,10 @@ void setupLuaBindings(bool client)
   g_lua.registerFunction<size_t(EDNSOptionView::*)()>("count", [](const EDNSOptionView& option) {
       return option.values.size();
     });
-  g_lua.registerFunction<std::vector<std::pair<int, string>>(EDNSOptionView::*)()>("getValues", [] (const EDNSOptionView& option) {
-    std::vector<std::pair<int, string> > values;
+  g_lua.registerFunction<std::vector<string>(EDNSOptionView::*)()>("getValues", [] (const EDNSOptionView& option) {
+    std::vector<string> values;
     for (const auto& value : option.values) {
-      values.push_back(std::make_pair(values.size()+1, std::string(value.content, value.size)));
+      values.push_back(std::string(value.content, value.size));
     }
     return values;
   });
