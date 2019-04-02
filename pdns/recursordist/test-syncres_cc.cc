@@ -15,6 +15,18 @@
 #include "utility.hh"
 #include "validate-recursor.hh"
 
+// We need the method below for the ECS tests
+class TestSyncRes : public SyncRes {
+public:
+  TestSyncRes(const timeval& now) : SyncRes(now) {}
+  void setQuerySource(const ComboAddress& requestor, boost::optional<const EDNSSubnetOpts&> incomingECS) {
+    setIncomingECSFound();
+    setIncomingECS(incomingECS);
+  }
+};
+
+#define SyncRes TestSyncRes
+
 RecursorStats g_stats;
 GlobalStateHolder<LuaConfigItems> g_luaconfs;
 thread_local std::unique_ptr<MemRecursorCache> t_RC{nullptr};
