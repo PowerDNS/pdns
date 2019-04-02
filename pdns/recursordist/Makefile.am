@@ -168,6 +168,7 @@ pdns_recursor_SOURCES = \
 	ueberbackend.hh \
 	unix_utility.cc \
 	utility.hh \
+	uuid-utils.hh uuid-utils.cc \
 	validate.cc validate.hh validate-recursor.cc validate-recursor.hh \
 	version.cc version.hh \
 	webserver.cc webserver.hh \
@@ -362,10 +363,6 @@ testrunner_LDADD += $(PROTOBUF_LIBS)
 testrunner$(OBJEXT): dnsmessage.pb.cc
 
 endif
-
-pdns_recursor_SOURCES += \
-	uuid-utils.hh uuid-utils.cc
-
 endif
 
 rec_control_SOURCES = \
