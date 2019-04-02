@@ -1003,7 +1003,7 @@ void PacketHandler::makeNOError(DNSPacket* p, DNSPacket* r, const DNSName& targe
   if(d_dk.isSecuredZone(sd.qname))
     addNSECX(p, r, target, wildcard, sd.qname, mode);
 
-  S.ringAccount("noerror-queries",p->qdomain.toLogString()+"/"+p->qtype.getName());
+  S.ringAccount("noerror-queries", p->qdomain, p->qtype);
 }
 
 
@@ -1561,7 +1561,7 @@ DNSPacket *PacketHandler::doQuestion(DNSPacket *p)
     r=p->replyPacket(); // generate an empty reply packet
     r->setRcode(RCode::ServFail);
     S.inc("servfail-packets");
-    S.ringAccount("servfail-queries",p->qdomain.toLogString());
+    S.ringAccount("servfail-queries", p->qdomain, p->qtype);
   }
   catch(PDNSException &e) {
     g_log<<Logger::Error<<"Backend reported permanent error which prevented lookup ("+e.reason+"), aborting"<<endl;
@@ -1573,7 +1573,7 @@ DNSPacket *PacketHandler::doQuestion(DNSPacket *p)
     r=p->replyPacket(); // generate an empty reply packet
     r->setRcode(RCode::ServFail);
     S.inc("servfail-packets");
-    S.ringAccount("servfail-queries",p->qdomain.toLogString());
+    S.ringAccount("servfail-queries", p->qdomain, p->qtype);
   }
   return r; 
 

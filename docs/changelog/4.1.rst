@@ -2,6 +2,79 @@ Changelogs for 4.1.x
 ====================
 
 .. changelog::
+  :version: 4.1.8
+  :released: March 22nd 2019
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 7604
+    :tickets: 7494
+
+    Correctly interpret an empty AXFR response to an IXFR query.
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 7610
+    :tickets: 7341
+
+    Fix replying from ANY address for non-standard port.
+
+  .. change::
+    :tags: Bug Fixes, Internals
+    :pullreq: 7609
+    :tickets: 7580
+
+    Fix rectify for ENT records in narrow zones.
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 7607
+    :tickets: 7472
+
+    Do not compress the root.
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 7608
+    :tickets: 7459
+
+    Fix dot stripping in ``setcontent()``.
+
+  .. change::
+    :tags: Bug Fixes, MySQL
+    :pullreq: 7605
+    :tickets: 7496
+
+    Fix invalid SOA record in MySQL which prevented the authoritative server from starting.
+
+  .. change::
+    :tags: Bug Fixes, Internals
+    :pullreq: 7603
+    :tickets: 7294
+
+    Prevent leak of file descriptor if running out of ports for incoming AXFR.
+
+  .. change::
+    :tags: Bug Fixes, API
+    :pullreq: 7602
+    :tickets: 7546
+
+    Fix API search failed with "Commands out of sync; you can't run this command now".
+
+  .. change::
+    :tags: Bug Fixes, MySQL
+    :pullreq: 7509
+    :tickets: 7517
+
+    Plug ``mysql_thread_init`` memory leak.
+
+  .. change::
+    :tags: Bug Fixes, Internals
+    :pullreq: 7567
+
+    EL6: fix ``CXXFLAGS`` to build with compiler optimizations.
+
+.. changelog::
   :version: 4.1.7
   :released: March 18th 2019
 

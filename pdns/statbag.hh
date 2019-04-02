@@ -64,8 +64,9 @@ class StatBag
 {
   map<string, AtomicCounter *> d_stats;
   map<string, string> d_keyDescrips;
-  map<string,StatRing<string> >d_rings;
+  map<string,StatRing<string, CIStringCompare> >d_rings;
   map<string,StatRing<SComboAddress> >d_comborings;
+  map<string,StatRing<std::tuple<DNSName, QType> > >d_dnsnameqtyperings;
   typedef boost::function<uint64_t(const std::string&)> func_t;
   typedef map<string, func_t> funcstats_t;
   funcstats_t d_funcstats;
@@ -79,6 +80,7 @@ public:
 
   void declareRing(const string &name, const string &title, unsigned int size=10000);
   void declareComboRing(const string &name, const string &help, unsigned int size=10000);
+  void declareDNSNameQTypeRing(const string &name, const string &help, unsigned int size=10000);
   vector<pair<string, unsigned int> >getRing(const string &name);
   string getRingTitle(const string &name);
   void ringAccount(const char* name, const string &item)
@@ -96,6 +98,14 @@ public:
       if(!d_comborings.count(name))
 	throw runtime_error("Attempting to account to non-existent comboring '"+std::string(name)+"'");
       d_comborings[name].account(item);
+    }
+  }
+  void ringAccount(const char* name, const DNSName &dnsname, const QType &qtype)
+  {
+    if(d_doRings) {
+      if(!d_dnsnameqtyperings.count(name))
+	throw runtime_error("Attempting to account to non-existent dnsname+qtype ring '"+std::string(name)+"'");
+      d_dnsnameqtyperings[name].account(std::make_tuple(dnsname, qtype));
     }
   }
 

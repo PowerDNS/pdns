@@ -55,6 +55,7 @@ unsigned int SyncRes::s_maxqperq;
 unsigned int SyncRes::s_maxtotusec;
 unsigned int SyncRes::s_maxdepth;
 unsigned int SyncRes::s_minimumTTL;
+unsigned int SyncRes::s_minimumECSTTL;
 unsigned int SyncRes::s_packetcachettl;
 unsigned int SyncRes::s_packetcacheservfailttl;
 unsigned int SyncRes::s_serverdownmaxfails;
@@ -2814,6 +2815,16 @@ bool SyncRes::processAnswer(unsigned int depth, LWResult& lwr, const DNSName& qn
   if(s_minimumTTL) {
     for(auto& rec : lwr.d_records) {
       rec.d_ttl = max(rec.d_ttl, s_minimumTTL);
+    }
+  }
+
+  /* if the answer is ECS-specific, a minimum TTL is set for this kind of answers
+     and it's higher than the global minimum TTL */
+  if (ednsmask && s_minimumECSTTL > 0 && (s_minimumTTL == 0 || s_minimumECSTTL > s_minimumTTL)) {
+    for(auto& rec : lwr.d_records) {
+      if (rec.d_place == DNSResourceRecord::ANSWER) {
+        rec.d_ttl = max(rec.d_ttl, s_minimumECSTTL);
+      }
     }
   }
 

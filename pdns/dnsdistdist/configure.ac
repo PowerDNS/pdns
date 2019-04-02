@@ -17,6 +17,9 @@ AC_DEFINE([DNSDIST], [1],
 LT_PREREQ([2.2.2])
 LT_INIT([disable-static])
 
+CFLAGS="-Wall -g -O3 $CFLAGS"
+CXXFLAGS="-Wall -g -O3 $CXXFLAGS"
+
 PDNS_WITH_LIBSODIUM
 PDNS_CHECK_DNSTAP
 PDNS_CHECK_RAGEL([dnslabeltext.cc], [www.dnsdist.org])
@@ -104,11 +107,12 @@ LDFLAGS="$RELRO_LDFLAGS $LDFLAGS"
 
 CFLAGS="$PIE_CFLAGS $CFLAGS"
 CXXFLAGS="$PIE_CFLAGS $CXXFLAGS"
+
 PROGRAM_LDFLAGS="$PIE_LDFLAGS $PROGRAM_LDFLAGS"
 AC_SUBST([PROGRAM_LDFLAGS])
 
 AC_SUBST([AM_CPPFLAGS],
-  ["AS_ESCAPE([-I$(top_builddir) -I$(top_srcdir)]) -Wall -O3 -pthread $BOOST_CPPFLAGS"]
+  ["AS_ESCAPE([-I$(top_builddir) -I$(top_srcdir)]) $THREADFLAGS $BOOST_CPPFLAGS"]
 )
 
 AC_ARG_VAR(PACKAGEVERSION, [The version used in secpoll queries])

@@ -10,8 +10,9 @@ AC_CONFIG_MACRO_DIR([m4])
 AC_CONFIG_HEADERS([config.h])
 
 AC_CANONICAL_HOST
-: ${CFLAGS="-Wall -g -O2"}
-: ${CXXFLAGS="-Wall -g -O2"}
+# Add some default CFLAGS and CXXFLAGS, can be appended to using the environment variables
+CFLAGS="-Wall -g -O2 $CFLAGS"
+CXXFLAGS="-Wall -g -O2 $CXXFLAGS"
 
 AC_SUBST([pdns_configure_args],["$ac_configure_args"])
 AC_DEFINE_UNQUOTED([PDNS_CONFIG_ARGS],
