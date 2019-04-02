@@ -23,17 +23,17 @@ class EDNSOptionsBase(DNSDistTest):
         if options[EDNSOptionCode.COOKIE]:count() ~= 2 then
           return DNSAction.Spoof, "192.0.2.2"
         end
-        if options[EDNSOptionCode.COOKIE]:getValues()[0]:len() ~= 16 then
+        if options[EDNSOptionCode.COOKIE]:getValues()[1]:len() ~= 16 then
           return DNSAction.Spoof, "192.0.2.3"
         end
-        if options[EDNSOptionCode.COOKIE]:getValues()[1]:len() ~= 16 then
+        if options[EDNSOptionCode.COOKIE]:getValues()[2]:len() ~= 16 then
           return DNSAction.Spoof, "192.0.2.4"
         end
       elseif string.match(qname, 'cookie') then
         if options[EDNSOptionCode.COOKIE] == nil then
           return DNSAction.Spoof, "192.0.2.1"
         end
-        if options[EDNSOptionCode.COOKIE]:count() ~= 1 or options[EDNSOptionCode.COOKIE]:getValues()[0]:len() ~= 16 then
+        if options[EDNSOptionCode.COOKIE]:count() ~= 1 or options[EDNSOptionCode.COOKIE]:getValues()[1]:len() ~= 16 then
           return DNSAction.Spoof, "192.0.2.2"
         end
       end
@@ -42,7 +42,7 @@ class EDNSOptionsBase(DNSDistTest):
         if options[EDNSOptionCode.ECS] == nil then
           return DNSAction.Spoof, "192.0.2.51"
         end
-        if options[EDNSOptionCode.ECS]:count() ~= 1 or options[EDNSOptionCode.ECS]:getValues()[0]:len() ~= 8 then
+        if options[EDNSOptionCode.ECS]:count() ~= 1 or options[EDNSOptionCode.ECS]:getValues()[1]:len() ~= 8 then
           return DNSAction.Spoof, "192.0.2.52"
         end
       end
@@ -51,7 +51,7 @@ class EDNSOptionsBase(DNSDistTest):
         if options[EDNSOptionCode.ECS] == nil then
           return DNSAction.Spoof, "192.0.2.101"
         end
-        if options[EDNSOptionCode.ECS]:count() ~= 1 or options[EDNSOptionCode.ECS]:getValues()[0]:len() ~= 20 then
+        if options[EDNSOptionCode.ECS]:count() ~= 1 or options[EDNSOptionCode.ECS]:getValues()[1]:len() ~= 20 then
           return DNSAction.Spoof, "192.0.2.102"
         end
       end
