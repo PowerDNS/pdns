@@ -322,10 +322,10 @@ void RecursorLua4::postPrepareContext()
   d_lw->registerMember("size", &EDNSOptionViewValue::size);
   d_lw->registerFunction<std::string(EDNSOptionViewValue::*)()>("getContent", [](const EDNSOptionViewValue& value) { return std::string(value.content, value.size); });
   d_lw->registerFunction<size_t(EDNSOptionView::*)()>("count", [](const EDNSOptionView& option) { return option.values.size(); });
-  d_lw->registerFunction<std::vector<std::pair<int, string>>(EDNSOptionView::*)()>("getValues", [] (const EDNSOptionView& option) {
-      std::vector<std::pair<int, string> > values;
+  d_lw->registerFunction<std::vector<string>(EDNSOptionView::*)()>("getValues", [] (const EDNSOptionView& option) {
+      std::vector<string> values;
       for (const auto& value : option.values) {
-        values.push_back(std::make_pair(values.size(), std::string(value.content, value.size)));
+        values.push_back(std::string(value.content, value.size));
       }
       return values;
     });
