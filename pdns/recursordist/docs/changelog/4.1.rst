@@ -36,7 +36,7 @@ Changelogs for 4.1.x
   :version: 4.1.11
   :released: 1st of February 2019
 
-  Since Spectre/Meltdown, system calls have become more expensive.  This made exporting a very high number of protobuf messages costly, which is addressed in this release by reducing the number of sycalls per message.
+  Since Spectre/Meltdown, system calls have become more expensive.  This made exporting a very high number of protobuf messages costly, which is addressed in this release by reducing the number of syscalls per message.
 
   .. change::
     :tags: Improvements

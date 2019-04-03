@@ -1965,8 +1965,8 @@ static void healthChecksThread()
 
           if (!dss->upStatus) {
             /* we were marked as down */
-            dss->consecutiveSuccesfulChecks++;
-            if (dss->consecutiveSuccesfulChecks < dss->minRiseSuccesses) {
+            dss->consecutiveSuccessfulChecks++;
+            if (dss->consecutiveSuccessfulChecks < dss->minRiseSuccesses) {
               /* if we need more than one successful check to rise
                  and we didn't reach the threshold yet,
                  let's stay down */
@@ -1976,7 +1976,7 @@ static void healthChecksThread()
         }
         else {
           /* check failed */
-          dss->consecutiveSuccesfulChecks = 0;
+          dss->consecutiveSuccessfulChecks = 0;
 
           if (dss->upStatus) {
             /* we are currently up */
@@ -2002,7 +2002,7 @@ static void healthChecksThread()
 
           dss->upStatus = newState;
           dss->currentCheckFailures = 0;
-          dss->consecutiveSuccesfulChecks = 0;
+          dss->consecutiveSuccessfulChecks = 0;
           if (g_snmpAgent && g_snmpTrapsEnabled) {
             g_snmpAgent->sendBackendStatusChangeTrap(dss);
           }

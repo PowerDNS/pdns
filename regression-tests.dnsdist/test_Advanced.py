@@ -1775,7 +1775,7 @@ class TestAdvancedAllowHeaderOnly(DNSDistTest):
             self.assertEquals(query, receivedQuery)
             self.assertEquals(receivedResponse, response)
 
-class TestAdvancedEDNSVersionnRule(DNSDistTest):
+class TestAdvancedEDNSVersionRule(DNSDistTest):
 
     _config_template = """
     newServer{address="127.0.0.1:%s"}

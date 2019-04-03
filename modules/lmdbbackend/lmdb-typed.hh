@@ -256,7 +256,7 @@ public:
       return count;
     }
 
-    //! End iderator type
+    //! End iterator type
     struct eiter_t
     {};
 
