@@ -150,6 +150,7 @@ void declareArguments()
   ::arg().set("webserver-port","Port of webserver/API to listen on")="8081";
   ::arg().set("webserver-password","Password required for accessing the webserver")="";
   ::arg().set("webserver-allow-from","Webserver/API access is only allowed from these subnets")="127.0.0.1,::1";
+  ::arg().set("webserver-loglevel", "Amount of logging in the webserver (none, normal, detailed)") = "normal";
 
   ::arg().setSwitch("do-ipv6-additional-processing", "Do AAAA additional processing")="yes";
   ::arg().setSwitch("query-logging","Hint backends that queries should be logged")="no";
@@ -317,6 +318,7 @@ void declareStats(void)
 
   S.declare("uptime", "Uptime of process in seconds", uptimeOfProcess);
   S.declare("real-memory-usage", "Actual unique use of memory in bytes (approx)", getRealMemoryUsage);
+  S.declare("special-memory-usage", "Actual unique use of memory in bytes (approx)", getSpecialMemoryUsage);
   S.declare("fd-usage", "Number of open filedescriptors", getOpenFileDescriptors);
 #ifdef __linux__
   S.declare("udp-recvbuf-errors", "UDP 'recvbuf' errors", udpErrorStats);
@@ -335,11 +337,11 @@ void declareStats(void)
   S.declare("latency","Average number of microseconds needed to answer a question", getLatency);
   S.declare("timedout-packets","Number of packets which weren't answered within timeout set");
   S.declare("security-status", "Security status based on regular polling");
-  S.declareRing("queries","UDP Queries Received");
-  S.declareRing("nxdomain-queries","Queries for non-existent records within existent domains");
-  S.declareRing("noerror-queries","Queries for existing records, but for type we don't have");
-  S.declareRing("servfail-queries","Queries that could not be answered due to backend errors");
-  S.declareRing("unauth-queries","Queries for domains that we are not authoritative for");
+  S.declareDNSNameQTypeRing("queries","UDP Queries Received");
+  S.declareDNSNameQTypeRing("nxdomain-queries","Queries for non-existent records within existent domains");
+  S.declareDNSNameQTypeRing("noerror-queries","Queries for existing records, but for type we don't have");
+  S.declareDNSNameQTypeRing("servfail-queries","Queries that could not be answered due to backend errors");
+  S.declareDNSNameQTypeRing("unauth-queries","Queries for domains that we are not authoritative for");
   S.declareRing("logmessages","Log Messages");
   S.declareComboRing("remotes","Remote server IP addresses");
   S.declareComboRing("remotes-unauth","Remote hosts querying domains for which we are not auth");
@@ -421,7 +423,7 @@ try
      if(P->d.qr)
        continue;
 
-    S.ringAccount("queries", P->qdomain.toLogString()+"/"+P->qtype.getName());
+    S.ringAccount("queries", P->qdomain, P->qtype);
     S.ringAccount("remotes",P->d_remote);
     if(logDNSQueries) {
       string remote;
@@ -496,9 +498,9 @@ static void triggerLoadOfLibraries()
 
 void mainthread()
 {
-   Utility::srandom(time(0) ^ getpid());
+   Utility::srandom();
 
-   int newgid=0;      
+   int newgid=0;
    if(!::arg()["setgid"].empty()) 
      newgid=Utility::makeGidNumeric(::arg()["setgid"]);      
    int newuid=0;      

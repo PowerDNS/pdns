@@ -310,6 +310,26 @@ private:
   uint8_t d_rcode;
 };
 
+class ERCodeAction : public DNSAction
+{
+public:
+  ERCodeAction(uint8_t rcode) : d_rcode(rcode) {}
+  DNSAction::Action operator()(DNSQuestion* dq, string* ruleresult) const override
+  {
+    dq->dh->rcode = (d_rcode & 0xF);
+    dq->ednsRCode = ((d_rcode & 0xFFF0) >> 4);
+    dq->dh->qr = true; // for good measure
+    return Action::HeaderModify;
+  }
+  string toString() const override
+  {
+    return "set ercode "+ERCode::to_s(d_rcode);
+  }
+
+private:
+  uint8_t d_rcode;
+};
+
 class TCAction : public DNSAction
 {
 public:
@@ -462,7 +482,7 @@ DNSAction::Action SpoofAction::operator()(DNSQuestion* dq, string* ruleresult) c
   dq->dh->ancount = htons(dq->dh->ancount);
 
   if (hadEDNS) {
-    addEDNS(dq->dh, dq->len, dq->size, dnssecOK, g_PayloadSizeSelfGenAnswers);
+    addEDNS(dq->dh, dq->len, dq->size, dnssecOK, g_PayloadSizeSelfGenAnswers, 0);
   }
 
   return Action::HeaderModify;
@@ -486,7 +506,7 @@ public:
     generateEDNSOption(d_code, mac, optRData);
 
     string res;
-    generateOptRR(optRData, res, g_EdnsUDPPayloadSize, false);
+    generateOptRR(optRData, res, g_EdnsUDPPayloadSize, 0, false);
 
     if ((dq->size - dq->len) < res.length())
       return Action::None;
@@ -1161,6 +1181,10 @@ void setupLuaActions()
 
   g_lua.writeFunction("RCodeAction", [](uint8_t rcode) {
       return std::shared_ptr<DNSAction>(new RCodeAction(rcode));
+    });
+
+  g_lua.writeFunction("ERCodeAction", [](uint8_t rcode) {
+      return std::shared_ptr<DNSAction>(new ERCodeAction(rcode));
     });
 
   g_lua.writeFunction("SkipCacheAction", []() {

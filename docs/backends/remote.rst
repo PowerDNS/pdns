@@ -1508,6 +1508,51 @@ Response:
 
     {"result":[{"qtype":"A", "qname":"www.example.com", "content":"203.0.113.2", "ttl": 60}]}
 
+
+``getUpdatedMasters``
+~~~~~~~~~~~~~~~~~~~~~
+
+Used to find out any updates to master domains. This is used to trigger notifications in master mode.
+
+-  Mandatory: no
+-  Parameters: none
+-  Reply: array of DomainInfo
+
+Example JSON/RPC
+''''''''''''''''
+
+Query:
+
+::
+
+    {"method": "getUpdatedMasters", "parameters": {}}
+
+Response:
+
+::
+
+    {"result":[{"id":1,"zone":"unit.test.","masters":["10.0.0.1"],"notified_serial":2,"serial":2,"last_check":1464693331,"kind":"master"}]}
+
+Example HTTP/RPC
+''''''''''''''''
+
+Query:
+
+.. code-block:: http
+
+    GET /dnsapi/getUpdatedMasters HTTP/1.1
+
+Response:
+
+.. code-block:: http
+
+    HTTP/1.1 200 OK
+    Content-Type: text/javascript; charset=utf-8
+    Content-Length: 135
+    {"result":[{"id":1,"zone":"unit.test.","masters":["10.0.0.1"],"notified_serial":2,"serial":2,"last_check":1464693331,"kind":"master"}]}
+
+
+
 Examples
 --------
 

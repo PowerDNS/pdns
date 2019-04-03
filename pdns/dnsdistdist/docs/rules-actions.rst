@@ -278,7 +278,7 @@ For Rules related to the incoming query:
 
   Add a Rule and Action to the existing rules.
 
-  :param DNSrule rule: A DNSRule, e.g. an :func:`allRule` or a compounded bunch of rules using e.g. :func:`AndRule`
+  :param DNSrule rule: A DNSRule, e.g. an :func:`AllRule` or a compounded bunch of rules using e.g. :func:`AndRule`
   :param action: The action to take
   :param table options: A table with key: value pairs with options.
 
@@ -361,7 +361,7 @@ For Rules related to responses:
 
   Add a Rule and Action for responses to the existing rules.
 
-  :param DNSRule: A DNSRule, e.g. an :func:`allRule` or a compounded bunch of rules using e.g. :func:`AndRule`
+  :param DNSRule: A DNSRule, e.g. an :func:`AllRule` or a compounded bunch of rules using e.g. :func:`AndRule`
   :param action: The action to take
   :param table options: A table with key: value pairs with options.
 
@@ -415,7 +415,7 @@ Functions for manipulating Cache Hit Respone Rules:
 
   Add a Rule and ResponseAction for Cache Hits to the existing rules.
 
-  :param DNSRule: A DNSRule, e.g. an :func:`allRule` or a compounded bunch of rules using e.g. :func:`AndRule`
+  :param DNSRule: A DNSRule, e.g. an :func:`AllRule` or a compounded bunch of rules using e.g. :func:`AndRule`
   :param action: The action to take
   :param table options: A table with key: value pairs with options.
 
@@ -472,7 +472,7 @@ Functions for manipulating Self-Answered Response Rules:
 
   Add a Rule and Action for Self-Answered queries to the existing rules.
 
-  :param DNSRule: A DNSRule, e.g. an :func:`allRule` or a compounded bunch of rules using e.g. :func:`AndRule`
+  :param DNSRule: A DNSRule, e.g. an :func:`AllRule` or a compounded bunch of rules using e.g. :func:`AndRule`
   :param action: The action to take
 
 .. function:: mvSelfAnsweredResponseRule(from, to)
@@ -547,6 +547,35 @@ These ``DNSRule``\ s be one of the following items:
 
   Matches queries with the DO flag set
 
+.. function:: DSTPortRule(port)
+
+  Matches questions received to the destination port.
+
+  :param int port: Match destination port.
+
+.. function:: EDNSOptionRule(optcode)
+
+  .. versionadded:: 1.4.0
+
+  Matches queries or responses with the specified EDNS option present.
+  ``optcode`` is specified as an integer, or a constant such as `EDNSOptionCode.ECS`.
+
+.. function:: EDNSVersionRule(version)
+
+  .. versionadded:: 1.4.0
+
+  Matches queries or responses with an OPT record whose EDNS version is greater than the specified EDNS version.
+
+  :param int version: The EDNS version to match on
+
+.. function:: ERCodeRule(rcode)
+
+  Matches queries or responses with the specified ``rcode``.
+  ``rcode`` can be specified as an integer or as one of the built-in :ref:`DNSRCode`.
+  The full 16bit RCode will be matched. If no EDNS OPT RR is present, the upper 12 bits are treated as 0.
+
+  :param int rcode: The RCODE to match on
+
 .. function:: MaxQPSIPRule(qps[, v4Mask[, v6Mask[, burst[, expiration[, cleanupDelay[, scanFraction]]]]]])
   .. versionchanged:: 1.3.1
     Added the optional parameters ``expiration``, ``cleanupDelay`` and ``scanFraction``.
@@ -610,6 +639,13 @@ These ``DNSRule``\ s be one of the following items:
 
    :param string qname: Qname to match
 
+.. function:: QNameSetRule(set)
+  Matches if the set contains exact qname.
+
+   To match subdomain names, see :func:`SuffixMatchNodeRule`.
+
+   :param DNSNameSet set: Set with qnames.
+
 .. function:: QNameLabelsCountRule(min, max)
 
   Matches if the qname has less than ``min`` or more than ``max`` labels.
@@ -639,21 +675,6 @@ These ``DNSRule``\ s be one of the following items:
   Only the non-extended RCode is matched (lower 4bits).
 
   :param int rcode: The RCODE to match on
-
-.. function:: ERCodeRule(rcode)
-
-  Matches queries or responses with the specified ``rcode``.
-  ``rcode`` can be specified as an integer or as one of the built-in :ref:`DNSRCode`.
-  The full 16bit RCode will be matched. If no EDNS OPT RR is present, the upper 12 bits are treated as 0.
-
-  :param int rcode: The RCODE to match on
-
-.. function:: EDNSOptionRule(optcode)
-
-  .. versionadded:: 1.3.3
-
-  Matches queries or responses with the specified EDNS option present.
-  ``optcode`` is specified as an integer, or a constant such as `EDNSOptionCode.ECS`.
 
 .. function:: RDRule()
 
@@ -713,6 +734,8 @@ These ``DNSRule``\ s be one of the following items:
   Matches based on a group of domain suffixes for rapid testing of membership.
   Pass true as second parameter to prevent listing of all domains matched.
 
+  To match domain names exactly, see :func:`QNameSetRule`.
+
   :param SuffixMatchNode smb: The SuffixMatchNode to match on
   :param bool quiet: Do not return the list of matched domains. Default is false.
 
@@ -730,12 +753,6 @@ These ``DNSRule``\ s be one of the following items:
   Matches question received over TCP if ``tcp`` is true, over UDP otherwise.
 
   :param bool tcp: Match TCP traffic. Default is true.
-
-.. function:: DSTPortRule(port)
-
-  Matches questions received to the destination port.
-
-  :param int port: Match destination port.
 
 .. function:: TrailingDataRule()
 
@@ -856,6 +873,16 @@ The following actions exist.
   :param int v4: The IPv4 netmask length
   :param int v6: The IPv6 netmask length
 
+
+.. function:: ERCodeAction(rcode)
+
+  .. versionadded:: 1.4.0
+
+  Reply immediately by turning the query into a response with the specified EDNS extended ``rcode``.
+  ``rcode`` can be specified as an integer or as one of the built-in :ref:`DNSRCode`.
+
+  :param int rcode: The extended RCODE to respond with.
+
 .. function:: LogAction([filename[, binary[, append[, buffered]]]])
 
   Log a line for each query, to the specified ``file`` if any, to the console (require verbose) otherwise.
@@ -926,7 +953,7 @@ The following actions exist.
 
 .. function:: RCodeAction(rcode)
 
-  Reply immediatly by turning the query into a response with the specified ``rcode``.
+  Reply immediately by turning the query into a response with the specified ``rcode``.
   ``rcode`` can be specified as an integer or as one of the built-in :ref:`DNSRCode`.
 
   :param int rcode: The RCODE to respond with.

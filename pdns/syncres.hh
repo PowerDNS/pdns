@@ -562,6 +562,20 @@ public:
     s_ecsScopeZero.source = scopeZeroMask;
   }
 
+  static void clearECSStats()
+  {
+    s_ecsqueries.store(0);
+    s_ecsresponses.store(0);
+
+    for (size_t idx = 0; idx < 32; idx++) {
+      SyncRes::s_ecsResponsesBySubnetSize4[idx].store(0);
+    }
+
+    for (size_t idx = 0; idx < 128; idx++) {
+      SyncRes::s_ecsResponsesBySubnetSize6[idx].store(0);
+    }
+  }
+
   explicit SyncRes(const struct timeval& now);
 
   int beginResolve(const DNSName &qname, const QType &qtype, uint16_t qclass, vector<DNSRecord>&ret);
@@ -690,20 +704,27 @@ public:
   static std::atomic<uint64_t> s_unreachables;
   static std::atomic<uint64_t> s_ecsqueries;
   static std::atomic<uint64_t> s_ecsresponses;
+  static std::map<uint8_t, std::atomic<uint64_t>> s_ecsResponsesBySubnetSize4;
+  static std::map<uint8_t, std::atomic<uint64_t>> s_ecsResponsesBySubnetSize6;
 
   static string s_serverID;
   static unsigned int s_minimumTTL;
+  static unsigned int s_minimumECSTTL;
   static unsigned int s_maxqperq;
   static unsigned int s_maxtotusec;
   static unsigned int s_maxdepth;
   static unsigned int s_maxnegttl;
+  static unsigned int s_maxbogusttl;
   static unsigned int s_maxcachettl;
   static unsigned int s_packetcachettl;
   static unsigned int s_packetcacheservfailttl;
   static unsigned int s_serverdownmaxfails;
   static unsigned int s_serverdownthrottletime;
+  static unsigned int s_ecscachelimitttl;
   static uint8_t s_ecsipv4limit;
   static uint8_t s_ecsipv6limit;
+  static uint8_t s_ecsipv4cachelimit;
+  static uint8_t s_ecsipv6cachelimit;
   static bool s_doIPv6;
   static bool s_noEDNSPing;
   static bool s_noEDNS;
@@ -793,6 +814,7 @@ private:
   vState getTA(const DNSName& zone, dsmap_t& ds);
   bool haveExactValidationStatus(const DNSName& domain);
   vState getValidationStatus(const DNSName& subdomain, bool allowIndeterminate=true);
+  void updateValidationStatusInCache(const DNSName &qname, const QType& qt, bool aa, vState newState) const;
 
   bool lookForCut(const DNSName& qname, unsigned int depth, const vState existingState, vState& newState);
   void computeZoneCuts(const DNSName& begin, const DNSName& end, unsigned int depth);
@@ -942,6 +964,7 @@ struct RecursorStats
   std::atomic<uint64_t> dnssecValidations; // should be the sum of all dnssecResult* stats
   std::map<vState, std::atomic<uint64_t> > dnssecResults;
   std::map<DNSFilterEngine::PolicyKind, std::atomic<uint64_t> > policyResults;
+  std::atomic<uint64_t> rebalancedQueries{0};
 };
 
 //! represents a running TCP/IP client session

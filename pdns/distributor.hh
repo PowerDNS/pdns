@@ -322,13 +322,12 @@ template<class Answer, class Question, class Backend>int MultiThreadDistributor<
   QD->Q=q;
   auto ret = QD->id = nextid++; // might be deleted after write!
   QD->callback=callback;
-  
-  if(write(d_pipes[QD->id % d_pipes.size()].second, &QD, sizeof(QD)) != sizeof(QD))
+
+  ++d_queued;
+  if(write(d_pipes[QD->id % d_pipes.size()].second, &QD, sizeof(QD)) != sizeof(QD)) {
+    --d_queued;
     unixDie("write");
-
-  d_queued++;
-
-
+  }
 
   if(d_queued > d_maxQueueLength) {
     g_log<<Logger::Error<< d_queued <<" questions waiting for database/backend attention. Limit is "<<::arg().asNum("max-queue-length")<<", respawning"<<endl;

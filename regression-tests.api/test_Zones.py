@@ -1677,6 +1677,36 @@ $ORIGIN %NAME%
              u'ttl': 3600, u'type': u'SOA', u'name': name},
         ])
 
+    def test_search_rr_exact_zone_filter_type_zone(self):
+        name = unique_zone_name()
+        data_type = "zone"
+        self.create_zone(name=name, serial=22, soa_edit_api='')
+        r = self.session.get(self.url("/api/v1/servers/localhost/search-data?q=" + name.rstrip('.') + "&object_type=" + data_type))
+        self.assert_success_json(r)
+        print(r.json())
+        self.assertEquals(r.json(), [
+            {u'object_type': u'zone', u'name': name, u'zone_id': name},
+        ])
+
+    def test_search_rr_exact_zone_filter_type_record(self):
+        name = unique_zone_name()
+        data_type = "record"
+        self.create_zone(name=name, serial=22, soa_edit_api='')
+        r = self.session.get(self.url("/api/v1/servers/localhost/search-data?q=" + name.rstrip('.') + "&object_type=" + data_type))
+        self.assert_success_json(r)
+        print(r.json())
+        self.assertEquals(r.json(), [
+            {u'content': u'ns1.example.com.',
+             u'zone_id': name, u'zone': name, u'object_type': u'record', u'disabled': False,
+             u'ttl': 3600, u'type': u'NS', u'name': name},
+            {u'content': u'ns2.example.com.',
+             u'zone_id': name, u'zone': name, u'object_type': u'record', u'disabled': False,
+             u'ttl': 3600, u'type': u'NS', u'name': name},
+            {u'content': u'a.misconfigured.powerdns.server. hostmaster.'+name+' 22 10800 3600 604800 3600',
+             u'zone_id': name, u'zone': name, u'object_type': u'record', u'disabled': False,
+             u'ttl': 3600, u'type': u'SOA', u'name': name},
+        ])
+
     def test_search_rr_substring(self):
         name = unique_zone_name()
         search = name[5:-5]

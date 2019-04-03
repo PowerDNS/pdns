@@ -12,17 +12,6 @@ As an example:
  - ``serve-rfc1918=off`` or ``serve-rfc1918=no`` means: do not serve those zones.
  - Anything else means: do serve those zones.
 
-.. _setting-aaaa-additional-processing:
-
-``aaaa-additional-processing``
-------------------------------
--  Boolean
--  Default: No
-
-If turned on, the recursor will attempt to add AAAA IPv6 records to questions for MX records and NS records.
-Can be quite slow as absence of these records in earlier answers does not guarantee their non-existence.
-Can double the amount of queries needed.
-
 .. _setting-allow-from:
 
 ``allow-from``
@@ -172,7 +161,7 @@ Change the instance or third string of the metric key. The default is recursor.
 -----------------
 -  IP address
 
-If set to an IP or IPv6 address, will send all available metrics to this server via the carbon protocol, which is used by graphite and metronome.
+If set to an IP or IPv6 address, will send all available metrics to this server via the carbon protocol, which is used by graphite and metronome. Moreover you can specify more than one server using a comma delimited list, ex: carbon-server=10.10.10.10,10.10.10.20.
 You may specify an alternate port by appending :port, for example: ``127.0.0.1:2004``.
 See :doc:`metrics`.
 
@@ -323,6 +312,25 @@ Do not log to syslog, only to stdout.
 Use this setting when running inside a supervisor that handles logging (like systemd).
 **Note**: do not use this setting in combination with `daemon`_ as all logging will disappear.
 
+.. _setting-distribution-load-factor:
+
+``distribution-load-factor``
+----------------------------
+.. versionadded:: 4.1.12
+
+-  Double
+-  Default: 0.0
+
+If `pdns-distributes-queries`_ is set and this setting is set to another value
+than 0, the distributor thread will use a bounded load-balancing algorithm while
+distributing queries to worker threads, making sure that no thread is assigned
+more queries than distribution-load-factor times the average number of queries
+currently processed by all the workers.
+For example, with a value of 1.25, no server should get more than 125 % of the
+average load. This helps making sure that all the workers have roughly the same
+share of queries, even if the incoming traffic is very skewed, with a larger
+number of requests asking for the same qname.
+
 .. _setting-distributor-threads:
 
 ``distributor-threads``
@@ -422,6 +430,18 @@ This defaults to not using the requestor address inside RFC1918 and similar "pri
 
 Number of bits of client IPv4 address to pass when sending EDNS Client Subnet address information.
 
+.. _setting-ecs-ipv4-cache-bits:
+
+``ecs-ipv4-cache-bits``
+-----------------
+.. versionadded:: 4.1.12
+
+-  Integer
+-  Default: 24
+
+Maximum number of bits of client IPv4 address used by the authoritative server (as indicated by the EDNS Client Subnet scope in the answer) for an answer to be inserted into the query cache. This condition applies in conjunction with ``ecs-cache-limit-ttl``.
+That is, only if both the limits apply, the record will not be cached.
+
 .. _setting-ecs-ipv6-bits:
 
 ``ecs-ipv6-bits``
@@ -432,6 +452,41 @@ Number of bits of client IPv4 address to pass when sending EDNS Client Subnet ad
 -  Default: 56
 
 Number of bits of client IPv6 address to pass when sending EDNS Client Subnet address information.
+
+.. _setting-ecs-ipv6-cache-bits:
+
+``ecs-ipv6-cache-bits``
+-----------------
+.. versionadded:: 4.1.12
+
+-  Integer
+-  Default: 56
+
+Maximum number of bits of client IPv6 address used by the authoritative server (as indicated by the EDNS Client Subnet scope in the answer) for an answer to be inserted into the query cache. This condition applies in conjunction with ``ecs-cache-limit-ttl``.
+That is, only if both the limits apply, the record will not be cached.
+
+.. _setting-ecs-minimum-ttl-override:
+
+``ecs-minimum-ttl-override``
+----------------------------
+-  Integer
+-  Default: 0 (disabled)
+
+This setting artificially raises the TTLs of records in the ANSWER section of ECS-specific answers to be at least this long.
+While this is a gross hack, and violates RFCs, under conditions of DoS, it may enable you to continue serving your customers.
+Can be set at runtime using ``rec_control set-ecs-minimum-ttl 3600``.
+
+.. _setting-ecs-cache-limit-ttl:
+
+``ecs-cache-limit-ttl``
+-----------------------
+.. versionadded:: 4.1.12
+
+-  Integer
+-  Default: 0 (disabled)
+
+The minimum TTL for an ECS-specific answer to be inserted into the query cache. This condition applies in conjunction with ``ecs-ipv4-cache-bits`` or ``ecs-ipv6-cache-bits``.
+That is, only if both the limits apply, the record will not be cached.
 
 .. _setting-ecs-scope-zero-address:
 
@@ -528,7 +583,7 @@ An entry called 'server1.home' will be stored as 'server1.home', regardless of t
 -----------------
 -  'zonename=IP' pairs, comma separated
 
-Queries for zones listed here will be forwarded to the IP address listed. i.e. 
+Queries for zones listed here will be forwarded to the IP address listed. i.e.
 
 .. code-block:: none
 
@@ -746,6 +801,17 @@ Path to a lua file to manipulate the Recursor's answers. See :doc:`lua-scripting
 The interval between calls to the Lua user defined `maintenance()` function in seconds.
 See :ref:`hooks-maintenance-callback`
 
+.. _setting-max-cache-bogus-ttl:
+
+``max-cache-bogus-ttl``
+-----------------------
+.. versionadded:: 4.2.0
+
+-  Integer
+-  Default: 3600
+
+Maximum number of seconds to cache an item in the DNS cache (negative or positive) if its DNSSEC validation failed, no matter what the original TTL specified, to reduce the impact of a broken domain.
+
 .. _setting-max-cache-entries:
 
 ``max-cache-entries``
@@ -952,7 +1018,7 @@ The default size of the stable bloom filter used to store previously
 observed domains is 67108864. To change the number of cells, use this
 setting. For each cell, the SBF uses 1 bit of memory, and one byte of
 disk for the persistent file.
-If there are already persistent files saved to disk, this setting will 
+If there are already persistent files saved to disk, this setting will
 have no effect unless you remove the existing files.
 
 .. _setting-new-domain-history-dir:
@@ -974,7 +1040,7 @@ a history of previously observed domains. The data structure is
 synchronized to disk every 10 minutes, and is also initialized from
 disk on startup. This ensures that previously observed domains are
 preserved across recursor restarts.
-If you change the new-domain-db-size setting, you must remove any files 
+If you change the new-domain-db-size setting, you must remove any files
 from this directory.
 
 .. _setting-new-domain-whitelist:
@@ -1003,7 +1069,7 @@ feature.
 - Default: pnds-nod
 
 If protobuf is configured, then this tag will be added to all protobuf response messages when
-a new domain is observed. 
+a new domain is observed.
 
 .. _setting-network-timeout:
 
@@ -1305,6 +1371,41 @@ Size of the stack per thread.
 Interval between logging statistical summary on recursor performance.
 Use 0 to disable.
 
+.. _setting-stats-api-blacklist:
+
+``stats-api-blacklist``
+-----------------------
+.. versionadded:: 4.2.0
+
+-  String
+-  Default: "cache-bytes, packetcache-bytes, ecs-v4-response-bits-*, ecs-v6-response-bits-*"
+
+A list of comma-separated statistic names, that are disabled when retrieving the complete list of statistics via the API for performance reasons.
+These statistics can still be retrieved individually by specifically asking for it.
+
+.. _setting-stats-carbon-blacklist:
+
+``stats-carbon-blacklist``
+--------------------------
+.. versionadded:: 4.2.0
+
+-  String
+-  Default: "cache-bytes, packetcache-bytes, ecs-v4-response-bits-*, ecs-v6-response-bits-*"
+
+A list of comma-separated statistic names, that are prevented from being exported via carbon for performance reasons.
+
+.. _setting-stats-rec-control-blacklist:
+
+``stats-rec-control-blacklist``
+-------------------------------
+.. versionadded:: 4.2.0
+
+-  String
+-  Default: "cache-bytes, packetcache-bytes, ecs-v4-response-bits-*, ecs-v6-response-bits-*"
+
+A list of comma-separated statistic names, that are disabled when retrieving the complete list of statistics via `rec_control get-all`, for performance reasons.
+These statistics can still be retrieved individually.
+
 .. _setting-stats-ringbuffer-entries:
 
 ``stats-ringbuffer-entries``
@@ -1314,6 +1415,17 @@ Use 0 to disable.
 
 Number of entries in the remotes ringbuffer, which keeps statistics on who is querying your server.
 Can be read out using ``rec_control top-remotes``.
+
+.. _setting-stats-snmp-blacklist:
+
+``stats-snmp-blacklist``
+------------------------
+.. versionadded:: 4.2.0
+
+-  String
+-  Default: "cache-bytes, packetcache-bytes, ecs-v4-response-bits-*, ecs-v6-response-bits-*"
+
+A list of comma-separated statistic names, that are prevented from being exported via SNMP, for performance reasons.
 
 .. _setting-tcp-fast-open:
 
@@ -1416,7 +1528,7 @@ To know why 1232, see the note at :ref:`setting-edns-outgoing-bufsize`.
 
 Whether to track unique DNS responses, i.e. never seen before combinations
 of the triplet (query name, query type, RR[rrname, rrtype, rrdata]).
-This can be useful for tracking potentially suspicious domains and 
+This can be useful for tracking potentially suspicious domains and
 behaviour, e.g. DNS fast-flux.
 If protobuf is enabled and configured, then the Protobuf Response message
 will contain a flag with udr set to true for each RR that is considered
@@ -1453,7 +1565,7 @@ The default size of the stable bloom filter used to store previously
 observed responses is 67108864. To change the number of cells, use this
 setting. For each cell, the SBF uses 1 bit of memory, and one byte of
 disk for the persistent file.
-If there are already persistent files saved to disk, this setting will 
+If there are already persistent files saved to disk, this setting will
 have no effect unless you remove the existing files.
 
 .. _setting-unique-response-history-dir:
@@ -1474,7 +1586,7 @@ The newly observed domain feature uses a stable bloom filter to store
 a history of previously observed responses. The data structure is
 synchronized to disk every 10 minutes, and is also initialized from
 disk on startup. This ensures that previously observed responses are
-preserved across recursor restarts. If you change the 
+preserved across recursor restarts. If you change the
 unique-response-db-size, you must remove any files from this directory.
 
 .. _setting-unique-response-pb-tag:
@@ -1487,7 +1599,7 @@ unique-response-db-size, you must remove any files from this directory.
 - Default: pnds-udr
 
 If protobuf is configured, then this tag will be added to all protobuf response messages when
-a unique DNS response is observed. 
+a unique DNS response is observed.
 
 .. _setting-use-incoming-edns-subnet:
 
@@ -1545,6 +1657,47 @@ IP address for the webserver to listen on.
     Default is now 127.0.0.1,::1, was 0.0.0.0,::/0 before.
 
 These subnets are allowed to access the webserver.
+
+.. _setting-webserver-loglevel:
+
+``webserver-loglevel``
+----------------------
+.. versionadded:: 4.2.0
+
+-  String, one of "none", "normal", "detailed"
+
+The amount of logging the webserver must do. "none" means no useful webserver information will be logged.
+When set to "normal", the webserver will log a line per request that should be familiar::
+
+  [webserver] e235780e-a5cf-415e-9326-9d33383e739e 127.0.0.1:55376 "GET /api/v1/servers/localhost/bla HTTP/1.1" 404 196
+
+When set to "detailed", all information about the request and response are logged::
+
+  [webserver] e235780e-a5cf-415e-9326-9d33383e739e Request Details:
+  [webserver] e235780e-a5cf-415e-9326-9d33383e739e  Headers:
+  [webserver] e235780e-a5cf-415e-9326-9d33383e739e   accept: text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8
+  [webserver] e235780e-a5cf-415e-9326-9d33383e739e   accept-encoding: gzip, deflate
+  [webserver] e235780e-a5cf-415e-9326-9d33383e739e   accept-language: en-US,en;q=0.5
+  [webserver] e235780e-a5cf-415e-9326-9d33383e739e   connection: keep-alive
+  [webserver] e235780e-a5cf-415e-9326-9d33383e739e   dnt: 1
+  [webserver] e235780e-a5cf-415e-9326-9d33383e739e   host: 127.0.0.1:8081
+  [webserver] e235780e-a5cf-415e-9326-9d33383e739e   upgrade-insecure-requests: 1
+  [webserver] e235780e-a5cf-415e-9326-9d33383e739e   user-agent: Mozilla/5.0 (X11; Linux x86_64; rv:64.0) Gecko/20100101 Firefox/64.0
+  [webserver] e235780e-a5cf-415e-9326-9d33383e739e  No body
+  [webserver] e235780e-a5cf-415e-9326-9d33383e739e Response details:
+  [webserver] e235780e-a5cf-415e-9326-9d33383e739e  Headers:
+  [webserver] e235780e-a5cf-415e-9326-9d33383e739e   Connection: close
+  [webserver] e235780e-a5cf-415e-9326-9d33383e739e   Content-Length: 49
+  [webserver] e235780e-a5cf-415e-9326-9d33383e739e   Content-Type: text/html; charset=utf-8
+  [webserver] e235780e-a5cf-415e-9326-9d33383e739e   Server: PowerDNS/0.0.15896.0.gaba8bab3ab
+  [webserver] e235780e-a5cf-415e-9326-9d33383e739e  Full body: 
+  [webserver] e235780e-a5cf-415e-9326-9d33383e739e   <!html><title>Not Found</title><h1>Not Found</h1>
+  [webserver] e235780e-a5cf-415e-9326-9d33383e739e 127.0.0.1:55376 "GET /api/v1/servers/localhost/bla HTTP/1.1" 404 196
+
+The value between the hooks is a UUID that is generated for each request. This can be used to find all lines related to a single request.
+
+.. note::
+  The webserver logs these line on the NOTICE level. The :ref:`settings-loglevel` seting must be 5 or higher for these lines to end up in the log.
 
 .. _setting-webserver-password:
 

@@ -223,6 +223,7 @@ pdns_server_SOURCES = \
 	tsigutils.hh tsigutils.cc \
 	tkey.cc \
 	ueberbackend.cc ueberbackend.hh \
+	uuid-utils.hh uuid-utils.cc \
 	unix_semaphore.cc \
 	unix_utility.cc \
 	utility.hh \
@@ -640,6 +641,7 @@ ixfrdist_SOURCES = \
 	threadname.hh threadname.cc \
 	tsigverifier.cc tsigverifier.hh \
 	unix_utility.cc \
+	uuid-utils.hh uuid-utils.cc \
 	webserver.hh webserver.cc \
 	zoneparser-tng.cc
 
@@ -1058,7 +1060,8 @@ pdns_notify_SOURCES = \
 	rcpgenerator.cc rcpgenerator.hh \
 	sillyrecords.cc \
 	statbag.cc \
-	unix_utility.cc
+	unix_utility.cc \
+	dns_random.cc
 
 pdns_notify_LDFLAGS = \
 	$(AM_LDFLAGS) \
@@ -1068,6 +1071,10 @@ pdns_notify_LDFLAGS = \
 pdns_notify_LDADD = \
 	$(LIBCRYPTO_LIBS) \
 	$(BOOST_PROGRAM_OPTIONS_LIBS)
+
+if LIBSODIUM
+pdns_notify_LDADD += $(LIBSODIUM_LIBS)
+endif
 
 dnsscope_SOURCES = \
 	arguments.cc \
@@ -1431,6 +1438,7 @@ fuzz_target_packetcache_SOURCES = \
 	ednsoptions.cc ednsoptions.hh \
 	misc.cc misc.hh \
 	packetcache.hh \
+	qtype.cc qtype.hh \
 	statbag.cc statbag.hh
 
 fuzz_target_packetcache_DEPENDENCIES = $(fuzz_targets_deps)

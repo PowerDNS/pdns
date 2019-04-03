@@ -24,9 +24,9 @@ void ResponseStats::submitResponse(DNSPacket &p, bool udpOrTCP) {
 
   if(p.d.aa) {
     if (p.d.rcode==RCode::NXDomain)
-      S.ringAccount("nxdomain-queries",p.qdomain.toLogString()+"/"+p.qtype.getName());
-  } else if (p.isEmpty()) {
-    S.ringAccount("unauth-queries",p.qdomain.toLogString()+"/"+p.qtype.getName());
+      S.ringAccount("nxdomain-queries", p.qdomain, p.qtype);
+  } else if (p.d.rcode == RCode::Refused) {
+    S.ringAccount("unauth-queries", p.qdomain, p.qtype);
     S.ringAccount("remotes-unauth",p.d_remote);
   }
 
@@ -52,5 +52,5 @@ void ResponseStats::submitResponse(DNSPacket &p, bool udpOrTCP) {
     }
   }
 
-  submitResponse(p.qtype.getCode(), buf.length(), udpOrTCP);
+  submitResponse(p.qtype.getCode(), buf.length(), p.d.rcode, udpOrTCP);
 }

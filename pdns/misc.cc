@@ -866,11 +866,12 @@ bool stringfgets(FILE* fp, std::string& line)
 bool readFileIfThere(const char* fname, std::string* line)
 {
   line->clear();
-  FILE* fp = fopen(fname, "r");
+  auto fp = std::unique_ptr<FILE, int(*)(FILE*)>(fopen(fname, "r"), fclose);
   if(!fp)
     return false;
-  stringfgets(fp, *line);
-  fclose(fp);
+  stringfgets(fp.get(), *line);
+  fp.reset();
+
   return true;
 }
 
@@ -1100,6 +1101,22 @@ bool isNonBlocking(int sock)
   return flags & O_NONBLOCK;
 }
 
+bool setReceiveSocketErrors(int sock, int af)
+{
+#ifdef __linux__
+  int tmp = 1, ret;
+  if (af == AF_INET) {
+    ret = setsockopt(sock, IPPROTO_IP, IP_RECVERR, &tmp, sizeof(tmp));
+  } else {
+    ret = setsockopt(sock, IPPROTO_IPV6, IPV6_RECVERR, &tmp, sizeof(tmp));
+  }
+  if (ret < 0) {
+    throw PDNSException(string("Setsockopt failed: ") + strerror(errno));
+  }
+#endif
+  return true;
+}
+
 // Closes a socket.
 int closesocket( int socket )
 {
@@ -1240,7 +1257,27 @@ uint64_t getOpenFileDescriptors(const std::string&)
 uint64_t getRealMemoryUsage(const std::string&)
 {
 #ifdef __linux__
-  ifstream ifs("/proc/"+std::to_string(getpid())+"/smaps");
+  ifstream ifs("/proc/self/statm");
+  if(!ifs)
+    return 0;
+
+  uint64_t size, resident, shared, text, lib, data;
+  ifs >> size >> resident >> shared >> text >> lib >> data;
+
+  return data * getpagesize();
+#else
+  struct rusage ru;
+  if (getrusage(RUSAGE_SELF, &ru) != 0)
+    return 0;
+  return ru.ru_maxrss * 1024;
+#endif
+}
+
+
+uint64_t getSpecialMemoryUsage(const std::string&)
+{
+#ifdef __linux__
+  ifstream ifs("/proc/self/smaps");
   if(!ifs)
     return 0;
   string line;

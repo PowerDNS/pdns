@@ -87,6 +87,7 @@ uint16_t g_maxOutstanding{10240};
 bool g_verboseHealthChecks{false};
 uint32_t g_staleCacheEntriesTTL{0};
 bool g_syslog{true};
+bool g_allowEmptyResponse{false};
 
 GlobalStateHolder<NetmaskGroup> g_ACL;
 string g_outputBuffer;
@@ -160,7 +161,7 @@ try
   dh->ancount = dh->arcount = dh->nscount = 0;
 
   if (hadEDNS) {
-    addEDNS(dh, *len, responseSize, z & EDNS_HEADER_FLAG_DO, payloadSize);
+    addEDNS(dh, *len, responseSize, z & EDNS_HEADER_FLAG_DO, payloadSize, 0);
   }
 }
 catch(...)
@@ -222,7 +223,7 @@ bool responseContentMatches(const char* response, const uint16_t responseLen, co
   }
 
   if (dh->qdcount == 0) {
-    if (dh->rcode != RCode::NoError && dh->rcode != RCode::NXDomain) {
+    if ((dh->rcode != RCode::NoError && dh->rcode != RCode::NXDomain) || g_allowEmptyResponse) {
       return true;
     }
     else {
@@ -1964,8 +1965,8 @@ static void healthChecksThread()
 
           if (!dss->upStatus) {
             /* we were marked as down */
-            dss->consecutiveSuccesfulChecks++;
-            if (dss->consecutiveSuccesfulChecks < dss->minRiseSuccesses) {
+            dss->consecutiveSuccessfulChecks++;
+            if (dss->consecutiveSuccessfulChecks < dss->minRiseSuccesses) {
               /* if we need more than one successful check to rise
                  and we didn't reach the threshold yet,
                  let's stay down */
@@ -1975,7 +1976,7 @@ static void healthChecksThread()
         }
         else {
           /* check failed */
-          dss->consecutiveSuccesfulChecks = 0;
+          dss->consecutiveSuccessfulChecks = 0;
 
           if (dss->upStatus) {
             /* we are currently up */
@@ -2001,7 +2002,7 @@ static void healthChecksThread()
 
           dss->upStatus = newState;
           dss->currentCheckFailures = 0;
-          dss->consecutiveSuccesfulChecks = 0;
+          dss->consecutiveSuccessfulChecks = 0;
           if (g_snmpAgent && g_snmpTrapsEnabled) {
             g_snmpAgent->sendBackendStatusChangeTrap(dss);
           }
@@ -2708,8 +2709,8 @@ try
       tcpBindsCount++;
     }
     else {
-      delete cs;
       errlog("Error while setting up TLS on local address '%s', exiting", cs->local.toStringWithPort());
+      delete cs;
       _exit(EXIT_FAILURE);
     }
   }

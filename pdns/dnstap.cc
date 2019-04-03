@@ -36,11 +36,11 @@ DnstapMessage::DnstapMessage(const std::string& identity, const ComboAddress* re
 
   if (queryTime != nullptr) {
     message->set_query_time_sec(queryTime->tv_sec);
-    message->set_query_time_nsec(queryTime->tv_nsec / 1000);
+    message->set_query_time_nsec(queryTime->tv_nsec);
   }
   if (responseTime != nullptr) {
     message->set_response_time_sec(responseTime->tv_sec);
-    message->set_response_time_nsec(responseTime->tv_nsec / 1000);
+    message->set_response_time_nsec(responseTime->tv_nsec);
   }
 
   if (!dh->qr) {

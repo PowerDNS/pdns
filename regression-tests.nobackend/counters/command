@@ -27,7 +27,7 @@ $SDIG ::1 $port example.com SOA >&2 >/dev/null
 $SDIG ::1 $port example.com SOA tcp >&2 >/dev/null
 
 $PDNSCONTROL --config-name= --no-config --socket-dir=./ 'show *' | \
-  tr ',' '\n'| grep -v -E '(user-msec|sys-msec|uptime|udp-noport-errors|udp-in-errors|real-memory-usage|udp-recvbuf-errors|udp-sndbuf-errors|-hit|-miss|fd-usage|latency)' | LC_ALL=C sort
+  tr ',' '\n'| grep -v -E '(user-msec|sys-msec|uptime|udp-noport-errors|udp-in-errors|real-memory-usage|special-memory-usage|udp-recvbuf-errors|udp-sndbuf-errors|-hit|-miss|fd-usage|latency)' | LC_ALL=C sort
 
 kill $(cat pdns*.pid)
 rm pdns*.pid

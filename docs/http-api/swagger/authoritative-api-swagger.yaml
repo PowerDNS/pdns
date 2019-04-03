@@ -389,7 +389,7 @@ paths:
   '/servers/{server_id}/statistics':
     get:
       summary: 'Query statistics.'
-      description: 'Query PowerDNS internal statistics. Returns a list of BaseStatisticItem derived elements.'
+      description: 'Query PowerDNS internal statistics.'
       operationId: getStats
       tags:
         - stats
@@ -399,19 +399,25 @@ paths:
           required: true
           description: The id of the server to retrieve
           type: string
+        - name: statistic
+          in: query
+          required: false
+          type: string
+          description: |
+            When set to the name of a specific statistic, only this value is returned.
+            If no statistic with that name exists, the response has a 422 status and an error message.
+
       responses:
         '200':
           description: List of Statistic Items
           schema:
             type: array
             items:
-            # these can be commented because the swagger code generator fails on them
-            # and replaced with
-            # type: string
-            # or something like that
             - $ref: '#/definitions/StatisticItem'
             - $ref: '#/definitions/MapStatisticItem'
             - $ref: '#/definitions/RingStatisticItem'
+        '422':
+          description: 'Returned when a non-existing statistic name has been requested. Contains an error message'
 
   '/servers/{server_id}/search-data':
     get:
@@ -436,6 +442,11 @@ paths:
           required: true
           description: 'Maximum number of entries to return'
           type: integer
+        - name: object_type
+          in: query
+          required: false
+          description: 'Type of data to search for, one of “all”, “zone”, “record”, “comment”'
+          type: string
       responses:
         '200':
           description: Returns a JSON array with results
@@ -945,14 +956,14 @@ definitions:
         items:
           type: string
         description: 'MAY be sent in client bodies during creation, and MUST NOT be sent by the server. Simple list of strings of nameserver names, including the trailing dot. Not required for slave zones.'
-      tsig_master_key_ids:
+      master_tsig_key_ids:
         type: array
         items:
           type: string
         description: 'The id of the TSIG keys used for master operation in this zone'
         externalDocs:
           url: 'https://doc.powerdns.com/authoritative/tsig.html#provisioning-outbound-axfr-access'
-      tsig_slave_key_ids:
+      slave_tsig_key_ids:
         type: array
         items:
           type: string
@@ -1064,69 +1075,62 @@ definitions:
         type: string
         description: 'The value of setting name'
 
-  BaseStatisticItem:
-    title: BaseStatisticItem
+  SimpleStatisticItem:
+    title: SimpleStatisticItem
+    type: object
     properties:
       name:
-        type: string
-        description: 'The name of this item (e.g. ‘uptime’)'
+          type: string
+          description: 'Item name'
+      value:
+          type: string
+          description: 'Item value'
 
   StatisticItem:
     title: StatisticItem
-    allOf:
-    - $ref: "#/definitions/BaseStatisticItem"
-    - properties:
-        type:
-          enum: [StatisticItem]
-          description: 'set to "StatisticItem"'
-        value:
-          type: string
-          description: 'The value of item'
+    properties:
+      name:
+        type: string
+        description: 'Item name'
+      type:
+        type: string
+        description: 'set to "StatisticItem"'
+      value:
+        type: string
+        description: 'Item value'
 
   MapStatisticItem:
     title: MapStatisticItem
-    allOf:
-    - $ref: "#/definitions/BaseStatisticItem"
-    - properties:
-        type:
-          enum: [MapStatisticItem]
-          description: 'set to "MapStatisticItem"'
-        value:
-          type: array
-          description: 'named statistic values'
-          items:
-            type: array
-            properties:
-              name:
-                type: string
-                description: 'item name'
-              value:
-                type: string
-                description: 'item value'
+    properties:
+      name:
+        type: string
+        description: 'Item name'
+      type:
+        type: string
+        description: 'Set to "MapStatisticItem"'
+      value:
+        type: array
+        description: 'Named values'
+        items:
+          $ref: '#/definitions/SimpleStatisticItem'
 
   RingStatisticItem:
     title: RingStatisticItem
-    allOf:
-    - $ref: "#/definitions/BaseStatisticItem"
-    - properties:
-        type:
-          enum: [RingStatisticItem]
-          description: 'set to "RingStatisticItem"'
-        size:
-          type: integer
-          description: 'for RingStatisticItem objects, the size of the ring'
-        value:
-          type: array
-          description: 'named ring statistic values'
-          items:
-            type: array
-            properties:
-              name:
-                type: string
-                description: 'item name'
-              value:
-                type: string
-                description: 'item value'
+    properties:
+      name:
+        type: string
+        description: 'Item name'
+      type:
+        type: string
+        description: 'Set to "RingStatisticItem"'
+      size:
+        type: integer
+        description: 'Ring size'
+      value:
+        type: array
+        description: 'Named values'
+        items:
+          $ref: '#/definitions/SimpleStatisticItem'
 
   SearchResultZone:
     title: SearchResultZone

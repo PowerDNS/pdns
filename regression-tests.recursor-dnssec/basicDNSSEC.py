@@ -11,16 +11,6 @@ class BasicDNSSEC(RecursorTest):
         confdir = os.path.join('configs', cls._confdir)
         cls.wipeRecursorCache(confdir)
 
-    @classmethod
-    def sendQuery(self, name, rdtype, useTCP=False):
-        """Helper function that creates the query"""
-        msg = dns.message.make_query(name, rdtype, want_dnssec=True)
-        msg.flags |= dns.flags.AD
-
-        if useTCP:
-            return self.sendTCPQuery(msg)
-        return self.sendUDPQuery(msg)
-
     def testSecureAnswer(self):
         res = self.sendQuery('ns.secure.example.', 'A')
         expected = dns.rrset.from_text('ns.secure.example.', 0, dns.rdataclass.IN, 'A', '{prefix}.10'.format(prefix=self._PREFIX))

@@ -72,6 +72,7 @@ AuthWebServer::AuthWebServer() :
     d_ws = new WebServer(arg()["webserver-address"], arg().asNum("webserver-port"));
     d_ws->setApiKey(arg()["api-key"]);
     d_ws->setPassword(arg()["webserver-password"]);
+    d_ws->setLogLevel(arg()["webserver-loglevel"]);
 
     NetmaskGroup acl;
     acl.toMasks(::arg()["webserver-allow-from"]);
@@ -282,9 +283,10 @@ void AuthWebServer::indexfunction(HttpRequest* req, HttpResponse* resp)
 
   ret<<"Total queries: "<<S.read("udp-queries")<<". Question/answer latency: "<<S.read("latency")/1000.0<<"ms</p><br>"<<endl;
   if(req->getvars["ring"].empty()) {
-    vector<string>entries=S.listRings();
-    for(vector<string>::const_iterator i=entries.begin();i!=entries.end();++i)
-      printtable(ret,*i,S.getRingTitle(*i));
+    auto entries = S.listRings();
+    for(const auto &i: entries) {
+      printtable(ret, i, S.getRingTitle(i));
+    }
 
     printvars(ret);
     if(arg().mustDo("webserver-print-arguments"))
@@ -503,6 +505,17 @@ void productServerStatisticsFetch(map<string,string>& out)
   out["uptime"] = std::to_string(time(0) - s_starttime);
 }
 
+boost::optional<uint64_t> productServerStatisticsFetch(const std::string& name)
+{
+  try {
+    // ::read() calls ::exists() which throws a PDNSException when the key does not exist
+    return S.read(name);
+  }
+  catch(...) {
+    return boost::none;
+  }
+}
+
 static void validateGatheredRRType(const DNSResourceRecord& rr) {
   if (rr.qtype.getCode() == QType::OPT || rr.qtype.getCode() == QType::TSIG) {
     throw ApiException("RRset "+rr.qname.toString()+" IN "+rr.qtype.getName()+": invalid type given");
@@ -603,17 +616,17 @@ static void throwUnableToSecure(const DNSName& zonename) {
 }
 
 static void updateDomainSettingsFromDocument(UeberBackend& B, const DomainInfo& di, const DNSName& zonename, const Json document) {
-  string zonemaster;
+  vector<string> zonemaster;
   bool shouldRectify = false;
   for(auto value : document["masters"].array_items()) {
     string master = value.string_value();
     if (master.empty())
       throw ApiException("Master can not be an empty string");
-    zonemaster += master + " ";
+    zonemaster.push_back(master);
   }
 
-  if (zonemaster != "") {
-    di.backend->setMaster(zonename, zonemaster);
+  if (zonemaster.size()) {
+    di.backend->setMaster(zonename, boost::join(zonemaster, ","));
   }
   if (document["kind"].is_string()) {
     di.backend->setKind(zonename, DomainInfo::stringToKind(stringFromJson(document, "kind")));
@@ -1696,6 +1709,11 @@ static void apiServerZoneDetail(HttpRequest* req, HttpResponse* resp) {
     if(!di.backend->deleteDomain(zonename))
       throw ApiException("Deleting domain '"+zonename.toString()+"' failed: backend delete failed/unsupported");
 
+    // clear caches
+    DNSSECKeeper dk(&B);
+    dk.clearCaches(zonename);
+    purgeAuthCaches(zonename.toString() + "$");
+
     // empty body on success
     resp->body = "";
     resp->status = 204; // No Content: declare that the zone is gone now
@@ -2058,8 +2076,19 @@ static void apiServerSearchData(HttpRequest* req, HttpResponse* resp) {
 
   string q = req->getvars["q"];
   string sMax = req->getvars["max"];
+  string sObjectType = req->getvars["object_type"];
+
   int maxEnts = 100;
   int ents = 0;
+
+  // the following types of data can be searched for using the api
+  enum class ObjectType
+  {
+    ALL,
+    ZONE,
+    RECORD,
+    COMMENT
+  } objectType;
 
   if (q.empty())
     throw ApiException("Query q can't be blank");
@@ -2067,6 +2096,19 @@ static void apiServerSearchData(HttpRequest* req, HttpResponse* resp) {
     maxEnts = std::stoi(sMax);
   if (maxEnts < 1)
     throw ApiException("Maximum entries must be larger than 0");
+
+  if (sObjectType.empty())
+    objectType = ObjectType::ALL;
+  else if (sObjectType == "all")
+    objectType = ObjectType::ALL;
+  else if (sObjectType == "zone")
+    objectType = ObjectType::ZONE;
+  else if (sObjectType == "record")
+    objectType = ObjectType::RECORD;
+  else if (sObjectType == "comment")
+    objectType = ObjectType::COMMENT;
+  else
+    throw ApiException("object_type must be one of the following options: all, zone, record, comment");
 
   SimpleMatch sm(q,true);
   UeberBackend B;
@@ -2081,7 +2123,7 @@ static void apiServerSearchData(HttpRequest* req, HttpResponse* resp) {
 
   for(const DomainInfo di: domains)
   {
-    if (ents < maxEnts && sm.match(di.zone)) {
+    if ((objectType == ObjectType::ALL || objectType == ObjectType::ZONE) && ents < maxEnts && sm.match(di.zone)) {
       doc.push_back(Json::object {
         { "object_type", "zone" },
         { "zone_id", apiZoneNameToId(di.zone) },
@@ -2092,7 +2134,7 @@ static void apiServerSearchData(HttpRequest* req, HttpResponse* resp) {
     zoneIdZone[di.id] = di; // populate cache
   }
 
-  if (B.searchRecords(q, maxEnts, result_rr))
+  if ((objectType == ObjectType::ALL || objectType == ObjectType::RECORD) && B.searchRecords(q, maxEnts, result_rr))
   {
     for(const DNSResourceRecord& rr: result_rr)
     {
@@ -2115,7 +2157,7 @@ static void apiServerSearchData(HttpRequest* req, HttpResponse* resp) {
     }
   }
 
-  if (B.searchComments(q, maxEnts, result_c))
+  if ((objectType == ObjectType::ALL || objectType == ObjectType::COMMENT) && B.searchComments(q, maxEnts, result_c))
   {
     for(const Comment &c: result_c)
     {

@@ -214,6 +214,9 @@ set-dnssec-log-bogus *SETTING*
     DNSSEC validation failures and to 'no' or 'off' to disable logging these
     failures.
 
+set-ecs-minimum-ttl *NUM*
+    Set ecs-minimum-ttl-override to *NUM*.
+
 set-max-cache-entries *NUM*
     Change the maximum number of entries in the DNS cache.  If reduced, the
     cache size will start shrinking to this number as part of the normal

@@ -59,6 +59,12 @@ vector<pair<vector<DNSRecord>, vector<DNSRecord> > > processIXFRRecords(const Co
     // the serial of this SOA record is the serial of the
     // zone before the removals and updates of this sequence
     if (sr->d_st.serial == masterSOA->d_st.serial) {
+      if (records.size() == 2) {
+        // if the entire update is two SOAs records with the same
+        // serial, this is actually an empty AXFR!
+        return {{remove, records}};
+      }
+
       // if it's the final SOA, there is nothing for us to see
       break;
     }

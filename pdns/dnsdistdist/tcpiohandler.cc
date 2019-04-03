@@ -712,9 +712,17 @@ public:
       }
       else if (res < 0) {
         if (gnutls_error_is_fatal(res)) {
-          throw std::runtime_error("Error reading from TLS connection");
+          throw std::runtime_error("Error reading from TLS connection:" + std::string(gnutls_strerror(res)));
         }
-        warnlog("Warning, non-fatal error while reading from TLS connection: %s", gnutls_strerror(res));
+        else if (res == GNUTLS_E_AGAIN) {
+          int result = waitForData(d_socket, readTimeout);
+          if (result <= 0) {
+            throw std::runtime_error("Error reading from TLS connection: " + std::to_string(result));
+          }
+        }
+        else {
+          vinfolog("Non-fatal error while reading from TLS connection: %s", gnutls_strerror(res));
+        }
       }
 
       if (totalTimeout) {
@@ -746,9 +754,17 @@ public:
       }
       else if (res < 0) {
         if (gnutls_error_is_fatal(res)) {
-          throw std::runtime_error("Error writing to TLS connection");
+          throw std::runtime_error("Error writing to TLS connection: " + std::string(gnutls_strerror(res)));
         }
-        warnlog("Warning, non-fatal error while writing to TLS connection: %s", gnutls_strerror(res));
+        else if (res == GNUTLS_E_AGAIN) {
+          int result = waitForRWData(d_socket, false, writeTimeout, 0);
+          if (result <= 0) {
+            throw std::runtime_error("Error waiting to write to TLS connection: " + std::to_string(result));
+          }
+        }
+        else {
+          vinfolog("Non-fatal error while writing to TLS connection: %s", gnutls_strerror(res));
+        }
       }
     }
     while (got < bufferSize);

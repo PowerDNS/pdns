@@ -45,12 +45,16 @@ BOOST_AUTO_TEST_CASE(test_MaxQPSIPRule) {
   BOOST_CHECK_EQUAL(rule.matches(&dq), true);
   BOOST_CHECK_EQUAL(rule.getEntriesCount(), 1);
 
+  /* remove all entries that have not been updated since 'now' + 1,
+     so all of them */
   expiredTime.tv_sec += 1;
   rule.cleanup(expiredTime);
 
   /* we should have been cleaned up */
   BOOST_CHECK_EQUAL(rule.getEntriesCount(), 0);
 
+  struct timespec beginInsertionTime;
+  gettime(&beginInsertionTime);
   /* we should not be blocked anymore */
   BOOST_CHECK_EQUAL(rule.matches(&dq), false);
   /* and we be back */
@@ -58,21 +62,21 @@ BOOST_AUTO_TEST_CASE(test_MaxQPSIPRule) {
 
 
   /* Let's insert a lot of different sources now */
-  struct timespec insertionTime;
-  gettime(&insertionTime);
   for (size_t idxByte3 = 0; idxByte3 < 256; idxByte3++) {
     for (size_t idxByte4 = 0; idxByte4 < 256; idxByte4++) {
       rem = ComboAddress("10.0." + std::to_string(idxByte3) + "." + std::to_string(idxByte4));
       BOOST_CHECK_EQUAL(rule.matches(&dq), false);
     }
   }
+  struct timespec endInsertionTime;
+  gettime(&endInsertionTime);
 
   /* don't forget the existing entry */
   size_t total = 1 + 256 * 256;
   BOOST_CHECK_EQUAL(rule.getEntriesCount(), total);
 
   /* make sure all entries are still valid */
-  struct timespec notExpiredTime = insertionTime;
+  struct timespec notExpiredTime = beginInsertionTime;
   notExpiredTime.tv_sec -= 1;
 
   size_t scanned = 0;
@@ -83,7 +87,7 @@ BOOST_AUTO_TEST_CASE(test_MaxQPSIPRule) {
   BOOST_CHECK_EQUAL(rule.getEntriesCount(), total);
 
   /* make sure all entries are _not_ valid anymore */
-  expiredTime = insertionTime;
+  expiredTime = endInsertionTime;
   expiredTime.tv_sec += 1;
 
   removed = rule.cleanup(expiredTime, &scanned);
