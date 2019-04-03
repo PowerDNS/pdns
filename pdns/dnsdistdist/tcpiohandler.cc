@@ -258,6 +258,9 @@ public:
     else if (error == SSL_ERROR_WANT_WRITE) {
       return IOState::NeedWrite;
     }
+    else if (error == SSL_ERROR_SYSCALL) {
+      throw std::runtime_error("Error while processing TLS connection:" + std::string(strerror(errno)));
+    }
     else {
       throw std::runtime_error("Error while processing TLS connection:" + std::to_string(error));
     }
