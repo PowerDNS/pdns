@@ -251,7 +251,7 @@ private:
 class FindNS
 {
 public:
-  vector<string> lookup(const DNSName &name, UeberBackend *b)
+  vector<string> lookup(const DNSName &name, UeberBackend *b, const DNSName& zone)
   {
     vector<string> addresses;
 
@@ -269,11 +269,11 @@ public:
         }
         // After an exception, b can be inconsistent so break
         catch (PDNSException &ae) {
-          g_log << Logger::Error << "Skipping record(s): " << ae.reason << endl;
+          g_log << Logger::Error << "Could not lookup address for nameserver " << name << " in zone " << zone << ", cannot notify: " << ae.reason << endl;
           break;
         }
         catch (std::exception &e) {
-          g_log << Logger::Error << "Skipping record(s): " << e.what() << endl;
+          g_log << Logger::Error << "Could not lookup address for nameserver " << name << " in zone " << zone << ", cannot notify: " << e.what() << endl;
           break;
         }
       }
