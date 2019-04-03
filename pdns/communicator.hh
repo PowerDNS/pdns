@@ -259,10 +259,25 @@ public:
     
     if(b) {
         b->lookup(QType(QType::ANY),name);
-        DNSZoneRecord rr;
-        while(b->get(rr))
-          if(rr.dr.d_type == QType::A || rr.dr.d_type==QType::AAAA)
-            addresses.push_back(rr.dr.d_content->getZoneRepresentation());   // SOL if you have a CNAME for an NS
+        bool ok;
+        do {
+          DNSZoneRecord rr;
+          try {
+            ok = b->get(rr);
+          }
+          catch (PDNSException &ae) {
+            g_log << Logger::Error << "Skipping record: " << ae.reason << endl;
+            continue;
+          }
+          catch (std::exception &e) {
+            g_log << Logger::Error << "Skipping record: " << e.what() << endl;
+            continue;
+          }
+          if (ok) {
+            if (rr.dr.d_type == QType::A || rr.dr.d_type == QType::AAAA)
+              addresses.push_back(rr.dr.d_content->getZoneRepresentation());   // SOL if you have a CNAME for an NS
+          }
+        } while (ok);
     }
     return addresses;
   }
