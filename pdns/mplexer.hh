@@ -162,6 +162,11 @@ public:
   
   virtual std::string getName() const = 0;
 
+  size_t getWatchedFDCount(bool writeFDs) const
+  {
+    return writeFDs ? d_writeCallbacks.size() : d_readCallbacks.size();
+  }
+
 protected:
   struct FDBasedTag {};
   struct TTDOrderedTag {};
