@@ -567,8 +567,17 @@ try {
         gettime(&ts);
         g_rings.insertResponse(ts, ids->origRemote, ids->qname, ids->qtype, (unsigned int)udiff, (unsigned int)got, *dh, dss->remote);
 
-        if(dh->rcode == RCode::ServFail) {
+        switch (dh->rcode) {
+        case RCode::NXDomain:
+          ++g_stats.frontendNXDomain;
+          break;
+        case RCode::ServFail:
           ++g_stats.servfailResponses;
+          ++g_stats.frontendServFail;
+          break;
+        case RCode::NoError:
+          ++g_stats.frontendNoError;
+          break;
         }
         dss->latencyUsec = (127.0 * dss->latencyUsec / 128.0) + udiff/128.0;
 
@@ -1351,6 +1360,17 @@ static int sendAndEncryptUDPResponse(LocalHolders& holders, ClientState& cs, con
 
   if (cacheHit) {
     ++g_stats.cacheHits;
+  }
+  switch (dr.dh->rcode) {
+  case RCode::NXDomain:
+    ++g_stats.frontendNXDomain;
+    break;
+  case RCode::ServFail:
+    ++g_stats.frontendServFail;
+    break;
+  case RCode::NoError:
+    ++g_stats.frontendNoError;
+    break;
   }
   doLatencyStats(0);  // we're not going to measure this
   return 0;

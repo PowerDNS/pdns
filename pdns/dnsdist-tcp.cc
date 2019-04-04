@@ -467,6 +467,17 @@ void tcpClientThread(int pipefd)
 #endif
               handler.writeSizeAndMsg(cachedResponse, cachedResponseSize, g_tcpSendTimeout);
               g_stats.cacheHits++;
+              switch (dr.dh->rcode) {
+              case RCode::NXDomain:
+                ++g_stats.frontendNXDomain;
+                break;
+              case RCode::ServFail:
+                ++g_stats.frontendServFail;
+                break;
+              case RCode::NoError:
+                ++g_stats.frontendNoError;
+                break;
+              }
               continue;
             }
 
@@ -501,6 +512,17 @@ void tcpClientThread(int pipefd)
 #endif
             handler.writeSizeAndMsg(cachedResponse, cachedResponseSize, g_tcpSendTimeout);
             ++g_stats.cacheHits;
+            switch (dr.dh->rcode) {
+            case RCode::NXDomain:
+              ++g_stats.frontendNXDomain;
+              break;
+            case RCode::ServFail:
+              ++g_stats.frontendServFail;
+              break;
+            case RCode::NoError:
+              ++g_stats.frontendNoError;
+              break;
+            }
             continue;
           }
           ++g_stats.cacheMisses;
@@ -711,6 +733,17 @@ void tcpClientThread(int pipefd)
         }
 
         ++g_stats.responses;
+        switch (dr.dh->rcode) {
+        case RCode::NXDomain:
+           ++g_stats.frontendNXDomain;
+           break;
+        case RCode::ServFail:
+          ++g_stats.frontendServFail;
+          break;
+        case RCode::NoError:
+          ++g_stats.frontendNoError;
+          break;
+        }
         struct timespec answertime;
         gettime(&answertime);
         unsigned int udiff = 1000000.0*DiffTime(now,answertime);

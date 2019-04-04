@@ -208,6 +208,9 @@ struct DNSDistStats
   stat_t responses{0};
   stat_t servfailResponses{0};
   stat_t queries{0};
+  stat_t frontendNXDomain{0};
+  stat_t frontendServFail{0};
+  stat_t frontendNoError{0};
   stat_t nonCompliantQueries{0};
   stat_t nonCompliantResponses{0};
   stat_t rdQueries{0};
@@ -235,6 +238,9 @@ struct DNSDistStats
     {"responses", &responses},
     {"servfail-responses", &servfailResponses},
     {"queries", &queries},
+    {"frontend-nxdomain", &frontendNXDomain},
+    {"frontend-servfail", &frontendServFail},
+    {"frontend-noerror", &frontendNoError},
     {"acl-drops", &aclDrops},
     {"rule-drop", &ruleDrop},
     {"rule-nxdomain", &ruleNXDomain},
@@ -324,6 +330,9 @@ struct MetricDefinitionStorage {
     { "responses",              MetricDefinition(PrometheusMetricType::counter, "Number of responses received from backends") },
     { "servfail-responses",     MetricDefinition(PrometheusMetricType::counter, "Number of SERVFAIL answers received from backends") },
     { "queries",                MetricDefinition(PrometheusMetricType::counter, "Number of received queries")},
+    { "frontend-nxdomain",      MetricDefinition(PrometheusMetricType::counter, "Number of NXDomain answers sent to clients")},
+    { "frontend-servfail",      MetricDefinition(PrometheusMetricType::counter, "Number of SERVFAIL answers sent to clients")},
+    { "frontend-noerror",       MetricDefinition(PrometheusMetricType::counter, "Number of NoError answers sent to clients")},
     { "acl-drops",              MetricDefinition(PrometheusMetricType::counter, "Number of packets dropped because of the ACL")},
     { "rule-drop",              MetricDefinition(PrometheusMetricType::counter, "Number of queries dropped because of a rule")},
     { "rule-nxdomain",          MetricDefinition(PrometheusMetricType::counter, "Number of NXDomain answers returned because of a rule")},
