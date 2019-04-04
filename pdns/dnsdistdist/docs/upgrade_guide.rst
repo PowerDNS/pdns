@@ -1,6 +1,11 @@
 Upgrade Guide
 =============
 
+1.3.x to 1.4.0
+--------------
+
+:func:`addLuaAction` and :func:`addLuaResponseAction` have been removed. Instead, use :func:`addAction` with a :func:`LuaAction`, or :func:`addResponseAction` with a :func:`LuaResponseAction`.
+
 1.3.2 to 1.3.3
 --------------
 

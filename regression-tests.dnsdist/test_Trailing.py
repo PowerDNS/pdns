@@ -20,7 +20,7 @@ class TestTrailingDataToBackend(DNSDistTest):
         end
         return DNSAction.None, ""
     end
-    addLuaAction("added.trailing.tests.powerdns.com.", replaceTrailingData)
+    addAction("added.trailing.tests.powerdns.com.", LuaAction(replaceTrailingData))
 
     function fillBuffer(dq)
         local available = dq.size - dq.len
@@ -31,7 +31,7 @@ class TestTrailingDataToBackend(DNSDistTest):
         end
         return DNSAction.None, ""
     end
-    addLuaAction("max.trailing.tests.powerdns.com.", fillBuffer)
+    addAction("max.trailing.tests.powerdns.com.", LuaAction(fillBuffer))
 
     function exceedBuffer(dq)
         local available = dq.size - dq.len
@@ -42,7 +42,7 @@ class TestTrailingDataToBackend(DNSDistTest):
         end
         return DNSAction.None, ""
     end
-    addLuaAction("limited.trailing.tests.powerdns.com.", exceedBuffer)
+    addAction("limited.trailing.tests.powerdns.com.", LuaAction(exceedBuffer))
     """
     @classmethod
     def startResponders(cls):
@@ -183,13 +183,13 @@ class TestTrailingDataToDnsdist(DNSDistTest):
         end
         return DNSAction.None, ""
     end
-    addLuaAction("removed.trailing.tests.powerdns.com.", removeTrailingData)
+    addAction("removed.trailing.tests.powerdns.com.", LuaAction(removeTrailingData))
 
     function reportTrailingData(dq)
         local tail = dq:getTrailingData()
         return DNSAction.Spoof, "-" .. tail .. ".echoed.trailing.tests.powerdns.com."
     end
-    addLuaAction("echoed.trailing.tests.powerdns.com.", reportTrailingData)
+    addAction("echoed.trailing.tests.powerdns.com.", LuaAction(reportTrailingData))
 
     function replaceTrailingData(dq)
         local success = dq:setTrailingData("ABC")
@@ -198,8 +198,8 @@ class TestTrailingDataToDnsdist(DNSDistTest):
         end
         return DNSAction.None, ""
     end
-    addLuaAction("replaced.trailing.tests.powerdns.com.", replaceTrailingData)
-    addLuaAction("replaced.trailing.tests.powerdns.com.", reportTrailingData)
+    addAction("replaced.trailing.tests.powerdns.com.", LuaAction(replaceTrailingData))
+    addAction("replaced.trailing.tests.powerdns.com.", LuaAction(reportTrailingData))
 
     function reportTrailingHex(dq)
         local tail = dq:getTrailingData()
@@ -208,7 +208,7 @@ class TestTrailingDataToDnsdist(DNSDistTest):
         end)
         return DNSAction.Spoof, "-0x" .. hex .. ".echoed-hex.trailing.tests.powerdns.com."
     end
-    addLuaAction("echoed-hex.trailing.tests.powerdns.com.", reportTrailingHex)
+    addAction("echoed-hex.trailing.tests.powerdns.com.", LuaAction(reportTrailingHex))
 
     function replaceTrailingData_unsafe(dq)
         local success = dq:setTrailingData("\\xB0\\x00\\xDE\\xADB\\xF0\\x9F\\x91\\xBB\\xC3\\xBE")
@@ -217,8 +217,8 @@ class TestTrailingDataToDnsdist(DNSDistTest):
         end
         return DNSAction.None, ""
     end
-    addLuaAction("replaced-unsafe.trailing.tests.powerdns.com.", replaceTrailingData_unsafe)
-    addLuaAction("replaced-unsafe.trailing.tests.powerdns.com.", reportTrailingHex)
+    addAction("replaced-unsafe.trailing.tests.powerdns.com.", LuaAction(replaceTrailingData_unsafe))
+    addAction("replaced-unsafe.trailing.tests.powerdns.com.", LuaAction(reportTrailingHex))
     """
 
     def testTrailingDropped(self):

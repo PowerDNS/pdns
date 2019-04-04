@@ -66,7 +66,7 @@ class TestEDNSOptions(EDNSOptionsBase):
     _config_template = """
     %s
 
-    addLuaAction(AllRule(), testEDNSOptions)
+    addAction(AllRule(), LuaAction(testEDNSOptions))
 
     newServer{address="127.0.0.1:%s"}
     """
@@ -253,7 +253,7 @@ class TestEDNSOptionsAddingECS(EDNSOptionsBase):
     _config_template = """
     %s
 
-    addLuaAction(AllRule(), testEDNSOptions)
+    addAction(AllRule(), LuaAction(testEDNSOptions))
 
     newServer{address="127.0.0.1:%s", useClientSubnet=true}
     """
