@@ -233,7 +233,7 @@ bool DNSDistPacketCache::get(const DNSQuestion& dq, uint16_t consumed, uint16_t 
     }
 
     const CacheValue& value = it->second;
-    if (value.validity < now) {
+    if (value.validity <= now) {
       if ((now - value.validity) >= static_cast<time_t>(allowExpired)) {
         d_misses++;
         return false;
@@ -314,7 +314,7 @@ size_t DNSDistPacketCache::purgeExpired(size_t upTo)
     for(auto it = map.begin(); toRemove > 0 && it != map.end(); ) {
       const CacheValue& value = it->second;
 
-      if (value.validity < now) {
+      if (value.validity <= now) {
         it = map.erase(it);
         --toRemove;
         d_shards[shardIndex].d_entriesCount--;
