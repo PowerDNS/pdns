@@ -313,6 +313,7 @@ pdnsutil_SOURCES = \
 	ednsoptions.cc ednsoptions.hh \
 	ednssubnet.cc \
 	gss_context.cc gss_context.hh \
+	ipcipher.cc ipcipher.hh \
 	iputils.cc iputils.hh \
 	json.cc \
 	logger.cc \
@@ -350,7 +351,8 @@ pdnsutil_LDADD = \
 	$(JSON11_LIBS) \
 	$(LIBDL) \
 	$(BOOST_PROGRAM_OPTIONS_LIBS) \
-	$(LIBCRYPTO_LIBS)
+	$(LIBCRYPTO_LIBS) \
+	$(IPCRYPT_LIBS)
 
 if LIBSODIUM
 pdnsutil_SOURCES += sodiumsigners.cc
@@ -882,18 +884,22 @@ speedtest_LDADD = $(LIBCRYPTO_LIBS) \
 	$(RT_LIBS)
 
 dnswasher_SOURCES = \
+	base64.cc \
 	dnslabeltext.cc \
 	dnsname.hh dnsname.cc \
 	dnsparser.hh \
 	dnspcap.cc dnspcap.hh \
 	dnswasher.cc \
 	dnswriter.hh \
+	ipcipher.cc ipcipher.hh \
 	logger.cc \
 	misc.cc \
 	qtype.cc \
 	statbag.cc \
 	unix_utility.cc
 
+dnswasher_LDFLAGS = 	$(AM_LDFLAGS) $(BOOST_PROGRAM_OPTIONS_LDFLAGS) $(LIBCRYPTO_LDFLAGS)
+dnswasher_LDADD = 	$(BOOST_PROGRAM_OPTIONS_LIBS) $(LIBCRYPTO_LIBS) $(IPCRYPT_LIBS)
 
 dnsbulktest_SOURCES = \
 	base32.cc \
@@ -1274,6 +1280,7 @@ testrunner_SOURCES = \
 	ednssubnet.cc \
 	gettime.cc gettime.hh \
 	gss_context.cc gss_context.hh \
+	ipcipher.cc ipcipher.hh \
 	iputils.cc \
 	ixfr.cc ixfr.hh \
 	logger.cc \
@@ -1303,6 +1310,7 @@ testrunner_SOURCES = \
 	test-dnsparser_cc.cc \
 	test-dnsparser_hh.cc \
 	test-dnsrecords_cc.cc \
+	test-ipcrypt_cc.cc \
 	test-iputils_hh.cc \
 	test-ixfr_cc.cc \
 	test-lock_hh.cc \
@@ -1334,7 +1342,8 @@ testrunner_LDADD = \
 	$(BOOST_UNIT_TEST_FRAMEWORK_LIBS) \
 	$(RT_LIBS) \
 	$(LUA_LIBS) \
-	$(LIBDL)
+	$(LIBDL) \
+	$(IPCRYPT_LIBS)
 
 if PKCS11
 testrunner_SOURCES += pkcs11signers.cc pkcs11signers.hh

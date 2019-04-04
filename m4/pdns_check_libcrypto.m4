@@ -90,6 +90,10 @@ AC_DEFUN([PDNS_CHECK_LIBCRYPTO], [
         # it will just work!
     fi
 
+    if $found; then
+        AC_DEFINE([HAVE_LIBCRYPTO], [1], [Define to 1 if you have OpenSSL libcrypto])
+    fi
+
     # try the preprocessor and linker with our new flags,
     # being careful not to pollute the global LIBS, LDFLAGS, and CPPFLAGS
 
@@ -120,4 +124,5 @@ AC_DEFUN([PDNS_CHECK_LIBCRYPTO], [
     AC_SUBST([LIBCRYPTO_INCLUDES])
     AC_SUBST([LIBCRYPTO_LIBS])
     AC_SUBST([LIBCRYPTO_LDFLAGS])
+    AM_CONDITIONAL([HAVE_LIBCRYPTO], [test "x$LIBCRYPTO_LIBS" != "x"])
 ])

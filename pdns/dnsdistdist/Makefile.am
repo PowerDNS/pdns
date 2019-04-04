@@ -2,7 +2,8 @@ AM_CPPFLAGS += $(SYSTEMD_CFLAGS) $(LUA_CFLAGS) $(LIBEDIT_CFLAGS) $(LIBSODIUM_CFL
 
 ACLOCAL_AMFLAGS = -I m4
 
-SUBDIRS=ext/yahttp
+SUBDIRS=ext/ipcrypt \
+	ext/yahttp
 
 CLEANFILES = \
 	dnsmessage.pb.cc \
@@ -166,10 +167,16 @@ dnsdist_LDADD = \
 	$(SANITIZER_FLAGS) \
 	$(SYSTEMD_LIBS) \
 	$(NET_SNMP_LIBS) \
-	$(LIBCAP_LIBS)
+	$(LIBCAP_LIBS) \
+	$(IPCRYPT_LIBS)
 
 if HAVE_RE2
 dnsdist_LDADD += $(RE2_LIBS)
+endif
+
+if HAVE_LIBCRYPTO
+dnsdist_LDADD += $(LIBCRYPTO_LIBS)
+dnsdist_SOURCES += ipcipher.cc ipcipher.hh
 endif
 
 if HAVE_DNS_OVER_TLS
@@ -178,7 +185,7 @@ dnsdist_LDADD += -lgnutls
 endif
 
 if HAVE_LIBSSL
-dnsdist_LDADD += $(LIBSSL_LIBS) $(LIBCRYPTO_LIBS)
+dnsdist_LDADD += $(LIBSSL_LIBS)
 endif
 endif
 

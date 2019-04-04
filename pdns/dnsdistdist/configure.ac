@@ -51,6 +51,8 @@ AM_CONDITIONAL([HAVE_SYSTEMD], [ test x"$systemd" = "xy" ])
 
 AC_SUBST([YAHTTP_CFLAGS], ['-I$(top_srcdir)/ext/yahttp'])
 AC_SUBST([YAHTTP_LIBS], ['$(top_builddir)/ext/yahttp/yahttp/libyahttp.la'])
+AC_SUBST([IPCRYPT_CFLAGS], ['-I$(top_srcdir)/ext/ipcrypt'])
+AC_SUBST([IPCRYPT_LIBS], ['$(top_builddir)/ext/ipcrypt/libipcrypt.la'])
 
 PDNS_WITH_LUA([mandatory])
 AS_IF([test "x$LUAPC" = "xluajit"], [
@@ -62,14 +64,14 @@ PDNS_CHECK_LUA_HPP
 
 AM_CONDITIONAL([HAVE_GNUTLS], [false])
 AM_CONDITIONAL([HAVE_LIBSSL], [false])
+
+PDNS_CHECK_LIBCRYPTO
+
 DNSDIST_ENABLE_DNS_OVER_TLS
+
 AS_IF([test "x$enable_dns_over_tls" != "xno"], [
   DNSDIST_WITH_GNUTLS
   DNSDIST_WITH_LIBSSL
-  AS_IF([test "$HAVE_LIBSSL" = "1"], [
-    # we need libcrypto if libssl is enabled
-    PDNS_CHECK_LIBCRYPTO
-  ])
   AS_IF([test "$HAVE_GNUTLS" = "0" -a "$HAVE_LIBSSL" = "0"], [
     AC_MSG_ERROR([DNS over TLS support requested but neither GnuTLS nor OpenSSL are available])
   ])
@@ -115,8 +117,9 @@ AS_IF([test "x$PACKAGEVERSION" != "x"],
 )
 
 AC_CONFIG_FILES([Makefile
-	ext/yahttp/Makefile
-	ext/yahttp/yahttp/Makefile])
+        ext/yahttp/Makefile
+        ext/yahttp/yahttp/Makefile
+        ext/ipcrypt/Makefile])
 
 AC_OUTPUT
 
@@ -150,6 +153,10 @@ AS_IF([test "x$PROTOBUF_LIBS" != "x" -a x"$PROTOC" != "x"],
 AS_IF([test "x$systemd" != "xn"],
   [AC_MSG_NOTICE([systemd: yes])],
   [AC_MSG_NOTICE([systemd: no])]
+)
+AS_IF([test "x$LIBCRYPTO_LIBS" != "x"],
+  [AC_MSG_NOTICE([ipcipher: yes])],
+  [AC_MSG_NOTICE([ipcipher: no])]
 )
 AS_IF([test "x$LIBSODIUM_LIBS" != "x"],
   [AC_MSG_NOTICE([libsodium: yes])],

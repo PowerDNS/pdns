@@ -232,6 +232,14 @@ bench-db [*FILE*]
     *FILE* can be a file with a list, one per line, of domain names to use for this.
     If *FILE* is not specified, powerdns.com is used.
 
+OTHER TOOLS
+-----------
+ipencrypt *IP-ADDRESS* passsword
+    Encrypt an IP address according to the 'ipcipher' standard
+
+ipdecrypt *IP-ADDRESS* passsword
+    Encrypt an IP address according to the 'ipcipher' standard
+
 See also
 --------
 
