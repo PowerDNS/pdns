@@ -103,6 +103,7 @@ dnsdist_SOURCES = \
 	dnsdist-lua-bindings.cc \
 	dnsdist-lua-bindings-dnsquestion.cc \
 	dnsdist-lua-inspection.cc \
+	dnsdist-lua-inspection-ffi.cc dnsdist-lua-inspection-ffi.hh \
 	dnsdist-lua-rules.cc \
 	dnsdist-lua-vars.cc \
 	dnsdist-protobuf.cc dnsdist-protobuf.hh \
@@ -254,6 +255,7 @@ testrunner_SOURCES = \
 	sholder.hh \
 	sodcrypto.cc \
 	sstuff.hh \
+	statnode.cc statnode.hh \
 	threadname.hh threadname.cc \
 	testrunner.cc \
 	xpf.cc xpf.hh
