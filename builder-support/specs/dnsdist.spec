@@ -73,6 +73,7 @@ sed -i '/^ExecStart/ s/dnsdist/dnsdist -u dnsdist -g dnsdist/' dnsdist.service.i
 
 %build
 %configure \
+  --enable-option-checking=fatal \
   --sysconfdir=/etc/dnsdist \
   --disable-static \
   --disable-dependency-tracking \

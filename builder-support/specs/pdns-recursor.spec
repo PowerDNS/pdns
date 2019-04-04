@@ -64,6 +64,7 @@ package if you need a dns cache for your network.
 
 %build
 %configure \
+    --enable-option-checking=fatal \
     --sysconfdir=%{_sysconfdir}/%{name} \
     --with-libsodium \
     --with-netsnmp \

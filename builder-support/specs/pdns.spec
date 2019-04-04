@@ -205,6 +205,7 @@ This package contains the ixfrdist program.
 export CPPFLAGS="-DLDAP_DEPRECATED"
 
 %configure \
+  --enable-option-checking=fatal \
   --sysconfdir=%{_sysconfdir}/%{name} \
   --disable-static \
   --disable-dependency-tracking \
