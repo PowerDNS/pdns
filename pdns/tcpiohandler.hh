@@ -202,6 +202,10 @@ public:
   */
   IOState tryRead(std::vector<uint8_t>& buffer, size_t& pos, size_t toRead)
   {
+    if (buffer.size() < (pos + toRead)) {
+      throw std::out_of_range("Calling tryRead() with a too small buffer (" + std::to_string(buffer.size()) + ") for a read of " + std::to_string(toRead) + " bytes starting at " + std::to_string(pos));
+    }
+
     if (d_conn) {
       return d_conn->tryRead(buffer, pos, toRead);
     }
