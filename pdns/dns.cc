@@ -69,6 +69,69 @@ std::string ERCode::to_s(uint8_t rcode) {
   return RCode::rcodes_s[rcode];
 }
 
+
+static std::vector<std::string> noerror_info_codes = boost::assign::list_of
+  ("")
+  ("Unsupported DNSKEY Algorithm")
+  ("Unsupported DS Algorithm")
+  ("Stale Answer")
+  ("Forged answer")
+  ("DNSSEC Indeterminate")
+;
+
+static std::vector<std::string> formerr_info_codes = boost::assign::list_of
+  ("")
+;
+
+static std::vector<std::string> servfail_info_codes = boost::assign::list_of
+  ("")
+  ("DNSSEC Bogus")
+  ("Signature Expired")
+  ("Signature Not Yet Valid")
+  ("DNSKEY missing")
+  ("RRSIGs missing")
+  ("No Zone Key Bit Set")
+  ("No Reachable Authority")
+  ("NSEC Missing")
+  ("Cached Error")
+  ("Not Ready")
+;
+
+static std::vector<std::string> nxdomain_info_codes = boost::assign::list_of
+  ("")
+  ("Blocked")
+  ("Censored")
+  ("Stale Answer")
+;
+
+static std::vector<std::string> notimp_info_codes = boost::assign::list_of
+  ("")
+  ("Deprecated")
+;
+
+static std::vector<std::string> refused_info_codes = boost::assign::list_of
+  ("")
+  ("Lame")
+  ("Prohibited")
+;
+
+std::vector< std::vector<std::string> > ExErrInfoCode::exerrinfocodes_s = boost::assign::list_of
+  (noerror_info_codes)
+  (formerr_info_codes)
+  (servfail_info_codes)
+  (nxdomain_info_codes)
+  (notimp_info_codes)
+  (refused_info_codes)
+;
+
+// The meaning of info_code depends on which rcode it is for.
+std::string ExErrInfoCode::to_s(uint8_t rcode, uint16_t info_code) {
+  if ((rcode >= ExErrInfoCode::exerrinfocodes_s.size()) || (info_code >= ExErrInfoCode::exerrinfocodes_s[rcode].size())) {
+    return std::string("ExErrInfoCode#")+std::to_string(rcode)+std::string(".")+std::to_string(info_code);
+  }
+  return ExErrInfoCode::exerrinfocodes_s[rcode][info_code];
+}
+
 class BoundsCheckingPointer
 {
 public:

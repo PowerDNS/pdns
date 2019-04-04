@@ -67,6 +67,16 @@ public:
   static std::string to_s(uint8_t rcode);
 };
 
+// In principle we can use a "struct" instead of a "class" here, since
+// in C++ a struct is just a class where all members default to
+// public. But since the other definitions use class, we will too.
+class ExErrInfoCode
+{
+public:
+  static std::string to_s(uint8_t rcode, uint16_t info_code);
+  static std::vector<std::vector<std::string>> exerrinfocodes_s;
+};
+
 class Opcode
 {
 public:
