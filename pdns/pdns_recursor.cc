@@ -3652,6 +3652,7 @@ int main(int argc, char **argv)
     ::arg().setSwitch("log-rpz-changes", "Log additions and removals to RPZ zones at Info level")="no";
 
     ::arg().set("distribution-load-factor", "The load factor used when PowerDNS is distributing queries to worker threads")="0.0";
+    ::arg().setSwitch("disable-real-memory-usage", "Disable expensive real-memory-usage metric")= "no";
 
     ::arg().setCmd("help","Provide a helpful message");
     ::arg().setCmd("version","Print version string");

@@ -884,6 +884,10 @@ uint64_t doGetMallocated()
   return 0;
 }
 
+uint64_t getFakeMemoryUsage(const std::string&) {
+  return 0;
+}
+
 extern ResponseStats g_rs;
 
 void registerAllStats()
@@ -1005,7 +1009,11 @@ void registerAllStats()
   addGetStat("noedns-outqueries", &g_stats.noEdnsOutQueries);
 
   addGetStat("uptime", calculateUptime);
-  addGetStat("real-memory-usage", boost::bind(getRealMemoryUsage, string()));
+  if (::arg().mustDo("disable-real-memory-usage"))
+    addGetStat("real-memory-usage", boost::bind(getFakeMemoryUsage, string()));
+  else
+    addGetStat("real-memory-usage", boost::bind(getRealMemoryUsage, string()));
+
   addGetStat("fd-usage", boost::bind(getOpenFileDescriptors, string()));  
 
   //  addGetStat("query-rate", getQueryRate);
