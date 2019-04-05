@@ -72,6 +72,7 @@ AuthWebServer::AuthWebServer() :
     d_ws = new WebServer(arg()["webserver-address"], arg().asNum("webserver-port"));
     d_ws->setApiKey(arg()["api-key"]);
     d_ws->setPassword(arg()["webserver-password"]);
+    d_ws->setLogLevel(arg()["webserver-loglevel"]);
 
     NetmaskGroup acl;
     acl.toMasks(::arg()["webserver-allow-from"]);
@@ -282,9 +283,10 @@ void AuthWebServer::indexfunction(HttpRequest* req, HttpResponse* resp)
 
   ret<<"Total queries: "<<S.read("udp-queries")<<". Question/answer latency: "<<S.read("latency")/1000.0<<"ms</p><br>"<<endl;
   if(req->getvars["ring"].empty()) {
-    vector<string>entries=S.listRings();
-    for(vector<string>::const_iterator i=entries.begin();i!=entries.end();++i)
-      printtable(ret,*i,S.getRingTitle(*i));
+    auto entries = S.listRings();
+    for(const auto &i: entries) {
+      printtable(ret, i, S.getRingTitle(i));
+    }
 
     printvars(ret);
     if(arg().mustDo("webserver-print-arguments"))
@@ -501,6 +503,17 @@ void productServerStatisticsFetch(map<string,string>& out)
 
   // add uptime
   out["uptime"] = std::to_string(time(0) - s_starttime);
+}
+
+boost::optional<uint64_t> productServerStatisticsFetch(const std::string& name)
+{
+  try {
+    // ::read() calls ::exists() which throws a PDNSException when the key does not exist
+    return S.read(name);
+  }
+  catch(...) {
+    return boost::none;
+  }
 }
 
 static void validateGatheredRRType(const DNSResourceRecord& rr) {
@@ -1695,6 +1708,11 @@ static void apiServerZoneDetail(HttpRequest* req, HttpResponse* resp) {
     // delete domain
     if(!di.backend->deleteDomain(zonename))
       throw ApiException("Deleting domain '"+zonename.toString()+"' failed: backend delete failed/unsupported");
+
+    // clear caches
+    DNSSECKeeper dk(&B);
+    dk.clearCaches(zonename);
+    purgeAuthCaches(zonename.toString() + "$");
 
     // empty body on success
     resp->body = "";

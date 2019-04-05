@@ -67,6 +67,18 @@ fd-usage
 --------
 Number of currently used file descriptors.
 
+frontend-noerror
+----------------
+Number of NoError answers sent to clients.
+
+frontend-nxdomain
+-----------------
+Number of NXDomain answers sent to clients.
+
+frontend-servfail
+-----------------
+Number of ServFail answers sent to clients.
+
 latency-avg100
 --------------
 Average response latency in microseconds of the last 100 packets

@@ -155,19 +155,14 @@ class TestCaching(DNSDistTest):
         response.answer.append(rrset)
 
         for _ in range(numberOfQueries):
-            (receivedQuery, receivedResponse) = self.sendUDPQuery(query, response)
-            self.assertTrue(receivedQuery)
-            self.assertTrue(receivedResponse)
-            receivedQuery.id = query.id
-            self.assertEquals(query, receivedQuery)
-            self.assertEquals(receivedResponse, response)
-
-            (receivedQuery, receivedResponse) = self.sendTCPQuery(query, response)
-            self.assertTrue(receivedQuery)
-            self.assertTrue(receivedResponse)
-            receivedQuery.id = query.id
-            self.assertEquals(query, receivedQuery)
-            self.assertEquals(receivedResponse, response)
+            for method in ("sendUDPQuery", "sendTCPQuery"):
+                sender = getattr(self, method)
+                (receivedQuery, receivedResponse) = sender(query, response)
+                self.assertTrue(receivedQuery)
+                self.assertTrue(receivedResponse)
+                receivedQuery.id = query.id
+                self.assertEquals(query, receivedQuery)
+                self.assertEquals(receivedResponse, response)
 
         for key in self._responsesCounter:
             value = self._responsesCounter[key]
@@ -192,19 +187,14 @@ class TestCaching(DNSDistTest):
         response.answer.append(rrset)
 
         for _ in range(numberOfQueries):
-            (receivedQuery, receivedResponse) = self.sendUDPQuery(query, response)
-            self.assertTrue(receivedQuery)
-            self.assertTrue(receivedResponse)
-            receivedQuery.id = query.id
-            self.assertEquals(query, receivedQuery)
-            self.assertEquals(receivedResponse, response)
-
-            (receivedQuery, receivedResponse) = self.sendTCPQuery(query, response)
-            self.assertTrue(receivedQuery)
-            self.assertTrue(receivedResponse)
-            receivedQuery.id = query.id
-            self.assertEquals(query, receivedQuery)
-            self.assertEquals(receivedResponse, response)
+            for method in ("sendUDPQuery", "sendTCPQuery"):
+                sender = getattr(self, method)
+                (receivedQuery, receivedResponse) = sender(query, response)
+                self.assertTrue(receivedQuery)
+                self.assertTrue(receivedResponse)
+                receivedQuery.id = query.id
+                self.assertEquals(query, receivedQuery)
+                self.assertEquals(receivedResponse, response)
 
         for key in self._responsesCounter:
             value = self._responsesCounter[key]
@@ -609,7 +599,7 @@ class TestCachingNoStale(DNSDistTest):
         Cache: Cache entry, set backend down, we should not get a stale entry
 
         """
-        ttl = 1
+        ttl = 2
         name = 'nostale.cache.tests.powerdns.com.'
         query = dns.message.make_query(name, 'A', 'IN')
         response = dns.message.make_response(query)
@@ -663,7 +653,7 @@ class TestCachingStale(DNSDistTest):
 
         """
         misses = 0
-        ttl = 1
+        ttl = 2
         name = 'stale.cache.tests.powerdns.com.'
         query = dns.message.make_query(name, 'A', 'IN')
         response = dns.message.make_response(query)
@@ -729,7 +719,7 @@ class TestCachingStaleExpunged(DNSDistTest):
         """
         misses = 0
         drops = 0
-        ttl = 1
+        ttl = 2
         name = 'stale-but-expunged.cache.tests.powerdns.com.'
         query = dns.message.make_query(name, 'A', 'IN')
         response = dns.message.make_response(query)
@@ -803,7 +793,7 @@ class TestCachingStaleExpungePrevented(DNSDistTest):
         Cache: Cache entry, set backend down, wait for the cache cleaning to run and remove the entry, still get a cache HIT because the stale entry was not removed
         """
         misses = 0
-        ttl = 1
+        ttl = 2
         name = 'stale-not-expunged.cache.tests.powerdns.com.'
         query = dns.message.make_query(name, 'A', 'IN')
         response = dns.message.make_response(query)
@@ -1578,7 +1568,7 @@ class TestCachingNegativeTTL(DNSDistTest):
 
         time.sleep(self._negCacheTTL + 1)
 
-        # we should not have cached for longer than the negativel TTL
+        # we should not have cached for longer than the negative TTL
         # so it should be a miss
         (receivedQuery, receivedResponse) = self.sendUDPQuery(query, response)
         self.assertTrue(receivedQuery)
@@ -1730,38 +1720,30 @@ class TestCachingECSWithoutPoolECS(DNSDistTest):
         response.answer.append(rrset)
 
         # first query to fill the cache
-        (receivedQuery, receivedResponse) = self.sendUDPQuery(query, response)
-        self.assertTrue(receivedQuery)
-        self.assertTrue(receivedResponse)
-        receivedQuery.id = query.id
-        self.assertEquals(query, receivedQuery)
-        self.assertEquals(receivedResponse, response)
-        (receivedQuery, receivedResponse) = self.sendTCPQuery(query, response)
-        self.assertTrue(receivedQuery)
-        self.assertTrue(receivedResponse)
-        receivedQuery.id = query.id
-        self.assertEquals(query, receivedQuery)
-        self.assertEquals(receivedResponse, response)
+        for method in ("sendUDPQuery", "sendTCPQuery"):
+            sender = getattr(self, method)
+            (receivedQuery, receivedResponse) = sender(query, response)
+            self.assertTrue(receivedQuery)
+            self.assertTrue(receivedResponse)
+            receivedQuery.id = query.id
+            self.assertEquals(query, receivedQuery)
+            self.assertEquals(receivedResponse, response)
 
         # next queries should hit the cache
-        (_, receivedResponse) = self.sendUDPQuery(query, response=None, useQueue=False)
-        self.assertEquals(receivedResponse, response)
-
-        # over TCP too
-        (_, receivedResponse) = self.sendTCPQuery(query, response=None, useQueue=False)
-        self.assertEquals(receivedResponse, response)
+        for method in ("sendUDPQuery", "sendTCPQuery"):
+            sender = getattr(self, method)
+            (_, receivedResponse) = sender(query, response=None, useQueue=False)
+            self.assertEquals(receivedResponse, response)
 
         # we mark the backend as down
         self.sendConsoleCommand("getServer(0):setDown()")
 
         # we should NOT get a cached entry since it has ECS and we haven't asked the pool
         # to add ECS when no backend is up
-        (_, receivedResponse) = self.sendUDPQuery(query, response=None, useQueue=False)
-        self.assertEquals(receivedResponse, None)
-
-        # same over TCP
-        (_, receivedResponse) = self.sendTCPQuery(query, response=None, useQueue=False)
-        self.assertEquals(receivedResponse, None)
+        for method in ("sendUDPQuery", "sendTCPQuery"):
+            sender = getattr(self, method)
+            (_, receivedResponse) = sender(query, response=None, useQueue=False)
+            self.assertEquals(receivedResponse, None)
 
 class TestCachingECSWithPoolECS(DNSDistTest):
 
@@ -1794,38 +1776,30 @@ class TestCachingECSWithPoolECS(DNSDistTest):
         response.answer.append(rrset)
 
         # first query to fill the cache
-        (receivedQuery, receivedResponse) = self.sendUDPQuery(query, response)
-        self.assertTrue(receivedQuery)
-        self.assertTrue(receivedResponse)
-        receivedQuery.id = query.id
-        self.assertEquals(query, receivedQuery)
-        self.assertEquals(receivedResponse, response)
-        (receivedQuery, receivedResponse) = self.sendTCPQuery(query, response)
-        self.assertTrue(receivedQuery)
-        self.assertTrue(receivedResponse)
-        receivedQuery.id = query.id
-        self.assertEquals(query, receivedQuery)
-        self.assertEquals(receivedResponse, response)
+        for method in ("sendUDPQuery", "sendTCPQuery"):
+            sender = getattr(self, method)
+            (receivedQuery, receivedResponse) = sender(query, response)
+            self.assertTrue(receivedQuery)
+            self.assertTrue(receivedResponse)
+            receivedQuery.id = query.id
+            self.assertEquals(query, receivedQuery)
+            self.assertEquals(receivedResponse, response)
 
         # next queries should hit the cache
-        (_, receivedResponse) = self.sendUDPQuery(query, response=None, useQueue=False)
-        self.assertEquals(receivedResponse, response)
-
-        # over TCP too
-        (_, receivedResponse) = self.sendTCPQuery(query, response=None, useQueue=False)
-        self.assertEquals(receivedResponse, response)
+        for method in ("sendUDPQuery", "sendTCPQuery"):
+            sender = getattr(self, method)
+            (_, receivedResponse) = sender(query, response=None, useQueue=False)
+            self.assertEquals(receivedResponse, response)
 
         # we mark the backend as down
         self.sendConsoleCommand("getServer(0):setDown()")
 
         # we should STILL get a cached entry since it has ECS and we have asked the pool
         # to add ECS when no backend is up
-        (_, receivedResponse) = self.sendUDPQuery(query, response=None, useQueue=False)
-        self.assertEquals(receivedResponse, response)
-
-        # same over TCP
-        (_, receivedResponse) = self.sendTCPQuery(query, response=None, useQueue=False)
-        self.assertEquals(receivedResponse, response)
+        for method in ("sendUDPQuery", "sendTCPQuery"):
+            sender = getattr(self, method)
+            (_, receivedResponse) = sender(query, response=None, useQueue=False)
+            self.assertEquals(receivedResponse, response)
 
 class TestCachingCollisionNoECSParsing(DNSDistTest):
 

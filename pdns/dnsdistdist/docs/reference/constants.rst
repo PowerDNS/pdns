@@ -16,15 +16,15 @@ OPCode
 
 Reference: https://www.iana.org/assignments/dns-parameters/dns-parameters.xhtml#dns-parameters-5
 
-.. _DNSQClass:
+.. _DNSClass:
 
-QClass
+DNSClass
 ------
 
-- ``QClass.IN``
-- ``QClass.CHAOS``
-- ``QClass.NONE``
-- ``QClass.ANY``
+- ``DNSClass.IN``
+- ``DNSClass.CHAOS``
+- ``DNSClass.NONE``
+- ``DNSClass.ANY``
 
 Reference: https://www.iana.org/assignments/dns-parameters/dns-parameters.xhtml#dns-parameters-2
 
@@ -93,7 +93,7 @@ DNS Section
 DNSAction
 ---------
 
-These constants represent an Action that can be returned from the functions invoked by :func:`addLuaAction`.
+These constants represent an Action that can be returned from :func:`LuaAction` functions.
 
  * ``DNSAction.Allow``: let the query pass, skipping other rules
  * ``DNSAction.Delay``: delay the response for the specified milliseconds (UDP-only), continue to the next rule
@@ -115,7 +115,7 @@ These constants represent an Action that can be returned from the functions invo
 DNSResponseAction
 -----------------
 
-These constants represent an Action that can be returned from the functions invoked by :func:`addLuaResponseAction`.
+These constants represent an Action that can be returned from :func:`LuaResponseAction` functions.
 
  * ``DNSResponseAction.Allow``: let the response pass, skipping other rules
  * ``DNSResponseAction.Delay``: delay the response for the specified milliseconds (UDP-only), continue to the next rule

@@ -25,7 +25,11 @@ about.
 Options
 -------
 
-None
+--decrypt,-d             Undo IPCipher encryption of IP addresses
+--help, -h               Show summary of options.
+--key,-k                 Base64 encoded 128-bit key for IPCipher
+--passphrase,-p          Passphrase that will be used to derive an IPCipher key
+--version,-v             Output version
 
 See also
 --------

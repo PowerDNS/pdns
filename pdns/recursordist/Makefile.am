@@ -242,6 +242,7 @@ testrunner_SOURCES = \
 	nsecrecords.cc \
 	pdnsexception.hh \
 	opensslsigners.cc opensslsigners.hh \
+	pollmplexer.cc \
 	protobuf.cc protobuf.hh \
 	qtype.cc qtype.hh \
 	rcpgenerator.cc \
@@ -270,6 +271,7 @@ testrunner_SOURCES = \
 	test-ixfr_cc.cc \
 	test-misc_hh.cc \
 	test-mtasker.cc \
+	test-mplexer.cc \
 	test-negcache_cc.cc \
 	test-packetcache_hh.cc \
 	test-rcpgenerator_cc.cc \
@@ -342,14 +344,19 @@ endif
 
 if HAVE_FREEBSD
 pdns_recursor_SOURCES += kqueuemplexer.cc
+testrunner_SOURCES += kqueuemplexer.cc
 endif
 
 if HAVE_LINUX
 pdns_recursor_SOURCES += epollmplexer.cc
+testrunner_SOURCES += epollmplexer.cc
 endif
 
 if HAVE_SOLARIS
 pdns_recursor_SOURCES += \
+	devpollmplexer.cc \
+	portsmplexer.cc
+testrunner_SOURCES += \
 	devpollmplexer.cc \
 	portsmplexer.cc
 endif

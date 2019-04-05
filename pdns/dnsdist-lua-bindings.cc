@@ -23,6 +23,7 @@
 #include <sys/stat.h>
 #include <sys/types.h>
 
+#include "config.h"
 #include "dnsdist.hh"
 #include "dnsdist-lua.hh"
 #include "dnsdist-protobuf.hh"
@@ -31,6 +32,10 @@
 #include "dolog.hh"
 #include "fstrm_logger.hh"
 #include "remote_logger.hh"
+
+#ifdef HAVE_LIBCRYPTO
+#include "ipcipher.hh"
+#endif /* HAVE_LIBCRYPTO */
 
 void setupLuaBindings(bool client)
 {
@@ -165,6 +170,19 @@ void setupLuaBindings(bool client)
   g_lua.registerFunction<bool(ComboAddress::*)()>("isMappedIPv4", [](const ComboAddress& ca) { return ca.isMappedIPv4(); });
   g_lua.registerFunction<ComboAddress(ComboAddress::*)()>("mapToIPv4", [](const ComboAddress& ca) { return ca.mapToIPv4(); });
   g_lua.registerFunction<bool(nmts_t::*)(const ComboAddress&)>("match", [](nmts_t& s, const ComboAddress& ca) { return s.match(ca); });
+
+#ifdef HAVE_LIBCRYPTO
+  g_lua.registerFunction<ComboAddress(ComboAddress::*)(const std::string& key)>("ipencrypt", [](const ComboAddress& ca, const std::string& key) {
+      return encryptCA(ca, key);
+    });
+  g_lua.registerFunction<ComboAddress(ComboAddress::*)(const std::string& key)>("ipdecrypt", [](const ComboAddress& ca, const std::string& key) {
+      return decryptCA(ca, key);
+    });
+
+  g_lua.writeFunction("makeIPCipherKey", [](const std::string& password) {
+      return makeIPCipherKey(password);
+    });
+#endif /* HAVE_LIBCRYPTO */
 
   /* DNSName */
   g_lua.registerFunction("isPartOf", &DNSName::isPartOf);
@@ -659,10 +677,10 @@ void setupLuaBindings(bool client)
   g_lua.registerFunction<size_t(EDNSOptionView::*)()>("count", [](const EDNSOptionView& option) {
       return option.values.size();
     });
-  g_lua.registerFunction<std::vector<std::pair<int, string>>(EDNSOptionView::*)()>("getValues", [] (const EDNSOptionView& option) {
-    std::vector<std::pair<int, string> > values;
+  g_lua.registerFunction<std::vector<string>(EDNSOptionView::*)()>("getValues", [] (const EDNSOptionView& option) {
+    std::vector<string> values;
     for (const auto& value : option.values) {
-      values.push_back(std::make_pair(values.size(), std::string(value.content, value.size)));
+      values.push_back(std::string(value.content, value.size));
     }
     return values;
   });

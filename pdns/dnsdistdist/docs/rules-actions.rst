@@ -151,6 +151,9 @@ Rule Generators
   .. versionchanged:: 1.3.0
     The second argument returned by the ``function`` can be omitted. For earlier releases, simply return an empty string.
 
+  .. deprecated:: 1.4.0
+    Removed in 1.4.0, use :func:`LuaAction` with :func:`addAction` instead.
+
   Invoke a Lua function that accepts a :class:`DNSQuestion`.
   This function works similar to using :func:`LuaAction`.
   The ``function`` should return both a :ref:`DNSAction` and its argument `rule`. The `rule` is used as an argument
@@ -186,6 +189,9 @@ Rule Generators
 
   .. versionchanged:: 1.3.0
     The second argument returned by the ``function`` can be omitted. For earlier releases, simply return an empty string.
+
+  .. deprecated:: 1.4.0
+    Removed in 1.4.0, use :func:`LuaResponseAction` with :func:`addResponseAction` instead.
 
   Invoke a Lua function that accepts a :class:`DNSResponse`.
   This function works similar to using :func:`LuaResponseAction`.
@@ -963,6 +969,9 @@ The following actions exist.
   .. versionchanged:: 1.3.0
     ``options`` optional parameter added.
 
+  .. versionchanged:: 1.3.4
+    ``ipEncryptKey`` optional key added to the options table.
+
   Send the content of this query to a remote logger via Protocol Buffer.
   ``alterFunction`` is a callback, receiving a :class:`DNSQuestion` and a :class:`DNSDistProtoBufMessage`, that can be used to modify the Protocol Buffer content, for example for anonymization purposes
 
@@ -973,11 +982,15 @@ The following actions exist.
   Options:
 
   * ``serverID=""``: str - Set the Server Identity field.
+  * ``ipEncryptKey=""``: str - A key, that can be generated via the :ref:`makeIPCipherKey` function, to encrypt the IP address of the requestor for anonymization purposes. The encryption is done using ipcrypt for IPv4 and a 128-bit AES ECB operation for IPv6.
 
 .. function:: RemoteLogResponseAction(remoteLogger[, alterFunction[, includeCNAME [, options]]])
 
   .. versionchanged:: 1.3.0
     ``options`` optional parameter added.
+
+  .. versionchanged:: 1.3.4
+    ``ipEncryptKey`` optional key added to the options table.
 
   Send the content of this response to a remote logger via Protocol Buffer.
   ``alterFunction`` is the same callback that receiving a :class:`DNSQuestion` and a :class:`DNSDistProtoBufMessage`, that can be used to modify the Protocol Buffer content, for example for anonymization purposes
@@ -992,6 +1005,7 @@ The following actions exist.
   Options:
 
   * ``serverID=""``: str - Set the Server Identity field.
+  * ``ipEncryptKey=""``: str - A key, that can be generated via the :ref:`makeIPCipherKey` function, to encrypt the IP address of the requestor for anonymization purposes. The encryption is done using ipcrypt for IPv4 and a 128-bit AES ECB operation for IPv6.
 
 .. function:: SetECSAction(v4 [, v6])
 

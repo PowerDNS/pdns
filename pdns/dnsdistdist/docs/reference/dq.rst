@@ -231,7 +231,7 @@ EDNSOptionView object
 
   An object that represents the values of a single EDNS option received in a query.
 
-  .. attribute:: EDNSOptionView.count -> int
+  .. method:: EDNSOptionView:count()
 
     The number of values for this EDNS option.
 

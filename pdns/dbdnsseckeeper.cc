@@ -692,7 +692,7 @@ bool DNSSECKeeper::rectifyZone(const DNSName& zone, string& error, string& info,
   }
 
   set<DNSName> nsec3set;
-  if (haveNSEC3 && !narrow) {
+  if (haveNSEC3 && (!narrow || !isOptOut)) {
     for (auto &loopRR: rrs) {
       bool skip=false;
       DNSName shorter = loopRR.qname;
@@ -743,12 +743,12 @@ bool DNSSECKeeper::rectifyZone(const DNSName& zone, string& error, string& info,
 
     if(haveNSEC3) // NSEC3
     {
-      if(!narrow && nsec3set.count(qname)) {
-        ordername=DNSName(toBase32Hex(hashQNameWithSalt(ns3pr, qname)));
-        if(!realrr)
+      if(nsec3set.count(qname)) {
+        if(!narrow)
+          ordername=DNSName(toBase32Hex(hashQNameWithSalt(ns3pr, qname)));
+        if(!realrr && !isOptOut)
           auth=true;
-      } else if(!realrr)
-        auth=false;
+      }
     }
     else if (realrr && securedZone) // NSEC
       ordername=qname.makeRelative(zone);

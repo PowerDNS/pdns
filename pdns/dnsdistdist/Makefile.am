@@ -2,7 +2,8 @@ AM_CPPFLAGS += $(SYSTEMD_CFLAGS) $(LUA_CFLAGS) $(LIBEDIT_CFLAGS) $(LIBSODIUM_CFL
 
 ACLOCAL_AMFLAGS = -I m4
 
-SUBDIRS=ext/yahttp
+SUBDIRS=ext/ipcrypt \
+	ext/yahttp
 
 CLEANFILES = \
 	dnsmessage.pb.cc \
@@ -98,11 +99,13 @@ dnsdist_SOURCES = \
 	dnsdist-dnscrypt.cc \
 	dnsdist-dynblocks.hh \
 	dnsdist-ecs.cc dnsdist-ecs.hh \
+	dnsdist-idstate.cc \
 	dnsdist-lua.hh dnsdist-lua.cc \
 	dnsdist-lua-actions.cc \
 	dnsdist-lua-bindings.cc \
 	dnsdist-lua-bindings-dnsquestion.cc \
 	dnsdist-lua-inspection.cc \
+	dnsdist-lua-inspection-ffi.cc dnsdist-lua-inspection-ffi.hh \
 	dnsdist-lua-rules.cc \
 	dnsdist-lua-vars.cc \
 	dnsdist-protobuf.cc dnsdist-protobuf.hh \
@@ -165,10 +168,16 @@ dnsdist_LDADD = \
 	$(SANITIZER_FLAGS) \
 	$(SYSTEMD_LIBS) \
 	$(NET_SNMP_LIBS) \
-	$(LIBCAP_LIBS)
+	$(LIBCAP_LIBS) \
+	$(IPCRYPT_LIBS)
 
 if HAVE_RE2
 dnsdist_LDADD += $(RE2_LIBS)
+endif
+
+if HAVE_LIBCRYPTO
+dnsdist_LDADD += $(LIBCRYPTO_LIBS)
+dnsdist_SOURCES += ipcipher.cc ipcipher.hh
 endif
 
 if HAVE_DNS_OVER_TLS
@@ -177,7 +186,7 @@ dnsdist_LDADD += -lgnutls
 endif
 
 if HAVE_LIBSSL
-dnsdist_LDADD += $(LIBSSL_LIBS) $(LIBCRYPTO_LIBS)
+dnsdist_LDADD += $(LIBSSL_LIBS)
 endif
 endif
 
@@ -204,20 +213,6 @@ dnsdist.$(OBJEXT): dnsmessage.pb.cc dnstap.pb.cc
 endif
 endif
 
-if HAVE_FREEBSD
-dnsdist_SOURCES += kqueuemplexer.cc
-endif
-
-if HAVE_LINUX
-dnsdist_SOURCES += epollmplexer.cc
-endif
-
-if HAVE_SOLARIS
-dnsdist_SOURCES += \
-        devpollmplexer.cc \
-        portsmplexer.cc
-endif
-
 testrunner_SOURCES = \
 	base64.hh \
 	dns.hh \
@@ -231,6 +226,7 @@ testrunner_SOURCES = \
 	test-dnsdistrules_cc.cc \
 	test-dnsparser_cc.cc \
 	test-iputils_hh.cc \
+	test-mplexer.cc \
 	cachecleaner.hh \
 	dnsdist.hh \
 	dnsdist-cache.cc dnsdist-cache.hh \
@@ -250,13 +246,34 @@ testrunner_SOURCES = \
 	misc.cc misc.hh \
 	namespaces.hh \
 	pdnsexception.hh \
+	pollmplexer.cc \
 	qtype.cc qtype.hh \
 	sholder.hh \
 	sodcrypto.cc \
 	sstuff.hh \
+	statnode.cc statnode.hh \
 	threadname.hh threadname.cc \
 	testrunner.cc \
 	xpf.cc xpf.hh
+
+if HAVE_FREEBSD
+dnsdist_SOURCES += kqueuemplexer.cc
+testrunner_SOURCES += kqueuemplexer.cc
+endif
+
+if HAVE_LINUX
+dnsdist_SOURCES += epollmplexer.cc
+testrunner_SOURCES += epollmplexer.cc
+endif
+
+if HAVE_SOLARIS
+dnsdist_SOURCES += \
+        devpollmplexer.cc \
+        portsmplexer.cc
+testrunner_SOURCES += \
+        devpollmplexer.cc \
+        portsmplexer.cc
+endif
 
 testrunner_LDFLAGS = \
 	$(AM_LDFLAGS) \

@@ -3,7 +3,7 @@ Tuning related functions
 
 .. function:: setMaxTCPClientThreads(num)
 
-  Set the maximum of TCP client threads, handling TCP connections
+  Set the maximum of TCP client threads, handling TCP connections. Before 1.4.0 a TCP thread could only handle a single incoming TCP connection at a time, while after 1.4.0 it can handle a larger number of them simultaneously.
 
   :param int num:
 

@@ -79,9 +79,9 @@ The password to for :ref:`setting-gpgsql-user`. Default: not set.
 
 Enable DNSSEC processing for this backend. Default: no.
 
-.. _setting-gpsql-extra-connection-parameters:
+.. _setting-gpgsql-extra-connection-parameters:
 
-``gpsql-extra-connection-parameters``
+``gpgsql-extra-connection-parameters``
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 Extra connection parameters to forward to postgres. If you want to pin a

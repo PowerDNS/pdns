@@ -130,8 +130,12 @@ static void init(bool debug=false)
   SyncRes::s_doIPv6 = true;
   SyncRes::s_ecsipv4limit = 24;
   SyncRes::s_ecsipv6limit = 56;
+  SyncRes::s_ecsipv4cachelimit = 24;
+  SyncRes::s_ecsipv6cachelimit = 56;
+  SyncRes::s_ecscachelimitttl = 0;
   SyncRes::s_rootNXTrust = true;
   SyncRes::s_minimumTTL = 0;
+  SyncRes::s_minimumECSTTL = 0;
   SyncRes::s_serverID = "PowerDNS Unit Tests Server ID";
   SyncRes::clearEDNSLocalSubnets();
   SyncRes::addEDNSLocalSubnet("0.0.0.0/0");
@@ -150,6 +154,8 @@ static void init(bool debug=false)
   BOOST_CHECK_EQUAL(SyncRes::getThrottledServersSize(), 0);
   SyncRes::clearFailedServers();
   BOOST_CHECK_EQUAL(SyncRes::getFailedServersSize(), 0);
+
+  SyncRes::clearECSStats();
 
   auto luaconfsCopy = g_luaconfs.getCopy();
   luaconfsCopy.dfe.clear();
@@ -1079,7 +1085,7 @@ BOOST_AUTO_TEST_CASE(test_glueless_referral) {
   BOOST_CHECK_EQUAL(ret[0].d_name, target);
 }
 
-BOOST_AUTO_TEST_CASE(test_edns_submask_by_domain) {
+BOOST_AUTO_TEST_CASE(test_edns_subnet_by_domain) {
   std::unique_ptr<SyncRes> sr;
   initSR(sr);
 
@@ -1096,15 +1102,49 @@ BOOST_AUTO_TEST_CASE(test_edns_submask_by_domain) {
 
       BOOST_REQUIRE(srcmask);
       BOOST_CHECK_EQUAL(srcmask->toString(), "192.0.2.0/24");
+
+      if (isRootServer(ip)) {
+        setLWResult(res, 0, false, false, true);
+        addRecordToLW(res, domain, QType::NS, "a.gtld-servers.net.", DNSResourceRecord::AUTHORITY, 172800);
+        addRecordToLW(res, "a.gtld-servers.net.", QType::A, "192.0.2.1", DNSResourceRecord::ADDITIONAL, 3600);
+
+        /* this one did not use the ECS info */
+        srcmask = boost::none;
+
+        return 1;
+      } else if (ip == ComboAddress("192.0.2.1:53")) {
+
+        setLWResult(res, 0, true, false, false);
+        addRecordToLW(res, domain, QType::A, "192.0.2.2");
+
+        /* this one did, but only up to a precision of /16, not the full /24 */
+        srcmask = Netmask("192.0.0.0/16");
+
+        return 1;
+      }
+
       return 0;
     });
 
+  SyncRes::s_ecsqueries = 0;
+  SyncRes::s_ecsresponses = 0;
   vector<DNSRecord> ret;
   int res = sr->beginResolve(target, QType(QType::A), QClass::IN, ret);
-  BOOST_CHECK_EQUAL(res, RCode::ServFail);
+  BOOST_CHECK_EQUAL(res, RCode::NoError);
+  BOOST_REQUIRE_EQUAL(ret.size(), 1);
+  BOOST_CHECK(ret[0].d_type == QType::A);
+  BOOST_CHECK_EQUAL(ret[0].d_name, target);
+  BOOST_CHECK_EQUAL(SyncRes::s_ecsqueries, 2);
+  BOOST_CHECK_EQUAL(SyncRes::s_ecsresponses, 1);
+  for (const auto& entry : SyncRes::s_ecsResponsesBySubnetSize4) {
+    BOOST_CHECK_EQUAL(entry.second, entry.first == 15 ? 1 : 0);
+  }
+  for (const auto& entry : SyncRes::s_ecsResponsesBySubnetSize6) {
+    BOOST_CHECK_EQUAL(entry.second, 0);
+  }
 }
 
-BOOST_AUTO_TEST_CASE(test_edns_submask_by_addr) {
+BOOST_AUTO_TEST_CASE(test_edns_subnet_by_addr) {
   std::unique_ptr<SyncRes> sr;
   initSR(sr);
 
@@ -1139,12 +1179,22 @@ BOOST_AUTO_TEST_CASE(test_edns_submask_by_addr) {
       return 0;
     });
 
+  SyncRes::s_ecsqueries = 0;
+  SyncRes::s_ecsresponses = 0;
   vector<DNSRecord> ret;
   int res = sr->beginResolve(target, QType(QType::A), QClass::IN, ret);
   BOOST_CHECK_EQUAL(res, RCode::NoError);
   BOOST_REQUIRE_EQUAL(ret.size(), 1);
   BOOST_CHECK(ret[0].d_type == QType::A);
   BOOST_CHECK_EQUAL(ret[0].d_name, target);
+  BOOST_CHECK_EQUAL(SyncRes::s_ecsqueries, 1);
+  BOOST_CHECK_EQUAL(SyncRes::s_ecsresponses, 1);
+  for (const auto& entry : SyncRes::s_ecsResponsesBySubnetSize4) {
+    BOOST_CHECK_EQUAL(entry.second, 0);
+  }
+  for (const auto& entry : SyncRes::s_ecsResponsesBySubnetSize6) {
+    BOOST_CHECK_EQUAL(entry.second, entry.first == 55 ? 1 : 0);
+  }
 }
 
 BOOST_AUTO_TEST_CASE(test_ecs_use_requestor) {
@@ -2023,6 +2073,8 @@ BOOST_AUTO_TEST_CASE(test_skip_negcache_for_variable_response) {
         addRecordToLW(res, "powerdns.com.", QType::NS, "pdns-public-ns1.powerdns.com.", DNSResourceRecord::AUTHORITY, 172800);
         addRecordToLW(res, "pdns-public-ns1.powerdns.com.", QType::A, "192.0.2.1", DNSResourceRecord::ADDITIONAL, 3600);
 
+        srcmask = boost::none;
+
         return 1;
       } else if (ip == ComboAddress("192.0.2.1:53")) {
         if (domain == target) {
@@ -2051,6 +2103,204 @@ BOOST_AUTO_TEST_CASE(test_skip_negcache_for_variable_response) {
   /* no negative cache entry because the response was variable */
   BOOST_CHECK_EQUAL(SyncRes::getNegCacheSize(), 0);
 }
+
+BOOST_AUTO_TEST_CASE(test_ecs_cache_limit_allowed) {
+  std::unique_ptr<SyncRes> sr;
+  initSR(sr);
+
+  primeHints();
+
+  const DNSName target("www.powerdns.com.");
+
+  SyncRes::addEDNSDomain(DNSName("powerdns.com."));
+
+  EDNSSubnetOpts incomingECS;
+  incomingECS.source = Netmask("192.0.2.128/32");
+  sr->setQuerySource(ComboAddress(), boost::optional<const EDNSSubnetOpts&>(incomingECS));
+  SyncRes::s_ecsipv4cachelimit = 24;
+
+  sr->setAsyncCallback([target](const ComboAddress& ip, const DNSName& domain, int type, bool doTCP, bool sendRDQuery, int EDNS0Level, struct timeval* now, boost::optional<Netmask>& srcmask, boost::optional<const ResolveContext&> context, LWResult* res, bool* chained) {
+
+      BOOST_REQUIRE(srcmask);
+      BOOST_CHECK_EQUAL(srcmask->toString(), "192.0.2.0/24");
+
+      setLWResult(res, 0, true, false, true);
+      addRecordToLW(res, target, QType::A, "192.0.2.1");
+
+      return 1;
+    });
+
+  const time_t now = sr->getNow().tv_sec;
+  vector<DNSRecord> ret;
+  int res = sr->beginResolve(target, QType(QType::A), QClass::IN, ret);
+  BOOST_CHECK_EQUAL(res, RCode::NoError);
+  BOOST_CHECK_EQUAL(ret.size(), 1);
+
+  /* should have been cached */
+  const ComboAddress who("192.0.2.128");
+  vector<DNSRecord> cached;
+  BOOST_REQUIRE_GT(t_RC->get(now, target, QType(QType::A), true, &cached, who), 0);
+  BOOST_REQUIRE_EQUAL(cached.size(), 1);
+}
+
+BOOST_AUTO_TEST_CASE(test_ecs_cache_limit_no_ttl_limit_allowed) {
+  std::unique_ptr<SyncRes> sr;
+  initSR(sr);
+
+  primeHints();
+
+  const DNSName target("www.powerdns.com.");
+
+  SyncRes::addEDNSDomain(DNSName("powerdns.com."));
+
+  EDNSSubnetOpts incomingECS;
+  incomingECS.source = Netmask("192.0.2.128/32");
+  sr->setQuerySource(ComboAddress(), boost::optional<const EDNSSubnetOpts&>(incomingECS));
+  SyncRes::s_ecsipv4cachelimit = 16;
+
+  sr->setAsyncCallback([target](const ComboAddress& ip, const DNSName& domain, int type, bool doTCP, bool sendRDQuery, int EDNS0Level, struct timeval* now, boost::optional<Netmask>& srcmask, boost::optional<const ResolveContext&> context, LWResult* res, bool* chained) {
+
+      BOOST_REQUIRE(srcmask);
+      BOOST_CHECK_EQUAL(srcmask->toString(), "192.0.2.0/24");
+
+      setLWResult(res, 0, true, false, true);
+      addRecordToLW(res, target, QType::A, "192.0.2.1");
+
+      return 1;
+    });
+
+  const time_t now = sr->getNow().tv_sec;
+  vector<DNSRecord> ret;
+  int res = sr->beginResolve(target, QType(QType::A), QClass::IN, ret);
+  BOOST_CHECK_EQUAL(res, RCode::NoError);
+  BOOST_CHECK_EQUAL(ret.size(), 1);
+
+  /* should have been cached because /24 is more specific than /16 but TTL limit is nof effective */
+  const ComboAddress who("192.0.2.128");
+  vector<DNSRecord> cached;
+  BOOST_REQUIRE_GT(t_RC->get(now, target, QType(QType::A), true, &cached, who), 0);
+  BOOST_REQUIRE_EQUAL(cached.size(), 1);
+}
+
+BOOST_AUTO_TEST_CASE(test_ecs_cache_ttllimit_allowed) {
+    std::unique_ptr<SyncRes> sr;
+    initSR(sr);
+
+    primeHints();
+
+    const DNSName target("www.powerdns.com.");
+
+    SyncRes::addEDNSDomain(DNSName("powerdns.com."));
+
+    EDNSSubnetOpts incomingECS;
+    incomingECS.source = Netmask("192.0.2.128/32");
+    sr->setQuerySource(ComboAddress(), boost::optional<const EDNSSubnetOpts&>(incomingECS));
+    SyncRes::s_ecscachelimitttl = 30;
+
+    sr->setAsyncCallback([target](const ComboAddress& ip, const DNSName& domain, int type, bool doTCP, bool sendRDQuery, int EDNS0Level, struct timeval* now, boost::optional<Netmask>& srcmask, boost::optional<const ResolveContext&> context, LWResult* res, bool* chained) {
+
+      BOOST_REQUIRE(srcmask);
+      BOOST_CHECK_EQUAL(srcmask->toString(), "192.0.2.0/24");
+
+      setLWResult(res, 0, true, false, true);
+      addRecordToLW(res, target, QType::A, "192.0.2.1");
+
+      return 1;
+    });
+
+    const time_t now = sr->getNow().tv_sec;
+    vector<DNSRecord> ret;
+    int res = sr->beginResolve(target, QType(QType::A), QClass::IN, ret);
+    BOOST_CHECK_EQUAL(res, RCode::NoError);
+    BOOST_CHECK_EQUAL(ret.size(), 1);
+
+    /* should have been cached */
+    const ComboAddress who("192.0.2.128");
+    vector<DNSRecord> cached;
+    BOOST_REQUIRE_GT(t_RC->get(now, target, QType(QType::A), true, &cached, who), 0);
+    BOOST_REQUIRE_EQUAL(cached.size(), 1);
+}
+
+BOOST_AUTO_TEST_CASE(test_ecs_cache_ttllimit_and_scope_allowed) {
+    std::unique_ptr<SyncRes> sr;
+    initSR(sr);
+
+    primeHints();
+
+    const DNSName target("www.powerdns.com.");
+
+    SyncRes::addEDNSDomain(DNSName("powerdns.com."));
+
+    EDNSSubnetOpts incomingECS;
+    incomingECS.source = Netmask("192.0.2.128/32");
+    sr->setQuerySource(ComboAddress(), boost::optional<const EDNSSubnetOpts&>(incomingECS));
+    SyncRes::s_ecscachelimitttl = 100;
+    SyncRes::s_ecsipv4cachelimit = 24;
+
+    sr->setAsyncCallback([target](const ComboAddress& ip, const DNSName& domain, int type, bool doTCP, bool sendRDQuery, int EDNS0Level, struct timeval* now, boost::optional<Netmask>& srcmask, boost::optional<const ResolveContext&> context, LWResult* res, bool* chained) {
+
+      BOOST_REQUIRE(srcmask);
+      BOOST_CHECK_EQUAL(srcmask->toString(), "192.0.2.0/24");
+
+      setLWResult(res, 0, true, false, true);
+      addRecordToLW(res, target, QType::A, "192.0.2.1");
+
+      return 1;
+    });
+
+    const time_t now = sr->getNow().tv_sec;
+    vector<DNSRecord> ret;
+    int res = sr->beginResolve(target, QType(QType::A), QClass::IN, ret);
+    BOOST_CHECK_EQUAL(res, RCode::NoError);
+    BOOST_CHECK_EQUAL(ret.size(), 1);
+
+    /* should have been cached */
+    const ComboAddress who("192.0.2.128");
+    vector<DNSRecord> cached;
+    BOOST_REQUIRE_GT(t_RC->get(now, target, QType(QType::A), true, &cached, who), 0);
+    BOOST_REQUIRE_EQUAL(cached.size(), 1);
+}
+
+BOOST_AUTO_TEST_CASE(test_ecs_cache_ttllimit_notallowed) {
+    std::unique_ptr<SyncRes> sr;
+    initSR(sr);
+
+    primeHints();
+
+    const DNSName target("www.powerdns.com.");
+
+    SyncRes::addEDNSDomain(DNSName("powerdns.com."));
+
+    EDNSSubnetOpts incomingECS;
+    incomingECS.source = Netmask("192.0.2.128/32");
+    sr->setQuerySource(ComboAddress(), boost::optional<const EDNSSubnetOpts&>(incomingECS));
+    SyncRes::s_ecscachelimitttl = 100;
+    SyncRes::s_ecsipv4cachelimit = 16;
+
+    sr->setAsyncCallback([target](const ComboAddress& ip, const DNSName& domain, int type, bool doTCP, bool sendRDQuery, int EDNS0Level, struct timeval* now, boost::optional<Netmask>& srcmask, boost::optional<const ResolveContext&> context, LWResult* res, bool* chained) {
+
+      BOOST_REQUIRE(srcmask);
+      BOOST_CHECK_EQUAL(srcmask->toString(), "192.0.2.0/24");
+
+      setLWResult(res, 0, true, false, true);
+      addRecordToLW(res, target, QType::A, "192.0.2.1");
+
+      return 1;
+    });
+
+    const time_t now = sr->getNow().tv_sec;
+    vector<DNSRecord> ret;
+    int res = sr->beginResolve(target, QType(QType::A), QClass::IN, ret);
+    BOOST_CHECK_EQUAL(res, RCode::NoError);
+    BOOST_CHECK_EQUAL(ret.size(), 1);
+
+    /* should have NOT been cached because TTL of 60 is too small and /24 is more specific than /16 */
+    const ComboAddress who("192.0.2.128");
+    vector<DNSRecord> cached;
+    BOOST_REQUIRE_LT(t_RC->get(now, target, QType(QType::A), true, &cached, who), 0);
+    BOOST_REQUIRE_EQUAL(cached.size(), 0);
+}
+
 
 BOOST_AUTO_TEST_CASE(test_ns_speed) {
   std::unique_ptr<SyncRes> sr;
@@ -2298,6 +2548,75 @@ BOOST_AUTO_TEST_CASE(test_cache_min_max_ttl) {
   BOOST_REQUIRE_EQUAL(cached.size(), 1);
   BOOST_REQUIRE_GT(cached[0].d_ttl, now);
   BOOST_CHECK_LE((cached[0].d_ttl - now), SyncRes::s_maxcachettl);
+}
+
+BOOST_AUTO_TEST_CASE(test_cache_min_max_ecs_ttl) {
+  std::unique_ptr<SyncRes> sr;
+  initSR(sr);
+
+  primeHints();
+
+  const DNSName target("cacheecsttl.powerdns.com.");
+  const ComboAddress ns("192.0.2.1:53");
+
+  EDNSSubnetOpts incomingECS;
+  incomingECS.source = Netmask("192.0.2.128/32");
+  sr->setQuerySource(ComboAddress(), boost::optional<const EDNSSubnetOpts&>(incomingECS));
+  SyncRes::addEDNSDomain(target);
+
+  sr->setAsyncCallback([target,ns](const ComboAddress& ip, const DNSName& domain, int type, bool doTCP, bool sendRDQuery, int EDNS0Level, struct timeval* now, boost::optional<Netmask>& srcmask, boost::optional<const ResolveContext&> context, LWResult* res, bool* chained) {
+
+      BOOST_REQUIRE(srcmask);
+      BOOST_CHECK_EQUAL(srcmask->toString(), "192.0.2.0/24");
+
+      if (isRootServer(ip)) {
+
+        setLWResult(res, 0, false, false, true);
+        addRecordToLW(res, domain, QType::NS, "a.gtld-servers.net.", DNSResourceRecord::AUTHORITY, 172800);
+        addRecordToLW(res, "a.gtld-servers.net.", QType::A, ns.toString(), DNSResourceRecord::ADDITIONAL, 20);
+        srcmask = boost::none;
+
+        return 1;
+      } else if (ip == ns) {
+
+        setLWResult(res, 0, true, false, false);
+        addRecordToLW(res, domain, QType::A, "192.0.2.2", DNSResourceRecord::ANSWER, 10);
+
+        return 1;
+      }
+
+      return 0;
+    });
+
+  const time_t now = sr->getNow().tv_sec;
+  SyncRes::s_minimumTTL = 60;
+  SyncRes::s_minimumECSTTL = 120;
+  SyncRes::s_maxcachettl = 3600;
+
+  vector<DNSRecord> ret;
+  int res = sr->beginResolve(target, QType(QType::A), QClass::IN, ret);
+  BOOST_CHECK_EQUAL(res, RCode::NoError);
+  BOOST_REQUIRE_EQUAL(ret.size(), 1);
+  BOOST_CHECK_EQUAL(ret[0].d_ttl, SyncRes::s_minimumECSTTL);
+
+  const ComboAddress who("192.0.2.128");
+  vector<DNSRecord> cached;
+  BOOST_REQUIRE_GT(t_RC->get(now, target, QType(QType::A), true, &cached, who), 0);
+  BOOST_REQUIRE_EQUAL(cached.size(), 1);
+  BOOST_REQUIRE_GT(cached[0].d_ttl, now);
+  BOOST_CHECK_EQUAL((cached[0].d_ttl - now), SyncRes::s_minimumECSTTL);
+
+  cached.clear();
+  BOOST_REQUIRE_GT(t_RC->get(now, target, QType(QType::NS), false, &cached, who), 0);
+  BOOST_REQUIRE_EQUAL(cached.size(), 1);
+  BOOST_REQUIRE_GT(cached[0].d_ttl, now);
+  BOOST_CHECK_LE((cached[0].d_ttl - now), SyncRes::s_maxcachettl);
+
+  cached.clear();
+  BOOST_REQUIRE_GT(t_RC->get(now, DNSName("a.gtld-servers.net."), QType(QType::A), false, &cached, who), 0);
+  BOOST_REQUIRE_EQUAL(cached.size(), 1);
+  BOOST_REQUIRE_GT(cached[0].d_ttl, now);
+  BOOST_CHECK_LE((cached[0].d_ttl - now), SyncRes::s_minimumTTL);
 }
 
 BOOST_AUTO_TEST_CASE(test_cache_expired_ttl) {

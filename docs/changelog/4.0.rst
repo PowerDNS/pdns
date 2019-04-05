@@ -1,6 +1,20 @@
 Changelogs for 4.0.x
 ====================
 
+PowerDNS Authoritative Server 4.0.7
+-----------------------------------
+
+Released 18th of March 2019
+
+This release fixes PowerDNS Security Advisory
+:doc:`2019-03 <../security-advisories/powerdns-advisory-2019-03>`: Insufficient validation in the HTTP remote backend (CVE-2019-3871)
+
+Bug fixes
+~~~~~~~~~
+
+- `#7582 <https://github.com/PowerDNS/pdns/pull/7582>`__: Insufficient validation in the HTTP remote backend (CVE-2019-3871)
+
+
 PowerDNS Authoritative Server 4.0.6
 -----------------------------------
 

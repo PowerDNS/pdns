@@ -60,6 +60,10 @@ public:
   Stat print(unsigned int depth=0, Stat newstat=Stat(), bool silent=false) const;
   typedef boost::function<void(const StatNode*, const Stat& selfstat, const Stat& childstat)> visitor_t;
   void visit(visitor_t visitor, Stat& newstat, unsigned int depth=0) const;
+  bool empty() const
+  {
+    return children.empty() && s.remotes.empty();
+  }
   typedef std::map<std::string,StatNode, CIStringCompare> children_t;
   children_t children;
 

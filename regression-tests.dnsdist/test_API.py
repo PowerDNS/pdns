@@ -114,7 +114,7 @@ class TestAPIBasics(DNSDistTest):
             self.assertTrue(server['state'] in ['up', 'down', 'UP', 'DOWN'])
 
         for frontend in content['frontends']:
-            for key in ['id', 'address', 'udp', 'tcp', 'queries']:
+            for key in ['id', 'address', 'udp', 'tcp', 'type', 'queries']:
                 self.assertIn(key, frontend)
 
             for key in ['id', 'queries']:
@@ -226,6 +226,7 @@ class TestAPIBasics(DNSDistTest):
             values[entry['name']] = entry['value']
 
         expected = ['responses', 'servfail-responses', 'queries', 'acl-drops',
+                    'frontend-noerror', 'frontend-nxdomain', 'frontend-servfail',
                     'rule-drop', 'rule-nxdomain', 'rule-refused', 'self-answered', 'downstream-timeouts',
                     'downstream-send-errors', 'trunc-failures', 'no-policy', 'latency0-1',
                     'latency1-10', 'latency10-50', 'latency50-100', 'latency100-1000',
@@ -255,6 +256,7 @@ class TestAPIBasics(DNSDistTest):
         content = r.json()
 
         expected = ['responses', 'servfail-responses', 'queries', 'acl-drops',
+                    'frontend-noerror', 'frontend-nxdomain', 'frontend-servfail',
                     'rule-drop', 'rule-nxdomain', 'rule-refused', 'self-answered', 'downstream-timeouts',
                     'downstream-send-errors', 'trunc-failures', 'no-policy', 'latency0-1',
                     'latency1-10', 'latency10-50', 'latency50-100', 'latency100-1000',
