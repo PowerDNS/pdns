@@ -151,6 +151,9 @@ Rule Generators
   .. versionchanged:: 1.3.0
     The second argument returned by the ``function`` can be omitted. For earlier releases, simply return an empty string.
 
+  .. deprecated:: 1.4.0
+    Removed in 1.4.0, use :func:`LuaAction` with :func:`addAction` instead.
+
   Invoke a Lua function that accepts a :class:`DNSQuestion`.
   This function works similar to using :func:`LuaAction`.
   The ``function`` should return both a :ref:`DNSAction` and its argument `rule`. The `rule` is used as an argument
@@ -186,6 +189,9 @@ Rule Generators
 
   .. versionchanged:: 1.3.0
     The second argument returned by the ``function`` can be omitted. For earlier releases, simply return an empty string.
+
+  .. deprecated:: 1.4.0
+    Removed in 1.4.0, use :func:`LuaResponseAction` with :func:`addResponseAction` instead.
 
   Invoke a Lua function that accepts a :class:`DNSResponse`.
   This function works similar to using :func:`LuaResponseAction`.

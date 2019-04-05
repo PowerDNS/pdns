@@ -18,7 +18,7 @@ class TestEDNSSelfGenerated(DNSDistTest):
       return DNSAction.Nxdomain, ""
     end
 
-    addLuaAction("lua.edns-self.tests.powerdns.com.", luarule)
+    addAction("lua.edns-self.tests.powerdns.com.", LuaAction(luarule))
 
     addAction("spoof.edns-self.tests.powerdns.com.", SpoofAction({'192.0.2.1', '192.0.2.2'}))
 
@@ -309,7 +309,7 @@ class TestEDNSSelfGeneratedDisabled(DNSDistTest):
       return DNSAction.Nxdomain, ""
     end
 
-    addLuaAction("lua.edns-self-disabled.tests.powerdns.com.", luarule)
+    addAction("lua.edns-self-disabled.tests.powerdns.com.", LuaAction(luarule))
 
     addAction("spoof.edns-self-disabled.tests.powerdns.com.", SpoofAction({'192.0.2.1', '192.0.2.2'}))
 

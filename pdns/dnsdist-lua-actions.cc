@@ -1075,14 +1075,6 @@ void setupLuaActions()
       addAction(&g_rulactions, var, boost::get<std::shared_ptr<DNSAction> >(era), params);
     });
 
-  g_lua.writeFunction("addLuaAction", [](luadnsrule_t var, LuaAction::func_t func, boost::optional<luaruleparams_t> params) {
-      addAction(&g_rulactions, var, std::make_shared<LuaAction>(func), params);
-    });
-
-  g_lua.writeFunction("addLuaResponseAction", [](luadnsrule_t var, LuaResponseAction::func_t func, boost::optional<luaruleparams_t> params) {
-      addAction(&g_resprulactions, var, std::make_shared<LuaResponseAction>(func), params);
-    });
-
   g_lua.writeFunction("addResponseAction", [](luadnsrule_t var, boost::variant<std::shared_ptr<DNSAction>, std::shared_ptr<DNSResponseAction> > era, boost::optional<luaruleparams_t> params) {
       if (era.type() != typeid(std::shared_ptr<DNSResponseAction>)) {
         throw std::runtime_error("addResponseAction() can only be called with response-related actions, not query-related ones. Are you looking for addAction()?");
