@@ -252,6 +252,16 @@ Which domains we only accept delegations from (a Verisign special).
 Turn off the packet cache. Useful when running with Lua scripts that can
 not be cached.
 
+.. _setting-disable-real-memory-usage:
+.. versionadded:: 4.1.13
+
+``disable-real-memory-usage``
+-----------------------
+-  Boolean
+-  Default: no
+
+Turn off the real-memory-usage metric. This metric can be very expensive to compute. Setting this option makes this metric return 0 always.
+
 .. _setting-disable-syslog:
 
 ``disable-syslog``
