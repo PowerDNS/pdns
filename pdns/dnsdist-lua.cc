@@ -1268,13 +1268,13 @@ void setupLuaConfig(bool client)
       setLuaNoSideEffect();
       try {
         ostringstream ret;
-        boost::format fmt("%1$-3d %2$-20.20s %|25t|%3$-8.8s %|35t|%4%" );
+        boost::format fmt("%1$-3d %2$-20.20s %|35t|%3$-20.20s %|57t|%4%" );
         //             1    2           3            4
         ret << (fmt % "#" % "Address" % "Protocol" % "Queries" ) << endl;
 
         size_t counter = 0;
         for (const auto& front : g_frontends) {
-          ret << (fmt % counter % front->local.toStringWithPort() % (front->udpFD != -1 ? "UDP" : "TCP") % front->queries) << endl;
+          ret << (fmt % counter % front->local.toStringWithPort() % front->getType() % front->queries) << endl;
           counter++;
         }
         g_outputBuffer=ret.str();

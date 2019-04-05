@@ -80,8 +80,6 @@ class TestTrailingDataToBackend(DNSDistTest):
 
         for method in ("sendUDPQuery", "sendTCPQuery"):
             sender = getattr(self, method)
-            # (receivedQuery, receivedResponse) = self.sendUDPQuery(raw, response, rawQuery=True)
-            # (receivedQuery, receivedResponse) = self.sendTCPQuery(raw, response, rawQuery=True)
             (receivedQuery, receivedResponse) = sender(raw, response, rawQuery=True)
             self.assertTrue(receivedQuery)
             self.assertTrue(receivedResponse)
@@ -108,8 +106,6 @@ class TestTrailingDataToBackend(DNSDistTest):
 
         for method in ("sendUDPQuery", "sendTCPQuery"):
             sender = getattr(self, method)
-            # (receivedQuery, receivedResponse) = self.sendUDPQuery(query, response)
-            # (receivedQuery, receivedResponse) = self.sendTCPQuery(query, response)
             (receivedQuery, receivedResponse) = sender(query, response)
             self.assertTrue(receivedQuery)
             self.assertTrue(receivedResponse)
@@ -136,8 +132,6 @@ class TestTrailingDataToBackend(DNSDistTest):
 
         for method in ("sendUDPQuery", "sendTCPQuery"):
             sender = getattr(self, method)
-            # (receivedQuery, receivedResponse) = self.sendUDPQuery(query, response)
-            # (receivedQuery, receivedResponse) = self.sendTCPQuery(query, response)
             (_, receivedResponse) = sender(query, response)
             self.assertTrue(receivedResponse)
             self.assertEquals(receivedResponse, expectedResponse)
@@ -161,8 +155,6 @@ class TestTrailingDataToBackend(DNSDistTest):
 
         for method in ("sendUDPQuery", "sendTCPQuery"):
             sender = getattr(self, method)
-            # (receivedQuery, receivedResponse) = self.sendUDPQuery(query, response)
-            # (receivedQuery, receivedResponse) = self.sendTCPQuery(query, response)
             (receivedQuery, receivedResponse) = sender(query, response)
             self.assertTrue(receivedQuery)
             self.assertTrue(receivedResponse)
@@ -243,8 +235,6 @@ class TestTrailingDataToDnsdist(DNSDistTest):
             sender = getattr(self, method)
 
             # Verify that queries with no trailing data make it through.
-            # (receivedQuery, receivedResponse) = self.sendUDPQuery(query, response)
-            # (receivedQuery, receivedResponse) = self.sendTCPQuery(query, response)
             (receivedQuery, receivedResponse) = sender(query, response)
             self.assertTrue(receivedQuery)
             self.assertTrue(receivedResponse)
@@ -253,8 +243,6 @@ class TestTrailingDataToDnsdist(DNSDistTest):
             self.assertEquals(response, receivedResponse)
 
             # Verify that queries with trailing data don't make it through.
-            # (_, receivedResponse) = self.sendUDPQuery(raw, response, rawQuery=True)
-            # (_, receivedResponse) = self.sendTCPQuery(raw, response, rawQuery=True)
             (_, receivedResponse) = sender(raw, response, rawQuery=True)
             self.assertEquals(receivedResponse, None)
 
@@ -278,8 +266,6 @@ class TestTrailingDataToDnsdist(DNSDistTest):
 
         for method in ("sendUDPQuery", "sendTCPQuery"):
             sender = getattr(self, method)
-            # (receivedQuery, receivedResponse) = self.sendUDPQuery(raw, response, rawQuery=True)
-            # (receivedQuery, receivedResponse) = self.sendTCPQuery(raw, response, rawQuery=True)
             (receivedQuery, receivedResponse) = sender(raw, response, rawQuery=True)
             self.assertTrue(receivedQuery)
             self.assertTrue(receivedResponse)
@@ -309,8 +295,6 @@ class TestTrailingDataToDnsdist(DNSDistTest):
 
         for method in ("sendUDPQuery", "sendTCPQuery"):
             sender = getattr(self, method)
-            # (receivedQuery, receivedResponse) = self.sendUDPQuery(raw, response, rawQuery=True)
-            # (receivedQuery, receivedResponse) = self.sendTCPQuery(raw, response, rawQuery=True)
             (_, receivedResponse) = sender(raw, response, rawQuery=True)
             self.assertTrue(receivedResponse)
             expectedResponse.flags = receivedResponse.flags
@@ -338,8 +322,6 @@ class TestTrailingDataToDnsdist(DNSDistTest):
 
         for method in ("sendUDPQuery", "sendTCPQuery"):
             sender = getattr(self, method)
-            # (receivedQuery, receivedResponse) = self.sendUDPQuery(raw, response, rawQuery=True)
-            # (receivedQuery, receivedResponse) = self.sendTCPQuery(raw, response, rawQuery=True)
             (_, receivedResponse) = sender(raw, response, rawQuery=True)
             self.assertTrue(receivedResponse)
             expectedResponse.flags = receivedResponse.flags
@@ -367,8 +349,6 @@ class TestTrailingDataToDnsdist(DNSDistTest):
 
         for method in ("sendUDPQuery", "sendTCPQuery"):
             sender = getattr(self, method)
-            # (receivedQuery, receivedResponse) = self.sendUDPQuery(raw, response, rawQuery=True)
-            # (receivedQuery, receivedResponse) = self.sendTCPQuery(raw, response, rawQuery=True)
             (_, receivedResponse) = sender(raw, response, rawQuery=True)
             self.assertTrue(receivedResponse)
             expectedResponse.flags = receivedResponse.flags
@@ -396,8 +376,6 @@ class TestTrailingDataToDnsdist(DNSDistTest):
 
         for method in ("sendUDPQuery", "sendTCPQuery"):
             sender = getattr(self, method)
-            # (receivedQuery, receivedResponse) = self.sendUDPQuery(raw, response, rawQuery=True)
-            # (receivedQuery, receivedResponse) = self.sendTCPQuery(raw, response, rawQuery=True)
             (_, receivedResponse) = sender(raw, response, rawQuery=True)
             self.assertTrue(receivedResponse)
             expectedResponse.flags = receivedResponse.flags

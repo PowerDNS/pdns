@@ -863,30 +863,10 @@ public:
       return false;
     }
 
-    uint16_t optStart;
-    size_t optLen = 0;
-    bool last = false;
-    const char * packet = reinterpret_cast<const char*>(dq->dh);
-    std::string packetStr(packet, dq->len);
-    int res = locateEDNSOptRR(packetStr, &optStart, &optLen, &last);
-    if (res != 0) {
-      // no EDNS OPT RR
-      return d_extrcode == 0;
-    }
-
-    // root label (1), type (2), class (2), ttl (4) + rdlen (2)
-    if (optLen < 11) {
-      return false;
-    }
-
-    if (optStart < dq->len && packet[optStart] != 0) {
-      // OPT RR Name != '.'
-      return false;
-    }
     EDNS0Record edns0;
-    static_assert(sizeof(EDNS0Record) == sizeof(uint32_t), "sizeof(EDNS0Record) must match sizeof(uint32_t) AKA RR TTL size");
-    // copy out 4-byte "ttl" (really the EDNS0 record), after root label (1) + type (2) + class (2).
-    memcpy(&edns0, packet + optStart + 5, sizeof edns0);
+    if (!getEDNS0Record(*dq, edns0)) {
+      return false;
+    }
 
     return d_extrcode == edns0.extRCode;
   }
@@ -907,30 +887,10 @@ public:
   }
   bool matches(const DNSQuestion* dq) const override
   {
-    uint16_t optStart;
-    size_t optLen = 0;
-    bool last = false;
-    const char * packet = reinterpret_cast<const char*>(dq->dh);
-    std::string packetStr(packet, dq->len);
-    int res = locateEDNSOptRR(packetStr, &optStart, &optLen, &last);
-    if (res != 0) {
-      // no EDNS OPT RR
-      return false;
-    }
-
-    // root label (1), type (2), class (2), ttl (4) + rdlen (2)
-    if (optLen < 11) {
-      return false;
-    }
-
-    if (optStart < dq->len && packetStr.at(optStart) != 0) {
-      // OPT RR Name != '.'
-      return false;
-    }
     EDNS0Record edns0;
-    static_assert(sizeof(EDNS0Record) == sizeof(uint32_t), "sizeof(EDNS0Record) must match sizeof(uint32_t) AKA RR TTL size");
-    // copy out 4-byte "ttl" (really the EDNS0 record), after root label (1) + type (2) + class (2).
-    memcpy(&edns0, packet + optStart + 5, sizeof edns0);
+    if (!getEDNS0Record(*dq, edns0)) {
+      return false;
+    }
 
     return d_version < edns0.version;
   }
@@ -961,8 +921,7 @@ public:
       return false;
     }
 
-    // root label (1), type (2), class (2), ttl (4) + rdlen (2)
-    if (optLen < 11) {
+    if (optLen < optRecordMinimumSize) {
       return false;
     }
 

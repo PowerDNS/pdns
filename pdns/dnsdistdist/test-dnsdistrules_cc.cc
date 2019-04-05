@@ -22,7 +22,8 @@ BOOST_AUTO_TEST_CASE(test_MaxQPSIPRule) {
   uint16_t qclass = QClass::IN;
   ComboAddress lc("127.0.0.1:53");
   ComboAddress rem("192.0.2.1:42");
-  struct dnsheader* dh = nullptr;
+  struct dnsheader dh;
+  memset(&dh, 0, sizeof(dh));
   size_t bufferSize = 0;
   size_t queryLen = 0;
   bool isTcp = false;
@@ -32,7 +33,7 @@ BOOST_AUTO_TEST_CASE(test_MaxQPSIPRule) {
   /* the internal QPS limiter does not use the real time */
   gettime(&expiredTime);
 
-  DNSQuestion dq(&qname, qtype, qclass, qname.wirelength(), &lc, &rem, dh, bufferSize, queryLen, isTcp, &queryRealTime);
+  DNSQuestion dq(&qname, qtype, qclass, qname.wirelength(), &lc, &rem, &dh, bufferSize, queryLen, isTcp, &queryRealTime);
 
   for (size_t idx = 0; idx < maxQPS; idx++) {
     /* let's use different source ports, it shouldn't matter */

@@ -99,6 +99,7 @@ dnsdist_SOURCES = \
 	dnsdist-dnscrypt.cc \
 	dnsdist-dynblocks.hh \
 	dnsdist-ecs.cc dnsdist-ecs.hh \
+	dnsdist-idstate.cc \
 	dnsdist-lua.hh dnsdist-lua.cc \
 	dnsdist-lua-actions.cc \
 	dnsdist-lua-bindings.cc \
@@ -212,20 +213,6 @@ dnsdist.$(OBJEXT): dnsmessage.pb.cc dnstap.pb.cc
 endif
 endif
 
-if HAVE_FREEBSD
-dnsdist_SOURCES += kqueuemplexer.cc
-endif
-
-if HAVE_LINUX
-dnsdist_SOURCES += epollmplexer.cc
-endif
-
-if HAVE_SOLARIS
-dnsdist_SOURCES += \
-        devpollmplexer.cc \
-        portsmplexer.cc
-endif
-
 testrunner_SOURCES = \
 	base64.hh \
 	dns.hh \
@@ -239,6 +226,7 @@ testrunner_SOURCES = \
 	test-dnsdistrules_cc.cc \
 	test-dnsparser_cc.cc \
 	test-iputils_hh.cc \
+	test-mplexer.cc \
 	cachecleaner.hh \
 	dnsdist.hh \
 	dnsdist-cache.cc dnsdist-cache.hh \
@@ -258,6 +246,7 @@ testrunner_SOURCES = \
 	misc.cc misc.hh \
 	namespaces.hh \
 	pdnsexception.hh \
+	pollmplexer.cc \
 	qtype.cc qtype.hh \
 	sholder.hh \
 	sodcrypto.cc \
@@ -266,6 +255,25 @@ testrunner_SOURCES = \
 	threadname.hh threadname.cc \
 	testrunner.cc \
 	xpf.cc xpf.hh
+
+if HAVE_FREEBSD
+dnsdist_SOURCES += kqueuemplexer.cc
+testrunner_SOURCES += kqueuemplexer.cc
+endif
+
+if HAVE_LINUX
+dnsdist_SOURCES += epollmplexer.cc
+testrunner_SOURCES += epollmplexer.cc
+endif
+
+if HAVE_SOLARIS
+dnsdist_SOURCES += \
+        devpollmplexer.cc \
+        portsmplexer.cc
+testrunner_SOURCES += \
+        devpollmplexer.cc \
+        portsmplexer.cc
+endif
 
 testrunner_LDFLAGS = \
 	$(AM_LDFLAGS) \
