@@ -470,6 +470,12 @@ static void connectionThread(int sock, ComboAddress remote)
         output << "# TYPE " << statesbase << "tcpreadtimeouts "        << "counter"                                                           << "\n";
         output << "# HELP " << statesbase << "tcpwritetimeouts "       << "The number of TCP write timeouts"                                  << "\n";
         output << "# TYPE " << statesbase << "tcpwritetimeouts "       << "counter"                                                           << "\n";
+        output << "# HELP " << statesbase << "tcpcurrentconnections "  << "The number of current TCP connections"                             << "\n";
+        output << "# TYPE " << statesbase << "tcpcurrentconnections "  << "gauge"                                                             << "\n";
+        output << "# HELP " << statesbase << "tcpavgqueriesperconn "   << "The average number of queries per TCP connection"                  << "\n";
+        output << "# TYPE " << statesbase << "tcpavgqueriesperconn "   << "gauge"                                                             << "\n";
+        output << "# HELP " << statesbase << "tcpavgconnduration "     << "The average duration of a TCP connection (ms)"                     << "\n";
+        output << "# TYPE " << statesbase << "tcpavgconnduration "     << "gauge"                                                             << "\n";
 
         for (const auto& state : *states) {
           string serverName;
@@ -484,18 +490,21 @@ static void connectionThread(int sock, ComboAddress remote)
           const std::string label = boost::str(boost::format("{server=\"%1%\",address=\"%2%\"}")
             % serverName % state->remote.toStringWithPort());
 
-          output << statesbase << "queries"                << label << " " << state->queries.load()         << "\n";
-          output << statesbase << "drops"                  << label << " " << state->reuseds.load()         << "\n";
-          output << statesbase << "latency"                << label << " " << state->latencyUsec/1000.0     << "\n";
-          output << statesbase << "senderrors"             << label << " " << state->sendErrors.load()      << "\n";
-          output << statesbase << "outstanding"            << label << " " << state->outstanding.load()     << "\n";
-          output << statesbase << "order"                  << label << " " << state->order                  << "\n";
-          output << statesbase << "weight"                 << label << " " << state->weight                 << "\n";
-          output << statesbase << "tcpdiedsendingquery"    << label << " " << state->tcpDiedSendingQuery    << "\n";
-          output << statesbase << "tcpdiedreadingresponse" << label << " " << state->tcpDiedReadingResponse << "\n";
-          output << statesbase << "tcpgaveup"              << label << " " << state->tcpGaveUp              << "\n";
-          output << statesbase << "tcpreadtimeouts"        << label << " " << state->tcpReadTimeouts        << "\n";
-          output << statesbase << "tcpwritetimeouts"       << label << " " << state->tcpWriteTimeouts       << "\n";
+          output << statesbase << "queries"                << label << " " << state->queries.load()             << "\n";
+          output << statesbase << "drops"                  << label << " " << state->reuseds.load()             << "\n";
+          output << statesbase << "latency"                << label << " " << state->latencyUsec/1000.0         << "\n";
+          output << statesbase << "senderrors"             << label << " " << state->sendErrors.load()          << "\n";
+          output << statesbase << "outstanding"            << label << " " << state->outstanding.load()         << "\n";
+          output << statesbase << "order"                  << label << " " << state->order                      << "\n";
+          output << statesbase << "weight"                 << label << " " << state->weight                     << "\n";
+          output << statesbase << "tcpdiedsendingquery"    << label << " " << state->tcpDiedSendingQuery        << "\n";
+          output << statesbase << "tcpdiedreadingresponse" << label << " " << state->tcpDiedReadingResponse     << "\n";
+          output << statesbase << "tcpgaveup"              << label << " " << state->tcpGaveUp                  << "\n";
+          output << statesbase << "tcpreadtimeouts"        << label << " " << state->tcpReadTimeouts            << "\n";
+          output << statesbase << "tcpwritetimeouts"       << label << " " << state->tcpWriteTimeouts           << "\n";
+          output << statesbase << "tcpcurrentconnections"  << label << " " << state->tcpCurrentConnections      << "\n";
+          output << statesbase << "tcpavgqueriesperconn"   << label << " " << state->tcpAvgQueriesPerConnection << "\n";
+          output << statesbase << "tcpavgconnduration"     << label << " " << state->tcpAvgConnectionDuration   << "\n";
         }
 
         for (const auto& front : g_frontends) {
@@ -582,6 +591,9 @@ static void connectionThread(int sock, ComboAddress remote)
           {"tcpGaveUp", (double)a->tcpGaveUp},
           {"tcpReadTimeouts", (double)a->tcpReadTimeouts},
           {"tcpWriteTimeouts", (double)a->tcpWriteTimeouts},
+          {"tcpCurrentConnections", (double)a->tcpCurrentConnections},
+          {"tcpAvgQueriesPerConnection", (double)a->tcpAvgQueriesPerConnection},
+          {"tcpAvgConnectionDuration", (double)a->tcpAvgConnectionDuration},
           {"dropRate", (double)a->dropRate}
         };
 
@@ -610,6 +622,9 @@ static void connectionThread(int sock, ComboAddress remote)
           { "tcpGaveUp", (double) front->tcpGaveUp.load() },
           { "tcpClientTimeouts", (double) front->tcpClientTimeouts },
           { "tcpDownstreamTimeouts", (double) front->tcpDownstreamTimeouts },
+          { "tcpCurrentConnections", (double) front->tcpCurrentConnections },
+          { "tcpAvgQueriesPerConnection", (double) front->tcpAvgQueriesPerConnection },
+          { "tcpAvgConnectionDuration", (double) front->tcpAvgConnectionDuration },
         };
         frontends.push_back(frontend);
       }

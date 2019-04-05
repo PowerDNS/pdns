@@ -591,6 +591,10 @@ struct ClientState
   std::atomic<uint64_t> tcpGaveUp{0};
   std::atomic<uint64_t> tcpClientTimeouts{0};
   std::atomic<uint64_t> tcpDownstreamTimeouts{0};
+  std::atomic<uint64_t> tcpCurrentConnections{0};
+  std::atomic<double> tcpAvgQueriesPerConnection{0.0};
+  /* in ms */
+  std::atomic<double> tcpAvgConnectionDuration{0.0};
   int udpFD{-1};
   int tcpFD{-1};
   bool muted{false};
@@ -633,6 +637,12 @@ struct ClientState
     d_filter = bpf;
   }
 #endif /* HAVE_EBPF */
+
+  void updateTCPMetrics(size_t queries, uint64_t durationMs)
+  {
+    tcpAvgQueriesPerConnection = (99.0 * tcpAvgQueriesPerConnection / 100.0) + (queries / 100.0);
+    tcpAvgConnectionDuration = (99.0 * tcpAvgConnectionDuration / 100.0) + (durationMs / 100.0);
+  }
 };
 
 class TCPClientCollection {
@@ -744,6 +754,10 @@ struct DownstreamState
   std::atomic<uint64_t> tcpGaveUp{0};
   std::atomic<uint64_t> tcpReadTimeouts{0};
   std::atomic<uint64_t> tcpWriteTimeouts{0};
+  std::atomic<uint64_t> tcpCurrentConnections{0};
+  std::atomic<double> tcpAvgQueriesPerConnection{0.0};
+  /* in ms */
+  std::atomic<double> tcpAvgConnectionDuration{0.0};
   string name;
   size_t socketsOffset{0};
   double queryLoad{0.0};
@@ -815,6 +829,12 @@ struct DownstreamState
   void hash();
   void setId(const boost::uuids::uuid& newId);
   void setWeight(int newWeight);
+
+  void updateTCPMetrics(size_t queries, uint64_t durationMs)
+  {
+    tcpAvgQueriesPerConnection = (99.0 * tcpAvgQueriesPerConnection / 100.0) + (queries / 100.0);
+    tcpAvgConnectionDuration = (99.0 * tcpAvgConnectionDuration / 100.0) + (durationMs / 100.0);
+  }
 };
 using servers_t =vector<std::shared_ptr<DownstreamState>>;
 
@@ -1010,7 +1030,7 @@ extern std::string g_apiConfigDirectory;
 extern bool g_servFailOnNoPolicy;
 extern uint32_t g_hashperturb;
 extern bool g_useTCPSinglePipe;
-extern std::atomic<uint16_t> g_downstreamTCPCleanupInterval;
+extern uint16_t g_downstreamTCPCleanupInterval;
 extern size_t g_udpVectorSize;
 extern bool g_preserveTrailingData;
 extern bool g_allowEmptyResponse;
