@@ -253,10 +253,10 @@ Turn off the packet cache. Useful when running with Lua scripts that can
 not be cached.
 
 .. _setting-disable-real-memory-usage:
-.. versionadded:: 4.1.13
 
 ``disable-real-memory-usage``
------------------------
+-----------------------------
+.. versionadded:: 4.1.13
 -  Boolean
 -  Default: no
 
