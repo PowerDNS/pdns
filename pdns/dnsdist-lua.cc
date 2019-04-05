@@ -1766,7 +1766,30 @@ void setupLuaConfig(bool client)
 #endif
       });
 
-  g_lua.writeFunction("setAllowEmptyResponse", [](bool allow) { g_allowEmptyResponse=allow; });
+    g_lua.writeFunction("reloadAllCertificates", []() {
+        for (auto& frontend : g_frontends) {
+          if (!frontend) {
+            continue;
+          }
+          try {
+#ifdef HAVE_DNSCRYPT
+            if (frontend->dnscryptCtx) {
+              frontend->dnscryptCtx->reloadCertificate();
+            }
+#endif /* HAVE_DNSCRYPT */
+#ifdef HAVE_DNS_OVER_TLS
+            if (frontend->tlsFrontend) {
+              frontend->tlsFrontend->setupTLS();
+            }
+#endif /* HAVE_DNS_OVER_TLS */
+          }
+          catch(const std::exception& e) {
+            errlog("Error reloading certificates for frontend %s: %s", frontend->local.toStringWithPort(), e.what());
+          }
+        }
+      });
+
+    g_lua.writeFunction("setAllowEmptyResponse", [](bool allow) { g_allowEmptyResponse=allow; });
 }
 
 vector<std::function<void(void)>> setupLua(bool client, const std::string& config)
