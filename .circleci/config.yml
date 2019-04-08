@@ -22,7 +22,7 @@ commands:
           ./start-test-stop 5300 << parameters.context >>
 
 jobs:
-  build:
+  build-auth:
     docker:
       - image: debian:stretch
       - image: mcr.microsoft.com/mssql/server:2019-CTP2.2-ubuntu
@@ -78,3 +78,9 @@ jobs:
       - auth-regress:
           context: godbc_mssql-nsec3-narrow
           skip: 8bit-txt-unescaped
+
+workflows:
+  version: 2
+  auth:
+    jobs:
+      - build-auth
