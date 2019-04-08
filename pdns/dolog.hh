@@ -70,6 +70,13 @@ void dolog(std::ostream& os, const char* s, T value, Args... args)
 extern bool g_verbose;
 extern bool g_syslog;
 
+inline void setSyslogFacility(int facility)
+{
+  /* we always call openlog() right away at startup */
+  closelog();
+  openlog("dnsdist", LOG_PID|LOG_NDELAY, facility);
+}
+
 template<typename... Args>
 void genlog(int level, const char* s, Args... args)
 {

@@ -2226,7 +2226,7 @@ try
 
   signal(SIGPIPE, SIG_IGN);
   signal(SIGCHLD, SIG_IGN);
-  openlog("dnsdist", LOG_PID, LOG_DAEMON);
+  openlog("dnsdist", LOG_PID|LOG_NDELAY, LOG_DAEMON);
 
 #ifdef HAVE_LIBSODIUM
   if (sodium_init() == -1) {
