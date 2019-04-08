@@ -300,10 +300,6 @@ size_t sendMsgWithTimeout(int fd, const char* buffer, size_t len, int idleTimeou
     addCMsgSrcAddr(&msgh, cbuf, local, localItf);
   }
 
-  if (localItf != 0 && local) {
-    addCMsgSrcAddr(&msgh, cbuf, local, localItf);
-  }
-
   iov.iov_base = reinterpret_cast<void*>(const_cast<char*>(buffer));
   iov.iov_len = len;
   msgh.msg_iov = &iov;
