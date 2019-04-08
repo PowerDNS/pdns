@@ -21,6 +21,59 @@ commands:
           done
           ./start-test-stop 5300 << parameters.context >>
 
+  install-recursor-deps:
+    description: "Install all libraries needed for the recursor"
+    steps:
+      - run: apt-get update
+      - run:
+          command: |
+            apt-get install -qq -y \
+              libluajit-5.1 \
+              libboost-all-dev \
+              libcap2 \
+              libssl1.1 \
+              libsystemd0 \
+              libsodium18 \
+              libprotobuf10
+
+  add-auth-repo:
+    description: "Add the debian repo for the auth"
+    parameters:
+      version:
+        type: string
+        default: "42"
+      distro:
+        type: string
+        default: "debian"
+      release:
+        type: string
+        default: "stretch"
+    steps:
+      - run:
+          name: "Install dependencies"
+          command: "apt-get update && apt-get install -qq -y curl gnupg2"
+      - run:
+          name: "Install apt-keys"
+          command: |
+            if [ "<< parameters.version >>" = "master" ]; then
+              curl https://repo.powerdns.com/CBC8B383-pub.asc | apt-key add -
+            else
+              curl https://repo.powerdns.com/FD380FBB-pub.asc | apt-key add -
+            fi
+      - run:
+          name: "Add repository"
+          command: |
+            echo 'deb [arch=amd64] http://repo.powerdns.com/<< parameters.distro >> << parameters.release >>-auth-<< parameters.version>> main' >> /etc/apt/sources.list.d/pdns.list
+      - run:
+          name: "add pinning"
+          command: |
+            echo 'Package: pdns-*' > /etc/apt/preferences.d/pdns
+            echo 'Pin: origin repo.powerdns.com' >> /etc/apt/preferences.d/pdns
+            echo 'Pin-Priority: 600' >> /etc/apt/preferences.d/pdns
+      - run:
+          name: update apt cache
+          command: apt-get update
+
 jobs:
   build-auth:
     docker:
@@ -132,13 +185,79 @@ jobs:
           command: make -j3 -k
           working_directory: ~/project/pdns/recursordist
       - run:
-          name: make check
-          command: make check
+          name: Run unit tests
+          command: make check || (cat test-suite.log; false)
           working_directory: ~/project/pdns/recursordist
+      - run:
+          name: Install resulting binaries
+          command: make install
+          working_directory: ~/project/pdns/recursordist
+      - persist_to_workspace:
+          root: /opt
+          paths:
+            - pdns-recursor
+
+  test-recursor-regression:
+    docker:
+      - image: debian:stretch
+    steps:
+      - add-auth-repo
+      - run: apt-get --no-install-recommends install -qq -y pdns-server pdns-backend-bind pdns-tools daemontools authbind jq libfaketime lua-posix moreutils bc virtualenv protobuf-compiler
+      - install-recursor-deps
+      - run:
+          name: Set up authbind
+          command: |
+            touch /etc/authbind/byport/53
+            chmod 755 /etc/authbind/byport/53
+      - checkout
+      - attach_workspace:
+          at: /opt
+      - run:
+          name: Run regression tests
+          workdir: ~/project
+          command: |
+            PDNSRECURSOR=/opt/pdns-recursor/sbin/pdns_recursor \
+            RECCONTROL=/opt/pdns-recursor/bin/rec_control \
+            ./build-scripts/test-recursor
+
+  test-recursor-bulk:
+    docker:
+      - image: debian:stretch
+    steps:
+      - add-auth-repo
+      - run: apt-get --no-install-recommends install -qq -y pdns-tools moreutils time
+      - install-recursor-deps
+      - checkout
+      - attach_workspace:
+          at: /opt
+      - run:
+          name: Get the majestic million list
+          workdir: ~/project/regression-tests
+          command: |
+            apt-get install -qq -y unzip && \
+            curl -LO http://s3-us-west-1.amazonaws.com/umbrella-static/top-1m.csv.zip && \
+            unzip top-1m.csv.zip -d .
+      - run:
+          name: Run bulktests
+          command: |
+            DNSBULKTEST=/usr/bin/dnsbulktest \
+            RECURSOR=/opt/pdns-recursor/sbin/pdns_recursor \
+            THRESHOLD=95 \
+            TRACE=no \
+            ./timestamp ./recursor-test 5300 50000 || \
+            (cat recursor.log; false)
+          workdir: ~/project/regression-tests
 
 workflows:
   version: 2
   build-and-test-all:
     jobs:
       - build-auth
+
       - build-recursor
+      - test-recursor-regression:
+          requires:
+            - build-recursor
+      - test-recursor-bulk:
+          requires:
+            - build-recursor
