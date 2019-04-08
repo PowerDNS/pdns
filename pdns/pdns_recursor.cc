@@ -3033,6 +3033,7 @@ template string broadcastAccFunction(const boost::function<string*()>& fun); // 
 template uint64_t broadcastAccFunction(const boost::function<uint64_t*()>& fun); // explicit instantiation
 template vector<ComboAddress> broadcastAccFunction(const boost::function<vector<ComboAddress> *()>& fun); // explicit instantiation
 template vector<pair<DNSName,uint16_t> > broadcastAccFunction(const boost::function<vector<pair<DNSName, uint16_t> > *()>& fun); // explicit instantiation
+template ThreadTimes broadcastAccFunction(const boost::function<ThreadTimes*()>& fun);
 
 static void handleRCC(int fd, FDMultiplexer::funcparam_t& var)
 {
