@@ -104,7 +104,7 @@ void PollFDMultiplexer::getAvailableFDs(std::vector<int>& fds, int timeout)
     throw FDMultiplexerException("poll returned error: " + stringerror());
 
   for(const auto& pollfd : pollfds) {
-    if (pollfd.revents == POLLIN || pollfd.revents == POLLOUT) {
+    if (pollfd.revents & POLLIN || pollfd.revents & POLLOUT) {
       fds.push_back(pollfd.fd);
     }
   }
