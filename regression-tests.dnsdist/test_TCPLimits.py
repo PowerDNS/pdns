@@ -106,11 +106,11 @@ class TestTCPLimits(DNSDistTest):
         conn.send(struct.pack("!H", 65535))
 
         count = 0
-        while count < (self._maxTCPConnDuration * 2):
+        while count < (self._maxTCPConnDuration * 20):
             try:
                 # sleeping for only one second keeps us below the
                 # idle timeout (setTCPRecvTimeout())
-                time.sleep(1)
+                time.sleep(0.5)
                 conn.send(b'A')
                 count = count + 1
             except Exception as e:
@@ -119,7 +119,7 @@ class TestTCPLimits(DNSDistTest):
 
         end = time.time()
 
-        self.assertAlmostEquals(count, self._maxTCPConnDuration, delta=2)
+        self.assertAlmostEquals(count / 10, self._maxTCPConnDuration, delta=2)
         self.assertAlmostEquals(end - start, self._maxTCPConnDuration, delta=2)
 
         conn.close()
