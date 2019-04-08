@@ -281,6 +281,23 @@ jobs:
             (cat recursor.log; false)
           workdir: ~/project/regression-tests
 
+  test-recursor-api:
+    docker:
+      - image: debian:stretch
+    steps:
+      - add-auth-repo
+      - run: apt-get --no-install-recommends install -qq -y virtualenv pdns-tools
+      - install-recursor-deps
+      - checkout
+      - attach_workspace:
+          at: /opt
+      - run:
+          name: Run API tests
+          workdir: ~/project/regression-tests.api
+          command: |
+            PDNSRECURSOR="/opt/pdns-recursor/sbin/pdns_recursor" \
+            ./runtests recursor
+
 workflows:
   version: 2
   build-and-test-all:
@@ -292,5 +309,8 @@ workflows:
           requires:
             - build-recursor
       - test-recursor-bulk:
+          requires:
+            - build-recursor
+      - test-recursor-api:
           requires:
             - build-recursor
