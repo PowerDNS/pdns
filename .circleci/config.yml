@@ -74,6 +74,33 @@ commands:
           name: update apt cache
           command: apt-get update
 
+  save-ccache-cache:
+    description: Store the .ccache directory
+    parameters:
+      product:
+        type: string
+        default: ""
+    steps:
+      - save_cache:
+          key: ccache-cache-{{ arch }}-<< parameters.product >>-{{ .Branch }}
+          paths:
+            - ~/.ccache
+
+  restore-cache-ccache:
+    description: Restore the .ccache directory
+    parameters:
+      product:
+        type: string
+        default: ""
+    steps:
+      - run:
+          name: ensure ca-certificates is installed
+          command: apt-get update && apt-get -qq -y install ca-certificates
+      - restore_cache:
+          keys:
+            - ccache-cache-{{ arch }}-<< parameters.product >>-{{ .Branch }}
+            - ccache-cache-{{ arch }}-<< parameters.product >>
+
 jobs:
   build-auth:
     docker:
@@ -136,6 +163,8 @@ jobs:
     docker:
       - image: debian:stretch
     steps:
+      - restore-cache-ccache:
+          product: recursor
       - run:
           name: Install dependencies
           command: |
@@ -143,6 +172,7 @@ jobs:
             autoconf \
             automake \
             ca-certificates \
+            ccache \
             curl \
             bison \
             flex \
@@ -164,11 +194,12 @@ jobs:
       - checkout
       - run:
           name: autoconf
-          command: autoreconf -vfi
+          command: PATH=/usr/lib/ccache:$PATH autoreconf -vfi
           working_directory: ~/project/pdns/recursordist
       - run:
           name: configure
           command: |
+            PATH=/usr/lib/ccache:$PATH \
             CFLAGS="-O1 -Werror=vla" \
             CXXFLAGS="-O1 -Werror=vla" \
             ./configure \
@@ -182,8 +213,10 @@ jobs:
           working_directory: ~/project/pdns/recursordist
       - run:
           name: build
-          command: make -j3 -k
+          command: PATH=/usr/lib/ccache:$PATH make -j3 -k
           working_directory: ~/project/pdns/recursordist
+      - save-ccache-cache:
+          product: recursor
       - run:
           name: Run unit tests
           command: make check || (cat test-suite.log; false)
