@@ -79,8 +79,66 @@ jobs:
           context: godbc_mssql-nsec3-narrow
           skip: 8bit-txt-unescaped
 
+  build-recursor:
+    docker:
+      - image: debian:stretch
+    steps:
+      - run:
+          name: Install dependencies
+          command: |
+            apt-get update && apt-get -qq --no-install-recommends install \
+            autoconf \
+            automake \
+            ca-certificates \
+            curl \
+            bison \
+            flex \
+            g++ \
+            git \
+            libboost-all-dev \
+            libcap-dev \
+            libluajit-5.1-dev \
+            libprotobuf-dev \
+            libsodium-dev \
+            libssl-dev \
+            libsystemd-dev \
+            libtool \
+            make \
+            pkg-config \
+            protobuf-compiler \
+            ragel \
+            virtualenv
+      - checkout
+      - run:
+          name: autoconf
+          command: autoreconf -vfi
+          working_directory: ~/project/pdns/recursordist
+      - run:
+          name: configure
+          command: |
+            CFLAGS="-O1 -Werror=vla" \
+            CXXFLAGS="-O1 -Werror=vla" \
+            ./configure \
+            --enable-unit-tests \
+            --prefix=/opt/pdns-recursor \
+            --with-libsodium \
+            --with-lua=luajit \
+            --with-libcap \
+            --with-protobuf=yes \
+            --without-net-snmp
+          working_directory: ~/project/pdns/recursordist
+      - run:
+          name: build
+          command: make -j3 -k
+          working_directory: ~/project/pdns/recursordist
+      - run:
+          name: make check
+          command: make check
+          working_directory: ~/project/pdns/recursordist
+
 workflows:
   version: 2
-  auth:
+  build-and-test-all:
     jobs:
       - build-auth
+      - build-recursor
