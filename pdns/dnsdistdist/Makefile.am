@@ -45,6 +45,10 @@ AM_CPPFLAGS += $(GNUTLS_CFLAGS)
 endif
 endif
 
+if HAVE_LIBCRYPTO
+AM_CPPFLAGS += $(LIBCRYPTO_INCLUDES)
+endif
+
 EXTRA_DIST=COPYING \
 	   dnslabeltext.rl \
 	   dnsdistconf.lua \
