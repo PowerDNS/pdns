@@ -110,7 +110,7 @@ class TestTCPLimits(DNSDistTest):
             try:
                 # sleeping for only one second keeps us below the
                 # idle timeout (setTCPRecvTimeout())
-                time.sleep(0.5)
+                time.sleep(0.1)
                 conn.send(b'A')
                 count = count + 1
             except Exception as e:
