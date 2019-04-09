@@ -104,6 +104,7 @@ commands:
       - run: |
           apt-get install -qq -y --no-install-recommends \
             libboost-all-dev \
+            liblmdb0 \
             libssl1.1 \
             libsystemd0 \
             default-libmysqlclient-dev \
@@ -124,6 +125,7 @@ commands:
               g++ \
               git \
               libboost-all-dev \
+              liblmdb-dev \
               libssl-dev \
               libsqlite3-dev \
               libtool \
@@ -231,8 +233,9 @@ jobs:
             CXXFLAGS="-O1 -Werror=vla" \
             ./configure \
               --disable-lua-records \
-              --with-modules='bind gmysql gsqlite3 godbc random' \
+              --with-modules='bind lmdb gmysql gsqlite3 godbc random' \
               --enable-tools \
+              --with-lmdb=/usr \
               --prefix=/opt/pdns-auth
       - run:
           name: build
@@ -408,6 +411,23 @@ jobs:
       - auth-regress:
           context: gmysql-nsec3-narrow
 
+  test-auth-regress-lmdb:
+    docker:
+      - image: debian:stretch
+    steps:
+      - auth-regress-setup
+      - run: apt-get install -y -qq jq curl
+      - auth-regress:
+          context: lmdb-nodnssec-both
+      - auth-regress:
+          context: lmdb-both
+      - auth-regress:
+          context: lmdb-nsec3-both
+      - auth-regress:
+          context: lmdb-nsec3-optout-both
+      - auth-regress:
+          context: lmdb-nsec3-narrow
+
   build-recursor:
     docker:
       - image: debian:stretch
@@ -563,6 +583,9 @@ workflows:
           requires:
             - build-auth
       - test-auth-regress-gsqlite3:
+          requires:
+            - build-auth
+      - test-auth-regress-lmdb:
           requires:
             - build-auth
 
