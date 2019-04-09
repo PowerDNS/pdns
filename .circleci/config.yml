@@ -124,6 +124,7 @@ commands:
               git \
               libboost-all-dev \
               libssl-dev \
+              libsqlite3-dev \
               libtool \
               make \
               pkg-config \
@@ -229,7 +230,7 @@ jobs:
             CXXFLAGS="-O1 -Werror=vla" \
             ./configure \
               --disable-lua-records \
-              --with-modules='bind gmysql godbc random' \
+              --with-modules='bind gmysql gsqlite3 godbc random' \
               --enable-tools \
               --prefix=/opt/pdns-auth
       - run:
@@ -333,6 +334,24 @@ jobs:
       - auth-regress:
           context: godbc_mssql-nsec3-narrow
           skip: 8bit-txt-unescaped
+
+  test-auth-regress-gsqlite3:
+    docker:
+      - image: debian:stretch
+    steps:
+      - auth-regress-setup
+      - run:
+          command: apt-get install -qq -y sqlite3
+      - auth-regress:
+          context: gsqlite3-nodnssec-both
+      - auth-regress:
+          context: gsqlite3-both
+      - auth-regress:
+          context: gsqlite3-nsec3-both
+      - auth-regress:
+          context: gsqlite3-nsec3-optout-both
+      - auth-regress:
+          context: gsqlite3-nsec3-narrow
 
   test-auth-regress-gmysql:
     docker:
@@ -508,6 +527,9 @@ workflows:
           requires:
             - build-auth
       - test-auth-regress-gmysql:
+          requires:
+            - build-auth
+      - test-auth-regress-gsqlite3:
           requires:
             - build-auth
 
