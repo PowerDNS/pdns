@@ -519,7 +519,7 @@ test_auth() {
   run "./timestamp ./start-test-stop 5300 bind-both"
   run "./timestamp ./start-test-stop 5300 bind-dnssec-both"
   run "./timestamp ./start-test-stop 5300 bind-dnssec-nsec3-both"
-  run "./timestamp ./start-test-stop 5300 bind-dnssec-nsec3-optout-both"
+  # run "./timestamp ./start-test-stop 5300 bind-dnssec-nsec3-optout-both"
   run "./timestamp ./start-test-stop 5300 bind-dnssec-nsec3-narrow"
   run "./timestamp ./start-test-stop 5300 bind-hybrid-nsec3"
   #ecdsa - ./timestamp ./start-test-stop 5300 bind-dnssec-pkcs11
@@ -532,7 +532,7 @@ test_auth() {
   run "./timestamp ./start-test-stop 5300 gmysql-nodnssec-both"
   run "./timestamp ./start-test-stop 5300 gmysql-both"
   run "./timestamp ./start-test-stop 5300 gmysql-nsec3-both"
-  run "./timestamp ./start-test-stop 5300 gmysql-nsec3-optout-both"
+  # run "./timestamp ./start-test-stop 5300 gmysql-nsec3-optout-both"
   run "./timestamp ./start-test-stop 5300 gmysql-nsec3-narrow"
 
   run "export GODBC_SQLITE3_DSN=pdns-sqlite3-1"
@@ -547,7 +547,7 @@ test_auth() {
   run "./timestamp ./start-test-stop 5300 gsqlite3-nodnssec-both"
   run "./timestamp ./start-test-stop 5300 gsqlite3-both"
   run "./timestamp ./start-test-stop 5300 gsqlite3-nsec3-both"
-  run "./timestamp ./start-test-stop 5300 gsqlite3-nsec3-optout-both"
+  # run "./timestamp ./start-test-stop 5300 gsqlite3-nsec3-optout-both"
   run "./timestamp ./start-test-stop 5300 gsqlite3-nsec3-narrow"
 
   run "./timestamp ./start-test-stop 5300 mydns"
@@ -568,7 +568,7 @@ test_auth() {
   run "./timestamp ./start-test-stop 5300 lmdb-nodnssec-both"
   run "./timestamp ./start-test-stop 5300 lmdb-both"
   run "./timestamp ./start-test-stop 5300 lmdb-nsec3-both"
-  run "./timestamp ./start-test-stop 5300 lmdb-nsec3-optout-both"
+  # run "./timestamp ./start-test-stop 5300 lmdb-nsec3-optout-both"
 
   run "rm tests/ent-asterisk/fail.nsec"
 
@@ -581,26 +581,26 @@ test_auth() {
   run "./timestamp ./start-test-stop 5300 bind-both"
   run "./timestamp ./start-test-stop 5300 bind-dnssec-both"
   run "./timestamp ./start-test-stop 5300 bind-dnssec-nsec3-both"
-  run "./timestamp ./start-test-stop 5300 bind-dnssec-nsec3-optout-both"
+  # run "./timestamp ./start-test-stop 5300 bind-dnssec-nsec3-optout-both"
   run "./timestamp ./start-test-stop 5300 bind-dnssec-nsec3-narrow"
   run "./timestamp ./start-test-stop 5300 bind-hybrid-nsec3"
 
   run "./timestamp ./start-test-stop 5300 gmysql-nodnssec-both"
   run "./timestamp ./start-test-stop 5300 gmysql-both"
   run "./timestamp ./start-test-stop 5300 gmysql-nsec3-both"
-  run "./timestamp ./start-test-stop 5300 gmysql-nsec3-optout-both"
+  # run "./timestamp ./start-test-stop 5300 gmysql-nsec3-optout-both"
   run "./timestamp ./start-test-stop 5300 gmysql-nsec3-narrow"
 
   run "./timestamp ./start-test-stop 5300 gpgsql-nodnssec-both"
   run "./timestamp ./start-test-stop 5300 gpgsql-both"
   run "./timestamp ./start-test-stop 5300 gpgsql-nsec3-both"
-  run "./timestamp ./start-test-stop 5300 gpgsql-nsec3-optout-both"
+  # run "./timestamp ./start-test-stop 5300 gpgsql-nsec3-optout-both"
   run "./timestamp ./start-test-stop 5300 gpgsql-nsec3-narrow"
 
   run "./timestamp ./start-test-stop 5300 gsqlite3-nodnssec-both"
   run "./timestamp ./start-test-stop 5300 gsqlite3-both"
   run "./timestamp ./start-test-stop 5300 gsqlite3-nsec3-both"
-  run "./timestamp ./start-test-stop 5300 gsqlite3-nsec3-optout-both"
+  # run "./timestamp ./start-test-stop 5300 gsqlite3-nsec3-optout-both"
   run "./timestamp ./start-test-stop 5300 gsqlite3-nsec3-narrow"
 
   run "./timestamp ./start-test-stop 5300 lua2"
@@ -609,7 +609,7 @@ test_auth() {
   run "./timestamp ./start-test-stop 5300 lmdb-both"
   run "./timestamp ./start-test-stop 5300 lmdb-nodnssec-both"
   run "./timestamp ./start-test-stop 5300 lmdb-nsec3-both"
-  run "./timestamp ./start-test-stop 5300 lmdb-nsec3-optout-both"
+  # run "./timestamp ./start-test-stop 5300 lmdb-nsec3-optout-both"
 
   run "cd .."
 

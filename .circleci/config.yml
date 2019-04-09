@@ -330,7 +330,7 @@ jobs:
           skip: 8bit-txt-unescaped
       - auth-regress:
           context: godbc_mssql-nsec3-optout
-          skip: 8bit-txt-unescaped verify-dnssec-zone
+          skip: 8bit-txt-unescaped
       - auth-regress:
           context: godbc_mssql-nsec3-narrow
           skip: 8bit-txt-unescaped
