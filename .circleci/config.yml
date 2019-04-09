@@ -32,6 +32,7 @@ commands:
               default-jre-headless \
               dnsutils \
               ldnsutils \
+              libnet-dns-perl \
               unbound-host
       - run:
           name: Install jdnssectools
