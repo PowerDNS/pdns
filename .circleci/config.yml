@@ -14,8 +14,38 @@ commands:
           name: Clone the repo
           command: git clone --depth 1 --branch $CIRCLE_BRANCH $CIRCLE_REPOSITORY_URL ~/project
 
+  auth-regress-setup:
+    description: Prepare the environment for auth regression tests
+    steps:
+      - run:
+          name: ensure ca-certificates is installed
+          command: apt-get update && apt-get -qq -y install ca-certificates
+      - attach_workspace:
+          at: /opt
+      - install-auth-deps
+      - run:
+          name: Install test dependencies
+          command: |
+            apt-get -y -qq install \
+              bc \
+              bind9utils \
+              default-jre-headless \
+              dnsutils \
+              ldnsutils \
+              unbound-host
+      - run:
+          name: Install jdnssectools
+          command: |
+            if [ ! -e /usr/bin/jdnssec-verifyzone ]; then
+              apt-get install -qq -y wget
+              wget https://github.com/dblacka/jdnssec-tools/releases/download/0.14/jdnssec-tools-0.14.tar.gz
+              tar xfz jdnssec-tools-0.14.tar.gz --strip-components=1 -C /
+              rm jdnssec-tools-0.14.tar.gz
+            fi
+      - checkout-shallow
+
   auth-regress:
-    description: "run one auth regression context"
+    description: Run one auth regression context
     parameters:
       skip:
         type: string
@@ -27,25 +57,6 @@ commands:
         type: string
         default: "/opt/pdns-auth/"
     steps:
-      - run:
-          name: Get jdnssectools
-          command: |
-            if [ ! -e /usr/bin/jdnssec-verifyzone ]; then
-              apt-get install -qq -y wget
-              wget https://github.com/dblacka/jdnssec-tools/releases/download/0.14/jdnssec-tools-0.14.tar.gz
-              tar xfz jdnssec-tools-0.14.tar.gz --strip-components=1 -C /
-              rm jdnssec-tools-0.14.tar.gz
-            fi
-      - run:
-          name: Install test dependencies
-          command: |
-            apt-get -y -qq install \
-              bc \
-              bind9utils \
-              default-jre-headless \
-              dnsutils \
-              ldnsutils \
-              unbound-host
       - run:
           workdir: ~/project/regression-tests
           name: Run << parameters.context >> tests
@@ -235,11 +246,7 @@ jobs:
     docker:
       - image: debian:stretch
     steps:
-      - run:
-          name: ensure ca-certificates is installed
-          command: apt-get update && apt-get -qq -y install ca-certificates
-      - attach_workspace:
-          at: /opt
+      - auth-regress-setup
       - run:
           name: Configure ODBC for sqlite
           command: |
@@ -251,7 +258,6 @@ jobs:
             Driver = SQLite3
             Database = ${PWD}/regression-tests/pdns.sqlite32
             __EOF__
-      - install-auth-deps
       - run:
           name: Install ODBC deps
           command: |
@@ -260,34 +266,14 @@ jobs:
             libsqliteodbc \
             sqlite3
       - run:
-          name: Install test dependencies
-          command: |
-            apt-get -y -qq install \
-              bc \
-              bind9utils \
-              default-jre-headless \
-              dnsutils \
-              ldnsutils \
-              unbound-host
-      - checkout-shallow
-      - run:
           name: Allow missing tools in verify-dnssec-zone
           command: touch regression-tests/tests/verify-dnssec-zone/allow-missing
       - run:
-          name: Run the ODBC sqlite tests
-          command: |
-            PDNS=/opt/pdns-auth/sbin/pdns_server \
-            PDNS2=/opt/pdns-auth/sbin/pdns_server \
-            SDIG=/opt/pdns-auth/bin/sdig \
-            NOTIFY=/opt/pdns-auth/bin/pdns_notify \
-            NSEC3DIG=/opt/pdns-auth/bin/nsec3dig \
-            SAXFR=/opt/pdns-auth/bin/saxfr \
-            ZONE2SQL=/opt/pdns-auth/bin/zone2sql \
-            ZONE2LDAP=/opt/pdns-auth/bin/zone2ldap \
-            PDNSUTIL=/opt/pdns-auth/bin/pdnsutil \
-            PDNSCONTROL=/opt/pdns-auth/bin/pdns_control \
-            GODBC_SQLITE3_DSN=pdns-sqlite3-1 ./start-test-stop 5300 godbc_sqlite3-nsec3
+          name: Set up sqlite3 odbc testing
+          command: echo 'export GODBC_SQLITE3_DSN=pdns-sqlite3-1' > ./vars
           workdir: ~/project/regression-tests
+      - auth-regress:
+          context: godbc_sqlite3-nsec3
 
   test-auth-regress-odbc-mssql:
     docker:
@@ -297,12 +283,7 @@ jobs:
           - ACCEPT_EULA: Y
           - SA_PASSWORD: 'SAsa12%%'
     steps:
-      - run:
-          name: ensure ca-certificates is installed
-          command: apt-get update && apt-get -qq -y install ca-certificates
-      - attach_workspace:
-          at: /opt
-      - install-auth-deps
+      - auth-regress-setup
       - run:
           name: Install ODBC deps
           command: |
@@ -333,12 +314,11 @@ jobs:
       - run:
           name: create database
           command: echo 'create database pdns' | isql -v pdns-mssql-docker-nodb sa SAsa12%%
-      - checkout-shallow
       - run:
           name: Allow missing tools in verify-dnssec-zone
           command: touch regression-tests/tests/verify-dnssec-zone/allow-missing
       - run:
-          name: set up mssql odbc testing
+          name: Set up mssql odbc testing
           command: echo 'export GODBC_MSSQL_PASSWORD=SAsa12%% GODBC_MSSQL_USERNAME=sa GODBC_MSSQL_DSN=pdns-mssql-docker' > ./vars
           workdir: ~/project/regression-tests
       - auth-regress:
