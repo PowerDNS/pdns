@@ -220,6 +220,39 @@ class TestRoutingRoundRobinLBOneDown(DNSDistTest):
 
         self.assertEquals(total, numberOfQueries * 2)
 
+class TestRoutingRoundRobinLBAllDown(DNSDistTest):
+
+    _testServer2Port = 5351
+    _config_params = ['_testServerPort', '_testServer2Port']
+    _config_template = """
+    setServerPolicy(roundrobin)
+    setRoundRobinFailOnNoServer(true)
+    s1 = newServer{address="127.0.0.1:%s"}
+    s1:setDown()
+    s2 = newServer{address="127.0.0.1:%s"}
+    s2:setDown()
+    """
+
+    def testRRWithAllDown(self):
+        """
+        Routing: Round Robin with all servers down
+        """
+        numberOfQueries = 10
+        name = 'alldown.rr.routing.tests.powerdns.com.'
+        query = dns.message.make_query(name, 'A', 'IN')
+        response = dns.message.make_response(query)
+        rrset = dns.rrset.from_text(name,
+                                    60,
+                                    dns.rdataclass.IN,
+                                    dns.rdatatype.A,
+                                    '192.0.2.1')
+        response.answer.append(rrset)
+
+        for method in ("sendUDPQuery", "sendTCPQuery"):
+            sender = getattr(self, method)
+            (_, receivedResponse) = sender(query, response=None, useQueue=False)
+            self.assertEquals(receivedResponse, None)
+
 class TestRoutingOrder(DNSDistTest):
 
     _testServer2Port = 5351
