@@ -48,6 +48,14 @@ Global configuration
 
   Reload all DNSCrypt and TLS certificates, along with their associated keys.
 
+.. function:: setSyslogFacility(facility)
+
+  .. versionadded:: 1.4.0
+
+  Set the syslog logging facility to ``facility``.
+
+  :param int facility: The new facility as a numeric value. Defaults to LOG_DAEMON.
+
 Listen Sockets
 ~~~~~~~~~~~~~~
 

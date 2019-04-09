@@ -283,7 +283,7 @@ public:
     }
   }
 
-  IOState tryHandshake()
+  IOState tryHandshake() override
   {
     int res = SSL_accept(d_conn.get());
     if (res == 1) {
@@ -296,7 +296,7 @@ public:
     throw std::runtime_error("Error accepting TLS connection");
   }
 
-  void doHandshake()
+  void doHandshake() override
   {
     int res = 0;
     do {
@@ -754,7 +754,7 @@ public:
     gnutls_record_set_timeout(d_conn.get(), timeout * 1000);
   }
 
-  void doHandshake()
+  void doHandshake() override
   {
     int ret = 0;
     do {
@@ -766,7 +766,7 @@ public:
     while (ret < 0 && ret == GNUTLS_E_INTERRUPTED);
   }
 
-  IOState tryHandshake()
+  IOState tryHandshake() override
   {
     int ret = 0;
 

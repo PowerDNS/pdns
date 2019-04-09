@@ -1609,6 +1609,15 @@ void setupLuaConfig(bool client)
       g_secPollInterval = newInterval;
   });
 
+  g_lua.writeFunction("setSyslogFacility", [](int facility) {
+    setLuaSideEffect();
+    if (g_configurationDone) {
+      g_outputBuffer="setSyslogFacility cannot be used at runtime!\n";
+      return;
+    }
+    setSyslogFacility(facility);
+  });
+
   g_lua.writeFunction("addTLSLocal", [client](const std::string& addr, boost::variant<std::string, std::vector<std::pair<int,std::string>>> certFiles, boost::variant<std::string, std::vector<std::pair<int,std::string>>> keyFiles, boost::optional<localbind_t> vars) {
         if (client)
           return;
