@@ -43,6 +43,9 @@ commands:
               rm jdnssec-tools-0.14.tar.gz
             fi
       - checkout-shallow
+      - run:
+          name: Allow missing tools in verify-dnssec-zone
+          command: touch regression-tests/tests/verify-dnssec-zone/allow-missing
 
   auth-regress:
     description: Run one auth regression context
@@ -266,9 +269,6 @@ jobs:
             libsqliteodbc \
             sqlite3
       - run:
-          name: Allow missing tools in verify-dnssec-zone
-          command: touch regression-tests/tests/verify-dnssec-zone/allow-missing
-      - run:
           name: Set up sqlite3 odbc testing
           command: echo 'export GODBC_SQLITE3_DSN=pdns-sqlite3-1' > ./vars
           workdir: ~/project/regression-tests
@@ -314,9 +314,6 @@ jobs:
       - run:
           name: create database
           command: echo 'create database pdns' | isql -v pdns-mssql-docker-nodb sa SAsa12%%
-      - run:
-          name: Allow missing tools in verify-dnssec-zone
-          command: touch regression-tests/tests/verify-dnssec-zone/allow-missing
       - run:
           name: Set up mssql odbc testing
           command: echo 'export GODBC_MSSQL_PASSWORD=SAsa12%% GODBC_MSSQL_USERNAME=sa GODBC_MSSQL_DSN=pdns-mssql-docker' > ./vars
