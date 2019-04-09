@@ -497,10 +497,23 @@ void setupLuaConfig(bool client)
 
       try {
 	ComboAddress loc(addr, 53);
-	g_locals.clear();
-	g_locals.push_back(std::make_tuple(loc, doTCP, reusePort, tcpFastOpenQueueSize, interface, cpus)); /// only works pre-startup, so no sync necessary
+        for (auto it = g_frontends.begin(); it != g_frontends.end(); ) {
+          /* TLS and DNSCrypt frontends are separate */
+          if ((*it)->tlsFrontend == nullptr && (*it)->dnscryptCtx == nullptr) {
+            it = g_frontends.erase(it);
+          }
+          else {
+            ++it;
+          }
+        }
+
+        // only works pre-startup, so no sync necessary
+        g_frontends.push_back(std::unique_ptr<ClientState>(new ClientState(loc, false, reusePort, tcpFastOpenQueueSize, interface, cpus)));
+        if (doTCP) {
+          g_frontends.push_back(std::unique_ptr<ClientState>(new ClientState(loc, true, reusePort, tcpFastOpenQueueSize, interface, cpus)));
+        }
       }
-      catch(std::exception& e) {
+      catch(const std::exception& e) {
 	g_outputBuffer="Error: "+string(e.what())+"\n";
       }
     });
@@ -523,7 +536,11 @@ void setupLuaConfig(bool client)
 
       try {
 	ComboAddress loc(addr, 53);
-	g_locals.push_back(std::make_tuple(loc, doTCP, reusePort, tcpFastOpenQueueSize, interface, cpus)); /// only works pre-startup, so no sync necessary
+        // only works pre-startup, so no sync necessary
+        g_frontends.push_back(std::unique_ptr<ClientState>(new ClientState(loc, false, reusePort, tcpFastOpenQueueSize, interface, cpus)));
+        if (doTCP) {
+          g_frontends.push_back(std::unique_ptr<ClientState>(new ClientState(loc, true, reusePort, tcpFastOpenQueueSize, interface, cpus)));
+        }
       }
       catch(std::exception& e) {
 	g_outputBuffer="Error: "+string(e.what())+"\n";
@@ -1095,7 +1112,17 @@ void setupLuaConfig(bool client)
 
       try {
         auto ctx = std::make_shared<DNSCryptContext>(providerName, certFile, keyFile);
-        g_dnsCryptLocals.push_back(std::make_tuple(ComboAddress(addr, 443), ctx, reusePort, tcpFastOpenQueueSize, interface, cpus));
+
+        /* UDP */
+        auto cs = std::unique_ptr<ClientState>(new ClientState(ComboAddress(addr, 443), false, reusePort, tcpFastOpenQueueSize, interface, cpus));
+        cs->dnscryptCtx = ctx;
+        g_dnsCryptLocals.push_back(ctx);
+        g_frontends.push_back(std::move(cs));
+
+        /* TCP */
+        cs = std::unique_ptr<ClientState>(new ClientState(ComboAddress(addr, 443), true, reusePort, tcpFastOpenQueueSize, interface, cpus));
+        cs->dnscryptCtx = ctx;
+        g_frontends.push_back(std::move(cs));
       }
       catch(std::exception& e) {
         errlog(e.what());
@@ -1115,9 +1142,9 @@ void setupLuaConfig(bool client)
       ret << (fmt % "#" % "Address" % "Provider Name") << endl;
       size_t idx = 0;
 
-      for (const auto& local : g_dnsCryptLocals) {
-        const std::shared_ptr<DNSCryptContext> ctx = std::get<1>(local);
-        ret<< (fmt % idx % std::get<0>(local).toStringWithPort() % ctx->getProviderName()) << endl;
+      for (const auto& frontend : g_frontends) {
+        const std::shared_ptr<DNSCryptContext> ctx = frontend->dnscryptCtx;
+        ret<< (fmt % idx % frontend->local.toStringWithPort() % ctx->getProviderName()) << endl;
         idx++;
       }
 
@@ -1132,7 +1159,7 @@ void setupLuaConfig(bool client)
 #ifdef HAVE_DNSCRYPT
       std::shared_ptr<DNSCryptContext> ret = nullptr;
       if (idx < g_dnsCryptLocals.size()) {
-        ret = std::get<1>(g_dnsCryptLocals.at(idx));
+        ret = g_dnsCryptLocals.at(idx);
       }
       return ret;
 #else
@@ -1285,7 +1312,7 @@ void setupLuaConfig(bool client)
       setLuaNoSideEffect();
       ClientState* ret = nullptr;
       if(num < g_frontends.size()) {
-        ret=g_frontends[num];
+        ret=g_frontends[num].get();
       }
       return ret;
       });
@@ -1633,9 +1660,16 @@ void setupLuaConfig(bool client)
           return;
         }
 
+        bool doTCP = true;
+        bool reusePort = false;
+        int tcpFastOpenQueueSize = 0;
+        std::string interface;
+        std::set<int> cpus;
+        (void) doTCP;
+
         if (vars) {
           bool doTCP = true;
-          parseLocalBindVars(vars, doTCP, frontend->d_reusePort, frontend->d_tcpFastOpenQueueSize, frontend->d_interface, frontend->d_cpus);
+          parseLocalBindVars(vars, doTCP, reusePort, tcpFastOpenQueueSize, interface, cpus);
 
           if (vars->count("provider")) {
             frontend->d_provider = boost::get<const string>((*vars)["provider"]);
@@ -1675,7 +1709,11 @@ void setupLuaConfig(bool client)
         try {
           frontend->d_addr = ComboAddress(addr, 853);
           vinfolog("Loading TLS provider %s", frontend->d_provider);
-          g_tlslocals.push_back(frontend); /// only works pre-startup, so no sync necessary
+          // only works pre-startup, so no sync necessary
+          auto cs = std::unique_ptr<ClientState>(new ClientState(frontend->d_addr, true, reusePort, tcpFastOpenQueueSize, interface, cpus));
+          cs->tlsFrontend = frontend;
+          g_tlslocals.push_back(cs->tlsFrontend);
+          g_frontends.push_back(std::move(cs));
         }
         catch(const std::exception& e) {
           g_outputBuffer="Error: "+string(e.what())+"\n";
