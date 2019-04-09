@@ -334,6 +334,31 @@ jobs:
           context: godbc_mssql-nsec3-narrow
           skip: 8bit-txt-unescaped
 
+  test-auth-regress-gmysql:
+    docker:
+      - image: debian:stretch
+      - image: circleci/mysql:5
+    steps:
+      - auth-regress-setup
+      - run:
+          command: apt-get install -qq -y default-mysql-client
+      - run:
+          command: |
+            cat >> ~/.my.cnf \<<- __EOF__
+             [client]
+             protocol=TCP
+            __EOF__
+      - auth-regress:
+          context: gmysql-nodnssec-both
+      - auth-regress:
+          context: gmysql-both
+      - auth-regress:
+          context: gmysql-nsec3-both
+      - auth-regress:
+          context: gmysql-nsec3-optout-both
+      - auth-regress:
+          context: gmysql-nsec3-narrow
+
   build-recursor:
     docker:
       - image: debian:stretch
@@ -480,6 +505,9 @@ workflows:
           requires:
             - build-auth
       - test-auth-regress-odbc-mssql:
+          requires:
+            - build-auth
+      - test-auth-regress-gmysql:
           requires:
             - build-auth
 
