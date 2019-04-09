@@ -214,6 +214,7 @@ class DNSDistTest(unittest.TestCase):
         ignoreTrailing = trailingDataResponse is True
 
         sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        sock.setsockopt(socket.IPPROTO_TCP, socket.TCP_NODELAY, 1)
         sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEPORT, 1)
         try:
             sock.bind(("127.0.0.1", port))
@@ -304,6 +305,7 @@ class DNSDistTest(unittest.TestCase):
     @classmethod
     def openTCPConnection(cls, timeout=None):
         sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        sock.setsockopt(socket.IPPROTO_TCP, socket.TCP_NODELAY, 1)
         if timeout:
             sock.settimeout(timeout)
 
@@ -313,6 +315,7 @@ class DNSDistTest(unittest.TestCase):
     @classmethod
     def openTLSConnection(cls, port, serverName, caCert=None, timeout=None):
         sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        sock.setsockopt(socket.IPPROTO_TCP, socket.TCP_NODELAY, 1)
         if timeout:
             sock.settimeout(timeout)
 
@@ -385,6 +388,7 @@ class DNSDistTest(unittest.TestCase):
             for response in responses:
                 cls._toResponderQueue.put(response, True, timeout)
         sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        sock.setsockopt(socket.IPPROTO_TCP, socket.TCP_NODELAY, 1)
         if timeout:
             sock.settimeout(timeout)
 
@@ -475,6 +479,7 @@ class DNSDistTest(unittest.TestCase):
         ourNonce = libnacl.utils.rand_nonce()
         theirNonce = None
         sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        sock.setsockopt(socket.IPPROTO_TCP, socket.TCP_NODELAY, 1)
         if timeout:
             sock.settimeout(timeout)
 
