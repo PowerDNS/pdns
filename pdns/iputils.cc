@@ -340,7 +340,7 @@ size_t sendMsgWithTimeout(int fd, const char* buffer, size_t len, int idleTimeou
       if (errno == EINTR) {
         continue;
       }
-      else if (errno == EAGAIN || errno == EWOULDBLOCK || errno == EINPROGRESS) {
+      else if (errno == EAGAIN || errno == EWOULDBLOCK || errno == EINPROGRESS || errno == ENOTCONN) {
         /* EINPROGRESS might happen with non blocking socket,
            especially with TCP Fast Open */
         if (totalTimeout <= 0 && idleTimeout <= 0) {
