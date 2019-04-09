@@ -353,6 +353,35 @@ jobs:
       - auth-regress:
           context: gsqlite3-nsec3-narrow
 
+  test-auth-regress-bind:
+    docker:
+      - image: debian:stretch
+      - image: circleci/mysql:5      # for the hybrid test
+    steps:
+      - auth-regress-setup
+      - run:
+          command: apt-get install -qq -y sqlite3
+      - auth-regress:
+          context: bind-both
+      - auth-regress:
+          context: bind-dnssec-both
+      - auth-regress:
+          context: bind-dnssec-nsec3-both
+      - auth-regress:
+          context: bind-dnssec-nsec3-optout-both
+      - auth-regress:
+          context: bind-dnssec-nsec3-narrow
+      - run:
+          command: apt-get install -qq -y default-mysql-client
+      - run:
+          command: |
+            cat >> ~/.my.cnf \<<- __EOF__
+             [client]
+             protocol=TCP
+            __EOF__
+      - auth-regress:
+          context: bind-hybrid-nsec3
+
   test-auth-regress-gmysql:
     docker:
       - image: debian:stretch
@@ -527,6 +556,9 @@ workflows:
           requires:
             - build-auth
       - test-auth-regress-gmysql:
+          requires:
+            - build-auth
+      - test-auth-regress-bind:
           requires:
             - build-auth
       - test-auth-regress-gsqlite3:
