@@ -1,6 +1,19 @@
 version: 2.1
 
 commands:
+  checkout-shallow:
+    description: "Do a shallow checkout of the repository"
+    steps:
+      - run:
+          name: Install git and openssh
+          command: apt-get update && apt-get -qq -y install openssh-client git
+      - run:
+          name: Store the keyid for the git repo
+          command: mkdir -p $HOME/.ssh && ssh-keyscan $(echo ${CIRCLE_REPOSITORY_URL} | sed 's,.*@\([^:]*\):.*,\1,') > $HOME/.ssh/known_hosts
+      - run:
+          name: Clone the repo
+          command: git clone --depth 1 --branch $CIRCLE_BRANCH $CIRCLE_REPOSITORY_URL ~/project
+
   auth-regress:
     description: "run one auth regression context"
     parameters:
@@ -10,16 +23,50 @@ commands:
       context:
         type: string
         default: ""
+      prefix:
+        type: string
+        default: "/opt/pdns-auth/"
     steps:
-      - run: |
-          cd regression-tests
-          [ -e ./vars ] && . ./vars
-          rm -rf tests/*/skip
-          for t in << parameters.skip >>
-          do
-            touch tests/$t/skip
-          done
-          ./start-test-stop 5300 << parameters.context >>
+      - run:
+          name: Get jdnssectools
+          command: |
+            if [ ! -e /usr/bin/jdnssec-verifyzone ]; then
+              apt-get install -qq -y wget
+              wget https://github.com/dblacka/jdnssec-tools/releases/download/0.14/jdnssec-tools-0.14.tar.gz
+              tar xfz jdnssec-tools-0.14.tar.gz --strip-components=1 -C /
+              rm jdnssec-tools-0.14.tar.gz
+            fi
+      - run:
+          name: Install test dependencies
+          command: |
+            apt-get -y -qq install \
+              bc \
+              bind9utils \
+              default-jre-headless \
+              dnsutils \
+              ldnsutils \
+              unbound-host
+      - run:
+          workdir: ~/project/regression-tests
+          name: Run << parameters.context >> tests
+          command: |
+            [ -e ./vars ] && . ./vars
+            rm -rf tests/*/skip
+            for t in << parameters.skip >>
+            do
+              touch tests/$t/skip
+            done
+            PDNS=<< parameters.prefix >>sbin/pdns_server \
+            PDNS2=<< parameters.prefix >>sbin/pdns_server \
+            SDIG=<< parameters.prefix >>bin/sdig \
+            NOTIFY=<< parameters.prefix >>bin/pdns_notify \
+            NSEC3DIG=<< parameters.prefix >>bin/nsec3dig \
+            SAXFR=<< parameters.prefix >>bin/saxfr \
+            ZONE2SQL=<< parameters.prefix >>bin/zone2sql \
+            ZONE2LDAP=<< parameters.prefix >>bin/zone2ldap \
+            PDNSUTIL=<< parameters.prefix >>bin/pdnsutil \
+            PDNSCONTROL=<< parameters.prefix >>bin/pdns_control \
+            ./start-test-stop 5300 << parameters.context >>
 
   install-recursor-deps:
     description: "Install all libraries needed for the recursor"
@@ -35,6 +82,42 @@ commands:
               libsystemd0 \
               libsodium18 \
               libprotobuf10
+
+  install-auth-deps:
+    description: Install all libraries needed to run the auth
+    steps:
+      - run: |
+          apt-get install -qq -y --no-install-recommends \
+            libboost-all-dev \
+            libssl1.1 \
+            libsystemd0 \
+            default-libmysqlclient-dev \
+            unixodbc
+
+  install-auth-dev-deps:
+    description: Install all packages needed to build the auth
+    steps:
+      - run: apt-get update
+      - run:
+          command: |
+            apt-get install -qq -y --no-install-recommends \
+              autoconf \
+              automake \
+              bison \
+              default-libmysqlclient-dev \
+              flex \
+              g++ \
+              git \
+              libboost-all-dev \
+              libssl-dev \
+              libtool \
+              make \
+              pkg-config \
+              ragel \
+              sqlite3 \
+              unixodbc-dev \
+              virtualenv \
+              wget
 
   add-auth-repo:
     description: "Add the debian repo for the auth"
@@ -74,6 +157,16 @@ commands:
           name: update apt cache
           command: apt-get update
 
+  setup-ccache:
+    description: Install .ccache and set $PATH
+    steps:
+      - run:
+          name: Install ccache
+          command: apt-get update && apt-get -qq -y install ccache
+      - run:
+          name: Setup ccache in $PATH
+          command: echo 'export PATH=/usr/lib/ccache:$PATH' >> $BASH_ENV
+
   save-ccache-cache:
     description: Store the .ccache directory
     parameters:
@@ -93,56 +186,161 @@ commands:
         type: string
         default: ""
     steps:
+      - setup-ccache
       - run:
           name: ensure ca-certificates is installed
           command: apt-get update && apt-get -qq -y install ca-certificates
       - restore_cache:
           keys:
             - ccache-cache-{{ arch }}-<< parameters.product >>-{{ .Branch }}
-            - ccache-cache-{{ arch }}-<< parameters.product >>
+            - ccache-cache-{{ arch }}-<< parameters.product >>-
 
 jobs:
   build-auth:
+    docker:
+      - image: debian:stretch
+
+    steps:
+      - checkout-shallow
+      - install-auth-dev-deps
+      - restore-cache-ccache:
+          product: auth
+      - run:
+          name: autoconf
+          command: BUILDER_VERSION=0.0.0-git1 autoreconf -vfi
+      - run:
+          name: configure
+          command: |
+            CFLAGS="-O1 -Werror=vla" \
+            CXXFLAGS="-O1 -Werror=vla" \
+            ./configure \
+              --disable-lua-records \
+              --with-modules='bind gmysql godbc random' \
+              --enable-tools \
+              --prefix=/opt/pdns-auth
+      - run:
+          name: build
+          command: make -j3 -k
+      - save-ccache-cache:
+          product: auth
+      - run:
+          name: Install the binaries
+          command: make install
+      - persist_to_workspace:
+          root: /opt
+          paths:
+            - pdns-auth
+
+  test-auth-regress-odbc-sqlite3:
+    docker:
+      - image: debian:stretch
+    steps:
+      - run:
+          name: ensure ca-certificates is installed
+          command: apt-get update && apt-get -qq -y install ca-certificates
+      - attach_workspace:
+          at: /opt
+      - run:
+          name: Configure ODBC for sqlite
+          command: |
+            cat >> ~/.odbc.ini \<<- __EOF__
+            [pdns-sqlite3-1]
+            Driver = SQLite3
+            Database = ${PWD}/regression-tests/pdns.sqlite3
+            [pdns-sqlite3-2]
+            Driver = SQLite3
+            Database = ${PWD}/regression-tests/pdns.sqlite32
+            __EOF__
+      - install-auth-deps
+      - run:
+          name: Install ODBC deps
+          command: |
+            apt-get install -qq -y \
+            unixodbc \
+            libsqliteodbc \
+            sqlite3
+      - run:
+          name: Install test dependencies
+          command: |
+            apt-get -y -qq install \
+              bc \
+              bind9utils \
+              default-jre-headless \
+              dnsutils \
+              ldnsutils \
+              unbound-host
+      - checkout-shallow
+      - run:
+          name: Allow missing tools in verify-dnssec-zone
+          command: touch regression-tests/tests/verify-dnssec-zone/allow-missing
+      - run:
+          name: Run the ODBC sqlite tests
+          command: |
+            PDNS=/opt/pdns-auth/sbin/pdns_server \
+            PDNS2=/opt/pdns-auth/sbin/pdns_server \
+            SDIG=/opt/pdns-auth/bin/sdig \
+            NOTIFY=/opt/pdns-auth/bin/pdns_notify \
+            NSEC3DIG=/opt/pdns-auth/bin/nsec3dig \
+            SAXFR=/opt/pdns-auth/bin/saxfr \
+            ZONE2SQL=/opt/pdns-auth/bin/zone2sql \
+            ZONE2LDAP=/opt/pdns-auth/bin/zone2ldap \
+            PDNSUTIL=/opt/pdns-auth/bin/pdnsutil \
+            PDNSCONTROL=/opt/pdns-auth/bin/pdns_control \
+            GODBC_SQLITE3_DSN=pdns-sqlite3-1 ./start-test-stop 5300 godbc_sqlite3-nsec3
+          workdir: ~/project/regression-tests
+
+  test-auth-regress-odbc-mssql:
     docker:
       - image: debian:stretch
       - image: mcr.microsoft.com/mssql/server:2019-CTP2.2-ubuntu
         environment:
           - ACCEPT_EULA: Y
           - SA_PASSWORD: 'SAsa12%%'
-
     steps:
-      - checkout
-
       - run:
-          name: install dependencies
-          command: ./build-scripts/circleci.sh debian-stretch-deps
-
+          name: ensure ca-certificates is installed
+          command: apt-get update && apt-get -qq -y install ca-certificates
+      - attach_workspace:
+          at: /opt
+      - install-auth-deps
       - run:
-          name: autoconf
-          command: autoreconf -vfi
-
-      - run:
-          name: configure
-          command: ./configure --disable-lua-records --with-modules='bind gmysql godbc random'
-
-      - run:
-          name: build
-          command: make -j3 -k
-
-      - run:
-          name: test gsqlite3 odbc
-          command: ./build-scripts/circleci.sh configure-odbc-sqlite; cd regression-tests ; touch tests/verify-dnssec-zone/allow-missing ; GODBC_SQLITE3_DSN=pdns-sqlite3-1 ./start-test-stop 5300 godbc_sqlite3-nsec3
-
+          name: Install ODBC deps
+          command: |
+            apt-get install -qq -y \
+            freetds-bin \
+            tdsodbc \
+            unixodbc
       - run:
           name: set up mssql odbc
-          command: ./build-scripts/circleci.sh configure-odbc-mssql ; echo 'create database pdns' | isql -v pdns-mssql-docker-nodb sa SAsa12%%
-
+          command: |
+            cat >> ~/.odbc.ini \<<- __EOF__
+            [pdns-mssql-docker]
+            Driver=FreeTDS
+            Trace=No
+            Server=127.0.0.1
+            Port=1433
+            Database=pdns
+            TDS_Version=7.1
+            [pdns-mssql-docker-nodb]
+            Driver=FreeTDS
+            Trace=No
+            Server=127.0.0.1
+            Port=1433
+            TDS_Version=7.1
+            __EOF__
+      - run:
+          command: cat /usr/share/tdsodbc/odbcinst.ini >> /etc/odbcinst.ini
+      - run:
+          name: create database
+          command: echo 'create database pdns' | isql -v pdns-mssql-docker-nodb sa SAsa12%%
+      - checkout-shallow
+      - run:
+          name: Allow missing tools in verify-dnssec-zone
+          command: touch regression-tests/tests/verify-dnssec-zone/allow-missing
       - run:
           name: set up mssql odbc testing
-          command: |
-            cd regression-tests
-            echo 'export GODBC_MSSQL_PASSWORD=SAsa12%% GODBC_MSSQL_USERNAME=sa GODBC_MSSQL_DSN=pdns-mssql-docker' > ./vars
-
+          command: echo 'export GODBC_MSSQL_PASSWORD=SAsa12%% GODBC_MSSQL_USERNAME=sa GODBC_MSSQL_DSN=pdns-mssql-docker' > ./vars
+          workdir: ~/project/regression-tests
       - auth-regress:
           context: godbc_mssql-nodnssec
           skip: 8bit-txt-unescaped
@@ -172,7 +370,6 @@ jobs:
             autoconf \
             automake \
             ca-certificates \
-            ccache \
             curl \
             bison \
             flex \
@@ -191,15 +388,14 @@ jobs:
             protobuf-compiler \
             ragel \
             virtualenv
-      - checkout
+      - checkout-shallow
       - run:
           name: autoconf
-          command: PATH=/usr/lib/ccache:$PATH autoreconf -vfi
+          command: BUILDER_VERSION=0.0.0-git1 autoreconf -vfi
           working_directory: ~/project/pdns/recursordist
       - run:
           name: configure
           command: |
-            PATH=/usr/lib/ccache:$PATH \
             CFLAGS="-O1 -Werror=vla" \
             CXXFLAGS="-O1 -Werror=vla" \
             ./configure \
@@ -213,7 +409,7 @@ jobs:
           working_directory: ~/project/pdns/recursordist
       - run:
           name: build
-          command: PATH=/usr/lib/ccache:$PATH make -j3 -k
+          command: make -j3 -k
           working_directory: ~/project/pdns/recursordist
       - save-ccache-cache:
           product: recursor
@@ -242,7 +438,7 @@ jobs:
           command: |
             touch /etc/authbind/byport/53
             chmod 755 /etc/authbind/byport/53
-      - checkout
+      - checkout-shallow
       - attach_workspace:
           at: /opt
       - run:
@@ -260,7 +456,7 @@ jobs:
       - add-auth-repo
       - run: apt-get --no-install-recommends install -qq -y pdns-tools moreutils time
       - install-recursor-deps
-      - checkout
+      - checkout-shallow
       - attach_workspace:
           at: /opt
       - run:
@@ -288,7 +484,7 @@ jobs:
       - add-auth-repo
       - run: apt-get --no-install-recommends install -qq -y virtualenv pdns-tools
       - install-recursor-deps
-      - checkout
+      - checkout-shallow
       - attach_workspace:
           at: /opt
       - run:
@@ -303,6 +499,12 @@ workflows:
   build-and-test-all:
     jobs:
       - build-auth
+      - test-auth-regress-odbc-sqlite3:
+          requires:
+            - build-auth
+      - test-auth-regress-odbc-mssql:
+          requires:
+            - build-auth
 
       - build-recursor
       - test-recursor-regression:
