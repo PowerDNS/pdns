@@ -98,7 +98,7 @@ ALLOW-DNSUPDATE-FROM
 ~~~~~~~~~~~~~~~~~~~~
 
 This setting has the same function as described in the configuration
-options (See ref:`above <dnsupdate-configuration-options>`). Only one item is
+options (See :ref:`above <dnsupdate-configuration-options>`). Only one item is
 allowed per row, but multiple rows can be added. An example:
 
 ::
@@ -152,7 +152,7 @@ the IP(-range) of the updater still needs to be allowed via ``ALLOW-DNSUPDATE-FR
 FORWARD-DNSUPDATE
 ~~~~~~~~~~~~~~~~~
 
-See `Configuration options <dnsupdate-configuration-options>` for what it does,
+See :ref:`Configuration options <dnsupdate-configuration-options>` for what it does,
 but per domain.
 
 ::

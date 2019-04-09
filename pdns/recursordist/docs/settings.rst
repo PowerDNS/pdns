@@ -1707,7 +1707,7 @@ If a PID file should be written to `socket-dir`_
 The server will trust XPF records found in queries sent from those netmasks (both IPv4 and IPv6),
 and will adjust queries' source and destination accordingly. This is especially useful when the recursor
 is placed behind a proxy like `dnsdist <https://dnsdist.org>`_.
-Note that the ref:`setting-allow-from` setting is still applied to the original source address, and thus access restriction
+Note that the :ref:`setting-allow-from` setting is still applied to the original source address, and thus access restriction
 should be done on the proxy.
 
 .. _setting-xpf-rr-code:
