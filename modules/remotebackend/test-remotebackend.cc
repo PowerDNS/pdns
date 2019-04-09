@@ -54,7 +54,7 @@ BOOST_AUTO_TEST_CASE(test_method_lookup) {
    // then we check rr contains what we expect
    BOOST_CHECK_EQUAL(rr.qname.toString(), "unit.test.");
    BOOST_CHECK_MESSAGE(rr.qtype == QType::SOA, "returned qtype was not SOA");
-   BOOST_CHECK_EQUAL(rr.content, "ns.unit.test. hostmaster.unit.test. 1 2 3 4 5 6");
+   BOOST_CHECK_EQUAL(rr.content, "ns.unit.test. hostmaster.unit.test. 1 2 3 4 5");
    BOOST_CHECK_EQUAL(rr.ttl, 300);
 }
 
