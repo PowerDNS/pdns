@@ -452,6 +452,22 @@ jobs:
       - auth-regress:
           context: lmdb-nsec3-narrow
 
+  test-auth-api:
+    docker:
+      - image: debian:stretch
+    steps:
+      - auth-regress-setup
+      - run: apt-get -y -qq install virtualenv sqlite3
+      - run:
+          name: Run API tests
+          workdir: ~/project/regression-tests.api
+          command: |
+            PDNSSERVER="/opt/pdns-auth/sbin/pdns_server" \
+            PDNSUTIL="/opt/pdns-auth/bin/pdnsutil" \
+            SDIG="/opt/pdns-auth/bin/sdig" \
+            ZONE2SQL="/opt/pdns-auth/bin/zone2sql" \
+            ./runtests authoritative
+
   build-recursor:
     docker:
       - image: debian:stretch
@@ -594,6 +610,9 @@ workflows:
   build-and-test-all:
     jobs:
       - build-auth
+      - test-auth-api:
+          requires:
+            - build-auth
       - test-auth-regress-odbc-sqlite3:
           requires:
             - build-auth
