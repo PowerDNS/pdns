@@ -54,6 +54,9 @@ commands:
       skip:
         type: string
         default: ""
+      rootskip:
+        type: string
+        default: ""
       context:
         type: string
         default: ""
@@ -68,6 +71,27 @@ commands:
             [ -e ./vars ] && . ./vars
             rm -rf tests/*/skip
             for t in << parameters.skip >>
+            do
+              touch tests/$t/skip
+            done
+            PDNS=<< parameters.prefix >>sbin/pdns_server \
+            PDNS2=<< parameters.prefix >>sbin/pdns_server \
+            SDIG=<< parameters.prefix >>bin/sdig \
+            NOTIFY=<< parameters.prefix >>bin/pdns_notify \
+            NSEC3DIG=<< parameters.prefix >>bin/nsec3dig \
+            SAXFR=<< parameters.prefix >>bin/saxfr \
+            ZONE2SQL=<< parameters.prefix >>bin/zone2sql \
+            ZONE2LDAP=<< parameters.prefix >>bin/zone2ldap \
+            PDNSUTIL=<< parameters.prefix >>bin/pdnsutil \
+            PDNSCONTROL=<< parameters.prefix >>bin/pdns_control \
+            ./start-test-stop 5300 << parameters.context >>
+      - run:
+          workdir: ~/project/regression-tests.rootzone
+          name: Run << parameters.context >> tests for the root zone
+          command: |
+            [ -e ../regression-tests/vars ] && . ../regression-tests/vars
+            rm -rf tests/*/skip
+            for t in << parameters.rootskip >>
             do
               touch tests/$t/skip
             done
