@@ -808,7 +808,7 @@ bool LMDBBackend::setMaster(const DNSName &domain, const std::string& ips)
   vector<string> parts;
   stringtok(parts, ips, " \t;,");
   for(const auto& ip : parts) 
-    masters.push_back(ComboAddress(ip)); 
+    masters.push_back(ComboAddress(ip, 53));
   
   return genChangeDomain(domain, [&masters](DomainInfo& di) {
       di.masters = masters;
