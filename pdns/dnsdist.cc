@@ -1006,7 +1006,7 @@ static bool applyRulesToQuery(LocalHolders& holders, DNSQuestion& dq, string& po
     bool countQuery{true};
     if(g_qcount.filter) {
       std::lock_guard<std::mutex> lock(g_luamutex);
-      std::tie (countQuery, qname) = g_qcount.filter(dq);
+      std::tie (countQuery, qname) = g_qcount.filter(&dq);
     }
 
     if(countQuery) {
