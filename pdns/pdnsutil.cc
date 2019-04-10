@@ -3200,11 +3200,15 @@ try
       // move records
       if (!src->list(di.zone, di.id, true)) throw PDNSException("Failed to list records");
       nr=0;
+
+      tgt->startTransaction(di.zone, di_new.id);
+
       while(src->get(rr)) {
         rr.domain_id = di_new.id;
         if (!tgt->feedRecord(rr, DNSName())) throw PDNSException("Failed to feed record");
         nr++;
       }
+
       // move comments
       nc=0;
       if (src->listComments(di.id)) {
@@ -3235,6 +3239,7 @@ try
           nk++;
         }
       }
+      tgt->commitTransaction();
       cout<<"Moved "<<nr<<" record(s), "<<nc<<" comment(s), "<<nm<<" metadata(s) and "<<nk<<" cryptokey(s)"<<endl;
     }
 
