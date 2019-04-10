@@ -2,6 +2,252 @@ Changelog
 =========
 
 .. changelog::
+  :version: 1.4.0-alpha1
+  :released: TBD
+
+ .. change::
+    :tags: Improvements
+    :pullreq: 7167
+
+    Fix compiler warning about returning garbage (Adam Majer)
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 7168
+
+    Fix warnings, mostly unused parameters, reported by -wextra
+
+  .. change::
+    :tags: New Features
+    :pullreq: 6959
+    :tickets: 6941, 2362
+
+    Add namespace and instance variable to carbon key (Gibheer)
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 7191
+
+    Add optional uuid column to showServers()
+
+  .. change::
+    :tags: New Features
+    :pullreq: 7087
+
+    Allow NoRecurse for use in dynamic blocks or Lua rules (phonedph1)
+
+  .. change::
+    :tags: New Features
+    :pullreq: 7197
+    :tickets: 7194
+
+    Expose secpoll status
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 7026
+
+    Configure --enable-pdns-option --with-third-party-module (Josh Soref)
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 7256
+
+    Protect GnuTLS tickets key rotation with a read-write lock
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 7267
+
+    Check that ``SO_ATTACH_BPF`` is defined before enabling eBPF
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 7138
+
+    Drop remaining capabilities after startup
+
+  .. change::
+    :tags: New Features
+    :pullreq: 7323
+    :tickets: 7236
+
+    Add an optional 'checkTimeout' parameter to 'newServer()'
+
+  .. change::
+    :tags: New Features
+    :pullreq: 7322
+    :tickets: 7237
+
+    Add a 'rise' parameter to 'newServer()'
+
+  .. change::
+    :tags: New Features
+    :pullreq: 7310
+    :tickets: 7239
+
+    Add a 'keepStaleData' option to the packet cache
+
+  .. change::
+    :tags: New Features
+    :pullreq: 6967
+    :tickets: 6846, 6897
+
+    Expose trailing data (Richard Gibson)
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 6634
+
+    More sandboxing using systemd's features
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 7426
+
+    Fix off-by-one in mvRule counting
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 7428
+
+    Reduce systemcall usage in Protobuf logging
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 7433
+
+    Resync YaHTTP code to cmouse/yahttp@11be77a1fc4032 (Chris Hofstaedtler)
+
+  .. change::
+    :tags: New Features
+    :pullreq: 7142
+
+    Add option to set interval between health checks (1848)
+
+  .. change::
+    :tags: New Features
+    :pullreq: 7406
+
+    Add EDNS unknown version handling (Dmitry Alenichev)
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 7431
+
+    Pass empty response (Dmitry Alenichev)
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 7502
+
+    Change the way getRealMemusage() works on linux (using statm)
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 7520
+
+    Don't convert nsec to usec if we need nsec
+
+  .. change::
+    :tags: New Features
+    :pullreq: 7537
+
+    DNSNameSet and QNameSetRule (Andrey)
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 7594
+
+    Fix setRules()
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 7560
+
+    Handle EAGAIN in the GnuTLS DNS over TLS provider
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 7586
+    :tickets: 7461
+
+    Gracefully handle a null latency in the webserver's js
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 7585
+    :tickets: 7534
+
+     Prevent 0-ttl cache hits
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 7343
+    :tickets: 7139
+
+    Add addDynBlockSMT() support to dynBlockRulesGroup
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 7578
+
+    Add frontend response statistics (Matti Hiljanen)
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 7652
+
+   EDNSOptionView improvements
+
+  .. change::
+    :tags: New Features
+    :pullreq: 7481
+    :tickets: 6242
+
+    Add support for encrypting ip addresses #gdpr 
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 7670
+
+    Remove addLuaAction and addLuaResponseAction
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 7559
+    :tickets: 7526, 4814
+
+    Refactoring of the TCP stack
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 7674
+    :tickets: 7481
+
+    Honor libcrypto include path
+
+  .. change::
+    :tags: New Features
+    :pullreq: 7677
+    :tickets: 5653
+
+    Add 'setSyslogFacility()'
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 7692
+    :tickets: 7556
+
+    Prevent a conflict with BADSIG being clobbered
+
+  .. change::
+    :tags: XXXXXX
+    :pullreq: 7689
+
+    Switch to the new 'newPacketCache()' syntax for 1.4.0
+
+.. changelog::
   :version: 1.3.3
   :released: 8th of November 2018
 
