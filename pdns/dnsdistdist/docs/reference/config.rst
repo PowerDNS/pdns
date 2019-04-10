@@ -42,6 +42,12 @@ Global configuration
 
   :param str path: The directory to load configuration files from. Each file must end in ``.conf``.
 
+.. function:: reloadAllCertificates()
+
+  .. versionadded:: 1.4.0
+
+  Reload all DNSCrypt and TLS certificates, along with their associated keys.
+
 .. function:: setSyslogFacility(facility)
 
   .. versionadded:: 1.4.0

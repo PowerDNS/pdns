@@ -283,13 +283,19 @@ std::string DNSCryptContext::certificateDateToStr(uint32_t date)
   return string(buf);
 }
 
-void DNSCryptContext::addNewCertificate(const DNSCryptCert& newCert, const DNSCryptPrivateKey& newKey, bool active)
+void DNSCryptContext::addNewCertificate(const DNSCryptCert& newCert, const DNSCryptPrivateKey& newKey, bool active, bool reload)
 {
   WriteLock w(&d_lock);
 
   for (auto pair : certs) {
     if (pair->cert.getSerial() == newCert.getSerial()) {
-      throw std::runtime_error("Error adding a new certificate: we already have a certificate with the same serial");
+      if (reload) {
+        /* on reload we just assume that this is the same certificate */
+        return;
+      }
+      else {
+        throw std::runtime_error("Error adding a new certificate: we already have a certificate with the same serial");
+      }
     }
   }
 
@@ -301,7 +307,7 @@ void DNSCryptContext::addNewCertificate(const DNSCryptCert& newCert, const DNSCr
   certs.push_back(pair);
 }
 
-void DNSCryptContext::loadNewCertificate(const std::string& certFile, const std::string& keyFile, bool active)
+void DNSCryptContext::loadNewCertificate(const std::string& certFile, const std::string& keyFile, bool active, bool reload)
 {
   DNSCryptCert newCert;
   DNSCryptPrivateKey newPrivateKey;
@@ -309,7 +315,14 @@ void DNSCryptContext::loadNewCertificate(const std::string& certFile, const std:
   loadCertFromFile(certFile, newCert);
   newPrivateKey.loadFromFile(keyFile);
 
-  addNewCertificate(newCert, newPrivateKey, active);
+  addNewCertificate(newCert, newPrivateKey, active, reload);
+  certificatePath = certFile;
+  keyPath = keyFile;
+}
+
+void DNSCryptContext::reloadCertificate()
+{
+  loadNewCertificate(certificatePath, keyPath, true, true);
 }
 
 void DNSCryptContext::markActive(uint32_t serial)
