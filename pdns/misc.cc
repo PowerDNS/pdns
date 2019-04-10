@@ -202,7 +202,7 @@ string nowTime()
   // YYYY-mm-dd HH:MM:SS TZOFF
   strftime(buffer, sizeof(buffer), "%F %T %z", tm);
   buffer[sizeof(buffer)-1] = '\0';
-  return buffer;
+  return string(buffer);
 }
 
 uint16_t getShort(const unsigned char *p)
@@ -498,7 +498,7 @@ string getHostname()
   if(gethostname(tmp, MAXHOSTNAMELEN))
     return "UNKNOWN";
 
-  return tmp;
+  return string(tmp);
 }
 
 string itoa(int i)
@@ -571,7 +571,7 @@ string U32ToIP(uint32_t val)
            (val >> 16)&0xff,
            (val >>  8)&0xff,
            (val      )&0xff);
-  return tmp;
+  return string(tmp);
 }
 
 
