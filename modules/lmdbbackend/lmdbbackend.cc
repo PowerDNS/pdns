@@ -224,10 +224,10 @@ std::shared_ptr<DNSRecordContent> unserializeContentZR(uint16_t qtype, const DNS
    Note - domain_id, name and type are ONLY present on the index!
 */
 
-#if BOOST_VERSION <= 105400
-#define StringView string
-#else
+#if BOOST_VERSION >= 106100
 #define StringView string_view
+#else
+#define StringView string
 #endif
 
 void LMDBBackend::deleteDomainRecords(RecordsRWTransaction& txn, uint32_t domain_id, uint16_t qtype)
