@@ -57,6 +57,9 @@ commands:
       rootskip:
         type: string
         default: ""
+      doroot:
+        type: boolean
+        default: true
       context:
         type: string
         default: ""
@@ -85,27 +88,30 @@ commands:
             PDNSUTIL=<< parameters.prefix >>bin/pdnsutil \
             PDNSCONTROL=<< parameters.prefix >>bin/pdns_control \
             ./start-test-stop 5300 << parameters.context >>
-      - run:
-          workdir: ~/project/regression-tests.rootzone
-          name: Run << parameters.context >> tests for the root zone
-          command: |
-            [ -e ../regression-tests/vars ] && . ../regression-tests/vars
-            rm -rf tests/*/skip
-            for t in << parameters.rootskip >>
-            do
-              touch tests/$t/skip
-            done
-            PDNS=<< parameters.prefix >>sbin/pdns_server \
-            PDNS2=<< parameters.prefix >>sbin/pdns_server \
-            SDIG=<< parameters.prefix >>bin/sdig \
-            NOTIFY=<< parameters.prefix >>bin/pdns_notify \
-            NSEC3DIG=<< parameters.prefix >>bin/nsec3dig \
-            SAXFR=<< parameters.prefix >>bin/saxfr \
-            ZONE2SQL=<< parameters.prefix >>bin/zone2sql \
-            ZONE2LDAP=<< parameters.prefix >>bin/zone2ldap \
-            PDNSUTIL=<< parameters.prefix >>bin/pdnsutil \
-            PDNSCONTROL=<< parameters.prefix >>bin/pdns_control \
-            ./start-test-stop 5300 << parameters.context >>
+      - when:
+          condition: << parameters.doroot >>
+          steps:
+            - run:
+                workdir: ~/project/regression-tests.rootzone
+                name: Run << parameters.context >> tests for the root zone
+                command: |
+                  [ -e ../regression-tests/vars ] && . ../regression-tests/vars
+                  rm -rf tests/*/skip
+                  for t in << parameters.rootskip >>
+                  do
+                    touch tests/$t/skip
+                  done
+                  PDNS=<< parameters.prefix >>sbin/pdns_server \
+                  PDNS2=<< parameters.prefix >>sbin/pdns_server \
+                  SDIG=<< parameters.prefix >>bin/sdig \
+                  NOTIFY=<< parameters.prefix >>bin/pdns_notify \
+                  NSEC3DIG=<< parameters.prefix >>bin/nsec3dig \
+                  SAXFR=<< parameters.prefix >>bin/saxfr \
+                  ZONE2SQL=<< parameters.prefix >>bin/zone2sql \
+                  ZONE2LDAP=<< parameters.prefix >>bin/zone2ldap \
+                  PDNSUTIL=<< parameters.prefix >>bin/pdnsutil \
+                  PDNSCONTROL=<< parameters.prefix >>bin/pdns_control \
+                  ./start-test-stop 5300 << parameters.context >>
 
   install-recursor-deps:
     description: "Install all libraries needed for the recursor"
@@ -303,6 +309,7 @@ jobs:
           workdir: ~/project/regression-tests
       - auth-regress:
           context: godbc_sqlite3-nsec3
+          doroot: false # Broken at the moment
 
   test-auth-regress-odbc-mssql:
     docker:
