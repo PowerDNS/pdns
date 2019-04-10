@@ -68,11 +68,17 @@ struct BackendSlow
 
 
 BOOST_AUTO_TEST_CASE(test_distributor_queue) {
+  ::arg().set("overload-queue-length","Maximum queuelength moving to packetcache only")="0";
+  ::arg().set("max-queue-length","Maximum queuelength before considering situation lost")="1000";
+  ::arg().set("queue-limit","Maximum number of milliseconds to queue a query")="1500";
+  S.declare("servfail-packets","Number of times a server-failed packet was sent out");
+  S.declare("timedout-packets", "timedout-packets");
+
   auto d=Distributor<DNSPacket, Question, BackendSlow>::Create(2);
 
   BOOST_CHECK_EXCEPTION( {
     int n;
-    for(n=0; n < 6000; ++n)  {
+    for(n=0; n < 2000; ++n)  {
       auto q = new Question();
       q->d_dt.set(); 
       d->question(q, report);
@@ -115,6 +121,12 @@ static void report2(DNSPacket* A)
 
 
 BOOST_AUTO_TEST_CASE(test_distributor_dies) {
+  ::arg().set("overload-queue-length","Maximum queuelength moving to packetcache only")="0";
+  ::arg().set("max-queue-length","Maximum queuelength before considering situation lost")="5000";
+  ::arg().set("queue-limit","Maximum number of milliseconds to queue a query")="1500";
+  S.declare("servfail-packets","Number of times a server-failed packet was sent out");
+  S.declare("timedout-packets", "timedout-packets");
+
   auto d=Distributor<DNSPacket, Question, BackendDies>::Create(10);
   sleep(1);
   g_receivedAnswers=0;
