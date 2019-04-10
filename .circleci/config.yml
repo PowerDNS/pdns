@@ -134,6 +134,8 @@ commands:
       - run: |
           apt-get install -qq -y --no-install-recommends \
             libboost-all-dev \
+            libkrb5-3 \
+            libldap-2.4-2 \
             liblmdb0 \
             libpq5 \
             libssl1.1 \
@@ -156,6 +158,8 @@ commands:
               g++ \
               git \
               libboost-all-dev \
+              libkrb5-dev \
+              libldap2-dev \
               liblmdb-dev \
               libpq-dev \
               libsqlite3-dev \
@@ -265,7 +269,7 @@ jobs:
             CXXFLAGS="-O1 -Werror=vla" \
             ./configure \
               --disable-lua-records \
-              --with-modules='bind lmdb gmysql gsqlite3 gpgsql godbc random' \
+              --with-modules='bind lmdb ldap gmysql gsqlite3 gpgsql godbc random' \
               --enable-tools \
               --with-lmdb=/usr \
               --prefix=/opt/pdns-auth
@@ -473,6 +477,29 @@ jobs:
       - auth-regress:
           context: gpgsql-nsec3-narrow
 
+  test-auth-regress-ldap:
+    docker:
+      - image: debian:stretch
+        environment:
+          LDAPHOST: ldap://ldapserver/
+      - image: powerdns/ldap-regress:1.2.4-0 # OpenLDAP 2.4.47
+        name: ldapserver
+        command: '--loglevel debug'
+        environment:
+          LDAP_LOG_LEVEL: 0
+    steps:
+      - auth-regress-setup
+      - run: DEBIAN_FRONTEND=noninteractive apt-get install -qq -y ldap-utils
+      - auth-regress:
+          context: ldap-tree
+          doroot: false
+      - auth-regress:
+          context: ldap-simple
+          doroot: false
+      - auth-regress:
+          context: ldap-strict
+          doroot: false
+
   test-auth-regress-lmdb:
     docker:
       - image: debian:stretch
@@ -670,6 +697,9 @@ workflows:
           requires:
             - build-auth
       - test-auth-regress-lmdb:
+          requires:
+            - build-auth
+      - test-auth-regress-ldap:
           requires:
             - build-auth
 
