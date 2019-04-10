@@ -969,7 +969,7 @@ The following actions exist.
   .. versionchanged:: 1.3.0
     ``options`` optional parameter added.
 
-  .. versionchanged:: 1.3.4
+  .. versionchanged:: 1.4.0
     ``ipEncryptKey`` optional key added to the options table.
 
   Send the content of this query to a remote logger via Protocol Buffer.
@@ -989,7 +989,7 @@ The following actions exist.
   .. versionchanged:: 1.3.0
     ``options`` optional parameter added.
 
-  .. versionchanged:: 1.3.4
+  .. versionchanged:: 1.4.0
     ``ipEncryptKey`` optional key added to the options table.
 
   Send the content of this response to a remote logger via Protocol Buffer.
