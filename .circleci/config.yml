@@ -135,6 +135,7 @@ commands:
           apt-get install -qq -y --no-install-recommends \
             libboost-all-dev \
             liblmdb0 \
+            libpq5 \
             libssl1.1 \
             libsystemd0 \
             default-libmysqlclient-dev \
@@ -156,8 +157,9 @@ commands:
               git \
               libboost-all-dev \
               liblmdb-dev \
-              libssl-dev \
+              libpq-dev \
               libsqlite3-dev \
+              libssl-dev \
               libtool \
               make \
               pkg-config \
@@ -263,7 +265,7 @@ jobs:
             CXXFLAGS="-O1 -Werror=vla" \
             ./configure \
               --disable-lua-records \
-              --with-modules='bind lmdb gmysql gsqlite3 godbc random' \
+              --with-modules='bind lmdb gmysql gsqlite3 gpgsql godbc random' \
               --enable-tools \
               --with-lmdb=/usr \
               --prefix=/opt/pdns-auth
@@ -441,6 +443,35 @@ jobs:
           context: gmysql-nsec3-optout-both
       - auth-regress:
           context: gmysql-nsec3-narrow
+
+  test-auth-regress-gpgsql:
+    docker:
+      - image: debian:stretch
+      - image: circleci/postgres:9
+        environment:
+          POSTGRES_USER: root
+    steps:
+      - auth-regress-setup
+      - run:
+          command: apt-get install -qq -y postgresql-client
+      - run:
+          name: Use TCP for Postgresql connections
+          command: |
+            cat >> ./vars \<<- __EOF__
+            export PGHOST=127.0.0.1
+            export PGPORT=5432
+            __EOF__
+          workdir: ~/project/regression-tests
+      - auth-regress:
+          context: gpgsql-nodnssec-both
+      - auth-regress:
+          context: gpgsql-both
+      - auth-regress:
+          context: gpgsql-nsec3-both
+      - auth-regress:
+          context: gpgsql-nsec3-optout-both
+      - auth-regress:
+          context: gpgsql-nsec3-narrow
 
   test-auth-regress-lmdb:
     docker:
@@ -633,6 +664,9 @@ workflows:
           requires:
             - build-auth
       - test-auth-regress-gsqlite3:
+          requires:
+            - build-auth
+      - test-auth-regress-gpgsql:
           requires:
             - build-auth
       - test-auth-regress-lmdb:
