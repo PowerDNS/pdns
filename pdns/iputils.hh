@@ -88,9 +88,17 @@
 #undef IP_PKTINFO
 #endif
 
+// Debian stretch on arm has a compiler bug that produces crashing syncres_cc/test_throttled_server_count
+#if defined(__ARM_ARCH) && defined(__GNUC__) && defined(__GNUC_MINOR__) && __ARM_ARCH == 6 && __GNUC__ == 6 && __GNUC_MINOR__ == 3
+#define UNION_ALIGNMENT_COMPILER_BUG 1
+#else
+#define UNION_ALIGNMENT_COMPILER_BUG 0
+#endif
+
 union ComboAddress {
   struct sockaddr_in sin4;
   struct sockaddr_in6 sin6;
+#if !UNION_ALIGNMENT_COMPILER_BUG
   // struct sockaddr_in6 is *not* defined as containing two uint64_t for the
   // address , but we like to read or write it like that.
   // Force alignment by adding an uint64_t in the union. This makes sure
@@ -98,6 +106,7 @@ union ComboAddress {
   // This works because of the spot of s6_addr in struct sockaddr_in6.
   // Needed for strict alignment architectures like sparc64.
   uint64_t	force_align;
+#endif
 
   bool operator==(const ComboAddress& rhs) const
   {
