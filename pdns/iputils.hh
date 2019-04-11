@@ -91,13 +91,6 @@
 union ComboAddress {
   struct sockaddr_in sin4;
   struct sockaddr_in6 sin6;
-  // struct sockaddr_in6 is *not* defined as containing two uint64_t for the
-  // address , but we like to read or write it like that.
-  // Force alignment by adding an uint64_t in the union. This makes sure
-  // the start of the struct and s6_addr gets aligned.
-  // This works because of the spot of s6_addr in struct sockaddr_in6.
-  // Needed for strict alignment architectures like sparc64.
-  uint64_t	force_align;
 
   bool operator==(const ComboAddress& rhs) const
   {
@@ -675,7 +668,8 @@ public:
       }
       value = node->node4.get();
     } else {
-      uint64_t* addr = (uint64_t*)key.getNetwork().sin6.sin6_addr.s6_addr;
+      uint64_t addr[2];
+      memcpy(addr, key.getNetwork().sin6.sin6_addr.s6_addr, sizeof(addr));
       std::bitset<64> addr_low(be64toh(addr[1]));
       std::bitset<64> addr_high(be64toh(addr[0]));
       int bits = 0;
@@ -756,7 +750,8 @@ public:
       // needed if we did not find one in loop
       if (node->node4) ret = node->node4.get();
     } else {
-      uint64_t* addr = (uint64_t*)value.sin6.sin6_addr.s6_addr;
+      uint64_t addr[2];
+      memcpy(addr, value.sin6.sin6_addr.s6_addr, sizeof(addr));
       max_bits = std::max(0,std::min(max_bits,128));
       std::bitset<64> addr_low(be64toh(addr[1]));
       std::bitset<64> addr_high(be64toh(addr[0]));
@@ -828,7 +823,8 @@ public:
           cleanup_tree(node);
       }
     } else {
-      uint64_t* addr = (uint64_t*)key.getNetwork().sin6.sin6_addr.s6_addr;
+      uint64_t addr[2];
+      memcpy(addr, key.getNetwork().sin6.sin6_addr.s6_addr, sizeof(addr));
       std::bitset<64> addr_low(be64toh(addr[1]));
       std::bitset<64> addr_high(be64toh(addr[0]));
       int bits = 0;
