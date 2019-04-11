@@ -269,7 +269,7 @@ jobs:
             CXXFLAGS="-O1 -Werror=vla" \
             ./configure \
               --disable-lua-records \
-              --with-modules='bind lmdb ldap gmysql gsqlite3 gpgsql godbc random' \
+              --with-modules='bind lmdb ldap gmysql gsqlite3 gpgsql godbc mydns random' \
               --enable-tools \
               --with-lmdb=/usr \
               --prefix=/opt/pdns-auth
@@ -422,6 +422,24 @@ jobs:
             __EOF__
       - auth-regress:
           context: bind-hybrid-nsec3
+
+  test-auth-regress-mydns:
+    docker:
+      - image: debian:stretch
+      - image: circleci/mysql:5
+    steps:
+      - auth-regress-setup
+      - run:
+          command: apt-get install -qq -y default-mysql-client
+      - run:
+          command: |
+            cat >> ~/.my.cnf \<<- __EOF__
+             [client]
+             protocol=TCP
+            __EOF__
+      - auth-regress:
+          context: mydns
+          doroot: false
 
   test-auth-regress-gmysql:
     docker:
@@ -697,6 +715,9 @@ workflows:
           requires:
             - build-auth
       - test-auth-regress-gmysql:
+          requires:
+            - build-auth
+      - test-auth-regress-mydns:
           requires:
             - build-auth
       - test-auth-regress-bind:
