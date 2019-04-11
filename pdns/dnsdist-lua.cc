@@ -1458,6 +1458,11 @@ void setupLuaConfig(bool client)
       g_servFailOnNoPolicy = servfail;
     });
 
+  g_lua.writeFunction("setRoundRobinFailOnNoServer", [](bool fail) {
+      setLuaSideEffect();
+      g_roundrobinFailOnNoServer = fail;
+    });
+
   g_lua.writeFunction("setRingBuffersSize", [](size_t capacity, boost::optional<size_t> numberOfShards) {
       setLuaSideEffect();
       if (g_configurationDone) {

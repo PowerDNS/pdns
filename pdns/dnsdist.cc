@@ -142,6 +142,7 @@ bool g_servFailOnNoPolicy{false};
 bool g_truncateTC{false};
 bool g_fixupCase{false};
 bool g_preserveTrailingData{false};
+bool g_roundrobinFailOnNoServer{false};
 
 static void truncateTC(char* packet, uint16_t* len, size_t responseSize, unsigned int consumed)
 try
@@ -884,7 +885,7 @@ shared_ptr<DownstreamState> roundrobin(const NumberedServerVector& servers, cons
   }
 
   const auto *res=&poss;
-  if(poss.empty())
+  if(poss.empty() && !g_roundrobinFailOnNoServer)
     res = &servers;
 
   if(res->empty())
