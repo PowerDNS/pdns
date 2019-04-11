@@ -248,9 +248,18 @@ void setupLuaBindings(bool client)
 #endif /* HAVE_EBPF */
 
   /* PacketCache */
-  g_lua.writeFunction("newPacketCache", [](size_t maxEntries, boost::optional<uint32_t> maxTTL, boost::optional<uint32_t> minTTL, boost::optional<uint32_t> tempFailTTL, boost::optional<uint32_t> staleTTL, boost::optional<bool> dontAge, boost::optional<size_t> numberOfShards, boost::optional<bool> deferrableInsertLock, boost::optional<uint32_t> maxNegativeTTL, boost::optional<bool> ecsParsing, boost::optional<std::unordered_map<std::string, boost::variant<bool, size_t>>> vars) {
+  g_lua.writeFunction("newPacketCache", [](size_t maxEntries, boost::optional<std::unordered_map<std::string, boost::variant<bool, size_t>>> vars) {
 
       bool keepStaleData = false;
+      size_t maxTTL = 86400;
+      size_t minTTL = 0;
+      size_t tempFailTTL = 60;
+      size_t maxNegativeTTL = 3600;
+      size_t staleTTL = 60;
+      size_t numberOfShards = 1;
+      bool dontAge = false;
+      bool deferrableInsertLock = true;
+      bool ecsParsing = false;
 
       if (vars) {
 
@@ -297,10 +306,9 @@ void setupLuaBindings(bool client)
         if (vars->count("temporaryFailureTTL")) {
           tempFailTTL = boost::get<size_t>((*vars)["temporaryFailureTTL"]);
         }
-
       }
 
-      auto res = std::make_shared<DNSDistPacketCache>(maxEntries, maxTTL ? *maxTTL : 86400, minTTL ? *minTTL : 0, tempFailTTL ? *tempFailTTL : 60, maxNegativeTTL ? *maxNegativeTTL : 3600, staleTTL ? *staleTTL : 60, dontAge ? *dontAge : false, numberOfShards ? *numberOfShards : 1, deferrableInsertLock ? *deferrableInsertLock : true, ecsParsing ? *ecsParsing : false);
+      auto res = std::make_shared<DNSDistPacketCache>(maxEntries, maxTTL, minTTL, tempFailTTL, maxNegativeTTL, staleTTL, dontAge, numberOfShards, deferrableInsertLock, ecsParsing);
 
       res->setKeepStaleData(keepStaleData);
 

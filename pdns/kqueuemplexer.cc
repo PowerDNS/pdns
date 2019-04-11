@@ -151,7 +151,7 @@ int KqueueFDMultiplexer::run(struct timeval* now, int timeout)
     d_iter=d_writeCallbacks.find(d_kevents[n].ident);
 
     if(d_iter != d_writeCallbacks.end()) {
-      d_iter->d_callback(d_iter->f_fd, d_iter->d_parameter);
+      d_iter->d_callback(d_iter->d_fd, d_iter->d_parameter);
     }
   }
 

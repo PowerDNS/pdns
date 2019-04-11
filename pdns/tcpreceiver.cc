@@ -1352,7 +1352,7 @@ void TCPNameserver::thread()
 
       int sock=-1;
       for(const pollfd& pfd :  d_prfds) {
-        if(pfd.revents == POLLIN) {
+        if(pfd.revents & POLLIN) {
           sock = pfd.fd;
           remote.sin4.sin_family = AF_INET6;
           addrlen=remote.getSocklen();

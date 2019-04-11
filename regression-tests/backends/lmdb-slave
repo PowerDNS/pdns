@@ -26,15 +26,14 @@ __EOF__
 
 	$RUNWRAPPER $PDNS2 --daemon=no --local-port=$port --config-dir=. \
 		--config-name=lmdb2 --socket-dir=./ --no-shuffle \
-		--slave --retrieval-threads=4 \
-		--slave-cycle-interval=300 --dname-processing &
+		--slave --dname-processing --api --api-key=secret &
 
 	echo 'waiting for zones to be slaved'
 	loopcount=0
 	while [ $loopcount -lt 30 ]
 	do
 		sleep 5
-		present=$($PDNSUTIL --config-dir=. --config-name=lmdb2 list-all-zones slave | wc -l)
+		present=$(curl -s -S -H 'X-API-Key: secret' http://127.0.0.1:8081/api/v1/servers/localhost/zones  | jq -r '.[] | .serial' | grep -c -v '^0$')
 		if [ $zones -eq $present ]
 		then
 			break

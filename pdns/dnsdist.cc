@@ -1536,7 +1536,8 @@ static void processUDPQuery(ClientState& cs, LocalHolders& holders, const struct
         return;
       }
 #endif /* defined(HAVE_RECVMMSG) && defined(HAVE_SENDMMSG) && defined(MSG_WAITFORONE) */
-      sendUDPResponse(cs.udpFD, reinterpret_cast<char*>(dq.dh), dq.len, dq.delayMsec, *dq.local, *dq.remote);
+      /* we use dest, always, because we don't want to use the listening address to send a response since it could be 0.0.0.0 */
+      sendUDPResponse(cs.udpFD, reinterpret_cast<char*>(dq.dh), dq.len, dq.delayMsec, dest, *dq.remote);
       return;
     }
 

@@ -104,7 +104,7 @@ void PollFDMultiplexer::getAvailableFDs(std::vector<int>& fds, int timeout)
     throw FDMultiplexerException("poll returned error: " + stringerror());
 
   for(const auto& pollfd : pollfds) {
-    if (pollfd.revents == POLLIN || pollfd.revents == POLLOUT) {
+    if (pollfd.revents & POLLIN || pollfd.revents & POLLOUT) {
       fds.push_back(pollfd.fd);
     }
   }
@@ -128,7 +128,7 @@ int PollFDMultiplexer::run(struct timeval* now, int timeout)
   d_inrun=true;
 
   for(const auto& pollfd : pollfds) {
-    if(pollfd.revents == POLLIN) {
+    if(pollfd.revents & POLLIN) {
       d_iter=d_readCallbacks.find(pollfd.fd);
     
       if(d_iter != d_readCallbacks.end()) {
@@ -136,7 +136,7 @@ int PollFDMultiplexer::run(struct timeval* now, int timeout)
         continue; // so we don't refind ourselves as writable!
       }
     }
-    else if(pollfd.revents == POLLOUT) {
+    else if(pollfd.revents & POLLOUT) {
       d_iter=d_writeCallbacks.find(pollfd.fd);
     
       if(d_iter != d_writeCallbacks.end()) {

@@ -808,7 +808,7 @@ bool LMDBBackend::setMaster(const DNSName &domain, const std::string& ips)
   vector<string> parts;
   stringtok(parts, ips, " \t;,");
   for(const auto& ip : parts) 
-    masters.push_back(ComboAddress(ip)); 
+    masters.push_back(ComboAddress(ip, 53));
   
   return genChangeDomain(domain, [&masters](DomainInfo& di) {
       di.masters = masters;
@@ -858,8 +858,17 @@ void LMDBBackend::getAllDomains(vector<DomainInfo> *domains, bool include_disabl
 
     auto txn = getRecordsROTransaction(iter.getID());
     if(!txn->txn.get(txn->db->dbi, co(di.id, g_rootdnsname, QType::SOA), val)) {
-      domains->push_back(di);
+      DNSResourceRecord rr;
+      serFromString(val.get<string_view>(), rr);
+
+      if(rr.content.size() >= 5 * sizeof(uint32_t)) {
+        uint32_t serial = *reinterpret_cast<uint32_t*>(&rr.content[rr.content.size() - (5 * sizeof(uint32_t))]);
+        di.serial = ntohl(serial);
+      }
+    } else if(!include_disabled) {
+      continue;
     }
+    domains->push_back(di);
   }
 }
 

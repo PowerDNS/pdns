@@ -81,7 +81,10 @@ Rule Generators
   Set the TC-bit (truncate) on ANY queries received over UDP, forcing a retry over TCP.
   This function is deprecated as of 1.2.0 and will be removed in 1.3.0. This is equivalent to doing::
 
-    addAction(AndRule({QTypeRule(dnsdist.ANY), TCPRule(false)}), TCAction())
+   addAction(AndRule({QTypeRule(DNSQType.ANY), TCPRule(false)}), TCAction())
+
+  .. versionchanged:: 1.4.0
+    Before 1.4.0, the QTypes were in the ``dnsdist`` namespace. Use ``dnsdist.ANY`` in these versions.
 
 .. function:: addDelay(DNSrule, delay)
 
@@ -718,7 +721,7 @@ These ``DNSRule``\ s be one of the following items:
 
   Matches if there is at least ``minCount`` and at most ``maxCount`` records of type ``type`` in the section ``section``.
   ``section`` can be specified as an integer or as a :ref:`DNSSection`.
-  ``qtype`` may be specified as an integer or as one of the built-in QTypes, for instance ``dnsdist.A`` or ``dnsdist.TXT``.
+  ``qtype`` may be specified as an integer or as one of the :ref:`built-in QTypes <DNSQType>`, for instance ``DNSQType.A`` or ``DNSQType.TXT``.
 
   :param int section: The section to match on
   :param int qtype: The QTYPE to match on
@@ -969,7 +972,7 @@ The following actions exist.
   .. versionchanged:: 1.3.0
     ``options`` optional parameter added.
 
-  .. versionchanged:: 1.3.4
+  .. versionchanged:: 1.4.0
     ``ipEncryptKey`` optional key added to the options table.
 
   Send the content of this query to a remote logger via Protocol Buffer.
@@ -989,7 +992,7 @@ The following actions exist.
   .. versionchanged:: 1.3.0
     ``options`` optional parameter added.
 
-  .. versionchanged:: 1.3.4
+  .. versionchanged:: 1.4.0
     ``ipEncryptKey`` optional key added to the options table.
 
   Send the content of this response to a remote logger via Protocol Buffer.

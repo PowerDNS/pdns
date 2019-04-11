@@ -49,7 +49,10 @@ For example, to remove all expired entries::
 
 Specific entries can also be removed using the :meth:`PacketCache:expungeByName` method::
 
-  getPool("poolname"):getCache():expungeByName(newDNSName("powerdns.com"), dnsdist.A)
+  getPool("poolname"):getCache():expungeByName(newDNSName("powerdns.com"), DNSQType.A)
+
+.. versionchanged:: 1.4.0
+  Before 1.4.0, the QTypes were in the ``dnsdist`` namespace. Use ``dnsdist.A`` in these versions.
 
 Finally, the :meth:`PacketCache:expunge` method will remove all entries until at most n entries remain in the cache::
 

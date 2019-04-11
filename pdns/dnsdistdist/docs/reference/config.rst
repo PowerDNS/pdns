@@ -42,6 +42,12 @@ Global configuration
 
   :param str path: The directory to load configuration files from. Each file must end in ``.conf``.
 
+.. function:: reloadAllCertificates()
+
+  .. versionadded:: 1.4.0
+
+  Reload all DNSCrypt and TLS certificates, along with their associated keys.
+
 .. function:: setSyslogFacility(facility)
 
   .. versionadded:: 1.4.0
@@ -318,7 +324,7 @@ Servers
   .. versionchanged:: 1.3.0
     Added ``checkClass``, ``sockets`` and ``checkFunction`` to server_table.
 
-  .. versionchanged:: 1.3.4
+  .. versionchanged:: 1.4.0
     Added ``checkTimeout`` and ``rise`` to server_table.
 
   Add a new backend server. Call this function with either a string::
@@ -545,7 +551,7 @@ PacketCache
 A Pool can have a packet cache to answer queries directly in stead of going to the backend.
 See :doc:`../guides/cache` for a how to.
 
-.. function:: newPacketCache(maxEntries[, maxTTL=86400[, minTTL=0[, temporaryFailureTTL=60[, staleTTL=60[, dontAge=false[, numberOfShards=1[, deferrableInsertLock=true[, maxNegativeTTL=3600[, parseECS=false [,options]]]]]]]]) -> PacketCache
+.. function:: newPacketCache(maxEntries[, maxTTL=86400[, minTTL=0[, temporaryFailureTTL=60[, staleTTL=60[, dontAge=false[, numberOfShards=1[, deferrableInsertLock=true[, maxNegativeTTL=3600[, parseECS=false]]]]]]]) -> PacketCache
 
   .. versionchanged:: 1.3.0
     ``numberOfShards`` and ``deferrableInsertLock`` parameters added.
@@ -553,11 +559,9 @@ See :doc:`../guides/cache` for a how to.
   .. versionchanged:: 1.3.1
     ``maxNegativeTTL`` and ``parseECS`` parameters added.
 
-  .. versionchanged:: 1.3.4
-    ``options`` parameter added.
+  .. deprecated:: 1.4.0
 
   Creates a new :class:`PacketCache` with the settings specified.
-  Starting with 1.3.4, all parameters can be specified in the ``options`` table, overriding the value from the existing parameters if any.
 
   :param int maxEntries: The maximum number of entries in this cache
   :param int maxTTL: Cap the TTL for records to his number
@@ -569,7 +573,14 @@ See :doc:`../guides/cache` for a how to.
   :param bool deferrableInsertLock: Whether the cache should give up insertion if the lock is held by another thread, or simply wait to get the lock
   :param int maxNegativeTTL: Cache a NXDomain or NoData answer from the backend for at most this amount of seconds, even if the TTL of the SOA record is higher
   :param bool parseECS: Whether any EDNS Client Subnet option present in the query should be extracted and stored to be able to detect hash collisions involving queries with the same qname, qtype and qclass but a different incoming ECS value. Enabling this option adds a parsing cost and only makes sense if at least one backend might send different responses based on the ECS value, so it's disabled by default
-  :param table options: A table with key: value pairs with the options listed below:
+
+.. function:: newPacketCache(maxEntries, [options]) -> PacketCache
+
+  .. versionadded:: 1.4.0
+
+  Creates a new :class:`PacketCache` with the settings specified.
+
+  :param int maxEntries: The maximum number of entries in this cache
 
   Options:
 
@@ -603,7 +614,7 @@ See :doc:`../guides/cache` for a how to.
 
     :param int n: Number of entries to keep
 
-  .. method:: PacketCache:expungeByName(name [, qtype=dnsdist.ANY[, suffixMatch=false]])
+  .. method:: PacketCache:expungeByName(name [, qtype=DNSQType.ANY[, suffixMatch=false]])
 
     .. versionchanged:: 1.2.0
       ``suffixMatch`` parameter added.
@@ -611,12 +622,12 @@ See :doc:`../guides/cache` for a how to.
     Remove entries matching ``name`` and type from the cache.
 
     :param DNSName name: The name to expunge
-    :param int qtype: The type to expunge
+    :param int qtype: The type to expunge, can be a pre-defined :ref:`DNSQType`
     :param bool suffixMatch: When set to true, remove al entries under ``name``
 
   .. method:: PacketCache:getStats()
 
-    .. versionadded:: 1.3.4
+    .. versionadded:: 1.4.0
 
     Return the cache stats (number of entries, hits, misses, deferred lookups, deferred inserts, lookup collisions, insert collisions and TTL too shorts) as a Lua table.
 
@@ -726,7 +737,7 @@ Status, Statistics and More
 
 .. function:: showServers([options])
 
-  .. versionchanged:: 1.3.4
+  .. versionchanged:: 1.4.0
     ``options`` optional parameter added
 
   This function shows all backend servers currently configured and some statistics.

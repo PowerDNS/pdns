@@ -257,8 +257,9 @@ public:
   DNSCryptContext(const std::string& pName, const std::string& certFile, const std::string& keyFile);
   DNSCryptContext(const std::string& pName, const DNSCryptCert& certificate, const DNSCryptPrivateKey& pKey);
 
-  void loadNewCertificate(const std::string& certFile, const std::string& keyFile, bool active=true);
-  void addNewCertificate(const DNSCryptCert& newCert, const DNSCryptPrivateKey& newKey, bool active=true);
+  void reloadCertificate();
+  void loadNewCertificate(const std::string& certFile, const std::string& keyFile, bool active=true, bool reload=false);
+  void addNewCertificate(const DNSCryptCert& newCert, const DNSCryptPrivateKey& newKey, bool active=true, bool reload=false);
   void markActive(uint32_t serial);
   void markInactive(uint32_t serial);
   void removeInactiveCertificate(uint32_t serial);
@@ -276,6 +277,8 @@ private:
   pthread_rwlock_t d_lock;
   std::vector<std::shared_ptr<DNSCryptCertificatePair>> certs;
   DNSName providerName;
+  std::string certificatePath;
+  std::string keyPath;
 };
 
 bool generateDNSCryptCertificate(const std::string& providerPrivateKeyFile, uint32_t serial, time_t begin, time_t end, DNSCryptExchangeVersion version, DNSCryptCert& certOut, DNSCryptPrivateKey& keyOut);
