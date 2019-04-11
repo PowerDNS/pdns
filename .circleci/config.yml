@@ -139,6 +139,7 @@ commands:
             liblmdb0 \
             libpq5 \
             libssl1.1 \
+            libsodium18 \
             libsystemd0 \
             default-libmysqlclient-dev \
             unixodbc
@@ -162,6 +163,7 @@ commands:
               libldap2-dev \
               liblmdb-dev \
               libpq-dev \
+              libsodium-dev \
               libsqlite3-dev \
               libssl-dev \
               libtool \
@@ -272,6 +274,7 @@ jobs:
               --with-modules='bind lmdb ldap gmysql gsqlite3 gpgsql godbc mydns random' \
               --enable-tools \
               --with-lmdb=/usr \
+              --with-libsodium \
               --prefix=/opt/pdns-auth
       - run:
           name: build
