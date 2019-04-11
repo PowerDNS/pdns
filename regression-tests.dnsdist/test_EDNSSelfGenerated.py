@@ -11,7 +11,7 @@ class TestEDNSSelfGenerated(DNSDistTest):
     """
 
     _config_template = """
-    addAction("rcode.edns-self.tests.powerdns.com.", RCodeAction(dnsdist.REFUSED))
+    addAction("rcode.edns-self.tests.powerdns.com.", RCodeAction(DNSRCode.REFUSED))
     addAction("tc.edns-self.tests.powerdns.com.", TCAction())
 
     function luarule(dq)
@@ -262,7 +262,7 @@ class TestEDNSSelfGeneratedDisabled(DNSDistTest):
     _config_template = """
     setAddEDNSToSelfGeneratedResponses(false)
 
-    addAction("rcode.edns-self-disabled.tests.powerdns.com.", RCodeAction(dnsdist.REFUSED))
+    addAction("rcode.edns-self-disabled.tests.powerdns.com.", RCodeAction(DNSRCode.REFUSED))
     addAction("tc.edns-self-disabled.tests.powerdns.com.", TCAction())
 
     function luarule(dq)

@@ -614,7 +614,7 @@ See :doc:`../guides/cache` for a how to.
 
     :param int n: Number of entries to keep
 
-  .. method:: PacketCache:expungeByName(name [, qtype=dnsdist.ANY[, suffixMatch=false]])
+  .. method:: PacketCache:expungeByName(name [, qtype=DNSQType.ANY[, suffixMatch=false]])
 
     .. versionchanged:: 1.2.0
       ``suffixMatch`` parameter added.
@@ -622,7 +622,7 @@ See :doc:`../guides/cache` for a how to.
     Remove entries matching ``name`` and type from the cache.
 
     :param DNSName name: The name to expunge
-    :param int qtype: The type to expunge
+    :param int qtype: The type to expunge, can be a pre-defined :ref:`DNSQType`
     :param bool suffixMatch: When set to true, remove al entries under ``name``
 
   .. method:: PacketCache:getStats()

@@ -1038,7 +1038,7 @@ class TestCacheManagement(DNSDistTest):
         self.assertEquals(receivedResponse, response2)
 
         # remove cached entries from name A
-        self.sendConsoleCommand("getPool(\"\"):getCache():expungeByName(newDNSName(\"" + name + "\"), dnsdist.A)")
+        self.sendConsoleCommand("getPool(\"\"):getCache():expungeByName(newDNSName(\"" + name + "\"), DNSQType.A)")
 
         # Miss for name A
         (receivedQuery, receivedResponse) = self.sendUDPQuery(query, response)
@@ -1119,7 +1119,7 @@ class TestCacheManagement(DNSDistTest):
         self.assertEquals(receivedResponse, response2)
 
         # remove cached entries from name
-        self.sendConsoleCommand("getPool(\"\"):getCache():expungeByName(newDNSName(\"suffix.cache.tests.powerdns.com.\"), dnsdist.ANY, true)")
+        self.sendConsoleCommand("getPool(\"\"):getCache():expungeByName(newDNSName(\"suffix.cache.tests.powerdns.com.\"), DNSQType.ANY, true)")
 
         # Miss for name
         (receivedQuery, receivedResponse) = self.sendUDPQuery(query, response)
@@ -1200,7 +1200,7 @@ class TestCacheManagement(DNSDistTest):
         self.assertEquals(receivedResponse, response2)
 
         # remove cached entries from name A
-        self.sendConsoleCommand("getPool(\"\"):getCache():expungeByName(newDNSName(\"suffixtype.cache.tests.powerdns.com.\"), dnsdist.A, true)")
+        self.sendConsoleCommand("getPool(\"\"):getCache():expungeByName(newDNSName(\"suffixtype.cache.tests.powerdns.com.\"), DNSQType.A, true)")
 
         # Miss for name A
         (receivedQuery, receivedResponse) = self.sendUDPQuery(query, response)

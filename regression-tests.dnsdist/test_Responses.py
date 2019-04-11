@@ -8,7 +8,7 @@ class TestResponseRuleNXDelayed(DNSDistTest):
 
     _config_template = """
     newServer{address="127.0.0.1:%s"}
-    addResponseAction(RCodeRule(dnsdist.NXDOMAIN), DelayResponseAction(1000))
+    addResponseAction(RCodeRule(DNSRCode.NXDOMAIN), DelayResponseAction(1000))
     """
 
     def testNXDelayed(self):
@@ -57,7 +57,7 @@ class TestResponseRuleERCode(DNSDistTest):
 
     _config_template = """
     newServer{address="127.0.0.1:%s"}
-    addResponseAction(ERCodeRule(dnsdist.BADVERS), DelayResponseAction(1000))
+    addResponseAction(ERCodeRule(DNSRCode.BADVERS), DelayResponseAction(1000))
     """
 
     def testBADVERSDelayed(self):
@@ -244,7 +244,7 @@ class TestResponseLuaActionReturnSyntax(DNSDistTest):
       return DNSResponseAction.Drop
     end
     addResponseAction("drop.responses.tests.powerdns.com.", LuaResponseAction(customDrop))
-    addResponseAction(RCodeRule(dnsdist.NXDOMAIN), LuaResponseAction(customDelay))
+    addResponseAction(RCodeRule(DNSRCode.NXDOMAIN), LuaResponseAction(customDelay))
     """
 
     def testResponseActionDelayed(self):
