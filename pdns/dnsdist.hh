@@ -65,6 +65,9 @@ struct DNSQuestion
     const uint16_t* flags = getFlagsFromDNSHeader(dh);
     origFlags = *flags;
   }
+  DNSQuestion(const DNSQuestion&) = delete;
+  DNSQuestion& operator=(const DNSQuestion&) = delete;
+  DNSQuestion(DNSQuestion&&) = default;
 
 #ifdef HAVE_PROTOBUF
   boost::optional<boost::uuids::uuid> uniqueId;
@@ -108,6 +111,9 @@ struct DNSResponse : DNSQuestion
 {
   DNSResponse(const DNSName* name, uint16_t type, uint16_t class_, unsigned int consumed, const ComboAddress* lc, const ComboAddress* rem, struct dnsheader* header, size_t bufferSize, uint16_t responseLen, bool isTcp, const struct timespec* queryTime_):
     DNSQuestion(name, type, class_, consumed, lc, rem, header, bufferSize, responseLen, isTcp, queryTime_) { }
+  DNSResponse(const DNSResponse&) = delete;
+  DNSResponse& operator=(const DNSResponse&) = delete;
+  DNSResponse(DNSResponse&&) = default;
 };
 
 /* so what could you do:
@@ -565,7 +571,7 @@ struct IDState
 };
 
 typedef std::unordered_map<string, unsigned int> QueryCountRecords;
-typedef std::function<std::tuple<bool, string>(DNSQuestion dq)> QueryCountFilter;
+typedef std::function<std::tuple<bool, string>(const DNSQuestion* dq)> QueryCountFilter;
 struct QueryCount {
   QueryCount()
   {

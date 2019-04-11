@@ -409,7 +409,7 @@ class TestProtobufIPCipher(DNSDistProtobufTest):
         """
         name = 'query.protobuf-ipcipher.tests.powerdns.com.'
 
-        target = 'target.protobuf-ipcipher.tests.powerdns.com.'
+        target = b'target.protobuf-ipcipher.tests.powerdns.com.'
         query = dns.message.make_query(name, 'A', 'IN')
         response = dns.message.make_response(query)
 

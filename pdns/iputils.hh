@@ -278,7 +278,7 @@ union ComboAddress {
     char host[1024];
     int retval = 0;
     if(sin4.sin_family && !(retval = getnameinfo((struct sockaddr*) this, getSocklen(), host, sizeof(host),0, 0, NI_NUMERICHOST)))
-      return host;
+      return string(host);
     else
       return "invalid "+string(gai_strerror(retval));
   }

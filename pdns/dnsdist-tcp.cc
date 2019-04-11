@@ -209,12 +209,9 @@ struct ConnectionInfo
   ConnectionInfo(ClientState* cs_): cs(cs_), fd(-1)
   {
   }
-  ConnectionInfo(ConnectionInfo&& rhs)
+  ConnectionInfo(ConnectionInfo&& rhs): remote(rhs.remote), cs(rhs.cs), fd(rhs.fd)
   {
-    remote = rhs.remote;
-    cs = rhs.cs;
     rhs.cs = nullptr;
-    fd = rhs.fd;
     rhs.fd = -1;
   }
 
