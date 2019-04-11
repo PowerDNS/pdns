@@ -57,7 +57,7 @@ Homebrew. You need to tell configure where to find OpenSSL, too.
 
 ```sh
 brew install boost lua pkg-config ragel openssl
-./configure --with-modules="" --with-lua PKG_CONFIG_PATH=/usr/local/opt/openssl/lib/pkgconfig
+./configure --with-lua PKG_CONFIG_PATH=/usr/local/opt/openssl/lib/pkgconfig
 make -j4
 ```
 
