@@ -1,6 +1,8 @@
 #!/usr/bin/env bash
 rm -f trustedkeys
 rm -f unbound-host.conf
+rm -f recursor.trustedkeys.lua
+rm -f recursor.forward-zones-file
 
 for zone in $(grep 'zone ' named.conf  | cut -f2 -d\") addzone.com
 do
@@ -12,6 +14,8 @@ do
 	echo "  name: $zone" >> unbound-host.conf
 	echo "  stub-addr: $nameserver@$port" >> unbound-host.conf
 	echo "" >> unbound-host.conf
+
+	echo "$zone=$nameserver:$port" >> recursor.forward-zones-file
 done
 
 echo "server:" >> unbound-host.conf
@@ -22,3 +26,5 @@ if [ -e trustedkeys ]
 then
   cat trustedkeys | grep -c '.' # because wc -l is not portable enough!
 fi
+
+ldns-key2ds -n trustedkeys | awk -F '\t' '{print "addTA(\""$1"\", \""$5"\")"}' > recursor.trustedkeys.lua
