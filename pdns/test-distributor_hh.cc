@@ -78,6 +78,7 @@ BOOST_AUTO_TEST_CASE(test_distributor_queue) {
 
   BOOST_CHECK_EXCEPTION( {
     int n;
+    // bound should be higher than max-queue-length
     for(n=0; n < 2000; ++n)  {
       auto q = new Question();
       q->d_dt.set(); 
