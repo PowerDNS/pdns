@@ -440,6 +440,8 @@ class DNSDistTest(unittest.TestCase):
     def setUp(self):
         # This function is called before every tests
 
+        self.addTypeEqualityFunc(dns.message.Message, self.assertEqualDNSMessage)
+
         # Clear the responses counters
         for key in self._responsesCounter:
             self._responsesCounter[key] = 0
@@ -577,3 +579,26 @@ class DNSDistTest(unittest.TestCase):
 
     def checkResponseNoEDNS(self, expected, received):
         self.checkMessageNoEDNS(expected, received)
+
+    def assertEqualDNSMessage(self, first, second, msg=None):
+        if not first == second:
+            a = str(first).split('\n')
+            b = str(second).split('\n')
+
+            import difflib
+
+            diff = '\n'.join(
+                difflib.unified_diff(
+                    a,
+                    b,
+                    fromfile='first',
+                    tofile='second',
+                    n=max(len(a), len(b)),
+                    lineterm=""
+                )
+            )
+
+            standardMsg = "%s != %s:\n%s" % (repr(first), repr(second), diff)
+            msg = self._formatMessage(msg, standardMsg)
+
+            raise self.failureException(msg)
