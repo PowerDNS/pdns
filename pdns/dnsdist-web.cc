@@ -681,9 +681,14 @@ static void connectionThread(int sock, ComboAddress remote)
         acl+=s;
       }
       string localaddresses;
-      for(const auto& loc : g_locals) {
-        if(!localaddresses.empty()) localaddresses += ", ";
-        localaddresses += std::get<0>(loc).toStringWithPort();
+      for(const auto& front : g_frontends) {
+        if (front->tcp) {
+          continue;
+        }
+        if (!localaddresses.empty()) {
+          localaddresses += ", ";
+        }
+        localaddresses += front->local.toStringWithPort();
       }
 
       Json my_json = Json::object {

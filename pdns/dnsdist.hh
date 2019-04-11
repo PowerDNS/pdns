@@ -587,10 +587,15 @@ extern QueryCount g_qcount;
 
 struct ClientState
 {
+  ClientState(const ComboAddress& local_, bool isTCP, bool doReusePort, int fastOpenQueue, const std::string& itfName, const std::set<int>& cpus_): cpus(cpus_), local(local_), interface(itfName), fastOpenQueueSize(fastOpenQueue), tcp(isTCP), reuseport(doReusePort)
+  {
+  }
+
   std::set<int> cpus;
   ComboAddress local;
   std::shared_ptr<DNSCryptContext> dnscryptCtx{nullptr};
-  shared_ptr<TLSFrontend> tlsFrontend;
+  std::shared_ptr<TLSFrontend> tlsFrontend{nullptr};
+  std::string interface;
   std::atomic<uint64_t> queries{0};
   std::atomic<uint64_t> tcpDiedReadingQuery{0};
   std::atomic<uint64_t> tcpDiedSendingResponse{0};
@@ -603,7 +608,11 @@ struct ClientState
   std::atomic<double> tcpAvgConnectionDuration{0.0};
   int udpFD{-1};
   int tcpFD{-1};
+  int fastOpenQueueSize{0};
   bool muted{false};
+  bool tcp;
+  bool reuseport;
+  bool ready{false};
 
   int getSocket() const
   {
@@ -1014,7 +1023,7 @@ extern ComboAddress g_serverControl; // not changed during runtime
 
 extern std::vector<std::tuple<ComboAddress, bool, bool, int, std::string, std::set<int>>> g_locals; // not changed at runtime (we hope XXX)
 extern std::vector<shared_ptr<TLSFrontend>> g_tlslocals;
-extern vector<ClientState*> g_frontends;
+extern std::vector<std::unique_ptr<ClientState>> g_frontends;
 extern bool g_truncateTC;
 extern bool g_fixupCase;
 extern int g_tcpRecvTimeout;
@@ -1105,7 +1114,7 @@ bool processResponse(char** response, uint16_t* responseLen, size_t* responseSiz
 
 bool checkQueryHeaders(const struct dnsheader* dh);
 
-extern std::vector<std::tuple<ComboAddress, std::shared_ptr<DNSCryptContext>, bool, int, std::string, std::set<int> > > g_dnsCryptLocals;
+extern std::vector<std::shared_ptr<DNSCryptContext>> g_dnsCryptLocals;
 int handleDNSCryptQuery(char* packet, uint16_t len, std::shared_ptr<DNSCryptQuery> query, uint16_t* decryptedQueryLen, bool tcp, time_t now, std::vector<uint8_t>& response);
 boost::optional<std::vector<uint8_t>> checkDNSCryptQuery(const ClientState& cs, const char* query, uint16_t& len, std::shared_ptr<DNSCryptQuery>& dnsCryptQuery, time_t now, bool tcp);
 

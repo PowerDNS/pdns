@@ -92,14 +92,13 @@ bool g_allowEmptyResponse{false};
 GlobalStateHolder<NetmaskGroup> g_ACL;
 string g_outputBuffer;
 
-vector<std::tuple<ComboAddress, bool, bool, int, string, std::set<int>>> g_locals;
 std::vector<std::shared_ptr<TLSFrontend>> g_tlslocals;
-std::vector<std::tuple<ComboAddress,std::shared_ptr<DNSCryptContext>,bool, int, string, std::set<int> >> g_dnsCryptLocals;
+std::vector<std::shared_ptr<DNSCryptContext>> g_dnsCryptLocals;
 #ifdef HAVE_EBPF
 shared_ptr<BPFFilter> g_defaultBPFFilter;
 std::vector<std::shared_ptr<DynBPFFilter> > g_dynBPFFilters;
 #endif /* HAVE_EBPF */
-vector<ClientState *> g_frontends;
+std::vector<std::unique_ptr<ClientState>> g_frontends;
 GlobalStateHolder<pools_t> g_pools;
 size_t g_udpVectorSize{1};
 
@@ -2169,6 +2168,102 @@ static void checkFileDescriptorsLimits(size_t udpBindsCount, size_t tcpBindsCoun
   }
 }
 
+static void setUpLocalBind(std::unique_ptr<ClientState>& cs)
+{
+  /* skip some warnings if there is an identical UDP context */
+  bool warn = cs->tcp == false || cs->tlsFrontend != nullptr;
+  int& fd = cs->tcp == false ? cs->udpFD : cs->tcpFD;
+  (void) warn;
+
+  fd = SSocket(cs->local.sin4.sin_family, cs->tcp == false ? SOCK_DGRAM : SOCK_STREAM, 0);
+
+  if (cs->tcp) {
+    SSetsockopt(fd, SOL_SOCKET, SO_REUSEADDR, 1);
+#ifdef TCP_DEFER_ACCEPT
+    SSetsockopt(fd, IPPROTO_TCP, TCP_DEFER_ACCEPT, 1);
+#endif
+    if (cs->fastOpenQueueSize > 0) {
+#ifdef TCP_FASTOPEN
+      SSetsockopt(fd, IPPROTO_TCP, TCP_FASTOPEN, cs->fastOpenQueueSize);
+#else
+      if (warn) {
+        warnlog("TCP Fast Open has been configured on local address '%s' but is not supported", cs->local.toStringWithPort());
+      }
+#endif
+    }
+  }
+
+  if(cs->local.sin4.sin_family == AF_INET6) {
+    SSetsockopt(fd, IPPROTO_IPV6, IPV6_V6ONLY, 1);
+  }
+
+  bindAny(cs->local.sin4.sin_family, fd);
+
+  if(!cs->tcp && IsAnyAddress(cs->local)) {
+    int one=1;
+    setsockopt(fd, IPPROTO_IP, GEN_IP_PKTINFO, &one, sizeof(one));     // linux supports this, so why not - might fail on other systems
+#ifdef IPV6_RECVPKTINFO
+    setsockopt(fd, IPPROTO_IPV6, IPV6_RECVPKTINFO, &one, sizeof(one));
+#endif
+  }
+
+  if (cs->reuseport) {
+#ifdef SO_REUSEPORT
+    SSetsockopt(fd, SOL_SOCKET, SO_REUSEPORT, 1);
+#else
+    if (warn) {
+      /* no need to warn again if configured but support is not available, we already did for UDP */
+      warnlog("SO_REUSEPORT has been configured on local address '%s' but is not supported", cs->local.toStringWithPort());
+    }
+#endif
+  }
+
+  const std::string& itf = cs->interface;
+  if (!itf.empty()) {
+#ifdef SO_BINDTODEVICE
+    int res = setsockopt(fd, SOL_SOCKET, SO_BINDTODEVICE, itf.c_str(), itf.length());
+    if (res != 0) {
+      warnlog("Error setting up the interface on local address '%s': %s", cs->local.toStringWithPort(), strerror(errno));
+    }
+#else
+    if (warn) {
+      warnlog("An interface has been configured on local address '%s' but SO_BINDTODEVICE is not supported", cs->local.toStringWithPort());
+    }
+#endif
+  }
+
+#ifdef HAVE_EBPF
+  if (g_defaultBPFFilter) {
+    cs->attachFilter(g_defaultBPFFilter);
+    vinfolog("Attaching default BPF Filter to %s frontend %s", (!cs->tcp ? "UDP" : "TCP"), cs->local.toStringWithPort());
+  }
+#endif /* HAVE_EBPF */
+
+  if (cs->tlsFrontend != nullptr) {
+    if (!cs->tlsFrontend->setupTLS()) {
+      errlog("Error while setting up TLS on local address '%s', exiting", cs->local.toStringWithPort());
+      _exit(EXIT_FAILURE);
+    }
+  }
+
+  SBind(fd, cs->local);
+
+  if (cs->tcp) {
+    SListen(cs->tcpFD, 64);
+    if (cs->tlsFrontend != nullptr) {
+      warnlog("Listening on %s for TLS", cs->local.toStringWithPort());
+    }
+    else if (cs->dnscryptCtx != nullptr) {
+      warnlog("Listening on %s for DNSCrypt", cs->local.toStringWithPort());
+    }
+    else {
+      warnlog("Listening on %s", cs->local.toStringWithPort());
+    }
+  }
+
+  cs->ready = true;
+}
+
 struct 
 {
   vector<string> locals;
@@ -2450,291 +2545,42 @@ try
     }
   }
 
-  if(g_cmdLine.locals.size()) {
-    g_locals.clear();
-    for(auto loc : g_cmdLine.locals)
-      g_locals.push_back(std::make_tuple(ComboAddress(loc, 53), true, false, 0, "", std::set<int>()));
+  if (!g_cmdLine.locals.empty()) {
+    for (auto it = g_frontends.begin(); it != g_frontends.end(); ) {
+      /* TLS and DNSCrypt frontends are separate */
+      if ((*it)->tlsFrontend == nullptr && (*it)->dnscryptCtx == nullptr) {
+        it = g_frontends.erase(it);
+      }
+      else {
+        ++it;
+      }
+    }
+
+    for(const auto& loc : g_cmdLine.locals) {
+      /* UDP */
+      g_frontends.push_back(std::unique_ptr<ClientState>(new ClientState(ComboAddress(loc, 53), false, false, 0, "", {})));
+      /* TCP */
+      g_frontends.push_back(std::unique_ptr<ClientState>(new ClientState(ComboAddress(loc, 53), true, false, 0, "", {})));
+    }
   }
-  
-  if(g_locals.empty())
-    g_locals.push_back(std::make_tuple(ComboAddress("127.0.0.1", 53), true, false, 0, "", std::set<int>()));
+
+  if (g_frontends.empty()) {
+    /* UDP */
+    g_frontends.push_back(std::unique_ptr<ClientState>(new ClientState(ComboAddress("127.0.0.1", 53), false, false, 0, "", {})));
+    /* TCP */
+    g_frontends.push_back(std::unique_ptr<ClientState>(new ClientState(ComboAddress("127.0.0.1", 53), true, false, 0, "", {})));
+  }
 
   g_configurationDone = true;
 
-  vector<ClientState*> toLaunch;
-  for(const auto& local : g_locals) {
-    ClientState* cs = new ClientState;
-    cs->local= std::get<0>(local);
-    cs->udpFD = SSocket(cs->local.sin4.sin_family, SOCK_DGRAM, 0);
-    if(cs->local.sin4.sin_family == AF_INET6) {
-      SSetsockopt(cs->udpFD, IPPROTO_IPV6, IPV6_V6ONLY, 1);
-    }
-    //if(g_vm.count("bind-non-local"))
-    bindAny(cs->local.sin4.sin_family, cs->udpFD);
+  for(auto& frontend : g_frontends) {
+    setUpLocalBind(frontend);
 
-    //    if (!setSocketTimestamps(cs->udpFD))
-    //      g_log<<Logger::Warning<<"Unable to enable timestamp reporting for socket"<<endl;
-
-
-    if(IsAnyAddress(cs->local)) {
-      int one=1;
-      setsockopt(cs->udpFD, IPPROTO_IP, GEN_IP_PKTINFO, &one, sizeof(one));     // linux supports this, so why not - might fail on other systems
-#ifdef IPV6_RECVPKTINFO
-      setsockopt(cs->udpFD, IPPROTO_IPV6, IPV6_RECVPKTINFO, &one, sizeof(one));
-#endif
-    }
-
-    if (std::get<2>(local)) {
-#ifdef SO_REUSEPORT
-      SSetsockopt(cs->udpFD, SOL_SOCKET, SO_REUSEPORT, 1);
-#else
-      warnlog("SO_REUSEPORT has been configured on local address '%s' but is not supported", std::get<0>(local).toStringWithPort());
-#endif
-    }
-
-    const std::string& itf = std::get<4>(local);
-    if (!itf.empty()) {
-#ifdef SO_BINDTODEVICE
-      int res = setsockopt(cs->udpFD, SOL_SOCKET, SO_BINDTODEVICE, itf.c_str(), itf.length());
-      if (res != 0) {
-        warnlog("Error setting up the interface on local address '%s': %s", std::get<0>(local).toStringWithPort(), strerror(errno));
-      }
-#else
-      warnlog("An interface has been configured on local address '%s' but SO_BINDTODEVICE is not supported", std::get<0>(local).toStringWithPort());
-#endif
-    }
-
-#ifdef HAVE_EBPF
-    if (g_defaultBPFFilter) {
-      cs->attachFilter(g_defaultBPFFilter);
-      vinfolog("Attaching default BPF Filter to UDP frontend %s", cs->local.toStringWithPort());
-    }
-#endif /* HAVE_EBPF */
-
-    cs->cpus = std::get<5>(local);
-
-    SBind(cs->udpFD, cs->local);
-    toLaunch.push_back(cs);
-    g_frontends.push_back(cs);
-    udpBindsCount++;
-  }
-
-  for(const auto& local : g_locals) {
-    if(!std::get<1>(local)) { // no TCP/IP
-      warnlog("Not providing TCP/IP service on local address '%s'", std::get<0>(local).toStringWithPort());
-      continue;
-    }
-    ClientState* cs = new ClientState;
-    cs->local= std::get<0>(local);
-
-    cs->tcpFD = SSocket(cs->local.sin4.sin_family, SOCK_STREAM, 0);
-
-    SSetsockopt(cs->tcpFD, SOL_SOCKET, SO_REUSEADDR, 1);
-#ifdef TCP_DEFER_ACCEPT
-    SSetsockopt(cs->tcpFD, IPPROTO_TCP, TCP_DEFER_ACCEPT, 1);
-#endif
-    if (std::get<3>(local) > 0) {
-#ifdef TCP_FASTOPEN
-      SSetsockopt(cs->tcpFD, IPPROTO_TCP, TCP_FASTOPEN, std::get<3>(local));
-#else
-      warnlog("TCP Fast Open has been configured on local address '%s' but is not supported", std::get<0>(local).toStringWithPort());
-#endif
-    }
-    if(cs->local.sin4.sin_family == AF_INET6) {
-      SSetsockopt(cs->tcpFD, IPPROTO_IPV6, IPV6_V6ONLY, 1);
-    }
-#ifdef SO_REUSEPORT
-    /* no need to warn again if configured but support is not available, we already did for UDP */
-    if (std::get<2>(local)) {
-      SSetsockopt(cs->tcpFD, SOL_SOCKET, SO_REUSEPORT, 1);
-    }
-#endif
-
-    const std::string& itf = std::get<4>(local);
-    if (!itf.empty()) {
-#ifdef SO_BINDTODEVICE
-      int res = setsockopt(cs->tcpFD, SOL_SOCKET, SO_BINDTODEVICE, itf.c_str(), itf.length());
-      if (res != 0) {
-        warnlog("Error setting up the interface on local address '%s': %s", std::get<0>(local).toStringWithPort(), strerror(errno));
-      }
-#else
-      warnlog("An interface has been configured on local address '%s' but SO_BINDTODEVICE is not supported", std::get<0>(local).toStringWithPort());
-#endif
-    }
-
-#ifdef HAVE_EBPF
-    if (g_defaultBPFFilter) {
-      cs->attachFilter(g_defaultBPFFilter);
-      vinfolog("Attaching default BPF Filter to TCP frontend %s", cs->local.toStringWithPort());
-    }
-#endif /* HAVE_EBPF */
-
-    //    if(g_vm.count("bind-non-local"))
-      bindAny(cs->local.sin4.sin_family, cs->tcpFD);
-    SBind(cs->tcpFD, cs->local);
-    SListen(cs->tcpFD, 64);
-    warnlog("Listening on %s", cs->local.toStringWithPort());
-
-    toLaunch.push_back(cs);
-    g_frontends.push_back(cs);
-    tcpBindsCount++;
-  }
-
-  for(auto& dcLocal : g_dnsCryptLocals) {
-    ClientState* cs = new ClientState;
-    cs->local = std::get<0>(dcLocal);
-    cs->dnscryptCtx = std::get<1>(dcLocal);
-    cs->udpFD = SSocket(cs->local.sin4.sin_family, SOCK_DGRAM, 0);
-    if(cs->local.sin4.sin_family == AF_INET6) {
-      SSetsockopt(cs->udpFD, IPPROTO_IPV6, IPV6_V6ONLY, 1);
-    }
-    bindAny(cs->local.sin4.sin_family, cs->udpFD);
-    if(IsAnyAddress(cs->local)) {
-      int one=1;
-      setsockopt(cs->udpFD, IPPROTO_IP, GEN_IP_PKTINFO, &one, sizeof(one));     // linux supports this, so why not - might fail on other systems
-#ifdef IPV6_RECVPKTINFO
-      setsockopt(cs->udpFD, IPPROTO_IPV6, IPV6_RECVPKTINFO, &one, sizeof(one)); 
-#endif
-    }
-    if (std::get<2>(dcLocal)) {
-#ifdef SO_REUSEPORT
-      SSetsockopt(cs->udpFD, SOL_SOCKET, SO_REUSEPORT, 1);
-#else
-      warnlog("SO_REUSEPORT has been configured on local address '%s' but is not supported", std::get<0>(dcLocal).toStringWithPort());
-#endif
-    }
-
-    const std::string& itf = std::get<4>(dcLocal);
-    if (!itf.empty()) {
-#ifdef SO_BINDTODEVICE
-      int res = setsockopt(cs->udpFD, SOL_SOCKET, SO_BINDTODEVICE, itf.c_str(), itf.length());
-      if (res != 0) {
-        warnlog("Error setting up the interface on local address '%s': %s", std::get<0>(dcLocal).toStringWithPort(), strerror(errno));
-      }
-#else
-      warnlog("An interface has been configured on local address '%s' but SO_BINDTODEVICE is not supported", std::get<0>(dcLocal).toStringWithPort());
-#endif
-    }
-
-#ifdef HAVE_EBPF
-    if (g_defaultBPFFilter) {
-      cs->attachFilter(g_defaultBPFFilter);
-      vinfolog("Attaching default BPF Filter to UDP DNSCrypt frontend %s", cs->local.toStringWithPort());
-    }
-#endif /* HAVE_EBPF */
-    SBind(cs->udpFD, cs->local);    
-    toLaunch.push_back(cs);
-    g_frontends.push_back(cs);
-    udpBindsCount++;
-
-    cs = new ClientState;
-    cs->local = std::get<0>(dcLocal);
-    cs->dnscryptCtx = std::get<1>(dcLocal);
-    cs->tcpFD = SSocket(cs->local.sin4.sin_family, SOCK_STREAM, 0);
-    SSetsockopt(cs->tcpFD, SOL_SOCKET, SO_REUSEADDR, 1);
-#ifdef TCP_DEFER_ACCEPT
-    SSetsockopt(cs->tcpFD, IPPROTO_TCP, TCP_DEFER_ACCEPT, 1);
-#endif
-    if (std::get<3>(dcLocal) > 0) {
-#ifdef TCP_FASTOPEN
-      SSetsockopt(cs->tcpFD, IPPROTO_TCP, TCP_FASTOPEN, std::get<3>(dcLocal));
-#else
-      warnlog("TCP Fast Open has been configured on local address '%s' but is not supported", std::get<0>(dcLocal).toStringWithPort());
-#endif
-    }
-
-#ifdef SO_REUSEPORT
-    /* no need to warn again if configured but support is not available, we already did for UDP */
-    if (std::get<2>(dcLocal)) {
-      SSetsockopt(cs->tcpFD, SOL_SOCKET, SO_REUSEPORT, 1);
-    }
-#endif
-
-    if (!itf.empty()) {
-#ifdef SO_BINDTODEVICE
-      int res = setsockopt(cs->tcpFD, SOL_SOCKET, SO_BINDTODEVICE, itf.c_str(), itf.length());
-      if (res != 0) {
-        warnlog("Error setting up the interface on local address '%s': %s", std::get<0>(dcLocal).toStringWithPort(), strerror(errno));
-      }
-#else
-      warnlog("An interface has been configured on local address '%s' but SO_BINDTODEVICE is not supported", std::get<0>(dcLocal).toStringWithPort());
-#endif
-    }
-
-    if(cs->local.sin4.sin_family == AF_INET6) {
-      SSetsockopt(cs->tcpFD, IPPROTO_IPV6, IPV6_V6ONLY, 1);
-    }
-#ifdef HAVE_EBPF
-    if (g_defaultBPFFilter) {
-      cs->attachFilter(g_defaultBPFFilter);
-      vinfolog("Attaching default BPF Filter to TCP DNSCrypt frontend %s", cs->local.toStringWithPort());
-    }
-#endif /* HAVE_EBPF */
-
-    cs->cpus = std::get<5>(dcLocal);
-
-    bindAny(cs->local.sin4.sin_family, cs->tcpFD);
-    SBind(cs->tcpFD, cs->local);
-    SListen(cs->tcpFD, 64);
-    warnlog("Listening on %s", cs->local.toStringWithPort());
-    toLaunch.push_back(cs);
-    g_frontends.push_back(cs);
-    tcpBindsCount++;
-  }
-
-  for(auto& frontend : g_tlslocals) {
-    ClientState* cs = new ClientState;
-    cs->local = frontend->d_addr;
-    cs->tcpFD = SSocket(cs->local.sin4.sin_family, SOCK_STREAM, 0);
-    SSetsockopt(cs->tcpFD, SOL_SOCKET, SO_REUSEADDR, 1);
-#ifdef TCP_DEFER_ACCEPT
-    SSetsockopt(cs->tcpFD, IPPROTO_TCP, TCP_DEFER_ACCEPT, 1);
-#endif
-    if (frontend->d_tcpFastOpenQueueSize > 0) {
-#ifdef TCP_FASTOPEN
-      SSetsockopt(cs->tcpFD, IPPROTO_TCP, TCP_FASTOPEN, frontend->d_tcpFastOpenQueueSize);
-#else
-      warnlog("TCP Fast Open has been configured on local address '%s' but is not supported", cs->local.toStringWithPort());
-#endif
-    }
-    if (frontend->d_reusePort) {
-#ifdef SO_REUSEPORT
-      SSetsockopt(cs->tcpFD, SOL_SOCKET, SO_REUSEPORT, 1);
-#else
-      warnlog("SO_REUSEPORT has been configured on local address '%s' but is not supported", cs->local.toStringWithPort());
-#endif
-    }
-    if(cs->local.sin4.sin_family == AF_INET6) {
-      SSetsockopt(cs->tcpFD, IPPROTO_IPV6, IPV6_V6ONLY, 1);
-    }
-
-    if (!frontend->d_interface.empty()) {
-#ifdef SO_BINDTODEVICE
-      int res = setsockopt(cs->tcpFD, SOL_SOCKET, SO_BINDTODEVICE, frontend->d_interface.c_str(), frontend->d_interface.length());
-      if (res != 0) {
-        warnlog("Error setting up the interface on local address '%s': %s", cs->local.toStringWithPort(), strerror(errno));
-      }
-#else
-      warnlog("An interface has been configured on local address '%s' but SO_BINDTODEVICE is not supported", cs->local.toStringWithPort());
-#endif
-    }
-
-    cs->cpus = frontend->d_cpus;
-
-    bindAny(cs->local.sin4.sin_family, cs->tcpFD);
-    if (frontend->setupTLS()) {
-      cs->tlsFrontend = frontend;
-      SBind(cs->tcpFD, cs->local);
-      SListen(cs->tcpFD, 64);
-      warnlog("Listening on %s for TLS", cs->local.toStringWithPort());
-      toLaunch.push_back(cs);
-      g_frontends.push_back(cs);
-      tcpBindsCount++;
+    if (frontend->tcp == false) {
+      ++udpBindsCount;
     }
     else {
-      errlog("Error while setting up TLS on local address '%s', exiting", cs->local.toStringWithPort());
-      delete cs;
-      _exit(EXIT_FAILURE);
+      ++tcpBindsCount;
     }
   }
 
@@ -2832,16 +2678,16 @@ try
     }
   }
 
-  for(auto& cs : toLaunch) {
+  for(auto& cs : g_frontends) {
     if (cs->udpFD >= 0) {
-      thread t1(udpClientThread, cs);
+      thread t1(udpClientThread, cs.get());
       if (!cs->cpus.empty()) {
         mapThreadToCPUList(t1.native_handle(), cs->cpus);
       }
       t1.detach();
     }
     else if (cs->tcpFD >= 0) {
-      thread t1(tcpAcceptorThread, cs);
+      thread t1(tcpAcceptorThread, cs.get());
       if (!cs->cpus.empty()) {
         mapThreadToCPUList(t1.native_handle(), cs->cpus);
       }
