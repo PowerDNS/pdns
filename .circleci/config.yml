@@ -517,6 +517,15 @@ jobs:
       - auth-regress:
           context: lmdb-nsec3-narrow
 
+  test-auth-algorithms:
+    docker:
+      - image: debian:stretch
+    steps:
+      - auth-regress-setup
+      - run:
+          name: Test all algorithms
+          command: /opt/pdns-auth/bin/pdnsutil test-algorithms
+
   test-auth-api:
     docker:
       - image: debian:stretch
@@ -676,6 +685,9 @@ workflows:
     jobs:
       - build-auth
       - test-auth-api:
+          requires:
+            - build-auth
+      - test-auth-algorithms:
           requires:
             - build-auth
       - test-auth-regress-odbc-sqlite3:
