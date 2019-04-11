@@ -3,7 +3,7 @@ Changelog
 
 .. changelog::
   :version: 1.4.0-alpha1
-  :released: TBD
+  :released: 11th of April 2019
 
  .. change::
     :tags: Improvements
@@ -242,10 +242,28 @@ Changelog
     Prevent a conflict with BADSIG being clobbered
 
   .. change::
-    :tags: XXXXXX
+    :tags: Improvements
     :pullreq: 7689
 
     Switch to the new 'newPacketCache()' syntax for 1.4.0
+
+  .. change::
+    :tags: New Features
+    :pullreq: 7676
+
+    Add 'reloadAllCertificates()'
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 7678
+
+    Move constants to proper namespace
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 7694
+
+    Unify the management of DNS/DNSCrypt/DoT frontends
 
 .. changelog::
   :version: 1.3.3
