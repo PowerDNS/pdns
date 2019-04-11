@@ -10,7 +10,7 @@ Upgrade Guide
 
 To improve security, all ambient capabilities are now dropped after the startup phase, which might prevent launching the webserver on a privileged port at run-time, or impact some custom Lua code. In addition, systemd's sandobxing features are now determined at compile-time, resulting in more restrictions on recent distributions. See pull requests 7138 and 6634 for more information.
 
-If you are compiling dnsdist, note that several ./configure options have been renamed to provide a more consistent experience. Features that depends on an external component have been prefixed with '--with-' while internal features use '--enable-'. This lead to the following changes:
+If you are compiling dnsdist, note that several ./configure options have been renamed to provide a more consistent experience. Features that depend on an external component have been prefixed with '--with-' while internal features use '--enable-'. This lead to the following changes:
 
 - ``--enable-fstrm`` to ``--enable-dnstap``
 - ``--enable-gnutls`` to ``--with-gnutls``
