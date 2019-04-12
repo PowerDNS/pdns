@@ -1592,7 +1592,8 @@ public:
   {
     declare(suffix,"filename","Filename for lmdb","./pdns.lmdb");
     declare(suffix,"sync-mode","Synchronisation mode: nosync, nometasync, mapasync","mapasync");
-    declare(suffix,"shards","Records database will be split into this number of shards","64");
+    // there just is no room for more on 32 bit
+    declare(suffix,"shards","Records database will be split into this number of shards", (sizeof(long) == 4) ? "2" : "64"); 
   }
   DNSBackend *make(const string &suffix="")
   {
