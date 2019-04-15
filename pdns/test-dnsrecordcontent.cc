@@ -10,7 +10,6 @@
 BOOST_AUTO_TEST_SUITE(test_dnsrecordcontent)
 
 BOOST_AUTO_TEST_CASE(test_equality) {
-  reportAllTypes();
   ComboAddress ip("1.2.3.4"), ip2("10.0.0.1"), ip6("::1");
   ARecordContent a1(ip), a2(ip), a3(ip2);
   AAAARecordContent aaaa(ip6), aaaa1(ip6);

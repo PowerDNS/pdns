@@ -113,8 +113,6 @@ static void init(bool debug=false)
     g_log.toConsole(Logger::Error);
   }
 
-  reportAllTypes();
-
   t_RC = std::unique_ptr<MemRecursorCache>(new MemRecursorCache());
 
   SyncRes::s_maxqperq = 50;
