@@ -134,6 +134,7 @@ commands:
       - run: |
           apt-get install -qq -y --no-install-recommends \
             libboost-all-dev \
+            libcdb1 \
             libkrb5-3 \
             libldap-2.4-2 \
             liblmdb0 \
@@ -159,6 +160,7 @@ commands:
               g++ \
               git \
               libboost-all-dev \
+              libcdb-dev \
               libkrb5-dev \
               libldap2-dev \
               liblmdb-dev \
@@ -271,7 +273,7 @@ jobs:
             CXXFLAGS="-O1 -Werror=vla" \
             ./configure \
               --disable-lua-records \
-              --with-modules='bind lmdb ldap gmysql gsqlite3 gpgsql godbc mydns random' \
+              --with-modules='bind lmdb ldap gmysql gsqlite3 gpgsql godbc mydns random tinydns' \
               --enable-tools \
               --with-lmdb=/usr \
               --with-libsodium \
@@ -521,6 +523,15 @@ jobs:
           context: ldap-strict
           doroot: false
 
+  test-auth-regress-tinydns:
+    docker:
+      - image: debian:stretch
+    steps:
+      - auth-regress-setup
+      - auth-regress:
+          context: tinydns
+          doroot: false
+
   test-auth-regress-lmdb:
     docker:
       - image: debian:stretch
@@ -738,7 +749,9 @@ workflows:
       - test-auth-regress-ldap:
           requires:
             - build-auth
-
+      - test-auth-regress-tinydns:
+          requires:
+            - build-auth
       - build-recursor
       - test-recursor-regression:
           requires:
