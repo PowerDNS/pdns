@@ -30,7 +30,6 @@
 #include <dnsrecords.hh>
 
 bool init_unit_test() {
-  std::cerr << "Initing..." << std::endl;
   reportAllTypes();
   return true;
 }

@@ -20,7 +20,6 @@ ArgvMap &arg()
 
 
 bool init_unit_test() {
-  cerr << "Initing..." << endl;
   reportAllTypes();
   return true;
 }

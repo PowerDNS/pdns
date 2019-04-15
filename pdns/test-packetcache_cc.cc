@@ -207,7 +207,7 @@ BOOST_AUTO_TEST_CASE(test_PacketCacheThreaded) {
     PC.setTTL(3600);
 
     g_PC=&PC;
-    g_QCmissing = 0;
+    g_PCmissing = 0;
     pthread_t tid[4];
     for(int i=0; i < 4; ++i)
       pthread_create(&tid[i], 0, threadPCMangler, (void*)(i*1000000UL));
