@@ -1,10 +1,15 @@
 #pragma once
 #include "iputils.hh"
 
+struct DOHServerConfig;
+
 struct DOHFrontend
 {
+  std::shared_ptr<DOHServerConfig> d_dsc{nullptr};
   std::string d_certFile;
   std::string d_keyFile;
+  std::string d_ciphers;
+  std::string d_ciphers13;
   ComboAddress d_local;
 
   uint32_t d_idleTimeout{30};             // HTTP idle timeout in seconds
@@ -24,6 +29,11 @@ struct DOHFrontend
   std::atomic<uint64_t> d_badrequests;     // request could not be converted to dns query
   std::atomic<uint64_t> d_errorresponses; // dnsdist set 'error' on response
   std::atomic<uint64_t> d_validresponses; // valid responses sent out
+
+  void reloadCertificate()
+  {
+    // XXX: not implemented yet
+  }
 
 #ifndef HAVE_DNS_OVER_HTTPS
   void setup()

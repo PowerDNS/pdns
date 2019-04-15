@@ -1677,6 +1677,12 @@ void setupLuaConfig(bool client)
       if (vars->count("idleTimeout")) {
         frontend->d_idleTimeout = boost::get<int>((*vars)["idleTimeout"]);
       }
+      if (vars->count("ciphers")) {
+        frontend->d_ciphers = boost::get<const string>((*vars)["ciphers"]);
+      }
+      if (vars->count("ciphersTLS13")) {
+        frontend->d_ciphers13 = boost::get<const string>((*vars)["ciphersTLS13"]);
+      }
     }
     g_dohlocals.push_back(frontend);
     auto cs = std::unique_ptr<ClientState>(new ClientState(frontend->d_local, true, false, 0, "", {}));
@@ -1871,6 +1877,11 @@ void setupLuaConfig(bool client)
               frontend->tlsFrontend->setupTLS();
             }
 #endif /* HAVE_DNS_OVER_TLS */
+#ifdef HAVE_DNS_OVER_HTTPS
+            if (frontend->dohFrontend) {
+              frontend->dohFrontend->reloadCertificate();
+            }
+#endif /* HAVE_DNS_OVER_HTTPS */
           }
           catch(const std::exception& e) {
             errlog("Error reloading certificates for frontend %s: %s", frontend->local.toStringWithPort(), e.what());
