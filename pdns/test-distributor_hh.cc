@@ -66,6 +66,12 @@ struct BackendSlow
   }
 };
 
+static std::atomic<int> g_receivedAnswers1;
+static void report1(DNSPacket* A)
+{
+  delete A;
+  g_receivedAnswers1++;
+}
 
 BOOST_AUTO_TEST_CASE(test_distributor_queue) {
   ::arg().set("overload-queue-length","Maximum queuelength moving to packetcache only")="0";
@@ -82,7 +88,7 @@ BOOST_AUTO_TEST_CASE(test_distributor_queue) {
     for(n=0; n < 2000; ++n)  {
       auto q = new Question();
       q->d_dt.set(); 
-      d->question(q, report);
+      d->question(q, report1);
     }
     }, DistributorFatal, [](DistributorFatal) { return true; });
 };
@@ -129,8 +135,6 @@ BOOST_AUTO_TEST_CASE(test_distributor_dies) {
   S.declare("timedout-packets", "timedout-packets");
 
   auto d=Distributor<DNSPacket, Question, BackendDies>::Create(10);
-  sleep(1);
-  g_receivedAnswers=0;
 
   try {
     for(int n=0; n < 100; ++n)  {
