@@ -93,6 +93,7 @@ GlobalStateHolder<NetmaskGroup> g_ACL;
 string g_outputBuffer;
 
 std::vector<std::shared_ptr<TLSFrontend>> g_tlslocals;
+std::vector<std::shared_ptr<DOHFrontend>> g_dohlocals;
 std::vector<std::shared_ptr<DNSCryptContext>> g_dnsCryptLocals;
 #ifdef HAVE_EBPF
 shared_ptr<BPFFilter> g_defaultBPFFilter;
@@ -486,7 +487,7 @@ static bool sendUDPResponse(int origFD, const char* response, const uint16_t res
 }
 
 
-static int pickBackendSocketForSending(std::shared_ptr<DownstreamState>& state)
+int pickBackendSocketForSending(std::shared_ptr<DownstreamState>& state)
 {
   return state->sockets[state->socketsOffset++ % state->sockets.size()];
 }
@@ -537,13 +538,14 @@ try {
         uint16_t responseLen = static_cast<uint16_t>(got);
         queryId = dh->id;
 
-        if(queryId >= dss->idStates.size())
+        if(queryId >= dss->idStates.size()) {
           continue;
+        }
 
         IDState* ids = &dss->idStates[queryId];
         int origFD = ids->origFD;
 
-        if(origFD < 0) // duplicate
+        if(origFD < 0 && ids->du == nullptr) // duplicate
           continue;
 
         /* setting age to 0 to prevent the maintainer thread from
@@ -585,17 +587,30 @@ try {
         }
 
         if (ids->cs && !ids->cs->muted) {
-          ComboAddress empty;
-          empty.sin4.sin_family = 0;
-          /* if ids->destHarvested is false, origDest holds the listening address.
-             We don't want to use that as a source since it could be 0.0.0.0 for example. */
-          sendUDPResponse(origFD, response, responseLen, dr.delayMsec, ids->destHarvested ? ids->origDest : empty, ids->origRemote);
+          if (ids->du) {
+#ifdef HAVE_DNS_OVER_HTTPS
+            // DoH query
+            ids->du->query = std::string(response, responseLen);
+            if (send(ids->du->rsock, &ids->du, sizeof(ids->du), 0) != sizeof(ids->du)) {
+              delete ids->du;
+            }
+#endif /* HAVE_DNS_OVER_HTTPS */
+            ids->du = nullptr;
+          }
+          else {
+            ComboAddress empty;
+            empty.sin4.sin_family = 0;
+            /* if ids->destHarvested is false, origDest holds the listening address.
+               We don't want to use that as a source since it could be 0.0.0.0 for example. */
+            sendUDPResponse(origFD, response, responseLen, dr.delayMsec, ids->destHarvested ? ids->origDest : empty, ids->origRemote);
+          }
         }
 
         ++g_stats.responses;
 
         double udiff = ids->sentTime.udiff();
-        vinfolog("Got answer from %s, relayed to %s, took %f usec", dss->remote.toStringWithPort(), dr.remote->toStringWithPort(), udiff);
+        vinfolog("Got answer from %s, relayed to %s%s, took %f usec", dss->remote.toStringWithPort(), ids->origRemote.toStringWithPort(),
+                 ids->du ? " (https)": "", udiff);
 
         struct timespec ts;
         gettime(&ts);
@@ -1198,7 +1213,7 @@ static bool applyRulesToQuery(LocalHolders& holders, DNSQuestion& dq, string& po
   return true;
 }
 
-static ssize_t udpClientSendRequestToBackend(const std::shared_ptr<DownstreamState>& ss, const int sd, const char* request, const size_t requestLen, bool healthCheck=false)
+ssize_t udpClientSendRequestToBackend(const std::shared_ptr<DownstreamState>& ss, const int sd, const char* request, const size_t requestLen, bool healthCheck)
 {
   ssize_t result;
 
@@ -1548,14 +1563,15 @@ static void processUDPQuery(ClientState& cs, LocalHolders& holders, const struct
     unsigned int idOffset = (ss->idOffset++) % ss->idStates.size();
     IDState* ids = &ss->idStates[idOffset];
     ids->age = 0;
+    ids->du = nullptr;
 
     int oldFD = ids->origFD.exchange(cs.udpFD);
     if(oldFD < 0) {
       // if we are reusing, no change in outstanding
-      ss->outstanding++;
+      ++ss->outstanding;
     }
     else {
-      ss->reuseds++;
+      ++ss->reuseds;
       ++g_stats.downstreamTimeouts;
     }
 
@@ -1584,7 +1600,7 @@ static void processUDPQuery(ClientState& cs, LocalHolders& holders, const struct
     ssize_t ret = udpClientSendRequestToBackend(ss, fd, query, dq.len);
 
     if(ret < 0) {
-      ss->sendErrors++;
+      ++ss->sendErrors;
       ++g_stats.downstreamSendErrors;
     }
 
@@ -2052,6 +2068,7 @@ static void healthChecksThread()
                don't go anywhere near it */
             continue;
           }
+          ids.du = nullptr;
           ids.age = 0;
           dss->reuseds++;
           --dss->outstanding;
@@ -2171,7 +2188,7 @@ static void checkFileDescriptorsLimits(size_t udpBindsCount, size_t tcpBindsCoun
 static void setUpLocalBind(std::unique_ptr<ClientState>& cs)
 {
   /* skip some warnings if there is an identical UDP context */
-  bool warn = cs->tcp == false || cs->tlsFrontend != nullptr;
+  bool warn = cs->tcp == false || cs->tlsFrontend != nullptr || cs->dohFrontend != nullptr;
   int& fd = cs->tcp == false ? cs->udpFD : cs->tcpFD;
   (void) warn;
 
@@ -2246,12 +2263,19 @@ static void setUpLocalBind(std::unique_ptr<ClientState>& cs)
     }
   }
 
+  if (cs->dohFrontend != nullptr) {
+    cs->dohFrontend->setup();
+  }
+
   SBind(fd, cs->local);
 
   if (cs->tcp) {
-    SListen(cs->tcpFD, 64);
+    SListen(cs->tcpFD, SOMAXCONN);
     if (cs->tlsFrontend != nullptr) {
       warnlog("Listening on %s for TLS", cs->local.toStringWithPort());
+    }
+    else if (cs->dohFrontend != nullptr) {
+      warnlog("Listening on %s for DoH", cs->local.toStringWithPort());
     }
     else if (cs->dnscryptCtx != nullptr) {
       warnlog("Listening on %s for DNSCrypt", cs->local.toStringWithPort());
@@ -2438,6 +2462,9 @@ try
 #endif
       cout<<") ";
 #endif
+#ifdef HAVE_DNS_OVER_HTTPS
+      cout<<"dns-over-https(DOH) ";
+#endif
 #ifdef HAVE_DNSCRYPT
       cout<<"dnscrypt ";
 #endif
@@ -2547,8 +2574,8 @@ try
 
   if (!g_cmdLine.locals.empty()) {
     for (auto it = g_frontends.begin(); it != g_frontends.end(); ) {
-      /* TLS and DNSCrypt frontends are separate */
-      if ((*it)->tlsFrontend == nullptr && (*it)->dnscryptCtx == nullptr) {
+      /* DoH, DoT and DNSCrypt frontends are separate */
+      if ((*it)->dohFrontend == nullptr && (*it)->tlsFrontend == nullptr && (*it)->dnscryptCtx == nullptr) {
         it = g_frontends.erase(it);
       }
       else {
@@ -2679,6 +2706,13 @@ try
   }
 
   for(auto& cs : g_frontends) {
+    if (cs->dohFrontend != nullptr) {
+#ifdef HAVE_DNS_OVER_HTTPS
+      std::thread t1(dohThread, cs.get());
+      t1.detach();
+#endif /* HAVE_DNS_OVER_HTTPS */
+      continue;
+    }
     if (cs->udpFD >= 0) {
       thread t1(udpClientThread, cs.get());
       if (!cs->cpus.empty()) {

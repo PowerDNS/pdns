@@ -1650,6 +1650,43 @@ void setupLuaConfig(bool client)
     setSyslogFacility(facility);
   });
 
+  g_lua.writeFunction("addDOHLocal", [client](const std::string& addr, const std::string& certFile, const std::string& keyFile, boost::optional<vector<pair<int, std::string> > > urls, boost::optional<localbind_t> vars) {
+    if (client) {
+      return;
+    }
+#ifdef HAVE_DNS_OVER_HTTPS
+    setLuaSideEffect();
+    if (g_configurationDone) {
+      g_outputBuffer="addDOHLocal cannot be used at runtime!\n";
+      return;
+    }
+    auto frontend = std::make_shared<DOHFrontend>();
+    frontend->d_certFile = certFile;
+    frontend->d_keyFile = keyFile;
+    frontend->d_local = ComboAddress(addr, 443);
+    if(urls && !urls->empty()) {
+      for(const auto& p : *urls) {
+        frontend->d_urls.push_back(p.second);
+      }
+    }
+    else {
+      frontend->d_urls = {"/"};
+    }
+
+    if(vars) {
+      if (vars->count("idleTimeout")) {
+        frontend->d_idleTimeout = boost::get<int>((*vars)["idleTimeout"]);
+      }
+    }
+    g_dohlocals.push_back(frontend);
+    auto cs = std::unique_ptr<ClientState>(new ClientState(frontend->d_local, true, false, 0, "", {}));
+    cs->dohFrontend = frontend;
+    g_frontends.push_back(std::move(cs));
+#else
+    g_outputBuffer="DNS over HTTPS support is not present!\n";
+#endif
+  });
+
   g_lua.writeFunction("addTLSLocal", [client](const std::string& addr, boost::variant<std::string, std::vector<std::pair<int,std::string>>> certFiles, boost::variant<std::string, std::vector<std::pair<int,std::string>>> keyFiles, boost::optional<localbind_t> vars) {
         if (client)
           return;
