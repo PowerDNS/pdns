@@ -691,10 +691,10 @@ vector<ComboAddress> SyncRes::getAddrs(const DNSName &qname, unsigned int depth,
   d_cacheonly = cacheOnly;
 
   vState newState = Indeterminate;
-  res_t res;
+  res_t resv4;
   // If IPv4 ever becomes second class, we should revisit this
-  if (doResolve(qname, QType::A, res, depth+1, beenthere, newState) == 0) {  // this consults cache, OR goes out
-    for (res_t::const_iterator i = res.begin(); i != res.end(); ++i) {
+  if (doResolve(qname, QType::A, resv4, depth+1, beenthere, newState) == 0) {  // this consults cache, OR goes out
+    for (auto i = resv4.cbegin(); i != resv4.end(); ++i) {
       if (i->d_type == QType::A) {
         if (auto rec = getRR<ARecordContent>(*i)) {
           ret.push_back(rec->getCA(53));
@@ -705,10 +705,10 @@ vector<ComboAddress> SyncRes::getAddrs(const DNSName &qname, unsigned int depth,
   if (s_doIPv6) {
     if (ret.empty()) {
       // We did not find IPv4 addresses, try to get IPv6 ones
-      vState newState = Indeterminate;
-      res_t res;
-      if (doResolve(qname, QType::AAAA, res,depth+1, beenthere, newState) == 0) {  // this consults cache, OR goes out
-        for (res_t::const_iterator i = res.begin(); i != res.end(); ++i) {
+      newState = Indeterminate;
+      res_t resv6;
+      if (doResolve(qname, QType::AAAA, resv6, depth+1, beenthere, newState) == 0) {  // this consults cache, OR goes out
+        for (auto i = resv6.cbegin(); i != resv6.end(); ++i) {
           if (i->d_type == QType::AAAA) {
             if (auto rec = getRR<AAAARecordContent>(*i))
               ret.push_back(rec->getCA(53));
