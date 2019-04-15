@@ -887,7 +887,7 @@ int PacketHandler::processNotify(DNSPacket *p)
   //
   DomainInfo di;
   if(!B.getDomainInfo(p->qdomain, di, false) || !di.backend) {
-    if(::arg().mustDo("supermaster")) {
+    if(::arg().mustDo("superslave")) {
       g_log<<Logger::Warning<<"Received NOTIFY for "<<p->qdomain<<" from "<<p->getRemote()<<" for which we are not authoritative, trying supermaster"<<endl;
       return trySuperMaster(p, p->getTSIGKeyname());
     }

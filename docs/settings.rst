@@ -1449,9 +1449,9 @@ This path will also contain the pidfile for this instance of PowerDNS
 called ``pdns.pid`` by default. See :ref:`setting-config-name`
 and :doc:`Virtual Hosting <guides/virtual-instances>` how this can differ.
 
-.. _setting-supermaster:
+.. _setting-superslave:
 
-``supermaster``
+``superslave``
 ---------------
 
 -  Boolean
