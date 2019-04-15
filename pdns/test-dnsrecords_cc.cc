@@ -44,7 +44,6 @@ BOOST_AUTO_TEST_CASE(test_record_types) {
   // tuple contains <type, user value, zone representation, line value, broken>
   typedef boost::tuple<QType::typeenum, std::string, std::string, std::string, broken_marker> case_t;
   typedef std::list<case_t> cases_t;
-  reportAllTypes();
   MRRecordContent::report();
   IPSECKEYRecordContent::report();
   KXRecordContent::report();
