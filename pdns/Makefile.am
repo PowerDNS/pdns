@@ -877,7 +877,8 @@ speedtest_SOURCES = \
 	sillyrecords.cc \
 	speedtest.cc \
 	statbag.cc \
-	unix_utility.cc
+	unix_utility.cc \
+	iputils.cc
 
 speedtest_LDFLAGS = $(AM_LDFLAGS) $(LIBCRYPTO_LDFLAGS)
 speedtest_LDADD = $(LIBCRYPTO_LIBS) \
