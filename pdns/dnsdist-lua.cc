@@ -1693,6 +1693,58 @@ void setupLuaConfig(bool client)
 #endif
   });
 
+  g_lua.writeFunction("showDOHFrontends", []() {
+#ifdef HAVE_DNS_OVER_HTTPS
+        setLuaNoSideEffect();
+        try {
+          ostringstream ret;
+          boost::format fmt("%-3d %-20.20s %-15d %-15d %-15d %-15d %-15d %-15d %-15d %-15d %-15d %-15d %-15d %-15d %-15d");
+          ret << (fmt % "#" % "Address" % "HTTP" % "HTTP/1" % "HTTP/2" % "TLS 1.0" % "TLS 1.1" % "TLS 1.2" % "TLS 1.3" % "TLS other" % "GET" % "POST" % "Bad" % "Errors" % "Valid") << endl;
+          size_t counter = 0;
+          for (const auto& ctx : g_dohlocals) {
+            ret << (fmt % counter % ctx->d_local.toStringWithPort() % ctx->d_httpconnects % ctx->d_http1queries % ctx->d_http2queries % ctx->d_tls10queries % ctx->d_tls11queries % ctx->d_tls12queries % ctx->d_tls13queries % ctx->d_tlsUnknownqueries % ctx->d_getqueries % ctx->d_postqueries % ctx->d_badrequests % ctx->d_errorresponses % ctx->d_validresponses) << endl;
+            counter++;
+          }
+          g_outputBuffer = ret.str();
+        }
+        catch(const std::exception& e) {
+          g_outputBuffer = e.what();
+          throw;
+        }
+#else
+        g_outputBuffer="DNS over HTTPS support is not present!\n";
+#endif
+      });
+
+    g_lua.writeFunction("getDOHFrontend", [](size_t index) {
+        std::shared_ptr<DOHFrontend> result = nullptr;
+#ifdef HAVE_DNS_OVER_HTTPS
+        setLuaNoSideEffect();
+        try {
+          if (index < g_dohlocals.size()) {
+            result = g_dohlocals.at(index);
+          }
+          else {
+            errlog("Error: trying to get DOH frontend with index %zu but we only have %zu\n", index, g_dohlocals.size());
+            g_outputBuffer="Error: trying to get DOH frontend with index " + std::to_string(index) + " but we only have " + std::to_string(g_dohlocals.size()) + "\n";
+          }
+        }
+        catch(const std::exception& e) {
+          g_outputBuffer="Error: "+string(e.what())+"\n";
+          errlog("Error: %s\n", string(e.what()));
+        }
+#else
+        g_outputBuffer="DNS over HTTPS support is not present!\n";
+#endif
+        return result;
+      });
+
+    g_lua.registerFunction<void(std::shared_ptr<DOHFrontend>::*)()>("reloadCertificate", [](std::shared_ptr<DOHFrontend> frontend) {
+        if (frontend != nullptr) {
+          frontend->reloadCertificate();
+        }
+      });
+
   g_lua.writeFunction("addTLSLocal", [client](const std::string& addr, boost::variant<std::string, std::vector<std::pair<int,std::string>>> certFiles, boost::variant<std::string, std::vector<std::pair<int,std::string>>> keyFiles, boost::optional<localbind_t> vars) {
         if (client)
           return;
