@@ -1,21 +1,25 @@
 #define H2O_USE_EPOLL 1
+
 #include <errno.h>
 #include <iostream>
-#include "h2o.h"
-#include "h2o/http1.h"
-#include "h2o/http2.h"
+#include <thread>
+
+#include <boost/algorithm/string.hpp>
+#include <h2o.h>
+//#include <h2o/http1.h>
+#include <h2o/http2.h>
+
 #include "base64.hh"
 #include "dnsname.hh"
 #undef CERT
 #include "dnsdist.hh"
 #include "misc.hh"
-#include <thread>
 #include "dns.hh"
 #include "dolog.hh"
 #include "dnsdist-ecs.hh"
 #include "dnsdist-rules.hh"
 #include "dnsdist-xpf.hh"
-#include <boost/algorithm/string.hpp>
+#include "libssl.hh"
 
 using namespace std;
 
@@ -41,14 +45,43 @@ using namespace std;
    They are not in HTTP1. So you MUST use the length field!
 */
 
+class DOHAcceptContext
+{
+public:
+  DOHAcceptContext()
+  {
+    memset(&d_h2o_accept_ctx, 0, sizeof(d_h2o_accept_ctx));
+  }
+  DOHAcceptContext(const DOHAcceptContext&) = delete;
+  DOHAcceptContext& operator=(const DOHAcceptContext&) = delete;
+
+  h2o_accept_ctx_t* get()
+  {
+    ++d_refcnt;
+    return &d_h2o_accept_ctx;
+  }
+
+  void release()
+  {
+    --d_refcnt;
+    if (d_refcnt == 0) {
+      SSL_CTX_free(d_h2o_accept_ctx.ssl_ctx);
+      d_h2o_accept_ctx.ssl_ctx = nullptr;
+      delete this;
+    }
+  }
+
+private:
+  h2o_accept_ctx_t d_h2o_accept_ctx;
+  std::atomic<uint64_t> d_refcnt{1};
+};
+
 // we create one of these per thread, and pass around a pointer to it
 // through the bowels of h2o
 struct DOHServerConfig
 {
-  DOHServerConfig(uint32_t idleTimeout)
+  DOHServerConfig(uint32_t idleTimeout): accept_ctx(new DOHAcceptContext)
   {
-    memset(&h2o_accept_ctx, 0, sizeof(h2o_accept_ctx));
-
     if(socketpair(AF_LOCAL, SOCK_DGRAM, 0, dohquerypair) < 0) {
       unixDie("Creating a socket pair for DNS over HTTPS");
     }
@@ -62,15 +95,31 @@ struct DOHServerConfig
     h2o_config_init(&h2o_config);
     h2o_config.http2.idle_timeout = idleTimeout * 1000;
   }
+  DOHServerConfig(const DOHServerConfig&) = delete;
+  DOHServerConfig& operator=(const DOHServerConfig&) = delete;
 
+  ~DOHServerConfig()
+  {
+    if (accept_ctx) {
+      accept_ctx->release();
+    }
+  }
+
+  LocalHolders holders;
   h2o_globalconf_t h2o_config;
   h2o_context_t h2o_ctx;
-  h2o_accept_ctx_t h2o_accept_ctx;
+  DOHAcceptContext* accept_ctx{nullptr};
   ClientState* cs{nullptr};
   std::shared_ptr<DOHFrontend> df{nullptr};
   int dohquerypair[2]{-1,-1};
   int dohresponsepair[2]{-1,-1};
 };
+
+static void on_socketclose(void *data)
+{
+  DOHAcceptContext* ctx = reinterpret_cast<DOHAcceptContext*>(data);
+  ctx->release();
+}
 
 /* this duplicates way too much from the UDP handler. Sorry.
    this function calls 'return -1' to drop a query without sending it
@@ -79,14 +128,16 @@ struct DOHServerConfig
 
 static int processDOHQuery(DOHUnit* du)
 {
-  LocalHolders holders;
   uint16_t queryId = 0;
+  ComboAddress remote;
   try {
     if(!du->req) {
       // we got closed meanwhile. XXX small race condition here
       return -1;
     }
+    remote = du->remote;
     DOHServerConfig* dsc = reinterpret_cast<DOHServerConfig*>(du->req->conn->ctx->storage.entries[0].data);
+    auto& holders = dsc->holders;
     ClientState& cs = *dsc->cs;
 
     if (du->query.size() < sizeof(dnsheader)) {
@@ -182,17 +233,18 @@ static int processDOHQuery(DOHUnit* du)
     dh->id = idOffset;
 
     int fd = pickBackendSocketForSending(ss);
+    /* you can't touch du after this line, because it might already have been freed */
     ssize_t ret = udpClientSendRequestToBackend(ss, fd, query, dq.len);
+
+    vinfolog("Got query for %s|%s from %s (https), relayed to %s", ids->qname.toString(), QType(ids->qtype).getName(), remote.toStringWithPort(), ss->getName());
 
     if(ret < 0) {
       ++ss->sendErrors;
       ++g_stats.downstreamSendErrors;
     }
-
-    vinfolog("Got query for %s|%s from %s (https), relayed to %s", ids->qname.toString(), QType(ids->qtype).getName(), du->remote.toStringWithPort(), ss->getName());
   }
   catch(const std::exception& e) {
-    vinfolog("Got an error in DOH question thread while parsing a query from %s, id %d: %s", du->remote.toStringWithPort(), queryId, e.what());
+    vinfolog("Got an error in DOH question thread while parsing a query from %s, id %d: %s", remote.toStringWithPort(), queryId, e.what());
     return -1;
   }
   return 0;
@@ -488,8 +540,9 @@ static void on_accept(h2o_socket_t *listener, const char *err)
     return;
   }
   // do some dnsdist rules here to filter based on IP address
-  if ((sock = h2o_evloop_socket_accept(listener)) == nullptr)
+  if ((sock = h2o_evloop_socket_accept(listener)) == nullptr) {
     return;
+  }
 
   ComboAddress remote;
 
@@ -497,8 +550,11 @@ static void on_accept(h2o_socket_t *listener, const char *err)
   //  cout<<"New HTTP accept for client "<<remote.toStringWithPort()<<": "<< listener->data << endl;
 
   sock->data = dsc;
+  sock->on_close.cb = on_socketclose;
+  auto accept_ctx = dsc->accept_ctx->get();
+  sock->on_close.data = dsc->accept_ctx;
   ++dsc->df->d_httpconnects;
-  h2o_accept(&dsc->h2o_accept_ctx, sock);
+  h2o_accept(accept_ctx, sock);
 }
 
 static int create_listener(const ComboAddress& addr, std::shared_ptr<DOHServerConfig>& dsc, int fd)
@@ -510,57 +566,77 @@ static int create_listener(const ComboAddress& addr, std::shared_ptr<DOHServerCo
   return 0;
 }
 
-static int setup_ssl(std::shared_ptr<DOHServerConfig>& dsc, const std::string& cert_file, const std::string& key_file, const std::string& ciphers, const std::string& ciphers13)
+static std::unique_ptr<SSL_CTX, void(*)(SSL_CTX*)> getTLSContext(const std::string& cert_file, const std::string& key_file, const std::string& ciphers, const std::string& ciphers13)
 {
-  SSL_load_error_strings();
-  SSL_library_init();
-  OpenSSL_add_all_algorithms();
+  auto ctx = std::unique_ptr<SSL_CTX, void(*)(SSL_CTX*)>(SSL_CTX_new(SSLv23_server_method()), SSL_CTX_free);
 
-  dsc->h2o_accept_ctx.ssl_ctx = SSL_CTX_new(SSLv23_server_method());
-
-  SSL_CTX_set_options(dsc->h2o_accept_ctx.ssl_ctx, SSL_OP_NO_SSLv2);
+  SSL_CTX_set_options(ctx.get(), SSL_OP_NO_SSLv2);
 
 #ifdef SSL_CTX_set_ecdh_auto
-  SSL_CTX_set_ecdh_auto(dsc->h2o_accept_ctx.ssl_ctx, 1);
+  SSL_CTX_set_ecdh_auto(ctx.get(), 1);
 #endif
 
   /* load certificate and private key */
-  if (SSL_CTX_use_certificate_chain_file(dsc->h2o_accept_ctx.ssl_ctx, cert_file.c_str()) != 1) {
-    errlog("An error occurred while trying to load the DOH server certificate file: %s", cert_file);
-    return -1;
+  if (SSL_CTX_use_certificate_chain_file(ctx.get(), cert_file.c_str()) != 1) {
+    throw std::runtime_error("Failed to setup SSL/TLS for DoH listener, an error occurred while trying to load the DOH server certificate file: " + cert_file);
   }
-  if (SSL_CTX_use_PrivateKey_file(dsc->h2o_accept_ctx.ssl_ctx, key_file.c_str(), SSL_FILETYPE_PEM) != 1) {
-    errlog("An error occurred while trying to load the DOH server private key file: %s", key_file);
-    return -1;
+  if (SSL_CTX_use_PrivateKey_file(ctx.get(), key_file.c_str(), SSL_FILETYPE_PEM) != 1) {
+    throw std::runtime_error("Failed to setup SSL/TLS for DoH listener, an error occurred while trying to load the DOH server private key file: " + key_file);
   }
 
-  if (SSL_CTX_set_cipher_list(dsc->h2o_accept_ctx.ssl_ctx, ciphers.c_str()) != 1) {
-    errlog("DOH ciphers could not be set: %s\n", ciphers);
-    return -1;
+  if (SSL_CTX_set_cipher_list(ctx.get(), ciphers.c_str()) != 1) {
+    throw std::runtime_error("Failed to setup SSL/TLS for DoH listener, DOH ciphers could not be set: " + ciphers);
   }
 
 #ifdef HAVE_SSL_CTX_SET_CIPHERSUITES
-  if (!ciphers13.empty() && SSL_CTX_set_ciphersuites(dsc->h2o_accept_ctx.ssl_ctx, ciphers13.c_str()) != 1) {
-    errlog("DOH TLS 1.3 ciphers could not be set: %s", ciphers13);
-    return -1;
+  if (!ciphers13.empty() && SSL_CTX_set_ciphersuites(ctx.get(), ciphers13.c_str()) != 1) {
+    throw std::runtime_error("Failed to setup SSL/TLS for DoH listener, DOH TLS 1.3 ciphers could not be set: " + ciphers13);
   }
 #endif /* HAVE_SSL_CTX_SET_CIPHERSUITES */
 
-  h2o_ssl_register_alpn_protocols(dsc->h2o_accept_ctx.ssl_ctx, h2o_http2_alpn_protocols);
+  h2o_ssl_register_alpn_protocols(ctx.get(), h2o_http2_alpn_protocols);
 
-  return 0;
+  return ctx;
+}
+
+static void setupAcceptContext(DOHAcceptContext& ctx, DOHServerConfig& dsc, bool setupTLS)
+{
+  auto nativeCtx = ctx.get();
+  nativeCtx->ctx = &dsc.h2o_ctx;
+  nativeCtx->hosts = dsc.h2o_config.hosts;
+  if (setupTLS) {
+    auto tlsCtx = getTLSContext(dsc.df->d_certFile, dsc.df->d_keyFile,
+                                dsc.df->d_ciphers.empty() ? "DEFAULT:!MD5:!DSS:!DES:!RC4:!RC2:!SEED:!IDEA:!NULL:!ADH:!EXP:!SRP:!PSK" : dsc.df->d_ciphers,
+                                dsc.df->d_ciphers13);
+
+    nativeCtx->ssl_ctx = tlsCtx.release();
+  }
+
+  ctx.release();
+}
+
+void DOHFrontend::reloadCertificate()
+{
+  auto newAcceptContext = std::unique_ptr<DOHAcceptContext>(new DOHAcceptContext());
+  setupAcceptContext(*newAcceptContext, *d_dsc, true);
+  DOHAcceptContext* oldCtx = d_dsc->accept_ctx;
+  d_dsc->accept_ctx = newAcceptContext.release();
+  oldCtx->release();
 }
 
 void DOHFrontend::setup()
 {
+  registerOpenSSLUser();
+
   d_dsc = std::make_shared<DOHServerConfig>(d_idleTimeout);
 
-    // we should probably make that hash, algorithm etc line configurable too
-  if (setup_ssl(d_dsc, d_certFile, d_keyFile,
-                d_ciphers.empty() ? "DEFAULT:!MD5:!DSS:!DES:!RC4:!RC2:!SEED:!IDEA:!NULL:!ADH:!EXP:!SRP:!PSK" : d_ciphers,
-                d_ciphers13) != 0) {
-    throw std::runtime_error("Failed to setup SSL/TLS for DoH listener");
-  }
+  auto tlsCtx = getTLSContext(d_certFile, d_keyFile,
+                              d_ciphers.empty() ? "DEFAULT:!MD5:!DSS:!DES:!RC4:!RC2:!SEED:!IDEA:!NULL:!ADH:!EXP:!SRP:!PSK" : d_ciphers,
+                              d_ciphers13);
+
+  auto accept_ctx = d_dsc->accept_ctx->get();
+  accept_ctx->ssl_ctx = tlsCtx.release();
+  d_dsc->accept_ctx->release();
 }
 
 // this is the entrypoint from dnsdist.cc
@@ -596,9 +672,7 @@ try
   // this listens to responses from dnsdist to turn into http responses
   h2o_socket_read_start(sock, on_dnsdist);
 
-  // as one does
-  dsc->h2o_accept_ctx.ctx = &dsc->h2o_ctx;
-  dsc->h2o_accept_ctx.hosts = dsc->h2o_config.hosts;
+  setupAcceptContext(*dsc->accept_ctx, *dsc, false);
 
   if (create_listener(df->d_local, dsc, cs->tcpFD) != 0) {
     throw std::runtime_error("DOH server failed to listen on " + df->d_local.toStringWithPort() + ": " + strerror(errno));

@@ -143,6 +143,7 @@ dnsdist_SOURCES = \
 	gettime.cc gettime.hh \
 	htmlfiles.h \
 	iputils.cc iputils.hh \
+	libssl.cc libssl.hh \
 	lock.hh \
 	misc.cc misc.hh \
 	mplexer.hh \

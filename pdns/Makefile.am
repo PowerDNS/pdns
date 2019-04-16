@@ -1483,6 +1483,7 @@ fuzz_target_dnsdistcache_SOURCES = \
 	dnsname.cc dnsname.hh \
 	dnsparser.cc dnsparser.hh \
 	dnswriter.cc dnswriter.hh \
+	doh.hh \
 	ednsoptions.cc ednsoptions.hh \
 	ednssubnet.cc ednssubnet.hh \
 	iputils.cc iputils.hh \
