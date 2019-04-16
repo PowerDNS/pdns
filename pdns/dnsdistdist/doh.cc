@@ -45,6 +45,9 @@ using namespace std;
    They are not in HTTP1. So you MUST use the length field!
 */
 
+/* 'Intermediate' compatibility from https://wiki.mozilla.org/Security/Server_Side_TLS#Intermediate_compatibility_.28default.29 */
+#define DOH_DEFAULT_CIPHERS "ECDHE-ECDSA-CHACHA20-POLY1305:ECDHE-RSA-CHACHA20-POLY1305:ECDHE-ECDSA-AES128-GCM-SHA256:ECDHE-RSA-AES128-GCM-SHA256:ECDHE-ECDSA-AES256-GCM-SHA384:ECDHE-RSA-AES256-GCM-SHA384:DHE-RSA-AES128-GCM-SHA256:DHE-RSA-AES256-GCM-SHA384:ECDHE-ECDSA-AES128-SHA256:ECDHE-RSA-AES128-SHA256:ECDHE-ECDSA-AES128-SHA:ECDHE-RSA-AES256-SHA384:ECDHE-RSA-AES128-SHA:ECDHE-ECDSA-AES256-SHA384:ECDHE-ECDSA-AES256-SHA:ECDHE-RSA-AES256-SHA:DHE-RSA-AES128-SHA256:DHE-RSA-AES128-SHA:DHE-RSA-AES256-SHA256:DHE-RSA-AES256-SHA:ECDHE-ECDSA-DES-CBC3-SHA:ECDHE-RSA-DES-CBC3-SHA:EDH-RSA-DES-CBC3-SHA:AES128-GCM-SHA256:AES256-GCM-SHA384:AES128-SHA256:AES256-SHA256:AES128-SHA:AES256-SHA:DES-CBC3-SHA:!DSS"
+
 class DOHAcceptContext
 {
 public:
@@ -584,7 +587,7 @@ static std::unique_ptr<SSL_CTX, void(*)(SSL_CTX*)> getTLSContext(const std::stri
     throw std::runtime_error("Failed to setup SSL/TLS for DoH listener, an error occurred while trying to load the DOH server private key file: " + key_file);
   }
 
-  if (SSL_CTX_set_cipher_list(ctx.get(), ciphers.c_str()) != 1) {
+  if (SSL_CTX_set_cipher_list(ctx.get(), ciphers.empty() == false ? ciphers.c_str() : DOH_DEFAULT_CIPHERS) != 1) {
     throw std::runtime_error("Failed to setup SSL/TLS for DoH listener, DOH ciphers could not be set: " + ciphers);
   }
 
@@ -606,7 +609,7 @@ static void setupAcceptContext(DOHAcceptContext& ctx, DOHServerConfig& dsc, bool
   nativeCtx->hosts = dsc.h2o_config.hosts;
   if (setupTLS) {
     auto tlsCtx = getTLSContext(dsc.df->d_certFile, dsc.df->d_keyFile,
-                                dsc.df->d_ciphers.empty() ? "DEFAULT:!MD5:!DSS:!DES:!RC4:!RC2:!SEED:!IDEA:!NULL:!ADH:!EXP:!SRP:!PSK" : dsc.df->d_ciphers,
+                                dsc.df->d_ciphers,
                                 dsc.df->d_ciphers13);
 
     nativeCtx->ssl_ctx = tlsCtx.release();
@@ -631,7 +634,7 @@ void DOHFrontend::setup()
   d_dsc = std::make_shared<DOHServerConfig>(d_idleTimeout);
 
   auto tlsCtx = getTLSContext(d_certFile, d_keyFile,
-                              d_ciphers.empty() ? "DEFAULT:!MD5:!DSS:!DES:!RC4:!RC2:!SEED:!IDEA:!NULL:!ADH:!EXP:!SRP:!PSK" : d_ciphers,
+                              d_ciphers,
                               d_ciphers13);
 
   auto accept_ctx = d_dsc->accept_ctx->get();
