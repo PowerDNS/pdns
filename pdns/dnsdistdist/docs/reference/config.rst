@@ -100,6 +100,25 @@ Listen Sockets
                                   higher than 0 to enable TCP Fast Open when available.
                                   Default is 0.
 
+.. function:: addDOHLocal(address, certFile(s), keyFile(s) [, url [, options]])
+
+  .. versionadded:: 1.4.0
+
+  Listen on the specified address and TCP port for incoming DNS over HTTPS connections, presenting the specified X.509 certificate.
+
+  :param str address: The IP Address with an optional port to listen on.
+                      The default port is 443.
+  :param str certFile(s): The path to a X.509 certificate file in PEM format.
+  :param str keyFile(s): The path to the private key file corresponding to the certificate.
+  :param list url: A list of URLs to accept queries on. The default is /.
+  :param table options: A table with key: value pairs with listen options.
+
+  Options:
+
+  * ``idleTimeout=30``: int - Set the idle timeout, in seconds.
+  * ``ciphers``: str - The TLS ciphers to use, in OpenSSL format. Ciphers for TLS 1.3 must be specified via ``ciphersTLS13``.
+  * ``ciphersTLS13``: str - The TLS ciphers to use for TLS 1.3, in OpenSSL format.
+
 .. function:: addTLSLocal(address, certFile(s), keyFile(s) [, options])
 
   .. versionadded:: 1.3.0
@@ -694,6 +713,12 @@ Status, Statistics and More
 
   Print all statistics dnsdist gathers
 
+.. function:: getDOHFrontend(idx)
+
+  .. versionadded:: 1.4.0
+
+  Return the DOHFrontend object for the DNS over HTTPS bind of index ``idx``.
+
 .. function:: getTLSContext(idx)
 
   .. versionadded:: 1.3.0
@@ -730,6 +755,12 @@ Status, Statistics and More
 .. function:: showBinds()
 
   Print a list of all the current addresses and ports dnsdist is listening on, also called ``frontends``
+
+.. function:: showDOHFrontends()
+
+  .. versionadded:: 1.4.0
+
+  Print the list of all availables DNS over HTTPS frontends.
 
 .. function:: showResponseLatency()
 
@@ -1020,6 +1051,19 @@ Other functions
   .. versionadded:: 1.4.0
 
   Set to true (defaults to false) to allow empty responses (qdcount=0) with a NoError or NXDomain rcode (default) from backends. dnsdist drops these responses by default because it can't match them against the initial query since they don't contain the qname, qtype and qclass, and therefore the risk of collision is much higher than with regular responses.
+
+DOHFrontend
+~~~~~~~~~~~
+
+.. class:: DOHFrontend
+
+  .. versionadded:: 1.4.0
+
+  This object represents an address and port dnsdist is listening on for DNS over HTTPS queries.
+
+  .. method:: TLSContext:reloadCertificate()
+
+     Reload the current TLS certificate and key.
 
 TLSContext
 ~~~~~~~~~~
