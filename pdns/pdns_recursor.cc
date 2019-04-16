@@ -2642,7 +2642,7 @@ static void doStats(void)
     size_t idx = 0;
     for (const auto& threadInfo : s_threadInfos) {
       if(threadInfo.isWorker) {
-        g_log<<Logger::Notice<<"Thread "<<idx<<" has been distributed "<<threadInfo.numberOfDistributedQueries<<" queries"<<endl;
+        g_log<<Logger::Notice<<"stats: thread "<<idx<<" has been distributed "<<threadInfo.numberOfDistributedQueries<<" queries"<<endl;
         ++idx;
       }
     }
