@@ -87,6 +87,7 @@ bool SyncRes::s_doIPv6;
 bool SyncRes::s_nopacketcache;
 bool SyncRes::s_rootNXTrust;
 bool SyncRes::s_noEDNS;
+bool SyncRes::s_qnameminimization;
 
 #define LOG(x) if(d_lm == Log) { g_log <<Logger::Warning << x; } else if(d_lm == Store) { d_trace << x; }
 
@@ -121,9 +122,9 @@ static void accountAuthLatency(int usec, int family)
 
 SyncRes::SyncRes(const struct timeval& now) :  d_authzonequeries(0), d_outqueries(0), d_tcpoutqueries(0), d_throttledqueries(0), d_timeouts(0), d_unreachables(0),
 					       d_totUsec(0), d_now(now),
-					       d_cacheonly(false), d_doDNSSEC(false), d_doEDNS0(false), d_lm(s_lm)
-                                                 
-{ 
+					       d_cacheonly(false), d_doDNSSEC(false), d_doEDNS0(false), d_qNameMinimization(s_qnameminimization), d_lm(s_lm)
+
+{
 }
 
 /** everything begins here - this is the entry point just after receiving a packet */
@@ -540,6 +541,119 @@ int SyncRes::asyncresolveWrapper(const ComboAddress& ip, bool ednsMANDATORY, con
   return ret;
 }
 
+#define QLOG(x) LOG(prefix << " child=" <<  child << ": " << x << endl)
+
+int SyncRes::doResolve(const DNSName &qname, const QType &qtype, vector<DNSRecord>&ret, unsigned int depth, set<GetBestNSAnswer>& beenthere, vState& state) {
+
+  if (!getQNameMinimization()) {
+    return doResolveNoQNameMinimization(qname, qtype, ret, depth, beenthere, state);
+  }
+
+  // The qname minimization algorithm is a simplified version of the one in RFC 7816 (bis).
+  // It could be simplified because the cache maintenance (both positive and negative)
+  // is already done by doResolveNoQNameMinimization().
+  //
+  // Sketch of algorithm:
+  // Check cache
+  //  If result found: done
+  //  Otherwise determine closes ancestor from cache data
+  //    Repeat querying A, adding more labels of the original qname
+  //    If we get a delegation continue at ancestor determination
+  //    Until we have the full name.
+  //
+  // The algorithm starts with adding a single label per iteration, and
+  // moves to three labels per iteration after three iterations.
+
+  DNSName child;
+  string prefix = d_prefix;
+  prefix.append(depth, ' ');
+  prefix.append(string("QM ") + qname.toString() + "|" + qtype.getName());
+
+  QLOG("doResolve");
+
+  // Look in cache only
+  vector<DNSRecord> retq;
+  bool old = setCacheOnly(true);
+  bool fromCache = false;
+  int res = doResolveNoQNameMinimization(qname, qtype, retq, depth + 1, beenthere, state, &fromCache);
+  setCacheOnly(old);
+  if (fromCache) {
+    QLOG("Step0 Found in cache");
+    ret.insert(ret.end(), retq.begin(), retq.end());
+    return res;
+  }
+  QLOG("Step0 Not cached");
+
+  const unsigned int qnamelen = qname.countLabels();
+
+  for (unsigned int i = 0; i <= qnamelen; ) {
+
+    // Step 1
+    vector<DNSRecord> bestns;
+    // the two retries allow getBestNSFromCache&co to reprime the root
+    // hints, in case they ever go missing
+    for (int tries = 0; tries < 2 && bestns.empty(); ++tries) {
+      bool flawedNSSet = false;
+      set<GetBestNSAnswer> beenthereIgnored;
+      getBestNSFromCache(qname, qtype, bestns, &flawedNSSet, depth + 1, beenthereIgnored);
+    }
+    DNSName ancestor;
+    if (bestns.size() > 0) {
+      ancestor = bestns[0].d_name;
+      QLOG("Step1 Ancestor from cache is " << ancestor.toString());
+    } else {
+      QLOG("Step1 No ancestor found return ServFail");
+      return RCode::ServFail;
+    }
+
+    child = ancestor;
+
+    unsigned int targetlen = std::min(child.countLabels() + (i > 3 ? 3 : 1), qnamelen);
+
+    for (; i <= qnamelen; i++) {
+      // Step 2
+      while (child.countLabels() < targetlen) {
+        child.prependRawLabel(qname.getRawLabel(qnamelen - child.countLabels() - 1));
+      }
+      targetlen += i > 3 ? 3 : 1;
+      targetlen = std::min(targetlen, qnamelen);
+
+      QLOG("Step2 New child");
+
+      // Step 3 resolve
+      if (child == qname) {
+        QLOG("Step3 Going to do final resolve");
+        res = doResolveNoQNameMinimization(qname, qtype, ret, depth + 1, beenthere, state);
+        QLOG("Step3 Final resolve: " << RCode::to_s(res) << "/" << ret.size() << endl);
+        return res;
+      }
+
+      // Step 6
+      QLOG("Step4 Resolve A for child");
+      retq.resize(0);
+      StopAtDelegation stopAtDelegation = Stop;
+      res = doResolveNoQNameMinimization(child, QType::A, retq, depth + 1, beenthere, state, NULL, &stopAtDelegation);
+      QLOG("Step4 Resolve A result is " << RCode::to_s(res) << "/" << retq.size() << "/" << stopAtDelegation);
+      if (stopAtDelegation == Stopped) {
+        QLOG("Delegation seen, continue at step 1");
+        break;
+      }
+      if (res != RCode::NoError) {
+        // Case 5: unexpected answer
+        QLOG("Step5: other rcode, last effort final resolve");
+        setQNameMinimization(false);
+        res = doResolveNoQNameMinimization(qname, qtype, ret, depth + 1, beenthere, state);
+        QLOG("Step5 End resolve: " << RCode::to_s(res) << "/" << ret.size() << endl);
+        return res;
+      }
+    }
+  }
+
+  // Should not be reached
+  QLOG("Max iterations reached, return ServFail");
+  return RCode::ServFail;
+}
+
 /*! This function will check the cache and go out to the internet if the answer is not in cache
  *
  * \param qname The name we need an answer for
@@ -549,7 +663,7 @@ int SyncRes::asyncresolveWrapper(const ComboAddress& ip, bool ednsMANDATORY, con
  * \param beenthere
  * \return DNS RCODE or -1 (Error) or -2 (RPZ hit)
  */
-int SyncRes::doResolve(const DNSName &qname, const QType &qtype, vector<DNSRecord>&ret, unsigned int depth, set<GetBestNSAnswer>& beenthere, vState& state)
+int SyncRes::doResolveNoQNameMinimization(const DNSName &qname, const QType &qtype, vector<DNSRecord>&ret, unsigned int depth, set<GetBestNSAnswer>& beenthere, vState& state, bool *fromCache, StopAtDelegation *stopAtDelegation)
 {
   string prefix;
   if(doLog()) {
@@ -577,6 +691,8 @@ int SyncRes::doResolve(const DNSName &qname, const QType &qtype, vector<DNSRecor
         if(iter->second.isAuth()) {
           ret.clear();
           d_wasOutOfBand = doOOBResolve(qname, qtype, ret, depth, res);
+          if (fromCache)
+            *fromCache = d_wasOutOfBand;
           return res;
         }
         else {
@@ -590,7 +706,9 @@ int SyncRes::doResolve(const DNSName &qname, const QType &qtype, vector<DNSRecor
 
           d_totUsec += lwr.d_usec;
           accountAuthLatency(lwr.d_usec, remoteIP.sin4.sin_family);
-
+          if (fromCache)
+            *fromCache = true;
+          
           // filter out the good stuff from lwr.result()
           if (res == 1) {
             for(const auto& rec : lwr.d_records) {
@@ -630,10 +748,13 @@ int SyncRes::doResolve(const DNSName &qname, const QType &qtype, vector<DNSRecor
     if(doCacheCheck(qname, authname, wasForwardedOrAuthZone, wasAuthZone, wasForwardRecurse, qtype, ret, depth, res, state)) {
       // we done
       d_wasOutOfBand = wasAuthZone;
+      if (fromCache)
+        *fromCache = true;
       return res;
     }
   }
 
+  if(d_cacheonly)
   if(d_cacheonly)
     return 0;
 
@@ -658,7 +779,7 @@ int SyncRes::doResolve(const DNSName &qname, const QType &qtype, vector<DNSRecor
 
   LOG(prefix<<qname<<": initial validation status for "<<qname<<" is "<<vStates[state]<<endl);
 
-  if(!(res=doResolveAt(nsset, subdomain, flawedNSSet, qname, qtype, ret, depth, beenthere, state)))
+  if(!(res=doResolveAt(nsset, subdomain, flawedNSSet, qname, qtype, ret, depth, beenthere, state, stopAtDelegation)))
     return 0;
 
   LOG(prefix<<qname<<": failed (res="<<res<<")"<<endl);
@@ -695,12 +816,11 @@ vector<ComboAddress> SyncRes::getAddrs(const DNSName &qname, unsigned int depth,
   typedef vector<ComboAddress> ret_t;
   ret_t ret;
 
-  bool oldCacheOnly = d_cacheonly;
+  bool oldCacheOnly = setCacheOnly(cacheOnly);
   bool oldRequireAuthData = d_requireAuthData;
   bool oldValidationRequested = d_DNSSECValidationRequested;
   d_requireAuthData = false;
   d_DNSSECValidationRequested = false;
-  d_cacheonly = cacheOnly;
 
   vState newState = Indeterminate;
   res_t resv4;
@@ -745,7 +865,7 @@ vector<ComboAddress> SyncRes::getAddrs(const DNSName &qname, unsigned int depth,
 
   d_requireAuthData = oldRequireAuthData;
   d_DNSSECValidationRequested = oldValidationRequested;
-  d_cacheonly = oldCacheOnly;
+  setCacheOnly(oldCacheOnly);
 
   /* we need to remove from the nsSpeeds collection the existing IPs
      for this nameserver that are no longer in the set, even if there
@@ -3140,7 +3260,7 @@ bool SyncRes::processAnswer(unsigned int depth, LWResult& lwr, const DNSName& qn
  */
 int SyncRes::doResolveAt(NsSet &nameservers, DNSName auth, bool flawedNSSet, const DNSName &qname, const QType &qtype,
                          vector<DNSRecord>&ret,
-                         unsigned int depth, set<GetBestNSAnswer>&beenthere, vState& state)
+                         unsigned int depth, set<GetBestNSAnswer>&beenthere, vState& state, StopAtDelegation* stopAtDelegation)
 {
   auto luaconfsLocal = g_luaconfs.getLocal();
   string prefix;
@@ -3207,6 +3327,10 @@ int SyncRes::doResolveAt(NsSet &nameservers, DNSName auth, bool flawedNSSet, con
           return rcode;
         }
         if (gotNewServers) {
+          if (stopAtDelegation && *stopAtDelegation == Stop) {
+            *stopAtDelegation = Stopped;
+            return rcode;
+          }
           break;
         }
       }
@@ -3272,6 +3396,10 @@ int SyncRes::doResolveAt(NsSet &nameservers, DNSName auth, bool flawedNSSet, con
             return rcode;
           }
           if (gotNewServers) {
+            if (stopAtDelegation && *stopAtDelegation == Stop) {
+              *stopAtDelegation = Stopped;
+              return rcode;
+            }
             break;
           }
           /* was lame */
