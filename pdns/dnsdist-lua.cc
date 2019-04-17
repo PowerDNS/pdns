@@ -1673,7 +1673,16 @@ void setupLuaConfig(bool client)
       frontend->d_urls = {"/"};
     }
 
+    bool doTCP = true;
+    bool reusePort = false;
+    int tcpFastOpenQueueSize = 0;
+    std::string interface;
+    std::set<int> cpus;
+    (void) doTCP;
+
     if(vars) {
+      parseLocalBindVars(vars, doTCP, reusePort, tcpFastOpenQueueSize, interface, cpus);
+
       if (vars->count("idleTimeout")) {
         frontend->d_idleTimeout = boost::get<int>((*vars)["idleTimeout"]);
       }
@@ -1685,7 +1694,7 @@ void setupLuaConfig(bool client)
       }
     }
     g_dohlocals.push_back(frontend);
-    auto cs = std::unique_ptr<ClientState>(new ClientState(frontend->d_local, true, false, 0, "", {}));
+    auto cs = std::unique_ptr<ClientState>(new ClientState(frontend->d_local, true, reusePort, tcpFastOpenQueueSize, interface, cpus));
     cs->dohFrontend = frontend;
     g_frontends.push_back(std::move(cs));
 #else
@@ -1768,7 +1777,6 @@ void setupLuaConfig(bool client)
         (void) doTCP;
 
         if (vars) {
-          bool doTCP = true;
           parseLocalBindVars(vars, doTCP, reusePort, tcpFastOpenQueueSize, interface, cpus);
 
           if (vars->count("provider")) {

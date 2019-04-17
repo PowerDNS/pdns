@@ -2709,6 +2709,9 @@ try
     if (cs->dohFrontend != nullptr) {
 #ifdef HAVE_DNS_OVER_HTTPS
       std::thread t1(dohThread, cs.get());
+      if (!cs->cpus.empty()) {
+        mapThreadToCPUList(t1.native_handle(), cs->cpus);
+      }
       t1.detach();
 #endif /* HAVE_DNS_OVER_HTTPS */
       continue;
