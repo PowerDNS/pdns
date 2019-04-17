@@ -34,12 +34,12 @@ struct DOHFrontend
   {
   }
 
-  void reloadCertificate()
+  void reloadCertificates()
   {
   }
 #else
   void setup();
-  void reloadCertificate();
+  void reloadCertificates();
 #endif /* HAVE_DNS_OVER_HTTPS */
 };
 

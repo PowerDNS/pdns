@@ -1749,9 +1749,9 @@ void setupLuaConfig(bool client)
         return result;
       });
 
-    g_lua.registerFunction<void(std::shared_ptr<DOHFrontend>::*)()>("reloadCertificate", [](std::shared_ptr<DOHFrontend> frontend) {
+    g_lua.registerFunction<void(std::shared_ptr<DOHFrontend>::*)()>("reloadCertificates", [](std::shared_ptr<DOHFrontend> frontend) {
         if (frontend != nullptr) {
-          frontend->reloadCertificate();
+          frontend->reloadCertificates();
         }
       });
 
@@ -1940,7 +1940,7 @@ void setupLuaConfig(bool client)
 #endif /* HAVE_DNS_OVER_TLS */
 #ifdef HAVE_DNS_OVER_HTTPS
             if (frontend->dohFrontend) {
-              frontend->dohFrontend->reloadCertificate();
+              frontend->dohFrontend->reloadCertificates();
             }
 #endif /* HAVE_DNS_OVER_HTTPS */
           }

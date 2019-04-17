@@ -633,7 +633,7 @@ static void setupAcceptContext(DOHAcceptContext& ctx, DOHServerConfig& dsc, bool
   ctx.release();
 }
 
-void DOHFrontend::reloadCertificate()
+void DOHFrontend::reloadCertificates()
 {
   auto newAcceptContext = std::unique_ptr<DOHAcceptContext>(new DOHAcceptContext());
   setupAcceptContext(*newAcceptContext, *d_dsc, true);

@@ -1065,9 +1065,9 @@ DOHFrontend
 
   This object represents an address and port dnsdist is listening on for DNS over HTTPS queries.
 
-  .. method:: TLSContext:reloadCertificate()
+  .. method:: DOHFrontend:reloadCertificates()
 
-     Reload the current TLS certificate and key.
+     Reload the current TLS certificate and key pairs.
 
 TLSContext
 ~~~~~~~~~~
