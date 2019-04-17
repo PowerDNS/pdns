@@ -576,7 +576,15 @@ static std::unique_ptr<SSL_CTX, void(*)(SSL_CTX*)> getTLSContext(const std::vect
 {
   auto ctx = std::unique_ptr<SSL_CTX, void(*)(SSL_CTX*)>(SSL_CTX_new(SSLv23_server_method()), SSL_CTX_free);
 
-  SSL_CTX_set_options(ctx.get(), SSL_OP_NO_SSLv2);
+  int sslOptions =
+    SSL_OP_NO_SSLv2 |
+    SSL_OP_NO_SSLv3 |
+    SSL_OP_NO_COMPRESSION |
+    SSL_OP_NO_SESSION_RESUMPTION_ON_RENEGOTIATION |
+    SSL_OP_SINGLE_DH_USE |
+    SSL_OP_SINGLE_ECDH_USE;
+
+  SSL_CTX_set_options(ctx.get(), sslOptions);
 
 #ifdef SSL_CTX_set_ecdh_auto
   SSL_CTX_set_ecdh_auto(ctx.get(), 1);
