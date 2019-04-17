@@ -1,0 +1,34 @@
+Source: dnsdist
+Section: net
+Priority: optional
+Maintainer: PowerDNS.COM BV <powerdns.support.sales@powerdns.com>
+Uploaders: PowerDNS.COM BV <powerdns.support.sales@powerdns.com>
+Build-Depends: debhelper (>= 10~),
+               libboost-all-dev,
+               libcap-dev,
+               libedit-dev,
+               libfstrm-dev,
+               libgnutls28-dev,
+               libluajit-5.1-dev,
+               libprotobuf-dev,
+               libre2-dev,
+               libsnmp-dev,
+               libsodium-dev,
+               libssl-dev,
+               libsystemd-dev [linux-any],
+               pkg-config,
+               protobuf-compiler,
+               ragel,
+               systemd [linux-any]
+Standards-Version: 4.1.5
+Homepage: http://dnsdist.org
+
+Package: dnsdist
+Architecture: any
+Depends: ${misc:Depends},
+         ${shlibs:Depends}
+Description: DNS loadbalancer
+ Highly DoS- and abuse-aware load balancing tool for DNS traffic,
+ with Lua scripting and configuration capability.
+ Can be configured to use various sets of rules to classify, route
+ and reject traffic.
