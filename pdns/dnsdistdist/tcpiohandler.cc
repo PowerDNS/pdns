@@ -435,6 +435,15 @@ public:
       }
     }
 
+#ifdef HAVE_SSL_CTX_SET_CIPHERSUITES
+    if (!fe.d_ciphers13.empty()) {
+      if (SSL_CTX_set_ciphersuites(d_tlsCtx.get(), fe.d_ciphers13.c_str()) != 1) {
+        ERR_print_errors_fp(stderr);
+        throw std::runtime_error("Error setting the TLS 1.3 cipher list to '" + fe.d_ciphers13 + "' for the TLS context on " + fe.d_addr.toStringWithPort());
+      }
+    }
+#endif /* HAVE_SSL_CTX_SET_CIPHERSUITES */
+
     try {
       if (fe.d_ticketKeyFile.empty()) {
         handleTicketsKeyRotation(time(nullptr));
