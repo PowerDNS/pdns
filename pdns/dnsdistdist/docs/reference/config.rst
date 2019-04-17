@@ -108,8 +108,8 @@ Listen Sockets
 
   :param str address: The IP Address with an optional port to listen on.
                       The default port is 443.
-  :param str certFile(s): The path to a X.509 certificate file in PEM format.
-  :param str keyFile(s): The path to the private key file corresponding to the certificate.
+  :param str certFile(s): The path to a X.509 certificate file in PEM format, or a list of paths to such files.
+  :param str keyFile(s): The path to the private key file corresponding to the certificate, or a list of paths to such files, whose order should match the certFile(s) ones.
   :param list url: A list of URLs to accept queries on. The default is /.
   :param table options: A table with key: value pairs with listen options.
 

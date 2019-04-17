@@ -6,8 +6,7 @@ struct DOHServerConfig;
 struct DOHFrontend
 {
   std::shared_ptr<DOHServerConfig> d_dsc{nullptr};
-  std::string d_certFile;
-  std::string d_keyFile;
+  std::vector<std::pair<std::string, std::string>> d_certKeyPairs;
   std::string d_ciphers;
   std::string d_ciphers13;
   ComboAddress d_local;

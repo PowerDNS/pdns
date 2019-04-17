@@ -9,6 +9,9 @@
 //#include <h2o/http1.h>
 #include <h2o/http2.h>
 
+#include <openssl/err.h>
+#include <openssl/ssl.h>
+
 #include "base64.hh"
 #include "dnsname.hh"
 #undef CERT
@@ -569,7 +572,7 @@ static int create_listener(const ComboAddress& addr, std::shared_ptr<DOHServerCo
   return 0;
 }
 
-static std::unique_ptr<SSL_CTX, void(*)(SSL_CTX*)> getTLSContext(const std::string& cert_file, const std::string& key_file, const std::string& ciphers, const std::string& ciphers13)
+static std::unique_ptr<SSL_CTX, void(*)(SSL_CTX*)> getTLSContext(const std::vector<std::pair<std::string, std::string>>& pairs, const std::string& ciphers, const std::string& ciphers13)
 {
   auto ctx = std::unique_ptr<SSL_CTX, void(*)(SSL_CTX*)>(SSL_CTX_new(SSLv23_server_method()), SSL_CTX_free);
 
@@ -580,11 +583,15 @@ static std::unique_ptr<SSL_CTX, void(*)(SSL_CTX*)> getTLSContext(const std::stri
 #endif
 
   /* load certificate and private key */
-  if (SSL_CTX_use_certificate_chain_file(ctx.get(), cert_file.c_str()) != 1) {
-    throw std::runtime_error("Failed to setup SSL/TLS for DoH listener, an error occurred while trying to load the DOH server certificate file: " + cert_file);
-  }
-  if (SSL_CTX_use_PrivateKey_file(ctx.get(), key_file.c_str(), SSL_FILETYPE_PEM) != 1) {
-    throw std::runtime_error("Failed to setup SSL/TLS for DoH listener, an error occurred while trying to load the DOH server private key file: " + key_file);
+  for (const auto& pair : pairs) {
+    if (SSL_CTX_use_certificate_chain_file(ctx.get(), pair.first.c_str()) != 1) {
+      ERR_print_errors_fp(stderr);
+      throw std::runtime_error("Failed to setup SSL/TLS for DoH listener, an error occurred while trying to load the DOH server certificate file: " + pair.first);
+    }
+    if (SSL_CTX_use_PrivateKey_file(ctx.get(), pair.second.c_str(), SSL_FILETYPE_PEM) != 1) {
+      ERR_print_errors_fp(stderr);
+      throw std::runtime_error("Failed to setup SSL/TLS for DoH listener, an error occurred while trying to load the DOH server private key file: " + pair.second);
+    }
   }
 
   if (SSL_CTX_set_cipher_list(ctx.get(), ciphers.empty() == false ? ciphers.c_str() : DOH_DEFAULT_CIPHERS) != 1) {
@@ -608,7 +615,7 @@ static void setupAcceptContext(DOHAcceptContext& ctx, DOHServerConfig& dsc, bool
   nativeCtx->ctx = &dsc.h2o_ctx;
   nativeCtx->hosts = dsc.h2o_config.hosts;
   if (setupTLS) {
-    auto tlsCtx = getTLSContext(dsc.df->d_certFile, dsc.df->d_keyFile,
+    auto tlsCtx = getTLSContext(dsc.df->d_certKeyPairs,
                                 dsc.df->d_ciphers,
                                 dsc.df->d_ciphers13);
 
@@ -633,7 +640,7 @@ void DOHFrontend::setup()
 
   d_dsc = std::make_shared<DOHServerConfig>(d_idleTimeout);
 
-  auto tlsCtx = getTLSContext(d_certFile, d_keyFile,
+  auto tlsCtx = getTLSContext(d_certKeyPairs,
                               d_ciphers,
                               d_ciphers13);
 
