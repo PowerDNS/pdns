@@ -289,7 +289,7 @@ By default, the PowerDNS Recursor would throttle the "first" server on a timeout
 In this case, ``dont-throttle-netmasks`` could be set to ``192.0.2.1``.
 
 .. warning::
-  Most servers on the internet do not respond for a good reason (overloaded or unreachable), ``dont-throttle-netmasks`` could make this load on the upstream server even higher, resulting in further service degredation.
+  Most servers on the internet do not respond for a good reason (overloaded or unreachable), ``dont-throttle-netmasks`` could make this load on the upstream server even higher, resulting in further service degradation.
 
 .. _setting-disable-packetcache:
 
