@@ -266,7 +266,7 @@ Which domains we only accept delegations from (a Verisign special).
 -  Comma separated list of domain-names
 -  Default: (empty)
 
-When an authotitative server does not answer a query or sends a reply the recursor does lot like, it is throttled.
+When an authoritative server does not answer a query or sends a reply the recursor does not like, it is throttled.
 Any servers' name suffix-matching the supplied names will never be throttled.
 
 .. warning::
