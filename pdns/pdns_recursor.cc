@@ -2673,16 +2673,15 @@ static void houseKeeping(void *)
   }
 
   try {
-    if(s_running)
+    if(s_running) {
       return;
+    }
     s_running=true;
 
     struct timeval now;
     Utility::gettimeofday(&now, 0);
 
     if(now.tv_sec - last_prune > (time_t)(5 + t_id)) {
-      DTime dt;
-      dt.setTimeval(now);
       t_RC->doPrune(g_maxCacheEntries / g_numThreads); // this function is local to a thread, so fine anyhow
       t_packetCache->doPruneTo(g_maxPacketCacheEntries / g_numWorkerThreads);
 
@@ -2740,8 +2739,8 @@ static void houseKeeping(void *)
           g_log<<Logger::Error<<"Unable to update Trust Anchors: "<<pe.reason<<endl;
         }
       }
-      s_running=false;
     }
+    s_running=false;
   }
   catch(PDNSException& ae)
     {
