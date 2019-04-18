@@ -1353,18 +1353,18 @@ static string* nopFunction()
   return new string("pong\n");
 }
 
-string getDontThrottleNames() {
+static string getDontThrottleNames() {
   auto dtn = g_dontThrottleNames.getLocal();
   return dtn->toString() + "\n";
 }
 
-string getDontThrottleNetmasks() {
+static string getDontThrottleNetmasks() {
   auto dtn = g_dontThrottleNetmasks.getLocal();
   return dtn->toString() + "\n";
 }
 
 template<typename T>
-string addDontThrottleNames(T begin, T end) {
+static string addDontThrottleNames(T begin, T end) {
   if (begin == end) {
     return "No names specified, keeping existing list\n";
   }
@@ -1400,7 +1400,7 @@ string addDontThrottleNames(T begin, T end) {
 }
 
 template<typename T>
-string addDontThrottleNetmasks(T begin, T end) {
+static string addDontThrottleNetmasks(T begin, T end) {
   if (begin == end) {
     return "No netmasks specified, keeping existing list\n";
   }
@@ -1439,7 +1439,7 @@ string addDontThrottleNetmasks(T begin, T end) {
 }
 
 template<typename T>
-string clearDontThrottleNames(T begin, T end) {
+static string clearDontThrottleNames(T begin, T end) {
   if(begin == end)
     return "No names specified, doing nothing.\n";
 
@@ -1485,7 +1485,7 @@ string clearDontThrottleNames(T begin, T end) {
 }
 
 template<typename T>
-string clearDontThrottleNetmasks(T begin, T end) {
+static string clearDontThrottleNetmasks(T begin, T end) {
   if(begin == end)
     return "No netmasks specified, doing nothing.\n";
 
