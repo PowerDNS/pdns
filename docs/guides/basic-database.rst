@@ -223,7 +223,11 @@ test your nameserver as clients expect the nameserver to live on port
 Unable to launch, no backends configured for querying
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-PowerDNS did not find the ``launch=gmysql`` instruction in pdns.conf.
+You currently don't have a backend configured in the configuration file.
+Add a :ref:`setting-launch` statement for the backend you want to use.
+
+If you are following this guide and using a MySQL database as a backend,
+please add the ``launch=gmysql`` instruction to pdns.conf.
 
 Multiple IP addresses on your server, PowerDNS sending out answers on the wrong one, Massive amounts of 'recvfrom gave error, ignoring: Connection refused'
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
