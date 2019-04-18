@@ -270,7 +270,7 @@ When an authoritative server does not answer a query or sends a reply the recurs
 Any servers' name suffix-matching the supplied names will never be throttled.
 
 .. warning::
-  Most servers on the internet do not respond for a good reason (overloaded or unreachable), ``dont-throttle-names`` could make this load on the upstream server even higher, resulting in further service degredation.
+  Most servers on the internet do not respond for a good reason (overloaded or unreachable), ``dont-throttle-names`` could make this load on the upstream server even higher, resulting in further service degradation.
 
 .. _setting-dont-throttle-netmasks:
 
