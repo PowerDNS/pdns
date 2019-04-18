@@ -281,7 +281,7 @@ Any servers' name suffix-matching the supplied names will never be throttled.
 -  Comma separated list of netmasks
 -  Default: (empty)
 
-When an authotitative server does not answer a query or sends a reply the recursor does lot like, it is throttled.
+When an authoritative server does not answer a query or sends a reply the recursor does not like, it is throttled.
 Any servers matching the supplied netmasks will never be throttled.
 
 This can come in handy on lossy networks when forwarding, where the same server is configured multiple times (e.g. with ``forward-zones-recurse=example.com=192.0.2.1;192.0.2.1``).
