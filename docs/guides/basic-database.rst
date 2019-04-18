@@ -223,7 +223,7 @@ test your nameserver as clients expect the nameserver to live on port
 Unable to launch, no backends configured for querying
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-PowerDNS did not find the ``launch=bind`` instruction in pdns.conf.
+PowerDNS did not find the ``launch=gmysql`` instruction in pdns.conf.
 
 Multiple IP addresses on your server, PowerDNS sending out answers on the wrong one, Massive amounts of 'recvfrom gave error, ignoring: Connection refused'
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
