@@ -23,6 +23,7 @@
 #include "dnsdist-rules.hh"
 #include "dnsdist-xpf.hh"
 #include "libssl.hh"
+#include "threadname.hh"
 
 using namespace std;
 
@@ -462,6 +463,8 @@ string HTTPPathRule::toString() const
 
 void dnsdistclient(int qsock, int rsock)
 {
+  setThreadName("dnsdist/doh-cli");
+
   for(;;) {
     try {
       DOHUnit* du = nullptr;
@@ -680,6 +683,7 @@ try
   std::thread dnsdistThread(dnsdistclient, dsc->dohquerypair[1], dsc->dohresponsepair[0]);
   dnsdistThread.detach(); // gets us better error reporting
 
+  setThreadName("dnsdist/doh");
   // I wonder if this registers an IP address.. I think it does
   // this may mean we need to actually register a site "name" here and not the IP address
   h2o_hostconf_t *hostconf = h2o_config_register_host(&dsc->h2o_config, h2o_iovec_init(df->d_local.toString().c_str(), df->d_local.toString().size()), 65535);
