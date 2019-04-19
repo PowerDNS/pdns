@@ -357,7 +357,15 @@ try
       string sdns(path.substr(pos+5));
       boost::replace_all(sdns,"-", "+");
       boost::replace_all(sdns,"_", "/");
-      sdns.append(sdns.size() % 4, '='); // re-add padding that may have been missing
+      // re-add padding that may have been missing
+      switch (sdns.size() % 4) {
+      case 2:
+        sdns.append(2, '=');
+        break;
+      case 3:
+        sdns.append(1, '=');
+        break;
+      }
 
       string decoded;
       /* rough estimate so we hopefully don't need a need allocation later */
