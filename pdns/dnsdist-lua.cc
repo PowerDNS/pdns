@@ -1699,6 +1699,9 @@ void setupLuaConfig(bool client)
       if (vars->count("ciphersTLS13")) {
         frontend->d_ciphers13 = boost::get<const string>((*vars)["ciphersTLS13"]);
       }
+      if (vars->count("serverTokens")) {
+        frontend->d_serverTokens = boost::get<const string>((*vars)["serverTokens"]);
+      }
     }
     g_dohlocals.push_back(frontend);
     auto cs = std::unique_ptr<ClientState>(new ClientState(frontend->d_local, true, reusePort, tcpFastOpenQueueSize, interface, cpus));

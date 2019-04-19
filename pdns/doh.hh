@@ -9,6 +9,7 @@ struct DOHFrontend
   std::vector<std::pair<std::string, std::string>> d_certKeyPairs;
   std::string d_ciphers;
   std::string d_ciphers13;
+  std::string d_serverTokens{"h2o/dnsdist"};
   ComboAddress d_local;
 
   uint32_t d_idleTimeout{30};             // HTTP idle timeout in seconds
