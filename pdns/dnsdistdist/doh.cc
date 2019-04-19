@@ -711,12 +711,22 @@ try
     throw std::runtime_error("DOH server failed to listen on " + df->d_local.toStringWithPort() + ": " + strerror(errno));
   }
 
-  while (h2o_evloop_run(dsc->h2o_ctx.loop, INT32_MAX) == 0)
-    ;
- }
- catch(const std::exception& e) {
-   throw runtime_error("DOH thread failed to launch: " + std::string(e.what()));
- }
- catch(...) {
-   throw runtime_error("DOH thread failed to launch");
- }
+  bool stop = false;
+  do {
+    int result = h2o_evloop_run(dsc->h2o_ctx.loop, INT32_MAX);
+    if (result == -1) {
+      if (errno != EINTR) {
+        errlog("Error in the DoH event loop: %s", strerror(errno));
+        stop = true;
+      }
+    }
+  }
+  while (stop == false);
+
+}
+catch(const std::exception& e) {
+  throw runtime_error("DOH thread failed to launch: " + std::string(e.what()));
+}
+catch(...) {
+  throw runtime_error("DOH thread failed to launch");
+}
