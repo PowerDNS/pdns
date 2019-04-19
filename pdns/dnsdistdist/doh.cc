@@ -301,7 +301,7 @@ static void doh_dispatch_query(DOHServerConfig* dsc, h2o_handler_t* self, h2o_re
   }
   catch(const std::exception& e) {
     vinfolog("Had error parsing DoH DNS packet from %s: %s", remote.toStringWithPort(), e.what());
-    h2o_send_error_400(req, "Bad Request", "dnsdist " VERSION " could not parse DNS query", 0);
+    h2o_send_error_400(req, "Bad Request", "The DNS query could not be parsed", 0);
   }
 }
 
@@ -371,7 +371,7 @@ try
       /* rough estimate so we hopefully don't need a need allocation later */
       decoded.reserve(((sdns.size() * 3) / 4) + 512);
       if(B64Decode(sdns, decoded) < 0) {
-        h2o_send_error_400(req, "Bad Request", "dnsdist " VERSION " could not decode BASE64-URL", 0);
+        h2o_send_error_400(req, "Bad Request", "Unable to decode BASE64-URL", 0);
         ++dsc->df->d_badrequests;
         return 0;
       }
@@ -388,13 +388,13 @@ try
     else
     {
       vinfolog("HTTP request without DNS parameter: %s", req->path.base);
-      h2o_send_error_400(req, "Bad Request", "dnsdist " VERSION " could not find DNS parameter", 0);
+      h2o_send_error_400(req, "Bad Request", "Unable to find the DNS parameter", 0);
       ++dsc->df->d_badrequests;
       return 0;
     }
   }
   else {
-    h2o_send_error_400(req, "Bad Request", "dnsdist " VERSION " could not parse your request", 0);
+    h2o_send_error_400(req, "Bad Request", "Unable to parse the request", 0);
     ++dsc->df->d_badrequests;
   }
   return 0;
