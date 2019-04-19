@@ -62,6 +62,8 @@ disable-dnssec *ZONE*
 export-zone-dnskey *ZONE* *KEY-ID*
     Export to standard output DNSKEY and DS of key with key id *KEY-ID*
     within zone called *ZONE*.
+export-zone-ds *ZONE*
+    Export to standard output all KSK DS records for *ZONE*.
 export-zone-key *ZONE* *KEY-ID*
     Export to standard output full (private) key with key id *KEY-ID*
     within zone called *ZONE*. The format used is compatible with BIND
