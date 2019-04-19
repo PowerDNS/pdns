@@ -520,10 +520,12 @@ class DNSDistTest(unittest.TestCase):
     def checkMessageEDNSWithoutOptions(self, expected, received):
         self.assertEquals(expected, received)
         self.assertEquals(received.edns, 0)
+        self.assertEquals(expected.payload, received.payload)
 
     def checkMessageEDNSWithoutECS(self, expected, received, withCookies=0):
         self.assertEquals(expected, received)
         self.assertEquals(received.edns, 0)
+        self.assertEquals(expected.payload, received.payload)
         self.assertEquals(len(received.options), withCookies)
         if withCookies:
             for option in received.options:
@@ -532,6 +534,7 @@ class DNSDistTest(unittest.TestCase):
     def checkMessageEDNSWithECS(self, expected, received, additionalOptions=0):
         self.assertEquals(expected, received)
         self.assertEquals(received.edns, 0)
+        self.assertEquals(expected.payload, received.payload)
         self.assertEquals(len(received.options), 1 + additionalOptions)
         hasECS = False
         for option in received.options:
