@@ -100,7 +100,7 @@ Listen Sockets
                                   higher than 0 to enable TCP Fast Open when available.
                                   Default is 0.
 
-.. function:: addDOHLocal(address, certFile(s), keyFile(s) [, url [, options]])
+.. function:: addDOHLocal(address, certFile(s), keyFile(s) [, urls [, options]])
 
   .. versionadded:: 1.4.0
 
@@ -110,7 +110,7 @@ Listen Sockets
                       The default port is 443.
   :param str certFile(s): The path to a X.509 certificate file in PEM format, or a list of paths to such files.
   :param str keyFile(s): The path to the private key file corresponding to the certificate, or a list of paths to such files, whose order should match the certFile(s) ones.
-  :param list url: A list of URLs to accept queries on. The default is /.
+  :param str or list urls: A base URL, or a list of base URLs, to accept queries on. Any query with a path under one of these will be treated as a DoH query. The default is /.
   :param table options: A table with key: value pairs with listen options.
 
   Options:

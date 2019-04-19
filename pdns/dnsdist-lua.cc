@@ -1648,7 +1648,7 @@ void setupLuaConfig(bool client)
     setSyslogFacility(facility);
   });
 
-  g_lua.writeFunction("addDOHLocal", [client](const std::string& addr, boost::variant<std::string, std::vector<std::pair<int,std::string>>> certFiles, boost::variant<std::string, std::vector<std::pair<int,std::string>>> keyFiles, boost::optional<vector<pair<int, std::string> > > urls, boost::optional<localbind_t> vars) {
+  g_lua.writeFunction("addDOHLocal", [client](const std::string& addr, boost::variant<std::string, std::vector<std::pair<int,std::string>>> certFiles, boost::variant<std::string, std::vector<std::pair<int,std::string>>> keyFiles, boost::optional<boost::variant<std::string, vector<pair<int, std::string> > > > urls, boost::optional<localbind_t> vars) {
     if (client) {
       return;
     }
@@ -1665,9 +1665,15 @@ void setupLuaConfig(bool client)
     }
 
     frontend->d_local = ComboAddress(addr, 443);
-    if(urls && !urls->empty()) {
-      for(const auto& p : *urls) {
-        frontend->d_urls.push_back(p.second);
+    if (urls) {
+      if (urls->type() == typeid(std::string)) {
+        frontend->d_urls.push_back(boost::get<std::string>(*urls));
+      }
+      else if (urls->type() == typeid(std::vector<std::pair<int,std::string>>)) {
+        auto urlsVect = boost::get<std::vector<std::pair<int,std::string>>>(*urls);
+        for(const auto& p : urlsVect) {
+          frontend->d_urls.push_back(p.second);
+        }
       }
     }
     else {
@@ -1735,13 +1741,13 @@ void setupLuaConfig(bool client)
             result = g_dohlocals.at(index);
           }
           else {
-            errlog("Error: trying to get DOH frontend with index %zu but we only have %zu\n", index, g_dohlocals.size());
-            g_outputBuffer="Error: trying to get DOH frontend with index " + std::to_string(index) + " but we only have " + std::to_string(g_dohlocals.size()) + "\n";
+            errlog("Error: trying to get DOH frontend with index %zu but we only have %zu frontend(s)\n", index, g_dohlocals.size());
+            g_outputBuffer="Error: trying to get DOH frontend with index " + std::to_string(index) + " but we only have " + std::to_string(g_dohlocals.size()) + " frontend(s)\n";
           }
         }
         catch(const std::exception& e) {
-          g_outputBuffer="Error: "+string(e.what())+"\n";
-          errlog("Error: %s\n", string(e.what()));
+          g_outputBuffer="Error while trying to get DOH frontend with index " + std::to_string(index) + ": "+string(e.what())+"\n";
+          errlog("Error while trying to get get DOH frontend with index %zu: %s\n", index, string(e.what()));
         }
 #else
         g_outputBuffer="DNS over HTTPS support is not present!\n";
@@ -1869,13 +1875,13 @@ void setupLuaConfig(bool client)
             result = g_tlslocals.at(index)->getContext();
           }
           else {
-            errlog("Error: trying to get TLS context with index %zu but we only have %zu\n", index, g_tlslocals.size());
-            g_outputBuffer="Error: trying to get TLS context with index " + std::to_string(index) + " but we only have " + std::to_string(g_tlslocals.size()) + "\n";
+            errlog("Error: trying to get TLS context with index %zu but we only have %zu context(s)\n", index, g_tlslocals.size());
+            g_outputBuffer="Error: trying to get TLS context with index " + std::to_string(index) + " but we only have " + std::to_string(g_tlslocals.size()) + " context(s)\n";
           }
         }
         catch(const std::exception& e) {
-          g_outputBuffer="Error: "+string(e.what())+"\n";
-          errlog("Error: %s\n", string(e.what()));
+          g_outputBuffer="Error while trying to get TLS context with index " + std::to_string(index) + ": "+string(e.what())+"\n";
+          errlog("Error while trying to get TLS context with index %zu: %s\n", index, string(e.what()));
         }
 #else
         g_outputBuffer="DNS over TLS support is not present!\n";
@@ -1892,13 +1898,13 @@ void setupLuaConfig(bool client)
             result = g_tlslocals.at(index);
           }
           else {
-            errlog("Error: trying to get TLS frontend with index %zu but we only have %zu\n", index, g_tlslocals.size());
-            g_outputBuffer="Error: trying to get TLS frontend with index " + std::to_string(index) + " but we only have " + std::to_string(g_tlslocals.size()) + "\n";
+            errlog("Error: trying to get TLS frontend with index %zu but we only have %zu frontends\n", index, g_tlslocals.size());
+            g_outputBuffer="Error: trying to get TLS frontend with index " + std::to_string(index) + " but we only have " + std::to_string(g_tlslocals.size()) + " frontend(s)\n";
           }
         }
         catch(const std::exception& e) {
-          g_outputBuffer="Error: "+string(e.what())+"\n";
-          errlog("Error: %s\n", string(e.what()));
+          g_outputBuffer="Error while trying to get TLS frontend with index " + std::to_string(index) + ": "+string(e.what())+"\n";
+          errlog("Error while trying to get TLS frontend with index %zu: %s\n", index, string(e.what()));
         }
 #else
         g_outputBuffer="DNS over TLS support is not present!\n";
