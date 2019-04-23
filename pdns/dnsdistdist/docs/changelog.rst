@@ -2,8 +2,43 @@ Changelog
 =========
 
 .. changelog::
+  :version: 1.4.0-alpha2
+  :released: 24th of April 2019
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 7410
+
+    Ignore Path MTU discovery on UDP server socket
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 7708
+
+    Alternative solution to the unaligned accesses.
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 7718
+
+    Exit when setting ciphers fails (GnuTLS)
+
+  .. change::
+    :tags: New Features
+    :pullreq: 7726
+    :tickets: 6911, 7526
+
+    Add DNS over HTTPS support based on libh2o
+
+.. changelog::
   :version: 1.4.0-alpha1
   :released: 12th of April 2019
+
+ .. change::
+    :tags: New Features
+    :pullreq: 7209
+
+    Make recursor & dnsdist communicate (ECS) 'variable' status
 
  .. change::
     :tags: Improvements
