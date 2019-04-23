@@ -65,14 +65,27 @@ AM_CONDITIONAL([HAVE_GNUTLS], [false])
 AM_CONDITIONAL([HAVE_LIBSSL], [false])
 
 PDNS_CHECK_LIBCRYPTO
+DNSDIST_WITH_LIBSSL
 
 DNSDIST_ENABLE_DNS_OVER_TLS
 
 AS_IF([test "x$enable_dns_over_tls" != "xno"], [
   DNSDIST_WITH_GNUTLS
-  DNSDIST_WITH_LIBSSL
+
   AS_IF([test "$HAVE_GNUTLS" = "0" -a "$HAVE_LIBSSL" = "0"], [
     AC_MSG_ERROR([DNS over TLS support requested but neither GnuTLS nor OpenSSL are available])
+  ])
+])
+
+DNSDIST_ENABLE_DNS_OVER_HTTPS
+PDNS_CHECK_LIBH2OEVLOOP
+AS_IF([test "x$enable_dns_over_https" != "xno"], [
+  AS_IF([test "$HAVE_LIBH2OEVLOOP" = "0"], [
+    AC_MSG_ERROR([DNS over HTTPS support requested but libh2o-evloop was not found])
+  ])
+
+  AS_IF([test "$HAVE_LIBSSL" = "0"], [
+    AC_MSG_ERROR([DNS over HTTPS support requested but OpenSSL was not found])
   ])
 ])
 
@@ -177,15 +190,25 @@ AS_IF([test "x$NET_SNMP_LIBS" != "x"],
   [AC_MSG_NOTICE([SNMP: yes])],
   [AC_MSG_NOTICE([SNMP: no])]
 )
-AS_IF([test "x$enable_dns_over_tls" != "xno"], [
-  AC_MSG_NOTICE([DNS over TLS: yes])
-  AS_IF([test "x$GNUTLS_LIBS" != "x"],
-    [AC_MSG_NOTICE([GnuTLS: yes])],
-    [AC_MSG_NOTICE([GnuTLS: no])])
-  AS_IF([test "x$LIBSSL_LIBS" != "x"],
-    [AC_MSG_NOTICE([OpenSSL: yes])],
-    [AC_MSG_NOTICE([OpenSSL: no])])
-  ],
+AS_IF([test "x$enable_dns_over_tls" != "xno"],
+  [AC_MSG_NOTICE([DNS over TLS: yes])],
   [AC_MSG_NOTICE([DNS over TLS: no])]
 )
+AS_IF([test "x$enable_dns_over_https" != "xno"],
+  [AC_MSG_NOTICE([DNS over HTTPS (DoH): yes])],
+  [AC_MSG_NOTICE([DNS over HTTPS (DoH): no])]
+)
+AS_IF([test "x$enable_dns_over_tls" != "xno"], [
+  AS_IF([test "x$GNUTLS_LIBS" != "x"],
+    [AC_MSG_NOTICE([GnuTLS: yes])],
+    [AC_MSG_NOTICE([GnuTLS: no])]
+  )]
+)
+AS_IF([test "x$enable_dns_over_tls" != "xno" -o "x$enable_dns_over_https" != "xno"], [
+  AS_IF([test "x$LIBSSL_LIBS" != "x"],
+    [AC_MSG_NOTICE([OpenSSL: yes])],
+    [AC_MSG_NOTICE([OpenSSL: no])]
+  )]
+)
+
 AC_MSG_NOTICE([])

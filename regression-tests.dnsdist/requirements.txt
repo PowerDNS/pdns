@@ -6,3 +6,4 @@ protobuf>=2.5,<3.0; sys_platform != 'darwin' and sys_platform != 'openbsd6'
 protobuf>=3.0; sys_platform == 'darwin' or sys_platform == 'openbsd6'
 pysnmp>=4.3.4
 future>=0.17.1
+pycurl>=7.43.0

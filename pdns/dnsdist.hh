@@ -40,6 +40,7 @@
 #include "dnsdist-cache.hh"
 #include "dnsdist-dynbpf.hh"
 #include "dnsname.hh"
+#include "doh.hh"
 #include "ednsoptions.hh"
 #include "gettime.hh"
 #include "iputils.hh"
@@ -83,6 +84,7 @@ struct DNSQuestion
   std::shared_ptr<DNSDistPacketCache> packetCache{nullptr};
   struct dnsheader* dh{nullptr};
   const struct timespec* queryTime{nullptr};
+  struct DOHUnit* du{nullptr};
   size_t size;
   unsigned int consumed{0};
   int delayMsec{0};
@@ -553,6 +555,7 @@ struct IDState
   std::shared_ptr<DNSDistPacketCache> packetCache{nullptr};
   std::shared_ptr<QTag> qTag{nullptr};
   const ClientState* cs{nullptr};
+  DOHUnit* du{nullptr};
   uint32_t cacheKey;                                          // 4
   uint32_t cacheKeyNoECS;                                     // 4
   uint16_t age;                                               // 4
@@ -595,6 +598,7 @@ struct ClientState
   ComboAddress local;
   std::shared_ptr<DNSCryptContext> dnscryptCtx{nullptr};
   std::shared_ptr<TLSFrontend> tlsFrontend{nullptr};
+  std::shared_ptr<DOHFrontend> dohFrontend{nullptr};
   std::string interface;
   std::atomic<uint64_t> queries{0};
   std::atomic<uint64_t> tcpDiedReadingQuery{0};
@@ -623,7 +627,10 @@ struct ClientState
   {
     std::string result = udpFD != -1 ? "UDP" : "TCP";
 
-    if (tlsFrontend) {
+    if (dohFrontend) {
+      result += " (DNS over HTTPS)";
+    }
+    else if (tlsFrontend) {
       result += " (DNS over TLS)";
     }
     else if (dnscryptCtx) {
@@ -1023,6 +1030,7 @@ extern ComboAddress g_serverControl; // not changed during runtime
 
 extern std::vector<std::tuple<ComboAddress, bool, bool, int, std::string, std::set<int>>> g_locals; // not changed at runtime (we hope XXX)
 extern std::vector<shared_ptr<TLSFrontend>> g_tlslocals;
+extern std::vector<shared_ptr<DOHFrontend>> g_dohlocals;
 extern std::vector<std::unique_ptr<ClientState>> g_frontends;
 extern bool g_truncateTC;
 extern bool g_fixupCase;
@@ -1103,6 +1111,9 @@ void setWebserverCustomHeaders(const boost::optional<std::map<std::string, std::
 
 void dnsdistWebserverThread(int sock, const ComboAddress& local);
 void tcpAcceptorThread(void* p);
+#ifdef HAVE_DNS_OVER_HTTPS
+void dohThread(ClientState* cs);
+#endif /* HAVE_DNS_OVER_HTTPS */
 
 void setLuaNoSideEffect(); // if nothing has been declared, set that there are no side effects
 void setLuaSideEffect();   // set to report a side effect, cancelling all _no_ side effect calls
@@ -1136,3 +1147,6 @@ ProcessQueryResult processQuery(DNSQuestion& dq, ClientState& cs, LocalHolders& 
 
 DNSResponse makeDNSResponseFromIDState(IDState& ids, struct dnsheader* dh, size_t bufferSize, uint16_t responseLen, bool isTCP);
 void setIDStateFromDNSQuestion(IDState& ids, DNSQuestion& dq, DNSName&& qname);
+
+int pickBackendSocketForSending(std::shared_ptr<DownstreamState>& state);
+ssize_t udpClientSendRequestToBackend(const std::shared_ptr<DownstreamState>& ss, const int sd, const char* request, const size_t requestLen, bool healthCheck=false);

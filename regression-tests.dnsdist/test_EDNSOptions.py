@@ -260,7 +260,7 @@ class TestEDNSOptionsAddingECS(EDNSOptionsBase):
         """
         name = 'cookie.ednsoptions-ecs.tests.powerdns.com.'
         eco = cookiesoption.CookiesOption(b'deadbeef', b'deadbeef')
-        query = dns.message.make_query(name, 'A', 'IN', use_edns=True, payload=4096, options=[eco])
+        query = dns.message.make_query(name, 'A', 'IN', use_edns=True, payload=512, options=[eco])
         ecso = clientsubnetoption.ClientSubnetOption('127.0.0.1', 24)
         expectedQuery = dns.message.make_query(name, 'A', 'IN', use_edns=True, options=[eco,ecso], payload=512)
         response = dns.message.make_response(query)

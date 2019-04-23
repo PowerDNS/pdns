@@ -104,9 +104,11 @@ sed -i '/^ExecStart/ s/dnsdist/dnsdist -u dnsdist -g dnsdist/' dnsdist.service.i
   --with-libcap \
   --with-libsodium \
   --enable-dnscrypt \
+  --enable-dns-over-https \
   --enable-systemd --with-systemd=/lib/systemd/system \
   --with-re2 \
-  --with-net-snmp
+  --with-net-snmp \
+  PKG_CONFIG_PATH=/opt/lib64/pkgconfig
 %endif
 
 %if 0%{?el6}

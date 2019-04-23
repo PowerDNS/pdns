@@ -100,6 +100,30 @@ Listen Sockets
                                   higher than 0 to enable TCP Fast Open when available.
                                   Default is 0.
 
+.. function:: addDOHLocal(address, certFile(s), keyFile(s) [, urls [, options]])
+
+  .. versionadded:: 1.4.0
+
+  Listen on the specified address and TCP port for incoming DNS over HTTPS connections, presenting the specified X.509 certificate.
+
+  :param str address: The IP Address with an optional port to listen on.
+                      The default port is 443.
+  :param str certFile(s): The path to a X.509 certificate file in PEM format, or a list of paths to such files.
+  :param str keyFile(s): The path to the private key file corresponding to the certificate, or a list of paths to such files, whose order should match the certFile(s) ones.
+  :param str or list urls: A base URL, or a list of base URLs, to accept queries on. Any query with a path under one of these will be treated as a DoH query. The default is /.
+  :param table options: A table with key: value pairs with listen options.
+
+  Options:
+
+  * ``reusePort=false``: bool - Set the ``SO_REUSEPORT`` socket option.
+  * ``tcpFastOpenSize=0``: int - Set the TCP Fast Open queue size, enabling TCP Fast Open when available and the value is larger than 0.
+  * ``interface=""``: str - Set the network interface to use.
+  * ``cpus={}``: table - Set the CPU affinity for this listener thread, asking the scheduler to run it on a single CPU id, or a set of CPU ids. This parameter is only available if the OS provides the pthread_setaffinity_np() function.
+  * ``idleTimeout=30``: int - Set the idle timeout, in seconds.
+  * ``ciphers``: str - The TLS ciphers to use, in OpenSSL format. Ciphers for TLS 1.3 must be specified via ``ciphersTLS13``.
+  * ``ciphersTLS13``: str - The TLS ciphers to use for TLS 1.3, in OpenSSL format.
+  * ``serverTokens``: str - The content of the Server: HTTP header returned by dnsdist. The default is "h2o/dnsdist".
+
 .. function:: addTLSLocal(address, certFile(s), keyFile(s) [, options])
 
   .. versionadded:: 1.3.0
@@ -108,6 +132,8 @@ Listen Sockets
     ``sessionTickets`` option added.
   .. versionchanged:: 1.3.3
     ``numberOfStoredSessions`` option added.
+  .. versionchanged:: 1.4.0
+    ``ciphersTLS13`` option added.
 
   Listen on the specified address and TCP port for incoming DNS over TLS connections, presenting the specified X.509 certificate.
 
@@ -124,7 +150,8 @@ Listen Sockets
   * ``interface=""``: str - Set the network interface to use.
   * ``cpus={}``: table - Set the CPU affinity for this listener thread, asking the scheduler to run it on a single CPU id, or a set of CPU ids. This parameter is only available if the OS provides the pthread_setaffinity_np() function.
   * ``provider``: str - The TLS library to use between GnuTLS and OpenSSL, if they were available and enabled at compilation time.
-  * ``ciphers``: str - The TLS ciphers to use. The exact format depends on the provider used.
+  * ``ciphers``: str - The TLS ciphers to use. The exact format depends on the provider used. When the OpenSSL provder is used, ciphers for TLS 1.3 must be specified via ``ciphersTLS13``.
+  * ``ciphersTLS13``: str - The ciphers to use for TLS 1.3, when the OpenSSL provider is used. When the GnuTLS provider is used, ``ciphers`` applies regardless of the TLS protocol and this setting is not used.
   * ``numberOfTicketsKeys``: int - The maximum number of tickets keys to keep in memory at the same time, if the provider supports it (GnuTLS doesn't, OpenSSL does). Only one key is marked as active and used to encrypt new tickets while the remaining ones can still be used to decrypt existing tickets after a rotation. Default to 5.
   * ``ticketKeyFile``: str - The path to a file from where TLS tickets keys should be loaded, to support RFC 5077. These keys should be rotated often and never written to persistent storage to preserve forward secrecy. The default is to generate a random key. The OpenSSL provider supports several tickets keys to be able to decrypt existing sessions after the rotation, while the GnuTLS provider only supports one key.
   * ``ticketsKeysRotationDelay``: int - Set the delay before the TLS tickets key is rotated, in seconds. Default is 43200 (12h).
@@ -694,6 +721,12 @@ Status, Statistics and More
 
   Print all statistics dnsdist gathers
 
+.. function:: getDOHFrontend(idx)
+
+  .. versionadded:: 1.4.0
+
+  Return the DOHFrontend object for the DNS over HTTPS bind of index ``idx``.
+
 .. function:: getTLSContext(idx)
 
   .. versionadded:: 1.3.0
@@ -730,6 +763,12 @@ Status, Statistics and More
 .. function:: showBinds()
 
   Print a list of all the current addresses and ports dnsdist is listening on, also called ``frontends``
+
+.. function:: showDOHFrontends()
+
+  .. versionadded:: 1.4.0
+
+  Print the list of all availables DNS over HTTPS frontends.
 
 .. function:: showResponseLatency()
 
@@ -1020,6 +1059,19 @@ Other functions
   .. versionadded:: 1.4.0
 
   Set to true (defaults to false) to allow empty responses (qdcount=0) with a NoError or NXDomain rcode (default) from backends. dnsdist drops these responses by default because it can't match them against the initial query since they don't contain the qname, qtype and qclass, and therefore the risk of collision is much higher than with regular responses.
+
+DOHFrontend
+~~~~~~~~~~~
+
+.. class:: DOHFrontend
+
+  .. versionadded:: 1.4.0
+
+  This object represents an address and port dnsdist is listening on for DNS over HTTPS queries.
+
+  .. method:: DOHFrontend:reloadCertificates()
+
+     Reload the current TLS certificate and key pairs.
 
 TLSContext
 ~~~~~~~~~~
