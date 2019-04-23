@@ -614,7 +614,6 @@ See :doc:`../guides/cache` for a how to.
   * ``deferrableInsertLock=true``: bool - Whether the cache should give up insertion if the lock is held by another thread, or simply wait to get the lock.
   * ``dontAge=false``: bool - Don't reduce TTLs when serving from the cache. Use this when :program:`dnsdist` fronts a cluster of authoritative servers.
   * ``keepStaleData=false``: bool - Whether to suspend the removal of expired entries from the cache when there is no backend available in at least one of the pools using this cache.
-  * ``maxEntries``: int - The maximum number of entries in this cache.
   * ``maxNegativeTTL=3600``: int - Cache a NXDomain or NoData answer from the backend for at most this amount of seconds, even if the TTL of the SOA record is higher.
   * ``maxTTL=86400``: int - Cap the TTL for records to his number.
   * ``minTTL=0``: int - Don't cache entries with a TTL lower than this.
