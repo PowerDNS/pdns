@@ -44,7 +44,7 @@ override_dh_auto_configure:
 	  --enable-dnscrypt \
 	  --enable-dnstap \
 	  --with-gnutls \
-	  --with-netsnmp \
+	  --with-net-snmp \
 	  --with-libcap \
 	  --with-libsodium \
 	  --with-re2 \
