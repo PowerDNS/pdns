@@ -275,10 +275,6 @@ void setupLuaBindings(bool client)
           keepStaleData = boost::get<bool>((*vars)["keepStaleData"]);
         }
 
-        if (vars->count("maxEntries")) {
-          maxEntries = boost::get<size_t>((*vars)["maxEntries"]);
-        }
-
         if (vars->count("maxNegativeTTL")) {
           maxNegativeTTL = boost::get<size_t>((*vars)["maxNegativeTTL"]);
         }

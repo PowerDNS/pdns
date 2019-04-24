@@ -658,7 +658,7 @@ test_recursor() {
 
 test_dnsdist(){
   run "cd regression-tests.dnsdist"
-  run "DNSDISTBIN=$HOME/dnsdist/bin/dnsdist ./runtests -v"
+  run "DNSDISTBIN=$HOME/dnsdist/bin/dnsdist ./runtests -v --ignore-files='(?:^\.|^_,|^setup\.py$|^test_DOH\.py$)'"
   run "rm -f ./DNSCryptResolver.cert ./DNSCryptResolver.key"
   run "cd .."
 }

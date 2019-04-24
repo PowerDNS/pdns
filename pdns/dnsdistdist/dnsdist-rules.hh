@@ -501,6 +501,29 @@ private:
 };
 #endif
 
+#ifdef HAVE_DNS_OVER_HTTPS
+class HTTPHeaderRule : public DNSRule
+{
+public:
+  HTTPHeaderRule(const std::string& header, const std::string& regex);
+  bool matches(const DNSQuestion* dq) const override;
+  string toString() const override;
+private:
+  string d_header;
+  Regex d_regex;
+  string d_visual;
+};
+
+class HTTPPathRule : public DNSRule
+{
+public:
+  HTTPPathRule(const std::string& path);
+  bool matches(const DNSQuestion* dq) const override;
+  string toString() const override;
+private:
+  string d_path;
+};
+#endif
 
 class SuffixMatchNodeRule : public DNSRule
 {
