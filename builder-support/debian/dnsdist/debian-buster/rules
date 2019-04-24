@@ -28,6 +28,8 @@ override_dh_auto_clean:
 	dh_auto_clean
 
 override_dh_auto_configure:
+	# LIBS has been added because Ubuntu Bionic and Cosmic don't have the fix for https://bugs.debian.org/cgi-bin/bugreport.cgi?bug=908124 pulled in
+	LIBS='-lwslay' \
 	./configure \
 	  --host=$(DEB_HOST_GNU_TYPE) \
 	  --build=$(DEB_BUILD_GNU_TYPE) \
@@ -37,6 +39,7 @@ override_dh_auto_configure:
 	  --infodir=\$${prefix}/share/info \
 	  --libdir='$${prefix}/lib/$(DEB_HOST_MULTIARCH)' \
 	  --libexecdir='$${prefix}/lib' \
+	  --enable-dns-over-https \
 	  --enable-dns-over-tls \
 	  --enable-dnscrypt \
 	  --enable-dnstap \
