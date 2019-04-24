@@ -65,26 +65,29 @@ AM_CONDITIONAL([HAVE_GNUTLS], [false])
 AM_CONDITIONAL([HAVE_LIBSSL], [false])
 
 PDNS_CHECK_LIBCRYPTO
-DNSDIST_WITH_LIBSSL
 
 DNSDIST_ENABLE_DNS_OVER_TLS
+DNSDIST_ENABLE_DNS_OVER_HTTPS
+
+AS_IF([test "x$enable_dns_over_tls" != "xno" -o "x$enable_dns_over_https" != "xno"], [
+  DNSDIST_WITH_LIBSSL
+])
 
 AS_IF([test "x$enable_dns_over_tls" != "xno"], [
   DNSDIST_WITH_GNUTLS
 
-  AS_IF([test "$HAVE_GNUTLS" = "0" -a "$HAVE_LIBSSL" = "0"], [
+  AS_IF([test "x$HAVE_GNUTLS" != "x1" -a "x$HAVE_LIBSSL" != "x1"], [
     AC_MSG_ERROR([DNS over TLS support requested but neither GnuTLS nor OpenSSL are available])
   ])
 ])
 
-DNSDIST_ENABLE_DNS_OVER_HTTPS
 PDNS_CHECK_LIBH2OEVLOOP
 AS_IF([test "x$enable_dns_over_https" != "xno"], [
-  AS_IF([test "$HAVE_LIBH2OEVLOOP" = "0"], [
+  AS_IF([test "x$HAVE_LIBH2OEVLOOP" != "x1"], [
     AC_MSG_ERROR([DNS over HTTPS support requested but libh2o-evloop was not found])
   ])
 
-  AS_IF([test "$HAVE_LIBSSL" = "0"], [
+  AS_IF([test "x$HAVE_LIBSSL" != "x1"], [
     AC_MSG_ERROR([DNS over HTTPS support requested but OpenSSL was not found])
   ])
 ])

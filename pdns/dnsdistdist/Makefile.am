@@ -191,18 +191,18 @@ if HAVE_RE2
 dnsdist_LDADD += $(RE2_LIBS)
 endif
 
+if HAVE_LIBSSL
+dnsdist_LDADD += $(LIBSSL_LIBS)
+endif
+
 if HAVE_LIBCRYPTO
-dnsdist_LDADD += $(LIBCRYPTO_LIBS)
+dnsdist_LDADD += $(LIBCRYPTO_LDFLAGS) $(LIBCRYPTO_LIBS)
 dnsdist_SOURCES += ipcipher.cc ipcipher.hh
 endif
 
 if HAVE_DNS_OVER_TLS
 if HAVE_GNUTLS
 dnsdist_LDADD += -lgnutls
-endif
-
-if HAVE_LIBSSL
-dnsdist_LDADD += $(LIBSSL_LIBS)
 endif
 endif
 
@@ -211,10 +211,6 @@ dnsdist_SOURCES += doh.cc
 
 if HAVE_LIBH2OEVLOOP
 dnsdist_LDADD += $(LIBH2OEVLOOP_LIBS)
-endif
-
-if HAVE_LIBSSL
-dnsdist_LDADD += $(LIBSSL_LIBS)
 endif
 
 endif
