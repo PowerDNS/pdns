@@ -292,19 +292,19 @@ Access Control Lists
 
 .. function:: addACL(netmask)
 
-  Add a netmask to the existing ACL controlling which clients can send UDP and TCP queries. See :ref:`ACL` for more information.
+  Add a netmask to the existing ACL controlling which clients can send UDP, TCP, DNS over TLS and DNS over HTTPS queries. See :ref:`ACL` for more information.
 
   :param str netmask: A CIDR netmask, e.g. ``"192.0.2.0/24"``. Without a subnetmask, only the specific address is allowed.
 
 .. function:: setACL(netmasks)
 
-  Remove the existing ACL and add the netmasks from the table of those allowed to send UDP and TCP queries. See :ref:`ACL` for more information.
+  Remove the existing ACL and add the netmasks from the table of those allowed to send UDP, TCP, DNS over TLS and DNS over HTTPS queries. See :ref:`ACL` for more information.
 
   :param {str} netmasks: A table of CIDR netmask, e.g. ``{"192.0.2.0/24", "2001:DB8:14::/56"}``. Without a subnetmask, only the specific address is allowed.
 
 .. function:: showACL()
 
-  Print a list of all netmasks allowed to send queries over UDP and TCP. See :ref:`ACL` for more information.
+  Print a list of all netmasks allowed to send queries over UDP, TCP, DNS over TLS and DNS over HTTPS. See :ref:`ACL` for more information.
 
 EDNS Client Subnet
 ~~~~~~~~~~~~~~~~~~
