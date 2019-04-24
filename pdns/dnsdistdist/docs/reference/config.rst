@@ -309,6 +309,12 @@ Access Control Lists
 EDNS Client Subnet
 ~~~~~~~~~~~~~~~~~~
 
+.. function:: setECSOverride(bool)
+
+  When ``useClientSubnet`` in :func:`newServer` is set and dnsdist adds an EDNS Client Subnet Client option to the query, override an existing option already present in the query, if any
+
+  :param bool: Whether to override an existing EDNS Client Subnet option present in the query. Defaults to false
+
 .. function:: setECSSourcePrefixV4(prefix)
 
   When ``useClientSubnet`` in :func:`newServer` is set and dnsdist adds an EDNS Client Subnet Client option to the query, truncate the requestors IPv4 address to ``prefix`` bits
