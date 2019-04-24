@@ -276,7 +276,7 @@ static void on_generator_dispose(void *_self)
   }
 }
 
-static void doh_dispatch_query(DOHServerConfig* dsc, h2o_handler_t* self, h2o_req_t* req, std::string&& query, ComboAddress& remote)
+static void doh_dispatch_query(DOHServerConfig* dsc, h2o_handler_t* self, h2o_req_t* req, std::string&& query, const ComboAddress& local, const ComboAddress& remote)
 {
   try {
     auto du = std::unique_ptr<DOHUnit>(new DOHUnit);
@@ -285,6 +285,7 @@ static void doh_dispatch_query(DOHServerConfig* dsc, h2o_handler_t* self, h2o_re
     DNSName qname(query.c_str(), query.size(), sizeof(dnsheader), false, &qtype);
     du->req = req;
     du->query = std::move(query);
+    du->dest = local;
     du->remote = remote;
     du->rsock = dsc->dohresponsepair[0];
     du->qtype = qtype;
@@ -319,7 +320,9 @@ try
   }
   h2o_socket_t* sock = req->conn->callbacks->get_socket(req->conn);
   ComboAddress remote;
+  ComboAddress local;
   h2o_socket_getpeername(sock, reinterpret_cast<struct sockaddr*>(&remote));
+  h2o_socket_getsockname(sock, reinterpret_cast<struct sockaddr*>(&local));
   DOHServerConfig* dsc = reinterpret_cast<DOHServerConfig*>(req->conn->ctx->storage.entries[0].data);
 
   /* looks like we can't delete the Server: header with most versions of h2o */
@@ -350,7 +353,7 @@ try
     std::string query;
     query.reserve(req->entity.len + 512);
     query.assign(req->entity.base, req->entity.len);
-    doh_dispatch_query(dsc, self, req, std::move(query), remote);
+    doh_dispatch_query(dsc, self, req, std::move(query), local, remote);
   }
   else if(req->query_at != SIZE_MAX && (req->path.len - req->query_at > 5)) {
     auto pos = path.find("?dns=");
@@ -386,7 +389,7 @@ try
         else
           ++dsc->df->d_http1queries;
 
-        doh_dispatch_query(dsc, self, req, std::move(decoded), remote);
+        doh_dispatch_query(dsc, self, req, std::move(decoded), local, remote);
       }
     }
     else
