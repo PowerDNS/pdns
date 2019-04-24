@@ -352,7 +352,7 @@ Servers
     Added ``checkClass``, ``sockets`` and ``checkFunction`` to server_table.
 
   .. versionchanged:: 1.4.0
-    Added ``checkTimeout`` and ``rise`` to server_table.
+    Added ``checkInterval``, ``checkTimeout`` and ``rise`` to server_table.
 
   Add a new backend server. Call this function with either a string::
 
