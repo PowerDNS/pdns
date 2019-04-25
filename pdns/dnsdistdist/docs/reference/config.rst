@@ -292,22 +292,28 @@ Access Control Lists
 
 .. function:: addACL(netmask)
 
-  Add a netmask to the existing ACL controlling which clients can send UDP and TCP queries. See :ref:`ACL` for more information.
+  Add a netmask to the existing ACL controlling which clients can send UDP, TCP, DNS over TLS and DNS over HTTPS queries. See :ref:`ACL` for more information.
 
   :param str netmask: A CIDR netmask, e.g. ``"192.0.2.0/24"``. Without a subnetmask, only the specific address is allowed.
 
 .. function:: setACL(netmasks)
 
-  Remove the existing ACL and add the netmasks from the table of those allowed to send UDP and TCP queries. See :ref:`ACL` for more information.
+  Remove the existing ACL and add the netmasks from the table of those allowed to send UDP, TCP, DNS over TLS and DNS over HTTPS queries. See :ref:`ACL` for more information.
 
   :param {str} netmasks: A table of CIDR netmask, e.g. ``{"192.0.2.0/24", "2001:DB8:14::/56"}``. Without a subnetmask, only the specific address is allowed.
 
 .. function:: showACL()
 
-  Print a list of all netmasks allowed to send queries over UDP and TCP. See :ref:`ACL` for more information.
+  Print a list of all netmasks allowed to send queries over UDP, TCP, DNS over TLS and DNS over HTTPS. See :ref:`ACL` for more information.
 
 EDNS Client Subnet
 ~~~~~~~~~~~~~~~~~~
+
+.. function:: setECSOverride(bool)
+
+  When ``useClientSubnet`` in :func:`newServer` is set and dnsdist adds an EDNS Client Subnet Client option to the query, override an existing option already present in the query, if any
+
+  :param bool: Whether to override an existing EDNS Client Subnet option present in the query. Defaults to false
 
 .. function:: setECSSourcePrefixV4(prefix)
 
@@ -352,7 +358,7 @@ Servers
     Added ``checkClass``, ``sockets`` and ``checkFunction`` to server_table.
 
   .. versionchanged:: 1.4.0
-    Added ``checkTimeout`` and ``rise`` to server_table.
+    Added ``checkInterval``, ``checkTimeout`` and ``rise`` to server_table.
 
   Add a new backend server. Call this function with either a string::
 
