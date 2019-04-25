@@ -1,0 +1,3 @@
+modules/gpgsqlbackend/dnssec-3.x_to_3.4.0_schema.pgsql.sql
+modules/gpgsqlbackend/nodnssec-3.x_to_3.4.0_schema.pgsql.sql
+modules/gpgsqlbackend/schema.pgsql.sql

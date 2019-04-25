@@ -1,0 +1,11 @@
+#!/bin/sh
+set -e
+
+# Startup errors should never cause dpkg to fail.
+initscript_error() {
+    return 0
+}
+
+#DEBHELPER#
+
+exit 0
