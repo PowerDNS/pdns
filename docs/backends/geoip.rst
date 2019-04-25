@@ -94,7 +94,7 @@ caching options described
 ``geoip-zones-file``
 ~~~~~~~~~~~~~~~~~~~~
 
-Specifies the full path of the zone configuration file to use.
+Specifies the full path of the zone configuration file to use. The file is re-opened with a ``pdns_control reload''.
 
 .. _setting-geoip-dnssec-keydir:
 
