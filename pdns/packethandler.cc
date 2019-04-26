@@ -1455,6 +1455,9 @@ DNSPacket *PacketHandler::doQuestion(DNSPacket *p)
       bool doReferral = true;
       if(d_dk.doesDNSSEC()) {
         for(auto& loopRR: rrset) {
+          // In a dnssec capable backend auth=true means, there is no delagation at
+          // or above this qname in this zone (for DS queries). Without a delegation,
+          // at or above this level, it is pointless to search for refferals.
           if(loopRR.auth) {
             doReferral = false;
             break;
@@ -1462,6 +1465,8 @@ DNSPacket *PacketHandler::doQuestion(DNSPacket *p)
         }
       } else {
         for(auto& loopRR: rrset) {
+          // In a non dnssec capable backend auth is always true, so our only option
+          // is, always look for referals. Unless there is a direct match for DS.
           if(loopRR.dr.d_type == QType::DS) {
             doReferral = false;
             break;
