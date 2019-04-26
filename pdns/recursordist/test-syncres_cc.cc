@@ -6610,6 +6610,123 @@ BOOST_AUTO_TEST_CASE(test_dnssec_validation_nsec_wildcard_missing) {
   BOOST_CHECK_EQUAL(queriesCount, 9);
 }
 
+BOOST_AUTO_TEST_CASE(test_dnssec_validation_wildcard_expanded_onto_itself) {
+  std::unique_ptr<SyncRes> sr;
+  initSR(sr, true);
+
+  setDNSSECValidation(sr, DNSSECMode::ValidateAll);
+
+  primeHints();
+  const DNSName target("*.powerdns.com.");
+  testkeysset_t keys;
+
+  auto luaconfsCopy = g_luaconfs.getCopy();
+  luaconfsCopy.dsAnchors.clear();
+  generateKeyMaterial(g_rootdnsname, DNSSECKeeper::ECDSA256, DNSSECKeeper::SHA256, keys, luaconfsCopy.dsAnchors);
+  generateKeyMaterial(DNSName("com."), DNSSECKeeper::ECDSA256, DNSSECKeeper::SHA256, keys, luaconfsCopy.dsAnchors);
+  generateKeyMaterial(DNSName("powerdns.com."), DNSSECKeeper::ECDSA256, DNSSECKeeper::SHA256, keys, luaconfsCopy.dsAnchors);
+
+  g_luaconfs.setState(luaconfsCopy);
+
+  sr->setAsyncCallback([target,keys](const ComboAddress& ip, const DNSName& domain, int type, bool doTCP, bool sendRDQuery, int EDNS0Level, struct timeval* now, boost::optional<Netmask>& srcmask, boost::optional<const ResolveContext&> context, LWResult* res, bool* chained) {
+
+      if (type == QType::DS || type == QType::DNSKEY) {
+        if (domain == target) {
+          const auto auth = DNSName("powerdns.com.");
+          /* we don't want a cut there */
+          setLWResult(res, 0, true, false, true);
+          addRecordToLW(res, auth, QType::SOA, "foo. bar. 2017032800 1800 900 604800 86400", DNSResourceRecord::AUTHORITY, 86400);
+          addRRSIG(keys, res->d_records, auth, 300);
+          /* add a NSEC denying the DS */
+          std::set<uint16_t> types = { QType::NSEC };
+          addNSECRecordToLW(domain, DNSName("z") + domain, types, 600, res->d_records);
+          addRRSIG(keys, res->d_records, auth, 300);
+          return 1;
+        }
+        return genericDSAndDNSKEYHandler(res, domain, domain, type, keys);
+      }
+      else {
+        setLWResult(res, 0, true, false, true);
+        addRecordToLW(res, domain, QType::A, "192.0.2.42");
+        addRRSIG(keys, res->d_records, DNSName("powerdns.com."), 300, false, boost::none, DNSName("*.powerdns.com"));
+        /* we don't _really_ need to add the proof that the exact name does not exist because it does,
+           it's the wildcard itself, but let's do it so other validators don't choke on it */
+        addNSECRecordToLW(DNSName("*.powerdns.com."), DNSName("wwz.powerdns.com."), { QType::A, QType::NSEC, QType::RRSIG }, 600, res->d_records);
+        addRRSIG(keys, res->d_records, DNSName("powerdns.com"), 300, false, boost::none, DNSName("*.powerdns.com"));
+        return 1;
+      }
+    });
+
+  vector<DNSRecord> ret;
+  int res = sr->beginResolve(target, QType(QType::A), QClass::IN, ret);
+  BOOST_CHECK_EQUAL(res, RCode::NoError);
+  BOOST_CHECK_EQUAL(sr->getValidationState(), Secure);
+  /* A + RRSIG, NSEC + RRSIG */
+  BOOST_REQUIRE_EQUAL(ret.size(), 4);
+}
+
+BOOST_AUTO_TEST_CASE(test_dnssec_validation_wildcard_like_expanded_from_wildcard) {
+  std::unique_ptr<SyncRes> sr;
+  initSR(sr, true);
+
+  setDNSSECValidation(sr, DNSSECMode::ValidateAll);
+
+  primeHints();
+  const DNSName target("*.sub.powerdns.com.");
+  testkeysset_t keys;
+
+  auto luaconfsCopy = g_luaconfs.getCopy();
+  luaconfsCopy.dsAnchors.clear();
+  generateKeyMaterial(g_rootdnsname, DNSSECKeeper::ECDSA256, DNSSECKeeper::SHA256, keys, luaconfsCopy.dsAnchors);
+  generateKeyMaterial(DNSName("com."), DNSSECKeeper::ECDSA256, DNSSECKeeper::SHA256, keys, luaconfsCopy.dsAnchors);
+  generateKeyMaterial(DNSName("powerdns.com."), DNSSECKeeper::ECDSA256, DNSSECKeeper::SHA256, keys, luaconfsCopy.dsAnchors);
+
+  g_luaconfs.setState(luaconfsCopy);
+
+  sr->setAsyncCallback([target,keys](const ComboAddress& ip, const DNSName& domain, int type, bool doTCP, bool sendRDQuery, int EDNS0Level, struct timeval* now, boost::optional<Netmask>& srcmask, boost::optional<const ResolveContext&> context, LWResult* res, bool* chained) {
+
+      if (type == QType::DS || type == QType::DNSKEY) {
+        if (domain == target) {
+          const auto auth = DNSName("powerdns.com.");
+          /* we don't want a cut there */
+          setLWResult(res, 0, true, false, true);
+          addRecordToLW(res, auth, QType::SOA, "foo. bar. 2017032800 1800 900 604800 86400", DNSResourceRecord::AUTHORITY, 86400);
+          addRRSIG(keys, res->d_records, auth, 300);
+          addNSECRecordToLW(DNSName("*.powerdns.com."), DNSName("wwz.powerdns.com."), { QType::A, QType::NSEC, QType::RRSIG }, 600, res->d_records);
+          addRRSIG(keys, res->d_records, DNSName("powerdns.com"), 300, false, boost::none, DNSName("*.powerdns.com"));
+          return 1;
+        }
+        else if (domain == DNSName("sub.powerdns.com.")) {
+          const auto auth = DNSName("powerdns.com.");
+          /* we don't want a cut there */
+          setLWResult(res, 0, true, false, true);
+          addRecordToLW(res, auth, QType::SOA, "foo. bar. 2017032800 1800 900 604800 86400", DNSResourceRecord::AUTHORITY, 86400);
+          addRRSIG(keys, res->d_records, auth, 300);
+          /* add a NSEC denying the DS */
+          addNSECRecordToLW(DNSName("*.powerdns.com."), DNSName("wwz.powerdns.com."), { QType::A, QType::NSEC, QType::RRSIG }, 600, res->d_records);
+          addRRSIG(keys, res->d_records, DNSName("powerdns.com"), 300, false, boost::none, DNSName("*.powerdns.com"));
+          return 1;
+        }
+        return genericDSAndDNSKEYHandler(res, domain, domain, type, keys);
+      }
+      else {
+        setLWResult(res, 0, true, false, true);
+        addRecordToLW(res, domain, QType::A, "192.0.2.42");
+        addRRSIG(keys, res->d_records, DNSName("powerdns.com."), 300, false, boost::none, DNSName("*.powerdns.com"));
+        addNSECRecordToLW(DNSName("*.powerdns.com."), DNSName("wwz.powerdns.com."), { QType::A, QType::NSEC, QType::RRSIG }, 600, res->d_records);
+        addRRSIG(keys, res->d_records, DNSName("powerdns.com"), 300, false, boost::none, DNSName("*.powerdns.com"));
+        return 1;
+      }
+    });
+
+  vector<DNSRecord> ret;
+  int res = sr->beginResolve(target, QType(QType::A), QClass::IN, ret);
+  BOOST_CHECK_EQUAL(res, RCode::NoError);
+  BOOST_CHECK_EQUAL(sr->getValidationState(), Secure);
+  /* A + RRSIG, NSEC + RRSIG */
+  BOOST_REQUIRE_EQUAL(ret.size(), 4);
+}
+
 BOOST_AUTO_TEST_CASE(test_dnssec_no_ds_on_referral_secure) {
   std::unique_ptr<SyncRes> sr;
   initSR(sr, true);
