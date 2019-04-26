@@ -30,7 +30,11 @@
 #include <pthread.h>
 #include "iputils.hh"
 #include "dnsname.hh"
+#include "sholder.hh"
 #include <atomic>
+
+extern GlobalStateHolder<SuffixMatchNode> g_dontThrottleNames;
+extern GlobalStateHolder<NetmaskGroup> g_dontThrottleNetmasks;
 
 /** this class is used both to send and answer channel commands to the PowerDNS Recursor */
 class RecursorControlChannel

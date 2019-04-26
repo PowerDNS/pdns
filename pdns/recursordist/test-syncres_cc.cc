@@ -17,6 +17,8 @@
 
 RecursorStats g_stats;
 GlobalStateHolder<LuaConfigItems> g_luaconfs;
+GlobalStateHolder<SuffixMatchNode> g_dontThrottleNames;
+GlobalStateHolder<NetmaskGroup> g_dontThrottleNetmasks;
 thread_local std::unique_ptr<MemRecursorCache> t_RC{nullptr};
 unsigned int g_numThreads = 1;
 bool g_lowercaseOutgoing = false;

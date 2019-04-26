@@ -49,6 +49,7 @@
 #include "ednssubnet.hh"
 #include "filterpo.hh"
 #include "negcache.hh"
+#include "sholder.hh"
 
 #ifdef HAVE_CONFIG_H
 #include "config.h"
@@ -57,6 +58,9 @@
 #ifdef HAVE_PROTOBUF
 #include <boost/uuid/uuid.hpp>
 #endif
+
+extern GlobalStateHolder<SuffixMatchNode> g_dontThrottleNames;
+extern GlobalStateHolder<NetmaskGroup> g_dontThrottleNetmasks;
 
 class RecursorLua4;
 
