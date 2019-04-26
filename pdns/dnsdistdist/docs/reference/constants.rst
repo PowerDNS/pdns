@@ -21,7 +21,7 @@ Reference: https://www.iana.org/assignments/dns-parameters/dns-parameters.xhtml#
 .. _DNSClass:
 
 DNSClass
-------
+--------
 
 These constants represent the `CLASS <https://www.iana.org/assignments/dns-parameters/dns-parameters.xhtml#dns-parameters-2>`__ of a DNS record.
 
