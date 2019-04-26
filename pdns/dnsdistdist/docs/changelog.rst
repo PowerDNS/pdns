@@ -3,7 +3,7 @@ Changelog
 
 .. changelog::
   :version: 1.4.0-alpha2
-  :released: 24th of April 2019
+  :released: 26th of April 2019
 
   .. change::
     :tags: Improvements
