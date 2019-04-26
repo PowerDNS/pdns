@@ -47,6 +47,7 @@ SuffixMatchNode SyncRes::s_ednsdomains;
 EDNSSubnetOpts SyncRes::s_ecsScopeZero;
 string SyncRes::s_serverID;
 SyncRes::LogMode SyncRes::s_lm;
+const std::unordered_set<uint16_t> SyncRes::s_redirectionQTypes = {QType::CNAME, QType::DNAME};
 
 unsigned int SyncRes::s_maxnegttl;
 unsigned int SyncRes::s_maxbogusttl;
@@ -943,15 +944,42 @@ bool SyncRes::doCNAMECacheCheck(const DNSName &qname, const QType &qtype, vector
     return true;
   }
 
-  LOG(prefix<<qname<<": Looking for CNAME cache hit of '"<<qname<<"|CNAME"<<"'"<<endl);
   vector<DNSRecord> cset;
   vector<std::shared_ptr<RRSIGRecordContent>> signatures;
   vector<std::shared_ptr<DNSRecord>> authorityRecs;
   bool wasAuth;
   uint32_t capTTL = std::numeric_limits<uint32_t>::max();
-  /* we don't require auth data for forward-recurse lookups */
-  if(t_RC->get(d_now.tv_sec, qname, QType(QType::CNAME), !wasForwardRecurse && d_requireAuthData, &cset, d_cacheRemote, d_doDNSSEC ? &signatures : nullptr, d_doDNSSEC ? &authorityRecs : nullptr, &d_wasVariable, &state, &wasAuth) > 0) {
+  DNSName foundName;
+  QType foundQT = QType(0); // 0 == QTYPE::ENT
 
+  LOG(prefix<<qname<<": Looking for CNAME cache hit of '"<<qname<<"|CNAME"<<"'"<<endl);
+  /* we don't require auth data for forward-recurse lookups */
+  if (t_RC->get(d_now.tv_sec, qname, QType(QType::CNAME), !wasForwardRecurse && d_requireAuthData, &cset, d_cacheRemote, d_doDNSSEC ? &signatures : nullptr, d_doDNSSEC ? &authorityRecs : nullptr, &d_wasVariable, &state, &wasAuth) > 0) {
+    foundName = qname;
+    foundQT = QType(QType::CNAME);
+  }
+
+  if (foundName.empty() && qname != g_rootdnsname) {
+    // look for a DNAME cache hit
+    auto labels = qname.getRawLabels();
+    DNSName dnameName(g_rootdnsname);
+
+    do {
+      dnameName.prependRawLabel(labels.back());
+      labels.pop_back();
+      if (dnameName == qname && qtype != QType::DNAME) { // The client does not want a DNAME, but we've reached the QNAME already. So there is no match
+        break;
+      }
+      LOG(prefix<<qname<<": Looking for DNAME cache hit of '"<<dnameName<<"|DNAME"<<"'"<<endl);
+      if (t_RC->get(d_now.tv_sec, dnameName, QType(QType::DNAME), !wasForwardRecurse && d_requireAuthData, &cset, d_cacheRemote, d_doDNSSEC ? &signatures : nullptr, d_doDNSSEC ? &authorityRecs : nullptr, &d_wasVariable, &state, &wasAuth) > 0) {
+        foundName = dnameName;
+        foundQT = QType(QType::DNAME);
+        break;
+      }
+    } while(!labels.empty());
+  }
+
+  if(!foundName.empty()) {
     for(auto j=cset.cbegin() ; j != cset.cend() ; ++j) {
       if (j->d_class != QClass::IN) {
         continue;
@@ -963,40 +991,40 @@ bool SyncRes::doCNAMECacheCheck(const DNSName &qname, const QType &qtype, vector
           /* This means we couldn't figure out the state when this entry was cached,
              most likely because we hadn't computed the zone cuts yet. */
           /* make sure they are computed before validating */
-          DNSName subdomain(qname);
+          DNSName subdomain(foundName);
           /* if we are retrieving a DS, we only care about the state of the parent zone */
           if(qtype == QType::DS)
             subdomain.chopOff();
 
           computeZoneCuts(subdomain, g_rootdnsname, depth);
 
-          vState recordState = getValidationStatus(qname, false);
+          vState recordState = getValidationStatus(foundName, false);
           if (recordState == Secure) {
-            LOG(prefix<<qname<<": got Indeterminate state from the CNAME cache, validating.."<<endl);
-            state = SyncRes::validateRecordsWithSigs(depth, qname, QType(QType::CNAME), qname, cset, signatures);
+            LOG(prefix<<qname<<": got Indeterminate state from the "<<foundQT.getName()<<" cache, validating.."<<endl);
+            state = SyncRes::validateRecordsWithSigs(depth, foundName, foundQT, foundName, cset, signatures);
             if (state != Indeterminate) {
               LOG(prefix<<qname<<": got Indeterminate state from the CNAME cache, new validation result is "<<vStates[state]<<endl);
               if (state == Bogus) {
                 capTTL = s_maxbogusttl;
               }
-              updateValidationStatusInCache(qname, QType(QType::CNAME), wasAuth, state);
+              updateValidationStatusInCache(foundName, foundQT, wasAuth, state);
             }
           }
         }
 
-        LOG(prefix<<qname<<": Found cache CNAME hit for '"<< qname << "|CNAME" <<"' to '"<<j->d_content->getZoneRepresentation()<<"', validation state is "<<vStates[state]<<endl);
+        LOG(prefix<<qname<<": Found cache "<<foundQT.getName()<<" hit for '"<< foundName << "|"<<foundQT.getName()<<"' to '"<<j->d_content->getZoneRepresentation()<<"', validation state is "<<vStates[state]<<endl);
 
         DNSRecord dr=*j;
         dr.d_ttl -= d_now.tv_sec;
         dr.d_ttl = std::min(dr.d_ttl, capTTL);
         const uint32_t ttl = dr.d_ttl;
-        ret.reserve(ret.size() + 1 + signatures.size() + authorityRecs.size());
+        ret.reserve(ret.size() + 2 + signatures.size() + authorityRecs.size());
         ret.push_back(dr);
 
         for(const auto& signature : signatures) {
           DNSRecord sigdr;
           sigdr.d_type=QType::RRSIG;
-          sigdr.d_name=qname;
+          sigdr.d_name=foundName;
           sigdr.d_ttl=ttl;
           sigdr.d_content=signature;
           sigdr.d_place=DNSResourceRecord::ANSWER;
@@ -1010,25 +1038,63 @@ bool SyncRes::doCNAMECacheCheck(const DNSName &qname, const QType &qtype, vector
           ret.push_back(authDR);
         }
 
-        if(qtype != QType::CNAME) { // perhaps they really wanted a CNAME!
-          set<GetBestNSAnswer>beenthere;
-
-          vState cnameState = Indeterminate;
-          const auto cnameContent = getRR<CNAMERecordContent>(*j);
-          if (cnameContent) {
-            res=doResolve(cnameContent->getTarget(), qtype, ret, depth+1, beenthere, cnameState);
-            LOG(prefix<<qname<<": updating validation state for response to "<<qname<<" from "<<vStates[state]<<" with the state from the CNAME quest: "<<vStates[cnameState]<<endl);
-            updateValidationState(state, cnameState);
+        DNSName newTarget;
+        if (foundQT == QType::DNAME) {
+          if (qtype == QType::DNAME && qname == foundName) { // client wanted the DNAME, no need to synthesize a CNAME
+            res = 0;
+            return true;
           }
+          // Synthesize a CNAME
+          auto dnameRR = getRR<DNAMERecordContent>(*j);
+          if (dnameRR == nullptr) {
+            throw ImmediateServFailException("Unable to get record content for "+foundName.toLogString()+"|DNAME cache entry");
+          }
+          const auto& dnameSuffix = dnameRR->getTarget();
+          DNSName targetPrefix = qname.makeRelative(foundName);
+          try {
+            dr.d_type = QType::CNAME;
+            dr.d_name = targetPrefix + foundName;
+            newTarget = targetPrefix + dnameSuffix;
+            dr.d_content = std::make_shared<CNAMERecordContent>(CNAMERecordContent(newTarget));
+            ret.push_back(dr);
+          } catch (const std::exception &e) {
+            // We should probably catch an std::range_error here and set the rcode to YXDOMAIN (RFC 6672, section 2.2)
+            // But this is consistent with processRecords
+            throw ImmediateServFailException("Unable to perform DNAME substitution(DNAME owner: '" + foundName.toLogString() +
+                                             "', DNAME target: '" + dnameSuffix.toLogString() + "', substituted name: '" +
+                                             targetPrefix.toLogString() + "." + dnameSuffix.toLogString() +
+                                             "' : " + e.what());
+          }
+
+          LOG(prefix<<qname<<": Synthesized "<<dr.d_name<<"|CNAME "<<newTarget<<endl);
         }
-        else
-          res=0;
+
+        if(qtype == QType::CNAME) { // perhaps they really wanted a CNAME!
+          res = 0;
+          return true;
+        }
+
+        // We have a DNAME _or_ CNAME cache hit and the client wants something else than those two.
+        // Let's find the answer!
+        if (foundQT == QType::CNAME) {
+          const auto cnameContent = getRR<CNAMERecordContent>(*j);
+          if (cnameContent == nullptr) {
+            throw ImmediateServFailException("Unable to get record content for "+foundName.toLogString()+"|CNAME cache entry");
+          }
+          newTarget = cnameContent->getTarget();
+        }
+
+        set<GetBestNSAnswer>beenthere;
+        vState cnameState = Indeterminate;
+        res = doResolve(newTarget, qtype, ret, depth+1, beenthere, cnameState);
+        LOG(prefix<<qname<<": updating validation state for response to "<<qname<<" from "<<vStates[state]<<" with the state from the DNAME/CNAME quest: "<<vStates[cnameState]<<endl);
+        updateValidationState(state, cnameState);
 
         return true;
       }
     }
   }
-  LOG(prefix<<qname<<": No CNAME cache hit of '"<< qname << "|CNAME" <<"' found"<<endl);
+  LOG(prefix<<qname<<": No CNAME or DNAME cache hit of '"<< qname <<"' found"<<endl);
   return false;
 }
 
@@ -2087,7 +2153,7 @@ void SyncRes::sanitizeRecords(const std::string& prefix, LWResult& lwr, const DN
       continue;
     }
 
-    if (rec->d_place == DNSResourceRecord::ANSWER && (qtype != QType::ANY && rec->d_type != qtype.getCode() && rec->d_type != QType::CNAME && rec->d_type != QType::SOA && rec->d_type != QType::RRSIG)) {
+    if (rec->d_place == DNSResourceRecord::ANSWER && (qtype != QType::ANY && rec->d_type != qtype.getCode() && s_redirectionQTypes.count(rec->d_type) == 0 && rec->d_type != QType::SOA && rec->d_type != QType::RRSIG)) {
       LOG(prefix<<"Removing irrelevant record '"<<rec->d_name<<"|"<<DNSRecordContent::NumberToType(rec->d_type)<<"|"<<rec->d_content->getZoneRepresentation()<<"' in the "<<(int)rec->d_place<<" section received from "<<auth<<endl);
       rec = lwr.d_records.erase(rec);
       continue;
@@ -2178,13 +2244,18 @@ RCode::rcodes_ SyncRes::updateCacheFromRecords(unsigned int depth, LWResult& lwr
   std::vector<std::shared_ptr<DNSRecord>> authorityRecs;
   const unsigned int labelCount = qname.countLabels();
   bool isCNAMEAnswer = false;
+  bool isDNAMEAnswer = false;
   for(const auto& rec : lwr.d_records) {
     if (rec.d_class != QClass::IN) {
       continue;
     }
 
-    if(!isCNAMEAnswer && rec.d_place == DNSResourceRecord::ANSWER && rec.d_type == QType::CNAME && (!(qtype==QType(QType::CNAME))) && rec.d_name == qname) {
+    if(!isCNAMEAnswer && rec.d_place == DNSResourceRecord::ANSWER && rec.d_type == QType::CNAME && (!(qtype==QType(QType::CNAME))) && rec.d_name == qname && !isDNAMEAnswer) {
       isCNAMEAnswer = true;
+    }
+    if(!isDNAMEAnswer && rec.d_place == DNSResourceRecord::ANSWER && rec.d_type == QType::DNAME && qtype != QType(QType::DNAME) && qname.isPartOf(rec.d_name)) {
+      isDNAMEAnswer = true;
+      isCNAMEAnswer = false;
     }
 
     /* if we have a positive answer synthetized from a wildcard,
@@ -2258,6 +2329,10 @@ RCode::rcodes_ SyncRes::updateCacheFromRecords(unsigned int depth, LWResult& lwr
       }
       else {
         bool haveLogged = false;
+        if (isDNAMEAnswer && rec.d_type == QType::CNAME) {
+          LOG("NO - we already have a DNAME answer for this domain");
+          continue;
+        }
         if (!t_sstorage.domainmap->empty()) {
           // Check if we are authoritative for a zone in this answer
           DNSName tmp_qname(rec.d_name);
@@ -2374,11 +2449,25 @@ RCode::rcodes_ SyncRes::updateCacheFromRecords(unsigned int depth, LWResult& lwr
             recordState = validateDNSKeys(i->first.name, i->second.records, i->second.signatures, depth);
           }
           else {
-            LOG(d_prefix<<"Validating non-additional record for "<<i->first.name<<endl);
-            recordState = validateRecordsWithSigs(depth, qname, qtype, i->first.name, i->second.records, i->second.signatures);
-            /* we might have missed a cut (zone cut within the same auth servers), causing the NS query for an Insecure zone to seem Bogus during zone cut determination */
-            if (qtype == QType::NS && i->second.signatures.empty() && recordState == Bogus && haveExactValidationStatus(i->first.name) && getValidationStatus(i->first.name) == Indeterminate) {
-              recordState = Indeterminate;
+            /*
+             * RFC 6672 section 5.3.1
+             *  In any response, a signed DNAME RR indicates a non-terminal
+             *  redirection of the query.  There might or might not be a server-
+             *  synthesized CNAME in the answer section; if there is, the CNAME will
+             *  never be signed.  For a DNSSEC validator, verification of the DNAME
+             *  RR and then that the CNAME was properly synthesized is sufficient
+             *  proof.
+             *
+             * We do the synthesis check in processRecords, here we make sure we
+             * don't validate the CNAME.
+             */
+            if (!(isDNAMEAnswer && i->first.type == QType::CNAME)) {
+              LOG(d_prefix<<"Validating non-additional record for "<<i->first.name<<endl);
+              recordState = validateRecordsWithSigs(depth, qname, qtype, i->first.name, i->second.records, i->second.signatures);
+              /* we might have missed a cut (zone cut within the same auth servers), causing the NS query for an Insecure zone to seem Bogus during zone cut determination */
+              if (qtype == QType::NS && i->second.signatures.empty() && recordState == Bogus && haveExactValidationStatus(i->first.name) && getValidationStatus(i->first.name) == Indeterminate) {
+                recordState = Indeterminate;
+              }
             }
           }
         }
@@ -2486,6 +2575,8 @@ dState SyncRes::getDenialValidationState(const NegCache::NegCacheEntry& ne, cons
 bool SyncRes::processRecords(const std::string& prefix, const DNSName& qname, const QType& qtype, const DNSName& auth, LWResult& lwr, const bool sendRDQuery, vector<DNSRecord>& ret, set<DNSName>& nsset, DNSName& newtarget, DNSName& newauth, bool& realreferral, bool& negindic, vState& state, const bool needWildcardProof, const unsigned int wildcardLabelsCount)
 {
   bool done = false;
+  DNSName dnameTarget, dnameOwner;
+  uint32_t dnameTTL = 0;
 
   for(auto& rec : lwr.d_records) {
     if (rec.d_type!=QType::OPT && rec.d_class!=QClass::IN)
@@ -2545,10 +2636,42 @@ bool SyncRes::processRecords(const std::string& prefix, const DNSName& qname, co
 
       negindic=true;
     }
-    else if(rec.d_place==DNSResourceRecord::ANSWER && rec.d_type==QType::CNAME && (!(qtype==QType(QType::CNAME))) && rec.d_name == qname) {
-      ret.push_back(rec);
-      if (auto content = getRR<CNAMERecordContent>(rec)) {
-        newtarget=content->getTarget();
+    else if(rec.d_place==DNSResourceRecord::ANSWER && s_redirectionQTypes.count(rec.d_type) > 0 && // CNAME or DNAME answer
+        s_redirectionQTypes.count(qtype.getCode()) == 0) { // But not in response to a CNAME or DNAME query
+      if (rec.d_type == QType::CNAME && rec.d_name == qname) {
+        if (!dnameOwner.empty()) { // We synthesize ourselves
+          continue;
+        }
+        ret.push_back(rec);
+        if (auto content = getRR<CNAMERecordContent>(rec)) {
+          newtarget=content->getTarget();
+        }
+      } else if (rec.d_type == QType::DNAME && qname.isPartOf(rec.d_name)) { // DNAME
+        ret.push_back(rec);
+        if (auto content = getRR<DNAMERecordContent>(rec)) {
+          dnameOwner = rec.d_name;
+          dnameTarget = content->getTarget();
+          dnameTTL = rec.d_ttl;
+          if (!newtarget.empty()) { // We had a CNAME before, remove it from ret so we don't cache it
+            ret.erase(std::remove_if(
+                  ret.begin(),
+                  ret.end(),
+                  [&qname](DNSRecord& rr) {
+                    return (rr.d_place == DNSResourceRecord::ANSWER && rr.d_type == QType::CNAME && rr.d_name == qname);
+                  }),
+                  ret.end());
+          }
+          try {
+            newtarget = qname.makeRelative(dnameOwner) + dnameTarget;
+          } catch (const std::exception &e) {
+            // We should probably catch an std::range_error here and set the rcode to YXDOMAIN (RFC 6672, section 2.2)
+            // But there is no way to set the RCODE from this function
+            throw ImmediateServFailException("Unable to perform DNAME substitution(DNAME owner: '" + dnameOwner.toLogString() +
+                                             "', DNAME target: '" + dnameTarget.toLogString() + "', substituted name: '" +
+                                             qname.makeRelative(dnameOwner).toLogString() + "." + dnameTarget.toLogString() +
+                                             "' : " + e.what());
+          }
+        }
       }
     }
     /* if we have a positive answer synthetized from a wildcard, we need to
@@ -2603,8 +2726,14 @@ bool SyncRes::processRecords(const std::string& prefix, const DNSName& qname, co
       ret.push_back(rec);
     }
     else if((rec.d_type==QType::RRSIG || rec.d_type==QType::NSEC || rec.d_type==QType::NSEC3) && rec.d_place==DNSResourceRecord::ANSWER) {
-      if(rec.d_type != QType::RRSIG || rec.d_name == qname)
+      if(rec.d_type != QType::RRSIG || rec.d_name == qname) {
         ret.push_back(rec); // enjoy your DNSSEC
+      } else if(rec.d_type == QType::RRSIG && qname.isPartOf(rec.d_name)) {
+        auto rrsig = getRR<RRSIGRecordContent>(rec);
+        if (rrsig != nullptr && rrsig->d_type == QType::DNAME) {
+           ret.push_back(rec);
+        }
+      }
     }
     else if(rec.d_place==DNSResourceRecord::AUTHORITY && rec.d_type==QType::NS && qname.isPartOf(rec.d_name)) {
       if(moreSpecificThan(rec.d_name,auth)) {
@@ -2694,6 +2823,15 @@ bool SyncRes::processRecords(const std::string& prefix, const DNSName& qname, co
     }
   }
 
+  if (!dnameTarget.empty()) {
+    // Synthesize a CNAME
+    auto cnamerec = DNSRecord();
+    cnamerec.d_name = qname;
+    cnamerec.d_type = QType::CNAME;
+    cnamerec.d_ttl = dnameTTL;
+    cnamerec.d_content = std::make_shared<CNAMERecordContent>(CNAMERecordContent(newtarget));
+    ret.push_back(cnamerec);
+  }
   return done;
 }
 
