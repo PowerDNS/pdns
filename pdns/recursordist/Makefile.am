@@ -272,7 +272,17 @@ testrunner_SOURCES = \
 	test-recpacketcache_cc.cc \
 	test-recursorcache_cc.cc \
 	test-signers.cc \
+	test-syncres_cc.hh \
 	test-syncres_cc.cc \
+	test-syncres_cc1.cc \
+	test-syncres_cc2.cc \
+	test-syncres_cc3.cc \
+	test-syncres_cc4.cc \
+	test-syncres_cc5.cc \
+	test-syncres_cc6.cc \
+	test-syncres_cc7.cc \
+	test-syncres_cc8.cc \
+	test-syncres_cc9.cc \
 	test-tsig.cc \
 	test-xpf_cc.cc \
 	testrunner.cc \
