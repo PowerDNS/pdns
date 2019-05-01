@@ -107,13 +107,23 @@ PacketHandler::~PacketHandler()
 **/
 bool PacketHandler::addCDNSKEY(DNSPacket *p, DNSPacket *r, const SOAData& sd)
 {
+  DNSZoneRecord rr;
+  bool haveOne=false;
+
+  if(::arg().mustDo("direct-dnskey")) {
+    B.lookup(QType(QType::CDNSKEY), p->qdomain, p, sd.domain_id);
+
+    while(B.get(rr)) {
+      rr.dr.d_ttl=sd.default_ttl;
+      r->addRecord(rr);
+      haveOne=true;
+    }
+  }
+
   string publishCDNSKEY;
   d_dk.getFromMeta(p->qdomain, "PUBLISH-CDNSKEY", publishCDNSKEY);
   if (publishCDNSKEY != "1")
-    return false;
-
-  DNSZoneRecord rr;
-  bool haveOne=false;
+    return haveOne;
 
   DNSSECKeeper::keyset_t entryPoints = d_dk.getEntryPoints(p->qdomain);
   for(const auto& value: entryPoints) {
@@ -126,15 +136,6 @@ bool PacketHandler::addCDNSKEY(DNSPacket *p, DNSPacket *r, const SOAData& sd)
     haveOne=true;
   }
 
-  if(::arg().mustDo("direct-dnskey")) {
-    B.lookup(QType(QType::CDNSKEY), p->qdomain, p, sd.domain_id);
-
-    while(B.get(rr)) {
-      rr.dr.d_ttl=sd.default_ttl;
-      r->addRecord(rr);
-      haveOne=true;
-    }
-  }
   return haveOne;
 }
 
@@ -186,37 +187,37 @@ bool PacketHandler::addDNSKEY(DNSPacket *p, DNSPacket *r, const SOAData& sd)
 **/
 bool PacketHandler::addCDS(DNSPacket *p, DNSPacket *r, const SOAData& sd)
 {
-  string publishCDS;
-  d_dk.getFromMeta(p->qdomain, "PUBLISH-CDS", publishCDS);
-  if (publishCDS.empty())
-    return false;
-
-  vector<string> digestAlgos;
-  stringtok(digestAlgos, publishCDS, ", ");
-
   DNSZoneRecord rr;
-  rr.dr.d_type=QType::CDS;
-  rr.dr.d_ttl=sd.default_ttl;
-  rr.dr.d_name=p->qdomain;
-  rr.auth=true;
-
   bool haveOne=false;
-
-  DNSSECKeeper::keyset_t keyset = d_dk.getEntryPoints(p->qdomain);
-
-  for(auto const &value : keyset) {
-    for(auto const &digestAlgo : digestAlgos){
-      rr.dr.d_content=std::make_shared<DSRecordContent>(makeDSFromDNSKey(p->qdomain, value.first.getDNSKEY(), pdns_stou(digestAlgo)));
-      r->addRecord(rr);
-      haveOne=true;
-    }
-  }
 
   if(::arg().mustDo("direct-dnskey")) {
     B.lookup(QType(QType::CDS), p->qdomain, p, sd.domain_id);
 
     while(B.get(rr)) {
       rr.dr.d_ttl=sd.default_ttl;
+      r->addRecord(rr);
+      haveOne=true;
+    }
+  }
+
+  string publishCDS;
+  d_dk.getFromMeta(p->qdomain, "PUBLISH-CDS", publishCDS);
+  if (publishCDS.empty())
+    return haveOne;
+
+  vector<string> digestAlgos;
+  stringtok(digestAlgos, publishCDS, ", ");
+
+  rr.dr.d_type=QType::CDS;
+  rr.dr.d_ttl=sd.default_ttl;
+  rr.dr.d_name=p->qdomain;
+  rr.auth=true;
+
+  DNSSECKeeper::keyset_t keyset = d_dk.getEntryPoints(p->qdomain);
+
+  for(auto const &value : keyset) {
+    for(auto const &digestAlgo : digestAlgos){
+      rr.dr.d_content=std::make_shared<DSRecordContent>(makeDSFromDNSKey(p->qdomain, value.first.getDNSKEY(), pdns_stou(digestAlgo)));
       r->addRecord(rr);
       haveOne=true;
     }
