@@ -34,3 +34,8 @@ Reply to question for qname='cdnskey-cds-test.com.', qtype=CDNSKEY
 0	cdnskey-cds-test.com.	IN	CDS	86400
 0	cdnskey-cds-test.com.	IN	RRSIG	86400
 0	cdnskey-cds-test.com.	IN	RRSIG	86400
+cdnskey-cds-test.com. 86400 IN CDNSKEY
+cdnskey-cds-test.com. 86400 IN CDS
+cdnskey-cds-test.com. 86400 IN CDS
+cdnskey-cds-test.com. 86400 IN RRSIG
+cdnskey-cds-test.com. 86400 IN RRSIG

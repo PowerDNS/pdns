@@ -9,3 +9,5 @@ cleandig secure-delegated.dnssec-parent.com ANY dnssec tcp | grep 'CDS\|CDNSKEY'
 cleandig cdnskey-cds-test.com CDS dnssec | perl -pe 's!86400.*!86400!g'
 cleandig cdnskey-cds-test.com CDNSKEY dnssec | perl -pe 's!86400.*!86400!g'
 cleandig cdnskey-cds-test.com ANY dnssec tcp | grep 'CDS\|CDNSKEY' | grep -v 'NSEC' | perl -pe 's!86400.*!86400!g'
+
+cleandig cdnskey-cds-test.com AXFR dnssec | grep 'CDS\|CDNSKEY' | grep -v 'NSEC' | awk '{print $1, $2, $3, $4}'
