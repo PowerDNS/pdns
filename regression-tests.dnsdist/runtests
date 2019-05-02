@@ -16,7 +16,21 @@ if [ ! -d .venv ]; then
 fi
 . .venv/bin/activate
 python -V
+
+if [ `uname -s` == Darwin ]
+then
+  if [ ! -e /usr/local/opt/curl-openssl ]
+  then
+    echo Please run: brew install curl-openssl, and try again
+    exit 1
+  else
+    export PYCURL_CURL_CONFIG=/usr/local/opt/curl-openssl/bin/curl-config
+    export LDFLAGS=-L/usr/local/opt/openssl/lib
+    export CPPFLAGS=-I/usr/local/opt/openssl/include
+  fi
+fi
 pip install -r requirements.txt
+
 protoc -I=../pdns/ --python_out=. ../pdns/dnsmessage.proto
 protoc -I=../pdns/ --python_out=. ../pdns/dnstap.proto
 
