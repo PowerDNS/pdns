@@ -1448,19 +1448,43 @@ DNSPacket *PacketHandler::doQuestion(DNSPacket *p)
       return 0;
     }
 
-    if(rrset.empty()) {
-      DLOG(g_log<<"checking if qtype is DS"<<endl);
-      if(p->qtype.getCode() == QType::DS)
-      {
+
+    // referral for DS query
+    if(p->qtype.getCode() == QType::DS) {
+      DLOG(g_log<<"Qtype is DS"<<endl);
+      bool doReferral = true;
+      if(d_dk.doesDNSSEC()) {
+        for(auto& loopRR: rrset) {
+          // In a dnssec capable backend auth=true means, there is no delagation at
+          // or above this qname in this zone (for DS queries). Without a delegation,
+          // at or above this level, it is pointless to search for refferals.
+          if(loopRR.auth) {
+            doReferral = false;
+            break;
+          }
+        }
+      } else {
+        for(auto& loopRR: rrset) {
+          // In a non dnssec capable backend auth is always true, so our only option
+          // is, always look for referals. Unless there is a direct match for DS.
+          if(loopRR.dr.d_type == QType::DS) {
+            doReferral = false;
+            break;
+          }
+        }
+      }
+      if(doReferral) {
         DLOG(g_log<<"DS query found no direct result, trying referral now"<<endl);
         if(tryReferral(p, r, sd, target, retargetcount))
         {
-          DLOG(g_log<<"got referral for DS query"<<endl);
+          DLOG(g_log<<"Got referral for DS query"<<endl);
           goto sendit;
         }
       }
+    }
 
 
+    if(rrset.empty()) {
       DLOG(g_log<<Logger::Warning<<"Found nothing in the by-name ANY, but let's try wildcards.."<<endl);
       bool wereRetargeted(false), nodata(false);
       DNSName wildcard;

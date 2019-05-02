@@ -11,3 +11,9 @@ org.			172800	IN	NS	a.gtld-servers.net.
 
 a.gtld-servers.net.	172800	IN	A	192.5.6.30
 a.gtld-servers.net.	172800	IN	AAAA	2001:503:a83e:0:0:0:2:30
+
+uk.			86400	IN	DS	43876 8 2 A107ED2AC1BD14D924173BC7E827A1153582072394F9272BA37E2353BC659603
+uk.			172800	IN	NS	nsa.nic.uk.
+nsa.nic.uk.		172800	IN	AAAA	2001:502:ad09::3
+nsa.nic.uk.		172800	IN	A	156.154.100.3
+barney.advsys.co.uk.	172800	IN	A	217.23.160.50
