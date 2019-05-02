@@ -737,6 +737,16 @@ int TCPNameserver::doAXFR(const DNSName &target, shared_ptr<DNSPacket> q, int ou
       zrr.dr.d_ttl = sd.default_ttl;
       csp.submit(zrr);
     }
+
+    sd.db->lookup(QType(QType::CDNSKEY), target, NULL, sd.domain_id);
+    while(sd.db->get(zrr)) {
+      cdnskey.push_back(zrr);
+    }
+
+    sd.db->lookup(QType(QType::CDS), target, NULL, sd.domain_id);
+    while(sd.db->get(zrr)) {
+      cds.push_back(zrr);
+    }
   }
 
   uint8_t flags;
@@ -768,11 +778,13 @@ int TCPNameserver::doAXFR(const DNSName &target, shared_ptr<DNSPacket> q, int ou
   vector<DNSZoneRecord> zrrs;
 
   // Add the CDNSKEY and CDS records we created earlier
-  for (auto const &synth_zrr : cds)
-    zrrs.push_back(synth_zrr);
+  for (auto const &synth_zrr : cds) {
+    csp.submit(synth_zrr);
+   }
 
-  for (auto const &synth_zrr : cdnskey)
-    zrrs.push_back(synth_zrr);
+  for (auto const &synth_zrr : cdnskey) {
+    csp.submit(synth_zrr);
+  }
 
   while(sd.db->get(zrr)) {
     zrr.dr.d_name.makeUsLowerCase();
