@@ -33,6 +33,7 @@ material, and other information upon deletion of a domain from the
 domains table. The following SQL does the job:
 
 .. literalinclude:: ../../modules/gmysqlbackend/enable-foreign-keys.mysql.sql
+   :language: SQL
 
 Using MySQL replication
 -----------------------

@@ -6,7 +6,7 @@ is called 'gmysql', and needs to be configured in ``pdns.conf``. Add the
 following lines, adjusted for your local setup (specifically, you may
 not want to use the 'root' user):
 
-::
+.. code-block:: ini
 
     launch=gmysql
     gmysql-host=127.0.0.1
@@ -52,6 +52,7 @@ Please find `the 4.1 schema on GitHub <https://github.com/PowerDNS/pdns/blob/rel
 
 
 .. literalinclude:: ../../modules/gmysqlbackend/schema.mysql.sql
+   :language: SQL
 
 We recommend you add the following MySQL statements as well. These will add
 foreign key constraints to the tables in order to automate deletion of records, key
@@ -78,12 +79,11 @@ to launch in monitor mode and display no errors:
     15:39:55 [gMySQLbackend] MySQL connection succeeded
 
 In a different shell, a sample query sent to the server should now
-return quickly without data:
+return quickly *without* data:
 
-::
+.. code-block:: shell
 
-    $ dig +short www.example.com @127.0.0.1
-    $
+    $ dig +short www.example.com @127.0.0.1  # should print nothing
 
 .. warning::
   When debugging DNS problems, don't use ``host``. Please use
@@ -124,7 +124,7 @@ Now we need to add some records to our database (in a separate shell):
 
 If we now requery our database, ``www.example.com`` should be present:
 
-::
+.. code-block:: shell
 
     $ dig +short www.example.com @127.0.0.1
     192.0.2.10

@@ -200,7 +200,7 @@ explicitly, either globally (``enable-lua-records``) or per zone
 Reference
 ---------
 
- .. toctree::
+.. toctree::
   :maxdepth: 2
 
   functions

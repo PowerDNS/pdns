@@ -118,7 +118,9 @@ Options
   When logging, each log-line contains the UUID of the request, this allows finding errors caused by certain requests.
   With 'none', nothing is logged except for errors.
   With 'normal' (the default), one line per request is logged in the style of the common log format::
+
     [NOTICE] [webserver] 46326eef-b3ba-4455-8e76-15ec73879aa3 127.0.0.1:57566 "GET /metrics HTTP/1.1" 200 1846
+
   with 'detailed', the full requests and responses (including headers) are logged along with the regular log-line from 'normal'.
 
 See also

@@ -90,7 +90,7 @@ Per zone settings
 -----------------
 
 For permissions, a number of per zone settings are available via the
-:doc:`domain metadata `<domainmetadata>`.
+:doc:`domain metadata <domainmetadata>`.
 
 .. _metadata-allow-dnsupdate-from:
 
@@ -98,7 +98,7 @@ ALLOW-DNSUPDATE-FROM
 ~~~~~~~~~~~~~~~~~~~~
 
 This setting has the same function as described in the configuration
-options (See ref:`above <dnsupdate-configuration-options>`). Only one item is
+options (See :ref:`above <dnsupdate-configuration-options>`). Only one item is
 allowed per row, but multiple rows can be added. An example:
 
 ::
@@ -120,19 +120,19 @@ This setting allows you to set the TSIG key required to do an DNS
 update. If you have GSS-TSIG enabled, you can use Kerberos principals
 here. An example, using :program:`pdnsutil` to create the key:
 
+.. code-block:: shell
+
+    $ pdnsutil generate-tsig-key test hmac-md5
+    Create new TSIG key test hmac-md5 kp4/24gyYsEzbuTVJRUMoqGFmN3LYgVDzJ/3oRSP7ys=
+
 ::
 
-    pdnsutil generate-tsig-key test hmac-md5
-    Create new TSIG key test hmac-md5 kp4/24gyYsEzbuTVJRUMoqGFmN3LYgVDzJ/3oRSP7ys=
-    
     sql> insert into tsigkeys (name, algorithm, secret) values ('test', 'hmac-md5', 'kp4/24gyYsEzbuTVJRUMoqGFmN3LYgVDzJ/3oRSP7ys=');
     sql> select id from domains where name='example.org';
     5
     sql> insert into domainmetadata (domain_id, kind, content) values (5, 'TSIG-ALLOW-DNSUPDATE', 'test');
 
-An example of how to use a TSIG key with the :program:`nsupdate` command:
-
-::
+An example of how to use a TSIG key with the :program:`nsupdate` command::
 
     nsupdate <<!
     server <ip> <port>
@@ -252,14 +252,14 @@ Setting up dhcpd
 We're going to use a TSIG key for security. We're going to generate a
 key using the following command:
 
-::
+.. code-block:: shell
 
     dnssec-keygen -a hmac-md5 -b 128 -n USER dhcpdupdate
 
 This generates two files (Kdhcpdupdate.*.key and
 Kdhcpdupdate.*.private). You're interested in the .key file:
 
-::
+.. code-block:: shell
 
     # ls -l Kdhcp*
     -rw------- 1 root root  53 Aug 26 19:29 Kdhcpdupdate.+157+20493.key
@@ -338,7 +338,7 @@ dynamic updates from **dhcpd**.
 Enabled DNS update (:rfc:`2136`) support functionality in PowerDNS by adding
 the following to the PowerDNS configuration file (pdns.conf).
 
-::
+.. code-block:: ini
 
     dnsupdate=yes
     allow-dnsupdate-from=
@@ -454,20 +454,21 @@ each record at a time and you can approve or reject any or all.
 
 The object has following methods available:
 
-- DNSName getQName() - name to update
-- DNSName getZonename() - zone name
-- int getQType() - record type, it can be 255(ANY) for delete.
-- ComboAddress getLocal() - local socket address
-- ComboAddress getRemote() - remote socket address
-- Netmask getRealRemote() - real remote address (or netmask if EDNS Subnet is used)
-- DNSName getTsigName() - TSIG **key** name (you can assume it is validated here)
-- string getPeerPrincipal() - Return peer principal name (user@DOMAIN, service/machine.name@DOMAIN, host/MACHINE$@DOMAIN)
+- ``DNSName getQName()`` - name to update
+- ``DNSName getZonename()`` - zone name
+- ``int getQType()`` - record type, it can be 255(ANY) for delete.
+- ``ComboAddress getLocal()`` - local socket address
+- ``ComboAddress getRemote()`` - remote socket address
+- ``Netmask getRealRemote()`` - real remote address (or netmask if EDNS Subnet is used)
+- ``DNSName getTsigName()`` - TSIG **key** name (you can assume it is validated here)
+- ``string getPeerPrincipal()`` - Return peer principal name (``user@DOMAIN``,
+  ``service/machine.name@DOMAIN``, ``host/MACHINE$@DOMAIN``)
 
 There are many same things available as in recursor Lua scripts, but
-there is also resolve(qname, qtype) which returns array of records.
+there is also ``resolve(qname, qtype)`` which returns array of records.
 Example:
 
-::
+.. code-block:: lua
 
     resolve("www.google.com", pdns.A)
 
@@ -477,7 +478,7 @@ resolve does not perform local lookup.
 
 Simple example script:
 
-.. code:: lua
+.. code-block:: lua
 
     --- This script is not suitable for production use
 

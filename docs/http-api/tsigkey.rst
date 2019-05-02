@@ -36,7 +36,7 @@ Modifying the key material
   X-Api-Key: secret
   Content-Type: application/json
 
-  {"key": "mytsigkey, "key": "GQNyFy1QagMUarHmiSgsIJajghdTGJGVcN5TRVwgbclzxGyhQR1uYLCOyJ/uj9uj12jyeLwzJuW12wCI9PYv7Q=="}
+  {"name": "mytsigkey", "key": "GQNyFy1QagMUarHmiSgsIJajghdTGJGVcN5TRVwgbclzxGyhQR1uYLCOyJ/uj9uj12jyeLwzJuW12wCI9PYv7Q=="}
 
 .. code-block:: http
 

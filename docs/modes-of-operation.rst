@@ -132,7 +132,7 @@ updated and if so, retransfering it.
 All backends which implement this feature must make sure that they can
 handle transactions so as to not leave the zone in a half updated state.
 MySQL configured with either BerkeleyDB or InnoDB meets this
-requirement, as do PostgreSQL and Oracle. The Bindbackend implements
+requirement, as do PostgreSQL and Oracle. The BIND backend implements
 transaction semantics by renaming files if and only if they have been
 retrieved completely and parsed correctly.
 
@@ -187,6 +187,10 @@ can not serve IXFR updates.
 Supermaster: automatic provisioning of slaves
 ---------------------------------------------
 
+.. versionchanged:: 4.2.0
+  Supermaster support needs to be explicitly enabled with the
+  :ref:`setting-supermaster` setting.
+
 PowerDNS can recognize so called 'supermasters'. A supermaster is a host
 which is master for domains and for which we are to be a slave. When a
 master (re)loads a domain, it sends out a notification to its slaves.
@@ -201,12 +205,13 @@ itself as a slave for that zone.
 Before a supermaster notification succeeds, the following conditions
 must be met:
 
- - :ref:`setting-superslave` support must be enabled
- - The supermaster must carry a SOA record for the notified domain
- - The supermaster IP must be present in the 'supermasters' table
- - The set of NS records for the domain, as retrieved by the slave from the supermaster, must include the name that goes with the IP address in the supermasters table
- - If your master sends signed NOTIFY it will mark that TSIG key as the TSIG key used for retrieval as well
- - If you turn off :ref:`setting-allow-unsigned-supermaster`, then your supermaster(s) are required to sign their notifications.
+
+- :ref:`setting-superslave` support must be enabled
+- The supermaster must carry a SOA record for the notified domain
+- The supermaster IP must be present in the 'supermaster' table
+- The set of NS records for the domain, as retrieved by the slave from the supermaster, must include the name that goes with the IP address in the supermaster table
+- If your master sends signed NOTIFY it will mark that TSIG key as the TSIG key used for retrieval as well
+- If you turn off :ref:`setting-allow-unsigned-supermaster`, then your supermaster(s) are required to sign their notifications.
 
 .. warning::
   If you use another PowerDNS server as master and have
@@ -246,7 +251,7 @@ the ``domainmetadata`` table for the domain. Supposing the domain we
 want has an ``id`` of 3, the following SQL statement will enable the Lua
 script ``my.lua`` for that domain:
 
-::
+.. code-block:: SQL
 
     INSERT INTO domainmetadata (domain_id, kind, content) VALUES (3, "LUA-AXFR-SCRIPT", "/lua/my.lua");
 
@@ -270,7 +275,7 @@ incoming record as normal.
 
 Consider the following simple example:
 
-::
+.. code-block:: lua
 
         function axfrfilter(remoteip, zone, record)
 

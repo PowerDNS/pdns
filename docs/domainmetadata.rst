@@ -30,7 +30,7 @@ that tries to allow all potential slaves in.
 
 Example:
 
-::
+.. code-block:: shell
 
     pdnsutil set-meta powerdns.org ALLOW-AXFR-FROM AUTO-NS 2001:db8::/48
 
@@ -38,10 +38,10 @@ Each ACL has its own row in the database:
 
 ::
 
-    select id from domains where name='example.com';
+    sql> select id from domains where name='example.com';
     7
-    insert into domainmetadata (domain_id, kind, content) values (7,'ALLOW-AXFR-FROM','AUTO-NS');
-    insert into domainmetadata (domain_id, kind, content) values (7,'ALLOW-AXFR-FROM','2001:db8::/48');
+    sql> insert into domainmetadata (domain_id, kind, content) values (7,'ALLOW-AXFR-FROM','AUTO-NS');
+    sql> insert into domainmetadata (domain_id, kind, content) values (7,'ALLOW-AXFR-FROM','2001:db8::/48');
 
 To disallow all IP's, except those explicitly allowed by domainmetadata
 records, add ``allow-axfr-ips=`` to ``pdns.conf``.
@@ -82,14 +82,14 @@ When notifying this domain, also notify this nameserver (can occur
 multiple times). The nameserver may have contain an optional port
 number. e.g.:
 
-::
+.. code-block:: shell
 
     pdnsutil set-meta powerdns.org ALSO-NOTIFY 192.0.2.1:5300
     pdnsutil set-meta powerdns.org ALLOW-AXFR-FROM 2001:db8:53::1
 
 Or in SQL:
 
-::
+.. code-block:: SQL
 
     insert into domainmetadata (domain_id, kind, content) values (7,'ALSO-NOTIFY','192.0.2.1:5300');
     insert into domainmetadata (domain_id, kind, content) values (7,'ALLOW-AXFR-FROM','2001:db8:53::1');

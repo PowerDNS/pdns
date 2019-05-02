@@ -462,7 +462,7 @@ available. The exact definitions:
 
   Returns the numerical value of a parameter. Uses ``atoi()`` internally
 
-  Sample usage from the BindBackend: getting the 'check-interval' setting:
+  Sample usage from the BIND backend: getting the 'check-interval' setting:
 
   .. code-block:: cpp
 
@@ -643,9 +643,9 @@ Supermaster/Superslave capability
 A backend that wants to act as a 'superslave' for a master should
 implement the following method:
 
-::
+.. code-block:: cpp
 
-                class DNSBackend 
+                class DNSBackend
                 {
                    virtual bool superMasterBackend(const string &ip, const string &domain, const vector<DNSResourceRecord>&nsset, string *account, DNSBackend **db)
                 };
