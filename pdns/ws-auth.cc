@@ -622,6 +622,11 @@ static void updateDomainSettingsFromDocument(UeberBackend& B, const DomainInfo& 
     string master = value.string_value();
     if (master.empty())
       throw ApiException("Master can not be an empty string");
+    try {
+      ComboAddress m(master);
+    } catch (const PDNSException &e) {
+      throw ApiException("Master (" + master + ") is not an IP address: " + e.reason);
+    }
     zonemaster.push_back(master);
   }
 
@@ -1676,7 +1681,11 @@ static void apiServerZones(HttpRequest* req, HttpResponse* resp) {
       domains.push_back(di);
     }
   } else {
-    B.getAllDomains(&domains, true); // incl. disabled
+    try {
+      B.getAllDomains(&domains, true); // incl. disabled
+    } catch(const PDNSException &e) {
+      throw HttpInternalServerErrorException("Could not retrieve all domain information: " + e.reason);
+    }
   }
 
   Json::array doc;
@@ -1691,8 +1700,12 @@ static void apiServerZoneDetail(HttpRequest* req, HttpResponse* resp) {
 
   UeberBackend B;
   DomainInfo di;
-  if (!B.getDomainInfo(zonename, di)) {
-    throw HttpNotFoundException();
+  try {
+    if (!B.getDomainInfo(zonename, di)) {
+      throw HttpNotFoundException();
+    }
+  } catch(const PDNSException &e) {
+    throw HttpInternalServerErrorException("Could not retrieve Domain Info: " + e.reason);
   }
 
   if(req->method == "PUT") {

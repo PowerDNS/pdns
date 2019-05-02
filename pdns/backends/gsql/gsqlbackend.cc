@@ -292,14 +292,16 @@ bool GSQLBackend::getDomainInfo(const DNSName &domain, DomainInfo &di, bool getS
   } catch (...) {
     return false;
   }
+  string type=d_result[0][5];
+  di.account=d_result[0][6];
+  di.kind = DomainInfo::stringToKind(type);
+
   vector<string> masters;
   stringtok(masters, d_result[0][2], " ,\t");
   for(const auto& m : masters)
     di.masters.emplace_back(m, 53);
   di.last_check=pdns_stou(d_result[0][3]);
   di.notified_serial = pdns_stou(d_result[0][4]);
-  string type=d_result[0][5];
-  di.account=d_result[0][6];
   di.backend=this;
 
   di.serial = 0;
@@ -315,8 +317,6 @@ bool GSQLBackend::getDomainInfo(const DNSName &domain, DomainInfo &di, bool getS
       g_log<<Logger::Error<<"Error retrieving serial for '"<<domain<<"': "<<ae.reason<<endl;
     }
   }
-
-  di.kind = DomainInfo::stringToKind(type);
 
   return true;
 }
@@ -339,25 +339,57 @@ void GSQLBackend::getUnfreshSlaveInfos(vector<DomainInfo> *unfreshDomains)
 
   vector<DomainInfo> allSlaves;
 
+  bool loggedAssertRowColumns = false;
   for(const auto& row : d_result) { // id,name,master,last_check
     DomainInfo sd;
-    ASSERT_ROW_COLUMNS("info-all-slaves-query", row, 4);
     try {
-      sd.id=pdns_stou(row[0]);
-      sd.zone= DNSName(row[1]);
-
-      vector<string> masters;
-      stringtok(masters, row[2], ", \t");
-      for(const auto& m : masters)
-        sd.masters.emplace_back(m, 53);
-
-      sd.last_check=pdns_stou(row[3]);
-      sd.backend=this;
-      sd.kind=DomainInfo::Slave;
-      allSlaves.push_back(sd);
-    } catch (...) {
+      ASSERT_ROW_COLUMNS("info-all-slaves-query", row, 4);
+    } catch(const PDNSException &e) {
+      if (!loggedAssertRowColumns) {
+        g_log<<Logger::Warning<<e.reason<<endl;
+      }
+      loggedAssertRowColumns = true;
       continue;
     }
+
+    try {
+      sd.zone = DNSName(row[1]);
+    } catch(const std::runtime_error &e) {
+      g_log<<Logger::Warning<<"Domain name '"<<row[1]<<"' is not a valid DNS name: "<<e.what()<<endl;
+      continue;
+    }
+
+    try {
+      sd.id=pdns_stou(row[0]);
+    } catch (const std::exception &e) {
+      g_log<<Logger::Warning<<"Could not convert id ("<<row[0]<<") for domain '"<<sd.zone<<"' into an integer: "<<e.what()<<endl;
+      continue;
+    }
+
+    vector<string> masters;
+    stringtok(masters, row[2], ", \t");
+    for(const auto& m : masters) {
+      try {
+        sd.masters.emplace_back(m, 53);
+      } catch(const PDNSException &e) {
+        g_log<<Logger::Warning<<"Could not parse master address ("<<m<<") for zone '"<<sd.zone<<"': "<<e.reason<<endl;
+      }
+    }
+    if (sd.masters.empty()) {
+      g_log<<Logger::Warning<<"No masters for slave zone '"<<sd.zone<<"' found in the database"<<endl;
+      continue;
+    }
+
+    try {
+      sd.last_check=pdns_stou(row[3]);
+    } catch (const std::exception &e) {
+      g_log<<Logger::Warning<<"Could not convert last_check ("<<row[3]<<") for domain '"<<sd.zone<<"' into an integer: "<<e.what()<<endl;
+      continue;
+    }
+
+    sd.backend=this;
+    sd.kind=DomainInfo::Slave;
+    allSlaves.push_back(sd);
   }
 
   for (auto& slave : allSlaves) {
@@ -1265,12 +1297,28 @@ void GSQLBackend::getAllDomains(vector<DomainInfo> *domains, bool include_disabl
       } catch (...) {
         continue;
       }
+
+      if (pdns_iequals(row[3], "MASTER")) {
+        di.kind = DomainInfo::Master;
+      } else if (pdns_iequals(row[3], "SLAVE")) {
+        di.kind = DomainInfo::Slave;
+      } else if (pdns_iequals(row[3], "NATIVE")) {
+        di.kind = DomainInfo::Native;
+      } else {
+        g_log<<Logger::Warning<<"Could not parse domain kind '"<<row[3]<<"' as one of 'MASTER', 'SLAVE' or 'NATIVE'. Setting zone kind to 'NATIVE'"<<endl;
+        di.kind = DomainInfo::Native;
+      }
   
       if (!row[4].empty()) {
         vector<string> masters;
         stringtok(masters, row[4], " ,\t");
-        for(const auto& m : masters)
-          di.masters.emplace_back(m, 53);
+        for(const auto& m : masters) {
+          try {
+            di.masters.emplace_back(m, 53);
+          } catch(const PDNSException &e) {
+            g_log<<Logger::Warning<<"Could not parse master address ("<<m<<") for zone '"<<di.zone<<"': "<<e.reason;
+          }
+        }
       }
 
       SOAData sd;
@@ -1280,13 +1328,6 @@ void GSQLBackend::getAllDomains(vector<DomainInfo> *domains, bool include_disabl
       di.last_check = pdns_stou(row[6]);
       di.account = row[7];
 
-      if (pdns_iequals(row[3], "MASTER"))
-        di.kind = DomainInfo::Master;
-      else if (pdns_iequals(row[3], "SLAVE"))
-        di.kind = DomainInfo::Slave;
-      else
-        di.kind = DomainInfo::Native;
-  
       di.backend = this;
   
       domains->push_back(di);
