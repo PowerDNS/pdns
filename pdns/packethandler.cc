@@ -585,9 +585,6 @@ void PacketHandler::emitNSEC3(DNSPacket *r, const SOAData& sd, const NSEC3PARAMR
 */
 void PacketHandler::addNSECX(DNSPacket *p, DNSPacket *r, const DNSName& target, const DNSName& wildcard, const DNSName& auth, int mode)
 {
-  if(!p->d_dnssecOk && mode != 5)
-    return;
-
   NSEC3PARAMRecordContent ns3rc;
   bool narrow;
   if(d_dk.getNSEC3PARAM(auth, &ns3rc, &narrow))  {
@@ -971,7 +968,6 @@ void PacketHandler::makeNXDomain(DNSPacket* p, DNSPacket* r, const DNSName& targ
   DNSZoneRecord rr;
   rr.dr.d_name=sd.qname;
   rr.dr.d_type=QType::SOA;
-  
   rr.dr.d_content=makeSOAContent(sd);
   rr.dr.d_ttl=min(sd.ttl, sd.default_ttl);
   rr.signttl=sd.ttl;
@@ -980,8 +976,9 @@ void PacketHandler::makeNXDomain(DNSPacket* p, DNSPacket* r, const DNSName& targ
   rr.auth = 1;
   r->addRecord(rr);
 
-  if(d_dk.isSecuredZone(sd.qname))
+  if(d_dnssec) {
     addNSECX(p, r, target, wildcard, sd.qname, 4);
+  }
 
   r->setRcode(RCode::NXDomain);
 }
@@ -992,7 +989,6 @@ void PacketHandler::makeNOError(DNSPacket* p, DNSPacket* r, const DNSName& targe
   rr.dr.d_name=sd.qname;
   rr.dr.d_type=QType::SOA;
   rr.dr.d_content=makeSOAContent(sd);
-  rr.dr.d_ttl=sd.ttl;
   rr.dr.d_ttl=min(sd.ttl, sd.default_ttl);
   rr.signttl=sd.ttl;
   rr.domain_id=sd.domain_id;
@@ -1000,8 +996,9 @@ void PacketHandler::makeNOError(DNSPacket* p, DNSPacket* r, const DNSName& targe
   rr.auth = 1;
   r->addRecord(rr);
 
-  if(d_dk.isSecuredZone(sd.qname))
+  if(d_dnssec) {
     addNSECX(p, r, target, wildcard, sd.qname, mode);
+  }
 
   S.ringAccount("noerror-queries", p->qdomain, p->qtype);
 }
@@ -1034,20 +1031,15 @@ bool PacketHandler::tryReferral(DNSPacket *p, DNSPacket*r, SOAData& sd, const DN
   if(!retargeted)
     r->setA(false);
 
-  if(d_dk.isSecuredZone(sd.qname) && !addDSforNS(p, r, sd, rrset.begin()->dr.d_name))
+  if(d_dnssec && !addDSforNS(p, r, sd, rrset.begin()->dr.d_name)) {
     addNSECX(p, r, rrset.begin()->dr.d_name, DNSName(), sd.qname, 1);
-  
+  }
+
   return true;
 }
 
 void PacketHandler::completeANYRecords(DNSPacket *p, DNSPacket*r, SOAData& sd, const DNSName &target)
 {
-  if(!p->d_dnssecOk)
-    return; // Don't send dnssec info to non validating resolvers.
-
-  if(!d_dk.isSecuredZone(sd.qname))
-    return;
-
   addNSECX(p, r, target, DNSName(), sd.qname, 5);
   if(sd.qname == p->qdomain) {
     addDNSKEY(p, r, sd);
@@ -1099,9 +1091,10 @@ bool PacketHandler::tryWildcard(DNSPacket *p, DNSPacket*r, SOAData& sd, DNSName 
       r->addRecord(rr);
     }
   }
-  if(d_dk.isSecuredZone(sd.qname) && !nodata) {
+  if(d_dnssec && !nodata) {
     addNSECX(p, r, bestmatch, wildcard, sd.qname, 3);
   }
+
   return true;
 }
 
@@ -1280,7 +1273,11 @@ DNSPacket *PacketHandler::doQuestion(DNSPacket *p)
       goto sendit;
     }
     DLOG(g_log<<Logger::Error<<"We have authority, zone='"<<sd.qname<<"', id="<<sd.domain_id<<endl);
-    authSet.insert(sd.qname); 
+
+    d_dnssec=(p->d_dnssecOk && d_dk.isSecuredZone(sd.qname));
+    if(d_dnssec) {
+      authSet.insert(sd.qname);
+    }
 
     if(!retargetcount) r->qdomainzone=sd.qname;
 
@@ -1300,7 +1297,7 @@ DNSPacket *PacketHandler::doQuestion(DNSPacket *p)
         if(addCDS(p,r, sd))
           goto sendit;
       }
-      else if(p->qtype.getCode() == QType::NSEC3PARAM && d_dk.isSecuredZone(sd.qname))
+      else if(d_dnssec && p->qtype.getCode() == QType::NSEC3PARAM)
       {
         if(addNSEC3PARAM(p,r, sd))
           goto sendit;
@@ -1321,7 +1318,7 @@ DNSPacket *PacketHandler::doQuestion(DNSPacket *p)
     }
 
     // this TRUMPS a cname!
-    if(p->qtype.getCode() == QType::NSEC && d_dk.isSecuredZone(sd.qname) && !d_dk.getNSEC3PARAM(sd.qname, 0)) {
+    if(d_dnssec && p->qtype.getCode() == QType::NSEC && !d_dk.getNSEC3PARAM(sd.qname, 0)) {
       addNSEC(p, r, target, DNSName(), sd.qname, 5);
       if (!r->isEmpty())
         goto sendit;
@@ -1391,8 +1388,8 @@ DNSPacket *PacketHandler::doQuestion(DNSPacket *p)
       }
 #endif
       //cerr<<"got content: ["<<rr.content<<"]"<<endl;
-      if (p->qtype.getCode() == QType::ANY && !p->d_dnssecOk && (rr.dr.d_type == QType:: DNSKEY || rr.dr.d_type == QType::NSEC3PARAM))
-        continue; // Don't send dnssec info to non validating resolvers.
+      if (!d_dnssec && p->qtype.getCode() == QType::ANY && (rr.dr.d_type == QType:: DNSKEY || rr.dr.d_type == QType::NSEC3PARAM))
+        continue; // Don't send dnssec info.
       if (rr.dr.d_type == QType::RRSIG) // RRSIGS are added later any way.
         continue; // TODO: this actually means addRRSig should check if the RRSig is already there
 
@@ -1536,7 +1533,7 @@ DNSPacket *PacketHandler::doQuestion(DNSPacket *p)
       }
 
       if (haveRecords) {
-        if(p->qtype.getCode() == QType::ANY)
+        if(d_dnssec && p->qtype.getCode() == QType::ANY)
           completeANYRecords(p, r, sd, target);
       }
       else
@@ -1572,7 +1569,7 @@ DNSPacket *PacketHandler::doQuestion(DNSPacket *p)
         break;
       }
     }
-    if(p->d_dnssecOk)
+    if(authSet.size())
       addRRSigs(d_dk, B, authSet, r->getRRS());
       
     r->wrapup(); // needed for inserting in cache
