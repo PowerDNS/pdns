@@ -54,6 +54,9 @@ po::variables_map g_vm;
 class IPObfuscator
 {
 public:
+  virtual ~IPObfuscator()
+  {
+  }
   virtual uint32_t obf4(uint32_t orig)=0;
   virtual struct in6_addr obf6(const struct in6_addr& orig)=0;
 };
