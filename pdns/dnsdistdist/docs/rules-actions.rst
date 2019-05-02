@@ -720,7 +720,7 @@ These ``DNSRule``\ s be one of the following items:
 .. function:: RecordsTypeCountRule(section, qtype, minCount, maxCount)
 
   Matches if there is at least ``minCount`` and at most ``maxCount`` records of type ``type`` in the section ``section``.
-  ``section`` can be specified as an integer or as a ref:`DNSSection`.
+  ``section`` can be specified as an integer or as a :ref:`DNSSection`.
   ``qtype`` may be specified as an integer or as one of the :ref:`built-in QTypes <DNSQType>`, for instance ``DNSQType.A`` or ``DNSQType.TXT``.
 
   :param int section: The section to match on

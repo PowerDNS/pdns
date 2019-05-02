@@ -152,7 +152,7 @@ the IP(-range) of the updater still needs to be allowed via ``ALLOW-DNSUPDATE-FR
 FORWARD-DNSUPDATE
 ~~~~~~~~~~~~~~~~~
 
-See `Configuration options <dnsupdate-configuration-options>` for what it does,
+See :ref:`Configuration options <dnsupdate-configuration-options>` for what it does,
 but per domain.
 
 ::
