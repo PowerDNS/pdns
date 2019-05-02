@@ -224,7 +224,7 @@ void DNSSECKeeper::getFromMeta(const DNSName& zname, const std::string& key, std
     nce.d_value = value;
     {
       WriteLock l(&s_metacachelock);
-      replacing_insert(s_metacache, nce);
+      lruReplacingInsert(s_metacache, nce);
     }
   }
 }
@@ -514,7 +514,7 @@ DNSSECKeeper::keyset_t DNSSECKeeper::getKeys(const DNSName& zone, bool useCache)
     kce.d_ttd = now + ttl;
     {
       WriteLock l(&s_keycachelock);
-      replacing_insert(s_keycache, kce);
+      lruReplacingInsert(s_keycache, kce);
     }
   }
 

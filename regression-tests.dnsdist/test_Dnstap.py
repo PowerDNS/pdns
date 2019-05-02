@@ -102,7 +102,7 @@ class TestDnstapOverRemoteLogger(DNSDistTest):
 
     function luaFunc(dq)
       dq.dh:setQR(true)
-      dq.dh:setRCode(dnsdist.NXDOMAIN)
+      dq.dh:setRCode(DNSRCode.NXDOMAIN)
       return DNSAction.None, ""
     end
 

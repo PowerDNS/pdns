@@ -202,7 +202,7 @@ string nowTime()
   // YYYY-mm-dd HH:MM:SS TZOFF
   strftime(buffer, sizeof(buffer), "%F %T %z", tm);
   buffer[sizeof(buffer)-1] = '\0';
-  return buffer;
+  return string(buffer);
 }
 
 uint16_t getShort(const unsigned char *p)
@@ -498,7 +498,7 @@ string getHostname()
   if(gethostname(tmp, MAXHOSTNAMELEN))
     return "UNKNOWN";
 
-  return tmp;
+  return string(tmp);
 }
 
 string itoa(int i)
@@ -571,7 +571,7 @@ string U32ToIP(uint32_t val)
            (val >> 16)&0xff,
            (val >>  8)&0xff,
            (val      )&0xff);
-  return tmp;
+  return string(tmp);
 }
 
 
@@ -1484,4 +1484,37 @@ std::vector<ComboAddress> getResolvers(const std::string& resolvConfPath)
   }
 
   return results;
+}
+
+size_t getPipeBufferSize(int fd)
+{
+#ifdef F_GETPIPE_SZ
+  int res = fcntl(fd, F_GETPIPE_SZ);
+  if (res == -1) {
+    return 0;
+  }
+  return res;
+#else
+  errno = ENOSYS;
+  return 0;
+#endif /* F_GETPIPE_SZ */
+}
+
+bool setPipeBufferSize(int fd, size_t size)
+{
+#ifdef F_SETPIPE_SZ
+  if (size > std::numeric_limits<int>::max()) {
+    errno = EINVAL;
+    return false;
+  }
+  int newSize = static_cast<int>(size);
+  int res = fcntl(fd, F_SETPIPE_SZ, newSize);
+  if (res == -1) {
+    return false;
+  }
+  return true;
+#else
+  errno = ENOSYS;
+  return false;
+#endif /* F_SETPIPE_SZ */
 }

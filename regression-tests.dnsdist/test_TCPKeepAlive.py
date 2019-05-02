@@ -26,10 +26,10 @@ class TestTCPKeepAlive(DNSDistTest):
     setMaxTCPQueriesPerConnection(%s)
     setMaxTCPConnectionsPerClient(%s)
     setMaxTCPConnectionDuration(%s)
-    pc = newPacketCache(100, 86400, 1)
+    pc = newPacketCache(100, {maxTTL=86400, minTTL=1})
     getPool(""):setCache(pc)
     addAction("largernumberofconnections.tcpka.tests.powerdns.com.", SkipCacheAction())
-    addAction("refused.tcpka.tests.powerdns.com.", RCodeAction(dnsdist.REFUSED))
+    addAction("refused.tcpka.tests.powerdns.com.", RCodeAction(DNSRCode.REFUSED))
     addAction("dropped.tcpka.tests.powerdns.com.", DropAction())
     addResponseAction("dropped-response.tcpka.tests.powerdns.com.", DropResponseAction())
     -- create the pool named "nosuchpool"

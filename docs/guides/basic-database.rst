@@ -46,10 +46,24 @@ Example: configuring MySQL
 --------------------------
 
 Connect to MySQL as a user with sufficient privileges and issue the
-following commands:
+following commands below if you are running the 4.2 or master version of PowerDNS:
+
+Please find `the 4.1 schema on GitHub <https://github.com/PowerDNS/pdns/blob/rel/auth-4.1.x/modules/gmysqlbackend/schema.mysql.sql>`_.
+
 
 .. literalinclude:: ../../modules/gmysqlbackend/schema.mysql.sql
    :language: SQL
+
+We recommend you add the following MySQL statements as well. These will add
+foreign key constraints to the tables in order to automate deletion of records, key
+material, and other information upon deletion of a domain from the
+domains table. These will only work on the InnoDB storage engine, but if you
+followed our guide so far, that's exactly the engine we are using.
+
+The following SQL does the job:
+
+.. literalinclude:: ../../modules/gmysqlbackend/enable-foreign-keys.mysql.sql
+
 
 Now we have a database and an empty table. PowerDNS should now be able
 to launch in monitor mode and display no errors:
@@ -223,7 +237,11 @@ test your nameserver as clients expect the nameserver to live on port
 Unable to launch, no backends configured for querying
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-PowerDNS did not find the ``launch=bind`` instruction in pdns.conf.
+You currently don't have a backend configured in the configuration file.
+Add a :ref:`setting-launch` statement for the backend you want to use.
+
+If you are following this guide and using a MySQL database as a backend,
+please add the ``launch=gmysql`` instruction to pdns.conf.
 
 Multiple IP addresses on your server, PowerDNS sending out answers on the wrong one, Massive amounts of 'recvfrom gave error, ignoring: Connection refused'
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~

@@ -257,6 +257,40 @@ Operate in the background.
 
 Which domains we only accept delegations from (a Verisign special).
 
+.. _setting-dont-throttle-names:
+
+``dont-throttle-names``
+----------------------------
+.. versionadded:: 4.2.0
+
+-  Comma separated list of domain-names
+-  Default: (empty)
+
+When an authoritative server does not answer a query or sends a reply the recursor does not like, it is throttled.
+Any servers' name suffix-matching the supplied names will never be throttled.
+
+.. warning::
+  Most servers on the internet do not respond for a good reason (overloaded or unreachable), ``dont-throttle-names`` could make this load on the upstream server even higher, resulting in further service degradation.
+
+.. _setting-dont-throttle-netmasks:
+
+``dont-throttle-netmasks``
+----------------------------
+.. versionadded:: 4.2.0
+
+-  Comma separated list of netmasks
+-  Default: (empty)
+
+When an authoritative server does not answer a query or sends a reply the recursor does not like, it is throttled.
+Any servers matching the supplied netmasks will never be throttled.
+
+This can come in handy on lossy networks when forwarding, where the same server is configured multiple times (e.g. with ``forward-zones-recurse=example.com=192.0.2.1;192.0.2.1``).
+By default, the PowerDNS Recursor would throttle the "first" server on a timeout and hence not retry the "second" one.
+In this case, ``dont-throttle-netmasks`` could be set to ``192.0.2.1``.
+
+.. warning::
+  Most servers on the internet do not respond for a good reason (overloaded or unreachable), ``dont-throttle-netmasks`` could make this load on the upstream server even higher, resulting in further service degradation.
+
 .. _setting-disable-packetcache:
 
 ``disable-packetcache``
@@ -296,6 +330,21 @@ For example, with a value of 1.25, no server should get more than 125 % of the
 average load. This helps making sure that all the workers have roughly the same
 share of queries, even if the incoming traffic is very skewed, with a larger
 number of requests asking for the same qname.
+
+.. _setting-distribution-pipe-buffer-size:
+
+``distribution-pipe-buffer-size``
+---------------------------------
+.. versionadded:: 4.2.0
+
+-  Integer
+-  Default: 0
+
+Size in bytes of the internal buffer of the pipe used by the distributor to pass incoming queries to a worker thread.
+Requires support for `F_SETPIPE_SZ` which is present in Linux since 2.6.35. The actual size might be rounded up to
+a multiple of a page size. 0 means that the OS default size is used.
+A large buffer might allow the recursor to deal with very short-lived load spikes during which a worker thread gets
+overloaded, but it will be at the cost of an increased latency.
 
 .. _setting-distributor-threads:
 
@@ -1092,6 +1141,17 @@ If set, PowerDNS will have only 1 thread listening on client sockets, and distri
 maximizing the cache hit ratio. Starting with version 4.2.0, more than one distributing thread can be started using the `distributor-threads`_
 setting.
 Improves performance on Linux.
+
+.. _settting-protobuf-use-kernel-timestamp:
+
+``protobuf-use-kernel-timestamp``
+---------------------------
+.. versionadded:: 4.2.0
+
+- Boolean
+- Default: false
+
+Whether to compute the latency of responses in protobuf messages using the timestamp set by the kernel when the query packet was received (when available), instead of computing it based on the moment we start processing the query.
 
 .. _settting-public-suffix-list-file:
 

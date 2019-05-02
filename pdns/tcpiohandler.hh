@@ -137,19 +137,16 @@ public:
     return res;
   }
 
-  std::set<int> d_cpus;
   std::vector<std::pair<std::string, std::string>> d_certKeyPairs;
   ComboAddress d_addr;
   std::string d_ciphers;
+  std::string d_ciphers13;
   std::string d_provider;
-  std::string d_interface;
   std::string d_ticketKeyFile;
 
   size_t d_maxStoredSessions{20480};
   time_t d_ticketsKeyRotationDelay{43200};
-  int d_tcpFastOpenQueueSize{0};
   uint8_t d_numberOfTicketsKeys{5};
-  bool d_reusePort{false};
   bool d_enableTickets{true};
 
 private:

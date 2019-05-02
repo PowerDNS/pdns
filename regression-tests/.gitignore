@@ -32,3 +32,5 @@
 /remotebackend-access.log
 /pdns.lmdb*
 /pdns2.lmdb*
+/recursor.forward-zones-file
+/recursor.trustedkeys.lua

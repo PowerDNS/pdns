@@ -7,7 +7,7 @@ from dnsdisttests import DNSDistTest
 class TestRecordsCountOnlyOneAR(DNSDistTest):
 
     _config_template = """
-    addAction(NotRule(RecordsCountRule(DNSSection.Additional, 1, 1)), RCodeAction(dnsdist.REFUSED))
+    addAction(NotRule(RecordsCountRule(DNSSection.Additional, 1, 1)), RCodeAction(DNSRCode.REFUSED))
     newServer{address="127.0.0.1:%s"}
     """
 
@@ -79,7 +79,7 @@ class TestRecordsCountMoreThanOneLessThanFour(DNSDistTest):
 
     _config_template = """
     addAction(RecordsCountRule(DNSSection.Answer, 2, 3), AllowAction())
-    addAction(AllRule(), RCodeAction(dnsdist.REFUSED))
+    addAction(AllRule(), RCodeAction(DNSRCode.REFUSED))
     newServer{address="127.0.0.1:%s"}
     """
 
@@ -156,7 +156,7 @@ class TestRecordsCountNothingInNS(DNSDistTest):
 
     _config_template = """
     addAction(RecordsCountRule(DNSSection.Authority, 0, 0), AllowAction())
-    addAction(AllRule(), RCodeAction(dnsdist.REFUSED))
+    addAction(AllRule(), RCodeAction(DNSRCode.REFUSED))
     newServer{address="127.0.0.1:%s"}
     """
 
@@ -213,7 +213,7 @@ class TestRecordsCountNothingInNS(DNSDistTest):
 class TestRecordsCountNoOPTInAR(DNSDistTest):
 
     _config_template = """
-    addAction(NotRule(RecordsTypeCountRule(DNSSection.Additional, dnsdist.OPT, 0, 0)), RCodeAction(dnsdist.REFUSED))
+    addAction(NotRule(RecordsTypeCountRule(DNSSection.Additional, DNSQType.OPT, 0, 0)), RCodeAction(DNSRCode.REFUSED))
     newServer{address="127.0.0.1:%s"}
     """
 

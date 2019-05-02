@@ -40,6 +40,7 @@
 #include "dnsdist-cache.hh"
 #include "dnsdist-dynbpf.hh"
 #include "dnsname.hh"
+#include "doh.hh"
 #include "ednsoptions.hh"
 #include "gettime.hh"
 #include "iputils.hh"
@@ -65,6 +66,9 @@ struct DNSQuestion
     const uint16_t* flags = getFlagsFromDNSHeader(dh);
     origFlags = *flags;
   }
+  DNSQuestion(const DNSQuestion&) = delete;
+  DNSQuestion& operator=(const DNSQuestion&) = delete;
+  DNSQuestion(DNSQuestion&&) = default;
 
 #ifdef HAVE_PROTOBUF
   boost::optional<boost::uuids::uuid> uniqueId;
@@ -80,6 +84,7 @@ struct DNSQuestion
   std::shared_ptr<DNSDistPacketCache> packetCache{nullptr};
   struct dnsheader* dh{nullptr};
   const struct timespec* queryTime{nullptr};
+  struct DOHUnit* du{nullptr};
   size_t size;
   unsigned int consumed{0};
   int delayMsec{0};
@@ -108,6 +113,9 @@ struct DNSResponse : DNSQuestion
 {
   DNSResponse(const DNSName* name, uint16_t type, uint16_t class_, unsigned int consumed, const ComboAddress* lc, const ComboAddress* rem, struct dnsheader* header, size_t bufferSize, uint16_t responseLen, bool isTcp, const struct timespec* queryTime_):
     DNSQuestion(name, type, class_, consumed, lc, rem, header, bufferSize, responseLen, isTcp, queryTime_) { }
+  DNSResponse(const DNSResponse&) = delete;
+  DNSResponse& operator=(const DNSResponse&) = delete;
+  DNSResponse(DNSResponse&&) = default;
 };
 
 /* so what could you do:
@@ -547,6 +555,7 @@ struct IDState
   std::shared_ptr<DNSDistPacketCache> packetCache{nullptr};
   std::shared_ptr<QTag> qTag{nullptr};
   const ClientState* cs{nullptr};
+  DOHUnit* du{nullptr};
   uint32_t cacheKey;                                          // 4
   uint32_t cacheKeyNoECS;                                     // 4
   uint16_t age;                                               // 4
@@ -565,7 +574,7 @@ struct IDState
 };
 
 typedef std::unordered_map<string, unsigned int> QueryCountRecords;
-typedef std::function<std::tuple<bool, string>(DNSQuestion dq)> QueryCountFilter;
+typedef std::function<std::tuple<bool, string>(const DNSQuestion* dq)> QueryCountFilter;
 struct QueryCount {
   QueryCount()
   {
@@ -581,10 +590,16 @@ extern QueryCount g_qcount;
 
 struct ClientState
 {
+  ClientState(const ComboAddress& local_, bool isTCP, bool doReusePort, int fastOpenQueue, const std::string& itfName, const std::set<int>& cpus_): cpus(cpus_), local(local_), interface(itfName), fastOpenQueueSize(fastOpenQueue), tcp(isTCP), reuseport(doReusePort)
+  {
+  }
+
   std::set<int> cpus;
   ComboAddress local;
   std::shared_ptr<DNSCryptContext> dnscryptCtx{nullptr};
-  shared_ptr<TLSFrontend> tlsFrontend;
+  std::shared_ptr<TLSFrontend> tlsFrontend{nullptr};
+  std::shared_ptr<DOHFrontend> dohFrontend{nullptr};
+  std::string interface;
   std::atomic<uint64_t> queries{0};
   std::atomic<uint64_t> tcpDiedReadingQuery{0};
   std::atomic<uint64_t> tcpDiedSendingResponse{0};
@@ -597,7 +612,11 @@ struct ClientState
   std::atomic<double> tcpAvgConnectionDuration{0.0};
   int udpFD{-1};
   int tcpFD{-1};
+  int fastOpenQueueSize{0};
   bool muted{false};
+  bool tcp;
+  bool reuseport;
+  bool ready{false};
 
   int getSocket() const
   {
@@ -608,7 +627,10 @@ struct ClientState
   {
     std::string result = udpFD != -1 ? "UDP" : "TCP";
 
-    if (tlsFrontend) {
+    if (dohFrontend) {
+      result += " (DNS over HTTPS)";
+    }
+    else if (tlsFrontend) {
       result += " (DNS over TLS)";
     }
     else if (dnscryptCtx) {
@@ -1008,7 +1030,8 @@ extern ComboAddress g_serverControl; // not changed during runtime
 
 extern std::vector<std::tuple<ComboAddress, bool, bool, int, std::string, std::set<int>>> g_locals; // not changed at runtime (we hope XXX)
 extern std::vector<shared_ptr<TLSFrontend>> g_tlslocals;
-extern vector<ClientState*> g_frontends;
+extern std::vector<shared_ptr<DOHFrontend>> g_dohlocals;
+extern std::vector<std::unique_ptr<ClientState>> g_frontends;
 extern bool g_truncateTC;
 extern bool g_fixupCase;
 extern int g_tcpRecvTimeout;
@@ -1034,6 +1057,7 @@ extern uint16_t g_downstreamTCPCleanupInterval;
 extern size_t g_udpVectorSize;
 extern bool g_preserveTrailingData;
 extern bool g_allowEmptyResponse;
+extern bool g_roundrobinFailOnNoServer;
 
 #ifdef HAVE_EBPF
 extern shared_ptr<BPFFilter> g_defaultBPFFilter;
@@ -1087,6 +1111,9 @@ void setWebserverCustomHeaders(const boost::optional<std::map<std::string, std::
 
 void dnsdistWebserverThread(int sock, const ComboAddress& local);
 void tcpAcceptorThread(void* p);
+#ifdef HAVE_DNS_OVER_HTTPS
+void dohThread(ClientState* cs);
+#endif /* HAVE_DNS_OVER_HTTPS */
 
 void setLuaNoSideEffect(); // if nothing has been declared, set that there are no side effects
 void setLuaSideEffect();   // set to report a side effect, cancelling all _no_ side effect calls
@@ -1098,7 +1125,7 @@ bool processResponse(char** response, uint16_t* responseLen, size_t* responseSiz
 
 bool checkQueryHeaders(const struct dnsheader* dh);
 
-extern std::vector<std::tuple<ComboAddress, std::shared_ptr<DNSCryptContext>, bool, int, std::string, std::set<int> > > g_dnsCryptLocals;
+extern std::vector<std::shared_ptr<DNSCryptContext>> g_dnsCryptLocals;
 int handleDNSCryptQuery(char* packet, uint16_t len, std::shared_ptr<DNSCryptQuery> query, uint16_t* decryptedQueryLen, bool tcp, time_t now, std::vector<uint8_t>& response);
 boost::optional<std::vector<uint8_t>> checkDNSCryptQuery(const ClientState& cs, const char* query, uint16_t& len, std::shared_ptr<DNSCryptQuery>& dnsCryptQuery, time_t now, bool tcp);
 
@@ -1120,3 +1147,6 @@ ProcessQueryResult processQuery(DNSQuestion& dq, ClientState& cs, LocalHolders& 
 
 DNSResponse makeDNSResponseFromIDState(IDState& ids, struct dnsheader* dh, size_t bufferSize, uint16_t responseLen, bool isTCP);
 void setIDStateFromDNSQuestion(IDState& ids, DNSQuestion& dq, DNSName&& qname);
+
+int pickBackendSocketForSending(std::shared_ptr<DownstreamState>& state);
+ssize_t udpClientSendRequestToBackend(const std::shared_ptr<DownstreamState>& ss, const int sd, const char* request, const size_t requestLen, bool healthCheck=false);

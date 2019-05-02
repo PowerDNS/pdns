@@ -136,6 +136,27 @@ int SSetsockopt(int sockfd, int level, int opname, int value)
   return ret;
 }
 
+void setSocketIgnorePMTU(int sockfd)
+{
+#if defined(IP_MTU_DISCOVER) && defined(IP_PMTUDISC_DONT)
+#ifdef IP_PMTUDISC_OMIT
+  /* Linux 3.15+ has IP_PMTUDISC_OMIT, which discards PMTU information to prevent
+     poisoning, but still allows fragmentation if the packet size exceeds the
+     outgoing interface MTU, which is good.
+  */
+  try {
+    SSetsockopt(sockfd, IPPROTO_IP, IP_MTU_DISCOVER, IP_PMTUDISC_OMIT);
+    return;
+  }
+  catch(const std::exception& e) {
+    /* failed, let's try IP_PMTUDISC_DONT instead */
+  }
+#endif /* IP_PMTUDISC_OMIT */
+
+  /* IP_PMTUDISC_DONT disables Path MTU discovery */
+  SSetsockopt(sockfd, IPPROTO_IP, IP_MTU_DISCOVER, IP_PMTUDISC_DONT);
+#endif /* defined(IP_MTU_DISCOVER) && defined(IP_PMTUDISC_DONT) */
+}
 
 bool HarvestTimestamp(struct msghdr* msgh, struct timeval* tv) 
 {
@@ -300,10 +321,6 @@ size_t sendMsgWithTimeout(int fd, const char* buffer, size_t len, int idleTimeou
     addCMsgSrcAddr(&msgh, cbuf, local, localItf);
   }
 
-  if (localItf != 0 && local) {
-    addCMsgSrcAddr(&msgh, cbuf, local, localItf);
-  }
-
   iov.iov_base = reinterpret_cast<void*>(const_cast<char*>(buffer));
   iov.iov_len = len;
   msgh.msg_iov = &iov;
@@ -340,7 +357,7 @@ size_t sendMsgWithTimeout(int fd, const char* buffer, size_t len, int idleTimeou
       if (errno == EINTR) {
         continue;
       }
-      else if (errno == EAGAIN || errno == EWOULDBLOCK || errno == EINPROGRESS) {
+      else if (errno == EAGAIN || errno == EWOULDBLOCK || errno == EINPROGRESS || errno == ENOTCONN) {
         /* EINPROGRESS might happen with non blocking socket,
            especially with TCP Fast Open */
         if (totalTimeout <= 0 && idleTimeout <= 0) {

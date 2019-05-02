@@ -166,7 +166,7 @@ class TestEdnsClientSubnetNoOverride(DNSDistTest):
         response = dns.message.make_response(expectedQuery)
         ecsoResponse = clientsubnetoption.ClientSubnetOption('127.0.0.1', 24, scope=24)
         response.use_edns(edns=True, payload=4096, options=[ecsoResponse])
-        expectedResponse = dns.message.make_response(query)
+        expectedResponse = dns.message.make_response(query, our_payload=4096)
         rrset = dns.rrset.from_text(name,
                                     3600,
                                     dns.rdataclass.IN,
@@ -241,7 +241,7 @@ class TestEdnsClientSubnetNoOverride(DNSDistTest):
         ecoResponse = cookiesoption.CookiesOption(b'deadbeef', b'deadbeef')
         ecsoResponse = clientsubnetoption.ClientSubnetOption('127.0.0.1', 24, scope=24)
         response.use_edns(edns=True, payload=4096, options=[ecsoResponse, ecoResponse])
-        expectedResponse = dns.message.make_response(query)
+        expectedResponse = dns.message.make_response(query, our_payload=4096)
         rrset = dns.rrset.from_text(name,
                                     3600,
                                     dns.rdataclass.IN,
@@ -279,7 +279,7 @@ class TestEdnsClientSubnetNoOverride(DNSDistTest):
         ecoResponse = cookiesoption.CookiesOption(b'deadbeef', b'deadbeef')
         ecsoResponse = clientsubnetoption.ClientSubnetOption('127.0.0.1', 24, scope=24)
         response.use_edns(edns=True, payload=4096, options=[ecoResponse, ecsoResponse, ecoResponse])
-        expectedResponse = dns.message.make_response(query)
+        expectedResponse = dns.message.make_response(query, our_payload=4096)
         rrset = dns.rrset.from_text(name,
                                     3600,
                                     dns.rdataclass.IN,
@@ -365,7 +365,7 @@ class TestEdnsClientSubnetOverride(DNSDistTest):
                                     dns.rdatatype.A,
                                     '127.0.0.1')
         response.answer.append(rrset)
-        expectedResponse = dns.message.make_response(query)
+        expectedResponse = dns.message.make_response(query, our_payload=4096)
         expectedResponse.answer.append(rrset)
 
         for method in ("sendUDPQuery", "sendTCPQuery"):

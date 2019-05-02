@@ -49,6 +49,16 @@ if HAVE_LIBCRYPTO
 AM_CPPFLAGS += $(LIBCRYPTO_INCLUDES)
 endif
 
+if HAVE_DNS_OVER_HTTPS
+if HAVE_LIBSSL
+AM_CPPFLAGS += $(LIBSSL_CFLAGS)
+endif
+
+if HAVE_LIBH2OEVLOOP
+AM_CPPFLAGS += $(LIBH2OEVLOOP_CFLAGS)
+endif
+endif
+
 EXTRA_DIST=COPYING \
 	   dnslabeltext.rl \
 	   dnsdistconf.lua \
@@ -124,6 +134,7 @@ dnsdist_SOURCES = \
 	dnsname.cc dnsname.hh \
 	dnsparser.hh dnsparser.cc \
 	dnswriter.cc dnswriter.hh \
+	doh.hh \
 	dolog.hh \
 	ednsoptions.cc ednsoptions.hh \
 	ednscookies.cc ednscookies.hh \
@@ -132,6 +143,7 @@ dnsdist_SOURCES = \
 	gettime.cc gettime.hh \
 	htmlfiles.h \
 	iputils.cc iputils.hh \
+	libssl.cc libssl.hh \
 	lock.hh \
 	misc.cc misc.hh \
 	mplexer.hh \
@@ -179,8 +191,12 @@ if HAVE_RE2
 dnsdist_LDADD += $(RE2_LIBS)
 endif
 
+if HAVE_LIBSSL
+dnsdist_LDADD += $(LIBSSL_LIBS)
+endif
+
 if HAVE_LIBCRYPTO
-dnsdist_LDADD += $(LIBCRYPTO_LIBS)
+dnsdist_LDADD += $(LIBCRYPTO_LDFLAGS) $(LIBCRYPTO_LIBS)
 dnsdist_SOURCES += ipcipher.cc ipcipher.hh
 endif
 
@@ -188,10 +204,15 @@ if HAVE_DNS_OVER_TLS
 if HAVE_GNUTLS
 dnsdist_LDADD += -lgnutls
 endif
-
-if HAVE_LIBSSL
-dnsdist_LDADD += $(LIBSSL_LIBS)
 endif
+
+if HAVE_DNS_OVER_HTTPS
+dnsdist_SOURCES += doh.cc
+
+if HAVE_LIBH2OEVLOOP
+dnsdist_LDADD += $(LIBH2OEVLOOP_LIBS)
+endif
+
 endif
 
 if !HAVE_LUA_HPP

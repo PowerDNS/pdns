@@ -54,6 +54,7 @@ You can also set the hash perturbation value, see :func:`setWHashedPertubation`.
 ~~~~~~~~~~~~~~
 
 The last available policy is ``roundrobin``, which indiscriminately sends each query to the next server that is up.
+If all servers are down, the policy will still select one server by default. Setting :func:`setRoundRobinFailOnNoServer` to ``true`` will change this behavior.
 
 Lua server policies
 -------------------
@@ -131,7 +132,7 @@ Functions
 
   If set, return a ServFail when no servers are available, instead of the default behaviour of dropping the query.
 
-  :param bool value:
+  :param bool value: whether to return a servfail instead of dropping the query
 
 .. function:: setPoolServerPolicy(policy, pool)
 
@@ -147,6 +148,14 @@ Functions
   :param string name: name for this policy
   :param string function: name of the function
   :param string pool: Name of the pool
+
+.. function:: setRoundRobinFailOnNoServer(value)
+
+  .. versionadded:: 1.4.0
+
+  By default the roundrobin load-balancing policy will still try to select a backend even if all backends are currently down. Setting this to true will make the policy fail and return that no server is available instead.
+
+  :param bool value: whether to fail when all servers are down
 
 .. function:: showPoolServerPolicy(pool)
 

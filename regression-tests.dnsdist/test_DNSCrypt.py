@@ -235,7 +235,7 @@ class TestDNSCryptWithCache(DNSCryptTest):
     _config_template = """
     generateDNSCryptCertificate("DNSCryptProviderPrivate.key", "DNSCryptResolver.cert", "DNSCryptResolver.key", %d, %d, %d)
     addDNSCryptBind("127.0.0.1:%d", "%s", "DNSCryptResolver.cert", "DNSCryptResolver.key")
-    pc = newPacketCache(5, 86400, 1)
+    pc = newPacketCache(5, {maxTTL=86400, minTTL=1})
     getPool(""):setCache(pc)
     newServer{address="127.0.0.1:%s"}
     """

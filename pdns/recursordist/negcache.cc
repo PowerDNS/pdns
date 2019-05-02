@@ -101,7 +101,7 @@ bool NegCache::get(const DNSName& qname, const QType& qtype, const struct timeva
  * \param ne The NegCacheEntry to add to the cache
  */
 void NegCache::add(const NegCacheEntry& ne) {
-  replacing_insert(d_negcache, ne);
+  lruReplacingInsert(d_negcache, ne);
 }
 
 /*!

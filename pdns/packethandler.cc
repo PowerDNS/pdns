@@ -331,7 +331,7 @@ vector<DNSZoneRecord> PacketHandler::getBestDNAMESynth(DNSPacket *p, SOAData& sd
       ret.push_back(rr);  // put in the original
       rr.dr.d_type = QType::CNAME;
       rr.dr.d_name = prefix + rr.dr.d_name;
-      rr.dr.d_content = std::make_shared<CNAMERecordContent>(CNAMERecordContent(prefix + getRR<DNAMERecordContent>(rr.dr)->d_content));
+      rr.dr.d_content = std::make_shared<CNAMERecordContent>(CNAMERecordContent(prefix + getRR<DNAMERecordContent>(rr.dr)->getTarget()));
       rr.auth = 0; // don't sign CNAME
       target= getRR<CNAMERecordContent>(rr.dr)->getTarget();
       ret.push_back(rr); 
@@ -887,7 +887,7 @@ int PacketHandler::processNotify(DNSPacket *p)
   //
   DomainInfo di;
   if(!B.getDomainInfo(p->qdomain, di, false) || !di.backend) {
-    if(::arg().mustDo("supermaster")) {
+    if(::arg().mustDo("superslave")) {
       g_log<<Logger::Warning<<"Received NOTIFY for "<<p->qdomain<<" from "<<p->getRemote()<<" for which we are not authoritative, trying supermaster"<<endl;
       return trySuperMaster(p, p->getTSIGKeyname());
     }

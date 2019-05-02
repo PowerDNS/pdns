@@ -6,6 +6,7 @@
 #include "misc.hh"
 #include "dnswriter.hh"
 #include "dnsrecords.hh"
+#include "iputils.hh"
 #include <fstream>
 
 #ifndef RECURSOR
@@ -820,6 +821,18 @@ struct StatRingDNSNameQTypeTest
 };
 
 
+struct NetmaskTreeTest
+{
+  string getName() const { return "NetmaskTreeTest"; }
+
+  void operator()() const {
+    Netmask nm("ffff:ffff:ffff:ffff:ffff:ffff:ffff:ffff/64");
+    NetmaskTree<bool> tree;
+
+    for (int i = 0; i < 100; i++)
+      tree.insert_or_assign(nm, true);
+  }
+};
 
 int main(int argc, char** argv)
 try
@@ -903,6 +916,8 @@ try
 
   doRun(DNSNameParseTest());
   doRun(DNSNameRootTest());
+
+  doRun(NetmaskTreeTest());
 
 #ifndef RECURSOR
   S.doRings();

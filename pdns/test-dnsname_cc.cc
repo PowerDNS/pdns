@@ -507,6 +507,11 @@ BOOST_AUTO_TEST_CASE(test_suffixmatch) {
   smn.add(net);
   BOOST_CHECK(smn.check(examplenet));
   BOOST_CHECK(smn.check(net));
+
+  // Remove .net and check that example.net still exists
+  smn.remove(net);
+  BOOST_CHECK_EQUAL(smn.check(net), false);
+  BOOST_CHECK(smn.check(examplenet));
 }
 
 BOOST_AUTO_TEST_CASE(test_suffixmatch_tree) {
@@ -558,6 +563,66 @@ BOOST_AUTO_TEST_CASE(test_suffixmatch_tree) {
   BOOST_CHECK_EQUAL(*smt.lookup(examplenet), examplenet);
   BOOST_REQUIRE(smt.lookup(net));
   BOOST_CHECK_EQUAL(*smt.lookup(net), net);
+
+  // Remove .net, and check that example.net remains
+  smt.remove(net);
+  BOOST_CHECK(smt.lookup(net) == nullptr);
+  BOOST_CHECK_EQUAL(*smt.lookup(examplenet), examplenet);
+
+  smt = SuffixMatchTree<DNSName>();
+  smt.add(examplenet, examplenet);
+  smt.add(net, net);
+  smt.add(DNSName("news.bbc.co.uk."), DNSName("news.bbc.co.uk."));
+  smt.add(apowerdnscom, apowerdnscom);
+
+  smt.remove(DNSName("not-such-entry.news.bbc.co.uk."));
+  BOOST_REQUIRE(smt.lookup(DNSName("news.bbc.co.uk.")));
+  smt.remove(DNSName("news.bbc.co.uk."));
+  BOOST_CHECK(smt.lookup(DNSName("news.bbc.co.uk.")) == nullptr);
+
+  smt.remove(net);
+  BOOST_REQUIRE(smt.lookup(examplenet));
+  BOOST_CHECK_EQUAL(*smt.lookup(examplenet), examplenet);
+  BOOST_CHECK(smt.lookup(net) == nullptr);
+
+  smt.remove(examplenet);
+  BOOST_CHECK(smt.lookup(net) == nullptr);
+  BOOST_CHECK(smt.lookup(examplenet) == nullptr);
+
+  smt.add(examplenet, examplenet);
+  smt.add(net, net);
+  BOOST_REQUIRE(smt.lookup(examplenet));
+  BOOST_CHECK_EQUAL(*smt.lookup(examplenet), examplenet);
+  BOOST_REQUIRE(smt.lookup(net));
+  BOOST_CHECK_EQUAL(*smt.lookup(net), net);
+
+  smt.remove(examplenet);
+  BOOST_CHECK_EQUAL(*smt.lookup(examplenet), net);
+  BOOST_CHECK_EQUAL(*smt.lookup(net), net);
+  smt.remove(examplenet);
+  BOOST_CHECK_EQUAL(*smt.lookup(examplenet), net);
+  BOOST_CHECK_EQUAL(*smt.lookup(net), net);
+  smt.remove(net);
+  BOOST_CHECK(smt.lookup(net) == nullptr);
+  BOOST_CHECK(smt.lookup(examplenet) == nullptr);
+  smt.remove(net);
+
+  size_t count = 0;
+  smt.visit([apowerdnscom, &count](const SuffixMatchTree<DNSName>& smt) {
+      count++;
+      BOOST_CHECK_EQUAL(smt.d_value, apowerdnscom);
+    });
+  BOOST_CHECK_EQUAL(count, 1);
+
+  BOOST_CHECK_EQUAL(*smt.lookup(apowerdnscom), apowerdnscom);
+  smt.remove(apowerdnscom);
+  BOOST_CHECK(smt.lookup(apowerdnscom) == nullptr);
+
+  count = 0;
+  smt.visit([&count](const SuffixMatchTree<DNSName>& smt) {
+      count++;
+    });
+  BOOST_CHECK_EQUAL(count, 0);
 }
 
 
