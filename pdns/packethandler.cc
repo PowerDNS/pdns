@@ -1031,7 +1031,7 @@ bool PacketHandler::tryReferral(DNSPacket *p, DNSPacket*r, SOAData& sd, const DN
   if(!retargeted)
     r->setA(false);
 
-  if(d_dnssec && !addDSforNS(p, r, sd, rrset.begin()->dr.d_name)) {
+  if(d_dk.isSecuredZone(sd.qname) && !addDSforNS(p, r, sd, rrset.begin()->dr.d_name) && d_dnssec) {
     addNSECX(p, r, rrset.begin()->dr.d_name, DNSName(), sd.qname, 1);
   }
 
