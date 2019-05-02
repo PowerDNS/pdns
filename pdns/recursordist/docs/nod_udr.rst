@@ -32,12 +32,12 @@ DNS Lookup
 The setting ``new-domain-lookup=<base domain>`` will cause the recursor to isse a DNS A record lookup to ``<newly observed domain>.<base domain>``. This can be a suitable method to send NOD data to an offsite or remote partner, however care should be taken to ensure that data is not leaked inadvertently.
 
 Protobuf Logging
-+++++++++++
+++++++++++++++++
 
 If both NOD and protobuf logging are enabled, then the ``newlyObservedDomain`` field of the protobuf message emitted by the recursor will be set to true. Additionally newly observed domains will be tagged in the protobuf stream using the tag ``pdns-nod`` by default. The setting ``new-domain-pb-tag=<tag>`` can be used to alter the tag.
 
 Unique Domain Response
-~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~
 
 A similar feature to NOD is Unique Domain Response (UDR). This feature uses the same probablistic data structures as NOD to store information about unique responses for a given lookup domain. Determining if a particular response is unique for a given lookup domain is extremly useful for determining potential security issues such as:
 
