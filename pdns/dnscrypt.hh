@@ -24,11 +24,24 @@
 
 #ifndef HAVE_DNSCRYPT
 
-class DNSCryptQuery
+/* let's just define a few types and values so that the rest of
+   the code can ignore whether DNSCrypt support is available */
+#define DNSCRYPT_MAX_RESPONSE_PADDING_AND_MAC_SIZE (0)
+
+class DNSCryptContext
 {
 };
 
-#else
+class DNSCryptQuery
+{
+  DNSCryptQuery(const std::shared_ptr<DNSCryptContext>& ctx): d_ctx(ctx)
+  {
+  }
+private:
+  std::shared_ptr<DNSCryptContext> d_ctx{nullptr};
+};
+
+#else /* HAVE_DNSCRYPT */
 
 #include <memory>
 #include <string>
@@ -244,8 +257,9 @@ public:
   DNSCryptContext(const std::string& pName, const std::string& certFile, const std::string& keyFile);
   DNSCryptContext(const std::string& pName, const DNSCryptCert& certificate, const DNSCryptPrivateKey& pKey);
 
-  void loadNewCertificate(const std::string& certFile, const std::string& keyFile, bool active=true);
-  void addNewCertificate(const DNSCryptCert& newCert, const DNSCryptPrivateKey& newKey, bool active=true);
+  void reloadCertificate();
+  void loadNewCertificate(const std::string& certFile, const std::string& keyFile, bool active=true, bool reload=false);
+  void addNewCertificate(const DNSCryptCert& newCert, const DNSCryptPrivateKey& newKey, bool active=true, bool reload=false);
   void markActive(uint32_t serial);
   void markInactive(uint32_t serial);
   void removeInactiveCertificate(uint32_t serial);
@@ -263,6 +277,8 @@ private:
   pthread_rwlock_t d_lock;
   std::vector<std::shared_ptr<DNSCryptCertificatePair>> certs;
   DNSName providerName;
+  std::string certificatePath;
+  std::string keyPath;
 };
 
 bool generateDNSCryptCertificate(const std::string& providerPrivateKeyFile, uint32_t serial, time_t begin, time_t end, DNSCryptExchangeVersion version, DNSCryptCert& certOut, DNSCryptPrivateKey& keyOut);

@@ -1,0 +1,80 @@
+version: 2.1
+
+commands:
+  auth-regress:
+    description: "run one auth regression context"
+    parameters:
+      skip:
+        type: string
+        default: ""
+      context:
+        type: string
+        default: ""
+    steps:
+      - run: |
+          cd regression-tests
+          [ -e ./vars ] && . ./vars
+          rm -rf tests/*/skip
+          for t in << parameters.skip >>
+          do
+            touch tests/$t/skip
+          done
+          ./start-test-stop 5300 << parameters.context >>
+
+jobs:
+  build:
+    docker:
+      - image: debian:stretch
+      - image: mcr.microsoft.com/mssql/server:2019-CTP2.2-ubuntu
+        environment:
+          - ACCEPT_EULA: Y
+          - SA_PASSWORD: 'SAsa12%%'
+
+    steps:
+      - checkout
+
+      - run:
+          name: install dependencies
+          command: ./build-scripts/circleci.sh debian-stretch-deps
+
+      - run:
+          name: autoconf
+          command: autoreconf -vfi
+
+      - run:
+          name: configure
+          command: ./configure --disable-lua-records --with-modules='bind gmysql godbc random'
+
+      - run:
+          name: build
+          command: make -j3 -k
+
+      - run:
+          name: test gsqlite3 odbc
+          command: ./build-scripts/circleci.sh configure-odbc-sqlite; cd regression-tests ; touch tests/verify-dnssec-zone/allow-missing ; GODBC_SQLITE3_DSN=pdns-sqlite3-1 ./start-test-stop 5300 godbc_sqlite3-nsec3
+
+      - run:
+          name: set up mssql odbc
+          command: ./build-scripts/circleci.sh configure-odbc-mssql ; echo 'create database pdns' | isql -v pdns-mssql-docker-nodb sa SAsa12%%
+
+      - run:
+          name: set up mssql odbc testing
+          command: |
+            cd regression-tests
+            echo 'export GODBC_MSSQL_PASSWORD=SAsa12%% GODBC_MSSQL_USERNAME=sa GODBC_MSSQL_DSN=pdns-mssql-docker' > ./vars
+
+      - auth-regress:
+          context: godbc_mssql-nodnssec
+          skip: 8bit-txt-unescaped
+      - auth-regress:
+          context: godbc_mssql
+          skip: 8bit-txt-unescaped
+      - auth-regress:
+          context: godbc_mssql-nsec3
+          skip: 8bit-txt-unescaped
+      - auth-regress:
+          context: godbc_mssql-nsec3-optout
+          skip: 8bit-txt-unescaped verify-dnssec-zone
+      - auth-regress:
+          context: godbc_mssql-nsec3-narrow
+          skip: 8bit-txt-unescaped

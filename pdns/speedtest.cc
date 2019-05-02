@@ -6,6 +6,7 @@
 #include "misc.hh"
 #include "dnswriter.hh"
 #include "dnsrecords.hh"
+#include "iputils.hh"
 #include <fstream>
 
 #ifndef RECURSOR
@@ -552,12 +553,11 @@ struct BigDNSPacketRefTest
 
 struct TCacheComp
 {
-  bool operator()(const pair<string, QType>& a, const pair<string, QType>& b) const
+  bool operator()(const pair<DNSName, QType>& a, const pair<DNSName, QType>& b) const
   {
-    int cmp=strcasecmp(a.first.c_str(), b.first.c_str());
-    if(cmp < 0)
+    if(a.first < b.first)
       return true;
-    if(cmp > 0)
+    if(b.first < a.first)
       return false;
 
     return a.second < b.second;
@@ -792,7 +792,47 @@ struct NOPTest
 
 };
 
+struct StatRingDNSNameQTypeToStringTest
+{
+  explicit StatRingDNSNameQTypeToStringTest(const DNSName &name, const QType type) : d_name(name), d_type(type) {}
 
+  string getName() const { return "StatRing test with DNSName and QType to string"; }
+
+  void operator()() const {
+    S.ringAccount("testring", d_name.toLogString()+"/"+d_type.getName());
+  };
+
+  DNSName d_name;
+  QType d_type;
+};
+
+struct StatRingDNSNameQTypeTest
+{
+  explicit StatRingDNSNameQTypeTest(const DNSName &name, const QType type) : d_name(name), d_type(type) {}
+
+  string getName() const { return "StatRing test with DNSName and QType"; }
+
+  void operator()() const {
+    S.ringAccount("testringdnsname", d_name, d_type);
+  };
+
+  DNSName d_name;
+  QType d_type;
+};
+
+
+struct NetmaskTreeTest
+{
+  string getName() const { return "NetmaskTreeTest"; }
+
+  void operator()() const {
+    Netmask nm("ffff:ffff:ffff:ffff:ffff:ffff:ffff:ffff/64");
+    NetmaskTree<bool> tree;
+
+    for (int i = 0; i < 100; i++)
+      tree.insert_or_assign(nm, true);
+  }
+};
 
 int main(int argc, char** argv)
 try
@@ -876,6 +916,18 @@ try
 
   doRun(DNSNameParseTest());
   doRun(DNSNameRootTest());
+
+  doRun(NetmaskTreeTest());
+
+#ifndef RECURSOR
+  S.doRings();
+
+  S.declareRing("testring", "Just some ring where we'll account things");
+  doRun(StatRingDNSNameQTypeToStringTest(DNSName("example.com"), QType(1)));
+
+  S.declareDNSNameQTypeRing("testringdnsname", "Just some ring where we'll account things");
+  doRun(StatRingDNSNameQTypeTest(DNSName("example.com"), QType(1)));
+#endif
 
   cerr<<"Total runs: " << g_totalRuns<<endl;
 

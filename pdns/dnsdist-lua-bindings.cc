@@ -23,6 +23,7 @@
 #include <sys/stat.h>
 #include <sys/types.h>
 
+#include "config.h"
 #include "dnsdist.hh"
 #include "dnsdist-lua.hh"
 #include "dnsdist-protobuf.hh"
@@ -31,6 +32,10 @@
 #include "dolog.hh"
 #include "fstrm_logger.hh"
 #include "remote_logger.hh"
+
+#ifdef HAVE_LIBCRYPTO
+#include "ipcipher.hh"
+#endif /* HAVE_LIBCRYPTO */
 
 void setupLuaBindings(bool client)
 {
@@ -166,6 +171,19 @@ void setupLuaBindings(bool client)
   g_lua.registerFunction<ComboAddress(ComboAddress::*)()>("mapToIPv4", [](const ComboAddress& ca) { return ca.mapToIPv4(); });
   g_lua.registerFunction<bool(nmts_t::*)(const ComboAddress&)>("match", [](nmts_t& s, const ComboAddress& ca) { return s.match(ca); });
 
+#ifdef HAVE_LIBCRYPTO
+  g_lua.registerFunction<ComboAddress(ComboAddress::*)(const std::string& key)>("ipencrypt", [](const ComboAddress& ca, const std::string& key) {
+      return encryptCA(ca, key);
+    });
+  g_lua.registerFunction<ComboAddress(ComboAddress::*)(const std::string& key)>("ipdecrypt", [](const ComboAddress& ca, const std::string& key) {
+      return decryptCA(ca, key);
+    });
+
+  g_lua.writeFunction("makeIPCipherKey", [](const std::string& password) {
+      return makeIPCipherKey(password);
+    });
+#endif /* HAVE_LIBCRYPTO */
+
   /* DNSName */
   g_lua.registerFunction("isPartOf", &DNSName::isPartOf);
   g_lua.registerFunction<bool(DNSName::*)()>("chopOff", [](DNSName&dn ) { return dn.chopOff(); });
@@ -175,6 +193,16 @@ void setupLuaBindings(bool client)
   g_lua.registerFunction<string(DNSName::*)()>("toString", [](const DNSName&dn ) { return dn.toString(); });
   g_lua.writeFunction("newDNSName", [](const std::string& name) { return DNSName(name); });
   g_lua.writeFunction("newSuffixMatchNode", []() { return SuffixMatchNode(); });
+  g_lua.writeFunction("newDNSNameSet", []() { return DNSNameSet(); });
+
+  /* DNSNameSet */
+  g_lua.registerFunction<string(DNSNameSet::*)()>("toString", [](const DNSNameSet&dns ) { return dns.toString(); });
+  g_lua.registerFunction<void(DNSNameSet::*)(DNSName&)>("add", [](DNSNameSet& dns, DNSName& dn) { dns.insert(dn); });
+  g_lua.registerFunction<bool(DNSNameSet::*)(DNSName&)>("check", [](DNSNameSet& dns, DNSName& dn) { return dns.find(dn) != dns.end(); });
+  g_lua.registerFunction("delete",(size_t (DNSNameSet::*)(const DNSName&)) &DNSNameSet::erase);
+  g_lua.registerFunction("size",(size_t (DNSNameSet::*)() const) &DNSNameSet::size);
+  g_lua.registerFunction("clear",(void (DNSNameSet::*)()) &DNSNameSet::clear);
+  g_lua.registerFunction("empty",(bool (DNSNameSet::*)()) &DNSNameSet::empty);
 
   /* SuffixMatchNode */
   g_lua.registerFunction("add",(void (SuffixMatchNode::*)(const DNSName&)) &SuffixMatchNode::add);
@@ -220,9 +248,18 @@ void setupLuaBindings(bool client)
 #endif /* HAVE_EBPF */
 
   /* PacketCache */
-  g_lua.writeFunction("newPacketCache", [](size_t maxEntries, boost::optional<uint32_t> maxTTL, boost::optional<uint32_t> minTTL, boost::optional<uint32_t> tempFailTTL, boost::optional<uint32_t> staleTTL, boost::optional<bool> dontAge, boost::optional<size_t> numberOfShards, boost::optional<bool> deferrableInsertLock, boost::optional<uint32_t> maxNegativeTTL, boost::optional<bool> ecsParsing, boost::optional<std::unordered_map<std::string, boost::variant<bool, size_t>>> vars) {
+  g_lua.writeFunction("newPacketCache", [](size_t maxEntries, boost::optional<std::unordered_map<std::string, boost::variant<bool, size_t>>> vars) {
 
       bool keepStaleData = false;
+      size_t maxTTL = 86400;
+      size_t minTTL = 0;
+      size_t tempFailTTL = 60;
+      size_t maxNegativeTTL = 3600;
+      size_t staleTTL = 60;
+      size_t numberOfShards = 1;
+      bool dontAge = false;
+      bool deferrableInsertLock = true;
+      bool ecsParsing = false;
 
       if (vars) {
 
@@ -236,10 +273,6 @@ void setupLuaBindings(bool client)
 
         if (vars->count("keepStaleData")) {
           keepStaleData = boost::get<bool>((*vars)["keepStaleData"]);
-        }
-
-        if (vars->count("maxEntries")) {
-          maxEntries = boost::get<size_t>((*vars)["maxEntries"]);
         }
 
         if (vars->count("maxNegativeTTL")) {
@@ -269,10 +302,9 @@ void setupLuaBindings(bool client)
         if (vars->count("temporaryFailureTTL")) {
           tempFailTTL = boost::get<size_t>((*vars)["temporaryFailureTTL"]);
         }
-
       }
 
-      auto res = std::make_shared<DNSDistPacketCache>(maxEntries, maxTTL ? *maxTTL : 86400, minTTL ? *minTTL : 0, tempFailTTL ? *tempFailTTL : 60, maxNegativeTTL ? *maxNegativeTTL : 3600, staleTTL ? *staleTTL : 60, dontAge ? *dontAge : false, numberOfShards ? *numberOfShards : 1, deferrableInsertLock ? *deferrableInsertLock : true, ecsParsing ? *ecsParsing : false);
+      auto res = std::make_shared<DNSDistPacketCache>(maxEntries, maxTTL, minTTL, tempFailTTL, maxNegativeTTL, staleTTL, dontAge, numberOfShards, deferrableInsertLock, ecsParsing);
 
       res->setKeepStaleData(keepStaleData);
 
@@ -288,7 +320,7 @@ void setupLuaBindings(bool client)
               boost::optional<uint16_t> qtype,
               boost::optional<bool> suffixMatch) {
                 if (cache) {
-                  cache->expungeByName(dname, qtype ? *qtype : QType::ANY, suffixMatch ? *suffixMatch : false);
+                  cache->expungeByName(dname, qtype ? *qtype : QType(QType::ANY).getCode(), suffixMatch ? *suffixMatch : false);
                 }
     });
   g_lua.registerFunction<void(std::shared_ptr<DNSDistPacketCache>::*)()>("printStats", [](const std::shared_ptr<DNSDistPacketCache> cache) {
@@ -390,7 +422,7 @@ void setupLuaBindings(bool client)
 
   /* RemoteLogger */
   g_lua.writeFunction("newRemoteLogger", [client](const std::string& remote, boost::optional<uint16_t> timeout, boost::optional<uint64_t> maxQueuedEntries, boost::optional<uint8_t> reconnectWaitTime) {
-      return std::shared_ptr<RemoteLoggerInterface>(new RemoteLogger(ComboAddress(remote), timeout ? *timeout : 2, maxQueuedEntries ? *maxQueuedEntries : 100, reconnectWaitTime ? *reconnectWaitTime : 1, client));
+      return std::shared_ptr<RemoteLoggerInterface>(new RemoteLogger(ComboAddress(remote), timeout ? *timeout : 2, maxQueuedEntries ? (*maxQueuedEntries*100) : 10000, reconnectWaitTime ? *reconnectWaitTime : 1, client));
     });
 
   g_lua.writeFunction("newFrameStreamUnixLogger", [client](const std::string& address) {
@@ -649,10 +681,10 @@ void setupLuaBindings(bool client)
   g_lua.registerFunction<size_t(EDNSOptionView::*)()>("count", [](const EDNSOptionView& option) {
       return option.values.size();
     });
-  g_lua.registerFunction<std::vector<std::pair<int, string>>(EDNSOptionView::*)()>("getValues", [] (const EDNSOptionView& option) {
-    std::vector<std::pair<int, string> > values;
+  g_lua.registerFunction<std::vector<string>(EDNSOptionView::*)()>("getValues", [] (const EDNSOptionView& option) {
+    std::vector<string> values;
     for (const auto& value : option.values) {
-      values.push_back(std::make_pair(values.size(), std::string(value.content, value.size)));
+      values.push_back(std::string(value.content, value.size));
     }
     return values;
   });

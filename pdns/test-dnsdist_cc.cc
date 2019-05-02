@@ -1105,8 +1105,7 @@ static DNSQuestion getDNSQuestion(const DNSName& qname, const uint16_t qtype, co
 {
   dnsheader* dh = reinterpret_cast<dnsheader*>(query.data());
 
-  DNSQuestion dq(&qname, qtype, qclass, qname.wirelength(), &lc, &rem, dh, query.size(), len, false, &realTime);
-  return dq;
+  return DNSQuestion(&qname, qtype, qclass, qname.wirelength(), &lc, &rem, dh, query.size(), len, false, &realTime);
 }
 
 static DNSQuestion turnIntoResponse(const DNSName& qname, const uint16_t qtype, const uint16_t qclass, const ComboAddress& lc, const ComboAddress& rem, const struct timespec& queryRealTime, vector<uint8_t>&  query, bool resizeBuffer=true)
@@ -1433,8 +1432,7 @@ BOOST_AUTO_TEST_CASE(test_isEDNSOptionInOpt) {
       return false;
     }
 
-    // root label (1), type (2), class (2), ttl (4) + rdlen (2)
-    if (optLen < 11) {
+    if (optLen < optRecordMinimumSize) {
       return false;
     }
 
@@ -1533,8 +1531,10 @@ BOOST_AUTO_TEST_CASE(test_isEDNSOptionInOpt) {
 
     bool found = locateEDNSOption(query, EDNSOptionCode::ECS, &optContentStart, &optContentLen);
     BOOST_CHECK_EQUAL(found, true);
-    BOOST_CHECK_EQUAL(optContentStart, optRDExpectedOffset + sizeof(uint16_t) /* RD len */ + /* option code */ 2 + /* option length */ 2);
-    BOOST_CHECK_EQUAL(optContentLen, sizeOfECSContent);
+    if (found == true) {
+      BOOST_CHECK_EQUAL(optContentStart, optRDExpectedOffset + sizeof(uint16_t) /* RD len */ + /* option code */ 2 + /* option length */ 2);
+      BOOST_CHECK_EQUAL(optContentLen, sizeOfECSContent);
+    }
 
     /* truncated packet */
     query.resize(query.size() - 1);
@@ -1554,8 +1554,10 @@ BOOST_AUTO_TEST_CASE(test_isEDNSOptionInOpt) {
 
     bool found = locateEDNSOption(query, EDNSOptionCode::ECS, &optContentStart, &optContentLen);
     BOOST_CHECK_EQUAL(found, true);
-    BOOST_CHECK_EQUAL(optContentStart, optRDExpectedOffset + sizeof(uint16_t) /* RD len */ + sizeOfCookieOption + /* option code */ 2 + /* option length */ 2);
-    BOOST_CHECK_EQUAL(optContentLen, sizeOfECSContent);
+    if (found == true) {
+      BOOST_CHECK_EQUAL(optContentStart, optRDExpectedOffset + sizeof(uint16_t) /* RD len */ + sizeOfCookieOption + /* option code */ 2 + /* option length */ 2);
+      BOOST_CHECK_EQUAL(optContentLen, sizeOfECSContent);
+    }
 
     /* truncated packet */
     query.resize(query.size() - 1);

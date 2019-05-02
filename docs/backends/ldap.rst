@@ -65,7 +65,7 @@ Add them to the ``pdns.conf`` file.
 
 To launch the ldap backend:
 
-::
+.. code-block:: ini
 
     launch=ldap
 
@@ -74,7 +74,7 @@ To launch the ldap backend:
 ``ldap-host``
 ^^^^^^^^^^^^^
 
-(default "ldap://127.0.0.1:389/") : The values assigned to this
+(default "``ldap://127.0.0.1:389/``") : The values assigned to this
 parameter can be LDAP URIs (e.g. ``ldap://127.0.0.1/`` or
 ``ldaps://127.0.0.1/``) describing the connection to the LDAP server.
 There can be multiple LDAP URIs specified for load balancing and high
@@ -89,7 +89,7 @@ followed by a colon and the port).
 ^^^^^^^^^^^^^^^^^
 
 (default "no") : Use TLS encrypted connections to the LDAP server. This
-is only allowed if ldap-host is a ldap:// URI or a host name / IP
+is only allowed if ldap-host is an ``ldap://`` URI or a host name / IP
 address.
 
 .. _setting-ldap-timeout:
@@ -310,7 +310,7 @@ Wildcards
 ^^^^^^^^^
 
 Wild-card domains are possible by using the asterisk in the
-``associatedDomain`` value like it is used in the bind zone files. The
+``associatedDomain`` value like it is used in the BIND zone files. The
 "dc" attribute can be set to any value in simple or strict mode - this
 doesn't matter.
 
@@ -450,7 +450,7 @@ standard compliant LDAP server. ``zone2ldap`` needs the BIND
 ``named.conf`` (usually located in /etc) as input and writes the dns
 record entries in ldif format to stdout:
 
-::
+.. code-block:: shell
 
     zone2ldap
        --basedn=YOUR_BASE_DN \
@@ -460,7 +460,7 @@ record entries in ldif format to stdout:
 Alternatively zone2ldap can be used to convert only single zone files
 instead all zones:
 
-::
+.. code-block:: shell
 
     zone2ldap
        --basedn=YOUR_BASE_DN \
@@ -471,15 +471,15 @@ instead all zones:
 See :doc:`its manpage <../manpages/zone2ldap.1>` for a complete list of
 options.
 
-Bind LDAP backend
+BIND LDAP backend
 ^^^^^^^^^^^^^^^^^
 
-When coming from the `Bind LDAP sdb
+When coming from the `BIND LDAP sdb
 backend <http://bind9-ldap.bayour.com/>`__, the records can be kept in
 the LDAP tree also for the PowerDNS LDAP backend. The schemas both
 backends utilize is almost the same except for one important thing:
 Domains for PowerDNS are stored in the attribute "associatedDomain"
-whereas Bind stores them split in "relativeDomainName" and "zoneName".
+whereas BIND stores them split in "relativeDomainName" and "zoneName".
 
 There is a `migration
 script <http://www.linuxnetworks.de/pdnsldap/bind2pdns-ldap>`__ which
@@ -487,7 +487,7 @@ creates a file in LDIF format with the necessary LDAP updates including
 the "associatedDomain" and "dc" attributes. The utility is executed on
 the command line by:
 
-::
+.. code-block:: shell
 
     ./bind2pdns-ldap
        --host=HOSTNAME_OR_IP \
@@ -519,13 +519,13 @@ Other name server
 ^^^^^^^^^^^^^^^^^
 
 The easiest way for migrating DNS records is to use the output of a zone
-transfer (AXFR). Save the output of the ``dig`` program provided by bind
+transfer (AXFR). Save the output of the ``dig`` program provided by BIND
 into a file and call ``zone2ldap`` with the file name as option to the
 ``--zone-file`` parameter. This will generate the appropriate ldif file,
 which can be imported into the LDAP tree. The bash script except below
 automates this:
 
-::
+.. code-block:: shell
 
     DNSSERVER=127.0.0.1
     DOMAINS="example.com 10.10.in-addr.arpa"
@@ -629,4 +629,4 @@ SASL support
 ^^^^^^^^^^^^
 
 Support for more authentication methods would be handy. Anyone
-interested may `contribute <https://github.com/PowerDNS/pdns>`__.?
+interested may `contribute <https://github.com/PowerDNS/pdns>`__.

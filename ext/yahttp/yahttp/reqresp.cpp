@@ -262,7 +262,7 @@ namespace YaHTTP {
             os << "; ";
           os << Utility::encodeURL(i->second.name) << "=" << Utility::encodeURL(i->second.value);
         }
-     } else if (kind == YAHTTP_TYPE_REQUEST) {
+     } else if (kind == YAHTTP_TYPE_RESPONSE) {
         for(strcookie_map_t::const_iterator i = jar.cookies.begin(); i != jar.cookies.end(); i++) {
           os << "Set-Cookie: ";
           os << i->second.str() << "\r\n";

@@ -202,7 +202,7 @@ string nowTime()
   // YYYY-mm-dd HH:MM:SS TZOFF
   strftime(buffer, sizeof(buffer), "%F %T %z", tm);
   buffer[sizeof(buffer)-1] = '\0';
-  return buffer;
+  return string(buffer);
 }
 
 uint16_t getShort(const unsigned char *p)
@@ -498,7 +498,7 @@ string getHostname()
   if(gethostname(tmp, MAXHOSTNAMELEN))
     return "UNKNOWN";
 
-  return tmp;
+  return string(tmp);
 }
 
 string itoa(int i)
@@ -571,7 +571,7 @@ string U32ToIP(uint32_t val)
            (val >> 16)&0xff,
            (val >>  8)&0xff,
            (val      )&0xff);
-  return tmp;
+  return string(tmp);
 }
 
 
@@ -582,7 +582,7 @@ string makeHexDump(const string& str)
   ret.reserve((int)(str.size()*2.2));
 
   for(string::size_type n=0;n<str.size();++n) {
-    sprintf(tmp,"%02x ", (unsigned char)str[n]);
+    snprintf(tmp, sizeof(tmp), "%02x ", (unsigned char)str[n]);
     ret+=tmp;
   }
   return ret;
@@ -866,11 +866,12 @@ bool stringfgets(FILE* fp, std::string& line)
 bool readFileIfThere(const char* fname, std::string* line)
 {
   line->clear();
-  FILE* fp = fopen(fname, "r");
+  auto fp = std::unique_ptr<FILE, int(*)(FILE*)>(fopen(fname, "r"), fclose);
   if(!fp)
     return false;
-  stringfgets(fp, *line);
-  fclose(fp);
+  stringfgets(fp.get(), *line);
+  fp.reset();
+
   return true;
 }
 
@@ -1100,6 +1101,22 @@ bool isNonBlocking(int sock)
   return flags & O_NONBLOCK;
 }
 
+bool setReceiveSocketErrors(int sock, int af)
+{
+#ifdef __linux__
+  int tmp = 1, ret;
+  if (af == AF_INET) {
+    ret = setsockopt(sock, IPPROTO_IP, IP_RECVERR, &tmp, sizeof(tmp));
+  } else {
+    ret = setsockopt(sock, IPPROTO_IPV6, IPV6_RECVERR, &tmp, sizeof(tmp));
+  }
+  if (ret < 0) {
+    throw PDNSException(string("Setsockopt failed: ") + strerror(errno));
+  }
+#endif
+  return true;
+}
+
 // Closes a socket.
 int closesocket( int socket )
 {
@@ -1240,7 +1257,27 @@ uint64_t getOpenFileDescriptors(const std::string&)
 uint64_t getRealMemoryUsage(const std::string&)
 {
 #ifdef __linux__
-  ifstream ifs("/proc/"+std::to_string(getpid())+"/smaps");
+  ifstream ifs("/proc/self/statm");
+  if(!ifs)
+    return 0;
+
+  uint64_t size, resident, shared, text, lib, data;
+  ifs >> size >> resident >> shared >> text >> lib >> data;
+
+  return data * getpagesize();
+#else
+  struct rusage ru;
+  if (getrusage(RUSAGE_SELF, &ru) != 0)
+    return 0;
+  return ru.ru_maxrss * 1024;
+#endif
+}
+
+
+uint64_t getSpecialMemoryUsage(const std::string&)
+{
+#ifdef __linux__
+  ifstream ifs("/proc/self/smaps");
   if(!ifs)
     return 0;
   string line;
@@ -1447,4 +1484,37 @@ std::vector<ComboAddress> getResolvers(const std::string& resolvConfPath)
   }
 
   return results;
+}
+
+size_t getPipeBufferSize(int fd)
+{
+#ifdef F_GETPIPE_SZ
+  int res = fcntl(fd, F_GETPIPE_SZ);
+  if (res == -1) {
+    return 0;
+  }
+  return res;
+#else
+  errno = ENOSYS;
+  return 0;
+#endif /* F_GETPIPE_SZ */
+}
+
+bool setPipeBufferSize(int fd, size_t size)
+{
+#ifdef F_SETPIPE_SZ
+  if (size > std::numeric_limits<int>::max()) {
+    errno = EINVAL;
+    return false;
+  }
+  int newSize = static_cast<int>(size);
+  int res = fcntl(fd, F_SETPIPE_SZ, newSize);
+  if (res == -1) {
+    return false;
+  }
+  return true;
+#else
+  errno = ENOSYS;
+  return false;
+#endif /* F_SETPIPE_SZ */
 }

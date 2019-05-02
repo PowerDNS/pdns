@@ -14,8 +14,8 @@ Starting with version 4.0.0, the PowerDNS recursor uses autotools and compiling
 make
 ```
 
-As for dependencies, Boost (http://boost.org/) and OpenSSL (https://openssl.org/)
-are required.
+As for dependencies, Boost (http://boost.org/), OpenSSL (https://openssl.org/),
+and Lua (https://www.lua.org/) are required.
 
 On most modern UNIX distributions, you can simply install 'boost' or
 'boost-dev' or 'boost-devel'. Otherwise, just download boost, and point the
@@ -57,7 +57,7 @@ Homebrew. You need to tell configure where to find OpenSSL, too.
 
 ```sh
 brew install boost lua pkg-config ragel openssl
-./configure --with-modules="" --with-lua PKG_CONFIG_PATH=/usr/local/opt/openssl/lib/pkgconfig
+./configure --with-lua PKG_CONFIG_PATH=/usr/local/opt/openssl/lib/pkgconfig
 make -j4
 ```
 

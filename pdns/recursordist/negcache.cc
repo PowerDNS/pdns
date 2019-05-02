@@ -101,7 +101,7 @@ bool NegCache::get(const DNSName& qname, const QType& qtype, const struct timeva
  * \param ne The NegCacheEntry to add to the cache
  */
 void NegCache::add(const NegCacheEntry& ne) {
-  replacing_insert(d_negcache, ne);
+  lruReplacingInsert(d_negcache, ne);
 }
 
 /*!
@@ -111,11 +111,14 @@ void NegCache::add(const NegCacheEntry& ne) {
  * \param qtype The type of the entry to replace
  * \param newState The new validation state
  */
-void NegCache::updateValidationStatus(const DNSName& qname, const QType& qtype, const vState newState) {
+void NegCache::updateValidationStatus(const DNSName& qname, const QType& qtype, const vState newState, boost::optional<uint32_t> capTTD) {
   auto range = d_negcache.equal_range(tie(qname, qtype));
 
   if (range.first != range.second) {
     range.first->d_validationState = newState;
+    if (capTTD) {
+      range.first->d_ttd = std::min(range.first->d_ttd, *capTTD);
+    }
   }
 }
 

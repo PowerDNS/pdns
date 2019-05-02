@@ -158,7 +158,7 @@ public:
     void dump(FILE * fp) const;
 
     void addClientTrigger(const Netmask& nm, Policy&& pol);
-    void addQNameTrigger(const DNSName& nm, Policy&& pol);
+    void addQNameTrigger(const DNSName& nm, Policy&& pol, bool ignoreDuplicate=false);
     void addNSTrigger(const DNSName& dn, Policy&& pol);
     void addNSIPTrigger(const Netmask& nm, Policy&& pol);
     void addResponseTrigger(const Netmask& nm, Policy&& pol);

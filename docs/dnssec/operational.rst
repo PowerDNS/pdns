@@ -19,7 +19,7 @@ zone.
 Going insecure
 --------------
 
-::
+.. code-block:: shell
 
     pdnsutil disable-dnssec ZONE
 
@@ -28,19 +28,21 @@ Going insecure
   parent zone will make the zone BOGUS. Make sure the parent zone removes
   the DS record *before* going insecure.
 
+.. _dnssec-operational-nsec-modes-params:
+
 Setting the NSEC modes and parameters
 -------------------------------------
 
 As stated earlier, PowerDNS uses NSEC by default. If you want to use
 NSEC3 instead, issue:
 
-::
+.. code-block:: shell
 
-    pdnsutil set-nsec3 ZONE [PARAMETERS]
+    pdnsutil set-nsec3 ZONE [PARAMETERS] ['narrow']
 
 e.g.
 
-::
+.. code-block:: shell
 
     pdnsutil set-nsec3 example.net '1 0 1 ab'
 
@@ -51,12 +53,16 @@ The quoted part is the content of the NSEC3PARAM records, as defined in
 -  Flags, set to ``1`` for :rfc:`NSEC3 Opt-out <5155#section-6>`, this best
    set as ``0``
 -  Number of iterations of the hash function, read :rfc:`RFC 5155, Section
-   10.3 <5155#section-10.3>` for recommendations
+   10.3 <5155#section-10.3>` for recommendations. Limited by the
+   :ref:`setting-max-nsec3-iterations` setting.
 -  Salt to apply during hashing, in hexadecimal, or ``-`` to use no salt
+
+Optionally, NSEC3 can be set to 'narrow' mode. For more information refer
+to :ref:`dnssec-nsec-modes`.
 
 To convert a zone from NSEC3 to NSEC operations, run:
 
-::
+.. code-block:: shell
 
     pdnsutil unset-nsec3 ZONE
 
@@ -202,6 +208,16 @@ purposes.
 In some settings, having such (private) keying material available online
 is considered undesirable. In this case, consider running in pre-signed
 mode.
+
+A slightly more complex approach is running a *hidden* master in simple
+online signing mode, but on a highly secured system unreachable for the
+public. Internet-connected slaves can then transfer the zones pre-signed
+from this master over a secure private network. This topology offers
+substantial security benefits with regards to key material while
+maintaining ease of daily operation by PowerDNS's features in online
+mode.
+
+See also :ref:`dnssec_presigned_records`.
 
 Performance
 -----------

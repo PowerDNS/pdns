@@ -26,6 +26,9 @@
 #include <deque>
 #include <strings.h>
 #include <stdexcept>
+#include <sstream>
+#include <iterator>
+#include <unordered_set>
 
 #include <boost/version.hpp>
 
@@ -286,6 +289,40 @@ struct SuffixMatchTree
     }
   }
 
+  void remove(const DNSName &name) const
+  {
+    remove(name.getRawLabels());
+  }
+
+  /* Removes the node at `labels`, also make sure that no empty
+   * children will be left behind in memory
+   */
+  void remove(std::vector<std::string> labels) const
+  {
+    SuffixMatchTree smt(*labels.rbegin());
+    auto child = children.find(smt);
+    if (child == children.end()) {
+      // No subnode found, we're done
+      return;
+    }
+
+    // We have found a child
+    labels.pop_back();
+    if (labels.empty()) {
+      // The child is no longer an endnode
+      child->endNode = false;
+
+      // If the child has no further children, just remove it from the set.
+      if (child->children.empty()) {
+        children.erase(child);
+      }
+      return;
+    }
+
+    // We are not at the end, let the child figure out what to do
+    child->remove(labels);
+  }
+
   T* lookup(const DNSName& name)  const
   {
     if(children.empty()) { // speed up empty set
@@ -315,41 +352,86 @@ struct SuffixMatchTree
     return child->lookup(labels);
   }
 
+  // Returns all end-nodes, fully qualified (not as separate labels)
+  std::vector<DNSName> getNodes() const {
+    std::vector<DNSName> ret;
+    if (endNode) {
+      ret.push_back(DNSName(d_name));
+    }
+    for (const auto& child : children) {
+      auto nodes = child.getNodes();
+      for (const auto &node: nodes) {
+        ret.push_back(node + DNSName(d_name));
+      }
+    }
+    return ret;
+  }
 };
 
 /* Quest in life: serve as a rapid block list. If you add a DNSName to a root SuffixMatchNode,
    anything part of that domain will return 'true' in check */
 struct SuffixMatchNode
 {
-  SuffixMatchNode()
-  {}
-  std::string d_human;
-  SuffixMatchTree<bool> d_tree;
+  public:
+    SuffixMatchNode()
+    {}
+    SuffixMatchTree<bool> d_tree;
 
-  void add(const DNSName& dnsname)
-  {
-    if(!d_human.empty())
-      d_human.append(", ");
-    d_human += dnsname.toString();
+    void add(const DNSName& dnsname)
+    {
+      d_tree.add(dnsname, true);
+      d_nodes.insert(dnsname);
+    }
 
-    d_tree.add(dnsname, true);
-  }
+    void add(std::vector<std::string> labels)
+    {
+      d_tree.add(labels, true);
+      DNSName tmp;
+      while (!labels.empty()) {
+        tmp.appendRawLabel(labels.back());
+        labels.pop_back(); // This is safe because we have a copy of labels
+      }
+      d_nodes.insert(tmp);
+    }
 
-  void add(std::vector<std::string> labels)
-  {
-    d_tree.add(labels, true);
-  }
+    void remove(const DNSName& name)
+    {
+      d_tree.remove(name);
+      d_nodes.erase(name);
+    }
 
-  bool check(const DNSName& dnsname) const
-  {
-    return d_tree.lookup(dnsname) != nullptr;
-  }
+    void remove(std::vector<std::string> labels)
+    {
+      d_tree.remove(labels);
+      DNSName tmp;
+      while (!labels.empty()) {
+        tmp.appendRawLabel(labels.back());
+        labels.pop_back(); // This is safe because we have a copy of labels
+      }
+      d_nodes.erase(tmp);
+    }
 
-  std::string toString() const
-  {
-    return d_human;
-  }
+    bool check(const DNSName& dnsname) const
+    {
+      return d_tree.lookup(dnsname) != nullptr;
+    }
 
+    std::string toString() const
+    {
+      std::string ret;
+      bool first = true;
+      for (const auto& n : d_nodes) {
+        if (!first) {
+          ret += ", ";
+        }
+        first = false;
+        ret += n.toString();
+      }
+      return ret;
+    }
+
+  private:
+    mutable std::set<DNSName> d_nodes; // Only used for string generation
 };
 
 std::ostream & operator<<(std::ostream &os, const DNSName& d);
@@ -376,3 +458,11 @@ bool DNSName::operator==(const DNSName& rhs) const
 }
 
 extern const DNSName g_rootdnsname, g_wildcarddnsname;
+
+struct DNSNameSet: public std::unordered_set<DNSName> {
+    std::string toString() const {
+        std::ostringstream oss;
+        std::copy(begin(), end(), std::ostream_iterator<DNSName>(oss, "\n"));
+        return oss.str();
+    }
+};

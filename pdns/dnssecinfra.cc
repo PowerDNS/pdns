@@ -52,18 +52,25 @@ using namespace boost::assign;
 shared_ptr<DNSCryptoKeyEngine> DNSCryptoKeyEngine::makeFromISCFile(DNSKEYRecordContent& drc, const char* fname)
 {
   string sline, isc;
-  FILE *fp=fopen(fname, "r");
+  auto fp = std::unique_ptr<FILE, int(*)(FILE*)>(fopen(fname, "r"), fclose);
   if(!fp) {
     throw runtime_error("Unable to read file '"+string(fname)+"' for generating DNS Private Key");
   }
   
-  while(stringfgets(fp, sline)) {
+  while(stringfgets(fp.get(), sline)) {
     isc += sline;
   }
-  fclose(fp);
+  fp.reset();
+
   shared_ptr<DNSCryptoKeyEngine> dke = makeFromISCString(drc, isc);
-  if(!dke->checkKey()) {
-    throw runtime_error("Invalid DNS Private Key in file '"+string(fname));
+  vector<string> checkKeyErrors;
+
+  if(!dke->checkKey(&checkKeyErrors)) {
+    string reason;
+    if(checkKeyErrors.size()) {
+      reason = " ("+boost::algorithm::join(checkKeyErrors, ", ")+")";
+    }
+    throw runtime_error("Invalid DNS Private Key in file '"+string(fname)+"'"+reason);
   }
   return dke;
 }

@@ -69,6 +69,7 @@ Record creation functions
   - ``backupSelector``: used to pick the IP address from list of all candidates if all addresses are down. Choices include 'pickclosest', 'random', 'hashed', 'all' (default to 'random').
   - ``source``: Source IP address to check from
   - ``stringmatch``: check ``url`` for this string, only declare 'up' if found
+  - ``useragent``: Set the HTTP "User-Agent" header in the requests. By default it is set to "PowerDNS Authoritative Server"
 
   An example of IP address sets:
 
@@ -187,17 +188,17 @@ Reverse DNS functions
   
   **Formatting options:**
 
-    - ``%1%`` to ``%4%`` are individual octets
-        - Example record query: ``1.0.0.127.in-addr.arpa`` 
-        - ``%1%`` = 127
-        - ``%2%`` = 0
-        - ``%3%`` = 0
-        - ``%4%`` = 1
-    - ``%5%`` joins the four decimal octets together with dashes
-        - Example: ``%5%.static.example.com`` is equivalent to ``%1%-%2%-%3%-%4%.static.example.com``
-    - ``%6%`` converts each octet from decimal to hexadecimal and joins them together
-        - Example: A query for ``15.0.0.127.in-addr.arpa`` 
-        - ``%6`` would be ``7f00000f`` (127 is 7f, and 15 is 0f in hexadecimal)
+  - ``%1%`` to ``%4%`` are individual octets
+      - Example record query: ``1.0.0.127.in-addr.arpa``
+      - ``%1%`` = 127
+      - ``%2%`` = 0
+      - ``%3%`` = 0
+      - ``%4%`` = 1
+  - ``%5%`` joins the four decimal octets together with dashes
+      - Example: ``%5%.static.example.com`` is equivalent to ``%1%-%2%-%3%-%4%.static.example.com``
+  - ``%6%`` converts each octet from decimal to hexadecimal and joins them together
+      - Example: A query for ``15.0.0.127.in-addr.arpa``
+      - ``%6`` would be ``7f00000f`` (127 is 7f, and 15 is 0f in hexadecimal)
 
   **NOTE:** At the current time, only forward dotted format works with :func:`createForward` (i.e. ``127.0.0.1.static.example.com``)
   
@@ -254,18 +255,18 @@ Reverse DNS functions
   
   Formatting options:
    
-    - ``%1%`` to ``%32%`` are individual characters (nibbles)
-        - **Example PTR record query:** ``a.0.0.0.1.0.0.2.ip6.arpa``
-        - ``%1%`` = 2
-        - ``%2%`` = 0
-        - ``%3%`` = 0
-        - ``%4%`` = 1
-    - ``%33%`` converts the compressed address format into a dashed format, e.g. ``2001:a::1`` to ``2001-a--1``
-    - ``%34%`` to ``%41%`` represent the 8 uncompressed 2-byte chunks
-        - **Example:** PTR query for ``2001:a:b::123``
-        - ``%34%`` - returns ``2001`` (chunk 1)
-        - ``%35%`` - returns ``000a`` (chunk 2)
-        - ``%41%`` - returns ``0123`` (chunk 8)
+  - ``%1%`` to ``%32%`` are individual characters (nibbles)
+      - **Example PTR record query:** ``a.0.0.0.1.0.0.2.ip6.arpa``
+      - ``%1%`` = 2
+      - ``%2%`` = 0
+      - ``%3%`` = 0
+      - ``%4%`` = 1
+  - ``%33%`` converts the compressed address format into a dashed format, e.g. ``2001:a::1`` to ``2001-a--1``
+  - ``%34%`` to ``%41%`` represent the 8 uncompressed 2-byte chunks
+      - **Example:** PTR query for ``2001:a:b::123``
+      - ``%34%`` - returns ``2001`` (chunk 1)
+      - ``%35%`` - returns ``000a`` (chunk 2)
+      - ``%41%`` - returns ``0123`` (chunk 8)
   
   **NOTE:** At the current time, only dashed compressed format works for this function (i.e. ``2001-a-b--1.static6.example.com``)
   

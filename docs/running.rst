@@ -138,7 +138,7 @@ commands:
 -  ``mrtg``: Dump statistics in mrtg format. See the performance
    :ref:`counters` documentation.
 
- .. note::
+.. note::
   Packages provided by Operating System vendors might support
   different or less commands.
 

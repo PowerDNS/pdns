@@ -81,7 +81,10 @@ Rule Generators
   Set the TC-bit (truncate) on ANY queries received over UDP, forcing a retry over TCP.
   This function is deprecated as of 1.2.0 and will be removed in 1.3.0. This is equivalent to doing::
 
-    addAction(AndRule({QTypeRule(dnsdist.ANY), TCPRule(false)}), TCAction())
+   addAction(AndRule({QTypeRule(DNSQType.ANY), TCPRule(false)}), TCAction())
+
+  .. versionchanged:: 1.4.0
+    Before 1.4.0, the QTypes were in the ``dnsdist`` namespace. Use ``dnsdist.ANY`` in these versions.
 
 .. function:: addDelay(DNSrule, delay)
 
@@ -151,6 +154,9 @@ Rule Generators
   .. versionchanged:: 1.3.0
     The second argument returned by the ``function`` can be omitted. For earlier releases, simply return an empty string.
 
+  .. deprecated:: 1.4.0
+    Removed in 1.4.0, use :func:`LuaAction` with :func:`addAction` instead.
+
   Invoke a Lua function that accepts a :class:`DNSQuestion`.
   This function works similar to using :func:`LuaAction`.
   The ``function`` should return both a :ref:`DNSAction` and its argument `rule`. The `rule` is used as an argument
@@ -186,6 +192,9 @@ Rule Generators
 
   .. versionchanged:: 1.3.0
     The second argument returned by the ``function`` can be omitted. For earlier releases, simply return an empty string.
+
+  .. deprecated:: 1.4.0
+    Removed in 1.4.0, use :func:`LuaResponseAction` with :func:`addResponseAction` instead.
 
   Invoke a Lua function that accepts a :class:`DNSResponse`.
   This function works similar to using :func:`LuaResponseAction`.
@@ -278,7 +287,7 @@ For Rules related to the incoming query:
 
   Add a Rule and Action to the existing rules.
 
-  :param DNSrule rule: A DNSRule, e.g. an :func:`allRule` or a compounded bunch of rules using e.g. :func:`AndRule`
+  :param DNSrule rule: A DNSRule, e.g. an :func:`AllRule` or a compounded bunch of rules using e.g. :func:`AndRule`
   :param action: The action to take
   :param table options: A table with key: value pairs with options.
 
@@ -361,7 +370,7 @@ For Rules related to responses:
 
   Add a Rule and Action for responses to the existing rules.
 
-  :param DNSRule: A DNSRule, e.g. an :func:`allRule` or a compounded bunch of rules using e.g. :func:`AndRule`
+  :param DNSRule: A DNSRule, e.g. an :func:`AllRule` or a compounded bunch of rules using e.g. :func:`AndRule`
   :param action: The action to take
   :param table options: A table with key: value pairs with options.
 
@@ -415,7 +424,7 @@ Functions for manipulating Cache Hit Respone Rules:
 
   Add a Rule and ResponseAction for Cache Hits to the existing rules.
 
-  :param DNSRule: A DNSRule, e.g. an :func:`allRule` or a compounded bunch of rules using e.g. :func:`AndRule`
+  :param DNSRule: A DNSRule, e.g. an :func:`AllRule` or a compounded bunch of rules using e.g. :func:`AndRule`
   :param action: The action to take
   :param table options: A table with key: value pairs with options.
 
@@ -472,7 +481,7 @@ Functions for manipulating Self-Answered Response Rules:
 
   Add a Rule and Action for Self-Answered queries to the existing rules.
 
-  :param DNSRule: A DNSRule, e.g. an :func:`allRule` or a compounded bunch of rules using e.g. :func:`AndRule`
+  :param DNSRule: A DNSRule, e.g. an :func:`AllRule` or a compounded bunch of rules using e.g. :func:`AndRule`
   :param action: The action to take
 
 .. function:: mvSelfAnsweredResponseRule(from, to)
@@ -547,6 +556,35 @@ These ``DNSRule``\ s be one of the following items:
 
   Matches queries with the DO flag set
 
+.. function:: DSTPortRule(port)
+
+  Matches questions received to the destination port.
+
+  :param int port: Match destination port.
+
+.. function:: EDNSOptionRule(optcode)
+
+  .. versionadded:: 1.4.0
+
+  Matches queries or responses with the specified EDNS option present.
+  ``optcode`` is specified as an integer, or a constant such as `EDNSOptionCode.ECS`.
+
+.. function:: EDNSVersionRule(version)
+
+  .. versionadded:: 1.4.0
+
+  Matches queries or responses with an OPT record whose EDNS version is greater than the specified EDNS version.
+
+  :param int version: The EDNS version to match on
+
+.. function:: ERCodeRule(rcode)
+
+  Matches queries or responses with the specified ``rcode``.
+  ``rcode`` can be specified as an integer or as one of the built-in :ref:`DNSRCode`.
+  The full 16bit RCode will be matched. If no EDNS OPT RR is present, the upper 12 bits are treated as 0.
+
+  :param int rcode: The RCODE to match on
+
 .. function:: MaxQPSIPRule(qps[, v4Mask[, v6Mask[, burst[, expiration[, cleanupDelay[, scanFraction]]]]]])
   .. versionchanged:: 1.3.1
     Added the optional parameters ``expiration``, ``cleanupDelay`` and ``scanFraction``.
@@ -610,6 +648,13 @@ These ``DNSRule``\ s be one of the following items:
 
    :param string qname: Qname to match
 
+.. function:: QNameSetRule(set)
+  Matches if the set contains exact qname.
+
+   To match subdomain names, see :func:`SuffixMatchNodeRule`.
+
+   :param DNSNameSet set: Set with qnames.
+
 .. function:: QNameLabelsCountRule(min, max)
 
   Matches if the qname has less than ``min`` or more than ``max`` labels.
@@ -639,21 +684,6 @@ These ``DNSRule``\ s be one of the following items:
   Only the non-extended RCode is matched (lower 4bits).
 
   :param int rcode: The RCODE to match on
-
-.. function:: ERCodeRule(rcode)
-
-  Matches queries or responses with the specified ``rcode``.
-  ``rcode`` can be specified as an integer or as one of the built-in :ref:`DNSRCode`.
-  The full 16bit RCode will be matched. If no EDNS OPT RR is present, the upper 12 bits are treated as 0.
-
-  :param int rcode: The RCODE to match on
-
-.. function:: EDNSOptionRule(optcode)
-
-  .. versionadded:: 1.4.0
-
-  Matches queries or responses with the specified EDNS option present.
-  ``optcode`` is specified as an integer, or a constant such as `EDNSOptionCode.ECS`.
 
 .. function:: RDRule()
 
@@ -690,8 +720,8 @@ These ``DNSRule``\ s be one of the following items:
 .. function:: RecordsTypeCountRule(section, qtype, minCount, maxCount)
 
   Matches if there is at least ``minCount`` and at most ``maxCount`` records of type ``type`` in the section ``section``.
-  ``section`` can be specified as an integer or as a ref:`DNSSection`.
-  ``qtype`` may be specified as an integer or as one of the built-in QTypes, for instance ``dnsdist.A`` or ``dnsdist.TXT``.
+  ``section`` can be specified as an integer or as a :ref:`DNSSection`.
+  ``qtype`` may be specified as an integer or as one of the :ref:`built-in QTypes <DNSQType>`, for instance ``DNSQType.A`` or ``DNSQType.TXT``.
 
   :param int section: The section to match on
   :param int qtype: The QTYPE to match on
@@ -713,6 +743,8 @@ These ``DNSRule``\ s be one of the following items:
   Matches based on a group of domain suffixes for rapid testing of membership.
   Pass true as second parameter to prevent listing of all domains matched.
 
+  To match domain names exactly, see :func:`QNameSetRule`.
+
   :param SuffixMatchNode smb: The SuffixMatchNode to match on
   :param bool quiet: Do not return the list of matched domains. Default is false.
 
@@ -730,12 +762,6 @@ These ``DNSRule``\ s be one of the following items:
   Matches question received over TCP if ``tcp`` is true, over UDP otherwise.
 
   :param bool tcp: Match TCP traffic. Default is true.
-
-.. function:: DSTPortRule(port)
-
-  Matches questions received to the destination port.
-
-  :param int port: Match destination port.
 
 .. function:: TrailingDataRule()
 
@@ -856,6 +882,16 @@ The following actions exist.
   :param int v4: The IPv4 netmask length
   :param int v6: The IPv6 netmask length
 
+
+.. function:: ERCodeAction(rcode)
+
+  .. versionadded:: 1.4.0
+
+  Reply immediately by turning the query into a response with the specified EDNS extended ``rcode``.
+  ``rcode`` can be specified as an integer or as one of the built-in :ref:`DNSRCode`.
+
+  :param int rcode: The extended RCODE to respond with.
+
 .. function:: LogAction([filename[, binary[, append[, buffered]]]])
 
   Log a line for each query, to the specified ``file`` if any, to the console (require verbose) otherwise.
@@ -926,7 +962,7 @@ The following actions exist.
 
 .. function:: RCodeAction(rcode)
 
-  Reply immediatly by turning the query into a response with the specified ``rcode``.
+  Reply immediately by turning the query into a response with the specified ``rcode``.
   ``rcode`` can be specified as an integer or as one of the built-in :ref:`DNSRCode`.
 
   :param int rcode: The RCODE to respond with.
@@ -935,6 +971,9 @@ The following actions exist.
 
   .. versionchanged:: 1.3.0
     ``options`` optional parameter added.
+
+  .. versionchanged:: 1.4.0
+    ``ipEncryptKey`` optional key added to the options table.
 
   Send the content of this query to a remote logger via Protocol Buffer.
   ``alterFunction`` is a callback, receiving a :class:`DNSQuestion` and a :class:`DNSDistProtoBufMessage`, that can be used to modify the Protocol Buffer content, for example for anonymization purposes
@@ -946,11 +985,15 @@ The following actions exist.
   Options:
 
   * ``serverID=""``: str - Set the Server Identity field.
+  * ``ipEncryptKey=""``: str - A key, that can be generated via the :ref:`makeIPCipherKey` function, to encrypt the IP address of the requestor for anonymization purposes. The encryption is done using ipcrypt for IPv4 and a 128-bit AES ECB operation for IPv6.
 
 .. function:: RemoteLogResponseAction(remoteLogger[, alterFunction[, includeCNAME [, options]]])
 
   .. versionchanged:: 1.3.0
     ``options`` optional parameter added.
+
+  .. versionchanged:: 1.4.0
+    ``ipEncryptKey`` optional key added to the options table.
 
   Send the content of this response to a remote logger via Protocol Buffer.
   ``alterFunction`` is the same callback that receiving a :class:`DNSQuestion` and a :class:`DNSDistProtoBufMessage`, that can be used to modify the Protocol Buffer content, for example for anonymization purposes
@@ -965,6 +1008,7 @@ The following actions exist.
   Options:
 
   * ``serverID=""``: str - Set the Server Identity field.
+  * ``ipEncryptKey=""``: str - A key, that can be generated via the :ref:`makeIPCipherKey` function, to encrypt the IP address of the requestor for anonymization purposes. The encryption is done using ipcrypt for IPv4 and a 128-bit AES ECB operation for IPv6.
 
 .. function:: SetECSAction(v4 [, v6])
 

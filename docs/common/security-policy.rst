@@ -19,7 +19,6 @@ Do note that only the PowerDNS software is in scope for the HackerOne program, n
 
 Disclosure Policy
 ^^^^^^^^^^^^^^^^^
- - Let us know as soon as possible upon discovery of a potential security issue, and we'll make every effort to quickly resolve the issue.
- - Provide us a reasonable amount of time to resolve the issue before any disclosure to the public or a third-party.
- - We will always credit researchers in our :doc:`../security-advisories/index`.
-
+- Let us know as soon as possible upon discovery of a potential security issue, and we'll make every effort to quickly resolve the issue.
+- Provide us a reasonable amount of time to resolve the issue before any disclosure to the public or a third-party.
+- We will always credit researchers in our :doc:`../security-advisories/index`.

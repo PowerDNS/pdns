@@ -34,11 +34,12 @@ void DNSResourceRecord::setContent(const string &cont) {
     case QType::MX:
       if (content.size() >= 2 && *(content.rbegin()+1) == ' ')
         return;
+      /* Falls through. */
     case QType::CNAME:
     case QType::DNAME:
     case QType::NS:
     case QType::PTR:
-      if(!content.empty())
+      if (content.size() >= 2 && *(content.rbegin()) == '.')
         boost::erase_tail(content, 1);
   }
 }

@@ -2,6 +2,93 @@ Changelogs for 4.1.x
 ====================
 
 .. changelog::
+  :version: 4.1.12
+  :released: 2nd of April 2019
+
+  .. change::
+    :tags: Bug Fixes, Internals
+    :pullreq: 7495
+    :tickets: 7494
+
+    Correctly interpret an empty AXFR response to an IXFR query.
+
+  .. change::
+    :tags: Improvements, Internals
+    :pullreq: 7647
+
+    Provide CPU usage statistics per thread (worker & distributor).
+
+  .. change::
+    :tags: Improvements, Internals, Performance
+    :pullreq: 7634
+    :tickets: 7507
+
+    Use a bounded load-balancing algo to distribute queries.
+
+  .. change::
+    :tags: Improvements, Internals
+    :pullreq: 7651
+    :tickets: 7631, 7572
+
+    Implement a configurable ECS cache limit so responses with an ECS scope more specific than a certain threshold and a TTL smaller than a specific threshold are not inserted into the records cache at all.
+
+.. changelog::
+  :version: 4.1.11
+  :released: 1st of February 2019
+
+  Since Spectre/Meltdown, system calls have become more expensive.  This made exporting a very high number of protobuf messages costly, which is addressed in this release by reducing the number of syscalls per message.
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 7434
+
+    Add an option to export only responses over protobuf to the Lua :func:`protobufServer` directive.
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 7430
+    :tickets: 7428
+
+    Reduce systemcall usage in protobuf logging.  (See #7428.)
+
+.. changelog::
+  :version: 4.1.10
+  :released: 24th of January 2019
+
+  This release fixes a bug when trying to build PowerDNS Recursor with protobuf support disabled, thus this release is only relevant to people building PowerDNS Recursor from source and not if you're installing it as a package from our repositories.
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 7403
+
+    PowerDNS Recursor release 4.1.9 introduced a call to the Lua :func:`ipfilter` hook that required access to the DNS header, but the corresponding variable was only declared when protobuf support had been enabled.
+
+.. changelog::
+  :version: 4.1.9
+  :released: 21st of January 2019
+
+  This release fixes :doc:`Security Advisory 2019-01 <../security-advisories/powerdns-advisory-2019-01>` and :doc:`Security Advisory 2019-02 <../security-advisories/powerdns-advisory-2019-02>` that were recently discovered, affecting PowerDNS Recursor:
+   - CVE-2019-3806, 2019-01: from 4.1.4 up to and including 4.1.8 ;
+   - CVE-2019-3807, 2019-02: from 4.1.0 up to and including 4.1.8.
+
+  The issues are:
+    - CVE-2019-3806, 2019-01: Lua hooks are not properly applied to queries received over TCP in some specific combination of settings, possibly bypassing security policies enforced using Lua ;
+    - CVE-2019-3807, 2019-02: records in the answer section of responses received from authoritative servers with the AA flag not set were not properly validated, allowing an attacker to bypass DNSSEC validation.
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 7397
+
+    Properly apply Lua hooks to TCP queries, even with pdns-distributes-queries set (CVE-2019-3806, PowerDNS Security Advisory :doc:`2018-01 <../security-advisories/powerdns-advisory-2019-01>`). Validates records in the answer section of responses with AA=0 (CVE-2019-3807, PowerDNS Security Advisory :doc:`2019-02 <../security-advisories/powerdns-advisory-2019-02>`).
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 7377
+    :tickets: 7383
+
+    Try another worker before failing if the first pipe was full
+
+.. changelog::
   :version: 4.1.8
   :released: 26th of November 2018
 
@@ -208,7 +295,7 @@ Changelogs for 4.1.x
     :pullreq: 6557
     :tickets: 6536
 
-    Make :doc:`rec_control` respect :ref:`setting-include-dir`.
+    Make :doc:`../../manpages/rec_control.1` respect :ref:`setting-include-dir`.
 
   .. change::
     :tags: Improvements

@@ -125,7 +125,7 @@ void visitor(const StatNode* node, const StatNode::Stat& selfstat, const StatNod
 
 const struct timeval operator-(const struct pdns_timeval& lhs, const struct pdns_timeval& rhs)
 {
-  struct timeval a{lhs.tv_sec, lhs.tv_usec}, b{rhs.tv_sec, rhs.tv_usec};
+  struct timeval a{lhs.tv_sec, static_cast<suseconds_t>(lhs.tv_usec)}, b{rhs.tv_sec, static_cast<suseconds_t>(rhs.tv_usec)};
   return operator-(a,b);
 }
 
@@ -366,9 +366,9 @@ try
 	      //	      cout<<"Clearing state for "<<qi<<endl<<endl;
 	      statmap.erase(qi);
 	    }
-	    else
-	      ;//	      cout<<"State for qi remains open, qcount="<<qd.d_qcount<<", answercount="<<qd.d_answercount<<endl;
-	     
+	    else {
+	      //	      cout<<"State for qi remains open, qcount="<<qd.d_qcount<<", answercount="<<qd.d_answercount<<endl;
+            }
 	  }
 	}
 	catch(std::exception& e) {

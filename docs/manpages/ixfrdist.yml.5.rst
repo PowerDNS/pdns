@@ -54,6 +54,11 @@ Options
   Entries without a netmask will be interpreted as a single address.
   By default, the ACL is set is ``127.0.0.0/8`` and ``::1/128``.
 
+:axfr-max-records:
+  Maximum number of records allowed in an AXFR transaction requested by :program:`ixfrdist`.
+  This may prevent untrusted sources from using all the process memory.
+  By default, this setting is ``0``, which means "unlimited".
+
 :axfr-timeout:
   Timeout in seconds an AXFR transaction requested by :program:`ixfrdist` may take.
   Increase this when the network to the authoritative servers is slow or the domains are very large and you experience timeouts.
@@ -107,6 +112,16 @@ Options
   A list of networks that are allowed to access the :program:`ixfrdist` webserver.
   Entries without a netmask will be interpreted as a single address.
   By default, this list is set to ``127.0.0.0/8`` and ``::1/128``.
+
+:webserver-loglevel:
+  How much the webserver should log: 'none', 'normal' or 'detailed'.
+  When logging, each log-line contains the UUID of the request, this allows finding errors caused by certain requests.
+  With 'none', nothing is logged except for errors.
+  With 'normal' (the default), one line per request is logged in the style of the common log format::
+
+    [NOTICE] [webserver] 46326eef-b3ba-4455-8e76-15ec73879aa3 127.0.0.1:57566 "GET /metrics HTTP/1.1" 200 1846
+
+  with 'detailed', the full requests and responses (including headers) are logged along with the regular log-line from 'normal'.
 
 See also
 --------

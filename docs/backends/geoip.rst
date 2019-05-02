@@ -94,7 +94,7 @@ caching options described
 ``geoip-zones-file``
 ~~~~~~~~~~~~~~~~~~~~
 
-Specifies the full path of the zone configuration file to use.
+Specifies the full path of the zone configuration file to use. The file is re-opened with a ``pdns_control reload''.
 
 .. _setting-geoip-dnssec-keydir:
 
@@ -221,7 +221,7 @@ Using the ``weight`` attribute
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 You can use record attributes to define positive and non-zero weight.
-If this is given, only one record is chosen randomly based on the weight.
+If this is given, only one record per type is chosen randomly based on the weight.
 
 Probability is calculated by summing up the weights and dividing each weight with the sum.
 

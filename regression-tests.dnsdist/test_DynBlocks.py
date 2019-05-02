@@ -4,7 +4,11 @@ import json
 import requests
 import time
 import dns
-from dnsdisttests import DNSDistTest, range
+from dnsdisttests import DNSDistTest
+try:
+  range = xrange
+except NameError:
+  pass
 
 class DynBlocksTest(DNSDistTest):
 
@@ -799,7 +803,7 @@ class TestDynBlockGroupServFails(DynBlocksTest):
     _config_params = ['_dynBlockQPS', '_dynBlockPeriod', '_dynBlockDuration', '_testServerPort']
     _config_template = """
     local dbr = dynBlockRulesGroup()
-    dbr:setRCodeRate(dnsdist.SERVFAIL, %d, %d, "Exceeded query rate", %d)
+    dbr:setRCodeRate(DNSRCode.SERVFAIL, %d, %d, "Exceeded query rate", %d)
 
     function maintenance()
 	    dbr:apply()

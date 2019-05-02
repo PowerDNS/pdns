@@ -79,10 +79,10 @@ The password to for :ref:`setting-gpgsql-user`. Default: not set.
 
 Enable DNSSEC processing for this backend. Default: no.
 
-.. _setting-gpsql-extra-connection-parameters:
+.. _setting-gpgsql-extra-connection-parameters:
 
-``gpsql-extra-connection-parameters``
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+``gpgsql-extra-connection-parameters``
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 Extra connection parameters to forward to postgres. If you want to pin a
 specific certificate for the connection you should set this to
@@ -97,3 +97,4 @@ Default schema
 This is the 4.2 schema. Please find `the 4.1 schema on GitHub <https://github.com/PowerDNS/pdns/blob/rel/auth-4.1.x/modules/gpgsqlbackend/schema.pgsql.sql>`_.
 
 .. literalinclude:: ../../modules/gpgsqlbackend/schema.pgsql.sql
+   :language: SQL

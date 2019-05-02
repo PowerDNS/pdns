@@ -95,6 +95,14 @@ try
           str<<base<<"latency" << ' ' << (state->availability != DownstreamState::Availability::Down ? state->latencyUsec/1000.0 : 0) << " " << now << "\r\n";
           str<<base<<"senderrors" << ' ' << state->sendErrors.load() << " " << now << "\r\n";
           str<<base<<"outstanding" << ' ' << state->outstanding.load() << " " << now << "\r\n";
+          str<<base<<"tcpdiedsendingquery" << ' '<< state->tcpDiedSendingQuery.load() << " " << now << "\r\n";
+          str<<base<<"tcpdiedreaddingresponse" << ' '<< state->tcpDiedReadingResponse.load() << " " << now << "\r\n";
+          str<<base<<"tcpgaveup" << ' '<< state->tcpGaveUp.load() << " " << now << "\r\n";
+          str<<base<<"tcpreadimeouts" << ' '<< state->tcpReadTimeouts.load() << " " << now << "\r\n";
+          str<<base<<"tcpwritetimeouts" << ' '<< state->tcpWriteTimeouts.load() << " " << now << "\r\n";
+          str<<base<<"tcpcurrentconnections" << ' '<< state->tcpCurrentConnections.load() << " " << now << "\r\n";
+          str<<base<<"tcpavgqueriesperconnection" << ' '<< state->tcpAvgQueriesPerConnection.load() << " " << now << "\r\n";
+          str<<base<<"tcpavgconnectionduration" << ' '<< state->tcpAvgConnectionDuration.load() << " " << now << "\r\n";
         }
         for(const auto& front : g_frontends) {
           if (front->udpFD == -1 && front->tcpFD == -1)
@@ -104,6 +112,14 @@ try
           boost::replace_all(frontName, ".", "_");
           const string base = namespace_name + "." + hostname + "." + instance_name + ".frontends." + frontName + ".";
           str<<base<<"queries" << ' ' << front->queries.load() << " " << now << "\r\n";
+          str<<base<<"tcpdiedreadingquery" << ' '<< front->tcpDiedReadingQuery.load() << " " << now << "\r\n";
+          str<<base<<"tcpdiedsendingresponse" << ' '<< front->tcpDiedSendingResponse.load() << " " << now << "\r\n";
+          str<<base<<"tcpgaveup" << ' '<< front->tcpGaveUp.load() << " " << now << "\r\n";
+          str<<base<<"tcpclientimeouts" << ' '<< front->tcpClientTimeouts.load() << " " << now << "\r\n";
+          str<<base<<"tcpdownstreamtimeouts" << ' '<< front->tcpDownstreamTimeouts.load() << " " << now << "\r\n";
+          str<<base<<"tcpcurrentconnections" << ' '<< front->tcpCurrentConnections.load() << " " << now << "\r\n";
+          str<<base<<"tcpavgqueriesperconnection" << ' '<< front->tcpAvgQueriesPerConnection.load() << " " << now << "\r\n";
+          str<<base<<"tcpavgconnectionduration" << ' '<< front->tcpAvgConnectionDuration.load() << " " << now << "\r\n";
         }
         auto localPools = g_pools.getLocal();
         for (const auto& entry : *localPools) {
@@ -129,6 +145,39 @@ try
             str<<base<<"cache-ttl-too-shorts" << " " << cache->getTTLTooShorts() << " " << now << "\r\n";
           }
         }
+
+#ifdef HAVE_DNS_OVER_HTTPS
+        {
+          const string base = "dnsdist." + hostname + ".main.doh.";
+          for(const auto& doh : g_dohlocals) {
+            string name = doh->d_local.toStringWithPort();
+            boost::replace_all(name, ".", "_");
+            boost::replace_all(name, ":", "_");
+            boost::replace_all(name, "[", "_");
+            boost::replace_all(name, "]", "_");
+
+            vector<pair<const char*, const std::atomic<uint64_t>&>> v{
+              {"http-connects", doh->d_httpconnects},
+              {"http1-queries", doh->d_http1queries},
+              {"http2-queries", doh->d_http2queries},
+              {"tls10-queries", doh->d_tls10queries},
+              {"tls11-queries", doh->d_tls11queries},
+              {"tls12-queries", doh->d_tls12queries},
+              {"tls13-queries", doh->d_tls13queries},
+              {"tls-unknown-queries", doh->d_tlsUnknownqueries},
+              {"get-queries", doh->d_getqueries},
+              {"post-queries", doh->d_postqueries},
+              {"bad-requests", doh->d_badrequests},
+              {"error-responses", doh->d_errorresponses},
+              {"valid-responses", doh->d_validresponses}
+            };
+
+            for(const auto& item : v) {
+              str<<base<<name<<"."<<item.first << " " << item.second << " " << now <<"\r\n";
+            }
+          }
+        }
+#endif /* HAVE_DNS_OVER_HTTPS */
 
         {
           WriteLock wl(&g_qcount.queryLock);

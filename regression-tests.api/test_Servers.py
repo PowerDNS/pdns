@@ -43,14 +43,28 @@ class Servers(ApiTestCase):
         self.assertIn('uptime', [e['name'] for e in data])
         if is_auth():
             print(data)
-            qtype_stats, respsize_stats, queries_stats = None, None, None
+            qtype_stats, respsize_stats, queries_stats, rcode_stats = None, None, None, None
             for elem in data:
-                if elem['type'] == 'MapStatisticItem' and elem['name'] == 'queries-by-qtype':
+                if elem['type'] == 'MapStatisticItem' and elem['name'] == 'response-by-qtype':
                     qtype_stats = elem['value']
                 elif elem['type'] == 'MapStatisticItem' and elem['name'] == 'response-sizes':
                     respsize_stats = elem['value']
                 elif elem['type'] == 'RingStatisticItem' and elem['name'] == 'queries':
                     queries_stats = elem['value']
+                elif elem['type'] == 'MapStatisticItem' and elem['name'] == 'response-by-rcode':
+                    rcode_stats = elem['value']
             self.assertIn('A', [e['name'] for e in qtype_stats])
             self.assertIn('60', [e['name'] for e in respsize_stats])
             self.assertIn('example.com/A', [e['name'] for e in queries_stats])
+            self.assertIn('No Error', [e['name'] for e in rcode_stats])
+
+    def test_read_one_statistic(self):
+        r = self.session.get(self.url("/api/v1/servers/localhost/statistics?statistic=uptime"))
+        self.assert_success_json(r)
+        data = r.json()
+        self.assertIn('uptime', [e['name'] for e in data])
+
+    def test_read_one_non_existent_statistic(self):
+        r = self.session.get(self.url("/api/v1/servers/localhost/statistics?statistic=uptimeAAAA"))
+        self.assertEquals(r.status_code, 422)
+        self.assertIn("Unknown statistic name", r.json()['error'])

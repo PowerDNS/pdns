@@ -13,7 +13,7 @@ both a KSK and a CSK.
 To start the rollover, add an **active** new KSK to the zone
 (example.net in this case):
 
-::
+.. code-block:: shell
 
     pdnsutil add-zone-key example.net ksk active
 
@@ -24,7 +24,7 @@ If this zone is of the type 'MASTER', increase the SOA serial. The
 rollover is now in the "New KSK" stage. Retrieve the DS record(s) for
 the new KSK:
 
-::
+.. code-block:: shell
 
     pdnsutil show-zone example.net
 
@@ -38,7 +38,7 @@ rollover is now in the "DS Change" state and can continue to the
   The key-id for the old KSK is shown in the output of
   ``pdnsutil show-zone example.net``.
 
-::
+.. code-block:: shell
 
     pdnsutil remove-zone-key example.net KEY-ID
 

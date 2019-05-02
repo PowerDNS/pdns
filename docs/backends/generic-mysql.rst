@@ -33,6 +33,7 @@ material, and other information upon deletion of a domain from the
 domains table. The following SQL does the job:
 
 .. literalinclude:: ../../modules/gmysqlbackend/enable-foreign-keys.mysql.sql
+   :language: SQL
 
 Using MySQL replication
 -----------------------
@@ -122,6 +123,16 @@ Use the InnoDB READ-COMMITTED transaction isolation level. Default: yes.
 
 The timeout in seconds for each attempt to read from, or write to the
 server. A value of 0 will disable the timeout. Default: 10
+
+.. _setting-gmysql-thread-cleanup:
+
+``gmysql-thread-cleanup``
+^^^^^^^^^^^^^^^^^^^^^^^^
+.. versionadded:: 4.1.8
+
+Older versions (such as those shipped on RHEL 7) of the MySQL/MariaDB client libraries leak memory unless applications explicitly report the end of each thread to the library. Enabling ``gmysql-thread-cleanup`` tells PowerDNS to call ``mysql_thread_end()`` whenever a thread ends.
+
+Only enable this if you are certain you need to. For more discussion, see https://github.com/PowerDNS/pdns/issues/6231.
 
 Default Schema
 --------------

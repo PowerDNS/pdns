@@ -23,6 +23,7 @@ Requires(post): systemd-sysv
 Requires(post): systemd-units
 Requires(preun): systemd-units
 Requires(postun): systemd-units
+BuildRequires: systemd
 BuildRequires: systemd-units
 BuildRequires: systemd-devel
 
@@ -204,6 +205,7 @@ This package contains the ixfrdist program.
 export CPPFLAGS="-DLDAP_DEPRECATED"
 
 %configure \
+  --enable-option-checking=fatal \
   --sysconfdir=%{_sysconfdir}/%{name} \
   --disable-static \
   --disable-dependency-tracking \

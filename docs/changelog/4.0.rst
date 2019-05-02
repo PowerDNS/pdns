@@ -1,6 +1,20 @@
 Changelogs for 4.0.x
 ====================
 
+PowerDNS Authoritative Server 4.0.7
+-----------------------------------
+
+Released 18th of March 2019
+
+This release fixes PowerDNS Security Advisory
+:doc:`2019-03 <../security-advisories/powerdns-advisory-2019-03>`: Insufficient validation in the HTTP remote backend (CVE-2019-3871)
+
+Bug fixes
+~~~~~~~~~
+
+- `#7582 <https://github.com/PowerDNS/pdns/pull/7582>`__: Insufficient validation in the HTTP remote backend (CVE-2019-3871)
+
+
 PowerDNS Authoritative Server 4.0.6
 -----------------------------------
 
@@ -404,7 +418,7 @@ Important changes:
 
 -  Crypto++ and mbedTLS support is dropped, these are replaced by
    OpenSSL
--  The INCEPTION, INCEPTION-WEEK and EPOCH SOA-EDIT metadata values are
+-  The INCEPTION and INCEPTION-WEEK SOA-EDIT metadata values are
    marked as deprecated and will be removed in 4.1
 
 The final release has the following bug fixes compared to rc2:
@@ -428,9 +442,10 @@ PowerDNS Authoritative Server 4.0.0-rc2
 
 Released June 29th 2016
 
-**note**: rc1 was tagged in git but never officially released. Kees
-Monshouwer discovered an issue in the gmysql backend that would
-terminate the daemon on a connection error, this fixed in rc2.
+.. note::
+  rc1 was tagged in git but never officially released. Kees
+  Monshouwer discovered an issue in the gmysql backend that would
+  terminate the daemon on a connection error, this fixed in rc2.
 
 This Release Candidate adds IXFR consumption and fixes some issues with
 prepared statements:

@@ -54,7 +54,7 @@ BOOST_AUTO_TEST_CASE(test_method_lookup) {
    // then we check rr contains what we expect
    BOOST_CHECK_EQUAL(rr.qname.toString(), "unit.test.");
    BOOST_CHECK_MESSAGE(rr.qtype == QType::SOA, "returned qtype was not SOA");
-   BOOST_CHECK_EQUAL(rr.content, "ns.unit.test. hostmaster.unit.test. 1 2 3 4 5 6");
+   BOOST_CHECK_EQUAL(rr.content, "ns.unit.test. hostmaster.unit.test. 1 2 3 4 5");
    BOOST_CHECK_EQUAL(rr.ttl, 300);
 }
 
@@ -321,6 +321,23 @@ BOOST_AUTO_TEST_CASE(test_method_abortTransaction) {
 BOOST_AUTO_TEST_CASE(test_method_directBackendCmd) {
    BOOST_TEST_MESSAGE("Testing directBackendCmd method");
    BOOST_CHECK_EQUAL(be->directBackendCmd("PING 1234"), "PING 1234");
+}
+
+BOOST_AUTO_TEST_CASE(test_method_getUpdatedMasters) {
+   DomainInfo di;
+   BOOST_TEST_MESSAGE("Testing getUpdatedMasters method");
+   vector<DomainInfo> result;
+
+   be->getUpdatedMasters(&result);
+
+   BOOST_CHECK(result.size() > 0);
+
+   di = result[0];
+   BOOST_CHECK_EQUAL(di.zone.toString(), "master.test.");
+   BOOST_CHECK_EQUAL(di.serial, 2);
+   BOOST_CHECK_EQUAL(di.notified_serial, 2);
+   BOOST_CHECK_EQUAL(di.kind, DomainInfo::Master);
+   BOOST_CHECK_EQUAL(di.backend, be);
 }
 
 BOOST_AUTO_TEST_SUITE_END();

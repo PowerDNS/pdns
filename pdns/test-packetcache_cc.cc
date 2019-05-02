@@ -104,6 +104,7 @@ catch(PDNSException& e) {
 
 BOOST_AUTO_TEST_CASE(test_QueryCacheThreaded) {
   try {
+    g_QCmissing = 0;
     AuthQueryCache QC;
     QC.setMaxEntries(1000000);
     g_QC=&QC;
@@ -156,9 +157,11 @@ try
     DNSPacket r(false);
     r.parse((char*)&pak[0], pak.size());
 
-    /* this step is necessary to get a valid hash */
-    DNSPacket cached(false);
-    g_PC->get(&q, &cached);
+    /* this step is necessary to get a valid hash
+       we directly compute the hash instead of querying the
+       cache because 1/ it's faster 2/ no deferred-lookup issues
+    */
+    q.setHash(g_PC->canHashPacket(q.getString()));
 
     const unsigned int maxTTL = 3600;
     g_PC->insert(&q, &r, maxTTL);
@@ -204,6 +207,7 @@ BOOST_AUTO_TEST_CASE(test_PacketCacheThreaded) {
     PC.setTTL(3600);
 
     g_PC=&PC;
+    g_PCmissing = 0;
     pthread_t tid[4];
     for(int i=0; i < 4; ++i)
       pthread_create(&tid[i], 0, threadPCMangler, (void*)(i*1000000UL));
@@ -212,6 +216,7 @@ BOOST_AUTO_TEST_CASE(test_PacketCacheThreaded) {
       pthread_join(tid[i], &res);
 
     BOOST_CHECK_EQUAL(PC.size() + S.read("deferred-packetcache-inserts"), 400000);
+    BOOST_CHECK_EQUAL(S.read("deferred-packetcache-lookup"), 0);
     BOOST_CHECK_SMALL(1.0*S.read("deferred-packetcache-inserts"), 10000.0);
 
     for(int i=0; i < 4; ++i)
@@ -224,9 +229,12 @@ BOOST_AUTO_TEST_CASE(test_PacketCacheThreaded) {
     cerr<<"Hits: "<<S.read("packetcache-hit")<<endl;
     cerr<<"Deferred inserts: "<<S.read("deferred-packetcache-inserts")<<endl;
     cerr<<"Deferred lookups: "<<S.read("deferred-packetcache-lookup")<<endl;
+    cerr<<g_PCmissing<<endl;
+    cerr<<PC.size()<<endl;
 */
+
     BOOST_CHECK_EQUAL(g_PCmissing + S.read("packetcache-hit"), 400000);
-    BOOST_CHECK_GT(S.read("deferred-packetcache-inserts") + S.read("deferred-packetcache-lookup"), g_PCmissing);
+    BOOST_CHECK_EQUAL(S.read("deferred-packetcache-inserts") + S.read("deferred-packetcache-lookup"), g_PCmissing);
   }
   catch(PDNSException& e) {
     cerr<<"Had error: "<<e.reason<<endl;

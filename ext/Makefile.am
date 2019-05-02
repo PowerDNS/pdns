@@ -1,10 +1,12 @@
 SUBDIRS = \
-	yahttp \
-        json11
+	ipcrypt \
+	json11 \
+	yahttp
 
 DIST_SUBDIRS = \
-	yahttp \
-        json11
+	ipcrypt \
+	json11 \
+	yahttp
 
 EXTRA_DIST = \
 	luawrapper/include/LuaContext.hpp

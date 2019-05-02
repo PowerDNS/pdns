@@ -12,6 +12,14 @@ Oracle backend
 * Launch name: ``oracle``
 
 This is the Oracle Database backend with easily configurable SQL statements, allowing you to graft
+
+.. warning::
+  The Oracle backends depend on non-free software that requires significant
+  resources from us to support. Consequently, we can not provide free
+  support to users of this backend. Before deploying PowerDNS with an Oracle
+  database, please head to `our commercial support page
+  <https://www.powerdns.com/support.html>`_.
+
 PowerDNS functionality onto any Oracle database of your choosing.
 
 The Oracle backend is difficult, and possibly illegal, to distribute in
@@ -344,7 +352,7 @@ oracle-basic-query
 
 Looking for records based on owner name and type. Default:
 
-::
+.. code-block:: SQL
 
     SELECT fqdn, ttl, type, content, zone_id, last_change, auth
     FROM Records
@@ -355,7 +363,7 @@ oracle-basic-id-query
 
 Looking for records from one zone based on owner name and type. Default:
 
-::
+.. code-block:: SQL
 
     SELECT fqdn, ttl, type, content, zone_id, last_change, auth
     FROM Records
@@ -366,7 +374,7 @@ oracle-any-query
 
 Looking for records based on owner name. Default:
 
-::
+.. code-block:: SQL
 
     SELECT fqdn, ttl, type, content, zone_id, last_change, auth
     FROM Records
@@ -379,7 +387,7 @@ oracle-any-id-query
 
 Looking for records from one zone based on owner name. Default:
 
-::
+.. code-block:: SQL
 
     SELECT fqdn, ttl, type, content, zone_id, last_change, auth
     FROM Records
@@ -393,7 +401,7 @@ oracle-list-query
 
 Looking for all records from one zone. Default:
 
-::
+.. code-block:: SQL
 
     SELECT fqdn, ttl, type, content, zone_id, last_change, auth
     FROM Records
@@ -410,7 +418,7 @@ oracle-get-zone-metadata-query
 Fetch the content of the metadata entries of type ':kind' for the zone
 called ':name', in their original order. Default:
 
-::
+.. code-block:: SQL
 
     SELECT md.meta_content
     FROM Zones z JOIN ZoneMetadata md ON z.id = md.zone_id
@@ -424,7 +432,7 @@ Delete all metadata entries of type ':kind' for the zone called ':name'.
 You can skip this if you do not plan to manage zones with the
 ``pdnsutil`` tool. Default:
 
-::
+.. code-block:: SQL
 
     DELETE FROM ZoneMetadata md
     WHERE zone_id = (SELECT id FROM Zones z WHERE z.name = lower(:name))
@@ -436,7 +444,7 @@ oracle-set-zone-metadata-query
 Create a metadata entry. You can skip this if you do not plan to manage
 zones with the ``pdnsutil`` tool. Default:
 
-::
+.. code-block:: SQL
 
     INSERT INTO ZoneMetadata (zone_id, meta_type, meta_ind, meta_content)
     VALUES (
@@ -449,7 +457,7 @@ oracle-get-tsig-key-query
 
 Retrieved the TSIG key specified by ':name'. Default:
 
-::
+.. code-block:: SQL
 
     SELECT algorithm, secret
     FROM TSIGKeys
@@ -463,7 +471,7 @@ oracle-get-zone-keys-query
 
 Retrieve the DNSSEC signing keys for a zone. Default:
 
-::
+.. code-block:: SQL
 
     SELECT k.id, k.flags, k.active, k.keydata
     FROM ZoneDNSKeys k JOIN Zones z ON z.id = k.zone_id
@@ -475,7 +483,7 @@ oracle-del-zone-key-query
 Delete a DNSSEC signing key. You can skip this if you do not plan to
 manage zones with the ``pdnsutil`` tool. Default:
 
-::
+.. code-block:: SQL
 
     DELETE FROM ZoneDNSKeys WHERE id = :keyid
 
@@ -485,9 +493,9 @@ oracle-add-zone-key-query
 Add a DNSSEC signing key. You can skip this if you do not plan to manage
 zones with the ``pdnsutil`` tool. Default:
 
-::
+.. code-block:: SQL
 
-    INSERT INTO ZoneDNSKeys (id, zone_id, flags, active, keydata) "
+    INSERT INTO ZoneDNSKeys (id, zone_id, flags, active, keydata)
     VALUES (
       zonednskeys_id_seq.NEXTVAL,
       (SELECT id FROM Zones WHERE name = lower(:name)),
@@ -502,7 +510,7 @@ oracle-set-zone-key-state-query
 Enable or disable a DNSSEC signing key. You can skip this if you do not
 plan to manage zones with the **pdnsutil** tool. Default:
 
-::
+.. code-block:: SQL
 
     UPDATE ZoneDNSKeys SET active = :active WHERE id = :keyid
 
@@ -518,7 +526,7 @@ variables, not a query.
 
 Default:
 
-::
+.. code-block:: SQL
 
     BEGIN
       get_canonical_prev_next(:zoneid, :name, :prev, :next);
@@ -531,7 +539,7 @@ Given an NSEC3 hash, this call needs to return its predecessor and
 successor in NSEC3 zone ordering into ``:prev`` and ``:next``, and the
 FQDN of the predecessor into ``:unhashed``. Default:
 
-::
+.. code-block:: SQL
 
     BEGIN
       get_hashed_prev_next(:zoneid, :hash, :unhashed, :prev, :next);
@@ -546,7 +554,7 @@ oracle-zone-info-query
 Get some basic information about the named zone before doing
 master/slave things. Default:
 
-::
+.. code-block:: SQL
 
     SELECT id, name, type, last_check, serial, notified_serial
     FROM Zones
@@ -559,7 +567,7 @@ Delete all records for a zone in preparation for an incoming zone
 transfer. This happens inside a transaction, so if the transfer fails,
 the old zone content will still be there. Default:
 
-::
+.. code-block:: SQL
 
     DELETE FROM Records WHERE zone_id = :zoneid
 
@@ -570,7 +578,7 @@ Insert a record into the zone during an incoming zone transfer. This
 happens inside the same transaction as delete-zone, so we will not end
 up with a partially transferred zone. Default:
 
-::
+.. code-block:: SQL
 
     INSERT INTO Records (id, fqdn, zone_id, ttl, type, content)
     VALUES (records_id_seq.NEXTVAL, lower(:name), :zoneid, :ttl, :type, :content)
@@ -584,7 +592,7 @@ empty non-terminals, set the ``auth`` bit and NSEC3 hashes, and
 generally do any post-processing your schema requires. The do-nothing
 default:
 
-::
+.. code-block:: SQL
 
     DECLARE
       zone_id INTEGER := :zoneid;
@@ -602,7 +610,7 @@ Return a list of zones that need to be checked and their master servers.
 Return multiple rows, identical except for the master address, for zones
 with more than one master. Default:
 
-::
+.. code-block:: SQL
 
     SELECT z.id, z.name, z.last_check, z.serial, zm.master
     FROM Zones z JOIN Zonemasters zm ON z.id = zm.zone_id
@@ -615,7 +623,7 @@ oracle-zone-set-last-check-query
 
 Set the last check timestamp after a successful check. Default:
 
-::
+.. code-block:: SQL
 
     UPDATE Zones SET last_check = :lastcheck WHERE id = :zoneid
 
@@ -625,7 +633,7 @@ oracle-updated-masters-query
 Return a list of zones that need to have ``NOTIFY`` packets sent out.
 Default:
 
-::
+.. code-block:: SQL
 
     SELECT id, name, serial, notified_serial
     FROM Zones
@@ -637,7 +645,7 @@ oracle-zone-set-notified-serial-query
 
 Set the last notified serial after packets have been sent. Default:
 
-::
+.. code-block:: SQL
 
     UPDATE Zones SET notified_serial = :serial WHERE id = :zoneid
 
@@ -648,7 +656,7 @@ Return a list of hosts that should be notified, in addition to any
 nameservers in the NS records, when sending ``NOTIFY`` packets for the
 named zone. Default:
 
-::
+.. code-block:: SQL
 
     SELECT an.hostaddr
     FROM Zones z JOIN ZoneAlsoNotify an ON z.id = an.zone_id
@@ -659,7 +667,7 @@ oracle-zone-masters-query
 
 Return a list of masters for the zone specified by id. Default:
 
-::
+.. code-block:: SQL
 
     SELECT master
     FROM Zonemasters
@@ -671,7 +679,7 @@ oracle-is-zone-master-query
 Return a row if the specified host is a registered master for the named
 zone. Default:
 
-::
+.. code-block:: SQL
 
     SELECT zm.master
     FROM Zones z JOIN Zonemasters zm ON z.id = zm.zone_id
@@ -686,7 +694,7 @@ oracle-accept-supernotification-query
 If a supernotification should be accepted from ':ip', for the master
 nameserver ':ns', return a label for this supermaster. Default:
 
-::
+.. code-block:: SQL
 
     SELECT name
     FROM Supermasters
@@ -698,7 +706,7 @@ oracle-insert-slave-query
 A supernotification has just been accepted, and we need to create an
 entry for the new zone. Default:
 
-::
+.. code-block:: SQL
 
     INSERT INTO Zones (id, name, type)
     VALUES (zones_id_seq.NEXTVAL, lower(:zone), 'SLAVE')
@@ -710,7 +718,7 @@ oracle-insert-master-query
 We need to register the first master server for the newly created zone.
 Default:
 
-::
+.. code-block:: SQL
 
     INSERT INTO Zonemasters (zone_id, master)
     VALUES (:zoneid, :ip)

@@ -209,7 +209,7 @@ private:
   time_t d_tickinterval;
   set<DomainInfo> d_tocheck;
   struct cmp {
-    bool operator()(const DNSPacket& a, const DNSPacket& b) {
+    bool operator()(const DNSPacket& a, const DNSPacket& b) const {
       return a.qdomain < b.qdomain;
     };
   };
@@ -251,18 +251,32 @@ private:
 class FindNS
 {
 public:
-  vector<string> lookup(const DNSName &name, UeberBackend *b)
+  vector<string> lookup(const DNSName &name, UeberBackend *b, const DNSName& zone)
   {
     vector<string> addresses;
 
     this->resolve_name(&addresses, name);
     
     if(b) {
-        b->lookup(QType(QType::ANY),name);
-        DNSZoneRecord rr;
-        while(b->get(rr))
-          if(rr.dr.d_type == QType::A || rr.dr.d_type==QType::AAAA)
+      b->lookup(QType(QType::ANY),name);
+      while (true) {
+        try {
+          DNSZoneRecord rr;
+          if (!b->get(rr))
+            break;
+          if (rr.dr.d_type == QType::A || rr.dr.d_type == QType::AAAA)
             addresses.push_back(rr.dr.d_content->getZoneRepresentation());   // SOL if you have a CNAME for an NS
+        }
+        // After an exception, b can be inconsistent so break
+        catch (PDNSException &ae) {
+          g_log << Logger::Error << "Could not lookup address for nameserver " << name << " in zone " << zone << ", cannot notify: " << ae.reason << endl;
+          break;
+        }
+        catch (std::exception &e) {
+          g_log << Logger::Error << "Could not lookup address for nameserver " << name << " in zone " << zone << ", cannot notify: " << e.what() << endl;
+          break;
+        }
+      }
     }
     return addresses;
   }

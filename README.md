@@ -96,11 +96,11 @@ If you run into C++11-related symbol trouble, please try passing `CPPFLAGS=-D_GL
 
 Compiling the Recursor
 ----------------------
-See the README in pdns/recursordist.
+See [README.md](pdns/recursordist/README.md) in `pdns/recursordist/`.
 
 Compiling dnsdist
 -----------------
-See the README in pdns/dnsdistdist.
+See [README-dnsdist.md](pdns/README-dnsdist.md) in `pdns/`.
 
 Building the HTML documentation
 -------------------------------

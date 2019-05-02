@@ -37,7 +37,7 @@ public:
   virtual int run(struct timeval* tv, int timeout=500) override;
   virtual void getAvailableFDs(std::vector<int>& fds, int timeout) override;
 
-  virtual void addFD(callbackmap_t& cbmap, int fd, callbackfunc_t toDo, const funcparam_t& parameter) override;
+  virtual void addFD(callbackmap_t& cbmap, int fd, callbackfunc_t toDo, const funcparam_t& parameter, const struct timeval* ttd=nullptr) override;
   virtual void removeFD(callbackmap_t& cbmap, int fd) override;
 
   string getName() const override
@@ -60,20 +60,14 @@ static struct RegisterOurselves
   }
 } doIt;
 
-void PollFDMultiplexer::addFD(callbackmap_t& cbmap, int fd, callbackfunc_t toDo, const boost::any& parameter)
+void PollFDMultiplexer::addFD(callbackmap_t& cbmap, int fd, callbackfunc_t toDo, const boost::any& parameter, const struct timeval* ttd)
 {
-  Callback cb;
-  cb.d_callback=toDo;
-  cb.d_parameter=parameter;
-  memset(&cb.d_ttd, 0, sizeof(cb.d_ttd));
-  if(cbmap.count(fd))
-    throw FDMultiplexerException("Tried to add fd "+std::to_string(fd)+ " to multiplexer twice");
-  cbmap[fd]=cb;
+  accountingAddFD(cbmap, fd, toDo, parameter, ttd);
 }
 
 void PollFDMultiplexer::removeFD(callbackmap_t& cbmap, int fd)
 {
-  if(d_inrun && d_iter->first==fd)  // trying to remove us!
+  if(d_inrun && d_iter->d_fd==fd)  // trying to remove us!
     ++d_iter;
 
   if(!cbmap.erase(fd))
@@ -87,13 +81,13 @@ vector<struct pollfd> PollFDMultiplexer::preparePollFD() const
 
   struct pollfd pollfd;
   for(const auto& cb : d_readCallbacks) {
-    pollfd.fd = cb.first;
+    pollfd.fd = cb.d_fd;
     pollfd.events = POLLIN;
     pollfds.push_back(pollfd);
   }
 
   for(const auto& cb : d_writeCallbacks) {
-    pollfd.fd = cb.first;
+    pollfd.fd = cb.d_fd;
     pollfd.events = POLLOUT;
     pollfds.push_back(pollfd);
   }
@@ -110,7 +104,7 @@ void PollFDMultiplexer::getAvailableFDs(std::vector<int>& fds, int timeout)
     throw FDMultiplexerException("poll returned error: " + stringerror());
 
   for(const auto& pollfd : pollfds) {
-    if (pollfd.revents == POLLIN || pollfd.revents == POLLOUT) {
+    if (pollfd.revents & POLLIN || pollfd.revents & POLLOUT) {
       fds.push_back(pollfd.fd);
     }
   }
@@ -134,19 +128,19 @@ int PollFDMultiplexer::run(struct timeval* now, int timeout)
   d_inrun=true;
 
   for(const auto& pollfd : pollfds) {
-    if(pollfd.revents == POLLIN) {
+    if(pollfd.revents & POLLIN) {
       d_iter=d_readCallbacks.find(pollfd.fd);
     
       if(d_iter != d_readCallbacks.end()) {
-        d_iter->second.d_callback(d_iter->first, d_iter->second.d_parameter);
+        d_iter->d_callback(d_iter->d_fd, d_iter->d_parameter);
         continue; // so we don't refind ourselves as writable!
       }
     }
-    else if(pollfd.revents == POLLOUT) {
+    else if(pollfd.revents & POLLOUT) {
       d_iter=d_writeCallbacks.find(pollfd.fd);
     
       if(d_iter != d_writeCallbacks.end()) {
-        d_iter->second.d_callback(d_iter->first, d_iter->second.d_parameter);
+        d_iter->d_callback(d_iter->d_fd, d_iter->d_parameter);
       }
     }
   }

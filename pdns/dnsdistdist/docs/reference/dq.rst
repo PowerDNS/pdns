@@ -47,7 +47,7 @@ This state can be modified from the various hooks.
   .. attribute:: DNSQuestion.qtype
 
     QType (as an unsigned integer) of this question.
-    Can be compared against ``dnsdist.A``, ``dnsdist.AAAA`` etc.
+    Can be compared against the pre-defined :ref:`constants <DNSQType>` like ``DNSQType.A``, DNSQType.AAAA``.
 
   .. attribute:: DNSQuestion.remoteaddr
 
@@ -170,7 +170,7 @@ DNSResponse object
 
     - ``section`` is the section in the packet and can be compared to :ref:`DNSSection`
     - ``qclass`` is the QClass of the record. Can be compared to :ref:`DNSQClass`
-    - ``qtype`` is the QType of the record. Can be e.g. compared to ``dnsdist.A``, ``dnsdist.AAAA`` and the like.
+    - ``qtype`` is the QType of the record. Can be e.g. compared to ``DNSQType.A``, ``DNSQType.AAAA`` :ref:`constants <DNSQType>` and the like.
     - ``ttl`` is the current TTL
 
     This function must return an integer with the new TTL.
@@ -231,7 +231,7 @@ EDNSOptionView object
 
   An object that represents the values of a single EDNS option received in a query.
 
-  .. attribute:: EDNSOptionView.count -> int
+  .. method:: EDNSOptionView:count()
 
     The number of values for this EDNS option.
 

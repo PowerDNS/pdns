@@ -65,6 +65,28 @@ static int getFakeAAAARecords(const DNSName& qname, const std::string& prefix, v
 
   ComboAddress prefixAddress(prefix);
 
+  // Remove double CNAME records
+  std::set<DNSName> seenCNAMEs;
+  ret.erase(std::remove_if(
+        ret.begin(),
+        ret.end(),
+        [&seenCNAMEs](DNSRecord& rr) {
+          if (rr.d_type == QType::CNAME) {
+            auto target = getRR<CNAMERecordContent>(rr);
+            if (target == nullptr) {
+              return false;
+            }
+            if (seenCNAMEs.count(target->getTarget()) > 0) {
+              // We've had this CNAME before, remove it
+              return true;
+            }
+            seenCNAMEs.insert(target->getTarget());
+          }
+          return false;
+        }),
+      ret.end());
+
+  bool seenA = false;
   for(DNSRecord& rr :  ret)
   {
     if(rr.d_type == QType::A && rr.d_place==DNSResourceRecord::ANSWER) {
@@ -77,7 +99,20 @@ static int getFakeAAAARecords(const DNSName& qname, const std::string& prefix, v
         rr.d_content = std::make_shared<AAAARecordContent>(prefixAddress);
         rr.d_type = QType::AAAA;
       }
+      seenA = true;
     }
+  }
+
+  if (seenA) {
+    // We've seen an A in the ANSWER section, so there is no need to keep any
+    // SOA in the AUTHORITY section as this is not a NODATA response.
+    ret.erase(std::remove_if(
+          ret.begin(),
+          ret.end(),
+          [](DNSRecord& rr) {
+            return (rr.d_type == QType::SOA && rr.d_place==DNSResourceRecord::AUTHORITY);
+          }),
+        ret.end());
   }
   return rcode;
 }
@@ -287,10 +322,10 @@ void RecursorLua4::postPrepareContext()
   d_lw->registerMember("size", &EDNSOptionViewValue::size);
   d_lw->registerFunction<std::string(EDNSOptionViewValue::*)()>("getContent", [](const EDNSOptionViewValue& value) { return std::string(value.content, value.size); });
   d_lw->registerFunction<size_t(EDNSOptionView::*)()>("count", [](const EDNSOptionView& option) { return option.values.size(); });
-  d_lw->registerFunction<std::vector<std::pair<int, string>>(EDNSOptionView::*)()>("getValues", [] (const EDNSOptionView& option) {
-      std::vector<std::pair<int, string> > values;
+  d_lw->registerFunction<std::vector<string>(EDNSOptionView::*)()>("getValues", [] (const EDNSOptionView& option) {
+      std::vector<string> values;
       for (const auto& value : option.values) {
-        values.push_back(std::make_pair(values.size(), std::string(value.content, value.size)));
+        values.push_back(std::string(value.content, value.size));
       }
       return values;
     });
@@ -428,6 +463,10 @@ void RecursorLua4::postPrepareContext()
         g_snmpAgent->sendCustomTrap(str);
       }
     });
+
+  d_lw->writeFunction("getregisteredname", [](const DNSName &dname) {
+      return getRegisteredName(dname);
+  });
 }
 
 void RecursorLua4::postLoad() {

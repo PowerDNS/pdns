@@ -45,6 +45,12 @@ Options
 
 Commands
 --------
+add-dont-throttle-names NAME [NAME...]
+    Add names for nameserver domains that may not be throttled.
+
+add-dont-throttle-netmasks NETMASK [NETMASK...]
+    Add netmasks for nameservers that may not be throttled.
+
 add-nta *DOMAIN* [*REASON*]
     Add a Negative Trust Anchor for *DOMAIN*, suffixed optionally with
     *REASON*.
@@ -55,6 +61,12 @@ add-ta *DOMAIN* *DSRECORD*
 
 current-queries
     Shows the currently active queries.
+
+clear-dont-throttle-names NAME [NAME...]
+    Remove names that are not allowed to be throttled. If *NAME* is '*', remove all
+
+clear-dont-throttle-netmasks NETMASK [NETMASK...]
+    Remove netmasks that are not allowed to be throttled. If *NETMASK* is '*', remove all
 
 clear-nta *DOMAIN*...
     Remove Negative Trust Anchor for one or more *DOMAIN*\ s. Set domain to
@@ -144,6 +156,12 @@ get *STATISTIC* [*STATISTIC*]...
 get-all
     Retrieve all known statistics.
 
+get-dont-throttle-names
+    Get the list of names that are not allowed to be throttled.
+
+get-dont-throttle-netmasks
+    Get the list of netmasks that are not allowed to be throttled.
+
 get-ntas
     Get a list of the currently configured Negative Trust Anchors.
 
@@ -195,6 +213,9 @@ set-dnssec-log-bogus *SETTING*
     Set dnssec-log-bogus setting to *SETTING*. Set to 'on' or 'yes' to log
     DNSSEC validation failures and to 'no' or 'off' to disable logging these
     failures.
+
+set-ecs-minimum-ttl *NUM*
+    Set ecs-minimum-ttl-override to *NUM*.
 
 set-max-cache-entries *NUM*
     Change the maximum number of entries in the DNS cache.  If reduced, the

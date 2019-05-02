@@ -73,14 +73,14 @@ ComboAddressSet objects
 We provide a convenient object class that can store unique ComboAddresses in no particular
 order and allows fast retrieval of individual elements based on their values
 
-  .. code-block:: lua
+.. code-block:: lua
 
-    addr = newCA("1.2.3.4")
-    myset = newCAS()
-    myset:add(addr)
-    if myset:check(addr) then -- prints "found!"
-      print('found!')
-    end
+  addr = newCA("1.2.3.4")
+  myset = newCAS()
+  myset:add(addr)
+  if myset:check(addr) then -- prints "found!"
+    print('found!')
+  end
 
 Functions and methods of a ``ComboAddressSet``
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~

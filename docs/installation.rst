@@ -17,17 +17,17 @@ Debian-based Systems
 PowerDNS Authoritative Server is available through the
 `apt <https://packages.debian.org/pdns-server>`__ system.
 
-::
+.. code-block:: shell
 
-    # apt-get install pdns-server
+    $ sudo apt-get install pdns-server
 
 Debian splits the backends into `several different
 packages <https://packages.debian.org/pdns-backend>`__, install the
 required backend as follows:
 
-::
+.. code-block:: shell
 
-    # apt-get install pdns-backend-$backend
+    $ sudo apt-get install pdns-backend-$backend
 
 Redhat-based Systems
 ~~~~~~~~~~~~~~~~~~~~
@@ -39,15 +39,15 @@ or from `the PowerDNS repositories <https://repo.powerdns.com>`__:
 
 Add either to your list of repositories and install PowerDNS by issuing:
 
-::
+.. code-block:: shell
 
-    # yum install pdns
+    $ sudo yum install pdns
 
 The different backends can be installed using
 
-::
+.. code-block:: shell
 
-    # yum install pdns-backend-$backend
+    $ sudo yum install pdns-backend-$backend
 
 FreeBSD
 ~~~~~~~
@@ -57,13 +57,13 @@ PowerDNS Authoritative Server is available through the
 
 For the package:
 
-::
+.. code-block:: shell
 
-    # pkg install dns/powerdns
+    $ sudo pkg install dns/powerdns
 
 To have your system build the port:
 
-::
+.. code-block:: shell
 
     cd /usr/ports/dns/powerdns/ && make install clean
 
@@ -72,7 +72,7 @@ Mac OS X
 
 PowerDNS Authoritative Server is available through Homebrew:
 
-::
+.. code-block:: shell
 
     $ brew install pdns
 

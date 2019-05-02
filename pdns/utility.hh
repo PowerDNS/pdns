@@ -128,11 +128,9 @@ public:
 
   //! Writes a vector.
   static int writev( Utility::sock_t socket, const iovec *vector, size_t count );
-  //! Returns a random number.
-  static long int random( void );
 
   //! Sets the random seed.
-  static void srandom( unsigned int seed );
+  static void srandom(void);
 
   //! Drops the program's group privileges.
   static void dropGroupPrivs( int uid, int gid );
