@@ -31,10 +31,10 @@ Changelogs for 4.2.x
     Add DNAME support.
 
   .. change::
-    :tags: Improvements, Internals
+    :tags: New Features, Internals
     :pullreq: 7480
 
-    Implement a way to disallow throtteling of auths.
+    Implement a way to disallow throttling of auths.
 
   .. change::
     :tags: Improvements
@@ -74,26 +74,19 @@ Changelogs for 4.2.x
     This provides cpu usage statistics per thread (worker & distributor).
 
   .. change::
-    :tags: Improvements
-    :pullreq: 7481
-    :tickets: 6242
-
-    Add support for encrypting ip addresses #GDPR.
-
-  .. change::
     :tags: Bug Fixes, Lua
     :pullreq: 7652
 
     ``ednsoptionview`` improvements.
 
   .. change::
-    :tags: Improvements
+    :tags: New Features
     :pullreq: 7631
 
     ECS cache limit with TTL.
 
   .. change::
-    :tags: Improvements, Internals
+    :tags: New Features, Internals
     :pullreq: 7507
 
     Use a bounded load balancing algo to distribute queries.
