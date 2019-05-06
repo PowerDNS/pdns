@@ -2,9 +2,173 @@ Changelogs for 4.2.x
 ====================
 
 .. changelog::
-  :version: 4.2.0-alpha1
-  :released: 1st of February 2019
+  :version: 4.2.0
+  :released: *unreleased*
 
-  Initial 4.2.x release, please see the blog post: https://blog.powerdns.com/2019/02/01/changes-in-the-powerdns-recursor-4-2-0/
+  .. change::
+    :tags: Bug Fixes, Internals
+    :pullreq: 7730
 
-  .
+    Move replaced negcache entries to the back of the expunge queue.
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 7571
+
+    Add a ``distribution-pipe-buffer-size`` setting.
+
+  .. change::
+    :tags: Bug Fixes, DNSSEC
+    :pullreq: 7714
+
+    Fix DNSSEC validation of non-expanded wildcards.
+
+  .. change::
+    :tags: Bug Fixes, DNSSEC
+    :pullreq: 6341
+    :tickets: 6318
+
+    Add DNAME support.
+
+  .. change::
+    :tags: Improvements, Internals
+    :pullreq: 7480
+
+    Implement a way to disallow throtteling of auths.
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 7508
+
+    Add ``protobuf-use-kernel-timestamp`` for sharper latencies.
+
+  .. change::
+    :tags: Improvements, Internals
+    :pullreq: 7410
+
+    Ignore path MTU discovery on UDP server socket.
+
+  .. change::
+    :tags: Bug Fixes, Internals
+    :pullreq: 7731
+
+    Fix the cache cleaning code being only run once for workers.
+
+  .. change::
+    :tags: Improvements, Internals
+    :pullreq: 7669
+    :tickets: 7671
+
+    Set ``--enable-option-checking=fatal`` on all package builds, enable SNMP in RPMS.
+
+  .. change::
+    :tags: Bug Fixes, Internals
+    :pullreq: 7708
+
+    Alternative solution to the unaligned accesses.
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 7649
+
+    This provides cpu usage statistics per thread (worker & distributor).
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 7481
+    :tickets: 6242
+
+    Add support for encrypting ip addresses #GDPR.
+
+  .. change::
+    :tags: Bug Fixes, Lua
+    :pullreq: 7652
+
+    ``ednsoptionview`` improvements.
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 7631
+
+    ECS cache limit with TTL.
+
+  .. change::
+    :tags: Improvements, Internals
+    :pullreq: 7507
+
+    Use a bounded load balancing algo to distribute queries.
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 7574
+
+    Add a new ``ecs-minimum-ttl-override`` setting.
+
+  .. change::
+    :tags: Improvements, Internals
+    :pullreq: 7484
+
+    ``Utility::random()`` and ``srandom()`` is not used anymore.
+
+  .. change::
+    :tags: Improvements, API
+    :pullreq: 7504
+    :tickets: 7498
+
+    Add rec statistics about ECS response sizes, API endpoint to get a specific stat.
+
+  .. change::
+    :tags: Bug Fixes, Lua
+    :pullreq: 7589
+
+    Add missing ``getregisteredname`` Lua function. (Aki Tuomi)
+
+  .. change::
+    :tags: Improvements, Internals
+    :pullreq: 7583
+
+    Move back to malloc on !openbsd. Doing mmap/munmap all the time hurts…
+
+  .. change::
+    :tags: Improvements, Internals
+    :pullreq: 7540
+
+    Set ``ip(v6)_recverr`` socket option to get notified of more than just port unreachable errors on Linux.
+
+  .. change::
+    :tags: Improvements, Internals
+    :pullreq: 7502
+
+    Change the way ``getRealMemUsage()`` works on Linux (using ``statm``).
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 7494
+
+    Correctly interpret an empty AXFR response to an IXFR query.
+
+  .. change::
+    :tags: New Features, DNSSEC
+    :pullreq: 7478
+    :tickets: 7445
+
+    Add a new ``max-cache-bogus-ttl`` option.
+
+  .. change::
+    :tags: Improvements, Lua
+    :pullreq: 7492
+    :tickets: 6853
+
+    Lua: expose ``dns_random`` as ``pdnsrandom``.
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 7476
+
+    Add an option to not override custom RPZ types with the default policy.
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 7433
+
+    Resync YaHTTP code to cmouse/yahttp@11be77a1fc4032. (Chris Hofstaedtler)
