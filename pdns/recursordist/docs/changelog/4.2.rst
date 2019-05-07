@@ -2,8 +2,8 @@ Changelogs for 4.2.x
 ====================
 
 .. changelog::
-  :version: 4.2.0
-  :released: *unreleased*
+  :version: 4.2.0-beta1
+  :released: 7th of May 2019
 
   .. change::
     :tags: Bug Fixes, Internals
@@ -165,3 +165,11 @@ Changelogs for 4.2.x
     :pullreq: 7433
 
     Resync YaHTTP code to cmouse/yahttp@11be77a1fc4032. (Chris Hofstaedtler)
+
+.. changelog::
+  :version: 4.2.0-alpha1
+  :released: 1st of February 2019
+
+  Initial 4.2.x release, please see the blog post: https://blog.powerdns.com/2019/02/01/changes-in-the-powerdns-recursor-4-2-0/
+
+  .
