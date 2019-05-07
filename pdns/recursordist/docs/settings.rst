@@ -1729,6 +1729,8 @@ The value between the hooks is a UUID that is generated for each request. This c
 
 ``webserver-max-bodysize``
 --------------------------
+.. versionadded:: 4.2.0
+
 -  Integer
 -  Default: 2
 
