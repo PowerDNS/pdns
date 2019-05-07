@@ -168,6 +168,12 @@ int Semaphore::wait()
   while (ret == -1 && errno == EINTR);
   return ret;
 }
+
+int Semaphore::timedWait(const struct timespec& abs_timeout)
+{
+ return sem_timedwait(m_pSemaphore, &abs_timeout);
+}
+
 int Semaphore::tryWait()
 {
   return sem_trywait(m_pSemaphore);

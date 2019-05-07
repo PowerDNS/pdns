@@ -78,6 +78,9 @@ public:
   //! Waits for a semaphore.
   int wait( void );
 
+  //! Waits for a semaphore with a timeout
+  int timedWait(const struct timespec &abs_timeout);
+
   //! Tries to wait for a semaphore.
   int tryWait( void );
 
