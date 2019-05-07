@@ -101,7 +101,7 @@ Changelogs for 4.2.x
     :tags: Improvements, Internals
     :pullreq: 7484
 
-    ``Utility::random()`` and ``srandom()`` is not used anymore.
+    ``Utility::random()`` and ``srandom()`` are not used anymore.
 
   .. change::
     :tags: Improvements, API
