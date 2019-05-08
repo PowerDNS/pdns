@@ -226,12 +226,21 @@ void AuthQueryCache::cleanupIfNeeded()
     DLOG(g_log<<"cleaninterval: "<<d_cleaninterval<<", timediff: "<<timediff<<endl);
 
     if (d_cleaninterval == s_maxcleaninterval && timediff < 30) {
-      d_cleanskipped = true;
-      d_nextclean += d_cleaninterval;
+      /* 
+      There might be very good reasons for the cache size to be limited, 
+      lets not skip cleanup if we notice the cache is already oversized
+      */
+      uint64_t maxCached = (int)(2*d_maxEntries);
+      uint64_t cacheSize = *d_statnumentries;
+      
+      if (maxCached > cacheSize) {
+        d_cleanskipped = true;
+        d_nextclean += d_cleaninterval;
 
-      DLOG(g_log<<"cleaning skipped, timediff: "<<timediff<<endl);
+        DLOG(g_log<<"cleaning skipped, timediff: "<<timediff<<endl);
 
-      return;
+        return;
+      }
     }
 
     if(!d_cleanskipped) {
