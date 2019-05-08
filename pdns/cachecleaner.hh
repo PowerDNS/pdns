@@ -147,7 +147,27 @@ template <typename T> uint64_t pruneLockedCollectionsVector(vector<T>& maps, uin
     }
     totErased += erased;
   }
+  
+  toTrim = toTrim - totErased;
 
+  if (toTrim > 0) {
+    //Just trowing away the old stuff wasn't sufficient, start from the top
+    
+    for(auto& mc : maps) {
+      WriteLock wl(&mc.d_mut);
+      auto& sidx = boost::multi_index::get<2>(mc.d_map);
+      uint64_t erased = 0, lookedAt = 0;
+      for(auto i = sidx.begin(); i != sidx.end(); lookedAt++) {
+        i = sidx.erase(i);
+        erased++;
+
+        if(erased > toTrim / maps.size())
+          break;
+      }
+      totErased += erased;
+    }
+  }
+  
   return totErased;
 }
 
