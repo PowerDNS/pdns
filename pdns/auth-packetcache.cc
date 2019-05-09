@@ -65,6 +65,9 @@ AuthPacketCache::~AuthPacketCache()
 
 bool AuthPacketCache::get(DNSPacket *p, DNSPacket *cached)
 {
+  if (d_maxEntries == 0)
+    return false; // packetCache is disabled
+  
   cleanupIfNeeded();
 
   if(!d_ttl) {
@@ -113,6 +116,9 @@ bool AuthPacketCache::entryMatches(cmap_t::index<HashTag>::type::iterator& iter,
 
 void AuthPacketCache::insert(DNSPacket *q, DNSPacket *r, unsigned int maxTTL)
 {
+  if (d_maxEntries == 0)
+    return; // packetCache is disabled  
+
   cleanupIfNeeded();
 
   if (ntohs(q->d.qdcount) != 1) {
