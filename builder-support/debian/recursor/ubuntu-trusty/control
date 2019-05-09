@@ -18,7 +18,6 @@ Homepage: https://www.powerdns.com/
 Package: pdns-recursor
 Architecture: any
 Depends: adduser,
-         dns-root-data,
          ${misc:Depends},
          ${shlibs:Depends}
 Description: PowerDNS Recursor
