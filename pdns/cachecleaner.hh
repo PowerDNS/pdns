@@ -151,7 +151,7 @@ template <typename T> uint64_t pruneLockedCollectionsVector(vector<T>& maps, uin
   toTrim = toTrim - totErased;
 
   if (toTrim > 0) {
-    //Just trowing away the old stuff wasn't sufficient, start from the top
+    //Just throwing away the old stuff wasn't sufficient, start from the top
     
     for(auto& mc : maps) {
       WriteLock wl(&mc.d_mut);
