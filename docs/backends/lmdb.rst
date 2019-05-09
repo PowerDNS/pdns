@@ -38,6 +38,7 @@ Path to the LMDB file (e.g. */var/spool/powerdns/pdns.lmdb*)
 ^^^^^^^^^^^^^^^^^
 
 Records database will be split into this number of shards e.g. lmdb-shards=64
+Default is 2 on 32 bits systems, and 64 on 64 bits systems.
 
 .. _setting-lmdb-sync-mode:
 
