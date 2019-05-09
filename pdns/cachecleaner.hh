@@ -156,15 +156,15 @@ template <typename T> uint64_t pruneLockedCollectionsVector(vector<T>& maps, uin
     for(auto& mc : maps) {
       WriteLock wl(&mc.d_mut);
       auto& sidx = boost::multi_index::get<2>(mc.d_map);
-      uint64_t erased = 0;
-      for(auto i = sidx.begin(); i != sidx.end();) {
-        i = sidx.erase(i);
-        erased++;
+      
+      //Is it possible for toThrowAway to be larger than sidx.size()? Better safe than sorry
+      uint64_t toThrowAway = std::min(toTrim / maps.size(), sidx.size());
 
-        if(erased > toTrim / maps.size())
-          break;
-      }
-      totErased += erased;
+      auto eraseIter = sidx.begin();
+      std::advance(eraseIter, toThrowAway);
+      sidx.erase(sidx.begin(),eraseIter);
+
+      totErased += toThrowAway;
     }
   }
   
