@@ -1,0 +1,3 @@
+#!/bin/sh
+cleandig cname-to-insecure.example.com A dnssec
+

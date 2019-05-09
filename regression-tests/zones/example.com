@@ -20202,3 +20202,6 @@ philip.mb          IN      MR      phil.mb.example.com.
 
 ; Test that no out of zone data is sent
 _imap._tcp IN SRV 0 1 143 blah.test.com.
+
+;
+cname-to-insecure  IN      CNAME   www.insecure.dnssec-parent.com.

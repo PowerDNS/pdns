@@ -22,9 +22,9 @@ echo "server:" >> unbound-host.conf
 echo "  do-not-query-address: 192.168.0.0/16" >> unbound-host.conf
 echo '  trust-anchor-file: "trustedkeys"' >> unbound-host.conf
 
-if [ -e trustedkeys ]
-then
-  cat trustedkeys | grep -c '.' # because wc -l is not portable enough!
-fi
+#if [ -e trustedkeys ]
+#then
+#  cat trustedkeys | grep -c '.' # because wc -l is not portable enough!
+#fi
 
 ldns-key2ds -n trustedkeys | awk -F '\t' '{print "addTA(\""$1"\", \""$5"\")"}' > recursor.trustedkeys.lua
