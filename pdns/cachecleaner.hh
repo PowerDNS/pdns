@@ -156,8 +156,8 @@ template <typename T> uint64_t pruneLockedCollectionsVector(vector<T>& maps, uin
     for(auto& mc : maps) {
       WriteLock wl(&mc.d_mut);
       auto& sidx = boost::multi_index::get<2>(mc.d_map);
-      uint64_t erased = 0, lookedAt = 0;
-      for(auto i = sidx.begin(); i != sidx.end(); lookedAt++) {
+      uint64_t erased = 0;
+      for(auto i = sidx.begin(); i != sidx.end();) {
         i = sidx.erase(i);
         erased++;
 
