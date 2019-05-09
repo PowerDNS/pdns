@@ -1585,7 +1585,6 @@ bool showZone(DNSSECKeeper& dk, const DNSName& zone, bool exportDS = false)
 
     sort(keys.begin(),keys.end());
     reverse(keys.begin(),keys.end());
-    bool shown=false;
     for(const auto& key : keys) {
       string algname = DNSSECKeeper::algorithm2name(key.d_algorithm);
 
@@ -1601,9 +1600,6 @@ bool showZone(DNSSECKeeper& dk, const DNSName& zone, bool exportDS = false)
         cout << (key.d_flags == 257 ? "KSK" : "ZSK") << ", tag = " << key.getTag() << ", algo = "<<(int)key.d_algorithm << ", bits = " << bits << endl;
         cout << "DNSKEY = " <<zone.toString()<<" IN DNSKEY "<< key.getZoneRepresentation() << "; ( " + algname + " ) " <<endl;
       }
-
-      if (shown) continue;
-      shown=true;
 
       const std::string prefix(exportDS ? "" : "DS = ");
       cout<<prefix<<zone.toString()<<" IN DS "<<makeDSFromDNSKey(zone, key, DNSSECKeeper::SHA1).getZoneRepresentation() << " ; ( SHA1 digest )" << endl;
