@@ -522,7 +522,7 @@ static void validateGatheredRRType(const DNSResourceRecord& rr) {
   }
 }
 
-static void gatherRecords(const Json container, const DNSName& qname, const QType qtype, const int ttl, vector<DNSResourceRecord>& new_records, vector<DNSResourceRecord>& new_ptrs) {
+static void gatherRecords(const string& logprefix, const Json container, const DNSName& qname, const QType qtype, const int ttl, vector<DNSResourceRecord>& new_records, vector<DNSResourceRecord>& new_ptrs) {
   UeberBackend B;
   DNSResourceRecord rr;
   rr.qname = qname;
@@ -558,6 +558,9 @@ static void gatherRecords(const Json container, const DNSName& qname, const QTyp
 
     if ((rr.qtype.getCode() == QType::A || rr.qtype.getCode() == QType::AAAA) &&
         boolFromJson(record, "set-ptr", false) == true) {
+
+      g_log<<Logger::Warning<<logprefix<<"API call uses deprecated set-ptr feature, please remove it"<<endl;
+
       DNSResourceRecord ptr;
       makePtr(rr, &ptr);
 
@@ -1552,7 +1555,7 @@ static void apiServerZones(HttpRequest* req, HttpResponse* resp) {
         }
         if (rrset["records"].is_array()) {
           int ttl = intFromJson(rrset, "ttl");
-          gatherRecords(rrset, qname, qtype, ttl, new_records, new_ptrs);
+          gatherRecords(req->logprefix, rrset, qname, qtype, ttl, new_records, new_ptrs);
         }
         if (rrset["comments"].is_array()) {
           gatherComments(rrset, qname, qtype, new_comments);
@@ -1983,7 +1986,7 @@ static void patchZone(HttpRequest* req, HttpResponse* resp) {
           // ttl shouldn't be part of DELETE, and it shouldn't be required if we don't get new records.
           int ttl = intFromJson(rrset, "ttl");
           // new_ptrs is merged.
-          gatherRecords(rrset, qname, qtype, ttl, new_records, new_ptrs);
+          gatherRecords(req->logprefix, rrset, qname, qtype, ttl, new_records, new_ptrs);
 
           for(DNSResourceRecord& rr : new_records) {
             rr.domain_id = di.id;
