@@ -15,7 +15,12 @@ commands:
           command: env
       - run:
           name: Clone the repo
-          command: git clone --depth 1 --branch $CIRCLE_BRANCH $CIRCLE_REPOSITORY_URL ~/project
+          command: |
+            git clone --depth 1 $CIRCLE_REPOSITORY_URL ~/project && \
+            cd ~/project && \
+            git fetch origin $CIRCLE_SHA1 && \
+            git checkout -qf FETCH_HEAD && \
+            git show
 
   auth-regress-setup:
     description: Prepare the environment for auth regression tests
