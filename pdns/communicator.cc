@@ -113,19 +113,34 @@ void CommunicatorClass::mainloop(void)
     d_tickinterval=::arg().asNum("slave-cycle-interval");
     makeNotifySockets();
 
-    for (;;) {
+    for(;;) {
       slaveRefresh(&P);
       masterUpdateCheck(&P);
 
       time_t tick = doNotifications(); // this processes any notification acknowledgements and actually send out our own notifications
       tick = min(tick, d_tickinterval);
-      struct timespec abs_time = {.tv_sec = time(0) + tick, .tv_nsec = 0};
+      time_t next = time(0) + tick;
 
-      // Wait for a post for a max time. We might get EINTR, oh well
-      d_any_sem.timedWait(abs_time);
+      while (time(0) < next) {
+        std::unique_lock<std::mutex> lk(d_any_mutex);
+        auto rc = d_any_condvar.wait_for(lk, std::chrono::seconds(1));
+        lk.unlock();
 
-      while (d_any_sem.tryWait() == 0) {
-       // eat up remaining posts, will do next iteration shortly
+        if (rc == std::cv_status::timeout) {
+          bool extraSlaveRefresh = false;
+          {
+            Lock l(&d_lock);
+            if (d_tocheck.size())
+              extraSlaveRefresh = true;
+          }
+          if (extraSlaveRefresh)
+            slaveRefresh(&P);
+        }
+        else {
+          break; // something happened
+        }
+        // this gets executed at least once every second
+        doNotifications();
       }
     }
   }
