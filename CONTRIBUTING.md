@@ -68,7 +68,7 @@ and
 * Tell why the change does what it does, not how it does it.
 * The first line should be short (preferably less than 50 characters)
 * The rest of the commit body should be wrapped at 72 characters (see [this](http://tbaggery.com/2008/04/19/a-note-about-git-commit-messages.html) for more info)
-* If this commit fixes an issue, put "Closes #XXXX" in the message
+* If this commit fixes an issue, put "Closes #XXXX" in the message.
 * Do not put whitespace fixes/cleanup and functionality changes in the same commit
 
 # Coding Guidelines
