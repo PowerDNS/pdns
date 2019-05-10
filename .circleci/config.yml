@@ -17,10 +17,15 @@ commands:
           name: Clone the repo
           command: |
             set -x
-            git clone --depth 1 $CIRCLE_REPOSITORY_URL ~/project
-            cd ~/project
-            git fetch origin $CIRCLE_SHA1
-            git checkout -qf FETCH_HEAD
+            if [ -n "$CIRCLE_PR_NUMBER" ]
+            then
+              git clone --depth 1 $CIRCLE_REPOSITORY_URL ~/project
+              cd ~/project
+              git fetch origin +refs/pull/${CIRCLE_PR_NUMBER}/merge
+              git checkout -qf FETCH_HEAD
+            else
+              git clone --depth 1 --branch $CIRCLE_BRANCH $CIRCLE_REPOSITORY_URL ~/project
+            fi
             git show
 
   auth-regress-setup:
