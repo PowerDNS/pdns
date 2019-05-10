@@ -220,10 +220,6 @@ install_auth() {
     libyaml-cpp-dev \
     libmaxminddb-dev"
 
-  # ldap-backend
-  run "sudo apt-get -qq --no-install-recommends install \
-    libldap-dev"
-
   # lmdb-backend
   run "sudo apt-get -qq --no-install-recommends install \
     liblmdb-dev"
@@ -294,22 +290,6 @@ install_auth() {
   run 'echo -e "[pdns-sqlite3-1]\nDriver = SQLite3\nDatabase = ${PWD}/regression-tests/pdns.sqlite3\n\n[pdns-sqlite3-2]\nDriver = SQLite3\nDatabase = ${PWD}/regression-tests/pdns.sqlite32\n" > ${HOME}/.odbc.ini'
   run 'echo ${HOME}/.odbc.ini'
   run 'cat ${HOME}/.odbc.ini'
-
-  # ldap-backend test setup
-  run "sudo apt-get -qq --no-install-recommends install \
-    slapd \
-    ldap-utils"
-  run "mkdir /tmp/ldap-dns"
-  run "pushd /tmp/ldap-dns"
-  run 'for schema in /etc/ldap/schema/{core,cosine}.schema ${TRAVIS_BUILD_DIR}/modules/ldapbackend/{dnsdomain2,pdns-domaininfo}.schema ; do echo include $schema ; done > ldap.conf'
-  run "mkdir slapd.d"
-  run "slaptest -f ldap.conf -F slapd.d"
-  run "sudo cp slapd.d/cn=config/cn=schema/cn={*dns*.ldif /etc/ldap/slapd.d/cn=config/cn=schema/"
-  run "sudo chown -R openldap:openldap /etc/ldap/slapd.d/"
-  run "sudo service slapd restart"
-  run "popd"
-  run "sudo -u openldap mkdir -p /var/lib/ldap/powerdns"
-  run "sudo ldapadd -Y EXTERNAL -H ldapi:/// -f ./modules/ldapbackend/testfiles/add.ldif"
 
   # remote-backend tests requirements
   run "sudo apt-get -qq --no-install-recommends install \
@@ -410,7 +390,7 @@ build_auth() {
   run "autoreconf -vi"
   run "./configure \
     ${sanitizerflags} \
-    --with-dynmodules='bind gmysql geoip gpgsql gsqlite3 ldap lmdb lua mydns opendbx pipe random remote tinydns godbc lua2' \
+    --with-dynmodules='bind gmysql geoip gpgsql gsqlite3 lmdb lua mydns opendbx pipe random remote tinydns godbc lua2' \
     --with-modules='' \
     --with-sqlite3 \
     --with-libsodium \
@@ -512,14 +492,10 @@ test_auth() {
   #travis unbound is too old for this test (unbound 1.6.0 required)
   run "touch tests/ent-asterisk/fail.nsec"
 
-  run "./timestamp ./start-test-stop 5300 ldap-tree"
-  run "./timestamp ./start-test-stop 5300 ldap-simple"
-  run "./timestamp ./start-test-stop 5300 ldap-strict"
-
   run "./timestamp ./start-test-stop 5300 bind-both"
   run "./timestamp ./start-test-stop 5300 bind-dnssec-both"
   run "./timestamp ./start-test-stop 5300 bind-dnssec-nsec3-both"
-  run "./timestamp ./start-test-stop 5300 bind-dnssec-nsec3-optout-both"
+  # run "./timestamp ./start-test-stop 5300 bind-dnssec-nsec3-optout-both"
   run "./timestamp ./start-test-stop 5300 bind-dnssec-nsec3-narrow"
   run "./timestamp ./start-test-stop 5300 bind-hybrid-nsec3"
   #ecdsa - ./timestamp ./start-test-stop 5300 bind-dnssec-pkcs11
@@ -532,7 +508,7 @@ test_auth() {
   run "./timestamp ./start-test-stop 5300 gmysql-nodnssec-both"
   run "./timestamp ./start-test-stop 5300 gmysql-both"
   run "./timestamp ./start-test-stop 5300 gmysql-nsec3-both"
-  run "./timestamp ./start-test-stop 5300 gmysql-nsec3-optout-both"
+  # run "./timestamp ./start-test-stop 5300 gmysql-nsec3-optout-both"
   run "./timestamp ./start-test-stop 5300 gmysql-nsec3-narrow"
 
   run "export GODBC_SQLITE3_DSN=pdns-sqlite3-1"
@@ -547,7 +523,7 @@ test_auth() {
   run "./timestamp ./start-test-stop 5300 gsqlite3-nodnssec-both"
   run "./timestamp ./start-test-stop 5300 gsqlite3-both"
   run "./timestamp ./start-test-stop 5300 gsqlite3-nsec3-both"
-  run "./timestamp ./start-test-stop 5300 gsqlite3-nsec3-optout-both"
+  # run "./timestamp ./start-test-stop 5300 gsqlite3-nsec3-optout-both"
   run "./timestamp ./start-test-stop 5300 gsqlite3-nsec3-narrow"
 
   run "./timestamp ./start-test-stop 5300 mydns"
@@ -568,7 +544,7 @@ test_auth() {
   run "./timestamp ./start-test-stop 5300 lmdb-nodnssec-both"
   run "./timestamp ./start-test-stop 5300 lmdb-both"
   run "./timestamp ./start-test-stop 5300 lmdb-nsec3-both"
-  run "./timestamp ./start-test-stop 5300 lmdb-nsec3-optout-both"
+  # run "./timestamp ./start-test-stop 5300 lmdb-nsec3-optout-both"
 
   run "rm tests/ent-asterisk/fail.nsec"
 
@@ -581,26 +557,26 @@ test_auth() {
   run "./timestamp ./start-test-stop 5300 bind-both"
   run "./timestamp ./start-test-stop 5300 bind-dnssec-both"
   run "./timestamp ./start-test-stop 5300 bind-dnssec-nsec3-both"
-  run "./timestamp ./start-test-stop 5300 bind-dnssec-nsec3-optout-both"
+  # run "./timestamp ./start-test-stop 5300 bind-dnssec-nsec3-optout-both"
   run "./timestamp ./start-test-stop 5300 bind-dnssec-nsec3-narrow"
   run "./timestamp ./start-test-stop 5300 bind-hybrid-nsec3"
 
   run "./timestamp ./start-test-stop 5300 gmysql-nodnssec-both"
   run "./timestamp ./start-test-stop 5300 gmysql-both"
   run "./timestamp ./start-test-stop 5300 gmysql-nsec3-both"
-  run "./timestamp ./start-test-stop 5300 gmysql-nsec3-optout-both"
+  # run "./timestamp ./start-test-stop 5300 gmysql-nsec3-optout-both"
   run "./timestamp ./start-test-stop 5300 gmysql-nsec3-narrow"
 
   run "./timestamp ./start-test-stop 5300 gpgsql-nodnssec-both"
   run "./timestamp ./start-test-stop 5300 gpgsql-both"
   run "./timestamp ./start-test-stop 5300 gpgsql-nsec3-both"
-  run "./timestamp ./start-test-stop 5300 gpgsql-nsec3-optout-both"
+  # run "./timestamp ./start-test-stop 5300 gpgsql-nsec3-optout-both"
   run "./timestamp ./start-test-stop 5300 gpgsql-nsec3-narrow"
 
   run "./timestamp ./start-test-stop 5300 gsqlite3-nodnssec-both"
   run "./timestamp ./start-test-stop 5300 gsqlite3-both"
   run "./timestamp ./start-test-stop 5300 gsqlite3-nsec3-both"
-  run "./timestamp ./start-test-stop 5300 gsqlite3-nsec3-optout-both"
+  # run "./timestamp ./start-test-stop 5300 gsqlite3-nsec3-optout-both"
   run "./timestamp ./start-test-stop 5300 gsqlite3-nsec3-narrow"
 
   run "./timestamp ./start-test-stop 5300 lua2"
@@ -609,7 +585,7 @@ test_auth() {
   run "./timestamp ./start-test-stop 5300 lmdb-both"
   run "./timestamp ./start-test-stop 5300 lmdb-nodnssec-both"
   run "./timestamp ./start-test-stop 5300 lmdb-nsec3-both"
-  run "./timestamp ./start-test-stop 5300 lmdb-nsec3-optout-both"
+  # run "./timestamp ./start-test-stop 5300 lmdb-nsec3-optout-both"
 
   run "cd .."
 

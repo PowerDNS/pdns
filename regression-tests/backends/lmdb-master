@@ -6,7 +6,6 @@ launch=lmdb
 lmdb-filename=./pdns.lmdb
 __EOF__
 
-        skipreasons="$skipreasons lmdb nodyndns"
         rm -f pdns.lmdb*
         for zone in $(grep 'zone ' named.conf  | cut -f2 -d\" | grep -v '^nztest.com$')
         do
@@ -17,28 +16,21 @@ __EOF__
             fi
             if [ $context != lmdb-nodnssec ]
             then
-                extracontexts="dnssec lmdb"
-                skipreasons="$skipreasons nodyndns"
-                if [ $context = lmdb-nsec3 ]
+                if [ $zone != insecure.dnssec-parent.com ]
                 then
-                    extracontexts="dnssec nsec3 lmdb"
-                    $PDNSUTIL --config-dir=. --config-name=lmdb set-nsec3 $zone "1 0 1 abcd" 2>&1
-                elif [ $context =  lmdb-nsec3-optout ]
-                then
-                    extracontexts="dnssec nsec3 nsec3-optout lmdb"
-                    skipreasons="$skipreasons optout"
-                    $PDNSUTIL --config-dir=. --config-name=lmdb set-nsec3 $zone "1 1 1 abcd" 2>&1
-                elif [ $context = lmdb-nsec3-narrow ]
-                then
-                    $PDNSUTIL --config-dir=. --config-name=lmdb set-nsec3 $zone '1 1 1 abcd' narrow 2>&1
-                    extracontexts="dnssec narrow lmdb"
-                    skipreasons="$skipreasons narrow"
-                else
-                    skipreasons="$skipreasons nsec"
+                    if [ $context = lmdb-nsec3 ]
+                    then
+                        $PDNSUTIL --config-dir=. --config-name=lmdb set-nsec3 $zone "1 0 1 abcd" 2>&1
+                    elif [ $context =  lmdb-nsec3-optout ]
+                    then
+                        $PDNSUTIL --config-dir=. --config-name=lmdb set-nsec3 $zone "1 1 1 abcd" 2>&1
+                    elif [ $context = lmdb-nsec3-narrow ]
+                    then
+                        $PDNSUTIL --config-dir=. --config-name=lmdb set-nsec3 $zone '1 1 1 abcd' narrow 2>&1
+                    fi
+                    securezone $zone lmdb
                 fi
-                securezone $zone lmdb
             else
-                skipreasons="$skipreasons nodnssec nodyndns"
                 $PDNSUTIL --config-dir=. --config-name=lmdb rectify-zone $zone 2>&1
             fi
             if [ "$zone" = "tsig.com" ]; then
@@ -54,7 +46,31 @@ __EOF__
             --disable-axfr-rectify=yes --outgoing-axfr-expand-alias=yes \
             --cache-ttl=$cachettl --dname-processing $lua_prequery &
 
+        extracontexts="lmdb"
+        skipreasons="lmdb nodyndns"
+
+        if [ $context = lmdb-nsec3 ]
+        then
+            extracontexts="$extracontexts dnssec nsec3"
+            skipreasons="$skipreasons nsec3"
+        elif [ $context = lmdb-nsec3-optout ]
+        then
+            extracontexts="$extracontexts dnssec nsec3 nsec3-optout"
+            skipreasons="$skipreasons optout"
+        elif [ $context = lmdb-nsec3-narrow ]
+        then
+            extracontexts="$extracontexts dnssec narrow"
+            skipreasons="$skipreasons narrow"
+        elif [ $context = lmdb-nodnssec ]
+        then
+            skipreasons="$skipreasons nodnssec"
+        else
+            extracontexts="$extracontexts dnssec"
+            skipreasons="$skipreasons nsec"
+        fi
+
         ;;
+
     *)
         nocontext=yes
 esac

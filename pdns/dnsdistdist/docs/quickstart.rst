@@ -106,7 +106,7 @@ To listen on a different address, use the ``-l`` command line option (useful for
 .. code-block:: lua
 
   setLocal('192.0.2.53')      -- Listen on 192.0.2.53, port 53
-  addLocal('192.0.2.54:5300') -- Also listen on 192.0.2.54, port 5300
+  addLocal('[::1]:5300') -- Also listen on ::1, port 5300
 
 Before packets are processed they have to pass the ACL, which helpfully defaults to :rfc:`1918` private IP space.
 This prevents us from easily becoming an open DNS resolver.

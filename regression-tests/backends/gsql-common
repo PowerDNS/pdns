@@ -15,7 +15,7 @@ gsql_master()
 
 	for zone in $(grep 'zone ' named.conf  | cut -f2 -d\")
 	do
-		if [ $context != ${backend}-nodnssec ]
+		if [ $context != ${backend}-nodnssec ] && [ $zone != insecure.dnssec-parent.com ]
 		then
 			if [ $context = ${backend}-nsec3 ] || [ $context = ${backend}-nsec3-optout ]
 			then

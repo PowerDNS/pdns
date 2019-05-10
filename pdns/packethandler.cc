@@ -1108,7 +1108,7 @@ DNSPacket *PacketHandler::doQuestion(DNSPacket *p)
   set<DNSName> authSet;
 
   vector<DNSZoneRecord> rrset;
-  bool weDone=0, weRedirected=0, weHaveUnauth=0;
+  bool weDone=0, weRedirected=0, weHaveUnauth=0, doSigs=0;
   DNSName haveAlias;
   uint8_t aliasScopeMask;
 
@@ -1274,10 +1274,9 @@ DNSPacket *PacketHandler::doQuestion(DNSPacket *p)
     }
     DLOG(g_log<<Logger::Error<<"We have authority, zone='"<<sd.qname<<"', id="<<sd.domain_id<<endl);
 
+    authSet.insert(sd.qname);
     d_dnssec=(p->d_dnssecOk && d_dk.isSecuredZone(sd.qname));
-    if(d_dnssec) {
-      authSet.insert(sd.qname);
-    }
+    doSigs |= d_dnssec;
 
     if(!retargetcount) r->qdomainzone=sd.qname;
 
@@ -1569,7 +1568,7 @@ DNSPacket *PacketHandler::doQuestion(DNSPacket *p)
         break;
       }
     }
-    if(authSet.size())
+    if(doSigs)
       addRRSigs(d_dk, B, authSet, r->getRRS());
       
     r->wrapup(); // needed for inserting in cache
