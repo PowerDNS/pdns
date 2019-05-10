@@ -159,12 +159,13 @@ template <typename T> uint64_t pruneLockedCollectionsVector(vector<T>& maps, uin
       
       //Is it possible for toThrowAway to be larger than sidx.size()? Better safe than sorry
       uint64_t toThrowAway = std::min(toTrim / maps.size(), sidx.size());
+      if (toThrowAway > 0) {
+        auto eraseIter = sidx.begin();
+        std::advance(eraseIter, toThrowAway);
+        sidx.erase(sidx.begin(),eraseIter);
 
-      auto eraseIter = sidx.begin();
-      std::advance(eraseIter, toThrowAway);
-      sidx.erase(sidx.begin(),eraseIter);
-
-      totErased += toThrowAway;
+        totErased += toThrowAway;
+      }
     }
   }
   
