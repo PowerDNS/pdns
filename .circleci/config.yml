@@ -11,6 +11,9 @@ commands:
           name: Store the keyid for the git repo
           command: mkdir -p $HOME/.ssh && ssh-keyscan $(echo ${CIRCLE_REPOSITORY_URL} | sed 's,.*@\([^:]*\):.*,\1,') > $HOME/.ssh/known_hosts
       - run:
+          name: print environment bla bla bla
+           command: env
+      - run:
           name: Clone the repo
           command: git clone --depth 1 --branch $CIRCLE_BRANCH $CIRCLE_REPOSITORY_URL ~/project
 
