@@ -46,12 +46,13 @@ Default is 2 on 32 bits systems, and 64 on 64 bits systems.
 ^^^^^^^^^^^^^^^^^
 
 Synchronisation mode: sync, nosync, nometasync, mapasync
+Default: mapasync
 
 * ``sync``: LMDB synchronous mode. Safest option, but also slightly slower. Can  also be enabled with ``lmdb-sync-mode=`` 
 * ``nosync``: don't flush systems buffers to disk when committing a transation.
   This means a system crash can corrupt the database or lose the last transactions if buffers are not yet flushed to disk.
 * ``nometasync``: flush system buffers to disk only once per transaction, omit the metadata flush. This maintains database integrity, but can potentially lose the last committed transaction if the operating system crashes.
-* ``mapasync``: use asynchronous flushes to disk. As with nosync, a system crash can then corrupt the database or lose the last transactions.
+* ``mapasync``: (default). Use asynchronous flushes to disk. As with nosync, a system crash can then corrupt the database or lose the last transactions.
 
 
 LMDB Structure
