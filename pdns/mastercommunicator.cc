@@ -303,5 +303,5 @@ void CommunicatorClass::makeNotifySockets()
 void CommunicatorClass::notify(const DNSName &domain, const string &ip)
 {
   d_nq.add(domain, ip);
-  d_any_condvar.notify_one();
+  d_any_sem.post();
 }

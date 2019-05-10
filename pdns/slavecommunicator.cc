@@ -727,7 +727,7 @@ void CommunicatorClass::addSlaveCheckRequest(const DomainInfo& di, const ComboAd
   }
   d_tocheck.erase(di);
   d_tocheck.insert(ours);
-  d_any_condvar.notify_one(); // kick the loop!
+  d_any_sem.post(); // kick the loop!
 }
 
 void CommunicatorClass::addTrySuperMasterRequest(DNSPacket *p)
@@ -735,7 +735,7 @@ void CommunicatorClass::addTrySuperMasterRequest(DNSPacket *p)
   Lock l(&d_lock);
   DNSPacket ours = *p;
   if(d_potentialsupermasters.insert(ours).second)
-    d_any_condvar.notify_one(); // kick the loop!
+    d_any_sem.post(); // kick the loop!
 }
 
 void CommunicatorClass::slaveRefresh(PacketHandler *P)

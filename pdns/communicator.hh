@@ -25,7 +25,6 @@
 #include <pthread.h>
 #include <string>
 #include <semaphore.h>
-#include <condition_variable>
 #include <queue>
 #include <list>
 #include <limits>
@@ -206,8 +205,7 @@ private:
   set<DNSName> d_inprogress;
   
   Semaphore d_suck_sem;
-  std::condition_variable d_any_condvar;
-  std::mutex d_any_mutex;
+  Semaphore d_any_sem;
   time_t d_tickinterval;
   set<DomainInfo> d_tocheck;
   struct cmp {
