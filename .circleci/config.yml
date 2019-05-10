@@ -26,7 +26,7 @@ commands:
             else
               git clone --depth 1 --branch $CIRCLE_BRANCH $CIRCLE_REPOSITORY_URL ~/project
             fi
-            git show
+            git show -s
 
   auth-regress-setup:
     description: Prepare the environment for auth regression tests
