@@ -1591,7 +1591,7 @@ public:
   void declareArguments(const string &suffix="")
   {
     declare(suffix,"filename","Filename for lmdb","./pdns.lmdb");
-    declare(suffix,"sync-mode","Synchronisation mode: nosync, nometasync, mapasync","mapasync");
+    declare(suffix,"sync-mode","Synchronisation mode: nosync, nometasync, mapasync, sync","mapasync");
     // there just is no room for more on 32 bit
     declare(suffix,"shards","Records database will be split into this number of shards", (sizeof(long) == 4) ? "2" : "64"); 
   }
