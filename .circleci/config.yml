@@ -16,14 +16,15 @@ commands:
       - run:
           name: Clone the repo
           command: |
-            set -x
             if [ -n "$CIRCLE_PR_NUMBER" ]
             then
+              echo === Checking out PR "$CIRCLE_PR_NUMBER" from "$CIRCLE_REPOSITORY_URL"
               git clone --depth 1 $CIRCLE_REPOSITORY_URL ~/project
               cd ~/project
               git fetch origin +refs/pull/${CIRCLE_PR_NUMBER}/merge
               git checkout -qf FETCH_HEAD
             else
+              echo === Checking out branch "${CIRCLE_BRANCH}" from "$CIRCLE_REPOSITORY_URL"
               git clone --depth 1 --branch $CIRCLE_BRANCH $CIRCLE_REPOSITORY_URL ~/project
             fi
             git show -s
