@@ -58,7 +58,7 @@ LMDBBackend::LMDBBackend(const std::string& suffix)
     d_asyncFlag = MDB_NOMETASYNC;
   else if(syncMode == "mapasync")
     d_asyncFlag = MDB_MAPASYNC;
-  else if(syncMode.empty())
+  else if(syncMode.empty() || syncMode == "sync")
     d_asyncFlag = 0;
   else
     throw std::runtime_error("Unknown sync mode "+syncMode+" requested for LMDB backend");
