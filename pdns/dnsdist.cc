@@ -2650,8 +2650,8 @@ try
   }
 #endif
 
-  uid_t newgid=0;
-  gid_t newuid=0;
+  uid_t newgid=getegid();
+  gid_t newuid=geteuid();
 
   if(!g_cmdLine.gid.empty())
     newgid = strToGID(g_cmdLine.gid.c_str());
@@ -2659,8 +2659,11 @@ try
   if(!g_cmdLine.uid.empty())
     newuid = strToUID(g_cmdLine.uid.c_str());
 
-  dropGroupPrivs(newgid);
-  dropUserPrivs(newuid);
+  if (getegid() != newgid)
+    dropGroupPrivs(newgid);
+  if (geteuid() != newuid)
+    dropUserPrivs(newuid);
+
   try {
     /* we might still have capabilities remaining,
        for example if we have been started as root
