@@ -47,6 +47,7 @@ PDNS_WITH_LIBCAP
 AX_AVAILABLE_SYSTEMD
 AX_CHECK_SYSTEMD_FEATURES
 AM_CONDITIONAL([HAVE_SYSTEMD], [ test x"$systemd" = "xy" ])
+PDNS_WITH_SERVICE_USER([dnsdist])
 
 AC_SUBST([YAHTTP_CFLAGS], ['-I$(top_srcdir)/ext/yahttp'])
 AC_SUBST([YAHTTP_LIBS], ['$(top_builddir)/ext/yahttp/yahttp/libyahttp.la'])
