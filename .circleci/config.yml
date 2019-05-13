@@ -26,6 +26,13 @@ commands:
             fi
             git show -s
 
+  install-coverity-tools:
+    description: Install the coverity tools to /usr/local
+    steps:
+      - run:
+          name: Install Coverity tools
+          command: curl -s https://scan.coverity.com/download/linux64 --data "token=${COVERITY_TOKEN}&project=${COVERITY_PROJECT}" |  gunzip | tar xvf /dev/stdin --strip-components=2 --no-same-owner -C /usr/local
+
   auth-regress-setup:
     description: Prepare the environment for auth regression tests
     steps:
@@ -759,9 +766,7 @@ jobs:
             protobuf-compiler \
             ragel \
             virtualenv
-      - run:
-          name: Install Coverity tools
-          command: curl -s https://scan.coverity.com/download/linux64 --data "token=${COVERITY_TOKEN}&project=dnsdist" |  gunzip | tar xvf /dev/stdin --strip-components=2 --no-same-owner -C /usr/local
+      - install-coverity-tools
       - checkout-shallow
       - run:
           name: autoconf
@@ -802,7 +807,76 @@ jobs:
             --form file=@pdns/dnsdistdist/dnsdist.tar.bz2 \
             --form version="$(./builder-support/gen-version)" \
             --form description="master build" \
-            https://scan.coverity.com/builds?project=dnsdist
+            https://scan.coverity.com/builds?project=${COVERITY_PROJECT}
+
+  coverity-recursor:
+    docker:
+      - image: debian:buster
+    steps:
+      - run:
+          name: Install dependencies
+          command: |
+            apt-get update && apt-get -qq --no-install-recommends install \
+            autoconf \
+            automake \
+            ca-certificates \
+            curl \
+            bison \
+            bzip2 \
+            flex \
+            g++ \
+            git \
+            libboost-all-dev \
+            libcap-dev \
+            libluajit-5.1-dev \
+            libprotobuf-dev \
+            libsodium-dev \
+            libssl-dev \
+            libsystemd-dev \
+            libtool \
+            make \
+            pkg-config \
+            protobuf-compiler \
+            ragel \
+            virtualenv
+      - install-coverity-tools
+      - checkout-shallow
+      - run:
+          name: autoconf
+          command: BUILDER_VERSION=0.0.0-git1 autoreconf -vfi
+          working_directory: ~/project/pdns/recursordist
+      - run:
+          name: configure
+          command: |
+            CFLAGS="-O1 -Werror=vla" \
+            CXXFLAGS="-O1 -Werror=vla" \
+            ./configure \
+            --disable-systemd \
+            --disable-unit-tests \
+            --prefix=/opt/pdns-recursor \
+            --with-libsodium \
+            --with-lua=luajit \
+            --with-libcap \
+            --with-protobuf=yes \
+            --without-net-snmp
+          working_directory: ~/project/pdns/recursordist
+      - run:
+          name: build
+          command: /usr/local/bin/cov-build --dir cov-int make -j2 -k
+          working_directory: ~/project/pdns/recursordist
+      - run:
+          name: Create Coverity tarball
+          command: tar caf recursor.tar.bz2 cov-int
+          working_directory: ~/project/pdns/recursordist
+      - run:
+          name: Upload tarball to coverity
+          command: |
+            curl --form token=${COVERITY_TOKEN} \
+            --form email="${COVERITY_EMAIL}" \
+            --form file=@pdns/recursordist/recursor.tar.bz2 \
+            --form version="$(./builder-support/gen-version)" \
+            --form description="master build" \
+            https://scan.coverity.com/builds?project=${COVERITY_PROJECT}
 
 workflows:
   version: 2
@@ -816,6 +890,9 @@ workflows:
     jobs:
       - coverity-dnsdist:
           context: dnsdist-coverity
+      - coverity-recursor:
+          context: recursor-coverity
+
 
   build-and-test-all:
     jobs:
