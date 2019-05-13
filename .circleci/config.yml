@@ -723,8 +723,100 @@ jobs:
             PDNSRECURSOR="/opt/pdns-recursor/sbin/pdns_recursor" \
             ./runtests recursor
 
+  coverity-dnsdist:
+    docker:
+      - image: debian:buster
+    steps:
+      - run:
+          name: Install dependencies
+          command: |
+            apt-get update && apt-get -qq --no-install-recommends install \
+            autoconf \
+            automake \
+            bison \
+            bzip2 \
+            ca-certificates \
+            curl \
+            flex \
+            g++ \
+            git \
+            libboost-all-dev \
+            libcap-dev \
+            libedit-dev \
+            libfstrm-dev \
+            libh2o-evloop-dev \
+            libluajit-5.1-dev \
+            libprotobuf-dev \
+            libre2-dev \
+            libsnmp-dev \
+            libsodium-dev \
+            libssl-dev \
+            libsystemd-dev \
+            libtool \
+            libwslay-dev \
+            make \
+            pkg-config \
+            protobuf-compiler \
+            ragel \
+            virtualenv
+      - run:
+          name: Install Coverity tools
+          command: curl -s https://scan.coverity.com/download/linux64 --data "token=${COVERITY_TOKEN}&project=dnsdist" |  gunzip | tar xvf /dev/stdin --strip-components=2 --no-same-owner -C /usr/local
+      - checkout-shallow
+      - run:
+          name: autoconf
+          command: BUILDER_VERSION=0.0.0-git1 autoreconf -vfi
+          working_directory: ~/project/pdns/dnsdistdist
+      - run:
+          name: configure
+          command: |
+            CFLAGS="-O1 -Werror=vla" \
+            CXXFLAGS="-O1 -Werror=vla" \
+            ./configure \
+            --disable-systemd \
+            --disable-unit-tests \
+            --enable-dnstap \
+            --enable-dnscrypt \
+            --enable-dns-over-tls \
+            --enable-dns-over-https \
+            --prefix=/opt/dnsdist \
+            --with-libsodium \
+            --with-lua=luajit \
+            --with-libcap \
+            --with-protobuf=yes \
+            --with-re2
+          working_directory: ~/project/pdns/dnsdistdist
+      - run:
+          name: build
+          command: /usr/local/bin/cov-build --dir cov-int make -j2 -k
+          working_directory: ~/project/pdns/dnsdistdist
+      - run:
+          name: Create Coverity tarball
+          command: tar caf dnsdist.tar.bz2 cov-int
+          working_directory: ~/project/pdns/dnsdistdist
+      - run:
+          name: Upload tarball to coverity
+          command: |
+            curl --form token=${COVERITY_TOKEN} \
+            --form email="${COVERITY_EMAIL}" \
+            --form file=@pdns/dnsdistdist/dnsdist.tar.bz2 \
+            --form version="$(./builder-support/gen-version)" \
+            --form description="master build" \
+            https://scan.coverity.com/builds?project=dnsdist
+
 workflows:
   version: 2
+  coverity:
+#    triggers:
+#      - schedule:
+#          cron: "0 0 * * *"
+#          filters:
+#            branches:
+#              only: master
+    jobs:
+      - coverity-dnsdist:
+          context: dnsdist-coverity
+
   build-and-test-all:
     jobs:
       - build-auth
