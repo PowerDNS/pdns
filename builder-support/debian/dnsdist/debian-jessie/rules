@@ -47,6 +47,8 @@ override_dh_auto_configure:
 	  --with-ebpf \
 	  --with-lua=luajit \
 	  --with-protobuf \
+	  --with-service-user='_dnsdist' \
+	  --with-service-group='_dnsdist' \
 	  $(CONFIGURE_ARGS)
 
 override_dh_auto_build-arch:
@@ -54,8 +56,6 @@ override_dh_auto_build-arch:
 
 override_dh_install:
 	dh_install
-	echo Patching uid and git into debian/dnsdist/lib/systemd/system/*.service
-	perl -pi -e 's/(^ExecStart=.*)/$$1 -u _dnsdist -g _dnsdist/' debian/dnsdist/lib/systemd/system/*.service
 ifeq ($(DEB_HOST_ARCH_BITS),32)
 	echo RestrictAddressFamilies is broken on 32bit, removing it from service file
 	perl -ni -e 'print unless /RestrictAddressFamilies/' debian/dnsdist/lib/systemd/system/*.service
