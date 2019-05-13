@@ -174,6 +174,8 @@ commands:
               autoconf \
               automake \
               bison \
+              bzip2 \
+              curl \
               default-libmysqlclient-dev \
               flex \
               g++ \
@@ -730,6 +732,44 @@ jobs:
             PDNSRECURSOR="/opt/pdns-recursor/sbin/pdns_recursor" \
             ./runtests recursor
 
+  coverity-auth:
+    docker:
+      - image: debian:buster
+    steps:
+      - install-auth-dev-deps
+      - install-coverity-tools
+      - checkout-shallow
+      - run:
+          name: autoconf
+          command: BUILDER_VERSION=0.0.0-git1 autoreconf -vfi
+      - run:
+          name: configure
+          command: |
+            CFLAGS="-O1 -Werror=vla" \
+            CXXFLAGS="-O1 -Werror=vla" \
+            ./configure \
+              --disable-lua-records \
+              --with-modules='bind lmdb ldap gmysql gsqlite3 gpgsql godbc mydns random tinydns' \
+              --enable-tools \
+              --with-lmdb=/usr \
+              --with-libsodium \
+              --prefix=/opt/pdns-auth
+      - run:
+          name: build
+          command: /usr/local/bin/cov-build --dir cov-int make -j2 -k
+      - run:
+          name: Create Coverity tarball
+          command: tar caf auth.tar.bz2 cov-int
+      - run:
+          name: Upload tarball to coverity
+          command: |
+            curl --form token=${COVERITY_TOKEN} \
+            --form email="${COVERITY_EMAIL}" \
+            --form file=@auth.tar.bz2 \
+            --form version="$(./builder-support/gen-version)" \
+            --form description="master build" \
+            https://scan.coverity.com/builds?project=${COVERITY_PROJECT}
+
   coverity-dnsdist:
     docker:
       - image: debian:buster
@@ -888,11 +928,12 @@ workflows:
 #            branches:
 #              only: master
     jobs:
+      - coverity-auth:
+          context: auth-coverity
       - coverity-dnsdist:
           context: dnsdist-coverity
       - coverity-recursor:
           context: recursor-coverity
-
 
   build-and-test-all:
     jobs:
