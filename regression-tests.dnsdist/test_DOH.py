@@ -315,6 +315,22 @@ class TestDOH(DNSDistDOHTest):
         self.checkQueryEDNSWithoutECS(expectedQuery, receivedQuery)
         self.assertEquals(response, receivedResponse)
 
+    def testDOHWithoutQuery(self):
+        """
+        DOH: Empty GET query
+        """
+        name = 'empty-get.doh.tests.powerdns.com.'
+        url = self._dohBaseURL
+        conn = self.openDOHConnection(self._dohServerPort, self._caCert, timeout=2.0)
+        conn.setopt(pycurl.URL, url)
+        conn.setopt(pycurl.RESOLVE, ["%s:%d:127.0.0.1" % (self._serverName, self._dohServerPort)])
+        conn.setopt(pycurl.SSL_VERIFYPEER, 1)
+        conn.setopt(pycurl.SSL_VERIFYHOST, 2)
+        conn.setopt(pycurl.CAINFO, self._caCert)
+        data = conn.perform_rb()
+        rcode = conn.getinfo(pycurl.RESPONSE_CODE)
+        self.assertEquals(rcode, 400)
+
     def testDOHEmptyPOST(self):
         """
         DOH: Empty POST query
