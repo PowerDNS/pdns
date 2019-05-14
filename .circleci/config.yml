@@ -918,12 +918,12 @@ jobs:
 workflows:
   version: 2
   coverity:
-#    triggers:
-#      - schedule:
-#          cron: "0 0 * * *"
-#          filters:
-#            branches:
-#              only: master
+    triggers:
+      - schedule:
+          cron: "0 0 * * *"
+          filters:
+            branches:
+              only: master
     jobs:
       - coverity-auth:
           context: auth-coverity
