@@ -581,7 +581,7 @@ Pools are automatically created when a server is added to a pool (with :func:`ne
 PacketCache
 ~~~~~~~~~~~
 
-A Pool can have a packet cache to answer queries directly in stead of going to the backend.
+A Pool can have a packet cache to answer queries directly instead of going to the backend.
 See :doc:`../guides/cache` for a how to.
 
 .. function:: newPacketCache(maxEntries[, maxTTL=86400[, minTTL=0[, temporaryFailureTTL=60[, staleTTL=60[, dontAge=false[, numberOfShards=1[, deferrableInsertLock=true[, maxNegativeTTL=3600[, parseECS=false]]]]]]]) -> PacketCache
@@ -1050,6 +1050,35 @@ faster than the existing rules.
     .. versionadded:: 1.3.1
 
     Return a string describing the rules and range exclusions of this DynBlockRulesGroup.
+
+SuffixMatchNode
+~~~~~~~~~~~~~~~
+
+A SuffixMatchNode can be used to quickly check whether a given name belongs to a set or not. This is achieved
+using an efficient tree structure based on DNS labels, making lookups cheap.
+Be careful that Suffix Node matching will match for any sub-domain, regardless of the depth, under the name added to the set. For example,
+if 'example.com.' is added to the set, 'www.example.com.' and 'sub.www.example.com.' will match as well.
+If you are looking for exact name matching, your might want to consider using a :class:`DNSNameSet` instead.
+
+.. function:: newSuffixMatchNode()
+
+  Creates a new :class:`SuffixMatchNode`.
+
+.. class:: SuffixMatchNode
+
+  Represent a set of DNS suffixes for quick matching.
+
+  .. method:: SuffixMatchNode:add(name)
+
+    Add a suffix to the current set.
+
+    :param DNSName name: The suffix to add to the set.
+
+  .. method:: SuffixMatchNode:check(name) -> bool
+
+    Return true if the given name is a sub-domain of one of those in the set, and false otherwise.
+
+    :param DNSName name: The name to test against the set.
 
 Other functions
 ---------------
