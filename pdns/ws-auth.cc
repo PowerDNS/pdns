@@ -2010,8 +2010,10 @@ static void patchZone(HttpRequest* req, HttpResponse* resp) {
           di.backend->lookup(QType(QType::ANY), qname);
           DNSResourceRecord rr;
           while (di.backend->get(rr)) {
-            if (qtype.getCode() == 0) {
+            if (rr.qtype.getCode() == 0) {
               ent_present = true;
+              /* that's fine, we will override it */
+              continue;
             }
             if (qtype.getCode() != rr.qtype.getCode()
               && (exclusiveEntryTypes.count(qtype.getCode()) != 0
