@@ -275,20 +275,6 @@ public:
     }
   }
 
-  bool writeSizeAndMsg(const void* buffer, size_t bufferSize, unsigned int writeTimeout)
-  {
-    if (d_conn) {
-      uint16_t size = htons(bufferSize);
-      if (d_conn->write(&size, sizeof(size), writeTimeout) != sizeof(size)) {
-        return false;
-      }
-      return (d_conn->write(buffer, bufferSize, writeTimeout) == bufferSize);
-    }
-    else {
-      return sendSizeAndMsgWithTimeout(d_socket, bufferSize, static_cast<const char*>(buffer), writeTimeout, nullptr, nullptr, 0, 0, 0);
-    }
-  }
-
 private:
   std::unique_ptr<TLSConnection> d_conn{nullptr};
   int d_socket{-1};

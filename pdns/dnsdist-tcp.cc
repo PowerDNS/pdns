@@ -905,7 +905,7 @@ static void handleDownstreamIO(std::shared_ptr<IncomingTCPConnectionState>& stat
       }
 #endif /* MSG_FASTOPEN */
 
-      size_t sent = sendMsgWithTimeout(fd, reinterpret_cast<const char *>(&state->d_buffer.at(state->d_currentPos)), state->d_buffer.size() - state->d_currentPos, 0, &state->d_ds->remote, &state->d_ds->sourceAddr, state->d_ds->sourceItf, 0, socketFlags);
+      size_t sent = sendMsgWithOptions(fd, reinterpret_cast<const char *>(&state->d_buffer.at(state->d_currentPos)), state->d_buffer.size() - state->d_currentPos, &state->d_ds->remote, &state->d_ds->sourceAddr, state->d_ds->sourceItf, socketFlags);
       if (sent == state->d_buffer.size()) {
         /* request sent ! */
         state->d_downstreamConnection->incQueries();
