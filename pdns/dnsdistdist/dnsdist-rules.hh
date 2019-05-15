@@ -525,6 +525,24 @@ private:
 };
 #endif
 
+class SNIRule : public DNSRule
+{
+public:
+  SNIRule(const std::string& name) : d_sni(name)
+  {
+  }
+  bool matches(const DNSQuestion* dq) const override
+  {
+    return dq->sni == d_sni;
+  }
+  string toString() const override
+  {
+    return "SNI == " + d_sni;
+  }
+private:
+  std::string d_sni;
+};
+
 class SuffixMatchNodeRule : public DNSRule
 {
 public:

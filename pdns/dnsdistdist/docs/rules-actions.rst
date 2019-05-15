@@ -756,6 +756,15 @@ These ``DNSRule``\ s be one of the following items:
 
   :param str regex: The regular expression to match the QNAME.
 
+.. function:: SNIRule(name)
+  .. versionadded:: 1.4.0
+
+  Matches against the TLS Server Name Indication value sent by the client, if any. Only makes
+  sense for DoT or DoH, and for that last one matching on the HTTP Host header might provide
+  more consistent results.
+
+  :param str name: The exact SNI name to match.
+
 .. function:: SuffixMatchNodeRule(smn[, quiet])
 
   Matches based on a group of domain suffixes for rapid testing of membership.

@@ -546,6 +546,7 @@ const std::vector<ConsoleKeyword> g_consoleKeywords{
   { "showVersion", true, "", "show the current version" },
   { "shutdown", true, "", "shut down `dnsdist`" },
   { "SkipCacheAction", true, "", "Don’t lookup the cache for this query, don’t store the answer" },
+  { "SNIRule", true, "name", "Create a rule which matches on the incoming TLS SNI value, if any (DoT or DoH)" },
   { "snmpAgent", true, "enableTraps [, masterSocket]", "enable `SNMP` support. `enableTraps` is a boolean indicating whether traps should be sent and `masterSocket` an optional string specifying how to connect to the master agent"},
   { "SNMPTrapAction", true, "[reason]", "send an SNMP trap, adding the optional `reason` string as the query description"},
   { "SNMPTrapResponseAction", true, "[reason]", "send an SNMP trap, adding the optional `reason` string as the response description"},

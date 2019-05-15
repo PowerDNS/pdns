@@ -808,6 +808,7 @@ static void handleQuery(std::shared_ptr<IncomingTCPConnectionState>& state, stru
   DNSName qname(query, state->d_querySize, sizeof(dnsheader), false, &qtype, &qclass, &consumed);
   DNSQuestion dq(&qname, qtype, qclass, consumed, &state->d_ids.origDest, &state->d_ci.remote, reinterpret_cast<dnsheader*>(query), state->d_buffer.size(), state->d_querySize, true, &queryRealTime);
   dq.dnsCryptQuery = std::move(dnsCryptQuery);
+  dq.sni = state->d_handler.getServerNameIndication();
 
   state->d_isXFR = (dq.qtype == QType::AXFR || dq.qtype == QType::IXFR);
   if (state->d_isXFR) {
