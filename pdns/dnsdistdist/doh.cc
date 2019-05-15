@@ -185,6 +185,13 @@ static int processDOHQuery(DOHUnit* du)
     dq.ednsAdded = du->ednsAdded;
     dq.du = du;
     queryId = ntohs(dh->id);
+#ifdef HAVE_H2O_SOCKET_GET_SSL_SERVER_NAME
+    h2o_socket_t* sock = du->req->conn->callbacks->get_socket(du->req->conn);
+    const char * sni = h2o_socket_get_ssl_server_name(sock);
+    if (sni != nullptr) {
+      dq.sni = sni;
+    }
+#endif /* HAVE_H2O_SOCKET_BET_SSL_SERVER_NAME */
 
     std::shared_ptr<DownstreamState> ss{nullptr};
     auto result = processQuery(dq, cs, holders, ss);
