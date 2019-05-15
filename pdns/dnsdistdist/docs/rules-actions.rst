@@ -585,6 +585,21 @@ These ``DNSRule``\ s be one of the following items:
 
   :param int rcode: The RCODE to match on
 
+.. function:: HTTPHeaderRule(name, regex)
+  .. versionadded:: 1.4.0
+
+  Matches DNS over HTTPS queries with a HTTP header ``name`` whose content matches the regular expression ``regex``.
+
+  :param str name: The case-insensitive name of the HTTP header to match on
+  :param str regex: A regular expression to match the content of the specified header
+
+.. function:: HTTPPathRule(path)
+  .. versionadded:: 1.4.0
+
+  Matches DNS over HTTPS queries with a HTTP path of ``path``. For example, if the query has been sent to the https://192.0.2.1:443/PowerDNS?dns=... URL, the path would be '/PowerDNS'.
+
+  :param str path: The exact HTTP path to match on
+
 .. function:: MaxQPSIPRule(qps[, v4Mask[, v6Mask[, burst[, expiration[, cleanupDelay[, scanFraction]]]]]])
   .. versionchanged:: 1.3.1
     Added the optional parameters ``expiration``, ``cleanupDelay`` and ``scanFraction``.
