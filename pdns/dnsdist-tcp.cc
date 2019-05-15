@@ -440,6 +440,10 @@ public:
         catch(const FDMultiplexerException& e) {
           vinfolog("Got an exception when trying to remove a pending IO operation on the socket to the %s backend: %s", d_ds->getName(), e.what());
         }
+        catch(const std::runtime_error& e) {
+          /* might be thrown by getHandle() */
+          vinfolog("Got an exception when trying to remove a pending IO operation on the socket to the %s backend: %s", d_ds->getName(), e.what());
+        }
       }
     }
 
