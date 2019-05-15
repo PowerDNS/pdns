@@ -92,6 +92,14 @@ This state can be modified from the various hooks.
 
     :returns: A table of EDNSOptionView objects, indexed on the ECS Option code
 
+  .. method:: DNSQuestion:getServerNameIndication() -> string
+
+    .. versionadded:: 1.4.0
+
+    Return the TLS Server Name Indication (SNI) value sent by the client over DoT or DoH, if any
+
+    :returns: A string containing the TLS SNI value, if any
+
   .. method:: DNSQuestion:getTag(key) -> string
 
     .. versionadded:: 1.2.0

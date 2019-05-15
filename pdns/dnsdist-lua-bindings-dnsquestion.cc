@@ -85,6 +85,10 @@ void setupLuaBindingsDNSQuestion()
       return true;
     });
 
+  g_lua.registerFunction<std::string(DNSQuestion::*)()>("getServerNameIndication", [](const DNSQuestion& dq) {
+      return dq.sni;
+    });
+
   g_lua.registerFunction<void(DNSQuestion::*)(std::string)>("sendTrap", [](const DNSQuestion& dq, boost::optional<std::string> reason) {
 #ifdef HAVE_NET_SNMP
       if (g_snmpAgent && g_snmpTrapsEnabled) {
