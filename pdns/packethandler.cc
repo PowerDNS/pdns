@@ -963,17 +963,11 @@ DNSPacket *PacketHandler::question(DNSPacket *p)
 }
 
 
-void PacketHandler::makeNXDomain(DNSPacket* p, DNSPacket* r, const DNSName& target, const DNSName& wildcard, SOAData& sd)
+void PacketHandler::makeNXDomain(DNSPacket* p, DNSPacket* r, const DNSName& target, const DNSName& wildcard, const SOAData& sd)
 {
   DNSZoneRecord rr;
-  rr.dr.d_name=sd.qname;
-  rr.dr.d_type=QType::SOA;
-  rr.dr.d_content=makeSOAContent(sd);
+  rr=makeEditedDNSZRFromSOAData(d_dk, sd, DNSResourceRecord::AUTHORITY);
   rr.dr.d_ttl=min(sd.ttl, sd.default_ttl);
-  rr.signttl=sd.ttl;
-  rr.domain_id=sd.domain_id;
-  rr.dr.d_place=DNSResourceRecord::AUTHORITY;
-  rr.auth = 1;
   r->addRecord(rr);
 
   if(d_dnssec) {
@@ -983,17 +977,11 @@ void PacketHandler::makeNXDomain(DNSPacket* p, DNSPacket* r, const DNSName& targ
   r->setRcode(RCode::NXDomain);
 }
 
-void PacketHandler::makeNOError(DNSPacket* p, DNSPacket* r, const DNSName& target, const DNSName& wildcard, SOAData& sd, int mode)
+void PacketHandler::makeNOError(DNSPacket* p, DNSPacket* r, const DNSName& target, const DNSName& wildcard, const SOAData& sd, int mode)
 {
   DNSZoneRecord rr;
-  rr.dr.d_name=sd.qname;
-  rr.dr.d_type=QType::SOA;
-  rr.dr.d_content=makeSOAContent(sd);
+  rr=makeEditedDNSZRFromSOAData(d_dk, sd, DNSResourceRecord::AUTHORITY);
   rr.dr.d_ttl=min(sd.ttl, sd.default_ttl);
-  rr.signttl=sd.ttl;
-  rr.domain_id=sd.domain_id;
-  rr.dr.d_place=DNSResourceRecord::AUTHORITY;
-  rr.auth = 1;
   r->addRecord(rr);
 
   if(d_dnssec) {
@@ -1304,14 +1292,7 @@ DNSPacket *PacketHandler::doQuestion(DNSPacket *p)
     }
 
     if(p->qtype.getCode() == QType::SOA && sd.qname==p->qdomain) {
-      rr.dr.d_name=sd.qname;
-      rr.dr.d_type=QType::SOA;
-      sd.serial = calculateEditSOA(sd.serial, d_dk, sd.qname);
-      rr.dr.d_content=makeSOAContent(sd);
-      rr.dr.d_ttl=sd.ttl;
-      rr.domain_id=sd.domain_id;
-      rr.dr.d_place=DNSResourceRecord::ANSWER;
-      rr.auth = true;
+      rr=makeEditedDNSZRFromSOAData(d_dk, sd);
       r->addRecord(rr);
       goto sendit;
     }
@@ -1420,13 +1401,7 @@ DNSPacket *PacketHandler::doQuestion(DNSPacket *p)
 
     /* Add in SOA if required */
     if(target==sd.qname) {
-        rr.dr.d_name = sd.qname;
-        rr.dr.d_type = QType::SOA;
-        sd.serial = calculateEditSOA(sd.serial, d_dk, sd.qname);
-        rr.dr.d_content = makeSOAContent(sd);
-        rr.dr.d_ttl = sd.ttl;
-        rr.domain_id = sd.domain_id;
-        rr.auth = true;
+        rr=makeEditedDNSZRFromSOAData(d_dk, sd);
         rrset.push_back(rr);
     }
 
