@@ -303,3 +303,4 @@ uint32_t calculateEditSOA(uint32_t old_serial, const string& kind, const DNSName
 // for SOA-EDIT-DNSUPDATE/API
 bool increaseSOARecord(DNSResourceRecord& dr, const string& increaseKind, const string& editKind);
 bool makeIncreasedSOARecord(SOAData& sd, const string& increaseKind, const string& editKind, DNSResourceRecord& rrout);
+DNSZoneRecord makeEditedDNSZRFromSOAData(DNSSECKeeper& dk, const SOAData& sd, DNSResourceRecord::Place place=DNSResourceRecord::ANSWER);

@@ -537,25 +537,6 @@ namespace {
     bool d_auth;
   };
 
-  DNSZoneRecord makeEditedDNSZRFromSOAData(DNSSECKeeper& dk, const SOAData& sd)
-  {
-    SOAData edited = sd;
-    edited.serial = calculateEditSOA(sd.serial, dk, sd.qname);
-
-    DNSRecord soa;
-    soa.d_name = sd.qname;
-    soa.d_type = QType::SOA;
-    soa.d_ttl = sd.ttl;
-    soa.d_place = DNSResourceRecord::ANSWER;
-    soa.d_content = makeSOAContent(edited);
-
-    DNSZoneRecord dzr;
-    dzr.auth = true;
-    dzr.dr = soa;
-
-    return dzr;
-  }
-
   shared_ptr<DNSPacket> getFreshAXFRPacket(shared_ptr<DNSPacket> q)
   {
     shared_ptr<DNSPacket> ret = shared_ptr<DNSPacket>(q->replyPacket());
