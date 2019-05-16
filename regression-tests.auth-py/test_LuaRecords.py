@@ -30,6 +30,13 @@ class FakeHTTPServer(BaseHTTPRequestHandler):
         self._set_headers()
 
 class TestLuaRecords(AuthTest):
+    _config_template = """
+geoip-database-files=../modules/geoipbackend/regression-tests/GeoLiteCity.mmdb
+edns-subnet-processing=yes
+launch=bind geoip
+any-to-tcp=no
+"""
+
     _zones = {
         'example.org': """
 example.org.                 3600 IN SOA  {soa}

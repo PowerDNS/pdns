@@ -15,6 +15,15 @@ aliasUDPReactorRunning = False
 
 
 class TestALIAS(AuthTest):
+    _config_template = """
+expand-alias=yes
+resolver=%s.1:5301
+any-to-tcp=no
+launch=bind
+"""
+
+    _config_params = ['_PREFIX']
+
     _zones = {
         'example.org': """
 example.org.                 3600 IN SOA  {soa}
