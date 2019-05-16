@@ -616,8 +616,9 @@ bool LMDBBackend::get(DNSResourceRecord& rr)
   rr.qname = dzr.dr.d_name;
   rr.ttl = dzr.dr.d_ttl;
   rr.qtype =dzr.dr.d_type;
-  rr.content = dzr.dr.d_content->getZoneRepresentation();
+  rr.content = dzr.dr.d_content->getZoneRepresentation(true);
   rr.domain_id = dzr.domain_id;
+  rr.auth = dzr.auth;
   //  cout<<"old school called for "<<rr.qname<<", "<<rr.qtype.getName()<<endl;
   return true;
 }
