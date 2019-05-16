@@ -233,7 +233,7 @@ void AuthQueryCache::cleanupIfNeeded()
       uint64_t maxCached = (int)(2*d_maxEntries);
       uint64_t cacheSize = *d_statnumentries;
       
-      if (maxCached > cacheSize) {
+      if (cacheSize <= maxCached) {
         d_cleanskipped = true;
         d_nextclean += d_cleaninterval;
 
