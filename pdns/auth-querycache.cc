@@ -230,7 +230,7 @@ void AuthQueryCache::cleanupIfNeeded()
       There might be very good reasons for the cache size to be limited, 
       lets not skip cleanup if we notice the cache is already oversized
       */
-      uint64_t maxCached = (int)(2*d_maxEntries);
+      uint64_t maxCached = 2*d_maxEntries;
       uint64_t cacheSize = *d_statnumentries;
       
       if (cacheSize <= maxCached) {
