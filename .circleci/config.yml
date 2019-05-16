@@ -629,6 +629,7 @@ jobs:
             CXXFLAGS="-O1 -Werror=vla" \
             ./configure \
             --enable-unit-tests \
+            --enable-nod \
             --prefix=/opt/pdns-recursor \
             --with-libsodium \
             --with-lua=luajit \
