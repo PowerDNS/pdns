@@ -1668,7 +1668,7 @@ static void MultipleMessagesUDPClientThread(ClientState* cs, LocalHolders& holde
       unsigned int got = msgVec[msgIdx].msg_len;
       const ComboAddress& remote = recvData[msgIdx].remote;
 
-      if (got < 0 || static_cast<size_t>(got) < sizeof(struct dnsheader)) {
+      if (static_cast<size_t>(got) < sizeof(struct dnsheader)) {
         ++g_stats.nonCompliantQueries;
         continue;
       }
