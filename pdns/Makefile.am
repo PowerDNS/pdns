@@ -498,9 +498,10 @@ sdig_SOURCES = \
 	sillyrecords.cc \
 	sstuff.hh \
 	statbag.cc \
-	unix_utility.cc
+	unix_utility.cc \
+	minicurl.cc minicurl.hh
 
-sdig_LDADD = $(LIBCRYPTO_LIBS)
+sdig_LDADD = $(LIBCRYPTO_LIBS) $(LIBCURL)
 sdig_LDFLAGS = $(AM_LDFLAGS) $(LIBCRYPTO_LDFLAGS)
 
 calidns_SOURCES = \
