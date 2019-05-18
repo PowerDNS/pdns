@@ -103,7 +103,7 @@ void MiniCurl::setupURL(const std::string& str, const ComboAddress* rem, const C
     curl_easy_setopt(d_curl, CURLOPT_INTERFACE, src->toString().c_str());
   }
   curl_easy_setopt(d_curl, CURLOPT_FOLLOWLOCATION, true);
-  /* only allow HTTP, TFTP and SFTP */
+  /* only allow HTTP and HTTPS */
   curl_easy_setopt(d_curl, CURLOPT_PROTOCOLS, CURLPROTO_HTTP | CURLPROTO_HTTPS);
   curl_easy_setopt(d_curl, CURLOPT_SSL_VERIFYPEER, false);
   curl_easy_setopt(d_curl, CURLOPT_SSL_VERIFYHOST, false);
