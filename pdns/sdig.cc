@@ -249,7 +249,9 @@ try
           cerr<<"EDNS Subnet response: "<<reso.source.toString()<<", scope: "<<reso.scope.toString()<<", family = "<<reso.scope.getNetwork().sin4.sin_family<<endl;
 	}
       }
-
+      else if(iter->first == EDNSOptionCode::PADDING) {
+        cerr<<"EDNS Padding size: "<<(iter->second.size())<<endl;
+      }
       else {
         cerr<<"Have unknown option "<<(int)iter->first<<endl;
       }
