@@ -127,6 +127,7 @@ dnsdist_SOURCES = \
 	dnsdist-rules.hh \
 	dnsdist-secpoll.cc dnsdist-secpoll.hh \
 	dnsdist-snmp.cc dnsdist-snmp.hh \
+	dnsdist-systemd.cc dnsdist-systemd.hh \
 	dnsdist-tcp.cc \
 	dnsdist-web.cc \
 	dnsdist-xpf.cc dnsdist-xpf.hh \

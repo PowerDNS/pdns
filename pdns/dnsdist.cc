@@ -37,6 +37,7 @@
 #include <editline/readline.h>
 #endif
 
+#include "dnsdist-systemd.hh"
 #ifdef HAVE_SYSTEMD
 #include <systemd/sd-daemon.h>
 #endif
@@ -2659,10 +2660,21 @@ try
   if(!g_cmdLine.uid.empty())
     newuid = strToUID(g_cmdLine.uid.c_str());
 
-  if (getegid() != newgid)
+  if (getegid() != newgid) {
+    if (running_in_service_mgr()) {
+      errlog("--gid/-g set on command-line, but dnsdist was started as a systemd service. Use the 'Group' setting in the systemd unit file to set the group to run as");
+      _exit(EXIT_FAILURE);
+    }
     dropGroupPrivs(newgid);
-  if (geteuid() != newuid)
+  }
+
+  if (geteuid() != newuid) {
+    if (running_in_service_mgr()) {
+      errlog("--uid/-u set on command-line, but dnsdist was started as a systemd service. Use the 'User' setting in the systemd unit file to set the user to run as");
+      _exit(EXIT_FAILURE);
+    }
     dropUserPrivs(newuid);
+  }
 
   try {
     /* we might still have capabilities remaining,
