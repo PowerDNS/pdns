@@ -96,7 +96,8 @@ This state can be modified from the various hooks.
 
     .. versionadded:: 1.4.0
 
-    Return the TLS Server Name Indication (SNI) value sent by the client over DoT or DoH, if any
+    Return the TLS Server Name Indication (SNI) value sent by the client over DoT or DoH, if any. See :func:`SNIRule`
+    for more information, especially about the availability of SNI over DoH.
 
     :returns: A string containing the TLS SNI value, if any
 
