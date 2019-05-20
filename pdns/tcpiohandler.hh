@@ -16,6 +16,7 @@ public:
   virtual size_t write(const void* buffer, size_t bufferSize, unsigned int writeTimeout) = 0;
   virtual IOState tryWrite(std::vector<uint8_t>& buffer, size_t& pos, size_t toWrite) = 0;
   virtual IOState tryRead(std::vector<uint8_t>& buffer, size_t& pos, size_t toRead) = 0;
+  virtual std::string getServerNameIndication() = 0;
   virtual void close() = 0;
 
 protected:
@@ -273,6 +274,14 @@ public:
     else {
       return writen2WithTimeout(d_socket, buffer, bufferSize, writeTimeout);
     }
+  }
+
+  std::string getServerNameIndication()
+  {
+    if (d_conn) {
+      return d_conn->getServerNameIndication();
+    }
+    return std::string();
   }
 
 private:

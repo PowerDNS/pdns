@@ -12,6 +12,7 @@ class TestTLS(DNSDistTest):
     _config_template = """
     newServer{address="127.0.0.1:%s"}
     addTLSLocal("127.0.0.1:%s", "%s", "%s")
+    addAction(SNIRule("powerdns.com"), SpoofAction("1.2.3.4"))
     """
     _config_params = ['_testServerPort', '_tlsServerPort', '_serverCert', '_serverKey']
 
@@ -90,3 +91,44 @@ class TestTLS(DNSDistTest):
             receivedQuery.id = query.id
             self.assertEquals(query, receivedQuery)
             self.assertEquals(response, receivedResponse)
+
+    def testTLSSNIRouting(self):
+        """
+        TLS: SNI Routing
+        """
+        name = 'sni.tls.tests.powerdns.com.'
+        query = dns.message.make_query(name, 'A', 'IN', use_edns=False)
+        query.flags &= ~dns.flags.RD
+        response = dns.message.make_response(query)
+        rrset = dns.rrset.from_text(name,
+                                    3600,
+                                    dns.rdataclass.IN,
+                                    dns.rdatatype.A,
+                                    '127.0.0.1')
+        response.answer.append(rrset)
+        expectedResponse = dns.message.make_response(query)
+        rrset = dns.rrset.from_text(name,
+                                    3600,
+                                    dns.rdataclass.IN,
+                                    dns.rdatatype.A,
+                                    '1.2.3.4')
+        expectedResponse.answer.append(rrset)
+
+        # this SNI should match so we should get a spoofed answer
+        conn = self.openTLSConnection(self._tlsServerPort, 'powerdns.com', self._caCert)
+
+        self.sendTCPQueryOverConnection(conn, query, response=None)
+        receivedResponse = self.recvTCPResponseOverConnection(conn, useQueue=False)
+        self.assertTrue(receivedResponse)
+        self.assertEquals(expectedResponse, receivedResponse)
+
+        # this one should not
+        conn = self.openTLSConnection(self._tlsServerPort, self._serverName, self._caCert)
+
+        self.sendTCPQueryOverConnection(conn, query, response=response)
+        (receivedQuery, receivedResponse) = self.recvTCPResponseOverConnection(conn, useQueue=True)
+        self.assertTrue(receivedQuery)
+        self.assertTrue(receivedResponse)
+        receivedQuery.id = query.id
+        self.assertEquals(query, receivedQuery)
+        self.assertEquals(response, receivedResponse)

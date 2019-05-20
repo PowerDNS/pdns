@@ -75,6 +75,7 @@ struct DNSQuestion
 #endif
   Netmask ecs;
   boost::optional<Netmask> subnet;
+  std::string sni; /* Server Name Indication, if any (DoT or DoH) */
   const DNSName* qname{nullptr};
   const ComboAddress* local{nullptr};
   const ComboAddress* remote{nullptr};

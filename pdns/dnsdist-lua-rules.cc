@@ -295,6 +295,10 @@ void setupLuaRules()
     });
 #endif
 
+  g_lua.writeFunction("SNIRule", [](const std::string& name) {
+      return std::shared_ptr<DNSRule>(new SNIRule(name));
+  });
+
   g_lua.writeFunction("SuffixMatchNodeRule", [](const SuffixMatchNode& smn, boost::optional<bool> quiet) {
       return std::shared_ptr<DNSRule>(new SuffixMatchNodeRule(smn, quiet ? *quiet : false));
     });
