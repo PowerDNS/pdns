@@ -21,6 +21,14 @@ Generic MySQL backend
   point this is going to harm your database, for example when an incoming
   zone transfer fails.
 
+.. warning::
+  While it is possible to run the Generic MySQL backend on top of MySQL
+  views, we have received several reports of this causing performance
+  problems and memory leaks.  Please know that when reporting problems when
+  running PowerDNS on top of a modified schema, our open source support
+  offering requires you to reproduce your problem on an unmodified schema without
+  views.
+
 The default schema is included at the bottom of this page.
 :ref:`migration-zone2sql` with the ``--gmysql`` flag also
 assumes this layout is in place. For full migration notes, please see
