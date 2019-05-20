@@ -651,7 +651,7 @@ These ``DNSRule``\ s be one of the following items:
 .. function:: QClassRule(qclass)
 
   Matches queries with the specified ``qclass``.
-  ``class`` can be specified as an integer or as one of the built-in :ref:`DNSQClass`.
+  ``class`` can be specified as an integer or as one of the built-in :ref:`DNSClass`.
 
   :param int qclass: The Query Class to match on
 
@@ -664,7 +664,10 @@ These ``DNSRule``\ s be one of the following items:
    :param string qname: Qname to match
 
 .. function:: QNameSetRule(set)
-  Matches if the set contains exact qname.
+
+  .. versionadded:: 1.4.0
+
+   Matches if the set contains exact qname.
 
    To match subdomain names, see :func:`SuffixMatchNodeRule`.
 
@@ -832,21 +835,21 @@ The following actions exist.
 .. function:: DelayAction(milliseconds)
 
   Delay the response by the specified amount of milliseconds (UDP-only).
-  Subsequent rules are processed after this rule.
+  Subsequent rules are processed after this action.
 
   :param int milliseconds: The amount of milliseconds to delay the response
 
 .. function:: DelayResponseAction(milliseconds)
 
   Delay the response by the specified amount of milliseconds (UDP-only).
-  Subsequent rules are processed after this rule.
+  Subsequent rules are processed after this action.
 
   :param int milliseconds: The amount of milliseconds to delay the response
 
 .. function:: DisableECSAction()
 
   Disable the sending of ECS to the backend.
-  Subsequent rules are processed after this rule.
+  Subsequent rules are processed after this action.
 
 .. function:: DisableValidationAction()
 
@@ -885,14 +888,14 @@ The following actions exist.
 .. function:: ECSOverrideAction(override)
 
   Whether an existing EDNS Client Subnet value should be overridden (true) or not (false).
-  Subsequent rules are processed after this rule.
+  Subsequent rules are processed after this action.
 
   :param bool override: Whether or not to override ECS value
 
 .. function:: ECSPrefixLengthAction(v4, v6)
 
   Set the ECS prefix length.
-  Subsequent rules are processed after this rule.
+  Subsequent rules are processed after this action.
 
   :param int v4: The IPv4 netmask length
   :param int v6: The IPv6 netmask length
@@ -913,7 +916,7 @@ The following actions exist.
   When logging to a file, the ``binary`` optional parameter specifies whether we log in binary form (default) or in textual form.
   The ``append`` optional parameter specifies whether we open the file for appending or truncate each time (default).
   The ``buffered`` optional parameter specifies whether writes to the file are buffered (default) or not.
-  Subsequent rules are processed after this rule.
+  Subsequent rules are processed after this action.
 
   :param string filename: File to log to. Set to an empty string to log to the normal stdout log, this only works when ``-v`` is set on the command line.
   :param bool binary: Do binary logging. Default true
@@ -940,19 +943,19 @@ The following actions exist.
 
   Add the source MAC address to the query as EDNS0 option ``option``.
   This action is currently only supported on Linux.
-  Subsequent rules are processed after this rule.
+  Subsequent rules are processed after this action.
 
   :param int option: The EDNS0 option number
 
 .. function:: NoneAction()
 
   Does nothing.
-  Subsequent rules are processed after this rule.
+  Subsequent rules are processed after this action.
 
 .. function:: NoRecurseAction()
 
   Strip RD bit from the question, let it go through.
-  Subsequent rules are processed after this rule.
+  Subsequent rules are processed after this action.
 
 .. function:: PoolAction(poolname)
 
@@ -1033,7 +1036,7 @@ The following actions exist.
   If both IPv4 and IPv6 masks are supplied the IPv4 one will be used for IPv4 clients
   and the IPv6 one for IPv6 clients. Otherwise the first mask is used for both, and
   can actually be an IPv6 mask.
-  Subsequent rules are processed after this rule.
+  Subsequent rules are processed after this action.
 
   :param string v4: The IPv4 netmask, for example "192.0.2.1/32"
   :param string v6: The IPv6 netmask, if any
@@ -1045,14 +1048,14 @@ The following actions exist.
 .. function:: SNMPTrapAction([message])
 
   Send an SNMP trap, adding the optional ``message`` string as the query description.
-  Subsequent rules are processed after this rule.
+  Subsequent rules are processed after this action.
 
   :param string message: The message to include
 
 .. function:: SNMPTrapResponseAction([message])
 
   Send an SNMP trap, adding the optional ``message`` string as the query description.
-  Subsequent rules are processed after this rule.
+  Subsequent rules are processed after this action.
 
   :param string message: The message to include
 
