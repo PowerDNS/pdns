@@ -2,6 +2,27 @@ Changelogs for 4.1.x
 ====================
 
 .. changelog::
+  :version: 4.1.13
+  :released: 21st of May 2019
+
+  .. change::
+    :tags: Improvements, Performance
+    :pullreq: 7673
+    :tickets: 7661
+
+    Add ``disable-real-memory-usage`` switch to disable the collection
+    of the real-memory-usage metric. It turns out that, on some kernel
+    versions and with a lot of memory pages mapped, accessing
+    ``/proc/self/smaps`` hurts.
+
+  .. change::
+    :tags: Bug Fixes, DNSSEC
+    :pullreq: 7816
+    :tickets: 7714
+
+    Fix DNSSEC validation of wildcards expanded onto themselves.
+
+.. changelog::
   :version: 4.1.12
   :released: 2nd of April 2019
 
