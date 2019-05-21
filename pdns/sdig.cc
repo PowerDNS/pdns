@@ -10,7 +10,11 @@
 #include "statbag.hh"
 #include <boost/array.hpp>
 #include "ednssubnet.hh"
+
+#ifdef HAVE_LIBCURL
 #include "minicurl.hh"
+#endif
+
 StatBag S;
 
 bool hidettl=false;
@@ -153,17 +157,23 @@ try
   string reply;
   string question(packet.begin(), packet.end());
   ComboAddress dest;
-  if(*argv[1]=='h')
+  if(*argv[1]=='h') {
     doh = true;
-  else
+  }
+  else {
     dest = ComboAddress(argv[1] + (*argv[1]=='@'), atoi(argv[2]));
+  }
 
   if(doh) {
+#ifdef HAVE_LIBCURL
     MiniCurl mc;
     MiniCurl::MiniCurlHeaders mch;
     mch.insert(std::make_pair("Content-Type", "application/dns-message"));
     mch.insert(std::make_pair("Accept", "application/dns-message"));
     reply = mc.postURL(argv[1], question, mch);
+#else
+    throw PDNSException("please link sdig against libcurl for DoH support");
+#endif
   }
   else if(tcp) {
     Socket sock(dest.sin4.sin_family, SOCK_STREAM);
