@@ -10,10 +10,8 @@ Changelogs for 4.1.x
     :pullreq: 7673
     :tickets: 7661
 
-    Add ``disable-real-memory-usage`` switch to disable the collection
-    of the real-memory-usage metric. It turns out that, on some kernel
-    versions and with a lot of memory pages mapped, accessing
-    ``/proc/self/smaps`` hurts.
+    Add the ``disable-real-memory-usage`` setting to skip expensive
+    collection of detailed memory usage info.
 
   .. change::
     :tags: Bug Fixes, DNSSEC
