@@ -2985,6 +2985,7 @@ bool SyncRes::doResolveAtThisIP(const std::string& prefix, const DNSName& qname,
       }
       return false;
     }
+    LOG(prefix<<qname<<": truncated bit set, over UDP"<<endl);
 
     return true;
   }
