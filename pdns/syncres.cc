@@ -2977,10 +2977,12 @@ bool SyncRes::doResolveAtThisIP(const std::string& prefix, const DNSName& qname,
   if(lwr.d_tcbit) {
     *truncated = true;
 
-    if (doTCP && !dontThrottle) {
+    if (doTCP) {
       LOG(prefix<<qname<<": truncated bit set, over TCP?"<<endl);
-      /* let's treat that as a ServFail answer from this server */
-      t_sstorage.throttle.throttle(d_now.tv_sec, boost::make_tuple(remoteIP, qname, qtype.getCode()), 60, 3);
+      if (!dontThrottle) {
+        /* let's treat that as a ServFail answer from this server */
+        t_sstorage.throttle.throttle(d_now.tv_sec, boost::make_tuple(remoteIP, qname, qtype.getCode()), 60, 3);
+      }
       return false;
     }
 
