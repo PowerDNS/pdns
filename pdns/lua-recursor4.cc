@@ -34,31 +34,6 @@
 
 RecursorLua4::RecursorLua4() { prepareContext(); }
 
-static int followCNAMERecords(vector<DNSRecord>& ret, const QType& qtype)
-{
-  vector<DNSRecord> resolved;
-  DNSName target;
-  for(const DNSRecord& rr :  ret) {
-    if(rr.d_type == QType::CNAME) {
-      auto rec = getRR<CNAMERecordContent>(rr);
-      if(rec) {
-        target=rec->getTarget();
-        break;
-      }
-    }
-  }
-  if(target.empty())
-    return 0;
-  
-  int rcode=directResolve(target, qtype, 1, resolved); // 1 == class
-  
-  for(const DNSRecord& rr :  resolved) {
-    ret.push_back(rr);
-  }
-  return rcode;
- 
-}
-
 static int getFakeAAAARecords(const DNSName& qname, const std::string& prefix, vector<DNSRecord>& ret)
 {
   int rcode=directResolve(qname, QType(QType::A), 1, ret);
@@ -573,7 +548,7 @@ unsigned int RecursorLua4::gettag(const ComboAddress& remote, const Netmask& edn
 struct pdns_ffi_param
 {
 public:
-  pdns_ffi_param(const DNSName& qname_, uint16_t qtype_, const ComboAddress& local_, const ComboAddress& remote_, const Netmask& ednssubnet_, std::vector<std::string>& policyTags_, const EDNSOptionViewMap& ednsOptions_, std::string& requestorId_, std::string& deviceId_, std::string& deviceName_, uint32_t& ttlCap_, bool& variable_, bool tcp_, bool& logQuery_): qname(qname_), local(local_), remote(remote_), ednssubnet(ednssubnet_), policyTags(policyTags_), ednsOptions(ednsOptions_), requestorId(requestorId_), deviceId(deviceId_), deviceName(deviceName_), ttlCap(ttlCap_), variable(variable_), logQuery(logQuery_), qtype(qtype_), tcp(tcp_)
+  pdns_ffi_param(const DNSName& qname_, uint16_t qtype_, const ComboAddress& local_, const ComboAddress& remote_, const Netmask& ednssubnet_, std::vector<std::string>& policyTags_, std::vector<DNSRecord>& records_, const EDNSOptionViewMap& ednsOptions_, std::string& requestorId_, std::string& deviceId_, std::string& deviceName_, boost::optional<int>& rcode_, uint32_t& ttlCap_, bool& variable_, bool tcp_, bool& logQuery_, bool& followCNAMERecords_): qname(qname_), local(local_), remote(remote_), ednssubnet(ednssubnet_), policyTags(policyTags_), records(records_), ednsOptions(ednsOptions_), requestorId(requestorId_), deviceId(deviceId_), deviceName(deviceName_), rcode(rcode_), ttlCap(ttlCap_), variable(variable_), logQuery(logQuery_), followCNAMERecords(followCNAMERecords_), qtype(qtype_), tcp(tcp_)
   {
   }
 
@@ -588,23 +563,26 @@ public:
   const ComboAddress& remote;
   const Netmask& ednssubnet;
   std::vector<std::string>& policyTags;
+  std::vector<DNSRecord>& records;
   const EDNSOptionViewMap& ednsOptions;
   std::string& requestorId;
   std::string& deviceId;
   std::string& deviceName;
+  boost::optional<int>& rcode;
   uint32_t& ttlCap;
   bool& variable;
   bool& logQuery;
+  bool& followCNAMERecords;
 
   unsigned int tag{0};
   uint16_t qtype;
   bool tcp;
 };
 
-unsigned int RecursorLua4::gettag_ffi(const ComboAddress& remote, const Netmask& ednssubnet, const ComboAddress& local, const DNSName& qname, uint16_t qtype, std::vector<std::string>* policyTags, LuaContext::LuaObject& data, const EDNSOptionViewMap& ednsOptions, bool tcp, std::string& requestorId, std::string& deviceId, std::string& deviceName, uint32_t& ttlCap, bool& variable, bool& logQuery) const
+unsigned int RecursorLua4::gettag_ffi(const ComboAddress& remote, const Netmask& ednssubnet, const ComboAddress& local, const DNSName& qname, uint16_t qtype, std::vector<std::string>* policyTags, std::vector<DNSRecord>& records, LuaContext::LuaObject& data, const EDNSOptionViewMap& ednsOptions, bool tcp, std::string& requestorId, std::string& deviceId, std::string& deviceName, boost::optional<int>& rcode, uint32_t& ttlCap, bool& variable, bool& logQuery, bool& followCNAMERecords) const
 {
   if (d_gettag_ffi) {
-    pdns_ffi_param_t param(qname, qtype, local, remote, ednssubnet, *policyTags, ednsOptions, requestorId, deviceId, deviceName, ttlCap, variable, tcp, logQuery);
+    pdns_ffi_param_t param(qname, qtype, local, remote, ednssubnet, *policyTags, records, ednsOptions, requestorId, deviceId, deviceName, rcode, ttlCap, variable, tcp, logQuery, followCNAMERecords);
 
     auto ret = d_gettag_ffi(&param);
     if (ret) {
@@ -872,4 +850,34 @@ void pdns_ffi_param_set_ttl_cap(pdns_ffi_param_t* ref, uint32_t ttl)
 void pdns_ffi_param_set_log_query(pdns_ffi_param_t* ref, bool logQuery)
 {
   ref->logQuery = logQuery;
+}
+
+void pdns_ffi_param_set_rcode(pdns_ffi_param_t* ref, int rcode)
+{
+  ref->rcode = rcode;
+}
+
+void pdns_ffi_param_set_follow_cname_records(pdns_ffi_param_t* ref, bool follow)
+{
+  ref->followCNAMERecords = follow;
+}
+
+bool pdns_ffi_param_add_record(pdns_ffi_param_t *ref, const char* name, uint16_t type, uint32_t ttl, const char* content, size_t contentSize, pdns_record_place_t place)
+{
+  try {
+    DNSRecord dr;
+    dr.d_name = DNSName(name);
+    dr.d_ttl = ttl;
+    dr.d_type = type;
+    dr.d_class = QClass::IN;
+    dr.d_place = DNSResourceRecord::Place(place);
+    dr.d_content = DNSRecordContent::mastermake(type, QClass::IN, std::string(content, contentSize));
+    ref->records.push_back(std::move(dr));
+
+    return true;
+  }
+  catch (const std::exception& e) {
+    g_log<<Logger::Error<<"Error attempting to add a record from Lua via pdns_ffi_param_add_record(): "<<e.what()<<endl;
+    return false;
+  }
 }
