@@ -2,6 +2,29 @@ Changelogs for 4.2.x
 ====================
 
 .. changelog::
+  :version: 4.2.0-rc1
+  :released: 23th of May 2019
+
+  .. change::
+    :tags: Bug Fixes, SNMP
+    :pullreq: 7826
+
+    Fix the detection of ``snmp_select_info2()``.
+
+  .. change::
+    :tags: Bug Fixes, Internals
+    :pullreq: 7813
+    :tickets: 7272
+
+    Ensure a valid range to ``string()`` in ``PacketReader::getUnquotedText()``
+
+  .. change::
+    :tags: Improvements, SNMP
+    :pullreq: 7818
+
+    Use ``net-snmp-config --netsnmp-agent-libs`` instead of ``--agent-libs``.
+
+.. changelog::
   :version: 4.2.0-beta1
   :released: 7th of May 2019
 
