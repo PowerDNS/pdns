@@ -1,4 +1,4 @@
-@       86400   IN  SOA pdns-public-ns1.powerdns.com. pieter\.lexis.powerdns.com. 2019052301 10800 3600 604800 10800
+@       86400   IN  SOA pdns-public-ns1.powerdns.com. pieter\.lexis.powerdns.com. 2019052400 10800 3600 604800 10800
 @       3600    IN  NS  pdns-public-ns1.powerdns.com.
 @       3600    IN  NS  pdns-public-ns2.powerdns.com.
 ; Auth
@@ -305,3 +305,4 @@ recursor-4.0.0_beta1-1pdns.jessie.raspbian.security-status 60 IN TXT "3 Upgrade 
 dnsdist-1.3.3.security-status                              60 IN TXT "1 OK"
 dnsdist-1.4.0-alpha1.security-status                       60 IN TXT "1 OK"
 dnsdist-1.4.0-alpha2.security-status                       60 IN TXT "1 OK"
+dnsdist-1.4.0-beta1.security-status                        60 IN TXT "1 OK"

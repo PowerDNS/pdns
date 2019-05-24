@@ -2,6 +2,36 @@ Changelog
 =========
 
 .. changelog::
+  :version: 1.4.0-beta1
+  :released: TBD
+
+    .. change::
+    :tags: Bug Fixes, DoH
+    :pullreq: 7814
+    :tickets: 7810
+
+    DoH: Don't let 'self' dangling while parsing the request's qname
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 7823
+
+    Fix minor issues reported by coverity
+
+  .. change::
+    :tags: New Features, DoT, DoH
+    :pullreq: 7825
+    :tickets: 7210
+
+    Implement SNIRule for DoT and DoH
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 7833
+
+    Remove second, incomplete copy of lua EDNSOptionCode table
+
+.. changelog::
   :version: 1.4.0-alpha2
   :released: 26th of April 2019
 
