@@ -1556,6 +1556,8 @@ IP address of incoming notification proxy
 
 ``udp-truncation-threshold``
 ----------------------------
+.. versionchanged:: 4.2.0
+  Before 4.2.0, the default was 1680
 
 -  Integer
 -  Default: 1232
