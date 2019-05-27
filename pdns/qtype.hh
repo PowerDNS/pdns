@@ -131,6 +131,10 @@ public:
     LUA=65402
   };
 
+  QType(typeenum orig) : code(orig)
+  {
+  }
+
   typedef pair<string,uint16_t> namenum;
   static vector<namenum> names;
 
