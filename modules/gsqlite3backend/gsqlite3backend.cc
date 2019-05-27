@@ -43,7 +43,7 @@ gSQLite3Backend::gSQLite3Backend( const std::string & mode, const std::string & 
 {
   try
   {
-    SSQLite3 *ptr = new SSQLite3( getArg( "database" ));
+    SSQLite3 *ptr = new SSQLite3( getArg( "database" ), getArg( "pragma-journal-mode") );
     setDB(ptr);
     if(!getArg("pragma-synchronous").empty()) {
       ptr->execute("PRAGMA synchronous="+getArg("pragma-synchronous"));
@@ -77,6 +77,7 @@ public:
     declare(suffix, "database", "Filename of the SQLite3 database", "powerdns.sqlite");
     declare(suffix, "pragma-synchronous", "Set this to 0 for blazing speed", "");
     declare(suffix, "pragma-foreign-keys", "Enable foreign key constraints", "no" );
+    declare(suffix, "pragma-journal-mode", "SQLite3 journal mode", "WAL");
 
     declare(suffix, "dnssec", "Enable DNSSEC processing","no");
 
