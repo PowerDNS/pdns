@@ -19,7 +19,7 @@ means ``yes``.
 ``8bit-dns``
 ------------
 
--  Allow 8 bit dns queries
+-  Boolean
 -  Default: no
 
 .. versionadded:: 4.0.0
@@ -58,6 +58,21 @@ Allow DNS updates from these IP ranges. Set to empty string to honour ``ALLOW-DN
 Allow AXFR NOTIFY from these IP ranges. Setting this to an empty string
 will drop all incoming notifies.
 
+.. _setting-allow-recursion:
+
+``allow-recursion``
+-------------------
+
+-  IP ranges, separated by commas
+-  Default: 0.0.0.0/0
+
+.. deprecated:: 4.1.0
+  Recursion has been removed, see :doc:`guides/recursion`
+
+By specifying ``allow-recursion``, recursion can be restricted to
+netmasks specified. The default is to allow recursion from everywhere.
+Example: ``allow-recursion=198.51.100.0/24, 10.0.0.0/8, 192.0.2.4``.
+
 .. _setting-allow-unsigned-notify:
 
 ``allow-unsigned-notify``
@@ -84,21 +99,6 @@ signed by valid TSIG signature for the zone.
 Turning this off requires all supermaster notifications to be signed by
 valid TSIG signature. It will accept any existing key on slave.
 
-.. _setting-allow-recursion:
-
-``allow-recursion``
--------------------
-
--  IP ranges, separated by commas
--  Default: 0.0.0.0/0
-
-.. deprecated:: 4.1.0
-  Recursion has been removed, see :doc:`guides/recursion`
-
-By specifying ``allow-recursion``, recursion can be restricted to
-netmasks specified. The default is to allow recursion from everywhere.
-Example: ``allow-recursion=198.51.100.0/24, 10.0.0.0/8, 192.0.2.4``.
-
 .. _setting-also-notify:
 
 ``also-notify``
@@ -119,7 +119,8 @@ the list in :ref:`setting-only-notify`.
 -  Boolean
 -  Default: yes
 
-.. versionchanged:: 4.0.1, was 'no' before.
+.. versionchanged:: 4.0.1
+  was 'no' before.
 
 Answer questions for the ANY on UDP with a truncated packet that refers
 the remote server to TCP. Useful for mitigating reflection attacks.
@@ -155,7 +156,7 @@ Static pre-shared authentication key for access to the REST API.
 
 .. versionadded:: 4.0.0
 .. versionchanged:: 4.2.0
-This setting has been removed in 4.2.0.
+  This setting has been removed in 4.2.0.
 
 Disallow data modification through the REST API when set.
 
@@ -180,6 +181,31 @@ Also AXFR a zone from a master with a lower serial.
 -  Default: 20
 
 Seconds to store packets in the :ref:`packet-cache`.
+
+.. _setting-carbon-instance:
+
+``carbon-instance``
+-------------------
+
+-  String
+-  Default: auth
+
+.. versionadded:: 4.2.0
+
+Set the instance or third string of the metric key. Be careful not to include
+any dots in this setting, unless you know what you are doing.
+See :ref:`metricscarbon`
+
+.. _setting-carbon-interval:
+
+``carbon-interval``
+-------------------
+
+-  Integer
+-  Default: 30
+
+If sending carbon updates, this is the interval between them in seconds.
+See :ref:`metricscarbon`.
 
 .. _setting-carbon-namespace:
 
@@ -207,20 +233,6 @@ If sending carbon updates, if set, this will override our hostname. Be
 careful not to include any dots in this setting, unless you know what
 you are doing. See :ref:`metricscarbon`
 
-.. _setting-carbon-instance:
-
-``carbon-instance``
--------------------
-
--  String
--  Default: auth
-
-.. versionadded:: 4.2.0
-
-Set the instance or third string of the metric key. Be careful not to include
-any dots in this setting, unless you know what you are doing.
-See :ref:`metricscarbon`
-
 .. _setting-carbon-server:
 
 ``carbon-server``
@@ -234,17 +246,6 @@ hostnames). Moreover you can specify more than one server using a comma delimite
 carbon-server=10.10.10.10,10.10.10.20.
 You may specify an alternate port by appending :port, ex:
 127.0.0.1:2004. See :ref:`metricscarbon`.
-
-.. _setting-carbon-interval:
-
-``carbon-interval``
--------------------
-
--  Integer
--  Default: 30
-
-If sending carbon updates, this is the interval between them in seconds.
-See :ref:`metricscarbon`.
 
 .. _setting-chroot:
 
@@ -324,7 +325,7 @@ The value of :ref:`metadata-api-rectify` if it is not set on the zone.
 .. _setting-default-ksk-algorithm:
 
 ``default-ksk-algorithm``
---------------------------
+-------------------------
 
 -  String
 -  Default: ecdsa256
@@ -360,16 +361,6 @@ to enable DNSSEC. Must be one of:
 The default keysize for the KSK generated with :doc:`pdnsutil secure-zone <dnssec/pdnsutil>`.
 Only relevant for algorithms with non-fixed keysizes (like RSA).
 
-.. _setting-default-soa-name:
-
-``default-soa-name``
---------------------
-
--  String
--  Default: a.misconfigured.powerdns.server
-
-Name to insert in the SOA record if none set in the backend.
-
 .. _setting-default-soa-edit:
 
 ``default-soa-edit``
@@ -401,6 +392,16 @@ Overrides :ref:`setting-default-soa-edit`
 -  String
 
 Mail address to insert in the SOA record if none set in the backend.
+
+.. _setting-default-soa-name:
+
+``default-soa-name``
+--------------------
+
+-  String
+-  Default: a.misconfigured.powerdns.server
+
+Name to insert in the SOA record if none set in the backend.
 
 .. _setting-default-ttl:
 
@@ -617,14 +618,15 @@ Entropy source file to use.
 If this is enabled, ALIAS records are expanded (synthesised to their
 A/AAAA).
 
-If this is disabled (the default), ALIAS records will not expanded and
+If this is disabled (the default), ALIAS records will not be expanded and
 the server will will return NODATA for A/AAAA queries for such names.
 
-**note**: :ref:`setting-resolver` must also be set for ALIAS
-expansion to work!
+.. note::
+  :ref:`setting-resolver` must also be set for ALIAS expansion to work!
 
-**note**: In PowerDNS Authoritative Server 4.0.x, this setting did not
-exist and ALIAS was always expanded.
+.. note::
+  In PowerDNS Authoritative Server 4.0.x, this setting did not exist and
+  ALIAS was always expanded.
 
 .. _setting-forward-dnsupdate:
 
@@ -682,7 +684,7 @@ Which backends to launch and order to query them in. Launches backends.
 In its most simple form, supply all backends that need to be launched.
 e.g.
 
-::
+.. code-block:: ini
 
     launch=bind,gmysql,remote
 
@@ -690,7 +692,7 @@ If you find that you need to query a backend multiple times with
 different configuration, you can specify a name for later
 instantiations. e.g.:
 
-::
+.. code-block:: ini
 
     launch=gmysql,gmysql:server2
 
@@ -700,7 +702,7 @@ configuration item names change: e.g. ``gmysql-host`` is available to
 configure the ``host`` setting of the first or main instance, and
 ``gmysql-server2-host`` for the second one.
 
-Running multiple instances of the bind backend is not allowed.
+Running multiple instances of the BIND backend is not allowed.
 
 .. _setting-load-modules:
 
@@ -726,60 +728,6 @@ specific interfaces and not use the default 'bind to any'. This causes
 big problems if you have multiple IP addresses. Unix does not provide a
 way of figuring out what IP address a packet was sent to when binding to
 any.
-
-.. _setting-log-timestamp:
-
-``log-timestamp``
------------------
-
-.. versionadded:: 4.1.0
-
-- Bool
-- Default: yes
-
-When printing log lines to stdout, prefix them with timestamps.
-Disable this if the process supervisor timestamps these lines already.
-
-.. note::
-  The systemd unit file supplied with the source code already disables timestamp printing
-
-.. _setting-lua-records-exec-limit:
-
-``lua-records-exec-limit``
------------------------------
-
--  Integer
--  Default: 1000
-
-Limit LUA records scripts to ``lua-records-exec-limit`` instructions.
-Setting this to any value less than or equal to 0 will set no limit.
-
-.. _setting-non-local-bind:
-
-``non-local-bind``
-------------------
-
--  Boolean
--  Default: no
-
-Bind to addresses even if one or more of the
-:ref:`setting-local-address`'s do not exist on this server.
-Setting this option will enable the needed socket options to allow
-binding to non-local addresses. This feature is intended to facilitate
-ip-failover setups, but it may also mask configuration issues and for
-this reason it is disabled by default.
-
-.. _setting-lua-axfr-script:
-
-``lua-axfr-script``
--------------------
-
--  String
--  Default: empty
-
-.. versionadded:: 4.1.0
-
-Script to be used to edit incoming AXFRs, see :ref:`modes-of-operation-axfrfilter`
 
 .. _setting-local-address-nonexist-fail:
 
@@ -836,6 +784,34 @@ The port on which we listen. Only one port possible.
 If set to 'no', informative-only DNS details will not even be sent to
 syslog, improving performance.
 
+.. _setting-log-dns-queries:
+
+``log-dns-queries``
+-------------------
+
+-  Boolean
+-  Default: no
+
+Tell PowerDNS to log all incoming DNS queries. This will lead to a lot
+of logging! Only enable for debugging! Set :ref:`setting-loglevel`
+to at least 5 to see the logs.
+
+.. _setting-log-timestamp:
+
+``log-timestamp``
+-----------------
+
+- Bool
+- Default: yes
+
+.. versionadded:: 4.1.0
+
+When printing log lines to stdout, prefix them with timestamps.
+Disable this if the process supervisor timestamps these lines already.
+
+.. note::
+  The systemd unit file supplied with the source code already disables timestamp printing
+
 .. _setting-logging-facility:
 
 ``logging-facility``
@@ -855,17 +831,17 @@ Do not pass names like 'local0'!
 Amount of logging. Higher is more. Do not set below 3. Corresponds to "syslog" level values,
 e.g. error = 3, warning = 4, notice = 5, info = 6
 
-.. _setting-log-dns-queries:
+.. _setting-lua-axfr-script:
 
-``log-dns-queries``
+``lua-axfr-script``
 -------------------
 
--  Boolean
--  Default: no
+-  String
+-  Default: empty
 
-Tell PowerDNS to log all incoming DNS queries. This will lead to a lot
-of logging! Only enable for debugging! Set :ref:`setting-loglevel`
-to at least 5 to see the logs.
+.. versionadded:: 4.1.0
+
+Script to be used to edit incoming AXFRs, see :ref:`modes-of-operation-axfrfilter`
 
 .. _setting-lua-prequery-script:
 
@@ -877,6 +853,17 @@ to at least 5 to see the logs.
 Lua script to run before answering a query. This is a feature used
 internally for regression testing. The API of this functionality is not
 guaranteed to be stable, and is in fact likely to change.
+
+.. _setting-lua-records-exec-limit:
+
+``lua-records-exec-limit``
+-----------------------------
+
+-  Integer
+-  Default: 1000
+
+Limit LUA records scripts to ``lua-records-exec-limit`` instructions.
+Setting this to any value less than or equal to 0 will set no limit.
 
 .. _setting-master:
 
@@ -898,7 +885,7 @@ Turn on master support. See :ref:`master-operation`.
 
 .. versionchanged:: 4.1.0
   The packet and query caches are distinct. Previously, this setting was used for
-  both the packet and query caches. See ref:`setting-max-packet-cache-entries` for
+  both the packet and query caches. See :ref:`setting-max-packet-cache-entries` for
   the packet-cache setting.
 
 Maximum number of entries in the query cache. 1 million (the default)
@@ -923,7 +910,8 @@ protection measure to avoid database explosion due to long names.
 -  Integer
 -  Default: 500
 
-Limit the number of NSEC3 hash iterations
+Limit the number of NSEC3 hash iterations for zone configurations.
+For more information see :ref:`dnssec-operational-nsec-modes-params`.
 
 .. _setting-max-packet-cache-entries:
 
@@ -1022,7 +1010,7 @@ compile-time.
 -  Integer
 -  Default: 60
 
-Seconds to store queries with no answer in the Query Cache. See ref:`query-cache`.
+Seconds to store queries with no answer in the Query Cache. See :ref:`query-cache`.
 
 .. _setting-no-config:
 
@@ -1032,7 +1020,8 @@ Seconds to store queries with no answer in the Query Cache. See ref:`query-cache
 -  Boolean
 -  Default: no
 
-Do not attempt to read the configuration file.
+Do not attempt to read the configuration file. Useful for configuration
+by parameters from the command line only.
 
 .. _setting-no-shuffle:
 
@@ -1044,75 +1033,20 @@ Do not attempt to read the configuration file.
 
 Do not attempt to shuffle query results, used for regression testing.
 
-.. _setting-overload-queue-length:
+.. _setting-non-local-bind:
 
-``overload-queue-length``
--------------------------
-
--  Integer
--  Default: 0 (disabled)
-
-If this many packets are waiting for database attention, answer any new
-questions strictly from the packet cache.
-
-.. _setting-reuseport:
-
-``reuseport``
--------------
+``non-local-bind``
+------------------
 
 -  Boolean
--  Default: No
+-  Default: no
 
-On Linux 3.9 and some BSD kernels the ``SO_REUSEPORT`` option allows
-each receiver-thread to open a new socket on the same port which allows
-for much higher performance on multi-core boxes. Setting this option
-will enable use of ``SO_REUSEPORT`` when available and seamlessly fall
-back to a single socket when it is not available. A side-effect is that
-you can start multiple servers on the same IP/port combination which may
-or may not be a good idea. You could use this to enable transparent
-restarts, but it may also mask configuration issues and for this reason
-it is disabled by default.
-
-.. _setting-rng:
-
-``rng``
--------
-
-- String
-- Default: auto
-
-Specify which random number generator to use. Permissible choises are
- - auto - choose automatically
- - sodium - Use libsodium ``randombytes_uniform``
- - openssl - Use libcrypto ``RAND_bytes``
- - getrandom - Use libc getrandom, falls back to urandom if it does not really work
- - arc4random - Use BSD ``arc4random_uniform``
- - urandom - Use ``/dev/urandom``
- - kiss - Use simple settable deterministic RNG. **FOR TESTING PURPOSES ONLY!**
-
-.. note::
-  Not all choises are available on all systems.
-
-.. _setting-security-poll-suffix:
-
-``security-poll-suffix``
-------------------------
-
--  String
--  Default: secpoll.powerdns.com.
-
-Domain name from which to query security update notifications. Setting
-this to an empty string disables secpoll.
-
-.. _setting-server-id:
-
-``server-id``
--------------
-
--  String
--  Default: The hostname of the server
-
-This is the server ID that will be returned on an EDNS NSID query.
+Bind to addresses even if one or more of the
+:ref:`setting-local-address`'s do not exist on this server.
+Setting this option will enable the needed socket options to allow
+binding to non-local addresses. This feature is intended to facilitate
+ip-failover setups, but it may also mask configuration issues and for
+this reason it is disabled by default.
 
 .. _setting-only-notify:
 
@@ -1148,12 +1082,14 @@ To notify all IP addresses apart from the 192.168.0.0/24 subnet use the followin
   :ref:`metadata-also-notify` domain metadata to avoid this potential bottleneck.
 
 .. note::
-  If your slaves support Internet Protocol version, which your master does not,
+  If your slaves support an Internet Protocol version, which your master does not,
   then set ``only-notify`` to include only supported protocol version.
   Otherwise there will be error trying to resolve address.
 
   For example, slaves support both IPv4 and IPv6, but PowerDNS master have only IPv4,
-  so allow only IPv4 with ``only-notify``::
+  so allow only IPv4 with ``only-notify``:
+
+  .. code-block:: ini
 
     only-notify=0.0.0.0/0
 
@@ -1162,11 +1098,11 @@ To notify all IP addresses apart from the 192.168.0.0/24 subnet use the followin
 ``out-of-zone-additional-processing``
 -------------------------------------
 
-.. deprecated:: 4.2.0
-  This setting has been removed.
-
 -  Boolean
 -  Default: yes
+
+.. deprecated:: 4.2.0
+  This setting has been removed.
 
 Do out of zone additional processing. This means that if a malicious
 user adds a '.com' zone to your server, it is not used for other domains
@@ -1191,6 +1127,17 @@ follow changes in those A/AAAA records unless you AXFR regularly!
 If this is disabled (the default), ALIAS records are sent verbatim
 during outgoing AXFR. Note that if your slaves do not support ALIAS,
 they will return NODATA for A/AAAA queries for such names.
+
+.. _setting-overload-queue-length:
+
+``overload-queue-length``
+-------------------------
+
+-  Integer
+-  Default: 0 (disabled)
+
+If this many packets are waiting for database attention, answer any new
+questions strictly from the packet cache.
 
 .. _setting-prevent-self-notification:
 
@@ -1316,6 +1263,56 @@ resolvers.
 
 Number of AXFR slave threads to start.
 
+.. _setting-reuseport:
+
+``reuseport``
+-------------
+
+-  Boolean
+-  Default: No
+
+On Linux 3.9 and some BSD kernels the ``SO_REUSEPORT`` option allows
+each receiver-thread to open a new socket on the same port which allows
+for much higher performance on multi-core boxes. Setting this option
+will enable use of ``SO_REUSEPORT`` when available and seamlessly fall
+back to a single socket when it is not available. A side-effect is that
+you can start multiple servers on the same IP/port combination which may
+or may not be a good idea. You could use this to enable transparent
+restarts, but it may also mask configuration issues and for this reason
+it is disabled by default.
+
+.. _setting-rng:
+
+``rng``
+-------
+
+- String
+- Default: auto
+
+Specify which random number generator to use. Permissible choises are:
+
+- auto - choose automatically
+- sodium - Use libsodium ``randombytes_uniform``
+- openssl - Use libcrypto ``RAND_bytes``
+- getrandom - Use libc getrandom, falls back to urandom if it does not really work
+- arc4random - Use BSD ``arc4random_uniform``
+- urandom - Use ``/dev/urandom``
+- kiss - Use simple settable deterministic RNG. **FOR TESTING PURPOSES ONLY!**
+
+.. note::
+  Not all choises are available on all systems.
+
+.. _setting-security-poll-suffix:
+
+``security-poll-suffix``
+------------------------
+
+-  String
+-  Default: secpoll.powerdns.com.
+
+Domain name from which to query security update notifications. Setting
+this to an empty string disables secpoll.
+
 .. _setting-send-signed-notify:
 
 ``send-signed-notify``
@@ -1329,6 +1326,16 @@ If there are multiple TSIG keys configured for a domain, PowerDNS will use the
 first one retrieved from the backend, which may not be the correct one for the
 respective slave. Hence, in setups with multiple slaves with different TSIG keys
 it may be required to send NOTIFYs unsigned.
+
+.. _setting-server-id:
+
+``server-id``
+-------------
+
+-  String
+-  Default: The hostname of the server
+
+This is the server ID that will be returned on an EDNS NSID query.
 
 .. _setting-setgid:
 
@@ -1348,6 +1355,17 @@ If set, change group id to this gid for more security. See :doc:`security`.
 
 If set, change user id to this uid for more security. See :doc:`security`.
 
+.. _setting-signing-threads:
+
+``signing-threads``
+-------------------
+
+-  Integer
+-  Default: 3
+
+Tell PowerDNS how many threads to use for signing. It might help improve
+signing speed by changing this number.
+
 .. _setting-slave:
 
 ``slave``
@@ -1364,9 +1382,9 @@ Turn on slave support. See :ref:`slave-operation`.
 ------------------------
 
 -  Integer
--  60
+-  Default: 60
 
-On a master, this is the amounts of seconds between the master checking
+On a master, this is the amount of seconds between the master checking
 the SOA serials in its database to determine to send out NOTIFYs to the
 slaves. On slaves, this is the number of seconds between the slave
 checking for updates to zones.
@@ -1382,17 +1400,6 @@ checking for updates to zones.
 This setting will make PowerDNS renotify the slaves after an AXFR is
 *received* from a master. This is useful when using when running a
 signing-slave.
-
-.. _setting-signing-threads:
-
-``signing-threads``
--------------------
-
--  Integer
--  Default: 3
-
-Tell PowerDNS how many threads to use for signing. It might help improve
-signing speed by changing this number.
 
 .. _setting-soa-expire-default:
 
@@ -1449,15 +1456,17 @@ This path will also contain the pidfile for this instance of PowerDNS
 called ``pdns.pid`` by default. See :ref:`setting-config-name`
 and :doc:`Virtual Hosting <guides/virtual-instances>` how this can differ.
 
-.. _setting-supermaster:
+.. _setting-superslave:
 
-``supermaster``
+``superslave``
 ---------------
 
 -  Boolean
 -  Default: no
 
 .. versionadded:: 4.2.0
+  In versions before 4.2.x, this setting did not exist and supermaster support
+  was enabled by default.
 
 Turn on supermaster support. See :ref:`supermaster-operation`.
 
@@ -1547,6 +1556,8 @@ IP address of incoming notification proxy
 
 ``udp-truncation-threshold``
 ----------------------------
+.. versionchanged:: 4.2.0
+  Before 4.2.0, the default was 1680
 
 -  Integer
 -  Default: 1232
@@ -1654,7 +1665,7 @@ When set to "detailed", all information about the request and response are logge
 The value between the hooks is a UUID that is generated for each request. This can be used to find all lines related to a single request.
 
 .. note::
-  The webserver logs these line on the NOTICE level. The :ref:`settings-loglevel` seting must be 5 or higher for these lines to end up in the log.
+  The webserver logs these line on the NOTICE level. The :ref:`setting-loglevel` seting must be 5 or higher for these lines to end up in the log.
 
 .. _setting-webserver-password:
 

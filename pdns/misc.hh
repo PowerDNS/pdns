@@ -537,8 +537,11 @@ bool isNonBlocking(int sock);
 bool setReceiveSocketErrors(int sock, int af);
 int closesocket(int fd);
 bool setCloseOnExec(int sock);
-uint64_t udpErrorStats(const std::string& str);
 
+size_t getPipeBufferSize(int fd);
+bool setPipeBufferSize(int fd, size_t size);
+
+uint64_t udpErrorStats(const std::string& str);
 uint64_t getRealMemoryUsage(const std::string&);
 uint64_t getSpecialMemoryUsage(const std::string&);
 uint64_t getOpenFileDescriptors(const std::string&);

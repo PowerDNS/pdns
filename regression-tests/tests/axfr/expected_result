@@ -6,6 +6,7 @@ dnssec-parent.com.	3600	IN	NS	ns2.dnssec-parent.com.
 dnssec-parent.com.	3600	IN	SOA	ns1.dnssec-parent.com. ahu.example.com. 2005092501 28800 7200 604800 86400
 dnssec-parent.com.	3600	IN	SOA	ns1.dnssec-parent.com. ahu.example.com. 2005092501 28800 7200 604800 86400
 insecure-delegated.ent.ent.auth-ent.dnssec-parent.com.	3600	IN	NS	ns.example.com.
+insecure.dnssec-parent.com.	3600	IN	NS	ns.example.com.
 ns1.delegated.dnssec-parent.com.	3600	IN	A	4.5.6.7
 ns1.dnssec-parent.com.	3600	IN	A	1.2.3.4
 ns1.secure-delegated.dnssec-parent.com.	3600	IN	A	1.2.3.4
@@ -16,3 +17,4 @@ secure-delegated.dnssec-parent.com.	3600	IN	DS	54319 8 2 a0b9c38cd324182af0ef668
 secure-delegated.dnssec-parent.com.	3600	IN	NS	ns1.secure-delegated.dnssec-parent.com.
 secure-delegated.dnssec-parent.com.	3600	IN	NS	ns2.secure-delegated.dnssec-parent.com.
 something1.auth-ent.dnssec-parent.com.	3600	IN	A	1.1.2.3
+www.dnssec-parent.com.	3600	IN	CNAME	www.insecure.dnssec-parent.com.

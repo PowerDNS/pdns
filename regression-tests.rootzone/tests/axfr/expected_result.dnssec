@@ -11,11 +11,19 @@ a.gtld-servers.net.	172800	IN	A	192.5.6.30
 a.gtld-servers.net.	172800	IN	AAAA	2001:503:a83e::2:30
 a.root-servers.net.	518400	IN	A	198.41.0.4
 a.root-servers.net.	518400	IN	AAAA	2001:503:ba3e::2:30
+barney.advsys.co.uk.	172800	IN	A	217.23.160.50
 net.	172800	IN	NS	a.gtld-servers.net.
 net.	86400	IN	DS	35886 8 2 7862b27f5f516ebe19680444d4ce5e762981931842c465f00236401d8bd973ee
 net.	86400	IN	NSEC	org. NS DS RRSIG NSEC
 net.	86400	IN	RRSIG	DS 13 1 86400 [expiry] [inception] [keytag] . ...
 net.	86400	IN	RRSIG	NSEC 13 1 86400 [expiry] [inception] [keytag] . ...
+nsa.nic.uk.	172800	IN	A	156.154.100.3
+nsa.nic.uk.	172800	IN	AAAA	2001:502:ad09::3
 org.	172800	IN	NS	a.gtld-servers.net.
-org.	86400	IN	NSEC	. NS RRSIG NSEC
+org.	86400	IN	NSEC	uk. NS RRSIG NSEC
 org.	86400	IN	RRSIG	NSEC 13 1 86400 [expiry] [inception] [keytag] . ...
+uk.	172800	IN	NS	nsa.nic.uk.
+uk.	86400	IN	DS	43876 8 2 a107ed2ac1bd14d924173bc7e827a1153582072394f9272ba37e2353bc659603
+uk.	86400	IN	NSEC	. NS DS RRSIG NSEC
+uk.	86400	IN	RRSIG	DS 13 1 86400 [expiry] [inception] [keytag] . ...
+uk.	86400	IN	RRSIG	NSEC 13 1 86400 [expiry] [inception] [keytag] . ...

@@ -762,6 +762,48 @@ static uint64_t getUserTimeMsec()
   return (ru.ru_utime.tv_sec*1000ULL + ru.ru_utime.tv_usec/1000);
 }
 
+/* This is a pretty weird set of functions. To get per-thread cpu usage numbers,
+   we have to ask a thread over a pipe. We could do so surgically, so if you want to know about
+   thread 3, we pick pipe 3, but we lack that infrastructure.
+
+   We can however ask "execute this function on all threads and add up the results".
+   This is what the first function does using a custom object ThreadTimes, which if you add
+   to each other keeps filling the first one with CPU usage numbers
+*/
+
+static ThreadTimes* pleaseGetThreadCPUMsec()
+{
+  uint64_t ret=0;
+#ifdef RUSAGE_THREAD
+  struct rusage ru;
+  getrusage(RUSAGE_THREAD, &ru);
+  ret = (ru.ru_utime.tv_sec*1000ULL + ru.ru_utime.tv_usec/1000);
+  ret += (ru.ru_stime.tv_sec*1000ULL + ru.ru_stime.tv_usec/1000);
+#endif
+  return new ThreadTimes{ret};
+}
+
+/* Next up, when you want msec data for a specific thread, we check
+   if we recently executed pleaseGetThreadCPUMsec. If we didn't we do so
+   now and consult all threads.
+
+   We then answer you from the (re)fresh(ed) ThreadTimes.
+*/
+static uint64_t doGetThreadCPUMsec(int n)
+{
+  static std::mutex s_mut;
+  static time_t last = 0;
+  static ThreadTimes tt;
+
+  std::lock_guard<std::mutex> l(s_mut);
+  if(last != time(nullptr)) {
+   tt = broadcastAccFunction<ThreadTimes>(pleaseGetThreadCPUMsec);
+   last = time(nullptr);
+  }
+
+  return tt.times.at(n);
+}
+
 static uint64_t calculateUptime()
 {
   return time(nullptr) - g_stats.startupTime;
@@ -1082,6 +1124,9 @@ void registerAllStats()
   addGetStat("user-msec", getUserTimeMsec);
   addGetStat("sys-msec", getSysTimeMsec);
 
+  for(unsigned int n=0; n < g_numThreads; ++n)
+    addGetStat("cpu-msec-thread-"+std::to_string(n), boost::bind(&doGetThreadCPUMsec, n));
+
 #ifdef MALLOC_TRACE
   addGetStat("memory-allocs", boost::bind(&MallocTracer::getAllocs, g_mtracer, string()));
   addGetStat("memory-alloc-flux", boost::bind(&MallocTracer::getAllocFlux, g_mtracer, string()));
@@ -1353,6 +1398,190 @@ static string* nopFunction()
   return new string("pong\n");
 }
 
+static string getDontThrottleNames() {
+  auto dtn = g_dontThrottleNames.getLocal();
+  return dtn->toString() + "\n";
+}
+
+static string getDontThrottleNetmasks() {
+  auto dtn = g_dontThrottleNetmasks.getLocal();
+  return dtn->toString() + "\n";
+}
+
+template<typename T>
+static string addDontThrottleNames(T begin, T end) {
+  if (begin == end) {
+    return "No names specified, keeping existing list\n";
+  }
+  vector<DNSName> toAdd;
+  while (begin != end) {
+    try {
+      auto d = DNSName(*begin);
+      toAdd.push_back(d);
+    }
+    catch(const std::exception &e) {
+      return "Problem parsing '" + *begin + "': "+ e.what() + ", nothing added\n";
+    }
+    begin++;
+  }
+
+  string ret = "Added";
+  auto dnt = g_dontThrottleNames.getCopy();
+  bool first = true;
+  for (auto const &d : toAdd) {
+    if (!first) {
+      ret += ",";
+    }
+    first = false;
+    ret += " " + d.toLogString();
+    dnt.add(d);
+  }
+
+  g_dontThrottleNames.setState(dnt);
+
+  ret += " to the list of nameservers that may not be throttled";
+  g_log<<Logger::Info<<ret<<", requested via control channel"<<endl;
+  return ret + "\n";
+}
+
+template<typename T>
+static string addDontThrottleNetmasks(T begin, T end) {
+  if (begin == end) {
+    return "No netmasks specified, keeping existing list\n";
+  }
+  vector<Netmask> toAdd;
+  while (begin != end) {
+    try {
+      auto n = Netmask(*begin);
+      toAdd.push_back(n);
+    }
+    catch(const std::exception &e) {
+      return "Problem parsing '" + *begin + "': "+ e.what() + ", nothing added\n";
+    }
+    catch(const PDNSException &e) {
+      return "Problem parsing '" + *begin + "': "+ e.reason + ", nothing added\n";
+    }
+    begin++;
+  }
+
+  string ret = "Added";
+  auto dnt = g_dontThrottleNetmasks.getCopy();
+  bool first = true;
+  for (auto const &t : toAdd) {
+    if (!first) {
+      ret += ",";
+    }
+    first = false;
+    ret += " " + t.toString();
+    dnt.addMask(t);
+  }
+
+  g_dontThrottleNetmasks.setState(dnt);
+
+  ret += " to the list of nameserver netmasks that may not be throttled";
+  g_log<<Logger::Info<<ret<<", requested via control channel"<<endl;
+  return ret + "\n";
+}
+
+template<typename T>
+static string clearDontThrottleNames(T begin, T end) {
+  if(begin == end)
+    return "No names specified, doing nothing.\n";
+
+  if (begin + 1 == end && *begin == "*"){
+    SuffixMatchNode smn;
+    g_dontThrottleNames.setState(smn);
+    string ret = "Cleared list of nameserver names that may not be throttled";
+    g_log<<Logger::Warning<<ret<<", requested via control channel"<<endl;
+    return ret + "\n";
+  }
+
+  vector<DNSName> toRemove;
+  while (begin != end) {
+    try {
+      if (*begin == "*") {
+        return "Please don't mix '*' with other names, nothing removed\n";
+      }
+      toRemove.push_back(DNSName(*begin));
+    }
+    catch (const std::exception &e) {
+      return "Problem parsing '" + *begin + "': "+ e.what() + ", nothing removed\n";
+    }
+    begin++;
+  }
+
+  string ret = "Removed";
+  bool first = true;
+  auto dnt = g_dontThrottleNames.getCopy();
+  for (const auto &name : toRemove) {
+    if (!first) {
+      ret += ",";
+    }
+    first = false;
+    ret += " " + name.toLogString();
+    dnt.remove(name);
+  }
+
+  g_dontThrottleNames.setState(dnt);
+
+  ret += " from the list of nameservers that may not be throttled";
+  g_log<<Logger::Info<<ret<<", requested via control channel"<<endl;
+  return ret + "\n";
+}
+
+template<typename T>
+static string clearDontThrottleNetmasks(T begin, T end) {
+  if(begin == end)
+    return "No netmasks specified, doing nothing.\n";
+
+  if (begin + 1 == end && *begin == "*"){
+    auto nmg = g_dontThrottleNetmasks.getCopy();
+    nmg.clear();
+    g_dontThrottleNetmasks.setState(nmg);
+
+    string ret = "Cleared list of nameserver addresses that may not be throttled";
+    g_log<<Logger::Warning<<ret<<", requested via control channel"<<endl;
+    return ret + "\n";
+  }
+
+  std::vector<Netmask> toRemove;
+  while (begin != end) {
+    try {
+      if (*begin == "*") {
+        return "Please don't mix '*' with other netmasks, nothing removed\n";
+      }
+      auto n = Netmask(*begin);
+      toRemove.push_back(n);
+    }
+    catch(const std::exception &e) {
+      return "Problem parsing '" + *begin + "': "+ e.what() + ", nothing added\n";
+    }
+    catch(const PDNSException &e) {
+      return "Problem parsing '" + *begin + "': "+ e.reason + ", nothing added\n";
+    }
+    begin++;
+  }
+
+  string ret = "Removed";
+  bool first = true;
+  auto dnt = g_dontThrottleNetmasks.getCopy();
+  for (const auto &mask : toRemove) {
+    if (!first) {
+      ret += ",";
+    }
+    first = false;
+    ret += " " + mask.toString();
+    dnt.deleteMask(mask);
+  }
+
+  g_dontThrottleNetmasks.setState(dnt);
+
+  ret += " from the list of nameservers that may not be throttled";
+  g_log<<Logger::Info<<ret<<", requested via control channel"<<endl;
+  return ret + "\n";
+}
+
+
 string RecursorControlParser::getAnswer(const string& question, RecursorControlParser::func_t** command)
 {
   *command=nop;
@@ -1368,9 +1597,15 @@ string RecursorControlParser::getAnswer(const string& question, RecursorControlP
   // should probably have a smart dispatcher here, like auth has
   if(cmd=="help")
     return
+"add-dont-throttle-names [N...]   add names that are not allowed to be throttled\n"
+"add-dont-throttle-netmasks [N...]\n"
+"                                 add netmasks that are not allowed to be throttled\n"
 "add-nta DOMAIN [REASON]          add a Negative Trust Anchor for DOMAIN with the comment REASON\n"
 "add-ta DOMAIN DSRECORD           add a Trust Anchor for DOMAIN with data DSRECORD\n"
 "current-queries                  show currently active queries\n"
+"clear-dont-throttle-names [N...] remove names that are not allowed to be throttled. If N is '*', remove all\n"
+"clear-dont-throttle-netmasks [N...]\n"
+"                                 remove netmasks that are not allowed to be throttled. If N is '*', remove all\n"
 "clear-nta [DOMAIN]...            Clear the Negative Trust Anchor for DOMAINs, if no DOMAIN is specified, remove all\n"
 "clear-ta [DOMAIN]...             Clear the Trust Anchor for DOMAINs\n"
 "dump-cache <filename>            dump cache contents to the named file\n"
@@ -1380,6 +1615,8 @@ string RecursorControlParser::getAnswer(const string& question, RecursorControlP
 "dump-throttlemap <filename>      dump the contents of the throttle to the named file\n"
 "get [key1] [key2] ..             get specific statistics\n"
 "get-all                          get all statistics\n"
+"get-dont-throttle-names          get the list of names that are not allowed to be throttled\n"
+"get-dont-throttle-netmasks       get the list of netmasks that are not allowed to be throttled\n"
 "get-ntas                         get all configured Negative Trust Anchors\n"
 "get-tas                          get all configured Trust Anchors\n"
 "get-parameter [key1] [key2] ..   get configuration parameters\n"
@@ -1609,6 +1846,30 @@ string RecursorControlParser::getAnswer(const string& question, RecursorControlP
 
   if (cmd=="set-dnssec-log-bogus")
     return doSetDnssecLogBogus(begin, end);
+
+  if (cmd == "get-dont-throttle-names") {
+    return getDontThrottleNames();
+  }
+
+  if (cmd == "get-dont-throttle-netmasks") {
+    return getDontThrottleNetmasks();
+  }
+
+  if (cmd == "add-dont-throttle-names") {
+    return addDontThrottleNames(begin, end);
+  }
+
+  if (cmd == "add-dont-throttle-netmasks") {
+    return addDontThrottleNetmasks(begin, end);
+  }
+
+  if (cmd == "clear-dont-throttle-names") {
+    return clearDontThrottleNames(begin, end);
+  }
+
+  if (cmd == "clear-dont-throttle-netmasks") {
+    return clearDontThrottleNetmasks(begin, end);
+  }
 
   return "Unknown command '"+cmd+"', try 'help'\n";
 }

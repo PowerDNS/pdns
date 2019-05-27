@@ -209,12 +209,9 @@ struct ConnectionInfo
   ConnectionInfo(ClientState* cs_): cs(cs_), fd(-1)
   {
   }
-  ConnectionInfo(ConnectionInfo&& rhs)
+  ConnectionInfo(ConnectionInfo&& rhs): remote(rhs.remote), cs(rhs.cs), fd(rhs.fd)
   {
-    remote = rhs.remote;
-    cs = rhs.cs;
     rhs.cs = nullptr;
-    fd = rhs.fd;
     rhs.fd = -1;
   }
 
@@ -441,6 +438,10 @@ public:
           }
         }
         catch(const FDMultiplexerException& e) {
+          vinfolog("Got an exception when trying to remove a pending IO operation on the socket to the %s backend: %s", d_ds->getName(), e.what());
+        }
+        catch(const std::runtime_error& e) {
+          /* might be thrown by getHandle() */
           vinfolog("Got an exception when trying to remove a pending IO operation on the socket to the %s backend: %s", d_ds->getName(), e.what());
         }
       }
@@ -807,6 +808,7 @@ static void handleQuery(std::shared_ptr<IncomingTCPConnectionState>& state, stru
   DNSName qname(query, state->d_querySize, sizeof(dnsheader), false, &qtype, &qclass, &consumed);
   DNSQuestion dq(&qname, qtype, qclass, consumed, &state->d_ids.origDest, &state->d_ci.remote, reinterpret_cast<dnsheader*>(query), state->d_buffer.size(), state->d_querySize, true, &queryRealTime);
   dq.dnsCryptQuery = std::move(dnsCryptQuery);
+  dq.sni = state->d_handler.getServerNameIndication();
 
   state->d_isXFR = (dq.qtype == QType::AXFR || dq.qtype == QType::IXFR);
   if (state->d_isXFR) {
@@ -904,7 +906,7 @@ static void handleDownstreamIO(std::shared_ptr<IncomingTCPConnectionState>& stat
       }
 #endif /* MSG_FASTOPEN */
 
-      size_t sent = sendMsgWithTimeout(fd, reinterpret_cast<const char *>(&state->d_buffer.at(state->d_currentPos)), state->d_buffer.size() - state->d_currentPos, 0, &state->d_ds->remote, &state->d_ds->sourceAddr, state->d_ds->sourceItf, 0, socketFlags);
+      size_t sent = sendMsgWithOptions(fd, reinterpret_cast<const char *>(&state->d_buffer.at(state->d_currentPos)), state->d_buffer.size() - state->d_currentPos, &state->d_ds->remote, &state->d_ds->sourceAddr, state->d_ds->sourceItf, socketFlags);
       if (sent == state->d_buffer.size()) {
         /* request sent ! */
         state->d_downstreamConnection->incQueries();

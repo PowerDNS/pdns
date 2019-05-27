@@ -198,7 +198,7 @@ class TestProtobuf(DNSDistProtobufTest):
         protobuf:setTagArray(tablePB)				-- store table in protobuf
         protobuf:setTag("Query,123")				-- add another tag entry in protobuf
 
-        protobuf:setResponseCode(dnsdist.NXDOMAIN)        	-- set protobuf response code to be NXDOMAIN
+        protobuf:setResponseCode(DNSRCode.NXDOMAIN)        	-- set protobuf response code to be NXDOMAIN
 
         local strReqName = dq.qname:toString()		  	-- get request dns name
 
@@ -409,7 +409,7 @@ class TestProtobufIPCipher(DNSDistProtobufTest):
         """
         name = 'query.protobuf-ipcipher.tests.powerdns.com.'
 
-        target = 'target.protobuf-ipcipher.tests.powerdns.com.'
+        target = b'target.protobuf-ipcipher.tests.powerdns.com.'
         query = dns.message.make_query(name, 'A', 'IN')
         response = dns.message.make_response(query)
 

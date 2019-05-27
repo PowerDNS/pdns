@@ -49,6 +49,7 @@
 #include "ednssubnet.hh"
 #include "filterpo.hh"
 #include "negcache.hh"
+#include "sholder.hh"
 
 #ifdef HAVE_CONFIG_H
 #include "config.h"
@@ -60,6 +61,9 @@
 #include "fstrm_logger.hh"
 #endif /* HAVE_FSTRM */
 #endif
+
+extern GlobalStateHolder<SuffixMatchNode> g_dontThrottleNames;
+extern GlobalStateHolder<NetmaskGroup> g_dontThrottleNetmasks;
 
 class RecursorLua4;
 
@@ -758,6 +762,7 @@ private:
   static EDNSSubnetOpts s_ecsScopeZero;
   static LogMode s_lm;
   static std::unique_ptr<NetmaskGroup> s_dontQuery;
+  const static std::unordered_set<uint16_t> s_redirectionQTypes;
 
   struct GetBestNSAnswer
   {
@@ -799,8 +804,8 @@ private:
   vector<ComboAddress> retrieveAddressesForNS(const std::string& prefix, const DNSName& qname, vector<DNSName >::const_iterator& tns, const unsigned int depth, set<GetBestNSAnswer>& beenthere, const vector<DNSName >& rnameservers, NsSet& nameservers, bool& sendRDQuery, bool& pierceDontQuery, bool& flawedNSSet, bool cacheOnly);
 
   void sanitizeRecords(const std::string& prefix, LWResult& lwr, const DNSName& qname, const QType& qtype, const DNSName& auth, bool wasForwarded, bool rdQuery);
-  RCode::rcodes_ updateCacheFromRecords(unsigned int depth, LWResult& lwr, const DNSName& qname, const QType& qtype, const DNSName& auth, bool wasForwarded, const boost::optional<Netmask>, vState& state, bool& needWildcardProof, unsigned int& wildcardLabelsCount, bool sendRDQuery);
-  bool processRecords(const std::string& prefix, const DNSName& qname, const QType& qtype, const DNSName& auth, LWResult& lwr, const bool sendRDQuery, vector<DNSRecord>& ret, set<DNSName>& nsset, DNSName& newtarget, DNSName& newauth, bool& realreferral, bool& negindic, vState& state, const bool needWildcardProof, const unsigned int wildcardLabelsCount);
+  RCode::rcodes_ updateCacheFromRecords(unsigned int depth, LWResult& lwr, const DNSName& qname, const QType& qtype, const DNSName& auth, bool wasForwarded, const boost::optional<Netmask>, vState& state, bool& needWildcardProof, bool& gatherWildcardProof, unsigned int& wildcardLabelsCount, bool sendRDQuery);
+  bool processRecords(const std::string& prefix, const DNSName& qname, const QType& qtype, const DNSName& auth, LWResult& lwr, const bool sendRDQuery, vector<DNSRecord>& ret, set<DNSName>& nsset, DNSName& newtarget, DNSName& newauth, bool& realreferral, bool& negindic, vState& state, const bool needWildcardProof, const bool gatherwildcardProof, const unsigned int wildcardLabelsCount);
 
   bool doSpecialNamesResolve(const DNSName &qname, const QType &qtype, const uint16_t qclass, vector<DNSRecord> &ret);
 
@@ -1051,3 +1056,14 @@ void doCarbonDump(void*);
 void primeHints(void);
 
 extern __thread struct timeval g_now;
+
+struct ThreadTimes
+{
+  uint64_t msec;
+  vector<uint64_t> times;
+  ThreadTimes& operator+=(const ThreadTimes& rhs)
+  {
+    times.push_back(rhs.msec);
+    return *this;
+  }
+};

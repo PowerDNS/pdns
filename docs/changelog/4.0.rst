@@ -442,9 +442,10 @@ PowerDNS Authoritative Server 4.0.0-rc2
 
 Released June 29th 2016
 
-**note**: rc1 was tagged in git but never officially released. Kees
-Monshouwer discovered an issue in the gmysql backend that would
-terminate the daemon on a connection error, this fixed in rc2.
+.. note::
+  rc1 was tagged in git but never officially released. Kees
+  Monshouwer discovered an issue in the gmysql backend that would
+  terminate the daemon on a connection error, this fixed in rc2.
 
 This Release Candidate adds IXFR consumption and fixes some issues with
 prepared statements:

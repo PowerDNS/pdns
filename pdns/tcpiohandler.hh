@@ -16,6 +16,7 @@ public:
   virtual size_t write(const void* buffer, size_t bufferSize, unsigned int writeTimeout) = 0;
   virtual IOState tryWrite(std::vector<uint8_t>& buffer, size_t& pos, size_t toWrite) = 0;
   virtual IOState tryRead(std::vector<uint8_t>& buffer, size_t& pos, size_t toRead) = 0;
+  virtual std::string getServerNameIndication() = 0;
   virtual void close() = 0;
 
 protected:
@@ -137,19 +138,16 @@ public:
     return res;
   }
 
-  std::set<int> d_cpus;
   std::vector<std::pair<std::string, std::string>> d_certKeyPairs;
   ComboAddress d_addr;
   std::string d_ciphers;
+  std::string d_ciphers13;
   std::string d_provider;
-  std::string d_interface;
   std::string d_ticketKeyFile;
 
   size_t d_maxStoredSessions{20480};
   time_t d_ticketsKeyRotationDelay{43200};
-  int d_tcpFastOpenQueueSize{0};
   uint8_t d_numberOfTicketsKeys{5};
-  bool d_reusePort{false};
   bool d_enableTickets{true};
 
 private:
@@ -278,18 +276,12 @@ public:
     }
   }
 
-  bool writeSizeAndMsg(const void* buffer, size_t bufferSize, unsigned int writeTimeout)
+  std::string getServerNameIndication()
   {
     if (d_conn) {
-      uint16_t size = htons(bufferSize);
-      if (d_conn->write(&size, sizeof(size), writeTimeout) != sizeof(size)) {
-        return false;
-      }
-      return (d_conn->write(buffer, bufferSize, writeTimeout) == bufferSize);
+      return d_conn->getServerNameIndication();
     }
-    else {
-      return sendSizeAndMsgWithTimeout(d_socket, bufferSize, static_cast<const char*>(buffer), writeTimeout, nullptr, nullptr, 0, 0, 0);
-    }
+    return std::string();
   }
 
 private:

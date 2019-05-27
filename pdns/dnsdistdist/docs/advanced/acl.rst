@@ -16,6 +16,8 @@ To be a good internet citizen, dnsdist by default listens on the loopback addres
 - ``fc00::/7``
 - ``fe80::/10``
 
+The ACL applies to queries received over UDP, TCP, DNS over TLS and DNS over HTTPS.
+
 Further more, dnsdist only listens for queries on the local-loopback interface by default.
 
 Listening on different addresses

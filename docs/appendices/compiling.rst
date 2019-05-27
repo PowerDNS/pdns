@@ -17,7 +17,7 @@ Each backend has a module name that you look up in this table.
 To compile a module for inclusion at runtime, which is great if you are a unix vendor, use ``--with-dynmodules='mod1 mod2 mod3'``.
 These modules then end up as .so files in the compiled ``libdir``.
 
-By default, the :doc:`bind <../../backends/bind>`, :doc:`mysql <../../backends/generic-mysql>` and :doc:`random <../../backends/random>` are compiled into the binary. The :doc:`pipe <../../backends/pipe>` is, by default, compiled as a runtime loadable module.
+By default, the :doc:`bind <../../backends/bind>`, :doc:`mysql <../../backends/generic-mysql>` and :doc:`random <../../backends/random>` modules are compiled into the binary. The :doc:`pipe <../../backends/pipe>` is, by default, compiled as a runtime loadable module.
 
 Getting the sources
 -------------------

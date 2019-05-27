@@ -280,11 +280,24 @@ void setupLuaRules()
       return std::shared_ptr<DNSRule>(new RegexRule(str));
     });
 
+#ifdef HAVE_DNS_OVER_HTTPS
+  g_lua.writeFunction("HTTPHeaderRule", [](const std::string& header, const std::string& regex) {
+      return std::shared_ptr<DNSRule>(new HTTPHeaderRule(header, regex));
+    });
+  g_lua.writeFunction("HTTPPathRule", [](const std::string& path) {
+      return std::shared_ptr<DNSRule>(new HTTPPathRule(path));
+    });
+#endif
+
 #ifdef HAVE_RE2
   g_lua.writeFunction("RE2Rule", [](const std::string& str) {
       return std::shared_ptr<DNSRule>(new RE2Rule(str));
     });
 #endif
+
+  g_lua.writeFunction("SNIRule", [](const std::string& name) {
+      return std::shared_ptr<DNSRule>(new SNIRule(name));
+  });
 
   g_lua.writeFunction("SuffixMatchNodeRule", [](const SuffixMatchNode& smn, boost::optional<bool> quiet) {
       return std::shared_ptr<DNSRule>(new SuffixMatchNodeRule(smn, quiet ? *quiet : false));

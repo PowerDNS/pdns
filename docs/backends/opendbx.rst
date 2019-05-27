@@ -293,7 +293,7 @@ Supported without changes since OpenDBX 1.0.0 but requires to set
 (including the trailing slash or backslash, depending on your operating
 system) and opendbx-database to the name of the file.
 
-.. code-block:: SQL
+.. code-block:: ini
 
     opendbx-host-read = /path/to/file/
     opendbx-host-write = /path/to/file/
@@ -302,7 +302,7 @@ system) and opendbx-database to the name of the file.
 SQLite Schema
 ~~~~~~~~~~~~~
 
-::
+.. code-block:: SQL
 
     CREATE TABLE "domains" (
         "id" INTEGER NOT NULL PRIMARY KEY,
@@ -370,7 +370,7 @@ SQLite Schema
 SQLite3 Schema
 ~~~~~~~~~~~~~~
 
-::
+.. code-block:: SQL
 
     CREATE TABLE "domains" (
         "id" INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
@@ -442,7 +442,7 @@ Requires :ref:`setting-opendbx-database` set to the path of
 the database file and doesn't support the default statement for starting
 transactions. Please add the following lines to your pdns.conf:
 
-::
+.. code-block:: ini
 
     opendbx-database = /var/lib/firebird2/data/powerdns.gdb
     opendbx-sql-transactbegin = SET TRANSACTION
@@ -452,7 +452,7 @@ tool with the parameter ``-page 4096``. Otherwise, you will get an error
 (key size exceeds implementation restriction for index
 "pdns\_unq\_domains\_name") when creating the tables.
 
-::
+.. code-block:: SQL
 
     CREATE TABLE "domains" (
         "id" INTEGER NOT NULL,
@@ -560,13 +560,13 @@ configuration file of the dblib client library) and doesn't support the
 default statement for starting transactions. Please add the following
 lines to your pdns.conf:
 
-::
+.. code-block:: ini
 
     opendbx-host-read = MSSQL2k
     opendbx-host-write = MSSQL2k
     opendbx-sql-transactbegin = BEGIN TRANSACTION
 
-::
+.. code-block:: SQL
 
     SET quoted_identifier ON;
 
@@ -650,13 +650,13 @@ section in the configuration file of the ctlib client library) and
 doesn't support the default statement for starting transactions. Please
 add the following lines to your pdns.conf:
 
-::
+.. code-block:: ini
 
     opendbx-host-read = SYBASE
     opendbx-host-write = SYBASE
     opendbx-sql-transactbegin = BEGIN TRANSACTION
 
-::
+.. code-block:: SQL
 
     SET quoted_identifier ON;
 
@@ -736,11 +736,11 @@ Oracle
 Uses a different syntax for transactions and requires the following
 additional line in your pdns.conf:
 
-::
+.. code-block:: ini
 
     opendbx-sql-transactbegin = SET TRANSACTION NAME 'AXFR'
 
-::
+.. code-block:: SQL
 
     CREATE TABLE "domains" (
         "id" INTEGER NOT NULL,

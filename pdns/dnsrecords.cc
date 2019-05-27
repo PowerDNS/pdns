@@ -397,6 +397,7 @@ CDNSKEYRecordContent::CDNSKEYRecordContent() {}
 boilerplate_conv(RKEY, 57, 
                  conv.xfr16BitInt(d_flags); 
                  conv.xfr8BitInt(d_protocol); 
+                 conv.xfr8BitInt(d_algorithm); 
                  conv.xfrBlob(d_key);
                  )
 RKEYRecordContent::RKEYRecordContent() {}

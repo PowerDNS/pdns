@@ -33,7 +33,6 @@ override_dh_auto_install:
 		-e 's!# quiet=.*!quiet=yes!' \
 		-e 's!# setgid=.*!setgid=pdns!' \
 		-e 's!# setuid=.*!setuid=pdns!' \
-		-e 's!# hint-file=.*!&\nhint-file=/usr/share/dns/root.hints!' \
 		> debian/tmp/etc/powerdns/recursor.conf
 
 override_dh_strip:

@@ -123,6 +123,15 @@ void UDPNameserver::bindIPv4()
     if (!setSocketTimestamps(s))
       g_log<<Logger::Warning<<"Unable to enable timestamp reporting for socket"<<endl;
 
+    if (locala.isIPv4()) {
+      try {
+        setSocketIgnorePMTU(s);
+      }
+      catch(const std::exception& e) {
+        g_log<<Logger::Warning<<"Failed to set IP_MTU_DISCOVER on UDP server socket: "<<e.what()<<endl;
+      }
+    }
+
 #ifdef SO_REUSEPORT
     if( d_can_reuseport )
         if( setsockopt(s, SOL_SOCKET, SO_REUSEPORT, &one, sizeof(one)) )

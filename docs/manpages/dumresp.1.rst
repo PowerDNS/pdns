@@ -4,7 +4,7 @@ dumresp
 Synopsis
 --------
 
-**dumresp** *LOCAL-ADDRESS* *LOCAL-PORT* *NUMBER-OF-PROCESSES*
+**dumresp** *LOCAL-ADDRESS* *LOCAL-PORT* *NUMBER-OF-PROCESSES* [tcp]
 
 Description
 -----------
@@ -18,7 +18,8 @@ the port.
 Options
 -------
 
-None
+tcp: Whether to listen and accept TCP connections in addition to
+UDP packets. Defaults to false.
 
 See also
 --------

@@ -493,7 +493,7 @@ bool TCPNameserver::canDoAXFR(shared_ptr<DNSPacket> q)
         while(B->get(rr)) 
           nsset.insert(DNSName(rr.content));
         for(const auto & j: nsset) {
-          vector<string> nsips=fns.lookup(j, s_P->getBackend());
+          vector<string> nsips=fns.lookup(j, s_P->getBackend(),q->qdomain);
           for(vector<string>::const_iterator k=nsips.begin();k!=nsips.end();++k) {
             // cerr<<"got "<<*k<<" from AUTO-NS"<<endl;
             if(*k == q->getRemote().toString())
@@ -536,25 +536,6 @@ namespace {
     unsigned int d_ttl;
     bool d_auth;
   };
-
-  DNSZoneRecord makeEditedDNSZRFromSOAData(DNSSECKeeper& dk, const SOAData& sd)
-  {
-    SOAData edited = sd;
-    edited.serial = calculateEditSOA(sd.serial, dk, sd.qname);
-
-    DNSRecord soa;
-    soa.d_name = sd.qname;
-    soa.d_type = QType::SOA;
-    soa.d_ttl = sd.ttl;
-    soa.d_place = DNSResourceRecord::ANSWER;
-    soa.d_content = makeSOAContent(edited);
-
-    DNSZoneRecord dzr;
-    dzr.auth = true;
-    dzr.dr = soa;
-
-    return dzr;
-  }
 
   shared_ptr<DNSPacket> getFreshAXFRPacket(shared_ptr<DNSPacket> q)
   {
@@ -1352,7 +1333,7 @@ void TCPNameserver::thread()
 
       int sock=-1;
       for(const pollfd& pfd :  d_prfds) {
-        if(pfd.revents == POLLIN) {
+        if(pfd.revents & POLLIN) {
           sock = pfd.fd;
           remote.sin4.sin_family = AF_INET6;
           addrlen=remote.getSocklen();

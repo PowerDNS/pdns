@@ -484,6 +484,11 @@ string PacketReader::getUnquotedText(bool lenField)
   else
     stop_at = d_recordlen;
 
+  /* think unsigned overflow */
+  if (stop_at < d_pos) {
+    throw std::out_of_range("getUnquotedText out of record range");
+  }
+
   if(stop_at == d_pos)
     return "";
 

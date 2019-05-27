@@ -240,10 +240,23 @@ bool rectifyAllZones(DNSSECKeeper &dk, bool quiet = false)
 
 int checkZone(DNSSECKeeper &dk, UeberBackend &B, const DNSName& zone, const vector<DNSResourceRecord>* suppliedrecords=0)
 {
+  uint64_t numerrors=0, numwarnings=0;
+
+  DomainInfo di;
+  try {
+    B.getDomainInfo(zone, di);
+  } catch(const PDNSException &e) {
+    if (di.kind == DomainInfo::Slave) {
+      cout<<"[Error] non-IP address for masters: "<<e.reason<<endl;
+      numerrors++;
+    }
+  }
+
   SOAData sd;
   if(!B.getSOAUncached(zone, sd)) {
     cout<<"[Error] No SOA record present, or active, in zone '"<<zone<<"'"<<endl;
-    cout<<"Checked 0 records of '"<<zone<<"', 1 errors, 0 warnings."<<endl;
+    numerrors++;
+    cout<<"Checked 0 records of '"<<zone<<"', "<<numerrors<<" errors, 0 warnings."<<endl;
     return 1;
   }
 
@@ -256,8 +269,6 @@ int checkZone(DNSSECKeeper &dk, UeberBackend &B, const DNSName& zone, const vect
   bool presigned=dk.isPresigned(zone);
   vector<string> checkKeyErrors;
   bool validKeys=dk.checkKeys(zone, &checkKeyErrors);
-
-  uint64_t numerrors=0, numwarnings=0;
 
   if (haveNSEC3) {
     if(isSecure && zone.wirelength() > 222) {
@@ -1574,7 +1585,6 @@ bool showZone(DNSSECKeeper& dk, const DNSName& zone, bool exportDS = false)
 
     sort(keys.begin(),keys.end());
     reverse(keys.begin(),keys.end());
-    bool shown=false;
     for(const auto& key : keys) {
       string algname = DNSSECKeeper::algorithm2name(key.d_algorithm);
 
@@ -1590,9 +1600,6 @@ bool showZone(DNSSECKeeper& dk, const DNSName& zone, bool exportDS = false)
         cout << (key.d_flags == 257 ? "KSK" : "ZSK") << ", tag = " << key.getTag() << ", algo = "<<(int)key.d_algorithm << ", bits = " << bits << endl;
         cout << "DNSKEY = " <<zone.toString()<<" IN DNSKEY "<< key.getZoneRepresentation() << "; ( " + algname + " ) " <<endl;
       }
-
-      if (shown) continue;
-      shown=true;
 
       const std::string prefix(exportDS ? "" : "DS = ");
       cout<<prefix<<zone.toString()<<" IN DS "<<makeDSFromDNSKey(zone, key, DNSSECKeeper::SHA1).getZoneRepresentation() << " ; ( SHA1 digest )" << endl;
@@ -1994,7 +2001,7 @@ try
     cout<<"set-presigned ZONE                 Use presigned RRSIGs from storage"<<endl;
     cout<<"set-publish-cdnskey ZONE           Enable sending CDNSKEY responses for ZONE"<<endl;
     cout<<"set-publish-cds ZONE [DIGESTALGOS] Enable sending CDS responses for ZONE, using DIGESTALGOS as signature algorithms"<<endl;
-    cout<<"                                   DIGESTALGOS should be a comma separated list of numbers, is is '1,2' by default"<<endl;
+    cout<<"                                   DIGESTALGOS should be a comma separated list of numbers, it is '1,2' by default"<<endl;
     cout<<"add-meta ZONE KIND VALUE           Add zone metadata, this adds to the existing KIND"<<endl;
     cout<<"                   [VALUE ...]"<<endl;
     cout<<"set-meta ZONE KIND [VALUE] [VALUE] Set zone metadata, optionally providing a value. *No* value clears meta"<<endl;
@@ -3200,11 +3207,15 @@ try
       // move records
       if (!src->list(di.zone, di.id, true)) throw PDNSException("Failed to list records");
       nr=0;
+
+      tgt->startTransaction(di.zone, di_new.id);
+
       while(src->get(rr)) {
         rr.domain_id = di_new.id;
         if (!tgt->feedRecord(rr, DNSName())) throw PDNSException("Failed to feed record");
         nr++;
       }
+
       // move comments
       nc=0;
       if (src->listComments(di.id)) {
@@ -3235,6 +3246,7 @@ try
           nk++;
         }
       }
+      tgt->commitTransaction();
       cout<<"Moved "<<nr<<" record(s), "<<nc<<" comment(s), "<<nm<<" metadata(s) and "<<nk<<" cryptokey(s)"<<endl;
     }
 

@@ -47,7 +47,7 @@ This state can be modified from the various hooks.
   .. attribute:: DNSQuestion.qtype
 
     QType (as an unsigned integer) of this question.
-    Can be compared against ``dnsdist.A``, ``dnsdist.AAAA`` etc.
+    Can be compared against the pre-defined :ref:`constants <DNSQType>` like ``DNSQType.A``, DNSQType.AAAA``.
 
   .. attribute:: DNSQuestion.remoteaddr
 
@@ -91,6 +91,15 @@ This state can be modified from the various hooks.
     Return the list of EDNS Options, if any.
 
     :returns: A table of EDNSOptionView objects, indexed on the ECS Option code
+
+  .. method:: DNSQuestion:getServerNameIndication() -> string
+
+    .. versionadded:: 1.4.0
+
+    Return the TLS Server Name Indication (SNI) value sent by the client over DoT or DoH, if any. See :func:`SNIRule`
+    for more information, especially about the availability of SNI over DoH.
+
+    :returns: A string containing the TLS SNI value, if any
 
   .. method:: DNSQuestion:getTag(key) -> string
 
@@ -170,7 +179,7 @@ DNSResponse object
 
     - ``section`` is the section in the packet and can be compared to :ref:`DNSSection`
     - ``qclass`` is the QClass of the record. Can be compared to :ref:`DNSQClass`
-    - ``qtype`` is the QType of the record. Can be e.g. compared to ``dnsdist.A``, ``dnsdist.AAAA`` and the like.
+    - ``qtype`` is the QType of the record. Can be e.g. compared to ``DNSQType.A``, ``DNSQType.AAAA`` :ref:`constants <DNSQType>` and the like.
     - ``ttl`` is the current TTL
 
     This function must return an integer with the new TTL.

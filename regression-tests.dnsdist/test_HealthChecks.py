@@ -163,7 +163,7 @@ class TestHealthCheckCustomFunction(HealthCheckTest):
     function myHealthCheckFunction(qname, qtype, qclass, dh)
       dh:setCD(true)
 
-      return newDNSName('powerdns.com.'), dnsdist.AAAA, qclass
+      return newDNSName('powerdns.com.'), DNSQType.AAAA, qclass
     end
 
     srv = newServer{address="127.0.0.1:%d", checkName='powerdns.org.', checkFunction=myHealthCheckFunction}

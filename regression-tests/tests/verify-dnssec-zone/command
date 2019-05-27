@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-for zone in $(grep 'zone ' named.conf  | cut -f2 -d\" | grep -v '^\(example.com\|nztest.com\)$')
+for zone in $(grep 'zone ' named.conf  | cut -f2 -d\" | grep -v '^\(example.com\|nztest.com\|insecure.dnssec-parent.com\)$')
 do
 	TFILE=$(mktemp tmp.XXXXXXXXXX)
 	drill -p $port axfr $zone @$nameserver | ldns-read-zone -z -u CDS -u CDNSKEY > $TFILE
