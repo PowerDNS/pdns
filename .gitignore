@@ -52,3 +52,4 @@ pdns_recursor.pid
 built_pkgs
 *-wal
 *-shm
+__pycache__
