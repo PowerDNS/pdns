@@ -391,7 +391,7 @@ Servers
       setCD=BOOL,            -- Set the CD (Checking Disabled) flag in the health-check query, default: false
       maxCheckFailures=NUM,  -- Allow NUM check failures before declaring the backend down, default: 1
       checkInterval=NUM      -- The time in seconds between health checks
-      mustResolve=BOOL,      -- Set to true when the health check MUST return a NOERROR RCODE and an answer
+      mustResolve=BOOL,      -- Set to true when the health check MUST return a RCODE different from NXDomain, ServFail and Refused. Default is false, meaning that every RCODE except ServFail is considered valid
       useClientSubnet=BOOL,  -- Add the client's IP address in the EDNS Client Subnet option when forwarding the query to this backend
       source=STRING,         -- The source address or interface to use for queries to this backend, by default this is left to the kernel's address selection
                              -- The following formats are supported:
