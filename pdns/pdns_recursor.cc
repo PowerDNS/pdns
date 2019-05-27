@@ -544,7 +544,6 @@ public:
 
     if(connect(*fd, (struct sockaddr*)(&toaddr), toaddr.getSocklen()) < 0) {
       int err = errno;
-      //      returnSocket(*fd);
       try {
         closesocket(*fd);
       }
@@ -615,11 +614,21 @@ private:
       if (::bind(ret, (struct sockaddr *)&sin, sin.getSocklen()) >= 0)
         break;
     }
-    if(!tries)
-      throw PDNSException("Resolver binding to local query client socket on "+sin.toString()+": "+stringerror());
 
-    setReceiveSocketErrors(ret, family);
-    setNonBlocking(ret);
+    if(!tries) {
+      closesocket(ret);
+      throw PDNSException("Resolver binding to local query client socket on "+sin.toString()+": "+stringerror());
+    }
+
+    try {
+      setReceiveSocketErrors(ret, family);
+      setNonBlocking(ret);
+    }
+    catch(...) {
+      closesocket(ret);
+      throw;
+    }
+
     return ret;
   }
 };
@@ -689,7 +698,9 @@ int arecvfrom(std::string& packet, int flags, const ComboAddress& fromaddr, size
 
   int ret=MT->waitEvent(pident, &packet, g_networkTimeoutMsec, now);
 
+  /* -1 means error, 0 means timeout, 1 means a result from handleUDPServerResponse() which might still be an error */
   if(ret > 0) {
+    /* handleUDPServerResponse() will close the socket for us no matter what */
     if(packet.empty()) // means "error"
       return -1;
 
@@ -702,6 +713,7 @@ int arecvfrom(std::string& packet, int flags, const ComboAddress& fromaddr, size
     }
   }
   else {
+    /* getting there means error or timeout, it's up to us to close the socket */
     if(fd >= 0)
       t_udpclientsocks->returnSocket(fd);
   }
@@ -3228,6 +3240,8 @@ static void handleUDPServerResponse(int fd, FDMultiplexer::funcparam_t& var)
 retryWithName:
 
   if(!MT->sendEvent(pident, &packet)) {
+    /* we did not find a match for this response, something is wrong */
+
     // we do a full scan for outstanding queries on unexpected answers. not too bad since we only accept them on the right port number, which is hard enough to guess
     for(MT_t::waiters_t::iterator mthread=MT->d_waiters.begin(); mthread!=MT->d_waiters.end(); ++mthread) {
       if(pident.fd==mthread->key.fd && mthread->key.remote==pident.remote &&  mthread->key.type == pident.type &&
@@ -3250,6 +3264,7 @@ retryWithName:
     }
   }
   else if(fd >= 0) {
+    /* we either found a waiter (1) or encountered an issue (-1), it's up to us to clean the socket anyway */
     t_udpclientsocks->returnSocket(fd);
   }
 }
