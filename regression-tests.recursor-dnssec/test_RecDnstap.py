@@ -43,6 +43,9 @@ def checkDnstapBase(testinstance, dnstap, protocol, initiator):
     testinstance.assertEqual(dnstap.message.socket_protocol, protocol)
     testinstance.assertTrue(dnstap.message.HasField('socket_family'))
     testinstance.assertEquals(dnstap.message.socket_family, dnstap_pb2.INET)
+    #
+    # We cannot check the query address and port since we only log outgoing queries via dnstap
+    #
     #testinstance.assertTrue(dnstap.message.HasField('query_address'))
     #testinstance.assertEquals(socket.inet_ntop(socket.AF_INET, dnstap.message.query_address), initiator)
     testinstance.assertTrue(dnstap.message.HasField('response_address'))
@@ -59,6 +62,10 @@ def checkDnstapQuery(testinstance, dnstap, protocol, query, initiator='127.0.0.1
     testinstance.assertTrue(dnstap.message.HasField('query_time_nsec'))
 
     testinstance.assertTrue(dnstap.message.HasField('query_message'))
+    #
+    # We cannot compare the incoming query with the outgoing one
+    # The IDs and some other fields will be different
+    #
     wire_message = dns.message.from_wire(dnstap.message.query_message)
     #testinstance.assertEqual(wire_message, query)
 
