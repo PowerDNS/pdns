@@ -866,7 +866,7 @@ bool pdns_ffi_param_add_record(pdns_ffi_param_t *ref, const char* name, uint16_t
 {
   try {
     DNSRecord dr;
-    dr.d_name = DNSName(name);
+    dr.d_name = name != nullptr ? DNSName(name) : ref->qname;
     dr.d_ttl = ttl;
     dr.d_type = type;
     dr.d_class = QClass::IN;
