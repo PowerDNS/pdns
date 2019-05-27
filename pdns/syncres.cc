@@ -694,9 +694,9 @@ vector<ComboAddress> SyncRes::getAddrs(const DNSName &qname, unsigned int depth,
   res_t resv4;
   // If IPv4 ever becomes second class, we should revisit this
   if (doResolve(qname, QType::A, resv4, depth+1, beenthere, newState) == 0) {  // this consults cache, OR goes out
-    for (auto i = resv4.cbegin(); i != resv4.end(); ++i) {
-      if (i->d_type == QType::A) {
-        if (auto rec = getRR<ARecordContent>(*i)) {
+    for (auto const &i : resv4) {
+      if (i.d_type == QType::A) {
+        if (auto rec = getRR<ARecordContent>(i)) {
           ret.push_back(rec->getCA(53));
         }
       }
@@ -708,9 +708,9 @@ vector<ComboAddress> SyncRes::getAddrs(const DNSName &qname, unsigned int depth,
       newState = Indeterminate;
       res_t resv6;
       if (doResolve(qname, QType::AAAA, resv6, depth+1, beenthere, newState) == 0) {  // this consults cache, OR goes out
-        for (auto i = resv6.cbegin(); i != resv6.end(); ++i) {
-          if (i->d_type == QType::AAAA) {
-            if (auto rec = getRR<AAAARecordContent>(*i))
+        for (const auto &i : resv6) {
+          if (i.d_type == QType::AAAA) {
+            if (auto rec = getRR<AAAARecordContent>(i))
               ret.push_back(rec->getCA(53));
           }
         }
@@ -720,9 +720,9 @@ vector<ComboAddress> SyncRes::getAddrs(const DNSName &qname, unsigned int depth,
       // Once IPv6 adoption matters, this needs to be revisited
       res_t cset;
       if (t_RC->get(d_now.tv_sec, qname, QType(QType::AAAA), false, &cset, d_cacheRemote) > 0) {
-        for (auto k = cset.cbegin(); k != cset.cend(); ++k) {
-          if (k->d_ttl > (unsigned int)d_now.tv_sec ) {
-            if (auto rec = getRR<AAAARecordContent>(*k)) {
+        for (const auto &i : cset) {
+          if (i.d_ttl > (unsigned int)d_now.tv_sec ) {
+            if (auto rec = getRR<AAAARecordContent>(i)) {
               ret.push_back(rec->getCA(53));
             }
           }
