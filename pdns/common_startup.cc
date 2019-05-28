@@ -52,7 +52,7 @@ DynListener *dl;
 CommunicatorClass Communicator;
 shared_ptr<UDPNameserver> N;
 int avg_latency;
-TCPNameserver *TN;
+unique_ptr<TCPNameserver> TN;
 static vector<DNSDistributor*> g_distributors;
 vector<std::shared_ptr<UDPNameserver> > g_udpReceivers;
 
@@ -606,8 +606,7 @@ void mainthread()
   if(::arg().mustDo("slave") || ::arg().mustDo("master") || !::arg()["forward-notify"].empty())
     Communicator.go(); 
 
-  if(TN)
-    TN->go(); // tcp nameserver launch
+  TN->go(); // tcp nameserver launch
 
   //  fork(); (this worked :-))
   unsigned int max_rthreads= ::arg().asNum("receiver-threads", 1);
