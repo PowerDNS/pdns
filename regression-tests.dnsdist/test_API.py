@@ -57,6 +57,7 @@ class TestAPIBasics(DNSDistTest):
             url = 'http://127.0.0.1:' + str(self._webServerPort) + path
             r = requests.get(url, headers=headers, timeout=self._webTimeout)
             self.assertEquals(r.status_code, 401)
+
     def testBasicAuthOnly(self):
         """
         API: Basic Authentication Only
