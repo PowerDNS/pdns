@@ -36,7 +36,7 @@ AC_DEFUN([PDNS_CHECK_OS],[
   AM_CONDITIONAL([HAVE_SOLARIS], [test "x$have_solaris" = "xyes"])
 
   case "$host" in
-  mips* | powerpc-* )
+  arc-* | mips* | powerpc-* )
     AC_MSG_CHECKING([whether the linker accepts -latomic])
     LDFLAGS="-latomic $LDFLAGS"
     AC_LINK_IFELSE([m4_default([],[AC_LANG_PROGRAM()])],
