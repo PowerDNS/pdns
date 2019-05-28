@@ -169,7 +169,6 @@ int asyncresolve(const ComboAddress& ip, const DNSName& domain, int type, bool d
 
   srcmask = boost::none; // this is also our return value, even if EDNS0Level == 0
 
-  errno=0;
   if(!doTCP) {
     int queryfd;
     if(ip.sin4.sin_family==AF_INET6)

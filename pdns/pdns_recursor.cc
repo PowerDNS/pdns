@@ -535,9 +535,6 @@ public:
   {
   }
 
-  typedef set<int> socks_t;
-  socks_t d_socks;
-
   // returning -2 means: temporary OS error (ie, out of files), -1 means error related to remote
   int getSocket(const ComboAddress& toaddr, int* fd)
   {
@@ -547,7 +544,6 @@ public:
 
     if(connect(*fd, (struct sockaddr*)(&toaddr), toaddr.getSocklen()) < 0) {
       int err = errno;
-      //      returnSocket(*fd);
       try {
         closesocket(*fd);
       }
@@ -560,42 +556,31 @@ public:
       return -1;
     }
 
-    d_socks.insert(*fd);
     d_numsocks++;
     return 0;
   }
 
+  // return a socket to the pool, or simply erase it
   void returnSocket(int fd)
   {
-    socks_t::iterator i=d_socks.find(fd);
-    if(i==d_socks.end()) {
-      throw PDNSException("Trying to return a socket (fd="+std::to_string(fd)+") not in the pool");
-    }
-    returnSocketLocked(i);
-  }
-
-  // return a socket to the pool, or simply erase it
-  void returnSocketLocked(socks_t::iterator& i)
-  {
-    if(i==d_socks.end()) {
-      throw PDNSException("Trying to return a socket not in the pool");
-    }
     try {
-      t_fdm->removeReadFD(*i);
+      t_fdm->removeReadFD(fd);
     }
-    catch(FDMultiplexerException& e) {
+    catch(const FDMultiplexerException& e) {
       // we sometimes return a socket that has not yet been assigned to t_fdm
     }
+
     try {
-      closesocket(*i);
+      closesocket(fd);
     }
     catch(const PDNSException& e) {
       g_log<<Logger::Error<<"Error closing returned UDP socket: "<<e.reason<<endl;
     }
 
-    d_socks.erase(i++);
     --d_numsocks;
   }
+
+private:
 
   // returns -1 for errors which might go away, throws for ones that won't
   static int makeClientSocket(int family)
@@ -629,11 +614,21 @@ public:
       if (::bind(ret, (struct sockaddr *)&sin, sin.getSocklen()) >= 0)
         break;
     }
-    if(!tries)
-      throw PDNSException("Resolver binding to local query client socket on "+sin.toString()+": "+stringerror());
 
-    setReceiveSocketErrors(ret, family);
-    setNonBlocking(ret);
+    if(!tries) {
+      closesocket(ret);
+      throw PDNSException("Resolver binding to local query client socket on "+sin.toString()+": "+stringerror());
+    }
+
+    try {
+      setReceiveSocketErrors(ret, family);
+      setNonBlocking(ret);
+    }
+    catch(...) {
+      closesocket(ret);
+      throw;
+    }
+
     return ret;
   }
 };
@@ -703,7 +698,9 @@ int arecvfrom(std::string& packet, int flags, const ComboAddress& fromaddr, size
 
   int ret=MT->waitEvent(pident, &packet, g_networkTimeoutMsec, now);
 
+  /* -1 means error, 0 means timeout, 1 means a result from handleUDPServerResponse() which might still be an error */
   if(ret > 0) {
+    /* handleUDPServerResponse() will close the socket for us no matter what */
     if(packet.empty()) // means "error"
       return -1;
 
@@ -716,6 +713,7 @@ int arecvfrom(std::string& packet, int flags, const ComboAddress& fromaddr, size
     }
   }
   else {
+    /* getting there means error or timeout, it's up to us to close the socket */
     if(fd >= 0)
       t_udpclientsocks->returnSocket(fd);
   }
@@ -3242,6 +3240,8 @@ static void handleUDPServerResponse(int fd, FDMultiplexer::funcparam_t& var)
 retryWithName:
 
   if(!MT->sendEvent(pident, &packet)) {
+    /* we did not find a match for this response, something is wrong */
+
     // we do a full scan for outstanding queries on unexpected answers. not too bad since we only accept them on the right port number, which is hard enough to guess
     for(MT_t::waiters_t::iterator mthread=MT->d_waiters.begin(); mthread!=MT->d_waiters.end(); ++mthread) {
       if(pident.fd==mthread->key.fd && mthread->key.remote==pident.remote &&  mthread->key.type == pident.type &&
@@ -3264,6 +3264,7 @@ retryWithName:
     }
   }
   else if(fd >= 0) {
+    /* we either found a waiter (1) or encountered an issue (-1), it's up to us to clean the socket anyway */
     t_udpclientsocks->returnSocket(fd);
   }
 }
