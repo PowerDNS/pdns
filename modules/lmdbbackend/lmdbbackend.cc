@@ -397,8 +397,10 @@ bool LMDBBackend::replaceRRSet(uint32_t domain_id, const DNSName& qname, const Q
   }
 
   DomainInfo di;
-  d_tdomains->getROTransaction().get(domain_id, di); // XX error checking
-  
+  if (!d_tdomains->getROTransaction().get(domain_id, di)) {
+    return false;
+  }
+
   compoundOrdername co;
   auto cursor = txn->txn.getCursor(txn->db->dbi);
   MDBOutVal key, val;
