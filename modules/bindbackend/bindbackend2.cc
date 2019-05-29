@@ -631,6 +631,7 @@ Bind2Backend::Bind2Backend(const string &suffix, bool loadZones)
   setArgPrefix("bind"+suffix);
   d_logprefix="[bind"+suffix+"backend]";
   d_hybrid=mustDo("hybrid");
+  d_transaction_id=0;
   s_ignore_broken_records=mustDo("ignore-broken-records");
 
   if (!loadZones && d_hybrid)
@@ -638,7 +639,6 @@ Bind2Backend::Bind2Backend(const string &suffix, bool loadZones)
 
   Lock l(&s_startup_lock);
   
-  d_transaction_id=0;
   setupDNSSEC();
   if(!s_first) {
     return;
