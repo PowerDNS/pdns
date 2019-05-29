@@ -603,6 +603,7 @@ string Bind2Backend::DLAddDomainHandler(const vector<string>&parts, Utility::pid
   bbd.d_loaded=true;
   bbd.d_lastcheck=0;
   bbd.d_status="parsing into memory";
+  bbd.setCtime();
 
   safePutBBDomainInfo(bbd);
 
@@ -1262,11 +1263,13 @@ BB2DomainInfo Bind2Backend::createDomainEntry(const DNSName& domain, const strin
   }
   
   BB2DomainInfo bbd;
+  bbd.d_kind = DomainInfo::Native;
   bbd.d_id = newid;
   bbd.d_records = shared_ptr<recordstorage_t >(new recordstorage_t);
   bbd.d_name = domain;
   bbd.setCheckInterval(getArgAsNum("check-interval"));
   bbd.d_filename = filename;
+  
   return bbd;
 }
 
@@ -1300,6 +1303,7 @@ bool Bind2Backend::createSlaveDomain(const string &ip, const DNSName& domain, co
   BB2DomainInfo bbd = createDomainEntry(domain, filename);
   bbd.d_kind = DomainInfo::Slave;
   bbd.d_masters.push_back(ComboAddress(ip, 53));
+  bbd.setCtime();
   safePutBBDomainInfo(bbd);
   return true;
 }
