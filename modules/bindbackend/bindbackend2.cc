@@ -1330,7 +1330,10 @@ bool Bind2Backend::searchRecords(const string &pattern, int maxResults, vector<D
 
     for(state_t::const_iterator i = s_state.begin(); i != s_state.end() ; ++i) {
       BB2DomainInfo h;
-      safeGetBBDomainInfo(i->d_id, &h);
+      if (!safeGetBBDomainInfo(i->d_id, &h)) {
+        continue;
+      }
+
       shared_ptr<const recordstorage_t> rhandle = h.d_records.get();
 
       for(recordstorage_t::const_iterator ri = rhandle->begin(); result.size() < static_cast<vector<DNSResourceRecord>::size_type>(maxResults) && ri != rhandle->end(); ri++) {
