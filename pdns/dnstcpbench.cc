@@ -62,7 +62,7 @@ unsigned int makeUsec(const struct timeval& tv)
 struct BenchQuery
 {
   BenchQuery(const std::string& qname_, uint16_t qtype_) : qname(qname_), qtype(qtype_), udpUsec(0), tcpUsec(0), answerSecond(0) {}
-  BenchQuery(){}
+  BenchQuery(): qtype(0), udpUsec(0), tcpUsec(0), answerSecond(0) {}
   DNSName qname;
   uint16_t qtype;
   uint32_t udpUsec, tcpUsec;
