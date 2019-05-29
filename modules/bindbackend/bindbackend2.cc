@@ -203,17 +203,27 @@ bool Bind2Backend::startTransaction(const DNSName &qname, int id)
   d_transaction_id=id;
   BB2DomainInfo bbd;
   if(safeGetBBDomainInfo(id, &bbd)) {
-    d_transaction_tmpname=bbd.d_filename+"."+itoa(random());
-    d_of=std::unique_ptr<ofstream>(new ofstream(d_transaction_tmpname.c_str()));
+    d_transaction_tmpname = bbd.d_filename + "XXXXXX";
+    int fd = mkstemp(&d_transaction_tmpname.at(0));
+    if (fd == -1) {
+      throw DBException("Unable to create a unique temporary zonefile '"+d_transaction_tmpname+"': "+stringerror());
+      return false;
+    }
+
+    d_of = std::unique_ptr<ofstream>(new ofstream(d_transaction_tmpname.c_str()));
     if(!*d_of) {
       unlink(d_transaction_tmpname.c_str());
+      close(fd);
+      fd = -1;
       d_of.reset();
       throw DBException("Unable to open temporary zonefile '"+d_transaction_tmpname+"': "+stringerror());
     }
-    
+    close(fd);
+    fd = -1;
+
     *d_of<<"; Written by PowerDNS, don't edit!"<<endl;
     *d_of<<"; Zone '"<<bbd.d_name<<"' retrieved from master "<<endl<<"; at "<<nowTime()<<endl; // insert master info here again
-    
+
     return true;
   }
   return false;
