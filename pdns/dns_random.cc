@@ -285,6 +285,10 @@ uint32_t dns_random(uint32_t upper_bound) {
       do {
         ssize_t got = read(urandom_fd, &num, sizeof(num));
         if (got < 0) {
+          if (errno == EINTR) {
+            continue;
+          }
+
           (void)close(urandom_fd);
           throw std::runtime_error("Cannot read random device");
         }
