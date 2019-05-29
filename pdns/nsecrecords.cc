@@ -29,7 +29,9 @@ class NSECBitmapGenerator
 public:
   NSECBitmapGenerator(DNSPacketWriter& pw_): pw(pw_)
   {
+    memset(res, 0, 34);
   }
+
   void set(uint16_t type)
   {
     uint16_t bit = type % 256;
