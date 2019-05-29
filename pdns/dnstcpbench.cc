@@ -83,7 +83,7 @@ try
   if(!g_onlyTCP) {
     Socket udpsock(g_dest.sin4.sin_family, SOCK_DGRAM);
     
-    udpsock.sendTo(string((char*)&*packet.begin(), (char*)&*packet.end()), g_dest);
+    udpsock.sendTo(string(packet.begin(), packet.end()), g_dest);
     ComboAddress origin;
     res = waitForData(udpsock.getHandle(), 0, 1000 * g_timeoutMsec);
     if(res < 0)
@@ -116,7 +116,7 @@ try
   sock.connect(g_dest);
   uint16_t len = htons(packet.size());
   string tcppacket((char*)& len, 2);
-  tcppacket.append((char*)&*packet.begin(), (char*)&*packet.end());
+  tcppacket.append(packet.begin(), packet.end());
 
   sock.writen(tcppacket);
 
