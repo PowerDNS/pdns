@@ -293,7 +293,7 @@ try
     split=splitField(line,',');
     if (split.second.empty())
       split=splitField(line,'\t');
-    if(!split.second.find('.')) // skip 'Hidden profile' in quantcast list.
+    if(split.second.find('.') == 0) // skip 'Hidden profile' in quantcast list.
       continue;
     pos=split.second.find('/');
     if(pos != string::npos) // alexa has whole urls in the list now.
