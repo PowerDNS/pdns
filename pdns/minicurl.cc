@@ -26,12 +26,26 @@
 #include <curl/curl.h>
 #include <stdexcept>
 
+void MiniCurl::init()
+{
+  static std::atomic_flag s_init = ATOMIC_FLAG_INIT;
+
+  if (s_init.test_and_set())
+    return;
+
+  CURLcode code = curl_global_init(CURL_GLOBAL_ALL);
+  if (code != 0) {
+    throw std::runtime_error("Error initializing libcurl");
+  }
+}
+
 MiniCurl::MiniCurl(const string& useragent)
 {
   d_curl = curl_easy_init();
-  if (d_curl != nullptr) {
-    curl_easy_setopt(d_curl, CURLOPT_USERAGENT, useragent.c_str());
+  if (d_curl == nullptr) {
+    throw std::runtime_error("Error creating a MiniCurl session");
   }
+  curl_easy_setopt(d_curl, CURLOPT_USERAGENT, useragent.c_str());
 }
 
 MiniCurl::~MiniCurl()
@@ -101,6 +115,7 @@ void MiniCurl::setupURL(const std::string& str, const ComboAddress* rem, const C
 
   d_data.clear();
 }
+
 std::string MiniCurl::getURL(const std::string& str, const ComboAddress* rem, const ComboAddress* src)
 {
   setupURL(str, rem, src);
