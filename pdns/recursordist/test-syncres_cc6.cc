@@ -34,6 +34,13 @@ BOOST_AUTO_TEST_CASE(test_dnssec_no_ds_on_referral_secure) {
         auth.chopOff();
         dsQueriesCount++;
 
+        if (domain == target) {
+          if (genericDSAndDNSKEYHandler(res, domain, auth, type, keys, false) == 0) {
+            return 0;
+          }
+          return 1;
+        }
+
         setLWResult(res, 0, true, false, true);
         addDS(domain, 300, res->d_records, keys, DNSResourceRecord::ANSWER);
         addRRSIG(keys, res->d_records, auth, 300);
@@ -145,8 +152,8 @@ BOOST_AUTO_TEST_CASE(test_dnssec_ds_sign_loop) {
 
         setLWResult(res, 0, true, false, true);
         if (domain == target) {
-          addRecordToLW(res, domain, QType::SOA, "ns1.powerdns.com. blah. 2017032800 1800 900 604800 86400", DNSResourceRecord::AUTHORITY, 86400);
-          addRRSIG(keys, res->d_records, target, 300);
+          addDS(domain, 300, res->d_records, keys, DNSResourceRecord::ANSWER);
+          addRRSIG(keys, res->d_records, domain, 300);
         }
         else {
           addDS(domain, 300, res->d_records, keys, DNSResourceRecord::ANSWER);
@@ -218,7 +225,7 @@ BOOST_AUTO_TEST_CASE(test_dnssec_ds_sign_loop) {
   BOOST_CHECK_EQUAL(res, RCode::NoError);
   BOOST_CHECK_EQUAL(sr->getValidationState(), Bogus);
   BOOST_REQUIRE_EQUAL(ret.size(), 2);
-  BOOST_CHECK_EQUAL(queriesCount, 9);
+  BOOST_CHECK_EQUAL(queriesCount, 8);
 
   /* again, to test the cache */
   ret.clear();
@@ -226,7 +233,7 @@ BOOST_AUTO_TEST_CASE(test_dnssec_ds_sign_loop) {
   BOOST_CHECK_EQUAL(res, RCode::NoError);
   BOOST_CHECK_EQUAL(sr->getValidationState(), Bogus);
   BOOST_REQUIRE_EQUAL(ret.size(), 2);
-  BOOST_CHECK_EQUAL(queriesCount, 9);
+  BOOST_CHECK_EQUAL(queriesCount, 8);
 }
 
 BOOST_AUTO_TEST_CASE(test_dnssec_dnskey_signed_child) {
@@ -260,14 +267,8 @@ BOOST_AUTO_TEST_CASE(test_dnssec_dnskey_signed_child) {
         auth.chopOff();
 
         setLWResult(res, 0, true, false, true);
-        if (domain == target) {
-          addRecordToLW(res, domain, QType::SOA, "ns1.powerdns.com. blah. 2017032800 1800 900 604800 86400", DNSResourceRecord::AUTHORITY, 86400);
-          addRRSIG(keys, res->d_records, target, 300);
-        }
-        else {
-          addDS(domain, 300, res->d_records, keys, DNSResourceRecord::ANSWER);
-          addRRSIG(keys, res->d_records, auth, 300);
-        }
+        addDS(domain, 300, res->d_records, keys, DNSResourceRecord::ANSWER);
+        addRRSIG(keys, res->d_records, auth, 300);
         return 1;
       }
       else if (type == QType::DNSKEY) {
@@ -333,7 +334,7 @@ BOOST_AUTO_TEST_CASE(test_dnssec_dnskey_signed_child) {
   BOOST_CHECK_EQUAL(res, RCode::NoError);
   BOOST_CHECK_EQUAL(sr->getValidationState(), Bogus);
   BOOST_REQUIRE_EQUAL(ret.size(), 2);
-  BOOST_CHECK_EQUAL(queriesCount, 9);
+  BOOST_CHECK_EQUAL(queriesCount, 10);
 
   /* again, to test the cache */
   ret.clear();
@@ -341,7 +342,7 @@ BOOST_AUTO_TEST_CASE(test_dnssec_dnskey_signed_child) {
   BOOST_CHECK_EQUAL(res, RCode::NoError);
   BOOST_CHECK_EQUAL(sr->getValidationState(), Bogus);
   BOOST_REQUIRE_EQUAL(ret.size(), 2);
-  BOOST_CHECK_EQUAL(queriesCount, 9);
+  BOOST_CHECK_EQUAL(queriesCount, 10);
 }
 
 BOOST_AUTO_TEST_CASE(test_dnssec_no_ds_on_referral_insecure) {

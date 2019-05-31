@@ -1363,7 +1363,7 @@ BOOST_AUTO_TEST_CASE(test_dname_dnssec_secure) {
         }
         if (domain.countLabels() == 1 && type == QType::DS) { // powerdns|DS or example|DS
           setLWResult(res, 0, true, false, true);
-          addDS(domain, 300, res->d_records, keys);
+          addDS(domain, 300, res->d_records, keys, DNSResourceRecord::ANSWER);
           addRRSIG(keys, res->d_records, DNSName("."), 300);
           return 1;
         }
@@ -1392,7 +1392,7 @@ BOOST_AUTO_TEST_CASE(test_dname_dnssec_secure) {
           return 1;
         }
         if (domain == target && type == QType::DS) { // dname.powerdns|DS
-          return genericDSAndDNSKEYHandler(res, domain, dnameOwner, type, keys);
+          return genericDSAndDNSKEYHandler(res, domain, domain, type, keys, false);
         }
         if (domain == target) {
           setLWResult(res, 0, true, false, false);
@@ -1408,8 +1408,8 @@ BOOST_AUTO_TEST_CASE(test_dname_dnssec_secure) {
           addRRSIG(keys, res->d_records, domain, 300);
           return 1;
         }
-        if (domain == target && type == QType::DS) { // dname.example|DS
-          return genericDSAndDNSKEYHandler(res, domain, dnameTarget, type, keys);
+        if (domain == cnameTarget && type == QType::DS) { // dname.example|DS
+          return genericDSAndDNSKEYHandler(res, domain, domain, type, keys, false);
         }
         if (domain == cnameTarget) {
           setLWResult(res, 0, true, false, false);
@@ -1512,7 +1512,7 @@ BOOST_AUTO_TEST_CASE(test_dname_dnssec_insecure) {
         }
         if (domain == dnameOwner && type == QType::DS) { // powerdns|DS
           setLWResult(res, 0, true, false, true);
-          addDS(domain, 300, res->d_records, keys);
+          addDS(domain, 300, res->d_records, keys, DNSResourceRecord::ANSWER);
           addRRSIG(keys, res->d_records, DNSName("."), 300);
           return 1;
         }
@@ -1544,7 +1544,7 @@ BOOST_AUTO_TEST_CASE(test_dname_dnssec_insecure) {
           return 1;
         }
         if (domain == target && type == QType::DS) { // dname.powerdns|DS
-          return genericDSAndDNSKEYHandler(res, domain, dnameOwner, type, keys);
+          return genericDSAndDNSKEYHandler(res, domain, dnameOwner, type, keys, false);
         }
         if (domain == target) {
           setLWResult(res, 0, true, false, false);
@@ -1555,7 +1555,7 @@ BOOST_AUTO_TEST_CASE(test_dname_dnssec_insecure) {
         }
       } else if (ip == ComboAddress("192.0.2.2:53")) {
         if (domain == target && type == QType::DS) { // dname.example|DS
-          return genericDSAndDNSKEYHandler(res, domain, dnameTarget, type, keys);
+          return genericDSAndDNSKEYHandler(res, domain, dnameTarget, type, keys, false);
         }
         if (domain == cnameTarget) {
           setLWResult(res, 0, true, false, false);

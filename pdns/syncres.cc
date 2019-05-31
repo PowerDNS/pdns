@@ -1783,58 +1783,63 @@ vState SyncRes::getDSRecords(const DNSName& zone, dsmap_t& ds, bool taOnly, unsi
   d_skipCNAMECheck = oldSkipCNAME;
 
   if (rcode == RCode::NoError || (rcode == RCode::NXDomain && !bogusOnNXD)) {
-
     uint8_t bestDigestType = 0;
 
-    if (state == Secure) {
-      bool gotCNAME = false;
-      for (const auto& record : dsrecords) {
-        if (record.d_type == QType::DS) {
-          const auto dscontent = getRR<DSRecordContent>(record);
-          if (dscontent && isSupportedDS(*dscontent)) {
-            // Make GOST a lower prio than SHA256
-            if (dscontent->d_digesttype == DNSSECKeeper::GOST && bestDigestType == DNSSECKeeper::SHA256) {
-              continue;
-            }
-            if (dscontent->d_digesttype > bestDigestType || (bestDigestType == DNSSECKeeper::GOST && dscontent->d_digesttype == DNSSECKeeper::SHA256)) {
-              bestDigestType = dscontent->d_digesttype;
-            }
-            ds.insert(*dscontent);
+    bool gotCNAME = false;
+    for (const auto& record : dsrecords) {
+      if (record.d_type == QType::DS) {
+        const auto dscontent = getRR<DSRecordContent>(record);
+        if (dscontent && isSupportedDS(*dscontent)) {
+          // Make GOST a lower prio than SHA256
+          if (dscontent->d_digesttype == DNSSECKeeper::GOST && bestDigestType == DNSSECKeeper::SHA256) {
+            continue;
           }
-        }
-        else if (record.d_type == QType::CNAME && record.d_name == zone) {
-          gotCNAME = true;
-        }
-      }
-
-      /* RFC 4509 section 3: "Validator implementations SHOULD ignore DS RRs containing SHA-1
-       * digests if DS RRs with SHA-256 digests are present in the DS RRset."
-       * As SHA348 is specified as well, the spirit of the this line is "use the best algorithm".
-       */
-      for (auto dsrec = ds.begin(); dsrec != ds.end(); ) {
-        if (dsrec->d_digesttype != bestDigestType) {
-          dsrec = ds.erase(dsrec);
-        }
-        else {
-          ++dsrec;
+          if (dscontent->d_digesttype > bestDigestType || (bestDigestType == DNSSECKeeper::GOST && dscontent->d_digesttype == DNSSECKeeper::SHA256)) {
+            bestDigestType = dscontent->d_digesttype;
+          }
+          ds.insert(*dscontent);
         }
       }
+      else if (record.d_type == QType::CNAME && record.d_name == zone) {
+        gotCNAME = true;
+      }
+    }
 
-      if (rcode == RCode::NoError && ds.empty()) {
-        if (foundCut) {
-          if (gotCNAME || denialProvesNoDelegation(zone, dsrecords)) {
-            /* we are still inside the same Secure zone */
+    /* RFC 4509 section 3: "Validator implementations SHOULD ignore DS RRs containing SHA-1
+     * digests if DS RRs with SHA-256 digests are present in the DS RRset."
+     * As SHA348 is specified as well, the spirit of the this line is "use the best algorithm".
+     */
+    for (auto dsrec = ds.begin(); dsrec != ds.end(); ) {
+      if (dsrec->d_digesttype != bestDigestType) {
+        dsrec = ds.erase(dsrec);
+      }
+      else {
+        ++dsrec;
+      }
+    }
 
+    if (rcode == RCode::NoError) {
+      if (ds.empty()) {
+        if (gotCNAME || denialProvesNoDelegation(zone, dsrecords)) {
+          /* we are still inside the same zone */
+
+          if (foundCut) {
             *foundCut = false;
-            return Secure;
           }
+          return state;
+        }
 
+        /* delegation with no DS, might be Secure -> Insecure */
+        if (foundCut) {
           *foundCut = true;
         }
 
-        return Insecure;
-      } else if (foundCut && rcode == RCode::NoError && !ds.empty()) {
-        *foundCut = true;
+        return state == Secure ? Insecure : state;
+      } else {
+        /* we have a DS */
+        if (foundCut) {
+          *foundCut = true;
+        }
       }
     }
 
@@ -2069,6 +2074,11 @@ vState SyncRes::validateRecordsWithSigs(unsigned int depth, const DNSName& qname
     if (!signer.empty() && name.isPartOf(signer)) {
       if ((qtype == QType::DNSKEY || qtype == QType::DS) && signer == qname) {
         /* we are already retrieving those keys, sorry */
+        if (qtype == QType::DS) {
+          /* something is very wrong */
+          LOG(d_prefix<<"The DS for "<<qname<<" is signed by itself, going Bogus"<<endl);
+          return Bogus;
+        }
         return Indeterminate;
       }
       vState state = getDNSKeys(signer, keys, depth);
