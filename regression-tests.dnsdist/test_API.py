@@ -230,8 +230,8 @@ class TestAPIBasics(DNSDistTest):
                     'rule-drop', 'rule-nxdomain', 'rule-refused', 'self-answered', 'downstream-timeouts',
                     'downstream-send-errors', 'trunc-failures', 'no-policy', 'latency0-1',
                     'latency1-10', 'latency10-50', 'latency50-100', 'latency100-1000',
-                    'latency-slow', 'latency-avg100', 'latency-avg1000', 'latency-avg10000',
-                    'latency-avg1000000', 'uptime', 'real-memory-usage', 'noncompliant-queries',
+                    'latency-slow', 'latency-sum', 'latency-count', 'latency-avg100', 'latency-avg1000',
+                    'latency-avg10000', 'latency-avg1000000', 'uptime', 'real-memory-usage', 'noncompliant-queries',
                     'noncompliant-responses', 'rdqueries', 'empty-queries', 'cache-hits',
                     'cache-misses', 'cpu-user-msec', 'cpu-sys-msec', 'fd-usage', 'dyn-blocked',
                     'dyn-block-nmg-size', 'rule-servfail', 'security-status']
