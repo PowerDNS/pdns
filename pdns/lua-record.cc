@@ -465,13 +465,19 @@ static vector<pair<int, ComboAddress> > convWIplist(std::unordered_map<int, wipl
   return ret;
 }
 
+thread_local unique_ptr<AuthLua4> alua;
+
 std::vector<shared_ptr<DNSRecordContent>> luaSynth(const std::string& code, const DNSName& query, const DNSName& zone, int zoneid, const DNSPacket& dnsp, uint16_t qtype)
 {
-  AuthLua4 alua;
+  if(!alua) {
+    cerr<<"initializing AuthLua4"<<endl;
+
+    alua = make_unique<AuthLua4>();
+  }
 
   std::vector<shared_ptr<DNSRecordContent>> ret;
 
-  LuaContext& lua = *alua.getLua();
+  LuaContext& lua = *alua->getLua();
   lua.writeVariable("qname", query);
   lua.writeVariable("who", dnsp.getRemote());
   lua.writeVariable("dh", (dnsheader*)&dnsp.d);
