@@ -511,6 +511,7 @@ void mainthread()
    g_8bitDNS = ::arg().mustDo("8bit-dns");
 #ifdef HAVE_LUA_RECORDS
    g_doLuaRecord = ::arg().mustDo("enable-lua-records");
+   g_LuaRecordSharedState = (::arg()["enable-lua-records"] == "shared");
    g_luaRecordExecLimit = ::arg().asNum("lua-records-exec-limit");
 #endif
 
