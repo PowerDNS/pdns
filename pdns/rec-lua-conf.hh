@@ -43,7 +43,7 @@ struct ProtobufExportConfig
 
 struct FrameStreamExportConfig
 {
-  std::vector<ComboAddress> servers;
+  std::vector<string> servers;
   bool enabled{false};
   bool logQueries{true};
   bool logResponses{true};
