@@ -18,6 +18,11 @@ AM_CXXFLAGS += \
 	-DNODCACHEDIR=\"$(nodcachedir)\"
 endif
 
+if FSTRM
+AM_CPPFLAGS += \
+	$(FSTRM_CFLAGS)
+endif
+
 AM_LDFLAGS = \
 	$(PROGRAM_LDFLAGS) \
 	$(THREADFLAGS)
@@ -59,6 +64,7 @@ EXTRA_DIST = \
 	NOTICE \
 	opensslsigners.hh opensslsigners.cc \
 	portsmplexer.cc \
+	dnstap.proto dnstap.cc dnstap.hh fstrm_logger.cc fstrm_logger.hh rec-dnstap.hh \
 	rrd/* \
 	html incfiles \
 	test_libcrypto \
@@ -109,6 +115,7 @@ pdns_recursor_SOURCES = \
 	ednsoptions.cc ednsoptions.hh \
 	ednssubnet.cc ednssubnet.hh \
 	filterpo.cc filterpo.hh \
+	fstrm_logger.cc fstrm_logger.hh \
 	gettime.cc gettime.hh \
 	gss_context.cc gss_context.hh \
 	iputils.hh iputils.cc \
@@ -370,16 +377,39 @@ if HAVE_PROTOC
 dnsmessage.pb.cc: dnsmessage.proto
 	$(AM_V_GEN)$(PROTOC) --cpp_out=./ $<
 
+if FSTRM
+dnstap.pb.cc: dnstap.proto
+	$(AM_V_GEN)$(PROTOC) -I$(srcdir) --cpp_out=./ $<
+endif
+
+
 BUILT_SOURCES += dnsmessage.pb.cc
 pdns_recursor_LDADD += $(PROTOBUF_LIBS)
 nodist_pdns_recursor_SOURCES = dnsmessage.pb.cc dnsmessage.pb.h
-pdns_recursor.$(OBJEXT): dnsmessage.pb.cc
-
 nodist_testrunner_SOURCES = dnsmessage.pb.cc dnsmessage.pb.h
-testrunner_LDADD += $(PROTOBUF_LIBS)
+
+if FSTRM
+BUILT_SOURCES += dnstap.pb.cc
+pdns_recursor.$(OBJEXT): dnstap.pb.cc dnsmessage.pb.cc
+testrunner$(OBJEXT): dnstap.pb.cc dnsmessage.pb.cc
+nodist_pdns_recursor_SOURCES += dnstap.pb.cc dnstap.pb.h
+nodist_testrunner_SOURCES += dnstap.pb.cc dnstap.pb.h
+else
+pdns_recursor.$(OBJEXT): dnsmessage.pb.cc
 testrunner$(OBJEXT): dnsmessage.pb.cc
+endif
+
+testrunner_LDADD += $(PROTOBUF_LIBS)
 
 endif
+endif
+
+if FSTRM
+pdns_recursor_SOURCES += \
+	dnstap.cc dnstap.hh rec-dnstap.hh
+
+pdns_recursor_LDADD += \
+	$(FSTRM_LIBS)
 endif
 
 rec_control_SOURCES = \
