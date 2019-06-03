@@ -61,6 +61,7 @@ extern "C" {
   void pdns_ffi_param_set_variable(pdns_ffi_param_t* ref, bool variable) __attribute__ ((visibility ("default")));
   void pdns_ffi_param_set_ttl_cap(pdns_ffi_param_t* ref, uint32_t ttl) __attribute__ ((visibility ("default")));
   void pdns_ffi_param_set_log_query(pdns_ffi_param_t* ref, bool logQuery) __attribute__ ((visibility ("default")));
+  void pdns_ffi_param_set_log_response(pdns_ffi_param_t* ref, bool logResponse) __attribute__ ((visibility ("default")));
   void pdns_ffi_param_set_rcode(pdns_ffi_param_t* ref, int rcode) __attribute__ ((visibility ("default")));
   void pdns_ffi_param_set_follow_cname_records(pdns_ffi_param_t* ref, bool follow) __attribute__ ((visibility ("default")));
 

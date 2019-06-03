@@ -341,6 +341,7 @@ struct DNSComboWriter {
   bool d_ecsFound{false};
   bool d_ecsParsed{false};
   bool d_followCNAMERecords{false};
+  bool d_logResponse{false};
   bool d_tcp;
 };
 
@@ -1184,10 +1185,8 @@ static void startDoResolve(void *p)
     // Used to tell syncres later on if we should apply NSDNAME and NSIP RPZ triggers for this query
     bool wantsRPZ(true);
     boost::optional<RecProtoBufMessage> pbMessage(boost::none);
-    bool logResponse = false;
 #ifdef HAVE_PROTOBUF
     if (checkProtobufExport(luaconfsLocal)) {
-      logResponse = t_protobufServers && luaconfsLocal->protobufExportConfig.logResponses;
       Netmask requestorNM(dc->d_source, dc->d_source.sin4.sin_family == AF_INET ? luaconfsLocal->protobufMaskV4 : luaconfsLocal->protobufMaskV6);
       const ComboAddress& requestor = requestorNM.getMaskedNetwork();
       pbMessage = RecProtoBufMessage(RecProtoBufMessage::Response, dc->d_uuid, &requestor, &dc->d_destination, dc->d_mdp.d_qname, dc->d_mdp.d_qtype, dc->d_mdp.d_qclass, dc->d_mdp.d_header.id, dc->d_tcp, 0);
@@ -1269,7 +1268,7 @@ static void startDoResolve(void *p)
 
     DNSFilterEngine::Policy appliedPolicy;
     std::vector<DNSRecord> spoofed;
-    RecursorLua4::DNSQuestion dq(dc->d_source, dc->d_destination, dc->d_mdp.d_qname, dc->d_mdp.d_qtype, dc->d_tcp, variableAnswer, wantsRPZ, logResponse);
+    RecursorLua4::DNSQuestion dq(dc->d_source, dc->d_destination, dc->d_mdp.d_qname, dc->d_mdp.d_qtype, dc->d_tcp, variableAnswer, wantsRPZ, dc->d_logResponse);
     dq.ednsFlags = &edo.d_extFlags;
     dq.ednsOptions = &ednsOpts;
     dq.tag = dc->d_tag;
@@ -1657,7 +1656,7 @@ static void startDoResolve(void *p)
     }
 #endif /* NOD_ENABLED */
 #ifdef HAVE_PROTOBUF
-    if (t_protobufServers && logResponse && !(luaconfsLocal->protobufExportConfig.taggedOnly && (!appliedPolicy.d_name || appliedPolicy.d_name->empty()) && dc->d_policyTags.empty())) {
+    if (t_protobufServers && !(luaconfsLocal->protobufExportConfig.taggedOnly && (!appliedPolicy.d_name || appliedPolicy.d_name->empty()) && dc->d_policyTags.empty())) {
       pbMessage->setBytes(packet.size());
       pbMessage->setResponseCode(pw.getHeader()->rcode);
       if (appliedPolicy.d_name) {
@@ -1685,7 +1684,9 @@ static void startDoResolve(void *p)
         }
       }
 #endif /* NOD_ENABLED */
-      protobufLogResponse(*pbMessage);
+      if (dc->d_logResponse) {
+        protobufLogResponse(*pbMessage);
+      }
 #ifdef NOD_ENABLED
       if (g_nodEnabled) {
         pbMessage->setNOD(false);
@@ -2042,6 +2043,7 @@ static void handleRunningTCPQuestion(int fd, FDMultiplexer::funcparam_t& var)
         needECS = true;
       }
       logQuery = t_protobufServers && luaconfsLocal->protobufExportConfig.logQueries;
+      dc->d_logResponse = t_protobufServers && luaconfsLocal->protobufExportConfig.logResponses;
 #endif /* HAVE_PROTOBUF */
 
 #ifdef HAVE_FSTRM
@@ -2062,7 +2064,7 @@ static void handleRunningTCPQuestion(int fd, FDMultiplexer::funcparam_t& var)
           if(t_pdl) {
             try {
               if (t_pdl->d_gettag_ffi) {
-                dc->d_tag = t_pdl->gettag_ffi(dc->d_source, dc->d_ednssubnet.source, dc->d_destination, qname, qtype, &dc->d_policyTags, dc->d_records, dc->d_data, ednsOptions, true, requestorId, deviceId, deviceName, dc->d_rcode, dc->d_ttlCap, dc->d_variable, logQuery, dc->d_followCNAMERecords);
+                dc->d_tag = t_pdl->gettag_ffi(dc->d_source, dc->d_ednssubnet.source, dc->d_destination, qname, qtype, &dc->d_policyTags, dc->d_records, dc->d_data, ednsOptions, true, requestorId, deviceId, deviceName, dc->d_rcode, dc->d_ttlCap, dc->d_variable, logQuery, dc->d_logResponse, dc->d_followCNAMERecords);
               }
               else if (t_pdl->d_gettag) {
                 dc->d_tag = t_pdl->gettag(dc->d_source, dc->d_ednssubnet.source, dc->d_destination, qname, qtype, &dc->d_policyTags, dc->d_data, ednsOptions, true, requestorId, deviceId, deviceName);
@@ -2231,6 +2233,7 @@ static string* doProcessUDPQuestion(const std::string& question, const ComboAddr
   string deviceId;
   string deviceName;
   bool logQuery = false;
+  bool logResponse = false;
 #ifdef HAVE_PROTOBUF
   boost::uuids::uuid uniqueId;
   auto luaconfsLocal = g_luaconfs.getLocal();
@@ -2241,7 +2244,7 @@ static string* doProcessUDPQuestion(const std::string& question, const ComboAddr
     uniqueId = getUniqueID();
   }
   logQuery = t_protobufServers && luaconfsLocal->protobufExportConfig.logQueries;
-  bool logResponse = t_protobufServers && luaconfsLocal->protobufExportConfig.logResponses;
+  logResponse = t_protobufServers && luaconfsLocal->protobufExportConfig.logResponses;
 #endif
 #ifdef HAVE_FSTRM
   checkFrameStreamExport(luaconfsLocal);
@@ -2291,7 +2294,7 @@ static string* doProcessUDPQuestion(const std::string& question, const ComboAddr
         if(t_pdl) {
           try {
             if (t_pdl->d_gettag_ffi) {
-              ctag = t_pdl->gettag_ffi(source, ednssubnet.source, destination, qname, qtype, &policyTags, records, data, ednsOptions, false, requestorId, deviceId, deviceName, rcode, ttlCap, variable, logQuery, followCNAMEs);
+              ctag = t_pdl->gettag_ffi(source, ednssubnet.source, destination, qname, qtype, &policyTags, records, data, ednsOptions, false, requestorId, deviceId, deviceName, rcode, ttlCap, variable, logQuery, logResponse, followCNAMEs);
             }
             else if (t_pdl->d_gettag) {
               ctag = t_pdl->gettag(source, ednssubnet.source, destination, qname, qtype, &policyTags, data, ednsOptions, false, requestorId, deviceId, deviceName);
@@ -2427,6 +2430,7 @@ static string* doProcessUDPQuestion(const std::string& question, const ComboAddr
   dc->d_variable = variable;
   dc->d_followCNAMERecords = followCNAMEs;
   dc->d_rcode = rcode;
+  dc->d_logResponse = logResponse;
 #ifdef HAVE_PROTOBUF
   if (t_protobufServers || t_outgoingProtobufServers) {
     dc->d_uuid = std::move(uniqueId);

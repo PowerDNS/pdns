@@ -548,7 +548,7 @@ unsigned int RecursorLua4::gettag(const ComboAddress& remote, const Netmask& edn
 struct pdns_ffi_param
 {
 public:
-  pdns_ffi_param(const DNSName& qname_, uint16_t qtype_, const ComboAddress& local_, const ComboAddress& remote_, const Netmask& ednssubnet_, std::vector<std::string>& policyTags_, std::vector<DNSRecord>& records_, const EDNSOptionViewMap& ednsOptions_, std::string& requestorId_, std::string& deviceId_, std::string& deviceName_, boost::optional<int>& rcode_, uint32_t& ttlCap_, bool& variable_, bool tcp_, bool& logQuery_, bool& followCNAMERecords_): qname(qname_), local(local_), remote(remote_), ednssubnet(ednssubnet_), policyTags(policyTags_), records(records_), ednsOptions(ednsOptions_), requestorId(requestorId_), deviceId(deviceId_), deviceName(deviceName_), rcode(rcode_), ttlCap(ttlCap_), variable(variable_), logQuery(logQuery_), followCNAMERecords(followCNAMERecords_), qtype(qtype_), tcp(tcp_)
+  pdns_ffi_param(const DNSName& qname_, uint16_t qtype_, const ComboAddress& local_, const ComboAddress& remote_, const Netmask& ednssubnet_, std::vector<std::string>& policyTags_, std::vector<DNSRecord>& records_, const EDNSOptionViewMap& ednsOptions_, std::string& requestorId_, std::string& deviceId_, std::string& deviceName_, boost::optional<int>& rcode_, uint32_t& ttlCap_, bool& variable_, bool tcp_, bool& logQuery_, bool& logResponse_, bool& followCNAMERecords_): qname(qname_), local(local_), remote(remote_), ednssubnet(ednssubnet_), policyTags(policyTags_), records(records_), ednsOptions(ednsOptions_), requestorId(requestorId_), deviceId(deviceId_), deviceName(deviceName_), rcode(rcode_), ttlCap(ttlCap_), variable(variable_), logQuery(logQuery_), logResponse(logResponse_), followCNAMERecords(followCNAMERecords_), qtype(qtype_), tcp(tcp_)
   {
   }
 
@@ -572,6 +572,7 @@ public:
   uint32_t& ttlCap;
   bool& variable;
   bool& logQuery;
+  bool& logResponse;
   bool& followCNAMERecords;
 
   unsigned int tag{0};
@@ -579,10 +580,10 @@ public:
   bool tcp;
 };
 
-unsigned int RecursorLua4::gettag_ffi(const ComboAddress& remote, const Netmask& ednssubnet, const ComboAddress& local, const DNSName& qname, uint16_t qtype, std::vector<std::string>* policyTags, std::vector<DNSRecord>& records, LuaContext::LuaObject& data, const EDNSOptionViewMap& ednsOptions, bool tcp, std::string& requestorId, std::string& deviceId, std::string& deviceName, boost::optional<int>& rcode, uint32_t& ttlCap, bool& variable, bool& logQuery, bool& followCNAMERecords) const
+unsigned int RecursorLua4::gettag_ffi(const ComboAddress& remote, const Netmask& ednssubnet, const ComboAddress& local, const DNSName& qname, uint16_t qtype, std::vector<std::string>* policyTags, std::vector<DNSRecord>& records, LuaContext::LuaObject& data, const EDNSOptionViewMap& ednsOptions, bool tcp, std::string& requestorId, std::string& deviceId, std::string& deviceName, boost::optional<int>& rcode, uint32_t& ttlCap, bool& variable, bool& logQuery, bool& logResponse, bool& followCNAMERecords) const
 {
   if (d_gettag_ffi) {
-    pdns_ffi_param_t param(qname, qtype, local, remote, ednssubnet, *policyTags, records, ednsOptions, requestorId, deviceId, deviceName, rcode, ttlCap, variable, tcp, logQuery, followCNAMERecords);
+    pdns_ffi_param_t param(qname, qtype, local, remote, ednssubnet, *policyTags, records, ednsOptions, requestorId, deviceId, deviceName, rcode, ttlCap, variable, tcp, logQuery, logResponse, followCNAMERecords);
 
     auto ret = d_gettag_ffi(&param);
     if (ret) {
@@ -850,6 +851,11 @@ void pdns_ffi_param_set_ttl_cap(pdns_ffi_param_t* ref, uint32_t ttl)
 void pdns_ffi_param_set_log_query(pdns_ffi_param_t* ref, bool logQuery)
 {
   ref->logQuery = logQuery;
+}
+
+void pdns_ffi_param_set_log_response(pdns_ffi_param_t* ref, bool logResponse)
+{
+  ref->logResponse = logResponse;
 }
 
 void pdns_ffi_param_set_rcode(pdns_ffi_param_t* ref, int rcode)
