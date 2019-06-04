@@ -541,7 +541,9 @@ void loadRecursorLuaConfig(const std::string& fname, luaConfigDelayedThreads& de
           try {
             if (servers.type() == typeid(std::string)) {
               auto server = boost::get<const std::string>(servers);
-
+              if (!boost::starts_with(server, "/")) {
+                ComboAddress parsecheck(server);
+              }
               lci.frameStreamExportConfig.servers.emplace_back(server);
             }
             else {

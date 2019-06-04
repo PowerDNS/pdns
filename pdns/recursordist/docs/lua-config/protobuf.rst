@@ -103,11 +103,11 @@ The recursor must have been built with configure ``--enable-dnstap`` to make thi
 
 .. function:: dnstapFrameStreamServer(servers, [, options])
 
-  .. versionadded:: 4.X.0
+  .. versionadded:: 4.3.0
 
   Send dnstap formatted message to one or more framestream servers for outgoing queries and/or incoming responses.
 
-  :param servers: The IP and port to connect to, or a list of those. If more than one server is configured, all messages are sent to every server.
+  :param servers: Either a pathname of a unix domain socket starting with a slash or the IP:port to connect to, or a list of those. If more than one server is configured, all messages are sent to every server.
   :type servers: string or list of strings
   :param table options: A table with ``key=value`` pairs with options.
 
