@@ -29,7 +29,7 @@ class NSECBitmapGenerator
 public:
   NSECBitmapGenerator(DNSPacketWriter& pw_): pw(pw_)
   {
-    memset(res, 0, 34);
+    memset(res, 0, sizeof(res));
   }
 
   void set(uint16_t type)
@@ -44,7 +44,7 @@ public:
         tmp.assign(res, res+len+2);
         pw.xfrBlob(tmp);
       }
-      memset(res, 0, 34);
+      memset(res, 0, sizeof(res));
       oldWindow = window;
     }
     res[2+bit/8] |= 1 << (7-(bit%8));
