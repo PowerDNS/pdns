@@ -93,18 +93,16 @@ static void* recvThread(const vector<Socket*>* sockets)
 #if HAVE_RECVMMSG
         if ((err=recvmmsg(pfd.fd, &buf[0], buf.size(), MSG_WAITFORONE, 0)) < 0 ) {
           if(errno != EAGAIN)
-            cerr<<"recvmmsg gave error, ignoring: "<<strerror(errno)<<endl;
-          unixDie("recvmmsg");
+            unixDie("recvmmsg");
           continue;
         }
         g_recvcounter+=err;
         for(int n=0; n < err; ++n)
-        g_recvbytes += buf[n].msg_len;
+          g_recvbytes += buf[n].msg_len;
 #else
         if ((err = recvmsg(pfd.fd, &buf, 0)) < 0) {
           if (errno != EAGAIN)
-            cerr << "recvmsg gave error, ignoring: " << strerror(errno) << endl;
-          unixDie("recvmsg");
+            unixDie("recvmsg");
           continue;
         }
         g_recvcounter++;
