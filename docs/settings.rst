@@ -508,6 +508,9 @@ inside a supervisor that handles logging (like systemd).
 -  Boolean
 -  Default: no
 
+.. versionchanged:: 4.2.0
+  This setting has been removed
+
 Do not listen to TCP queries. Breaks RFC compliance.
 
 .. _setting-distributor-threads:

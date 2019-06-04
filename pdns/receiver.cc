@@ -598,8 +598,7 @@ int main(int argc, char **argv)
       }
     }
 
-    if(!::arg().mustDo("disable-tcp"))
-      TN=new TCPNameserver; 
+    TN = make_unique<TCPNameserver>();
   }
   catch(const ArgException &A) {
     g_log<<Logger::Error<<"Fatal error: "<<A.reason<<endl;
