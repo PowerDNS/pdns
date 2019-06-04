@@ -340,10 +340,8 @@ void DNSPacket::wrapup()
         pos->dr.d_content->toPacket(pw);
         if(pw.size() + optsize > (d_tcp ? 65535 : getMaxReplyLen())) {
           pw.rollback();
-          if(pos->dr.d_place == DNSResourceRecord::ANSWER || pos->dr.d_place == DNSResourceRecord::AUTHORITY) {
-            pw.truncate();
-            pw.getHeader()->tc=1;
-          }
+          pw.truncate();
+          pw.getHeader()->tc=1;
           goto noCommit;
         }
       }
