@@ -31,6 +31,13 @@ Changelog
 
     Remove second, incomplete copy of lua EDNSOptionCode table
 
+  .. change::
+    :tags: Improvements, Prometheus
+    :pullreq: 7853
+    :tickets: 6088
+
+    Support Prometheus latency histograms (Marlin Cremers)
+
 .. changelog::
   :version: 1.4.0-alpha2
   :released: 26th of April 2019
