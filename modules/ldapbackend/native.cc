@@ -372,7 +372,9 @@ bool LdapBackend::getDomainInfo( const DNSName& domain, DomainInfo& di, bool get
     // search for SOARecord of domain
     filter = "(&(associatedDomain=" + toLower( d_pldap->escape( domain.toStringRootDot() ) ) + ")(SOARecord=*))";
     d_search = d_pldap->search( getArg( "basedn" ), LDAP_SCOPE_SUBTREE, filter, attronly );
-    d_search->getNext( result );
+    if (!d_search->getNext( result )) {
+      return false;
+    }
   }
   catch( LDAPTimeout &lt )
   {

@@ -159,7 +159,7 @@ try
     if(sock.write((char *) &len, 2) != 2)
       throw PDNSException("tcp write failed");
 
-    sock.writen(string((char*)&*packet.begin(), (char*)&*packet.end()));
+    sock.writen(string(packet.begin(), packet.end()));
     
     if(sock.read((char *) &len, 2) != 2)
       throw PDNSException("tcp read failed");
@@ -181,7 +181,7 @@ try
   else //udp
   {
     Socket sock(dest.sin4.sin_family, SOCK_DGRAM);
-    sock.sendTo(string((char*)&*packet.begin(), (char*)&*packet.end()), dest);
+    sock.sendTo(string(packet.begin(), packet.end()), dest);
     int result=waitForData(sock.getHandle(), 10);
     if(result < 0) 
       throw std::runtime_error("Error waiting for data: "+string(strerror(errno)));

@@ -203,17 +203,27 @@ bool Bind2Backend::startTransaction(const DNSName &qname, int id)
   d_transaction_id=id;
   BB2DomainInfo bbd;
   if(safeGetBBDomainInfo(id, &bbd)) {
-    d_transaction_tmpname=bbd.d_filename+"."+itoa(random());
-    d_of=std::unique_ptr<ofstream>(new ofstream(d_transaction_tmpname.c_str()));
+    d_transaction_tmpname = bbd.d_filename + "XXXXXX";
+    int fd = mkstemp(&d_transaction_tmpname.at(0));
+    if (fd == -1) {
+      throw DBException("Unable to create a unique temporary zonefile '"+d_transaction_tmpname+"': "+stringerror());
+      return false;
+    }
+
+    d_of = std::unique_ptr<ofstream>(new ofstream(d_transaction_tmpname.c_str()));
     if(!*d_of) {
       unlink(d_transaction_tmpname.c_str());
+      close(fd);
+      fd = -1;
       d_of.reset();
       throw DBException("Unable to open temporary zonefile '"+d_transaction_tmpname+"': "+stringerror());
     }
-    
+    close(fd);
+    fd = -1;
+
     *d_of<<"; Written by PowerDNS, don't edit!"<<endl;
     *d_of<<"; Zone '"<<bbd.d_name<<"' retrieved from master "<<endl<<"; at "<<nowTime()<<endl; // insert master info here again
-    
+
     return true;
   }
   return false;
@@ -603,6 +613,7 @@ string Bind2Backend::DLAddDomainHandler(const vector<string>&parts, Utility::pid
   bbd.d_loaded=true;
   bbd.d_lastcheck=0;
   bbd.d_status="parsing into memory";
+  bbd.setCtime();
 
   safePutBBDomainInfo(bbd);
 
@@ -630,6 +641,7 @@ Bind2Backend::Bind2Backend(const string &suffix, bool loadZones)
   setArgPrefix("bind"+suffix);
   d_logprefix="[bind"+suffix+"backend]";
   d_hybrid=mustDo("hybrid");
+  d_transaction_id=0;
   s_ignore_broken_records=mustDo("ignore-broken-records");
 
   if (!loadZones && d_hybrid)
@@ -637,7 +649,6 @@ Bind2Backend::Bind2Backend(const string &suffix, bool loadZones)
 
   Lock l(&s_startup_lock);
   
-  d_transaction_id=0;
   setupDNSSEC();
   if(!s_first) {
     return;
@@ -1262,11 +1273,13 @@ BB2DomainInfo Bind2Backend::createDomainEntry(const DNSName& domain, const strin
   }
   
   BB2DomainInfo bbd;
+  bbd.d_kind = DomainInfo::Native;
   bbd.d_id = newid;
   bbd.d_records = shared_ptr<recordstorage_t >(new recordstorage_t);
   bbd.d_name = domain;
   bbd.setCheckInterval(getArgAsNum("check-interval"));
   bbd.d_filename = filename;
+  
   return bbd;
 }
 
@@ -1300,6 +1313,7 @@ bool Bind2Backend::createSlaveDomain(const string &ip, const DNSName& domain, co
   BB2DomainInfo bbd = createDomainEntry(domain, filename);
   bbd.d_kind = DomainInfo::Slave;
   bbd.d_masters.push_back(ComboAddress(ip, 53));
+  bbd.setCtime();
   safePutBBDomainInfo(bbd);
   return true;
 }
@@ -1316,7 +1330,10 @@ bool Bind2Backend::searchRecords(const string &pattern, int maxResults, vector<D
 
     for(state_t::const_iterator i = s_state.begin(); i != s_state.end() ; ++i) {
       BB2DomainInfo h;
-      safeGetBBDomainInfo(i->d_id, &h);
+      if (!safeGetBBDomainInfo(i->d_id, &h)) {
+        continue;
+      }
+
       shared_ptr<const recordstorage_t> rhandle = h.d_records.get();
 
       for(recordstorage_t::const_iterator ri = rhandle->begin(); result.size() < static_cast<vector<DNSResourceRecord>::size_type>(maxResults) && ri != rhandle->end(); ri++) {

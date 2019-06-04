@@ -244,7 +244,10 @@ int checkZone(DNSSECKeeper &dk, UeberBackend &B, const DNSName& zone, const vect
 
   DomainInfo di;
   try {
-    B.getDomainInfo(zone, di);
+    if (!B.getDomainInfo(zone, di)) {
+      cout<<"[Error] Unable to get domain information for zone '"<<zone<<"'"<<endl;
+      return 1;
+    }
   } catch(const PDNSException &e) {
     if (di.kind == DomainInfo::Slave) {
       cout<<"[Error] non-IP address for masters: "<<e.reason<<endl;
