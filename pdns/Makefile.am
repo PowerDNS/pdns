@@ -503,6 +503,11 @@ sdig_SOURCES = \
 sdig_LDADD = $(LIBCRYPTO_LIBS)
 sdig_LDFLAGS = $(AM_LDFLAGS) $(LIBCRYPTO_LDFLAGS)
 
+if HAVE_LIBCURL
+sdig_SOURCES += minicurl.cc minicurl.hh
+sdig_LDADD += $(LIBCURL)
+endif
+
 calidns_SOURCES = \
 	base32.cc \
 	base64.cc base64.hh \

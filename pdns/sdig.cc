@@ -10,6 +10,11 @@
 #include "statbag.hh"
 #include <boost/array.hpp>
 #include "ednssubnet.hh"
+
+#ifdef HAVE_LIBCURL
+#include "minicurl.hh"
+#endif
+
 StatBag S;
 
 bool hidettl=false;
@@ -24,7 +29,7 @@ string ttl(uint32_t ttl)
 
 void usage() {
   cerr<<"sdig"<<endl;
-  cerr<<"Syntax: sdig IP-ADDRESS PORT QUESTION QUESTION-TYPE [dnssec] [recurse] [showflags] [hidesoadetails] [hidettl] [tcp] [ednssubnet SUBNET/MASK] [xpf XPFDATA]"<<endl;
+  cerr<<"Syntax: sdig IP-ADDRESS-OR-DOH-URL PORT QUESTION QUESTION-TYPE [dnssec] [recurse] [showflags] [hidesoadetails] [hidettl] [tcp] [ednssubnet SUBNET/MASK] [xpf XPFDATA]"<<endl;
 }
 
 const string nameForClass(uint16_t qclass, uint16_t qtype)
@@ -48,6 +53,7 @@ try
   bool tcp=false;
   bool showflags=false;
   bool hidesoadetails=false;
+  bool doh=false;
   boost::optional<Netmask> ednsnm;
   uint16_t xpfcode = 0, xpfversion = 0, xpfproto = 0;
   char *xpfsrc = NULL, *xpfdst = NULL;
@@ -149,9 +155,27 @@ try
   }
 
   string reply;
-  ComboAddress dest(argv[1] + (*argv[1]=='@'), atoi(argv[2]));
+  string question(packet.begin(), packet.end());
+  ComboAddress dest;
+  if(*argv[1]=='h') {
+    doh = true;
+  }
+  else {
+    dest = ComboAddress(argv[1] + (*argv[1]=='@'), atoi(argv[2]));
+  }
 
-  if(tcp) {
+  if(doh) {
+#ifdef HAVE_LIBCURL
+    MiniCurl mc;
+    MiniCurl::MiniCurlHeaders mch;
+    mch.insert(std::make_pair("Content-Type", "application/dns-message"));
+    mch.insert(std::make_pair("Accept", "application/dns-message"));
+    reply = mc.postURL(argv[1], question, mch);
+#else
+    throw PDNSException("please link sdig against libcurl for DoH support");
+#endif
+  }
+  else if(tcp) {
     Socket sock(dest.sin4.sin_family, SOCK_STREAM);
     sock.connect(dest);
     uint16_t len;
@@ -159,7 +183,7 @@ try
     if(sock.write((char *) &len, 2) != 2)
       throw PDNSException("tcp write failed");
 
-    sock.writen(string(packet.begin(), packet.end()));
+    sock.writen(question);
     
     if(sock.read((char *) &len, 2) != 2)
       throw PDNSException("tcp read failed");
@@ -181,7 +205,7 @@ try
   else //udp
   {
     Socket sock(dest.sin4.sin_family, SOCK_DGRAM);
-    sock.sendTo(string(packet.begin(), packet.end()), dest);
+    sock.sendTo(question, dest);
     int result=waitForData(sock.getHandle(), 10);
     if(result < 0) 
       throw std::runtime_error("Error waiting for data: "+string(strerror(errno)));
@@ -249,7 +273,9 @@ try
           cerr<<"EDNS Subnet response: "<<reso.source.toString()<<", scope: "<<reso.scope.toString()<<", family = "<<reso.scope.getNetwork().sin4.sin_family<<endl;
 	}
       }
-
+      else if(iter->first == EDNSOptionCode::PADDING) {
+        cerr<<"EDNS Padding size: "<<(iter->second.size())<<endl;
+      }
       else {
         cerr<<"Have unknown option "<<(int)iter->first<<endl;
       }
