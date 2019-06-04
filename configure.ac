@@ -130,9 +130,11 @@ PDNS_CHECK_VIRTUALENV
 PDNS_FROM_GIT
 
 dnl Checks for library functions.
-AC_CHECK_FUNCS_ONCE([strcasestr localtime_r recvmmsg getrandom arc4random])
+AC_CHECK_FUNCS_ONCE([strcasestr localtime_r recvmmsg sched_setscheduler getrandom arc4random])
 
 AM_CONDITIONAL([HAVE_RECVMMSG], [test "x$ac_cv_func_recvmmsg" = "xyes"])
+
+AM_CONDITIONAL([HAVE_SCHED_SETSCHEDULER], [test "x$ac_cv_func_sched_setscheduler" = "xyes"])
 
 AS_IF([test "x$lt_cv_dlopen" = "xno"],
   [AC_MSG_ERROR([Your system does not support dlopen])]
