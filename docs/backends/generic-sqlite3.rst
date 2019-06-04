@@ -71,7 +71,7 @@ Path to the SQLite3 database.
 .. _setting-gsqlite3-pragma-journal-mode:
 
 ``gsqlite3-pragma-journal-mode``
-~~~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 SQLite3 journal mode to set. The default is WAL. Set to empty to leave the journal mode alone.
 
