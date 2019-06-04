@@ -59,6 +59,7 @@ These backends have :doc:`features unique <generic-sql>` to the generic SQL back
   generic-sqlite3
   geoip
   ldap
+  lmdb
   lua
   lua2
   mydns
