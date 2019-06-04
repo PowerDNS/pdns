@@ -31,6 +31,8 @@
 class MiniCurl
 {
 public:
+  static void init();
+
   MiniCurl(const string& useragent="MiniCurl/0.0");
   ~MiniCurl();
   MiniCurl& operator=(const MiniCurl&) = delete;
