@@ -180,7 +180,7 @@ private:
 };
 
 // Constructor.
-SSQLite3::SSQLite3( const std::string & database, bool creat )
+SSQLite3::SSQLite3( const std::string & database, const std::string & journalmode, bool creat )
 {
   if (access( database.c_str(), F_OK ) == -1){
     if (!creat)
@@ -195,6 +195,9 @@ SSQLite3::SSQLite3( const std::string & database, bool creat )
   m_dolog = 0;
   m_in_transaction = false;
   sqlite3_busy_handler(m_pDB, busyHandler, 0);
+
+  if(journalmode.length())
+    execute("PRAGMA journal_mode="+journalmode);
 }
 
 void SSQLite3::setLog(bool state)

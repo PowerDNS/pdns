@@ -96,7 +96,7 @@ void Bind2Backend::setupDNSSEC()
   if(getArg("dnssec-db").empty() || d_hybrid)
     return;
   try {
-    d_dnssecdb = shared_ptr<SSQLite3>(new SSQLite3(getArg("dnssec-db")));
+    d_dnssecdb = shared_ptr<SSQLite3>(new SSQLite3(getArg("dnssec-db"), getArg("dnssec-db-journal-mode")));
     setupStatements();
   }
   catch(SSqlException& se) {

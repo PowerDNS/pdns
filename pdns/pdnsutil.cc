@@ -2084,7 +2084,7 @@ try
       return 0;
     }
     try {
-      SSQLite3 db(cmds[1], true); // create=ok
+      SSQLite3 db(cmds[1], "", true); // create=ok
       vector<string> statements;
       stringtok(statements, sqlCreate, ";");
       for(const string& statement :  statements) {

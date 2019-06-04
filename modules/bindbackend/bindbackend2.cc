@@ -1369,6 +1369,7 @@ class Bind2Factory : public BackendFactory
          declare(suffix,"supermasters","List of IP-addresses of supermasters","");
          declare(suffix,"supermaster-destdir","Destination directory for newly added slave zones",::arg()["config-dir"]);
          declare(suffix,"dnssec-db","Filename to store & access our DNSSEC metadatabase, empty for none", "");         
+         declare(suffix,"dnssec-db-journal-mode","SQLite3 journal mode", "WAL");
          declare(suffix,"hybrid","Store DNSSEC metadata in other backend","no");
       }
 
