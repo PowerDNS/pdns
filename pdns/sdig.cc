@@ -29,7 +29,7 @@ string ttl(uint32_t ttl)
 
 void usage() {
   cerr<<"sdig"<<endl;
-  cerr<<"Syntax: sdig IP-ADDRESS-OR-DOH-URL PORT QUESTION QUESTION-TYPE [dnssec] [recurse] [showflags] [hidesoadetails] [hidettl] [tcp] [ednssubnet SUBNET/MASK] [xpf XPFDATA]"<<endl;
+  cerr<<"Syntax: sdig IP-ADDRESS-OR-DOH-URL PORT QUESTION QUESTION-TYPE [dnssec] [ednssubnet SUBNET/MASK] [hidesoadetails] [hidettl] [recurse] [showflags] [tcp] [xpf XPFDATA]"<<endl;
 }
 
 const string nameForClass(uint16_t qclass, uint16_t qtype)
