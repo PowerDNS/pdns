@@ -541,7 +541,9 @@ void loadRecursorLuaConfig(const std::string& fname, luaConfigDelayedThreads& de
           try {
             if (servers.type() == typeid(std::string)) {
               auto server = boost::get<const std::string>(servers);
-
+              if (!boost::starts_with(server, "/")) {
+                ComboAddress parsecheck(server);
+              }
               lci.frameStreamExportConfig.servers.emplace_back(server);
             }
             else {
@@ -554,14 +556,14 @@ void loadRecursorLuaConfig(const std::string& fname, luaConfigDelayedThreads& de
             parseFrameStreamOptions(vars, lci.frameStreamExportConfig);
           }
           catch(std::exception& e) {
-            g_log<<Logger::Error<<"Error while starting dnstap framestream logger: "<<e.what()<<endl;
+            g_log<<Logger::Error<<"Error reading config for dnstap framestream logger: "<<e.what()<<endl;
           }
           catch(PDNSException& e) {
-            g_log<<Logger::Error<<"Error while starting dnstap framestream logger: "<<e.reason<<endl;
+            g_log<<Logger::Error<<"Error reading config for dnstap framestream logger: "<<e.reason<<endl;
           }
       }
       else {
-        g_log<<Logger::Error<<"Only one dnstapFrameStreamServer() directive can be configured, we already have "<<lci.frameStreamExportConfig.servers.at(0).toString()<<endl;
+        g_log<<Logger::Error<<"Only one dnstapFrameStreamServer() directive can be configured, we already have "<<lci.frameStreamExportConfig.servers.at(0)<<endl;
       }
     });
 #endif /* HAVE_FSTRM */
