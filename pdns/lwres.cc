@@ -70,14 +70,15 @@ static bool isEnabledForQueries(const std::shared_ptr<std::vector<std::unique_pt
   return false;
 }
 
-static void logFstreamQuery(const std::shared_ptr<std::vector<std::unique_ptr<FrameStreamLogger>>>& fstreamLoggers, const struct timeval &queryTime, const ComboAddress& ip, bool doTCP, const vector<uint8_t>& packet)
+static void logFstreamQuery(const std::shared_ptr<std::vector<std::unique_ptr<FrameStreamLogger>>>& fstreamLoggers, const struct timeval &queryTime, const ComboAddress& ip, bool doTCP,
+  boost::optional<const DNSName&> auth, const vector<uint8_t>& packet)
 {
   if (fstreamLoggers == nullptr)
     return;
 
   struct timespec ts;
   TIMEVAL_TO_TIMESPEC(&queryTime, &ts);
-  RecDnstapMessage message(SyncRes::s_serverID, nullptr, &ip, doTCP, reinterpret_cast<const char*>(&*packet.begin()), packet.size(), &ts, nullptr);
+  RecDnstapMessage message(SyncRes::s_serverID, nullptr, &ip, doTCP, auth, reinterpret_cast<const char*>(&*packet.begin()), packet.size(), &ts, nullptr);
   std::string str;
   message.serialize(str);
 
@@ -99,7 +100,8 @@ static bool isEnabledForResponses(const std::shared_ptr<std::vector<std::unique_
   return false;
 }
 
-static void logFstreamResponse(const std::shared_ptr<std::vector<std::unique_ptr<FrameStreamLogger>>>& fstreamLoggers, const ComboAddress& ip, bool doTCP, const std::string& packet, const struct timeval& queryTime, const struct timeval& replyTime)
+static void logFstreamResponse(const std::shared_ptr<std::vector<std::unique_ptr<FrameStreamLogger>>>& fstreamLoggers, const ComboAddress& ip, bool doTCP,
+  boost::optional<const DNSName&> auth, const std::string& packet, const struct timeval& queryTime, const struct timeval& replyTime)
 {
   if (fstreamLoggers == nullptr)
     return;
@@ -107,7 +109,7 @@ static void logFstreamResponse(const std::shared_ptr<std::vector<std::unique_ptr
   struct timespec ts1, ts2;
   TIMEVAL_TO_TIMESPEC(&queryTime, &ts1);
   TIMEVAL_TO_TIMESPEC(&replyTime, &ts2);
-  RecDnstapMessage message(SyncRes::s_serverID, nullptr, &ip, doTCP, static_cast<const char*>(&*packet.begin()), packet.size(), &ts1, &ts2);
+  RecDnstapMessage message(SyncRes::s_serverID, nullptr, &ip, doTCP, auth, static_cast<const char*>(&*packet.begin()), packet.size(), &ts1, &ts2);
   std::string str;
   message.serialize(str);
 
@@ -234,7 +236,7 @@ int asyncresolve(const ComboAddress& ip, const DNSName& domain, int type, bool d
 #endif /* HAVE_PROTOBUF */
 #ifdef HAVE_FSTRM
   if (isEnabledForQueries(fstrmLoggers)) {
-    logFstreamQuery(fstrmLoggers, queryTime, ip, doTCP, vpacket);
+    logFstreamQuery(fstrmLoggers, queryTime, ip, doTCP, context ? context->d_auth : boost::none, vpacket);
   }
 #endif /* HAVE_FSTRM */
 
@@ -312,7 +314,7 @@ int asyncresolve(const ComboAddress& ip, const DNSName& domain, int type, bool d
 
 #ifdef HAVE_FSTRM
   if (isEnabledForResponses(fstrmLoggers)) {
-    logFstreamResponse(fstrmLoggers, ip, doTCP, buf, queryTime, *now);
+    logFstreamResponse(fstrmLoggers, ip, doTCP, context ? context->d_auth : boost::none, buf, queryTime, *now);
   }
 #endif /* HAVE_FSTRM */
 
