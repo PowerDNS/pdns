@@ -43,7 +43,7 @@ Default is 2 on 32 bits systems, and 64 on 64 bits systems.
 .. _setting-lmdb-sync-mode:
 
 ``lmdb-sync-mode``
-^^^^^^^^^^^^^^^^^
+^^^^^^^^^^^^^^^^^^
 
 Synchronisation mode: sync, nosync, nometasync, mapasync
 Default: mapasync

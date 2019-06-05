@@ -135,7 +135,7 @@ server. A value of 0 will disable the timeout. Default: 10
 .. _setting-gmysql-thread-cleanup:
 
 ``gmysql-thread-cleanup``
-^^^^^^^^^^^^^^^^^^^^^^^^
+^^^^^^^^^^^^^^^^^^^^^^^^^
 .. versionadded:: 4.1.8
 
 Older versions (such as those shipped on RHEL 7) of the MySQL/MariaDB client libraries leak memory unless applications explicitly report the end of each thread to the library. Enabling ``gmysql-thread-cleanup`` tells PowerDNS to call ``mysql_thread_end()`` whenever a thread ends.

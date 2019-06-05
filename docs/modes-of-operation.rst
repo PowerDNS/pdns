@@ -189,7 +189,7 @@ Supermaster: automatic provisioning of slaves
 
 .. versionchanged:: 4.2.0
   Supermaster support needs to be explicitly enabled with the
-  :ref:`setting-supermaster` setting.
+  :ref:`setting-superslave` setting.
 
 PowerDNS can recognize so called 'supermasters'. A supermaster is a host
 which is master for domains and for which we are to be a slave. When a
