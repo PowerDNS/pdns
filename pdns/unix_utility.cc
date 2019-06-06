@@ -126,7 +126,7 @@ void Utility::usleep(unsigned long usec)
 // Drops the program's group privileges.
 void Utility::dropGroupPrivs( uid_t uid, gid_t gid )
 {
-  if(gid) {
+  if(gid && gid != getegid()) {
     if(setgid(gid)<0) {
       g_log<<Logger::Critical<<"Unable to set effective group id to "<<gid<<": "<<stringerror()<<endl;
       exit(1);
@@ -154,7 +154,7 @@ void Utility::dropGroupPrivs( uid_t uid, gid_t gid )
 // Drops the program's user privileges.
 void Utility::dropUserPrivs( uid_t uid )
 {
-  if(uid) {
+  if(uid && uid != geteuid()) {
     if(setuid(uid)<0) {
       g_log<<Logger::Critical<<"Unable to set effective user id to "<<uid<<": "<<stringerror()<<endl;
       exit(1);
