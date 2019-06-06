@@ -3,7 +3,7 @@ Changelog
 
 .. changelog::
   :version: 1.4.0-beta1
-  :released: TBD
+  :released: 6th of June 2019
 
     .. change::
     :tags: Bug Fixes, DoH
@@ -16,7 +16,7 @@ Changelog
     :tags: Bug Fixes
     :pullreq: 7823
 
-    Fix minor issues reported by coverity
+    Fix minor issues reported by Coverity
 
   .. change::
     :tags: New Features, DoT, DoH
