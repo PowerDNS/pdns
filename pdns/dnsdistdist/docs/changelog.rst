@@ -10,7 +10,7 @@ Changelog
     :pullreq: 7814
     :tickets: 7810
 
-    DoH: Don't let 'self' dangling while parsing the request's qname
+    DoH: Don't let 'self' dangling while parsing the request's qname, this could lead to a crash
 
   .. change::
     :tags: Bug Fixes
