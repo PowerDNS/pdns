@@ -13,6 +13,7 @@ Group=@service_group@
 Type=notify
 Restart=on-failure
 StartLimitInterval=0
+RuntimeDirectory=pdns-recursor
 
 # Tuning
 LimitNOFILE=16384
