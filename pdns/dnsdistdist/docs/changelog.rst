@@ -2,6 +2,43 @@ Changelog
 =========
 
 .. changelog::
+  :version: 1.4.0-beta1
+  :released: 6th of June 2019
+
+    .. change::
+    :tags: Bug Fixes, DoH
+    :pullreq: 7814
+    :tickets: 7810
+
+    DoH: Don't let 'self' dangling while parsing the request's qname, this could lead to a crash
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 7823
+
+    Fix minor issues reported by Coverity
+
+  .. change::
+    :tags: New Features, DoT, DoH
+    :pullreq: 7825
+    :tickets: 7210
+
+    Implement SNIRule for DoT and DoH
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 7833
+
+    Remove second, incomplete copy of lua EDNSOptionCode table
+
+  .. change::
+    :tags: Improvements, Prometheus
+    :pullreq: 7853
+    :tickets: 6088
+
+    Support Prometheus latency histograms (Marlin Cremers)
+
+.. changelog::
   :version: 1.4.0-alpha2
   :released: 26th of April 2019
 
