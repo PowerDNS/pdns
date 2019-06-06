@@ -499,12 +499,12 @@ void mainthread()
 {
    Utility::srandom();
 
-   int newgid=0;
-   if(!::arg()["setgid"].empty()) 
-     newgid=Utility::makeGidNumeric(::arg()["setgid"]);      
-   int newuid=0;      
-   if(!::arg()["setuid"].empty())        
-     newuid=Utility::makeUidNumeric(::arg()["setuid"]); 
+   gid_t newgid = 0;
+   if(!::arg()["setgid"].empty())
+     newgid=Utility::makeGidNumeric(::arg()["setgid"]);
+   uid_t newuid = 0;
+   if(!::arg()["setuid"].empty())
+     newuid=Utility::makeUidNumeric(::arg()["setuid"]);
    
    g_anyToTcp = ::arg().mustDo("any-to-tcp");
    g_8bitDNS = ::arg().mustDo("8bit-dns");

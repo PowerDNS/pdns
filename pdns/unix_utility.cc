@@ -124,7 +124,7 @@ void Utility::usleep(unsigned long usec)
 
 
 // Drops the program's group privileges.
-void Utility::dropGroupPrivs( int uid, int gid )
+void Utility::dropGroupPrivs( uid_t uid, gid_t gid )
 {
   if(gid) {
     if(setgid(gid)<0) {
@@ -152,7 +152,7 @@ void Utility::dropGroupPrivs( int uid, int gid )
 
 
 // Drops the program's user privileges.
-void Utility::dropUserPrivs( int uid )
+void Utility::dropUserPrivs( uid_t uid )
 {
   if(uid) {
     if(setuid(uid)<0) {
@@ -181,9 +181,9 @@ int Utility::gettimeofday( struct timeval *tv, void *tz )
 
 
 // Retrieves a gid using a groupname.
-int Utility::makeGidNumeric(const string &group)
+gid_t Utility::makeGidNumeric(const string &group)
 {
-  int newgid;
+  gid_t newgid;
   if(!(newgid=atoi(group.c_str()))) {
     errno=0;
     struct group *gr=getgrnam(group.c_str());
@@ -198,9 +198,9 @@ int Utility::makeGidNumeric(const string &group)
 
 
 // Retrieves an uid using a username.
-int Utility::makeUidNumeric(const string &username)
+uid_t Utility::makeUidNumeric(const string &username)
 {
-  int newuid;
+  uid_t newuid;
   if(!(newuid=atoi(username.c_str()))) {
     struct passwd *pw=getpwnam(username.c_str());
     if(!pw) {

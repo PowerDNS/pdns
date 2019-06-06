@@ -121,10 +121,10 @@ public:
   static const char *inet_ntop( int af, const char *src, char *dst, size_t size );
 
   //! Retrieves a gid using a groupname.
-  static int makeGidNumeric( const string & group );
+  static gid_t makeGidNumeric( const string & group );
   
   //! Retrieves an uid using an username.
-  static int makeUidNumeric( const string & username );
+  static uid_t makeUidNumeric( const string & username );
 
   //! Writes a vector.
   static int writev( Utility::sock_t socket, const iovec *vector, size_t count );
@@ -133,10 +133,10 @@ public:
   static void srandom(void);
 
   //! Drops the program's group privileges.
-  static void dropGroupPrivs( int uid, int gid );
+  static void dropGroupPrivs( uid_t uid, gid_t gid );
 
   //! Drops the program's user privileges.
-  static void dropUserPrivs( int uid );
+  static void dropUserPrivs( uid_t uid );
   
   //! Sets the socket into Bind-any mode
   static void setBindAny ( int af, Utility::sock_t socket );
