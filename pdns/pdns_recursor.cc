@@ -983,7 +983,14 @@ static std::shared_ptr<std::vector<std::unique_ptr<FrameStreamLogger>>> startFra
       options["outputQueueSize"] = config.outputQueueSize;
       options["queueNotifyThreshold"] = config.queueNotifyThreshold;
       options["reopenInterval"] = config.reopenInterval;
-      auto fsl = new FrameStreamLogger(server.sin4.sin_family, server.toStringWithPort(), true, options);
+      FrameStreamLogger *fsl = nullptr;
+      try {
+        ComboAddress address(server);
+        fsl = new FrameStreamLogger(address.sin4.sin_family, address.toStringWithPort(), true, options);
+      }
+      catch (const PDNSException& e) {
+        fsl = new FrameStreamLogger(AF_UNIX, server, true, options);
+      }
       fsl->setLogQueries(config.logQueries);
       fsl->setLogResponses(config.logResponses);
       result->emplace_back(fsl);
