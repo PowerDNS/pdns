@@ -120,7 +120,7 @@ public:
   void resizeRing(const string &name, unsigned int newsize);
   unsigned int getRingSize(const string &name);
 
-  string directory(); //!< Returns a list of all data stored
+  string directory(const std::set<string>& skip); //!< Returns a list of all data stored
   vector<string> getEntries(); //!< returns a vector with datums (items)
   string getDescrip(const string &item); //!< Returns the description of this datum/item
   void exists(const string &key); //!< call this function to throw an exception in case a key does not exist

@@ -48,17 +48,21 @@ void StatBag::exists(const string &key)
     }
 }
 
-string StatBag::directory()
+string StatBag::directory(const std::set<string>& skip)
 {
   string dir;
   ostringstream o;
 
   for(const auto& i: d_stats) {
+    if (skip.find(i.first) != skip.end())
+      continue;
     o<<i.first<<"="<<*(i.second)<<",";
   }
 
 
   for(const funcstats_t::value_type& val :  d_funcstats) {
+    if (skip.find(val.first) != skip.end())
+      continue;
     o << val.first<<"="<<val.second(val.first)<<",";
   }
   dir=o.str();
