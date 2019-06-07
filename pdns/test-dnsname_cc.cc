@@ -508,10 +508,16 @@ BOOST_AUTO_TEST_CASE(test_suffixmatch) {
   BOOST_CHECK(smn.check(examplenet));
   BOOST_CHECK(smn.check(net));
 
-  // Remove .net and check that example.net still exists
+  // Remove .net and the root, and check that example.net still exists
+  smn.remove(g_rootdnsname);
   smn.remove(net);
   BOOST_CHECK_EQUAL(smn.check(net), false);
   BOOST_CHECK(smn.check(examplenet));
+
+  smn.add(DNSName("fr."));
+  smn.add(DNSName("www.sub.domain.fr."));
+  // should not match www.sub.domain.fr. but should still match fr.
+  BOOST_CHECK(smn.check(DNSName("sub.domain.fr.")));
 }
 
 BOOST_AUTO_TEST_CASE(test_suffixmatch_tree) {
@@ -564,7 +570,8 @@ BOOST_AUTO_TEST_CASE(test_suffixmatch_tree) {
   BOOST_REQUIRE(smt.lookup(net));
   BOOST_CHECK_EQUAL(*smt.lookup(net), net);
 
-  // Remove .net, and check that example.net remains
+  // Remove .net and the root, and check that example.net remains
+  smt.remove(g_rootdnsname);
   smt.remove(net);
   BOOST_CHECK(smt.lookup(net) == nullptr);
   BOOST_CHECK_EQUAL(*smt.lookup(examplenet), examplenet);
