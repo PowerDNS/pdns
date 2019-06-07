@@ -349,8 +349,9 @@ BOOST_AUTO_TEST_CASE(test_dnssec_validation_from_negcache_secure) {
   g_luaconfs.setState(luaconfsCopy);
 
   size_t queriesCount = 0;
+  const time_t fixedNow = sr->getNow().tv_sec;
 
-  sr->setAsyncCallback([target,&queriesCount,keys](const ComboAddress& ip, const DNSName& domain, int type, bool doTCP, bool sendRDQuery, int EDNS0Level, struct timeval* now, boost::optional<Netmask>& srcmask, boost::optional<const ResolveContext&> context, LWResult* res, bool* chained) {
+  sr->setAsyncCallback([target,&queriesCount,keys,fixedNow](const ComboAddress& ip, const DNSName& domain, int type, bool doTCP, bool sendRDQuery, int EDNS0Level, struct timeval* now, boost::optional<Netmask>& srcmask, boost::optional<const ResolveContext&> context, LWResult* res, bool* chained) {
       queriesCount++;
 
       DNSName auth = domain;
@@ -364,7 +365,7 @@ BOOST_AUTO_TEST_CASE(test_dnssec_validation_from_negcache_secure) {
         addRecordToLW(res, domain, QType::SOA, "pdns-public-ns1.powerdns.com. pieter\\.lexis.powerdns.com. 2017032301 10800 3600 604800 3600", DNSResourceRecord::AUTHORITY, 3600);
         addRRSIG(keys, res->d_records, domain, 300);
         addNSECRecordToLW(domain, DNSName("z."), { QType::NSEC, QType::RRSIG }, 600, res->d_records);
-        addRRSIG(keys, res->d_records, domain, 1);
+        addRRSIG(keys, res->d_records, domain, 1, false, boost::none, boost::none, fixedNow);
         return 1;
       }
 
@@ -379,7 +380,7 @@ BOOST_AUTO_TEST_CASE(test_dnssec_validation_from_negcache_secure) {
   BOOST_CHECK_EQUAL(sr->getValidationState(), Indeterminate);
   BOOST_REQUIRE_EQUAL(ret.size(), 4);
   BOOST_CHECK_EQUAL(queriesCount, 1);
-  /* check that the entry has not been negatively cached */
+  /* check that the entry has been negatively cached */
   const NegCache::NegCacheEntry* ne = nullptr;
   BOOST_CHECK_EQUAL(SyncRes::t_sstorage.negcache.size(), 1);
   BOOST_REQUIRE_EQUAL(SyncRes::t_sstorage.negcache.get(target, QType(QType::A), sr->getNow(), &ne), true);
