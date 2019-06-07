@@ -328,9 +328,14 @@ struct SuffixMatchTree
     if(children.empty()) { // speed up empty set
       if(endNode)
         return &d_value;
-      return 0;
+      return nullptr;
     }
-    return lookup(name.getRawLabels());
+
+    auto result = lookup(name.getRawLabels());
+    if (result) {
+      return result;
+    }
+    return endNode ? &d_value : nullptr;
   }
 
   T* lookup(std::vector<std::string> labels) const
@@ -338,7 +343,7 @@ struct SuffixMatchTree
     if(labels.empty()) { // optimization
       if(endNode)
         return &d_value;
-      return 0;
+      return nullptr;
     }
 
     SuffixMatchTree smn(*labels.rbegin());
@@ -346,10 +351,14 @@ struct SuffixMatchTree
     if(child == children.end()) {
       if(endNode)
         return &d_value;
-      return 0;
+      return nullptr;
     }
     labels.pop_back();
-    return child->lookup(labels);
+    auto result = child->lookup(labels);
+    if (result) {
+      return result;
+    }
+    return endNode ? &d_value : nullptr;
   }
 
   // Returns all end-nodes, fully qualified (not as separate labels)
