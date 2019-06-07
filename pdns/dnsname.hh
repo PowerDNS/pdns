@@ -299,6 +299,11 @@ struct SuffixMatchTree
    */
   void remove(std::vector<std::string> labels) const
   {
+    if (labels.empty()) { // this allows removal of the root
+      endNode = false;
+      return;
+    }
+
     SuffixMatchTree smt(*labels.rbegin());
     auto child = children.find(smt);
     if (child == children.end()) {
