@@ -48,6 +48,7 @@ EXTRA_DIST = \
 	mtasker.cc \
 	inflighter.cc \
 	bindparser.h \
+	lua_hpp.mk \
 	named.conf.parsertest \
 	pdns.service.in \
 	ixfrdist.service.in \
@@ -115,6 +116,13 @@ bin_PROGRAMS += \
 sysconf_DATA += \
 	ixfrdist.example.yml
 endif
+
+if !HAVE_LUA_HPP
+BUILT_SOURCES += lua.hpp
+nodist_pdns_server_SOURCES = lua.hpp
+CLEANFILES += lua.hpp
+endif
+
 
 EXTRA_PROGRAMS = \
 	calidns \
@@ -1645,3 +1653,7 @@ CLEANFILES += \
 	ixfrdist@.service
 
 endif # HAVE_SYSTEMD
+
+if !HAVE_LUA_HPP
+include lua_hpp.mk
+endif
