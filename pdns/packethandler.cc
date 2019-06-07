@@ -1546,8 +1546,7 @@ DNSPacket *PacketHandler::doQuestion(DNSPacket *p)
     if(doSigs)
       addRRSigs(d_dk, B, authSet, r->getRRS());
       
-    r->wrapup(); // needed for inserting in cache
-    if(!noCache && p->couldBeCached())
+    if(PC.enabled() && !noCache && p->couldBeCached())
       PC.insert(p, r, r->getMinTTL()); // in the packet cache
   }
   catch(DBException &e) {

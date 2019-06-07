@@ -70,7 +70,11 @@ public:
   void setTTL(uint32_t ttl)
   {
     d_ttl = ttl;
-  }  
+  }
+  bool enabled()
+  {
+    return (d_ttl > 0);
+  }
 private:
 
   struct CacheEntry
