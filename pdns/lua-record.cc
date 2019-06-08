@@ -490,6 +490,7 @@ std::vector<shared_ptr<DNSRecordContent>> luaSynth(const std::string& code, cons
     bestwho=dnsp.getRealRemote().getNetwork();
   }
   else {
+    lua.writeVariable("ecswho", nullptr);
     bestwho=dnsp.getRemote();
   }
 
