@@ -346,7 +346,7 @@ jobs:
   test-auth-regress-odbc-mssql:
     docker:
       - image: debian:stretch
-      - image: mcr.microsoft.com/mssql/server:2019-CTP2.2-ubuntu
+      - image: mcr.microsoft.com/mssql/server:2017-GA-ubuntu
         environment:
           - ACCEPT_EULA: Y
           - SA_PASSWORD: 'SAsa12%%'
