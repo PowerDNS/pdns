@@ -1349,6 +1349,10 @@ bool GSQLBackend::replaceRRSet(uint32_t domain_id, const DNSName& qname, const Q
   try {
     reconnectIfNeeded();
 
+    if (!d_inTransaction) {
+      throw PDNSException("replaceRRSet called outside of transaction");
+    }
+
     if (qt != QType::ANY) {
       d_DeleteRRSetQuery_stmt->
         bind("domain_id", domain_id)->
@@ -1495,6 +1499,9 @@ bool GSQLBackend::startTransaction(const DNSName &domain, int domain_id)
   try {
     reconnectIfNeeded();
 
+    if (inTransaction()) {
+      throw PDNSException("Attempted to start transaction while one was already active (domain '" + domain.toLogString() + "')");
+    }
     d_db->startTransaction();
     d_inTransaction = true;
     if(domain_id >= 0) {
@@ -1610,6 +1617,10 @@ bool GSQLBackend::replaceComments(const uint32_t domain_id, const DNSName& qname
 {
   try {
     reconnectIfNeeded();
+
+    if (!d_inTransaction) {
+      throw PDNSException("replaceComments called outside of transaction");
+    }
 
     d_DeleteCommentRRsetQuery_stmt->
       bind("domain_id",domain_id)->
