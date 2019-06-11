@@ -606,6 +606,8 @@ int main(int argc, char **argv)
   }
   
   declareStats();
+  S.blacklist("special-memory-usage");
+
   DLOG(g_log<<Logger::Warning<<"Verbose logging in effect"<<endl);
 
   showProductVersion();

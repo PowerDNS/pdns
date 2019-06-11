@@ -71,6 +71,7 @@ class StatBag
   typedef map<string, func_t> funcstats_t;
   funcstats_t d_funcstats;
   bool d_doRings;
+  std::set<string> d_blacklist;
 
 public:
   StatBag(); //!< Naked constructor. You need to declare keys before this class becomes useful
@@ -120,7 +121,7 @@ public:
   void resizeRing(const string &name, unsigned int newsize);
   unsigned int getRingSize(const string &name);
 
-  string directory(const std::set<string>& skip); //!< Returns a list of all data stored
+  string directory(); //!< Returns a list of all data stored
   vector<string> getEntries(); //!< returns a vector with datums (items)
   string getDescrip(const string &item); //!< Returns the description of this datum/item
   void exists(const string &key); //!< call this function to throw an exception in case a key does not exist
@@ -132,6 +133,7 @@ public:
   AtomicCounter *getPointer(const string &key); //!< get a direct pointer to the value behind a key. Use this for high performance increments
   string getValueStr(const string &key); //!< read a value behind a key, and return it as a string
   string getValueStrZero(const string &key); //!< read a value behind a key, and return it as a string, and zero afterwards
+  void blacklist(const string &str);
 };
 
 inline void StatBag::deposit(const string &key, int value)

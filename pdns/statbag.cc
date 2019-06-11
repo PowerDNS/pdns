@@ -48,20 +48,20 @@ void StatBag::exists(const string &key)
     }
 }
 
-string StatBag::directory(const std::set<string>& skip)
+string StatBag::directory()
 {
   string dir;
   ostringstream o;
 
   for(const auto& i: d_stats) {
-    if (skip.find(i.first) != skip.end())
+    if (d_blacklist.find(i.first) != d_blacklist.end())
       continue;
     o<<i.first<<"="<<*(i.second)<<",";
   }
 
 
   for(const funcstats_t::value_type& val :  d_funcstats) {
-    if (skip.find(val.first) != skip.end())
+    if (d_blacklist.find(val.first) != d_blacklist.end())
       continue;
     o << val.first<<"="<<val.second(val.first)<<",";
   }
@@ -75,10 +75,14 @@ vector<string>StatBag::getEntries()
   vector<string> ret;
 
   for(const auto& i: d_stats) {
-      ret.push_back(i.first);
+    if (d_blacklist.find(i.first) != d_blacklist.end())
+      continue;
+    ret.push_back(i.first);
   }
 
   for(const funcstats_t::value_type& val :  d_funcstats) {
+    if (d_blacklist.find(val.first) != d_blacklist.end())
+      continue;
     ret.push_back(val.first);
   }
 
@@ -327,6 +331,10 @@ vector<string>StatBag::listRings()
 bool StatBag::ringExists(const string &name)
 {
   return d_rings.count(name) || d_comborings.count(name) || d_dnsnameqtyperings.count(name);
+}
+
+void StatBag::blacklist(const string& str) {
+  d_blacklist.insert(str);
 }
 
 template class StatRing<std::string, CIStringCompare>;
