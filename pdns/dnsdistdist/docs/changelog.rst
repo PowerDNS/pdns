@@ -5,7 +5,7 @@ Changelog
   :version: 1.4.0-beta1
   :released: 6th of June 2019
 
-    .. change::
+  .. change::
     :tags: Bug Fixes, DoH
     :pullreq: 7814
     :tickets: 7810
