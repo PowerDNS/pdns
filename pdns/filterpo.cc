@@ -31,19 +31,9 @@ DNSFilterEngine::DNSFilterEngine()
 {
 }
 
-bool DNSFilterEngine::Zone::findQNamePolicy(const DNSName& qname, DNSFilterEngine::Policy& pol) const
-{
-  return findNamedPolicy(d_qpolName, qname, pol);
-}
-
 bool DNSFilterEngine::Zone::findExactQNamePolicy(const DNSName& qname, DNSFilterEngine::Policy& pol) const
 {
   return findExactNamedPolicy(d_qpolName, qname, pol);
-}
-
-bool DNSFilterEngine::Zone::findNSPolicy(const DNSName& qname, DNSFilterEngine::Policy& pol) const
-{
-  return findNamedPolicy(d_propolName, qname, pol);
 }
 
 bool DNSFilterEngine::Zone::findExactNSPolicy(const DNSName& qname, DNSFilterEngine::Policy& pol) const
@@ -154,7 +144,7 @@ DNSFilterEngine::Policy DNSFilterEngine::getProcessingPolicy(const DNSName& qnam
   if (!allEmpty) {
     count = 0;
     for(const auto& z : d_zones) {
-      if (zoneEnabled[count] && z->findNSPolicy(qname, pol)) {
+      if (zoneEnabled[count] && z->findExactNSPolicy(qname, pol)) {
         // cerr<<"Had a hit on the nameserver ("<<qname<<") used to process the query"<<endl;
         return pol;
       }
@@ -165,7 +155,7 @@ DNSFilterEngine::Policy DNSFilterEngine::getProcessingPolicy(const DNSName& qnam
     while(s.chopOff()){
       count = 0;
       for(const auto& z : d_zones) {
-        if (zoneEnabled[count] && z->findNSPolicy(g_wildcarddnsname+s, pol)) {
+        if (zoneEnabled[count] && z->findExactNSPolicy(g_wildcarddnsname+s, pol)) {
           // cerr<<"Had a hit on the nameserver ("<<qname<<") used to process the query"<<endl;
           return pol;
         }

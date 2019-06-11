@@ -168,9 +168,7 @@ public:
     bool rmNSIPTrigger(const Netmask& nm, const Policy& pol);
     bool rmResponseTrigger(const Netmask& nm, const Policy& pol);
 
-    bool findQNamePolicy(const DNSName& qname, DNSFilterEngine::Policy& pol) const;
     bool findExactQNamePolicy(const DNSName& qname, DNSFilterEngine::Policy& pol) const;
-    bool findNSPolicy(const DNSName& qname, DNSFilterEngine::Policy& pol) const;
     bool findExactNSPolicy(const DNSName& qname, DNSFilterEngine::Policy& pol) const;
     bool findNSIPPolicy(const ComboAddress& addr, DNSFilterEngine::Policy& pol) const;
     bool findResponsePolicy(const ComboAddress& addr, DNSFilterEngine::Policy& pol) const;
