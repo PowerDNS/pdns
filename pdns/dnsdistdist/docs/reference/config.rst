@@ -1088,7 +1088,7 @@ Other functions
   If this function exists, it is called every second to so regular tasks.
   This can be used for e.g. :doc:`Dynamic Blocks <../guides/dynblocks>`.
 
-.. function: setAllowEmptyResponse()
+.. function:: setAllowEmptyResponse()
 
   .. versionadded:: 1.4.0
 
