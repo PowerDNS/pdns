@@ -10,7 +10,6 @@ class TLSConnection
 {
 public:
   virtual ~TLSConnection() { }
-  virtual void doHandshake() = 0;
   virtual IOState tryHandshake() = 0;
   virtual size_t read(void* buffer, size_t bufferSize, unsigned int readTimeout, unsigned int totalTimeout=0) = 0;
   virtual size_t write(const void* buffer, size_t bufferSize, unsigned int writeTimeout) = 0;
