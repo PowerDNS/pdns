@@ -1019,7 +1019,7 @@ The following actions exist.
   Options:
 
   * ``serverID=""``: str - Set the Server Identity field.
-  * ``ipEncryptKey=""``: str - A key, that can be generated via the :ref:`makeIPCipherKey` function, to encrypt the IP address of the requestor for anonymization purposes. The encryption is done using ipcrypt for IPv4 and a 128-bit AES ECB operation for IPv6.
+  * ``ipEncryptKey=""``: str - A key, that can be generated via the :func:`makeIPCipherKey` function, to encrypt the IP address of the requestor for anonymization purposes. The encryption is done using ipcrypt for IPv4 and a 128-bit AES ECB operation for IPv6.
 
 .. function:: RemoteLogResponseAction(remoteLogger[, alterFunction[, includeCNAME [, options]]])
 
@@ -1042,7 +1042,7 @@ The following actions exist.
   Options:
 
   * ``serverID=""``: str - Set the Server Identity field.
-  * ``ipEncryptKey=""``: str - A key, that can be generated via the :ref:`makeIPCipherKey` function, to encrypt the IP address of the requestor for anonymization purposes. The encryption is done using ipcrypt for IPv4 and a 128-bit AES ECB operation for IPv6.
+  * ``ipEncryptKey=""``: str - A key, that can be generated via the :func:`makeIPCipherKey` function, to encrypt the IP address of the requestor for anonymization purposes. The encryption is done using ipcrypt for IPv4 and a 128-bit AES ECB operation for IPv6.
 
 .. function:: SetECSAction(v4 [, v6])
 
