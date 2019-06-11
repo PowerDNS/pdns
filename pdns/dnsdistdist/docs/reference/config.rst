@@ -1094,6 +1094,12 @@ Other functions
 
   Set to true (defaults to false) to allow empty responses (qdcount=0) with a NoError or NXDomain rcode (default) from backends. dnsdist drops these responses by default because it can't match them against the initial query since they don't contain the qname, qtype and qclass, and therefore the risk of collision is much higher than with regular responses.
 
+.. function:: makeIPCipherKey(password) -> string
+
+  .. versionadded:: 1.4.0
+
+  Hashes the password to generate a 16-byte key that can be used to pseudonymize IP addresses with IP cipher.
+
 DOHFrontend
 ~~~~~~~~~~~
 
