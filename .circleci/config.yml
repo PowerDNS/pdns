@@ -37,7 +37,7 @@ commands:
     description: Add ssh known_hosts fingerprints
     steps:
       - run:
-          command: mkdir -p $HOME/.ssh && echo "${DOCS_HOST} ${DOCS_FINGERPRINT}" > .ssh/known_hosts
+          command: mkdir -p $HOME/.ssh && echo "${DOCS_HOST} ${DOCS_FINGERPRINT}" > $HOME/.ssh/known_hosts
 
   auth-regress-setup:
     description: Prepare the environment for auth regression tests
