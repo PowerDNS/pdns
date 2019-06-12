@@ -33,6 +33,12 @@ commands:
           name: Install Coverity tools
           command: curl -s https://scan.coverity.com/download/linux64 --data "token=${COVERITY_TOKEN}&project=${COVERITY_PROJECT}" |  gunzip | tar xvf /dev/stdin --strip-components=2 --no-same-owner -C /usr/local
 
+  add-docs-upload-ssh:
+    description: Add ssh known_hosts fingerprints
+    steps:
+      - run:
+          command: mkdir -p $HOME/.ssh && echo "${DOCS_HOST} ${DOCS_FINGERPRINT}" > .ssh/known_hosts
+
   auth-regress-setup:
     description: Prepare the environment for auth regression tests
     steps:
@@ -324,13 +330,16 @@ commands:
               if [ "${CIRCLE_PROJECT_USERNAME}" = "PowerDNS" -a "${CIRCLE_PROJECT_REPONAME}" = "pdns" -a "${CIRCLE_BRANCH}" = "master" ]; then
                 make -C docs all-docs
               fi
+
+  upload-auth-docs:
+    steps:
       - run:
           name: Upload documents
           command: |
             if [ "${CIRCLE_PROJECT_USERNAME}" = "PowerDNS" -a "${CIRCLE_PROJECT_REPONAME}" = "pdns" -a "${CIRCLE_BRANCH}" = "master" ]; then
-              rsync -crv --delete --no-p --chmod=g=rwX --exclude '*~' ./doc/html-docs/ doc_powerdns_com@web1.powerdns.com:/srv/www/doc.powerdns.com/authoritative/
-              rsync -crv --no-p --chmod=g=rwX --exclude '*~' ./doc/html-docs.tar.bz2 doc_powerdns_com@web1.powerdns.com:/srv/www/doc.powerdns.com/authoritative/
-              rsync -crv --no-p --chmod=g=rwX --exclude '*~' ./doc/PowerDNS-Authoritative.pdf doc_powerdns_com@web1.powerdns.com:/srv/www/doc.powerdns.com/authoritative/
+              rsync -crv --delete --no-p --chmod=g=rwX --exclude '*~' ./doc/html-docs/ doc_powerdns_com@${DOCS_HOST}:/srv/www/doc.powerdns.com/authoritative/
+              rsync -crv --no-p --chmod=g=rwX --exclude '*~' ./doc/html-docs.tar.bz2 doc_powerdns_com@${DOCS_HOST}:/srv/www/doc.powerdns.com/authoritative/
+              rsync -crv --no-p --chmod=g=rwX --exclude '*~' ./doc/PowerDNS-Authoritative.pdf doc_powerdns_com@${DOCS_HOST}:/srv/www/doc.powerdns.com/authoritative/
             fi
 
   build-recursor-docs:
@@ -356,14 +365,17 @@ commands:
               make all-docs
             fi
           working_directory: ~/project/pdns/recursordist
+
+  upload-recursor-docs:
+    steps:
       - run:
           name: Upload documents
           working_directory: ~/project/pdns/recursordist
           command: |
             if [ "${CIRCLE_PROJECT_USERNAME}" = "PowerDNS" -a "${CIRCLE_PROJECT_REPONAME}" = "pdns" -a "${CIRCLE_BRANCH}" = "master" ]; then
-              rsync -crv --delete --no-p --chmod=g=rwX --exclude '*~' html-docs/ doc_powerdns_com@web1.powerdns.com:/srv/www/doc.powerdns.com/recursor/
-              rsync -crv --no-p --chmod=g=rwX --exclude '*~' html-docs.tar.bz2 doc_powerdns_com@web1.powerdns.com:/srv/www/doc.powerdns.com/recursor/
-              rsync -crv --no-p --chmod=g=rwX --exclude '*~' PowerDNS-Recursor.pdf doc_powerdns_com@web1.powerdns.com:/srv/www/doc.powerdns.com/recursor/
+              rsync -crv --delete --no-p --chmod=g=rwX --exclude '*~' html-docs/ doc_powerdns_com@${DOCS_HOST}:/srv/www/doc.powerdns.com/recursor/
+              rsync -crv --no-p --chmod=g=rwX --exclude '*~' html-docs.tar.bz2 doc_powerdns_com@${DOCS_HOST}:/srv/www/doc.powerdns.com/recursor/
+              rsync -crv --no-p --chmod=g=rwX --exclude '*~' PowerDNS-Recursor.pdf doc_powerdns_com@${DOCS_HOST}:/srv/www/doc.powerdns.com/recursor/
             fi
 
   build-dnsdist-docs:
@@ -386,14 +398,17 @@ commands:
           command: |
             make html-docs
           working_directory: ~/project/pdns/dnsdistdist
+
+  upload-dnsdist-docs:
+    steps:
       - run:
           name: Upload documents
           working_directory: ~/project/pdns/dnsdistdist
           command: |
             if [ "${CIRCLE_PROJECT_USERNAME}" = "PowerDNS" -a "${CIRCLE_PROJECT_REPONAME}" = "pdns" -a "${CIRCLE_BRANCH}" = "master" ]; then
-              rsync -crv --delete --no-p --chmod=g=rwX --exclude '*~' html-docs/ dnsdist_org@web1.powerdns.com:/srv/www/dnsdist.org
-              rsync -crv --no-p --chmod=g=rwX --exclude '*~' html-docs.tar.bz2 dnsdist_org@web1.powerdns.com:/srv/www/dnsdist.org
-              rsync -crv --no-p --chmod=g=rwX --exclude '*~' dnsdist.pdf dnsdist_org@web1.powerdns.com:/srv/www/dnsdist.org
+              rsync -crv --delete --no-p --chmod=g=rwX --exclude '*~' html-docs/ dnsdist_org@${DOCS_HOST}:/srv/www/dnsdist.org
+              rsync -crv --no-p --chmod=g=rwX --exclude '*~' html-docs.tar.bz2 dnsdist_org@${DOCS_HOST}:/srv/www/dnsdist.org
+              rsync -crv --no-p --chmod=g=rwX --exclude '*~' dnsdist.pdf dnsdist_org@${DOCS_HOST}:/srv/www/dnsdist.org
             fi
 
 jobs:
@@ -863,6 +878,16 @@ jobs:
       - install-doc-deps
       - build-auth-docs
 
+  deploy-auth-docs:
+    docker:
+      - image: debian:stretch
+    steps:
+      - checkout-shallow
+      - install-doc-deps
+      - build-auth-docs
+      - add-docs-upload-ssh
+      - upload-auth-docs
+
   build-recursor-docs:
     docker:
       - image: debian:stretch
@@ -871,6 +896,16 @@ jobs:
       - install-doc-deps
       - build-recursor-docs
 
+  deploy-recursor-docs:
+    docker:
+      - image: debian:stretch
+    steps:
+      - checkout-shallow
+      - install-doc-deps
+      - build-recursor-docs
+      - add-docs-upload-ssh
+      - upload-recursor-docs
+
   build-dnsdist-docs:
     docker:
       - image: debian:stretch
@@ -878,6 +913,16 @@ jobs:
       - checkout-shallow
       - install-doc-deps
       - build-dnsdist-docs
+
+  deploy-dnsdist-docs:
+    docker:
+      - image: debian:stretch
+    steps:
+      - checkout-shallow
+      - install-doc-deps
+      - build-dnsdist-docs
+      - add-docs-upload-ssh
+      - upload-dnsdist-docs
 
   coverity-auth:
     docker:
@@ -1131,6 +1176,32 @@ workflows:
 
   build-docs:
     jobs:
-      - build-auth-docs
-      - build-recursor-docs
-      - build-dnsdist-docs
+      - build-auth-docs:
+          filters:
+            branches:
+              ignore: master
+      - build-recursor-docs:
+          filters:
+            branches:
+              ignore: master
+      - build-dnsdist-docs:
+          filters:
+            branches:
+              ignore: master
+
+      # These actually deploy
+      - deploy-auth-docs:
+          context: docs
+          filters:
+            branches:
+              only: master
+      - deploy-recursor-docs:
+          context: docs
+          filters:
+            branches:
+              only: master
+      - deploy-dnsdist-docs:
+          context: docs
+          filters:
+            branches:
+              only: master
