@@ -180,8 +180,7 @@ Also AXFR a zone from a master with a lower serial.
 -  Integer
 -  Default: 20
 
-Seconds to store packets in the :ref:`packet-cache`. A value of 0 will disable
-the cache.
+Seconds to store packets in the :ref:`packet-cache`. A value of 0 will disable the cache.
 
 .. _setting-carbon-instance:
 
