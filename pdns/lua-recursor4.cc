@@ -544,6 +544,10 @@ RecursorLua4::RecursorLua4(const std::string& fname)
         g_snmpAgent->sendCustomTrap(str);
       }
     });
+
+  d_lw->writeFunction("getregisteredname", [](const DNSName &dname) {
+      return getRegisteredName(dname);
+    });
   
   ifstream ifs(fname);
   if(!ifs) {
