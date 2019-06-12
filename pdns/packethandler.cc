@@ -821,8 +821,12 @@ int PacketHandler::processNotify(DNSPacket *p)
   DomainInfo di;
   di.serial = 0;
   if(!B.getDomainInfo(p->qdomain, di) || !(db=di.backend)) {
-    L<<Logger::Error<<"Received NOTIFY for "<<p->qdomain<<" from "<<p->getRemote()<<" for which we are not authoritative"<<endl;
-    return trySuperMaster(p, p->getTSIGKeyname());
+    if(::arg().mustDo("superslave")) {
+      L<<Logger::Warning<<"Received NOTIFY for "<<p->qdomain<<" from "<<p->getRemote()<<" for which we are not authoritative"<<endl;
+      return trySuperMaster(p, p->getTSIGKeyname());
+    }
+    L<<Logger::Notice<<"Received NOTIFY for "<<p->qdomain<<" from "<<p->getRemote()<<" for which we are not authoritative (Refused)"<<endl;
+    return RCode::Refused;
   }
 
   meta.clear();

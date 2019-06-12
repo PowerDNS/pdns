@@ -190,6 +190,7 @@ itself as a slave for that zone.
 Before a supermaster notification succeeds, the following conditions
 must be met:
 
+ - :ref:`setting-superslave` support must be enabled
  - The supermaster must carry a SOA record for the notified domain
  - The supermaster IP must be present in the 'supermaster' table
  - The set of NS records for the domain, as retrieved by the slave from the supermaster, must include the name that goes with the IP address in the supermaster table
