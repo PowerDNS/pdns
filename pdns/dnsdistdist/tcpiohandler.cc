@@ -360,7 +360,7 @@ public:
     }
   }
 
-  std::string getServerNameIndication()
+  std::string getServerNameIndication() override
   {
     if (d_conn) {
       const char* value = SSL_get_servername(d_conn.get(), TLSEXT_NAMETYPE_host_name);
@@ -872,7 +872,7 @@ public:
     return got;
   }
 
-  std::string getServerNameIndication()
+  std::string getServerNameIndication() override
   {
     if (d_conn) {
       unsigned int type;

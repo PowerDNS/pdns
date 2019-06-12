@@ -152,3 +152,19 @@ This does not install the jdnssec-verifyzone tools. The test that will break wit
 touch tests/verify-dnssec-zone/allow-missing
 ```
 
+Getting required daemons from Docker
+------------------------------------
+
+Please keep in mind that databases may need a few seconds to start up.
+
+'MySQL':
+```sh
+docker run -p 3306:3306 --rm -d -e MYSQL_ALLOW_EMPTY_PASSWORD=1 mariadb
+GMYSQLHOST=127.0.0.1 ./start-test-stop 5300 gmysql
+```
+
+Postgres:
+```sh
+docker run -p 5432:5432 --rm -d postgres
+GPGSQLUSER=postgres PGHOST=127.0.0.1  ./start-test-stop 5300 gpgsql
+```

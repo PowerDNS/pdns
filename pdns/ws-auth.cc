@@ -618,7 +618,7 @@ static void throwUnableToSecure(const DNSName& zonename) {
       + "capable backends are loaded, or because the backends have DNSSEC disabled. Check your configuration.");
 }
 
-static void updateDomainSettingsFromDocument(UeberBackend& B, const DomainInfo& di, const DNSName& zonename, const Json document) {
+static void updateDomainSettingsFromDocument(UeberBackend& B, const DomainInfo& di, const DNSName& zonename, const Json document, bool rectifyTransaction=true) {
   vector<string> zonemaster;
   bool shouldRectify = false;
   for(auto value : document["masters"].array_items()) {
@@ -743,7 +743,7 @@ static void updateDomainSettingsFromDocument(UeberBackend& B, const DomainInfo& 
     if (api_rectify == "1") {
       string info;
       string error_msg;
-      if (!dk.rectifyZone(zonename, error_msg, info, true)) {
+      if (!dk.rectifyZone(zonename, error_msg, info, rectifyTransaction)) {
         throw ApiException("Failed to rectify '" + zonename.toString() + "' " + error_msg);
       }
     }
@@ -1642,12 +1642,12 @@ static void apiServerZones(HttpRequest* req, HttpResponse* resp) {
     if(!B.getDomainInfo(zonename, di))
       throw ApiException("Creating domain '"+zonename.toString()+"' failed: lookup of domain ID failed");
 
+    di.backend->startTransaction(zonename, di.id);
+
     // updateDomainSettingsFromDocument does NOT fill out the default we've established above.
     if (!soa_edit_api_kind.empty()) {
       di.backend->setDomainMetadataOne(zonename, "SOA-EDIT-API", soa_edit_api_kind);
     }
-
-    di.backend->startTransaction(zonename, di.id);
 
     for(auto rr : new_records) {
       rr.domain_id = di.id;
@@ -1658,7 +1658,7 @@ static void apiServerZones(HttpRequest* req, HttpResponse* resp) {
       di.backend->feedComment(c);
     }
 
-    updateDomainSettingsFromDocument(B, di, zonename, document);
+    updateDomainSettingsFromDocument(B, di, zonename, document, false);
 
     di.backend->commitTransaction();
 
@@ -1714,7 +1714,9 @@ static void apiServerZoneDetail(HttpRequest* req, HttpResponse* resp) {
   if(req->method == "PUT") {
     // update domain settings
 
-    updateDomainSettingsFromDocument(B, di, zonename, req->json());
+    di.backend->startTransaction(zonename, -1);
+    updateDomainSettingsFromDocument(B, di, zonename, req->json(), false);
+    di.backend->commitTransaction();
 
     resp->body = "";
     resp->status = 204; // No Content, but indicate success
@@ -2010,7 +2012,7 @@ static void patchZone(HttpRequest* req, HttpResponse* resp) {
           di.backend->lookup(QType(QType::ANY), qname);
           DNSResourceRecord rr;
           while (di.backend->get(rr)) {
-            if (rr.qtype.getCode() == 0) {
+            if (rr.qtype.getCode() == QType::ENT) {
               ent_present = true;
               /* that's fine, we will override it */
               continue;

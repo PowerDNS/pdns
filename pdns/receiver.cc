@@ -72,6 +72,10 @@
 #include "dnsrecords.hh"
 #include "version.hh"
 
+#ifdef HAVE_LUA_RECORDS
+#include "minicurl.hh"
+#endif /* HAVE_LUA_RECORDS */
+
 time_t s_starttime;
 
 string s_programname="pdns"; // used in packethandler.cc
@@ -468,6 +472,10 @@ int main(int argc, char **argv)
     /* setup rng */
     dns_random_init();
 
+#ifdef HAVE_LUA_RECORDS
+    MiniCurl::init();
+#endif /* HAVE_LUA_RECORDS */
+
     if(!::arg()["load-modules"].empty()) {
       vector<string> modules;
 
@@ -590,8 +598,7 @@ int main(int argc, char **argv)
       }
     }
 
-    if(!::arg().mustDo("disable-tcp"))
-      TN=new TCPNameserver; 
+    TN = make_unique<TCPNameserver>();
   }
   catch(const ArgException &A) {
     g_log<<Logger::Error<<"Fatal error: "<<A.reason<<endl;
@@ -599,6 +606,8 @@ int main(int argc, char **argv)
   }
   
   declareStats();
+  S.blacklist("special-memory-usage");
+
   DLOG(g_log<<Logger::Warning<<"Verbose logging in effect"<<endl);
 
   showProductVersion();

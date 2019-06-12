@@ -222,7 +222,7 @@ try
     ("type,t",  po::value<string>()->default_value("A"), "What type to query for")
     ("envoutput,e", "write report in shell environment format")
     ("version", "show the version number")
-    ("www", po::value<bool>()->default_value("true"), "duplicate all queries with an additional 'www.' in front")
+    ("www", po::value<bool>()->default_value(true), "duplicate all queries with an additional 'www.' in front")
   ;
 
   po::options_description alloptions;
@@ -293,7 +293,7 @@ try
     split=splitField(line,',');
     if (split.second.empty())
       split=splitField(line,'\t');
-    if(!split.second.find('.')) // skip 'Hidden profile' in quantcast list.
+    if(split.second.find('.') == 0) // skip 'Hidden profile' in quantcast list.
       continue;
     pos=split.second.find('/');
     if(pos != string::npos) // alexa has whole urls in the list now.

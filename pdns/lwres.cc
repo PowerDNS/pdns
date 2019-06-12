@@ -52,6 +52,72 @@
 
 #include "uuid-utils.hh"
 
+#ifdef HAVE_FSTRM
+#include "rec-dnstap.hh"
+#include "fstrm_logger.hh"
+bool g_syslog;
+
+static bool isEnabledForQueries(const std::shared_ptr<std::vector<std::unique_ptr<FrameStreamLogger>>>& fstreamLoggers)
+{
+  if (fstreamLoggers == nullptr) {
+    return false;
+  }
+  for (auto& logger : *fstreamLoggers) {
+    if (logger->logQueries()) {
+      return true;
+    }
+  }
+  return false;
+}
+
+static void logFstreamQuery(const std::shared_ptr<std::vector<std::unique_ptr<FrameStreamLogger>>>& fstreamLoggers, const struct timeval &queryTime, const ComboAddress& ip, bool doTCP, const vector<uint8_t>& packet)
+{
+  if (fstreamLoggers == nullptr)
+    return;
+
+  struct timespec ts;
+  TIMEVAL_TO_TIMESPEC(&queryTime, &ts);
+  RecDnstapMessage message(SyncRes::s_serverID, nullptr, &ip, doTCP, reinterpret_cast<const char*>(&*packet.begin()), packet.size(), &ts, nullptr);
+  std::string str;
+  message.serialize(str);
+
+  for (auto& logger : *fstreamLoggers) {
+    logger->queueData(str);
+  }
+}
+
+static bool isEnabledForResponses(const std::shared_ptr<std::vector<std::unique_ptr<FrameStreamLogger>>>& fstreamLoggers)
+{
+  if (fstreamLoggers == nullptr) {
+    return false;
+  }
+  for (auto& logger : *fstreamLoggers) {
+    if (logger->logResponses()) {
+      return true;
+    }
+  }
+  return false;
+}
+
+static void logFstreamResponse(const std::shared_ptr<std::vector<std::unique_ptr<FrameStreamLogger>>>& fstreamLoggers, const ComboAddress& ip, bool doTCP, const std::string& packet, const struct timeval& queryTime, const struct timeval& replyTime)
+{
+  if (fstreamLoggers == nullptr)
+    return;
+
+  struct timespec ts1, ts2;
+  TIMEVAL_TO_TIMESPEC(&queryTime, &ts1);
+  TIMEVAL_TO_TIMESPEC(&replyTime, &ts2);
+  RecDnstapMessage message(SyncRes::s_serverID, nullptr, &ip, doTCP, static_cast<const char*>(&*packet.begin()), packet.size(), &ts1, &ts2);
+  std::string str;
+  message.serialize(str);
+
+  for (auto& logger : *fstreamLoggers) {
+    logger->queueData(str);
+  }
+}
+
+#endif // HAVE_FSTRM
+
 static void logOutgoingQuery(const std::shared_ptr<std::vector<std::unique_ptr<RemoteLogger>>>& outgoingLoggers, boost::optional<const boost::uuids::uuid&> initialRequestId, const boost::uuids::uuid& uuid, const ComboAddress& ip, const DNSName& domain, int type, uint16_t qid, bool doTCP, size_t bytes, boost::optional<Netmask>& srcmask)
 {
   if(!outgoingLoggers)
@@ -105,7 +171,7 @@ static void logIncomingResponse(const std::shared_ptr<std::vector<std::unique_pt
 /** lwr is only filled out in case 1 was returned, and even when returning 1 for 'success', lwr might contain DNS errors
     Never throws! 
  */
-int asyncresolve(const ComboAddress& ip, const DNSName& domain, int type, bool doTCP, bool sendRDQuery, int EDNS0Level, struct timeval* now, boost::optional<Netmask>& srcmask, boost::optional<const ResolveContext&> context, const std::shared_ptr<std::vector<std::unique_ptr<RemoteLogger>>>& outgoingLoggers, const std::set<uint16_t>& exportTypes, LWResult *lwr, bool* chained)
+int asyncresolve(const ComboAddress& ip, const DNSName& domain, int type, bool doTCP, bool sendRDQuery, int EDNS0Level, struct timeval* now, boost::optional<Netmask>& srcmask, boost::optional<const ResolveContext&> context, const std::shared_ptr<std::vector<std::unique_ptr<RemoteLogger>>>& outgoingLoggers, const std::shared_ptr<std::vector<std::unique_ptr<FrameStreamLogger>>>& fstrmLoggers, const std::set<uint16_t>& exportTypes, LWResult *lwr, bool* chained)
 {
   size_t len;
   size_t bufsize=g_outgoingEDNSBufsize;
@@ -165,11 +231,15 @@ int asyncresolve(const ComboAddress& ip, const DNSName& domain, int type, bool d
     uuid = getUniqueID();
     logOutgoingQuery(outgoingLoggers, context ? context->d_initialRequestId : boost::none, uuid, ip, domain, type, qid, doTCP, vpacket.size(), srcmask);
   }
-#endif
+#endif /* HAVE_PROTOBUF */
+#ifdef HAVE_FSTRM
+  if (isEnabledForQueries(fstrmLoggers)) {
+    logFstreamQuery(fstrmLoggers, queryTime, ip, doTCP, vpacket);
+  }
+#endif /* HAVE_FSTRM */
 
   srcmask = boost::none; // this is also our return value, even if EDNS0Level == 0
 
-  errno=0;
   if(!doTCP) {
     int queryfd;
     if(ip.sin4.sin_family==AF_INET6)
@@ -239,6 +309,13 @@ int asyncresolve(const ComboAddress& ip, const DNSName& domain, int type, bool d
     return ret;
 
   buf.resize(len);
+
+#ifdef HAVE_FSTRM
+  if (isEnabledForResponses(fstrmLoggers)) {
+    logFstreamResponse(fstrmLoggers, ip, doTCP, buf, queryTime, *now);
+  }
+#endif /* HAVE_FSTRM */
+
   lwr->d_records.clear();
   try {
     lwr->d_tcbit=0;

@@ -133,7 +133,7 @@ try
       contentCode=ntohs(d_lcc->lcc_protocol);
     }
 
-    if(contentCode==0x0800 && d_ip->ip_p==17) { // udp
+    if(contentCode==0x0800 && (d_pheader.caplen >= (d_skipMediaHeader + sizeof(*d_ip))) && d_ip->ip_p==17) { // udp
       if (d_pheader.caplen < (d_skipMediaHeader + (4 * d_ip->ip_hl) + sizeof(*d_udp))) {
         d_runts++;
         continue;
@@ -152,7 +152,7 @@ try
       d_correctpackets++;
       return true;
     }
-    else if(contentCode==0x86dd && d_ip6->ip6_ctlun.ip6_un1.ip6_un1_nxt==17) { // udpv6, we ignore anything with extension hdr
+    else if(contentCode==0x86dd && (d_pheader.caplen >= (d_skipMediaHeader + sizeof(*d_ip6))) && d_ip6->ip6_ctlun.ip6_un1.ip6_un1_nxt==17) { // udpv6, we ignore anything with extension hdr
       if (d_pheader.caplen < (d_skipMediaHeader + sizeof(struct ip6_hdr) + sizeof(struct udphdr))) {
         d_runts++;
         continue;

@@ -43,7 +43,7 @@ gSQLite3Backend::gSQLite3Backend( const std::string & mode, const std::string & 
 {
   try
   {
-    SSQLite3 *ptr = new SSQLite3( getArg( "database" ));
+    SSQLite3 *ptr = new SSQLite3( getArg( "database" ), getArg( "pragma-journal-mode") );
     setDB(ptr);
     if(!getArg("pragma-synchronous").empty()) {
       ptr->execute("PRAGMA synchronous="+getArg("pragma-synchronous"));
@@ -77,6 +77,7 @@ public:
     declare(suffix, "database", "Filename of the SQLite3 database", "powerdns.sqlite");
     declare(suffix, "pragma-synchronous", "Set this to 0 for blazing speed", "");
     declare(suffix, "pragma-foreign-keys", "Enable foreign key constraints", "no" );
+    declare(suffix, "pragma-journal-mode", "SQLite3 journal mode", "WAL");
 
     declare(suffix, "dnssec", "Enable DNSSEC processing","no");
 
@@ -119,7 +120,7 @@ public:
     declare(suffix, "update-account-query","", "update domains set account=:account where name=:domain");
     declare(suffix, "update-serial-query", "", "update domains set notified_serial=:serial where id=:domain_id");
     declare(suffix, "update-lastcheck-query", "", "update domains set last_check=:last_check where id=:domain_id");
-    declare(suffix, "info-all-master-query", "", "select id,name,master,last_check,notified_serial,type from domains where type='MASTER'");
+    declare(suffix, "info-all-master-query", "", "select domains.id, domains.name, domains.notified_serial, records.content from records join domains on records.name=domains.name where records.type='SOA' and records.disabled=0 and domains.type='MASTER'");
     declare(suffix, "delete-domain-query","", "delete from domains where name=:domain");
     declare(suffix, "delete-zone-query", "", "delete from records where domain_id=:domain_id");
     declare(suffix, "delete-rrset-query", "", "delete from records where domain_id=:domain_id and name=:qname and type=:qtype");

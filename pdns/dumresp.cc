@@ -202,12 +202,12 @@ try
   auto dh = reinterpret_cast<struct dnsheader*>(buffer);
 
   for(;;) {
-    uint16_t len = recvfrom(s.getHandle(), buffer, sizeof(buffer), 0, reinterpret_cast<struct sockaddr*>(&rem), &socklen);
+    ssize_t len = recvfrom(s.getHandle(), buffer, sizeof(buffer), 0, reinterpret_cast<struct sockaddr*>(&rem), &socklen);
 
     if(len < 0)
       unixDie("recvfrom");
 
-    if (len < sizeof(dnsheader))
+    if (static_cast<size_t>(len) < sizeof(dnsheader))
       unixDie("too small " + std::to_string(len));
 
     if(dh->qr)

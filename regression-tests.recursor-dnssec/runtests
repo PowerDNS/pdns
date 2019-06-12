@@ -11,6 +11,8 @@ pip install -U pip
 pip install -r requirements.txt
 
 protoc -I=../pdns/ --python_out=. ../pdns/dnsmessage.proto
+protoc -I=../pdns/ --python_out=. ../pdns/dnstap.proto
+
 
 mkdir -p configs
 
@@ -26,6 +28,11 @@ LIBAUTHBIND_DEFAULT=/usr/lib/authbind/libauthbind.so.1
 if [ $(uname -s) = "Darwin" ]; then
   # macOS is not /really/ supported here; it works for some tests, and then you might need sudo.
   LIBFAKETIME_DEFAULT=/usr/local/lib/faketime/libfaketime.1.dylib
+  LIBAUTHBIND_DEFAULT=""
+fi
+if [ $(uname -s) = "OpenBSD" ]; then
+  # OpenBSD is not /really/ supported here; it works for some tests, and then you might need sudo.
+  LIBFAKETIME_DEFAULT=""
   LIBAUTHBIND_DEFAULT=""
 fi
 
@@ -45,4 +52,13 @@ set -e
 if [ "${PDNS_DEBUG}" = "YES" ]; then
   set -x
 fi
+
+if ! "$PDNSRECURSOR" --version 2>&1 | grep Features | grep -q dnstap-framestream; then
+  export NODNSTAPTESTS=1
+fi
+
+if [ "${LIBAUTHBIND}" != "" -o "${LIBFAKETIME}" != "" ]; then
 LD_PRELOAD="${LIBASAN} ${LIBAUTHBIND} ${LIBFAKETIME}" nosetests -I test_WellKnown.py --with-xunit $@
+else
+nosetests -I test_WellKnown.py --with-xunit $@
+fi

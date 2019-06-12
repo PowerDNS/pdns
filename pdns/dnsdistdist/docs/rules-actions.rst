@@ -521,16 +521,6 @@ Functions for manipulating Self-Answered Response Rules:
 
   Move the last self answered response rule to the first position.
 
-Function for pool related rules
-
-.. function:: PoolAvailableRule(poolname)
-
-  .. versionadded:: 1.3.3
-
-  Check whether a pool has any servers available to handle queries
-
-  :param string poolname: Pool to check
-
 .. _RulesIntro:
 
 Matching Packets (Selectors)
@@ -796,6 +786,21 @@ These ``DNSRule``\ s be one of the following items:
 
   Matches if the query has trailing data.
 
+.. function:: PoolAvailableRule(poolname)
+
+  .. versionadded:: 1.3.3
+
+  Check whether a pool has any servers available to handle queries
+
+  .. code-block:: Lua
+
+    --- Send queries to default pool when servers are available
+    addAction(PoolAvailableRule(""), PoolAction(""))
+    --- Send queries to fallback pool if not
+    addAction(AllRule(), PoolAction("fallback"))
+
+  :param string poolname: Pool to check
+
 Combining Rules
 ~~~~~~~~~~~~~~~
 
@@ -1014,7 +1019,7 @@ The following actions exist.
   Options:
 
   * ``serverID=""``: str - Set the Server Identity field.
-  * ``ipEncryptKey=""``: str - A key, that can be generated via the :ref:`makeIPCipherKey` function, to encrypt the IP address of the requestor for anonymization purposes. The encryption is done using ipcrypt for IPv4 and a 128-bit AES ECB operation for IPv6.
+  * ``ipEncryptKey=""``: str - A key, that can be generated via the :func:`makeIPCipherKey` function, to encrypt the IP address of the requestor for anonymization purposes. The encryption is done using ipcrypt for IPv4 and a 128-bit AES ECB operation for IPv6.
 
 .. function:: RemoteLogResponseAction(remoteLogger[, alterFunction[, includeCNAME [, options]]])
 
@@ -1037,7 +1042,7 @@ The following actions exist.
   Options:
 
   * ``serverID=""``: str - Set the Server Identity field.
-  * ``ipEncryptKey=""``: str - A key, that can be generated via the :ref:`makeIPCipherKey` function, to encrypt the IP address of the requestor for anonymization purposes. The encryption is done using ipcrypt for IPv4 and a 128-bit AES ECB operation for IPv6.
+  * ``ipEncryptKey=""``: str - A key, that can be generated via the :func:`makeIPCipherKey` function, to encrypt the IP address of the requestor for anonymization purposes. The encryption is done using ipcrypt for IPv4 and a 128-bit AES ECB operation for IPv6.
 
 .. function:: SetECSAction(v4 [, v6])
 

@@ -22,7 +22,7 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 m4_define([_BOOST_SERIAL], [m4_translit([
-# serial 27
+# serial 28
 ], [#
 ], [])])
 
@@ -644,6 +644,7 @@ LDFLAGS=$boost_filesystem_save_LDFLAGS
 # * This library was introduced in Boost 1.51.0
 # * The signatures of make_fcontext() and jump_fcontext were changed in 1.56.0
 # * A dependency on boost_thread appears in 1.57.0
+# * The implementation details were moved to boost::context::detail in 1.61.0
 BOOST_DEFUN([Context],
 [boost_context_save_LIBS=$LIBS
  boost_context_save_LDFLAGS=$LDFLAGS
@@ -653,6 +654,32 @@ if test $boost_major_version -ge 157; then
   LIBS="$LIBS $BOOST_THREAD_LIBS"
   LDFLAGS="$LDFLAGS $BOOST_THREAD_LDFLAGS"
 fi
+
+if test $boost_major_version -ge 161; then
+BOOST_FIND_LIB([context], [$1],
+                [boost/context/continuation.hpp], [[
+namespace ctx=boost::context;
+int a;
+ctx::continuation source=ctx::callcc(
+    [&a](ctx::continuation && sink){
+        a=0;
+        int b=1;
+        for(;;){
+            sink=sink.resume();
+            int next=a+b;
+            a=b;
+            b=next;
+        }
+        return std::move(sink);
+    });
+for (int j=0;j<10;++j) {
+    source=source.resume();
+}
+return a == 34;
+]])
+
+else
+
 BOOST_FIND_LIB([context], [$1],
                 [boost/context/fcontext.hpp],[[
 
@@ -710,6 +737,9 @@ static void f(intptr_t i) {
 }
 #endif
 ])
+
+fi
+
 LIBS=$boost_context_save_LIBS
 LDFLAGS=$boost_context_save_LDFLAGS
 ])# BOOST_CONTEXT
@@ -1516,6 +1546,8 @@ if test x$boost_cv_inc_path != xno; then
   # I'm not sure about my test for `il' (be careful: Intel's ICC pre-defines
   # the same defines as GCC's).
   for i in \
+    _BOOST_mingw_test(8, 3) \
+    _BOOST_gcc_test(8, 3) \
     _BOOST_mingw_test(8, 2) \
     _BOOST_gcc_test(8, 2) \
     _BOOST_mingw_test(8, 1) \

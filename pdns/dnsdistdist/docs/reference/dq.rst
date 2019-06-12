@@ -38,7 +38,7 @@ This state can be modified from the various hooks.
   .. attribute:: DNSQuestion.qclass
 
     QClass (as an unsigned integer) of this question.
-    Can be compared against :ref:`DNSQClass`.
+    Can be compared against :ref:`DNSClass`.
 
   .. attribute:: DNSQuestion.qname
 
@@ -178,7 +178,7 @@ DNSResponse object
     All parameters to ``func`` are integers:
 
     - ``section`` is the section in the packet and can be compared to :ref:`DNSSection`
-    - ``qclass`` is the QClass of the record. Can be compared to :ref:`DNSQClass`
+    - ``qclass`` is the QClass of the record. Can be compared to :ref:`DNSClass`
     - ``qtype`` is the QType of the record. Can be e.g. compared to ``DNSQType.A``, ``DNSQType.AAAA`` :ref:`constants <DNSQType>` and the like.
     - ``ttl`` is the current TTL
 

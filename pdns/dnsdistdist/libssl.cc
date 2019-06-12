@@ -54,29 +54,23 @@ static void openssl_thread_cleanup()
   OPENSSL_free(openssllocks);
 }
 
-#else
-static void openssl_thread_setup()
-{
-}
-
-static void openssl_thread_cleanup()
-{
-}
-#endif /* (OPENSSL_VERSION_NUMBER < 0x1010000fL || defined LIBRESSL_VERSION_NUMBER) */
-
 static std::atomic<uint64_t> s_users;
+#endif /* (OPENSSL_VERSION_NUMBER < 0x1010000fL || defined LIBRESSL_VERSION_NUMBER) */
 
 void registerOpenSSLUser()
 {
+#if (OPENSSL_VERSION_NUMBER < 0x1010000fL || defined LIBRESSL_VERSION_NUMBER)
   if (s_users.fetch_add(1) == 0) {
     SSL_load_error_strings();
     OpenSSL_add_ssl_algorithms();
     openssl_thread_setup();
   }
+#endif
 }
 
 void unregisterOpenSSLUser()
 {
+#if (OPENSSL_VERSION_NUMBER < 0x1010000fL || defined LIBRESSL_VERSION_NUMBER)
   if (s_users.fetch_sub(1) == 1) {
     ERR_free_strings();
 
@@ -89,6 +83,7 @@ void unregisterOpenSSLUser()
     CRYPTO_cleanup_all_ex_data();
     openssl_thread_cleanup();
   }
+#endif
 }
 
 #endif /* HAVE_LIBSSL */

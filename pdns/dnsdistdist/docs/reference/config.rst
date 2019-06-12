@@ -76,7 +76,7 @@ Listen Sockets
 
   * ``doTCP=true``: bool - Also bind on TCP on ``address``.
   * ``reusePort=false``: bool - Set the ``SO_REUSEPORT`` socket option.
-  * ``tcpFastOpenSize=0``: int - Set the TCP Fast Open queue size, enabling TCP Fast Open when available and the value is larger than 0.
+  * ``tcpFastOpenQueueSize=0``: int - Set the TCP Fast Open queue size, enabling TCP Fast Open when available and the value is larger than 0.
   * ``interface=""``: str - Set the network interface to use.
   * ``cpus={}``: table - Set the CPU affinity for this listener thread, asking the scheduler to run it on a single CPU id, or a set of CPU ids. This parameter is only available if the OS provides the pthread_setaffinity_np() function.
 
@@ -110,13 +110,13 @@ Listen Sockets
                       The default port is 443.
   :param str certFile(s): The path to a X.509 certificate file in PEM format, or a list of paths to such files.
   :param str keyFile(s): The path to the private key file corresponding to the certificate, or a list of paths to such files, whose order should match the certFile(s) ones.
-  :param str or list urls: A base URL, or a list of base URLs, to accept queries on. Any query with a path under one of these will be treated as a DoH query. The default is /.
+  :param str-or-list urls: A base URL, or a list of base URLs, to accept queries on. Any query with a path under one of these will be treated as a DoH query. The default is /.
   :param table options: A table with key: value pairs with listen options.
 
   Options:
 
   * ``reusePort=false``: bool - Set the ``SO_REUSEPORT`` socket option.
-  * ``tcpFastOpenSize=0``: int - Set the TCP Fast Open queue size, enabling TCP Fast Open when available and the value is larger than 0.
+  * ``tcpFastOpenQueueSize=0``: int - Set the TCP Fast Open queue size, enabling TCP Fast Open when available and the value is larger than 0.
   * ``interface=""``: str - Set the network interface to use.
   * ``cpus={}``: table - Set the CPU affinity for this listener thread, asking the scheduler to run it on a single CPU id, or a set of CPU ids. This parameter is only available if the OS provides the pthread_setaffinity_np() function.
   * ``idleTimeout=30``: int - Set the idle timeout, in seconds.
@@ -146,7 +146,7 @@ Listen Sockets
   Options:
 
   * ``reusePort=false``: bool - Set the ``SO_REUSEPORT`` socket option.
-  * ``tcpFastOpenSize=0``: int - Set the TCP Fast Open queue size, enabling TCP Fast Open when available and the value is larger than 0.
+  * ``tcpFastOpenQueueSize=0``: int - Set the TCP Fast Open queue size, enabling TCP Fast Open when available and the value is larger than 0.
   * ``interface=""``: str - Set the network interface to use.
   * ``cpus={}``: table - Set the CPU affinity for this listener thread, asking the scheduler to run it on a single CPU id, or a set of CPU ids. This parameter is only available if the OS provides the pthread_setaffinity_np() function.
   * ``provider``: str - The TLS library to use between GnuTLS and OpenSSL, if they were available and enabled at compilation time.
@@ -391,7 +391,7 @@ Servers
       setCD=BOOL,            -- Set the CD (Checking Disabled) flag in the health-check query, default: false
       maxCheckFailures=NUM,  -- Allow NUM check failures before declaring the backend down, default: 1
       checkInterval=NUM      -- The time in seconds between health checks
-      mustResolve=BOOL,      -- Set to true when the health check MUST return a NOERROR RCODE and an answer
+      mustResolve=BOOL,      -- Set to true when the health check MUST return a RCODE different from NXDomain, ServFail and Refused. Default is false, meaning that every RCODE except ServFail is considered valid
       useClientSubnet=BOOL,  -- Add the client's IP address in the EDNS Client Subnet option when forwarding the query to this backend
       source=STRING,         -- The source address or interface to use for queries to this backend, by default this is left to the kernel's address selection
                              -- The following formats are supported:
@@ -1088,11 +1088,17 @@ Other functions
   If this function exists, it is called every second to so regular tasks.
   This can be used for e.g. :doc:`Dynamic Blocks <../guides/dynblocks>`.
 
-.. function: setAllowEmptyResponse()
+.. function:: setAllowEmptyResponse()
 
   .. versionadded:: 1.4.0
 
   Set to true (defaults to false) to allow empty responses (qdcount=0) with a NoError or NXDomain rcode (default) from backends. dnsdist drops these responses by default because it can't match them against the initial query since they don't contain the qname, qtype and qclass, and therefore the risk of collision is much higher than with regular responses.
+
+.. function:: makeIPCipherKey(password) -> string
+
+  .. versionadded:: 1.4.0
+
+  Hashes the password to generate a 16-byte key that can be used to pseudonymize IP addresses with IP cipher.
 
 DOHFrontend
 ~~~~~~~~~~~

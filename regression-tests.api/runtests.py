@@ -20,6 +20,7 @@ SQLITE_DB = 'pdns.sqlite3'
 WEBPORT = 5556
 DNSPORT = 5300
 APIKEY = '1234567890abcdefghijklmnopq-key'
+WEBPASSWORD = 'something'
 PDNSUTIL_CMD = [os.environ.get("PDNSUTIL", "../pdns/pdnsutil"), "--config-dir=."]
 
 NAMED_CONF_TPL = """
@@ -103,7 +104,8 @@ pdns_recursor = os.environ.get("PDNSRECURSOR", "../pdns/recursordist/pdns_recurs
 common_args = [
     "--daemon=no", "--socket-dir=.", "--config-dir=.",
     "--local-address=127.0.0.1", "--local-port="+str(DNSPORT),
-    "--webserver=yes", "--webserver-port="+str(WEBPORT), "--webserver-address=127.0.0.1", "--webserver-password=something",
+    "--webserver=yes", "--webserver-port="+str(WEBPORT), "--webserver-address=127.0.0.1",
+    "--webserver-password="+WEBPASSWORD,
     "--api-key="+APIKEY
 ]
 
@@ -188,6 +190,7 @@ returncode = 0
 test_env = {}
 test_env.update(os.environ)
 test_env.update({
+    'WEBPASSWORD': WEBPASSWORD,
     'WEBPORT': str(WEBPORT),
     'APIKEY': APIKEY,
     'DAEMON': daemon,

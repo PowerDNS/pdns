@@ -443,6 +443,22 @@ static void connectionThread(int sock, ComboAddress remote)
           output << "\n";
         }
 
+        // Latency histogram buckets
+        output << "# HELP dnsdist_latency Histogram of responses by latency\n";
+        output << "# TYPE dnsdist_latency histogram\n";
+        uint64_t latency_amounts = g_stats.latency0_1;
+        output << "dnsdist_latency_bucket{le=\"1\"} " << latency_amounts << "\n";
+        latency_amounts += g_stats.latency1_10;
+        output << "dnsdist_latency_bucket{le=\"10\"} " << latency_amounts << "\n";
+        latency_amounts += g_stats.latency10_50;
+        output << "dnsdist_latency_bucket{le=\"50\"} " << latency_amounts << "\n";
+        latency_amounts += g_stats.latency50_100;
+        output << "dnsdist_latency_bucket{le=\"100\"} " << latency_amounts << "\n";
+        latency_amounts += g_stats.latency100_1000;
+        output << "dnsdist_latency_bucket{le=\"1000\"} " << latency_amounts << "\n";
+        latency_amounts += g_stats.latencySlow; // Should be the same as latency_count
+        output << "dnsdist_latency_bucket{le=\"+Inf\"} " << latency_amounts << "\n";
+
         auto states = g_dstates.getLocal();
         const string statesbase = "dnsdist_server_";
 
