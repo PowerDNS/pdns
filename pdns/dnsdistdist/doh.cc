@@ -149,12 +149,7 @@ static int processDOHQuery(DOHUnit* du)
 
     if (du->query.size() < sizeof(dnsheader)) {
       ++g_stats.nonCompliantQueries;
-      return -1;
-    }
-
-    if(!holders.acl->match(du->remote)) {
-      vinfolog("Query from %s (DoH) dropped because of ACL", du->remote.toStringWithPort());
-      ++g_stats.aclDrops;
+      du->status_code = 400;
       return -1;
     }
 
@@ -175,6 +170,7 @@ static int processDOHQuery(DOHUnit* du)
     struct dnsheader* dh = reinterpret_cast<struct dnsheader*>(query);
 
     if (!checkQueryHeaders(dh)) {
+      du->status_code = 400;
       return -1; // drop
     }
 
@@ -197,6 +193,7 @@ static int processDOHQuery(DOHUnit* du)
     auto result = processQuery(dq, cs, holders, ss);
 
     if (result == ProcessQueryResult::Drop) {
+      du->status_code = 403;
       return -1;
     }
 
@@ -206,7 +203,13 @@ static int processDOHQuery(DOHUnit* du)
       return 0;
     }
 
-    if (result != ProcessQueryResult::PassToBackend || ss == nullptr) {
+    if (result != ProcessQueryResult::PassToBackend) {
+      du->status_code = 500;
+      return -1;
+    }
+
+    if (ss == nullptr) {
+      du->status_code = 502;
       return -1;
     }
 
@@ -255,12 +258,16 @@ static int processDOHQuery(DOHUnit* du)
     if(ret < 0) {
       ++ss->sendErrors;
       ++g_stats.downstreamSendErrors;
+      du->status_code = 502;
+      return -1;
     }
   }
   catch(const std::exception& e) {
     vinfolog("Got an error in DOH question thread while parsing a query from %s, id %d: %s", remote.toStringWithPort(), queryId, e.what());
+    du->status_code = 500;
     return -1;
   }
+
   return 0;
 }
 
@@ -301,8 +308,9 @@ static void doh_dispatch_query(DOHServerConfig* dsc, h2o_handler_t* self, h2o_re
     *(ptr->self) = ptr;
     try  {
       if(send(dsc->dohquerypair[0], &ptr, sizeof(ptr), 0) != sizeof(ptr)) {
-        delete ptr;     // XXX but now what - will h2o time this out for us?
+        delete ptr;
         ptr = nullptr;
+        h2o_send_error_500(req, "Internal Server Error", "Internal Server Error", 0);
       }
     }
     catch(...) {
@@ -539,7 +547,7 @@ static void on_dnsdist(h2o_socket_t *listener, const char *err)
   }
 
   *du->self = nullptr; // so we don't clean up again in on_generator_dispose
-  if(!du->error) {
+  if (!du->error) {
     ++dsc->df->d_validresponses;
     du->req->res.status = 200;
     du->req->res.reason = "OK";
@@ -553,7 +561,23 @@ static void on_dnsdist(h2o_socket_t *listener, const char *err)
     h2o_send_inline(du->req, du->query.c_str(), du->query.size());
   }
   else {
-    h2o_send_error_500(du->req, "Internal Server Error", "Internal Server Error", 0);
+    switch(du->status_code) {
+    case 400:
+      h2o_send_error_400(du->req, "Bad Request", "invalid DNS query", 0);
+      break;
+    case 403:
+      h2o_send_error_403(du->req, "Forbidden", "dns query not allowed", 0);
+      break;
+    case 502:
+      h2o_send_error_502(du->req, "Bad Gateway", "no downstream server available", 0);
+      break;
+    case 500:
+      /* fall-through */
+    default:
+      h2o_send_error_500(du->req, "Internal Server Error", "Internal Server Error", 0);
+      break;
+    }
+
     ++dsc->df->d_errorresponses;
   }
   delete du;
@@ -573,9 +597,16 @@ static void on_accept(h2o_socket_t *listener, const char *err)
   }
 
   ComboAddress remote;
-
   h2o_socket_getpeername(sock, reinterpret_cast<struct sockaddr*>(&remote));
   //  cout<<"New HTTP accept for client "<<remote.toStringWithPort()<<": "<< listener->data << endl;
+
+  auto& holders = dsc->holders;
+  if (!holders.acl->match(remote)) {
+    vinfolog("Query from %s (DoH) dropped because of ACL", remote.toStringWithPort());
+    ++g_stats.aclDrops;
+    h2o_socket_close(sock);
+    return;
+  }
 
   sock->data = dsc;
   sock->on_close.cb = on_socketclose;
