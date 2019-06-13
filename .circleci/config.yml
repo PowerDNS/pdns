@@ -340,9 +340,9 @@ commands:
           name: Upload documents
           command: |
             if [ "${CIRCLE_PROJECT_USERNAME}" = "PowerDNS" -a "${CIRCLE_PROJECT_REPONAME}" = "pdns" -a "${CIRCLE_BRANCH}" = "master" ]; then
-              rsync -crv --delete --no-p --chmod=g=rwX --exclude '*~' ./doc/html-docs/ docs_powerdns_com@${DOCS_HOST}:/authoritative/
-              rsync -crv --no-p --chmod=g=rwX --exclude '*~' ./doc/html-docs.tar.bz2 docs_powerdns_com@${DOCS_HOST}:/authoritative/
-              rsync -crv --no-p --chmod=g=rwX --exclude '*~' ./doc/PowerDNS-Authoritative.pdf docs_powerdns_com@${DOCS_HOST}:/authoritative/
+              rsync -crv --delete --no-p --chmod=g=rwX --exclude '*~' ./docs/html-docs/ docs_powerdns_com@${DOCS_HOST}:/authoritative/
+              rsync -crv --no-p --chmod=g=rwX --exclude '*~' ./docs/html-docs.tar.bz2 docs_powerdns_com@${DOCS_HOST}:/authoritative/
+              rsync -crv --no-p --chmod=g=rwX --exclude '*~' ./docs/PowerDNS-Authoritative.pdf docs_powerdns_com@${DOCS_HOST}:/authoritative/
             fi
 
   build-recursor-docs:
