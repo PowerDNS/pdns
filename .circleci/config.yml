@@ -340,9 +340,9 @@ commands:
           name: Upload documents
           command: |
             if [ "${CIRCLE_PROJECT_USERNAME}" = "PowerDNS" -a "${CIRCLE_PROJECT_REPONAME}" = "pdns" -a "${CIRCLE_BRANCH}" = "master" ]; then
-              rsync -crv --delete --no-p --chmod=g=rwX --exclude '*~' ./doc/html-docs/ doc_powerdns_com@${DOCS_HOST}:/srv/www/doc.powerdns.com/authoritative/
-              rsync -crv --no-p --chmod=g=rwX --exclude '*~' ./doc/html-docs.tar.bz2 doc_powerdns_com@${DOCS_HOST}:/srv/www/doc.powerdns.com/authoritative/
-              rsync -crv --no-p --chmod=g=rwX --exclude '*~' ./doc/PowerDNS-Authoritative.pdf doc_powerdns_com@${DOCS_HOST}:/srv/www/doc.powerdns.com/authoritative/
+              rsync -crv --delete --no-p --chmod=g=rwX --exclude '*~' ./doc/html-docs/ doc_powerdns_com@${DOCS_HOST}:/authoritative/
+              rsync -crv --no-p --chmod=g=rwX --exclude '*~' ./doc/html-docs.tar.bz2 doc_powerdns_com@${DOCS_HOST}:/authoritative/
+              rsync -crv --no-p --chmod=g=rwX --exclude '*~' ./doc/PowerDNS-Authoritative.pdf doc_powerdns_com@${DOCS_HOST}:/authoritative/
             fi
 
   build-recursor-docs:
@@ -376,9 +376,9 @@ commands:
           working_directory: ~/project/pdns/recursordist
           command: |
             if [ "${CIRCLE_PROJECT_USERNAME}" = "PowerDNS" -a "${CIRCLE_PROJECT_REPONAME}" = "pdns" -a "${CIRCLE_BRANCH}" = "master" ]; then
-              rsync -crv --delete --no-p --chmod=g=rwX --exclude '*~' html-docs/ doc_powerdns_com@${DOCS_HOST}:/srv/www/doc.powerdns.com/recursor/
-              rsync -crv --no-p --chmod=g=rwX --exclude '*~' html-docs.tar.bz2 doc_powerdns_com@${DOCS_HOST}:/srv/www/doc.powerdns.com/recursor/
-              rsync -crv --no-p --chmod=g=rwX --exclude '*~' PowerDNS-Recursor.pdf doc_powerdns_com@${DOCS_HOST}:/srv/www/doc.powerdns.com/recursor/
+              rsync -crv --delete --no-p --chmod=g=rwX --exclude '*~' html-docs/ doc_powerdns_com@${DOCS_HOST}:/recursor/
+              rsync -crv --no-p --chmod=g=rwX --exclude '*~' html-docs.tar.bz2 doc_powerdns_com@${DOCS_HOST}:/recursor/
+              rsync -crv --no-p --chmod=g=rwX --exclude '*~' PowerDNS-Recursor.pdf doc_powerdns_com@${DOCS_HOST}:/recursor/
             fi
 
   build-dnsdist-docs:
@@ -409,9 +409,9 @@ commands:
           working_directory: ~/project/pdns/dnsdistdist
           command: |
             if [ "${CIRCLE_PROJECT_USERNAME}" = "PowerDNS" -a "${CIRCLE_PROJECT_REPONAME}" = "pdns" -a "${CIRCLE_BRANCH}" = "master" ]; then
-              rsync -crv --delete --no-p --chmod=g=rwX --exclude '*~' html-docs/ dnsdist_org@${DOCS_HOST}:/srv/www/dnsdist.org
-              rsync -crv --no-p --chmod=g=rwX --exclude '*~' html-docs.tar.bz2 dnsdist_org@${DOCS_HOST}:/srv/www/dnsdist.org
-              rsync -crv --no-p --chmod=g=rwX --exclude '*~' dnsdist.pdf dnsdist_org@${DOCS_HOST}:/srv/www/dnsdist.org
+              rsync -crv --delete --no-p --chmod=g=rwX --exclude '*~' html-docs/ dnsdist_org@${DOCS_HOST}:
+              rsync -crv --no-p --chmod=g=rwX --exclude '*~' html-docs.tar.bz2 dnsdist_org@${DOCS_HOST}:
+              rsync -crv --no-p --chmod=g=rwX --exclude '*~' dnsdist.pdf dnsdist_org@${DOCS_HOST}:
             fi
 
 jobs:
