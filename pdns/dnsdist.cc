@@ -546,9 +546,10 @@ try {
         IDState* ids = &dss->idStates[queryId];
         int origFD = ids->origFD;
 
-        if(origFD < 0 && ids->du == nullptr) // duplicate
+        if(origFD < 0) // duplicate
           continue;
 
+        auto du = ids->du;
         /* setting age to 0 to prevent the maintainer thread from
            cleaning this IDS while we process the response.
            We have already a copy of the origFD, so it would
@@ -568,7 +569,10 @@ try {
              and the other thread has not incremented the outstanding counter, so we don't
              want it to be decremented twice. */
           --dss->outstanding;  // you'd think an attacker could game this, but we're using connected socket
+        } else {
+          du = nullptr;
         }
+        ids->du = nullptr;
 
         if(dh->tc && g_truncateTC) {
           truncateTC(response, &responseLen, responseSize, consumed);
@@ -588,15 +592,15 @@ try {
         }
 
         if (ids->cs && !ids->cs->muted) {
-          if (ids->du) {
+          if (du) {
 #ifdef HAVE_DNS_OVER_HTTPS
             // DoH query
-            ids->du->query = std::string(response, responseLen);
-            if (send(ids->du->rsock, &ids->du, sizeof(ids->du), 0) != sizeof(ids->du)) {
-              delete ids->du;
+            du->query = std::string(response, responseLen);
+            if (send(du->rsock, &du, sizeof(du), 0) != sizeof(du)) {
+              delete du;
             }
 #endif /* HAVE_DNS_OVER_HTTPS */
-            ids->du = nullptr;
+            du = nullptr;
           }
           else {
             ComboAddress empty;
@@ -1564,16 +1568,25 @@ static void processUDPQuery(ClientState& cs, LocalHolders& holders, const struct
     unsigned int idOffset = (ss->idOffset++) % ss->idStates.size();
     IDState* ids = &ss->idStates[idOffset];
     ids->age = 0;
-    ids->du = nullptr;
+    DOHUnit* du = nullptr;
+
+    if (ids->origFD != -1) {
+      du = ids->du;
+    }
 
     int oldFD = ids->origFD.exchange(cs.udpFD);
     if(oldFD < 0) {
-      // if we are reusing, no change in outstanding
       ++ss->outstanding;
+      /* either it was already -1 so no DOH unit to handle,
+         or someone handled it before us */
+      du = nullptr;
     }
     else {
+      // if we are reusing, no change in outstanding
       ++ss->reuseds;
       ++g_stats.downstreamTimeouts;
+      ids->du = nullptr;
+      handleDOHTimeout(du);
     }
 
     ids->cs = &cs;
@@ -2064,11 +2077,14 @@ static void healthChecksThread()
              so the sooner the better any way since we _will_
              decrement it.
           */
+          auto oldDU = ids.du;
+
           if (ids.origFD.exchange(-1) != origFD) {
             /* this state has been altered in the meantime,
                don't go anywhere near it */
             continue;
           }
+          handleDOHTimeout(oldDU);
           ids.du = nullptr;
           ids.age = 0;
           dss->reuseds++;

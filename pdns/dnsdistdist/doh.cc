@@ -1,3 +1,7 @@
+#include "config.h"
+#include "doh.hh"
+
+#ifdef HAVE_DNS_OVER_HTTPS
 #define H2O_USE_EPOLL 1
 
 #include <errno.h>
@@ -122,6 +126,22 @@ struct DOHServerConfig
   int dohresponsepair[2]{-1,-1};
 };
 
+void handleDOHTimeout(DOHUnit* oldDU)
+{
+  if (oldDU == nullptr) {
+    return;
+  }
+
+/* we are about to erase an existing DU */
+  oldDU->error = true;
+  oldDU->status_code = 502;
+
+  if (send(oldDU->rsock, &oldDU, sizeof(oldDU), 0) != sizeof(oldDU)) {
+    delete oldDU;
+    oldDU = nullptr;
+  }
+}
+
 static void on_socketclose(void *data)
 {
   DOHAcceptContext* ctx = reinterpret_cast<DOHAcceptContext*>(data);
@@ -213,20 +233,30 @@ static int processDOHQuery(DOHUnit* du)
       return -1;
     }
 
+    ComboAddress dest = du->dest;
     unsigned int idOffset = (ss->idOffset++) % ss->idStates.size();
     IDState* ids = &ss->idStates[idOffset];
     ids->age = 0;
-    ids->du = du;
+    DOHUnit* oldDU = nullptr;
+    if (ids->origFD != -1) {
+      oldDU = ids->du;
+    }
 
-    int oldFD = ids->origFD.exchange(cs.udpFD);
-    if(oldFD < 0) {
+    int oldFD = ids->origFD.exchange(0);
+    if (oldFD < 0) {
       // if we are reusing, no change in outstanding
       ++ss->outstanding;
     }
     else {
       ++ss->reuseds;
       ++g_stats.downstreamTimeouts;
+      /* origFD is not -1 anymore, we can't touch it */
+      oldDU = nullptr;
     }
+
+    handleDOHTimeout(oldDU);
+
+    ids->du = du;
 
     ids->cs = &cs;
     ids->origID = dh->id;
@@ -238,8 +268,8 @@ static int processDOHQuery(DOHUnit* du)
        We need to keep track of which one it is since we may
        want to use the real but not the listening addr to reply.
     */
-    if (du->dest.sin4.sin_family != 0) {
-      ids->origDest = du->dest;
+    if (dest.sin4.sin_family != 0) {
+      ids->origDest = dest;
       ids->destHarvested = true;
     }
     else {
@@ -588,6 +618,7 @@ static void on_dnsdist(h2o_socket_t *listener, const char *err)
 
     ++dsc->df->d_errorresponses;
   }
+
   delete du;
 }
 
@@ -771,3 +802,11 @@ catch(const std::exception& e) {
 catch(...) {
   throw runtime_error("DOH thread failed to launch");
 }
+
+#else /* HAVE_DNS_OVER_HTTPS */
+
+void handleDOHTimeout(DOHUnit* oldDU)
+{
+}
+
+#endif /* HAVE_DNS_OVER_HTTPS */

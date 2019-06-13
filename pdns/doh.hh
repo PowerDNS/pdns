@@ -74,3 +74,5 @@ struct DOHUnit
 };
 
 #endif /* HAVE_DNS_OVER_HTTPS  */
+
+void handleDOHTimeout(DOHUnit* oldDU);
