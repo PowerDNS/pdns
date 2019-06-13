@@ -341,6 +341,14 @@ try
   h2o_socket_getsockname(sock, reinterpret_cast<struct sockaddr*>(&local));
   DOHServerConfig* dsc = reinterpret_cast<DOHServerConfig*>(req->conn->ctx->storage.entries[0].data);
 
+  auto& holders = dsc->holders;
+  if (!holders.acl->match(remote)) {
+    ++g_stats.aclDrops;
+    vinfolog("Query from %s (DoH) dropped because of ACL", remote.toStringWithPort());
+    h2o_send_error_403(req, "Forbidden", "dns query not allowed because of ACL", 0);
+    return 0;
+  }
+
   if(auto tlsversion = h2o_socket_get_ssl_protocol_version(sock)) {
     if(!strcmp(tlsversion, "TLSv1.0"))
       ++dsc->df->d_tls10queries;
@@ -599,14 +607,6 @@ static void on_accept(h2o_socket_t *listener, const char *err)
   ComboAddress remote;
   h2o_socket_getpeername(sock, reinterpret_cast<struct sockaddr*>(&remote));
   //  cout<<"New HTTP accept for client "<<remote.toStringWithPort()<<": "<< listener->data << endl;
-
-  auto& holders = dsc->holders;
-  if (!holders.acl->match(remote)) {
-    vinfolog("Query from %s (DoH) dropped because of ACL", remote.toStringWithPort());
-    ++g_stats.aclDrops;
-    h2o_socket_close(sock);
-    return;
-  }
 
   sock->data = dsc;
   sock->on_close.cb = on_socketclose;
