@@ -363,7 +363,7 @@ commands:
       - run:
           name: build docs
           command: |
-            make all-docs
+            make html-docs
             if [ "${CIRCLE_PROJECT_USERNAME}" = "PowerDNS" -a "${CIRCLE_PROJECT_REPONAME}" = "pdns" -a "${CIRCLE_BRANCH}" = "master" ]; then
               make all-docs
             fi
@@ -399,7 +399,10 @@ commands:
       - run:
           name: build docs
           command: |
-            make all-docs
+            make html-docs
+            if [ "${CIRCLE_PROJECT_USERNAME}" = "PowerDNS" -a "${CIRCLE_PROJECT_REPONAME}" = "pdns" -a "${CIRCLE_BRANCH}" = "master" ]; then
+              make all-docs
+            fi
           working_directory: ~/project/pdns/dnsdistdist
 
   upload-dnsdist-docs:
