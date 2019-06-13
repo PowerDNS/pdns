@@ -38,6 +38,9 @@ commands:
     steps:
       - run:
           command: mkdir -p $HOME/.ssh && echo "${DOCS_HOST} ${DOCS_FINGERPRINT}" > $HOME/.ssh/known_hosts
+      - add_ssh_keys:
+          fingerprints:
+            - "3e:0a:aa:2c:30:69:89:f3:eb:17:c1:3f:3b:78:40:7a"
 
   auth-regress-setup:
     description: Prepare the environment for auth regression tests
