@@ -2,6 +2,20 @@ Changelogs for 4.1.x
 ====================
 
 .. changelog::
+  :version: 4.1.14
+  :released: 13nd of June 2019
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 7906
+
+    Add statistics counters for AD and CD queries.
+
+    :tags: Bug Fixes
+    :pullreq: 7912
+
+    Add missing getregisteredname Lua function
+
   :version: 4.1.13
   :released: 21st of May 2019
 
