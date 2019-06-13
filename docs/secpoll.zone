@@ -1,4 +1,4 @@
-@       86400   IN  SOA pdns-public-ns1.powerdns.com. pieter\.lexis.powerdns.com. 2019060601 10800 3600 604800 10800
+@       86400   IN  SOA pdns-public-ns1.powerdns.com. pieter\.lexis.powerdns.com. 2019061301 10800 3600 604800 10800
 @       3600    IN  NS  pdns-public-ns1.powerdns.com.
 @       3600    IN  NS  pdns-public-ns2.powerdns.com.
 ; Auth
@@ -182,6 +182,7 @@ recursor-4.1.10.security-status                         60 IN TXT "1 OK"
 recursor-4.1.11.security-status                         60 IN TXT "1 OK"
 recursor-4.1.12.security-status                         60 IN TXT "1 OK"
 recursor-4.1.13.security-status                         60 IN TXT "1 OK"
+recursor-4.1.14.security-status                         60 IN TXT "1 OK"
 recursor-4.2.0-alpha1.security-status                   60 IN TXT "1 OK"
 recursor-4.2.0-beta1.security-status                    60 IN TXT "1 OK"
 recursor-4.2.0-rc1.security-status                      60 IN TXT "1 OK"
