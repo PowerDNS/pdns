@@ -523,12 +523,19 @@ static void connectionThread(int sock, ComboAddress remote)
           output << statesbase << "tcpavgconnduration"     << label << " " << state->tcpAvgConnectionDuration   << "\n";
         }
 
+        std::map<std::string,uint64_t> frontendDuplicates;
         for (const auto& front : g_frontends) {
           if (front->udpFD == -1 && front->tcpFD == -1)
             continue;
 
           string frontName = front->local.toString() + ":" + std::to_string(front->local.getPort());
           string proto = (front->udpFD >= 0 ? "udp" : "tcp");
+          string fullName = frontName + "_" + proto;
+          auto dupPair = frontendDuplicates.insert({fullName, 1});
+          if (dupPair.second == false) {
+            frontName = frontName + "_" + std::to_string(dupPair.first->second);
+            ++dupPair.first->second;
+          }
 
           output << "dnsdist_frontend_queries{frontend=\"" << frontName << "\",proto=\"" << proto
               << "\"} " << front->queries.load() << "\n";
