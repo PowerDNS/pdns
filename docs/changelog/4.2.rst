@@ -149,13 +149,12 @@ Changelogs for 4.2.x
 
   .. change::
     :tags: Bug Fixes, Compliance
-    :pullreq: 7789, 7772, 7410
+    :pullreq: 7789, 7772
 
     DNSSEC fixes:
 
     * Don't sign insecure records with keys from other zones (Kees Monshouwer)
     * always add DS for secure zones, broken since #7523 (Kees Monshouwer)
-    * fix referral response for DS queries (Kees Monshouwer)
 
   .. change::
     :tags: Improvements, Compliance
