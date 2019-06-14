@@ -336,11 +336,7 @@ struct SuffixMatchTree
       return nullptr;
     }
 
-    auto result = lookup(name.getRawLabels());
-    if (result) {
-      return result;
-    }
-    return endNode ? &d_value : nullptr;
+    return lookup(name.getRawLabels());
   }
 
   T* lookup(std::vector<std::string> labels) const
