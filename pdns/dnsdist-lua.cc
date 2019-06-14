@@ -89,12 +89,9 @@ void resetLuaSideEffect()
 
 typedef std::unordered_map<std::string, boost::variant<bool, int, std::string, std::vector<std::pair<int,int> > > > localbind_t;
 
-static void parseLocalBindVars(boost::optional<localbind_t> vars, bool& doTCP, bool& reusePort, int& tcpFastOpenQueueSize, std::string& interface, std::set<int>& cpus)
+static void parseLocalBindVars(boost::optional<localbind_t> vars, bool& reusePort, int& tcpFastOpenQueueSize, std::string& interface, std::set<int>& cpus)
 {
   if (vars) {
-    if (vars->count("doTCP")) {
-      doTCP = boost::get<bool>((*vars)["doTCP"]);
-    }
     if (vars->count("reusePort")) {
       reusePort = boost::get<bool>((*vars)["reusePort"]);
     }
@@ -485,13 +482,12 @@ void setupLuaConfig(bool client)
         g_outputBuffer="setLocal cannot be used at runtime!\n";
         return;
       }
-      bool doTCP = true;
       bool reusePort = false;
       int tcpFastOpenQueueSize = 0;
       std::string interface;
       std::set<int> cpus;
 
-      parseLocalBindVars(vars, doTCP, reusePort, tcpFastOpenQueueSize, interface, cpus);
+      parseLocalBindVars(vars, reusePort, tcpFastOpenQueueSize, interface, cpus);
 
       try {
 	ComboAddress loc(addr, 53);
@@ -507,9 +503,7 @@ void setupLuaConfig(bool client)
 
         // only works pre-startup, so no sync necessary
         g_frontends.push_back(std::unique_ptr<ClientState>(new ClientState(loc, false, reusePort, tcpFastOpenQueueSize, interface, cpus)));
-        if (doTCP) {
-          g_frontends.push_back(std::unique_ptr<ClientState>(new ClientState(loc, true, reusePort, tcpFastOpenQueueSize, interface, cpus)));
-        }
+        g_frontends.push_back(std::unique_ptr<ClientState>(new ClientState(loc, true, reusePort, tcpFastOpenQueueSize, interface, cpus)));
       }
       catch(const std::exception& e) {
 	g_outputBuffer="Error: "+string(e.what())+"\n";
@@ -524,21 +518,18 @@ void setupLuaConfig(bool client)
         g_outputBuffer="addLocal cannot be used at runtime!\n";
         return;
       }
-      bool doTCP = true;
       bool reusePort = false;
       int tcpFastOpenQueueSize = 0;
       std::string interface;
       std::set<int> cpus;
 
-      parseLocalBindVars(vars, doTCP, reusePort, tcpFastOpenQueueSize, interface, cpus);
+      parseLocalBindVars(vars, reusePort, tcpFastOpenQueueSize, interface, cpus);
 
       try {
 	ComboAddress loc(addr, 53);
         // only works pre-startup, so no sync necessary
         g_frontends.push_back(std::unique_ptr<ClientState>(new ClientState(loc, false, reusePort, tcpFastOpenQueueSize, interface, cpus)));
-        if (doTCP) {
-          g_frontends.push_back(std::unique_ptr<ClientState>(new ClientState(loc, true, reusePort, tcpFastOpenQueueSize, interface, cpus)));
-        }
+        g_frontends.push_back(std::unique_ptr<ClientState>(new ClientState(loc, true, reusePort, tcpFastOpenQueueSize, interface, cpus)));
       }
       catch(std::exception& e) {
         g_outputBuffer="Error: "+string(e.what())+"\n";
@@ -1101,13 +1092,12 @@ void setupLuaConfig(bool client)
         return;
       }
 #ifdef HAVE_DNSCRYPT
-      bool doTCP = true;
       bool reusePort = false;
       int tcpFastOpenQueueSize = 0;
       std::string interface;
       std::set<int> cpus;
 
-      parseLocalBindVars(vars, doTCP, reusePort, tcpFastOpenQueueSize, interface, cpus);
+      parseLocalBindVars(vars, reusePort, tcpFastOpenQueueSize, interface, cpus);
 
       try {
         auto ctx = std::make_shared<DNSCryptContext>(providerName, certFile, keyFile);
@@ -1681,15 +1671,13 @@ void setupLuaConfig(bool client)
       frontend->d_urls = {"/"};
     }
 
-    bool doTCP = true;
     bool reusePort = false;
     int tcpFastOpenQueueSize = 0;
     std::string interface;
     std::set<int> cpus;
-    (void) doTCP;
 
     if(vars) {
-      parseLocalBindVars(vars, doTCP, reusePort, tcpFastOpenQueueSize, interface, cpus);
+      parseLocalBindVars(vars, reusePort, tcpFastOpenQueueSize, interface, cpus);
 
       if (vars->count("idleTimeout")) {
         frontend->d_idleTimeout = boost::get<int>((*vars)["idleTimeout"]);
@@ -1780,15 +1768,13 @@ void setupLuaConfig(bool client)
           return;
         }
 
-        bool doTCP = true;
         bool reusePort = false;
         int tcpFastOpenQueueSize = 0;
         std::string interface;
         std::set<int> cpus;
-        (void) doTCP;
 
         if (vars) {
-          parseLocalBindVars(vars, doTCP, reusePort, tcpFastOpenQueueSize, interface, cpus);
+          parseLocalBindVars(vars, reusePort, tcpFastOpenQueueSize, interface, cpus);
 
           if (vars->count("provider")) {
             frontend->d_provider = boost::get<const string>((*vars)["provider"]);
