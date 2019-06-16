@@ -1691,6 +1691,11 @@ void setupLuaConfig(bool client)
       if (vars->count("serverTokens")) {
         frontend->d_serverTokens = boost::get<const string>((*vars)["serverTokens"]);
       }
+      if (vars->count("customResponseHeaders")) {
+        for (const std::set<std::string,std::string> headerResponse : boost::get<std::set<pair<std::string,std::string>>>((*vars)["customerResponseHeaders"])) {
+          frontend->d_customResponseHeaders.insert(headerResponse);
+        }
+      }
     }
     g_dohlocals.push_back(frontend);
     auto cs = std::unique_ptr<ClientState>(new ClientState(frontend->d_local, true, reusePort, tcpFastOpenQueueSize, interface, cpus));
