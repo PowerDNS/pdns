@@ -132,7 +132,7 @@ class TestDOH(DNSDistDOHTest):
     _serverKey = 'server.key'
     _serverCert = 'server.chain'
     _serverName = 'tls.tests.dnsdist.org'
-    _serverToken = 'customer server token'
+    _serverToken = 'custom server token'
     _caCert = 'ca.pem'
     _dohServerPort = 8443
     _dohBaseURL = ("https://%s:%d/" % (_serverName, _dohServerPort))
