@@ -53,7 +53,6 @@ class DNSDistDOHTest(DNSDistTest):
         message = None
         cls._response_headers = ''
         data = conn.perform_rb()
-
         rcode = conn.getinfo(pycurl.RESPONSE_CODE)
         if rcode == 200:
             message = dns.message.from_wire(data)
