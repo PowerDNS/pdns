@@ -51,7 +51,9 @@ class DNSDistDOHTest(DNSDistTest):
 
         receivedQuery = None
         message = None
+        cls._response_headers = ''
         data = conn.perform_rb()
+
         rcode = conn.getinfo(pycurl.RESPONSE_CODE)
         if rcode == 200:
             message = dns.message.from_wire(data)
@@ -137,7 +139,7 @@ class TestDOH(DNSDistDOHTest):
     _dohBaseURL = ("https://%s:%d/" % (_serverName, _dohServerPort))
     _config_template = """
     newServer{address="127.0.0.1:%s"}
-    addDOHLocal("127.0.0.1:%s", "%s", "%s", "/", {serverTokens=_serverToken})
+    addDOHLocal("127.0.0.1:%s", "%s", "%s", "/", {serverTokens='custom server token'})
 
     addAction("drop.doh.tests.powerdns.com.", DropAction())
     addAction("refused.doh.tests.powerdns.com.", RCodeAction(DNSRCode.REFUSED))
