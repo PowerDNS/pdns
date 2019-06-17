@@ -19,7 +19,7 @@ Changelogs for 4.1.x
 
   .. change::
     :tags: Performance
-    :pullreq: 7921
+    :pullreq: 7922
 
     Add an option to disable superslaving.
 
