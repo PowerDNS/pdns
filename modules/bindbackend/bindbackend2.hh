@@ -165,9 +165,9 @@ public:
   vector<ComboAddress> d_masters;     //!< IP address of the master of this domain
   set<string> d_also_notify; //!< IP list of hosts to also notify
   LookButDontTouch<recordstorage_t> d_records;  //!< the actual records belonging to this domain
-  time_t d_ctime;  //!< last known ctime of the file on disk
-  time_t d_lastcheck; //!< last time domain was checked for freshness
-  uint32_t d_lastnotified; //!< Last serial number we notified our slaves of
+  time_t d_ctime{0};  //!< last known ctime of the file on disk
+  time_t d_lastcheck{0}; //!< last time domain was checked for freshness
+  uint32_t d_lastnotified{0}; //!< Last serial number we notified our slaves of
   unsigned int d_id;  //!< internal id of the domain
   mutable bool d_checknow; //!< if this domain has been flagged for a check
   bool d_loaded;  //!< if a domain is loaded

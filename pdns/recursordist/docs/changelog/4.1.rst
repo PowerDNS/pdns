@@ -2,6 +2,39 @@ Changelogs for 4.1.x
 ====================
 
 .. changelog::
+  :version: 4.1.14
+  :released: 13th of June 2019
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 7906
+
+    Add statistics counters for AD and CD queries.
+
+    :tags: Bug Fixes
+    :pullreq: 7912
+
+    Add missing getregisteredname Lua function
+
+  :version: 4.1.13
+  :released: 21st of May 2019
+
+  .. change::
+    :tags: Improvements, Performance
+    :pullreq: 7673
+    :tickets: 7661
+
+    Add the ``disable-real-memory-usage`` setting to skip expensive
+    collection of detailed memory usage info.
+
+  .. change::
+    :tags: Bug Fixes, DNSSEC
+    :pullreq: 7816
+    :tickets: 7714
+
+    Fix DNSSEC validation of wildcards expanded onto themselves.
+
+.. changelog::
   :version: 4.1.12
   :released: 2nd of April 2019
 

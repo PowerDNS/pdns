@@ -1801,7 +1801,7 @@ $ORIGIN %NAME%
         self.assertIsNone(dbrecs[0]['ordername'])
 
     def test_cname_at_ent_place(self):
-        name, payload, zone = self.create_zone(api_rectify=True)
+        name, payload, zone = self.create_zone(dnssec=True, api_rectify=True)
         rrset = {
             'changetype': 'replace',
             'name': 'sub2.sub1.' + name,

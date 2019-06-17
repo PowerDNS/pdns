@@ -38,10 +38,12 @@ try
     }
   }
 
-  if(argc < 2) {
+  if(argc <= 1) {
     usage();
     exit(EXIT_FAILURE);
   }
+
+  string type(argc == 2 ? "A" : argv[2]);
 
   ::arg().set("resolver","Use this resolver for ALIAS and the internal stub resolver")="no"; 
 
@@ -50,7 +52,7 @@ try
 
   vector<DNSZoneRecord> ret;
 
-  int res=stubDoResolve(DNSName(argv[1]), DNSRecordContent::TypeToNumber(argv[2]), ret);
+  int res=stubDoResolve(DNSName(argv[1]), DNSRecordContent::TypeToNumber(type), ret);
 
   cout<<"res: "<<res<<endl;
   for(const auto& r : ret) {

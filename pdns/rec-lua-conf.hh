@@ -41,6 +41,20 @@ struct ProtobufExportConfig
   bool taggedOnly{false};
 };
 
+struct FrameStreamExportConfig
+{
+  std::vector<string> servers;
+  bool enabled{false};
+  bool logQueries{true};
+  bool logResponses{true};
+  unsigned bufferHint{0};
+  unsigned flushTimeout{0};
+  unsigned inputQueueSize{0};
+  unsigned outputQueueSize{0};
+  unsigned queueNotifyThreshold{0};
+  unsigned reopenInterval{0};
+};
+
 struct TrustAnchorFileInfo {
   uint32_t interval{24};
   std::string fname;
@@ -57,6 +71,8 @@ public:
   map<DNSName,std::string> negAnchors;
   ProtobufExportConfig protobufExportConfig;
   ProtobufExportConfig outgoingProtobufExportConfig;
+  FrameStreamExportConfig frameStreamExportConfig;
+
   /* we need to increment this every time the configuration
      is reloaded, so we know if we need to reload the protobuf
      remote loggers */

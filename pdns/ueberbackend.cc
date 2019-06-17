@@ -282,7 +282,7 @@ bool UeberBackend::getAuth(const DNSName &target, const QType& qtype, SOAData* s
   // com. We then store that and keep querying the other backends in case one
   // of them has a more specific zone but don't bother asking this specific
   // backend again for b.c.example.com., c.example.com. and example.com.
-  // If a backend has no match it may respond with an enmpty qname.
+  // If a backend has no match it may respond with an empty qname.
 
   bool found = false;
   int cstat;
@@ -330,6 +330,9 @@ bool UeberBackend::getAuth(const DNSName &target, const QType& qtype, SOAData* s
           DLOG(g_log<<Logger::Error<<"lookup: "<<shorter<<endl);
           if((*i)->getAuth(shorter, sd)) {
             DLOG(g_log<<Logger::Error<<"got: "<<sd->qname<<endl);
+            if(!shorter.isPartOf(sd->qname) && !sd->qname.empty()) {
+              throw PDNSException("getAuth() returned an SOA for the wrong zone. Zone '"+sd->qname.toLogString()+"' is not part of '"+shorter.toLogString()+"'");
+            }
             j->first = sd->qname.wirelength();
             j->second = *sd;
             if(sd->qname == shorter) {
@@ -409,6 +412,9 @@ bool UeberBackend::getSOAUncached(const DNSName &domain, SOAData &sd)
 
   for(vector<DNSBackend *>::const_iterator i=backends.begin();i!=backends.end();++i)
     if((*i)->getSOA(domain, sd)) {
+      if(domain != sd.qname) {
+        throw PDNSException("getSOA() returned an SOA for the wrong zone. Question: '"+domain.toLogString()+"', answer: '"+sd.qname.toLogString()+"'");
+      }
       if(d_cache_ttl) {
         DNSZoneRecord rr;
         rr.dr.d_name = sd.qname;

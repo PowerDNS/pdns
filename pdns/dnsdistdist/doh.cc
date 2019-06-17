@@ -185,6 +185,13 @@ static int processDOHQuery(DOHUnit* du)
     dq.ednsAdded = du->ednsAdded;
     dq.du = du;
     queryId = ntohs(dh->id);
+#ifdef HAVE_H2O_SOCKET_GET_SSL_SERVER_NAME
+    h2o_socket_t* sock = du->req->conn->callbacks->get_socket(du->req->conn);
+    const char * sni = h2o_socket_get_ssl_server_name(sock);
+    if (sni != nullptr) {
+      dq.sni = sni;
+    }
+#endif /* HAVE_H2O_SOCKET_BET_SSL_SERVER_NAME */
 
     std::shared_ptr<DownstreamState> ss{nullptr};
     auto result = processQuery(dq, cs, holders, ss);
@@ -279,16 +286,17 @@ static void on_generator_dispose(void *_self)
 static void doh_dispatch_query(DOHServerConfig* dsc, h2o_handler_t* self, h2o_req_t* req, std::string&& query, const ComboAddress& local, const ComboAddress& remote)
 {
   try {
-    auto du = std::unique_ptr<DOHUnit>(new DOHUnit);
-    du->self = reinterpret_cast<DOHUnit**>(h2o_mem_alloc_shared(&req->pool, sizeof(*self), on_generator_dispose));
     uint16_t qtype;
     DNSName qname(query.c_str(), query.size(), sizeof(dnsheader), false, &qtype);
+
+    auto du = std::unique_ptr<DOHUnit>(new DOHUnit);
     du->req = req;
-    du->query = std::move(query);
     du->dest = local;
     du->remote = remote;
     du->rsock = dsc->dohresponsepair[0];
+    du->query = std::move(query);
     du->qtype = qtype;
+    du->self = reinterpret_cast<DOHUnit**>(h2o_mem_alloc_shared(&req->pool, sizeof(*self), on_generator_dispose));
     auto ptr = du.release();
     *(ptr->self) = ptr;
     try  {

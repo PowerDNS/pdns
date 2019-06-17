@@ -6,6 +6,9 @@ DNSCrypt objects and functions
   .. versionchanged:: 1.3.0
     ``cpus`` option added.
 
+  .. versionchanged:: 1.4.0
+    Removed ``doTCP`` from the options. A listen socket on TCP is always created.
+
   Adds a DNSCrypt listen socket on ``address``.
 
   :param string address: The address and port to listen on
@@ -16,9 +19,9 @@ DNSCrypt objects and functions
 
   Options:
 
-  * ``doTCP=true``: bool - Also bind on TCP on ``address``.
+  * ``doTCP=true``: bool - Also bind on TCP on ``address``, removed in 1.4.0.
   * ``reusePort=false``: bool - Set the ``SO_REUSEPORT`` socket option.
-  * ``tcpFastOpenSize=0``: int - Set the TCP Fast Open queue size, enabling TCP Fast Open when available and the value is larger than 0
+  * ``tcpFastOpenQueueSize=0``: int - Set the TCP Fast Open queue size, enabling TCP Fast Open when available and the value is larger than 0
   * ``interface=""``: str - Sets the network interface to use
   * ``cpus={}``: table - Set the CPU affinity for this listener thread, asking the scheduler to run it on a single CPU id, or a set of CPU ids. This parameter is only available if the OS provides the pthread_setaffinity_np() function.
 

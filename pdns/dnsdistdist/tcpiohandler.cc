@@ -352,11 +352,23 @@ public:
 
     return got;
   }
+
   void close() override
   {
     if (d_conn) {
       SSL_shutdown(d_conn.get());
     }
+  }
+
+  std::string getServerNameIndication() override
+  {
+    if (d_conn) {
+      const char* value = SSL_get_servername(d_conn.get(), TLSEXT_NAMETYPE_host_name);
+      if (value) {
+        return std::string(value);
+      }
+    }
+    return std::string();
   }
 
 private:
@@ -858,6 +870,23 @@ public:
     while (got < bufferSize);
 
     return got;
+  }
+
+  std::string getServerNameIndication() override
+  {
+    if (d_conn) {
+      unsigned int type;
+      size_t name_len = 256;
+      std::string sni;
+      sni.resize(name_len);
+
+      int res = gnutls_server_name_get(d_conn.get(), const_cast<char*>(sni.c_str()), &name_len, &type, 0);
+      if (res == GNUTLS_E_SUCCESS) {
+        sni.resize(name_len);
+        return sni;
+      }
+    }
+    return std::string();
   }
 
   void close() override

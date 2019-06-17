@@ -117,7 +117,10 @@ void showBuildConfiguration()
     "PKCS#11 " <<
 #endif
 #ifdef HAVE_PROTOBUF
-    "protobuf " <<
+"protobuf " <<
+#endif
+#ifdef HAVE_FSTRM
+"dnstap-framestream " <<
 #endif
 #ifdef REMOTEBACKEND_ZEROMQ
     "remotebackend-zeromq " <<

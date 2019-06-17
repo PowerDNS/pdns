@@ -147,7 +147,7 @@ public:
   ComboAddress d_remote; //28
   TSIGHashEnum d_tsig_algo{TSIG_MD5}; //4
 
-  int d_ednsRawPacketSizeLimit; // only used for Lua record
+  int d_ednsRawPacketSizeLimit{-1}; // only used for Lua record
   uint16_t qclass{QClass::IN};  //!< class of the question - should always be INternet 2
   QType qtype;  //!< type of the question 2
 

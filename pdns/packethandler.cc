@@ -963,17 +963,11 @@ DNSPacket *PacketHandler::question(DNSPacket *p)
 }
 
 
-void PacketHandler::makeNXDomain(DNSPacket* p, DNSPacket* r, const DNSName& target, const DNSName& wildcard, SOAData& sd)
+void PacketHandler::makeNXDomain(DNSPacket* p, DNSPacket* r, const DNSName& target, const DNSName& wildcard, const SOAData& sd)
 {
   DNSZoneRecord rr;
-  rr.dr.d_name=sd.qname;
-  rr.dr.d_type=QType::SOA;
-  rr.dr.d_content=makeSOAContent(sd);
+  rr=makeEditedDNSZRFromSOAData(d_dk, sd, DNSResourceRecord::AUTHORITY);
   rr.dr.d_ttl=min(sd.ttl, sd.default_ttl);
-  rr.signttl=sd.ttl;
-  rr.domain_id=sd.domain_id;
-  rr.dr.d_place=DNSResourceRecord::AUTHORITY;
-  rr.auth = 1;
   r->addRecord(rr);
 
   if(d_dnssec) {
@@ -983,17 +977,11 @@ void PacketHandler::makeNXDomain(DNSPacket* p, DNSPacket* r, const DNSName& targ
   r->setRcode(RCode::NXDomain);
 }
 
-void PacketHandler::makeNOError(DNSPacket* p, DNSPacket* r, const DNSName& target, const DNSName& wildcard, SOAData& sd, int mode)
+void PacketHandler::makeNOError(DNSPacket* p, DNSPacket* r, const DNSName& target, const DNSName& wildcard, const SOAData& sd, int mode)
 {
   DNSZoneRecord rr;
-  rr.dr.d_name=sd.qname;
-  rr.dr.d_type=QType::SOA;
-  rr.dr.d_content=makeSOAContent(sd);
+  rr=makeEditedDNSZRFromSOAData(d_dk, sd, DNSResourceRecord::AUTHORITY);
   rr.dr.d_ttl=min(sd.ttl, sd.default_ttl);
-  rr.signttl=sd.ttl;
-  rr.domain_id=sd.domain_id;
-  rr.dr.d_place=DNSResourceRecord::AUTHORITY;
-  rr.auth = 1;
   r->addRecord(rr);
 
   if(d_dnssec) {
@@ -1031,7 +1019,7 @@ bool PacketHandler::tryReferral(DNSPacket *p, DNSPacket*r, SOAData& sd, const DN
   if(!retargeted)
     r->setA(false);
 
-  if(d_dnssec && !addDSforNS(p, r, sd, rrset.begin()->dr.d_name)) {
+  if(d_dk.isSecuredZone(sd.qname) && !addDSforNS(p, r, sd, rrset.begin()->dr.d_name) && d_dnssec) {
     addNSECX(p, r, rrset.begin()->dr.d_name, DNSName(), sd.qname, 1);
   }
 
@@ -1108,7 +1096,7 @@ DNSPacket *PacketHandler::doQuestion(DNSPacket *p)
   set<DNSName> authSet;
 
   vector<DNSZoneRecord> rrset;
-  bool weDone=0, weRedirected=0, weHaveUnauth=0;
+  bool weDone=0, weRedirected=0, weHaveUnauth=0, doSigs=0;
   DNSName haveAlias;
   uint8_t aliasScopeMask;
 
@@ -1274,10 +1262,9 @@ DNSPacket *PacketHandler::doQuestion(DNSPacket *p)
     }
     DLOG(g_log<<Logger::Error<<"We have authority, zone='"<<sd.qname<<"', id="<<sd.domain_id<<endl);
 
+    authSet.insert(sd.qname);
     d_dnssec=(p->d_dnssecOk && d_dk.isSecuredZone(sd.qname));
-    if(d_dnssec) {
-      authSet.insert(sd.qname);
-    }
+    doSigs |= d_dnssec;
 
     if(!retargetcount) r->qdomainzone=sd.qname;
 
@@ -1305,14 +1292,7 @@ DNSPacket *PacketHandler::doQuestion(DNSPacket *p)
     }
 
     if(p->qtype.getCode() == QType::SOA && sd.qname==p->qdomain) {
-      rr.dr.d_name=sd.qname;
-      rr.dr.d_type=QType::SOA;
-      sd.serial = calculateEditSOA(sd.serial, d_dk, sd.qname);
-      rr.dr.d_content=makeSOAContent(sd);
-      rr.dr.d_ttl=sd.ttl;
-      rr.domain_id=sd.domain_id;
-      rr.dr.d_place=DNSResourceRecord::ANSWER;
-      rr.auth = true;
+      rr=makeEditedDNSZRFromSOAData(d_dk, sd);
       r->addRecord(rr);
       goto sendit;
     }
@@ -1421,13 +1401,7 @@ DNSPacket *PacketHandler::doQuestion(DNSPacket *p)
 
     /* Add in SOA if required */
     if(target==sd.qname) {
-        rr.dr.d_name = sd.qname;
-        rr.dr.d_type = QType::SOA;
-        sd.serial = calculateEditSOA(sd.serial, d_dk, sd.qname);
-        rr.dr.d_content = makeSOAContent(sd);
-        rr.dr.d_ttl = sd.ttl;
-        rr.domain_id = sd.domain_id;
-        rr.auth = true;
+        rr=makeEditedDNSZRFromSOAData(d_dk, sd);
         rrset.push_back(rr);
     }
 
@@ -1569,7 +1543,7 @@ DNSPacket *PacketHandler::doQuestion(DNSPacket *p)
         break;
       }
     }
-    if(authSet.size())
+    if(doSigs)
       addRRSigs(d_dk, B, authSet, r->getRRS());
       
     r->wrapup(); // needed for inserting in cache

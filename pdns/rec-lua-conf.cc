@@ -145,6 +145,43 @@ static void parseProtobufOptions(boost::optional<protobufOptions_t> vars, Protob
 }
 #endif /* HAVE_PROTOBUF */
 
+#ifdef HAVE_FSTRM
+typedef std::unordered_map<std::string, boost::variant<bool, uint64_t, std::string, std::vector<std::pair<int,std::string> > > > frameStreamOptions_t;
+
+static void parseFrameStreamOptions(boost::optional<frameStreamOptions_t> vars, FrameStreamExportConfig& config)
+{
+  if (!vars) {
+    return;
+  }
+
+  if (vars->count("logQueries")) {
+    config.logQueries = boost::get<bool>((*vars)["logQueries"]);
+  }
+  if (vars->count("logResponses")) {
+    config.logResponses = boost::get<bool>((*vars)["logResponses"]);
+  }
+
+  if (vars->count("bufferHint")) {
+    config.bufferHint = boost::get<uint64_t>((*vars)["bufferHint"]);
+  }
+  if (vars->count("flushTimeout")) {
+    config.flushTimeout = boost::get<uint64_t>((*vars)["flushTimeout"]);
+  }
+  if (vars->count("inputQueueSize")) {
+    config.inputQueueSize = boost::get<uint64_t>((*vars)["inputQueueSize"]);
+  }
+  if (vars->count("outputQueueSize")) {
+    config.outputQueueSize = boost::get<uint64_t>((*vars)["outputQueueSize"]);
+  }
+  if (vars->count("queueNotifyThreshold")) {
+    config.queueNotifyThreshold = boost::get<uint64_t>((*vars)["queueNotifyThreshold"]);
+  }
+  if (vars->count("reopenInterval")) {
+    config.reopenInterval = boost::get<uint64_t>((*vars)["reopenInterval"]);
+  }
+}
+#endif /* HAVE_FSTRM */
+
 void loadRecursorLuaConfig(const std::string& fname, luaConfigDelayedThreads& delayedThreads)
 {
   LuaConfigItems lci;
@@ -494,6 +531,42 @@ void loadRecursorLuaConfig(const std::string& fname, luaConfigDelayedThreads& de
       }
     });
 #endif
+
+#ifdef HAVE_FSTRM
+  Lua.writeFunction("dnstapFrameStreamServer", [&lci](boost::variant<const std::string, const std::unordered_map<int, std::string>> servers, boost::optional<frameStreamOptions_t> vars) {
+      if (!lci.frameStreamExportConfig.enabled) {
+
+        lci.frameStreamExportConfig.enabled = true;
+
+          try {
+            if (servers.type() == typeid(std::string)) {
+              auto server = boost::get<const std::string>(servers);
+              if (!boost::starts_with(server, "/")) {
+                ComboAddress parsecheck(server);
+              }
+              lci.frameStreamExportConfig.servers.emplace_back(server);
+            }
+            else {
+              auto serversMap = boost::get<const std::unordered_map<int,std::string>>(servers);
+              for (const auto& serverPair : serversMap) {
+                lci.frameStreamExportConfig.servers.emplace_back(serverPair.second);
+              }
+            }
+
+            parseFrameStreamOptions(vars, lci.frameStreamExportConfig);
+          }
+          catch(std::exception& e) {
+            g_log<<Logger::Error<<"Error reading config for dnstap framestream logger: "<<e.what()<<endl;
+          }
+          catch(PDNSException& e) {
+            g_log<<Logger::Error<<"Error reading config for dnstap framestream logger: "<<e.reason<<endl;
+          }
+      }
+      else {
+        g_log<<Logger::Error<<"Only one dnstapFrameStreamServer() directive can be configured, we already have "<<lci.frameStreamExportConfig.servers.at(0)<<endl;
+      }
+    });
+#endif /* HAVE_FSTRM */
 
   try {
     Lua.executeCode(ifs);

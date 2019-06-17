@@ -221,7 +221,7 @@ string DynListener::getLine()
   vector<char> mesg;
   mesg.resize(1024000);
 
-  int len;
+  ssize_t len;
 
   ComboAddress remote;
   socklen_t remlen=remote.getSocklen();
@@ -284,12 +284,12 @@ string DynListener::getLine()
     else if(len==0)
       throw PDNSException("Guardian exited - going down as well");
 
-    if(len == (int)mesg.size())
+    if(static_cast<size_t>(len) == mesg.size())
       throw PDNSException("Line on control console was too long");
 
     mesg[len]=0;
   }
-  
+
   return &mesg[0];
 }
 

@@ -200,6 +200,7 @@ void doLatencyStats(double udiff)
   else if(udiff < 100000) ++g_stats.latency50_100;
   else if(udiff < 1000000) ++g_stats.latency100_1000;
   else ++g_stats.latencySlow;
+  g_stats.latencySum += udiff / 1000;
 
   auto doAvg = [](double& var, double n, double weight) {
     var = (weight -1) * var/weight + n/weight;
@@ -1668,7 +1669,7 @@ static void MultipleMessagesUDPClientThread(ClientState* cs, LocalHolders& holde
       unsigned int got = msgVec[msgIdx].msg_len;
       const ComboAddress& remote = recvData[msgIdx].remote;
 
-      if (got < 0 || static_cast<size_t>(got) < sizeof(struct dnsheader)) {
+      if (static_cast<size_t>(got) < sizeof(struct dnsheader)) {
         ++g_stats.nonCompliantQueries;
         continue;
       }
@@ -2791,4 +2792,9 @@ catch(PDNSException &ae)
 {
   errlog("Fatal pdns error: %s", ae.reason);
   _exit(EXIT_FAILURE);
+}
+
+uint64_t getLatencyCount(const std::string&)
+{
+    return g_stats.responses + g_stats.selfAnswered + g_stats.cacheHits;
 }

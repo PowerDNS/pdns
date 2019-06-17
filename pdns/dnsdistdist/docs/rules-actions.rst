@@ -521,16 +521,6 @@ Functions for manipulating Self-Answered Response Rules:
 
   Move the last self answered response rule to the first position.
 
-Function for pool related rules
-
-.. function:: PoolAvailableRule(poolname)
-
-  .. versionadded:: 1.3.3
-
-  Check whether a pool has any servers available to handle queries
-
-  :param string poolname: Pool to check
-
 .. _RulesIntro:
 
 Matching Packets (Selectors)
@@ -585,6 +575,21 @@ These ``DNSRule``\ s be one of the following items:
 
   :param int rcode: The RCODE to match on
 
+.. function:: HTTPHeaderRule(name, regex)
+  .. versionadded:: 1.4.0
+
+  Matches DNS over HTTPS queries with a HTTP header ``name`` whose content matches the regular expression ``regex``.
+
+  :param str name: The case-insensitive name of the HTTP header to match on
+  :param str regex: A regular expression to match the content of the specified header
+
+.. function:: HTTPPathRule(path)
+  .. versionadded:: 1.4.0
+
+  Matches DNS over HTTPS queries with a HTTP path of ``path``. For example, if the query has been sent to the https://192.0.2.1:443/PowerDNS?dns=... URL, the path would be '/PowerDNS'.
+
+  :param str path: The exact HTTP path to match on
+
 .. function:: MaxQPSIPRule(qps[, v4Mask[, v6Mask[, burst[, expiration[, cleanupDelay[, scanFraction]]]]]])
   .. versionchanged:: 1.3.1
     Added the optional parameters ``expiration``, ``cleanupDelay`` and ``scanFraction``.
@@ -636,7 +641,7 @@ These ``DNSRule``\ s be one of the following items:
 .. function:: QClassRule(qclass)
 
   Matches queries with the specified ``qclass``.
-  ``class`` can be specified as an integer or as one of the built-in :ref:`DNSQClass`.
+  ``class`` can be specified as an integer or as one of the built-in :ref:`DNSClass`.
 
   :param int qclass: The Query Class to match on
 
@@ -649,7 +654,10 @@ These ``DNSRule``\ s be one of the following items:
    :param string qname: Qname to match
 
 .. function:: QNameSetRule(set)
-  Matches if the set contains exact qname.
+
+  .. versionadded:: 1.4.0
+
+   Matches if the set contains exact qname.
 
    To match subdomain names, see :func:`SuffixMatchNodeRule`.
 
@@ -738,6 +746,17 @@ These ``DNSRule``\ s be one of the following items:
 
   :param str regex: The regular expression to match the QNAME.
 
+.. function:: SNIRule(name)
+  .. versionadded:: 1.4.0
+
+  Matches against the TLS Server Name Indication value sent by the client, if any. Only makes
+  sense for DoT or DoH, and for that last one matching on the HTTP Host header using :func:`HTTPHeaderRule`
+  might provide more consistent results.
+  As of the version 2.3.0-beta of h2o, it is unfortunately not possible to extract the SNI value from DoH
+  connections, and it is therefore necessary to use the HTTP Host header until version 2.3.0 is released.
+
+  :param str name: The exact SNI name to match.
+
 .. function:: SuffixMatchNodeRule(smn[, quiet])
 
   Matches based on a group of domain suffixes for rapid testing of membership.
@@ -766,6 +785,21 @@ These ``DNSRule``\ s be one of the following items:
 .. function:: TrailingDataRule()
 
   Matches if the query has trailing data.
+
+.. function:: PoolAvailableRule(poolname)
+
+  .. versionadded:: 1.3.3
+
+  Check whether a pool has any servers available to handle queries
+
+  .. code-block:: Lua
+
+    --- Send queries to default pool when servers are available
+    addAction(PoolAvailableRule(""), PoolAction(""))
+    --- Send queries to fallback pool if not
+    addAction(AllRule(), PoolAction("fallback"))
+
+  :param string poolname: Pool to check
 
 Combining Rules
 ~~~~~~~~~~~~~~~
@@ -817,21 +851,21 @@ The following actions exist.
 .. function:: DelayAction(milliseconds)
 
   Delay the response by the specified amount of milliseconds (UDP-only).
-  Subsequent rules are processed after this rule.
+  Subsequent rules are processed after this action.
 
   :param int milliseconds: The amount of milliseconds to delay the response
 
 .. function:: DelayResponseAction(milliseconds)
 
   Delay the response by the specified amount of milliseconds (UDP-only).
-  Subsequent rules are processed after this rule.
+  Subsequent rules are processed after this action.
 
   :param int milliseconds: The amount of milliseconds to delay the response
 
 .. function:: DisableECSAction()
 
   Disable the sending of ECS to the backend.
-  Subsequent rules are processed after this rule.
+  Subsequent rules are processed after this action.
 
 .. function:: DisableValidationAction()
 
@@ -870,14 +904,14 @@ The following actions exist.
 .. function:: ECSOverrideAction(override)
 
   Whether an existing EDNS Client Subnet value should be overridden (true) or not (false).
-  Subsequent rules are processed after this rule.
+  Subsequent rules are processed after this action.
 
   :param bool override: Whether or not to override ECS value
 
 .. function:: ECSPrefixLengthAction(v4, v6)
 
   Set the ECS prefix length.
-  Subsequent rules are processed after this rule.
+  Subsequent rules are processed after this action.
 
   :param int v4: The IPv4 netmask length
   :param int v6: The IPv6 netmask length
@@ -898,7 +932,7 @@ The following actions exist.
   When logging to a file, the ``binary`` optional parameter specifies whether we log in binary form (default) or in textual form.
   The ``append`` optional parameter specifies whether we open the file for appending or truncate each time (default).
   The ``buffered`` optional parameter specifies whether writes to the file are buffered (default) or not.
-  Subsequent rules are processed after this rule.
+  Subsequent rules are processed after this action.
 
   :param string filename: File to log to. Set to an empty string to log to the normal stdout log, this only works when ``-v`` is set on the command line.
   :param bool binary: Do binary logging. Default true
@@ -925,19 +959,19 @@ The following actions exist.
 
   Add the source MAC address to the query as EDNS0 option ``option``.
   This action is currently only supported on Linux.
-  Subsequent rules are processed after this rule.
+  Subsequent rules are processed after this action.
 
   :param int option: The EDNS0 option number
 
 .. function:: NoneAction()
 
   Does nothing.
-  Subsequent rules are processed after this rule.
+  Subsequent rules are processed after this action.
 
 .. function:: NoRecurseAction()
 
   Strip RD bit from the question, let it go through.
-  Subsequent rules are processed after this rule.
+  Subsequent rules are processed after this action.
 
 .. function:: PoolAction(poolname)
 
@@ -985,7 +1019,7 @@ The following actions exist.
   Options:
 
   * ``serverID=""``: str - Set the Server Identity field.
-  * ``ipEncryptKey=""``: str - A key, that can be generated via the :ref:`makeIPCipherKey` function, to encrypt the IP address of the requestor for anonymization purposes. The encryption is done using ipcrypt for IPv4 and a 128-bit AES ECB operation for IPv6.
+  * ``ipEncryptKey=""``: str - A key, that can be generated via the :func:`makeIPCipherKey` function, to encrypt the IP address of the requestor for anonymization purposes. The encryption is done using ipcrypt for IPv4 and a 128-bit AES ECB operation for IPv6.
 
 .. function:: RemoteLogResponseAction(remoteLogger[, alterFunction[, includeCNAME [, options]]])
 
@@ -1008,7 +1042,7 @@ The following actions exist.
   Options:
 
   * ``serverID=""``: str - Set the Server Identity field.
-  * ``ipEncryptKey=""``: str - A key, that can be generated via the :ref:`makeIPCipherKey` function, to encrypt the IP address of the requestor for anonymization purposes. The encryption is done using ipcrypt for IPv4 and a 128-bit AES ECB operation for IPv6.
+  * ``ipEncryptKey=""``: str - A key, that can be generated via the :func:`makeIPCipherKey` function, to encrypt the IP address of the requestor for anonymization purposes. The encryption is done using ipcrypt for IPv4 and a 128-bit AES ECB operation for IPv6.
 
 .. function:: SetECSAction(v4 [, v6])
 
@@ -1018,7 +1052,7 @@ The following actions exist.
   If both IPv4 and IPv6 masks are supplied the IPv4 one will be used for IPv4 clients
   and the IPv6 one for IPv6 clients. Otherwise the first mask is used for both, and
   can actually be an IPv6 mask.
-  Subsequent rules are processed after this rule.
+  Subsequent rules are processed after this action.
 
   :param string v4: The IPv4 netmask, for example "192.0.2.1/32"
   :param string v6: The IPv6 netmask, if any
@@ -1030,14 +1064,14 @@ The following actions exist.
 .. function:: SNMPTrapAction([message])
 
   Send an SNMP trap, adding the optional ``message`` string as the query description.
-  Subsequent rules are processed after this rule.
+  Subsequent rules are processed after this action.
 
   :param string message: The message to include
 
 .. function:: SNMPTrapResponseAction([message])
 
   Send an SNMP trap, adding the optional ``message`` string as the query description.
-  Subsequent rules are processed after this rule.
+  Subsequent rules are processed after this action.
 
   :param string message: The message to include
 

@@ -99,8 +99,10 @@ uint32_t getSerialFromRecords(const records_t& records, DNSRecord& soaret)
 
   for(auto iter = found.first; iter != found.second; ++iter) {
     auto soa = std::dynamic_pointer_cast<SOARecordContent>(iter->d_content);
-    soaret = *iter;
-    return soa->d_st.serial;
+    if (soa) {
+      soaret = *iter;
+      return soa->d_st.serial;
+    }
   }
   return 0;
 }
@@ -134,7 +136,9 @@ void writeZoneToDisk(const records_t& records, const DNSName& zone, const std::s
   writeRecords(fp, soarecord);
 
   fclose(fp);
-  rename( (fname+".partial").c_str(), fname.c_str());
+  if (rename( (fname+".partial").c_str(), fname.c_str()) != 0) {
+    throw std::runtime_error("Unable to move the zone file for " + zone.toLogString() + " from " + fname + ".partial to " + fname + ": " + string(strerror(errno)));
+  }
 }
 
 void loadZoneFromDisk(records_t& records, const string& fname, const DNSName& zone)

@@ -508,6 +508,9 @@ inside a supervisor that handles logging (like systemd).
 -  Boolean
 -  Default: no
 
+.. versionchanged:: 4.2.0
+  This setting has been removed
+
 Do not listen to TCP queries. Breaks RFC compliance.
 
 .. _setting-distributor-threads:
@@ -1556,6 +1559,8 @@ IP address of incoming notification proxy
 
 ``udp-truncation-threshold``
 ----------------------------
+.. versionchanged:: 4.2.0
+  Before 4.2.0, the default was 1680
 
 -  Integer
 -  Default: 1232
