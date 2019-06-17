@@ -25,7 +25,7 @@ Changelogs for 4.1.x
 
   .. change::
     :tags: Bug Fixes
-    :pullreq: 7922
+    :pullreq: 7921
 
     In gsql ``getAllDomainMetadata``, actually get all domain metadata. This makes DNSSEC metadata work with ``pdnsutil b2b-migrate``.
 
