@@ -1820,6 +1820,10 @@ vState SyncRes::getDSRecords(const DNSName& zone, dsmap_t& ds, bool taOnly, unsi
 
     if (rcode == RCode::NoError) {
       if (ds.empty()) {
+        /* we have no DS, it's either:
+           - a delegation to a non-DNSSEC signed zone
+           - no delegation, we stay in the same zone
+        */
         if (gotCNAME || denialProvesNoDelegation(zone, dsrecords)) {
           /* we are still inside the same zone */
 
@@ -1834,6 +1838,10 @@ vState SyncRes::getDSRecords(const DNSName& zone, dsmap_t& ds, bool taOnly, unsi
           *foundCut = true;
         }
 
+        /* a delegation with no DS is either:
+           - a signed zone (Secure) to an unsigned one (Insecure)
+           - an unsigned zone to another unsigned one (Insecure stays Insecure, Bogus stays Bogus)
+        */
         return state == Secure ? Insecure : state;
       } else {
         /* we have a DS */
