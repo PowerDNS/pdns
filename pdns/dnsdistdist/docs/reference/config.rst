@@ -375,7 +375,7 @@ Servers
       address="IP:PORT",     -- IP and PORT of the backend server (mandatory)
       id=STRING,             -- Use a pre-defined UUID instead of a random one
       qps=NUM,               -- Limit the number of queries per second to NUM, when using the `firstAvailable` policy
-      order=NUM,             -- The order of this server, used by the `leastOustanding` and `firstAvailable` policies
+      order=NUM,             -- The order of this server, used by the `leastOutstanding` and `firstAvailable` policies
       weight=NUM,            -- The weight of this server, used by the `wrandom`, `whashed` and `chashed` policies, default: 1
                              -- Supported values are a minimum of 1, and a maximum of 2147483647.
       pool=STRING|{STRING},  -- The pools this server belongs to (unset or empty string means default pool) as a string or table of strings
