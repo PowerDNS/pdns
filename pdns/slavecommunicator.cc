@@ -92,6 +92,7 @@ void CommunicatorClass::ixfrSuck(const DNSName &domain, const TSIGTriplet& tt, c
     DNSSECKeeper dk (&B); // reuse our UeberBackend copy for DNSSECKeeper
 
     bool wrongDomainKind = false;
+    // this checks three error conditions, and sets wrongDomainKind if we hit the third & had an error
     if(!B.getDomainInfo(domain, di) || !di.backend || (wrongDomainKind = true, di.kind != DomainInfo::Slave)) { // di.backend and B are mostly identical
       if(wrongDomainKind)
         g_log<<Logger::Error<<"Can't determine backend for domain '"<<domain<<"', not configured as slave"<<endl;
@@ -312,6 +313,7 @@ void CommunicatorClass::suck(const DNSName &domain, const ComboAddress& remote)
   try {
     DNSSECKeeper dk (&B); // reuse our UeberBackend copy for DNSSECKeeper
     bool wrongDomainKind = false;
+    // this checks three error conditions & sets wrongDomainKind if we hit the third
     if(!B.getDomainInfo(domain, di) || !di.backend || (wrongDomainKind = true, di.kind != DomainInfo::Slave)) { // di.backend and B are mostly identical
       if(wrongDomainKind)
         g_log<<Logger::Error<<"Can't determine backend for domain '"<<domain<<"', not configured as slave"<<endl;
