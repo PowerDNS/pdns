@@ -1327,6 +1327,20 @@ and :doc:`Virtual Hosting <guides/virtual-instances>` how this can differ.
 
 .. _setting-tcp-control-address:
 
+.. _setting-superslave:
+
+``superslave``
+---------------
+
+-  Boolean
+-  Default: yes
+
+.. versionadded:: 4.1.9
+  In versions before 4.1.9, this setting did not exist, it was not possible to disable
+  supermaster support.
+
+Turn on supermaster support. See :ref:`supermaster-operation`.
+
 ``tcp-control-address``
 -----------------------
 
