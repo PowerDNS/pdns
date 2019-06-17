@@ -1111,7 +1111,7 @@ struct CacheKey
   uint16_t type;
   DNSResourceRecord::Place place;
   bool operator<(const CacheKey& rhs) const {
-    return tie(name, type, place) < tie(rhs.name, rhs.type, rhs.place);
+    return tie(type, place, name) < tie(rhs.type, rhs.place, rhs.name);
   }
 };
 typedef map<CacheKey, CacheEntry> tcache_t;
