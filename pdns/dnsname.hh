@@ -300,6 +300,11 @@ struct SuffixMatchTree
    */
   void remove(std::vector<std::string> labels) const
   {
+    if (labels.empty()) { // this allows removal of the root
+      endNode = false;
+      return;
+    }
+
     SuffixMatchTree smt(*labels.rbegin());
     auto child = children.find(smt);
     if (child == children.end()) {
@@ -329,8 +334,9 @@ struct SuffixMatchTree
     if(children.empty()) { // speed up empty set
       if(endNode)
         return &d_value;
-      return 0;
+      return nullptr;
     }
+
     return lookup(name.getRawLabels());
   }
 
@@ -339,7 +345,7 @@ struct SuffixMatchTree
     if(labels.empty()) { // optimization
       if(endNode)
         return &d_value;
-      return 0;
+      return nullptr;
     }
 
     SuffixMatchTree smn(*labels.rbegin());
@@ -347,10 +353,14 @@ struct SuffixMatchTree
     if(child == children.end()) {
       if(endNode)
         return &d_value;
-      return 0;
+      return nullptr;
     }
     labels.pop_back();
-    return child->lookup(labels);
+    auto result = child->lookup(labels);
+    if (result) {
+      return result;
+    }
+    return endNode ? &d_value : nullptr;
   }
 
   // Returns all end-nodes, fully qualified (not as separate labels)
