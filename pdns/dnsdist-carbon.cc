@@ -113,9 +113,9 @@ try
           string frontName = front->local.toString() + ":" + std::to_string(front->local.getPort()) +  (front->udpFD >= 0 ? "_udp" : "_tcp");
           boost::replace_all(frontName, ".", "_");
           auto dupPair = frontendDuplicates.insert({frontName, 1});
-          if (dupPair.second == false) {
+          if (!dupPair.second) {
             frontName = frontName + "_" + std::to_string(dupPair.first->second);
-            ++dupPair.first->second;
+            ++(dupPair.first->second);
           }
 
           const string base = namespace_name + "." + hostname + "." + instance_name + ".frontends." + frontName + ".";
@@ -167,9 +167,9 @@ try
             boost::replace_all(name, "]", "_");
 
             auto dupPair = dohFrontendDuplicates.insert({name, 1});
-            if (dupPair.second == false) {
+            if (!dupPair.second) {
               name = name + "_" + std::to_string(dupPair.first->second);
-              ++dupPair.first->second;
+              ++(dupPair.first->second);
             }
 
             vector<pair<const char*, const std::atomic<uint64_t>&>> v{

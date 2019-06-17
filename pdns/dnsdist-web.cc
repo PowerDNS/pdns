@@ -532,9 +532,9 @@ static void connectionThread(int sock, ComboAddress remote)
           string proto = (front->udpFD >= 0 ? "udp" : "tcp");
           string fullName = frontName + "_" + proto;
           auto dupPair = frontendDuplicates.insert({fullName, 1});
-          if (dupPair.second == false) {
+          if (!dupPair.second) {
             frontName = frontName + "_" + std::to_string(dupPair.first->second);
-            ++dupPair.first->second;
+            ++(dupPair.first->second);
           }
 
           output << "dnsdist_frontend_queries{frontend=\"" << frontName << "\",proto=\"" << proto
