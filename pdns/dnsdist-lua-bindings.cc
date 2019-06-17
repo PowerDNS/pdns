@@ -355,7 +355,7 @@ void setupLuaBindings(bool client)
 
         int fd = open(fname.c_str(), O_CREAT | O_EXCL | O_WRONLY, 0660);
         if (fd < 0) {
-          g_outputBuffer = "Error opening dump file for writing: " + string(strerror(errno)) + "\n";
+          g_outputBuffer = "Error opening dump file for writing: " + stringerror() + "\n";
           return;
         }
 

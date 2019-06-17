@@ -561,7 +561,7 @@ public:
     else
       d_fp = fopen(str.c_str(), "w");
     if(!d_fp)
-      throw std::runtime_error("Unable to open file '"+str+"' for logging: "+std::string(strerror(errno)));
+      throw std::runtime_error("Unable to open file '"+str+"' for logging: "+stringerror());
     if(!buffered)
       setbuf(d_fp, 0);
   }

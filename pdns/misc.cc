@@ -525,14 +525,14 @@ string bitFlip(const string &str)
   return ret;
 }
 
+string stringerror(int err)
+{
+  return strerror(err);
+}
+
 string stringerror()
 {
   return strerror(errno);
-}
-
-string netstringerror()
-{
-  return stringerror();
 }
 
 void cleanSlashes(string &str)

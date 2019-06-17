@@ -513,8 +513,10 @@ static void setSocketBuffer(int fd, int optname, uint32_t size)
     return;
   }
 
-  if (setsockopt(fd, SOL_SOCKET, optname, (char*)&size, sizeof(size)) < 0 )
-    g_log<<Logger::Error<<"Unable to raise socket buffer size to "<<size<<": "<<strerror(errno)<<endl;
+  if (setsockopt(fd, SOL_SOCKET, optname, (char*)&size, sizeof(size)) < 0) {
+    int err = errno;
+    g_log << Logger::Error << "Unable to raise socket buffer size to " << size << ": " << strerror(err) << endl;
+  }
 }
 
 
@@ -732,8 +734,11 @@ static void writePid(void)
   ofstream of(s_pidfname.c_str(), std::ios_base::app);
   if(of)
     of<< Utility::getpid() <<endl;
-  else
-    g_log<<Logger::Error<<"Writing pid for "<<Utility::getpid()<<" to "<<s_pidfname<<" failed: "<<strerror(errno)<<endl;
+  else {
+    int err = errno;
+    g_log << Logger::Error << "Writing pid for " << Utility::getpid() << " to " << s_pidfname << " failed: "
+          << strerror(err) << endl;
+  }
 }
 
 TCPConnection::TCPConnection(int fd, const ComboAddress& addr) : data(2, 0), d_remote(addr), d_fd(fd)
@@ -1661,8 +1666,11 @@ static void startDoResolve(void *p)
       if(g_fromtosockets.count(dc->d_socket)) {
 	addCMsgSrcAddr(&msgh, cbuf, &dc->d_local, 0);
       }
-      if(sendmsg(dc->d_socket, &msgh, 0) < 0 && g_logCommonErrors) 
-        g_log<<Logger::Warning<<"Sending UDP reply to client "<<dc->getRemote()<<" failed with: "<<strerror(errno)<<endl;
+      if(sendmsg(dc->d_socket, &msgh, 0) < 0 && g_logCommonErrors) {
+        int err = errno;
+        g_log << Logger::Warning << "Sending UDP reply to client " << dc->getRemote() << " failed with: "
+              << strerror(err) << endl;
+      }
 
       if(variableAnswer || sr.wasVariable()) {
         g_stats.variableResponses++;
@@ -1695,9 +1703,10 @@ static void startDoResolve(void *p)
 
       if(wret == 0)
         g_log<<Logger::Error<<"EOF writing TCP answer to "<<dc->getRemote()<<endl;
-      else if(wret < 0 )
-        g_log<<Logger::Error<<"Error writing TCP answer to "<<dc->getRemote()<<": "<< strerror(errno) <<endl;
-      else if((unsigned int)wret != 2 + packet.size())
+      else if(wret < 0 ) {
+        int err = errno;
+        g_log << Logger::Error << "Error writing TCP answer to " << dc->getRemote() << ": " << strerror(err) << endl;
+      } else if((unsigned int)wret != 2 + packet.size())
         g_log<<Logger::Error<<"Oops, partial answer sent to "<<dc->getRemote()<<" for "<<dc->d_mdp.d_qname<<" (size="<< (2 + packet.size()) <<", sent "<<wret<<")"<<endl;
       else
         hadError=false;
@@ -2320,9 +2329,12 @@ static string* doProcessUDPQuestion(const std::string& question, const ComboAddr
       if(g_fromtosockets.count(fd)) {
 	addCMsgSrcAddr(&msgh, cbuf, &destaddr, 0);
       }
-      if(sendmsg(fd, &msgh, 0) < 0 && g_logCommonErrors)
-        g_log<<Logger::Warning<<"Sending UDP reply to client "<<source.toStringWithPort()<<(source != fromaddr ? " (via "+fromaddr.toStringWithPort()+")" : "")<<" failed with: "<<strerror(errno)<<endl;
-
+      if(sendmsg(fd, &msgh, 0) < 0 && g_logCommonErrors) {
+        int err = errno;
+        g_log << Logger::Warning << "Sending UDP reply to client " << source.toStringWithPort()
+              << (source != fromaddr ? " (via " + fromaddr.toStringWithPort() + ")" : "") << " failed with: "
+              << strerror(err) << endl;
+      }
       if(response.length() >= sizeof(struct dnsheader)) {
         struct dnsheader tmpdh;
         memcpy(&tmpdh, response.c_str(), sizeof(tmpdh));
@@ -2557,7 +2569,8 @@ static void makeTCPServerSockets(deferredAdd_t& deferredAdds, std::set<int>& tcp
       exit(1);
     }
     if(sin.sin6.sin6_family == AF_INET6 && setsockopt(fd, IPPROTO_IPV6, IPV6_V6ONLY, &tmp, sizeof(tmp)) < 0) {
-      g_log<<Logger::Error<<"Failed to set IPv6 socket to IPv6 only, continuing anyhow: "<<strerror(errno)<<endl;
+      int err = errno;
+      g_log<<Logger::Error<<"Failed to set IPv6 socket to IPv6 only, continuing anyhow: "<<strerror(err)<<endl;
     }
 
 #ifdef TCP_DEFER_ACCEPT
@@ -2581,7 +2594,8 @@ static void makeTCPServerSockets(deferredAdd_t& deferredAdds, std::set<int>& tcp
 #ifdef TCP_FASTOPEN
       int fastOpenQueueSize = ::arg().asNum("tcp-fast-open");
       if (setsockopt(fd, IPPROTO_TCP, TCP_FASTOPEN, &fastOpenQueueSize, sizeof fastOpenQueueSize) < 0) {
-        g_log<<Logger::Error<<"Failed to enable TCP Fast Open for listening socket: "<<strerror(errno)<<endl;
+        int err = errno;
+        g_log<<Logger::Error<<"Failed to enable TCP Fast Open for listening socket: "<<strerror(err)<<endl;
       }
 #else
       g_log<<Logger::Warning<<"TCP Fast Open configured but not supported for listening socket"<<endl;
@@ -2634,7 +2648,7 @@ static void makeUDPServerSockets(deferredAdd_t& deferredAdds)
 
     int fd=socket(sin.sin4.sin_family, SOCK_DGRAM, 0);
     if(fd < 0) {
-      throw PDNSException("Making a UDP server socket for resolver: "+netstringerror());
+      throw PDNSException("Making a UDP server socket for resolver: "+stringerror());
     }
     if (!setSocketTimestamps(fd))
       g_log<<Logger::Warning<<"Unable to enable timestamp reporting for socket"<<endl;
@@ -2649,7 +2663,8 @@ static void makeUDPServerSockets(deferredAdd_t& deferredAdds)
           g_fromtosockets.insert(fd);
 #endif
       if(sin.sin6.sin6_family == AF_INET6 && setsockopt(fd, IPPROTO_IPV6, IPV6_V6ONLY, &one, sizeof(one)) < 0) {
-	g_log<<Logger::Error<<"Failed to set IPv6 socket to IPv6 only, continuing anyhow: "<<strerror(errno)<<endl;
+        int err = errno;
+	      g_log<<Logger::Error<<"Failed to set IPv6 socket to IPv6 only, continuing anyhow: "<<strerror(err)<<endl;
       }
     }
     if( ::arg().mustDo("non-local-bind") )
@@ -2894,7 +2909,8 @@ static void makeThreadPipes()
 
     if (pipeBufferSize > 0) {
       if (!setPipeBufferSize(threadInfos.pipes.writeQueriesToThread, pipeBufferSize)) {
-        g_log<<Logger::Warning<<"Error resizing the buffer of the distribution pipe for thread "<<n<<" to "<<pipeBufferSize<<": "<<strerror(errno)<<endl;
+        int err = errno;
+        g_log<<Logger::Warning<<"Error resizing the buffer of the distribution pipe for thread "<<n<<" to "<<pipeBufferSize<<": "<<strerror(err)<<endl;
         auto existingSize = getPipeBufferSize(threadInfos.pipes.writeQueriesToThread);
         if (existingSize > 0) {
           g_log<<Logger::Warning<<"The current size of the distribution pipe's buffer for thread "<<n<<" is "<<existingSize<<endl;
@@ -4037,8 +4053,9 @@ static int serviceMain(int argc, char*argv[])
      }
 #endif
     if (chroot(::arg()["chroot"].c_str())<0 || chdir("/") < 0) {
-      g_log<<Logger::Error<<"Unable to chroot to '"+::arg()["chroot"]+"': "<<strerror (errno)<<", exiting"<<endl;
-      exit(1);
+       int err = errno;
+       g_log<<Logger::Error<<"Unable to chroot to '"+::arg()["chroot"]+"': "<<strerror (err)<<", exiting"<<endl;
+       exit(1);
     }
     else
       g_log<<Logger::Info<<"Chrooted to '"<<::arg()["chroot"]<<"'"<<endl;

@@ -172,14 +172,14 @@ static void dns_random_setup(bool force=false)
   if (chosen_rng == RNG_URANDOM) {
     urandom_fd = open(rdev.c_str(), O_RDONLY);
     if (urandom_fd == -1)
-      throw std::runtime_error("Cannot open " + rdev + ": " + std::string(strerror(errno)));
+      throw std::runtime_error("Cannot open " + rdev + ": " + stringerror());
   }
 #if defined(HAVE_KISS_RNG)
   if (chosen_rng == RNG_KISS) {
     unsigned int seed;
     urandom_fd = open(rdev.c_str(), O_RDONLY);
     if (urandom_fd == -1)
-      throw std::runtime_error("Cannot open " + rdev + ": " + std::string(strerror(errno)));
+      throw std::runtime_error("Cannot open " + rdev + ": " + stringerror());
     if (read(urandom_fd, &seed, sizeof(seed)) < 0) {
       (void)close(urandom_fd);
       throw std::runtime_error("Cannot read random device");
@@ -264,7 +264,7 @@ uint32_t dns_random(uint32_t upper_bound) {
       uint32_t num = 0;
       do {
         if (getrandom(&num, sizeof(num), 0) != sizeof(num))
-          throw std::runtime_error("getrandom() failed: " + std::string(strerror(errno)));
+          throw std::runtime_error("getrandom() failed: " + stringerror());
       }
       while(num < min);
 

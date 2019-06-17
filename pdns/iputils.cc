@@ -352,10 +352,11 @@ size_t sendMsgWithOptions(int fd, const char* buffer, size_t len, const ComboAdd
       return res;
     }
     else if (res == -1) {
-      if (errno == EINTR) {
+      int err = errno;
+      if (err == EINTR) {
         continue;
       }
-      else if (errno == EAGAIN || errno == EWOULDBLOCK || errno == EINPROGRESS || errno == ENOTCONN) {
+      else if (err == EAGAIN || err == EWOULDBLOCK || err == EINPROGRESS || err == ENOTCONN) {
         /* EINPROGRESS might happen with non blocking socket,
            especially with TCP Fast Open */
         return sent;
