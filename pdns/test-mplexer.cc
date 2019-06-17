@@ -133,14 +133,16 @@ BOOST_AUTO_TEST_CASE(test_MPlexer) {
     cerr<<"The file descripttor returned as ready is "<<readyFDs.at(0)<<endl;
     char buffer[2];
     ssize_t res = read(pipes[0], &buffer[0], sizeof(buffer));
+    int saved = errno;
     cerr<<"Reading from pipes[0] returns "<<res<<endl;
     if (res == -1) {
-      cerr<<"errno is "<<errno<<endl;
+      cerr<<"errno is "<<saved<<endl;
     }
     res = write(pipes[1], "0", 1);
+    saved = errno;
     cerr<<"Writing to pipes[1] returns "<<res<<endl;
     if (res == -1) {
-      cerr<<"errno is "<<errno<<endl;
+      cerr<<"errno is "<<saved<<endl;
     }
   }
   BOOST_REQUIRE_EQUAL(readyFDs.size(), 2);
