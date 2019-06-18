@@ -45,28 +45,30 @@ void doSecPoll(bool first)
   boost::replace_all(query, "+", "_");
   boost::replace_all(query, "~", "_");
 
-  vector<DNSZoneRecord> ret;
+  int security_status = 0;
 
+  vector<DNSZoneRecord> ret;
   int res=stubDoResolve(DNSName(query), QType::TXT, ret);
 
-  int security_status=0;
-
-  if(!res && !ret.empty()) {
-    string content=getRR<TXTRecordContent>(ret.begin()->dr)->d_text;
-
-    pair<string, string> split = splitField(unquotify(content), ' ');
-
-    security_status = std::stoi(split.first);
-    g_security_message = split.second;
-
-  }
-  else {
+  if (res != 0) { // not NOERROR
     string pkgv(PACKAGEVERSION);
-    if (std::count(pkgv.begin(), pkgv.end(), '.') > 2)
+    if (std::count(pkgv.begin(), pkgv.end(), '.') > 2) {
       g_log<<Logger::Warning<<"Not validating response for security status update, this is a non-release version."<<endl;
-    else
-      g_log<<Logger::Warning<<"Could not retrieve security status update for '" + pkgv + "' on '"+query+"', RCODE = "<< RCode::to_s(res)<<endl;
+      return;
+    }
+    g_log<<Logger::Warning<<"Could not retrieve security status update for '" + PACKAGEVERSION + "' on '"+ query + "', RCODE = "<< RCode::to_s(res)<<endl;
+    return;
   }
+
+  if (ret.empty()) { // empty NOERROR... wat?
+    g_log<<Logger::Warning<<"Could not retrieve security status update for '" + PACKAGEVERSION + "' on '"+ query + "', had empty answer, RCODE = "<< RCode::to_s(res)<<endl;
+    return;
+  }
+
+  string content=getRR<TXTRecordContent>(ret.begin()->dr)->d_text;
+  pair<string, string> split = splitField(unquotify(content), ' ');
+  security_status = std::stoi(split.first);
+  g_security_message = split.second;
 
   if(security_status == 1 && first) {
     g_log<<Logger::Warning << "Polled security status of version "<<PACKAGEVERSION<<" at startup, no known issues reported: " <<g_security_message<<endl;
@@ -78,6 +80,5 @@ void doSecPoll(bool first)
     g_log<<Logger::Error<<"PowerDNS Security Update Mandatory: "<<g_security_message<<endl;
   }
 
-  S.set("security-status",security_status);
-
+  S.set("security-status", security_status);
 }

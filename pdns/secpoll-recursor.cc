@@ -61,31 +61,39 @@ void doSecPoll(time_t* last_secpoll)
     return;
   }
 
-  if(!res && !ret.empty()) {
-    string content;
-    for(const auto&r : ret) {
-      if(r.d_type == QType::TXT)
-        content = r.d_content->getZoneRepresentation();
-    }
-
-    if(!content.empty() && content[0]=='"' && content[content.size()-1]=='"') {
-      content=content.substr(1, content.length()-2);
-    }
-
-    pair<string, string> split = splitField(content, ' ');
-    
-    g_security_status = std::stoi(split.first);
-    g_security_message = split.second;
-  }
-  else {
-    if (std::count(pkgv.begin(), pkgv.end(), '.') > 2)
-      g_log<<Logger::Warning<<"Ignoring response for security status update, this is a non-release version."<<endl;
-    else
-      g_log<<Logger::Warning<<"Could not retrieve security status update for '" +pkgv+ "' on '"<<query<<"', RCODE = "<< RCode::to_s(res)<<endl;
-
+  if (res != 0) { // Not NOERROR
     if(g_security_status == 1) // it was ok, now it is unknown
       g_security_status = 0;
+
+    if (std::count(pkgv.begin(), pkgv.end(), '.') > 2) {
+      g_log<<Logger::Warning<<"Ignoring response for security status update, this is a non-release version."<<endl;
+      return;
+    }
+    g_log<<Logger::Warning<<"Could not retrieve security status update for '" +pkgv+ "' on '"<<query<<"', RCODE = "<< RCode::to_s(res)<<endl;
+    return;
   }
+
+  if (ret.empty()) { // Empty NOERROR
+    if(g_security_status == 1) // it was ok, now it is unknown
+      g_security_status = 0;
+    g_log<<Logger::Warning<<"Could not retrieve security status update for '" +pkgv+ "' on '"<<query<<"', had empty answer, RCODE = "<< RCode::to_s(res)<<endl;
+    return;
+  }
+
+  string content;
+  for(const auto&r : ret) {
+    if(r.d_type == QType::TXT)
+      content = r.d_content->getZoneRepresentation();
+  }
+
+  if(!content.empty() && content[0]=='"' && content[content.size()-1]=='"') {
+    content=content.substr(1, content.length()-2);
+  }
+
+  pair<string, string> split = splitField(content, ' ');
+
+  g_security_status = std::stoi(split.first);
+  g_security_message = split.second;
 
   if(g_security_status == 2) {
     g_log<<Logger::Error<<"PowerDNS Security Update Recommended: "<<g_security_message<<endl;
