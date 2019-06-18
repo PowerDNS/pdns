@@ -173,6 +173,27 @@ commands:
             default-libmysqlclient-dev \
             unixodbc
 
+  install-dnsdist-deps:
+    description: "Install all libraries needed for testing dnsdist"
+    steps:
+      - run: apt-get update
+      - run:
+          command: |
+            apt-get install -qq -y \
+              libluajit-5.1 \
+              libboost-all-dev \
+              libcap2 \
+              libcurl4-openssl-dev \
+              libfstrm0 \
+              libh2o-evloop0.13 \
+              libre2-5 \
+              libssl-dev \
+              libsystemd0 \
+              libsodium23 \
+              libprotobuf17 \
+              protobuf-compiler \
+              virtualenv
+
   install-auth-dev-deps:
     description: Install all packages needed to build the auth
     steps:
@@ -1113,6 +1134,107 @@ jobs:
             --form description="master build" \
             https://scan.coverity.com/builds?project=${COVERITY_PROJECT}
 
+  build-dnsdist:
+    docker:
+      - image: debian:buster
+        environment:
+          UBSAN_OPTIONS: 'print_stacktrace=1:halt_on_error=1'
+    steps:
+      - restore-cache-ccache:
+          product: dnsdist
+      - run:
+          name: Install dependencies
+          command: |
+            apt-get update && apt-get -qq --no-install-recommends install \
+            autoconf \
+            automake \
+            g++ \
+            git \
+            libboost-all-dev \
+            libcap-dev \
+            libedit-dev \
+            libfstrm-dev \
+            libh2o-evloop-dev \
+            libluajit-5.1-dev \
+            libprotobuf-dev \
+            libre2-dev \
+            libsnmp-dev \
+            libsodium-dev \
+            libssl-dev \
+            libsystemd-dev \
+            libtool \
+            make \
+            pkg-config \
+            protobuf-compiler \
+            ragel \
+            virtualenv
+      - checkout-shallow
+      - run:
+          name: autoconf
+          command: BUILDER_VERSION=0.0.0-git1 autoreconf -vfi
+          working_directory: ~/project/pdns/dnsdistdist
+      - run:
+          name: configure
+          command: |
+            CFLAGS="-O1 -Werror=vla" \
+            CXXFLAGS="-O1 -Werror=vla" \
+            ./configure \
+            --enable-unit-tests \
+            --enable-dnstap \
+            --enable-dnscrypt \
+            --enable-dns-over-tls \
+            --enable-dns-over-https \
+            --prefix=/opt/dnsdist \
+            --with-libsodium \
+            --with-lua=luajit \
+            --with-libcap \
+            --with-protobuf=yes \
+            --with-re2 \
+            --enable-asan \
+            --enable-ubsan
+          working_directory: ~/project/pdns/dnsdistdist
+      - run:
+          name: build
+          command: make -j1 -k
+          working_directory: ~/project/pdns/dnsdistdist
+      - save-ccache-cache:
+          product: dnsdist
+      - run:
+          name: Run unit tests
+          command: make check || (cat test-suite.log; false)
+          working_directory: ~/project/pdns/dnsdistdist
+      - run:
+          name: Install resulting binaries
+          command: make install
+          working_directory: ~/project/pdns/dnsdistdist
+      - persist_to_workspace:
+          root: /opt
+          paths:
+            - dnsdist
+
+  test-dnsdist-regression:
+    docker:
+      - image: debian:buster
+        environment:
+          UBSAN_OPTIONS: 'print_stacktrace=1:halt_on_error=1'
+    steps:
+      - install-dnsdist-deps
+      - checkout-shallow
+      - run:
+          name: setup snmp
+          command: |
+            apt-get -qq --no-install-recommends install snmpd
+            sed "s/agentxperms 0700 0755 dnsdist/agentxperms 0700 0755/g" regression-tests.dnsdist/snmpd.conf > /etc/snmp/snmpd.conf
+            /etc/init.d/snmpd start
+      - attach_workspace:
+          at: /opt
+      - run:
+          name: Run dnsdist tests
+          workdir: ~/project/regression-tests.dnsdist
+          command: |
+            DNSDISTBIN="/opt/dnsdist/bin/dnsdist" \
+            ./runtests
+
 workflows:
   version: 2
   coverity:
@@ -1179,6 +1301,10 @@ workflows:
       - test-recursor-api:
           requires:
             - build-recursor
+      - build-dnsdist
+      - test-dnsdist-regression:
+          requires:
+            - build-dnsdist
 
   build-docs:
     jobs:
