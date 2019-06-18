@@ -6,18 +6,6 @@ Changelogs for 4.1.x
   :released: June 19th 2019
 
   .. change::
-    :tags: Bug Fixes
-    :pullreq: 7663
-
-    Do not exit on exception resolving addresses to notify.
-
-  .. change::
-    :tags: Performance
-    :pullreq: 7829
-
-    Avoid very busy looping on lots of notifies.
-
-  .. change::
     :tags: Performance
     :pullreq: 7922
 
