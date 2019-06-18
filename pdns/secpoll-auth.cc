@@ -45,12 +45,15 @@ void doSecPoll(bool first)
   boost::replace_all(query, "+", "_");
   boost::replace_all(query, "~", "_");
 
-  int security_status = 0;
+  int security_status = std::stoi(S.getValueStr("security-status"));
 
   vector<DNSZoneRecord> ret;
   int res=stubDoResolve(DNSName(query), QType::TXT, ret);
 
   if (res != 0) { // not NOERROR
+    if(security_status == 1) // it was ok, now it is unknown
+      S.set("security-status", 0);
+
     string pkgv(PACKAGEVERSION);
     if (std::count(pkgv.begin(), pkgv.end(), '.') > 2) {
       g_log<<Logger::Warning<<"Not validating response for security status update, this is a non-release version."<<endl;
@@ -61,6 +64,8 @@ void doSecPoll(bool first)
   }
 
   if (ret.empty()) { // empty NOERROR... wat?
+    if(security_status == 1) // it was ok, now it is unknown
+      S.set("security-status", 0);
     g_log<<Logger::Warning<<"Could not retrieve security status update for '" + PACKAGEVERSION + "' on '"+ query + "', had empty answer, RCODE = "<< RCode::to_s(res)<<endl;
     return;
   }
@@ -76,7 +81,7 @@ void doSecPoll(bool first)
   if(security_status == 2) {
     g_log<<Logger::Error<<"PowerDNS Security Update Recommended: "<<g_security_message<<endl;
   }
-  else if(security_status == 3) {
+  if(security_status == 3) {
     g_log<<Logger::Error<<"PowerDNS Security Update Mandatory: "<<g_security_message<<endl;
   }
 
