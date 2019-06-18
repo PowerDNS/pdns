@@ -31,7 +31,7 @@ commands:
     steps:
       - run:
           name: Install Coverity tools
-          command: curl -s https://scan.coverity.com/download/linux64 --data "token=${COVERITY_TOKEN}&project=${COVERITY_PROJECT}" |  gunzip | tar xvf /dev/stdin --strip-components=2 --no-same-owner -C /usr/local
+          command: curl -s https://scan.coverity.com/download/linux64 --data "token=${COVERITY_TOKEN}&project=${COVERITY_PROJECT}" |  gunzip | tar xvf /dev/stdin --strip-components=1 --no-same-owner -C /usr/local
 
   add-docs-upload-ssh:
     description: Add ssh known_hosts fingerprints
