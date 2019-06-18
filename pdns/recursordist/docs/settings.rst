@@ -1173,7 +1173,7 @@ Path to the Public Suffix List file, if any. If set, PowerDNS will try to load t
 -  Default: no
 
 Enable Query Name Minimization. This is a experimental feature, implementing a relaxed form of Query Name Mimimization as
-described in RFC 7816.
+described in :rfc:`7816`.
 
 .. _setting-query-local-address:
 
