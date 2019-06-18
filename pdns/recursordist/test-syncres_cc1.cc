@@ -130,7 +130,7 @@ static void test_edns_formerr_fallback_f(bool sample) {
   std::unique_ptr<SyncRes> sr;
   initSR(sr);
   if (sample) {
-    setDoQNameMinimisation();
+    sr->setQNameMinimization();
   }
   ComboAddress noEDNSServer;
   size_t queriesWithEDNS = 0;
@@ -153,7 +153,7 @@ static void test_edns_formerr_fallback_f(bool sample) {
         return 1;
       }
 
-      return sample ? basicRecordsForQnameMinimisation(res, domain, type) : 0;
+      return sample ? basicRecordsForQnameMinimization(res, domain, type) : 0;
     });
 
   primeHints();

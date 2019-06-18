@@ -41,8 +41,6 @@ void initSR(std::unique_ptr<SyncRes>& sr, bool dnssec=false, bool debug=false, t
 
 void setDNSSECValidation(std::unique_ptr<SyncRes>& sr, const DNSSECMode& mode);
 
-void setDoQNameMinimisation(void);
-
 void setLWResult(LWResult* res, int rcode, bool aa=false, bool tc=false, bool edns=false, bool validpacket=true);
 
 void addRecordToLW(LWResult* res, const DNSName& name, uint16_t type, const std::string& content, DNSResourceRecord::Place place=DNSResourceRecord::ANSWER, uint32_t ttl=60);
@@ -77,5 +75,5 @@ void generateKeyMaterial(const DNSName& name, unsigned int algo, uint8_t digest,
 
 int genericDSAndDNSKEYHandler(LWResult* res, const DNSName& domain, DNSName auth, int type, const testkeysset_t& keys, bool proveCut=true);
 
-int basicRecordsForQnameMinimisation(LWResult* res, const DNSName& domain, int type);
+int basicRecordsForQnameMinimization(LWResult* res, const DNSName& domain, int type);
 

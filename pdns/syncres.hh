@@ -598,9 +598,16 @@ public:
     return d_lm != LogNone;
   }
 
-  void setCacheOnly(bool state=true)
+  bool setCacheOnly(bool state = true)
   {
-    d_cacheonly=state;
+    bool old = d_cacheonly;
+    d_cacheonly = state;
+    return old;
+  }
+
+  void setQNameMinimization(bool state=true)
+  {
+    d_qNameMinimization=state;
   }
 
   void setDoEDNS0(bool state=true)
@@ -641,6 +648,11 @@ public:
   string getTrace() const
   {
     return d_trace.str();
+  }
+
+  bool getQNameMinimization() const
+  {
+    return d_qNameMinimization;
   }
 
   void setLuaEngine(shared_ptr<RecursorLua4> pdl)
@@ -740,6 +752,7 @@ public:
   static bool s_noEDNS;
   static bool s_rootNXTrust;
   static bool s_nopacketcache;
+  static bool s_qnameminimization;
 
   std::unordered_map<std::string,bool> d_discardedPolicies;
   DNSFilterEngine::Policy d_appliedPolicy;
@@ -777,13 +790,15 @@ private:
   };
 
   typedef std::map<DNSName,vState> zonesStates_t;
+  enum StopAtDelegation { DontStop, Stop, Stopped };
 
   int doResolveAt(NsSet &nameservers, DNSName auth, bool flawedNSSet, const DNSName &qname, const QType &qtype, vector<DNSRecord>&ret,
-                  unsigned int depth, set<GetBestNSAnswer>&beenthere, vState& state);
+                  unsigned int depth, set<GetBestNSAnswer>&beenthere, vState& state, StopAtDelegation* stopAtDelegation);
   bool doResolveAtThisIP(const std::string& prefix, const DNSName& qname, const QType& qtype, LWResult& lwr, boost::optional<Netmask>& ednsmask, const DNSName& auth, bool const sendRDQuery, const DNSName& nsName, const ComboAddress& remoteIP, bool doTCP, bool* truncated);
   bool processAnswer(unsigned int depth, LWResult& lwr, const DNSName& qname, const QType& qtype, DNSName& auth, bool wasForwarded, const boost::optional<Netmask> ednsmask, bool sendRDQuery, NsSet &nameservers, std::vector<DNSRecord>& ret, const DNSFilterEngine& dfe, bool* gotNewServers, int* rcode, vState& state);
 
   int doResolve(const DNSName &qname, const QType &qtype, vector<DNSRecord>&ret, unsigned int depth, set<GetBestNSAnswer>& beenthere, vState& state);
+  int doResolveNoQNameMinimization(const DNSName &qname, const QType &qtype, vector<DNSRecord>&ret, unsigned int depth, set<GetBestNSAnswer>& beenthere, vState& state, bool* fromCache = NULL, StopAtDelegation* stopAtDelegation = NULL);
   bool doOOBResolve(const AuthDomain& domain, const DNSName &qname, const QType &qtype, vector<DNSRecord>&ret, int& res);
   bool doOOBResolve(const DNSName &qname, const QType &qtype, vector<DNSRecord>&ret, unsigned int depth, int &res);
   domainmap_t::const_iterator getBestAuthZone(DNSName* qname) const;
@@ -862,6 +877,7 @@ private:
   bool d_wantsRPZ{true};
   bool d_wasOutOfBand{false};
   bool d_wasVariable{false};
+  bool d_qNameMinimization{false};
 
   LogMode d_lm;
 };
