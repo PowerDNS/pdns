@@ -2,6 +2,22 @@ Changelogs for 4.1.x
 ====================
 
 .. changelog::
+  :version: 4.1.9
+  :released: June 19th 2019
+
+  .. change::
+    :tags: Performance
+    :pullreq: 7922
+
+    Add an option to disable superslaving.
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 7921
+
+    In gsql ``getAllDomainMetadata``, actually get all domain metadata. This makes DNSSEC metadata work with ``pdnsutil b2b-migrate``.
+
+.. changelog::
   :version: 4.1.8
   :released: March 22nd 2019
 
