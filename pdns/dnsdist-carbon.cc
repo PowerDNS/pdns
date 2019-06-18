@@ -104,12 +104,20 @@ try
           str<<base<<"tcpavgqueriesperconnection" << ' '<< state->tcpAvgQueriesPerConnection.load() << " " << now << "\r\n";
           str<<base<<"tcpavgconnectionduration" << ' '<< state->tcpAvgConnectionDuration.load() << " " << now << "\r\n";
         }
+
+        std::map<std::string,uint64_t> frontendDuplicates;
         for(const auto& front : g_frontends) {
           if (front->udpFD == -1 && front->tcpFD == -1)
             continue;
 
           string frontName = front->local.toString() + ":" + std::to_string(front->local.getPort()) +  (front->udpFD >= 0 ? "_udp" : "_tcp");
           boost::replace_all(frontName, ".", "_");
+          auto dupPair = frontendDuplicates.insert({frontName, 1});
+          if (!dupPair.second) {
+            frontName = frontName + "_" + std::to_string(dupPair.first->second);
+            ++(dupPair.first->second);
+          }
+
           const string base = namespace_name + "." + hostname + "." + instance_name + ".frontends." + frontName + ".";
           str<<base<<"queries" << ' ' << front->queries.load() << " " << now << "\r\n";
           str<<base<<"tcpdiedreadingquery" << ' '<< front->tcpDiedReadingQuery.load() << " " << now << "\r\n";
@@ -121,6 +129,7 @@ try
           str<<base<<"tcpavgqueriesperconnection" << ' '<< front->tcpAvgQueriesPerConnection.load() << " " << now << "\r\n";
           str<<base<<"tcpavgconnectionduration" << ' '<< front->tcpAvgConnectionDuration.load() << " " << now << "\r\n";
         }
+
         auto localPools = g_pools.getLocal();
         for (const auto& entry : *localPools) {
           string poolName = entry.first;
@@ -148,6 +157,7 @@ try
 
 #ifdef HAVE_DNS_OVER_HTTPS
         {
+          std::map<std::string,uint64_t> dohFrontendDuplicates;
           const string base = "dnsdist." + hostname + ".main.doh.";
           for(const auto& doh : g_dohlocals) {
             string name = doh->d_local.toStringWithPort();
@@ -155,6 +165,12 @@ try
             boost::replace_all(name, ":", "_");
             boost::replace_all(name, "[", "_");
             boost::replace_all(name, "]", "_");
+
+            auto dupPair = dohFrontendDuplicates.insert({name, 1});
+            if (!dupPair.second) {
+              name = name + "_" + std::to_string(dupPair.first->second);
+              ++(dupPair.first->second);
+            }
 
             vector<pair<const char*, const std::atomic<uint64_t>&>> v{
               {"http-connects", doh->d_httpconnects},

@@ -66,6 +66,9 @@ Listen Sockets
   .. versionchanged:: 1.3.0
     Added ``cpus`` to the options.
 
+  .. versionchanged:: 1.4.0
+    Removed ``doTCP`` from the options. A listen socket on TCP is always created.
+
   Add to the list of listen addresses.
 
   :param str address: The IP Address with an optional port to listen on.
@@ -74,7 +77,7 @@ Listen Sockets
 
   Options:
 
-  * ``doTCP=true``: bool - Also bind on TCP on ``address``.
+  * ``doTCP=true``: bool - Also bind on TCP on ``address``. Removed in 1.4.0.
   * ``reusePort=false``: bool - Set the ``SO_REUSEPORT`` socket option.
   * ``tcpFastOpenQueueSize=0``: int - Set the TCP Fast Open queue size, enabling TCP Fast Open when available and the value is larger than 0.
   * ``interface=""``: str - Set the network interface to use.
@@ -82,7 +85,7 @@ Listen Sockets
 
   .. code-block:: lua
 
-    addLocal('0.0.0.0:5300', { doTCP=true, reusePort=true })
+    addLocal('0.0.0.0:5300', { reusePort=true })
 
   This will bind to both UDP and TCP on port 5300 with SO_REUSEPORT enabled.
 
@@ -372,7 +375,7 @@ Servers
       address="IP:PORT",     -- IP and PORT of the backend server (mandatory)
       id=STRING,             -- Use a pre-defined UUID instead of a random one
       qps=NUM,               -- Limit the number of queries per second to NUM, when using the `firstAvailable` policy
-      order=NUM,             -- The order of this server, used by the `leastOustanding` and `firstAvailable` policies
+      order=NUM,             -- The order of this server, used by the `leastOutstanding` and `firstAvailable` policies
       weight=NUM,            -- The weight of this server, used by the `wrandom`, `whashed` and `chashed` policies, default: 1
                              -- Supported values are a minimum of 1, and a maximum of 2147483647.
       pool=STRING|{STRING},  -- The pools this server belongs to (unset or empty string means default pool) as a string or table of strings

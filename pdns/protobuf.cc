@@ -300,12 +300,16 @@ void DNSProtoBufMessage::setInitialRequestID(const boost::uuids::uuid& uuid)
   std::copy(uuid.begin(), uuid.end(), messageId->begin());
 }
 
-void DNSProtoBufMessage::update(const boost::uuids::uuid& uuid, const ComboAddress* requestor, const ComboAddress* responder, bool isTCP, uint16_t id)
+void DNSProtoBufMessage::updateTime()
 {
   struct timespec ts;
   gettime(&ts, true);
   setTime(ts.tv_sec, ts.tv_nsec / 1000);
+}
 
+void DNSProtoBufMessage::update(const boost::uuids::uuid& uuid, const ComboAddress* requestor, const ComboAddress* responder, bool isTCP, uint16_t id)
+{
+  updateTime();
   setUUID(uuid);
   d_message.set_id(ntohs(id));
 

@@ -165,7 +165,7 @@ void initSR(bool debug)
   ::arg().set("version-string", "string reported on version.pdns or version.bind")="PowerDNS Unit Tests";
   ::arg().set("rng")="auto";
   ::arg().set("entropy-source")="/dev/urandom";
-  ::arg().setSwitch("qname-minimisation", "Use Query Name Minimisation") = "no";
+  ::arg().setSwitch("qname-minimization", "Use Query Name Minimization") = "no";
 }
 
 void initSR(std::unique_ptr<SyncRes>& sr, bool dnssec, bool debug, time_t fakeNow)
@@ -197,11 +197,6 @@ void setDNSSECValidation(std::unique_ptr<SyncRes>& sr, const DNSSECMode& mode)
 {
   sr->setDNSSECValidationRequested(true);
   g_dnssecmode = mode;
-}
-
-void setDoQNameMinimisation(void)
-{
-  ::arg().setSwitch("qname-minimisation", "") = "yes";
 }
 
 void setLWResult(LWResult* res, int rcode, bool aa, bool tc, bool edns, bool validpacket)
@@ -461,7 +456,7 @@ int genericDSAndDNSKEYHandler(LWResult* res, const DNSName& domain, DNSName auth
   return 0;
 }
 
-int basicRecordsForQnameMinimisation(LWResult* res, const DNSName& domain, int type) {
+int basicRecordsForQnameMinimization(LWResult* res, const DNSName& domain, int type) {
   if (domain == DNSName(".") && type == QType::A) {
     setLWResult(res, 0, true);
     addRecordToLW(res, DNSName("."), QType::SOA, "a.root-servers.net. nstld.verisign-grs.com. 2019042400 1800 900 604800 86400", DNSResourceRecord::AUTHORITY);
