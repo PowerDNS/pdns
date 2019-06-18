@@ -21,7 +21,8 @@ NAME=pdns
 DAEMON=/usr/sbin/pdns_server
 DAEMON_ARGS=""
 CONTROL=/usr/bin/pdns_control
-PIDFILE=/var/run/$NAME.pid
+SOCKETDIR=/var/run/pdns
+PIDFILE=$SOCKETDIR/$NAME.pid
 SCRIPTNAME=/etc/init.d/$NAME
 
 [ -x "$DAEMON" ] || exit 0
@@ -36,7 +37,7 @@ if [ -n "$suffix" ]; then
 	DAEMON_ARGS="$DAEMON_ARGS $SUFFIX"
 	NAME="$NAME-$suffix"
 	DESC="$DESC (config name $suffix)"
-	PIDFILE="/var/run/$NAME-$suffix.pid"
+	PIDFILE="/var/run/pdns/$NAME-$suffix.pid"
 fi
 
 # Load lsb stuff for systemd redirection (if available).
@@ -69,6 +70,7 @@ do_start()
 	if isrunning; then
 		return 1
 	fi
+	mkdir -p $SOCKETDIR
 	start-stop-daemon --start --quiet \
 		--pidfile $PIDFILE --exec $DAEMON -- \
 		$DAEMON_ARGS --daemon --guardian=yes \

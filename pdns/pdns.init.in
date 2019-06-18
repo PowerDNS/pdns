@@ -19,7 +19,7 @@ set -e
 exec_prefix=@exec_prefix@
 BINARYPATH=@bindir@
 SBINARYPATH=@sbindir@
-SOCKETPATH=@socketdir@
+SOCKETPATH=@socketdir@/pdns
 DAEMON_ARGS=""
 
 [ -f "$SBINARYPATH/pdns_server" ] || exit 0

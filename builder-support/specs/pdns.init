@@ -20,12 +20,13 @@ prefix=/usr
 exec_prefix=/usr
 BINARYPATH=/usr/bin
 SBINARYPATH=/usr/sbin
-SOCKETPATH=/var/run
+SOCKETPATH=/var/run/pdns
 
 [ -f "$SBINARYPATH/pdns_server" ] || exit 0
 
 [ -r /etc/default/pdns ] && . /etc/default/pdns
 
+mkdir -p $SOCKETPATH
 cd $SOCKETPATH
 suffix=$(basename $0 | cut -d- -f2- -s)
 if [ -n "$suffix" ] 

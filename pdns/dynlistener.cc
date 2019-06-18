@@ -177,7 +177,7 @@ DynListener::DynListener(const string &progname)
     string socketname = ::arg()["socket-dir"];
     if (::arg()["socket-dir"].empty()) {
       if (::arg()["chroot"].empty())
-        socketname = LOCALSTATEDIR;
+        socketname = std::string(LOCALSTATEDIR) + "/pdns";
       else
         socketname = ::arg()["chroot"];
     } else if (!::arg()["socket-dir"].empty() && !::arg()["chroot"].empty()) {

@@ -58,7 +58,7 @@ int main(int argc, char **argv)
   string s_programname="pdns";
 
   ::arg().set("config-dir","Location of configuration directory (pdns.conf)")=SYSCONFDIR;
-  ::arg().set("socket-dir",string("Where the controlsocket will live, ")+LOCALSTATEDIR+" when unset and not chrooted" )="";
+  ::arg().set("socket-dir",string("Where the controlsocket will live, ")+LOCALSTATEDIR+"/pdns when unset and not chrooted" )="";
   ::arg().set("remote-address","Remote address to query");
   ::arg().set("remote-port","Remote port to query")="53000";
   ::arg().set("secret","Secret needed to connect to remote PowerDNS");
@@ -97,7 +97,7 @@ int main(int argc, char **argv)
   string socketname=::arg()["socket-dir"];
   if (::arg()["socket-dir"].empty()) {
     if (::arg()["chroot"].empty())
-      socketname = LOCALSTATEDIR;
+      socketname = std::string(LOCALSTATEDIR) + "/pdns";
     else
       socketname = ::arg()["chroot"] + "/";
   } else if (!::arg()["socket-dir"].empty() && !::arg()["chroot"].empty()) {
