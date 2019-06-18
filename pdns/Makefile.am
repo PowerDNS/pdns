@@ -99,9 +99,7 @@ bin_PROGRAMS += \
 	ixplore \
 	sdig
 
-if HAVE_RECVMMSG
 bin_PROGRAMS += calidns
-endif
 
 if HAVE_BOOST_GE_148
 bin_PROGRAMS += \
