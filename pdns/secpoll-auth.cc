@@ -62,10 +62,10 @@ void doSecPoll(bool first)
   }
   else {
     string pkgv(PACKAGEVERSION);
-    if(pkgv.find("0.0.") != 0)
-      g_log<<Logger::Warning<<"Could not retrieve security status update for '" + pkgv + "' on '"+query+"', RCODE = "<< RCode::to_s(res)<<endl;
-    else
+    if (std::count(pkgv.begin(), pkgv.end(), '.') > 2)
       g_log<<Logger::Warning<<"Not validating response for security status update, this is a non-release version."<<endl;
+    else
+      g_log<<Logger::Warning<<"Could not retrieve security status update for '" + pkgv + "' on '"+query+"', RCODE = "<< RCode::to_s(res)<<endl;
   }
 
   if(security_status == 1 && first) {

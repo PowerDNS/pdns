@@ -78,10 +78,10 @@ void doSecPoll(time_t* last_secpoll)
     g_security_message = split.second;
   }
   else {
-    if(pkgv.find("0.0.") != 0)
-      g_log<<Logger::Warning<<"Could not retrieve security status update for '" +pkgv+ "' on '"<<query<<"', RCODE = "<< RCode::to_s(res)<<endl;
-    else
+    if (std::count(pkgv.begin(), pkgv.end(), '.') > 2)
       g_log<<Logger::Warning<<"Ignoring response for security status update, this is a non-release version."<<endl;
+    else
+      g_log<<Logger::Warning<<"Could not retrieve security status update for '" +pkgv+ "' on '"<<query<<"', RCODE = "<< RCode::to_s(res)<<endl;
 
     if(g_security_status == 1) // it was ok, now it is unknown
       g_security_status = 0;
