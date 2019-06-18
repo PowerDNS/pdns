@@ -597,15 +597,15 @@ int SyncRes::doResolve(const DNSName &qname, const QType &qtype, vector<DNSRecor
       set<GetBestNSAnswer> beenthereIgnored;
       getBestNSFromCache(qname, qtype, bestns, &flawedNSSet, depth + 1, beenthereIgnored);
     }
-    DNSName ancestor;
-    if (bestns.size() > 0) {
-      ancestor = bestns[0].d_name;
-      QLOG("Step1 Ancestor from cache is " << ancestor.toString());
-    } else {
+
+    if (bestns.size() == 0) {
+      // Something terrible is wrong
       QLOG("Step1 No ancestor found return ServFail");
       return RCode::ServFail;
     }
 
+    const DNSName& ancestor(bestns[0].d_name);
+    QLOG("Step1 Ancestor from cache is " << ancestor.toString());
     child = ancestor;
 
     unsigned int targetlen = std::min(child.countLabels() + (i > 3 ? 3 : 1), qnamelen);
@@ -624,7 +624,7 @@ int SyncRes::doResolve(const DNSName &qname, const QType &qtype, vector<DNSRecor
       if (child == qname) {
         QLOG("Step3 Going to do final resolve");
         res = doResolveNoQNameMinimization(qname, qtype, ret, depth + 1, beenthere, state);
-        QLOG("Step3 Final resolve: " << RCode::to_s(res) << "/" << ret.size() << endl);
+        QLOG("Step3 Final resolve: " << RCode::to_s(res) << "/" << ret.size());
         return res;
       }
 
@@ -643,7 +643,7 @@ int SyncRes::doResolve(const DNSName &qname, const QType &qtype, vector<DNSRecor
         QLOG("Step5: other rcode, last effort final resolve");
         setQNameMinimization(false);
         res = doResolveNoQNameMinimization(qname, qtype, ret, depth + 1, beenthere, state);
-        QLOG("Step5 End resolve: " << RCode::to_s(res) << "/" << ret.size() << endl);
+        QLOG("Step5 End resolve: " << RCode::to_s(res) << "/" << ret.size());
         return res;
       }
     }
@@ -661,6 +661,8 @@ int SyncRes::doResolve(const DNSName &qname, const QType &qtype, vector<DNSRecor
  * \param ret The vector of DNSRecords we need to fill with the answers
  * \param depth The recursion depth we are in
  * \param beenthere
+ * \param fromCache tells the caller the result came from the cache, may be nullptr
+ * \param stopAtDelegation if non-nullptr and pointed-to value is Stop requests the callee to stop at a delegation, if so pointed-to value is set to Stopped
  * \return DNS RCODE or -1 (Error) or -2 (RPZ hit)
  */
 int SyncRes::doResolveNoQNameMinimization(const DNSName &qname, const QType &qtype, vector<DNSRecord>&ret, unsigned int depth, set<GetBestNSAnswer>& beenthere, vState& state, bool *fromCache, StopAtDelegation *stopAtDelegation)
