@@ -1131,6 +1131,8 @@ jobs:
   build-dnsdist:
     docker:
       - image: debian:buster
+        environment:
+          UBSAN_OPTIONS: 'print_stacktrace=1:halt_on_error=1'
     steps:
       - restore-cache-ccache:
           product: dnsdist
@@ -1207,6 +1209,8 @@ jobs:
   test-dnsdist-regression:
     docker:
       - image: debian:buster
+        environment:
+          UBSAN_OPTIONS: 'print_stacktrace=1:halt_on_error=1'
     steps:
       - install-dnsdist-deps
       - checkout-shallow
