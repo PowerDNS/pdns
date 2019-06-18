@@ -1103,12 +1103,12 @@ bool SyncRes::doCNAMECacheCheck(const DNSName &qname, const QType &qtype, vector
     return false;
   }
 
-  for(auto j=cset.cbegin() ; j != cset.cend() ; ++j) {
-    if (j->d_class != QClass::IN) {
+  for(auto const &record : cset) {
+    if (record.d_class != QClass::IN) {
       continue;
     }
 
-    if(j->d_ttl>(unsigned int) d_now.tv_sec) {
+    if(record.d_ttl > (unsigned int) d_now.tv_sec) {
 
       if (!wasAuthZone && shouldValidate() && (wasAuth || wasForwardRecurse) && state == Indeterminate && d_requireAuthData) {
         /* This means we couldn't figure out the state when this entry was cached,
@@ -1135,9 +1135,9 @@ bool SyncRes::doCNAMECacheCheck(const DNSName &qname, const QType &qtype, vector
         }
       }
 
-      LOG(prefix<<qname<<": Found cache "<<foundQT.getName()<<" hit for '"<< foundName << "|"<<foundQT.getName()<<"' to '"<<j->d_content->getZoneRepresentation()<<"', validation state is "<<vStates[state]<<endl);
+      LOG(prefix<<qname<<": Found cache "<<foundQT.getName()<<" hit for '"<< foundName << "|"<<foundQT.getName()<<"' to '"<<record.d_content->getZoneRepresentation()<<"', validation state is "<<vStates[state]<<endl);
 
-      DNSRecord dr=*j;
+      DNSRecord dr = record;
       dr.d_ttl -= d_now.tv_sec;
       dr.d_ttl = std::min(dr.d_ttl, capTTL);
       const uint32_t ttl = dr.d_ttl;
@@ -1168,7 +1168,7 @@ bool SyncRes::doCNAMECacheCheck(const DNSName &qname, const QType &qtype, vector
           return true;
         }
         // Synthesize a CNAME
-        auto dnameRR = getRR<DNAMERecordContent>(*j);
+        auto dnameRR = getRR<DNAMERecordContent>(record);
         if (dnameRR == nullptr) {
           throw ImmediateServFailException("Unable to get record content for "+foundName.toLogString()+"|DNAME cache entry");
         }
@@ -1200,7 +1200,7 @@ bool SyncRes::doCNAMECacheCheck(const DNSName &qname, const QType &qtype, vector
       // We have a DNAME _or_ CNAME cache hit and the client wants something else than those two.
       // Let's find the answer!
       if (foundQT == QType::CNAME) {
-        const auto cnameContent = getRR<CNAMERecordContent>(*j);
+        const auto cnameContent = getRR<CNAMERecordContent>(record);
         if (cnameContent == nullptr) {
           throw ImmediateServFailException("Unable to get record content for "+foundName.toLogString()+"|CNAME cache entry");
         }
