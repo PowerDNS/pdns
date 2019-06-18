@@ -170,7 +170,7 @@ class TestDOH(DNSDistDOHTest):
         self.assertTrue(receivedResponse)
         receivedQuery.id = expectedQuery.id
         self.assertEquals(expectedQuery, receivedQuery)
-        self.assertTrue(re.match('server: ' + self._serverToken, self._response_headers))
+        self.assertTrue(('server: ' + self._serverToken) in self._response_headers)
         self.checkQueryEDNSWithoutECS(expectedQuery, receivedQuery)
         self.assertEquals(response, receivedResponse)
 
