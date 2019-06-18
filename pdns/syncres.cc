@@ -755,7 +755,6 @@ int SyncRes::doResolveNoQNameMinimization(const DNSName &qname, const QType &qty
   }
 
   if(d_cacheonly)
-  if(d_cacheonly)
     return 0;
 
   LOG(prefix<<qname<<": No cache hit for '"<<qname<<"|"<<qtype.getName()<<"', trying to find an appropriate NS record"<<endl);
