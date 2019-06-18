@@ -448,7 +448,7 @@ Number of bits of client IPv4 address to pass when sending EDNS Client Subnet ad
 .. _setting-ecs-ipv4-cache-bits:
 
 ``ecs-ipv4-cache-bits``
------------------
+-----------------------
 .. versionadded:: 4.1.12
 
 -  Integer
@@ -471,7 +471,7 @@ Number of bits of client IPv6 address to pass when sending EDNS Client Subnet ad
 .. _setting-ecs-ipv6-cache-bits:
 
 ``ecs-ipv6-cache-bits``
------------------
+-----------------------
 .. versionadded:: 4.1.12
 
 -  Integer
@@ -1145,7 +1145,7 @@ Improves performance on Linux.
 .. _settting-protobuf-use-kernel-timestamp:
 
 ``protobuf-use-kernel-timestamp``
----------------------------
+---------------------------------
 .. versionadded:: 4.2.0
 
 - Boolean
@@ -1169,6 +1169,7 @@ Path to the Public Suffix List file, if any. If set, PowerDNS will try to load t
 ``qname-minimization``
 ----------------------
 .. versionadded:: 4.3.0
+
 -  Boolean
 -  Default: no
 
