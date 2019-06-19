@@ -337,7 +337,7 @@ try
   for (auto const& headerPair : dsc->df->d_customResponseHeaders) {
     const h2o_token_t *token = h2o_lookup_token(headerPair.first.c_str(), headerPair.first.size());
     // TODO: Should I provide so WARN logging when we can't find a matching token?
-    if (token != NULL) {
+    if (token != nullptr) {
       // h2o_set_header(pool, headers, token, value, value_len, overwrite_if_exists)
       h2o_set_header(&req->pool, &req->res.headers, token, headerPair.second.c_str(), headerPair.second.size(), 1);
     }
