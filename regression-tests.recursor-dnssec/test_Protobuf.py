@@ -221,6 +221,14 @@ class TestRecursorProtobuf(RecursorTest):
         self.assertTrue(msg.HasField('response'))
         self.assertTrue(msg.response.HasField('queryTimeSec'))
 
+    def checkProtobufIdentity(self, msg, requestorId, deviceId, deviceName):
+        self.assertTrue(msg.HasField('requestorId'))
+        self.assertTrue(msg.HasField('deviceId'))
+        self.assertTrue(msg.HasField('deviceName'))
+        self.assertEquals(msg.requestorId, requestorId)
+        self.assertEquals(msg.deviceId, deviceId)
+        self.assertEquals(msg.deviceName, deviceName)
+
     @classmethod
     def setUpClass(cls):
 
@@ -680,3 +688,112 @@ auth-zones=example=configs/%s/example.zone""" % _confdir
                 self.assertEquals(rr.rdata, 'a.example.')
 
         self.checkNoRemainingMessage()
+
+class ProtobufTaggedExtraFieldsTest(TestRecursorProtobuf):
+    """
+    This test makes sure that we correctly export extra fields that may have been set while being tagged.
+    """
+
+    _confdir = 'ProtobufTaggedExtraFields'
+    _config_template = """
+auth-zones=example=configs/%s/example.zone""" % _confdir
+    _lua_config_file = """
+    protobufServer({"127.0.0.1:%d", "127.0.0.1:%d"}, { logQueries=true, logResponses=true } )
+    """ % (protobufServersParameters[0].port, protobufServersParameters[1].port)
+    _requestorId = 'S-000001727'
+    _deviceId = 'd1:0a:91:dc:cc:82'
+    _deviceName = 'Joe'
+    _lua_dns_script_file = """
+    function gettag(remote, ednssubnet, localip, qname, qtype, ednsoptions, tcp)
+      if qname:equal('tagged.example.') then
+        -- tag number, policy tags, data, requestorId, deviceId, deviceName
+        return 0, {}, {}, '%s', '%s', '%s'
+      end
+      return 0
+    end
+    """ % (_requestorId, _deviceId, _deviceName)
+
+    def testA(self):
+        name = 'a.example.'
+        expected = dns.rrset.from_text(name, 0, dns.rdataclass.IN, 'A', '192.0.2.42')
+        query = dns.message.make_query(name, 'A', want_dnssec=True)
+        query.flags |= dns.flags.CD
+        res = self.sendUDPQuery(query)
+        self.assertRRsetInAnswer(res, expected)
+
+        # check the protobuf message corresponding to the UDP response
+        # the first query and answer are not tagged, so there is nothing in the queue
+        # check the protobuf messages corresponding to the UDP query and answer
+        msg = self.getFirstProtobufMessage()
+        self.checkProtobufQuery(msg, dnsmessage_pb2.PBDNSMessage.UDP, query, dns.rdataclass.IN, dns.rdatatype.A, name)
+        self.checkProtobufIdentity(msg, '', '', '')
+
+        # then the response
+        msg = self.getFirstProtobufMessage()
+        self.checkProtobufResponse(msg, dnsmessage_pb2.PBDNSMessage.UDP, res, '127.0.0.1')
+        self.assertEquals(len(msg.response.rrs), 1)
+        rr = msg.response.rrs[0]
+        # we have max-cache-ttl set to 15
+        self.checkProtobufResponseRecord(rr, dns.rdataclass.IN, dns.rdatatype.A, name, 15)
+        self.assertEquals(socket.inet_ntop(socket.AF_INET, rr.rdata), '192.0.2.42')
+        self.checkProtobufIdentity(msg, '', '', '')
+        self.checkNoRemainingMessage()
+
+    def testTagged(self):
+        name = 'tagged.example.'
+        expected = dns.rrset.from_text(name, 0, dns.rdataclass.IN, 'A', '192.0.2.84')
+        query = dns.message.make_query(name, 'A', want_dnssec=True)
+        query.flags |= dns.flags.CD
+        res = self.sendUDPQuery(query)
+        self.assertRRsetInAnswer(res, expected)
+
+        # check the protobuf messages corresponding to the UDP query and answer
+        msg = self.getFirstProtobufMessage()
+        self.checkProtobufQuery(msg, dnsmessage_pb2.PBDNSMessage.UDP, query, dns.rdataclass.IN, dns.rdatatype.A, name)
+        self.checkProtobufIdentity(msg, self._requestorId, self._deviceId, self._deviceName)
+
+        # then the response
+        msg = self.getFirstProtobufMessage()
+        self.checkProtobufResponse(msg, dnsmessage_pb2.PBDNSMessage.UDP, res)
+        self.assertEquals(len(msg.response.rrs), 1)
+        rr = msg.response.rrs[0]
+        # we have max-cache-ttl set to 15
+        self.checkProtobufResponseRecord(rr, dns.rdataclass.IN, dns.rdatatype.A, name, 15)
+        self.assertEquals(socket.inet_ntop(socket.AF_INET, rr.rdata), '192.0.2.84')
+        self.checkProtobufIdentity(msg, self._requestorId, self._deviceId, self._deviceName)
+        self.checkNoRemainingMessage()
+
+class ProtobufTaggedExtraFieldsFFITest(ProtobufTaggedExtraFieldsTest):
+    """
+    This test makes sure that we correctly export extra fields that may have been set while being tagged (FFI version).
+    """
+    _confdir = 'ProtobufTaggedExtraFieldsFFI'
+    _config_template = """
+auth-zones=example=configs/%s/example.zone""" % _confdir
+    _lua_config_file = """
+    protobufServer({"127.0.0.1:%d", "127.0.0.1:%d"}, { logQueries=true, logResponses=true } )
+    """ % (protobufServersParameters[0].port, protobufServersParameters[1].port)
+    _lua_dns_script_file = """
+    local ffi = require("ffi")
+
+    ffi.cdef[[
+      typedef struct pdns_ffi_param pdns_ffi_param_t;
+
+      const char* pdns_ffi_param_get_qname(pdns_ffi_param_t* ref);
+      void pdns_ffi_param_set_tag(pdns_ffi_param_t* ref, unsigned int tag);
+      void pdns_ffi_param_set_requestorid(pdns_ffi_param_t* ref, const char* name);
+      void pdns_ffi_param_set_devicename(pdns_ffi_param_t* ref, const char* name);
+      void pdns_ffi_param_set_deviceid(pdns_ffi_param_t* ref, size_t len, const void* name);
+    ]]
+
+    function gettag_ffi(obj)
+      qname = ffi.string(ffi.C.pdns_ffi_param_get_qname(obj))
+      if qname == 'tagged.example' then
+        ffi.C.pdns_ffi_param_set_requestorid(obj, "%s")
+        deviceid = "%s"
+        ffi.C.pdns_ffi_param_set_deviceid(obj, string.len(deviceid), deviceid)
+        ffi.C.pdns_ffi_param_set_devicename(obj, "%s")
+      end
+      return 0
+    end
+    """ % (ProtobufTaggedExtraFieldsTest._requestorId, ProtobufTaggedExtraFieldsTest._deviceId, ProtobufTaggedExtraFieldsTest._deviceName)
