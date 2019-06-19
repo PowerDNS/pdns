@@ -11,6 +11,7 @@ class testTrustAnchorsEnabled(RecursorTest):
     _roothints = None
     _root_DS = None
     _lua_config_file = """
+    allow-trust-anchor-query=yes
 addDS("powerdns.com", "44030 8 1 B763646757DF621DD1204AD3BFA0675B49BE3279")
 addNTA("example")
 addNTA("example.com", "some reason")
@@ -48,7 +49,6 @@ class testTrustAnchorsDisabled(RecursorTest):
     _roothints = None
     _root_DS = None
     _config_template = """
-    allow-trust-anchor-query=no
 """
 
     def testTrustanchorDotServer(self):
