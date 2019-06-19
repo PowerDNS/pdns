@@ -178,40 +178,6 @@ int Utility::gettimeofday( struct timeval *tv, void *tz )
   return ::gettimeofday(tv,0);
 }
 
-
-
-// Retrieves a gid using a groupname.
-gid_t Utility::makeGidNumeric(const string &group)
-{
-  gid_t newgid;
-  if(!(newgid=atoi(group.c_str()))) {
-    errno=0;
-    struct group *gr=getgrnam(group.c_str());
-    if(!gr) {
-      g_log<<Logger::Critical<<"Unable to look up gid of group '"<<group<<"': "<< (errno ? strerror(errno) : "not found") <<endl;
-      exit(1);
-    }
-    newgid=gr->gr_gid;
-  }
-  return newgid;
-}
-
-
-// Retrieves an uid using a username.
-uid_t Utility::makeUidNumeric(const string &username)
-{
-  uid_t newuid;
-  if(!(newuid=atoi(username.c_str()))) {
-    struct passwd *pw=getpwnam(username.c_str());
-    if(!pw) {
-      g_log<<Logger::Critical<<"Unable to look up uid of user '"<<username<<"': "<< (errno ? strerror(errno) : "not found") <<endl;
-      exit(1);
-    }
-    newuid=pw->pw_uid;
-  }
-  return newuid;
-}
-
 // Sets the random seed.
 void Utility::srandom(void)
 {

@@ -120,12 +120,6 @@ public:
   //! The inet_ntop() function converts an address from network format (usually a struct in_addr or some other binary form, in network byte order) to presentation format.
   static const char *inet_ntop( int af, const char *src, char *dst, size_t size );
 
-  //! Retrieves a gid using a groupname.
-  static gid_t makeGidNumeric( const string & group );
-  
-  //! Retrieves an uid using an username.
-  static uid_t makeUidNumeric( const string & username );
-
   //! Writes a vector.
   static int writev( Utility::sock_t socket, const iovec *vector, size_t count );
 

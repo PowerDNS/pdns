@@ -30,6 +30,7 @@
 #include "dynhandler.hh"
 #include "dnsseckeeper.hh"
 #include "threadname.hh"
+#include "misc.hh"
 
 #ifdef HAVE_SYSTEMD
 #include <systemd/sd-daemon.h>
@@ -501,10 +502,10 @@ void mainthread()
 
    gid_t newgid = 0;
    if(!::arg()["setgid"].empty())
-     newgid=Utility::makeGidNumeric(::arg()["setgid"]);
+     newgid = strToGID(::arg()["setgid"]);
    uid_t newuid = 0;
    if(!::arg()["setuid"].empty())
-     newuid=Utility::makeUidNumeric(::arg()["setuid"]);
+     newuid = strToUID(::arg()["setuid"]);
    
    g_anyToTcp = ::arg().mustDo("any-to-tcp");
    g_8bitDNS = ::arg().mustDo("8bit-dns");
