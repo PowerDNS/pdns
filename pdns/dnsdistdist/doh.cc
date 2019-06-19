@@ -346,7 +346,6 @@ try
   /* looks like we can't delete the Server: header with most versions of h2o */
   h2o_set_header(&req->pool, &req->res.headers, H2O_TOKEN_SERVER, dsc->df->d_serverTokens.c_str(), dsc->df->d_serverTokens.size(), 1);
 
-
   if(auto tlsversion = h2o_socket_get_ssl_protocol_version(sock)) {
     if(!strcmp(tlsversion, "TLSv1.0"))
       ++dsc->df->d_tls10queries;
