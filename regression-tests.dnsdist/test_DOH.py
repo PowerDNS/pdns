@@ -138,7 +138,7 @@ class TestDOH(DNSDistDOHTest):
     _config_template = """
     newServer{address="127.0.0.1:%s"}
 
-    addDOHLocal("127.0.0.1:%s", "%s", "%s", { "/" }, {customResponseHeaders={AccessControlAllowOrigin="*"}})
+    addDOHLocal("127.0.0.1:%s", "%s", "%s", { "/" }, {customResponseHeaders={["Access-Control-Allow-Origin"]="*"}})
 
     addAction("drop.doh.tests.powerdns.com.", DropAction())
     addAction("refused.doh.tests.powerdns.com.", RCodeAction(DNSRCode.REFUSED))
