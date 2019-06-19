@@ -47,10 +47,10 @@ Useful for mitigating ANY reflection attacks.
 
 ``allow-trust-anchor-query``
 ----------------------------
-.. versionadded:: 4.2.0
+.. versionadded:: 4.3.0
 
 -  Boolean
--  Default: yes
+-  Default: no
 
 Allow ``trustanchor.server CH TXT`` and ``negativetrustanchor.server CH TXT`` queries to view the configured :doc:`DNSSEC <dnssec>` (negative) trust anchors.
 
