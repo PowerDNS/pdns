@@ -22,7 +22,7 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 m4_define([_BOOST_SERIAL], [m4_translit([
-# serial 28
+# serial 29
 ], [#
 ], [])])
 
@@ -1205,6 +1205,13 @@ BOOST_DEFUN([Regex],
 ])# BOOST_REGEX
 
 
+# BOOST_SCOPE_EXIT()
+# ------------
+# Look for Boost.ScopeExit.
+BOOST_DEFUN([SCOPE_EXIT],
+[BOOST_FIND_HEADER([boost/scope_exit.hpp])])
+
+
 # BOOST_SERIALIZATION([PREFERRED-RT-OPT])
 # ---------------------------------------
 # Look for Boost.Serialization.  For the documentation of PREFERRED-RT-OPT, see
@@ -1546,6 +1553,18 @@ if test x$boost_cv_inc_path != xno; then
   # I'm not sure about my test for `il' (be careful: Intel's ICC pre-defines
   # the same defines as GCC's).
   for i in \
+    "defined __clang__ && __clang_major__ == 8 && __clang_minor__ == 0 @ clang80" \
+    "defined __clang__ && __clang_major__ == 7 && __clang_minor__ == 0 @ clang70" \
+    "defined __clang__ && __clang_major__ == 6 && __clang_minor__ == 0 @ clang60" \
+    "defined __clang__ && __clang_major__ == 5 && __clang_minor__ == 0 @ clang50" \
+    "defined __clang__ && __clang_major__ == 4 && __clang_minor__ == 0 @ clang40" \
+    "defined __clang__ && __clang_major__ == 3 && __clang_minor__ == 9 @ clang39" \
+    "defined __clang__ && __clang_major__ == 3 && __clang_minor__ == 8 @ clang38" \
+    "defined __clang__ && __clang_major__ == 3 && __clang_minor__ == 7 @ clang37" \
+    _BOOST_mingw_test(9, 1) \
+    _BOOST_gcc_test(9, 1) \
+    _BOOST_mingw_test(9, 0) \
+    _BOOST_gcc_test(9, 0) \
     _BOOST_mingw_test(8, 3) \
     _BOOST_gcc_test(8, 3) \
     _BOOST_mingw_test(8, 2) \
