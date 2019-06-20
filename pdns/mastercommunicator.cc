@@ -56,7 +56,7 @@ void CommunicatorClass::queueNotifyDomain(const DomainInfo& di, UeberBackend* B)
       nsset.insert(getRR<NSRecordContent>(rr.dr)->getNS().toString());
 
     for(set<string>::const_iterator j=nsset.begin();j!=nsset.end();++j) {
-      vector<string> nsips=fns.lookup(DNSName(*j), B, di.zone);
+      vector<string> nsips=fns.lookup(DNSName(*j), B);
       if(nsips.empty())
         L<<Logger::Warning<<"Unable to queue notification of domain '"<<di.zone<<"': nameservers do not resolve!"<<endl;
       else
