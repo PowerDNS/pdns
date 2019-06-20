@@ -66,6 +66,7 @@ public:
       d_InfoOfAllSlaveDomainsQuery_stmt = d_db->prepare(d_InfoOfAllSlaveDomainsQuery, 0);
       d_SuperMasterInfoQuery_stmt = d_db->prepare(d_SuperMasterInfoQuery, 2);
       d_GetSuperMasterIPs_stmt = d_db->prepare(d_GetSuperMasterIPs, 2);
+      d_AddSuperMaster_stmt = d_db->prepare(d_AddSuperMaster, 3); 
       d_InsertZoneQuery_stmt = d_db->prepare(d_InsertZoneQuery, 4);
       d_InsertRecordQuery_stmt = d_db->prepare(d_InsertRecordQuery, 9);
       d_InsertEmptyNonTerminalOrderQuery_stmt = d_db->prepare(d_InsertEmptyNonTerminalOrderQuery, 4);
@@ -129,6 +130,7 @@ public:
     d_InfoOfAllSlaveDomainsQuery_stmt.reset();
     d_SuperMasterInfoQuery_stmt.reset();
     d_GetSuperMasterIPs_stmt.reset();
+    d_AddSuperMaster_stmt.reset();
     d_InsertZoneQuery_stmt.reset();
     d_InsertRecordQuery_stmt.reset();
     d_InsertEmptyNonTerminalOrderQuery_stmt.reset();
@@ -195,6 +197,7 @@ public:
   };
   bool createSlaveDomain(const string &ip, const DNSName &domain, const string &nameserver, const string &account) override;
   bool deleteDomain(const DNSName &domain) override;
+  bool superMasterAdd(const string &ip, const string &nameserver, const string &account); 
   bool superMasterBackend(const string &ip, const DNSName &domain, const vector<DNSResourceRecord>&nsset, string *nameserver, string *account, DNSBackend **db) override;
   void setFresh(uint32_t domain_id) override;
   void getUnfreshSlaveInfos(vector<DomainInfo> *domains) override;
@@ -283,6 +286,7 @@ private:
   string d_SuperMasterInfoQuery;
   string d_GetSuperMasterName;
   string d_GetSuperMasterIPs;
+  string d_AddSuperMaster;
 
   string d_InsertZoneQuery;
   string d_InsertRecordQuery;
@@ -355,6 +359,7 @@ private:
   unique_ptr<SSqlStatement> d_InfoOfAllSlaveDomainsQuery_stmt;
   unique_ptr<SSqlStatement> d_SuperMasterInfoQuery_stmt;
   unique_ptr<SSqlStatement> d_GetSuperMasterIPs_stmt;
+  unique_ptr<SSqlStatement> d_AddSuperMaster_stmt;
   unique_ptr<SSqlStatement> d_InsertZoneQuery_stmt;
   unique_ptr<SSqlStatement> d_InsertRecordQuery_stmt;
   unique_ptr<SSqlStatement> d_InsertEmptyNonTerminalOrderQuery_stmt;

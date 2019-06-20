@@ -1301,6 +1301,17 @@ int addOrReplaceRecord(bool addOrReplace, const vector<string>& cmds) {
   return EXIT_SUCCESS;
 }
 
+// addSuperMaster add anew super master
+int addSuperMaster(const std::string &IP, const std::string &nameserver, const std::string &account)
+{
+  UeberBackend B("default");
+
+  if ( B.superMasterAdd(IP, nameserver, account) ){ 
+    return EXIT_SUCCESS; 
+  }
+  return EXIT_FAILURE;
+}
+
 // delete-rrset zone name type
 int deleteRRSet(const std::string& zone_, const std::string& name_, const std::string& type_)
 {
@@ -1997,6 +2008,8 @@ try
     cout<<"activate-zone-key ZONE KEY-ID      Activate the key with key id KEY-ID in ZONE"<<endl;
     cout<<"add-record ZONE NAME TYPE [ttl] content"<<endl;
     cout<<"             [content..]           Add one or more records to ZONE"<<endl;
+    cout<<"add-supermaster IP NAMESERVER [account]"<<endl;
+    cout<<"                                   Add a new super-master "<<endl;
     cout<<"add-zone-key ZONE {zsk|ksk} [BITS] [active|inactive] [published|unpublished]"<<endl;
     cout<<"             [rsasha1|rsasha1-nsec3-sha1|rsasha256|rsasha512|ecdsa256|ecdsa384";
 #if defined(HAVE_LIBSODIUM) || defined(HAVE_LIBDECAF) || defined(HAVE_LIBCRYPTO_ED25519)
@@ -2464,6 +2477,13 @@ try
       return 0;
     }
     exit(addOrReplaceRecord(true, cmds));
+  }
+  else if(cmds[0] == "add-supermaster") {
+    if(cmds.size() < 3) {
+      cerr<<"Syntax: pdnsutil add-supermaster IP NAMESERVER [account]"<<endl;
+      return 0;
+    }
+    exit(addSuperMaster(cmds[1], cmds[2], cmds.size() > 3 ? cmds[3] : "" ));
   }
   else if(cmds[0] == "replace-rrset") {
     if(cmds.size() < 5) {

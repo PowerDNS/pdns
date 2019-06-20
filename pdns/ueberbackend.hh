@@ -52,6 +52,8 @@ public:
 
   bool superMasterBackend(const string &ip, const DNSName &domain, const vector<DNSResourceRecord>&nsset, string *nameserver, string *account, DNSBackend **db);
 
+  bool superMasterAdd(const string &ip, const string &nameserver, const string &account); 
+
   /** Tracks all created UeberBackend instances for us. We use this vector to notify
       existing threads of new modules 
   */

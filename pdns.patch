@@ -1,0 +1,246 @@
+diff --git a/modules/gmysqlbackend/gmysqlbackend.cc b/modules/gmysqlbackend/gmysqlbackend.cc
+index 48b8c4c1b..834bffe81 100644
+--- a/modules/gmysqlbackend/gmysqlbackend.cc
++++ b/modules/gmysqlbackend/gmysqlbackend.cc
+@@ -101,6 +101,7 @@ public:
+     declare(suffix,"info-all-slaves-query","","select id,name,master,last_check from domains where type='SLAVE'");
+     declare(suffix,"supermaster-query","", "select account from supermasters where ip=? and nameserver=?");
+     declare(suffix,"supermaster-name-to-ips", "", "select ip,account from supermasters where nameserver=? and account=?");
++    declare(suffix,"supermaster-add","", "insert into supermasters (ip, name, account) values (?,?,?)");
+ 
+     declare(suffix,"insert-zone-query","", "insert into domains (type,name,master,account,last_check,notified_serial) values(?,?,?,?,NULL,NULL)");
+ 
+diff --git a/modules/godbcbackend/godbcbackend.cc b/modules/godbcbackend/godbcbackend.cc
+index 533f50f95..117add842 100644
+--- a/modules/godbcbackend/godbcbackend.cc
++++ b/modules/godbcbackend/godbcbackend.cc
+@@ -86,6 +86,7 @@ public:
+     declare(suffix,"info-all-slaves-query","","select id,name,master,last_check from domains where type='SLAVE'");
+     declare(suffix,"supermaster-query","", "select account from supermasters where ip=? and nameserver=?");
+     declare(suffix,"supermaster-name-to-ips", "", "select ip,account from supermasters where nameserver=? and account=?");
++    declare(suffix,"supermaster-add","", "insert into supermasters (ip, name, account) values (?,?,?)");
+ 
+     declare(suffix,"insert-zone-query","", "insert into domains (type,name,master,account,last_check,notified_serial) values(?,?,?,?,null,null)");
+ 
+diff --git a/modules/goraclebackend/goraclebackend.cc b/modules/goraclebackend/goraclebackend.cc
+index f18c47630..6272ba478 100644
+--- a/modules/goraclebackend/goraclebackend.cc
++++ b/modules/goraclebackend/goraclebackend.cc
+@@ -105,6 +105,7 @@ public:
+     declare(suffix, "info-all-slaves-query", "","select id,name,master,last_check from domains where type='SLAVE'");
+     declare(suffix, "supermaster-query", "", "select account from supermasters where ip=:ip and nameserver=:nameserver");
+     declare(suffix, "supermaster-name-to-ips", "", "select ip,account from supermasters where nameserver=:nameserver and account=:account");
++    declare(suffix,"supermaster-add","", "insert into supermasters (ip, name, account) values (:ip,:name,:acconut)");
+     declare(suffix, "insert-zone-query", "", "insert into domains (id,type,name,master,account,last_check_notified_serial) values(domains_id_sequence.nextval,:type,:domain,:masters,:account, null, null)");
+     declare(suffix, "insert-record-query", "", "insert into records (id,content,ttl,prio,type,domain_id,disabled,name,ordername,auth) values (records_id_sequence.nextval,:content,:ttl,:priority,:qtype,:domain_id,:disabled,:qname,:ordername || ' ',:auth)");
+     declare(suffix, "insert-empty-non-terminal-order-query", "insert empty non-terminal in zone", "insert into records (id,type,domain_id,disabled,name,ordername,auth,ttl,prio,content) values (records_id_sequence.nextval,null,:domain_id,0,:qname,:ordername,:auth,null,null,null)");
+diff --git a/modules/gpgsqlbackend/gpgsqlbackend.cc b/modules/gpgsqlbackend/gpgsqlbackend.cc
+index cc1c601de..37eca6b14 100644
+--- a/modules/gpgsqlbackend/gpgsqlbackend.cc
++++ b/modules/gpgsqlbackend/gpgsqlbackend.cc
+@@ -108,6 +108,7 @@ public:
+     declare(suffix,"info-all-slaves-query","","select id,name,master,last_check from domains where type='SLAVE'");
+     declare(suffix,"supermaster-query","", "select account from supermasters where ip=$1 and nameserver=$2");
+     declare(suffix,"supermaster-name-to-ips", "", "select ip,account from supermasters where nameserver=$1 and account=$2");
++    declare(suffix,"supermaster-add","", "insert into supermasters (ip, name, account) values ($1,$2,$3)");
+ 
+     declare(suffix,"insert-zone-query","", "insert into domains (type,name,master,account,last_check, notified_serial) values($1,$2,$3,$4,null,null)");
+ 
+diff --git a/modules/gsqlite3backend/gsqlite3backend.cc b/modules/gsqlite3backend/gsqlite3backend.cc
+index a188fc655..1090a3e3f 100644
+--- a/modules/gsqlite3backend/gsqlite3backend.cc
++++ b/modules/gsqlite3backend/gsqlite3backend.cc
+@@ -99,6 +99,7 @@ public:
+     declare(suffix, "info-all-slaves-query", "","select id,name,master,last_check from domains where type='SLAVE'");
+     declare(suffix, "supermaster-query", "", "select account from supermasters where ip=:ip and nameserver=:nameserver");
+     declare(suffix, "supermaster-name-to-ips", "", "select ip,account from supermasters where nameserver=:nameserver and account=:account");
++    declare(suffix,"supermaster-add","", "insert into supermasters (ip, name, account) values (:ip,:name,:account)"); 
+ 
+     declare(suffix, "insert-zone-query", "", "insert into domains (type,name,master,account,last_check,notified_serial) values(:type, :domain, :masters, :account, null, null)");
+ 
+diff --git a/pdns/backends/gsql/gsqlbackend.cc b/pdns/backends/gsql/gsqlbackend.cc
+index 0f13175cb..830bacddd 100644
+--- a/pdns/backends/gsql/gsqlbackend.cc
++++ b/pdns/backends/gsql/gsqlbackend.cc
+@@ -65,6 +65,7 @@ GSQLBackend::GSQLBackend(const string &mode, const string &suffix)
+   d_InfoOfAllSlaveDomainsQuery=getArg("info-all-slaves-query");
+   d_SuperMasterInfoQuery=getArg("supermaster-query");
+   d_GetSuperMasterIPs=getArg("supermaster-name-to-ips");
++  d_AddSuperMaster=getArg("supermaster-add"); 
+   d_InsertZoneQuery=getArg("insert-zone-query");
+   d_InsertRecordQuery=getArg("insert-record-query");
+   d_UpdateMasterOfZoneQuery=getArg("update-master-query");
+@@ -132,6 +133,7 @@ GSQLBackend::GSQLBackend(const string &mode, const string &suffix)
+   d_InfoOfAllSlaveDomainsQuery_stmt = NULL;
+   d_SuperMasterInfoQuery_stmt = NULL;
+   d_GetSuperMasterIPs_stmt = NULL;
++  d_AddSuperMaster_stmt = NULL;
+   d_InsertZoneQuery_stmt = NULL;
+   d_InsertRecordQuery_stmt = NULL;
+   d_InsertEmptyNonTerminalOrderQuery_stmt = NULL;
+@@ -1158,6 +1160,26 @@ skiprow:
+   return false;
+ }
+ 
++bool GSQLBackend::superMasterAdd(const string &ip, const string &nameserver, const string &account)
++{
++  try{
++    reconnectIfNeeded();
++
++    d_AddSuperMaster_stmt -> 
++      bind("ip",ip)->
++      bind("nameserver",nameserver)->
++      bind("account",account)->
++      execute()->
++      reset();
++
++  }
++  catch (SSqlException &e){
++    throw PDNSException("GSQLBackend unable to insert a supermaster with IP " + ip + " and nameserver name '" + nameserver + "' and account '" + account + "': " + e.txtReason()); 
++  }
++  return true;
++
++}
++
+ bool GSQLBackend::superMasterBackend(const string &ip, const DNSName &domain, const vector<DNSResourceRecord>&nsset, string *nameserver, string *account, DNSBackend **ddb)
+ {
+   // check if we know the ip/ns couple in the database
+diff --git a/pdns/backends/gsql/gsqlbackend.hh b/pdns/backends/gsql/gsqlbackend.hh
+index be25db1c1..18247b59e 100644
+--- a/pdns/backends/gsql/gsqlbackend.hh
++++ b/pdns/backends/gsql/gsqlbackend.hh
+@@ -70,6 +70,7 @@ public:
+       d_InfoOfAllSlaveDomainsQuery_stmt = d_db->prepare(d_InfoOfAllSlaveDomainsQuery, 0);
+       d_SuperMasterInfoQuery_stmt = d_db->prepare(d_SuperMasterInfoQuery, 2);
+       d_GetSuperMasterIPs_stmt = d_db->prepare(d_GetSuperMasterIPs, 2);
++      d_AddSuperMaster_stmt = d_db->prepare(d_AddSuperMaster, 3); 
+       d_InsertZoneQuery_stmt = d_db->prepare(d_InsertZoneQuery, 4);
+       d_InsertRecordQuery_stmt = d_db->prepare(d_InsertRecordQuery, 9);
+       d_InsertEmptyNonTerminalOrderQuery_stmt = d_db->prepare(d_InsertEmptyNonTerminalOrderQuery, 4);
+@@ -131,6 +132,7 @@ public:
+     d_InfoOfAllSlaveDomainsQuery_stmt.reset();
+     d_SuperMasterInfoQuery_stmt.reset();
+     d_GetSuperMasterIPs_stmt.reset();
++    d_AddSuperMaster_stmt.reset();
+     d_InsertZoneQuery_stmt.reset();
+     d_InsertRecordQuery_stmt.reset();
+     d_InsertEmptyNonTerminalOrderQuery_stmt.reset();
+@@ -195,6 +197,7 @@ public:
+   };
+   bool createSlaveDomain(const string &ip, const DNSName &domain, const string &nameserver, const string &account) override;
+   bool deleteDomain(const DNSName &domain) override;
++  bool superMasterAdd(const string &ip, const string &nameserver, const string &account); 
+   bool superMasterBackend(const string &ip, const DNSName &domain, const vector<DNSResourceRecord>&nsset, string *nameserver, string *account, DNSBackend **db) override;
+   void setFresh(uint32_t domain_id) override;
+   void getUnfreshSlaveInfos(vector<DomainInfo> *domains) override;
+@@ -281,6 +284,7 @@ private:
+   string d_SuperMasterInfoQuery;
+   string d_GetSuperMasterName;
+   string d_GetSuperMasterIPs;
++  string d_AddSuperMaster;
+ 
+   string d_InsertZoneQuery;
+   string d_InsertRecordQuery;
+@@ -351,6 +355,7 @@ private:
+   unique_ptr<SSqlStatement> d_InfoOfAllSlaveDomainsQuery_stmt;
+   unique_ptr<SSqlStatement> d_SuperMasterInfoQuery_stmt;
+   unique_ptr<SSqlStatement> d_GetSuperMasterIPs_stmt;
++  unique_ptr<SSqlStatement> d_AddSuperMaster_stmt;
+   unique_ptr<SSqlStatement> d_InsertZoneQuery_stmt;
+   unique_ptr<SSqlStatement> d_InsertRecordQuery_stmt;
+   unique_ptr<SSqlStatement> d_InsertEmptyNonTerminalOrderQuery_stmt;
+diff --git a/pdns/dnsbackend.hh b/pdns/dnsbackend.hh
+index 4fe4208b6..9c3d7df6f 100644
+--- a/pdns/dnsbackend.hh
++++ b/pdns/dnsbackend.hh
+@@ -334,6 +334,12 @@ public:
+   //! Can be called to seed the getArg() function with a prefix
+   void setArgPrefix(const string &prefix);
+ 
++  //! Add an entry for a super master
++  bool superMasterAdd(const string &ip, const string &nameserver, const string &account) 
++  {
++    return false; 
++  }
++
+   //! determine if ip is a supermaster or a domain
+   virtual bool superMasterBackend(const string &ip, const DNSName &domain, const vector<DNSResourceRecord>&nsset, string *nameserver, string *account, DNSBackend **db)
+   {
+diff --git a/pdns/pdnsutil.cc b/pdns/pdnsutil.cc
+index b2045b9d4..1f0d6dbbf 100644
+--- a/pdns/pdnsutil.cc
++++ b/pdns/pdnsutil.cc
+@@ -1259,6 +1259,18 @@ int addOrReplaceRecord(bool addOrReplace, const vector<string>& cmds) {
+   return EXIT_SUCCESS;
+ }
+ 
++// addSuperMaster add anew super master
++int addSuperMaster(const std::string &IP, const std::string &Nameserver, const std::string &Account)
++{
++  UeberBackend B;
++  if ( B.superMasterAdd(IP, Nameserver, Account) ){ 
++    std::cout << "SUCCESS" << std::endl;
++    return EXIT_SUCCESS; 
++  }
++  std::cout << "FAILURE" << std::endl;
++  return EXIT_FAILURE;
++}
++
+ // delete-rrset zone name type
+ int deleteRRSet(const std::string& zone_, const std::string& name_, const std::string& type_)
+ {
+@@ -1941,6 +1953,8 @@ try
+     cout<<"activate-zone-key ZONE KEY-ID      Activate the key with key id KEY-ID in ZONE"<<endl;
+     cout<<"add-record ZONE NAME TYPE [ttl] content"<<endl;
+     cout<<"             [content..]           Add one or more records to ZONE"<<endl;
++    cout<<"add-supermaster IP NAMESERVER [account]"<<endl;
++    cout<<"                                   Add a new super-master "<<endl;
+     cout<<"add-zone-key ZONE {zsk|ksk} [BITS] [active|inactive]"<<endl;
+     cout<<"             [rsasha1|rsasha256|rsasha512|ecdsa256|ecdsa384";
+ #if defined(HAVE_LIBSODIUM) || defined(HAVE_LIBDECAF)
+@@ -2365,6 +2379,13 @@ try
+     }
+     exit(addOrReplaceRecord(true, cmds));
+   }
++  else if(cmds[0] == "add-supermaster") {
++    if(cmds.size() < 3) {
++      cerr<<"Syntax: pdnsutil add-supermaster IP NAMESERVER [account]"<<endl;
++      return 0;
++    }
++    exit(addSuperMaster(cmds[1], cmds[2], cmds.size() > 3 ? cmds[3] : "" ));
++  }
+   else if(cmds[0] == "replace-rrset") {
+     if(cmds.size() < 5) {
+       cerr<<"Syntax: pdnsutil replace-rrset ZONE name type [ttl] \"content\" [\"content\"...]"<<endl;
+diff --git a/pdns/ueberbackend.cc b/pdns/ueberbackend.cc
+index 2c3dd363b..eb57dd724 100644
+--- a/pdns/ueberbackend.cc
++++ b/pdns/ueberbackend.cc
+@@ -434,6 +434,14 @@ bool UeberBackend::getSOAUncached(const DNSName &domain, SOAData &sd)
+   return false;
+ }
+ 
++bool UeberBackend::superMasterAdd(const string &ip, const string &nameserver, const string &account) 
++{
++  for(vector<DNSBackend *>::const_iterator i=backends.begin();i!=backends.end();++i)
++    if((*i)->superMasterAdd(ip, nameserver, account)) 
++      return true;
++  return false;
++}
++
+ bool UeberBackend::superMasterBackend(const string &ip, const DNSName &domain, const vector<DNSResourceRecord>&nsset, string *nameserver, string *account, DNSBackend **db)
+ {
+   for(vector<DNSBackend *>::const_iterator i=backends.begin();i!=backends.end();++i)
+diff --git a/pdns/ueberbackend.hh b/pdns/ueberbackend.hh
+index 658c43590..a42ea7ddf 100644
+--- a/pdns/ueberbackend.hh
++++ b/pdns/ueberbackend.hh
+@@ -54,6 +54,8 @@ public:
+ 
+   bool superMasterBackend(const string &ip, const DNSName &domain, const vector<DNSResourceRecord>&nsset, string *nameserver, string *account, DNSBackend **db);
+ 
++  bool superMasterAdd(const string &ip, const string &nameserver, const string &account); 
++
+   /** Tracks all created UeberBackend instances for us. We use this vector to notify
+       existing threads of new modules 
+   */

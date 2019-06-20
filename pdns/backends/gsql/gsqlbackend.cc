@@ -65,6 +65,7 @@ GSQLBackend::GSQLBackend(const string &mode, const string &suffix)
   d_InfoOfAllSlaveDomainsQuery=getArg("info-all-slaves-query");
   d_SuperMasterInfoQuery=getArg("supermaster-query");
   d_GetSuperMasterIPs=getArg("supermaster-name-to-ips");
+  d_AddSuperMaster=getArg("supermaster-add"); 
   d_InsertZoneQuery=getArg("insert-zone-query");
   d_InsertRecordQuery=getArg("insert-record-query");
   d_UpdateMasterOfZoneQuery=getArg("update-master-query");
@@ -134,6 +135,7 @@ GSQLBackend::GSQLBackend(const string &mode, const string &suffix)
   d_InfoOfAllSlaveDomainsQuery_stmt = NULL;
   d_SuperMasterInfoQuery_stmt = NULL;
   d_GetSuperMasterIPs_stmt = NULL;
+  d_AddSuperMaster_stmt = NULL;
   d_InsertZoneQuery_stmt = NULL;
   d_InsertRecordQuery_stmt = NULL;
   d_InsertEmptyNonTerminalOrderQuery_stmt = NULL;
@@ -1204,6 +1206,26 @@ skiprow:
   }
   d_query_stmt = NULL;
   return false;
+}
+
+bool GSQLBackend::superMasterAdd(const string &ip, const string &nameserver, const string &account)
+{
+  try{
+    reconnectIfNeeded();
+
+    d_AddSuperMaster_stmt -> 
+      bind("ip",ip)->
+      bind("nameserver",nameserver)->
+      bind("account",account)->
+      execute()->
+      reset();
+
+  }
+  catch (SSqlException &e){
+    throw PDNSException("GSQLBackend unable to insert a supermaster with IP " + ip + " and nameserver name '" + nameserver + "' and account '" + account + "': " + e.txtReason()); 
+  }
+  return true;
+
 }
 
 bool GSQLBackend::superMasterBackend(const string &ip, const DNSName &domain, const vector<DNSResourceRecord>&nsset, string *nameserver, string *account, DNSBackend **ddb)

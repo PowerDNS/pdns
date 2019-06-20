@@ -453,6 +453,14 @@ bool UeberBackend::getSOAUncached(const DNSName &domain, SOAData &sd)
   return false;
 }
 
+bool UeberBackend::superMasterAdd(const string &ip, const string &nameserver, const string &account) 
+{
+  for(vector<DNSBackend *>::const_iterator i=backends.begin();i!=backends.end();++i)
+    if((*i)->superMasterAdd(ip, nameserver, account)) 
+      return true;
+  return false;
+}
+
 bool UeberBackend::superMasterBackend(const string &ip, const DNSName &domain, const vector<DNSResourceRecord>&nsset, string *nameserver, string *account, DNSBackend **db)
 {
   for(vector<DNSBackend *>::const_iterator i=backends.begin();i!=backends.end();++i)
