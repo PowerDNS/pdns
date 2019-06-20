@@ -1,6 +1,15 @@
 Changelogs for 4.0.x
 ====================
 
+PowerDNS Authoritative Server 4.0.8
+-----------------------------------
+
+Released 21st of June 2019
+
+This release fixes PowerDNS Security Advisories
+:doc:`2019-04 <../security-advisories/powerdns-advisory-2019-04>` and
+:doc:`2019-05 <../security-advisories/powerdns-advisory-2019-05>`.
+
 PowerDNS Authoritative Server 4.0.7
 -----------------------------------
 
