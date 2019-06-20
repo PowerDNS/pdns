@@ -50,13 +50,14 @@ void CommunicatorClass::queueNotifyDomain(const DomainInfo& di, UeberBackend* B)
   FindNS fns;
 
 
+  try {
   if (d_onlyNotify.size()) {
     B->lookup(QType(QType::NS), di.zone);
     while(B->get(rr))
       nsset.insert(getRR<NSRecordContent>(rr.dr)->getNS().toString());
 
     for(set<string>::const_iterator j=nsset.begin();j!=nsset.end();++j) {
-      vector<string> nsips=fns.lookup(DNSName(*j), B, di.zone);
+      vector<string> nsips=fns.lookup(DNSName(*j), B);
       if(nsips.empty())
         L<<Logger::Warning<<"Unable to queue notification of domain '"<<di.zone<<"': nameservers do not resolve!"<<endl;
       else
@@ -77,6 +78,16 @@ void CommunicatorClass::queueNotifyDomain(const DomainInfo& di, UeberBackend* B)
       hasQueuedItem=true;
     }
   }
+  }
+  catch (PDNSException &ae) {
+    L << Logger::Error << "Error looking up name servers for " << di.zone << ", cannot notify: " << ae.reason << endl;
+    return;
+  }
+  catch (std::exception &e) {
+    L << Logger::Error << "Error looking up name servers for " << di.zone << ", cannot notify: " << e.what() << endl;
+    return;
+  }
+
 
   set<string> alsoNotify(d_alsoNotify);
   B->alsoNotifies(di.zone, &alsoNotify);
