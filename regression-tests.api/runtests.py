@@ -38,6 +38,7 @@ gsqlite3-dnssec=on
 gsqlite3-database="""+SQLITE_DB+"""
 module-dir=../regression-tests/modules
 bind-config=bindbackend.conf
+default-soa-edit=INCEPTION-INCREMENT
 """
 
 BINDBACKEND_CONF_TPL = """
