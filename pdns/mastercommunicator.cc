@@ -54,6 +54,7 @@ void CommunicatorClass::queueNotifyDomain(const DNSName &domain, UeberBackend *B
     while(B->get(rr))
       nsset.insert(rr.content);
 
+    try {
     for(set<string>::const_iterator j=nsset.begin();j!=nsset.end();++j) {
       vector<string> nsips=fns.lookup(DNSName(*j), B);
       if(nsips.empty())
@@ -68,7 +69,17 @@ void CommunicatorClass::queueNotifyDomain(const DNSName &domain, UeberBackend *B
               ips.insert(caIp.toStringWithPort());
           }
         }
+      }
     }
+    catch (PDNSException &ae) {
+      L << Logger::Error << "Error looking up name servers for " << domain << ", cannot notify: " << ae.reason << endl;
+      return;
+    }
+    catch (std::exception &e) {
+      L << Logger::Error << "Error looking up name servers for " << domain << ", cannot notify: " << e.what() << endl;
+      return;
+    }
+
 
     for(set<string>::const_iterator j=ips.begin();j!=ips.end();++j) {
       L<<Logger::Warning<<"Queued notification of domain '"<<domain<<"' to "<<*j<<endl;
