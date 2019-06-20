@@ -120,7 +120,10 @@ void CommunicatorClass::mainloop(void)
 
         if(rc)
           Utility::sleep(1);
-        else { 
+        else {
+          // eat up extra posts to avoid busy looping if many posts were done
+          while (d_any_sem.tryWait() == 0) {
+          }
           break; // something happened
         }
         // this gets executed at least once every second
