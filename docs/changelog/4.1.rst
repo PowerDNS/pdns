@@ -2,11 +2,39 @@ Changelogs for 4.1.x
 ====================
 
 .. changelog::
+  :version: 4.1.10
+  :released: June 21st 2019
+
+  This release and 4.1.9 together fix the following security advisories:
+
+  - PowerDNS Security Advisory :doc:`2019-04 <../security-advisories/powerdns-advisory-2019-04>` (CVE-2019-10162)
+  - PowerDNS Security Advisory :doc:`2019-05 <../security-advisories/powerdns-advisory-2019-05>` (CVE-2019-10163)
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 7964
+
+    Do not exit on exception parsing names of name servers to notify.
+
+
+.. changelog::
   :version: 4.1.9
   :released: June 19th 2019
 
   .. change::
-    :tags: Performance
+    :tags: Bug Fixes
+    :pullreq: 7663
+
+    Do not exit on exception resolving addresses to notify.
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 7829
+
+    Avoid very busy looping on lots of notifies.
+
+  .. change::
+    :tags: New Features
     :pullreq: 7922
 
     Add an option to disable superslaving.
