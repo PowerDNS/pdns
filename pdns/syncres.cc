@@ -177,11 +177,14 @@ int SyncRes::beginResolve(const DNSName &qname, const QType &qtype, uint16_t qcl
  * - version.bind. CH TXT
  * - version.pdns. CH TXT
  * - id.server. CH TXT
+ * - trustanchor.server CH TXT
+ * - negativetrustanchor.server CH TXT
  */
 bool SyncRes::doSpecialNamesResolve(const DNSName &qname, const QType &qtype, const uint16_t qclass, vector<DNSRecord> &ret)
 {
   static const DNSName arpa("1.0.0.127.in-addr.arpa."), ip6_arpa("1.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.ip6.arpa."),
-    localhost("localhost."), versionbind("version.bind."), idserver("id.server."), versionpdns("version.pdns.");
+    localhost("localhost."), versionbind("version.bind."), idserver("id.server."), versionpdns("version.pdns."), trustanchorserver("trustanchor.server."),
+    negativetrustanchorserver("negativetrustanchor.server.");
 
   bool handled = false;
   vector<pair<QType::typeenum, string> > answers;
@@ -210,6 +213,42 @@ bool SyncRes::doSpecialNamesResolve(const DNSName &qname, const QType &qtype, co
         answers.push_back({QType::TXT, "\""+::arg()["version-string"]+"\""});
       else if (s_serverID != "disabled")
         answers.push_back({QType::TXT, "\""+s_serverID+"\""});
+    }
+  }
+
+  if (qname == trustanchorserver && qclass == QClass::CHAOS &&
+      ::arg().mustDo("allow-trust-anchor-query")) {
+    handled = true;
+    if (qtype == QType::TXT || qtype == QType::ANY) {
+      auto luaLocal = g_luaconfs.getLocal();
+      for (auto const &dsAnchor : luaLocal->dsAnchors) {
+        ostringstream ans;
+        ans<<"\"";
+        ans<<dsAnchor.first.toString(); // Explicit toString to have a trailing dot
+        for (auto const &dsRecord : dsAnchor.second) {
+          ans<<" ";
+          ans<<dsRecord.d_tag;
+        }
+        ans << "\"";
+        answers.push_back({QType::TXT, ans.str()});
+      }
+    }
+  }
+
+  if (qname == negativetrustanchorserver && qclass == QClass::CHAOS &&
+      ::arg().mustDo("allow-trust-anchor-query")) {
+    handled = true;
+    if (qtype == QType::TXT || qtype == QType::ANY) {
+      auto luaLocal = g_luaconfs.getLocal();
+      for (auto const &negAnchor : luaLocal->negAnchors) {
+        ostringstream ans;
+        ans<<"\"";
+        ans<<negAnchor.first.toString(); // Explicit toString to have a trailing dot
+        if (negAnchor.second.length())
+          ans<<" "<<negAnchor.second;
+        ans << "\"";
+        answers.push_back({QType::TXT, ans.str()});
+      }
     }
   }
 

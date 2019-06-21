@@ -43,6 +43,17 @@ Overrides the `allow-from`_ setting. To use this feature, supply one netmask per
 Answer questions for the ANY type on UDP with a truncated packet that refers the remote server to TCP.
 Useful for mitigating ANY reflection attacks.
 
+.. _setting-allow-trust-anchor-query:
+
+``allow-trust-anchor-query``
+----------------------------
+.. versionadded:: 4.3.0
+
+-  Boolean
+-  Default: no
+
+Allow ``trustanchor.server CH TXT`` and ``negativetrustanchor.server CH TXT`` queries to view the configured :doc:`DNSSEC <dnssec>` (negative) trust anchors.
+
 .. _setting-api-config-dir:
 
 ``api-config-dir``
