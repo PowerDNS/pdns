@@ -1073,7 +1073,7 @@ static void handleIO(std::shared_ptr<IncomingTCPConnectionState>& state, struct 
     }
 
     if (state->d_state == IncomingTCPConnectionState::State::sendingResponse) {
-      iostate = state->d_handler.tryWrite(state->d_responseBuffer, state->d_currentPos, state->d_responseBuffer.size());
+      iostate = state->d_handler.tryWrite(state->d_responseBuffer, state->d_currentPos, state->d_responseBuffer.size() - state->d_currentPos);
       if (iostate == IOState::Done) {
         handleResponseSent(state, now);
         return;
