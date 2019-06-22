@@ -5,7 +5,6 @@ import clientsubnetoption
 from dnsdisttests import DNSDistTest
 
 import pycurl
-import re
 from StringIO import StringIO
 
 #from hyper import HTTP20Connection
@@ -132,7 +131,8 @@ class TestDOH(DNSDistDOHTest):
     _serverKey = 'server.key'
     _serverCert = 'server.chain'
     _serverName = 'tls.tests.dnsdist.org'
-    _serverToken = 'custom server token'
+    _h2oServerToken = 'server: h2o/2.2.4'
+    _customServerToken = 'server: custom server token'
     _caCert = 'ca.pem'
     _dohServerPort = 8443
     _dohBaseURL = ("https://%s:%d/" % (_serverName, _dohServerPort))
@@ -170,7 +170,8 @@ class TestDOH(DNSDistDOHTest):
         self.assertTrue(receivedResponse)
         receivedQuery.id = expectedQuery.id
         self.assertEquals(expectedQuery, receivedQuery)
-        self.assertTrue(('server: ' + self._serverToken) in self._response_headers)
+        self.assertTrue((self._customServerToken) in self._response_headers)
+        self.assertTrue((self._h2oServerToken) in self._response_headers)
         self.checkQueryEDNSWithoutECS(expectedQuery, receivedQuery)
         self.assertEquals(response, receivedResponse)
 
