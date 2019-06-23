@@ -222,7 +222,9 @@ So, to benefit from this feature, a backend needs to know about the IP
 address of the supermaster, and how PowerDNS will be listed in the set
 of NS records remotely, and the 'account' name of your supermaster.
 There is no need to fill the account name out but it does help keep
-track of where a domain comes from.
+track of where a domain comes from. 
+Adding a supermaster can be done either directly in the database,
+or by using the 'pdnsutil add-supermaster' command. 
 
 .. note::
   Removal of zones provisioned using the supermaster must be

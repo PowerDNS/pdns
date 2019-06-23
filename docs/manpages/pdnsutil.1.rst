@@ -160,6 +160,8 @@ ZONE MANIPULATION COMMANDS
 add-record *ZONE* *NAME* *TYPE* [*TTL*] *CONTENT*
     Add one or more records of *NAME* and *TYPE* to *ZONE* with *CONTENT* 
     and optional *TTL*. If *TTL* is not set, default will be used. 
+add-supermaster *IP* *NAMESERVER* [*ACCOUNT*]
+    Add a supermaster entry into the backend. This enables receiving zone updates from other servers.
 create-zone *ZONE*
     Create an empty zone named *ZONE*.
 create-slave-zone *ZONE* *MASTER* [*MASTER*]..
