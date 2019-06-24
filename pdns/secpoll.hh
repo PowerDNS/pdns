@@ -20,10 +20,17 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
 #pragma once
-#include "namespaces.hh"
-#include "dnsparser.hh"
+#include <string>
+#include <vector>
+#include "dnsrecords.hh"
 
-void stubParseResolveConf();
-bool resolversDefined();
-int stubDoResolve(const DNSName& qname, uint16_t qtype, vector<DNSZoneRecord>& ret);
-int stubDoResolve(const DNSName& qname, uint16_t qtype, vector<DNSRecord>& ret);
+/* Parses the result of a security poll, will throw a PDNSException when it could not be parsed, secPollStatus is
+ * set correctly regardless whether or not an exception was thrown.
+ *
+ * res: DNS Rcode result from the secpoll
+ * ret: Records returned during secpoll
+ * secPollStatus: The actual secpoll status, pass the current status in here and it is changed to the new status
+ * secPollMessage: Will be cleared and filled with the message from the secpoll message
+ */
+void processSecPoll(const int res, const std::vector<DNSRecord> &ret, int &secPollStatus, std::string &secPollMessage);
+bool isReleaseVersion(const std::string &version);

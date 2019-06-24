@@ -161,8 +161,8 @@ pdns_recursor_SOURCES = \
 	root-addresses.hh \
 	root-dnssec.hh \
 	rpzloader.cc rpzloader.hh \
-	secpoll-recursor.cc \
-	secpoll-recursor.hh \
+	secpoll-recursor.cc secpoll-recursor.hh \
+	secpoll.cc secpoll.hh \
 	sholder.hh \
 	sillyrecords.cc \
 	snmp-agent.hh snmp-agent.cc \

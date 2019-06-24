@@ -15,6 +15,7 @@
 #include "namespaces.hh"
 #include "statbag.hh"
 #include "stubresolver.hh"
+#include "secpoll.hh"
 #include "dnsrecords.hh"
 #include <stdint.h>
 #ifndef PACKAGEVERSION
@@ -35,8 +36,9 @@ void doSecPoll(bool first)
 
   struct timeval now;
   gettimeofday(&now, 0);
+  string pkgv(PACKAGEVERSION);
 
-  string version = "auth-" + string(PACKAGEVERSION);
+  string version = "auth-" + pkgv;
   string query = version.substr(0, 63) +".security-status."+::arg()["security-poll-suffix"];
 
   if(*query.rbegin()!='.')
@@ -47,33 +49,27 @@ void doSecPoll(bool first)
 
   int security_status = std::stoi(S.getValueStr("security-status"));
 
-  vector<DNSZoneRecord> ret;
-  int res=stubDoResolve(DNSName(query), QType::TXT, ret);
+  vector<DNSRecord> ret;
+  int res = stubDoResolve(DNSName(query), QType::TXT, ret);
 
-  if (res != 0) { // not NOERROR
-    if(security_status == 1) // it was ok, now it is unknown
-      S.set("security-status", 0);
-
-    string pkgv(PACKAGEVERSION);
-    if (std::count(pkgv.begin(), pkgv.end(), '.') > 2) {
-      g_log<<Logger::Warning<<"Not validating response for security status update, this is a non-release version."<<endl;
-      return;
-    }
-    g_log<<Logger::Warning<<"Could not retrieve security status update for '" + PACKAGEVERSION + "' on '"+ query + "', RCODE = "<< RCode::to_s(res)<<endl;
+  if (res == RCode::NXDomain && !isReleaseVersion(pkgv)) {
+    g_log<<Logger::Warning<<"Not validating response for security status update, this is a non-release version"<<endl;
     return;
   }
 
-  if (ret.empty()) { // empty NOERROR... wat?
-    if(security_status == 1) // it was ok, now it is unknown
-      S.set("security-status", 0);
-    g_log<<Logger::Warning<<"Could not retrieve security status update for '" + PACKAGEVERSION + "' on '"+ query + "', had empty answer, RCODE = "<< RCode::to_s(res)<<endl;
+  string security_message;
+
+  try {
+    processSecPoll(res, ret, security_status, security_message);
+  } catch(const PDNSException &pe) {
+    S.set("security-status", security_status);
+    g_log<<Logger::Warning<<"Could not retrieve security status update for '" + pkgv + "' on '"+ query + "': "<<pe.reason<<endl;
     return;
   }
 
-  string content=getRR<TXTRecordContent>(ret.begin()->dr)->d_text;
-  pair<string, string> split = splitField(unquotify(content), ' ');
-  security_status = std::stoi(split.first);
-  g_security_message = split.second;
+
+  S.set("security-status", security_status);
+  g_security_message = security_message;
 
   if(security_status == 1 && first) {
     g_log<<Logger::Warning << "Polled security status of version "<<PACKAGEVERSION<<" at startup, no known issues reported: " <<g_security_message<<endl;
@@ -84,6 +80,4 @@ void doSecPoll(bool first)
   if(security_status == 3) {
     g_log<<Logger::Error<<"PowerDNS Security Update Mandatory: "<<g_security_message<<endl;
   }
-
-  S.set("security-status", security_status);
 }
