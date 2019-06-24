@@ -16,6 +16,7 @@ Changelogs for 4.1.x
 
     Add missing getregisteredname Lua function
 
+.. changelog::
   :version: 4.1.13
   :released: 21st of May 2019
 
