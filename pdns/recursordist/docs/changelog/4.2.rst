@@ -36,6 +36,7 @@ Changelogs for 4.2.x
     SuffixMatchTree fixes
 
 
+.. changelog::
   :version: 4.2.0-rc1
   :released: 23th of May 2019
 
