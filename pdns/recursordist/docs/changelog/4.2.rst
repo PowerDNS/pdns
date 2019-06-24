@@ -33,7 +33,7 @@ Changelogs for 4.2.x
     :tags: Bug Fixes, Internals
     :pullreq: 7954
 
-    SuffixMatchRee fixes
+    SuffixMatchTree fixes
 
 
   :version: 4.2.0-rc1
