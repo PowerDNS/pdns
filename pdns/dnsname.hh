@@ -151,6 +151,7 @@ private:
 
   void packetParser(const char* p, int len, int offset, bool uncompress, uint16_t* qtype, uint16_t* qclass, unsigned int* consumed, int depth, uint16_t minOffset);
   static std::string escapeLabel(const std::string& orig);
+  static std::string escapeLabel(const char* orig, size_t len);
   static std::string unescapeLabel(const std::string& orig);
 };
 
