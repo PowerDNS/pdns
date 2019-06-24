@@ -30,11 +30,15 @@ bool isReleaseVersion(const std::string &version) {
   return std::count(version.begin(), version.end(), '.') == 2;
 }
 
+void setSecPollToUnknownOnOK(int &secPollStatus) {
+  if(secPollStatus == 1) // it was ok, now it is unknown
+    secPollStatus = 0;
+}
+
 void processSecPoll(const int res, const std::vector<DNSRecord> &ret, int &secPollStatus, std::string &secPollMessage) {
   secPollMessage.clear();
   if (res != 0) { // not NOERROR
-    if(secPollStatus == 1) // it was ok, now it is unknown
-      secPollStatus = 0;
+    setSecPollToUnknownOnOK(secPollStatus);
     throw PDNSException("RCODE was not NOERROR but " + RCode::to_s(res));
   }
 
@@ -53,11 +57,13 @@ void processSecPoll(const int res, const std::vector<DNSRecord> &ret, int &secPo
   }
 
   if (record.d_name.empty()) {
+    setSecPollToUnknownOnOK(secPollStatus);
     throw PDNSException("No TXT record found in response");
   }
 
   auto recordContent = getRR<TXTRecordContent>(record);
   if (recordContent == nullptr) {
+    setSecPollToUnknownOnOK(secPollStatus);
     throw PDNSException("Could not parse TXT record content");
   }
   string content = recordContent->d_text;
@@ -67,6 +73,7 @@ void processSecPoll(const int res, const std::vector<DNSRecord> &ret, int &secPo
   try {
     secPollStatus = std::stoi(split.first);
   } catch (const std::exception &e) {
+    setSecPollToUnknownOnOK(secPollStatus);
     throw PDNSException(std::string("Could not parse status number: ") + e.what());
   }
   secPollMessage = split.second;
