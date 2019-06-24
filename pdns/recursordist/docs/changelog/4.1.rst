@@ -11,6 +11,7 @@ Changelogs for 4.1.x
 
     Add statistics counters for AD and CD queries.
 
+  .. change::
     :tags: Bug Fixes
     :pullreq: 7912
 
