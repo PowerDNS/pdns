@@ -192,7 +192,7 @@ public:
     }
   }
 
-  /* Tries to read exactly toRead bytes into the buffer, starting at position pos.
+  /* Tries to read exactly toRead - pos bytes into the buffer, starting at position pos.
      Updates pos everytime a successful read occurs,
      throws an std::runtime_error in case of IO error,
      return Done when toRead bytes have been read, needRead or needWrite if the IO operation
@@ -208,9 +208,8 @@ public:
       return d_conn->tryRead(buffer, pos, toRead);
     }
 
-    size_t got = 0;
     do {
-      ssize_t res = ::read(d_socket, reinterpret_cast<char*>(&buffer.at(pos)), toRead - got);
+      ssize_t res = ::read(d_socket, reinterpret_cast<char*>(&buffer.at(pos)), toRead - pos);
       if (res == 0) {
         throw runtime_error("EOF while reading message");
       }
@@ -224,14 +223,13 @@ public:
       }
 
       pos += static_cast<size_t>(res);
-      got += static_cast<size_t>(res);
     }
-    while (got < toRead);
+    while (pos < toRead);
 
     return IOState::Done;
   }
 
-  /* Tries to write exactly toWrite bytes from the buffer, starting at position pos.
+  /* Tries to write exactly toWrite - pos bytes from the buffer, starting at position pos.
      Updates pos everytime a successful write occurs,
      throws an std::runtime_error in case of IO error,
      return Done when toWrite bytes have been written, needRead or needWrite if the IO operation
@@ -243,9 +241,8 @@ public:
       return d_conn->tryWrite(buffer, pos, toWrite);
     }
 
-    size_t sent = 0;
     do {
-      ssize_t res = ::write(d_socket, reinterpret_cast<char*>(&buffer.at(pos)), toWrite - sent);
+      ssize_t res = ::write(d_socket, reinterpret_cast<char*>(&buffer.at(pos)), toWrite - pos);
       if (res == 0) {
         throw runtime_error("EOF while sending message");
       }
@@ -259,9 +256,8 @@ public:
       }
 
       pos += static_cast<size_t>(res);
-      sent += static_cast<size_t>(res);
     }
-    while (sent < toWrite);
+    while (pos < toWrite);
 
     return IOState::Done;
   }
