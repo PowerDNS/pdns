@@ -165,6 +165,10 @@ public:
     d_webserverPassword = password;
   }
 
+  void setMaxBodySize(ssize_t s) { // in megabytes
+    d_maxbodysize = s * 1024 * 1024;
+  }
+
   void setACL(const NetmaskGroup &nmg) {
     d_acl = nmg;
   }
@@ -230,6 +234,8 @@ protected:
   void apiWrapper(WebServer::HandlerFunction handler, HttpRequest* req, HttpResponse* resp, bool allowPassword);
   std::string d_webserverPassword;
   void webWrapper(WebServer::HandlerFunction handler, HttpRequest* req, HttpResponse* resp);
+
+  ssize_t d_maxbodysize; // in bytes
 
   NetmaskGroup d_acl;
 
