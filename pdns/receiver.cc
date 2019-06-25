@@ -354,7 +354,7 @@ static int guardian(int argc, char **argv)
   }
 }
 
-#ifdef __GLIBC__
+#ifdef __GLIBC__ && !defined(__UCLIBC__)
 #include <execinfo.h>
 static void tbhandler(int num)
 {
@@ -386,7 +386,7 @@ int main(int argc, char **argv)
   s_programname="pdns";
   s_starttime=time(0);
 
-#ifdef __GLIBC__
+#ifdef __GLIBC__ && !defined(__UCLIBC__)
   signal(SIGSEGV,tbhandler);
   signal(SIGFPE,tbhandler);
   signal(SIGABRT,tbhandler);
@@ -450,7 +450,7 @@ int main(int argc, char **argv)
     
     // we really need to do work - either standalone or as an instance
 
-#ifdef __GLIBC__
+#ifdef __GLIBC__ && !defined(__UCLIBC__)
     if(!::arg().mustDo("traceback-handler")) {
       g_log<<Logger::Warning<<"Disabling traceback handler"<<endl;
       signal(SIGSEGV,SIG_DFL);
