@@ -336,6 +336,7 @@ static Json::object getZoneInfo(const DomainInfo& di, DNSSECKeeper *dk) {
     { "account", di.account },
     { "masters", masters },
     { "serial", (double)di.serial },
+    { "edited_serial", (double)calculateEditSOA(di.serial, *dk, di.zone) },
     { "notified_serial", (double)di.notified_serial },
     { "last_check", (double)di.last_check }
   };

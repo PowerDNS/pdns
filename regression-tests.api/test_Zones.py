@@ -59,7 +59,7 @@ class Zones(ApiTestCase):
         print(example_com)
         required_fields = ['id', 'url', 'name', 'kind']
         if is_auth():
-            required_fields = required_fields + ['masters', 'last_check', 'notified_serial', 'serial', 'account']
+            required_fields = required_fields + ['masters', 'last_check', 'notified_serial', 'edited_serial', 'serial', 'account']
             self.assertNotEquals(example_com['serial'], 0)
         elif is_recursor():
             required_fields = required_fields + ['recursion_desired', 'servers']
@@ -99,7 +99,7 @@ class AuthZones(ApiTestCase, AuthZonesHelperMixin):
     def test_create_zone(self):
         # soa_edit_api has a default, override with empty for this test
         name, payload, data = self.create_zone(serial=22, soa_edit_api='')
-        for k in ('id', 'url', 'name', 'masters', 'kind', 'last_check', 'notified_serial', 'serial', 'soa_edit_api', 'soa_edit', 'account'):
+        for k in ('id', 'url', 'name', 'masters', 'kind', 'last_check', 'notified_serial', 'serial', 'edited_serial', 'soa_edit_api', 'soa_edit', 'account'):
             self.assertIn(k, data)
             if k in payload:
                 self.assertEquals(data[k], payload[k])
@@ -113,6 +113,7 @@ class AuthZones(ApiTestCase, AuthZonesHelperMixin):
         # Because we had confusion about dots, check that the DB is without dots.
         dbrecs = get_db_records(name, 'SOA')
         self.assertEqual(dbrecs[0]['content'], expected_soa.replace('. ', ' '))
+        self.assertNotEquals(data['serial'], data['edited_serial'])
 
     def test_create_zone_with_soa_edit_api(self):
         # soa_edit_api wins over serial

@@ -162,8 +162,6 @@ string uitoa(unsigned int i);
 string bitFlip(const string &str);
 
 void dropPrivs(int uid, int gid);
-int makeGidNumeric(const string &group);
-int makeUidNumeric(const string &user);
 void cleanSlashes(string &str);
 
 #if defined(_POSIX_THREAD_CPUTIME) && defined(CLOCK_THREAD_CPUTIME_ID)

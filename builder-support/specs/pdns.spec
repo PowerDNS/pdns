@@ -175,6 +175,16 @@ This package contains the geoip backend for %{name}
 It allows different answers to DNS queries coming from different
 IP address ranges or based on the geoipgraphic location
 
+%package backend-lmdb
+Summary: LMDB backend for %{name}
+Group: System Environment/Daemons
+Requires: %{name}%{?_isa} = %{version}-%{release}
+BuildRequires: lmdb-devel
+%global backends %{backends} lmdb
+
+%description backend-lmdb
+This package contains the lmdb backend for %{name}
+
 %package backend-tinydns
 Summary: TinyDNS backend for %{name}
 Group: System Environment/Daemons
@@ -407,6 +417,9 @@ fi
 
 %files backend-geoip
 %{_libdir}/%{name}/libgeoipbackend.so
+
+%files backend-lmdb
+%{_libdir}/%{name}/liblmdbbackend.so
 
 %files backend-tinydns
 %{_libdir}/%{name}/libtinydnsbackend.so

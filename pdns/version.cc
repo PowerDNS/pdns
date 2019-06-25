@@ -104,6 +104,12 @@ void showBuildConfiguration()
 #ifdef HAVE_LIBDL
     "libdl " <<
 #endif
+#ifdef HAVE_GEOIP
+    "libgeoip " <<
+#endif
+#ifdef HAVE_MMDB
+    "libmaxminddb " <<
+#endif
 #ifdef HAVE_LUA
     "lua " <<
 #endif

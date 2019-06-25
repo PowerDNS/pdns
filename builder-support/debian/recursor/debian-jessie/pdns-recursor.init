@@ -30,7 +30,7 @@ DAEMON=/usr/sbin/$NAME
 # Derive the socket-dir setting from /etc/powerdns/recursor.conf
 # or fall back to the default /var/run if not specified there.
 PIDDIR=$(awk -F= '/^socket-dir=/ {print $2}' /etc/powerdns/recursor.conf)
-if [ -z "$PIDDIR" ]; then PIDDIR=/var/run; fi
+if [ -z "$PIDDIR" ]; then PIDDIR=/var/run/pdns-recursor; mkdir -p $PIDDIR; fi
 PIDFILE=$PIDDIR/$NAME.pid
 
 # Gracefully exit if the package has been removed.

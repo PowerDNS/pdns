@@ -333,9 +333,6 @@ try
   h2o_socket_getsockname(sock, reinterpret_cast<struct sockaddr*>(&local));
   DOHServerConfig* dsc = reinterpret_cast<DOHServerConfig*>(req->conn->ctx->storage.entries[0].data);
 
-  /* looks like we can't delete the Server: header with most versions of h2o */
-  h2o_set_header(&req->pool, &req->res.headers, H2O_TOKEN_SERVER, dsc->df->d_serverTokens.c_str(), dsc->df->d_serverTokens.size(), 1);
-
   if(auto tlsversion = h2o_socket_get_ssl_protocol_version(sock)) {
     if(!strcmp(tlsversion, "TLSv1.0"))
       ++dsc->df->d_tls10queries;
@@ -690,6 +687,8 @@ try
   auto& dsc = df->d_dsc;
   dsc->cs = cs;
   dsc->df = cs->dohFrontend;
+  dsc->h2o_config.server_name = h2o_iovec_init(df->d_serverTokens.c_str(), df->d_serverTokens.size());
+
 
   std::thread dnsdistThread(dnsdistclient, dsc->dohquerypair[1], dsc->dohresponsepair[0]);
   dnsdistThread.detach(); // gets us better error reporting
