@@ -564,6 +564,7 @@ try {
 
         int oldFD = ids->origFD.exchange(-1);
         if (oldFD == origFD) {
+          ids->du = nullptr;
           /* we only decrement the outstanding counter if the value was not
              altered in the meantime, which would mean that the state has been actively reused
              and the other thread has not incremented the outstanding counter, so we don't
@@ -572,7 +573,6 @@ try {
         } else {
           du = nullptr;
         }
-        ids->du = nullptr;
 
         if(dh->tc && g_truncateTC) {
           truncateTC(response, &responseLen, responseSize, consumed);
@@ -595,7 +595,7 @@ try {
           if (du) {
 #ifdef HAVE_DNS_OVER_HTTPS
             // DoH query
-            du->query = std::string(response, responseLen);
+            du->response = std::string(response, responseLen);
             if (send(du->rsock, &du, sizeof(du), 0) != sizeof(du)) {
               delete du;
             }

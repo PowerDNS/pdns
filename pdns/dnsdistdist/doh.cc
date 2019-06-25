@@ -218,7 +218,7 @@ static int processDOHQuery(DOHUnit* du)
     }
 
     if (result == ProcessQueryResult::SendAnswer) {
-      du->query = std::string(reinterpret_cast<char*>(dq.dh), dq.len);
+      du->response = std::string(reinterpret_cast<char*>(dq.dh), dq.len);
       send(du->rsock, &du, sizeof(du), 0);
       return 0;
     }
@@ -595,8 +595,8 @@ static void on_dnsdist(h2o_socket_t *listener, const char *err)
     //    struct dnsheader* dh = (struct dnsheader*)du->query.c_str();
     //    cout<<"Attempt to send out "<<du->query.size()<<" bytes over https, TC="<<dh->tc<<", RCODE="<<dh->rcode<<", qtype="<<du->qtype<<", req="<<(void*)du->req<<endl;
 
-    du->req->res.content_length = du->query.size();
-    h2o_send_inline(du->req, du->query.c_str(), du->query.size());
+    du->req->res.content_length = du->response.size();
+    h2o_send_inline(du->req, du->response.c_str(), du->response.size());
   }
   else {
     switch(du->status_code) {
