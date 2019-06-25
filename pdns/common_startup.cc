@@ -438,7 +438,7 @@ try
       g_log<<": ";
     }
 
-    if((P->d.opcode != Opcode::Notify && P->d.opcode != Opcode::Update) && P->couldBeCached()) {
+    if(PC.enabled() && (P->d.opcode != Opcode::Notify && P->d.opcode != Opcode::Update) && P->couldBeCached()) {
       bool haveSomething=PC.get(P, &cached); // does the PacketCache recognize this question?
       if (haveSomething) {
         if(logDNSQueries)
@@ -464,7 +464,7 @@ try
       continue;
     }
         
-    if(logDNSQueries) 
+    if(PC.enabled() && logDNSQueries)
       g_log<<"packetcache MISS"<<endl;
 
     try {
