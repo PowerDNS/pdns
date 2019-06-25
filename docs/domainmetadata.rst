@@ -172,6 +172,16 @@ This metadata can also be set using the
 and ``set-publish-cds``. For an example for an :rfc:`7344` key rollover,
 see the :doc:`guides/kskrollcdnskey`.
 
+.. _metadata-slave-renotify:
+
+SLAVE-RENOTIFY
+--------------
+.. versionadded:: 4.3.0
+
+If set to 1, will make PowerDNS renotify the slaves after an AXFR is received from a master.
+Any other value means that no renotifies are done. If not set at all, action will depend on
+the :ref:`setting-slave-renotify` setting.
+
 .. _metadata-soa-edit:
 
 SOA-EDIT
