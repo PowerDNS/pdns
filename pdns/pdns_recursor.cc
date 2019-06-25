@@ -1654,12 +1654,12 @@ static void startDoResolve(void *p)
     if(!dc->d_tcp) {
       struct msghdr msgh;
       struct iovec iov;
-      char cbuf[256];
-      fillMSGHdr(&msgh, &iov, cbuf, 0, (char*)&*packet.begin(), packet.size(), &dc->d_remote);
+      cmsgbuf_aligned cbuf;
+      fillMSGHdr(&msgh, &iov, &cbuf, 0, (char*)&*packet.begin(), packet.size(), &dc->d_remote);
       msgh.msg_control=NULL;
 
       if(g_fromtosockets.count(dc->d_socket)) {
-	addCMsgSrcAddr(&msgh, cbuf, &dc->d_local, 0);
+	      addCMsgSrcAddr(&msgh, &cbuf, &dc->d_local, 0);
       }
       if(sendmsg(dc->d_socket, &msgh, 0) < 0 && g_logCommonErrors) 
         g_log<<Logger::Warning<<"Sending UDP reply to client "<<dc->getRemote()<<" failed with: "<<strerror(errno)<<endl;
@@ -2313,12 +2313,12 @@ static string* doProcessUDPQuestion(const std::string& question, const ComboAddr
       ageDNSPacket(response, age);
       struct msghdr msgh;
       struct iovec iov;
-      char cbuf[256];
-      fillMSGHdr(&msgh, &iov, cbuf, 0, (char*)response.c_str(), response.length(), const_cast<ComboAddress*>(&fromaddr));
+      cmsgbuf_aligned cbuf;
+      fillMSGHdr(&msgh, &iov, &cbuf, 0, (char*)response.c_str(), response.length(), const_cast<ComboAddress*>(&fromaddr));
       msgh.msg_control=NULL;
 
       if(g_fromtosockets.count(fd)) {
-	addCMsgSrcAddr(&msgh, cbuf, &destaddr, 0);
+        addCMsgSrcAddr(&msgh, &cbuf, &destaddr, 0);
       }
       if(sendmsg(fd, &msgh, 0) < 0 && g_logCommonErrors)
         g_log<<Logger::Warning<<"Sending UDP reply to client "<<source.toStringWithPort()<<(source != fromaddr ? " (via "+fromaddr.toStringWithPort()+")" : "")<<" failed with: "<<strerror(errno)<<endl;
@@ -2393,13 +2393,13 @@ static void handleNewUDPQuestion(int fd, FDMultiplexer::funcparam_t& var)
   ComboAddress fromaddr;
   struct msghdr msgh;
   struct iovec iov;
-  char cbuf[256];
+  cmsgbuf_aligned cbuf;
   bool firstQuery = true;
 
   for(size_t queriesCounter = 0; queriesCounter < s_maxUDPQueriesPerRound; queriesCounter++) {
     data.resize(maxIncomingQuerySize);
     fromaddr.sin6.sin6_family=AF_INET6; // this makes sure fromaddr is big enough
-    fillMSGHdr(&msgh, &iov, cbuf, sizeof(cbuf), &data[0], data.size(), &fromaddr);
+    fillMSGHdr(&msgh, &iov, &cbuf, sizeof(cbuf), &data[0], data.size(), &fromaddr);
 
     if((len=recvmsg(fd, &msgh, 0)) >= 0) {
 

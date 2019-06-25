@@ -515,8 +515,11 @@ private:
 };
 
 union ComboAddress;
+
+typedef union { struct cmsghdr hdr; char buf[256]; } cmsgbuf_aligned;
+
 /* itfIndex is an interface index, as returned by if_nametoindex(). 0 means default. */
-void addCMsgSrcAddr(struct msghdr* msgh, void* cmsgbuf, const ComboAddress* source, int itfIndex);
+void addCMsgSrcAddr(struct msghdr* msgh, cmsgbuf_aligned* cbuf, const ComboAddress* source, int itfIndex);
 
 unsigned int getFilenumLimit(bool hardOrSoft=0);
 void setFilenumLimit(unsigned int lim);
