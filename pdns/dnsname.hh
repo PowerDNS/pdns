@@ -394,6 +394,11 @@ struct SuffixMatchNode
       d_nodes.insert(dnsname);
     }
 
+    void add(const std::string& name)
+    {
+      add(DNSName(name));
+    }
+
     void add(std::vector<std::string> labels)
     {
       d_tree.add(labels, true);

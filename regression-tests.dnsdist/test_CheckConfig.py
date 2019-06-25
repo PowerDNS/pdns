@@ -37,6 +37,10 @@ class TestCheckConfig(unittest.TestCase):
             addAction(RegexRule("evil[0-9]{4,}\\\\.regex\\\\.tests\\\\.powerdns\\\\.com$"), RCodeAction(DNSRCode.REFUSED))
             mySMN = newSuffixMatchNode()
             mySMN:add(newDNSName("nameAndQtype.tests.powerdns.com."))
+            mySMN:add("string.smn.tests.powerdns.com.")
+            mySMN:add("string-no-dot.smn.tests.powerdns.com")
+            mySMN:add({"string-one.smn.tests.powerdns.com", "string-two.smn.tests.powerdns.com"})
+            mySMN:add({newDNSName("dnsname-one.smn.tests.powerdns.com"), newDNSName("dnsname-two.smn.tests.powerdns.com")})
             addAction(AndRule{SuffixMatchNodeRule(mySMN), QTypeRule("TXT")}, RCodeAction(DNSRCode.NOTIMP))
             addAction(makeRule("drop.test.powerdns.com."), DropAction())
         """
