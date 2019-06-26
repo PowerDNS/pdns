@@ -885,8 +885,6 @@ Regex::Regex(const string &expr)
 // with msgh->msg_controllen, please refer to https://github.com/PowerDNS/pdns/pull/3962
 // first.
 // Note that cmsgbuf should be aligned the same as a struct cmsghdr
-// This can be achieved by declaring it as
-//    union { struct cmsghdr hdr; char buf[CMSG_SPACE(spaceneeded)]; } cmsgbuf;
 void addCMsgSrcAddr(struct msghdr* msgh, cmsgbuf_aligned* cmsgbuf, const ComboAddress* source, int itfIndex)
 {
   struct cmsghdr *cmsg = NULL;

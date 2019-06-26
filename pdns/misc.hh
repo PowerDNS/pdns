@@ -516,6 +516,7 @@ private:
 
 union ComboAddress;
 
+// An aligned type to hold cmsgbufs. See https://man.openbsd.org/CMSG_DATA
 typedef union { struct cmsghdr hdr; char buf[256]; } cmsgbuf_aligned;
 
 /* itfIndex is an interface index, as returned by if_nametoindex(). 0 means default. */
