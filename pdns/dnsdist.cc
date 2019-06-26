@@ -1618,11 +1618,11 @@ static void MultipleMessagesUDPClientThread(ClientState* cs, LocalHolders& holde
   struct MMReceiver
   {
     char packet[4096];
-    /* used by HarvestDestinationAddress */
-    cmsgbuf_aligned cbuf;
     ComboAddress remote;
     ComboAddress dest;
     struct iovec iov;
+    /* used by HarvestDestinationAddress */
+    cmsgbuf_aligned cbuf;
   };
   const size_t vectSize = g_udpVectorSize;
   /* the actual buffer is larger because:
