@@ -129,7 +129,7 @@ static void setSocketBuffer(int fd, int optname, uint32_t size)
 
   if (setsockopt(fd, SOL_SOCKET, optname, (char*)&size, sizeof(size)) < 0 ) {
     if (!g_quiet) {
-      cerr<<"Warning: unable to raise socket buffer size to "<<size<<": "<<strerror(errno)<<endl;
+      cerr<<"Warning: unable to raise socket buffer size to "<<size<<": "<<stringerror()<<endl;
     }
   }
 }
@@ -355,7 +355,7 @@ try
 #if HAVE_SCHED_SETSCHEDULER
   if(sched_setscheduler(0, SCHED_FIFO, &param) < 0) {
     if (!g_quiet) {
-      cerr<<"Unable to set SCHED_FIFO: "<<strerror(errno)<<endl;
+      cerr<<"Unable to set SCHED_FIFO: "<<stringerror()<<endl;
     }
   }
 #endif
@@ -434,7 +434,7 @@ try
   if (g_vm.count("plot-file")) {
     plot.open(g_vm["plot-file"].as<string>());
     if (!plot) {
-      cerr<<"Error opening "<<g_vm["plot-file"].as<string>()<<" for writing: "<<strerror(errno)<<endl;
+      cerr<<"Error opening "<<g_vm["plot-file"].as<string>()<<" for writing: "<<stringerror()<<endl;
       return EXIT_FAILURE;
     }
   }

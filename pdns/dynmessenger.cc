@@ -27,7 +27,6 @@
 #include "utility.hh"
 #include <cstdlib>
 #include <cstring>
-#include <cerrno>
 #include <iostream>
 #include <sys/types.h>
 #include <sys/stat.h>
@@ -40,7 +39,7 @@ DynMessenger::DynMessenger(const string &fname,
   setCloseOnExec(d_s);
   
   if(d_s<0) {
-    throw PDNSException(string("socket")+strerror(errno));
+    throw PDNSException(string("socket")+stringerror());
   }
 
   try {
@@ -80,7 +79,7 @@ DynMessenger::DynMessenger(const ComboAddress& remote,
   setCloseOnExec(d_s);
  
   if(d_s<0) {
-    throw PDNSException(string("socket")+strerror(errno));
+    throw PDNSException(string("socket")+stringerror());
   }
 
   try {
@@ -97,9 +96,9 @@ DynMessenger::DynMessenger(const ComboAddress& remote,
     int ret = Utility::timed_connect(d_s, (sockaddr*)&remote, remote.getSocklen(), timeout_sec, timeout_usec);
 
     if (ret == 0)
-      throw TimeoutException("Unable to connect to remote '"+remote.toStringWithPort()+"': "+string(strerror(errno)));
+      throw TimeoutException("Unable to connect to remote '"+remote.toStringWithPort()+"': "+stringerror());
     else if (ret < 0)
-      throw PDNSException("Unable to connect to remote '"+remote.toStringWithPort()+"': "+string(strerror(errno)));
+      throw PDNSException("Unable to connect to remote '"+remote.toStringWithPort()+"': "+stringerror());
 
     string login=secret+"\n";
     writen2(d_s, login);
@@ -139,9 +138,9 @@ string DynMessenger::receive() const
     retlen=recv(d_s,buffer,sizeof(buffer),0);
     if(retlen<0) {
       if (errno == EAGAIN)
-        throw TimeoutException("Error from remote in receive(): " + string(strerror(errno)));
+        throw TimeoutException("Error from remote in receive(): " + stringerror());
       else
-        throw PDNSException("Error from remote in receive(): " + string(strerror(errno)));
+        throw PDNSException("Error from remote in receive(): " + stringerror());
     }
 
     answer.append(buffer,retlen);

@@ -108,10 +108,10 @@ try
   Socket sock(g_dest.sin4.sin_family, SOCK_STREAM);
   int tmp=1;
   if(setsockopt(sock.getHandle(),SOL_SOCKET,SO_REUSEADDR,(char*)&tmp,sizeof tmp)<0) 
-    throw runtime_error("Unable to set socket reuse: "+string(strerror(errno)));
+    throw runtime_error("Unable to set socket reuse: "+stringerror());
     
   if(g_tcpNoDelay && setsockopt(sock.getHandle(), IPPROTO_TCP, TCP_NODELAY,(char*)&tmp,sizeof tmp)<0) 
-    throw runtime_error("Unable to set socket no delay: "+string(strerror(errno)));
+    throw runtime_error("Unable to set socket no delay: "+stringerror());
 
   sock.connect(g_dest);
   uint16_t len = htons(packet.size());

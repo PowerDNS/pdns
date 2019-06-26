@@ -3104,7 +3104,8 @@ bool SyncRes::doResolveAtThisIP(const std::string& prefix, const DNSName& qname,
       /* -1 means server unreachable */
       s_unreachables++;
       d_unreachables++;
-      LOG(prefix<<qname<<": error resolving from "<<remoteIP.toString()<< (doTCP ? " over TCP" : "") <<", possible error: "<<strerror(errno)<< endl);
+      // XXX questionable use of errno
+      LOG(prefix<<qname<<": error resolving from "<<remoteIP.toString()<< (doTCP ? " over TCP" : "") <<", possible error: "<<stringerror()<< endl);
     }
 
     if(resolveret != -2 && !chained && !dontThrottle) {

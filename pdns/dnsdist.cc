@@ -480,7 +480,7 @@ static bool sendUDPResponse(int origFD, const char* response, const uint16_t res
     }
     if (res == -1) {
       int err = errno;
-      vinfolog("Error sending response to %s: %s", origRemote.toStringWithPort(), strerror(err));
+      vinfolog("Error sending response to %s: %s", origRemote.toStringWithPort(), stringerror(err));
     }
   }
 
@@ -1657,7 +1657,7 @@ static void MultipleMessagesUDPClientThread(ClientState* cs, LocalHolders& holde
     int msgsGot = recvmmsg(cs->udpFD, msgVec.get(), vectSize, MSG_WAITFORONE | MSG_TRUNC, nullptr);
 
     if (msgsGot <= 0) {
-      vinfolog("Getting UDP messages via recvmmsg() failed with: %s", strerror(errno));
+      vinfolog("Getting UDP messages via recvmmsg() failed with: %s", stringerror());
       continue;
     }
 
@@ -1685,7 +1685,7 @@ static void MultipleMessagesUDPClientThread(ClientState* cs, LocalHolders& holde
       int sent = sendmmsg(cs->udpFD, outMsgVec.get(), msgsToSend, 0);
 
       if (sent < 0 || static_cast<unsigned int>(sent) != msgsToSend) {
-        vinfolog("Error sending responses with sendmmsg() (%d on %u): %s", sent, msgsToSend, strerror(errno));
+        vinfolog("Error sending responses with sendmmsg() (%d on %u): %s", sent, msgsToSend, stringerror());
       }
     }
 
@@ -2098,22 +2098,22 @@ static void bindAny(int af, int sock)
 
 #ifdef IP_FREEBIND
   if (setsockopt(sock, IPPROTO_IP, IP_FREEBIND, &one, sizeof(one)) < 0)
-    warnlog("Warning: IP_FREEBIND setsockopt failed: %s", strerror(errno));
+    warnlog("Warning: IP_FREEBIND setsockopt failed: %s", stringerror());
 #endif
 
 #ifdef IP_BINDANY
   if (af == AF_INET)
     if (setsockopt(sock, IPPROTO_IP, IP_BINDANY, &one, sizeof(one)) < 0)
-      warnlog("Warning: IP_BINDANY setsockopt failed: %s", strerror(errno));
+      warnlog("Warning: IP_BINDANY setsockopt failed: %s", stringerror());
 #endif
 #ifdef IPV6_BINDANY
   if (af == AF_INET6)
     if (setsockopt(sock, IPPROTO_IPV6, IPV6_BINDANY, &one, sizeof(one)) < 0)
-      warnlog("Warning: IPV6_BINDANY setsockopt failed: %s", strerror(errno));
+      warnlog("Warning: IPV6_BINDANY setsockopt failed: %s", stringerror());
 #endif
 #ifdef SO_BINDANY
   if (setsockopt(sock, SOL_SOCKET, SO_BINDANY, &one, sizeof(one)) < 0)
-    warnlog("Warning: SO_BINDANY setsockopt failed: %s", strerror(errno));
+    warnlog("Warning: SO_BINDANY setsockopt failed: %s", stringerror());
 #endif
 }
 
@@ -2122,11 +2122,11 @@ static void dropGroupPrivs(gid_t gid)
   if (gid) {
     if (setgid(gid) == 0) {
       if (setgroups(0, NULL) < 0) {
-        warnlog("Warning: Unable to drop supplementary gids: %s", strerror(errno));
+        warnlog("Warning: Unable to drop supplementary gids: %s", stringerror());
       }
     }
     else {
-      warnlog("Warning: Unable to set group ID to %d: %s", gid, strerror(errno));
+      warnlog("Warning: Unable to set group ID to %d: %s", gid, stringerror());
     }
   }
 }
@@ -2135,7 +2135,7 @@ static void dropUserPrivs(uid_t uid)
 {
   if(uid) {
     if(setuid(uid) < 0) {
-      warnlog("Warning: Unable to set user ID to %d: %s", uid, strerror(errno));
+      warnlog("Warning: Unable to set user ID to %d: %s", uid, stringerror());
     }
   }
 }
@@ -2252,7 +2252,7 @@ static void setUpLocalBind(std::unique_ptr<ClientState>& cs)
 #ifdef SO_BINDTODEVICE
     int res = setsockopt(fd, SOL_SOCKET, SO_BINDTODEVICE, itf.c_str(), itf.length());
     if (res != 0) {
-      warnlog("Error setting up the interface on local address '%s': %s", cs->local.toStringWithPort(), strerror(errno));
+      warnlog("Error setting up the interface on local address '%s': %s", cs->local.toStringWithPort(), stringerror());
     }
 #else
     if (warn) {

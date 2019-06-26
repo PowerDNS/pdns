@@ -65,7 +65,7 @@ int main(int argc, char **argv)
     ofstream fp(argv[2]);
 
     if (!fp) {
-      cerr<<"Error opening output file "<<argv[2]<<": "<<strerror(errno)<<endl;
+      cerr<<"Error opening output file "<<argv[2]<<": "<<stringerror()<<endl;
       exit(EXIT_FAILURE);
     }
 

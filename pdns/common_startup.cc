@@ -539,7 +539,7 @@ void mainthread()
         gethostbyname("a.root-servers.net"); // this forces all lookup libraries to be loaded
      Utility::dropGroupPrivs(newuid, newgid);
      if(chroot(::arg()["chroot"].c_str())<0 || chdir("/")<0) {
-       g_log<<Logger::Error<<"Unable to chroot to '"+::arg()["chroot"]+"': "<<strerror(errno)<<", exiting"<<endl; 
+       g_log<<Logger::Error<<"Unable to chroot to '"+::arg()["chroot"]+"': "<<stringerror()<<", exiting"<<endl; 
        exit(1);
      }   
      else

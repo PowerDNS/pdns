@@ -321,7 +321,7 @@ void BPFFilter::block(const DNSName& qname, uint16_t qtype)
     }
 
     if (res != 0) {
-      throw std::runtime_error("Error adding blocked qname " + qname.toLogString() + ": " + std::string(strerror(errno)));
+      throw std::runtime_error("Error adding blocked qname " + qname.toLogString() + ": " + stringerror()));
     }
   }
 }
@@ -345,7 +345,7 @@ void BPFFilter::unblock(const DNSName& qname, uint16_t qtype)
       d_qNamesCount--;
     }
     else {
-      throw std::runtime_error("Error removing qname address " + qname.toLogString() + ": " + std::string(strerror(errno)));
+      throw std::runtime_error("Error removing qname address " + qname.toLogString() + ": " + stringerror()));
     }
   }
 }

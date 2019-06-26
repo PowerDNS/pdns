@@ -274,16 +274,18 @@ void TCPClientCollection::addTCPClientThread()
     }
 
     if (!setNonBlocking(pipefds[0])) {
+      int err = errno;
       close(pipefds[0]);
       close(pipefds[1]);
-      errlog("Error setting the TCP thread communication pipe non-blocking: %s", strerror(errno));
+      errlog("Error setting the TCP thread communication pipe non-blocking: %s", strerror(err));
       return;
     }
 
     if (!setNonBlocking(pipefds[1])) {
+      int err = errno;
       close(pipefds[0]);
       close(pipefds[1]);
-      errlog("Error setting the TCP thread communication pipe non-blocking: %s", strerror(errno));
+      errlog("Error setting the TCP thread communication pipe non-blocking: %s", strerror(err));
       return;
     }
   }
@@ -365,7 +367,7 @@ IOState tryRead(int fd, std::vector<uint8_t>& buffer, size_t& pos, size_t toRead
         return IOState::NeedRead;
       }
       else {
-        throw std::runtime_error(std::string("Error while reading message: ") + strerror(errno));
+        throw std::runtime_error(std::string("Error while reading message: ") + stringerror());
       }
     }
 
@@ -1145,7 +1147,7 @@ static void handleIncomingTCPQuery(int pipefd, FDMultiplexer::funcparam_t& param
     if (errno == EAGAIN || errno == EINTR) {
       return;
     }
-    throw std::runtime_error("Error while reading from the TCP acceptor pipe (" + std::to_string(pipefd) + ") in " + std::string(isNonBlocking(pipefd) ? "non-blocking" : "blocking") + " mode:" + strerror(errno));
+    throw std::runtime_error("Error while reading from the TCP acceptor pipe (" + std::to_string(pipefd) + ") in " + std::string(isNonBlocking(pipefd) ? "non-blocking" : "blocking") + " mode:" + stringerror());
   }
   else if (got != sizeof(citmp)) {
     throw std::runtime_error("Partial read while reading from the TCP acceptor pipe (" + std::to_string(pipefd) + ") in " + std::string(isNonBlocking(pipefd) ? "non-blocking" : "blocking") + " mode");
@@ -1261,7 +1263,7 @@ void tcpAcceptorThread(void* p)
       ++cs->tcpCurrentConnections;
 
       if(ci->fd < 0) {
-        throw std::runtime_error((boost::format("accepting new connection on socket: %s") % strerror(errno)).str());
+        throw std::runtime_error((boost::format("accepting new connection on socket: %s") % stringerror()).str());
       }
 
       if(!acl->match(remote)) {

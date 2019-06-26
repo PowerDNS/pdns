@@ -24,7 +24,6 @@
 #endif
 #include "packetcache.hh"
 #include "utility.hh"
-#include <errno.h>
 #include "communicator.hh"
 #include <set>
 #include <boost/utility.hpp>

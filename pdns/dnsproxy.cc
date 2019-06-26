@@ -27,7 +27,6 @@
 #include "dnsproxy.hh"
 #include "pdnsexception.hh"
 #include <sys/types.h>
-#include <errno.h>
 #include "dns.hh"
 #include "logger.hh"
 #include "statbag.hh"
@@ -50,7 +49,7 @@ DNSProxy::DNSProxy(const string &remote)
   d_remote = ComboAddress(addresses[0], 53);
 
   if((d_sock=socket(d_remote.sin4.sin_family, SOCK_DGRAM,0))<0) {
-    throw PDNSException(string("socket: ")+strerror(errno));
+    throw PDNSException(string("socket: ")+stringerror());
   }
 
   ComboAddress local;
@@ -71,7 +70,7 @@ DNSProxy::DNSProxy(const string &remote)
   if(n==10) {
     closesocket(d_sock);
     d_sock=-1;
-    throw PDNSException(string("binding dnsproxy socket: ")+strerror(errno));
+    throw PDNSException(string("binding dnsproxy socket: ")+stringerror());
   }
 
   if(connect(d_sock, (sockaddr *)&d_remote, d_remote.getSocklen())<0) {
@@ -286,9 +285,10 @@ void DNSProxy::mainloop(void)
         if(i->second.anyLocal) {
           addCMsgSrcAddr(&msgh, cbuf, i->second.anyLocal.get_ptr(), 0);
         }
-        if(sendmsg(i->second.outsock, &msgh, 0) < 0)
-          g_log<<Logger::Warning<<"dnsproxy.cc: Error sending reply with sendmsg (socket="<<i->second.outsock<<"): "<<strerror(errno)<<endl;
-
+        if(sendmsg(i->second.outsock, &msgh, 0) < 0) {
+          int err = errno;
+          g_log<<Logger::Warning<<"dnsproxy.cc: Error sending reply with sendmsg (socket="<<i->second.outsock<<"): "<<stringerror(err)<<endl;
+        }
         i->second.created=0;
       }
     }

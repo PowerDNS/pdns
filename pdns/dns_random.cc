@@ -152,7 +152,7 @@ static void dns_random_setup(bool force=false)
     // some systems define getrandom but it does not really work, e.g. because it's
     // not present in kernel.
     if (getrandom(buf, sizeof(buf), 0) == -1) {
-       g_log<<Logger::Warning<<"getrandom() failed: "<<strerror(errno)<<", falling back to " + rdev<<std::endl;
+       g_log<<Logger::Warning<<"getrandom() failed: "<<stringerror()<<", falling back to " + rdev<<std::endl;
        chosen_rng = RNG_URANDOM;
     }
   }
