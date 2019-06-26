@@ -183,9 +183,10 @@ protected:
 class NetmaskGroupRule : public NMGRule
 {
 public:
-  NetmaskGroupRule(const NetmaskGroup& nmg, bool src) : NMGRule(nmg)
+  NetmaskGroupRule(const NetmaskGroup& nmg, bool src, bool quiet = false) : NMGRule(nmg)
   {
       d_src = src;
+      d_quiet = quiet;
   }
   bool matches(const DNSQuestion* dq) const override
   {
@@ -197,13 +198,18 @@ public:
 
   string toString() const override
   {
+    string ret = "Src: ";
     if(!d_src) {
-        return "Dst: "+d_nmg.toString();
+        ret = "Dst: ";
     }
-    return "Src: "+d_nmg.toString();
+    if (d_quiet) {
+      return ret + "in-group";
+    }
+    return ret + d_nmg.toString();
   }
 private:
   bool d_src;
+  bool d_quiet;
 };
 
 class TimedIPSetRule : public DNSRule, boost::noncopyable
