@@ -387,7 +387,7 @@ void readRESNames(const std::string& fname, map<DNSName, vector<ComboAddress>>& 
 {
   ifstream ifs(fname);
   if(!ifs)
-    unixDie("Reading resolved names from "+fname+": "+stringerror()));
+    unixDie("Reading resolved names from "+fname+": "+stringerror());
   vector<string> parts;
   string line;
   addrs.clear();
