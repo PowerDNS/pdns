@@ -1967,13 +1967,7 @@ vector<std::function<void(void)>> setupLua(bool client, const std::string& confi
   setupLuaRules();
   setupLuaVars();
 
-  std::ifstream ifs(config);
-  if(!ifs)
-    warnlog("Unable to read configuration from '%s'", config);
-  else
-    vinfolog("Read configuration from '%s'", config);
-
-  g_lua.executeCode(ifs);
+  g_lua.executeCode("dofile('"+config+"')");
 
   auto ret = *g_launchWork;
   delete g_launchWork;
