@@ -28,12 +28,12 @@ bool checkBasicMessage3(const PDNSException &ex) {
 }
 
 bool checkBasicMessage4(const PDNSException &ex) {
-  BOOST_CHECK_EQUAL(ex.reason, "Could not parse status number: stoi: no conversion");
+  BOOST_CHECK(ex.reason.find("Could not parse status number: stoi") == 0);
   return true;
 }
 
 bool checkBasicMessage5(const PDNSException &ex) {
-  BOOST_CHECK_EQUAL(ex.reason, "Could not parse status number: stoi: no conversion");
+  BOOST_CHECK(ex.reason.find("Could not parse status number: stoi") == 0);
   return true;
 }
 
