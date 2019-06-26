@@ -46,6 +46,18 @@ Each ACL has its own row in the database:
 To disallow all IP's, except those explicitly allowed by domainmetadata
 records, add ``allow-axfr-ips=`` to ``pdns.conf``.
 
+.. _metadata-allow-axfr-only-from:
+
+ALLOW-AXFR-ONLY-FROM
+--------------------
+.. versionadded:: 4.3.0
+
+Same as ``ALLOW-AXFR-FROM``, but allows only the specified subnets.
+Global ``allow-axfr-ips=`` setting and any possible ``ALLOW-AXFR-FROM`` entries
+are ignored. Empty value "" will deny transfers from all addresses.
+
+GSS/TSIG authenticated AXFRs will still work regardless of this setting.
+
 .. _metadata-api-rectify:
 
 API-RECTIFY

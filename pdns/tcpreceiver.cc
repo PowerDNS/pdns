@@ -467,8 +467,14 @@ bool TCPNameserver::canDoAXFR(shared_ptr<DNSPacket> q)
     }
   }
   
+  vector<string> acl;
+  bool allowOnlyFrom = false;
+  s_P->getBackend()->getDomainMetadata(q->qdomain, "ALLOW-AXFR-ONLY-FROM", acl);
+  if (acl.size() > 0)
+    allowOnlyFrom = true;
+
   // cerr<<"checking allow-axfr-ips"<<endl;
-  if(!(::arg()["allow-axfr-ips"].empty()) && d_ng.match( (ComboAddress *) &q->d_remote )) {
+  if(!allowOnlyFrom && !(::arg()["allow-axfr-ips"].empty()) && d_ng.match( (ComboAddress *) &q->d_remote )) {
     g_log<<Logger::Warning<<"AXFR of domain '"<<q->qdomain<<"' allowed: client IP "<<q->getRemote()<<" is in allow-axfr-ips"<<endl;
     return true;
   }
@@ -480,8 +486,14 @@ bool TCPNameserver::canDoAXFR(shared_ptr<DNSPacket> q)
   if(s_P->getBackend()->getSOAUncached(q->qdomain,sd)) {
     // cerr<<"got backend and SOA"<<endl;
     DNSBackend *B=sd.db;
-    vector<string> acl;
-    s_P->getBackend()->getDomainMetadata(q->qdomain, "ALLOW-AXFR-FROM", acl);
+    if (!allowOnlyFrom) {
+      s_P->getBackend()->getDomainMetadata(q->qdomain, "ALLOW-AXFR-FROM", acl);
+    } else {
+      if (acl.size() == 1 && acl[0]=="") {
+        g_log<<Logger::Warning<<"AXFR denied for client IP "<<q->getRemote()<<": empty ALLOW-AXFR-ONLY-FROM for domain '"<<q->qdomain<<"'"<<endl;
+        return false;
+      }
+    }
     for (vector<string>::const_iterator i = acl.begin(); i != acl.end(); ++i) {
       // cerr<<"matching against "<<*i<<endl;
       if(pdns_iequals(*i, "AUTO-NS")) {
