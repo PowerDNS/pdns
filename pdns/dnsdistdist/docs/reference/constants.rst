@@ -123,7 +123,7 @@ These constants represent an Action that can be returned from :func:`LuaAction` 
 DNSQType
 --------
 
-.. versionchanged:: 1.3.0
+.. versionchanged:: 1.4.0
   The prefix is changed from ``dnsdist.`` to ``DNSQType``.
 
 All named `QTypes <https://www.iana.org/assignments/dns-parameters/dns-parameters.xhtml#dns-parameters-4>`__ are available as constants, prefixed with ``DNSQType.``, e.g.:

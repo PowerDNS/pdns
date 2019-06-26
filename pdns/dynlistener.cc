@@ -135,7 +135,7 @@ void DynListener::listenOnUnixDomain(const string& fname)
   if(!arg()["setgid"].empty()) {
     if(chmod(fname.c_str(),0660)<0)
       g_log<<Logger::Error<<"Unable to change group access mode of controlsocket at '"<<fname<<"', reason: "<<strerror(errno)<<endl;
-    if(chown(fname.c_str(),static_cast<uid_t>(-1),Utility::makeGidNumeric(arg()["setgid"]))<0)
+    if(chown(fname.c_str(),static_cast<uid_t>(-1), strToGID(arg()["setgid"]))<0)
       g_log<<Logger::Error<<"Unable to change group ownership of controlsocket at '"<<fname<<"', reason: "<<strerror(errno)<<endl;
   }
   

@@ -112,7 +112,7 @@ static void test_no_data_f(bool qmin) {
   std::unique_ptr<SyncRes> sr;
   initSR(sr);
   if (qmin)
-    setDoQNameMinimisation();
+    sr->setQNameMinimization();
 
   primeHints();
 
@@ -138,8 +138,6 @@ BOOST_AUTO_TEST_CASE(test_no_data) {
 }
 
 BOOST_AUTO_TEST_CASE(test_no_data_qmin) {
-  // DISABLED UNTIL QNAME MINIMIZATION IS THERE
-  return;
   test_no_data_f(true);
 }
 

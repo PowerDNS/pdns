@@ -3862,6 +3862,8 @@ static int serviceMain(int argc, char*argv[])
   SyncRes::s_ecsipv6cachelimit = ::arg().asNum("ecs-ipv6-cache-bits");
   SyncRes::s_ecscachelimitttl = ::arg().asNum("ecs-cache-limit-ttl");
 
+  SyncRes::s_qnameminimization = ::arg().mustDo("qname-minimization");
+
   if (!::arg().isEmpty("ecs-scope-zero-address")) {
     ComboAddress scopeZero(::arg()["ecs-scope-zero-address"]);
     SyncRes::setECSScopeZeroAddress(Netmask(scopeZero, scopeZero.isIPv4() ? 32 : 128));
@@ -4036,10 +4038,10 @@ static int serviceMain(int argc, char*argv[])
 
   int newgid=0;
   if(!::arg()["setgid"].empty())
-    newgid=Utility::makeGidNumeric(::arg()["setgid"]);
+    newgid = strToGID(::arg()["setgid"]);
   int newuid=0;
   if(!::arg()["setuid"].empty())
-    newuid=Utility::makeUidNumeric(::arg()["setuid"]);
+    newuid = strToUID(::arg()["setuid"]);
 
   Utility::dropGroupPrivs(newuid, newgid);
 
@@ -4456,7 +4458,7 @@ int main(int argc, char **argv)
     ::arg().set("socket-group","Group of socket")="";
     ::arg().set("socket-mode", "Permissions for socket")="";
 
-    ::arg().set("socket-dir",string("Where the controlsocket will live, ")+LOCALSTATEDIR+" when unset and not chrooted" )="";
+    ::arg().set("socket-dir",string("Where the controlsocket will live, ")+LOCALSTATEDIR+"/pdns-recursor when unset and not chrooted" )="";
     ::arg().set("delegation-only","Which domains we only accept delegations from")="";
     ::arg().set("query-local-address","Source IP address for sending queries")="0.0.0.0";
     ::arg().set("query-local-address6","Source IPv6 address for sending queries. IF UNSET, IPv6 WILL NOT BE USED FOR OUTGOING QUERIES")="";
@@ -4488,6 +4490,7 @@ int main(int argc, char **argv)
     ::arg().set("single-socket", "If set, only use a single socket for outgoing queries")="off";
     ::arg().set("auth-zones", "Zones for which we have authoritative data, comma separated domain=file pairs ")="";
     ::arg().set("lua-config-file", "More powerful configuration options")="";
+    ::arg().setSwitch("allow-trust-anchor-query", "Allow queries for trustanchor.server CH TXT and negativetrustanchor.server CH TXT")="no";
 
     ::arg().set("forward-zones", "Zones for which we forward queries, comma separated domain=ip pairs")="";
     ::arg().set("forward-zones-recurse", "Zones for which we forward queries with recursion bit, comma separated domain=ip pairs")="";
@@ -4561,6 +4564,7 @@ int main(int argc, char **argv)
     ::arg().set("rng", "Specify random number generator to use. Valid values are auto,sodium,openssl,getrandom,arc4random,urandom.")="auto";
     ::arg().set("public-suffix-list-file", "Path to the Public Suffix List file, if any")="";
     ::arg().set("distribution-load-factor", "The load factor used when PowerDNS is distributing queries to worker threads")="0.0";
+    ::arg().setSwitch("qname-minimization", "Use Query Name Minimization")="no";
 #ifdef NOD_ENABLED
     ::arg().set("new-domain-tracking", "Track newly observed domains (i.e. never seen before).")="no";
     ::arg().set("new-domain-log", "Log newly observed domains.")="yes";
@@ -4610,7 +4614,7 @@ int main(int argc, char **argv)
 
     if (::arg()["socket-dir"].empty()) {
       if (::arg()["chroot"].empty())
-        ::arg().set("socket-dir") = LOCALSTATEDIR;
+        ::arg().set("socket-dir") = std::string(LOCALSTATEDIR) + "/pdns-recursor";
       else
         ::arg().set("socket-dir") = "/";
     }

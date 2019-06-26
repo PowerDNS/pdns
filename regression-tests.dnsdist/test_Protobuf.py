@@ -409,7 +409,7 @@ class TestProtobufIPCipher(DNSDistProtobufTest):
         """
         name = 'query.protobuf-ipcipher.tests.powerdns.com.'
 
-        target = b'target.protobuf-ipcipher.tests.powerdns.com.'
+        target = 'target.protobuf-ipcipher.tests.powerdns.com.'
         query = dns.message.make_query(name, 'A', 'IN')
         response = dns.message.make_response(query)
 
@@ -450,7 +450,7 @@ class TestProtobufIPCipher(DNSDistProtobufTest):
         self.assertEquals(len(msg.response.rrs), 2)
         rr = msg.response.rrs[0]
         self.checkProtobufResponseRecord(rr, dns.rdataclass.IN, dns.rdatatype.CNAME, name, 3600)
-        self.assertEquals(rr.rdata, target)
+        self.assertEquals(rr.rdata.decode('ascii'), target)
         rr = msg.response.rrs[1]
         self.checkProtobufResponseRecord(rr, dns.rdataclass.IN, dns.rdatatype.A, target, 3600)
         self.assertEquals(socket.inet_ntop(socket.AF_INET, rr.rdata), '127.0.0.1')
@@ -476,7 +476,7 @@ class TestProtobufIPCipher(DNSDistProtobufTest):
         self.assertEquals(len(msg.response.rrs), 2)
         rr = msg.response.rrs[0]
         self.checkProtobufResponseRecord(rr, dns.rdataclass.IN, dns.rdatatype.CNAME, name, 3600)
-        self.assertEquals(rr.rdata, target)
+        self.assertEquals(rr.rdata.decode('ascii'), target)
         rr = msg.response.rrs[1]
         self.checkProtobufResponseRecord(rr, dns.rdataclass.IN, dns.rdatatype.A, target, 3600)
         self.assertEquals(socket.inet_ntop(socket.AF_INET, rr.rdata), '127.0.0.1')

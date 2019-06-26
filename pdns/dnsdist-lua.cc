@@ -109,6 +109,7 @@ static void parseLocalBindVars(boost::optional<localbind_t> vars, bool& reusePor
   }
 }
 
+#if defined(HAVE_DNS_OVER_TLS) || defined(HAVE_DNS_OVER_HTTPS)
 static bool loadTLSCertificateAndKeys(const std::string& context, std::vector<std::pair<std::string, std::string>>& pairs, boost::variant<std::string, std::vector<std::pair<int,std::string>>> certFiles, boost::variant<std::string, std::vector<std::pair<int,std::string>>> keyFiles)
 {
   if (certFiles.type() == typeid(std::string) && keyFiles.type() == typeid(std::string)) {
@@ -141,6 +142,7 @@ static bool loadTLSCertificateAndKeys(const std::string& context, std::vector<st
 
   return true;
 }
+#endif // defined(HAVE_DNS_OVER_TLS) || defined(HAVE_DNS_OVER_HTTPS)
 
 void setupLuaConfig(bool client)
 {

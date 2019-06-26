@@ -1202,7 +1202,7 @@ BOOST_AUTO_TEST_CASE(test_dnssec_bogus_unsigned_ds) {
   BOOST_CHECK_EQUAL(res, RCode::NoError);
   BOOST_CHECK_EQUAL(sr->getValidationState(), Bogus);
   BOOST_REQUIRE_EQUAL(ret.size(), 2);
-  BOOST_CHECK_EQUAL(queriesCount, 4);
+  BOOST_CHECK_EQUAL(queriesCount, 3);
 
   /* again, to test the cache */
   ret.clear();
@@ -1210,7 +1210,7 @@ BOOST_AUTO_TEST_CASE(test_dnssec_bogus_unsigned_ds) {
   BOOST_CHECK_EQUAL(res, RCode::NoError);
   BOOST_CHECK_EQUAL(sr->getValidationState(), Bogus);
   BOOST_REQUIRE_EQUAL(ret.size(), 2);
-  BOOST_CHECK_EQUAL(queriesCount, 4);
+  BOOST_CHECK_EQUAL(queriesCount, 3);
 
   /* now we ask directly for the DS */
   ret.clear();
@@ -1218,7 +1218,7 @@ BOOST_AUTO_TEST_CASE(test_dnssec_bogus_unsigned_ds) {
   BOOST_CHECK_EQUAL(res, RCode::NoError);
   BOOST_CHECK_EQUAL(sr->getValidationState(), Bogus);
   BOOST_REQUIRE_EQUAL(ret.size(), 1);
-  BOOST_CHECK_EQUAL(queriesCount, 4);
+  BOOST_CHECK_EQUAL(queriesCount, 3);
 }
 
 BOOST_AUTO_TEST_CASE(test_dnssec_bogus_unsigned_ds_direct) {
