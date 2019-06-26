@@ -245,7 +245,7 @@ public:
     }
 
     do {
-      ssize_t res = ::write(d_socket, reinterpret_cast<char*>(&buffer.at(pos)), toWrite - pos);
+      ssize_t res = ::write(d_socket, reinterpret_cast<const char*>(&buffer.at(pos)), toWrite - pos);
       if (res == 0) {
         throw runtime_error("EOF while sending message");
       }
