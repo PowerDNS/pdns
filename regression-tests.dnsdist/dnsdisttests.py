@@ -225,7 +225,7 @@ class DNSDistTest(unittest.TestCase):
         sock.listen(100)
         while True:
             (conn, _) = sock.accept()
-            conn.settimeout(2.0)
+            conn.settimeout(5.0)
             data = conn.recv(2)
             if not data:
                 conn.close()
@@ -248,7 +248,7 @@ class DNSDistTest(unittest.TestCase):
                 conn.close()
                 continue
 
-            wire = response.to_wire()
+            wire = response.to_wire(max_size=65535)
             conn.send(struct.pack("!H", len(wire)))
             conn.send(wire)
 
@@ -262,7 +262,7 @@ class DNSDistTest(unittest.TestCase):
 
                 response = copy.copy(response)
                 response.id = request.id
-                wire = response.to_wire()
+                wire = response.to_wire(max_size=65535)
                 try:
                     conn.send(struct.pack("!H", len(wire)))
                     conn.send(wire)
