@@ -1042,7 +1042,7 @@ static void handleIO(std::shared_ptr<IncomingTCPConnectionState>& state, struct 
     }
 
     if (state->d_state == IncomingTCPConnectionState::State::readingQuerySize) {
-      iostate = state->d_handler.tryRead(state->d_buffer, state->d_currentPos, sizeof(uint16_t) - state->d_currentPos);
+      iostate = state->d_handler.tryRead(state->d_buffer, state->d_currentPos, sizeof(uint16_t));
       if (iostate == IOState::Done) {
         state->d_state = IncomingTCPConnectionState::State::readingQuery;
         state->d_querySizeReadTime = now;
