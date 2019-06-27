@@ -808,6 +808,7 @@ static void updateDomainSettingsFromDocument(UeberBackend& B, const DomainInfo& 
 static bool isValidMetadataKind(const string& kind, bool readonly) {
   static vector<string> builtinOptions {
     "ALLOW-AXFR-FROM",
+    "ALLOW-AXFR-ONLY-FROM",
     "AXFR-SOURCE",
     "ALLOW-DNSUPDATE-FROM",
     "TSIG-ALLOW-DNSUPDATE",
