@@ -42,6 +42,7 @@ public:
   {
     return "FrameStreamLogger to " + d_address;
   }
+
 private:
   const int d_family;
   const std::string d_address;
