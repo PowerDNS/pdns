@@ -269,7 +269,7 @@ void TCPClientCollection::addTCPClientThread()
   }
   else {
     if (pipe(pipefds) < 0) {
-      errlog("Error creating the TCP thread communication pipe: %s", strerror(errno));
+      errlog("Error creating the TCP thread communication pipe: %s", stringerror());
       return;
     }
 

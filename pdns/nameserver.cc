@@ -103,8 +103,8 @@ void UDPNameserver::bindIPv4()
     s=socket(AF_INET,SOCK_DGRAM,0);
 
     if(s<0) {
-      g_log<<Logger::Error<<"Unable to acquire UDP socket: "+string(strerror(errno)) << endl;
-      throw PDNSException("Unable to acquire a UDP socket: "+string(strerror(errno)));
+      g_log<<Logger::Error<<"Unable to acquire UDP socket: "+string(stringerror()) << endl;
+      throw PDNSException("Unable to acquire a UDP socket: "+string(stringerror()));
     }
   
     setCloseOnExec(s);
@@ -146,7 +146,7 @@ void UDPNameserver::bindIPv4()
         g_localaddresses.push_back(locala);
 
     if(::bind(s, (sockaddr*)&locala, locala.getSocklen()) < 0) {
-      string binderror = strerror(errno);
+      string binderror = stringerror();
       close(s);
       if( errno == EADDRNOTAVAIL && ! ::arg().mustDo("local-address-nonexist-fail") ) {
         g_log<<Logger::Error<<"IPv4 Address " << localname << " does not exist on this server - skipping UDP bind" << endl;
@@ -218,8 +218,8 @@ void UDPNameserver::bindIPv6()
         g_log<<Logger::Error<<"IPv6 Address Family is not supported - skipping UDPv6 bind" << endl;
         return;
       } else {
-        g_log<<Logger::Error<<"Unable to acquire a UDPv6 socket: "+string(strerror(errno)) << endl;
-        throw PDNSException("Unable to acquire a UDPv6 socket: "+string(strerror(errno)));
+        g_log<<Logger::Error<<"Unable to acquire a UDPv6 socket: "+string(stringerror()) << endl;
+        throw PDNSException("Unable to acquire a UDPv6 socket: "+string(stringerror()));
       }
     }
 
@@ -257,7 +257,7 @@ void UDPNameserver::bindIPv6()
         g_log<<Logger::Error<<"IPv6 Address " << localname << " does not exist on this server - skipping UDP bind" << endl;
         continue;
       } else {
-        g_log<<Logger::Error<<"Unable to bind to UDPv6 socket "<< localname <<": "<<strerror(errno)<<endl;
+        g_log<<Logger::Error<<"Unable to bind to UDPv6 socket "<< localname <<": "<<stringerror()<<endl;
         throw PDNSException("Unable to bind to UDPv6 socket");
       }
     }
@@ -308,7 +308,7 @@ void UDPNameserver::send(DNSPacket *p)
     g_log<<Logger::Error<<"Weird, trying to send a message that needs truncation, "<< buffer.length()<<" > "<<p->getMaxReplyLen()<<". Question was for "<<p->qdomain<<"|"<<p->qtype.getName()<<endl;
   }
   if(sendmsg(p->getSocket(), &msgh, 0) < 0)
-    g_log<<Logger::Error<<"Error sending reply with sendmsg (socket="<<p->getSocket()<<", dest="<<p->d_remote.toStringWithPort()<<"): "<<strerror(errno)<<endl;
+    g_log<<Logger::Error<<"Error sending reply with sendmsg (socket="<<p->getSocket()<<", dest="<<p->d_remote.toStringWithPort()<<"): "<<stringerror()<<endl;
 }
 
 DNSPacket *UDPNameserver::receive(DNSPacket *prefilled, std::string& buffer)
@@ -347,7 +347,7 @@ DNSPacket *UDPNameserver::receive(DNSPacket *prefilled, std::string& buffer)
       sock=pfd.fd;        
       if((len=recvmsg(sock, &msgh, 0)) < 0 ) {
         if(errno != EAGAIN)
-          g_log<<Logger::Error<<"recvfrom gave error, ignoring: "<<strerror(errno)<<endl;
+          g_log<<Logger::Error<<"recvfrom gave error, ignoring: "<<stringerror()<<endl;
         return 0;
       }
       break;

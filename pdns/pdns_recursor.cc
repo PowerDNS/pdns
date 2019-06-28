@@ -446,7 +446,7 @@ static void handleGenUDPQueryResponse(int fd, FDMultiplexer::funcparam_t& var)
   else {
     string empty;
     MT->sendEvent(pident, &empty);
-    //    cerr<<"Had some kind of error: "<<ret<<", "<<strerror(errno)<<endl;
+    //    cerr<<"Had some kind of error: "<<ret<<", "<<stringerror()<<endl;
   }
 }
 string GenUDPQueryResponse(const ComboAddress& dest, const string& query)

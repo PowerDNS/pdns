@@ -48,7 +48,7 @@ void CircularWriteBuffer::flush()
 
   int res = writev(d_fd, iov, pos);
   if(res < 0) {
-    throw std::runtime_error("Couldn't flush a thing: "+string(strerror(errno)));
+    throw std::runtime_error("Couldn't flush a thing: "+string(stringerror()));
   }
   if(!res) {
     throw std::runtime_error("EOF");

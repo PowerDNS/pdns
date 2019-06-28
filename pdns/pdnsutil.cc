@@ -135,7 +135,7 @@ void loadMainConfig(const std::string& configdir)
 
   // Keep this line below all ::arg().set() statements
   if (! ::arg().laxFile(configname.c_str()))
-    cerr<<"Warning: unable to read configuration file '"<<configname<<"': "<<strerror(errno)<<endl;
+    cerr<<"Warning: unable to read configuration file '"<<configname<<"': "<<stringerror()<<endl;
 
 #ifdef HAVE_LIBSODIUM
   if (sodium_init() == -1) {

@@ -1091,7 +1091,7 @@ bool setReuseAddr(int sock)
 {
   int tmp = 1;
   if (setsockopt(sock, SOL_SOCKET, SO_REUSEADDR, (char*)&tmp, static_cast<unsigned>(sizeof tmp))<0)
-    throw PDNSException(string("Setsockopt failed: ")+strerror(errno));
+    throw PDNSException(string("Setsockopt failed: ")+stringerror());
   return true;
 }
 
@@ -1111,7 +1111,7 @@ bool setReceiveSocketErrors(int sock, int af)
     ret = setsockopt(sock, IPPROTO_IPV6, IPV6_RECVERR, &tmp, sizeof(tmp));
   }
   if (ret < 0) {
-    throw PDNSException(string("Setsockopt failed: ") + strerror(errno));
+    throw PDNSException(string("Setsockopt failed: ") + stringerror());
   }
 #endif
   return true;

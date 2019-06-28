@@ -308,7 +308,7 @@ void updateThread(const string& workdir, const uint16_t& keep, const uint16_t& a
       g_log<<Logger::Info<<e.what()<<", attempting to create"<<endl;
       // Attempt to create it, if _that_ fails, there is no hope
       if (mkdir(dir.c_str(), 0777) == -1 && errno != EEXIST) {
-        g_log<<Logger::Error<<"Could not create '"<<dir<<"': "<<strerror(errno)<<endl;
+        g_log<<Logger::Error<<"Could not create '"<<dir<<"': "<<stringerror()<<endl;
         _exit(EXIT_FAILURE);
       }
     }

@@ -78,7 +78,7 @@ uint32_t getSerialsFromDir(const std::string& dir)
   uint32_t ret=0;
   DIR* dirhdl=opendir(dir.c_str());
   if(!dirhdl)
-    throw runtime_error("Could not open IXFR directory '" + dir + "': " + strerror(errno));
+    throw runtime_error("Could not open IXFR directory '" + dir + "': " + stringerror());
   struct dirent *entry;
 
   while((entry = readdir(dirhdl))) {
@@ -125,7 +125,7 @@ void writeZoneToDisk(const records_t& records, const DNSName& zone, const std::s
   string fname=directory +"/"+std::to_string(serial);
   FILE* fp=fopen((fname+".partial").c_str(), "w");
   if(!fp)
-    throw runtime_error("Unable to open file '"+fname+".partial' for writing: "+string(strerror(errno)));
+    throw runtime_error("Unable to open file '"+fname+".partial' for writing: "+string(stringerror()));
 
   records_t soarecord;
   soarecord.insert(soa);
@@ -137,7 +137,7 @@ void writeZoneToDisk(const records_t& records, const DNSName& zone, const std::s
 
   fclose(fp);
   if (rename( (fname+".partial").c_str(), fname.c_str()) != 0) {
-    throw std::runtime_error("Unable to move the zone file for " + zone.toLogString() + " from " + fname + ".partial to " + fname + ": " + string(strerror(errno)));
+    throw std::runtime_error("Unable to move the zone file for " + zone.toLogString() + " from " + fname + ".partial to " + fname + ": " + string(stringerror()));
   }
 }
 

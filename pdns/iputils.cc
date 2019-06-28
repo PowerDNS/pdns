@@ -41,7 +41,7 @@ int SSocket(int family, int type, int flags)
 {
   int ret = socket(family, type, flags);
   if(ret < 0)
-    RuntimeError(boost::format("creating socket of type %d: %s") % family % strerror(errno));
+    RuntimeError(boost::format("creating socket of type %d: %s") % family % stringerror());
   return ret;
 }
 
@@ -116,7 +116,7 @@ int SAccept(int sockfd, ComboAddress& remote)
 
   int ret = accept(sockfd, (struct sockaddr*)&remote, &remlen);
   if(ret < 0)
-    RuntimeError(boost::format("accepting new connection on socket: %s") % strerror(errno));
+    RuntimeError(boost::format("accepting new connection on socket: %s") % stringerror());
   return ret;
 }
 
@@ -124,7 +124,7 @@ int SListen(int sockfd, int limit)
 {
   int ret = listen(sockfd, limit);
   if(ret < 0)
-    RuntimeError(boost::format("setting socket to listen: %s") % strerror(errno));
+    RuntimeError(boost::format("setting socket to listen: %s") % stringerror());
   return ret;
 }
 
@@ -132,7 +132,7 @@ int SSetsockopt(int sockfd, int level, int opname, int value)
 {
   int ret = setsockopt(sockfd, level, opname, &value, sizeof(value));
   if(ret < 0)
-    RuntimeError(boost::format("setsockopt for level %d and opname %d to %d failed: %s") % level % opname % value % strerror(errno));
+    RuntimeError(boost::format("setsockopt for level %d and opname %d to %d failed: %s") % level % opname % value % stringerror());
   return ret;
 }
 
