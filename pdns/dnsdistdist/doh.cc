@@ -332,20 +332,14 @@ try
   h2o_socket_getpeername(sock, reinterpret_cast<struct sockaddr*>(&remote));
   h2o_socket_getsockname(sock, reinterpret_cast<struct sockaddr*>(&local));
   DOHServerConfig* dsc = reinterpret_cast<DOHServerConfig*>(req->conn->ctx->storage.entries[0].data);
-
-  // I wanted to put this near the other h2o_set_header method call, but should I move it?
+  constexpr int overwrite_if_exists = 1;
+  constexpr int maybe_token = 1;
   for (auto const& headerPair : dsc->df->d_customResponseHeaders) {
-    const h2o_token_t *token = h2o_lookup_token(headerPair.first.c_str(), headerPair.first.size());
-    // TODO: Should I provide so WARN logging when we can't find a matching token?
-    if (token != NULL) {
-      // h2o_set_header(pool, headers, token, value, value_len, overwrite_if_exists)
-      h2o_set_header(&req->pool, &req->res.headers, token, headerPair.second.c_str(), headerPair.second.size(), 1);
-    }
+    h2o_set_header_by_str(&req->pool, &req->res.headers, headerPair.first.c_str(), headerPair.first.size(), maybe_token, headerPair.second.c_str(), headerPair.second.size(), overwrite_if_exists);
   }
 
   /* looks like we can't delete the Server: header with most versions of h2o */
-  h2o_set_header(&req->pool, &req->res.headers, H2O_TOKEN_SERVER, dsc->df->d_serverTokens.c_str(), dsc->df->d_serverTokens.size(), 1);
-
+  h2o_set_header(&req->pool, &req->res.headers, H2O_TOKEN_SERVER, dsc->df->d_serverTokens.c_str(), dsc->df->d_serverTokens.size(), overwrite_if_exists);
 
   if(auto tlsversion = h2o_socket_get_ssl_protocol_version(sock)) {
     if(!strcmp(tlsversion, "TLSv1.0"))
