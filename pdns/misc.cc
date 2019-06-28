@@ -900,7 +900,8 @@ void addCMsgSrcAddr(struct msghdr* msgh, void* cmsgbuf, const ComboAddress* sour
     cmsg->cmsg_len = CMSG_LEN(sizeof(*pkt));
 
     pkt = (struct in6_pktinfo *) CMSG_DATA(cmsg);
-    memset(pkt, 0, sizeof(*pkt));
+    // Include the padding to stop valgrind complaining about passing uninitialized data
+    memset(pkt, 0, CMSG_SPACE(sizeof(*pkt)));
     pkt->ipi6_addr = source->sin6.sin6_addr;
     pkt->ipi6_ifindex = itfIndex;
   }
@@ -917,7 +918,8 @@ void addCMsgSrcAddr(struct msghdr* msgh, void* cmsgbuf, const ComboAddress* sour
     cmsg->cmsg_len = CMSG_LEN(sizeof(*pkt));
 
     pkt = (struct in_pktinfo *) CMSG_DATA(cmsg);
-    memset(pkt, 0, sizeof(*pkt));
+    // Include the padding to stop valgrind complaining about passing uninitialized data
+    memset(pkt, 0, CMSG_SPACE(sizeof(*pkt)));
     pkt->ipi_spec_dst = source->sin4.sin_addr;
     pkt->ipi_ifindex = itfIndex;
 #elif defined(IP_SENDSRCADDR)
@@ -931,7 +933,9 @@ void addCMsgSrcAddr(struct msghdr* msgh, void* cmsgbuf, const ComboAddress* sour
     cmsg->cmsg_type = IP_SENDSRCADDR;
     cmsg->cmsg_len = CMSG_LEN(sizeof(*in));
 
+    // Include the padding to stop valgrind complaining about passing uninitialized data
     in = (struct in_addr *) CMSG_DATA(cmsg);
+    memset(in, 0, CMSG_SPACE(sizeof(*in)));
     *in = source->sin4.sin_addr;
 #endif
   }
