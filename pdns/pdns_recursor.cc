@@ -1659,7 +1659,7 @@ static void startDoResolve(void *p)
       msgh.msg_control=NULL;
 
       if(g_fromtosockets.count(dc->d_socket)) {
-	      addCMsgSrcAddr(&msgh, &cbuf, &dc->d_local, 0);
+        addCMsgSrcAddr(&msgh, &cbuf, &dc->d_local, 0);
       }
       if(sendmsg(dc->d_socket, &msgh, 0) < 0 && g_logCommonErrors) 
         g_log<<Logger::Warning<<"Sending UDP reply to client "<<dc->getRemote()<<" failed with: "<<strerror(errno)<<endl;
