@@ -5,7 +5,7 @@ import clientsubnetoption
 from dnsdisttests import DNSDistTest
 
 import pycurl
-from StringIO import StringIO
+from io import StringIO
 #from hyper import HTTP20Connection
 #from hyper.ssl_compat import SSLContext, PROTOCOL_TLSv1_2
 
