@@ -43,10 +43,6 @@ public:
   {
     return "FrameStreamLogger to " + d_address;
   }
-  bool logQueries(void) const { return d_logQueries; }
-  bool logResponses(void) const { return d_logResponses; }
-  void setLogQueries(bool flag) { d_logQueries = flag; }
-  void setLogResponses(bool flag) { d_logResponses = flag; }
 
 private:
 
@@ -63,9 +59,6 @@ private:
   struct fstrm_iothr *d_iothr{nullptr};
 
   void cleanup();
-
-  bool d_logQueries{true};
-  bool d_logResponses{true};
 };
 
 #else

@@ -355,6 +355,34 @@ auth-zones=example=configs/%s/example.zone""" % _confdir
 #        self.checkProtobufIncomingResponse(msg, dnsmessage_pb2.PBDNSMessage.UDP, res)
         self.checkNoRemainingMessage()
 
+class OutgoingProtobufNoQueriesTest(TestRecursorProtobuf):
+    """
+    This test makes sure that we correctly export incoming responses but not outgoing queries over protobuf.
+    It must be improved and setup env so we can check for incoming responses, but makes sure for now
+    that the recursor at least connects to the protobuf server.
+    """
+
+    _confdir = 'OutgoingProtobufNoQueries'
+    _config_template = """
+auth-zones=example=configs/%s/example.zone""" % _confdir
+    _lua_config_file = """
+    outgoingProtobufServer({"127.0.0.1:%d", "127.0.0.1:%d"}, { logQueries=false, logResponses=true })
+    """ % (protobufServersParameters[0].port, protobufServersParameters[1].port)
+
+    def testA(self):
+        name = 'www.example.org.'
+        expected = dns.rrset.from_text(name, 0, dns.rdataclass.IN, 'A', '192.0.2.42')
+        query = dns.message.make_query(name, 'A', want_dnssec=True)
+        query.flags |= dns.flags.RD
+        res = self.sendUDPQuery(query)
+
+#        # check the response
+#        msg = self.getFirstProtobufMessage()
+#        self.checkProtobufIncomingResponse(msg, dnsmessage_pb2.PBDNSMessage.UDP, res)
+        # let's wait a bit for a potential message to arrive
+        time.sleep(2)
+        self.checkNoRemainingMessage()
+
 class ProtobufMasksTest(TestRecursorProtobuf):
     """
     This test makes sure that we correctly export queries and response over protobuf, respecting the configured initiator masking.

@@ -62,6 +62,15 @@ public:
   virtual ~RemoteLoggerInterface() {};
   virtual void queueData(const std::string& data) = 0;
   virtual std::string toString() const = 0;
+
+  bool logQueries(void) const { return d_logQueries; }
+  bool logResponses(void) const { return d_logResponses; }
+  void setLogQueries(bool flag) { d_logQueries = flag; }
+  void setLogResponses(bool flag) { d_logResponses = flag; }
+
+private:
+  bool d_logQueries{true};
+  bool d_logResponses{true};
 };
 
 /* Thread safe. Will connect asynchronously on request.
@@ -87,6 +96,7 @@ public:
     d_exiting = true;
   }
   std::atomic<uint32_t> d_drops{0};
+
 private:
   bool reconnect();
   void maintenanceThread();
@@ -98,8 +108,8 @@ private:
   uint16_t d_timeout;
   uint8_t d_reconnectWaitTime;
   std::atomic<bool> d_exiting{false};
-
   bool d_asyncConnect{false};
-  std::thread d_thread;
+
   std::mutex d_mutex;
+  std::thread d_thread;
 };
