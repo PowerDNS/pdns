@@ -72,7 +72,7 @@ message PBDNSMessage {
       optional bytes rdata = 5;
       optional bool  udr = 6;                   // True if this is the first time this RR has been seen for this question
     }
-    optional uint32 rcode = 1;
+    optional uint32 rcode = 1;                  // DNS Response code, or 65536 for a network error including a timeout
     repeated DNSRR rrs = 2;
     optional string appliedPolicy = 3;          // Filtering policy (RPZ or Lua) applied
     repeated string tags = 4;                   // Additional tags

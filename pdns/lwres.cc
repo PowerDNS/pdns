@@ -197,7 +197,12 @@ static void logIncomingResponse(const std::shared_ptr<std::vector<std::unique_pt
   }
 
   message->setQueryTime(queryTime.tv_sec, queryTime.tv_usec);
-  message->setResponseCode(rcode);
+  if (rcode == -1) {
+    message->setNetworkErrorResponseCode();
+  }
+  else {
+    message->setResponseCode(rcode);
+  }
   message->addRRs(records, exportTypes);
 
 //  cerr <<message.toDebugString()<<endl;
@@ -351,8 +356,14 @@ int asyncresolve(const ComboAddress& ip, const DNSName& domain, int type, bool d
   lwr->d_usec=dt.udiff();
   *now=dt.getTimeval();
 
-  if(ret <= 0) // includes 'timeout'
+  if(ret <= 0) { // includes 'timeout'
+#ifdef HAVE_PROTOBUF
+      if (outgoingLoggers) {
+        logIncomingResponse(outgoingLoggers, pbMessage, context ? context->d_initialRequestId : boost::none, uuid, ip, domain, type, qid, doTCP, srcmask, 0, -1, {}, queryTime, exportTypes);
+      }
+#endif
     return ret;
+  }
 
   buf.resize(len);
 
