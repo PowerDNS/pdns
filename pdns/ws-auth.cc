@@ -78,6 +78,8 @@ AuthWebServer::AuthWebServer() :
     acl.toMasks(::arg()["webserver-allow-from"]);
     d_ws->setACL(acl);
 
+    d_ws->setMaxBodySize(::arg().asNum("webserver-max-bodysize"));
+
     d_ws->bind();
   }
 }
@@ -336,6 +338,7 @@ static Json::object getZoneInfo(const DomainInfo& di, DNSSECKeeper *dk) {
     { "account", di.account },
     { "masters", masters },
     { "serial", (double)di.serial },
+    { "edited_serial", (double)calculateEditSOA(di.serial, *dk, di.zone) },
     { "notified_serial", (double)di.notified_serial },
     { "last_check", (double)di.last_check }
   };

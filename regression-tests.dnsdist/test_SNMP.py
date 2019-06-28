@@ -58,7 +58,7 @@ class TestSNMP(DNSDistTest):
             self.assertTrue(isinstance(results[oid], OctetString))
 
         ## name
-        self.assertEquals(results['1.3.6.1.4.1.43315.3.2.1.2.0'], "servername")
+        self.assertEquals(str(results['1.3.6.1.4.1.43315.3.2.1.2.0']), "servername")
         ## weight
         self.assertEquals(results['1.3.6.1.4.1.43315.3.2.1.4.0'], 1)
         ## outstanding
@@ -68,11 +68,11 @@ class TestSNMP(DNSDistTest):
         ## reused
         self.assertEquals(results['1.3.6.1.4.1.43315.3.2.1.7.0'], 0)
         ## state
-        self.assertEquals(results['1.3.6.1.4.1.43315.3.2.1.8.0'], "up")
+        self.assertEquals(str(results['1.3.6.1.4.1.43315.3.2.1.8.0']), "up")
         ## address
-        self.assertEquals(results['1.3.6.1.4.1.43315.3.2.1.9.0'], ("127.0.0.1:%s" % (self._testServerPort)))
+        self.assertEquals(str(results['1.3.6.1.4.1.43315.3.2.1.9.0']), ("127.0.0.1:%s" % (self._testServerPort)))
         ## pools
-        self.assertEquals(results['1.3.6.1.4.1.43315.3.2.1.10.0'], "")
+        self.assertEquals(str(results['1.3.6.1.4.1.43315.3.2.1.10.0']), "")
         ## queries
         self.assertEquals(results['1.3.6.1.4.1.43315.3.2.1.12.0'], queriesCountersValue)
         ## order

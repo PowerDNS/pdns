@@ -30,6 +30,7 @@
 #include "dynhandler.hh"
 #include "dnsseckeeper.hh"
 #include "threadname.hh"
+#include "misc.hh"
 
 #ifdef HAVE_SYSTEMD
 #include <systemd/sd-daemon.h>
@@ -150,6 +151,7 @@ void declareArguments()
   ::arg().set("webserver-password","Password required for accessing the webserver")="";
   ::arg().set("webserver-allow-from","Webserver/API access is only allowed from these subnets")="127.0.0.1,::1";
   ::arg().set("webserver-loglevel", "Amount of logging in the webserver (none, normal, detailed)") = "normal";
+  ::arg().set("webserver-max-bodysize","Webserver/API maximum request/response body size in megabytes")="2";
 
   ::arg().setSwitch("do-ipv6-additional-processing", "Do AAAA additional processing")="yes";
   ::arg().setSwitch("query-logging","Hint backends that queries should be logged")="no";
@@ -437,7 +439,7 @@ try
       g_log<<": ";
     }
 
-    if((P->d.opcode != Opcode::Notify && P->d.opcode != Opcode::Update) && P->couldBeCached()) {
+    if(PC.enabled() && (P->d.opcode != Opcode::Notify && P->d.opcode != Opcode::Update) && P->couldBeCached()) {
       bool haveSomething=PC.get(P, &cached); // does the PacketCache recognize this question?
       if (haveSomething) {
         if(logDNSQueries)
@@ -463,7 +465,7 @@ try
       continue;
     }
         
-    if(logDNSQueries) 
+    if(PC.enabled() && logDNSQueries)
       g_log<<"packetcache MISS"<<endl;
 
     try {
@@ -499,12 +501,12 @@ void mainthread()
 {
    Utility::srandom();
 
-   int newgid=0;
-   if(!::arg()["setgid"].empty()) 
-     newgid=Utility::makeGidNumeric(::arg()["setgid"]);      
-   int newuid=0;      
-   if(!::arg()["setuid"].empty())        
-     newuid=Utility::makeUidNumeric(::arg()["setuid"]); 
+   gid_t newgid = 0;
+   if(!::arg()["setgid"].empty())
+     newgid = strToGID(::arg()["setgid"]);
+   uid_t newuid = 0;
+   if(!::arg()["setuid"].empty())
+     newuid = strToUID(::arg()["setuid"]);
    
    g_anyToTcp = ::arg().mustDo("any-to-tcp");
    g_8bitDNS = ::arg().mustDo("8bit-dns");

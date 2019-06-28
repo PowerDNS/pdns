@@ -161,8 +161,8 @@ pdns_recursor_SOURCES = \
 	root-addresses.hh \
 	root-dnssec.hh \
 	rpzloader.cc rpzloader.hh \
-	secpoll-recursor.cc \
-	secpoll-recursor.hh \
+	secpoll-recursor.cc secpoll-recursor.hh \
+	secpoll.cc secpoll.hh \
 	sholder.hh \
 	sillyrecords.cc \
 	snmp-agent.hh snmp-agent.cc \
@@ -252,6 +252,7 @@ testrunner_SOURCES = \
 	recursor_cache.cc recursor_cache.hh \
 	responsestats.cc \
 	root-dnssec.hh \
+	secpoll.cc \
 	sillyrecords.cc \
 	sholder.hh \
 	sstuff.hh \
@@ -278,6 +279,7 @@ testrunner_SOURCES = \
 	test-rcpgenerator_cc.cc \
 	test-recpacketcache_cc.cc \
 	test-recursorcache_cc.cc \
+	test-secpoll_cc.cc \
 	test-signers.cc \
 	test-syncres_cc.hh \
 	test-syncres_cc.cc \
@@ -493,7 +495,7 @@ endif
 
 if HAVE_SYSTEMD
 pdns-recursor.service: pdns-recursor.service.in
-	$(AM_V_GEN)sed -e 's![@]sbindir[@]!$(sbindir)!' < $< > $@
+	$(AM_V_GEN)sed -e 's![@]sbindir[@]!$(sbindir)!' -e 's![@]service_user[@]!$(service_user)!' -e 's![@]service_group[@]!$(service_group)!' < $< > $@
 if !HAVE_SYSTEMD_LOCK_PERSONALITY
 	$(AM_V_GEN)perl -ni -e 'print unless /^LockPersonality/' $@
 endif

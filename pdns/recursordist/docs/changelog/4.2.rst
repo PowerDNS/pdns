@@ -2,6 +2,41 @@ Changelogs for 4.2.x
 ====================
 
 .. changelog::
+  :version: 4.2.0-rc2
+  :released: 25th of June 2019
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 7995
+
+    Handle short reads from our random device
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 7953
+
+    Check if -latomic is needed instead of hardcoding
+
+  .. change::
+    :tags: Improvements, Internals
+    :pullreq: 7939
+
+    Compare the CacheKey type and place first then the name
+
+  .. change::
+    :tags: Bug Fixes, Internals
+    :pullreq: 7931
+
+    Don't mix time() and gettimeofday() in our unit tests
+
+  .. change::
+    :tags: Bug Fixes, Internals
+    :pullreq: 7954
+
+    SuffixMatchTree fixes
+
+
+.. changelog::
   :version: 4.2.0-rc1
   :released: 23th of May 2019
 

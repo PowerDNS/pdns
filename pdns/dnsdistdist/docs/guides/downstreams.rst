@@ -68,6 +68,7 @@ interface used by dnsdist to contact a downstream server. This can be done by us
   newServer({address="192.0.2.1", source="192.0.2.127@eth1"})
 
 The supported values for source are:
+
 - an IPv4 or IPv6 address, which must exist on the system
 - an interface name
 - an IPv4 or IPv6 address followed by '@' then an interface name

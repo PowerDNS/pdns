@@ -695,6 +695,8 @@ try
   auto& dsc = df->d_dsc;
   dsc->cs = cs;
   dsc->df = cs->dohFrontend;
+  dsc->h2o_config.server_name = h2o_iovec_init(df->d_serverTokens.c_str(), df->d_serverTokens.size());
+
 
   std::thread dnsdistThread(dnsdistclient, dsc->dohquerypair[1], dsc->dohresponsepair[0]);
   dnsdistThread.detach(); // gets us better error reporting

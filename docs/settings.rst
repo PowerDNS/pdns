@@ -180,7 +180,7 @@ Also AXFR a zone from a master with a lower serial.
 -  Integer
 -  Default: 20
 
-Seconds to store packets in the :ref:`packet-cache`.
+Seconds to store packets in the :ref:`packet-cache`. A value of 0 will disable the cache.
 
 .. _setting-carbon-instance:
 
@@ -1467,9 +1467,12 @@ and :doc:`Virtual Hosting <guides/virtual-instances>` how this can differ.
 -  Boolean
 -  Default: no
 
-.. versionadded:: 4.2.0
-  In versions before 4.2.x, this setting did not exist and supermaster support
+.. versionadded:: 4.1.9
+  In versions before 4.1.9, this setting did not exist and supermaster support
   was enabled by default.
+
+.. versionchanged:: 4.2.0
+  Before 4.2.0, the default was yes.
 
 Turn on supermaster support. See :ref:`supermaster-operation`.
 
@@ -1669,6 +1672,17 @@ The value between the hooks is a UUID that is generated for each request. This c
 
 .. note::
   The webserver logs these line on the NOTICE level. The :ref:`setting-loglevel` seting must be 5 or higher for these lines to end up in the log.
+
+.. _setting-webserver-max-bodysize:
+
+``webserver-max-bodysize``
+--------------------------
+.. versionadded:: 4.2.0
+
+-  Integer
+-  Default: 2
+
+Maximum request/response body size in megabytes.
 
 .. _setting-webserver-password:
 

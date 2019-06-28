@@ -71,8 +71,8 @@ static std::unique_ptr<Socket> setupTCPDownstream(shared_ptr<DownstreamState>& d
 
   do {
     vinfolog("TCP connecting to downstream %s (%d)", ds->remote.toStringWithPort(), downstreamFailures);
-    result = std::unique_ptr<Socket>(new Socket(ds->remote.sin4.sin_family, SOCK_STREAM, 0));
     try {
+      result = std::unique_ptr<Socket>(new Socket(ds->remote.sin4.sin_family, SOCK_STREAM, 0));
       if (!IsAnyAddress(ds->sourceAddr)) {
         SSetsockopt(result->getHandle(), SOL_SOCKET, SO_REUSEADDR, 1);
 #ifdef IP_BIND_ADDRESS_NO_PORT
@@ -750,24 +750,24 @@ static void sendQueryToBackend(std::shared_ptr<IncomingTCPConnectionState>& stat
     return;
   }
 
-  while (state->d_downstreamFailures < state->d_ds->retries)
-  {
-    state->d_downstreamConnection = getConnectionToDownstream(ds, state->d_downstreamFailures, now);
-
-    if (!state->d_downstreamConnection) {
-      ++ds->tcpGaveUp;
-      ++state->d_ci.cs->tcpGaveUp;
-      vinfolog("Downstream connection to %s failed %d times in a row, giving up.", ds->getName(), state->d_downstreamFailures);
-      return;
+  if (state->d_downstreamFailures < state->d_ds->retries) {
+    try {
+      state->d_downstreamConnection = getConnectionToDownstream(ds, state->d_downstreamFailures, now);
     }
+    catch (const std::runtime_error& e) {
+      state->d_downstreamConnection.reset();
+    }
+  }
 
-    handleDownstreamIO(state, now);
+  if (!state->d_downstreamConnection) {
+    ++ds->tcpGaveUp;
+    ++state->d_ci.cs->tcpGaveUp;
+    vinfolog("Downstream connection to %s failed %d times in a row, giving up.", ds->getName(), state->d_downstreamFailures);
     return;
   }
 
-  ++ds->tcpGaveUp;
-  ++state->d_ci.cs->tcpGaveUp;
-  vinfolog("Downstream connection to %s failed %u times in a row, giving up.", ds->getName(), state->d_downstreamFailures);
+  handleDownstreamIO(state, now);
+  return;
 }
 
 static void handleQuery(std::shared_ptr<IncomingTCPConnectionState>& state, struct timeval& now)
@@ -1042,7 +1042,7 @@ static void handleIO(std::shared_ptr<IncomingTCPConnectionState>& state, struct 
     }
 
     if (state->d_state == IncomingTCPConnectionState::State::readingQuerySize) {
-      iostate = state->d_handler.tryRead(state->d_buffer, state->d_currentPos, sizeof(uint16_t) - state->d_currentPos);
+      iostate = state->d_handler.tryRead(state->d_buffer, state->d_currentPos, sizeof(uint16_t));
       if (iostate == IOState::Done) {
         state->d_state = IncomingTCPConnectionState::State::readingQuery;
         state->d_querySizeReadTime = now;
