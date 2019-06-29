@@ -471,6 +471,7 @@ public:
     d_downstreamFailures = 0;
     d_state = State::readingQuerySize;
     d_lastIOState = IOState::Done;
+    d_selfGeneratedResponse = false;
   }
 
   boost::optional<struct timeval> getClientReadTTD(struct timeval now) const
@@ -631,6 +632,7 @@ public:
   bool d_firstResponsePacket{true};
   bool d_isXFR{false};
   bool d_xfrStarted{false};
+  bool d_selfGeneratedResponse{false};
 };
 
 static void handleIOCallback(int fd, FDMultiplexer::funcparam_t& param);
@@ -650,8 +652,9 @@ static void handleResponseSent(std::shared_ptr<IncomingTCPConnectionState>& stat
     return;
   }
 
-  if (state->d_ds) {
-    /* if we have no downstream server selected, this was a self-answered response */
+  if (state->d_selfGeneratedResponse == false && state->d_ds) {
+    /* if we have no downstream server selected, this was a self-answered response
+       but cache hits have a selected server as well, so be careful */
     struct timespec answertime;
     gettime(&answertime);
     double udiff = state->d_ids.sentTime.udiff();
@@ -827,6 +830,7 @@ static void handleQuery(std::shared_ptr<IncomingTCPConnectionState>& state, stru
   }
 
   if (result == ProcessQueryResult::SendAnswer) {
+    state->d_selfGeneratedResponse = true;
     state->d_buffer.resize(dq.len);
     state->d_responseBuffer = std::move(state->d_buffer);
     state->d_responseSize = state->d_responseBuffer.size();
