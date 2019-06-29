@@ -610,6 +610,7 @@ public:
   TCPIOHandler d_handler;
   std::unique_ptr<TCPConnectionToBackend> d_downstreamConnection{nullptr};
   std::shared_ptr<DownstreamState> d_ds{nullptr};
+  dnsheader d_cleartextDH;
   struct timeval d_connectionStartTime;
   struct timeval d_handshakeDoneTime;
   struct timeval d_firstQuerySizeReadTime;
@@ -647,6 +648,14 @@ static void handleResponseSent(std::shared_ptr<IncomingTCPConnectionState>& stat
     state->d_currentPos = 0;
     handleDownstreamIO(state, now);
     return;
+  }
+
+  if (state->d_ds) {
+    /* if we have no downstream server selected, this was a self-answered response */
+    struct timespec answertime;
+    gettime(&answertime);
+    double udiff = state->d_ids.sentTime.udiff();
+    g_rings.insertResponse(answertime, state->d_ci.remote, state->d_ids.qname, state->d_ids.qtype, static_cast<unsigned int>(udiff), static_cast<unsigned int>(state->d_responseBuffer.size()), state->d_cleartextDH, state->d_ds->remote);
   }
 
   if (g_maxTCPQueriesPerConn && state->d_queriesCount > g_maxTCPQueriesPerConn) {
@@ -703,8 +712,7 @@ static void handleResponse(std::shared_ptr<IncomingTCPConnectionState>& state, s
     addRoom = DNSCRYPT_MAX_RESPONSE_PADDING_AND_MAC_SIZE;
   }
 
-  dnsheader cleartextDH;
-  memcpy(&cleartextDH, dr.dh, sizeof(cleartextDH));
+  memcpy(&state->d_cleartextDH, dr.dh, sizeof(state->d_cleartextDH));
 
   std::vector<uint8_t> rewrittenResponse;
   size_t responseSize = state->d_responseBuffer.size();
@@ -727,13 +735,9 @@ static void handleResponse(std::shared_ptr<IncomingTCPConnectionState>& state, s
     state->d_xfrStarted = true;
   }
 
-  sendResponse(state, now);
-
   ++g_stats.responses;
-  struct timespec answertime;
-  gettime(&answertime);
-  double udiff = state->d_ids.sentTime.udiff();
-  g_rings.insertResponse(answertime, state->d_ci.remote, *dr.qname, dr.qtype, static_cast<unsigned int>(udiff), static_cast<unsigned int>(state->d_responseBuffer.size()), cleartextDH, state->d_ds->remote);
+
+  sendResponse(state, now);
 }
 
 static void sendQueryToBackend(std::shared_ptr<IncomingTCPConnectionState>& state, struct timeval& now)
