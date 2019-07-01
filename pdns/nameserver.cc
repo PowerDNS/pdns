@@ -103,8 +103,8 @@ void UDPNameserver::bindIPv4()
     s=socket(AF_INET,SOCK_DGRAM,0);
 
     if(s<0) {
-      g_log<<Logger::Error<<"Unable to acquire UDP socket: "+string(stringerror()) << endl;
-      throw PDNSException("Unable to acquire a UDP socket: "+string(stringerror()));
+      g_log<<Logger::Error<<"Unable to acquire UDP socket: "+stringerror() << endl;
+      throw PDNSException("Unable to acquire a UDP socket: "+stringerror());
     }
   
     setCloseOnExec(s);
@@ -218,8 +218,8 @@ void UDPNameserver::bindIPv6()
         g_log<<Logger::Error<<"IPv6 Address Family is not supported - skipping UDPv6 bind" << endl;
         return;
       } else {
-        g_log<<Logger::Error<<"Unable to acquire a UDPv6 socket: "+string(stringerror()) << endl;
-        throw PDNSException("Unable to acquire a UDPv6 socket: "+string(stringerror()));
+        g_log<<Logger::Error<<"Unable to acquire a UDPv6 socket: "+stringerror() << endl;
+        throw PDNSException("Unable to acquire a UDPv6 socket: "+stringerror());
       }
     }
 

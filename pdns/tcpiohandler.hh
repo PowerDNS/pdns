@@ -219,7 +219,7 @@ public:
           return IOState::NeedRead;
         }
         else {
-          throw std::runtime_error(std::string("Error while reading message: ") + strerror(errno));
+          throw std::runtime_error("Error while reading message: " + stringerror());
         }
       }
 
@@ -254,7 +254,7 @@ public:
           return IOState::NeedWrite;
         }
         else {
-          throw std::runtime_error(std::string("Error while writing message: ") + strerror(errno));
+          throw std::runtime_error("Error while writing message: " + stringerror());
         }
       }
 
