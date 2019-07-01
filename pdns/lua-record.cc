@@ -534,7 +534,7 @@ std::vector<shared_ptr<DNSRecordContent>> luaSynth(const std::string& code, cons
     });
 
 
-  lua.writeFunction("createReverse", [&bestwho,&query,&zone](string suffix, boost::optional<std::unordered_map<string,string>> e){
+  lua.writeFunction("createReverse", [&query](string suffix, boost::optional<std::unordered_map<string,string>> e){
       try {
       auto labels= query.getRawLabels();
       if(labels.size()<4)
@@ -616,7 +616,7 @@ std::vector<shared_ptr<DNSRecordContent>> luaSynth(const std::string& code, cons
     });
 
 
-  lua.writeFunction("createReverse6", [&bestwho,&query,&zone](string suffix, boost::optional<std::unordered_map<string,string>> e){
+  lua.writeFunction("createReverse6", [&query](string suffix, boost::optional<std::unordered_map<string,string>> e){
       vector<ComboAddress> candidates;
 
       try {
@@ -802,8 +802,7 @@ std::vector<shared_ptr<DNSRecordContent>> luaSynth(const std::string& code, cons
     });
 
 
-  int counter=0;
-  lua.writeFunction("report", [&counter](string event, boost::optional<string> line){
+  lua.writeFunction("report", [](string event, boost::optional<string> line){
       throw std::runtime_error("Script took too long");
     });
   if (g_luaRecordExecLimit > 0) {
