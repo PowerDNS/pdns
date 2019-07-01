@@ -893,6 +893,7 @@ void addCMsgSrcAddr(struct msghdr* msgh, cmsgbuf_aligned* cmsgbuf, const ComboAd
     struct in6_pktinfo *pkt;
 
     msgh->msg_control = cmsgbuf;
+    static_assert(CMSG_SPACE(sizeof(*pkt)) <= sizeof(*cmsgbuf), "Buffer is too small for in6_pktinfo");
     msgh->msg_controllen = CMSG_SPACE(sizeof(*pkt));
 
     cmsg = CMSG_FIRSTHDR(msgh);
@@ -910,6 +911,7 @@ void addCMsgSrcAddr(struct msghdr* msgh, cmsgbuf_aligned* cmsgbuf, const ComboAd
     struct in_pktinfo *pkt;
 
     msgh->msg_control = cmsgbuf;
+    static_assert(CMSG_SPACE(sizeof(*pkt)) <= sizeof(*cmsgbuf), "Buffer is too small for in_pktinfo");
     msgh->msg_controllen = CMSG_SPACE(sizeof(*pkt));
 
     cmsg = CMSG_FIRSTHDR(msgh);
@@ -925,6 +927,7 @@ void addCMsgSrcAddr(struct msghdr* msgh, cmsgbuf_aligned* cmsgbuf, const ComboAd
     struct in_addr *in;
 
     msgh->msg_control = cmsgbuf;
+    static_assert(CMSG_SPACE(sizeof(*in)) <= sizeof(*cmsgbuf), "Buffer is too small for in_addr");
     msgh->msg_controllen = CMSG_SPACE(sizeof(*in));
 
     cmsg = CMSG_FIRSTHDR(msgh);
