@@ -419,7 +419,7 @@ void generateKeyMaterial(const DNSName& name, unsigned int algo, uint8_t digest,
   dsAnchors[name].insert(keys[name].second);
 }
 
-int genericDSAndDNSKEYHandler(LWResult* res, const DNSName& domain, DNSName auth, int type, const testkeysset_t& keys, bool proveCut)
+int genericDSAndDNSKEYHandler(LWResult* res, const DNSName& domain, DNSName auth, int type, const testkeysset_t& keys, bool proveCut, boost::optional<time_t> now)
 {
   if (type == QType::DS) {
     auth.chopOff();
@@ -427,7 +427,7 @@ int genericDSAndDNSKEYHandler(LWResult* res, const DNSName& domain, DNSName auth
     setLWResult(res, 0, true, false, true);
 
     if (addDS(domain, 300, res->d_records, keys, DNSResourceRecord::ANSWER)) {
-      addRRSIG(keys, res->d_records, auth, 300);
+      addRRSIG(keys, res->d_records, auth, 300, false, boost::none, boost::none, now);
     }
     else {
       addRecordToLW(res, auth, QType::SOA, "foo. bar. 2017032800 1800 900 604800 86400", DNSResourceRecord::AUTHORITY, 86400);
@@ -436,7 +436,7 @@ int genericDSAndDNSKEYHandler(LWResult* res, const DNSName& domain, DNSName auth
       const auto it = keys.find(auth);
       if (it != keys.cend()) {
         /* sign the SOA */
-        addRRSIG(keys, res->d_records, auth, 300);
+        addRRSIG(keys, res->d_records, auth, 300, false, boost::none, boost::none, now);
         /* add a NSEC denying the DS */
         std::set<uint16_t> types = { QType::NSEC };
         if (proveCut) {
@@ -444,7 +444,7 @@ int genericDSAndDNSKEYHandler(LWResult* res, const DNSName& domain, DNSName auth
         }
 
         addNSECRecordToLW(domain, DNSName("z") + domain, types, 600, res->d_records);
-        addRRSIG(keys, res->d_records, auth, 300);
+        addRRSIG(keys, res->d_records, auth, 300, false, boost::none, boost::none, now);
       }
     }
 
