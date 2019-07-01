@@ -78,6 +78,8 @@ AuthWebServer::AuthWebServer() :
     acl.toMasks(::arg()["webserver-allow-from"]);
     d_ws->setACL(acl);
 
+    d_ws->setMaxBodySize(::arg().asNum("webserver-max-bodysize"));
+
     d_ws->bind();
   }
 }
