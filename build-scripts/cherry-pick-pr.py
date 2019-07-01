@@ -54,6 +54,6 @@ if args.merge_into:
     run_command(command)
 
     command = ['git', 'merge', '--no-ff',
-               'backport-{}'.format(args.pull_request), '-m',
+               'backport-{}-to-{}'.format(args.pull_request, args.merge_into[0].split('/')[-1]), '-m',
                'Backport #{}'.format(args.pull_request)]
     run_command(command)
