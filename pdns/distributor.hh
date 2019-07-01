@@ -193,7 +193,7 @@ template<class Answer, class Question, class Backend>void *MultiThreadDistributo
       if(read(us->d_pipes[ournum].first, &QD, sizeof(QD)) != sizeof(QD))
 	unixDie("read");
       --us->d_queued;
-      Answer *a; 
+      Answer *a = nullptr;
 
       if(queuetimeout && QD->Q->d_dt.udiff()>queuetimeout*1000) {
         delete QD->Q;
@@ -267,7 +267,7 @@ retry:
 
 template<class Answer, class Question, class Backend>int SingleThreadDistributor<Answer,Question,Backend>::question(Question* q, callback_t callback)
 {
-  Answer *a;
+  Answer *a = nullptr;
   bool allowRetry=true;
 retry:
   try {
