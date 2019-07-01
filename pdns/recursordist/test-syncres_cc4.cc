@@ -137,11 +137,16 @@ BOOST_AUTO_TEST_CASE(test_auth_zone_delegation) {
   generateKeyMaterial(g_rootdnsname, DNSSECKeeper::RSASHA512, DNSSECKeeper::SHA384, keys, luaconfsCopy.dsAnchors);
   g_luaconfs.setState(luaconfsCopy);
 
-  sr->setAsyncCallback([&queriesCount,target,targetAddr,nsAddr,authZone,keys](const ComboAddress& ip, const DNSName& domain, int type, bool doTCP, bool sendRDQuery, int EDNS0Level, struct timeval* now, boost::optional<Netmask>& srcmask, boost::optional<const ResolveContext&> context, LWResult* res, bool* chained) {
+  /* make sure that the signature inception and validity times are computed
+     based on the SyncRes time, not the current one, in case the function
+     takes too long. */
+  const time_t fixedNow = sr->getNow().tv_sec;
+
+  sr->setAsyncCallback([&queriesCount,target,targetAddr,nsAddr,authZone,keys,fixedNow](const ComboAddress& ip, const DNSName& domain, int type, bool doTCP, bool sendRDQuery, int EDNS0Level, struct timeval* now, boost::optional<Netmask>& srcmask, boost::optional<const ResolveContext&> context, LWResult* res, bool* chained) {
 
       queriesCount++;
       if (type == QType::DS || type == QType::DNSKEY) {
-        return genericDSAndDNSKEYHandler(res, domain, DNSName("."), type, keys, domain == authZone);
+        return genericDSAndDNSKEYHandler(res, domain, DNSName("."), type, keys, domain == authZone, fixedNow);
       }
 
       if (ip == ComboAddress(nsAddr.toString(), 53) && domain == target) {
