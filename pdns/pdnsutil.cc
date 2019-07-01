@@ -347,6 +347,10 @@ int checkZone(DNSSECKeeper &dk, UeberBackend &B, const DNSName& zone, const vect
       vector<string>parts;
       stringtok(parts, rr.content);
 
+      if(parts.size() < 7) {
+        cout<<"[Warning] SOA autocomplete is deprecated, missing field(s) in SOA content: "<<rr.qname<<" IN " <<rr.qtype.getName()<< " '" << rr.content<<"'"<<endl;
+      }
+
       ostringstream o;
       o<<rr.content;
       for(int pleft=parts.size(); pleft < 7; ++pleft) {
