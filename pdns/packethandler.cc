@@ -1100,7 +1100,7 @@ DNSPacket *PacketHandler::doQuestion(DNSPacket *p)
   DNSName haveAlias;
   uint8_t aliasScopeMask;
 
-  DNSPacket *r=0;
+  DNSPacket *r=nullptr;
   bool noCache=false;
 
 #ifdef HAVE_LUA_RECORDS
@@ -1559,6 +1559,7 @@ DNSPacket *PacketHandler::doQuestion(DNSPacket *p)
   }
   catch(PDNSException &e) {
     g_log<<Logger::Error<<"Backend reported permanent error which prevented lookup ("+e.reason+"), aborting"<<endl;
+    delete r;
     throw; // we WANT to die at this point
   }
   catch(std::exception &e) {
