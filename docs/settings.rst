@@ -391,6 +391,9 @@ Overrides :ref:`setting-default-soa-edit`
 
 -  String
 
+.. deprecated:: 4.2.0
+  This setting has been deprecated and will be removed in 4.3.0
+
 Mail address to insert in the SOA record if none set in the backend.
 
 .. _setting-default-soa-name:
@@ -400,6 +403,9 @@ Mail address to insert in the SOA record if none set in the backend.
 
 -  String
 -  Default: a.misconfigured.powerdns.server
+
+.. deprecated:: 4.2.0
+  This setting has been deprecated and will be removed in 4.3.0
 
 Name to insert in the SOA record if none set in the backend.
 
@@ -1412,6 +1418,9 @@ signing-slave.
 -  Integer
 -  Default: 604800
 
+.. deprecated:: 4.2.0
+  This setting has been deprecated and will be removed in 4.3.0
+
 Default :ref:`types-soa` expire.
 
 .. _setting-soa-minimum-ttl:
@@ -1421,6 +1430,9 @@ Default :ref:`types-soa` expire.
 
 -  Integer
 -  Default: 3600
+
+.. deprecated:: 4.2.0
+  This setting has been deprecated and will be removed in 4.3.0
 
 Default :ref:`types-soa` minimum ttl.
 
@@ -1432,6 +1444,9 @@ Default :ref:`types-soa` minimum ttl.
 -  Integer
 -  Default: 10800
 
+.. deprecated:: 4.2.0
+  This setting has been deprecated and will be removed in 4.3.0
+
 Default :ref:`types-soa` refresh.
 
 .. _setting-soa-retry-default:
@@ -1441,6 +1456,9 @@ Default :ref:`types-soa` refresh.
 
 -  Integer
 -  Default: 3600
+
+.. deprecated:: 4.2.0
+  This setting has been deprecated and will be removed in 4.3.0
 
 Default :ref:`types-soa` retry.
 
