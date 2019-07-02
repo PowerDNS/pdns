@@ -1133,8 +1133,13 @@ void setupLuaConfig(bool client)
       ret << (fmt % "#" % "Address" % "Provider Name") << endl;
       size_t idx = 0;
 
+      std::unordered_set<std::shared_ptr<DNSCryptContext>> contexts;
       for (const auto& frontend : g_frontends) {
         const std::shared_ptr<DNSCryptContext> ctx = frontend->dnscryptCtx;
+        if (!ctx || contexts.count(ctx) != 0) {
+          continue;
+        }
+        contexts.insert(ctx);
         ret<< (fmt % idx % frontend->local.toStringWithPort() % ctx->getProviderName()) << endl;
         idx++;
       }
