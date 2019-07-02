@@ -1135,6 +1135,9 @@ void setupLuaConfig(bool client)
 
       for (const auto& frontend : g_frontends) {
         const std::shared_ptr<DNSCryptContext> ctx = frontend->dnscryptCtx;
+        if (!ctx) {
+          continue;
+        }
         ret<< (fmt % idx % frontend->local.toStringWithPort() % ctx->getProviderName()) << endl;
         idx++;
       }
