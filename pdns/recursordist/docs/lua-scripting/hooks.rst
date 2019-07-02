@@ -69,7 +69,7 @@ Interception Functions
     .. versionadded:: 4.1.0
 
         It can also return a table whose keys and values are strings to fill the :attr:`DNSQuestion.data` table, as well as a ``requestorId`` value to fill the :attr:`DNSQuestion.requestorId` field and a ``deviceId`` value to fill the :attr:`DNSQuestion.deviceId` field.
-    .. versionadded:: 4.1.15
+    .. versionadded:: 4.3.0
 
         Along the ``deviceId`` value that can be returned, it was addded a ``deviceName`` field to fill the :attr:`DNSQuestion.deviceName` field.
 
