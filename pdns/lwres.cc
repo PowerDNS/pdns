@@ -54,8 +54,21 @@
 
 static void logOutgoingQuery(const std::shared_ptr<std::vector<std::unique_ptr<RemoteLogger>>>& outgoingLoggers, boost::optional<const boost::uuids::uuid&> initialRequestId, const boost::uuids::uuid& uuid, const ComboAddress& ip, const DNSName& domain, int type, uint16_t qid, bool doTCP, size_t bytes, boost::optional<Netmask>& srcmask)
 {
-  if(!outgoingLoggers)
+  if (!outgoingLoggers) {
     return;
+  }
+
+  bool log = false;
+  for (auto& logger : *outgoingLoggers) {
+    if (logger->logQueries()) {
+      log = true;
+      break;
+    }
+  }
+
+  if (!log) {
+    return;
+  }
 
   RecProtoBufMessage message(DNSProtoBufMessage::OutgoingQuery, uuid, nullptr, &ip, domain, type, QClass::IN, qid, doTCP, bytes);
   message.setServerIdentity(SyncRes::s_serverID);
@@ -73,14 +86,29 @@ static void logOutgoingQuery(const std::shared_ptr<std::vector<std::unique_ptr<R
   message.serialize(str);
 
   for (auto& logger : *outgoingLoggers) {
-    logger->queueData(str);
+    if (logger->logQueries()) {
+      logger->queueData(str);
+    }
   }
 }
 
 static void logIncomingResponse(const std::shared_ptr<std::vector<std::unique_ptr<RemoteLogger>>>& outgoingLoggers, boost::optional<const boost::uuids::uuid&> initialRequestId, const boost::uuids::uuid& uuid, const ComboAddress& ip, const DNSName& domain, int type, uint16_t qid, bool doTCP, size_t bytes, int rcode, const std::vector<DNSRecord>& records, const struct timeval& queryTime, const std::set<uint16_t>& exportTypes)
 {
-  if(!outgoingLoggers)
+  if(!outgoingLoggers) {
     return;
+  }
+
+  bool log = false;
+  for (auto& logger : *outgoingLoggers) {
+    if (logger->logResponses()) {
+      log = true;
+      break;
+    }
+  }
+
+  if (!log) {
+    return;
+  }
 
   RecProtoBufMessage message(DNSProtoBufMessage::IncomingResponse, uuid, nullptr, &ip, domain, type, QClass::IN, qid, doTCP, bytes);
   message.setServerIdentity(SyncRes::s_serverID);
@@ -96,7 +124,9 @@ static void logIncomingResponse(const std::shared_ptr<std::vector<std::unique_pt
   message.serialize(str);
 
   for (auto& logger : *outgoingLoggers) {
-    logger->queueData(str);
+    if (logger->logResponses()) {
+      logger->queueData(str);
+    }
   }
 }
 #endif /* HAVE_PROTOBUF */
