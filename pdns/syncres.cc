@@ -999,19 +999,19 @@ void SyncRes::getBestNSFromCache(const DNSName &qname, const QType& qtype, vecto
           }
         }
 
-        if(beenthere.count(answer)) {
+        auto insertionPair = beenthere.insert(std::move(answer));
+        if(!insertionPair.second) {
 	  brokeloop=true;
           LOG(prefix<<qname<<": We have NS in cache for '"<<subdomain<<"' but part of LOOP (already seen "<<answer.qname<<")! Trying less specific NS"<<endl);
 	  ;
           if(doLog())
             for( set<GetBestNSAnswer>::const_iterator j=beenthere.begin();j!=beenthere.end();++j) {
-	      bool neo = !(*j< answer || answer<*j);
+	      bool neo = (j == insertionPair.first);
 	      LOG(prefix<<qname<<": beenthere"<<(neo?"*":"")<<": "<<j->qname<<"|"<<DNSRecordContent::NumberToType(j->qtype)<<" ("<<(unsigned int)j->bestns.size()<<")"<<endl);
             }
           bestns.clear();
         }
         else {
-	  beenthere.insert(answer);
           LOG(prefix<<qname<<": We have NS in cache for '"<<subdomain<<"' (flawedNSSet="<<*flawedNSSet<<")"<<endl);
           return;
         }
@@ -1033,6 +1033,10 @@ void SyncRes::getBestNSFromCache(const DNSName &qname, const QType& qtype, vecto
 
 SyncRes::domainmap_t::const_iterator SyncRes::getBestAuthZone(DNSName* qname) const
 {
+  if (t_sstorage.domainmap->empty()) {
+    return t_sstorage.domainmap->end();
+  }
+
   SyncRes::domainmap_t::const_iterator ret;
   do {
     ret=t_sstorage.domainmap->find(*qname);
@@ -1045,7 +1049,6 @@ SyncRes::domainmap_t::const_iterator SyncRes::getBestAuthZone(DNSName* qname) co
 /** doesn't actually do the work, leaves that to getBestNSFromCache */
 DNSName SyncRes::getBestNSNamesFromCache(const DNSName &qname, const QType& qtype, NsSet& nsset, bool* flawedNSSet, unsigned int depth, set<GetBestNSAnswer>&beenthere)
 {
-  DNSName subdomain(qname);
   DNSName authdomain(qname);
 
   domainmap_t::const_iterator iter=getBestAuthZone(&authdomain);
@@ -1063,6 +1066,7 @@ DNSName SyncRes::getBestNSNamesFromCache(const DNSName &qname, const QType& qtyp
     return authdomain;
   }
 
+  DNSName subdomain(qname);
   vector<DNSRecord> bestns;
   getBestNSFromCache(subdomain, qtype, bestns, flawedNSSet, depth, beenthere);
 
