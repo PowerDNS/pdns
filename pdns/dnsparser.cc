@@ -278,8 +278,6 @@ void MOADNSParser::init(bool query, const std::string& packet)
         dr.d_content=DNSRecordContent::mastermake(dr, pr, d_header.opcode);
       }
 
-      d_answers.push_back(make_pair(dr, pr.getPosition() - sizeof(dnsheader)));
-
       /* XXX: XPF records should be allowed after TSIG as soon as the actual XPF option code has been assigned:
          if (dr.d_place == DNSResourceRecord::ADDITIONAL && seenTSIG && dr.d_type != QType::XPF)
       */
@@ -295,6 +293,8 @@ void MOADNSParser::init(bool query, const std::string& packet)
         seenTSIG = true;
         d_tsigPos = recordStartPos;
       }
+
+      d_answers.push_back(make_pair(std::move(dr), pr.getPosition() - sizeof(dnsheader)));
     }
 
 #if 0
