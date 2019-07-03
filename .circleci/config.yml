@@ -727,43 +727,6 @@ workflows:
   version: 2
   build-and-test-all:
     jobs:
-      - build-auth
-      - test-auth-api:
-          requires:
-            - build-auth
-      - test-auth-algorithms:
-          requires:
-            - build-auth
-      - test-auth-regress-odbc-sqlite3:
-          requires:
-            - build-auth
-      - test-auth-regress-odbc-mssql:
-          requires:
-            - build-auth
-      - test-auth-regress-gmysql:
-          requires:
-            - build-auth
-      - test-auth-regress-mydns:
-          requires:
-            - build-auth
-      - test-auth-regress-bind:
-          requires:
-            - build-auth
-      - test-auth-regress-gsqlite3:
-          requires:
-            - build-auth
-      - test-auth-regress-gpgsql:
-          requires:
-            - build-auth
-      - test-auth-regress-lmdb:
-          requires:
-            - build-auth
-      - test-auth-regress-ldap:
-          requires:
-            - build-auth
-      - test-auth-regress-tinydns:
-          requires:
-            - build-auth
       - build-recursor
       - test-recursor-regression:
           requires:
