@@ -62,6 +62,17 @@ void DNSProtoBufMessage::setResponseCode(uint8_t rcode)
 #endif /* HAVE_PROTOBUF */
 }
 
+void DNSProtoBufMessage::setNetworkErrorResponseCode()
+{
+#ifdef HAVE_PROTOBUF
+  PBDNSMessage_DNSResponse* response = d_message.mutable_response();
+  if (response) {
+    /* special code meaning 'network error', like a timeout */
+    response->set_rcode(65536);
+  }
+#endif /* HAVE_PROTOBUF */
+}
+
 void DNSProtoBufMessage::setTime(time_t sec, uint32_t usec)
 {
 #ifdef HAVE_PROTOBUF
