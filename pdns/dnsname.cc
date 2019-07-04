@@ -22,6 +22,7 @@
 #include "dnsname.hh"
 #include <boost/format.hpp>
 #include <string>
+#include <cinttypes>
 
 #include "dnswriter.hh"
 #include "misc.hh"
