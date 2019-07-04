@@ -25,6 +25,7 @@
 #include "dnsdist-ecs.hh"
 #include "dnsdist-lua.hh"
 #include "dnsdist-protobuf.hh"
+#include "dnsdist-kvs.hh"
 
 #include "dolog.hh"
 #include "dnstap.hh"
@@ -1076,7 +1077,6 @@ private:
   std::shared_ptr<DNSAction> d_action;
 };
 
-
 #ifdef HAVE_DNS_OVER_HTTPS
 class HTTPStatusAction: public DNSAction
 {
@@ -1106,6 +1106,38 @@ private:
   int d_code;
 };
 #endif /* HAVE_DNS_OVER_HTTPS */
+
+class KeyValueStoreLookupAction : public DNSAction
+{
+public:
+  KeyValueStoreLookupAction(std::shared_ptr<KeyValueStore>& kvs, std::shared_ptr<KeyValueLookupKey>& lookupKey, const std::string& destinationTag): d_kvs(kvs), d_key(lookupKey), d_tag(destinationTag)
+  {
+  }
+
+  DNSAction::Action operator()(DNSQuestion* dq, std::string* ruleresult) const override
+  {
+    std::string key = d_key->getKey(*dq);
+    std::string result = d_kvs->getValue(key);
+
+    if (!dq->qTag) {
+      dq->qTag = std::make_shared<QTag>();
+    }
+
+    dq->qTag->insert({d_tag, std::move(result)});
+
+    return Action::None;
+  }
+
+  std::string toString() const override
+  {
+    return "lookup key-value store based on '" + d_key->toString() + "' and set the result in tag '" + d_tag + "'";
+  }
+
+private:
+  std::shared_ptr<KeyValueStore> d_kvs;
+  std::shared_ptr<KeyValueLookupKey> d_key;
+  std::string d_tag;
+};
 
 template<typename T, typename ActionT>
 static void addAction(GlobalStateHolder<vector<T> > *someRulActions, luadnsrule_t var, std::shared_ptr<ActionT> action, boost::optional<luaruleparams_t> params) {
@@ -1416,4 +1448,8 @@ void setupLuaActions()
       return std::shared_ptr<DNSAction>(new HTTPStatusAction(status, body, contentType ? *contentType : ""));
     });
 #endif /* HAVE_DNS_OVER_HTTPS */
+
+  g_lua.writeFunction("KeyValueStoreLookupAction", [](std::shared_ptr<KeyValueStore>& kvs, std::shared_ptr<KeyValueLookupKey>& lookupKey, const std::string& destinationTag) {
+      return std::shared_ptr<DNSAction>(new KeyValueStoreLookupAction(kvs, lookupKey, destinationTag));
+    });
 }

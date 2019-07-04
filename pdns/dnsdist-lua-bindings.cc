@@ -25,6 +25,7 @@
 
 #include "config.h"
 #include "dnsdist.hh"
+#include "dnsdist-kvs.hh"
 #include "dnsdist-lua.hh"
 #include "dnsdist-protobuf.hh"
 
@@ -713,4 +714,25 @@ void setupLuaBindings(bool client)
     }
     return values;
   });
+
+  /* Key Value Store objects */
+  g_lua.writeFunction("KeyValueLookupKeySourceIP", []() {
+    return std::shared_ptr<KeyValueLookupKey>(new KeyValueLookupKeySourceIP());
+  });
+  g_lua.writeFunction("KeyValueLookupKeyQName", []() {
+    return std::shared_ptr<KeyValueLookupKey>(new KeyValueLookupKeyQName());
+  });
+  g_lua.writeFunction("KeyValueLookupKeyTag", [](const std::string& tag) {
+    return std::shared_ptr<KeyValueLookupKey>(new KeyValueLookupKeyTag(tag));
+  });
+
+#ifdef HAVE_LMDB
+  g_lua.writeFunction("newLMDBKVStore", [client](const std::string& fname, const std::string& dbName) {
+    if (client) {
+      return std::shared_ptr<KeyValueStore>(nullptr);
+    }
+    return std::shared_ptr<KeyValueStore>(new LMDBKVStore(fname, dbName));
+  });
+#endif /* HAVE_LMDB */
+
 }

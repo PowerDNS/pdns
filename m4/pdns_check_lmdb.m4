@@ -11,9 +11,11 @@ AC_DEFUN([PDNS_CHECK_LMDB], [
 
   AS_IF([test "$with_lmdb" != "no"], [
     AS_IF([test "x$with_lmdb" = "xyes" -o "x$with_lmdb" = "xauto"], [
-      PKG_CHECK_MODULES([LMDB], [lmdb], [ : ], [
-        AC_MSG_ERROR([lmdb not found via pkg-config, please install lmdb or set --with-lmdb to your lmdb installation directory])
-      ])
+      PKG_CHECK_MODULES([LMDB], [lmdb], [
+        AC_DEFINE([HAVE_LMDB], [1], [Define to 1 if you have LMDB])
+        [HAVE_LMDB=1]
+        ], [ : ]
+      )
     ], [
       save_CPPFLAGS=$CPPFLAGS
       save_LIBS=$LIBS
@@ -31,6 +33,8 @@ AC_DEFUN([PDNS_CHECK_LMDB], [
         AC_CHECK_HEADERS([lmdb.h], [
           dnl ac_cv_search_mdb_env_open contains '-llmdb'
           LMDB_LIBS="$LMDB_LIBS $ac_cv_search_mdb_env_open"
+          AC_DEFINE([HAVE_LMDB], [1], [Define to 1 if you have LMDB])
+          [HAVE_LMDB=1]
         ], [
           AC_MSG_ERROR([lmdb headers not found in $with_lmdb])
         ])
@@ -40,7 +44,6 @@ AC_DEFUN([PDNS_CHECK_LMDB], [
         AC_SUBST([LMDB_LIBS])
       ])
     ])
-  ], [
-    AC_MSG_ERROR([--with-lmdb is set to 'no', but lmdb support is required])
   ])
+  AM_CONDITIONAL([HAVE_LMDB], [test "x$LMDB_LIBS" != "x"])
 ])
