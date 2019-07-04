@@ -897,8 +897,10 @@ void setupLuaConfig(bool client)
        if(testmsg == decrypted)
 	 g_outputBuffer="Everything is ok!\n";
        else
-	 g_outputBuffer="Crypto failed..\n";
-
+	 g_outputBuffer="Crypto failed.. (the decoded value does not match the cleartext one)\n";
+     }
+     catch(const std::exception& e) {
+       g_outputBuffer="Crypto failed: "+std::string(e.what())+"\n";
      }
      catch(...) {
        g_outputBuffer="Crypto failed..\n";
