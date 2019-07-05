@@ -537,15 +537,18 @@ void LMDBBackend::lookup(const QType &type, const DNSName &qdomain, DNSPacket *p
   DNSName hunt(qdomain);
   if(zoneId < 0) {
     auto rotxn = d_tdomains->getROTransaction();
-    
-    for(;;) {
-      DomainInfo di;
-      if((zoneId = rotxn.get<0>(hunt, di))) {
-        break;
-      }
-      if(!hunt.chopOff())
-        break;
-    }
+
+    /* NOTE: as the zones are stored in the database component-reversed, we
+     * should actually use an LMDB lookup to get the nearest entry to the
+     * desired place, and check if it was a match (equal, or sub-domain) or
+     * not. In 1 lookup we can then determine whether the domain exists or not
+     * in any form. The logic for this is a little complex as you need to
+     * handle the case where you overrun the end of the btree, an exact match
+     * needs handling differently from a subdomain match, but it is possible,
+     * and quicker, to do this correctly as lmdb lookups are relatively
+     * expensive operations. */
+    DomainInfo di;
+    zoneId = rotxn.get<0>(hunt, di);
     if(zoneId <= 0) {
       //      cout << "Did not find zone for "<< qdomain<<endl;
       d_getcursor.reset();
