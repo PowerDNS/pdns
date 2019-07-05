@@ -361,7 +361,7 @@ IOState tryRead(int fd, std::vector<uint8_t>& buffer, size_t& pos, size_t toRead
       throw runtime_error("EOF while reading message");
     }
     if (res < 0) {
-      if (errno == EAGAIN || errno == EWOULDBLOCK) {
+      if (errno == EAGAIN || errno == EWOULDBLOCK || errno == ENOTCONN) {
         return IOState::NeedRead;
       }
       else {

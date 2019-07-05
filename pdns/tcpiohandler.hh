@@ -214,7 +214,7 @@ public:
         throw runtime_error("EOF while reading message");
       }
       if (res < 0) {
-        if (errno == EAGAIN || errno == EWOULDBLOCK) {
+        if (errno == EAGAIN || errno == EWOULDBLOCK || errno == ENOTCONN) {
           return IOState::NeedRead;
         }
         else {
@@ -250,7 +250,7 @@ public:
         throw runtime_error("EOF while sending message");
       }
       if (res < 0) {
-        if (errno == EAGAIN || errno == EWOULDBLOCK) {
+        if (errno == EAGAIN || errno == EWOULDBLOCK || errno == ENOTCONN) {
           return IOState::NeedWrite;
         }
         else {
