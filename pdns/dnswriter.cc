@@ -266,7 +266,9 @@ uint16_t DNSPacketWriter::lookupName(const DNSName& name, uint16_t* matchLen)
         }
         if(!c)
           break;
-        pvect.push_back(iter - d_content.cbegin());
+        auto offset = iter - d_content.cbegin();
+        if (offset >= 16384) break; // compression pointers cannot point here
+        pvect.push_back(offset);
         iter+=*iter+1;
       }
     }
@@ -325,7 +327,7 @@ void DNSPacketWriter::xfrName(const DNSName& name, bool compress, bool)
 
   uint16_t li=0;
   uint16_t matchlen=0;
-  if(compress && (li=lookupName(name, &matchlen))) {
+  if(compress && (li=lookupName(name, &matchlen)) && li < 16384) {
     const auto& dns=name.getStorage(); 
     if(l_verbose)
       cout<<"Found a substring of "<<matchlen<<" bytes from the back, offset: "<<li<<", dnslen: "<<dns.size()<<endl;
