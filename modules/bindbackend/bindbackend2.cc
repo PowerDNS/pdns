@@ -32,7 +32,11 @@
 #include <fstream>
 #include <fcntl.h>
 #include <sstream>
+#include <queue>
+#include <mutex>
+#include <condition_variable>
 #include <boost/algorithm/string.hpp>
+#include <boost/atomic.hpp>
 #include <system_error>
 
 #include "pdns/dnsseckeeper.hh"
@@ -779,6 +783,129 @@ void Bind2Backend::doEmptyNonTerminals(BB2DomainInfo& bbd, bool nsec3zone, NSEC3
   }
 }
 
+class BindParallelParser {
+  private:
+    Bind2Backend *d_backend;
+    string* status;
+    std::mutex d_mutex;
+
+    struct queue_item {
+        const BindDomainInfo *i;
+        BB2DomainInfo *bbd;
+        bool isNew;
+    };
+
+    std::queue<struct queue_item *> queue;
+    std::condition_variable item_added;
+    std::condition_variable item_removed;
+
+    bool done = false;
+    vector<pthread_t> threads;
+    unsigned int d_queue_size;
+
+    static void *reloadFileWorkerThread(void *p) {
+      (static_cast<BindParallelParser *>(p))->reloadFileWorker();
+      return 0;
+    }
+
+    void reloadFileWorker() {
+      while(!(done && queue.empty())) {
+          std::unique_lock<std::mutex> lock(d_mutex);
+
+          if( queue.empty() ) {
+            item_added.wait(lock);
+            continue;
+          }
+
+          struct queue_item *item = queue.front();
+          queue.pop();
+          lock.unlock();
+          item_removed.notify_one();
+          reloadFileItemWorker(item->i, *(item->bbd), item->isNew);
+      }
+      //cout << "Exiting: " << done << "; " << queue.size() << endl;
+    }
+
+    void reloadFileItemWorker(const BindDomainInfo *i, BB2DomainInfo &bbd, bool isNew) {
+      try {
+        d_backend->parseZoneFile(&bbd);
+      }
+      catch(PDNSException &ae) {
+        ostringstream msg;
+        msg<<" error at "+nowTime()+" parsing '"<<i->name<<"' from file '"<<i->filename<<"': "<<ae.reason;
+
+        if(status)
+          *status+=msg.str();
+        bbd.d_status=msg.str();
+
+        g_log<<Logger::Warning<<d_backend->d_logprefix<<msg.str()<<endl;
+        rejected++;
+      }
+      catch(std::system_error &ae) {
+        ostringstream msg;
+        if (ae.code().value() == ENOENT && isNew && i->type == "slave")
+          msg<<" error at "+nowTime()<<" no file found for new slave domain '"<<i->name<<"'. Has not been AXFR'd yet";
+        else
+          msg<<" error at "+nowTime()+" parsing '"<<i->name<<"' from file '"<<i->filename<<"': "<<ae.what();
+
+        if(status)
+          *status+=msg.str();
+        bbd.d_status=msg.str();
+        g_log<<Logger::Warning<<d_backend->d_logprefix<<msg.str()<<endl;
+        rejected++;
+      }
+      catch(std::exception &ae) {
+        ostringstream msg;
+        msg<<" error at "+nowTime()+" parsing '"<<i->name<<"' from file '"<<i->filename<<"': "<<ae.what();
+
+        if(status)
+          *status+=msg.str();
+        bbd.d_status=msg.str();
+
+        g_log<<Logger::Warning<<d_backend->d_logprefix<<msg.str()<<endl;
+        rejected++;
+      }
+      d_backend->safePutBBDomainInfo(bbd);
+    }
+
+  public:
+    boost::atomic_int rejected;
+
+    BindParallelParser(const unsigned int thread_count, Bind2Backend *backend, string* in_status) {
+        d_backend = backend;
+        rejected = 0;
+        status = in_status;
+        d_queue_size = thread_count * 30;
+        pthread_t tid;
+        for( unsigned int i = 0; i < thread_count; i++ ) {
+            pthread_create(&tid, 0, &BindParallelParser::reloadFileWorkerThread, this);
+            threads.push_back(tid);
+        }
+    }
+
+    void reloadFile(const BindDomainInfo *i, BB2DomainInfo *bbd, bool isNew) {
+      g_log<<Logger::Info<<d_backend->d_logprefix<<" parsing '"<<i->name<<"' from file '"<<i->filename<<"'"<<endl;
+      struct queue_item *item = new queue_item{ i, bbd, isNew };
+
+      {
+          std::unique_lock<std::mutex> lock(d_mutex);
+
+          while(queue.size() > d_queue_size)
+            item_removed.wait(lock);
+
+          queue.push(item);
+      }
+      item_added.notify_one();
+    }
+
+    void finished() {
+        done = 1;
+        void *res;
+        for(auto it = threads.begin(); it != threads.end(); it++)
+            pthread_join(*it, &res);
+    }
+};
+
 void Bind2Backend::loadConfig(string* status)
 {
   static int domain_id=1;
@@ -799,7 +926,9 @@ void Bind2Backend::loadConfig(string* status)
     s_binddirectory=BP.getDirectory();
     //    ZP.setDirectory(d_binddirectory);
 
-    g_log<<Logger::Warning<<d_logprefix<<" Parsing "<<domains.size()<<" domain(s), will report when done"<<endl;
+    const unsigned int load_threads = getArgAsNum("load-threads");
+    g_log<<Logger::Warning<<d_logprefix<<" Parsing "<<domains.size()<<" domain(s), with " << load_threads << " threads. Will report when done"<<endl;
+    time_t start_time = time(0);
     
     set<DNSName> oldnames, newnames;
     {
@@ -822,6 +951,7 @@ void Bind2Backend::loadConfig(string* status)
     }
 
     sort(domains.begin(), domains.end()); // put stuff in inode order
+    BindParallelParser parallelParser(load_threads, this, status);
     for(vector<BindDomainInfo>::const_iterator i=domains.begin();
         i!=domains.end();
         ++i) 
@@ -840,76 +970,37 @@ void Bind2Backend::loadConfig(string* status)
           continue;
         }
 
-        BB2DomainInfo bbd;
+        BB2DomainInfo *bbd = new BB2DomainInfo();
         bool isNew = false;
 
-        if(!safeGetBBDomainInfo(i->name, &bbd)) { 
+        if(!safeGetBBDomainInfo(i->name, bbd)) { 
           isNew = true;
-          bbd.d_id=domain_id++;
-          bbd.setCheckInterval(getArgAsNum("check-interval"));
-          bbd.d_lastnotified=0;
-          bbd.d_loaded=false;
+          bbd->d_id=domain_id++;
+          bbd->setCheckInterval(getArgAsNum("check-interval"));
+          bbd->d_lastnotified=0;
+          bbd->d_loaded=false;
         }
         
         // overwrite what we knew about the domain
-        bbd.d_name=i->name;
-        bool filenameChanged = (bbd.d_filename!=i->filename);
-        bbd.d_filename=i->filename;
-        bbd.d_masters=i->masters;
-        bbd.d_also_notify=i->alsoNotify;
+        bbd->d_name=i->name;
+        bool filenameChanged = (bbd->d_filename!=i->filename);
+        bbd->d_filename=i->filename;
+        bbd->d_masters=i->masters;
+        bbd->d_also_notify=i->alsoNotify;
 
-        bbd.d_kind = DomainInfo::Native;
+        bbd->d_kind = DomainInfo::Native;
         if (i->type == "master")
-          bbd.d_kind = DomainInfo::Master;
+          bbd->d_kind = DomainInfo::Master;
         if (i->type == "slave")
-          bbd.d_kind = DomainInfo::Slave;
+          bbd->d_kind = DomainInfo::Slave;
 
-        newnames.insert(bbd.d_name);
-        if(filenameChanged || !bbd.d_loaded || !bbd.current()) {
-          g_log<<Logger::Info<<d_logprefix<<" parsing '"<<i->name<<"' from file '"<<i->filename<<"'"<<endl;
-
-          try {
-            parseZoneFile(&bbd);
-          }
-          catch(PDNSException &ae) {
-            ostringstream msg;
-            msg<<" error at "+nowTime()+" parsing '"<<i->name<<"' from file '"<<i->filename<<"': "<<ae.reason;
-
-            if(status)
-              *status+=msg.str();
-	    bbd.d_status=msg.str();
-
-            g_log<<Logger::Warning<<d_logprefix<<msg.str()<<endl;
-            rejected++;
-          }
-          catch(std::system_error &ae) {
-            ostringstream msg;
-            if (ae.code().value() == ENOENT && isNew && i->type == "slave")
-              msg<<" error at "+nowTime()<<" no file found for new slave domain '"<<i->name<<"'. Has not been AXFR'd yet";
-            else
-              msg<<" error at "+nowTime()+" parsing '"<<i->name<<"' from file '"<<i->filename<<"': "<<ae.what();
-
-            if(status)
-              *status+=msg.str();
-            bbd.d_status=msg.str();
-            g_log<<Logger::Warning<<d_logprefix<<msg.str()<<endl;
-            rejected++;
-          }
-          catch(std::exception &ae) {
-            ostringstream msg;
-            msg<<" error at "+nowTime()+" parsing '"<<i->name<<"' from file '"<<i->filename<<"': "<<ae.what();
-
-            if(status)
-              *status+=msg.str();
-            bbd.d_status=msg.str();
-
-            g_log<<Logger::Warning<<d_logprefix<<msg.str()<<endl;
-            rejected++;
-          }
-	  safePutBBDomainInfo(bbd);
-	  
-        }
+        newnames.insert(bbd->d_name);
+        if(filenameChanged || !bbd->d_loaded || !bbd->current())
+          parallelParser.reloadFile(&*i, bbd, isNew);
       }
+
+    parallelParser.finished();
+    rejected += parallelParser.rejected;
     vector<DNSName> diff;
 
     set_difference(oldnames.begin(), oldnames.end(), newnames.begin(), newnames.end(), back_inserter(diff));
@@ -925,7 +1016,7 @@ void Bind2Backend::loadConfig(string* status)
     newdomains=diff.size();
 
     ostringstream msg;
-    msg<<" Done parsing domains, "<<rejected<<" rejected, "<<newdomains<<" new, "<<remdomains<<" removed"; 
+    msg<<" Done parsing domains, "<<rejected<<" rejected, "<<newdomains<<" new, "<<remdomains<<" removed in " << time(0) - start_time << " seconds"; 
     if(status)
       *status=msg.str();
 
@@ -1364,6 +1455,7 @@ class Bind2Factory : public BackendFactory
       {
          declare(suffix,"ignore-broken-records","Ignore records that are out-of-bound for the zone.","no");
          declare(suffix,"config","Location of named.conf","");
+         declare(suffix,"load-threads","Number of threads to use when loading zones","1");
          declare(suffix,"check-interval","Interval for zonefile changes","0");
          declare(suffix,"supermaster-config","Location of (part of) named.conf where pdns can write zone-statements to","");
          declare(suffix,"supermasters","List of IP-addresses of supermasters","");
