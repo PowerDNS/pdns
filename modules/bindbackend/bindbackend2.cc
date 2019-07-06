@@ -1066,7 +1066,7 @@ void Bind2Backend::lookup(const QType &qtype, const DNSName &qname, DNSPacket *p
 
   do {
     found = safeGetBBDomainInfo(domain, &bbd);
-  } while ((!found || (zoneId != (int)bbd.d_id && zoneId != -1)) && domain.chopOff());
+  } while ((!found || (zoneId != (int)bbd.d_id && zoneId != -1)) && qtype != QType::SOA && domain.chopOff());
 
   if(!found) {
     if(mustlog)
