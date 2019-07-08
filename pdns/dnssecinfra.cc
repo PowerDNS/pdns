@@ -196,7 +196,7 @@ bool DNSCryptoKeyEngine::testAll()
         
         for(maker_t* verifier :  value.second) {
           try {
-            /* pair<unsigned int, unsigned int> res=*/ testMakers(value.first, creator, signer, verifier);
+            testMakers(value.first, creator, signer, verifier);
           }
           catch(std::exception& e)
           {
@@ -221,7 +221,7 @@ bool DNSCryptoKeyEngine::testOne(int algo)
 
       for(maker_t* verifier :  getAllMakers()[algo]) {
         try {
-          /* pair<unsigned int, unsigned int> res=*/testMakers(algo, creator, signer, verifier);
+          testMakers(algo, creator, signer, verifier);
         }
         catch(std::exception& e)
         {
@@ -233,8 +233,8 @@ bool DNSCryptoKeyEngine::testOne(int algo)
   }
   return ret;
 }
-// returns times it took to sign and verify
-pair<unsigned int, unsigned int> DNSCryptoKeyEngine::testMakers(unsigned int algo, maker_t* creator, maker_t* signer, maker_t* verifier)
+
+void DNSCryptoKeyEngine::testMakers(unsigned int algo, maker_t* creator, maker_t* signer, maker_t* verifier)
 {
   shared_ptr<DNSCryptoKeyEngine> dckeCreate(creator(algo));
   shared_ptr<DNSCryptoKeyEngine> dckeSign(signer(algo));
@@ -253,7 +253,10 @@ pair<unsigned int, unsigned int> DNSCryptoKeyEngine::testMakers(unsigned int alg
   else
     throw runtime_error("Can't guess key size for algorithm "+std::to_string(algo));
 
-  dckeCreate->create(bits);
+  DTime dt; dt.set();
+  for(unsigned int n = 0; n < 100; ++n)
+    dckeCreate->create(bits);
+  unsigned int udiffCreate = dt.udiff() / 100;
 
   { // FIXME: this block copy/pasted from makeFromISCString
     DNSKEYRecordContent dkrc;
@@ -298,7 +301,7 @@ pair<unsigned int, unsigned int> DNSCryptoKeyEngine::testMakers(unsigned int alg
   string message("Hi! How is life?");
   
   string signature;
-  DTime dt; dt.set();
+  dt.set();
   for(unsigned int n = 0; n < 100; ++n)
     signature = dckeSign->sign(message);
   unsigned int udiffSign= dt.udiff()/100, udiffVerify;
@@ -308,14 +311,17 @@ pair<unsigned int, unsigned int> DNSCryptoKeyEngine::testMakers(unsigned int alg
     throw runtime_error("Comparison of public key loaded into verifier produced by signer failed");
   }
   dt.set();
-  if(dckeVerify->verify(message, signature)) {
-    udiffVerify = dt.udiff();
-    cerr<<"Signature & verify ok, signature "<<udiffSign<<"usec, verify "<<udiffVerify<<"usec"<<endl;
+  bool verified;
+  for(unsigned int n = 0; n < 100; ++n)
+    verified = dckeVerify->verify(message, signature);
+
+  if(verified) {
+    udiffVerify = dt.udiff() / 100;
+    cerr<<"Signature & verify ok, create "<<udiffCreate<<"usec, signature "<<udiffSign<<"usec, verify "<<udiffVerify<<"usec"<<endl;
   }
   else {
     throw runtime_error("Verification of creator "+dckeCreate->getName()+" with signer "+dckeSign->getName()+" and verifier "+dckeVerify->getName()+" failed");
   }
-  return make_pair(udiffSign, udiffVerify);
 }
 
 shared_ptr<DNSCryptoKeyEngine> DNSCryptoKeyEngine::makeFromPublicKeyString(unsigned int algorithm, const std::string& content)
