@@ -1,6 +1,7 @@
 #ifdef HAVE_CONFIG_H
 #include "config.h"
 #endif
+#include "base64.hh"
 #include "dnsparser.hh"
 #include "ednsoptions.hh"
 #include "sstuff.hh"
@@ -166,11 +167,26 @@ try
 
   if(doh) {
 #ifdef HAVE_LIBCURL
-    MiniCurl mc;
-    MiniCurl::MiniCurlHeaders mch;
-    mch.insert(std::make_pair("Content-Type", "application/dns-message"));
-    mch.insert(std::make_pair("Accept", "application/dns-message"));
-    reply = mc.postURL(argv[1], question, mch);
+    string method = argv[2];
+    if (method == "POST") {
+      MiniCurl mc;
+      MiniCurl::MiniCurlHeaders mch;
+      mch.insert(std::make_pair("Content-Type", "application/dns-message"));
+      mch.insert(std::make_pair("Accept", "application/dns-message"));
+      reply = mc.postURL(argv[1], question, mch);
+    } else if (method == "GET") {
+      MiniCurl mc;
+      MiniCurl::MiniCurlHeaders mch;
+      mch.insert(std::make_pair("Accept", "application/dns-message"));
+      string url = argv[1];
+      string b64question = Base64Encode(question);
+      boost::replace_all(b64question, "+", "-");
+      boost::replace_all(b64question, "/", "_");
+      url = url + "?dns=" + b64question;
+      reply = mc.getURL(url, mch);
+    } else {
+      throw PDNSException("unknown HTTP method '"+method+"'");
+    }
 #else
     throw PDNSException("please link sdig against libcurl for DoH support");
 #endif

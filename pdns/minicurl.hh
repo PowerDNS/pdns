@@ -38,7 +38,7 @@ public:
   MiniCurl(const string& useragent="MiniCurl/0.0");
   ~MiniCurl();
   MiniCurl& operator=(const MiniCurl&) = delete;
-  std::string getURL(const std::string& str, const ComboAddress* rem=0, const ComboAddress* src=0);
+  std::string getURL(const std::string& str, MiniCurlHeaders& headers, const ComboAddress* rem=0, const ComboAddress* src=0);
   std::string postURL(const std::string& str, const std::string& postdata, MiniCurlHeaders& headers);
 private:
   CURL *d_curl;

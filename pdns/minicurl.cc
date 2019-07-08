@@ -117,9 +117,10 @@ void MiniCurl::setupURL(const std::string& str, const ComboAddress* rem, const C
   d_data.clear();
 }
 
-std::string MiniCurl::getURL(const std::string& str, const ComboAddress* rem, const ComboAddress* src)
+std::string MiniCurl::getURL(const std::string& str, MiniCurlHeaders& headers, const ComboAddress* rem, const ComboAddress* src)
 {
   setupURL(str, rem, src);
+  setHeaders(headers);
   auto res = curl_easy_perform(d_curl);
   long http_code = 0;
   curl_easy_getinfo(d_curl, CURLINFO_RESPONSE_CODE, &http_code);
