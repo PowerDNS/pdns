@@ -4424,8 +4424,17 @@ int main(int argc, char **argv)
     ::arg().set("log-timestamp","Print timestamps in log lines, useful to disable when running with a tool that timestamps stdout already")="yes";
     ::arg().set("log-common-errors","If we should log rather common errors")="no";
     ::arg().set("chroot","switch to chroot jail")="";
-    ::arg().set("setgid","If set, change group id to this gid for more security")="";
-    ::arg().set("setuid","If set, change user id to this uid for more security")="";
+    ::arg().set("setgid","If set, change group id to this gid for more security"
+#ifdef HAVE_SYSTEMD
+#define SYSTEMD_SETID_MSG ". When running inside systemd, use the User and Group settings in the unit-file!"
+        SYSTEMD_SETID_MSG
+#endif
+        )="";
+    ::arg().set("setuid","If set, change user id to this uid for more security"
+#ifdef HAVE_SYSTEMD
+        SYSTEMD_SETID_MSG
+#endif
+        )="";
     ::arg().set("network-timeout", "Wait this number of milliseconds for network i/o")="1500";
     ::arg().set("threads", "Launch this number of threads")="2";
     ::arg().set("distributor-threads", "Launch this number of distributor threads, distributing queries to other threads")="0";
