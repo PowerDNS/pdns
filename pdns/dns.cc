@@ -70,7 +70,7 @@ std::string ERCode::to_s(uint8_t rcode) {
 }
 
 std::string Opcode::to_s(uint8_t opcode) {
-  static std::vector<std::string> s_opcodes = { "Query", "IQuery", "Status", "3", "Notify", "Update" };
+  static const std::vector<std::string> s_opcodes = { "Query", "IQuery", "Status", "3", "Notify", "Update" };
 
   if (opcode >= s_opcodes.size()) {
     return std::to_string(opcode);
