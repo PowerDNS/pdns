@@ -1032,7 +1032,7 @@ jobs:
       - run:
           name: configure
           command: |
-            CFLAGS="-O1 -Werror=vla -Werror=format-security" \
+            CFLAGS="-O1 -Werror=vla -Wformat -Werror=format-security" \
             CXXFLAGS="-O1 -Werror=vla -Werror=format-security -Wp,-D_GLIBCXX_ASSERTIONS" \
             ./configure \
             --disable-systemd \
@@ -1176,7 +1176,7 @@ jobs:
       - run:
           name: configure
           command: |
-            CFLAGS="-O1 -Werror=vla -Werror=format-security" \
+            CFLAGS="-O1 -Werror=vla -Wformat -Werror=format-security" \
             CXXFLAGS="-O1 -Werror=vla -Werror=format-security -Wp,-D_GLIBCXX_ASSERTIONS" \
             ./configure \
             --enable-unit-tests \
