@@ -10,3 +10,9 @@ Reply to question for qname='text2.example.com.', qtype=TXT
 0	text3.example.com.	IN	TXT	120	"k=rsa\\; p=one"
 Rcode: 0 (No Error), RD: 0, QR: 1, TC: 0, AA: 1, opcode: 0
 Reply to question for qname='text3.example.com.', qtype=TXT
+0	text4.example.com.	IN	TXT	120	"k=rsa; p=one" "foo" "bar fred"
+Rcode: 0 (No Error), RD: 0, QR: 1, TC: 0, AA: 1, opcode: 0
+Reply to question for qname='text4.example.com.', qtype=TXT
+0	text5.example.com.	IN	TXT	120	"k=rsa"
+Rcode: 0 (No Error), RD: 0, QR: 1, TC: 0, AA: 1, opcode: 0
+Reply to question for qname='text5.example.com.', qtype=TXT

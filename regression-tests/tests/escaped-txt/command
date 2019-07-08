@@ -3,3 +3,5 @@ cleandig text0.example.com TXT
 cleandig text1.example.com TXT
 cleandig text2.example.com TXT
 cleandig text3.example.com TXT
+cleandig text4.example.com TXT
+cleandig text5.example.com TXT

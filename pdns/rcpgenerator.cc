@@ -377,30 +377,36 @@ void RecordTextReader::xfrText(string& val, bool multi, bool lenField)
       val.append(1, ' ');
 
     skipSpaces();
-    if(d_string[d_pos]!='"') { // special case 'plenus' - without quotes
-      string::size_type pos = d_pos;
-      while(pos != d_end && isalnum(d_string[pos]))
-        pos++;
-      if(pos == d_end) {
-        val.append(1, '"');
-        val.append(d_string.c_str() + d_pos, d_end - d_pos);
-        val.append(1, '"');
-        d_pos = d_end;
+    bool is_plenus = false;
+    if(d_string[d_pos]=='"')
+      d_pos++;
+    else    // special case 'plenus' - without quotes
+      is_plenus = true;
+
+    val.append(1, '"');
+    for(; d_pos < d_end; d_pos++) {
+      if(d_string[d_pos]=='"') {
+        if(is_plenus)
+          throw RecordTextException("Unquoted data field in DNS should not contain a quote (\") in '"+d_string+"'");
+
+        // Otherwise we reached the end quote
         break;
       }
-      throw RecordTextException("Data field in DNS should start with quote (\") at position "+std::to_string(d_pos)+" of '"+d_string+"'");
-    }
-    val.append(1, '"');
-    while(++d_pos < d_end && d_string[d_pos]!='"') {
-      if(d_string[d_pos]=='\\' && d_pos+1!=d_end) {
+
+      if(is_plenus && dns_isspace(d_string[d_pos]))
+        break;
+
+      if(d_string[d_pos]=='\\' && d_pos+1!=d_end)
         val.append(1, d_string[d_pos++]);
-      }
       val.append(1, d_string[d_pos]);
     }
     val.append(1,'"');
-    if(d_pos == d_end)
-      throw RecordTextException("Data field in DNS should end on a quote (\") in '"+d_string+"'");
-    d_pos++;
+    if(d_pos == d_end) {
+      if(!is_plenus)
+        throw RecordTextException("Data field in DNS should end on a quote (\") in '"+d_string+"'");
+    } else
+      d_pos++;
+
     if(!multi)
       break;
   }
