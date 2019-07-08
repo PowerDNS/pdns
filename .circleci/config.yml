@@ -454,8 +454,8 @@ jobs:
       - run:
           name: configure
           command: |
-            CFLAGS="-O1 -Werror=vla" \
-            CXXFLAGS="-O1 -Werror=vla" \
+            CFLAGS="-O1 -Werror=vla -Werror=format-security" \
+            CXXFLAGS="-O1 -Werror=vla -Werror=format-security -Wp,-D_GLIBCXX_ASSERTIONS" \
             ./configure \
               --disable-lua-records \
               --with-modules='bind lmdb ldap gmysql gsqlite3 gpgsql godbc mydns random tinydns' \
@@ -798,8 +798,8 @@ jobs:
       - run:
           name: configure
           command: |
-            CFLAGS="-O1 -Werror=vla" \
-            CXXFLAGS="-O1 -Werror=vla" \
+            CFLAGS="-O1 -Werror=vla -Werror=format-security" \
+            CXXFLAGS="-O1 -Werror=vla -Werror=format-security -Wp,-D_GLIBCXX_ASSERTIONS" \
             ./configure \
             --enable-unit-tests \
             --enable-nod \
@@ -964,8 +964,8 @@ jobs:
       - run:
           name: configure
           command: |
-            CFLAGS="-O1 -Werror=vla" \
-            CXXFLAGS="-O1 -Werror=vla" \
+            CFLAGS="-O1 -Werror=vla -Werror=format-security" \
+            CXXFLAGS="-O1 -Werror=vla -Werror=format-security -Wp,-D_GLIBCXX_ASSERTIONS" \
             ./configure \
               --disable-lua-records \
               --with-modules='bind lmdb ldap gmysql gsqlite3 gpgsql godbc mydns random tinydns' \
@@ -1032,8 +1032,8 @@ jobs:
       - run:
           name: configure
           command: |
-            CFLAGS="-O1 -Werror=vla" \
-            CXXFLAGS="-O1 -Werror=vla" \
+            CFLAGS="-O1 -Werror=vla -Werror=format-security" \
+            CXXFLAGS="-O1 -Werror=vla -Werror=format-security -Wp,-D_GLIBCXX_ASSERTIONS" \
             ./configure \
             --disable-systemd \
             --disable-unit-tests \
@@ -1104,8 +1104,8 @@ jobs:
       - run:
           name: configure
           command: |
-            CFLAGS="-O1 -Werror=vla" \
-            CXXFLAGS="-O1 -Werror=vla" \
+            CFLAGS="-O1 -Werror=vla -Werror=format-security" \
+            CXXFLAGS="-O1 -Werror=vla -Werror=format-security -Wp,-D_GLIBCXX_ASSERTIONS" \
             ./configure \
             --disable-systemd \
             --disable-unit-tests \
@@ -1176,8 +1176,8 @@ jobs:
       - run:
           name: configure
           command: |
-            CFLAGS="-O1 -Werror=vla" \
-            CXXFLAGS="-O1 -Werror=vla" \
+            CFLAGS="-O1 -Werror=vla -Werror=format-security" \
+            CXXFLAGS="-O1 -Werror=vla -Werror=format-security -Wp,-D_GLIBCXX_ASSERTIONS" \
             ./configure \
             --enable-unit-tests \
             --enable-dnstap \
