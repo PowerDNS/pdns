@@ -659,6 +659,7 @@ static void handleResponseSent(std::shared_ptr<IncomingTCPConnectionState>& stat
     gettime(&answertime);
     double udiff = state->d_ids.sentTime.udiff();
     g_rings.insertResponse(answertime, state->d_ci.remote, state->d_ids.qname, state->d_ids.qtype, static_cast<unsigned int>(udiff), static_cast<unsigned int>(state->d_responseBuffer.size()), state->d_cleartextDH, state->d_ds->remote);
+    vinfolog("Got answer from %s, relayed to %s (%s), took %f usec", state->d_ds->remote.toStringWithPort(), state->d_ids.origRemote.toStringWithPort(), (state->d_ci.cs->tlsFrontend ? "DoT" : "TCP"), udiff);
   }
 
   if (g_maxTCPQueriesPerConn && state->d_queriesCount > g_maxTCPQueriesPerConn) {
@@ -772,6 +773,8 @@ static void sendQueryToBackend(std::shared_ptr<IncomingTCPConnectionState>& stat
     vinfolog("Downstream connection to %s failed %d times in a row, giving up.", ds->getName(), state->d_downstreamFailures);
     return;
   }
+
+  vinfolog("Got query for %s|%s from %s (%s), relayed to %s", state->d_ids.qname.toString(), QType(state->d_ids.qtype).getName(), state->d_ci.remote.toStringWithPort(), (state->d_ci.cs->tlsFrontend ? "DoT" : "TCP"), ds->getName());
 
   handleDownstreamIO(state, now);
   return;
