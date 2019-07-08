@@ -13,6 +13,36 @@
 
 BOOST_AUTO_TEST_SUITE(test_dnswriter_cc)
 
+BOOST_AUTO_TEST_CASE(test_compressionBool) {
+  auto testCompressionBool = [](bool compress, size_t size1, size_t size2) {
+    DNSName name("powerdns.com.");
+
+    vector<uint8_t> packet;
+    DNSPacketWriter pwR(packet, name, QType::A, QClass::IN, 0);
+    pwR.getHeader()->qr = 1;
+
+    pwR.startRecord(DNSName("mediumsizedlabel.example.net"), QType::A, 3600, QClass::IN, DNSResourceRecord::ANSWER, compress);
+    pwR.xfrIP('P'<<24 |
+              'Q'<<16 |
+              'R'<<8  |
+              'S');
+    pwR.commit();
+    BOOST_CHECK_EQUAL(pwR.size(), size1);
+
+    pwR.startRecord(DNSName("adifferentlabel.example.net"), QType::NS, 3600, QClass::IN, DNSResourceRecord::ANSWER, compress);
+    pwR.xfrName(DNSName("target.example.net"), true);
+    pwR.commit();
+    BOOST_CHECK_EQUAL(pwR.size(), size2);
+
+    string spacket(packet.begin(), packet.end());
+
+    BOOST_CHECK_NO_THROW(MOADNSParser mdp(false, spacket));
+  };
+
+  testCompressionBool(true, 74, 111);
+  testCompressionBool(false, 74, 133);
+}
+
 BOOST_AUTO_TEST_CASE(test_compressionBoundary) {
   DNSName name("powerdns.com.");
 

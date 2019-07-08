@@ -167,7 +167,7 @@ private:
 
   uint16_t d_truncatemarker; // end of header, for truncate
   DNSResourceRecord::Place d_recordplace;
-  bool d_canonic, d_lowerCase;
+  bool d_canonic, d_lowerCase, d_compress{false};
 };
 
 typedef vector<pair<string::size_type, string::size_type> > labelparts_t;
