@@ -258,25 +258,26 @@ public:
     this->resolve_name(&addresses, name);
     
     if(b) {
-      b->lookup(QType(QType::ANY),name);
-      while (true) {
-        try {
+        b->lookup(QType(QType::ANY),name);
+        bool ok;
+        do {
           DNSZoneRecord rr;
-          if (!b->get(rr))
-            break;
-          if (rr.dr.d_type == QType::A || rr.dr.d_type == QType::AAAA)
-            addresses.push_back(rr.dr.d_content->getZoneRepresentation());   // SOL if you have a CNAME for an NS
-        }
-        // After an exception, b can be inconsistent so break
-        catch (PDNSException &ae) {
-          g_log << Logger::Error << "Skipping record(s): " << ae.reason << endl;
-          break;
-        }
-        catch (std::exception &e) {
-          g_log << Logger::Error << "Skipping record(s): " << e.what() << endl;
-          break;
-        }
-      }
+          try {
+            ok = b->get(rr);
+          }
+          catch (PDNSException &ae) {
+            g_log << Logger::Error << "Skipping record: " << ae.reason << endl;
+            continue;
+          }
+          catch (std::exception &e) {
+            g_log << Logger::Error << "Skipping record: " << e.what() << endl;
+            continue;
+          }
+          if (ok) {
+            if (rr.dr.d_type == QType::A || rr.dr.d_type == QType::AAAA)
+              addresses.push_back(rr.dr.d_content->getZoneRepresentation());   // SOL if you have a CNAME for an NS
+          }
+        } while (ok);
     }
     return addresses;
   }
