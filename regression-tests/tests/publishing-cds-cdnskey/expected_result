@@ -1,4 +1,3 @@
-0	secure-delegated.dnssec-parent.com.	IN	CDS	86400	54319 8 1 a28ebe791e9cc7f4c2821131be367326ddd7434c
 0	secure-delegated.dnssec-parent.com.	IN	CDS	86400	54319 8 2 a0b9c38cd324182af0ef66830d0a0e85a1d58979c9834e18c871779e040857b7
 0	secure-delegated.dnssec-parent.com.	IN	RRSIG	86400	CDS 8 3 86400 [expiry] [inception] [keytag] secure-delegated.dnssec-parent.com. ...
 0	secure-delegated.dnssec-parent.com.	IN	RRSIG	86400	CDS 8 3 86400 [expiry] [inception] [keytag] secure-delegated.dnssec-parent.com. ...
@@ -12,13 +11,11 @@ Reply to question for qname='secure-delegated.dnssec-parent.com.', qtype=CDS
 Rcode: 0 (No Error), RD: 0, QR: 1, TC: 0, AA: 1, opcode: 0
 Reply to question for qname='secure-delegated.dnssec-parent.com.', qtype=CDNSKEY
 0	secure-delegated.dnssec-parent.com.	IN	CDNSKEY	86400	257 3 8 AwEAAZd9R7SWWGqA12oG7Ls+h3b0/IAyMj/Pqn/ZuKWM/OdpxT/cn2xwLDhkdmqP/pUqAzvyFPyd4kTqrmLfbohBwA7+07pBVa4qf/jxlHivdMNUD72H+dUYqBlmhCC6l3eG+8FZi2tkdwn8kUoa9kyLMtrEaFnOd/oUQbmNvIDp+8VWv1cSnRJ8UXKdXLl0smpvC7h1K2AUiC5oGIYQTCYWwYRM1wCbb+q1fbFCdkbI7OQW/h7Pj30eLpIuz0bJj4vdKXXZHK8clSdTMAFm6rQsNDI0w7QdCgaDmTn3b6TF2UJi4eDnh7uDbSpUd1mI5XWNw4C6WrUmebFLfiry6vqdiIc=
-0	secure-delegated.dnssec-parent.com.	IN	CDS	86400	54319 8 1 a28ebe791e9cc7f4c2821131be367326ddd7434c
 0	secure-delegated.dnssec-parent.com.	IN	CDS	86400	54319 8 2 a0b9c38cd324182af0ef66830d0a0e85a1d58979c9834e18c871779e040857b7
 0	secure-delegated.dnssec-parent.com.	IN	RRSIG	86400	CDNSKEY 8 3 86400 [expiry] [inception] [keytag] secure-delegated.dnssec-parent.com. ...
 0	secure-delegated.dnssec-parent.com.	IN	RRSIG	86400	CDNSKEY 8 3 86400 [expiry] [inception] [keytag] secure-delegated.dnssec-parent.com. ...
 0	secure-delegated.dnssec-parent.com.	IN	RRSIG	86400	CDS 8 3 86400 [expiry] [inception] [keytag] secure-delegated.dnssec-parent.com. ...
 0	secure-delegated.dnssec-parent.com.	IN	RRSIG	86400	CDS 8 3 86400 [expiry] [inception] [keytag] secure-delegated.dnssec-parent.com. ...
-0	cdnskey-cds-test.com.	IN	CDS	86400
 0	cdnskey-cds-test.com.	IN	CDS	86400
 0	cdnskey-cds-test.com.	IN	RRSIG	86400
 2	.	IN	OPT	32768	
@@ -30,7 +27,6 @@ Reply to question for qname='cdnskey-cds-test.com.', qtype=CDS
 Rcode: 0 (No Error), RD: 0, QR: 1, TC: 0, AA: 1, opcode: 0
 Reply to question for qname='cdnskey-cds-test.com.', qtype=CDNSKEY
 0	cdnskey-cds-test.com.	IN	CDNSKEY	86400
-0	cdnskey-cds-test.com.	IN	CDS	86400
 0	cdnskey-cds-test.com.	IN	CDS	86400
 0	cdnskey-cds-test.com.	IN	RRSIG	86400
 0	cdnskey-cds-test.com.	IN	RRSIG	86400
