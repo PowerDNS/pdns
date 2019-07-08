@@ -61,6 +61,14 @@ struct DOHUnit
   DOHUnit** self{nullptr};
   int rsock;
   uint16_t qtype;
+  /* the error and status_code are set from
+     processDOHQuery() (which is executed in
+     the DOH client thread) so that the correct
+     response can be sent in on_dnsdist(),
+     after the DOHUnit has been passed back to
+     the main DoH thread.
+  */
+  uint16_t status_code{0};
   bool error{false};
   bool ednsAdded{false};
 };
