@@ -168,16 +168,13 @@ try
   if(doh) {
 #ifdef HAVE_LIBCURL
     string method = argv[2];
+    MiniCurl mc;
+    MiniCurl::MiniCurlHeaders mch;
+    mch.insert(std::make_pair("Accept", "application/dns-message"));
     if (method == "POST") {
-      MiniCurl mc;
-      MiniCurl::MiniCurlHeaders mch;
       mch.insert(std::make_pair("Content-Type", "application/dns-message"));
-      mch.insert(std::make_pair("Accept", "application/dns-message"));
       reply = mc.postURL(argv[1], question, mch);
     } else if (method == "GET") {
-      MiniCurl mc;
-      MiniCurl::MiniCurlHeaders mch;
-      mch.insert(std::make_pair("Accept", "application/dns-message"));
       string url = argv[1];
       string b64question = Base64Encode(question);
       boost::replace_all(b64question, "+", "-");
