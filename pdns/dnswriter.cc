@@ -76,6 +76,7 @@ dnsheader* DNSPacketWriter::getHeader()
 
 void DNSPacketWriter::startRecord(const DNSName& name, uint16_t qtype, uint32_t ttl, uint16_t qclass, DNSResourceRecord::Place place, bool compress)
 {
+  d_compress = compress;
   commit();
   d_rollbackmarker=d_content.size();
 
@@ -327,7 +328,7 @@ void DNSPacketWriter::xfrName(const DNSName& name, bool compress, bool)
 
   uint16_t li=0;
   uint16_t matchlen=0;
-  if(compress && (li=lookupName(name, &matchlen)) && li < 16384) {
+  if(d_compress && compress && (li=lookupName(name, &matchlen)) && li < 16384) {
     const auto& dns=name.getStorage(); 
     if(l_verbose)
       cout<<"Found a substring of "<<matchlen<<" bytes from the back, offset: "<<li<<", dnslen: "<<dns.size()<<endl;
