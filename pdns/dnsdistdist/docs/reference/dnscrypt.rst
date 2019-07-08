@@ -1,20 +1,21 @@
 DNSCrypt objects and functions
 ==============================
 
-.. function:: addDNSCryptBind(address, provider, certificate, keyfile[, options])
+.. function:: addDNSCryptBind(address, provider, certFile(s), keyFile(s) [, options])
 
   .. versionchanged:: 1.3.0
     ``cpus`` option added.
 
   .. versionchanged:: 1.4.0
     Removed ``doTCP`` from the options. A listen socket on TCP is always created.
+    ``certFile(s)`` and ``keyFile(s)`` now accept a list of files.
 
   Adds a DNSCrypt listen socket on ``address``.
 
   :param string address: The address and port to listen on
   :param string provider: The provider name for this bind
-  :param string certificate: Path to the certificate file
-  :param string keyfile: Path to the key file of the certificate
+  :param str certFile(s): The path to a X.509 certificate file in PEM format, or a list of paths to such files.
+  :param str keyFile(s): The path to the private key file corresponding to the certificate, or a list of paths to such files, whose order should match the certFile(s) ones.
   :param table options: A table with key: value pairs with options (see below)
 
   Options:

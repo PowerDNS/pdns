@@ -537,7 +537,7 @@ void setupLuaBindings(bool client)
 
       if (ctx != nullptr) {
         size_t idx = 1;
-        boost::format fmt("%1$-3d %|5t|%2$-8d %|10t|%3$-2d %|20t|%4$-21.21s %|41t|%5$-21.21s");
+        boost::format fmt("%1$-3d %|5t|%2$-8d %|10t|%3$-7d %|20t|%4$-21.21s %|41t|%5$-21.21s");
         ret << (fmt % "#" % "Serial" % "Version" % "From" % "To" ) << endl;
 
         for (auto pair : ctx->getCertificates()) {
