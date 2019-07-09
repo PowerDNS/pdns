@@ -540,7 +540,7 @@ bool LMDBBackend::list(const DNSName &target, int id, bool include_disabled)
   return true;
 }
 
-void LMDBBackend::lookup(const QType &type, const DNSName &qdomain, DNSPacket *p, int zoneId)
+void LMDBBackend::lookup(const QType &type, const DNSName &qdomain, int zoneId, DNSPacket *p)
 {
   if(d_dolog) {
     g_log << Logger::Warning << "Got lookup for "<<qdomain<<"|"<<type.getName()<<" in zone "<< zoneId<<endl;
@@ -635,7 +635,7 @@ bool LMDBBackend::get(DNSResourceRecord& rr)
 bool LMDBBackend::getSOA(const DNSName &domain, SOAData &sd)
 {
   //  cout <<"Native getSOA called"<<endl;
-  lookup(QType(QType::SOA), domain, 0, -1);
+  lookup(QType(QType::SOA), domain, -1);
   DNSZoneRecord dzr;
   bool found=false;
   while(get(dzr)) {

@@ -53,7 +53,7 @@ class PipeBackend : public DNSBackend
 public:
   PipeBackend(const string &suffix="");
   ~PipeBackend();
-  void lookup(const QType&, const DNSName& qdomain, DNSPacket *p=0, int zoneId=-1) override;
+  void lookup(const QType&, const DNSName& qdomain, int zoneId, DNSPacket *p=nullptr) override;
   bool list(const DNSName& target, int domain_id, bool include_disabled=false) override;
   bool get(DNSResourceRecord &r) override;
   string directBackendCmd(const string &query) override;

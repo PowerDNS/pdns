@@ -258,7 +258,7 @@ public:
     this->resolve_name(&addresses, name);
     
     if(b) {
-        b->lookup(QType(QType::ANY),name);
+        b->lookup(QType(QType::ANY),name,-1);
         DNSZoneRecord rr;
         while(b->get(rr))
           if(rr.dr.d_type == QType::A || rr.dr.d_type==QType::AAAA)

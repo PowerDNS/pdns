@@ -36,7 +36,7 @@ public:
   MyDNSBackend(const string &suffix);
   ~MyDNSBackend();
   
-  void lookup(const QType &, const DNSName &qdomain, DNSPacket *p=0, int zoneId=-1) override;
+  void lookup(const QType &, const DNSName &qdomain, int zoneId, DNSPacket *p=nullptr) override;
   bool list(const DNSName &target, int domain_id, bool include_disabled=false) override;
   bool get(DNSResourceRecord &r) override;
   bool getSOA(const DNSName& name, SOAData& soadata) override;

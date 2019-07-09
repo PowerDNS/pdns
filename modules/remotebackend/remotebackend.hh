@@ -155,7 +155,7 @@ class RemoteBackend : public DNSBackend
   RemoteBackend(const std::string &suffix="");
   ~RemoteBackend();
 
-  void lookup(const QType &qtype, const DNSName& qdomain, DNSPacket *pkt_p=0, int zoneId=-1) override;
+  void lookup(const QType &qtype, const DNSName& qdomain, int zoneId=-1, DNSPacket *pkt_p=nullptr) override;
   bool get(DNSResourceRecord &rr) override;
   bool list(const DNSName& target, int domain_id, bool include_disabled=false) override;
 

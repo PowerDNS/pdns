@@ -33,7 +33,7 @@ int PacketHandler::checkUpdatePrerequisites(const DNSRecord *rr, DomainInfo *di)
 
   bool foundRecord=false;
   DNSResourceRecord rec;
-  di->backend->lookup(QType(QType::ANY), rr->d_name, nullptr, di->id);
+  di->backend->lookup(QType(QType::ANY), rr->d_name, di->id);
   while(di->backend->get(rec)) {
     if (!rec.qtype.getCode())
       continue;
@@ -171,7 +171,7 @@ uint PacketHandler::performUpdate(const string &msgPrefix, const DNSRecord *rr, 
 
 
     bool foundRecord = false;
-    di->backend->lookup(rrType, rr->d_name, nullptr, di->id);
+    di->backend->lookup(rrType, rr->d_name, di->id);
     while (di->backend->get(rec)) {
       rrset.push_back(rec);
       foundRecord = true;
@@ -289,7 +289,7 @@ uint PacketHandler::performUpdate(const string &msgPrefix, const DNSRecord *rr, 
             break;
 
           bool foundShorter = false;
-          di->backend->lookup(QType(QType::ANY), shorter, nullptr, di->id);
+          di->backend->lookup(QType(QType::ANY), shorter, di->id);
           while (di->backend->get(rec)) {
             if (rec.qname == rr->d_name && rec.qtype == QType::DS)
               fixDS = true;
@@ -444,7 +444,7 @@ uint PacketHandler::performUpdate(const string &msgPrefix, const DNSRecord *rr, 
     } // end of NSEC3PARAM delete block
 
 
-    di->backend->lookup(rrType, rr->d_name, nullptr, di->id);
+    di->backend->lookup(rrType, rr->d_name, di->id);
     while(di->backend->get(rec)) {
       if (rr->d_class == QClass::ANY) { // 3.4.2.3
         if (rec.qname == di->zone && (rec.qtype == QType::NS || rec.qtype == QType::SOA)) // Never delete all SOA and NS's
@@ -861,7 +861,7 @@ int PacketHandler::processUpdate(DNSPacket *p) {
       rrVector_t *vec = &preRRSet->second;
 
       DNSResourceRecord rec;
-      di.backend->lookup(QType(QType::ANY), rrSet.first, nullptr, di.id);
+      di.backend->lookup(QType(QType::ANY), rrSet.first, di.id);
       uint16_t foundRR=0, matchRR=0;
       while (di.backend->get(rec)) {
         if (rec.qtype == rrSet.second) {
@@ -959,7 +959,7 @@ int PacketHandler::processUpdate(DNSPacket *p) {
     }
     for (const auto &rr : cnamesToAdd) {
       DNSResourceRecord rec;
-      di.backend->lookup(QType(QType::ANY), rr->d_name, nullptr, di.id);
+      di.backend->lookup(QType(QType::ANY), rr->d_name, di.id);
       while (di.backend->get(rec)) {
         if (rec.qtype != QType::CNAME && rec.qtype != QType::ENT && rec.qtype != QType::RRSIG) {
           // leave database handle in a consistent state
@@ -974,7 +974,7 @@ int PacketHandler::processUpdate(DNSPacket *p) {
     }
     for (const auto &rr : nonCnamesToAdd) {
       DNSResourceRecord rec;
-      di.backend->lookup(QType(QType::CNAME), rr->d_name, nullptr, di.id);
+      di.backend->lookup(QType(QType::CNAME), rr->d_name, di.id);
       while (di.backend->get(rec)) {
         if (rec.qtype == QType::CNAME && rr->d_type != QType::RRSIG) {
           // leave database handle in a consistent state
@@ -990,7 +990,7 @@ int PacketHandler::processUpdate(DNSPacket *p) {
     if (nsRRtoDelete.size()) {
       vector<DNSResourceRecord> nsRRInZone;
       DNSResourceRecord rec;
-      di.backend->lookup(QType(QType::NS), di.zone, nullptr, di.id);
+      di.backend->lookup(QType(QType::NS), di.zone, di.id);
       while (di.backend->get(rec)) {
         nsRRInZone.push_back(rec);
       }

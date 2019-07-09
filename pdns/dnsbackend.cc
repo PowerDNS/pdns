@@ -221,7 +221,7 @@ vector<DNSBackend *>BackendMakerClass::all(bool metadataOnly)
 */
 bool DNSBackend::getSOA(const DNSName &domain, SOAData &sd)
 {
-  this->lookup(QType(QType::SOA),domain);
+  this->lookup(QType(QType::SOA),domain,-1);
 
   DNSResourceRecord rr;
   rr.auth = true;

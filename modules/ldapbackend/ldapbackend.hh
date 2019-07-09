@@ -174,7 +174,7 @@ class LdapBackend : public DNSBackend
 
     // Native backend
     bool list( const DNSName& target, int domain_id, bool include_disabled=false ) override;
-    void lookup( const QType& qtype, const DNSName& qdomain, DNSPacket* p = 0, int zoneid = -1 ) override;
+    void lookup( const QType& qtype, const DNSName& qdomain, int zoneid, DNSPacket* p = nullptr ) override;
     bool get( DNSResourceRecord& rr ) override;
 
     bool getDomainInfo( const DNSName& domain, DomainInfo& di, bool getSerial=true ) override;

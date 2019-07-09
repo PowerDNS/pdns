@@ -76,7 +76,7 @@ public:
         OdbxBackend( const string& suffix="" );
         ~OdbxBackend();
 
-        void lookup( const QType& qtype, const DNSName& qdomain, DNSPacket* p = 0, int zoneid = -1 ) override;
+        void lookup( const QType& qtype, const DNSName& qdomain, int zoneid, DNSPacket* p = nullptr ) override;
         bool getSOA( const DNSName& domain, SOAData& sd ) override;
         bool list( const DNSName& target, int domain_id, bool include_disabled=false ) override;
         bool get( DNSResourceRecord& rr ) override;

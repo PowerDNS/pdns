@@ -242,7 +242,7 @@ bool MyDNSBackend::getSOA(const DNSName& name, SOAData& soadata) {
   return true;
 }
 
-void MyDNSBackend::lookup(const QType &qtype, const DNSName &qname, DNSPacket *p, int zoneId) {
+void MyDNSBackend::lookup(const QType &qtype, const DNSName &qname, int zoneId, DNSPacket *p) {
   SSqlStatement::row_t rrow;
   bool found = false;
 

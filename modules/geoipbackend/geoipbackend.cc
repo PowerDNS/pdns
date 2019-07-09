@@ -343,7 +343,7 @@ bool GeoIPBackend::lookup_static(const GeoIPDomain &dom, const DNSName &search, 
   return false;
 };
 
-void GeoIPBackend::lookup(const QType &qtype, const DNSName& qdomain, DNSPacket *pkt_p, int zoneId) {
+void GeoIPBackend::lookup(const QType &qtype, const DNSName& qdomain, int zoneId, DNSPacket *pkt_p) {
   ReadLock rl(&s_state_lock);
   const GeoIPDomain* dom;
   GeoIPNetmask gl;
