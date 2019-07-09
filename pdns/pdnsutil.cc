@@ -1611,9 +1611,8 @@ bool showZone(DNSSECKeeper& dk, const DNSName& zone, bool exportDS = false)
     vector<DNSKEYRecordContent> keys;
     DNSZoneRecord zr;
 
-    B.lookup(QType(QType::DNSKEY), zone, -1 );
-    while(B.get(zr)) {
-      if (zr.dr.d_type != QType::DNSKEY) continue;
+    di.backend->lookup(QType(QType::DNSKEY), zone, di.id );
+    while(di.backend->get(zr)) {
       keys.push_back(*getRR<DNSKEYRecordContent>(zr.dr));
     }
 
