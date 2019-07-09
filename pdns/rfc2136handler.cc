@@ -1028,7 +1028,7 @@ int PacketHandler::processUpdate(DNSPacket *p) {
         vector<string> notify;
         B.getDomainMetadata(p->qdomain, "NOTIFY-DNSUPDATE", notify);
         if (!notify.empty() && notify.front() == "1") {
-          Communicator.notifyDomain(di.zone);
+          Communicator.notifyDomain(di.zone, &B);
         }
       }
 

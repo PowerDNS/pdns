@@ -119,7 +119,7 @@ void CommunicatorClass::mainloop(void)
     for(;;) {
       slaveRefresh(&P);
       masterUpdateCheck(&P);
-      tick=doNotifications(); // this processes any notification acknowledgements and actually send out our own notifications
+      tick=doNotifications(&P); // this processes any notification acknowledgements and actually send out our own notifications
       
       tick = min (tick, d_tickinterval); 
       
@@ -146,7 +146,7 @@ void CommunicatorClass::mainloop(void)
           break; // something happened
         }
         // this gets executed at least once every second
-        doNotifications();
+        doNotifications(&P);
       }
     }
   }

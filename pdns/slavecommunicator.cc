@@ -600,7 +600,7 @@ void CommunicatorClass::suck(const DNSName &domain, const ComboAddress& remote)
 
     g_log<<Logger::Error<<"AXFR done for '"<<domain<<"', zone committed with serial number "<<zs.soa_serial<<endl;
     if(::arg().mustDo("slave-renotify"))
-      notifyDomain(domain);
+      notifyDomain(domain, &B);
   }
   catch(DBException &re) {
     g_log<<Logger::Error<<"Unable to feed record during incoming AXFR of '" << domain<<"': "<<re.reason<<endl;
