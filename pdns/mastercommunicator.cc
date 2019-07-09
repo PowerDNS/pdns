@@ -52,7 +52,7 @@ void CommunicatorClass::queueNotifyDomain(const DomainInfo& di, UeberBackend* B)
 
   try {
   if (d_onlyNotify.size()) {
-    B->lookup(QType(QType::NS), di.zone, -1);
+    B->lookup(QType(QType::NS), di.zone, di.id);
     while(B->get(rr))
       nsset.insert(getRR<NSRecordContent>(rr.dr)->getNS().toString());
 
