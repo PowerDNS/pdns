@@ -947,7 +947,7 @@ void CommunicatorClass::slaveRefresh(PacketHandler *P)
     else if(hasSOA && theirserial == ourserial) {
       uint32_t maxExpire=0, maxInception=0;
       if(dk.isPresigned(di.zone)) {
-        B->lookup(QType(QType::RRSIG), di.zone); // can't use DK before we are done with this lookup!
+        B->lookup(QType(QType::RRSIG), di.zone, nullptr, di.id); // can't use DK before we are done with this lookup!
         DNSZoneRecord zr;
         while(B->get(zr)) {
           auto rrsig = getRR<RRSIGRecordContent>(zr.dr);
