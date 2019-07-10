@@ -204,7 +204,7 @@ time_t CommunicatorClass::doNotifications(PacketHandler *P)
   // send out possible new notifications
   DNSName domain;
   string ip;
-  uint16_t id;
+  uint16_t id=0;
 
   bool purged;
   while(d_nq.getOne(domain, ip, &id, purged)) {
