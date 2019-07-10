@@ -99,9 +99,7 @@ bin_PROGRAMS += \
 	ixplore \
 	sdig
 
-if HAVE_RECVMMSG
 bin_PROGRAMS += calidns
-endif
 
 if HAVE_BOOST_GE_148
 bin_PROGRAMS += \
@@ -1317,6 +1315,7 @@ testrunner_SOURCES = \
 	test-dnsparser_cc.cc \
 	test-dnsparser_hh.cc \
 	test-dnsrecords_cc.cc \
+	test-dnswriter_cc.cc \
 	test-ipcrypt_cc.cc \
 	test-iputils_hh.cc \
 	test-ixfr_cc.cc \

@@ -928,10 +928,6 @@ workflows:
     jobs:
       - coverity-auth:
           context: auth-coverity
-      - coverity-dnsdist:
-          context: dnsdist-coverity
-      - coverity-recursor:
-          context: recursor-coverity
 
   build-and-test-all:
     jobs:
@@ -972,13 +968,3 @@ workflows:
       - test-auth-regress-tinydns:
           requires:
             - build-auth
-      - build-recursor
-      - test-recursor-regression:
-          requires:
-            - build-recursor
-      - test-recursor-bulk:
-          requires:
-            - build-recursor
-      - test-recursor-api:
-          requires:
-            - build-recursor
