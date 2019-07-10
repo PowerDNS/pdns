@@ -22,33 +22,30 @@
 #ifdef HAVE_CONFIG_H
 #include "config.h"
 #endif
-#include "cdb.hh"
-#include <cdb.h>
-#include "pdns/misc.hh"
-#include "pdns/iputils.hh"
-#include <utility>
 
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <fcntl.h>
+#include <unistd.h>
+
+#include "cdb.hh"
 
 CDB::CDB(const string &cdbfile)
 {
   d_fd = open(cdbfile.c_str(), O_RDONLY);
   if (d_fd < 0)
   {
-    g_log<<Logger::Error<<"Failed to open cdb database file '"<<cdbfile<<"'. Error: "<<stringerror()<<endl;
-    throw new PDNSException("Failed to open cdb database file '"+cdbfile+"'. Error: " + stringerror());
+    throw std::runtime_error("Failed to open cdb database file '"+cdbfile+"'. Error: " + stringerror());
   }
 
   memset(&d_cdbf,0,sizeof(struct cdb_find));
   int cdbinit = cdb_init(&d_cdb, d_fd);
   if (cdbinit < 0)
   {
-    g_log<<Logger::Error<<"Failed to initialize cdb structure. ErrorNr: '"<<cdbinit<<endl;
-    throw new PDNSException("Failed to initialize cdb structure.");
+    close(d_fd);
+    d_fd = -1;
+    throw std::runtime_error("Failed to initialize cdb structure. ErrorNt: '" + std::to_string(cdbinit) + "'");
   }
-
-  d_key = NULL;
-  d_seqPtr = 0;
-  d_searchType = SearchKey;
 }
 
 CDB::~CDB() {
@@ -61,18 +58,18 @@ int CDB::searchKey(const string &key) {
 
   // A 'bug' in tinycdb (the lib used for reading the CDB files) means we have to copy the key because the cdb_find struct
   // keeps a pointer to it.
-  d_key = strdup(key.c_str());
-  return cdb_findinit(&d_cdbf, &d_cdb, d_key, key.size());
+  d_key = key;
+  return cdb_findinit(&d_cdbf, &d_cdb, d_key.c_str(), d_key.size());
 }
 
 bool CDB::searchSuffix(const string &key) {
   d_searchType = SearchSuffix;
 
   //See CDB::searchKey()
-  d_key = strdup(key.c_str());
+  d_key = key;
 
   // We are ok with a search on things, but we do want to know if a record with that key exists.........
-  bool hasDomain = (cdb_find(&d_cdb, key.c_str(), key.size()) == 1);
+  bool hasDomain = (cdb_find(&d_cdb, d_key.c_str(), d_key.size()) == 1);
   if (hasDomain) {
     cdb_seqinit(&d_seqPtr, &d_cdb);
   }
@@ -103,33 +100,32 @@ bool CDB::readNext(pair<string, string> &value) {
     pos = cdb_keypos(&d_cdb);
     len = cdb_keylen(&d_cdb);
 
-    char *key = (char *)malloc(len);
-    cdb_read(&d_cdb, key, len, pos);
+    std::string key;
+    key.resize(len);
+    cdb_read(&d_cdb, &key[0], len, pos);
 
     if (d_searchType == SearchSuffix) {
-      char *p = strstr(key, d_key);
-      if (p == NULL) {
-        free(key);
+      char *p = strstr(const_cast<char*>(key.c_str()), d_key.c_str());
+      if (p == nullptr) {
         continue;
       }
     }
-    string skey(key, len);
-    free(key);
 
     pos = cdb_datapos(&d_cdb);
     len = cdb_datalen(&d_cdb);
-    char *val = (char *)malloc(len);
-    cdb_read(&d_cdb, val, len, pos);
-    string sval(val, len);
-    free(val);
+    std::string val;
+    val.resize(len);
+    cdb_read(&d_cdb, &val[0], len, pos);
 
-    value = make_pair(skey, sval);
+    value = make_pair(std::move(key), std::move(val));
     return true;
   }
+
   // We're done searching, so we can clean up d_key
   if (d_searchType != SearchAll) {
-    free(d_key);
+    d_key.clear();
   }
+
   return false;
 }
 
@@ -144,11 +140,11 @@ vector<string> CDB::findall(string &key)
     x++;
     unsigned int vpos = cdb_datapos(&d_cdb);
     unsigned int vlen = cdb_datalen(&d_cdb);
-    char *val = (char *)malloc(vlen);
-    cdb_read(&d_cdb, val, vlen, vpos);
-    string sval(val, vlen);
-    ret.push_back(sval);
-    free(val);
+    std::string val;
+    val.resize(vlen);
+    cdb_read(&d_cdb, &val[0], vlen, vpos);
+    ret.push_back(std::move(val));
   }
+
   return ret;
 }

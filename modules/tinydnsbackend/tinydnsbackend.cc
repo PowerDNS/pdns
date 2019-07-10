@@ -63,9 +63,14 @@ vector<string> TinyDNSBackend::getLocations()
 
   for (int i=4;i>=0;i--) {
     string searchkey(key, i+2);
-    CDB *reader = new CDB(getArg("dbfile"));
-    ret = reader->findall(searchkey);
-    delete reader;
+    try {
+      auto reader = std::unique_ptr<CDB>(new CDB(getArg("dbfile")));
+      ret = reader->findall(searchkey);
+    }
+    catch(const std::exception& e) {
+      g_log<<Logger::Error<<e.what()<<endl;
+      throw PDNSException(e.what());
+    }
 
     //Biggest item wins, so when we find something, we can jump out.
     if (ret.size() > 0) {
@@ -135,7 +140,7 @@ void TinyDNSBackend::getUpdatedMasters(vector<DomainInfo>* retDomains) {
 void TinyDNSBackend::setNotified(uint32_t id, uint32_t serial) {
   Lock l(&s_domainInfoLock);
   if (!s_domainInfo.count(d_suffix)) {
-    throw new PDNSException("Can't get list of domains to set the serial.");
+    throw PDNSException("Can't get list of domains to set the serial.");
   }
   TDI_t *domains = &s_domainInfo[d_suffix];
   TDIById_t& domain_index = domains->get<tag_domainid>();
@@ -153,7 +158,14 @@ void TinyDNSBackend::getAllDomains(vector<DomainInfo> *domains, bool include_dis
   d_isAxfr=true;
   d_dnspacket = NULL;
 
-  d_cdbReader=std::unique_ptr<CDB>(new CDB(getArg("dbfile")));
+  try {
+    d_cdbReader=std::unique_ptr<CDB>(new CDB(getArg("dbfile")));
+  }
+  catch (const std::exception& e) {
+    g_log<<Logger::Error<<e.what()<<endl;
+    throw PDNSException(e.what());
+  }
+
   d_cdbReader->searchAll();
   DNSResourceRecord rr;
 
@@ -178,7 +190,14 @@ void TinyDNSBackend::getAllDomains(vector<DomainInfo> *domains, bool include_dis
 bool TinyDNSBackend::list(const DNSName &target, int domain_id, bool include_disabled) {
   d_isAxfr=true;
   string key = target.toDNSStringLC();
-  d_cdbReader=std::unique_ptr<CDB>(new CDB(getArg("dbfile")));
+  try {
+    d_cdbReader=std::unique_ptr<CDB>(new CDB(getArg("dbfile")));
+  }
+  catch (const std::exception& e) {
+    g_log<<Logger::Error<<e.what()<<endl;
+    throw PDNSException(e.what());
+  }
+
   return d_cdbReader->searchSuffix(key);
 }
 
@@ -199,7 +218,14 @@ void TinyDNSBackend::lookup(const QType &qtype, const DNSName &qdomain, DNSPacke
 
   d_qtype=qtype;
 
-  d_cdbReader=std::unique_ptr<CDB>(new CDB(getArg("dbfile")));
+  try {
+    d_cdbReader=std::unique_ptr<CDB>(new CDB(getArg("dbfile")));
+  }
+  catch (const std::exception& e) {
+    g_log<<Logger::Error<<e.what()<<endl;
+    throw PDNSException(e.what());
+  }
+
   d_cdbReader->searchKey(key);
   d_dnspacket = pkt_p;
 }

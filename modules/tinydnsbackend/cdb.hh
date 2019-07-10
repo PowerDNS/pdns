@@ -22,11 +22,9 @@
 #ifndef CDB_HH
 #define CDB_HH
 
-#include "pdns/logger.hh"
 #include <cdb.h>
-#include <sys/types.h>
-#include <sys/stat.h>
-#include <fcntl.h>
+
+#include "pdns/misc.hh"
 
 // This class is responsible for the reading of a CDB file.
 // The constructor opens the CDB file, the destructor closes it, so make sure you call that.
@@ -43,13 +41,14 @@ public:
   vector<string> findall(string &key);
 
 private:
-  int d_fd;
   bool moveToNext();
+
+  int d_fd{-1};
   struct cdb d_cdb;
   struct cdb_find d_cdbf;
-  char *d_key;
-  unsigned d_seqPtr;
-  enum SearchType { SearchSuffix, SearchKey, SearchAll } d_searchType;
+  std::string d_key;
+  unsigned d_seqPtr{0};
+  enum SearchType { SearchSuffix, SearchKey, SearchAll } d_searchType{SearchKey};
 };
 
 #endif // CDB_HH
