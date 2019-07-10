@@ -573,7 +573,7 @@ static bool addRecordToWriter(DNSPacketWriter& pw, const DNSName& zoneName, cons
 {
   pw.startRecord(record.d_name + zoneName, record.d_type, record.d_ttl, QClass::IN, DNSResourceRecord::ANSWER, compress);
   record.d_content->toPacket(pw);
-  if (pw.size() > 65535) {
+  if (pw.size() > 16384) {
     pw.rollback();
     return false;
   }
