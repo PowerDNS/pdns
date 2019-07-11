@@ -23,14 +23,9 @@
 #include "config.h"
 #endif
 #include "tinydnsbackend.hh"
-#include "pdns/lock.hh"
-#include <cdb.h>
 #include "pdns/misc.hh"
-#include "pdns/iputils.hh"
-#include "pdns/dnspacket.hh"
 #include "pdns/dnsrecords.hh"
 #include <utility>
-
 
 static string backendname="[TinyDNSBackend] ";
 uint32_t TinyDNSBackend::s_lastId;
