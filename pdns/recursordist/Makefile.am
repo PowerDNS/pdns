@@ -94,6 +94,7 @@ pdns_recursor_SOURCES = \
 	base64.cc base64.hh \
 	cachecleaner.hh \
 	capabilities.cc capabilities.hh \
+	circular_buffer.hh \
 	comment.hh \
 	dns.hh dns.cc \
 	dns_random.hh dns_random.cc \
@@ -211,6 +212,7 @@ testrunner_SOURCES = \
 	arguments.cc \
 	base32.cc \
 	base64.cc base64.hh \
+	circular_buffer.hh \
 	dns.cc dns.hh \
 	dns_random.cc dns_random.hh \
 	dnslabeltext.cc \
