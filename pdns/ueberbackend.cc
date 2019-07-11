@@ -287,7 +287,8 @@ bool UeberBackend::getAuth(const DNSName &target, const QType& qtype, SOAData* s
   bool found = false;
   int cstat;
   DNSName shorter(target);
-  vector<pair<size_t, SOAData> > bestmatch (backends.size(), make_pair(target.wirelength()+1, SOAData()));
+  const size_t initial_length = target.wirelength()+1;
+  vector<pair<size_t, SOAData> > bestmatch (backends.size(), make_pair(initial_length, SOAData()));
   do {
 
     // Check cache
@@ -344,15 +345,31 @@ bool UeberBackend::getAuth(const DNSName &target, const QType& qtype, SOAData* s
         }
       }
 
-      // Add to cache
-      if(i == backends.end()) {
-        if(d_negcache_ttl) {
-          DLOG(g_log<<Logger::Error<<"add neg cache entry:"<<shorter<<endl);
-          d_question.qname=shorter;
-          addNegCache(d_question);
-        }
-        continue;
-      } else if(d_cache_ttl) {
+      // If all backends have return a result (which may be empty or shorter
+      // than the current question), then we can just finish with whatever is
+      // the longest sd->qname..
+      if(i == backends.end()) {     // if != then we had an exact match and breaked earlier
+          auto longest = &bestmatch[0];
+          for( j = bestmatch.begin(); j != bestmatch.end(); ++j ) {
+              if( j->first > longest->first )
+                longest = &*j;
+          }
+
+          // All backends returned a match, get the longest
+          if( longest->first < initial_length ) {
+            *sd = longest->second;
+          } else {      // Add to negcache
+            if(d_negcache_ttl) {
+              DLOG(g_log<<Logger::Error<<"add neg cache entry:"<<shorter<<endl);
+              d_question.qname=shorter;
+              addNegCache(d_question);
+            }
+            continue;
+          }
+      }
+
+      // Definately got a result from one of the backends, cache it
+      if(d_cache_ttl && !sd->qname.empty()) {
         DLOG(g_log<<Logger::Error<<"add pos cache entry: "<<sd->qname<<endl);
         d_question.qtype = QType::SOA;
         d_question.qname = sd->qname;
@@ -372,7 +389,7 @@ bool UeberBackend::getAuth(const DNSName &target, const QType& qtype, SOAData* s
 found:
     if(found == (qtype == QType::DS) || target != shorter) {
       DLOG(g_log<<Logger::Error<<"found: "<<sd->qname<<endl);
-      return true;
+      return !sd->qname.empty();
     } else {
       DLOG(g_log<<Logger::Error<<"chasing next: "<<sd->qname<<endl);
       found = true;
