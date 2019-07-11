@@ -164,6 +164,18 @@ commands:
             default-libmysqlclient-dev \
             unixodbc
 
+  install-ixfrdist-deps:
+    description: "Install all libraries needed for testing ixfrdist"
+    steps:
+      - run: apt-get update
+      - run:
+          command: |
+            apt-get install -qq -y \
+              libboost-all-dev \
+              libsystemd0 \
+              libyaml-cpp0.5v5 \
+              virtualenv
+
   install-auth-dev-deps:
     description: Install all packages needed to build the auth
     steps:
@@ -190,6 +202,7 @@ commands:
               libsqlite3-dev \
               libssl-dev \
               libtool \
+              libyaml-cpp-dev \
               make \
               pkg-config \
               ragel \
@@ -298,7 +311,8 @@ jobs:
               --enable-tools \
               --with-lmdb=/usr \
               --with-libsodium \
-              --prefix=/opt/pdns-auth
+              --prefix=/opt/pdns-auth \
+              --enable-ixfrdist
       - run:
           name: build
           command: make -j3 -k
@@ -916,6 +930,23 @@ jobs:
             --form description="master build" \
             https://scan.coverity.com/builds?project=${COVERITY_PROJECT}
 
+  test-ixfrdist-regression:
+    docker:
+      - image: debian:stretch
+        environment:
+          UBSAN_OPTIONS: 'print_stacktrace=1:halt_on_error=1'
+    steps:
+      - install-ixfrdist-deps
+      - checkout-shallow
+      - attach_workspace:
+          at: /opt
+      - run:
+          name: Run ixfrdist tests
+          workdir: ~/project/regression-tests.ixfrdist
+          command: |
+            IXFRDISTBIN="/opt/pdns-auth/bin/ixfrdist" \
+            ./runtests
+
 workflows:
   version: 2
   coverity:
@@ -966,5 +997,8 @@ workflows:
           requires:
             - build-auth
       - test-auth-regress-tinydns:
+          requires:
+            - build-auth
+      - test-ixfrdist-regression:
           requires:
             - build-auth
