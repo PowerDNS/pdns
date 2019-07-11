@@ -33,7 +33,6 @@
 #include <iostream>
 #include <unistd.h>
 #include "misc.hh"
-#include "syncres.hh"
 
 #include "namespaces.hh"
 
