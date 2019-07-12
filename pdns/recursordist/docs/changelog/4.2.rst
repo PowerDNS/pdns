@@ -7,6 +7,12 @@ Changelogs for 4.2.x
 
   .. change::
     :tags: Bug Fixes
+    :pullreq: 8074
+
+    Make sure we always compile with BOOST_CB_ENABLE_DEBUG set to 0
+
+  .. change::
+    :tags: Bug Fixes
     :pullreq: 8052
 
     Limit compression pointers to 14 bits
