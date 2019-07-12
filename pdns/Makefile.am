@@ -1312,6 +1312,7 @@ testrunner_SOURCES = \
 	test-dnsparser_cc.cc \
 	test-dnsparser_hh.cc \
 	test-dnsrecords_cc.cc \
+	test-dnswriter_cc.cc \
 	test-ipcrypt_cc.cc \
 	test-iputils_hh.cc \
 	test-ixfr_cc.cc \
