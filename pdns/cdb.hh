@@ -24,7 +24,7 @@
 
 #include <cdb.h>
 
-#include "pdns/misc.hh"
+#include "misc.hh"
 
 // This class is responsible for the reading of a CDB file.
 // The constructor opens the CDB file, the destructor closes it, so make sure you call that.
@@ -34,11 +34,14 @@ public:
   CDB(const string &cdbfile);
   ~CDB();
 
+  /* Return negative value on error or non-negative value on success.
+     Values can be retrieved via readNext() */
   int searchKey(const string &key);
   bool searchSuffix(const string &key);
   void searchAll();
   bool readNext(pair<string, string> &value);
   vector<string> findall(string &key);
+  bool findOne(const string& key, string& value);
 
 private:
   bool moveToNext();
@@ -49,6 +52,22 @@ private:
   std::string d_key;
   unsigned d_seqPtr{0};
   enum SearchType { SearchSuffix, SearchKey, SearchAll } d_searchType{SearchKey};
+};
+
+class CDBWriter
+{
+public:
+  /* we own the fd after this call, don't ever touch it */
+  CDBWriter(int fd);
+  ~CDBWriter();
+
+  bool addEntry(const std::string& key, const std::string& value);
+  /* finalize the database and close the fd, the only thing you can do now is to call the destructor */
+  void close();
+
+private:
+  struct cdb_make d_cdbm;
+  int d_fd{-1};
 };
 
 #endif // CDB_HH

@@ -103,7 +103,7 @@ public:
   {
   }
 
-  virtual std::string getValue(const std::string& key) = 0;
+  virtual bool getValue(const std::string& key, std::string& value) = 0;
 };
 
 #ifdef HAVE_LMDB
@@ -117,12 +117,32 @@ public:
   {
   }
 
-  std::string getValue(const std::string& key) override;
+  bool getValue(const std::string& key, std::string& value) override;
 
 private:
   MDBEnv d_env;
   std::string d_fname;
   std::string d_dbName;
+};
+
+#endif /* HAVE_LMDB */
+
+#ifdef HAVE_CDB
+
+#include "cdb.hh"
+
+class CDBKVStore: public KeyValueStore
+{
+public:
+  CDBKVStore(const std::string& fname): d_cdb(fname), d_fname(fname)
+  {
+  }
+
+  bool getValue(const std::string& key, std::string& value) override;
+
+private:
+  CDB d_cdb;
+  std::string d_fname;
 };
 
 #endif /* HAVE_LMDB */

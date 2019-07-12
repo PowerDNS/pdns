@@ -254,6 +254,13 @@ testrunner_LDADD = \
 	$(SANITIZER_FLAGS) \
 	$(LIBCAP_LIBS)
 
+if HAVE_CDB
+dnsdist_LDADD += $(CDB_LDFLAGS) $(CDB_LIBS)
+testrunner_LDADD += $(CDB_LDFLAGS) $(CDB_LIBS)
+dnsdist_SOURCES += cdb.cc cdb.hh
+testrunner_SOURCES += cdb.cc cdb.hh
+endif
+
 if HAVE_RE2
 dnsdist_LDADD += $(RE2_LIBS)
 endif

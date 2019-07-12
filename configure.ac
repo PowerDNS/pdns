@@ -203,6 +203,7 @@ for a in $modules $dynmodules; do
       have_remotebackend=yes
       ;;
     tinydns)
+      needcdb=yes
       PDNS_CHECK_CDB
       ;;
     geoip)
@@ -249,6 +250,15 @@ AS_IF([test "x$needlmdb" = "xyes"], [
   ])
   AS_IF([test "x$HAVE_LMDB" != "x1"], [
     AC_MSG_ERROR([lmdb not found via pkg-config, please install lmdb or set --with-lmdb to your lmdb installation directory])
+  ])
+])
+
+AM_CONDITIONAL([CDB], [test "x$needcdb" != "x"])
+AM_CONDITIONAL([HAVE_CDB], [test "x$CDB_LIBS" != "x"])
+
+AS_IF([test "x$needcdb" = "xyes"], [
+  AS_IF([test "x$HAVE_CDB" != "x1"], [
+    AC_MSG_ERROR([cdb not found via pkg-config, please install cdb])
   ])
 ])
 

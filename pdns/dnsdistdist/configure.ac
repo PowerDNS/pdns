@@ -64,6 +64,7 @@ PDNS_CHECK_LUA_HPP
 AM_CONDITIONAL([HAVE_GNUTLS], [false])
 AM_CONDITIONAL([HAVE_LIBSSL], [false])
 AM_CONDITIONAL([HAVE_LMDB], [false])
+AM_CONDITIONAL([HAVE_CDB], [false])
 
 PDNS_CHECK_LIBCRYPTO
 
@@ -93,6 +94,7 @@ AS_IF([test "x$enable_dns_over_https" != "xno"], [
   ])
 ])
 
+PDNS_CHECK_CDB
 PDNS_CHECK_LMDB
 
 AX_CXX_COMPILE_STDCXX_11([ext], [mandatory])
@@ -215,6 +217,10 @@ AS_IF([test "x$enable_dns_over_tls" != "xno" -o "x$enable_dns_over_https" != "xn
     [AC_MSG_NOTICE([OpenSSL: yes])],
     [AC_MSG_NOTICE([OpenSSL: no])]
   )]
+)
+AS_IF([test "x$CDB_LIBS" != "x"],
+  [AC_MSG_NOTICE([cdb: yes])],
+  [AC_MSG_NOTICE([cdb: no])]
 )
 AS_IF([test "x$LMDB_LIBS" != "x"],
   [AC_MSG_NOTICE([lmdb: yes])],

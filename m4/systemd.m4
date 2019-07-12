@@ -192,6 +192,7 @@ AC_DEFUN([AX_CHECK_SYSTEMD_FEATURES], [
         AM_CONDITIONAL([HAVE_SYSTEMD_RESTRICT_ADDRESS_FAMILIES], [ test x"$systemd_restrict_address_families" = "xy" ])
         AM_CONDITIONAL([HAVE_SYSTEMD_RESTRICT_NAMESPACES], [ test x"$systemd_restrict_namespaces" = "xy" ])
         AM_CONDITIONAL([HAVE_SYSTEMD_RESTRICT_REALTIME], [ test x"$systemd_restrict_realtime" = "xy" ])
+        AM_CONDITIONAL([HAVE_SYSTEMD_RESTRICT_SUIDSGID], [ test x"$systemd_restrict_suidsgid" = "xy" ])
         AM_CONDITIONAL([HAVE_SYSTEMD_SYSTEM_CALL_ARCHITECTURES], [ test x"$systemd_system_call_architectures" = "xy" ])
         AM_CONDITIONAL([HAVE_SYSTEMD_SYSTEM_CALL_FILTER], [ test x"$systemd_system_call_filter" = "xy" ])
 ])

@@ -35,7 +35,7 @@ CDB::CDB(const string &cdbfile)
   d_fd = open(cdbfile.c_str(), O_RDONLY);
   if (d_fd < 0)
   {
-    throw std::runtime_error("Failed to open cdb database file '"+cdbfile+"'. Error: " + stringerror());
+    throw std::runtime_error("Failed to open cdb database file '"+cdbfile+"': " + stringerror());
   }
 
   memset(&d_cdbf,0,sizeof(struct cdb_find));
@@ -44,7 +44,7 @@ CDB::CDB(const string &cdbfile)
   {
     close(d_fd);
     d_fd = -1;
-    throw std::runtime_error("Failed to initialize cdb structure. ErrorNt: '" + std::to_string(cdbinit) + "'");
+    throw std::runtime_error("Failed to initialize cdb structure for database '+cdbfile+': '" + std::to_string(cdbinit) + "'");
   }
 }
 
@@ -102,7 +102,10 @@ bool CDB::readNext(pair<string, string> &value) {
 
     std::string key;
     key.resize(len);
-    cdb_read(&d_cdb, &key[0], len, pos);
+    int ret = cdb_read(&d_cdb, &key[0], len, pos);
+    if (ret < 0) {
+      throw std::runtime_error("Error while reading key for key '" + key + "' from CDB database: " + std::to_string(ret));
+    }
 
     if (d_searchType == SearchSuffix) {
       char *p = strstr(const_cast<char*>(key.c_str()), d_key.c_str());
@@ -115,7 +118,10 @@ bool CDB::readNext(pair<string, string> &value) {
     len = cdb_datalen(&d_cdb);
     std::string val;
     val.resize(len);
-    cdb_read(&d_cdb, &val[0], len, pos);
+    ret = cdb_read(&d_cdb, &val[0], len, pos);
+    if (ret < 0) {
+      throw std::runtime_error("Error while reading value for key '" + key + "' from CDB database: " + std::to_string(ret));
+    }
 
     value = make_pair(std::move(key), std::move(val));
     return true;
@@ -134,7 +140,11 @@ vector<string> CDB::findall(string &key)
   vector<string> ret;
   struct cdb_find cdbf;
 
-  cdb_findinit(&cdbf, &d_cdb, key.c_str(), key.size());
+  int res = cdb_findinit(&cdbf, &d_cdb, key.c_str(), key.size());
+  if (res < 0) {
+    throw std::runtime_error("Error looking up key '" + key + "' from CDB database: " + std::to_string(res));
+  }
+
   int x=0;
   while(cdb_findnext(&cdbf) > 0) {
     x++;
@@ -142,9 +152,67 @@ vector<string> CDB::findall(string &key)
     unsigned int vlen = cdb_datalen(&d_cdb);
     std::string val;
     val.resize(vlen);
-    cdb_read(&d_cdb, &val[0], vlen, vpos);
+    res = cdb_read(&d_cdb, &val[0], vlen, vpos);
+    if (res < 0) {
+      throw std::runtime_error("Error while reading value for key '" + key + "' from CDB database: " + std::to_string(res));
+    }
     ret.push_back(std::move(val));
   }
 
   return ret;
+}
+
+bool CDB::findOne(const string& key, string& value)
+{
+  int ret = cdb_find(&d_cdb, key.c_str(), key.size());
+  if (ret < 0) {
+    throw std::runtime_error("Error while looking up key '" + key + "' from CDB database: " + std::to_string(ret));
+  }
+  if (ret == 0) {
+    /* no such key */
+    return false;
+  }
+
+  unsigned int vpos = cdb_datapos(&d_cdb);
+  unsigned int vlen = cdb_datalen(&d_cdb);
+  value.resize(vlen);
+  ret = cdb_read(&d_cdb, &value[0], vlen, vpos);
+  if (ret < 0) {
+    throw std::runtime_error("Error while reading value for key '" + key + "' from CDB database: " + std::to_string(ret));
+  }
+
+  return true;
+}
+
+CDBWriter::CDBWriter(int fd): d_fd(fd)
+{
+  cdb_make_start(&d_cdbm, d_fd);
+}
+
+CDBWriter::~CDBWriter()
+{
+  close();
+}
+
+void CDBWriter::close()
+{
+  if (d_fd >= 0) {
+    cdb_make_finish(&d_cdbm);
+    ::close(d_fd);
+    d_fd = -1;
+  }
+}
+
+bool CDBWriter::addEntry(const std::string& key, const std::string& value)
+{
+  if (d_fd < 0) {
+    throw std::runtime_error("Can't add an entry to a closed CDB database");
+  }
+
+  int ret = cdb_make_add(&d_cdbm, key.c_str(), key.size(), value.c_str(), value.size());
+  if (ret != 0) {
+    throw std::runtime_error("Error adding key '" + key + "' to CDB database: " + std::to_string(ret));
+  }
+
+  return true;
 }

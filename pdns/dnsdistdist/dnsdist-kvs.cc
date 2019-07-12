@@ -25,9 +25,7 @@
 
 #ifdef HAVE_LMDB
 
-#include "lmdb-safe.hh"
-
-std::string LMDBKVStore::getValue(const std::string& key)
+bool LMDBKVStore::getValue(const std::string& key, std::string& value)
 {
   string_view result;
   try {
@@ -35,16 +33,34 @@ std::string LMDBKVStore::getValue(const std::string& key)
     auto dbi = transaction.openDB(d_dbName, 0);
     int rc = transaction.get(dbi, MDBInVal(key), result);
     if (rc == 0) {
-      return result.to_string();
+      value = result.to_string();
+      return true;
     }
     else if (rc == MDB_NOTFOUND) {
-      return std::string();
+      return false;
     }
   }
   catch(const std::exception& e) {
     warnlog("Error while looking up key '%s' from LMDB file '%s', database '%s': %s", key, d_fname, d_dbName);
   }
-  return std::string();
+  return false;
 }
 
 #endif /* HAVE_LMDB */
+
+#ifdef HAVE_CDB
+
+bool CDBKVStore::getValue(const std::string& key, std::string& value)
+{
+  try {
+    if (d_cdb.findOne(key, value)) {
+      return true;
+    }
+  }
+  catch(const std::exception& e) {
+    warnlog("Error while looking up key '%s' from CDB file '%s': %s", key, d_fname);
+  }
+  return false;
+}
+
+#endif /* HAVE_CDB */
