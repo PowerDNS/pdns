@@ -29,7 +29,7 @@
 #include "lock.hh"
 #include "namespaces.hh"
 #include "iputils.hh"
-#include <boost/circular_buffer.hpp>
+#include "circular_buffer.hh"
 
 
 

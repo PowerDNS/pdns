@@ -31,11 +31,11 @@
 #include <unistd.h>
 #include <unordered_map>
 
-#include <boost/circular_buffer.hpp>
 #include <boost/variant.hpp>
 
 #include "bpf-filter.hh"
 #include "capabilities.hh"
+#include "circular_buffer.hh"
 #include "dnscrypt.hh"
 #include "dnsdist-cache.hh"
 #include "dnsdist-dynbpf.hh"
