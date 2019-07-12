@@ -1,6 +1,7 @@
 #include <fstream>
 
 #include "config.h"
+#include "circular_buffer.hh"
 #include "dolog.hh"
 #include "iputils.hh"
 #include "lock.hh"
@@ -16,8 +17,6 @@
 #include <openssl/err.h>
 #include <openssl/rand.h>
 #include <openssl/ssl.h>
-
-#include <boost/circular_buffer.hpp>
 
 #include "libssl.hh"
 
