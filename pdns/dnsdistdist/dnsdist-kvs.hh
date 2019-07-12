@@ -29,23 +29,25 @@ public:
   virtual ~KeyValueLookupKey()
   {
   }
-  virtual std::string getKey(const DNSQuestion&) = 0;
+  virtual std::vector<std::string> getKeys(const DNSQuestion&) = 0;
   virtual std::string toString() const = 0;
 };
 
 class KeyValueLookupKeySourceIP: public KeyValueLookupKey
 {
 public:
-  std::string getKey(const DNSQuestion& dq) override
+  std::vector<std::string> getKeys(const DNSQuestion& dq) override
   {
-    std::string key;
+    std::vector<std::string> result;
+
     if (dq.remote->sin4.sin_family == AF_INET) {
-      key = std::string(reinterpret_cast<const char*>(&dq.remote->sin4.sin_addr.s_addr), sizeof(dq.remote->sin4.sin_addr.s_addr));
+      result.emplace_back(reinterpret_cast<const char*>(&dq.remote->sin4.sin_addr.s_addr), sizeof(dq.remote->sin4.sin_addr.s_addr));
     }
     else if (dq.remote->sin4.sin_family == AF_INET6) {
-      key = std::string(reinterpret_cast<const char*>(&dq.remote->sin6.sin6_addr.s6_addr), sizeof(dq.remote->sin6.sin6_addr.s6_addr));
+      result.emplace_back(reinterpret_cast<const char*>(&dq.remote->sin6.sin6_addr.s6_addr), sizeof(dq.remote->sin6.sin6_addr.s6_addr));
     }
-    return key;
+
+    return result;
   }
 
   std::string toString() const override
@@ -57,9 +59,31 @@ public:
 class KeyValueLookupKeyQName: public KeyValueLookupKey
 {
 public:
-  std::string getKey(const DNSQuestion& dq) override
+  std::vector<std::string> getKeys(const DNSQuestion& dq) override
   {
-    return dq.qname->toDNSStringLC();
+    return {dq.qname->toDNSStringLC()};
+  }
+
+  std::string toString() const override
+  {
+    return "qname";
+  }
+};
+
+class KeyValueLookupKeySuffix: public KeyValueLookupKey
+{
+public:
+  std::vector<std::string> getKeys(const DNSQuestion& dq) override
+  {
+    auto lowerQName = dq.qname->makeLowerCase();
+    std::vector<std::string> result(lowerQName.countLabels());
+
+    do {
+      result.emplace_back(lowerQName.toDNSString());
+    }
+    while (lowerQName.chopOff());
+
+    return result;
   }
 
   std::string toString() const override
@@ -75,16 +99,15 @@ public:
   {
   }
 
-  std::string getKey(const DNSQuestion& dq) override
+  std::vector<std::string> getKeys(const DNSQuestion& dq) override
   {
-    std::string key;
     if (dq.qTag) {
       const auto& it = dq.qTag->find(d_tag);
       if (it != dq.qTag->end()) {
-        key = it->second;
+        return { it->second };
       }
     }
-    return key;
+    return {};
   }
 
   std::string toString() const override

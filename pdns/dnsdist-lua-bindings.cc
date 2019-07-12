@@ -722,6 +722,9 @@ void setupLuaBindings(bool client)
   g_lua.writeFunction("KeyValueLookupKeyQName", []() {
     return std::shared_ptr<KeyValueLookupKey>(new KeyValueLookupKeyQName());
   });
+  g_lua.writeFunction("KeyValueLookupKeySuffix", []() {
+    return std::shared_ptr<KeyValueLookupKey>(new KeyValueLookupKeySuffix());
+  });
   g_lua.writeFunction("KeyValueLookupKeyTag", [](const std::string& tag) {
     return std::shared_ptr<KeyValueLookupKey>(new KeyValueLookupKeyTag(tag));
   });

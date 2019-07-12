@@ -1116,9 +1116,13 @@ public:
 
   DNSAction::Action operator()(DNSQuestion* dq, std::string* ruleresult) const override
   {
-    std::string key = d_key->getKey(*dq);
+    std::vector<std::string> keys = d_key->getKeys(*dq);
     std::string result;
-    d_kvs->getValue(key, result);
+    for (const auto& key : keys) {
+      if (d_kvs->getValue(key, result) == true) {
+        break;
+      }
+    }
 
     if (!dq->qTag) {
       dq->qTag = std::make_shared<QTag>();

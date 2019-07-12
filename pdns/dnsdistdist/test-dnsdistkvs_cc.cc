@@ -11,9 +11,6 @@ BOOST_AUTO_TEST_SUITE(dnsdistkvs_cc)
 #ifdef HAVE_LMDB
 BOOST_AUTO_TEST_CASE(test_LMDB) {
 
-  auto lmdb = make_unique<LMDBKVStore>("/data/Dumps/lmdb", "db-name");
-  auto key = make_unique<KeyValueLookupKeySourceIP>();
-
   DNSName qname("powerdns.com.");
   uint16_t qtype = QType::A;
   uint16_t qclass = QClass::IN;
@@ -32,13 +29,19 @@ BOOST_AUTO_TEST_CASE(test_LMDB) {
 
   DNSQuestion dq(&qname, qtype, qclass, qname.wirelength(), &lc, &rem, &dh, bufferSize, queryLen, isTcp, &queryRealTime);
 
+  auto lmdb = make_unique<LMDBKVStore>("/data/Dumps/lmdb", "db-name");
+  auto lookupKey = make_unique<KeyValueLookupKeySourceIP>();
+
   std::string value;
   DTime dt;
   dt.set();
   for (size_t idx = 0; idx < 10000000; idx++) {
-    value.clear();
-    BOOST_CHECK_EQUAL(lmdb->getValue(key->getKey(dq), value), true);
-    BOOST_CHECK_EQUAL(value, "this is the value of the tag");
+    auto keys = lookupKey->getKeys(dq);
+    for (const auto& key : keys) {
+      value.clear();
+      BOOST_CHECK_EQUAL(lmdb->getValue(key, value), true);
+      BOOST_CHECK_EQUAL(value, "this is the value of the tag");
+    }
   }
   cerr<<dt.udiff()/1000/1000<<endl;
 }
@@ -73,14 +76,17 @@ BOOST_AUTO_TEST_CASE(test_CDB) {
   writer.close();
 
   auto cdb = make_unique<CDBKVStore>(db);
-  auto key = make_unique<KeyValueLookupKeySourceIP>();
+  auto lookupKey = make_unique<KeyValueLookupKeySourceIP>();
 
   std::string value;
   DTime dt;
   dt.set();
   for (size_t idx = 0; idx < 10000000; idx++) {
-    BOOST_CHECK_EQUAL(cdb->getValue(key->getKey(dq), value), true);
-    BOOST_CHECK_EQUAL(value, "this is the value of the tag");
+    auto keys = lookupKey->getKeys(dq);
+    for (const auto& key : keys) {
+      BOOST_CHECK_EQUAL(cdb->getValue(key, value), true);
+      BOOST_CHECK_EQUAL(value, "this is the value of the tag");
+    }
   }
   cerr<<dt.udiff()/1000/1000<<endl;
 }
