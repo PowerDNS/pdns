@@ -189,12 +189,9 @@ recursor-4.1.12.security-status                         60 IN TXT "1 OK"
 recursor-4.1.13.security-status                         60 IN TXT "1 OK"
 recursor-4.1.14.security-status                         60 IN TXT "1 OK"
 recursor-4.2.0-alpha1.security-status                   60 IN TXT "2 Unsupported pre-release (no known vulnerabilities)"
-recursor-4.2.0-beta1.security-status                    60 IN TXT "2 Unsupported pre-release
-(no known vulnerabilities)"
-recursor-4.2.0-rc1.security-status                      60 IN TXT "2 Unsupported pre-release
-(no known vulnerabilities)"
-recursor-4.2.0-rc2.security-status                      60 IN TXT "2 Unsupported pre-release
-(no known vulnerabilities)"
+recursor-4.2.0-beta1.security-status                    60 IN TXT "2 Unsupported pre-release (no known vulnerabilities)"
+recursor-4.2.0-rc1.security-status                      60 IN TXT "2 Unsupported pre-release (no known vulnerabilities)"
+recursor-4.2.0-rc2.security-status                      60 IN TXT "2 Unsupported pre-release (no known vulnerabilities)"
 recursor-4.2.0.security-status                          60 IN TXT "1 OK"
 
 ; Recursor Debian
