@@ -1056,7 +1056,7 @@ void Bind2Backend::lookup(const QType &qtype, const DNSName &qname, DNSPacket *p
     g_log<<Logger::Warning<<"Lookup for '"<<qtype.getName()<<"' of '"<<qname<<"' within zoneID "<<zoneId<<endl;
 
   if (zoneId >= 0) {
-    if ((found = safeGetBBDomainInfo(zoneId, &bbd))) {
+    if ((found = (safeGetBBDomainInfo(zoneId, &bbd) && qname.isPartOf(bbd.d_name)))) {
       domain = bbd.d_name;
     }
   } else {
@@ -1068,7 +1068,7 @@ void Bind2Backend::lookup(const QType &qtype, const DNSName &qname, DNSPacket *p
 
   if(!found) {
     if(mustlog)
-      g_log<<Logger::Warning<<"Found no authoritative zone for "<<qname<<endl;
+      g_log<<Logger::Warning<<"Found no authoritative zone for '"<<qname<<"' and/or id "<<bbd.d_id<<endl;
     d_handle.d_list=false;
     return;
   }
@@ -1077,12 +1077,7 @@ void Bind2Backend::lookup(const QType &qtype, const DNSName &qname, DNSPacket *p
     g_log<<Logger::Warning<<"Found a zone '"<<domain<<"' (with id " << bbd.d_id<<") that might contain data "<<endl;
 
   d_handle.id=bbd.d_id;
-
-  if(domain.empty())
-    d_handle.qname=qname;
-  else if(qname.isPartOf(domain))
-    d_handle.qname=qname.makeRelative(domain); // strip domain name
-
+  d_handle.qname=qname.makeRelative(domain); // strip domain name
   d_handle.qtype=qtype;
   d_handle.domain=domain;
 
