@@ -107,7 +107,7 @@ static std::unique_ptr<Socket> setupTCPDownstream(shared_ptr<DownstreamState>& d
 class TCPConnectionToBackend
 {
 public:
-  TCPConnectionToBackend(std::shared_ptr<DownstreamState>& ds, uint16_t& downstreamFailures, const struct timeval& now): d_ds(ds), d_connectionStartTime(now)
+  TCPConnectionToBackend(std::shared_ptr<DownstreamState>& ds, uint16_t& downstreamFailures, const struct timeval& now): d_ds(ds), d_connectionStartTime(now), d_enableFastOpen(ds->tcpFastOpen)
   {
     d_socket = setupTCPDownstream(d_ds, downstreamFailures);
     ++d_ds->tcpCurrentConnections;
@@ -154,12 +154,23 @@ public:
     d_fresh = false;
   }
 
+  void disableFastOpen()
+  {
+    d_enableFastOpen = false;
+  }
+
+  bool isFastOpenEnabled()
+  {
+    return d_enableFastOpen;
+  }
+
 private:
   std::unique_ptr<Socket> d_socket{nullptr};
   std::shared_ptr<DownstreamState> d_ds{nullptr};
   struct timeval d_connectionStartTime;
   uint64_t d_queries{0};
   bool d_fresh{true};
+  bool d_enableFastOpen{false};
 };
 
 static thread_local map<ComboAddress, std::deque<std::unique_ptr<TCPConnectionToBackend>>> t_downstreamConnections;
@@ -912,7 +923,7 @@ static void handleDownstreamIO(std::shared_ptr<IncomingTCPConnectionState>& stat
     if (state->d_state == IncomingTCPConnectionState::State::sendingQueryToBackend) {
       int socketFlags = 0;
 #ifdef MSG_FASTOPEN
-      if (state->d_ds->tcpFastOpen && state->d_downstreamConnection->isFresh()) {
+      if (state->d_downstreamConnection->isFastOpenEnabled()) {
         socketFlags |= MSG_FASTOPEN;
       }
 #endif /* MSG_FASTOPEN */
@@ -935,7 +946,7 @@ static void handleDownstreamIO(std::shared_ptr<IncomingTCPConnectionState>& stat
         state->d_currentPos += sent;
         iostate = IOState::NeedWrite;
         /* disable fast open on partial write */
-        state->d_downstreamConnection->setReused();
+        state->d_downstreamConnection->disableFastOpen();
       }
     }
 
