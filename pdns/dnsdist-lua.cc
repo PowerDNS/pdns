@@ -1090,7 +1090,7 @@ void setupLuaConfig(bool client)
       }
     });
 
-  g_lua.writeFunction("addDNSCryptBind", [](const std::string& addr, const std::string& providerName, const std::string& certFile, const std::string keyFile, boost::optional<localbind_t> vars) {
+  g_lua.writeFunction("addDNSCryptBind", [](const std::string& addr, const std::string& providerName, boost::variant<std::string, std::vector<std::pair<int, std::string>>> certFiles, boost::variant<std::string, std::vector<std::pair<int, std::string>>> keyFiles, boost::optional<localbind_t> vars) {
       if (g_configurationDone) {
         g_outputBuffer="addDNSCryptBind cannot be used at runtime!\n";
         return;
@@ -1100,11 +1100,37 @@ void setupLuaConfig(bool client)
       int tcpFastOpenQueueSize = 0;
       std::string interface;
       std::set<int> cpus;
+      std::vector<DNSCryptContext::CertKeyPaths> certKeys;
 
       parseLocalBindVars(vars, reusePort, tcpFastOpenQueueSize, interface, cpus);
 
+      if (certFiles.type() == typeid(std::string) && keyFiles.type() == typeid(std::string)) {
+        auto certFile = boost::get<std::string>(certFiles);
+        auto keyFile = boost::get<std::string>(keyFiles);
+        certKeys.push_back({certFile, keyFile});
+      }
+      else if (certFiles.type() == typeid(std::vector<std::pair<int,std::string>>) && keyFiles.type() == typeid(std::vector<std::pair<int,std::string>>)) {
+        auto certFilesVect = boost::get<std::vector<std::pair<int,std::string>>>(certFiles);
+        auto keyFilesVect = boost::get<std::vector<std::pair<int,std::string>>>(keyFiles);
+        if (certFilesVect.size() == keyFilesVect.size()) {
+          for (size_t idx = 0; idx < certFilesVect.size(); idx++) {
+            certKeys.push_back({certFilesVect.at(idx).second, keyFilesVect.at(idx).second});
+          }
+        }
+        else {
+          errlog("Error, mismatching number of certificates and keys in call to addDNSCryptBind!");
+          g_outputBuffer="Error, mismatching number of certificates and keys in call to addDNSCryptBind()!";
+          return;
+        }
+      }
+      else {
+        errlog("Error, mismatching number of certificates and keys in call to addDNSCryptBind()!");
+        g_outputBuffer="Error, mismatching number of certificates and keys in call to addDNSCryptBind()!";
+        return;
+      }
+
       try {
-        auto ctx = std::make_shared<DNSCryptContext>(providerName, certFile, keyFile);
+        auto ctx = std::make_shared<DNSCryptContext>(providerName, certKeys);
 
         /* UDP */
         auto cs = std::unique_ptr<ClientState>(new ClientState(ComboAddress(addr, 443), false, reusePort, tcpFastOpenQueueSize, interface, cpus));
@@ -1939,7 +1965,7 @@ void setupLuaConfig(bool client)
           try {
 #ifdef HAVE_DNSCRYPT
             if (frontend->dnscryptCtx) {
-              frontend->dnscryptCtx->reloadCertificate();
+              frontend->dnscryptCtx->reloadCertificates();
             }
 #endif /* HAVE_DNSCRYPT */
 #ifdef HAVE_DNS_OVER_TLS
