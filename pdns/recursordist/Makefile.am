@@ -446,7 +446,7 @@ recursor.conf-dist: pdns_recursor
 	$(AM_V_GEN)./pdns_recursor --config > $@
 
 ## Manpages
-MANPAGES=pdns_recursor.1 \
+MANPAGES=pdns_recursor.8 \
 	 rec_control.1
 
 dist_man_MANS=$(MANPAGES)

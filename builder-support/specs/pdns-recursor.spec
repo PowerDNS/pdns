@@ -140,8 +140,8 @@ fi
 %files
 %{_bindir}/rec_control
 %{_sbindir}/pdns_recursor
-%{_mandir}/man1/pdns_recursor.1.gz
 %{_mandir}/man1/rec_control.1.gz
+%{_mandir}/man8/pdns_recursor.8.gz
 %if 0%{?rhel} == 6
 %{_initrddir}/pdns-recursor
 %else

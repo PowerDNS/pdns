@@ -168,7 +168,7 @@ On systemd systems:
     * pdns.service - PowerDNS Authoritative Server
        Loaded: loaded (/lib/systemd/system/pdns.service; enabled)
        Active: active (running) since Tue 2017-01-17 15:59:28 UTC; 1 months 12 days ago
-         Docs: man:pdns_server(1)
+         Docs: man:pdns_server(8)
                man:pdns_control(1)
                https://doc.powerdns.com
      Main PID: 24636 (pdns_server)

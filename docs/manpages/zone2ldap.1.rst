@@ -28,4 +28,4 @@ Options
 See also
 --------
 
-pdns_server(1)
+pdns_server(8)

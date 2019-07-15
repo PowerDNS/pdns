@@ -170,7 +170,7 @@ latex_logo = 'common/powerdns-logo-500px.png'
 # (source start file, name, description, authors, manual section).
 man_pages = [
     ('manpages/rec_control.1', 'rec_control', 'Command line tool to control a running Recursor', [author], 1),
-    ('manpages/pdns_recursor.1', 'pdns_recursor', 'The PowerDNS Recursor binary', [author], 1)
+    ('manpages/pdns_recursor.8', 'pdns_recursor', 'The PowerDNS Recursor binary', [author], 8)
 ]
 
 

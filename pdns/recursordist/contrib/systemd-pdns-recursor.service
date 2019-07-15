@@ -1,6 +1,6 @@
 [Unit]
 Description=PowerDNS recursing nameserver
-Documentation=man:pdns_recursor(1) man:rec_control(1)
+Documentation=man:pdns_recursor(8) man:rec_control(1)
 Wants=network-online.target nss-lookup.target
 Before=nss-lookup.target
 After=network-online.target

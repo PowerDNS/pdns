@@ -313,10 +313,10 @@ fi
 %{_sbindir}/pdns_server
 %{_libdir}/%{name}/libbindbackend.so
 %{_mandir}/man1/pdns_control.1.gz
-%{_mandir}/man1/pdns_server.1.gz
 %{_mandir}/man1/zone2sql.1.gz
 %{_mandir}/man1/zone2json.1.gz
 %{_mandir}/man1/pdnsutil.1.gz
+%{_mandir}/man8/pdns_server.8.gz
 %dir %{_libdir}/%{name}/
 %{_libdir}/%{name}/librandombackend.so
 %config(noreplace) %{_sysconfdir}/%{name}/pdns.conf

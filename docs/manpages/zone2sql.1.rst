@@ -101,4 +101,4 @@ handle the disabled status in the comment.
 See also
 --------
 
-pdns_server(1)
+pdns_server(8)

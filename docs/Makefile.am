@@ -1,4 +1,4 @@
-MAIN_MANS = pdns_server.1 \
+MAIN_MANS = pdns_server.8 \
 	pdns_control.1 \
 	pdnsutil.1 \
 	zone2json.1 \

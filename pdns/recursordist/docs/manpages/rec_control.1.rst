@@ -317,4 +317,4 @@ wipe-cache *DOMAIN* [*DOMAIN*] [...]
 
 See also
 --------
-:manpage:`pdns_recursor(1)`
+:manpage:`pdns_recursor(8)`

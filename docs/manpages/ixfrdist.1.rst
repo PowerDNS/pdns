@@ -32,4 +32,4 @@ Options
 See also
 --------
 
-ixplore(1), pdns_server(1), ixfrdist.yml(5)
+ixplore(1), pdns_server(8), ixfrdist.yml(5)
