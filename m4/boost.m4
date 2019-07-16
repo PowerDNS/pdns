@@ -336,9 +336,6 @@ case $Boost_lib in #(
     AC_SUBST([BOOST_LDPATH], [$Boost_lib_LDPATH])dnl
     AC_SUBST(AS_TR_CPP([BOOST_$1_LIBS]), [$Boost_lib_LIBS])dnl
     ;;
-  (no) _AC_MSG_LOG_CONFTEST
-    AC_MSG_ERROR([cannot find flags to link with the Boost $1 library (libboost-$1)])
-    ;;
 esac
 CPPFLAGS=$boost_save_CPPFLAGS
 AS_VAR_POPDEF([Boost_lib])dnl
