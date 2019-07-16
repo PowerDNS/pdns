@@ -1,20 +1,8 @@
 from ixfrdisttests import IXFRDistTest
-from xfrserver.xfrserver import AXFRServer
 import time
 import requests
 
-zones = {
-    1: """
-$ORIGIN example.
-@        86400   SOA    foo bar 1 2 3 4 5
-@        4242    NS     ns1.example.
-@        4242    NS     ns2.example.
-ns1.example.    4242    A       192.0.2.1
-ns2.example.    4242    A       192.0.2.2
-"""}
-
 xfrServerPort = 4244
-xfrServer = AXFRServer(xfrServerPort, zones)
 
 class IXFRDistStatsTest(IXFRDistTest):
     """

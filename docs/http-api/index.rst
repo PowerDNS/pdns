@@ -1,7 +1,7 @@
 Built-in Webserver and HTTP API
 ===============================
 
-The PowerDNS Authoritative Server features a built-in built-in webserver that exposes a JSON/REST API.
+The PowerDNS Authoritative Server features a built-in webserver that exposes a JSON/REST API.
 This API allows for controlling several functions, reading statistics and modifying zone content, metadata and DNSSEC key material.
 
 Webserver

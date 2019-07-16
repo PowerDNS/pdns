@@ -1,6 +1,7 @@
 #include <fstream>
 
 #include "config.h"
+#include "circular_buffer.hh"
 #include "dolog.hh"
 #include "iputils.hh"
 #include "lock.hh"
@@ -16,8 +17,6 @@
 #include <openssl/err.h>
 #include <openssl/rand.h>
 #include <openssl/ssl.h>
-
-#include <boost/circular_buffer.hpp>
 
 #include "libssl.hh"
 
@@ -208,10 +207,10 @@ public:
       return IOState::NeedWrite;
     }
     else if (error == SSL_ERROR_SYSCALL) {
-      throw std::runtime_error("Error while processing TLS connection:" + std::string(strerror(errno)));
+      throw std::runtime_error("Error while processing TLS connection: " + std::string(strerror(errno)));
     }
     else {
-      throw std::runtime_error("Error while processing TLS connection:" + std::to_string(error));
+      throw std::runtime_error("Error while processing TLS connection: " + std::to_string(error));
     }
   }
 
@@ -220,13 +219,19 @@ public:
     auto state = convertIORequestToIOState(res);
     if (state == IOState::NeedRead) {
       res = waitForData(d_socket, timeout);
-      if (res <= 0) {
-        throw std::runtime_error("Error reading from TLS connection");
+      if (res == 0) {
+        throw std::runtime_error("Timeout while reading from TLS connection");
+      }
+      else if (res < 0) {
+        throw std::runtime_error("Error waiting to read from TLS connection");
       }
     }
     else if (state == IOState::NeedWrite) {
       res = waitForRWData(d_socket, false, timeout, 0);
-      if (res <= 0) {
+      if (res == 0) {
+        throw std::runtime_error("Timeout while writing to TLS connection");
+      }
+      else if (res < 0) {
         throw std::runtime_error("Error waiting to write to TLS connection");
       }
     }
@@ -265,10 +270,7 @@ public:
   {
     do {
       int res = SSL_write(d_conn.get(), reinterpret_cast<const char *>(&buffer.at(pos)), static_cast<int>(toWrite - pos));
-      if (res == 0) {
-        throw std::runtime_error("Error writing to TLS connection");
-      }
-      else if (res < 0) {
+      if (res <= 0) {
         return convertIORequestToIOState(res);
       }
       else {
@@ -283,10 +285,7 @@ public:
   {
     do {
       int res = SSL_read(d_conn.get(), reinterpret_cast<char *>(&buffer.at(pos)), static_cast<int>(toRead - pos));
-      if (res == 0) {
-        throw std::runtime_error("Error reading from TLS connection");
-      }
-      else if (res < 0) {
+      if (res <= 0) {
         return convertIORequestToIOState(res);
       }
       else {
@@ -308,10 +307,7 @@ public:
 
     do {
       int res = SSL_read(d_conn.get(), (reinterpret_cast<char *>(buffer) + got), static_cast<int>(bufferSize - got));
-      if (res == 0) {
-        throw std::runtime_error("Error reading from TLS connection");
-      }
-      else if (res < 0) {
+      if (res <= 0) {
         handleIORequest(res, readTimeout);
       }
       else {
@@ -338,10 +334,7 @@ public:
     size_t got = 0;
     do {
       int res = SSL_write(d_conn.get(), (reinterpret_cast<const char *>(buffer) + got), static_cast<int>(bufferSize - got));
-      if (res == 0) {
-        throw std::runtime_error("Error writing to TLS connection");
-      }
-      else if (res < 0) {
+      if (res <= 0) {
         handleIORequest(res, writeTimeout);
       }
       else {
@@ -757,7 +750,7 @@ public:
       }
       else if (res < 0) {
         if (gnutls_error_is_fatal(res)) {
-          throw std::runtime_error("Error writing to TLS connection");
+          throw std::runtime_error("Fatal error writing to TLS connection: " + std::string(gnutls_strerror(res)));
         }
         else if (res == GNUTLS_E_AGAIN) {
           return IOState::NeedWrite;
@@ -781,7 +774,7 @@ public:
       }
       else if (res < 0) {
         if (gnutls_error_is_fatal(res)) {
-          throw std::runtime_error("Error reading from TLS connection");
+          throw std::runtime_error("Fatal error reading from TLS connection: " + std::string(gnutls_strerror(res)));
         }
         else if (res == GNUTLS_E_AGAIN) {
           return IOState::NeedRead;
@@ -812,12 +805,12 @@ public:
       }
       else if (res < 0) {
         if (gnutls_error_is_fatal(res)) {
-          throw std::runtime_error("Error reading from TLS connection:" + std::string(gnutls_strerror(res)));
+          throw std::runtime_error("Fatal error reading from TLS connection: " + std::string(gnutls_strerror(res)));
         }
         else if (res == GNUTLS_E_AGAIN) {
           int result = waitForData(d_socket, readTimeout);
           if (result <= 0) {
-            throw std::runtime_error("Error reading from TLS connection: " + std::to_string(result));
+            throw std::runtime_error("Error while waiting to read from TLS connection: " + std::to_string(result));
           }
         }
         else {
@@ -854,7 +847,7 @@ public:
       }
       else if (res < 0) {
         if (gnutls_error_is_fatal(res)) {
-          throw std::runtime_error("Error writing to TLS connection: " + std::string(gnutls_strerror(res)));
+          throw std::runtime_error("Fatal error writing to TLS connection: " + std::string(gnutls_strerror(res)));
         }
         else if (res == GNUTLS_E_AGAIN) {
           int result = waitForRWData(d_socket, false, writeTimeout, 0);

@@ -51,15 +51,6 @@ ArgvMap &arg()
   return arg;
 }
 
-string humanTime(time_t t)
-{
-  char ret[256];
-  struct tm tm;
-  localtime_r(&t, &tm);
-  strftime(ret, sizeof(ret)-1, "%c", &tm);   // %h:%M %Y-%m-%d
-  return ret;
-}
-
 void loadMainConfig(const std::string& configdir)
 {
   ::arg().set("config-dir","Location of configuration directory (pdns.conf)")=configdir;
@@ -346,6 +337,10 @@ int checkZone(DNSSECKeeper &dk, UeberBackend &B, const DNSName& zone, const vect
     if(rr.qtype.getCode() == QType::SOA) {
       vector<string>parts;
       stringtok(parts, rr.content);
+
+      if(parts.size() < 7) {
+        cout<<"[Warning] SOA autocomplete is deprecated, missing field(s) in SOA content: "<<rr.qname<<" IN " <<rr.qtype.getName()<< " '" << rr.content<<"'"<<endl;
+      }
 
       ostringstream o;
       o<<rr.content;

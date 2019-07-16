@@ -190,7 +190,7 @@ void DNSProxy::mainloop(void)
 
     struct msghdr msgh;
     struct iovec iov;
-    char cbuf[256];
+    cmsgbuf_aligned cbuf;
     ComboAddress fromaddr;
 
     for(;;) {
@@ -283,7 +283,7 @@ void DNSProxy::mainloop(void)
         msgh.msg_control=NULL;
 
         if(i->second.anyLocal) {
-          addCMsgSrcAddr(&msgh, cbuf, i->second.anyLocal.get_ptr(), 0);
+          addCMsgSrcAddr(&msgh, &cbuf, i->second.anyLocal.get_ptr(), 0);
         }
         if(sendmsg(i->second.outsock, &msgh, 0) < 0) {
           int err = errno;

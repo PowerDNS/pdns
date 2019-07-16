@@ -266,6 +266,8 @@ void RecursorLua4::postPrepareContext()
   d_lw->registerMember("rcode", &DNSQuestion::rcode);
   d_lw->registerMember("tag", &DNSQuestion::tag);
   d_lw->registerMember("requestorId", &DNSQuestion::requestorId);
+  d_lw->registerMember("deviceId", &DNSQuestion::deviceId);
+  d_lw->registerMember("deviceName", &DNSQuestion::deviceName);
   d_lw->registerMember("followupFunction", &DNSQuestion::followupFunction);
   d_lw->registerMember("followupPrefix", &DNSQuestion::followupPrefix);
   d_lw->registerMember("followupName", &DNSQuestion::followupName);
@@ -533,7 +535,7 @@ bool RecursorLua4::ipfilter(const ComboAddress& remote, const ComboAddress& loca
   return false; // don't block
 }
 
-unsigned int RecursorLua4::gettag(const ComboAddress& remote, const Netmask& ednssubnet, const ComboAddress& local, const DNSName& qname, uint16_t qtype, std::vector<std::string>* policyTags, LuaContext::LuaObject& data, const EDNSOptionViewMap& ednsOptions, bool tcp, std::string& requestorId, std::string& deviceId) const
+unsigned int RecursorLua4::gettag(const ComboAddress& remote, const Netmask& ednssubnet, const ComboAddress& local, const DNSName& qname, uint16_t qtype, std::vector<std::string>* policyTags, LuaContext::LuaObject& data, const EDNSOptionViewMap& ednsOptions, bool tcp, std::string& requestorId, std::string& deviceId, std::string& deviceName) const
 {
   if(d_gettag) {
     auto ret = d_gettag(remote, ednssubnet, local, qname, qtype, ednsOptions, tcp);
@@ -558,6 +560,11 @@ unsigned int RecursorLua4::gettag(const ComboAddress& remote, const Netmask& edn
     if (deviceIdret) {
       deviceId = *deviceIdret;
     }
+
+    const auto deviceNameret = std::get<5>(ret);
+    if (deviceNameret) {
+      deviceName = *deviceNameret;
+    }
     return std::get<0>(ret);
   }
   return 0;
@@ -566,7 +573,7 @@ unsigned int RecursorLua4::gettag(const ComboAddress& remote, const Netmask& edn
 struct pdns_ffi_param
 {
 public:
-  pdns_ffi_param(const DNSName& qname_, uint16_t qtype_, const ComboAddress& local_, const ComboAddress& remote_, const Netmask& ednssubnet_, std::vector<std::string>& policyTags_, const EDNSOptionViewMap& ednsOptions_, std::string& requestorId_, std::string& deviceId_, uint32_t& ttlCap_, bool& variable_, bool tcp_, bool& logQuery_): qname(qname_), local(local_), remote(remote_), ednssubnet(ednssubnet_), policyTags(policyTags_), ednsOptions(ednsOptions_), requestorId(requestorId_), deviceId(deviceId_), ttlCap(ttlCap_), variable(variable_), logQuery(logQuery_), qtype(qtype_), tcp(tcp_)
+  pdns_ffi_param(const DNSName& qname_, uint16_t qtype_, const ComboAddress& local_, const ComboAddress& remote_, const Netmask& ednssubnet_, std::vector<std::string>& policyTags_, const EDNSOptionViewMap& ednsOptions_, std::string& requestorId_, std::string& deviceId_, std::string& deviceName_, uint32_t& ttlCap_, bool& variable_, bool tcp_, bool& logQuery_): qname(qname_), local(local_), remote(remote_), ednssubnet(ednssubnet_), policyTags(policyTags_), ednsOptions(ednsOptions_), requestorId(requestorId_), deviceId(deviceId_), deviceName(deviceName_), ttlCap(ttlCap_), variable(variable_), logQuery(logQuery_), qtype(qtype_), tcp(tcp_)
   {
   }
 
@@ -584,6 +591,7 @@ public:
   const EDNSOptionViewMap& ednsOptions;
   std::string& requestorId;
   std::string& deviceId;
+  std::string& deviceName;
   uint32_t& ttlCap;
   bool& variable;
   bool& logQuery;
@@ -593,10 +601,10 @@ public:
   bool tcp;
 };
 
-unsigned int RecursorLua4::gettag_ffi(const ComboAddress& remote, const Netmask& ednssubnet, const ComboAddress& local, const DNSName& qname, uint16_t qtype, std::vector<std::string>* policyTags, LuaContext::LuaObject& data, const EDNSOptionViewMap& ednsOptions, bool tcp, std::string& requestorId, std::string& deviceId, uint32_t& ttlCap, bool& variable, bool& logQuery) const
+unsigned int RecursorLua4::gettag_ffi(const ComboAddress& remote, const Netmask& ednssubnet, const ComboAddress& local, const DNSName& qname, uint16_t qtype, std::vector<std::string>* policyTags, LuaContext::LuaObject& data, const EDNSOptionViewMap& ednsOptions, bool tcp, std::string& requestorId, std::string& deviceId, std::string& deviceName, uint32_t& ttlCap, bool& variable, bool& logQuery) const
 {
   if (d_gettag_ffi) {
-    pdns_ffi_param_t param(qname, qtype, local, remote, ednssubnet, *policyTags, ednsOptions, requestorId, deviceId, ttlCap, variable, tcp, logQuery);
+    pdns_ffi_param_t param(qname, qtype, local, remote, ednssubnet, *policyTags, ednsOptions, requestorId, deviceId, deviceName, ttlCap, variable, tcp, logQuery);
 
     auto ret = d_gettag_ffi(&param);
     if (ret) {
@@ -843,7 +851,7 @@ void pdns_ffi_param_set_requestorid(pdns_ffi_param_t* ref, const char* name)
 
 void pdns_ffi_param_set_devicename(pdns_ffi_param_t* ref, const char* name)
 {
-  ref->deviceId = std::string(name);
+  ref->deviceName = std::string(name);
 }
 
 void pdns_ffi_param_set_deviceid(pdns_ffi_param_t* ref, size_t len, const void* name)

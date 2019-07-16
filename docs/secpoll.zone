@@ -1,6 +1,7 @@
-@       86400   IN  SOA pdns-public-ns1.powerdns.com. pieter\.lexis.powerdns.com. 2019062501 10800 3600 604800 10800
+@       86400   IN  SOA pdns-public-ns1.powerdns.com. pieter\.lexis.powerdns.com. 2019071601 10800 3600 604800 10800
 @       3600    IN  NS  pdns-public-ns1.powerdns.com.
 @       3600    IN  NS  pdns-public-ns2.powerdns.com.
+@       3600    IN  NS  tmpdns.powerdns.com.
 ; Auth
 auth-3.3.2.security-status                              60 IN TXT "3 Upgrade now, see https://doc.powerdns.com/3/security/powerdns-advisory-2015-01/"
 auth-3.3.3.security-status                              60 IN TXT "3 Patch now, see https://doc.powerdns.com/3/security/powerdns-advisory-2016-02/ https://doc.powerdns.com/3/security/powerdns-advisory-2016-03/ https://doc.powerdns.com/3/security/powerdns-advisory-2016-04/ https://doc.powerdns.com/3/security/powerdns-advisory-2016-05/"
@@ -187,10 +188,11 @@ recursor-4.1.11.security-status                         60 IN TXT "1 OK"
 recursor-4.1.12.security-status                         60 IN TXT "1 OK"
 recursor-4.1.13.security-status                         60 IN TXT "1 OK"
 recursor-4.1.14.security-status                         60 IN TXT "1 OK"
-recursor-4.2.0-alpha1.security-status                   60 IN TXT "1 OK"
-recursor-4.2.0-beta1.security-status                    60 IN TXT "1 OK"
-recursor-4.2.0-rc1.security-status                      60 IN TXT "1 OK"
-recursor-4.2.0-rc2.security-status                      60 IN TXT "1 OK"
+recursor-4.2.0-alpha1.security-status                   60 IN TXT "2 Unsupported pre-release (no known vulnerabilities)"
+recursor-4.2.0-beta1.security-status                    60 IN TXT "2 Unsupported pre-release (no known vulnerabilities)"
+recursor-4.2.0-rc1.security-status                      60 IN TXT "2 Unsupported pre-release (no known vulnerabilities)"
+recursor-4.2.0-rc2.security-status                      60 IN TXT "2 Unsupported pre-release (no known vulnerabilities)"
+recursor-4.2.0.security-status                          60 IN TXT "1 OK"
 
 ; Recursor Debian
 recursor-3.6.2-2.debian.security-status                 60 IN TXT "3 Upgrade now, see https://doc.powerdns.com/3/security/powerdns-advisory-2015-01/ and https://doc.powerdns.com/3/security/powerdns-advisory-2016-02/"

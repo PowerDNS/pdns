@@ -613,7 +613,10 @@ These ``DNSRule``\ s be one of the following items:
 
   :param int qps: The number of queries per second allowed, above this number the traffic is **not** matched anymore
 
-.. function:: NetmaskGroupRule(nmg[, src])
+.. function:: NetmaskGroupRule(nmg[, src[, quiet]])
+
+  .. versionchanged:: 1.4.0
+    ``quiet`` parameter added
 
   Matches traffic from/to the network range specified in ``nmg``.
 
@@ -622,6 +625,7 @@ These ``DNSRule``\ s be one of the following items:
 
   :param NetMaskGroup nmg: The NetMaskGroup to match on
   :param bool src: Whether to match source or destination address of the packet. Defaults to true (matches source)
+  :param bool quiet: Do not display the list of matched netmasks in Rules. Default is false.
 
 .. function:: OpcodeRule(code)
 
@@ -765,7 +769,7 @@ These ``DNSRule``\ s be one of the following items:
   To match domain names exactly, see :func:`QNameSetRule`.
 
   :param SuffixMatchNode smb: The SuffixMatchNode to match on
-  :param bool quiet: Do not return the list of matched domains. Default is false.
+  :param bool quiet: Do not display the list of matched domains in Rules. Default is false.
 
 .. function:: TagRule(name [, value])
 

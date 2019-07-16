@@ -22,6 +22,7 @@
 #include "dnsname.hh"
 #include <boost/format.hpp>
 #include <string>
+#include <cinttypes>
 
 #include "dnswriter.hh"
 #include "misc.hh"
@@ -177,7 +178,8 @@ std::string DNSName::toString(const std::string& separator, const bool trailing)
     const char* end = p + d_storage.size();
 
     while (p < end && *p) {
-      ret += escapeLabel(p + 1, static_cast<size_t>(*p)) + separator;
+      appendEscapedLabel(ret, p + 1, static_cast<size_t>(*p));
+      ret += separator;
       p += *p + 1;
     }
   }
@@ -430,29 +432,27 @@ size_t hash_value(DNSName const& d)
   return d.hash();
 }
 
-string DNSName::escapeLabel(const std::string& label)
+void DNSName::appendEscapedLabel(std::string& appendTo, const char* orig, size_t len)
 {
-  return escapeLabel(label.c_str(), label.size());
-}
-
-string DNSName::escapeLabel(const char* orig, size_t len)
-{
-  std::string ret;
   size_t pos = 0;
 
-  ret.reserve(len);
   while (pos < len) {
     auto p = static_cast<uint8_t>(orig[pos]);
     if(p=='.')
-      ret+="\\.";
+      appendTo+="\\.";
     else if(p=='\\')
-      ret+="\\\\";
+      appendTo+="\\\\";
     else if(p > 0x20 && p < 0x7f)
-      ret.append(1, (char)p);
+      appendTo.append(1, (char)p);
     else {
-      ret+="\\" + (boost::format("%03d") % (unsigned int)p).str();
+      char buf[] = "000";
+      auto got = snprintf(buf, sizeof(buf), "%03" PRIu8, p);
+      if (got < 0 || static_cast<size_t>(got) >= sizeof(buf)) {
+        throw std::runtime_error("Error, snprintf returned " + std::to_string(got) + " while escaping label " + std::string(orig, len));
+      }
+      appendTo.append(1, '\\');
+      appendTo += buf;
     }
     ++pos;
   }
-  return ret;
 }

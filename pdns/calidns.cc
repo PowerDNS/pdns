@@ -71,11 +71,13 @@ static void* recvThread(const vector<Socket*>* sockets)
 #if HAVE_RECVMMSG
   vector<struct mmsghdr> buf(100);
   for(auto& m : buf) {
-    fillMSGHdr(&m.msg_hdr, new struct iovec, new char[512], 512, new char[1500], 1500, new ComboAddress("127.0.0.1"));
+    cmsgbuf_aligned *cbuf = new cmsgbuf_aligned;
+    fillMSGHdr(&m.msg_hdr, new struct iovec, cbuf, sizeof(*cbuf), new char[1500], 1500, new ComboAddress("127.0.0.1"));
   }
 #else
   struct msghdr buf;
-  fillMSGHdr(&buf, new struct iovec, new char[512], 512, new char[1500], 1500, new ComboAddress("127.0.0.1"));
+  cmsgbuf_aligned *cbuf = new cmsgbuf_aligned;
+  fillMSGHdr(&buf, new struct iovec, cbuf, sizeof(*cbuf), new char[1500], 1500, new ComboAddress("127.0.0.1"));
 #endif
 
   while(!g_done) {
@@ -183,7 +185,7 @@ static void sendPackets(const vector<Socket*>* sockets, const vector<vector<uint
   struct Unit {
     struct msghdr msgh;
     struct iovec iov;
-    char cbuf[256];
+    cmsgbuf_aligned cbuf;
   };
   vector<unique_ptr<Unit> > units;
   int ret;

@@ -778,6 +778,12 @@ Status, Statistics and More
 
   Print the list of all availables DNS over HTTPS frontends.
 
+.. function:: showDOHResponseCodes()
+
+  .. versionadded:: 1.4.0
+
+  Print the HTTP response codes statistics for all availables DNS over HTTPS frontends.
+
 .. function:: showResponseLatency()
 
   Show a plot of the response time latency distribution
@@ -1072,10 +1078,14 @@ If you are looking for exact name matching, your might want to consider using a 
   Represent a set of DNS suffixes for quick matching.
 
   .. method:: SuffixMatchNode:add(name)
+    .. versionchanged:: 1.4.0
+      This method now accepts strings, lists of DNSNames and lists of strings.
 
     Add a suffix to the current set.
 
     :param DNSName name: The suffix to add to the set.
+    :param string name: The suffix to add to the set.
+    :param table name: The suffixes to add to the set. Elements of the table should be of the same type, either DNSName or string.
 
   .. method:: SuffixMatchNode:check(name) -> bool
 

@@ -100,6 +100,7 @@ pdns_recursor_SOURCES = \
 	base64.cc base64.hh \
 	cachecleaner.hh \
 	capabilities.cc capabilities.hh \
+	circular_buffer.hh \
 	comment.hh \
 	dns.hh dns.cc \
 	dns_random.hh dns_random.cc \
@@ -161,8 +162,8 @@ pdns_recursor_SOURCES = \
 	root-addresses.hh \
 	root-dnssec.hh \
 	rpzloader.cc rpzloader.hh \
-	secpoll-recursor.cc \
-	secpoll-recursor.hh \
+	secpoll-recursor.cc secpoll-recursor.hh \
+	secpoll.cc secpoll.hh \
 	sholder.hh \
 	sillyrecords.cc \
 	snmp-agent.hh snmp-agent.cc \
@@ -218,6 +219,7 @@ testrunner_SOURCES = \
 	arguments.cc \
 	base32.cc \
 	base64.cc base64.hh \
+	circular_buffer.hh \
 	dns.cc dns.hh \
 	dns_random.cc dns_random.hh \
 	dnslabeltext.cc \
@@ -252,6 +254,7 @@ testrunner_SOURCES = \
 	recursor_cache.cc recursor_cache.hh \
 	responsestats.cc \
 	root-dnssec.hh \
+	secpoll.cc \
 	sillyrecords.cc \
 	sholder.hh \
 	sstuff.hh \
@@ -278,6 +281,7 @@ testrunner_SOURCES = \
 	test-rcpgenerator_cc.cc \
 	test-recpacketcache_cc.cc \
 	test-recursorcache_cc.cc \
+	test-secpoll_cc.cc \
 	test-signers.cc \
 	test-syncres_cc.hh \
 	test-syncres_cc.cc \

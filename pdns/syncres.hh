@@ -35,8 +35,8 @@
 #include "misc.hh"
 #include "lwres.hh"
 #include <boost/optional.hpp>
-#include <boost/circular_buffer.hpp>
 #include <boost/utility.hpp>
+#include "circular_buffer.hh"
 #include "sstuff.hh"
 #include "recursor_cache.hh"
 #include "recpacketcache.hh"
@@ -67,7 +67,7 @@ extern GlobalStateHolder<NetmaskGroup> g_dontThrottleNetmasks;
 
 class RecursorLua4;
 
-typedef map<
+typedef std::unordered_map<
   DNSName,
   pair<
     vector<ComboAddress>,
@@ -337,7 +337,7 @@ public:
     ComboAddress d_best;
   };
 
-  typedef map<DNSName, DecayingEwmaCollection> nsspeeds_t;
+  typedef std::unordered_map<DNSName, DecayingEwmaCollection> nsspeeds_t;
   typedef map<ComboAddress, EDNSStatus> ednsstatus_t;
 
   vState getDSRecords(const DNSName& zone, dsmap_t& ds, bool onlyTA, unsigned int depth, bool bogusOnNXD=true, bool* foundCut=nullptr);
@@ -385,7 +385,7 @@ public:
     void addSOA(std::vector<DNSRecord>& records) const;
   };
 
-  typedef map<DNSName, AuthDomain> domainmap_t;
+  typedef std::unordered_map<DNSName, AuthDomain> domainmap_t;
   typedef Throttle<boost::tuple<ComboAddress,DNSName,uint16_t> > throttle_t;
   typedef Counters<ComboAddress> fails_t;
 
@@ -781,11 +781,11 @@ private:
   {
     DNSName qname;
     set<pair<DNSName,DNSName> > bestns;
-    uint8_t qtype; // only A and AAAA anyhow
+    uint8_t qtype;
     bool operator<(const GetBestNSAnswer &b) const
     {
-      return boost::tie(qname, qtype, bestns) <
-	boost::tie(b.qname, b.qtype, b.bestns);
+      return boost::tie(qtype, qname, bestns) <
+	boost::tie(b.qtype, b.qname, b.bestns);
     }
   };
 
@@ -922,7 +922,7 @@ struct PacketID
     if( tie(remote, ourSock, type) > tie(b.remote, bSock, b.type))
       return false;
 
-    return tie(domain, fd, id) < tie(b.domain, b.fd, b.id);
+    return tie(fd, id, domain) < tie(b.fd, b.id, b.domain);
   }
 };
 
