@@ -21,6 +21,7 @@ case "$1" in
       adduser --quiet --system --home /var/spool/powerdns --shell /bin/false --ingroup pdns --disabled-password --disabled-login --gecos "PowerDNS" pdns
       echo "done"
     fi
+    chown pdns:pdns /var/lib/powerdns || :
   ;;
 
   triggered)

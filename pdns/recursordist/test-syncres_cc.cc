@@ -32,7 +32,7 @@ bool RecursorLua4::preoutquery(const ComboAddress& ns, const ComboAddress& reque
   return false;
 }
 
-int asyncresolve(const ComboAddress& ip, const DNSName& domain, int type, bool doTCP, bool sendRDQuery, int EDNS0Level, struct timeval* now, boost::optional<Netmask>& srcmask, boost::optional<const ResolveContext&> context, const std::shared_ptr<std::vector<std::unique_ptr<RemoteLogger>>>& outgoingLoggers, const std::set<uint16_t>& exportTypes, LWResult* res, bool* chained)
+int asyncresolve(const ComboAddress& ip, const DNSName& domain, int type, bool doTCP, bool sendRDQuery, int EDNS0Level, struct timeval* now, boost::optional<Netmask>& srcmask, boost::optional<const ResolveContext&> context, const std::shared_ptr<std::vector<std::unique_ptr<RemoteLogger>>>& outgoingLoggers, const std::shared_ptr<std::vector<std::unique_ptr<FrameStreamLogger>>>& fstrmLoggers,const std::set<uint16_t>& exportTypes, LWResult* res, bool* chained)
 {
   return 0;
 }
@@ -165,7 +165,7 @@ void initSR(bool debug)
   ::arg().set("version-string", "string reported on version.pdns or version.bind")="PowerDNS Unit Tests";
   ::arg().set("rng")="auto";
   ::arg().set("entropy-source")="/dev/urandom";
-  ::arg().setSwitch("qname-minimisation", "Use Query Name Minimisation") = "no";
+  ::arg().setSwitch("qname-minimization", "Use Query Name Minimization") = "no";
 }
 
 void initSR(std::unique_ptr<SyncRes>& sr, bool dnssec, bool debug, time_t fakeNow)
@@ -197,11 +197,6 @@ void setDNSSECValidation(std::unique_ptr<SyncRes>& sr, const DNSSECMode& mode)
 {
   sr->setDNSSECValidationRequested(true);
   g_dnssecmode = mode;
-}
-
-void setDoQNameMinimisation(void)
-{
-  ::arg().setSwitch("qname-minimisation", "") = "yes";
 }
 
 void setLWResult(LWResult* res, int rcode, bool aa, bool tc, bool edns, bool validpacket)
@@ -419,7 +414,7 @@ void generateKeyMaterial(const DNSName& name, unsigned int algo, uint8_t digest,
   dsAnchors[name].insert(keys[name].second);
 }
 
-int genericDSAndDNSKEYHandler(LWResult* res, const DNSName& domain, DNSName auth, int type, const testkeysset_t& keys, bool proveCut)
+int genericDSAndDNSKEYHandler(LWResult* res, const DNSName& domain, DNSName auth, int type, const testkeysset_t& keys, bool proveCut, boost::optional<time_t> now)
 {
   if (type == QType::DS) {
     auth.chopOff();
@@ -427,7 +422,7 @@ int genericDSAndDNSKEYHandler(LWResult* res, const DNSName& domain, DNSName auth
     setLWResult(res, 0, true, false, true);
 
     if (addDS(domain, 300, res->d_records, keys, DNSResourceRecord::ANSWER)) {
-      addRRSIG(keys, res->d_records, auth, 300);
+      addRRSIG(keys, res->d_records, auth, 300, false, boost::none, boost::none, now);
     }
     else {
       addRecordToLW(res, auth, QType::SOA, "foo. bar. 2017032800 1800 900 604800 86400", DNSResourceRecord::AUTHORITY, 86400);
@@ -436,7 +431,7 @@ int genericDSAndDNSKEYHandler(LWResult* res, const DNSName& domain, DNSName auth
       const auto it = keys.find(auth);
       if (it != keys.cend()) {
         /* sign the SOA */
-        addRRSIG(keys, res->d_records, auth, 300);
+        addRRSIG(keys, res->d_records, auth, 300, false, boost::none, boost::none, now);
         /* add a NSEC denying the DS */
         std::set<uint16_t> types = { QType::NSEC };
         if (proveCut) {
@@ -444,7 +439,7 @@ int genericDSAndDNSKEYHandler(LWResult* res, const DNSName& domain, DNSName auth
         }
 
         addNSECRecordToLW(domain, DNSName("z") + domain, types, 600, res->d_records);
-        addRRSIG(keys, res->d_records, auth, 300);
+        addRRSIG(keys, res->d_records, auth, 300, false, boost::none, boost::none, now);
       }
     }
 
@@ -461,7 +456,7 @@ int genericDSAndDNSKEYHandler(LWResult* res, const DNSName& domain, DNSName auth
   return 0;
 }
 
-int basicRecordsForQnameMinimisation(LWResult* res, const DNSName& domain, int type) {
+int basicRecordsForQnameMinimization(LWResult* res, const DNSName& domain, int type) {
   if (domain == DNSName(".") && type == QType::A) {
     setLWResult(res, 0, true);
     addRecordToLW(res, DNSName("."), QType::SOA, "a.root-servers.net. nstld.verisign-grs.com. 2019042400 1800 900 604800 86400", DNSResourceRecord::AUTHORITY);

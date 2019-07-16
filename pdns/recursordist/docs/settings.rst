@@ -43,6 +43,17 @@ Overrides the `allow-from`_ setting. To use this feature, supply one netmask per
 Answer questions for the ANY type on UDP with a truncated packet that refers the remote server to TCP.
 Useful for mitigating ANY reflection attacks.
 
+.. _setting-allow-trust-anchor-query:
+
+``allow-trust-anchor-query``
+----------------------------
+.. versionadded:: 4.3.0
+
+-  Boolean
+-  Default: no
+
+Allow ``trustanchor.server CH TXT`` and ``negativetrustanchor.server CH TXT`` queries to view the configured :doc:`DNSSEC <dnssec>` (negative) trust anchors.
+
 .. _setting-api-config-dir:
 
 ``api-config-dir``
@@ -448,7 +459,7 @@ Number of bits of client IPv4 address to pass when sending EDNS Client Subnet ad
 .. _setting-ecs-ipv4-cache-bits:
 
 ``ecs-ipv4-cache-bits``
------------------
+-----------------------
 .. versionadded:: 4.1.12
 
 -  Integer
@@ -471,7 +482,7 @@ Number of bits of client IPv6 address to pass when sending EDNS Client Subnet ad
 .. _setting-ecs-ipv6-cache-bits:
 
 ``ecs-ipv6-cache-bits``
------------------
+-----------------------
 .. versionadded:: 4.1.12
 
 -  Integer
@@ -1145,7 +1156,7 @@ Improves performance on Linux.
 .. _settting-protobuf-use-kernel-timestamp:
 
 ``protobuf-use-kernel-timestamp``
----------------------------
+---------------------------------
 .. versionadded:: 4.2.0
 
 - Boolean
@@ -1163,6 +1174,18 @@ Whether to compute the latency of responses in protobuf messages using the times
 - Default: unset
 
 Path to the Public Suffix List file, if any. If set, PowerDNS will try to load the Public Suffix List from this file instead of using the built-in list. The PSL is used to group the queries by relevant domain names when displaying the top queries.
+
+.. _setting-qname-minimization:
+
+``qname-minimization``
+----------------------
+.. versionadded:: 4.3.0
+
+-  Boolean
+-  Default: no
+
+Enable Query Name Minimization. This is a experimental feature, implementing a relaxed form of Query Name Mimimization as
+described in :rfc:`7816`.
 
 .. _setting-query-local-address:
 

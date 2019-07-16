@@ -465,13 +465,19 @@ static vector<pair<int, ComboAddress> > convWIplist(std::unordered_map<int, wipl
   return ret;
 }
 
+static thread_local unique_ptr<AuthLua4> s_LUA;
+bool g_LuaRecordSharedState;
+
 std::vector<shared_ptr<DNSRecordContent>> luaSynth(const std::string& code, const DNSName& query, const DNSName& zone, int zoneid, const DNSPacket& dnsp, uint16_t qtype)
 {
-  AuthLua4 alua;
+  if(!s_LUA ||                  // we don't have a Lua state yet
+     !g_LuaRecordSharedState) { // or we want a new one even if we had one
+    s_LUA = make_unique<AuthLua4>();
+  }
 
   std::vector<shared_ptr<DNSRecordContent>> ret;
 
-  LuaContext& lua = *alua.getLua();
+  LuaContext& lua = *s_LUA->getLua();
   lua.writeVariable("qname", query);
   lua.writeVariable("who", dnsp.getRemote());
   lua.writeVariable("dh", (dnsheader*)&dnsp.d);
@@ -484,6 +490,7 @@ std::vector<shared_ptr<DNSRecordContent>> luaSynth(const std::string& code, cons
     bestwho=dnsp.getRealRemote().getNetwork();
   }
   else {
+    lua.writeVariable("ecswho", nullptr);
     bestwho=dnsp.getRemote();
   }
 
@@ -527,7 +534,7 @@ std::vector<shared_ptr<DNSRecordContent>> luaSynth(const std::string& code, cons
     });
 
 
-  lua.writeFunction("createReverse", [&bestwho,&query,&zone](string suffix, boost::optional<std::unordered_map<string,string>> e){
+  lua.writeFunction("createReverse", [&query](string suffix, boost::optional<std::unordered_map<string,string>> e){
       try {
       auto labels= query.getRawLabels();
       if(labels.size()<4)
@@ -609,7 +616,7 @@ std::vector<shared_ptr<DNSRecordContent>> luaSynth(const std::string& code, cons
     });
 
 
-  lua.writeFunction("createReverse6", [&bestwho,&query,&zone](string suffix, boost::optional<std::unordered_map<string,string>> e){
+  lua.writeFunction("createReverse6", [&query](string suffix, boost::optional<std::unordered_map<string,string>> e){
       vector<ComboAddress> candidates;
 
       try {
@@ -795,8 +802,7 @@ std::vector<shared_ptr<DNSRecordContent>> luaSynth(const std::string& code, cons
     });
 
 
-  int counter=0;
-  lua.writeFunction("report", [&counter](string event, boost::optional<string> line){
+  lua.writeFunction("report", [](string event, boost::optional<string> line){
       throw std::runtime_error("Script took too long");
     });
   if (g_luaRecordExecLimit > 0) {

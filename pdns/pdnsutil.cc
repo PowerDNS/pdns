@@ -51,15 +51,6 @@ ArgvMap &arg()
   return arg;
 }
 
-string humanTime(time_t t)
-{
-  char ret[256];
-  struct tm tm;
-  localtime_r(&t, &tm);
-  strftime(ret, sizeof(ret)-1, "%c", &tm);   // %h:%M %Y-%m-%d
-  return ret;
-}
-
 void loadMainConfig(const std::string& configdir)
 {
   ::arg().set("config-dir","Location of configuration directory (pdns.conf)")=configdir;
@@ -157,11 +148,11 @@ void loadMainConfig(const std::string& configdir)
   UeberBackend::go();
 }
 
-bool rectifyZone(DNSSECKeeper& dk, const DNSName& zone, bool quiet = false)
+bool rectifyZone(DNSSECKeeper& dk, const DNSName& zone, bool quiet = false, bool rectifyTransaction = true)
 {
   string output;
   string error;
-  bool ret = dk.rectifyZone(zone, error, output, true);
+  bool ret = dk.rectifyZone(zone, error, output, rectifyTransaction);
   if (!quiet || !ret) {
     // When quiet, only print output if there was an error
     if (!output.empty()) {
@@ -244,7 +235,10 @@ int checkZone(DNSSECKeeper &dk, UeberBackend &B, const DNSName& zone, const vect
 
   DomainInfo di;
   try {
-    B.getDomainInfo(zone, di);
+    if (!B.getDomainInfo(zone, di)) {
+      cout<<"[Error] Unable to get domain information for zone '"<<zone<<"'"<<endl;
+      return 1;
+    }
   } catch(const PDNSException &e) {
     if (di.kind == DomainInfo::Slave) {
       cout<<"[Error] non-IP address for masters: "<<e.reason<<endl;
@@ -343,6 +337,10 @@ int checkZone(DNSSECKeeper &dk, UeberBackend &B, const DNSName& zone, const vect
     if(rr.qtype.getCode() == QType::SOA) {
       vector<string>parts;
       stringtok(parts, rr.content);
+
+      if(parts.size() < 7) {
+        cout<<"[Warning] SOA autocomplete is deprecated, missing field(s) in SOA content: "<<rr.qname<<" IN " <<rr.qtype.getName()<< " '" << rr.content<<"'"<<endl;
+      }
 
       ostringstream o;
       o<<rr.content;
@@ -856,9 +854,10 @@ int clearZone(DNSSECKeeper& dk, const DNSName &zone) {
   return EXIT_SUCCESS;
 }
 
-int editZone(DNSSECKeeper& dk, const DNSName &zone) {
+int editZone(const DNSName &zone) {
   UeberBackend B;
   DomainInfo di;
+  DNSSECKeeper dk(&B);
 
   if (! B.getDomainInfo(zone, di)) {
     cerr<<"Domain '"<<zone<<"' not found!"<<endl;
@@ -1001,6 +1000,7 @@ int editZone(DNSSECKeeper& dk, const DNSName &zone) {
   else if(changed.empty() || c!='a')
     goto reAsk2;
 
+  di.backend->startTransaction(zone, -1);
   for(const auto& change : changed) {
     vector<DNSResourceRecord> vrr;
     for(const DNSRecord& rr : grouped[change.first]) {
@@ -1010,7 +1010,8 @@ int editZone(DNSSECKeeper& dk, const DNSName &zone) {
     }
     di.backend->replaceRRSet(di.id, change.first.first, QType(change.first.second), vrr);
   }
-  rectifyZone(dk, zone);
+  rectifyZone(dk, zone, false, false);
+  di.backend->commitTransaction();
   return EXIT_SUCCESS;
 }
 
@@ -1187,6 +1188,9 @@ int addOrReplaceRecord(bool addOrReplace, const vector<string>& cmds) {
   rr.domain_id = di.id;
   rr.qname = name;
   DNSResourceRecord oldrr;
+
+  di.backend->startTransaction(zone, -1);
+
   if(addOrReplace) { // the 'add' case
     di.backend->lookup(rr.qtype, rr.qname, 0, di.id);
 
@@ -1242,6 +1246,7 @@ int addOrReplaceRecord(bool addOrReplace, const vector<string>& cmds) {
   di.backend->replaceRRSet(di.id, name, rr.qtype, newrrs);
   // need to be explicit to bypass the ueberbackend cache!
   di.backend->lookup(rr.qtype, name, 0, di.id);
+  di.backend->commitTransaction();
   cout<<"New rrset:"<<endl;
   while(di.backend->get(rr)) {
     cout<<rr.qname.toString()<<" "<<rr.ttl<<" IN "<<rr.qtype.getName()<<" "<<rr.content<<endl;
@@ -1267,7 +1272,9 @@ int deleteRRSet(const std::string& zone_, const std::string& name_, const std::s
     name=DNSName(name_)+zone;
 
   QType qt(QType::chartocode(type_.c_str()));
+  di.backend->startTransaction(zone, -1);
   di.backend->replaceRRSet(di.id, name, qt, vector<DNSResourceRecord>());
+  di.backend->commitTransaction();
   return EXIT_SUCCESS;
 }
 
@@ -1585,7 +1592,6 @@ bool showZone(DNSSECKeeper& dk, const DNSName& zone, bool exportDS = false)
 
     sort(keys.begin(),keys.end());
     reverse(keys.begin(),keys.end());
-    bool shown=false;
     for(const auto& key : keys) {
       string algname = DNSSECKeeper::algorithm2name(key.d_algorithm);
 
@@ -1601,9 +1607,6 @@ bool showZone(DNSSECKeeper& dk, const DNSName& zone, bool exportDS = false)
         cout << (key.d_flags == 257 ? "KSK" : "ZSK") << ", tag = " << key.getTag() << ", algo = "<<(int)key.d_algorithm << ", bits = " << bits << endl;
         cout << "DNSKEY = " <<zone.toString()<<" IN DNSKEY "<< key.getZoneRepresentation() << "; ( " + algname + " ) " <<endl;
       }
-
-      if (shown) continue;
-      shown=true;
 
       const std::string prefix(exportDS ? "" : "DS = ");
       cout<<prefix<<zone.toString()<<" IN DS "<<makeDSFromDNSKey(zone, key, DNSSECKeeper::SHA1).getZoneRepresentation() << " ; ( SHA1 digest )" << endl;
@@ -2005,7 +2008,7 @@ try
     cout<<"set-presigned ZONE                 Use presigned RRSIGs from storage"<<endl;
     cout<<"set-publish-cdnskey ZONE           Enable sending CDNSKEY responses for ZONE"<<endl;
     cout<<"set-publish-cds ZONE [DIGESTALGOS] Enable sending CDS responses for ZONE, using DIGESTALGOS as signature algorithms"<<endl;
-    cout<<"                                   DIGESTALGOS should be a comma separated list of numbers, it is '1,2' by default"<<endl;
+    cout<<"                                   DIGESTALGOS should be a comma separated list of numbers, it is '2' by default"<<endl;
     cout<<"add-meta ZONE KIND VALUE           Add zone metadata, this adds to the existing KIND"<<endl;
     cout<<"                   [VALUE ...]"<<endl;
     cout<<"set-meta ZONE KIND [VALUE] [VALUE] Set zone metadata, optionally providing a value. *No* value clears meta"<<endl;
@@ -2085,7 +2088,7 @@ try
       return 0;
     }
     try {
-      SSQLite3 db(cmds[1], true); // create=ok
+      SSQLite3 db(cmds[1], "", true); // create=ok
       vector<string> statements;
       stringtok(statements, sqlCreate, ";");
       for(const string& statement :  statements) {
@@ -2389,7 +2392,7 @@ try
     if(cmds[1]==".")
       cmds[1].clear();
 
-    exit(editZone(dk, DNSName(cmds[1])));
+    exit(editZone(DNSName(cmds[1])));
   }
   else if(cmds[0] == "clear-zone") {
     if(cmds.size() != 2) {
@@ -2563,7 +2566,7 @@ try
 
     // If DIGESTALGOS is unset
     if(cmds.size() == 2)
-      cmds.push_back("1,2");
+      cmds.push_back("2");
 
     if (! dk.setPublishCDS(DNSName(cmds[1]), cmds[2])) {
       cerr << "Could not set publishing for CDS records for "<< cmds[1]<<endl;

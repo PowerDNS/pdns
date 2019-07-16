@@ -17,6 +17,7 @@ struct Question
   int q;
   DTime d_dt;
   DNSName qdomain;
+  QType qtype;
   DNSPacket* replyPacket()
   {
     return new DNSPacket(false);
@@ -141,6 +142,7 @@ BOOST_AUTO_TEST_CASE(test_distributor_dies) {
       auto q = new Question();
       q->d_dt.set(); 
       q->qdomain=DNSName(std::to_string(n));
+      q->qtype = QType(QType::A);
       d->question(q, report2);
     }
 

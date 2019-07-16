@@ -99,9 +99,7 @@ bin_PROGRAMS += \
 	ixplore \
 	sdig
 
-if HAVE_RECVMMSG
 bin_PROGRAMS += calidns
-endif
 
 if HAVE_BOOST_GE_148
 bin_PROGRAMS += \
@@ -162,6 +160,7 @@ pdns_server_SOURCES = \
 	bindlexer.l \
 	bindparser.cc \
 	cachecleaner.hh \
+	circular_buffer.hh \
 	comment.hh \
 	common_startup.cc common_startup.hh \
 	communicator.cc communicator.hh \
@@ -209,6 +208,7 @@ pdns_server_SOURCES = \
 	resolver.cc resolver.hh \
 	responsestats.cc responsestats.hh responsestats-auth.cc \
 	rfc2136handler.cc \
+	secpoll.cc secpoll.hh \
 	secpoll-auth.cc secpoll-auth.hh \
 	serialtweaker.cc \
 	sha.hh \
@@ -297,6 +297,7 @@ pdnsutil_SOURCES = \
 	bindlexer.l \
 	bindparser.yy \
 	cachecleaner.hh \
+	circular_buffer.hh \
 	dbdnsseckeeper.cc \
 	dnsbackend.cc \
 	dns.cc \
@@ -502,6 +503,11 @@ sdig_SOURCES = \
 
 sdig_LDADD = $(LIBCRYPTO_LIBS)
 sdig_LDFLAGS = $(AM_LDFLAGS) $(LIBCRYPTO_LDFLAGS)
+
+if HAVE_LIBCURL
+sdig_SOURCES += minicurl.cc minicurl.hh
+sdig_LDADD += $(LIBCURL)
+endif
 
 calidns_SOURCES = \
 	base32.cc \
@@ -1312,6 +1318,7 @@ testrunner_SOURCES = \
 	test-dnsparser_cc.cc \
 	test-dnsparser_hh.cc \
 	test-dnsrecords_cc.cc \
+	test-dnswriter_cc.cc \
 	test-ipcrypt_cc.cc \
 	test-iputils_hh.cc \
 	test-ixfr_cc.cc \

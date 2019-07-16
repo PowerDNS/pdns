@@ -58,7 +58,7 @@ LMDBBackend::LMDBBackend(const std::string& suffix)
     d_asyncFlag = MDB_NOMETASYNC;
   else if(syncMode == "mapasync")
     d_asyncFlag = MDB_MAPASYNC;
-  else if(syncMode.empty())
+  else if(syncMode.empty() || syncMode == "sync")
     d_asyncFlag = 0;
   else
     throw std::runtime_error("Unknown sync mode "+syncMode+" requested for LMDB backend");
@@ -397,8 +397,10 @@ bool LMDBBackend::replaceRRSet(uint32_t domain_id, const DNSName& qname, const Q
   }
 
   DomainInfo di;
-  d_tdomains->getROTransaction().get(domain_id, di); // XX error checking
-  
+  if (!d_tdomains->getROTransaction().get(domain_id, di)) {
+    return false;
+  }
+
   compoundOrdername co;
   auto cursor = txn->txn.getCursor(txn->db->dbi);
   MDBOutVal key, val;
@@ -616,8 +618,9 @@ bool LMDBBackend::get(DNSResourceRecord& rr)
   rr.qname = dzr.dr.d_name;
   rr.ttl = dzr.dr.d_ttl;
   rr.qtype =dzr.dr.d_type;
-  rr.content = dzr.dr.d_content->getZoneRepresentation();
+  rr.content = dzr.dr.d_content->getZoneRepresentation(true);
   rr.domain_id = dzr.domain_id;
+  rr.auth = dzr.auth;
   //  cout<<"old school called for "<<rr.qname<<", "<<rr.qtype.getName()<<endl;
   return true;
 }
@@ -1591,7 +1594,7 @@ public:
   void declareArguments(const string &suffix="")
   {
     declare(suffix,"filename","Filename for lmdb","./pdns.lmdb");
-    declare(suffix,"sync-mode","Synchronisation mode: nosync, nometasync, mapasync","mapasync");
+    declare(suffix,"sync-mode","Synchronisation mode: nosync, nometasync, mapasync, sync","mapasync");
     // there just is no room for more on 32 bit
     declare(suffix,"shards","Records database will be split into this number of shards", (sizeof(long) == 4) ? "2" : "64"); 
   }

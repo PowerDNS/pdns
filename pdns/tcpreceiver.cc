@@ -358,20 +358,21 @@ void *TCPNameserver::doConnection(void *data)
         "', do = " <<packet->d_dnssecOk <<", bufsize = "<< packet->getMaxReplyLen()<<": ";
       }
 
+      if(PC.enabled()) {
+        if(packet->couldBeCached() && PC.get(packet.get(), cached.get())) { // short circuit - does the PacketCache recognize this question?
+          if(logDNSQueries)
+            g_log<<"packetcache HIT"<<endl;
+          cached->setRemote(&packet->d_remote);
+          cached->d.id=packet->d.id;
+          cached->d.rd=packet->d.rd; // copy in recursion desired bit
+          cached->commitD(); // commit d to the packet                        inlined
 
-      if(packet->couldBeCached() && PC.get(packet.get(), cached.get())) { // short circuit - does the PacketCache recognize this question?
+          sendPacket(cached, fd); // presigned, don't do it again
+          continue;
+        }
         if(logDNSQueries)
-          g_log<<"packetcache HIT"<<endl;
-        cached->setRemote(&packet->d_remote);
-        cached->d.id=packet->d.id;
-        cached->d.rd=packet->d.rd; // copy in recursion desired bit 
-        cached->commitD(); // commit d to the packet                        inlined
-
-        sendPacket(cached, fd); // presigned, don't do it again
-        continue;
+            g_log<<"packetcache MISS"<<endl;
       }
-      if(logDNSQueries)
-          g_log<<"packetcache MISS"<<endl;  
       {
         Lock l(&s_plock);
         if(!s_P) {
@@ -493,7 +494,7 @@ bool TCPNameserver::canDoAXFR(shared_ptr<DNSPacket> q)
         while(B->get(rr)) 
           nsset.insert(DNSName(rr.content));
         for(const auto & j: nsset) {
-          vector<string> nsips=fns.lookup(j, s_P->getBackend(),q->qdomain);
+          vector<string> nsips=fns.lookup(j, s_P->getBackend());
           for(vector<string>::const_iterator k=nsips.begin();k!=nsips.end();++k) {
             // cerr<<"got "<<*k<<" from AUTO-NS"<<endl;
             if(*k == q->getRemote().toString())
@@ -536,25 +537,6 @@ namespace {
     unsigned int d_ttl;
     bool d_auth;
   };
-
-  DNSZoneRecord makeEditedDNSZRFromSOAData(DNSSECKeeper& dk, const SOAData& sd)
-  {
-    SOAData edited = sd;
-    edited.serial = calculateEditSOA(sd.serial, dk, sd.qname);
-
-    DNSRecord soa;
-    soa.d_name = sd.qname;
-    soa.d_type = QType::SOA;
-    soa.d_ttl = sd.ttl;
-    soa.d_place = DNSResourceRecord::ANSWER;
-    soa.d_content = makeSOAContent(edited);
-
-    DNSZoneRecord dzr;
-    dzr.auth = true;
-    dzr.dr = soa;
-
-    return dzr;
-  }
 
   shared_ptr<DNSPacket> getFreshAXFRPacket(shared_ptr<DNSPacket> q)
   {

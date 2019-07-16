@@ -1,0 +1,5 @@
+0	cname-to-insecure.example.com.	IN	CNAME	120	www.insecure.dnssec-parent.com.
+0	www.insecure.dnssec-parent.com.	IN	A	120	192.0.2.88
+2	.	IN	OPT	32768	
+Rcode: 0 (No Error), RD: 0, QR: 1, TC: 0, AA: 1, opcode: 0
+Reply to question for qname='cname-to-insecure.example.com.', qtype=A

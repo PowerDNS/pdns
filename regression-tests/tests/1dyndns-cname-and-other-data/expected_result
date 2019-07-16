@@ -16,7 +16,21 @@ Reply to question for qname='cname-and-other.test.dyndns.', qtype=A
 1	test.dyndns.	IN	SOA	3600	ns1.test.dyndns. ahu.example.dyndns. [serial] 28800 7200 604800 86400
 Rcode: 3 (Non-Existent domain), RD: 0, QR: 1, TC: 0, AA: 1, opcode: 0
 Reply to question for qname='cname-and-other.test.dyndns.', qtype=CNAME
+* Add a record that will result in an ENT being inserted at the upcoming CNAME
+Answer:
+;; ->>HEADER<<- opcode: UPDATE, status: NOERROR, id: [id]
+;; flags: qr aa; ZONE: 1, PREREQ: 0, UPDATE: 0, ADDITIONAL: 0
+;; ZONE SECTION:
+;test.dyndns.			IN	SOA
+
 * Add a CNAME
+Answer:
+;; ->>HEADER<<- opcode: UPDATE, status: NOERROR, id: [id]
+;; flags: qr aa; ZONE: 1, PREREQ: 0, UPDATE: 0, ADDITIONAL: 0
+;; ZONE SECTION:
+;test.dyndns.			IN	SOA
+
+* Delete the now useless record inserted to get an ENT there
 Answer:
 ;; ->>HEADER<<- opcode: UPDATE, status: NOERROR, id: [id]
 ;; flags: qr aa; ZONE: 1, PREREQ: 0, UPDATE: 0, ADDITIONAL: 0

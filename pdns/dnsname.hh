@@ -150,7 +150,7 @@ private:
   string_t d_storage;
 
   void packetParser(const char* p, int len, int offset, bool uncompress, uint16_t* qtype, uint16_t* qclass, unsigned int* consumed, int depth, uint16_t minOffset);
-  static std::string escapeLabel(const std::string& orig);
+  static void appendEscapedLabel(std::string& appendTo, const char* orig, size_t len);
   static std::string unescapeLabel(const std::string& orig);
 };
 
@@ -299,6 +299,11 @@ struct SuffixMatchTree
    */
   void remove(std::vector<std::string> labels) const
   {
+    if (labels.empty()) { // this allows removal of the root
+      endNode = false;
+      return;
+    }
+
     SuffixMatchTree smt(*labels.rbegin());
     auto child = children.find(smt);
     if (child == children.end()) {
@@ -328,8 +333,9 @@ struct SuffixMatchTree
     if(children.empty()) { // speed up empty set
       if(endNode)
         return &d_value;
-      return 0;
+      return nullptr;
     }
+
     return lookup(name.getRawLabels());
   }
 
@@ -338,7 +344,7 @@ struct SuffixMatchTree
     if(labels.empty()) { // optimization
       if(endNode)
         return &d_value;
-      return 0;
+      return nullptr;
     }
 
     SuffixMatchTree smn(*labels.rbegin());
@@ -346,10 +352,14 @@ struct SuffixMatchTree
     if(child == children.end()) {
       if(endNode)
         return &d_value;
-      return 0;
+      return nullptr;
     }
     labels.pop_back();
-    return child->lookup(labels);
+    auto result = child->lookup(labels);
+    if (result) {
+      return result;
+    }
+    return endNode ? &d_value : nullptr;
   }
 
   // Returns all end-nodes, fully qualified (not as separate labels)
@@ -381,6 +391,11 @@ struct SuffixMatchNode
     {
       d_tree.add(dnsname, true);
       d_nodes.insert(dnsname);
+    }
+
+    void add(const std::string& name)
+    {
+      add(DNSName(name));
     }
 
     void add(std::vector<std::string> labels)

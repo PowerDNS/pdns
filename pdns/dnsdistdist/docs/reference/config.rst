@@ -66,6 +66,9 @@ Listen Sockets
   .. versionchanged:: 1.3.0
     Added ``cpus`` to the options.
 
+  .. versionchanged:: 1.4.0
+    Removed ``doTCP`` from the options. A listen socket on TCP is always created.
+
   Add to the list of listen addresses.
 
   :param str address: The IP Address with an optional port to listen on.
@@ -74,15 +77,15 @@ Listen Sockets
 
   Options:
 
-  * ``doTCP=true``: bool - Also bind on TCP on ``address``.
+  * ``doTCP=true``: bool - Also bind on TCP on ``address``. Removed in 1.4.0.
   * ``reusePort=false``: bool - Set the ``SO_REUSEPORT`` socket option.
-  * ``tcpFastOpenSize=0``: int - Set the TCP Fast Open queue size, enabling TCP Fast Open when available and the value is larger than 0.
+  * ``tcpFastOpenQueueSize=0``: int - Set the TCP Fast Open queue size, enabling TCP Fast Open when available and the value is larger than 0.
   * ``interface=""``: str - Set the network interface to use.
   * ``cpus={}``: table - Set the CPU affinity for this listener thread, asking the scheduler to run it on a single CPU id, or a set of CPU ids. This parameter is only available if the OS provides the pthread_setaffinity_np() function.
 
   .. code-block:: lua
 
-    addLocal('0.0.0.0:5300', { doTCP=true, reusePort=true })
+    addLocal('0.0.0.0:5300', { reusePort=true })
 
   This will bind to both UDP and TCP on port 5300 with SO_REUSEPORT enabled.
 
@@ -110,13 +113,13 @@ Listen Sockets
                       The default port is 443.
   :param str certFile(s): The path to a X.509 certificate file in PEM format, or a list of paths to such files.
   :param str keyFile(s): The path to the private key file corresponding to the certificate, or a list of paths to such files, whose order should match the certFile(s) ones.
-  :param str or list urls: A base URL, or a list of base URLs, to accept queries on. Any query with a path under one of these will be treated as a DoH query. The default is /.
+  :param str-or-list urls: A base URL, or a list of base URLs, to accept queries on. Any query with a path under one of these will be treated as a DoH query. The default is /.
   :param table options: A table with key: value pairs with listen options.
 
   Options:
 
   * ``reusePort=false``: bool - Set the ``SO_REUSEPORT`` socket option.
-  * ``tcpFastOpenSize=0``: int - Set the TCP Fast Open queue size, enabling TCP Fast Open when available and the value is larger than 0.
+  * ``tcpFastOpenQueueSize=0``: int - Set the TCP Fast Open queue size, enabling TCP Fast Open when available and the value is larger than 0.
   * ``interface=""``: str - Set the network interface to use.
   * ``cpus={}``: table - Set the CPU affinity for this listener thread, asking the scheduler to run it on a single CPU id, or a set of CPU ids. This parameter is only available if the OS provides the pthread_setaffinity_np() function.
   * ``idleTimeout=30``: int - Set the idle timeout, in seconds.
@@ -146,7 +149,7 @@ Listen Sockets
   Options:
 
   * ``reusePort=false``: bool - Set the ``SO_REUSEPORT`` socket option.
-  * ``tcpFastOpenSize=0``: int - Set the TCP Fast Open queue size, enabling TCP Fast Open when available and the value is larger than 0.
+  * ``tcpFastOpenQueueSize=0``: int - Set the TCP Fast Open queue size, enabling TCP Fast Open when available and the value is larger than 0.
   * ``interface=""``: str - Set the network interface to use.
   * ``cpus={}``: table - Set the CPU affinity for this listener thread, asking the scheduler to run it on a single CPU id, or a set of CPU ids. This parameter is only available if the OS provides the pthread_setaffinity_np() function.
   * ``provider``: str - The TLS library to use between GnuTLS and OpenSSL, if they were available and enabled at compilation time.
@@ -372,7 +375,7 @@ Servers
       address="IP:PORT",     -- IP and PORT of the backend server (mandatory)
       id=STRING,             -- Use a pre-defined UUID instead of a random one
       qps=NUM,               -- Limit the number of queries per second to NUM, when using the `firstAvailable` policy
-      order=NUM,             -- The order of this server, used by the `leastOustanding` and `firstAvailable` policies
+      order=NUM,             -- The order of this server, used by the `leastOutstanding` and `firstAvailable` policies
       weight=NUM,            -- The weight of this server, used by the `wrandom`, `whashed` and `chashed` policies, default: 1
                              -- Supported values are a minimum of 1, and a maximum of 2147483647.
       pool=STRING|{STRING},  -- The pools this server belongs to (unset or empty string means default pool) as a string or table of strings
@@ -391,7 +394,7 @@ Servers
       setCD=BOOL,            -- Set the CD (Checking Disabled) flag in the health-check query, default: false
       maxCheckFailures=NUM,  -- Allow NUM check failures before declaring the backend down, default: 1
       checkInterval=NUM      -- The time in seconds between health checks
-      mustResolve=BOOL,      -- Set to true when the health check MUST return a NOERROR RCODE and an answer
+      mustResolve=BOOL,      -- Set to true when the health check MUST return a RCODE different from NXDomain, ServFail and Refused. Default is false, meaning that every RCODE except ServFail is considered valid
       useClientSubnet=BOOL,  -- Add the client's IP address in the EDNS Client Subnet option when forwarding the query to this backend
       source=STRING,         -- The source address or interface to use for queries to this backend, by default this is left to the kernel's address selection
                              -- The following formats are supported:
@@ -581,7 +584,7 @@ Pools are automatically created when a server is added to a pool (with :func:`ne
 PacketCache
 ~~~~~~~~~~~
 
-A Pool can have a packet cache to answer queries directly in stead of going to the backend.
+A Pool can have a packet cache to answer queries directly instead of going to the backend.
 See :doc:`../guides/cache` for a how to.
 
 .. function:: newPacketCache(maxEntries[, maxTTL=86400[, minTTL=0[, temporaryFailureTTL=60[, staleTTL=60[, dontAge=false[, numberOfShards=1[, deferrableInsertLock=true[, maxNegativeTTL=3600[, parseECS=false]]]]]]]) -> PacketCache
@@ -774,6 +777,12 @@ Status, Statistics and More
   .. versionadded:: 1.4.0
 
   Print the list of all availables DNS over HTTPS frontends.
+
+.. function:: showDOHResponseCodes()
+
+  .. versionadded:: 1.4.0
+
+  Print the HTTP response codes statistics for all availables DNS over HTTPS frontends.
 
 .. function:: showResponseLatency()
 
@@ -1051,6 +1060,39 @@ faster than the existing rules.
 
     Return a string describing the rules and range exclusions of this DynBlockRulesGroup.
 
+SuffixMatchNode
+~~~~~~~~~~~~~~~
+
+A SuffixMatchNode can be used to quickly check whether a given name belongs to a set or not. This is achieved
+using an efficient tree structure based on DNS labels, making lookups cheap.
+Be careful that Suffix Node matching will match for any sub-domain, regardless of the depth, under the name added to the set. For example,
+if 'example.com.' is added to the set, 'www.example.com.' and 'sub.www.example.com.' will match as well.
+If you are looking for exact name matching, your might want to consider using a :class:`DNSNameSet` instead.
+
+.. function:: newSuffixMatchNode()
+
+  Creates a new :class:`SuffixMatchNode`.
+
+.. class:: SuffixMatchNode
+
+  Represent a set of DNS suffixes for quick matching.
+
+  .. method:: SuffixMatchNode:add(name)
+    .. versionchanged:: 1.4.0
+      This method now accepts strings, lists of DNSNames and lists of strings.
+
+    Add a suffix to the current set.
+
+    :param DNSName name: The suffix to add to the set.
+    :param string name: The suffix to add to the set.
+    :param table name: The suffixes to add to the set. Elements of the table should be of the same type, either DNSName or string.
+
+  .. method:: SuffixMatchNode:check(name) -> bool
+
+    Return true if the given name is a sub-domain of one of those in the set, and false otherwise.
+
+    :param DNSName name: The name to test against the set.
+
 Other functions
 ---------------
 
@@ -1059,11 +1101,17 @@ Other functions
   If this function exists, it is called every second to so regular tasks.
   This can be used for e.g. :doc:`Dynamic Blocks <../guides/dynblocks>`.
 
-.. function: setAllowEmptyResponse()
+.. function:: setAllowEmptyResponse()
 
   .. versionadded:: 1.4.0
 
   Set to true (defaults to false) to allow empty responses (qdcount=0) with a NoError or NXDomain rcode (default) from backends. dnsdist drops these responses by default because it can't match them against the initial query since they don't contain the qname, qtype and qclass, and therefore the risk of collision is much higher than with regular responses.
+
+.. function:: makeIPCipherKey(password) -> string
+
+  .. versionadded:: 1.4.0
+
+  Hashes the password to generate a 16-byte key that can be used to pseudonymize IP addresses with IP cipher.
 
 DOHFrontend
 ~~~~~~~~~~~

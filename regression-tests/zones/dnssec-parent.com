@@ -23,3 +23,5 @@ ns1.secure-delegated	IN	A	1.2.3.4
 ns2.secure-delegated	IN	A	5.6.7.8
 insecure-delegated.ent.ent.auth-ent	IN	NS	ns.example.com.
 something1.auth-ent	IN	A	1.1.2.3
+insecure		IN	NS	ns.example.com.
+www			IN	CNAME	www.insecure

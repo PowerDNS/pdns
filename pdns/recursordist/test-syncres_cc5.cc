@@ -26,7 +26,13 @@ BOOST_AUTO_TEST_CASE(test_dnssec_secure_various_algos) {
 
   size_t queriesCount = 0;
 
-  sr->setAsyncCallback([target,targetAddr,&queriesCount,keys](const ComboAddress& ip, const DNSName& domain, int type, bool doTCP, bool sendRDQuery, int EDNS0Level, struct timeval* now, boost::optional<Netmask>& srcmask, boost::optional<const ResolveContext&> context, LWResult* res, bool* chained) {
+  /* make sure that the signature inception and validity times are computed
+     based on the SyncRes time, not the current one, in case the function
+     takes too long. */
+
+  const time_t fixedNow = sr->getNow().tv_sec;
+
+  sr->setAsyncCallback([target,targetAddr,&queriesCount,keys,fixedNow](const ComboAddress& ip, const DNSName& domain, int type, bool doTCP, bool sendRDQuery, int EDNS0Level, struct timeval* now, boost::optional<Netmask>& srcmask, boost::optional<const ResolveContext&> context, LWResult* res, bool* chained) {
       queriesCount++;
 
       DNSName auth = domain;
@@ -35,14 +41,14 @@ BOOST_AUTO_TEST_CASE(test_dnssec_secure_various_algos) {
       }
 
       if (type == QType::DS || type == QType::DNSKEY) {
-        return genericDSAndDNSKEYHandler(res, domain, auth, type, keys);
+        return genericDSAndDNSKEYHandler(res, domain, auth, type, keys, true, fixedNow);
       }
 
       if (isRootServer(ip)) {
         setLWResult(res, 0, false, false, true);
         addRecordToLW(res, "com.", QType::NS, "a.gtld-servers.com.", DNSResourceRecord::AUTHORITY, 3600);
         addDS(DNSName("com."), 300, res->d_records, keys);
-        addRRSIG(keys, res->d_records, DNSName("."), 300);
+        addRRSIG(keys, res->d_records, DNSName("."), 300, false, boost::none, boost::none, fixedNow);
         addRecordToLW(res, "a.gtld-servers.com.", QType::A, "192.0.2.1", DNSResourceRecord::ADDITIONAL, 3600);
         return 1;
       }
@@ -51,7 +57,7 @@ BOOST_AUTO_TEST_CASE(test_dnssec_secure_various_algos) {
         if (domain == DNSName("com.")) {
           setLWResult(res, 0, true, false, true);
           addRecordToLW(res, domain, QType::NS, "a.gtld-servers.com.");
-          addRRSIG(keys, res->d_records, domain, 300);
+          addRRSIG(keys, res->d_records, domain, 300, false, boost::none, boost::none, fixedNow);
           addRecordToLW(res, "a.gtld-servers.com.", QType::A, "192.0.2.1", DNSResourceRecord::ADDITIONAL, 3600);
           addRRSIG(keys, res->d_records, domain, 300);
         }
@@ -59,7 +65,7 @@ BOOST_AUTO_TEST_CASE(test_dnssec_secure_various_algos) {
           setLWResult(res, 0, false, false, true);
           addRecordToLW(res, auth, QType::NS, "ns1.powerdns.com.", DNSResourceRecord::AUTHORITY, 3600);
           addDS(auth, 300, res->d_records, keys);
-          addRRSIG(keys, res->d_records, DNSName("com."), 300);
+          addRRSIG(keys, res->d_records, DNSName("com."), 300, false, boost::none, boost::none, fixedNow);
           addRecordToLW(res, "ns1.powerdns.com.", QType::A, "192.0.2.2", DNSResourceRecord::ADDITIONAL, 3600);
         }
         return 1;
@@ -69,14 +75,14 @@ BOOST_AUTO_TEST_CASE(test_dnssec_secure_various_algos) {
         if (type == QType::NS) {
           setLWResult(res, 0, true, false, true);
           addRecordToLW(res, domain, QType::NS, "ns1.powerdns.com.");
-          addRRSIG(keys, res->d_records, auth, 300);
+          addRRSIG(keys, res->d_records, auth, 300, false, boost::none, boost::none, fixedNow);
           addRecordToLW(res, "ns1.powerdns.com.", QType::A, "192.0.2.2", DNSResourceRecord::ADDITIONAL, 3600);
           addRRSIG(keys, res->d_records, auth, 300);
         }
         else {
           setLWResult(res, RCode::NoError, true, false, true);
           addRecordToLW(res, domain, QType::A, targetAddr.toString(), DNSResourceRecord::ANSWER, 3600);
-          addRRSIG(keys, res->d_records, auth, 300);
+          addRRSIG(keys, res->d_records, auth, 300, false, boost::none, boost::none, fixedNow);
         }
         return 1;
       }

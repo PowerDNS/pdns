@@ -200,6 +200,7 @@ void doLatencyStats(double udiff)
   else if(udiff < 100000) ++g_stats.latency50_100;
   else if(udiff < 1000000) ++g_stats.latency100_1000;
   else ++g_stats.latencySlow;
+  g_stats.latencySum += udiff / 1000;
 
   auto doAvg = [](double& var, double n, double weight) {
     var = (weight -1) * var/weight + n/weight;
@@ -1223,10 +1224,10 @@ ssize_t udpClientSendRequestToBackend(const std::shared_ptr<DownstreamState>& ss
   else {
     struct msghdr msgh;
     struct iovec iov;
-    char cbuf[256];
+    cmsgbuf_aligned cbuf;
     ComboAddress remote(ss->remote);
-    fillMSGHdr(&msgh, &iov, cbuf, sizeof(cbuf), const_cast<char*>(request), requestLen, &remote);
-    addCMsgSrcAddr(&msgh, cbuf, &ss->sourceAddr, ss->sourceItf);
+    fillMSGHdr(&msgh, &iov, &cbuf, sizeof(cbuf), const_cast<char*>(request), requestLen, &remote);
+    addCMsgSrcAddr(&msgh, &cbuf, &ss->sourceAddr, ss->sourceItf);
     result = sendmsg(sd, &msgh, 0);
   }
 
@@ -1320,7 +1321,7 @@ bool checkQueryHeaders(const struct dnsheader* dh)
 }
 
 #if defined(HAVE_RECVMMSG) && defined(HAVE_SENDMMSG) && defined(MSG_WAITFORONE)
-static void queueResponse(const ClientState& cs, const char* response, uint16_t responseLen, const ComboAddress& dest, const ComboAddress& remote, struct mmsghdr& outMsg, struct iovec* iov, char* cbuf)
+static void queueResponse(const ClientState& cs, const char* response, uint16_t responseLen, const ComboAddress& dest, const ComboAddress& remote, struct mmsghdr& outMsg, struct iovec* iov, cmsgbuf_aligned* cbuf)
 {
   outMsg.msg_len = 0;
   fillMSGHdr(&outMsg.msg_hdr, iov, nullptr, 0, const_cast<char*>(response), responseLen, const_cast<ComboAddress*>(&remote));
@@ -1501,7 +1502,7 @@ ProcessQueryResult processQuery(DNSQuestion& dq, ClientState& cs, LocalHolders& 
   return ProcessQueryResult::Drop;
 }
 
-static void processUDPQuery(ClientState& cs, LocalHolders& holders, const struct msghdr* msgh, const ComboAddress& remote, ComboAddress& dest, char* query, uint16_t len, size_t queryBufferSize, struct mmsghdr* responsesVect, unsigned int* queuedResponses, struct iovec* respIOV, char* respCBuf)
+static void processUDPQuery(ClientState& cs, LocalHolders& holders, const struct msghdr* msgh, const ComboAddress& remote, ComboAddress& dest, char* query, uint16_t len, size_t queryBufferSize, struct mmsghdr* responsesVect, unsigned int* queuedResponses, struct iovec* respIOV, cmsgbuf_aligned* respCBuf)
 {
   assert(responsesVect == nullptr || (queuedResponses != nullptr && respIOV != nullptr && respCBuf != nullptr));
   uint16_t queryId = 0;
@@ -1617,11 +1618,11 @@ static void MultipleMessagesUDPClientThread(ClientState* cs, LocalHolders& holde
   struct MMReceiver
   {
     char packet[4096];
-    /* used by HarvestDestinationAddress */
-    char cbuf[256];
     ComboAddress remote;
     ComboAddress dest;
     struct iovec iov;
+    /* used by HarvestDestinationAddress */
+    cmsgbuf_aligned cbuf;
   };
   const size_t vectSize = g_udpVectorSize;
   /* the actual buffer is larger because:
@@ -1638,7 +1639,7 @@ static void MultipleMessagesUDPClientThread(ClientState* cs, LocalHolders& holde
   /* initialize the structures needed to receive our messages */
   for (size_t idx = 0; idx < vectSize; idx++) {
     recvData[idx].remote.sin4.sin_family = cs->local.sin4.sin_family;
-    fillMSGHdr(&msgVec[idx].msg_hdr, &recvData[idx].iov, recvData[idx].cbuf, sizeof(recvData[idx].cbuf), recvData[idx].packet, s_udpIncomingBufferSize, &recvData[idx].remote);
+    fillMSGHdr(&msgVec[idx].msg_hdr, &recvData[idx].iov, &recvData[idx].cbuf, sizeof(recvData[idx].cbuf), recvData[idx].packet, s_udpIncomingBufferSize, &recvData[idx].remote);
   }
 
   /* go now */
@@ -1668,12 +1669,12 @@ static void MultipleMessagesUDPClientThread(ClientState* cs, LocalHolders& holde
       unsigned int got = msgVec[msgIdx].msg_len;
       const ComboAddress& remote = recvData[msgIdx].remote;
 
-      if (got < 0 || static_cast<size_t>(got) < sizeof(struct dnsheader)) {
+      if (static_cast<size_t>(got) < sizeof(struct dnsheader)) {
         ++g_stats.nonCompliantQueries;
         continue;
       }
 
-      processUDPQuery(*cs, holders, msgh, remote, recvData[msgIdx].dest, recvData[msgIdx].packet, static_cast<uint16_t>(got), sizeof(recvData[msgIdx].packet), outMsgVec.get(), &msgsToSend, &recvData[msgIdx].iov, recvData[msgIdx].cbuf);
+      processUDPQuery(*cs, holders, msgh, remote, recvData[msgIdx].dest, recvData[msgIdx].packet, static_cast<uint16_t>(got), sizeof(recvData[msgIdx].packet), outMsgVec.get(), &msgsToSend, &recvData[msgIdx].iov, &recvData[msgIdx].cbuf);
 
     }
 
@@ -1717,12 +1718,12 @@ try
     struct msghdr msgh;
     struct iovec iov;
     /* used by HarvestDestinationAddress */
-    char cbuf[256];
+    cmsgbuf_aligned cbuf;
 
     ComboAddress remote;
     ComboAddress dest;
     remote.sin4.sin_family = cs->local.sin4.sin_family;
-    fillMSGHdr(&msgh, &iov, cbuf, sizeof(cbuf), packet, sizeof(packet), &remote);
+    fillMSGHdr(&msgh, &iov, &cbuf, sizeof(cbuf), packet, sizeof(packet), &remote);
 
     for(;;) {
       ssize_t got = recvmsg(cs->udpFD, &msgh, 0);
@@ -2791,4 +2792,9 @@ catch(PDNSException &ae)
 {
   errlog("Fatal pdns error: %s", ae.reason);
   _exit(EXIT_FAILURE);
+}
+
+uint64_t getLatencyCount(const std::string&)
+{
+    return g_stats.responses + g_stats.selfAnswered + g_stats.cacheHits;
 }

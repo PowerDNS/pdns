@@ -21,6 +21,14 @@ Generic MySQL backend
   point this is going to harm your database, for example when an incoming
   zone transfer fails.
 
+.. warning::
+  While it is possible to run the Generic MySQL backend on top of MySQL
+  views, we have received several reports of this causing performance
+  problems and memory leaks.  Please know that when reporting problems when
+  running PowerDNS on top of a modified schema, our open source support
+  offering requires you to reproduce your problem on an unmodified schema without
+  views.
+
 The default schema is included at the bottom of this page.
 :ref:`migration-zone2sql` with the ``--gmysql`` flag also
 assumes this layout is in place. For full migration notes, please see
@@ -127,7 +135,7 @@ server. A value of 0 will disable the timeout. Default: 10
 .. _setting-gmysql-thread-cleanup:
 
 ``gmysql-thread-cleanup``
-^^^^^^^^^^^^^^^^^^^^^^^^
+^^^^^^^^^^^^^^^^^^^^^^^^^
 .. versionadded:: 4.1.8
 
 Older versions (such as those shipped on RHEL 7) of the MySQL/MariaDB client libraries leak memory unless applications explicitly report the end of each thread to the library. Enabling ``gmysql-thread-cleanup`` tells PowerDNS to call ``mysql_thread_end()`` whenever a thread ends.

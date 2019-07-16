@@ -512,16 +512,16 @@ RecursorWebServer::RecursorWebServer(FDMultiplexer* fdm)
   d_ws->bind();
 
   // legacy dispatch
-  d_ws->registerApiHandler("/jsonstat", boost::bind(&RecursorWebServer::jsonstat, this, _1, _2));
+  d_ws->registerApiHandler("/jsonstat", boost::bind(&RecursorWebServer::jsonstat, this, _1, _2), true);
   d_ws->registerApiHandler("/api/v1/servers/localhost/cache/flush", &apiServerCacheFlush);
   d_ws->registerApiHandler("/api/v1/servers/localhost/config/allow-from", &apiServerConfigAllowFrom);
   d_ws->registerApiHandler("/api/v1/servers/localhost/config", &apiServerConfig);
   d_ws->registerApiHandler("/api/v1/servers/localhost/rpzstatistics", &apiServerRPZStats);
   d_ws->registerApiHandler("/api/v1/servers/localhost/search-data", &apiServerSearchData);
-  d_ws->registerApiHandler("/api/v1/servers/localhost/statistics", &apiServerStatistics);
+  d_ws->registerApiHandler("/api/v1/servers/localhost/statistics", &apiServerStatistics, true);
   d_ws->registerApiHandler("/api/v1/servers/localhost/zones/<id>", &apiServerZoneDetail);
   d_ws->registerApiHandler("/api/v1/servers/localhost/zones", &apiServerZones);
-  d_ws->registerApiHandler("/api/v1/servers/localhost", &apiServerDetail);
+  d_ws->registerApiHandler("/api/v1/servers/localhost", &apiServerDetail, true);
   d_ws->registerApiHandler("/api/v1/servers", &apiServer);
   d_ws->registerApiHandler("/api", &apiDiscovery);
 

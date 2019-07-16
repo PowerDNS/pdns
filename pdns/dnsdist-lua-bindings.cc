@@ -205,7 +205,32 @@ void setupLuaBindings(bool client)
   g_lua.registerFunction("empty",(bool (DNSNameSet::*)()) &DNSNameSet::empty);
 
   /* SuffixMatchNode */
-  g_lua.registerFunction("add",(void (SuffixMatchNode::*)(const DNSName&)) &SuffixMatchNode::add);
+  g_lua.registerFunction<void (SuffixMatchNode::*)(const boost::variant<DNSName, string, vector<pair<int, DNSName>>, vector<pair<int, string>>> &name)>("add", [](SuffixMatchNode &smn, const boost::variant<DNSName, string, vector<pair<int, DNSName>>, vector<pair<int, string>>> &name) {
+      if (name.type() == typeid(DNSName)) {
+          auto n = boost::get<DNSName>(name);
+          smn.add(n);
+          return;
+      }
+      if (name.type() == typeid(string)) {
+          auto n = boost::get<string>(name);
+          smn.add(n);
+          return;
+      }
+      if (name.type() == typeid(vector<pair<int, DNSName>>)) {
+          auto names = boost::get<vector<pair<int, DNSName>>>(name);
+          for (auto const n : names) {
+            smn.add(n.second);
+          }
+          return;
+      }
+      if (name.type() == typeid(vector<pair<int, string>>)) {
+          auto names = boost::get<vector<pair<int, string>>>(name);
+          for (auto const n : names) {
+            smn.add(n.second);
+          }
+          return;
+      }
+  });
   g_lua.registerFunction("check",(bool (SuffixMatchNode::*)(const DNSName&) const) &SuffixMatchNode::check);
 
   /* NetmaskGroup */
@@ -320,7 +345,7 @@ void setupLuaBindings(bool client)
               boost::optional<uint16_t> qtype,
               boost::optional<bool> suffixMatch) {
                 if (cache) {
-                  cache->expungeByName(dname, qtype ? *qtype : QType(QType::ANY).getCode(), suffixMatch ? *suffixMatch : false);
+                  g_outputBuffer="Expunged " + std::to_string(cache->expungeByName(dname, qtype ? *qtype : QType(QType::ANY).getCode(), suffixMatch ? *suffixMatch : false)) + " records\n";
                 }
     });
   g_lua.registerFunction<void(std::shared_ptr<DNSDistPacketCache>::*)()>("printStats", [](const std::shared_ptr<DNSDistPacketCache> cache) {
@@ -512,7 +537,7 @@ void setupLuaBindings(bool client)
 
       if (ctx != nullptr) {
         size_t idx = 1;
-        boost::format fmt("%1$-3d %|5t|%2$-8d %|10t|%3$-2d %|20t|%4$-21.21s %|41t|%5$-21.21s");
+        boost::format fmt("%1$-3d %|5t|%2$-8d %|10t|%3$-7d %|20t|%4$-21.21s %|41t|%5$-21.21s");
         ret << (fmt % "#" % "Serial" % "Version" % "From" % "To" ) << endl;
 
         for (auto pair : ctx->getCertificates()) {

@@ -180,7 +180,7 @@ Also AXFR a zone from a master with a lower serial.
 -  Integer
 -  Default: 20
 
-Seconds to store packets in the :ref:`packet-cache`.
+Seconds to store packets in the :ref:`packet-cache`. A value of 0 will disable the cache.
 
 .. _setting-carbon-instance:
 
@@ -391,6 +391,9 @@ Overrides :ref:`setting-default-soa-edit`
 
 -  String
 
+.. deprecated:: 4.2.0
+  This setting has been deprecated and will be removed in 4.3.0
+
 Mail address to insert in the SOA record if none set in the backend.
 
 .. _setting-default-soa-name:
@@ -400,6 +403,9 @@ Mail address to insert in the SOA record if none set in the backend.
 
 -  String
 -  Default: a.misconfigured.powerdns.server
+
+.. deprecated:: 4.2.0
+  This setting has been deprecated and will be removed in 4.3.0
 
 Name to insert in the SOA record if none set in the backend.
 
@@ -507,6 +513,9 @@ inside a supervisor that handles logging (like systemd).
 
 -  Boolean
 -  Default: no
+
+.. versionchanged:: 4.2.0
+  This setting has been removed
 
 Do not listen to TCP queries. Breaks RFC compliance.
 
@@ -1409,6 +1418,9 @@ signing-slave.
 -  Integer
 -  Default: 604800
 
+.. deprecated:: 4.2.0
+  This setting has been deprecated and will be removed in 4.3.0
+
 Default :ref:`types-soa` expire.
 
 .. _setting-soa-minimum-ttl:
@@ -1418,6 +1430,9 @@ Default :ref:`types-soa` expire.
 
 -  Integer
 -  Default: 3600
+
+.. deprecated:: 4.2.0
+  This setting has been deprecated and will be removed in 4.3.0
 
 Default :ref:`types-soa` minimum ttl.
 
@@ -1429,6 +1444,9 @@ Default :ref:`types-soa` minimum ttl.
 -  Integer
 -  Default: 10800
 
+.. deprecated:: 4.2.0
+  This setting has been deprecated and will be removed in 4.3.0
+
 Default :ref:`types-soa` refresh.
 
 .. _setting-soa-retry-default:
@@ -1438,6 +1456,9 @@ Default :ref:`types-soa` refresh.
 
 -  Integer
 -  Default: 3600
+
+.. deprecated:: 4.2.0
+  This setting has been deprecated and will be removed in 4.3.0
 
 Default :ref:`types-soa` retry.
 
@@ -1464,9 +1485,12 @@ and :doc:`Virtual Hosting <guides/virtual-instances>` how this can differ.
 -  Boolean
 -  Default: no
 
-.. versionadded:: 4.2.0
-  In versions before 4.2.x, this setting did not exist and supermaster support
+.. versionadded:: 4.1.9
+  In versions before 4.1.9, this setting did not exist and supermaster support
   was enabled by default.
+
+.. versionchanged:: 4.2.0
+  Before 4.2.0, the default was yes.
 
 Turn on supermaster support. See :ref:`supermaster-operation`.
 
@@ -1556,6 +1580,8 @@ IP address of incoming notification proxy
 
 ``udp-truncation-threshold``
 ----------------------------
+.. versionchanged:: 4.2.0
+  Before 4.2.0, the default was 1680
 
 -  Integer
 -  Default: 1232
@@ -1664,6 +1690,17 @@ The value between the hooks is a UUID that is generated for each request. This c
 
 .. note::
   The webserver logs these line on the NOTICE level. The :ref:`setting-loglevel` seting must be 5 or higher for these lines to end up in the log.
+
+.. _setting-webserver-max-bodysize:
+
+``webserver-max-bodysize``
+--------------------------
+.. versionadded:: 4.2.0
+
+-  Integer
+-  Default: 2
+
+Maximum request/response body size in megabytes.
 
 .. _setting-webserver-password:
 

@@ -372,7 +372,7 @@ public:
     return d_cursor;
   }
 
-  MDB_cursor* d_cursor;
+  MDB_cursor* d_cursor{nullptr};
   Transaction* d_parent;
 };
 
@@ -389,13 +389,15 @@ public:
   MDBROCursor(MDBROCursor&& rhs) : MDBGenCursor<MDBROTransaction>(rhs.d_parent)
   {
     d_cursor = rhs.d_cursor;
-    rhs.d_cursor=0;
+    rhs.d_cursor = nullptr;
   }
 
   void close()
   {
-    mdb_cursor_close(d_cursor);
-    d_cursor=0;
+    if (d_cursor) {
+      mdb_cursor_close(d_cursor);
+      d_cursor = nullptr;
+    }
   }
   
   ~MDBROCursor()
@@ -568,7 +570,7 @@ public:
   MDBRWCursor(MDBRWCursor&& rhs) : MDBGenCursor<MDBRWTransaction>(rhs.d_parent)
   {
     d_cursor = rhs.d_cursor;
-    rhs.d_cursor=0;
+    rhs.d_cursor = nullptr;
     d_parent->reportCursorMove(&rhs, this);
   }
 
@@ -576,7 +578,7 @@ public:
   {
     if(d_cursor)
       mdb_cursor_close(d_cursor);
-    d_cursor=0;
+    d_cursor = nullptr;
   }
   
   ~MDBRWCursor()

@@ -16,6 +16,7 @@ public:
   virtual size_t write(const void* buffer, size_t bufferSize, unsigned int writeTimeout) = 0;
   virtual IOState tryWrite(std::vector<uint8_t>& buffer, size_t& pos, size_t toWrite) = 0;
   virtual IOState tryRead(std::vector<uint8_t>& buffer, size_t& pos, size_t toRead) = 0;
+  virtual std::string getServerNameIndication() = 0;
   virtual void close() = 0;
 
 protected:
@@ -191,7 +192,7 @@ public:
     }
   }
 
-  /* Tries to read exactly toRead bytes into the buffer, starting at position pos.
+  /* Tries to read exactly toRead - pos bytes into the buffer, starting at position pos.
      Updates pos everytime a successful read occurs,
      throws an std::runtime_error in case of IO error,
      return Done when toRead bytes have been read, needRead or needWrite if the IO operation
@@ -199,17 +200,16 @@ public:
   */
   IOState tryRead(std::vector<uint8_t>& buffer, size_t& pos, size_t toRead)
   {
-    if (buffer.size() < (pos + toRead)) {
-      throw std::out_of_range("Calling tryRead() with a too small buffer (" + std::to_string(buffer.size()) + ") for a read of " + std::to_string(toRead) + " bytes starting at " + std::to_string(pos));
+    if (buffer.size() < toRead || pos >= toRead) {
+      throw std::out_of_range("Calling tryRead() with a too small buffer (" + std::to_string(buffer.size()) + ") for a read of " + std::to_string(toRead - pos) + " bytes starting at " + std::to_string(pos));
     }
 
     if (d_conn) {
       return d_conn->tryRead(buffer, pos, toRead);
     }
 
-    size_t got = 0;
     do {
-      ssize_t res = ::read(d_socket, reinterpret_cast<char*>(&buffer.at(pos)), toRead - got);
+      ssize_t res = ::read(d_socket, reinterpret_cast<char*>(&buffer.at(pos)), toRead - pos);
       if (res == 0) {
         throw runtime_error("EOF while reading message");
       }
@@ -223,14 +223,13 @@ public:
       }
 
       pos += static_cast<size_t>(res);
-      got += static_cast<size_t>(res);
     }
-    while (got < toRead);
+    while (pos < toRead);
 
     return IOState::Done;
   }
 
-  /* Tries to write exactly toWrite bytes from the buffer, starting at position pos.
+  /* Tries to write exactly toWrite - pos bytes from the buffer, starting at position pos.
      Updates pos everytime a successful write occurs,
      throws an std::runtime_error in case of IO error,
      return Done when toWrite bytes have been written, needRead or needWrite if the IO operation
@@ -238,13 +237,15 @@ public:
   */
   IOState tryWrite(std::vector<uint8_t>& buffer, size_t& pos, size_t toWrite)
   {
+    if (buffer.size() < toWrite || pos >= toWrite) {
+      throw std::out_of_range("Calling tryWrite() with a too small buffer (" + std::to_string(buffer.size()) + ") for a write of " + std::to_string(toWrite - pos) + " bytes starting at " + std::to_string(pos));
+    }
     if (d_conn) {
       return d_conn->tryWrite(buffer, pos, toWrite);
     }
 
-    size_t sent = 0;
     do {
-      ssize_t res = ::write(d_socket, reinterpret_cast<char*>(&buffer.at(pos)), toWrite - sent);
+      ssize_t res = ::write(d_socket, reinterpret_cast<const char*>(&buffer.at(pos)), toWrite - pos);
       if (res == 0) {
         throw runtime_error("EOF while sending message");
       }
@@ -258,9 +259,8 @@ public:
       }
 
       pos += static_cast<size_t>(res);
-      sent += static_cast<size_t>(res);
     }
-    while (sent < toWrite);
+    while (pos < toWrite);
 
     return IOState::Done;
   }
@@ -275,18 +275,12 @@ public:
     }
   }
 
-  bool writeSizeAndMsg(const void* buffer, size_t bufferSize, unsigned int writeTimeout)
+  std::string getServerNameIndication()
   {
     if (d_conn) {
-      uint16_t size = htons(bufferSize);
-      if (d_conn->write(&size, sizeof(size), writeTimeout) != sizeof(size)) {
-        return false;
-      }
-      return (d_conn->write(buffer, bufferSize, writeTimeout) == bufferSize);
+      return d_conn->getServerNameIndication();
     }
-    else {
-      return sendSizeAndMsgWithTimeout(d_socket, bufferSize, static_cast<const char*>(buffer), writeTimeout, nullptr, nullptr, 0, 0, 0);
-    }
+    return std::string();
   }
 
 private:

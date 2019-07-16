@@ -2,6 +2,19 @@ Set 'minimal.com' meta SOA-EDIT = INCREMENT-WEEKS
 0	minimal.com.	IN	SOA	120	ns1.example.com. ahu.example.com. 2000083846 28800 7200 604800 86400
 Rcode: 0 (No Error), RD: 0, QR: 1, TC: 0, AA: 1, opcode: 0
 Reply to question for qname='minimal.com.', qtype=SOA
+1	minimal.com.	IN	SOA	120	ns1.example.com. ahu.example.com. 2000083846 28800 7200 604800 86400
+Rcode: 0 (No Error), RD: 0, QR: 1, TC: 0, AA: 1, opcode: 0
+Reply to question for qname='minimal.com.', qtype=MX
+1	minimal.com.	IN	SOA	120	ns1.example.com. ahu.example.com. 2000083846 28800 7200 604800 86400
+Rcode: 3 (Non-Existent domain), RD: 0, QR: 1, TC: 0, AA: 1, opcode: 0
+Reply to question for qname='nx.minimal.com.', qtype=MX
+midnight has passed
 0	minimal.com.	IN	SOA	120	ns1.example.com. ahu.example.com. 2000083847 28800 7200 604800 86400
 Rcode: 0 (No Error), RD: 0, QR: 1, TC: 0, AA: 1, opcode: 0
 Reply to question for qname='minimal.com.', qtype=SOA
+1	minimal.com.	IN	SOA	120	ns1.example.com. ahu.example.com. 2000083847 28800 7200 604800 86400
+Rcode: 0 (No Error), RD: 0, QR: 1, TC: 0, AA: 1, opcode: 0
+Reply to question for qname='minimal.com.', qtype=MX
+1	minimal.com.	IN	SOA	120	ns1.example.com. ahu.example.com. 2000083847 28800 7200 604800 86400
+Rcode: 3 (Non-Existent domain), RD: 0, QR: 1, TC: 0, AA: 1, opcode: 0
+Reply to question for qname='nx.minimal.com.', qtype=MX

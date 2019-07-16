@@ -26,7 +26,6 @@ for more information):
 -  RSASHA1 (algorithm 5, algorithm 7)
 -  RSASHA256 (algorithm 8)
 -  RSASHA512 (algorithm 10)
--  ECC-GOST (algorithm 12)
 -  ECDSA (algorithm 13 and 14)
 -  ed25519 (algorithm 15)
 -  ed448 (algorithm 16)
@@ -37,7 +36,6 @@ are supported:
 
 -  SHA-1 (algorithm 1)
 -  SHA-256 (algorithm 2)
--  GOST R 34.11-94 (algorithm 3)
 -  SHA-384 (algorithm 4)
 
 This corresponds to:
@@ -48,7 +46,6 @@ This corresponds to:
 - :rfc:`4509`: Use of SHA-256 in DNSSEC Delegation Signer (DS) Resource Records (RRs)
 - :rfc:`5155`: DNS Security (DNSSEC) Hashed Authenticated Denial of Existence
 - :rfc:`5702`: Use of SHA-2 Algorithms with RSA in DNSKEY and RRSIG Resource Records for DNSSEC
-- :rfc:`5933`: Use of GOST Signature Algorithms in DNSKEY and RRSIG Resource Records for DNSSEC
 - :rfc:`6605`: Elliptic Curve Digital Signature Algorithm (DSA) for DNSSEC
 - :rfc:`8080`: Edwards-Curve Digital Security Algorithm (EdDSA) for DNSSEC
 

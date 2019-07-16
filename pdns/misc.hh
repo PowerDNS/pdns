@@ -162,8 +162,6 @@ string uitoa(unsigned int i);
 string bitFlip(const string &str);
 
 void dropPrivs(int uid, int gid);
-int makeGidNumeric(const string &group);
-int makeUidNumeric(const string &user);
 void cleanSlashes(string &str);
 
 #if defined(_POSIX_THREAD_CPUTIME) && defined(CLOCK_THREAD_CPUTIME_ID)
@@ -517,8 +515,12 @@ private:
 };
 
 union ComboAddress;
+
+// An aligned type to hold cmsgbufs. See https://man.openbsd.org/CMSG_DATA
+typedef union { struct cmsghdr hdr; char buf[256]; } cmsgbuf_aligned;
+
 /* itfIndex is an interface index, as returned by if_nametoindex(). 0 means default. */
-void addCMsgSrcAddr(struct msghdr* msgh, void* cmsgbuf, const ComboAddress* source, int itfIndex);
+void addCMsgSrcAddr(struct msghdr* msgh, cmsgbuf_aligned* cbuf, const ComboAddress* source, int itfIndex);
 
 unsigned int getFilenumLimit(bool hardOrSoft=0);
 void setFilenumLimit(unsigned int lim);

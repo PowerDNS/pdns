@@ -43,6 +43,7 @@ BOOST_AUTO_TEST_CASE(test_dnssec_insecure_to_ta_skipped_cut) {
 
           if (domain == DNSName("com.")) {
             addRecordToLW(res, domain, QType::SOA, "pdns-public-ns1.powerdns.com. pieter\\.lexis.powerdns.com. 2017032301 10800 3600 604800 3600", DNSResourceRecord::AUTHORITY, 3600);
+            addRRSIG(keys, res->d_records, DNSName("."), 300);
             /* no DS */
             addNSECRecordToLW(DNSName("com."), DNSName("dom."), { QType::NS }, 600, res->d_records);
             addRRSIG(keys, res->d_records, DNSName("."), 300);
@@ -119,7 +120,7 @@ BOOST_AUTO_TEST_CASE(test_dnssec_insecure_to_ta_skipped_cut) {
   BOOST_CHECK_EQUAL(sr->getValidationState(), Secure);
   BOOST_REQUIRE_EQUAL(ret.size(), 2);
   BOOST_CHECK(ret[0].d_type == QType::A);
-  BOOST_CHECK_EQUAL(queriesCount, 8);
+  BOOST_CHECK_EQUAL(queriesCount, 7);
 
   /* again, to test the cache */
   ret.clear();
@@ -128,7 +129,7 @@ BOOST_AUTO_TEST_CASE(test_dnssec_insecure_to_ta_skipped_cut) {
   BOOST_CHECK_EQUAL(sr->getValidationState(), Secure);
   BOOST_REQUIRE_EQUAL(ret.size(), 2);
   BOOST_CHECK(ret[0].d_type == QType::A);
-  BOOST_CHECK_EQUAL(queriesCount, 8);
+  BOOST_CHECK_EQUAL(queriesCount, 7);
 }
 
 BOOST_AUTO_TEST_CASE(test_dnssec_secure_to_insecure_nodata) {

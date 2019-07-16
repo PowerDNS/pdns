@@ -46,7 +46,7 @@ extern CommunicatorClass Communicator;
 extern std::shared_ptr<UDPNameserver> N;
 extern vector<std::shared_ptr<UDPNameserver> > g_udpReceivers;
 extern int avg_latency;
-extern TCPNameserver *TN;
+extern std::unique_ptr<TCPNameserver> TN;
 extern ArgvMap & arg( void );
 extern void declareArguments();
 extern void declareStats();
@@ -57,6 +57,7 @@ extern bool g_anyToTcp;
 extern bool g_8bitDNS;
 #ifdef HAVE_LUA_RECORDS
 extern bool g_doLuaRecord;
+extern bool g_LuaRecordSharedState;
 #endif // HAVE_LUA_RECORDS
 
 #endif // COMMON_STARTUP_HH

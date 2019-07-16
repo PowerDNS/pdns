@@ -50,3 +50,6 @@ pdns_recursor.pid
 *.gcno
 *.gcov
 built_pkgs
+*-wal
+*-shm
+__pycache__

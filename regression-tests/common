@@ -1,6 +1,6 @@
 tosql ()
 {
-	if echo $ZONE2SQL | grep -q '../pdns'; then
+	if echo $ZONE2SQL | grep -q '\.\./pdns'; then
 		${MAKE} -C ../pdns zone2sql > /dev/null
 	fi
 	$ZONE2SQL --transactions --$1 --named-conf=./named.conf

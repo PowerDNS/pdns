@@ -439,7 +439,7 @@ void setupLuaInspection()
 
       std::multimap<struct timespec, string> out;
 
-      boost::format      fmt("%-7.1f %-47s %-12s %-5d %-25s %-5s %-6.1f %-2s %-2s %-2s %s\n");
+      boost::format      fmt("%-7.1f %-47s %-12s %-5d %-25s %-5s %-6.1f %-2s %-2s %-2s %-s\n");
       g_outputBuffer+= (fmt % "Time" % "Client" % "Server" % "ID" % "Name" % "Type" % "Lat." % "TC" % "RD" % "AA" % "Rcode").str();
 
       if(msec==-1) {
@@ -451,7 +451,11 @@ void setupLuaInspection()
             dnmatch = c.name.isPartOf(*dn);
           if(nmmatch && dnmatch) {
             QType qt(c.qtype);
-            out.insert(make_pair(c.when, (fmt % DiffTime(now, c.when) % c.requestor.toStringWithPort() % "" % htons(c.dh.id) % c.name.toString() % qt.getName()  % "" % (c.dh.tc ? "TC" : "") % (c.dh.rd? "RD" : "") % (c.dh.aa? "AA" : "") %  "Question").str() )) ;
+            std::string extra;
+            if (c.dh.opcode != 0) {
+              extra = " (" + Opcode::to_s(c.dh.opcode) + ")";
+            }
+            out.insert(make_pair(c.when, (fmt % DiffTime(now, c.when) % c.requestor.toStringWithPort() % "" % htons(c.dh.id) % c.name.toString() % qt.getName()  % "" % (c.dh.tc ? "TC" : "") % (c.dh.rd? "RD" : "") % (c.dh.aa? "AA" : "") % ("Question" + extra)).str() )) ;
 
             if(limit && *limit==++num)
               break;

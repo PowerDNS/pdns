@@ -125,17 +125,26 @@ static bool optionsHandler(HttpRequest* req, HttpResponse* resp) {
   return false;
 }
 
-static void apiWrapper(WebServer::HandlerFunction handler, HttpRequest* req, HttpResponse* resp, const string &apikey) {
+void WebServer::apiWrapper(WebServer::HandlerFunction handler, HttpRequest* req, HttpResponse* resp, bool allowPassword) {
   if (optionsHandler(req, resp)) return;
 
   resp->headers["access-control-allow-origin"] = "*";
 
-  if (apikey.empty()) {
+  if (d_apikey.empty()) {
     g_log<<Logger::Error<<req->logprefix<<"HTTP API Request \"" << req->url.path << "\": Authentication failed, API Key missing in config" << endl;
     throw HttpUnauthorizedException("X-API-Key");
   }
-  bool auth_ok = req->compareHeader("x-api-key", apikey) || req->getvars["api-key"] == apikey;
-  
+
+  bool auth_ok = req->compareHeader("x-api-key", d_apikey) || req->getvars["api-key"] == d_apikey;
+
+  if (!auth_ok && allowPassword) {
+    if (!d_webserverPassword.empty()) {
+      auth_ok = req->compareAuthorization(d_webserverPassword);
+    } else {
+      auth_ok = true;
+    }
+  }
+
   if (!auth_ok) {
     g_log<<Logger::Error<<req->logprefix<<"HTTP Request \"" << req->url.path << "\": Authentication by API Key failed" << endl;
     throw HttpUnauthorizedException("X-API-Key");
@@ -169,15 +178,14 @@ static void apiWrapper(WebServer::HandlerFunction handler, HttpRequest* req, Htt
   }
 }
 
-void WebServer::registerApiHandler(const string& url, HandlerFunction handler) {
-  HandlerFunction f = boost::bind(&apiWrapper, handler, _1, _2, d_apikey);
+void WebServer::registerApiHandler(const string& url, HandlerFunction handler, bool allowPassword) {
+  HandlerFunction f = boost::bind(&WebServer::apiWrapper, this, handler, _1, _2, allowPassword);
   registerBareHandler(url, f);
-  d_registerApiHandlerCalled = true;
 }
 
-static void webWrapper(WebServer::HandlerFunction handler, HttpRequest* req, HttpResponse* resp, const string &password) {
-  if (!password.empty()) {
-    bool auth_ok = req->compareAuthorization(password);
+void WebServer::webWrapper(WebServer::HandlerFunction handler, HttpRequest* req, HttpResponse* resp) {
+  if (!d_webserverPassword.empty()) {
+    bool auth_ok = req->compareAuthorization(d_webserverPassword);
     if (!auth_ok) {
       g_log<<Logger::Debug<<req->logprefix<<"HTTP Request \"" << req->url.path << "\": Web Authentication failed" << endl;
       throw HttpUnauthorizedException("Basic");
@@ -188,7 +196,7 @@ static void webWrapper(WebServer::HandlerFunction handler, HttpRequest* req, Htt
 }
 
 void WebServer::registerWebHandler(const string& url, HandlerFunction handler) {
-  HandlerFunction f = boost::bind(&webWrapper, handler, _1, _2, d_webserverPassword);
+  HandlerFunction f = boost::bind(&WebServer::webWrapper, this, handler, _1, _2);
   registerBareHandler(url, f);
 }
 
@@ -344,19 +352,21 @@ void WebServer::serveConnection(std::shared_ptr<Socket> client) const {
 
   HttpRequest req(logprefix);
   HttpResponse resp;
+  resp.max_response_size=d_maxbodysize;
   ComboAddress remote;
   string reply;
 
   try {
     YaHTTP::AsyncRequestLoader yarl;
     yarl.initialize(&req);
+    req.max_request_size=d_maxbodysize;
     int timeout = 5;
     client->setNonBlocking();
 
     try {
       while(!req.complete) {
         int bytes;
-        char buf[1024];
+        char buf[16000];
         bytes = client->readWithTimeout(buf, sizeof(buf), timeout);
         if (bytes > 0) {
           string data = string(buf, bytes);
@@ -406,7 +416,8 @@ void WebServer::serveConnection(std::shared_ptr<Socket> client) const {
 WebServer::WebServer(const string &listenaddress, int port) :
   d_listenaddress(listenaddress),
   d_port(port),
-  d_server(nullptr)
+  d_server(nullptr),
+  d_maxbodysize(2*1024*1024)
 {
 }
 

@@ -80,6 +80,13 @@ during the zonetransfer.
    it will (silently) serve it without DNSSEC. This in turn results in
    serving the domain as bogus.
 
+.. _setting-bind-dnssec-db-journal-mode:
+
+``bind-dnssec-db-journal-mode``
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+SQLite3 journal mode to set. The default is WAL. Set to empty to leave the journal mode alone.
+
 .. _setting-bind-hybrid:
 
 ``bind-hybrid``

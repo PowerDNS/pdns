@@ -29,7 +29,7 @@
 #include "lock.hh"
 #include "namespaces.hh"
 #include "iputils.hh"
-#include <boost/circular_buffer.hpp>
+#include "circular_buffer.hh"
 
 
 
@@ -71,6 +71,7 @@ class StatBag
   typedef map<string, func_t> funcstats_t;
   funcstats_t d_funcstats;
   bool d_doRings;
+  std::set<string> d_blacklist;
 
 public:
   StatBag(); //!< Naked constructor. You need to declare keys before this class becomes useful
@@ -132,6 +133,7 @@ public:
   AtomicCounter *getPointer(const string &key); //!< get a direct pointer to the value behind a key. Use this for high performance increments
   string getValueStr(const string &key); //!< read a value behind a key, and return it as a string
   string getValueStrZero(const string &key); //!< read a value behind a key, and return it as a string, and zero afterwards
+  void blacklist(const string &str);
 };
 
 inline void StatBag::deposit(const string &key, int value)

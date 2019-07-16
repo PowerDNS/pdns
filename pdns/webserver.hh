@@ -158,17 +158,15 @@ public:
   virtual ~WebServer() { };
 
   void setApiKey(const string &apikey) {
-    if (d_registerApiHandlerCalled) {
-      throw PDNSException("registerApiHandler has been called, can not change apikey");
-    }
     d_apikey = apikey;
   }
 
   void setPassword(const string &password) {
-    if (d_registerWebHandlerCalled) {
-      throw PDNSException("registerWebHandler has been called, can not change password");
-    }
     d_webserverPassword = password;
+  }
+
+  void setMaxBodySize(ssize_t s) { // in megabytes
+    d_maxbodysize = s * 1024 * 1024;
   }
 
   void setACL(const NetmaskGroup &nmg) {
@@ -182,7 +180,7 @@ public:
   void handleRequest(HttpRequest& request, HttpResponse& resp) const;
 
   typedef boost::function<void(HttpRequest* req, HttpResponse* resp)> HandlerFunction;
-  void registerApiHandler(const string& url, HandlerFunction handler);
+  void registerApiHandler(const string& url, HandlerFunction handler, bool allowPassword=false);
   void registerWebHandler(const string& url, HandlerFunction handler);
 
   enum class LogLevel : uint8_t {
@@ -233,10 +231,11 @@ protected:
   std::shared_ptr<Server> d_server;
 
   std::string d_apikey;
-  bool d_registerApiHandlerCalled{false};
-
+  void apiWrapper(WebServer::HandlerFunction handler, HttpRequest* req, HttpResponse* resp, bool allowPassword);
   std::string d_webserverPassword;
-  bool d_registerWebHandlerCalled{false};
+  void webWrapper(WebServer::HandlerFunction handler, HttpRequest* req, HttpResponse* resp);
+
+  ssize_t d_maxbodysize; // in bytes
 
   NetmaskGroup d_acl;
 

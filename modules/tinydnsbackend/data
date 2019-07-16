@@ -20100,7 +20100,6 @@
 +toomuchinfo-b.example.com:192.168.99.90:120
 +usa-ns1.usa.example.com:192.168.4.1:120
 +usa-ns2.usa.example.com:192.168.4.2:120
-3ipv6.example.com:200106a80000000102104bfffe4b4c61:120
 :_imap._tcp.example.com:33:\000\000\000\001\000\217\004blah\004test\003com\000:120
 :dsdelegation.example.com:43:m\341\010\001\312\361\352\256\315\253\347afpx\217\220\042EK\365\375\237\332:120
 :escapedtext.example.com:16:\005begin\022the\040\042middle\042\040p\134art\007the\040end:120
@@ -20108,17 +20107,18 @@
 :hightype.example.com:65534:\007\355\046\000\001:120
 :host-0.example.com:108:\000PV\233\000\347:120
 :host-1.example.com:109:\000PV\233\000\347\176W:120
-:hostmaster.mb.example.com:8:\004phil\303\231:120
-:hostmaster.mb.example.com:8:\006sheila\303\231:120
+:hostmaster.mb.example.com:8:\004phil\303\263:120
+:hostmaster.mb.example.com:8:\006sheila\303\263:120
 :hwinfo.example.com:13:\003abc\003def:120
+:ipv6.example.com:28:\040\001\006\250\000\000\000\001\002\020K\377\376KLa:120
 :location.example.com:29:\0002\026\023\213\044\323e\176\273\347\100\000\230\230\020:120
 :location.example.com:29:\000B\026\023t\333\053\274\176\273\347\100\000\230\230\020:120
 :location.example.com:29:\000\022\026\023\213\044\310\373\201D\030\300\000\230\230\020:120
 :location.example.com:29:\000\042\026\023t\3331\320\201D\030\300\000\230\230\020:120
 :multitext.example.com:16:\015text\040part\040one\015text\040part\040two\017text\040part\040three:120
-:phil.mb.example.com:7:\002pc\303\231:120
-:philip.mb.example.com:9:\303\250:120
-:sheila.mb.example.com:7:\004bill\303\231:120
+:phil.mb.example.com:7:\002pc\303\263:120
+:philip.mb.example.com:9:\303\302:120
+:sheila.mb.example.com:7:\004bill\303\263:120
 :text.example.com:16:\025Hi\054\040this\040is\040some\040text:120
 :text0.example.com:16:\014k\075rsa\073\040p\075one:120
 :text1.example.com:16:\014k\075rsa\073\040p\075one:120
@@ -20134,6 +20134,7 @@ C\052.w1.example.com:x.y.z.w2.example.com.:120
 C\052.w2.example.com:x.y.z.w3.example.com.:120
 C\052.w3.example.com:x.y.z.w4.example.com.:120
 C\052.w4.example.com:x.y.z.w5.example.com.:120
+Ccname-to-insecure.example.com:www.insecure.dnssec-parent.com.:120
 Cexternal.example.com:somewhere.else.net.:120
 Cloop1.example.com:loop2.example.com.:120
 Cloop2.example.com:loop3.example.com.:120
@@ -20243,6 +20244,7 @@ Znztest.com:ns1.nztest.com.:ahu.example.com.:2005092501:28800:7200:604800:86400:
 &dnssec-parent.com::ns1.dnssec-parent.com.:3600
 &dnssec-parent.com::ns2.dnssec-parent.com.:3600
 &insecure-delegated.ent.ent.auth-ent.dnssec-parent.com::ns.example.com.:3600
+&insecure.dnssec-parent.com::ns.example.com.:3600
 &secure-delegated.dnssec-parent.com::ns1.secure-delegated.dnssec-parent.com.:3600
 &secure-delegated.dnssec-parent.com::ns2.secure-delegated.dnssec-parent.com.:3600
 +dnssec-parent.com:9.9.9.9:3600
@@ -20254,7 +20256,13 @@ Znztest.com:ns1.nztest.com.:ahu.example.com.:2005092501:28800:7200:604800:86400:
 +ns2.secure-delegated.dnssec-parent.com:5.6.7.8:3600
 +something1.auth-ent.dnssec-parent.com:1.1.2.3:3600
 :secure-delegated.dnssec-parent.com:43:\324\057\010\002\240\271\303\214\323\044\030\052\360\357f\203\015\012\016\205\241\325\211y\311\203N\030\310qw\236\004\010W\267:3600
+Cwww.dnssec-parent.com:www.insecure.dnssec-parent.com.:3600
 Zdnssec-parent.com:ns1.dnssec-parent.com.:ahu.example.com.:2005092501:28800:7200:604800:86400:3600
+#2000081501 auto axfr-get
+&insecure.dnssec-parent.com::ns1.example.com.:120
+&insecure.dnssec-parent.com::ns2.example.com.:120
++www.insecure.dnssec-parent.com:192.0.2.88:120
+Zinsecure.dnssec-parent.com:ns1.example.com.:ahu.example.com.:2000081501:28800:7200:604800:86400:120
 #2005092501 auto axfr-get
 &delegated.dnssec-parent.com::ns1.delegated.dnssec-parent.com.:3600
 &delegated.dnssec-parent.com::ns2.delegated.dnssec-parent.com.:3600

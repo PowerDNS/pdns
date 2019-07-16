@@ -1,7 +1,7 @@
 Built-in Webserver and HTTP API
 ===============================
 
-The PowerDNS Authoritative Server features a built-in built-in webserver that exposes a JSON/REST API.
+The PowerDNS Authoritative Server features a built-in webserver that exposes a JSON/REST API.
 This API allows for controlling several functions, reading statistics and modifying zone content, metadata and DNSSEC key material.
 
 Webserver
@@ -19,6 +19,7 @@ The following webserver related configuration items are available:
 * :ref:`setting-webserver-password`: If set, viewers will have to enter this plaintext password in order to gain access to the statistics, in addition to entering the configured API key on the index page.
 * :ref:`setting-webserver-port`: Port to bind the webserver to.
 * :ref:`setting-webserver-allow-from`: Netmasks that are allowed to connect to the webserver
+* :ref:`setting-webserver-max-bodysize`: Maximum request/response body size in megabytes
 
 Enabling the API
 ----------------

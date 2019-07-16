@@ -57,6 +57,7 @@ class TestAPIBasics(DNSDistTest):
             url = 'http://127.0.0.1:' + str(self._webServerPort) + path
             r = requests.get(url, headers=headers, timeout=self._webTimeout)
             self.assertEquals(r.status_code, 401)
+
     def testBasicAuthOnly(self):
         """
         API: Basic Authentication Only
@@ -230,8 +231,8 @@ class TestAPIBasics(DNSDistTest):
                     'rule-drop', 'rule-nxdomain', 'rule-refused', 'self-answered', 'downstream-timeouts',
                     'downstream-send-errors', 'trunc-failures', 'no-policy', 'latency0-1',
                     'latency1-10', 'latency10-50', 'latency50-100', 'latency100-1000',
-                    'latency-slow', 'latency-avg100', 'latency-avg1000', 'latency-avg10000',
-                    'latency-avg1000000', 'uptime', 'real-memory-usage', 'noncompliant-queries',
+                    'latency-slow', 'latency-sum', 'latency-count', 'latency-avg100', 'latency-avg1000',
+                    'latency-avg10000', 'latency-avg1000000', 'uptime', 'real-memory-usage', 'noncompliant-queries',
                     'noncompliant-responses', 'rdqueries', 'empty-queries', 'cache-hits',
                     'cache-misses', 'cpu-user-msec', 'cpu-sys-msec', 'fd-usage', 'dyn-blocked',
                     'dyn-block-nmg-size', 'rule-servfail', 'security-status']

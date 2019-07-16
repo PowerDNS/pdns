@@ -919,6 +919,9 @@ definitions:
       notified_serial:
         type: integer
         description: 'The SOA serial notifications have been sent out for'
+      edited_serial:
+        type: integer
+        description: 'The SOA serial as seen in query responses. Calculated using the SOA-EDIT metadata, default-soa-edit and default-soa-edit-signed settings'
       masters:
         type: array
         items:
@@ -1024,7 +1027,7 @@ definitions:
         description: 'Whether or not this record is disabled'
       set-ptr:
         type: boolean
-        description: 'If set to true, the server will find the matching reverse zone and create a PTR there. Existing PTR records are replaced. If no matching reverse Zone, an error is thrown. Only valid in client bodies, only valid for A and AAAA types. Not returned by the server.'
+        description: 'If set to true, the server will find the matching reverse zone and create a PTR there. Existing PTR records are replaced. If no matching reverse Zone, an error is thrown. Only valid in client bodies, only valid for A and AAAA types. Not returned by the server. This feature is deprecated and will be removed in 4.3.0.'
 
   Comment:
     title: Comment

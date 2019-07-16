@@ -1,3 +1,5 @@
+import requests
+import unittest
 from test_helper import ApiTestCase, is_auth, is_recursor
 
 
@@ -69,7 +71,6 @@ class Servers(ApiTestCase):
         self.assertEquals(r.status_code, 422)
         self.assertIn("Unknown statistic name", r.json()['error'])
 
-
     def test_read_metrics(self):
         if is_recursor():
             res = self.session.get(self.url("/metrics"), auth=('whatever', self.webServerBasicAuthPassword), timeout=2.0)
@@ -82,3 +83,9 @@ class Servers(ApiTestCase):
                 if line.split(" ")[0] == "pdnsrecursor_uptime":
                     found = True
             self.assertTrue(found,"pdnsrecursor_uptime is missing")
+            
+    @unittest.skipIf(is_auth(), "Not applicable")
+    def test_read_statistics_using_password(self):
+        r = requests.get(self.url("/api/v1/servers/localhost/statistics"), auth=('admin', self.server_web_password))
+        self.assertEquals(r.status_code, requests.codes.ok)
+        self.assert_success_json(r)

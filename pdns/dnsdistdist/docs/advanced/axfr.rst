@@ -18,7 +18,7 @@ The first issue can be solved by routing SOA, AXFR and IXFR requests explicitly 
 The second one might require allowing AXFR/IXFR from the :program:`dnsdist` source address
 and moving the source address check to :program:`dnsdist`'s side::
 
-  addAction(AndRule({OrRule({QTypeRule(DNSQType.AXFR), QTypeRule(DNSQTypeIXFR)}), NotRule(makeRule("192.168.1.0/24"))}), RCodeAction(DNSRCode.REFUSED))
+  addAction(AndRule({OrRule({QTypeRule(DNSQType.AXFR), QTypeRule(DNSQType.IXFR)}), NotRule(makeRule("192.168.1.0/24"))}), RCodeAction(DNSRCode.REFUSED))
 
 .. versionchanged:: 1.4.0
   Before 1.4.0, the QTypes were in the ``dnsdist`` namespace. Use ``dnsdist.AXFR`` and ``dnsdist.IXFR`` in these versions.
