@@ -1,7 +1,7 @@
 Prometheus Data Endpoint
 ========================
 
-.. versionadded:: 4.2.x
+.. versionadded:: 4.3.0
 
 .. http:get:: /metrics
 
