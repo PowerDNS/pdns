@@ -239,20 +239,25 @@ static int processDOHQuery(DOHUnit* du)
     ids->age = 0;
     DOHUnit* oldDU = nullptr;
     if (ids->origFD != -1) {
+      /* that means that the state was in use, possibly with an allocated
+         DOHUnit that we will need to handle, but we can't touch it before
+         confirming that we now own this state */
       oldDU = ids->du;
     }
 
+    /* we atomically replace the value with 0, we now own this state */
     int oldFD = ids->origFD.exchange(0);
     if (oldFD < 0) {
-      // if we are reusing, no change in outstanding
-      ++ss->outstanding;
-      /* either it was already -1 so no DOH unit to handle,
-         or someone handled it before us */
+      /* the value was -1, meaning that the state was not in use.
+         we reset 'oldDU' because it might have still been in use when we read it. */
       oldDU = nullptr;
+      ++ss->outstanding;
     }
     else {
       ++ss->reuseds;
       ++g_stats.downstreamTimeouts;
+      /* we are reusing a state, if there was an existing DOHUnit we need
+         to handle it because it's about to be overwritten. */
       ids->du = nullptr;
       handleDOHTimeout(oldDU);
     }
