@@ -176,10 +176,11 @@ class DNSDistTest(unittest.TestCase):
         return response
 
     @classmethod
-    def UDPResponder(cls, port, fromQueue, toQueue, trailingDataResponse=False):
+    def UDPResponder(cls, port, fromQueue, toQueue, trailingDataResponse=False, callback=None):
         # trailingDataResponse=True means "ignore trailing data".
         # Other values are either False (meaning "raise an exception")
         # or are interpreted as a response RCODE for queries with trailing data.
+        # callback is invoked for every -even healthcheck ones- query and should return a raw response
         ignoreTrailing = trailingDataResponse is True
 
         sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
@@ -197,20 +198,24 @@ class DNSDistTest(unittest.TestCase):
                 request = dns.message.from_wire(data, ignore_trailing=True)
                 forceRcode = trailingDataResponse
 
-            response = cls._getResponse(request, fromQueue, toQueue, synthesize=forceRcode)
-            if not response:
-                continue
+            if callback:
+              wire = callback(request)
+            else:
+              response = cls._getResponse(request, fromQueue, toQueue, synthesize=forceRcode)
+              if response:
+                wire = response.to_wire()
 
             sock.settimeout(2.0)
-            sock.sendto(response.to_wire(), addr)
+            sock.sendto(wire, addr)
             sock.settimeout(None)
         sock.close()
 
     @classmethod
-    def TCPResponder(cls, port, fromQueue, toQueue, trailingDataResponse=False, multipleResponses=False):
+    def TCPResponder(cls, port, fromQueue, toQueue, trailingDataResponse=False, multipleResponses=False, callback=None):
         # trailingDataResponse=True means "ignore trailing data".
         # Other values are either False (meaning "raise an exception")
         # or are interpreted as a response RCODE for queries with trailing data.
+        # callback is invoked for every -even healthcheck ones- query and should return a raw response
         ignoreTrailing = trailingDataResponse is True
 
         sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -243,12 +248,17 @@ class DNSDistTest(unittest.TestCase):
                 request = dns.message.from_wire(data, ignore_trailing=True)
                 forceRcode = trailingDataResponse
 
-            response = cls._getResponse(request, fromQueue, toQueue, synthesize=forceRcode)
-            if not response:
+            if callback:
+              wire = callback(request)
+            else:
+              response = cls._getResponse(request, fromQueue, toQueue, synthesize=forceRcode)
+              if response:
+                wire = response.to_wire(max_size=65535)
+
+            if not wire:
                 conn.close()
                 continue
 
-            wire = response.to_wire(max_size=65535)
             conn.send(struct.pack("!H", len(wire)))
             conn.send(wire)
 

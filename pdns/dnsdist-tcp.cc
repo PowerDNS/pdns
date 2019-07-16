@@ -968,7 +968,12 @@ static void handleDownstreamIO(std::shared_ptr<IncomingTCPConnectionState>& stat
         fd = -1;
 
         state->d_responseReadTime = now;
-        handleResponse(state, now);
+        try {
+          handleResponse(state, now);
+        }
+        catch (const std::exception& e) {
+          vinfolog("Got an exception while handling TCP response from %s (client is %s): %s", state->d_ds ? state->d_ds->getName() : "unknown", state->d_ci.remote.toStringWithPort(), e.what());
+        }
         return;
       }
     }
@@ -993,7 +998,7 @@ static void handleDownstreamIO(std::shared_ptr<IncomingTCPConnectionState>& stat
     }
 
     /* don't increase this counter when reusing connections */
-    if (state->d_downstreamConnection->isFresh()) {
+    if (state->d_downstreamConnection && state->d_downstreamConnection->isFresh()) {
       ++state->d_downstreamFailures;
     }
     if (state->d_outstanding && state->d_ds != nullptr) {
