@@ -180,8 +180,10 @@ descriptions = {
     'dnswasher': 'A PowerDNS nameserver debugging tool',
     'dumresp': 'A dumb DNS responder',
     'ixfrdist': 'An IXFR/AXFR-only server that re-distributes zones',
+    'ixfrdist.yml': 'The ixfrdist configuration file',
     'ixplore': 'A tool that provides insights into IXFRs',
     'nsec3dig': 'Show and validate NSEC3 proofs',
+    'nproxy': 'DNS Notification proxy',
     'pdns_control': 'Control the PowerDNS nameserver',
     'pdns_notify': 'A simple DNS NOTIFY sender',
     'pdns_server': 'The PowerDNS Authoritative Namserver',
@@ -193,13 +195,11 @@ descriptions = {
     'zone2sql': 'convert BIND zones to SQL',
 }
 man_pages = []
-for f in glob.glob('manpages/*.1.rst'):
-    srcname = '.'.join(f.split('.')[:-1])
-    destname = srcname.split('/')[-1][:-2]
-    man_pages.append((srcname, destname, descriptions.get(destname, ''),
-                      [author], 1))
-man_pages.append(('manpages/ixfrdist.yml.5', 'ixfrdist.yml',
-                  'The ixfrdist configuration file', [author], 5))
+for f in glob.glob('manpages/*.*.rst'):
+    (shortname, section, _) = f.rsplit('/')[-1].rsplit('.', 2)
+    srcname = 'manpages/%s.%s' % (shortname, section)
+    man_pages.append((srcname, shortname, descriptions.get(shortname, ''),
+                      [author], int(section)))
 # -- Options for Texinfo output -------------------------------------------
 
 # Grouping the document tree into Texinfo files. List of tuples
