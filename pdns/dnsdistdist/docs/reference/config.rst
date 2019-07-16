@@ -778,6 +778,12 @@ Status, Statistics and More
 
   Print the list of all availables DNS over HTTPS frontends.
 
+.. function:: showDOHResponseCodes()
+
+  .. versionadded:: 1.4.0
+
+  Print the HTTP response codes statistics for all availables DNS over HTTPS frontends.
+
 .. function:: showResponseLatency()
 
   Show a plot of the response time latency distribution

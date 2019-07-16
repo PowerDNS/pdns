@@ -16,8 +16,6 @@ struct DOHFrontend
   std::vector<std::string> d_urls;
 
   std::atomic<uint64_t> d_httpconnects;   // number of TCP/IP connections established
-  std::atomic<uint64_t> d_http1queries;   // valid DNS queries received via HTTP1
-  std::atomic<uint64_t> d_http2queries;   // valid DNS queries received via HTTP2
   std::atomic<uint64_t> d_tls10queries;   // valid DNS queries received via TLSv1.0
   std::atomic<uint64_t> d_tls11queries;   // valid DNS queries received via TLSv1.1
   std::atomic<uint64_t> d_tls12queries;   // valid DNS queries received via TLSv1.2
@@ -29,6 +27,20 @@ struct DOHFrontend
   std::atomic<uint64_t> d_badrequests;     // request could not be converted to dns query
   std::atomic<uint64_t> d_errorresponses; // dnsdist set 'error' on response
   std::atomic<uint64_t> d_validresponses; // valid responses sent out
+
+  struct HTTPVersionStats
+  {
+    std::atomic<uint64_t> d_nbQueries{0}; // valid DNS queries received
+    std::atomic<uint64_t> d_nb200Responses{0};
+    std::atomic<uint64_t> d_nb400Responses{0};
+    std::atomic<uint64_t> d_nb403Responses{0};
+    std::atomic<uint64_t> d_nb500Responses{0};
+    std::atomic<uint64_t> d_nb502Responses{0};
+    std::atomic<uint64_t> d_nbOtherResponses{0};
+  };
+
+  HTTPVersionStats d_http1Stats;
+  HTTPVersionStats d_http2Stats;
 
 #ifndef HAVE_DNS_OVER_HTTPS
   void setup()

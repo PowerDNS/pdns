@@ -271,11 +271,64 @@ static int processDOHQuery(DOHUnit* du)
   return 0;
 }
 
+static void on_response_ready_cb(struct st_h2o_filter_t *self, h2o_req_t *req, h2o_ostream_t **slot)
+{
+  if (req == nullptr) {
+    return;
+  }
+
+  DOHServerConfig* dsc = reinterpret_cast<DOHServerConfig*>(req->conn->ctx->storage.entries[0].data);
+
+  DOHFrontend::HTTPVersionStats* stats = nullptr;
+  if (req->version < 0x200) {
+    /* HTTP 1.x */
+    stats = &dsc->df->d_http1Stats;
+  }
+  else {
+    /* HTTP 2.0 */
+    stats = &dsc->df->d_http2Stats;
+  }
+
+  switch (req->res.status) {
+  case 200:
+    ++stats->d_nb200Responses;
+    break;
+  case 400:
+    ++stats->d_nb400Responses;
+    break;
+  case 403:
+    ++stats->d_nb403Responses;
+    break;
+  case 500:
+    ++stats->d_nb500Responses;
+    break;
+  case 502:
+    ++stats->d_nb502Responses;
+    break;
+  default:
+    ++stats->d_nbOtherResponses;
+    break;
+  }
+
+  h2o_setup_next_ostream(req, slot);
+}
+
 static h2o_pathconf_t *register_handler(h2o_hostconf_t *hostconf, const char *path, int (*on_req)(h2o_handler_t *, h2o_req_t *))
 {
   h2o_pathconf_t *pathconf = h2o_config_register_path(hostconf, path, 0);
+  if (pathconf == nullptr) {
+    return pathconf;
+  }
+  h2o_filter_t *filter = h2o_create_filter(pathconf, sizeof(*filter));
+  if (filter) {
+    filter->on_setup_ostream = on_response_ready_cb;
+  }
+
   h2o_handler_t *handler = h2o_create_handler(pathconf, sizeof(*handler));
-  handler->on_req = on_req;
+  if (handler != nullptr) {
+    handler->on_req = on_req;
+  }
+
   return pathconf;
 }
 
@@ -367,9 +420,9 @@ try
   if (h2o_memis(req->method.base, req->method.len, H2O_STRLIT("POST"))) {
     ++dsc->df->d_postqueries;
     if(req->version >= 0x0200)
-      ++dsc->df->d_http2queries;
+      ++dsc->df->d_http2Stats.d_nbQueries;
     else
-      ++dsc->df->d_http1queries;
+      ++dsc->df->d_http1Stats.d_nbQueries;
 
     std::string query;
     query.reserve(req->entity.len + 512);
@@ -406,9 +459,9 @@ try
       else {
         ++dsc->df->d_getqueries;
         if(req->version >= 0x0200)
-          ++dsc->df->d_http2queries;
+          ++dsc->df->d_http2Stats.d_nbQueries;
         else
-          ++dsc->df->d_http1queries;
+          ++dsc->df->d_http1Stats.d_nbQueries;
 
         doh_dispatch_query(dsc, self, req, std::move(decoded), local, remote);
       }
