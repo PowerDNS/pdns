@@ -246,15 +246,16 @@ static int processDOHQuery(DOHUnit* du)
     if (oldFD < 0) {
       // if we are reusing, no change in outstanding
       ++ss->outstanding;
+      /* either it was already -1 so no DOH unit to handle,
+         or someone handled it before us */
+      oldDU = nullptr;
     }
     else {
       ++ss->reuseds;
       ++g_stats.downstreamTimeouts;
-      /* origFD is not -1 anymore, we can't touch it */
-      oldDU = nullptr;
+      ids->du = nullptr;
+      handleDOHTimeout(oldDU);
     }
-
-    handleDOHTimeout(oldDU);
 
     ids->du = du;
 
