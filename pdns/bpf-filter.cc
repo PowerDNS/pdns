@@ -28,6 +28,8 @@
 
 #include "ext/libbpf/libbpf.h"
 
+#include "misc.hh"
+
 static __u64 ptr_to_u64(void *ptr)
 {
   return (__u64) (unsigned long) ptr;
@@ -188,7 +190,7 @@ BPFFilter::BPFFilter(uint32_t maxV4Addresses, uint32_t maxV6Addresses, uint32_t 
   uint32_t key = 0;
   int res = bpf_update_elem(d_filtermap.fd, &key, &d_qnamefilter.fd, BPF_ANY);
   if (res != 0) {
-    throw std::runtime_error("Error updating BPF filters map: " + stringrerror());
+    throw std::runtime_error("Error updating BPF filters map: " + stringerror());
   }
 }
 
@@ -321,7 +323,7 @@ void BPFFilter::block(const DNSName& qname, uint16_t qtype)
     }
 
     if (res != 0) {
-      throw std::runtime_error("Error adding blocked qname " + qname.toLogString() + ": " + stringerror()));
+      throw std::runtime_error("Error adding blocked qname " + qname.toLogString() + ": " + stringerror());
     }
   }
 }
@@ -345,7 +347,7 @@ void BPFFilter::unblock(const DNSName& qname, uint16_t qtype)
       d_qNamesCount--;
     }
     else {
-      throw std::runtime_error("Error removing qname address " + qname.toLogString() + ": " + stringerror()));
+      throw std::runtime_error("Error removing qname address " + qname.toLogString() + ": " + stringerror());
     }
   }
 }

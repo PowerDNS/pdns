@@ -30,6 +30,7 @@
 #endif
 
 #include "capabilities.hh"
+#include "misc.hh"
 
 void dropCapabilities()
 {
