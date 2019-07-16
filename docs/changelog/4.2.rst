@@ -1236,7 +1236,7 @@ Changelogs for 4.2.x
     :pullreq: 6220
     :tickets: 5079, 5594, 5654
 
-    Add XPF support.
+    Add XPF support to sdig, PowerDNS Recursor and dnsdist.
 
   .. change::
     :tags: Improvements, Internals
