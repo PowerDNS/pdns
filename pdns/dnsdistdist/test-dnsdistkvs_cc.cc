@@ -29,7 +29,16 @@ BOOST_AUTO_TEST_CASE(test_LMDB) {
 
   DNSQuestion dq(&qname, qtype, qclass, qname.wirelength(), &lc, &rem, &dh, bufferSize, queryLen, isTcp, &queryRealTime);
 
-  auto lmdb = make_unique<LMDBKVStore>("/data/Dumps/lmdb", "db-name");
+  const string dbPath("/tmp/test_lmdb.XXXXXX");
+  {
+    MDBEnv env(dbPath.c_str(), MDB_NOSUBDIR, 0600);
+    auto transaction = env.getRWTransaction();
+    auto dbi = transaction.openDB("db-name", MDB_CREATE);
+    transaction.put(dbi, MDBInVal(std::string(reinterpret_cast<const char*>(&dq.remote->sin4.sin_addr.s_addr), sizeof(dq.remote->sin4.sin_addr.s_addr))), MDBInVal("this is the value of the tag"));
+    transaction.commit();
+  }
+
+  auto lmdb = make_unique<LMDBKVStore>(dbPath, "db-name");
   auto lookupKey = make_unique<KeyValueLookupKeySourceIP>();
 
   std::string value;
@@ -69,11 +78,13 @@ BOOST_AUTO_TEST_CASE(test_CDB) {
   DNSQuestion dq(&qname, qtype, qclass, qname.wirelength(), &lc, &rem, &dh, bufferSize, queryLen, isTcp, &queryRealTime);
 
   char db[] = "/tmp/test_cdb.XXXXXX";
-  int fd = mkstemp(db);
-  BOOST_REQUIRE(fd >= 0);
-  CDBWriter writer(fd);
-  BOOST_REQUIRE(writer.addEntry(std::string(reinterpret_cast<const char*>(&dq.remote->sin4.sin_addr.s_addr), sizeof(dq.remote->sin4.sin_addr.s_addr)), "this is the value of the tag"));
-  writer.close();
+  {
+    int fd = mkstemp(db);
+    BOOST_REQUIRE(fd >= 0);
+    CDBWriter writer(fd);
+    BOOST_REQUIRE(writer.addEntry(std::string(reinterpret_cast<const char*>(&dq.remote->sin4.sin_addr.s_addr), sizeof(dq.remote->sin4.sin_addr.s_addr)), "this is the value of the tag"));
+    writer.close();
+  }
 
   auto cdb = make_unique<CDBKVStore>(db);
   auto lookupKey = make_unique<KeyValueLookupKeySourceIP>();
