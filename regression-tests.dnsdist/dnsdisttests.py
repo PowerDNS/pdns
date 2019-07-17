@@ -198,12 +198,16 @@ class DNSDistTest(unittest.TestCase):
                 request = dns.message.from_wire(data, ignore_trailing=True)
                 forceRcode = trailingDataResponse
 
+            wire = None
             if callback:
               wire = callback(request)
             else:
               response = cls._getResponse(request, fromQueue, toQueue, synthesize=forceRcode)
               if response:
                 wire = response.to_wire()
+
+            if not wire:
+              continue
 
             sock.settimeout(2.0)
             sock.sendto(wire, addr)
