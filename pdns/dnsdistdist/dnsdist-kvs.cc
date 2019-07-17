@@ -25,15 +25,15 @@
 
 #include <sys/stat.h>
 
-std::vector<std::string> KeyValueLookupKeySourceIP::getKeys(const DNSQuestion& dq)
+std::vector<std::string> KeyValueLookupKeySourceIP::getKeys(const ComboAddress& addr)
 {
   std::vector<std::string> result;
 
-  if (dq.remote->sin4.sin_family == AF_INET) {
-    result.emplace_back(reinterpret_cast<const char*>(&dq.remote->sin4.sin_addr.s_addr), sizeof(dq.remote->sin4.sin_addr.s_addr));
+  if (addr.sin4.sin_family == AF_INET) {
+    result.emplace_back(reinterpret_cast<const char*>(&addr.sin4.sin_addr.s_addr), sizeof(addr.sin4.sin_addr.s_addr));
   }
-  else if (dq.remote->sin4.sin_family == AF_INET6) {
-    result.emplace_back(reinterpret_cast<const char*>(&dq.remote->sin6.sin6_addr.s6_addr), sizeof(dq.remote->sin6.sin6_addr.s6_addr));
+  else if (addr.sin4.sin_family == AF_INET6) {
+    result.emplace_back(reinterpret_cast<const char*>(&addr.sin6.sin6_addr.s6_addr), sizeof(addr.sin6.sin6_addr.s6_addr));
   }
 
   return result;
@@ -99,6 +99,29 @@ CDBKVStore::CDBKVStore(const std::string& fname, time_t refreshDelay): d_fname(f
   refreshDBIfNeeded(now);
 }
 
+bool CDBKVStore::reload(const struct stat& st)
+{
+  auto newCDB = make_unique<CDB>(d_fname);
+  {
+    WriteLock wl(&d_lock);
+    d_cdb = std::move(newCDB);
+  }
+  d_mtime = st.st_mtime;
+  return true;
+}
+
+bool CDBKVStore::reload()
+{
+  struct stat st;
+  if (stat(d_fname.c_str(), &st) == 0) {
+    return reload(st);
+  }
+  else {
+    warnlog("Error while retrieving the last modification time of CDB database '%s': %s", d_fname, stringerror());
+    return false;
+  }
+}
+
 void CDBKVStore::refreshDBIfNeeded(time_t now)
 {
   if (d_refreshing.test_and_set()) {
@@ -110,12 +133,7 @@ void CDBKVStore::refreshDBIfNeeded(time_t now)
     struct stat st;
     if (stat(d_fname.c_str(), &st) == 0) {
       if (st.st_mtime > d_mtime) {
-        auto newCDB = make_unique<CDB>(d_fname);
-        {
-          WriteLock wl(&d_lock);
-          d_cdb = std::move(newCDB);
-        }
-        d_mtime = st.st_mtime;
+        reload(st);
       }
     }
     else {

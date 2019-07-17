@@ -36,7 +36,12 @@ public:
 class KeyValueLookupKeySourceIP: public KeyValueLookupKey
 {
 public:
-  std::vector<std::string> getKeys(const DNSQuestion& dq) override;
+  std::vector<std::string> getKeys(const ComboAddress& addr);
+
+  std::vector<std::string> getKeys(const DNSQuestion& dq) override
+  {
+    return getKeys(*dq.remote);
+  }
 
   std::string toString() const override
   {
@@ -115,6 +120,10 @@ public:
   }
 
   virtual bool getValue(const std::string& key, std::string& value) = 0;
+  virtual bool reload()
+  {
+    return false;
+  }
 };
 
 #ifdef HAVE_LMDB
@@ -148,9 +157,11 @@ public:
   CDBKVStore(const std::string& fname, time_t refreshDelay);
 
   bool getValue(const std::string& key, std::string& value) override;
+  bool reload() override;
 
 private:
   void refreshDBIfNeeded(time_t now);
+  bool reload(const struct stat& st);
 
   std::unique_ptr<CDB> d_cdb{nullptr};
   std::string d_fname;
