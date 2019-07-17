@@ -550,6 +550,27 @@ struct IDState
     tempFailureTTL = orig.tempFailureTTL;
   }
 
+  /* We use this value to detect whether this state is in use, in addition to
+     its use to send the response over UDP.
+     For performance reasons we don't want to use a lock here, but that means
+     we need to be very careful when modifying this value. Modifications happen
+     from:
+     - one of the UDP or DoH 'client' threads receiving a query, selecting a backend
+       then picking one of the states associated to this backend (via the idOffset).
+       Most of the time this state should not be in use and origFD is -1, but we
+       might not yet have received a response for the query previously associated to this
+       state, meaning that we will 'reuse' this state and erase the existing state.
+       If we ever receive a response for this state, it will be discarded. This is
+       mostly fine for UDP except that we still need to be careful in order to miss
+       the 'outstanding' counters, which should only be increased when we are picking
+       an empty state, and not when reusing ;
+       For DoH, though, we have dynamically allocated a DOHUnit object that needs to
+       be freed, as well as internal objects internals to libh2o.
+     - one of the UDP receiver threads receiving a response from a backend, picking
+       the corresponding state and sending the response to the client ;
+     - the 'healthcheck' thread scanning the states to actively discover timeouts,
+       mostly to keep some counters like the 'outstanding' one sane.
+  */
   std::atomic<int> origFD;  // set to <0 to indicate this state is empty   // 4
 
   ComboAddress origRemote;                                    // 28

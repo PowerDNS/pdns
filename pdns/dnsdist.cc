@@ -546,9 +546,18 @@ try {
         IDState* ids = &dss->idStates[queryId];
         int origFD = ids->origFD;
 
-        if(origFD < 0 && ids->du == nullptr) // duplicate
+        if(origFD < 0) {
+          /* the corresponding state is marked as not in use, meaning that:
+             - it was already reused by another thread and the state is gone ;
+             - we already got a response for this query and this one is a duplicate.
+             Either way, we don't touch it.
+          */
           continue;
+        }
 
+        /* read the potential DOHUnit state as soon as possible, but don't use it
+           until we have confirmed that we own this state by updating origFD */
+        auto du = ids->du;
         /* setting age to 0 to prevent the maintainer thread from
            cleaning this IDS while we process the response.
            We have already a copy of the origFD, so it would
@@ -561,13 +570,25 @@ try {
           continue;
         }
 
+        bool isDoH = du != nullptr;
+        /* atomically mark the state as available */
         int oldFD = ids->origFD.exchange(-1);
         if (oldFD == origFD) {
+          /* clear the potential DOHUnit asap, it's ours now
+           and since we just marked the state as unused,
+           someone could overwrite it. */
+          ids->du = nullptr;
           /* we only decrement the outstanding counter if the value was not
              altered in the meantime, which would mean that the state has been actively reused
              and the other thread has not incremented the outstanding counter, so we don't
              want it to be decremented twice. */
           --dss->outstanding;  // you'd think an attacker could game this, but we're using connected socket
+        } else {
+          /* someone updated the state in the meantime, we can't touch the existing pointer */
+          du = nullptr;
+          /* since the state has been updated, we can't safely access it so let's just drop
+             this response */
+          continue;
         }
 
         if(dh->tc && g_truncateTC) {
@@ -588,15 +609,17 @@ try {
         }
 
         if (ids->cs && !ids->cs->muted) {
-          if (ids->du) {
+          if (du) {
 #ifdef HAVE_DNS_OVER_HTTPS
             // DoH query
-            ids->du->query = std::string(response, responseLen);
-            if (send(ids->du->rsock, &ids->du, sizeof(ids->du), 0) != sizeof(ids->du)) {
-              delete ids->du;
+            du->response = std::string(response, responseLen);
+            if (send(du->rsock, &du, sizeof(du), 0) != sizeof(du)) {
+              /* at this point we have the only remaining pointer on this
+                 DOHUnit object since we did set ids->du to nullptr earlier */
+              delete du;
             }
 #endif /* HAVE_DNS_OVER_HTTPS */
-            ids->du = nullptr;
+            du = nullptr;
           }
           else {
             ComboAddress empty;
@@ -611,7 +634,7 @@ try {
 
         double udiff = ids->sentTime.udiff();
         vinfolog("Got answer from %s, relayed to %s%s, took %f usec", dss->remote.toStringWithPort(), ids->origRemote.toStringWithPort(),
-                 ids->du ? " (https)": "", udiff);
+                 isDoH ? " (https)": "", udiff);
 
         struct timespec ts;
         gettime(&ts);
@@ -1564,16 +1587,30 @@ static void processUDPQuery(ClientState& cs, LocalHolders& holders, const struct
     unsigned int idOffset = (ss->idOffset++) % ss->idStates.size();
     IDState* ids = &ss->idStates[idOffset];
     ids->age = 0;
-    ids->du = nullptr;
+    DOHUnit* du = nullptr;
 
+    /* that means that the state was in use, possibly with an allocated
+       DOHUnit that we will need to handle, but we can't touch it before
+       confirming that we now own this state */
+    if (ids->origFD != -1) {
+      du = ids->du;
+    }
+
+    /* we atomically replace the value with 0, we now own this state */
     int oldFD = ids->origFD.exchange(cs.udpFD);
     if(oldFD < 0) {
-      // if we are reusing, no change in outstanding
+      /* the value was -1, meaning that the state was not in use.
+         we reset 'du' because it might have still been in use when we read it. */
+      du = nullptr;
       ++ss->outstanding;
     }
     else {
+      /* we are reusing a state, no change in outstanding but if there was an existing DOHUnit we need
+         to handle it because it's about to be overwritten. */
       ++ss->reuseds;
       ++g_stats.downstreamTimeouts;
+      ids->du = nullptr;
+      handleDOHTimeout(du);
     }
 
     ids->cs = &cs;
@@ -2064,12 +2101,15 @@ static void healthChecksThread()
              so the sooner the better any way since we _will_
              decrement it.
           */
+          auto oldDU = ids.du;
+
           if (ids.origFD.exchange(-1) != origFD) {
             /* this state has been altered in the meantime,
                don't go anywhere near it */
             continue;
           }
           ids.du = nullptr;
+          handleDOHTimeout(oldDU);
           ids.age = 0;
           dss->reuseds++;
           --dss->outstanding;

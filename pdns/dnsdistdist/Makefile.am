@@ -135,7 +135,7 @@ dnsdist_SOURCES = \
 	dnsname.cc dnsname.hh \
 	dnsparser.hh dnsparser.cc \
 	dnswriter.cc dnswriter.hh \
-	doh.hh \
+	doh.hh doh.cc \
 	dolog.hh \
 	ednsoptions.cc ednsoptions.hh \
 	ednscookies.cc ednscookies.hh \
@@ -208,7 +208,6 @@ endif
 endif
 
 if HAVE_DNS_OVER_HTTPS
-dnsdist_SOURCES += doh.cc
 
 if HAVE_LIBH2OEVLOOP
 dnsdist_LDADD += $(LIBH2OEVLOOP_LIBS)

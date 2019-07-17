@@ -1,3 +1,7 @@
+#include "config.h"
+#include "doh.hh"
+
+#ifdef HAVE_DNS_OVER_HTTPS
 #define H2O_USE_EPOLL 1
 
 #include <errno.h>
@@ -122,6 +126,22 @@ struct DOHServerConfig
   int dohresponsepair[2]{-1,-1};
 };
 
+void handleDOHTimeout(DOHUnit* oldDU)
+{
+  if (oldDU == nullptr) {
+    return;
+  }
+
+/* we are about to erase an existing DU */
+  oldDU->error = true;
+  oldDU->status_code = 502;
+
+  if (send(oldDU->rsock, &oldDU, sizeof(oldDU), 0) != sizeof(oldDU)) {
+    delete oldDU;
+    oldDU = nullptr;
+  }
+}
+
 static void on_socketclose(void *data)
 {
   DOHAcceptContext* ctx = reinterpret_cast<DOHAcceptContext*>(data);
@@ -198,7 +218,7 @@ static int processDOHQuery(DOHUnit* du)
     }
 
     if (result == ProcessQueryResult::SendAnswer) {
-      du->query = std::string(reinterpret_cast<char*>(dq.dh), dq.len);
+      du->response = std::string(reinterpret_cast<char*>(dq.dh), dq.len);
       send(du->rsock, &du, sizeof(du), 0);
       return 0;
     }
@@ -213,20 +233,36 @@ static int processDOHQuery(DOHUnit* du)
       return -1;
     }
 
+    ComboAddress dest = du->dest;
     unsigned int idOffset = (ss->idOffset++) % ss->idStates.size();
     IDState* ids = &ss->idStates[idOffset];
     ids->age = 0;
-    ids->du = du;
+    DOHUnit* oldDU = nullptr;
+    if (ids->origFD != -1) {
+      /* that means that the state was in use, possibly with an allocated
+         DOHUnit that we will need to handle, but we can't touch it before
+         confirming that we now own this state */
+      oldDU = ids->du;
+    }
 
-    int oldFD = ids->origFD.exchange(cs.udpFD);
-    if(oldFD < 0) {
-      // if we are reusing, no change in outstanding
+    /* we atomically replace the value with 0, we now own this state */
+    int oldFD = ids->origFD.exchange(0);
+    if (oldFD < 0) {
+      /* the value was -1, meaning that the state was not in use.
+         we reset 'oldDU' because it might have still been in use when we read it. */
+      oldDU = nullptr;
       ++ss->outstanding;
     }
     else {
       ++ss->reuseds;
       ++g_stats.downstreamTimeouts;
+      /* we are reusing a state, if there was an existing DOHUnit we need
+         to handle it because it's about to be overwritten. */
+      ids->du = nullptr;
+      handleDOHTimeout(oldDU);
     }
+
+    ids->du = du;
 
     ids->cs = &cs;
     ids->origID = dh->id;
@@ -238,8 +274,8 @@ static int processDOHQuery(DOHUnit* du)
        We need to keep track of which one it is since we may
        want to use the real but not the listening addr to reply.
     */
-    if (du->dest.sin4.sin_family != 0) {
-      ids->origDest = du->dest;
+    if (dest.sin4.sin_family != 0) {
+      ids->origDest = dest;
       ids->destHarvested = true;
     }
     else {
@@ -618,8 +654,8 @@ static void on_dnsdist(h2o_socket_t *listener, const char *err)
     //    struct dnsheader* dh = (struct dnsheader*)du->query.c_str();
     //    cout<<"Attempt to send out "<<du->query.size()<<" bytes over https, TC="<<dh->tc<<", RCODE="<<dh->rcode<<", qtype="<<du->qtype<<", req="<<(void*)du->req<<endl;
 
-    du->req->res.content_length = du->query.size();
-    h2o_send_inline(du->req, du->query.c_str(), du->query.size());
+    du->req->res.content_length = du->response.size();
+    h2o_send_inline(du->req, du->response.c_str(), du->response.size());
   }
   else {
     switch(du->status_code) {
@@ -641,6 +677,7 @@ static void on_dnsdist(h2o_socket_t *listener, const char *err)
 
     ++dsc->df->d_errorresponses;
   }
+
   delete du;
 }
 
@@ -824,3 +861,11 @@ catch(const std::exception& e) {
 catch(...) {
   throw runtime_error("DOH thread failed to launch");
 }
+
+#else /* HAVE_DNS_OVER_HTTPS */
+
+void handleDOHTimeout(DOHUnit* oldDU)
+{
+}
+
+#endif /* HAVE_DNS_OVER_HTTPS */

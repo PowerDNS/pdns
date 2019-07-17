@@ -67,6 +67,7 @@ struct st_h2o_req_t;
 struct DOHUnit
 {
   std::string query;
+  std::string response;
   ComboAddress remote;
   ComboAddress dest;
   st_h2o_req_t* req{nullptr};
@@ -86,3 +87,5 @@ struct DOHUnit
 };
 
 #endif /* HAVE_DNS_OVER_HTTPS  */
+
+void handleDOHTimeout(DOHUnit* oldDU);
