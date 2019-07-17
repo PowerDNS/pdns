@@ -166,18 +166,25 @@ BOOST_AUTO_TEST_CASE(test_CDB) {
     writer.close();
   }
 
-  auto cdb = std::unique_ptr<KeyValueStore>(new CDBKVStore(db));
+  auto cdb = std::unique_ptr<KeyValueStore>(new CDBKVStore(db, 0));
   doKVSChecks(cdb, lc, rem, dq);
 
   /*
   std::string value;
   DTime dt;
   dt.set();
-  for (size_t idx = 0; idx < 10000000; idx++) {
+  auto lookupKey = make_unique<KeyValueLookupKeySourceIP>();
+  for (size_t idx = 0; idx < 100000000; idx++) {
     auto keys = lookupKey->getKeys(dq);
     for (const auto& key : keys) {
-      BOOST_CHECK_EQUAL(cdb->getValue(key, value), true);
-      BOOST_CHECK_EQUAL(value, "this is the value of the tag");
+      if (!cdb->getValue(key, value)) {
+        cerr<<"key not found"<<endl;
+        break;
+      }
+      if (value != "this is the value for the remote addr") {
+        cerr<<"invalid value found"<<endl;
+        break;
+      }
     }
   }
   cerr<<dt.udiff()/1000/1000<<endl;

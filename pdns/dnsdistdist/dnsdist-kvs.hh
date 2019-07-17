@@ -145,15 +145,20 @@ private:
 class CDBKVStore: public KeyValueStore
 {
 public:
-  CDBKVStore(const std::string& fname): d_cdb(fname), d_fname(fname)
-  {
-  }
+  CDBKVStore(const std::string& fname, time_t refreshDelay);
 
   bool getValue(const std::string& key, std::string& value) override;
 
 private:
-  CDB d_cdb;
+  void refreshDBIfNeeded(time_t now);
+
+  std::unique_ptr<CDB> d_cdb{nullptr};
   std::string d_fname;
+  pthread_rwlock_t d_lock;
+  time_t d_mtime{0};
+  time_t d_nextCheck{0};
+  time_t d_refreshDelay{0};
+  std::atomic_flag d_refreshing;
 };
 
 #endif /* HAVE_LMDB */

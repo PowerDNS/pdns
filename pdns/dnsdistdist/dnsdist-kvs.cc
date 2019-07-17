@@ -23,6 +23,8 @@
 #include "dnsdist-kvs.hh"
 #include "dolog.hh"
 
+#include <sys/stat.h>
+
 std::vector<std::string> KeyValueLookupKeySourceIP::getKeys(const DNSQuestion& dq)
 {
   std::vector<std::string> result;
@@ -84,11 +86,63 @@ bool LMDBKVStore::getValue(const std::string& key, std::string& value)
 
 #ifdef HAVE_CDB
 
+CDBKVStore::CDBKVStore(const std::string& fname, time_t refreshDelay): d_fname(fname), d_refreshDelay(refreshDelay)
+{
+  pthread_rwlock_init(&d_lock, nullptr);
+  d_refreshing.clear();
+
+  time_t now = time(nullptr);
+  if (d_refreshDelay > 0) {
+    d_nextCheck = now + d_refreshDelay;
+  }
+
+  refreshDBIfNeeded(now);
+}
+
+void CDBKVStore::refreshDBIfNeeded(time_t now)
+{
+  if (d_refreshing.test_and_set()) {
+    /* someone else is already refreshing */
+    return;
+  }
+
+  try {
+    struct stat st;
+    if (stat(d_fname.c_str(), &st) == 0) {
+      if (st.st_mtime > d_mtime) {
+        auto newCDB = make_unique<CDB>(d_fname);
+        {
+          WriteLock wl(&d_lock);
+          d_cdb = std::move(newCDB);
+        }
+        d_mtime = st.st_mtime;
+      }
+    }
+    else {
+      warnlog("Error while retrieving the last modification time of CDB database '%s': %s", d_fname, stringerror());
+    }
+    d_nextCheck = now + d_refreshDelay;
+  }
+  catch(...) {
+    d_refreshing.clear();
+    throw;
+  }
+}
+
 bool CDBKVStore::getValue(const std::string& key, std::string& value)
 {
+  time_t now = time(nullptr);
+
   try {
-    if (d_cdb.findOne(key, value)) {
-      return true;
+    if (d_nextCheck != 0 && now >= d_nextCheck) {
+      refreshDBIfNeeded(now);
+    }
+
+    {
+      ReadLock rl(&d_lock);
+      if (d_cdb && d_cdb->findOne(key, value)) {
+        return true;
+      }
     }
   }
   catch(const std::exception& e) {

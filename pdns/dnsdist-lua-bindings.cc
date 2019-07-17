@@ -739,11 +739,11 @@ void setupLuaBindings(bool client)
 #endif /* HAVE_LMDB */
 
 #ifdef HAVE_CDB
-  g_lua.writeFunction("newCDBKVStore", [client](const std::string& fname) {
+  g_lua.writeFunction("newCDBKVStore", [client](const std::string& fname, time_t refreshDelay) {
     if (client) {
       return std::shared_ptr<KeyValueStore>(nullptr);
     }
-    return std::shared_ptr<KeyValueStore>(new CDBKVStore(fname));
+    return std::shared_ptr<KeyValueStore>(new CDBKVStore(fname, refreshDelay));
   });
 #endif /* HAVE_CDB */
 
