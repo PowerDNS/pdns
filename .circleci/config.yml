@@ -231,12 +231,14 @@ commands:
               libsodium-dev \
               libsqlite3-dev \
               libssl-dev \
+              libsystemd-dev \
               libtool \
               libyaml-cpp-dev \
               make \
               pkg-config \
               ragel \
               sqlite3 \
+              systemd \
               unixodbc-dev \
               virtualenv \
               wget
@@ -472,6 +474,7 @@ jobs:
             ./configure \
               --disable-lua-records \
               --with-modules='bind lmdb ldap gmysql gsqlite3 gpgsql godbc mydns random tinydns' \
+              --enable-systemd \
               --enable-tools \
               --with-lmdb=/usr \
               --with-libsodium \
@@ -803,6 +806,7 @@ jobs:
             pkg-config \
             protobuf-compiler \
             ragel \
+            systemd \
             virtualenv
       - checkout-shallow
       - run:
@@ -817,6 +821,7 @@ jobs:
             ./configure \
             --enable-unit-tests \
             --enable-nod \
+            --enable-systemd \
             --prefix=/opt/pdns-recursor \
             --with-libsodium \
             --with-lua=luajit \
@@ -982,6 +987,7 @@ jobs:
             CXXFLAGS="-O1 -Werror=vla -Wformat=2 -Werror=format-security -Wp,-D_GLIBCXX_ASSERTIONS" \
             ./configure \
               --disable-lua-records \
+              --disable-systemd \
               --with-modules='bind lmdb ldap gmysql gsqlite3 gpgsql godbc mydns random tinydns' \
               --enable-tools \
               --with-lmdb=/usr \
@@ -1181,6 +1187,7 @@ jobs:
             pkg-config \
             protobuf-compiler \
             ragel \
+            systemd \
             virtualenv
       - checkout-shallow
       - run:
@@ -1198,6 +1205,7 @@ jobs:
             --enable-dnscrypt \
             --enable-dns-over-tls \
             --enable-dns-over-https \
+            --enable-systemd \
             --prefix=/opt/dnsdist \
             --with-libsodium \
             --with-lua=luajit \
