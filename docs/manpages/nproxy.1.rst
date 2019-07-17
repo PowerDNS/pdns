@@ -1,12 +1,10 @@
 nproxy
 ======
 
-:program:`nproxy` - DNS notification proxy
-
 Synopsis
 --------
 
-nproxy --powerdns-address *ADDRESS* [*OPTION*]... *ADDRESS*...
+:program:`nproxy` --powerdns-address *ADDRESS* [*OPTION*]... *ADDRESS*...
 
 Description
 -----------
