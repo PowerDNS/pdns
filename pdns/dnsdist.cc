@@ -570,6 +570,7 @@ try {
           continue;
         }
 
+        bool isDoH = du != nullptr;
         /* atomically mark the state as available */
         int oldFD = ids->origFD.exchange(-1);
         if (oldFD == origFD) {
@@ -630,7 +631,7 @@ try {
 
         double udiff = ids->sentTime.udiff();
         vinfolog("Got answer from %s, relayed to %s%s, took %f usec", dss->remote.toStringWithPort(), ids->origRemote.toStringWithPort(),
-                 ids->du ? " (https)": "", udiff);
+                 isDoH ? " (https)": "", udiff);
 
         struct timespec ts;
         gettime(&ts);
