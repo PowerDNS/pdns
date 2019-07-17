@@ -586,6 +586,9 @@ try {
         } else {
           /* someone updated the state in the meantime, we can't touch the existing pointer */
           du = nullptr;
+          /* since the state has been updated, we can't safely access it so let's just drop
+             this response */
+          continue;
         }
 
         if(dh->tc && g_truncateTC) {
