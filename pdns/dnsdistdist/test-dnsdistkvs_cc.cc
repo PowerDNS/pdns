@@ -6,6 +6,83 @@
 
 #include "dnsdist-kvs.hh"
 
+static void doKVSChecks(std::unique_ptr<KeyValueStore>& kvs, const ComboAddress& lc, const ComboAddress& rem, const DNSQuestion& dq)
+{
+  /* source IP */
+  {
+    auto lookupKey = make_unique<KeyValueLookupKeySourceIP>();
+    auto keys = lookupKey->getKeys(dq);
+    BOOST_CHECK_EQUAL(keys.size(), 1);
+    for (const auto& key : keys) {
+      std::string value;
+      BOOST_CHECK_EQUAL(kvs->getValue(std::string(reinterpret_cast<const char*>(&lc.sin4.sin_addr.s_addr), sizeof(lc.sin4.sin_addr.s_addr)), value), false);
+      BOOST_CHECK_EQUAL(kvs->getValue(key, value), true);
+      BOOST_CHECK_EQUAL(value, "this is the value for the remote addr");
+    }
+  }
+
+  const DNSName subdomain = DNSName("sub") + *dq.qname;
+  const DNSName notPDNS("not-powerdns.com.");
+
+  /* qname */
+  {
+    std::string value;
+    auto lookupKey = make_unique<KeyValueLookupKeyQName>();
+    auto keys = lookupKey->getKeys(dq);
+    BOOST_CHECK_EQUAL(keys.size(), 1);
+    for (const auto& key : keys) {
+      value.clear();
+      BOOST_CHECK_EQUAL(kvs->getValue(key, value), true);
+      BOOST_CHECK_EQUAL(value, "this is the value for the qname");
+    }
+
+    /* other domain, should not match */
+    keys = lookupKey->getKeys(notPDNS);
+    BOOST_CHECK_EQUAL(keys.size(), 1);
+    for (const auto& key : keys) {
+      value.clear();
+      BOOST_CHECK_EQUAL(kvs->getValue(key, value), false);
+    }
+
+    /* subdomain, should not match */
+    keys = lookupKey->getKeys(subdomain);
+    BOOST_CHECK_EQUAL(keys.size(), 1);
+    for (const auto& key : keys) {
+      value.clear();
+      BOOST_CHECK_EQUAL(kvs->getValue(key, value), false);
+    }
+  }
+
+  /* suffix match */
+  {
+    auto lookupKey = make_unique<KeyValueLookupKeySuffix>();
+    auto keys = lookupKey->getKeys(dq);
+    BOOST_CHECK_EQUAL(keys.size(), dq.qname->countLabels());
+    BOOST_REQUIRE(!keys.empty());
+    BOOST_CHECK_EQUAL(keys.at(0), dq.qname->toDNSStringLC());
+    std::string value;
+    BOOST_CHECK_EQUAL(kvs->getValue(keys.at(0), value), true);
+    BOOST_CHECK_EQUAL(value, "this is the value for the qname");
+    value.clear();
+    BOOST_CHECK_EQUAL(kvs->getValue(keys.at(1), value), false);
+
+    /* other domain, should not match */
+    keys = lookupKey->getKeys(notPDNS);
+    BOOST_CHECK_EQUAL(keys.size(), notPDNS.countLabels());
+    for (const auto& key : keys) {
+      value.clear();
+      BOOST_CHECK_EQUAL(kvs->getValue(key, value), false);
+    }
+
+    /* subdomain, the second key should match */
+    keys = lookupKey->getKeys(subdomain);
+    BOOST_REQUIRE_EQUAL(keys.size(), subdomain.countLabels());
+    BOOST_CHECK_EQUAL(kvs->getValue(keys.at(0), value), false);
+    BOOST_CHECK_EQUAL(kvs->getValue(keys.at(1), value), true);
+    BOOST_CHECK_EQUAL(value, "this is the value for the qname");
+  }
+}
+
 BOOST_AUTO_TEST_SUITE(dnsdistkvs_cc)
 
 #ifdef HAVE_LMDB
@@ -14,8 +91,8 @@ BOOST_AUTO_TEST_CASE(test_LMDB) {
   DNSName qname("powerdns.com.");
   uint16_t qtype = QType::A;
   uint16_t qclass = QClass::IN;
-  ComboAddress lc("127.0.0.1:53");
-  ComboAddress rem("127.0.0.1:42");
+  ComboAddress lc("192.0.2.1:53");
+  ComboAddress rem("192.0.2.128:42");
   struct dnsheader dh;
   memset(&dh, 0, sizeof(dh));
   size_t bufferSize = 0;
@@ -34,13 +111,14 @@ BOOST_AUTO_TEST_CASE(test_LMDB) {
     MDBEnv env(dbPath.c_str(), MDB_NOSUBDIR, 0600);
     auto transaction = env.getRWTransaction();
     auto dbi = transaction.openDB("db-name", MDB_CREATE);
-    transaction.put(dbi, MDBInVal(std::string(reinterpret_cast<const char*>(&dq.remote->sin4.sin_addr.s_addr), sizeof(dq.remote->sin4.sin_addr.s_addr))), MDBInVal("this is the value of the tag"));
+    transaction.put(dbi, MDBInVal(std::string(reinterpret_cast<const char*>(&rem.sin4.sin_addr.s_addr), sizeof(rem.sin4.sin_addr.s_addr))), MDBInVal("this is the value for the remote addr"));
+    transaction.put(dbi, MDBInVal(qname.toDNSStringLC()), MDBInVal("this is the value for the qname"));
     transaction.commit();
   }
 
-  auto lmdb = make_unique<LMDBKVStore>(dbPath, "db-name");
-  auto lookupKey = make_unique<KeyValueLookupKeySourceIP>();
-
+  auto lmdb = std::unique_ptr<KeyValueStore>(new LMDBKVStore(dbPath, "db-name"));
+  doKVSChecks(lmdb, lc, rem, dq);
+  /*
   std::string value;
   DTime dt;
   dt.set();
@@ -53,6 +131,7 @@ BOOST_AUTO_TEST_CASE(test_LMDB) {
     }
   }
   cerr<<dt.udiff()/1000/1000<<endl;
+  */
 }
 #endif /* HAVE_LMDB */
 
@@ -62,8 +141,8 @@ BOOST_AUTO_TEST_CASE(test_CDB) {
   DNSName qname("powerdns.com.");
   uint16_t qtype = QType::A;
   uint16_t qclass = QClass::IN;
-  ComboAddress lc("127.0.0.1:53");
-  ComboAddress rem("127.0.0.1:42");
+  ComboAddress lc("192.0.2.1:53");
+  ComboAddress rem("192.0.2.128:42");
   struct dnsheader dh;
   memset(&dh, 0, sizeof(dh));
   size_t bufferSize = 0;
@@ -82,13 +161,15 @@ BOOST_AUTO_TEST_CASE(test_CDB) {
     int fd = mkstemp(db);
     BOOST_REQUIRE(fd >= 0);
     CDBWriter writer(fd);
-    BOOST_REQUIRE(writer.addEntry(std::string(reinterpret_cast<const char*>(&dq.remote->sin4.sin_addr.s_addr), sizeof(dq.remote->sin4.sin_addr.s_addr)), "this is the value of the tag"));
+    BOOST_REQUIRE(writer.addEntry(std::string(reinterpret_cast<const char*>(&rem.sin4.sin_addr.s_addr), sizeof(rem.sin4.sin_addr.s_addr)), "this is the value for the remote addr"));
+    BOOST_REQUIRE(writer.addEntry(qname.toDNSStringLC(), "this is the value for the qname"));
     writer.close();
   }
 
-  auto cdb = make_unique<CDBKVStore>(db);
-  auto lookupKey = make_unique<KeyValueLookupKeySourceIP>();
+  auto cdb = std::unique_ptr<KeyValueStore>(new CDBKVStore(db));
+  doKVSChecks(cdb, lc, rem, dq);
 
+  /*
   std::string value;
   DTime dt;
   dt.set();
@@ -100,6 +181,7 @@ BOOST_AUTO_TEST_CASE(test_CDB) {
     }
   }
   cerr<<dt.udiff()/1000/1000<<endl;
+  */
 }
 #endif /* HAVE_CDB */
 

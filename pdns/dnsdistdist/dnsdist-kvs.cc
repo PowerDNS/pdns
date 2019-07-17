@@ -23,6 +23,40 @@
 #include "dnsdist-kvs.hh"
 #include "dolog.hh"
 
+std::vector<std::string> KeyValueLookupKeySourceIP::getKeys(const DNSQuestion& dq)
+{
+  std::vector<std::string> result;
+
+  if (dq.remote->sin4.sin_family == AF_INET) {
+    result.emplace_back(reinterpret_cast<const char*>(&dq.remote->sin4.sin_addr.s_addr), sizeof(dq.remote->sin4.sin_addr.s_addr));
+  }
+  else if (dq.remote->sin4.sin_family == AF_INET6) {
+    result.emplace_back(reinterpret_cast<const char*>(&dq.remote->sin6.sin6_addr.s6_addr), sizeof(dq.remote->sin6.sin6_addr.s6_addr));
+  }
+
+  return result;
+}
+
+std::vector<std::string> KeyValueLookupKeySuffix::getKeys(const DNSName& qname)
+{
+  if (qname.empty() || qname.isRoot()) {
+    return {};
+  }
+
+  auto lowerQName = qname.makeLowerCase();
+  std::vector<std::string> result;
+  result.reserve(lowerQName.countLabels() - 1);
+
+  while(!lowerQName.isRoot()) {
+    result.emplace_back(lowerQName.toDNSString());
+    if (!lowerQName.chopOff()) {
+      break;
+    }
+  }
+
+  return result;
+}
+
 #ifdef HAVE_LMDB
 
 bool LMDBKVStore::getValue(const std::string& key, std::string& value)
@@ -41,7 +75,7 @@ bool LMDBKVStore::getValue(const std::string& key, std::string& value)
     }
   }
   catch(const std::exception& e) {
-    warnlog("Error while looking up key '%s' from LMDB file '%s', database '%s': %s", key, d_fname, d_dbName);
+    warnlog("Error while looking up key '%s' from LMDB file '%s', database '%s': %s", key, d_fname, d_dbName, e.what());
   }
   return false;
 }

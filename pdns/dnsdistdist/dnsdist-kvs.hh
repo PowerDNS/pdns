@@ -36,19 +36,7 @@ public:
 class KeyValueLookupKeySourceIP: public KeyValueLookupKey
 {
 public:
-  std::vector<std::string> getKeys(const DNSQuestion& dq) override
-  {
-    std::vector<std::string> result;
-
-    if (dq.remote->sin4.sin_family == AF_INET) {
-      result.emplace_back(reinterpret_cast<const char*>(&dq.remote->sin4.sin_addr.s_addr), sizeof(dq.remote->sin4.sin_addr.s_addr));
-    }
-    else if (dq.remote->sin4.sin_family == AF_INET6) {
-      result.emplace_back(reinterpret_cast<const char*>(&dq.remote->sin6.sin6_addr.s6_addr), sizeof(dq.remote->sin6.sin6_addr.s6_addr));
-    }
-
-    return result;
-  }
+  std::vector<std::string> getKeys(const DNSQuestion& dq) override;
 
   std::string toString() const override
   {
@@ -59,9 +47,15 @@ public:
 class KeyValueLookupKeyQName: public KeyValueLookupKey
 {
 public:
+
+  std::vector<std::string> getKeys(const DNSName& qname)
+  {
+    return {qname.toDNSStringLC()};
+  }
+
   std::vector<std::string> getKeys(const DNSQuestion& dq) override
   {
-    return {dq.qname->toDNSStringLC()};
+    return getKeys(*dq.qname);
   }
 
   std::string toString() const override
@@ -73,17 +67,11 @@ public:
 class KeyValueLookupKeySuffix: public KeyValueLookupKey
 {
 public:
+  std::vector<std::string> getKeys(const DNSName& qname);
+
   std::vector<std::string> getKeys(const DNSQuestion& dq) override
   {
-    auto lowerQName = dq.qname->makeLowerCase();
-    std::vector<std::string> result(lowerQName.countLabels());
-
-    do {
-      result.emplace_back(lowerQName.toDNSString());
-    }
-    while (lowerQName.chopOff());
-
-    return result;
+    return getKeys(*dq.qname);
   }
 
   std::string toString() const override
