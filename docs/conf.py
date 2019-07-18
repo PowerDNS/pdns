@@ -181,6 +181,7 @@ descriptions = {
     'dumresp': 'A dumb DNS responder',
     'ixfrdist': 'An IXFR/AXFR-only server that re-distributes zones',
     'ixplore': 'A tool that provides insights into IXFRs',
+    'nproxy': 'DNS notification proxy',
     'nsec3dig': 'Show and validate NSEC3 proofs',
     'pdns_control': 'Control the PowerDNS nameserver',
     'pdns_notify': 'A simple DNS NOTIFY sender',
