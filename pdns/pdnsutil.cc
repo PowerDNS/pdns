@@ -1868,6 +1868,20 @@ void testSchema(DNSSECKeeper& dk, const DNSName& zone)
     return;
   }
   cout<<"[+] ordername sorting is correct for names starting with _"<<endl;
+  cout<<"Setting low notified serial"<<endl;
+  db->setNotified(di.id, 500);
+  db->getDomainInfo(zone, di);
+  if(di.notified_serial != 500) {
+    cout<<"[-] Set serial 500, got back "<<di.notified_serial<<endl;
+  }
+  cout<<"Setting serial that needs 32 bits"<<endl;
+  db->setNotified(di.id, 2147484148);
+  db->getDomainInfo(zone, di);
+  if(di.notified_serial != 2147484148) {
+    cout<<"[-] Set serial 2147484148, got back "<<di.notified_serial<<endl;
+  } else {
+    cout<<"[+] Big serials work correctly"<<endl;
+  }
   cout<<endl;
   cout<<"End of tests, please remove "<<zone<<" from domains+records"<<endl;
 }
