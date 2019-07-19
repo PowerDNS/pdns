@@ -105,6 +105,29 @@ int getEDNSOptions(const char* optRR, const size_t len, EDNSOptionViewMap& optio
   return 0;
 }
 
+bool getEDNSOptionsFromContent(const std::string& content, std::vector<std::pair<uint16_t, std::string>>& options)
+{
+  size_t pos = 0;
+  uint16_t code, len;
+  const size_t contentLength = content.size();
+
+  while (pos < contentLength && (contentLength - pos) >= (EDNS_OPTION_CODE_SIZE + EDNS_OPTION_LENGTH_SIZE)) {
+    code = (static_cast<unsigned char>(content.at(pos)) * 256) + static_cast<unsigned char>(content.at(pos+1));
+    pos += EDNS_OPTION_CODE_SIZE;
+    len = (static_cast<unsigned char>(content.at(pos)) * 256) + static_cast<unsigned char>(content.at(pos+1));
+    pos += EDNS_OPTION_LENGTH_SIZE;
+
+    if (pos > contentLength || len > (contentLength - pos)) {
+      return false;
+    }
+
+    options.emplace_back(code, std::string(&content.at(pos), len));
+    pos += len;
+  }
+
+  return true;
+}
+
 void generateEDNSOption(uint16_t optionCode, const std::string& payload, std::string& res)
 {
   const uint16_t ednsOptionCode = htons(optionCode);

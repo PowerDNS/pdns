@@ -544,6 +544,9 @@ class DNSDistTest(unittest.TestCase):
         if withCookies:
             for option in received.options:
                 self.assertEquals(option.otype, 10)
+        else:
+            for option in received.options:
+                self.assertNotEquals(option.otype, 10)
 
     def checkMessageEDNSWithECS(self, expected, received, additionalOptions=0):
         self.assertEquals(expected, received)
