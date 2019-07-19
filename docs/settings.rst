@@ -599,10 +599,14 @@ Enables EDNS subnet processing, for backends that support it.
 ``enable-lua-records``
 ----------------------
 
--  Boolean
+-  One of ``no``, ``yes`` (or empty), or ``shared``, String
 -  Default: no
 
-Enable globally the LUA records feature
+.. versionadded:: 4.2.0
+
+Globally enable the :doc:`LUA records <lua-records/index>` feature.
+
+To use shared LUA states, set this to ``shared``, see :ref:`lua-records-shared-state`.
 
 .. _setting-entropy-source:
 
