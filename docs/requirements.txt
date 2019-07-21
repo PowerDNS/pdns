@@ -4,3 +4,4 @@ git+https://github.com/pieterlexis/sphinx-jsondomain@no-type-links
 git+https://github.com/pieterlexis/sphinx-changelog@render-tags
 sphinxcontrib-fulltoc
 guzzle_sphinx_theme
+docutils!=0.15

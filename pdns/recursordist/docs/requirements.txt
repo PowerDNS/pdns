@@ -5,3 +5,4 @@ git+https://github.com/pieterlexis/sphinx-changelog@render-tags
 guzzle_sphinx_theme
 sphinxcontrib.httpdomain
 sphinxcontrib-fulltoc
+docutils!=0.15
