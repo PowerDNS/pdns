@@ -351,7 +351,7 @@ PowerDNS Authoritative Server 4.0.0
 Released July 11th 2016
 
 PowerDNS Authoritative Server 4.0.0 is part of `the great 4.x "Spring
-Cleaning" <http://blog.powerdns.com/2015/11/28/powerdns-spring-cleaning/>`__
+Cleaning" <https://blog.powerdns.com/2015/11/28/powerdns-spring-cleaning/>`__
 of PowerDNS which lasted through the end of 2015.
 
 As part of the general cleanup and improvements, we did the following:

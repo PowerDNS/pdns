@@ -144,7 +144,7 @@ Coefficient: 5lP9IFknvFgaXKCs8MproehHSFhFTWac4557HIn03KrnlGOKDcY6DC/vgu1e42bEZ4J
      false          
   end
 
-  ## Please see http://doc.powerdns.com/remotebackend.html for methods to add here
+  ## Please see https://doc.powerdns.com/authoritative/backends/remote.html for methods to add here
   ## Just remember to prefix them with do_
 
   ## Some helpers after this 

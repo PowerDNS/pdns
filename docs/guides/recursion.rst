@@ -173,9 +173,9 @@ Authoritative Server. This is done using the
 4. Install and configure dnsdist
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-`dnsdist <http://dnsdist.org>`__ is a DNS loadbalancer from the people
+`dnsdist <https://dnsdist.org>`__ is a DNS loadbalancer from the people
 behind PowerDNS that balances DNS packets based on rules. See the
-`dnsdist download instructions <http://dnsdist.org/install.html>`__ on how
+`dnsdist download instructions <https://dnsdist.org/install.html>`__ on how
 to install dnsdist.
 
 This guide assumes dnsdist 1.2 or dnsdist master.
