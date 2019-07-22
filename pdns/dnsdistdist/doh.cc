@@ -583,7 +583,7 @@ void dnsdistclient(int qsock, int rsock)
       DOHUnit* du = nullptr;
       ssize_t got = recv(qsock, &du, sizeof(du), 0);
       if (got < 0) {
-        warnlog("Error receving internal DoH query: %s", strerror(errno));
+        warnlog("Error receiving internal DoH query: %s", strerror(errno));
         continue;
       }
       else if (static_cast<size_t>(got) < sizeof(du)) {
