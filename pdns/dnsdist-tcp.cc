@@ -704,7 +704,7 @@ static void sendResponse(std::shared_ptr<IncomingTCPConnectionState>& state, str
 
 static void handleResponse(std::shared_ptr<IncomingTCPConnectionState>& state, struct timeval& now)
 {
-  if (state->d_responseSize < sizeof(dnsheader)) {
+  if (state->d_responseSize < sizeof(dnsheader) || !state->d_ds) {
     return;
   }
 
@@ -936,7 +936,7 @@ static void handleDownstreamIO(std::shared_ptr<IncomingTCPConnectionState>& stat
         state->d_currentPos = 0;
         state->d_querySentTime = now;
         iostate = IOState::NeedRead;
-        if (!state->d_isXFR) {
+        if (!state->d_isXFR && !state->d_outstanding) {
           /* don't bother with the outstanding count for XFR queries */
           ++state->d_ds->outstanding;
           state->d_outstanding = true;
@@ -1012,9 +1012,13 @@ static void handleDownstreamIO(std::shared_ptr<IncomingTCPConnectionState>& stat
     if (state->d_downstreamConnection && state->d_downstreamConnection->isFresh()) {
       ++state->d_downstreamFailures;
     }
-    if (state->d_outstanding && state->d_ds != nullptr) {
-      --state->d_ds->outstanding;
+
+    if (state->d_outstanding) {
       state->d_outstanding = false;
+
+      if (state->d_ds != nullptr) {
+        --state->d_ds->outstanding;
+      }
     }
     /* remove this FD from the IO multiplexer */
     iostate = IOState::Done;
