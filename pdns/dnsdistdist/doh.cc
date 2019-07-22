@@ -289,14 +289,21 @@ static int processDOHQuery(DOHUnit* du)
     /* you can't touch du after this line, because it might already have been freed */
     ssize_t ret = udpClientSendRequestToBackend(ss, fd, query, dq.len);
 
-    vinfolog("Got query for %s|%s from %s (https), relayed to %s", ids->qname.toString(), QType(ids->qtype).getName(), remote.toStringWithPort(), ss->getName());
-
     if(ret < 0) {
+      /* we are about to handle the error, make sure that
+         this pointer is not accessed when the state is cleaned,
+         but first check that it still belongs to us */
+      if (ids->origFD == 0 && ids->origFD.exchange(-1) == 0) {
+        ids->du = nullptr;
+        --ss->outstanding;
+      }
       ++ss->sendErrors;
       ++g_stats.downstreamSendErrors;
       du->status_code = 502;
       return -1;
     }
+
+    vinfolog("Got query for %s|%s from %s (https), relayed to %s", ids->qname.toString(), QType(ids->qtype).getName(), remote.toStringWithPort(), ss->getName());
   }
   catch(const std::exception& e) {
     vinfolog("Got an error in DOH question thread while parsing a query from %s, id %d: %s", remote.toStringWithPort(), queryId, e.what());
