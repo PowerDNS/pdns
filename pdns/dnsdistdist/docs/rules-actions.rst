@@ -1101,7 +1101,7 @@ The following actions exist.
   Associate a tag named ``name`` with a value of ``value`` to this query, that will be passed on to the response.
 
   :param string name: The name of the tag to set
-  :param string cname: The value of the tag
+  :param string value: The value of the tag
 
 .. function:: TagResponseAction(name, value)
 
@@ -1110,7 +1110,7 @@ The following actions exist.
   Associate a tag named ``name`` with a value of ``value`` to this response.
 
   :param string name: The name of the tag to set
-  :param string cname: The value of the tag
+  :param string value: The value of the tag
 
 .. function:: TCAction()
 
