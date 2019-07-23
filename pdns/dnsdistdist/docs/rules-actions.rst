@@ -854,6 +854,8 @@ The following actions exist.
 
 .. function:: ContinueAction(action)
 
+  .. versionadded:: 1.4.0
+
   Execute the specified action and override its return with None, making it possible to continue the processing.
   Subsequent rules are processed after this action.
 
