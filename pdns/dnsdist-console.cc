@@ -364,6 +364,7 @@ const std::vector<ConsoleKeyword> g_consoleKeywords{
   { "clearDynBlocks", true, "", "clear all dynamic blocks" },
   { "clearQueryCounters", true, "", "clears the query counter buffer" },
   { "clearRules", true, "", "remove all current rules" },
+  { "ContinueAction", true, "action", "execute the specified action and continue the processing of the remaining rules, regardless of the return of the action" },
   { "DelayAction", true, "milliseconds", "delay the response by the specified amount of milliseconds (UDP-only)" },
   { "DelayResponseAction", true, "milliseconds", "delay the response by the specified amount of milliseconds (UDP-only)" },
   { "delta", true, "", "shows all commands entered that changed the configuration" },

@@ -1036,7 +1036,71 @@ static void spoofResponseFromString(DNSQuestion& dq, const string& spoofContent)
   }
 }
 
-static bool applyRulesToQuery(LocalHolders& holders, DNSQuestion& dq, string& poolname, const struct timespec& now)
+bool processRulesResult(const DNSAction::Action& action, DNSQuestion& dq, std::string& ruleresult, bool& drop)
+{
+  switch(action) {
+  case DNSAction::Action::Allow:
+    return true;
+    break;
+  case DNSAction::Action::Drop:
+    ++g_stats.ruleDrop;
+    drop = true;
+    return true;
+    break;
+  case DNSAction::Action::Nxdomain:
+    dq.dh->rcode = RCode::NXDomain;
+    dq.dh->qr=true;
+    ++g_stats.ruleNXDomain;
+    return true;
+    break;
+  case DNSAction::Action::Refused:
+    dq.dh->rcode = RCode::Refused;
+    dq.dh->qr=true;
+    ++g_stats.ruleRefused;
+    return true;
+    break;
+  case DNSAction::Action::ServFail:
+    dq.dh->rcode = RCode::ServFail;
+    dq.dh->qr=true;
+    ++g_stats.ruleServFail;
+    return true;
+    break;
+  case DNSAction::Action::Spoof:
+    spoofResponseFromString(dq, ruleresult);
+    return true;
+    break;
+  case DNSAction::Action::Truncate:
+    dq.dh->tc = true;
+    dq.dh->qr = true;
+    return true;
+    break;
+  case DNSAction::Action::HeaderModify:
+    return true;
+    break;
+  case DNSAction::Action::Pool:
+    dq.poolname=ruleresult;
+    return true;
+    break;
+  case DNSAction::Action::NoRecurse:
+    dq.dh->rd = false;
+    return true;
+    break;
+    /* non-terminal actions follow */
+  case DNSAction::Action::Delay:
+    dq.delayMsec = static_cast<int>(pdns_stou(ruleresult)); // sorry
+    break;
+  case DNSAction::Action::None:
+    /* fall-through */
+  case DNSAction::Action::NoOp:
+    break;
+  }
+
+  /* false means that we don't stop the processing */
+  return false;
+}
+
+
+static bool applyRulesToQuery(LocalHolders& holders, DNSQuestion& dq, const struct timespec& now)
 {
   g_rings.insertQuery(now, *dq.remote, *dq.qname, dq.qtype, dq.len, *dq.dh);
 
@@ -1171,67 +1235,19 @@ static bool applyRulesToQuery(LocalHolders& holders, DNSQuestion& dq, string& po
 
   DNSAction::Action action=DNSAction::Action::None;
   string ruleresult;
+  bool drop = false;
   for(const auto& lr : *holders.rulactions) {
     if(lr.d_rule->matches(&dq)) {
       lr.d_rule->d_matches++;
       action=(*lr.d_action)(&dq, &ruleresult);
-
-      switch(action) {
-      case DNSAction::Action::Allow:
-        return true;
-        break;
-      case DNSAction::Action::Drop:
-        ++g_stats.ruleDrop;
-        return false;
-        break;
-      case DNSAction::Action::Nxdomain:
-        dq.dh->rcode = RCode::NXDomain;
-        dq.dh->qr=true;
-        ++g_stats.ruleNXDomain;
-        return true;
-        break;
-      case DNSAction::Action::Refused:
-        dq.dh->rcode = RCode::Refused;
-        dq.dh->qr=true;
-        ++g_stats.ruleRefused;
-        return true;
-        break;
-      case DNSAction::Action::ServFail:
-        dq.dh->rcode = RCode::ServFail;
-        dq.dh->qr=true;
-        ++g_stats.ruleServFail;
-        return true;
-        break;
-      case DNSAction::Action::Spoof:
-        spoofResponseFromString(dq, ruleresult);
-        return true;
-        break;
-      case DNSAction::Action::Truncate:
-        dq.dh->tc = true;
-        dq.dh->qr = true;
-        return true;
-        break;
-      case DNSAction::Action::HeaderModify:
-        return true;
-        break;
-      case DNSAction::Action::Pool:
-        poolname=ruleresult;
-        return true;
-        break;
-        /* non-terminal actions follow */
-      case DNSAction::Action::Delay:
-        dq.delayMsec = static_cast<int>(pdns_stou(ruleresult)); // sorry
-        break;
-      case DNSAction::Action::None:
-        /* fall-through */
-      case DNSAction::Action::NoOp:
-        break;
-      case DNSAction::Action::NoRecurse:
-        dq.dh->rd = false;
-        return true;
+      if (processRulesResult(action, dq, ruleresult, drop)) {
         break;
       }
     }
+  }
+
+  if (drop) {
+    return false;
   }
 
   return true;
@@ -1415,9 +1431,7 @@ ProcessQueryResult processQuery(DNSQuestion& dq, ClientState& cs, LocalHolders& 
     struct timespec now;
     gettime(&now);
 
-    string poolname;
-
-    if (!applyRulesToQuery(holders, dq, poolname, now)) {
+    if (!applyRulesToQuery(holders, dq, now)) {
       return ProcessQueryResult::Drop;
     }
 
@@ -1432,7 +1446,7 @@ ProcessQueryResult processQuery(DNSQuestion& dq, ClientState& cs, LocalHolders& 
       return ProcessQueryResult::SendAnswer;
     }
 
-    std::shared_ptr<ServerPool> serverPool = getPool(*holders.pools, poolname);
+    std::shared_ptr<ServerPool> serverPool = getPool(*holders.pools, dq.poolname);
     dq.packetCache = serverPool->packetCache;
     auto policy = *(holders.policy);
     if (serverPool->policy != nullptr) {

@@ -76,6 +76,7 @@ struct DNSQuestion
   Netmask ecs;
   boost::optional<Netmask> subnet;
   std::string sni; /* Server Name Indication, if any (DoT or DoH) */
+  std::string poolname;
   const DNSName* qname{nullptr};
   const ComboAddress* local{nullptr};
   const ComboAddress* remote{nullptr};
@@ -1152,6 +1153,7 @@ void resetLuaSideEffect(); // reset to indeterminate state
 
 bool responseContentMatches(const char* response, const uint16_t responseLen, const DNSName& qname, const uint16_t qtype, const uint16_t qclass, const ComboAddress& remote, unsigned int& consumed);
 bool processResponse(char** response, uint16_t* responseLen, size_t* responseSize, LocalStateHolder<vector<DNSDistResponseRuleAction> >& localRespRulactions, DNSResponse& dr, size_t addRoom, std::vector<uint8_t>& rewrittenResponse, bool muted);
+bool processRulesResult(const DNSAction::Action& action, DNSQuestion& dq, std::string& ruleresult, bool& drop);
 
 bool checkQueryHeaders(const struct dnsheader* dh);
 

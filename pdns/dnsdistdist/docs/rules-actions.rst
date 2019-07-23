@@ -852,6 +852,13 @@ The following actions exist.
 
   Let these packets go through.
 
+.. function:: ContinueAction(action)
+
+  Execute the specified action and override its return with None, making it possible to continue the processing.
+  Subsequent rules are processed after this action.
+
+  :param int action: Any other action
+
 .. function:: DelayAction(milliseconds)
 
   Delay the response by the specified amount of milliseconds (UDP-only).
@@ -881,6 +888,7 @@ The following actions exist.
 
   Send the the current query to a remote logger as a :doc:`dnstap <reference/dnstap>` message.
   ``alterFunction`` is a callback, receiving a :class:`DNSQuestion` and a :class:`DnstapMessage`, that can be used to modify the message.
+  Subsequent rules are processed after this action.
 
   :param string identity: Server identity to store in the dnstap message
   :param logger: The :func:`FrameStreamLogger <newFrameStreamUnixLogger>` or :func:`RemoteLogger <newRemoteLogger>` object to write to
@@ -892,6 +900,7 @@ The following actions exist.
 
   Send the the current response to a remote logger as a :doc:`dnstap <reference/dnstap>` message.
   ``alterFunction`` is a callback, receiving a :class:`DNSQuestion` and a :class:`DnstapMessage`, that can be used to modify the message.
+  Subsequent rules are processed after this action.
 
   :param string identity: Server identity to store in the dnstap message
   :param logger: The :func:`FrameStreamLogger <newFrameStreamUnixLogger>` or :func:`RemoteLogger <newRemoteLogger>` object to write to
@@ -1014,7 +1023,8 @@ The following actions exist.
     ``ipEncryptKey`` optional key added to the options table.
 
   Send the content of this query to a remote logger via Protocol Buffer.
-  ``alterFunction`` is a callback, receiving a :class:`DNSQuestion` and a :class:`DNSDistProtoBufMessage`, that can be used to modify the Protocol Buffer content, for example for anonymization purposes
+  ``alterFunction`` is a callback, receiving a :class:`DNSQuestion` and a :class:`DNSDistProtoBufMessage`, that can be used to modify the Protocol Buffer content, for example for anonymization purposes.
+  Subsequent rules are processed after this action.
 
   :param string remoteLogger: The :func:`remoteLogger <newRemoteLogger>` object to write to
   :param string alterFunction: Name of a function to modify the contents of the logs before sending
@@ -1034,9 +1044,10 @@ The following actions exist.
     ``ipEncryptKey`` optional key added to the options table.
 
   Send the content of this response to a remote logger via Protocol Buffer.
-  ``alterFunction`` is the same callback that receiving a :class:`DNSQuestion` and a :class:`DNSDistProtoBufMessage`, that can be used to modify the Protocol Buffer content, for example for anonymization purposes
+  ``alterFunction`` is the same callback that receiving a :class:`DNSQuestion` and a :class:`DNSDistProtoBufMessage`, that can be used to modify the Protocol Buffer content, for example for anonymization purposes.
   ``includeCNAME`` indicates whether CNAME records inside the response should be parsed and exported.
-  The default is to only exports A and AAAA records
+  The default is to only exports A and AAAA records.
+  Subsequent rules are processed after this action.
 
   :param string remoteLogger: The :func:`remoteLogger <newRemoteLogger>` object to write to
   :param string alterFunction: Name of a function to modify the contents of the logs before sending
@@ -1099,6 +1110,7 @@ The following actions exist.
   .. versionadded:: 1.3.0
 
   Associate a tag named ``name`` with a value of ``value`` to this query, that will be passed on to the response.
+  Subsequent rules are processed after this action.
 
   :param string name: The name of the tag to set
   :param string value: The value of the tag
@@ -1108,6 +1120,7 @@ The following actions exist.
   .. versionadded:: 1.3.0
 
   Associate a tag named ``name`` with a value of ``value`` to this response.
+  Subsequent rules are processed after this action.
 
   :param string name: The name of the tag to set
   :param string value: The value of the tag

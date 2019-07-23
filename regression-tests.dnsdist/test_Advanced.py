@@ -1773,3 +1773,54 @@ class TestSetRules(DNSDistTest):
             (_, receivedResponse) = sender(query, response=None, useQueue=False)
             self.assertTrue(receivedResponse)
             self.assertEquals(expectedResponse, receivedResponse)
+
+class TestAdvancedContinueAction(DNSDistTest):
+
+    _config_template = """
+    newServer{address="127.0.0.1:%s", pool="mypool"}
+    addAction("nocontinue.continue-action.advanced.tests.powerdns.com.", PoolAction("mypool"))
+    addAction("continue.continue-action.advanced.tests.powerdns.com.", ContinueAction(PoolAction("mypool")))
+    addAction(AllRule(), DisableValidationAction())
+    """
+
+    def testNoContinue(self):
+        """
+        Advanced: Query routed to pool, PoolAction should be terminal
+        """
+
+        name = 'nocontinue.continue-action.advanced.tests.powerdns.com.'
+
+        query = dns.message.make_query(name, 'A', 'IN')
+        expectedQuery = dns.message.make_query(name, 'A', 'IN')
+
+        response = dns.message.make_response(query)
+        expectedResponse = dns.message.make_response(query)
+
+        for method in ("sendUDPQuery", "sendTCPQuery"):
+            sender = getattr(self, method)
+            (receivedQuery, receivedResponse) = sender(query, response)
+            self.assertEquals(receivedQuery, expectedQuery)
+            self.assertEquals(receivedResponse, expectedResponse)
+
+    def testNoContinue(self):
+        """
+        Advanced: Query routed to pool, ContinueAction() should not stop the processing
+        """
+
+        name = 'continue.continue-action.advanced.tests.powerdns.com.'
+
+        query = dns.message.make_query(name, 'A', 'IN')
+        expectedQuery = dns.message.make_query(name, 'A', 'IN')
+        expectedQuery.flags |= dns.flags.CD
+
+        response = dns.message.make_response(query)
+        expectedResponse = dns.message.make_response(query)
+
+        for method in ("sendUDPQuery", "sendTCPQuery"):
+            sender = getattr(self, method)
+            (receivedQuery, receivedResponse) = sender(query, response)
+            expectedQuery.id = receivedQuery.id
+            self.assertEquals(receivedQuery, expectedQuery)
+            print(receivedResponse)
+            print(expectedResponse)
+            self.assertEquals(receivedResponse, expectedResponse)
