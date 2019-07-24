@@ -87,7 +87,7 @@ void resetLuaSideEffect()
   g_noLuaSideEffect = boost::logic::indeterminate;
 }
 
-typedef std::unordered_map<std::string, boost::variant<bool, int, std::string, std::vector<std::pair<int,int> >, std::map<std::string,std::string> > > localbind_t;
+typedef std::unordered_map<std::string, boost::variant<bool, int, std::string, std::vector<std::pair<int,int> >, std::map<std::string,std::string>, std::vector<std::pair<int, std::string> > > > localbind_t;
 
 static void parseLocalBindVars(boost::optional<localbind_t> vars, bool& reusePort, int& tcpFastOpenQueueSize, std::string& interface, std::set<int>& cpus)
 {
@@ -1732,6 +1732,12 @@ void setupLuaConfig(bool client)
           frontend->d_customResponseHeaders.push_back(headerResponse);
         }
       }
+      if (vars->count("ocspResponses")) {
+        auto files = boost::get<std::vector<std::pair<int, std::string>>>((*vars)["ocspResponses"]);
+        for (const auto& file : files) {
+          frontend->d_ocspFiles.push_back(file.second);
+        }
+      }
     }
     g_dohlocals.push_back(frontend);
     auto cs = std::unique_ptr<ClientState>(new ClientState(frontend->d_local, true, reusePort, tcpFastOpenQueueSize, interface, cpus));
@@ -1887,6 +1893,13 @@ void setupLuaConfig(bool client)
               return;
             }
             frontend->d_maxStoredSessions = value;
+          }
+
+          if (vars->count("ocspResponses")) {
+            auto files = boost::get<std::vector<std::pair<int, std::string>>>((*vars)["ocspResponses"]);
+            for (const auto& file : files) {
+              frontend->d_ocspFiles.push_back(file.second);
+            }
           }
         }
 

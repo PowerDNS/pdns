@@ -127,6 +127,7 @@ Listen Sockets
   * ``ciphersTLS13``: str - The TLS ciphers to use for TLS 1.3, in OpenSSL format.
   * ``serverTokens``: str - The content of the Server: HTTP header returned by dnsdist. The default is "h2o/dnsdist".
   * ``customResponseHeaders={}``: table - Set custom HTTP header(s) returned by dnsdist.
+  * ``ocspResponses``: list - List of files containing OCSP responses, in the same order than the certificates and keys, that will be used to provide OCSP stapling responses.
 
 .. function:: addTLSLocal(address, certFile(s), keyFile(s) [, options])
 
@@ -137,7 +138,7 @@ Listen Sockets
   .. versionchanged:: 1.3.3
     ``numberOfStoredSessions`` option added.
   .. versionchanged:: 1.4.0
-    ``ciphersTLS13`` option added.
+    ``ciphersTLS13`` and ``ocspResponses`` options added.
 
   Listen on the specified address and TCP port for incoming DNS over TLS connections, presenting the specified X.509 certificate.
 
@@ -161,6 +162,7 @@ Listen Sockets
   * ``ticketsKeysRotationDelay``: int - Set the delay before the TLS tickets key is rotated, in seconds. Default is 43200 (12h).
   * ``sessionTickets``: bool - Whether session resumption via session tickets is enabled. Default is true, meaning tickets are enabled.
   * ``numberOfStoredSessions``: int - The maximum number of sessions kept in memory at the same time. At this time this is only supported by the OpenSSL provider, as stored sessions are not supported with the GnuTLS one. Default is 20480. Setting this value to 0 disables stored session entirely.
+  * ``ocspResponses``: list - List of files containing OCSP responses, in the same order than the certificates and keys, that will be used to provide OCSP stapling responses.
 
 .. function:: setLocal(address[, options])
 

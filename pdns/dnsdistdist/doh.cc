@@ -82,6 +82,8 @@ public:
     }
   }
 
+  std::map<int, std::string> d_ocspResponses;
+
 private:
   h2o_accept_ctx_t d_h2o_accept_ctx;
   std::atomic<uint64_t> d_refcnt{1};
@@ -728,7 +730,16 @@ static int create_listener(const ComboAddress& addr, std::shared_ptr<DOHServerCo
   return 0;
 }
 
-static std::unique_ptr<SSL_CTX, void(*)(SSL_CTX*)> getTLSContext(const std::vector<std::pair<std::string, std::string>>& pairs, const std::string& ciphers, const std::string& ciphers13)
+static int ocsp_stapling_callback(SSL* ssl, void* arg)
+{
+  if (ssl == nullptr || arg == nullptr) {
+    return SSL_TLSEXT_ERR_NOACK;
+  }
+  const auto ocspMap = reinterpret_cast<std::map<int, std::string>*>(arg);
+  return libssl_ocsp_stapling_callback(ssl, *ocspMap);
+}
+
+static std::unique_ptr<SSL_CTX, void(*)(SSL_CTX*)> getTLSContext(const std::vector<std::pair<std::string, std::string>>& pairs, const std::string& ciphers, const std::string& ciphers13, const std::vector<std::string>& ocspFiles, std::map<int, std::string>& ocspResponses)
 {
   auto ctx = std::unique_ptr<SSL_CTX, void(*)(SSL_CTX*)>(SSL_CTX_new(SSLv23_server_method()), SSL_CTX_free);
 
@@ -746,6 +757,7 @@ static std::unique_ptr<SSL_CTX, void(*)(SSL_CTX*)> getTLSContext(const std::vect
   SSL_CTX_set_ecdh_auto(ctx.get(), 1);
 #endif
 
+  std::vector<int> keyTypes;
   /* load certificate and private key */
   for (const auto& pair : pairs) {
     if (SSL_CTX_use_certificate_chain_file(ctx.get(), pair.first.c_str()) != 1) {
@@ -755,6 +767,24 @@ static std::unique_ptr<SSL_CTX, void(*)(SSL_CTX*)> getTLSContext(const std::vect
     if (SSL_CTX_use_PrivateKey_file(ctx.get(), pair.second.c_str(), SSL_FILETYPE_PEM) != 1) {
       ERR_print_errors_fp(stderr);
       throw std::runtime_error("Failed to setup SSL/TLS for DoH listener, an error occurred while trying to load the DOH server private key file: " + pair.second);
+    }
+    if (SSL_CTX_check_private_key(ctx.get()) != 1) {
+      ERR_print_errors_fp(stderr);
+      throw std::runtime_error("Failed to setup SSL/TLS for DoH listener, the key from '" + pair.second + "' does not match the certificate from '" + pair.first + "'");
+    }
+    /* store the type of the new key, we might need it later to select the right OCSP stapling response */
+    keyTypes.push_back(libssl_get_last_key_type(ctx));
+  }
+
+  if (!ocspFiles.empty()) {
+    try {
+      ocspResponses = libssl_load_ocsp_responses(ocspFiles, keyTypes);
+
+      SSL_CTX_set_tlsext_status_cb(ctx.get(), &ocsp_stapling_callback);
+      SSL_CTX_set_tlsext_status_arg(ctx.get(), &ocspResponses);
+    }
+    catch(const std::exception& e) {
+      throw std::runtime_error("Unable to load OCSP responses for the SSL/TLS DoH listener: " + std::string(e.what()));
     }
   }
 
@@ -781,7 +811,9 @@ static void setupAcceptContext(DOHAcceptContext& ctx, DOHServerConfig& dsc, bool
   if (setupTLS) {
     auto tlsCtx = getTLSContext(dsc.df->d_certKeyPairs,
                                 dsc.df->d_ciphers,
-                                dsc.df->d_ciphers13);
+                                dsc.df->d_ciphers13,
+                                dsc.df->d_ocspFiles,
+                                ctx.d_ocspResponses);
 
     nativeCtx->ssl_ctx = tlsCtx.release();
   }
@@ -806,7 +838,9 @@ void DOHFrontend::setup()
 
   auto tlsCtx = getTLSContext(d_certKeyPairs,
                               d_ciphers,
-                              d_ciphers13);
+                              d_ciphers13,
+                              d_ocspFiles,
+                              d_dsc->accept_ctx->d_ocspResponses);
 
   auto accept_ctx = d_dsc->accept_ctx->get();
   accept_ctx->ssl_ctx = tlsCtx.release();
