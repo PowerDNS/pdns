@@ -6,3 +6,4 @@ protobuf>=3.0
 pysnmp>=4.3.4
 future>=0.17.1
 pycurl>=7.43.0
+lmdb>=0.95
