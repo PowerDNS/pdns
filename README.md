@@ -180,7 +180,7 @@ The HTML documentation will now be available in `html-docs`.
 
 Solaris Notes
 -------------
-Use a recent gcc. OpenCSW is a good source, as is Solaris 11 IPS.
+Use a recent gcc (and other build tools), possibly from Solaris 11 IPS.
 
 If you encounter problems with the Solaris make, gmake is advised.
 
