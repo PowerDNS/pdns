@@ -47,6 +47,7 @@ public:
   TCPNameserver();
   ~TCPNameserver();
   void go();
+  unsigned int numTCPConnections();
 private:
 
   static void sendPacket(std::shared_ptr<DNSPacket> p, int outsock);
@@ -65,6 +66,7 @@ private:
   static PacketHandler *s_P;
   pthread_t d_tid;
   static Semaphore *d_connectionroom_sem;
+  static unsigned int d_maxTCPConnections;
   static NetmaskGroup d_ng;
   static size_t d_maxTransactionsPerConn;
   static size_t d_maxConnectionsPerClient;
