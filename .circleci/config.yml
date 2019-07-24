@@ -183,14 +183,16 @@ commands:
               libluajit-5.1 \
               libboost-all-dev \
               libcap2 \
+              libcdb1 \
               libcurl4-openssl-dev \
               libfstrm0 \
               libh2o-evloop0.13 \
+              liblmdb0 \
+              libprotobuf17 \
               libre2-5 \
               libssl-dev \
               libsystemd0 \
               libsodium23 \
-              libprotobuf17 \
               protobuf-compiler \
               virtualenv
 
@@ -1028,8 +1030,10 @@ jobs:
             git \
             libboost-all-dev \
             libcap-dev \
+            libcdb-dev \
             libedit-dev \
             libfstrm-dev \
+            liblmdb-dev \
             libluajit-5.1-dev \
             libprotobuf-dev \
             libre2-dev \
@@ -1172,9 +1176,11 @@ jobs:
             git \
             libboost-all-dev \
             libcap-dev \
+            libcdb-dev \
             libedit-dev \
             libfstrm-dev \
             libh2o-evloop-dev \
+            liblmdb-dev \
             libluajit-5.1-dev \
             libprotobuf-dev \
             libre2-dev \
