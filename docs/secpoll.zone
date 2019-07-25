@@ -1,4 +1,5 @@
-@       86400   IN  SOA pdns-public-ns1.powerdns.com. pieter\.lexis.powerdns.com. 2019080901 10800 3600 604800 10800
+@       86400   IN  SOA pdns-public-ns1.powerdns.com. pieter\.lexis.powerdns.com. 2019080902 10800 3600 604800 10800
+@       86400   IN  SOA pdns-public-ns1.powerdns.com. pieter\.lexis.powerdns.com. 2019072901 10800 3600 604800 10800
 @       3600    IN  NS  pdns-public-ns1.powerdns.com.
 @       3600    IN  NS  pdns-public-ns2.powerdns.com.
 @       3600    IN  NS  tmpdns.powerdns.com.
@@ -57,6 +58,7 @@ auth-4.2.0-alpha1.security-status                       60 IN TXT "3 Upgrade now
 auth-4.2.0-beta1.security-status                        60 IN TXT "3 Upgrade now, see https://doc.powerdns.com/authoritative/security-advisories/powerdns-advisory-2019-03.html"
 auth-4.2.0-rc1.security-status                          60 IN TXT "1 OK"
 auth-4.2.0-rc2.security-status                          60 IN TXT "1 OK"
+auth-4.2.0-rc3.security-status                          60 IN TXT "1 OK"
 
 ; Auth Debian
 auth-3.4.1-2.debian.security-status                     60 IN TXT "3 Upgrade now, see https://doc.powerdns.com/3/security/powerdns-advisory-2015-01/ and https://doc.powerdns.com/3/security/powerdns-advisory-2015-02/ and https://doc.powerdns.com/3/security/powerdns-advisory-2016-02/ and https://doc.powerdns.com/3/security/powerdns-advisory-2016-03/ and https://doc.powerdns.com/3/security/powerdns-advisory-2016-04/ and https://doc.powerdns.com/3/security/powerdns-advisory-2016-05/"
