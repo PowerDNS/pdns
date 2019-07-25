@@ -161,7 +161,7 @@ public:
     d_nsock6 = -1;
     d_preventSelfNotification = false;
   }
-  time_t doNotifications();    
+  time_t doNotifications(PacketHandler *P);
   void go();
   
   
@@ -173,7 +173,7 @@ public:
   void notify(const DNSName &domain, const string &ip);
   void mainloop();
   void retrievalLoopThread();
-  void sendNotification(int sock, const DNSName &domain, const ComboAddress& remote, uint16_t id);
+  void sendNotification(int sock, const DNSName &domain, const ComboAddress& remote, uint16_t id, UeberBackend* B);
 
   static void *launchhelper(void *p)
   {
@@ -185,7 +185,7 @@ public:
     static_cast<CommunicatorClass *>(p)->retrievalLoopThread();
     return 0;
   }
-  bool notifyDomain(const DNSName &domain);
+  bool notifyDomain(const DNSName &domain, UeberBackend* B);
 private:
   void loadArgsIntoSet(const char *listname, set<string> &listset);
   void makeNotifySockets();

@@ -1045,38 +1045,39 @@ bool Bind2Backend::getBeforeAndAfterNamesAbsolute(uint32_t id, const DNSName& qn
 void Bind2Backend::lookup(const QType &qtype, const DNSName &qname, DNSPacket *pkt_p, int zoneId )
 {
   d_handle.reset();
-  DNSName domain(qname);
 
   static bool mustlog=::arg().mustDo("query-logging");
-  if(mustlog) 
-    g_log<<Logger::Warning<<"Lookup for '"<<qtype.getName()<<"' of '"<<domain<<"' within zoneID "<<zoneId<<endl;
-  bool found=false;
+
+  bool found;
+  DNSName domain;
   BB2DomainInfo bbd;
 
-  do {
-    found = safeGetBBDomainInfo(domain, &bbd);
-  } while ((!found || (zoneId != (int)bbd.d_id && zoneId != -1)) && domain.chopOff());
+  if(mustlog)
+    g_log<<Logger::Warning<<"Lookup for '"<<qtype.getName()<<"' of '"<<qname<<"' within zoneID "<<zoneId<<endl;
+
+  if (zoneId >= 0) {
+    if ((found = (safeGetBBDomainInfo(zoneId, &bbd) && qname.isPartOf(bbd.d_name)))) {
+      domain = bbd.d_name;
+    }
+  } else {
+    domain = qname;
+    do {
+      found = safeGetBBDomainInfo(domain, &bbd);
+    } while (!found && qtype != QType::SOA && domain.chopOff());
+  }
 
   if(!found) {
     if(mustlog)
-      g_log<<Logger::Warning<<"Found no authoritative zone for "<<qname<<endl;
+      g_log<<Logger::Warning<<"Found no authoritative zone for '"<<qname<<"' and/or id "<<bbd.d_id<<endl;
     d_handle.d_list=false;
     return;
   }
 
   if(mustlog)
     g_log<<Logger::Warning<<"Found a zone '"<<domain<<"' (with id " << bbd.d_id<<") that might contain data "<<endl;
-    
-  d_handle.id=bbd.d_id;
-  
-  DLOG(g_log<<"Bind2Backend constructing handle for search for "<<qtype.getName()<<" for "<<
-       qname<<endl);
-  
-  if(domain.empty())
-    d_handle.qname=qname;
-  else if(qname.isPartOf(domain))
-    d_handle.qname=qname.makeRelative(domain); // strip domain name
 
+  d_handle.id=bbd.d_id;
+  d_handle.qname=qname.makeRelative(domain); // strip domain name
   d_handle.qtype=qtype;
   d_handle.domain=domain;
 

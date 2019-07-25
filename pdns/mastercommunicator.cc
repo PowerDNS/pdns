@@ -52,7 +52,7 @@ void CommunicatorClass::queueNotifyDomain(const DomainInfo& di, UeberBackend* B)
 
   try {
   if (d_onlyNotify.size()) {
-    B->lookup(QType(QType::NS), di.zone);
+    B->lookup(QType(QType::NS), di.zone, nullptr, di.id);
     while(B->get(rr))
       nsset.insert(getRR<NSRecordContent>(rr.dr)->getNS().toString());
 
@@ -112,15 +112,14 @@ void CommunicatorClass::queueNotifyDomain(const DomainInfo& di, UeberBackend* B)
 }
 
 
-bool CommunicatorClass::notifyDomain(const DNSName &domain)
+bool CommunicatorClass::notifyDomain(const DNSName &domain, UeberBackend* B)
 {
   DomainInfo di;
-  UeberBackend B;
-  if(!B.getDomainInfo(domain, di)) {
+  if(!B->getDomainInfo(domain, di)) {
     g_log<<Logger::Error<<"No such domain '"<<domain<<"' in our database"<<endl;
     return false;
   }
-  queueNotifyDomain(di, &B);
+  queueNotifyDomain(di, B);
   // call backend and tell them we sent out the notification - even though that is premature    
   di.backend->setNotified(di.id, di.serial);
 
@@ -166,8 +165,9 @@ void CommunicatorClass::masterUpdateCheck(PacketHandler *P)
   }
 }
 
-time_t CommunicatorClass::doNotifications()
+time_t CommunicatorClass::doNotifications(PacketHandler *P)
 {
+  UeberBackend *B=P->getBackend();
   ComboAddress from;
   Utility::socklen_t fromlen;
   char buffer[1500];
@@ -204,7 +204,7 @@ time_t CommunicatorClass::doNotifications()
   // send out possible new notifications
   DNSName domain;
   string ip;
-  uint16_t id;
+  uint16_t id=0;
 
   bool purged;
   while(d_nq.getOne(domain, ip, &id, purged)) {
@@ -220,7 +220,7 @@ time_t CommunicatorClass::doNotifications()
         if(d_preventSelfNotification && AddressIsUs(remote))
           continue;
 
-        sendNotification(remote.sin4.sin_family == AF_INET ? d_nsock4 : d_nsock6, domain, remote, id);
+        sendNotification(remote.sin4.sin_family == AF_INET ? d_nsock4 : d_nsock6, domain, remote, id, B);
         drillHole(domain, ip);
       }
       catch(ResolverException &re) {
@@ -234,16 +234,15 @@ time_t CommunicatorClass::doNotifications()
   return d_nq.earliest();
 }
 
-void CommunicatorClass::sendNotification(int sock, const DNSName& domain, const ComboAddress& remote, uint16_t id)
+void CommunicatorClass::sendNotification(int sock, const DNSName& domain, const ComboAddress& remote, uint16_t id, UeberBackend *B)
 {
-  UeberBackend B;
   vector<string> meta;
   DNSName tsigkeyname;
   DNSName tsigalgorithm;
   string tsigsecret64;
   string tsigsecret;
 
-  if (::arg().mustDo("send-signed-notify") && B.getDomainMetadata(domain, "TSIG-ALLOW-AXFR", meta) && meta.size() > 0) {
+  if (::arg().mustDo("send-signed-notify") && B->getDomainMetadata(domain, "TSIG-ALLOW-AXFR", meta) && meta.size() > 0) {
     tsigkeyname = DNSName(meta[0]);
   }
 
@@ -253,7 +252,7 @@ void CommunicatorClass::sendNotification(int sock, const DNSName& domain, const 
   pw.getHeader()->aa = true; 
 
   if (tsigkeyname.empty() == false) {
-    if (!B.getTSIGKey(tsigkeyname, &tsigalgorithm, &tsigsecret64)) {
+    if (!B->getTSIGKey(tsigkeyname, &tsigalgorithm, &tsigsecret64)) {
       g_log<<Logger::Error<<"TSIG key '"<<tsigkeyname<<"' for domain '"<<domain<<"' not found"<<endl;
       return;
     }

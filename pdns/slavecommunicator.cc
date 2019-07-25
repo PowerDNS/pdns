@@ -600,7 +600,7 @@ void CommunicatorClass::suck(const DNSName &domain, const ComboAddress& remote)
 
     g_log<<Logger::Error<<"AXFR done for '"<<domain<<"', zone committed with serial number "<<zs.soa_serial<<endl;
     if(::arg().mustDo("slave-renotify"))
-      notifyDomain(domain);
+      notifyDomain(domain, &B);
   }
   catch(DBException &re) {
     g_log<<Logger::Error<<"Unable to feed record during incoming AXFR of '" << domain<<"': "<<re.reason<<endl;
@@ -947,7 +947,7 @@ void CommunicatorClass::slaveRefresh(PacketHandler *P)
     else if(hasSOA && theirserial == ourserial) {
       uint32_t maxExpire=0, maxInception=0;
       if(dk.isPresigned(di.zone)) {
-        B->lookup(QType(QType::RRSIG), di.zone); // can't use DK before we are done with this lookup!
+        B->lookup(QType(QType::RRSIG), di.zone, nullptr, di.id); // can't use DK before we are done with this lookup!
         DNSZoneRecord zr;
         while(B->get(zr)) {
           auto rrsig = getRR<RRSIGRecordContent>(zr.dr);
