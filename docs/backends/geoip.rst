@@ -11,7 +11,7 @@ GeoIP backend
 * Module name: geoip
 * Launch name: ``geoip``
 
-This backend allows visitors to be sent to a server closer to them, with
+This backend (which is a.k.a. the YAML backend) allows visitors to be sent to a server closer to them, with
 no appreciable delay, as would otherwise be incurred with a protocol
 level redirect. Additionally, the Geo Backend can be used to provide
 service over several clusters, any of which can be taken out of use
@@ -25,13 +25,13 @@ Prerequisites
 
 To compile the backend, you need libyaml-cpp 0.5 or later and libgeoip.
 
-You must have geoip database available. As of writing, on debian/ubuntu
-systems, you can use apt-get install geoip-database to get one, and the
+You must have a geoip database available. As of this writing, on debian/ubuntu
+systems, you can use ``apt-get install geoip-database`` to get one, and the
 backend is configured to use the location where these files are
 installed as source. On other systems you might need to alter the
-database-file and database-file6 attribute. If you don't need ipv4 or
+``database-file`` and ``database-file6`` attribute. If you don't need ipv4 or
 ipv6 support, set the respective setting to "". Leaving it unset leaves
-it pointing to default location, preventing the software from starting
+it pointing to a default location, preventing the software from starting
 up.
 
 Since v4.2.0 libgeoip is optional. You can use also libmaxminddb, but
@@ -42,8 +42,8 @@ Configuration Parameters
 ------------------------
 
 These are the configuration file parameters that are available for the
-GeoIP backend. geoip-zones-files is the only thing you must set, if the
-defaults suite you.
+GeoIP backend. ``geoip-zones-files`` is the only thing you must set, if the
+defaults suit you.
 
 .. _setting-geoip-database-files:
 
@@ -62,7 +62,7 @@ to generate your own.
 
 For MMDB files, see `MaxMind's getting started guide <https://github.com/maxmind/getting-started-with-mmdb>`__.
 
-Since v4.2.0, database type is determined by file suffix, or you can use new syntax.
+Since v4.2.0, database type is determined by file suffix, or you can use the new syntax.
 New syntax is ``[driver:]path[;options]``.
 
 Drivers and options
@@ -109,7 +109,7 @@ flags and active/disabled state encoded in the key filenames.
 Zonefile format
 ---------------
 
-Zone configuration file uses YAML syntax. Here is simple example. Note
+Zone configuration files use YAML syntax. Here is simple example. Note
 that the ``‐`` before certain keys is part of the syntax.
 
 .. code-block:: yaml
