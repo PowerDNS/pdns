@@ -299,7 +299,7 @@ void doConsole()
           }
         }
         else 
-          cout << g_outputBuffer;
+          cout << g_outputBuffer << std::flush;
         if(!getLuaNoSideEffect())
           feedConfigDelta(line);
       }
