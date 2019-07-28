@@ -11,6 +11,7 @@ dnsupdate-refused=0
 incoming-notifications=0
 key-cache-size=0
 meta-cache-size=3
+open-tcp-connections=0
 overload-drops=0
 packetcache-size=4
 qsize-q=0
