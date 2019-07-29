@@ -101,7 +101,7 @@ CDBKVStore::CDBKVStore(const std::string& fname, time_t refreshDelay): d_fname(f
 
 bool CDBKVStore::reload(const struct stat& st)
 {
-  auto newCDB = make_unique<CDB>(d_fname);
+  auto newCDB = std::unique_ptr<CDB>(new CDB(d_fname));
   {
     WriteLock wl(&d_lock);
     d_cdb = std::move(newCDB);
