@@ -957,6 +957,20 @@ The following actions exist.
   :param string body: The body of the HTTP response, or a URL if the status code is a redirect (3xx).
   :param string contentType: The HTTP Content-Type header to return for a 200 response, ignored otherwise. Default is ''application/dns-message''.
 
+.. function:: KeyValueStoreLookupAction(kvs, lookupKey, destinationTag)
+
+  .. versionadded:: 1.5.0
+
+  Does a lookup into the key value store referenced by 'kvs' using the key returned by 'lookupKey',
+  and storing the result if any into the tag named 'destinationTag'.
+  The store can be a CDB (:func:`newCDBKVStore`) or a LMDB database (:func:`newLMDBKVStore`).
+  The key can be based on the qname (:func:`KeyValueLookupKeyQName` and :func:`KeyValueLookupKeySuffix`),
+  source IP (:func:`KeyValueLookupKeySourceIP`) or the value of an existing tag (:func:`KeyValueLookupKeyTag`).
+
+  :param KeyValueStore kvs: The key value store to query
+  :param KeyValueLookupKey lookupKey: The key to use for the lookup
+  :param string destinationTag: The name of the tag to store the result into
+
 .. function:: LogAction([filename[, binary[, append[, buffered]]]])
 
   Log a line for each query, to the specified ``file`` if any, to the console (require verbose) otherwise.
