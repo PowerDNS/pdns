@@ -541,23 +541,23 @@ struct ClientState;
 
 struct IDState
 {
-  IDState() : origFD(-1), sentTime(true), delayMsec(0), tempFailureTTL(boost::none) { origDest.sin4.sin_family = 0;}
+  IDState(): sentTime(true), delayMsec(0), tempFailureTTL(boost::none) { origDest.sin4.sin_family = 0;}
   IDState(const IDState& orig): origRemote(orig.origRemote), origDest(orig.origDest), age(orig.age)
   {
-    origFD.store(orig.origFD.load());
+    usageIndicator.store(orig.usageIndicator.load());
+    origFD = orig.origFD;
     origID = orig.origID;
     delayMsec = orig.delayMsec;
     tempFailureTTL = orig.tempFailureTTL;
   }
 
-  /* We use this value to detect whether this state is in use, in addition to
-     its use to send the response over UDP.
+  /* We use this value to detect whether this state is in use.
      For performance reasons we don't want to use a lock here, but that means
      we need to be very careful when modifying this value. Modifications happen
      from:
      - one of the UDP or DoH 'client' threads receiving a query, selecting a backend
        then picking one of the states associated to this backend (via the idOffset).
-       Most of the time this state should not be in use and origFD is -1, but we
+       Most of the time this state should not be in use and usageIndicator is -1, but we
        might not yet have received a response for the query previously associated to this
        state, meaning that we will 'reuse' this state and erase the existing state.
        If we ever receive a response for this state, it will be discarded. This is
@@ -570,9 +570,22 @@ struct IDState
        the corresponding state and sending the response to the client ;
      - the 'healthcheck' thread scanning the states to actively discover timeouts,
        mostly to keep some counters like the 'outstanding' one sane.
+     We previously based that logic on the origFD (FD on which the query was received,
+     and therefore from where the response should be sent) but this suffered from an
+     ABA problem since it was quite likely that a UDP 'client thread' would reset it to the
+     same value since we only have so much incoming sockets:
+     - 1/ 'client' thread gets a query and set origFD to its FD, say 5 ;
+     - 2/ 'receiver' thread gets a response, read the value of origFD to 5, check that the qname,
+       qtype and qclass match
+     - 3/ during that time the 'client' thread reuses the state, setting again origFD to 5 ;
+     - 4/ the 'receiver' thread uses compare_exchange_strong() to only replace the value if it's still
+       5, except it's not the same 5 anymore and it overrides a fresh state.
+     We now use a 32-bit unsigned counter instead, which is incremented every time the state is set,
+     wrapping around if necessary, and we set an atomic signed 64-bit value, so that we still have -1
+     when the state is unused and the value of our counter otherwise.
   */
-  std::atomic<int> origFD;  // set to <0 to indicate this state is empty   // 4
-
+  std::atomic<int64_t> usageIndicator{-1};  // set to <0 to indicate this state is empty   // 4
+  std::atomic<uint32_t> generation{0}; // increased every time a state is used, to be able to detect an ABA issue
   ComboAddress origRemote;                                    // 28
   ComboAddress origDest;                                      // 28
   StopWatch sentTime;                                         // 16
@@ -593,6 +606,7 @@ struct IDState
   uint16_t qclass;                                            // 2
   uint16_t origID;                                            // 2
   uint16_t origFlags;                                         // 2
+  int origFD{-1};
   int delayMsec;
   boost::optional<uint32_t> tempFailureTTL;
   bool ednsAdded{false};

@@ -238,16 +238,17 @@ static int processDOHQuery(DOHUnit* du)
     IDState* ids = &ss->idStates[idOffset];
     ids->age = 0;
     DOHUnit* oldDU = nullptr;
-    if (ids->origFD != -1) {
+    if (ids->usageIndicator != -1) {
       /* that means that the state was in use, possibly with an allocated
          DOHUnit that we will need to handle, but we can't touch it before
          confirming that we now own this state */
       oldDU = ids->du;
     }
 
-    /* we atomically replace the value with 0, we now own this state */
-    int oldFD = ids->origFD.exchange(0);
-    if (oldFD < 0) {
+    /* we atomically replace the value, we now own this state */
+    int64_t generation = ids->generation++;
+    int64_t oldUsage = ids->usageIndicator.exchange(generation);
+    if (oldUsage < 0) {
       /* the value was -1, meaning that the state was not in use.
          we reset 'oldDU' because it might have still been in use when we read it. */
       oldDU = nullptr;
@@ -262,6 +263,7 @@ static int processDOHQuery(DOHUnit* du)
       handleDOHTimeout(oldDU);
     }
 
+    ids->origFD = 0;
     ids->du = du;
 
     ids->cs = &cs;
@@ -293,7 +295,7 @@ static int processDOHQuery(DOHUnit* du)
       /* we are about to handle the error, make sure that
          this pointer is not accessed when the state is cleaned,
          but first check that it still belongs to us */
-      if (ids->origFD == 0 && ids->origFD.exchange(-1) == 0) {
+      if (ids->usageIndicator.compare_exchange_strong(generation, -1)) {
         ids->du = nullptr;
         --ss->outstanding;
       }
