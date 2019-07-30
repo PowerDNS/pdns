@@ -1,6 +1,15 @@
 Changelogs for 4.0.x
 ====================
 
+PowerDNS Authoritative Server 4.0.9
+-----------------------------------
+
+Released 1st of August 2019
+
+This release contains the updated PostgreSQL schema for PowerDNS Security Advisory :doc:`2019-06 <../security-advisories/powerdns-advisory-2019-06>` (CVE-2019-10203).
+
+Upgrading is not enough - you need to manually apply the schema change: ``ALTER TABLE domains ALTER notified_serial TYPE bigint USING CASE WHEN notified_serial >= 0 THEN notified_serial::bigint END;``
+
 PowerDNS Authoritative Server 4.0.8
 -----------------------------------
 
