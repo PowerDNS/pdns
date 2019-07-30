@@ -26,8 +26,8 @@ For example, to do a suffix-based lookup into a LMDB KVS database, the following
 For a query whose qname is "sub.domain.powerdns.com.", and for which only the "\8powerdns\3com\0" key exists in the database,
 this would result in the following lookups:
 
- * \3sub\5domain\8powerdns\3com\0
- * \5domain\8powerdns\3com\0
+ * \3sub\6domain\8powerdns\3com\0
+ * \6domain\8powerdns\3com\0
  * \8powerdns\3com\0
 
 Then a match is found for the last key, and the corresponding value is stored into the 'kvs-suffix-result' tag. This tag can now be used in subsequent rules to take an action based on the result of the lookup.
@@ -81,8 +81,8 @@ If the value found in the LMDB database for the key '\8powerdns\3com\0' was 'thi
   Return a new KeyValueLookupKey object that, when passed to :func:`KeyValueStoreLookupAction`, will return a vector of keys based on the labels of the qname in DNS wire format.
   For example if the qname is sub.domain.powerdns.com. the following keys will be returned:
 
-   * \3sub\5domain\8powerdns\3com\0
-   * \5domain\8powerdns\3com\0
+   * \3sub\6domain\8powerdns\3com\0
+   * \6domain\8powerdns\3com\0
    * \8powerdns\3com\0
    * \3com\0
    * \0
