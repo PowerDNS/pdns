@@ -2,6 +2,20 @@ Changelogs for 4.1.x
 ====================
 
 .. changelog::
+  :version: 4.1.11
+  :released: August 1st 2019
+
+  This release contains the updated PostgreSQL schema for PowerDNS Security Advisory :doc:`2019-06 <../security-advisories/powerdns-advisory-2019-06>` (CVE-2019-10203).
+
+  Upgrading is not enough - you need to manually apply the schema change: ``ALTER TABLE domains ALTER notified_serial TYPE bigint USING CASE WHEN notified_serial >= 0 THEN notified_serial::bigint END;``
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 8144
+
+    Update PostgreSQL schema for 2019-06.
+
+.. changelog::
   :version: 4.1.10
   :released: June 21st 2019
 
