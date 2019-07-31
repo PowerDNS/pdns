@@ -78,7 +78,7 @@ void CoProcess::launch(const char **argv, int timeout, int infd, int outfd)
     if(!(d_fp=fdopen(d_fd2[0],"r")))
       throw PDNSException("Unable to associate a file pointer with pipe: "+stringerror());
     if( d_timeout)
-      setbuf(d_fp,0); // no buffering please, confuses select
+      setbuf(d_fp,0); // no buffering please, confuses poll
   }
   else if(!d_pid) { // child
     signal(SIGCHLD, SIG_DFL); // silence a warning from perl
@@ -165,14 +165,7 @@ void CoProcess::receive(string &receive)
   receive.clear();
     
   if(d_timeout) {
-    struct timeval tv;
-    tv.tv_sec=d_timeout/1000;
-    tv.tv_usec=(d_timeout % 1000) * 1000;
-
-    fd_set rds;
-    FD_ZERO(&rds);
-    FD_SET(fileno(d_fp),&rds);
-    int ret=select(fileno(d_fp)+1,&rds,0,0,&tv);
+    int ret = waitForData(fileno(d_fp), 0, d_timeout * 1000);
     if(ret<0)
       throw PDNSException("Error waiting on data from coprocess: "+stringerror());
     if(!ret)
