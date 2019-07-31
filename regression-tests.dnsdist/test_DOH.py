@@ -5,7 +5,7 @@ import clientsubnetoption
 from dnsdisttests import DNSDistTest
 
 import pycurl
-from io import StringIO
+from io import BytesIO
 #from hyper import HTTP20Connection
 #from hyper.ssl_compat import SSLContext, PROTOCOL_TLSv1_2
 
@@ -33,7 +33,7 @@ class DNSDistDOHTest(DNSDistTest):
     def sendDOHQuery(cls, port, servername, baseurl, query, response=None, timeout=2.0, caFile=None, useQueue=True, rawQuery=False, customHeaders=[]):
         url = cls.getDOHGetURL(baseurl, query, rawQuery)
         conn = cls.openDOHConnection(port, caFile=caFile, timeout=timeout)
-        response_headers = StringIO()
+        response_headers = BytesIO()
         #conn.setopt(pycurl.VERBOSE, True)
         conn.setopt(pycurl.URL, url)
         conn.setopt(pycurl.RESOLVE, ["%s:%d:127.0.0.1" % (servername, port)])
@@ -170,8 +170,8 @@ class TestDOH(DNSDistDOHTest):
         self.assertTrue(receivedResponse)
         receivedQuery.id = expectedQuery.id
         self.assertEquals(expectedQuery, receivedQuery)
-        self.assertTrue((self._customResponseHeader1) in self._response_headers)
-        self.assertTrue((self._customResponseHeader2) in self._response_headers)
+        self.assertTrue((self._customResponseHeader1) in self._response_headers.decode())
+        self.assertTrue((self._customResponseHeader2) in self._response_headers.decode())
         self.checkQueryEDNSWithoutECS(expectedQuery, receivedQuery)
         self.assertEquals(response, receivedResponse)
 
