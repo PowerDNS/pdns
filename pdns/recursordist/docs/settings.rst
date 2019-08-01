@@ -818,7 +818,7 @@ Path to a lua file to manipulate the Recursor's answers. See :doc:`lua-scripting
 
 ``lua-maintenance-interval``
 ----------------------------
-.. versionadded:: 4.1.4
+.. versionadded:: 4.2.0
 
 -  Integer
 -  Default: 1

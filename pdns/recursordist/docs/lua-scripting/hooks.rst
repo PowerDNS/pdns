@@ -323,8 +323,8 @@ For example, to send a custom SNMP trap containing the qname from the
 
 Maintenance callback
 --------------------
-Starting with version 4.1.4 of the recursor, it is possible to define a `maintenance()` callback function that will be called periodically.
-This function expects no argument and doesn't return any value
+Starting with version 4.2.0 of the recursor, it is possible to define a `maintenance()` callback function that will be called periodically.
+This function expects no argument and doesn't return any value.
 
 .. code-block:: Lua
 
