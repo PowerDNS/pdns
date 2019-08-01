@@ -948,6 +948,15 @@ The following actions exist.
 
   :param int rcode: The extended RCODE to respond with.
 
+.. function:: HTTPStatusAction(status, reason, body)
+  .. versionadded:: 1.4.0
+
+  Return an HTTP response with a status code of ''status'' and a reason of ''reason''. For HTTP redirects, ''body'' should be the redirect URL.
+
+  :param int status: The HTTP status code to return.
+  :param str reason: The HTTP reason.
+  :param str body: the body of the HTTP response, or an URL if the status code is a redirect (3xx).
+
 .. function:: LogAction([filename[, binary[, append[, buffered]]]])
 
   Log a line for each query, to the specified ``file`` if any, to the console (require verbose) otherwise.

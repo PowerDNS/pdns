@@ -133,7 +133,6 @@ void handleDOHTimeout(DOHUnit* oldDU)
   }
 
 /* we are about to erase an existing DU */
-  oldDU->error = true;
   oldDU->status_code = 502;
 
   if (send(oldDU->rsock, &oldDU, sizeof(oldDU), 0) != sizeof(oldDU)) {
@@ -612,6 +611,13 @@ string HTTPPathRegexRule::toString() const
   return d_visual;
 }
 
+void DOHSetHTTPResponse(DOHUnit& du, uint16_t statusCode, const std::string& reason, const std::string& body)
+{
+  du.status_code = statusCode;
+  du.reason = reason;
+  du.body = body;
+}
+
 void dnsdistclient(int qsock, int rsock)
 {
   setThreadName("dnsdist/doh-cli");
@@ -646,7 +652,7 @@ void dnsdistclient(int qsock, int rsock)
       }
 
       if(processDOHQuery(du) < 0) {
-        du->error = true; // turns our drop into a 500
+        du->status_code = 500;
         if(send(du->rsock, &du, sizeof(du), 0) != sizeof(du))
           delete du;     // XXX but now what - will h2o time this out for us?
       }
@@ -682,7 +688,7 @@ static void on_dnsdist(h2o_socket_t *listener, const char *err)
   }
 
   *du->self = nullptr; // so we don't clean up again in on_generator_dispose
-  if (!du->error) {
+  if (du->status_code == 200) {
     ++dsc->df->d_validresponses;
     du->req->res.status = 200;
     du->req->res.reason = "OK";
@@ -695,21 +701,26 @@ static void on_dnsdist(h2o_socket_t *listener, const char *err)
     du->req->res.content_length = du->response.size();
     h2o_send_inline(du->req, du->response.c_str(), du->response.size());
   }
+  else if (du->status_code >= 300 && du->status_code < 400) {
+    /* in that case the body is actually a URL */
+    h2o_send_redirect(du->req, du->status_code, du->reason.c_str(), du->body.c_str(), du->body.size());
+    ++dsc->df->d_redirectresponses;
+  }
   else {
     switch(du->status_code) {
     case 400:
-      h2o_send_error_400(du->req, "Bad Request", "invalid DNS query", 0);
+      h2o_send_error_400(du->req, du->reason.empty() ? "Bad Request" : du->reason.c_str(), du->body.empty() ? "invalid DNS query" : du->body.c_str(), 0);
       break;
     case 403:
-      h2o_send_error_403(du->req, "Forbidden", "dns query not allowed", 0);
+      h2o_send_error_403(du->req, du->reason.empty() ? "Forbidden" : du->reason.c_str(), du->body.empty() ? "dns query not allowed" : du->body.c_str(), 0);
       break;
     case 502:
-      h2o_send_error_502(du->req, "Bad Gateway", "no downstream server available", 0);
+      h2o_send_error_502(du->req, du->reason.empty() ? "Bad Gateway" : du->reason.c_str(), du->body.empty() ? "no downstream server available" : du->body.c_str(), 0);
       break;
     case 500:
       /* fall-through */
     default:
-      h2o_send_error_500(du->req, "Internal Server Error", "Internal Server Error", 0);
+      h2o_send_error_500(du->req, du->reason.empty() ? "Internal Server Error" : du->reason.c_str(), du->body.empty() ? "Internal Server Error" : du->body.c_str(), 0);
       break;
     }
 

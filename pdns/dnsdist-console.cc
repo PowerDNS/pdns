@@ -410,6 +410,7 @@ const std::vector<ConsoleKeyword> g_consoleKeywords{
   { "HTTPHeaderRule", true, "name, regex", "matches DoH queries with a HTTP header 'name' whose content matches the regular expression 'regex'"},
   { "HTTPPathRegexRule", true, "regex", "matches DoH queries whose HTTP path matches 'regex'"},
   { "HTTPPathRule", true, "path", "matches DoH queries whose HTTP path is an exact match to 'path'"},
+  { "HTTPStatusAction", true, "status, reason, body", "return an HTTP response"},
   { "inClientStartup", true, "", "returns true during console client parsing of configuration" },
   { "includeDirectory", true, "path", "nclude configuration files from `path`" },
   { "grepq", true, "Netmask|DNS Name|100ms|{\"::1\", \"powerdns.com\", \"100ms\"} [, n]", "shows the last n queries and responses matching the specified client address or range (Netmask), or the specified DNS Name, or slower than 100ms" },

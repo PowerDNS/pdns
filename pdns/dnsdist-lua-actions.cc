@@ -1076,6 +1076,37 @@ private:
   std::shared_ptr<DNSAction> d_action;
 };
 
+
+#ifdef HAVE_DNS_OVER_HTTPS
+class HTTPStatusAction: public DNSAction
+{
+public:
+  HTTPStatusAction(int code, const std::string& reason, const std::string& body): d_reason(reason), d_body(body), d_code(code)
+  {
+  }
+
+  DNSAction::Action operator()(DNSQuestion* dq, std::string* ruleresult) const override
+  {
+    if (!dq->du) {
+      return Action::None;
+    }
+
+    DOHSetHTTPResponse(*dq->du, d_code, d_reason, d_body);
+    dq->dh->qr = true; // for good measure
+    return Action::HeaderModify;
+  }
+
+  std::string toString() const override
+  {
+    return "return an HTTP status of " + std::to_string(d_code);
+  }
+private:
+  std::string d_reason;
+  std::string d_body;
+  int d_code;
+};
+#endif /* HAVE_DNS_OVER_HTTPS */
+
 template<typename T, typename ActionT>
 static void addAction(GlobalStateHolder<vector<T> > *someRulActions, luadnsrule_t var, std::shared_ptr<ActionT> action, boost::optional<luaruleparams_t> params) {
   setLuaSideEffect();
@@ -1379,4 +1410,10 @@ void setupLuaActions()
   g_lua.writeFunction("ContinueAction", [](std::shared_ptr<DNSAction> action) {
       return std::shared_ptr<DNSAction>(new ContinueAction(action));
     });
+
+#ifdef HAVE_DNS_OVER_HTTPS
+  g_lua.writeFunction("HTTPStatusAction", [](uint16_t status, std::string reason, std::string body) {
+      return std::shared_ptr<DNSAction>(new HTTPStatusAction(status, reason, body));
+    });
+#endif /* HAVE_DNS_OVER_HTTPS */
 }
