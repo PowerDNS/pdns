@@ -5,7 +5,7 @@ import clientsubnetoption
 from dnsdisttests import DNSDistTest
 
 import pycurl
-
+from io import BytesIO
 #from hyper import HTTP20Connection
 #from hyper.ssl_compat import SSLContext, PROTOCOL_TLSv1_2
 
@@ -33,12 +33,14 @@ class DNSDistDOHTest(DNSDistTest):
     def sendDOHQuery(cls, port, servername, baseurl, query, response=None, timeout=2.0, caFile=None, useQueue=True, rawQuery=False, customHeaders=[]):
         url = cls.getDOHGetURL(baseurl, query, rawQuery)
         conn = cls.openDOHConnection(port, caFile=caFile, timeout=timeout)
+        response_headers = BytesIO()
         #conn.setopt(pycurl.VERBOSE, True)
         conn.setopt(pycurl.URL, url)
         conn.setopt(pycurl.RESOLVE, ["%s:%d:127.0.0.1" % (servername, port)])
         conn.setopt(pycurl.SSL_VERIFYPEER, 1)
         conn.setopt(pycurl.SSL_VERIFYHOST, 2)
         conn.setopt(pycurl.HTTPHEADER, customHeaders)
+        conn.setopt(pycurl.HEADERFUNCTION, response_headers.write)
         if caFile:
             conn.setopt(pycurl.CAINFO, caFile)
 
@@ -47,6 +49,7 @@ class DNSDistDOHTest(DNSDistTest):
 
         receivedQuery = None
         message = None
+        cls._response_headers = ''
         data = conn.perform_rb()
         rcode = conn.getinfo(pycurl.RESPONSE_CODE)
         if rcode == 200:
@@ -55,6 +58,7 @@ class DNSDistDOHTest(DNSDistTest):
         if useQueue and not cls._fromResponderQueue.empty():
             receivedQuery = cls._fromResponderQueue.get(True, timeout)
 
+        cls._response_headers = response_headers.getvalue()
         return (receivedQuery, message)
 
     @classmethod
@@ -128,11 +132,13 @@ class TestDOH(DNSDistDOHTest):
     _serverName = 'tls.tests.dnsdist.org'
     _caCert = 'ca.pem'
     _dohServerPort = 8443
-    _serverName = 'tls.tests.dnsdist.org'
+    _customResponseHeader1 = 'access-control-allow-origin: *'
+    _customResponseHeader2 = 'user-agent: derp'
     _dohBaseURL = ("https://%s:%d/" % (_serverName, _dohServerPort))
     _config_template = """
     newServer{address="127.0.0.1:%s"}
-    addDOHLocal("127.0.0.1:%s", "%s", "%s", { "/" })
+
+    addDOHLocal("127.0.0.1:%s", "%s", "%s", { "/" }, {customResponseHeaders={["access-control-allow-origin"]="*",["user-agent"]="derp"}})
 
     addAction("drop.doh.tests.powerdns.com.", DropAction())
     addAction("refused.doh.tests.powerdns.com.", RCodeAction(DNSRCode.REFUSED))
@@ -164,6 +170,8 @@ class TestDOH(DNSDistDOHTest):
         self.assertTrue(receivedResponse)
         receivedQuery.id = expectedQuery.id
         self.assertEquals(expectedQuery, receivedQuery)
+        self.assertTrue((self._customResponseHeader1) in self._response_headers.decode())
+        self.assertTrue((self._customResponseHeader2) in self._response_headers.decode())
         self.checkQueryEDNSWithoutECS(expectedQuery, receivedQuery)
         self.assertEquals(response, receivedResponse)
 

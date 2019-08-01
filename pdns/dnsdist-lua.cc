@@ -87,7 +87,7 @@ void resetLuaSideEffect()
   g_noLuaSideEffect = boost::logic::indeterminate;
 }
 
-typedef std::unordered_map<std::string, boost::variant<bool, int, std::string, std::vector<std::pair<int,int> > > > localbind_t;
+typedef std::unordered_map<std::string, boost::variant<bool, int, std::string, std::vector<std::pair<int,int> >, std::map<std::string,std::string> > > localbind_t;
 
 static void parseLocalBindVars(boost::optional<localbind_t> vars, bool& reusePort, int& tcpFastOpenQueueSize, std::string& interface, std::set<int>& cpus)
 {
@@ -1725,6 +1725,12 @@ void setupLuaConfig(bool client)
       }
       if (vars->count("serverTokens")) {
         frontend->d_serverTokens = boost::get<const string>((*vars)["serverTokens"]);
+      }
+      if (vars->count("customResponseHeaders")) {
+        for (auto const& headerMap : boost::get<std::map<std::string,std::string>>((*vars)["customResponseHeaders"])) {
+          std::pair<std::string,std::string> headerResponse = std::make_pair(headerMap.first, headerMap.second);
+          frontend->d_customResponseHeaders.push_back(headerResponse);
+        }
       }
     }
     g_dohlocals.push_back(frontend);
