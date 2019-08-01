@@ -542,6 +542,7 @@ HTTPHeaderRule::HTTPHeaderRule(const std::string& header, const std::string& reg
   d_visual = "http[" + header+ "] ~ " + regex;
 
 }
+
 bool HTTPHeaderRule::matches(const DNSQuestion* dq) const
 {
   if(!dq->du) {
@@ -585,6 +586,30 @@ bool HTTPPathRule::matches(const DNSQuestion* dq) const
 string HTTPPathRule::toString() const
 {
   return "url path == " + d_path;
+}
+
+HTTPPathRegexRule::HTTPPathRegexRule(const std::string& regex): d_regex(regex), d_visual("http path ~ " + regex)
+{
+}
+
+bool HTTPPathRegexRule::matches(const DNSQuestion* dq) const
+{
+  if(!dq->du) {
+    return false;
+  }
+
+  if(dq->du->req->query_at == SIZE_MAX) {
+    return d_regex.match(std::string(dq->du->req->path.base, dq->du->req->path.len));
+  }
+  else {
+    cerr<<std::string(dq->du->req->path.base, dq->du->req->path.len - dq->du->req->query_at)<<endl;
+    return d_regex.match(std::string(dq->du->req->path.base, dq->du->req->path.len - dq->du->req->query_at));
+  }
+}
+
+string HTTPPathRegexRule::toString() const
+{
+  return d_visual;
 }
 
 void dnsdistclient(int qsock, int rsock)

@@ -583,6 +583,13 @@ These ``DNSRule``\ s be one of the following items:
   :param str name: The case-insensitive name of the HTTP header to match on
   :param str regex: A regular expression to match the content of the specified header
 
+.. function:: HTTPPathRegexRule(regex)
+  .. versionadded:: 1.4.0
+
+  Matches DNS over HTTPS queries with a HTTP path matching the regular expression supplied in ``regex``. For example, if the query has been sent to the https://192.0.2.1:443/PowerDNS?dns=... URL, the path would be '/PowerDNS'.
+
+  :param str regex: The regex to match on
+
 .. function:: HTTPPathRule(path)
   .. versionadded:: 1.4.0
 
