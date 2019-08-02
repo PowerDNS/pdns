@@ -30,7 +30,7 @@ class DNSDistDOHTest(DNSDistTest):
         return conn
 
     @classmethod
-    def sendDOHQuery(cls, port, servername, baseurl, query, response=None, timeout=2.0, caFile=None, useQueue=True, rawQuery=False, customHeaders=[]):
+    def sendDOHQuery(cls, port, servername, baseurl, query, response=None, timeout=2.0, caFile=None, useQueue=True, rawQuery=False, rawResponse=False, customHeaders=[]):
         url = cls.getDOHGetURL(baseurl, query, rawQuery)
         conn = cls.openDOHConnection(port, caFile=caFile, timeout=timeout)
         response_headers = BytesIO()
@@ -51,9 +51,11 @@ class DNSDistDOHTest(DNSDistTest):
         message = None
         cls._response_headers = ''
         data = conn.perform_rb()
-        rcode = conn.getinfo(pycurl.RESPONSE_CODE)
-        if rcode == 200:
+        cls._rcode = conn.getinfo(pycurl.RESPONSE_CODE)
+        if cls._rcode == 200 and not rawResponse:
             message = dns.message.from_wire(data)
+        elif rawResponse:
+            message = data
 
         if useQueue and not cls._fromResponderQueue.empty():
             receivedQuery = cls._fromResponderQueue.get(True, timeout)
@@ -62,14 +64,17 @@ class DNSDistDOHTest(DNSDistTest):
         return (receivedQuery, message)
 
     @classmethod
-    def sendDOHPostQuery(cls, port, servername, baseurl, query, response=None, timeout=2.0, caFile=None, useQueue=True, rawQuery=False):
+    def sendDOHPostQuery(cls, port, servername, baseurl, query, response=None, timeout=2.0, caFile=None, useQueue=True, rawQuery=False, rawResponse=False, customHeaders=[]):
         url = baseurl
         conn = cls.openDOHConnection(port, caFile=caFile, timeout=timeout)
+        response_headers = BytesIO()
         #conn.setopt(pycurl.VERBOSE, True)
         conn.setopt(pycurl.URL, url)
         conn.setopt(pycurl.RESOLVE, ["%s:%d:127.0.0.1" % (servername, port)])
         conn.setopt(pycurl.SSL_VERIFYPEER, 1)
         conn.setopt(pycurl.SSL_VERIFYHOST, 2)
+        conn.setopt(pycurl.HTTPHEADER, customHeaders)
+        conn.setopt(pycurl.HEADERFUNCTION, response_headers.write)
         conn.setopt(pycurl.POST, True)
         data = query
         if not rawQuery:
@@ -85,14 +90,18 @@ class DNSDistDOHTest(DNSDistTest):
 
         receivedQuery = None
         message = None
+        cls._response_headers = ''
         data = conn.perform_rb()
-        rcode = conn.getinfo(pycurl.RESPONSE_CODE)
-        if rcode == 200:
+        cls._rcode = conn.getinfo(pycurl.RESPONSE_CODE)
+        if cls._rcode == 200 and not rawResponse:
             message = dns.message.from_wire(data)
+        elif rawResponse:
+            message = data
 
         if useQueue and not cls._fromResponderQueue.empty():
             receivedQuery = cls._fromResponderQueue.get(True, timeout)
 
+        cls._response_headers = response_headers.getvalue()
         return (receivedQuery, message)
 
 #     @classmethod
@@ -145,8 +154,30 @@ class TestDOH(DNSDistDOHTest):
     addAction("spoof.doh.tests.powerdns.com.", SpoofAction("1.2.3.4"))
     addAction(HTTPHeaderRule("X-PowerDNS", "^[a]{5}$"), SpoofAction("2.3.4.5"))
     addAction(HTTPPathRule("/PowerDNS"), SpoofAction("3.4.5.6"))
+    addAction(HTTPPathRegexRule("^/PowerDNS-[0-9]"), SpoofAction("6.7.8.9"))
+    addAction("http-status-action.doh.tests.powerdns.com.", HTTPStatusAction(200, "Plaintext answer", "text/plain"))
+    addAction("http-status-action-redirect.doh.tests.powerdns.com.", HTTPStatusAction(307, "https://doh.powerdns.org"))
+
+    function dohHandler(dq)
+      if dq:getHTTPScheme() == 'https' and dq:getHTTPHost() == '%s:%d' and dq:getHTTPPath() == '/' and dq:getHTTPQueryString() == '' then
+        local foundct = false
+        for key,value in pairs(dq:getHTTPHeaders()) do
+          if key == 'content-type' and value == 'application/dns-message' then
+            foundct = true
+            break
+          end
+        end
+        if foundct then
+          dq:setHTTPResponse(200, 'It works!', 'text/plain')
+          dq.dh:setQR(true)
+          return DNSAction.HeaderModify
+        end
+      end
+      return DNSAction.None
+    end
+    addAction("http-lua.doh.tests.powerdns.com.", LuaAction(dohHandler))
     """
-    _config_params = ['_testServerPort', '_dohServerPort', '_serverCert', '_serverKey']
+    _config_params = ['_testServerPort', '_dohServerPort', '_serverCert', '_serverKey', '_serverName', '_dohServerPort']
 
     def testDOHSimple(self):
         """
@@ -449,6 +480,87 @@ class TestDOH(DNSDistDOHTest):
         self.assertEquals(expectedQuery, receivedQuery)
         self.checkQueryEDNSWithoutECS(expectedQuery, receivedQuery)
         self.assertEquals(response, receivedResponse)
+
+    def testHTTPPathRegex(self):
+        """
+        DOH: HTTPPathRegex
+        """
+        name = 'http-path-regex.doh.tests.powerdns.com.'
+        query = dns.message.make_query(name, 'A', 'IN')
+        query.id = 0
+        query.flags &= ~dns.flags.RD
+        expectedResponse = dns.message.make_response(query)
+        rrset = dns.rrset.from_text(name,
+                                    3600,
+                                    dns.rdataclass.IN,
+                                    dns.rdatatype.A,
+                                    '6.7.8.9')
+        expectedResponse.answer.append(rrset)
+
+        # this path should match
+        (_, receivedResponse) = self.sendDOHQuery(self._dohServerPort, self._serverName, self._dohBaseURL + 'PowerDNS-999', caFile=self._caCert, query=query, response=None, useQueue=False)
+        self.assertEquals(receivedResponse, expectedResponse)
+
+        expectedQuery = dns.message.make_query(name, 'A', 'IN', use_edns=True, payload=4096)
+        expectedQuery.id = 0
+        expectedQuery.flags &= ~dns.flags.RD
+        response = dns.message.make_response(query)
+        rrset = dns.rrset.from_text(name,
+                                    3600,
+                                    dns.rdataclass.IN,
+                                    dns.rdatatype.A,
+                                    '127.0.0.1')
+        response.answer.append(rrset)
+
+        # this path should NOT match
+        (receivedQuery, receivedResponse) = self.sendDOHQuery(self._dohServerPort, self._serverName, self._dohBaseURL + "PowerDNS2", query, response=response, caFile=self._caCert)
+        self.assertTrue(receivedQuery)
+        self.assertTrue(receivedResponse)
+        receivedQuery.id = expectedQuery.id
+        self.assertEquals(expectedQuery, receivedQuery)
+        self.checkQueryEDNSWithoutECS(expectedQuery, receivedQuery)
+        self.assertEquals(response, receivedResponse)
+
+    def testHTTPStatusAction200(self):
+        """
+        DOH: HTTPStatusAction 200 OK
+        """
+        name = 'http-status-action.doh.tests.powerdns.com.'
+        query = dns.message.make_query(name, 'A', 'IN', use_edns=False)
+        query.id = 0
+
+        (_, receivedResponse) = self.sendDOHQuery(self._dohServerPort, self._serverName, self._dohBaseURL, query, caFile=self._caCert, useQueue=False, rawResponse=True)
+        self.assertTrue(receivedResponse)
+        self.assertEquals(receivedResponse, b'Plaintext answer')
+        self.assertEquals(self._rcode, 200)
+        self.assertTrue('content-type: text/plain' in self._response_headers.decode())
+
+    def testHTTPStatusAction307(self):
+        """
+        DOH: HTTPStatusAction 307
+        """
+        name = 'http-status-action-redirect.doh.tests.powerdns.com.'
+        query = dns.message.make_query(name, 'A', 'IN', use_edns=False)
+        query.id = 0
+
+        (_, receivedResponse) = self.sendDOHQuery(self._dohServerPort, self._serverName, self._dohBaseURL, query, caFile=self._caCert, useQueue=False, rawResponse=True)
+        self.assertTrue(receivedResponse)
+        self.assertEquals(self._rcode, 307)
+        self.assertTrue('location: https://doh.powerdns.org' in self._response_headers.decode())
+
+    def testHTTPLuaResponse(self):
+        """
+        DOH: Lua HTTP Response
+        """
+        name = 'http-lua.doh.tests.powerdns.com.'
+        query = dns.message.make_query(name, 'A', 'IN', use_edns=False)
+        query.id = 0
+
+        (_, receivedResponse) = self.sendDOHPostQuery(self._dohServerPort, self._serverName, self._dohBaseURL, query, caFile=self._caCert, useQueue=False, rawResponse=True)
+        self.assertTrue(receivedResponse)
+        self.assertEquals(receivedResponse, b'It works!')
+        self.assertEquals(self._rcode, 200)
+        self.assertTrue('content-type: text/plain' in self._response_headers.decode())
 
 class TestDOHAddingECS(DNSDistDOHTest):
 

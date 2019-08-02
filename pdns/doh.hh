@@ -76,7 +76,7 @@ struct DOHUnit
   ComboAddress dest;
   st_h2o_req_t* req{nullptr};
   DOHUnit** self{nullptr};
-  std::string reason;
+  std::string contentType;
   int rsock;
   uint16_t qtype;
   /* the status_code is set from
@@ -94,7 +94,7 @@ struct DOHUnit
   std::string getHTTPScheme() const;
   std::string getHTTPQueryString() const;
   std::unordered_map<std::string, std::string> getHTTPHeaders() const;
-  void setHTTPResponse(uint16_t statusCode, const std::string& reason, const std::string& body);
+  void setHTTPResponse(uint16_t statusCode, const std::string& body, const std::string& contentType="");
 };
 
 #endif /* HAVE_DNS_OVER_HTTPS  */

@@ -213,11 +213,11 @@ void setupLuaBindingsDNSQuestion()
       return dq.du->getHTTPHeaders();
     });
 
-    g_lua.registerFunction<void(DNSQuestion::*)(uint16_t statusCode, std::string reason, std::string body)>("setHTTPResponse", [](DNSQuestion& dq, uint16_t statusCode, std::string reason, std::string body) {
+    g_lua.registerFunction<void(DNSQuestion::*)(uint16_t statusCode, std::string body, std::string contentType)>("setHTTPResponse", [](DNSQuestion& dq, uint16_t statusCode, std::string body, boost::optional<std::string> contentType) {
       if (dq.du == nullptr) {
         return;
       }
-      dq.du->setHTTPResponse(statusCode, reason, body);
+      dq.du->setHTTPResponse(statusCode, body, contentType ? *contentType : "");
     });
 #endif /* HAVE_DNS_OVER_HTTPS */
 }

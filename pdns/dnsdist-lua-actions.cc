@@ -1081,7 +1081,7 @@ private:
 class HTTPStatusAction: public DNSAction
 {
 public:
-  HTTPStatusAction(int code, const std::string& reason, const std::string& body): d_reason(reason), d_body(body), d_code(code)
+  HTTPStatusAction(int code, const std::string& body, const std::string& contentType): d_body(body), d_contentType(contentType), d_code(code)
   {
   }
 
@@ -1091,7 +1091,7 @@ public:
       return Action::None;
     }
 
-    dq->du->setHTTPResponse(d_code, d_reason, d_body);
+    dq->du->setHTTPResponse(d_code, d_body, d_contentType);
     dq->dh->qr = true; // for good measure
     return Action::HeaderModify;
   }
@@ -1101,8 +1101,8 @@ public:
     return "return an HTTP status of " + std::to_string(d_code);
   }
 private:
-  std::string d_reason;
   std::string d_body;
+  std::string d_contentType;
   int d_code;
 };
 #endif /* HAVE_DNS_OVER_HTTPS */
@@ -1412,8 +1412,8 @@ void setupLuaActions()
     });
 
 #ifdef HAVE_DNS_OVER_HTTPS
-  g_lua.writeFunction("HTTPStatusAction", [](uint16_t status, std::string reason, std::string body) {
-      return std::shared_ptr<DNSAction>(new HTTPStatusAction(status, reason, body));
+  g_lua.writeFunction("HTTPStatusAction", [](uint16_t status, std::string body, boost::optional<std::string> contentType) {
+      return std::shared_ptr<DNSAction>(new HTTPStatusAction(status, body, contentType ? *contentType : ""));
     });
 #endif /* HAVE_DNS_OVER_HTTPS */
 }
