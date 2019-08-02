@@ -217,7 +217,9 @@ static int processDOHQuery(DOHUnit* du)
     }
 
     if (result == ProcessQueryResult::SendAnswer) {
-      du->response = std::string(reinterpret_cast<char*>(dq.dh), dq.len);
+      if (du->response.empty()) {
+        du->response = std::string(reinterpret_cast<char*>(dq.dh), dq.len);
+      }
       send(du->rsock, &du, sizeof(du), 0);
       return 0;
     }
@@ -544,11 +546,11 @@ HTTPHeaderRule::HTTPHeaderRule(const std::string& header, const std::string& reg
 
 bool HTTPHeaderRule::matches(const DNSQuestion* dq) const
 {
-  if(!dq->du) {
+  if (!dq->du) {
     return false;
   }
 
-  for (unsigned int i = 0; i != dq->du->req->headers.size; ++i) {
+  for (size_t i = 0; i < dq->du->req->headers.size; ++i) {
     if(std::string(dq->du->req->headers.entries[i].name->base, dq->du->req->headers.entries[i].name->len) == d_header &&
        d_regex.match(std::string(dq->du->req->headers.entries[i].value.base, dq->du->req->headers.entries[i].value.len))) {
       return true;
@@ -593,17 +595,11 @@ HTTPPathRegexRule::HTTPPathRegexRule(const std::string& regex): d_regex(regex), 
 
 bool HTTPPathRegexRule::matches(const DNSQuestion* dq) const
 {
-  if(!dq->du) {
+  if (!dq->du) {
     return false;
   }
 
-  if(dq->du->req->query_at == SIZE_MAX) {
-    return d_regex.match(std::string(dq->du->req->path.base, dq->du->req->path.len));
-  }
-  else {
-    cerr<<std::string(dq->du->req->path.base, dq->du->req->path.len - dq->du->req->query_at)<<endl;
-    return d_regex.match(std::string(dq->du->req->path.base, dq->du->req->path.len - dq->du->req->query_at));
-  }
+  return d_regex.match(dq->du->getHTTPPath());
 }
 
 string HTTPPathRegexRule::toString() const
@@ -611,11 +607,58 @@ string HTTPPathRegexRule::toString() const
   return d_visual;
 }
 
-void DOHSetHTTPResponse(DOHUnit& du, uint16_t statusCode, const std::string& reason, const std::string& body)
+std::unordered_map<std::string, std::string> DOHUnit::getHTTPHeaders() const
 {
-  du.status_code = statusCode;
-  du.reason = reason;
-  du.body = body;
+  std::unordered_map<std::string, std::string> results;
+  results.reserve(req->headers.size);
+
+  for (size_t i = 0; i < req->headers.size; ++i) {
+    results.insert({std::string(req->headers.entries[i].name->base, req->headers.entries[i].name->len),
+                    std::string(req->headers.entries[i].value.base, req->headers.entries[i].value.len)});
+  }
+
+  return results;
+}
+
+std::string DOHUnit::getHTTPPath() const
+{
+  if (req->query_at == SIZE_MAX) {
+    return std::string(req->path.base, req->path.len);
+  }
+  else {
+    return std::string(req->path.base, req->query_at);
+  }
+}
+
+std::string DOHUnit::getHTTPHost() const
+{
+  return std::string(req->authority.base, req->authority.len);
+}
+
+std::string DOHUnit::getHTTPScheme() const
+{
+  if (req->scheme == nullptr) {
+    return std::string();
+  }
+
+  return std::string(req->scheme->name.base, req->scheme->name.len);
+}
+
+std::string DOHUnit::getHTTPQueryString() const
+{
+  if (req->query_at == SIZE_MAX) {
+    return std::string();
+  }
+  else {
+    return std::string(req->path.base + req->query_at, req->path.len - req->query_at);
+  }
+}
+
+void DOHUnit::setHTTPResponse(uint16_t statusCode, const std::string& reason_, const std::string& body_)
+{
+  status_code = statusCode;
+  reason = reason_;
+  response = body_;
 }
 
 void dnsdistclient(int qsock, int rsock)
@@ -693,34 +736,33 @@ static void on_dnsdist(h2o_socket_t *listener, const char *err)
     du->req->res.status = 200;
     du->req->res.reason = "OK";
 
-    h2o_add_header(&du->req->pool, &du->req->res.headers, H2O_TOKEN_CONTENT_TYPE, nullptr, H2O_STRLIT("application/dns-message"));
-
     //    struct dnsheader* dh = (struct dnsheader*)du->query.c_str();
     //    cout<<"Attempt to send out "<<du->query.size()<<" bytes over https, TC="<<dh->tc<<", RCODE="<<dh->rcode<<", qtype="<<du->qtype<<", req="<<(void*)du->req<<endl;
 
+    h2o_add_header(&du->req->pool, &du->req->res.headers, H2O_TOKEN_CONTENT_TYPE, nullptr, H2O_STRLIT("application/dns-message"));
     du->req->res.content_length = du->response.size();
     h2o_send_inline(du->req, du->response.c_str(), du->response.size());
   }
   else if (du->status_code >= 300 && du->status_code < 400) {
-    /* in that case the body is actually a URL */
-    h2o_send_redirect(du->req, du->status_code, du->reason.c_str(), du->body.c_str(), du->body.size());
+    /* in that case the response is actually a URL */
+    h2o_send_redirect(du->req, du->status_code, du->reason.c_str(), du->response.c_str(), du->response.size());
     ++dsc->df->d_redirectresponses;
   }
   else {
     switch(du->status_code) {
     case 400:
-      h2o_send_error_400(du->req, du->reason.empty() ? "Bad Request" : du->reason.c_str(), du->body.empty() ? "invalid DNS query" : du->body.c_str(), 0);
+      h2o_send_error_400(du->req, du->reason.empty() ? "Bad Request" : du->reason.c_str(), du->response.empty() ? "invalid DNS query" : du->response.c_str(), 0);
       break;
     case 403:
-      h2o_send_error_403(du->req, du->reason.empty() ? "Forbidden" : du->reason.c_str(), du->body.empty() ? "dns query not allowed" : du->body.c_str(), 0);
+      h2o_send_error_403(du->req, du->reason.empty() ? "Forbidden" : du->reason.c_str(), du->response.empty() ? "dns query not allowed" : du->response.c_str(), 0);
       break;
     case 502:
-      h2o_send_error_502(du->req, du->reason.empty() ? "Bad Gateway" : du->reason.c_str(), du->body.empty() ? "no downstream server available" : du->body.c_str(), 0);
+      h2o_send_error_502(du->req, du->reason.empty() ? "Bad Gateway" : du->reason.c_str(), du->response.empty() ? "no downstream server available" : du->response.c_str(), 0);
       break;
     case 500:
       /* fall-through */
     default:
-      h2o_send_error_500(du->req, du->reason.empty() ? "Internal Server Error" : du->reason.c_str(), du->body.empty() ? "Internal Server Error" : du->body.c_str(), 0);
+      h2o_send_error_500(du->req, du->reason.empty() ? "Internal Server Error" : du->reason.c_str(), du->response.empty() ? "Internal Server Error" : du->response.c_str(), 0);
       break;
     }
 

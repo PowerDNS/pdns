@@ -176,4 +176,48 @@ void setupLuaBindingsDNSQuestion()
       }
 #endif /* HAVE_NET_SNMP */
     });
+
+#ifdef HAVE_DNS_OVER_HTTPS
+    g_lua.registerFunction<std::string(DNSQuestion::*)(void)>("getHTTPPath", [](const DNSQuestion& dq) {
+      if (dq.du == nullptr) {
+        return std::string();
+      }
+      return dq.du->getHTTPPath();
+    });
+
+    g_lua.registerFunction<std::string(DNSQuestion::*)(void)>("getHTTPQueryString", [](const DNSQuestion& dq) {
+      if (dq.du == nullptr) {
+        return std::string();
+      }
+      return dq.du->getHTTPQueryString();
+    });
+
+    g_lua.registerFunction<std::string(DNSQuestion::*)(void)>("getHTTPHost", [](const DNSQuestion& dq) {
+      if (dq.du == nullptr) {
+        return std::string();
+      }
+      return dq.du->getHTTPHost();
+    });
+
+    g_lua.registerFunction<std::string(DNSQuestion::*)(void)>("getHTTPScheme", [](const DNSQuestion& dq) {
+      if (dq.du == nullptr) {
+        return std::string();
+      }
+      return dq.du->getHTTPScheme();
+    });
+
+    g_lua.registerFunction<std::unordered_map<std::string, std::string>(DNSQuestion::*)(void)>("getHTTPHeaders", [](const DNSQuestion& dq) {
+      if (dq.du == nullptr) {
+        return std::unordered_map<std::string, std::string>();
+      }
+      return dq.du->getHTTPHeaders();
+    });
+
+    g_lua.registerFunction<void(DNSQuestion::*)(uint16_t statusCode, std::string reason, std::string body)>("setHTTPResponse", [](DNSQuestion& dq, uint16_t statusCode, std::string reason, std::string body) {
+      if (dq.du == nullptr) {
+        return;
+      }
+      dq.du->setHTTPResponse(statusCode, reason, body);
+    });
+#endif /* HAVE_DNS_OVER_HTTPS */
 }

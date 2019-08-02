@@ -64,6 +64,8 @@ struct DOHUnit
 };
 
 #else /* HAVE_DNS_OVER_HTTPS */
+#include <unordered_map>
+
 struct st_h2o_req_t;
 
 struct DOHUnit
@@ -75,7 +77,6 @@ struct DOHUnit
   st_h2o_req_t* req{nullptr};
   DOHUnit** self{nullptr};
   std::string reason;
-  std::string body;
   int rsock;
   uint16_t qtype;
   /* the status_code is set from
@@ -87,9 +88,14 @@ struct DOHUnit
   */
   uint16_t status_code{200};
   bool ednsAdded{false};
-};
 
-void DOHSetHTTPResponse(DOHUnit& du, uint16_t statusCode, const std::string& reason, const std::string& body);
+  std::string getHTTPPath() const;
+  std::string getHTTPHost() const;
+  std::string getHTTPScheme() const;
+  std::string getHTTPQueryString() const;
+  std::unordered_map<std::string, std::string> getHTTPHeaders() const;
+  void setHTTPResponse(uint16_t statusCode, const std::string& reason, const std::string& body);
+};
 
 #endif /* HAVE_DNS_OVER_HTTPS  */
 

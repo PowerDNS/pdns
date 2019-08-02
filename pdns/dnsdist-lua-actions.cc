@@ -1091,7 +1091,7 @@ public:
       return Action::None;
     }
 
-    DOHSetHTTPResponse(*dq->du, d_code, d_reason, d_body);
+    dq->du->setHTTPResponse(d_code, d_reason, d_body);
     dq->dh->qr = true; // for good measure
     return Action::HeaderModify;
   }
