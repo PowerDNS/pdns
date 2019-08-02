@@ -551,6 +551,39 @@ struct IDState
     tempFailureTTL = orig.tempFailureTTL;
   }
 
+  static const int64_t unusedIndicator = -1;
+
+  static bool isInUse(int64_t usageIndicator)
+  {
+    return usageIndicator != unusedIndicator;
+  }
+
+  bool isInUse() const
+  {
+    return usageIndicator != unusedIndicator;
+  }
+
+  /* return true if the value has been successfully replaced meaning that
+     no-one updated the usage indicator in the meantime */
+  bool tryMarkUnused(int64_t expectedUsageIndicator)
+  {
+    return usageIndicator.compare_exchange_strong(expectedUsageIndicator, unusedIndicator);
+  }
+
+  /* mark as unused no matter what, return true if the state was in use before */
+  bool markAsUsed()
+  {
+    auto currentGeneration = generation++;
+    return markAsUsed(currentGeneration);
+  }
+
+  /* mark as unused no matter what, return true if the state was in use before */
+  bool markAsUsed(int64_t currentGeneration)
+  {
+    int64_t oldUsage = usageIndicator.exchange(currentGeneration);
+    return oldUsage != unusedIndicator;
+  }
+
   /* We use this value to detect whether this state is in use.
      For performance reasons we don't want to use a lock here, but that means
      we need to be very careful when modifying this value. Modifications happen
@@ -584,8 +617,8 @@ struct IDState
      wrapping around if necessary, and we set an atomic signed 64-bit value, so that we still have -1
      when the state is unused and the value of our counter otherwise.
   */
-  std::atomic<int64_t> usageIndicator{-1};  // set to <0 to indicate this state is empty   // 4
-  std::atomic<uint32_t> generation{0}; // increased every time a state is used, to be able to detect an ABA issue
+  std::atomic<int64_t> usageIndicator{unusedIndicator};  // set to unusedIndicator to indicate this state is empty   // 8
+  std::atomic<uint32_t> generation{0}; // increased every time a state is used, to be able to detect an ABA issue    // 4
   ComboAddress origRemote;                                    // 28
   ComboAddress origDest;                                      // 28
   StopWatch sentTime;                                         // 16

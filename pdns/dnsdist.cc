@@ -546,7 +546,7 @@ try {
         IDState* ids = &dss->idStates[queryId];
         int64_t usageIndicator = ids->usageIndicator;
 
-        if(usageIndicator < 0) {
+        if(!IDState::isInUse(usageIndicator)) {
           /* the corresponding state is marked as not in use, meaning that:
              - it was already cleaned up by another thread and the state is gone ;
              - we already got a response for this query and this one is a duplicate.
@@ -572,7 +572,7 @@ try {
         bool isDoH = du != nullptr;
         /* atomically mark the state as available, but only if it has not been altered
            in the meantime */
-        if (ids->usageIndicator.compare_exchange_strong(usageIndicator, -1)) {
+        if (ids->tryMarkUnused(usageIndicator)) {
           /* clear the potential DOHUnit asap, it's ours now
            and since we just marked the state as unused,
            someone could overwrite it. */
@@ -1591,15 +1591,13 @@ static void processUDPQuery(ClientState& cs, LocalHolders& holders, const struct
     /* that means that the state was in use, possibly with an allocated
        DOHUnit that we will need to handle, but we can't touch it before
        confirming that we now own this state */
-    if (ids->usageIndicator != -1) {
+    if (ids->isInUse()) {
       du = ids->du;
     }
 
     /* we atomically replace the value, we now own this state */
-    auto generation = ids->generation++;
-    int64_t oldUsage = ids->usageIndicator.exchange(generation);
-    if(oldUsage < 0) {
-      /* the value was -1, meaning that the state was not in use.
+    if (!ids->markAsUsed()) {
+      /* the state was not in use.
          we reset 'du' because it might have still been in use when we read it. */
       du = nullptr;
       ++ss->outstanding;
@@ -2093,14 +2091,14 @@ static void healthChecksThread()
       
       for(IDState& ids  : dss->idStates) { // timeouts
         int64_t usageIndicator = ids.usageIndicator;
-        if(usageIndicator >=0 && ids.age++ > g_udpTimeout) {
-          /* We set usageIndicator to -1 as soon as possible
+        if(IDState::isInUse(usageIndicator) && ids.age++ > g_udpTimeout) {
+          /* We mark the state as unused as soon as possible
              to limit the risk of racing with the
              responder thread.
           */
           auto oldDU = ids.du;
 
-          if (!ids.usageIndicator.compare_exchange_strong(usageIndicator, -1)) {
+          if (!ids.tryMarkUnused(usageIndicator)) {
             /* this state has been altered in the meantime,
                don't go anywhere near it */
             continue;

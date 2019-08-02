@@ -238,7 +238,7 @@ static int processDOHQuery(DOHUnit* du)
     IDState* ids = &ss->idStates[idOffset];
     ids->age = 0;
     DOHUnit* oldDU = nullptr;
-    if (ids->usageIndicator != -1) {
+    if (ids->isInUse()) {
       /* that means that the state was in use, possibly with an allocated
          DOHUnit that we will need to handle, but we can't touch it before
          confirming that we now own this state */
@@ -247,19 +247,18 @@ static int processDOHQuery(DOHUnit* du)
 
     /* we atomically replace the value, we now own this state */
     int64_t generation = ids->generation++;
-    int64_t oldUsage = ids->usageIndicator.exchange(generation);
-    if (oldUsage < 0) {
-      /* the value was -1, meaning that the state was not in use.
+    if (!ids->markAsUsed(generation)) {
+      /* the state was not in use.
          we reset 'oldDU' because it might have still been in use when we read it. */
       oldDU = nullptr;
       ++ss->outstanding;
     }
     else {
+      ids->du = nullptr;
+      /* we are reusing a state, no change in outstanding but if there was an existing DOHUnit we need
+         to handle it because it's about to be overwritten. */
       ++ss->reuseds;
       ++g_stats.downstreamTimeouts;
-      /* we are reusing a state, if there was an existing DOHUnit we need
-         to handle it because it's about to be overwritten. */
-      ids->du = nullptr;
       handleDOHTimeout(oldDU);
     }
 
@@ -295,7 +294,7 @@ static int processDOHQuery(DOHUnit* du)
       /* we are about to handle the error, make sure that
          this pointer is not accessed when the state is cleaned,
          but first check that it still belongs to us */
-      if (ids->usageIndicator.compare_exchange_strong(generation, -1)) {
+      if (ids->tryMarkUnused(generation)) {
         ids->du = nullptr;
         --ss->outstanding;
       }
