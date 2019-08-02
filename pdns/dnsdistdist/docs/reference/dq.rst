@@ -181,6 +181,7 @@ This state can be modified from the various hooks.
     Set the HTTP status code and content to immediately send back to the client.
     For HTTP redirects (3xx), the string supplied in ''body'' should be the URL to redirect to.
     For 200 responses, the value of the content type header can be specified via the ''contentType'' parameter.
+    In order for the response to be sent, the QR bit should be set before returning and the function should return Action.HeaderModify.
 
     :param int status: The HTTP status code to return
     :param string body: The body of the HTTP response, or a URL if the status code is a redirect (3xx)
