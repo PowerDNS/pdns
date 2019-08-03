@@ -492,7 +492,7 @@ bool isEDNSOptionInOpt(const std::string& packet, const size_t optStart, const s
     return false;
   }
   size_t p = optStart + 9;
-  uint16_t rdLen = (0x100*packet.at(p) + packet.at(p+1));
+  uint16_t rdLen = (0x100*static_cast<unsigned char>(packet.at(p)) + static_cast<unsigned char>(packet.at(p+1)));
   p += sizeof(rdLen);
   if (rdLen > (optLen - optRecordMinimumSize)) {
     return false;
@@ -500,9 +500,9 @@ bool isEDNSOptionInOpt(const std::string& packet, const size_t optStart, const s
 
   size_t rdEnd = p + rdLen;
   while ((p + 4) <= rdEnd) {
-    const uint16_t optionCode = 0x100*packet.at(p) + packet.at(p+1);
+    const uint16_t optionCode = 0x100*static_cast<unsigned char>(packet.at(p)) + static_cast<unsigned char>(packet.at(p+1));
     p += sizeof(optionCode);
-    const uint16_t optionLen = 0x100*packet.at(p) + packet.at(p+1);
+    const uint16_t optionLen = 0x100*static_cast<unsigned char>(packet.at(p)) + static_cast<unsigned char>(packet.at(p+1));
     p += sizeof(optionLen);
 
     if ((p + optionLen) > rdEnd) {
