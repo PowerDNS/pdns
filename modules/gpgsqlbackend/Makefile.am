@@ -3,10 +3,7 @@ pkglib_LTLIBRARIES = libgpgsqlbackend.la
 
 EXTRA_DIST = \
 	OBJECTFILES \
-	OBJECTLIBS \
-	dnssec-3.x_to_3.4.0_schema.pgsql.sql \
-	nodnssec-3.x_to_3.4.0_schema.pgsql.sql \
-	schema.pgsql.sql
+	OBJECTLIBS
 
 dist_doc_DATA = \
 	schema.pgsql.sql \
