@@ -7,7 +7,6 @@
 #include <boost/assign/list_of.hpp>
 
 #include <boost/tuple/tuple.hpp>
-#include <boost/scoped_ptr.hpp>
 
 #include "base64.hh"
 #include "dnsseckeeper.hh"

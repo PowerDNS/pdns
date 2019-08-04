@@ -41,7 +41,7 @@ public:
   void send(const string &line);
   void receive(string &line);
 private:
-  CoRemote* d_cp;
+  std::unique_ptr<CoRemote> d_cp;
   string d_command;
   void launch();
   int d_timeout;
@@ -62,10 +62,10 @@ public:
 private:
   void launch();
   void cleanup();
-  unique_ptr<CoWrapper> d_coproc;
+  std::unique_ptr<CoWrapper> d_coproc;
+  std::unique_ptr<Regex> d_regex;
   DNSName d_qname;
   QType d_qtype;
-  Regex* d_regex;
   string d_regexstr;
   bool d_disavow;
   int d_abiVersion;

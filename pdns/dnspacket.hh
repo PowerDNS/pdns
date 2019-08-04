@@ -105,7 +105,7 @@ public:
 
   DTime d_dt; //!< the time this packet was created. replyPacket() copies this in for you, so d_dt becomes the time spent processing the question+answer
   void wrapup();  // writes out queued rrs, and generates the binary packet. also shuffles. also rectifies dnsheader 'd', and copies it to the stringbuffer
-  void spoofQuestion(const DNSPacket *qd); //!< paste in the exact right case of the question. Useful for PacketCache
+  void spoofQuestion(const DNSPacket& qd); //!< paste in the exact right case of the question. Useful for PacketCache
   unsigned int getMinTTL(); //!< returns lowest TTL of any record in the packet
   bool isEmpty(); //!< returns true if there are no rrs in the packet
 
@@ -113,15 +113,15 @@ public:
   vector<DNSZoneRecord*> getAnswerRecords(); //!< get a vector with DNSZoneRecords that are answers
   void setCompress(bool compress);
 
-  DNSPacket *replyPacket() const; //!< convenience function that creates a virgin answer packet to this question
+  std::unique_ptr<DNSPacket> replyPacket() const; //!< convenience function that creates a virgin answer packet to this question
 
   void commitD(); //!< copies 'd' into the stringbuffer
   unsigned int getMaxReplyLen(); //!< retrieve the maximum length of the packet we should send in response
   void setMaxReplyLen(int bytes); //!< set the max reply len (used when retrieving from the packet cache, and this changed)
 
-  bool couldBeCached(); //!< returns 0 if this query should bypass the packet cache
+  bool couldBeCached() const; //!< returns 0 if this query should bypass the packet cache
   bool hasEDNSSubnet() const;
-  bool hasEDNS();
+  bool hasEDNS() const;
   uint8_t getEDNSVersion() const { return d_ednsversion; };
   void setEDNSRcode(uint16_t extRCode)
   {

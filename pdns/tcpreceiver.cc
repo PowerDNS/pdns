@@ -67,9 +67,9 @@ extern StatBag S;
 */
 
 pthread_mutex_t TCPNameserver::s_plock = PTHREAD_MUTEX_INITIALIZER;
-Semaphore *TCPNameserver::d_connectionroom_sem;
+std::unique_ptr<Semaphore> TCPNameserver::d_connectionroom_sem{nullptr};
+std::unique_ptr<PacketHandler> TCPNameserver::s_P{nullptr};
 unsigned int TCPNameserver::d_maxTCPConnections = 0;
-PacketHandler *TCPNameserver::s_P; 
 NetmaskGroup TCPNameserver::d_ng;
 size_t TCPNameserver::d_maxTransactionsPerConn;
 size_t TCPNameserver::d_maxConnectionsPerClient;
@@ -81,9 +81,9 @@ std::map<ComboAddress,size_t,ComboAddress::addressOnlyLessThan> TCPNameserver::s
 void TCPNameserver::go()
 {
   g_log<<Logger::Error<<"Creating backend connection for TCP"<<endl;
-  s_P=0;
+  s_P.reset();
   try {
-    s_P=new PacketHandler;
+    s_P=make_unique<PacketHandler>();
   }
   catch(PDNSException &ae) {
     g_log<<Logger::Error<<"TCP server is unable to launch backends - will try again when questions come in: "<<ae.reason<<endl;
@@ -200,7 +200,7 @@ void connectWithTimeout(int fd, struct sockaddr* remote, size_t socklen)
   ;
 }
 
-void TCPNameserver::sendPacket(shared_ptr<DNSPacket> p, int outsock)
+void TCPNameserver::sendPacket(std::unique_ptr<DNSPacket>& p, int outsock)
 {
   g_rs.submitResponse(*p, false);
 
@@ -255,7 +255,7 @@ void TCPNameserver::decrementClientCount(const ComboAddress& remote)
 void *TCPNameserver::doConnection(void *data)
 {
   setThreadName("pdns/tcpConnect");
-  shared_ptr<DNSPacket> packet;
+  std::unique_ptr<DNSPacket> packet;
   // Fix gcc-4.0 error (on AMD64)
   int fd=(int)(long)data; // gotta love C (generates a harmless warning on opteron)
   ComboAddress remote;
@@ -328,7 +328,7 @@ void *TCPNameserver::doConnection(void *data)
       else
         S.inc("tcp4-queries");
 
-      packet=shared_ptr<DNSPacket>(new DNSPacket(true));
+      packet=make_unique<DNSPacket>(true);
       packet->setRemote(&remote);
       packet->d_tcp=true;
       packet->setSocket(fd);
@@ -347,8 +347,8 @@ void *TCPNameserver::doConnection(void *data)
         continue;
       }
 
-      shared_ptr<DNSPacket> reply; 
-      shared_ptr<DNSPacket> cached= shared_ptr<DNSPacket>(new DNSPacket(false));
+      std::unique_ptr<DNSPacket> reply; 
+      auto cached = make_unique<DNSPacket>(false);
       if(logDNSQueries)  {
         string remote_text;
         if(packet->hasEDNSSubnet())
@@ -360,7 +360,7 @@ void *TCPNameserver::doConnection(void *data)
       }
 
       if(PC.enabled()) {
-        if(packet->couldBeCached() && PC.get(packet.get(), cached.get())) { // short circuit - does the PacketCache recognize this question?
+        if(packet->couldBeCached() && PC.get(*packet, *cached)) { // short circuit - does the PacketCache recognize this question?
           if(logDNSQueries)
             g_log<<"packetcache HIT"<<endl;
           cached->setRemote(&packet->d_remote);
@@ -378,10 +378,10 @@ void *TCPNameserver::doConnection(void *data)
         Lock l(&s_plock);
         if(!s_P) {
           g_log<<Logger::Error<<"TCP server is without backend connections, launching"<<endl;
-          s_P=new PacketHandler;
+          s_P=make_unique<PacketHandler>();
         }
 
-        reply=shared_ptr<DNSPacket>(s_P->doQuestion(packet.get())); // we really need to ask the backend :-)
+        reply= s_P->doQuestion(*packet); // we really need to ask the backend :-)
       }
 
       if(!reply)  // unable to write an answer?
@@ -392,8 +392,7 @@ void *TCPNameserver::doConnection(void *data)
   }
   catch(PDNSException &ae) {
     Lock l(&s_plock);
-    delete s_P;
-    s_P = 0; // on next call, backend will be recycled
+    s_P.reset(); // on next call, backend will be recycled
     g_log<<Logger::Error<<"TCP nameserver had error, cycling backend: "<<ae.reason<<endl;
   }
   catch(NetworkError &e) {
@@ -422,7 +421,7 @@ void *TCPNameserver::doConnection(void *data)
 
 
 // call this method with s_plock held!
-bool TCPNameserver::canDoAXFR(shared_ptr<DNSPacket> q)
+bool TCPNameserver::canDoAXFR(std::unique_ptr<DNSPacket>& q)
 {
   if(::arg().mustDo("disable-axfr"))
     return false;
@@ -539,9 +538,9 @@ namespace {
     bool d_auth;
   };
 
-  shared_ptr<DNSPacket> getFreshAXFRPacket(shared_ptr<DNSPacket> q)
+  std::unique_ptr<DNSPacket> getFreshAXFRPacket(std::unique_ptr<DNSPacket>& q)
   {
-    shared_ptr<DNSPacket> ret = shared_ptr<DNSPacket>(q->replyPacket());
+    std::unique_ptr<DNSPacket> ret = std::unique_ptr<DNSPacket>(q->replyPacket());
     ret->setCompress(false);
     ret->d_dnssecOk=false; // RFC 5936, 2.2.5
     ret->d_tcp = true;
@@ -551,9 +550,9 @@ namespace {
 
 
 /** do the actual zone transfer. Return 0 in case of error, 1 in case of success */
-int TCPNameserver::doAXFR(const DNSName &target, shared_ptr<DNSPacket> q, int outsock)
+int TCPNameserver::doAXFR(const DNSName &target, std::unique_ptr<DNSPacket>& q, int outsock)
 {
-  shared_ptr<DNSPacket> outpacket= getFreshAXFRPacket(q);
+  std::unique_ptr<DNSPacket> outpacket= getFreshAXFRPacket(q);
   if(q->d_dnssecOk)
     outpacket->d_dnssecOk=true; // RFC 5936, 2.2.5 'SHOULD'
 
@@ -566,7 +565,7 @@ int TCPNameserver::doAXFR(const DNSName &target, shared_ptr<DNSPacket> q, int ou
     DLOG(g_log<<"Looking for SOA"<<endl);    // find domain_id via SOA and list complete domain. No SOA, no AXFR
     if(!s_P) {
       g_log<<Logger::Error<<"TCP server is without backend connections in doAXFR, launching"<<endl;
-      s_P=new PacketHandler;
+      s_P=make_unique<PacketHandler>();
     }
 
     // canDoAXFR does all the ACL checks, and has the if(disable-axfr) shortcut, call it first.
@@ -1049,9 +1048,9 @@ int TCPNameserver::doAXFR(const DNSName &target, shared_ptr<DNSPacket> q, int ou
   return 1;
 }
 
-int TCPNameserver::doIXFR(shared_ptr<DNSPacket> q, int outsock)
+int TCPNameserver::doIXFR(std::unique_ptr<DNSPacket>& q, int outsock)
 {
-  shared_ptr<DNSPacket> outpacket=getFreshAXFRPacket(q);
+  std::unique_ptr<DNSPacket> outpacket=getFreshAXFRPacket(q);
   if(q->d_dnssecOk)
     outpacket->d_dnssecOk=true; // RFC 5936, 2.2.5 'SHOULD'
 
@@ -1095,7 +1094,7 @@ int TCPNameserver::doIXFR(shared_ptr<DNSPacket> q, int outsock)
     DLOG(g_log<<"Looking for SOA"<<endl); // find domain_id via SOA and list complete domain. No SOA, no IXFR
     if(!s_P) {
       g_log<<Logger::Error<<"TCP server is without backend connections in doIXFR, launching"<<endl;
-      s_P=new PacketHandler;
+      s_P=make_unique<PacketHandler>();
     }
 
     // canDoAXFR does all the ACL checks, and has the if(disable-axfr) shortcut, call it first.
@@ -1184,7 +1183,6 @@ int TCPNameserver::doIXFR(shared_ptr<DNSPacket> q, int outsock)
 
 TCPNameserver::~TCPNameserver()
 {
-  delete d_connectionroom_sem;
 }
 
 TCPNameserver::TCPNameserver()
@@ -1195,7 +1193,7 @@ TCPNameserver::TCPNameserver()
   d_maxConnectionsPerClient = ::arg().asNum("max-tcp-connections-per-client");
 
 //  sem_init(&d_connectionroom_sem,0,::arg().asNum("max-tcp-connections"));
-  d_connectionroom_sem = new Semaphore( ::arg().asNum( "max-tcp-connections" ));
+  d_connectionroom_sem = make_unique<Semaphore>( ::arg().asNum( "max-tcp-connections" ));
   d_maxTCPConnections = ::arg().asNum( "max-tcp-connections" );
   d_tid=0;
   vector<string>locals;

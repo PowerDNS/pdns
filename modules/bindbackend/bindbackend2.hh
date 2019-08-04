@@ -249,7 +249,6 @@ private:
   void setupDNSSEC();
   void setupStatements();
   void freeStatements();
-  void release(SSqlStatement**);
   static bool safeGetBBDomainInfo(int id, BB2DomainInfo* bbd);
   static void safePutBBDomainInfo(const BB2DomainInfo& bbd);
   static bool safeGetBBDomainInfo(const DNSName& name, BB2DomainInfo* bbd);

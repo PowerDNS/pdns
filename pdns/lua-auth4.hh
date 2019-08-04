@@ -13,11 +13,11 @@ class AuthLua4 : public BaseLua4
 {
 public:
   AuthLua4();
-  bool updatePolicy(const DNSName &qname, QType qtype, const DNSName &zonename, DNSPacket *packet);
+  bool updatePolicy(const DNSName &qname, QType qtype, const DNSName &zonename, const DNSPacket& packet);
   bool axfrfilter(const ComboAddress&, const DNSName&, const DNSResourceRecord&, std::vector<DNSResourceRecord>&);
   LuaContext* getLua();
 
-  DNSPacket *prequery(DNSPacket *p);
+  std::unique_ptr<DNSPacket> prequery(const DNSPacket& p);
 
   ~AuthLua4(); // this is so unique_ptr works with an incomplete type
 protected:

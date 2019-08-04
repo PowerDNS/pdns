@@ -222,9 +222,9 @@ try
 
   for(unsigned int fno=0; fno < files.size(); ++fno) {
     PcapPacketReader pr(files[fno]);
-    PcapPacketWriter* pw=0;
+    std::unique_ptr<PcapPacketWriter> pw=nullptr;
     if(!g_vm["write-failures"].as<string>().empty())
-      pw=new PcapPacketWriter(g_vm["write-failures"].as<string>(), pr);
+      pw=std::unique_ptr<PcapPacketWriter>(new PcapPacketWriter(g_vm["write-failures"].as<string>(), pr));
  
     EDNSOpts edo;
     while(pr.getUDPPacket()) {

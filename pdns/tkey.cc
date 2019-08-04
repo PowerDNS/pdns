@@ -3,13 +3,13 @@
 #endif
 #include "packethandler.hh"
 
-void PacketHandler::tkeyHandler(DNSPacket *p, DNSPacket *r) {
+void PacketHandler::tkeyHandler(const DNSPacket& p, std::unique_ptr<DNSPacket>& r) {
   TKEYRecordContent tkey_in;
   std::shared_ptr<TKEYRecordContent> tkey_out(new TKEYRecordContent());
   DNSName name;
   bool sign = false;
 
-  if (!p->getTKEYRecord(&tkey_in, &name)) {
+  if (!p.getTKEYRecord(&tkey_in, &name)) {
     g_log<<Logger::Error<<"TKEY request but no TKEY RR found"<<endl;
     r->setRcode(RCode::FormErr);
     return;
@@ -46,8 +46,8 @@ void PacketHandler::tkeyHandler(DNSPacket *p, DNSPacket *r) {
       tkey_out->d_error = 21; // BADALGO
     }
   } else if (tkey_in.d_mode == 5) { // destroy context
-    if (p->d_havetsig == false) { // unauthenticated
-      if (p->d.opcode == Opcode::Update)
+    if (p.d_havetsig == false) { // unauthenticated
+      if (p.d.opcode == Opcode::Update)
         r->setRcode(RCode::Refused);
       else
         r->setRcode(RCode::NotAuth);
@@ -58,8 +58,8 @@ void PacketHandler::tkeyHandler(DNSPacket *p, DNSPacket *r) {
     else
       tkey_out->d_error = 20; // BADNAME (because we have no support for anything here)
   } else {
-    if (p->d_havetsig == false && tkey_in.d_mode != 2) { // unauthenticated
-      if (p->d.opcode == Opcode::Update)
+    if (p.d_havetsig == false && tkey_in.d_mode != 2) { // unauthenticated
+      if (p.d.opcode == Opcode::Update)
         r->setRcode(RCode::Refused);
       else
         r->setRcode(RCode::NotAuth);
@@ -88,7 +88,7 @@ void PacketHandler::tkeyHandler(DNSPacket *p, DNSPacket *r) {
     trc.d_time = tkey_out->d_inception;
     trc.d_fudge = 300;
     trc.d_mac = "";
-    trc.d_origID = p->d.id;
+    trc.d_origID = p.d.id;
     trc.d_eRcode = 0;
     trc.d_otherData = "";
     // this should cause it to lookup name context

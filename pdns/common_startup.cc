@@ -32,6 +32,8 @@
 #include "threadname.hh"
 #include "misc.hh"
 
+#include <thread>
+
 #ifdef HAVE_SYSTEMD
 #include <systemd/sd-daemon.h>
 #endif
@@ -48,8 +50,8 @@ ArgvMap theArg;
 StatBag S;  //!< Statistics are gathered across PDNS via the StatBag class S
 AuthPacketCache PC; //!< This is the main PacketCache, shared across all threads
 AuthQueryCache QC;
-DNSProxy *DP;
-DynListener *dl;
+std::unique_ptr<DNSProxy> DP{nullptr};
+std::unique_ptr<DynListener> dl{nullptr};
 CommunicatorClass Communicator;
 shared_ptr<UDPNameserver> N;
 int avg_latency;
@@ -257,7 +259,7 @@ static uint64_t getQCount(const std::string& str)
 try
 {
   int totcount=0;
-  for(DNSDistributor* d :  g_distributors) {
+  for(const auto& d : g_distributors) {
     if(!d)
       continue;
     totcount += d->getQueueSize();  // this does locking and other things, so don't get smart
@@ -363,28 +365,25 @@ int isGuarded(char **argv)
   return !!p;
 }
 
-void sendout(DNSPacket* a)
+static void sendout(std::unique_ptr<DNSPacket>& a)
 {
   if(!a)
     return;
   
-  N->send(a);
+  N->send(*a);
 
   int diff=a->d_dt.udiff();
   avg_latency=(int)(0.999*avg_latency+0.001*diff);
-  delete a;  
 }
 
 //! The qthread receives questions over the internet via the Nameserver class, and hands them to the Distributor for further processing
-void *qthread(void *number)
+static void qthread(unsigned int num)
 try
 {
   setThreadName("pdns/receiver");
 
-  DNSPacket *P;
-  DNSDistributor *distributor = DNSDistributor::Create(::arg().asNum("distributor-threads", 1)); // the big dispatcher!
-  int num = (int)(unsigned long)number;
-  g_distributors[num] = distributor;
+  g_distributors[num] = DNSDistributor::Create(::arg().asNum("distributor-threads", 1));
+  DNSDistributor* distributor = g_distributors[num]; // the big dispatcher!
   DNSPacket question(true);
   DNSPacket cached(false);
 
@@ -404,7 +403,7 @@ try
 
   // If we have SO_REUSEPORT then create a new port for all receiver threads
   // other than the first one.
-  if( number != NULL && N->canReusePort() ) {
+  if(N->canReusePort() ) {
     NS = g_udpReceivers[num];
     if (NS == nullptr) {
       NS = N;
@@ -414,52 +413,52 @@ try
   }
 
   for(;;) {
-    if(!(P=NS->receive(&question, buffer))) { // receive a packet         inline
+    if(!NS->receive(question, buffer)) { // receive a packet         inline
       continue;                    // packet was broken, try again
     }
 
     numreceived++;
 
-    if(P->d_remote.getSocklen()==sizeof(sockaddr_in))
+    if(question.d_remote.getSocklen()==sizeof(sockaddr_in))
       numreceived4++;
     else
       numreceived6++;
 
-    if(P->d_dnssecOk)
+    if(question.d_dnssecOk)
       numreceiveddo++;
 
-     if(P->d.qr)
+     if(question.d.qr)
        continue;
 
-    S.ringAccount("queries", P->qdomain, P->qtype);
-    S.ringAccount("remotes",P->d_remote);
+    S.ringAccount("queries", question.qdomain, question.qtype);
+    S.ringAccount("remotes", question.d_remote);
     if(logDNSQueries) {
       string remote;
-      if(P->hasEDNSSubnet()) 
-        remote = P->getRemote().toString() + "<-" + P->getRealRemote().toString();
+      if(question.hasEDNSSubnet()) 
+        remote = question.getRemote().toString() + "<-" + question.getRealRemote().toString();
       else
-        remote = P->getRemote().toString();
-      g_log << Logger::Notice<<"Remote "<< remote <<" wants '" << P->qdomain<<"|"<<P->qtype.getName() << 
-        "', do = " <<P->d_dnssecOk <<", bufsize = "<< P->getMaxReplyLen();
-      if(P->d_ednsRawPacketSizeLimit > 0 && P->getMaxReplyLen() != (unsigned int)P->d_ednsRawPacketSizeLimit)
-        g_log<<" ("<<P->d_ednsRawPacketSizeLimit<<")";
+        remote = question.getRemote().toString();
+      g_log << Logger::Notice<<"Remote "<< remote <<" wants '" << question.qdomain<<"|"<<question.qtype.getName() << 
+        "', do = " <<question.d_dnssecOk <<", bufsize = "<< question.getMaxReplyLen();
+      if(question.d_ednsRawPacketSizeLimit > 0 && question.getMaxReplyLen() != (unsigned int)question.d_ednsRawPacketSizeLimit)
+        g_log<<" ("<<question.d_ednsRawPacketSizeLimit<<")";
       g_log<<": ";
     }
 
-    if(PC.enabled() && (P->d.opcode != Opcode::Notify && P->d.opcode != Opcode::Update) && P->couldBeCached()) {
-      bool haveSomething=PC.get(P, &cached); // does the PacketCache recognize this question?
+    if(PC.enabled() && (question.d.opcode != Opcode::Notify && question.d.opcode != Opcode::Update) && question.couldBeCached()) {
+      bool haveSomething=PC.get(question, cached); // does the PacketCache recognize this question?
       if (haveSomething) {
         if(logDNSQueries)
           g_log<<"packetcache HIT"<<endl;
-        cached.setRemote(&P->d_remote);  // inlined
-        cached.setSocket(P->getSocket());                               // inlined
-        cached.d_anyLocal = P->d_anyLocal;
-        cached.setMaxReplyLen(P->getMaxReplyLen());
-        cached.d.rd=P->d.rd; // copy in recursion desired bit
-        cached.d.id=P->d.id;
+        cached.setRemote(&question.d_remote);  // inlined
+        cached.setSocket(question.getSocket());                               // inlined
+        cached.d_anyLocal = question.d_anyLocal;
+        cached.setMaxReplyLen(question.getMaxReplyLen());
+        cached.d.rd=question.d.rd; // copy in recursion desired bit
+        cached.d.id=question.d.id;
         cached.commitD(); // commit d to the packet                        inlined
-        NS->send(&cached); // answer it then                              inlined
-        diff=P->d_dt.udiff();
+        NS->send(cached); // answer it then                              inlined
+        diff=question.d_dt.udiff();
         avg_latency=(int)(0.999*avg_latency+0.001*diff); // 'EWMA'
         continue;
       }
@@ -476,13 +475,12 @@ try
       g_log<<"packetcache MISS"<<endl;
 
     try {
-      distributor->question(P, &sendout); // otherwise, give to the distributor
+      distributor->question(question, &sendout); // otherwise, give to the distributor
     }
     catch(DistributorFatal& df) { // when this happens, we have leaked loads of memory. Bailing out time.
       _exit(1);
     }
   }
-  return 0;
 }
 catch(PDNSException& pe)
 {
@@ -559,7 +557,7 @@ void mainthread()
   Utility::dropUserPrivs(newuid);
 
   if(::arg().mustDo("resolver")){
-    DP=new DNSProxy(::arg()["resolver"]);
+    DP=std::unique_ptr<DNSProxy>(new DNSProxy(::arg()["resolver"]));
     DP->go();
   }
 
@@ -608,8 +606,6 @@ void mainthread()
   // NOW SAFE TO CREATE THREADS!
   dl->go();
 
-  pthread_t qtid;
-
   if(::arg().mustDo("webserver") || ::arg().mustDo("api"))
     webserver.go();
 
@@ -618,13 +614,14 @@ void mainthread()
 
   TN->go(); // tcp nameserver launch
 
-  //  fork(); (this worked :-))
   unsigned int max_rthreads= ::arg().asNum("receiver-threads", 1);
   g_distributors.resize(max_rthreads);
-  for(unsigned int n=0; n < max_rthreads; ++n)
-    pthread_create(&qtid,0,qthread, reinterpret_cast<void *>(n)); // receives packets
+  for(unsigned int n=0; n < max_rthreads; ++n) {
+    std::thread t(qthread, n);
+    t.detach();
+  }
 
-  pthread_create(&qtid,0,carbonDumpThread, 0); // runs even w/o carbon, might change @ runtime    
+  std::thread carbonThread(carbonDumpThread); // runs even w/o carbon, might change @ runtime    
 
 #ifdef HAVE_SYSTEMD
   /* If we are here, notify systemd that we are ay-ok! This might have some

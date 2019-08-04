@@ -148,8 +148,8 @@ Semaphore::~Semaphore()
 
 Semaphore::Semaphore(unsigned int value)
 {
-  m_pSemaphore=new sem_t;
-  if (sem_init(m_pSemaphore, 0, value) == -1) {
+  m_pSemaphore=make_unique<sem_t>();
+  if (sem_init(m_pSemaphore.get(), 0, value) == -1) {
     g_log << Logger::Error << "Cannot create semaphore: " << stringerror() << endl;
     exit(1);
   }
@@ -157,30 +157,29 @@ Semaphore::Semaphore(unsigned int value)
 
 int Semaphore::post()
 {
-  return sem_post(m_pSemaphore);
+  return sem_post(m_pSemaphore.get());
 }
 
 int Semaphore::wait()
 {
   int ret;
   do
-    ret = sem_wait(m_pSemaphore);
+    ret = sem_wait(m_pSemaphore.get());
   while (ret == -1 && errno == EINTR);
   return ret;
 }
 int Semaphore::tryWait()
 {
-  return sem_trywait(m_pSemaphore);
+  return sem_trywait(m_pSemaphore.get());
 }
 
 int Semaphore::getValue(Semaphore::sem_value_t *sval)
 {
-  return sem_getvalue(m_pSemaphore, sval);
+  return sem_getvalue(m_pSemaphore.get(), sval);
 }
 
 Semaphore::~Semaphore()
 {
-  delete m_pSemaphore;
 }
 
 #endif

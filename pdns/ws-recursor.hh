@@ -69,7 +69,7 @@ public:
   void jsonstat(HttpRequest* req, HttpResponse *resp);
 
 private:
-  AsyncWebServer* d_ws;
+  std::unique_ptr<AsyncWebServer> d_ws{nullptr};
 };
 
 #endif /* PDNS_WSRECURSOR_HH */

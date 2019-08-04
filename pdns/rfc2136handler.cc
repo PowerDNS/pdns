@@ -576,16 +576,16 @@ uint PacketHandler::performUpdate(const string &msgPrefix, const DNSRecord *rr, 
   return changedRecords;
 }
 
-int PacketHandler::forwardPacket(const string &msgPrefix, DNSPacket *p, DomainInfo *di) {
+int PacketHandler::forwardPacket(const string &msgPrefix, const DNSPacket& p, const DomainInfo& di) {
   vector<string> forward;
-  B.getDomainMetadata(p->qdomain, "FORWARD-DNSUPDATE", forward);
+  B.getDomainMetadata(p.qdomain, "FORWARD-DNSUPDATE", forward);
 
   if (forward.size() == 0 && ! ::arg().mustDo("forward-dnsupdate")) {
     g_log<<Logger::Notice<<msgPrefix<<"Not configured to forward to master, returning Refused."<<endl;
     return RCode::Refused;
   }
 
-  for(const auto& remote : di->masters) {
+  for(const auto& remote : di.masters) {
     g_log<<Logger::Notice<<msgPrefix<<"Forwarding packet to master "<<remote<<endl;
 
     ComboAddress local;
@@ -613,7 +613,7 @@ int PacketHandler::forwardPacket(const string &msgPrefix, DNSPacket *p, DomainIn
       continue;
     }
 
-    DNSPacket forwardPacket(*p);
+    DNSPacket forwardPacket(p);
     forwardPacket.setID(dns_random_uint16());
     forwardPacket.setRemote(&remote);
     uint16_t len=htons(forwardPacket.getString().length());
@@ -701,11 +701,11 @@ int PacketHandler::forwardPacket(const string &msgPrefix, DNSPacket *p, DomainIn
 
 }
 
-int PacketHandler::processUpdate(DNSPacket *p) {
+int PacketHandler::processUpdate(DNSPacket& p) {
   if (! ::arg().mustDo("dnsupdate"))
     return RCode::Refused;
 
-  string msgPrefix="UPDATE (" + itoa(p->d.id) + ") from " + p->getRemote().toString() + " for " + p->qdomain.toLogString() + ": ";
+  string msgPrefix="UPDATE (" + itoa(p.d.id) + ") from " + p.getRemote().toString() + " for " + p.qdomain.toLogString() + ": ";
   g_log<<Logger::Info<<msgPrefix<<"Processing started."<<endl;
 
   // if there is policy, we delegate all checks to it
@@ -713,7 +713,7 @@ int PacketHandler::processUpdate(DNSPacket *p) {
 
     // Check permissions - IP based
     vector<string> allowedRanges;
-    B.getDomainMetadata(p->qdomain, "ALLOW-DNSUPDATE-FROM", allowedRanges);
+    B.getDomainMetadata(p.qdomain, "ALLOW-DNSUPDATE-FROM", allowedRanges);
     if (! ::arg()["allow-dnsupdate-from"].empty())
       stringtok(allowedRanges, ::arg()["allow-dnsupdate-from"], ", \t" );
 
@@ -722,7 +722,7 @@ int PacketHandler::processUpdate(DNSPacket *p) {
       ng.addMask(i);
     }
 
-    if ( ! ng.match(&p->d_remote)) {
+    if ( ! ng.match(&p.d_remote)) {
       g_log<<Logger::Error<<msgPrefix<<"Remote not listed in allow-dnsupdate-from or domainmetadata. Sending REFUSED"<<endl;
       return RCode::Refused;
     }
@@ -730,20 +730,20 @@ int PacketHandler::processUpdate(DNSPacket *p) {
 
     // Check permissions - TSIG based.
     vector<string> tsigKeys;
-    B.getDomainMetadata(p->qdomain, "TSIG-ALLOW-DNSUPDATE", tsigKeys);
+    B.getDomainMetadata(p.qdomain, "TSIG-ALLOW-DNSUPDATE", tsigKeys);
     if (tsigKeys.size() > 0) {
       bool validKey = false;
 
       TSIGRecordContent trc;
       DNSName inputkey;
       string message;
-      if (! p->getTSIGDetails(&trc,  &inputkey)) {
+      if (! p.getTSIGDetails(&trc,  &inputkey)) {
         g_log<<Logger::Error<<msgPrefix<<"TSIG key required, but packet does not contain key. Sending REFUSED"<<endl;
         return RCode::Refused;
       }
 
-      if (p->d_tsig_algo == TSIG_GSS) {
-        GssName inputname(p->d_peer_principal); // match against principal since GSS
+      if (p.d_tsig_algo == TSIG_GSS) {
+        GssName inputname(p.d_peer_principal); // match against principal since GSS
         for(const auto& key: tsigKeys) {
           if (inputname.match(key)) {
             validKey = true;
@@ -765,7 +765,7 @@ int PacketHandler::processUpdate(DNSPacket *p) {
       }
     }
 
-    if (tsigKeys.size() == 0 && p->d_havetsig)
+    if (tsigKeys.size() == 0 && p.d_havetsig)
       g_log<<Logger::Warning<<msgPrefix<<"TSIG is provided, but domain is not secured with TSIG. Processing continues"<<endl;
 
   }
@@ -773,31 +773,31 @@ int PacketHandler::processUpdate(DNSPacket *p) {
   // RFC2136 uses the same DNS Header and Message as defined in RFC1035.
   // This means we can use the MOADNSParser to parse the incoming packet. The result is that we have some different
   // variable names during the use of our MOADNSParser.
-  MOADNSParser mdp(false, p->getString());
+  MOADNSParser mdp(false, p.getString());
   if (mdp.d_header.qdcount != 1) {
     g_log<<Logger::Warning<<msgPrefix<<"Zone Count is not 1, sending FormErr"<<endl;
     return RCode::FormErr;
   }
 
-  if (p->qtype.getCode() != QType::SOA) { // RFC2136 2.3 - ZTYPE must be SOA
+  if (p.qtype.getCode() != QType::SOA) { // RFC2136 2.3 - ZTYPE must be SOA
     g_log<<Logger::Warning<<msgPrefix<<"Query ZTYPE is not SOA, sending FormErr"<<endl;
     return RCode::FormErr;
   }
 
-  if (p->qclass != QClass::IN) {
+  if (p.qclass != QClass::IN) {
     g_log<<Logger::Warning<<msgPrefix<<"Class is not IN, sending NotAuth"<<endl;
     return RCode::NotAuth;
   }
 
   DomainInfo di;
   di.backend=0;
-  if(!B.getDomainInfo(p->qdomain, di) || !di.backend) {
-    g_log<<Logger::Error<<msgPrefix<<"Can't determine backend for domain '"<<p->qdomain<<"' (or backend does not support DNS update operation)"<<endl;
+  if(!B.getDomainInfo(p.qdomain, di) || !di.backend) {
+    g_log<<Logger::Error<<msgPrefix<<"Can't determine backend for domain '"<<p.qdomain<<"' (or backend does not support DNS update operation)"<<endl;
     return RCode::NotAuth;
   }
 
   if (di.kind == DomainInfo::Slave)
-    return forwardPacket(msgPrefix, p, &di);
+    return forwardPacket(msgPrefix, p, di);
 
   // Check if all the records provided are within the zone
   for(MOADNSParser::answers_t::const_iterator i=mdp.d_answers.begin(); i != mdp.d_answers.end(); ++i) {
@@ -816,8 +816,8 @@ int PacketHandler::processUpdate(DNSPacket *p) {
 
   Lock l(&s_rfc2136lock); //TODO: i think this lock can be per zone, not for everything
   g_log<<Logger::Info<<msgPrefix<<"starting transaction."<<endl;
-  if (!di.backend->startTransaction(p->qdomain, -1)) { // Not giving the domain_id means that we do not delete the existing records.
-    g_log<<Logger::Error<<msgPrefix<<"Backend for domain "<<p->qdomain<<" does not support transaction. Can't do Update packet."<<endl;
+  if (!di.backend->startTransaction(p.qdomain, -1)) { // Not giving the domain_id means that we do not delete the existing records.
+    g_log<<Logger::Error<<msgPrefix<<"Backend for domain "<<p.qdomain<<" does not support transaction. Can't do Update packet."<<endl;
     return RCode::NotImp;
   }
 
@@ -1026,7 +1026,7 @@ int PacketHandler::processUpdate(DNSPacket *p) {
       // Notify slaves
       if (di.kind == DomainInfo::Master) {
         vector<string> notify;
-        B.getDomainMetadata(p->qdomain, "NOTIFY-DNSUPDATE", notify);
+        B.getDomainMetadata(p.qdomain, "NOTIFY-DNSUPDATE", notify);
         if (!notify.empty() && notify.front() == "1") {
           Communicator.notifyDomain(di.zone, &B);
         }

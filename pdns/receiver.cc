@@ -541,15 +541,15 @@ int main(int argc, char **argv)
 
     if(isGuarded(argv)) {
       g_log<<Logger::Warning<<"This is a guarded instance of pdns"<<endl;
-      dl=new DynListener; // listens on stdin 
+      dl=make_unique<DynListener>(); // listens on stdin 
     }
     else {
       g_log<<Logger::Warning<<"This is a standalone pdns"<<endl; 
       
       if(::arg().mustDo("control-console"))
-        dl=new DynListener();
+        dl=make_unique<DynListener>();
       else
-        dl=new DynListener(s_programname);
+        dl=std::unique_ptr<DynListener>(new DynListener(s_programname));
       
       writePid();
     }

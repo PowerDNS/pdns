@@ -52,9 +52,9 @@ public:
   AuthPacketCache(size_t mapsCount=1024);
   ~AuthPacketCache();
 
-  void insert(DNSPacket *q, DNSPacket *r, uint32_t maxTTL);  //!< We copy the contents of *p into our cache. Do not needlessly call this to insert questions already in the cache as it wastes resources
+  void insert(DNSPacket& q, DNSPacket& r, uint32_t maxTTL);  //!< We copy the contents of *p into our cache. Do not needlessly call this to insert questions already in the cache as it wastes resources
 
-  bool get(DNSPacket *p, DNSPacket *q); //!< We return a dynamically allocated copy out of our cache. You need to delete it. You also need to spoof in the right ID with the DNSPacket.spoofID() method.
+  bool get(DNSPacket& p, DNSPacket& q); //!< You need to spoof in the right ID with the DNSPacket.spoofID() method.
 
   void cleanup(); //!< force the cache to preen itself from expired packets
   uint64_t purge();

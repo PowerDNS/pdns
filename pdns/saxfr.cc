@@ -128,17 +128,17 @@ try
         throw PDNSException("tcp read failed");
 
       len=ntohs(len);
-      char *creply = new char[len];
+      std::unique_ptr<char[]> creply(new char[len]);
       int n=0;
       int numread;
       while(n<len) {
-        numread=sock.read(creply+n, len-n);
+        numread=sock.read(creply.get()+n, len-n);
         if(numread<0)
           throw PDNSException("tcp read failed");
         n+=numread;
       }
 
-      MOADNSParser mdp(false, string(creply, len));
+      MOADNSParser mdp(false, string(creply.get(), len));
        if (mdp.d_header.rcode != 0) {
          throw PDNSException(string("Remote server refused: ") + std::to_string(mdp.d_header.rcode));
        }
@@ -193,17 +193,17 @@ try
       throw PDNSException("tcp read failed");
 
     len=ntohs(len);
-    char *creply = new char[len];
+    std::unique_ptr<char[]> creply(new char[len]);
     int n=0;
     int numread;
     while(n<len) {
-      numread=sock.read(creply+n, len-n);
+      numread=sock.read(creply.get()+n, len-n);
       if(numread<0)
         throw PDNSException("tcp read failed");
       n+=numread;
     }
 
-    MOADNSParser mdp(false, string(creply, len));
+    MOADNSParser mdp(false, string(creply.get(), len));
     if (mdp.d_header.rcode != 0) {
       throw PDNSException(string("Remote server refused: ") + std::to_string(mdp.d_header.rcode));
     }
@@ -274,8 +274,6 @@ try
       }while(shorter.chopOff());
 
     }
-
-    delete[] creply;
   }
 
   if (isNSEC3 && unhash)

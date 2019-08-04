@@ -55,7 +55,7 @@ static po::variables_map g_vm;
 
 static bool g_quiet;
 
-static void* recvThread(const vector<Socket*>* sockets)
+static void* recvThread(const vector<std::unique_ptr<Socket>>* sockets)
 {
   vector<pollfd> rfds, fds;
   for(const auto& s : *sockets) {
@@ -170,7 +170,7 @@ static void replaceEDNSClientSubnet(vector<uint8_t>* packet, const Netmask& ecsR
   memcpy(&packet->at(packetSize - sizeof(addr)), &addr, sizeof(addr));
 }
 
-static void sendPackets(const vector<Socket*>* sockets, const vector<vector<uint8_t>* >& packets, int qps, ComboAddress dest, const Netmask& ecsRange)
+static void sendPackets(const vector<std::unique_ptr<Socket>>& sockets, const vector<vector<uint8_t>* >& packets, int qps, ComboAddress dest, const Netmask& ecsRange)
 {
   unsigned int burst=100;
   const auto nsecPerBurst=1*(unsigned long)(burst*1000000000.0/qps);
@@ -200,7 +200,7 @@ static void sendPackets(const vector<Socket*>* sockets, const vector<vector<uint
     }
 
     fillMSGHdr(&u.msgh, &u.iov, nullptr, 0, (char*)&(*p)[0], p->size(), &dest);
-    if((ret=sendmsg((*sockets)[count % sockets->size()]->getHandle(), 
+    if((ret=sendmsg(sockets[count % sockets.size()]->getHandle(), 
 		    &u.msgh, 0)))
       if(ret < 0)
 	      unixDie("sendmsg");
@@ -413,7 +413,7 @@ try
     cout<<"Generated "<<unknown.size()<<" ready to use queries"<<endl;
   }
   
-  vector<Socket*> sockets;
+  vector<std::unique_ptr<Socket>> sockets;
   ComboAddress dest;
   try {
     dest = ComboAddress(g_vm["destination"].as<string>(), 53);
@@ -423,11 +423,11 @@ try
     return EXIT_FAILURE;
   }
   for(int i=0; i < 24; ++i) {
-    Socket *sock = new Socket(dest.sin4.sin_family, SOCK_DGRAM);
+    auto sock = make_unique<Socket>(dest.sin4.sin_family, SOCK_DGRAM);
     //    sock->connect(dest);
     setSocketSendBuffer(sock->getHandle(), 2000000);
     setSocketReceiveBuffer(sock->getHandle(), 2000000);
-    sockets.push_back(sock);
+    sockets.push_back(std::move(sock));
   }
   new thread(recvThread, &sockets);
   uint32_t qps;
@@ -479,7 +479,7 @@ try
     DTime dt;
     dt.set();
 
-    sendPackets(&sockets, toSend, qps, dest, ecsRange);
+    sendPackets(sockets, toSend, qps, dest, ecsRange);
     
     const auto udiff = dt.udiffNoReset();
     const auto realqps=toSend.size()/(udiff/1000000.0);

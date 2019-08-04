@@ -59,7 +59,7 @@ private:
   sem_value_t     m_count;
   uint32_t       m_nwaiters;
 #else
-  sem_t *m_pSemaphore;
+  std::unique_ptr<sem_t> m_pSemaphore;
 #endif
 
 protected:

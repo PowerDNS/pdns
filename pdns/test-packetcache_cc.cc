@@ -164,7 +164,7 @@ try
     q.setHash(g_PC->canHashPacket(q.getString()));
 
     const unsigned int maxTTL = 3600;
-    g_PC->insert(&q, &r, maxTTL);
+    g_PC->insert(q, r, maxTTL);
   }
 
   return 0;
@@ -188,7 +188,7 @@ try
     q.parse((char*)&pak[0], pak.size());
     DNSPacket r(false);
 
-    if(!g_PC->get(&q, &r)) {
+    if(!g_PC->get(q, r)) {
       g_PCmissing++;
     }
   }
@@ -378,85 +378,85 @@ BOOST_AUTO_TEST_CASE(test_AuthPacketCache) {
     }
 
     /* this call is required so the correct hash is set into q->d_hash */
-    BOOST_CHECK_EQUAL(PC.get(&q, &r2), false);
+    BOOST_CHECK_EQUAL(PC.get(q, r2), false);
 
-    PC.insert(&q, &r, 3600);
+    PC.insert(q, r, 3600);
     BOOST_CHECK_EQUAL(PC.size(), 1);
 
-    BOOST_CHECK_EQUAL(PC.get(&q, &r2), true);
+    BOOST_CHECK_EQUAL(PC.get(q, r2), true);
     BOOST_CHECK_EQUAL(r2.qdomain, r.qdomain);
 
     /* different QID, still should match */
-    BOOST_CHECK_EQUAL(PC.get(&differentIDQ, &r2), true);
+    BOOST_CHECK_EQUAL(PC.get(differentIDQ, r2), true);
     BOOST_CHECK_EQUAL(r2.qdomain, r.qdomain);
 
     /* with EDNS, should not match */
-    BOOST_CHECK_EQUAL(PC.get(&ednsQ, &r2), false);
+    BOOST_CHECK_EQUAL(PC.get(ednsQ, r2), false);
     /* inserting the EDNS-enabled one too */
-    PC.insert(&ednsQ, &r, 3600);
+    PC.insert(ednsQ, r, 3600);
     BOOST_CHECK_EQUAL(PC.size(), 2);
 
     /* different EDNS versions, should not match */
-    BOOST_CHECK_EQUAL(PC.get(&ednsVersion42, &r2), false);
+    BOOST_CHECK_EQUAL(PC.get(ednsVersion42, r2), false);
 
     /* EDNS DO set, should not match */
-    BOOST_CHECK_EQUAL(PC.get(&ednsDO, &r2), false);
+    BOOST_CHECK_EQUAL(PC.get(ednsDO, r2), false);
 
     /* EDNS Client Subnet set, should not match
        since not only we don't skip the actual option, but the
        total EDNS opt RR is still different. */
-    BOOST_CHECK_EQUAL(PC.get(&ecs1, &r2), false);
+    BOOST_CHECK_EQUAL(PC.get(ecs1, r2), false);
 
     /* inserting the version with ECS Client Subnet set,
      it should NOT replace the existing EDNS one. */
-    PC.insert(&ecs1, &r, 3600);
+    PC.insert(ecs1, r, 3600);
     BOOST_CHECK_EQUAL(PC.size(), 3);
 
     /* different subnet of same size, should NOT match
      since we don't skip the option */
-    BOOST_CHECK_EQUAL(PC.get(&ecs2, &r2), false);
+    BOOST_CHECK_EQUAL(PC.get(ecs2, r2), false);
     BOOST_CHECK_EQUAL(r2.qdomain, r.qdomain);
 
     /* different subnet of different size, should NOT match. */
-    BOOST_CHECK_EQUAL(PC.get(&ecs3, &r2), false);
+    BOOST_CHECK_EQUAL(PC.get(ecs3, r2), false);
 
     BOOST_CHECK_EQUAL(PC.purge("www.powerdns.com"), 3);
-    BOOST_CHECK_EQUAL(PC.get(&q, &r2), false);
+    BOOST_CHECK_EQUAL(PC.get(q, r2), false);
     BOOST_CHECK_EQUAL(PC.size(), 0);
 
-    PC.insert(&q, &r, 3600);
+    PC.insert(q, r, 3600);
     BOOST_CHECK_EQUAL(PC.size(), 1);
-    BOOST_CHECK_EQUAL(PC.get(&q, &r2), true);
+    BOOST_CHECK_EQUAL(PC.get(q, r2), true);
     BOOST_CHECK_EQUAL(r2.qdomain, r.qdomain);
     BOOST_CHECK_EQUAL(PC.purge("com$"), 1);
-    BOOST_CHECK_EQUAL(PC.get(&q, &r2), false);
+    BOOST_CHECK_EQUAL(PC.get(q, r2), false);
     BOOST_CHECK_EQUAL(PC.size(), 0);
 
-    PC.insert(&q, &r, 3600);
+    PC.insert(q, r, 3600);
     BOOST_CHECK_EQUAL(PC.size(), 1);
-    BOOST_CHECK_EQUAL(PC.get(&q, &r2), true);
+    BOOST_CHECK_EQUAL(PC.get(q, r2), true);
     BOOST_CHECK_EQUAL(r2.qdomain, r.qdomain);
     BOOST_CHECK_EQUAL(PC.purge("powerdns.com$"), 1);
-    BOOST_CHECK_EQUAL(PC.get(&q, &r2), false);
+    BOOST_CHECK_EQUAL(PC.get(q, r2), false);
     BOOST_CHECK_EQUAL(PC.size(), 0);
 
-    PC.insert(&q, &r, 3600);
+    PC.insert(q, r, 3600);
     BOOST_CHECK_EQUAL(PC.size(), 1);
-    BOOST_CHECK_EQUAL(PC.get(&q, &r2), true);
+    BOOST_CHECK_EQUAL(PC.get(q, r2), true);
     BOOST_CHECK_EQUAL(r2.qdomain, r.qdomain);
     BOOST_CHECK_EQUAL(PC.purge("www.powerdns.com$"), 1);
-    BOOST_CHECK_EQUAL(PC.get(&q, &r2), false);
+    BOOST_CHECK_EQUAL(PC.get(q, r2), false);
     BOOST_CHECK_EQUAL(PC.size(), 0);
 
-    PC.insert(&q, &r, 3600);
+    PC.insert(q, r, 3600);
     BOOST_CHECK_EQUAL(PC.size(), 1);
     BOOST_CHECK_EQUAL(PC.purge("www.powerdns.net"), 0);
-    BOOST_CHECK_EQUAL(PC.get(&q, &r2), true);
+    BOOST_CHECK_EQUAL(PC.get(q, r2), true);
     BOOST_CHECK_EQUAL(r2.qdomain, r.qdomain);
     BOOST_CHECK_EQUAL(PC.size(), 1);
 
     BOOST_CHECK_EQUAL(PC.purge("net$"), 0);
-    BOOST_CHECK_EQUAL(PC.get(&q, &r2), true);
+    BOOST_CHECK_EQUAL(PC.get(q, r2), true);
     BOOST_CHECK_EQUAL(r2.qdomain, r.qdomain);
     BOOST_CHECK_EQUAL(PC.size(), 1);
 
