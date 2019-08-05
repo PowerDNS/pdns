@@ -591,6 +591,8 @@ static void connectionThread(int sock, ComboAddress remote)
         output << "# TYPE " << dohfrontsbase << "bad_requests " << "counter" << "\n";
         output << "# HELP " << dohfrontsbase << "error_responses " << "Number of responses sent by dnsdist indicating an error" << "\n";
         output << "# TYPE " << dohfrontsbase << "error_responses " << "counter" << "\n";
+        output << "# HELP " << dohfrontsbase << "redirect_responses " << "Number of responses sent by dnsdist indicating a redirect" << "\n";
+        output << "# TYPE " << dohfrontsbase << "redirect_responses " << "counter" << "\n";
         output << "# HELP " << dohfrontsbase << "valid_responses " << "Number of valid responses sent by dnsdist" << "\n";
         output << "# TYPE " << dohfrontsbase << "valid_responses " << "counter" << "\n";
         output << "# HELP " << dohfrontsbase << "http1_queries " << "Number of queries received over HTTP/1.x" << "\n";
@@ -636,6 +638,7 @@ static void connectionThread(int sock, ComboAddress remote)
           output << dohfrontsbase << "post_queries" << label << doh->d_postqueries << "\n";
           output << dohfrontsbase << "bad_requests" << label << doh->d_badrequests << "\n";
           output << dohfrontsbase << "error_responses" << label << doh->d_errorresponses << "\n";
+          output << dohfrontsbase << "redirect_responses" << label << doh->d_redirectresponses << "\n";
           output << dohfrontsbase << "valid_responses" << label << doh->d_validresponses << "\n";
 
           output << dohfrontsbase << "http1_queries" << label << doh->d_http1Stats.d_nbQueries << "\n";
@@ -798,6 +801,7 @@ static void connectionThread(int sock, ComboAddress remote)
             { "post-queries", (double) doh->d_postqueries },
             { "bad-requests", (double) doh->d_badrequests },
             { "error-responses", (double) doh->d_errorresponses },
+            { "redirect-responses", (double) doh->d_redirectresponses },
             { "valid-responses", (double) doh->d_validresponses }
           };
           dohs.push_back(obj);

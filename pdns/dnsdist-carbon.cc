@@ -197,6 +197,7 @@ try
               {"post-queries", doh->d_postqueries},
               {"bad-requests", doh->d_badrequests},
               {"error-responses", doh->d_errorresponses},
+              {"redirect-responses", doh->d_redirectresponses},
               {"valid-responses", doh->d_validresponses}
             };
 
