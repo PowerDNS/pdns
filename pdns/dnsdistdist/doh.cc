@@ -810,21 +810,26 @@ static void on_dnsdist(h2o_socket_t *listener, const char *err)
     ++dsc->df->d_redirectresponses;
   }
   else {
-    switch(du->status_code) {
-    case 400:
-      h2o_send_error_400(du->req, getReasonFromStatusCode(du->status_code).c_str(), du->response.empty() ? "invalid DNS query" : du->response.c_str(), 0);
-      break;
-    case 403:
-      h2o_send_error_403(du->req, getReasonFromStatusCode(du->status_code).c_str(), du->response.empty() ? "dns query not allowed" : du->response.c_str(), 0);
-      break;
-    case 502:
-      h2o_send_error_502(du->req, getReasonFromStatusCode(du->status_code).c_str(), du->response.empty() ? "no downstream server available" : du->response.c_str(), 0);
-      break;
-    case 500:
-      /* fall-through */
-    default:
-      h2o_send_error_500(du->req, getReasonFromStatusCode(du->status_code).c_str(), du->response.empty() ? "Internal Server Error" : du->response.c_str(), 0);
-      break;
+    if (!du->response.empty()) {
+      h2o_send_error_generic(du->req, du->status_code, getReasonFromStatusCode(du->status_code).c_str(), du->response.c_str(), 0);
+    }
+    else {
+      switch(du->status_code) {
+      case 400:
+        h2o_send_error_400(du->req, getReasonFromStatusCode(du->status_code).c_str(), "invalid DNS query" , 0);
+        break;
+      case 403:
+        h2o_send_error_403(du->req, getReasonFromStatusCode(du->status_code).c_str(), "dns query not allowed", 0);
+        break;
+      case 502:
+        h2o_send_error_502(du->req, getReasonFromStatusCode(du->status_code).c_str(), "no downstream server available", 0);
+        break;
+      case 500:
+        /* fall-through */
+      default:
+        h2o_send_error_500(du->req, getReasonFromStatusCode(du->status_code).c_str(), "Internal Server Error", 0);
+        break;
+      }
     }
 
     ++dsc->df->d_errorresponses;
