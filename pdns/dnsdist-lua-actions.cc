@@ -1258,6 +1258,40 @@ private:
   std::string d_tag;
 };
 
+class SetNegativeAndSOAAction: public DNSAction
+{
+public:
+  SetNegativeAndSOAAction(bool nxd, const DNSName& zone, uint32_t ttl, const DNSName& mname, const DNSName& rname, uint32_t serial, uint32_t refresh, uint32_t retry, uint32_t expire, uint32_t minimum): d_zone(zone), d_mname(mname), d_rname(rname), d_ttl(ttl), d_serial(serial), d_refresh(refresh), d_retry(retry), d_expire(expire), d_minimum(minimum), d_nxd(nxd)
+  {
+  }
+
+  DNSAction::Action operator()(DNSQuestion* dq, std::string* ruleresult) const override
+  {
+    if (!setNegativeAndAdditionalSOA(*dq, d_nxd, d_zone, d_ttl, d_mname, d_rname, d_serial, d_refresh, d_retry, d_expire, d_minimum)) {
+      return Action::None;
+    }
+
+    return Action::Allow;
+  }
+
+  std::string toString() const override
+  {
+    return std::string(d_nxd ? "NXD " : "NODATA") + " with SOA";
+  }
+
+private:
+  DNSName d_zone;
+  DNSName d_mname;
+  DNSName d_rname;
+  uint32_t d_ttl;
+  uint32_t d_serial;
+  uint32_t d_refresh;
+  uint32_t d_retry;
+  uint32_t d_expire;
+  uint32_t d_minimum;
+  bool d_nxd;
+};
+
 template<typename T, typename ActionT>
 static void addAction(GlobalStateHolder<vector<T> > *someRulActions, const luadnsrule_t& var, const std::shared_ptr<ActionT>& action, boost::optional<luaruleparams_t>& params) {
   setLuaSideEffect();
@@ -1641,5 +1675,9 @@ void setupLuaActions()
 
   g_lua.writeFunction("KeyValueStoreLookupAction", [](std::shared_ptr<KeyValueStore>& kvs, std::shared_ptr<KeyValueLookupKey>& lookupKey, const std::string& destinationTag) {
       return std::shared_ptr<DNSAction>(new KeyValueStoreLookupAction(kvs, lookupKey, destinationTag));
+    });
+
+  g_lua.writeFunction("SetNegativeAndSOAAction", [](bool nxd, const std::string& zone, uint32_t ttl, const std::string& mname, const std::string& rname, uint32_t serial, uint32_t refresh, uint32_t retry, uint32_t expire, uint32_t minimum) {
+      return std::shared_ptr<DNSAction>(new SetNegativeAndSOAAction(nxd, DNSName(zone), ttl, DNSName(mname), DNSName(rname), serial, refresh, retry, expire, minimum));
     });
 }

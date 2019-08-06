@@ -259,4 +259,8 @@ void setupLuaBindingsDNSQuestion()
       dq.du->setHTTPResponse(statusCode, body, contentType ? *contentType : "");
     });
 #endif /* HAVE_DNS_OVER_HTTPS */
+
+  g_lua.registerFunction<bool(DNSQuestion::*)(bool nxd, const std::string& zone, uint32_t ttl, const std::string& mname, const std::string& rname, uint32_t serial, uint32_t refresh, uint32_t retry, uint32_t expire, uint32_t minimum)>("setNegativeAndAdditionalSOA", [](DNSQuestion& dq, bool nxd, const std::string& zone, uint32_t ttl, const std::string& mname, const std::string& rname, uint32_t serial, uint32_t refresh, uint32_t retry, uint32_t expire, uint32_t minimum) {
+      return setNegativeAndAdditionalSOA(dq, nxd, DNSName(zone), ttl, DNSName(mname), DNSName(rname), serial, refresh, retry, expire, minimum);
+    });
 }

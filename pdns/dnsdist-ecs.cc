@@ -839,10 +839,6 @@ int rewriteResponseWithoutEDNSOption(const std::string& initialPacket, const uin
 
 bool addEDNS(dnsheader* dh, uint16_t& len, const size_t size, bool dnssecOK, uint16_t payloadSize, uint8_t ednsrcode)
 {
-  if (dh->arcount != 0) {
-    return false;
-  }
-
   std::string optRecord;
   generateOptRR(std::string(), optRecord, payloadSize, ednsrcode, dnssecOK);
 
@@ -853,7 +849,101 @@ bool addEDNS(dnsheader* dh, uint16_t& len, const size_t size, bool dnssecOK, uin
   char * optPtr = reinterpret_cast<char*>(dh) + len;
   memcpy(optPtr, optRecord.data(), optRecord.size());
   len += optRecord.size();
-  dh->arcount = htons(1);
+  dh->arcount = htons(ntohs(dh->arcount) + 1);
+
+  return true;
+}
+
+/*
+  This function keeps the existing header and DNSSECOK bit (if any) but wipes anything else,
+  generating a NXD or NODATA answer with a SOA record in the additional section.
+*/
+bool setNegativeAndAdditionalSOA(DNSQuestion& dq, bool nxd, const DNSName& zone, uint32_t ttl, const DNSName& mname, const DNSName& rname, uint32_t serial, uint32_t refresh, uint32_t retry, uint32_t expire, uint32_t minimum)
+{
+  if (ntohs(dq.dh->qdcount) != 1) {
+    return false;
+  }
+
+  assert(dq.consumed == dq.qname->wirelength());
+  size_t queryPartSize = sizeof(dnsheader) + dq.consumed + DNS_TYPE_SIZE + DNS_CLASS_SIZE;
+  if (dq.len < queryPartSize) {
+    /* something is already wrong, don't build on flawed foundations */
+    return false;
+  }
+
+  size_t available = dq.size - queryPartSize;
+  uint16_t qtype = htons(QType::SOA);
+  uint16_t qclass = htons(QClass::IN);
+  uint16_t rdLength = mname.wirelength() + rname.wirelength() + sizeof(serial) + sizeof(refresh) + sizeof(retry) + sizeof(expire) + sizeof(minimum);
+  size_t soaSize = zone.wirelength() + sizeof(qtype) + sizeof(qclass) + sizeof(ttl) + sizeof(rdLength) + rdLength;
+
+  if (soaSize > available) {
+    /* not enough space left to add the SOA, sorry! */
+    return false;
+  }
+
+  bool hadEDNS = false;
+  bool dnssecOK = false;
+
+  if (g_addEDNSToSelfGeneratedResponses) {
+    uint16_t payloadSize = 0;
+    uint16_t z = 0;
+    hadEDNS = getEDNSUDPPayloadSizeAndZ(reinterpret_cast<const char*>(dq.dh), dq.len, &payloadSize, &z);
+    if (hadEDNS) {
+      dnssecOK = z & EDNS_HEADER_FLAG_DO;
+    }
+  }
+
+  /* chop off everything after the question */
+  dq.len = queryPartSize;
+  if (nxd) {
+    dq.dh->rcode = RCode::NXDomain;
+  }
+  else {
+    dq.dh->rcode = RCode::NoError;
+  }
+  dq.dh->qr = true;
+  dq.dh->ancount = 0;
+  dq.dh->nscount = 0;
+  dq.dh->arcount = 0;
+
+  rdLength = htons(rdLength);
+  ttl = htonl(ttl);
+  serial = htonl(serial);
+  refresh = htonl(refresh);
+  retry = htonl(retry);
+  expire = htonl(expire);
+  minimum = htonl(minimum);
+
+  std::string soa;
+  soa.reserve(soaSize);
+  soa.append(zone.toDNSString());
+  soa.append(reinterpret_cast<const char*>(&qtype), sizeof(qtype));
+  soa.append(reinterpret_cast<const char*>(&qclass), sizeof(qclass));
+  soa.append(reinterpret_cast<const char*>(&ttl), sizeof(ttl));
+  soa.append(reinterpret_cast<const char*>(&rdLength), sizeof(rdLength));
+  soa.append(mname.toDNSString());
+  soa.append(rname.toDNSString());
+  soa.append(reinterpret_cast<const char*>(&serial), sizeof(serial));
+  soa.append(reinterpret_cast<const char*>(&refresh), sizeof(refresh));
+  soa.append(reinterpret_cast<const char*>(&retry), sizeof(retry));
+  soa.append(reinterpret_cast<const char*>(&expire), sizeof(expire));
+  soa.append(reinterpret_cast<const char*>(&minimum), sizeof(minimum));
+
+  if (soa.size() != soaSize) {
+    throw std::runtime_error("Unexpected SOA response size: " + std::to_string(soa.size()) + " vs " + std::to_string(soaSize));
+  }
+
+  memcpy(reinterpret_cast<char*>(dq.dh) + queryPartSize, soa.c_str(), soa.size());
+
+  dq.len += soa.size();
+
+  dq.dh->arcount = htons(1);
+
+  if (g_addEDNSToSelfGeneratedResponses) {
+    /* now we need to add a new OPT record */
+    return addEDNS(dq.dh, dq.len, dq.size, dnssecOK, g_PayloadSizeSelfGenAnswers, dq.ednsRCode);
+  }
 
   return true;
 }

@@ -1842,3 +1842,51 @@ class TestAdvancedContinueAction(DNSDistTest):
             print(receivedResponse)
             print(expectedResponse)
             self.assertEquals(receivedResponse, expectedResponse)
+
+class TestAdvancedSetNegativeAndSOA(DNSDistTest):
+
+    _config_template = """
+    addAction("nxd.setnegativeandsoa.advanced.tests.powerdns.com.", SetNegativeAndSOAAction(true, "auth.", 42, "mname", "rname", 5, 4, 3, 2, 1))
+    addAction("nodata.setnegativeandsoa.advanced.tests.powerdns.com.", SetNegativeAndSOAAction(false, "another-auth.", 42, "mname", "rname", 1, 2, 3, 4, 5))
+    newServer{address="127.0.0.1:%s"}
+    """
+
+    def testAdvancedNegativeAndSOANXD(self):
+        """
+        Advanced: SetNegativeAndSOAAction NXD
+        """
+        name = 'nxd.setnegativeandsoa.advanced.tests.powerdns.com.'
+        query = dns.message.make_query(name, 'A', 'IN')
+        expectedResponse = dns.message.make_response(query)
+        expectedResponse.set_rcode(dns.rcode.NXDOMAIN)
+        soa = dns.rrset.from_text("auth",
+                                  42,
+                                  dns.rdataclass.IN,
+                                  dns.rdatatype.SOA,
+                                  'mname. rname. 5 4 3 2 1')
+        expectedResponse.additional.append(soa)
+
+        for method in ("sendUDPQuery", "sendTCPQuery"):
+            sender = getattr(self, method)
+            (_, receivedResponse) = sender(query, response=None, useQueue=False)
+            self.assertEquals(receivedResponse, expectedResponse)
+
+    def testAdvancedNegativeAndSOANoData(self):
+        """
+        Advanced: SetNegativeAndSOAAction NoData
+        """
+        name = 'nodata.setnegativeandsoa.advanced.tests.powerdns.com.'
+        query = dns.message.make_query(name, 'A', 'IN')
+        expectedResponse = dns.message.make_response(query)
+        expectedResponse.set_rcode(dns.rcode.NOERROR)
+        soa = dns.rrset.from_text("another-auth",
+                                  42,
+                                  dns.rdataclass.IN,
+                                  dns.rdatatype.SOA,
+                                  'mname. rname. 1 2 3 4 5')
+        expectedResponse.additional.append(soa)
+
+        for method in ("sendUDPQuery", "sendTCPQuery"):
+            sender = getattr(self, method)
+            (_, receivedResponse) = sender(query, response=None, useQueue=False)
+            self.assertEquals(receivedResponse, expectedResponse)
