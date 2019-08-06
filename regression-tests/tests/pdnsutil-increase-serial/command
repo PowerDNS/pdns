@@ -1,0 +1,16 @@
+#!/bin/sh
+
+mysqldiff
+
+$PDNSUTIL --config-dir=. --config-name=gmysql increase-serial test.dyndns
+
+mysqldiff 1 "Check that test.dyndns. still has a valid ordername"
+
+[ -z "$GMYSQLDB" ] && GMYSQLDB=pdnstest
+[ -z "$GMYSQLUSER" ] && GMYSQLUSER=root
+[ -z "$GMYSQLHOST" ] && GMYSQLHOST=localhost
+[ -z "$GMYSQLPASSWD" ] && GMYSQLPASSWD=''
+
+mysql --user="$GMYSQLUSER" --password="$GMYSQLPASSWD" --host="$GMYSQLHOST" \
+		"$GMYSQLDB" \
+		-e "UPDATE records SET content='ns1.test.dyndns ahu.example.dyndns 2012060701 28800 7200 604800 86400' WHERE name='test.dyndns' AND type='SOA'"
