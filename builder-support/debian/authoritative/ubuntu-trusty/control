@@ -37,7 +37,7 @@ Build-Depends: autoconf,
                protobuf-compiler,
                ragel,
                unixodbc-dev (>= 2.2.14)
-Homepage: http://www.powerdns.com/
+Homepage: https://www.powerdns.com/
 
 Package: pdns-server
 Architecture: any

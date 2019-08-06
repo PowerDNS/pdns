@@ -23,7 +23,7 @@ Build-Depends: debhelper (>= 10~),
                ragel,
                systemd [linux-any]
 Standards-Version: 4.1.5
-Homepage: http://dnsdist.org
+Homepage: https://dnsdist.org
 
 Package: dnsdist
 Architecture: any

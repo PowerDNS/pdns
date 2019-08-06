@@ -1613,7 +1613,7 @@ When queried for its version over DNS
 responds truthfully. With this setting you can overrule what will be
 returned. Set the ``version-string`` to ``full`` to get the default
 behaviour, to ``powerdns`` to just make it state
-``served by PowerDNS - http://www.powerdns.com``. The ``anonymous``
+``Served by PowerDNS - https://www.powerdns.com/``. The ``anonymous``
 setting will return a ServFail, much like Microsoft nameservers do. You
 can set this response to a custom value as well.
 

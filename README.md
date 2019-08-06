@@ -2,7 +2,7 @@ PowerDNS is copyright © 2001-2019 by PowerDNS.COM BV and lots of
 contributors, using the GNU GPLv2 license (see NOTICE for the
 exact license and exception used).
 
-All documentation can be found on http://doc.powerdns.com/
+All documentation can be found on https://doc.powerdns.com/
 
 This file may lag behind at times. For most recent updates, always check
 https://doc.powerdns.com/md/changelog/.

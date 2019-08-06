@@ -4,7 +4,7 @@ Backend writers' guide
 PowerDNS backends are implemented via a simple yet powerful C++
 interface. If your needs are not met by the PipeBackend, you may want to
 write your own. Before doing any PowerDNS development, please read `this blog
-post <http://blog.powerdns.com/2015/06/23/what-is-a-powerdns-backend-and-how-do-i-make-it-send-an-nxdomain/>`__
+post <https://blog.powerdns.com/2015/06/23/what-is-a-powerdns-backend-and-how-do-i-make-it-send-an-nxdomain/>`__
 which has a FAQ and several pictures that help explain what a backend
 is.
 

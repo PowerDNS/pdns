@@ -924,7 +924,7 @@ Other changes
    'real' remote if available.
 -  pipebackend ABI v4 adds the zone name to the AXFR command.
 -  We now `avoid
-   getaddrinfo() <http://blog.powerdns.com/2014/05/21/a-surprising-discovery-on-converting-ipv6-addresses-we-no-longer-prefer-getaddrinfo/>`__
+   getaddrinfo() <https://blog.powerdns.com/2014/05/21/a-surprising-discovery-on-converting-ipv6-addresses-we-no-longer-prefer-getaddrinfo/>`__
    as much as possible.
 -  The packet cache now handles (forwarded) recursive answers better,
    including TTL aging and respecting allow-recursion.

@@ -1,6 +1,6 @@
-Format: http://www.debian.org/doc/packaging-manuals/copyright-format/1.0/
+Format: https://www.debian.org/doc/packaging-manuals/copyright-format/1.0/
 Upstream-Name: dnsdist
-Source: http://dnsdist.net
+Source: https://dnsdist.org
 
 Files: *
 Copyright: 2002-2016 PowerDNS.COM BV and contributors
