@@ -679,9 +679,9 @@ int increaseSerial(const DNSName& zone, DNSSECKeeper &dk)
     DNSName ordername;
     if(haveNSEC3) {
       if(!narrow)
-        ordername=DNSName(toBase32Hex(hashQNameWithSalt(ns3pr, zone))) + zone;
+        ordername=DNSName(toBase32Hex(hashQNameWithSalt(ns3pr, zone)));
     } else
-      ordername=zone;
+      ordername=DNSName("");
     if(g_verbose)
       cerr<<"'"<<rr.qname<<"' -> '"<< ordername <<"'"<<endl;
     sd.db->updateDNSSECOrderNameAndAuth(sd.domain_id, rr.qname, ordername, true);
