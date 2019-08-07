@@ -160,6 +160,7 @@ pdns_server_SOURCES = \
 	bindlexer.l \
 	bindparser.cc \
 	cachecleaner.hh \
+	circular_buffer.hh \
 	comment.hh \
 	common_startup.cc common_startup.hh \
 	communicator.cc communicator.hh \
@@ -295,6 +296,7 @@ pdnsutil_SOURCES = \
 	bindlexer.l \
 	bindparser.yy \
 	cachecleaner.hh \
+	circular_buffer.hh \
 	dbdnsseckeeper.cc \
 	dnsbackend.cc \
 	dns.cc \

@@ -35,8 +35,8 @@
 #include "misc.hh"
 #include "lwres.hh"
 #include <boost/optional.hpp>
-#include <boost/circular_buffer.hpp>
 #include <boost/utility.hpp>
+#include "circular_buffer.hh"
 #include "sstuff.hh"
 #include "recursor_cache.hh"
 #include "recpacketcache.hh"

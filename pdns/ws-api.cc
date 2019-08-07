@@ -24,7 +24,6 @@
 #endif
 
 #include <boost/tokenizer.hpp>
-#include <boost/circular_buffer.hpp>
 #include "namespaces.hh"
 #include "ws-api.hh"
 #include "json.hh"

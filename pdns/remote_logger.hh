@@ -30,7 +30,7 @@
 #include <thread>
 
 #include "iputils.hh"
-#include <boost/circular_buffer.hpp>
+#include "circular_buffer.hh"
 
 /* Writes can be submitted and they are atomically accepted. Either the whole write
    ends up in the buffer or nothing ends up in the buffer.
