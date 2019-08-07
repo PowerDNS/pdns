@@ -81,7 +81,7 @@ public:
 
   std::string toString() const override
   {
-    return "qname";
+    return "suffix";
   }
 };
 
@@ -105,7 +105,7 @@ public:
 
   std::string toString() const override
   {
-    return " value of the tag named '" + d_tag + '"';
+    return "value of the tag named '" + d_tag + "'";
   }
 
 private:
