@@ -486,6 +486,7 @@ fi
 %doc %{_defaultdocdir}/%{name}/nodnssec-3.x_to_3.4.0_schema.pgsql.sql
 %doc %{_defaultdocdir}/%{name}/dnssec-3.x_to_3.4.0_schema.pgsql.sql
 %doc %{_defaultdocdir}/%{name}/3.4.0_to_4.1.0_schema.pgsql.sql
+%doc %{_defaultdocdir}/%{name}/4.1.10_to_4.1.11.schema.pgsql.sql
 %{_libdir}/%{name}/libgpgsqlbackend.so
 
 %files backend-pipe
@@ -790,12 +791,15 @@ exit 0
 %doc modules/gmysqlbackend/schema.mysql.sql
 %doc modules/gmysqlbackend/dnssec-3.x_to_3.4.0_schema.mysql.sql
 %doc modules/gmysqlbackend/nodnssec-3.x_to_3.4.0_schema.mysql.sql
+%doc modules/gmysqlbackend/3.4.0_to_4.1.0_schema.mysql.sql
 %{_libdir}/%{name}/libgmysqlbackend.so
 
 %files backend-postgresql
 %doc modules/gpgsqlbackend/schema.pgsql.sql
 %doc modules/gpgsqlbackend/dnssec-3.x_to_3.4.0_schema.pgsql.sql
 %doc modules/gpgsqlbackend/nodnssec-3.x_to_3.4.0_schema.pgsql.sql
+%doc modules/gpgsqlbackend/3.4.0_to_4.1.0_schema.pgsql.sql
+%doc modules/gpgsqlbackend/4.1.10_to_4.1.11.schema.pgsql.sql
 %{_libdir}/%{name}/libgpgsqlbackend.so
 
 %files backend-odbc
@@ -1053,6 +1057,7 @@ exit 0
 %doc modules/gmysqlbackend/schema.mysql.sql
 %doc modules/gmysqlbackend/dnssec-3.x_to_3.4.0_schema.mysql.sql
 %doc modules/gmysqlbackend/nodnssec-3.x_to_3.4.0_schema.mysql.sql
+%doc modules/gmysqlbackend/3.4.0_to_4.1.0_schema.mysql.sql
 %{_libdir}/%{name}/libgmysqlbackend.so
 
 %files backend-odbc
