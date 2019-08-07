@@ -583,6 +583,13 @@ These ``DNSRule``\ s be one of the following items:
   :param str name: The case-insensitive name of the HTTP header to match on
   :param str regex: A regular expression to match the content of the specified header
 
+.. function:: HTTPPathRegexRule(regex)
+  .. versionadded:: 1.4.0
+
+  Matches DNS over HTTPS queries with a HTTP path matching the regular expression supplied in ``regex``. For example, if the query has been sent to the https://192.0.2.1:443/PowerDNS?dns=... URL, the path would be '/PowerDNS'.
+
+  :param str regex: The regex to match on
+
 .. function:: HTTPPathRule(path)
   .. versionadded:: 1.4.0
 
@@ -940,6 +947,15 @@ The following actions exist.
   ``rcode`` can be specified as an integer or as one of the built-in :ref:`DNSRCode`.
 
   :param int rcode: The extended RCODE to respond with.
+
+.. function:: HTTPStatusAction(status, body, contentType="")
+  .. versionadded:: 1.4.0
+
+  Return an HTTP response with a status code of ''status''. For HTTP redirects, ''body'' should be the redirect URL.
+
+  :param int status: The HTTP status code to return.
+  :param string body: The body of the HTTP response, or a URL if the status code is a redirect (3xx).
+  :param string contentType: The HTTP Content-Type header to return for a 200 response, ignored otherwise. Default is ''application/dns-message''.
 
 .. function:: LogAction([filename[, binary[, append[, buffered]]]])
 

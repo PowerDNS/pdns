@@ -287,6 +287,9 @@ void setupLuaRules()
   g_lua.writeFunction("HTTPPathRule", [](const std::string& path) {
       return std::shared_ptr<DNSRule>(new HTTPPathRule(path));
     });
+  g_lua.writeFunction("HTTPPathRegexRule", [](const std::string& regex) {
+      return std::shared_ptr<DNSRule>(new HTTPPathRegexRule(regex));
+    });
 #endif
 
 #ifdef HAVE_RE2

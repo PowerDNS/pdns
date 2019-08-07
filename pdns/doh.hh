@@ -27,6 +27,7 @@ struct DOHFrontend
   std::atomic<uint64_t> d_postqueries;    // valid DNS queries received via POST
   std::atomic<uint64_t> d_badrequests;     // request could not be converted to dns query
   std::atomic<uint64_t> d_errorresponses; // dnsdist set 'error' on response
+    std::atomic<uint64_t> d_redirectresponses; // dnsdist set 'redirect' on response
   std::atomic<uint64_t> d_validresponses; // valid responses sent out
 
   struct HTTPVersionStats
@@ -63,6 +64,8 @@ struct DOHUnit
 };
 
 #else /* HAVE_DNS_OVER_HTTPS */
+#include <unordered_map>
+
 struct st_h2o_req_t;
 
 struct DOHUnit
@@ -73,18 +76,25 @@ struct DOHUnit
   ComboAddress dest;
   st_h2o_req_t* req{nullptr};
   DOHUnit** self{nullptr};
+  std::string contentType;
   int rsock;
   uint16_t qtype;
-  /* the error and status_code are set from
+  /* the status_code is set from
      processDOHQuery() (which is executed in
      the DOH client thread) so that the correct
      response can be sent in on_dnsdist(),
      after the DOHUnit has been passed back to
      the main DoH thread.
   */
-  uint16_t status_code{0};
-  bool error{false};
+  uint16_t status_code{200};
   bool ednsAdded{false};
+
+  std::string getHTTPPath() const;
+  std::string getHTTPHost() const;
+  std::string getHTTPScheme() const;
+  std::string getHTTPQueryString() const;
+  std::unordered_map<std::string, std::string> getHTTPHeaders() const;
+  void setHTTPResponse(uint16_t statusCode, const std::string& body, const std::string& contentType="");
 };
 
 #endif /* HAVE_DNS_OVER_HTTPS  */

@@ -529,6 +529,17 @@ public:
 private:
   string d_path;
 };
+
+class HTTPPathRegexRule : public DNSRule
+{
+public:
+  HTTPPathRegexRule(const std::string& regex);
+  bool matches(const DNSQuestion* dq) const override;
+  string toString() const override;
+private:
+  Regex d_regex;
+  std::string d_visual;
+};
 #endif
 
 class SNIRule : public DNSRule
