@@ -46,16 +46,16 @@ If the value found in the LMDB database for the key '\8powerdns\3com\0' was 'thi
   .. method:: KeyValueStore:lookup(key)
 
     Does a lookup into the corresponding key value store, and return the result as a string.
-    The key is first parsed as a network address, and if that fails into a DNS name. If that also fails the raw string is used for the lookup.
+    The key can be a :class:`ComboAddress` obtained via the :func:`newCA`, a :class:`DNSName` obtained via the :func:`newDNSName` function, or a raw string.
 
-    :param string key: The key to look up
+    :param ComboAddress, DNSName or string key: The key to look up
 
   .. method:: KeyValueStore:lookupSuffix(key)
 
     Does a suffix-based lookup into the corresponding key value store, and return the result as a string.
-    The key is parsed as a DNS name, and several lookups will be done, removing one label from the name at a time until a match has been found or there is no label left.
+    The key should be a :class:`DNSName` object obtained via the :func:`newDNSName` function, and several lookups will be done, removing one label from the name at a time until a match has been found or there is no label left.
 
-    :param string key: The name to look up
+    :param DNSName key: The name to look up
 
   .. method:: KeyValueStore:reload()
 

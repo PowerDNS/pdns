@@ -747,14 +747,14 @@ void setupLuaBindings(bool client)
   });
 #endif /* HAVE_CDB */
 
-  g_lua.registerFunction<std::string(std::shared_ptr<KeyValueStore>::*)(const std::string&)>("lookup", [](std::shared_ptr<KeyValueStore>& kvs, const std::string& keyStr) {
+  g_lua.registerFunction<std::string(std::shared_ptr<KeyValueStore>::*)(const boost::variant<ComboAddress, DNSName, std::string>)>("lookup", [](std::shared_ptr<KeyValueStore>& kvs, const boost::variant<ComboAddress, DNSName, std::string> keyVar) {
     std::string result;
     if (!kvs) {
       return result;
     }
 
-    try {
-      ComboAddress ca(keyStr);
+    if (keyVar.type() == typeid(ComboAddress)) {
+      const auto ca = *boost::get<ComboAddress>(&keyVar);
       KeyValueLookupKeySourceIP lookup;
       for (const auto& key : lookup.getKeys(ca)) {
         if (kvs->getValue(key, result)) {
@@ -762,33 +762,29 @@ void setupLuaBindings(bool client)
         }
       }
     }
-    catch(const std::exception& e) {
-      /* not a valid address, treating it as a DNSName */
-      try {
-        DNSName dn(keyStr);
-        KeyValueLookupKeyQName lookup;
-        for (const auto& key : lookup.getKeys(dn)) {
-          if (kvs->getValue(key, result)) {
-            return result;
-          }
+    else if (keyVar.type() == typeid(DNSName)) {
+      DNSName dn = *boost::get<DNSName>(&keyVar);
+      KeyValueLookupKeyQName lookup;
+      for (const auto& key : lookup.getKeys(dn)) {
+        if (kvs->getValue(key, result)) {
+          return result;
         }
       }
-      catch (const std::exception& e) {
-        /* not a valid name, trying to pass it as it is */
-        kvs->getValue(keyStr, result);
-      }
+    }
+    else if (keyVar.type() == typeid(std::string)) {
+      std::string keyStr = *boost::get<std::string>(&keyVar);
+      kvs->getValue(keyStr, result);
     }
 
     return result;
   });
 
-  g_lua.registerFunction<std::string(std::shared_ptr<KeyValueStore>::*)(const std::string&)>("lookupSuffix", [](std::shared_ptr<KeyValueStore>& kvs, const std::string& keyStr) {
+  g_lua.registerFunction<std::string(std::shared_ptr<KeyValueStore>::*)(const DNSName&)>("lookupSuffix", [](std::shared_ptr<KeyValueStore>& kvs, const DNSName& dn) {
     std::string result;
     if (!kvs) {
       return result;
     }
 
-    DNSName dn(keyStr);
     KeyValueLookupKeySuffix lookup;
     for (const auto& key : lookup.getKeys(dn)) {
       if (kvs->getValue(key, result)) {
