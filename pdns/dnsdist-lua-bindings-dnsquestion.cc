@@ -213,7 +213,7 @@ void setupLuaBindingsDNSQuestion()
       return dq.du->getHTTPHeaders();
     });
 
-    g_lua.registerFunction<void(DNSQuestion::*)(uint16_t statusCode, std::string body, std::string contentType)>("setHTTPResponse", [](DNSQuestion& dq, uint16_t statusCode, std::string body, boost::optional<std::string> contentType) {
+    g_lua.registerFunction<void(DNSQuestion::*)(uint16_t statusCode, const std::string& body, const boost::optional<std::string> contentType)>("setHTTPResponse", [](DNSQuestion& dq, uint16_t statusCode, const std::string& body, const boost::optional<std::string> contentType) {
       if (dq.du == nullptr) {
         return;
       }
