@@ -873,8 +873,9 @@ int PacketHandler::processNotify(DNSPacket *p)
     }
     vector<string> meta;
     if (B.getDomainMetadata(p->qdomain,"AXFR-MASTER-TSIG",meta) && meta.size() > 0) {
-      if (!pdns_iequals(meta[0], p->getTSIGKeyname().toStringNoDot())) {
-        g_log<<Logger::Warning<<"Received secure NOTIFY for "<<p->qdomain<<" from "<<p->getRemote()<<": expected TSIG key '"<<meta[0]<<", got '"<<p->getTSIGKeyname()<<"' (Refused)"<<endl;
+      DNSName expected{meta[0]};
+      if (p->getTSIGKeyname() != expected) {
+        g_log<<Logger::Warning<<"Received secure NOTIFY for "<<p->qdomain<<" from "<<p->getRemote()<<": expected TSIG key '"<<expected<<"', got '"<<p->getTSIGKeyname()<<"' (Refused)"<<endl;
         return RCode::Refused;
       }
     }
