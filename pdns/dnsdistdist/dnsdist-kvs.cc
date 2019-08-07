@@ -140,6 +140,7 @@ void CDBKVStore::refreshDBIfNeeded(time_t now)
       warnlog("Error while retrieving the last modification time of CDB database '%s': %s", d_fname, stringerror());
     }
     d_nextCheck = now + d_refreshDelay;
+    d_refreshing.clear();
   }
   catch(...) {
     d_refreshing.clear();
