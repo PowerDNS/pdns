@@ -87,7 +87,7 @@ void resetLuaSideEffect()
   g_noLuaSideEffect = boost::logic::indeterminate;
 }
 
-typedef std::unordered_map<std::string, boost::variant<bool, int, std::string, std::vector<std::pair<int,int> >, std::map<std::string,std::string>, std::vector<std::pair<int, std::string> > > > localbind_t;
+typedef std::unordered_map<std::string, boost::variant<bool, int, std::string, std::vector<std::pair<int,int> >, std::vector<std::pair<int, std::string> >, std::map<std::string,std::string>  > > localbind_t;
 
 static void parseLocalBindVars(boost::optional<localbind_t> vars, bool& reusePort, int& tcpFastOpenQueueSize, std::string& interface, std::set<int>& cpus)
 {

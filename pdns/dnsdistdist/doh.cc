@@ -773,7 +773,11 @@ static std::unique_ptr<SSL_CTX, void(*)(SSL_CTX*)> getTLSContext(const std::vect
       throw std::runtime_error("Failed to setup SSL/TLS for DoH listener, the key from '" + pair.second + "' does not match the certificate from '" + pair.first + "'");
     }
     /* store the type of the new key, we might need it later to select the right OCSP stapling response */
-    keyTypes.push_back(libssl_get_last_key_type(ctx));
+    auto keyType = libssl_get_last_key_type(ctx);
+    if (keyType < 0) {
+      throw std::runtime_error("Failed to setup SSL/TLS for DoH listener, the key from '" + pair.second + "' has an unknown type");
+    }
+    keyTypes.push_back(keyType);
   }
 
   if (!ocspFiles.empty()) {

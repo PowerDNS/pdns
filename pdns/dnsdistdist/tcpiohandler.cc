@@ -438,7 +438,11 @@ public:
       }
 
       /* store the type of the new key, we might need it later to select the right OCSP stapling response */
-      keyTypes.push_back(libssl_get_last_key_type(d_tlsCtx));
+      auto keyType = libssl_get_last_key_type(d_tlsCtx);
+      if (keyType < 0) {
+        throw std::runtime_error("Key from '" + pair.second + "' has an unknown type");
+      }
+      keyTypes.push_back(keyType);
     }
 
     if (!fe.d_ocspFiles.empty()) {
