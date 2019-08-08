@@ -10,6 +10,8 @@ class TLSConnection
 {
 public:
   virtual ~TLSConnection() { }
+  virtual IOState tryConnect(bool fastOpen, const ComboAddress& remote) = 0;
+  virtual void connect(bool fastOpen, const ComboAddress& remote, unsigned int timeout) = 0;
   virtual void doHandshake() = 0;
   virtual IOState tryHandshake() = 0;
   virtual size_t read(void* buffer, size_t bufferSize, unsigned int readTimeout, unsigned int totalTimeout=0) = 0;
@@ -31,7 +33,9 @@ public:
     d_rotatingTicketsKey.clear();
   }
   virtual ~TLSCtx() {}
+  virtual bool supportFastOpen() const = 0;
   virtual std::unique_ptr<TLSConnection> getConnection(int socket, unsigned int timeout, time_t now) = 0;
+  virtual std::unique_ptr<TLSConnection> getClientConnection(const std::string& host, int socket, unsigned int timeout) = 0;
   virtual void rotateTicketsKey(time_t now) = 0;
   virtual void loadTicketsKeys(const std::string& file)
   {
@@ -158,8 +162,16 @@ private:
 class TCPIOHandler
 {
 public:
+  enum class Type { Client, Server };
 
-  TCPIOHandler(int socket, unsigned int timeout, std::shared_ptr<TLSCtx> ctx, time_t now): d_socket(socket)
+  TCPIOHandler(const std::string& host, int socket, unsigned int timeout, std::shared_ptr<TLSCtx> ctx, time_t now): d_socket(socket)
+  {
+    if (ctx) {
+      d_conn = ctx->getClientConnection(host, d_socket, timeout);
+    }
+  }
+
+  TCPIOHandler(const int socket, unsigned int timeout, std::shared_ptr<TLSCtx> ctx, time_t now): d_socket(socket)
   {
     if (ctx) {
       d_conn = ctx->getConnection(d_socket, timeout, now);
@@ -176,12 +188,41 @@ public:
     }
   }
 
+  IOState tryConnect(bool fastOpen, const ComboAddress& remote)
+  {
+    /* yes, this is only the TLS connect not the socket one,
+       sorry about that */
+    if (d_conn) {
+      return d_conn->tryConnect(fastOpen, remote);
+    }
+    d_fastOpen = fastOpen;
+
+    return IOState::Done;
+  }
+
+  void connect(bool fastOpen, const ComboAddress& remote, unsigned int timeout)
+  {
+    /* yes, this is only the TLS connect not the socket one,
+       sorry about that */
+    if (d_conn) {
+      d_conn->connect(fastOpen, remote, timeout);
+    }
+    d_fastOpen = fastOpen;
+  }
+
   IOState tryHandshake()
   {
     if (d_conn) {
       return d_conn->tryHandshake();
     }
     return IOState::Done;
+  }
+
+  void doHandshake()
+  {
+    if (d_conn) {
+      d_conn->doHandshake();
+    }
   }
 
   size_t read(void* buffer, size_t bufferSize, unsigned int readTimeout, unsigned int totalTimeout=0)
@@ -284,7 +325,29 @@ public:
     return std::string();
   }
 
+  int getHandle() const
+  {
+    return d_socket;
+  }
+
+  bool doesFilter() const
+  {
+    return d_conn != nullptr;
+  }
+
 private:
   std::unique_ptr<TLSConnection> d_conn{nullptr};
   int d_socket{-1};
+  bool d_fastOpen{false};
 };
+
+struct TLSContextParameters
+{
+  std::string d_provider;
+  std::string d_ciphers;
+  std::string d_ciphers13;
+  std::string d_caStore;
+  bool d_validateCertificates{true};
+};
+
+std::shared_ptr<TLSCtx> getTLSContext(const TLSContextParameters& params);

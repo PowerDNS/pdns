@@ -1,4 +1,4 @@
-AC_DEFUN([DNSDIST_ENABLE_DNS_OVER_TLS], [
+AC_DEFUN([PDNS_ENABLE_DNS_OVER_TLS], [
   AC_MSG_CHECKING([whether to enable DNS over TLS support])
   AC_ARG_ENABLE([dns-over-tls],
     AS_HELP_STRING([--enable-dns-over-tls], [enable DNS over TLS support (requires GnuTLS or OpenSSL) @<:@default=no@:>@]),

@@ -1,4 +1,4 @@
-AC_DEFUN([DNSDIST_WITH_LIBSSL], [
+AC_DEFUN([PDNS_WITH_LIBSSL], [
   AC_MSG_CHECKING([whether we will be linking in OpenSSL libssl])
   HAVE_LIBSSL=0
   AC_ARG_WITH([libssl],
@@ -17,7 +17,7 @@ AC_DEFUN([DNSDIST_WITH_LIBSSL], [
         save_LIBS=$LIBS
         CFLAGS="$LIBSSL_CFLAGS $CFLAGS"
         LIBS="$LIBSSL_LIBS -lcrypto $LIBS"
-        AC_CHECK_FUNCS([SSL_CTX_set_ciphersuites OCSP_basic_sign])
+        AC_CHECK_FUNCS([SSL_CTX_set_ciphersuites TLS_server_method TLS_client_method OCSP_basic_sign])
         CFLAGS=$save_CFLAGS
         LIBS=$save_LIBS
 

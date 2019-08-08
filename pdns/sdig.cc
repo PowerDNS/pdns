@@ -15,6 +15,8 @@
 #include "minicurl.hh"
 #endif
 
+#include "tcpiohandler.hh"
+
 StatBag S;
 
 bool hidettl=false;
@@ -48,12 +50,17 @@ const string nameForClass(uint16_t qclass, uint16_t qtype)
 int main(int argc, char** argv)
 try
 {
+  /* default timeout of 10s */
+  const int timeout = 10;
+  bool fastOpen=false;
   bool dnssec=false;
   bool recurse=false;
   bool tcp=false;
   bool showflags=false;
   bool hidesoadetails=false;
   bool doh=false;
+  bool tls=false;
+  bool insecureTLS=false;
   boost::optional<Netmask> ednsnm;
   uint16_t xpfcode = 0, xpfversion = 0, xpfproto = 0;
   char *xpfsrc = NULL, *xpfdst = NULL;
@@ -91,6 +98,10 @@ try
         hidettl=true;
       if (strcmp(argv[i], "tcp") == 0)
         tcp=true;
+      if (strcmp(argv[i], "tls") == 0)
+        tls=true;
+      if (strcmp(argv[i], "insecure") == 0)
+        insecureTLS=true;
       if (strcmp(argv[i], "ednssubnet") == 0) {
         if(argc < i+2) {
           cerr<<"ednssubnet needs an argument"<<endl;
@@ -176,37 +187,39 @@ try
 #endif
   }
   else if(tcp) {
+    std::shared_ptr<TLSCtx> tlsCtx{nullptr};
+    if (tls) {
+      TLSContextParameters tlsParams;
+      tlsParams.d_provider = "openssl";
+      tlsParams.d_validateCertificates = (insecureTLS == false);
+      tlsCtx = getTLSContext(tlsParams);
+    }
     Socket sock(dest.sin4.sin_family, SOCK_STREAM);
-    sock.connect(dest);
+    if (!fastOpen || (tlsCtx == nullptr || tlsCtx->supportFastOpen() == false)) {
+      SConnectWithTimeout(sock.getHandle(), dest, timeout);
+    }
+    TCPIOHandler handler("FIXME.hostname", sock.getHandle(), timeout, tlsCtx, time(nullptr));
+    handler.connect(fastOpen, dest, timeout);
+    handler.doHandshake();
     uint16_t len;
     len = htons(packet.size());
-    if(sock.write((char *) &len, 2) != 2)
+    if (handler.write(&len, sizeof(len), timeout) != sizeof(len))
       throw PDNSException("tcp write failed");
 
-    sock.writen(question);
-    
-    if(sock.read((char *) &len, 2) != 2)
+    handler.write(question.c_str(), question.size(), timeout);
+
+    if (handler.read(&len, sizeof(len), timeout) != sizeof(len))
       throw PDNSException("tcp read failed");
 
     len=ntohs(len);
-    char *creply = new char[len];
-    int n=0;
-    int numread;
-    while(n<len) {
-      numread=sock.read(creply+n, len-n);
-      if(numread<0)
-        throw PDNSException("tcp read failed");
-      n+=numread;
-    }
-
-    reply=string(creply, len);
-    delete[] creply;
+    reply.resize(len);
+    handler.read(&reply[0], reply.size(), timeout);
   }
   else //udp
   {
     Socket sock(dest.sin4.sin_family, SOCK_DGRAM);
     sock.sendTo(question, dest);
-    int result=waitForData(sock.getHandle(), 10);
+    int result=waitForData(sock.getHandle(), timeout);
     if(result < 0) 
       throw std::runtime_error("Error waiting for data: "+string(strerror(errno)));
     if(!result)

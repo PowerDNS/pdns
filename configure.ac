@@ -104,6 +104,20 @@ PDNS_CHECK_LIBCRYPTO([
 PDNS_CHECK_LIBCRYPTO_ECDSA
 PDNS_CHECK_LIBCRYPTO_EDDSA
 
+AM_CONDITIONAL([HAVE_GNUTLS], [false])
+AM_CONDITIONAL([HAVE_LIBSSL], [false])
+
+PDNS_ENABLE_DNS_OVER_TLS
+AS_IF([test "x$enable_dns_over_tls" != "xno"], [
+  PDNS_WITH_LIBSSL
+  PDNS_WITH_GNUTLS
+
+  AS_IF([test "x$HAVE_GNUTLS" != "x1" -a "x$HAVE_LIBSSL" != "x1"], [
+    AC_MSG_ERROR([DNS over TLS support requested but neither GnuTLS nor OpenSSL are available])
+  ])
+])
+
+
 PDNS_CHECK_RAGEL([pdns/dnslabeltext.cc], [www.powerdns.com])
 PDNS_CHECK_CLOCK_GETTIME
 
