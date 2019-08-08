@@ -12,6 +12,10 @@ LMDB backend
 * Module name: lmdb
 * Launch name: ``lmdb``
 
+
+.. warning::
+  The LMDB backend is EXPERIMENTAL. Be prepared for incompatible changes between minor releases in the 4.2.x branch, and while tracking our git master.
+
 Enabling the backend
 --------------------
 
