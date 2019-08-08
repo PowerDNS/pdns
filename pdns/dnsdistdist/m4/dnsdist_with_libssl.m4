@@ -16,8 +16,8 @@ AC_DEFUN([DNSDIST_WITH_LIBSSL], [
         save_CFLAGS=$CFLAGS
         save_LIBS=$LIBS
         CFLAGS="$LIBSSL_CFLAGS $CFLAGS"
-        LIBS="$LIBSSL_LIBS $LIBS"
-        AC_CHECK_FUNCS([SSL_CTX_set_ciphersuites])
+        LIBS="$LIBSSL_LIBS -lcrypto $LIBS"
+        AC_CHECK_FUNCS([SSL_CTX_set_ciphersuites OCSP_basic_sign])
         CFLAGS=$save_CFLAGS
         LIBS=$save_LIBS
 

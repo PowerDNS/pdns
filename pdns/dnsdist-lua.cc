@@ -45,6 +45,10 @@
 #include "protobuf.hh"
 #include "sodcrypto.hh"
 
+#ifdef HAVE_LIBSSL
+#include "libssl.hh"
+#endif
+
 #include <boost/logic/tribool.hpp>
 #include <boost/lexical_cast.hpp>
 
@@ -2039,6 +2043,12 @@ void setupLuaConfig(bool client)
       });
 
     g_lua.writeFunction("setAllowEmptyResponse", [](bool allow) { g_allowEmptyResponse=allow; });
+
+#if defined(HAVE_LIBSSL) && defined(HAVE_OCSP_BASIC_SIGN)
+    g_lua.writeFunction("generateOCSPResponse", [](const std::string& certFile, const std::string& caCert, const std::string& caKey, const std::string& outFile, int ndays, int nmin) {
+      return libssl_generate_ocsp_response(certFile, caCert, caKey, outFile, ndays, nmin);
+    });
+#endif /* HAVE_LIBSSL && HAVE_OCSP_BASIC_SIGN*/
 }
 
 vector<std::function<void(void)>> setupLua(bool client, const std::string& config)
