@@ -83,7 +83,7 @@ bool g_verbose;
 struct DNSDistStats g_stats;
 MetricDefinitionStorage g_metricDefinitions;
 
-uint16_t g_maxOutstanding{10240};
+uint16_t g_maxOutstanding{std::numeric_limits<uint16_t>::max()};
 bool g_verboseHealthChecks{false};
 uint32_t g_staleCacheEntriesTTL{0};
 bool g_syslog{true};
