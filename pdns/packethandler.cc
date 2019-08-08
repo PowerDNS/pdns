@@ -881,6 +881,14 @@ int PacketHandler::processNotify(DNSPacket *p)
     }
   }
 
+  if(!s_forwardNotify.empty()) {
+    set<string> forwardNotify(s_forwardNotify);
+    for(set<string>::const_iterator j=forwardNotify.begin();j!=forwardNotify.end();++j) {
+      g_log<<Logger::Notice<<"Relaying notification of domain "<<p->qdomain<<" from "<<p->getRemote()<<" to "<<*j<<endl;
+      Communicator.notify(p->qdomain,*j);
+    }
+  }
+
   // Domain verification
   //
   DomainInfo di;
@@ -907,14 +915,6 @@ int PacketHandler::processNotify(DNSPacket *p)
   else if(!di.isMaster(p->getRemote())) {
     g_log<<Logger::Warning<<"Received NOTIFY for "<<p->qdomain<<" from "<<p->getRemote()<<" which is not a master (Refused)"<<endl;
     return RCode::Refused;
-  }
-
-  if(!s_forwardNotify.empty()) {
-    set<string> forwardNotify(s_forwardNotify);
-    for(set<string>::const_iterator j=forwardNotify.begin();j!=forwardNotify.end();++j) {
-      g_log<<Logger::Notice<<"Relaying notification of domain "<<p->qdomain<<" from "<<p->getRemote()<<" to "<<*j<<endl;
-      Communicator.notify(p->qdomain,*j);
-    }
   }
 
   if(::arg().mustDo("slave")) {
