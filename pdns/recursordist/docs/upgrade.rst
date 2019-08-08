@@ -19,7 +19,7 @@ Two new settings have been added:
 the startup. The issue has been fixed and the default value set to 6 to keep the behavior
 consistent.
 
-The ``--enable-libsodium`` configure flag has changed from 'no' to 'auto'.
+The ``--with-libsodium`` configure flag has changed from 'no' to 'auto'.
 This means that if libsodium and its development header are installed, it will be linked in.
 
 4.0.3 to 4.0.4

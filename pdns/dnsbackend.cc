@@ -219,7 +219,7 @@ vector<DNSBackend *>BackendMakerClass::all(bool metadataOnly)
     \param sd SOAData which is filled with the SOA details
     \param unmodifiedSerial bool if set, serial will be returned as stored in the backend (maybe 0)
 */
-bool DNSBackend::getSOA(const DNSName &domain, SOAData &sd, bool unmodifiedSerial)
+bool DNSBackend::getSOA(const DNSName &domain, SOAData &sd)
 {
   this->lookup(QType(QType::SOA),domain);
 
@@ -234,7 +234,6 @@ bool DNSBackend::getSOA(const DNSName &domain, SOAData &sd, bool unmodifiedSeria
     fillSOAData(rr.content, sd);
     sd.domain_id=rr.domain_id;
     sd.ttl=rr.ttl;
-    sd.scopeMask = rr.scopeMask;
   }
 
   if(!hits)
@@ -252,18 +251,6 @@ bool DNSBackend::getSOA(const DNSName &domain, SOAData &sd, bool unmodifiedSeria
       sd.hostmaster=DNSName("hostmaster")+domain;
   }
 
-  if(!unmodifiedSerial && !sd.serial) { // magic time!
-    DLOG(g_log<<Logger::Warning<<"Doing SOA serial number autocalculation for "<<rr.qname<<endl);
-
-    uint32_t serial = 0;
-    if (calculateSOASerial(domain, sd, serial)) {
-      sd.serial = serial;
-      //DLOG(g_log<<"autocalculated soa serialnumber for "<<rr.qname<<" is "<<newest<<endl);
-    } else {
-      DLOG(g_log<<"soa serialnumber calculation failed for "<<rr.qname<<endl);
-    }
-
-  }
   sd.db=this;
   return true;
 }
@@ -324,38 +311,6 @@ bool DNSBackend::getBeforeAndAfterNames(uint32_t id, const DNSName& zonename, co
   return ret;
 }
 
-/**
- * Calculates a SOA serial for the zone and stores it in the third
- * argument. Returns false if calculation is not possible for some
- * reason (in this case, the third argument is not inspected). If it
- * returns true, the value returned in the third argument will be set
- * as the SOA serial.
- *
- * \param domain The name of the domain
- * \param sd Information about the SOA record already available
- * \param serial Output parameter. Only inspected when we return true
- */
-bool DNSBackend::calculateSOASerial(const DNSName& domain, const SOAData& sd, uint32_t& serial)
-{
-    // we do this by listing the domain and taking the maximum last modified timestamp
-
-    DNSResourceRecord i;
-    uint32_t newest=0;
-
-    if(!(this->list(domain, sd.domain_id))) {
-      DLOG(g_log<<Logger::Warning<<"Backend error trying to determine magic serial number of zone '"<<domain<<"'"<<endl);
-      return false;
-    }
-
-    while(this->get(i)) {
-      if(i.last_modified>newest)
-        newest=i.last_modified;
-    }
-
-    serial=newest;
-
-    return true;
-}
 void fillSOAData(const DNSZoneRecord& in, SOAData& sd)
 {
   sd.domain_id = in.domain_id;

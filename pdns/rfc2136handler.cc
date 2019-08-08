@@ -33,7 +33,7 @@ int PacketHandler::checkUpdatePrerequisites(const DNSRecord *rr, DomainInfo *di)
 
   bool foundRecord=false;
   DNSResourceRecord rec;
-  di->backend->lookup(QType(QType::ANY), rr->d_name);
+  di->backend->lookup(QType(QType::ANY), rr->d_name, nullptr, di->id);
   while(di->backend->get(rec)) {
     if (!rec.qtype.getCode())
       continue;
@@ -171,7 +171,7 @@ uint PacketHandler::performUpdate(const string &msgPrefix, const DNSRecord *rr, 
 
 
     bool foundRecord = false;
-    di->backend->lookup(rrType, rr->d_name);
+    di->backend->lookup(rrType, rr->d_name, nullptr, di->id);
     while (di->backend->get(rec)) {
       rrset.push_back(rec);
       foundRecord = true;
@@ -197,10 +197,10 @@ uint PacketHandler::performUpdate(const string &msgPrefix, const DNSRecord *rr, 
       // It's not possible to have multiple CNAME's with the same NAME. So we always update.
       } else if (rrType == QType::CNAME) {
         int changedCNames = 0;
-        for (vector<DNSResourceRecord>::iterator i = rrset.begin(); i != rrset.end(); i++) {
-          if (i->ttl != rr->d_ttl || i->content != rr->d_content->getZoneRepresentation()) {
-            i->ttl = rr->d_ttl;
-            i->setContent(rr->d_content->getZoneRepresentation());
+        for (auto& i : rrset) {
+          if (i.ttl != rr->d_ttl || i.content != rr->d_content->getZoneRepresentation()) {
+            i.ttl = rr->d_ttl;
+            i.setContent(rr->d_content->getZoneRepresentation());
             changedCNames++;
           }
         }
@@ -216,12 +216,12 @@ uint PacketHandler::performUpdate(const string &msgPrefix, const DNSRecord *rr, 
       } else {
         int updateTTL=0;
         foundRecord = false;
-        for (vector<DNSResourceRecord>::iterator i = rrset.begin(); i != rrset.end(); i++) {
+        for (auto& i : rrset) {
           string content = rr->d_content->getZoneRepresentation();
-          if (rrType == i->qtype.getCode() && i->getZoneRepresentation() == content) {
+          if (rrType == i.qtype.getCode() && i.getZoneRepresentation() == content) {
             foundRecord=true;
-            if (i->ttl != rr->d_ttl)  {
-              i->ttl = rr->d_ttl;
+            if (i.ttl != rr->d_ttl)  {
+              i.ttl = rr->d_ttl;
               updateTTL++;
             }
           }
@@ -289,7 +289,7 @@ uint PacketHandler::performUpdate(const string &msgPrefix, const DNSRecord *rr, 
             break;
 
           bool foundShorter = false;
-          di->backend->lookup(QType(QType::ANY), shorter);
+          di->backend->lookup(QType(QType::ANY), shorter, nullptr, di->id);
           while (di->backend->get(rec)) {
             if (rec.qname == rr->d_name && rec.qtype == QType::DS)
               fixDS = true;
@@ -444,7 +444,7 @@ uint PacketHandler::performUpdate(const string &msgPrefix, const DNSRecord *rr, 
     } // end of NSEC3PARAM delete block
 
 
-    di->backend->lookup(rrType, rr->d_name);
+    di->backend->lookup(rrType, rr->d_name, nullptr, di->id);
     while(di->backend->get(rec)) {
       if (rr->d_class == QClass::ANY) { // 3.4.2.3
         if (rec.qname == di->zone && (rec.qtype == QType::NS || rec.qtype == QType::SOA)) // Never delete all SOA and NS's
@@ -718,8 +718,9 @@ int PacketHandler::processUpdate(DNSPacket *p) {
       stringtok(allowedRanges, ::arg()["allow-dnsupdate-from"], ", \t" );
 
     NetmaskGroup ng;
-    for(vector<string>::const_iterator i=allowedRanges.begin(); i != allowedRanges.end(); i++)
-      ng.addMask(*i);
+    for(const auto& i: allowedRanges) {
+      ng.addMask(i);
+    }
 
     if ( ! ng.match(&p->d_remote)) {
       g_log<<Logger::Error<<msgPrefix<<"Remote not listed in allow-dnsupdate-from or domainmetadata. Sending REFUSED"<<endl;
@@ -743,15 +744,15 @@ int PacketHandler::processUpdate(DNSPacket *p) {
 
       if (p->d_tsig_algo == TSIG_GSS) {
         GssName inputname(p->d_peer_principal); // match against principal since GSS
-        for(vector<string>::const_iterator key=tsigKeys.begin(); key != tsigKeys.end(); key++) {
-          if (inputname.match(*key)) {
+        for(const auto& key: tsigKeys) {
+          if (inputname.match(key)) {
             validKey = true;
             break;
           }
         }
       } else {
-        for(vector<string>::const_iterator key=tsigKeys.begin(); key != tsigKeys.end(); key++) {
-          if (inputkey == DNSName(*key)) { // because checkForCorrectTSIG has already been performed earlier on, if the names of the ky match with the domain given. THis is valid.
+        for(const auto& key: tsigKeys) {
+          if (inputkey == DNSName(key)) { // because checkForCorrectTSIG has already been performed earlier on, if the names of the ky match with the domain given. THis is valid.
             validKey=true;
             break;
           }
@@ -826,7 +827,7 @@ int PacketHandler::processUpdate(DNSPacket *p) {
     if (rr->d_place == DNSResourceRecord::ANSWER) {
       int res = checkUpdatePrerequisites(rr, &di);
       if (res>0) {
-        g_log<<Logger::Error<<msgPrefix<<"Failed PreRequisites check, returning "<<RCode::to_s(res)<<endl;
+        g_log<<Logger::Error<<msgPrefix<<"Failed PreRequisites check for "<<rr->d_name.toLogString()<<", returning "<<RCode::to_s(res)<<endl;
         di.backend->abortTransaction();
         return res;
       }
@@ -838,7 +839,7 @@ int PacketHandler::processUpdate(DNSPacket *p) {
   typedef vector<DNSResourceRecord> rrVector_t;
   typedef std::map<rrSetKey_t, rrVector_t> RRsetMap_t;
   RRsetMap_t preReqRRsets;
-  for(const auto& i : mdp.d_answers) {
+  for(const auto& i: mdp.d_answers) {
     const DNSRecord* rr = &i.first;
     if (rr->d_place == DNSResourceRecord::ANSWER) {
       // Last line of 3.2.3
@@ -860,7 +861,7 @@ int PacketHandler::processUpdate(DNSPacket *p) {
       rrVector_t *vec = &preRRSet->second;
 
       DNSResourceRecord rec;
-      di.backend->lookup(QType(QType::ANY), rrSet.first);
+      di.backend->lookup(QType(QType::ANY), rrSet.first, nullptr, di.id);
       uint16_t foundRR=0, matchRR=0;
       while (di.backend->get(rec)) {
         if (rec.qtype == rrSet.second) {
@@ -958,9 +959,12 @@ int PacketHandler::processUpdate(DNSPacket *p) {
     }
     for (const auto &rr : cnamesToAdd) {
       DNSResourceRecord rec;
-      di.backend->lookup(QType(QType::ANY), rr->d_name);
+      di.backend->lookup(QType(QType::ANY), rr->d_name, nullptr, di.id);
       while (di.backend->get(rec)) {
-        if (rec.qtype != QType::CNAME && rec.qtype != QType::RRSIG) {
+        if (rec.qtype != QType::CNAME && rec.qtype != QType::ENT && rec.qtype != QType::RRSIG) {
+          // leave database handle in a consistent state
+          while (di.backend->get(rec))
+            ;
           g_log<<Logger::Warning<<msgPrefix<<"Refusing update for " << rr->d_name << "/" << QType(rr->d_type).getName() << ": Data other than CNAME exists for the same name"<<endl;
           di.backend->abortTransaction();
           return RCode::Refused;
@@ -970,9 +974,12 @@ int PacketHandler::processUpdate(DNSPacket *p) {
     }
     for (const auto &rr : nonCnamesToAdd) {
       DNSResourceRecord rec;
-      di.backend->lookup(QType(QType::CNAME), rr->d_name);
+      di.backend->lookup(QType(QType::CNAME), rr->d_name, nullptr, di.id);
       while (di.backend->get(rec)) {
         if (rec.qtype == QType::CNAME && rr->d_type != QType::RRSIG) {
+          // leave database handle in a consistent state
+          while (di.backend->get(rec))
+            ;
           g_log<<Logger::Warning<<msgPrefix<<"Refusing update for " << rr->d_name << "/" << QType(rr->d_type).getName() << ": CNAME exists for the same name"<<endl;
           di.backend->abortTransaction();
           return RCode::Refused;
@@ -983,15 +990,15 @@ int PacketHandler::processUpdate(DNSPacket *p) {
     if (nsRRtoDelete.size()) {
       vector<DNSResourceRecord> nsRRInZone;
       DNSResourceRecord rec;
-      di.backend->lookup(QType(QType::NS), di.zone);
+      di.backend->lookup(QType(QType::NS), di.zone, nullptr, di.id);
       while (di.backend->get(rec)) {
         nsRRInZone.push_back(rec);
       }
       if (nsRRInZone.size() > nsRRtoDelete.size()) { // only delete if the NS's we delete are less then what we have in the zone (3.4.2.4)
-        for (vector<DNSResourceRecord>::iterator inZone=nsRRInZone.begin(); inZone != nsRRInZone.end(); inZone++) {
-          for (vector<const DNSRecord *>::iterator rr=nsRRtoDelete.begin(); rr != nsRRtoDelete.end(); rr++) {
-            if (inZone->getZoneRepresentation() == (*rr)->d_content->getZoneRepresentation())
-              changedRecords += performUpdate(msgPrefix, *rr, &di, isPresigned, &narrow, &haveNSEC3, &ns3pr, &updatedSerial);
+        for (auto& inZone: nsRRInZone) {
+          for (auto& rr: nsRRtoDelete) {
+            if (inZone.getZoneRepresentation() == (rr)->d_content->getZoneRepresentation())
+              changedRecords += performUpdate(msgPrefix, rr, &di, isPresigned, &narrow, &haveNSEC3, &ns3pr, &updatedSerial);
           }
         }
       }
@@ -1062,15 +1069,11 @@ int PacketHandler::processUpdate(DNSPacket *p) {
 
 void PacketHandler::increaseSerial(const string &msgPrefix, const DomainInfo *di, bool haveNSEC3, bool narrow, const NSEC3PARAMRecordContent *ns3pr) {
   SOAData sd;
-  if (!di->backend->getSOA(di->zone, sd, true)) {
+  if (!di->backend->getSOA(di->zone, sd)) {
     throw PDNSException("SOA-Serial update failed because there was no SOA. Wowie.");
   }
 
   uint32_t oldSerial = sd.serial;
-  if (oldSerial == 0) { // using Autoserial, leave the serial alone.
-    g_log<<Logger::Notice<<msgPrefix<<"AutoSerial in use in domain \""<<di->zone.toLogString()<<"\", not updating SOA serial."<<endl;
-    return;
-  }
 
   vector<string> soaEdit2136Setting;
   B.getDomainMetadata(di->zone, "SOA-EDIT-DNSUPDATE", soaEdit2136Setting);

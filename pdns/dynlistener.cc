@@ -52,6 +52,7 @@
 #include "dnspacket.hh"
 #include "logger.hh"
 #include "statbag.hh"
+#include "threadname.hh"
 
 extern StatBag S;
 
@@ -134,7 +135,7 @@ void DynListener::listenOnUnixDomain(const string& fname)
   if(!arg()["setgid"].empty()) {
     if(chmod(fname.c_str(),0660)<0)
       g_log<<Logger::Error<<"Unable to change group access mode of controlsocket at '"<<fname<<"', reason: "<<strerror(errno)<<endl;
-    if(chown(fname.c_str(),static_cast<uid_t>(-1),Utility::makeGidNumeric(arg()["setgid"]))<0)
+    if(chown(fname.c_str(),static_cast<uid_t>(-1), strToGID(arg()["setgid"]))<0)
       g_log<<Logger::Error<<"Unable to change group ownership of controlsocket at '"<<fname<<"', reason: "<<strerror(errno)<<endl;
   }
   
@@ -164,21 +165,14 @@ void DynListener::listenOnTCP(const ComboAddress& local)
 }
 
 
-DynListener::DynListener(const ComboAddress& local)
+DynListener::DynListener(const ComboAddress& local) :
+  d_tcp(true)
 {
   listenOnTCP(local);
-  d_tcp=true;
-  d_client=-1;
-  d_tid=0;
-  d_ppid=0;
 }
 
 DynListener::DynListener(const string &progname)
 {
-  d_client=-1;
-  d_tid=0;
-  d_ppid=0;
-  d_s=-1;
 
   if(!progname.empty()) {
     string socketname = ::arg()["socket-dir"];
@@ -205,7 +199,6 @@ DynListener::DynListener(const string &progname)
   }
   else
     d_nonlocal=false; // we listen on stdin!
-  d_tcp=false;
 }
 
 void DynListener::go()
@@ -216,6 +209,7 @@ void DynListener::go()
 
 void *DynListener::theListenerHelper(void *p)
 {
+  setThreadName("pdns/ctrlListen");
   DynListener *us=static_cast<DynListener *>(p);
   us->theListener();
   g_log<<Logger::Error<<"Control listener aborted, please file a bug!"<<endl;
@@ -227,7 +221,7 @@ string DynListener::getLine()
   vector<char> mesg;
   mesg.resize(1024000);
 
-  int len;
+  ssize_t len;
 
   ComboAddress remote;
   socklen_t remlen=remote.getSocklen();
@@ -290,12 +284,12 @@ string DynListener::getLine()
     else if(len==0)
       throw PDNSException("Guardian exited - going down as well");
 
-    if(len == (int)mesg.size())
+    if(static_cast<size_t>(len) == mesg.size())
       throw PDNSException("Line on control console was too long");
 
     mesg[len]=0;
   }
-  
+
   return &mesg[0];
 }
 

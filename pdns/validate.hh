@@ -28,6 +28,7 @@
 #include "dnsrecords.hh"
  
 extern bool g_dnssecLOG;
+extern time_t g_signatureInceptionSkew;
 extern uint16_t g_maxNSEC3Iterations;
 
 // 4033 5
@@ -76,3 +77,5 @@ bool isSupportedDS(const DSRecordContent& ds);
 DNSName getSigner(const std::vector<std::shared_ptr<RRSIGRecordContent> >& signatures);
 bool denialProvesNoDelegation(const DNSName& zone, const std::vector<DNSRecord>& dsrecords);
 bool isRRSIGNotExpired(const time_t now, const shared_ptr<RRSIGRecordContent> sig);
+bool isWildcardExpanded(unsigned int labelCount, const std::shared_ptr<RRSIGRecordContent>& sign);
+bool isWildcardExpandedOntoItself(const DNSName& owner, unsigned int labelCount, const std::shared_ptr<RRSIGRecordContent>& sign);

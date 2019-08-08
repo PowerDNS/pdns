@@ -1,7 +1,7 @@
 [Unit]
 Description=DNS Loadbalancer
 Documentation=man:dnsdist(1)
-Documentation=http://dnsdist.org
+Documentation=https://dnsdist.org
 Wants=network-online.target
 After=network-online.target
 
@@ -9,21 +9,32 @@ After=network-online.target
 ExecStartPre=@bindir@/dnsdist --check-config
 # Note: when editing the ExecStart command, keep --supervised and --disable-syslog
 ExecStart=@bindir@/dnsdist --supervised --disable-syslog
-
 Type=notify
 Restart=on-failure
 RestartSec=2
 TimeoutStopSec=5
 StartLimitInterval=0
-PrivateTmp=true
-PrivateDevices=true
-CapabilityBoundingSet=CAP_NET_BIND_SERVICE CAP_SETGID CAP_SETUID
-NoNewPrivileges=true
-ProtectSystem=full
-ProtectHome=true
-RestrictAddressFamilies=AF_UNIX AF_INET AF_INET6
+
+# Tuning
 LimitNOFILE=16384
 TasksMax=8192
+
+# Sandboxing
+CapabilityBoundingSet=CAP_NET_BIND_SERVICE CAP_SETGID CAP_SETUID
+LockPersonality=true
+NoNewPrivileges=true
+PrivateDevices=true
+PrivateTmp=true
+ProtectControlGroups=true
+ProtectHome=true
+ProtectKernelModules=true
+ProtectKernelTunables=true
+ProtectSystem=full
+RestrictAddressFamilies=AF_UNIX AF_INET AF_INET6
+RestrictNamespaces=true
+RestrictRealtime=true
+SystemCallArchitectures=native
+SystemCallFilter=~ @clock @debug @module @mount @raw-io @reboot @swap @cpu-emulation @obsolete
 
 [Install]
 WantedBy=multi-user.target

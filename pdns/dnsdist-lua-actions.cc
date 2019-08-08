@@ -19,6 +19,8 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
+#include "config.h"
+#include "threadname.hh"
 #include "dnsdist.hh"
 #include "dnsdist-ecs.hh"
 #include "dnsdist-lua.hh"
@@ -29,16 +31,21 @@
 #include "ednsoptions.hh"
 #include "fstrm_logger.hh"
 #include "remote_logger.hh"
-#include "boost/optional/optional_io.hpp"
+
+#include <boost/optional/optional_io.hpp>
+
+#ifdef HAVE_LIBCRYPTO
+#include "ipcipher.hh"
+#endif /* HAVE_LIBCRYPTO */
 
 class DropAction : public DNSAction
 {
 public:
-  DNSAction::Action operator()(DNSQuestion* dq, string* ruleresult) const override
+  DNSAction::Action operator()(DNSQuestion* dq, std::string* ruleresult) const override
   {
     return Action::Drop;
   }
-  string toString() const override
+  std::string toString() const override
   {
     return "drop";
   }
@@ -47,30 +54,42 @@ public:
 class AllowAction : public DNSAction
 {
 public:
-  DNSAction::Action operator()(DNSQuestion* dq, string* ruleresult) const override
+  DNSAction::Action operator()(DNSQuestion* dq, std::string* ruleresult) const override
   {
     return Action::Allow;
   }
-  string toString() const override
+  std::string toString() const override
   {
     return "allow";
   }
 };
 
+class NoneAction : public DNSAction
+{
+public:
+  DNSAction::Action operator()(DNSQuestion* dq, std::string* ruleresult) const override
+  {
+    return Action::None;
+  }
+  std::string toString() const override
+  {
+    return "no op";
+  }
+};
 
 class QPSAction : public DNSAction
 {
 public:
   QPSAction(int limit) : d_qps(limit, limit)
   {}
-  DNSAction::Action operator()(DNSQuestion* dq, string* ruleresult) const override
+  DNSAction::Action operator()(DNSQuestion* dq, std::string* ruleresult) const override
   {
     if(d_qps.check())
       return Action::None;
     else
       return Action::Drop;
   }
-  string toString() const override
+  std::string toString() const override
   {
     return "qps limit to "+std::to_string(d_qps.getRate());
   }
@@ -83,12 +102,12 @@ class DelayAction : public DNSAction
 public:
   DelayAction(int msec) : d_msec(msec)
   {}
-  DNSAction::Action operator()(DNSQuestion* dq, string* ruleresult) const override
+  DNSAction::Action operator()(DNSQuestion* dq, std::string* ruleresult) const override
   {
     *ruleresult=std::to_string(d_msec);
     return Action::Delay;
   }
-  string toString() const override
+  std::string toString() const override
   {
     return "delay by "+std::to_string(d_msec)+ " msec";
   }
@@ -102,9 +121,9 @@ class TeeAction : public DNSAction
 public:
   TeeAction(const ComboAddress& ca, bool addECS=false);
   ~TeeAction() override;
-  DNSAction::Action operator()(DNSQuestion* dq, string* ruleresult) const override;
-  string toString() const override;
-  std::map<string, double> getStats() const override;
+  DNSAction::Action operator()(DNSQuestion* dq, std::string* ruleresult) const override;
+  std::string toString() const override;
+  std::map<std::string, double> getStats() const override;
 
 private:
   ComboAddress d_remote;
@@ -143,8 +162,7 @@ TeeAction::~TeeAction()
   d_worker.join();
 }
 
-
-DNSAction::Action TeeAction::operator()(DNSQuestion* dq, string* ruleresult) const
+DNSAction::Action TeeAction::operator()(DNSQuestion* dq, std::string* ruleresult) const
 {
   if(dq->tcp) {
     d_tcpdrops++;
@@ -161,7 +179,10 @@ DNSAction::Action TeeAction::operator()(DNSQuestion* dq, string* ruleresult) con
       query.reserve(dq->size);
       query.assign((char*) dq->dh, len);
 
-      if (!handleEDNSClientSubnet((char*) query.c_str(), query.capacity(), dq->qname->wirelength(), &len, &ednsAdded, &ecsAdded, *dq->remote, dq->ecsOverride, dq->ecsPrefixLength)) {
+      std::string newECSOption;
+      generateECSOption(dq->ecsSet ? dq->ecs.getNetwork() : *dq->remote, newECSOption, dq->ecsSet ? dq->ecs.getBits() :  dq->ecsPrefixLength);
+
+      if (!handleEDNSClientSubnet(const_cast<char*>(query.c_str()), query.capacity(), dq->qname->wirelength(), &len, &ednsAdded, &ecsAdded, dq->ecsOverride, newECSOption, g_preserveTrailingData)) {
         return DNSAction::Action::None;
       }
 
@@ -177,12 +198,12 @@ DNSAction::Action TeeAction::operator()(DNSQuestion* dq, string* ruleresult) con
   return DNSAction::Action::None;
 }
 
-string TeeAction::toString() const
+std::string TeeAction::toString() const
 {
   return "tee to "+d_remote.toStringWithPort();
 }
 
-std::map<string,double> TeeAction::getStats() const
+std::map<std::string,double> TeeAction::getStats() const
 {
   return {{"queries", d_queries},
           {"responses", d_responses},
@@ -199,6 +220,7 @@ std::map<string,double> TeeAction::getStats() const
 
 void TeeAction::worker()
 {
+  setThreadName("dnsdist/TeeWork");
   char packet[1500];
   int res=0;
   struct dnsheader* dh=(struct dnsheader*)packet;
@@ -237,18 +259,18 @@ class PoolAction : public DNSAction
 {
 public:
   PoolAction(const std::string& pool) : d_pool(pool) {}
-  DNSAction::Action operator()(DNSQuestion* dq, string* ruleresult) const override
+  DNSAction::Action operator()(DNSQuestion* dq, std::string* ruleresult) const override
   {
     *ruleresult=d_pool;
     return Action::Pool;
   }
-  string toString() const override
+  std::string toString() const override
   {
     return "to pool "+d_pool;
   }
 
 private:
-  string d_pool;
+  std::string d_pool;
 };
 
 
@@ -256,7 +278,7 @@ class QPSPoolAction : public DNSAction
 {
 public:
   QPSPoolAction(unsigned int limit, const std::string& pool) : d_qps(limit, limit), d_pool(pool) {}
-  DNSAction::Action operator()(DNSQuestion* dq, string* ruleresult) const override
+  DNSAction::Action operator()(DNSQuestion* dq, std::string* ruleresult) const override
   {
     if(d_qps.check()) {
       *ruleresult=d_pool;
@@ -265,29 +287,49 @@ public:
     else
       return Action::None;
   }
-  string toString() const override
+  std::string toString() const override
   {
     return "max " +std::to_string(d_qps.getRate())+" to pool "+d_pool;
   }
 
 private:
   QPSLimiter d_qps;
-  string d_pool;
+  std::string d_pool;
 };
 
 class RCodeAction : public DNSAction
 {
 public:
   RCodeAction(uint8_t rcode) : d_rcode(rcode) {}
-  DNSAction::Action operator()(DNSQuestion* dq, string* ruleresult) const override
+  DNSAction::Action operator()(DNSQuestion* dq, std::string* ruleresult) const override
   {
     dq->dh->rcode = d_rcode;
     dq->dh->qr = true; // for good measure
     return Action::HeaderModify;
   }
-  string toString() const override
+  std::string toString() const override
   {
     return "set rcode "+std::to_string(d_rcode);
+  }
+
+private:
+  uint8_t d_rcode;
+};
+
+class ERCodeAction : public DNSAction
+{
+public:
+  ERCodeAction(uint8_t rcode) : d_rcode(rcode) {}
+  DNSAction::Action operator()(DNSQuestion* dq, std::string* ruleresult) const override
+  {
+    dq->dh->rcode = (d_rcode & 0xF);
+    dq->ednsRCode = ((d_rcode & 0xFFF0) >> 4);
+    dq->dh->qr = true; // for good measure
+    return Action::HeaderModify;
+  }
+  std::string toString() const override
+  {
+    return "set ercode "+ERCode::to_s(d_rcode);
   }
 
 private:
@@ -297,23 +339,23 @@ private:
 class TCAction : public DNSAction
 {
 public:
-  DNSAction::Action operator()(DNSQuestion* dq, string* ruleresult) const override
+  DNSAction::Action operator()(DNSQuestion* dq, std::string* ruleresult) const override
   {
     return Action::Truncate;
   }
-  string toString() const override
+  std::string toString() const override
   {
     return "tc=1 answer";
   }
 };
 
-DNSAction::Action LuaAction::operator()(DNSQuestion* dq, string* ruleresult) const
+DNSAction::Action LuaAction::operator()(DNSQuestion* dq, std::string* ruleresult) const
 {
   std::lock_guard<std::mutex> lock(g_luamutex);
   try {
     auto ret = d_func(dq);
     if (ruleresult) {
-      if (boost::optional<string> rule = std::get<1>(ret)) {
+      if (boost::optional<std::string> rule = std::get<1>(ret)) {
         *ruleresult = *rule;
       }
       else {
@@ -330,13 +372,13 @@ DNSAction::Action LuaAction::operator()(DNSQuestion* dq, string* ruleresult) con
   return DNSAction::Action::ServFail;
 }
 
-DNSResponseAction::Action LuaResponseAction::operator()(DNSResponse* dr, string* ruleresult) const
+DNSResponseAction::Action LuaResponseAction::operator()(DNSResponse* dr, std::string* ruleresult) const
 {
   std::lock_guard<std::mutex> lock(g_luamutex);
   try {
     auto ret = d_func(dr);
     if(ruleresult) {
-      if (boost::optional<string> rule = std::get<1>(ret)) {
+      if (boost::optional<std::string> rule = std::get<1>(ret)) {
         *ruleresult = *rule;
       }
       else {
@@ -353,7 +395,7 @@ DNSResponseAction::Action LuaResponseAction::operator()(DNSResponse* dr, string*
   return DNSResponseAction::Action::ServFail;
 }
 
-DNSAction::Action SpoofAction::operator()(DNSQuestion* dq, string* ruleresult) const
+DNSAction::Action SpoofAction::operator()(DNSQuestion* dq, std::string* ruleresult) const
 {
   uint16_t qtype = dq->qtype;
   // do we even have a response?
@@ -390,6 +432,13 @@ DNSAction::Action SpoofAction::operator()(DNSQuestion* dq, string* ruleresult) c
     return Action::None;
   }
 
+  bool dnssecOK = false;
+  bool hadEDNS = false;
+  if (g_addEDNSToSelfGeneratedResponses && queryHasEDNS(*dq)) {
+    hadEDNS = true;
+    dnssecOK = getEDNSZ(*dq) & EDNS_HEADER_FLAG_DO;
+  }
+
   dq->len = sizeof(dnsheader) + consumed + 4; // there goes your EDNS
   char* dest = ((char*)dq->dh) + dq->len;
 
@@ -400,7 +449,7 @@ DNSAction::Action SpoofAction::operator()(DNSQuestion* dq, string* ruleresult) c
   dq->dh->arcount = 0; // for now, forget about your EDNS, we're marching over it
 
   if(qtype == QType::CNAME) {
-    string wireData = d_cname.toDNSString(); // Note! This doesn't do compression!
+    std::string wireData = d_cname.toDNSString(); // Note! This doesn't do compression!
     const unsigned char recordstart[]={0xc0, 0x0c,    // compressed name
                                        0, (unsigned char) qtype,
                                        0, QClass::IN, // IN
@@ -438,6 +487,10 @@ DNSAction::Action SpoofAction::operator()(DNSQuestion* dq, string* ruleresult) c
 
   dq->dh->ancount = htons(dq->dh->ancount);
 
+  if (hadEDNS) {
+    addEDNS(dq->dh, dq->len, dq->size, dnssecOK, g_PayloadSizeSelfGenAnswers, 0);
+  }
+
   return Action::HeaderModify;
 }
 
@@ -446,20 +499,20 @@ class MacAddrAction : public DNSAction
 public:
   MacAddrAction(uint16_t code) : d_code(code)
   {}
-  DNSAction::Action operator()(DNSQuestion* dq, string* ruleresult) const override
+  DNSAction::Action operator()(DNSQuestion* dq, std::string* ruleresult) const override
   {
     if(dq->dh->arcount)
       return Action::None;
 
-    string mac = getMACAddress(*dq->remote);
+    std::string mac = getMACAddress(*dq->remote);
     if(mac.empty())
       return Action::None;
 
-    string optRData;
+    std::string optRData;
     generateEDNSOption(d_code, mac, optRData);
 
-    string res;
-    generateOptRR(optRData, res);
+    std::string res;
+    generateOptRR(optRData, res, g_EdnsUDPPayloadSize, 0, false);
 
     if ((dq->size - dq->len) < res.length())
       return Action::None;
@@ -471,7 +524,7 @@ public:
 
     return Action::None;
   }
-  string toString() const override
+  std::string toString() const override
   {
     return "add EDNS MAC (code="+std::to_string(d_code)+")";
   }
@@ -482,12 +535,12 @@ private:
 class NoRecurseAction : public DNSAction
 {
 public:
-  DNSAction::Action operator()(DNSQuestion* dq, string* ruleresult) const override
+  DNSAction::Action operator()(DNSQuestion* dq, std::string* ruleresult) const override
   {
     dq->dh->rd = false;
     return Action::None;
   }
-  string toString() const override
+  std::string toString() const override
   {
     return "set rd=0";
   }
@@ -508,7 +561,7 @@ public:
     else
       d_fp = fopen(str.c_str(), "w");
     if(!d_fp)
-      throw std::runtime_error("Unable to open file '"+str+"' for logging: "+string(strerror(errno)));
+      throw std::runtime_error("Unable to open file '"+str+"' for logging: "+std::string(strerror(errno)));
     if(!buffered)
       setbuf(d_fp, 0);
   }
@@ -517,14 +570,14 @@ public:
     if(d_fp)
       fclose(d_fp);
   }
-  DNSAction::Action operator()(DNSQuestion* dq, string* ruleresult) const override
+  DNSAction::Action operator()(DNSQuestion* dq, std::string* ruleresult) const override
   {
     if(!d_fp) {
       vinfolog("Packet from %s for %s %s with id %d", dq->remote->toStringWithPort(), dq->qname->toString(), QType(dq->qtype).getName(), dq->dh->id);
     }
     else {
       if(d_binary) {
-        string out = dq->qname->toDNSString();
+        std::string out = dq->qname->toDNSString();
         fwrite(out.c_str(), 1, out.size(), d_fp);
         fwrite((void*)&dq->qtype, 1, 2, d_fp);
       }
@@ -534,7 +587,7 @@ public:
     }
     return Action::None;
   }
-  string toString() const override
+  std::string toString() const override
   {
     if (!d_fname.empty()) {
       return "log to " + d_fname;
@@ -542,7 +595,7 @@ public:
     return "log";
   }
 private:
-  string d_fname;
+  std::string d_fname;
   FILE* d_fp{0};
   bool d_binary{true};
 };
@@ -551,12 +604,12 @@ private:
 class DisableValidationAction : public DNSAction
 {
 public:
-  DNSAction::Action operator()(DNSQuestion* dq, string* ruleresult) const override
+  DNSAction::Action operator()(DNSQuestion* dq, std::string* ruleresult) const override
   {
     dq->dh->cd = true;
     return Action::None;
   }
-  string toString() const override
+  std::string toString() const override
   {
     return "set cd=1";
   }
@@ -565,12 +618,12 @@ public:
 class SkipCacheAction : public DNSAction
 {
 public:
-  DNSAction::Action operator()(DNSQuestion* dq, string* ruleresult) const override
+  DNSAction::Action operator()(DNSQuestion* dq, std::string* ruleresult) const override
   {
     dq->skipCache = true;
     return Action::None;
   }
-  string toString() const override
+  std::string toString() const override
   {
     return "skip cache";
   }
@@ -581,12 +634,12 @@ class TempFailureCacheTTLAction : public DNSAction
 public:
   TempFailureCacheTTLAction(uint32_t ttl) : d_ttl(ttl)
   {}
-  TempFailureCacheTTLAction::Action operator()(DNSQuestion* dq, string* ruleresult) const override
+  TempFailureCacheTTLAction::Action operator()(DNSQuestion* dq, std::string* ruleresult) const override
   {
     dq->tempFailureTTL = d_ttl;
     return Action::None;
   }
-  string toString() const override
+  std::string toString() const override
   {
     return "set tempfailure cache ttl to "+std::to_string(d_ttl);
   }
@@ -600,12 +653,12 @@ public:
   ECSPrefixLengthAction(uint16_t v4Length, uint16_t v6Length) : d_v4PrefixLength(v4Length), d_v6PrefixLength(v6Length)
   {
   }
-  DNSAction::Action operator()(DNSQuestion* dq, string* ruleresult) const override
+  DNSAction::Action operator()(DNSQuestion* dq, std::string* ruleresult) const override
   {
     dq->ecsPrefixLength = dq->remote->sin4.sin_family == AF_INET ? d_v4PrefixLength : d_v6PrefixLength;
     return Action::None;
   }
-  string toString() const override
+  std::string toString() const override
   {
     return "set ECS prefix length to " + std::to_string(d_v4PrefixLength) + "/" + std::to_string(d_v6PrefixLength);
   }
@@ -620,12 +673,12 @@ public:
   ECSOverrideAction(bool ecsOverride) : d_ecsOverride(ecsOverride)
   {
   }
-  DNSAction::Action operator()(DNSQuestion* dq, string* ruleresult) const override
+  DNSAction::Action operator()(DNSQuestion* dq, std::string* ruleresult) const override
   {
     dq->ecsOverride = d_ecsOverride;
     return Action::None;
   }
-  string toString() const override
+  std::string toString() const override
   {
     return "set ECS override to " + std::to_string(d_ecsOverride);
   }
@@ -637,31 +690,72 @@ private:
 class DisableECSAction : public DNSAction
 {
 public:
-  DNSAction::Action operator()(DNSQuestion* dq, string* ruleresult) const override
+  DNSAction::Action operator()(DNSQuestion* dq, std::string* ruleresult) const override
   {
     dq->useECS = false;
     return Action::None;
   }
-  string toString() const override
+  std::string toString() const override
   {
     return "disable ECS";
   }
 };
 
+class SetECSAction : public DNSAction
+{
+public:
+  SetECSAction(const Netmask& v4): d_v4(v4), d_hasV6(false)
+  {
+  }
+
+  SetECSAction(const Netmask& v4, const Netmask& v6): d_v4(v4), d_v6(v6), d_hasV6(true)
+  {
+  }
+
+  DNSAction::Action operator()(DNSQuestion* dq, std::string* ruleresult) const override
+  {
+    dq->ecsSet = true;
+
+    if (d_hasV6) {
+      dq->ecs = dq->remote->isIPv4() ? d_v4 : d_v6;
+    }
+    else {
+      dq->ecs = d_v4;
+    }
+
+    return Action::None;
+  }
+
+  std::string toString() const override
+  {
+    std::string result = "set ECS to " + d_v4.toString();
+    if (d_hasV6) {
+      result += " / " + d_v6.toString();
+    }
+    return result;
+  }
+
+private:
+  Netmask d_v4;
+  Netmask d_v6;
+  bool d_hasV6;
+};
+
+
 class DnstapLogAction : public DNSAction, public boost::noncopyable
 {
 public:
-  DnstapLogAction(const std::string& identity, std::shared_ptr<RemoteLoggerInterface>& logger, boost::optional<std::function<void(const DNSQuestion&, DnstapMessage*)> > alterFunc): d_identity(identity), d_logger(logger), d_alterFunc(alterFunc)
+  DnstapLogAction(const std::string& identity, std::shared_ptr<RemoteLoggerInterface>& logger, boost::optional<std::function<void(DNSQuestion*, DnstapMessage*)> > alterFunc): d_identity(identity), d_logger(logger), d_alterFunc(alterFunc)
   {
   }
-  DNSAction::Action operator()(DNSQuestion* dq, string* ruleresult) const override
+  DNSAction::Action operator()(DNSQuestion* dq, std::string* ruleresult) const override
   {
 #ifdef HAVE_PROTOBUF
     DnstapMessage message(d_identity, dq->remote, dq->local, dq->tcp, reinterpret_cast<const char*>(dq->dh), dq->len, dq->queryTime, nullptr);
     {
       if (d_alterFunc) {
         std::lock_guard<std::mutex> lock(g_luamutex);
-        (*d_alterFunc)(*dq, &message);
+        (*d_alterFunc)(dq, &message);
       }
     }
     std::string data;
@@ -670,49 +764,61 @@ public:
 #endif /* HAVE_PROTOBUF */
     return Action::None;
   }
-  string toString() const override
+  std::string toString() const override
   {
     return "remote log as dnstap to " + (d_logger ? d_logger->toString() : "");
   }
 private:
   std::string d_identity;
   std::shared_ptr<RemoteLoggerInterface> d_logger;
-  boost::optional<std::function<void(const DNSQuestion&, DnstapMessage*)> > d_alterFunc;
+  boost::optional<std::function<void(DNSQuestion*, DnstapMessage*)> > d_alterFunc;
 };
 
 class RemoteLogAction : public DNSAction, public boost::noncopyable
 {
 public:
-  RemoteLogAction(std::shared_ptr<RemoteLoggerInterface>& logger, boost::optional<std::function<void(const DNSQuestion&, DNSDistProtoBufMessage*)> > alterFunc): d_logger(logger), d_alterFunc(alterFunc)
+  RemoteLogAction(std::shared_ptr<RemoteLoggerInterface>& logger, boost::optional<std::function<void(DNSQuestion*, DNSDistProtoBufMessage*)> > alterFunc, const std::string& serverID, const std::string& ipEncryptKey): d_logger(logger), d_alterFunc(alterFunc), d_serverID(serverID), d_ipEncryptKey(ipEncryptKey)
   {
   }
-  DNSAction::Action operator()(DNSQuestion* dq, string* ruleresult) const override
+  DNSAction::Action operator()(DNSQuestion* dq, std::string* ruleresult) const override
   {
 #ifdef HAVE_PROTOBUF
     if (!dq->uniqueId) {
-      dq->uniqueId = t_uuidGenerator();
+      dq->uniqueId = getUniqueID();
     }
 
     DNSDistProtoBufMessage message(*dq);
-    {
-      if (d_alterFunc) {
-        std::lock_guard<std::mutex> lock(g_luamutex);
-        (*d_alterFunc)(*dq, &message);
-      }
+    if (!d_serverID.empty()) {
+      message.setServerIdentity(d_serverID);
     }
+
+#if HAVE_LIBCRYPTO
+    if (!d_ipEncryptKey.empty())
+    {
+      message.setRequestor(encryptCA(*dq->remote, d_ipEncryptKey));
+    }
+#endif /* HAVE_LIBCRYPTO */
+
+    if (d_alterFunc) {
+      std::lock_guard<std::mutex> lock(g_luamutex);
+      (*d_alterFunc)(dq, &message);
+    }
+
     std::string data;
     message.serialize(data);
     d_logger->queueData(data);
 #endif /* HAVE_PROTOBUF */
     return Action::None;
   }
-  string toString() const override
+  std::string toString() const override
   {
     return "remote log to " + (d_logger ? d_logger->toString() : "");
   }
 private:
   std::shared_ptr<RemoteLoggerInterface> d_logger;
-  boost::optional<std::function<void(const DNSQuestion&, DNSDistProtoBufMessage*)> > d_alterFunc;
+  boost::optional<std::function<void(DNSQuestion*, DNSDistProtoBufMessage*)> > d_alterFunc;
+  std::string d_serverID;
+  std::string d_ipEncryptKey;
 };
 
 class SNMPTrapAction : public DNSAction
@@ -721,7 +827,7 @@ public:
   SNMPTrapAction(const std::string& reason): d_reason(reason)
   {
   }
-  DNSAction::Action operator()(DNSQuestion* dq, string* ruleresult) const override
+  DNSAction::Action operator()(DNSQuestion* dq, std::string* ruleresult) const override
   {
     if (g_snmpAgent && g_snmpTrapsEnabled) {
       g_snmpAgent->sendDNSTrap(*dq, d_reason);
@@ -729,7 +835,7 @@ public:
 
     return Action::None;
   }
-  string toString() const override
+  std::string toString() const override
   {
     return "send SNMP trap";
   }
@@ -743,7 +849,7 @@ public:
   TagAction(const std::string& tag, const std::string& value): d_tag(tag), d_value(value)
   {
   }
-  DNSAction::Action operator()(DNSQuestion* dq, string* ruleresult) const override
+  DNSAction::Action operator()(DNSQuestion* dq, std::string* ruleresult) const override
   {
     if (!dq->qTag) {
       dq->qTag = std::make_shared<QTag>();
@@ -753,7 +859,7 @@ public:
 
     return Action::None;
   }
-  string toString() const override
+  std::string toString() const override
   {
     return "set tag '" + d_tag + "' to value '" + d_value + "'";
   }
@@ -765,10 +871,10 @@ private:
 class DnstapLogResponseAction : public DNSResponseAction, public boost::noncopyable
 {
 public:
-  DnstapLogResponseAction(const std::string& identity, std::shared_ptr<RemoteLoggerInterface>& logger, boost::optional<std::function<void(const DNSResponse&, DnstapMessage*)> > alterFunc): d_identity(identity), d_logger(logger), d_alterFunc(alterFunc)
+  DnstapLogResponseAction(const std::string& identity, std::shared_ptr<RemoteLoggerInterface>& logger, boost::optional<std::function<void(DNSResponse*, DnstapMessage*)> > alterFunc): d_identity(identity), d_logger(logger), d_alterFunc(alterFunc)
   {
   }
-  DNSResponseAction::Action operator()(DNSResponse* dr, string* ruleresult) const override
+  DNSResponseAction::Action operator()(DNSResponse* dr, std::string* ruleresult) const override
   {
 #ifdef HAVE_PROTOBUF
     struct timespec now;
@@ -777,7 +883,7 @@ public:
     {
       if (d_alterFunc) {
         std::lock_guard<std::mutex> lock(g_luamutex);
-        (*d_alterFunc)(*dr, &message);
+        (*d_alterFunc)(dr, &message);
       }
     }
     std::string data;
@@ -786,60 +892,72 @@ public:
 #endif /* HAVE_PROTOBUF */
     return Action::None;
   }
-  string toString() const override
+  std::string toString() const override
   {
     return "log response as dnstap to " + (d_logger ? d_logger->toString() : "");
   }
 private:
   std::string d_identity;
   std::shared_ptr<RemoteLoggerInterface> d_logger;
-  boost::optional<std::function<void(const DNSResponse&, DnstapMessage*)> > d_alterFunc;
+  boost::optional<std::function<void(DNSResponse*, DnstapMessage*)> > d_alterFunc;
 };
 
 class RemoteLogResponseAction : public DNSResponseAction, public boost::noncopyable
 {
 public:
-  RemoteLogResponseAction(std::shared_ptr<RemoteLoggerInterface>& logger, boost::optional<std::function<void(const DNSResponse&, DNSDistProtoBufMessage*)> > alterFunc, bool includeCNAME): d_logger(logger), d_alterFunc(alterFunc), d_includeCNAME(includeCNAME)
+  RemoteLogResponseAction(std::shared_ptr<RemoteLoggerInterface>& logger, boost::optional<std::function<void(DNSResponse*, DNSDistProtoBufMessage*)> > alterFunc, const std::string& serverID, const std::string& ipEncryptKey, bool includeCNAME): d_logger(logger), d_alterFunc(alterFunc), d_serverID(serverID), d_ipEncryptKey(ipEncryptKey), d_includeCNAME(includeCNAME)
   {
   }
-  DNSResponseAction::Action operator()(DNSResponse* dr, string* ruleresult) const override
+  DNSResponseAction::Action operator()(DNSResponse* dr, std::string* ruleresult) const override
   {
 #ifdef HAVE_PROTOBUF
     if (!dr->uniqueId) {
-      dr->uniqueId = t_uuidGenerator();
+      dr->uniqueId = getUniqueID();
     }
 
     DNSDistProtoBufMessage message(*dr, d_includeCNAME);
-    {
-      if (d_alterFunc) {
-        std::lock_guard<std::mutex> lock(g_luamutex);
-        (*d_alterFunc)(*dr, &message);
-      }
+    if (!d_serverID.empty()) {
+      message.setServerIdentity(d_serverID);
     }
+
+#if HAVE_LIBCRYPTO
+    if (!d_ipEncryptKey.empty())
+    {
+      message.setRequestor(encryptCA(*dr->remote, d_ipEncryptKey));
+    }
+#endif /* HAVE_LIBCRYPTO */
+
+    if (d_alterFunc) {
+      std::lock_guard<std::mutex> lock(g_luamutex);
+      (*d_alterFunc)(dr, &message);
+    }
+
     std::string data;
     message.serialize(data);
     d_logger->queueData(data);
 #endif /* HAVE_PROTOBUF */
     return Action::None;
   }
-  string toString() const override
+  std::string toString() const override
   {
     return "remote log response to " + (d_logger ? d_logger->toString() : "");
   }
 private:
   std::shared_ptr<RemoteLoggerInterface> d_logger;
-  boost::optional<std::function<void(const DNSResponse&, DNSDistProtoBufMessage*)> > d_alterFunc;
+  boost::optional<std::function<void(DNSResponse*, DNSDistProtoBufMessage*)> > d_alterFunc;
+  std::string d_serverID;
+  std::string d_ipEncryptKey;
   bool d_includeCNAME;
 };
 
 class DropResponseAction : public DNSResponseAction
 {
 public:
-  DNSResponseAction::Action operator()(DNSResponse* dr, string* ruleresult) const override
+  DNSResponseAction::Action operator()(DNSResponse* dr, std::string* ruleresult) const override
   {
     return Action::Drop;
   }
-  string toString() const override
+  std::string toString() const override
   {
     return "drop";
   }
@@ -848,11 +966,11 @@ public:
 class AllowResponseAction : public DNSResponseAction
 {
 public:
-  DNSResponseAction::Action operator()(DNSResponse* dr, string* ruleresult) const override
+  DNSResponseAction::Action operator()(DNSResponse* dr, std::string* ruleresult) const override
   {
     return Action::Allow;
   }
-  string toString() const override
+  std::string toString() const override
   {
     return "allow";
   }
@@ -863,12 +981,12 @@ class DelayResponseAction : public DNSResponseAction
 public:
   DelayResponseAction(int msec) : d_msec(msec)
   {}
-  DNSResponseAction::Action operator()(DNSResponse* dr, string* ruleresult) const override
+  DNSResponseAction::Action operator()(DNSResponse* dr, std::string* ruleresult) const override
   {
     *ruleresult=std::to_string(d_msec);
     return Action::Delay;
   }
-  string toString() const override
+  std::string toString() const override
   {
     return "delay by "+std::to_string(d_msec)+ " msec";
   }
@@ -882,7 +1000,7 @@ public:
   SNMPTrapResponseAction(const std::string& reason): d_reason(reason)
   {
   }
-  DNSResponseAction::Action operator()(DNSResponse* dr, string* ruleresult) const override
+  DNSResponseAction::Action operator()(DNSResponse* dr, std::string* ruleresult) const override
   {
     if (g_snmpAgent && g_snmpTrapsEnabled) {
       g_snmpAgent->sendDNSTrap(*dr, d_reason);
@@ -890,7 +1008,7 @@ public:
 
     return Action::None;
   }
-  string toString() const override
+  std::string toString() const override
   {
     return "send SNMP trap";
   }
@@ -904,7 +1022,7 @@ public:
   TagResponseAction(const std::string& tag, const std::string& value): d_tag(tag), d_value(value)
   {
   }
-  DNSResponseAction::Action operator()(DNSResponse* dr, string* ruleresult) const override
+  DNSResponseAction::Action operator()(DNSResponse* dr, std::string* ruleresult) const override
   {
     if (!dr->qTag) {
       dr->qTag = std::make_shared<QTag>();
@@ -914,7 +1032,7 @@ public:
 
     return Action::None;
   }
-  string toString() const override
+  std::string toString() const override
   {
     return "set tag '" + d_tag + "' to value '" + d_value + "'";
   }
@@ -923,16 +1041,83 @@ private:
   std::string d_value;
 };
 
+class ContinueAction : public DNSAction
+{
+public:
+  ContinueAction(std::shared_ptr<DNSAction>& action): d_action(action)
+  {
+  }
+
+  DNSAction::Action operator()(DNSQuestion* dq, std::string* ruleresult) const override
+  {
+    if (d_action) {
+      /* call the action */
+      auto action = (*d_action)(dq, ruleresult);
+      bool drop = false;
+      /* apply the changes if needed (pool selection, flags, etc */
+      processRulesResult(action, *dq, *ruleresult, drop);
+    }
+
+    /* but ignore the resulting action no matter what */
+    return Action::None;
+  }
+
+  std::string toString() const override
+  {
+    if (d_action) {
+      return "continue after: " + (d_action ? d_action->toString() : "");
+    }
+    else {
+      return "no op";
+    }
+  }
+
+private:
+  std::shared_ptr<DNSAction> d_action;
+};
+
+
+#ifdef HAVE_DNS_OVER_HTTPS
+class HTTPStatusAction: public DNSAction
+{
+public:
+  HTTPStatusAction(int code, const std::string& body, const std::string& contentType): d_body(body), d_contentType(contentType), d_code(code)
+  {
+  }
+
+  DNSAction::Action operator()(DNSQuestion* dq, std::string* ruleresult) const override
+  {
+    if (!dq->du) {
+      return Action::None;
+    }
+
+    dq->du->setHTTPResponse(d_code, d_body, d_contentType);
+    dq->dh->qr = true; // for good measure
+    return Action::HeaderModify;
+  }
+
+  std::string toString() const override
+  {
+    return "return an HTTP status of " + std::to_string(d_code);
+  }
+private:
+  std::string d_body;
+  std::string d_contentType;
+  int d_code;
+};
+#endif /* HAVE_DNS_OVER_HTTPS */
+
 template<typename T, typename ActionT>
 static void addAction(GlobalStateHolder<vector<T> > *someRulActions, luadnsrule_t var, std::shared_ptr<ActionT> action, boost::optional<luaruleparams_t> params) {
   setLuaSideEffect();
 
   boost::uuids::uuid uuid;
-  parseRuleParams(params, uuid);
+  uint64_t creationOrder;
+  parseRuleParams(params, uuid, creationOrder);
 
   auto rule=makeRule(var);
-  someRulActions->modify([rule, action, uuid](vector<T>& rulactions){
-      rulactions.push_back({rule, action, uuid});
+  someRulActions->modify([rule, action, uuid, creationOrder](vector<T>& rulactions){
+      rulactions.push_back({rule, action, uuid, creationOrder});
     });
 }
 
@@ -940,10 +1125,11 @@ void setupLuaActions()
 {
   g_lua.writeFunction("newRuleAction", [](luadnsrule_t dnsrule, std::shared_ptr<DNSAction> action, boost::optional<luaruleparams_t> params) {
       boost::uuids::uuid uuid;
-      parseRuleParams(params, uuid);
+      uint64_t creationOrder;
+      parseRuleParams(params, uuid, creationOrder);
 
       auto rule=makeRule(dnsrule);
-      DNSDistRuleAction ra({rule, action, uuid});
+      DNSDistRuleAction ra({rule, action, uuid, creationOrder});
       return std::make_shared<DNSDistRuleAction>(ra);
     });
 
@@ -953,14 +1139,6 @@ void setupLuaActions()
       }
 
       addAction(&g_rulactions, var, boost::get<std::shared_ptr<DNSAction> >(era), params);
-    });
-
-  g_lua.writeFunction("addLuaAction", [](luadnsrule_t var, LuaAction::func_t func, boost::optional<luaruleparams_t> params) {
-      addAction(&g_rulactions, var, std::make_shared<LuaAction>(func), params);
-    });
-
-  g_lua.writeFunction("addLuaResponseAction", [](luadnsrule_t var, LuaResponseAction::func_t func, boost::optional<luaruleparams_t> params) {
-      addAction(&g_resprulactions, var, std::make_shared<LuaResponseAction>(func), params);
     });
 
   g_lua.writeFunction("addResponseAction", [](luadnsrule_t var, boost::variant<std::shared_ptr<DNSAction>, std::shared_ptr<DNSResponseAction> > era, boost::optional<luaruleparams_t> params) {
@@ -1023,7 +1201,7 @@ void setupLuaActions()
       return std::shared_ptr<DNSAction>(new MacAddrAction(code));
     });
 
-  g_lua.writeFunction("PoolAction", [](const string& a) {
+  g_lua.writeFunction("PoolAction", [](const std::string& a) {
       return std::shared_ptr<DNSAction>(new PoolAction(a));
     });
 
@@ -1031,16 +1209,16 @@ void setupLuaActions()
       return std::shared_ptr<DNSAction>(new QPSAction(limit));
     });
 
-  g_lua.writeFunction("QPSPoolAction", [](int limit, const string& a) {
+  g_lua.writeFunction("QPSPoolAction", [](int limit, const std::string& a) {
       return std::shared_ptr<DNSAction>(new QPSPoolAction(limit, a));
     });
 
-  g_lua.writeFunction("SpoofAction", [](boost::variant<string,vector<pair<int, string>>> inp, boost::optional<string> b ) {
+  g_lua.writeFunction("SpoofAction", [](boost::variant<std::string,vector<pair<int, std::string>>> inp, boost::optional<std::string> b ) {
       vector<ComboAddress> addrs;
-      if(auto s = boost::get<string>(&inp))
+      if(auto s = boost::get<std::string>(&inp))
         addrs.push_back(ComboAddress(*s));
       else {
-        const auto& v = boost::get<vector<pair<int,string>>>(inp);
+        const auto& v = boost::get<vector<pair<int,std::string>>>(inp);
         for(const auto& a: v)
           addrs.push_back(ComboAddress(a.second));
       }
@@ -1049,7 +1227,7 @@ void setupLuaActions()
       return std::shared_ptr<DNSAction>(new SpoofAction(addrs));
     });
 
-  g_lua.writeFunction("SpoofCNAMEAction", [](const string& a) {
+  g_lua.writeFunction("SpoofCNAMEAction", [](const std::string& a) {
       return std::shared_ptr<DNSAction>(new SpoofAction(a));
     });
 
@@ -1059,6 +1237,10 @@ void setupLuaActions()
 
   g_lua.writeFunction("AllowAction", []() {
       return std::shared_ptr<DNSAction>(new AllowAction);
+    });
+
+  g_lua.writeFunction("NoneAction", []() {
+      return std::shared_ptr<DNSAction>(new NoneAction);
     });
 
   g_lua.writeFunction("DelayAction", [](int msec) {
@@ -1079,6 +1261,10 @@ void setupLuaActions()
 
   g_lua.writeFunction("RCodeAction", [](uint8_t rcode) {
       return std::shared_ptr<DNSAction>(new RCodeAction(rcode));
+    });
+
+  g_lua.writeFunction("ERCodeAction", [](uint8_t rcode) {
+      return std::shared_ptr<DNSAction>(new ERCodeAction(rcode));
     });
 
   g_lua.writeFunction("SkipCacheAction", []() {
@@ -1106,35 +1292,59 @@ void setupLuaActions()
       return std::shared_ptr<DNSResponseAction>(new LuaResponseAction(func));
     });
 
-  g_lua.writeFunction("RemoteLogAction", [](std::shared_ptr<RemoteLoggerInterface> logger, boost::optional<std::function<void(const DNSQuestion&, DNSDistProtoBufMessage*)> > alterFunc) {
+  g_lua.writeFunction("RemoteLogAction", [](std::shared_ptr<RemoteLoggerInterface> logger, boost::optional<std::function<void(DNSQuestion*, DNSDistProtoBufMessage*)> > alterFunc, boost::optional<std::unordered_map<std::string, std::string>> vars) {
       // avoids potentially-evaluated-expression warning with clang.
       RemoteLoggerInterface& rl = *logger.get();
       if (typeid(rl) != typeid(RemoteLogger)) {
         // We could let the user do what he wants, but wrapping PowerDNS Protobuf inside a FrameStream tagged as dnstap is logically wrong.
         throw std::runtime_error(std::string("RemoteLogAction only takes RemoteLogger. For other types, please look at DnstapLogAction."));
       }
+
+      std::string serverID;
+      std::string ipEncryptKey;
+      if (vars) {
+        if (vars->count("serverID")) {
+          serverID = boost::get<std::string>((*vars)["serverID"]);
+        }
+        if (vars->count("ipEncryptKey")) {
+          ipEncryptKey = boost::get<std::string>((*vars)["ipEncryptKey"]);
+        }
+      }
+
 #ifdef HAVE_PROTOBUF
-      return std::shared_ptr<DNSAction>(new RemoteLogAction(logger, alterFunc));
+      return std::shared_ptr<DNSAction>(new RemoteLogAction(logger, alterFunc, serverID, ipEncryptKey));
 #else
       throw std::runtime_error("Protobuf support is required to use RemoteLogAction");
 #endif
     });
 
-  g_lua.writeFunction("RemoteLogResponseAction", [](std::shared_ptr<RemoteLoggerInterface> logger, boost::optional<std::function<void(const DNSResponse&, DNSDistProtoBufMessage*)> > alterFunc, boost::optional<bool> includeCNAME) {
+  g_lua.writeFunction("RemoteLogResponseAction", [](std::shared_ptr<RemoteLoggerInterface> logger, boost::optional<std::function<void(DNSResponse*, DNSDistProtoBufMessage*)> > alterFunc, boost::optional<bool> includeCNAME, boost::optional<std::unordered_map<std::string, std::string>> vars) {
       // avoids potentially-evaluated-expression warning with clang.
       RemoteLoggerInterface& rl = *logger.get();
       if (typeid(rl) != typeid(RemoteLogger)) {
         // We could let the user do what he wants, but wrapping PowerDNS Protobuf inside a FrameStream tagged as dnstap is logically wrong.
         throw std::runtime_error("RemoteLogResponseAction only takes RemoteLogger. For other types, please look at DnstapLogResponseAction.");
       }
+
+      std::string serverID;
+      std::string ipEncryptKey;
+      if (vars) {
+        if (vars->count("serverID")) {
+          serverID = boost::get<std::string>((*vars)["serverID"]);
+        }
+        if (vars->count("ipEncryptKey")) {
+          ipEncryptKey = boost::get<std::string>((*vars)["ipEncryptKey"]);
+        }
+      }
+
 #ifdef HAVE_PROTOBUF
-      return std::shared_ptr<DNSResponseAction>(new RemoteLogResponseAction(logger, alterFunc, includeCNAME ? *includeCNAME : false));
+      return std::shared_ptr<DNSResponseAction>(new RemoteLogResponseAction(logger, alterFunc, serverID, ipEncryptKey, includeCNAME ? *includeCNAME : false));
 #else
       throw std::runtime_error("Protobuf support is required to use RemoteLogResponseAction");
 #endif
     });
 
-  g_lua.writeFunction("DnstapLogAction", [](const std::string& identity, std::shared_ptr<RemoteLoggerInterface> logger, boost::optional<std::function<void(const DNSQuestion&, DnstapMessage*)> > alterFunc) {
+  g_lua.writeFunction("DnstapLogAction", [](const std::string& identity, std::shared_ptr<RemoteLoggerInterface> logger, boost::optional<std::function<void(DNSQuestion*, DnstapMessage*)> > alterFunc) {
 #ifdef HAVE_PROTOBUF
       return std::shared_ptr<DNSAction>(new DnstapLogAction(identity, logger, alterFunc));
 #else
@@ -1142,7 +1352,7 @@ void setupLuaActions()
 #endif
     });
 
-  g_lua.writeFunction("DnstapLogResponseAction", [](const std::string& identity, std::shared_ptr<RemoteLoggerInterface> logger, boost::optional<std::function<void(const DNSResponse&, DnstapMessage*)> > alterFunc) {
+  g_lua.writeFunction("DnstapLogResponseAction", [](const std::string& identity, std::shared_ptr<RemoteLoggerInterface> logger, boost::optional<std::function<void(DNSResponse*, DnstapMessage*)> > alterFunc) {
 #ifdef HAVE_PROTOBUF
       return std::shared_ptr<DNSResponseAction>(new DnstapLogResponseAction(identity, logger, alterFunc));
 #else
@@ -1164,6 +1374,13 @@ void setupLuaActions()
 
   g_lua.writeFunction("DisableECSAction", []() {
       return std::shared_ptr<DNSAction>(new DisableECSAction());
+    });
+
+  g_lua.writeFunction("SetECSAction", [](const std::string v4, boost::optional<std::string> v6) {
+      if (v6) {
+        return std::shared_ptr<DNSAction>(new SetECSAction(Netmask(v4), Netmask(*v6)));
+      }
+      return std::shared_ptr<DNSAction>(new SetECSAction(Netmask(v4)));
     });
 
   g_lua.writeFunction("SNMPTrapAction", [](boost::optional<std::string> reason) {
@@ -1189,4 +1406,14 @@ void setupLuaActions()
   g_lua.writeFunction("TagResponseAction", [](std::string tag, std::string value) {
       return std::shared_ptr<DNSResponseAction>(new TagResponseAction(tag, value));
     });
+
+  g_lua.writeFunction("ContinueAction", [](std::shared_ptr<DNSAction> action) {
+      return std::shared_ptr<DNSAction>(new ContinueAction(action));
+    });
+
+#ifdef HAVE_DNS_OVER_HTTPS
+  g_lua.writeFunction("HTTPStatusAction", [](uint16_t status, std::string body, boost::optional<std::string> contentType) {
+      return std::shared_ptr<DNSAction>(new HTTPStatusAction(status, body, contentType ? *contentType : ""));
+    });
+#endif /* HAVE_DNS_OVER_HTTPS */
 }

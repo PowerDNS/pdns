@@ -30,25 +30,25 @@ Commands
 bind-add-zone *DOMAIN* *FILENAME*
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-When using the bindbackend, add a zone. This zone is added in-memory
+When using the BIND backend, add a zone. This zone is added in-memory
 and served immediately. Note that this does not add the zone to the
 bind-config file. *FILENAME* must be an absolute path.
 
 bind-domain-status [*DOMAIN*...]
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-When using the bindbackend, list status of all domains. Optionally,
+When using the BIND backend, list status of all domains. Optionally,
 append *DOMAIN*\ s to get the status of specific zones.
 
 bind-list-rejects
 ^^^^^^^^^^^^^^^^^
 
-When using the bindbackend, get a list of all rejected domains.
+When using the BIND backend, get a list of all rejected domains.
 
 bind-reload-now *DOMAIN* [*DOMAIN*...]
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-When using the bindbackend, immediately reload *DOMAIN* from disk.
+When using the BIND backend, immediately reload *DOMAIN* from disk.
 
 ccounts
 ^^^^^^^
@@ -124,7 +124,7 @@ rediscover
 ^^^^^^^^^^
 
 Instructs backends that new domains may have appeared in the
-database, or, in the case of the Bind backend, in named.conf.
+database, or, in the case of the BIND backend, in named.conf.
 
 reload
 ^^^^^^

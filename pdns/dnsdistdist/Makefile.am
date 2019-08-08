@@ -1,8 +1,9 @@
-AM_CPPFLAGS += $(SYSTEMD_CFLAGS) $(LUA_CFLAGS) $(LIBEDIT_CFLAGS) $(LIBSODIUM_CFLAGS) $(FSTRM_CFLAGS) $(YAHTTP_CFLAGS) $(SANITIZER_FLAGS) $(NET_SNMP_CFLAGS) -DSYSCONFDIR=\"${sysconfdir}\"
+AM_CPPFLAGS += $(SYSTEMD_CFLAGS) $(LUA_CFLAGS) $(LIBEDIT_CFLAGS) $(LIBSODIUM_CFLAGS) $(FSTRM_CFLAGS) $(YAHTTP_CFLAGS) $(SANITIZER_FLAGS) $(NET_SNMP_CFLAGS) $(LIBCAP_CFLAGS) -DSYSCONFDIR=\"${sysconfdir}\"
 
 ACLOCAL_AMFLAGS = -I m4
 
-SUBDIRS=ext/yahttp
+SUBDIRS=ext/ipcrypt \
+	ext/yahttp
 
 CLEANFILES = \
 	dnsmessage.pb.cc \
@@ -44,16 +45,29 @@ AM_CPPFLAGS += $(GNUTLS_CFLAGS)
 endif
 endif
 
-EXTRA_DIST=dnslabeltext.rl \
+if HAVE_LIBCRYPTO
+AM_CPPFLAGS += $(LIBCRYPTO_INCLUDES)
+endif
+
+if HAVE_DNS_OVER_HTTPS
+if HAVE_LIBSSL
+AM_CPPFLAGS += $(LIBSSL_CFLAGS)
+endif
+
+if HAVE_LIBH2OEVLOOP
+AM_CPPFLAGS += $(LIBH2OEVLOOP_CFLAGS)
+endif
+endif
+
+EXTRA_DIST=COPYING \
+	   dnslabeltext.rl \
 	   dnsdistconf.lua \
 	   dnsmessage.proto \
 	   dnstap.proto \
 	   README.md \
 	   delaypipe.cc delaypipe.hh \
 	   html \
-	   .version \
 	   contrib \
-	   build-aux/gen-version \
 	   ext/incbin/UNLICENSE \
 	   incfiles \
 	   src_js \
@@ -66,7 +80,8 @@ EXTRA_DIST=dnslabeltext.rl \
 	   devpollmplexer.cc \
 	   epollmplexer.cc \
 	   kqueuemplexer.cc \
-	   portsmplexer.cc
+	   portsmplexer.cc \
+	   builder-support/gen-version
 
 bin_PROGRAMS = dnsdist
 
@@ -86,6 +101,9 @@ dnsdist_SOURCES = \
 	ascii.hh \
 	base64.hh \
 	bpf-filter.cc bpf-filter.hh \
+	cachecleaner.hh \
+	capabilities.cc capabilities.hh \
+	circular_buffer.hh \
 	dns.cc dns.hh \
 	dnscrypt.cc dnscrypt.hh \
 	dnsdist.cc dnsdist.hh \
@@ -96,22 +114,28 @@ dnsdist_SOURCES = \
 	dnsdist-dnscrypt.cc \
 	dnsdist-dynblocks.hh \
 	dnsdist-ecs.cc dnsdist-ecs.hh \
+	dnsdist-idstate.cc \
 	dnsdist-lua.hh dnsdist-lua.cc \
 	dnsdist-lua-actions.cc \
 	dnsdist-lua-bindings.cc \
 	dnsdist-lua-bindings-dnsquestion.cc \
 	dnsdist-lua-inspection.cc \
+	dnsdist-lua-inspection-ffi.cc dnsdist-lua-inspection-ffi.hh \
 	dnsdist-lua-rules.cc \
 	dnsdist-lua-vars.cc \
 	dnsdist-protobuf.cc dnsdist-protobuf.hh \
 	dnsdist-rings.cc dnsdist-rings.hh \
+	dnsdist-rules.hh \
+	dnsdist-secpoll.cc dnsdist-secpoll.hh \
 	dnsdist-snmp.cc dnsdist-snmp.hh \
 	dnsdist-tcp.cc \
 	dnsdist-web.cc \
+	dnsdist-xpf.cc dnsdist-xpf.hh \
 	dnslabeltext.cc \
 	dnsname.cc dnsname.hh \
 	dnsparser.hh dnsparser.cc \
 	dnswriter.cc dnswriter.hh \
+	doh.hh doh.cc \
 	dolog.hh \
 	ednsoptions.cc ednsoptions.hh \
 	ednscookies.cc ednscookies.hh \
@@ -120,6 +144,7 @@ dnsdist_SOURCES = \
 	gettime.cc gettime.hh \
 	htmlfiles.h \
 	iputils.cc iputils.hh \
+	libssl.cc libssl.hh \
 	lock.hh \
 	misc.cc misc.hh \
 	mplexer.hh \
@@ -136,6 +161,8 @@ dnsdist_SOURCES = \
 	sstuff.hh \
 	statnode.cc statnode.hh \
 	tcpiohandler.cc tcpiohandler.hh \
+	threadname.hh threadname.cc \
+	uuid-utils.hh uuid-utils.cc \
 	xpf.cc xpf.hh \
 	ext/luawrapper/include/LuaContext.hpp \
 	ext/json11/json11.cpp \
@@ -157,20 +184,35 @@ dnsdist_LDADD = \
 	$(FSTRM_LIBS) \
 	$(SANITIZER_FLAGS) \
 	$(SYSTEMD_LIBS) \
-	$(NET_SNMP_LIBS)
+	$(NET_SNMP_LIBS) \
+	$(LIBCAP_LIBS) \
+	$(IPCRYPT_LIBS)
 
 if HAVE_RE2
 dnsdist_LDADD += $(RE2_LIBS)
+endif
+
+if HAVE_LIBSSL
+dnsdist_LDADD += $(LIBSSL_LIBS)
+endif
+
+if HAVE_LIBCRYPTO
+dnsdist_LDADD += $(LIBCRYPTO_LDFLAGS) $(LIBCRYPTO_LIBS)
+dnsdist_SOURCES += ipcipher.cc ipcipher.hh
 endif
 
 if HAVE_DNS_OVER_TLS
 if HAVE_GNUTLS
 dnsdist_LDADD += -lgnutls
 endif
-
-if HAVE_LIBSSL
-dnsdist_LDADD += $(LIBSSL_LIBS) $(LIBCRYPTO_LIBS)
 endif
+
+if HAVE_DNS_OVER_HTTPS
+
+if HAVE_LIBH2OEVLOOP
+dnsdist_LDADD += $(LIBH2OEVLOOP_LIBS)
+endif
+
 endif
 
 if !HAVE_LUA_HPP
@@ -196,32 +238,27 @@ dnsdist.$(OBJEXT): dnsmessage.pb.cc dnstap.pb.cc
 endif
 endif
 
-if HAVE_FREEBSD
-dnsdist_SOURCES += kqueuemplexer.cc
-endif
-
-if HAVE_LINUX
-dnsdist_SOURCES += epollmplexer.cc
-endif
-
-if HAVE_SOLARIS
-dnsdist_SOURCES += \
-        devpollmplexer.cc \
-        portsmplexer.cc
-endif
-
 testrunner_SOURCES = \
 	base64.hh \
 	dns.hh \
 	test-base64_cc.cc \
+	test-delaypipe_hh.cc \
+	test-dnscrypt_cc.cc \
 	test-dnsdist_cc.cc \
+	test-dnsdistdynblocks_hh.cc \
 	test-dnsdistpacketcache_cc.cc \
 	test-dnsdistrings_cc.cc \
-	test-dnscrypt_cc.cc \
+	test-dnsdistrules_cc.cc \
+	test-dnsparser_cc.cc \
 	test-iputils_hh.cc \
+	test-mplexer.cc \
+	cachecleaner.hh \
+	circular_buffer.hh \
 	dnsdist.hh \
 	dnsdist-cache.cc dnsdist-cache.hh \
 	dnsdist-ecs.cc dnsdist-ecs.hh \
+	dnsdist-rings.hh \
+	dnsdist-xpf.cc dnsdist-xpf.hh \
 	dnscrypt.cc dnscrypt.hh \
 	dnslabeltext.cc \
 	dnsname.cc dnsname.hh \
@@ -236,12 +273,34 @@ testrunner_SOURCES = \
 	misc.cc misc.hh \
 	namespaces.hh \
 	pdnsexception.hh \
+	pollmplexer.cc \
 	qtype.cc qtype.hh \
 	sholder.hh \
 	sodcrypto.cc \
 	sstuff.hh \
+	statnode.cc statnode.hh \
+	threadname.hh threadname.cc \
 	testrunner.cc \
 	xpf.cc xpf.hh
+
+if HAVE_FREEBSD
+dnsdist_SOURCES += kqueuemplexer.cc
+testrunner_SOURCES += kqueuemplexer.cc
+endif
+
+if HAVE_LINUX
+dnsdist_SOURCES += epollmplexer.cc
+testrunner_SOURCES += epollmplexer.cc
+endif
+
+if HAVE_SOLARIS
+dnsdist_SOURCES += \
+        devpollmplexer.cc \
+        portsmplexer.cc
+testrunner_SOURCES += \
+        devpollmplexer.cc \
+        portsmplexer.cc
+endif
 
 testrunner_LDFLAGS = \
 	$(AM_LDFLAGS) \
@@ -254,7 +313,8 @@ testrunner_LDADD = \
 	$(LIBSODIUM_LIBS) \
 	$(FSTRM_LIBS) \
 	$(RT_LIBS) \
-	$(SANITIZER_FLAGS)
+	$(SANITIZER_FLAGS) \
+	$(LIBCAP_LIBS)
 
 MANPAGES=dnsdist.1
 
@@ -307,6 +367,45 @@ endif
 if HAVE_SYSTEMD
 dnsdist.service: dnsdist.service.in
 	$(AM_V_GEN)sed -e 's![@]bindir[@]!$(bindir)!' < $< > $@
+if !HAVE_SYSTEMD_LOCK_PERSONALITY
+	$(AM_V_GEN)perl -ni -e 'print unless /^LockPersonality/' $@
+endif
+if !HAVE_SYSTEMD_PRIVATE_DEVICES
+	$(AM_V_GEN)perl -ni -e 'print unless /^PrivateDevices/' $@
+endif
+if !HAVE_SYSTEMD_PRIVATE_TMP
+	$(AM_V_GEN)perl -ni -e 'print unless /^PrivateTmp/' $@
+endif
+if !HAVE_SYSTEMD_PROTECT_CONTROL_GROUPS
+	$(AM_V_GEN)perl -ni -e 'print unless /^ProtectControlGroups/' $@
+endif
+if !HAVE_SYSTEMD_PROTECT_HOME
+	$(AM_V_GEN)perl -ni -e 'print unless /^ProtectHome/' $@
+endif
+if !HAVE_SYSTEMD_PROTECT_KERNEL_MODULES
+	$(AM_V_GEN)perl -ni -e 'print unless /^ProtectKernelModules/' $@
+endif
+if !HAVE_SYSTEMD_PROTECT_KERNEL_TUNABLES
+	$(AM_V_GEN)perl -ni -e 'print unless /^ProtectKernelTunables/' $@
+endif
+if !HAVE_SYSTEMD_PROTECT_SYSTEM
+	$(AM_V_GEN)perl -ni -e 'print unless /^ProtectSystem/' $@
+endif
+if !HAVE_SYSTEMD_RESTRICT_ADDRESS_FAMILIES
+	$(AM_V_GEN)perl -ni -e 'print unless /^RestrictAddressFamilies/' $@
+endif
+if !HAVE_SYSTEMD_RESTRICT_NAMESPACES
+	$(AM_V_GEN)perl -ni -e 'print unless /^RestrictNamespaces/' $@
+endif
+if !HAVE_SYSTEMD_RESTRICT_REALTIME
+	$(AM_V_GEN)perl -ni -e 'print unless /^RestrictRealtime/' $@
+endif
+if !HAVE_SYSTEMD_SYSTEM_CALL_ARCHITECTURES
+	$(AM_V_GEN)perl -ni -e 'print unless /^SystemCallArchitectures/' $@
+endif
+if !HAVE_SYSTEMD_SYSTEM_CALL_FILTER
+	$(AM_V_GEN)perl -ni -e 'print unless /^SystemCallFilter/' $@
+endif
 
 dnsdist@.service: dnsdist.service
 	$(AM_V_GEN)sed -e 's!/dnsdist !&--config $(sysconfdir)/dnsdist-%i.conf !' < $< >$@

@@ -17,7 +17,7 @@ Each backend has a module name that you look up in this table.
 To compile a module for inclusion at runtime, which is great if you are a unix vendor, use ``--with-dynmodules='mod1 mod2 mod3'``.
 These modules then end up as .so files in the compiled ``libdir``.
 
-By default, the :doc:`bind <../../backends/bind>`, :doc:`mysql <../../backends/generic-mysql>` and :doc:`random <../../backends/random>` are compiled into the binary. The :doc:`pipe <../../backends/pipe>` is, by default, compiled as a runtime loadable module.
+By default, the :doc:`bind <../../backends/bind>`, :doc:`mysql <../../backends/generic-mysql>` and :doc:`random <../../backends/random>` modules are compiled into the binary. The :doc:`pipe <../../backends/pipe>` is, by default, compiled as a runtime loadable module.
 
 Getting the sources
 -------------------
@@ -62,13 +62,19 @@ ed25519 support with libsodium
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 The PowerDNS Authoritative Server can link with `libsodium <https://download.libsodium.org/doc/>`_ to support ed25519 (DNSSEC algorithm 15).
-To detect libsodium, use the ``--enable-libsodium`` configure option.
+To detect libsodium, use the ``--with-libsodium`` configure option.
+
+.. versionchanged:: 4.2.0
+  This option was previously ``--enable-libsodium``
 
 ed25519 and ed448 support with libdecaf
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 `libdecaf <https://sourceforge.net/projects/ed448goldilocks/>`_ is a library that allows the PowerDNS Authoritative Server to support ed25519 and Ed448 (DNSSEC algorithms 15 and 16).
-To detect libdecaf, use the ``--enable-libdecaf`` configure option.
+To detect libdecaf, use the ``--with-libdecaf`` configure option.
+
+.. versionchanged:: 4.2.0
+  This option was previously ``--enable-libdecaf``
 
 systemd notify support
 ^^^^^^^^^^^^^^^^^^^^^^
@@ -76,4 +82,3 @@ systemd notify support
 During configure, ``configure`` will attempt to detect the availability of `systemd or systemd-daemon <https://freedesktop.org/wiki/Software/systemd/>`_ headers.
 To force the use of systemd (and failing configure if the headers do not exist), use ``--enable-systemd``.
 To set the directory where the unit files should be installed, use ``--with-systemd=/path/to/unit/dir``.
-

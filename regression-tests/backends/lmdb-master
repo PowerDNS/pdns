@@ -1,0 +1,76 @@
+case $context in
+    lmdb | lmdb-nodnssec | lmdb-nsec3 | lmdb-nsec3-optout | lmdb-nsec3-narrow)
+        cat > pdns-lmdb.conf << __EOF__
+module-dir=./modules
+launch=lmdb
+lmdb-filename=./pdns.lmdb
+__EOF__
+
+        rm -f pdns.lmdb*
+        for zone in $(grep 'zone ' named.conf  | cut -f2 -d\" | grep -v '^nztest.com$')
+        do
+            if [ "$zone" = "." ]; then
+                        $PDNSUTIL --config-dir=. --config-name=lmdb load-zone $zone zones/ROOT
+            else
+                        $PDNSUTIL --config-dir=. --config-name=lmdb load-zone $zone zones/$zone
+            fi
+            if [ $context != lmdb-nodnssec ]
+            then
+                if [ $zone != insecure.dnssec-parent.com ]
+                then
+                    if [ $context = lmdb-nsec3 ]
+                    then
+                        $PDNSUTIL --config-dir=. --config-name=lmdb set-nsec3 $zone "1 0 1 abcd" 2>&1
+                    elif [ $context =  lmdb-nsec3-optout ]
+                    then
+                        $PDNSUTIL --config-dir=. --config-name=lmdb set-nsec3 $zone "1 1 1 abcd" 2>&1
+                    elif [ $context = lmdb-nsec3-narrow ]
+                    then
+                        $PDNSUTIL --config-dir=. --config-name=lmdb set-nsec3 $zone '1 1 1 abcd' narrow 2>&1
+                    fi
+                    securezone $zone lmdb
+                fi
+            else
+                $PDNSUTIL --config-dir=. --config-name=lmdb rectify-zone $zone 2>&1
+            fi
+            if [ "$zone" = "tsig.com" ]; then
+                $PDNSUTIL --config-dir=. --config-name=lmdb import-tsig-key test $ALGORITHM $KEY
+                $PDNSUTIL --config-dir=. --config-name=lmdb activate-tsig-key tsig.com test master
+            fi
+        done
+
+        $RUNWRAPPER $PDNS --daemon=no --local-address=$address --local-port=$port --config-dir=. \
+            --config-name=lmdb --socket-dir=./ --no-shuffle \
+            --dnsupdate=no \
+            --expand-alias=yes --resolver=$RESOLVERIP \
+            --disable-axfr-rectify=yes --outgoing-axfr-expand-alias=yes \
+            --cache-ttl=$cachettl --dname-processing $lua_prequery &
+
+        extracontexts="lmdb"
+        skipreasons="lmdb nodyndns"
+
+        if [ $context = lmdb-nsec3 ]
+        then
+            extracontexts="$extracontexts dnssec nsec3"
+            skipreasons="$skipreasons nsec3"
+        elif [ $context = lmdb-nsec3-optout ]
+        then
+            extracontexts="$extracontexts dnssec nsec3 nsec3-optout"
+            skipreasons="$skipreasons optout"
+        elif [ $context = lmdb-nsec3-narrow ]
+        then
+            extracontexts="$extracontexts dnssec narrow"
+            skipreasons="$skipreasons narrow"
+        elif [ $context = lmdb-nodnssec ]
+        then
+            skipreasons="$skipreasons nodnssec"
+        else
+            extracontexts="$extracontexts dnssec"
+            skipreasons="$skipreasons nsec"
+        fi
+
+        ;;
+
+    *)
+        nocontext=yes
+esac

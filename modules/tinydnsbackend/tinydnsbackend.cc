@@ -232,12 +232,7 @@ bool TinyDNSBackend::get(DNSResourceRecord &rr)
     }
 
 
-    vector<uint8_t> bytes;
-    const char *sval = val.c_str();
-    unsigned int len = val.size();
-    bytes.resize(len);
-    copy(sval, sval+len, bytes.begin());
-    PacketReader pr(bytes);
+    PacketReader pr(val, 0);
     rr.qtype = QType(pr.get16BitInt());
 
     if(d_isAxfr || d_qtype.getCode() == QType::ANY || rr.qtype == d_qtype) {
@@ -298,7 +293,7 @@ bool TinyDNSBackend::get(DNSResourceRecord &rr)
         DNSRecord dr;
         dr.d_class = 1;
         dr.d_type = rr.qtype.getCode();
-        dr.d_clen = val.size()-pr.d_pos;
+        dr.d_clen = val.size()-pr.getPosition();
 
         auto drc = DNSRecordContent::mastermake(dr, pr);
         rr.content = drc->getZoneRepresentation();

@@ -10,8 +10,9 @@ AC_CONFIG_MACRO_DIR([m4])
 AC_CONFIG_HEADERS([config.h])
 
 AC_CANONICAL_HOST
-: ${CFLAGS="-Wall -g -O2"}
-: ${CXXFLAGS="-Wall -g -O2"}
+# Add some default CFLAGS and CXXFLAGS, can be appended to using the environment variables
+CFLAGS="-Wall -g -O2 $CFLAGS"
+CXXFLAGS="-Wall -g -O2 $CXXFLAGS"
 
 AC_SUBST([pdns_configure_args],["$ac_configure_args"])
 AC_DEFINE_UNQUOTED([PDNS_CONFIG_ARGS],
@@ -37,64 +38,24 @@ AC_PROG_LIBTOOL
 
 PDNS_CHECK_OS
 PDNS_CHECK_NETWORK_LIBS
-
-# Boost Context was introduced in 1.51 (Aug 2012), but there was an immediate
-# API break in 1.52 (Nov 2012), so we only support that, and later.
-pdns_context_library="System V ucontexts"
-
-AC_DEFUN([PDNS_SELECT_CONTEXT_IMPL], [
-  AC_MSG_CHECKING([whether Boost is new enough to use the context library...])
-  if test $boost_major_version -ge 152; then
-    AC_MSG_RESULT([yes])
-    if test $boost_major_version -ge 157; then
-      BOOST_THREAD([$1])
-      m4_pattern_allow([^BOOST_THREAD_(LIBS|LDFLAGS)$])dnl
-      LIBS="$LIBS $BOOST_THREAD_LIBS"
-      LDFLAGS="$LDFLAGS $BOOST_THREAD_LDFLAGS"
-    fi
-    AC_MSG_NOTICE([checking whether the Boost context library actually links...])
-    if test $boost_major_version -ge 161; then
-      BOOST_FIND_HEADER([boost/context/detail/fcontext.hpp], [ : ], [
-        BOOST_FIND_LIB([context], [$1], [boost/context/detail/fcontext.hpp], [[]])
-      ])
-    else
-      BOOST_FIND_HEADER([boost/context/fcontext.hpp], [ : ], [
-        BOOST_FIND_LIB([context], [$1], [boost/context/fcontext.hpp], [[]])
-      ])
-    fi
-    case $boost_cv_lib_context in
-      (yes)
-        pdns_context_library="Boost context"
-        AC_MSG_NOTICE([MTasker will use the Boost context library for context switching])
-        ;;
-      *)
-        AC_MSG_NOTICE([Boost context library is missing])
-        AC_MSG_NOTICE([MTasker will use System V ucontexts for context switching])
-        ;;
-    esac
-  else
-    AC_MSG_RESULT([no])
-    AC_MSG_NOTICE([MTasker will use System V ucontexts for context switching])
-  fi
-])
+PTHREAD_SET_NAME
 
 PDNS_CHECK_CLOCK_GETTIME
 
-boost_required_version=1.35
-
 PDNS_WITH_PROTOBUF
-AS_IF([test "x$PROTOBUF_LIBS" != "x" -a x"$PROTOC" != "x"],
-  # The protobuf code needs boost::uuid, which is available from 1.42 onward
-  [AC_MSG_WARN([Bumping minimal Boost requirement to 1.42. To keep the requirement at 1.35, disable protobuf support])
-  boost_required_version=1.42]
-)
 
-BOOST_REQUIRE([$boost_required_version])
+BOOST_REQUIRE([1.42])
 
 # Check against flat_set header that requires boost >= 1.48
 BOOST_FIND_HEADER([boost/container/flat_set.hpp], [AC_MSG_NOTICE([boost::container::flat_set not available, will fallback to std::set])])
 
-PDNS_SELECT_CONTEXT_IMPL
+# Boost Context was introduced in 1.51 (Aug 2012), but there was an immediate
+# API break in 1.52 (Nov 2012), so we only support that, and later.
+pdns_context_library="System V ucontexts"
+AS_IF([test $boost_major_version -ge 152], [BOOST_CONTEXT([], [no])])
+AC_MSG_CHECKING([what context library to use for MTasker])
+AS_IF([test x"$boost_cv_lib_context" = "xyes"], [pdns_context_library="Boost Context"])
+AC_MSG_RESULT([$pdns_context_library])
 
 PDNS_ENABLE_UNIT_TESTS
 PDNS_ENABLE_REPRODUCIBLE
@@ -111,15 +72,16 @@ PDNS_CHECK_LUA_HPP
 PDNS_ENABLE_VERBOSE_LOGGING
 
 # Crypto libraries
-PDNS_ENABLE_BOTAN
 PDNS_CHECK_LIBCRYPTO([
 ],[
    AC_MSG_ERROR([OpenSSL/libcrypto not found])
   ]
 )
 PDNS_CHECK_LIBCRYPTO_ECDSA
-PDNS_CHECK_LIBSODIUM
-PDNS_CHECK_LIBDECAF
+PDNS_CHECK_LIBCRYPTO_EDDSA
+PDNS_WITH_LIBSODIUM
+PDNS_WITH_LIBDECAF
+PDNS_WITH_LIBCAP
 
 PDNS_WITH_NET_SNMP
 
@@ -137,6 +99,23 @@ AC_ARG_WITH([socketdir],
   [AS_HELP_STRING([--with-socketdir], [where the controlsocket lives @<:@default=/var/run@:>@])],
   [socketdir="$withval"]
 )
+
+PDNS_ENABLE_NOD
+
+AM_COND_IF([NOD_ENABLED],
+  [
+  BOOST_FILESYSTEM
+  AS_IF([test -z "$BOOST_FILESYSTEM_LIBS"], [ AC_MSG_ERROR([Boost filesystem library is not installed])])],
+  [])
+
+AC_SUBST([nodcachedir])
+nodcachedir='${localstatedir}/lib/pdns-recursor'
+AC_ARG_WITH([nod-cache-dir],
+  [AS_HELP_STRING([--with-nodcachedir], [where newly observed domain cache files live @<:@default=LOCALSTATEDIR/lib/pdns-recursor@:>@])],
+  [nodcachedir="$withval"]
+)
+
+PDNS_CHECK_DNSTAP
 
 AC_MSG_CHECKING([whether we will enable compiler security checks])
 AC_ARG_ENABLE([hardening],
@@ -158,7 +137,9 @@ PDNS_ENABLE_SANITIZERS
 PDNS_ENABLE_MALLOC_TRACE
 PDNS_ENABLE_VALGRIND
 AX_AVAILABLE_SYSTEMD
+AX_CHECK_SYSTEMD_FEATURES
 AM_CONDITIONAL([HAVE_SYSTEMD], [ test x"$systemd" = "xy" ])
+PDNS_WITH_SERVICE_USER([pdns-recursor])
 PDNS_CHECK_VIRTUALENV
 
 AC_SUBST(LIBS)
@@ -179,6 +160,7 @@ AC_SUBST([PROGRAM_LDFLAGS])
 AC_CONFIG_FILES([Makefile
 	ext/Makefile
 	ext/json11/Makefile
+	ext/probds/Makefile
 	ext/yahttp/Makefile
 	ext/yahttp/yahttp/Makefile])
 
@@ -208,17 +190,13 @@ AC_MSG_NOTICE([Features enabled])
 AC_MSG_NOTICE([----------------])
 AC_MSG_NOTICE([Lua: $LUAPC])
 AC_MSG_NOTICE([OpenSSL ECDSA: $libcrypto_ecdsa])
-AS_IF([test "x$LIBSODIUM_LIBS" != "x"],
-  [AC_MSG_NOTICE([libsodium ed25519: yes])],
-  [AC_MSG_NOTICE([libsodium ed25519: no])]
+AS_IF([test "x$LIBSODIUM_LIBS" != "x" || test "x$LIBDECAF_LIBS" != "x" || test "x$libcrypto_ed25519" = "xyes"],
+  [AC_MSG_NOTICE([ed25519: yes])],
+  [AC_MSG_NOTICE([ed25519: no])]
 )
-AS_IF([test "x$LIBDECAF_LIBS" != "x"],
-  [AC_MSG_NOTICE([libdecaf ed25519 and ed448: yes])],
-  [AC_MSG_NOTICE([libdecaf ed25519 and ed448: no])]
-)
-AS_IF([test "x$BOTAN_LIBS" != "x"],
-  [AC_MSG_NOTICE([Botan gost: yes])],
-  [AC_MSG_NOTICE([Botan gost: no])]
+AS_IF([test "x$LIBDECAF_LIBS" != "x" || test "x$libcrypto_ed448" = "xyes"],
+  [AC_MSG_NOTICE([ed448: yes])],
+  [AC_MSG_NOTICE([ed448: no])]
 )
 AS_IF([test "x$PROTOBUF_LIBS" != "x" -a x"$PROTOC" != "x"],
   [AC_MSG_NOTICE([Protobuf: yes])],
@@ -231,6 +209,14 @@ AS_IF([test "x$NET_SNMP_LIBS" != "x"],
 AS_IF([test "x$systemd" != "xn"],
   [AC_MSG_NOTICE([systemd: yes])],
   [AC_MSG_NOTICE([systemd: no])]
+)
+AM_COND_IF([NOD_ENABLED],
+  [AC_MSG_NOTICE([nod: yes])],
+  [AC_MSG_NOTICE([nod: no])]
+)
+AM_COND_IF([FSTRM],
+  [AC_MSG_NOTICE([dnstap: yes])],
+  [AC_MSG_NOTICE([dnstap: no])]
 )
 AC_MSG_NOTICE([Context library: $pdns_context_library])
 AC_MSG_NOTICE([])

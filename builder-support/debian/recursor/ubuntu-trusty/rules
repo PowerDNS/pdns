@@ -1,0 +1,45 @@
+#!/usr/bin/make -f
+DEB_HOST_ARCH_OS ?= $(shell dpkg-architecture -qDEB_HOST_ARCH_OS)
+
+# Enable hardening features for daemons
+# Note: blhc (build log hardening check) will find these false positivies: CPPFLAGS 2 missing, LDFLAGS 1 missing
+export DEB_BUILD_MAINT_OPTIONS=hardening=+bindnow,+pie
+DPKG_EXPORT_BUILDFLAGS = 1
+# Include buildflags.mk so we can append to the vars it sets.
+include /usr/share/dpkg/buildflags.mk
+
+# Use new build system
+%:
+	dh $@ \
+	  --with autoreconf \
+	  --parallel
+
+override_dh_auto_configure:
+	dh_auto_configure -- \
+		--sysconfdir=/etc/powerdns \
+		--enable-unit-tests \
+		--with-lua=luajit \
+		--with-protobuf=yes \
+		--with-net-snmp \
+		--disable-silent-rules \
+		--disable-systemd
+
+override_dh_auto_install:
+	dh_auto_install -- STRIP_BINARIES=0
+	rm -f debian/tmp/etc/powerdns/recursor.conf-dist
+	./pdns_recursor --no-config --config | sed \
+		-e 's!# config-dir=.*!config-dir=/etc/powerdns!' \
+		-e 's!# local-address=.*!local-address=127.0.0.1!' \
+		-e 's!# quiet=.*!quiet=yes!' \
+		-e 's!# setgid=.*!setgid=pdns!' \
+		-e 's!# setuid=.*!setuid=pdns!' \
+		> debian/tmp/etc/powerdns/recursor.conf
+
+override_dh_strip:
+	dh_strip --dbg-package=pdns-recursor-dbg
+
+override_dh_installinit:
+	dh_installinit --error-handler=initscript_error
+
+override_dh_gencontrol:
+	dh_gencontrol -- $(SUBSTVARS)

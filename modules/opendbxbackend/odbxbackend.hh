@@ -77,7 +77,7 @@ public:
         ~OdbxBackend();
 
         void lookup( const QType& qtype, const DNSName& qdomain, DNSPacket* p = 0, int zoneid = -1 ) override;
-        bool getSOA( const DNSName& domain, SOAData& sd, bool unmodifiedSerial ) override;
+        bool getSOA( const DNSName& domain, SOAData& sd ) override;
         bool list( const DNSName& target, int domain_id, bool include_disabled=false ) override;
         bool get( DNSResourceRecord& rr ) override;
 
@@ -86,7 +86,7 @@ public:
         bool abortTransaction() override;
 
         bool getDomainInfo( const DNSName& domain, DomainInfo& di, bool getSerial=true ) override;
-        bool feedRecord( const DNSResourceRecord& rr, const DNSName& ordername ) override;
+        bool feedRecord( const DNSResourceRecord& rr, const DNSName& ordername, bool ordernameIsNSEC3=false ) override;
         bool createSlaveDomain( const string& ip, const DNSName& domain, const string &nameserver, const string& account ) override;
         bool superMasterBackend( const string& ip, const DNSName& domain, const vector<DNSResourceRecord>& nsset, string *nameserver, string* account, DNSBackend** ddb ) override;
 

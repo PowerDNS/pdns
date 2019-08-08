@@ -68,37 +68,52 @@ static void* recvThread(const vector<Socket*>* sockets)
 
   int err;
 
+#if HAVE_RECVMMSG
   vector<struct mmsghdr> buf(100);
   for(auto& m : buf) {
-    fillMSGHdr(&m.msg_hdr, new struct iovec, new char[512], 512, new char[1500], 1500, new ComboAddress("127.0.0.1"));
+    cmsgbuf_aligned *cbuf = new cmsgbuf_aligned;
+    fillMSGHdr(&m.msg_hdr, new struct iovec, cbuf, sizeof(*cbuf), new char[1500], 1500, new ComboAddress("127.0.0.1"));
   }
+#else
+  struct msghdr buf;
+  cmsgbuf_aligned *cbuf = new cmsgbuf_aligned;
+  fillMSGHdr(&buf, new struct iovec, cbuf, sizeof(*cbuf), new char[1500], 1500, new ComboAddress("127.0.0.1"));
+#endif
 
   while(!g_done) {
     fds=rfds;
 
     err = poll(&fds[0], fds.size(), -1);
-    if(err < 0) {
-      if(errno==EINTR)
-	continue;
+    if (err < 0) {
+      if (errno == EINTR)
+        continue;
       unixDie("Unable to poll for new UDP events");
-    }    
-    
+    }
+
     for(auto &pfd : fds) {
-      if(pfd.revents & POLLIN) {
-	
-	if((err=recvmmsg(pfd.fd, &buf[0], buf.size(), MSG_WAITFORONE, 0)) < 0 ) {
-	  if(errno != EAGAIN)
-	    cerr<<"recvfrom gave error, ignoring: "<<strerror(errno)<<endl;
-	  unixDie("recvmmsg");
-	  continue;
-	}
-	g_recvcounter+=err;
-	for(int n=0; n < err; ++n)
-	  g_recvbytes += buf[n].msg_len;
+      if (pfd.revents & POLLIN) {
+#if HAVE_RECVMMSG
+        if ((err=recvmmsg(pfd.fd, &buf[0], buf.size(), MSG_WAITFORONE, 0)) < 0 ) {
+          if(errno != EAGAIN)
+            unixDie("recvmmsg");
+          continue;
+        }
+        g_recvcounter+=err;
+        for(int n=0; n < err; ++n)
+          g_recvbytes += buf[n].msg_len;
+#else
+        if ((err = recvmsg(pfd.fd, &buf, 0)) < 0) {
+          if (errno != EAGAIN)
+            unixDie("recvmsg");
+          continue;
+        }
+        g_recvcounter++;
+        for (int i = 0; i < buf.msg_iovlen; i++)
+          g_recvbytes += buf.msg_iov[i].iov_len;
+#endif
       }
     }
   }
-
   return 0;
 }
 
@@ -158,15 +173,19 @@ static void replaceEDNSClientSubnet(vector<uint8_t>* packet, const Netmask& ecsR
 static void sendPackets(const vector<Socket*>* sockets, const vector<vector<uint8_t>* >& packets, int qps, ComboAddress dest, const Netmask& ecsRange)
 {
   unsigned int burst=100;
+  const auto nsecPerBurst=1*(unsigned long)(burst*1000000000.0/qps);
   struct timespec nsec;
   nsec.tv_sec=0;
-  nsec.tv_nsec=1*(unsigned long)(burst*1000000000.0/qps);
+  nsec.tv_nsec=0;
   int count=0;
+  unsigned int nBursts=0;
+  DTime dt;
+  dt.set();
 
   struct Unit {
     struct msghdr msgh;
     struct iovec iov;
-    char cbuf[256];
+    cmsgbuf_aligned cbuf;
   };
   vector<unique_ptr<Unit> > units;
   int ret;
@@ -180,15 +199,24 @@ static void sendPackets(const vector<Socket*>* sockets, const vector<vector<uint
       replaceEDNSClientSubnet(p, ecsRange);
     }
 
-    fillMSGHdr(&u.msgh, &u.iov, u.cbuf, 0, (char*)&(*p)[0], p->size(), &dest);
+    fillMSGHdr(&u.msgh, &u.iov, nullptr, 0, (char*)&(*p)[0], p->size(), &dest);
     if((ret=sendmsg((*sockets)[count % sockets->size()]->getHandle(), 
 		    &u.msgh, 0)))
       if(ret < 0)
-	unixDie("sendmmsg");
+	      unixDie("sendmsg");
     
     
-    if(!(count%burst))
-      nanosleep(&nsec, 0);
+    if(!(count%burst)) {
+      nBursts++;
+      // Calculate the time in nsec we need to sleep to the next burst.
+      // If this is negative, it means that we are not achieving the requested
+      // target rate, in which case we skip the sleep.
+      int toSleep = nBursts*nsecPerBurst - 1000*dt.udiffNoReset();
+      if (toSleep > 0) {
+        nsec.tv_nsec = toSleep;
+        nanosleep(&nsec, 0);
+      }
+    }
   }
 }
 
@@ -326,11 +354,13 @@ try
   struct sched_param param;
   param.sched_priority=99;
 
+#if HAVE_SCHED_SETSCHEDULER
   if(sched_setscheduler(0, SCHED_FIFO, &param) < 0) {
     if (!g_quiet) {
       cerr<<"Unable to set SCHED_FIFO: "<<strerror(errno)<<endl;
     }
   }
+#endif
 
   ifstream ifs(g_vm["query-file"].as<string>());
   string line;
@@ -364,7 +394,7 @@ try
 
     DNSPacketWriter pw(packet, DNSName(qname), DNSRecordContent::TypeToNumber(qtype));
     pw.getHeader()->rd=wantRecursion;
-    pw.getHeader()->id=random();
+    pw.getHeader()->id=dns_random(UINT16_MAX);
 
     if(!subnet.empty() || !ecsRange.empty()) {
       EDNSSubnetOpts opt;
@@ -441,7 +471,7 @@ try
       known.push_back(ptr);
     }
     for(;n < total; ++n) {
-      toSend.push_back(known[random()%known.size()].get());
+      toSend.push_back(known[dns_random(known.size())].get());
     }
     random_shuffle(toSend.begin(), toSend.end());
     g_recvcounter.store(0);

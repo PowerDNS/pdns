@@ -1,0 +1,37 @@
+FROM dist-base as package-builder
+ARG APT_URL
+RUN apt-get -y install devscripts dpkg-dev build-essential python3 equivs
+
+RUN mkdir /dist /pdns
+WORKDIR /pdns
+
+ADD builder/helpers/ /pdns/builder/helpers/
+
+# Used for -p option to only build specific packages
+ARG BUILDER_PACKAGE_MATCH
+
+ARG BUILDER_VERSION
+ARG BUILDER_RELEASE
+
+COPY --from=sdist /sdist /sdist
+
+@IF [ ! -z "$M_authoritative" ]
+RUN tar xvf /sdist/pdns-${BUILDER_VERSION}.tar.bz2
+@ENDIF
+
+@IF [ ! -z "$M_recursor" ]
+RUN tar xvf /sdist/pdns-recursor-${BUILDER_VERSION}.tar.bz2
+@ENDIF
+
+@IF [ ! -z "$M_dnsdist" ]
+RUN if grep 'VERSION="9 (stretch)"' /etc/os-release; then \
+  mkdir /libh2o && cd /libh2o && \
+  apt-get install -q -y curl libssl-dev zlib1g-dev cmake && \
+  curl -L https://github.com/h2o/h2o/archive/v2.2.5.tar.gz | tar xz && \
+  CFLAGS='-fPIC' cmake -DWITH_PICOTLS=off -DWITH_BUNDLED_SSL=off -DWITH_MRUBY=off -DCMAKE_INSTALL_PREFIX=/opt ./h2o-2.2.5 && \
+  make install && \
+  cd /pdns; \
+  fi
+
+RUN tar xvf /sdist/dnsdist-${BUILDER_VERSION}.tar.bz2
+@ENDIF

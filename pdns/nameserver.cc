@@ -61,8 +61,8 @@ extern StatBag S;
 
     A DNSBackend is an entity that returns DNSResourceRecord objects in return to explicit questions for domains with a specified QType
 
-    PowerDNS uses the UeberBackend as its DNSBackend. The UeberBackend by default has no DNSBackends within itself, those are loaded
-    using the pdns_control tool. This way DNSBackend implementations can be kept completely separate (but they often aren't).s
+    PowerDNS uses the UeberBackend, which hosts DNSBackends. By default it has no DNSBackends within itself, those are loaded
+    by setting --load=<list of backends>. This way DNSBackend implementations can be kept completely separate, but most aren't.
 
     If one or more DNSBackends are loaded, the UeberBackend fields the queries to all of them until one answers.
 
@@ -112,14 +112,25 @@ void UDPNameserver::bindIPv4()
     if(!setNonBlocking(s))
       throw PDNSException("Unable to set UDP socket to non-blocking: "+stringerror());
 
-    locala.reset();
-    locala.sin4.sin_family=AF_INET;
+    locala=ComboAddress(localname, ::arg().asNum("local-port"));
 
-    if(localname=="0.0.0.0")
+    if(locala.sin4.sin_family != AF_INET)
+      throw PDNSException("Attempting to bind IPv4 socket to IPv6 address");
+
+    if(IsAnyAddress(locala))
       setsockopt(s, IPPROTO_IP, GEN_IP_PKTINFO, &one, sizeof(one));
 
     if (!setSocketTimestamps(s))
       g_log<<Logger::Warning<<"Unable to enable timestamp reporting for socket"<<endl;
+
+    if (locala.isIPv4()) {
+      try {
+        setSocketIgnorePMTU(s);
+      }
+      catch(const std::exception& e) {
+        g_log<<Logger::Warning<<"Failed to set IP_MTU_DISCOVER on UDP server socket: "<<e.what()<<endl;
+      }
+    }
 
 #ifdef SO_REUSEPORT
     if( d_can_reuseport )
@@ -130,9 +141,6 @@ void UDPNameserver::bindIPv4()
     if( ::arg().mustDo("non-local-bind") )
 	Utility::setBindAny(AF_INET, s);
 
-    locala=ComboAddress(localname, ::arg().asNum("local-port"));
-    if(locala.sin4.sin_family != AF_INET) 
-      throw PDNSException("Attempting to bind IPv4 socket to IPv6 address");
 
     if( !d_additional_socket )
         g_localaddresses.push_back(locala);
@@ -243,7 +251,7 @@ void UDPNameserver::bindIPv6()
 
     if( !d_additional_socket )
         g_localaddresses.push_back(locala);
-    if(::bind(s, (sockaddr*)&locala, sizeof(locala))<0) {
+    if(::bind(s, (sockaddr*)&locala, locala.getSocklen())<0) {
       close(s);
       if( errno == EADDRNOTAVAIL && ! ::arg().mustDo("local-ipv6-nonexist-fail") ) {
         g_log<<Logger::Error<<"IPv6 Address " << localname << " does not exist on this server - skipping UDP bind" << endl;
@@ -287,17 +295,17 @@ void UDPNameserver::send(DNSPacket *p)
 
   struct msghdr msgh;
   struct iovec iov;
-  char cbuf[256];
+  cmsgbuf_aligned cbuf;
 
-  fillMSGHdr(&msgh, &iov, cbuf, 0, (char*)buffer.c_str(), buffer.length(), &p->d_remote);
+  fillMSGHdr(&msgh, &iov, &cbuf, 0, (char*)buffer.c_str(), buffer.length(), &p->d_remote);
 
   msgh.msg_control=NULL;
   if(p->d_anyLocal) {
-    addCMsgSrcAddr(&msgh, cbuf, p->d_anyLocal.get_ptr(), 0);
+    addCMsgSrcAddr(&msgh, &cbuf, p->d_anyLocal.get_ptr(), 0);
   }
   DLOG(g_log<<Logger::Notice<<"Sending a packet to "<< p->getRemote() <<" ("<< buffer.length()<<" octets)"<<endl);
   if(buffer.length() > p->getMaxReplyLen()) {
-    g_log<<Logger::Error<<"Weird, trying to send a message that needs truncation, "<< buffer.length()<<" > "<<p->getMaxReplyLen()<<endl;
+    g_log<<Logger::Error<<"Weird, trying to send a message that needs truncation, "<< buffer.length()<<" > "<<p->getMaxReplyLen()<<". Question was for "<<p->qdomain<<"|"<<p->qtype.getName()<<endl;
   }
   if(sendmsg(p->getSocket(), &msgh, 0) < 0)
     g_log<<Logger::Error<<"Error sending reply with sendmsg (socket="<<p->getSocket()<<", dest="<<p->d_remote.toStringWithPort()<<"): "<<strerror(errno)<<endl;
@@ -312,10 +320,10 @@ DNSPacket *UDPNameserver::receive(DNSPacket *prefilled, std::string& buffer)
 
   struct msghdr msgh;
   struct iovec iov;
-  char cbuf[256];
+  cmsgbuf_aligned cbuf;
 
   remote.sin6.sin6_family=AF_INET6; // make sure it is big enough
-  fillMSGHdr(&msgh, &iov, cbuf, sizeof(cbuf), &buffer.at(0), buffer.size(), &remote);
+  fillMSGHdr(&msgh, &iov, &cbuf, sizeof(cbuf), &buffer.at(0), buffer.size(), &remote);
   
   int err;
   vector<struct pollfd> rfds= d_rfds;

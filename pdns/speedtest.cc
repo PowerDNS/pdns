@@ -6,6 +6,7 @@
 #include "misc.hh"
 #include "dnswriter.hh"
 #include "dnsrecords.hh"
+#include "iputils.hh"
 #include <fstream>
 
 #ifndef RECURSOR
@@ -229,24 +230,24 @@ vector<uint8_t> makeBigReferral()
   for(char c='a'; c<= 'm';++c) {
     pw.startRecord(DNSName("com"), QType::NS, 3600, 1, DNSResourceRecord::AUTHORITY);
     gtld[0]=c;
-    auto drc = DNSRecordContent::makeunique(QType::NS, 1, gtld);
+    auto drc = DNSRecordContent::mastermake(QType::NS, 1, gtld);
     drc->toPacket(pw);
   }
 
   for(char c='a'; c<= 'k';++c) {
     gtld[0]=c;
     pw.startRecord(DNSName(gtld), QType::A, 3600, 1, DNSResourceRecord::ADDITIONAL);
-    auto drc = DNSRecordContent::makeunique(QType::A, 1, "1.2.3.4");
+    auto drc = DNSRecordContent::mastermake(QType::A, 1, "1.2.3.4");
     drc->toPacket(pw);
   }
 
 
   pw.startRecord(DNSName("a.gtld-servers.net"), QType::AAAA, 3600, 1, DNSResourceRecord::ADDITIONAL);
-  auto aaaarc = DNSRecordContent::makeunique(QType::AAAA, 1, "2001:503:a83e::2:30");
+  auto aaaarc = DNSRecordContent::mastermake(QType::AAAA, 1, "2001:503:a83e::2:30");
   aaaarc->toPacket(pw);
 
   pw.startRecord(DNSName("b.gtld-servers.net"), QType::AAAA, 3600, 1, DNSResourceRecord::ADDITIONAL);
-  aaaarc = DNSRecordContent::makeunique(QType::AAAA, 1, "2001:503:231d::2:30");
+  aaaarc = DNSRecordContent::mastermake(QType::AAAA, 1, "2001:503:231d::2:30");
   aaaarc->toPacket(pw);
 
 
@@ -293,7 +294,7 @@ vector<uint8_t> makeBigDNSPacketReferral()
   //  shuffle(records);
   for(const auto& rec : records) {
     pw.startRecord(rec.qname, rec.qtype.getCode(), rec.ttl, 1, DNSResourceRecord::ADDITIONAL);
-    auto drc = DNSRecordContent::makeunique(rec.qtype.getCode(), 1, rec.content);
+    auto drc = DNSRecordContent::mastermake(rec.qtype.getCode(), 1, rec.content);
     drc->toPacket(pw);
   }
 
@@ -312,7 +313,7 @@ struct MakeARecordTestMM
 
   void operator()() const
   {
-      auto drc = DNSRecordContent::makeunique(QType::A, 1,
+      auto drc = DNSRecordContent::mastermake(QType::A, 1,
                                               "1.2.3.4");
   }
 };
@@ -385,7 +386,7 @@ struct GenericRecordTest
     DNSPacketWriter pw(packet, DNSName("outpost.ds9a.nl"), d_type);
     for(int records = 0; records < d_records; records++) {
       pw.startRecord(DNSName("outpost.ds9a.nl"), d_type);
-      auto drc = DNSRecordContent::makeunique(d_type, 1,
+      auto drc = DNSRecordContent::mastermake(d_type, 1,
                                               d_content);
       drc->toPacket(pw);
     }
@@ -412,7 +413,7 @@ struct AAAARecordTest
     DNSPacketWriter pw(packet, DNSName("outpost.ds9a.nl"), QType::AAAA);
     for(int records = 0; records < d_records; records++) {
       pw.startRecord(DNSName("outpost.ds9a.nl"), QType::AAAA);
-      auto drc = DNSRecordContent::makeunique(QType::AAAA, 1, "fe80::21d:92ff:fe6d:8441");
+      auto drc = DNSRecordContent::mastermake(QType::AAAA, 1, "fe80::21d:92ff:fe6d:8441");
       drc->toPacket(pw);
     }
     pw.commit();
@@ -436,7 +437,7 @@ struct SOARecordTest
 
     for(int records = 0; records < d_records; records++) {
       pw.startRecord(DNSName("outpost.ds9a.nl"), QType::SOA);
-      auto drc = DNSRecordContent::makeunique(QType::SOA, 1, "a0.org.afilias-nst.info. noc.afilias-nst.info. 2008758137 1800 900 604800 86400");
+      auto drc = DNSRecordContent::mastermake(QType::SOA, 1, "a0.org.afilias-nst.info. noc.afilias-nst.info. 2008758137 1800 900 604800 86400");
       drc->toPacket(pw);
     }
     pw.commit();
@@ -457,20 +458,20 @@ vector<uint8_t> makeTypicalReferral()
   DNSPacketWriter pw(packet, DNSName("outpost.ds9a.nl"), QType::A);
 
   pw.startRecord(DNSName("ds9a.nl"), QType::NS, 3600, 1, DNSResourceRecord::AUTHORITY);
-  auto drc = DNSRecordContent::makeunique(QType::NS, 1, "ns1.ds9a.nl");
+  auto drc = DNSRecordContent::mastermake(QType::NS, 1, "ns1.ds9a.nl");
   drc->toPacket(pw);
 
   pw.startRecord(DNSName("ds9a.nl"), QType::NS, 3600, 1, DNSResourceRecord::AUTHORITY);
-  drc = DNSRecordContent::makeunique(QType::NS, 1, "ns2.ds9a.nl");
+  drc = DNSRecordContent::mastermake(QType::NS, 1, "ns2.ds9a.nl");
   drc->toPacket(pw);
 
 
   pw.startRecord(DNSName("ns1.ds9a.nl"), QType::A, 3600, 1, DNSResourceRecord::ADDITIONAL);
-  drc = DNSRecordContent::makeunique(QType::A, 1, "1.2.3.4");
+  drc = DNSRecordContent::mastermake(QType::A, 1, "1.2.3.4");
   drc->toPacket(pw);
 
   pw.startRecord(DNSName("ns2.ds9a.nl"), QType::A, 3600, 1, DNSResourceRecord::ADDITIONAL);
-  drc = DNSRecordContent::makeunique(QType::A, 1, "4.3.2.1");
+  drc = DNSRecordContent::mastermake(QType::A, 1, "4.3.2.1");
   drc->toPacket(pw);
 
   pw.commit();
@@ -552,12 +553,11 @@ struct BigDNSPacketRefTest
 
 struct TCacheComp
 {
-  bool operator()(const pair<string, QType>& a, const pair<string, QType>& b) const
+  bool operator()(const pair<DNSName, QType>& a, const pair<DNSName, QType>& b) const
   {
-    int cmp=strcasecmp(a.first.c_str(), b.first.c_str());
-    if(cmp < 0)
+    if(a.first < b.first)
       return true;
-    if(cmp > 0)
+    if(b.first < a.first)
       return false;
 
     return a.second < b.second;
@@ -792,7 +792,47 @@ struct NOPTest
 
 };
 
+struct StatRingDNSNameQTypeToStringTest
+{
+  explicit StatRingDNSNameQTypeToStringTest(const DNSName &name, const QType type) : d_name(name), d_type(type) {}
 
+  string getName() const { return "StatRing test with DNSName and QType to string"; }
+
+  void operator()() const {
+    S.ringAccount("testring", d_name.toLogString()+"/"+d_type.getName());
+  };
+
+  DNSName d_name;
+  QType d_type;
+};
+
+struct StatRingDNSNameQTypeTest
+{
+  explicit StatRingDNSNameQTypeTest(const DNSName &name, const QType type) : d_name(name), d_type(type) {}
+
+  string getName() const { return "StatRing test with DNSName and QType"; }
+
+  void operator()() const {
+    S.ringAccount("testringdnsname", d_name, d_type);
+  };
+
+  DNSName d_name;
+  QType d_type;
+};
+
+
+struct NetmaskTreeTest
+{
+  string getName() const { return "NetmaskTreeTest"; }
+
+  void operator()() const {
+    Netmask nm("ffff:ffff:ffff:ffff:ffff:ffff:ffff:ffff/64");
+    NetmaskTree<bool> tree;
+
+    for (int i = 0; i < 100; i++)
+      tree.insert_or_assign(nm, true);
+  }
+};
 
 int main(int argc, char** argv)
 try
@@ -876,6 +916,18 @@ try
 
   doRun(DNSNameParseTest());
   doRun(DNSNameRootTest());
+
+  doRun(NetmaskTreeTest());
+
+#ifndef RECURSOR
+  S.doRings();
+
+  S.declareRing("testring", "Just some ring where we'll account things");
+  doRun(StatRingDNSNameQTypeToStringTest(DNSName("example.com"), QType(1)));
+
+  S.declareDNSNameQTypeRing("testringdnsname", "Just some ring where we'll account things");
+  doRun(StatRingDNSNameQTypeTest(DNSName("example.com"), QType(1)));
+#endif
 
   cerr<<"Total runs: " << g_totalRuns<<endl;
 

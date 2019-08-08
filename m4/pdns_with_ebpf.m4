@@ -20,12 +20,19 @@ AC_DEFUN([PDNS_WITH_EBPF],[
   AM_CONDITIONAL([HAVE_EBPF], [test x"$bpf_headers" = "xyes" ])
   AS_IF([test x"$bpf_headers" = "xyes" ],
     [AC_CHECK_DECL(BPF_FUNC_tail_call,
-      [ AC_DEFINE([HAVE_EBPF], [1], [Define if using eBPF.]) ],
+      [ AC_CHECK_DECL(SO_ATTACH_BPF,
+        [ AC_DEFINE([HAVE_EBPF], [1], [Define if using eBPF.]) ],
+        [ AS_IF([test "x$with_ebpf" = "xyes"], [
+          AC_MSG_ERROR([EBPF support requested but SO_ATTACH_BPF not found])
+        ])],
+        [#include <sys/socket.h>
+        ]
+      )],
       [ AS_IF([test "x$with_ebpf" = "xyes"], [
-          AC_MSG_ERROR([EBPF support requested but BPF_FUNC_tail_call not found in the eBPF headers])
-        ])
-      ],
-      [#include <linux/bpf.h>]
+        AC_MSG_ERROR([EBPF support requested but BPF_FUNC_tail_call not found in the eBPF headers])
+      ])],
+      [#include <linux/bpf.h>
+      ]
     )]
   )
 ])

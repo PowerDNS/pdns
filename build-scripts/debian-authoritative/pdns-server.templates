@@ -1,6 +1,0 @@
-Template: pdns-server/localaddress
-Type: string
-_Description: IP address where PowerDNS should listen on:
- If you have multiple IPs, the default behaviour of binding to all addresses
- can cause the OS to select the wrong IP for outgoing packets, so it is
- recommended to bind PowerDNS to a specific IP here.

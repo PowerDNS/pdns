@@ -83,23 +83,22 @@ string DLPingHandler(const vector<string>&parts, Utility::pid_t ppid)
   return "PONG";
 }
 
-string DLShowHandler(const vector<string>&parts, Utility::pid_t ppid)
-try
-{
-  extern StatBag S;
-  string ret("Wrong number of parameters");
-  if(parts.size()==2) {
-    if(parts[1]=="*")
-      ret=S.directory();
-    else
-      ret=S.getValueStr(parts[1]);
-  }
+string DLShowHandler(const vector<string>&parts, Utility::pid_t ppid) {
+  try {
+    extern StatBag S;
+    string ret("Wrong number of parameters");
+    if (parts.size() == 2) {
+      if (parts[1] == "*")
+        ret = S.directory();
+      else
+        ret = S.getValueStr(parts[1]);
+    }
 
-  return ret;
-}
-catch(...)
-{
-  return "Unknown";
+    return ret;
+  }
+  catch (...) {
+    return "Unknown";
+  }
 }
 
 void setStatus(const string &str)
@@ -261,7 +260,7 @@ string DLNotifyHostHandler(const vector<string>&parts, Utility::pid_t ppid)
   ostringstream os;
   if(parts.size()!=3)
     return "syntax: notify-host domain ip";
-  if(!::arg().mustDo("master") && !::arg().mustDo("slave-renotify"))
+  if(!::arg().mustDo("master") && !(::arg().mustDo("slave") && ::arg().mustDo("slave-renotify")))
       return "PowerDNS not configured as master or slave with re-notifications";
 
   DNSName domain;
@@ -289,7 +288,7 @@ string DLNotifyHandler(const vector<string>&parts, Utility::pid_t ppid)
   UeberBackend B;
   if(parts.size()!=2)
     return "syntax: notify domain";
-  if(!::arg().mustDo("master") && !::arg().mustDo("slave-renotify"))
+  if(!::arg().mustDo("master") && !(::arg().mustDo("slave") && ::arg().mustDo("slave-renotify")))
       return "PowerDNS not configured as master or slave with re-notifications";
   g_log<<Logger::Warning<<"Notification request for domain '"<<parts[1]<<"' received from operator"<<endl;
 
@@ -299,17 +298,17 @@ string DLNotifyHandler(const vector<string>&parts, Utility::pid_t ppid)
 
     int total = 0;
     int notified = 0;
-    for (vector<DomainInfo>::const_iterator di=domains.begin(); di != domains.end(); di++) {
-      if (di->kind == 0) { // MASTER
+    for (const auto& di : domains) {
+      if (di.kind == DomainInfo::Master || di.kind == DomainInfo::Slave) { // MASTER and Slave if slave-renotify is enabled
         total++;
-        if(Communicator.notifyDomain(di->zone))
+        if(Communicator.notifyDomain(di.zone))
           notified++;
       }
     }
 
     if (total != notified)
       return itoa(notified)+" out of "+itoa(total)+" zones added to queue - see log";
-    return "Added "+itoa(total)+" MASTER zones to queue";
+    return "Added "+itoa(total)+" MASTER/SLAVE zones to queue";
   } else {
     DNSName domain;
     try {
@@ -366,9 +365,9 @@ string DLListZones(const vector<string>&parts, Utility::pid_t ppid)
 
   int count = 0;
 
-  for (vector<DomainInfo>::const_iterator di=domains.begin(); di != domains.end(); di++) {
-    if (di->kind == kindFilter || kindFilter == -1) {
-      ret<<di->zone.toString()<<endl;
+  for (const auto& di: domains) {
+    if (di.kind == kindFilter || kindFilter == -1) {
+      ret<<di.zone.toString()<<endl;
       count++;
     }
   }

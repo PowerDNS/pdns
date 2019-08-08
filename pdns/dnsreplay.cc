@@ -444,7 +444,7 @@ try
 	measureResultAndClean(iter);
       }
     }
-    catch(MOADNSException &e)
+    catch(const MOADNSException &mde)
     {
       s_wednserrors++;
     }
@@ -558,7 +558,7 @@ static void generateOptRR(const std::string& optRData, string& res)
   EDNS0Record edns0;
   edns0.extRCode = 0;
   edns0.version = 0;
-  edns0.Z = 0;
+  edns0.extFlags = 0;
   
   dh.d_type = htons(QType::OPT);
   dh.d_class = htons(1280);
@@ -684,10 +684,10 @@ static bool sendPacketFromPR(PcapPacketReader& pr, const ComboAddress& remote, i
       }
     }
   }
-  catch(MOADNSException &e)
+  catch(const MOADNSException &mde)
   {
     if(!g_quiet)
-      cerr<<"Error parsing packet: "<<e.what()<<endl;
+      cerr<<"Error parsing packet: "<<mde.what()<<endl;
     s_idmanager.releaseID(qd.d_assignedID);  // not added to qids for cleanup
     s_origdnserrors++;
   }

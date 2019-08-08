@@ -14,3 +14,5 @@ In addition to the global settings, rules and Lua bindings can alter this behavi
  * calling :func:`ECSPrefixLengthAction(v4, v6)` or setting ``dq.ecsPrefixLength`` will override the global :func:`setECSSourcePrefixV4()` and :func:`setECSSourcePrefixV6()` values.
 
 In effect this means that for the EDNS Client Subnet option to be added to the request, ``useClientSubnet`` should be set to ``true`` for the backend used (default to ``false``) and ECS should not have been disabled by calling :func:`DisableECSAction` or setting ``dq.useECS`` to ``false`` (default to true).
+
+Note that any trailing data present in the incoming query is removed by default when an OPT (or XPF) record has to be inserted. This behaviour can be modified using :func:`setPreserveTrailingData()`.

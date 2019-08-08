@@ -95,7 +95,7 @@ private:
   double d_min10, d_min5, d_min1;
   Ewma d_queries, d_cachehits, d_cachemisses;
   Ewma d_qcachehits, d_qcachemisses;
-  WebServer *d_ws;
+  WebServer *d_ws{nullptr};
 };
 
 #endif

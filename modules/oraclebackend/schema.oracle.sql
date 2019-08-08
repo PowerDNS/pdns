@@ -115,7 +115,6 @@ CREATE TABLE Records (
   ttl NUMBER(10,0) NOT NULL,
   type VARCHAR2(32),
   content VARCHAR2(2048),
-  last_change INTEGER DEFAULT 0 NOT NULL,
   auth NUMBER(1,0) DEFAULT 1 NOT NULL,
   CONSTRAINT chk_records_fqdn CHECK (fqdn = lower(fqdn)),
   CONSTRAINT chk_records_ttl CHECK (ttl BETWEEN 0 AND 4294967295),

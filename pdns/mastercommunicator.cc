@@ -50,6 +50,7 @@ void CommunicatorClass::queueNotifyDomain(const DomainInfo& di, UeberBackend* B)
   FindNS fns;
 
 
+  try {
   if (d_onlyNotify.size()) {
     B->lookup(QType(QType::NS), di.zone);
     while(B->get(rr))
@@ -77,6 +78,16 @@ void CommunicatorClass::queueNotifyDomain(const DomainInfo& di, UeberBackend* B)
       hasQueuedItem=true;
     }
   }
+  }
+  catch (PDNSException &ae) {
+    g_log << Logger::Error << "Error looking up name servers for " << di.zone << ", cannot notify: " << ae.reason << endl;
+    return;
+  }
+  catch (std::exception &e) {
+    g_log << Logger::Error << "Error looking up name servers for " << di.zone << ", cannot notify: " << e.what() << endl;
+    return;
+  }
+
 
   set<string> alsoNotify(d_alsoNotify);
   B->alsoNotifies(di.zone, &alsoNotify);
@@ -232,7 +243,7 @@ void CommunicatorClass::sendNotification(int sock, const DNSName& domain, const 
   string tsigsecret64;
   string tsigsecret;
 
-  if (B.getDomainMetadata(domain, "TSIG-ALLOW-AXFR", meta) && meta.size() > 0) {
+  if (::arg().mustDo("send-signed-notify") && B.getDomainMetadata(domain, "TSIG-ALLOW-AXFR", meta) && meta.size() > 0) {
     tsigkeyname = DNSName(meta[0]);
   }
 

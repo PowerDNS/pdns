@@ -1,0 +1,175 @@
+#!/bin/sh
+### BEGIN INIT INFO
+# Provides:          pdns-recursor
+# Required-Start:    $network $remote_fs $syslog
+# Required-Stop:     $network $remote_fs $syslog
+# Default-Start:     2 3 4 5
+# Default-Stop:      0 1 6
+# Short-Description: PowerDNS Recursor - Recursive DNS Server
+# Description:       PowerDNS Recursor - Recursive DNS Server
+### END INIT INFO
+
+#
+# Authors:	Matthijs Möhlmann <matthijs@cacholong.nl>
+#           Christoph Haas <haas@debian.org>
+# 
+# Thanks to:
+# Thomas Hood <jdthood@aglu.demon.nl>
+#
+# initscript for PowerDNS recursor
+
+# Load lsb stuff for systemd redirection (if available).
+if [ -e /lib/lsb/init-functions ]; then
+  . /lib/lsb/init-functions
+fi
+
+PATH=/sbin:/bin:/usr/sbin:/usr/bin
+DESC="PowerDNS Recursor"
+NAME=pdns_recursor
+DAEMON=/usr/sbin/$NAME
+# Derive the socket-dir setting from /etc/powerdns/recursor.conf
+# or fall back to the default /var/run if not specified there.
+PIDDIR=$(awk -F= '/^socket-dir=/ {print $2}' /etc/powerdns/recursor.conf)
+if [ -z "$PIDDIR" ]; then PIDDIR=/var/run/pdns-recursor; mkdir -p $PIDDIR; fi
+PIDFILE=$PIDDIR/$NAME.pid
+
+# Gracefully exit if the package has been removed.
+test -x $DAEMON || exit 0
+
+# Read config file if it is present.
+if [ -r /etc/default/pdns-recursor ]; then
+  . /etc/default/pdns-recursor
+fi
+
+start() {
+# Return
+#  0 if daemon has been started / was already running
+#  >0 if daemon could not be started
+  start-stop-daemon --start --oknodo --quiet --pidfile $PIDFILE --exec $DAEMON --test > /dev/null || return 0
+  start-stop-daemon --start --oknodo --quiet --pidfile $PIDFILE --exec $DAEMON -- --daemon=yes || return 2
+}
+
+start_resolvconf() {
+  if [ "X$RESOLVCONF" = "Xyes" ] && [ -x /sbin/resolvconf ]; then
+    echo "nameserver 127.0.0.1" | /sbin/resolvconf -a lo.pdns-recursor
+  fi
+  return 0
+}
+
+stop() {
+# Return
+#  0 if daemon has been stopped
+#  1 if daemon was already stopped
+#  2 if daemon could not be stopped
+#  other if a failure occured
+  start-stop-daemon --stop --quiet --pidfile $PIDFILE --name $NAME
+  RETVAL="$?"
+  [ "$RETVAL" = 2 ] && return 2
+  rm -f $PIDFILE
+  return "$RETVAL"
+}
+
+stop_resolvconf() {
+  if [ "X$RESOLVCONF" = "Xyes" ] && [ -x /sbin/resolvconf ]; then
+    /sbin/resolvconf -d lo.pdns-recursor
+  fi
+  return 0
+}
+
+isrunning()
+{
+  /usr/bin/rec_control ping > /dev/null
+  return $?
+}
+
+case "$1" in
+  start)
+    if [ "$START" != "yes" ]; then
+      echo "Not starting $DESC -- disabled."
+      exit 0
+    fi
+    echo -n "Starting $DESC: $NAME ..."
+    start
+    case "$?" in
+      0)
+        start_resolvconf
+        echo done
+        break
+        ;;
+      1)
+        echo "already running"
+        break
+        ;;
+      *)
+        echo "failed"
+        exit 1
+        ;;
+    esac
+  ;;
+  stop)
+    stop_resolvconf
+    echo -n "Stopping $DESC: $NAME ..."
+    stop
+    case "$?" in
+      0)
+        echo done
+        break
+        ;;
+      1)
+        echo "not running"
+        break
+        ;;
+      *)
+        echo "failed"
+        exit 1
+        ;;
+    esac
+  ;;
+  restart|force-reload)
+    if [ "$START" != "yes" ]; then
+      $0 stop
+      exit 0
+    fi
+    echo -n "Restarting $DESC ..."
+    stop
+    case "$?" in
+      0|1)
+        start
+        case "$?" in
+          0)
+            echo done
+            exit 0
+            ;;
+          1)
+            echo "failed -- old process still running"
+            exit 1
+            ;;
+          *)
+            echo "failed to start"
+            exit 1
+            ;;
+        esac
+      ;;
+      *)
+        echo "failed to stop"
+        exit 1
+      ;;
+    esac
+  ;;
+  status)
+    if isrunning; then
+      echo "$NAME is running"
+      exit 0
+    else
+      echo "$NAME is not running or not responding"
+      exit 3
+    fi
+  ;;
+  *)
+    echo "Usage: $0 {start|stop|restart|force-reload|status}" >&2
+    exit 3
+  ;;
+esac
+
+exit 0
+

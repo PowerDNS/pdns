@@ -9,7 +9,7 @@ $notified_serial = 1
 
 $domain = {
   "unit.test." => { 
-      "SOA" => ["ns.unit.test. hostmaster.unit.test. 1 2 3 4 5 6"],
+      "SOA" => ["ns.unit.test. hostmaster.unit.test. 1 2 3 4 5"],
       "NS" => ["ns1.unit.test.", "ns2.unit.test."],
   },
   "ns1.unit.test." => {
@@ -171,6 +171,17 @@ class Handler
                :kind => 'native'
        }]
      end
+     if args["name"] == "master.test."
+       return [{
+               :id => 2,
+               :zone => "master.test.",
+               :masters => ["10.0.0.1"],
+               :notified_serial => $notified_serial,
+               :serial => $notified_serial,
+               :last_check => Time.now.to_i,
+               :kind => 'master'
+       }]
+     end
      [false]
    end
 
@@ -244,11 +255,6 @@ class Handler
    def do_aborttransaction(args)
      [true]
    end
-  
-   def do_calculatesoaserial(args)
-     return [2013060300] if args["sd"]["qname"] == "unit.test."
-     [false]
-   end
 
    def do_directbackendcmd(args)
      [args["query"]]
@@ -256,6 +262,10 @@ class Handler
 
    def do_getalldomains(args)
      [do_getdomaininfo({'name'=>'unit.test.'})]
+   end
+
+   def do_getupdatedmasters()
+     [do_getdomaininfo({'name'=>'master.test.'})]
    end
 end
 

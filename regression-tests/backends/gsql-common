@@ -15,7 +15,7 @@ gsql_master()
 
 	for zone in $(grep 'zone ' named.conf  | cut -f2 -d\")
 	do
-		if [ $context != ${backend}-nodnssec ]
+		if [ $context != ${backend}-nodnssec ] && [ $zone != insecure.dnssec-parent.com ]
 		then
 			if [ $context = ${backend}-nsec3 ] || [ $context = ${backend}-nsec3-optout ]
 			then
@@ -37,7 +37,7 @@ gsql_master()
 
 	$RUNWRAPPER $PDNS --daemon=no --local-address=$address --local-port=$port --config-dir=. \
 		--config-name=$backend --socket-dir=./ --no-shuffle \
-		--dnsupdate=yes --resolver=8.8.8.8 --outgoing-axfr-expand-alias=yes \
+		--dnsupdate=yes --resolver=$RESOLVERIP --outgoing-axfr-expand-alias=yes \
 		--expand-alias=yes \
 		--cache-ttl=$cachettl --dname-processing \
 		--disable-axfr-rectify=yes $lua_prequery &

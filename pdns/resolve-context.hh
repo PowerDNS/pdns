@@ -15,8 +15,14 @@ struct ResolveContext {
 #ifdef HAVE_PROTOBUF
     this->d_initialRequestId = ctx.d_initialRequestId;
 #endif
+#ifdef HAVE_FSTRM
+    this->d_auth = ctx.d_auth;
+#endif
   }
 #ifdef HAVE_PROTOBUF
   boost::optional<const boost::uuids::uuid&> d_initialRequestId;
+#endif
+#ifdef HAVE_FSTRM
+  boost::optional<const DNSName&> d_auth;
 #endif
 };

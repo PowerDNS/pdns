@@ -1,0 +1,42 @@
+#!/bin/sh
+set -e
+
+if [ -n "$PDNSDEBUG" ]; then
+  echo "now debugging $0 $@"
+  set -x
+fi
+
+# Startup errors should never cause dpkg to fail.
+initscript_error() {
+    return 0
+}
+
+case "$1" in
+  configure)
+    if [ -z "`getent group pdns`" ]; then
+      addgroup --quiet --system pdns
+    fi
+    if [ -z "`getent passwd pdns`" ]; then
+      echo -n "Creating user and group pdns..."
+      adduser --quiet --system --home /var/spool/powerdns --shell /bin/false --ingroup pdns --disabled-password --disabled-login --gecos "PowerDNS" pdns
+      echo "done"
+    fi
+    chown pdns:pdns /var/lib/powerdns || :
+  ;;
+
+  triggered)
+    invoke-rc.d pdns restart || :
+  ;;
+
+  abort-upgrade|abort-remove|abort-deconfigure)
+  ;;
+
+  *)
+    echo "postinst called with unknown argument \`$1'" >&2
+    exit 1
+  ;;
+esac
+
+#DEBHELPER#
+
+exit 0

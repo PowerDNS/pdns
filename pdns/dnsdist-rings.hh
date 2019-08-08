@@ -25,9 +25,9 @@
 #include <time.h>
 #include <unordered_map>
 
-#include <boost/circular_buffer.hpp>
 #include <boost/variant.hpp>
 
+#include "circular_buffer.hh"
 #include "dnsname.hh"
 #include "iputils.hh"
 
@@ -167,6 +167,28 @@ struct Rings {
     auto& shard = getOneShard();
     std::lock_guard<std::mutex> wl(shard->respLock);
     insertResponseLocked(shard, when, requestor, name, qtype, usec, size, dh, backend);
+  }
+
+  void clear()
+  {
+    for (auto& shard : d_shards) {
+      {
+        std::lock_guard<std::mutex> wl(shard->queryLock);
+        shard->queryRing.clear();
+      }
+      {
+        std::lock_guard<std::mutex> wl(shard->respLock);
+        shard->respRing.clear();
+      }
+    }
+
+    d_nbQueryEntries.store(0);
+    d_nbResponseEntries.store(0);
+    d_currentShardId.store(0);
+    d_blockingQueryInserts.store(0);
+    d_blockingResponseInserts.store(0);
+    d_deferredQueryInserts.store(0);
+    d_deferredResponseInserts.store(0);
   }
 
   std::vector<std::unique_ptr<Shard> > d_shards;

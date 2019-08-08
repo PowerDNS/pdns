@@ -439,7 +439,7 @@ void setupLuaInspection()
 
       std::multimap<struct timespec, string> out;
 
-      boost::format      fmt("%-7.1f %-47s %-12s %-5d %-25s %-5s %-6.1f %-2s %-2s %-2s %s\n");
+      boost::format      fmt("%-7.1f %-47s %-12s %-5d %-25s %-5s %-6.1f %-2s %-2s %-2s %-s\n");
       g_outputBuffer+= (fmt % "Time" % "Client" % "Server" % "ID" % "Name" % "Type" % "Lat." % "TC" % "RD" % "AA" % "Rcode").str();
 
       if(msec==-1) {
@@ -451,7 +451,11 @@ void setupLuaInspection()
             dnmatch = c.name.isPartOf(*dn);
           if(nmmatch && dnmatch) {
             QType qt(c.qtype);
-            out.insert(make_pair(c.when, (fmt % DiffTime(now, c.when) % c.requestor.toStringWithPort() % "" % htons(c.dh.id) % c.name.toString() % qt.getName()  % "" % (c.dh.tc ? "TC" : "") % (c.dh.rd? "RD" : "") % (c.dh.aa? "AA" : "") %  "Question").str() )) ;
+            std::string extra;
+            if (c.dh.opcode != 0) {
+              extra = " (" + Opcode::to_s(c.dh.opcode) + ")";
+            }
+            out.insert(make_pair(c.when, (fmt % DiffTime(now, c.when) % c.requestor.toStringWithPort() % "" % htons(c.dh.id) % c.name.toString() % qt.getName()  % "" % (c.dh.tc ? "TC" : "") % (c.dh.rd? "RD" : "") % (c.dh.aa? "AA" : "") % ("Question" + extra)).str() )) ;
 
             if(limit && *limit==++num)
               break;
@@ -552,10 +556,38 @@ void setupLuaInspection()
 
   g_lua.writeFunction("showTCPStats", [] {
       setLuaNoSideEffect();
+      ostringstream ret;
       boost::format fmt("%-10d %-10d %-10d %-10d\n");
-      g_outputBuffer += (fmt % "Clients" % "MaxClients" % "Queued" % "MaxQueued").str();
-      g_outputBuffer += (fmt % g_tcpclientthreads->getThreadsCount() % g_maxTCPClientThreads % g_tcpclientthreads->getQueuedCount() % g_maxTCPQueuedConnections).str();
-      g_outputBuffer += "Query distribution mode is: " + std::string(g_useTCPSinglePipe ? "single queue" : "per-thread queues") + "\n";
+      ret << (fmt % "Clients" % "MaxClients" % "Queued" % "MaxQueued") << endl;
+      ret << (fmt % g_tcpclientthreads->getThreadsCount() % g_maxTCPClientThreads % g_tcpclientthreads->getQueuedCount() % g_maxTCPQueuedConnections) << endl;
+      ret <<endl;
+
+      ret << "Query distribution mode is: " << std::string(g_useTCPSinglePipe ? "single queue" : "per-thread queues") << endl;
+      ret << endl;
+
+      ret << "Frontends:" << endl;
+      fmt = boost::format("%-3d %-20.20s %-20d %-20d %-25d %-20d %-20d %-20d %-20f %-20f");
+      ret << (fmt % "#" % "Address" % "Connections" % "Died reading query" % "Died sending response" % "Gave up" % "Client timeouts" % "Downstream timeouts" % "Avg queries/conn" % "Avg duration") << endl;
+
+      size_t counter = 0;
+      for(const auto& f : g_frontends) {
+        ret << (fmt % counter % f->local.toStringWithPort() % f->tcpCurrentConnections % f->tcpDiedReadingQuery % f->tcpDiedSendingResponse % f->tcpGaveUp % f->tcpClientTimeouts % f->tcpDownstreamTimeouts % f->tcpAvgQueriesPerConnection % f->tcpAvgConnectionDuration) << endl;
+        ++counter;
+      }
+      ret << endl;
+
+      ret << "Backends:" << endl;
+      fmt = boost::format("%-3d %-20.20s %-20.20s %-20d %-20d %-25d %-20d %-20d %-20d %-20f %-20f");
+      ret << (fmt % "#" % "Name" % "Address" % "Connections" % "Died sending query" % "Died reading response" % "Gave up" % "Read timeouts" % "Write timeouts" % "Avg queries/conn" % "Avg duration") << endl;
+
+      auto states = g_dstates.getLocal();
+      counter = 0;
+      for(const auto& s : *states) {
+        ret << (fmt % counter % s->name % s->remote.toStringWithPort() % s->tcpCurrentConnections % s->tcpDiedSendingQuery % s->tcpDiedReadingResponse % s->tcpGaveUp % s->tcpReadTimeouts % s->tcpWriteTimeouts % s->tcpAvgQueriesPerConnection % s->tcpAvgConnectionDuration) << endl;
+        ++counter;
+      }
+
+      g_outputBuffer=ret.str();
     });
 
   g_lua.writeFunction("dumpStats", [] {
@@ -650,25 +682,68 @@ void setupLuaInspection()
 
   /* DynBlockRulesGroup */
   g_lua.writeFunction("dynBlockRulesGroup", []() { return std::make_shared<DynBlockRulesGroup>(); });
-  g_lua.registerFunction<void(std::shared_ptr<DynBlockRulesGroup>::*)(unsigned int, unsigned int, const std::string&, unsigned int, boost::optional<DNSAction::Action>)>("setQueryRate", [](std::shared_ptr<DynBlockRulesGroup>& group, unsigned int rate, unsigned int seconds, const std::string& reason, unsigned int blockDuration, boost::optional<DNSAction::Action> action) {
+  g_lua.registerFunction<void(std::shared_ptr<DynBlockRulesGroup>::*)(unsigned int, unsigned int, const std::string&, unsigned int, boost::optional<DNSAction::Action>, boost::optional<unsigned int>)>("setQueryRate", [](std::shared_ptr<DynBlockRulesGroup>& group, unsigned int rate, unsigned int seconds, const std::string& reason, unsigned int blockDuration, boost::optional<DNSAction::Action> action, boost::optional<unsigned int> warningRate) {
       if (group) {
-        group->setQueryRate(rate, seconds, reason, blockDuration, action ? *action : DNSAction::Action::None);
+        group->setQueryRate(rate, warningRate ? *warningRate : 0, seconds, reason, blockDuration, action ? *action : DNSAction::Action::None);
       }
     });
-  g_lua.registerFunction<void(std::shared_ptr<DynBlockRulesGroup>::*)(unsigned int, unsigned int, const std::string&, unsigned int, boost::optional<DNSAction::Action>)>("setResponseByteRate", [](std::shared_ptr<DynBlockRulesGroup>& group, unsigned int rate, unsigned int seconds, const std::string& reason, unsigned int blockDuration, boost::optional<DNSAction::Action> action) {
+  g_lua.registerFunction<void(std::shared_ptr<DynBlockRulesGroup>::*)(unsigned int, unsigned int, const std::string&, unsigned int, boost::optional<DNSAction::Action>, boost::optional<unsigned int>)>("setResponseByteRate", [](std::shared_ptr<DynBlockRulesGroup>& group, unsigned int rate, unsigned int seconds, const std::string& reason, unsigned int blockDuration, boost::optional<DNSAction::Action> action, boost::optional<unsigned int> warningRate) {
       if (group) {
-        group->setResponseByteRate(rate, seconds, reason, blockDuration, action ? *action : DNSAction::Action::None);
+        group->setResponseByteRate(rate, warningRate ? *warningRate : 0, seconds, reason, blockDuration, action ? *action : DNSAction::Action::None);
       }
     });
-  g_lua.registerFunction<void(std::shared_ptr<DynBlockRulesGroup>::*)(uint8_t, unsigned int, unsigned int, const std::string&, unsigned int, boost::optional<DNSAction::Action>)>("setRCodeRate", [](std::shared_ptr<DynBlockRulesGroup>& group, uint8_t rcode, unsigned int rate, unsigned int seconds, const std::string& reason, unsigned int blockDuration, boost::optional<DNSAction::Action> action) {
+  g_lua.registerFunction<void(std::shared_ptr<DynBlockRulesGroup>::*)(unsigned int, const std::string&, unsigned int, boost::optional<DNSAction::Action>, DynBlockRulesGroup::smtVisitor_t)>("setSuffixMatchRule", [](std::shared_ptr<DynBlockRulesGroup>& group, unsigned int seconds, const std::string& reason, unsigned int blockDuration, boost::optional<DNSAction::Action> action, DynBlockRulesGroup::smtVisitor_t visitor) {
       if (group) {
-        group->setRCodeRate(rcode, rate, seconds, reason, blockDuration, action ? *action : DNSAction::Action::None);
+        group->setSuffixMatchRule(seconds, reason, blockDuration, action ? *action : DNSAction::Action::None, visitor);
       }
     });
-  g_lua.registerFunction<void(std::shared_ptr<DynBlockRulesGroup>::*)(uint16_t, unsigned int, unsigned int, const std::string&, unsigned int, boost::optional<DNSAction::Action>)>("setQTypeRate", [](std::shared_ptr<DynBlockRulesGroup>& group, uint16_t qtype, unsigned int rate, unsigned int seconds, const std::string& reason, unsigned int blockDuration, boost::optional<DNSAction::Action> action) {
+  g_lua.registerFunction<void(std::shared_ptr<DynBlockRulesGroup>::*)(unsigned int, const std::string&, unsigned int, boost::optional<DNSAction::Action>, dnsdist_ffi_stat_node_visitor_t)>("setSuffixMatchRuleFFI", [](std::shared_ptr<DynBlockRulesGroup>& group, unsigned int seconds, const std::string& reason, unsigned int blockDuration, boost::optional<DNSAction::Action> action, dnsdist_ffi_stat_node_visitor_t visitor) {
       if (group) {
-        group->setQTypeRate(qtype, rate, seconds, reason, blockDuration, action ? *action : DNSAction::Action::None);
+        group->setSuffixMatchRuleFFI(seconds, reason, blockDuration, action ? *action : DNSAction::Action::None, visitor);
       }
     });
-  g_lua.registerFunction("apply", &DynBlockRulesGroup::apply);
+  g_lua.registerFunction<void(std::shared_ptr<DynBlockRulesGroup>::*)(uint8_t, unsigned int, unsigned int, const std::string&, unsigned int, boost::optional<DNSAction::Action>, boost::optional<unsigned int>)>("setRCodeRate", [](std::shared_ptr<DynBlockRulesGroup>& group, uint8_t rcode, unsigned int rate, unsigned int seconds, const std::string& reason, unsigned int blockDuration, boost::optional<DNSAction::Action> action, boost::optional<unsigned int> warningRate) {
+      if (group) {
+        group->setRCodeRate(rcode, rate, warningRate ? *warningRate : 0, seconds, reason, blockDuration, action ? *action : DNSAction::Action::None);
+      }
+    });
+  g_lua.registerFunction<void(std::shared_ptr<DynBlockRulesGroup>::*)(uint16_t, unsigned int, unsigned int, const std::string&, unsigned int, boost::optional<DNSAction::Action>, boost::optional<unsigned int>)>("setQTypeRate", [](std::shared_ptr<DynBlockRulesGroup>& group, uint16_t qtype, unsigned int rate, unsigned int seconds, const std::string& reason, unsigned int blockDuration, boost::optional<DNSAction::Action> action, boost::optional<unsigned int> warningRate) {
+      if (group) {
+        group->setQTypeRate(qtype, rate, warningRate ? *warningRate : 0, seconds, reason, blockDuration, action ? *action : DNSAction::Action::None);
+      }
+    });
+  g_lua.registerFunction<void(std::shared_ptr<DynBlockRulesGroup>::*)(boost::variant<std::string, std::vector<std::pair<int, std::string>>>)>("excludeRange", [](std::shared_ptr<DynBlockRulesGroup>& group, boost::variant<std::string, std::vector<std::pair<int, std::string>>> ranges) {
+      if (ranges.type() == typeid(std::vector<std::pair<int, std::string>>)) {
+        for (const auto& range : *boost::get<std::vector<std::pair<int, std::string>>>(&ranges)) {
+          group->excludeRange(Netmask(range.second));
+        }
+      }
+      else {
+        group->excludeRange(Netmask(*boost::get<std::string>(&ranges)));
+      }
+    });
+  g_lua.registerFunction<void(std::shared_ptr<DynBlockRulesGroup>::*)(boost::variant<std::string, std::vector<std::pair<int, std::string>>>)>("includeRange", [](std::shared_ptr<DynBlockRulesGroup>& group, boost::variant<std::string, std::vector<std::pair<int, std::string>>> ranges) {
+      if (ranges.type() == typeid(std::vector<std::pair<int, std::string>>)) {
+        for (const auto& range : *boost::get<std::vector<std::pair<int, std::string>>>(&ranges)) {
+          group->includeRange(Netmask(range.second));
+        }
+      }
+      else {
+        group->includeRange(Netmask(*boost::get<std::string>(&ranges)));
+      }
+    });
+  g_lua.registerFunction<void(std::shared_ptr<DynBlockRulesGroup>::*)(boost::variant<std::string, std::vector<std::pair<int, std::string>>>)>("excludeDomains", [](std::shared_ptr<DynBlockRulesGroup>& group, boost::variant<std::string, std::vector<std::pair<int, std::string>>> domains) {
+      if (domains.type() == typeid(std::vector<std::pair<int, std::string>>)) {
+        for (const auto& range : *boost::get<std::vector<std::pair<int, std::string>>>(&domains)) {
+          group->excludeDomain(DNSName(range.second));
+        }
+      }
+      else {
+        group->excludeDomain(DNSName(*boost::get<std::string>(&domains)));
+      }
+    });
+  g_lua.registerFunction<void(std::shared_ptr<DynBlockRulesGroup>::*)()>("apply", [](std::shared_ptr<DynBlockRulesGroup>& group) {
+    group->apply();
+  });
+  g_lua.registerFunction("toString", &DynBlockRulesGroup::toString);
 }

@@ -38,7 +38,7 @@
 
 class GeoIPInterface;
 
-class GeoIPDomain;
+struct GeoIPDomain;
 
 struct GeoIPNetmask {
   int netmask;

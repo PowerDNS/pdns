@@ -202,7 +202,7 @@ string nowTime()
   // YYYY-mm-dd HH:MM:SS TZOFF
   strftime(buffer, sizeof(buffer), "%F %T %z", tm);
   buffer[sizeof(buffer)-1] = '\0';
-  return buffer;
+  return string(buffer);
 }
 
 uint16_t getShort(const unsigned char *p)
@@ -351,7 +351,7 @@ int waitForRWData(int fd, bool waitForRead, int seconds, int useconds, bool* err
 }
 
 // returns -1 in case of error, 0 if no data is available, 1 if there is. In the first two cases, errno is set
-int waitForMultiData(const set<int>& fds, const int seconds, const int useconds, int* fd) {
+int waitForMultiData(const set<int>& fds, const int seconds, const int useconds, int* fdOut) {
   set<int> realFDs;
   for (const auto& fd : fds) {
     if (fd >= 0 && realFDs.count(fd) == 0) {
@@ -384,7 +384,7 @@ int waitForMultiData(const set<int>& fds, const int seconds, const int useconds,
   }
   set<int>::const_iterator it(pollinFDs.begin());
   advance(it, random() % pollinFDs.size());
-  *fd = *it;
+  *fdOut = *it;
   return 1;
 }
 
@@ -446,9 +446,8 @@ DTime::DTime()
   d_set.tv_sec=d_set.tv_usec=0;
 }
 
-DTime::DTime(const DTime &dt)
+DTime::DTime(const DTime &dt) : d_set(dt.d_set)
 {
-  d_set=dt.d_set;
 }
 
 time_t DTime::time()
@@ -499,7 +498,7 @@ string getHostname()
   if(gethostname(tmp, MAXHOSTNAMELEN))
     return "UNKNOWN";
 
-  return tmp;
+  return string(tmp);
 }
 
 string itoa(int i)
@@ -567,12 +566,12 @@ bool IpToU32(const string &str, uint32_t *ip)
 string U32ToIP(uint32_t val)
 {
   char tmp[17];
-  snprintf(tmp, sizeof(tmp)-1, "%u.%u.%u.%u",
+  snprintf(tmp, sizeof(tmp), "%u.%u.%u.%u",
            (val >> 24)&0xff,
            (val >> 16)&0xff,
            (val >>  8)&0xff,
            (val      )&0xff);
-  return tmp;
+  return string(tmp);
 }
 
 
@@ -583,7 +582,7 @@ string makeHexDump(const string& str)
   ret.reserve((int)(str.size()*2.2));
 
   for(string::size_type n=0;n<str.size();++n) {
-    sprintf(tmp,"%02x ", (unsigned char)str[n]);
+    snprintf(tmp, sizeof(tmp), "%02x ", (unsigned char)str[n]);
     ret+=tmp;
   }
   return ret;
@@ -867,11 +866,12 @@ bool stringfgets(FILE* fp, std::string& line)
 bool readFileIfThere(const char* fname, std::string* line)
 {
   line->clear();
-  FILE* fp = fopen(fname, "r");
+  auto fp = std::unique_ptr<FILE, int(*)(FILE*)>(fopen(fname, "r"), fclose);
   if(!fp)
     return false;
-  stringfgets(fp, *line);
-  fclose(fp);
+  stringfgets(fp.get(), *line);
+  fp.reset();
+
   return true;
 }
 
@@ -884,7 +884,8 @@ Regex::Regex(const string &expr)
 // if you end up here because valgrind told you were are doing something wrong
 // with msgh->msg_controllen, please refer to https://github.com/PowerDNS/pdns/pull/3962
 // first.
-void addCMsgSrcAddr(struct msghdr* msgh, void* cmsgbuf, const ComboAddress* source, int itfIndex)
+// Note that cmsgbuf should be aligned the same as a struct cmsghdr
+void addCMsgSrcAddr(struct msghdr* msgh, cmsgbuf_aligned* cmsgbuf, const ComboAddress* source, int itfIndex)
 {
   struct cmsghdr *cmsg = NULL;
 
@@ -892,6 +893,7 @@ void addCMsgSrcAddr(struct msghdr* msgh, void* cmsgbuf, const ComboAddress* sour
     struct in6_pktinfo *pkt;
 
     msgh->msg_control = cmsgbuf;
+    static_assert(CMSG_SPACE(sizeof(*pkt)) <= sizeof(*cmsgbuf), "Buffer is too small for in6_pktinfo");
     msgh->msg_controllen = CMSG_SPACE(sizeof(*pkt));
 
     cmsg = CMSG_FIRSTHDR(msgh);
@@ -900,7 +902,8 @@ void addCMsgSrcAddr(struct msghdr* msgh, void* cmsgbuf, const ComboAddress* sour
     cmsg->cmsg_len = CMSG_LEN(sizeof(*pkt));
 
     pkt = (struct in6_pktinfo *) CMSG_DATA(cmsg);
-    memset(pkt, 0, sizeof(*pkt));
+    // Include the padding to stop valgrind complaining about passing uninitialized data
+    memset(pkt, 0, CMSG_SPACE(sizeof(*pkt)));
     pkt->ipi6_addr = source->sin6.sin6_addr;
     pkt->ipi6_ifindex = itfIndex;
   }
@@ -909,6 +912,7 @@ void addCMsgSrcAddr(struct msghdr* msgh, void* cmsgbuf, const ComboAddress* sour
     struct in_pktinfo *pkt;
 
     msgh->msg_control = cmsgbuf;
+    static_assert(CMSG_SPACE(sizeof(*pkt)) <= sizeof(*cmsgbuf), "Buffer is too small for in_pktinfo");
     msgh->msg_controllen = CMSG_SPACE(sizeof(*pkt));
 
     cmsg = CMSG_FIRSTHDR(msgh);
@@ -917,13 +921,15 @@ void addCMsgSrcAddr(struct msghdr* msgh, void* cmsgbuf, const ComboAddress* sour
     cmsg->cmsg_len = CMSG_LEN(sizeof(*pkt));
 
     pkt = (struct in_pktinfo *) CMSG_DATA(cmsg);
-    memset(pkt, 0, sizeof(*pkt));
+    // Include the padding to stop valgrind complaining about passing uninitialized data
+    memset(pkt, 0, CMSG_SPACE(sizeof(*pkt)));
     pkt->ipi_spec_dst = source->sin4.sin_addr;
     pkt->ipi_ifindex = itfIndex;
 #elif defined(IP_SENDSRCADDR)
     struct in_addr *in;
 
     msgh->msg_control = cmsgbuf;
+    static_assert(CMSG_SPACE(sizeof(*in)) <= sizeof(*cmsgbuf), "Buffer is too small for in_addr");
     msgh->msg_controllen = CMSG_SPACE(sizeof(*in));
 
     cmsg = CMSG_FIRSTHDR(msgh);
@@ -931,7 +937,9 @@ void addCMsgSrcAddr(struct msghdr* msgh, void* cmsgbuf, const ComboAddress* sour
     cmsg->cmsg_type = IP_SENDSRCADDR;
     cmsg->cmsg_len = CMSG_LEN(sizeof(*in));
 
+    // Include the padding to stop valgrind complaining about passing uninitialized data
     in = (struct in_addr *) CMSG_DATA(cmsg);
+    memset(in, 0, CMSG_SPACE(sizeof(*in)));
     *in = source->sin4.sin_addr;
 #endif
   }
@@ -1101,6 +1109,22 @@ bool isNonBlocking(int sock)
   return flags & O_NONBLOCK;
 }
 
+bool setReceiveSocketErrors(int sock, int af)
+{
+#ifdef __linux__
+  int tmp = 1, ret;
+  if (af == AF_INET) {
+    ret = setsockopt(sock, IPPROTO_IP, IP_RECVERR, &tmp, sizeof(tmp));
+  } else {
+    ret = setsockopt(sock, IPPROTO_IPV6, IPV6_RECVERR, &tmp, sizeof(tmp));
+  }
+  if (ret < 0) {
+    throw PDNSException(string("Setsockopt failed: ") + strerror(errno));
+  }
+#endif
+  return true;
+}
+
 // Closes a socket.
 int closesocket( int socket )
 {
@@ -1241,7 +1265,27 @@ uint64_t getOpenFileDescriptors(const std::string&)
 uint64_t getRealMemoryUsage(const std::string&)
 {
 #ifdef __linux__
-  ifstream ifs("/proc/"+std::to_string(getpid())+"/smaps");
+  ifstream ifs("/proc/self/statm");
+  if(!ifs)
+    return 0;
+
+  uint64_t size, resident, shared, text, lib, data;
+  ifs >> size >> resident >> shared >> text >> lib >> data;
+
+  return data * getpagesize();
+#else
+  struct rusage ru;
+  if (getrusage(RUSAGE_SELF, &ru) != 0)
+    return 0;
+  return ru.ru_maxrss * 1024;
+#endif
+}
+
+
+uint64_t getSpecialMemoryUsage(const std::string&)
+{
+#ifdef __linux__
+  ifstream ifs("/proc/self/smaps");
   if(!ifs)
     return 0;
   string line;
@@ -1412,4 +1456,73 @@ int mapThreadToCPUList(pthread_t tid, const std::set<int>& cpus)
 #else
   return ENOSYS;
 #endif /* HAVE_PTHREAD_SETAFFINITY_NP */
+}
+
+std::vector<ComboAddress> getResolvers(const std::string& resolvConfPath)
+{
+  std::vector<ComboAddress> results;
+
+  ifstream ifs(resolvConfPath);
+  if (!ifs) {
+    return results;
+  }
+
+  string line;
+  while(std::getline(ifs, line)) {
+    boost::trim_right_if(line, is_any_of(" \r\n\x1a"));
+    boost::trim_left(line); // leading spaces, let's be nice
+
+    string::size_type tpos = line.find_first_of(";#");
+    if (tpos != string::npos) {
+      line.resize(tpos);
+    }
+
+    if (boost::starts_with(line, "nameserver ") || boost::starts_with(line, "nameserver\t")) {
+      vector<string> parts;
+      stringtok(parts, line, " \t,"); // be REALLY nice
+      for(vector<string>::const_iterator iter = parts.begin() + 1; iter != parts.end(); ++iter) {
+        try {
+          results.emplace_back(*iter, 53);
+        }
+        catch(...)
+        {
+        }
+      }
+    }
+  }
+
+  return results;
+}
+
+size_t getPipeBufferSize(int fd)
+{
+#ifdef F_GETPIPE_SZ
+  int res = fcntl(fd, F_GETPIPE_SZ);
+  if (res == -1) {
+    return 0;
+  }
+  return res;
+#else
+  errno = ENOSYS;
+  return 0;
+#endif /* F_GETPIPE_SZ */
+}
+
+bool setPipeBufferSize(int fd, size_t size)
+{
+#ifdef F_SETPIPE_SZ
+  if (size > std::numeric_limits<int>::max()) {
+    errno = EINVAL;
+    return false;
+  }
+  int newSize = static_cast<int>(size);
+  int res = fcntl(fd, F_SETPIPE_SZ, newSize);
+  if (res == -1) {
+    return false;
+  }
+  return true;
+#else
+  errno = ENOSYS;
+  return false;
+#endif /* F_SETPIPE_SZ */
 }

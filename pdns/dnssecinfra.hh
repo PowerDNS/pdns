@@ -67,7 +67,7 @@ class DNSCryptoKeyEngine
       throw std::runtime_error("Can't import from PEM string");
     }
     virtual void fromPublicKeyString(const std::string& content) = 0;
-    virtual bool checkKey() const
+    virtual bool checkKey(vector<string> *errorMessages = nullptr) const
     {
       return true;
     }

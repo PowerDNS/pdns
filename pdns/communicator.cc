@@ -36,10 +36,12 @@
 #include "dns.hh"
 #include "arguments.hh"
 #include "packetcache.hh"
+#include "threadname.hh"
 
 // there can be MANY OF THESE
 void CommunicatorClass::retrievalLoopThread(void)
 {
+  setThreadName("pdns/comm-retre");
   for(;;) {
     d_suck_sem.wait();
     SuckRequest sr;
@@ -104,6 +106,7 @@ void CommunicatorClass::go()
 void CommunicatorClass::mainloop(void)
 {
   try {
+    setThreadName("pdns/comm-main");
     signal(SIGPIPE,SIG_IGN);
     g_log<<Logger::Error<<"Master/slave communicator launching"<<endl;
     PacketHandler P;
@@ -136,7 +139,10 @@ void CommunicatorClass::mainloop(void)
           if (extraSlaveRefresh)
             slaveRefresh(&P);
         }
-        else { 
+        else {
+          // eat up extra posts to avoid busy looping if many posts were done
+          while (d_any_sem.tryWait() == 0) {
+          }
           break; // something happened
         }
         // this gets executed at least once every second

@@ -106,7 +106,7 @@ struct TSIGKey {
 
 class DNSPacket;
 
-//! This virtual base class defines the interface for backends for the ahudns.
+//! This virtual base class defines the interface for backends for PowerDNS.
 /** To create a backend, inherit from this class and implement functions for all virtual methods.
     Methods should not throw an exception if they are sure they did not find the requested data. However,
     if an error occurred which prevented them temporarily from performing a lockup, they should throw a DBException,
@@ -135,10 +135,7 @@ public:
   virtual ~DNSBackend(){};
 
   //! fills the soadata struct with the SOA details. Returns false if there is no SOA.
-  virtual bool getSOA(const DNSName &name, SOAData &soadata, bool unmodifiedSerial=false);
-
-  //! Calculates a SOA serial for the zone and stores it in the third argument.
-  virtual bool calculateSOASerial(const DNSName& domain, const SOAData& sd, uint32_t& serial);
+  virtual bool getSOA(const DNSName &name, SOAData &soadata);
 
   virtual bool replaceRRSet(uint32_t domain_id, const DNSName& qname, const QType& qt, const vector<DNSResourceRecord>& rrset)
   {
@@ -273,7 +270,7 @@ public:
   }
 
   //! feeds a record to a zone, needs a call to startTransaction first
-  virtual bool feedRecord(const DNSResourceRecord &rr, const DNSName &ordername)
+  virtual bool feedRecord(const DNSResourceRecord &rr, const DNSName &ordername, bool ordernameIsNSEC3=false)
   {
     return false; // no problem!
   }

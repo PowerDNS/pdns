@@ -216,13 +216,13 @@ pdns_makecontext
     assert (ctx.uc_link);
     assert (ctx.uc_stack.size() >= 8192);
     assert (!ctx.uc_mcontext);
-    ctx.uc_mcontext = make_fcontext (&ctx.uc_stack[ctx.uc_stack.size()],
-                                     ctx.uc_stack.size(), &threadWrapper);
+    ctx.uc_mcontext = make_fcontext (&ctx.uc_stack[ctx.uc_stack.size()-1],
+                                     ctx.uc_stack.size()-1, &threadWrapper);
     args_t args;
     args.self = &ctx;
     args.work = &start;
     /* jumping to threadwrapper */
-    notifyStackSwitch(&ctx.uc_stack[ctx.uc_stack.size()], ctx.uc_stack.size());
+    notifyStackSwitch(&ctx.uc_stack[ctx.uc_stack.size()-1], ctx.uc_stack.size()-1);
 #if BOOST_VERSION < 106100
     jump_fcontext (reinterpret_cast<fcontext_t*>(&args.prev_ctx),
                    static_cast<fcontext_t>(ctx.uc_mcontext),

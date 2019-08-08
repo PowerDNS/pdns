@@ -1,0 +1,74 @@
+#!/bin/sh
+if [ ! -z "${BUILDER_VERSION}" ]; then
+  printf ${BUILDER_VERSION}
+  exit 0
+fi
+
+VERSION="unknown"
+
+DIRTY=""
+git status | grep -q clean || DIRTY='.dirty'
+
+# Special environment variable to signal that we are building a release, as this
+# has consequenses for the version number.
+if [ "${IS_RELEASE}" = "YES" ]; then
+  TAG="$(git describe --tags --exact-match 2> /dev/null | cut -d- -f 2-)"
+  if [ -n "${TAG}" ]; then
+    # We're on a tag
+    echo "${TAG}${DIRTY}" > .version
+    printf "${TAG}${DIRTY}"
+    exit 0
+  fi
+  echo 'This is not a tag, either tag this commit or do not set $IS_RELEASE' >&2
+  exit 1
+fi
+
+#
+# Generate the version number based on the branch
+#
+if [ ! -z "$(git rev-parse --abbrev-ref HEAD 2> /dev/null)" ]; then
+  if [ -n "${BUILDER_MODULES}" ]; then
+    match=${BUILDER_MODULES}
+    [ $match = "authoritative" ] && match='auth'
+    [ $match = "recursor" ] && match='rec'
+    GIT_VERSION="$(git describe --match=${match}-* --tags | cut -d- -f2-)"
+    if [ $(echo ${GIT_VERSION} | awk -F"-" '{print NF-1}') = '3' ]; then
+      # A prerelease happened before
+      LAST_TAG="$(echo ${GIT_VERSION} | cut -d- -f1-2)"
+      COMMITS_SINCE_TAG="$(echo ${GIT_VERSION} | cut -d- -f3)"
+      GIT_HASH="$(echo ${GIT_VERSION} | cut -d- -f4)"
+    else
+      LAST_TAG="$(echo ${GIT_VERSION} | cut -d- -f1)"
+      COMMITS_SINCE_TAG="$(echo ${GIT_VERSION} | cut -d- -f2)"
+      GIT_HASH="$(echo ${GIT_VERSION} | cut -d- -f3)"
+    fi
+  fi
+
+  if [ -z "${GIT_VERSION}" ]; then
+    # BUILDER_SUPPORT has more than one product listed, fall back to the 0.0.0 logic
+
+    # We used 0.0.XXXXgHASH for master in the previous incarnation of our build pipeline.
+    # This now becomes 0.0.XXXX.0.gHASH, as 0.0.0.XXXX.gHASH (which is more correct)
+    # would break upgrades for those running master
+    # This _should_ be ok for forever is we stick to X.Y.Z for version numbers
+    LAST_TAG=0.0
+    COMMITS_SINCE_TAG="$(git rev-list --count 12c868770afc20b6cc0da439d881105151d557dd..HEAD 2> /dev/null).0"
+    [ "${COMMITS_SINCE_TAG}" = ".0" ] && COMMITS_SINCE_TAG=0.0
+    GIT_HASH="g$(git rev-parse HEAD | cut -c1-10 2> /dev/null)"
+  fi
+
+  BRANCH=".$(git rev-parse --abbrev-ref HEAD | perl -p -e 's/[^[:alnum:]]//g;')"
+
+  TAG="$(git describe --tags --exact-match 2> /dev/null | cut -d- -f 2-)"
+  if [ -n "${TAG}" ]; then # We're exactly on a tag
+    COMMITS_SINCE_TAG="0"
+    GIT_HASH="g$(git show --no-patch --format=format:%h HEAD 2>/dev/null)"
+    if [ -z "$GIT_HASH" ]; then
+      GIT_HASH="g$(git show --format=format:%h HEAD | head -n1)"
+    fi
+  fi
+
+  VERSION="${LAST_TAG}.${COMMITS_SINCE_TAG}${BRANCH}.${GIT_HASH}${DIRTY}"
+fi
+
+printf $VERSION

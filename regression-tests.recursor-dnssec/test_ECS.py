@@ -184,6 +184,8 @@ class testECSByNameLarger(ECSTest):
     _config_template = """edns-subnet-whitelist=ecs-echo.example.
 ecs-ipv4-bits=32
 forward-zones=ecs-echo.example=%s.21
+ecs-ipv4-cache-bits=32
+ecs-ipv6-cache-bits=128
     """ % (os.environ['PREFIX'])
 
     def testSendECS(self):
@@ -244,6 +246,8 @@ class testIncomingECSByName(ECSTest):
 use-incoming-edns-subnet=yes
 forward-zones=ecs-echo.example=%s.21
 ecs-scope-zero-address=2001:db8::42
+ecs-ipv4-cache-bits=32
+ecs-ipv6-cache-bits=128
     """ % (os.environ['PREFIX'])
 
     def testSendECS(self):
@@ -283,6 +287,8 @@ use-incoming-edns-subnet=yes
 ecs-ipv4-bits=32
 forward-zones=ecs-echo.example=%s.21
 ecs-scope-zero-address=192.168.0.1
+ecs-ipv4-cache-bits=32
+ecs-ipv6-cache-bits=128
     """ % (os.environ['PREFIX'])
 
     def testSendECS(self):
@@ -313,6 +319,8 @@ use-incoming-edns-subnet=yes
 ecs-ipv4-bits=16
 forward-zones=ecs-echo.example=%s.21
 ecs-scope-zero-address=192.168.0.1
+ecs-ipv4-cache-bits=32
+ecs-ipv6-cache-bits=128
     """ % (os.environ['PREFIX'])
 
     def testSendECS(self):
@@ -339,6 +347,8 @@ class testIncomingECSByNameV6(ECSTest):
     _config_template = """edns-subnet-whitelist=ecs-echo.example.
 use-incoming-edns-subnet=yes
 ecs-ipv6-bits=128
+ecs-ipv4-cache-bits=32
+ecs-ipv6-cache-bits=128
 forward-zones=ecs-echo.example=%s.21
 query-local-address6=::1
     """ % (os.environ['PREFIX'])
@@ -423,6 +433,8 @@ class testIncomingECSByIP(ECSTest):
 use-incoming-edns-subnet=yes
 forward-zones=ecs-echo.example=%s.21
 ecs-scope-zero-address=::1
+ecs-ipv4-cache-bits=32
+ecs-ipv6-cache-bits=128
     """ % (os.environ['PREFIX'], os.environ['PREFIX'])
 
     def testSendECS(self):
@@ -518,7 +530,7 @@ class UDPECSResponder(DatagramProtocol):
         elif request.question[0].name == dns.name.from_text(nameECS) and request.question[0].rdtype == dns.rdatatype.NS:
             answer = dns.rrset.from_text(nameECS, ttlECS, dns.rdataclass.IN, 'NS', 'ns1.ecs-echo.example.')
             response.answer.append(answer)
-            additional = dns.rrset.from_text('ns1.ecs-echo.example.', 15, dns.rdataclass.IN, 'A', cls._PREFIX + '.21')
+            additional = dns.rrset.from_text('ns1.ecs-echo.example.', 15, dns.rdataclass.IN, 'A', os.environ['PREFIX'] + '.21')
             response.additional.append(additional)
 
         if ecso:

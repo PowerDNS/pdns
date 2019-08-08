@@ -39,7 +39,7 @@ static void initArguments(int argc, char** argv)
 {
   arg().set("config-dir","Location of configuration directory (recursor.conf)")=SYSCONFDIR;
 
-  arg().set("socket-dir",string("Where the controlsocket will live, ")+LOCALSTATEDIR+" when unset and not chrooted" )="";
+  arg().set("socket-dir",string("Where the controlsocket will live, ")+LOCALSTATEDIR+"/pdns-recursor when unset and not chrooted" )="";
   arg().set("chroot","switch to chroot jail")="";
   arg().set("process","When controlling multiple recursors, the target process number")="";
   arg().set("timeout", "Number of seconds to wait for the recursor to respond")="5";
@@ -72,7 +72,7 @@ static void initArguments(int argc, char** argv)
 
   if (::arg()["socket-dir"].empty()) {
     if (::arg()["chroot"].empty())
-      ::arg().set("socket-dir") = LOCALSTATEDIR;
+      ::arg().set("socket-dir") = std::string(LOCALSTATEDIR) + "/pdns-recursor";
     else
       ::arg().set("socket-dir") = ::arg()["chroot"] + "/";
   } else if (!::arg()["chroot"].empty()) {
@@ -104,7 +104,7 @@ try
       command+=" ";
     command+=commands[i];
   }
-  rccS.send(command);
+  rccS.send(command, nullptr, arg().asNum("timeout"));
   string receive=rccS.recv(0, arg().asNum("timeout"));
   if(receive.compare(0, 7, "Unknown") == 0) {
     cerr<<receive<<endl;

@@ -26,7 +26,6 @@
 #include <iostream>
 #include <sstream>
 #include <syslog.h>
-#include <pthread.h>
 
 #include "namespaces.hh"
 #include "dnsname.hh"
@@ -81,15 +80,17 @@ public:
   */
   Logger& operator<<(const char *s);
   Logger& operator<<(const string &s);   //!< log a string
-  Logger& operator<<(int);   //!< log an int
-  Logger& operator<<(double);   //!< log a double
-  Logger& operator<<(unsigned int);   //!< log an unsigned int
-  Logger& operator<<(long);   //!< log an unsigned int
-  Logger& operator<<(unsigned long);   //!< log an unsigned int
-  Logger& operator<<(unsigned long long);   //!< log an unsigned 64 bit int
   Logger& operator<<(const DNSName&); 
   Logger& operator<<(const ComboAddress&); //!< log an address
   Logger& operator<<(Urgency);    //!< set the urgency, << style
+
+  // Using const & since otherwise SyncRes:: values induce (illegal) copies
+  template<typename T> Logger & operator<<(const T & i) {
+	ostringstream tmp;
+	tmp<<i;
+	*this<<tmp.str();
+	return *this;
+  }
 
   Logger& operator<<(std::ostream & (&)(std::ostream &)); //!< this is to recognise the endl, and to commit the log
 
@@ -101,11 +102,10 @@ private:
     string d_output;
     Urgency d_urgency;
   };
-  static void initKey();
-  static void perThreadDestructor(void *);
-  PerThread* getPerThread();
+  PerThread& getPerThread();
   void open();
 
+  static thread_local PerThread t_perThread;
   string name;
   int flags;
   int d_facility;
@@ -115,11 +115,11 @@ private:
   bool d_disableSyslog;
   bool d_timestamps{true};
   bool d_prefixed{false};
-  static pthread_once_t s_once;
-  static pthread_key_t g_loggerKey;
 };
 
-extern Logger g_log;
+Logger& getLogger();
+
+#define g_log getLogger()
 
 #ifdef VERBOSELOG
 #define DLOG(x) x

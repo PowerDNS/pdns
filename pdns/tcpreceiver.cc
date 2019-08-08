@@ -25,6 +25,7 @@
 #include <boost/algorithm/string.hpp>
 #include "auth-packetcache.hh"
 #include "utility.hh"
+#include "threadname.hh"
 #include "dnssecinfra.hh"
 #include "dnsseckeeper.hh"
 #include <cstdio>
@@ -67,6 +68,7 @@ extern StatBag S;
 
 pthread_mutex_t TCPNameserver::s_plock = PTHREAD_MUTEX_INITIALIZER;
 Semaphore *TCPNameserver::d_connectionroom_sem;
+unsigned int TCPNameserver::d_maxTCPConnections = 0;
 PacketHandler *TCPNameserver::s_P; 
 NetmaskGroup TCPNameserver::d_ng;
 size_t TCPNameserver::d_maxTransactionsPerConn;
@@ -252,6 +254,7 @@ void TCPNameserver::decrementClientCount(const ComboAddress& remote)
 
 void *TCPNameserver::doConnection(void *data)
 {
+  setThreadName("pdns/tcpConnect");
   shared_ptr<DNSPacket> packet;
   // Fix gcc-4.0 error (on AMD64)
   int fd=(int)(long)data; // gotta love C (generates a harmless warning on opteron)
@@ -356,20 +359,21 @@ void *TCPNameserver::doConnection(void *data)
         "', do = " <<packet->d_dnssecOk <<", bufsize = "<< packet->getMaxReplyLen()<<": ";
       }
 
+      if(PC.enabled()) {
+        if(packet->couldBeCached() && PC.get(packet.get(), cached.get())) { // short circuit - does the PacketCache recognize this question?
+          if(logDNSQueries)
+            g_log<<"packetcache HIT"<<endl;
+          cached->setRemote(&packet->d_remote);
+          cached->d.id=packet->d.id;
+          cached->d.rd=packet->d.rd; // copy in recursion desired bit
+          cached->commitD(); // commit d to the packet                        inlined
 
-      if(packet->couldBeCached() && PC.get(packet.get(), cached.get())) { // short circuit - does the PacketCache recognize this question?
+          sendPacket(cached, fd); // presigned, don't do it again
+          continue;
+        }
         if(logDNSQueries)
-          g_log<<"packetcache HIT"<<endl;
-        cached->setRemote(&packet->d_remote);
-        cached->d.id=packet->d.id;
-        cached->d.rd=packet->d.rd; // copy in recursion desired bit 
-        cached->commitD(); // commit d to the packet                        inlined
-
-        sendPacket(cached, fd); // presigned, don't do it again
-        continue;
+            g_log<<"packetcache MISS"<<endl;
       }
-      if(logDNSQueries)
-          g_log<<"packetcache MISS"<<endl;  
       {
         Lock l(&s_plock);
         if(!s_P) {
@@ -530,29 +534,10 @@ bool TCPNameserver::canDoAXFR(shared_ptr<DNSPacket> q)
 namespace {
   struct NSECXEntry
   {
-    set<uint16_t> d_set;
+    NSECBitmap d_set;
     unsigned int d_ttl;
     bool d_auth;
   };
-
-  DNSZoneRecord makeEditedDNSZRFromSOAData(DNSSECKeeper& dk, const SOAData& sd)
-  {
-    SOAData edited = sd;
-    edited.serial = calculateEditSOA(sd.serial, dk, sd.qname);
-
-    DNSRecord soa;
-    soa.d_name = sd.qname;
-    soa.d_type = QType::SOA;
-    soa.d_ttl = sd.ttl;
-    soa.d_place = DNSResourceRecord::ANSWER;
-    soa.d_content = makeSOAContent(edited);
-
-    DNSZoneRecord dzr;
-    dzr.auth = true;
-    dzr.dr = soa;
-
-    return dzr;
-  }
 
   shared_ptr<DNSPacket> getFreshAXFRPacket(shared_ptr<DNSPacket> q)
   {
@@ -705,7 +690,7 @@ int TCPNameserver::doAXFR(const DNSName &target, shared_ptr<DNSPacket> q, int ou
     DNSName keyname = NSEC3Zone ? DNSName(toBase32Hex(hashQNameWithSalt(ns3pr, zrr.dr.d_name))) : zrr.dr.d_name;
     NSECXEntry& ne = nsecxrepo[keyname];
     
-    ne.d_set.insert(zrr.dr.d_type);
+    ne.d_set.set(zrr.dr.d_type);
     ne.d_ttl = sd.default_ttl;
     csp.submit(zrr);
 
@@ -748,7 +733,7 @@ int TCPNameserver::doAXFR(const DNSName &target, shared_ptr<DNSPacket> q, int ou
     DNSName keyname = DNSName(toBase32Hex(hashQNameWithSalt(ns3pr, zrr.dr.d_name)));
     NSECXEntry& ne = nsecxrepo[keyname];
     
-    ne.d_set.insert(zrr.dr.d_type);
+    ne.d_set.set(zrr.dr.d_type);
     csp.submit(zrr);
   }
   
@@ -912,7 +897,7 @@ int TCPNameserver::doAXFR(const DNSName &target, shared_ptr<DNSPacket> q, int ou
         ne.d_ttl = sd.default_ttl;
         ne.d_auth = (ne.d_auth || loopZRR.auth || (NSEC3Zone && (!ns3pr.d_flags)));
         if (loopZRR.dr.d_type && loopZRR.dr.d_type != QType::RRSIG) {
-          ne.d_set.insert(loopZRR.dr.d_type);
+          ne.d_set.set(loopZRR.dr.d_type);
         }
       }
     }
@@ -949,20 +934,22 @@ int TCPNameserver::doAXFR(const DNSName &target, shared_ptr<DNSPacket> q, int ou
       for(nsecxrepo_t::const_iterator iter = nsecxrepo.begin(); iter != nsecxrepo.end(); ++iter) {
         if(iter->second.d_auth) {
           NSEC3RecordContent n3rc;
-          n3rc.d_set = iter->second.d_set;
-          if (n3rc.d_set.size() && (n3rc.d_set.size() != 1 || !n3rc.d_set.count(QType::NS)))
-            n3rc.d_set.insert(QType::RRSIG);
-          n3rc.d_salt=ns3pr.d_salt;
+          n3rc.set(iter->second.d_set);
+          const auto numberOfTypesSet = n3rc.numberOfTypesSet();
+          if (numberOfTypesSet != 0 && (numberOfTypesSet != 1 || !n3rc.isSet(QType::NS))) {
+            n3rc.set(QType::RRSIG);
+          }
+          n3rc.d_salt = ns3pr.d_salt;
           n3rc.d_flags = ns3pr.d_flags;
           n3rc.d_iterations = ns3pr.d_iterations;
-          n3rc.d_algorithm = 1; // SHA1, fixed in PowerDNS for now
+          n3rc.d_algorithm = DNSSECKeeper::SHA1; // SHA1, fixed in PowerDNS for now
           nsecxrepo_t::const_iterator inext = iter;
-          inext++;
+          ++inext;
           if(inext == nsecxrepo.end())
             inext = nsecxrepo.begin();
           while(!inext->second.d_auth && inext != iter)
           {
-            inext++;
+            ++inext;
             if(inext == nsecxrepo.end())
               inext = nsecxrepo.begin();
           }
@@ -970,7 +957,7 @@ int TCPNameserver::doAXFR(const DNSName &target, shared_ptr<DNSPacket> q, int ou
           zrr.dr.d_name = iter->first+sd.qname;
 
           zrr.dr.d_ttl = sd.default_ttl;
-          zrr.dr.d_content = std::make_shared<NSEC3RecordContent>(n3rc);
+          zrr.dr.d_content = std::make_shared<NSEC3RecordContent>(std::move(n3rc));
           zrr.dr.d_type = QType::NSEC3;
           zrr.dr.d_place = DNSResourceRecord::ANSWER;
           zrr.auth=true;
@@ -993,9 +980,9 @@ int TCPNameserver::doAXFR(const DNSName &target, shared_ptr<DNSPacket> q, int ou
     }
     else for(nsecxrepo_t::const_iterator iter = nsecxrepo.begin(); iter != nsecxrepo.end(); ++iter) {
       NSECRecordContent nrc;
-      nrc.d_set = iter->second.d_set;
-      nrc.d_set.insert(QType::RRSIG);
-      nrc.d_set.insert(QType::NSEC);
+      nrc.set(iter->second.d_set);
+      nrc.set(QType::RRSIG);
+      nrc.set(QType::NSEC);
 
       if(boost::next(iter) != nsecxrepo.end())
         nrc.d_next = boost::next(iter)->first;
@@ -1004,7 +991,7 @@ int TCPNameserver::doAXFR(const DNSName &target, shared_ptr<DNSPacket> q, int ou
       zrr.dr.d_name = iter->first;
 
       zrr.dr.d_ttl = sd.default_ttl;
-      zrr.dr.d_content = std::make_shared<NSECRecordContent>(nrc);
+      zrr.dr.d_content = std::make_shared<NSECRecordContent>(std::move(nrc));
       zrr.dr.d_type = QType::NSEC;
       zrr.dr.d_place = DNSResourceRecord::ANSWER;
       zrr.auth=true;
@@ -1209,6 +1196,7 @@ TCPNameserver::TCPNameserver()
 
 //  sem_init(&d_connectionroom_sem,0,::arg().asNum("max-tcp-connections"));
   d_connectionroom_sem = new Semaphore( ::arg().asNum( "max-tcp-connections" ));
+  d_maxTCPConnections = ::arg().asNum( "max-tcp-connections" );
   d_tid=0;
   vector<string>locals;
   stringtok(locals,::arg()["local-address"]," ,");
@@ -1335,6 +1323,7 @@ TCPNameserver::TCPNameserver()
 //! Start of TCP operations thread, we launch a new thread for each incoming TCP question
 void TCPNameserver::thread()
 {
+  setThreadName("pdns/tcpnameser");
   try {
     for(;;) {
       int fd;
@@ -1347,7 +1336,7 @@ void TCPNameserver::thread()
 
       int sock=-1;
       for(const pollfd& pfd :  d_prfds) {
-        if(pfd.revents == POLLIN) {
+        if(pfd.revents & POLLIN) {
           sock = pfd.fd;
           remote.sin4.sin_family = AF_INET6;
           addrlen=remote.getSocklen();
@@ -1400,3 +1389,9 @@ void TCPNameserver::thread()
 }
 
 
+unsigned int TCPNameserver::numTCPConnections()
+{
+  int room;
+  d_connectionroom_sem->getValue( &room);
+  return d_maxTCPConnections - room;
+}

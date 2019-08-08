@@ -23,12 +23,14 @@ For example, to send a REFUSED code instead of droppping the query::
 
   setDynBlocksAction(DNSAction.Refused)
 
+Please see the documentation for :func:`setDynBlocksAction` to confirm which actions are supported.
+
 .. _DynBlockRulesGroup:
 
 DynBlockRulesGroup
 ------------------
 
-Starting with dnsdist 1.3.0, a new `:ref:dynBlockRulesGroup` function can be used to return a `DynBlockRulesGroup` instance,
+Starting with dnsdist 1.3.0, a new :ref:`dynBlockRulesGroup` function can be used to return a `DynBlockRulesGroup` instance,
 designed to make the processing of multiple rate-limiting rules faster by walking the query and response buffers only once
 for each invocation, instead of once per existing `exceed*()` invocation.
 
@@ -61,3 +63,24 @@ The new syntax would be:
 
 The old syntax would walk the query buffer 2 times and the response one 3 times, while the new syntax does it only once for each.
 It also reuse the same internal table to keep track of the source IPs, reducing the CPU usage.
+
+DynBlockRulesGroup also offers the ability to specify that some network ranges should be excluded from dynamic blocking:
+
+.. code-block:: lua
+
+  -- do not add dynamic blocks for hosts in the 192.0.2.0/24 and 2001:db8::/32 ranges
+  dbr:excludeRange({"192.0.2.0/24", "2001:db8::/32" })
+  -- except for 192.0.2.1
+  dbr:includeRange("192.0.2.1/32")
+
+
+Since 1.3.3, it's also possible to define a warning rate. When the query or response rate raises above the warning level but below
+the trigger level, a warning message will be issued along with a no-op block. If the rate reaches the trigger level, the regular
+action is applied.
+
+.. code-block:: lua
+
+  local dbr = dynBlockRulesGroup()
+  -- generate a warning above 100 qps for 10s, and start dropping incoming queries above 300 qps for 10s
+  dbr:setQueryRate(300, 10, "Exceeded query rate", 60, DNSAction.Drop, 100)
+

@@ -38,8 +38,17 @@ string newKey()
   return "\""+Base64Encode(key)+"\"";
 }
 
+bool sodIsValidKey(const std::string& key)
+{
+  return key.size() == crypto_secretbox_KEYBYTES;
+}
+
 std::string sodEncryptSym(const std::string& msg, const std::string& key, SodiumNonce& nonce)
 {
+  if (!sodIsValidKey(key)) {
+    throw std::runtime_error("Invalid encryption key of size " + std::to_string(key.size()) + ", use setKey() to set a valid key");
+  }
+
   std::string ciphertext;
   ciphertext.resize(msg.length() + crypto_secretbox_MACBYTES);
   crypto_secretbox_easy(reinterpret_cast<unsigned char*>(&ciphertext.at(0)),
@@ -60,6 +69,10 @@ std::string sodDecryptSym(const std::string& msg, const std::string& key, Sodium
     throw std::runtime_error("Could not decrypt message of size " + std::to_string(msg.length()));
   }
 
+  if (!sodIsValidKey(key)) {
+    throw std::runtime_error("Invalid decryption key of size " + std::to_string(key.size()) + ", use setKey() to set a valid key");
+  }
+
   decrypted.resize(msg.length() - crypto_secretbox_MACBYTES);
 
   if (crypto_secretbox_open_easy(reinterpret_cast<unsigned char*>(const_cast<char *>(decrypted.data())),
@@ -67,7 +80,7 @@ std::string sodDecryptSym(const std::string& msg, const std::string& key, Sodium
                                  msg.length(),
                                  nonce.value,
                                  reinterpret_cast<const unsigned char*>(key.c_str())) != 0) {
-    throw std::runtime_error("Could not decrypt message");
+    throw std::runtime_error("Could not decrypt message, please check that the key configured with setKey() is correct");
   }
 
   nonce.increment();
@@ -88,6 +101,10 @@ string newKey()
   return "\"plaintext\"";
 }
 
+bool sodIsValidKey(const std::string& key)
+{
+  return true;
+}
 
 #endif
 

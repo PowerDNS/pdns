@@ -64,6 +64,8 @@ private:
 
 protected:
 public:
+  Semaphore(const Semaphore&) = delete;
+  void operator=(const Semaphore&) = delete;
   //! Default constructor.
   Semaphore( unsigned int value = 0 );
 
@@ -118,25 +120,17 @@ public:
   //! The inet_ntop() function converts an address from network format (usually a struct in_addr or some other binary form, in network byte order) to presentation format.
   static const char *inet_ntop( int af, const char *src, char *dst, size_t size );
 
-  //! Retrieves a gid using a groupname.
-  static int makeGidNumeric( const string & group );
-  
-  //! Retrieves an uid using an username.
-  static int makeUidNumeric( const string & username );
-
   //! Writes a vector.
   static int writev( Utility::sock_t socket, const iovec *vector, size_t count );
-  //! Returns a random number.
-  static long int random( void );
 
   //! Sets the random seed.
-  static void srandom( unsigned int seed );
+  static void srandom(void);
 
   //! Drops the program's group privileges.
-  static void dropGroupPrivs( int uid, int gid );
+  static void dropGroupPrivs( uid_t uid, gid_t gid );
 
   //! Drops the program's user privileges.
-  static void dropUserPrivs( int uid );
+  static void dropUserPrivs( uid_t uid );
   
   //! Sets the socket into Bind-any mode
   static void setBindAny ( int af, Utility::sock_t socket );

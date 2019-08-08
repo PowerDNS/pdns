@@ -1,0 +1,77 @@
+#!/usr/bin/make -f
+# See debhelper(7) (uncomment to enable)
+# output every command that modifies files on the build system.
+#DH_VERBOSE = 1
+
+# Enable hardening features for daemons
+export DEB_BUILD_MAINT_OPTIONS=hardening=+bindnow,+pie
+# see EXAMPLES in dpkg-buildflags(1) and read /usr/share/dpkg/*
+DPKG_EXPORT_BUILDFLAGS = 1
+include /usr/share/dpkg/default.mk
+
+# for atomic support on powerpc (automatic on mipsel)
+LDFLAGS += -latomic
+
+# Disable systemd integration on non-linux archs
+ifeq ($(DEB_HOST_ARCH_OS),linux)
+CONFIGURE_ARGS += --enable-systemd --with-systemd=/lib/systemd/system
+else
+CONFIGURE_ARGS += --disable-systemd
+endif
+
+
+%:
+	dh $@
+
+override_dh_auto_clean:
+	rm -f dnslabeltext.cc
+	dh_auto_clean
+
+override_dh_auto_configure:
+	# LIBS has been added because Ubuntu Bionic and Cosmic don't have the fix for https://bugs.debian.org/cgi-bin/bugreport.cgi?bug=908124 pulled in
+	LIBS='-lwslay' \
+	./configure \
+	  --host=$(DEB_HOST_GNU_TYPE) \
+	  --build=$(DEB_BUILD_GNU_TYPE) \
+	  --prefix=/usr \
+	  --sysconfdir=/etc/dnsdist \
+	  --mandir=\$${prefix}/share/man \
+	  --infodir=\$${prefix}/share/info \
+	  --libdir='$${prefix}/lib/$(DEB_HOST_MULTIARCH)' \
+	  --libexecdir='$${prefix}/lib' \
+	  --enable-dns-over-https \
+	  --enable-dns-over-tls \
+	  --enable-dnscrypt \
+	  --enable-dnstap \
+	  --with-gnutls \
+	  --with-net-snmp \
+	  --with-libcap \
+	  --with-libsodium \
+	  --with-re2 \
+	  --with-ebpf \
+	  --with-lua=luajit \
+	  --with-protobuf \
+	  $(CONFIGURE_ARGS)
+
+override_dh_auto_build-arch:
+	dh_auto_build -- V=1
+
+override_dh_install:
+	dh_auto_install
+	echo Patching uid and git into debian/dnsdist/lib/systemd/system/*.service
+	perl -pi -e 's/(^ExecStart=.*)/$$1 -u _dnsdist -g _dnsdist/' debian/dnsdist/lib/systemd/system/*.service
+ifeq ($(DEB_HOST_ARCH_BITS),32)
+	echo RestrictAddressFamilies is broken on 32bit, removing it from service file
+	perl -ni -e 'print unless /RestrictAddressFamilies/' debian/dnsdist/lib/systemd/system/*.service
+else
+	echo Keeping RestrictAddressFamilies in debian/dnsdist/lib/systemd/system/*.service
+endif
+
+override_dh_installexamples:
+	cp dnsdistconf.lua dnsdist.conf
+	dh_installexamples
+	rm -f dnsdist.conf
+
+override_dh_installinit:
+	# do nothing here. avoids referencing a non-existant init script.
+

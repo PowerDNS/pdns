@@ -30,7 +30,9 @@
 #include <string>
 #include <errno.h>
 #include <boost/tokenizer.hpp>
+#include <boost/functional/hash.hpp>
 #include <boost/algorithm/string.hpp>
+#include <openssl/hmac.h>
 #include <algorithm>
 
 #include "dnsseckeeper.hh"
@@ -53,25 +55,9 @@
 bool DNSPacket::s_doEDNSSubnetProcessing;
 uint16_t DNSPacket::s_udpTruncationThreshold;
  
-DNSPacket::DNSPacket(bool isQuery)
+DNSPacket::DNSPacket(bool isQuery): d_isQuery(isQuery)
 {
-  d_wrapped=false;
-  d_compress=true;
-  d_tcp=false;
-  d_wantsnsid=false;
-  d_haveednssubnet = false;
-  d_dnssecOk=false;
-  d_ednsversion=0;
-  d_ednsrcode=0;
   memset(&d, 0, sizeof(d));
-  qclass = QClass::IN;
-  d_tsig_algo = TSIG_MD5;
-  d_havetsig = false;
-  d_socket = -1;
-  d_maxreplylen = 0;
-  d_tsigtimersonly = false;
-  d_haveednssection = false;
-  d_isQuery = isQuery;
 }
 
 const string& DNSPacket::getString()
@@ -92,45 +78,47 @@ uint16_t DNSPacket::getRemotePort() const
   return d_remote.sin4.sin_port;
 }
 
-DNSPacket::DNSPacket(const DNSPacket &orig)
+DNSPacket::DNSPacket(const DNSPacket &orig) :
+  d_anyLocal(orig.d_anyLocal),
+  d_dt(orig.d_dt),
+  qdomain(orig.qdomain),
+  qdomainwild(orig.qdomainwild),
+  qdomainzone(orig.qdomainzone),
+
+  d(orig.d),
+  d_trc(orig.d_trc),
+  d_remote(orig.d_remote),
+  d_tsig_algo(orig.d_tsig_algo),
+
+  d_ednsRawPacketSizeLimit(orig.d_ednsRawPacketSizeLimit),
+  qclass(orig.qclass),
+  qtype(orig.qtype),
+  d_tcp(orig.d_tcp),
+  d_dnssecOk(orig.d_dnssecOk),
+  d_havetsig(orig.d_havetsig),
+
+  d_tsigsecret(orig.d_tsigsecret),
+  d_tsigkeyname(orig.d_tsigkeyname),
+  d_tsigprevious(orig.d_tsigprevious),
+  d_rrs(orig.d_rrs),
+  d_rawpacket(orig.d_rawpacket),
+  d_eso(orig.d_eso),
+  d_maxreplylen(orig.d_maxreplylen),
+  d_socket(orig.d_socket),
+  d_hash(orig.d_hash),
+  d_ednsrcode(orig.d_ednsrcode),
+  d_ednsversion(orig.d_ednsversion),
+
+  d_wrapped(orig.d_wrapped),
+  d_compress(orig.d_compress),
+  d_tsigtimersonly(orig.d_tsigtimersonly),
+  d_wantsnsid(orig.d_wantsnsid),
+  d_haveednssubnet(orig.d_haveednssubnet),
+  d_haveednssection(orig.d_haveednssection),
+
+  d_isQuery(orig.d_isQuery)
 {
   DLOG(g_log<<"DNSPacket copy constructor called!"<<endl);
-  d_socket=orig.d_socket;
-  d_remote=orig.d_remote;
-  d_dt=orig.d_dt;
-  d_compress=orig.d_compress;
-  d_tcp=orig.d_tcp;
-  qtype=orig.qtype;
-  qclass=orig.qclass;
-  qdomain=orig.qdomain;
-  qdomainwild=orig.qdomainwild;
-  qdomainzone=orig.qdomainzone;
-  d_maxreplylen = orig.d_maxreplylen;
-  d_wantsnsid = orig.d_wantsnsid;
-  d_anyLocal = orig.d_anyLocal;  
-  d_eso = orig.d_eso;
-  d_haveednssubnet = orig.d_haveednssubnet;
-  d_haveednssection = orig.d_haveednssection;
-  d_ednsversion = orig.d_ednsversion;
-  d_ednsrcode = orig.d_ednsrcode;
-  d_dnssecOk = orig.d_dnssecOk;
-  d_rrs=orig.d_rrs;
-  
-  d_tsigkeyname = orig.d_tsigkeyname;
-  d_tsigprevious = orig.d_tsigprevious;
-  d_tsigtimersonly = orig.d_tsigtimersonly;
-  d_trc = orig.d_trc;
-  d_tsigsecret = orig.d_tsigsecret;
-  d_ednsRawPacketSizeLimit = orig.d_ednsRawPacketSizeLimit;
-  d_havetsig = orig.d_havetsig;
-  d_wrapped=orig.d_wrapped;
-
-  d_rawpacket=orig.d_rawpacket;
-  d_tsig_algo=orig.d_tsig_algo;
-  d=orig.d;
-
-  d_isQuery = orig.d_isQuery;
-  d_hash = orig.d_hash;
 }
 
 void DNSPacket::setRcode(int v)
@@ -173,29 +161,31 @@ void DNSPacket::setOpcode(uint16_t opcode)
   d.opcode=opcode;
 }
 
-
 void DNSPacket::clearRecords()
 {
   d_rrs.clear();
+  d_dedup.clear();
 }
 
 void DNSPacket::addRecord(const DNSZoneRecord &rr)
 {
-  // this removes duplicates from the packet in case we are not compressing
-  // for AXFR, no such checking is performed!
-  // cerr<<"addrecord, content=["<<rr.content<<"]"<<endl;
+  // this removes duplicates from the packet.
+  // in case we are not compressing for AXFR, no such checking is performed!
+
   if(d_compress) {
-    for(auto i=d_rrs.begin();i!=d_rrs.end();++i) {
-      if(rr.dr == i->dr)  // XXX SUPER SLOW
+    std::string ser = const_cast<DNSZoneRecord&>(rr).dr.d_content->serialize(rr.dr.d_name);
+    auto hash = boost::hash< std::pair<DNSName, std::string> >()({rr.dr.d_name, ser});
+    if(d_dedup.count(hash)) { // might be a dup
+      for(auto i=d_rrs.begin();i!=d_rrs.end();++i) {
+        if(rr.dr == i->dr)  // XXX SUPER SLOW
           return;
+      }
     }
+    d_dedup.insert(hash);
   }
 
-  // cerr<<"added to d_rrs"<<endl;
   d_rrs.push_back(rr);
 }
-
-
 
 vector<DNSZoneRecord*> DNSPacket::getAPRecords()
 {
@@ -213,9 +203,7 @@ vector<DNSZoneRecord*> DNSPacket::getAPRecords()
           arrs.push_back(&*i);
         }
     }
-
   return arrs;
-
 }
 
 vector<DNSZoneRecord*> DNSPacket::getAnswerRecords()
@@ -299,11 +287,46 @@ void DNSPacket::wrapup()
   pw.getHeader()->tc=d.tc;
   
   DNSPacketWriter::optvect_t opts;
+
+  /* optsize is expected to hold an upper bound of data that will be
+     added after actual record data - i.e. OPT, TSIG, perhaps one day
+     XPF. Because of the way `pw` incrementally writes the packet, we
+     cannot easily 'go back' and remove a few records. So, to prevent
+     going over our maximum size, we keep our (potential) extra data
+     in mind.
+
+     This means that sometimes we'll send TC even if we'd end up with
+     a few bytes to spare, but so be it.
+    */
+  size_t optsize = 0;
+
+  if (d_haveednssection || d_dnssecOk) {
+    /* root label (1), type (2), class (2), ttl (4) + rdlen (2) */
+    optsize = 11;
+  }
+
   if(d_wantsnsid) {
     const static string mode_server_id=::arg()["server-id"];
     if(mode_server_id != "disabled") {
-      opts.push_back(make_pair(3, mode_server_id));
+      opts.push_back(make_pair(EDNSOptionCode::NSID, mode_server_id));
+      optsize += EDNS_OPTION_CODE_SIZE + EDNS_OPTION_LENGTH_SIZE + mode_server_id.size();
     }
+  }
+
+  if (d_haveednssubnet)
+  {
+    // this is an upper bound
+    optsize += EDNS_OPTION_CODE_SIZE + EDNS_OPTION_LENGTH_SIZE + 2 + 1 + 1; // code+len+family+src len+scope len
+    optsize += d_eso.source.isIpv4() ? 4 : 16;
+  }
+
+  if (d_trc.d_algoName.countLabels())
+  {
+    // TSIG is not OPT, but we count it in optsize anyway
+    optsize += d_trc.d_algoName.wirelength() + 3 + 1 + 2; // algo + time + fudge + maclen
+    optsize += EVP_MAX_MD_SIZE + 2 + 2 + 2 + 0; // mac + origid + ercode + otherdatalen + no other data
+
+    static_assert(EVP_MAX_MD_SIZE <= 64, "EVP_MAX_MD_SIZE is overly huge on this system, please check");
   }
 
   if(!d_rrs.empty() || !opts.empty() || d_haveednssubnet || d_haveednssection) {
@@ -315,11 +338,10 @@ void DNSPacket::wrapup()
         
         pw.startRecord(pos->dr.d_name, pos->dr.d_type, pos->dr.d_ttl, pos->dr.d_class, pos->dr.d_place);
         pos->dr.d_content->toPacket(pw);
-        if(pw.size() + 20U > (d_tcp ? 65535 : getMaxReplyLen())) { // 20 = room for EDNS0
+        if(pw.size() + optsize > (d_tcp ? 65535 : getMaxReplyLen())) {
           pw.rollback();
-          if(pos->dr.d_place == DNSResourceRecord::ANSWER || pos->dr.d_place == DNSResourceRecord::AUTHORITY) {
-            pw.getHeader()->tc=1;
-          }
+          pw.truncate();
+          pw.getHeader()->tc=1;
           goto noCommit;
         }
       }
@@ -546,8 +568,8 @@ try
     */
     d_ednsRawPacketSizeLimit=edo.d_packetsize;
     d_maxreplylen=std::min(std::max(static_cast<uint16_t>(512), edo.d_packetsize), s_udpTruncationThreshold);
-//    cerr<<edo.d_Z<<endl;
-    if(edo.d_Z & EDNSOpts::DNSSECOK)
+//    cerr<<edo.d_extFlags<<endl;
+    if(edo.d_extFlags & EDNSOpts::DNSSECOK)
       d_dnssecOk=true;
 
     for(vector<pair<uint16_t, string> >::const_iterator iter = edo.d_options.begin();
@@ -588,6 +610,9 @@ try
   
   qtype=mdp.d_qtype;
   qclass=mdp.d_qclass;
+
+  d_trc = TSIGRecordContent();
+
   return 0;
 }
 catch(std::exception& e) {

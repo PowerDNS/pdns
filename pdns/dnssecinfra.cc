@@ -52,18 +52,25 @@ using namespace boost::assign;
 shared_ptr<DNSCryptoKeyEngine> DNSCryptoKeyEngine::makeFromISCFile(DNSKEYRecordContent& drc, const char* fname)
 {
   string sline, isc;
-  FILE *fp=fopen(fname, "r");
+  auto fp = std::unique_ptr<FILE, int(*)(FILE*)>(fopen(fname, "r"), fclose);
   if(!fp) {
     throw runtime_error("Unable to read file '"+string(fname)+"' for generating DNS Private Key");
   }
   
-  while(stringfgets(fp, sline)) {
+  while(stringfgets(fp.get(), sline)) {
     isc += sline;
   }
-  fclose(fp);
+  fp.reset();
+
   shared_ptr<DNSCryptoKeyEngine> dke = makeFromISCString(drc, isc);
-  if(!dke->checkKey()) {
-    throw runtime_error("Invalid DNS Private Key in file '"+string(fname));
+  vector<string> checkKeyErrors;
+
+  if(!dke->checkKey(&checkKeyErrors)) {
+    string reason;
+    if(checkKeyErrors.size()) {
+      reason = " ("+boost::algorithm::join(checkKeyErrors, ", ")+")";
+    }
+    throw runtime_error("Invalid DNS Private Key in file '"+string(fname)+"'"+reason);
   }
   return dke;
 }
@@ -127,7 +134,6 @@ shared_ptr<DNSCryptoKeyEngine> DNSCryptoKeyEngine::makeFromISCString(DNSKEYRecor
 
 std::string DNSCryptoKeyEngine::convertToISC() const
 {
-  typedef map<string, string> stormap_t;
   storvector_t stormap = this->convertToISCVector();
   ostringstream ret;
   ret<<"Private-key-format: v1.2\n";
@@ -449,7 +455,7 @@ DSRecordContent makeDSFromDNSKey(const DNSName& qname, const DNSKEYRecordContent
     dsrc.d_digest = dpk->hash(toHash);
   }
   catch(const std::exception& e) {
-    throw std::runtime_error("Asked to a DS of unknown digest type " + std::to_string(digest)+"\n");
+    throw std::runtime_error("Asked to create (C)DS record of unknown digest type " + std::to_string(digest));
   }
   
   dsrc.d_algorithm = drc.d_algorithm;

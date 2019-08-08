@@ -25,7 +25,7 @@
 #include "remotebackend.hh"
 #ifdef REMOTEBACKEND_ZEROMQ
 
-ZeroMQConnector::ZeroMQConnector(std::map<std::string,std::string> options) {
+ZeroMQConnector::ZeroMQConnector(std::map<std::string,std::string> options): d_ctx(std::unique_ptr<void, int(*)(void*)>(zmq_init(2), zmq_close)), d_sock(std::unique_ptr<void, int(*)(void*)>(zmq_socket(d_ctx.get(), ZMQ_REQ), zmq_close)) {
   int opt=0;
 
   // lookup timeout, target and stuff
@@ -41,11 +41,9 @@ ZeroMQConnector::ZeroMQConnector(std::map<std::string,std::string> options) {
      this->d_timeout = std::stoi(options.find("timeout")->second);
   }
 
-  d_ctx = zmq_init(2);
-  d_sock = zmq_socket(this->d_ctx, ZMQ_REQ);
-  zmq_setsockopt(d_sock, ZMQ_LINGER, &opt, sizeof(opt));
+  zmq_setsockopt(d_sock.get(), ZMQ_LINGER, &opt, sizeof(opt));
 
-  if(zmq_connect(this->d_sock, this->d_endpoint.c_str()) < 0)
+  if(zmq_connect(this->d_sock.get(), this->d_endpoint.c_str()) < 0)
   {
     g_log<<Logger::Error<<"zmq_connect() failed"<< zmq_strerror(errno)<<std::endl;;
     throw PDNSException("Cannot find 'endpoint' option in connection string");
@@ -65,10 +63,7 @@ ZeroMQConnector::ZeroMQConnector(std::map<std::string,std::string> options) {
   } 
 };
 
-ZeroMQConnector::~ZeroMQConnector() {
-  zmq_close(this->d_sock);
-  zmq_term(this->d_ctx);
-};
+ZeroMQConnector::~ZeroMQConnector() {}
 
 int ZeroMQConnector::send_message(const Json& input) {
    auto line = input.dump();
@@ -80,13 +75,13 @@ int ZeroMQConnector::send_message(const Json& input) {
 
    try {
      zmq_pollitem_t item;
-     item.socket = d_sock;
+     item.socket = d_sock.get();
      item.events = ZMQ_POLLOUT;
      // poll until it's sent or timeout is spent. try to leave 
      // leave few cycles for read. just in case. 
      for(d_timespent = 0; d_timespent < d_timeout-5; d_timespent++) {
        if (zmq_poll(&item, 1, 1)>0) {
-         if(zmq_msg_send(&message, this->d_sock, 0) == -1) {
+         if(zmq_msg_send(&message, this->d_sock.get(), 0) == -1) {
            // message was not sent
            g_log<<Logger::Error<<"Cannot send to " << this->d_endpoint << ": " << zmq_strerror(errno)<<std::endl;
          } else
@@ -107,7 +102,7 @@ int ZeroMQConnector::recv_message(Json& output) {
    zmq_pollitem_t item;
    zmq_msg_t message;
 
-   item.socket = d_sock;
+   item.socket = d_sock.get();
    item.events = ZMQ_POLLIN;
 
    try {
@@ -122,7 +117,7 @@ int ZeroMQConnector::recv_message(Json& output) {
            size_t msg_size;
            zmq_msg_init(&message);
            // read something
-           if(zmq_msg_recv(&message, this->d_sock, ZMQ_NOBLOCK)>0) {
+           if(zmq_msg_recv(&message, this->d_sock.get(), ZMQ_NOBLOCK)>0) {
                string err;
                msg_size = zmq_msg_size(&message);
                data.assign(reinterpret_cast<const char*>(zmq_msg_data(&message)), msg_size);

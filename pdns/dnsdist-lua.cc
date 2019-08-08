@@ -33,8 +33,10 @@
 
 #include "dnsdist.hh"
 #include "dnsdist-console.hh"
+#include "dnsdist-ecs.hh"
 #include "dnsdist-lua.hh"
 #include "dnsdist-rings.hh"
+#include "dnsdist-secpoll.hh"
 
 #include "base64.hh"
 #include "dnswriter.hh"
@@ -44,6 +46,7 @@
 #include "sodcrypto.hh"
 
 #include <boost/logic/tribool.hpp>
+#include <boost/lexical_cast.hpp>
 
 #ifdef HAVE_SYSTEMD
 #include <systemd/sd-daemon.h>
@@ -73,7 +76,10 @@ void setLuaSideEffect()
 
 bool getLuaNoSideEffect()
 {
-  return g_noLuaSideEffect==true;
+  if (g_noLuaSideEffect) {
+    return true;
+  }
+  return false;
 }
 
 void resetLuaSideEffect()
@@ -81,14 +87,11 @@ void resetLuaSideEffect()
   g_noLuaSideEffect = boost::logic::indeterminate;
 }
 
-typedef std::unordered_map<std::string, boost::variant<bool, int, std::string, std::vector<std::pair<int,int> > > > localbind_t;
+typedef std::unordered_map<std::string, boost::variant<bool, int, std::string, std::vector<std::pair<int,int> >, std::map<std::string,std::string> > > localbind_t;
 
-static void parseLocalBindVars(boost::optional<localbind_t> vars, bool& doTCP, bool& reusePort, int& tcpFastOpenQueueSize, std::string& interface, std::set<int>& cpus)
+static void parseLocalBindVars(boost::optional<localbind_t> vars, bool& reusePort, int& tcpFastOpenQueueSize, std::string& interface, std::set<int>& cpus)
 {
   if (vars) {
-    if (vars->count("doTCP")) {
-      doTCP = boost::get<bool>((*vars)["doTCP"]);
-    }
     if (vars->count("reusePort")) {
       reusePort = boost::get<bool>((*vars)["reusePort"]);
     }
@@ -106,10 +109,44 @@ static void parseLocalBindVars(boost::optional<localbind_t> vars, bool& doTCP, b
   }
 }
 
+#if defined(HAVE_DNS_OVER_TLS) || defined(HAVE_DNS_OVER_HTTPS)
+static bool loadTLSCertificateAndKeys(const std::string& context, std::vector<std::pair<std::string, std::string>>& pairs, boost::variant<std::string, std::vector<std::pair<int,std::string>>> certFiles, boost::variant<std::string, std::vector<std::pair<int,std::string>>> keyFiles)
+{
+  if (certFiles.type() == typeid(std::string) && keyFiles.type() == typeid(std::string)) {
+    auto certFile = boost::get<std::string>(certFiles);
+    auto keyFile = boost::get<std::string>(keyFiles);
+    pairs.clear();
+    pairs.push_back({certFile, keyFile});
+  }
+  else if (certFiles.type() == typeid(std::vector<std::pair<int,std::string>>) && keyFiles.type() == typeid(std::vector<std::pair<int,std::string>>))
+  {
+    auto certFilesVect = boost::get<std::vector<std::pair<int,std::string>>>(certFiles);
+    auto keyFilesVect = boost::get<std::vector<std::pair<int,std::string>>>(keyFiles);
+    if (certFilesVect.size() == keyFilesVect.size()) {
+      pairs.clear();
+      for (size_t idx = 0; idx < certFilesVect.size(); idx++) {
+        pairs.push_back({certFilesVect.at(idx).second, keyFilesVect.at(idx).second});
+      }
+    }
+    else {
+      errlog("Error, mismatching number of certificates and keys in call to %s()!", context);
+      g_outputBuffer="Error, mismatching number of certificates and keys in call to " + context + "()!";
+      return false;
+    }
+  }
+  else {
+    errlog("Error, mismatching number of certificates and keys in call to %s()!", context);
+    g_outputBuffer="Error, mismatching number of certificates and keys in call to " + context + "()!";
+    return false;
+  }
+
+  return true;
+}
+#endif // defined(HAVE_DNS_OVER_TLS) || defined(HAVE_DNS_OVER_HTTPS)
+
 void setupLuaConfig(bool client)
 {
   typedef std::unordered_map<std::string, boost::variant<bool, std::string, vector<pair<int, std::string> >, DownstreamState::checkfunc_t > > newserver_t;
-
   g_lua.writeFunction("inClientStartup", [client]() {
         return client && !g_configurationDone;
   });
@@ -236,7 +273,7 @@ void setupLuaConfig(bool client)
 			      return ret;
 			    }
 
-			    ret->weight=weightVal;
+			    ret->setWeight(weightVal);
 			  }
 			  catch(std::exception& e) {
 			    // std::stoi will throw an exception if the string isn't in a value int range
@@ -247,6 +284,10 @@ void setupLuaConfig(bool client)
 
 			if(vars.count("retries")) {
 			  ret->retries=std::stoi(boost::get<string>(vars["retries"]));
+			}
+
+			if(vars.count("checkInterval")) {
+			  ret->checkInterval=static_cast<unsigned int>(std::stoul(boost::get<string>(vars["checkInterval"])));
 			}
 
 			if(vars.count("tcpConnectTimeout")) {
@@ -276,6 +317,10 @@ void setupLuaConfig(bool client)
 			  ret->name=boost::get<string>(vars["name"]);
 			}
 
+                        if (vars.count("id")) {
+                          ret->setId(boost::lexical_cast<boost::uuids::uuid>(boost::get<string>(vars["id"])));
+                        }
+
 			if(vars.count("checkName")) {
 			  ret->checkName=DNSName(boost::get<string>(vars["checkName"]));
 			}
@@ -292,6 +337,10 @@ void setupLuaConfig(bool client)
 			  ret->checkFunction= boost::get<DownstreamState::checkfunc_t>(vars["checkFunction"]);
 			}
 
+			if(vars.count("checkTimeout")) {
+			  ret->checkTimeout = std::stoi(boost::get<string>(vars["checkTimeout"]));
+			}
+
 			if(vars.count("setCD")) {
 			  ret->setCD=boost::get<bool>(vars["setCD"]);
 			}
@@ -302,6 +351,10 @@ void setupLuaConfig(bool client)
 
 			if(vars.count("useClientSubnet")) {
 			  ret->useECS=boost::get<bool>(vars["useClientSubnet"]);
+			}
+
+			if(vars.count("disableZeroScope")) {
+			  ret->disableZeroScope=boost::get<bool>(vars["disableZeroScope"]);
 			}
 
 			if(vars.count("ipBindAddrNoPort")) {
@@ -315,6 +368,10 @@ void setupLuaConfig(bool client)
 			if(vars.count("maxCheckFailures")) {
 			  ret->maxCheckFailures=std::stoi(boost::get<string>(vars["maxCheckFailures"]));
 			}
+
+                        if(vars.count("rise")) {
+                          ret->minRiseSuccesses=std::stoi(boost::get<string>(vars["rise"]));
+                        }
 
                         if(vars.count("cpus")) {
                           for (const auto cpu : boost::get<vector<pair<int,string>>>(vars["cpus"])) {
@@ -345,6 +402,8 @@ void setupLuaConfig(bool client)
                         g_pools.setState(localPools);
 
 			if (ret->connected) {
+			  ret->threadStarted.test_and_set();
+
 			  if(g_launchWork) {
 			    g_launchWork->push_back([ret,cpus]() {
                               ret->tid = thread(responderThread, ret);
@@ -425,20 +484,30 @@ void setupLuaConfig(bool client)
         g_outputBuffer="setLocal cannot be used at runtime!\n";
         return;
       }
-      bool doTCP = true;
       bool reusePort = false;
       int tcpFastOpenQueueSize = 0;
       std::string interface;
       std::set<int> cpus;
 
-      parseLocalBindVars(vars, doTCP, reusePort, tcpFastOpenQueueSize, interface, cpus);
+      parseLocalBindVars(vars, reusePort, tcpFastOpenQueueSize, interface, cpus);
 
       try {
 	ComboAddress loc(addr, 53);
-	g_locals.clear();
-	g_locals.push_back(std::make_tuple(loc, doTCP, reusePort, tcpFastOpenQueueSize, interface, cpus)); /// only works pre-startup, so no sync necessary
+        for (auto it = g_frontends.begin(); it != g_frontends.end(); ) {
+          /* TLS and DNSCrypt frontends are separate */
+          if ((*it)->tlsFrontend == nullptr && (*it)->dnscryptCtx == nullptr) {
+            it = g_frontends.erase(it);
+          }
+          else {
+            ++it;
+          }
+        }
+
+        // only works pre-startup, so no sync necessary
+        g_frontends.push_back(std::unique_ptr<ClientState>(new ClientState(loc, false, reusePort, tcpFastOpenQueueSize, interface, cpus)));
+        g_frontends.push_back(std::unique_ptr<ClientState>(new ClientState(loc, true, reusePort, tcpFastOpenQueueSize, interface, cpus)));
       }
-      catch(std::exception& e) {
+      catch(const std::exception& e) {
 	g_outputBuffer="Error: "+string(e.what())+"\n";
       }
     });
@@ -451,20 +520,22 @@ void setupLuaConfig(bool client)
         g_outputBuffer="addLocal cannot be used at runtime!\n";
         return;
       }
-      bool doTCP = true;
       bool reusePort = false;
       int tcpFastOpenQueueSize = 0;
       std::string interface;
       std::set<int> cpus;
 
-      parseLocalBindVars(vars, doTCP, reusePort, tcpFastOpenQueueSize, interface, cpus);
+      parseLocalBindVars(vars, reusePort, tcpFastOpenQueueSize, interface, cpus);
 
       try {
 	ComboAddress loc(addr, 53);
-	g_locals.push_back(std::make_tuple(loc, doTCP, reusePort, tcpFastOpenQueueSize, interface, cpus)); /// only works pre-startup, so no sync necessary
+        // only works pre-startup, so no sync necessary
+        g_frontends.push_back(std::unique_ptr<ClientState>(new ClientState(loc, false, reusePort, tcpFastOpenQueueSize, interface, cpus)));
+        g_frontends.push_back(std::unique_ptr<ClientState>(new ClientState(loc, true, reusePort, tcpFastOpenQueueSize, interface, cpus)));
       }
       catch(std::exception& e) {
-	g_outputBuffer="Error: "+string(e.what())+"\n";
+        g_outputBuffer="Error: "+string(e.what())+"\n";
+        errlog("Error while trying to listen on %s: %s\n", addr, string(e.what()));
       }
     });
 
@@ -509,41 +580,68 @@ void setupLuaConfig(bool client)
       _exit(0);
   } );
 
-  g_lua.writeFunction("showServers", []() {
+  typedef std::unordered_map<std::string, boost::variant<bool, std::string> > showserversopts_t;
+
+  g_lua.writeFunction("showServers", [](boost::optional<showserversopts_t> vars) {
       setLuaNoSideEffect();
-      try {
-      ostringstream ret;
-      boost::format fmt("%1$-3d %2$-20.20s %|25t|%3% %|55t|%4$5s %|51t|%5$7.1f %|66t|%6$7d %|69t|%7$3d %|78t|%8$2d %|80t|%9$10d %|86t|%10$7d %|91t|%11$5.1f %|109t|%12$5.1f %|115t|%13$11d %14%" );
-      //             1        2          3       4        5       6       7       8           9        10        11       12     13              14
-      ret << (fmt % "#" % "Name" % "Address" % "State" % "Qps" % "Qlim" % "Ord" % "Wt" % "Queries" % "Drops" % "Drate" % "Lat" % "Outstanding" % "Pools") << endl;
-
-      uint64_t totQPS{0}, totQueries{0}, totDrops{0};
-      int counter=0;
-      auto states = g_dstates.getLocal();
-      for(const auto& s : *states) {
-	string status = s->getStatus();
-	string pools;
-	for(auto& p : s->pools) {
-	  if(!pools.empty())
-	    pools+=" ";
-	  pools+=p;
-	}
-
-	ret << (fmt % counter % s->name % s->remote.toStringWithPort() %
-		status %
-		s->queryLoad % s->qps.getRate() % s->order % s->weight % s->queries.load() % s->reuseds.load() % (s->dropRate) % (s->latencyUsec/1000.0) % s->outstanding.load() % pools) << endl;
-
-	totQPS += s->queryLoad;
-	totQueries += s->queries.load();
-	totDrops += s->reuseds.load();
-	++counter;
+      bool showUUIDs = false;
+      if (vars) {
+        if (vars->count("showUUIDs")) {
+          showUUIDs = boost::get<bool>((*vars)["showUUIDs"]);
+        }
       }
-      ret<< (fmt % "All" % "" % "" % ""
-		%
-	     (double)totQPS % "" % "" % "" % totQueries % totDrops % "" % "" % "" % "" ) << endl;
+      try {
+        ostringstream ret;
+        boost::format fmt;
+        if (showUUIDs) {
+          fmt = boost::format("%1$-3d %15$-36s %2$-20.20s %|62t|%3% %|92t|%4$5s %|88t|%5$7.1f %|103t|%6$7d %|106t|%7$3d %|115t|%8$2d %|117t|%9$10d %|123t|%10$7d %|128t|%11$5.1f %|146t|%12$5.1f %|152t|%13$11d %14%" );
+          //             1        2          3       4        5       6       7       8           9        10        11       12     13              14        15
+          ret << (fmt % "#" % "Name" % "Address" % "State" % "Qps" % "Qlim" % "Ord" % "Wt" % "Queries" % "Drops" % "Drate" % "Lat" % "Outstanding" % "Pools" % "UUID") << endl;
+        } else {
+          fmt = boost::format("%1$-3d %2$-20.20s %|25t|%3% %|55t|%4$5s %|51t|%5$7.1f %|66t|%6$7d %|69t|%7$3d %|78t|%8$2d %|80t|%9$10d %|86t|%10$7d %|91t|%11$5.1f %|109t|%12$5.1f %|115t|%13$11d %14%" );
+          ret << (fmt % "#" % "Name" % "Address" % "State" % "Qps" % "Qlim" % "Ord" % "Wt" % "Queries" % "Drops" % "Drate" % "Lat" % "Outstanding" % "Pools") << endl;
+        }
 
-      g_outputBuffer=ret.str();
-      }catch(std::exception& e) { g_outputBuffer=e.what(); throw; }
+        uint64_t totQPS{0}, totQueries{0}, totDrops{0};
+        int counter=0;
+        auto states = g_dstates.getLocal();
+        for(const auto& s : *states) {
+          string status = s->getStatus();
+          string pools;
+          for(auto& p : s->pools) {
+            if(!pools.empty())
+              pools+=" ";
+            pools+=p;
+          }
+          if (showUUIDs) {
+            ret << (fmt % counter % s->name % s->remote.toStringWithPort() %
+                    status %
+                    s->queryLoad % s->qps.getRate() % s->order % s->weight % s->queries.load() % s->reuseds.load() % (s->dropRate) % (s->latencyUsec/1000.0) % s->outstanding.load() % pools % s->id) << endl;
+          } else {
+            ret << (fmt % counter % s->name % s->remote.toStringWithPort() %
+                    status %
+                    s->queryLoad % s->qps.getRate() % s->order % s->weight % s->queries.load() % s->reuseds.load() % (s->dropRate) % (s->latencyUsec/1000.0) % s->outstanding.load() % pools) << endl;
+          }
+          totQPS += s->queryLoad;
+          totQueries += s->queries.load();
+          totDrops += s->reuseds.load();
+          ++counter;
+        }
+        if (showUUIDs) {
+          ret<< (fmt % "All" % "" % "" % ""
+                 %
+                 (double)totQPS % "" % "" % "" % totQueries % totDrops % "" % "" % "" % "" % "" ) << endl;
+        } else {
+          ret<< (fmt % "All" % "" % "" % ""
+                 %
+                 (double)totQPS % "" % "" % "" % totQueries % totDrops % "" % "" % "" % "" ) << endl;
+        }
+
+        g_outputBuffer=ret.str();
+      } catch(std::exception& e) {
+        g_outputBuffer=e.what();
+        throw;
+      }
     });
 
   g_lua.writeFunction("getServers", []() {
@@ -567,12 +665,19 @@ void setupLuaConfig(bool client)
     });
 
   g_lua.writeFunction("carbonServer", [](const std::string& address, boost::optional<string> ourName,
-					 boost::optional<unsigned int> interval) {
-                        setLuaSideEffect();
-			auto ours = g_carbon.getCopy();
-			ours.push_back({ComboAddress(address, 2003), ourName ? *ourName : "", interval ? *interval : 30});
-			g_carbon.setState(ours);
-		      });
+					 boost::optional<unsigned int> interval, boost::optional<string> namespace_name,
+                                         boost::optional<string> instance_name) {
+      setLuaSideEffect();
+      auto ours = g_carbon.getCopy();
+      ours.push_back({
+        ComboAddress(address, 2003),
+        (namespace_name && !namespace_name->empty()) ? *namespace_name : "dnsdist",
+        ourName ? *ourName : "",
+        (instance_name && !instance_name->empty()) ? *instance_name : "main" ,
+        interval ? *interval : 30
+      });
+      g_carbon.setState(ours);
+  });
 
   g_lua.writeFunction("webserver", [client](const std::string& address, const std::string& password, const boost::optional<std::string> apiKey, const boost::optional<std::map<std::string, std::string> > customHeaders) {
       setLuaSideEffect();
@@ -585,7 +690,10 @@ void setupLuaConfig(bool client)
 	SBind(sock, local);
 	SListen(sock, 5);
 	auto launch=[sock, local, password, apiKey, customHeaders]() {
-	  thread t(dnsdistWebserverThread, sock, local, password, apiKey ? *apiKey : "", customHeaders);
+          setWebserverPassword(password);
+          setWebserverAPIKey(apiKey);
+          setWebserverCustomHeaders(customHeaders);
+          thread t(dnsdistWebserverThread, sock, local);
 	  t.detach();
 	};
 	if(g_launchWork)
@@ -600,6 +708,31 @@ void setupLuaConfig(bool client)
 
     });
 
+  typedef std::unordered_map<std::string, boost::variant<std::string, std::map<std::string, std::string>> > webserveropts_t;
+
+  g_lua.writeFunction("setWebserverConfig", [](boost::optional<webserveropts_t> vars) {
+      setLuaSideEffect();
+
+      if (!vars) {
+        return ;
+      }
+      if(vars->count("password")) {
+        const std::string password = boost::get<std::string>(vars->at("password"));
+
+        setWebserverPassword(password);
+      }
+      if(vars->count("apiKey")) {
+        const std::string apiKey = boost::get<std::string>(vars->at("apiKey"));
+
+        setWebserverAPIKey(apiKey);
+      }
+      if(vars->count("customHeaders")) {
+        const boost::optional<std::map<std::string, std::string> > headers = boost::get<std::map<std::string, std::string> >(vars->at("customHeaders"));
+
+        setWebserverCustomHeaders(headers);
+      }
+    });
+
   g_lua.writeFunction("controlSocket", [client](const std::string& str) {
       setLuaSideEffect();
       ComboAddress local(str, 5199);
@@ -608,6 +741,13 @@ void setupLuaConfig(bool client)
 	g_serverControl = local;
 	return;
       }
+
+      g_consoleEnabled = true;
+#ifdef HAVE_LIBSODIUM
+      if (g_configurationDone && g_consoleKey.empty()) {
+        warnlog("Warning, the console has been enabled via 'controlSocket()' but no key has been set with 'setKey()' so all connections will fail until a key has been set");
+      }
+#endif
 
       try {
 	int sock = SSocket(local.sin4.sin_family, SOCK_STREAM, 0);
@@ -757,8 +897,10 @@ void setupLuaConfig(bool client)
        if(testmsg == decrypted)
 	 g_outputBuffer="Everything is ok!\n";
        else
-	 g_outputBuffer="Crypto failed..\n";
-
+	 g_outputBuffer="Crypto failed.. (the decoded value does not match the cleartext one)\n";
+     }
+     catch(const std::exception& e) {
+       g_outputBuffer="Crypto failed: "+std::string(e.what())+"\n";
      }
      catch(...) {
        g_outputBuffer="Crypto failed..\n";
@@ -832,16 +974,18 @@ void setupLuaConfig(bool client)
 
   g_lua.writeFunction("setECSOverride", [](bool override) { g_ECSOverride=override; });
 
+  g_lua.writeFunction("setPreserveTrailingData", [](bool preserve) { g_preserveTrailingData = preserve; });
+
   g_lua.writeFunction("showDynBlocks", []() {
       setLuaNoSideEffect();
       auto slow = g_dynblockNMG.getCopy();
       struct timespec now;
       gettime(&now);
-      boost::format fmt("%-24s %8d %8d %s\n");
-      g_outputBuffer = (fmt % "What" % "Seconds" % "Blocks" % "Reason").str();
+      boost::format fmt("%-24s %8d %8d %-10s %-20s %s\n");
+      g_outputBuffer = (fmt % "What" % "Seconds" % "Blocks" % "Warning" % "Action" % "Reason").str();
       for(const auto& e: slow) {
 	if(now < e->second.until)
-	  g_outputBuffer+= (fmt % e->first.toString() % (e->second.until.tv_sec - now.tv_sec) % e->second.blocks % e->second.reason).str();
+	  g_outputBuffer+= (fmt % e->first.toString() % (e->second.until.tv_sec - now.tv_sec) % e->second.blocks % (e->second.warning ? "true" : "false") % DNSAction::typeToString(e->second.action != DNSAction::Action::None ? e->second.action : g_dynBlockAction) % e->second.reason).str();
       }
       auto slow2 = g_dynblockSMT.getCopy();
       slow2.visit([&now, &fmt](const SuffixMatchTree<DynBlock>& node) {
@@ -849,7 +993,7 @@ void setupLuaConfig(bool client)
             string dom("empty");
             if(!node.d_value.domain.empty())
               dom = node.d_value.domain.toString();
-            g_outputBuffer+= (fmt % dom % (node.d_value.until.tv_sec - now.tv_sec) % node.d_value.blocks % node.d_value.reason).str();
+            g_outputBuffer+= (fmt % dom % (node.d_value.until.tv_sec - now.tv_sec) % node.d_value.blocks % (node.d_value.warning ? "true" : "false") % DNSAction::typeToString(node.d_value.action != DNSAction::Action::None ? node.d_value.action : g_dynBlockAction) % node.d_value.reason).str();
           }
         });
 
@@ -934,35 +1078,70 @@ void setupLuaConfig(bool client)
 
   g_lua.writeFunction("setDynBlocksAction", [](DNSAction::Action action) {
       if (!g_configurationDone) {
-        if (action == DNSAction::Action::Drop || action == DNSAction::Action::Refused || action == DNSAction::Action::Truncate) {
+        if (action == DNSAction::Action::Drop || action == DNSAction::Action::NoOp || action == DNSAction::Action::Nxdomain || action == DNSAction::Action::Refused || action == DNSAction::Action::Truncate || action == DNSAction::Action::NoRecurse) {
           g_dynBlockAction = action;
         }
         else {
-          errlog("Dynamic blocks action can only be Drop, Refused or Truncate!");
-          g_outputBuffer="Dynamic blocks action can only be Drop, Refused or Truncate!\n";
+          errlog("Dynamic blocks action can only be Drop, NoOp, NXDomain, Refused, Truncate or NoRecurse!");
+          g_outputBuffer="Dynamic blocks action can only be Drop, NoOp, NXDomain, Refused, Truncate or NoRecurse!\n";
         }
       } else {
         g_outputBuffer="Dynamic blocks action cannot be altered at runtime!\n";
       }
     });
 
-  g_lua.writeFunction("addDNSCryptBind", [](const std::string& addr, const std::string& providerName, const std::string& certFile, const std::string keyFile, boost::optional<localbind_t> vars) {
+  g_lua.writeFunction("addDNSCryptBind", [](const std::string& addr, const std::string& providerName, boost::variant<std::string, std::vector<std::pair<int, std::string>>> certFiles, boost::variant<std::string, std::vector<std::pair<int, std::string>>> keyFiles, boost::optional<localbind_t> vars) {
       if (g_configurationDone) {
         g_outputBuffer="addDNSCryptBind cannot be used at runtime!\n";
         return;
       }
 #ifdef HAVE_DNSCRYPT
-      bool doTCP = true;
       bool reusePort = false;
       int tcpFastOpenQueueSize = 0;
       std::string interface;
       std::set<int> cpus;
+      std::vector<DNSCryptContext::CertKeyPaths> certKeys;
 
-      parseLocalBindVars(vars, doTCP, reusePort, tcpFastOpenQueueSize, interface, cpus);
+      parseLocalBindVars(vars, reusePort, tcpFastOpenQueueSize, interface, cpus);
+
+      if (certFiles.type() == typeid(std::string) && keyFiles.type() == typeid(std::string)) {
+        auto certFile = boost::get<std::string>(certFiles);
+        auto keyFile = boost::get<std::string>(keyFiles);
+        certKeys.push_back({certFile, keyFile});
+      }
+      else if (certFiles.type() == typeid(std::vector<std::pair<int,std::string>>) && keyFiles.type() == typeid(std::vector<std::pair<int,std::string>>)) {
+        auto certFilesVect = boost::get<std::vector<std::pair<int,std::string>>>(certFiles);
+        auto keyFilesVect = boost::get<std::vector<std::pair<int,std::string>>>(keyFiles);
+        if (certFilesVect.size() == keyFilesVect.size()) {
+          for (size_t idx = 0; idx < certFilesVect.size(); idx++) {
+            certKeys.push_back({certFilesVect.at(idx).second, keyFilesVect.at(idx).second});
+          }
+        }
+        else {
+          errlog("Error, mismatching number of certificates and keys in call to addDNSCryptBind!");
+          g_outputBuffer="Error, mismatching number of certificates and keys in call to addDNSCryptBind()!";
+          return;
+        }
+      }
+      else {
+        errlog("Error, mismatching number of certificates and keys in call to addDNSCryptBind()!");
+        g_outputBuffer="Error, mismatching number of certificates and keys in call to addDNSCryptBind()!";
+        return;
+      }
 
       try {
-        auto ctx = std::make_shared<DNSCryptContext>(providerName, certFile, keyFile);
-        g_dnsCryptLocals.push_back(std::make_tuple(ComboAddress(addr, 443), ctx, reusePort, tcpFastOpenQueueSize, interface, cpus));
+        auto ctx = std::make_shared<DNSCryptContext>(providerName, certKeys);
+
+        /* UDP */
+        auto cs = std::unique_ptr<ClientState>(new ClientState(ComboAddress(addr, 443), false, reusePort, tcpFastOpenQueueSize, interface, cpus));
+        cs->dnscryptCtx = ctx;
+        g_dnsCryptLocals.push_back(ctx);
+        g_frontends.push_back(std::move(cs));
+
+        /* TCP */
+        cs = std::unique_ptr<ClientState>(new ClientState(ComboAddress(addr, 443), true, reusePort, tcpFastOpenQueueSize, interface, cpus));
+        cs->dnscryptCtx = ctx;
+        g_frontends.push_back(std::move(cs));
       }
       catch(std::exception& e) {
         errlog(e.what());
@@ -982,9 +1161,14 @@ void setupLuaConfig(bool client)
       ret << (fmt % "#" % "Address" % "Provider Name") << endl;
       size_t idx = 0;
 
-      for (const auto& local : g_dnsCryptLocals) {
-        const std::shared_ptr<DNSCryptContext> ctx = std::get<1>(local);
-        ret<< (fmt % idx % std::get<0>(local).toStringWithPort() % ctx->getProviderName()) << endl;
+      std::unordered_set<std::shared_ptr<DNSCryptContext>> contexts;
+      for (const auto& frontend : g_frontends) {
+        const std::shared_ptr<DNSCryptContext> ctx = frontend->dnscryptCtx;
+        if (!ctx || contexts.count(ctx) != 0) {
+          continue;
+        }
+        contexts.insert(ctx);
+        ret<< (fmt % idx % frontend->local.toStringWithPort() % ctx->getProviderName()) << endl;
         idx++;
       }
 
@@ -999,7 +1183,7 @@ void setupLuaConfig(bool client)
 #ifdef HAVE_DNSCRYPT
       std::shared_ptr<DNSCryptContext> ret = nullptr;
       if (idx < g_dnsCryptLocals.size()) {
-        ret = std::get<1>(g_dnsCryptLocals.at(idx));
+        ret = g_dnsCryptLocals.at(idx);
       }
       return ret;
 #else
@@ -1135,13 +1319,13 @@ void setupLuaConfig(bool client)
       setLuaNoSideEffect();
       try {
         ostringstream ret;
-        boost::format fmt("%1$-3d %2$-20.20s %|25t|%3$-8.8s %|35t|%4%" );
+        boost::format fmt("%1$-3d %2$-20.20s %|35t|%3$-20.20s %|57t|%4%" );
         //             1    2           3            4
         ret << (fmt % "#" % "Address" % "Protocol" % "Queries" ) << endl;
 
         size_t counter = 0;
         for (const auto& front : g_frontends) {
-          ret << (fmt % counter % front->local.toStringWithPort() % (front->udpFD != -1 ? "UDP" : "TCP") % front->queries) << endl;
+          ret << (fmt % counter % front->local.toStringWithPort() % front->getType() % front->queries) << endl;
           counter++;
         }
         g_outputBuffer=ret.str();
@@ -1152,7 +1336,7 @@ void setupLuaConfig(bool client)
       setLuaNoSideEffect();
       ClientState* ret = nullptr;
       if(num < g_frontends.size()) {
-        ret=g_frontends[num];
+        ret=g_frontends[num].get();
       }
       return ret;
       });
@@ -1177,6 +1361,11 @@ void setupLuaConfig(bool client)
   g_lua.writeFunction("showVersion", []() {
       setLuaNoSideEffect();
       g_outputBuffer = "dnsdist " + std::string(VERSION) + "\n";
+    });
+
+  g_lua.writeFunction("showSecurityStatus", []() {
+      setLuaNoSideEffect();
+      g_outputBuffer = std::to_string(g_stats.securityStatus) + "\n";
     });
 
 #ifdef HAVE_EBPF
@@ -1320,6 +1509,11 @@ void setupLuaConfig(bool client)
       g_servFailOnNoPolicy = servfail;
     });
 
+  g_lua.writeFunction("setRoundRobinFailOnNoServer", [](bool fail) {
+      setLuaSideEffect();
+      g_roundrobinFailOnNoServer = fail;
+    });
+
   g_lua.writeFunction("setRingBuffersSize", [](size_t capacity, boost::optional<size_t> numberOfShards) {
       setLuaSideEffect();
       if (g_configurationDone) {
@@ -1416,6 +1610,10 @@ void setupLuaConfig(bool client)
       g_logConsoleConnections = enabled;
     });
 
+  g_lua.writeFunction("setConsoleOutputMaxMsgSize", [](uint32_t size) {
+      g_consoleOutputMsgMaxSize = size;
+    });
+
   g_lua.writeFunction("setUDPMultipleMessagesVectorSize", [](size_t vSize) {
       if (g_configurationDone) {
         errlog("setUDPMultipleMessagesVectorSize() cannot be used at runtime!");
@@ -1431,10 +1629,209 @@ void setupLuaConfig(bool client)
 #endif
     });
 
+  g_lua.writeFunction("setAddEDNSToSelfGeneratedResponses", [](bool add) {
+      g_addEDNSToSelfGeneratedResponses = add;
+  });
+
+  g_lua.writeFunction("setPayloadSizeOnSelfGeneratedAnswers", [](uint16_t payloadSize) {
+      if (payloadSize < 512) {
+        warnlog("setPayloadSizeOnSelfGeneratedAnswers() is set too low, using 512 instead!");
+        g_outputBuffer="setPayloadSizeOnSelfGeneratedAnswers() is set too low, using 512 instead!";
+        payloadSize = 512;
+      }
+      if (payloadSize > s_udpIncomingBufferSize) {
+        warnlog("setPayloadSizeOnSelfGeneratedAnswers() is set too high, capping to %d instead!", s_udpIncomingBufferSize);
+        g_outputBuffer="setPayloadSizeOnSelfGeneratedAnswers() is set too high, capping to " + std::to_string(s_udpIncomingBufferSize) + " instead";
+        payloadSize = s_udpIncomingBufferSize;
+      }
+      g_PayloadSizeSelfGenAnswers = payloadSize;
+  });
+
+  g_lua.writeFunction("setSecurityPollSuffix", [](const std::string& suffix) {
+      if (g_configurationDone) {
+        g_outputBuffer="setSecurityPollSuffix() cannot be used at runtime!\n";
+        return;
+      }
+
+      g_secPollSuffix = suffix;
+  });
+
+  g_lua.writeFunction("setSecurityPollInterval", [](time_t newInterval) {
+      if (newInterval <= 0) {
+        warnlog("setSecurityPollInterval() should be > 0, skipping");
+        g_outputBuffer="setSecurityPollInterval() should be > 0, skipping";
+      }
+
+      g_secPollInterval = newInterval;
+  });
+
+  g_lua.writeFunction("setSyslogFacility", [](int facility) {
+    setLuaSideEffect();
+    if (g_configurationDone) {
+      g_outputBuffer="setSyslogFacility cannot be used at runtime!\n";
+      return;
+    }
+    setSyslogFacility(facility);
+  });
+
+  g_lua.writeFunction("addDOHLocal", [client](const std::string& addr, boost::variant<std::string, std::vector<std::pair<int,std::string>>> certFiles, boost::variant<std::string, std::vector<std::pair<int,std::string>>> keyFiles, boost::optional<boost::variant<std::string, vector<pair<int, std::string> > > > urls, boost::optional<localbind_t> vars) {
+#ifdef HAVE_DNS_OVER_HTTPS
+    if (client) {
+      return;
+    }
+    setLuaSideEffect();
+    if (g_configurationDone) {
+      g_outputBuffer="addDOHLocal cannot be used at runtime!\n";
+      return;
+    }
+    auto frontend = std::make_shared<DOHFrontend>();
+
+    if (!loadTLSCertificateAndKeys("addDOHLocal", frontend->d_certKeyPairs, certFiles, keyFiles)) {
+      return;
+    }
+
+    frontend->d_local = ComboAddress(addr, 443);
+    if (urls) {
+      if (urls->type() == typeid(std::string)) {
+        frontend->d_urls.push_back(boost::get<std::string>(*urls));
+      }
+      else if (urls->type() == typeid(std::vector<std::pair<int,std::string>>)) {
+        auto urlsVect = boost::get<std::vector<std::pair<int,std::string>>>(*urls);
+        for(const auto& p : urlsVect) {
+          frontend->d_urls.push_back(p.second);
+        }
+      }
+    }
+    else {
+      frontend->d_urls = {"/"};
+    }
+
+    bool reusePort = false;
+    int tcpFastOpenQueueSize = 0;
+    std::string interface;
+    std::set<int> cpus;
+
+    if(vars) {
+      parseLocalBindVars(vars, reusePort, tcpFastOpenQueueSize, interface, cpus);
+
+      if (vars->count("idleTimeout")) {
+        frontend->d_idleTimeout = boost::get<int>((*vars)["idleTimeout"]);
+      }
+      if (vars->count("ciphers")) {
+        frontend->d_ciphers = boost::get<const string>((*vars)["ciphers"]);
+      }
+      if (vars->count("ciphersTLS13")) {
+        frontend->d_ciphers13 = boost::get<const string>((*vars)["ciphersTLS13"]);
+      }
+      if (vars->count("serverTokens")) {
+        frontend->d_serverTokens = boost::get<const string>((*vars)["serverTokens"]);
+      }
+      if (vars->count("customResponseHeaders")) {
+        for (auto const& headerMap : boost::get<std::map<std::string,std::string>>((*vars)["customResponseHeaders"])) {
+          std::pair<std::string,std::string> headerResponse = std::make_pair(headerMap.first, headerMap.second);
+          frontend->d_customResponseHeaders.push_back(headerResponse);
+        }
+      }
+    }
+    g_dohlocals.push_back(frontend);
+    auto cs = std::unique_ptr<ClientState>(new ClientState(frontend->d_local, true, reusePort, tcpFastOpenQueueSize, interface, cpus));
+    cs->dohFrontend = frontend;
+    g_frontends.push_back(std::move(cs));
+#else
+    throw std::runtime_error("addDOHLocal() called but DNS over HTTPS support is not present!");
+#endif
+  });
+
+  g_lua.writeFunction("showDOHFrontends", []() {
+#ifdef HAVE_DNS_OVER_HTTPS
+        setLuaNoSideEffect();
+        try {
+          ostringstream ret;
+          boost::format fmt("%-3d %-20.20s %-15d %-15d %-15d %-15d %-15d %-15d %-15d %-15d %-15d %-15d %-15d %-15d %-15d %-15d");
+          ret << (fmt % "#" % "Address" % "HTTP" % "HTTP/1" % "HTTP/2" % "TLS 1.0" % "TLS 1.1" % "TLS 1.2" % "TLS 1.3" % "TLS other" % "GET" % "POST" % "Bad" % "Errors" % "Redirects" % "Valid") << endl;
+          size_t counter = 0;
+          for (const auto& ctx : g_dohlocals) {
+            ret << (fmt % counter % ctx->d_local.toStringWithPort() % ctx->d_httpconnects % ctx->d_http1Stats.d_nbQueries % ctx->d_http1Stats.d_nbQueries % ctx->d_tls10queries % ctx->d_tls11queries % ctx->d_tls12queries % ctx->d_tls13queries % ctx->d_tlsUnknownqueries % ctx->d_getqueries % ctx->d_postqueries % ctx->d_badrequests % ctx->d_errorresponses % ctx->d_redirectresponses %ctx->d_validresponses) << endl;
+            counter++;
+          }
+          g_outputBuffer = ret.str();
+        }
+        catch(const std::exception& e) {
+          g_outputBuffer = e.what();
+          throw;
+        }
+#else
+        g_outputBuffer="DNS over HTTPS support is not present!\n";
+#endif
+      });
+
+    g_lua.writeFunction("showDOHResponseCodes", []() {
+#ifdef HAVE_DNS_OVER_HTTPS
+        setLuaNoSideEffect();
+        try {
+          ostringstream ret;
+          boost::format fmt("%-3d %-20.20s %-15d %-15d %-15d %-15d %-15d %-15d");
+          g_outputBuffer = "\n- HTTP/1:\n\n";
+          ret << (fmt % "#" % "Address" % "200" % "400" % "403" % "500" % "502" % "Others" ) << endl;
+          size_t counter = 0;
+          for (const auto& ctx : g_dohlocals) {
+            ret << (fmt % counter % ctx->d_local.toStringWithPort() % ctx->d_http1Stats.d_nb200Responses % ctx->d_http1Stats.d_nb400Responses % ctx->d_http1Stats.d_nb403Responses % ctx->d_http1Stats.d_nb500Responses % ctx->d_http1Stats.d_nb502Responses % ctx->d_http1Stats.d_nbOtherResponses) << endl;
+            counter++;
+          }
+          g_outputBuffer += ret.str();
+          ret.str("");
+
+          g_outputBuffer += "\n- HTTP/2:\n\n";
+          ret << (fmt % "#" % "Address" % "200" % "400" % "403" % "500" % "502" % "Others" ) << endl;
+          counter = 0;
+          for (const auto& ctx : g_dohlocals) {
+            ret << (fmt % counter % ctx->d_local.toStringWithPort() % ctx->d_http2Stats.d_nb200Responses % ctx->d_http2Stats.d_nb400Responses % ctx->d_http2Stats.d_nb403Responses % ctx->d_http2Stats.d_nb500Responses % ctx->d_http2Stats.d_nb502Responses % ctx->d_http2Stats.d_nbOtherResponses) << endl;
+            counter++;
+          }
+          g_outputBuffer += ret.str();
+        }
+        catch(const std::exception& e) {
+          g_outputBuffer = e.what();
+          throw;
+        }
+#else
+        g_outputBuffer="DNS over HTTPS support is not present!\n";
+#endif
+      });
+
+    g_lua.writeFunction("getDOHFrontend", [](size_t index) {
+        std::shared_ptr<DOHFrontend> result = nullptr;
+#ifdef HAVE_DNS_OVER_HTTPS
+        setLuaNoSideEffect();
+        try {
+          if (index < g_dohlocals.size()) {
+            result = g_dohlocals.at(index);
+          }
+          else {
+            errlog("Error: trying to get DOH frontend with index %zu but we only have %zu frontend(s)\n", index, g_dohlocals.size());
+            g_outputBuffer="Error: trying to get DOH frontend with index " + std::to_string(index) + " but we only have " + std::to_string(g_dohlocals.size()) + " frontend(s)\n";
+          }
+        }
+        catch(const std::exception& e) {
+          g_outputBuffer="Error while trying to get DOH frontend with index " + std::to_string(index) + ": "+string(e.what())+"\n";
+          errlog("Error while trying to get DOH frontend with index %zu: %s\n", index, string(e.what()));
+        }
+#else
+        g_outputBuffer="DNS over HTTPS support is not present!\n";
+#endif
+        return result;
+      });
+
+    g_lua.registerFunction<void(std::shared_ptr<DOHFrontend>::*)()>("reloadCertificates", [](std::shared_ptr<DOHFrontend> frontend) {
+        if (frontend != nullptr) {
+          frontend->reloadCertificates();
+        }
+      });
+
   g_lua.writeFunction("addTLSLocal", [client](const std::string& addr, boost::variant<std::string, std::vector<std::pair<int,std::string>>> certFiles, boost::variant<std::string, std::vector<std::pair<int,std::string>>> keyFiles, boost::optional<localbind_t> vars) {
+#ifdef HAVE_DNS_OVER_TLS
         if (client)
           return;
-#ifdef HAVE_DNS_OVER_TLS
         setLuaSideEffect();
         if (g_configurationDone) {
           g_outputBuffer="addTLSLocal cannot be used at runtime!\n";
@@ -1442,35 +1839,17 @@ void setupLuaConfig(bool client)
         }
         shared_ptr<TLSFrontend> frontend = std::make_shared<TLSFrontend>();
 
-        if (certFiles.type() == typeid(std::string) && keyFiles.type() == typeid(std::string)) {
-          auto certFile = boost::get<std::string>(certFiles);
-          auto keyFile = boost::get<std::string>(keyFiles);
-          frontend->d_certKeyPairs.push_back({certFile, keyFile});
-        }
-        else if (certFiles.type() == typeid(std::vector<std::pair<int,std::string>>) && keyFiles.type() == typeid(std::vector<std::pair<int,std::string>>))
-        {
-          auto certFilesVect = boost::get<std::vector<std::pair<int,std::string>>>(certFiles);
-          auto keyFilesVect = boost::get<std::vector<std::pair<int,std::string>>>(keyFiles);
-          if (certFilesVect.size() == keyFilesVect.size()) {
-            for (size_t idx = 0; idx < certFilesVect.size(); idx++) {
-              frontend->d_certKeyPairs.push_back({certFilesVect.at(idx).second, keyFilesVect.at(idx).second});
-            }
-          }
-          else {
-            errlog("Error, mismatching number of certificates and keys in call to addTLSLocal()!");
-            g_outputBuffer="Error, mismatching number of certificates and keys in call to addTLSLocal()!";
-            return;
-          }
-        }
-        else {
-          errlog("Error, mismatching number of certificates and keys in call to addTLSLocal()!");
-          g_outputBuffer="Error, mismatching number of certificates and keys in call to addTLSLocal()!";
+        if (!loadTLSCertificateAndKeys("addTLSLocal", frontend->d_certKeyPairs, certFiles, keyFiles)) {
           return;
         }
 
+        bool reusePort = false;
+        int tcpFastOpenQueueSize = 0;
+        std::string interface;
+        std::set<int> cpus;
+
         if (vars) {
-          bool doTCP = true;
-          parseLocalBindVars(vars, doTCP, frontend->d_reusePort, frontend->d_tcpFastOpenQueueSize, frontend->d_interface, frontend->d_cpus);
+          parseLocalBindVars(vars, reusePort, tcpFastOpenQueueSize, interface, cpus);
 
           if (vars->count("provider")) {
             frontend->d_provider = boost::get<const string>((*vars)["provider"]);
@@ -1480,29 +1859,51 @@ void setupLuaConfig(bool client)
             frontend->d_ciphers = boost::get<const string>((*vars)["ciphers"]);
           }
 
+          if (vars->count("ciphersTLS13")) {
+            frontend->d_ciphers13 = boost::get<const string>((*vars)["ciphersTLS13"]);
+          }
+
           if (vars->count("ticketKeyFile")) {
             frontend->d_ticketKeyFile = boost::get<const string>((*vars)["ticketKeyFile"]);
           }
 
           if (vars->count("ticketsKeysRotationDelay")) {
-            frontend->d_ticketsKeyRotationDelay = std::stoi(boost::get<const string>((*vars)["ticketsKeysRotationDelay"]));
+            frontend->d_ticketsKeyRotationDelay = boost::get<int>((*vars)["ticketsKeysRotationDelay"]);
           }
 
           if (vars->count("numberOfTicketsKeys")) {
-            frontend->d_numberOfTicketsKeys = std::stoi(boost::get<const string>((*vars)["numberOfTicketsKeys"]));
+            frontend->d_numberOfTicketsKeys = boost::get<int>((*vars)["numberOfTicketsKeys"]);
+          }
+
+          if (vars->count("sessionTickets")) {
+            frontend->d_enableTickets = boost::get<bool>((*vars)["sessionTickets"]);
+          }
+
+          if (vars->count("numberOfStoredSessions")) {
+            auto value = boost::get<int>((*vars)["numberOfStoredSessions"]);
+            if (value < 0) {
+              errlog("Invalid value '%d' for addTLSLocal() parameter 'numberOfStoredSessions', should be >= 0, dismissing", value);
+              g_outputBuffer="Invalid value '" +  std::to_string(value) + "' for addTLSLocal() parameter 'numberOfStoredSessions', should be >= 0, dimissing";
+              return;
+            }
+            frontend->d_maxStoredSessions = value;
           }
         }
 
         try {
           frontend->d_addr = ComboAddress(addr, 853);
           vinfolog("Loading TLS provider %s", frontend->d_provider);
-          g_tlslocals.push_back(frontend); /// only works pre-startup, so no sync necessary
+          // only works pre-startup, so no sync necessary
+          auto cs = std::unique_ptr<ClientState>(new ClientState(frontend->d_addr, true, reusePort, tcpFastOpenQueueSize, interface, cpus));
+          cs->tlsFrontend = frontend;
+          g_tlslocals.push_back(cs->tlsFrontend);
+          g_frontends.push_back(std::move(cs));
         }
         catch(const std::exception& e) {
           g_outputBuffer="Error: "+string(e.what())+"\n";
         }
 #else
-        g_outputBuffer="DNS over TLS support is not present!\n";
+        throw std::runtime_error("addTLSLocal() called but DNS over TLS support is not present!");
 #endif
       });
 
@@ -1539,13 +1940,36 @@ void setupLuaConfig(bool client)
             result = g_tlslocals.at(index)->getContext();
           }
           else {
-            errlog("Error: trying to get TLS context with index %zu but we only have %zu\n", index, g_tlslocals.size());
-            g_outputBuffer="Error: trying to get TLS context with index " + std::to_string(index) + " but we only have " + std::to_string(g_tlslocals.size()) + "\n";
+            errlog("Error: trying to get TLS context with index %zu but we only have %zu context(s)\n", index, g_tlslocals.size());
+            g_outputBuffer="Error: trying to get TLS context with index " + std::to_string(index) + " but we only have " + std::to_string(g_tlslocals.size()) + " context(s)\n";
           }
         }
         catch(const std::exception& e) {
-          g_outputBuffer="Error: "+string(e.what())+"\n";
-          errlog("Error: %s\n", string(e.what()));
+          g_outputBuffer="Error while trying to get TLS context with index " + std::to_string(index) + ": "+string(e.what())+"\n";
+          errlog("Error while trying to get TLS context with index %zu: %s\n", index, string(e.what()));
+        }
+#else
+        g_outputBuffer="DNS over TLS support is not present!\n";
+#endif
+        return result;
+      });
+
+    g_lua.writeFunction("getTLSFrontend", [](size_t index) {
+        std::shared_ptr<TLSFrontend> result = nullptr;
+#ifdef HAVE_DNS_OVER_TLS
+        setLuaNoSideEffect();
+        try {
+          if (index < g_tlslocals.size()) {
+            result = g_tlslocals.at(index);
+          }
+          else {
+            errlog("Error: trying to get TLS frontend with index %zu but we only have %zu frontends\n", index, g_tlslocals.size());
+            g_outputBuffer="Error: trying to get TLS frontend with index " + std::to_string(index) + " but we only have " + std::to_string(g_tlslocals.size()) + " frontend(s)\n";
+          }
+        }
+        catch(const std::exception& e) {
+          g_outputBuffer="Error while trying to get TLS frontend with index " + std::to_string(index) + ": "+string(e.what())+"\n";
+          errlog("Error while trying to get TLS frontend with index %zu: %s\n", index, string(e.what()));
         }
 #else
         g_outputBuffer="DNS over TLS support is not present!\n";
@@ -1564,6 +1988,44 @@ void setupLuaConfig(bool client)
           ctx->loadTicketsKeys(file);
         }
       });
+
+    g_lua.registerFunction<void(std::shared_ptr<TLSFrontend>::*)(boost::variant<std::string, std::vector<std::pair<int,std::string>>> certFiles, boost::variant<std::string, std::vector<std::pair<int,std::string>>> keyFiles)>("loadNewCertificatesAndKeys", [](std::shared_ptr<TLSFrontend>& frontend, boost::variant<std::string, std::vector<std::pair<int,std::string>>> certFiles, boost::variant<std::string, std::vector<std::pair<int,std::string>>> keyFiles) {
+#ifdef HAVE_DNS_OVER_TLS
+        if (loadTLSCertificateAndKeys("loadNewCertificatesAndKeys", frontend->d_certKeyPairs, certFiles, keyFiles)) {
+          frontend->setupTLS();
+        }
+#endif
+      });
+
+    g_lua.writeFunction("reloadAllCertificates", []() {
+        for (auto& frontend : g_frontends) {
+          if (!frontend) {
+            continue;
+          }
+          try {
+#ifdef HAVE_DNSCRYPT
+            if (frontend->dnscryptCtx) {
+              frontend->dnscryptCtx->reloadCertificates();
+            }
+#endif /* HAVE_DNSCRYPT */
+#ifdef HAVE_DNS_OVER_TLS
+            if (frontend->tlsFrontend) {
+              frontend->tlsFrontend->setupTLS();
+            }
+#endif /* HAVE_DNS_OVER_TLS */
+#ifdef HAVE_DNS_OVER_HTTPS
+            if (frontend->dohFrontend) {
+              frontend->dohFrontend->reloadCertificates();
+            }
+#endif /* HAVE_DNS_OVER_HTTPS */
+          }
+          catch(const std::exception& e) {
+            errlog("Error reloading certificates for frontend %s: %s", frontend->local.toStringWithPort(), e.what());
+          }
+        }
+      });
+
+    g_lua.writeFunction("setAllowEmptyResponse", [](bool allow) { g_allowEmptyResponse=allow; });
 }
 
 vector<std::function<void(void)>> setupLua(bool client, const std::string& config)

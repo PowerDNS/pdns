@@ -65,17 +65,22 @@ uint32_t calculateEditSOA(uint32_t old_serial, const string& kind, const DNSName
     uint32_t inception = getStartOfWeek();
     if (old_serial < inception)
       return inception;
-  } else if(!kind.empty()) {
+  }
+  else if(pdns_iequals(kind,"NONE")) {
+    // do nothing to serial. needed because a metadata of "" will use the default-soa-edit setting instead.
+  }
+  else if(!kind.empty()) {
     g_log<<Logger::Warning<<"SOA-EDIT type '"<<kind<<"' for zone "<<zonename<<" is unknown."<<endl;
   }
+  // Seen strictly, this is a broken config: we can only come here if
+  // both SOA-EDIT and default-soa-edit are set to "", but the latter
+  // should be set to "NONE" instead.
   return old_serial;
 }
 
 uint32_t calculateEditSOA(uint32_t old_serial, DNSSECKeeper& dk, const DNSName& zonename) {
   string kind;
   dk.getSoaEdit(zonename, kind);
-  if(kind.empty())
-    return old_serial;
   return calculateEditSOA(old_serial, kind, zonename);
 }
 
@@ -150,4 +155,24 @@ bool makeIncreasedSOARecord(SOAData& sd, const string& increaseKind, const strin
   rrout.ttl = sd.ttl;
 
   return true;
+}
+
+DNSZoneRecord makeEditedDNSZRFromSOAData(DNSSECKeeper& dk, const SOAData& sd, DNSResourceRecord::Place place) {
+  SOAData edited = sd;
+  edited.serial = calculateEditSOA(sd.serial, dk, sd.qname);
+
+  DNSRecord soa;
+  soa.d_name = sd.qname;
+  soa.d_type = QType::SOA;
+  soa.d_ttl = sd.ttl;
+  soa.d_place = place;
+  soa.d_content = makeSOAContent(edited);
+
+  DNSZoneRecord dzr;
+  dzr.domain_id = sd.domain_id;
+  dzr.signttl = sd.ttl;
+  dzr.auth = true;
+  dzr.dr = soa;
+
+  return dzr;
 }

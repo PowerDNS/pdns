@@ -220,9 +220,9 @@ install_auth() {
     libyaml-cpp-dev \
     libmaxminddb-dev"
 
-  # ldap-backend
+  # lmdb-backend
   run "sudo apt-get -qq --no-install-recommends install \
-    libldap-dev"
+    liblmdb-dev"
 
   # opendbx-backend
   run "sudo apt-get -qq --no-install-recommends install \
@@ -249,8 +249,8 @@ install_auth() {
     jq"
 
   run "cd .."
-  run "wget https://www.monshouwer.eu/download/3rd_party/jdnssec-tools-0.13.ecdsafix.tar.gz"
-  run "sudo tar xfz jdnssec-tools-0.13.ecdsafix.tar.gz --strip-components=1 -C /"
+  run "wget https://github.com/dblacka/jdnssec-tools/releases/download/0.14/jdnssec-tools-0.14.tar.gz"
+  run "sudo tar xfz jdnssec-tools-0.14.tar.gz --strip-components=1 -C /"
   run "cd ${TRAVIS_BUILD_DIR}"
 
   # pkcs11 test requirements / setup
@@ -291,27 +291,12 @@ install_auth() {
   run 'echo ${HOME}/.odbc.ini'
   run 'cat ${HOME}/.odbc.ini'
 
-  # ldap-backend test setup
-  run "sudo apt-get -qq --no-install-recommends install \
-    slapd \
-    ldap-utils"
-  run "mkdir /tmp/ldap-dns"
-  run "pushd /tmp/ldap-dns"
-  run 'for schema in /etc/ldap/schema/{core,cosine}.schema ${TRAVIS_BUILD_DIR}/modules/ldapbackend/{dnsdomain2,pdns-domaininfo}.schema ; do echo include $schema ; done > ldap.conf'
-  run "mkdir slapd.d"
-  run "slaptest -f ldap.conf -F slapd.d"
-  run "sudo cp slapd.d/cn=config/cn=schema/cn={*dns*.ldif /etc/ldap/slapd.d/cn=config/cn=schema/"
-  run "sudo chown -R openldap:openldap /etc/ldap/slapd.d/"
-  run "sudo service slapd restart"
-  run "popd"
-  run "sudo -u openldap mkdir -p /var/lib/ldap/powerdns"
-  run "sudo ldapadd -Y EXTERNAL -H ldapi:/// -f ./modules/ldapbackend/testfiles/add.ldif"
-
   # remote-backend tests requirements
   run "sudo apt-get -qq --no-install-recommends install \
     ruby-json \
     rubygems-integration \
     socat"
+  run "gem update --system"
   run "gem install bundler --no-rdoc --no-ri"
   run "cd modules/remotebackend"
   run "ruby -S bundle install"
@@ -327,6 +312,24 @@ install_auth() {
     faketime"
   run "sudo touch /etc/authbind/byport/53"
   run "sudo chmod 755 /etc/authbind/byport/53"
+
+  # Install dnsmasq to make lookups more robust
+  run "sudo apt-get -qq --no-install-recommends install \
+    dnsmasq"
+  run 'echo listen-address=127.0.0.53 | sudo tee /etc/dnsmasq.d/local.conf'
+  run 'echo bind-interfaces | sudo tee -a /etc/dnsmasq.d/local.conf'
+
+  ## WARNING
+  ## after this dnsmasq restart, DNS lookups will fail for a few seconds.
+  run 'sudo service dnsmasq restart'
+  run "sudo resolvconf --disable-updates"
+  run 'echo nameserver 127.0.0.53 | sudo tee /etc/resolv.conf'
+  run "export RESOLVERIP=127.0.0.53"
+}
+
+install_ixfrdist() {
+  run "sudo apt-get -qq --no-install-recommends install \
+    libyaml-cpp-dev"
 }
 
 install_recursor() {
@@ -355,6 +358,12 @@ install_recursor() {
   run "sudo touch /etc/authbind/byport/53"
   run "sudo chmod 755 /etc/authbind/byport/53"
   run "cd ${TRAVIS_BUILD_DIR}"
+  # install SNMP
+  run "sudo sed -i \"s/agentxperms 0700 0755 recursor/agentxperms 0700 0755 ${USER}/g\" regression-tests.recursor-dnssec/snmpd.conf"
+  run "sudo cp -f regression-tests.recursor-dnssec/snmpd.conf /etc/snmp/snmpd.conf"
+  run "sudo service snmpd restart"
+  ## fun story, the directory perms are only applied if it doesn't exist yet, and it is created by the init script, so..
+  run "sudo chmod 0755 /var/agentx"
 }
 
 install_dnsdist() {
@@ -373,41 +382,66 @@ install_dnsdist() {
   run "sudo chmod 0755 /var/agentx"
 }
 
+check_for_dangling_symlinks() {
+  run '! find -L . -name missing-sources -prune -o ! -name pubsuffix.cc -type l | grep .'
+}
+
 build_auth() {
   run "autoreconf -vi"
-  # Build without --enable-botan, no botan 2.x in Travis CI
-  run "CFLAGS='-O1 -Werror=vla' CXXFLAGS='-O1 -Werror=vla' ./configure \
-    --with-dynmodules='bind gmysql geoip gpgsql gsqlite3 ldap lua mydns opendbx pipe random remote tinydns godbc lua2' \
+  run "./configure \
+    ${sanitizerflags} \
+    --with-dynmodules='bind gmysql geoip gpgsql gsqlite3 lmdb lua mydns opendbx pipe random remote tinydns godbc lua2' \
     --with-modules='' \
     --with-sqlite3 \
-    --enable-libsodium \
+    --with-libsodium \
     --enable-experimental-pkcs11 \
     --enable-remotebackend-zeromq \
     --enable-tools \
-    --enable-ixfrdist \
     --enable-unit-tests \
     --enable-backend-unit-tests \
+    --enable-fuzz-targets \
     --disable-dependency-tracking \
-    --disable-silent-rules"
+    --disable-silent-rules \
+    --with-lmdb=/usr"
   run "make -k dist"
   run "make -k -j3"
   run "make -k install DESTDIR=/tmp/pdns-install-dir"
   run "find /tmp/pdns-install-dir -ls"
 }
 
+build_ixfrdist() {
+  run "autoreconf -vi"
+  run "./configure \
+    ${sanitizerflags} \
+    --with-dynmodules='bind' \
+    --with-modules='' \
+    --enable-ixfrdist \
+    --enable-unit-tests \
+    --disable-dependency-tracking \
+    --disable-silent-rules"
+  run "make -C ext -k -j3"
+  run "cd pdns"
+  run "make -k -j3 ixfrdist"
+  run "cd .."
+}
+
 build_recursor() {
   export PDNS_RECURSOR_DIR=$HOME/pdns_recursor
+  run "cd pdns/recursordist"
+  check_for_dangling_symlinks
+  run "cd ../.."
   # distribution build
   run "./build-scripts/dist-recursor"
   run "cd pdns/recursordist"
   run "tar xf pdns-recursor-*.tar.bz2"
   run "rm -f pdns-recursor-*.tar.bz2"
   run "cd pdns-recursor-*"
-  # Build without --enable-botan, no botan 2.x in Travis CI
-  run "CFLAGS='-O1 -Werror=vla' CXXFLAGS='-O1 -Werror=vla' CXX=${COMPILER} ./configure \
+  run "./configure \
+    ${sanitizerflags} \
     --prefix=$PDNS_RECURSOR_DIR \
-    --enable-libsodium \
+    --with-libsodium \
     --enable-unit-tests \
+    --enable-nod \
     --disable-silent-rules"
   run "make -k -j3"
   run "make install"
@@ -416,16 +450,20 @@ build_recursor() {
 }
 
 build_dnsdist(){
+  run "cd pdns/dnsdistdist"
+  check_for_dangling_symlinks
+  run "cd ../.."
   run "./build-scripts/dist-dnsdist"
   run "cd pdns/dnsdistdist"
   run "tar xf dnsdist*.tar.bz2"
   run "cd dnsdist-*"
-  run "CFLAGS='-O1 -Werror=vla' CXXFLAGS='-O1 -Werror=vla' ./configure \
+  run "./configure \
+    ${sanitizerflags} \
     --enable-unit-tests \
-    --enable-libsodium \
+    --with-libsodium \
     --enable-dnscrypt \
     --enable-dns-over-tls \
-    --enable-fstrm \
+    --enable-dnstap \
     --prefix=$HOME/dnsdist \
     --disable-silent-rules"
   run "make -k -j3"
@@ -456,14 +494,10 @@ test_auth() {
 
   run "./timestamp ./start-test-stop 5300 lua-minimal nowait 0 apex-level-a-but-no-a"
 
-  run "./timestamp ./start-test-stop 5300 ldap-tree"
-  run "./timestamp ./start-test-stop 5300 ldap-simple"
-  run "./timestamp ./start-test-stop 5300 ldap-strict"
-
   run "./timestamp ./start-test-stop 5300 bind-both"
   run "./timestamp ./start-test-stop 5300 bind-dnssec-both"
   run "./timestamp ./start-test-stop 5300 bind-dnssec-nsec3-both"
-  run "./timestamp ./start-test-stop 5300 bind-dnssec-nsec3-optout-both"
+  # run "./timestamp ./start-test-stop 5300 bind-dnssec-nsec3-optout-both"
   run "./timestamp ./start-test-stop 5300 bind-dnssec-nsec3-narrow"
   run "./timestamp ./start-test-stop 5300 bind-hybrid-nsec3"
   #ecdsa - ./timestamp ./start-test-stop 5300 bind-dnssec-pkcs11
@@ -476,7 +510,7 @@ test_auth() {
   run "./timestamp ./start-test-stop 5300 gmysql-nodnssec-both"
   run "./timestamp ./start-test-stop 5300 gmysql-both"
   run "./timestamp ./start-test-stop 5300 gmysql-nsec3-both"
-  run "./timestamp ./start-test-stop 5300 gmysql-nsec3-optout-both"
+  # run "./timestamp ./start-test-stop 5300 gmysql-nsec3-optout-both"
   run "./timestamp ./start-test-stop 5300 gmysql-nsec3-narrow"
 
   run "export GODBC_SQLITE3_DSN=pdns-sqlite3-1"
@@ -485,13 +519,13 @@ test_auth() {
   run "./timestamp ./start-test-stop 5300 gpgsql-nodnssec-both"
   run "./timestamp ./start-test-stop 5300 gpgsql-both"
   run "./timestamp ./start-test-stop 5300 gpgsql-nsec3-both"
-  run "./timestamp ./start-test-stop 5300 gpgsql-nsec3-optout-both"
-  run "./timestamp ./start-test-stop 5300 gpgsql-nsec3-narrow"
+  #run "./timestamp ./start-test-stop 5300 gpgsql-nsec3-optout-both"
+  #run "./timestamp ./start-test-stop 5300 gpgsql-nsec3-narrow"
 
   run "./timestamp ./start-test-stop 5300 gsqlite3-nodnssec-both"
   run "./timestamp ./start-test-stop 5300 gsqlite3-both"
   run "./timestamp ./start-test-stop 5300 gsqlite3-nsec3-both"
-  run "./timestamp ./start-test-stop 5300 gsqlite3-nsec3-optout-both"
+  # run "./timestamp ./start-test-stop 5300 gsqlite3-nsec3-optout-both"
   run "./timestamp ./start-test-stop 5300 gsqlite3-nsec3-narrow"
 
   run "./timestamp ./start-test-stop 5300 mydns"
@@ -500,14 +534,19 @@ test_auth() {
 
   run "./timestamp ./start-test-stop 5300 remotebackend-pipe"
   run "./timestamp ./start-test-stop 5300 remotebackend-pipe-dnssec"
-  run "./timestamp ./start-test-stop 5300 remotebackend-unix"
+  #run "./timestamp ./start-test-stop 5300 remotebackend-unix"
   run "./timestamp ./start-test-stop 5300 remotebackend-unix-dnssec"
-  run "./timestamp ./start-test-stop 5300 remotebackend-http"
+  #run "./timestamp ./start-test-stop 5300 remotebackend-http"
   run "./timestamp ./start-test-stop 5300 remotebackend-http-dnssec"
-  run "./timestamp ./start-test-stop 5300 remotebackend-zeromq"
+  #run "./timestamp ./start-test-stop 5300 remotebackend-zeromq"
   run "./timestamp ./start-test-stop 5300 remotebackend-zeromq-dnssec"
 
   run "./timestamp ./start-test-stop 5300 tinydns"
+
+  run "./timestamp ./start-test-stop 5300 lmdb-nodnssec-both"
+  run "./timestamp ./start-test-stop 5300 lmdb-both"
+  run "./timestamp ./start-test-stop 5300 lmdb-nsec3-both"
+  # run "./timestamp ./start-test-stop 5300 lmdb-nsec3-optout-both"
 
   run "rm tests/ent-asterisk/fail.nsec"
 
@@ -520,30 +559,35 @@ test_auth() {
   run "./timestamp ./start-test-stop 5300 bind-both"
   run "./timestamp ./start-test-stop 5300 bind-dnssec-both"
   run "./timestamp ./start-test-stop 5300 bind-dnssec-nsec3-both"
-  run "./timestamp ./start-test-stop 5300 bind-dnssec-nsec3-optout-both"
+  # run "./timestamp ./start-test-stop 5300 bind-dnssec-nsec3-optout-both"
   run "./timestamp ./start-test-stop 5300 bind-dnssec-nsec3-narrow"
   run "./timestamp ./start-test-stop 5300 bind-hybrid-nsec3"
 
   run "./timestamp ./start-test-stop 5300 gmysql-nodnssec-both"
   run "./timestamp ./start-test-stop 5300 gmysql-both"
   run "./timestamp ./start-test-stop 5300 gmysql-nsec3-both"
-  run "./timestamp ./start-test-stop 5300 gmysql-nsec3-optout-both"
+  # run "./timestamp ./start-test-stop 5300 gmysql-nsec3-optout-both"
   run "./timestamp ./start-test-stop 5300 gmysql-nsec3-narrow"
 
   run "./timestamp ./start-test-stop 5300 gpgsql-nodnssec-both"
   run "./timestamp ./start-test-stop 5300 gpgsql-both"
   run "./timestamp ./start-test-stop 5300 gpgsql-nsec3-both"
-  run "./timestamp ./start-test-stop 5300 gpgsql-nsec3-optout-both"
+  # run "./timestamp ./start-test-stop 5300 gpgsql-nsec3-optout-both"
   run "./timestamp ./start-test-stop 5300 gpgsql-nsec3-narrow"
 
   run "./timestamp ./start-test-stop 5300 gsqlite3-nodnssec-both"
   run "./timestamp ./start-test-stop 5300 gsqlite3-both"
   run "./timestamp ./start-test-stop 5300 gsqlite3-nsec3-both"
-  run "./timestamp ./start-test-stop 5300 gsqlite3-nsec3-optout-both"
+  # run "./timestamp ./start-test-stop 5300 gsqlite3-nsec3-optout-both"
   run "./timestamp ./start-test-stop 5300 gsqlite3-nsec3-narrow"
 
   run "./timestamp ./start-test-stop 5300 lua2"
   run "./timestamp ./start-test-stop 5300 lua2-dnssec"
+
+  run "./timestamp ./start-test-stop 5300 lmdb-both"
+  run "./timestamp ./start-test-stop 5300 lmdb-nodnssec-both"
+  run "./timestamp ./start-test-stop 5300 lmdb-nsec3-both"
+  # run "./timestamp ./start-test-stop 5300 lmdb-nsec3-optout-both"
 
   run "cd .."
 
@@ -560,10 +604,16 @@ test_auth() {
 
   ### Lua rec tests ###
   run "cd regression-tests.auth-py"
-  run "./runtests"
+  run "./runtests -v || (cat ./configs/auth/pdns.log; false)"
   run "cd .."
 
   run "rm -f regression-tests/zones/*-slave.*" #FIXME
+}
+
+test_ixfrdist(){
+  run "cd regression-tests.ixfrdist"
+  run "IXFRDISTBIN=${TRAVIS_BUILD_DIR}/pdns/ixfrdist ./runtests -v || (cat ixfrdist.log; false)"
+  run "cd .."
 }
 
 test_recursor() {
@@ -586,7 +636,7 @@ test_recursor() {
 
 test_dnsdist(){
   run "cd regression-tests.dnsdist"
-  run "DNSDISTBIN=$HOME/dnsdist/bin/dnsdist ./runtests -v"
+  run "DNSDISTBIN=$HOME/dnsdist/bin/dnsdist ./runtests -v --ignore-files='(?:^\.|^_,|^setup\.py$|^test_DOH\.py$)'"
   run "rm -f ./DNSCryptResolver.cert ./DNSCryptResolver.key"
   run "cd .."
 }
@@ -597,13 +647,11 @@ test_repo(){
 }
 
 # global build requirements
-# Add botan 2.x when available in Travis CI
 run "sudo apt-get -qq --no-install-recommends install \
   libboost-all-dev \
   libluajit-5.1-dev \
   libedit-dev \
   libprotobuf-dev \
-  pandoc\
   protobuf-compiler"
 
 run "cd .."
@@ -611,6 +659,27 @@ run "wget http://ppa.launchpad.net/kalon33/gamesgiroll/ubuntu/pool/main/libs/lib
 run "wget http://ppa.launchpad.net/kalon33/gamesgiroll/ubuntu/pool/main/libs/libsodium/libsodium13_1.0.3-1~ppa14.04+1_amd64.deb"
 run "sudo dpkg -i libsodium-dev_1.0.3-1~ppa14.04+1_amd64.deb libsodium13_1.0.3-1~ppa14.04+1_amd64.deb"
 run "cd ${TRAVIS_BUILD_DIR}"
+
+compilerflags="-O1 -Werror=vla"
+sanitizerflags=""
+if [ "$CC" = "clang" ]
+then
+  compilerflags="$compilerflags -Werror=string-plus-int"
+  if [ "${PDNS_BUILD_PRODUCT}" = "recursor" ]; then
+    sanitizerflags="${sanitizerflags} --enable-asan"
+  elif [ "${PDNS_BUILD_PRODUCT}" = "dnsdist" ]; then
+    sanitizerflags="${sanitizerflags} --enable-asan --enable-ubsan"
+  elif [ "${PDNS_BUILD_PRODUCT}" = "ixfrdist" ]; then
+    sanitizerflags="${sanitizerflags} --enable-asan --enable-ubsan"
+  fi
+fi
+export CFLAGS=$compilerflags
+export CXXFLAGS=$compilerflags
+export sanitizerflags
+# We need a suppression for UndefinedBehaviorSanitizer with ixfrdist,
+# because of a vptr bug fixed in Boost 1.57.0:
+# https://github.com/boostorg/any/commit/c92ab03ab35775b6aab30f6cdc3d95b7dd8fc5c6
+export UBSAN_OPTIONS="print_stacktrace=1:halt_on_error=1:suppressions=${TRAVIS_BUILD_DIR}/build-scripts/UBSan.supp"
 
 install_$PDNS_BUILD_PRODUCT
 

@@ -83,7 +83,6 @@ public:
       d_DeleteZoneQuery_stmt = d_db->prepare(d_DeleteZoneQuery, 1);
       d_DeleteRRSetQuery_stmt = d_db->prepare(d_DeleteRRSetQuery, 3);
       d_DeleteNamesQuery_stmt = d_db->prepare(d_DeleteNamesQuery, 2);
-      d_ZoneLastChangeQuery_stmt = d_db->prepare(d_ZoneLastChangeQuery, 1);
       d_firstOrderQuery_stmt = d_db->prepare(d_firstOrderQuery, 1);
       d_beforeOrderQuery_stmt = d_db->prepare(d_beforeOrderQuery, 2);
       d_afterOrderQuery_stmt = d_db->prepare(d_afterOrderQuery, 2);
@@ -145,7 +144,6 @@ public:
     d_DeleteZoneQuery_stmt.reset();
     d_DeleteRRSetQuery_stmt.reset();
     d_DeleteNamesQuery_stmt.reset();
-    d_ZoneLastChangeQuery_stmt.reset();
     d_firstOrderQuery_stmt.reset();
     d_beforeOrderQuery_stmt.reset();
     d_afterOrderQuery_stmt.reset();
@@ -189,7 +187,7 @@ public:
   bool startTransaction(const DNSName &domain, int domain_id=-1) override;
   bool commitTransaction() override;
   bool abortTransaction() override;
-  bool feedRecord(const DNSResourceRecord &r, const DNSName &ordername) override;
+  bool feedRecord(const DNSResourceRecord &r, const DNSName &ordername, bool ordernameIsNSEC3=false) override;
   bool feedEnts(int domain_id, map<DNSName,bool>& nonterm) override;
   bool feedEnts3(int domain_id, const DNSName &domain, map<DNSName,bool> &nonterm, const NSEC3PARAMRecordContent& ns3prc, bool narrow) override;
   bool createDomain(const DNSName &domain) override {
@@ -212,8 +210,6 @@ public:
 
   bool updateEmptyNonTerminals(uint32_t domain_id, set<DNSName>& insert ,set<DNSName>& erase, bool remove) override;
   bool doesDNSSEC() override;
-
-  bool calculateSOASerial(const DNSName& domain, const SOAData& sd, uint32_t& serial) override;
 
   bool replaceRRSet(uint32_t domain_id, const DNSName& qname, const QType& qt, const vector<DNSResourceRecord>& rrset) override;
   bool listSubZone(const DNSName &zone, int domain_id) override;
@@ -299,7 +295,6 @@ private:
   string d_DeleteZoneQuery;
   string d_DeleteRRSetQuery;
   string d_DeleteNamesQuery;
-  string d_ZoneLastChangeQuery;
 
   string d_firstOrderQuery;
   string d_beforeOrderQuery;
@@ -369,7 +364,6 @@ private:
   unique_ptr<SSqlStatement> d_DeleteZoneQuery_stmt;
   unique_ptr<SSqlStatement> d_DeleteRRSetQuery_stmt;
   unique_ptr<SSqlStatement> d_DeleteNamesQuery_stmt;
-  unique_ptr<SSqlStatement> d_ZoneLastChangeQuery_stmt;
   unique_ptr<SSqlStatement> d_firstOrderQuery_stmt;
   unique_ptr<SSqlStatement> d_beforeOrderQuery_stmt;
   unique_ptr<SSqlStatement> d_afterOrderQuery_stmt;

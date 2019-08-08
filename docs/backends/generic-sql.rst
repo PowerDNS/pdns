@@ -48,17 +48,15 @@ And wait a while for PowerDNS to pick up the addition - which happens
 within one minute (this is determined by the
 :ref:`setting-slave-cycle-interval`
 setting). There is no need to inform PowerDNS that a new domain was
-added. Typical output is:
+added. Typical output is::
 
-.. code-block:: SQL
-
-    Apr 09 13:34:29 All slave domains are fresh
-    Apr 09 13:35:29 1 slave domain needs checking
-    Apr 09 13:35:29 Domain example.com is stale, master serial 1, our serial 0
-    Apr 09 13:35:30 [gPgSQLBackend] Connected to database
-    Apr 09 13:35:30 AXFR started for 'example.com'
-    Apr 09 13:35:30 AXFR done for 'example.com'
-    Apr 09 13:35:30 [gPgSQLBackend] Closing connection
+  Apr 09 13:34:29 All slave domains are fresh
+  Apr 09 13:35:29 1 slave domain needs checking
+  Apr 09 13:35:29 Domain example.com is stale, master serial 1, our serial 0
+  Apr 09 13:35:30 [gPgSQLBackend] Connected to database
+  Apr 09 13:35:30 AXFR started for 'example.com'
+  Apr 09 13:35:30 AXFR done for 'example.com'
+  Apr 09 13:35:30 [gPgSQLBackend] Closing connection
 
 From now on, PowerDNS is authoritative for the 'example.com' zone and
 will respond accordingly for queries within that zone.
@@ -123,17 +121,6 @@ clients. The REST API will still see the record (or domain). Even if a
 domain is disabled, slaving still works. Slaving considers a disabled
 domain to have a serial of 0; this implies that a slaved domain will not
 stay disabled.
-
-.. _autoserial:
-
-Autoserial
-^^^^^^^^^^
-
-The autoserial functionality makes PowerDNS generate the SOA serial when
-the SOA serial set to ``0`` in the database. The serial in SOA responses
-is set to what's provided by ``zone-lastchange-query``. By default, this
-is the highest value of the ``change_date`` field in the "records"
-table).
 
 .. _generic-sql-handling-dnssec-signed-zones:
 
@@ -333,14 +320,11 @@ On masters
    which the server is master.
 -  ``update-serial-query`` Called to update the last notified serial of
    a master domain.
--  ``zone-lastchange-query``: Called to determine the last change to a
-   zone, used for autoserial.
 
 On slaves
 ~~~~~~~~~
 
 -  ``info-all-slaves-query``: Called to retrieve all slave domains.
--  ``master-zone-query``: Called to determine the master of a zone.
 -  ``update-lastcheck-query``: Called to update the last time a slave
    domain was successfully checked for freshness.
 -  ``update-master-query``: Called to update the master address of a

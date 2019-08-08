@@ -159,9 +159,9 @@ void LOCRecordContent::report(void)
   regist(254, QType::LOC, &make, &make, "LOC");
 }
 
-DNSRecordContent* LOCRecordContent::make(const string& content)
+std::shared_ptr<DNSRecordContent> LOCRecordContent::make(const string& content)
 {
-  return new LOCRecordContent(content);
+  return std::make_shared<LOCRecordContent>(content);
 }
 
 
@@ -177,9 +177,9 @@ void LOCRecordContent::toPacket(DNSPacketWriter& pw)
   pw.xfr32BitInt(d_altitude);
 }
 
-LOCRecordContent::DNSRecordContent* LOCRecordContent::make(const DNSRecord &dr, PacketReader& pr) 
+std::shared_ptr<LOCRecordContent::DNSRecordContent> LOCRecordContent::make(const DNSRecord &dr, PacketReader& pr) 
 {
-  LOCRecordContent* ret=new LOCRecordContent();
+  auto ret=std::make_shared<LOCRecordContent>();
   pr.xfr8BitInt(ret->d_version);
   pr.xfr8BitInt(ret->d_size);
   pr.xfr8BitInt(ret->d_horizpre);
@@ -319,15 +319,16 @@ string LOCRecordContent::getZoneRepresentation(bool noDot) const
 
   double remlat=60.0*(latitude-(int)latitude);
   double remlong=60.0*(longitude-(int)longitude);
-  char ret[80];
-  snprintf(ret,sizeof(ret)-1,"%d %d %2.03f %c %d %d %2.03f %c %.2fm %.2fm %.2fm %.2fm",
-           abs((int)latitude), abs((int) ((latitude-(int)latitude)*60)),
-           fabs((double)((remlat-(int)remlat)*60.0)),
-           latitude>0 ? 'N' : 'S',
-           abs((int)longitude), abs((int) ((longitude-(int)longitude)*60)),
-           fabs((double)((remlong-(int)remlong)*60.0)),
-           longitude>0 ? 'E' : 'W',
-           altitude, size, horizpre, vertpre);
+  static const boost::format fmt("%d %d %2.03f %c %d %d %2.03f %c %.2fm %.2fm %.2fm %.2fm");
+  std::string ret = boost::str(
+    boost::format(fmt)
+    % abs((int)latitude) % abs((int) ((latitude-(int)latitude)*60))
+    % fabs((double)((remlat-(int)remlat)*60.0)) % (latitude>0 ? 'N' : 'S')
+    % abs((int)longitude) % abs((int) ((longitude-(int)longitude)*60))
+    % fabs((double)((remlong-(int)remlong)*60.0)) % (longitude>0 ? 'E' : 'W')
+    % altitude % size
+    % horizpre % vertpre
+    );
 
   return ret;
 }

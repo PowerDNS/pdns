@@ -26,15 +26,15 @@ Automated tests
 For a more hands-off approach, make sure PowerDNS is built with suitable
 modules, and use:
 
-```
-$ ./start-test-stop 5300 gmysql
+```sh
+./start-test-stop 5300 gmysql
 ```
 
 To start PowerDNS in gmysql mode (including DNSSEC), run all tests, and
 write reports, using udp port 5300 in the process. Use:
 
-```
-$ ./start-test-stop help
+```sh
+./start-test-stop help
 ```
 
 to see all available suites.
@@ -80,16 +80,16 @@ feed it to your database if you want to test one of the sql backends.
 
 Run PowerDNS as (to test gmysql):
 
-```
-$ ../pdns/pdns_server --daemon=no --local-port=5300 --socket-dir=./  \
+```sh
+../pdns/pdns_server --daemon=no --local-port=5300 --socket-dir=./  \
 --no-shuffle --launch=gmysql --gmysql-dbname=pdnstest --gmysql-user=root \
 --fancy-records --query-logging --loglevel=9 \
 --cache-ttl=0 --no-config
 ```
 
 or (to test bind, without DNSSEC):
-```
-$ ../pdns/pdns_server --daemon=no --local-port=5300 --socket-dir=./  \
+```sh
+../pdns/pdns_server --daemon=no --local-port=5300 --socket-dir=./  \
 --no-shuffle --launch=bind --bind-config=./named.conf                \
 --fancy-records --query-logging --loglevel=9    \
 --cache-ttl=0 --no-config
@@ -97,16 +97,16 @@ $ ../pdns/pdns_server --daemon=no --local-port=5300 --socket-dir=./  \
 
 or (to test bind with DNSSEC):
 
-```
-$ ./bind-dnssec-setup
-$ ../pdns/pdns_server --daemon=no --local-port=5300 --socket-dir=./  \
+```sh
+./bind-dnssec-setup
+../pdns/pdns_server --daemon=no --local-port=5300 --socket-dir=./  \
 --no-shuffle --launch=bind --bind-config=./named.conf                \
 --query-logging --loglevel=9                    \
 --cache-ttl=0 --no-config
 ```
 
 Or only sqlite3:
-```
+```sh
 rm powerdns.sqlite3
 sqlite3 powerdns.sqlite3 < ../pdns/no-dnssec.schema.sqlite3.sql
 sqlite3 powerdns.sqlite3 < ../pdns/dnssec.schema.sqlite3.sql
@@ -114,7 +114,7 @@ sqlite3 powerdns.sqlite3 < ../pdns/dnssec.schema.sqlite3.sql
 --transactions --dnssec | sqlite3 powerdns.sqlite3
 echo 'analyze;' | sqlite3 powerdns.sqlite3
 
-$ ../pdns/pdns_server --daemon=no --local-port=5300 --socket-dir=./  \
+../pdns/pdns_server --daemon=no --local-port=5300 --socket-dir=./  \
 --no-shuffle --launch=gsqlite3 \
 --gsqlite3-database=./powerdns.sqlite3 --gsqlite3-dnssec             \
 --query-logging --loglevel=9                    \
@@ -124,8 +124,8 @@ $ ../pdns/pdns_server --daemon=no --local-port=5300 --socket-dir=./  \
 Set the `nameserver` and `port` variables to point to your pdns\_server
 instance:
 
-```
-$ nameserver=127.0.0.1 port=5300 ./runtests
+```sh
+nameserver=127.0.0.1 port=5300 ./runtests
 ```
 
 
@@ -140,15 +140,31 @@ files in all subdirectories to see what happened.
 Debian Jessie notes
 -------------------
 On debian-jessie, most of these tools can be retrieved with:
-```
-$ sudo apt-get install validns ldnsutils bind9utils libnet-dns-perl
-$ sudo apt-get -t jessie-backports install unbound-host libunbound2
+```sh
+sudo apt-get install validns ldnsutils bind9utils libnet-dns-perl
+sudo apt-get -t jessie-backports install unbound-host libunbound2
 ```
 
 libnet-dns-perl is needed for one dyndns test.
 
 This does not install the jdnssec-verifyzone tools. The test that will break without that can be disabled with:
-```
+```sh
 touch tests/verify-dnssec-zone/allow-missing
 ```
 
+Getting required daemons from Docker
+------------------------------------
+
+Please keep in mind that databases may need a few seconds to start up.
+
+'MySQL':
+```sh
+docker run -p 3306:3306 --rm -d -e MYSQL_ALLOW_EMPTY_PASSWORD=1 mariadb
+GMYSQLHOST=127.0.0.1 ./start-test-stop 5300 gmysql
+```
+
+Postgres:
+```sh
+docker run -p 5432:5432 --rm -d postgres
+GPGSQLUSER=postgres PGHOST=127.0.0.1  ./start-test-stop 5300 gpgsql
+```

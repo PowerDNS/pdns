@@ -71,7 +71,7 @@ public:
 
   /** Shorthand way to add an Opt-record, for example for EDNS0 purposes */
   typedef vector<pair<uint16_t,std::string> > optvect_t;
-  void addOpt(uint16_t udpsize, int extRCode, int Z, const optvect_t& options=optvect_t(), uint8_t version=0);
+  void addOpt(const uint16_t udpsize, const uint16_t extRCode, const uint16_t ednsFlags, const optvect_t& options=optvect_t(), const uint8_t version=0);
 
   /** needs to be called after the last record is added, but can be called again and again later on. Is called internally by startRecord too.
       The content of the vector<> passed to the constructor is inconsistent until commit is called.
@@ -167,7 +167,7 @@ private:
 
   uint16_t d_truncatemarker; // end of header, for truncate
   DNSResourceRecord::Place d_recordplace;
-  bool d_canonic, d_lowerCase;
+  bool d_canonic, d_lowerCase, d_compress{false};
 };
 
 typedef vector<pair<string::size_type, string::size_type> > labelparts_t;

@@ -19,6 +19,8 @@
 /depcomp
 /dnsdist.1
 /dnslabeltext.cc
+/ext/ipcrypt/Makefile
+/ext/ipcrypt/Makefile.in
 /ext/yahttp/Makefile
 /ext/yahttp/Makefile.in
 /ext/yahttp/yahttp/Makefile

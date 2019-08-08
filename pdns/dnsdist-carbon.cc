@@ -28,6 +28,7 @@
 
 #include "namespaces.hh"
 #include "dnsdist.hh"
+#include "threadname.hh"
 
 GlobalStateHolder<vector<CarbonConfig> > g_carbon;
 static time_t s_start=time(0);
@@ -36,9 +37,10 @@ uint64_t uptimeOfProcess(const std::string& str)
   return time(0) - s_start;
 }
 
-void* carbonDumpThread()
+void carbonDumpThread()
 try
 {
+  setThreadName("dnsdist/carbon");
   auto localCarbon = g_carbon.getLocal();
   for(int numloops=0;;++numloops) {
     if(localCarbon->empty()) {
@@ -54,6 +56,7 @@ try
 
     for (const auto& conf : *localCarbon) {
       const auto& server = conf.server;
+      const std::string& namespace_name = conf.namespace_name;
       std::string hostname = conf.ourname;
       if(hostname.empty()) {
         char tmp[80];
@@ -64,6 +67,7 @@ try
         hostname=tmp;
         boost::replace_all(hostname, ".", "_");
       }
+      const std::string& instance_name = conf.instance_name;
 
       try {
         Socket s(server.sin4.sin_family, SOCK_STREAM);
@@ -72,7 +76,7 @@ try
         ostringstream str;
         time_t now=time(0);
         for(const auto& e : g_stats.entries) {
-          str<<"dnsdist."<<hostname<<".main."<<e.first<<' ';
+          str<<namespace_name<<"."<<hostname<<"."<<instance_name<<"."<<e.first<<' ';
           if(const auto& val = boost::get<DNSDistStats::stat_t*>(&e.second))
             str<<(*val)->load();
           else if (const auto& dval = boost::get<double*>(&e.second))
@@ -85,22 +89,47 @@ try
         for(const auto& state : *states) {
           string serverName = state->name.empty() ? (state->remote.toString() + ":" + std::to_string(state->remote.getPort())) : state->getName();
           boost::replace_all(serverName, ".", "_");
-          const string base = "dnsdist." + hostname + ".main.servers." + serverName + ".";
+          const string base = namespace_name + "." + hostname + "." + instance_name + ".servers." + serverName + ".";
           str<<base<<"queries" << ' ' << state->queries.load() << " " << now << "\r\n";
           str<<base<<"drops" << ' ' << state->reuseds.load() << " " << now << "\r\n";
           str<<base<<"latency" << ' ' << (state->availability != DownstreamState::Availability::Down ? state->latencyUsec/1000.0 : 0) << " " << now << "\r\n";
           str<<base<<"senderrors" << ' ' << state->sendErrors.load() << " " << now << "\r\n";
           str<<base<<"outstanding" << ' ' << state->outstanding.load() << " " << now << "\r\n";
+          str<<base<<"tcpdiedsendingquery" << ' '<< state->tcpDiedSendingQuery.load() << " " << now << "\r\n";
+          str<<base<<"tcpdiedreaddingresponse" << ' '<< state->tcpDiedReadingResponse.load() << " " << now << "\r\n";
+          str<<base<<"tcpgaveup" << ' '<< state->tcpGaveUp.load() << " " << now << "\r\n";
+          str<<base<<"tcpreadimeouts" << ' '<< state->tcpReadTimeouts.load() << " " << now << "\r\n";
+          str<<base<<"tcpwritetimeouts" << ' '<< state->tcpWriteTimeouts.load() << " " << now << "\r\n";
+          str<<base<<"tcpcurrentconnections" << ' '<< state->tcpCurrentConnections.load() << " " << now << "\r\n";
+          str<<base<<"tcpavgqueriesperconnection" << ' '<< state->tcpAvgQueriesPerConnection.load() << " " << now << "\r\n";
+          str<<base<<"tcpavgconnectionduration" << ' '<< state->tcpAvgConnectionDuration.load() << " " << now << "\r\n";
         }
+
+        std::map<std::string,uint64_t> frontendDuplicates;
         for(const auto& front : g_frontends) {
           if (front->udpFD == -1 && front->tcpFD == -1)
             continue;
 
           string frontName = front->local.toString() + ":" + std::to_string(front->local.getPort()) +  (front->udpFD >= 0 ? "_udp" : "_tcp");
           boost::replace_all(frontName, ".", "_");
-          const string base = "dnsdist." + hostname + ".main.frontends." + frontName + ".";
+          auto dupPair = frontendDuplicates.insert({frontName, 1});
+          if (!dupPair.second) {
+            frontName = frontName + "_" + std::to_string(dupPair.first->second);
+            ++(dupPair.first->second);
+          }
+
+          const string base = namespace_name + "." + hostname + "." + instance_name + ".frontends." + frontName + ".";
           str<<base<<"queries" << ' ' << front->queries.load() << " " << now << "\r\n";
+          str<<base<<"tcpdiedreadingquery" << ' '<< front->tcpDiedReadingQuery.load() << " " << now << "\r\n";
+          str<<base<<"tcpdiedsendingresponse" << ' '<< front->tcpDiedSendingResponse.load() << " " << now << "\r\n";
+          str<<base<<"tcpgaveup" << ' '<< front->tcpGaveUp.load() << " " << now << "\r\n";
+          str<<base<<"tcpclientimeouts" << ' '<< front->tcpClientTimeouts.load() << " " << now << "\r\n";
+          str<<base<<"tcpdownstreamtimeouts" << ' '<< front->tcpDownstreamTimeouts.load() << " " << now << "\r\n";
+          str<<base<<"tcpcurrentconnections" << ' '<< front->tcpCurrentConnections.load() << " " << now << "\r\n";
+          str<<base<<"tcpavgqueriesperconnection" << ' '<< front->tcpAvgQueriesPerConnection.load() << " " << now << "\r\n";
+          str<<base<<"tcpavgconnectionduration" << ' '<< front->tcpAvgConnectionDuration.load() << " " << now << "\r\n";
         }
+
         auto localPools = g_pools.getLocal();
         for (const auto& entry : *localPools) {
           string poolName = entry.first;
@@ -108,7 +137,7 @@ try
           if (poolName.empty()) {
             poolName = "_default_";
           }
-          const string base = "dnsdist." + hostname + ".main.pools." + poolName + ".";
+          const string base = namespace_name + "." + hostname + "." + instance_name + ".pools." + poolName + ".";
           const std::shared_ptr<ServerPool> pool = entry.second;
           str<<base<<"servers" << " " << pool->countServers(false) << " " << now << "\r\n";
           str<<base<<"servers-up" << " " << pool->countServers(true) << " " << now << "\r\n";
@@ -125,6 +154,59 @@ try
             str<<base<<"cache-ttl-too-shorts" << " " << cache->getTTLTooShorts() << " " << now << "\r\n";
           }
         }
+
+#ifdef HAVE_DNS_OVER_HTTPS
+        {
+          std::map<std::string,uint64_t> dohFrontendDuplicates;
+          const string base = "dnsdist." + hostname + ".main.doh.";
+          for(const auto& doh : g_dohlocals) {
+            string name = doh->d_local.toStringWithPort();
+            boost::replace_all(name, ".", "_");
+            boost::replace_all(name, ":", "_");
+            boost::replace_all(name, "[", "_");
+            boost::replace_all(name, "]", "_");
+
+            auto dupPair = dohFrontendDuplicates.insert({name, 1});
+            if (!dupPair.second) {
+              name = name + "_" + std::to_string(dupPair.first->second);
+              ++(dupPair.first->second);
+            }
+
+            vector<pair<const char*, const std::atomic<uint64_t>&>> v{
+              {"http-connects", doh->d_httpconnects},
+              {"http1-queries", doh->d_http1Stats.d_nbQueries},
+              {"http2-queries", doh->d_http2Stats.d_nbQueries},
+              {"http1-200-responses", doh->d_http1Stats.d_nb200Responses},
+              {"http2-200-responses", doh->d_http2Stats.d_nb200Responses},
+              {"http1-400-responses", doh->d_http1Stats.d_nb400Responses},
+              {"http2-400-responses", doh->d_http2Stats.d_nb400Responses},
+              {"http1-403-responses", doh->d_http1Stats.d_nb403Responses},
+              {"http2-403-responses", doh->d_http2Stats.d_nb403Responses},
+              {"http1-500-responses", doh->d_http1Stats.d_nb500Responses},
+              {"http2-500-responses", doh->d_http2Stats.d_nb500Responses},
+              {"http1-502-responses", doh->d_http1Stats.d_nb502Responses},
+              {"http2-502-responses", doh->d_http2Stats.d_nb502Responses},
+              {"http1-other-responses", doh->d_http1Stats.d_nbOtherResponses},
+              {"http2-other-responses", doh->d_http2Stats.d_nbOtherResponses},
+              {"tls10-queries", doh->d_tls10queries},
+              {"tls11-queries", doh->d_tls11queries},
+              {"tls12-queries", doh->d_tls12queries},
+              {"tls13-queries", doh->d_tls13queries},
+              {"tls-unknown-queries", doh->d_tlsUnknownqueries},
+              {"get-queries", doh->d_getqueries},
+              {"post-queries", doh->d_postqueries},
+              {"bad-requests", doh->d_badrequests},
+              {"error-responses", doh->d_errorresponses},
+              {"redirect-responses", doh->d_redirectresponses},
+              {"valid-responses", doh->d_validresponses}
+            };
+
+            for(const auto& item : v) {
+              str<<base<<name<<"."<<item.first << " " << item.second << " " << now <<"\r\n";
+            }
+          }
+        }
+#endif /* HAVE_DNS_OVER_HTTPS */
 
         {
           WriteLock wl(&g_qcount.queryLock);
@@ -152,20 +234,16 @@ try
       }
     }
   }
-  return 0;
 }
 catch(std::exception& e)
 {
   errlog("Carbon thread died: %s", e.what());
-  return 0;
 }
 catch(PDNSException& e)
 {
   errlog("Carbon thread died, PDNSException: %s", e.reason);
-  return 0;
 }
 catch(...)
 {
   errlog("Carbon thread died");
-  return 0;
 }

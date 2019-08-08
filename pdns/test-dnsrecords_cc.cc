@@ -8,6 +8,8 @@
 
 #include <boost/tuple/tuple.hpp>
 #include <boost/scoped_ptr.hpp>
+
+#include "base32.hh"
 #include "dnsrecords.hh"
 
 namespace {
@@ -21,6 +23,12 @@ namespace {
 // C++11, but only C++14 added the `s` suffix.
 #define BINARY(s) (std::string(s, sizeof(s) - 1))
 
+// CASE_S is the simple case where zonefile format -> dns -> zonefile format roundtrips cleanly
+// CASE_L can be used where this is not the case. See LOC below for a good example why this might happen
+
+/*   (CASE_S(QType::NAME, "zone format", "line format")) */
+/*   (CASE_L(QType::NAME, "zone format", "canonic zone format", "line format")) */
+
 #define _CASE_L(type, inval, zoneval, lineval, broken) case_t(type, BINARY(inval), BINARY(zoneval), BINARY(lineval), broken)
 #define CASE_L(type, inval, zoneval, lineval) _CASE_L(type, inval, zoneval, lineval, broken_marker::WORKING)
 #define CASE_S(type, zoneval, lineval) _CASE_L(type, zoneval, zoneval, lineval, broken_marker::WORKING)
@@ -29,14 +37,13 @@ namespace {
 BOOST_AUTO_TEST_SUITE(test_dnsrecords_cc)
 
 #define REC_CHECK_EQUAL(a,b) { if (broken_marker::BROKEN == broken) { BOOST_WARN_EQUAL(a,b); } else {  BOOST_CHECK_EQUAL(a,b); } }
-#define REC_CHECK_MESSAGE(cond,msg) { if (broken_marker::BROKEN == broken) { BOOST_WARN_MESSAGE(cond,msg); } else {  BOOST_CHECK_MESSAGE(cond,msg); } }
+#define REC_CHECK_MESSAGE(cond,msg) { if (broken_marker::BROKEN == broken) { BOOST_WARN_MESSAGE(cond,"Failed to verify " << msg); } else {  BOOST_CHECK_MESSAGE(cond,msg); } }
 #define REC_FAIL_XSUCCESS(msg) { if (broken_marker::BROKEN == broken) { BOOST_CHECK_MESSAGE(false, std::string("Test has unexpectedly passed: ") + msg); } } // fail if test succeeds
 
 BOOST_AUTO_TEST_CASE(test_record_types) {
   // tuple contains <type, user value, zone representation, line value, broken>
   typedef boost::tuple<QType::typeenum, std::string, std::string, std::string, broken_marker> case_t;
   typedef std::list<case_t> cases_t;
-  reportAllTypes();
   MRRecordContent::report();
   IPSECKEYRecordContent::report();
   KXRecordContent::report();
@@ -44,7 +51,7 @@ BOOST_AUTO_TEST_CASE(test_record_types) {
   TSIGRecordContent::report();
   TKEYRecordContent::report();
 
-// NB!!! WHEN ADDING A TEST MAKE SURE YOU PUT IT NEXT TO IT'S KIND
+// NB!!! WHEN ADDING A TEST MAKE SURE YOU PUT IT NEXT TO ITS KIND
 // TO MAKE SURE TEST NUMBERING DOES NOT BREAK
 
 // why yes, they are unordered by name, how nice of you to notice
@@ -94,6 +101,7 @@ BOOST_AUTO_TEST_CASE(test_record_types) {
      (CASE_S(QType::TXT, "\"long record test 1111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111\" \"2222222222\"", "\xff""long record test 1111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111\x0a""2222222222"))
      (CASE_L(QType::TXT, "\"long record test 11111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111112222222222\"", "\"long record test 1111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111\" \"2222222222\"", "\xff""long record test 1111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111\x0a""2222222222"))
      (CASE_S(QType::TXT,  "\"\\195\\133LAND ISLANDS\"", "\x0e\xc3\x85LAND ISLANDS"))
+     (CASE_S(QType::TXT,  "\"text with DEL in there: \\127\"", "\x19text with DEL in there: \x7f"))
      (CASE_L(QType::TXT, "\"\xc3\x85LAND ISLANDS\"", "\"\\195\\133LAND ISLANDS\"", "\x0e\xc3\x85LAND ISLANDS"))
      (CASE_S(QType::TXT, "\"nonbreakingtxt\"", "\x0enonbreakingtxt"))
 // local name
@@ -187,8 +195,6 @@ BOOST_AUTO_TEST_CASE(test_record_types) {
      (CASE_S(QType::DLV, "20642 8 2 04443abe7e94c3985196beae5d548c727b044dda5151e60d7cd76a9fd931d00e", "\x50\xa2\x08\x02\x04\x44\x3a\xbe\x7e\x94\xc3\x98\x51\x96\xbe\xae\x5d\x54\x8c\x72\x7b\x04\x4d\xda\x51\x51\xe6\x0d\x7c\xd7\x6a\x9f\xd9\x31\xd0\x0e"))
      (CASE_S((QType::typeenum)65226,"\\# 3 414243","\x41\x42\x43"))
 
-/*   (CASE_S(QType::NAME, "zone format", "line format")) */
-/*   (CASE_L(QType::NAME, "zone format", "canonic zone format", "line format")) */
 ;
 
   int n=0;
@@ -201,7 +207,7 @@ BOOST_AUTO_TEST_CASE(test_record_types) {
    const broken_marker broken = val.get<4>();
 
    if (lq != q.getCode()) n = 0;
-   BOOST_CHECK_MESSAGE(q.getCode() >= lq, "record types not sorted correctly: " << q.getCode() << " < " << lq);
+   BOOST_CHECK_MESSAGE(q.getCode() >= lq, "record types should be sorted such that " << q.getCode() << " >= " << lq);
    lq = q.getCode();
    n++;
    BOOST_TEST_CHECKPOINT("Checking record type " << q.getName() << " test #" << n);
@@ -209,7 +215,7 @@ BOOST_AUTO_TEST_CASE(test_record_types) {
    try {
       std::string recData;
       auto rec = DNSRecordContent::mastermake(q.getCode(), 1, inval);
-      BOOST_CHECK_MESSAGE(rec != NULL, "mastermake( " << q.getCode() << ", 1, " << inval << ") returned NULL");
+      BOOST_CHECK_MESSAGE(rec != NULL, "mastermake( " << q.getCode() << ", 1, " << inval << ") should not return NULL");
       if (rec == NULL) continue;
       // now verify the record (note that this will be same as *zone* value (except for certain QTypes)
 
@@ -229,7 +235,7 @@ BOOST_AUTO_TEST_CASE(test_record_types) {
       recData = rec->serialize(DNSName("rec.test"));
 
       std::shared_ptr<DNSRecordContent> rec2 = DNSRecordContent::unserialize(DNSName("rec.test"),q.getCode(),recData);
-      BOOST_CHECK_MESSAGE(rec2 != NULL, "unserialize(rec.test, " << q.getCode() << ", recData) returned NULL");
+      BOOST_CHECK_MESSAGE(rec2 != NULL, "unserialize(rec.test, " << q.getCode() << ", recData) should not return NULL");
       if (rec2 == NULL) continue;
       // now verify the zone representation (here it can be different!)
       REC_CHECK_EQUAL(rec2->getZoneRepresentation(), zoneval);
@@ -238,7 +244,7 @@ BOOST_AUTO_TEST_CASE(test_record_types) {
       recData = makeHexDump(recData);
       REC_CHECK_EQUAL(recData, cmpData);
    } catch (std::runtime_error &err) {
-      REC_CHECK_MESSAGE(false, "Failed to verify " << q.getName() << ": " << err.what());
+      REC_CHECK_MESSAGE(false, q.getName() << ": " << err.what());
       continue;
    }
    REC_FAIL_XSUCCESS(q.getName() << " test #" << n << " has unexpectedly passed")
@@ -371,6 +377,192 @@ BOOST_AUTO_TEST_CASE(test_opt_record_out) {
   std::string packet("\xf0\x01\x01\x00\x00\x01\x00\x01\x00\x00\x00\x01\x03www\x08powerdns\x03""com\x00\x00\x01\x00\x01\xc0\x0c\x00\x01\x00\x01\x00\x00\x00\x10\x00\x04\x7f\x00\x00\x01\x00\x00\x29\x05\x00\x00\x00\x00\x00\x00\x0c\x00\x03\x00\x08powerdns",73);
 
   BOOST_CHECK_EQUAL(makeHexDump(std::string(pak.begin(),pak.end())), makeHexDump(packet));
+}
+
+// special record test, because EUI are odd
+BOOST_AUTO_TEST_CASE(test_eui_records_in) {
+
+  auto validEUI48=DNSRecordContent::mastermake(QType::EUI48, QClass::IN, "00-00-5e-00-53-2a");
+
+  BOOST_CHECK_THROW(auto invalidEUI48=DNSRecordContent::mastermake(QType::EUI48, QClass::IN, "00-00-5e-00-53-"), MOADNSException);
+
+  auto validEUI64=DNSRecordContent::mastermake(QType::EUI64, QClass::IN, "00-00-5e-ef-10-00-00-2a");
+
+  BOOST_CHECK_THROW(auto invalidEUI64=DNSRecordContent::mastermake(QType::EUI64, QClass::IN, "00-00-5e-ef-10-00-00-"), MOADNSException);
+}
+
+// special record test, because LOC is weird
+BOOST_AUTO_TEST_CASE(test_loc_records_in) {
+
+  auto validLOC=DNSRecordContent::mastermake(QType::LOC, QClass::IN, "52 22 23.000 N 4 53 32.000 E -2.00m 0.00m 10000m 10m");
+
+  BOOST_CHECK_THROW(auto invalidLOC=DNSRecordContent::mastermake(QType::LOC, QClass::IN, "52 22 23.000 N"), MOADNSException);
+
+  vector<uint8_t> packet;
+  DNSPacketWriter writer(packet, DNSName("powerdns.com."), QType::LOC, QClass::IN, 0);
+  writer.getHeader()->qr = 1;
+  writer.startRecord(DNSName("powerdns.com."), QType::LOC, 100, QClass::IN, DNSResourceRecord::ANSWER);
+  validLOC->toPacket(writer);
+  writer.commit();
+
+  MOADNSParser parser(false, reinterpret_cast<const char*>(packet.data()), packet.size());
+
+  BOOST_CHECK_THROW(MOADNSParser failParser(false, reinterpret_cast<const char*>(packet.data()), packet.size()-1), MOADNSException);
+}
+
+// special record test, because NSEC records are odd
+BOOST_AUTO_TEST_CASE(test_nsec_records_in) {
+
+  {
+    auto validNSEC=DNSRecordContent::mastermake(QType::NSEC, QClass::IN, "host.example.com. A MX RRSIG NSEC TYPE1234");
+
+    vector<uint8_t> packet;
+    DNSPacketWriter writer(packet, DNSName("powerdns.com."), QType::NSEC, QClass::IN, 0);
+    writer.getHeader()->qr = 1;
+    writer.startRecord(DNSName("powerdns.com."), QType::NSEC, 100, QClass::IN, DNSResourceRecord::ANSWER);
+    validNSEC->toPacket(writer);
+    writer.commit();
+
+    MOADNSParser parser(false, reinterpret_cast<const char*>(packet.data()), packet.size());
+
+    BOOST_CHECK_THROW(MOADNSParser failParser(false, reinterpret_cast<const char*>(packet.data()), packet.size()-1), MOADNSException);
+  }
+
+  {
+    auto validNSEC3=DNSRecordContent::mastermake(QType::NSEC3, QClass::IN, "1 1 12 aabbccdd 2vptu5timamqttgl4luu9kg21e0aor3s A RRSIG");
+
+    vector<uint8_t> packet;
+    DNSPacketWriter writer(packet, DNSName("powerdns.com."), QType::NSEC3, QClass::IN, 0);
+    writer.getHeader()->qr = 1;
+    writer.startRecord(DNSName("powerdns.com."), QType::NSEC3, 100, QClass::IN, DNSResourceRecord::ANSWER);
+    validNSEC3->toPacket(writer);
+    writer.commit();
+
+    MOADNSParser parser(false, reinterpret_cast<const char*>(packet.data()), packet.size());
+
+    BOOST_CHECK_THROW(MOADNSParser failParser(false, reinterpret_cast<const char*>(packet.data()), packet.size()-1), MOADNSException);
+  }
+
+  {
+    auto validNSEC3PARAM=DNSRecordContent::mastermake(QType::NSEC3PARAM, QClass::IN, "1 0 12 aabbccdd");
+
+    vector<uint8_t> packet;
+    DNSPacketWriter writer(packet, DNSName("powerdns.com."), QType::NSEC3PARAM, QClass::IN, 0);
+    writer.getHeader()->qr = 1;
+    writer.startRecord(DNSName("powerdns.com."), QType::NSEC3PARAM, 100, QClass::IN, DNSResourceRecord::ANSWER);
+    validNSEC3PARAM->toPacket(writer);
+    writer.commit();
+
+    MOADNSParser parser(false, reinterpret_cast<const char*>(packet.data()), packet.size());
+
+    BOOST_CHECK_THROW(MOADNSParser failParser(false, reinterpret_cast<const char*>(packet.data()), packet.size()-1), MOADNSException);
+  }
+}
+
+BOOST_AUTO_TEST_CASE(test_nsec_records_types) {
+
+  {
+    auto validNSEC = DNSRecordContent::mastermake(QType::NSEC, QClass::IN, "host.example.com. A MX RRSIG NSEC TYPE1234");
+    auto nsecContent = std::dynamic_pointer_cast<NSECRecordContent>(validNSEC);
+    BOOST_REQUIRE(nsecContent);
+
+    for (const auto type : { QType::A, QType::MX, QType::RRSIG, QType::NSEC, static_cast<QType::typeenum>(1234) }) {
+      BOOST_CHECK(nsecContent->isSet(type));
+    }
+    BOOST_CHECK_EQUAL(nsecContent->isSet(QType::NSEC3), false);
+    BOOST_CHECK_EQUAL(nsecContent->numberOfTypesSet(), 5);
+  }
+
+  {
+    auto nsecContent = std::make_shared<NSECRecordContent>();
+    BOOST_CHECK_EQUAL(nsecContent->numberOfTypesSet(), 0);
+    BOOST_CHECK_EQUAL(nsecContent->isSet(QType::NSEC3), false);
+
+    for (size_t idx = 0; idx < 65536; idx++) {
+      nsecContent->set(idx);
+    }
+    BOOST_CHECK_EQUAL(nsecContent->isSet(QType::NSEC3), true);
+    BOOST_CHECK_EQUAL(nsecContent->numberOfTypesSet(), 65536);
+    for (size_t idx = 0; idx < 65536; idx++) {
+      BOOST_CHECK(nsecContent->isSet(idx));
+    }
+  }
+}
+
+BOOST_AUTO_TEST_CASE(test_nsec3_records_types) {
+
+  {
+    const std::string str = "1 1 12 aabbccdd 2vptu5timamqttgl4luu9kg21e0aor3s a mx rrsig nsec3 type1234 type65535";
+    auto validNSEC3 = DNSRecordContent::mastermake(QType::NSEC3, QClass::IN, str);
+    auto nsec3Content = std::dynamic_pointer_cast<NSEC3RecordContent>(validNSEC3);
+    BOOST_REQUIRE(nsec3Content);
+
+    for (const auto type : { QType::A, QType::MX, QType::RRSIG, QType::NSEC3, static_cast<QType::typeenum>(1234), static_cast<QType::typeenum>(65535) }) {
+      BOOST_CHECK(nsec3Content->isSet(type));
+    }
+    BOOST_CHECK_EQUAL(nsec3Content->isSet(QType::NSEC), false);
+    BOOST_CHECK_EQUAL(nsec3Content->numberOfTypesSet(), 6);
+    auto str2 = nsec3Content->getZoneRepresentation();
+    boost::to_lower(str2);
+    BOOST_CHECK_EQUAL(str2, str);
+  }
+
+  {
+    std::string str = "1 1 12 aabbccdd 2vptu5timamqttgl4luu9kg21e0aor3s";
+    auto nsec3Content = std::make_shared<NSEC3RecordContent>(str);
+    BOOST_CHECK_EQUAL(nsec3Content->numberOfTypesSet(), 0);
+    BOOST_CHECK_EQUAL(nsec3Content->isSet(QType::NSEC), false);
+
+    for (size_t idx = 0; idx < 65536; idx++) {
+      nsec3Content->set(idx);
+      str += " " + toLower(DNSRecordContent::NumberToType(idx));
+    }
+    BOOST_CHECK_EQUAL(nsec3Content->isSet(QType::NSEC), true);
+    BOOST_CHECK_EQUAL(nsec3Content->numberOfTypesSet(), 65536);
+    for (size_t idx = 0; idx < 65536; idx++) {
+      BOOST_CHECK(nsec3Content->isSet(idx));
+    }
+    auto str2 = nsec3Content->getZoneRepresentation();
+    boost::to_lower(str2);
+    BOOST_CHECK_EQUAL(str2, str);
+  }
+
+  {
+    DNSName qname("powerdns.com.");
+    /* check that we can have a NSEC3 with 0 types covered */
+    const std::string salt = "aabbccdd";
+    const std::string hash =  "2vptu5timamqttgl4luu9kg21e0aor3s";
+    const std::string str = "1 1 12 " + salt + " " + hash;
+    auto validNSEC3=DNSRecordContent::mastermake(QType::NSEC3, QClass::IN, str);
+
+    vector<uint8_t> packet;
+    DNSPacketWriter writer(packet, qname, QType::NSEC3, QClass::IN, 0);
+    writer.getHeader()->qr = 1;
+    writer.startRecord(qname, QType::NSEC3, 100, QClass::IN, DNSResourceRecord::ANSWER);
+    validNSEC3->toPacket(writer);
+    writer.commit();
+
+    static const size_t expectedSize = sizeof(dnsheader) + qname.wirelength() + 2 /* QType */ + 2 /* QClass */
+      + 2 /* name pointer */ + 2 /* QType */ + 2 /* QClass */
+      + 2 /* rd length */ + 1 /* hash algo */ + 1 /* flags */ + 2 /*iterations */ + 1 /* salt length */ + salt.size()
+      + 1 /* hash length */ + fromBase32Hex(hash).size();
+    BOOST_CHECK_EQUAL(packet.size(), expectedSize);
+
+    MOADNSParser parser(false, reinterpret_cast<const char*>(packet.data()), packet.size());
+    BOOST_REQUIRE_EQUAL(parser.d_answers.size(), 1);
+    const auto& record = parser.d_answers.at(0).first;
+    BOOST_REQUIRE(record.d_type == QType::NSEC3);
+    BOOST_REQUIRE(record.d_class == QClass::IN);
+    auto content = std::dynamic_pointer_cast<NSEC3RecordContent>(record.d_content);
+    BOOST_REQUIRE(content);
+    BOOST_CHECK_EQUAL(content->numberOfTypesSet(), 0);
+    for (size_t idx = 0; idx < 65536; idx++) {
+      BOOST_CHECK_EQUAL(content->isSet(idx), false);
+    }
+    auto str2 = content->getZoneRepresentation();
+    boost::to_lower(str2);
+    BOOST_CHECK_EQUAL(str2, str);
+  }
 }
 
 BOOST_AUTO_TEST_SUITE_END()

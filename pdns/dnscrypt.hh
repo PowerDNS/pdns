@@ -22,7 +22,26 @@
 #pragma once
 #include "config.h"
 
-#ifdef HAVE_DNSCRYPT
+#ifndef HAVE_DNSCRYPT
+
+/* let's just define a few types and values so that the rest of
+   the code can ignore whether DNSCrypt support is available */
+#define DNSCRYPT_MAX_RESPONSE_PADDING_AND_MAC_SIZE (0)
+
+class DNSCryptContext
+{
+};
+
+class DNSCryptQuery
+{
+  DNSCryptQuery(const std::shared_ptr<DNSCryptContext>& ctx): d_ctx(ctx)
+  {
+  }
+private:
+  std::shared_ptr<DNSCryptContext> d_ctx{nullptr};
+};
+
+#else /* HAVE_DNSCRYPT */
 
 #include <memory>
 #include <string>
@@ -235,15 +254,23 @@ public:
   static DNSCryptExchangeVersion getExchangeVersion(const unsigned char esVersion[sizeof(DNSCryptCert::esVersion)]);
   static DNSCryptExchangeVersion getExchangeVersion(const DNSCryptCert& cert);
 
-  DNSCryptContext(const std::string& pName, const std::string& certFile, const std::string& keyFile);
+  struct CertKeyPaths
+  {
+    std::string cert;
+    std::string key;
+  };
+
+  DNSCryptContext(const std::string& pName, const std::vector<CertKeyPaths>& certKeys);
   DNSCryptContext(const std::string& pName, const DNSCryptCert& certificate, const DNSCryptPrivateKey& pKey);
 
-  void loadNewCertificate(const std::string& certFile, const std::string& keyFile, bool active=true);
-  void addNewCertificate(const DNSCryptCert& newCert, const DNSCryptPrivateKey& newKey, bool active=true);
+  void reloadCertificates();
+  void loadNewCertificate(const std::string& certFile, const std::string& keyFile, bool active=true, bool reload=false);
+  void addNewCertificate(const DNSCryptCert& newCert, const DNSCryptPrivateKey& newKey, bool active=true, bool reload=false);
+
   void markActive(uint32_t serial);
   void markInactive(uint32_t serial);
   void removeInactiveCertificate(uint32_t serial);
-  std::vector<std::shared_ptr<DNSCryptCertificatePair>> getCertificates() { return certs; };
+  std::vector<std::shared_ptr<DNSCryptCertificatePair>> getCertificates() { return d_certs; };
   const DNSName& getProviderName() const { return providerName; }
 
   int encryptQuery(char* query, uint16_t queryLen, uint16_t querySize, const unsigned char clientPublicKey[DNSCRYPT_PUBLIC_KEY_SIZE], const DNSCryptPrivateKey& clientPrivateKey, const unsigned char clientNonce[DNSCRYPT_NONCE_SIZE / 2], bool tcp, uint16_t* encryptedResponseLen, const std::shared_ptr<DNSCryptCert>& cert) const;
@@ -253,9 +280,13 @@ public:
 private:
   static void computePublicKeyFromPrivate(const DNSCryptPrivateKey& privK, unsigned char pubK[DNSCRYPT_PUBLIC_KEY_SIZE]);
   static void loadCertFromFile(const std::string&filename, DNSCryptCert& dest);
+  static std::shared_ptr<DNSCryptCertificatePair> loadCertificatePair(const std::string& certFile, const std::string& keyFile);
+
+  void addNewCertificate(std::shared_ptr<DNSCryptCertificatePair>& newCert, bool reload=false);
 
   pthread_rwlock_t d_lock;
-  std::vector<std::shared_ptr<DNSCryptCertificatePair>> certs;
+  std::vector<std::shared_ptr<DNSCryptCertificatePair>> d_certs;
+  std::vector<CertKeyPaths> d_certKeyPaths;
   DNSName providerName;
 };
 

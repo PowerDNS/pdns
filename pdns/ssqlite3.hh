@@ -29,7 +29,7 @@ class SSQLite3 : public SSql
 {
 private:
   //! Pointer to the SQLite database instance.
-  sqlite3 *m_pDB;
+  sqlite3 *m_pDB{nullptr};
 
   bool m_dolog;
   bool m_in_transaction;
@@ -37,7 +37,7 @@ private:
 protected:
 public:
   //! Constructor.
-  SSQLite3( const std::string & database, bool creat=false );
+  SSQLite3( const std::string & database, const std::string & journalmode, bool creat=false);
 
   //! Destructor.
   ~SSQLite3();

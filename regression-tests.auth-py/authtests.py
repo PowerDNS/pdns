@@ -1,5 +1,6 @@
 #!/usr/bin/env python2
 
+from __future__ import print_function
 import errno
 import shutil
 import os
@@ -21,6 +22,25 @@ class AuthTest(unittest.TestCase):
 
     _confdir = 'auth'
     _authPort = 5300
+
+    _config_params = []
+
+    _config_template_default = """
+module-dir=../regression-tests/modules
+daemon=no
+local-ipv6=
+bind-config={confdir}/named.conf
+bind-dnssec-db={bind_dnssec_db}
+socket-dir={confdir}
+cache-ttl=0
+negquery-cache-ttl=0
+query-cache-ttl=0
+log-dns-queries=yes
+log-dns-details=yes
+loglevel=9
+distributor-threads=1"""
+
+    _config_template = ""
 
     _root_DS = "63149 13 1 a59da3f5c1b97fcd5fa2b3b2b0ac91d38a60d33a"
 
@@ -64,7 +84,7 @@ PrivateKey: Lt0v0Gol3pRUFM7fDdcy0IWN0O/MnEmVPA+VylL8Y4U=
         except OSError as e:
             if e.errno != errno.ENOENT:
                 raise
-        os.mkdir(confdir, 0755)
+        os.mkdir(confdir, 0o755)
 
     @classmethod
     def generateAuthZone(cls, confdir, zonename, zonecontent):
@@ -91,37 +111,24 @@ options {
     def generateAuthConfig(cls, confdir):
         bind_dnssec_db = os.path.join(confdir, 'bind-dnssec.sqlite3')
 
+        params = tuple([getattr(cls, param) for param in cls._config_params])
+
         with open(os.path.join(confdir, 'pdns.conf'), 'w') as pdnsconf:
-            pdnsconf.write("""
-module-dir=../regression-tests/modules
-launch=bind geoip
-daemon=no
-local-ipv6=
-bind-config={confdir}/named.conf
-bind-dnssec-db={bind_dnssec_db}
-socket-dir={confdir}
-cache-ttl=0
-negquery-cache-ttl=0
-query-cache-ttl=0
-log-dns-queries=yes
-log-dns-details=yes
-loglevel=9
-geoip-database-files=../modules/geoipbackend/regression-tests/GeoLiteCity.mmdb
-edns-subnet-processing=yes
-distributor-threads=1""".format(confdir=confdir,
-                                bind_dnssec_db=bind_dnssec_db))
+            pdnsconf.write(cls._config_template_default.format(
+                confdir=confdir, prefix=cls._PREFIX,
+                bind_dnssec_db=bind_dnssec_db))
+            pdnsconf.write(cls._config_template % params)
 
         pdnsutilCmd = [os.environ['PDNSUTIL'],
                        '--config-dir=%s' % confdir,
                        'create-bind-db',
                        bind_dnssec_db]
 
-        print ' '.join(pdnsutilCmd)
+        print(' '.join(pdnsutilCmd))
         try:
             subprocess.check_output(pdnsutilCmd, stderr=subprocess.STDOUT)
         except subprocess.CalledProcessError as e:
-            print e.output
-            raise
+            raise AssertionError('%s failed (%d): %s' % (pdnsutilCmd, e.returncode, e.output))
 
     @classmethod
     def secureZone(cls, confdir, zonename, key=None):
@@ -144,12 +151,11 @@ distributor-threads=1""".format(confdir=confdir,
                            'active',
                            'ksk']
 
-        print ' '.join(pdnsutilCmd)
+        print(' '.join(pdnsutilCmd))
         try:
             subprocess.check_output(pdnsutilCmd, stderr=subprocess.STDOUT)
         except subprocess.CalledProcessError as e:
-            print e.output
-            raise
+            raise AssertionError('%s failed (%d): %s' % (pdnsutilCmd, e.returncode, e.output))
 
     @classmethod
     def generateAllAuthConfig(cls, confdir):
@@ -173,7 +179,7 @@ distributor-threads=1""".format(confdir=confdir,
         authcmd.append('--local-address=%s' % ipaddress)
         authcmd.append('--local-port=%s' % cls._authPort)
         authcmd.append('--loglevel=9')
-        authcmd.append('--enable-lua-record')
+        authcmd.append('--enable-lua-records')
         print(' '.join(authcmd))
 
         logFile = os.path.join(confdir, 'pdns.log')
@@ -191,7 +197,7 @@ distributor-threads=1""".format(confdir=confdir,
                 if e.errno != errno.ESRCH:
                     raise
                 with open(logFile, 'r') as fdLog:
-                    print fdLog.read()
+                    print(fdLog.read())
             sys.exit(cls._auths[ipaddress].returncode)
 
     @classmethod
@@ -408,6 +414,13 @@ distributor-threads=1""".format(confdir=confdir,
 
         if not found :
             raise AssertionError("RRset not found in answer\n\n%s" % ret)
+
+    def sortRRsets(self, rrsets):
+        """Sorts RRsets in a more useful way than dnspython's default behaviour
+
+        @param rrsets: an array of dns.rrset.RRset objects"""
+
+        return sorted(rrsets, key=lambda rrset: (rrset.name, rrset.rdtype))
 
     def assertAnyRRsetInAnswer(self, msg, rrsets):
         """Asserts that any of the supplied rrsets exists (without comparing TTL)

@@ -33,7 +33,8 @@ Setting up the database
 ------------------------
 
 Before you can use this backend you first have to set it up and fill it
-with data. The default setup conforms to the following schema:
+with data. The default setup conforms to the following schema in 4.2.
+If you have not upgraded to 4.2, please use `the 4.1 schema on GitHub <https://github.com/PowerDNS/pdns/blob/rel/auth-4.1.x/modules/gsqlite3backend/schema.sqlite3.sql>`_.
 
 .. literalinclude:: ../../modules/gsqlite3backend/schema.sqlite3.sql
 
@@ -67,6 +68,13 @@ gsqlite3 backend.
 
 Path to the SQLite3 database.
 
+.. _setting-gsqlite3-pragma-journal-mode:
+
+``gsqlite3-pragma-journal-mode``
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+SQLite3 journal mode to set. The default is WAL. Set to empty to leave the journal mode alone.
+
 .. _setting-gsqlite3-pragma-synchronous:
 
 ``gsqlite3-pragma-synchronous``
@@ -92,11 +100,10 @@ Using the SQLite backend
 ------------------------
 
 The last thing you need to do is telling PowerDNS to use the SQLite
-backend.
+backend in pdns.conf:
 
-::
+.. code-block:: ini
 
-    # in pdns.conf
     launch=gsqlite3
     gsqlite3-database=<path to your SQLite database>
 
@@ -104,7 +111,7 @@ Then you can start PowerDNS and it should notify you that a connection
 to the database was made.
 
 Compiling the SQLite backend
------------------------------
+----------------------------
 
 Before you can begin compiling PowerDNS with the SQLite backend you need
 to have the SQLite utility and library installed on your system. You can

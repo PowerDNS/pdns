@@ -25,10 +25,6 @@
 #include "logger.hh"
 #include "version.hh"
 
-#ifdef HAVE_BOTAN
-#include <botan/version.h>
-#endif /* HAVE_BOTAN */
-
 static ProductType productType;
 
 string compilerVersion()
@@ -71,7 +67,7 @@ string productTypeApiType() {
 
 void showProductVersion()
 {
-  g_log<<Logger::Warning<<productName()<<" "<< VERSION << " (C) 2001-2018 "
+  g_log<<Logger::Warning<<productName()<<" "<< VERSION << " (C) 2001-2019 "
     "PowerDNS.COM BV" << endl;
   g_log<<Logger::Warning<<"Using "<<(sizeof(unsigned long)*8)<<"-bits mode. "
     "Built using " << compilerVersion()
@@ -87,27 +83,59 @@ void showProductVersion()
 void showBuildConfiguration()
 {
   g_log<<Logger::Warning<<"Features: "<<
-#ifdef HAVE_BOTAN
-    "botan" << BOTAN_VERSION_MAJOR << "." << BOTAN_VERSION_MINOR  << " " <<
-#endif
-#ifdef HAVE_LIBSODIUM
-    "sodium " <<
-#endif
 #ifdef HAVE_LIBDECAF
     "decaf " <<
 #endif
-    "openssl " <<
+#ifdef HAVE_BOOST_CONTEXT
+    "fcontext " <<
+#endif
+#ifdef HAVE_LIBCRYPTO_ECDSA
+    "libcrypto-ecdsa " <<
+#endif
+#ifdef HAVE_LIBCRYPTO_ED25519
+    "libcrypto-ed25519 " <<
+#endif
+#ifdef HAVE_LIBCRYPTO_ED448
+    "libcrypto-ed448 " <<
+#endif
+#ifdef HAVE_LIBCRYPTO_EDDSA
+    "libcrypto-eddsa " <<
+#endif
 #ifdef HAVE_LIBDL
     "libdl " <<
+#endif
+#ifdef HAVE_GEOIP
+    "libgeoip " <<
+#endif
+#ifdef HAVE_MMDB
+    "libmaxminddb " <<
 #endif
 #ifdef HAVE_LUA
     "lua " <<
 #endif
+#ifdef HAVE_LUA_RECORDS
+    "lua-records " <<
+#endif
+#ifdef NOD_ENABLED
+    "nod " <<
+#endif
+#ifdef HAVE_P11KIT1
+    "PKCS#11 " <<
+#endif
+#ifdef HAVE_PROTOBUF
+"protobuf " <<
+#endif
+#ifdef HAVE_FSTRM
+"dnstap-framestream " <<
+#endif
 #ifdef REMOTEBACKEND_ZEROMQ
     "remotebackend-zeromq " <<
 #endif
-#ifdef HAVE_P11KIT1
-    "PKCS#11" <<
+#ifdef HAVE_NET_SNMP
+    "snmp " <<
+#endif
+#ifdef HAVE_LIBSODIUM
+    "sodium " <<
 #endif
 #ifdef VERBOSELOG
     "verboselog" <<

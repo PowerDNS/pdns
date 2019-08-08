@@ -24,7 +24,6 @@
 #endif
 
 #include <boost/tokenizer.hpp>
-#include <boost/circular_buffer.hpp>
 #include "namespaces.hh"
 #include "ws-api.hh"
 #include "json.hh"
@@ -155,65 +154,33 @@ void apiServerConfig(HttpRequest* req, HttpResponse* resp) {
   resp->setBody(doc);
 }
 
-static Json logGrep(const string& q, const string& fname, const string& prefix)
-{
-  FILE* ptr = fopen(fname.c_str(), "r");
-  if(!ptr) {
-    throw ApiException("Opening \"" + fname + "\" failed: " + stringerror());
-  }
-  std::shared_ptr<FILE> fp(ptr, fclose);
-
-  string line;
-  string needle = q;
-  trim_right(needle);
-
-  boost::replace_all(needle, "%20", " ");
-  boost::replace_all(needle, "%22", "\"");
-
-  boost::tokenizer<boost::escaped_list_separator<char> > t(needle, boost::escaped_list_separator<char>("\\", " ", "\""));
-  vector<string> matches(t.begin(), t.end());
-  matches.push_back(prefix);
-
-  boost::circular_buffer<string> lines(200);
-  while(stringfgets(fp.get(), line)) {
-    vector<string>::const_iterator iter;
-    for(iter = matches.begin(); iter != matches.end(); ++iter) {
-      if(!strcasestr(line.c_str(), iter->c_str()))
-        break;
-    }
-    if(iter == matches.end()) {
-      trim_right(line);
-      lines.push_front(line);
-    }
-  }
-
-  Json::array items;
-  for(const string& iline : lines) {
-    items.push_back(iline);
-  }
-  return items;
-}
-
-void apiServerSearchLog(HttpRequest* req, HttpResponse* resp) {
-  if(req->method != "GET")
-    throw HttpMethodNotAllowedException();
-
-  string prefix = " " + s_programname + "[";
-  resp->setBody(logGrep(req->getvars["q"], ::arg()["api-logfile"], prefix));
-}
-
 void apiServerStatistics(HttpRequest* req, HttpResponse* resp) {
   if(req->method != "GET")
     throw HttpMethodNotAllowedException();
+
+  Json::array doc;
+  string name = req->getvars["statistic"];
+  if (!name.empty()) {
+    auto stat = productServerStatisticsFetch(name);
+    if (!stat) {
+      throw ApiException("Unknown statistic name");
+    }
+
+    doc.push_back(Json::object {
+      { "type", "StatisticItem" },
+      { "name", name },
+      { "value", std::to_string(*stat) },
+    });
+
+    resp->setBody(doc);
+
+    return;
+  }
 
   typedef map<string, string> stat_items_t;
   stat_items_t general_stats;
   productServerStatisticsFetch(general_stats);
 
-  auto resp_qtype_stats = g_rs.getQTypeResponseCounts();
-  auto resp_size_stats = g_rs.getSizeResponseCounts();
-
-  Json::array doc;
   for(const auto& item : general_stats) {
     doc.push_back(Json::object {
       { "type", "StatisticItem" },
@@ -222,6 +189,9 @@ void apiServerStatistics(HttpRequest* req, HttpResponse* resp) {
     });
   }
 
+  auto resp_qtype_stats = g_rs.getQTypeResponseCounts();
+  auto resp_size_stats = g_rs.getSizeResponseCounts();
+  auto resp_rcode_stats = g_rs.getRCodeResponseCounts();
   {
     Json::array values;
     for(const auto& item : resp_qtype_stats) {
@@ -235,7 +205,7 @@ void apiServerStatistics(HttpRequest* req, HttpResponse* resp) {
 
     doc.push_back(Json::object {
       { "type", "MapStatisticItem" },
-      { "name", "queries-by-qtype" },
+      { "name", "response-by-qtype" },
       { "value", values },
     });
   }
@@ -255,6 +225,24 @@ void apiServerStatistics(HttpRequest* req, HttpResponse* resp) {
     doc.push_back(Json::object {
       { "type", "MapStatisticItem" },
       { "name", "response-sizes" },
+      { "value", values },
+    });
+  }
+
+  {
+    Json::array values;
+    for(const auto& item : resp_rcode_stats) {
+      if (item.second == 0)
+        continue;
+      values.push_back(Json::object {
+        { "name", RCode::to_s(item.first) },
+        { "value", std::to_string(item.second) },
+      });
+    }
+
+    doc.push_back(Json::object {
+      { "type", "MapStatisticItem" },
+      { "name", "response-by-rcode" },
       { "value", values },
     });
   }

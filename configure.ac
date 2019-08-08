@@ -1,6 +1,6 @@
 AC_PREREQ([2.61])
 
-AC_INIT([pdns], m4_esyscmd([build-aux/gen-version]))
+AC_INIT([pdns], m4_esyscmd([builder-support/gen-version]))
 
 AC_CONFIG_SRCDIR([pdns/receiver.cc])
 AC_CONFIG_MACRO_DIR([m4])
@@ -17,8 +17,9 @@ AM_INIT_AUTOMAKE([foreign dist-bzip2 no-dist-gzip tar-ustar -Wno-portability sub
 AM_SILENT_RULES([yes])
 
 AC_CANONICAL_HOST
-: ${CFLAGS="-Wall -g -O2"}
-: ${CXXFLAGS="-Wall -g -O2"}
+# Add some default CFLAGS and CXXFLAGS, can be appended to using the environment variables
+CFLAGS="-Wall -g -O2 $CFLAGS"
+CXXFLAGS="-Wall -g -O2 $CXXFLAGS"
 
 AC_PROG_CC
 AM_PROG_CC_C_O
@@ -42,6 +43,7 @@ AC_DEFINE([_GNU_SOURCE], [1],
 m4_pattern_forbid([^_?PKG_[A-Z_]+$], [*** pkg.m4 missing, please install pkg-config])
 
 PDNS_CHECK_OS
+PTHREAD_SET_NAME
 
 PDNS_WITH_LUA
 PDNS_CHECK_LUA_HPP
@@ -92,23 +94,26 @@ AC_CHECK_HEADERS(
 	[have_mmap=no]
 )
 
-PDNS_ENABLE_BOTAN
-PDNS_CHECK_LIBSODIUM
-PDNS_CHECK_LIBDECAF
+PDNS_WITH_LIBSODIUM
+PDNS_WITH_LIBDECAF
 PDNS_CHECK_LIBCRYPTO([
 ],[
    AC_MSG_ERROR([OpenSSL/libcrypto not found])
   ]
 )
 PDNS_CHECK_LIBCRYPTO_ECDSA
+PDNS_CHECK_LIBCRYPTO_EDDSA
 
 PDNS_CHECK_RAGEL([pdns/dnslabeltext.cc], [www.powerdns.com])
 PDNS_CHECK_CLOCK_GETTIME
 
-BOOST_REQUIRE([1.35])
+BOOST_REQUIRE([1.42])
 # Boost accumulators, as used by dnsbulktest and dnstcpbench, need 1.48+
 # to be compatible with C++11
 AM_CONDITIONAL([HAVE_BOOST_GE_148], [test "$boost_major_version" -ge 148])
+AS_IF([test "$boost_major_version" -ge 148], [
+  AC_DEFINE(HAVE_BOOST_GE_148, [1], [Define to 1 if you have boost >= 1.48])
+])
 
 BOOST_PROGRAM_OPTIONS([mt])
 AS_IF([test "$boost_cv_lib_program_options" = "no"], [
@@ -117,6 +122,7 @@ AS_IF([test "$boost_cv_lib_program_options" = "no"], [
 PDNS_ENABLE_UNIT_TESTS
 PDNS_ENABLE_BACKEND_UNIT_TESTS
 PDNS_ENABLE_REPRODUCIBLE
+PDNS_ENABLE_FUZZ_TARGETS
 
 PDNS_WITH_SQLITE3
 
@@ -124,7 +130,7 @@ PDNS_CHECK_VIRTUALENV
 PDNS_FROM_GIT
 
 dnl Checks for library functions.
-AC_CHECK_FUNCS_ONCE([strcasestr localtime_r recvmmsg getrandom arc4random])
+AC_CHECK_FUNCS_ONCE([strcasestr localtime_r recvmmsg sched_setscheduler getrandom arc4random])
 
 AM_CONDITIONAL([HAVE_RECVMMSG], [test "x$ac_cv_func_recvmmsg" = "xyes"])
 
@@ -174,7 +180,7 @@ for a in $modules $dynmodules; do
     godbc)
       PDNS_WITH_UNIXODBC
       ;;
-    mydns|gmysql|pdns)
+    mydns|gmysql)
       PDNS_WITH_MYSQL
       ;;
     gpgsql)
@@ -210,20 +216,16 @@ for a in $modules $dynmodules; do
         [AC_MSG_ERROR([${a} backend needs lua but we cannot find it])]
       )
       ;;
+    lmdb)
+      PDNS_CHECK_LMDB
+      BOOST_SERIALIZATION
+      ;;
   esac
 done
 
 PDNS_ENABLE_REMOTEBACKEND_ZEROMQ
 
-AC_MSG_CHECKING([whether we will be building and installing the extra tools])
-AC_ARG_ENABLE([tools],
-  [AS_HELP_STRING([--enable-tools], [if we should build and install the tools @<:@default=no@:>@])],
-  [enable_tools=$enableval],
-  [enable_tools=no]
-)
-
-AC_MSG_RESULT([$enable_tools])
-AM_CONDITIONAL([TOOLS], [test "x$enable_tools" != "xno"])
+PDNS_ENABLE_TOOLS
 PDNS_ENABLE_IXFRDIST
 
 PDNS_WITH_PROTOBUF
@@ -265,6 +267,7 @@ for a in $dynmodules; do
 done
 
 AX_AVAILABLE_SYSTEMD
+AX_CHECK_SYSTEMD_FEATURES
 AM_CONDITIONAL([HAVE_SYSTEMD], [ test x"$systemd" = "xy" ])
 
 LDFLAGS="$RELRO_LDFLAGS $LDFLAGS"
@@ -286,6 +289,8 @@ AC_SUBST([AM_CPPFLAGS],
 
 AC_SUBST([YAHTTP_CFLAGS], ['-I$(top_srcdir)/ext/yahttp'])
 AC_SUBST([YAHTTP_LIBS], ['$(top_builddir)/ext/yahttp/yahttp/libyahttp.la'])
+AC_SUBST([IPCRYPT_CFLAGS], ['-I$(top_srcdir)/ext/ipcrypt'])
+AC_SUBST([IPCRYPT_LIBS], ['$(top_builddir)/ext/ipcrypt/libipcrypt.la'])
 
 CXXFLAGS="$SANITIZER_FLAGS $CXXFLAGS"
 
@@ -304,6 +309,7 @@ AC_CONFIG_FILES([
   docs/Makefile
   pdns/pdns.init
   ext/Makefile
+  ext/ipcrypt/Makefile
   ext/yahttp/Makefile
   ext/yahttp/yahttp/Makefile
   ext/json11/Makefile
@@ -315,6 +321,7 @@ AC_CONFIG_FILES([
   modules/gpgsqlbackend/Makefile
   modules/gsqlite3backend/Makefile
   modules/ldapbackend/Makefile
+  modules/lmdbbackend/Makefile
   modules/luabackend/Makefile
   modules/lua2backend/Makefile
   modules/mydnsbackend/Makefile
@@ -343,8 +350,19 @@ AC_MSG_NOTICE([LDFLAGS: $LDFLAGS])
 AC_MSG_NOTICE([LIBS: $LIBS])
 AC_MSG_NOTICE([BOOST_CPPFLAGS: $BOOST_CPPFLAGS])
 AC_MSG_NOTICE([])
-AC_MSG_NOTICE([Features enabled])
-AC_MSG_NOTICE([----------------])
+AC_MSG_NOTICE([Extras enabled])
+AC_MSG_NOTICE([--------------])
+AS_IF([test "x$enable_tools" = "xyes"],
+  [AC_MSG_NOTICE([Tools: yes])],
+  [AC_MSG_NOTICE([Tools: no])]
+)
+AS_IF([test "x$enable_ixfrdist" = "xyes"],
+  [AC_MSG_NOTICE([ixfrdist: yes])],
+  [AC_MSG_NOTICE([ixfrdist: no])]
+)
+AC_MSG_NOTICE([])
+AC_MSG_NOTICE([Server Features enabled])
+AC_MSG_NOTICE([-----------------------])
 AC_MSG_NOTICE([Built-in modules: $modules])
 AC_MSG_NOTICE([Dynamic modules: $dynmodules])
 AC_MSG_NOTICE([])
@@ -352,17 +370,13 @@ AS_IF([test "x$libcrypto_ecdsa" = "xyes"],
   [AC_MSG_NOTICE([OpenSSL ecdsa: yes])],
   [AC_MSG_NOTICE([OpenSSL ecdsa: no])]
 )
-AS_IF([test "x$LIBSODIUM_LIBS" != "x" || test "x$LIBDECAF_LIBS" != "x"],
+AS_IF([test "x$LIBSODIUM_LIBS" != "x" || test "x$LIBDECAF_LIBS" != "x" || test "x$libcrypto_ed25519" = "xyes"],
   [AC_MSG_NOTICE([ed25519: yes])],
   [AC_MSG_NOTICE([ed25519: no])]
 )
-AS_IF([test "x$LIBDECAF_LIBS" != "x"],
+AS_IF([test "x$LIBDECAF_LIBS" != "x" || test "x$libcrypto_ed448" = "xyes"],
   [AC_MSG_NOTICE([ed448: yes])],
   [AC_MSG_NOTICE([ed448: no])]
-)
-AS_IF([test "x$BOTAN_LIBS" != "x"],
-  [AC_MSG_NOTICE([gost: yes])],
-  [AC_MSG_NOTICE([gost: no])]
 )
 AS_IF([test "x$needsqlite3" != "x"],
   [AC_MSG_NOTICE([SQLite3: yes])],
@@ -380,11 +394,20 @@ AS_IF([test "x$enable_experimental_pkcs11" = "xyes"],
 AS_IF([test "x$enable_experimental_gss_tsig" = "xyes"],
   [AC_MSG_NOTICE([GSS-TSIG: yes])]
 )
+AS_IF([test "x$enable_lua_records" = "xyes"],
+  [AC_MSG_NOTICE([LUA records: yes])]
+)
 AS_IF([test "x$systemd" != "xn"],
   [AC_MSG_NOTICE([systemd: yes])],
   [AC_MSG_NOTICE([systemd: no])]
 )
 AS_IF([test "x$enable_remotebackend_zeromq" != "xno"],
   [AC_MSG_NOTICE([ZeroMQ connector for remotebackend: yes])]
+)
+AS_IF([test -n "$GEOIP_LIBS"],
+  [AC_MSG_NOTICE([libgeoip for geoipbackend: yes])]
+)
+AS_IF([test -n "$MMDB_LIBS"],
+  [AC_MSG_NOTICE([libmaxminddb for geoipbackend: yes])]
 )
 AC_MSG_NOTICE([])

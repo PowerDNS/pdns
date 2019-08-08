@@ -19,6 +19,11 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
+#include <fcntl.h>
+#include <sys/stat.h>
+#include <sys/types.h>
+
+#include "config.h"
 #include "dnsdist.hh"
 #include "dnsdist-lua.hh"
 #include "dnsdist-protobuf.hh"
@@ -27,6 +32,10 @@
 #include "dolog.hh"
 #include "fstrm_logger.hh"
 #include "remote_logger.hh"
+
+#ifdef HAVE_LIBCRYPTO
+#include "ipcipher.hh"
+#endif /* HAVE_LIBCRYPTO */
 
 void setupLuaBindings(bool client)
 {
@@ -64,11 +73,13 @@ void setupLuaBindings(bool client)
   g_lua.registerMember("name", &ServerPolicy::name);
   g_lua.registerMember("policy", &ServerPolicy::policy);
   g_lua.registerMember("isLua", &ServerPolicy::isLua);
+  g_lua.registerFunction("toString", &ServerPolicy::toString);
 
   g_lua.writeVariable("firstAvailable", ServerPolicy{"firstAvailable", firstAvailable, false});
   g_lua.writeVariable("roundrobin", ServerPolicy{"roundrobin", roundrobin, false});
   g_lua.writeVariable("wrandom", ServerPolicy{"wrandom", wrandom, false});
   g_lua.writeVariable("whashed", ServerPolicy{"whashed", whashed, false});
+  g_lua.writeVariable("chashed", ServerPolicy{"chashed", chashed, false});
   g_lua.writeVariable("leastOutstanding", ServerPolicy{"leastOutstanding", leastOutstanding, false});
 
   /* ServerPool */
@@ -100,7 +111,7 @@ void setupLuaBindings(bool client)
       g_pools.setState(localPools);
       s->pools.erase(pool);
     });
-  g_lua.registerFunction<void(DownstreamState::*)()>("getOutstanding", [](const DownstreamState& s) { g_outputBuffer=std::to_string(s.outstanding.load()); });
+  g_lua.registerFunction<uint64_t(DownstreamState::*)()>("getOutstanding", [](const DownstreamState& s) { return s.outstanding.load(); });
   g_lua.registerFunction("isUp", &DownstreamState::isUp);
   g_lua.registerFunction("setDown", &DownstreamState::setDown);
   g_lua.registerFunction("setUp", &DownstreamState::setUp);
@@ -113,7 +124,10 @@ void setupLuaBindings(bool client)
   g_lua.registerFunction("getName", &DownstreamState::getName);
   g_lua.registerFunction("getNameWithAddr", &DownstreamState::getNameWithAddr);
   g_lua.registerMember("upStatus", &DownstreamState::upStatus);
-  g_lua.registerMember("weight", &DownstreamState::weight);
+  g_lua.registerMember<int (DownstreamState::*)>("weight",
+    [](const DownstreamState& s) -> int {return s.weight;},
+    [](DownstreamState& s, int newWeight) {s.setWeight(newWeight);}
+  );
   g_lua.registerMember("order", &DownstreamState::order);
   g_lua.registerMember("name", &DownstreamState::name);
 
@@ -157,6 +171,19 @@ void setupLuaBindings(bool client)
   g_lua.registerFunction<ComboAddress(ComboAddress::*)()>("mapToIPv4", [](const ComboAddress& ca) { return ca.mapToIPv4(); });
   g_lua.registerFunction<bool(nmts_t::*)(const ComboAddress&)>("match", [](nmts_t& s, const ComboAddress& ca) { return s.match(ca); });
 
+#ifdef HAVE_LIBCRYPTO
+  g_lua.registerFunction<ComboAddress(ComboAddress::*)(const std::string& key)>("ipencrypt", [](const ComboAddress& ca, const std::string& key) {
+      return encryptCA(ca, key);
+    });
+  g_lua.registerFunction<ComboAddress(ComboAddress::*)(const std::string& key)>("ipdecrypt", [](const ComboAddress& ca, const std::string& key) {
+      return decryptCA(ca, key);
+    });
+
+  g_lua.writeFunction("makeIPCipherKey", [](const std::string& password) {
+      return makeIPCipherKey(password);
+    });
+#endif /* HAVE_LIBCRYPTO */
+
   /* DNSName */
   g_lua.registerFunction("isPartOf", &DNSName::isPartOf);
   g_lua.registerFunction<bool(DNSName::*)()>("chopOff", [](DNSName&dn ) { return dn.chopOff(); });
@@ -166,9 +193,44 @@ void setupLuaBindings(bool client)
   g_lua.registerFunction<string(DNSName::*)()>("toString", [](const DNSName&dn ) { return dn.toString(); });
   g_lua.writeFunction("newDNSName", [](const std::string& name) { return DNSName(name); });
   g_lua.writeFunction("newSuffixMatchNode", []() { return SuffixMatchNode(); });
+  g_lua.writeFunction("newDNSNameSet", []() { return DNSNameSet(); });
+
+  /* DNSNameSet */
+  g_lua.registerFunction<string(DNSNameSet::*)()>("toString", [](const DNSNameSet&dns ) { return dns.toString(); });
+  g_lua.registerFunction<void(DNSNameSet::*)(DNSName&)>("add", [](DNSNameSet& dns, DNSName& dn) { dns.insert(dn); });
+  g_lua.registerFunction<bool(DNSNameSet::*)(DNSName&)>("check", [](DNSNameSet& dns, DNSName& dn) { return dns.find(dn) != dns.end(); });
+  g_lua.registerFunction("delete",(size_t (DNSNameSet::*)(const DNSName&)) &DNSNameSet::erase);
+  g_lua.registerFunction("size",(size_t (DNSNameSet::*)() const) &DNSNameSet::size);
+  g_lua.registerFunction("clear",(void (DNSNameSet::*)()) &DNSNameSet::clear);
+  g_lua.registerFunction("empty",(bool (DNSNameSet::*)()) &DNSNameSet::empty);
 
   /* SuffixMatchNode */
-  g_lua.registerFunction("add",(void (SuffixMatchNode::*)(const DNSName&)) &SuffixMatchNode::add);
+  g_lua.registerFunction<void (SuffixMatchNode::*)(const boost::variant<DNSName, string, vector<pair<int, DNSName>>, vector<pair<int, string>>> &name)>("add", [](SuffixMatchNode &smn, const boost::variant<DNSName, string, vector<pair<int, DNSName>>, vector<pair<int, string>>> &name) {
+      if (name.type() == typeid(DNSName)) {
+          auto n = boost::get<DNSName>(name);
+          smn.add(n);
+          return;
+      }
+      if (name.type() == typeid(string)) {
+          auto n = boost::get<string>(name);
+          smn.add(n);
+          return;
+      }
+      if (name.type() == typeid(vector<pair<int, DNSName>>)) {
+          auto names = boost::get<vector<pair<int, DNSName>>>(name);
+          for (auto const n : names) {
+            smn.add(n.second);
+          }
+          return;
+      }
+      if (name.type() == typeid(vector<pair<int, string>>)) {
+          auto names = boost::get<vector<pair<int, string>>>(name);
+          for (auto const n : names) {
+            smn.add(n.second);
+          }
+          return;
+      }
+  });
   g_lua.registerFunction("check",(bool (SuffixMatchNode::*)(const DNSName&) const) &SuffixMatchNode::check);
 
   /* NetmaskGroup */
@@ -187,6 +249,7 @@ void setupLuaBindings(bool client)
   g_lua.registerFunction("match", (bool (NetmaskGroup::*)(const ComboAddress&) const)&NetmaskGroup::match);
   g_lua.registerFunction("size", &NetmaskGroup::size);
   g_lua.registerFunction("clear", &NetmaskGroup::clear);
+  g_lua.registerFunction<string(NetmaskGroup::*)()>("toString", [](const NetmaskGroup& nmg ) { return "NetmaskGroup " + nmg.toString(); });
 
   /* QPSLimiter */
   g_lua.writeFunction("newQPSLimiter", [](int rate, int burst) { return QPSLimiter(rate, burst); });
@@ -210,8 +273,67 @@ void setupLuaBindings(bool client)
 #endif /* HAVE_EBPF */
 
   /* PacketCache */
-  g_lua.writeFunction("newPacketCache", [](size_t maxEntries, boost::optional<uint32_t> maxTTL, boost::optional<uint32_t> minTTL, boost::optional<uint32_t> tempFailTTL, boost::optional<uint32_t> staleTTL, boost::optional<bool> dontAge, boost::optional<size_t> numberOfShards, boost::optional<bool> deferrableInsertLock) {
-      return std::make_shared<DNSDistPacketCache>(maxEntries, maxTTL ? *maxTTL : 86400, minTTL ? *minTTL : 0, tempFailTTL ? *tempFailTTL : 60, staleTTL ? *staleTTL : 60, dontAge ? *dontAge : false, numberOfShards ? *numberOfShards : 1, deferrableInsertLock ? *deferrableInsertLock : true);
+  g_lua.writeFunction("newPacketCache", [](size_t maxEntries, boost::optional<std::unordered_map<std::string, boost::variant<bool, size_t>>> vars) {
+
+      bool keepStaleData = false;
+      size_t maxTTL = 86400;
+      size_t minTTL = 0;
+      size_t tempFailTTL = 60;
+      size_t maxNegativeTTL = 3600;
+      size_t staleTTL = 60;
+      size_t numberOfShards = 1;
+      bool dontAge = false;
+      bool deferrableInsertLock = true;
+      bool ecsParsing = false;
+
+      if (vars) {
+
+        if (vars->count("deferrableInsertLock")) {
+          deferrableInsertLock = boost::get<bool>((*vars)["deferrableInsertLock"]);
+        }
+
+        if (vars->count("dontAge")) {
+          dontAge = boost::get<bool>((*vars)["dontAge"]);
+        }
+
+        if (vars->count("keepStaleData")) {
+          keepStaleData = boost::get<bool>((*vars)["keepStaleData"]);
+        }
+
+        if (vars->count("maxNegativeTTL")) {
+          maxNegativeTTL = boost::get<size_t>((*vars)["maxNegativeTTL"]);
+        }
+
+        if (vars->count("maxTTL")) {
+          maxTTL = boost::get<size_t>((*vars)["maxTTL"]);
+        }
+
+        if (vars->count("minTTL")) {
+          minTTL = boost::get<size_t>((*vars)["minTTL"]);
+        }
+
+        if (vars->count("numberOfShards")) {
+          numberOfShards = boost::get<size_t>((*vars)["numberOfShards"]);
+        }
+
+        if (vars->count("parseECS")) {
+          ecsParsing = boost::get<bool>((*vars)["parseECS"]);
+        }
+
+        if (vars->count("staleTTL")) {
+          staleTTL = boost::get<size_t>((*vars)["staleTTL"]);
+        }
+
+        if (vars->count("temporaryFailureTTL")) {
+          tempFailTTL = boost::get<size_t>((*vars)["temporaryFailureTTL"]);
+        }
+      }
+
+      auto res = std::make_shared<DNSDistPacketCache>(maxEntries, maxTTL, minTTL, tempFailTTL, maxNegativeTTL, staleTTL, dontAge, numberOfShards, deferrableInsertLock, ecsParsing);
+
+      res->setKeepStaleData(keepStaleData);
+
+      return res;
     });
   g_lua.registerFunction("toString", &DNSDistPacketCache::toString);
   g_lua.registerFunction("isFull", &DNSDistPacketCache::isFull);
@@ -223,7 +345,7 @@ void setupLuaBindings(bool client)
               boost::optional<uint16_t> qtype,
               boost::optional<bool> suffixMatch) {
                 if (cache) {
-                  cache->expungeByName(dname, qtype ? *qtype : QType::ANY, suffixMatch ? *suffixMatch : false);
+                  g_outputBuffer="Expunged " + std::to_string(cache->expungeByName(dname, qtype ? *qtype : QType(QType::ANY).getCode(), suffixMatch ? *suffixMatch : false)) + " records\n";
                 }
     });
   g_lua.registerFunction<void(std::shared_ptr<DNSDistPacketCache>::*)()>("printStats", [](const std::shared_ptr<DNSDistPacketCache> cache) {
@@ -236,6 +358,44 @@ void setupLuaBindings(bool client)
         g_outputBuffer+="Lookup Collisions: " + std::to_string(cache->getLookupCollisions()) + "\n";
         g_outputBuffer+="Insert Collisions: " + std::to_string(cache->getInsertCollisions()) + "\n";
         g_outputBuffer+="TTL Too Shorts: " + std::to_string(cache->getTTLTooShorts()) + "\n";
+      }
+    });
+  g_lua.registerFunction<std::unordered_map<std::string, uint64_t>(std::shared_ptr<DNSDistPacketCache>::*)()>("getStats", [](const std::shared_ptr<DNSDistPacketCache> cache) {
+      std::unordered_map<std::string, uint64_t> stats;
+      if (cache) {
+        stats["entries"] = cache->getEntriesCount();
+        stats["maxEntries"] = cache->getMaxEntries();
+        stats["hits"] = cache->getHits();
+        stats["misses"] = cache->getMisses();
+        stats["deferredInserts"] = cache->getDeferredInserts();
+        stats["deferredLookups"] = cache->getDeferredLookups();
+        stats["lookupCollisions"] = cache->getLookupCollisions();
+        stats["insertCollisions"] = cache->getInsertCollisions();
+        stats["ttlTooShorts"] = cache->getTTLTooShorts();
+      }
+      return stats;
+    });
+  g_lua.registerFunction<void(std::shared_ptr<DNSDistPacketCache>::*)(const std::string& fname)>("dump", [](const std::shared_ptr<DNSDistPacketCache> cache, const std::string& fname) {
+      if (cache) {
+
+        int fd = open(fname.c_str(), O_CREAT | O_EXCL | O_WRONLY, 0660);
+        if (fd < 0) {
+          g_outputBuffer = "Error opening dump file for writing: " + string(strerror(errno)) + "\n";
+          return;
+        }
+
+        uint64_t records = 0;
+        try {
+          records = cache->dump(fd);
+        }
+        catch (const std::exception& e) {
+          close(fd);
+          throw;
+        }
+
+        close(fd);
+
+        g_outputBuffer += "Dumped " + std::to_string(records) + " records\n";
       }
     });
 
@@ -276,6 +436,9 @@ void setupLuaBindings(bool client)
   g_lua.registerFunction<void(DNSDistProtoBufMessage::*)(const std::string&)>("setResponderFromString", [](DNSDistProtoBufMessage& message, const std::string& str) {
       message.setResponder(str);
     });
+  g_lua.registerFunction<void(DNSDistProtoBufMessage::*)(const std::string&)>("setServerIdentity", [](DNSDistProtoBufMessage& message, const std::string& str) {
+      message.setServerIdentity(str);
+    });
 
   g_lua.registerFunction<std::string(DnstapMessage::*)()>("toDebugString", [](const DnstapMessage& message) { return message.toDebugString(); });
   g_lua.registerFunction<void(DnstapMessage::*)(const std::string&)>("setExtra", [](DnstapMessage& message, const std::string& str) {
@@ -284,7 +447,7 @@ void setupLuaBindings(bool client)
 
   /* RemoteLogger */
   g_lua.writeFunction("newRemoteLogger", [client](const std::string& remote, boost::optional<uint16_t> timeout, boost::optional<uint64_t> maxQueuedEntries, boost::optional<uint8_t> reconnectWaitTime) {
-      return std::shared_ptr<RemoteLoggerInterface>(new RemoteLogger(ComboAddress(remote), timeout ? *timeout : 2, maxQueuedEntries ? *maxQueuedEntries : 100, reconnectWaitTime ? *reconnectWaitTime : 1, client));
+      return std::shared_ptr<RemoteLoggerInterface>(new RemoteLogger(ComboAddress(remote), timeout ? *timeout : 2, maxQueuedEntries ? (*maxQueuedEntries*100) : 10000, reconnectWaitTime ? *reconnectWaitTime : 1, client));
     });
 
   g_lua.writeFunction("newFrameStreamUnixLogger", [client](const std::string& address) {
@@ -302,6 +465,8 @@ void setupLuaBindings(bool client)
       throw std::runtime_error("fstrm with TCP support is required to build an AF_INET FrameStreamLogger");
 #endif /* HAVE_FSTRM */
     });
+
+  g_lua.registerFunction("toString", &RemoteLoggerInterface::toString);
 
 #ifdef HAVE_DNSCRYPT
     /* DNSCryptContext bindings */
@@ -372,7 +537,7 @@ void setupLuaBindings(bool client)
 
       if (ctx != nullptr) {
         size_t idx = 1;
-        boost::format fmt("%1$-3d %|5t|%2$-8d %|10t|%3$-2d %|20t|%4$-21.21s %|41t|%5$-21.21s");
+        boost::format fmt("%1$-3d %|5t|%2$-8d %|10t|%3$-7d %|20t|%4$-21.21s %|41t|%5$-21.21s");
         ret << (fmt % "#" % "Serial" % "Version" % "From" % "To" ) << endl;
 
         for (auto pair : ctx->getCertificates()) {
@@ -513,5 +678,39 @@ void setupLuaBindings(bool client)
           dbpf->purgeExpired(now);
         }
     });
+
+    g_lua.registerFunction<void(std::shared_ptr<DynBPFFilter>::*)(boost::variant<std::string, std::vector<std::pair<int, std::string>>>)>("excludeRange", [](std::shared_ptr<DynBPFFilter> dbpf, boost::variant<std::string, std::vector<std::pair<int, std::string>>> ranges) {
+      if (ranges.type() == typeid(std::vector<std::pair<int, std::string>>)) {
+        for (const auto& range : *boost::get<std::vector<std::pair<int, std::string>>>(&ranges)) {
+          dbpf->excludeRange(Netmask(range.second));
+        }
+      }
+      else {
+        dbpf->excludeRange(Netmask(*boost::get<std::string>(&ranges)));
+      }
+    });
+
+    g_lua.registerFunction<void(std::shared_ptr<DynBPFFilter>::*)(boost::variant<std::string, std::vector<std::pair<int, std::string>>>)>("includeRange", [](std::shared_ptr<DynBPFFilter> dbpf, boost::variant<std::string, std::vector<std::pair<int, std::string>>> ranges) {
+      if (ranges.type() == typeid(std::vector<std::pair<int, std::string>>)) {
+        for (const auto& range : *boost::get<std::vector<std::pair<int, std::string>>>(&ranges)) {
+          dbpf->includeRange(Netmask(range.second));
+        }
+      }
+      else {
+        dbpf->includeRange(Netmask(*boost::get<std::string>(&ranges)));
+      }
+    });
 #endif /* HAVE_EBPF */
+
+  /* EDNSOptionView */
+  g_lua.registerFunction<size_t(EDNSOptionView::*)()>("count", [](const EDNSOptionView& option) {
+      return option.values.size();
+    });
+  g_lua.registerFunction<std::vector<string>(EDNSOptionView::*)()>("getValues", [] (const EDNSOptionView& option) {
+    std::vector<string> values;
+    for (const auto& value : option.values) {
+      values.push_back(std::string(value.content, value.size));
+    }
+    return values;
+  });
 }

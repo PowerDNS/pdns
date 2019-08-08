@@ -192,7 +192,7 @@ public:
   bool removeKey(const DNSName& zname, unsigned int id);
   bool activateKey(const DNSName& zname, unsigned int id);
   bool deactivateKey(const DNSName& zname, unsigned int id);
-  bool checkKeys(const DNSName& zname);
+  bool checkKeys(const DNSName& zname, vector<string>* errorMessages = nullptr);
 
   bool getNSEC3PARAM(const DNSName& zname, NSEC3PARAMRecordContent* n3p=0, bool* narrow=0);
   bool checkNSEC3PARAM(const NSEC3PARAMRecordContent& ns3p, string& msg);
@@ -303,3 +303,4 @@ uint32_t calculateEditSOA(uint32_t old_serial, const string& kind, const DNSName
 // for SOA-EDIT-DNSUPDATE/API
 bool increaseSOARecord(DNSResourceRecord& dr, const string& increaseKind, const string& editKind);
 bool makeIncreasedSOARecord(SOAData& sd, const string& increaseKind, const string& editKind, DNSResourceRecord& rrout);
+DNSZoneRecord makeEditedDNSZRFromSOAData(DNSSECKeeper& dk, const SOAData& sd, DNSResourceRecord::Place place=DNSResourceRecord::ANSWER);

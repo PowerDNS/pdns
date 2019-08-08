@@ -106,8 +106,8 @@ public:
     declare(suffix, "supermaster-query", "", "select account from supermasters where ip=:ip and nameserver=:nameserver");
     declare(suffix, "supermaster-name-to-ips", "", "select ip,account from supermasters where nameserver=:nameserver and account=:account");
     declare(suffix, "insert-zone-query", "", "insert into domains (id,type,name,master,account,last_check_notified_serial) values(domains_id_sequence.nextval,:type,:domain,:masters,:account, null, null)");
-    declare(suffix, "insert-record-query", "", "insert into records (id,content,ttl,prio,type,domain_id,disabled,name,ordername,auth,change_date) values (records_id_sequence.nextval,:content,:ttl,:priority,:qtype,:domain_id,:disabled,:qname,:ordername || ' ',:auth, null)");
-    declare(suffix, "insert-empty-non-terminal-order-query", "insert empty non-terminal in zone", "insert into records (id,type,domain_id,disabled,name,ordername,auth,ttl,prio,change_date,content) values (records_id_sequence.nextval,null,:domain_id,0,:qname,:ordername,:auth,null,null,null,null)");
+    declare(suffix, "insert-record-query", "", "insert into records (id,content,ttl,prio,type,domain_id,disabled,name,ordername,auth) values (records_id_sequence.nextval,:content,:ttl,:priority,:qtype,:domain_id,:disabled,:qname,:ordername || ' ',:auth)");
+    declare(suffix, "insert-empty-non-terminal-order-query", "insert empty non-terminal in zone", "insert into records (id,type,domain_id,disabled,name,ordername,auth,ttl,prio,content) values (records_id_sequence.nextval,null,:domain_id,0,:qname,:ordername,:auth,null,null,null)");
 
     declare(suffix, "get-order-first-query", "DNSSEC Ordering Query, first", "select * FROM (select trim(ordername) from records where disabled=0 and domain_id=:domain_id and ordername is not null order by ordername asc) where rownum=1");
     declare(suffix, "get-order-before-query", "DNSSEC Ordering Query, before", "select * FROM (select trim(ordername), name from records where disabled=0 and ordername <= :ordername || ' ' and domain_id=:domain_id and ordername is not null order by ordername desc) where rownum=1");
@@ -124,7 +124,6 @@ public:
     declare(suffix, "update-account-query", "", "update domains set account=:account where name=:domain");
     declare(suffix, "update-serial-query", "", "update domains set notified_serial=:serial where id=:domain_id");
     declare(suffix, "update-lastcheck-query", "", "update domains set last_check=:last_check where id=:domain_id");
-    declare(suffix, "zone-lastchange-query", "", "select max(change_date) from records where domain_id=:domain_id");
     declare(suffix, "info-all-master-query", "", "select id,name,master,last_check,notified_serial,type from domains where type='MASTER'");
     declare(suffix, "delete-domain-query","", "delete from domains where name=:domain");
     declare(suffix, "delete-zone-query", "", "delete from records where domain_id=:domain_id");

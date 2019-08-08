@@ -1,0 +1,84 @@
+#!/usr/bin/make -f
+DEB_HOST_ARCH_OS ?= $(shell dpkg-architecture -qDEB_HOST_ARCH_OS)
+DEB_HOST_ARCH_BITS ?= $(shell dpkg-architecture -qDEB_HOST_ARCH_BITS)
+DEB_HOST_MULTIARCH ?= $(shell dpkg-architecture -qDEB_HOST_MULTIARCH)
+
+# Backends
+backends := bind ldap pipe gmysql godbc gpgsql gsqlite3 geoip lua lua2 mydns remote random opendbx tinydns
+
+# Disable systemd integration on non-linux archs
+ifeq ($(DEB_HOST_ARCH_OS),linux)
+CONFIGURE_ARGS += --enable-systemd --with-systemd=/lib/systemd/system
+else
+CONFIGURE_ARGS += --disable-systemd
+endif
+
+
+# Use new build system
+%:
+	dh $@ \
+	  --with autoreconf \
+	  --with systemd \
+	  --parallel
+
+override_dh_auto_configure:
+	test -f pdns/dnslabeltext.cc && mv pdns/dnslabeltext.cc debian/dnslabeltext.cc.moved || true
+	dh_auto_configure -- \
+		--sysconfdir=/etc/powerdns \
+		--with-dynmodules="$(backends)" \
+		--with-modules="" \
+		--enable-tools \
+		--with-libsodium \
+		--with-lua=luajit \
+		--with-protobuf \
+		--enable-unit-tests \
+		--enable-experimental-pkcs11 \
+		--enable-lua-records \
+		--enable-ixfrdist \
+		$(CONFIGURE_ARGS)
+
+# pdns-server has a debug package
+override_dh_strip:
+	dh_strip --dbg-package=pdns-server-dbg
+
+override_dh_systemd_enable:
+	dh_systemd_enable --name=pdns
+
+# init script needs to be named pdns, not pdns-server. if no pdns-backend
+# is installed, start will fail, so pass --no-start. backends will trigger
+# a restart.
+override_dh_installinit:
+	dh_installinit --error-handler=initscript_error --no-start --restart-after-upgrade --name=pdns
+
+override_dh_install:
+	dh_install
+	./pdns/pdns_server --no-config --config | sed \
+	  -e 's!# module-dir=.*!!' \
+	  -e 's!# include-dir=.*!&\ninclude-dir=/etc/powerdns/pdns.d!' \
+	  -e 's!# launch=.*!&\nlaunch=!' \
+	  -e 's!# setgid=.*!setgid=pdns!' \
+	  -e 's!# setuid=.*!setuid=pdns!' \
+	  > debian/pdns-server/etc/powerdns/pdns.conf
+ifeq ($(DEB_HOST_ARCH_BITS),32)
+	echo RestrictAddressFamilies is broken on 32bit, removing it from service file
+	perl -ni -e 'print unless /RestrictAddressFamilies/' debian/pdns-server/lib/systemd/system/*.service
+endif
+
+# Verbose tests (shows used compiler/linker and their flags)
+override_dh_auto_test:
+	echo Skipping make test, as dependencies are missing.
+	make check -- V=1 || (cat pdns/test-suite.log && false)
+
+# Verbose build (shows used compiler/linker and their flags)
+override_dh_auto_build-arch:
+	dh_auto_build -- V=1 MAKEOPTS=-j2
+
+override_dh_fixperms:
+	dh_fixperms
+	# these files often contain passwords.
+	chmod 0600 debian/pdns-server/etc/powerdns/pdns.conf
+
+# restore moved files
+override_dh_clean:
+	test -f debian/dnslabeltext.cc.moved && mv debian/dnslabeltext.cc.moved pdns/dnslabeltext.cc || true
+	dh_clean

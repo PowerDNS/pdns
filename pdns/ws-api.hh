@@ -30,7 +30,6 @@ void apiDiscovery(HttpRequest* req, HttpResponse* resp);
 void apiServer(HttpRequest* req, HttpResponse* resp);
 void apiServerDetail(HttpRequest* req, HttpResponse* resp);
 void apiServerConfig(HttpRequest* req, HttpResponse* resp);
-void apiServerSearchLog(HttpRequest* req, HttpResponse* resp);
 void apiServerStatistics(HttpRequest* req, HttpResponse* resp);
 
 // helpers
@@ -42,5 +41,6 @@ DNSName apiNameToDNSName(const string& name);
 
 // To be provided by product code.
 void productServerStatisticsFetch(std::map<string,string>& out);
+boost::optional<uint64_t> productServerStatisticsFetch(const std::string& name);
 
 #endif /* PDNS_WSAPI_HH */

@@ -8,17 +8,10 @@ env:
   - PDNS_BUILD_PRODUCT=auth
   - PDNS_BUILD_PRODUCT=recursor
   - PDNS_BUILD_PRODUCT=dnsdist
+  - PDNS_BUILD_PRODUCT=ixfrdist
 
-matrix:
-  exclude:
-    - compiler: clang
-      env: PDNS_BUILD_PRODUCT=recursor
-  include:
-    - compiler: clang
-      env: PDNS_BUILD_PRODUCT=recursor COMPILER=clang++-3.6
-      addons:
-        apt:
-          packages: ['clang-3.6']
+cache:
+  - pip
 
 before_script:
   - git describe --always --dirty=+
@@ -31,6 +24,10 @@ before_script:
   - export CXXFLAGS=-O0
   - export OPTFLAGS=-O0
   - sudo apt-get -qq update
+  # you can remove this when updating dist to something newer than trusty
+  - pyenv global 2.7
+  # needed for virtualenv to use the pyenv python
+  - pip install virtualenv
 
 script:
   - ./build-scripts/travis.sh

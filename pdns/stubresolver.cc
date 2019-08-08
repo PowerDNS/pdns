@@ -53,35 +53,15 @@ static void parseLocalResolvConf_locked(const time_t& now)
 
   if (stat(LOCAL_RESOLV_CONF_PATH, &st) != -1) {
     if (st.st_mtime != s_localResolvConfMtime) {
-      ifstream ifs(LOCAL_RESOLV_CONF_PATH);
-      string line;
+      std::vector<ComboAddress> resolvers = getResolvers(LOCAL_RESOLV_CONF_PATH);
 
       s_localResolvConfMtime = st.st_mtime;
-      if(!ifs)
+
+      if (resolvers.empty()) {
         return;
-
-      s_resolversForStub.clear();
-      while(std::getline(ifs, line)) {
-        boost::trim_right_if(line, is_any_of(" \r\n\x1a"));
-        boost::trim_left(line); // leading spaces, let's be nice
-
-        string::size_type tpos = line.find_first_of(";#");
-        if(tpos != string::npos)
-          line.resize(tpos);
-
-        if(boost::starts_with(line, "nameserver ") || boost::starts_with(line, "nameserver\t")) {
-          vector<string> parts;
-          stringtok(parts, line, " \t,"); // be REALLY nice
-          for(vector<string>::const_iterator iter = parts.begin()+1; iter != parts.end(); ++iter) {
-            try {
-              s_resolversForStub.push_back(ComboAddress(*iter, 53));
-            }
-            catch(...)
-            {
-            }
-          }
-        }
       }
+
+      s_resolversForStub = std::move(resolvers);
     }
   }
 }
@@ -102,6 +82,8 @@ static void parseLocalResolvConf()
  * First, parse the `resolver` configuration option for IP addresses to use.
  * If that doesn't work, parse /etc/resolv.conf and add those nameservers to
  * s_resolversForStub.
+ *
+ * mainthread() calls this so you don't have to.
  */
 void stubParseResolveConf()
 {
@@ -186,4 +168,13 @@ int stubDoResolve(const DNSName& qname, uint16_t qtype, vector<DNSZoneRecord>& r
     return mdp.d_header.rcode;
   }
   return RCode::ServFail;
+}
+
+int stubDoResolve(const DNSName& qname, uint16_t qtype, vector<DNSRecord>& ret) {
+  vector<DNSZoneRecord> ret2;
+  int res = stubDoResolve(qname, qtype, ret2);
+  for (const auto &r : ret2) {
+    ret.push_back(r.dr);
+  }
+  return res;
 }

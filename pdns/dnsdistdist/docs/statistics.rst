@@ -10,9 +10,21 @@ dnsdist keeps statistics on the queries is receives and send out. They can be ac
 - via Carbon / Graphite / Metronome export (see :doc:`../guides/carbon`)
 - via SNMP (see :doc:`../advanced/snmp`)
 
+To make sense of the statistics, the following relation should hold:
+
+	queries - noncompliant-queries
+	=
+	responses - noncompliant-responses + cache-hits + downstream-timeouts + self-answered + no-policy
+	+ rule-drop
+
+Note that packets dropped by eBPF (see :doc:`../advanced/ebpf`) are
+accounted for in the eBPF statistics, and do not show up in the metrics
+described on this page.
+
 acl-drops
 ---------
-The number of packets dropped because of the :doc:`ACL <advanced/acl>`.
+The number of packets (or TCP messages) dropped because of the :doc:`ACL <advanced/acl>`.
+If a packet or message is dropped, it is not counted in the `queries` statistic.
 
 cache-hits
 ----------
@@ -48,11 +60,24 @@ Number of queries dropped because of a dynamic block.
 
 empty-queries
 -------------
-Number of empty queries received from clients.
+Number of empty queries received from clients. Every empty-query is also
+counted as a `query`.
 
 fd-usage
 --------
 Number of currently used file descriptors.
+
+frontend-noerror
+----------------
+Number of NoError answers sent to clients.
+
+frontend-nxdomain
+-----------------
+Number of NXDomain answers sent to clients.
+
+frontend-servfail
+-----------------
+Number of ServFail answers sent to clients.
 
 latency-avg100
 --------------
@@ -73,6 +98,19 @@ Average response latency in microseconds of the last 1000000 packets.
 latency-slow
 ------------
 Number of queries answered in more than 1 second.
+
+latency-sum
+-----------
+Total response time of all queries combined in milliseconds since the start of dnsdist. Can be used to calculate the
+average response time over all queries.
+
+latency-count
+-------------
+Number of queries contributing to response time histogram
+
+latency-bucket
+--------------
+Number of queries contributing to response time histogram per latency bucket
 
 latency0-1
 ----------
@@ -120,7 +158,9 @@ Current memory usage.
 
 responses
 ---------
-Number of responses received from backends.
+Number of responses received from backends. Note! This is not the number of
+responses sent to clients. To get that number, add 'cache-hits' and
+'responses'.
 
 rule-drop
 ---------
@@ -137,6 +177,17 @@ Number of Refused answers returned because of a rule.
 rule-servfail
 -------------
 Number of ServFail answers returned because of a rule.
+
+security-status
+---------------
+.. versionadded:: 1.3.4
+
+The security status of :program:`dnsdist`. This is regularly polled.
+
+ * 0 = Unknown status or unreleased version
+ * 1 = OK
+ * 2 = Upgrade recommended
+ * 3 = Upgrade required (most likely because there is a known security issue)
 
 self-answered
 -------------

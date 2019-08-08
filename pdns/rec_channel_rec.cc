@@ -40,11 +40,32 @@
 pthread_mutex_t g_carbon_config_lock=PTHREAD_MUTEX_INITIALIZER;
 
 static map<string, const uint32_t*> d_get32bitpointers;
-static map<string, const uint64_t*> d_get64bitpointers;
 static map<string, const std::atomic<uint64_t>*> d_getatomics;
 static map<string, function< uint64_t() > >  d_get64bitmembers;
 static pthread_mutex_t d_dynmetricslock = PTHREAD_MUTEX_INITIALIZER;
 static map<string, std::atomic<unsigned long>* > d_dynmetrics;
+
+static std::map<StatComponent, std::set<std::string>> s_blacklistedStats;
+
+bool isStatBlacklisted(StatComponent component, const string& name)
+{
+  return s_blacklistedStats[component].count(name) != 0;
+}
+
+void blacklistStat(StatComponent component, const string& name)
+{
+  s_blacklistedStats[component].insert(name);
+}
+
+void blacklistStats(StatComponent component, const string& stats)
+{
+  std::vector<std::string> blacklistedStats;
+  stringtok(blacklistedStats, stats, ", ");
+  auto& map = s_blacklistedStats[component];
+  for (const auto &st : blacklistedStats) {
+    map.insert(st);
+  }
+}
 
 static void addGetStat(const string& name, const uint32_t* place)
 {
@@ -79,8 +100,6 @@ static optional<uint64_t> get(const string& name)
 
   if(d_get32bitpointers.count(name))
     return *d_get32bitpointers.find(name)->second;
-  if(d_get64bitpointers.count(name))
-    return *d_get64bitpointers.find(name)->second;
   if(d_getatomics.count(name))
     return d_getatomics.find(name)->second->load();
   if(d_get64bitmembers.count(name))
@@ -99,35 +118,44 @@ optional<uint64_t> getStatByName(const std::string& name)
   return get(name);
 }
 
-map<string,string> getAllStatsMap()
+map<string,string> getAllStatsMap(StatComponent component)
 {
   map<string,string> ret;
-  
+  const auto& blacklistMap = s_blacklistedStats.at(component);
+
   for(const auto& the32bits :  d_get32bitpointers) {
-    ret.insert(make_pair(the32bits.first, std::to_string(*the32bits.second)));
-  }
-  for(const auto& the64bits :  d_get64bitpointers) {
-    ret.insert(make_pair(the64bits.first, std::to_string(*the64bits.second)));
+    if (blacklistMap.count(the32bits.first) == 0) {
+      ret.insert(make_pair(the32bits.first, std::to_string(*the32bits.second)));
+    }
   }
   for(const auto& atomic :  d_getatomics) {
-    ret.insert(make_pair(atomic.first, std::to_string(atomic.second->load())));
+    if (blacklistMap.count(atomic.first) == 0) {
+      ret.insert(make_pair(atomic.first, std::to_string(atomic.second->load())));
+    }
   }
 
-  for(const auto& the64bitmembers :  d_get64bitmembers) { 
-    if(the64bitmembers.first == "cache-bytes" || the64bitmembers.first=="packetcache-bytes")
-      continue; // too slow for 'get-all'
-    ret.insert(make_pair(the64bitmembers.first, std::to_string(the64bitmembers.second())));
+  for(const auto& the64bitmembers :  d_get64bitmembers) {
+    if (blacklistMap.count(the64bitmembers.first) == 0) {
+      ret.insert(make_pair(the64bitmembers.first, std::to_string(the64bitmembers.second())));
+    }
   }
-  Lock l(&d_dynmetricslock);
-  for(const auto& a : d_dynmetrics)
-    ret.insert({a.first, std::to_string(*a.second)});
+
+  {
+    Lock l(&d_dynmetricslock);
+    for(const auto& a : d_dynmetrics) {
+      if (blacklistMap.count(a.first) == 0) {
+        ret.insert({a.first, std::to_string(*a.second)});
+      }
+    }
+  }
+
   return ret;
 }
 
-string getAllStats()
+static string getAllStats()
 {
   typedef map<string, string> varmap_t;
-  varmap_t varmap = getAllStatsMap();
+  varmap_t varmap = getAllStatsMap(StatComponent::RecControl);
   string ret;
   for(varmap_t::value_type& tup :  varmap) {
     ret += tup.first + "\t" + tup.second +"\n";
@@ -136,7 +164,7 @@ string getAllStats()
 }
 
 template<typename T>
-string doGet(T begin, T end)
+static string doGet(T begin, T end)
 {
   string ret;
 
@@ -151,7 +179,7 @@ string doGet(T begin, T end)
 }
 
 template<typename T>
-string doGetParameter(T begin, T end)
+string static doGetParameter(T begin, T end)
 {
   string ret;
   string parm;
@@ -173,14 +201,13 @@ string doGetParameter(T begin, T end)
 
 static uint64_t dumpNegCache(NegCache& negcache, int fd)
 {
-  FILE* fp=fdopen(dup(fd), "w");
+  auto fp = std::unique_ptr<FILE, int(*)(FILE*)>(fdopen(dup(fd), "w"), fclose);
   if(!fp) { // dup probably failed
     return 0;
   }
   uint64_t ret;
-  fprintf(fp, "; negcache dump from thread follows\n;\n");
-  ret = negcache.dumpToFile(fp);
-  fclose(fp);
+  fprintf(fp.get(), "; negcache dump from thread follows\n;\n");
+  ret = negcache.dumpToFile(fp.get());
   return ret;
 }
 
@@ -189,13 +216,23 @@ static uint64_t* pleaseDump(int fd)
   return new uint64_t(t_RC->doDump(fd) + dumpNegCache(SyncRes::t_sstorage.negcache, fd) + t_packetCache->doDump(fd));
 }
 
+static uint64_t* pleaseDumpEDNSMap(int fd)
+{
+  return new uint64_t(SyncRes::doEDNSDump(fd));
+}
+
 static uint64_t* pleaseDumpNSSpeeds(int fd)
 {
   return new uint64_t(SyncRes::doDumpNSSpeeds(fd));
 }
 
+static uint64_t* pleaseDumpThrottleMap(int fd)
+{
+  return new uint64_t(SyncRes::doDumpThrottleMap(fd));
+}
+
 template<typename T>
-string doDumpNSSpeeds(T begin, T end)
+static string doDumpNSSpeeds(T begin, T end)
 {
   T i=begin;
   string fname;
@@ -226,7 +263,7 @@ string doDumpNSSpeeds(T begin, T end)
 }
 
 template<typename T>
-string doDumpCache(T begin, T end)
+static string doDumpCache(T begin, T end)
 {
   T i=begin;
   string fname;
@@ -248,7 +285,7 @@ string doDumpCache(T begin, T end)
 }
 
 template<typename T>
-string doDumpEDNSStatus(T begin, T end)
+static string doDumpEDNSStatus(T begin, T end)
 {
   T i=begin;
   string fname;
@@ -259,14 +296,18 @@ string doDumpEDNSStatus(T begin, T end)
   int fd=open(fname.c_str(), O_CREAT | O_EXCL | O_WRONLY, 0660);
   if(fd < 0) 
     return "Error opening dump file for writing: "+string(strerror(errno))+"\n";
+  uint64_t total = 0;
+  try {
+    total = broadcastAccFunction<uint64_t>(boost::bind(pleaseDumpEDNSMap, fd));
+  }
+  catch(...){}
 
-  SyncRes::doEDNSDumpAndClose(fd);
-
-  return "done\n";
+  close(fd);
+  return "dumped "+std::to_string(total)+" records\n";
 }
 
 template<typename T>
-string doDumpRPZ(T begin, T end)
+static string doDumpRPZ(T begin, T end)
 {
   T i=begin;
 
@@ -293,16 +334,37 @@ string doDumpRPZ(T begin, T end)
     return "Error opening dump file for writing: "+string(strerror(errno))+"\n";
   }
 
-  FILE* fp = fdopen(fd, "w");
+  auto fp = std::unique_ptr<FILE, int(*)(FILE*)>(fdopen(fd, "w"), fclose);
   if (!fp) {
     close(fd);
     return "Error converting file descriptor: "+string(strerror(errno))+"\n";
   }
 
-  zone->dump(fp);
-  fclose(fp);
+  zone->dump(fp.get());
 
   return "done\n";
+}
+
+template<typename T>
+static string doDumpThrottleMap(T begin, T end)
+{
+  T i=begin;
+  string fname;
+
+  if(i!=end)
+    fname=*i;
+
+  int fd=open(fname.c_str(), O_CREAT | O_EXCL | O_WRONLY, 0660);
+  if(fd < 0)
+    return "Error opening dump file for writing: "+string(strerror(errno))+"\n";
+  uint64_t total = 0;
+  try {
+    total = broadcastAccFunction<uint64_t>(boost::bind(pleaseDumpThrottleMap, fd));
+  }
+  catch(...){}
+
+  close(fd);
+  return "dumped "+std::to_string(total)+" records\n";
 }
 
 uint64_t* pleaseWipeCache(const DNSName& canon, bool subtree)
@@ -324,7 +386,7 @@ uint64_t* pleaseWipeAndCountNegCache(const DNSName& canon, bool subtree)
 
 
 template<typename T>
-string doWipeCache(T begin, T end)
+static string doWipeCache(T begin, T end)
 {
   vector<pair<DNSName, bool> > toWipe;
   for(T i=begin; i != end; ++i) {
@@ -355,7 +417,7 @@ string doWipeCache(T begin, T end)
 }
 
 template<typename T>
-string doSetCarbonServer(T begin, T end)
+static string doSetCarbonServer(T begin, T end)
 {
   Lock l(&g_carbon_config_lock);
   if(begin==end) {
@@ -369,12 +431,26 @@ string doSetCarbonServer(T begin, T end)
   if(begin != end) {
     ::arg().set("carbon-ourname")=*begin;
     ret+="set carbon-ourname to '"+*begin+"'\n";
+  } else {
+    return ret;
+  }
+  ++begin;
+  if(begin != end) {
+    ::arg().set("carbon-namespace")=*begin;
+    ret+="set carbon-namespace to '"+*begin+"'\n";
+  } else {
+    return ret;
+  }
+  ++begin;
+  if(begin != end) {
+    ::arg().set("carbon-instance")=*begin;
+    ret+="set carbon-instance to '"+*begin+"'\n";
   }
   return ret;
 }
 
 template<typename T>
-string doSetDnssecLogBogus(T begin, T end)
+static string doSetDnssecLogBogus(T begin, T end)
 {
   if(checkDNSSECDisabled())
     return "DNSSEC is disabled in the configuration, not changing the Bogus logging setting\n";
@@ -404,7 +480,7 @@ string doSetDnssecLogBogus(T begin, T end)
 }
 
 template<typename T>
-string doAddNTA(T begin, T end)
+static string doAddNTA(T begin, T end)
 {
   if(checkDNSSECDisabled())
     return "DNSSEC is disabled in the configuration, not adding a Negative Trust Anchor\n";
@@ -435,12 +511,14 @@ string doAddNTA(T begin, T end)
   g_luaconfs.modify([who, why](LuaConfigItems& lci) {
       lci.negAnchors[who] = why;
       });
+  broadcastAccFunction<uint64_t>(boost::bind(pleaseWipeCache, who, true));
   broadcastAccFunction<uint64_t>(boost::bind(pleaseWipePacketCache, who, true));
+  broadcastAccFunction<uint64_t>(boost::bind(pleaseWipeAndCountNegCache, who, true));
   return "Added Negative Trust Anchor for " + who.toLogString() + " with reason '" + why + "'\n";
 }
 
 template<typename T>
-string doClearNTA(T begin, T end)
+static string doClearNTA(T begin, T end)
 {
   if(checkDNSSECDisabled())
     return "DNSSEC is disabled in the configuration, not removing a Negative Trust Anchor\n";
@@ -481,7 +559,9 @@ string doClearNTA(T begin, T end)
     g_luaconfs.modify([entry](LuaConfigItems& lci) {
         lci.negAnchors.erase(entry);
       });
+    broadcastAccFunction<uint64_t>(boost::bind(pleaseWipeCache, entry, true));
     broadcastAccFunction<uint64_t>(boost::bind(pleaseWipePacketCache, entry, true));
+    broadcastAccFunction<uint64_t>(boost::bind(pleaseWipeAndCountNegCache, entry, true));
     if (!first) {
       first = false;
       removed += ",";
@@ -504,7 +584,7 @@ static string getNTAs()
 }
 
 template<typename T>
-string doAddTA(T begin, T end)
+static string doAddTA(T begin, T end)
 {
   if(checkDNSSECDisabled())
     return "DNSSEC is disabled in the configuration, not adding a Trust Anchor\n";
@@ -533,10 +613,12 @@ string doAddTA(T begin, T end)
   try {
     g_log<<Logger::Warning<<"Adding Trust Anchor for "<<who<<" with data '"<<what<<"', requested via control channel";
     g_luaconfs.modify([who, what](LuaConfigItems& lci) {
-      auto ds = unique_ptr<DSRecordContent>(dynamic_cast<DSRecordContent*>(DSRecordContent::make(what)));
+      auto ds=std::dynamic_pointer_cast<DSRecordContent>(DSRecordContent::make(what));
       lci.dsAnchors[who].insert(*ds);
       });
+    broadcastAccFunction<uint64_t>(boost::bind(pleaseWipeCache, who, true));
     broadcastAccFunction<uint64_t>(boost::bind(pleaseWipePacketCache, who, true));
+    broadcastAccFunction<uint64_t>(boost::bind(pleaseWipeAndCountNegCache, who, true));
     g_log<<Logger::Warning<<endl;
     return "Added Trust Anchor for " + who.toStringRootDot() + " with data " + what + "\n";
   }
@@ -547,7 +629,7 @@ string doAddTA(T begin, T end)
 }
 
 template<typename T>
-string doClearTA(T begin, T end)
+static string doClearTA(T begin, T end)
 {
   if(checkDNSSECDisabled())
     return "DNSSEC is disabled in the configuration, not removing a Trust Anchor\n";
@@ -580,7 +662,9 @@ string doClearTA(T begin, T end)
     g_luaconfs.modify([entry](LuaConfigItems& lci) {
         lci.dsAnchors.erase(entry);
       });
+    broadcastAccFunction<uint64_t>(boost::bind(pleaseWipeCache, entry, true));
     broadcastAccFunction<uint64_t>(boost::bind(pleaseWipePacketCache, entry, true));
+    broadcastAccFunction<uint64_t>(boost::bind(pleaseWipeAndCountNegCache, entry, true));
     if (!first) {
       first = false;
       removed += ",";
@@ -608,30 +692,59 @@ static string getTAs()
 }
 
 template<typename T>
-string setMinimumTTL(T begin, T end)
+static string setMinimumTTL(T begin, T end)
 {
-  if(end-begin != 1) 
+  if(end-begin != 1)
     return "Need to supply new minimum TTL number\n";
-  SyncRes::s_minimumTTL = pdns_stou(*begin);
-  return "New minimum TTL: " + std::to_string(SyncRes::s_minimumTTL) + "\n";
+  try {
+    SyncRes::s_minimumTTL = pdns_stou(*begin);
+    return "New minimum TTL: " + std::to_string(SyncRes::s_minimumTTL) + "\n";
+  }
+  catch (const std::exception& e) {
+    return "Error parsing the new minimum TTL number: " + std::string(e.what()) + "\n";
+  }
 }
 
 template<typename T>
-string setMaxCacheEntries(T begin, T end)
+static string setMinimumECSTTL(T begin, T end)
+{
+  if(end-begin != 1)
+    return "Need to supply new ECS minimum TTL number\n";
+  try {
+    SyncRes::s_minimumECSTTL = pdns_stou(*begin);
+    return "New minimum ECS TTL: " + std::to_string(SyncRes::s_minimumECSTTL) + "\n";
+  }
+  catch (const std::exception& e) {
+    return "Error parsing the new ECS minimum TTL number: " + std::string(e.what()) + "\n";
+  }
+}
+
+template<typename T>
+static string setMaxCacheEntries(T begin, T end)
 {
   if(end-begin != 1) 
     return "Need to supply new cache size\n";
-  g_maxCacheEntries = pdns_stou(*begin);
-  return "New max cache entries: " + std::to_string(g_maxCacheEntries) + "\n";
+  try {
+    g_maxCacheEntries = pdns_stou(*begin);
+    return "New max cache entries: " + std::to_string(g_maxCacheEntries) + "\n";
+  }
+  catch (const std::exception& e) {
+    return "Error parsing the new cache size: " + std::string(e.what()) + "\n";
+  }
 }
 
 template<typename T>
-string setMaxPacketCacheEntries(T begin, T end)
+static string setMaxPacketCacheEntries(T begin, T end)
 {
   if(end-begin != 1) 
     return "Need to supply new packet cache size\n";
-  g_maxPacketCacheEntries = pdns_stou(*begin);
-  return "New max packetcache entries: " + std::to_string(g_maxPacketCacheEntries) + "\n";
+  try {
+    g_maxPacketCacheEntries = pdns_stou(*begin);
+    return "New max packetcache entries: " + std::to_string(g_maxPacketCacheEntries) + "\n";
+  }
+  catch (const std::exception& e) {
+    return "Error parsing the new packet cache size: " + std::string(e.what()) + "\n";
+  }
 }
 
 
@@ -649,27 +762,73 @@ static uint64_t getUserTimeMsec()
   return (ru.ru_utime.tv_sec*1000ULL + ru.ru_utime.tv_usec/1000);
 }
 
+/* This is a pretty weird set of functions. To get per-thread cpu usage numbers,
+   we have to ask a thread over a pipe. We could do so surgically, so if you want to know about
+   thread 3, we pick pipe 3, but we lack that infrastructure.
+
+   We can however ask "execute this function on all threads and add up the results".
+   This is what the first function does using a custom object ThreadTimes, which if you add
+   to each other keeps filling the first one with CPU usage numbers
+*/
+
+static ThreadTimes* pleaseGetThreadCPUMsec()
+{
+  uint64_t ret=0;
+#ifdef RUSAGE_THREAD
+  struct rusage ru;
+  getrusage(RUSAGE_THREAD, &ru);
+  ret = (ru.ru_utime.tv_sec*1000ULL + ru.ru_utime.tv_usec/1000);
+  ret += (ru.ru_stime.tv_sec*1000ULL + ru.ru_stime.tv_usec/1000);
+#endif
+  return new ThreadTimes{ret};
+}
+
+/* Next up, when you want msec data for a specific thread, we check
+   if we recently executed pleaseGetThreadCPUMsec. If we didn't we do so
+   now and consult all threads.
+
+   We then answer you from the (re)fresh(ed) ThreadTimes.
+*/
+static uint64_t doGetThreadCPUMsec(int n)
+{
+  static std::mutex s_mut;
+  static time_t last = 0;
+  static ThreadTimes tt;
+
+  std::lock_guard<std::mutex> l(s_mut);
+  if(last != time(nullptr)) {
+   tt = broadcastAccFunction<ThreadTimes>(pleaseGetThreadCPUMsec);
+   last = time(nullptr);
+  }
+
+  return tt.times.at(n);
+}
+
 static uint64_t calculateUptime()
 {
-  return time(0) - g_stats.startupTime;
+  return time(nullptr) - g_stats.startupTime;
 }
 
 static string* pleaseGetCurrentQueries()
 {
   ostringstream ostr;
+  struct timeval now;
+  gettimeofday(&now, 0);
 
   ostr << getMT()->d_waiters.size() <<" currently outstanding questions\n";
 
-  boost::format fmt("%1% %|40t|%2% %|47t|%3% %|63t|%4% %|68t|%5%\n");
+  boost::format fmt("%1% %|40t|%2% %|47t|%3% %|63t|%4% %|68t|%5% %|78t|%6%\n");
 
-  ostr << (fmt % "qname" % "qtype" % "remote" % "tcp" % "chained");
+  ostr << (fmt % "qname" % "qtype" % "remote" % "tcp" % "chained" % "spent(ms)");
   unsigned int n=0;
   for(const auto& mthread : getMT()->d_waiters) {
     const PacketID& pident = mthread.key;
+    const double spent = g_networkTimeoutMsec - (DiffTime(now, mthread.ttd) * 1000);
     ostr << (fmt 
              % pident.domain.toLogString() /* ?? */ % DNSRecordContent::NumberToType(pident.type) 
              % pident.remote.toString() % (pident.sock ? 'Y' : 'n')
              % (pident.fd == -1 ? 'Y' : 'n')
+             % (spent > 0 ? spent : '0')
              );
     ++n;
     if (n >= 100)
@@ -700,17 +859,18 @@ uint64_t* pleaseGetNegCacheSize()
   return new uint64_t(tmp);
 }
 
-uint64_t getNegCacheSize()
+static uint64_t getNegCacheSize()
 {
   return broadcastAccFunction<uint64_t>(pleaseGetNegCacheSize);
 }
 
-uint64_t* pleaseGetFailedHostsSize()
+static uint64_t* pleaseGetFailedHostsSize()
 {
   uint64_t tmp=(SyncRes::getThrottledServersSize());
   return new uint64_t(tmp);
 }
-uint64_t getFailedHostsSize()
+
+static uint64_t getFailedHostsSize()
 {
   return broadcastAccFunction<uint64_t>(pleaseGetFailedHostsSize);
 }
@@ -720,7 +880,7 @@ uint64_t* pleaseGetNsSpeedsSize()
   return new uint64_t(SyncRes::getNSSpeedsSize());
 }
 
-uint64_t getNsSpeedsSize()
+static uint64_t getNsSpeedsSize()
 {
   return broadcastAccFunction<uint64_t>(pleaseGetNsSpeedsSize);
 }
@@ -740,24 +900,22 @@ uint64_t* pleaseGetCacheSize()
   return new uint64_t(t_RC ? t_RC->size() : 0);
 }
 
-uint64_t* pleaseGetCacheBytes()
+static uint64_t* pleaseGetCacheBytes()
 {
   return new uint64_t(t_RC ? t_RC->bytes() : 0);
 }
 
-
-uint64_t doGetCacheSize()
+static uint64_t doGetCacheSize()
 {
   return broadcastAccFunction<uint64_t>(pleaseGetCacheSize);
 }
 
-uint64_t doGetAvgLatencyUsec()
+static uint64_t doGetAvgLatencyUsec()
 {
   return (uint64_t) g_stats.avgLatencyUsec;
 }
 
-
-uint64_t doGetCacheBytes()
+static uint64_t doGetCacheBytes()
 {
   return broadcastAccFunction<uint64_t>(pleaseGetCacheBytes);
 }
@@ -767,7 +925,7 @@ uint64_t* pleaseGetCacheHits()
   return new uint64_t(t_RC ? t_RC->cacheHits : 0);
 }
 
-uint64_t doGetCacheHits()
+static uint64_t doGetCacheHits()
 {
   return broadcastAccFunction<uint64_t>(pleaseGetCacheHits);
 }
@@ -777,55 +935,52 @@ uint64_t* pleaseGetCacheMisses()
   return new uint64_t(t_RC ? t_RC->cacheMisses : 0);
 }
 
-uint64_t doGetCacheMisses()
+static uint64_t doGetCacheMisses()
 {
   return broadcastAccFunction<uint64_t>(pleaseGetCacheMisses);
 }
-
 
 uint64_t* pleaseGetPacketCacheSize()
 {
   return new uint64_t(t_packetCache ? t_packetCache->size() : 0);
 }
 
-uint64_t* pleaseGetPacketCacheBytes()
+static uint64_t* pleaseGetPacketCacheBytes()
 {
   return new uint64_t(t_packetCache ? t_packetCache->bytes() : 0);
 }
 
-
-uint64_t doGetPacketCacheSize()
+static uint64_t doGetPacketCacheSize()
 {
   return broadcastAccFunction<uint64_t>(pleaseGetPacketCacheSize);
 }
 
-uint64_t doGetPacketCacheBytes()
+static uint64_t doGetPacketCacheBytes()
 {
   return broadcastAccFunction<uint64_t>(pleaseGetPacketCacheBytes);
 }
-
 
 uint64_t* pleaseGetPacketCacheHits()
 {
   return new uint64_t(t_packetCache ? t_packetCache->d_hits : 0);
 }
 
-uint64_t doGetPacketCacheHits()
+static uint64_t doGetPacketCacheHits()
 {
   return broadcastAccFunction<uint64_t>(pleaseGetPacketCacheHits);
 }
 
-uint64_t* pleaseGetPacketCacheMisses()
+static uint64_t* pleaseGetPacketCacheMisses()
 {
   return new uint64_t(t_packetCache ? t_packetCache->d_misses : 0);
 }
 
-uint64_t doGetPacketCacheMisses()
+static uint64_t doGetPacketCacheMisses()
 {
   return broadcastAccFunction<uint64_t>(pleaseGetPacketCacheMisses);
 }
 
-uint64_t doGetMallocated()
+static uint64_t doGetMallocated()
 {
   // this turned out to be broken
 /*  struct mallinfo mi = mallinfo();
@@ -870,6 +1025,7 @@ void registerAllStats()
   addGetStat("client-parse-errors", &g_stats.clientParseError);
   addGetStat("server-parse-errors", &g_stats.serverParseError);
   addGetStat("too-old-drops", &g_stats.tooOldDrops);
+  addGetStat("truncated-drops", &g_stats.truncatedDrops);
   addGetStat("query-pipe-full-drops", &g_stats.queryPipeFullDrops);
 
   addGetStat("answers0-1", &g_stats.answers0_1);
@@ -913,15 +1069,16 @@ void registerAllStats()
   addGetStat("no-packet-error", &g_stats.noPacketError);
   addGetStat("dlg-only-drops", &SyncRes::s_nodelegated);
   addGetStat("ignored-packets", &g_stats.ignoredCount);
+  addGetStat("empty-queries", &g_stats.emptyQueriesCount);
   addGetStat("max-mthread-stack", &g_stats.maxMThreadStackUsage);
   
-  addGetStat("negcache-entries", boost::bind(getNegCacheSize));
-  addGetStat("throttle-entries", boost::bind(getThrottleSize)); 
+  addGetStat("negcache-entries", getNegCacheSize);
+  addGetStat("throttle-entries", getThrottleSize);
 
-  addGetStat("nsspeeds-entries", boost::bind(getNsSpeedsSize));
-  addGetStat("failed-host-entries", boost::bind(getFailedHostsSize));
+  addGetStat("nsspeeds-entries", getNsSpeedsSize);
+  addGetStat("failed-host-entries", getFailedHostsSize);
 
-  addGetStat("concurrent-queries", boost::bind(getConcurrentQueries)); 
+  addGetStat("concurrent-queries", getConcurrentQueries);
   addGetStat("security-status", &g_security_status);
   addGetStat("outgoing-timeouts", &SyncRes::s_outgoingtimeouts);
   addGetStat("outgoing4-timeouts", &SyncRes::s_outgoing4timeouts);
@@ -950,16 +1107,25 @@ void registerAllStats()
   addGetStat("edns-ping-mismatches", &g_stats.ednsPingMismatches);
   addGetStat("dnssec-queries", &g_stats.dnssecQueries);
 
+  addGetStat("dnssec-authentic-data-queries", &g_stats.dnssecAuthenticDataQueries);
+  addGetStat("dnssec-check-disabled-queries", &g_stats.dnssecCheckDisabledQueries);
+
+  addGetStat("variable-responses", &g_stats.variableResponses);
+
   addGetStat("noping-outqueries", &g_stats.noPingOutQueries);
   addGetStat("noedns-outqueries", &g_stats.noEdnsOutQueries);
 
   addGetStat("uptime", calculateUptime);
   addGetStat("real-memory-usage", boost::bind(getRealMemoryUsage, string()));
-  addGetStat("fd-usage", boost::bind(getOpenFileDescriptors, string()));  
+  addGetStat("special-memory-usage", boost::bind(getSpecialMemoryUsage, string()));
+  addGetStat("fd-usage", boost::bind(getOpenFileDescriptors, string()));
 
   //  addGetStat("query-rate", getQueryRate);
   addGetStat("user-msec", getUserTimeMsec);
   addGetStat("sys-msec", getSysTimeMsec);
+
+  for(unsigned int n=0; n < g_numThreads; ++n)
+    addGetStat("cpu-msec-thread-"+std::to_string(n), boost::bind(&doGetThreadCPUMsec, n));
 
 #ifdef MALLOC_TRACE
   addGetStat("memory-allocs", boost::bind(&MallocTracer::getAllocs, g_mtracer, string()));
@@ -980,6 +1146,19 @@ void registerAllStats()
   addGetStat("policy-result-nodata", &g_stats.policyResults[DNSFilterEngine::PolicyKind::NODATA]);
   addGetStat("policy-result-truncate", &g_stats.policyResults[DNSFilterEngine::PolicyKind::Truncate]);
   addGetStat("policy-result-custom", &g_stats.policyResults[DNSFilterEngine::PolicyKind::Custom]);
+
+  addGetStat("rebalanced-queries", &g_stats.rebalancedQueries);
+
+  /* make sure that the ECS stats are properly initialized */
+  SyncRes::clearECSStats();
+  for (size_t idx = 0; idx < SyncRes::s_ecsResponsesBySubnetSize4.size(); idx++) {
+    const std::string name = "ecs-v4-response-bits-" + std::to_string(idx + 1);
+    addGetStat(name, &(SyncRes::s_ecsResponsesBySubnetSize4.at(idx)));
+  }
+  for (size_t idx = 0; idx < SyncRes::s_ecsResponsesBySubnetSize6.size(); idx++) {
+    const std::string name = "ecs-v6-response-bits-" + std::to_string(idx + 1);
+    addGetStat(name, &(SyncRes::s_ecsResponsesBySubnetSize6.at(idx)));
+  }
 }
 
 static void doExitGeneric(bool nicely)
@@ -1032,6 +1211,18 @@ vector<pair<DNSName,uint16_t> >* pleaseGetServfailQueryRing()
   }
   return ret;
 }
+vector<pair<DNSName,uint16_t> >* pleaseGetBogusQueryRing()
+{
+  typedef pair<DNSName,uint16_t> query_t;
+  vector<query_t>* ret = new vector<query_t>();
+  if(!t_bogusqueryring)
+    return ret;
+  ret->reserve(t_bogusqueryring->size());
+  for(const query_t& q :  *t_bogusqueryring) {
+    ret->push_back(q);
+  }
+  return ret;
+}
 
 
 
@@ -1063,6 +1254,18 @@ vector<ComboAddress>* pleaseGetServfailRemotes()
   return ret;
 }
 
+vector<ComboAddress>* pleaseGetBogusRemotes()
+{
+  vector<ComboAddress>* ret = new vector<ComboAddress>();
+  if(!t_bogusremotes)
+    return ret;
+  ret->reserve(t_bogusremotes->size());
+  for(const ComboAddress& ca :  *t_bogusremotes) {
+    ret->push_back(ca);
+  }
+  return ret;
+}
+
 vector<ComboAddress>* pleaseGetLargeAnswerRemotes()
 {
   vector<ComboAddress>* ret = new vector<ComboAddress>();
@@ -1070,6 +1273,18 @@ vector<ComboAddress>* pleaseGetLargeAnswerRemotes()
     return ret;
   ret->reserve(t_largeanswerremotes->size());
   for(const ComboAddress& ca :  *t_largeanswerremotes) {
+    ret->push_back(ca);
+  }
+  return ret;
+}
+
+vector<ComboAddress>* pleaseGetTimeouts()
+{
+  vector<ComboAddress>* ret = new vector<ComboAddress>();
+  if(!t_timeouts)
+    return ret;
+  ret->reserve(t_timeouts->size());
+  for(const ComboAddress& ca :  *t_timeouts) {
     ret->push_back(ca);
   }
   return ret;
@@ -1106,24 +1321,6 @@ string doGenericTopRemotes(pleaseremotefunc_t func)
     ret<< '\n' << fmt % (100.0*(total-accounted)/total) % "rest";
   }
   return ret.str();
-}
-
-namespace {
-  typedef vector<vector<string> > pubs_t;
-  pubs_t g_pubs;
-}
-
-void sortPublicSuffixList()
-{
-  for(const char** p=g_pubsuffix; *p; ++p) {
-    string low=toLower(*p);
-
-    vector<string> parts;
-    stringtok(parts, low, ".");
-    reverse(parts.begin(), parts.end());
-    g_pubs.push_back(parts);
-  }
-  sort(g_pubs.begin(), g_pubs.end());
 }
 
 // XXX DNSName Pain - this function should benefit from native DNSName methods
@@ -1186,7 +1383,7 @@ string doGenericTopQueries(pleasequeryfunc_t func, boost::function<DNSName(const
   int limit=0, accounted=0;
   if(total) {
     for(rcounts_t::const_iterator i=rcounts.begin(); i != rcounts.end() && limit < 20; ++i, ++limit) {
-      ret<< fmt % (-100.0*i->first/total) % (i->second.first.toString()+"|"+DNSRecordContent::NumberToType(i->second.second));
+      ret<< fmt % (-100.0*i->first/total) % (i->second.first.toLogString()+"|"+DNSRecordContent::NumberToType(i->second.second));
       accounted+= -i->first;
     }
     ret<< '\n' << fmt % (100.0*(total-accounted)/total) % "rest";
@@ -1200,6 +1397,190 @@ static string* nopFunction()
 {
   return new string("pong\n");
 }
+
+static string getDontThrottleNames() {
+  auto dtn = g_dontThrottleNames.getLocal();
+  return dtn->toString() + "\n";
+}
+
+static string getDontThrottleNetmasks() {
+  auto dtn = g_dontThrottleNetmasks.getLocal();
+  return dtn->toString() + "\n";
+}
+
+template<typename T>
+static string addDontThrottleNames(T begin, T end) {
+  if (begin == end) {
+    return "No names specified, keeping existing list\n";
+  }
+  vector<DNSName> toAdd;
+  while (begin != end) {
+    try {
+      auto d = DNSName(*begin);
+      toAdd.push_back(d);
+    }
+    catch(const std::exception &e) {
+      return "Problem parsing '" + *begin + "': "+ e.what() + ", nothing added\n";
+    }
+    begin++;
+  }
+
+  string ret = "Added";
+  auto dnt = g_dontThrottleNames.getCopy();
+  bool first = true;
+  for (auto const &d : toAdd) {
+    if (!first) {
+      ret += ",";
+    }
+    first = false;
+    ret += " " + d.toLogString();
+    dnt.add(d);
+  }
+
+  g_dontThrottleNames.setState(dnt);
+
+  ret += " to the list of nameservers that may not be throttled";
+  g_log<<Logger::Info<<ret<<", requested via control channel"<<endl;
+  return ret + "\n";
+}
+
+template<typename T>
+static string addDontThrottleNetmasks(T begin, T end) {
+  if (begin == end) {
+    return "No netmasks specified, keeping existing list\n";
+  }
+  vector<Netmask> toAdd;
+  while (begin != end) {
+    try {
+      auto n = Netmask(*begin);
+      toAdd.push_back(n);
+    }
+    catch(const std::exception &e) {
+      return "Problem parsing '" + *begin + "': "+ e.what() + ", nothing added\n";
+    }
+    catch(const PDNSException &e) {
+      return "Problem parsing '" + *begin + "': "+ e.reason + ", nothing added\n";
+    }
+    begin++;
+  }
+
+  string ret = "Added";
+  auto dnt = g_dontThrottleNetmasks.getCopy();
+  bool first = true;
+  for (auto const &t : toAdd) {
+    if (!first) {
+      ret += ",";
+    }
+    first = false;
+    ret += " " + t.toString();
+    dnt.addMask(t);
+  }
+
+  g_dontThrottleNetmasks.setState(dnt);
+
+  ret += " to the list of nameserver netmasks that may not be throttled";
+  g_log<<Logger::Info<<ret<<", requested via control channel"<<endl;
+  return ret + "\n";
+}
+
+template<typename T>
+static string clearDontThrottleNames(T begin, T end) {
+  if(begin == end)
+    return "No names specified, doing nothing.\n";
+
+  if (begin + 1 == end && *begin == "*"){
+    SuffixMatchNode smn;
+    g_dontThrottleNames.setState(smn);
+    string ret = "Cleared list of nameserver names that may not be throttled";
+    g_log<<Logger::Warning<<ret<<", requested via control channel"<<endl;
+    return ret + "\n";
+  }
+
+  vector<DNSName> toRemove;
+  while (begin != end) {
+    try {
+      if (*begin == "*") {
+        return "Please don't mix '*' with other names, nothing removed\n";
+      }
+      toRemove.push_back(DNSName(*begin));
+    }
+    catch (const std::exception &e) {
+      return "Problem parsing '" + *begin + "': "+ e.what() + ", nothing removed\n";
+    }
+    begin++;
+  }
+
+  string ret = "Removed";
+  bool first = true;
+  auto dnt = g_dontThrottleNames.getCopy();
+  for (const auto &name : toRemove) {
+    if (!first) {
+      ret += ",";
+    }
+    first = false;
+    ret += " " + name.toLogString();
+    dnt.remove(name);
+  }
+
+  g_dontThrottleNames.setState(dnt);
+
+  ret += " from the list of nameservers that may not be throttled";
+  g_log<<Logger::Info<<ret<<", requested via control channel"<<endl;
+  return ret + "\n";
+}
+
+template<typename T>
+static string clearDontThrottleNetmasks(T begin, T end) {
+  if(begin == end)
+    return "No netmasks specified, doing nothing.\n";
+
+  if (begin + 1 == end && *begin == "*"){
+    auto nmg = g_dontThrottleNetmasks.getCopy();
+    nmg.clear();
+    g_dontThrottleNetmasks.setState(nmg);
+
+    string ret = "Cleared list of nameserver addresses that may not be throttled";
+    g_log<<Logger::Warning<<ret<<", requested via control channel"<<endl;
+    return ret + "\n";
+  }
+
+  std::vector<Netmask> toRemove;
+  while (begin != end) {
+    try {
+      if (*begin == "*") {
+        return "Please don't mix '*' with other netmasks, nothing removed\n";
+      }
+      auto n = Netmask(*begin);
+      toRemove.push_back(n);
+    }
+    catch(const std::exception &e) {
+      return "Problem parsing '" + *begin + "': "+ e.what() + ", nothing added\n";
+    }
+    catch(const PDNSException &e) {
+      return "Problem parsing '" + *begin + "': "+ e.reason + ", nothing added\n";
+    }
+    begin++;
+  }
+
+  string ret = "Removed";
+  bool first = true;
+  auto dnt = g_dontThrottleNetmasks.getCopy();
+  for (const auto &mask : toRemove) {
+    if (!first) {
+      ret += ",";
+    }
+    first = false;
+    ret += " " + mask.toString();
+    dnt.deleteMask(mask);
+  }
+
+  g_dontThrottleNetmasks.setState(dnt);
+
+  ret += " from the list of nameservers that may not be throttled";
+  g_log<<Logger::Info<<ret<<", requested via control channel"<<endl;
+  return ret + "\n";
+}
+
 
 string RecursorControlParser::getAnswer(const string& question, RecursorControlParser::func_t** command)
 {
@@ -1216,17 +1597,26 @@ string RecursorControlParser::getAnswer(const string& question, RecursorControlP
   // should probably have a smart dispatcher here, like auth has
   if(cmd=="help")
     return
+"add-dont-throttle-names [N...]   add names that are not allowed to be throttled\n"
+"add-dont-throttle-netmasks [N...]\n"
+"                                 add netmasks that are not allowed to be throttled\n"
 "add-nta DOMAIN [REASON]          add a Negative Trust Anchor for DOMAIN with the comment REASON\n"
 "add-ta DOMAIN DSRECORD           add a Trust Anchor for DOMAIN with data DSRECORD\n"
 "current-queries                  show currently active queries\n"
+"clear-dont-throttle-names [N...] remove names that are not allowed to be throttled. If N is '*', remove all\n"
+"clear-dont-throttle-netmasks [N...]\n"
+"                                 remove netmasks that are not allowed to be throttled. If N is '*', remove all\n"
 "clear-nta [DOMAIN]...            Clear the Negative Trust Anchor for DOMAINs, if no DOMAIN is specified, remove all\n"
 "clear-ta [DOMAIN]...             Clear the Trust Anchor for DOMAINs\n"
 "dump-cache <filename>            dump cache contents to the named file\n"
 "dump-edns [status] <filename>    dump EDNS status to the named file\n"
 "dump-nsspeeds <filename>         dump nsspeeds statistics to the named file\n"
 "dump-rpz <zone name> <filename>  dump the content of a RPZ zone to the named file\n"
+"dump-throttlemap <filename>      dump the contents of the throttle to the named file\n"
 "get [key1] [key2] ..             get specific statistics\n"
 "get-all                          get all statistics\n"
+"get-dont-throttle-names          get the list of names that are not allowed to be throttled\n"
+"get-dont-throttle-netmasks       get the list of netmasks that are not allowed to be throttled\n"
 "get-ntas                         get all configured Negative Trust Anchors\n"
 "get-tas                          get all configured Trust Anchors\n"
 "get-parameter [key1] [key2] ..   get configuration parameters\n"
@@ -1240,6 +1630,7 @@ string RecursorControlParser::getAnswer(const string& question, RecursorControlP
 "reload-lua-script [filename]     (re)load Lua script\n"
 "reload-lua-config [filename]     (re)load Lua configuration file\n"
 "reload-zones                     reload all auth and forward zones\n"
+"set-ecs-minimum-ttl value        set ecs-minimum-ttl-override\n"
 "set-max-cache-entries value      set new maximum cache size\n"
 "set-max-packetcache-entries val  set new maximum packet cache size\n"      
 "set-minimum-ttl value            set minimum-ttl-override\n"
@@ -1250,9 +1641,13 @@ string RecursorControlParser::getAnswer(const string& question, RecursorControlP
 "top-queries                      show top queries\n"
 "top-pub-queries                  show top queries grouped by public suffix list\n"
 "top-remotes                      show top remotes\n"
+"top-timeouts                     show top downstream timeouts\n"
 "top-servfail-queries             show top queries receiving servfail answers\n"
+"top-bogus-queries                show top queries validating as bogus\n"
 "top-pub-servfail-queries         show top queries receiving servfail answers grouped by public suffix list\n"
+"top-pub-bogus-queries            show top queries validating as bogus grouped by public suffix list\n"
 "top-servfail-remotes             show top remotes receiving servfail answers\n"
+"top-bogus-remotes                show top remotes receiving bogus answers\n"
 "unload-lua-script                unload Lua script\n"
 "version                          return Recursor version number\n"
 "wipe-cache domain0 [domain1] ..  wipe domain data from cache\n";
@@ -1293,6 +1688,9 @@ string RecursorControlParser::getAnswer(const string& question, RecursorControlP
     return doDumpRPZ(begin, end);
   }
 
+  if(cmd=="dump-throttlemap")
+   return doDumpThrottleMap(begin, end);
+
   if(cmd=="wipe-cache" || cmd=="flushname")
     return doWipeCache(begin, end);
 
@@ -1304,7 +1702,9 @@ string RecursorControlParser::getAnswer(const string& question, RecursorControlP
       ::arg().set("lua-config-file") = *begin;
 
     try {
-      loadRecursorLuaConfig(::arg()["lua-config-file"], false);
+      luaConfigDelayedThreads delayedLuaThreads;
+      loadRecursorLuaConfig(::arg()["lua-config-file"], delayedLuaThreads);
+      startLuaConfigDelayedThreads(delayedLuaThreads, g_luaconfs.getCopy().generation);
       g_log<<Logger::Warning<<"Reloaded Lua configuration file '"<<::arg()["lua-config-file"]<<"', requested via control channel"<<endl;
       return "Reloaded Lua configuration file '"+::arg()["lua-config-file"]+"'\n";
     }
@@ -1366,12 +1766,24 @@ string RecursorControlParser::getAnswer(const string& question, RecursorControlP
   if(cmd=="top-pub-servfail-queries")
     return doGenericTopQueries(pleaseGetServfailQueryRing, getRegisteredName);
 
+  if(cmd=="top-bogus-queries")
+    return doGenericTopQueries(pleaseGetBogusQueryRing);
+
+  if(cmd=="top-pub-bogus-queries")
+    return doGenericTopQueries(pleaseGetBogusQueryRing, getRegisteredName);
+
 
   if(cmd=="top-servfail-remotes")
     return doGenericTopRemotes(pleaseGetServfailRemotes);
 
+  if(cmd=="top-bogus-remotes")
+    return doGenericTopRemotes(pleaseGetBogusRemotes);
+
   if(cmd=="top-largeanswer-remotes")
     return doGenericTopRemotes(pleaseGetLargeAnswerRemotes);
+
+  if(cmd=="top-timeouts")
+    return doGenericTopRemotes(pleaseGetTimeouts);
 
 
   if(cmd=="current-queries")
@@ -1387,6 +1799,10 @@ string RecursorControlParser::getAnswer(const string& question, RecursorControlP
       return "Unable to reload zones and forwards when chroot()'ed, please restart\n";
     }
     return reloadAuthAndForwards();
+  }
+
+  if(cmd=="set-ecs-minimum-ttl") {
+    return setMinimumECSTTL(begin, end);
   }
 
   if(cmd=="set-max-cache-entries") {
@@ -1430,6 +1846,30 @@ string RecursorControlParser::getAnswer(const string& question, RecursorControlP
 
   if (cmd=="set-dnssec-log-bogus")
     return doSetDnssecLogBogus(begin, end);
+
+  if (cmd == "get-dont-throttle-names") {
+    return getDontThrottleNames();
+  }
+
+  if (cmd == "get-dont-throttle-netmasks") {
+    return getDontThrottleNetmasks();
+  }
+
+  if (cmd == "add-dont-throttle-names") {
+    return addDontThrottleNames(begin, end);
+  }
+
+  if (cmd == "add-dont-throttle-netmasks") {
+    return addDontThrottleNetmasks(begin, end);
+  }
+
+  if (cmd == "clear-dont-throttle-names") {
+    return clearDontThrottleNames(begin, end);
+  }
+
+  if (cmd == "clear-dont-throttle-netmasks") {
+    return clearDontThrottleNetmasks(begin, end);
+  }
 
   return "Unknown command '"+cmd+"', try 'help'\n";
 }

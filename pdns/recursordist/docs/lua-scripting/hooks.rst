@@ -69,6 +69,9 @@ Interception Functions
     .. versionadded:: 4.1.0
 
         It can also return a table whose keys and values are strings to fill the :attr:`DNSQuestion.data` table, as well as a ``requestorId`` value to fill the :attr:`DNSQuestion.requestorId` field and a ``deviceId`` value to fill the :attr:`DNSQuestion.deviceId` field.
+    .. versionadded:: 4.3.0
+
+        Along the ``deviceId`` value that can be returned, it was addded a ``deviceName`` field to fill the :attr:`DNSQuestion.deviceName` field.
 
     The tagged packetcache can e.g. be used to answer queries from cache that have e.g. been filtered for certain IPs (this logic should be implemented in :func:`gettag`).
     This ensure that queries are answered quickly compared to setting :attr:`dq.variable <DNSQuestion.variable>` to true.
@@ -173,8 +176,7 @@ DNS64
 -----
 
 The ``getFakeAAAARecords`` and ``getFakePTRRecords`` followupFunctions
-can be used to implement DNS64. See `DNS64 support in the PowerDNS
-Recursor <dns64.md>`__ for more information.
+can be used to implement DNS64. See :doc:`../dns64` for more information.
 
 To get fake AAAA records for DNS64 usage, set dq.followupFunction to
 ``getFakeAAAARecords``, dq.followupPrefix to e.g. "64:ff9b::" and
@@ -317,7 +319,18 @@ For example, to send a custom SNMP trap containing the qname from the
       return false
     end
 
-MIB
-^^^
+.. _hooks-maintenance-callback:
 
-.. literalinclude:: ../../RECURSOR-MIB.txt
+Maintenance callback
+--------------------
+Starting with version 4.2.0 of the recursor, it is possible to define a `maintenance()` callback function that will be called periodically.
+This function expects no argument and doesn't return any value.
+
+.. code-block:: Lua
+
+    function maintenance()
+        -- This would be called every second
+        -- Perform here your maintenance
+    end
+
+The interval can be configured through the :ref:`setting-maintenance-interval` setting.

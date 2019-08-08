@@ -245,13 +245,6 @@ string reloadAuthAndForwards()
   try {
     g_log<<Logger::Warning<<"Reloading zones, purging data from cache"<<endl;
 
-    if (original) {
-      for(const auto& i : *original) {
-        for(const auto& j : i.second.d_records)
-          broadcastAccFunction<uint64_t>(boost::bind(pleaseWipeCache, j.d_name, false));
-      }
-    }
-
     string configname=::arg()["config-dir"]+"/recursor.conf";
     if(::arg()["config-name"]!="") {
       configname=::arg()["config-dir"]+"/recursor-"+::arg()["config-name"]+".conf";
@@ -290,12 +283,23 @@ string reloadAuthAndForwards()
     ::arg().preParse(g_argc, g_argv, "serve-rfc1918");
 
     std::shared_ptr<SyncRes::domainmap_t> newDomainMap = parseAuthAndForwards();
-    
-    // purge again - new zones need to blank out the cache
+
+    // purge both original and new names
+    std::set<DNSName> oldAndNewDomains;
     for(const auto& i : *newDomainMap) {
-        broadcastAccFunction<uint64_t>(boost::bind(pleaseWipeCache, i.first, true));
-        broadcastAccFunction<uint64_t>(boost::bind(pleaseWipePacketCache, i.first, true));
-        broadcastAccFunction<uint64_t>(boost::bind(pleaseWipeAndCountNegCache, i.first, true));
+      oldAndNewDomains.insert(i.first);
+    }
+
+    if(original) {
+      for(const auto& i : *original) {
+        oldAndNewDomains.insert(i.first);
+      }
+    }
+
+    for(const auto i : oldAndNewDomains) {
+        broadcastAccFunction<uint64_t>(boost::bind(pleaseWipeCache, i, true));
+        broadcastAccFunction<uint64_t>(boost::bind(pleaseWipePacketCache, i, true));
+        broadcastAccFunction<uint64_t>(boost::bind(pleaseWipeAndCountNegCache, i, true));
     }
 
     broadcastFunction(boost::bind(pleaseUseNewSDomainsMap, newDomainMap));
@@ -378,14 +382,11 @@ std::shared_ptr<SyncRes::domainmap_t> parseAuthAndForwards()
   if(!::arg()["forward-zones-file"].empty()) {
     g_log<<Logger::Warning<<"Reading zone forwarding information from '"<<::arg()["forward-zones-file"]<<"'"<<endl;
     SyncRes::AuthDomain ad;
-    FILE *rfp=fopen(::arg()["forward-zones-file"].c_str(), "r");
-
-    if(!rfp) {
+    auto fp = std::unique_ptr<FILE, int(*)(FILE*)>(fopen(::arg()["forward-zones-file"].c_str(), "r"), fclose);
+    if(!fp) {
       throw PDNSException("Error opening forward-zones-file '"+::arg()["forward-zones-file"]+"': "+stringerror());
     }
 
-    shared_ptr<FILE> fp=shared_ptr<FILE>(rfp, fclose);
-    
     string line;
     int linenum=0;
     uint64_t before = newMap->size();

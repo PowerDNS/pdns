@@ -20,7 +20,6 @@ CREATE TABLE records (
   content         VARCHAR(65535) DEFAULT NULL,
   ttl             INTEGER DEFAULT NULL,
   prio            INTEGER DEFAULT NULL,
-  change_date     INTEGER DEFAULT NULL,
   ordername       VARCHAR(255) DEFAULT NULL,
   auth            BOOL DEFAULT 0
 );

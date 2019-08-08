@@ -26,6 +26,13 @@ domains:
       - ns: ns1.example.com
       - ns: ns2.example.com
       - mx: 10 mx.example.com
+    mixed_weight.geo.example.com:
+      - a:
+          content: "%ip4"
+          weight: 10
+      - txt:
+          content: text
+          weight: 10
     ip.geo.example.com:
       - a: "%ip4"
       - aaaa: "%ip6"
@@ -82,9 +89,6 @@ EOF
 			$PDNSUTIL --config-dir=. --config-name=geoip secure-zone geo.example.com
 			geoipkeydir="--geoip-dnssec-keydir=$testsdir/geosec"
 		fi
-
-		base64 -d < $testsdir/GeoLiteCity.dat.b64 > $testsdir/GeoLiteCity.dat
-		base64 -d < $testsdir/GeoLiteCity.mmdb.b64 > $testsdir/GeoLiteCity.mmdb
 
 		geoipdatabase=${geoipdatabase:-$testsdir/GeoLiteCity.dat}
 

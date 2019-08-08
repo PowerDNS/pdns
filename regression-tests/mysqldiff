@@ -23,10 +23,17 @@ else
 		-e "SELECT r.name, r.type, r.prio, r.content, r.ttl, CONCAT('''', CONCAT(r.ordername, '''')), r.auth FROM domains d JOIN records r ON d.id=r.domain_id WHERE d.name='test.dyndns' AND(r.type != 'SOA' OR r.type IS NULL) ORDER BY r.name, r.type, r.content, r.ttl, r.prio" > ${testsdir}/${testname}/$step
 fi
 
+if type gsort >/dev/null 2>/dev/null
+then
+	SORT=gsort
+else
+	SORT=sort
+fi
+
 if [ ! "$step" == "start" ]
 then
 	echo -e "$comment\n--- Start: diff $diffto $step ---"
-	diff ${testsdir}/${testname}/$diffto ${testsdir}/${testname}/$step | sed '/^[0-9a-z,/-]*$/d' | sort -V
+	diff ${testsdir}/${testname}/$diffto ${testsdir}/${testname}/$step | sed '/^[0-9a-z,/-]*$/d' | $SORT -V
 	if [ ${PIPESTATUS[0]} -eq 0 ]
 	then
 		echo "no difference"

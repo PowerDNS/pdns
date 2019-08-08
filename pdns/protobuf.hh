@@ -31,7 +31,6 @@
 
 #ifdef HAVE_PROTOBUF
 #include <boost/uuid/uuid.hpp>
-#include <boost/uuid/uuid_generators.hpp>
 #include "dnsmessage.pb.h"
 #endif /* HAVE_PROTOBUF */
 
@@ -60,8 +59,10 @@ public:
   void setEDNSSubnet(const Netmask& subnet, uint8_t mask=128);
   void setBytes(size_t bytes);
   void setTime(time_t sec, uint32_t usec);
+  void updateTime();
   void setQueryTime(time_t sec, uint32_t usec);
   void setResponseCode(uint8_t rcode);
+  void setNetworkErrorResponseCode();
   void addRRsFromPacket(const char* packet, const size_t len, bool includeCNAME=false);
   void serialize(std::string& data) const;
   void setRequestor(const std::string& requestor);
@@ -70,6 +71,8 @@ public:
   void setResponder(const ComboAddress& responder);
   void setRequestorId(const std::string& requestorId);
   void setDeviceId(const std::string& deviceId);
+  void setDeviceName(const std::string& deviceName);
+  void setServerIdentity(const std::string& serverId);
   std::string toDebugString() const;
   void addTag(const std::string& strValue);
   void addRR(const DNSName& qame, uint16_t utype, uint16_t uClass, uint32_t uTTl, const std::string& strBlob);
@@ -79,6 +82,7 @@ public:
   void update(const boost::uuids::uuid& uuid, const ComboAddress* requestor, const ComboAddress* responder, bool isTCP, uint16_t id);
   void setUUID(const boost::uuids::uuid& uuid);
   void setInitialRequestID(const boost::uuids::uuid& uuid);
+  void copyFrom(const DNSProtoBufMessage& msg);
 
 protected:
   PBDNSMessage d_message;

@@ -77,10 +77,8 @@ struct SendReceive
   
   boost::array<double, 11> d_probs;
   
-  SendReceive(const std::string& remoteAddr, uint16_t port)  
+  SendReceive(const std::string& remoteAddr, uint16_t port) : d_probs({{0.001,0.01, 0.025, 0.1, 0.25,0.5,0.75,0.9,0.975, 0.99,0.9999}})
   {
-    boost::array<double, 11> tmp ={{0.001,0.01, 0.025, 0.1, 0.25,0.5,0.75,0.9,0.975, 0.99,0.9999}};
-    d_probs = tmp;
     d_acc = new acc_t(boost::accumulators::tag::extended_p_square::probabilities=d_probs);
     // 
     //d_acc = acc_t
@@ -224,7 +222,7 @@ try
     ("type,t",  po::value<string>()->default_value("A"), "What type to query for")
     ("envoutput,e", "write report in shell environment format")
     ("version", "show the version number")
-    ("www", po::value<bool>()->default_value("true"), "duplicate all queries with an additional 'www.' in front")
+    ("www", po::value<bool>()->default_value(true), "duplicate all queries with an additional 'www.' in front")
   ;
 
   po::options_description alloptions;
@@ -295,7 +293,7 @@ try
     split=splitField(line,',');
     if (split.second.empty())
       split=splitField(line,'\t');
-    if(!split.second.find('.')) // skip 'Hidden profile' in quantcast list.
+    if(split.second.find('.') == 0) // skip 'Hidden profile' in quantcast list.
       continue;
     pos=split.second.find('/');
     if(pos != string::npos) // alexa has whole urls in the list now.

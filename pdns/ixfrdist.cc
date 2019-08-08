@@ -30,6 +30,7 @@
 #include <sys/stat.h>
 #include <mutex>
 #include <thread>
+#include "threadname.hh"
 #include <dirent.h>
 #include <queue>
 #include <condition_variable>
@@ -42,6 +43,8 @@
 #include "misc.hh"
 #include "iputils.hh"
 #include "logger.hh"
+#include "ixfrdist-stats.hh"
+#include "ixfrdist-web.hh"
 #include <yaml-cpp/yaml.h>
 
 /* BEGIN Needed because of deeper dependencies */
@@ -68,7 +71,7 @@ struct convert<ComboAddress> {
       return false;
     }
     try {
-      rhs = ComboAddress(node.as<string>());
+      rhs = ComboAddress(node.as<string>(), 53);
       return true;
     } catch(const runtime_error &e) {
       return false;
@@ -97,7 +100,43 @@ struct convert<DNSName> {
     }
   }
 };
+
+template<>
+struct convert<Netmask> {
+  static Node encode(const Netmask& rhs) {
+    return Node(rhs.toString());
+  }
+  static bool decode(const Node& node, Netmask& rhs) {
+    if (!node.IsScalar()) {
+      return false;
+    }
+    try {
+      rhs = Netmask(node.as<string>());
+      return true;
+    } catch(const runtime_error &e) {
+      return false;
+    } catch (const PDNSException &e) {
+      return false;
+    }
+  }
+};
 } // namespace YAML
+
+struct ixfrdiff_t {
+  shared_ptr<SOARecordContent> oldSOA;
+  shared_ptr<SOARecordContent> newSOA;
+  vector<DNSRecord> removals;
+  vector<DNSRecord> additions;
+  uint32_t oldSOATTL;
+  uint32_t newSOATTL;
+};
+
+struct ixfrinfo_t {
+  shared_ptr<SOARecordContent> soa; // The SOA of the latest AXFR
+  records_t latestAXFR;             // The most recent AXFR
+  vector<std::shared_ptr<ixfrdiff_t>> ixfrDiffs;
+  uint32_t soaTTL;
+};
 
 // Why a struct? This way we can add more options to a domain in the future
 struct ixfrdistdomain_t {
@@ -105,44 +144,52 @@ struct ixfrdistdomain_t {
 };
 
 // This contains the configuration for each domain
-map<DNSName, ixfrdistdomain_t> g_domainConfigs;
+static map<DNSName, ixfrdistdomain_t> g_domainConfigs;
 
 // Map domains and their data
-std::map<DNSName, ixfrinfo_t> g_soas;
-std::mutex g_soas_mutex;
+static std::map<DNSName, std::shared_ptr<ixfrinfo_t>> g_soas;
+static std::mutex g_soas_mutex;
 
 // Condition variable for TCP handling
-std::condition_variable g_tcpHandlerCV;
-std::queue<pair<int, ComboAddress>> g_tcpRequestFDs;
-std::mutex g_tcpRequestFDsMutex;
+static std::condition_variable g_tcpHandlerCV;
+static std::queue<pair<int, ComboAddress>> g_tcpRequestFDs;
+static std::mutex g_tcpRequestFDsMutex;
 
 namespace po = boost::program_options;
 
-bool g_exiting = false;
+static bool g_exiting = false;
 
-NetmaskGroup g_acl;
+static NetmaskGroup g_acl;
+static bool g_compress = false;
 
-void handleSignal(int signum) {
+static ixfrdistStats g_stats;
+
+// g_stats is static, so local to this file. But the webserver needs this info
+string doGetStats() {
+  return g_stats.getStats();
+}
+
+static void handleSignal(int signum) {
   g_log<<Logger::Notice<<"Got "<<strsignal(signum)<<" signal";
   if (g_exiting) {
     g_log<<Logger::Notice<<", this is the second time we were asked to stop, forcefully exiting"<<endl;
     exit(EXIT_FAILURE);
   }
-  g_log<<Logger::Notice<<", stopping"<<endl;
+  g_log<<Logger::Notice<<", stopping, this may take a few second due to in-progress transfers and cleanup. Send this signal again to forcefully stop"<<endl;
   g_exiting = true;
 }
 
-void usage(po::options_description &desc) {
+static void usage(po::options_description &desc) {
   cerr << "Usage: ixfrdist [OPTION]..."<<endl;
   cerr << desc << "\n";
 }
 
 // The compiler does not like using rfc1982LessThan in std::sort directly
-bool sortSOA(uint32_t i, uint32_t j) {
+static bool sortSOA(uint32_t i, uint32_t j) {
   return rfc1982LessThan(i, j);
 }
 
-void cleanUpDomain(const DNSName& domain, const uint16_t& keep, const string& workdir) {
+static void cleanUpDomain(const DNSName& domain, const uint16_t& keep, const string& workdir) {
   string dir = workdir + "/" + domain.toString();
   DIR *dp;
   dp = opendir(dir.c_str());
@@ -180,33 +227,52 @@ void cleanUpDomain(const DNSName& domain, const uint16_t& keep, const string& wo
   }
 }
 
-static shared_ptr<SOARecordContent> getSOAFromRecords(const records_t& records) {
+static void getSOAFromRecords(const records_t& records, shared_ptr<SOARecordContent>& soa, uint32_t& soaTTL) {
   for (const auto& dnsrecord : records) {
     if (dnsrecord.d_type == QType::SOA) {
-      auto soa = getRR<SOARecordContent>(dnsrecord);
+      soa = getRR<SOARecordContent>(dnsrecord);
       if (soa == nullptr) {
         throw PDNSException("Unable to determine SOARecordContent from old records");
       }
-      return soa;
+      soaTTL = dnsrecord.d_ttl;
+      return;
     }
   }
   throw PDNSException("No SOA in supplied records");
 }
 
-static void makeIXFRDiff(const records_t& from, const records_t& to, ixfrdiff_t& diff, const shared_ptr<SOARecordContent>& fromSOA = nullptr, const shared_ptr<SOARecordContent>& toSOA = nullptr) {
-  set_difference(from.cbegin(), from.cend(), to.cbegin(), to.cend(), back_inserter(diff.removals), from.value_comp());
-  set_difference(to.cbegin(), to.cend(), from.cbegin(), from.cend(), back_inserter(diff.additions), from.value_comp());
-  diff.oldSOA = fromSOA;
+static void makeIXFRDiff(const records_t& from, const records_t& to, std::shared_ptr<ixfrdiff_t>& diff, const shared_ptr<SOARecordContent>& fromSOA = nullptr, uint32_t fromSOATTL=0, const shared_ptr<SOARecordContent>& toSOA = nullptr, uint32_t toSOATTL = 0) {
+  set_difference(from.cbegin(), from.cend(), to.cbegin(), to.cend(), back_inserter(diff->removals), from.value_comp());
+  set_difference(to.cbegin(), to.cend(), from.cbegin(), from.cend(), back_inserter(diff->additions), from.value_comp());
+  diff->oldSOA = fromSOA;
+  diff->oldSOATTL = fromSOATTL;
   if (fromSOA == nullptr) {
-    getSOAFromRecords(from);
+    getSOAFromRecords(from, diff->oldSOA, diff->oldSOATTL);
   }
-  diff.newSOA = toSOA;
+  diff->newSOA = toSOA;
+  diff->newSOATTL = toSOATTL;
   if (toSOA == nullptr) {
-    getSOAFromRecords(to);
+    getSOAFromRecords(to, diff->newSOA, diff->newSOATTL);
   }
 }
 
-void updateThread(const string& workdir, const uint16_t& keep, const uint16_t& axfrTimeout) {
+/* you can _never_ alter the content of the resulting shared pointer */
+static std::shared_ptr<ixfrinfo_t> getCurrentZoneInfo(const DNSName& domain)
+{
+  std::lock_guard<std::mutex> guard(g_soas_mutex);
+  return g_soas[domain];
+}
+
+static void updateCurrentZoneInfo(const DNSName& domain, std::shared_ptr<ixfrinfo_t>& newInfo)
+{
+  std::lock_guard<std::mutex> guard(g_soas_mutex);
+  g_soas[domain] = newInfo;
+  g_stats.setSOASerial(domain, newInfo->soa->d_st.serial);
+  // FIXME: also report zone size?
+}
+
+void updateThread(const string& workdir, const uint16_t& keep, const uint16_t& axfrTimeout, const uint16_t& soaRetry, const uint32_t axfrMaxRecords) {
+  setThreadName("ixfrdist/update");
   std::map<DNSName, time_t> lastCheck;
 
   // Initialize the serials we have
@@ -218,16 +284,19 @@ void updateThread(const string& workdir, const uint16_t& keep, const uint16_t& a
       g_log<<Logger::Info<<"Trying to initially load domain "<<domain<<" from disk"<<endl;
       auto serial = getSerialsFromDir(dir);
       shared_ptr<SOARecordContent> soa;
+      uint32_t soaTTL;
       {
         string fname = workdir + "/" + domain.toString() + "/" + std::to_string(serial);
-        loadSOAFromDisk(domain, fname, soa);
+        loadSOAFromDisk(domain, fname, soa, soaTTL);
         records_t records;
         if (soa != nullptr) {
           loadZoneFromDisk(records, fname, domain);
         }
-        std::lock_guard<std::mutex> guard(g_soas_mutex);
-        g_soas[domain].latestAXFR = records;
-        g_soas[domain].soa = soa;
+        auto zoneInfo = std::make_shared<ixfrinfo_t>();
+        zoneInfo->latestAXFR = std::move(records);
+        zoneInfo->soa = soa;
+        zoneInfo->soaTTL = soaTTL;
+        updateCurrentZoneInfo(domain, zoneInfo);
       }
       if (soa != nullptr) {
         g_log<<Logger::Notice<<"Loaded zone "<<domain<<" with serial "<<soa->d_st.serial<<endl;
@@ -240,7 +309,7 @@ void updateThread(const string& workdir, const uint16_t& keep, const uint16_t& a
       // Attempt to create it, if _that_ fails, there is no hope
       if (mkdir(dir.c_str(), 0777) == -1 && errno != EEXIST) {
         g_log<<Logger::Error<<"Could not create '"<<dir<<"': "<<strerror(errno)<<endl;
-        exit(EXIT_FAILURE);
+        _exit(EXIT_FAILURE);
       }
     }
   }
@@ -254,29 +323,35 @@ void updateThread(const string& workdir, const uint16_t& keep, const uint16_t& a
     }
     time_t now = time(nullptr);
     for (const auto &domainConfig : g_domainConfigs) {
+
+      if (g_exiting) {
+        break;
+      }
+
       DNSName domain = domainConfig.first;
       shared_ptr<SOARecordContent> current_soa;
-      {
-        std::lock_guard<std::mutex> guard(g_soas_mutex);
-        if (g_soas.find(domain) != g_soas.end()) {
-          current_soa = g_soas[domain].soa;
-        }
+      const auto& zoneInfo = getCurrentZoneInfo(domain);
+      if (zoneInfo != nullptr) {
+        current_soa = zoneInfo->soa;
       }
-      if ((current_soa != nullptr && now - lastCheck[domain] < current_soa->d_st.refresh) || // Only check if we have waited `refresh` seconds
-          (current_soa == nullptr && now - lastCheck[domain] < 30))  {                       // Or if we could not get an update at all still, every 30 seconds
+
+      auto& zoneLastCheck = lastCheck[domain];
+      if ((current_soa != nullptr && now - zoneLastCheck < current_soa->d_st.refresh) || // Only check if we have waited `refresh` seconds
+          (current_soa == nullptr && now - zoneLastCheck < soaRetry))  {                       // Or if we could not get an update at all still, every 30 seconds
         continue;
       }
 
       // TODO Keep track of 'down' masters
-      set<ComboAddress>::const_iterator it(g_domainConfigs[domain].masters.begin());
-      std::advance(it, random() % g_domainConfigs[domain].masters.size());
+      set<ComboAddress>::const_iterator it(domainConfig.second.masters.begin());
+      std::advance(it, dns_random(domainConfig.second.masters.size()));
       ComboAddress master = *it;
 
       string dir = workdir + "/" + domain.toString();
       g_log<<Logger::Info<<"Attempting to retrieve SOA Serial update for '"<<domain<<"' from '"<<master.toStringWithPort()<<"'"<<endl;
       shared_ptr<SOARecordContent> sr;
       try {
-        lastCheck[domain] = now;
+        zoneLastCheck = now;
+        g_stats.incrementSOAChecks(domain);
         auto newSerial = getSerialFromMaster(master, domain, sr); // TODO TSIG
         if(current_soa != nullptr) {
           g_log<<Logger::Info<<"Got SOA Serial for "<<domain<<" from "<<master.toStringWithPort()<<": "<< newSerial<<", had Serial: "<<current_soa->d_st.serial;
@@ -287,7 +362,8 @@ void updateThread(const string& workdir, const uint16_t& keep, const uint16_t& a
           g_log<<Logger::Info<<", will update."<<endl;
         }
       } catch (runtime_error &e) {
-        g_log<<Logger::Warning<<"Unable to get SOA serial update for '"<<domain<<"': "<<e.what()<<endl;
+        g_log<<Logger::Warning<<"Unable to get SOA serial update for '"<<domain<<"' from master "<<master.toStringWithPort()<<": "<<e.what()<<endl;
+        g_stats.incrementSOAChecksFailed(domain);
         continue;
       }
       // Now get the full zone!
@@ -297,56 +373,90 @@ void updateThread(const string& workdir, const uint16_t& keep, const uint16_t& a
 
       // The *new* SOA
       shared_ptr<SOARecordContent> soa;
+      uint32_t soaTTL = 0;
+      records_t records;
       try {
         AXFRRetriever axfr(master, domain, tt, &local);
-        unsigned int nrecords=0;
+        uint32_t nrecords=0;
         Resolver::res_t nop;
         vector<DNSRecord> chunk;
-        records_t records;
         time_t t_start = time(nullptr);
         time_t axfr_now = time(nullptr);
         while(axfr.getChunk(nop, &chunk, (axfr_now - t_start + axfrTimeout))) {
           for(auto& dr : chunk) {
             if(dr.d_type == QType::TSIG)
               continue;
+            if(!dr.d_name.isPartOf(domain)) {
+              throw PDNSException("Out-of-zone data received during AXFR of "+domain.toLogString());
+            }
             dr.d_name.makeUsRelative(domain);
             records.insert(dr);
             nrecords++;
             if (dr.d_type == QType::SOA) {
               soa = getRR<SOARecordContent>(dr);
+              soaTTL = dr.d_ttl;
             }
+          }
+          if (axfrMaxRecords != 0 && nrecords > axfrMaxRecords) {
+            throw PDNSException("Received more than " + std::to_string(axfrMaxRecords) + " records in AXFR, aborted");
           }
           axfr_now = time(nullptr);
           if (axfr_now - t_start > axfrTimeout) {
+            g_stats.incrementAXFRFailures(domain);
             throw PDNSException("Total AXFR time exceeded!");
           }
         }
         if (soa == nullptr) {
+          g_stats.incrementAXFRFailures(domain);
           g_log<<Logger::Warning<<"No SOA was found in the AXFR of "<<domain<<endl;
           continue;
         }
         g_log<<Logger::Notice<<"Retrieved all zone data for "<<domain<<". Received "<<nrecords<<" records."<<endl;
+      } catch (PDNSException &e) {
+        g_stats.incrementAXFRFailures(domain);
+        g_log<<Logger::Warning<<"Could not retrieve AXFR for '"<<domain<<"': "<<e.reason<<endl;
+        continue;
+      } catch (runtime_error &e) {
+        g_stats.incrementAXFRFailures(domain);
+        g_log<<Logger::Warning<<"Could not retrieve AXFR for zone '"<<domain<<"': "<<e.what()<<endl;
+        continue;
+      }
+
+      try {
+
         writeZoneToDisk(records, domain, dir);
         g_log<<Logger::Notice<<"Wrote zonedata for "<<domain<<" with serial "<<soa->d_st.serial<<" to "<<dir<<endl;
-        {
-          std::lock_guard<std::mutex> guard(g_soas_mutex);
-          ixfrdiff_t diff;
-          if (!g_soas[domain].latestAXFR.empty()) {
-            makeIXFRDiff(g_soas[domain].latestAXFR, records, diff, g_soas[domain].soa, soa);
-            g_soas[domain].ixfrDiffs.push_back(diff);
-          }
-          // Clean up the diffs
-          while (g_soas[domain].ixfrDiffs.size() > keep) {
-            g_soas[domain].ixfrDiffs.erase(g_soas[domain].ixfrDiffs.begin());
-          }
-          g_soas[domain].latestAXFR = records;
-          g_soas[domain].soa = soa;
+
+        const auto oldZoneInfo = getCurrentZoneInfo(domain);
+        auto zoneInfo = std::make_shared<ixfrinfo_t>();
+
+        if (oldZoneInfo && !oldZoneInfo->latestAXFR.empty()) {
+          auto diff = std::make_shared<ixfrdiff_t>();
+          zoneInfo->ixfrDiffs = oldZoneInfo->ixfrDiffs;
+          g_log<<Logger::Debug<<"Calculating diff for "<<domain<<endl;
+          makeIXFRDiff(oldZoneInfo->latestAXFR, records, diff, oldZoneInfo->soa, oldZoneInfo->soaTTL, soa, soaTTL);
+          g_log<<Logger::Debug<<"Calculated diff for "<<domain<<", we had "<<diff->removals.size()<<" removals and "<<diff->additions.size()<<" additions"<<endl;
+          zoneInfo->ixfrDiffs.push_back(std::move(diff));
         }
+
+        // Clean up the diffs
+        while (zoneInfo->ixfrDiffs.size() > keep) {
+          zoneInfo->ixfrDiffs.erase(zoneInfo->ixfrDiffs.begin());
+        }
+
+        g_log<<Logger::Debug<<"Zone "<<domain<<" previously contained "<<(oldZoneInfo ? oldZoneInfo->latestAXFR.size() : 0)<<" entries, "<<records.size()<<" now"<<endl;
+        zoneInfo->latestAXFR = std::move(records);
+        zoneInfo->soa = soa;
+        zoneInfo->soaTTL = soaTTL;
+        updateCurrentZoneInfo(domain, zoneInfo);
       } catch (PDNSException &e) {
-        g_log<<Logger::Warning<<"Could not retrieve AXFR for '"<<domain<<"': "<<e.reason<<endl;
+        g_stats.incrementAXFRFailures(domain);
+        g_log<<Logger::Warning<<"Could not save zone '"<<domain<<"' to disk: "<<e.reason<<endl;
       } catch (runtime_error &e) {
+        g_stats.incrementAXFRFailures(domain);
         g_log<<Logger::Warning<<"Could not save zone '"<<domain<<"' to disk: "<<e.what()<<endl;
       }
+
       // Now clean up the directory
       cleanUpDomain(domain, keep, workdir);
     } /* for (const auto &domain : domains) */
@@ -354,39 +464,40 @@ void updateThread(const string& workdir, const uint16_t& keep, const uint16_t& a
   } /* while (true) */
 } /* updateThread */
 
-bool checkQuery(const MOADNSParser& mdp, const ComboAddress& saddr, const bool udp = true, const string& logPrefix="") {
+static bool checkQuery(const MOADNSParser& mdp, const ComboAddress& saddr, const bool udp = true, const string& logPrefix="") {
   vector<string> info_msg;
 
   g_log<<Logger::Debug<<logPrefix<<"Had "<<mdp.d_qname<<"|"<<QType(mdp.d_qtype).getName()<<" query from "<<saddr.toStringWithPort()<<endl;
 
   if (udp && mdp.d_qtype != QType::SOA && mdp.d_qtype != QType::IXFR) {
-    info_msg.push_back("QType is unsupported (" + QType(mdp.d_qtype).getName() + " is not in {SOA,IXFR}");
+    info_msg.push_back("QType is unsupported (" + QType(mdp.d_qtype).getName() + " is not in {SOA,IXFR})");
   }
 
   if (!udp && mdp.d_qtype != QType::SOA && mdp.d_qtype != QType::IXFR && mdp.d_qtype != QType::AXFR) {
-    info_msg.push_back("QType is unsupported (" + QType(mdp.d_qtype).getName() + " is not in {SOA,IXFR,AXFR}");
+    info_msg.push_back("QType is unsupported (" + QType(mdp.d_qtype).getName() + " is not in {SOA,IXFR,AXFR})");
   }
 
   {
-    std::lock_guard<std::mutex> guard(g_soas_mutex);
     if (g_domainConfigs.find(mdp.d_qname) == g_domainConfigs.end()) {
       info_msg.push_back("Domain name '" + mdp.d_qname.toLogString() + "' is not configured for distribution");
     }
-
-    if (g_soas.find(mdp.d_qname) == g_soas.end()) {
-      info_msg.push_back("Domain has not been transferred yet");
+    else {
+      const auto zoneInfo = getCurrentZoneInfo(mdp.d_qname);
+      if (zoneInfo == nullptr) {
+        info_msg.push_back("Domain has not been transferred yet");
+      }
     }
   }
 
   if (!info_msg.empty()) {
-    g_log<<Logger::Warning<<logPrefix<<"Ignoring "<<mdp.d_qname<<"|"<<QType(mdp.d_qtype).getName()<<" query from "<<saddr.toStringWithPort();
+    g_log<<Logger::Warning<<logPrefix<<"Refusing "<<mdp.d_qname<<"|"<<QType(mdp.d_qtype).getName()<<" query from "<<saddr.toStringWithPort();
     g_log<<Logger::Warning<<": ";
     bool first = true;
     for (const auto& s : info_msg) {
       if (!first) {
         g_log<<Logger::Warning<<", ";
-        first = false;
       }
+      first = false;
       g_log<<Logger::Warning<<s;
     }
     g_log<<Logger::Warning<<endl;
@@ -397,26 +508,43 @@ bool checkQuery(const MOADNSParser& mdp, const ComboAddress& saddr, const bool u
 }
 
 /*
- * Returns a vector<uint8_t> that represents the full response to a SOA
+ * Returns a vector<uint8_t> that represents the full positive response to a SOA
  * query. QNAME is read from mdp.
  */
-bool makeSOAPacket(const MOADNSParser& mdp, vector<uint8_t>& packet) {
+static bool makeSOAPacket(const MOADNSParser& mdp, vector<uint8_t>& packet) {
+
+  auto zoneInfo = getCurrentZoneInfo(mdp.d_qname);
+  if (zoneInfo == nullptr) {
+    return false;
+  }
+
   DNSPacketWriter pw(packet, mdp.d_qname, mdp.d_qtype);
   pw.getHeader()->id = mdp.d_header.id;
   pw.getHeader()->rd = mdp.d_header.rd;
   pw.getHeader()->qr = 1;
 
-  pw.startRecord(mdp.d_qname, QType::SOA);
-  {
-    std::lock_guard<std::mutex> guard(g_soas_mutex);
-    g_soas[mdp.d_qname].soa->toPacket(pw);
-  }
+  pw.startRecord(mdp.d_qname, QType::SOA, zoneInfo->soaTTL);
+  zoneInfo->soa->toPacket(pw);
   pw.commit();
 
   return true;
 }
 
-vector<uint8_t> getSOAPacket(const MOADNSParser& mdp, const shared_ptr<SOARecordContent>& soa) {
+/*
+ * Returns a vector<uint8_t> that represents the full REFUSED response to a
+ * query. QNAME and type are read from mdp.
+ */
+static bool makeRefusedPacket(const MOADNSParser& mdp, vector<uint8_t>& packet) {
+  DNSPacketWriter pw(packet, mdp.d_qname, mdp.d_qtype);
+  pw.getHeader()->id = mdp.d_header.id;
+  pw.getHeader()->rd = mdp.d_header.rd;
+  pw.getHeader()->qr = 1;
+  pw.getHeader()->rcode = RCode::Refused;
+
+  return true;
+}
+
+static vector<uint8_t> getSOAPacket(const MOADNSParser& mdp, const shared_ptr<SOARecordContent>& soa, uint32_t soaTTL) {
   vector<uint8_t> packet;
   DNSPacketWriter pw(packet, mdp.d_qname, mdp.d_qtype);
   pw.getHeader()->id = mdp.d_header.id;
@@ -424,113 +552,171 @@ vector<uint8_t> getSOAPacket(const MOADNSParser& mdp, const shared_ptr<SOARecord
   pw.getHeader()->qr = 1;
 
   // Add the first SOA
-  pw.startRecord(mdp.d_qname, QType::SOA);
+  pw.startRecord(mdp.d_qname, QType::SOA, soaTTL);
   soa->toPacket(pw);
   pw.commit();
   return packet;
 }
 
-bool makeAXFRPackets(const MOADNSParser& mdp, vector<vector<uint8_t>>& packets) {
-  shared_ptr<SOARecordContent> soa;
-  records_t records;
-  {
-    // Make copies of what we have
-    std::lock_guard<std::mutex> guard(g_soas_mutex);
-    soa = g_soas[mdp.d_qname].soa;
-    records = g_soas[mdp.d_qname].latestAXFR;
+static bool sendPacketOverTCP(int fd, const std::vector<uint8_t>& packet)
+{
+  char sendBuf[2];
+  sendBuf[0]=packet.size()/256;
+  sendBuf[1]=packet.size()%256;
+
+  writen2(fd, sendBuf, 2);
+  writen2(fd, &packet[0], packet.size());
+  return true;
+}
+
+static bool addRecordToWriter(DNSPacketWriter& pw, const DNSName& zoneName, const DNSRecord& record, bool compress)
+{
+  pw.startRecord(record.d_name + zoneName, record.d_type, record.d_ttl, QClass::IN, DNSResourceRecord::ANSWER, compress);
+  record.d_content->toPacket(pw);
+  if (pw.size() > 16384) {
+    pw.rollback();
+    return false;
   }
+  return true;
+}
 
-  // Initial SOA
-  packets.push_back(getSOAPacket(mdp, soa));
+template <typename T> static bool sendRecordsOverTCP(int fd, const MOADNSParser& mdp, const T& records)
+{
+  vector<uint8_t> packet;
 
-  for (auto const &record : records) {
-    if (record.d_type == QType::SOA) {
-      continue;
-    }
-    vector<uint8_t> packet;
+  for (auto it = records.cbegin(); it != records.cend();) {
+    bool recordsAdded = false;
+    packet.clear();
     DNSPacketWriter pw(packet, mdp.d_qname, mdp.d_qtype);
     pw.getHeader()->id = mdp.d_header.id;
     pw.getHeader()->rd = mdp.d_header.rd;
     pw.getHeader()->qr = 1;
-    pw.startRecord(record.d_name + mdp.d_qname, record.d_type);
-    record.d_content->toPacket(pw);
-    pw.commit();
-    packets.push_back(packet);
-  }
 
-  // Final SOA
-  packets.push_back(getSOAPacket(mdp, soa));
+    while (it != records.cend()) {
+      if (it->d_type == QType::SOA) {
+        it++;
+        continue;
+      }
+
+      if (addRecordToWriter(pw, mdp.d_qname, *it, g_compress)) {
+        recordsAdded = true;
+        it++;
+      }
+      else {
+        if (recordsAdded) {
+          pw.commit();
+          sendPacketOverTCP(fd, packet);
+        }
+        if (it == records.cbegin()) {
+          /* something is wrong */
+          return false;
+        }
+
+        break;
+      }
+    }
+
+    if (it == records.cend() && recordsAdded) {
+      pw.commit();
+      sendPacketOverTCP(fd, packet);
+    }
+  }
 
   return true;
 }
 
-void makeXFRPacketsFromDNSRecords(const MOADNSParser& mdp, const vector<DNSRecord>& records, vector<vector<uint8_t>>& packets) {
-  for(const auto& r : records) {
-    if (r.d_type == QType::SOA) {
-      continue;
-    }
-    vector<uint8_t> packet;
-    DNSPacketWriter pw(packet, mdp.d_qname, mdp.d_qtype);
-    pw.getHeader()->id = mdp.d_header.id;
-    pw.getHeader()->rd = mdp.d_header.rd;
-    pw.getHeader()->qr = 1;
-    pw.startRecord(r.d_name + mdp.d_qname, r.d_type);
-    r.d_content->toPacket(pw);
-    pw.commit();
-    packets.push_back(packet);
+
+static bool handleAXFR(int fd, const MOADNSParser& mdp) {
+  /* we get a shared pointer of the zone info that we can't modify, ever.
+     A newer one may arise in the meantime, but this one will stay valid
+     until we release it.
+  */
+
+  g_stats.incrementAXFRinQueries(mdp.d_qname);
+
+  auto zoneInfo = getCurrentZoneInfo(mdp.d_qname);
+  if (zoneInfo == nullptr) {
+    return false;
   }
+
+  shared_ptr<SOARecordContent> soa = zoneInfo->soa;
+  uint32_t soaTTL = zoneInfo->soaTTL;
+  const records_t& records = zoneInfo->latestAXFR;
+
+  // Initial SOA
+  const auto soaPacket = getSOAPacket(mdp, soa, soaTTL);
+  if (!sendPacketOverTCP(fd, soaPacket)) {
+    return false;
+  }
+
+  if (!sendRecordsOverTCP(fd, mdp, records)) {
+    return false;
+  }
+
+  // Final SOA
+  if (!sendPacketOverTCP(fd, soaPacket)) {
+    return false;
+  }
+
+  return true;
 }
 
 /* Produces an IXFR if one can be made according to the rules in RFC 1995 and
  * creates a SOA or AXFR packet when required by the RFC.
  */
-bool makeIXFRPackets(const MOADNSParser& mdp, const shared_ptr<SOARecordContent>& clientSOA, vector<vector<uint8_t>>& packets) {
-  // Get the new SOA only once, so it will not change under our noses from the
-  // updateThread.
-  vector<ixfrdiff_t> toSend;
-  uint32_t ourLatestSerial;
-  {
-    std::lock_guard<std::mutex> guard(g_soas_mutex);
-    ourLatestSerial = g_soas[mdp.d_qname].soa->d_st.serial;
+static bool handleIXFR(int fd, const ComboAddress& destination, const MOADNSParser& mdp, const shared_ptr<SOARecordContent>& clientSOA) {
+  vector<std::shared_ptr<ixfrdiff_t>> toSend;
+
+  /* we get a shared pointer of the zone info that we can't modify, ever.
+     A newer one may arise in the meantime, but this one will stay valid
+     until we release it.
+  */
+
+  g_stats.incrementIXFRinQueries(mdp.d_qname);
+
+  auto zoneInfo = getCurrentZoneInfo(mdp.d_qname);
+  if (zoneInfo == nullptr) {
+    return false;
   }
 
-  if (rfc1982LessThan(ourLatestSerial, clientSOA->d_st.serial) || ourLatestSerial == clientSOA->d_st.serial){
+  uint32_t ourLatestSerial = zoneInfo->soa->d_st.serial;
+
+  if (rfc1982LessThan(ourLatestSerial, clientSOA->d_st.serial) || ourLatestSerial == clientSOA->d_st.serial) {
     /* RFC 1995 Section 2
      *    If an IXFR query with the same or newer version number than that of
      *    the server is received, it is replied to with a single SOA record of
-     *    the server's current version, just as in AXFR.
+     *    the server's current version.
      */
     vector<uint8_t> packet;
     bool ret = makeSOAPacket(mdp, packet);
     if (ret) {
-      packets.push_back(packet);
+      sendPacketOverTCP(fd, packet);
     }
     return ret;
   }
 
-  {
-    // as we use push_back in the updater, we know the vector is sorted as oldest first
-    bool shouldAdd = false;
-    // Get all relevant IXFR differences
-    std::lock_guard<std::mutex> guard(g_soas_mutex);
-    for (const auto& diff : g_soas[mdp.d_qname].ixfrDiffs) {
-      if (shouldAdd) {
-        toSend.push_back(diff);
-        continue;
-      }
-      if (diff.oldSOA->d_st.serial == clientSOA->d_st.serial) {
-        toSend.push_back(diff);
-        // Add all consecutive diffs
-        shouldAdd = true;
-      }
+  // as we use push_back in the updater, we know the vector is sorted as oldest first
+  bool shouldAdd = false;
+  // Get all relevant IXFR differences
+  for (const auto& diff : zoneInfo->ixfrDiffs) {
+    if (shouldAdd) {
+      toSend.push_back(diff);
+      continue;
+    }
+    if (diff->oldSOA->d_st.serial == clientSOA->d_st.serial) {
+      toSend.push_back(diff);
+      // Add all consecutive diffs
+      shouldAdd = true;
     }
   }
 
   if (toSend.empty()) {
+    // FIXME: incrementIXFRFallbacks
     g_log<<Logger::Warning<<"No IXFR available from serial "<<clientSOA->d_st.serial<<" for zone "<<mdp.d_qname<<", attempting to send AXFR"<<endl;
-    return makeAXFRPackets(mdp, packets);
+    return handleAXFR(fd, mdp);
   }
 
+  std::vector<std::vector<uint8_t>> packets;
   for (const auto& diff : toSend) {
     /* An IXFR packet's ANSWER section looks as follows:
      * SOA new_serial
@@ -540,22 +726,43 @@ bool makeIXFRPackets(const MOADNSParser& mdp, const shared_ptr<SOARecordContent>
      * ... added records ...
      * SOA new_serial
      */
-    packets.push_back(getSOAPacket(mdp, diff.newSOA));
-    packets.push_back(getSOAPacket(mdp, diff.oldSOA));
-    makeXFRPacketsFromDNSRecords(mdp, diff.removals, packets);
-    packets.push_back(getSOAPacket(mdp, diff.newSOA));
-    makeXFRPacketsFromDNSRecords(mdp, diff.additions, packets);
-    packets.push_back(getSOAPacket(mdp, diff.newSOA));
+
+    const auto newSOAPacket = getSOAPacket(mdp, diff->newSOA, diff->newSOATTL);
+    const auto oldSOAPacket = getSOAPacket(mdp, diff->oldSOA, diff->oldSOATTL);
+
+    if (!sendPacketOverTCP(fd, newSOAPacket)) {
+      return false;
+    }
+
+    if (!sendPacketOverTCP(fd, oldSOAPacket)) {
+      return false;
+    }
+
+    if (!sendRecordsOverTCP(fd, mdp, diff->removals)) {
+      return false;
+    }
+
+    if (!sendPacketOverTCP(fd, newSOAPacket)) {
+      return false;
+    }
+
+    if (!sendRecordsOverTCP(fd, mdp, diff->additions)) {
+      return false;
+    }
+
+    if (!sendPacketOverTCP(fd, newSOAPacket)) {
+      return false;
+    }
   }
 
   return true;
 }
 
-bool allowedByACL(const ComboAddress& addr) {
+static bool allowedByACL(const ComboAddress& addr) {
   return g_acl.match(addr);
 }
 
-void handleUDPRequest(int fd, boost::any&) {
+static void handleUDPRequest(int fd, boost::any&) {
   // TODO make the buffer-size configurable
   char buf[4096];
   ComboAddress saddr;
@@ -584,23 +791,25 @@ void handleUDPRequest(int fd, boost::any&) {
   }
 
   MOADNSParser mdp(true, string(buf, res));
-  if (!checkQuery(mdp, saddr)) {
-    return;
+  vector<uint8_t> packet;
+  if (checkQuery(mdp, saddr)) {
+    /* RFC 1995 Section 2
+     *    Transport of a query may be by either UDP or TCP.  If an IXFR query
+     *    is via UDP, the IXFR server may attempt to reply using UDP if the
+     *    entire response can be contained in a single DNS packet.  If the UDP
+     *    reply does not fit, the query is responded to with a single SOA
+     *    record of the server's current version to inform the client that a
+     *    TCP query should be initiated.
+     *
+     * Let's not complicate this with IXFR over UDP (and looking if we need to truncate etc).
+     * Just send the current SOA and let the client try over TCP
+     */
+    g_stats.incrementSOAinQueries(mdp.d_qname); // FIXME: this also counts IXFR queries (but the response is the same as to a SOA query)
+    makeSOAPacket(mdp, packet);
+  } else {
+    makeRefusedPacket(mdp, packet);
   }
 
-  /* RFC 1995 Section 2
-   *    Transport of a query may be by either UDP or TCP.  If an IXFR query
-   *    is via UDP, the IXFR server may attempt to reply using UDP if the
-   *    entire response can be contained in a single DNS packet.  If the UDP
-   *    reply does not fit, the query is responded to with a single SOA
-   *    record of the server's current version to inform the client that a
-   *    TCP query should be initiated.
-   *
-   * Let's not complicate this with IXFR over UDP (and looking if we need to truncate etc).
-   * Just send the current SOA and let the client try over TCP
-   */
-  vector<uint8_t> packet;
-  makeSOAPacket(mdp, packet);
   if(sendto(fd, &packet[0], packet.size(), 0, (struct sockaddr*) &saddr, fromlen) < 0) {
     auto savedErrno = errno;
     g_log<<Logger::Warning<<"Could not send reply for "<<mdp.d_qname<<"|"<<QType(mdp.d_qtype).getName()<<" to "<<saddr.toStringWithPort()<<": "<<strerror(savedErrno)<<endl;
@@ -608,7 +817,7 @@ void handleUDPRequest(int fd, boost::any&) {
   return;
 }
 
-void handleTCPRequest(int fd, boost::any&) {
+static void handleTCPRequest(int fd, boost::any&) {
   ComboAddress saddr;
   int cfd = 0;
 
@@ -641,7 +850,8 @@ void handleTCPRequest(int fd, boost::any&) {
 
 /* Thread to handle TCP traffic
  */
-void tcpWorker(int tid) {
+static void tcpWorker(int tid) {
+  setThreadName("ixfrdist/tcpWor");
   string prefix = "TCP Worker " + std::to_string(tid) + ": ";
 
   while(true) {
@@ -682,7 +892,6 @@ void tcpWorker(int tid) {
         continue;
       }
 
-      vector<vector<uint8_t>> packets;
       if (mdp.d_qtype == QType::SOA) {
         vector<uint8_t> packet;
         bool ret = makeSOAPacket(mdp, packet);
@@ -690,17 +899,15 @@ void tcpWorker(int tid) {
           close(cfd);
           continue;
         }
-        packets.push_back(packet);
+        sendPacketOverTCP(cfd, packet);
       }
-
-      if (mdp.d_qtype == QType::AXFR) {
-        if (!makeAXFRPackets(mdp, packets)) {
+      else if (mdp.d_qtype == QType::AXFR) {
+        if (!handleAXFR(cfd, mdp)) {
           close(cfd);
           continue;
         }
       }
-
-      if (mdp.d_qtype == QType::IXFR) {
+      else if (mdp.d_qtype == QType::IXFR) {
         /* RFC 1995 section 3:
          *  The IXFR query packet format is the same as that of a normal DNS
          *  query, but with the query type being IXFR and the authority section
@@ -724,24 +931,15 @@ void tcpWorker(int tid) {
           continue;
         }
 
-        if (!makeIXFRPackets(mdp, clientSOA, packets)) {
+        if (!handleIXFR(cfd, saddr, mdp, clientSOA)) {
           close(cfd);
           continue;
         }
       } /* if (mdp.d_qtype == QType::IXFR) */
 
-      g_log<<Logger::Debug<<prefix<<"Sending "<<packets.size()<<" packets to "<<saddr.toStringWithPort()<<endl;
-      for (const auto& packet : packets) {
-        char sendBuf[2];
-        sendBuf[0]=packet.size()/256;
-        sendBuf[1]=packet.size()%256;
-
-        ssize_t send = writen2(cfd, sendBuf, 2);
-        send += writen2(cfd, &packet[0], packet.size());
-      }
       shutdown(cfd, 2);
-    } catch (MOADNSException &e) {
-      g_log<<Logger::Warning<<prefix<<"Could not parse DNS packet from "<<saddr.toStringWithPort()<<": "<<e.what()<<endl;
+    } catch (const MOADNSException &mde) {
+      g_log<<Logger::Warning<<prefix<<"Could not parse DNS packet from "<<saddr.toStringWithPort()<<": "<<mde.what()<<endl;
     } catch (runtime_error &e) {
       g_log<<Logger::Warning<<prefix<<"Could not write reply to "<<saddr.toStringWithPort()<<": "<<e.what()<<endl;
     }
@@ -758,7 +956,7 @@ void tcpWorker(int tid) {
  * missing parameters (if applicable), returning true if the config file was
  * good, false otherwise. Will log all issues with the config
  */
-bool parseAndCheckConfig(const string& configpath, YAML::Node& config) {
+static bool parseAndCheckConfig(const string& configpath, YAML::Node& config) {
   g_log<<Logger::Info<<"Loading configuration file from "<<configpath<<endl;
   try {
     config = YAML::LoadFile(configpath);
@@ -780,6 +978,16 @@ bool parseAndCheckConfig(const string& configpath, YAML::Node& config) {
     config["keep"] = 20;
   }
 
+  if (config["axfr-max-records"]) {
+    try {
+      config["axfr-max-records"].as<uint32_t>();
+    } catch (const runtime_error &e) {
+      g_log<<Logger::Error<<"Unable to read 'axfr-max-records' value: "<<e.what()<<endl;
+    }
+  } else {
+    config["axfr-max-records"] = 0;
+  }
+
   if (config["axfr-timeout"]) {
     try {
       config["axfr-timeout"].as<uint16_t>();
@@ -787,14 +995,24 @@ bool parseAndCheckConfig(const string& configpath, YAML::Node& config) {
       g_log<<Logger::Error<<"Unable to read 'axfr-timeout' value: "<<e.what()<<endl;
     }
   } else {
-    config["axfr-timeout"] = 10;
+    config["axfr-timeout"] = 20;
+  }
+
+  if (config["failed-soa-retry"]) {
+    try {
+      config["failed-soa-retry"].as<uint16_t>();
+    } catch (const runtime_error &e) {
+      g_log<<Logger::Error<<"Unable to read 'failed-soa-retry' value: "<<e.what()<<endl;
+    }
+  } else {
+    config["failed-soa-retry"] = 30;
   }
 
   if (config["tcp-in-threads"]) {
     try {
       config["tcp-in-threads"].as<uint16_t>();
     } catch (const runtime_error &e) {
-      g_log<<Logger::Error<<"Unable to read 'tcp-in-thread' value: "<<e.what()<<endl;
+      g_log<<Logger::Error<<"Unable to read 'tcp-in-threads' value: "<<e.what()<<endl;
     }
   } else {
     config["tcp-in-threads"] = 10;
@@ -887,6 +1105,49 @@ bool parseAndCheckConfig(const string& configpath, YAML::Node& config) {
     retval = false;
   }
 
+  if (config["compress"]) {
+    try {
+      config["compress"].as<bool>();
+    }
+    catch (const runtime_error &e) {
+      g_log<<Logger::Error<<"Unable to read 'compress' value: "<<e.what()<<endl;
+      retval = false;
+    }
+  }
+  else {
+    config["compress"] = false;
+  }
+
+  if (config["webserver-address"]) {
+    try {
+      config["webserver-address"].as<ComboAddress>();
+    }
+    catch (const runtime_error &e) {
+      g_log<<Logger::Error<<"Unable to read 'webserver-address' value: "<<e.what()<<endl;
+      retval = false;
+    }
+  }
+
+  if (config["webserver-acl"]) {
+    try {
+      config["webserver-acl"].as<vector<Netmask>>();
+    }
+    catch (const runtime_error &e) {
+      g_log<<Logger::Error<<"Unable to read 'webserver-acl' value: "<<e.what()<<endl;
+      retval = false;
+    }
+  }
+
+  if (config["webserver-loglevel"]) {
+    try {
+      config["webserver-loglevel"].as<string>();
+    }
+    catch (const runtime_error &e) {
+      g_log<<Logger::Error<<"Unable to read 'webserver-loglevel' value: "<<e.what()<<endl;
+      retval = false;
+    }
+  }
+
   return retval;
 }
 
@@ -950,6 +1211,7 @@ int main(int argc, char** argv) {
     set<ComboAddress> s;
     s.insert(domain["master"].as<ComboAddress>());
     g_domainConfigs[domain["domain"].as<DNSName>()].masters = s;
+    g_stats.registerDomain(domain["domain"].as<DNSName>());
   }
 
   for (const auto &addr : config["acl"].as<vector<string>>()) {
@@ -961,6 +1223,13 @@ int main(int argc, char** argv) {
     }
   }
   g_log<<Logger::Notice<<"ACL set to "<<g_acl.toString()<<"."<<endl;
+
+  if (config["compress"]) {
+    g_compress = config["compress"].as<bool>();
+    if (g_compress) {
+      g_log<<Logger::Notice<<"Record compression is enabled."<<endl;
+    }
+  }
 
   FDMultiplexer* fdm = FDMultiplexer::getMultiplexerSilent();
   if (fdm == nullptr) {
@@ -1009,6 +1278,32 @@ int main(int argc, char** argv) {
     }
   }
 
+  if (config["webserver-address"]) {
+    NetmaskGroup wsACL;
+    wsACL.addMask("127.0.0.0/8");
+    wsACL.addMask("::1/128");
+
+    if (config["webserver-acl"]) {
+      wsACL.clear();
+      for (const auto &acl : config["webserver-acl"].as<vector<Netmask>>()) {
+        wsACL.addMask(acl);
+      }
+    }
+
+    string loglevel = "normal";
+    if (config["webserver-loglevel"]) {
+      loglevel = config["webserver-loglevel"].as<string>();
+    }
+
+    // Launch the webserver!
+    try {
+      std::thread(&IXFRDistWebServer::go, IXFRDistWebServer(config["webserver-address"].as<ComboAddress>(), wsACL, loglevel)).detach();
+    } catch (const PDNSException &e) {
+      g_log<<Logger::Error<<"Unable to start webserver: "<<e.reason<<endl;
+      had_error = true;
+    }
+  }
+
   int newuid = 0;
 
   if (config["uid"]) {
@@ -1037,7 +1332,7 @@ int main(int argc, char** argv) {
     }
 
     g_log<<Logger::Notice<<"Dropping effective user-id to "<<newuid<<endl;
-    if (setuid(pw->pw_uid) < 0) {
+    if (setuid(newuid) < 0) {
       g_log<<Logger::Error<<"Could not set user id to "<<newuid<<": "<<stringerror()<<endl;
       had_error = true;
     }
@@ -1051,7 +1346,6 @@ int main(int argc, char** argv) {
   // It all starts here
   signal(SIGTERM, handleSignal);
   signal(SIGINT, handleSignal);
-  signal(SIGSTOP, handleSignal);
   signal(SIGPIPE, SIG_IGN);
 
   // Init the things we need
@@ -1062,7 +1356,9 @@ int main(int argc, char** argv) {
   std::thread ut(updateThread,
       config["work-dir"].as<string>(),
       config["keep"].as<uint16_t>(),
-      config["axfr-timeout"].as<uint16_t>());
+      config["axfr-timeout"].as<uint16_t>(),
+      config["failed-soa-retry"].as<uint16_t>(),
+      config["axfr-max-records"].as<uint32_t>());
 
   vector<std::thread> tcpHandlers;
   tcpHandlers.reserve(config["tcp-in-threads"].as<uint16_t>());
@@ -1075,7 +1371,7 @@ int main(int argc, char** argv) {
     gettimeofday(&now, 0);
     fdm->run(&now);
     if (g_exiting) {
-      g_log<<Logger::Notice<<"Shutting down!"<<endl;
+      g_log<<Logger::Debug<<"Closing listening sockets"<<endl;
       for (const int& fd : allSockets) {
         try {
           closesocket(fd);
@@ -1086,6 +1382,7 @@ int main(int argc, char** argv) {
       break;
     }
   }
+  g_log<<Logger::Debug<<"Waiting for all threads to stop"<<endl;
   g_tcpHandlerCV.notify_all();
   ut.join();
   for (auto &t : tcpHandlers) {

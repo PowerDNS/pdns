@@ -1,0 +1,3 @@
+#!/bin/sh
+cleandig www.dnssec-parent.com A dnssec
+

@@ -28,7 +28,7 @@ In order to migrate to a Generic SQL backend, add all your domains to
 the 'domains' table with the IP of your current master. On your current
 master, make sure that this master allows AXFRs to this new slave.
 
-::
+.. code-block:: SQL
 
     INSERT INTO domains (name,type,master) VALUES ('example.net', 'SLAVE', '198.51.100.101');
 
@@ -36,7 +36,7 @@ Then start PowerDNS and wait for all the zones to be transferred. If
 this server is the new :ref:`master <master-operation>`, change the type of
 domain in the database:
 
-::
+.. code-block:: SQL
 
     UPDATE domains set type='MASTER' where type='SLAVE';
 
@@ -45,7 +45,7 @@ and restart PowerDNS.
 
 Or, if you want to use :ref:`native <native-operation>`:
 
-::
+.. code-block:: SQL
 
     UPDATE domains set type='NATIVE' where type='SLAVE';
 
@@ -86,10 +86,10 @@ From zonefiles to PowerDNS
 Using the BIND backend
 ~~~~~~~~~~~~~~~~~~~~~~
 
-To use the bind backend, set ``launch=bind`` and
+To use the BIND backend, set ``launch=bind`` and
 ``bind-config=/path/to/named.conf`` in your ``pdns.conf``. Note that
 PowerDNS will not honor any options from named.conf, it will only use
-the ``zone`` statements. See the :doc:`Bind backend <backends/bind>`
+the ``zone`` statements. See the :doc:`BIND backend <backends/bind>`
 documentation for more information.
 
 To a Generic SQL backend
@@ -104,7 +104,7 @@ Using ``zone2sql``
 
 To migrate, the ``zone2sql`` tool is provided. This tool parses a BIND
 ``named.conf`` file and zone files and outputs SQL on standard out,
-which can then be fed to your database. It understands the Bind master
+which can then be fed to your database. It understands the BIND master
 file extension ``$GENERATE`` and will also honour ``$ORIGIN`` and
 ``$TTL``.
 
@@ -116,7 +116,7 @@ See `its manpage <manpages/zone2sql.1>` for more information.
 
 An example call to ``zone2sql`` could be:
 
-::
+.. code-block:: shell
 
     zone2sql --named-conf=/path/to/named.conf --gmysql | mysql -u pdns -p pdns-db
 
@@ -131,10 +131,10 @@ The :doc:`pdnsutil <manpages/pdnsutil.1>` tool has a
 first backend that is capable of hosting it.
 
 To import, configure the backend and run
-``pdnsutil load-zone example.com /tmp/example.com.com.zone`` to import
+``pdnsutil load-zone example.com /tmp/example.com.zone`` to import
 the ``example.com`` domain from the ``/tmp/example.com.zone`` file. The
 zone is imported atomically (i.e. it is fully imported, or not) and any
-existing records for that zone are overwritten.
+existing records for that zone are overwritten. This include the SOA record too.
 
 .. _b2b-migrate:
 
@@ -148,7 +148,7 @@ Syntax: ``pdnsutil b2b-migrate OLD NEW``
 
 This tool lets you migrate data from one backend to another, it moves
 all data, including zones, metadata and crypto keys (if present). Some
-example use cases are moving from Bind style zonefiles to SQL based, or
+example use cases are moving from BIND-style zonefiles to SQL based, or
 other way around, or moving from MyDNS to gMySQL.
 
 Prerequisites

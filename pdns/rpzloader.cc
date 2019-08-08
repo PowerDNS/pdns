@@ -7,6 +7,7 @@
 #include "rec-lua-conf.hh"
 #include "rpzloader.hh"
 #include "zoneparser-tng.hh"
+#include "threadname.hh"
 
 static Netmask makeNetmaskFromRPZ(const DNSName& name)
 {
@@ -59,7 +60,7 @@ static Netmask makeNetmaskFromRPZ(const DNSName& name)
   return Netmask(v6);
 }
 
-void RPZRecordToPolicy(const DNSRecord& dr, std::shared_ptr<DNSFilterEngine::Zone> zone, bool addOrRemove, boost::optional<DNSFilterEngine::Policy> defpol, uint32_t maxTTL)
+static void RPZRecordToPolicy(const DNSRecord& dr, std::shared_ptr<DNSFilterEngine::Zone> zone, bool addOrRemove, boost::optional<DNSFilterEngine::Policy> defpol, bool defpolOverrideLocal, uint32_t maxTTL)
 {
   static const DNSName drop("rpz-drop."), truncate("rpz-tcp-only."), noaction("rpz-passthru.");
   static const DNSName rpzClientIP("rpz-client-ip"), rpzIP("rpz-ip"),
@@ -67,6 +68,7 @@ void RPZRecordToPolicy(const DNSRecord& dr, std::shared_ptr<DNSFilterEngine::Zon
   static const std::string rpzPrefix("rpz-");
 
   DNSFilterEngine::Policy pol;
+  bool defpolApplied = false;
 
   if(dr.d_class != QClass::IN) {
     return;
@@ -80,6 +82,7 @@ void RPZRecordToPolicy(const DNSRecord& dr, std::shared_ptr<DNSFilterEngine::Zon
     auto crcTarget=crc->getTarget();
     if(defpol) {
       pol=*defpol;
+      defpolApplied = true;
     }
     else if(crcTarget.isRoot()) {
       // cerr<<"Wants NXDOMAIN for "<<dr.d_name<<": ";
@@ -115,22 +118,23 @@ void RPZRecordToPolicy(const DNSRecord& dr, std::shared_ptr<DNSFilterEngine::Zon
     }
     else {
       pol.d_kind = DNSFilterEngine::PolicyKind::Custom;
-      pol.d_custom = dr.d_content;
+      pol.d_custom.emplace_back(dr.d_content);
       // cerr<<"Wants custom "<<crcTarget<<" for "<<dr.d_name<<": ";
     }
   }
   else {
-    if (defpol) {
+    if (defpol && defpolOverrideLocal) {
       pol=*defpol;
+      defpolApplied = true;
     }
     else {
       pol.d_kind = DNSFilterEngine::PolicyKind::Custom;
-      pol.d_custom = dr.d_content;
+      pol.d_custom.emplace_back(dr.d_content);
       // cerr<<"Wants custom "<<dr.d_content->getZoneRepresentation()<<" for "<<dr.d_name<<": ";
     }
   }
 
-  if (!defpol || defpol->d_ttl < 0) {
+  if (!defpolApplied || defpol->d_ttl < 0) {
     pol.d_ttl = static_cast<int32_t>(std::min(maxTTL, dr.d_ttl));
   } else {
     pol.d_ttl = static_cast<int32_t>(std::min(maxTTL, static_cast<uint32_t>(pol.d_ttl)));
@@ -141,41 +145,46 @@ void RPZRecordToPolicy(const DNSRecord& dr, std::shared_ptr<DNSFilterEngine::Zon
   if(dr.d_name.isPartOf(rpzNSDname)) {
     DNSName filt=dr.d_name.makeRelative(rpzNSDname);
     if(addOrRemove)
-      zone->addNSTrigger(filt, pol);
+      zone->addNSTrigger(filt, std::move(pol));
     else
-      zone->rmNSTrigger(filt, pol);
+      zone->rmNSTrigger(filt, std::move(pol));
   } else if(dr.d_name.isPartOf(rpzClientIP)) {
     DNSName filt=dr.d_name.makeRelative(rpzClientIP);
     auto nm=makeNetmaskFromRPZ(filt);
     if(addOrRemove)
-      zone->addClientTrigger(nm, pol);
+      zone->addClientTrigger(nm, std::move(pol));
     else
-      zone->rmClientTrigger(nm, pol);
+      zone->rmClientTrigger(nm, std::move(pol));
     
   } else if(dr.d_name.isPartOf(rpzIP)) {
     // cerr<<"Should apply answer content IP policy: "<<dr.d_name<<endl;
     DNSName filt=dr.d_name.makeRelative(rpzIP);
     auto nm=makeNetmaskFromRPZ(filt);
     if(addOrRemove)
-      zone->addResponseTrigger(nm, pol);
+      zone->addResponseTrigger(nm, std::move(pol));
     else
-      zone->rmResponseTrigger(nm, pol);
+      zone->rmResponseTrigger(nm, std::move(pol));
   } else if(dr.d_name.isPartOf(rpzNSIP)) {
     DNSName filt=dr.d_name.makeRelative(rpzNSIP);
     auto nm=makeNetmaskFromRPZ(filt);
     if(addOrRemove)
-      zone->addNSIPTrigger(nm, pol);
+      zone->addNSIPTrigger(nm, std::move(pol));
     else
-      zone->rmNSIPTrigger(nm, pol);
+      zone->rmNSIPTrigger(nm, std::move(pol));
   } else {
-    if(addOrRemove)
-      zone->addQNameTrigger(dr.d_name, pol);
-    else
-      zone->rmQNameTrigger(dr.d_name, pol);
+    if(addOrRemove) {
+      /* if we did override the existing policy with the default policy,
+         we might turn two A or AAAA into a CNAME, which would trigger
+         an exception. Let's just ignore it. */
+      zone->addQNameTrigger(dr.d_name, std::move(pol), defpolApplied);
+    }
+    else {
+      zone->rmQNameTrigger(dr.d_name, std::move(pol));
+    }
   }
 }
 
-shared_ptr<SOARecordContent> loadRPZFromServer(const ComboAddress& master, const DNSName& zoneName, std::shared_ptr<DNSFilterEngine::Zone> zone, boost::optional<DNSFilterEngine::Policy> defpol, uint32_t maxTTL, const TSIGTriplet& tt, size_t maxReceivedBytes, const ComboAddress& localAddress, uint16_t axfrTimeout)
+static shared_ptr<SOARecordContent> loadRPZFromServer(const ComboAddress& master, const DNSName& zoneName, std::shared_ptr<DNSFilterEngine::Zone> zone, boost::optional<DNSFilterEngine::Policy> defpol, bool defpolOverrideLocal, uint32_t maxTTL, const TSIGTriplet& tt, size_t maxReceivedBytes, const ComboAddress& localAddress, uint16_t axfrTimeout)
 {
   g_log<<Logger::Warning<<"Loading RPZ zone '"<<zoneName<<"' from "<<master.toStringWithPort()<<endl;
   if(!tt.name.empty())
@@ -205,7 +214,7 @@ shared_ptr<SOARecordContent> loadRPZFromServer(const ComboAddress& master, const
 	continue;
       }
 
-      RPZRecordToPolicy(dr, zone, true, defpol, maxTTL);
+      RPZRecordToPolicy(dr, zone, true, defpol, defpolOverrideLocal, maxTTL);
       nrecords++;
     } 
     axfrNow = time(nullptr);
@@ -213,7 +222,7 @@ shared_ptr<SOARecordContent> loadRPZFromServer(const ComboAddress& master, const
       throw PDNSException("Total AXFR time exceeded!");
     }
     if(last != time(0)) {
-      g_log<<Logger::Info<<"Loaded & indexed "<<nrecords<<" policy records so far"<<endl;
+      g_log<<Logger::Info<<"Loaded & indexed "<<nrecords<<" policy records so far for RPZ zone '"<<zoneName<<"'"<<endl;
       last=time(0);
     }
   }
@@ -222,7 +231,7 @@ shared_ptr<SOARecordContent> loadRPZFromServer(const ComboAddress& master, const
 }
 
 // this function is silent - you do the logging
-std::shared_ptr<SOARecordContent> loadRPZFromFile(const std::string& fname, std::shared_ptr<DNSFilterEngine::Zone> zone, boost::optional<DNSFilterEngine::Policy> defpol, uint32_t maxTTL)
+std::shared_ptr<SOARecordContent> loadRPZFromFile(const std::string& fname, std::shared_ptr<DNSFilterEngine::Zone> zone, boost::optional<DNSFilterEngine::Policy> defpol, bool defpolOverrideLocal, uint32_t maxTTL)
 {
   shared_ptr<SOARecordContent> sr = nullptr;
   ZoneParserTNG zpt(fname);
@@ -243,7 +252,7 @@ std::shared_ptr<SOARecordContent> loadRPZFromFile(const std::string& fname, std:
       }
       else {
 	dr.d_name=dr.d_name.makeRelative(domain);
-	RPZRecordToPolicy(dr, zone, true, defpol, maxTTL);
+	RPZRecordToPolicy(dr, zone, true, defpol, defpolOverrideLocal, maxTTL);
       }
     }
     catch(const PDNSException& pe) {
@@ -296,35 +305,33 @@ static bool dumpZoneToDisk(const DNSName& zoneName, const std::shared_ptr<DNSFil
     return false;
   }
 
-  FILE * fp = fdopen(fd, "w+");
-  if (fp == nullptr) {
+  auto fp = std::unique_ptr<FILE, int(*)(FILE*)>(fdopen(fd, "w+"), fclose);
+  if (!fp) {
     close(fd);
     g_log<<Logger::Warning<<"Unable to open a file pointer to dump the content of the RPZ zone "<<zoneName.toLogString()<<endl;
     return false;
   }
-
   fd = -1;
 
   try {
-    newZone->dump(fp);
+    newZone->dump(fp.get());
   }
   catch(const std::exception& e) {
     g_log<<Logger::Warning<<"Error while dumping the content of the RPZ zone "<<zoneName.toLogString()<<": "<<e.what()<<endl;
-    fclose(fp);
     return false;
   }
 
-  if (fflush(fp) != 0) {
+  if (fflush(fp.get()) != 0) {
     g_log<<Logger::Warning<<"Error while flushing the content of the RPZ zone "<<zoneName.toLogString()<<" to the dump file: "<<strerror(errno)<<endl;
     return false;
   }
 
-  if (fsync(fileno(fp)) != 0) {
+  if (fsync(fileno(fp.get())) != 0) {
     g_log<<Logger::Warning<<"Error while syncing the content of the RPZ zone "<<zoneName.toLogString()<<" to the dump file: "<<strerror(errno)<<endl;
     return false;
   }
 
-  if (fclose(fp) != 0) {
+  if (fclose(fp.release()) != 0) {
     g_log<<Logger::Warning<<"Error while writing the content of the RPZ zone "<<zoneName.toLogString()<<" to the dump file: "<<strerror(errno)<<endl;
     return false;
   }
@@ -337,8 +344,9 @@ static bool dumpZoneToDisk(const DNSName& zoneName, const std::shared_ptr<DNSFil
   return true;
 }
 
-void RPZIXFRTracker(const ComboAddress& master, boost::optional<DNSFilterEngine::Policy> defpol, uint32_t maxTTL, size_t zoneIdx, const TSIGTriplet& tt, size_t maxReceivedBytes, const ComboAddress& localAddress, const uint16_t axfrTimeout, std::shared_ptr<SOARecordContent> sr, std::string dumpZoneFileName, uint64_t configGeneration)
+void RPZIXFRTracker(const std::vector<ComboAddress>& masters, boost::optional<DNSFilterEngine::Policy> defpol, bool defpolOverrideLocal, uint32_t maxTTL, size_t zoneIdx, const TSIGTriplet& tt, size_t maxReceivedBytes, const ComboAddress& localAddress, const uint16_t axfrTimeout, std::shared_ptr<SOARecordContent> sr, std::string dumpZoneFileName, uint64_t configGeneration)
 {
+  setThreadName("pdns-r/RPZIXFR");
   bool isPreloaded = sr != nullptr;
   auto luaconfsLocal = g_luaconfs.getLocal();
   /* we can _never_ modify this zone directly, we need to do a full copy then replace the existing zone */
@@ -356,29 +364,34 @@ void RPZIXFRTracker(const ComboAddress& master, boost::optional<DNSFilterEngine:
 
     /* full copy, as promised */
     std::shared_ptr<DNSFilterEngine::Zone> newZone = std::make_shared<DNSFilterEngine::Zone>(*oldZone);
-    try {
-      sr=loadRPZFromServer(master, zoneName, newZone, defpol, maxTTL, tt, maxReceivedBytes, localAddress, axfrTimeout);
-      if(refresh == 0) {
-        refresh = sr->d_st.refresh;
-      }
-      newZone->setSerial(sr->d_st.serial);
-      setRPZZoneNewState(polName, sr->d_st.serial, newZone->size(), true);
+    for (const auto& master : masters) {
+      try {
+        sr = loadRPZFromServer(master, zoneName, newZone, defpol, defpolOverrideLocal, maxTTL, tt, maxReceivedBytes, localAddress, axfrTimeout);
+        if(refresh == 0) {
+          refresh = sr->d_st.refresh;
+        }
+        newZone->setSerial(sr->d_st.serial);
+        setRPZZoneNewState(polName, sr->d_st.serial, newZone->size(), true);
 
-      g_luaconfs.modify([zoneIdx, &newZone](LuaConfigItems& lci) {
-        lci.dfe.setZone(zoneIdx, newZone);
-      });
+        g_luaconfs.modify([zoneIdx, &newZone](LuaConfigItems& lci) {
+            lci.dfe.setZone(zoneIdx, newZone);
+          });
 
-      if (!dumpZoneFileName.empty()) {
-        dumpZoneToDisk(zoneName, newZone, dumpZoneFileName);
+        if (!dumpZoneFileName.empty()) {
+          dumpZoneToDisk(zoneName, newZone, dumpZoneFileName);
+        }
+
+        /* no need to try another master */
+        break;
       }
-    }
-    catch(const std::exception& e) {
-      g_log<<Logger::Warning<<"Unable to load RPZ zone '"<<zoneName<<"' from '"<<master<<"': '"<<e.what()<<"'. (Will try again in "<<(refresh > 0 ? refresh : 10)<<" seconds...)"<<endl;
-      incRPZFailedTransfers(polName);
-    }
-    catch(const PDNSException& e) {
-      g_log<<Logger::Warning<<"Unable to load RPZ zone '"<<zoneName<<"' from '"<<master<<"': '"<<e.reason<<"'. (Will try again in "<<(refresh > 0 ? refresh : 10)<<" seconds...)"<<endl;
-      incRPZFailedTransfers(polName);
+      catch(const std::exception& e) {
+        g_log<<Logger::Warning<<"Unable to load RPZ zone '"<<zoneName<<"' from '"<<master<<"': '"<<e.what()<<"'. (Will try again in "<<(refresh > 0 ? refresh : 10)<<" seconds...)"<<endl;
+        incRPZFailedTransfers(polName);
+      }
+      catch(const PDNSException& e) {
+        g_log<<Logger::Warning<<"Unable to load RPZ zone '"<<zoneName<<"' from '"<<master<<"': '"<<e.reason<<"'. (Will try again in "<<(refresh > 0 ? refresh : 10)<<" seconds...)"<<endl;
+        incRPZFailedTransfers(polName);
+      }
     }
 
     if (!sr) {
@@ -411,22 +424,31 @@ void RPZIXFRTracker(const ComboAddress& master, boost::optional<DNSFilterEngine:
       return;
     }
 
-    g_log<<Logger::Info<<"Getting IXFR deltas for "<<zoneName<<" from "<<master.toStringWithPort()<<", our serial: "<<getRR<SOARecordContent>(dr)->d_st.serial<<endl;
     vector<pair<vector<DNSRecord>, vector<DNSRecord> > > deltas;
+    for (const auto& master : masters) {
+      g_log<<Logger::Info<<"Getting IXFR deltas for "<<zoneName<<" from "<<master.toStringWithPort()<<", our serial: "<<getRR<SOARecordContent>(dr)->d_st.serial<<endl;
 
-    ComboAddress local(localAddress);
-    if (local == ComboAddress())
-      local = getQueryLocalAddress(master.sin4.sin_family, 0);
+      ComboAddress local(localAddress);
+      if (local == ComboAddress()) {
+        local = getQueryLocalAddress(master.sin4.sin_family, 0);
+      }
 
-    try {
-      deltas = getIXFRDeltas(master, zoneName, dr, tt, &local, maxReceivedBytes);
-    } catch(std::runtime_error& e ){
-      g_log<<Logger::Warning<<e.what()<<endl;
-      incRPZFailedTransfers(polName);
+      try {
+        deltas = getIXFRDeltas(master, zoneName, dr, tt, &local, maxReceivedBytes);
+
+        /* no need to try another master */
+        break;
+      } catch(const std::runtime_error& e ){
+        g_log<<Logger::Warning<<e.what()<<endl;
+        incRPZFailedTransfers(polName);
+        continue;
+      }
+    }
+
+    if(deltas.empty()) {
       continue;
     }
-    if(deltas.empty())
-      continue;
+
     g_log<<Logger::Info<<"Processing "<<deltas.size()<<" delta"<<addS(deltas)<<" for RPZ "<<zoneName<<endl;
 
     oldZone = luaconfsLocal->dfe.getZone(zoneIdx);
@@ -457,7 +479,7 @@ void RPZIXFRTracker(const ComboAddress& master, boost::optional<DNSFilterEngine:
 	else {
           totremove++;
 	  g_log<<(g_logRPZChanges ? Logger::Info : Logger::Debug)<<"Had removal of "<<rr.d_name<<" from RPZ zone "<<zoneName<<endl;
-	  RPZRecordToPolicy(rr, newZone, false, defpol, maxTTL);
+	  RPZRecordToPolicy(rr, newZone, false, defpol, defpolOverrideLocal, maxTTL);
 	}
       }
 
@@ -474,7 +496,7 @@ void RPZIXFRTracker(const ComboAddress& master, boost::optional<DNSFilterEngine:
 	else {
           totadd++;
 	  g_log<<(g_logRPZChanges ? Logger::Info : Logger::Debug)<<"Had addition of "<<rr.d_name<<" to RPZ zone "<<zoneName<<endl;
-	  RPZRecordToPolicy(rr, newZone, true, defpol, maxTTL);
+	  RPZRecordToPolicy(rr, newZone, true, defpol, defpolOverrideLocal, maxTTL);
 	}
       }
     }

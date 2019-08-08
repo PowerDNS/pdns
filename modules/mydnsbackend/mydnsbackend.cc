@@ -196,7 +196,7 @@ bool MyDNSBackend::list(const DNSName &target, int zoneId, bool include_disabled
   return true;
 }
 
-bool MyDNSBackend::getSOA(const DNSName& name, SOAData& soadata, bool unmodifiedSerial) {
+bool MyDNSBackend::getSOA(const DNSName& name, SOAData& soadata) {
   string query;
   SSqlStatement::row_t rrow;
 
@@ -308,7 +308,7 @@ void MyDNSBackend::lookup(const QType &qtype, const DNSName &qname, DNSPacket *p
 
   if (found) {
 
-    while (d_result.size()>1) {
+    if (d_result.size()>1) {
       g_log<<Logger::Warning<<backendName<<" Found more than one matching zone for: "+d_origin<<endl;
     };
     // We found the zoneId, so we can work out how to find our rr

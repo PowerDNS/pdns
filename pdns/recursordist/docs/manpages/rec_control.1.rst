@@ -45,6 +45,12 @@ Options
 
 Commands
 --------
+add-dont-throttle-names NAME [NAME...]
+    Add names for nameserver domains that may not be throttled.
+
+add-dont-throttle-netmasks NETMASK [NETMASK...]
+    Add netmasks for nameservers that may not be throttled.
+
 add-nta *DOMAIN* [*REASON*]
     Add a Negative Trust Anchor for *DOMAIN*, suffixed optionally with
     *REASON*.
@@ -55,6 +61,12 @@ add-ta *DOMAIN* *DSRECORD*
 
 current-queries
     Shows the currently active queries.
+
+clear-dont-throttle-names NAME [NAME...]
+    Remove names that are not allowed to be throttled. If *NAME* is '*', remove all
+
+clear-dont-throttle-netmasks NETMASK [NETMASK...]
+    Remove netmasks that are not allowed to be throttled. If *NETMASK* is '*', remove all
 
 clear-nta *DOMAIN*...
     Remove Negative Trust Anchor for one or more *DOMAIN*\ s. Set domain to
@@ -74,10 +86,26 @@ dump-cache *FILENAME*
     also dumped to the same file. The per-thread positive and negative cache
     dumps are separated with an appropriate comment.
 
+    .. note::
+
+      :program:`pdns_recursor` often runs in a chroot. You can
+      retrieve the file using::
+
+        rec_control dump-cache /tmp/file
+        mv /proc/$(pidof pdns_recursor)/root/tmp/file /tmp/filename
+
 dump-edns *FILENAME*
     Dumps the EDNS status to the filename mentioned. This file should not exist
     already, PowerDNS will refuse to overwrite it. While dumping, the recursor
     will not answer questions.
+
+    .. note::
+
+      :program:`pdns_recursor` often runs in a chroot. You can
+      retrieve the file using::
+
+        rec_control dump-edns /tmp/file
+        mv /proc/$(pidof pdns_recursor)/root/tmp/file /tmp/filename
 
 dump-nsspeeds *FILENAME*
     Dumps the nameserver speed statistics to the *FILENAME* mentioned. This
@@ -85,11 +113,41 @@ dump-nsspeeds *FILENAME*
     dumping, the recursor will not answer questions. Statistics are kept per
     thread, and the dumps end up in the same file.
 
+    .. note::
+
+      :program:`pdns_recursor` often runs in a chroot. You can
+      retrieve the file using::
+
+        rec_control dump-nsspeeds /tmp/file
+        mv /proc/$(pidof pdns_recursor)/root/tmp/file /tmp/filename
+
 dump-rpz *ZONE NAME* *FILE NAME*
     Dumps the content of the RPZ zone named *ZONE NAME* to the *FILENAME*
     mentioned. This file should not exist already, PowerDNS will refuse to
     overwrite it otherwise. While dumping, the recursor will not answer
     questions.
+
+    .. note::
+
+      :program:`pdns_recursor` often runs in a chroot. You can
+      retrieve the file using::
+
+        rec_control dump-rpz ZONE_NAME /tmp/file
+        mv /proc/$(pidof pdns_recursor)/root/tmp/file /tmp/filename
+
+dump-throttlemap *FILENAME*
+    Dump the contents of the throttle map to the *FILENAME* mentioned.
+    This file should not exist already, PowerDNS will refuse to
+    overwrite it otherwise. While dumping, the recursor will not answer
+    questions.
+
+    .. note::
+
+      :program:`pdns_recursor` often runs in a chroot. You can
+      retrieve the file using::
+
+        rec_control dump-rpz ZONE_NAME /tmp/file
+        mv /proc/$(pidof pdns_recursor)/root/tmp/file /tmp/filename
 
 get *STATISTIC* [*STATISTIC*]...
     Retrieve a statistic. For items that can be queried, see
@@ -97,6 +155,12 @@ get *STATISTIC* [*STATISTIC*]...
 
 get-all
     Retrieve all known statistics.
+
+get-dont-throttle-names
+    Get the list of names that are not allowed to be throttled.
+
+get-dont-throttle-netmasks
+    Get the list of netmasks that are not allowed to be throttled.
 
 get-ntas
     Get a list of the currently configured Negative Trust Anchors.
@@ -150,6 +214,9 @@ set-dnssec-log-bogus *SETTING*
     DNSSEC validation failures and to 'no' or 'off' to disable logging these
     failures.
 
+set-ecs-minimum-ttl *NUM*
+    Set ecs-minimum-ttl-override to *NUM*.
+
 set-max-cache-entries *NUM*
     Change the maximum number of entries in the DNS cache.  If reduced, the
     cache size will start shrinking to this number as part of the normal
@@ -183,13 +250,30 @@ top-servfail-queries
     Shows the top-20 queries causing servfail responses. Statistics are over
     the last 'stats-ringbuffer-entries' queries.
 
+top-bogus-queries
+    Shows the top-20 queries causing bogus responses. Statistics are over
+    the last 'stats-ringbuffer-entries' queries.
+
 top-pub-servfail-queries
     Shows the top-20 queries causing servfail responses grouped by public
     suffix list. Statistics are over the last 'stats-ringbuffer-entries'
     queries.
 
+top-pub-bogus-queries
+    Shows the top-20 queries causing bogus responses grouped by public
+    suffix list. Statistics are over the last 'stats-ringbuffer-entries'
+    queries.
+
 top-servfail-remotes
     Shows the top-20 most active remote hosts causing servfail responses.
+    Statistics are over the last 'stats-ringbuffer-entries' queries.
+
+top-bogus-remotes
+    Shows the top-20 most active remote hosts causing bogus responses.
+    Statistics are over the last 'stats-ringbuffer-entries' queries.
+
+top-timeouts
+    Shows the top-20 most active downstream timeout destinations.
     Statistics are over the last 'stats-ringbuffer-entries' queries.
 
 trace-regex *REGEX*

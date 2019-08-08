@@ -38,7 +38,8 @@
 RecordTextReader::RecordTextReader(const string& str, const DNSName& zone) : d_string(str), d_zone(zone), d_pos(0)
 {
    /* remove whitespace */
-   boost::trim_if(d_string, boost::algorithm::is_space());
+   if(!d_string.empty() && ( dns_isspace(*d_string.begin()) || dns_isspace(*d_string.rbegin()) ))
+     boost::trim_if(d_string, dns_isspace);
    d_end = d_string.size();
 }
 
@@ -545,12 +546,8 @@ void RecordTextWriter::xfrTime(const uint32_t& val)
   time_t time=val; // Y2038 bug!
   gmtime_r(&time, &tm);
 
-  char tmp[16];
-  snprintf(tmp,sizeof(tmp)-1, "%04d%02d%02d" "%02d%02d%02d", 
-           tm.tm_year+1900, tm.tm_mon+1, tm.tm_mday, 
-           tm.tm_hour, tm.tm_min, tm.tm_sec);
-  
-  d_string += tmp;
+  static const boost::format fmt("%04d%02d%02d" "%02d%02d%02d");
+  d_string += boost::str(boost::format(fmt) % (tm.tm_year+1900) % (tm.tm_mon+1) % tm.tm_mday % tm.tm_hour % tm.tm_min % tm.tm_sec);
 }
 
 
@@ -605,7 +602,7 @@ void RecordTextWriter::xfrHexBlob(const string& val, bool)
   string::size_type limit=val.size();
   char tmp[5];
   for(string::size_type n = 0; n < limit; ++n) {
-    snprintf(tmp, sizeof(tmp)-1, "%02x", (unsigned char)val[n]);
+    snprintf(tmp, sizeof(tmp), "%02x", (unsigned char)val[n]);
     d_string+=tmp;
   }
 }

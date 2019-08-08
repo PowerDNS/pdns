@@ -25,7 +25,7 @@ This state can be modified from the various hooks.
 
   .. attribute:: DNSQuestion.len
 
-    The length of the :attr:`qname <DNSQuestion.qname>`.
+    The length of the data starting at :attr:`DNSQuestion.dh`, including any trailing bytes following the DNS message.
 
   .. attribute:: DNSQuestion.localaddr
 
@@ -38,7 +38,7 @@ This state can be modified from the various hooks.
   .. attribute:: DNSQuestion.qclass
 
     QClass (as an unsigned integer) of this question.
-    Can be compared against :ref:`DNSQClass`.
+    Can be compared against :ref:`DNSClass`.
 
   .. attribute:: DNSQuestion.qname
 
@@ -47,7 +47,7 @@ This state can be modified from the various hooks.
   .. attribute:: DNSQuestion.qtype
 
     QType (as an unsigned integer) of this question.
-    Can be compared against ``dnsdist.A``, ``dnsdist.AAAA`` etc.
+    Can be compared against the pre-defined :ref:`constants <DNSQType>` like ``DNSQType.A``, DNSQType.AAAA``.
 
   .. attribute:: DNSQuestion.remoteaddr
 
@@ -68,7 +68,7 @@ This state can be modified from the various hooks.
 
   .. attribute:: DNSQuestion.tcp
 
-    Whether the query have been received over TCP.
+    Whether the query was received over TCP.
 
   .. attribute:: DNSQuestion.useECS
 
@@ -83,6 +83,63 @@ This state can be modified from the various hooks.
     Get the value of the DNSSEC OK bit.
 
     :returns: true if the DO bit was set, false otherwise
+
+  .. method:: DNSQuestion:getEDNSOptions() -> table
+
+    .. versionadded:: 1.3.3
+
+    Return the list of EDNS Options, if any.
+
+    :returns: A table of EDNSOptionView objects, indexed on the ECS Option code
+
+  .. method:: DNSQuestion:getHTTPHeaders() -> table
+
+    .. versionadded:: 1.4.0
+
+    Return the HTTP headers for a DoH query, as a table whose keys are the header names and values the header values.
+
+    :returns: A table of HTTP headers
+
+  .. method:: DNSQuestion:getHTTPHost() -> string
+
+    .. versionadded:: 1.4.0
+
+    Return the HTTP Host for a DoH query, which may or may not contain the port.
+
+    :returns: The host of the DoH query
+
+  .. method:: DNSQuestion:getHTTPPath() -> string
+
+    .. versionadded:: 1.4.0
+
+    Return the HTTP path for a DoH query.
+
+    :returns: The path part of the DoH query URI
+
+  .. method:: DNSQuestion:getHTTPQueryString() -> string
+
+    .. versionadded:: 1.4.0
+
+    Return the HTTP query string for a DoH query.
+
+    :returns: The query string part of the DoH query URI
+
+  .. method:: DNSQuestion:getHTTPScheme() -> string
+
+    .. versionadded:: 1.4.0
+
+    Return the HTTP scheme for a DoH query.
+
+    :returns: The scheme of the DoH query, for example ''http'' or ''https''
+
+  .. method:: DNSQuestion:getServerNameIndication() -> string
+
+    .. versionadded:: 1.4.0
+
+    Return the TLS Server Name Indication (SNI) value sent by the client over DoT or DoH, if any. See :func:`SNIRule`
+    for more information, especially about the availability of SNI over DoH.
+
+    :returns: A string containing the TLS SNI value, if any
 
   .. method:: DNSQuestion:getTag(key) -> string
 
@@ -101,6 +158,14 @@ This state can be modified from the various hooks.
 
     :returns: A table of tags, using strings as keys and values
 
+  .. method:: DNSQuestion:getTrailingData() -> string
+
+    .. versionadded:: 1.4.0
+
+    Get all data following the DNS message.
+
+    :returns: The trailing data as a null-safe string
+
   .. method:: DNSQuestion:sendTrap(reason)
 
     .. versionadded:: 1.2.0
@@ -108,6 +173,19 @@ This state can be modified from the various hooks.
     Send an SNMP trap.
 
     :param string reason: An optional string describing the reason why this trap was sent
+
+  .. method:: DNSQuestion:setHTTPResponse(status, body, contentType="")
+
+    .. versionadded:: 1.4.0
+
+    Set the HTTP status code and content to immediately send back to the client.
+    For HTTP redirects (3xx), the string supplied in ''body'' should be the URL to redirect to.
+    For 200 responses, the value of the content type header can be specified via the ''contentType'' parameter.
+    In order for the response to be sent, the QR bit should be set before returning and the function should return Action.HeaderModify.
+
+    :param int status: The HTTP status code to return
+    :param string body: The body of the HTTP response, or a URL if the status code is a redirect (3xx)
+    :param string contentType: The HTTP Content-Type header to return for a 200 response, ignored otherwise. Default is ''application/dns-message''.
 
   .. method:: DNSQuestion:setTag(key, value)
 
@@ -125,6 +203,15 @@ This state can be modified from the various hooks.
     Set an array of tags into the DNSQuestion object.
 
     :param table tags: A table of tags, using strings as keys and values
+
+  .. method:: DNSQuestion:setTrailingData(tail) -> bool
+
+    .. versionadded:: 1.4.0
+
+    Set the data following the DNS message, overwriting anything already present.
+
+    :param string tail: The new data
+    :returns: true if the operation succeeded, false otherwise
 
 .. _DNSResponse:
 
@@ -144,8 +231,8 @@ DNSResponse object
     All parameters to ``func`` are integers:
 
     - ``section`` is the section in the packet and can be compared to :ref:`DNSSection`
-    - ``qclass`` is the QClass of the record. Can be compared to :ref:`DNSQClass`
-    - ``qtype`` is the QType of the record. Can be e.g. compared to ``dnsdist.A``, ``dnsdist.AAAA`` and the like.
+    - ``qclass`` is the QClass of the record. Can be compared to :ref:`DNSClass`
+    - ``qtype`` is the QType of the record. Can be e.g. compared to ``DNSQType.A``, ``DNSQType.AAAA`` :ref:`constants <DNSQType>` and the like.
     - ``ttl`` is the current TTL
 
     This function must return an integer with the new TTL.
@@ -194,3 +281,22 @@ DNSHeader (``dh``) object
     Set checking disabled flag.
 
     :param bool cd: State of the CD flag
+
+.. _EDNSOptionView:
+
+EDNSOptionView object
+=====================
+
+.. class:: EDNSOptionView
+
+  .. versionadded:: 1.3.3
+
+  An object that represents the values of a single EDNS option received in a query.
+
+  .. method:: EDNSOptionView:count()
+
+    The number of values for this EDNS option.
+
+  .. method:: EDNSOptionView:getValues()
+
+    Return a table of NULL-safe strings values for this EDNS option.

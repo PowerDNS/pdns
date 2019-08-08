@@ -46,13 +46,11 @@ ZoneParserTNG::ZoneParserTNG(const string& fname, const DNSName& zname, const st
 }
 
 ZoneParserTNG::ZoneParserTNG(const vector<string> zonedata, const DNSName& zname):
-                                                                        d_zonename(zname), d_defaultttl(3600), 
-                                                                        d_templatecounter(0), d_templatestop(0),
-                                                                        d_templatestep(0), d_havedollarttl(false)
+  d_zonename(zname), d_zonedata(zonedata), d_defaultttl(3600),
+  d_templatecounter(0), d_templatestop(0), d_templatestep(0),
+  d_havedollarttl(false), d_fromfile(false)
 {
-  d_zonedata = zonedata;
   d_zonedataline = d_zonedata.begin();
-  d_fromfile = false;
 }
 
 void ZoneParserTNG::stackFile(const std::string& fname)
@@ -196,10 +194,10 @@ bool ZoneParserTNG::getTemplateLine()
         sscanf(spec.c_str(), "%d,%d,%c", &offset, &width, &radix);  // parse format specifier
 
         char sformat[12];
-        snprintf(sformat, sizeof(sformat) - 1, "%%0%d%c", width, radix); // make into printf-style format
+        snprintf(sformat, sizeof(sformat), "%%0%d%c", width, radix); // make into printf-style format
 
         char tmp[80];
-        snprintf(tmp, sizeof(tmp)-1, sformat, d_templatecounter + offset); // and do the actual printing
+        snprintf(tmp, sizeof(tmp), sformat, d_templatecounter + offset); // and do the actual printing
         outpart+=tmp;
       }
       else

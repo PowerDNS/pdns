@@ -3,3 +3,4 @@
 /.venv
 /configs
 /vars
+/*_pb2.py

@@ -1,5 +1,6 @@
 #!/usr/bin/env python2
 
+from __future__ import print_function
 import xml.etree.ElementTree
 import os.path
 import glob
@@ -15,13 +16,13 @@ for child in root:
                 confdir = os.path.join("configs", confdirname)
                 recursorlog = os.path.join(confdir, "recursor.log")
                 if os.path.exists(recursorlog):
-                    print "==============> %s <==============" % recursorlog
+                    print("==============> %s <==============" % recursorlog)
                     with open(recursorlog) as f:
-                        print ''.join(f.readlines())
+                        print(''.join(f.readlines()))
                 authdirs = glob.glob(os.path.join(confdir, "auth-*"))
                 for authdir in authdirs:
                     authlog = os.path.join(authdir, "pdns.log")
                     if os.path.exists(recursorlog):
-                        print "==============> %s <==============" % authlog
+                        print("==============> %s <==============" % authlog)
                         with open(authlog) as f:
-                            print ''.join(f.readlines())
+                            print(''.join(f.readlines()))

@@ -32,3 +32,6 @@ extraction:
       - "make"
       - "popd"
       - "make"
+  python:
+    python_setup:
+      version: 3

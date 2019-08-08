@@ -32,6 +32,38 @@
 #include "pdns/namespaces.hh"
 #include "pdns/lock.hh"
 
+#if MYSQL_VERSION_ID >= 80000 && !defined(MARIADB_BASE_VERSION)
+// Need to keep this for compatibility with MySQL < 8.0.0, which used typedef char my_bool;
+// MariaDB up to 10.4 also always define it.
+typedef bool my_bool;
+#endif
+
+/*
+ * Older versions of the MySQL and MariaDB client leak memory
+ * because they expect the application to call mysql_thread_end()
+ * when a thread ends. This thread_local static object provides
+ * that closure, but only when the user has asked for it
+ * by setting gmysql-thread-cleanup.
+ * For more discussion, see https://github.com/PowerDNS/pdns/issues/6231
+ */
+class MySQLThreadCloser
+{
+public:
+  ~MySQLThreadCloser() {
+    if(d_enabled) {
+      mysql_thread_end();
+    }
+  }
+  void enable() {
+   d_enabled = true;
+  }
+
+private:
+  bool d_enabled = false;
+};
+
+static thread_local MySQLThreadCloser threadcloser;
+
 bool SMySQL::s_dolog;
 pthread_mutex_t SMySQL::s_myinitlock = PTHREAD_MUTEX_INITIALIZER;
 
@@ -156,7 +188,8 @@ public:
     if (!d_stmt) return this;
 
     if (d_dolog) {
-      g_log<<Logger::Warning<<"Query: " << d_query <<endl;
+      g_log<<Logger::Warning<< "Query "<<((long)(void*)this)<<": " << d_query << endl;
+      d_dtime.set();
     }
 
     if ((err = mysql_stmt_bind_param(d_stmt, d_req_bind))) {
@@ -215,10 +248,16 @@ public:
       }
     }
 
+    if(d_dolog) 
+      g_log<<Logger::Warning<< "Query "<<((long)(void*)this)<<": "<<d_dtime.udiffNoReset()<<" usec to execute"<<endl;
+
     return this;
   }
 
   bool hasNextRow() {
+    if(d_dolog && d_residx == d_resnum) {
+      g_log<<Logger::Warning<< "Query "<<((long)(void*)this)<<": "<<d_dtime.udiffNoReset()<<" total usec to last row"<<endl;
+    }
     return d_residx < d_resnum;
   }
 
@@ -393,6 +432,7 @@ private:
   
   bool d_prepared;
   bool d_dolog;
+  DTime d_dtime; // only used if d_dolog is set
   int d_parnum;
   int d_paridx;
   int d_fnum;
@@ -405,6 +445,10 @@ void SMySQL::connect()
   int retry=1;
 
   Lock l(&s_myinitlock);
+  if (d_threadCleanup) {
+    threadcloser.enable();
+  }
+
   if (!mysql_init(&d_db))
     throw sPerrorException("Unable to initialize mysql driver");
 
@@ -453,8 +497,8 @@ void SMySQL::connect()
 }
 
 SMySQL::SMySQL(const string &database, const string &host, uint16_t port, const string &msocket, const string &user,
-               const string &password, const string &group, bool setIsolation, unsigned int timeout):
-  d_database(database), d_host(host), d_msocket(msocket), d_user(user), d_password(password), d_group(group), d_timeout(timeout), d_port(port), d_setIsolation(setIsolation)
+               const string &password, const string &group, bool setIsolation, unsigned int timeout, bool threadCleanup):
+  d_database(database), d_host(host), d_msocket(msocket), d_user(user), d_password(password), d_group(group), d_timeout(timeout), d_port(port), d_setIsolation(setIsolation), d_threadCleanup(threadCleanup)
 {
   connect();
 }

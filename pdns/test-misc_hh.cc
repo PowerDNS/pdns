@@ -15,7 +15,7 @@
 
 using std::string;
 
-BOOST_AUTO_TEST_SUITE(misc_hh)
+BOOST_AUTO_TEST_SUITE(test_misc_hh)
 typedef pair<std::string, uint16_t> typedns_t;
 
 BOOST_AUTO_TEST_CASE(test_CIStringCompare) {
@@ -174,6 +174,32 @@ BOOST_AUTO_TEST_CASE(test_SimpleMatch) {
   BOOST_CHECK_EQUAL(SimpleMatch("*a").match(std::string("abcb")), false);
   BOOST_CHECK_EQUAL(SimpleMatch("abc*").match(std::string("abcabcabcabacabac")), true);
   BOOST_CHECK_EQUAL(SimpleMatch("abc*").match(std::string("abc")), true);
+}
+
+template<typename T> bool rfc1982check(T x, T y) {
+  return rfc1982LessThan(x, y);
+}
+
+BOOST_AUTO_TEST_CASE(test_rfc1982LessThan) {
+  // The test cases from rfc1982 section 5.2
+  BOOST_CHECK(rfc1982check<uint8_t>(0, 1));
+  BOOST_CHECK(rfc1982check<uint8_t>(0, 44));
+  BOOST_CHECK(rfc1982check<uint8_t>(0, 100));
+  BOOST_CHECK(rfc1982check<uint8_t>(44, 100));
+  BOOST_CHECK(rfc1982check<uint8_t>(100, 200));
+  BOOST_CHECK(rfc1982check<uint8_t>(200, 255));
+  BOOST_CHECK(rfc1982check<uint8_t>(255, 0));
+  BOOST_CHECK(rfc1982check<uint8_t>(255, 100));
+  BOOST_CHECK(rfc1982check<uint8_t>(200, 0));
+  BOOST_CHECK(rfc1982check<uint8_t>(200, 44));
+
+  BOOST_CHECK(rfc1982check<uint32_t>(0, 1));
+  BOOST_CHECK(rfc1982check<uint32_t>(UINT32_MAX-10, 1));
+  BOOST_CHECK(rfc1982check<uint32_t>(UINT32_MAX/2, UINT32_MAX-10));
+
+  BOOST_CHECK(rfc1982check<uint64_t>(0, 1));
+  BOOST_CHECK(rfc1982check<uint64_t>(UINT64_MAX-10, 1));
+  BOOST_CHECK(rfc1982check<uint64_t>(UINT64_MAX/2, UINT64_MAX-10));
 }
 
 BOOST_AUTO_TEST_SUITE_END()

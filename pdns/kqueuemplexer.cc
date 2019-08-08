@@ -47,7 +47,7 @@ public:
   virtual int run(struct timeval* tv, int timeout=500) override;
   virtual void getAvailableFDs(std::vector<int>& fds, int timeout) override;
 
-  virtual void addFD(callbackmap_t& cbmap, int fd, callbackfunc_t toDo, const boost::any& parameter) override;
+  virtual void addFD(callbackmap_t& cbmap, int fd, callbackfunc_t toDo, const boost::any& parameter, const struct timeval* ttd=nullptr) override;
   virtual void removeFD(callbackmap_t& cbmap, int fd) override;
   string getName() const override
   {
@@ -80,9 +80,9 @@ KqueueFDMultiplexer::KqueueFDMultiplexer() : d_kevents(new struct kevent[s_maxev
     throw FDMultiplexerException("Setting up kqueue: "+stringerror());
 }
 
-void KqueueFDMultiplexer::addFD(callbackmap_t& cbmap, int fd, callbackfunc_t toDo, const boost::any& parameter)
+void KqueueFDMultiplexer::addFD(callbackmap_t& cbmap, int fd, callbackfunc_t toDo, const boost::any& parameter, const struct timeval* ttd)
 {
-  accountingAddFD(cbmap, fd, toDo, parameter);
+  accountingAddFD(cbmap, fd, toDo, parameter, ttd);
 
   struct kevent kqevent;
   EV_SET(&kqevent, fd, (&cbmap == &d_readCallbacks) ? EVFILT_READ : EVFILT_WRITE, EV_ADD, 0,0,0);
@@ -144,14 +144,14 @@ int KqueueFDMultiplexer::run(struct timeval* now, int timeout)
   for(int n=0; n < ret; ++n) {
     d_iter=d_readCallbacks.find(d_kevents[n].ident);
     if(d_iter != d_readCallbacks.end()) {
-      d_iter->second.d_callback(d_iter->first, d_iter->second.d_parameter);
+      d_iter->d_callback(d_iter->d_fd, d_iter->d_parameter);
       continue; // so we don't find ourselves as writable again
     }
 
     d_iter=d_writeCallbacks.find(d_kevents[n].ident);
 
     if(d_iter != d_writeCallbacks.end()) {
-      d_iter->second.d_callback(d_iter->first, d_iter->second.d_parameter);
+      d_iter->d_callback(d_iter->d_fd, d_iter->d_parameter);
     }
   }
 

@@ -19,8 +19,9 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
-#ifndef PDNS_REC_CHANNEL
-#define PDNS_REC_CHANNEL
+
+#pragma once
+
 #include <string>
 #include <map>
 #include <vector>
@@ -29,7 +30,11 @@
 #include <pthread.h>
 #include "iputils.hh"
 #include "dnsname.hh"
+#include "sholder.hh"
 #include <atomic>
+
+extern GlobalStateHolder<SuffixMatchNode> g_dontThrottleNames;
+extern GlobalStateHolder<NetmaskGroup> g_dontThrottleNetmasks;
 
 /** this class is used both to send and answer channel commands to the PowerDNS Recursor */
 class RecursorControlChannel
@@ -44,7 +49,7 @@ public:
 
   uint64_t getStat(const std::string& name);
 
-  void send(const std::string& msg, const std::string* remote=0);
+  void send(const std::string& msg, const std::string* remote=nullptr, unsigned int timeout=5);
   std::string recv(std::string* remote=0, unsigned int timeout=5);
 
   int d_fd;
@@ -63,16 +68,24 @@ public:
   std::string getAnswer(const std::string& question, func_t** func);
 };
 
-std::map<std::string, std::string> getAllStatsMap();
+enum class StatComponent { API, Carbon, RecControl, SNMP };
+
+std::map<std::string, std::string> getAllStatsMap(StatComponent component);
 extern pthread_mutex_t g_carbon_config_lock;
-void sortPublicSuffixList();
 std::vector<std::pair<DNSName, uint16_t> >* pleaseGetQueryRing();
 std::vector<std::pair<DNSName, uint16_t> >* pleaseGetServfailQueryRing();
+std::vector<std::pair<DNSName, uint16_t> >* pleaseGetBogusQueryRing();
 std::vector<ComboAddress>* pleaseGetRemotes();
 std::vector<ComboAddress>* pleaseGetServfailRemotes();
+std::vector<ComboAddress>* pleaseGetBogusRemotes();
 std::vector<ComboAddress>* pleaseGetLargeAnswerRemotes();
+std::vector<ComboAddress>* pleaseGetTimeouts();
 DNSName getRegisteredName(const DNSName& dom);
 std::atomic<unsigned long>* getDynMetric(const std::string& str);
 optional<uint64_t> getStatByName(const std::string& name);
+bool isStatBlacklisted(StatComponent component, const std::string& name);
+void blacklistStat(StatComponent component, const string& name);
+void blacklistStats(StatComponent component, const string& stats);
+
 void registerAllStats();
-#endif 
+

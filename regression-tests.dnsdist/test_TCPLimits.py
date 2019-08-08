@@ -2,14 +2,19 @@
 import struct
 import time
 import dns
-from dnsdisttests import DNSDistTest, range
+from dnsdisttests import DNSDistTest
+
+try:
+  range = xrange
+except NameError:
+  pass
 
 class TestTCPLimits(DNSDistTest):
 
     # this test suite uses a different responder port
     # because it uses a different health check configuration
     _testServerPort = 5395
-    _healthCheckAnswerUnexpected = True
+    _answerUnexpected = True
 
     _tcpIdleTimeout = 2
     _maxTCPQueriesPerConn = 5
@@ -101,19 +106,20 @@ class TestTCPLimits(DNSDistTest):
         conn.send(struct.pack("!H", 65535))
 
         count = 0
-        while count < (self._maxTCPConnDuration * 2):
+        while count < (self._maxTCPConnDuration * 20):
             try:
                 # sleeping for only one second keeps us below the
                 # idle timeout (setTCPRecvTimeout())
-                time.sleep(1)
-                conn.send('A')
+                time.sleep(0.1)
+                conn.send(b'A')
                 count = count + 1
-            except:
+            except Exception as e:
+                print("Exception: %s!" % (e))
                 break
 
         end = time.time()
 
-        self.assertAlmostEquals(count, self._maxTCPConnDuration, delta=2)
+        self.assertAlmostEquals(count / 10, self._maxTCPConnDuration, delta=2)
         self.assertAlmostEquals(end - start, self._maxTCPConnDuration, delta=2)
 
         conn.close()

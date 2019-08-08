@@ -37,7 +37,7 @@ struct DNSRecord;
 
 struct SOAData
 {
-  SOAData() : ttl(0), serial(0), refresh(0), retry(0), expire(0), default_ttl(0), db(0), domain_id(-1), scopeMask(0) {};
+  SOAData() : ttl(0), serial(0), refresh(0), retry(0), expire(0), default_ttl(0), db(0), domain_id(-1) {};
 
   DNSName qname;
   DNSName nameserver;
@@ -50,7 +50,6 @@ struct SOAData
   uint32_t default_ttl;
   DNSBackend *db;
   int domain_id;
-  uint8_t scopeMask;
 };
 
 class RCode
@@ -72,6 +71,7 @@ class Opcode
 {
 public:
   enum { Query=0, IQuery=1, Status=2, Notify=4, Update=5 };
+  static std::string to_s(uint8_t opcode);
 };
 
 // enum for policy decisions, used by both auth and recursor. Not all values supported everywhere.
@@ -132,10 +132,10 @@ struct dnsrecordheader
   uint16_t d_clen;
 } GCCPACKATTRIBUTE;
 
-struct EDNS0Record 
-{ 
-        uint8_t extRCode, version; 
-        uint16_t Z; 
+struct EDNS0Record
+{
+  uint8_t extRCode, version;
+  uint16_t extFlags;
 } GCCPACKATTRIBUTE;
 
 static_assert(sizeof(EDNS0Record) == 4, "EDNS0Record size must be 4");

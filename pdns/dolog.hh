@@ -36,7 +36,7 @@
           warnlog("Query took %d milliseconds", 1232.4); // yes, %d
           errlog("Unable to bind to %s: %s", ca.toStringWithPort(), strerr(errno));
 
-   If bool g_console is true, will log to stdout. Will syslog in any case with LOG_INFO,
+   Will log to stdout. Will syslog in any case with LOG_INFO,
    LOG_WARNING, LOG_ERR respectively. If g_verbose=false, vinfolog is a noop.
    More generically, dolog(someiostream, "Hello %s", stream) will log to someiostream
 
@@ -67,9 +67,15 @@ void dolog(std::ostream& os, const char* s, T value, Args... args)
   }    
 }
 
-extern bool g_console;
 extern bool g_verbose;
 extern bool g_syslog;
+
+inline void setSyslogFacility(int facility)
+{
+  /* we always call openlog() right away at startup */
+  closelog();
+  openlog("dnsdist", LOG_PID|LOG_NDELAY, facility);
+}
 
 template<typename... Args>
 void genlog(int level, const char* s, Args... args)
@@ -78,8 +84,7 @@ void genlog(int level, const char* s, Args... args)
   dolog(str, s, args...);
   if(g_syslog)
     syslog(level, "%s", str.str().c_str());
-  if(g_console) 
-    std::cout<<str.str()<<std::endl;
+  std::cout<<str.str()<<std::endl;
 }
 
 

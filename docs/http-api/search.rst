@@ -7,7 +7,7 @@ Endpoints
 ---------
 
 .. openapi:: swagger/authoritative-api-swagger.yaml
-  :paths: /servers/{server_id}/search-data /servers/{server_id}/search-log
+  :paths: /servers/{server_id}/search-data
 
 Objects
 -------

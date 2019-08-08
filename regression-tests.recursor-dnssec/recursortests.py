@@ -1,5 +1,6 @@
 #!/usr/bin/env python2
 
+from __future__ import print_function
 import errno
 import shutil
 import os
@@ -42,6 +43,7 @@ disable-syslog=yes
 """
     _config_params = []
     _lua_config_file = None
+    _lua_dns_script_file = None
     _roothints = """
 .                        3600 IN NS  ns.root.
 ns.root.                 3600 IN A   %s.8
@@ -82,6 +84,10 @@ ns.secure.example.       3600 IN A    {prefix}.9
 cname-secure.example.    3600 IN NS   ns.cname-secure.example.
 cname-secure.example.    3600 IN DS   49148 13 1 a10314452d5ec4d97fcc6d7e275d217261fe790f
 ns.cname-secure.example. 3600 IN A    {prefix}.15
+
+dname-secure.example. 3600 IN NS ns.dname-secure.example.
+dname-secure.example. 3600 IN DS 42043 13 2 11c67f46b7c4d5968bc5f6cc944d58377b762bda53ddb4f3a6dbe6faf7a9940f
+ns.dname-secure.example. 3600 IN A {prefix}.13
 
 bogus.example.           3600 IN NS   ns.bogus.example.
 bogus.example.           3600 IN DS   65034 13 1 6df3bb50ea538e90eacdd7ae5419730783abb0ee
@@ -135,7 +141,22 @@ insecure.sub2.secure.example. 3600 IN NS ns1.insecure.example.
 *.cnamewildcardnxdomain.secure.example. 3600 IN CNAME doesntexist.secure.example.
 
 cname-to-formerr.secure.example. 3600 IN CNAME host1.insecure-formerr.example.
+
+dname-secure.secure.example. 3600 IN DNAME dname-secure.example.
+dname-insecure.secure.example. 3600 IN DNAME insecure.example.
+dname-bogus.secure.example. 3600 IN DNAME bogus.example.
         """,
+        'dname-secure.example': """
+dname-secure.example. 3600 IN SOA {soa}
+dname-secure.example. 3600 IN NS ns.dname-secure.example.
+ns.dname-secure.example. 3600 IN A {prefix}.13
+
+host1.dname-secure.example. IN A 192.0.2.21
+
+cname-to-secure.dname-secure.example. 3600 IN CNAME host1.secure.example.
+cname-to-insecure.dname-secure.example. 3600 IN CNAME node1.insecure.example.
+cname-to-bogus.dname-secure.example.    3600 IN CNAME ted.bogus.example.
+""",
         'cname-secure.example': """
 cname-secure.example.          3600 IN SOA   {soa}
 cname-secure.example.          3600 IN NS    ns.cname-secure.example.
@@ -163,6 +184,8 @@ ns1.insecure.example.    3600 IN A    {prefix}.13
 node1.insecure.example.  3600 IN A    192.0.2.6
 
 cname-to-secure.insecure.example. 3600 IN CNAME host1.secure.example.
+
+dname-to-secure.insecure.example. 3600 IN DNAME dname-secure.example.
         """,
         'optout.example': """
 optout.example.        3600 IN SOA  {soa}
@@ -260,6 +283,12 @@ PrivateKey: o9F5iix8V68tnMcuOaM2Lt8XXhIIY//SgHIHEePk6cM=
 Private-key-format: v1.2
 Algorithm: 13 (ECDSAP256SHA256)
 PrivateKey: kvoV/g4IO/tefSro+FLJ5UC7H3BUf0IUtZQSUOfQGyA=
+""",
+
+        'dname-secure.example': """
+Private-key-format: v1.2
+Algorithm: 13 (ECDSAP256SHA256)
+PrivateKey: Ep9uo6+wwjb4MaOmqq7LHav2FLrjotVOeZg8JT1Qk04=
 """
     }
 
@@ -272,7 +301,7 @@ PrivateKey: kvoV/g4IO/tefSro+FLJ5UC7H3BUf0IUtZQSUOfQGyA=
         '10': ['example'],
         '11': ['example'],
         '12': ['bogus.example', 'undelegated.secure.example', 'undelegated.insecure.example'],
-        '13': ['insecure.example', 'insecure.sub2.secure.example'],
+        '13': ['insecure.example', 'insecure.sub2.secure.example', 'dname-secure.example'],
         '14': ['optout.example'],
         '15': ['insecure.optout.example', 'secure.optout.example', 'cname-secure.example']
     }
@@ -289,7 +318,7 @@ PrivateKey: kvoV/g4IO/tefSro+FLJ5UC7H3BUf0IUtZQSUOfQGyA=
         except OSError as e:
             if e.errno != errno.ENOENT:
                 raise
-        os.mkdir(confdir, 0755)
+        os.mkdir(confdir, 0o755)
 
     @classmethod
     def generateAuthZone(cls, confdir, zonename, zonecontent):
@@ -331,6 +360,7 @@ query-cache-ttl=0
 log-dns-queries=yes
 log-dns-details=yes
 loglevel=9
+dname-processing=yes
 distributor-threads=1""".format(confdir=confdir,
                                 bind_dnssec_db=bind_dnssec_db))
 
@@ -339,12 +369,11 @@ distributor-threads=1""".format(confdir=confdir,
                        'create-bind-db',
                        bind_dnssec_db]
 
-        print ' '.join(pdnsutilCmd)
+        print(' '.join(pdnsutilCmd))
         try:
             subprocess.check_output(pdnsutilCmd, stderr=subprocess.STDOUT)
         except subprocess.CalledProcessError as e:
-            print e.output
-            raise
+            raise AssertionError('%s failed (%d): %s' % (pdnsutilCmd, e.returncode, e.output))
 
     @classmethod
     def secureZone(cls, confdir, zonename, key=None):
@@ -367,12 +396,11 @@ distributor-threads=1""".format(confdir=confdir,
                            'active',
                            'ksk']
 
-        print ' '.join(pdnsutilCmd)
+        print(' '.join(pdnsutilCmd))
         try:
             subprocess.check_output(pdnsutilCmd, stderr=subprocess.STDOUT)
         except subprocess.CalledProcessError as e:
-            print e.output
-            raise
+            raise AssertionError('%s failed (%d): %s' % (pdnsutilCmd, e.returncode, e.output))
 
     @classmethod
     def generateAllAuthConfig(cls, confdir):
@@ -423,7 +451,7 @@ distributor-threads=1""".format(confdir=confdir,
                 if e.errno != errno.ESRCH:
                     raise
                 with open(logFile, 'r') as fdLog:
-                    print fdLog.read()
+                    print(fdLog.read())
             sys.exit(cls._auths[ipaddress].returncode)
 
     @classmethod
@@ -444,10 +472,15 @@ distributor-threads=1""".format(confdir=confdir,
                 luaconfpath = os.path.join(confdir, 'conffile.lua')
                 with open(luaconfpath, 'w') as luaconf:
                     if cls._root_DS:
-                        luaconf.write("addDS('.', '%s')" % cls._root_DS)
+                        luaconf.write("addTA('.', '%s')\n" % cls._root_DS)
                     if cls._lua_config_file:
                         luaconf.write(cls._lua_config_file)
                 conf.write("lua-config-file=%s\n" % luaconfpath)
+            if cls._lua_dns_script_file:
+                luascriptpath = os.path.join(confdir, 'dnsscript.lua')
+                with open(luascriptpath, 'w') as luascript:
+                    luascript.write(cls._lua_dns_script_file)
+                conf.write("lua-dns-script=%s\n" % luascriptpath)
             if cls._roothints:
                 roothintspath = os.path.join(confdir, 'root.hints')
                 with open(roothintspath, 'w') as roothints:
@@ -486,7 +519,7 @@ distributor-threads=1""".format(confdir=confdir,
                 if e.errno != errno.ESRCH:
                     raise
                 with open(logFile, 'r') as fdLog:
-                    print fdLog.read()
+                    print(fdLog.read())
             sys.exit(cls._recursor.returncode)
 
     @classmethod
@@ -498,8 +531,7 @@ distributor-threads=1""".format(confdir=confdir,
         try:
             subprocess.check_output(rec_controlCmd, stderr=subprocess.STDOUT)
         except subprocess.CalledProcessError as e:
-            print e.output
-            raise
+            raise AssertionError('%s failed (%d): %s' % (rec_controlCmd, e.returncode, e.output))
 
     @classmethod
     def setUpSockets(cls):
@@ -787,3 +819,35 @@ distributor-threads=1""".format(confdir=confdir,
 
         if not found:
             raise AssertionError("No SOA record found in the authority section:\n%s" % msg.to_text())
+
+    def assertResponseMatches(self, query, expectedRRs, response):
+        expectedResponse = dns.message.make_response(query)
+
+        if query.flags & dns.flags.RD:
+            expectedResponse.flags |= dns.flags.RA
+        if query.flags & dns.flags.CD:
+            expectedResponse.flags |= dns.flags.CD
+
+        expectedResponse.answer = expectedRRs
+        print(expectedResponse)
+        print(response)
+        self.assertEquals(response, expectedResponse)
+
+    @classmethod
+    def sendQuery(cls, name, rdtype, useTCP=False):
+        """Helper function that creates the query"""
+        msg = dns.message.make_query(name, rdtype, want_dnssec=True)
+        msg.flags |= dns.flags.AD
+
+        if useTCP:
+            return cls.sendTCPQuery(msg)
+        return cls.sendUDPQuery(msg)
+
+    def createQuery(self, name, rdtype, flags, ednsflags):
+        """Helper function that creates the query with the specified flags.
+        The flags need to be strings (no checking is performed atm)"""
+        msg = dns.message.make_query(name, rdtype)
+        msg.flags = dns.flags.from_text(flags)
+        msg.flags += dns.flags.from_text('RD')
+        msg.use_edns(edns=0, ednsflags=dns.flags.edns_from_text(ednsflags))
+        return msg

@@ -1,0 +1,23 @@
+#!/bin/sh
+set -e
+
+case "$1" in
+  configure)
+    addgroup --system pdns
+    adduser --system --home /var/spool/powerdns --shell /bin/false --ingroup pdns --disabled-password --disabled-login --gecos "PowerDNS" pdns
+  ;;
+
+  *)
+    echo "postinst called with unknown argument \`$1'" >&2
+    exit 1
+  ;;
+esac
+
+# Startup errors should never cause dpkg to fail.
+initscript_error() {
+    return 0
+}
+
+#DEBHELPER#
+
+exit 0

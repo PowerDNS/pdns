@@ -30,6 +30,21 @@ zone test.dyndns/IN: loaded serial 2012060701 (DNSSEC signed)
 OK
 RETVAL: 0
 
+--- ldns-verify-zone -V2 sub.test.dyndns
+RETVAL: 0
+
+--- validns sub.test.dyndns
+RETVAL: 0
+
+--- jdnssec-verifyzone sub.test.dyndns
+zone verified.
+RETVAL: 0
+
+--- named-checkzone sub.test.dyndns
+zone sub.test.dyndns/IN: loaded serial 2012060701 (DNSSEC signed)
+OK
+RETVAL: 0
+
 --- ldns-verify-zone -V2 wtest.com
 RETVAL: 0
 
@@ -47,10 +62,7 @@ OK
 RETVAL: 0
 
 --- ldns-verify-zone -V2 dnssec-parent.com
-Error: there is no NSEC(3) for ent.auth-ent.dnssec-parent.com.
-Error: there is no NSEC(3) for ent.ent.auth-ent.dnssec-parent.com.
-There were errors in the zone
-RETVAL: 11
+RETVAL: 0
 
 --- validns dnssec-parent.com
 RETVAL: 0

@@ -8,22 +8,49 @@ Response Policy Zone is an open standard developed by Paul Vixie (ISC and Farsig
 Frequently, Response Policy Zones get to be very large and change quickly, so it is customary to update them over IXFR.
 It allows the use of third-party feeds, and near real-time policy updates.
 
+If multiple RPZs are loaded, they get consulted in the order they were
+defined in. It is however possible from Lua to make queries skip specific
+Response Policy Zones.
+
 Configuring RPZ
 ---------------
 An RPZ can be loaded from file or slaved from a master. To load from file, use for example:
 
 .. code-block:: Lua
 
-    rpzFile("dblfilename", {defpol=Policy.Custom, defcontent="badserver.example.com"})
+    rpzFile("dblfilename")
 
 To slave from a master and start IXFR to get updates, use for example:
 
 .. code-block:: Lua
 
-    rpzMaster("192.0.2.4", "policy.rpz", {defpol=Policy.Drop})
+    rpzMaster("192.0.2.4", "policy.rpz")
 
 In this example, 'policy.rpz' denotes the name of the zone to query for.
 
+The action to be taken on a match is defined by the zone itself, but in some cases it might be interesting to be able to override it, and always apply the same action
+regardless of the one specified in the RPZ zone. To load from file and override the default action with a custom CNAME to badserver.example.com., use for example:
+
+.. code-block:: Lua
+
+    rpzFile("dblfilename", {defpol=Policy.Custom, defcontent="badserver.example.com"})
+
+To instead drop all queries matching a rule, while slaving from a master:
+
+.. code-block:: Lua
+
+    rpzMaster("192.0.2.4", "policy.rpz", {defpol=Policy.Drop})
+
+Note that since 4.2.0, it is possible for the override policy specified via 'defpol' to no longer be applied to local data entries present in the zone by setting the 'defpolOverrideLocalData' parameter to false.
+
+As of version 4.2.0, the first parameter of :func:`rpzMaster` can be a list of addresses for failover:
+
+    rpzMaster({"192.0.2.4","192.0.2.5:5301"}, "policy.rpz", {defpol=Policy.Drop})
+  
+  In the example above, two addresses are specified and will be tried one after another until a response is obtained. The first address uses the default port (53) while the second one uses port 5301.
+  (If no optional port is set, the default port 53 is used)
+  
+   
 .. function:: rpzFile(filename, settings)
 
   Load an RPZ from disk.
@@ -33,9 +60,13 @@ In this example, 'policy.rpz' denotes the name of the zone to query for.
 
 .. function:: rpzMaster(address, name, settings)
 
+  .. versionchanged:: 4.2.0:
+
+    The first parameter can be a list of addresses.
+
   Load an RPZ from AXFR and keep retrieving with IXFR.
 
-  :param str address: The IP address to transfer the RPZ from
+  :param str address: The IP address to transfer the RPZ from. Also accepts a list of addresses since 4.2.0 in which case they will be tried one after another in the submitted order until a response is obtained.
   :param str name: The name of this RPZ
   :param {} settings: A table to settings, see below
 
@@ -45,13 +76,20 @@ RPZ settings
 
 These options can be set in the ``settings`` of both :func:`rpzMaster` and :func:`rpzFile`.
 
+defcontent
+^^^^^^^^^^
+CNAME field to return in case of defpol=Policy.Custom
+
 defpol
 ^^^^^^
 Default policy: `Policy.Custom`_, `Policy.Drop`_, `Policy.NXDOMAIN`_, `Policy.NODATA`_, `Policy.Truncate`_, `Policy.NoAction`_.
 
-defcontent
-^^^^^^^^^^
-CNAME field to return in case of defpol=Policy.Custom
+defpolOverrideLocalData
+^^^^^^^^^^^^^^^^^^^^^^^
+.. versionadded:: 4.2.0
+  Before 4.2.0 local data entries are always overridden by the default policy.
+
+Whether local data entries should be overridden by the default policy. Default is true.
 
 defttl
 ^^^^^^

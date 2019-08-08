@@ -108,8 +108,13 @@ void GeoIPBackend::initialize() {
   if (s_geoip_files.empty())
     g_log<<Logger::Warning<<"No GeoIP database files loaded!"<<endl;
 
-  if(!getArg("zones-file").empty())
-    config = YAML::LoadFile(getArg("zones-file"));
+  if(!getArg("zones-file").empty()) {
+    try {
+       config = YAML::LoadFile(getArg("zones-file"));
+    } catch (YAML::Exception &ex) {
+       throw PDNSException(string("Cannot read config file ") + ex.msg);
+    }
+  }
 
   for(YAML::Node domain :  config["domains"]) {
     GeoIPDomain dom;
@@ -145,9 +150,9 @@ void GeoIPBackend::initialize() {
                rr.content = content;
              } else if (attr == "weight") {
                rr.weight = iter->second.as<int>();
-               if (rr.weight < 0) {
-                 g_log<<Logger::Error<<"Weight cannot be negative for " << rr.qname << endl;
-                 throw PDNSException(string("Weight cannot be negative for ") + rr.qname.toLogString());
+               if (rr.weight <= 0) {
+                 g_log<<Logger::Error<<"Weight must be positive for " << rr.qname << endl;
+                 throw PDNSException(string("Weight must be positive for ") + rr.qname.toLogString());
                }
                rr.has_weight = true;
              } else if (attr == "ttl") {
@@ -256,24 +261,30 @@ void GeoIPBackend::initialize() {
 
     // finally fix weights
     for(auto &item: dom.records) {
-      float weight=0;
-      float sum=0;
+      map<uint16_t, float> weights;
+      map<uint16_t, float> sums;
+      map<uint16_t, GeoIPDNSResourceRecord> lasts;
       bool has_weight=false;
       // first we look for used weight
       for(const auto &rr: item.second) {
-        weight+=rr.weight;
+        weights[rr.qtype.getCode()] += rr.weight;
         if (rr.has_weight) has_weight = true;
       }
       if (has_weight) {
         // put them back as probabilities and values..
         for(auto &rr: item.second) {
-          rr.weight=static_cast<int>((static_cast<float>(rr.weight) / weight)*1000.0);
-          sum += rr.weight;
+          uint16_t rr_type = rr.qtype.getCode();
+          rr.weight=static_cast<int>((static_cast<float>(rr.weight) / weights[rr_type])*1000.0);
+          sums[rr_type] += rr.weight;
           rr.has_weight = has_weight;
+          lasts[rr_type] = rr;
         }
         // remove rounding gap
-        if (sum < 1000)
-          item.second.back().weight += (1000-sum);
+        for(auto &x: lasts) {
+          float sum = sums[x.first];
+          if (sum < 1000)
+            x.second.weight += (1000-sum);
+        }
       }
     }
 
@@ -302,25 +313,25 @@ GeoIPBackend::~GeoIPBackend() {
 
 bool GeoIPBackend::lookup_static(const GeoIPDomain &dom, const DNSName &search, const QType &qtype, const DNSName& qdomain, const std::string &ip, GeoIPNetmask &gl, bool v6) {
   const auto& i = dom.records.find(search);
-  int cumul_probability = 0;
+  map<uint16_t,int> cumul_probabilities;
   int probability_rnd = 1+(dns_random(1000)); // setting probability=0 means it never is used
 
   if (i != dom.records.end()) { // return static value
     for(const auto& rr : i->second) {
+      if (qtype != QType::ANY && rr.qtype != qtype) continue;
+
       if (rr.has_weight) {
         gl.netmask = (v6?128:32);
-        int comp = cumul_probability;
-        cumul_probability += rr.weight;
+        int comp = cumul_probabilities[rr.qtype.getCode()];
+        cumul_probabilities[rr.qtype.getCode()] += rr.weight;
         if (rr.weight == 0 || probability_rnd < comp || probability_rnd > (comp + rr.weight))
           continue;
       }
-      if (qtype == QType::ANY || rr.qtype == qtype) {
-        const string& content = format2str(rr.content, ip, v6, gl);
-        if (rr.qtype != QType::TXT && content.empty()) continue;
-        d_result.push_back(rr);
-        d_result.back().content = content;
-        d_result.back().qname = qdomain;
-      }
+      const string& content = format2str(rr.content, ip, v6, gl);
+      if (rr.qtype != QType::ENT && rr.qtype != QType::TXT && content.empty()) continue;
+      d_result.push_back(rr);
+      d_result.back().content = content;
+      d_result.back().qname = qdomain;
     }
     // ensure we get most strict netmask
     for(DNSResourceRecord& rr: d_result) {

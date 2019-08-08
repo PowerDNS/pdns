@@ -5,7 +5,7 @@ Generic Oracle backend
 * Master: Yes
 * Slave: Yes
 * Superslave: Yes
-* Autoserial: Yes
+* Autoserial: No
 * Case: All lower
 * DNSSEC: Yes (set ``goracle-dnssec``)
 * Disabled data: Yes
@@ -17,7 +17,17 @@ The Generic Oracle Backend is a :doc:`generic-sql`. The default setup conforms t
 following schema, which you should add to an Oracle database. You may
 need or want to add ``namespace`` statements.
 
+.. warning::
+  The Oracle backends depend on non-free software that requires significant
+  resources from us to support. Consequently, we can not provide free
+  support to users of this backend. Before deploying PowerDNS with an Oracle
+  database, please head to `our commercial support page
+  <https://www.powerdns.com/support.html>`_.
+
+Below, you will find the schema for 4.2. If you are using 4.1 or earlier, please find `the 4.1 schema on GitHub <https://github.com/PowerDNS/pdns/blob/rel/auth-4.1.x/modules/goraclebackend/schema.goracle.sql>`_.
+
 .. literalinclude:: ../../modules/goraclebackend/schema.goracle.sql
+   :language: SQL
 
 This schema contains all elements needed for master, slave and
 superslave operation.

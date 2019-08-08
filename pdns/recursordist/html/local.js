@@ -21,12 +21,6 @@ $(document).ready(function () {
         $('#' + name).html(h);
     };
 
-    var password = $("#password").val();
-    $("#password").change(function (e) {
-        password = $("#password").val();
-        update();
-    });
-
     var qpsgraph = new Rickshaw.Graph({
         element: document.getElementById("qpschart"),
         width: 400,
@@ -70,7 +64,6 @@ $(document).ready(function () {
 
     var jsonstatParams = function (command, name, filtered) {
         var d = {
-            'api-key': password,
             'command': command,
             'name': name
         };
@@ -114,6 +107,12 @@ $(document).ready(function () {
                 render('servfailqueryring', {rows: rows});
             });
 
+        $.getJSON('jsonstat', jsonstatParams('get-query-ring', 'bogus-queries', $("#filter1").is(':checked')),
+            function (data) {
+                var rows = makeRingRows(data);
+                render('bogusqueryring', {rows: rows});
+            });
+
         $.getJSON('jsonstat', jsonstatParams('get-remote-ring', 'remotes', false),
             function (data) {
                 var rows = makeRingRows(data);
@@ -124,6 +123,17 @@ $(document).ready(function () {
             function (data) {
                 var rows = makeRingRows(data);
                 render('servfailremotering', {rows: rows});
+            });
+
+        $.getJSON('jsonstat', jsonstatParams('get-remote-ring', 'bogus-remotes', false),
+            function (data) {
+                var rows = makeRingRows(data);
+                render('bogusremotering', {rows: rows});
+            });
+        $.getJSON('jsonstat', jsonstatParams('get-remote-ring', 'timeouts', false),
+            function (data) {
+                var rows = makeRingRows(data);
+                render('timeouts', {rows: rows});
             });
     }
 
@@ -142,7 +152,7 @@ $(document).ready(function () {
 
     function update() {
         $.ajax({
-            url: 'api/v1/servers/localhost/statistics?api-key=' + password,
+            url: 'api/v1/servers/localhost/statistics',
             type: 'GET',
             dataType: 'json',
             success: function (adata, x, y) {
@@ -199,7 +209,7 @@ $(document).ready(function () {
 
         if (!version) {
             $.ajax({
-                url: 'api/v1/servers/localhost?api-key=' + password, type: 'GET', dataType: 'json',
+                url: 'api/v1/servers/localhost', type: 'GET', dataType: 'json',
                 success: function (data) {
                     version = "PowerDNS " + data["daemon_type"] + " " + data["version"];
                 }

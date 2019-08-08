@@ -59,7 +59,8 @@ void gMySQLBackend::reconnect()
                    getArg("password"),
                    getArg("group"),
                    mustDo("innodb-read-committed"),
-                   getArgAsNum("timeout")));
+                   getArgAsNum("timeout"),
+                   mustDo("thread-cleanup")));
 }
 
 class gMySQLFactory : public BackendFactory
@@ -78,6 +79,7 @@ public:
     declare(suffix,"group", "Database backend MySQL 'group' to connect as", "client");
     declare(suffix,"innodb-read-committed","Use InnoDB READ-COMMITTED transaction isolation level","yes");
     declare(suffix,"timeout", "The timeout in seconds for each attempt to read/write to the server", "10");
+    declare(suffix,"thread-cleanup","Explicitly call mysql_thread_end() when threads end","no");
 
     declare(suffix,"dnssec","Enable DNSSEC processing","no");
 
@@ -102,8 +104,8 @@ public:
 
     declare(suffix,"insert-zone-query","", "insert into domains (type,name,master,account,last_check,notified_serial) values(?,?,?,?,NULL,NULL)");
 
-    declare(suffix, "insert-record-query", "", "insert into records (content,ttl,prio,type,domain_id,disabled,name,ordername,auth,change_date) values (?,?,?,?,?,?,?,?,?,NULL)");
-    declare(suffix, "insert-empty-non-terminal-order-query", "insert empty non-terminal in zone", "insert into records (type,domain_id,disabled,name,ordername,auth,change_date,content,ttl,prio) values (null,?,0,?,?,?,NULL,NULL,NULL,NULL)");
+    declare(suffix, "insert-record-query", "", "insert into records (content,ttl,prio,type,domain_id,disabled,name,ordername,auth) values (?,?,?,?,?,?,?,?,?)");
+    declare(suffix, "insert-empty-non-terminal-order-query", "insert empty non-terminal in zone", "insert into records (type,domain_id,disabled,name,ordername,auth,content,ttl,prio) values (null,?,0,?,?,?,NULL,NULL,NULL)");
 
     declare(suffix, "get-order-first-query", "DNSSEC Ordering Query, first", "select ordername from records where domain_id=? and disabled=0 and ordername is not null order by 1 asc limit 1");
     declare(suffix, "get-order-before-query", "DNSSEC Ordering Query, before", "select ordername, name from records where ordername <= ? and domain_id=? and disabled=0 and ordername is not null order by 1 desc limit 1");
@@ -120,8 +122,7 @@ public:
     declare(suffix,"update-account-query","", "update domains set account=? where name=?");
     declare(suffix,"update-serial-query","", "update domains set notified_serial=? where id=?");
     declare(suffix,"update-lastcheck-query","", "update domains set last_check=? where id=?");
-    declare(suffix,"zone-lastchange-query", "", "select max(change_date) from records where domain_id=?");
-    declare(suffix,"info-all-master-query","", "select id,name,master,last_check,notified_serial,type from domains where type='MASTER'");
+    declare(suffix,"info-all-master-query","", "select d.id, d.name, d.notified_serial, r.content from records r join domains d on r.name=d.name where r.type='SOA' and r.disabled=0 and d.type='MASTER'");
     declare(suffix,"delete-domain-query","", "delete from domains where name=?");
     declare(suffix,"delete-zone-query","", "delete from records where domain_id=?");
     declare(suffix,"delete-rrset-query","","delete from records where domain_id=? and name=? and type=?");

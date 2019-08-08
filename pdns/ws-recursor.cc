@@ -41,6 +41,7 @@
 #include "ext/incbin/incbin.h"
 #include "rec-lua-conf.hh"
 #include "rpzloader.hh"
+#include "uuid-utils.hh"
 
 extern thread_local FDMultiplexer* t_fdm;
 
@@ -48,8 +49,13 @@ using json11::Json;
 
 void productServerStatisticsFetch(map<string,string>& out)
 {
-  map<string,string> stats = getAllStatsMap();
+  map<string,string> stats = getAllStatsMap(StatComponent::API);
   out.swap(stats);
+}
+
+boost::optional<uint64_t> productServerStatisticsFetch(const std::string& name)
+{
+  return getStatByName(name);
 }
 
 static void apiWriteConfigFile(const string& filebasename, const string& content)
@@ -70,7 +76,7 @@ static void apiWriteConfigFile(const string& filebasename, const string& content
 
 static void apiServerConfigAllowFrom(HttpRequest* req, HttpResponse* resp)
 {
-  if (req->method == "PUT" && !::arg().mustDo("api-readonly")) {
+  if (req->method == "PUT") {
     Json document = req->json();
 
     auto jlist = document["value"];
@@ -248,7 +254,7 @@ static bool doDeleteZone(const DNSName& zonename)
 
 static void apiServerZones(HttpRequest* req, HttpResponse* resp)
 {
-  if (req->method == "POST" && !::arg().mustDo("api-readonly")) {
+  if (req->method == "POST") {
     if (::arg()["api-config-dir"].empty()) {
       throw ApiException("Config Option \"api-config-dir\" must be set");
     }
@@ -300,7 +306,7 @@ static void apiServerZoneDetail(HttpRequest* req, HttpResponse* resp)
   if (iter == SyncRes::t_sstorage.domainmap->end())
     throw ApiException("Could not find domain '"+zonename.toLogString()+"'");
 
-  if(req->method == "PUT" && !::arg().mustDo("api-readonly")) {
+  if(req->method == "PUT") {
     Json document = req->json();
 
     doDeleteZone(zonename);
@@ -309,7 +315,7 @@ static void apiServerZoneDetail(HttpRequest* req, HttpResponse* resp)
     resp->body = "";
     resp->status = 204; // No Content, but indicate success
   }
-  else if(req->method == "DELETE" && !::arg().mustDo("api-readonly")) {
+  else if(req->method == "DELETE") {
     if (!doDeleteZone(zonename)) {
       throw ApiException("Deleting domain failed");
     }
@@ -450,20 +456,27 @@ RecursorWebServer::RecursorWebServer(FDMultiplexer* fdm)
   registerAllStats();
 
   d_ws = new AsyncWebServer(fdm, arg()["webserver-address"], arg().asNum("webserver-port"));
+  d_ws->setApiKey(arg()["api-key"]);
+  d_ws->setPassword(arg()["webserver-password"]);
+  d_ws->setLogLevel(arg()["webserver-loglevel"]);
+
+  NetmaskGroup acl;
+  acl.toMasks(::arg()["webserver-allow-from"]);
+  d_ws->setACL(acl);
+
   d_ws->bind();
 
   // legacy dispatch
-  d_ws->registerApiHandler("/jsonstat", boost::bind(&RecursorWebServer::jsonstat, this, _1, _2));
+  d_ws->registerApiHandler("/jsonstat", boost::bind(&RecursorWebServer::jsonstat, this, _1, _2), true);
   d_ws->registerApiHandler("/api/v1/servers/localhost/cache/flush", &apiServerCacheFlush);
   d_ws->registerApiHandler("/api/v1/servers/localhost/config/allow-from", &apiServerConfigAllowFrom);
   d_ws->registerApiHandler("/api/v1/servers/localhost/config", &apiServerConfig);
   d_ws->registerApiHandler("/api/v1/servers/localhost/rpzstatistics", &apiServerRPZStats);
-  d_ws->registerApiHandler("/api/v1/servers/localhost/search-log", &apiServerSearchLog);
   d_ws->registerApiHandler("/api/v1/servers/localhost/search-data", &apiServerSearchData);
-  d_ws->registerApiHandler("/api/v1/servers/localhost/statistics", &apiServerStatistics);
+  d_ws->registerApiHandler("/api/v1/servers/localhost/statistics", &apiServerStatistics, true);
   d_ws->registerApiHandler("/api/v1/servers/localhost/zones/<id>", &apiServerZoneDetail);
   d_ws->registerApiHandler("/api/v1/servers/localhost/zones", &apiServerZones);
-  d_ws->registerApiHandler("/api/v1/servers/localhost", &apiServerDetail);
+  d_ws->registerApiHandler("/api/v1/servers/localhost", &apiServerDetail, true);
   d_ws->registerApiHandler("/api/v1/servers", &apiServer);
   d_ws->registerApiHandler("/api", &apiDiscovery);
 
@@ -490,6 +503,8 @@ void RecursorWebServer::jsonstat(HttpRequest* req, HttpResponse *resp)
 
     if(req->getvars["name"]=="servfail-queries")
       queries=broadcastAccFunction<vector<query_t> >(pleaseGetServfailQueryRing);
+    else if(req->getvars["name"]=="bogus-queries")
+      queries=broadcastAccFunction<vector<query_t> >(pleaseGetBogusQueryRing);
     else if(req->getvars["name"]=="queries")
       queries=broadcastAccFunction<vector<query_t> >(pleaseGetQueryRing);
 
@@ -515,7 +530,7 @@ void RecursorWebServer::jsonstat(HttpRequest* req, HttpResponse *resp)
     for(const rcounts_t::value_type& q :  rcounts) {
       totIncluded-=q.first;
       entries.push_back(Json::array {
-        -q.first, q.second.first.toString(), DNSRecordContent::NumberToType(q.second.second)
+        -q.first, q.second.first.toLogString(), DNSRecordContent::NumberToType(q.second.second)
       });
       if(tot++>=100)
 	break;
@@ -534,8 +549,12 @@ void RecursorWebServer::jsonstat(HttpRequest* req, HttpResponse *resp)
       queries=broadcastAccFunction<vector<ComboAddress> >(pleaseGetRemotes);
     else if(req->getvars["name"]=="servfail-remotes")
       queries=broadcastAccFunction<vector<ComboAddress> >(pleaseGetServfailRemotes);
+    else if(req->getvars["name"]=="bogus-remotes")
+      queries=broadcastAccFunction<vector<ComboAddress> >(pleaseGetBogusRemotes);
     else if(req->getvars["name"]=="large-answer-remotes")
       queries=broadcastAccFunction<vector<ComboAddress> >(pleaseGetLargeAnswerRemotes);
+    else if(req->getvars["name"]=="timeouts")
+      queries=broadcastAccFunction<vector<ComboAddress> >(pleaseGetTimeouts);
 
     typedef map<ComboAddress,unsigned int,ComboAddress::addressOnlyLessThan> counts_t;
     counts_t counts;
@@ -608,49 +627,68 @@ void AsyncServer::newConnection()
 }
 
 // This is an entry point from FDM, so it needs to catch everything.
-void AsyncWebServer::serveConnection(std::shared_ptr<Socket> client) const
-try {
-  HttpRequest req;
-  YaHTTP::AsyncRequestLoader yarl;
-  yarl.initialize(&req);
-  client->setNonBlocking();
+void AsyncWebServer::serveConnection(std::shared_ptr<Socket> client) const {
+  const string logprefix = d_logprefix + to_string(getUniqueID()) + " ";
 
-  string data;
-  try {
-    while(!req.complete) {
-      int bytes = arecvtcp(data, 16384, client.get(), true);
-      if (bytes > 0) {
-        req.complete = yarl.feed(data);
-      } else {
-        // read error OR EOF
-        break;
-      }
-    }
-    yarl.finalize();
-  } catch (YaHTTP::ParseError &e) {
-    // request stays incomplete
-  }
-
+  HttpRequest req(logprefix);
   HttpResponse resp;
-  handleRequest(req, resp);
-  ostringstream ss;
-  resp.write(ss);
-  data = ss.str();
+  ComboAddress remote;
+  string reply;
 
-  // now send the reply
-  if (asendtcp(data, client.get()) == -1 || data.empty()) {
-    g_log<<Logger::Error<<"Failed sending reply to HTTP client"<<endl;
+  try {
+    YaHTTP::AsyncRequestLoader yarl;
+    yarl.initialize(&req);
+    client->setNonBlocking();
+
+    string data;
+    try {
+      while(!req.complete) {
+        int bytes = arecvtcp(data, 16384, client.get(), true);
+        if (bytes > 0) {
+          req.complete = yarl.feed(data);
+        } else {
+          // read error OR EOF
+          break;
+        }
+      }
+      yarl.finalize();
+    } catch (YaHTTP::ParseError &e) {
+      // request stays incomplete
+      g_log<<Logger::Warning<<logprefix<<"Unable to parse request: "<<e.what()<<endl;
+    }
+
+    if (d_loglevel >= WebServer::LogLevel::None) {
+      client->getRemote(remote);
+    }
+
+    logRequest(req, remote);
+
+    WebServer::handleRequest(req, resp);
+    ostringstream ss;
+    resp.write(ss);
+    reply = ss.str();
+
+    logResponse(resp, remote, logprefix);
+
+    // now send the reply
+    if (asendtcp(reply, client.get()) == -1 || reply.empty()) {
+      g_log<<Logger::Error<<logprefix<<"Failed sending reply to HTTP client"<<endl;
+    }
   }
-}
-catch(PDNSException &e) {
-  g_log<<Logger::Error<<"HTTP Exception: "<<e.reason<<endl;
-}
-catch(std::exception &e) {
-  if(strstr(e.what(), "timeout")==0)
-    g_log<<Logger::Error<<"HTTP STL Exception: "<<e.what()<<endl;
-}
-catch(...) {
-  g_log<<Logger::Error<<"HTTP: Unknown exception"<<endl;
+  catch(PDNSException &e) {
+    g_log<<Logger::Error<<logprefix<<"Exception: "<<e.reason<<endl;
+  }
+  catch(std::exception &e) {
+    if(strstr(e.what(), "timeout")==0)
+      g_log<<Logger::Error<<logprefix<<"STL Exception: "<<e.what()<<endl;
+  }
+  catch(...) {
+    g_log<<Logger::Error<<logprefix<<"Unknown exception"<<endl;
+  }
+
+  if (d_loglevel >= WebServer::LogLevel::Normal) {
+    g_log<<Logger::Notice<<logprefix<<remote<<" \""<<req.method<<" "<<req.url.path<<" HTTP/"<<req.versionStr(req.version)<<"\" "<<resp.status<<" "<<reply.size()<<endl;
+  }
 }
 
 void AsyncWebServer::go() {

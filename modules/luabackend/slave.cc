@@ -124,7 +124,7 @@ bool LUABackend::abortTransaction() {
     return ok;
 }
 
-bool LUABackend::feedRecord(const DNSResourceRecord &rr, const DNSName &ordername) {
+bool LUABackend::feedRecord(const DNSResourceRecord &rr, const DNSName &ordername, bool ordernameIsNSEC3) {
 
     if (f_lua_feedrecord == 0)
         return false;

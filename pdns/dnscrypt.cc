@@ -123,11 +123,11 @@ DNSCryptQuery::~DNSCryptQuery()
 }
 #endif /* HAVE_CRYPTO_BOX_EASY_AFTERNM */
 
-DNSCryptContext::DNSCryptContext(const std::string& pName, const std::string& certFile, const std::string& keyFile): providerName(pName)
+DNSCryptContext::DNSCryptContext(const std::string& pName, const std::vector<CertKeyPaths>& certKeys): d_certKeyPaths(certKeys), providerName(pName)
 {
   pthread_rwlock_init(&d_lock, 0);
 
-  loadNewCertificate(certFile, keyFile);
+  reloadCertificates();
 }
 
 DNSCryptContext::DNSCryptContext(const std::string& pName, const DNSCryptCert& certificate, const DNSCryptPrivateKey& pKey): providerName(pName)
@@ -283,40 +283,72 @@ std::string DNSCryptContext::certificateDateToStr(uint32_t date)
   return string(buf);
 }
 
-void DNSCryptContext::addNewCertificate(const DNSCryptCert& newCert, const DNSCryptPrivateKey& newKey, bool active)
+void DNSCryptContext::addNewCertificate(std::shared_ptr<DNSCryptCertificatePair>& newCert, bool reload)
 {
   WriteLock w(&d_lock);
 
-  for (auto pair : certs) {
-    if (pair->cert.getSerial() == newCert.getSerial()) {
-      throw std::runtime_error("Error adding a new certificate: we already have a certificate with the same serial");
+  for (auto pair : d_certs) {
+    if (pair->cert.getSerial() == newCert->cert.getSerial()) {
+      if (reload) {
+        /* on reload we just assume that this is the same certificate */
+        return;
+      }
+      else {
+        throw std::runtime_error("Error adding a new certificate: we already have a certificate with the same serial");
+      }
     }
   }
 
+  d_certs.push_back(newCert);
+}
+
+void DNSCryptContext::addNewCertificate(const DNSCryptCert& newCert, const DNSCryptPrivateKey& newKey, bool active, bool reload)
+{
   auto pair = std::make_shared<DNSCryptCertificatePair>();
   pair->cert = newCert;
   pair->privateKey = newKey;
   computePublicKeyFromPrivate(pair->privateKey, pair->publicKey);
   pair->active = active;
-  certs.push_back(pair);
+
+  addNewCertificate(pair, reload);
 }
 
-void DNSCryptContext::loadNewCertificate(const std::string& certFile, const std::string& keyFile, bool active)
+std::shared_ptr<DNSCryptCertificatePair> DNSCryptContext::loadCertificatePair(const std::string& certFile, const std::string& keyFile)
 {
-  DNSCryptCert newCert;
-  DNSCryptPrivateKey newPrivateKey;
+  auto pair = std::make_shared<DNSCryptCertificatePair>();
+  loadCertFromFile(certFile, pair->cert);
+  pair->privateKey.loadFromFile(keyFile);
+  pair->active = true;
+  computePublicKeyFromPrivate(pair->privateKey, pair->publicKey);
+  return pair;
+}
 
-  loadCertFromFile(certFile, newCert);
-  newPrivateKey.loadFromFile(keyFile);
+void DNSCryptContext::loadNewCertificate(const std::string& certFile, const std::string& keyFile, bool active, bool reload)
+{
+  auto newPair = DNSCryptContext::loadCertificatePair(certFile, keyFile);
+  newPair->active = active;
+  addNewCertificate(newPair, reload);
+  d_certKeyPaths.push_back({certFile, keyFile});
+}
 
-  addNewCertificate(newCert, newPrivateKey, active);
+void DNSCryptContext::reloadCertificates()
+{
+  std::vector<std::shared_ptr<DNSCryptCertificatePair>> newCerts;
+  for (const auto& pair : d_certKeyPaths) {
+    newCerts.push_back(DNSCryptContext::loadCertificatePair(pair.cert, pair.key));
+  }
+
+  {
+    WriteLock w(&d_lock);
+    d_certs = std::move(newCerts);
+  }
 }
 
 void DNSCryptContext::markActive(uint32_t serial)
 {
   WriteLock w(&d_lock);
 
-  for (auto pair : certs) {
+  for (auto pair : d_certs) {
     if (pair->active == false && pair->cert.getSerial() == serial) {
       pair->active = true;
       return;
@@ -329,7 +361,7 @@ void DNSCryptContext::markInactive(uint32_t serial)
 {
   WriteLock w(&d_lock);
 
-  for (auto pair : certs) {
+  for (auto pair : d_certs) {
     if (pair->active == true && pair->cert.getSerial() == serial) {
       pair->active = false;
       return;
@@ -342,9 +374,9 @@ void DNSCryptContext::removeInactiveCertificate(uint32_t serial)
 {
   WriteLock w(&d_lock);
 
-  for (auto it = certs.begin(); it != certs.end(); ) {
+  for (auto it = d_certs.begin(); it != d_certs.end(); ) {
     if ((*it)->active == false && (*it)->cert.getSerial() == serial) {
-      it = certs.erase(it);
+      it = d_certs.erase(it);
       return;
     } else {
       it++;
@@ -393,7 +425,7 @@ void DNSCryptContext::getCertificateResponse(time_t now, const DNSName& qname, u
   dh->rcode = RCode::NoError;
 
   ReadLock r(&d_lock);
-  for (const auto pair : certs) {
+  for (const auto pair : d_certs) {
     if (!pair->active || !pair->cert.isValid(now)) {
       continue;
     }
@@ -414,7 +446,7 @@ bool DNSCryptContext::magicMatchesAPublicKey(DNSCryptQuery& query, time_t now)
   const unsigned char* magic = query.getClientMagic();
 
   ReadLock r(&d_lock);
-  for (const auto& pair : certs) {
+  for (const auto& pair : d_certs) {
     if (pair->cert.isValid(now) && memcmp(magic, pair->cert.signedData.clientMagic, DNSCRYPT_CLIENT_MAGIC_SIZE) == 0) {
       query.setCertificatePair(pair);
       return true;

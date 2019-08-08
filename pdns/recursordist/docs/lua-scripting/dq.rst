@@ -27,7 +27,7 @@ The DNSQuestion object contains at least the following fields:
 
   .. attribute:: DNSQuestion.isTcp
 
-      Boolean whether the query have been received over TCP.
+      Whether the query was received over TCP.
 
   .. attribute:: DNSQuestion.remoteaddr
 
@@ -108,6 +108,12 @@ The DNSQuestion object contains at least the following fields:
 
       A string that will be used to set the ``deviceId`` field in :doc:`protobuf <../lua-config/protobuf>` messages.
 
+  .. attribute:: DNSQuestion.deviceName
+
+      .. versionadded:: 4.3.0
+
+      A string that will be used to set the ``deviceName`` field in :doc:`protobuf <../lua-config/protobuf>` messages.
+
   .. attribute:: DNSQuestion.udpAnswer
 
       Answer to the :attr:`udpQuery <DNSQuestion.udpQuery>` when when using the ``udpQueryResponse`` :attr:`followupFunction <DNSQuestion.followupFunction>`.
@@ -133,6 +139,12 @@ The DNSQuestion object contains at least the following fields:
       Possible states are ``pdns.validationstates.Indeterminate``, ``pdns.validationstates.Bogus``, ``pdns.validationstates.Insecure`` and ``pdns.validationstates.Secure``.
       The result will always be ``pdns.validationstates.Indeterminate`` is validation is disabled or was not requested.
 
+  .. attribute:: DNSQuestion.logResponse
+
+      .. versionadded:: 4.2.0
+
+      Whether the response to this query will be exported to a remote protobuf logger, if one has been configured.
+
   It also supports the following methods:
 
   .. method:: DNSQuestion:addAnswer(type, content, [ttl, name])
@@ -141,7 +153,17 @@ The DNSQuestion object contains at least the following fields:
 
      :param int type: The type of record to add, can be ``pdns.AAAA`` etc.
      :param str content: The content of the record, will be parsed into wireformat based on the ``type``
-     :param int ttl: The TTL in seconds for this record
+     :param int ttl: The TTL in seconds for this record, defaults to 3600
+     :param DNSName name: The name of this record, defaults to :attr:`DNSQuestion.qname`
+
+  .. method:: DNSQuestion:addRecord(type, content, place, [ttl, name])
+
+     Add a record of ``type`` with ``content`` in section ``place``.
+
+     :param int type: The type of record to add, can be ``pdns.AAAA`` etc.
+     :param str content: The content of the record, will be parsed into wireformat based on the ``type``
+     :param int place: The section to place the record, see :attr:`DNSRecord.place`
+     :param int ttl: The TTL in seconds for this record, defaults to 3600
      :param DNSName name: The name of this record, defaults to :attr:`DNSQuestion.qname`
 
   .. method:: DNSQuestion:addPolicyTag(tag)
@@ -259,12 +281,22 @@ The EDNSOptionView Class
 
 .. class:: EDNSOptionView
 
-  An object that represents a single EDNS option
+  An object that represents the values of a single EDNS option
+
+  .. method:: EDNSOptionView:count()
+     .. versionadded:: 4.2.0
+
+    The number of values for this EDNS option.
+
+  .. method:: EDNSOptionView:getValues()
+     .. versionadded:: 4.2.0
+
+    Return a table of NULL-safe strings values for this EDNS option.
 
   .. attribute:: EDNSOptionView.size
 
-    The size in bytes of the EDNS option.
+    The size in bytes of the first value of this EDNS option.
 
   .. method:: EDNSOptionView:getContent()
 
-    Returns a NULL-safe string object of the EDNS option's content
+    Returns a NULL-safe string object of the first value of this EDNS option.

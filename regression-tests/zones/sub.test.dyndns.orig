@@ -1,0 +1,11 @@
+$TTL 3600
+$ORIGIN sub.test.dyndns.
+@		IN	SOA	ns1.test.dyndns.	ahu.example.dyndns. (  2012060701
+			8H ; refresh
+			2H ; retry
+			1W ; expire
+			1D ; default_ttl
+			)
+
+@			IN	NS	ns1.test.dyndns.
+@			IN	NS	ns2.test.dyndns.

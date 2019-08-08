@@ -136,7 +136,7 @@ try
   if(sock.write((char *) &len, 2) != 2)
     throw PDNSException("tcp write failed");
 
-  sock.writen(string((char*)&*packet.begin(), (char*)&*packet.end()));
+  sock.writen(string(packet.begin(), packet.end()));
   
   if(sock.read((char *) &len, 2) != 2)
     throw PDNSException("tcp read failed");
@@ -171,15 +171,18 @@ try
     {
       // cerr<<"got nsec3 ["<<i->first.d_name<<"]"<<endl;
       // cerr<<i->first.d_content->getZoneRepresentation()<<endl;
-      NSEC3RecordContent r = dynamic_cast<NSEC3RecordContent&> (*(i->first.d_content));
+      const auto r = std::dynamic_pointer_cast<NSEC3RecordContent>(i->first.d_content);
+      if (!r) {
+        continue;
+      }
       // nsec3.insert(new nsec3()
       // cerr<<toBase32Hex(r.d_nexthash)<<endl;
       vector<string> parts;
       string sname=i->first.d_name.toString();
       boost::split(parts, sname /* FIXME400 */, boost::is_any_of("."));
-      nsec3s.insert(make_pair(toLower(parts[0]), toBase32Hex(r.d_nexthash)));
-      nsec3salt = r.d_salt;
-      nsec3iters = r.d_iterations;
+      nsec3s.insert(make_pair(toLower(parts[0]), toBase32Hex(r->d_nexthash)));
+      nsec3salt = r->d_salt;
+      nsec3iters = r->d_iterations;
     }
     else
     {

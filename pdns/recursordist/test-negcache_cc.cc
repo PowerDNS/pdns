@@ -264,6 +264,59 @@ BOOST_AUTO_TEST_CASE(test_prune) {
   BOOST_CHECK_EQUAL(cache.size(), 100);
 }
 
+BOOST_AUTO_TEST_CASE(test_prune_valid_entries) {
+  DNSName power1("powerdns.com.");
+  DNSName power2("powerdns-1.com.");
+  DNSName auth("com.");
+
+  struct timeval now;
+  Utility::gettimeofday(&now, 0);
+
+  NegCache cache;
+  NegCache::NegCacheEntry ne;
+
+  /* insert power1 then power2 */
+  ne = genNegCacheEntry(power1, auth, now);
+  cache.add(ne);
+  ne = genNegCacheEntry(power2, auth, now);
+  cache.add(ne);
+
+  BOOST_CHECK_EQUAL(cache.size(), 2);
+
+  /* power2 has been inserted more recently, so it should be
+     removed last */
+  cache.prune(1);
+  BOOST_CHECK_EQUAL(cache.size(), 1);
+
+  const NegCache::NegCacheEntry* got = nullptr;
+  bool ret = cache.get(power2, QType(1), now, &got);
+  BOOST_REQUIRE(ret);
+  BOOST_CHECK_EQUAL(got->d_name, power2);
+  BOOST_CHECK_EQUAL(got->d_auth, auth);
+
+  /* insert power1 back */
+  ne = genNegCacheEntry(power1, auth, now);
+  cache.add(ne);
+  BOOST_CHECK_EQUAL(cache.size(), 2);
+
+  /* replace the entry for power2 */
+  ne = genNegCacheEntry(power2, auth, now);
+  cache.add(ne);
+
+  BOOST_CHECK_EQUAL(cache.size(), 2);
+
+  /* power2 has been updated more recently, so it should be
+     removed last */
+  cache.prune(1);
+
+  BOOST_CHECK_EQUAL(cache.size(), 1);
+  got = nullptr;
+  ret = cache.get(power2, QType(1), now, &got);
+  BOOST_REQUIRE(ret);
+  BOOST_CHECK_EQUAL(got->d_name, power2);
+  BOOST_CHECK_EQUAL(got->d_auth, auth);
+}
+
 BOOST_AUTO_TEST_CASE(test_wipe_single) {
   string qname(".powerdns.com");
   DNSName auth("powerdns.com");
@@ -383,6 +436,14 @@ BOOST_AUTO_TEST_CASE(test_dumpToFile) {
       BOOST_FAIL("Unable to read a line from the temp file");
     BOOST_CHECK_EQUAL(line, str);
   }
+
+  if (line != nullptr) {
+    /* getline() allocates a buffer when called with a nullptr,
+       then reallocates it when needed, but we need to free the
+       last allocation if any. */
+    free(line);
+  }
+
   fclose(fp);
 }
 

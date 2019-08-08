@@ -41,6 +41,8 @@ public:
   typedef vector<DNSZoneRecord> rrset_t; 
   typedef rrset_t chunk_t; // for now
   
+  ChunkedSigningPipe(const ChunkedSigningPipe&) = delete;
+  void operator=(const ChunkedSigningPipe&) = delete;
   ChunkedSigningPipe(const DNSName& signerName, bool mustSign, unsigned int numWorkers=3);
   ~ChunkedSigningPipe();
   bool submit(const DNSZoneRecord& rr);

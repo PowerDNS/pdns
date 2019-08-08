@@ -47,6 +47,11 @@ Sending metrics over SNMP
 
 The recursor can export statistics over SNMP and send traps from :doc:`Lua <lua-scripting/index>`, provided support is compiled into the Recursor and :ref:`setting-snmp-agent` set.
 
+MIB
+^^^
+
+.. literalinclude:: ../RECURSOR-MIB.txt
+
 Getting Metrics from the Recursor
 ---------------------------------
 
@@ -180,9 +185,25 @@ concurrent-queries
 ^^^^^^^^^^^^^^^^^^
 shows the number of MThreads currently   running
 
+cpu-msec-thread-n
+^^^^^^^^^^^^^^^^^
+shows the number of milliseconds spent in thread n. Available since 4.1.12.
+
 dlg-only-drops
 ^^^^^^^^^^^^^^
 number of records dropped because of :ref:`setting-delegation-only` setting
+
+dnssec-authentic-data-queries
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+.. versionadded:: 4.2
+
+number of queries received with the AD bit set
+
+dnssec-check-disabled-queries
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+.. versionadded:: 4.2
+
+number of queries received with the CD bit set
 
 dnssec-queries
 ^^^^^^^^^^^^^^
@@ -223,6 +244,18 @@ number of outgoing queries adorned with an EDNS Client Subnet option (since 4.1)
 ecs-responses
 ^^^^^^^^^^^^^
 number of responses received from authoritative servers with an EDNS Client Subnet option we used (since 4.1)
+
+ecs-v4-response-bits-*
+^^^^^^^^^^^^^^^^^^^^^^
+.. versionadded:: 4.2.0
+
+number of responses received from authoritative servers with an IPv4 EDNS Client Subnet option we used, of this subnet size (1 to 32).
+
+ecs-v6-response-bits-*
+^^^^^^^^^^^^^^^^^^^^^^
+.. versionadded:: 4.2.0
+
+number of responses received from authoritative servers with an IPv6 EDNS Client Subnet option we used, of this subnet size (1 to 128).
 
 edns-ping-matches
 ^^^^^^^^^^^^^^^^^
@@ -370,6 +403,12 @@ questions
 ^^^^^^^^^
 counts all end-user initiated queries with the RD bit   set
 
+rebalanced-queries
+^^^^^^^^^^^^^^^^^^
+.. versionadded:: 4.1.12
+
+number of queries balanced to a different worker thread because the first selected one was above the target load configured with 'distribution-load-factor'
+
 resource-limits
 ^^^^^^^^^^^^^^^
 counts number of queries that could not be   performed because of resource limits
@@ -426,6 +465,18 @@ too-old-drops
 ^^^^^^^^^^^^^
 questions dropped that were too old
 
+truncated-drops
+^^^^^^^^^^^^^^^
+.. versionadded:: 4.2
+
+questions dropped because they were larger than 512 bytes
+
+empty-queries
+^^^^^^^^^^^^^
+.. versionadded:: 4.2
+
+questions dropped because they had a QD count of 0
+
 unauthorized-tcp
 ^^^^^^^^^^^^^^^^
 number of TCP questions denied because of   allow-from restrictions
@@ -451,6 +502,14 @@ user-msec
 number of CPU milliseconds spent in 'user' mode
 
 .. _stat-x-our-latency:
+
+variable-responses
+^^^^^^^^^^^^^^^^^^
+.. versionadded:: 4.2
+
+Responses that were marked as 'variable'. This could be because of EDNS
+Client Subnet or Lua rules that indicate this variable status (dependent on
+time or who is asking, for example).
 
 x-our-latency
 ^^^^^^^^^^^^^

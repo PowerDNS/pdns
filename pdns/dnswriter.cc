@@ -76,10 +76,11 @@ dnsheader* DNSPacketWriter::getHeader()
 
 void DNSPacketWriter::startRecord(const DNSName& name, uint16_t qtype, uint32_t ttl, uint16_t qclass, DNSResourceRecord::Place place, bool compress)
 {
+  d_compress = compress;
   commit();
   d_rollbackmarker=d_content.size();
 
-  if(compress && !name.empty() && d_qname==name) {  // don't do the whole label compression thing if we *know* we can get away with "see question" - except when compressing the root
+  if(compress && !name.isRoot() && d_qname==name) {  // don't do the whole label compression thing if we *know* we can get away with "see question" - except when compressing the root
     static unsigned char marker[2]={0xc0, 0x0c};
     d_content.insert(d_content.end(), (const char *) &marker[0], (const char *) &marker[2]);
   }
@@ -94,15 +95,26 @@ void DNSPacketWriter::startRecord(const DNSName& name, uint16_t qtype, uint32_t 
   d_sor=d_content.size(); // this will remind us where to stuff the record size
 }
 
-void DNSPacketWriter::addOpt(uint16_t udpsize, int extRCode, int Z, const vector<pair<uint16_t,string> >& options, uint8_t version)
+void DNSPacketWriter::addOpt(const uint16_t udpsize, const uint16_t extRCode, const uint16_t ednsFlags, const optvect_t& options, const uint8_t version)
 {
   uint32_t ttl=0;
 
   EDNS0Record stuff;
 
-  stuff.extRCode=extRCode;
-  stuff.version=version;
-  stuff.Z=htons(Z);
+  stuff.version = version;
+  stuff.extFlags = htons(ednsFlags);
+
+  /* RFC 6891 section 4 on the Extended RCode wire format
+   *    EXTENDED-RCODE
+   *        Forms the upper 8 bits of extended 12-bit RCODE (together with the
+   *        4 bits defined in [RFC1035].  Note that EXTENDED-RCODE value 0
+   *        indicates that an unextended RCODE is in use (values 0 through 15).
+   */
+  // XXX Should be check for extRCode > 1<<12 ?
+  stuff.extRCode = extRCode>>4;
+  if (extRCode != 0) { // As this trumps the existing RCODE
+    getHeader()->rcode = extRCode;
+  }
 
   static_assert(sizeof(EDNS0Record) == sizeof(ttl), "sizeof(EDNS0Record) must match sizeof(ttl)");
   memcpy(&ttl, &stuff, sizeof(stuff));
@@ -110,10 +122,10 @@ void DNSPacketWriter::addOpt(uint16_t udpsize, int extRCode, int Z, const vector
   ttl=ntohl(ttl); // will be reversed later on
 
   startRecord(g_rootdnsname, QType::OPT, ttl, udpsize, DNSResourceRecord::ADDITIONAL, false);
-  for(optvect_t::const_iterator iter = options.begin(); iter != options.end(); ++iter) {
-    xfr16BitInt(iter->first);
-    xfr16BitInt(iter->second.length());
-    xfrBlob(iter->second);
+  for(auto const &option : options) {
+    xfr16BitInt(option.first);
+    xfr16BitInt(option.second.length());
+    xfrBlob(option.second);
   }
 }
 
@@ -131,7 +143,7 @@ void DNSPacketWriter::xfr48BitInt(uint64_t val)
 
 void DNSPacketWriter::xfr32BitInt(uint32_t val)
 {
-  int rval=htonl(val);
+  uint32_t rval=htonl(val);
   uint8_t* ptr=reinterpret_cast<uint8_t*>(&rval);
   d_content.insert(d_content.end(), ptr, ptr+4);
 }
@@ -189,6 +201,7 @@ void DNSPacketWriter::xfrUnquotedText(const string& text, bool lenField)
 
 
 static constexpr bool l_verbose=false;
+static constexpr uint16_t maxCompressionOffset=16384;
 uint16_t DNSPacketWriter::lookupName(const DNSName& name, uint16_t* matchLen)
 {
   // iterate over the written labels, see if we find a match
@@ -255,7 +268,9 @@ uint16_t DNSPacketWriter::lookupName(const DNSName& name, uint16_t* matchLen)
         }
         if(!c)
           break;
-        pvect.push_back(iter - d_content.cbegin());
+        auto offset = iter - d_content.cbegin();
+        if (offset >= maxCompressionOffset) break; // compression pointers cannot point here
+        pvect.push_back(offset);
         iter+=*iter+1;
       }
     }
@@ -314,14 +329,14 @@ void DNSPacketWriter::xfrName(const DNSName& name, bool compress, bool)
 
   uint16_t li=0;
   uint16_t matchlen=0;
-  if(compress && (li=lookupName(name, &matchlen))) {
+  if(d_compress && compress && (li=lookupName(name, &matchlen)) && li < maxCompressionOffset) {
     const auto& dns=name.getStorage(); 
     if(l_verbose)
       cout<<"Found a substring of "<<matchlen<<" bytes from the back, offset: "<<li<<", dnslen: "<<dns.size()<<endl;
     // found a substring, if www.powerdns.com matched powerdns.com, we get back matchlen = 13
 
     unsigned int pos=d_content.size();
-    if(pos < 16384 && matchlen != dns.size()) {
+    if(pos < maxCompressionOffset && matchlen != dns.size()) {
       if(l_verbose)
         cout<<"Inserting pos "<<pos<<" for "<<name<<" for compressed case"<<endl;
       d_namepositions.push_back(pos);
@@ -340,7 +355,7 @@ void DNSPacketWriter::xfrName(const DNSName& name, bool compress, bool)
     unsigned int pos=d_content.size();
     if(l_verbose)
       cout<<"Found nothing, we are at pos "<<pos<<", inserting whole name"<<endl;
-    if(pos < 16384) {
+    if(pos < maxCompressionOffset) {
       if(l_verbose)
         cout<<"Inserting pos "<<pos<<" for "<<name<<" for uncompressed case"<<endl;
       d_namepositions.push_back(pos);

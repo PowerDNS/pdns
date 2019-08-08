@@ -22,6 +22,10 @@ The following table describes the supported backends and some of their capabilit
 +------------------------------------------------+--------+--------+-------+--------------+-------------+---------------------------------+--------------+
 | :doc:`LDAP <ldap>`                             | Yes    | No     | No    | No           | No          | No                              | ``ldap``     |
 +------------------------------------------------+--------+--------+-------+--------------+-------------+---------------------------------+--------------+
+| :doc:`LMDB <lmdb>`                             | Yes    | Yes    | Yes   | No           | Yes         | Yes                             | ``lmdb``     |
++------------------------------------------------+--------+--------+-------+--------------+-------------+---------------------------------+--------------+
+| :doc:`Lua <lua>`                               | Yes    | Yes    | No    | No           | Yes         | Yes                             | ``lua``      |
++------------------------------------------------+--------+--------+-------+--------------+-------------+---------------------------------+--------------+
 | :doc:`Lua2 <lua2>`                             | Yes    | Yes    | No    | No           | Yes         | Yes                             | ``lua2``     |
 +------------------------------------------------+--------+--------+-------+--------------+-------------+---------------------------------+--------------+
 | :doc:`MyDNS <mydns>`                           | Yes    | No     | No    | No           | No          | No                              | ``mydns``    |
@@ -44,6 +48,7 @@ These backends have :doc:`features unique <generic-sql>` to the generic SQL back
 
 .. toctree::
   :maxdepth: 1
+  :hidden:
 
   bind
   generic-sql
@@ -54,6 +59,7 @@ These backends have :doc:`features unique <generic-sql>` to the generic SQL back
   generic-sqlite3
   geoip
   ldap
+  lmdb
   lua
   lua2
   mydns

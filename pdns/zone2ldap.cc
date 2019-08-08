@@ -303,19 +303,19 @@ int main( int argc, char* argv[] )
 //                        ZP.setDirectory( BP.getDirectory() );
                         const vector<BindDomainInfo> &domains = BP.getDomains();
 
-                        for( vector<BindDomainInfo>::const_iterator i = domains.begin(); i != domains.end(); i++ )
+                        for(const auto& i: domains)
                         {
-                                        if(i->type!="master" && i->type!="slave") {
-                                                cerr<<" Warning! Skipping '"<<i->type<<"' zone '"<<i->name<<"'"<<endl;
+                                        if(i.type!="master" && i.type!="slave") {
+                                                cerr<<" Warning! Skipping '"<<i.type<<"' zone '"<<i.name<<"'"<<endl;
                                                 continue;
                                         }
                                 try
                                 {
-                                  if( i->name != g_rootdnsname && i->name != DNSName("localhost") && i->name != DNSName("0.0.127.in-addr.arpa") )
+                                  if( i.name != g_rootdnsname && i.name != DNSName("localhost") && i.name != DNSName("0.0.127.in-addr.arpa") )
                                         {
-                                                cerr << "Parsing file: " << i->filename << ", domain: " << i->name << endl;
-                                                g_zonename = i->name;
-                                                ZoneParserTNG zpt(i->filename, i->name, BP.getDirectory());
+                                                cerr << "Parsing file: " << i.filename << ", domain: " << i.name << endl;
+                                                g_zonename = i.name;
+                                                ZoneParserTNG zpt(i.filename, i.name, BP.getDirectory());
                                                 DNSResourceRecord rr;
                                                 while(zpt.get(rr)) {
                                                         callback(g_domainid, rr.qname, rr.qtype.getName(), encode_non_ascii(rr.content), rr.ttl);

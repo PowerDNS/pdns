@@ -39,35 +39,35 @@
 
 static const char *basicQueryKey = "PDNS_Basic_Query";
 static const char *basicQueryDefaultAuthSQL =
-  "SELECT fqdn, ttl, type, content, zone_id, last_change, auth "
+  "SELECT fqdn, ttl, type, content, zone_id, auth "
   "FROM Records "
   "WHERE type = :type AND fqdn = lower(:name)";
 
-static const char *basicQueryDefaultSQL = "SELECT fqdn, ttl, type, content, zone_id, last_change "
+static const char *basicQueryDefaultSQL = "SELECT fqdn, ttl, type, content, zone_id, "
   "FROM Records "
   "WHERE type = :type AND fqdn = lower(:name)";
 
 static const char *basicIdQueryKey = "PDNS_Basic_Id_Query";
 static const char *basicIdQueryDefaultAuthSQL =
-  "SELECT fqdn, ttl, type, content, zone_id, last_change, auth "
+  "SELECT fqdn, ttl, type, content, zone_id, auth "
   "FROM Records "
   "WHERE type = :type AND fqdn = lower(:name) AND zone_id = :zoneid";
 
 static const char *basicIdQueryDefaultSQL = 
-  "SELECT fqdn, ttl, type, content, zone_id, last_change "
+  "SELECT fqdn, ttl, type, content, zone_id, "
   "FROM Records "
   "WHERE type = :type AND fqdn = lower(:name) AND zone_id = :zoneid";
 
 static const char *anyQueryKey = "PDNS_ANY_Query";
 static const char *anyQueryDefaultAuthSQL =
-  "SELECT fqdn, ttl, type, content, zone_id, last_change, auth "
+  "SELECT fqdn, ttl, type, content, zone_id, auth "
   "FROM Records "
   "WHERE fqdn = lower(:name)"
   "  AND type IS NOT NULL "
   "ORDER BY type";
 
 static const char *anyQueryDefaultSQL =
-  "SELECT fqdn, ttl, type, content, zone_id, last_change "
+  "SELECT fqdn, ttl, type, content, zone_id, "
   "FROM Records "
   "WHERE fqdn = lower(:name)"
   "  AND type IS NOT NULL "
@@ -75,7 +75,7 @@ static const char *anyQueryDefaultSQL =
 
 static const char *anyIdQueryKey = "PDNS_ANY_Id_Query";
 static const char *anyIdQueryDefaultAuthSQL =
-  "SELECT fqdn, ttl, type, content, zone_id, last_change, auth "
+  "SELECT fqdn, ttl, type, content, zone_id, auth "
   "FROM Records "
   "WHERE fqdn = lower(:name)"
   "  AND zone_id = :zoneid"
@@ -83,7 +83,7 @@ static const char *anyIdQueryDefaultAuthSQL =
   "ORDER BY type";
 
 static const char *anyIdQueryDefaultSQL =
-  "SELECT fqdn, ttl, type, content, zone_id, last_change "
+  "SELECT fqdn, ttl, type, content, zone_id, "
   "FROM Records "
   "WHERE fqdn = lower(:name)"
   "  AND zone_id = :zoneid"
@@ -93,14 +93,14 @@ static const char *anyIdQueryDefaultSQL =
 
 static const char *listQueryKey = "PDNS_List_Query";
 static const char *listQueryDefaultAuthSQL =
-  "SELECT fqdn, ttl, type, content, zone_id, last_change, auth "
+  "SELECT fqdn, ttl, type, content, zone_id, auth "
   "FROM Records "
   "WHERE zone_id = :zoneid"
   "  AND type IS NOT NULL "
   "ORDER BY fqdn, type";
 
 static const char *listQueryDefaultSQL =
-  "SELECT fqdn, ttl, type, content, zone_id, last_change "
+  "SELECT fqdn, ttl, type, content, zone_id, "
   "FROM Records "
   "WHERE zone_id = :zoneid"
   "  AND type IS NOT NULL "

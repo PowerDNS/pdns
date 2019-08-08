@@ -128,3 +128,70 @@ AC_DEFUN([AX_AVAILABLE_SYSTEMD], [
 	AX_CHECK_SYSTEMD_DETECT_AND_ENABLE()
 	AX_CHECK_SYSTEMD()
 ])
+
+AC_DEFUN([AX_CHECK_SYSTEMD_FEATURES], [
+        AS_IF([test x"$systemd" = "xy"], [
+          AC_PATH_PROG([SYSTEMCTL], [systemctl], [no])
+          AS_IF([test "$SYSTEMCTL" = "no"],
+            [AC_MSG_ERROR([systemctl not found])], [
+              _systemd_version=`${SYSTEMCTL} --version|head -1 |cut -d" " -f 2`
+              if test $_systemd_version -ge 183; then
+                 systemd_private_tmp=y
+              fi
+              if test $_systemd_version -ge 209; then
+                 systemd_system_call_architectures=y
+                 systemd_private_devices=y
+              fi
+              if test $_systemd_version -ge 211; then
+                 systemd_restrict_address_families=y
+              fi
+              if test $_systemd_version -ge 214; then
+                 systemd_protect_system=y
+                 systemd_protect_home=y
+              fi
+              if test $_systemd_version -ge 231; then
+                 systemd_restrict_realtime=y
+                 systemd_memory_deny_write_execute=y
+              fi
+              if test $_systemd_version -ge 232; then
+                 systemd_protect_control_groups=y
+                 systemd_protect_kernel_modules=y
+                 systemd_protect_kernel_tunables=y
+                 systemd_remove_ipc=y
+                 systemd_dynamic_user=y
+                 systemd_private_users=y
+                 systemd_protect_system_strict=y
+              fi
+              if test $_systemd_version -ge 233; then
+                 systemd_restrict_namespaces=y
+              fi
+              if test $_systemd_version -ge 235; then
+                 systemd_lock_personality=y
+                 # while SystemCallFilter is technically available starting with 187,
+                 # we use the pre-defined call filter sets that have been introduced later.
+                 # Initial support for these landed in 231
+                 # @filesystem @reboot @swap in 233
+                 # @aio, @sync, @chown, @setuid, @memlock, @signal and @timer in 235
+                 systemd_system_call_filter=y
+              fi
+          ])
+        ])
+        AM_CONDITIONAL([HAVE_SYSTEMD_DYNAMIC_USER], [ test x"$systemd_dynamic_user" = "xy" ])
+        AM_CONDITIONAL([HAVE_SYSTEMD_LOCK_PERSONALITY], [ test x"$systemd_lock_personality" = "xy" ])
+        AM_CONDITIONAL([HAVE_SYSTEMD_MEMORY_DENY_WRITE_EXECUTE], [ test x"$systemd_memory_deny_write_execute" = "xy" ])
+        AM_CONDITIONAL([HAVE_SYSTEMD_PRIVATE_DEVICES], [ test x"$systemd_private_devices" = "xy" ])
+        AM_CONDITIONAL([HAVE_SYSTEMD_PRIVATE_TMP], [ test x"$systemd_private_tmp" = "xy" ])
+        AM_CONDITIONAL([HAVE_SYSTEMD_PRIVATE_USERS], [ test x"$systemd_private_users" = "xy" ])
+        AM_CONDITIONAL([HAVE_SYSTEMD_PROTECT_CONTROL_GROUPS], [ test x"$systemd_protect_control_groups" = "xy" ])
+        AM_CONDITIONAL([HAVE_SYSTEMD_PROTECT_HOME], [ test x"$systemd_protect_home" = "xy" ])
+        AM_CONDITIONAL([HAVE_SYSTEMD_PROTECT_KERNEL_MODULES], [ test x"$systemd_protect_kernel_modules" = "xy" ])
+        AM_CONDITIONAL([HAVE_SYSTEMD_PROTECT_KERNEL_TUNABLES], [ test x"$systemd_protect_kernel_tunables" = "xy" ])
+        AM_CONDITIONAL([HAVE_SYSTEMD_PROTECT_SYSTEM], [ test x"$systemd_protect_system" = "xy" ])
+        AM_CONDITIONAL([HAVE_SYSTEMD_PROTECT_SYSTEM_STRICT], [ test x"$systemd_protect_system_strict" = "xy" ])
+        AM_CONDITIONAL([HAVE_SYSTEMD_REMOVE_IPC], [ test x"$systemd_remove_ipc" = "xy" ])
+        AM_CONDITIONAL([HAVE_SYSTEMD_RESTRICT_ADDRESS_FAMILIES], [ test x"$systemd_restrict_address_families" = "xy" ])
+        AM_CONDITIONAL([HAVE_SYSTEMD_RESTRICT_NAMESPACES], [ test x"$systemd_restrict_namespaces" = "xy" ])
+        AM_CONDITIONAL([HAVE_SYSTEMD_RESTRICT_REALTIME], [ test x"$systemd_restrict_realtime" = "xy" ])
+        AM_CONDITIONAL([HAVE_SYSTEMD_SYSTEM_CALL_ARCHITECTURES], [ test x"$systemd_system_call_architectures" = "xy" ])
+        AM_CONDITIONAL([HAVE_SYSTEMD_SYSTEM_CALL_FILTER], [ test x"$systemd_system_call_filter" = "xy" ])
+])

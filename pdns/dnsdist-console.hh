@@ -42,6 +42,8 @@ extern GlobalStateHolder<NetmaskGroup> g_consoleACL;
 extern const std::vector<ConsoleKeyword> g_consoleKeywords;
 extern std::string g_consoleKey; // in theory needs locking
 extern bool g_logConsoleConnections;
+extern bool g_consoleEnabled;
+extern uint32_t g_consoleOutputMsgMaxSize;
 
 void doClient(ComboAddress server, const std::string& command);
 void doConsole();

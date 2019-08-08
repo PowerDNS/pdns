@@ -50,39 +50,170 @@
 
 #ifdef HAVE_PROTOBUF
 
-static void logOutgoingQuery(std::shared_ptr<RemoteLogger> outgoingLogger, boost::optional<const boost::uuids::uuid&> initialRequestId, const boost::uuids::uuid& uuid, const ComboAddress& ip, const DNSName& domain, int type, uint16_t qid, bool doTCP, size_t bytes)
+#include "uuid-utils.hh"
+
+#ifdef HAVE_FSTRM
+#include "rec-dnstap.hh"
+#include "fstrm_logger.hh"
+bool g_syslog;
+
+static bool isEnabledForQueries(const std::shared_ptr<std::vector<std::unique_ptr<FrameStreamLogger>>>& fstreamLoggers)
 {
-  if(!outgoingLogger)
-    return;
-
-  RecProtoBufMessage message(DNSProtoBufMessage::OutgoingQuery, uuid, nullptr, &ip, domain, type, QClass::IN, qid, doTCP, bytes);
-  if (initialRequestId) {
-    message.setInitialRequestID(*initialRequestId);
+  if (fstreamLoggers == nullptr) {
+    return false;
   }
-
-//  cerr <<message.toDebugString()<<endl;
-  std::string str;
-  message.serialize(str);
-  outgoingLogger->queueData(str);
+  for (auto& logger : *fstreamLoggers) {
+    if (logger->logQueries()) {
+      return true;
+    }
+  }
+  return false;
 }
 
-static void logIncomingResponse(std::shared_ptr<RemoteLogger> outgoingLogger, boost::optional<const boost::uuids::uuid&> initialRequestId, const boost::uuids::uuid& uuid, const ComboAddress& ip, const DNSName& domain, int type, uint16_t qid, bool doTCP, size_t bytes, int rcode, const std::vector<DNSRecord>& records, const struct timeval& queryTime)
+static void logFstreamQuery(const std::shared_ptr<std::vector<std::unique_ptr<FrameStreamLogger>>>& fstreamLoggers, const struct timeval &queryTime, const ComboAddress& ip, bool doTCP,
+  boost::optional<const DNSName&> auth, const vector<uint8_t>& packet)
 {
-  if(!outgoingLogger)
+  if (fstreamLoggers == nullptr)
     return;
 
-  RecProtoBufMessage message(DNSProtoBufMessage::IncomingResponse, uuid, nullptr, &ip, domain, type, QClass::IN, qid, doTCP, bytes);
-  if (initialRequestId) {
-    message.setInitialRequestID(*initialRequestId);
+  struct timespec ts;
+  TIMEVAL_TO_TIMESPEC(&queryTime, &ts);
+  RecDnstapMessage message(SyncRes::s_serverID, nullptr, &ip, doTCP, auth, reinterpret_cast<const char*>(&*packet.begin()), packet.size(), &ts, nullptr);
+  std::string str;
+  message.serialize(str);
+
+  for (auto& logger : *fstreamLoggers) {
+    logger->queueData(str);
   }
-  message.setQueryTime(queryTime.tv_sec, queryTime.tv_usec);
-  message.setResponseCode(rcode);
-  message.addRRs(records);
+}
+
+static bool isEnabledForResponses(const std::shared_ptr<std::vector<std::unique_ptr<FrameStreamLogger>>>& fstreamLoggers)
+{
+  if (fstreamLoggers == nullptr) {
+    return false;
+  }
+  for (auto& logger : *fstreamLoggers) {
+    if (logger->logResponses()) {
+      return true;
+    }
+  }
+  return false;
+}
+
+static void logFstreamResponse(const std::shared_ptr<std::vector<std::unique_ptr<FrameStreamLogger>>>& fstreamLoggers, const ComboAddress& ip, bool doTCP,
+  boost::optional<const DNSName&> auth, const std::string& packet, const struct timeval& queryTime, const struct timeval& replyTime)
+{
+  if (fstreamLoggers == nullptr)
+    return;
+
+  struct timespec ts1, ts2;
+  TIMEVAL_TO_TIMESPEC(&queryTime, &ts1);
+  TIMEVAL_TO_TIMESPEC(&replyTime, &ts2);
+  RecDnstapMessage message(SyncRes::s_serverID, nullptr, &ip, doTCP, auth, static_cast<const char*>(&*packet.begin()), packet.size(), &ts1, &ts2);
+  std::string str;
+  message.serialize(str);
+
+  for (auto& logger : *fstreamLoggers) {
+    logger->queueData(str);
+  }
+}
+
+#endif // HAVE_FSTRM
+
+static void logOutgoingQuery(const std::shared_ptr<std::vector<std::unique_ptr<RemoteLogger>>>& outgoingLoggers, boost::optional<RecProtoBufMessage>& message, boost::optional<const boost::uuids::uuid&> initialRequestId, const boost::uuids::uuid& uuid, const ComboAddress& ip, const DNSName& domain, int type, uint16_t qid, bool doTCP, size_t bytes, boost::optional<Netmask>& srcmask)
+{
+  if (!outgoingLoggers) {
+    return;
+  }
+
+  bool log = false;
+  for (auto& logger : *outgoingLoggers) {
+    if (logger->logQueries()) {
+      log = true;
+      break;
+    }
+  }
+
+  if (!log) {
+    return;
+  }
+
+  message = RecProtoBufMessage(DNSProtoBufMessage::OutgoingQuery, uuid, nullptr, &ip, domain, type, QClass::IN, qid, doTCP, bytes);
+  message->setServerIdentity(SyncRes::s_serverID);
+
+  if (initialRequestId) {
+    message->setInitialRequestID(*initialRequestId);
+  }
+
+  if (srcmask) {
+    message->setEDNSSubnet(*srcmask);
+  }
 
 //  cerr <<message.toDebugString()<<endl;
   std::string str;
-  message.serialize(str);
-  outgoingLogger->queueData(str);
+  message->serialize(str);
+
+  for (auto& logger : *outgoingLoggers) {
+    if (logger->logQueries()) {
+      logger->queueData(str);
+    }
+  }
+}
+
+static void logIncomingResponse(const std::shared_ptr<std::vector<std::unique_ptr<RemoteLogger>>>& outgoingLoggers, boost::optional<RecProtoBufMessage>& message, boost::optional<const boost::uuids::uuid&> initialRequestId, const boost::uuids::uuid& uuid, const ComboAddress& ip, const DNSName& domain, int type, uint16_t qid, bool doTCP, boost::optional<Netmask>& srcmask, size_t bytes, int rcode, const std::vector<DNSRecord>& records, const struct timeval& queryTime, const std::set<uint16_t>& exportTypes)
+{
+  if (!outgoingLoggers) {
+    return;
+  }
+
+  bool log = false;
+  for (auto& logger : *outgoingLoggers) {
+    if (logger->logResponses()) {
+      log = true;
+      break;
+    }
+  }
+
+  if (!log) {
+    return;
+  }
+
+  if (!message) {
+    message = RecProtoBufMessage(DNSProtoBufMessage::IncomingResponse, uuid, nullptr, &ip, domain, type, QClass::IN, qid, doTCP, bytes);
+    message->setServerIdentity(SyncRes::s_serverID);
+
+    if (initialRequestId) {
+      message->setInitialRequestID(*initialRequestId);
+    }
+
+    if (srcmask) {
+      message->setEDNSSubnet(*srcmask);
+    }
+  }
+  else {
+    message->updateTime();
+    message->setType(DNSProtoBufMessage::IncomingResponse);
+    message->setBytes(bytes);
+  }
+
+  message->setQueryTime(queryTime.tv_sec, queryTime.tv_usec);
+  if (rcode == -1) {
+    message->setNetworkErrorResponseCode();
+  }
+  else {
+    message->setResponseCode(rcode);
+  }
+  message->addRRs(records, exportTypes);
+
+//  cerr <<message.toDebugString()<<endl;
+  std::string str;
+  message->serialize(str);
+
+  for (auto& logger : *outgoingLoggers) {
+    if (logger->logResponses()) {
+      logger->queueData(str);
+    }
+  }
 }
 #endif /* HAVE_PROTOBUF */
 
@@ -90,11 +221,12 @@ static void logIncomingResponse(std::shared_ptr<RemoteLogger> outgoingLogger, bo
 /** lwr is only filled out in case 1 was returned, and even when returning 1 for 'success', lwr might contain DNS errors
     Never throws! 
  */
-int asyncresolve(const ComboAddress& ip, const DNSName& domain, int type, bool doTCP, bool sendRDQuery, int EDNS0Level, struct timeval* now, boost::optional<Netmask>& srcmask, boost::optional<const ResolveContext&> context, std::shared_ptr<RemoteLogger> outgoingLogger, LWResult *lwr, bool* chained)
+int asyncresolve(const ComboAddress& ip, const DNSName& domain, int type, bool doTCP, bool sendRDQuery, int EDNS0Level, struct timeval* now, boost::optional<Netmask>& srcmask, boost::optional<const ResolveContext&> context, const std::shared_ptr<std::vector<std::unique_ptr<RemoteLogger>>>& outgoingLoggers, const std::shared_ptr<std::vector<std::unique_ptr<FrameStreamLogger>>>& fstrmLoggers, const std::set<uint16_t>& exportTypes, LWResult *lwr, bool* chained)
 {
   size_t len;
   size_t bufsize=g_outgoingEDNSBufsize;
-  scoped_array<unsigned char> buf(new unsigned char[bufsize]);
+  std::string buf;
+  buf.resize(bufsize);
   vector<uint8_t> vpacket;
   //  string mapped0x20=dns0x20(domain);
   uint16_t qid = dns_random(0xffff);
@@ -133,7 +265,6 @@ int asyncresolve(const ComboAddress& ip, const DNSName& domain, int type, bool d
     pw.addOpt(g_outgoingEDNSBufsize, 0, g_dnssecmode == DNSSECMode::Off ? 0 : EDNSOpts::DNSSECOK, opts); 
     pw.commit();
   }
-  srcmask = boost::none; // this is also our return value, even if EDNS0Level == 0
   lwr->d_rcode = 0;
   lwr->d_haveEDNS = false;
   int ret;
@@ -145,14 +276,21 @@ int asyncresolve(const ComboAddress& ip, const DNSName& domain, int type, bool d
 #ifdef HAVE_PROTOBUF
   boost::uuids::uuid uuid;
   const struct timeval queryTime = *now;
+  boost::optional<RecProtoBufMessage> pbMessage = boost::none;
 
-  if (outgoingLogger) {
-    uuid = (*t_uuidGenerator)();
-    logOutgoingQuery(outgoingLogger, context ? context->d_initialRequestId : boost::none, uuid, ip, domain, type, qid, doTCP, vpacket.size());
+  if (outgoingLoggers) {
+    uuid = getUniqueID();
+    logOutgoingQuery(outgoingLoggers, pbMessage, context ? context->d_initialRequestId : boost::none, uuid, ip, domain, type, qid, doTCP, vpacket.size(), srcmask);
   }
-#endif
+#endif /* HAVE_PROTOBUF */
+#ifdef HAVE_FSTRM
+  if (isEnabledForQueries(fstrmLoggers)) {
+    logFstreamQuery(fstrmLoggers, queryTime, ip, doTCP, context ? context->d_auth : boost::none, vpacket);
+  }
+#endif /* HAVE_FSTRM */
 
-  errno=0;
+  srcmask = boost::none; // this is also our return value, even if EDNS0Level == 0
+
   if(!doTCP) {
     int queryfd;
     if(ip.sin4.sin_family==AF_INET6)
@@ -169,7 +307,7 @@ int asyncresolve(const ComboAddress& ip, const DNSName& domain, int type, bool d
 
     // sleep until we see an answer to this, interface to mtasker
     
-    ret=arecvfrom(reinterpret_cast<char *>(buf.get()), bufsize, 0, ip, &len, qid,
+    ret=arecvfrom(buf, 0, ip, &len, qid,
                   domain, type, queryfd, now);
   }
   else {
@@ -204,12 +342,8 @@ int asyncresolve(const ComboAddress& ip, const DNSName& domain, int type, bool d
       if(!(ret > 0))
         return ret;
       
-      if(len > bufsize) {
-        bufsize=len;
-        scoped_array<unsigned char> narray(new unsigned char[bufsize]);
-        buf.swap(narray);
-      }
-      memcpy(buf.get(), packet.c_str(), len);
+      buf.resize(len);
+      memcpy(const_cast<char*>(buf.data()), packet.c_str(), len);
 
       ret=1;
     }
@@ -222,23 +356,38 @@ int asyncresolve(const ComboAddress& ip, const DNSName& domain, int type, bool d
   lwr->d_usec=dt.udiff();
   *now=dt.getTimeval();
 
-  if(ret <= 0) // includes 'timeout'
+  if(ret <= 0) { // includes 'timeout'
+#ifdef HAVE_PROTOBUF
+      if (outgoingLoggers) {
+        logIncomingResponse(outgoingLoggers, pbMessage, context ? context->d_initialRequestId : boost::none, uuid, ip, domain, type, qid, doTCP, srcmask, 0, -1, {}, queryTime, exportTypes);
+      }
+#endif
     return ret;
+  }
+
+  buf.resize(len);
+
+#ifdef HAVE_FSTRM
+  if (isEnabledForResponses(fstrmLoggers)) {
+    logFstreamResponse(fstrmLoggers, ip, doTCP, context ? context->d_auth : boost::none, buf, queryTime, *now);
+  }
+#endif /* HAVE_FSTRM */
 
   lwr->d_records.clear();
   try {
     lwr->d_tcbit=0;
-    MOADNSParser mdp(false, (const char*)buf.get(), len);
+    MOADNSParser mdp(false, buf);
     lwr->d_aabit=mdp.d_header.aa;
     lwr->d_tcbit=mdp.d_header.tc;
     lwr->d_rcode=mdp.d_header.rcode;
     
     if(mdp.d_header.rcode == RCode::FormErr && mdp.d_qname.empty() && mdp.d_qtype == 0 && mdp.d_qclass == 0) {
 #ifdef HAVE_PROTOBUF
-      if(outgoingLogger) {
-        logIncomingResponse(outgoingLogger, context ? context->d_initialRequestId : boost::none, uuid, ip, domain, type, qid, doTCP, len, lwr->d_rcode, lwr->d_records, queryTime);
+      if(outgoingLoggers) {
+        logIncomingResponse(outgoingLoggers, pbMessage, context ? context->d_initialRequestId : boost::none, uuid, ip, domain, type, qid, doTCP, srcmask, len, lwr->d_rcode, lwr->d_records, queryTime, exportTypes);
       }
 #endif
+      lwr->d_validpacket=true;
       return 1; // this is "success", the error is set in lwr->d_rcode
     }
 
@@ -249,7 +398,8 @@ int asyncresolve(const ComboAddress& ip, const DNSName& domain, int type, bool d
       // unexpected count has already been done @ pdns_recursor.cc
       goto out;
     }
-    
+
+    lwr->d_records.reserve(mdp.d_answers.size());
     for(const auto& a : mdp.d_answers)
       lwr->d_records.push_back(a.first);
 
@@ -279,10 +429,11 @@ int asyncresolve(const ComboAddress& ip, const DNSName& domain, int type, bool d
     }
         
 #ifdef HAVE_PROTOBUF
-    if(outgoingLogger) {
-      logIncomingResponse(outgoingLogger, context ? context->d_initialRequestId : boost::none, uuid, ip, domain, type, qid, doTCP, len, lwr->d_rcode, lwr->d_records, queryTime);
+    if(outgoingLoggers) {
+      logIncomingResponse(outgoingLoggers, pbMessage, context ? context->d_initialRequestId : boost::none, uuid, ip, domain, type, qid, doTCP, srcmask, len, lwr->d_rcode, lwr->d_records, queryTime, exportTypes);
     }
 #endif
+    lwr->d_validpacket=true;
     return 1;
   }
   catch(std::exception &mde) {
@@ -291,10 +442,11 @@ int asyncresolve(const ComboAddress& ip, const DNSName& domain, int type, bool d
     lwr->d_rcode = RCode::FormErr;
     g_stats.serverParseError++;
 #ifdef HAVE_PROTOBUF
-    if(outgoingLogger) {
-      logIncomingResponse(outgoingLogger, context ? context->d_initialRequestId : boost::none, uuid, ip, domain, type, qid, doTCP, len, lwr->d_rcode, lwr->d_records, queryTime);
+    if(outgoingLoggers) {
+      logIncomingResponse(outgoingLoggers, pbMessage, context ? context->d_initialRequestId : boost::none, uuid, ip, domain, type, qid, doTCP, srcmask, len, lwr->d_rcode, lwr->d_records, queryTime, exportTypes);
     }
 #endif
+    lwr->d_validpacket=false;
     return 1; // success - oddly enough
   }
   catch(...) {

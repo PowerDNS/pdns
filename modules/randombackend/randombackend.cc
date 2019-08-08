@@ -22,11 +22,11 @@
 #ifdef HAVE_CONFIG_H
 #include "config.h"
 #endif
-#include "pdns/utility.hh"
 #include "pdns/dnsbackend.hh"
 #include "pdns/dns.hh"
 #include "pdns/dnsbackend.hh"
 #include "pdns/dnspacket.hh"
+#include "pdns/dns_random.hh"
 #include "pdns/pdnsexception.hh"
 #include "pdns/logger.hh"
 #include "pdns/version.hh"
@@ -59,7 +59,7 @@ public:
     } else if (qdomain == d_ourname) {
       if(type.getCode() == QType::A || type.getCode() == QType::ANY) {
         ostringstream os;
-        os<<Utility::random()%256<<"."<<Utility::random()%256<<"."<<Utility::random()%256<<"."<<Utility::random()%256;
+        os<<dns_random(256)<<"."<<dns_random(256)<<"."<<dns_random(256)<<"."<<dns_random(256);
         d_answer=os.str(); // our random ip address
       } else {
         d_answer="";

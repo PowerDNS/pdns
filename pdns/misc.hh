@@ -112,7 +112,9 @@ stringtok (Container &container, string const &in,
 
 template<typename T> bool rfc1982LessThan(T a, T b)
 {
-  return ((signed)(a - b)) < 0;
+  static_assert(std::is_unsigned<T>::value, "rfc1982LessThan only works for unsigned types");
+  typedef typename std::make_signed<T>::type signed_t;
+  return static_cast<signed_t>(a - b) < 0;
 }
 
 // fills container with ranges, so {posbegin,posend}
@@ -162,8 +164,6 @@ string uitoa(unsigned int i);
 string bitFlip(const string &str);
 
 void dropPrivs(int uid, int gid);
-int makeGidNumeric(const string &group);
-int makeUidNumeric(const string &user);
 void cleanSlashes(string &str);
 
 #if defined(_POSIX_THREAD_CPUTIME) && defined(CLOCK_THREAD_CPUTIME_ID)
@@ -470,10 +470,8 @@ private:
 class SimpleMatch
 {
 public:
-  SimpleMatch(const string &mask, bool caseFold = false)
+  SimpleMatch(const string &mask, bool caseFold = false): d_mask(mask), d_fold(caseFold)
   {
-    this->d_mask = mask;
-    this->d_fold = caseFold;
   }
  
   bool match(string::const_iterator mi, string::const_iterator mend, string::const_iterator vi, string::const_iterator vend)
@@ -519,8 +517,12 @@ private:
 };
 
 union ComboAddress;
+
+// An aligned type to hold cmsgbufs. See https://man.openbsd.org/CMSG_DATA
+typedef union { struct cmsghdr hdr; char buf[256]; } cmsgbuf_aligned;
+
 /* itfIndex is an interface index, as returned by if_nametoindex(). 0 means default. */
-void addCMsgSrcAddr(struct msghdr* msgh, void* cmsgbuf, const ComboAddress* source, int itfIndex);
+void addCMsgSrcAddr(struct msghdr* msgh, cmsgbuf_aligned* cbuf, const ComboAddress* source, int itfIndex);
 
 unsigned int getFilenumLimit(bool hardOrSoft=0);
 void setFilenumLimit(unsigned int lim);
@@ -536,11 +538,16 @@ bool setNonBlocking( int sock );
 bool setTCPNoDelay(int sock);
 bool setReuseAddr(int sock);
 bool isNonBlocking(int sock);
+bool setReceiveSocketErrors(int sock, int af);
 int closesocket(int fd);
 bool setCloseOnExec(int sock);
-uint64_t udpErrorStats(const std::string& str);
 
+size_t getPipeBufferSize(int fd);
+bool setPipeBufferSize(int fd, size_t size);
+
+uint64_t udpErrorStats(const std::string& str);
 uint64_t getRealMemoryUsage(const std::string&);
+uint64_t getSpecialMemoryUsage(const std::string&);
 uint64_t getOpenFileDescriptors(const std::string&);
 uint64_t getCPUTimeUser(const std::string&);
 uint64_t getCPUTimeSystem(const std::string&);
@@ -598,3 +605,5 @@ unsigned int pdns_stou(const std::string& str, size_t * idx = 0, int base = 10);
 
 bool isSettingThreadCPUAffinitySupported();
 int mapThreadToCPUList(pthread_t tid, const std::set<int>& cpus);
+
+std::vector<ComboAddress> getResolvers(const std::string& resolvConfPath);
