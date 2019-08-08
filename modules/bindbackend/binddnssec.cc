@@ -65,6 +65,12 @@ bool Bind2Backend::activateDomainKey(const DNSName& name, unsigned int id)
 bool Bind2Backend::deactivateDomainKey(const DNSName& name, unsigned int id)
 { return false; }
 
+bool Bind2Backend::publishDomainKey(const DNSName& name, unsigned int id)
+{ return false; }
+
+bool Bind2Backend::unpublishDomainKey(const DNSName& name, unsigned int id)
+{ return false; }
+
 bool Bind2Backend::getTSIGKey(const DNSName& name, DNSName* algorithm, string* content)
 { return false; }
 
@@ -113,12 +119,14 @@ void Bind2Backend::setupStatements()
   d_getDomainMetadataQuery_stmt = d_dnssecdb->prepare("select content from domainmetadata where domain=:domain and kind=:kind",2);
   d_deleteDomainMetadataQuery_stmt = d_dnssecdb->prepare("delete from domainmetadata where domain=:domain and kind=:kind",2);
   d_insertDomainMetadataQuery_stmt = d_dnssecdb->prepare("insert into domainmetadata (domain, kind, content) values (:domain,:kind,:content)",3);
-  d_getDomainKeysQuery_stmt = d_dnssecdb->prepare("select id,flags, active, content from cryptokeys where domain=:domain",1);
+  d_getDomainKeysQuery_stmt = d_dnssecdb->prepare("select id,flags, active, published, content from cryptokeys where domain=:domain",1);
   d_deleteDomainKeyQuery_stmt = d_dnssecdb->prepare("delete from cryptokeys where domain=:domain and id=:key_id",2);
-  d_insertDomainKeyQuery_stmt = d_dnssecdb->prepare("insert into cryptokeys (domain, flags, active, content) values (:domain, :flags, :active, :content)", 4);
+  d_insertDomainKeyQuery_stmt = d_dnssecdb->prepare("insert into cryptokeys (domain, flags, active, published, content) values (:domain, :flags, :active, :published, :content)", 5);
   d_GetLastInsertedKeyIdQuery_stmt = d_dnssecdb->prepare("select last_insert_rowid()", 0);
   d_activateDomainKeyQuery_stmt = d_dnssecdb->prepare("update cryptokeys set active=1 where domain=:domain and id=:key_id", 2);
   d_deactivateDomainKeyQuery_stmt = d_dnssecdb->prepare("update cryptokeys set active=0 where domain=:domain and id=:key_id", 2);
+  d_publishDomainKeyQuery_stmt = d_dnssecdb->prepare("update cryptokeys set published=1 where domain=:domain and id=:key_id", 2);
+  d_unpublishDomainKeyQuery_stmt = d_dnssecdb->prepare("update cryptokeys set published=0 where domain=:domain and id=:key_id", 2);
   d_getTSIGKeyQuery_stmt = d_dnssecdb->prepare("select algorithm, secret from tsigkeys where name=:key_name", 1);
   d_setTSIGKeyQuery_stmt = d_dnssecdb->prepare("replace into tsigkeys (name,algorithm,secret) values(:key_name, :algorithm, :content)", 3);
   d_deleteTSIGKeyQuery_stmt = d_dnssecdb->prepare("delete from tsigkeys where name=:key_name", 1);
@@ -137,6 +145,8 @@ void Bind2Backend::freeStatements()
   d_GetLastInsertedKeyIdQuery_stmt.reset();
   d_activateDomainKeyQuery_stmt.reset();
   d_deactivateDomainKeyQuery_stmt.reset();
+  d_publishDomainKeyQuery_stmt.reset();
+  d_unpublishDomainKeyQuery_stmt.reset();
   d_getTSIGKeyQuery_stmt.reset();
   d_setTSIGKeyQuery_stmt.reset();
   d_deleteTSIGKeyQuery_stmt.reset();
@@ -274,7 +284,8 @@ bool Bind2Backend::getDomainKeys(const DNSName& name, std::vector<KeyData>& keys
       kd.id = pdns_stou(row[0]);
       kd.flags = pdns_stou(row[1]);
       kd.active = (row[2] == "1");
-      kd.content = row[3];
+      kd.published = (row[3] == "1");
+      kd.content = row[4];
       keys.push_back(kd);
     }
 
@@ -314,6 +325,7 @@ bool Bind2Backend::addDomainKey(const DNSName& name, const KeyData& key, int64_t
       bind("domain", name)->
       bind("flags", key.flags)->
       bind("active", key.active)->
+      bind("published", key.published)->
       bind("content", key.content)->
       execute()->
       reset();
@@ -378,6 +390,43 @@ bool Bind2Backend::deactivateDomainKey(const DNSName& name, unsigned int id)
   }
   return true;
 }
+
+bool Bind2Backend::publishDomainKey(const DNSName& name, unsigned int id)
+{
+  if(!d_dnssecdb || d_hybrid)
+    return false;
+
+  try {
+    d_publishDomainKeyQuery_stmt->
+      bind("domain", name)->
+      bind("key_id", id)->
+      execute()->
+      reset();
+  }
+  catch(SSqlException& se) {
+    throw PDNSException("Error accessing DNSSEC database in BIND backend, publishDomainKey(): "+se.txtReason());
+  }
+  return true;
+}
+
+bool Bind2Backend::unpublishDomainKey(const DNSName& name, unsigned int id)
+{
+  if(!d_dnssecdb || d_hybrid)
+    return false;
+
+  try {
+    d_unpublishDomainKeyQuery_stmt->
+      bind("domain", name)->
+      bind("key_id", id)->
+      execute()->
+      reset();
+  }
+  catch(SSqlException& se) {
+    throw PDNSException("Error accessing DNSSEC database in BIND backend, unpublishDomainKey(): "+se.txtReason());
+  }
+  return true;
+}
+
 
 bool Bind2Backend::getTSIGKey(const DNSName& name, DNSName* algorithm, string* content)
 {

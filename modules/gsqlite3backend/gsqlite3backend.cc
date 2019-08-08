@@ -126,9 +126,9 @@ public:
     declare(suffix, "delete-rrset-query", "", "delete from records where domain_id=:domain_id and name=:qname and type=:qtype");
     declare(suffix, "delete-names-query", "", "delete from records where domain_id=:domain_id and name=:qname");
 
-    declare(suffix, "add-domain-key-query","", "insert into cryptokeys (domain_id, flags, active, content) select id, :flags,:active, :content from domains where name=:domain");
+    declare(suffix, "add-domain-key-query","", "insert into cryptokeys (domain_id, flags, active, published, content) select id, :flags, :active, :published, :content from domains where name=:domain");
     declare(suffix, "get-last-inserted-key-id-query", "", "select last_insert_rowid()");
-    declare(suffix, "list-domain-keys-query","", "select cryptokeys.id, flags, active, content from domains, cryptokeys where cryptokeys.domain_id=domains.id and name=:domain");
+    declare(suffix, "list-domain-keys-query","", "select cryptokeys.id, flags, active, published, content from domains, cryptokeys where cryptokeys.domain_id=domains.id and name=:domain");
     declare(suffix, "get-all-domain-metadata-query","", "select kind,content from domains, domainmetadata where domainmetadata.domain_id=domains.id and name=:domain");
     declare(suffix, "get-domain-metadata-query","", "select content from domains, domainmetadata where domainmetadata.domain_id=domains.id and name=:domain and domainmetadata.kind=:kind");
     declare(suffix, "clear-domain-metadata-query","", "delete from domainmetadata where domain_id=(select id from domains where name=:domain) and domainmetadata.kind=:kind");
@@ -136,6 +136,8 @@ public:
     declare(suffix, "set-domain-metadata-query","", "insert into domainmetadata (domain_id, kind, content) select id, :kind, :content from domains where name=:domain");
     declare(suffix, "activate-domain-key-query","", "update cryptokeys set active=1 where domain_id=(select id from domains where name=:domain) and  cryptokeys.id=:key_id");
     declare(suffix, "deactivate-domain-key-query","", "update cryptokeys set active=0 where domain_id=(select id from domains where name=:domain) and  cryptokeys.id=:key_id");
+    declare(suffix, "publish-domain-key-query","", "update cryptokeys set published=1 where domain_id=(select id from domains where name=:domain) and  cryptokeys.id=:key_id");
+    declare(suffix, "unpublish-domain-key-query","", "update cryptokeys set published=0 where domain_id=(select id from domains where name=:domain) and  cryptokeys.id=:key_id");
     declare(suffix, "remove-domain-key-query","", "delete from cryptokeys where domain_id=(select id from domains where name=:domain) and cryptokeys.id=:key_id");
     declare(suffix, "clear-domain-all-keys-query","", "delete from cryptokeys where domain_id=(select id from domains where name=:domain)");
     declare(suffix, "get-tsig-key-query","", "select algorithm, secret from tsigkeys where name=:key_name");

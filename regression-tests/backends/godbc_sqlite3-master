@@ -13,7 +13,7 @@ godbc-datasource=$GODBC_SQLITE3_DSN
 
 # ../pdns/pdns_server --module-dir=./modules/ --launch=gsqlite3 --config | grep gsqlite3 | grep query | grep = | cut -c3- | perl -pe 's/^gsqlite3/godbc/; s/:\w+/?/g'
 godbc-activate-domain-key-query=update cryptokeys set active=1 where domain_id=(select id from domains where name=?) and  cryptokeys.id=?
-godbc-add-domain-key-query=insert into cryptokeys (domain_id, flags, active, content) select id, ?,?, ? from domains where name=?
+godbc-add-domain-key-query=insert into cryptokeys (domain_id, flags, active, published, content) select id, ?, ?, ?, ? from domains where name=?
 godbc-any-id-query=SELECT content,ttl,prio,type,domain_id,disabled,name,auth FROM records WHERE disabled=0 and name=? and domain_id=?
 godbc-any-query=SELECT content,ttl,prio,type,domain_id,disabled,name,auth FROM records WHERE disabled=0 and name=?
 godbc-basic-query=SELECT content,ttl,prio,type,domain_id,disabled,name,auth FROM records WHERE disabled=0 and type=? and name=?
@@ -39,6 +39,7 @@ godbc-get-order-first-query=select ordername from records where disabled=0 and d
 godbc-get-order-last-query=select ordername, name from records where disabled=0 and ordername != '' and domain_id=? and ordername is not null order by 1 desc limit 1
 godbc-get-tsig-key-query=select algorithm, secret from tsigkeys where name=?
 godbc-get-tsig-keys-query=select name,algorithm, secret from tsigkeys
+godbc-publish-domain-key-query=update cryptokeys set published=1 where domain_id=(select id from domains where name=?) and  cryptokeys.id=?
 godbc-id-query=SELECT content,ttl,prio,type,domain_id,disabled,name,auth FROM records WHERE disabled=0 and type=? and name=? and domain_id=?
 godbc-info-all-master-query=select id,name,master,last_check,notified_serial,type from domains where type='MASTER'
 godbc-info-all-slaves-query=select id,name,master,last_check from domains where type='SLAVE'
@@ -48,7 +49,7 @@ godbc-insert-empty-non-terminal-order-query=insert into records (type,domain_id,
 godbc-insert-record-query=insert into records (content,ttl,prio,type,domain_id,disabled,name,ordername,auth) values (?,?,?,?,?,?,?,?,?)
 godbc-insert-zone-query=insert into domains (type,name,master,account,last_check,notified_serial) values(?, ?, ?, ?, null, null)
 godbc-list-comments-query=SELECT domain_id,name,type,modified_at,account,comment FROM comments WHERE domain_id=?
-godbc-list-domain-keys-query=select cryptokeys.id, flags, active, content from domains, cryptokeys where cryptokeys.domain_id=domains.id and name=?
+godbc-list-domain-keys-query=select cryptokeys.id, flags, active, published, content from domains, cryptokeys where cryptokeys.domain_id=domains.id and name=?
 godbc-list-query=SELECT content,ttl,prio,type,domain_id,disabled,name,auth FROM records WHERE (disabled=0 OR ?) and domain_id=? order by name, type
 godbc-list-subzone-query=SELECT content,ttl,prio,type,domain_id,disabled,name,auth FROM records WHERE disabled=0 and (name=? OR name like ?) and domain_id=?
 godbc-nullify-ordername-and-update-auth-query=update records set ordername=NULL,auth=? where domain_id=? and name=? and disabled=0
@@ -60,6 +61,7 @@ godbc-search-records-query=SELECT content,ttl,prio,type,domain_id,disabled,name,
 godbc-set-domain-metadata-query=insert into domainmetadata (domain_id, kind, content) select id, ?, ? from domains where name=?
 godbc-set-tsig-key-query=replace into tsigkeys (name,algorithm,secret) values(?,?,?)
 godbc-supermaster-query=select account from supermasters where ip=? and nameserver=?
+godbc-unpublish-domain-key-query=update cryptokeys set published=0 where domain_id=(select id from domains where name=?) and  cryptokeys.id=?
 godbc-update-account-query=update domains set account=? where name=?
 godbc-update-kind-query=update domains set type=? where name=?
 godbc-update-lastcheck-query=update domains set last_check=? where id=?

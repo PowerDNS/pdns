@@ -122,6 +122,8 @@ public:
   bool removeDomainKey(const DNSName& name, unsigned int id);
   bool activateDomainKey(const DNSName& name, unsigned int id);
   bool deactivateDomainKey(const DNSName& name, unsigned int id);
+  bool publishDomainKey(const DNSName& name, unsigned int id);
+  bool unpublishDomainKey(const DNSName& name, unsigned int id);
 
   bool getTSIGKey(const DNSName& name, DNSName* algorithm, string* content);
   bool setTSIGKey(const DNSName& name, const DNSName& algorithm, const string& content);

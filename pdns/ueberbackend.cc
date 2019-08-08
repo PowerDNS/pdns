@@ -190,6 +190,25 @@ bool UeberBackend::deactivateDomainKey(const DNSName& name, unsigned int id)
   return false;
 }
 
+bool UeberBackend::publishDomainKey(const DNSName& name, unsigned int id)
+{
+  for(DNSBackend* db :  backends) {
+    if(db->publishDomainKey(name, id))
+      return true;
+  }
+  return false;
+}
+
+bool UeberBackend::unpublishDomainKey(const DNSName& name, unsigned int id)
+{
+  for(DNSBackend* db :  backends) {
+    if(db->unpublishDomainKey(name, id))
+      return true;
+  }
+  return false;
+}
+
+
 bool UeberBackend::removeDomainKey(const DNSName& name, unsigned int id)
 {
   for(DNSBackend* db :  backends) {

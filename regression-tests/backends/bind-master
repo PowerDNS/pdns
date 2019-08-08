@@ -67,6 +67,12 @@ __EOF__
 				then
 					$PDNSUTIL --config-dir=. --config-name=bind set-nsec3 $zone '1 1 1 abcd' narrow 2>&1
 				fi
+                if [ $zone = cryptokeys.org ]
+                then
+                    $PDNSUTIL --config-dir=. --config-name=bind add-zone-key $zone zsk 384 active unpublished ecdsa384
+                    $PDNSUTIL --config-dir=. --config-name=bind add-zone-key $zone zsk 2048 inactive published rsasha512
+                    $PDNSUTIL --config-dir=. --config-name=bind add-zone-key $zone zsk 2048 inactive unpublished rsasha256
+                fi
 			fi
 			if [ "$zone" = "tsig.com" ]; then
 				$PDNSUTIL --config-dir=. --config-name=bind import-tsig-key test $ALGORITHM $KEY

@@ -48,11 +48,13 @@ algorithms are supported:
 
 activate-zone-key *ZONE* *KEY-ID*
     Activate a key with id *KEY-ID* within a zone called *ZONE*.
-add-zone-key *ZONE* {**KSK**,\ **ZSK**} [**active**,\ **inactive**] *KEYBITS* *ALGORITHM*
+add-zone-key *ZONE* {**KSK**,\ **ZSK**} [**active**,\ **inactive**] [**published**,\ **unpublished**] *KEYBITS* *ALGORITHM*
     Create a new key for zone *ZONE*, and make it a KSK or a ZSK, with
     the specified algorithm. The key is inactive by default, set it to
-    **active** to immediately use it to sign *ZONE*. Prints the id of
-    the added key.
+    **active** to immediately use it to sign *ZONE*. The key is published
+    in the zone by default, set it to **unpublished** to keep it from
+    being returned in a DNSKEY query, which is useful for algorithm
+    rollovers. Prints the id of the added key.
 create-bind-db *FILE*
     Create DNSSEC database (sqlite3) at *FILE* for the BIND backend.
     Remember to set ``bind-dnssec-db=*FILE*`` in your ``pdns.conf``.
@@ -81,6 +83,8 @@ import-zone-key *ZONE* *FILE* {**KSK**,\ **ZSK**}
     format used is compatible with BIND and NSD/LDNS. **KSK** or **ZSK**
     specifies the flags this key should have on import. Prints the id of
     the added key.
+publish-zone-key *ZONE* *KEY-ID*
+    Publish the key with id *KEY-ID* within a zone called *ZONE*.
 remove-zone-key *ZONE* *KEY-ID*
     Remove a key with id *KEY-ID* from a zone called *ZONE*.
 set-nsec3 *ZONE* ['*HASH-ALGORITHM* *FLAGS* *ITERATIONS* *SALT*'] [**narrow**]
@@ -103,6 +107,8 @@ set-nsec3 *ZONE* ['*HASH-ALGORITHM* *FLAGS* *ITERATIONS* *SALT*'] [**narrow**]
     commandline is: ``pdnsutil set-nsec3 powerdnssec.org '1 1 1 ab' narrow``.
     **WARNING**: If running in RSASHA1 mode (algorithm 5 or 7), switching
     from NSEC to NSEC3 will require a DS update in the parent zone.
+unpublish-zone-key *ZONE* *KEY-ID*
+    Unpublish the key with id *KEY-ID* within a zone called *ZONE*.
 unset-nsec3 *ZONE*
     Converts *ZONE* to NSEC operations. **WARNING**: If running in
     RSASHA1 mode (algorithm 5 or 7), switching from NSEC to NSEC3 will

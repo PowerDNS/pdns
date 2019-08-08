@@ -66,6 +66,7 @@ protected
              "id" => 1,
              "flags" => 257,
              "active" => true,
+             "published" => true,
              "content" => "Private-key-format: v1.2
 Algorithm: 8 (RSASHA256)
 Modulus: ovvzf1fHdptdXsBrBLSqmGqdEKwR2B9st/KBgh8xQKoQzTGUG00CsPjF/J59IBU+EU/IIInMn0MxLLTyUKa2DJUkR6i7UKif5jKX1c7yvWzrFKLGOHjugUX2++r+o789biUte1qpWp3Kc2RYL18oPco4zpo6JcsPmhOK3aUCDJXmuWgHl1KudCQIiPkISArXVn4oOp+skQq+mUBl1Pysc4D+6sl77ERR2fW6xJ4ZRPOIKr445RJJmKgoMG8yRrR3it1RmV49hZlvMosQjBUoNcqhqOI0n4l8HOLyna7KIzoNKG62GtUCZh8uy8IjdUiWPYGEtkZ9zE0bnnF+R7HGvQ==
@@ -81,6 +82,7 @@ Coefficient: vG8tLZBE4s3bftN5INv2/o3knEcaoUAPfakSsjM2uLwQCGiUbBOOlp3QSdTU4MiLjDs
              "id" => 2,
              "flags" => 256,
              "active" => true,
+             "published" => true,
              "content" => "Private-key-format: v1.2
 Algorithm: 8 (RSASHA256)
 Modulus: wKPNcDwkCd2DKxfdkMqTFOV2ITdgxIDaOd4vQ2QtphMBY9yYwmEkNsVdVFz7VVuQHdls20JUe+brFUhs1zEMMbokulFP/qVAItAeEWcqtkPULT+mmX5HsexpFVAZ5+UXuerObk/HMiIMt1CvkIWhmjSIkAI6dFRlf/93zTjy0+vwrNWZPXSzLccK5TfJmxdYdGPcsHkg6UmqEFPQuyZpmlmpg3IwjL5YddTDobAoABz/BrH7WsW0q/PyVubITo8JuFiBI5Fmw+3ef3PVUt1jtUCGASvtqNXW4wtWrgqvQKg/odthpceQ4QagV9XSlOdml527thnf9cMpm0Gh4Ox5HQ==

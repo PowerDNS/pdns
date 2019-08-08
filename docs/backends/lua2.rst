@@ -156,6 +156,7 @@ OUTPUT:
  - int id - Key ID
  - int flags - Key flags
  - bool active - Is key active
+ - bool published - Is key published
  - string content - Key itself
 
 NOTES:

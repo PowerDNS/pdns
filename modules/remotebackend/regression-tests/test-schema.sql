@@ -49,6 +49,7 @@ create table cryptokeys (
  domain_id      INT NOT NULL,
  flags        INT NOT NULL,
  active        BOOL,
+ published     BOOL,
  content    TEXT
 );         
 

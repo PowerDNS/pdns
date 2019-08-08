@@ -70,6 +70,7 @@ CREATE TABLE cryptokeys (
   domain_id             INT NOT NULL,
   flags                 INT NOT NULL,
   active                BOOL,
+  published             BOOL DEFAULT 1,
   content               TEXT,
   PRIMARY KEY(id)
 ) Engine=InnoDB CHARACTER SET 'latin1';

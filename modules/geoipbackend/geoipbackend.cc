@@ -744,6 +744,7 @@ bool GeoIPBackend::getDomainKeys(const DNSName& name, std::vector<DNSBackend::Ke
             DNSBackend::KeyData kd;
             kd.id = pdns_stou(glob_result.gl_pathv[i]+regm[3].rm_so);
             kd.active = !strncmp(glob_result.gl_pathv[i]+regm[4].rm_so, "1", 1);
+            kd.published = true;
             kd.flags = pdns_stou(glob_result.gl_pathv[i]+regm[2].rm_so);
             ifstream ifs(glob_result.gl_pathv[i]);
             ostringstream content;
@@ -857,7 +858,7 @@ bool GeoIPBackend::activateDomainKey(const DNSName& name, unsigned int id) {
               ostringstream newpath;
               newpath << getArg("dnssec-keydir") << "/" << dom.domain.toStringNoDot() << "." << pdns_stou(glob_result.gl_pathv[i]+regm[2].rm_so) << "." << kid << ".1.key";
               if (rename(glob_result.gl_pathv[i], newpath.str().c_str())) {
-                cerr << "Cannot active key: " << strerror(errno) << endl;
+                cerr << "Cannot activate key: " << strerror(errno) << endl;
               }
             }
           }
@@ -903,6 +904,15 @@ bool GeoIPBackend::deactivateDomainKey(const DNSName& name, unsigned int id) {
   }
   return false;
 }
+
+bool GeoIPBackend::publishDomainKey(const DNSName& name, unsigned int id) {
+  return false;
+}
+
+bool GeoIPBackend::unpublishDomainKey(const DNSName& name, unsigned int id) {
+  return false;
+}
+
 
 bool GeoIPBackend::hasDNSSECkey(const DNSName& name) {
   ostringstream pathname;

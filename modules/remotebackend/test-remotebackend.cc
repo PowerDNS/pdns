@@ -145,6 +145,7 @@ BOOST_AUTO_TEST_CASE(test_method_getDomainKeys) {
         BOOST_CHECK(kd.id > 0);
         BOOST_CHECK(kd.flags == 256 || kd.flags == 257);
         BOOST_CHECK(kd.active == true);
+        BOOST_CHECK(kd.published == true);
         BOOST_CHECK(kd.content.size() > 500);
       }
    }

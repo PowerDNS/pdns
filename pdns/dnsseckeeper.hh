@@ -69,6 +69,7 @@ public:
     bool active;
     keytype_t keyType;
     bool hasSEPBit;
+    bool published;
   };
   typedef std::pair<DNSSECPrivateKey, KeyMetaData> keymeta_t;
   typedef std::vector<keymeta_t > keyset_t;
@@ -191,11 +192,13 @@ public:
   keyset_t getEntryPoints(const DNSName& zname);
   keyset_t getKeys(const DNSName& zone, bool useCache = true);
   DNSSECPrivateKey getKeyById(const DNSName& zone, unsigned int id);
-  bool addKey(const DNSName& zname, bool setSEPBit, int algorithm, int64_t& id, int bits=0, bool active=true);
-  bool addKey(const DNSName& zname, const DNSSECPrivateKey& dpk, int64_t& id, bool active=true);
+  bool addKey(const DNSName& zname, bool setSEPBit, int algorithm, int64_t& id, int bits=0, bool active=true, bool published=true);
+  bool addKey(const DNSName& zname, const DNSSECPrivateKey& dpk, int64_t& id, bool active=true, bool published=true);
   bool removeKey(const DNSName& zname, unsigned int id);
   bool activateKey(const DNSName& zname, unsigned int id);
   bool deactivateKey(const DNSName& zname, unsigned int id);
+  bool publishKey(const DNSName& zname, unsigned int id);
+  bool unpublishKey(const DNSName& zname, unsigned int id);
   bool checkKeys(const DNSName& zname, vector<string>* errorMessages = nullptr);
 
   bool getNSEC3PARAM(const DNSName& zname, NSEC3PARAMRecordContent* n3p=0, bool* narrow=0);

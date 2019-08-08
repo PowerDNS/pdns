@@ -65,6 +65,8 @@ public:
   bool addDomainKey(const DNSName& name, const KeyData& key, int64_t& id) override;
   bool activateDomainKey(const DNSName& name, unsigned int id) override;
   bool deactivateDomainKey(const DNSName& name, unsigned int id) override;
+  bool publishDomainKey(const DNSName& name, unsigned int id) override;
+  bool unpublishDomainKey(const DNSName& name, unsigned int id) override;
 
 private:
   static pthread_rwlock_t s_state_lock;

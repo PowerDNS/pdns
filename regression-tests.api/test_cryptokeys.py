@@ -30,8 +30,8 @@ class Cryptokeys(ApiTestCase):
         self.remove_zone_key(self.keyid)
 
     # Adding a key to self.zone using the pdnsutil command
-    def add_zone_key(self, status='inactive'):
-        return pdnsutil("add-zone-key", self.zone_nodot, "ksk", status)
+    def add_zone_key(self, status=['inactive']):
+        return pdnsutil("add-zone-key", self.zone_nodot, "ksk", *status)
 
     # Removes a key from self.zone by id using the pdnsutil command
     def remove_zone_key(self, key_id):
@@ -191,7 +191,8 @@ class Cryptokeys(ApiTestCase):
         self.keyid = self.add_zone_key()
 
         payload = {
-            'active': True
+            'active': True,
+            'published': True,
         }
         r = self.session.put(
             self.url("/api/v1/servers/localhost/zones/"+self.zone+"/cryptokeys/"+self.keyid),
@@ -205,10 +206,11 @@ class Cryptokeys(ApiTestCase):
         self.assertIn("Active", out)
 
     def test_put_deactivate_key(self):
-        self.keyid = self.add_zone_key(status='active')
+        self.keyid = self.add_zone_key(status=['active'])
         # deactivate key
         payload2 = {
-            'active': False
+            'active': False,
+            'published': True,
         }
 
         r = self.session.put(
@@ -227,7 +229,8 @@ class Cryptokeys(ApiTestCase):
 
         # deactivate key
         payload = {
-            'active': False
+            'active': False,
+            'published': True,
         }
 
         r = self.session.put(
@@ -242,11 +245,12 @@ class Cryptokeys(ApiTestCase):
         self.assertIn("Inactive", out)
 
     def test_put_activate_active_key(self):
-        self.keyid =self.add_zone_key(status='active')
+        self.keyid = self.add_zone_key(status=['active'])
 
         # activate key
         payload2 = {
-            'active': True
+            'active': True,
+            'published': True,
         }
         r = self.session.put(
             self.url("/api/v1/servers/localhost/zones/"+self.zone+"/cryptokeys/"+self.keyid),
@@ -258,3 +262,79 @@ class Cryptokeys(ApiTestCase):
         # check if key is activated
         out = pdnsutil("show-zone", self.zone_nodot)
         self.assertIn("Active", out)
+
+    def test_put_unpublish_key(self):
+        self.keyid = self.add_zone_key(status=['active'])
+
+        payload = {
+            'active': True,
+            'published': False,
+        }
+        r = self.session.put(
+            self.url("/api/v1/servers/localhost/zones/"+self.zone+"/cryptokeys/"+self.keyid),
+            data=json.dumps(payload),
+            headers={'content-type': 'application/json'})
+        self.assertEquals(r.status_code, 204)
+        self.assertEquals(r.content, b"")
+
+        # check if key is activated
+        out = pdnsutil("show-zone", self.zone_nodot)
+        self.assertIn("Unpublished", out)
+
+    def test_put_publish_key(self):
+        self.keyid = self.add_zone_key(status=['active', 'unpublished'])
+        # deactivate key
+        payload2 = {
+            'active': True,
+            'published': True,
+        }
+
+        r = self.session.put(
+            self.url("/api/v1/servers/localhost/zones/"+self.zone+"/cryptokeys/"+self.keyid),
+            data=json.dumps(payload2),
+            headers={'content-type': 'application/json'})
+        self.assertEquals(r.status_code, 204)
+        self.assertEquals(r.content, b"")
+
+        # check if key is deactivated
+        out = pdnsutil("show-zone", self.zone_nodot)
+        self.assertIn("Published", out)
+
+    def test_put_publish_published_key(self):
+        self.keyid = self.add_zone_key(status=['active'])
+
+        # deactivate key
+        payload = {
+            'active': True,
+            'published': True,
+        }
+
+        r = self.session.put(
+            self.url("/api/v1/servers/localhost/zones/"+self.zone+"/cryptokeys/"+self.keyid),
+            data=json.dumps(payload),
+            headers={'content-type': 'application/json'})
+        self.assertEquals(r.status_code, 204)
+        self.assertEquals(r.content, b"")
+
+        # check if key is still deactivated
+        out = pdnsutil("show-zone", self.zone_nodot)
+        self.assertIn("Published", out)
+
+    def test_put_unpublish_unpublished_key(self):
+        self.keyid = self.add_zone_key(status=['active', 'unpublished'])
+
+        # activate key
+        payload2 = {
+            'active': True,
+            'published': False,
+        }
+        r = self.session.put(
+            self.url("/api/v1/servers/localhost/zones/"+self.zone+"/cryptokeys/"+self.keyid),
+            data=json.dumps(payload2),
+            headers={'content-type': 'application/json'})
+        self.assertEquals(r.status_code, 204)
+        self.assertEquals(r.content, b"")
+
+        # check if key is activated
+        out = pdnsutil("show-zone", self.zone_nodot)
+        self.assertIn("Unpublished", out)

@@ -200,6 +200,8 @@ public:
   bool addDomainKey(const DNSName& name, const KeyData& key, int64_t& id) override;
   bool activateDomainKey(const DNSName& name, unsigned int id) override;
   bool deactivateDomainKey(const DNSName& name, unsigned int id) override;
+  bool publishDomainKey(const DNSName& name, unsigned int id) override;
+  bool unpublishDomainKey(const DNSName& name, unsigned int id) override;
   bool getTSIGKey(const DNSName& name, DNSName* algorithm, string* content) override;
   bool setTSIGKey(const DNSName& name, const DNSName& algorithm, const string& content) override;
   bool deleteTSIGKey(const DNSName& name) override;
@@ -272,6 +274,8 @@ private:
   unique_ptr<SSqlStatement> d_GetLastInsertedKeyIdQuery_stmt;
   unique_ptr<SSqlStatement> d_activateDomainKeyQuery_stmt;
   unique_ptr<SSqlStatement> d_deactivateDomainKeyQuery_stmt;
+  unique_ptr<SSqlStatement> d_publishDomainKeyQuery_stmt;
+  unique_ptr<SSqlStatement> d_unpublishDomainKeyQuery_stmt;
   unique_ptr<SSqlStatement> d_getTSIGKeyQuery_stmt;
   unique_ptr<SSqlStatement> d_setTSIGKeyQuery_stmt;
   unique_ptr<SSqlStatement> d_deleteTSIGKeyQuery_stmt;

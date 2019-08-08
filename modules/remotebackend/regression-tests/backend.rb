@@ -62,8 +62,8 @@ class Handler
 
    def do_getdomainkeys(args)
        ret = []
-       db.execute("SELECT cryptokeys.id,flags,active,content FROM domains JOIN cryptokeys ON domains.id = cryptokeys.domain_id WHERE domains.name = ?", [args["name"]]) do |row|
-          ret << {:id => row[0].to_i, :flags => row[1].to_i, :active => !(row[2].to_i.zero?), :content => row[3]}
+       db.execute("SELECT cryptokeys.id,flags,active, published, content FROM domains JOIN cryptokeys ON domains.id = cryptokeys.domain_id WHERE domains.name = ?", [args["name"]]) do |row|
+          ret << {:id => row[0].to_i, :flags => row[1].to_i, :active => !(row[2].to_i.zero?), :published => row[3], :content => row[4]}
        end 
        return false if ret.empty?
        return [ret,nil]
@@ -150,15 +150,21 @@ class Handler
    def do_adddomainkey(args)
      d_id = db.get_first_value("SELECT id FROM domains WHERE name = ?", args["name"])
      return false if d_id.nil?
-     sql = "INSERT INTO cryptokeys (domain_id, flags, active, content) VALUES(?,?,?,?)"
+     sql = "INSERT INTO cryptokeys (domain_id, flags, active, published, content) VALUES(?,?,?,?,?)"
      active = args["key"]["active"]
      if (active) 
         active = 1
      else
         active = 0
      end
+     published = args["key"]["published"]
+     if (published)
+         published = 1
+     else
+         published = 0
+     end
      db do |tx|
-        tx.execute(sql, [d_id, args["key"]["flags"].to_i, active, args["key"]["content"]])
+        tx.execute(sql, [d_id, args["key"]["flags"].to_i, active, published, args["key"]["content"]])
      end
      return db.get_first_value("SELECT last_insert_rowid()").to_i
    end
@@ -177,6 +183,24 @@ class Handler
      return false if d_id.nil?
      db do |tx|
        db.execute("UPDATE cryptokeys SET active = 1 WHERE domain_id = ? AND id = ?", [d_id, args["id"]])
+     end
+     return true
+   end
+
+   def do_unpublishdomainkey(args)
+     d_id = db.get_first_value("SELECT id FROM domains WHERE name = ?", args["name"])
+     return false if d_id.nil?
+     db do |tx|
+       tx.execute("UPDATE cryptokeys SET published = 0 WHERE domain_id = ? AND id = ?", [d_id, args["id"]])
+     end
+     return true
+   end
+
+   def do_publishdomainkey(args)
+     d_id = db.get_first_value("SELECT id FROM domains WHERE name = ?", args["name"])
+     return false if d_id.nil?
+     db do |tx|
+       db.execute("UPDATE cryptokeys SET published = 1 WHERE domain_id = ? AND id = ?", [d_id, args["id"]])
      end
      return true
    end
