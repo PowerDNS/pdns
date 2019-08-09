@@ -7,6 +7,7 @@ struct DOHFrontend
 {
   std::shared_ptr<DOHServerConfig> d_dsc{nullptr};
   std::vector<std::pair<std::string, std::string>> d_certKeyPairs;
+  std::vector<std::string> d_ocspFiles;
   std::string d_ciphers;
   std::string d_ciphers13;
   std::string d_serverTokens{"h2o/dnsdist"};

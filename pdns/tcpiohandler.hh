@@ -139,6 +139,7 @@ public:
   }
 
   std::vector<std::pair<std::string, std::string>> d_certKeyPairs;
+  std::vector<std::string> d_ocspFiles;
   ComboAddress d_addr;
   std::string d_ciphers;
   std::string d_ciphers13;

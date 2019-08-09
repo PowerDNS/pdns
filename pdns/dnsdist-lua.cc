@@ -45,6 +45,10 @@
 #include "protobuf.hh"
 #include "sodcrypto.hh"
 
+#ifdef HAVE_LIBSSL
+#include "libssl.hh"
+#endif
+
 #include <boost/logic/tribool.hpp>
 #include <boost/lexical_cast.hpp>
 
@@ -87,7 +91,7 @@ void resetLuaSideEffect()
   g_noLuaSideEffect = boost::logic::indeterminate;
 }
 
-typedef std::unordered_map<std::string, boost::variant<bool, int, std::string, std::vector<std::pair<int,int> >, std::map<std::string,std::string> > > localbind_t;
+typedef std::unordered_map<std::string, boost::variant<bool, int, std::string, std::vector<std::pair<int,int> >, std::vector<std::pair<int, std::string> >, std::map<std::string,std::string>  > > localbind_t;
 
 static void parseLocalBindVars(boost::optional<localbind_t> vars, bool& reusePort, int& tcpFastOpenQueueSize, std::string& interface, std::set<int>& cpus)
 {
@@ -1732,6 +1736,12 @@ void setupLuaConfig(bool client)
           frontend->d_customResponseHeaders.push_back(headerResponse);
         }
       }
+      if (vars->count("ocspResponses")) {
+        auto files = boost::get<std::vector<std::pair<int, std::string>>>((*vars)["ocspResponses"]);
+        for (const auto& file : files) {
+          frontend->d_ocspFiles.push_back(file.second);
+        }
+      }
     }
     g_dohlocals.push_back(frontend);
     auto cs = std::unique_ptr<ClientState>(new ClientState(frontend->d_local, true, reusePort, tcpFastOpenQueueSize, interface, cpus));
@@ -1888,6 +1898,13 @@ void setupLuaConfig(bool client)
             }
             frontend->d_maxStoredSessions = value;
           }
+
+          if (vars->count("ocspResponses")) {
+            auto files = boost::get<std::vector<std::pair<int, std::string>>>((*vars)["ocspResponses"]);
+            for (const auto& file : files) {
+              frontend->d_ocspFiles.push_back(file.second);
+            }
+          }
         }
 
         try {
@@ -2026,6 +2043,12 @@ void setupLuaConfig(bool client)
       });
 
     g_lua.writeFunction("setAllowEmptyResponse", [](bool allow) { g_allowEmptyResponse=allow; });
+
+#if defined(HAVE_LIBSSL) && defined(HAVE_OCSP_BASIC_SIGN)
+    g_lua.writeFunction("generateOCSPResponse", [](const std::string& certFile, const std::string& caCert, const std::string& caKey, const std::string& outFile, int ndays, int nmin) {
+      return libssl_generate_ocsp_response(certFile, caCert, caKey, outFile, ndays, nmin);
+    });
+#endif /* HAVE_LIBSSL && HAVE_OCSP_BASIC_SIGN*/
 }
 
 vector<std::function<void(void)>> setupLua(bool client, const std::string& config)
