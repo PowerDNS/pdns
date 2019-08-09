@@ -2,6 +2,176 @@ Changelogs for 4.2.x
 ====================
 
 .. changelog::
+  :version: 4.2.0-rc3
+  :released: 29th of July 2019
+
+  Thanks to an overwhelming amount of testing by our fabulous user community, this release candidate contains a ton of bug fixes (and a few improvements) compared to the previous one. We hope this has shaken out all of the important bugs, so that we can release 4.2.0 soon!
+
+  This release, sadly, cripples the LMDB backend somewhat, due to `transaction-related fixes for the SQL backends <https://github.com/PowerDNS/pdns/pull/7891>`__. We hope to fix `this issue <https://github.com/PowerDNS/pdns/issues/8134>`__ before 4.2.0, or otherwise, early in 4.2.x.
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 8168
+
+    packethandler: Compare TSIG key name using DNSName
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 8172, 8173
+
+    boost.m4 improvements
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 8169
+
+    Make sure we always compile with BOOST_CB_ENABLE_DEBUG set to 0
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 8058
+
+    Fix SERVFAIL when backend returns empty DNSName
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 8126
+
+    add metric for open TCP connections
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 8149
+
+    stop using select() in places where FDs can be >1023
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 8166
+
+    pdnsutil increase-serial: set right ordername
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 8097
+
+    use BIGINT for notified_serial in pg schema (Klaus Darilion)
+
+  .. change::
+    :tags: Improvements, Robustness, Performance
+    :pullreq: 8092
+
+    Various robustness and performance improvements around domain IDs (Kees Monshouwer)
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 8056
+
+    Fix the accounting of servfail-queries in the distributor
+
+  .. change::
+    :tags: Improvements, Build
+    :pullreq: 8064
+
+    remove unused import to enable compile on illumos (Thomas Mieslinger)
+
+  .. change::
+    :tags: Improvements, Performance
+    :pullreq: 8051
+
+    ixfrdist: limit XFR chunk size to 16k
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 8028
+
+    limit compression pointers to 14 bits
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 8037
+
+    catch name & IP parse errors during outgoing notify preparations
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 7998
+
+    Fix a memory leak when sqlite3_exec() fails
+
+  .. change::
+    :tags: Improvements, Build
+    :pullreq: 8019, 7980
+
+    don't enable the tbhandler when libc only pretends to be glibc (James Taylor)
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 8006
+
+    Fix a leak on 'Backend reported permanent error which prevented lookup' error
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 7996
+
+    Clear CMSG_SPACE(sizeof(data)) in cmsghdr to appease valgrind
+
+  .. change::
+    :tags: New Features
+    :pullreq: 7550
+
+    web: make max request/response body size configurable
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 7918
+
+    deprecate SOA autocomplete in pdnsutil check-zone (Kees Monshouwer)
+
+  .. change::
+    :tags: Improvements, Packaging
+    :pullreq: 7889
+
+    move /var/lib/pdns to pdns-server debian package
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 7890
+
+    Show newer features in configure output and --version
+
+  .. change::
+    :tags: Improvements, Performance
+    :pullreq: 7910
+
+    completely disable the packet when cache-ttl=0 (Kees Monshouwer)
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 7943
+
+    Improve error when notification comes in for non-slave zone
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 7962
+
+    web: add edited_serial to Zone object
+
+  .. change::
+    :tags: Improvements, Build
+    :pullreq: 7871
+
+    Adapt calidns for openbsd and other systems without rcvmmsg(2)
+
+  .. change::
+    :tags: Improvements, Performance
+    :pullreq: 7699
+
+    DNSName, speed up toString() conversion
+
+.. changelog::
   :version: 4.2.0-rc2
   :released: 14th of June 2019
 
