@@ -1541,7 +1541,7 @@ std::unique_ptr<DNSPacket> PacketHandler::doQuestion(DNSPacket& p)
       // if (*(rr.dr.d_name.rbegin()) == '.') {
       //      g_log<<Logger::Error<<"Should not get here ("<<p.qdomain<<"|"<<p.qtype.getCode()<<"): you have a trailing dot, this could be the problem (or run pdnsutil rectify-zone " <<sd.qname<<")"<<endl;
       // } else {
-           g_log<<Logger::Error<<"Should not get here ("<<p.qdomain<<"|"<<p.qtype.getCode()<<"): please run pdnsutil rectify-zone "<<sd.qname<<endl;
+           g_log<<Logger::Error<<"Could not find a covering referral ("<<p.qdomain<<"|"<<p.qtype.getCode()<<"): try running pdnsutil rectify-zone "<<sd.qname<<endl;
       // }
     }
     else {
