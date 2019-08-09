@@ -25,7 +25,7 @@ This might cause issues if some connections are taking a very long time, since i
 The experimental :func:`setTCPUseSinglePipe` directive can be used so that all the incoming TCP connections are put into a single queue and handled by the first TCP worker available.
 
 When dispatching UDP queries to backend servers, dnsdist keeps track of at most **n** outstanding queries for each backend.
-This number **n** can be tuned by the :func:`setMaxUDPOutstanding` directive, defaulting to 10240, with a maximum value of 65535.
+This number **n** can be tuned by the :func:`setMaxUDPOutstanding` directive, defaulting to 10240 (65535 since 1.4.0), with a maximum value of 65535.
 Large installations are advised to increase the default value at the cost of a slightly increased memory usage.
 
 Most of the query processing is done in C++ for maximum performance, but some operations are executed in Lua for maximum flexibility:
