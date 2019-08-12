@@ -278,7 +278,7 @@ Changelog
     :tags: Bug Fixes
     :pullreq: 8158
 
-    Fix signedness issue in isEDNSOoptionInOpt()
+    Fix signedness issue in isEDNSOptionInOpt()
 
   .. change::
     :tags: Improvements
