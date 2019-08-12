@@ -110,7 +110,7 @@ The DNSQuestion object contains at least the following fields:
 
   .. attribute:: DNSQuestion.deviceName
 
-      .. versionadded:: 4.3.0
+      .. versionadded:: 4.2.1
 
       A string that will be used to set the ``deviceName`` field in :doc:`protobuf <../lua-config/protobuf>` messages.
 
