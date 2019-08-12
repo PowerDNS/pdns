@@ -103,8 +103,9 @@ void UDPNameserver::bindIPv4()
     s=socket(AF_INET,SOCK_DGRAM,0);
 
     if(s<0) {
-      g_log<<Logger::Error<<"Unable to acquire UDP socket: "+stringerror() << endl;
-      throw PDNSException("Unable to acquire a UDP socket: "+stringerror());
+      int err = errno;
+      g_log<<Logger::Error<<"Unable to acquire UDP socket: "+stringerror(err) << endl;
+      throw PDNSException("Unable to acquire a UDP socket: "+stringerror(err));
     }
   
     setCloseOnExec(s);

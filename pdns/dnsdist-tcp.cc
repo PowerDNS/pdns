@@ -288,7 +288,7 @@ void TCPClientCollection::addTCPClientThread()
       int err = errno;
       close(pipefds[0]);
       close(pipefds[1]);
-      errlog("Error setting the TCP thread communication pipe non-blocking: %s", strerror(err));
+      errlog("Error setting the TCP thread communication pipe non-blocking: %s", stringerror(err));
       return;
     }
 
@@ -296,7 +296,7 @@ void TCPClientCollection::addTCPClientThread()
       int err = errno;
       close(pipefds[0]);
       close(pipefds[1]);
-      errlog("Error setting the TCP thread communication pipe non-blocking: %s", strerror(err));
+      errlog("Error setting the TCP thread communication pipe non-blocking: %s", stringerror(err));
       return;
     }
   }

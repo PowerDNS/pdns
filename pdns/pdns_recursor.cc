@@ -516,7 +516,7 @@ static void setSocketBuffer(int fd, int optname, uint32_t size)
 
   if (setsockopt(fd, SOL_SOCKET, optname, (char*)&size, sizeof(size)) < 0) {
     int err = errno;
-    g_log << Logger::Error << "Unable to raise socket buffer size to " << size << ": " << strerror(err) << endl;
+    g_log << Logger::Error << "Unable to raise socket buffer size to " << size << ": " << stringerror(err) << endl;
   }
 }
 
@@ -738,7 +738,7 @@ static void writePid(void)
   else {
     int err = errno;
     g_log << Logger::Error << "Writing pid for " << Utility::getpid() << " to " << s_pidfname << " failed: "
-          << strerror(err) << endl;
+          << stringerror(err) << endl;
   }
 }
 

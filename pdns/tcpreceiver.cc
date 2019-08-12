@@ -1301,7 +1301,7 @@ TCPNameserver::TCPNameserver()
         g_log<<Logger::Error<<"IPv6 Address " << *laddr << " does not exist on this server - skipping TCP bind" << endl;
         continue;
       } else {
-        g_log<<Logger::Error<<"Unable to bind to TCPv6 socket" << *laddr << ": "<<strerror(err)<<endl;
+        g_log<<Logger::Error<<"Unable to bind to TCPv6 socket" << *laddr << ": "<<stringerror(err)<<endl;
         throw PDNSException("Unable to bind to TCPv6 socket");
       }
     }
