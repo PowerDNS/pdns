@@ -288,6 +288,7 @@ private:
   unique_ptr<SSqlStatement> d_deleteTSIGKeyQuery_stmt;
   unique_ptr<SSqlStatement> d_getTSIGKeysQuery_stmt;
 
+  DNSName d_transaction_qname;
   string d_transaction_tmpname;
   string d_logprefix;
   set<string> alsoNotify; //!< this is used to store the also-notify list of interested peers.
