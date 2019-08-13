@@ -104,7 +104,7 @@ public:
   string &set(const string &); //!< Gives a writable reference and allocates space for it
   string &set(const string &, const string &); //!< Does the same but also allows one to specify a help message
   void setCmd(const string &, const string &); //!< Add a command flag
-  string &setSwitch(const string &, const string &); //!< Add a command flag
+  string &setSwitch(const string &, const string &); //!< Add a switch flag
   string helpstring(string prefix=""); //!< generates the --help
   string configstring(bool current=false); //!< generates the --mkconfig
   bool contains(const string &var, const string &val);
