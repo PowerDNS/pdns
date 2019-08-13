@@ -46,12 +46,21 @@ std::vector<std::string> KeyValueLookupKeySuffix::getKeys(const DNSName& qname)
   }
 
   auto lowerQName = qname.makeLowerCase();
+  size_t labelsCount = lowerQName.countLabels();
+  if (d_minLabels != 0) {
+    if (labelsCount < d_minLabels) {
+      return {};
+    }
+    labelsCount -= (d_minLabels - 1);
+  }
+
   std::vector<std::string> result;
-  result.reserve(lowerQName.countLabels() - 1);
+  result.reserve(labelsCount);
 
   while(!lowerQName.isRoot()) {
-    result.emplace_back(lowerQName.toDNSString());
-    if (!lowerQName.chopOff()) {
+    result.emplace_back(d_wireFormat ? lowerQName.toDNSString() : lowerQName.toString());
+    labelsCount--;
+    if (!lowerQName.chopOff() || labelsCount == 0) {
       break;
     }
   }

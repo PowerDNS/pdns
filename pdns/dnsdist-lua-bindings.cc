@@ -719,11 +719,11 @@ void setupLuaBindings(bool client)
   g_lua.writeFunction("KeyValueLookupKeySourceIP", []() {
     return std::shared_ptr<KeyValueLookupKey>(new KeyValueLookupKeySourceIP());
   });
-  g_lua.writeFunction("KeyValueLookupKeyQName", []() {
-    return std::shared_ptr<KeyValueLookupKey>(new KeyValueLookupKeyQName());
+  g_lua.writeFunction("KeyValueLookupKeyQName", [](boost::optional<bool> wireFormat) {
+    return std::shared_ptr<KeyValueLookupKey>(new KeyValueLookupKeyQName(wireFormat ? *wireFormat : true));
   });
-  g_lua.writeFunction("KeyValueLookupKeySuffix", []() {
-    return std::shared_ptr<KeyValueLookupKey>(new KeyValueLookupKeySuffix());
+  g_lua.writeFunction("KeyValueLookupKeySuffix", [](boost::optional<size_t> minLabels, boost::optional<bool> wireFormat) {
+    return std::shared_ptr<KeyValueLookupKey>(new KeyValueLookupKeySuffix(minLabels ? *minLabels : 0, wireFormat ? *wireFormat : true));
   });
   g_lua.writeFunction("KeyValueLookupKeyTag", [](const std::string& tag) {
     return std::shared_ptr<KeyValueLookupKey>(new KeyValueLookupKeyTag(tag));
@@ -747,7 +747,7 @@ void setupLuaBindings(bool client)
   });
 #endif /* HAVE_CDB */
 
-  g_lua.registerFunction<std::string(std::shared_ptr<KeyValueStore>::*)(const boost::variant<ComboAddress, DNSName, std::string>)>("lookup", [](std::shared_ptr<KeyValueStore>& kvs, const boost::variant<ComboAddress, DNSName, std::string> keyVar) {
+  g_lua.registerFunction<std::string(std::shared_ptr<KeyValueStore>::*)(const boost::variant<ComboAddress, DNSName, std::string>, boost::optional<bool> wireFormat)>("lookup", [](std::shared_ptr<KeyValueStore>& kvs, const boost::variant<ComboAddress, DNSName, std::string> keyVar, boost::optional<bool> wireFormat) {
     std::string result;
     if (!kvs) {
       return result;
@@ -764,7 +764,7 @@ void setupLuaBindings(bool client)
     }
     else if (keyVar.type() == typeid(DNSName)) {
       DNSName dn = *boost::get<DNSName>(&keyVar);
-      KeyValueLookupKeyQName lookup;
+      KeyValueLookupKeyQName lookup(wireFormat ? *wireFormat : true);
       for (const auto& key : lookup.getKeys(dn)) {
         if (kvs->getValue(key, result)) {
           return result;
@@ -779,13 +779,13 @@ void setupLuaBindings(bool client)
     return result;
   });
 
-  g_lua.registerFunction<std::string(std::shared_ptr<KeyValueStore>::*)(const DNSName&)>("lookupSuffix", [](std::shared_ptr<KeyValueStore>& kvs, const DNSName& dn) {
+  g_lua.registerFunction<std::string(std::shared_ptr<KeyValueStore>::*)(const DNSName&, boost::optional<size_t> minLabels, boost::optional<bool> wireFormat)>("lookupSuffix", [](std::shared_ptr<KeyValueStore>& kvs, const DNSName& dn, boost::optional<size_t> minLabels, boost::optional<bool> wireFormat) {
     std::string result;
     if (!kvs) {
       return result;
     }
 
-    KeyValueLookupKeySuffix lookup;
+    KeyValueLookupKeySuffix lookup(minLabels ? *minLabels : 0, wireFormat ? *wireFormat : true);
     for (const auto& key : lookup.getKeys(dn)) {
       if (kvs->getValue(key, result)) {
         return result;

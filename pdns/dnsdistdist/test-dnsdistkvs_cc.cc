@@ -6,7 +6,7 @@
 
 #include "dnsdist-kvs.hh"
 
-static void doKVSChecks(std::unique_ptr<KeyValueStore>& kvs, const ComboAddress& lc, const ComboAddress& rem, const DNSQuestion& dq)
+static void doKVSChecks(std::unique_ptr<KeyValueStore>& kvs, const ComboAddress& lc, const ComboAddress& rem, const DNSQuestion& dq, const DNSName& plaintextDomain)
 {
   /* source IP */
   {
@@ -24,10 +24,10 @@ static void doKVSChecks(std::unique_ptr<KeyValueStore>& kvs, const ComboAddress&
   const DNSName subdomain = DNSName("sub") + *dq.qname;
   const DNSName notPDNS("not-powerdns.com.");
 
-  /* qname */
+  /* qname match, in wire format */
   {
     std::string value;
-    auto lookupKey = make_unique<KeyValueLookupKeyQName>();
+    auto lookupKey = make_unique<KeyValueLookupKeyQName>(true);
     auto keys = lookupKey->getKeys(dq);
     BOOST_CHECK_EQUAL(keys.size(), 1);
     for (const auto& key : keys) {
@@ -51,11 +51,56 @@ static void doKVSChecks(std::unique_ptr<KeyValueStore>& kvs, const ComboAddress&
       value.clear();
       BOOST_CHECK_EQUAL(kvs->getValue(key, value), false);
     }
+
+    /* this domain was inserted in plaintext, the wire format lookup should not match */
+    keys = lookupKey->getKeys(plaintextDomain);
+    BOOST_CHECK_EQUAL(keys.size(), 1);
+    for (const auto& key : keys) {
+      value.clear();
+      BOOST_CHECK_EQUAL(kvs->getValue(key, value), false);
+    }
   }
 
-  /* suffix match */
+  /* qname match, in plain text */
   {
-    auto lookupKey = make_unique<KeyValueLookupKeySuffix>();
+    std::string value;
+    auto lookupKey = make_unique<KeyValueLookupKeyQName>(false);
+    auto keys = lookupKey->getKeys(dq);
+    BOOST_CHECK_EQUAL(keys.size(), 1);
+    for (const auto& key : keys) {
+      value.clear();
+      BOOST_CHECK_EQUAL(kvs->getValue(key, value), false);
+    }
+
+    /* other domain, should not match */
+    keys = lookupKey->getKeys(notPDNS);
+    BOOST_CHECK_EQUAL(keys.size(), 1);
+    for (const auto& key : keys) {
+      value.clear();
+      BOOST_CHECK_EQUAL(kvs->getValue(key, value), false);
+    }
+
+    /* subdomain, should not match */
+    keys = lookupKey->getKeys(subdomain);
+    BOOST_CHECK_EQUAL(keys.size(), 1);
+    for (const auto& key : keys) {
+      value.clear();
+      BOOST_CHECK_EQUAL(kvs->getValue(key, value), false);
+    }
+
+    /* this domain was inserted in plaintext, so it should match */
+    keys = lookupKey->getKeys(plaintextDomain);
+    BOOST_CHECK_EQUAL(keys.size(), 1);
+    for (const auto& key : keys) {
+      value.clear();
+      BOOST_CHECK_EQUAL(kvs->getValue(key, value), true);
+      BOOST_CHECK_EQUAL(value, "this is the value for the plaintext domain");
+    }
+  }
+
+  /* suffix match in wire format */
+  {
+    auto lookupKey = make_unique<KeyValueLookupKeySuffix>(0, true);
     auto keys = lookupKey->getKeys(dq);
     BOOST_CHECK_EQUAL(keys.size(), dq.qname->countLabels());
     BOOST_REQUIRE(!keys.empty());
@@ -80,6 +125,69 @@ static void doKVSChecks(std::unique_ptr<KeyValueStore>& kvs, const ComboAddress&
     BOOST_CHECK_EQUAL(kvs->getValue(keys.at(0), value), false);
     BOOST_CHECK_EQUAL(kvs->getValue(keys.at(1), value), true);
     BOOST_CHECK_EQUAL(value, "this is the value for the qname");
+
+    /* this domain was inserted in plaintext, the wire format lookup should not match */
+    keys = lookupKey->getKeys(plaintextDomain);
+    BOOST_CHECK_EQUAL(keys.size(), plaintextDomain.countLabels());
+    for (const auto& key : keys) {
+      value.clear();
+      BOOST_CHECK_EQUAL(kvs->getValue(key, value), false);
+    }
+  }
+
+  /* suffix match in plain text */
+  {
+    auto lookupKey = make_unique<KeyValueLookupKeySuffix>(0, false);
+    auto keys = lookupKey->getKeys(dq);
+    BOOST_CHECK_EQUAL(keys.size(), dq.qname->countLabels());
+    BOOST_REQUIRE(!keys.empty());
+    BOOST_CHECK_EQUAL(keys.at(0), dq.qname->toString());
+    std::string value;
+    BOOST_CHECK_EQUAL(kvs->getValue(keys.at(0), value), false);
+    value.clear();
+    BOOST_CHECK_EQUAL(kvs->getValue(keys.at(1), value), false);
+
+    /* other domain, should not match */
+    keys = lookupKey->getKeys(notPDNS);
+    BOOST_CHECK_EQUAL(keys.size(), notPDNS.countLabels());
+    for (const auto& key : keys) {
+      value.clear();
+      BOOST_CHECK_EQUAL(kvs->getValue(key, value), false);
+    }
+
+    /* subdomain, should not match in plain text */
+    keys = lookupKey->getKeys(subdomain);
+    BOOST_REQUIRE_EQUAL(keys.size(), subdomain.countLabels());
+    for (const auto& key : keys) {
+      value.clear();
+      BOOST_CHECK_EQUAL(kvs->getValue(key, value), false);
+    }
+
+    /* this domain was inserted in plaintext, it should match */
+    keys = lookupKey->getKeys(plaintextDomain);
+    BOOST_REQUIRE_EQUAL(keys.size(), plaintextDomain.countLabels());
+    BOOST_CHECK_EQUAL(kvs->getValue(keys.at(0), value), true);
+    BOOST_CHECK_EQUAL(value, "this is the value for the plaintext domain");
+  }
+
+  /* suffix match in wire format, we require at least 2 labels */
+  {
+    auto lookupKey = make_unique<KeyValueLookupKeySuffix>(2, true);
+    auto keys = lookupKey->getKeys(dq);
+    BOOST_CHECK_EQUAL(keys.size(), 1);
+    BOOST_REQUIRE(!keys.empty());
+    BOOST_CHECK_EQUAL(keys.at(0), dq.qname->toDNSStringLC());
+    std::string value;
+    BOOST_CHECK_EQUAL(kvs->getValue(keys.at(0), value), true);
+    BOOST_CHECK_EQUAL(value, "this is the value for the qname");
+    value.clear();
+
+    /* subdomain */
+    keys = lookupKey->getKeys(subdomain);
+    BOOST_REQUIRE_EQUAL(keys.size(), 2);
+    BOOST_CHECK_EQUAL(kvs->getValue(keys.at(0), value), false);
+    BOOST_CHECK_EQUAL(kvs->getValue(keys.at(1), value), true);
+    BOOST_CHECK_EQUAL(value, "this is the value for the qname");
   }
 }
 
@@ -89,6 +197,7 @@ BOOST_AUTO_TEST_SUITE(dnsdistkvs_cc)
 BOOST_AUTO_TEST_CASE(test_LMDB) {
 
   DNSName qname("powerdns.com.");
+  DNSName plaintextDomain("powerdns.org.");
   uint16_t qtype = QType::A;
   uint16_t qclass = QClass::IN;
   ComboAddress lc("192.0.2.1:53");
@@ -113,11 +222,12 @@ BOOST_AUTO_TEST_CASE(test_LMDB) {
     auto dbi = transaction.openDB("db-name", MDB_CREATE);
     transaction.put(dbi, MDBInVal(std::string(reinterpret_cast<const char*>(&rem.sin4.sin_addr.s_addr), sizeof(rem.sin4.sin_addr.s_addr))), MDBInVal("this is the value for the remote addr"));
     transaction.put(dbi, MDBInVal(qname.toDNSStringLC()), MDBInVal("this is the value for the qname"));
+    transaction.put(dbi, MDBInVal(plaintextDomain.toString()), MDBInVal("this is the value for the plaintext domain"));
     transaction.commit();
   }
 
   auto lmdb = std::unique_ptr<KeyValueStore>(new LMDBKVStore(dbPath, "db-name"));
-  doKVSChecks(lmdb, lc, rem, dq);
+  doKVSChecks(lmdb, lc, rem, dq, plaintextDomain);
   /*
   std::string value;
   DTime dt;
@@ -139,6 +249,7 @@ BOOST_AUTO_TEST_CASE(test_LMDB) {
 BOOST_AUTO_TEST_CASE(test_CDB) {
 
   DNSName qname("powerdns.com.");
+  DNSName plaintextDomain("powerdns.org.");
   uint16_t qtype = QType::A;
   uint16_t qclass = QClass::IN;
   ComboAddress lc("192.0.2.1:53");
@@ -163,11 +274,12 @@ BOOST_AUTO_TEST_CASE(test_CDB) {
     CDBWriter writer(fd);
     BOOST_REQUIRE(writer.addEntry(std::string(reinterpret_cast<const char*>(&rem.sin4.sin_addr.s_addr), sizeof(rem.sin4.sin_addr.s_addr)), "this is the value for the remote addr"));
     BOOST_REQUIRE(writer.addEntry(qname.toDNSStringLC(), "this is the value for the qname"));
+    BOOST_REQUIRE(writer.addEntry(plaintextDomain.toString(), "this is the value for the plaintext domain"));
     writer.close();
   }
 
   auto cdb = std::unique_ptr<KeyValueStore>(new CDBKVStore(db, 0));
-  doKVSChecks(cdb, lc, rem, dq);
+  doKVSChecks(cdb, lc, rem, dq, plaintextDomain);
 
   /*
   std::string value;

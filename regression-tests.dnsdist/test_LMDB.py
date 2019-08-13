@@ -18,6 +18,11 @@ class TestLMDB(DNSDistTest):
     -- does a lookup in the LMDB database using the source IP as key, and store the result into the 'kvs-sourceip-result' tag
     addAction(AllRule(), KeyValueStoreLookupAction(kvs, KeyValueLookupKeySourceIP(), 'kvs-sourceip-result'))
 
+    -- does a lookup in the LMDB database using the qname in _plain text_ format as key, and store the result into the 'kvs-plain-text-result' tag
+    addAction(AllRule(), KeyValueStoreLookupAction(kvs, KeyValueLookupKeyQName(false), 'kvs-plain-text-result'))
+    -- if the value of the 'kvs-plain-text-result' is set to 'this is the value of the plaintext tag', spoof a response
+    addAction(TagRule('kvs-plain-text-result', 'this is the value of the plaintext tag'), SpoofAction('9.10.11.12'))
+
     -- does a lookup in the LMDB database using the qname in wire format as key, and store the result into the 'kvs-qname-result' tag
     addAction(AllRule(), KeyValueStoreLookupAction(kvs, KeyValueLookupKeyQName(), 'kvs-qname-result'))
 
@@ -55,6 +60,7 @@ class TestLMDB(DNSDistTest):
             txn.put(socket.inet_aton('127.0.0.1'), b'this is the value of the source address tag')
             txn.put(b'this is the value of the qname tag', b'this is the value of the second tag')
             txn.put(b'\x06suffix\x04lmdb\x05tests\x08powerdns\x03com\x00', b'this is the value of the suffix tag')
+            txn.put(b'qname-plaintext.lmdb.tests.powerdns.com.', b'this is the value of the plaintext tag')
 
     @classmethod
     def setUpClass(cls):
@@ -135,3 +141,25 @@ class TestLMDB(DNSDistTest):
             self.assertTrue(receivedResponse)
             self.assertEquals(expectedResponse, receivedResponse)
 
+    def testLMDBQNamePlainText(self):
+        """
+        LMDB: Match on qname in plain text format
+        """
+        name = 'qname-plaintext.lmdb.tests.powerdns.com.'
+        query = dns.message.make_query(name, 'A', 'IN')
+        # dnsdist set RA = RD for spoofed responses
+        query.flags &= ~dns.flags.RD
+        expectedResponse = dns.message.make_response(query)
+        rrset = dns.rrset.from_text(name,
+                                    3600,
+                                    dns.rdataclass.IN,
+                                    dns.rdatatype.A,
+                                    '9.10.11.12')
+        expectedResponse.answer.append(rrset)
+
+        for method in ("sendUDPQuery", "sendTCPQuery"):
+            sender = getattr(self, method)
+            (receivedQuery, receivedResponse) = sender(query, response=None, useQueue=False)
+            self.assertFalse(receivedQuery)
+            self.assertTrue(receivedResponse)
+            self.assertEquals(expectedResponse, receivedResponse)

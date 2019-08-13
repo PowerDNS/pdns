@@ -43,30 +43,36 @@ If the value found in the LMDB database for the key '\8powerdns\3com\0' was 'thi
 
   Represents a Key Value Store
 
-  .. method:: KeyValueStore:lookup(key)
+  .. method:: KeyValueStore:lookup(key [, wireFormat])
 
     Does a lookup into the corresponding key value store, and return the result as a string.
     The key can be a :class:`ComboAddress` obtained via the :func:`newCA`, a :class:`DNSName` obtained via the :func:`newDNSName` function, or a raw string.
 
     :param ComboAddress, DNSName or string key: The key to look up
+    :param bool wireFormat: If the key is DNSName, whether to use to do the lookup in wire format (default) or in plain text
 
-  .. method:: KeyValueStore:lookupSuffix(key)
+  .. method:: KeyValueStore:lookupSuffix(key [, minLabels [, wireFormat]])
 
     Does a suffix-based lookup into the corresponding key value store, and return the result as a string.
     The key should be a :class:`DNSName` object obtained via the :func:`newDNSName` function, and several lookups will be done, removing one label from the name at a time until a match has been found or there is no label left.
+    If ``minLabels`` is set to a value larger than 0 the lookup will only be done as long as there is at least ``minLabels`` remaining. For example if the initial domain is "sub.powerdns.com." and ``minLabels`` is set to 2, lookups will only be done for "sub.powerdns.com." and "powerdns.com.".
 
     :param DNSName key: The name to look up
+    :param int minLabels: The minimum number of labels to do a lookup for. Default is 0 which means unlimited
+    :param bool wireFormat: Whether to do the lookup in wire format (default) or in plain text
 
   .. method:: KeyValueStore:reload()
 
     Reload the database if this is supported by the underlying store. As of 1.5.0, only CDB stores can be reloaded, and this method is a no-op for LMDB stores.
 
 
-.. function:: KeyValueLookupKeyQName() -> KeyValueLookupKey
+.. function:: KeyValueLookupKeyQName([wireFormat]) -> KeyValueLookupKey
 
   .. versionadded:: 1.5.0
 
   Return a new KeyValueLookupKey object that, when passed to :func:`KeyValueStoreLookupAction`, will return the qname of the query in DNS wire format.
+
+  :param bool wireFormat: Whether to do the lookup in wire format (default) or in plain text
 
 .. function:: KeyValueLookupKeySourceIP() -> KeyValueLookupKey
 
@@ -74,7 +80,7 @@ If the value found in the LMDB database for the key '\8powerdns\3com\0' was 'thi
 
   Return a new KeyValueLookupKey object that, when passed to :func:`KeyValueStoreLookupAction`, will return the source IP of the client in network byte-order.
 
-.. function:: KeyValueLookupKeySuffix() -> KeyValueLookupKey
+.. function:: KeyValueLookupKeySuffix([minLabels [, wireFormat]]) -> KeyValueLookupKey
 
   .. versionadded:: 1.5.0
 
@@ -86,6 +92,15 @@ If the value found in the LMDB database for the key '\8powerdns\3com\0' was 'thi
    * \8powerdns\3com\0
    * \3com\0
    * \0
+
+  If ``minLabels`` is set to a value larger than 0 the lookup will only be done as long as there is at least ``minLabels`` remaining. Taking back our previous example, it means only the following keys will be returned if ``minLabels`` is set to 2;
+
+   * \3sub\6domain\8powerdns\3com\0
+   * \6domain\8powerdns\3com\0
+   * \8powerdns\3com\0
+
+  :param int minLabels: The minimum number of labels to do a lookup for. Default is 0 which means unlimited
+  :param bool wireFormat: Whether to do the lookup in wire format (default) or in plain text
 
 .. function:: KeyValueLookupKeyTag() -> KeyValueLookupKey
 

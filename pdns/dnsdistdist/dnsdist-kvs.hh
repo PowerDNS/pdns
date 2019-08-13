@@ -53,9 +53,16 @@ class KeyValueLookupKeyQName: public KeyValueLookupKey
 {
 public:
 
+  KeyValueLookupKeyQName(bool wireFormat): d_wireFormat(wireFormat)
+  {
+  }
+
   std::vector<std::string> getKeys(const DNSName& qname)
   {
-    return {qname.toDNSStringLC()};
+    if (d_wireFormat) {
+      return {qname.toDNSStringLC()};
+    }
+    return {qname.makeLowerCase().toString()};
   }
 
   std::vector<std::string> getKeys(const DNSQuestion& dq) override
@@ -65,13 +72,23 @@ public:
 
   std::string toString() const override
   {
+    if (d_wireFormat) {
+      return "qname in wire format";
+    }
     return "qname";
   }
+
+private:
+  bool d_wireFormat;
 };
 
 class KeyValueLookupKeySuffix: public KeyValueLookupKey
 {
 public:
+  KeyValueLookupKeySuffix(size_t minLabels, bool wireFormat): d_minLabels(minLabels), d_wireFormat(wireFormat)
+  {
+  }
+
   std::vector<std::string> getKeys(const DNSName& qname);
 
   std::vector<std::string> getKeys(const DNSQuestion& dq) override
@@ -81,8 +98,15 @@ public:
 
   std::string toString() const override
   {
-    return "suffix";
+    if (d_minLabels > 0) {
+      return "suffix " + std::string(d_wireFormat ? "in wire format " : "") + "at least " + std::to_string(d_minLabels) + " labels)";
+    }
+    return "suffix" + std::string(d_wireFormat ? " in wire format" : "");
   }
+
+private:
+  size_t d_minLabels;
+  bool d_wireFormat;
 };
 
 class KeyValueLookupKeyTag: public KeyValueLookupKey
