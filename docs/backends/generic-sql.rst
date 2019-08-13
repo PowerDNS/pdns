@@ -239,7 +239,7 @@ These queries are used by e.g. ``pdnsutil rectify-zone``. Make sure to
 read :ref:`rules-for-filling-out-dnssec-fields`
 if you wish to calculate ordername and auth without using pdns-rectify.
 
--  ``insert-empty-non-terminal-order--query``: Insert empty non-terminal
+-  ``insert-empty-non-terminal-order-query``: Insert empty non-terminal
    in zone.
 -  ``delete-empty-non-terminal-query``: Delete an empty non-terminal in
    a zone.
