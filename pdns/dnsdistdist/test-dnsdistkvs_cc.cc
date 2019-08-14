@@ -146,7 +146,7 @@ static void doKVSChecks(std::unique_ptr<KeyValueStore>& kvs, const ComboAddress&
     auto keys = lookupKey->getKeys(dq);
     BOOST_CHECK_EQUAL(keys.size(), dq.qname->countLabels());
     BOOST_REQUIRE(!keys.empty());
-    BOOST_CHECK_EQUAL(keys.at(0), dq.qname->toString());
+    BOOST_CHECK_EQUAL(keys.at(0), dq.qname->toStringRootDot());
     std::string value;
     BOOST_CHECK_EQUAL(kvs->getValue(keys.at(0), value), false);
     value.clear();
@@ -227,7 +227,7 @@ BOOST_AUTO_TEST_CASE(test_LMDB) {
     auto dbi = transaction.openDB("db-name", MDB_CREATE);
     transaction.put(dbi, MDBInVal(std::string(reinterpret_cast<const char*>(&rem.sin4.sin_addr.s_addr), sizeof(rem.sin4.sin_addr.s_addr))), MDBInVal("this is the value for the remote addr"));
     transaction.put(dbi, MDBInVal(qname.toDNSStringLC()), MDBInVal("this is the value for the qname"));
-    transaction.put(dbi, MDBInVal(plaintextDomain.toString()), MDBInVal("this is the value for the plaintext domain"));
+    transaction.put(dbi, MDBInVal(plaintextDomain.toStringRootDot()), MDBInVal("this is the value for the plaintext domain"));
     transaction.commit();
   }
 
@@ -279,7 +279,7 @@ BOOST_AUTO_TEST_CASE(test_CDB) {
     CDBWriter writer(fd);
     BOOST_REQUIRE(writer.addEntry(std::string(reinterpret_cast<const char*>(&rem.sin4.sin_addr.s_addr), sizeof(rem.sin4.sin_addr.s_addr)), "this is the value for the remote addr"));
     BOOST_REQUIRE(writer.addEntry(qname.toDNSStringLC(), "this is the value for the qname"));
-    BOOST_REQUIRE(writer.addEntry(plaintextDomain.toString(), "this is the value for the plaintext domain"));
+    BOOST_REQUIRE(writer.addEntry(plaintextDomain.toStringRootDot(), "this is the value for the plaintext domain"));
     writer.close();
   }
 

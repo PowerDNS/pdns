@@ -58,7 +58,7 @@ std::vector<std::string> KeyValueLookupKeySuffix::getKeys(const DNSName& qname)
   result.reserve(labelsCount);
 
   while(!lowerQName.isRoot()) {
-    result.emplace_back(d_wireFormat ? lowerQName.toDNSString() : lowerQName.toString());
+    result.emplace_back(d_wireFormat ? lowerQName.toDNSString() : lowerQName.toStringRootDot());
     labelsCount--;
     if (!lowerQName.chopOff() || labelsCount == 0) {
       break;

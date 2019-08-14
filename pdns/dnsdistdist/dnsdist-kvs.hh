@@ -62,7 +62,7 @@ public:
     if (d_wireFormat) {
       return {qname.toDNSStringLC()};
     }
-    return {qname.makeLowerCase().toString()};
+    return {qname.makeLowerCase().toStringRootDot()};
   }
 
   std::vector<std::string> getKeys(const DNSQuestion& dq) override

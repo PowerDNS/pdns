@@ -63,8 +63,8 @@ class TestLMDB(DNSDistTest):
             txn.put(socket.inet_aton('127.0.0.1'), b'this is the value of the source address tag')
             txn.put(b'this is the value of the qname tag', b'this is the value of the second tag')
             txn.put(b'\x06suffix\x04lmdb\x05tests\x08powerdns\x03com\x00', b'this is the value of the suffix tag')
-            txn.put(b'qname-plaintext.lmdb.tests.powerdns.com.', b'this is the value of the plaintext tag')
-            txn.put(b'kvs-rule.lmdb.tests.powerdns.com.', b'the value does not matter')
+            txn.put(b'qname-plaintext.lmdb.tests.powerdns.com', b'this is the value of the plaintext tag')
+            txn.put(b'kvs-rule.lmdb.tests.powerdns.com', b'the value does not matter')
 
     @classmethod
     def setUpClass(cls):
