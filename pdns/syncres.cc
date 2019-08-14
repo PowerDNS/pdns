@@ -747,19 +747,21 @@ int SyncRes::doResolveNoQNameMinimization(const DNSName &qname, const QType &qty
 
           d_totUsec += lwr.d_usec;
           accountAuthLatency(lwr.d_usec, remoteIP.sin4.sin_family);
-          if (fromCache)
-            *fromCache = true;
           
           // filter out the good stuff from lwr.result()
-          if (res == 1) {
-            for(const auto& rec : lwr.d_records) {
-              if(rec.d_place == DNSResourceRecord::ANSWER)
-                ret.push_back(rec);
+          if (lwr.d_aabit) {
+            if (fromCache)
+              *fromCache = true;
+            if (res == 1) {
+              for(const auto& rec : lwr.d_records) {
+                if(rec.d_place == DNSResourceRecord::ANSWER)
+                  ret.push_back(rec);
+              }
+              return 0;
             }
-            return 0;
-          }
-          else {
-            return RCode::ServFail;
+            else {
+              return RCode::ServFail;
+            }
           }
         }
       }
