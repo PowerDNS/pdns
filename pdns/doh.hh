@@ -4,11 +4,40 @@
 
 struct DOHServerConfig;
 
+class DOHResponseMapEntry
+{
+public:
+  DOHResponseMapEntry(const std::string& regex, uint16_t status, const std::string& content): d_regex(regex), d_content(content), d_status(status)
+  {
+  }
+
+  bool matches(const std::string& path) const
+  {
+    return d_regex.match(path);
+  }
+
+  uint16_t getStatusCode() const
+  {
+    return d_status;
+  }
+
+  const std::string& getContent() const
+  {
+    return d_content;
+  }
+
+private:
+  Regex d_regex;
+  std::string d_content;
+  uint16_t d_status;
+};
+
 struct DOHFrontend
 {
   std::shared_ptr<DOHServerConfig> d_dsc{nullptr};
   std::vector<std::pair<std::string, std::string>> d_certKeyPairs;
   std::vector<std::string> d_ocspFiles;
+  std::vector<std::shared_ptr<DOHResponseMapEntry>> d_responsesMap;
   std::string d_ciphers;
   std::string d_ciphers13;
   std::string d_serverTokens{"h2o/dnsdist"};
@@ -30,7 +59,7 @@ struct DOHFrontend
   std::atomic<uint64_t> d_postqueries;    // valid DNS queries received via POST
   std::atomic<uint64_t> d_badrequests;     // request could not be converted to dns query
   std::atomic<uint64_t> d_errorresponses; // dnsdist set 'error' on response
-    std::atomic<uint64_t> d_redirectresponses; // dnsdist set 'redirect' on response
+  std::atomic<uint64_t> d_redirectresponses; // dnsdist set 'redirect' on response
   std::atomic<uint64_t> d_validresponses; // valid responses sent out
 
   struct HTTPVersionStats

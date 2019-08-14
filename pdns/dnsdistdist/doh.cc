@@ -149,7 +149,111 @@ static void on_socketclose(void *data)
   ctx->release();
 }
 
-/* this duplicates way too much from the UDP handler. Sorry.
+
+static const std::string& getReasonFromStatusCode(uint16_t statusCode)
+{
+  /* no need to care too much about this, HTTP/2 has no 'reason' anyway */
+  static const std::unordered_map<uint16_t, std::string> reasons = {
+    { 200, "OK" },
+    { 301, "Moved Permanently" },
+    { 302, "Found" },
+    { 303, "See Other" },
+    { 304, "Not Modified" },
+    { 305, "Use Proxy" },
+    { 306, "Switch Proxy" },
+    { 307, "Temporary Redirect" },
+    { 308, "Permanent Redirect" },
+    { 400, "Bad Request" },
+    { 401, "Unauthorized" },
+    { 402, "Payment Required" },
+    { 403, "Forbidden" },
+    { 404, "Not Found" },
+    { 405, "Method Not Allowed" },
+    { 406, "Not Acceptable" },
+    { 407, "Proxy Authentication Required" },
+    { 408, "Request Timeout" },
+    { 409, "Conflict" },
+    { 410, "Gone" },
+    { 411, "Length Required" },
+    { 412, "Precondition Failed" },
+    { 413, "Payload Too Large" },
+    { 414, "URI Too Long" },
+    { 415, "Unsupported Media Type" },
+    { 416, "Range Not Satisfiable" },
+    { 417, "Expectation Failed" },
+    { 418, "I'm a teapot" },
+    { 451, "Unavailable For Legal Reasons" },
+    { 500, "Internal Server Error" },
+    { 501, "Not Implemented" },
+    { 502, "Bad Gateway" },
+    { 503, "Service Unavailable" },
+    { 504, "Gateway Timeout" },
+    { 505, "HTTP Version Not Supported" }
+  };
+  static const std::string unknown = "Unknown";
+
+  const auto it = reasons.find(statusCode);
+  if (it == reasons.end()) {
+    return unknown;
+  }
+  else {
+    return it->second;
+  }
+}
+
+static void handleResponse(DOHFrontend& df, st_h2o_req_t* req, uint16_t statusCode, const std::string& response, const std::string& contentType)
+{
+  if (statusCode == 200) {
+    ++df.d_validresponses;
+    req->res.status = 200;
+
+    if (contentType.empty()) {
+      h2o_add_header(&req->pool, &req->res.headers, H2O_TOKEN_CONTENT_TYPE, nullptr, H2O_STRLIT("application/dns-message"));
+    }
+    else {
+      /* we need to duplicate the header content because h2o keeps a pointer and we will be deleted before the response has been sent */
+      h2o_iovec_t ct = h2o_strdup(&req->pool, contentType.c_str(), contentType.size());
+      h2o_add_header(&req->pool, &req->res.headers, H2O_TOKEN_CONTENT_TYPE, nullptr, ct.base, ct.len);
+    }
+
+    req->res.content_length = response.size();
+    h2o_send_inline(req, response.c_str(), response.size());
+  }
+  else if (statusCode >= 300 && statusCode < 400) {
+    /* in that case the response is actually a URL */
+    /* we need to duplicate the URL because h2o uses it for the location header, keeping a pointer, and we will be deleted before the response has been sent */
+    h2o_iovec_t url = h2o_strdup(&req->pool, response.c_str(), response.size());
+    h2o_send_redirect(req, statusCode, getReasonFromStatusCode(statusCode).c_str(), url.base, url.len);
+    ++df.d_redirectresponses;
+  }
+  else {
+    if (!response.empty()) {
+      h2o_send_error_generic(req, statusCode, getReasonFromStatusCode(statusCode).c_str(), response.c_str(), 0);
+    }
+    else {
+      switch(statusCode) {
+      case 400:
+        h2o_send_error_400(req, getReasonFromStatusCode(statusCode).c_str(), "invalid DNS query" , 0);
+        break;
+      case 403:
+        h2o_send_error_403(req, getReasonFromStatusCode(statusCode).c_str(), "dns query not allowed", 0);
+        break;
+      case 502:
+        h2o_send_error_502(req, getReasonFromStatusCode(statusCode).c_str(), "no downstream server available", 0);
+        break;
+      case 500:
+        /* fall-through */
+      default:
+        h2o_send_error_500(req, getReasonFromStatusCode(statusCode).c_str(), "Internal Server Error", 0);
+        break;
+      }
+    }
+
+    ++df.d_errorresponses;
+  }
+}
+
+/*
    this function calls 'return -1' to drop a query without sending it
    caller should make sure HTTPS thread hears of that
 */
@@ -470,6 +574,13 @@ try
 
   string path(req->path.base, req->path.len);
 
+  for (const auto& entry : dsc->df->d_responsesMap) {
+    if (entry->matches(path)) {
+      handleResponse(*dsc->df, req, entry->getStatusCode(), entry->getContent(), std::string());
+      return 0;
+    }
+  }
+
   if (h2o_memis(req->method.base, req->method.len, H2O_STRLIT("POST"))) {
     ++dsc->df->d_postqueries;
     if(req->version >= 0x0200)
@@ -712,58 +823,6 @@ void dnsdistclient(int qsock, int rsock)
   }
 }
 
-static const std::string& getReasonFromStatusCode(uint16_t statusCode)
-{
-  /* no need to care too much about this, HTTP/2 has no 'reason' anyway */
-  static const std::unordered_map<uint16_t, std::string> reasons = {
-    { 200, "OK" },
-    { 301, "Moved Permanently" },
-    { 302, "Found" },
-    { 303, "See Other" },
-    { 304, "Not Modified" },
-    { 305, "Use Proxy" },
-    { 306, "Switch Proxy" },
-    { 307, "Temporary Redirect" },
-    { 308, "Permanent Redirect" },
-    { 400, "Bad Request" },
-    { 401, "Unauthorized" },
-    { 402, "Payment Required" },
-    { 403, "Forbidden" },
-    { 404, "Not Found" },
-    { 405, "Method Not Allowed" },
-    { 406, "Not Acceptable" },
-    { 407, "Proxy Authentication Required" },
-    { 408, "Request Timeout" },
-    { 409, "Conflict" },
-    { 410, "Gone" },
-    { 411, "Length Required" },
-    { 412, "Precondition Failed" },
-    { 413, "Payload Too Large" },
-    { 414, "URI Too Long" },
-    { 415, "Unsupported Media Type" },
-    { 416, "Range Not Satisfiable" },
-    { 417, "Expectation Failed" },
-    { 418, "I'm a teapot" },
-    { 451, "Unavailable For Legal Reasons" },
-    { 500, "Internal Server Error" },
-    { 501, "Not Implemented" },
-    { 502, "Bad Gateway" },
-    { 503, "Service Unavailable" },
-    { 504, "Gateway Timeout" },
-    { 505, "HTTP Version Not Supported" }
-  };
-  static const std::string unknown = "Unknown";
-
-  const auto it = reasons.find(statusCode);
-  if (it == reasons.end()) {
-    return unknown;
-  }
-  else {
-    return it->second;
-  }
-}
-
-
 // called if h2o finds that dnsdist gave us an answer
 static void on_dnsdist(h2o_socket_t *listener, const char *err)
 {
@@ -786,57 +845,8 @@ static void on_dnsdist(h2o_socket_t *listener, const char *err)
   }
 
   *du->self = nullptr; // so we don't clean up again in on_generator_dispose
-  if (du->status_code == 200) {
-    ++dsc->df->d_validresponses;
-    du->req->res.status = 200;
 
-    //    struct dnsheader* dh = (struct dnsheader*)du->query.c_str();
-    //    cout<<"Attempt to send out "<<du->query.size()<<" bytes over https, TC="<<dh->tc<<", RCODE="<<dh->rcode<<", qtype="<<du->qtype<<", req="<<(void*)du->req<<endl;
-
-    if (du->contentType.empty()) {
-      h2o_add_header(&du->req->pool, &du->req->res.headers, H2O_TOKEN_CONTENT_TYPE, nullptr, H2O_STRLIT("application/dns-message"));
-    }
-    else {
-      /* we need to duplicate the header content because h2o keeps a pointer and we will be deleted before the response has been sent */
-      h2o_iovec_t ct = h2o_strdup(&du->req->pool, du->contentType.c_str(), du->contentType.size());
-      h2o_add_header(&du->req->pool, &du->req->res.headers, H2O_TOKEN_CONTENT_TYPE, nullptr, ct.base, ct.len);
-    }
-
-    du->req->res.content_length = du->response.size();
-    h2o_send_inline(du->req, du->response.c_str(), du->response.size());
-  }
-  else if (du->status_code >= 300 && du->status_code < 400) {
-    /* in that case the response is actually a URL */
-    /* we need to duplicate the URL because h2o uses it for the location header, keeping a pointer, and we will be deleted before the response has been sent */
-    h2o_iovec_t url = h2o_strdup(&du->req->pool, du->response.c_str(), du->response.size());
-    h2o_send_redirect(du->req, du->status_code, getReasonFromStatusCode(du->status_code).c_str(), url.base, url.len);
-    ++dsc->df->d_redirectresponses;
-  }
-  else {
-    if (!du->response.empty()) {
-      h2o_send_error_generic(du->req, du->status_code, getReasonFromStatusCode(du->status_code).c_str(), du->response.c_str(), 0);
-    }
-    else {
-      switch(du->status_code) {
-      case 400:
-        h2o_send_error_400(du->req, getReasonFromStatusCode(du->status_code).c_str(), "invalid DNS query" , 0);
-        break;
-      case 403:
-        h2o_send_error_403(du->req, getReasonFromStatusCode(du->status_code).c_str(), "dns query not allowed", 0);
-        break;
-      case 502:
-        h2o_send_error_502(du->req, getReasonFromStatusCode(du->status_code).c_str(), "no downstream server available", 0);
-        break;
-      case 500:
-        /* fall-through */
-      default:
-        h2o_send_error_500(du->req, getReasonFromStatusCode(du->status_code).c_str(), "Internal Server Error", 0);
-        break;
-      }
-    }
-
-    ++dsc->df->d_errorresponses;
-  }
+  handleResponse(*dsc->df, du->req, du->status_code, du->response, du->contentType);
 
   delete du;
 }

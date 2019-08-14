@@ -369,4 +369,7 @@ void setupLuaBindings(bool client)
     return values;
   });
 
+  g_lua.writeFunction("newDOHResponseMapEntry", [](const std::string& regex, uint16_t status, const std::string& content) {
+    return std::make_shared<DOHResponseMapEntry>(regex, status, content);
+  });
 }

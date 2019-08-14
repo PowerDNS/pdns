@@ -148,6 +148,8 @@ class TestDOH(DNSDistDOHTest):
     newServer{address="127.0.0.1:%s"}
 
     addDOHLocal("127.0.0.1:%s", "%s", "%s", { "/" }, {customResponseHeaders={["access-control-allow-origin"]="*",["user-agent"]="derp"}})
+    dohFE = getDOHFrontend(0)
+    dohFE:setResponsesMap({newDOHResponseMapEntry('^/coffee$', 418, 'C0FFEE')})
 
     addAction("drop.doh.tests.powerdns.com.", DropAction())
     addAction("refused.doh.tests.powerdns.com.", RCodeAction(DNSRCode.REFUSED))
@@ -561,6 +563,38 @@ class TestDOH(DNSDistDOHTest):
         self.assertEquals(receivedResponse, b'It works!')
         self.assertEquals(self._rcode, 200)
         self.assertTrue('content-type: text/plain' in self._response_headers.decode())
+
+    def testHTTPEarlyResponse(self):
+        """
+        DOH: HTTP Early Response
+        """
+        url = self._dohBaseURL + 'coffee'
+        conn = self.openDOHConnection(self._dohServerPort, caFile=self._caCert, timeout=2.0)
+        conn.setopt(pycurl.URL, url)
+        conn.setopt(pycurl.RESOLVE, ["%s:%d:127.0.0.1" % (self._serverName, self._dohServerPort)])
+        conn.setopt(pycurl.SSL_VERIFYPEER, 1)
+        conn.setopt(pycurl.SSL_VERIFYHOST, 2)
+        conn.setopt(pycurl.CAINFO, self._caCert)
+        data = conn.perform_rb()
+        rcode = conn.getinfo(pycurl.RESPONSE_CODE)
+
+        self.assertEquals(rcode, 418)
+        self.assertEquals(data, b'C0FFEE')
+
+        conn = self.openDOHConnection(self._dohServerPort, caFile=self._caCert, timeout=2.0)
+        conn.setopt(pycurl.URL, url)
+        conn.setopt(pycurl.RESOLVE, ["%s:%d:127.0.0.1" % (self._serverName, self._dohServerPort)])
+        conn.setopt(pycurl.SSL_VERIFYPEER, 1)
+        conn.setopt(pycurl.SSL_VERIFYHOST, 2)
+        conn.setopt(pycurl.CAINFO, self._caCert)
+        conn.setopt(pycurl.POST, True)
+        data = ''
+        conn.setopt(pycurl.POSTFIELDS, data)
+
+        data = conn.perform_rb()
+        rcode = conn.getinfo(pycurl.RESPONSE_CODE)
+        self.assertEquals(rcode, 418)
+        self.assertEquals(data, b'C0FFEE')
 
 class TestDOHAddingECS(DNSDistDOHTest):
 

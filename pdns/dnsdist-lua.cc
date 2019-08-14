@@ -1812,8 +1812,11 @@ void setupLuaConfig(bool client)
 #endif
       });
 
-    g_lua.writeFunction("getDOHFrontend", [](size_t index) {
+    g_lua.writeFunction("getDOHFrontend", [client](size_t index) {
         std::shared_ptr<DOHFrontend> result = nullptr;
+        if (client) {
+          return result;
+        }
 #ifdef HAVE_DNS_OVER_HTTPS
         setLuaNoSideEffect();
         try {
@@ -1838,6 +1841,19 @@ void setupLuaConfig(bool client)
     g_lua.registerFunction<void(std::shared_ptr<DOHFrontend>::*)()>("reloadCertificates", [](std::shared_ptr<DOHFrontend> frontend) {
         if (frontend != nullptr) {
           frontend->reloadCertificates();
+        }
+      });
+
+    g_lua.registerFunction<void(std::shared_ptr<DOHFrontend>::*)(const std::map<int, std::shared_ptr<DOHResponseMapEntry>>&)>("setResponsesMap", [](std::shared_ptr<DOHFrontend> frontend, const std::map<int, std::shared_ptr<DOHResponseMapEntry>>& map) {
+        if (frontend != nullptr) {
+          std::vector<std::shared_ptr<DOHResponseMapEntry>> newMap;
+          newMap.reserve(map.size());
+
+          for (const auto& entry : map) {
+            newMap.push_back(entry.second);
+          }
+
+          frontend->d_responsesMap = std::move(newMap);
         }
       });
 
