@@ -1,6 +1,6 @@
 #pragma once
 #include <iostream>
-#include "pdns/lmdb-safe.hh"
+#include "lmdb-safe.hh"
 #include <boost/archive/binary_oarchive.hpp>
 #include <boost/archive/binary_iarchive.hpp>
 #include <boost/serialization/vector.hpp>

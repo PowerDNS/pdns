@@ -153,7 +153,7 @@ public:
 
 #ifdef HAVE_LMDB
 
-#include "lmdb-safe.hh"
+#include "ext/lmdb-safe/lmdb-safe.hh"
 
 class LMDBKVStore: public KeyValueStore
 {

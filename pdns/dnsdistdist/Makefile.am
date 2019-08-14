@@ -277,8 +277,8 @@ endif
 if HAVE_LMDB
 dnsdist_LDADD += $(LMDB_LDFLAGS) $(LMDB_LIBS)
 testrunner_LDADD += $(LMDB_LDFLAGS) $(LMDB_LIBS)
-dnsdist_SOURCES += lmdb-safe.cc lmdb-safe.hh
-testrunner_SOURCES += lmdb-safe.cc lmdb-safe.hh
+dnsdist_SOURCES += ext/lmdb-safe/lmdb-safe.cc ext/lmdb-safe/lmdb-safe.hh
+testrunner_SOURCES += ext/lmdb-safe/lmdb-safe.cc ext/lmdb-safe/lmdb-safe.hh
 endif
 
 if HAVE_DNS_OVER_TLS
