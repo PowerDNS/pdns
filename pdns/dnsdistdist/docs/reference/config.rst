@@ -1116,6 +1116,20 @@ Other functions
 
   Hashes the password to generate a 16-byte key that can be used to pseudonymize IP addresses with IP cipher.
 
+.. function:: generateOCSPResponse(pathToServerCertificate, pathToCACertificate, pathToCAPrivateKey, outputFile, numberOfDaysOfValidity, numberOfMinutesOfValidity)
+
+  .. versionadded:: 1.4.0
+
+  When a local PKI is used to issue the certificate, or for testing purposes, :func:`generateOCSPResponse` can be used to generate an OCSP response file for a certificate, using the certificate and private key of the certification authority that signed that certificate.
+  The resulting file can be directly used with the :func:`addDOHLocal` or the :func:`addTLSLocal` functions.
+
+  :param string pathToServerCertificate: Path to a file containing the certificate used by the server.
+  :param string pathToCACertificate: Path to a file containing the certificate of the certification authority that was used to sign the server certificate.
+  :param string pathToCAPrivateKey: Path to a file containing the private key corresponding to the certification authority certificate.
+  :param string outputFile: Path to a file where the resulting OCSP response will be written to.
+  :param int numberOfDaysOfValidity: Number of days this OCSP response should be valid.
+  :param int numberOfMinutesOfValidity: Number of minutes this OCSP response should be valid, in addition to the number of days.
+
 DOHFrontend
 ~~~~~~~~~~~
 
