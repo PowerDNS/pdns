@@ -143,6 +143,7 @@ public:
   {
   }
 
+  virtual bool keyExists(const std::string& key) = 0;
   virtual bool getValue(const std::string& key, std::string& value) = 0;
   virtual bool reload()
   {
@@ -161,6 +162,7 @@ public:
   {
   }
 
+  bool keyExists(const std::string& key) override;
   bool getValue(const std::string& key, std::string& value) override;
 
 private:
@@ -180,6 +182,7 @@ class CDBKVStore: public KeyValueStore
 public:
   CDBKVStore(const std::string& fname, time_t refreshDelay);
 
+  bool keyExists(const std::string& key) override;
   bool getValue(const std::string& key, std::string& value) override;
   bool reload() override;
 

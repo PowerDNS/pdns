@@ -91,6 +91,26 @@ bool LMDBKVStore::getValue(const std::string& key, std::string& value)
   return false;
 }
 
+bool LMDBKVStore::keyExists(const std::string& key)
+{
+  string_view result;
+  try {
+    auto transaction = d_env.getROTransaction();
+    auto dbi = transaction.openDB(d_dbName, 0);
+    int rc = transaction.get(dbi, MDBInVal(key), result);
+    if (rc == 0) {
+      return true;
+    }
+    else if (rc == MDB_NOTFOUND) {
+      return false;
+    }
+  }
+  catch(const std::exception& e) {
+    warnlog("Error while looking up key '%s' from LMDB file '%s', database '%s': %s", key, d_fname, d_dbName, e.what());
+  }
+  return false;
+}
+
 #endif /* HAVE_LMDB */
 
 #ifdef HAVE_CDB
@@ -171,6 +191,30 @@ bool CDBKVStore::getValue(const std::string& key, std::string& value)
       if (d_cdb && d_cdb->findOne(key, value)) {
         return true;
       }
+    }
+  }
+  catch(const std::exception& e) {
+    warnlog("Error while looking up key '%s' from CDB file '%s': %s", key, d_fname);
+  }
+  return false;
+}
+
+bool CDBKVStore::keyExists(const std::string& key)
+{
+  time_t now = time(nullptr);
+
+  try {
+    if (d_nextCheck != 0 && now >= d_nextCheck) {
+      refreshDBIfNeeded(now);
+    }
+
+    {
+      ReadLock rl(&d_lock);
+      if (!d_cdb) {
+        return false;
+      }
+
+      return d_cdb->keyExists(key);
     }
   }
   catch(const std::exception& e) {

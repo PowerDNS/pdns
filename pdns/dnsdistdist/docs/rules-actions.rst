@@ -597,6 +597,17 @@ These ``DNSRule``\ s be one of the following items:
 
   :param str path: The exact HTTP path to match on
 
+.. function:: KeyValueStoreLookupRule(kvs, lookupKey)
+  .. versionadded:: 1.5.0
+
+  Return true if the key returned by 'lookupKey' exists in the key value store referenced by 'kvs'.
+  The store can be a CDB (:func:`newCDBKVStore`) or a LMDB database (:func:`newLMDBKVStore`).
+  The key can be based on the qname (:func:`KeyValueLookupKeyQName` and :func:`KeyValueLookupKeySuffix`),
+  source IP (:func:`KeyValueLookupKeySourceIP`) or the value of an existing tag (:func:`KeyValueLookupKeyTag`).
+
+  :param KeyValueStore kvs: The key value store to query
+  :param KeyValueLookupKey lookupKey: The key to use for the lookup
+
 .. function:: MaxQPSIPRule(qps[, v4Mask[, v6Mask[, burst[, expiration[, cleanupDelay[, scanFraction]]]]]])
   .. versionchanged:: 1.3.1
     Added the optional parameters ``expiration``, ``cleanupDelay`` and ``scanFraction``.

@@ -3,8 +3,9 @@ Key Value Store functions and objects
 
 These are all the functions, objects and methods related to the CDB and LMDB key value stores.
 
-A lookup into a key value store can be done via the :func:`KeyValueStoreLookupAction` action,
-using the usual selectors to match the incoming queries for which the lookup should be done.
+A lookup into a key value store can be done via the :func:`KeyValueStoreLookupRule` rule or
+the :func:`KeyValueStoreLookupAction` action, using the usual selectors to match the incoming
+queries for which the lookup should be done.
 
 The first step is to get a :ref:`KeyValueStore` object via one of the following functions:
 
@@ -70,7 +71,7 @@ If the value found in the LMDB database for the key '\8powerdns\3com\0' was 'thi
 
   .. versionadded:: 1.5.0
 
-  Return a new KeyValueLookupKey object that, when passed to :func:`KeyValueStoreLookupAction`, will return the qname of the query in DNS wire format.
+  Return a new KeyValueLookupKey object that, when passed to :func:`KeyValueStoreLookupAction` or :func:`KeyValueStoreLookupRule`, will return the qname of the query in DNS wire format.
 
   :param bool wireFormat: Whether to do the lookup in wire format (default) or in plain text
 
@@ -78,13 +79,13 @@ If the value found in the LMDB database for the key '\8powerdns\3com\0' was 'thi
 
   .. versionadded:: 1.5.0
 
-  Return a new KeyValueLookupKey object that, when passed to :func:`KeyValueStoreLookupAction`, will return the source IP of the client in network byte-order.
+  Return a new KeyValueLookupKey object that, when passed to :func:`KeyValueStoreLookupAction` or :func:`KeyValueStoreLookupRule`, will return the source IP of the client in network byte-order.
 
 .. function:: KeyValueLookupKeySuffix([minLabels [, wireFormat]]) -> KeyValueLookupKey
 
   .. versionadded:: 1.5.0
 
-  Return a new KeyValueLookupKey object that, when passed to :func:`KeyValueStoreLookupAction`, will return a vector of keys based on the labels of the qname in DNS wire format.
+  Return a new KeyValueLookupKey object that, when passed to :func:`KeyValueStoreLookupAction` or :func:`KeyValueStoreLookupRule`, will return a vector of keys based on the labels of the qname in DNS wire format or plain text.
   For example if the qname is sub.domain.powerdns.com. the following keys will be returned:
 
    * \3sub\6domain\8powerdns\3com\0

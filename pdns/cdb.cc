@@ -162,7 +162,7 @@ vector<string> CDB::findall(string &key)
   return ret;
 }
 
-bool CDB::findOne(const string& key, string& value)
+bool CDB::keyExists(const string& key)
 {
   int ret = cdb_find(&d_cdb, key.c_str(), key.size());
   if (ret < 0) {
@@ -173,10 +173,19 @@ bool CDB::findOne(const string& key, string& value)
     return false;
   }
 
+  return true;
+}
+
+bool CDB::findOne(const string& key, string& value)
+{
+  if (!keyExists(key)) {
+    return false;
+  }
+
   unsigned int vpos = cdb_datapos(&d_cdb);
   unsigned int vlen = cdb_datalen(&d_cdb);
   value.resize(vlen);
-  ret = cdb_read(&d_cdb, &value[0], vlen, vpos);
+  int ret = cdb_read(&d_cdb, &value[0], vlen, vpos);
   if (ret < 0) {
     throw std::runtime_error("Error while reading value for key '" + key + "' from CDB database: " + std::to_string(ret));
   }

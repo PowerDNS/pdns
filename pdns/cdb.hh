@@ -41,6 +41,7 @@ public:
   void searchAll();
   bool readNext(pair<string, string> &value);
   vector<string> findall(string &key);
+  bool keyExists(const string& key);
   bool findOne(const string& key, string& value);
 
 private:

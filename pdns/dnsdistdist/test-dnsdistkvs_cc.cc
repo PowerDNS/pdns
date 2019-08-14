@@ -11,11 +11,16 @@ static void doKVSChecks(std::unique_ptr<KeyValueStore>& kvs, const ComboAddress&
   /* source IP */
   {
     auto lookupKey = make_unique<KeyValueLookupKeySourceIP>();
+    std::string value;
+    /* local address is not in the db, remote is */
+    BOOST_CHECK_EQUAL(kvs->getValue(std::string(reinterpret_cast<const char*>(&lc.sin4.sin_addr.s_addr), sizeof(lc.sin4.sin_addr.s_addr)), value), false);
+    BOOST_CHECK_EQUAL(kvs->keyExists(std::string(reinterpret_cast<const char*>(&lc.sin4.sin_addr.s_addr), sizeof(lc.sin4.sin_addr.s_addr))), false);
+    BOOST_CHECK(kvs->keyExists(std::string(reinterpret_cast<const char*>(&dq.remote->sin4.sin_addr.s_addr), sizeof(dq.remote->sin4.sin_addr.s_addr))));
+
     auto keys = lookupKey->getKeys(dq);
     BOOST_CHECK_EQUAL(keys.size(), 1);
     for (const auto& key : keys) {
-      std::string value;
-      BOOST_CHECK_EQUAL(kvs->getValue(std::string(reinterpret_cast<const char*>(&lc.sin4.sin_addr.s_addr), sizeof(lc.sin4.sin_addr.s_addr)), value), false);
+      value.clear();
       BOOST_CHECK_EQUAL(kvs->getValue(key, value), true);
       BOOST_CHECK_EQUAL(value, "this is the value for the remote addr");
     }
