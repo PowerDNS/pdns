@@ -28,6 +28,18 @@ Authoritative Server, and dnsdist (a powerful DNS loadbalancer). All three can
 be built from this repository. However, all three released separately as .tar.bz2,
 .deb and .rpm.
 
+The different releases can be built by the help of pdns-builder, which uses a
+docker-based build process. To get started with this, run these commands in the root
+of this repository:
+
+```sh
+git submodule init
+git submodule update
+./builder/build.sh
+```
+
+This will bring up a USAGE-page which will explain how to build the different releases.
+
 COMPILING Authoritative Server
 ------------------------------
 The PowerDNS Authoritative Server depends on Boost, OpenSSL and requires a
