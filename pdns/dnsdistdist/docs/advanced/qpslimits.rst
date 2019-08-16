@@ -7,7 +7,7 @@ Traffic that exceeds a QPS limit, in total or per IP (subnet) can be matched by 
 
   addAction(MaxQPSIPRule(5, 32, 48), DelayAction(100))
 
-This measures traffic per IPv4 address and per /48 of IPv6, and if traffic for such an address (range) exceeds 5 :term:`qps`, it gets delayed by 100ms.
+This measures traffic per IPv4 address and per /48 of IPv6, and if UDP traffic for such an address (range) exceeds 5 :term:`qps`, it gets delayed by 100ms.
 
 As another example:
 
