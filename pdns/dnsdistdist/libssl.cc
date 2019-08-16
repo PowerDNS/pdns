@@ -264,4 +264,71 @@ bool libssl_generate_ocsp_response(const std::string& certFile, const std::strin
 }
 #endif /* HAVE_OCSP_BASIC_SIGN */
 
+LibsslTLSVersion libssl_tls_version_from_string(const std::string& str)
+{
+  if (str == "tls1.0") {
+    return LibsslTLSVersion::TLS10;
+  }
+  if (str == "tls1.1") {
+    return LibsslTLSVersion::TLS11;
+  }
+  if (str == "tls1.2") {
+    return LibsslTLSVersion::TLS12;
+  }
+  if (str == "tls1.3") {
+    return LibsslTLSVersion::TLS13;
+  }
+  throw std::runtime_error("Unknown TLS version '" + str);
+}
+
+bool libssl_set_min_tls_version(std::unique_ptr<SSL_CTX, void(*)(SSL_CTX*)>& ctx, LibsslTLSVersion version)
+{
+#if (OPENSSL_VERSION_NUMBER >= 0x1010000fL && !defined LIBRESSL_VERSION_NUMBER)
+  /* these functions have been introduced in 1.1.0, and the use of SSL_OP_NO_* is deprecated */
+  int vers;
+  switch(version) {
+  case LibsslTLSVersion::TLS10:
+    vers = TLS1_VERSION;
+    break;
+  case LibsslTLSVersion::TLS11:
+    vers = TLS1_1_VERSION;
+    break;
+  case LibsslTLSVersion::TLS12:
+    vers = TLS1_2_VERSION;
+    break;
+  case LibsslTLSVersion::TLS13:
+    vers = TLS1_3_VERSION;
+    break;
+  default:
+    return false;
+  }
+
+  if (SSL_CTX_set_min_proto_version(ctx.get(), vers) != 1) {
+    return false;
+  }
+  return true;
+#else
+  long vers = SSL_OP_NO_SSLv2 | SSL_OP_NO_SSLv3;
+  switch(version) {
+  case LibsslTLSVersion::TLS10:
+    break;
+  case LibsslTLSVersion::TLS11:
+    vers |= SSL_OP_NO_TLSv1;
+    break;
+  case LibsslTLSVersion::TLS12:
+    vers |= SSL_OP_NO_TLSv1 | SSL_OP_NO_TLSv1_1;
+    break;
+  case LibsslTLSVersion::TLS13:
+    vers |= SSL_OP_NO_TLSv1 | SSL_OP_NO_TLSv1_1 | SSL_OP_NO_TLSv1_2;
+    break;
+  default:
+    return false;
+  }
+
+  long options = SSL_CTX_get_options(ctx.get());
+  SSL_CTX_set_options(ctx.get(), options | vers);
+  return true;
+#endif
+}
+
 #endif /* HAVE_LIBSSL */

@@ -22,4 +22,9 @@ int libssl_get_last_key_type(std::unique_ptr<SSL_CTX, void(*)(SSL_CTX*)>& ctx);
 bool libssl_generate_ocsp_response(const std::string& certFile, const std::string& caCert, const std::string& caKey, const std::string& outFile, int ndays, int nmin);
 #endif
 
+enum class LibsslTLSVersion { TLS10, TLS11, TLS12, TLS13 };
+
+LibsslTLSVersion libssl_tls_version_from_string(const std::string& str);
+bool libssl_set_min_tls_version(std::unique_ptr<SSL_CTX, void(*)(SSL_CTX*)>& ctx, LibsslTLSVersion version);
+
 #endif /* HAVE_LIBSSL */
