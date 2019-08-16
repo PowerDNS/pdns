@@ -266,7 +266,7 @@ struct DNSComboWriter {
   {
   }
 
-  DNSComboWriter(const std::string& query, const struct timeval& now, std::vector<std::string>&& policyTags, LuaContext::LuaObject&& data): d_mdp(true, query), d_now(now), d_query(query), d_policyTags(std::move(policyTags)), d_data(std::move(data))
+  DNSComboWriter(const std::string& query, const struct timeval& now, std::vector<std::string>&& policyTags, LuaContext::LuaObject&& data, std::vector<DNSRecord>&& records): d_mdp(true, query), d_now(now), d_query(query), d_policyTags(std::move(policyTags)), d_records(std::move(records)), d_data(std::move(data))
   {
   }
 
@@ -326,9 +326,11 @@ struct DNSComboWriter {
 #endif
   std::string d_query;
   std::vector<std::string> d_policyTags;
+  std::vector<DNSRecord> d_records;
   LuaContext::LuaObject d_data;
   EDNSSubnetOpts d_ednssubnet;
   shared_ptr<TCPConnection> d_tcpConnection;
+  boost::optional<int> d_rcode{boost::none};
   int d_socket;
   unsigned int d_tag{0};
   uint32_t d_qhash{0};
@@ -338,6 +340,8 @@ struct DNSComboWriter {
   bool d_variable{false};
   bool d_ecsFound{false};
   bool d_ecsParsed{false};
+  bool d_followCNAMERecords{false};
+  bool d_logResponse{false};
   bool d_tcp;
 };
 
@@ -1099,6 +1103,32 @@ static bool udrCheckUniqueDNSRecord(const DNSName& dname, uint16_t qtype, const 
 }
 #endif /* NOD_ENABLED */
 
+int followCNAMERecords(vector<DNSRecord>& ret, const QType& qtype)
+{
+  vector<DNSRecord> resolved;
+  DNSName target;
+  for(const DNSRecord& rr :  ret) {
+    if(rr.d_type == QType::CNAME) {
+      auto rec = getRR<CNAMERecordContent>(rr);
+      if(rec) {
+        target=rec->getTarget();
+        break;
+      }
+    }
+  }
+
+  if(target.empty()) {
+    return 0;
+  }
+
+  int rcode = directResolve(target, qtype, QClass::IN, resolved);
+
+  for(DNSRecord& rr :  resolved) {
+    ret.push_back(std::move(rr));
+  }
+  return rcode;
+}
+
 static void startDoResolve(void *p)
 {
   auto dc=std::unique_ptr<DNSComboWriter>(reinterpret_cast<DNSComboWriter*>(p));
@@ -1155,10 +1185,8 @@ static void startDoResolve(void *p)
     // Used to tell syncres later on if we should apply NSDNAME and NSIP RPZ triggers for this query
     bool wantsRPZ(true);
     boost::optional<RecProtoBufMessage> pbMessage(boost::none);
-    bool logResponse = false;
 #ifdef HAVE_PROTOBUF
     if (checkProtobufExport(luaconfsLocal)) {
-      logResponse = t_protobufServers && luaconfsLocal->protobufExportConfig.logResponses;
       Netmask requestorNM(dc->d_source, dc->d_source.sin4.sin_family == AF_INET ? luaconfsLocal->protobufMaskV4 : luaconfsLocal->protobufMaskV6);
       const ComboAddress& requestor = requestorNM.getMaskedNetwork();
       pbMessage = RecProtoBufMessage(RecProtoBufMessage::Response, dc->d_uuid, &requestor, &dc->d_destination, dc->d_mdp.d_qname, dc->d_mdp.d_qtype, dc->d_mdp.d_qclass, dc->d_mdp.d_header.id, dc->d_tcp, 0);
@@ -1188,6 +1216,7 @@ static void startDoResolve(void *p)
     uint32_t minTTL = dc->d_ttlCap;
 
     SyncRes sr(dc->d_now);
+    sr.setId(MT->getTid());
 
     bool DNSSECOK=false;
     if(t_pdl) {
@@ -1236,9 +1265,10 @@ static void startDoResolve(void *p)
 
     /* preresolve expects res (dq.rcode) to be set to RCode::NoError by default */
     int res = RCode::NoError;
+
     DNSFilterEngine::Policy appliedPolicy;
     std::vector<DNSRecord> spoofed;
-    RecursorLua4::DNSQuestion dq(dc->d_source, dc->d_destination, dc->d_mdp.d_qname, dc->d_mdp.d_qtype, dc->d_tcp, variableAnswer, wantsRPZ, logResponse);
+    RecursorLua4::DNSQuestion dq(dc->d_source, dc->d_destination, dc->d_mdp.d_qname, dc->d_mdp.d_qtype, dc->d_tcp, variableAnswer, wantsRPZ, dc->d_logResponse);
     dq.ednsFlags = &edo.d_extFlags;
     dq.ednsOptions = &ednsOpts;
     dq.tag = dc->d_tag;
@@ -1270,7 +1300,6 @@ static void startDoResolve(void *p)
       tracedQuery=true;
     }
 
-
     if(!g_quiet || tracedQuery) {
       g_log<<Logger::Warning<<t_id<<" ["<<MT->getTid()<<"/"<<MT->numProcesses()<<"] " << (dc->d_tcp ? "TCP " : "") << "question for '"<<dc->d_mdp.d_qname<<"|"
        <<DNSRecordContent::NumberToType(dc->d_mdp.d_qtype)<<"' from "<<dc->getRemote();
@@ -1280,9 +1309,19 @@ static void startDoResolve(void *p)
       g_log<<endl;
     }
 
-    sr.setId(MT->getTid());
-    if(!dc->d_mdp.d_header.rd)
+    if(!dc->d_mdp.d_header.rd) {
       sr.setCacheOnly();
+    }
+
+    if (dc->d_rcode != boost::none) {
+      /* we have a response ready to go, most likely from gettag_ffi */
+      ret = std::move(dc->d_records);
+      res = *dc->d_rcode;
+      if (res == RCode::NoError && dc->d_followCNAMERecords) {
+        res = followCNAMERecords(ret, QType(dc->d_mdp.d_qtype));
+      }
+      goto haveAnswer;
+    }
 
     if (t_pdl) {
       t_pdl->prerpz(dq, res);
@@ -1617,7 +1656,7 @@ static void startDoResolve(void *p)
     }
 #endif /* NOD_ENABLED */
 #ifdef HAVE_PROTOBUF
-    if (t_protobufServers && logResponse && !(luaconfsLocal->protobufExportConfig.taggedOnly && (!appliedPolicy.d_name || appliedPolicy.d_name->empty()) && dc->d_policyTags.empty())) {
+    if (t_protobufServers && !(luaconfsLocal->protobufExportConfig.taggedOnly && (!appliedPolicy.d_name || appliedPolicy.d_name->empty()) && dc->d_policyTags.empty())) {
       pbMessage->setBytes(packet.size());
       pbMessage->setResponseCode(pw.getHeader()->rcode);
       if (appliedPolicy.d_name) {
@@ -1645,7 +1684,9 @@ static void startDoResolve(void *p)
         }
       }
 #endif /* NOD_ENABLED */
-      protobufLogResponse(*pbMessage);
+      if (dc->d_logResponse) {
+        protobufLogResponse(*pbMessage);
+      }
 #ifdef NOD_ENABLED
       if (g_nodEnabled) {
         pbMessage->setNOD(false);
@@ -2002,6 +2043,7 @@ static void handleRunningTCPQuestion(int fd, FDMultiplexer::funcparam_t& var)
         needECS = true;
       }
       logQuery = t_protobufServers && luaconfsLocal->protobufExportConfig.logQueries;
+      dc->d_logResponse = t_protobufServers && luaconfsLocal->protobufExportConfig.logResponses;
 #endif /* HAVE_PROTOBUF */
 
 #ifdef HAVE_FSTRM
@@ -2022,7 +2064,7 @@ static void handleRunningTCPQuestion(int fd, FDMultiplexer::funcparam_t& var)
           if(t_pdl) {
             try {
               if (t_pdl->d_gettag_ffi) {
-                dc->d_tag = t_pdl->gettag_ffi(dc->d_source, dc->d_ednssubnet.source, dc->d_destination, qname, qtype, &dc->d_policyTags, dc->d_data, ednsOptions, true, requestorId, deviceId, deviceName, dc->d_ttlCap, dc->d_variable, logQuery);
+                dc->d_tag = t_pdl->gettag_ffi(dc->d_source, dc->d_ednssubnet.source, dc->d_destination, qname, qtype, &dc->d_policyTags, dc->d_records, dc->d_data, ednsOptions, true, requestorId, deviceId, deviceName, dc->d_rcode, dc->d_ttlCap, dc->d_variable, logQuery, dc->d_logResponse, dc->d_followCNAMERecords);
               }
               else if (t_pdl->d_gettag) {
                 dc->d_tag = t_pdl->gettag(dc->d_source, dc->d_ednssubnet.source, dc->d_destination, qname, qtype, &dc->d_policyTags, dc->d_data, ednsOptions, true, requestorId, deviceId, deviceName);
@@ -2191,6 +2233,7 @@ static string* doProcessUDPQuestion(const std::string& question, const ComboAddr
   string deviceId;
   string deviceName;
   bool logQuery = false;
+  bool logResponse = false;
 #ifdef HAVE_PROTOBUF
   boost::uuids::uuid uniqueId;
   auto luaconfsLocal = g_luaconfs.getLocal();
@@ -2201,7 +2244,7 @@ static string* doProcessUDPQuestion(const std::string& question, const ComboAddr
     uniqueId = getUniqueID();
   }
   logQuery = t_protobufServers && luaconfsLocal->protobufExportConfig.logQueries;
-  bool logResponse = t_protobufServers && luaconfsLocal->protobufExportConfig.logResponses;
+  logResponse = t_protobufServers && luaconfsLocal->protobufExportConfig.logResponses;
 #endif
 #ifdef HAVE_FSTRM
   checkFrameStreamExport(luaconfsLocal);
@@ -2211,8 +2254,11 @@ static string* doProcessUDPQuestion(const std::string& question, const ComboAddr
   bool ecsParsed = false;
   uint16_t ecsBegin = 0;
   uint16_t ecsEnd = 0;
+  std::vector<DNSRecord> records;
+  boost::optional<int> rcode = boost::none;
   uint32_t ttlCap = std::numeric_limits<uint32_t>::max();
   bool variable = false;
+  bool followCNAMEs = false;
   try {
     DNSName qname;
     uint16_t qtype=0;
@@ -2248,7 +2294,7 @@ static string* doProcessUDPQuestion(const std::string& question, const ComboAddr
         if(t_pdl) {
           try {
             if (t_pdl->d_gettag_ffi) {
-              ctag = t_pdl->gettag_ffi(source, ednssubnet.source, destination, qname, qtype, &policyTags, data, ednsOptions, false, requestorId, deviceId, deviceName, ttlCap, variable, logQuery);
+              ctag = t_pdl->gettag_ffi(source, ednssubnet.source, destination, qname, qtype, &policyTags, records, data, ednsOptions, false, requestorId, deviceId, deviceName, rcode, ttlCap, variable, logQuery, logResponse, followCNAMEs);
             }
             else if (t_pdl->d_gettag) {
               ctag = t_pdl->gettag(source, ednssubnet.source, destination, qname, qtype, &policyTags, data, ednsOptions, false, requestorId, deviceId, deviceName);
@@ -2366,7 +2412,7 @@ static string* doProcessUDPQuestion(const std::string& question, const ComboAddr
     return 0;
   }
 
-  auto dc = std::unique_ptr<DNSComboWriter>(new DNSComboWriter(question, g_now, std::move(policyTags), std::move(data)));
+  auto dc = std::unique_ptr<DNSComboWriter>(new DNSComboWriter(question, g_now, std::move(policyTags), std::move(data), std::move(records)));
   dc->setSocket(fd);
   dc->d_tag=ctag;
   dc->d_qhash=qhash;
@@ -2382,6 +2428,9 @@ static string* doProcessUDPQuestion(const std::string& question, const ComboAddr
   dc->d_ednssubnet = ednssubnet;
   dc->d_ttlCap = ttlCap;
   dc->d_variable = variable;
+  dc->d_followCNAMERecords = followCNAMEs;
+  dc->d_rcode = rcode;
+  dc->d_logResponse = logResponse;
 #ifdef HAVE_PROTOBUF
   if (t_protobufServers || t_outgoingProtobufServers) {
     dc->d_uuid = std::move(uniqueId);

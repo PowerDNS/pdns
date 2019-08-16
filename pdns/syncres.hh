@@ -1052,6 +1052,7 @@ void broadcastFunction(const pipefunc_t& func);
 void distributeAsyncFunction(const std::string& question, const pipefunc_t& func);
 
 int directResolve(const DNSName& qname, const QType& qtype, int qclass, vector<DNSRecord>& ret);
+int followCNAMERecords(std::vector<DNSRecord>& ret, const QType& qtype);
 
 template<class T> T broadcastAccFunction(const boost::function<T*()>& func);
 
