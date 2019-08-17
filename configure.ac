@@ -321,6 +321,7 @@ AC_CONFIG_FILES([
   modules/randombackend/Makefile
   modules/remotebackend/Makefile
   modules/tinydnsbackend/Makefile
+  modules/cassandrabackend/Makefile
 ])
 AC_OUTPUT
 
