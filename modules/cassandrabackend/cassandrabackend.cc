@@ -11,8 +11,15 @@ CassandraBackend::CassandraBackend(const std::string& suffix)
 {
     setArgPrefix("cassandra" + suffix);
 
-    auto contactPoints = getArg("contact-points");
-    auto keyspace = getArg("keyspace");
+    auto contactPoints  = getArg("contact-points");
+    auto keyspace       = getArg("keyspace");
+    auto table          = getArg("table");
+    auto createTable    = mustDo("create-table");
+
+    if (keyspace.empty())
+    {
+        throw PDNSException("[cassandrabackend] cassandra-keyspace must be specified");
+    }
 
     m_cluster = cass_cluster_new();
 
@@ -22,21 +29,39 @@ CassandraBackend::CassandraBackend(const std::string& suffix)
 
     if (err != CASS_OK)
     {
-        g_log << Logger::Error << "cass_cluster_set_contact_points_n(): " << cass_error_desc(err) << endl;
-        throw PDNSException("cannot set cassandra cluster contact points");
+        g_log << Logger::Error << "[cassandrabackend] cass_cluster_set_contact_points_n(): " << cass_error_desc(err) << endl;
+        throw PDNSException("[cassandrabackend] cannot set cassandra cluster contact points");
     }
 
     m_session = cass_session_new();
 
-    CassFuturePtr future {cass_session_connect_keyspace_n(m_session, m_cluster, keyspace.data(), keyspace.size())};
+    CassFuturePtr future  = cass_session_connect_keyspace_n(m_session, m_cluster, keyspace.data(), keyspace.size());
 
-    err = cass_future_error_code(future);
+    checkCassFutureError(future, "cannot connect to keyspace '" + keyspace + "'", true);
 
-    if (err != CASS_OK)
+    if (createTable)
     {
-        g_log << Logger::Error << "cass_session_connect_keyspace_n(): " << cass_error_desc(err) << endl;
-        throw PDNSException("cannot connect to keyspace");
+        std::string query {
+            "CREATE TABLE IF NOT EXISTS " + table + " ("
+                "domain text PRIMARY KEY,"
+                "record list<frozen<tuple<ascii, text, int, text>>>"
+            ")"
+        };
+
+        CassStatementPtr st = cass_statement_new_n(query.data(), query.size(), 0);
+
+        future = cass_session_execute(m_session, st);
+
+        checkCassFutureError(future, "cannot create table", true);
     }
+
+    auto q = "SELECT record FROM " + table + " WHERE domain = ?";
+
+    future = cass_session_prepare_n(m_session, q.data(), q.size());
+
+    checkCassFutureError(future, "cannot prepare query", true);
+
+    m_query = cass_future_get_prepared(future);
 }
 
 CassandraBackend::~CassandraBackend()
@@ -47,6 +72,31 @@ CassandraBackend::~CassandraBackend()
     cass_future_wait_timed(f, 10'000);
 }
 
+bool CassandraBackend::checkCassFutureError(CassFuturePtr& future, const std::string& msg, bool throwException)
+{
+    CassError err = cass_future_error_code(future);
+
+    if (err == CASS_OK)
+    {
+        return true;
+    }
+
+    const char* data;
+    size_t len;
+
+    cass_future_error_message(future, &data, &len);
+
+    std::string errMessage = "[cassandrabackend] " + msg + ": " + cass_error_desc(err) +  ": " + std::string(data, len);
+    g_log << Logger::Error << errMessage  << endl;
+
+    if (throwException)
+    {
+        throw PDNSException(errMessage);
+    }
+
+    return false;
+}
+
 bool CassandraBackend::list(const DNSName& target, int id, bool include_disabled)
 {
     // not AXFR support
@@ -55,35 +105,40 @@ bool CassandraBackend::list(const DNSName& target, int id, bool include_disabled
 
 void CassandraBackend::lookup(const QType& type, const DNSName &qdomain, DNSPacket *p, int zoneId)
 {
-    g_log << Logger::Info << "[cassandrabackend] lookup " << qdomain << " type: " << type.getName() << endl;
+    g_log << Logger::Debug << "[cassandrabackend] lookup " << qdomain << " type: " << type.getName() << endl;
 
     DNSName domain(qdomain);
 
-    m_requestedDomain = domain.toStringRootDot();
+    domain.makeUsLowerCase();
+
+    m_requestedName = domain;
+
+    if (domain.isWildcard())
+    {
+        // we should never have "*.domain.name" domains in database
+        // but actual domains can have "*" record(s)
+        domain.chopOff();
+    }
 
     do
     {
 
-        CassStatementPtr st = cass_statement_new("SELECT record FROM dns WHERE domain = ?", 1);
+        CassStatementPtr st = cass_prepared_bind(m_query);
 
         if (!st)
         {
-            g_log << Logger::Error << "cass_statement_new() error" << endl;
-            throw PDNSException("cass_statement_new() error");
+            m_requests.clear();
+            g_log << Logger::Error << "[cassandrabackend] cass_statement_new() error" << endl;
+            throw PDNSException("[cassandrabackend] cass_statement_new() error");
         }
 
-        if (qdomain.isWildcard())
-        {
-            domain.chopOff();
+        std::string domainName = domain.toStringRootDot();
 
-            g_log << Logger::Error << "chopped: " << domain.toStringRootDot() << endl;
-        }
+        g_log << Logger::Debug << "[cassandrabackend] requesting " << domainName << endl;
 
-        g_log << Logger::Info << "requesting " << domain.toStringRootDot() << endl;
+        cass_statement_bind_string_n(st, 0, domainName.c_str(), domainName.size());
 
-        cass_statement_bind_string(st, 0, domain.toStringRootDot().c_str());
-
-        m_requests.push_back(Request{domain.toStringRootDot(), cass_session_execute(m_session, st)});
+        m_requests.push_back(Request{std::move(domainName), cass_session_execute(m_session, st)});
         m_requestedType = type;
 
     } while (type == QType::ANY && domain.chopOff());
@@ -106,16 +161,10 @@ bool CassandraBackend::get(DNSResourceRecord &rr)
 
         if (request.future)
         {
-            CassError err = cass_future_error_code(request.future);
+            // in-flight request, wait and process
 
-            if (err != CASS_OK)
+            if (!checkCassFutureError(request.future, "request error", false))
             {
-                const char* msg = nullptr;
-                size_t size = 0;
-                cass_future_error_message(request.future, &msg, &size);
-
-                g_log << Logger::Error << "[cassandrabackend] active request error: " << cass_error_desc(err) << ": " << std::string(msg, size) << endl;
-
                 m_requests.pop_front();
                 continue;
             }
@@ -133,148 +182,123 @@ bool CassandraBackend::get(DNSResourceRecord &rr)
             }
 
             const CassValue* value = cass_row_get_column(row, 0);
-            assert(value);
+
+            if (!value)
+            {
+                g_log << Logger::Info << "[cassandrabackend] cannot get column value" << endl;
+                return false;
+            }
 
             request.record = cass_iterator_from_collection(value);
             g_log << Logger::Info << "[cassandrabackend] got records for " << request.domain << endl;
         }
 
-        break;
+        assert(request.record);
+
+        while (cass_iterator_next(request.record))
+        {
+            const CassValue* value = cass_iterator_get_value(request.record);
+            assert(value);
+
+            CassIteratorPtr it = cass_iterator_from_tuple(value);
+
+            if (!it)
+            {
+                g_log << Logger::Error << "[cassandrabackend] looks like record value is not a tuple" << endl;
+                continue;
+            }
+
+            std::string type;
+            std::string name;
+            std::string content;
+
+            int ttl = 0;
+
+            /// 1. Type
+            cass_iterator_next(it);
+            type = getString(it);
+
+            if (m_requestedType != QType::ANY && m_requestedType.getName() != type)
+            {
+                continue;
+            }
+
+            /// 2. Name
+            cass_iterator_next(it);
+            name = getString(it);
+
+            ////  3. TTL
+            cass_iterator_next(it);
+            ttl = getInt(it);
+
+
+            //// 4. Content
+            cass_iterator_next(it);
+            content = getString(it);
+
+
+            DNSName recordName(name);
+
+            recordName += DNSName(request.domain);
+
+            if (m_requestedName != recordName)
+            {
+                g_log << Logger::Debug << "[cassandrabackend] not what we look for. Requested: " << m_requestedName << " name: " << recordName << endl;
+                continue;
+            }
+
+            g_log << Logger::Debug << "[cassandrabackend] returning " << recordName << " - " << type << " - " << content << " - " << ttl << endl;
+
+            rr.qname = m_requestedName;
+            rr.qtype = type;
+            rr.ttl = ttl;
+            rr.auth = true; // we are always authorative
+
+            rr.setContent(std::move(content));
+
+            return true;
+        }
+
+
+        g_log << Logger::Debug << "[cassandrabackend] request finished" << endl;
+
+        m_requests.pop_front();
     }
 
-    if (m_requests.empty())
+    return false;
+}
+
+std::string CassandraBackend::getString(const CassIteratorPtr& it)
+{
+    const char* data;
+    size_t len;
+
+    CassError err;
+
+    err = cass_value_get_string(cass_iterator_get_value(it), &data, &len);
+
+    if (err != CASS_OK)
     {
-        g_log << Logger::Info << "[cassandrabackend] no more data possible " << endl;
-        return false;
+        throw PDNSException(std::string("[cassandrabackend] cannot get string value: ") + cass_error_desc(err));
     }
 
-    auto& request = m_requests.front();
+    return std::string(data, len);
+}
 
-    assert(request.record);
+int CassandraBackend::getInt(const CassIteratorPtr& it)
+{
+    cass_int32_t out;
 
-    while (cass_iterator_next(request.record))
+    CassError err;
+
+    err = cass_value_get_int32(cass_iterator_get_value(it), &out);
+
+    if (err != CASS_OK)
     {
-
-        const CassValue* value = cass_iterator_get_value(request.record);
-        assert(value);
-
-        CassIteratorPtr it = cass_iterator_from_tuple(value);
-
-        if (!it)
-        {
-            break;
-        }
-
-        std::string type;
-        std::string name;
-        std::string content;
-
-        int ttl = 0;
-
-        /// 1. Type
-        cass_iterator_next(it);
-
-        const char* data;
-        size_t len;
-
-        CassError err;
-
-        err = cass_value_get_string(cass_iterator_get_value(it), &data, &len);
-
-        if (err != CASS_OK)
-        {
-            g_log << Logger::Error << "[cassandrabackend] cannot get record type" << endl;
-            return false;
-        }
-
-        type.assign(data, len);
-
-        if (m_requestedType != QType::ANY && m_requestedType.getName() != type)
-        {
-            continue;
-        }
-
-        /// 2. Name
-        cass_iterator_next(it);
-
-        err = cass_value_get_string(cass_iterator_get_value(it), &data, &len);
-
-        if (err != CASS_OK)
-        {
-            g_log << Logger::Error << "[cassandrabackend] cannot get name" << endl;
-            break;
-        }
-
-        if (m_requestedDomain == request.domain && len != 0)
-        {
-            continue;
-        }
-
-        name.assign(data, len);
-
-        ////  3. TTL
-        cass_iterator_next(it);
-
-        cass_int32_t out;
-        err = cass_value_get_int32(cass_iterator_get_value(it), &out);
-
-        if (err != CASS_OK)
-        {
-            g_log << Logger::Error << "[cassandrabackend] cannot get record ttl" << endl;
-            break;
-        }
-
-        ttl = out;
-
-
-        //// 4. Content
-        cass_iterator_next(it);
-
-        err = cass_value_get_string(cass_iterator_get_value(it), &data, &len);
-
-        if (err != CASS_OK)
-        {
-            g_log << Logger::Error << "[cassandrabackend] cannot get record content" << endl;
-            break;
-        }
-
-        content.assign(data, len);
-
-        if (!name.empty())
-        {
-            name += '.';
-        }
-
-        name += request.domain;
-
-        if (m_requestedDomain != request.domain && m_requestedDomain != name)
-        {
-            g_log << Logger::Error << "[cassandrabackend] not what we look for. Requested: " << m_requestedDomain << " name: " << name << endl;
-            continue;
-        }
-
-        g_log << Logger::Error << "[cassandrabackend] returning " << name << " - " << type << " - " << content << endl;
-
-        rr.qname = DNSName(name);
-        rr.qtype = type;
-        rr.ttl = ttl;
-        rr.auth = 1; // we are always authorative
-        rr.setContent(std::move(content));
-
-        return true;
+        throw PDNSException(std::string("[cassandrabackend] cannot get integer value: ") + cass_error_desc(err));
     }
 
-
-    g_log << Logger::Error << "[cassandrabackend] request finished" << endl;
-
-    m_requests.pop_front();
-
-    if (m_requests.empty())
-    {
-        return false;
-    }
-
-    return true;
+    return out;
 }
 
 class CassandraBackendFactory : public BackendFactory
@@ -286,7 +310,9 @@ public:
     {
         g_log << Logger::Info << "[cassandrabackend] suffix" << suffix << endl;
         declare(suffix, "contact-points", "Cassandra cluster connection points", "127.0.0.1");
-        declare(suffix, "keyspace", "Cassandra keyspace", "no-keyspace-selected");
+        declare(suffix, "keyspace", "Cassandra keyspace", "");
+        declare(suffix, "table", "Cassandra table", "dns");
+        declare(suffix, "create-table", "Create table if it doesn't exist", "no");
     }
 
     virtual DNSBackend *make(const string& suffix) override

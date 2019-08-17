@@ -41,6 +41,11 @@ public:
         return m_ptr;
     }
 
+    operator const T*() const
+    {
+        return m_ptr;
+    }
+
     explicit operator bool() const
     {
         return m_ptr != nullptr;
@@ -65,9 +70,10 @@ private:
     T*      m_ptr;
 };
 
-using CassIteratorPtr   = CassPtr<CassIterator,     &cass_iterator_free>;
-using CassResultPtr     = CassPtr<const CassResult, &cass_result_free>;
-using CassStatementPtr  = CassPtr<CassStatement,    &cass_statement_free>;
-using CassFuturePtr     = CassPtr<CassFuture,       &cass_future_free>;
-using CassSessionPtr    = CassPtr<CassSession,      &cass_session_free>;
-using CassClusterPtr    = CassPtr<CassCluster,      &cass_cluster_free>;
+using CassPreparedPtr   = CassPtr<const CassPrepared,   &cass_prepared_free>;
+using CassIteratorPtr   = CassPtr<CassIterator,         &cass_iterator_free>;
+using CassResultPtr     = CassPtr<const CassResult,     &cass_result_free>;
+using CassStatementPtr  = CassPtr<CassStatement,        &cass_statement_free>;
+using CassFuturePtr     = CassPtr<CassFuture,           &cass_future_free>;
+using CassSessionPtr    = CassPtr<CassSession,          &cass_session_free>;
+using CassClusterPtr    = CassPtr<CassCluster,          &cass_cluster_free>;

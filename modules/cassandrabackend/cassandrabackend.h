@@ -18,8 +18,14 @@ public:
     virtual bool get(DNSResourceRecord &rr) override;
 
 private:
+    int getInt(const CassIteratorPtr& it);
+    std::string getString(const CassIteratorPtr& it);
+
+    bool checkCassFutureError(CassFuturePtr& future, const std::string& msg, bool throwException);
+
     CassClusterPtr  m_cluster;
     CassSessionPtr  m_session;
+    CassPreparedPtr m_query;
 
     struct Request
     {
@@ -32,5 +38,5 @@ private:
     std::list<Request>  m_requests;
 
     QType               m_requestedType;
-    std::string         m_requestedDomain;
+    DNSName             m_requestedName;
 };
