@@ -99,8 +99,29 @@ bool CassandraBackend::checkCassFutureError(CassFuturePtr& future, const std::st
 
 bool CassandraBackend::list(const DNSName& target, int id, bool include_disabled)
 {
-    // not AXFR support
-    return false;
+    g_log << Logger::Debug << "[cassandrabackend] list " << target << endl;
+
+    CassStatementPtr st = cass_prepared_bind(m_query);
+
+    if (!st)
+    {
+        m_requests.clear();
+        g_log << Logger::Error << "[cassandrabackend] cass_prepared_bind() error" << endl;
+        throw PDNSException("[cassandrabackend] cass_prepared_bind() error");
+    }
+
+    std::string domainName = target.makeLowerCase().toStringRootDot();
+
+    g_log << Logger::Debug << "[cassandrabackend] requesting all records for " << domainName << endl;
+
+    cass_statement_bind_string_n(st, 0, domainName.c_str(), domainName.size());
+
+    m_requests.push_back(Request{std::move(domainName), cass_session_execute(m_session, st)});
+    m_requestedType = QType(QType::ANY);
+
+    m_requestedName.clear(); // return everything we have in zone
+
+    return true;
 }
 
 void CassandraBackend::lookup(const QType& type, const DNSName &qdomain, DNSPacket *p, int zoneId)
@@ -128,8 +149,8 @@ void CassandraBackend::lookup(const QType& type, const DNSName &qdomain, DNSPack
         if (!st)
         {
             m_requests.clear();
-            g_log << Logger::Error << "[cassandrabackend] cass_statement_new() error" << endl;
-            throw PDNSException("[cassandrabackend] cass_statement_new() error");
+            g_log << Logger::Error << "[cassandrabackend] cass_prepared_bind() error" << endl;
+            throw PDNSException("[cassandrabackend] cass_prepared_bind() error");
         }
 
         std::string domainName = domain.toStringRootDot();
@@ -241,7 +262,7 @@ bool CassandraBackend::get(DNSResourceRecord &rr)
 
             recordName += DNSName(request.domain);
 
-            if (m_requestedName != recordName)
+            if (!m_requestedName.empty() && m_requestedName != recordName)
             {
                 g_log << Logger::Debug << "[cassandrabackend] not what we look for. Requested: " << m_requestedName << " name: " << recordName << endl;
                 continue;
@@ -249,7 +270,7 @@ bool CassandraBackend::get(DNSResourceRecord &rr)
 
             g_log << Logger::Debug << "[cassandrabackend] returning " << recordName << " - " << type << " - " << content << " - " << ttl << endl;
 
-            rr.qname = m_requestedName;
+            rr.qname = recordName;
             rr.qtype = type;
             rr.ttl = ttl;
             rr.auth = true; // we are always authorative
