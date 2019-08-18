@@ -34,6 +34,8 @@ CassandraBackend::CassandraBackend(const std::string& suffix)
     auto localDC        = getArg("local-dc");
     auto consistency    = getArg("consistency");
 
+    m_logMetricsInterval= getArgAsNum("log-metrics-interval");
+
     m_table = table;
 
     if (keyspace.empty())
@@ -147,9 +149,44 @@ bool CassandraBackend::checkError(const CassError err, const std::string& msg, b
     return false;
 }
 
+void CassandraBackend::logMetrics()
+{
+    if (m_logMetricsInterval == 0)
+    {
+        return;
+    }
+
+    time_t t_now = time(nullptr);
+
+    if (t_now - m_lastMetricsLog < m_logMetricsInterval)
+    {
+        return;
+    }
+
+    CassMetrics metrics;
+    cass_session_get_metrics(m_session, &metrics);
+
+    g_log << Logger::Notice << "[cassandrabackend] metrics"
+            << ": min: "    << metrics.requests.min
+            << ", max: "    << metrics.requests.max
+            << ", mean: "   << metrics.requests.mean
+            << ", 1m: "     << metrics.requests.one_minute_rate
+            << ", 5m: "     << metrics.requests.five_minute_rate
+            << ", 15m: "    << metrics.requests.fifteen_minute_rate
+            << ", p95: "    << metrics.requests.percentile_95th
+            << ", p98: "    << metrics.requests.percentile_98th
+            << ", p99: "    << metrics.requests.percentile_99th
+            << ", p999: "   << metrics.requests.percentile_999th
+            << endl;
+
+    m_lastMetricsLog = t_now;
+}
+
 bool CassandraBackend::list(const DNSName& target, int id, bool include_disabled)
 {
     g_log << Logger::Debug << "[cassandrabackend] list " << target << endl;
+
+    logMetrics();
 
     CassStatementPtr st = cass_prepared_bind(m_query);
 
@@ -177,6 +214,8 @@ bool CassandraBackend::list(const DNSName& target, int id, bool include_disabled
 void CassandraBackend::lookup(const QType& type, const DNSName &qdomain, DNSPacket *p, int zoneId)
 {
     g_log << Logger::Debug << "[cassandrabackend] lookup " << qdomain << " type: " << type.getName() << endl;
+
+    logMetrics();
 
     DNSName domain(qdomain);
 
@@ -217,11 +256,11 @@ void CassandraBackend::lookup(const QType& type, const DNSName &qdomain, DNSPack
 
 bool CassandraBackend::get(DNSResourceRecord &rr)
 {
-    g_log << Logger::Info << "[cassandrabackend] get" << endl;
+    g_log << Logger::Debug << "[cassandrabackend] get" << endl;
 
     if (m_requests.empty())
     {
-        g_log << Logger::Info << "[cassandrabackend] no requests" << endl;
+        g_log << Logger::Debug << "[cassandrabackend] no requests" << endl;
         return false;
     }
 
@@ -263,9 +302,7 @@ bool CassandraBackend::get(DNSResourceRecord &rr)
             g_log << Logger::Debug << "[cassandrabackend] got records for " << request.domain << endl;
         }
 
-        assert(request.record);
-
-        while (cass_iterator_next(request.record))
+        while (request.record && cass_iterator_next(request.record))
         {
             const CassValue* value = cass_iterator_get_value(request.record);
             assert(value);

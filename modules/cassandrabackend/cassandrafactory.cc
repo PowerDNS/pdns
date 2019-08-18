@@ -24,6 +24,7 @@ public:
         declare(suffix, "create-table", "Create table if it doesn't exist", "no");
         declare(suffix, "dnssec", "Perform DNSSEC operations", "no");
         declare(suffix, "consistency", "Default cassandra consistency level", "");
+        declare(suffix, "log-metrics-interval", "Interval between logging cassndra metrics. Set 0 to disable", "0");
     }
 
     virtual DNSBackend *make(const string& suffix) override
