@@ -2,10 +2,26 @@
 #include "config.h"
 #endif
 
+#include <boost/algorithm/string.hpp>
+
 #include "pdns/dnsbackend.hh"
 #include "pdns/logger.hh"
 
 #include "cassandrabackend.h"
+
+static const std::map<std::string, CassConsistency> s_consistencyMap =
+{
+    {"ONE",         CASS_CONSISTENCY_ONE},
+    {"TWO",         CASS_CONSISTENCY_TWO},
+    {"THREE",       CASS_CONSISTENCY_THREE},
+    {"QUORUM",      CASS_CONSISTENCY_QUORUM},
+    {"ALL",         CASS_CONSISTENCY_ALL},
+    {"LOCAL_QUORUM",CASS_CONSISTENCY_LOCAL_QUORUM},
+    {"EACH_QUORUM", CASS_CONSISTENCY_EACH_QUORUM},
+    {"SERIAL",      CASS_CONSISTENCY_SERIAL},
+    {"LOCAL_SERIAL",CASS_CONSISTENCY_LOCAL_SERIAL},
+    {"LOCAL_ONE",   CASS_CONSISTENCY_LOCAL_ONE},
+};
 
 CassandraBackend::CassandraBackend(const std::string& suffix)
 {
@@ -15,6 +31,8 @@ CassandraBackend::CassandraBackend(const std::string& suffix)
     auto keyspace       = getArg("keyspace");
     auto table          = getArg("table");
     auto createTable    = mustDo("create-table");
+    auto localDC        = getArg("local-dc");
+    auto consistency    = getArg("consistency");
 
     m_table = table;
 
@@ -25,15 +43,26 @@ CassandraBackend::CassandraBackend(const std::string& suffix)
 
     m_cluster = cass_cluster_new();
 
-    CassError err;
-
-    err = cass_cluster_set_contact_points_n(m_cluster, contactPoints.c_str(), contactPoints.size());
-
-    if (err != CASS_OK)
+    if (!localDC.empty())
     {
-        g_log << Logger::Error << "[cassandrabackend] cass_cluster_set_contact_points_n(): " << cass_error_desc(err) << endl;
-        throw PDNSException("[cassandrabackend] cannot set cassandra cluster contact points");
+        checkError(cass_cluster_set_load_balance_dc_aware_n(m_cluster, localDC.data(), localDC.size(), 0, cass_false), "cannot set local DC name");
     }
+
+    if (!consistency.empty())
+    {
+        boost::to_upper(consistency);
+
+        auto it = s_consistencyMap.find(consistency);
+
+        if (it == s_consistencyMap.end())
+        {
+            throw PDNSException("Invalid cassandra consistency map specified: " + consistency);
+        }
+
+        checkError(cass_cluster_set_consistency(m_cluster, it->second), "cannot set default consistency");
+    }
+
+    checkError(cass_cluster_set_contact_points_n(m_cluster, contactPoints.c_str(), contactPoints.size()), "cannot set cluster contact points");
 
     m_session = cass_session_new();
 
@@ -69,7 +98,7 @@ CassandraBackend::CassandraBackend(const std::string& suffix)
 
 CassandraBackend::~CassandraBackend()
 {
-    g_log << Logger::Debug << "[cassandrabackend] closing session" << endl;
+    g_log << Logger::Info << "[cassandrabackend] closing session" << endl;
 
     CassFuturePtr f  = cass_session_close(m_session);
     cass_future_wait_timed(f, 10'000);
@@ -90,6 +119,24 @@ bool CassandraBackend::checkCassFutureError(const CassFuturePtr& future, const s
     cass_future_error_message(future, &data, &len);
 
     std::string errMessage = "[cassandrabackend] " + msg + ": " + cass_error_desc(err) +  ": " + std::string(data, len);
+    g_log << Logger::Error << errMessage  << endl;
+
+    if (throwException)
+    {
+        throw PDNSException(errMessage);
+    }
+
+    return false;
+}
+
+bool CassandraBackend::checkError(const CassError err, const std::string& msg, bool throwException)
+{
+    if (err == CASS_OK)
+    {
+        return true;
+    }
+
+    std::string errMessage = "[cassandrabackend] " + msg + ": " + cass_error_desc(err);
     g_log << Logger::Error << errMessage  << endl;
 
     if (throwException)
@@ -346,14 +393,7 @@ std::string CassandraBackend::getString(const CassValue* value)
     const char* data;
     size_t len;
 
-    CassError err;
-
-    err = cass_value_get_string(value, &data, &len);
-
-    if (err != CASS_OK)
-    {
-        throw PDNSException(std::string("[cassandrabackend] cannot get string value: ") + cass_error_desc(err));
-    }
+    checkError(cass_value_get_string(value, &data, &len), "cannot get string value");
 
     return std::string(data, len);
 }
@@ -362,14 +402,7 @@ int CassandraBackend::getInt(const CassValue* value)
 {
     cass_int32_t out;
 
-    CassError err;
-
-    err = cass_value_get_int32(value, &out);
-
-    if (err != CASS_OK)
-    {
-        throw PDNSException(std::string("[cassandrabackend] cannot get integer value: ") + cass_error_desc(err));
-    }
+    checkError(cass_value_get_int32(value, &out), "cannot get integer value");
 
     return out;
 }
@@ -378,14 +411,7 @@ bool CassandraBackend::getBool(const CassValue* value)
 {
     cass_bool_t out;
 
-    CassError err;
-
-    err = cass_value_get_bool(value, &out);
-
-    if (err != CASS_OK)
-    {
-        throw PDNSException(std::string("[cassandrabackend] cannot get integer value: ") + cass_error_desc(err));
-    }
+    checkError(cass_value_get_bool(value, &out), "cannot get boolean value");
 
     return out;
 }

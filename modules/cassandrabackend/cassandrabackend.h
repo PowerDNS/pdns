@@ -25,7 +25,8 @@ protected:
     int getInt(const CassValue* value);
     std::string getString(const CassValue* value);
 
-    bool checkCassFutureError(const CassFuturePtr& future, const std::string& msg, bool throwException);
+    bool checkCassFutureError(const CassFuturePtr& future, const std::string& msg, bool throwException = true);
+    bool checkError(const CassError err, const std::string& msg, bool throwException = true);
 
     CassSessionPtr  m_session;
     std::string         m_table;
