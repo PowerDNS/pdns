@@ -36,12 +36,7 @@ public:
         return *this;
     }
 
-    operator T*()
-    {
-        return m_ptr;
-    }
-
-    operator const T*() const
+    operator T*() const
     {
         return m_ptr;
     }
@@ -70,6 +65,8 @@ private:
     T*      m_ptr;
 };
 
+using CassTuplePtr      = CassPtr<CassTuple,            &cass_tuple_free>;
+using CassCollectionPtr = CassPtr<CassCollection,       &cass_collection_free>;
 using CassPreparedPtr   = CassPtr<const CassPrepared,   &cass_prepared_free>;
 using CassIteratorPtr   = CassPtr<CassIterator,         &cass_iterator_free>;
 using CassResultPtr     = CassPtr<const CassResult,     &cass_result_free>;

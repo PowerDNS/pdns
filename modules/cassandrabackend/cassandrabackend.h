@@ -17,14 +17,21 @@ public:
     virtual void lookup(const QType& type, const DNSName& qdomain, DNSPacket *p, int zoneId) override;
     virtual bool get(DNSResourceRecord &rr) override;
 
-private:
-    int getInt(const CassIteratorPtr& it);
-    std::string getString(const CassIteratorPtr& it);
+    virtual void getAllDomains(vector<DomainInfo> *domains, bool include_disabled) override;
+    virtual bool getDomainInfo(const DNSName &domain, DomainInfo &di, bool getSerial) override;
 
-    bool checkCassFutureError(CassFuturePtr& future, const std::string& msg, bool throwException);
+protected:
+    bool getBool(const CassValue* value);
+    int getInt(const CassValue* value);
+    std::string getString(const CassValue* value);
 
-    CassClusterPtr  m_cluster;
+    bool checkCassFutureError(const CassFuturePtr& future, const std::string& msg, bool throwException);
+
     CassSessionPtr  m_session;
+    std::string         m_table;
+
+private:
+    CassClusterPtr  m_cluster;
     CassPreparedPtr m_query;
 
     struct Request
