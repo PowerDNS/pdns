@@ -29,6 +29,9 @@ void BaseLua4::loadString(const std::string &script) {
   loadStream(iss);
 };
 
+//  By default no features
+void BaseLua4::getFeatures(Features &) { }
+
 #if !defined(HAVE_LUA)
 
 void BaseLua4::prepareContext() { return; }
@@ -43,13 +46,9 @@ void BaseLua4::prepareContext() {
   d_lw = std::unique_ptr<LuaContext>(new LuaContext);
 
   // lua features available
-  d_lw->writeVariable("pdns_features",
-                      vector<pair<string, boost::variant<string,bool,int,double> > > {
-  // Add key-values pairs below. Make sure you add string values explicity converted to string.
-  // e.g. { "somekey", string("stringvalue") }
-  // Both int and double end up as a lua number type.
-      { "PR8001_devicename", true },
-    });
+  Features features;
+  getFeatures(features);
+  d_lw->writeVariable("pdns_features", features);
   
   // dnsheader
   d_lw->registerFunction<int(dnsheader::*)()>("getID", [](dnsheader& dh) { return ntohs(dh.id); });

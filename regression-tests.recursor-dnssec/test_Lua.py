@@ -22,7 +22,6 @@ class GettagRecursorTest(RecursorTest):
       local tags = {}
       local data = {}
 
-
       -- make sure we can pass data around to the other hooks
       data['canary'] = 'from-gettag'
 

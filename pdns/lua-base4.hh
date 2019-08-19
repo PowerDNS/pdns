@@ -30,4 +30,6 @@ protected:
   virtual void postLoad() = 0;
   typedef vector<pair<string, int> > in_t;
   vector<pair<string, boost::variant<int, in_t, struct timeval* > > > d_pd;
+  typedef vector<pair<string, boost::variant<string,bool,int,double> > > Features;
+  virtual void getFeatures(Features&);
 };
