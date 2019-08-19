@@ -210,6 +210,10 @@ for a in $modules $dynmodules; do
         AC_MSG_ERROR([Lua backend needs lua but we cannot find it])
       )
       ;;
+    cassandra)
+      PDNS_CHECK_CASSANDRA
+      BOOST_STRING_ALGO
+      ;;
   esac
 done
 

@@ -266,8 +266,6 @@ bool CassandraBackendDNSSec::getBeforeAndAfterNamesAbsolute(uint32_t id, const D
         before = qname;
     }
 
-    g_log << Logger::Error << "[cassandrabackend] before: " << before << ", after: " << after << endl;
-
     return true;
 }
 

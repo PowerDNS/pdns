@@ -1,8 +1,9 @@
-AM_CPPFLAGS += -I$(srcdir)/cassdriver/include -fPIC
+AM_CPPFLAGS += $(CASSANDRA_CFLAGS)
 
 pkglib_LTLIBRARIES = libcassandrabackend.la
 
-#EXTRA_DIST = OBJECTFILES OBJECTLIBS
+EXTRA_DIST = OBJECTFILES OBJECTLIBS
 
 libcassandrabackend_la_SOURCES = cassandrabackend.cc cassandradnssec.cc cassandrafactory.cc
-libcassandrabackend_la_LDFLAGS = -module -avoid-version -L${srcdir}/cassdriver/build/ -lcassandra_static -luv
+libcassandrabackend_la_LDFLAGS = -module -avoid-version
+libcassandrabackend_la_LIBADD = $(CASSANDRA_LIBS)
