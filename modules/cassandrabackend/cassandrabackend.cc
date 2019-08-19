@@ -400,7 +400,11 @@ void CassandraBackend::getAllDomains(vector<DomainInfo> *domains, bool include_d
     }
 }
 
+#if HAVE_DNSBACKEND_DOMAIN_INFO_WITH_SERIAL
 bool CassandraBackend::getDomainInfo(const DNSName &domain, DomainInfo &di, bool getSerial)
+#else
+bool CassandraBackend::getDomainInfo(const DNSName &domain, DomainInfo &di)
+#endif
 {
     g_log << Logger::Debug << "[cassandrabackend] getDomainInfo(\"" << domain << "\")" << endl;
 

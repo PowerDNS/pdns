@@ -4,8 +4,14 @@
 #include <cassandra.h>
 
 #include "pdns/dnsbackend.hh"
+#include "pdns/logger.hh"
 
 #include "cassptr.h"
+
+#ifdef L
+#define g_log L
+#endif
+
 
 class CassandraBackend: public DNSBackend
 {
@@ -17,8 +23,13 @@ public:
     virtual void lookup(const QType& type, const DNSName& qdomain, DNSPacket *p, int zoneId) override;
     virtual bool get(DNSResourceRecord &rr) override;
 
-    virtual void getAllDomains(vector<DomainInfo> *domains, bool include_disabled) override;
-    virtual bool getDomainInfo(const DNSName &domain, DomainInfo &di, bool getSerial) override;
+    virtual void getAllDomains(vector<DomainInfo>* domains, bool include_disabled) override;
+
+#if HAVE_DNSBACKEND_DOMAIN_INFO_WITH_SERIAL
+    virtual bool getDomainInfo(const DNSName& domain, DomainInfo& di, bool getSerial) override;
+#else
+    virtual bool getDomainInfo(const DNSName& domain, DomainInfo& di) override;
+#endif
 
 protected:
 
