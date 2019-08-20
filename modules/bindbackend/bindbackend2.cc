@@ -373,7 +373,11 @@ void Bind2Backend::getAllDomains(vector<DomainInfo> *domains, bool include_disab
     // do not corrupt di if domain supplied by another backend.
     if (di.backend != this)
       continue;
-    this->getSOA(di.zone, soadata);
+    try {
+      this->getSOA(di.zone, soadata);
+    } catch(...) {
+      continue;
+    }
     di.serial=soadata.serial;
   }
 }
