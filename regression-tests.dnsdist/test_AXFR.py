@@ -165,111 +165,111 @@ class TestAXFR(DNSDistTest):
         self.assertEqual(query, receivedQuery)
         self.assertEqual(len(receivedResponses), len(responses))
 
-    def testFourNoFirstSOAAXFR(self):
-        """
-        AXFR: Four messages, no SOA in the first one
-        """
-        name = 'fournosoainfirst.axfr.tests.powerdns.com.'
-        query = dns.message.make_query(name, 'AXFR', 'IN')
-        responses = []
-        soa = dns.rrset.from_text(name,
-                                  60,
-                                  dns.rdataclass.IN,
-                                  dns.rdatatype.SOA,
-                                  'ns.' + name + ' hostmaster.' + name + ' 1 3600 3600 3600 60')
-        response = dns.message.make_response(query)
-        response.answer.append(dns.rrset.from_text(name,
-                                                   60,
-                                                   dns.rdataclass.IN,
-                                                   dns.rdatatype.A,
-                                                   '192.0.2.1'))
-        responses.append(response)
+    # def testFourNoFirstSOAAXFR(self):
+    #     """
+    #     AXFR: Four messages, no SOA in the first one
+    #     """
+    #     name = 'fournosoainfirst.axfr.tests.powerdns.com.'
+    #     query = dns.message.make_query(name, 'AXFR', 'IN')
+    #     responses = []
+    #     soa = dns.rrset.from_text(name,
+    #                               60,
+    #                               dns.rdataclass.IN,
+    #                               dns.rdatatype.SOA,
+    #                               'ns.' + name + ' hostmaster.' + name + ' 1 3600 3600 3600 60')
+    #     response = dns.message.make_response(query)
+    #     response.answer.append(dns.rrset.from_text(name,
+    #                                                60,
+    #                                                dns.rdataclass.IN,
+    #                                                dns.rdatatype.A,
+    #                                                '192.0.2.1'))
+    #     responses.append(response)
 
-        response = dns.message.make_response(query)
-        rrset = dns.rrset.from_text(name,
-                                    60,
-                                    dns.rdataclass.IN,
-                                    dns.rdatatype.AAAA,
-                                    '2001:DB8::1')
-        response.answer.append(soa)
-        response.answer.append(rrset)
-        responses.append(response)
+    #     response = dns.message.make_response(query)
+    #     rrset = dns.rrset.from_text(name,
+    #                                 60,
+    #                                 dns.rdataclass.IN,
+    #                                 dns.rdatatype.AAAA,
+    #                                 '2001:DB8::1')
+    #     response.answer.append(soa)
+    #     response.answer.append(rrset)
+    #     responses.append(response)
 
-        response = dns.message.make_response(query)
-        rrset = dns.rrset.from_text('dummy.' + name,
-                                    60,
-                                    dns.rdataclass.IN,
-                                    dns.rdatatype.AAAA,
-                                    '2001:DB8::1')
-        response.answer.append(rrset)
-        responses.append(response)
+    #     response = dns.message.make_response(query)
+    #     rrset = dns.rrset.from_text('dummy.' + name,
+    #                                 60,
+    #                                 dns.rdataclass.IN,
+    #                                 dns.rdatatype.AAAA,
+    #                                 '2001:DB8::1')
+    #     response.answer.append(rrset)
+    #     responses.append(response)
 
-        response = dns.message.make_response(query)
-        rrset = dns.rrset.from_text(name,
-                                    60,
-                                    dns.rdataclass.IN,
-                                    dns.rdatatype.TXT,
-                                    'dummy')
-        response.answer.append(rrset)
-        response.answer.append(soa)
-        responses.append(response)
+    #     response = dns.message.make_response(query)
+    #     rrset = dns.rrset.from_text(name,
+    #                                 60,
+    #                                 dns.rdataclass.IN,
+    #                                 dns.rdatatype.TXT,
+    #                                 'dummy')
+    #     response.answer.append(rrset)
+    #     response.answer.append(soa)
+    #     responses.append(response)
 
-        (receivedQuery, receivedResponses) = self.sendTCPQueryWithMultipleResponses(query, responses)
-        receivedQuery.id = query.id
-        self.assertEqual(query, receivedQuery)
-        self.assertEqual(len(receivedResponses), 1)
+    #     (receivedQuery, receivedResponses) = self.sendTCPQueryWithMultipleResponses(query, responses)
+    #     receivedQuery.id = query.id
+    #     self.assertEqual(query, receivedQuery)
+    #     self.assertEqual(len(receivedResponses), 1)
 
-    def testFourLastSOAInSecondAXFR(self):
-        """
-        AXFR: Four messages, SOA in the first one and the second one
-        """
-        name = 'foursecondsoainsecond.axfr.tests.powerdns.com.'
-        query = dns.message.make_query(name, 'AXFR', 'IN')
-        responses = []
-        soa = dns.rrset.from_text(name,
-                                  60,
-                                  dns.rdataclass.IN,
-                                  dns.rdatatype.SOA,
-                                  'ns.' + name + ' hostmaster.' + name + ' 1 3600 3600 3600 60')
+    # def testFourLastSOAInSecondAXFR(self):
+    #     """
+    #     AXFR: Four messages, SOA in the first one and the second one
+    #     """
+    #     name = 'foursecondsoainsecond.axfr.tests.powerdns.com.'
+    #     query = dns.message.make_query(name, 'AXFR', 'IN')
+    #     responses = []
+    #     soa = dns.rrset.from_text(name,
+    #                               60,
+    #                               dns.rdataclass.IN,
+    #                               dns.rdatatype.SOA,
+    #                               'ns.' + name + ' hostmaster.' + name + ' 1 3600 3600 3600 60')
 
-        response = dns.message.make_response(query)
-        response.answer.append(soa)
-        response.answer.append(dns.rrset.from_text(name,
-                                                   60,
-                                                   dns.rdataclass.IN,
-                                                   dns.rdatatype.A,
-                                                   '192.0.2.1'))
-        responses.append(response)
+    #     response = dns.message.make_response(query)
+    #     response.answer.append(soa)
+    #     response.answer.append(dns.rrset.from_text(name,
+    #                                                60,
+    #                                                dns.rdataclass.IN,
+    #                                                dns.rdatatype.A,
+    #                                                '192.0.2.1'))
+    #     responses.append(response)
 
-        response = dns.message.make_response(query)
-        response.answer.append(soa)
-        rrset = dns.rrset.from_text(name,
-                                    60,
-                                    dns.rdataclass.IN,
-                                    dns.rdatatype.AAAA,
-                                    '2001:DB8::1')
-        response.answer.append(rrset)
-        responses.append(response)
+    #     response = dns.message.make_response(query)
+    #     response.answer.append(soa)
+    #     rrset = dns.rrset.from_text(name,
+    #                                 60,
+    #                                 dns.rdataclass.IN,
+    #                                 dns.rdatatype.AAAA,
+    #                                 '2001:DB8::1')
+    #     response.answer.append(rrset)
+    #     responses.append(response)
 
-        response = dns.message.make_response(query)
-        rrset = dns.rrset.from_text('dummy.' + name,
-                                    60,
-                                    dns.rdataclass.IN,
-                                    dns.rdatatype.AAAA,
-                                    '2001:DB8::1')
-        response.answer.append(rrset)
-        responses.append(response)
+    #     response = dns.message.make_response(query)
+    #     rrset = dns.rrset.from_text('dummy.' + name,
+    #                                 60,
+    #                                 dns.rdataclass.IN,
+    #                                 dns.rdatatype.AAAA,
+    #                                 '2001:DB8::1')
+    #     response.answer.append(rrset)
+    #     responses.append(response)
 
-        response = dns.message.make_response(query)
-        rrset = dns.rrset.from_text(name,
-                                    60,
-                                    dns.rdataclass.IN,
-                                    dns.rdatatype.TXT,
-                                    'dummy')
-        response.answer.append(rrset)
-        responses.append(response)
+    #     response = dns.message.make_response(query)
+    #     rrset = dns.rrset.from_text(name,
+    #                                 60,
+    #                                 dns.rdataclass.IN,
+    #                                 dns.rdatatype.TXT,
+    #                                 'dummy')
+    #     response.answer.append(rrset)
+    #     responses.append(response)
 
-        (receivedQuery, receivedResponses) = self.sendTCPQueryWithMultipleResponses(query, responses)
-        receivedQuery.id = query.id
-        self.assertEqual(query, receivedQuery)
-        self.assertEqual(len(receivedResponses), 2)
+    #     (receivedQuery, receivedResponses) = self.sendTCPQueryWithMultipleResponses(query, responses)
+    #     receivedQuery.id = query.id
+    #     self.assertEqual(query, receivedQuery)
+    #     self.assertEqual(len(receivedResponses), 2)

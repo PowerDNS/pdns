@@ -4,12 +4,19 @@
 
 #include "misc.hh"
 
+enum class IOState { Done, NeedRead, NeedWrite };
+
 class TLSConnection
 {
 public:
   virtual ~TLSConnection() { }
+  virtual void doHandshake() = 0;
+  virtual IOState tryHandshake() = 0;
   virtual size_t read(void* buffer, size_t bufferSize, unsigned int readTimeout, unsigned int totalTimeout=0) = 0;
   virtual size_t write(const void* buffer, size_t bufferSize, unsigned int writeTimeout) = 0;
+  virtual IOState tryWrite(std::vector<uint8_t>& buffer, size_t& pos, size_t toWrite) = 0;
+  virtual IOState tryRead(std::vector<uint8_t>& buffer, size_t& pos, size_t toRead) = 0;
+  virtual std::string getServerNameIndication() = 0;
   virtual void close() = 0;
 
 protected:
@@ -131,19 +138,17 @@ public:
     return res;
   }
 
-  std::set<int> d_cpus;
   std::vector<std::pair<std::string, std::string>> d_certKeyPairs;
+  std::vector<std::string> d_ocspFiles;
   ComboAddress d_addr;
   std::string d_ciphers;
+  std::string d_ciphers13;
   std::string d_provider;
-  std::string d_interface;
   std::string d_ticketKeyFile;
 
   size_t d_maxStoredSessions{20480};
   time_t d_ticketsKeyRotationDelay{43200};
-  int d_tcpFastOpenQueueSize{0};
   uint8_t d_numberOfTicketsKeys{5};
-  bool d_reusePort{false};
   bool d_enableTickets{true};
 
 private:
@@ -153,12 +158,14 @@ private:
 class TCPIOHandler
 {
 public:
+
   TCPIOHandler(int socket, unsigned int timeout, std::shared_ptr<TLSCtx> ctx, time_t now): d_socket(socket)
   {
     if (ctx) {
       d_conn = ctx->getConnection(d_socket, timeout, now);
     }
   }
+
   ~TCPIOHandler()
   {
     if (d_conn) {
@@ -168,6 +175,15 @@ public:
       shutdown(d_socket, SHUT_RDWR);
     }
   }
+
+  IOState tryHandshake()
+  {
+    if (d_conn) {
+      return d_conn->tryHandshake();
+    }
+    return IOState::Done;
+  }
+
   size_t read(void* buffer, size_t bufferSize, unsigned int readTimeout, unsigned int totalTimeout=0)
   {
     if (d_conn) {
@@ -176,6 +192,80 @@ public:
       return readn2WithTimeout(d_socket, buffer, bufferSize, readTimeout, totalTimeout);
     }
   }
+
+  /* Tries to read exactly toRead - pos bytes into the buffer, starting at position pos.
+     Updates pos everytime a successful read occurs,
+     throws an std::runtime_error in case of IO error,
+     return Done when toRead bytes have been read, needRead or needWrite if the IO operation
+     would block.
+  */
+  IOState tryRead(std::vector<uint8_t>& buffer, size_t& pos, size_t toRead)
+  {
+    if (buffer.size() < toRead || pos >= toRead) {
+      throw std::out_of_range("Calling tryRead() with a too small buffer (" + std::to_string(buffer.size()) + ") for a read of " + std::to_string(toRead - pos) + " bytes starting at " + std::to_string(pos));
+    }
+
+    if (d_conn) {
+      return d_conn->tryRead(buffer, pos, toRead);
+    }
+
+    do {
+      ssize_t res = ::read(d_socket, reinterpret_cast<char*>(&buffer.at(pos)), toRead - pos);
+      if (res == 0) {
+        throw runtime_error("EOF while reading message");
+      }
+      if (res < 0) {
+        if (errno == EAGAIN || errno == EWOULDBLOCK || errno == ENOTCONN) {
+          return IOState::NeedRead;
+        }
+        else {
+          throw std::runtime_error(std::string("Error while reading message: ") + strerror(errno));
+        }
+      }
+
+      pos += static_cast<size_t>(res);
+    }
+    while (pos < toRead);
+
+    return IOState::Done;
+  }
+
+  /* Tries to write exactly toWrite - pos bytes from the buffer, starting at position pos.
+     Updates pos everytime a successful write occurs,
+     throws an std::runtime_error in case of IO error,
+     return Done when toWrite bytes have been written, needRead or needWrite if the IO operation
+     would block.
+  */
+  IOState tryWrite(std::vector<uint8_t>& buffer, size_t& pos, size_t toWrite)
+  {
+    if (buffer.size() < toWrite || pos >= toWrite) {
+      throw std::out_of_range("Calling tryWrite() with a too small buffer (" + std::to_string(buffer.size()) + ") for a write of " + std::to_string(toWrite - pos) + " bytes starting at " + std::to_string(pos));
+    }
+    if (d_conn) {
+      return d_conn->tryWrite(buffer, pos, toWrite);
+    }
+
+    do {
+      ssize_t res = ::write(d_socket, reinterpret_cast<const char*>(&buffer.at(pos)), toWrite - pos);
+      if (res == 0) {
+        throw runtime_error("EOF while sending message");
+      }
+      if (res < 0) {
+        if (errno == EAGAIN || errno == EWOULDBLOCK || errno == ENOTCONN) {
+          return IOState::NeedWrite;
+        }
+        else {
+          throw std::runtime_error(std::string("Error while writing message: ") + strerror(errno));
+        }
+      }
+
+      pos += static_cast<size_t>(res);
+    }
+    while (pos < toWrite);
+
+    return IOState::Done;
+  }
+
   size_t write(const void* buffer, size_t bufferSize, unsigned int writeTimeout)
   {
     if (d_conn) {
@@ -186,18 +276,12 @@ public:
     }
   }
 
-  bool writeSizeAndMsg(const void* buffer, size_t bufferSize, unsigned int writeTimeout)
+  std::string getServerNameIndication()
   {
     if (d_conn) {
-      uint16_t size = htons(bufferSize);
-      if (d_conn->write(&size, sizeof(size), writeTimeout) != sizeof(size)) {
-        return false;
-      }
-      return (d_conn->write(buffer, bufferSize, writeTimeout) == bufferSize);
+      return d_conn->getServerNameIndication();
     }
-    else {
-      return sendSizeAndMsgWithTimeout(d_socket, bufferSize, static_cast<const char*>(buffer), writeTimeout, nullptr, nullptr, 0, 0, 0);
-    }
+    return std::string();
   }
 
 private:

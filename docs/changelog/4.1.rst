@@ -2,6 +2,173 @@ Changelogs for 4.1.x
 ====================
 
 .. changelog::
+  :version: 4.1.13
+  :released: August 9th 2019
+
+  This is a bugfix release for high traffic setups using the pipebackend or remotebackend.
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 8157
+
+    gpgsqlbackend: add missing schema file to Makefile (tcely)
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 8162
+
+    stop using select() in places where FDs can be >1023
+
+.. changelog::
+  :version: 4.1.12
+  :released: 4.1.12 was skipped due to a packaging issue.
+
+.. changelog::
+  :version: 4.1.11
+  :released: August 1st 2019
+
+  This release contains the updated PostgreSQL schema for PowerDNS Security Advisory :doc:`2019-06 <../security-advisories/powerdns-advisory-2019-06>` (CVE-2019-10203).
+
+  Upgrading is not enough - you need to manually apply the schema change: ``ALTER TABLE domains ALTER notified_serial TYPE bigint USING CASE WHEN notified_serial >= 0 THEN notified_serial::bigint END;``
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 8144
+
+    Update PostgreSQL schema for 2019-06.
+
+.. changelog::
+  :version: 4.1.10
+  :released: June 21st 2019
+
+  This release and 4.1.9 together fix the following security advisories:
+
+  - PowerDNS Security Advisory :doc:`2019-04 <../security-advisories/powerdns-advisory-2019-04>` (CVE-2019-10162)
+  - PowerDNS Security Advisory :doc:`2019-05 <../security-advisories/powerdns-advisory-2019-05>` (CVE-2019-10163)
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 7964
+
+    Do not exit on exception parsing names of name servers to notify.
+
+
+.. changelog::
+  :version: 4.1.9
+  :released: June 19th 2019
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 7663
+
+    Do not exit on exception resolving addresses to notify.
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 7829
+
+    Avoid very busy looping on lots of notifies.
+
+  .. change::
+    :tags: New Features
+    :pullreq: 7922
+
+    Add an option to disable superslaving.
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 7921
+
+    In gsql ``getAllDomainMetadata``, actually get all domain metadata. This makes DNSSEC metadata work with ``pdnsutil b2b-migrate``.
+
+.. changelog::
+  :version: 4.1.8
+  :released: March 22nd 2019
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 7604
+    :tickets: 7494
+
+    Correctly interpret an empty AXFR response to an IXFR query.
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 7610
+    :tickets: 7341
+
+    Fix replying from ANY address for non-standard port.
+
+  .. change::
+    :tags: Bug Fixes, Internals
+    :pullreq: 7609
+    :tickets: 7580
+
+    Fix rectify for ENT records in narrow zones.
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 7607
+    :tickets: 7472
+
+    Do not compress the root.
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 7608
+    :tickets: 7459
+
+    Fix dot stripping in ``setcontent()``.
+
+  .. change::
+    :tags: Bug Fixes, MySQL
+    :pullreq: 7605
+    :tickets: 7496
+
+    Fix invalid SOA record in MySQL which prevented the authoritative server from starting.
+
+  .. change::
+    :tags: Bug Fixes, Internals
+    :pullreq: 7603
+    :tickets: 7294
+
+    Prevent leak of file descriptor if running out of ports for incoming AXFR.
+
+  .. change::
+    :tags: Bug Fixes, API
+    :pullreq: 7602
+    :tickets: 7546
+
+    Fix API search failed with "Commands out of sync; you can't run this command now".
+
+  .. change::
+    :tags: Bug Fixes, MySQL
+    :pullreq: 7509
+    :tickets: 7517
+
+    Plug ``mysql_thread_init`` memory leak.
+
+  .. change::
+    :tags: Bug Fixes, Internals
+    :pullreq: 7567
+
+    EL6: fix ``CXXFLAGS`` to build with compiler optimizations.
+
+.. changelog::
+  :version: 4.1.7
+  :released: March 18th 2019
+
+  This release fixes the following security advisory:
+
+  - PowerDNS Security Advisory :doc:`2019-03 <../security-advisories/powerdns-advisory-2019-03>` (CVE-2019-3871)
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 7577
+
+    Insufficient validation in the HTTP remote backend (CVE-2019-3871, PowerDNS Security Advisory :doc:`2019-03 <../security-advisories/powerdns-advisory-2019-03>`)
+
+.. changelog::
   :version: 4.1.6
   :released: January 31st 2019
 
@@ -835,7 +1002,7 @@ Changelogs for 4.1.x
     :tags: Tools, Improvements
     :pullreq: 4584
 
-     Allow setting the account of a zone via pdnsutil (Tuxis Internet Engineering).
+    Allow setting the account of a zone via pdnsutil (Tuxis Internet Engineering).
 
   .. change::
     :tags: Internals, New Features

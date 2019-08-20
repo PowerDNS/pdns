@@ -9,6 +9,7 @@ DIST_SUBDIRS = \
 	gpgsqlbackend \
 	gsqlite3backend \
 	ldapbackend \
+	lmdbbackend \
 	luabackend \
 	lua2backend \
 	mydnsbackend \

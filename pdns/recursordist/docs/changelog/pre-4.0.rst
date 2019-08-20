@@ -381,7 +381,7 @@ New features
    302df81 <https://github.com/PowerDNS/pdns/commit/302df81>`__).
 -  Paulo Anes contributed server-down-max-fails which helps combat
    Recursive DNS based amplification attacks. Described in `this
-   post <http://blog.powerdns.com/2014/04/03/further-dos-guidance-packages-and-patches-available/>`__.
+   post <https://blog.powerdns.com/2014/04/03/further-dos-guidance-packages-and-patches-available/>`__.
    Also comes with new metric 'failed-host-entries' in `commit
    406f46f <https://github.com/PowerDNS/pdns/commit/406f46f>`__.
 -  `commit 21e7976 <https://github.com/PowerDNS/pdns/commit/21e7976>`__:
@@ -451,7 +451,7 @@ Fixes
 -  `commit 3a8a4d6 <https://github.com/PowerDNS/pdns/commit/3a8a4d6>`__:
    make sure we don't exceed the number of available filedescriptors for
    mthreads. Raises performance in case of DoS. See `this
-   post <http://blog.powerdns.com/2014/02/06/related-to-recent-dos-attacks-recursor-configuration-file-guidance/>`__
+   post <https://blog.powerdns.com/2014/02/06/related-to-recent-dos-attacks-recursor-configuration-file-guidance/>`__
    for further details.
 -  `commit 7313fe6 <https://github.com/PowerDNS/pdns/commit/7313fe6>`__:
    implement indexed packet cache wiping for recursor, orders of

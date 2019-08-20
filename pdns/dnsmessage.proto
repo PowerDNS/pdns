@@ -72,7 +72,7 @@ message PBDNSMessage {
       optional bytes rdata = 5;
       optional bool  udr = 6;                   // True if this is the first time this RR has been seen for this question
     }
-    optional uint32 rcode = 1;
+    optional uint32 rcode = 1;                  // DNS Response code, or 65536 for a network error including a timeout
     repeated DNSRR rrs = 2;
     optional string appliedPolicy = 3;          // Filtering policy (RPZ or Lua) applied
     repeated string tags = 4;                   // Additional tags
@@ -87,4 +87,5 @@ message PBDNSMessage {
   optional bytes initialRequestId = 16;         // UUID of the incoming query that initiated this outgoing query or incoming response
   optional bytes deviceId = 17;     		// Device ID of the requestor (could be mac address IP address or e.g. IMEI)
   optional bool  newlyObservedDomain = 18;      // True if the domain has not been seen before
+  optional string deviceName = 19;              // Device name of the requestor
 }

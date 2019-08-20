@@ -49,7 +49,9 @@ do
 	testname=$(basename $a)
 	export testname
 	echo  "$testname: "
-	cat $a/description 
+	if [ "${PDNS_DEBUG}" = "YES" ]; then
+		cat $a/description
+	fi
 
 	echo  "$testname: " >> test-results
 	cat $a/description >> test-results
@@ -115,6 +117,11 @@ do
 				result="	Failed test $a"
 				echo $testname >> failed_tests
 				failed=$[$failed+1]
+				if [ "$FIX_TESTS" == "YES" ]
+				then
+					mv -f $a/real_result $expected
+					result="$result (fixed)"
+				fi
 			else
 				result="	Expected failure for reason $reason, test passed $a"
 				echo $testname >> passed_tests

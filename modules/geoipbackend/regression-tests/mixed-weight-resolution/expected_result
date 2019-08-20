@@ -1,0 +1,10 @@
+0	mixed_weight.geo.example.com.	IN	A	30	127.0.0.1
+Rcode: 0 (No Error), RD: 0, QR: 1, TC: 0, AA: 1, opcode: 0
+Reply to question for qname='mixed_weight.geo.example.com.', qtype=A
+0	mixed_weight.geo.example.com.	IN	TXT	30	"text"
+Rcode: 0 (No Error), RD: 0, QR: 1, TC: 0, AA: 1, opcode: 0
+Reply to question for qname='mixed_weight.geo.example.com.', qtype=TXT
+0	mixed_weight.geo.example.com.	IN	A	30	127.0.0.1
+0	mixed_weight.geo.example.com.	IN	TXT	30	"text"
+Rcode: 0 (No Error), RD: 0, QR: 1, TC: 0, AA: 1, opcode: 0
+Reply to question for qname='mixed_weight.geo.example.com.', qtype=ANY

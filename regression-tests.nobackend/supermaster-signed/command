@@ -94,7 +94,7 @@ start_slave()
 
         $RUNWRAPPER $PDNS2 --daemon=no --local-port=$slaveport --config-dir=. --module-dir=../regression-tests/modules \
                 --config-name=gsqlite3-slave --socket-dir=./ --no-shuffle --local-address=127.0.0.2 --local-ipv6='' \
-                --slave --retrieval-threads=4 --slave=yes --supermaster=yes --query-local-address=127.0.0.2 \
+                --slave --retrieval-threads=4 --slave=yes --superslave=yes --query-local-address=127.0.0.2 \
                 --slave-cycle-interval=300 --allow-unsigned-notify=no --allow-unsigned-supermaster=no &
 }
 

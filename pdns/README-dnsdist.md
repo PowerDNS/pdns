@@ -21,9 +21,9 @@ Install dependencies from Homebrew:
 brew install autoconf automake boost libedit libsodium libtool lua pkg-config protobuf
 ```
 
-Let configure know where to find libedit:
+Let configure know where to find libedit, and openssl or libressl:
 
 ```sh
-./configure 'PKG_CONFIG_PATH=/usr/local/opt/libedit/lib/pkgconfig'
+./configure 'PKG_CONFIG_PATH=/usr/local/opt/libedit/lib/pkgconfig:/usr/local/opt/libressl/lib/pkgconfig'
 make
 ```

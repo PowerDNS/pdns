@@ -152,13 +152,12 @@ public:
     size_t size() const
     {
       return d_qpolAddr.size() + d_postpolAddr.size() + d_propolName.size() + d_propolNSAddr.size() + d_qpolName.size();
-
     }
 
     void dump(FILE * fp) const;
 
     void addClientTrigger(const Netmask& nm, Policy&& pol);
-    void addQNameTrigger(const DNSName& nm, Policy&& pol);
+    void addQNameTrigger(const DNSName& nm, Policy&& pol, bool ignoreDuplicate=false);
     void addNSTrigger(const DNSName& dn, Policy&& pol);
     void addNSIPTrigger(const Netmask& nm, Policy&& pol);
     void addResponseTrigger(const Netmask& nm, Policy&& pol);
@@ -169,17 +168,39 @@ public:
     bool rmNSIPTrigger(const Netmask& nm, const Policy& pol);
     bool rmResponseTrigger(const Netmask& nm, const Policy& pol);
 
-    bool findQNamePolicy(const DNSName& qname, DNSFilterEngine::Policy& pol) const;
-    bool findNSPolicy(const DNSName& qname, DNSFilterEngine::Policy& pol) const;
+    bool findExactQNamePolicy(const DNSName& qname, DNSFilterEngine::Policy& pol) const;
+    bool findExactNSPolicy(const DNSName& qname, DNSFilterEngine::Policy& pol) const;
     bool findNSIPPolicy(const ComboAddress& addr, DNSFilterEngine::Policy& pol) const;
     bool findResponsePolicy(const ComboAddress& addr, DNSFilterEngine::Policy& pol) const;
     bool findClientPolicy(const ComboAddress& addr, DNSFilterEngine::Policy& pol) const;
 
+    bool hasClientPolicies() const
+    {
+      return !d_qpolAddr.empty();
+    }
+    bool hasQNamePolicies() const
+    {
+      return !d_qpolName.empty();
+    }
+    bool hasNSPolicies() const
+    {
+      return !d_propolName.empty();
+    }
+    bool hasNSIPPolicies() const
+    {
+      return !d_propolNSAddr.empty();
+    }
+    bool hasResponsePolicies() const
+    {
+      return !d_postpolAddr.empty();
+    }
+
   private:
     static DNSName maskToRPZ(const Netmask& nm);
-    bool findNamedPolicy(const std::unordered_map<DNSName, DNSFilterEngine::Policy>& polmap, const DNSName& qname, DNSFilterEngine::Policy& pol) const;
-    void dumpNamedPolicy(FILE* fp, const DNSName& name, const Policy& pol) const;
-    void dumpAddrPolicy(FILE* fp, const Netmask& nm, const DNSName& name, const Policy& pol) const;
+    static bool findExactNamedPolicy(const std::unordered_map<DNSName, DNSFilterEngine::Policy>& polmap, const DNSName& qname, DNSFilterEngine::Policy& pol);
+    static bool findNamedPolicy(const std::unordered_map<DNSName, DNSFilterEngine::Policy>& polmap, const DNSName& qname, DNSFilterEngine::Policy& pol);
+    static void dumpNamedPolicy(FILE* fp, const DNSName& name, const Policy& pol);
+    static void dumpAddrPolicy(FILE* fp, const Netmask& nm, const DNSName& name, const Policy& pol);
 
     std::unordered_map<DNSName, Policy> d_qpolName;   // QNAME trigger (RPZ)
     NetmaskTree<Policy> d_qpolAddr;         // Source address
@@ -198,6 +219,10 @@ public:
     for(auto& z : d_zones) {
       z->clear();
     }
+  }
+  void clearZones()
+  {
+    d_zones.clear();
   }
   const std::shared_ptr<Zone> getZone(size_t zoneIdx) const
   {

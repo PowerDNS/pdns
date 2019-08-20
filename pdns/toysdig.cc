@@ -47,7 +47,7 @@ public:
     if(d_rsock.write((char *) &len, 2) != 2)
       throw PDNSException("tcp write failed");
 
-    d_rsock.writen(string((char*)&*packet.begin(), (char*)&*packet.end()));
+    d_rsock.writen(string(packet.begin(), packet.end()));
     
     int bread=d_rsock.read((char *) &len, 2);
     if( bread <0)

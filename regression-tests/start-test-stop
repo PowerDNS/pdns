@@ -16,6 +16,8 @@ export ZONE2SQL=${ZONE2SQL:-${PWD}/../pdns/zone2sql}
 export ZONE2LDAP=${ZONE2LDAP:-${PWD}/../pdns/zone2ldap}
 export PDNSUTIL=${PDNSUTIL:-${PWD}/../pdns/pdnsutil}
 export PDNSCONTROL=${PDNSCONTROL:-${PWD}/../pdns/pdns_control}
+export RESOLVERIP=${RESOLVERIP:-8.8.8.8}
+export FIX_TESTS=${FIX_TESTS:-NO}
 
 
 ALGORITHM=${ALGORITHM:="hmac-md5"}
@@ -180,6 +182,7 @@ goracle-nodnssec goracle goracle-nsec3 goracle-nsec3-optout goracle-nsec3-narrow
 godbc_sqlite3-nodnssec godbc_sqlite3 godbc_sqlite3-nsec3 godbc_sqlite3-nsec3-optout godbc_sqlite3-narrow
 gpgsql-nodnssec gpgsql gpgsql-nsec3 gpgsql-nsec3-optout gpgsql-nsec3-narrow
 gsqlite3-nodnssec gsqlite3 gsqlite3-nsec3 gsqlite3-nsec3-optout gsqlite3-nsec3-narrow
+lmdb-nodnssec lmdb
 mydns
 opendbx-sqlite3
 oracle-nodnssec oracle oracle-nsec3

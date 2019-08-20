@@ -1,4 +1,0 @@
-UDP dns packets can only be 512 bytes long - when they are longer, they need
-to get truncated, and have the 'TC' bit set, to inform the client that they
-need to requery over TCP. This query however does not need truncation, since
-the information that causes things to go over limit is 'additional'.

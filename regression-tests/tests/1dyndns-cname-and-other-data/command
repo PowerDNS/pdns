@@ -19,11 +19,29 @@ echo '* check that indeed nothing was added'
 cleandig $RECORDNAME A hidesoadetails
 cleandig $RECORDNAME CNAME hidesoadetails
 
+echo '* Add a record that will result in an ENT being inserted at the upcoming CNAME'
+cleannsupdate <<!
+server $nameserver $port
+zone test.dyndns
+update add sub.$RECORDNAME. 3600 A 192.0.2.1
+send
+answer
+!
+
 echo '* Add a CNAME'
 cleannsupdate <<!
 server $nameserver $port
 zone test.dyndns
 update add $RECORDNAME. 3600 CNAME powerdns-cname.example.
+send
+answer
+!
+
+echo '* Delete the now useless record inserted to get an ENT there'
+cleannsupdate <<!
+server $nameserver $port
+zone test.dyndns
+update delete sub.$RECORDNAME. 3600 A 192.0.2.1
 send
 answer
 !

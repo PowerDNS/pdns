@@ -271,7 +271,7 @@ union ComboAddress {
     char host[1024];
     int retval = 0;
     if(sin4.sin_family && !(retval = getnameinfo((struct sockaddr*) this, getSocklen(), host, sizeof(host),0, 0, NI_NUMERICHOST)))
-      return host;
+      return string(host);
     else
       return "invalid "+string(gai_strerror(retval));
   }
@@ -668,7 +668,8 @@ public:
       }
       value = node->node4.get();
     } else {
-      uint64_t* addr = (uint64_t*)key.getNetwork().sin6.sin6_addr.s6_addr;
+      uint64_t addr[2];
+      memcpy(addr, key.getNetwork().sin6.sin6_addr.s6_addr, sizeof(addr));
       std::bitset<64> addr_low(be64toh(addr[1]));
       std::bitset<64> addr_high(be64toh(addr[0]));
       int bits = 0;
@@ -749,7 +750,8 @@ public:
       // needed if we did not find one in loop
       if (node->node4) ret = node->node4.get();
     } else {
-      uint64_t* addr = (uint64_t*)value.sin6.sin6_addr.s6_addr;
+      uint64_t addr[2];
+      memcpy(addr, value.sin6.sin6_addr.s6_addr, sizeof(addr));
       max_bits = std::max(0,std::min(max_bits,128));
       std::bitset<64> addr_low(be64toh(addr[1]));
       std::bitset<64> addr_high(be64toh(addr[0]));
@@ -821,7 +823,8 @@ public:
           cleanup_tree(node);
       }
     } else {
-      uint64_t* addr = (uint64_t*)key.getNetwork().sin6.sin6_addr.s6_addr;
+      uint64_t addr[2];
+      memcpy(addr, key.getNetwork().sin6.sin6_addr.s6_addr, sizeof(addr));
       std::bitset<64> addr_low(be64toh(addr[1]));
       std::bitset<64> addr_high(be64toh(addr[0]));
       int bits = 0;
@@ -1043,6 +1046,7 @@ int SBind(int sockfd, const ComboAddress& local);
 int SAccept(int sockfd, ComboAddress& remote);
 int SListen(int sockfd, int limit);
 int SSetsockopt(int sockfd, int level, int opname, int value);
+void setSocketIgnorePMTU(int sockfd);
 
 #if defined(IP_PKTINFO)
   #define GEN_IP_PKTINFO IP_PKTINFO
@@ -1053,10 +1057,10 @@ int SSetsockopt(int sockfd, int level, int opname, int value);
 bool IsAnyAddress(const ComboAddress& addr);
 bool HarvestDestinationAddress(const struct msghdr* msgh, ComboAddress* destination);
 bool HarvestTimestamp(struct msghdr* msgh, struct timeval* tv);
-void fillMSGHdr(struct msghdr* msgh, struct iovec* iov, char* cbuf, size_t cbufsize, char* data, size_t datalen, ComboAddress* addr);
+void fillMSGHdr(struct msghdr* msgh, struct iovec* iov, cmsgbuf_aligned* cbuf, size_t cbufsize, char* data, size_t datalen, ComboAddress* addr);
 ssize_t sendfromto(int sock, const char* data, size_t len, int flags, const ComboAddress& from, const ComboAddress& to);
-ssize_t sendMsgWithTimeout(int fd, const char* buffer, size_t len, int timeout, ComboAddress& dest, const ComboAddress& local, unsigned int localItf);
-bool sendSizeAndMsgWithTimeout(int sock, uint16_t bufferLen, const char* buffer, int idleTimeout, const ComboAddress* dest, const ComboAddress* local, unsigned int localItf, int totalTimeout, int flags);
+size_t sendMsgWithOptions(int fd, const char* buffer, size_t len, const ComboAddress* dest, const ComboAddress* local, unsigned int localItf, int flags);
+
 /* requires a non-blocking, connected TCP socket */
 bool isTCPSocketUsable(int sock);
 

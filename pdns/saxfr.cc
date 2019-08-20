@@ -123,7 +123,7 @@ try
       len = htons(packet.size());
       if(sock.write((char *) &len, 2) != 2)
         throw PDNSException("tcp write failed");
-      sock.writen(string((char*)&*packet.begin(), (char*)&*packet.end()));
+      sock.writen(string((char*)&packet[0], packet.size()));
       if(sock.read((char *) &len, 2) != 2)
         throw PDNSException("tcp read failed");
 
@@ -177,7 +177,7 @@ try
   if(sock.write((char *) &len, 2) != 2)
     throw PDNSException("tcp write failed");
 
-  sock.writen(string((char*)&*packet.begin(), (char*)&*packet.end()));
+  sock.writen(string(packet.begin(), packet.end()));
 
   bool isNSEC3 = false;
   int soacount=0;

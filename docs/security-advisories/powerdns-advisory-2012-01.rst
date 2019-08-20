@@ -37,7 +37,7 @@ Alternatively, on Linux systems with a working iptables setup,
 'responses' sent to the PowerDNS Authoritative Server 'question' address
 can be blocked by issuing:
 
-::
+.. code-block:: shell
 
           iptables -I INPUT -p udp --dst $AUTHIP --dport 53 \! -f -m u32 --u32 "0>>22&0x3C@8>>15&0x01=1" -j DROP 
         
@@ -57,7 +57,7 @@ announcement.
 For those running custom PowerDNS versions, just applying this patch may
 be easier:
 
-::
+.. code-block:: diff
 
     --- pdns/common_startup.cc   (revision 2326)
     +++ pdns/common_startup.cc   (working copy)

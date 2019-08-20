@@ -19,7 +19,7 @@ automatically.
 
 As an example, securing an existing zone can be as simple as:
 
-::
+.. code-block:: shell
 
     $ pdnsutil secure-zone powerdnssec.org
 

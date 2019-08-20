@@ -57,7 +57,7 @@ try
  
     if(msg.empty()) {
       typedef map<string,string> all_t;
-      all_t all=getAllStatsMap();
+      all_t all=getAllStatsMap(StatComponent::Carbon);
       
       ostringstream str;
       time_t now=time(0);

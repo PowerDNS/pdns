@@ -25,9 +25,9 @@
 #include <time.h>
 #include <unordered_map>
 
-#include <boost/circular_buffer.hpp>
 #include <boost/variant.hpp>
 
+#include "circular_buffer.hh"
 #include "dnsname.hh"
 #include "iputils.hh"
 

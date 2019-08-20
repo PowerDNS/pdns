@@ -438,7 +438,7 @@ PowerDNS Recursor 4.0.0
 Released July 11th 2016
 
 PowerDNS Recursor 4.0.0 is part of `the great 4.x "Spring
-Cleaning" <http://blog.powerdns.com/2015/11/28/powerdns-spring-cleaning/>`__
+Cleaning" <https://blog.powerdns.com/2015/11/28/powerdns-spring-cleaning/>`__
 of PowerDNS which lasted through the end of 2015.
 
 As part of the general cleanup, we did the following:
@@ -646,7 +646,7 @@ changes since 4.0.0-alpha1 are:
 -  `#3313 <https://github.com/PowerDNS/pdns/pull/3313>`__ Implement the
    logic we need to generate EDNS MAC fields in dnsdist & read them in
    recursor
-   (`blogpost <http://blog.powerdns.com/2016/01/27/per-device-dns-settings-selective-parental-control/>`__
+   (`blogpost <https://blog.powerdns.com/2016/01/27/per-device-dns-settings-selective-parental-control/>`__
 -  `#3350 <https://github.com/PowerDNS/pdns/pull/3350>`__ Add
    lowercase-outgoing feature to Recursor
 -  `#3410 <https://github.com/PowerDNS/pdns/pull/3410>`__ Recuweb is now

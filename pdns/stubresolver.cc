@@ -169,3 +169,12 @@ int stubDoResolve(const DNSName& qname, uint16_t qtype, vector<DNSZoneRecord>& r
   }
   return RCode::ServFail;
 }
+
+int stubDoResolve(const DNSName& qname, uint16_t qtype, vector<DNSRecord>& ret) {
+  vector<DNSZoneRecord> ret2;
+  int res = stubDoResolve(qname, qtype, ret2);
+  for (const auto &r : ret2) {
+    ret.push_back(r.dr);
+  }
+  return res;
+}

@@ -326,6 +326,14 @@ ruleServFail OBJECT-TYPE
 	"Number of ServFail responses returned because of a rule"
     ::= { stats 37 }
 
+specialMemoryUsage OBJECT-TYPE
+    SYNTAX CounterBasedGauge64
+    MAX-ACCESS read-only
+    STATUS current
+    DESCRIPTION
+	"Memory usage (more precise but expensive to retrieve)"
+    ::= { stats 38 }
+
 securityStatus OBJECT-TYPE
     SYNTAX CounterBasedGauge64
     MAX-ACCESS read-only
@@ -667,6 +675,7 @@ dnsdistGroup OBJECT-GROUP
         latencyAVG1000000,
         uptime,
         realMemoryUsage,
+        specialMemoryUsage,
         nonCompliantQueries,
         nonCompliantResponses,
         rdQueries,

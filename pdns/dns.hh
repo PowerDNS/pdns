@@ -71,6 +71,7 @@ class Opcode
 {
 public:
   enum { Query=0, IQuery=1, Status=2, Notify=4, Update=5 };
+  static std::string to_s(uint8_t opcode);
 };
 
 // enum for policy decisions, used by both auth and recursor. Not all values supported everywhere.

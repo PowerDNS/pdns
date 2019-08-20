@@ -20,6 +20,7 @@ BuildRequires: re2-devel
 %if 0%{?suse_version}
 BuildRequires: boost-devel
 BuildRequires: lua-devel
+BuildRequires: systemd
 BuildRequires: systemd-units
 BuildRequires: systemd-devel
 %endif
@@ -39,6 +40,7 @@ BuildRequires: net-snmp-devel
 BuildRequires: protobuf-compiler
 BuildRequires: protobuf-devel
 BuildRequires: re2-devel
+BuildRequires: systemd
 BuildRequires: systemd-devel
 BuildRequires: systemd-units
 %endif
@@ -71,6 +73,7 @@ sed -i '/^ExecStart/ s/dnsdist/dnsdist -u dnsdist -g dnsdist/' dnsdist.service.i
 
 %build
 %configure \
+  --enable-option-checking=fatal \
   --sysconfdir=/etc/dnsdist \
   --disable-static \
   --disable-dependency-tracking \
@@ -101,9 +104,11 @@ sed -i '/^ExecStart/ s/dnsdist/dnsdist -u dnsdist -g dnsdist/' dnsdist.service.i
   --with-libcap \
   --with-libsodium \
   --enable-dnscrypt \
+  --enable-dns-over-https \
   --enable-systemd --with-systemd=/lib/systemd/system \
   --with-re2 \
-  --with-net-snmp
+  --with-net-snmp \
+  PKG_CONFIG_PATH=/opt/lib64/pkgconfig
 %endif
 
 %if 0%{?el6}

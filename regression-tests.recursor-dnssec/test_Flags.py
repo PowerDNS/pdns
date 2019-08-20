@@ -76,15 +76,6 @@ class TestFlags(RecursorTest):
             cls._recursor = recursor
             cls.tearDownRecursor()
 
-    def createQuery(self, name, rdtype, flags, ednsflags):
-        """Helper function that creates the query with the specified flags.
-        The flags need to be strings (no checking is performed atm)"""
-        msg = dns.message.make_query(name, rdtype)
-        msg.flags = dns.flags.from_text(flags)
-        msg.flags += dns.flags.from_text('RD')
-        msg.use_edns(edns=0, ednsflags=dns.flags.edns_from_text(ednsflags))
-        return msg
-
     def getQueryForSecure(self, flags='', ednsflags=''):
         return self.createQuery('ns1.example.', 'A', flags, ednsflags)
 

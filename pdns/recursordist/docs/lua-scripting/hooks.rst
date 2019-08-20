@@ -69,6 +69,9 @@ Interception Functions
     .. versionadded:: 4.1.0
 
         It can also return a table whose keys and values are strings to fill the :attr:`DNSQuestion.data` table, as well as a ``requestorId`` value to fill the :attr:`DNSQuestion.requestorId` field and a ``deviceId`` value to fill the :attr:`DNSQuestion.deviceId` field.
+    .. versionadded:: 4.3.0
+
+        Along the ``deviceId`` value that can be returned, it was addded a ``deviceName`` field to fill the :attr:`DNSQuestion.deviceName` field.
 
     The tagged packetcache can e.g. be used to answer queries from cache that have e.g. been filtered for certain IPs (this logic should be implemented in :func:`gettag`).
     This ensure that queries are answered quickly compared to setting :attr:`dq.variable <DNSQuestion.variable>` to true.
@@ -316,17 +319,12 @@ For example, to send a custom SNMP trap containing the qname from the
       return false
     end
 
-MIB
-^^^
-
-.. literalinclude:: ../../RECURSOR-MIB.txt
-
 .. _hooks-maintenance-callback:
 
 Maintenance callback
 --------------------
-Starting with version 4.1.4 of the recursor, it is possible to define a `maintenance()` callback function that will be called periodically.
-This function expects no argument and doesn't return any value
+Starting with version 4.2.0 of the recursor, it is possible to define a `maintenance()` callback function that will be called periodically.
+This function expects no argument and doesn't return any value.
 
 .. code-block:: Lua
 

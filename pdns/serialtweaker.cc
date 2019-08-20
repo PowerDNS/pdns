@@ -156,3 +156,23 @@ bool makeIncreasedSOARecord(SOAData& sd, const string& increaseKind, const strin
 
   return true;
 }
+
+DNSZoneRecord makeEditedDNSZRFromSOAData(DNSSECKeeper& dk, const SOAData& sd, DNSResourceRecord::Place place) {
+  SOAData edited = sd;
+  edited.serial = calculateEditSOA(sd.serial, dk, sd.qname);
+
+  DNSRecord soa;
+  soa.d_name = sd.qname;
+  soa.d_type = QType::SOA;
+  soa.d_ttl = sd.ttl;
+  soa.d_place = place;
+  soa.d_content = makeSOAContent(edited);
+
+  DNSZoneRecord dzr;
+  dzr.domain_id = sd.domain_id;
+  dzr.signttl = sd.ttl;
+  dzr.auth = true;
+  dzr.dr = soa;
+
+  return dzr;
+}

@@ -9,10 +9,9 @@ DNSDISTBIN=../pdns/dnsdistdist/dnsdist ./runtests
 The tests are self-contained and require no further nameservers to be
 installed.
 
-However, do make sure to build a dnsdist with libsodium and dnscrypt support
-as otherwise some tests will fail.
+However, do make sure to build a dnsdist with libsodium, dnscrypt, DoT and DoH
+support as otherwise some tests will fail.
 
 To run a specific test, use something like:
 
 ./runtests test_Advanced.py:TestAdvancedSpoof.testSpoofActionMultiA
-

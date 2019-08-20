@@ -17,7 +17,9 @@ fi
 python -V
 pip install -r requirements.txt
 
-export SDIG=$(type -P sdig)
+if [ -z "${SDIG}" ]; then
+  export SDIG=$(type -P sdig)
+fi
 
 set -e
 if [ "${PDNS_DEBUG}" = "YES" ]; then

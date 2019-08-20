@@ -323,6 +323,8 @@ static void connectionThread(int sock, ComboAddress remote)
         };
 
         for(const auto& e : g_stats.entries) {
+          if (e.first == "special-memory-usage")
+            continue; // Too expensive for get-all
           if(const auto& val = boost::get<DNSDistStats::stat_t*>(&e.second))
             obj.insert({e.first, (double)(*val)->load()});
           else if (const auto& dval = boost::get<double*>(&e.second))
@@ -405,6 +407,8 @@ static void connectionThread(int sock, ComboAddress remote)
 
         std::ostringstream output;
         for (const auto& e : g_stats.entries) {
+          if (e.first == "special-memory-usage")
+            continue; // Too expensive for get-all
           std::string metricName = std::get<0>(e);
 
           // Prometheus suggest using '_' instead of '-'
@@ -439,23 +443,55 @@ static void connectionThread(int sock, ComboAddress remote)
           output << "\n";
         }
 
+        // Latency histogram buckets
+        output << "# HELP dnsdist_latency Histogram of responses by latency\n";
+        output << "# TYPE dnsdist_latency histogram\n";
+        uint64_t latency_amounts = g_stats.latency0_1;
+        output << "dnsdist_latency_bucket{le=\"1\"} " << latency_amounts << "\n";
+        latency_amounts += g_stats.latency1_10;
+        output << "dnsdist_latency_bucket{le=\"10\"} " << latency_amounts << "\n";
+        latency_amounts += g_stats.latency10_50;
+        output << "dnsdist_latency_bucket{le=\"50\"} " << latency_amounts << "\n";
+        latency_amounts += g_stats.latency50_100;
+        output << "dnsdist_latency_bucket{le=\"100\"} " << latency_amounts << "\n";
+        latency_amounts += g_stats.latency100_1000;
+        output << "dnsdist_latency_bucket{le=\"1000\"} " << latency_amounts << "\n";
+        latency_amounts += g_stats.latencySlow; // Should be the same as latency_count
+        output << "dnsdist_latency_bucket{le=\"+Inf\"} " << latency_amounts << "\n";
+
         auto states = g_dstates.getLocal();
         const string statesbase = "dnsdist_server_";
 
-        output << "# HELP " << statesbase << "queries "     << "Amount of queries relayed to server"                               << "\n";
-        output << "# TYPE " << statesbase << "queries "     << "counter"                                                           << "\n";
-        output << "# HELP " << statesbase << "drops "       << "Amount of queries not answered by server"                          << "\n";
-        output << "# TYPE " << statesbase << "drops "       << "counter"                                                           << "\n";
-        output << "# HELP " << statesbase << "latency "     << "Server's latency when answering questions in miliseconds"          << "\n";
-        output << "# TYPE " << statesbase << "latency "     << "gauge"                                                             << "\n";
-        output << "# HELP " << statesbase << "senderrors "  << "Total number of OS snd errors while relaying queries"              << "\n";
-        output << "# TYPE " << statesbase << "senderrors "  << "counter"                                                           << "\n";
-        output << "# HELP " << statesbase << "outstanding " << "Current number of queries that are waiting for a backend response" << "\n";
-        output << "# TYPE " << statesbase << "outstanding " << "gauge"                                                             << "\n";
-        output << "# HELP " << statesbase << "order "       << "The order in which this server is picked"                          << "\n";
-        output << "# TYPE " << statesbase << "order "       << "gauge"                                                             << "\n";
-        output << "# HELP " << statesbase << "weight "      << "The weight within the order in which this server is picked"        << "\n";
-        output << "# TYPE " << statesbase << "weight "      << "gauge"                                                             << "\n";
+        output << "# HELP " << statesbase << "queries "                << "Amount of queries relayed to server"                               << "\n";
+        output << "# TYPE " << statesbase << "queries "                << "counter"                                                           << "\n";
+        output << "# HELP " << statesbase << "drops "                  << "Amount of queries not answered by server"                          << "\n";
+        output << "# TYPE " << statesbase << "drops "                  << "counter"                                                           << "\n";
+        output << "# HELP " << statesbase << "latency "                << "Server's latency when answering questions in milliseconds"         << "\n";
+        output << "# TYPE " << statesbase << "latency "                << "gauge"                                                             << "\n";
+        output << "# HELP " << statesbase << "senderrors "             << "Total number of OS snd errors while relaying queries"              << "\n";
+        output << "# TYPE " << statesbase << "senderrors "             << "counter"                                                           << "\n";
+        output << "# HELP " << statesbase << "outstanding "            << "Current number of queries that are waiting for a backend response" << "\n";
+        output << "# TYPE " << statesbase << "outstanding "            << "gauge"                                                             << "\n";
+        output << "# HELP " << statesbase << "order "                  << "The order in which this server is picked"                          << "\n";
+        output << "# TYPE " << statesbase << "order "                  << "gauge"                                                             << "\n";
+        output << "# HELP " << statesbase << "weight "                 << "The weight within the order in which this server is picked"        << "\n";
+        output << "# TYPE " << statesbase << "weight "                 << "gauge"                                                             << "\n";
+        output << "# HELP " << statesbase << "tcpdiedsendingquery "    << "The number of TCP I/O errors while sending the query"              << "\n";
+        output << "# TYPE " << statesbase << "tcpdiedsendingquery "    << "counter"                                                           << "\n";
+        output << "# HELP " << statesbase << "tcpdiedreadingresponse " << "The number of TCP I/O errors while reading the response"           << "\n";
+        output << "# TYPE " << statesbase << "tcpdiedreadingresponse " << "counter"                                                           << "\n";
+        output << "# HELP " << statesbase << "tcpgaveup "              << "The number of TCP connections failing after too many attempts"     << "\n";
+        output << "# TYPE " << statesbase << "tcpgaveup "              << "counter"                                                           << "\n";
+        output << "# HELP " << statesbase << "tcpreadtimeouts "        << "The number of TCP read timeouts"                                   << "\n";
+        output << "# TYPE " << statesbase << "tcpreadtimeouts "        << "counter"                                                           << "\n";
+        output << "# HELP " << statesbase << "tcpwritetimeouts "       << "The number of TCP write timeouts"                                  << "\n";
+        output << "# TYPE " << statesbase << "tcpwritetimeouts "       << "counter"                                                           << "\n";
+        output << "# HELP " << statesbase << "tcpcurrentconnections "  << "The number of current TCP connections"                             << "\n";
+        output << "# TYPE " << statesbase << "tcpcurrentconnections "  << "gauge"                                                             << "\n";
+        output << "# HELP " << statesbase << "tcpavgqueriesperconn "   << "The average number of queries per TCP connection"                  << "\n";
+        output << "# TYPE " << statesbase << "tcpavgqueriesperconn "   << "gauge"                                                             << "\n";
+        output << "# HELP " << statesbase << "tcpavgconnduration "     << "The average duration of a TCP connection (ms)"                     << "\n";
+        output << "# TYPE " << statesbase << "tcpavgconnduration "     << "gauge"                                                             << "\n";
 
         for (const auto& state : *states) {
           string serverName;
@@ -470,25 +506,157 @@ static void connectionThread(int sock, ComboAddress remote)
           const std::string label = boost::str(boost::format("{server=\"%1%\",address=\"%2%\"}")
             % serverName % state->remote.toStringWithPort());
 
-          output << statesbase << "queries"     << label << " " << state->queries.load()     << "\n";
-          output << statesbase << "drops"       << label << " " << state->reuseds.load()     << "\n";
-          output << statesbase << "latency"     << label << " " << state->latencyUsec/1000.0 << "\n";
-          output << statesbase << "senderrors"  << label << " " << state->sendErrors.load()  << "\n";
-          output << statesbase << "outstanding" << label << " " << state->outstanding.load() << "\n";
-          output << statesbase << "order"       << label << " " << state->order              << "\n";
-          output << statesbase << "weight"      << label << " " << state->weight             << "\n";
+          output << statesbase << "queries"                << label << " " << state->queries.load()             << "\n";
+          output << statesbase << "drops"                  << label << " " << state->reuseds.load()             << "\n";
+          output << statesbase << "latency"                << label << " " << state->latencyUsec/1000.0         << "\n";
+          output << statesbase << "senderrors"             << label << " " << state->sendErrors.load()          << "\n";
+          output << statesbase << "outstanding"            << label << " " << state->outstanding.load()         << "\n";
+          output << statesbase << "order"                  << label << " " << state->order                      << "\n";
+          output << statesbase << "weight"                 << label << " " << state->weight                     << "\n";
+          output << statesbase << "tcpdiedsendingquery"    << label << " " << state->tcpDiedSendingQuery        << "\n";
+          output << statesbase << "tcpdiedreadingresponse" << label << " " << state->tcpDiedReadingResponse     << "\n";
+          output << statesbase << "tcpgaveup"              << label << " " << state->tcpGaveUp                  << "\n";
+          output << statesbase << "tcpreadtimeouts"        << label << " " << state->tcpReadTimeouts            << "\n";
+          output << statesbase << "tcpwritetimeouts"       << label << " " << state->tcpWriteTimeouts           << "\n";
+          output << statesbase << "tcpcurrentconnections"  << label << " " << state->tcpCurrentConnections      << "\n";
+          output << statesbase << "tcpavgqueriesperconn"   << label << " " << state->tcpAvgQueriesPerConnection << "\n";
+          output << statesbase << "tcpavgconnduration"     << label << " " << state->tcpAvgConnectionDuration   << "\n";
         }
 
+        const string frontsbase = "dnsdist_frontend_";
+        output << "# HELP " << frontsbase << "queries " << "Amount of queries received by this frontend" << "\n";
+        output << "# TYPE " << frontsbase << "queries " << "counter" << "\n";
+        output << "# HELP " << frontsbase << "tcpdiedreadingquery " << "Amount of TCP connections terminated while reading the query from the client" << "\n";
+        output << "# TYPE " << frontsbase << "tcpdiedreadingquery " << "counter" << "\n";
+        output << "# HELP " << frontsbase << "tcpdiedsendingresponse " << "Amount of TCP connections terminated while sending a response to the client" << "\n";
+        output << "# TYPE " << frontsbase << "tcpdiedsendingresponse " << "counter" << "\n";
+        output << "# HELP " << frontsbase << "tcpgaveup " << "Amount of TCP connections terminated after too many attemps to get a connection to the backend" << "\n";
+        output << "# TYPE " << frontsbase << "tcpgaveup " << "counter" << "\n";
+        output << "# HELP " << frontsbase << "tcpclientimeouts " << "Amount of TCP connections terminated by a timeout while reading from the client" << "\n";
+        output << "# TYPE " << frontsbase << "tcpclientimeouts " << "counter" << "\n";
+        output << "# HELP " << frontsbase << "tcpdownstreamimeouts " << "Amount of TCP connections terminated by a timeout while reading from the backend" << "\n";
+        output << "# TYPE " << frontsbase << "tcpdownstreamimeouts " << "counter" << "\n";
+        output << "# HELP " << frontsbase << "tcpcurrentconnections " << "Amount of current incoming TCP connections from clients" << "\n";
+        output << "# TYPE " << frontsbase << "tcpcurrentconnections " << "gauge" << "\n";
+        output << "# HELP " << frontsbase << "tcpavgqueriesperconnection " << "The average number of queries per TCP connection" << "\n";
+        output << "# TYPE " << frontsbase << "tcpavgqueriesperconnection " << "gauge" << "\n";
+        output << "# HELP " << frontsbase << "tcpavgconnectionduration " << "The average duration of a TCP connection (ms)" << "\n";
+        output << "# TYPE " << frontsbase << "tcpavgconnectionduration " << "gauge" << "\n";
+
+        std::map<std::string,uint64_t> frontendDuplicates;
         for (const auto& front : g_frontends) {
           if (front->udpFD == -1 && front->tcpFD == -1)
             continue;
 
           string frontName = front->local.toString() + ":" + std::to_string(front->local.getPort());
-          string proto = (front->udpFD >= 0 ? "udp" : "tcp");
+          const string proto = front->getType();
+          string fullName = frontName + "_" + proto;
+          auto dupPair = frontendDuplicates.insert({fullName, 1});
+          if (!dupPair.second) {
+            frontName = frontName + "_" + std::to_string(dupPair.first->second);
+            ++(dupPair.first->second);
+          }
+          const std::string label = boost::str(boost::format("{frontend=\"%1%\",proto=\"%2%\"} ")
+            % frontName % proto);
 
-          output << "dnsdist_frontend_queries{frontend=\"" << frontName << "\",proto=\"" << proto
-              << "\"} " << front->queries.load() << "\n";
+          output << frontsbase << "queries" << label << front->queries.load() << "\n";
+          output << frontsbase << "tcpdiedreadingquery" << label << front->tcpDiedReadingQuery.load() << "\n";
+          output << frontsbase << "tcpdiedsendingresponse" << label << front->tcpDiedSendingResponse.load() << "\n";
+          output << frontsbase << "tcpgaveup" << label << front->tcpGaveUp.load() << "\n";
+          output << frontsbase << "tcpclientimeouts" << label << front->tcpClientTimeouts.load() << "\n";
+          output << frontsbase << "tcpdownstreamtimeouts" << label << front->tcpDownstreamTimeouts.load() << "\n";
+          output << frontsbase << "tcpcurrentconnections" << label << front->tcpCurrentConnections.load() << "\n";
+          output << frontsbase << "tcpavgqueriesperconnection" << label << front->tcpAvgQueriesPerConnection.load() << "\n";
+          output << frontsbase << "tcpavgconnectionduration" << label << front->tcpAvgConnectionDuration.load() << "\n";
         }
+
+        const string dohfrontsbase = "dnsdist_doh_frontend_";
+        output << "# HELP " << dohfrontsbase << "http_connects " << "Number of TCP connections establoshed to this frontend" << "\n";
+        output << "# TYPE " << dohfrontsbase << "queries " << "counter" << "\n";
+        output << "# HELP " << dohfrontsbase << "tls10_queries " << "Number of valid DNS queries received via TLS 1.0" << "\n";
+        output << "# TYPE " << dohfrontsbase << "tls10_queries " << "counter" << "\n";
+        output << "# HELP " << dohfrontsbase << "tls11_queries " << "Number of valid DNS queries received via TLS 1.1" << "\n";
+        output << "# TYPE " << dohfrontsbase << "tls11_queries " << "counter" << "\n";
+        output << "# HELP " << dohfrontsbase << "tls12_queries " << "Number of valid DNS queries received via TLS 1.2" << "\n";
+        output << "# TYPE " << dohfrontsbase << "tls12_queries " << "counter" << "\n";
+        output << "# HELP " << dohfrontsbase << "tls13_queries " << "Number of valid DNS queries received via TLS 1.3" << "\n";
+        output << "# TYPE " << dohfrontsbase << "tls13_queries " << "counter" << "\n";
+        output << "# HELP " << dohfrontsbase << "tlsunknown_queries " << "Number of valid DNS queries received via an unknown TLS version" << "\n";
+        output << "# TYPE " << dohfrontsbase << "tlsunknown_queries " << "counter" << "\n";
+        output << "# HELP " << dohfrontsbase << "get_queries " << "Number of valid DNS queries received via GET" << "\n";
+        output << "# TYPE " << dohfrontsbase << "get_queries " << "counter" << "\n";
+        output << "# HELP " << dohfrontsbase << "post_queries " << "Number of valid DNS queries received via POST" << "\n";
+        output << "# TYPE " << dohfrontsbase << "post_queries " << "counter" << "\n";
+        output << "# HELP " << dohfrontsbase << "bad_requests " << "Number of requests that could not be converted to a DNS query" << "\n";
+        output << "# TYPE " << dohfrontsbase << "bad_requests " << "counter" << "\n";
+        output << "# HELP " << dohfrontsbase << "error_responses " << "Number of responses sent by dnsdist indicating an error" << "\n";
+        output << "# TYPE " << dohfrontsbase << "error_responses " << "counter" << "\n";
+        output << "# HELP " << dohfrontsbase << "redirect_responses " << "Number of responses sent by dnsdist indicating a redirect" << "\n";
+        output << "# TYPE " << dohfrontsbase << "redirect_responses " << "counter" << "\n";
+        output << "# HELP " << dohfrontsbase << "valid_responses " << "Number of valid responses sent by dnsdist" << "\n";
+        output << "# TYPE " << dohfrontsbase << "valid_responses " << "counter" << "\n";
+        output << "# HELP " << dohfrontsbase << "http1_queries " << "Number of queries received over HTTP/1.x" << "\n";
+        output << "# TYPE " << dohfrontsbase << "http1_queries " << "counter" << "\n";
+        output << "# HELP " << dohfrontsbase << "http1_nb200responses " << "Number of responses with a 200 status code sent over HTTP/1.x" << "\n";
+        output << "# TYPE " << dohfrontsbase << "http1_nb200responses " << "counter" << "\n";
+        output << "# HELP " << dohfrontsbase << "http1_nb400responses " << "Number of responses with a 400 status code sent over HTTP/1.x" << "\n";
+        output << "# TYPE " << dohfrontsbase << "http1_nb400responses " << "counter" << "\n";
+        output << "# HELP " << dohfrontsbase << "http1_nb403responses " << "Number of responses with a 403 status code sent over HTTP/1.x" << "\n";
+        output << "# TYPE " << dohfrontsbase << "http1_nb403responses " << "counter" << "\n";
+        output << "# HELP " << dohfrontsbase << "http1_nb500responses " << "Number of responses with a 500 status code sent over HTTP/1.x" << "\n";
+        output << "# TYPE " << dohfrontsbase << "http1_nb500responses " << "counter" << "\n";
+        output << "# HELP " << dohfrontsbase << "http1_nb502responses " << "Number of responses with a 502 status code sent over HTTP/1.x" << "\n";
+        output << "# TYPE " << dohfrontsbase << "http1_nb502responses " << "counter" << "\n";
+        output << "# HELP " << dohfrontsbase << "http1_nbotherresponses " << "Number of responses with an other status code sent over HTTP/1.x" << "\n";
+        output << "# TYPE " << dohfrontsbase << "http1_nbotherresponses " << "counter" << "\n";
+        output << "# HELP " << dohfrontsbase << "http2_queries " << "Number of queries received over HTTP/2.x" << "\n";
+        output << "# TYPE " << dohfrontsbase << "http2_queries " << "counter" << "\n";
+        output << "# HELP " << dohfrontsbase << "http2_nb200responses " << "Number of responses with a 200 status code sent over HTTP/2.x" << "\n";
+        output << "# TYPE " << dohfrontsbase << "http2_nb200responses " << "counter" << "\n";
+        output << "# HELP " << dohfrontsbase << "http2_nb400responses " << "Number of responses with a 400 status code sent over HTTP/2.x" << "\n";
+        output << "# TYPE " << dohfrontsbase << "http2_nb400responses " << "counter" << "\n";
+        output << "# HELP " << dohfrontsbase << "http2_nb403responses " << "Number of responses with a 403 status code sent over HTTP/2.x" << "\n";
+        output << "# TYPE " << dohfrontsbase << "http2_nb403responses " << "counter" << "\n";
+        output << "# HELP " << dohfrontsbase << "http2_nb500responses " << "Number of responses with a 500 status code sent over HTTP/2.x" << "\n";
+        output << "# TYPE " << dohfrontsbase << "http2_nb500responses " << "counter" << "\n";
+        output << "# HELP " << dohfrontsbase << "http2_nb502responses " << "Number of responses with a 502 status code sent over HTTP/2.x" << "\n";
+        output << "# TYPE " << dohfrontsbase << "http2_nb502responses " << "counter" << "\n";
+        output << "# HELP " << dohfrontsbase << "http2_nbotherresponses " << "Number of responses with an other status code sent over HTTP/2.x" << "\n";
+        output << "# TYPE " << dohfrontsbase << "http2_nbotherresponses " << "counter" << "\n";
+
+#ifdef HAVE_DNS_OVER_HTTPS
+        for(const auto& doh : g_dohlocals) {
+          const std::string label = boost::str(boost::format("{address=\"%1%\"} ") % doh->d_local.toStringWithPort());
+
+          output << dohfrontsbase << "http_connects" << label << doh->d_httpconnects << "\n";
+          output << dohfrontsbase << "tls10_queries" << label << doh->d_tls10queries << "\n";
+          output << dohfrontsbase << "tls11_queries" << label << doh->d_tls11queries << "\n";
+          output << dohfrontsbase << "tls12_queries" << label << doh->d_tls12queries << "\n";
+          output << dohfrontsbase << "tls13_queries" << label << doh->d_tls13queries << "\n";
+          output << dohfrontsbase << "tlsunknown_queries" << label << doh->d_tlsUnknownqueries << "\n";
+          output << dohfrontsbase << "get_queries" << label << doh->d_getqueries << "\n";
+          output << dohfrontsbase << "post_queries" << label << doh->d_postqueries << "\n";
+          output << dohfrontsbase << "bad_requests" << label << doh->d_badrequests << "\n";
+          output << dohfrontsbase << "error_responses" << label << doh->d_errorresponses << "\n";
+          output << dohfrontsbase << "redirect_responses" << label << doh->d_redirectresponses << "\n";
+          output << dohfrontsbase << "valid_responses" << label << doh->d_validresponses << "\n";
+
+          output << dohfrontsbase << "http1_queries" << label << doh->d_http1Stats.d_nbQueries << "\n";
+          output << dohfrontsbase << "http1_nb200responses" << label << doh->d_http1Stats.d_nb200Responses << "\n";
+          output << dohfrontsbase << "http1_nb400responses" << label << doh->d_http1Stats.d_nb400Responses << "\n";
+          output << dohfrontsbase << "http1_nb403responses" << label << doh->d_http1Stats.d_nb403Responses << "\n";
+          output << dohfrontsbase << "http1_nb500responses" << label << doh->d_http1Stats.d_nb500Responses << "\n";
+          output << dohfrontsbase << "http1_nb502responses" << label << doh->d_http1Stats.d_nb502Responses << "\n";
+          output << dohfrontsbase << "http1_nbotherresponses" << label << doh->d_http1Stats.d_nbOtherResponses << "\n";
+          output << dohfrontsbase << "http2_queries" << label << doh->d_http2Stats.d_nbQueries << "\n";
+          output << dohfrontsbase << "http2_nb200responses" << label << doh->d_http2Stats.d_nb200Responses << "\n";
+          output << dohfrontsbase << "http2_nb400responses" << label << doh->d_http2Stats.d_nb400Responses << "\n";
+          output << dohfrontsbase << "http2_nb403responses" << label << doh->d_http2Stats.d_nb403Responses << "\n";
+          output << dohfrontsbase << "http2_nb500responses" << label << doh->d_http2Stats.d_nb500Responses << "\n";
+          output << dohfrontsbase << "http2_nb502responses" << label << doh->d_http2Stats.d_nb502Responses << "\n";
+          output << dohfrontsbase << "http2_nbotherresponses" << label << doh->d_http2Stats.d_nbOtherResponses << "\n";
+        }
+#endif /* HAVE_DNS_OVER_HTTPS */
 
         auto localPools = g_pools.getLocal();
         const string cachebase = "dnsdist_pool_";
@@ -558,6 +726,14 @@ static void connectionThread(int sock, ComboAddress remote)
           {"latency", (double)(a->latencyUsec/1000.0)},
           {"queries", (double)a->queries},
           {"sendErrors", (double)a->sendErrors},
+          {"tcpDiedSendingQuery", (double)a->tcpDiedSendingQuery},
+          {"tcpDiedReadingResponse", (double)a->tcpDiedReadingResponse},
+          {"tcpGaveUp", (double)a->tcpGaveUp},
+          {"tcpReadTimeouts", (double)a->tcpReadTimeouts},
+          {"tcpWriteTimeouts", (double)a->tcpWriteTimeouts},
+          {"tcpCurrentConnections", (double)a->tcpCurrentConnections},
+          {"tcpAvgQueriesPerConnection", (double)a->tcpAvgQueriesPerConnection},
+          {"tcpAvgConnectionDuration", (double)a->tcpAvgConnectionDuration},
           {"dropRate", (double)a->dropRate}
         };
 
@@ -579,10 +755,59 @@ static void connectionThread(int sock, ComboAddress remote)
           { "address", front->local.toStringWithPort() },
           { "udp", front->udpFD >= 0 },
           { "tcp", front->tcpFD >= 0 },
-          { "queries", (double) front->queries.load() }
+          { "type", front->getType() },
+          { "queries", (double) front->queries.load() },
+          { "tcpDiedReadingQuery", (double) front->tcpDiedReadingQuery.load() },
+          { "tcpDiedSendingResponse", (double) front->tcpDiedSendingResponse.load() },
+          { "tcpGaveUp", (double) front->tcpGaveUp.load() },
+          { "tcpClientTimeouts", (double) front->tcpClientTimeouts },
+          { "tcpDownstreamTimeouts", (double) front->tcpDownstreamTimeouts },
+          { "tcpCurrentConnections", (double) front->tcpCurrentConnections },
+          { "tcpAvgQueriesPerConnection", (double) front->tcpAvgQueriesPerConnection },
+          { "tcpAvgConnectionDuration", (double) front->tcpAvgConnectionDuration },
         };
         frontends.push_back(frontend);
       }
+
+      Json::array dohs;
+#ifdef HAVE_DNS_OVER_HTTPS
+      {
+        num = 0;
+        for(const auto& doh : g_dohlocals) {
+          Json::object obj{
+            { "id", num++ },
+            { "address", doh->d_local.toStringWithPort() },
+            { "http-connects", (double) doh->d_httpconnects },
+            { "http1-queries", (double) doh->d_http1Stats.d_nbQueries },
+            { "http2-queries", (double) doh->d_http2Stats.d_nbQueries },
+            { "http1-200-responses", (double) doh->d_http1Stats.d_nb200Responses },
+            { "http2-200-responses", (double) doh->d_http2Stats.d_nb200Responses },
+            { "http1-400-responses", (double) doh->d_http1Stats.d_nb400Responses },
+            { "http2-400-responses", (double) doh->d_http2Stats.d_nb400Responses },
+            { "http1-403-responses", (double) doh->d_http1Stats.d_nb403Responses },
+            { "http2-403-responses", (double) doh->d_http2Stats.d_nb403Responses },
+            { "http1-500-responses", (double) doh->d_http1Stats.d_nb500Responses },
+            { "http2-500-responses", (double) doh->d_http2Stats.d_nb500Responses },
+            { "http1-502-responses", (double) doh->d_http1Stats.d_nb502Responses },
+            { "http2-502-responses", (double) doh->d_http2Stats.d_nb502Responses },
+            { "http1-other-responses", (double) doh->d_http1Stats.d_nbOtherResponses },
+            { "http2-other-responses", (double) doh->d_http2Stats.d_nbOtherResponses },
+            { "tls10-queries", (double) doh->d_tls10queries },
+            { "tls11-queries", (double) doh->d_tls11queries },
+            { "tls12-queries", (double) doh->d_tls12queries },
+            { "tls13-queries", (double) doh->d_tls13queries },
+            { "tls-unknown-queries", (double) doh->d_tlsUnknownqueries },
+            { "get-queries", (double) doh->d_getqueries },
+            { "post-queries", (double) doh->d_postqueries },
+            { "bad-requests", (double) doh->d_badrequests },
+            { "error-responses", (double) doh->d_errorresponses },
+            { "redirect-responses", (double) doh->d_redirectresponses },
+            { "valid-responses", (double) doh->d_validresponses }
+          };
+          dohs.push_back(obj);
+        }
+      }
+#endif /* HAVE_DNS_OVER_HTTPS */
 
       Json::array pools;
       auto localPools = g_pools.getLocal();
@@ -636,9 +861,14 @@ static void connectionThread(int sock, ComboAddress remote)
         acl+=s;
       }
       string localaddresses;
-      for(const auto& loc : g_locals) {
-        if(!localaddresses.empty()) localaddresses += ", ";
-        localaddresses += std::get<0>(loc).toStringWithPort();
+      for(const auto& front : g_frontends) {
+        if (front->tcp) {
+          continue;
+        }
+        if (!localaddresses.empty()) {
+          localaddresses += ", ";
+        }
+        localaddresses += front->local.toStringWithPort();
       }
 
       Json my_json = Json::object {
@@ -652,7 +882,8 @@ static void connectionThread(int sock, ComboAddress remote)
         { "cache-hit-response-rules", cacheHitResponseRules},
         { "self-answered-response-rules", selfAnsweredResponseRules},
         { "acl", acl},
-        { "local", localaddresses}
+        { "local", localaddresses},
+        { "dohFrontends", dohs }
       };
       resp.headers["Content-Type"] = "application/json";
       resp.body=my_json.dump();
@@ -663,6 +894,9 @@ static void connectionThread(int sock, ComboAddress remote)
 
       Json::array doc;
       for(const auto& item : g_stats.entries) {
+        if (item.first == "special-memory-usage")
+          continue; // Too expensive for get-all
+
         if(const auto& val = boost::get<DNSDistStats::stat_t*>(&item.second)) {
           doc.push_back(Json::object {
               { "type", "StatisticItem" },
@@ -697,6 +931,7 @@ static void connectionThread(int sock, ComboAddress remote)
       typedef boost::variant<bool, double, std::string> configentry_t;
       std::vector<std::pair<std::string, configentry_t> > configEntries {
         { "acl", g_ACL.getLocal()->toString() },
+        { "allow-empty-response", g_allowEmptyResponse },
         { "control-socket", g_serverControl.toStringWithPort() },
         { "ecs-override", g_ECSOverride },
         { "ecs-source-prefix-v4", (double) g_ECSSourcePrefixV4 },

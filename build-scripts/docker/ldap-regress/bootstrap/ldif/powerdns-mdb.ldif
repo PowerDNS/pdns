@@ -1,0 +1,21 @@
+dn: olcDatabase=mdb,cn=config
+objectClass: olcDatabaseConfig
+objectClass: olcMdbConfig
+olcDatabase: mdb
+olcDbDirectory: /var/lib/ldap-powerdns
+olcSuffix: o=power
+olcLastMod: TRUE
+olcRootDN: uid=testuser,o=power
+olcDbCheckpoint: 512 30
+olcDbIndex: objectClass eq
+olcDbIndex: associatedDomain eq
+olcRootPW: secret
+olcDbMaxSize: 1073741824
+
+dn: o=power
+objectClass: organization
+o: power
+
+dn: uid=testuser,o=power
+objectClass: account
+uid: testuser

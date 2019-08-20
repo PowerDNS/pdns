@@ -1,6 +1,25 @@
 Upgrade Guide
 =============
 
+1.3.x to 1.4.0
+--------------
+
+:func:`addLuaAction` and :func:`addLuaResponseAction` have been removed. Instead, use :func:`addAction` with a :func:`LuaAction`, or :func:`addResponseAction` with a :func:`LuaResponseAction`.
+
+:func:`newPacketCache` now takes an optional table as its second argument, instead of several optional parameters.
+
+Lua's constants for DNS response codes and QTypes have been moved from the 'dnsdist' prefix to, respectively, the 'DNSQType' and 'DNSRCode' prefix.
+
+To improve security, all ambient capabilities are now dropped after the startup phase, which might prevent launching the webserver on a privileged port at run-time, or impact some custom Lua code. In addition, systemd's sandboxing features are now determined at compile-time, resulting in more restrictions on recent distributions. See pull requests 7138 and 6634 for more information.
+
+If you are compiling dnsdist, note that several ./configure options have been renamed to provide a more consistent experience. Features that depend on an external component have been prefixed with '--with-' while internal features use '--enable-'. This lead to the following changes:
+
+- ``--enable-fstrm`` to ``--enable-dnstap``
+- ``--enable-gnutls`` to ``--with-gnutls``
+- ``--enable-libsodium`` to ``--with-libsodium``
+- ``--enable-libssl`` to ``--with-libssl``
+- ``--enable-re2`` to ``--with-re2``
+
 1.3.2 to 1.3.3
 --------------
 

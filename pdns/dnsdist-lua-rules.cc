@@ -251,14 +251,15 @@ void setupLuaRules()
         });
     });
 
-  g_lua.writeFunction("setRules", [](std::vector<DNSDistRuleAction>& newruleactions) {
+  g_lua.writeFunction("setRules", [](const std::vector<std::pair<int, std::shared_ptr<DNSDistRuleAction>>>& newruleactions) {
       setLuaSideEffect();
       g_rulactions.modify([newruleactions](decltype(g_rulactions)::value_type& gruleactions) {
           gruleactions.clear();
-          for (const auto& newruleaction : newruleactions) {
-            if (newruleaction.d_action) {
-              auto rule=makeRule(newruleaction.d_rule);
-              gruleactions.push_back({rule, newruleaction.d_action, newruleaction.d_id});
+          for (const auto& pair : newruleactions) {
+            const auto& newruleaction = pair.second;
+            if (newruleaction->d_action) {
+              auto rule=makeRule(newruleaction->d_rule);
+              gruleactions.push_back({rule, newruleaction->d_action, newruleaction->d_id});
             }
           }
         });
@@ -279,18 +280,34 @@ void setupLuaRules()
       return std::shared_ptr<DNSRule>(new RegexRule(str));
     });
 
+#ifdef HAVE_DNS_OVER_HTTPS
+  g_lua.writeFunction("HTTPHeaderRule", [](const std::string& header, const std::string& regex) {
+      return std::shared_ptr<DNSRule>(new HTTPHeaderRule(header, regex));
+    });
+  g_lua.writeFunction("HTTPPathRule", [](const std::string& path) {
+      return std::shared_ptr<DNSRule>(new HTTPPathRule(path));
+    });
+  g_lua.writeFunction("HTTPPathRegexRule", [](const std::string& regex) {
+      return std::shared_ptr<DNSRule>(new HTTPPathRegexRule(regex));
+    });
+#endif
+
 #ifdef HAVE_RE2
   g_lua.writeFunction("RE2Rule", [](const std::string& str) {
       return std::shared_ptr<DNSRule>(new RE2Rule(str));
     });
 #endif
 
+  g_lua.writeFunction("SNIRule", [](const std::string& name) {
+      return std::shared_ptr<DNSRule>(new SNIRule(name));
+  });
+
   g_lua.writeFunction("SuffixMatchNodeRule", [](const SuffixMatchNode& smn, boost::optional<bool> quiet) {
       return std::shared_ptr<DNSRule>(new SuffixMatchNodeRule(smn, quiet ? *quiet : false));
     });
 
-  g_lua.writeFunction("NetmaskGroupRule", [](const NetmaskGroup& nmg, boost::optional<bool> src) {
-      return std::shared_ptr<DNSRule>(new NetmaskGroupRule(nmg, src ? *src : true));
+  g_lua.writeFunction("NetmaskGroupRule", [](const NetmaskGroup& nmg, boost::optional<bool> src, boost::optional<bool> quiet) {
+      return std::shared_ptr<DNSRule>(new NetmaskGroupRule(nmg, src ? *src : true, quiet ? *quiet : false));
     });
 
   g_lua.writeFunction("benchRule", [](std::shared_ptr<DNSRule> rule, boost::optional<int> times_, boost::optional<string> suffix_)  {
@@ -418,6 +435,10 @@ void setupLuaRules()
       return std::shared_ptr<DNSRule>(new ERCodeRule(rcode));
     });
 
+  g_lua.writeFunction("EDNSVersionRule", [](uint8_t version) {
+      return std::shared_ptr<DNSRule>(new EDNSVersionRule(version));
+    });
+
   g_lua.writeFunction("EDNSOptionRule", [](uint16_t optcode) {
       return std::shared_ptr<DNSRule>(new EDNSOptionRule(optcode));
     });
@@ -456,5 +477,9 @@ void setupLuaRules()
 
   g_lua.registerFunction<std::shared_ptr<DNSRule>(std::shared_ptr<TimedIPSetRule>::*)()>("slice", [](std::shared_ptr<TimedIPSetRule> tisr) {
       return std::dynamic_pointer_cast<DNSRule>(tisr);
+    });
+
+  g_lua.writeFunction("QNameSetRule", [](const DNSNameSet& names) {
+      return std::shared_ptr<DNSRule>(new QNameSetRule(names));
     });
 }

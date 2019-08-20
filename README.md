@@ -2,7 +2,7 @@ PowerDNS is copyright © 2001-2019 by PowerDNS.COM BV and lots of
 contributors, using the GNU GPLv2 license (see NOTICE for the
 exact license and exception used).
 
-All documentation can be found on http://doc.powerdns.com/
+All documentation can be found on https://doc.powerdns.com/
 
 This file may lag behind at times. For most recent updates, always check
 https://doc.powerdns.com/md/changelog/.
@@ -27,6 +27,18 @@ This repository contains the sources for the PowerDNS Recursor, the PowerDNS
 Authoritative Server, and dnsdist (a powerful DNS loadbalancer). All three can
 be built from this repository. However, all three released separately as .tar.bz2,
 .deb and .rpm.
+
+The different releases can be built by the help of pdns-builder, which uses a
+docker-based build process. To get started with this, run these commands in the root
+of this repository:
+
+```sh
+git submodule init
+git submodule update
+./builder/build.sh
+```
+
+This will bring up a USAGE-page which will explain how to build the different releases.
 
 COMPILING Authoritative Server
 ------------------------------
@@ -96,11 +108,11 @@ If you run into C++11-related symbol trouble, please try passing `CPPFLAGS=-D_GL
 
 Compiling the Recursor
 ----------------------
-See the README in pdns/recursordist.
+See [README.md](pdns/recursordist/README.md) in `pdns/recursordist/`.
 
 Compiling dnsdist
 -----------------
-See the README in pdns/dnsdistdist.
+See [README-dnsdist.md](pdns/README-dnsdist.md) in `pdns/`.
 
 Building the HTML documentation
 -------------------------------
@@ -180,7 +192,7 @@ The HTML documentation will now be available in `html-docs`.
 
 Solaris Notes
 -------------
-Use a recent gcc. OpenCSW is a good source, as is Solaris 11 IPS.
+Use a recent gcc (and other build tools), possibly from Solaris 11 IPS.
 
 If you encounter problems with the Solaris make, gmake is advised.
 

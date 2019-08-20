@@ -1,24 +1,28 @@
 DNSCrypt objects and functions
 ==============================
 
-.. function:: addDNSCryptBind(address, provider, certificate, keyfile[, options])
+.. function:: addDNSCryptBind(address, provider, certFile(s), keyFile(s) [, options])
 
   .. versionchanged:: 1.3.0
     ``cpus`` option added.
+
+  .. versionchanged:: 1.4.0
+    Removed ``doTCP`` from the options. A listen socket on TCP is always created.
+    ``certFile(s)`` and ``keyFile(s)`` now accept a list of files.
 
   Adds a DNSCrypt listen socket on ``address``.
 
   :param string address: The address and port to listen on
   :param string provider: The provider name for this bind
-  :param string certificate: Path to the certificate file
-  :param string keyfile: Path to the key file of the certificate
+  :param str certFile(s): The path to a X.509 certificate file in PEM format, or a list of paths to such files.
+  :param str keyFile(s): The path to the private key file corresponding to the certificate, or a list of paths to such files, whose order should match the certFile(s) ones.
   :param table options: A table with key: value pairs with options (see below)
 
   Options:
 
-  * ``doTCP=true``: bool - Also bind on TCP on ``address``.
+  * ``doTCP=true``: bool - Also bind on TCP on ``address``, removed in 1.4.0.
   * ``reusePort=false``: bool - Set the ``SO_REUSEPORT`` socket option.
-  * ``tcpFastOpenSize=0``: int - Set the TCP Fast Open queue size, enabling TCP Fast Open when available and the value is larger than 0
+  * ``tcpFastOpenQueueSize=0``: int - Set the TCP Fast Open queue size, enabling TCP Fast Open when available and the value is larger than 0
   * ``interface=""``: str - Sets the network interface to use
   * ``cpus={}``: table - Set the CPU affinity for this listener thread, asking the scheduler to run it on a single CPU id, or a set of CPU ids. This parameter is only available if the OS provides the pthread_setaffinity_np() function.
 

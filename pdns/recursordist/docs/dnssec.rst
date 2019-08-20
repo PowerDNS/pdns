@@ -80,6 +80,9 @@ Trust Anchor Management
 In the PowerDNS Recursor, both positive and negative trust anchors can be configured during startup (from a persistent configuration file) and at runtime (which is volatile).
 However, all trust anchors are configurable.
 
+Current trust anchors can be queried from the recursor by sending a query for "trustanchor.server CH TXT".
+This query will (if :ref:`setting-allow-trust-anchor-query` is enabled) return a TXT record per trust-anchor in the format ``"DOMAIN KEYTAG [KEYTAG]..."``.
+
 Trust Anchors
 ^^^^^^^^^^^^^
 The PowerDNS Recursor ships with the DNSSEC Root key built-in.
@@ -160,6 +163,9 @@ Negative Trust Anchors
 Negative trust anchors (defined in :rfc:`7646`) can be used to temporarily disable DNSSEC validation for a part of the DNS-tree.
 This can be done when e.g. a TLD or high-traffic zone goes bogus.
 Note that it is good practice to verify that this is indeed the case and not because of malicious actions.
+
+Current negative trust anchors can be queried from the recursor by sending a query for "negativetrustanchor.server CH TXT".
+This query will (if :ref:`setting-allow-trust-anchor-query` is enabled) return a TXT record per negative trust-anchor in the format ``"DOMAIN [REASON]"``.
 
 To configure a negative trust anchor, use the ``addNTA()`` function in the :ref:`setting-lua-config-file` and restart the recursor.
 This function requires the name of the zone and an optional reason:

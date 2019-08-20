@@ -49,7 +49,7 @@ class NegCache : public boost::noncopyable {
       DNSName d_name;                     // The denied name
       QType d_qtype;                      // The denied type
       DNSName d_auth;                     // The denying name (aka auth)
-      uint32_t d_ttd;                     // Timestamp when this entry should die
+      mutable uint32_t d_ttd;             // Timestamp when this entry should die
       recordsAndSignatures authoritySOA;  // The upstream SOA record and RRSIGs
       recordsAndSignatures DNSSECRecords; // The upstream NSEC(3) and RRSIGs
       mutable vState d_validationState{Indeterminate};
@@ -59,7 +59,7 @@ class NegCache : public boost::noncopyable {
     };
 
     void add(const NegCacheEntry& ne);
-    void updateValidationStatus(const DNSName& qname, const QType& qtype, const vState newState);
+    void updateValidationStatus(const DNSName& qname, const QType& qtype, const vState newState, boost::optional<uint32_t> capTTD);
     bool get(const DNSName& qname, const QType& qtype, const struct timeval& now, const NegCacheEntry** ne, bool typeMustMatch=false);
     bool getRootNXTrust(const DNSName& qname, const struct timeval& now, const NegCacheEntry** ne);
     uint64_t count(const DNSName& qname) const;

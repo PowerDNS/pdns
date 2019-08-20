@@ -272,6 +272,9 @@ class DNAMERecordContent : public DNSRecordContent
 {
 public:
   includeboilerplate(DNAME)
+  DNAMERecordContent(const DNSName& content) : d_content(content){}
+  const DNSName& getTarget() const { return d_content; }
+private:
   DNSName d_content;
 };
 

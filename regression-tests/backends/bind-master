@@ -57,13 +57,16 @@ __EOF__
 				mysql --user="$GMYSQLUSER" --password="$GMYSQLPASSWD" --host="$GMYSQLHOST" \
 					"$GMYSQLDB" -e "INSERT INTO domains (name, type, master) VALUES('$zone','SLAVE','127.0.0.1:$port')"
 			fi
-			securezone $zone bind
-			if [ $context = bind-dnssec-nsec3 ] || [ $context = bind-dnssec-nsec3-optout ] || [ $context = bind-hybrid-nsec3 ]
+			if [ $zone != insecure.dnssec-parent.com ]
 			then
-				$PDNSUTIL --config-dir=. --config-name=bind set-nsec3 $zone "1 $optout 1 abcd" 2>&1
-			elif [ $context = bind-dnssec-nsec3-narrow ]
-			then
-				$PDNSUTIL --config-dir=. --config-name=bind set-nsec3 $zone '1 1 1 abcd' narrow 2>&1
+				securezone $zone bind
+				if [ $context = bind-dnssec-nsec3 ] || [ $context = bind-dnssec-nsec3-optout ] || [ $context = bind-hybrid-nsec3 ]
+				then
+					$PDNSUTIL --config-dir=. --config-name=bind set-nsec3 $zone "1 $optout 1 abcd" 2>&1
+				elif [ $context = bind-dnssec-nsec3-narrow ]
+				then
+					$PDNSUTIL --config-dir=. --config-name=bind set-nsec3 $zone '1 1 1 abcd' narrow 2>&1
+				fi
 			fi
 			if [ "$zone" = "tsig.com" ]; then
 				$PDNSUTIL --config-dir=. --config-name=bind import-tsig-key test $ALGORITHM $KEY

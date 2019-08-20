@@ -8,6 +8,8 @@ There are many constants in :program:`dnsdist`.
 OPCode
 ------
 
+These constants represent the `OpCode <https://www.iana.org/assignments/dns-parameters/dns-parameters.xhtml#dns-parameters-5>`__ of a query.
+
 - ``DNSOpcode.Query``
 - ``DNSOpcode.IQuery``
 - ``DNSOpcode.Status``
@@ -16,15 +18,17 @@ OPCode
 
 Reference: https://www.iana.org/assignments/dns-parameters/dns-parameters.xhtml#dns-parameters-5
 
-.. _DNSQClass:
+.. _DNSClass:
 
-QClass
-------
+DNSClass
+--------
 
-- ``QClass.IN``
-- ``QClass.CHAOS``
-- ``QClass.NONE``
-- ``QClass.ANY``
+These constants represent the `CLASS <https://www.iana.org/assignments/dns-parameters/dns-parameters.xhtml#dns-parameters-2>`__ of a DNS record.
+
+- ``DNSClass.IN``
+- ``DNSClass.CHAOS``
+- ``DNSClass.NONE``
+- ``DNSClass.ANY``
 
 Reference: https://www.iana.org/assignments/dns-parameters/dns-parameters.xhtml#dns-parameters-2
 
@@ -33,31 +37,34 @@ Reference: https://www.iana.org/assignments/dns-parameters/dns-parameters.xhtml#
 RCode
 -----
 
-- ``dnsdist.NOERROR``
-- ``dnsdist.FORMERR``
-- ``dnsdist.SERVFAIL``
-- ``dnsdist.NXDOMAIN``
-- ``dnsdist.NOTIMP``
-- ``dnsdist.REFUSED``
-- ``dnsdist.YXDOMAIN``
-- ``dnsdist.YXRRSET``
-- ``dnsdist.NXRRSET``
-- ``dnsdist.NOTAUTH``
-- ``dnsdist.NOTZONE``
-- ``dnsdist.BADVERS``
-- ``dnsdist.BADSIG``
-- ``dnsdist.BADKEY``
-- ``dnsdist.BADTIME``
-- ``dnsdist.BADMODE``
-- ``dnsdist.BADNAME``
-- ``dnsdist.BADALG``
-- ``dnsdist.BADTRUNC``
-- ``dnsdist.BADCOOKIE``
+These constants represent the different `RCODEs <https://www.iana.org/assignments/dns-parameters/dns-parameters.xhtml#dns-parameters-6>`__ for DNS messages.
 
-RCodes below and including ``BADVERS`` are extended RCodes that can only be matched using :func:`ERCodeRule`.
+.. versionchanged:: 1.4.0
+  The prefix is changed from ``dnsdist`` to ``DNSRCode``.
 
-Reference: https://www.iana.org/assignments/dns-parameters/dns-parameters.xhtml#dns-parameters-6
+- ``DNSRCode.NOERROR``
+- ``DNSRCode.FORMERR``
+- ``DNSRCode.SERVFAIL``
+- ``DNSRCode.NXDOMAIN``
+- ``DNSRCode.NOTIMP``
+- ``DNSRCode.REFUSED``
+- ``DNSRCode.YXDOMAIN``
+- ``DNSRCode.YXRRSET``
+- ``DNSRCode.NXRRSET``
+- ``DNSRCode.NOTAUTH``
+- ``DNSRCode.NOTZONE``
 
+RCodes below are extended RCodes that can only be matched using :func:`ERCodeRule`.
+
+- ``DNSRCode.BADVERS``
+- ``DNSRCode.BADSIG``
+- ``DNSRCode.BADKEY``
+- ``DNSRCode.BADTIME``
+- ``DNSRCode.BADMODE``
+- ``DNSRCode.BADNAME``
+- ``DNSRCode.BADALG``
+- ``DNSRCode.BADTRUNC``
+- ``DNSRCode.BADCOOKIE``
 
 .. _EDNSOptionCode:
 
@@ -80,8 +87,10 @@ Reference: https://www.iana.org/assignments/dns-parameters/dns-parameters.xhtml#
 
 .. _DNSSection:
 
-DNS Section
------------
+DNS Packet Sections
+-------------------
+
+These constants represent the section in the DNS Packet.
 
 - ``DNSSection.Question``
 - ``DNSSection.Answer``
@@ -93,7 +102,7 @@ DNS Section
 DNSAction
 ---------
 
-These constants represent an Action that can be returned from the functions invoked by :func:`addLuaAction`.
+These constants represent an Action that can be returned from :func:`LuaAction` functions.
 
  * ``DNSAction.Allow``: let the query pass, skipping other rules
  * ``DNSAction.Delay``: delay the response for the specified milliseconds (UDP-only), continue to the next rule
@@ -109,13 +118,29 @@ These constants represent an Action that can be returned from the functions invo
  * ``DNSAction.Truncate``: truncate the response
  * ``DNSAction.NoRecurse``: set rd=0 on the query
 
+.. _DNSQType:
+
+DNSQType
+--------
+
+.. versionchanged:: 1.4.0
+  The prefix is changed from ``dnsdist.`` to ``DNSQType``.
+
+All named `QTypes <https://www.iana.org/assignments/dns-parameters/dns-parameters.xhtml#dns-parameters-4>`__ are available as constants, prefixed with ``DNSQType.``, e.g.:
+
+ * ``DNSQType.AAAA``
+ * ``DNSQType.AXFR``
+ * ``DNSQType.A``
+ * ``DNSQType.NS``
+ * ``DNSQType.SOA``
+ * etc.
 
 .. _DNSResponseAction:
 
 DNSResponseAction
 -----------------
 
-These constants represent an Action that can be returned from the functions invoked by :func:`addLuaResponseAction`.
+These constants represent an Action that can be returned from :func:`LuaResponseAction` functions.
 
  * ``DNSResponseAction.Allow``: let the response pass, skipping other rules
  * ``DNSResponseAction.Delay``: delay the response for the specified milliseconds (UDP-only), continue to the next rule

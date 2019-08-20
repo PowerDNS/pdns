@@ -57,8 +57,6 @@ class TestDefaultHealthCheck(HealthCheckTest):
         self.sendConsoleCommand("getServer(0):setDown()")
         self.assertEquals(self.getBackendStatus(), 'down')
         self.sendConsoleCommand("getServer(0):setAuto(false)")
-        # we specified that the new state should be up until the next health check
-        self.assertEquals(self.getBackendStatus(), 'down')
 
         before = TestDefaultHealthCheck._healthCheckCounter
         time.sleep(1)
@@ -163,7 +161,7 @@ class TestHealthCheckCustomFunction(HealthCheckTest):
     function myHealthCheckFunction(qname, qtype, qclass, dh)
       dh:setCD(true)
 
-      return newDNSName('powerdns.com.'), dnsdist.AAAA, qclass
+      return newDNSName('powerdns.com.'), DNSQType.AAAA, qclass
     end
 
     srv = newServer{address="127.0.0.1:%d", checkName='powerdns.org.', checkFunction=myHealthCheckFunction}

@@ -40,19 +40,14 @@ class TestEdnsClientSubnetNoOverride(DNSDistTest):
         response.answer.append(rrset)
         expectedResponse.answer.append(rrset)
 
-        (receivedQuery, receivedResponse) = self.sendUDPQuery(query, response)
-        self.assertTrue(receivedQuery)
-        self.assertTrue(receivedResponse)
-        receivedQuery.id = expectedQuery.id
-        self.checkQueryEDNSWithECS(expectedQuery, receivedQuery)
-        self.checkResponseNoEDNS(expectedResponse, receivedResponse)
-
-        (receivedQuery, receivedResponse) = self.sendTCPQuery(query, response)
-        self.assertTrue(receivedQuery)
-        self.assertTrue(receivedResponse)
-        receivedQuery.id = expectedQuery.id
-        self.checkQueryEDNSWithECS(expectedQuery, receivedQuery)
-        self.checkResponseNoEDNS(expectedResponse, receivedResponse)
+        for method in ("sendUDPQuery", "sendTCPQuery"):
+            sender = getattr(self, method)
+            (receivedQuery, receivedResponse) = sender(query, response)
+            self.assertTrue(receivedQuery)
+            self.assertTrue(receivedResponse)
+            receivedQuery.id = expectedQuery.id
+            self.checkQueryEDNSWithECS(expectedQuery, receivedQuery)
+            self.checkResponseNoEDNS(expectedResponse, receivedResponse)
 
     def testWithEDNSNoECS(self):
         """
@@ -77,19 +72,14 @@ class TestEdnsClientSubnetNoOverride(DNSDistTest):
         response.answer.append(rrset)
         expectedResponse.answer.append(rrset)
 
-        (receivedQuery, receivedResponse) = self.sendUDPQuery(query, response)
-        self.assertTrue(receivedQuery)
-        self.assertTrue(receivedResponse)
-        receivedQuery.id = expectedQuery.id
-        self.checkQueryEDNSWithECS(expectedQuery, receivedQuery)
-        self.checkResponseEDNSWithoutECS(expectedResponse, receivedResponse)
-
-        (receivedQuery, receivedResponse) = self.sendTCPQuery(query, response)
-        self.assertTrue(receivedQuery)
-        self.assertTrue(receivedResponse)
-        receivedQuery.id = expectedQuery.id
-        self.checkQueryEDNSWithECS(expectedQuery, receivedQuery)
-        self.checkResponseEDNSWithoutECS(expectedResponse, receivedResponse)
+        for method in ("sendUDPQuery", "sendTCPQuery"):
+            sender = getattr(self, method)
+            (receivedQuery, receivedResponse) = sender(query, response)
+            self.assertTrue(receivedQuery)
+            self.assertTrue(receivedResponse)
+            receivedQuery.id = expectedQuery.id
+            self.checkQueryEDNSWithECS(expectedQuery, receivedQuery)
+            self.checkResponseEDNSWithoutECS(expectedResponse, receivedResponse)
 
     def testWithEDNSECS(self):
         """
@@ -113,19 +103,14 @@ class TestEdnsClientSubnetNoOverride(DNSDistTest):
         response.answer.append(rrset)
 
 
-        (receivedQuery, receivedResponse) = self.sendUDPQuery(query, response)
-        self.assertTrue(receivedQuery)
-        self.assertTrue(receivedResponse)
-        receivedQuery.id = query.id
-        self.checkQueryEDNSWithECS(query, receivedQuery)
-        self.checkResponseEDNSWithoutECS(response, receivedResponse)
-
-        (receivedQuery, receivedResponse) = self.sendTCPQuery(query, response)
-        self.assertTrue(receivedQuery)
-        self.assertTrue(receivedResponse)
-        receivedQuery.id = query.id
-        self.checkQueryEDNSWithECS(query, receivedQuery)
-        self.checkResponseEDNSWithoutECS(response, receivedResponse)
+        for method in ("sendUDPQuery", "sendTCPQuery"):
+            sender = getattr(self, method)
+            (receivedQuery, receivedResponse) = sender(query, response)
+            self.assertTrue(receivedQuery)
+            self.assertTrue(receivedResponse)
+            receivedQuery.id = query.id
+            self.checkQueryEDNSWithECS(query, receivedQuery)
+            self.checkResponseEDNSWithoutECS(response, receivedResponse)
 
     def testWithoutEDNSResponseWithECS(self):
         """
@@ -154,19 +139,14 @@ class TestEdnsClientSubnetNoOverride(DNSDistTest):
         response.answer.append(rrset)
         expectedResponse.answer.append(rrset)
 
-        (receivedQuery, receivedResponse) = self.sendUDPQuery(query, response)
-        self.assertTrue(receivedQuery)
-        self.assertTrue(receivedResponse)
-        receivedQuery.id = expectedQuery.id
-        self.checkQueryEDNSWithECS(expectedQuery, receivedQuery)
-        self.checkResponseNoEDNS(expectedResponse, receivedResponse)
-
-        (receivedQuery, receivedResponse) = self.sendTCPQuery(query, response)
-        self.assertTrue(receivedQuery)
-        self.assertTrue(receivedResponse)
-        receivedQuery.id = expectedQuery.id
-        self.checkQueryEDNSWithECS(expectedQuery, receivedQuery)
-        self.checkResponseNoEDNS(expectedResponse, receivedResponse)
+        for method in ("sendUDPQuery", "sendTCPQuery"):
+            sender = getattr(self, method)
+            (receivedQuery, receivedResponse) = sender(query, response)
+            self.assertTrue(receivedQuery)
+            self.assertTrue(receivedResponse)
+            receivedQuery.id = expectedQuery.id
+            self.checkQueryEDNSWithECS(expectedQuery, receivedQuery)
+            self.checkResponseNoEDNS(expectedResponse, receivedResponse)
 
     def testWithEDNSNoECSResponseWithECS(self):
         """
@@ -186,7 +166,7 @@ class TestEdnsClientSubnetNoOverride(DNSDistTest):
         response = dns.message.make_response(expectedQuery)
         ecsoResponse = clientsubnetoption.ClientSubnetOption('127.0.0.1', 24, scope=24)
         response.use_edns(edns=True, payload=4096, options=[ecsoResponse])
-        expectedResponse = dns.message.make_response(query)
+        expectedResponse = dns.message.make_response(query, our_payload=4096)
         rrset = dns.rrset.from_text(name,
                                     3600,
                                     dns.rdataclass.IN,
@@ -195,19 +175,14 @@ class TestEdnsClientSubnetNoOverride(DNSDistTest):
         response.answer.append(rrset)
         expectedResponse.answer.append(rrset)
 
-        (receivedQuery, receivedResponse) = self.sendUDPQuery(query, response)
-        self.assertTrue(receivedQuery)
-        self.assertTrue(receivedResponse)
-        receivedQuery.id = expectedQuery.id
-        self.checkQueryEDNSWithECS(expectedQuery, receivedQuery)
-        self.checkResponseEDNSWithoutECS(expectedResponse, receivedResponse)
-
-        (receivedQuery, receivedResponse) = self.sendTCPQuery(query, response)
-        self.assertTrue(receivedQuery)
-        self.assertTrue(receivedResponse)
-        receivedQuery.id = expectedQuery.id
-        self.checkQueryEDNSWithECS(expectedQuery, receivedQuery)
-        self.checkResponseEDNSWithoutECS(expectedResponse, receivedResponse)
+        for method in ("sendUDPQuery", "sendTCPQuery"):
+            sender = getattr(self, method)
+            (receivedQuery, receivedResponse) = sender(query, response)
+            self.assertTrue(receivedQuery)
+            self.assertTrue(receivedResponse)
+            receivedQuery.id = expectedQuery.id
+            self.checkQueryEDNSWithECS(expectedQuery, receivedQuery)
+            self.checkResponseEDNSWithoutECS(expectedResponse, receivedResponse)
 
     def testWithEDNSNoECSResponseWithCookiesThenECS(self):
         """
@@ -238,19 +213,14 @@ class TestEdnsClientSubnetNoOverride(DNSDistTest):
         expectedResponse.answer.append(rrset)
         expectedResponse.use_edns(edns=True, payload=4096, options=[ecoResponse])
 
-        (receivedQuery, receivedResponse) = self.sendUDPQuery(query, response)
-        self.assertTrue(receivedQuery)
-        self.assertTrue(receivedResponse)
-        receivedQuery.id = expectedQuery.id
-        self.checkQueryEDNSWithECS(expectedQuery, receivedQuery)
-        self.checkResponseEDNSWithoutECS(expectedResponse, receivedResponse, withCookies=1)
-
-        (receivedQuery, receivedResponse) = self.sendTCPQuery(query, response)
-        self.assertTrue(receivedQuery)
-        self.assertTrue(receivedResponse)
-        receivedQuery.id = expectedQuery.id
-        self.checkQueryEDNSWithECS(expectedQuery, receivedQuery)
-        self.checkResponseEDNSWithoutECS(expectedResponse, receivedResponse, withCookies=1)
+        for method in ("sendUDPQuery", "sendTCPQuery"):
+            sender = getattr(self, method)
+            (receivedQuery, receivedResponse) = sender(query, response)
+            self.assertTrue(receivedQuery)
+            self.assertTrue(receivedResponse)
+            receivedQuery.id = expectedQuery.id
+            self.checkQueryEDNSWithECS(expectedQuery, receivedQuery)
+            self.checkResponseEDNSWithoutECS(expectedResponse, receivedResponse, withCookies=1)
 
     def testWithEDNSNoECSResponseWithECSThenCookies(self):
         """
@@ -271,7 +241,7 @@ class TestEdnsClientSubnetNoOverride(DNSDistTest):
         ecoResponse = cookiesoption.CookiesOption(b'deadbeef', b'deadbeef')
         ecsoResponse = clientsubnetoption.ClientSubnetOption('127.0.0.1', 24, scope=24)
         response.use_edns(edns=True, payload=4096, options=[ecsoResponse, ecoResponse])
-        expectedResponse = dns.message.make_response(query)
+        expectedResponse = dns.message.make_response(query, our_payload=4096)
         rrset = dns.rrset.from_text(name,
                                     3600,
                                     dns.rdataclass.IN,
@@ -281,19 +251,14 @@ class TestEdnsClientSubnetNoOverride(DNSDistTest):
         expectedResponse.answer.append(rrset)
         response.use_edns(edns=True, payload=4096, options=[ecoResponse])
 
-        (receivedQuery, receivedResponse) = self.sendUDPQuery(query, response)
-        self.assertTrue(receivedQuery)
-        self.assertTrue(receivedResponse)
-        receivedQuery.id = expectedQuery.id
-        self.checkQueryEDNSWithECS(expectedQuery, receivedQuery)
-        self.checkResponseEDNSWithoutECS(expectedResponse, receivedResponse, withCookies=1)
-
-        (receivedQuery, receivedResponse) = self.sendTCPQuery(query, response)
-        self.assertTrue(receivedQuery)
-        self.assertTrue(receivedResponse)
-        receivedQuery.id = expectedQuery.id
-        self.checkQueryEDNSWithECS(expectedQuery, receivedQuery)
-        self.checkResponseEDNSWithoutECS(expectedResponse, receivedResponse, withCookies=1)
+        for method in ("sendUDPQuery", "sendTCPQuery"):
+            sender = getattr(self, method)
+            (receivedQuery, receivedResponse) = sender(query, response)
+            self.assertTrue(receivedQuery)
+            self.assertTrue(receivedResponse)
+            receivedQuery.id = expectedQuery.id
+            self.checkQueryEDNSWithECS(expectedQuery, receivedQuery)
+            self.checkResponseEDNSWithoutECS(expectedResponse, receivedResponse, withCookies=1)
 
     def testWithEDNSNoECSResponseWithCookiesThenECSThenCookies(self):
         """
@@ -314,7 +279,7 @@ class TestEdnsClientSubnetNoOverride(DNSDistTest):
         ecoResponse = cookiesoption.CookiesOption(b'deadbeef', b'deadbeef')
         ecsoResponse = clientsubnetoption.ClientSubnetOption('127.0.0.1', 24, scope=24)
         response.use_edns(edns=True, payload=4096, options=[ecoResponse, ecsoResponse, ecoResponse])
-        expectedResponse = dns.message.make_response(query)
+        expectedResponse = dns.message.make_response(query, our_payload=4096)
         rrset = dns.rrset.from_text(name,
                                     3600,
                                     dns.rdataclass.IN,
@@ -323,20 +288,14 @@ class TestEdnsClientSubnetNoOverride(DNSDistTest):
         response.answer.append(rrset)
         expectedResponse.answer.append(rrset)
 
-        (receivedQuery, receivedResponse) = self.sendUDPQuery(query, response)
-        self.assertTrue(receivedQuery)
-        self.assertTrue(receivedResponse)
-        receivedQuery.id = expectedQuery.id
-        self.checkQueryEDNSWithECS(expectedQuery, receivedQuery)
-        self.checkResponseEDNSWithoutECS(expectedResponse, receivedResponse, withCookies=2)
-
-        (receivedQuery, receivedResponse) = self.sendTCPQuery(query, response)
-        self.assertTrue(receivedQuery)
-        self.assertTrue(receivedResponse)
-        receivedQuery.id = expectedQuery.id
-        self.checkQueryEDNSWithECS(expectedQuery, receivedQuery)
-        self.checkResponseEDNSWithoutECS(expectedResponse, receivedResponse, withCookies=2)
-
+        for method in ("sendUDPQuery", "sendTCPQuery"):
+            sender = getattr(self, method)
+            (receivedQuery, receivedResponse) = sender(query, response)
+            self.assertTrue(receivedQuery)
+            self.assertTrue(receivedResponse)
+            receivedQuery.id = expectedQuery.id
+            self.checkQueryEDNSWithECS(expectedQuery, receivedQuery)
+            self.checkResponseEDNSWithoutECS(expectedResponse, receivedResponse, withCookies=2)
 
 class TestEdnsClientSubnetOverride(DNSDistTest):
     """
@@ -376,19 +335,14 @@ class TestEdnsClientSubnetOverride(DNSDistTest):
         expectedResponse = dns.message.make_response(query)
         expectedResponse.answer.append(rrset)
 
-        (receivedQuery, receivedResponse) = self.sendUDPQuery(query, response)
-        self.assertTrue(receivedQuery)
-        self.assertTrue(receivedResponse)
-        receivedQuery.id = expectedQuery.id
-        self.checkQueryEDNSWithECS(expectedQuery, receivedQuery)
-        self.checkResponseNoEDNS(expectedResponse, receivedResponse)
-
-        (receivedQuery, receivedResponse) = self.sendTCPQuery(query, response)
-        self.assertTrue(receivedQuery)
-        self.assertTrue(receivedResponse)
-        receivedQuery.id = expectedQuery.id
-        self.checkQueryEDNSWithECS(expectedQuery, receivedQuery)
-        self.checkResponseNoEDNS(expectedResponse, receivedResponse)
+        for method in ("sendUDPQuery", "sendTCPQuery"):
+            sender = getattr(self, method)
+            (receivedQuery, receivedResponse) = sender(query, response)
+            self.assertTrue(receivedQuery)
+            self.assertTrue(receivedResponse)
+            receivedQuery.id = expectedQuery.id
+            self.checkQueryEDNSWithECS(expectedQuery, receivedQuery)
+            self.checkResponseNoEDNS(expectedResponse, receivedResponse)
 
     def testWithEDNSNoECS(self):
         """
@@ -411,22 +365,17 @@ class TestEdnsClientSubnetOverride(DNSDistTest):
                                     dns.rdatatype.A,
                                     '127.0.0.1')
         response.answer.append(rrset)
-        expectedResponse = dns.message.make_response(query)
+        expectedResponse = dns.message.make_response(query, our_payload=4096)
         expectedResponse.answer.append(rrset)
 
-        (receivedQuery, receivedResponse) = self.sendUDPQuery(query, response)
-        self.assertTrue(receivedQuery)
-        self.assertTrue(receivedResponse)
-        receivedQuery.id = expectedQuery.id
-        self.checkQueryEDNSWithECS(expectedQuery, receivedQuery)
-        self.checkResponseEDNSWithoutECS(expectedResponse, receivedResponse)
-
-        (receivedQuery, receivedResponse) = self.sendTCPQuery(query, response)
-        self.assertTrue(receivedQuery)
-        self.assertTrue(receivedResponse)
-        receivedQuery.id = expectedQuery.id
-        self.checkQueryEDNSWithECS(expectedQuery, receivedQuery)
-        self.checkResponseEDNSWithoutECS(expectedResponse, receivedResponse)
+        for method in ("sendUDPQuery", "sendTCPQuery"):
+            sender = getattr(self, method)
+            (receivedQuery, receivedResponse) = sender(query, response)
+            self.assertTrue(receivedQuery)
+            self.assertTrue(receivedResponse)
+            receivedQuery.id = expectedQuery.id
+            self.checkQueryEDNSWithECS(expectedQuery, receivedQuery)
+            self.checkResponseEDNSWithoutECS(expectedResponse, receivedResponse)
 
     def testWithEDNSShorterInitialECS(self):
         """
@@ -454,19 +403,14 @@ class TestEdnsClientSubnetOverride(DNSDistTest):
                                     '127.0.0.1')
         response.answer.append(rrset)
 
-        (receivedQuery, receivedResponse) = self.sendUDPQuery(query, response)
-        self.assertTrue(receivedQuery)
-        self.assertTrue(receivedResponse)
-        receivedQuery.id = expectedQuery.id
-        self.checkQueryEDNSWithECS(expectedQuery, receivedQuery)
-        self.checkResponseEDNSWithECS(response, receivedResponse)
-
-        (receivedQuery, receivedResponse) = self.sendTCPQuery(query, response)
-        self.assertTrue(receivedQuery)
-        self.assertTrue(receivedResponse)
-        receivedQuery.id = expectedQuery.id
-        self.checkQueryEDNSWithECS(expectedQuery, receivedQuery)
-        self.checkResponseEDNSWithECS(response, receivedResponse)
+        for method in ("sendUDPQuery", "sendTCPQuery"):
+            sender = getattr(self, method)
+            (receivedQuery, receivedResponse) = sender(query, response)
+            self.assertTrue(receivedQuery)
+            self.assertTrue(receivedResponse)
+            receivedQuery.id = expectedQuery.id
+            self.checkQueryEDNSWithECS(expectedQuery, receivedQuery)
+            self.checkResponseEDNSWithECS(response, receivedResponse)
 
     def testWithEDNSLongerInitialECS(self):
         """
@@ -494,19 +438,14 @@ class TestEdnsClientSubnetOverride(DNSDistTest):
                                     '127.0.0.1')
         response.answer.append(rrset)
 
-        (receivedQuery, receivedResponse) = self.sendUDPQuery(query, response)
-        self.assertTrue(receivedQuery)
-        self.assertTrue(receivedResponse)
-        receivedQuery.id = expectedQuery.id
-        self.checkQueryEDNSWithECS(expectedQuery, receivedQuery)
-        self.checkResponseEDNSWithECS(response, receivedResponse)
-
-        (receivedQuery, receivedResponse) = self.sendTCPQuery(query, response)
-        self.assertTrue(receivedQuery)
-        self.assertTrue(receivedResponse)
-        receivedQuery.id = expectedQuery.id
-        self.checkQueryEDNSWithECS(expectedQuery, receivedQuery)
-        self.checkResponseEDNSWithECS(response, receivedResponse)
+        for method in ("sendUDPQuery", "sendTCPQuery"):
+            sender = getattr(self, method)
+            (receivedQuery, receivedResponse) = sender(query, response)
+            self.assertTrue(receivedQuery)
+            self.assertTrue(receivedResponse)
+            receivedQuery.id = expectedQuery.id
+            self.checkQueryEDNSWithECS(expectedQuery, receivedQuery)
+            self.checkResponseEDNSWithECS(response, receivedResponse)
 
     def testWithEDNSSameSizeInitialECS(self):
         """
@@ -534,19 +473,14 @@ class TestEdnsClientSubnetOverride(DNSDistTest):
                                     '127.0.0.1')
         response.answer.append(rrset)
 
-        (receivedQuery, receivedResponse) = self.sendUDPQuery(query, response)
-        self.assertTrue(receivedQuery)
-        self.assertTrue(receivedResponse)
-        receivedQuery.id = expectedQuery.id
-        self.checkQueryEDNSWithECS(expectedQuery, receivedQuery)
-        self.checkResponseEDNSWithECS(response, receivedResponse)
-
-        (receivedQuery, receivedResponse) = self.sendTCPQuery(query, response)
-        self.assertTrue(receivedQuery)
-        self.assertTrue(receivedResponse)
-        receivedQuery.id = expectedQuery.id
-        self.checkQueryEDNSWithECS(expectedQuery, receivedQuery)
-        self.checkResponseEDNSWithECS(response, receivedResponse)
+        for method in ("sendUDPQuery", "sendTCPQuery"):
+            sender = getattr(self, method)
+            (receivedQuery, receivedResponse) = sender(query, response)
+            self.assertTrue(receivedQuery)
+            self.assertTrue(receivedResponse)
+            receivedQuery.id = expectedQuery.id
+            self.checkQueryEDNSWithECS(expectedQuery, receivedQuery)
+            self.checkResponseEDNSWithECS(response, receivedResponse)
 
 class TestECSDisabledByRuleOrLua(DNSDistTest):
     """
@@ -586,19 +520,14 @@ class TestECSDisabledByRuleOrLua(DNSDistTest):
         response.answer.append(rrset)
         expectedResponse.answer.append(rrset)
 
-        (receivedQuery, receivedResponse) = self.sendUDPQuery(query, response)
-        self.assertTrue(receivedQuery)
-        self.assertTrue(receivedResponse)
-        receivedQuery.id = expectedQuery.id
-        self.checkQueryEDNSWithECS(expectedQuery, receivedQuery)
-        self.checkResponseNoEDNS(expectedResponse, receivedResponse)
-
-        (receivedQuery, receivedResponse) = self.sendTCPQuery(query, response)
-        self.assertTrue(receivedQuery)
-        self.assertTrue(receivedResponse)
-        receivedQuery.id = expectedQuery.id
-        self.checkQueryEDNSWithECS(expectedQuery, receivedQuery)
-        self.checkResponseNoEDNS(expectedResponse, receivedResponse)
+        for method in ("sendUDPQuery", "sendTCPQuery"):
+            sender = getattr(self, method)
+            (receivedQuery, receivedResponse) = sender(query, response)
+            self.assertTrue(receivedQuery)
+            self.assertTrue(receivedResponse)
+            receivedQuery.id = expectedQuery.id
+            self.checkQueryEDNSWithECS(expectedQuery, receivedQuery)
+            self.checkResponseNoEDNS(expectedResponse, receivedResponse)
 
     def testWithECSDisabledViaRule(self):
         """
@@ -614,19 +543,14 @@ class TestECSDisabledByRuleOrLua(DNSDistTest):
                                     '127.0.0.1')
         response.answer.append(rrset)
 
-        (receivedQuery, receivedResponse) = self.sendUDPQuery(query, response)
-        self.assertTrue(receivedQuery)
-        self.assertTrue(receivedResponse)
-        receivedQuery.id = query.id
-        self.checkQueryNoEDNS(query, receivedQuery)
-        self.checkResponseNoEDNS(response, receivedResponse)
-
-        (receivedQuery, receivedResponse) = self.sendTCPQuery(query, response)
-        self.assertTrue(receivedQuery)
-        self.assertTrue(receivedResponse)
-        receivedQuery.id = query.id
-        self.checkQueryNoEDNS(query, receivedQuery)
-        self.checkResponseNoEDNS(response, receivedResponse)
+        for method in ("sendUDPQuery", "sendTCPQuery"):
+            sender = getattr(self, method)
+            (receivedQuery, receivedResponse) = sender(query, response)
+            self.assertTrue(receivedQuery)
+            self.assertTrue(receivedResponse)
+            receivedQuery.id = query.id
+            self.checkQueryNoEDNS(query, receivedQuery)
+            self.checkResponseNoEDNS(response, receivedResponse)
 
     def testWithECSDisabledViaLua(self):
         """
@@ -642,19 +566,14 @@ class TestECSDisabledByRuleOrLua(DNSDistTest):
                                     '127.0.0.1')
         response.answer.append(rrset)
 
-        (receivedQuery, receivedResponse) = self.sendUDPQuery(query, response)
-        self.assertTrue(receivedQuery)
-        self.assertTrue(receivedResponse)
-        receivedQuery.id = query.id
-        self.checkQueryNoEDNS(query, receivedQuery)
-        self.checkResponseNoEDNS(response, receivedResponse)
-
-        (receivedQuery, receivedResponse) = self.sendTCPQuery(query, response)
-        self.assertTrue(receivedQuery)
-        self.assertTrue(receivedResponse)
-        receivedQuery.id = query.id
-        self.checkQueryNoEDNS(query, receivedQuery)
-        self.checkResponseNoEDNS(response, receivedResponse)
+        for method in ("sendUDPQuery", "sendTCPQuery"):
+            sender = getattr(self, method)
+            (receivedQuery, receivedResponse) = sender(query, response)
+            self.assertTrue(receivedQuery)
+            self.assertTrue(receivedResponse)
+            receivedQuery.id = query.id
+            self.checkQueryNoEDNS(query, receivedQuery)
+            self.checkResponseNoEDNS(response, receivedResponse)
 
 class TestECSOverrideSetByRuleOrLua(DNSDistTest):
     """
@@ -692,19 +611,14 @@ class TestECSOverrideSetByRuleOrLua(DNSDistTest):
                                     '127.0.0.1')
         response.answer.append(rrset)
 
-        (receivedQuery, receivedResponse) = self.sendUDPQuery(query, response)
-        self.assertTrue(receivedQuery)
-        self.assertTrue(receivedResponse)
-        receivedQuery.id = query.id
-        self.checkQueryEDNSWithECS(query, receivedQuery)
-        self.checkResponseEDNSWithECS(response, receivedResponse)
-
-        (receivedQuery, receivedResponse) = self.sendTCPQuery(query, response)
-        self.assertTrue(receivedQuery)
-        self.assertTrue(receivedResponse)
-        receivedQuery.id = query.id
-        self.checkQueryEDNSWithECS(query, receivedQuery)
-        self.checkResponseEDNSWithECS(response, receivedResponse)
+        for method in ("sendUDPQuery", "sendTCPQuery"):
+            sender = getattr(self, method)
+            (receivedQuery, receivedResponse) = sender(query, response)
+            self.assertTrue(receivedQuery)
+            self.assertTrue(receivedResponse)
+            receivedQuery.id = query.id
+            self.checkQueryEDNSWithECS(query, receivedQuery)
+            self.checkResponseEDNSWithECS(response, receivedResponse)
 
     def testWithECSOverrideSetViaRule(self):
         """
@@ -724,19 +638,14 @@ class TestECSOverrideSetByRuleOrLua(DNSDistTest):
                                     '127.0.0.1')
         response.answer.append(rrset)
 
-        (receivedQuery, receivedResponse) = self.sendUDPQuery(query, response)
-        self.assertTrue(receivedQuery)
-        self.assertTrue(receivedResponse)
-        receivedQuery.id = expectedQuery.id
-        self.checkQueryEDNSWithECS(expectedQuery, receivedQuery)
-        self.checkResponseEDNSWithECS(response, receivedResponse)
-
-        (receivedQuery, receivedResponse) = self.sendTCPQuery(query, response)
-        self.assertTrue(receivedQuery)
-        self.assertTrue(receivedResponse)
-        receivedQuery.id = expectedQuery.id
-        self.checkQueryEDNSWithECS(expectedQuery, receivedQuery)
-        self.checkResponseEDNSWithECS(response, receivedResponse)
+        for method in ("sendUDPQuery", "sendTCPQuery"):
+            sender = getattr(self, method)
+            (receivedQuery, receivedResponse) = sender(query, response)
+            self.assertTrue(receivedQuery)
+            self.assertTrue(receivedResponse)
+            receivedQuery.id = expectedQuery.id
+            self.checkQueryEDNSWithECS(expectedQuery, receivedQuery)
+            self.checkResponseEDNSWithECS(response, receivedResponse)
 
     def testWithECSOverrideSetViaLua(self):
         """
@@ -756,19 +665,14 @@ class TestECSOverrideSetByRuleOrLua(DNSDistTest):
                                     '127.0.0.1')
         response.answer.append(rrset)
 
-        (receivedQuery, receivedResponse) = self.sendUDPQuery(query, response)
-        self.assertTrue(receivedQuery)
-        self.assertTrue(receivedResponse)
-        receivedQuery.id = expectedQuery.id
-        self.checkQueryEDNSWithECS(expectedQuery, receivedQuery)
-        self.checkResponseEDNSWithECS(response, receivedResponse)
-
-        (receivedQuery, receivedResponse) = self.sendTCPQuery(query, response)
-        self.assertTrue(receivedQuery)
-        self.assertTrue(receivedResponse)
-        receivedQuery.id = expectedQuery.id
-        self.checkQueryEDNSWithECS(expectedQuery, receivedQuery)
-        self.checkResponseEDNSWithECS(response, receivedResponse)
+        for method in ("sendUDPQuery", "sendTCPQuery"):
+            sender = getattr(self, method)
+            (receivedQuery, receivedResponse) = sender(query, response)
+            self.assertTrue(receivedQuery)
+            self.assertTrue(receivedResponse)
+            receivedQuery.id = expectedQuery.id
+            self.checkQueryEDNSWithECS(expectedQuery, receivedQuery)
+            self.checkResponseEDNSWithECS(response, receivedResponse)
 
 class TestECSPrefixLengthSetByRuleOrLua(DNSDistTest):
     """
@@ -809,19 +713,14 @@ class TestECSPrefixLengthSetByRuleOrLua(DNSDistTest):
         expectedResponse = dns.message.make_response(query)
         expectedResponse.answer.append(rrset)
 
-        (receivedQuery, receivedResponse) = self.sendUDPQuery(query, response)
-        self.assertTrue(receivedQuery)
-        self.assertTrue(receivedResponse)
-        receivedQuery.id = expectedQuery.id
-        self.checkQueryEDNSWithECS(expectedQuery, receivedQuery)
-        self.checkResponseNoEDNS(expectedResponse, receivedResponse)
-
-        (receivedQuery, receivedResponse) = self.sendTCPQuery(query, response)
-        self.assertTrue(receivedQuery)
-        self.assertTrue(receivedResponse)
-        receivedQuery.id = expectedQuery.id
-        self.checkQueryEDNSWithECS(expectedQuery, receivedQuery)
-        self.checkResponseNoEDNS(expectedResponse, receivedResponse)
+        for method in ("sendUDPQuery", "sendTCPQuery"):
+            sender = getattr(self, method)
+            (receivedQuery, receivedResponse) = sender(query, response)
+            self.assertTrue(receivedQuery)
+            self.assertTrue(receivedResponse)
+            receivedQuery.id = expectedQuery.id
+            self.checkQueryEDNSWithECS(expectedQuery, receivedQuery)
+            self.checkResponseNoEDNS(expectedResponse, receivedResponse)
 
     def testWithECSPrefixLengthOverriddenViaRule(self):
         """
@@ -841,19 +740,14 @@ class TestECSPrefixLengthSetByRuleOrLua(DNSDistTest):
         expectedResponse = dns.message.make_response(query)
         expectedResponse.answer.append(rrset)
 
-        (receivedQuery, receivedResponse) = self.sendUDPQuery(query, response)
-        self.assertTrue(receivedQuery)
-        self.assertTrue(receivedResponse)
-        receivedQuery.id = expectedQuery.id
-        self.checkQueryEDNSWithECS(expectedQuery, receivedQuery)
-        self.checkResponseNoEDNS(expectedResponse, receivedResponse)
-
-        (receivedQuery, receivedResponse) = self.sendTCPQuery(query, response)
-        self.assertTrue(receivedQuery)
-        self.assertTrue(receivedResponse)
-        receivedQuery.id = expectedQuery.id
-        self.checkQueryEDNSWithECS(expectedQuery, receivedQuery)
-        self.checkResponseNoEDNS(expectedResponse, receivedResponse)
+        for method in ("sendUDPQuery", "sendTCPQuery"):
+            sender = getattr(self, method)
+            (receivedQuery, receivedResponse) = sender(query, response)
+            self.assertTrue(receivedQuery)
+            self.assertTrue(receivedResponse)
+            receivedQuery.id = expectedQuery.id
+            self.checkQueryEDNSWithECS(expectedQuery, receivedQuery)
+            self.checkResponseNoEDNS(expectedResponse, receivedResponse)
 
     def testWithECSPrefixLengthOverriddenViaLua(self):
         """
@@ -873,19 +767,14 @@ class TestECSPrefixLengthSetByRuleOrLua(DNSDistTest):
         expectedResponse = dns.message.make_response(query)
         expectedResponse.answer.append(rrset)
 
-        (receivedQuery, receivedResponse) = self.sendUDPQuery(query, response)
-        self.assertTrue(receivedQuery)
-        self.assertTrue(receivedResponse)
-        receivedQuery.id = expectedQuery.id
-        self.checkQueryEDNSWithECS(expectedQuery, receivedQuery)
-        self.checkResponseNoEDNS(expectedResponse, receivedResponse)
-
-        (receivedQuery, receivedResponse) = self.sendTCPQuery(query, response)
-        self.assertTrue(receivedQuery)
-        self.assertTrue(receivedResponse)
-        receivedQuery.id = expectedQuery.id
-        self.checkQueryEDNSWithECS(expectedQuery, receivedQuery)
-        self.checkResponseNoEDNS(expectedResponse, receivedResponse)
+        for method in ("sendUDPQuery", "sendTCPQuery"):
+            sender = getattr(self, method)
+            (receivedQuery, receivedResponse) = sender(query, response)
+            self.assertTrue(receivedQuery)
+            self.assertTrue(receivedResponse)
+            receivedQuery.id = expectedQuery.id
+            self.checkQueryEDNSWithECS(expectedQuery, receivedQuery)
+            self.checkResponseNoEDNS(expectedResponse, receivedResponse)
 
 class TestECSPrefixSetByRule(DNSDistTest):
     """
@@ -921,19 +810,14 @@ class TestECSPrefixSetByRule(DNSDistTest):
         expectedResponse = dns.message.make_response(query)
         expectedResponse.answer.append(rrset)
 
-        (receivedQuery, receivedResponse) = self.sendUDPQuery(query, response)
-        self.assertTrue(receivedQuery)
-        self.assertTrue(receivedResponse)
-        receivedQuery.id = expectedQuery.id
-        self.checkQueryEDNSWithECS(expectedQuery, receivedQuery)
-        self.checkResponseNoEDNS(expectedResponse, receivedResponse)
-
-        (receivedQuery, receivedResponse) = self.sendTCPQuery(query, response)
-        self.assertTrue(receivedQuery)
-        self.assertTrue(receivedResponse)
-        receivedQuery.id = expectedQuery.id
-        self.checkQueryEDNSWithECS(expectedQuery, receivedQuery)
-        self.checkResponseNoEDNS(expectedResponse, receivedResponse)
+        for method in ("sendUDPQuery", "sendTCPQuery"):
+            sender = getattr(self, method)
+            (receivedQuery, receivedResponse) = sender(query, response)
+            self.assertTrue(receivedQuery)
+            self.assertTrue(receivedResponse)
+            receivedQuery.id = expectedQuery.id
+            self.checkQueryEDNSWithECS(expectedQuery, receivedQuery)
+            self.checkResponseNoEDNS(expectedResponse, receivedResponse)
 
     def testWithECSSetByRule(self):
         """
@@ -953,16 +837,11 @@ class TestECSPrefixSetByRule(DNSDistTest):
         expectedResponse = dns.message.make_response(query)
         expectedResponse.answer.append(rrset)
 
-        (receivedQuery, receivedResponse) = self.sendUDPQuery(query, response)
-        self.assertTrue(receivedQuery)
-        self.assertTrue(receivedResponse)
-        receivedQuery.id = expectedQuery.id
-        self.checkQueryEDNSWithECS(expectedQuery, receivedQuery)
-        self.checkResponseNoEDNS(expectedResponse, receivedResponse)
-
-        (receivedQuery, receivedResponse) = self.sendTCPQuery(query, response)
-        self.assertTrue(receivedQuery)
-        self.assertTrue(receivedResponse)
-        receivedQuery.id = expectedQuery.id
-        self.checkQueryEDNSWithECS(expectedQuery, receivedQuery)
-        self.checkResponseNoEDNS(expectedResponse, receivedResponse)
+        for method in ("sendUDPQuery", "sendTCPQuery"):
+            sender = getattr(self, method)
+            (receivedQuery, receivedResponse) = sender(query, response)
+            self.assertTrue(receivedQuery)
+            self.assertTrue(receivedResponse)
+            receivedQuery.id = expectedQuery.id
+            self.checkQueryEDNSWithECS(expectedQuery, receivedQuery)
+            self.checkResponseNoEDNS(expectedResponse, receivedResponse)

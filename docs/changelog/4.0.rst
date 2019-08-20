@@ -1,6 +1,38 @@
 Changelogs for 4.0.x
 ====================
 
+PowerDNS Authoritative Server 4.0.9
+-----------------------------------
+
+Released 1st of August 2019
+
+This release contains the updated PostgreSQL schema for PowerDNS Security Advisory :doc:`2019-06 <../security-advisories/powerdns-advisory-2019-06>` (CVE-2019-10203).
+
+Upgrading is not enough - you need to manually apply the schema change: ``ALTER TABLE domains ALTER notified_serial TYPE bigint USING CASE WHEN notified_serial >= 0 THEN notified_serial::bigint END;``
+
+PowerDNS Authoritative Server 4.0.8
+-----------------------------------
+
+Released 21st of June 2019
+
+This release fixes PowerDNS Security Advisories
+:doc:`2019-04 <../security-advisories/powerdns-advisory-2019-04>` and
+:doc:`2019-05 <../security-advisories/powerdns-advisory-2019-05>`.
+
+PowerDNS Authoritative Server 4.0.7
+-----------------------------------
+
+Released 18th of March 2019
+
+This release fixes PowerDNS Security Advisory
+:doc:`2019-03 <../security-advisories/powerdns-advisory-2019-03>`: Insufficient validation in the HTTP remote backend (CVE-2019-3871)
+
+Bug fixes
+~~~~~~~~~
+
+- `#7582 <https://github.com/PowerDNS/pdns/pull/7582>`__: Insufficient validation in the HTTP remote backend (CVE-2019-3871)
+
+
 PowerDNS Authoritative Server 4.0.6
 -----------------------------------
 
@@ -328,7 +360,7 @@ PowerDNS Authoritative Server 4.0.0
 Released July 11th 2016
 
 PowerDNS Authoritative Server 4.0.0 is part of `the great 4.x "Spring
-Cleaning" <http://blog.powerdns.com/2015/11/28/powerdns-spring-cleaning/>`__
+Cleaning" <https://blog.powerdns.com/2015/11/28/powerdns-spring-cleaning/>`__
 of PowerDNS which lasted through the end of 2015.
 
 As part of the general cleanup and improvements, we did the following:
@@ -428,9 +460,10 @@ PowerDNS Authoritative Server 4.0.0-rc2
 
 Released June 29th 2016
 
-**note**: rc1 was tagged in git but never officially released. Kees
-Monshouwer discovered an issue in the gmysql backend that would
-terminate the daemon on a connection error, this fixed in rc2.
+.. note::
+  rc1 was tagged in git but never officially released. Kees
+  Monshouwer discovered an issue in the gmysql backend that would
+  terminate the daemon on a connection error, this fixed in rc2.
 
 This Release Candidate adds IXFR consumption and fixes some issues with
 prepared statements:

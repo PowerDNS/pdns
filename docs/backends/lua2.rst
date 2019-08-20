@@ -46,6 +46,7 @@ INPUT:
 
 OUTPUT:
  Expects a array which has tables with following keys:
+
  - DNSName name - resource record name (can also be string)
  - string type - type of resource record (can also be QType or valid integer)
  - string content - resource record content
@@ -75,6 +76,8 @@ OUTPUT:
 
 NOTES:
  This function is **optional**.
+
+.. _backends_lua2_dns_get_domaininfo:
  
 ``dns_get_domaininfo(domain)``
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -85,6 +88,7 @@ INPUT:
 
 OUTPUT:
  Return false if not supported or found, otherwise expects a table with keys:
+
  - string account - Associated account of this domain (default: <empty>)
  - string kind - Domain kind (NATIVE,MASTER,SLAVE) (default: NATIVE)
  - int id - Associated domain ID (default: -1)
@@ -106,7 +110,8 @@ NOTES:
 Get domain information for all domains.
 
 OUTPUT:
- Return false if not supported or found, otherwise return a table of string, domaininfo. See ``dns_get_domaininfo```.
+ Return false if not supported or found, otherwise return a table of string,
+ domaininfo. See :ref:`dns_get_domaininfo() <backends_lua2_dns_get_domaininfo>`.
 
 NOTES:
  This function is **optional**, except if you need master functionality.
@@ -147,6 +152,7 @@ INPUT:
 
 OUTPUT:
  Return false if not found or supported, otherwise expects array of tables with keys:
+
  - int id - Key ID
  - int flags - Key flags
  - bool active - Is key active
@@ -165,6 +171,7 @@ INPUT:
 
 OUTPUT:
  Table with keys:
+
  - unhashed - DNSName of the unhashed relative to domain
  - before - (hashed) name of previous record relative to domain
  - after - (hashed) name of next record relative to domain

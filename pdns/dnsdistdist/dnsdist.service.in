@@ -1,7 +1,7 @@
 [Unit]
 Description=DNS Loadbalancer
 Documentation=man:dnsdist(1)
-Documentation=http://dnsdist.org
+Documentation=https://dnsdist.org
 Wants=network-online.target
 After=network-online.target
 

@@ -21,18 +21,21 @@
  */
 #pragma once
 
+// root label (1), type (2), class (2), ttl (4) + rdlen (2)
+static const size_t optRecordMinimumSize = 11;
+
 extern size_t g_EdnsUDPPayloadSize;
 extern uint16_t g_PayloadSizeSelfGenAnswers;
 
 int rewriteResponseWithoutEDNS(const std::string& initialPacket, vector<uint8_t>& newContent);
 int locateEDNSOptRR(const std::string& packet, uint16_t * optStart, size_t * optLen, bool * last);
-void generateOptRR(const std::string& optRData, string& res, uint16_t udpPayloadSize, bool dnssecOK);
+void generateOptRR(const std::string& optRData, string& res, uint16_t udpPayloadSize, uint8_t ednsrcode, bool dnssecOK);
 void generateECSOption(const ComboAddress& source, string& res, uint16_t ECSPrefixLength);
 int removeEDNSOptionFromOPT(char* optStart, size_t* optLen, const uint16_t optionCodeToRemove);
 int rewriteResponseWithoutEDNSOption(const std::string& initialPacket, const uint16_t optionCodeToSkip, vector<uint8_t>& newContent);
 int getEDNSOptionsStart(const char* packet, const size_t offset, const size_t len, uint16_t* optRDPosition, size_t * remaining);
 bool isEDNSOptionInOpt(const std::string& packet, const size_t optStart, const size_t optLen, const uint16_t optionCodeToFind, size_t* optContentStart = nullptr, uint16_t* optContentLen = nullptr);
-bool addEDNS(dnsheader* dh, uint16_t& len, const size_t size, bool dnssecOK, uint16_t payloadSize);
+bool addEDNS(dnsheader* dh, uint16_t& len, const size_t size, bool dnssecOK, uint16_t payloadSize, uint8_t ednsrcode);
 bool addEDNSToQueryTurnedResponse(DNSQuestion& dq);
 
 bool handleEDNSClientSubnet(DNSQuestion& dq, bool* ednsAdded, bool* ecsAdded, bool preserveTrailingData);
@@ -42,3 +45,4 @@ bool parseEDNSOptions(DNSQuestion& dq);
 
 int getEDNSZ(const DNSQuestion& dq);
 bool queryHasEDNS(const DNSQuestion& dq);
+bool getEDNS0Record(const DNSQuestion& dq, EDNS0Record& edns0);
