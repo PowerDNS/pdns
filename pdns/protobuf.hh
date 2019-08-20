@@ -69,6 +69,7 @@ public:
   void setResponder(const ComboAddress& responder);
   void setRequestorId(const std::string& requestorId);
   void setDeviceId(const std::string& deviceId);
+  void setDeviceName(const std::string& deviceName);
   void setServerIdentity(const std::string& serverId);
   std::string toDebugString() const;
   void addTag(const std::string& strValue);
