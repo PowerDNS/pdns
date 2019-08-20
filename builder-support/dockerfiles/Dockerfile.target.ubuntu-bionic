@@ -17,7 +17,7 @@ ADD builder-support/debian/recursor/debian-stretch/ pdns-recursor-${BUILDER_VERS
 @ENDIF
 
 @IF [ ! -z "$M_dnsdist" ]
-ADD builder-support/debian/dnsdist/debian-stretch/ dnsdist-${BUILDER_VERSION}/debian/
+ADD builder-support/debian/dnsdist/debian-buster/ dnsdist-${BUILDER_VERSION}/debian/
 @ENDIF
 
 @INCLUDE Dockerfile.debbuild

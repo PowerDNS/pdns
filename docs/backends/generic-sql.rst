@@ -48,17 +48,15 @@ And wait a while for PowerDNS to pick up the addition - which happens
 within one minute (this is determined by the
 :ref:`setting-slave-cycle-interval`
 setting). There is no need to inform PowerDNS that a new domain was
-added. Typical output is:
+added. Typical output is::
 
-.. code-block:: SQL
-
-    Apr 09 13:34:29 All slave domains are fresh
-    Apr 09 13:35:29 1 slave domain needs checking
-    Apr 09 13:35:29 Domain example.com is stale, master serial 1, our serial 0
-    Apr 09 13:35:30 [gPgSQLBackend] Connected to database
-    Apr 09 13:35:30 AXFR started for 'example.com'
-    Apr 09 13:35:30 AXFR done for 'example.com'
-    Apr 09 13:35:30 [gPgSQLBackend] Closing connection
+  Apr 09 13:34:29 All slave domains are fresh
+  Apr 09 13:35:29 1 slave domain needs checking
+  Apr 09 13:35:29 Domain example.com is stale, master serial 1, our serial 0
+  Apr 09 13:35:30 [gPgSQLBackend] Connected to database
+  Apr 09 13:35:30 AXFR started for 'example.com'
+  Apr 09 13:35:30 AXFR done for 'example.com'
+  Apr 09 13:35:30 [gPgSQLBackend] Closing connection
 
 From now on, PowerDNS is authoritative for the 'example.com' zone and
 will respond accordingly for queries within that zone.
@@ -241,7 +239,7 @@ These queries are used by e.g. ``pdnsutil rectify-zone``. Make sure to
 read :ref:`rules-for-filling-out-dnssec-fields`
 if you wish to calculate ordername and auth without using pdns-rectify.
 
--  ``insert-empty-non-terminal-order--query``: Insert empty non-terminal
+-  ``insert-empty-non-terminal-order-query``: Insert empty non-terminal
    in zone.
 -  ``delete-empty-non-terminal-query``: Delete an empty non-terminal in
    a zone.

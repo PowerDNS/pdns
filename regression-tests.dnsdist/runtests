@@ -16,9 +16,25 @@ if [ ! -d .venv ]; then
 fi
 . .venv/bin/activate
 python -V
+
+if [ `uname -s` == Darwin ]
+then
+  if [ ! -e /usr/local/opt/curl-openssl ]
+  then
+    echo Please run: brew install curl-openssl, and try again
+    exit 1
+  else
+    export PYCURL_CURL_CONFIG=/usr/local/opt/curl-openssl/bin/curl-config
+    export LDFLAGS=-L/usr/local/opt/openssl/lib
+    export CPPFLAGS=-I/usr/local/opt/openssl/include
+  fi
+fi
 pip install -r requirements.txt
+
 protoc -I=../pdns/ --python_out=. ../pdns/dnsmessage.proto
 protoc -I=../pdns/ --python_out=. ../pdns/dnstap.proto
+
+mkdir -p configs
 
 if [ -z "${DNSDISTBIN}" ]; then
   DNSDISTBIN=$(ls ../pdns/dnsdistdist/dnsdist-*/dnsdist)
@@ -30,15 +46,24 @@ if [ "${PDNS_DEBUG}" = "YES" ]; then
   set -x
 fi
 
+rm -f ca.key ca.pem ca.srl server.csr server.key server.pem server.chain server.ocsp
+rm -rf configs/*
+
 # Generate a new CA
 openssl req -new -x509 -days 1 -extensions v3_ca -keyout ca.key -out ca.pem -nodes -config configCA.conf
 # Generate a new server certificate request
 openssl req -new -newkey rsa:2048 -nodes -keyout server.key -out server.csr -config configServer.conf
 # Sign the server cert
-openssl x509 -req -days 1 -CA ca.pem -CAkey ca.key -CAcreateserial -in server.csr -out server.pem
+openssl x509 -req -days 1 -CA ca.pem -CAkey ca.key -CAcreateserial -in server.csr -out server.pem -extfile configServer.conf -extensions v3_req
 # Generate a chain
-cat server.pem ca.pem >> server.chain
+cat server.pem ca.pem > server.chain
 
-nosetests --with-xunit $@
+if ! nosetests --with-xunit $@; then
+    for log in configs/*.log; do
+        echo "=== ${log} ==="
+        cat "${log}"
+    done
+    false
+fi
 
-rm ca.key ca.pem ca.srl server.csr server.key server.pem server.chain
+rm -f ca.key ca.pem ca.srl server.csr server.key server.pem server.chain server.ocsp

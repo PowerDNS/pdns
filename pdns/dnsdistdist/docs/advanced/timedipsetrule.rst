@@ -63,4 +63,4 @@ A working example:
           end
   end
 
-  addLuaAction(AllRule(), pickPool)
+  addAction(AllRule(), LuaAction(pickPool))

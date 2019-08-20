@@ -193,7 +193,7 @@ template<class Answer, class Question, class Backend>void *MultiThreadDistributo
       if(read(us->d_pipes[ournum].first, &QD, sizeof(QD)) != sizeof(QD))
 	unixDie("read");
       --us->d_queued;
-      Answer *a; 
+      Answer *a = nullptr;
 
       if(queuetimeout && QD->Q->d_dt.udiff()>queuetimeout*1000) {
         delete QD->Q;
@@ -222,7 +222,7 @@ retry:
 
           a->setRcode(RCode::ServFail);
           S.inc("servfail-packets");
-          S.ringAccount("servfail-queries",QD->Q->qdomain.toLogString());
+          S.ringAccount("servfail-queries", QD->Q->qdomain, QD->Q->qtype);
 
           delete QD->Q;
         } else {
@@ -239,7 +239,7 @@ retry:
 
           a->setRcode(RCode::ServFail);
           S.inc("servfail-packets");
-          S.ringAccount("servfail-queries",QD->Q->qdomain.toLogString());
+          S.ringAccount("servfail-queries", QD->Q->qdomain, QD->Q->qtype);
 
           delete QD->Q;
         } else {
@@ -267,7 +267,7 @@ retry:
 
 template<class Answer, class Question, class Backend>int SingleThreadDistributor<Answer,Question,Backend>::question(Question* q, callback_t callback)
 {
-  Answer *a;
+  Answer *a = nullptr;
   bool allowRetry=true;
 retry:
   try {
@@ -286,7 +286,7 @@ retry:
 
       a->setRcode(RCode::ServFail);
       S.inc("servfail-packets");
-      S.ringAccount("servfail-queries",q->qdomain.toLogString());
+      S.ringAccount("servfail-queries", q->qdomain, q->qtype);
     } else {
       g_log<<Logger::Notice<<"Backend error (retry once): "<<e.reason<<endl;
       goto retry;
@@ -301,7 +301,7 @@ retry:
 
       a->setRcode(RCode::ServFail);
       S.inc("servfail-packets");
-      S.ringAccount("servfail-queries",q->qdomain.toLogString());
+      S.ringAccount("servfail-queries", q->qdomain, q->qtype);
     } else {
       g_log<<Logger::Warning<<"Caught unknown exception in Distributor thread "<<(unsigned long)pthread_self()<<" (retry once)"<<endl;
       goto retry;
@@ -322,13 +322,12 @@ template<class Answer, class Question, class Backend>int MultiThreadDistributor<
   QD->Q=q;
   auto ret = QD->id = nextid++; // might be deleted after write!
   QD->callback=callback;
-  
-  if(write(d_pipes[QD->id % d_pipes.size()].second, &QD, sizeof(QD)) != sizeof(QD))
+
+  ++d_queued;
+  if(write(d_pipes[QD->id % d_pipes.size()].second, &QD, sizeof(QD)) != sizeof(QD)) {
+    --d_queued;
     unixDie("write");
-
-  d_queued++;
-
-
+  }
 
   if(d_queued > d_maxQueueLength) {
     g_log<<Logger::Error<< d_queued <<" questions waiting for database/backend attention. Limit is "<<::arg().asNum("max-queue-length")<<", respawning"<<endl;

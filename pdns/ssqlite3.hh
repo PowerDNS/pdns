@@ -37,7 +37,7 @@ private:
 protected:
 public:
   //! Constructor.
-  SSQLite3( const std::string & database, bool creat=false );
+  SSQLite3( const std::string & database, const std::string & journalmode, bool creat=false);
 
   //! Destructor.
   ~SSQLite3();

@@ -108,4 +108,4 @@ ADDRESS
 Right now, the TCP support has some rather arbitrary limits.
 
 # RESOURCES
-Website: http://dnsdist.org
+Website: https://dnsdist.org

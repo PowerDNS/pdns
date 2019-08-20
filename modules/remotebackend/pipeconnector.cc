@@ -24,7 +24,7 @@
 #endif
 #include "remotebackend.hh"
 
-PipeConnector::PipeConnector(std::map<std::string,std::string> optionsMap) {
+PipeConnector::PipeConnector(std::map<std::string,std::string> optionsMap): d_pid(-1)  {
   if (optionsMap.count("command") == 0) {
     g_log<<Logger::Error<<"Cannot find 'command' option in connection string"<<endl;
     throw PDNSException();
@@ -37,8 +37,6 @@ PipeConnector::PipeConnector(std::map<std::string,std::string> optionsMap) {
      d_timeout = std::stoi(optionsMap.find("timeout")->second);
   }
 
-  d_pid = -1;
-  d_fp = NULL;
   d_fd1[0] = d_fd1[1] = -1;
   d_fd2[0] = d_fd2[1] = -1;
 }
@@ -53,8 +51,9 @@ PipeConnector::~PipeConnector(){
     waitpid(d_pid, &status, 0);
   }
 
-  close(d_fd1[1]);
-  if (d_fp != NULL) fclose(d_fp);
+  if (d_fd1[1]) {
+    close(d_fd1[1]);
+  }
 }
 
 void PipeConnector::launch() {
@@ -85,10 +84,10 @@ void PipeConnector::launch() {
     setCloseOnExec(d_fd1[1]);
     close(d_fd2[1]);
     setCloseOnExec(d_fd2[0]);
-    if(!(d_fp=fdopen(d_fd2[0],"r")))
+    if(!(d_fp=std::unique_ptr<FILE, int(*)(FILE*)>(fdopen(d_fd2[0],"r"), fclose)))
       throw PDNSException("Unable to associate a file pointer with pipe: "+stringerror());
-    if (d_timeout) 
-      setbuf(d_fp,0); // no buffering please, confuses select
+    if (d_timeout)
+      setbuf(d_fp.get(),0); // no buffering please, confuses poll
   }
   else if(!d_pid) { // child
     signal(SIGCHLD, SIG_DFL); // silence a warning from perl
@@ -158,20 +157,14 @@ int PipeConnector::recv_message(Json& output)
    while(1) {
      receive.clear();
      if(d_timeout) {
-       struct timeval tv;
-       tv.tv_sec = d_timeout/1000;
-       tv.tv_usec = (d_timeout % 1000) * 1000;
-       fd_set rds;
-       FD_ZERO(&rds);
-       FD_SET(fileno(d_fp),&rds);
-       int ret=select(fileno(d_fp)+1,&rds,0,0,&tv);
+       int ret=waitForData(fileno(d_fp.get()), 0, d_timeout * 1000);
        if(ret<0) 
          throw PDNSException("Error waiting on data from coprocess: "+stringerror());
        if(!ret)
          throw PDNSException("Timeout waiting for data from coprocess");
      }
 
-     if(!stringfgets(d_fp, receive))
+     if(!stringfgets(d_fp.get(), receive))
        throw PDNSException("Child closed pipe");
   
       s_output.append(receive);

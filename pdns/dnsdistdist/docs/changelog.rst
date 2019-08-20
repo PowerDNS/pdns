@@ -2,6 +2,627 @@ Changelog
 =========
 
 .. changelog::
+  :version: 1.4.0-rc1
+  :released: 12th of August 2019
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 7860
+
+    Disallow TCP disablement
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 7862
+
+    Update boost.m4 to the latest version
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 7886
+
+     SuffixMatchTree: fix root removal, partial match of non-leaf nodes
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 7909
+
+    Print stats from expungeByName (Matti Hiljanen)
+
+  .. change::
+    :tags: Bug Fixes, DNS over HTTPS
+    :pullreq: 7911
+    :tickets: 7894
+
+    Properly override the HTTP Server header for DoH
+
+  .. change::
+    :tags: Bug Fixes, DNS over HTTPS, DNS over TLS
+    :pullreq: 7915
+
+    Exit when requested DoT/DoH support is not compiled in
+
+  .. change::
+    :tags: Improvements, DNS over HTTPS
+    :pullreq: 7917
+
+    Send better HTTP status codes, handle ACL drops earlier
+
+  .. change::
+    :tags: Bug Fixes, DNS over HTTPS
+    :pullreq: 7927
+    :tickets: 7917
+
+    Proper HTTP response for timeouts over DoH
+
+  .. change::
+    :tags: Improvements, DNS over HTTPS
+    :pullreq: 7933
+    :tickets: 7898
+
+    Add more stats about DoH HTTP responses
+
+  .. change::
+    :tags: Bug Fixes, Carbon, Prometheus
+    :pullreq: 7934
+    :tickets: 7933
+
+    Deduplicate frontends entries with carbon and prometheus
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 7951
+    :tickets: 6942, 8084
+
+    Update boost.m4
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 7952
+    :tickets: 7950
+
+    Squelch unused function warning
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 7974
+    :tickets: 7971
+
+    Fix short IOs over TCP
+
+  .. change::
+    :tags: Improvements, DNS over TLS
+    :pullreq: 7978
+
+    Improve error messages for DoT issues
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 7979
+
+    Fix handling of backend connection failing over TCP
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 7985
+
+    SuffixMatchNode:add(): accept more types
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 7990
+    :tickets: 7981
+
+    Explicitly align the buffer used for cmsgs
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 7992
+
+    Add `quiet` parameter to NetmaskGroupRule
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 7996
+    :tickets: 7981
+
+    Clear cmsg_space(sizeof(data)) in cmsghdr to appease Valgrind
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 8003
+
+    Insert the response into the ringbuffer right after sending it
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 8007
+
+    Add static assertions for the size of the src address control buffer
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 8013
+
+    Don't create temporary strings to escape DNSName labels
+
+  .. change::
+    :tags: Bug Fixes, DNSCrypt
+    :pullreq: 8015
+    :tickets: 8014
+
+    Skip non-dnscrypt binds in `showDNSCryptBinds()`
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 8024
+
+    Display TCP/DoT queries and responses in verbose mode, opcode in grepq
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 8025
+
+    Be a bit more explicit about what failed in testCrypto()
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 8030
+    :tickets: 8021
+
+    Handle ENOTCONN on read() over TCP
+
+  .. change::
+    :tags: Improvements, DNSCrypt
+    :pullreq: 8042
+    :tickets: 8020
+
+    Accept more than one certificate in `addDNSCryptBind()`
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 8067
+
+    Make sure we always compile with BOOST_CB_ENABLE_DEBUG set to 0
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 8078
+
+    Catch exceptions thrown when handling a TCP response
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 8079
+
+    Fix unlimited retries when TCP Fast Open is enabled
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 8081
+
+    M4/systemd.m4: fail when systemctl is not available
+
+  .. change::
+    :tags: Bug Fixes, Prometheus
+    :pullreq: 8105
+
+    Fix a typo in the Server's latency description for Prometheus (phonedph1)
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 8110
+
+    Update URLs to use HTTPS scheme (Chris Hofstaedtler)
+
+  .. change::
+    :tags: Bug Fixes, DNS over HTTPS
+    :pullreq: 8112
+
+    Prevent a dangling DOHUnit pointer when send() failed
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 8113
+
+    Double-check we only increment the outstanding counter once
+
+  .. change::
+    :tags: New Features
+    :pullreq: 8117
+
+    Implement ContinueAction()
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 8131
+    :tickets: 8130
+
+    Console: flush cout after printing g_outputbuffer (Doug Freed)
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 8135
+    :tickets: 8108
+
+    ext/ipcrypt: ship license in tarballs (Chris Hofstaedtler)
+
+  .. change::
+    :tags: New Features, DNS over HTTPS, DNS over TLS
+    :pullreq: 8141
+    :tickets: 7812
+
+    Add OCSP stapling (from files) for DoT and DoH
+
+  .. change::
+    :tags: New Features, DNS over HTTPS
+    :pullreq: 8148
+    :tickets: 7957, 7900
+
+    Add support for custom DoH headers (Melissa Voegeli)
+
+  .. change::
+    :tags: New Features, DNS over HTTPS
+    :pullreq: 8153
+    :tickets: 8133
+
+    Add lua bindings, rules and action for DoH
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 8154
+
+    Use a counter to mark IDState usage instead of the FD
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 8158
+
+    Fix signedness issue in isEDNSOptionInOpt()
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 8175
+
+    Increase the default value of setMaxUDPOutstanding to 65535
+
+.. changelog::
+  :version: 1.4.0-beta1
+  :released: 6th of June 2019
+
+  .. change::
+    :tags: Bug Fixes, DoH
+    :pullreq: 7814
+    :tickets: 7810
+
+    DoH: Don't let 'self' dangling while parsing the request's qname, this could lead to a crash
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 7823
+
+    Fix minor issues reported by Coverity
+
+  .. change::
+    :tags: New Features, DoT, DoH
+    :pullreq: 7825
+    :tickets: 7210
+
+    Implement SNIRule for DoT and DoH
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 7833
+
+    Remove second, incomplete copy of lua EDNSOptionCode table
+
+  .. change::
+    :tags: Improvements, Prometheus
+    :pullreq: 7853
+    :tickets: 6088
+
+    Support Prometheus latency histograms (Marlin Cremers)
+
+.. changelog::
+  :version: 1.4.0-alpha2
+  :released: 26th of April 2019
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 7410
+
+    Ignore Path MTU discovery on UDP server socket
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 7708
+
+    Alternative solution to the unaligned accesses.
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 7718
+
+    Exit when setting ciphers fails (GnuTLS)
+
+  .. change::
+    :tags: New Features
+    :pullreq: 7726
+    :tickets: 6911, 7526
+
+    Add DNS over HTTPS support based on libh2o
+
+.. changelog::
+  :version: 1.4.0-alpha1
+  :released: 12th of April 2019
+
+ .. change::
+    :tags: New Features
+    :pullreq: 7209
+
+    Make recursor & dnsdist communicate (ECS) 'variable' status
+
+ .. change::
+    :tags: Improvements
+    :pullreq: 7167
+
+    Fix compiler warning about returning garbage (Adam Majer)
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 7168
+
+    Fix warnings, mostly unused parameters, reported by -wextra
+
+  .. change::
+    :tags: New Features
+    :pullreq: 6959
+    :tickets: 6941, 2362
+
+    Add namespace and instance variable to carbon key (Gibheer)
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 7191
+
+    Add optional uuid column to showServers()
+
+  .. change::
+    :tags: New Features
+    :pullreq: 7087
+
+    Allow NoRecurse for use in dynamic blocks or Lua rules (phonedph1)
+
+  .. change::
+    :tags: New Features
+    :pullreq: 7197
+    :tickets: 7194
+
+    Expose secpoll status
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 7026
+
+    Configure --enable-pdns-option --with-third-party-module (Josh Soref)
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 7256
+
+    Protect GnuTLS tickets key rotation with a read-write lock
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 7267
+
+    Check that ``SO_ATTACH_BPF`` is defined before enabling eBPF
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 7138
+
+    Drop remaining capabilities after startup
+
+  .. change::
+    :tags: New Features
+    :pullreq: 7323
+    :tickets: 7236
+
+    Add an optional 'checkTimeout' parameter to 'newServer()'
+
+  .. change::
+    :tags: New Features
+    :pullreq: 7322
+    :tickets: 7237
+
+    Add a 'rise' parameter to 'newServer()'
+
+  .. change::
+    :tags: New Features
+    :pullreq: 7310
+    :tickets: 7239
+
+    Add a 'keepStaleData' option to the packet cache
+
+  .. change::
+    :tags: New Features
+    :pullreq: 6967
+    :tickets: 6846, 6897
+
+    Expose trailing data (Richard Gibson)
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 6634
+
+    More sandboxing using systemd's features
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 7426
+
+    Fix off-by-one in mvRule counting
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 7428
+
+    Reduce systemcall usage in Protobuf logging
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 7433
+
+    Resync YaHTTP code to cmouse/yahttp@11be77a1fc4032 (Chris Hofstaedtler)
+
+  .. change::
+    :tags: New Features
+    :pullreq: 7142
+
+    Add option to set interval between health checks (1848)
+
+  .. change::
+    :tags: New Features
+    :pullreq: 7406
+
+    Add EDNS unknown version handling (Dmitry Alenichev)
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 7431
+
+    Pass empty response (Dmitry Alenichev)
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 7502
+
+    Change the way getRealMemusage() works on linux (using statm)
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 7520
+
+    Don't convert nsec to usec if we need nsec
+
+  .. change::
+    :tags: New Features
+    :pullreq: 7537
+
+    DNSNameSet and QNameSetRule (Andrey)
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 7594
+
+    Fix setRules()
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 7560
+
+    Handle EAGAIN in the GnuTLS DNS over TLS provider
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 7586
+    :tickets: 7461
+
+    Gracefully handle a null latency in the webserver's js
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 7585
+    :tickets: 7534
+
+     Prevent 0-ttl cache hits
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 7343
+    :tickets: 7139
+
+    Add addDynBlockSMT() support to dynBlockRulesGroup
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 7578
+
+    Add frontend response statistics (Matti Hiljanen)
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 7652
+
+   EDNSOptionView improvements
+
+  .. change::
+    :tags: New Features
+    :pullreq: 7481
+    :tickets: 6242
+
+    Add support for encrypting ip addresses #gdpr 
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 7670
+
+    Remove addLuaAction and addLuaResponseAction
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 7559
+    :tickets: 7526, 4814
+
+    Refactoring of the TCP stack
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 7674
+    :tickets: 7481
+
+    Honor libcrypto include path
+
+  .. change::
+    :tags: New Features
+    :pullreq: 7677
+    :tickets: 5653
+
+    Add 'setSyslogFacility()'
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 7692
+    :tickets: 7556
+
+    Prevent a conflict with BADSIG being clobbered
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 7689
+
+    Switch to the new 'newPacketCache()' syntax for 1.4.0
+
+  .. change::
+    :tags: New Features
+    :pullreq: 7676
+
+    Add 'reloadAllCertificates()'
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 7678
+
+    Move constants to proper namespace
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 7694
+
+    Unify the management of DNS/DNSCrypt/DoT frontends
+
+.. changelog::
   :version: 1.3.3
   :released: 8th of November 2018
 

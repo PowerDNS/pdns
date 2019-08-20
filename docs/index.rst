@@ -6,9 +6,9 @@ supports a large number of backends. These backends can either be plain
 zone files or be more dynamic in nature.
 
 PowerDNS has the concepts of 'backends'. A backend is a datastore that
-the server will consult that contains DNS records (and some meta-data).
+the server will consult that contains DNS records (and some metadata).
 The backends range from database backends (:doc:`MySQL <backends/generic-mysql>`, :doc:`PostgreSQL <backends/generic-postgresql>`, :doc:`Oracle <backends/oracle>`)
-and :doc:`Bind-zonefiles <backends/bind>` to :doc:`co-processes <backends/pipe>` and :doc:`JSON API's <backends/remote>`.
+and :doc:`BIND zone files <backends/bind>` to :doc:`co-processes <backends/pipe>` and :doc:`JSON API's <backends/remote>`.
 
 Multiple backends can be enabled in the configuration by using the
 :ref:`setting-launch` option. Each backend can be configured separately.
@@ -20,9 +20,9 @@ This documentation is also available as a `PDF document <PowerDNS-Authoritative.
 Getting Started
 ---------------
 
- * :doc:`Install the Authoritative Server <installation>`
- * :doc:`Configure the Server <settings>`
- * :doc:`Configure the backend(s) <backends/index>`
+* :doc:`Install the Authoritative Server <installation>`
+* :doc:`Configure the Server <settings>`
+* :doc:`Configure the backend(s) <backends/index>`
 
 Getting Support
 ---------------
@@ -31,9 +31,9 @@ You may also help others (please do).
 
 Public support is available via several different channels:
 
-  * This documentation
-  * `The mailing list <https://www.powerdns.com/mailing-lists.html>`_
-  * ``#powerdns`` on `irc.oftc.net <irc://irc.oftc.net/#powerdns>`_
+* This documentation
+* `The mailing list <https://www.powerdns.com/mailing-lists.html>`_
+* ``#powerdns`` on `irc.oftc.net <irc://irc.oftc.net/#powerdns>`_
 
 The PowerDNS company can provide help or support you in private as well.
 For first class and rapid support, please contact powerdns.support@powerdns.com, or see the `.com website <https://www.powerdns.com/support-services-consulting.html>`__.

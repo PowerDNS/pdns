@@ -1,3 +1,4 @@
+#include "version.hh"
 #include "ext/luawrapper/include/LuaContext.hpp"
 #include "lua-auth4.hh"
 #include <thread>
@@ -7,6 +8,7 @@
 #include "ueberbackend.hh"
 #include <boost/format.hpp>
 #include "dnsrecords.hh"
+#include "dns_random.hh"
 
 #include "../modules/geoipbackend/geoipinterface.hh" // only for the enum
 
@@ -184,7 +186,11 @@ void IsUpOracle::checkURLThread(ComboAddress rem, std::string url, const opts_t&
   setDown(rem, url, opts);
   for(bool first=true;;first=false) {
     try {
-      MiniCurl mc;
+      string useragent = productName();
+      if (opts.count("useragent")) {
+        useragent = opts.at("useragent");
+      }
+      MiniCurl mc(useragent);
 
       string content;
       if(opts.count("source")) {
@@ -249,7 +255,7 @@ static ComboAddress pickrandom(const vector<ComboAddress>& ips)
   if (ips.empty()) {
     throw std::invalid_argument("The IP list cannot be empty");
   }
-  return ips[random() % ips.size()];
+  return ips[dns_random(ips.size())];
 }
 
 static ComboAddress hashed(const ComboAddress& who, const vector<ComboAddress>& ips)
@@ -273,7 +279,7 @@ static ComboAddress pickwrandom(const vector<pair<int,ComboAddress> >& wips)
     sum += i.first;
     pick.push_back({sum, i.second});
   }
-  int r = random() % sum;
+  int r = dns_random(sum);
   auto p = upper_bound(pick.begin(), pick.end(),r, [](int r, const decltype(pick)::value_type& a) { return  r < a.first;});
   return p->second;
 }
@@ -379,7 +385,7 @@ static ComboAddress pickclosest(const ComboAddress& bestwho, const vector<ComboA
     //          cout<<"    distance: "<<sqrt(dist2) * 40000.0/360<<" km"<<endl; // length of a degree
     ranked[dist2].push_back(c);
   }
-  return ranked.begin()->second[random() % ranked.begin()->second.size()];
+  return ranked.begin()->second[dns_random(ranked.begin()->second.size())];
 }
 
 static std::vector<DNSZoneRecord> lookup(const DNSName& name, uint16_t qtype, int zoneid)
@@ -459,13 +465,19 @@ static vector<pair<int, ComboAddress> > convWIplist(std::unordered_map<int, wipl
   return ret;
 }
 
+static thread_local unique_ptr<AuthLua4> s_LUA;
+bool g_LuaRecordSharedState;
+
 std::vector<shared_ptr<DNSRecordContent>> luaSynth(const std::string& code, const DNSName& query, const DNSName& zone, int zoneid, const DNSPacket& dnsp, uint16_t qtype)
 {
-  AuthLua4 alua;
+  if(!s_LUA ||                  // we don't have a Lua state yet
+     !g_LuaRecordSharedState) { // or we want a new one even if we had one
+    s_LUA = make_unique<AuthLua4>();
+  }
 
   std::vector<shared_ptr<DNSRecordContent>> ret;
 
-  LuaContext& lua = *alua.getLua();
+  LuaContext& lua = *s_LUA->getLua();
   lua.writeVariable("qname", query);
   lua.writeVariable("who", dnsp.getRemote());
   lua.writeVariable("dh", (dnsheader*)&dnsp.d);
@@ -478,6 +490,7 @@ std::vector<shared_ptr<DNSRecordContent>> luaSynth(const std::string& code, cons
     bestwho=dnsp.getRealRemote().getNetwork();
   }
   else {
+    lua.writeVariable("ecswho", nullptr);
     bestwho=dnsp.getRemote();
   }
 
@@ -521,7 +534,7 @@ std::vector<shared_ptr<DNSRecordContent>> luaSynth(const std::string& code, cons
     });
 
 
-  lua.writeFunction("createReverse", [&bestwho,&query,&zone](string suffix, boost::optional<std::unordered_map<string,string>> e){
+  lua.writeFunction("createReverse", [&query](string suffix, boost::optional<std::unordered_map<string,string>> e){
       try {
       auto labels= query.getRawLabels();
       if(labels.size()<4)
@@ -603,7 +616,7 @@ std::vector<shared_ptr<DNSRecordContent>> luaSynth(const std::string& code, cons
     });
 
 
-  lua.writeFunction("createReverse6", [&bestwho,&query,&zone](string suffix, boost::optional<std::unordered_map<string,string>> e){
+  lua.writeFunction("createReverse6", [&query](string suffix, boost::optional<std::unordered_map<string,string>> e){
       vector<ComboAddress> candidates;
 
       try {
@@ -789,8 +802,7 @@ std::vector<shared_ptr<DNSRecordContent>> luaSynth(const std::string& code, cons
     });
 
 
-  int counter=0;
-  lua.writeFunction("report", [&counter](string event, boost::optional<string> line){
+  lua.writeFunction("report", [](string event, boost::optional<string> line){
       throw std::runtime_error("Script took too long");
     });
   if (g_luaRecordExecLimit > 0) {
@@ -851,7 +863,7 @@ std::vector<shared_ptr<DNSRecordContent>> luaSynth(const std::string& code, cons
         for(const auto& nmpair : netmasks) {
           Netmask nm(nmpair.second);
           if(nm.match(bestwho)) {
-            return destinations[random() % destinations.size()].second;
+            return destinations[dns_random(destinations.size())].second;
           }
         }
       }

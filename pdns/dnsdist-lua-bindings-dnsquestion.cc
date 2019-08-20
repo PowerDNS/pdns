@@ -85,6 +85,10 @@ void setupLuaBindingsDNSQuestion()
       return true;
     });
 
+  g_lua.registerFunction<std::string(DNSQuestion::*)()>("getServerNameIndication", [](const DNSQuestion& dq) {
+      return dq.sni;
+    });
+
   g_lua.registerFunction<void(DNSQuestion::*)(std::string)>("sendTrap", [](const DNSQuestion& dq, boost::optional<std::string> reason) {
 #ifdef HAVE_NET_SNMP
       if (g_snmpAgent && g_snmpTrapsEnabled) {
@@ -172,4 +176,48 @@ void setupLuaBindingsDNSQuestion()
       }
 #endif /* HAVE_NET_SNMP */
     });
+
+#ifdef HAVE_DNS_OVER_HTTPS
+    g_lua.registerFunction<std::string(DNSQuestion::*)(void)>("getHTTPPath", [](const DNSQuestion& dq) {
+      if (dq.du == nullptr) {
+        return std::string();
+      }
+      return dq.du->getHTTPPath();
+    });
+
+    g_lua.registerFunction<std::string(DNSQuestion::*)(void)>("getHTTPQueryString", [](const DNSQuestion& dq) {
+      if (dq.du == nullptr) {
+        return std::string();
+      }
+      return dq.du->getHTTPQueryString();
+    });
+
+    g_lua.registerFunction<std::string(DNSQuestion::*)(void)>("getHTTPHost", [](const DNSQuestion& dq) {
+      if (dq.du == nullptr) {
+        return std::string();
+      }
+      return dq.du->getHTTPHost();
+    });
+
+    g_lua.registerFunction<std::string(DNSQuestion::*)(void)>("getHTTPScheme", [](const DNSQuestion& dq) {
+      if (dq.du == nullptr) {
+        return std::string();
+      }
+      return dq.du->getHTTPScheme();
+    });
+
+    g_lua.registerFunction<std::unordered_map<std::string, std::string>(DNSQuestion::*)(void)>("getHTTPHeaders", [](const DNSQuestion& dq) {
+      if (dq.du == nullptr) {
+        return std::unordered_map<std::string, std::string>();
+      }
+      return dq.du->getHTTPHeaders();
+    });
+
+    g_lua.registerFunction<void(DNSQuestion::*)(uint16_t statusCode, const std::string& body, const boost::optional<std::string> contentType)>("setHTTPResponse", [](DNSQuestion& dq, uint16_t statusCode, const std::string& body, const boost::optional<std::string> contentType) {
+      if (dq.du == nullptr) {
+        return;
+      }
+      dq.du->setHTTPResponse(statusCode, body, contentType ? *contentType : "");
+    });
+#endif /* HAVE_DNS_OVER_HTTPS */
 }

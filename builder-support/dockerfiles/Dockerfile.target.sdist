@@ -10,8 +10,12 @@
 @INCLUDE Dockerfile.dnsdist
 @ENDIF
 
-FROM alpine:3.6 as sdist
+FROM alpine:3.10 as sdist
 ARG BUILDER_CACHE_BUSTER=
+
+@IF [ -z "$M_all$M_authoritative$M_recursor$M_dnsdist"]
+RUN echo "no valid modules specified!" ; exit 1
+@ENDIF
 
 @IF [ ! -z "$M_authoritative$M_all" ]
 COPY --from=pdns-authoritative /sdist/ /sdist/

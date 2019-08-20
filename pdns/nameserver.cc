@@ -123,6 +123,15 @@ void UDPNameserver::bindIPv4()
     if (!setSocketTimestamps(s))
       g_log<<Logger::Warning<<"Unable to enable timestamp reporting for socket"<<endl;
 
+    if (locala.isIPv4()) {
+      try {
+        setSocketIgnorePMTU(s);
+      }
+      catch(const std::exception& e) {
+        g_log<<Logger::Warning<<"Failed to set IP_MTU_DISCOVER on UDP server socket: "<<e.what()<<endl;
+      }
+    }
+
 #ifdef SO_REUSEPORT
     if( d_can_reuseport )
         if( setsockopt(s, SOL_SOCKET, SO_REUSEPORT, &one, sizeof(one)) )
@@ -242,7 +251,7 @@ void UDPNameserver::bindIPv6()
 
     if( !d_additional_socket )
         g_localaddresses.push_back(locala);
-    if(::bind(s, (sockaddr*)&locala, sizeof(locala))<0) {
+    if(::bind(s, (sockaddr*)&locala, locala.getSocklen())<0) {
       close(s);
       if( errno == EADDRNOTAVAIL && ! ::arg().mustDo("local-ipv6-nonexist-fail") ) {
         g_log<<Logger::Error<<"IPv6 Address " << localname << " does not exist on this server - skipping UDP bind" << endl;
@@ -286,13 +295,13 @@ void UDPNameserver::send(DNSPacket *p)
 
   struct msghdr msgh;
   struct iovec iov;
-  char cbuf[256];
+  cmsgbuf_aligned cbuf;
 
-  fillMSGHdr(&msgh, &iov, cbuf, 0, (char*)buffer.c_str(), buffer.length(), &p->d_remote);
+  fillMSGHdr(&msgh, &iov, &cbuf, 0, (char*)buffer.c_str(), buffer.length(), &p->d_remote);
 
   msgh.msg_control=NULL;
   if(p->d_anyLocal) {
-    addCMsgSrcAddr(&msgh, cbuf, p->d_anyLocal.get_ptr(), 0);
+    addCMsgSrcAddr(&msgh, &cbuf, p->d_anyLocal.get_ptr(), 0);
   }
   DLOG(g_log<<Logger::Notice<<"Sending a packet to "<< p->getRemote() <<" ("<< buffer.length()<<" octets)"<<endl);
   if(buffer.length() > p->getMaxReplyLen()) {
@@ -311,10 +320,10 @@ DNSPacket *UDPNameserver::receive(DNSPacket *prefilled, std::string& buffer)
 
   struct msghdr msgh;
   struct iovec iov;
-  char cbuf[256];
+  cmsgbuf_aligned cbuf;
 
   remote.sin6.sin6_family=AF_INET6; // make sure it is big enough
-  fillMSGHdr(&msgh, &iov, cbuf, sizeof(cbuf), &buffer.at(0), buffer.size(), &remote);
+  fillMSGHdr(&msgh, &iov, &cbuf, sizeof(cbuf), &buffer.at(0), buffer.size(), &remote);
   
   int err;
   vector<struct pollfd> rfds= d_rfds;

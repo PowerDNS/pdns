@@ -1,7 +1,7 @@
 LUA Reference
 -------------
 
- .. toctree::
+.. toctree::
   :maxdepth: 2
 
   comboaddress

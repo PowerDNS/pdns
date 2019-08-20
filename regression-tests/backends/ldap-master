@@ -4,16 +4,17 @@ case $context in
 		[ -z "$LDAPPASSWD" ] && LDAPPASSWD='secret'
 		[ -z "$LDAPBASEDN" ] && LDAPBASEDN='ou=dns,o=power'
 		[ -z "$LDAPRELATTR" ] && LDAPRELATTR='ou: dns'
+		[ -z "$LDAPHOST" ] && LDAPHOST='ldap://127.0.0.1:389/'
 
 		layout=${context:5}
-		ldapdelete -D $LDAPUSER -w $LDAPPASSWD -r $LDAPBASEDN || true
-		ldapadd -D $LDAPUSER -w $LDAPPASSWD << __EOF__
+		ldapdelete -D $LDAPUSER -w $LDAPPASSWD -r $LDAPBASEDN -H $LDAPHOST || true
+		ldapadd -D $LDAPUSER -w $LDAPPASSWD -H $LDAPHOST << __EOF__
 dn: $LDAPBASEDN
 objectClass: organizationalUnit
 $LDAPRELATTR
 __EOF__
 
-		$ZONE2LDAP --dnsttl=yes --basedn=$LDAPBASEDN --layout=$layout --named-conf=named.conf | ldapmodify -D $LDAPUSER -w $LDAPPASSWD -c > /dev/null || true
+		$ZONE2LDAP --dnsttl=yes --basedn=$LDAPBASEDN --layout=$layout --named-conf=named.conf | ldapmodify -D $LDAPUSER -w $LDAPPASSWD -H $LDAPHOST -c > /dev/null || true
 
 		cat > pdns-ldap.conf << __EOF__
 module-dir=./modules
@@ -22,13 +23,14 @@ ldap-basedn=$LDAPBASEDN
 ldap-binddn=$LDAPUSER
 ldap-secret=$LDAPPASSWD
 ldap-method=$layout
+ldap-host=$LDAPHOST
 __EOF__
 
 		$RUNWRAPPER $PDNS --daemon=no --local-address=$address --local-port=$port --config-dir=. \
 			--config-name=ldap --socket-dir=./ --no-shuffle \
 			--query-logging --dnsupdate=yes \
       --expand-alias=yes --outgoing-axfr-expand-alias=yes \
-      --resolver=8.8.8.8 \
+      --resolver=$RESOLVERIP \
 			--cache-ttl=$cachettl --dname-processing $lua_prequery &
 
 		skipreasons="nodnssec noent nodyndns nometa noaxfr"

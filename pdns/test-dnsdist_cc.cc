@@ -1105,8 +1105,7 @@ static DNSQuestion getDNSQuestion(const DNSName& qname, const uint16_t qtype, co
 {
   dnsheader* dh = reinterpret_cast<dnsheader*>(query.data());
 
-  DNSQuestion dq(&qname, qtype, qclass, qname.wirelength(), &lc, &rem, dh, query.size(), len, false, &realTime);
-  return dq;
+  return DNSQuestion(&qname, qtype, qclass, qname.wirelength(), &lc, &rem, dh, query.size(), len, false, &realTime);
 }
 
 static DNSQuestion turnIntoResponse(const DNSName& qname, const uint16_t qtype, const uint16_t qclass, const ComboAddress& lc, const ComboAddress& rem, const struct timespec& queryRealTime, vector<uint8_t>&  query, bool resizeBuffer=true)
@@ -1433,8 +1432,7 @@ BOOST_AUTO_TEST_CASE(test_isEDNSOptionInOpt) {
       return false;
     }
 
-    // root label (1), type (2), class (2), ttl (4) + rdlen (2)
-    if (optLen < 11) {
+    if (optLen < optRecordMinimumSize) {
       return false;
     }
 
@@ -1453,6 +1451,7 @@ BOOST_AUTO_TEST_CASE(test_isEDNSOptionInOpt) {
   ecsOpts.source = Netmask(ComboAddress("127.0.0.1"), ECSSourcePrefixV4);
   const string ecsOptionStr = makeEDNSSubnetOptsString(ecsOpts);
   const size_t sizeOfECSContent = ecsOptionStr.size();
+  const size_t sizeOfECSOption = /* option code */ 2 + /* option length */ 2 + sizeOfECSContent;
   EDNSCookiesOpt cookiesOpt;
   cookiesOpt.client = string("deadbeef");
   cookiesOpt.server = string("deadbeef");
@@ -1533,8 +1532,10 @@ BOOST_AUTO_TEST_CASE(test_isEDNSOptionInOpt) {
 
     bool found = locateEDNSOption(query, EDNSOptionCode::ECS, &optContentStart, &optContentLen);
     BOOST_CHECK_EQUAL(found, true);
-    BOOST_CHECK_EQUAL(optContentStart, optRDExpectedOffset + sizeof(uint16_t) /* RD len */ + /* option code */ 2 + /* option length */ 2);
-    BOOST_CHECK_EQUAL(optContentLen, sizeOfECSContent);
+    if (found == true) {
+      BOOST_CHECK_EQUAL(optContentStart, optRDExpectedOffset + sizeof(uint16_t) /* RD len */ + /* option code */ 2 + /* option length */ 2);
+      BOOST_CHECK_EQUAL(optContentLen, sizeOfECSContent);
+    }
 
     /* truncated packet */
     query.resize(query.size() - 1);
@@ -1554,12 +1555,36 @@ BOOST_AUTO_TEST_CASE(test_isEDNSOptionInOpt) {
 
     bool found = locateEDNSOption(query, EDNSOptionCode::ECS, &optContentStart, &optContentLen);
     BOOST_CHECK_EQUAL(found, true);
-    BOOST_CHECK_EQUAL(optContentStart, optRDExpectedOffset + sizeof(uint16_t) /* RD len */ + sizeOfCookieOption + /* option code */ 2 + /* option length */ 2);
-    BOOST_CHECK_EQUAL(optContentLen, sizeOfECSContent);
+    if (found == true) {
+      BOOST_CHECK_EQUAL(optContentStart, optRDExpectedOffset + sizeof(uint16_t) /* RD len */ + sizeOfCookieOption + /* option code */ 2 + /* option length */ 2);
+      BOOST_CHECK_EQUAL(optContentLen, sizeOfECSContent);
+    }
 
     /* truncated packet */
     query.resize(query.size() - 1);
     BOOST_CHECK_THROW(locateEDNSOption(query, EDNSOptionCode::ECS, &optContentStart, &optContentLen), std::range_error);
+  }
+
+  {
+    /* valid EDNS, one 65002 after an ECS */
+    vector<uint8_t> query;
+    DNSPacketWriter pw(query, qname, qtype, qclass, 0);
+    DNSPacketWriter::optvect_t opts;
+    opts.push_back(make_pair(EDNSOptionCode::ECS, ecsOptionStr));
+    opts.push_back(make_pair(65535, cookiesOptionStr));
+    pw.addOpt(512, 0, 0, opts);
+    pw.commit();
+
+    bool found = locateEDNSOption(query, 65535, &optContentStart, &optContentLen);
+    BOOST_CHECK_EQUAL(found, true);
+    if (found == true) {
+      BOOST_CHECK_EQUAL(optContentStart, optRDExpectedOffset + sizeof(uint16_t) /* RD len */ + sizeOfECSOption + /* option code */ 2 + /* option length */ 2);
+      BOOST_CHECK_EQUAL(optContentLen, cookiesOptionStr.size());
+    }
+
+    /* truncated packet */
+    query.resize(query.size() - 1);
+    BOOST_CHECK_THROW(locateEDNSOption(query, 65002, &optContentStart, &optContentLen), std::range_error);
   }
 }
 

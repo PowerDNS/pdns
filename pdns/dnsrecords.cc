@@ -39,7 +39,7 @@ void DNSResourceRecord::setContent(const string &cont) {
     case QType::DNAME:
     case QType::NS:
     case QType::PTR:
-      if(!content.empty())
+      if (content.size() >= 2 && *(content.rbegin()) == '.')
         boost::erase_tail(content, 1);
   }
 }
@@ -397,6 +397,7 @@ CDNSKEYRecordContent::CDNSKEYRecordContent() {}
 boilerplate_conv(RKEY, 57, 
                  conv.xfr16BitInt(d_flags); 
                  conv.xfr8BitInt(d_protocol); 
+                 conv.xfr8BitInt(d_algorithm); 
                  conv.xfrBlob(d_key);
                  )
 RKEYRecordContent::RKEYRecordContent() {}

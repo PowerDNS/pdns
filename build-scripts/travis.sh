@@ -220,9 +220,9 @@ install_auth() {
     libyaml-cpp-dev \
     libmaxminddb-dev"
 
-  # ldap-backend
+  # lmdb-backend
   run "sudo apt-get -qq --no-install-recommends install \
-    libldap-dev"
+    liblmdb-dev"
 
   # opendbx-backend
   run "sudo apt-get -qq --no-install-recommends install \
@@ -291,22 +291,6 @@ install_auth() {
   run 'echo ${HOME}/.odbc.ini'
   run 'cat ${HOME}/.odbc.ini'
 
-  # ldap-backend test setup
-  run "sudo apt-get -qq --no-install-recommends install \
-    slapd \
-    ldap-utils"
-  run "mkdir /tmp/ldap-dns"
-  run "pushd /tmp/ldap-dns"
-  run 'for schema in /etc/ldap/schema/{core,cosine}.schema ${TRAVIS_BUILD_DIR}/modules/ldapbackend/{dnsdomain2,pdns-domaininfo}.schema ; do echo include $schema ; done > ldap.conf'
-  run "mkdir slapd.d"
-  run "slaptest -f ldap.conf -F slapd.d"
-  run "sudo cp slapd.d/cn=config/cn=schema/cn={*dns*.ldif /etc/ldap/slapd.d/cn=config/cn=schema/"
-  run "sudo chown -R openldap:openldap /etc/ldap/slapd.d/"
-  run "sudo service slapd restart"
-  run "popd"
-  run "sudo -u openldap mkdir -p /var/lib/ldap/powerdns"
-  run "sudo ldapadd -Y EXTERNAL -H ldapi:/// -f ./modules/ldapbackend/testfiles/add.ldif"
-
   # remote-backend tests requirements
   run "sudo apt-get -qq --no-install-recommends install \
     ruby-json \
@@ -328,6 +312,19 @@ install_auth() {
     faketime"
   run "sudo touch /etc/authbind/byport/53"
   run "sudo chmod 755 /etc/authbind/byport/53"
+
+  # Install dnsmasq to make lookups more robust
+  run "sudo apt-get -qq --no-install-recommends install \
+    dnsmasq"
+  run 'echo listen-address=127.0.0.53 | sudo tee /etc/dnsmasq.d/local.conf'
+  run 'echo bind-interfaces | sudo tee -a /etc/dnsmasq.d/local.conf'
+
+  ## WARNING
+  ## after this dnsmasq restart, DNS lookups will fail for a few seconds.
+  run 'sudo service dnsmasq restart'
+  run "sudo resolvconf --disable-updates"
+  run 'echo nameserver 127.0.0.53 | sudo tee /etc/resolv.conf'
+  run "export RESOLVERIP=127.0.0.53"
 }
 
 install_ixfrdist() {
@@ -393,7 +390,7 @@ build_auth() {
   run "autoreconf -vi"
   run "./configure \
     ${sanitizerflags} \
-    --with-dynmodules='bind gmysql geoip gpgsql gsqlite3 ldap lua mydns opendbx pipe random remote tinydns godbc lua2' \
+    --with-dynmodules='bind gmysql geoip gpgsql gsqlite3 lmdb lua mydns opendbx pipe random remote tinydns godbc lua2' \
     --with-modules='' \
     --with-sqlite3 \
     --with-libsodium \
@@ -404,7 +401,8 @@ build_auth() {
     --enable-backend-unit-tests \
     --enable-fuzz-targets \
     --disable-dependency-tracking \
-    --disable-silent-rules"
+    --disable-silent-rules \
+    --with-lmdb=/usr"
   run "make -k dist"
   run "make -k -j3"
   run "make -k install DESTDIR=/tmp/pdns-install-dir"
@@ -494,14 +492,10 @@ test_auth() {
   #travis unbound is too old for this test (unbound 1.6.0 required)
   run "touch tests/ent-asterisk/fail.nsec"
 
-  run "./timestamp ./start-test-stop 5300 ldap-tree"
-  run "./timestamp ./start-test-stop 5300 ldap-simple"
-  run "./timestamp ./start-test-stop 5300 ldap-strict"
-
   run "./timestamp ./start-test-stop 5300 bind-both"
   run "./timestamp ./start-test-stop 5300 bind-dnssec-both"
   run "./timestamp ./start-test-stop 5300 bind-dnssec-nsec3-both"
-  run "./timestamp ./start-test-stop 5300 bind-dnssec-nsec3-optout-both"
+  # run "./timestamp ./start-test-stop 5300 bind-dnssec-nsec3-optout-both"
   run "./timestamp ./start-test-stop 5300 bind-dnssec-nsec3-narrow"
   run "./timestamp ./start-test-stop 5300 bind-hybrid-nsec3"
   #ecdsa - ./timestamp ./start-test-stop 5300 bind-dnssec-pkcs11
@@ -514,7 +508,7 @@ test_auth() {
   run "./timestamp ./start-test-stop 5300 gmysql-nodnssec-both"
   run "./timestamp ./start-test-stop 5300 gmysql-both"
   run "./timestamp ./start-test-stop 5300 gmysql-nsec3-both"
-  run "./timestamp ./start-test-stop 5300 gmysql-nsec3-optout-both"
+  # run "./timestamp ./start-test-stop 5300 gmysql-nsec3-optout-both"
   run "./timestamp ./start-test-stop 5300 gmysql-nsec3-narrow"
 
   run "export GODBC_SQLITE3_DSN=pdns-sqlite3-1"
@@ -523,13 +517,13 @@ test_auth() {
   run "./timestamp ./start-test-stop 5300 gpgsql-nodnssec-both"
   run "./timestamp ./start-test-stop 5300 gpgsql-both"
   run "./timestamp ./start-test-stop 5300 gpgsql-nsec3-both"
-  run "./timestamp ./start-test-stop 5300 gpgsql-nsec3-optout-both"
-  run "./timestamp ./start-test-stop 5300 gpgsql-nsec3-narrow"
+  #run "./timestamp ./start-test-stop 5300 gpgsql-nsec3-optout-both"
+  #run "./timestamp ./start-test-stop 5300 gpgsql-nsec3-narrow"
 
   run "./timestamp ./start-test-stop 5300 gsqlite3-nodnssec-both"
   run "./timestamp ./start-test-stop 5300 gsqlite3-both"
   run "./timestamp ./start-test-stop 5300 gsqlite3-nsec3-both"
-  run "./timestamp ./start-test-stop 5300 gsqlite3-nsec3-optout-both"
+  # run "./timestamp ./start-test-stop 5300 gsqlite3-nsec3-optout-both"
   run "./timestamp ./start-test-stop 5300 gsqlite3-nsec3-narrow"
 
   run "./timestamp ./start-test-stop 5300 mydns"
@@ -538,14 +532,19 @@ test_auth() {
 
   run "./timestamp ./start-test-stop 5300 remotebackend-pipe"
   run "./timestamp ./start-test-stop 5300 remotebackend-pipe-dnssec"
-  run "./timestamp ./start-test-stop 5300 remotebackend-unix"
+  #run "./timestamp ./start-test-stop 5300 remotebackend-unix"
   run "./timestamp ./start-test-stop 5300 remotebackend-unix-dnssec"
-  run "./timestamp ./start-test-stop 5300 remotebackend-http"
+  #run "./timestamp ./start-test-stop 5300 remotebackend-http"
   run "./timestamp ./start-test-stop 5300 remotebackend-http-dnssec"
-  run "./timestamp ./start-test-stop 5300 remotebackend-zeromq"
+  #run "./timestamp ./start-test-stop 5300 remotebackend-zeromq"
   run "./timestamp ./start-test-stop 5300 remotebackend-zeromq-dnssec"
 
   run "./timestamp ./start-test-stop 5300 tinydns"
+
+  run "./timestamp ./start-test-stop 5300 lmdb-nodnssec-both"
+  run "./timestamp ./start-test-stop 5300 lmdb-both"
+  run "./timestamp ./start-test-stop 5300 lmdb-nsec3-both"
+  # run "./timestamp ./start-test-stop 5300 lmdb-nsec3-optout-both"
 
   run "rm tests/ent-asterisk/fail.nsec"
 
@@ -558,30 +557,35 @@ test_auth() {
   run "./timestamp ./start-test-stop 5300 bind-both"
   run "./timestamp ./start-test-stop 5300 bind-dnssec-both"
   run "./timestamp ./start-test-stop 5300 bind-dnssec-nsec3-both"
-  run "./timestamp ./start-test-stop 5300 bind-dnssec-nsec3-optout-both"
+  # run "./timestamp ./start-test-stop 5300 bind-dnssec-nsec3-optout-both"
   run "./timestamp ./start-test-stop 5300 bind-dnssec-nsec3-narrow"
   run "./timestamp ./start-test-stop 5300 bind-hybrid-nsec3"
 
   run "./timestamp ./start-test-stop 5300 gmysql-nodnssec-both"
   run "./timestamp ./start-test-stop 5300 gmysql-both"
   run "./timestamp ./start-test-stop 5300 gmysql-nsec3-both"
-  run "./timestamp ./start-test-stop 5300 gmysql-nsec3-optout-both"
+  # run "./timestamp ./start-test-stop 5300 gmysql-nsec3-optout-both"
   run "./timestamp ./start-test-stop 5300 gmysql-nsec3-narrow"
 
   run "./timestamp ./start-test-stop 5300 gpgsql-nodnssec-both"
   run "./timestamp ./start-test-stop 5300 gpgsql-both"
   run "./timestamp ./start-test-stop 5300 gpgsql-nsec3-both"
-  run "./timestamp ./start-test-stop 5300 gpgsql-nsec3-optout-both"
+  # run "./timestamp ./start-test-stop 5300 gpgsql-nsec3-optout-both"
   run "./timestamp ./start-test-stop 5300 gpgsql-nsec3-narrow"
 
   run "./timestamp ./start-test-stop 5300 gsqlite3-nodnssec-both"
   run "./timestamp ./start-test-stop 5300 gsqlite3-both"
   run "./timestamp ./start-test-stop 5300 gsqlite3-nsec3-both"
-  run "./timestamp ./start-test-stop 5300 gsqlite3-nsec3-optout-both"
+  # run "./timestamp ./start-test-stop 5300 gsqlite3-nsec3-optout-both"
   run "./timestamp ./start-test-stop 5300 gsqlite3-nsec3-narrow"
 
   run "./timestamp ./start-test-stop 5300 lua2"
   run "./timestamp ./start-test-stop 5300 lua2-dnssec"
+
+  run "./timestamp ./start-test-stop 5300 lmdb-both"
+  run "./timestamp ./start-test-stop 5300 lmdb-nodnssec-both"
+  run "./timestamp ./start-test-stop 5300 lmdb-nsec3-both"
+  # run "./timestamp ./start-test-stop 5300 lmdb-nsec3-optout-both"
 
   run "cd .."
 
@@ -630,7 +634,7 @@ test_recursor() {
 
 test_dnsdist(){
   run "cd regression-tests.dnsdist"
-  run "DNSDISTBIN=$HOME/dnsdist/bin/dnsdist ./runtests -v"
+  run "DNSDISTBIN=$HOME/dnsdist/bin/dnsdist ./runtests -v --ignore-files='(?:^\.|^_,|^setup\.py$|^test_DOH\.py$|^test_OCSP\.py$)'"
   run "rm -f ./DNSCryptResolver.cert ./DNSCryptResolver.key"
   run "cd .."
 }

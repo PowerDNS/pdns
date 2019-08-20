@@ -1,7 +1,7 @@
 Statistics endpoint
 ===================
 
-.. http:get:: /api/v1/servers/:server_id/statistics
+.. http:get:: /api/v1/servers/:server_id/statistics?statistic=:statistic
 
   Query PowerDNS internal statistics.
   Returns a list of :json:object:`StatisticItem` elements.
@@ -9,6 +9,10 @@ Statistics endpoint
   The names and meaning of these items are described :ref:`here <metricnames>`.
 
   :param server_id: The name of the server
+
+  .. versionadded:: 4.2.0
+
+  :query statistic: If set to the name of a specific statistic, only this value is returned. If no statistic with that name exists, the response has a 422 status and an error message
 
   **Example response:**
 

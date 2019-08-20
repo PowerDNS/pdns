@@ -13,6 +13,14 @@ AC_DEFUN([DNSDIST_WITH_LIBSSL], [
       PKG_CHECK_MODULES([LIBSSL], [libssl], [
         [HAVE_LIBSSL=1]
         AC_DEFINE([HAVE_LIBSSL], [1], [Define to 1 if you have OpenSSL libssl])
+        save_CFLAGS=$CFLAGS
+        save_LIBS=$LIBS
+        CFLAGS="$LIBSSL_CFLAGS $CFLAGS"
+        LIBS="$LIBSSL_LIBS -lcrypto $LIBS"
+        AC_CHECK_FUNCS([SSL_CTX_set_ciphersuites OCSP_basic_sign])
+        CFLAGS=$save_CFLAGS
+        LIBS=$save_LIBS
+
       ], [ : ])
     ])
   ])

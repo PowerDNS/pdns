@@ -281,10 +281,24 @@ uint32_t dns_random(uint32_t upper_bound) {
 #endif
   case RNG_URANDOM: {
       uint32_t num = 0;
+      size_t attempts = 5;
       do {
-        if (read(urandom_fd, &num, sizeof(num)) < 0) {
+        ssize_t got = read(urandom_fd, &num, sizeof(num));
+        if (got < 0) {
+          if (errno == EINTR) {
+            continue;
+          }
+
           (void)close(urandom_fd);
           throw std::runtime_error("Cannot read random device");
+        }
+        else if (static_cast<size_t>(got) != sizeof(num)) {
+          /* short read, let's retry */
+          if (attempts == 0) {
+            throw std::runtime_error("Too many short reads on random device");
+          }
+          attempts--;
+          continue;
         }
       }
       while(num < min);

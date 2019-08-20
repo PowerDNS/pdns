@@ -10,6 +10,7 @@
 
 Rings g_rings;
 GlobalStateHolder<NetmaskTree<DynBlock>> g_dynblockNMG;
+GlobalStateHolder<SuffixMatchTree<DynBlock>> g_dynblockSMT;
 
 BOOST_AUTO_TEST_SUITE(dnsdistdynblocks_hh)
 

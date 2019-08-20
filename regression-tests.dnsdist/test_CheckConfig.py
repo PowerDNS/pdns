@@ -33,11 +33,15 @@ class TestCheckConfig(unittest.TestCase):
         configTemplate = """
             newServer{address="127.0.0.1:53"}
             truncateTC(true)
-            addAction(AndRule{QTypeRule(dnsdist.ANY), TCPRule(false)}, TCAction())
-            addAction(RegexRule("evil[0-9]{4,}\\\\.regex\\\\.tests\\\\.powerdns\\\\.com$"), RCodeAction(dnsdist.REFUSED))
+            addAction(AndRule{QTypeRule(DNSQType.ANY), TCPRule(false)}, TCAction())
+            addAction(RegexRule("evil[0-9]{4,}\\\\.regex\\\\.tests\\\\.powerdns\\\\.com$"), RCodeAction(DNSRCode.REFUSED))
             mySMN = newSuffixMatchNode()
             mySMN:add(newDNSName("nameAndQtype.tests.powerdns.com."))
-            addAction(AndRule{SuffixMatchNodeRule(mySMN), QTypeRule("TXT")}, RCodeAction(dnsdist.NOTIMP))
+            mySMN:add("string.smn.tests.powerdns.com.")
+            mySMN:add("string-no-dot.smn.tests.powerdns.com")
+            mySMN:add({"string-one.smn.tests.powerdns.com", "string-two.smn.tests.powerdns.com"})
+            mySMN:add({newDNSName("dnsname-one.smn.tests.powerdns.com"), newDNSName("dnsname-two.smn.tests.powerdns.com")})
+            addAction(AndRule{SuffixMatchNodeRule(mySMN), QTypeRule("TXT")}, RCodeAction(DNSRCode.NOTIMP))
             addAction(makeRule("drop.test.powerdns.com."), DropAction())
         """
 

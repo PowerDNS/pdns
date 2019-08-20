@@ -34,7 +34,9 @@ with the key name in the content field. For example::
     $ dig -t axfr powerdnssec.org @127.0.0.1 -y 'test:kp4/24gyYsEzbuTVJRUMoqGFmN3LYgVDzJ/3oRSP7ys='
 
 Another of importing and activating TSIG keys into the database is using
-:doc:`pdnsutil <manpages/pdnsutil.1>`::
+:doc:`pdnsutil <manpages/pdnsutil.1>`:
+
+.. code-block:: shell
 
     pdnsutil import-tsig-key test hmac-md5 'kp4/24gyYsEzbuTVJRUMoqGFmN3LYgVDzJ/3oRSP7ys='
     pdnsutil activate-tsig-key powerdnssec.org test master
@@ -70,9 +72,7 @@ The actual TSIG key must also be provisioned, as outlined in the
 previous section.
 
 For the Generic SQL backends, configuring the use of TSIG for AXFR
-requests could be achieved as follows:
-
-::
+requests could be achieved as follows::
 
     insert into tsigkeys (name, algorithm, secret) values ('test', 'hmac-md5', 'kp4/24gyYsEzbuTVJRUMoqGFmN3LYgVDzJ/3oRSP7ys=');
     select id from domains where name='powerdnssec.org';
@@ -82,7 +82,7 @@ requests could be achieved as follows:
 This can also be done using
 :doc:`/manpages/pdnsutil.1`:
 
-::
+.. code-block:: shell
 
     pdnsutil import-tsig-key test hmac-md5 'kp4/24gyYsEzbuTVJRUMoqGFmN3LYgVDzJ/3oRSP7ys='
     pdnsutil activate-tsig-key powerdnssec.org test slave
@@ -91,9 +91,7 @@ This setup corresponds to the ``TSIG-ALLOW-AXFR`` access rule defined in
 the previous section.
 
 In the interest of interoperability, the configuration above is (not
-quite) similar to the following BIND statements:
-
-::
+quite) similar to the following BIND statements::
 
     key test. {
             algorithm hmac-md5;

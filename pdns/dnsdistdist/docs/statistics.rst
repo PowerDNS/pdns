@@ -67,6 +67,18 @@ fd-usage
 --------
 Number of currently used file descriptors.
 
+frontend-noerror
+----------------
+Number of NoError answers sent to clients.
+
+frontend-nxdomain
+-----------------
+Number of NXDomain answers sent to clients.
+
+frontend-servfail
+-----------------
+Number of ServFail answers sent to clients.
+
 latency-avg100
 --------------
 Average response latency in microseconds of the last 100 packets
@@ -86,6 +98,19 @@ Average response latency in microseconds of the last 1000000 packets.
 latency-slow
 ------------
 Number of queries answered in more than 1 second.
+
+latency-sum
+-----------
+Total response time of all queries combined in milliseconds since the start of dnsdist. Can be used to calculate the
+average response time over all queries.
+
+latency-count
+-------------
+Number of queries contributing to response time histogram
+
+latency-bucket
+--------------
+Number of queries contributing to response time histogram per latency bucket
 
 latency0-1
 ----------

@@ -8,7 +8,7 @@
 
 #include "dnsparser.hh"
 
-ResponseStats::ResponseStats() :   d_qtypecounters(new std::atomic<unsigned long>[65536])
+ResponseStats::ResponseStats() :   d_qtypecounters(new std::atomic<unsigned long>[65536]), d_rcodecounters(new std::atomic<unsigned long>[256])
 {
   d_sizecounters.push_back(make_pair(20,0));
   d_sizecounters.push_back(make_pair(40,0));
@@ -21,6 +21,8 @@ ResponseStats::ResponseStats() :   d_qtypecounters(new std::atomic<unsigned long
   d_sizecounters.push_back(make_pair(std::numeric_limits<uint16_t>::max(),0));
   for(unsigned int n =0 ; n < 65535; ++n)
     d_qtypecounters[n] = 0;
+  for(unsigned int n =0 ; n < 256; ++n)
+    d_rcodecounters[n] = 0;
 }
 
 ResponseStats g_rs;
@@ -28,9 +30,15 @@ ResponseStats g_rs;
 static bool pcomp(const pair<uint16_t, uint64_t>&a , const pair<uint16_t, uint64_t>&b)
 {
   return a.first < b.first;
-} 
+}
 
-void ResponseStats::submitResponse(uint16_t qtype, uint16_t respsize, bool udpOrTCP) 
+void ResponseStats::submitResponse(uint16_t qtype,uint16_t respsize, uint8_t rcode, bool udpOrTCP)
+{
+    d_rcodecounters[rcode]++;
+    submitResponse(qtype, respsize, udpOrTCP);
+}
+
+void ResponseStats::submitResponse(uint16_t qtype,uint16_t respsize, bool udpOrTCP)
 {
   d_qtypecounters[qtype]++;
   pair<uint16_t, uint64_t> s(respsize, 0);
@@ -63,6 +71,18 @@ map<uint16_t, uint64_t> ResponseStats::getSizeResponseCounts()
   return ret;
 }
 
+map<uint8_t, uint64_t> ResponseStats::getRCodeResponseCounts()
+{
+  map<uint8_t, uint64_t> ret;
+  uint64_t count;
+  for(unsigned int i = 0 ; i < 256 ; ++i) {
+    count= d_rcodecounters[i];
+    if(count)
+      ret[i]=count;
+  }
+  return ret;
+}
+
 string ResponseStats::getQTypeReport()
 {
   typedef map<uint16_t, uint64_t> qtypenums_t;
@@ -74,4 +94,3 @@ string ResponseStats::getQTypeReport()
   }
   return os.str();
 }
-

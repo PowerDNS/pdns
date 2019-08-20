@@ -46,7 +46,11 @@ int intFromJson(const Json container, const std::string& key, const int default_
   if (val.is_number()) {
     return val.int_value();
   } else if (val.is_string()) {
-    return std::stoi(val.string_value());
+    try {
+      return std::stoi(val.string_value());
+    } catch (std::out_of_range&) {
+      throw JsonException("Value for key '" + string(key) + "' is out of range");
+    }
   } else {
     // TODO: check if value really isn't present
     return default_value;
@@ -59,7 +63,11 @@ double doubleFromJson(const Json container, const std::string& key)
   if (val.is_number()) {
     return val.number_value();
   } else if (val.is_string()) {
-    return std::stod(val.string_value());
+    try {
+      return std::stod(val.string_value());
+    } catch (std::out_of_range&) {
+      throw JsonException("Value for key '" + string(key) + "' is out of range");
+    }
   } else {
     throw JsonException("Key '" + string(key) + "' not an Integer or not present");
   }

@@ -924,7 +924,7 @@ Other changes
    'real' remote if available.
 -  pipebackend ABI v4 adds the zone name to the AXFR command.
 -  We now `avoid
-   getaddrinfo() <http://blog.powerdns.com/2014/05/21/a-surprising-discovery-on-converting-ipv6-addresses-we-no-longer-prefer-getaddrinfo/>`__
+   getaddrinfo() <https://blog.powerdns.com/2014/05/21/a-surprising-discovery-on-converting-ipv6-addresses-we-no-longer-prefer-getaddrinfo/>`__
    as much as possible.
 -  The packet cache now handles (forwarded) recursive answers better,
    including TTL aging and respecting allow-recursion.
@@ -5042,7 +5042,7 @@ After the SOA of example.org was raised
 If however our slaves would ignore us, as some are prone to do, we can
 send some additional notifications
 
-::
+.. code-block:: shell
 
     $ sudo pdns_control notify example.org
     Added to queue
@@ -5055,7 +5055,7 @@ send some additional notifications
 Conversely, if PowerDNS needs to be reminded to retrieve a zone from a
 master, a command is provided
 
-::
+.. code-block:: shell
 
     $ sudo pdns_control retrieve forfun.net
     Added retrieval request for 'forfun.net' from master 212.187.98.67

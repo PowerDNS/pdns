@@ -14,33 +14,33 @@ DnstapMessage::DnstapMessage(const std::string& identity, const ComboAddress* re
   dnstap::Message* message = proto_message.mutable_message();
 
   message->set_type(!dh->qr ? dnstap::Message_Type_CLIENT_QUERY : dnstap::Message_Type_CLIENT_RESPONSE);
-
-  message->set_socket_family(requestor->sin4.sin_family == AF_INET ? dnstap::INET : dnstap::INET6);
   message->set_socket_protocol(isTCP ? dnstap::TCP : dnstap::UDP);
 
-  if (requestor->sin4.sin_family == AF_INET) {
-    message->set_query_address(&requestor->sin4.sin_addr.s_addr, sizeof(requestor->sin4.sin_addr.s_addr));
+  if (requestor != nullptr) {
+    message->set_socket_family(requestor->sin4.sin_family == AF_INET ? dnstap::INET : dnstap::INET6);
+    if (requestor->sin4.sin_family == AF_INET) {
+      message->set_query_address(&requestor->sin4.sin_addr.s_addr, sizeof(requestor->sin4.sin_addr.s_addr));
+    } else if (requestor->sin4.sin_family == AF_INET6) {
+      message->set_query_address(&requestor->sin6.sin6_addr.s6_addr, sizeof(requestor->sin6.sin6_addr.s6_addr));
+    }
+    message->set_query_port(ntohs(requestor->sin4.sin_port));
   }
-  else if (requestor->sin4.sin_family == AF_INET6) {
-    message->set_query_address(&requestor->sin6.sin6_addr.s6_addr, sizeof(requestor->sin6.sin6_addr.s6_addr));
+  if (responder != nullptr) {
+    message->set_socket_family(responder->sin4.sin_family == AF_INET ? dnstap::INET : dnstap::INET6);
+    if (responder->sin4.sin_family == AF_INET) {
+      message->set_response_address(&responder->sin4.sin_addr.s_addr, sizeof(responder->sin4.sin_addr.s_addr));
+    } else if (responder->sin4.sin_family == AF_INET6) {
+      message->set_response_address(&responder->sin6.sin6_addr.s6_addr, sizeof(responder->sin6.sin6_addr.s6_addr));
+    }
+    message->set_response_port(ntohs(responder->sin4.sin_port));
   }
-  message->set_query_port(ntohs(requestor->sin4.sin_port));
-
-  if (requestor->sin4.sin_family == AF_INET) {
-    message->set_response_address(&responder->sin4.sin_addr.s_addr, sizeof(responder->sin4.sin_addr.s_addr));
-  }
-  else if (requestor->sin4.sin_family == AF_INET6) {
-    message->set_response_address(&responder->sin6.sin6_addr.s6_addr, sizeof(responder->sin6.sin6_addr.s6_addr));
-  }
-  message->set_response_port(ntohs(responder->sin4.sin_port));
-
   if (queryTime != nullptr) {
     message->set_query_time_sec(queryTime->tv_sec);
-    message->set_query_time_nsec(queryTime->tv_nsec / 1000);
+    message->set_query_time_nsec(queryTime->tv_nsec);
   }
   if (responseTime != nullptr) {
     message->set_response_time_sec(responseTime->tv_sec);
-    message->set_response_time_nsec(responseTime->tv_nsec / 1000);
+    message->set_response_time_nsec(responseTime->tv_nsec);
   }
 
   if (!dh->qr) {

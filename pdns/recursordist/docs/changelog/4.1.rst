@@ -2,10 +2,76 @@ Changelogs for 4.1.x
 ====================
 
 .. changelog::
+  :version: 4.1.14
+  :released: 13th of June 2019
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 7906
+
+    Add statistics counters for AD and CD queries.
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 7912
+
+    Add missing getregisteredname Lua function
+
+.. changelog::
+  :version: 4.1.13
+  :released: 21st of May 2019
+
+  .. change::
+    :tags: Improvements, Performance
+    :pullreq: 7673
+    :tickets: 7661
+
+    Add the ``disable-real-memory-usage`` setting to skip expensive
+    collection of detailed memory usage info.
+
+  .. change::
+    :tags: Bug Fixes, DNSSEC
+    :pullreq: 7816
+    :tickets: 7714
+
+    Fix DNSSEC validation of wildcards expanded onto themselves.
+
+.. changelog::
+  :version: 4.1.12
+  :released: 2nd of April 2019
+
+  .. change::
+    :tags: Bug Fixes, Internals
+    :pullreq: 7495
+    :tickets: 7494
+
+    Correctly interpret an empty AXFR response to an IXFR query.
+
+  .. change::
+    :tags: Improvements, Internals
+    :pullreq: 7647
+
+    Provide CPU usage statistics per thread (worker & distributor).
+
+  .. change::
+    :tags: Improvements, Internals, Performance
+    :pullreq: 7634
+    :tickets: 7507
+
+    Use a bounded load-balancing algo to distribute queries.
+
+  .. change::
+    :tags: Improvements, Internals
+    :pullreq: 7651
+    :tickets: 7631, 7572
+
+    Implement a configurable ECS cache limit so responses with an ECS scope more specific than a certain threshold and a TTL smaller than a specific threshold are not inserted into the records cache at all.
+
+.. changelog::
   :version: 4.1.11
   :released: 1st of February 2019
 
-  Since Spectre/Meltdown, system calls have become more expensive.  This made exporting a very high number of protobuf messages costly, which is addressed in this release by reducing the number of sycalls per message.
+  Since Spectre/Meltdown, system calls have become more expensive.  This made exporting a very high number of protobuf messages costly, which is addressed in this release by reducing the number of syscalls per message.
 
   .. change::
     :tags: Improvements

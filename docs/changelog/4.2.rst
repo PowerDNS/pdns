@@ -2,8 +2,678 @@ Changelogs for 4.2.x
 ====================
 
 .. changelog::
-  :version: 4.2.0
-  :released: *unreleased*
+  :version: 4.2.0-rc3
+  :released: 29th of July 2019
+
+  Thanks to an overwhelming amount of testing by our fabulous user community, this release candidate contains a ton of bug fixes (and a few improvements) compared to the previous one. We hope this has shaken out all of the important bugs, so that we can release 4.2.0 soon!
+
+  This release, sadly, cripples the LMDB backend somewhat, due to `transaction-related fixes for the SQL backends <https://github.com/PowerDNS/pdns/pull/7891>`__. We hope to fix `this issue <https://github.com/PowerDNS/pdns/issues/8134>`__ before 4.2.0, or otherwise, early in 4.2.x.
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 8168
+
+    packethandler: Compare TSIG key name using DNSName
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 8172, 8173
+
+    boost.m4 improvements
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 8169
+
+    Make sure we always compile with BOOST_CB_ENABLE_DEBUG set to 0
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 8058
+
+    Fix SERVFAIL when backend returns empty DNSName
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 8126
+
+    add metric for open TCP connections
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 8149
+
+    stop using select() in places where FDs can be >1023
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 8166
+
+    pdnsutil increase-serial: set right ordername
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 8097
+
+    use BIGINT for notified_serial in pg schema (Klaus Darilion)
+
+  .. change::
+    :tags: Improvements, Robustness, Performance
+    :pullreq: 8092
+
+    Various robustness and performance improvements around domain IDs (Kees Monshouwer)
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 8056
+
+    Fix the accounting of servfail-queries in the distributor
+
+  .. change::
+    :tags: Improvements, Build
+    :pullreq: 8064
+
+    remove unused import to enable compile on illumos (Thomas Mieslinger)
+
+  .. change::
+    :tags: Improvements, Performance
+    :pullreq: 8051
+
+    ixfrdist: limit XFR chunk size to 16k
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 8028
+
+    limit compression pointers to 14 bits
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 8037
+
+    catch name & IP parse errors during outgoing notify preparations
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 7998
+
+    Fix a memory leak when sqlite3_exec() fails
+
+  .. change::
+    :tags: Improvements, Build
+    :pullreq: 8019, 7980
+
+    don't enable the tbhandler when libc only pretends to be glibc (James Taylor)
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 8006
+
+    Fix a leak on 'Backend reported permanent error which prevented lookup' error
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 7996
+
+    Clear CMSG_SPACE(sizeof(data)) in cmsghdr to appease valgrind
+
+  .. change::
+    :tags: New Features
+    :pullreq: 7550
+
+    web: make max request/response body size configurable
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 7918
+
+    deprecate SOA autocomplete in pdnsutil check-zone (Kees Monshouwer)
+
+  .. change::
+    :tags: Improvements, Packaging
+    :pullreq: 7889
+
+    move /var/lib/pdns to pdns-server debian package
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 7890
+
+    Show newer features in configure output and --version
+
+  .. change::
+    :tags: Improvements, Performance
+    :pullreq: 7910
+
+    completely disable the packet when cache-ttl=0 (Kees Monshouwer)
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 7943
+
+    Improve error when notification comes in for non-slave zone
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 7962
+
+    web: add edited_serial to Zone object
+
+  .. change::
+    :tags: Improvements, Build
+    :pullreq: 7871
+
+    Adapt calidns for openbsd and other systems without rcvmmsg(2)
+
+  .. change::
+    :tags: Improvements, Performance
+    :pullreq: 7699
+
+    DNSName, speed up toString() conversion
+
+.. changelog::
+  :version: 4.2.0-rc2
+  :released: 14th of June 2019
+
+  .. change::
+    :tags: Improvements, LMDB
+    :pullreq: 7807
+
+    Make explicit lmdbbackend synchronous option
+
+  .. change::
+    :tags: Improvements, LMDB
+    :pullreq: 7700
+
+    Reduce mmap size for lmdb on 32 bits plus restrict number of shards
+
+  .. change::
+    :tags: Bug Fixes, LMDB
+    :pullreq: 7784, 7697, 7643
+
+    LMDB improvements:
+
+    * lmdbbackend: auth was unset in get() (always true) (Kees Monshouwer)
+    * LMDB defaulted to port 0 for master addresses unless explicitly set
+    * fix ``getAllDomains()`` (Kees Monshouwer)
+
+  .. change::
+    :tags: Bug fixes, Backends
+    :pullreq: 7891
+
+    auth API, pdnsutil: improve backend transaction correctness
+
+  .. change::
+    :tags: Robustness, Backends
+    :pullreq: 7881
+
+    detect SOA cache pollution caused by broken backends (Kees Monshouwer)
+
+  .. change::
+    :tags: Improvements, Backends
+    :pullreq: 7852
+
+    sqlite3: make journal mode configurable; default to WAL
+
+  .. change::
+    :tags: Bug Fixes, Backends
+    :pullreq: 7854
+
+    auth gsql ``getAllDomains``: ignore stou errors
+
+  .. change::
+    :tags: Performance, Backends
+    :pullreq: 7460
+
+    speedup ``getUpdatedMasters()`` for the gsql backends (Kees Monshouwer)
+
+  .. change::
+    :tags: Bug Fixes, Backends
+    :pullreq: 7831, 7787
+
+    Rectify/ENT fixes:
+
+    * Allow updates to override existing ENT records
+    * Fix ENTs removal when "replacing" new records via the API
+
+  .. change::
+    :tags: Bug Fixes, Backends
+    :pullreq: 7363
+
+    Cleanup SOA editing (Kees Monshouwer)
+
+  .. change::
+    :tags: Backends
+    :pullreq: 7753
+
+    pdns_control reopens geoip databases on reload (jpmens)
+
+  .. change::
+    :tags: Backends
+    :pullreq: 7696
+
+    b2b-migrate did not open a transaction, breaking it for lmdb
+
+  .. change::
+    :tags: Backends
+    :pullreq: 7706
+
+    No longer filter DNSSEC metadata when DNSSEC is enabled in gsql
+
+  .. change::
+    :tags: Backends
+    :pullreq: 7580
+
+    Rectify for ent records in narrow zones was slightly wrong. (Kees Monshouwer)
+
+  .. change::
+    :tags: Backends
+    :pullreq: 7529
+
+    Clear caches (meta-data, keys) on domain deletion
+
+  .. change::
+    :tags: Performance, LUA
+    :pullreq: 7869, 7897
+
+    optionally reuse Lua state
+
+  .. change::
+    :tags: Improvements, Portability
+    :pullreq: 7862, 7861, 7818, 7668
+
+    Portability/building improvements:
+
+    * Update boost.m4 to the latest version
+    * Check if ``-latomic`` is needed instead of hardcoding (neheb)
+    * Use ``net-snmp-config --netsnmp-agent-libs`` instead of ``--agent-libs``
+    * bump boost requirement to 1.42 unconditionally
+
+  .. change::
+    :tags: Improvements, Robustness
+    :pullreq: 7864, 7865, 7708
+
+    Robustness improvements:
+
+    * Fix warnings reported by Coverity
+    * Initialize cURL before starting any thread
+    * Don't do unaligned memory access
+
+  .. change::
+    :tags: Improvements, Compliance
+    :pullreq: 7873
+
+    Always truncate when the additional records do not fit in a response (Kees Monshouwer)
+
+  .. change::
+    :tags: Improvements, Compliance
+    :pullreq: 7859
+
+    Remove ``disable-tcp`` option
+
+  .. change::
+    :tags: Improvements, Compliance
+    :pullreq: 7615
+
+    RKEY is missing algorithm field (DNS-Leo)
+
+  .. change::
+    :tags: Bug Fixes, Compliance
+    :pullreq: 7789, 7772
+
+    DNSSEC fixes:
+
+    * Don't sign insecure records with keys from other zones (Kees Monshouwer)
+    * always add DS for secure zones, broken since #7523 (Kees Monshouwer)
+
+  .. change::
+    :tags: Improvements, Compliance
+    :pullreq: 7410
+
+    Ignore Path MTU Discovery on UDP server socket
+
+  .. change::
+    :tags: Features, Tools
+    :pullreq: 7832
+
+    add DoH support to sdig
+
+  .. change::
+    :tags: Bug Fixes, Tools
+    :pullreq: 7801
+    :tickets: 7667
+
+    pdnsutil: show DS for second and further keys too
+
+  .. change::
+    :tags: Features, Tools
+    :pullreq: 7655
+
+    dumresp: add TCP support
+
+  .. change::
+    :tags: Deprecation, API
+    :pullreq: 7797
+
+    API: mark ``set-ptr`` as deprecated (zeha)
+
+  .. change::
+    :tags: Robustness
+    :pullreq: 7790, 7569, 7662, 7503, 7517, 7587
+
+    Various robustness improvements:
+
+    * Do not busy loop if we get lots of notifies.
+    * Improve error reporting with garbage in the 'master' field of the database
+    * Do not exit on exception resolving addresses to notify
+    * Auth ringbuffer summaries were case sensitive & accounted delegations incorrectly
+    * plug mysql_thread_init memory leak
+    * Ensure we increase the number of queued queries before decreasing it
+
+  .. change::
+    :tags: Performance, DNSSEC
+    :pullreq: 7523
+
+    disable dnssec pre-processing for non dnssec zones and avoid a lot of ``isSecuredZone()`` calls (Kees Monshouwer)
+
+  .. change::
+    :tags: Bug fixes
+    :pullreq: 7723
+
+    rename 'supermaster' option to 'superslave'
+
+  .. change::
+    :tags: Improvements, Webserver
+    :pullreq: 5932
+
+    improve logging in the web server
+
+  .. change::
+    :tags: Features, Tools
+    :pullreq: 7481
+
+    pdnsutil, dnswasher: add support for encrypting IP addresses
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 7584
+
+    GSQL: Log more data in error messages
+
+.. changelog::
+  :version: 4.2.0-rc1
+  :released: 19th of March 2019
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 7576
+    :tickets: 7573
+
+    Insufficient validation in the HTTP remote backend (CVE-2019-3871, PowerDNS Security Advisory :doc:`2019-03 <../security-advisories/powerdns-advisory-2019-03>`)
+
+  .. change::
+    :tags: Bug Fixes, API
+    :pullreq: 7546
+    :tickets: 7545
+
+    Fix API search failed with "Commands out of sync; you can't run this command now".
+
+  .. change::
+    :tags: Bug Fixes, GeoIP
+    :pullreq: 7219
+
+    Fix static lookup when using weighted records on multiple record types.
+
+  .. change::
+    :tags: Improvements, DNSSEC
+    :pullreq: 7516
+
+    Report ``checkKey`` errors upwards.
+
+  .. change::
+    :tags: Bug Fixes, MySQL
+    :pullreq: 7496
+    :tickets: 7493
+
+    Fix invalid SOA record in MySQL which prevented the authoritative
+    server from starting.
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 6872
+
+    ixfrdist: Add option to limit AXFR record count.
+
+  .. change::
+    :tags: Improvements, API
+    :pullreq: 7326
+    :tickets: 5430
+
+    Add ``type`` filter to search-data api.
+
+  .. change::
+    :tags: Improvements, Internals
+    :pullreq: 7502
+
+    Use a less expensive way to get memory stats for ``real-memory-usage``.
+
+  .. change::
+    :tags: Improvements, API
+    :pullreq: 7359
+    :tickets: 7357
+
+    Add ``rcode`` response statistics on API.
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 7490
+    :tickets: 7393
+
+    Lua records: Add ``useragent`` option to ``ifurlup`` and set a default.
+
+  .. change::
+    :tags: Improvements, Remote
+    :pullreq: 7448
+    :tickets: 7444
+
+    remotebackend: Implement ``getUpdatedMasters``.
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 7494
+
+    Correctly interpret an empty AXFR response to an IXFR query.
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 7492
+    :tickets: 6853
+
+    Lua: Expose ``dns_random`` as ``pdnsrandom``.
+
+  .. change::
+    :tags: Improvements, API
+    :pullreq: 7491
+    :tickets: 6451
+
+    Use commas instead of spaces when setting Zone Masters via the REST API.
+
+  .. change::
+    :tags: Bug Fixes, API
+    :pullreq: 7488
+    :tickets: 6114
+
+    Improve handling of out of range ``modified_at`` value.
+
+  .. change::
+    :tags: Bug Fixes, Tools
+    :pullreq: 7482
+
+    Fix output order of pdnsutil ``add-record``.
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 7352
+
+    Respect packet size limits, even with ECS and TSIG.
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 7459
+    :tickets: 7429
+
+    Fix dot stripping in ``setcontent()``.
+
+  .. change::
+    :tags: Improvements, API
+    :pullreq: 7463
+
+    Improve RRset validation.
+
+  .. change::
+    :tags: Bug Fixes, MySQL
+    :pullreq: 7475
+
+    Avoid infinite loop in mydnsbackend.
+
+  .. change::
+    :tags: Bug Fixes, LMDB
+    :pullreq: 7472
+    :tickets: 7471
+
+    Do not compress the root since LMDB backend cannot set a root zone
+    with a compressible SOA record.
+
+  .. change::
+    :tags: Bug Fixes, LMDB
+    :pullreq: 7470
+    :tickets: 7453
+
+    Avoid duplicate NSEC3 records in presigned zones in LMDB backend.
+
+  .. change::
+    :tags: New Features, LMDB
+    :pullreq: 7453
+
+    Authoritative LMDB backend.
+
+  .. change::
+    :tags: Improvements, Internals
+    :pullreq: 7412
+
+    Be smarter about trimming whitespace when creating records from ASCII.
+
+  .. change::
+    :tags: Improvements, Internals
+    :pullreq: 6634
+
+    More sandboxing using SystemD's features.
+
+  .. change::
+    :tags: Improvements, Internals
+    :pullreq: 7353
+
+    Fix attempt to restrict / speed-up additional processing to auth zone.
+
+  .. change::
+    :tags: Bug Fixes, Tools
+    :pullreq: 7148
+
+    sdig: Handle non-IN class records better.
+
+  .. change::
+    :tags: Improvements, DNSSEC
+    :pullreq: 7340
+
+    Error on DNSSEC default misconfiguration.
+
+  .. change::
+    :tags: Bug Fixes, Improvements, Tools
+    :pullreq: 7364
+
+    Dnsscope off-by-one + domain-filter.
+
+  .. change::
+    :tags: Bug Fixes, Internals
+    :pullreq: 7382
+
+    Fix ``dns_random()`` always returning 0 when the minimum acceptable value is 0.
+
+  .. change::
+    :tags: Bug Fixes, Internals
+    :pullreq: 7320
+
+    Lower ``udp-truncation-threshold`` by default to 1232.
+
+  .. change::
+    :tags: Improvements, Internals
+    :pullreq: 7293
+
+    Make ``pdns_control notify *`` also notify slaves zones.
+
+  .. change::
+    :tags: Improvements, Internals
+    :pullreq: 7348
+
+    Zero out QTYPE response numbers in our statistics. Makes Valgrind
+    usable on auth again.
+
+  .. change::
+    :tags: Bug Fixes, Tools
+    :pullreq: 7244
+    :tickets: 7319
+
+    pdns_notify: Support hostname for notification.
+
+  .. change::
+    :tags: Improvements, Internals
+    :pullreq: 7345
+
+    Improve memory handling for NSEC(3) records with lots of types.
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 7341
+
+    Fix replying from ANY address for non-standard port.
+
+  .. change::
+    :tags: Improvements, API
+    :pullreq: 7286
+
+    Fix a couple of Swagger / OpenAPI issues.
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 7288
+
+    Fix a few off-by-one errors.
+
+  .. change::
+    :tags: Bug Fixes, GeoIP
+    :pullreq: 7227
+    :tickets: 7219
+
+    Forbid 0 as weight value.
+
+  .. change::
+    :tags: Bug Fixes, Internals
+    :pullreq: 7294
+
+    Prevent leak of file descriptor if running out of ports for incoming AXFR.
+
+  .. change::
+    :tags: Improvements, DNSSEC
+    :pullreq: 7284
+
+    Fallback to SHA1 for the signatures cache if MD5 is not available.
+
+  .. change::
+    :tags: Bug Fixes, API
+    :pullreq: 7278
+    :tickets: 7277
+
+    Prevent more than one CNAME / SOA record in the same RRset.
 
   .. change::
     :tags: Improvements, Internals
@@ -736,7 +1406,7 @@ Changelogs for 4.2.x
     :pullreq: 6220
     :tickets: 5079, 5594, 5654
 
-    Add XPF support.
+    Add XPF support to sdig, PowerDNS Recursor and dnsdist.
 
   .. change::
     :tags: Improvements, Internals
@@ -881,3 +1551,20 @@ Changelogs for 4.2.x
     :tickets: 6028
 
     Forbid label compression in ALIAS wire format.
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 7359
+    :tickets: 7357
+
+    API: Add response-by-qtype and response-by-rcode on /statistics endpoint
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 6021
+
+    Several improvements to processing of notifies.
+
+    * Turn off supermaster support by default (adds new setting).
+    * PowerDNS was wasting a lot of queries while processing notifies.
+    * Use comboaddress for IPs (was strings)

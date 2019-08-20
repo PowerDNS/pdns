@@ -16,8 +16,8 @@ class TestTeeAction(DNSDistTest):
     setKey("%s")
     controlSocket("127.0.0.1:%s")
     newServer{address="127.0.0.1:%d"}
-    addAction(QTypeRule(dnsdist.A), TeeAction("127.0.0.1:%d", true))
-    addAction(QTypeRule(dnsdist.AAAA), TeeAction("127.0.0.1:%d", false))
+    addAction(QTypeRule(DNSQType.A), TeeAction("127.0.0.1:%d", true))
+    addAction(QTypeRule(DNSQType.AAAA), TeeAction("127.0.0.1:%d", false))
     """
     _config_params = ['_consoleKeyB64', '_consolePort', '_testServerPort', '_teeServerPort', '_teeServerPort']
     @classmethod

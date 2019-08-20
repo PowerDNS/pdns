@@ -9,7 +9,7 @@ Server 4.1.0 or higher, set the :ref:`setting-resolver`
 setting to an existing resolver and enable
 :ref:`setting-expand-alias`:
 
-::
+.. code-block:: ini
 
     resolver=[::1]:5300
     expand-alias=yes
@@ -52,6 +52,8 @@ records unless you AXFR regularly.
   The ``expand-alias`` setting does not exist in PowerDNS
   Authoritative Server 4.0.x. Hence, ALIAS records are always expanded on
   a direct A or AAAA query.
+
+.. _alias_and_dnssec:
 
 ALIAS and DNSSEC
 ----------------

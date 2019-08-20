@@ -126,7 +126,9 @@ static void checkECSOptionValidity(const std::string& sourceStr, uint8_t sourceM
   uint8_t sourceBytes = ((sourceMask - 1) >> 3) + 1;
   BOOST_REQUIRE_EQUAL(ecsOptionStr.size(), (ecsHeaderSize + sourceBytes));
   /* family */
-  BOOST_REQUIRE_EQUAL(ntohs(*(reinterpret_cast<const uint16_t*>(&ecsOptionStr.at(0)))), source.isIPv4() ? 1 : 2);
+  uint16_t u;
+  memcpy(&u, ecsOptionStr.c_str(), sizeof(u));
+  BOOST_REQUIRE_EQUAL(ntohs(u), source.isIPv4() ? 1 : 2);
   /* source mask */
   BOOST_REQUIRE_EQUAL(static_cast<uint8_t>(ecsOptionStr.at(2)), sourceMask);
   BOOST_REQUIRE_EQUAL(static_cast<uint8_t>(ecsOptionStr.at(3)), scopeMask);

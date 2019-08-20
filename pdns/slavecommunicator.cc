@@ -91,8 +91,13 @@ void CommunicatorClass::ixfrSuck(const DNSName &domain, const TSIGTriplet& tt, c
   try {
     DNSSECKeeper dk (&B); // reuse our UeberBackend copy for DNSSECKeeper
 
-    if(!B.getDomainInfo(domain, di) || !di.backend || di.kind != DomainInfo::Slave) { // di.backend and B are mostly identical
-      g_log<<Logger::Error<<"Can't determine backend for domain '"<<domain<<"'"<<endl;
+    bool wrongDomainKind = false;
+    // this checks three error conditions, and sets wrongDomainKind if we hit the third & had an error
+    if(!B.getDomainInfo(domain, di) || !di.backend || (wrongDomainKind = true, di.kind != DomainInfo::Slave)) { // di.backend and B are mostly identical
+      if(wrongDomainKind)
+        g_log<<Logger::Error<<"Can't determine backend for domain '"<<domain<<"', not configured as slave"<<endl;
+      else
+        g_log<<Logger::Error<<"Can't determine backend for domain '"<<domain<<"'"<<endl;
       return;
     }
 
@@ -307,9 +312,13 @@ void CommunicatorClass::suck(const DNSName &domain, const ComboAddress& remote)
   bool transaction=false;
   try {
     DNSSECKeeper dk (&B); // reuse our UeberBackend copy for DNSSECKeeper
-
-    if(!B.getDomainInfo(domain, di) || !di.backend || di.kind != DomainInfo::Slave) { // di.backend and B are mostly identical
-      g_log<<Logger::Error<<"Can't determine backend for domain '"<<domain<<"'"<<endl;
+    bool wrongDomainKind = false;
+    // this checks three error conditions & sets wrongDomainKind if we hit the third
+    if(!B.getDomainInfo(domain, di) || !di.backend || (wrongDomainKind = true, di.kind != DomainInfo::Slave)) { // di.backend and B are mostly identical
+      if(wrongDomainKind)
+        g_log<<Logger::Error<<"Can't determine backend for domain '"<<domain<<"', not configured as slave"<<endl;
+      else
+        g_log<<Logger::Error<<"Can't determine backend for domain '"<<domain<<"'"<<endl;
       return;
     }
     ZoneStatus zs;
@@ -560,7 +569,7 @@ void CommunicatorClass::suck(const DNSName &domain, const ComboAddress& remote)
           // NSEC3
           ordername=DNSName(toBase32Hex(hashQNameWithSalt(zs.ns3pr, rr.qname)));
           if(!zs.isNarrow && (rr.auth || (rr.qtype.getCode() == QType::NS && (!zs.optOutFlag || zs.secured.count(ordername))))) {
-            di.backend->feedRecord(rr, ordername);
+            di.backend->feedRecord(rr, ordername, true);
           } else
             di.backend->feedRecord(rr, DNSName());
         } else {

@@ -224,7 +224,7 @@ void DNSSECKeeper::getFromMeta(const DNSName& zname, const std::string& key, std
     nce.d_value = value;
     {
       WriteLock l(&s_metacachelock);
-      replacing_insert(s_metacache, nce);
+      lruReplacingInsert(s_metacache, nce);
     }
   }
 }
@@ -514,7 +514,7 @@ DNSSECKeeper::keyset_t DNSSECKeeper::getKeys(const DNSName& zone, bool useCache)
     kce.d_ttd = now + ttl;
     {
       WriteLock l(&s_keycachelock);
-      replacing_insert(s_keycache, kce);
+      lruReplacingInsert(s_keycache, kce);
     }
   }
 
@@ -692,7 +692,7 @@ bool DNSSECKeeper::rectifyZone(const DNSName& zone, string& error, string& info,
   }
 
   set<DNSName> nsec3set;
-  if (haveNSEC3 && !narrow) {
+  if (haveNSEC3 && (!narrow || !isOptOut)) {
     for (auto &loopRR: rrs) {
       bool skip=false;
       DNSName shorter = loopRR.qname;
@@ -743,12 +743,12 @@ bool DNSSECKeeper::rectifyZone(const DNSName& zone, string& error, string& info,
 
     if(haveNSEC3) // NSEC3
     {
-      if(!narrow && nsec3set.count(qname)) {
-        ordername=DNSName(toBase32Hex(hashQNameWithSalt(ns3pr, qname)));
-        if(!realrr)
+      if(nsec3set.count(qname)) {
+        if(!narrow)
+          ordername=DNSName(toBase32Hex(hashQNameWithSalt(ns3pr, qname)));
+        if(!realrr && !isOptOut)
           auth=true;
-      } else if(!realrr)
-        auth=false;
+      }
     }
     else if (realrr && securedZone) // NSEC
       ordername=qname.makeRelative(zone);

@@ -22,6 +22,8 @@
 #include "dnsdist.hh"
 #include "ednsoptions.hh"
 
+#undef BADSIG  // signal.h SIG_ERR
+
 void setupLuaVars()
 {
   g_lua.writeVariable("DNSAction", std::unordered_map<string,int>{
@@ -85,33 +87,54 @@ void setupLuaVars()
       {"KEYTAG",       EDNSOptionCode::KEYTAG }
     });
 
-  vector<pair<string, int> > rcodes = {{"NOERROR",  RCode::NoError  },
-                                       {"FORMERR",  RCode::FormErr  },
-                                       {"SERVFAIL", RCode::ServFail },
-                                       {"NXDOMAIN", RCode::NXDomain },
-                                       {"NOTIMP",   RCode::NotImp   },
-                                       {"REFUSED",  RCode::Refused  },
-                                       {"YXDOMAIN", RCode::YXDomain },
-                                       {"YXRRSET",  RCode::YXRRSet  },
-                                       {"NXRRSET",  RCode::NXRRSet  },
-                                       {"NOTAUTH",  RCode::NotAuth  },
-                                       {"NOTZONE",  RCode::NotZone  },
-                                       {"BADVERS",  ERCode::BADVERS },
-                                       {"BADSIG",   ERCode::BADSIG  },
-                                       {"BADKEY",   ERCode::BADKEY  },
-                                       {"BADTIME",  ERCode::BADTIME   },
-                                       {"BADMODE",  ERCode::BADMODE   },
-                                       {"BADNAME",  ERCode::BADNAME   },
-                                       {"BADALG",   ERCode::BADALG    },
-                                       {"BADTRUNC", ERCode::BADTRUNC  },
-                                       {"BADCOOKIE",ERCode::BADCOOKIE },
-  };
+  g_lua.writeVariable("DNSRCode", std::unordered_map<string, int>{
+      {"NOERROR",  RCode::NoError  },
+      {"FORMERR",  RCode::FormErr  },
+      {"SERVFAIL", RCode::ServFail },
+      {"NXDOMAIN", RCode::NXDomain },
+      {"NOTIMP",   RCode::NotImp   },
+      {"REFUSED",  RCode::Refused  },
+      {"YXDOMAIN", RCode::YXDomain },
+      {"YXRRSET",  RCode::YXRRSet  },
+      {"NXRRSET",  RCode::NXRRSet  },
+      {"NOTAUTH",  RCode::NotAuth  },
+      {"NOTZONE",  RCode::NotZone  },
+      {"BADVERS",  ERCode::BADVERS },
+      {"BADSIG",   ERCode::BADSIG  },
+      {"BADKEY",   ERCode::BADKEY  },
+      {"BADTIME",  ERCode::BADTIME   },
+      {"BADMODE",  ERCode::BADMODE   },
+      {"BADNAME",  ERCode::BADNAME   },
+      {"BADALG",   ERCode::BADALG    },
+      {"BADTRUNC", ERCode::BADTRUNC  },
+      {"BADCOOKIE",ERCode::BADCOOKIE }
+  });
+
   vector<pair<string, int> > dd;
   for(const auto& n : QType::names)
     dd.push_back({n.first, n.second});
-  for(const auto& n : rcodes)
-    dd.push_back({n.first, n.second});
-  g_lua.writeVariable("dnsdist", dd);
+  g_lua.writeVariable("DNSQType", dd);
+
+  g_lua.executeCode(R"LUA(
+    local tables = {
+      DNSQType = DNSQType,
+      DNSRCode = DNSRCode
+    }
+    local function index (table, key)
+      for tname,t in pairs(tables)
+      do
+        local val = t[key]
+        if val then
+          warnlog(string.format("access to dnsdist.%s is deprecated, please use %s.%s", key, tname, key))
+          return val
+        end
+      end
+    end
+
+    dnsdist = {}
+    setmetatable(dnsdist, { __index = index })
+    )LUA"
+  );
 
 #ifdef HAVE_DNSCRYPT
     g_lua.writeVariable("DNSCryptExchangeVersion", std::unordered_map<string,int>{
@@ -119,17 +142,4 @@ void setupLuaVars()
         { "VERSION2", DNSCryptExchangeVersion::VERSION2 },
     });
 #endif
-
-  g_lua.writeVariable("EDNSOptionCode", std::unordered_map<string, uint8_t>{
-      { "NSID", EDNSOptionCode::NSID },
-      { "DAU", EDNSOptionCode::DAU },
-      { "DHU", EDNSOptionCode::DHU },
-      { "N3U", EDNSOptionCode::N3U },
-      { "ECS", EDNSOptionCode::ECS },
-      { "EXPIRE", EDNSOptionCode::EXPIRE },
-      { "COOKIE", EDNSOptionCode::COOKIE },
-      { "TCPKEEPALIVE", EDNSOptionCode::TCPKEEPALIVE },
-      { "PADDING", EDNSOptionCode::PADDING },
-      { "CHAIN", EDNSOptionCode::CHAIN }
-    });
 }

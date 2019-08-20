@@ -9,7 +9,7 @@ Synopsis
 Description
 -----------
 
-:program:`zone2ldap` is a program that converts bind zonefiles to ldif format
+:program:`zone2ldap` is a program that converts BIND zonefiles to ldif format
 which can inserted to an LDAP server.
 
 Options
@@ -19,7 +19,7 @@ Options
 --basedn=<DN>                   Base DN to store objects below
 --dnsttl                        Add dnsttl attribute to every entry
 --layout=<layout>               How to arrange entries in the directory ("simple" or "tree")
---named-conf=<PATH>             Path to a Bind named.conf to parse
+--named-conf=<PATH>             Path to a BIND named.conf to parse
 --resume                        Continue after errors
 --verbose                       Verbose comments on operation
 --zone-file=<PATH>              Zone file to parse

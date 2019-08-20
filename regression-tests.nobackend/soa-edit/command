@@ -37,8 +37,13 @@ faketime -m -f -$delta $PDNS --config-dir=soa-edit &
 bindwait
 
 $SDIG 127.0.0.1 $port minimal.com SOA | LC_ALL=C sort
+$SDIG 127.0.0.1 $port minimal.com MX | LC_ALL=C sort
+$SDIG 127.0.0.1 $port nx.minimal.com MX | LC_ALL=C sort
 sleep 15
+echo midnight has passed
 $SDIG 127.0.0.1 $port minimal.com SOA | LC_ALL=C sort
-	
+$SDIG 127.0.0.1 $port minimal.com MX | LC_ALL=C sort
+$SDIG 127.0.0.1 $port nx.minimal.com MX | LC_ALL=C sort
+
 kill $(cat pdns*.pid)
 rm pdns*.pid

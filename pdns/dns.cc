@@ -69,6 +69,16 @@ std::string ERCode::to_s(uint8_t rcode) {
   return RCode::rcodes_s[rcode];
 }
 
+std::string Opcode::to_s(uint8_t opcode) {
+  static const std::vector<std::string> s_opcodes = { "Query", "IQuery", "Status", "3", "Notify", "Update" };
+
+  if (opcode >= s_opcodes.size()) {
+    return std::to_string(opcode);
+  }
+
+  return s_opcodes.at(opcode);
+}
+
 class BoundsCheckingPointer
 {
 public:

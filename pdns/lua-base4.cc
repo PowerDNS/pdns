@@ -10,6 +10,7 @@
 #include "namespaces.hh"
 #include "ednssubnet.hh"
 #include "lua-base4.hh"
+#include "dns_random.hh"
 
 BaseLua4::BaseLua4() {
 }
@@ -65,6 +66,7 @@ void BaseLua4::prepareContext() {
   d_lw->registerFunction("getRawLabels", &DNSName::getRawLabels);
   d_lw->registerFunction<unsigned int(DNSName::*)()>("countLabels", [](const DNSName& name) { return name.countLabels(); });
   d_lw->registerFunction<size_t(DNSName::*)()>("wireLength", [](const DNSName& name) { return name.wirelength(); });
+  d_lw->registerFunction<size_t(DNSName::*)()>("wirelength", [](const DNSName& name) { return name.wirelength(); });
   d_lw->registerFunction<bool(DNSName::*)(const std::string&)>("equal", [](const DNSName& lhs, const std::string& rhs) { return lhs==DNSName(rhs); });
   d_lw->registerEqFunction(&DNSName::operator==);
   d_lw->registerToStringFunction<string(DNSName::*)()>([](const DNSName&dn ) { return dn.toString(); });
@@ -190,6 +192,7 @@ void BaseLua4::prepareContext() {
 
   // pdnsload
   d_lw->writeFunction("pdnslog", [](const std::string& msg, boost::optional<int> loglevel) { g_log << (Logger::Urgency)loglevel.get_value_or(Logger::Warning) << msg<<endl; });
+  d_lw->writeFunction("pdnsrandom", [](boost::optional<uint32_t> maximum) { return dns_random(maximum.get_value_or(0xffffffff)); });
 
   // certain constants
   d_pd.push_back({"PASS", (int)PolicyDecision::PASS});

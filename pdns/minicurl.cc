@@ -26,9 +26,26 @@
 #include <curl/curl.h>
 #include <stdexcept>
 
-MiniCurl::MiniCurl()
+void MiniCurl::init()
+{
+  static std::atomic_flag s_init = ATOMIC_FLAG_INIT;
+
+  if (s_init.test_and_set())
+    return;
+
+  CURLcode code = curl_global_init(CURL_GLOBAL_ALL);
+  if (code != 0) {
+    throw std::runtime_error("Error initializing libcurl");
+  }
+}
+
+MiniCurl::MiniCurl(const string& useragent)
 {
   d_curl = curl_easy_init();
+  if (d_curl == nullptr) {
+    throw std::runtime_error("Error creating a MiniCurl session");
+  }
+  curl_easy_setopt(d_curl, CURLOPT_USERAGENT, useragent.c_str());
 }
 
 MiniCurl::~MiniCurl()
@@ -86,7 +103,7 @@ void MiniCurl::setupURL(const std::string& str, const ComboAddress* rem, const C
     curl_easy_setopt(d_curl, CURLOPT_INTERFACE, src->toString().c_str());
   }
   curl_easy_setopt(d_curl, CURLOPT_FOLLOWLOCATION, true);
-  /* only allow HTTP, TFTP and SFTP */
+  /* only allow HTTP and HTTPS */
   curl_easy_setopt(d_curl, CURLOPT_PROTOCOLS, CURLPROTO_HTTP | CURLPROTO_HTTPS);
   curl_easy_setopt(d_curl, CURLOPT_SSL_VERIFYPEER, false);
   curl_easy_setopt(d_curl, CURLOPT_SSL_VERIFYHOST, false);
@@ -96,8 +113,10 @@ void MiniCurl::setupURL(const std::string& str, const ComboAddress* rem, const C
   curl_easy_setopt(d_curl, CURLOPT_WRITEDATA, this);
   curl_easy_setopt(d_curl, CURLOPT_TIMEOUT, 2L);
 
+  clearHeaders();
   d_data.clear();
 }
+
 std::string MiniCurl::getURL(const std::string& str, const ComboAddress* rem, const ComboAddress* src)
 {
   setupURL(str, rem, src);
@@ -113,17 +132,46 @@ std::string MiniCurl::getURL(const std::string& str, const ComboAddress* rem, co
   return ret;
 }
 
-std::string MiniCurl::postURL(const std::string& str, const std::string& postdata)
+std::string MiniCurl::postURL(const std::string& str, const std::string& postdata, MiniCurlHeaders& headers)
 {
   setupURL(str);
+  setHeaders(headers);
+  curl_easy_setopt(d_curl, CURLOPT_POSTFIELDSIZE, postdata.size());
   curl_easy_setopt(d_curl, CURLOPT_POSTFIELDS, postdata.c_str());
 
   auto res = curl_easy_perform(d_curl);
+
+  long http_code = 0;
+  curl_easy_getinfo(d_curl, CURLINFO_RESPONSE_CODE, &http_code);
+
   if(res != CURLE_OK)
-    throw std::runtime_error("Unable to post URL");
+    throw std::runtime_error("Unable to post URL ("+std::to_string(http_code)+"): "+string(curl_easy_strerror(res)));
 
   std::string ret=d_data;
 
   d_data.clear();
   return ret;
+}
+
+void MiniCurl::clearHeaders()
+{
+  if (d_curl) {
+    curl_easy_setopt(d_curl, CURLOPT_HTTPHEADER, NULL);
+    if (d_header_list != nullptr) {
+      curl_slist_free_all(d_header_list);
+      d_header_list = nullptr;
+    }
+  }
+}
+
+void MiniCurl::setHeaders(const MiniCurlHeaders& headers)
+{
+  if (d_curl) {
+    for (auto& header : headers) {
+      std::stringstream header_ss;
+      header_ss << header.first << ": " << header.second;
+      d_header_list = curl_slist_append(d_header_list, header_ss.str().c_str());
+    }
+    curl_easy_setopt(d_curl, CURLOPT_HTTPHEADER, d_header_list);
+  }
 }

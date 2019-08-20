@@ -89,8 +89,8 @@ private:
   int checkUpdatePrerequisites(const DNSRecord *rr, DomainInfo *di);
   void increaseSerial(const string &msgPrefix, const DomainInfo *di, bool haveNSEC3, bool narrow, const NSEC3PARAMRecordContent *ns3pr);
 
-  void makeNXDomain(DNSPacket* p, DNSPacket* r, const DNSName& target, const DNSName& wildcard, SOAData& sd);
-  void makeNOError(DNSPacket* p, DNSPacket* r, const DNSName& target, const DNSName& wildcard, SOAData& sd, int mode);
+  void makeNXDomain(DNSPacket* p, DNSPacket* r, const DNSName& target, const DNSName& wildcard, const SOAData& sd);
+  void makeNOError(DNSPacket* p, DNSPacket* r, const DNSName& target, const DNSName& wildcard, const SOAData& sd, int mode);
   vector<DNSZoneRecord> getBestReferralNS(DNSPacket *p, SOAData& sd, const DNSName &target);
   vector<DNSZoneRecord> getBestDNAMESynth(DNSPacket *p, SOAData& sd, DNSName &target);
   bool tryDNAME(DNSPacket *p, DNSPacket*r, SOAData& sd, DNSName &target);
@@ -109,6 +109,7 @@ private:
   bool d_doIPv6AdditionalProcessing;
   bool d_doDNAME;
   bool d_doExpandALIAS;
+  bool d_dnssec;
   std::unique_ptr<AuthLua4> d_pdl;
   std::unique_ptr<AuthLua4> d_update_policy_lua;
 

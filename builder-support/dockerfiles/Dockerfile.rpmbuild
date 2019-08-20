@@ -1,5 +1,5 @@
 FROM dist-base as package-builder
-RUN yum install -y rpm-build rpmdevtools python34 && \
+RUN yum install -y rpm-build rpmdevtools /usr/bin/python3 && \
     yum groupinstall -y "Development Tools" && \
     rpmdev-setuptree
 
@@ -39,6 +39,17 @@ RUN if $(grep -q 'release 6' /etc/redhat-release); then \
 
 @IF [ ! -z "$M_dnsdist$M_all" ]
 RUN if $(grep -q 'release 6' /etc/redhat-release); then \
+      true ; \
+    else \
+      mkdir /libh2o && cd /libh2o && \
+      yum install -y curl openssl-devel cmake && \
+      curl -L https://github.com/h2o/h2o/archive/v2.2.6.tar.gz | tar xz && \
+      CFLAGS='-fPIC' cmake -DWITH_PICOTLS=off -DWITH_BUNDLED_SSL=off -DWITH_MRUBY=off -DCMAKE_INSTALL_PREFIX=/opt ./h2o-2.2.6 && \
+      make install && \
+      cd /pdns; \
+    fi
+
+RUN if $(grep -q 'release 6' /etc/redhat-release); then \
       scl enable devtoolset-7 -- builder/helpers/build-specs.sh builder-support/specs/dnsdist.spec; \
     else \
       builder/helpers/build-specs.sh builder-support/specs/dnsdist.spec; \
@@ -49,3 +60,4 @@ RUN if $(grep -q 'release 6' /etc/redhat-release); then \
 # See: https://github.com/moby/moby/issues/33733
 #RUN mv /root/rpmbuild/RPMS/* /dist/
 RUN cp -R /root/rpmbuild/RPMS/* /dist/
+RUN cp -R /root/rpmbuild/SRPMS/* /dist/

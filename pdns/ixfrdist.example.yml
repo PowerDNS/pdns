@@ -28,6 +28,12 @@ acl:
   - '127.0.0.0/8'
   - '::1'
 
+# Maximum number of records allowed in a single zone. ixfrdist will abort the
+# zone transfer from the master when more than this number of records have been
+# received. A value of 0 (the default) means unlimited
+#
+axfr-max-records: 0
+
 # Timeout in seconds an AXFR transaction requested by ixfrdist may take.
 # Increase this when the network to the authoritative servers is slow or the
 # domains are very large and you experience timeouts. Set to 20 by default or
@@ -81,6 +87,12 @@ webserver-address: 127.0.0.1:8080
 webserver-acl:
   - 127.0.0.0/8
   - ::1/128
+
+# How much the webserver should log: 'none', 'normal' or 'detailed'
+# With 'none', nothing is logged except for errors
+# With 'normal' (the default), one line per request is logged in the style of the common log format
+# with 'detailed', the full requests and responses (including headers) are logged
+webserver-loglevel: normal
 
 # The domains to redistribute, the 'master' and 'domains' keys are mandatory.
 # When no port is specified, 53 is used. When specifying ports for IPv6, use the

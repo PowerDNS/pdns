@@ -76,10 +76,11 @@ dnsheader* DNSPacketWriter::getHeader()
 
 void DNSPacketWriter::startRecord(const DNSName& name, uint16_t qtype, uint32_t ttl, uint16_t qclass, DNSResourceRecord::Place place, bool compress)
 {
+  d_compress = compress;
   commit();
   d_rollbackmarker=d_content.size();
 
-  if(compress && !name.empty() && d_qname==name) {  // don't do the whole label compression thing if we *know* we can get away with "see question" - except when compressing the root
+  if(compress && !name.isRoot() && d_qname==name) {  // don't do the whole label compression thing if we *know* we can get away with "see question" - except when compressing the root
     static unsigned char marker[2]={0xc0, 0x0c};
     d_content.insert(d_content.end(), (const char *) &marker[0], (const char *) &marker[2]);
   }
@@ -200,6 +201,7 @@ void DNSPacketWriter::xfrUnquotedText(const string& text, bool lenField)
 
 
 static constexpr bool l_verbose=false;
+static constexpr uint16_t maxCompressionOffset=16384;
 uint16_t DNSPacketWriter::lookupName(const DNSName& name, uint16_t* matchLen)
 {
   // iterate over the written labels, see if we find a match
@@ -266,7 +268,9 @@ uint16_t DNSPacketWriter::lookupName(const DNSName& name, uint16_t* matchLen)
         }
         if(!c)
           break;
-        pvect.push_back(iter - d_content.cbegin());
+        auto offset = iter - d_content.cbegin();
+        if (offset >= maxCompressionOffset) break; // compression pointers cannot point here
+        pvect.push_back(offset);
         iter+=*iter+1;
       }
     }
@@ -325,14 +329,14 @@ void DNSPacketWriter::xfrName(const DNSName& name, bool compress, bool)
 
   uint16_t li=0;
   uint16_t matchlen=0;
-  if(compress && (li=lookupName(name, &matchlen))) {
+  if(d_compress && compress && (li=lookupName(name, &matchlen)) && li < maxCompressionOffset) {
     const auto& dns=name.getStorage(); 
     if(l_verbose)
       cout<<"Found a substring of "<<matchlen<<" bytes from the back, offset: "<<li<<", dnslen: "<<dns.size()<<endl;
     // found a substring, if www.powerdns.com matched powerdns.com, we get back matchlen = 13
 
     unsigned int pos=d_content.size();
-    if(pos < 16384 && matchlen != dns.size()) {
+    if(pos < maxCompressionOffset && matchlen != dns.size()) {
       if(l_verbose)
         cout<<"Inserting pos "<<pos<<" for "<<name<<" for compressed case"<<endl;
       d_namepositions.push_back(pos);
@@ -351,7 +355,7 @@ void DNSPacketWriter::xfrName(const DNSName& name, bool compress, bool)
     unsigned int pos=d_content.size();
     if(l_verbose)
       cout<<"Found nothing, we are at pos "<<pos<<", inserting whole name"<<endl;
-    if(pos < 16384) {
+    if(pos < maxCompressionOffset) {
       if(l_verbose)
         cout<<"Inserting pos "<<pos<<" for "<<name<<" for uncompressed case"<<endl;
       d_namepositions.push_back(pos);

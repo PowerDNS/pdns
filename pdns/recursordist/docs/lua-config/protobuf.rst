@@ -18,8 +18,9 @@ Protobuf export to a server is enabled using the ``protobufServer()`` directive:
 
   Send protocol buffer messages to one or more servers for incoming queries and/or outgoing responses. The client address may be masked using :func:`setProtobufMasks`, for anonymization purposes.
 
-  :param string or list of strings servers: The IP and port to connect to, or a list of those. If more than one server is configured, all messages are sent to every server.
-  :param table options: A table with key: value pairs with options.
+  :param servers: The IP and port to connect to, or a list of those. If more than one server is configured, all messages are sent to every server.
+  :type servers: string or list of strings
+  :param table options: A table with ``key=value`` pairs with options.
 
   Options:
 
@@ -63,8 +64,9 @@ While :func:`protobufServer` only exports the queries sent to the recursor from 
 
   Send protocol buffer messages to one or more servers for outgoing queries and/or incoming responses.
 
-  :param string or list of strings servers: The IP and port to connect to, or a list of those. If more than one server is configured, all messages are sent to every server.
-  :param table options: A table with key: value pairs with options.
+  :param servers: The IP and port to connect to, or a list of those. If more than one server is configured, all messages are sent to every server.
+  :type servers: string or list of strings
+  :param table options: A table with ``key=value`` pairs with options.
 
   Options:
 
@@ -93,3 +95,35 @@ Protobol Buffers Definition
 The protocol buffers message types can be found in the `dnsmessage.proto <https://github.com/PowerDNS/pdns/blob/master/pdns/dnsmessage.proto>`_ file and is included here:
 
 .. literalinclude:: ../../../dnsmessage.proto
+
+Logging in ``dnstap`` format using framestreams
+-----------------------------------------------
+Define the following function to enable logging of outgoing queries and/or responses in ``dnstap`` format.
+The recursor must have been built with configure ``--enable-dnstap`` to make this feature available.
+
+.. function:: dnstapFrameStreamServer(servers, [, options])
+
+  .. versionadded:: 4.3.0
+
+  Send dnstap formatted message to one or more framestream servers for outgoing queries and/or incoming responses.
+
+  :param servers: Either a pathname of a unix domain socket starting with a slash or the IP:port to connect to, or a list of those. If more than one server is configured, all messages are sent to every server.
+  :type servers: string or list of strings
+  :param table options: A table with ``key=value`` pairs with options.
+
+  Options:
+
+  * ``logQueries=true``: bool - log oputgoing queries
+  * ``logResponses=true``: bool - log incoming responses
+ 
+  The follwing options apply to the settings of the framestream library. Refer to the documentation of that
+  library for the default values, exact description and allowable values for these options.
+  For all these options, absence or a zero value has the effect of using the library-provided default value.
+
+  * ``bufferHint=0``: unsigned
+  * ``flushTimeout=0``: unsigned
+  * ``inputQueueSize=0``: unsigned
+  * ``outputQueueSize=0``: unsigned
+  * ``queueNotifyThreshold=0``: unsigned
+  * ``reopenInterval=0``: unsigned
+

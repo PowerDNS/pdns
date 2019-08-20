@@ -104,6 +104,12 @@ void showBuildConfiguration()
 #ifdef HAVE_LIBDL
     "libdl " <<
 #endif
+#ifdef HAVE_GEOIP
+    "libgeoip " <<
+#endif
+#ifdef HAVE_MMDB
+    "libmaxminddb " <<
+#endif
 #ifdef HAVE_LUA
     "lua " <<
 #endif
@@ -117,7 +123,10 @@ void showBuildConfiguration()
     "PKCS#11 " <<
 #endif
 #ifdef HAVE_PROTOBUF
-    "protobuf " <<
+"protobuf " <<
+#endif
+#ifdef HAVE_FSTRM
+"dnstap-framestream " <<
 #endif
 #ifdef REMOTEBACKEND_ZEROMQ
     "remotebackend-zeromq " <<

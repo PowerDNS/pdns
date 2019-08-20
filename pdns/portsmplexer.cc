@@ -25,7 +25,7 @@ public:
 
   virtual int run(struct timeval* tv, int timeout=500);
 
-  virtual void addFD(callbackmap_t& cbmap, int fd, callbackfunc_t toDo, const boost::any& parameter);
+  virtual void addFD(callbackmap_t& cbmap, int fd, callbackfunc_t toDo, const boost::any& parameter, const struct timeval* ttd=nullptr);
   virtual void removeFD(callbackmap_t& cbmap, int fd);
   string getName()
   {
@@ -59,9 +59,9 @@ PortsFDMultiplexer::PortsFDMultiplexer() : d_pevents(new port_event_t[s_maxevent
     throw FDMultiplexerException("Setting up port: "+stringerror());
 }
 
-void PortsFDMultiplexer::addFD(callbackmap_t& cbmap, int fd, callbackfunc_t toDo, const boost::any& parameter)
+void PortsFDMultiplexer::addFD(callbackmap_t& cbmap, int fd, callbackfunc_t toDo, const boost::any& parameter, const struct timeval* ttd)
 {
-  accountingAddFD(cbmap, fd, toDo, parameter);
+  accountingAddFD(cbmap, fd, toDo, parameter, ttd);
 
   if(port_associate(d_portfd, PORT_SOURCE_FD, fd, (&cbmap == &d_readCallbacks) ? POLLIN : POLLOUT, 0) < 0) {
     cbmap.erase(fd);
@@ -113,7 +113,7 @@ int PortsFDMultiplexer::run(struct timeval* now, int timeout)
     d_iter=d_readCallbacks.find(d_pevents[n].portev_object);
     
     if(d_iter != d_readCallbacks.end()) {
-      d_iter->second.d_callback(d_iter->first, d_iter->second.d_parameter);
+      d_iter->d_callback(d_iter->d_fd, d_iter->d_parameter);
       if(d_readCallbacks.count(d_pevents[n].portev_object) && port_associate(d_portfd, PORT_SOURCE_FD, d_pevents[n].portev_object, 
                         POLLIN, 0) < 0)
         throw FDMultiplexerException("Unable to add fd back to ports (read): "+stringerror());
@@ -123,7 +123,7 @@ int PortsFDMultiplexer::run(struct timeval* now, int timeout)
     d_iter=d_writeCallbacks.find(d_pevents[n].portev_object);
     
     if(d_iter != d_writeCallbacks.end()) {
-      d_iter->second.d_callback(d_iter->first, d_iter->second.d_parameter);
+      d_iter->d_callback(d_iter->d_fd, d_iter->d_parameter);
       if(d_writeCallbacks.count(d_pevents[n].portev_object) && port_associate(d_portfd, PORT_SOURCE_FD, d_pevents[n].portev_object, 
                         POLLOUT, 0) < 0)
         throw FDMultiplexerException("Unable to add fd back to ports (write): "+stringerror());

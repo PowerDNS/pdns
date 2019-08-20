@@ -961,7 +961,7 @@ int PacketHandler::processUpdate(DNSPacket *p) {
       DNSResourceRecord rec;
       di.backend->lookup(QType(QType::ANY), rr->d_name, nullptr, di.id);
       while (di.backend->get(rec)) {
-        if (rec.qtype != QType::CNAME && rec.qtype != QType::RRSIG) {
+        if (rec.qtype != QType::CNAME && rec.qtype != QType::ENT && rec.qtype != QType::RRSIG) {
           // leave database handle in a consistent state
           while (di.backend->get(rec))
             ;

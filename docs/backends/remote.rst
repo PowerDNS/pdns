@@ -50,7 +50,7 @@ Usage
 The only configuration options for backend are remote-connection-string
 and remote-dnssec.
 
-::
+.. code-block:: ini
 
     remote-connection-string=<type>:<param>=<value>,<param>=<value>...
 
@@ -63,7 +63,7 @@ Unix connector
 
 parameters: path, timeout (default 2000ms)
 
-::
+.. code-block:: ini
 
     remote-connection-string=unix:path=/path/to/socket
 
@@ -72,7 +72,7 @@ Pipe connector
 
 parameters: command,timeout (default 2000ms)
 
-::
+.. code-block:: ini
 
     remote-connection-string=pipe:command=/path/to/executable,timeout=2000
 
@@ -81,7 +81,7 @@ HTTP connector
 
 parameters: url, url-suffix, post, post_json, timeout (default 2000ms)
 
-::
+.. code-block:: ini
 
     remote-connection-string=http:url=http://localhost:63636/dns,url-suffix=.php
 
@@ -107,7 +107,7 @@ ZeroMQ connector
 
 parameters: endpoint, timeout (default 2000ms)
 
-::
+.. code-block:: ini
 
     remote-connection-string=zeromq:endpoint=ipc:///tmp/tmp.sock
 
@@ -159,13 +159,13 @@ Example JSON/RPC
 
 Query:
 
-::
+.. code-block:: json
 
     {"method":"initialize", "parameters":{"command":"/path/to/something", "timeout":"2000", "something":"else"}}
 
 Response:
 
-::
+.. code-block:: json
 
     {"result":true}
 
@@ -191,13 +191,13 @@ Example JSON/RPC
 
 Query:
 
-::
+.. code-block:: json
 
     {"method":"lookup", "parameters":{"qtype":"ANY", "qname":"www.example.com.", "remote":"192.0.2.24", "local":"192.0.2.1", "real-remote":"192.0.2.24", "zone-id":-1}}
 
 Response:
 
-::
+.. code-block:: json
 
     {"result":[{"qtype":"A", "qname":"www.example.com", "content":"203.0.113.2", "ttl": 60}]}
 
@@ -241,13 +241,13 @@ Example JSON/RPC
 
 Query:
 
-::
+.. code-block:: json
 
     {"method":"list", "parameters":{"zonename":"example.com.","domain_id":-1}}
 
 Response (split into lines for ease of reading)
 
-::
+.. code-block:: json
 
     {"result":[
       {"qtype":"SOA", "qname":"example.com", "content":"dns1.icann.org. hostmaster.icann.org. 2012081600 7200 3600 1209600 3600", "ttl": 3600},
@@ -294,15 +294,15 @@ Example JSON/RPC
 
 Query:
 
-::
+.. code-block:: json
 
     {"method":"getbeforeandafternamesabsolute", "params":{"id":0,"qname":"www.example.com"}}
 
 Response:
 
-::
+.. code-block:: json
 
-    {”result":{"before":"ns1","after":""}}
+    {"result":{"before":"ns1","after":""}}
 
 Example HTTP/RPC
 ''''''''''''''''
@@ -315,9 +315,9 @@ Query:
 
 Response:
 
-::
+.. code-block:: json
 
-    {”result":{"before":"ns1","after":""}}
+    {"result":{"before":"ns1","after":""}}
 
 ``getAllDomainMetadata``
 ~~~~~~~~~~~~~~~~~~~~~~~~
@@ -326,22 +326,22 @@ Returns the value(s) for variable kind for zone name. You **must**
 always return something, if there are no values, you shall return empty
 set or false.
 
- *  Mandatory: No
- *  Parameters: name
- *  Reply: hash of key to array of strings
+*  Mandatory: No
+*  Parameters: name
+*  Reply: hash of key to array of strings
 
 Example JSON/RPC
 ''''''''''''''''
 
 Query:
 
-::
+.. code-block:: json
 
     {"method":"getalldomainmetadata", "parameters":{"name":"example.com"}}
 
 Response:
 
-::
+.. code-block:: json
 
     {"result":{"PRESIGNED":["0"]}}
 
@@ -380,13 +380,13 @@ Example JSON/RPC
 
 Query:
 
-::
+.. code-block:: json
 
     {"method":"getdomainmetadata", "parameters":{"name":"example.com.","kind":"PRESIGNED"}}
 
 Response:
 
-::
+.. code-block:: json
 
     {"result":["0"]}
 
@@ -424,13 +424,13 @@ Example JSON/RPC
 
 Query:
 
-::
+.. code-block:: json
 
     {"method":"setdomainmetadata","parameters":{"name":"example.com","kind":"PRESIGNED","value":["YES"]}}
 
 Response:
 
-::
+.. code-block:: json
 
     {"result":true}
 
@@ -476,13 +476,13 @@ Example JSON/RPC
 
 Query:
 
-::
+.. code-block:: json
 
     {"method":"getdomainkeys","parameters":{"name":"example.com."}}
 
 Response:
 
-::
+.. code-block:: json
 
     {"result":[{"id":1,"flags":256,"active":true,"content":"Private-key-format: v1.2
     Algorithm: 8 (RSASHA256)
@@ -538,7 +538,7 @@ Example JSON/RPC
 
 Query:
 
-::
+.. code-block:: json
 
     {"method":"adddomainkey", "parameters":{"key":{"id":1,"flags":256,"active":true,"content":"Private-key-format: v1.2
     Algorithm: 8 (RSASHA256)
@@ -553,7 +553,7 @@ Query:
 
 Response:
 
-::
+.. code-block:: json
 
     {"result":true}
 
@@ -602,13 +602,13 @@ Example JSON/RPC
 
 Query:
 
-::
+.. code-block:: json
 
-    {"method":"removedomainkey","parameters":"{"name":"example.com","id":1}}
+    {"method":"removedomainkey","parameters":{"name":"example.com","id":1}}
 
 Response:
 
-::
+.. code-block:: json
 
     {"result":true}
 
@@ -644,13 +644,13 @@ Example JSON/RPC
 
 Query:
 
-::
+.. code-block:: json
 
     {"method":"activatedomainkey","parameters":{"name":"example.com","id":1}}
 
 Response:
 
-::
+.. code-block:: json
 
     {"result":true}
 
@@ -686,13 +686,13 @@ Example JSON/RPC
 
 Query:
 
-::
+.. code-block:: json
 
     {"method":"deactivatedomainkey","parameters":{"name":"example.com","id":1}}
 
 Response:
 
-::
+.. code-block:: json
 
     {"result": true}
 
@@ -728,15 +728,15 @@ Example JSON/RPC
 
 Query:
 
-::
+.. code-block:: json
 
     {"method":"gettsigkey","parameters":{"name":"example.com."}}
 
 Response:
 
-::
+.. code-block:: json
 
-    {"result":{"algorithm":"hmac-md5","content:"kp4/24gyYsEzbuTVJRUMoqGFmN3LYgVDzJ/3oRSP7ys="}}
+    {"result":{"algorithm":"hmac-md5","content":"kp4/24gyYsEzbuTVJRUMoqGFmN3LYgVDzJ/3oRSP7ys="}}
 
 Example HTTP/RPC
 ''''''''''''''''
@@ -776,15 +776,15 @@ Example JSON/RPC
 
 Query:
 
-::
+.. code-block:: json
 
     {"method":"getdomaininfo","parameters":{"name":"example.com"}}
 
 Response:
 
-::
+.. code-block:: json
 
-    {"result":{id:1,"zone":"example.com","kind":"NATIVE","serial":2002010100}}
+    {"result":{"id":1,"zone":"example.com","kind":"NATIVE","serial":2002010100}}
 
 Example HTTP/RPC
 ''''''''''''''''
@@ -818,13 +818,13 @@ Example JSON/RPC
 
 Query:
 
-::
+.. code-block:: json
 
     {"method":"setnotified","parameters":{"id":1,"serial":2002010100}}
 
 Response:
 
-::
+.. code-block:: json
 
     {"result":true}
 
@@ -864,13 +864,13 @@ Example JSON/RPC
 
 Query:
 
-::
+.. code-block:: json
 
     {"method":"isMaster","parameters":{"name":"example.com","ip":"198.51.100.0.1"}}
 
 Response:
 
-::
+.. code-block:: json
 
     {"result":true}
 
@@ -909,19 +909,19 @@ Example JSON/RPC
 
 Query:
 
-::
+.. code-block:: json
 
     {"method":"superMasterBackend","parameters":{"ip":"198.51.100.0.1","domain":"example.com","nsset":[{"qtype":"NS","qname":"example.com","qclass":1,"content":"ns1.example.com","ttl":300,"auth":true},{"qtype":"NS","qname":"example.com","qclass":1,"content":"ns2.example.com","ttl":300,"auth":true}]}}
 
 Response:
 
-::
+.. code-block:: json
 
     {"result":true}
 
 Alternative response:
 
-::
+.. code-block:: json
 
     {"result":{"account":"my account","nameserver":"ns2.example.com"}}
 
@@ -970,13 +970,13 @@ Example JSON/RPC
 
 Query:
 
-::
+.. code-block:: json
 
     {"method":"createSlaveDomain","parameters":{"ip":"198.51.100.0.1","domain":"pirate.example.net"}}
 
 Response:
 
-::
+.. code-block:: json
 
     {"result":true}
 
@@ -1015,13 +1015,13 @@ Example JSON/RPC
 
 Query:
 
-::
+.. code-block:: json
 
     {"method":"replaceRRSet","parameters":{"domain_id":2,"qname":"replace.example.com","qtype":"A","trxid":1370416133,"rrset":[{"qtype":"A","qname":"replace.example.com","qclass":1,"content":"1.1.1.1","ttl":300,"auth":true}]}}
 
 Response:
 
-::
+.. code-block:: json
 
     {"result":true}
 
@@ -1062,13 +1062,13 @@ Example JSON/RPC
 
 Query:
 
-::
+.. code-block:: json
 
     {"method":"feedRecord","parameters":{"rr":{"qtype":"A","qname":"replace.example.com","qclass":1,"content":"127.0.0.1","ttl":300,"auth":true},"trxid":1370416133}}
 
 Response:
 
-::
+.. code-block:: json
 
     {"result":true}
 
@@ -1114,13 +1114,13 @@ Example JSON/RPC
 
 Query:
 
-::
+.. code-block:: json
 
     {"method":"feedEnts","parameters":{"domain_id":2,"trxid":1370416133,"nonterm":["_sip._udp","_udp"]}}
 
 Response:
 
-::
+.. code-block:: json
 
     {"result":true}
 
@@ -1161,13 +1161,13 @@ Example JSON/RPC
 
 Query:
 
-::
+.. code-block:: json
 
     {"method":"feedEnts3","parameters":{"domain_id":2,"domain":"example.com","times":1,"salt":"9642","narrow":false,"trxid":1370416356,"nonterm":["_sip._udp","_udp"]}}
 
 Response:
 
-::
+.. code-block:: json
 
     {"result":true}
 
@@ -1208,13 +1208,13 @@ Example JSON/RPC
 
 Query:
 
-::
+.. code-block:: json
 
     {"method":"startTransaction","parameters":{"trxid":1234,"domain_id":1,"domain":"example.com"}}
 
 Response:
 
-::
+.. code-block:: json
 
     {"result":true}
 
@@ -1255,13 +1255,13 @@ Example JSON/RPC
 
 Query:
 
-::
+.. code-block:: json
 
     {"method":"commitTransaction","parameters":{"trxid":1234}}
 
 Response:
 
-::
+.. code-block:: json
 
     {"result":true}
 
@@ -1299,13 +1299,13 @@ Example JSON/RPC
 
 Query:
 
-::
+.. code-block:: json
 
     {"method":"abortTransaction","parameters":{"trxid":1234}}
 
 Response:
 
-::
+.. code-block:: json
 
     {"result":true}
 
@@ -1344,13 +1344,13 @@ Example JSON/RPC
 
 Query:
 
-::
+.. code-block:: json
 
     {"method":"calculateSOASerial","parameters":{"domain":"unit.test","sd":{"qname":"unit.test","nameserver":"ns.unit.test","hostmaster":"hostmaster.unit.test","ttl":300,"serial":1,"refresh":2,"retry":3,"expire":4,"default_ttl":5,"domain_id":-1,"scopeMask":0}}}
 
 Response:
 
-::
+.. code-block:: json
 
     {"result":2013060501}
 
@@ -1391,13 +1391,13 @@ Example JSON/RPC
 
 Query:
 
-::
+.. code-block:: json
 
     {"method":"directBackendCmd","parameters":{"query":"PING"}}
 
 Response:
 
-::
+.. code-block:: json
 
     {"result":"PONG"}
 
@@ -1437,13 +1437,13 @@ Example JSON/RPC
 
 Query:
 
-::
+.. code-block:: json
 
     {"method": "getAllDomains", "parameters": {"include_disabled": true}}
 
 Response:
 
-::
+.. code-block:: json
 
     {"result":[{"id":1,"zone":"unit.test.","masters":["10.0.0.1"],"notified_serial":2,"serial":2,"last_check":1464693331,"kind":"native"}]}
 
@@ -1480,13 +1480,13 @@ Example JSON/RPC
 
 Query:
 
-::
+.. code-block:: json
 
     {"method":"searchRecords","parameters":{"pattern":"www.example*","maxResults":100}}
 
 Response:
 
-::
+.. code-block:: json
 
     {"result":[{"qtype":"A", "qname":"www.example.com", "content":"203.0.113.2", "ttl": 60}]}
 
@@ -1508,6 +1508,51 @@ Response:
 
     {"result":[{"qtype":"A", "qname":"www.example.com", "content":"203.0.113.2", "ttl": 60}]}
 
+
+``getUpdatedMasters``
+~~~~~~~~~~~~~~~~~~~~~
+
+Used to find out any updates to master domains. This is used to trigger notifications in master mode.
+
+-  Mandatory: no
+-  Parameters: none
+-  Reply: array of DomainInfo
+
+Example JSON/RPC
+''''''''''''''''
+
+Query:
+
+.. code-block:: json
+
+    {"method": "getUpdatedMasters", "parameters": {}}
+
+Response:
+
+.. code-block:: json
+
+    {"result":[{"id":1,"zone":"unit.test.","masters":["10.0.0.1"],"notified_serial":2,"serial":2,"last_check":1464693331,"kind":"master"}]}
+
+Example HTTP/RPC
+''''''''''''''''
+
+Query:
+
+.. code-block:: http
+
+    GET /dnsapi/getUpdatedMasters HTTP/1.1
+
+Response:
+
+.. code-block:: http
+
+    HTTP/1.1 200 OK
+    Content-Type: text/javascript; charset=utf-8
+    Content-Length: 135
+    {"result":[{"id":1,"zone":"unit.test.","masters":["10.0.0.1"],"notified_serial":2,"serial":2,"last_check":1464693331,"kind":"master"}]}
+
+
+
 Examples
 --------
 
@@ -1516,7 +1561,7 @@ Scenario: SOA lookup via pipe, unix or zeromq connector
 
 Query:
 
-::
+.. code-block:: json
 
     { 
       "method": "lookup",
@@ -1529,7 +1574,7 @@ Query:
 
 Reply:
 
-::
+.. code-block:: json
 
     {
       "result": 
@@ -1554,7 +1599,7 @@ Query:
 
 Reply:
 
-::
+.. code-block:: json
 
     {
       "result":

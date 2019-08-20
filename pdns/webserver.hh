@@ -34,11 +34,12 @@ class WebServer;
 
 class HttpRequest : public YaHTTP::Request {
 public:
-  HttpRequest() : YaHTTP::Request(), accept_json(false), accept_html(false), complete(false) { };
+  HttpRequest(const string& logprefix="") : YaHTTP::Request(), accept_json(false), accept_html(false), complete(false), logprefix(logprefix) { };
 
   bool accept_json;
   bool accept_html;
   bool complete;
+  string logprefix;
   json11::Json json();
 
   // checks password _only_.
@@ -157,17 +158,15 @@ public:
   virtual ~WebServer() { };
 
   void setApiKey(const string &apikey) {
-    if (d_registerApiHandlerCalled) {
-      throw PDNSException("registerApiHandler has been called, can not change apikey");
-    }
     d_apikey = apikey;
   }
 
   void setPassword(const string &password) {
-    if (d_registerWebHandlerCalled) {
-      throw PDNSException("registerWebHandler has been called, can not change password");
-    }
     d_webserverPassword = password;
+  }
+
+  void setMaxBodySize(ssize_t s) { // in megabytes
+    d_maxbodysize = s * 1024 * 1024;
   }
 
   void setACL(const NetmaskGroup &nmg) {
@@ -181,11 +180,46 @@ public:
   void handleRequest(HttpRequest& request, HttpResponse& resp) const;
 
   typedef boost::function<void(HttpRequest* req, HttpResponse* resp)> HandlerFunction;
-  void registerApiHandler(const string& url, HandlerFunction handler);
+  void registerApiHandler(const string& url, HandlerFunction handler, bool allowPassword=false);
   void registerWebHandler(const string& url, HandlerFunction handler);
+
+  enum class LogLevel : uint8_t {
+    None = 0,                // No logs from requests at all
+    Normal = 10,             // A "common log format"-like line e.g. '127.0.0.1 "GET /apache_pb.gif HTTP/1.0" 200 2326'
+    Detailed = 20,           // The full request headers and body, and the full response headers and body
+  };
+
+  void setLogLevel(const string& level) {
+    if (level == "none") {
+      d_loglevel = LogLevel::None;
+      return;
+    }
+
+    if (level == "normal") {
+      d_loglevel = LogLevel::Normal;
+      return;
+    }
+
+    if (level == "detailed") {
+      d_loglevel = LogLevel::Detailed;
+      return;
+    }
+
+    throw PDNSException("Unknown webserver log level: " + level);
+  }
+
+  void setLogLevel(const LogLevel level) {
+    d_loglevel = level;
+  };
+
+  LogLevel getLogLevel() {
+    return d_loglevel;
+  };
 
 protected:
   void registerBareHandler(const string& url, HandlerFunction handler);
+  void logRequest(const HttpRequest& req, const ComboAddress& remote) const;
+  void logResponse(const HttpResponse& resp, const ComboAddress& remote, const string& logprefix) const;
 
   virtual std::shared_ptr<Server> createServer() {
     return std::make_shared<Server>(d_listenaddress, d_port);
@@ -197,12 +231,18 @@ protected:
   std::shared_ptr<Server> d_server;
 
   std::string d_apikey;
-  bool d_registerApiHandlerCalled{false};
-
+  void apiWrapper(WebServer::HandlerFunction handler, HttpRequest* req, HttpResponse* resp, bool allowPassword);
   std::string d_webserverPassword;
-  bool d_registerWebHandlerCalled{false};
+  void webWrapper(WebServer::HandlerFunction handler, HttpRequest* req, HttpResponse* resp);
+
+  ssize_t d_maxbodysize; // in bytes
 
   NetmaskGroup d_acl;
+
+  const string d_logprefix = "[webserver] ";
+
+  // Describes the amount of logging the webserver does
+  WebServer::LogLevel d_loglevel{WebServer::LogLevel::Detailed};
 };
 
 #endif /* WEBSERVER_HH */

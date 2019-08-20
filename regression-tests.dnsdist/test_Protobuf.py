@@ -9,119 +9,11 @@ from dnsdisttests import DNSDistTest, Queue
 import dns
 import dnsmessage_pb2
 
-
-class TestProtobuf(DNSDistTest):
+class DNSDistProtobufTest(DNSDistTest):
     _protobufServerPort = 4242
     _protobufQueue = Queue()
     _protobufServerID = 'dnsdist-server-1'
     _protobufCounter = 0
-    _config_params = ['_testServerPort', '_protobufServerPort', '_protobufServerID', '_protobufServerID']
-    _config_template = """
-    luasmn = newSuffixMatchNode()
-    luasmn:add(newDNSName('lua.protobuf.tests.powerdns.com.'))
-
-    function alterProtobufResponse(dq, protobuf)
-      if luasmn:check(dq.qname) then
-        requestor = newCA(dq.remoteaddr:toString())		-- called by testLuaProtobuf()
-        if requestor:isIPv4() then
-          requestor:truncate(24)
-        else
-          requestor:truncate(56)
-        end
-        protobuf:setRequestor(requestor)
-
-        local tableTags = {}
-        table.insert(tableTags, "TestLabel1,TestData1")
-        table.insert(tableTags, "TestLabel2,TestData2")
-
-        protobuf:setTagArray(tableTags)
-
-        protobuf:setTag('TestLabel3,TestData3')
-
-        protobuf:setTag("Response,456")
-
-      else
-
-        local tableTags = {} 					-- called by testProtobuf()
-        table.insert(tableTags, "TestLabel1,TestData1")
-        table.insert(tableTags, "TestLabel2,TestData2")
-        protobuf:setTagArray(tableTags)
-
-        protobuf:setTag('TestLabel3,TestData3')
-
-        protobuf:setTag("Response,456")
-
-      end
-    end
-
-    function alterProtobufQuery(dq, protobuf)
-
-      if luasmn:check(dq.qname) then
-        requestor = newCA(dq.remoteaddr:toString())		-- called by testLuaProtobuf()
-        if requestor:isIPv4() then
-          requestor:truncate(24)
-        else
-          requestor:truncate(56)
-        end
-        protobuf:setRequestor(requestor)
-
-        local tableTags = {}
-        tableTags = dq:getTagArray()				-- get table from DNSQuery
-
-        local tablePB = {}
-          for k, v in pairs( tableTags) do
-          table.insert(tablePB, k .. "," .. v)
-        end
-
-        protobuf:setTagArray(tablePB)				-- store table in protobuf
-        protobuf:setTag("Query,123")				-- add another tag entry in protobuf
-
-        protobuf:setResponseCode(dnsdist.NXDOMAIN)        	-- set protobuf response code to be NXDOMAIN
-
-        local strReqName = dq.qname:toString()		  	-- get request dns name
-
-        protobuf:setProtobufResponseType()			-- set protobuf to look like a response and not a query, with 0 default time
-
-        blobData = '\127' .. '\000' .. '\000' .. '\001'		-- 127.0.0.1, note: lua 5.1 can only embed decimal not hex
-
-        protobuf:addResponseRR(strReqName, 1, 1, 123, blobData) -- add a RR to the protobuf
-
-        protobuf:setBytes(65)					-- set the size of the query to confirm in checkProtobufBase
-
-      else
-
-        local tableTags = {}                                    -- called by testProtobuf()
-        table.insert(tableTags, "TestLabel1,TestData1")
-        table.insert(tableTags, "TestLabel2,TestData2")
-
-        protobuf:setTagArray(tableTags)
-        protobuf:setTag('TestLabel3,TestData3')
-        protobuf:setTag("Query,123")
-
-      end
-    end
-
-    function alterLuaFirst(dq)					-- called when dnsdist receives new request
-      local tt = {}
-      tt["TestLabel1"] = "TestData1"
-      tt["TestLabel2"] = "TestData2"
-
-      dq:setTagArray(tt)
-
-      dq:setTag("TestLabel3","TestData3")
-      return DNSAction.None, ""				-- continue to the next rule
-    end
-
-    newServer{address="127.0.0.1:%s", useClientSubnet=true}
-    rl = newRemoteLogger('127.0.0.1:%s')
-
-    addAction(AllRule(), LuaAction(alterLuaFirst))							-- Add tags to DNSQuery first
-
-    addAction(AllRule(), RemoteLogAction(rl, alterProtobufQuery, {serverID='%s'}))				-- Send protobuf message before lookup
-
-    addResponseAction(AllRule(), RemoteLogResponseAction(rl, alterProtobufResponse, true, {serverID='%s'}))	-- Send protobuf message after lookup
-
-    """
 
     @classmethod
     def ProtobufListener(cls, port):
@@ -188,7 +80,7 @@ class TestProtobuf(DNSDistTest):
         self.assertEquals(msg.id, query.id)
         self.assertTrue(msg.HasField('inBytes'))
         self.assertTrue(msg.HasField('serverIdentity'))
-        self.assertEquals(msg.serverIdentity, self._protobufServerID)
+        self.assertEquals(msg.serverIdentity, self._protobufServerID.encode('utf-8'))
 
         if normalQueryResponse:
           # compare inBytes with length of query/response
@@ -244,6 +136,115 @@ class TestProtobuf(DNSDistTest):
         self.assertEquals(record.ttl, rttl)
         self.assertTrue(record.HasField('rdata'))
 
+class TestProtobuf(DNSDistProtobufTest):
+    _config_params = ['_testServerPort', '_protobufServerPort', '_protobufServerID', '_protobufServerID']
+    _config_template = """
+    luasmn = newSuffixMatchNode()
+    luasmn:add(newDNSName('lua.protobuf.tests.powerdns.com.'))
+
+    function alterProtobufResponse(dq, protobuf)
+      if luasmn:check(dq.qname) then
+        requestor = newCA(dq.remoteaddr:toString())		-- called by testLuaProtobuf()
+        if requestor:isIPv4() then
+          requestor:truncate(24)
+        else
+          requestor:truncate(56)
+        end
+        protobuf:setRequestor(requestor)
+
+        local tableTags = {}
+        table.insert(tableTags, "TestLabel1,TestData1")
+        table.insert(tableTags, "TestLabel2,TestData2")
+
+        protobuf:setTagArray(tableTags)
+
+        protobuf:setTag('TestLabel3,TestData3')
+
+        protobuf:setTag("Response,456")
+
+      else
+
+        local tableTags = {} 					-- called by testProtobuf()
+        table.insert(tableTags, "TestLabel1,TestData1")
+        table.insert(tableTags, "TestLabel2,TestData2")
+        protobuf:setTagArray(tableTags)
+
+        protobuf:setTag('TestLabel3,TestData3')
+
+        protobuf:setTag("Response,456")
+
+      end
+    end
+
+    function alterProtobufQuery(dq, protobuf)
+
+      if luasmn:check(dq.qname) then
+        requestor = newCA(dq.remoteaddr:toString())		-- called by testLuaProtobuf()
+        if requestor:isIPv4() then
+          requestor:truncate(24)
+        else
+          requestor:truncate(56)
+        end
+        protobuf:setRequestor(requestor)
+
+        local tableTags = {}
+        tableTags = dq:getTagArray()				-- get table from DNSQuery
+
+        local tablePB = {}
+          for k, v in pairs( tableTags) do
+          table.insert(tablePB, k .. "," .. v)
+        end
+
+        protobuf:setTagArray(tablePB)				-- store table in protobuf
+        protobuf:setTag("Query,123")				-- add another tag entry in protobuf
+
+        protobuf:setResponseCode(DNSRCode.NXDOMAIN)        	-- set protobuf response code to be NXDOMAIN
+
+        local strReqName = dq.qname:toString()		  	-- get request dns name
+
+        protobuf:setProtobufResponseType()			-- set protobuf to look like a response and not a query, with 0 default time
+
+        blobData = '\127' .. '\000' .. '\000' .. '\001'		-- 127.0.0.1, note: lua 5.1 can only embed decimal not hex
+
+        protobuf:addResponseRR(strReqName, 1, 1, 123, blobData) -- add a RR to the protobuf
+
+        protobuf:setBytes(65)					-- set the size of the query to confirm in checkProtobufBase
+
+      else
+
+        local tableTags = {}                                    -- called by testProtobuf()
+        table.insert(tableTags, "TestLabel1,TestData1")
+        table.insert(tableTags, "TestLabel2,TestData2")
+
+        protobuf:setTagArray(tableTags)
+        protobuf:setTag('TestLabel3,TestData3')
+        protobuf:setTag("Query,123")
+
+      end
+    end
+
+    function alterLuaFirst(dq)					-- called when dnsdist receives new request
+      local tt = {}
+      tt["TestLabel1"] = "TestData1"
+      tt["TestLabel2"] = "TestData2"
+
+      dq:setTagArray(tt)
+
+      dq:setTag("TestLabel3","TestData3")
+      return DNSAction.None, ""				-- continue to the next rule
+    end
+
+    newServer{address="127.0.0.1:%s", useClientSubnet=true}
+    rl = newRemoteLogger('127.0.0.1:%s')
+
+    addAction(AllRule(), LuaAction(alterLuaFirst))							-- Add tags to DNSQuery first
+
+    addAction(AllRule(), RemoteLogAction(rl, alterProtobufQuery, {serverID='%s'}))				-- Send protobuf message before lookup
+
+    addResponseAction(AllRule(), RemoteLogResponseAction(rl, alterProtobufResponse, true, {serverID='%s'}))	-- Send protobuf message after lookup
+
+    """
+
     def testProtobuf(self):
         """
         Protobuf: Send data to a protobuf server
@@ -291,7 +292,7 @@ class TestProtobuf(DNSDistTest):
         self.assertEquals(len(msg.response.rrs), 2)
         rr = msg.response.rrs[0]
         self.checkProtobufResponseRecord(rr, dns.rdataclass.IN, dns.rdatatype.CNAME, name, 3600)
-        self.assertEquals(rr.rdata, target)
+        self.assertEquals(rr.rdata.decode('utf-8'), target)
         rr = msg.response.rrs[1]
         self.checkProtobufResponseRecord(rr, dns.rdataclass.IN, dns.rdatatype.A, target, 3600)
         self.assertEquals(socket.inet_ntop(socket.AF_INET, rr.rdata), '127.0.0.1')
@@ -319,7 +320,7 @@ class TestProtobuf(DNSDistTest):
         self.assertEquals(len(msg.response.rrs), 2)
         rr = msg.response.rrs[0]
         self.checkProtobufResponseRecord(rr, dns.rdataclass.IN, dns.rdatatype.CNAME, name, 3600)
-        self.assertEquals(rr.rdata, target)
+        self.assertEquals(rr.rdata.decode('utf-8'), target)
         rr = msg.response.rrs[1]
         self.checkProtobufResponseRecord(rr, dns.rdataclass.IN, dns.rdatatype.A, target, 3600)
         self.assertEquals(socket.inet_ntop(socket.AF_INET, rr.rdata), '127.0.0.1')
@@ -390,3 +391,92 @@ class TestProtobuf(DNSDistTest):
         for rr in msg.response.rrs:
             self.checkProtobufResponseRecord(rr, dns.rdataclass.IN, dns.rdatatype.A, name, 3600)
             self.assertEquals(socket.inet_ntop(socket.AF_INET, rr.rdata), '127.0.0.1')
+
+class TestProtobufIPCipher(DNSDistProtobufTest):
+    _config_params = ['_testServerPort', '_protobufServerPort', '_protobufServerID', '_protobufServerID']
+    _config_template = """
+    newServer{address="127.0.0.1:%s", useClientSubnet=true}
+    key = makeIPCipherKey("some 16-byte key")
+    rl = newRemoteLogger('127.0.0.1:%s')
+    addAction(AllRule(), RemoteLogAction(rl, nil, {serverID='%s', ipEncryptKey=key})) -- Send protobuf message before lookup
+    addResponseAction(AllRule(), RemoteLogResponseAction(rl, nil, true, {serverID='%s', ipEncryptKey=key})) -- Send protobuf message after lookup
+
+    """
+
+    def testProtobuf(self):
+        """
+        Protobuf: Send data to a protobuf server
+        """
+        name = 'query.protobuf-ipcipher.tests.powerdns.com.'
+
+        target = 'target.protobuf-ipcipher.tests.powerdns.com.'
+        query = dns.message.make_query(name, 'A', 'IN')
+        response = dns.message.make_response(query)
+
+        rrset = dns.rrset.from_text(name,
+                                    3600,
+                                    dns.rdataclass.IN,
+                                    dns.rdatatype.CNAME,
+                                    target)
+        response.answer.append(rrset)
+
+        rrset = dns.rrset.from_text(target,
+                                    3600,
+                                    dns.rdataclass.IN,
+                                    dns.rdatatype.A,
+                                    '127.0.0.1')
+        response.answer.append(rrset)
+
+        (receivedQuery, receivedResponse) = self.sendUDPQuery(query, response)
+        self.assertTrue(receivedQuery)
+        self.assertTrue(receivedResponse)
+        receivedQuery.id = query.id
+        self.assertEquals(query, receivedQuery)
+        self.assertEquals(response, receivedResponse)
+
+        # let the protobuf messages the time to get there
+        time.sleep(1)
+
+        # check the protobuf message corresponding to the UDP query
+        msg = self.getFirstProtobufMessage()
+
+        # 108.41.239.98 is 127.0.0.1 pseudonymized with ipcipher and the current key
+        self.checkProtobufQuery(msg, dnsmessage_pb2.PBDNSMessage.UDP, query, dns.rdataclass.IN, dns.rdatatype.A, name, '108.41.239.98')
+
+        # check the protobuf message corresponding to the UDP response
+        msg = self.getFirstProtobufMessage()
+        self.checkProtobufResponse(msg, dnsmessage_pb2.PBDNSMessage.UDP, response, '108.41.239.98')
+
+        self.assertEquals(len(msg.response.rrs), 2)
+        rr = msg.response.rrs[0]
+        self.checkProtobufResponseRecord(rr, dns.rdataclass.IN, dns.rdatatype.CNAME, name, 3600)
+        self.assertEquals(rr.rdata.decode('ascii'), target)
+        rr = msg.response.rrs[1]
+        self.checkProtobufResponseRecord(rr, dns.rdataclass.IN, dns.rdatatype.A, target, 3600)
+        self.assertEquals(socket.inet_ntop(socket.AF_INET, rr.rdata), '127.0.0.1')
+
+        (receivedQuery, receivedResponse) = self.sendTCPQuery(query, response)
+        self.assertTrue(receivedQuery)
+        self.assertTrue(receivedResponse)
+        receivedQuery.id = query.id
+        self.assertEquals(query, receivedQuery)
+        self.assertEquals(response, receivedResponse)
+
+        # let the protobuf messages the time to get there
+        time.sleep(1)
+
+        # check the protobuf message corresponding to the TCP query
+        msg = self.getFirstProtobufMessage()
+        # 108.41.239.98 is 127.0.0.1 pseudonymized with ipcipher and the current key
+        self.checkProtobufQuery(msg, dnsmessage_pb2.PBDNSMessage.TCP, query, dns.rdataclass.IN, dns.rdatatype.A, name, '108.41.239.98')
+
+        # check the protobuf message corresponding to the TCP response
+        msg = self.getFirstProtobufMessage()
+        self.checkProtobufResponse(msg, dnsmessage_pb2.PBDNSMessage.TCP, response, '108.41.239.98')
+        self.assertEquals(len(msg.response.rrs), 2)
+        rr = msg.response.rrs[0]
+        self.checkProtobufResponseRecord(rr, dns.rdataclass.IN, dns.rdatatype.CNAME, name, 3600)
+        self.assertEquals(rr.rdata.decode('ascii'), target)
+        rr = msg.response.rrs[1]
+        self.checkProtobufResponseRecord(rr, dns.rdataclass.IN, dns.rdatatype.A, target, 3600)
+        self.assertEquals(socket.inet_ntop(socket.AF_INET, rr.rdata), '127.0.0.1')

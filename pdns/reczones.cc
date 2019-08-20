@@ -382,14 +382,11 @@ std::shared_ptr<SyncRes::domainmap_t> parseAuthAndForwards()
   if(!::arg()["forward-zones-file"].empty()) {
     g_log<<Logger::Warning<<"Reading zone forwarding information from '"<<::arg()["forward-zones-file"]<<"'"<<endl;
     SyncRes::AuthDomain ad;
-    FILE *rfp=fopen(::arg()["forward-zones-file"].c_str(), "r");
-
-    if(!rfp) {
+    auto fp = std::unique_ptr<FILE, int(*)(FILE*)>(fopen(::arg()["forward-zones-file"].c_str(), "r"), fclose);
+    if(!fp) {
       throw PDNSException("Error opening forward-zones-file '"+::arg()["forward-zones-file"]+"': "+stringerror());
     }
 
-    shared_ptr<FILE> fp=shared_ptr<FILE>(rfp, fclose);
-    
     string line;
     int linenum=0;
     uint64_t before = newMap->size();

@@ -1,5 +1,7 @@
 1	net.	IN	DS	86400	35886 8 2 7862b27f5f516ebe19680444d4ce5e762981931842c465f00236401d8bd973ee
 1	net.	IN	NS	172800	a.gtld-servers.net.
+1	net.	IN	RRSIG	86400	DS 13 1 86400 [expiry] [inception] [keytag] . ...
+2	.	IN	OPT	32768	
 2	a.gtld-servers.net.	IN	A	172800	192.5.6.30
 2	a.gtld-servers.net.	IN	AAAA	172800	2001:503:a83e::2:30
 Rcode: 0 (No Error), RD: 0, QR: 1, TC: 0, AA: 0, opcode: 0

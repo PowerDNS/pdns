@@ -18,8 +18,7 @@
 RETVAL=0
 
 PIDDIR=$(awk -F= '/^socket-dir=/ {print $2}' /etc/pdns-recursor/recursor.conf)
-if [ -z "$PIDDIR" ]; then PIDDIR=/var/run; fi
-mkdir -p "$PIDDIR"
+if [ -z "$PIDDIR" ]; then PIDDIR=/var/run; mkdir -p $PIDDIR; fi
 
 start() {
 	echo -n $"Starting pdns-recursor: "

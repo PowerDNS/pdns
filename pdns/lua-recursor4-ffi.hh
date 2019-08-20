@@ -29,6 +29,13 @@ extern "C" {
     const void* data;
   } pdns_ednsoption_t;
 
+  typedef enum
+  {
+    answer = 1,
+    authority = 2,
+    additional = 3
+  } pdns_record_place_t;
+
   const char* pdns_ffi_param_get_qname(pdns_ffi_param_t* ref) __attribute__ ((visibility ("default")));
   void pdns_ffi_param_get_qname_raw(pdns_ffi_param_t* ref, const char** qname, size_t* qnameSize) __attribute__ ((visibility ("default")));
   uint16_t pdns_ffi_param_get_qtype(const pdns_ffi_param_t* ref) __attribute__ ((visibility ("default")));
@@ -54,4 +61,11 @@ extern "C" {
   void pdns_ffi_param_set_variable(pdns_ffi_param_t* ref, bool variable) __attribute__ ((visibility ("default")));
   void pdns_ffi_param_set_ttl_cap(pdns_ffi_param_t* ref, uint32_t ttl) __attribute__ ((visibility ("default")));
   void pdns_ffi_param_set_log_query(pdns_ffi_param_t* ref, bool logQuery) __attribute__ ((visibility ("default")));
+  void pdns_ffi_param_set_log_response(pdns_ffi_param_t* ref, bool logResponse) __attribute__ ((visibility ("default")));
+  void pdns_ffi_param_set_rcode(pdns_ffi_param_t* ref, int rcode) __attribute__ ((visibility ("default")));
+  void pdns_ffi_param_set_follow_cname_records(pdns_ffi_param_t* ref, bool follow) __attribute__ ((visibility ("default")));
+
+  /* returns true if the record was correctly added, false if something went wrong.
+     Passing a NULL pointer to 'name' will result in the qname being used for the record owner name. */
+  bool pdns_ffi_param_add_record(pdns_ffi_param_t *ref, const char* name, uint16_t type, uint32_t ttl, const char* content, size_t contentSize, pdns_record_place_t place) __attribute__ ((visibility ("default")));
 }

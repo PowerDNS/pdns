@@ -7,7 +7,7 @@ from dnsdisttests import DNSDistTest
 class TestCacheHitResponses(DNSDistTest):
 
     _config_template = """
-    pc = newPacketCache(100, 86400, 1)
+    pc = newPacketCache(100, {maxTTL=86400, minTTL=1})
     getPool(""):setCache(pc)
     addCacheHitResponseAction(makeRule("dropwhencached.cachehitresponses.tests.powerdns.com."), DropResponseAction())
     newServer{address="127.0.0.1:%s"}

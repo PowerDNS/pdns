@@ -27,6 +27,7 @@ need or want to add ``namespace`` statements.
 Below, you will find the schema for 4.2. If you are using 4.1 or earlier, please find `the 4.1 schema on GitHub <https://github.com/PowerDNS/pdns/blob/rel/auth-4.1.x/modules/goraclebackend/schema.goracle.sql>`_.
 
 .. literalinclude:: ../../modules/goraclebackend/schema.goracle.sql
+   :language: SQL
 
 This schema contains all elements needed for master, slave and
 superslave operation.

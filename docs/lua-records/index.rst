@@ -197,10 +197,25 @@ Note that to protect operators, support for LUA records must be enabled
 explicitly, either globally (``enable-lua-records``) or per zone
 (``ENABLE-LUA-RECORDS`` = 1).
 
+.. _lua-records-shared-state:
+
+Shared Lua state model
+----------------------
+
+The default mode of operation for LUA records is to create a fresh Lua state for every query that hits a LUA record.
+This way, different LUA records cannot accidentally interfere with each other, by leaving around global objects, or perhaps even deleting relevant functions.
+However, creating a Lua state (and registering all our functions for it, see Reference below) takes measurable time.
+For users that are confident they can write Lua scripts that will not interfere with eachother, a mode is supported where Lua states are created on the first query, and then reused forever.
+Note that the state is per-thread, so while data sharing between LUA invocations is possible (useful for caching and reducing the cost of ``require``), there is not a single shared Lua environment.
+In non-scientific testing this has yielded up to 10x QPS increases.
+
+To use this mode, set ``enable-lua-records=shared``.
+Note that this enables LUA records for all zones.
+
 Reference
 ---------
 
- .. toctree::
+.. toctree::
   :maxdepth: 2
 
   functions

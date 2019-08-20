@@ -3,7 +3,7 @@ Using this SQL causes Mysql to create foreign keys on your database. This will
 make sure that no records, comments or keys exists for domains that you already
 removed. This is not enabled by default, because we're not sure what the
 consequences are from a performance point of view. If you do have feedback,
-please let us know how this effects your setup.
+please let us know how this affects your setup.
 
 Please note that it's not possible to apply this, before you cleaned up your
 database, as the foreign keys do not exist.

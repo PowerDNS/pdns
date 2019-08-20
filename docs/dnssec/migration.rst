@@ -24,21 +24,21 @@ all the changes in database schemas as shown in the :doc:`upgrade documentation 
 
 To deliver a correctly signed zone with the :ref:`dnssec-pdnsutil-dnssec-defaults`, invoke:
 
-::
+.. code-block:: shell
 
     pdnsutil secure-zone ZONE
 
 To view the DS records for this zone (to transfer to the parent zone),
 run
 
-::
+.. code-block:: shell
 
     pdnsutil show-zone ZONE
 
 For a more traditional setup with a KSK and a ZSK, use the following
 sequence of commands:
 
-::
+.. code-block:: shell
 
     pdnsutil add-zone-key ZONE ksk 2048 active rsasha256
     pdnsutil add-zone-key ZONE zsk 1024 active rsasha256
@@ -85,7 +85,7 @@ The ``pdnsutil`` tool features the option to import zone keys in the
 industry standard private key format, version 1.2. To import an existing
 KSK, use
 
-::
+.. code-block:: shell
 
     pdnsutil import-zone-key ZONE FILENAME ksk
 

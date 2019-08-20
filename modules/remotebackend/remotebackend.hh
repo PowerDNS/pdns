@@ -102,8 +102,10 @@ class HTTPConnector: public Connector {
     void post_requestbuilder(const Json &input, YaHTTP::Request& req);
     void addUrlComponent(const Json &parameters, const string& element, std::stringstream& ss);
     std::string buildMemberListArgs(std::string prefix, const Json& args);
-    Socket* d_socket;
+    std::unique_ptr<Socket> d_socket;
     ComboAddress d_addr;
+    std::string d_host;
+    uint16_t d_port;
 };
 
 #ifdef REMOTEBACKEND_ZEROMQ
@@ -119,8 +121,8 @@ class ZeroMQConnector: public Connector {
     int d_timeout;
     int d_timespent;
     std::map<std::string,std::string> d_options;
-    void *d_ctx;
-    void *d_sock; 
+    std::unique_ptr<void, int(*)(void*)> d_ctx;
+    std::unique_ptr<void, int(*)(void*)> d_sock;
 };
 #endif
 
@@ -144,7 +146,7 @@ class PipeConnector: public Connector {
   int d_fd1[2], d_fd2[2];
   int d_pid;
   int d_timeout;
-  FILE *d_fp;
+  std::unique_ptr<FILE, int(*)(FILE*)> d_fp{nullptr, fclose};
 };
 
 class RemoteBackend : public DNSBackend
@@ -173,7 +175,7 @@ class RemoteBackend : public DNSBackend
   bool superMasterBackend(const string &ip, const DNSName& domain, const vector<DNSResourceRecord>&nsset, string *nameserver, string *account, DNSBackend **ddb) override;
   bool createSlaveDomain(const string &ip, const DNSName& domain, const string& nameserver, const string &account) override;
   bool replaceRRSet(uint32_t domain_id, const DNSName& qname, const QType& qt, const vector<DNSResourceRecord>& rrset) override;
-  bool feedRecord(const DNSResourceRecord &r, const DNSName &ordername) override;
+  bool feedRecord(const DNSResourceRecord &r, const DNSName &ordername, bool ordernameIsNSEC3=false) override;
   bool feedEnts(int domain_id, map<DNSName,bool>& nonterm) override;
   bool feedEnts3(int domain_id, const DNSName& domain, map<DNSName,bool>& nonterm, const NSEC3PARAMRecordContent& ns3prc, bool narrow) override;
   bool startTransaction(const DNSName& domain, int domain_id) override;
@@ -186,12 +188,13 @@ class RemoteBackend : public DNSBackend
   bool searchRecords(const string &pattern, int maxResults, vector<DNSResourceRecord>& result) override;
   bool searchComments(const string &pattern, int maxResults, vector<Comment>& result) override;
   void getAllDomains(vector<DomainInfo> *domains, bool include_disabled=false) override;
+  void getUpdatedMasters(vector<DomainInfo>* domains) override;
 
   static DNSBackend *maker();
 
   private:
     int build();
-    Connector *connector;
+    std::unique_ptr<Connector> connector;
     bool d_dnssec;
     Json d_result;
     int d_index;

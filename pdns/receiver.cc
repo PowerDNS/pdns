@@ -72,6 +72,10 @@
 #include "dnsrecords.hh"
 #include "version.hh"
 
+#ifdef HAVE_LUA_RECORDS
+#include "minicurl.hh"
+#endif /* HAVE_LUA_RECORDS */
+
 time_t s_starttime;
 
 string s_programname="pdns"; // used in packethandler.cc
@@ -350,7 +354,7 @@ static int guardian(int argc, char **argv)
   }
 }
 
-#ifdef __GLIBC__
+#if defined(__GLIBC__) && !defined(__UCLIBC__)
 #include <execinfo.h>
 static void tbhandler(int num)
 {
@@ -382,7 +386,7 @@ int main(int argc, char **argv)
   s_programname="pdns";
   s_starttime=time(0);
 
-#ifdef __GLIBC__
+#if defined(__GLIBC__) && !defined(__UCLIBC__)
   signal(SIGSEGV,tbhandler);
   signal(SIGFPE,tbhandler);
   signal(SIGABRT,tbhandler);
@@ -446,7 +450,7 @@ int main(int argc, char **argv)
     
     // we really need to do work - either standalone or as an instance
 
-#ifdef __GLIBC__
+#if defined(__GLIBC__) && !defined(__UCLIBC__)
     if(!::arg().mustDo("traceback-handler")) {
       g_log<<Logger::Warning<<"Disabling traceback handler"<<endl;
       signal(SIGSEGV,SIG_DFL);
@@ -467,6 +471,10 @@ int main(int argc, char **argv)
     openssl_seed();
     /* setup rng */
     dns_random_init();
+
+#ifdef HAVE_LUA_RECORDS
+    MiniCurl::init();
+#endif /* HAVE_LUA_RECORDS */
 
     if(!::arg()["load-modules"].empty()) {
       vector<string> modules;
@@ -590,8 +598,7 @@ int main(int argc, char **argv)
       }
     }
 
-    if(!::arg().mustDo("disable-tcp"))
-      TN=new TCPNameserver; 
+    TN = make_unique<TCPNameserver>();
   }
   catch(const ArgException &A) {
     g_log<<Logger::Error<<"Fatal error: "<<A.reason<<endl;
@@ -599,6 +606,8 @@ int main(int argc, char **argv)
   }
   
   declareStats();
+  S.blacklist("special-memory-usage");
+
   DLOG(g_log<<Logger::Warning<<"Verbose logging in effect"<<endl);
 
   showProductVersion();

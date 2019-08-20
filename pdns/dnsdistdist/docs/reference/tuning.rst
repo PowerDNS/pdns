@@ -3,7 +3,7 @@ Tuning related functions
 
 .. function:: setMaxTCPClientThreads(num)
 
-  Set the maximum of TCP client threads, handling TCP connections
+  Set the maximum of TCP client threads, handling TCP connections. Before 1.4.0 a TCP thread could only handle a single incoming TCP connection at a time, while after 1.4.0 it can handle a larger number of them simultaneously.
 
   :param int num:
 
@@ -32,8 +32,10 @@ Tuning related functions
   :param int num:
 
 .. function:: setMaxUDPOutstanding(num)
+  .. versionchanged:: 1.4.0
+    Before 1.4.0 the default value was 10240
 
-  Set the maximum number of outstanding UDP queries to a given backend server. This can only be set at configuration time and defaults to 10240
+  Set the maximum number of outstanding UDP queries to a given backend server. This can only be set at configuration time and defaults to 65535 (10240 before 1.4.0)
 
   :param int num:
 

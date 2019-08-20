@@ -124,9 +124,9 @@ void Utility::usleep(unsigned long usec)
 
 
 // Drops the program's group privileges.
-void Utility::dropGroupPrivs( int uid, int gid )
+void Utility::dropGroupPrivs( uid_t uid, gid_t gid )
 {
-  if(gid) {
+  if(gid && gid != getegid()) {
     if(setgid(gid)<0) {
       g_log<<Logger::Critical<<"Unable to set effective group id to "<<gid<<": "<<stringerror()<<endl;
       exit(1);
@@ -152,9 +152,9 @@ void Utility::dropGroupPrivs( int uid, int gid )
 
 
 // Drops the program's user privileges.
-void Utility::dropUserPrivs( int uid )
+void Utility::dropUserPrivs( uid_t uid )
 {
-  if(uid) {
+  if(uid && uid != geteuid()) {
     if(setuid(uid)<0) {
       g_log<<Logger::Critical<<"Unable to set effective user id to "<<uid<<": "<<stringerror()<<endl;
       exit(1);
@@ -178,53 +178,13 @@ int Utility::gettimeofday( struct timeval *tv, void *tz )
   return ::gettimeofday(tv,0);
 }
 
-
-
-// Retrieves a gid using a groupname.
-int Utility::makeGidNumeric(const string &group)
-{
-  int newgid;
-  if(!(newgid=atoi(group.c_str()))) {
-    errno=0;
-    struct group *gr=getgrnam(group.c_str());
-    if(!gr) {
-      g_log<<Logger::Critical<<"Unable to look up gid of group '"<<group<<"': "<< (errno ? strerror(errno) : "not found") <<endl;
-      exit(1);
-    }
-    newgid=gr->gr_gid;
-  }
-  return newgid;
-}
-
-
-// Retrieves an uid using a username.
-int Utility::makeUidNumeric(const string &username)
-{
-  int newuid;
-  if(!(newuid=atoi(username.c_str()))) {
-    struct passwd *pw=getpwnam(username.c_str());
-    if(!pw) {
-      g_log<<Logger::Critical<<"Unable to look up uid of user '"<<username<<"': "<< (errno ? strerror(errno) : "not found") <<endl;
-      exit(1);
-    }
-    newuid=pw->pw_uid;
-  }
-  return newuid;
-}
-
-
-// Returns a random number.
-long int Utility::random( void )
-{
-  return rand();
-}
-
 // Sets the random seed.
-void Utility::srandom( unsigned int seed )
+void Utility::srandom(void)
 {
-  ::srandom(seed);
+  struct timeval tv;
+  gettimeofday(&tv, 0);
+  ::srandom(tv.tv_sec ^ tv.tv_usec ^ getpid());
 }
-
 
 // Writes a vector.
 int Utility::writev(int socket, const iovec *vector, size_t count )
