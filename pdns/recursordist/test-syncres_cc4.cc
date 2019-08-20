@@ -363,9 +363,6 @@ BOOST_AUTO_TEST_CASE(test_auth_zone_cache_only) {
       return 1;
   });
 
-  /* simulate a no-RD query */
-  sr->setCacheOnly();
-
   vector<DNSRecord> ret;
   int res = sr->beginResolve(target, QType(QType::A), QClass::IN, ret);
   BOOST_CHECK_EQUAL(res, RCode::NoError);

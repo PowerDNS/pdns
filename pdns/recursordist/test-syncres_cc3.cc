@@ -677,12 +677,10 @@ BOOST_AUTO_TEST_CASE(test_forward_zone_nord) {
         addRecordToLW(res, domain, QType::A, "192.0.2.42");
         return 1;
       }
-
+      // Not reached
+      BOOST_CHECK(false);
       return 0;
   });
-
-  /* simulate a no-RD query */
-  sr->setCacheOnly();
 
   vector<DNSRecord> ret;
   int res = sr->beginResolve(target, QType(QType::A), QClass::IN, ret);
@@ -718,6 +716,8 @@ BOOST_AUTO_TEST_CASE(test_forward_zone_rd) {
         addRecordToLW(res, domain, QType::A, "192.0.2.42");
         return 1;
       }
+      // Should not be reached
+      BOOST_CHECK(false);
 
       return 0;
   });
@@ -751,7 +751,7 @@ BOOST_AUTO_TEST_CASE(test_forward_zone_recurse_nord) {
   const ComboAddress forwardedNS("192.0.2.42:53");
 
   SyncRes::AuthDomain ad;
-  ad.d_rdForward = true;
+  ad.d_rdForward = false;
   ad.d_servers.push_back(forwardedNS);
   (*SyncRes::t_sstorage.domainmap)[target] = ad;
 
@@ -764,12 +764,11 @@ BOOST_AUTO_TEST_CASE(test_forward_zone_recurse_nord) {
         addRecordToLW(res, domain, QType::A, "192.0.2.42");
         return 1;
       }
+      // Should not be reached
+      BOOST_CHECK(false);
 
       return 0;
   });
-
-  /* simulate a no-RD query */
-  sr->setCacheOnly();
 
   vector<DNSRecord> ret;
   int res = sr->beginResolve(target, QType(QType::A), QClass::IN, ret);
@@ -801,6 +800,8 @@ BOOST_AUTO_TEST_CASE(test_forward_zone_recurse_rd) {
         addRecordToLW(res, domain, QType::A, "192.0.2.42");
         return 1;
       }
+      // Should not be reached
+      BOOST_CHECK(false);
 
       return 0;
   });

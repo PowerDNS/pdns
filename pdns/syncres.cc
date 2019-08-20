@@ -723,50 +723,6 @@ int SyncRes::doResolveNoQNameMinimization(const DNSName &qname, const QType &qty
 
   // This is a difficult way of expressing "this is a normal query", i.e. not getRootNS.
   if(!(d_updatingRootNS && qtype.getCode()==QType::NS && qname.isRoot())) {
-    if(d_cacheonly) { // very limited OOB support
-      LWResult lwr;
-      LOG(prefix<<qname<<": Recursion not requested for '"<<qname<<"|"<<qtype.getName()<<"', peeking at auth/forward zones"<<endl);
-      DNSName authname(qname);
-      domainmap_t::const_iterator iter=getBestAuthZone(&authname);
-      if(iter != t_sstorage.domainmap->end()) {
-        if(iter->second.isAuth()) {
-          ret.clear();
-          d_wasOutOfBand = doOOBResolve(qname, qtype, ret, depth, res);
-          if (fromCache)
-            *fromCache = d_wasOutOfBand;
-          return res;
-        }
-        else {
-          const vector<ComboAddress>& servers = iter->second.d_servers;
-          const ComboAddress remoteIP = servers.front();
-          LOG(prefix<<qname<<": forwarding query to hardcoded nameserver '"<< remoteIP.toStringWithPort()<<"' for zone '"<<authname<<"'"<<endl);
-
-          boost::optional<Netmask> nm;
-          bool chained = false;
-          res=asyncresolveWrapper(remoteIP, d_doDNSSEC, qname, authname, qtype.getCode(), false, false, &d_now, nm, &lwr, &chained);
-
-          d_totUsec += lwr.d_usec;
-          accountAuthLatency(lwr.d_usec, remoteIP.sin4.sin_family);
-          
-          // filter out the good stuff from lwr.result()
-          if (lwr.d_aabit) {
-            if (fromCache)
-              *fromCache = true;
-            if (res == 1) {
-              for(const auto& rec : lwr.d_records) {
-                if(rec.d_place == DNSResourceRecord::ANSWER)
-                  ret.push_back(rec);
-              }
-              return 0;
-            }
-            else {
-              return RCode::ServFail;
-            }
-          }
-        }
-      }
-    }
-
     DNSName authname(qname);
     bool wasForwardedOrAuthZone = false;
     bool wasAuthZone = false;
