@@ -4,13 +4,13 @@ AC_DEFUN([PDNS_CHECK_CASSANDRA], [
         [AS_HELP_STRING([--enable-cassandra-static],
             [Link with static cassandra client libraries])],
         [
-            PKG_CHECK_MODULES([Cassandra], [cassandra_static],,
+            PKG_CHECK_MODULES([CASSANDRA], [cassandra_static],,
             [
                 AC_MSG_ERROR([cassandra_static not found via pkg-config])
             ])
         ],
         [
-            PKG_CHECK_MODULES([Cassandra], [cassandra],,
+            PKG_CHECK_MODULES([CASSANDRA], [cassandra],,
             [
                 AC_MSG_ERROR([cassandra not found via pkg-config])
             ])

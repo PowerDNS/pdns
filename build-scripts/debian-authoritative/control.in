@@ -4,7 +4,7 @@ Priority: extra
 Standards-Version: 3.9.8
 Maintainer: PowerDNS Autobuilder <powerdns.support@powerdns.com>
 Origin: PowerDNS
-Build-Depends: debhelper (>= 9~), dh-autoreconf, dh-systemd, po-debconf, curl, libtool, flex, bison, libmysqlclient-dev, libpq-dev, libssl-dev, libgdbm-dev, libldap2-dev, libsqlite3-dev, dpkg-dev (>= 1.17.0~), libboost-dev, libboost-serialization-dev, libboost-program-options-dev, libboost-test-dev, autotools-dev, automake, autoconf, libluajit5.1-dev, pkg-config, ragel, libgmp-dev, libcurl4-openssl-dev, libzmq-dev, libyaml-cpp-dev (>= 0.5), libgeoip-dev, libopendbx1-dev, libcdb-dev, unixodbc-dev (>= 2.3.1), libprotobuf-dev, protobuf-compiler, libp11-kit-dev @LIBSYSTEMDDEV@ @LIBSODIUMDEV@
+Build-Depends: debhelper (>= 9~), dh-autoreconf, dh-systemd, po-debconf, curl, libtool, flex, bison, libmysqlclient-dev, libpq-dev, libssl-dev, libgdbm-dev, libldap2-dev, libsqlite3-dev, dpkg-dev (>= 1.17.0~), libboost-dev, libboost-serialization-dev, libboost-program-options-dev, libboost-test-dev, autotools-dev, automake, autoconf, libluajit5.1-dev, pkg-config, ragel, libgmp-dev, libcurl4-openssl-dev, libzmq-dev, libyaml-cpp-dev (>= 0.5), libgeoip-dev, libopendbx1-dev, libcdb-dev, unixodbc-dev (>= 2.3.1), libprotobuf-dev, protobuf-compiler, libp11-kit-dev, cassandra-cpp-driver-dev @LIBSYSTEMDDEV@ @LIBSODIUMDEV@
 Homepage: http://www.powerdns.com/
 
 Package: pdns-server
@@ -216,3 +216,15 @@ Description: tinydns compatibility backend for PowerDNS
  PowerDNS tries to emphasize speed and security.
  .
  This package contains the tinydns compatibility backend for PowerDNS.
+
+Package: pdns-backend-cassandra
+Architecture: any
+Depends: pdns-server (>= ${source:Version}), ucf (>= 0.28), ${shlibs:Depends}, ${misc:Depends}, cassandra-cpp-driver
+Provides: pdns-backend
+Description: sqlite 3 backend for PowerDNS
+ PowerDNS is a versatile nameserver which supports a large number
+ of different backends ranging from simple zonefiles to relational
+ databases and load balancing/failover algorithms.
+ PowerDNS tries to emphasize speed and security.
+ .
+ This package contains Cassandra backend for PowerDNS.

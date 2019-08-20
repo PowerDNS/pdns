@@ -1,0 +1,2 @@
+debian/config/pdns.local.cassandra.conf
+modules/cassandrabackend/schema.cql

@@ -1,7 +1,7 @@
 #!/usr/bin/make -f
 
 # Backends
-backends := bind ldap pipe gmysql godbc gpgsql gsqlite3 geoip lua mydns remote random opendbx tinydns
+backends := bind ldap pipe gmysql godbc gpgsql gsqlite3 geoip lua mydns remote random opendbx tinydns cassandra
 
 DEB_HOST_MULTIARCH  ?= $(shell dpkg-architecture -qDEB_HOST_MULTIARCH)
 
