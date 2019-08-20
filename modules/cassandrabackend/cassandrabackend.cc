@@ -76,9 +76,10 @@ CassandraBackend::CassandraBackend(const std::string& suffix)
     {
         std::string query {
             "CREATE TABLE IF NOT EXISTS " + table + " ("
-                "domain text PRIMARY KEY,"
-                "records list<frozen<tuple<ascii, text, int, text>>>,"
-                "keys list<frozen<tuple<boolean, int, text, int>>>"
+                "domain      text PRIMARY KEY,"
+                "records     list<frozen<tuple<ascii, text, int, text, text>>>,"
+                "keys        list<frozen<tuple<boolean, int, text, int>>>,"
+                "metadata    map<ascii, text>"
             ");"
         };
 
