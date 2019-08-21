@@ -306,6 +306,8 @@ bool TinyDNSBackend::get(DNSResourceRecord &rr)
             continue;
           }
           rr.ttl = timestamp - now;
+          if (rr.ttl <= 2) rr.ttl = 2;
+          if (rr.ttl >= 3600) rr.ttl = 3600;
         } else if (now <= timestamp) {
           continue;
         }
