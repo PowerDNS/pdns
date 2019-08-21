@@ -1,7 +1,7 @@
 Lua Scripting and Statistics
 ============================
 
-The Lua engine can generate metrics and can 
+The Lua engine can generate and retrieve metrics. 
 
 Generating Metrics
 ------------------
