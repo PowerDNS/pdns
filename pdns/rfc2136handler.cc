@@ -216,9 +216,18 @@ uint PacketHandler::performUpdate(const string &msgPrefix, const DNSRecord *rr, 
       } else {
         int updateTTL=0;
         foundRecord = false;
+        bool lowerCase = false;
+        if (rrType.getCode() == QType::PTR ||
+            rrType.getCode() == QType::MX ||
+            rrType.getCode() == QType::SRV) {
+          lowerCase = true;
+        }
+        string content = rr->d_content->getZoneRepresentation();
+        if (lowerCase) content = toLower(content);
         for (auto& i : rrset) {
-          string content = rr->d_content->getZoneRepresentation();
-          if (rrType == i.qtype.getCode() && i.getZoneRepresentation() == content) {
+          string icontent = i.getZoneRepresentation();
+          if (lowerCase) icontent = toLower(icontent);
+          if (rrType == i.qtype.getCode() && icontent == content) {
             foundRecord=true;
             if (i.ttl != rr->d_ttl)  {
               i.ttl = rr->d_ttl;
