@@ -598,7 +598,9 @@ These ``DNSRule``\ s be one of the following items:
   :param str path: The exact HTTP path to match on
 
 .. function:: KeyValueStoreLookupRule(kvs, lookupKey)
-  .. versionadded:: 1.5.0
+  .. versionadded:: 1.4.0
+
+  As of 1.4.0, this code is considered experimental.
 
   Return true if the key returned by 'lookupKey' exists in the key value store referenced by 'kvs'.
   The store can be a CDB (:func:`newCDBKVStore`) or a LMDB database (:func:`newLMDBKVStore`).
@@ -970,7 +972,9 @@ The following actions exist.
 
 .. function:: KeyValueStoreLookupAction(kvs, lookupKey, destinationTag)
 
-  .. versionadded:: 1.5.0
+  .. versionadded:: 1.4.0
+
+  As of 1.4.0, this code is considered experimental.
 
   Does a lookup into the key value store referenced by 'kvs' using the key returned by 'lookupKey',
   and storing the result if any into the tag named 'destinationTag'.

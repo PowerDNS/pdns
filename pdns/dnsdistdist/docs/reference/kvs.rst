@@ -3,6 +3,8 @@ Key Value Store functions and objects
 
 These are all the functions, objects and methods related to the CDB and LMDB key value stores.
 
+As of 1.4.0, the CDB and LMDB code is considered experimental.
+
 A lookup into a key value store can be done via the :func:`KeyValueStoreLookupRule` rule or
 the :func:`KeyValueStoreLookupAction` action, using the usual selectors to match the incoming
 queries for which the lookup should be done.
@@ -40,7 +42,7 @@ If the value found in the LMDB database for the key '\8powerdns\3com\0' was 'thi
 
 .. class:: KeyValueStore
 
-  .. versionadded:: 1.5.0
+  .. versionadded:: 1.4.0
 
   Represents a Key Value Store
 
@@ -64,12 +66,12 @@ If the value found in the LMDB database for the key '\8powerdns\3com\0' was 'thi
 
   .. method:: KeyValueStore:reload()
 
-    Reload the database if this is supported by the underlying store. As of 1.5.0, only CDB stores can be reloaded, and this method is a no-op for LMDB stores.
+    Reload the database if this is supported by the underlying store. As of 1.4.0, only CDB stores can be reloaded, and this method is a no-op for LMDB stores.
 
 
 .. function:: KeyValueLookupKeyQName([wireFormat]) -> KeyValueLookupKey
 
-  .. versionadded:: 1.5.0
+  .. versionadded:: 1.4.0
 
   Return a new KeyValueLookupKey object that, when passed to :func:`KeyValueStoreLookupAction` or :func:`KeyValueStoreLookupRule`, will return the qname of the query in DNS wire format.
 
@@ -77,13 +79,13 @@ If the value found in the LMDB database for the key '\8powerdns\3com\0' was 'thi
 
 .. function:: KeyValueLookupKeySourceIP() -> KeyValueLookupKey
 
-  .. versionadded:: 1.5.0
+  .. versionadded:: 1.4.0
 
   Return a new KeyValueLookupKey object that, when passed to :func:`KeyValueStoreLookupAction` or :func:`KeyValueStoreLookupRule`, will return the source IP of the client in network byte-order.
 
 .. function:: KeyValueLookupKeySuffix([minLabels [, wireFormat]]) -> KeyValueLookupKey
 
-  .. versionadded:: 1.5.0
+  .. versionadded:: 1.4.0
 
   Return a new KeyValueLookupKey object that, when passed to :func:`KeyValueStoreLookupAction` or :func:`KeyValueStoreLookupRule`, will return a vector of keys based on the labels of the qname in DNS wire format or plain text.
   For example if the qname is sub.domain.powerdns.com. the following keys will be returned:
@@ -105,13 +107,13 @@ If the value found in the LMDB database for the key '\8powerdns\3com\0' was 'thi
 
 .. function:: KeyValueLookupKeyTag() -> KeyValueLookupKey
 
-  .. versionadded:: 1.5.0
+  .. versionadded:: 1.4.0
 
   Return a new KeyValueLookupKey object that, when passed to :func:`KeyValueStoreLookupAction`, will return the value of the corresponding tag for this query, if it exists.
 
 .. function:: newCDBKVStore(filename, refreshDelay) -> KeyValueStore
 
-  .. versionadded:: 1.5.0
+  .. versionadded:: 1.4.0
 
   Return a new KeyValueStore object associated to the corresponding CDB database. The modification time
   of the CDB file will be checked every 'refrehDelay' second and the database re-opened if needed.
@@ -121,7 +123,7 @@ If the value found in the LMDB database for the key '\8powerdns\3com\0' was 'thi
 
 .. function:: newLMDBKVStore(filename, dbName) -> KeyValueStore
 
-  .. versionadded:: 1.5.0
+  .. versionadded:: 1.4.0
 
   Return a new KeyValueStore object associated to the corresponding LMDB database. The database must have been created
   with the ``MDB_NOSUBDIR`` flag.
