@@ -218,6 +218,74 @@ BOOST_AUTO_TEST_CASE(test_filter_policies_basic) {
   BOOST_CHECK(dfe.getZone(zoneIdx) == zone);
 }
 
+BOOST_AUTO_TEST_CASE(test_filter_policies_wildcard_with_enc) {
+  DNSFilterEngine dfe;
+    
+  std::string zoneName("Unit test policy wc");
+  auto zone = std::make_shared<DNSFilterEngine::Zone>();
+  zone->setName(zoneName);
+  zone->setDomain(DNSName("powerdns.com."));
+  zone->setSerial(42);
+  zone->setRefresh(99);
+
+  zone->addQNameTrigger(DNSName("bcbsks.com.102.112.2o7.net."),
+                        DNSFilterEngine::Policy(DNSFilterEngine::PolicyKind::NoAction,
+                                                DNSFilterEngine::PolicyType::QName));
+  zone->addQNameTrigger(DNSName("2o7.net."),
+                        DNSFilterEngine::Policy(DNSFilterEngine::PolicyKind::Drop,
+                                                DNSFilterEngine::PolicyType::QName));
+  zone->addQNameTrigger(DNSName("*.2o7.net."),
+                        DNSFilterEngine::Policy(DNSFilterEngine::PolicyKind::Drop,
+                                                DNSFilterEngine::PolicyType::QName));
+
+  dfe.addZone(zone);
+
+  ComboAddress address("192.0.2.142");
+  
+  {
+    const DNSName tstName("bcbsks.com.102.112.2o7.net.");
+    auto matchingPolicy = dfe.getQueryPolicy(tstName, address, std::unordered_map<std::string,bool>());
+    BOOST_CHECK(matchingPolicy.d_type == DNSFilterEngine::PolicyType::QName);
+    BOOST_CHECK(matchingPolicy.d_kind == DNSFilterEngine::PolicyKind::NoAction);
+  }
+
+  {
+    const DNSName tstName("2o7.net.");
+    auto matchingPolicy = dfe.getQueryPolicy(tstName, address, std::unordered_map<std::string,bool>());
+    BOOST_CHECK(matchingPolicy.d_type == DNSFilterEngine::PolicyType::QName);
+    BOOST_CHECK(matchingPolicy.d_kind == DNSFilterEngine::PolicyKind::Drop);
+  }
+
+  {
+    const DNSName tstName("112.2o7.net.");
+    auto matchingPolicy = dfe.getProcessingPolicy(tstName, std::unordered_map<std::string,bool>());
+    BOOST_CHECK(matchingPolicy.d_type == DNSFilterEngine::PolicyType::None);
+    BOOST_CHECK(matchingPolicy.d_kind == DNSFilterEngine::PolicyKind::NoAction);
+  }
+  
+  {
+    const DNSName tstName("102.112.2o7.net.");
+    auto matchingPolicy = dfe.getProcessingPolicy(tstName, std::unordered_map<std::string,bool>());
+    BOOST_CHECK(matchingPolicy.d_type == DNSFilterEngine::PolicyType::None);
+    BOOST_CHECK(matchingPolicy.d_kind == DNSFilterEngine::PolicyKind::NoAction);
+  }
+
+  {
+    const DNSName tstName("com.112.2o7.net.");
+    auto matchingPolicy = dfe.getProcessingPolicy(tstName, std::unordered_map<std::string,bool>());
+    BOOST_CHECK(matchingPolicy.d_type == DNSFilterEngine::PolicyType::None);
+    BOOST_CHECK(matchingPolicy.d_kind == DNSFilterEngine::PolicyKind::NoAction);
+  }
+  
+  {
+    const DNSName tstName("wcmatch.2o7.net.");
+    auto matchingPolicy = dfe.getQueryPolicy(tstName, address, std::unordered_map<std::string,bool>());
+    BOOST_CHECK(matchingPolicy.d_type == DNSFilterEngine::PolicyType::QName);
+    BOOST_CHECK(matchingPolicy.d_kind == DNSFilterEngine::PolicyKind::Drop);
+  }
+
+}
+
 BOOST_AUTO_TEST_CASE(test_filter_policies_local_data) {
   DNSFilterEngine dfe;
 
