@@ -409,6 +409,7 @@ public:
     SSL_CTX_set_tlsext_ticket_key_cb(d_tlsCtx.get(), &OpenSSLTLSIOCtx::ticketKeyCb);
     SSL_CTX_set_ex_data(d_tlsCtx.get(), s_ticketsKeyIndex, this);
     SSL_CTX_set_options(d_tlsCtx.get(), sslOptions);
+    libssl_set_min_tls_version(d_tlsCtx, fe.d_minTLSVersion);
 #if defined(SSL_CTX_set_ecdh_auto)
     SSL_CTX_set_ecdh_auto(d_tlsCtx.get(), 1);
 #endif

@@ -1727,6 +1727,9 @@ void setupLuaConfig(bool client)
       if (vars->count("ciphersTLS13")) {
         frontend->d_ciphers13 = boost::get<const string>((*vars)["ciphersTLS13"]);
       }
+      if (vars->count("minTLSVersion")) {
+        frontend->d_minTLSVersion = libssl_tls_version_from_string(boost::get<const string>((*vars)["minTLSVersion"]));
+      }
       if (vars->count("serverTokens")) {
         frontend->d_serverTokens = boost::get<const string>((*vars)["serverTokens"]);
       }
@@ -1872,6 +1875,12 @@ void setupLuaConfig(bool client)
           if (vars->count("ciphersTLS13")) {
             frontend->d_ciphers13 = boost::get<const string>((*vars)["ciphersTLS13"]);
           }
+
+#ifdef HAVE_LIBSSL
+          if (vars->count("minTLSVersion")) {
+            frontend->d_minTLSVersion = libssl_tls_version_from_string(boost::get<const string>((*vars)["minTLSVersion"]));
+          }
+#endif /* HAVE_LIBSSL */
 
           if (vars->count("ticketKeyFile")) {
             frontend->d_ticketKeyFile = boost::get<const string>((*vars)["ticketKeyFile"]);

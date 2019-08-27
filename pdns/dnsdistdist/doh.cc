@@ -884,7 +884,7 @@ static int ocsp_stapling_callback(SSL* ssl, void* arg)
   return libssl_ocsp_stapling_callback(ssl, *ocspMap);
 }
 
-static std::unique_ptr<SSL_CTX, void(*)(SSL_CTX*)> getTLSContext(const std::vector<std::pair<std::string, std::string>>& pairs, const std::string& ciphers, const std::string& ciphers13, const std::vector<std::string>& ocspFiles, std::map<int, std::string>& ocspResponses)
+static std::unique_ptr<SSL_CTX, void(*)(SSL_CTX*)> getTLSContext(const std::vector<std::pair<std::string, std::string>>& pairs, const std::string& ciphers, const std::string& ciphers13, LibsslTLSVersion minTLSVersion, const std::vector<std::string>& ocspFiles, std::map<int, std::string>& ocspResponses)
 {
   auto ctx = std::unique_ptr<SSL_CTX, void(*)(SSL_CTX*)>(SSL_CTX_new(SSLv23_server_method()), SSL_CTX_free);
 
@@ -897,6 +897,7 @@ static std::unique_ptr<SSL_CTX, void(*)(SSL_CTX*)> getTLSContext(const std::vect
     SSL_OP_SINGLE_ECDH_USE;
 
   SSL_CTX_set_options(ctx.get(), sslOptions);
+  libssl_set_min_tls_version(ctx, minTLSVersion);
 
 #ifdef SSL_CTX_set_ecdh_auto
   SSL_CTX_set_ecdh_auto(ctx.get(), 1);
@@ -961,6 +962,7 @@ static void setupAcceptContext(DOHAcceptContext& ctx, DOHServerConfig& dsc, bool
     auto tlsCtx = getTLSContext(dsc.df->d_certKeyPairs,
                                 dsc.df->d_ciphers,
                                 dsc.df->d_ciphers13,
+                                dsc.df->d_minTLSVersion,
                                 dsc.df->d_ocspFiles,
                                 ctx.d_ocspResponses);
 
@@ -988,6 +990,7 @@ void DOHFrontend::setup()
   auto tlsCtx = getTLSContext(d_certKeyPairs,
                               d_ciphers,
                               d_ciphers13,
+                              d_minTLSVersion,
                               d_ocspFiles,
                               d_dsc->accept_ctx->d_ocspResponses);
 

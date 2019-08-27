@@ -2,6 +2,7 @@
 #pragma once
 #include <memory>
 
+#include "libssl.hh"
 #include "misc.hh"
 
 enum class IOState { Done, NeedRead, NeedWrite };
@@ -149,6 +150,8 @@ public:
   size_t d_maxStoredSessions{20480};
   time_t d_ticketsKeyRotationDelay{43200};
   uint8_t d_numberOfTicketsKeys{5};
+  LibsslTLSVersion d_minTLSVersion{LibsslTLSVersion::TLS10};
+
   bool d_enableTickets{true};
 
 private:

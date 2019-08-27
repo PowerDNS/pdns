@@ -1,5 +1,6 @@
 #pragma once
 #include "iputils.hh"
+#include "libssl.hh"
 
 struct DOHServerConfig;
 
@@ -11,6 +12,7 @@ struct DOHFrontend
   std::string d_ciphers;
   std::string d_ciphers13;
   std::string d_serverTokens{"h2o/dnsdist"};
+  LibsslTLSVersion d_minTLSVersion{LibsslTLSVersion::TLS10};
   std::vector<std::pair<std::string, std::string>> d_customResponseHeaders;
   ComboAddress d_local;
 
