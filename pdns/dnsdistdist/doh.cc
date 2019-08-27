@@ -201,19 +201,21 @@ static const std::string& getReasonFromStatusCode(uint16_t statusCode)
   }
 }
 
-static void handleResponse(DOHFrontend& df, st_h2o_req_t* req, uint16_t statusCode, const std::string& response, const std::string& contentType)
+static void handleResponse(DOHFrontend& df, st_h2o_req_t* req, uint16_t statusCode, const std::string& response, const std::string& contentType, bool addContentType)
 {
   if (statusCode == 200) {
     ++df.d_validresponses;
     req->res.status = 200;
 
-    if (contentType.empty()) {
-      h2o_add_header(&req->pool, &req->res.headers, H2O_TOKEN_CONTENT_TYPE, nullptr, H2O_STRLIT("application/dns-message"));
-    }
-    else {
-      /* we need to duplicate the header content because h2o keeps a pointer and we will be deleted before the response has been sent */
-      h2o_iovec_t ct = h2o_strdup(&req->pool, contentType.c_str(), contentType.size());
-      h2o_add_header(&req->pool, &req->res.headers, H2O_TOKEN_CONTENT_TYPE, nullptr, ct.base, ct.len);
+    if (addContentType) {
+      if (contentType.empty()) {
+        h2o_add_header(&req->pool, &req->res.headers, H2O_TOKEN_CONTENT_TYPE, nullptr, H2O_STRLIT("application/dns-message"));
+      }
+      else {
+        /* we need to duplicate the header content because h2o keeps a pointer and we will be deleted before the response has been sent */
+        h2o_iovec_t ct = h2o_strdup(&req->pool, contentType.c_str(), contentType.size());
+        h2o_add_header(&req->pool, &req->res.headers, H2O_TOKEN_CONTENT_TYPE, nullptr, ct.base, ct.len);
+      }
     }
 
     req->res.content_length = response.size();
@@ -576,7 +578,7 @@ try
 
   for (const auto& entry : dsc->df->d_responsesMap) {
     if (entry->matches(path)) {
-      handleResponse(*dsc->df, req, entry->getStatusCode(), entry->getContent(), std::string());
+      handleResponse(*dsc->df, req, entry->getStatusCode(), entry->getContent(), std::string(), false);
       return 0;
     }
   }
@@ -846,7 +848,7 @@ static void on_dnsdist(h2o_socket_t *listener, const char *err)
 
   *du->self = nullptr; // so we don't clean up again in on_generator_dispose
 
-  handleResponse(*dsc->df, du->req, du->status_code, du->response, du->contentType);
+  handleResponse(*dsc->df, du->req, du->status_code, du->response, du->contentType, true);
 
   delete du;
 }
