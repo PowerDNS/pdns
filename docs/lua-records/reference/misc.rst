@@ -21,8 +21,8 @@ Other functions
   - `pdns.loglevels.Warning`
   - `pdns.loglevels.Error`
 
-.. function:: pdnsrandom([maximum])
+.. function:: pdnsrandom([upper_bound])
 
   Get a random number.
 
-  :param int maximum: The largest number to return. This is 2^32-1 by default.
+  :param int upper_bound: The upper bound. You will get a random number below this upper bound.
