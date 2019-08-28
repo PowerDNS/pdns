@@ -151,6 +151,7 @@ DNSFilterEngine::Policy DNSFilterEngine::getQueryPolicy(const DNSName& qname, co
       //	cerr<<"Had a hit on the IP address ("<<ca.toString()<<") of the client"<<endl;
       return pol;
     }
+    ++count;
   }
 
   return pol;
