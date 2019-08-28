@@ -229,7 +229,7 @@ int asyncresolve(const ComboAddress& ip, const DNSName& domain, int type, bool d
   buf.resize(bufsize);
   vector<uint8_t> vpacket;
   //  string mapped0x20=dns0x20(domain);
-  uint16_t qid = dns_random(0xffff);
+  uint16_t qid = dns_random_uint16();
   DNSPacketWriter pw(vpacket, domain, type);
 
   pw.getHeader()->rd=sendRDQuery;

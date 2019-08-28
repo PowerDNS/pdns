@@ -112,7 +112,7 @@ try
       tkrc.d_keysize = output.size();
       tkrc.d_key = output;
       tkrc.d_othersize = 0;
-      pwtkey.getHeader()->id = dns_random(0xffff);
+      pwtkey.getHeader()->id = dns_random_uint16();
       pwtkey.startRecord(gssctx.getLabel(), QType::TKEY, 3600, QClass::ANY, DNSResourceRecord::ADDITIONAL, false);
       tkrc.toPacket(pwtkey);
       pwtkey.commit();
@@ -161,7 +161,7 @@ try
 
   DNSPacketWriter pw(packet, DNSName(argv[3]), 252);
 
-  pw.getHeader()->id = dns_random(0xffff);
+  pw.getHeader()->id = dns_random_uint16();
 
   if (tsig) {
     TSIGRecordContent trc;
