@@ -85,6 +85,8 @@ EXTRA_DIST=COPYING \
 	   epollmplexer.cc \
 	   kqueuemplexer.cc \
 	   portsmplexer.cc \
+	   cdb.cc cdb.hh \
+	   ext/lmdb-safe/lmdb-safe.cc ext/lmdb-safe/lmdb-safe.hh \
 	   builder-support/gen-version
 
 bin_PROGRAMS = dnsdist
