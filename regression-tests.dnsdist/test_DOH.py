@@ -579,7 +579,7 @@ class TestDOH(DNSDistDOHTest):
         conn.setopt(pycurl.HEADERFUNCTION, response_headers.write)
         data = conn.perform_rb()
         rcode = conn.getinfo(pycurl.RESPONSE_CODE)
-        headers = response_headers.getvalue()
+        headers = response_headers.getvalue().decode()
 
         self.assertEquals(rcode, 418)
         self.assertEquals(data, b'C0FFEE')
@@ -600,7 +600,7 @@ class TestDOH(DNSDistDOHTest):
 
         data = conn.perform_rb()
         rcode = conn.getinfo(pycurl.RESPONSE_CODE)
-        headers = response_headers.getvalue()
+        headers = response_headers.getvalue().decode()
         self.assertEquals(rcode, 418)
         self.assertEquals(data, b'C0FFEE')
         self.assertIn('foo: bar', headers)
