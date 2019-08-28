@@ -7,7 +7,7 @@ struct DOHServerConfig;
 class DOHResponseMapEntry
 {
 public:
-  DOHResponseMapEntry(const std::string& regex, uint16_t status, const std::string& content): d_regex(regex), d_content(content), d_status(status)
+  DOHResponseMapEntry(const std::string& regex, uint16_t status, const std::string& content, const boost::optional<std::vector<std::pair<std::string, std::string>>>& headers): d_regex(regex), d_customHeaders(headers), d_content(content), d_status(status)
   {
   }
 
@@ -26,8 +26,14 @@ public:
     return d_content;
   }
 
+  const boost::optional<std::vector<std::pair<std::string, std::string>>>& getHeaders() const
+  {
+    return d_customHeaders;
+  }
+
 private:
   Regex d_regex;
+  boost::optional<std::vector<std::pair<std::string, std::string>>> d_customHeaders;
   std::string d_content;
   uint16_t d_status;
 };

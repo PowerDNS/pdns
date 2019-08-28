@@ -149,7 +149,7 @@ class TestDOH(DNSDistDOHTest):
 
     addDOHLocal("127.0.0.1:%s", "%s", "%s", { "/" }, {customResponseHeaders={["access-control-allow-origin"]="*",["user-agent"]="derp"}})
     dohFE = getDOHFrontend(0)
-    dohFE:setResponsesMap({newDOHResponseMapEntry('^/coffee$', 418, 'C0FFEE')})
+    dohFE:setResponsesMap({newDOHResponseMapEntry('^/coffee$', 418, 'C0FFEE', {['foo']='bar'})})
 
     addAction("drop.doh.tests.powerdns.com.", DropAction())
     addAction("refused.doh.tests.powerdns.com.", RCodeAction(DNSRCode.REFUSED))
@@ -568,6 +568,7 @@ class TestDOH(DNSDistDOHTest):
         """
         DOH: HTTP Early Response
         """
+        response_headers = BytesIO()
         url = self._dohBaseURL + 'coffee'
         conn = self.openDOHConnection(self._dohServerPort, caFile=self._caCert, timeout=2.0)
         conn.setopt(pycurl.URL, url)
@@ -575,26 +576,35 @@ class TestDOH(DNSDistDOHTest):
         conn.setopt(pycurl.SSL_VERIFYPEER, 1)
         conn.setopt(pycurl.SSL_VERIFYHOST, 2)
         conn.setopt(pycurl.CAINFO, self._caCert)
+        conn.setopt(pycurl.HEADERFUNCTION, response_headers.write)
         data = conn.perform_rb()
         rcode = conn.getinfo(pycurl.RESPONSE_CODE)
+        headers = response_headers.getvalue()
 
         self.assertEquals(rcode, 418)
         self.assertEquals(data, b'C0FFEE')
+        self.assertIn('foo: bar', headers)
+        self.assertNotIn(self._customResponseHeader2, headers)
 
+        response_headers = BytesIO()
         conn = self.openDOHConnection(self._dohServerPort, caFile=self._caCert, timeout=2.0)
         conn.setopt(pycurl.URL, url)
         conn.setopt(pycurl.RESOLVE, ["%s:%d:127.0.0.1" % (self._serverName, self._dohServerPort)])
         conn.setopt(pycurl.SSL_VERIFYPEER, 1)
         conn.setopt(pycurl.SSL_VERIFYHOST, 2)
         conn.setopt(pycurl.CAINFO, self._caCert)
+        conn.setopt(pycurl.HEADERFUNCTION, response_headers.write)
         conn.setopt(pycurl.POST, True)
         data = ''
         conn.setopt(pycurl.POSTFIELDS, data)
 
         data = conn.perform_rb()
         rcode = conn.getinfo(pycurl.RESPONSE_CODE)
+        headers = response_headers.getvalue()
         self.assertEquals(rcode, 418)
         self.assertEquals(data, b'C0FFEE')
+        self.assertIn('foo: bar', headers)
+        self.assertNotIn(self._customResponseHeader2, headers)
 
 class TestDOHAddingECS(DNSDistDOHTest):
 

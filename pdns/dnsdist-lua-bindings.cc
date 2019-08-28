@@ -369,7 +369,14 @@ void setupLuaBindings(bool client)
     return values;
   });
 
-  g_lua.writeFunction("newDOHResponseMapEntry", [](const std::string& regex, uint16_t status, const std::string& content) {
-    return std::make_shared<DOHResponseMapEntry>(regex, status, content);
+  g_lua.writeFunction("newDOHResponseMapEntry", [](const std::string& regex, uint16_t status, const std::string& content, boost::optional<std::map<std::string, std::string>> customHeaders) {
+    boost::optional<std::vector<std::pair<std::string, std::string>>> headers{boost::none};
+    if (customHeaders) {
+      headers = std::vector<std::pair<std::string, std::string>>();
+      for (const auto& header : *customHeaders) {
+        headers->push_back({ header.first, header.second });
+      }
+    }
+    return std::make_shared<DOHResponseMapEntry>(regex, status, content, headers);
   });
 }

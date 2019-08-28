@@ -201,8 +201,14 @@ static const std::string& getReasonFromStatusCode(uint16_t statusCode)
   }
 }
 
-static void handleResponse(DOHFrontend& df, st_h2o_req_t* req, uint16_t statusCode, const std::string& response, const std::string& contentType, bool addContentType)
+static void handleResponse(DOHFrontend& df, st_h2o_req_t* req, uint16_t statusCode, const std::string& response, const std::vector<std::pair<std::string, std::string>>& customResponseHeaders, const std::string& contentType, bool addContentType)
 {
+  constexpr int overwrite_if_exists = 1;
+  constexpr int maybe_token = 1;
+  for (auto const& headerPair : customResponseHeaders) {
+    h2o_set_header_by_str(&req->pool, &req->res.headers, headerPair.first.c_str(), headerPair.first.size(), maybe_token, headerPair.second.c_str(), headerPair.second.size(), overwrite_if_exists);
+  }
+
   if (statusCode == 200) {
     ++df.d_validresponses;
     req->res.status = 200;
@@ -230,7 +236,7 @@ static void handleResponse(DOHFrontend& df, st_h2o_req_t* req, uint16_t statusCo
   }
   else {
     if (!response.empty()) {
-      h2o_send_error_generic(req, statusCode, getReasonFromStatusCode(statusCode).c_str(), response.c_str(), 0);
+      h2o_send_error_generic(req, statusCode, getReasonFromStatusCode(statusCode).c_str(), response.c_str(), H2O_SEND_ERROR_KEEP_HEADERS);
     }
     else {
       switch(statusCode) {
@@ -555,12 +561,6 @@ try
     return 0;
   }
 
-  constexpr int overwrite_if_exists = 1;
-  constexpr int maybe_token = 1;
-  for (auto const& headerPair : dsc->df->d_customResponseHeaders) {
-    h2o_set_header_by_str(&req->pool, &req->res.headers, headerPair.first.c_str(), headerPair.first.size(), maybe_token, headerPair.second.c_str(), headerPair.second.size(), overwrite_if_exists);
-  }
-
   if(auto tlsversion = h2o_socket_get_ssl_protocol_version(sock)) {
     if(!strcmp(tlsversion, "TLSv1.0"))
       ++dsc->df->d_tls10queries;
@@ -578,7 +578,8 @@ try
 
   for (const auto& entry : dsc->df->d_responsesMap) {
     if (entry->matches(path)) {
-      handleResponse(*dsc->df, req, entry->getStatusCode(), entry->getContent(), std::string(), false);
+      const auto& customHeaders = entry->getHeaders();
+      handleResponse(*dsc->df, req, entry->getStatusCode(), entry->getContent(), customHeaders ? *customHeaders : dsc->df->d_customResponseHeaders, std::string(), false);
       return 0;
     }
   }
@@ -848,7 +849,7 @@ static void on_dnsdist(h2o_socket_t *listener, const char *err)
 
   *du->self = nullptr; // so we don't clean up again in on_generator_dispose
 
-  handleResponse(*dsc->df, du->req, du->status_code, du->response, du->contentType, true);
+  handleResponse(*dsc->df, du->req, du->status_code, du->response, dsc->df->d_customResponseHeaders, du->contentType, true);
 
   delete du;
 }

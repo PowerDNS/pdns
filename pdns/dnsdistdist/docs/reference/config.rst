@@ -1152,7 +1152,7 @@ DOHFrontend
      :param list of DOHResponseMapEntry objects rules: A list of DOHResponseMapEntry objects, obtained with :func:`newDOHResponseMapEntry`.
 
 
-.. function:: newDOHResponseMapEntry(regex, status, content) -> DOHResponseMapEntry
+.. function:: newDOHResponseMapEntry(regex, status, content [, headers]) -> DOHResponseMapEntry
 
   .. versionadded:: 1.4.0
 
@@ -1162,6 +1162,7 @@ DOHFrontend
   :param str regex: A regular expression to match the path against.
   :param int status: The HTTP code to answer with.
   :param str content: The content of the HTTP response, or a URL if the status is a redirection (3xx).
+  :param table of headers: The custom headers to set for the HTTP response, if any. The default is to use the value of the ``customResponseHeaders`` parameter passed to :func:`addDOHLocal`.
 
 TLSContext
 ~~~~~~~~~~
