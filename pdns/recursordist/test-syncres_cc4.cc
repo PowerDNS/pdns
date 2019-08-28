@@ -277,6 +277,61 @@ BOOST_AUTO_TEST_CASE(test_auth_zone_wildcard) {
   BOOST_CHECK_EQUAL(queriesCount, 0);
 }
 
+BOOST_AUTO_TEST_CASE(test_auth_zone_wildcard_with_ent) {
+  std::unique_ptr<SyncRes> sr;
+  initSR(sr);
+
+  primeHints();
+
+  size_t queriesCount = 0;
+  const DNSName target("test.powerdns.com.");
+  const ComboAddress targetAddr1("192.0.2.1");
+  const ComboAddress targetAddr2("192.0.2.2");
+  const DNSName authZone("powerdns.com");
+
+  SyncRes::AuthDomain ad;
+  ad.d_name = authZone;
+  DNSRecord dr;
+  dr.d_place = DNSResourceRecord::ANSWER;
+  dr.d_name = authZone;
+  dr.d_type = QType::SOA;
+  dr.d_ttl = 3600;
+  dr.d_content = std::make_shared<SOARecordContent>("pdns-public-ns1.powerdns.com. pieter\\.lexis.powerdns.com. 2017032301 10800 3600 604800 3600");
+  ad.d_records.insert(dr);
+
+  dr.d_place = DNSResourceRecord::ANSWER;
+  dr.d_name = DNSName("abc.xyz.test.powerdns.com.");
+  dr.d_type = QType::A;
+  dr.d_ttl = 3600;
+  dr.d_content = std::make_shared<ARecordContent>(targetAddr1);
+  ad.d_records.insert(dr);
+
+  dr.d_place = DNSResourceRecord::ANSWER;
+  dr.d_name = DNSName("*.powerdns.com.");
+  dr.d_type = QType::A;
+  dr.d_ttl = 3600;
+  dr.d_content = std::make_shared<ARecordContent>(targetAddr2);
+  ad.d_records.insert(dr);
+
+  auto map = std::make_shared<SyncRes::domainmap_t>();
+  (*map)[authZone] = ad;
+  SyncRes::setDomainMap(map);
+
+  sr->setAsyncCallback([&queriesCount](const ComboAddress& ip, const DNSName& domain, int type, bool doTCP, bool sendRDQuery, int EDNS0Level, struct timeval* now, boost::optional<Netmask>& srcmask, boost::optional<const ResolveContext&> context, LWResult* res, bool* chained) {
+
+      queriesCount++;
+
+      return 0;
+  });
+
+  vector<DNSRecord> ret;
+  int res = sr->beginResolve(target, QType(QType::A), QClass::IN, ret);
+  BOOST_CHECK_EQUAL(res, RCode::NoError);
+  BOOST_REQUIRE_EQUAL(ret.size(), 1);
+  BOOST_CHECK(ret[0].d_type == QType::SOA);
+  BOOST_CHECK_EQUAL(queriesCount, 0);
+}
+
 BOOST_AUTO_TEST_CASE(test_auth_zone_wildcard_nodata) {
   std::unique_ptr<SyncRes> sr;
   initSR(sr);
