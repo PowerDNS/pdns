@@ -63,6 +63,8 @@ EXTRA_DIST = \
 	mtasker_fcontext.cc mtasker_ucontext.cc \
 	NOTICE \
 	opensslsigners.hh opensslsigners.cc \
+	sodiumsigners.cc \
+	decafsigners.cc \
 	portsmplexer.cc \
 	dnstap.proto dnstap.cc dnstap.hh fstrm_logger.cc fstrm_logger.hh rec-dnstap.hh \
 	rrd/* \
@@ -70,6 +72,7 @@ EXTRA_DIST = \
 	test_libcrypto \
 	pdns-recursor.service.in \
 	RECURSOR-MIB.txt \
+	nod.hh nod.cc \
 	builder-support/gen-version
 
 dist-hook:
