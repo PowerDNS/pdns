@@ -81,6 +81,7 @@ EXTRA_DIST=COPYING \
 	   epollmplexer.cc \
 	   kqueuemplexer.cc \
 	   portsmplexer.cc \
+	   ipcipher.cc ipcipher.hh \
 	   builder-support/gen-version
 
 bin_PROGRAMS = dnsdist
