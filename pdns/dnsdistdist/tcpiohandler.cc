@@ -409,7 +409,10 @@ public:
     SSL_CTX_set_tlsext_ticket_key_cb(d_tlsCtx.get(), &OpenSSLTLSIOCtx::ticketKeyCb);
     SSL_CTX_set_ex_data(d_tlsCtx.get(), s_ticketsKeyIndex, this);
     SSL_CTX_set_options(d_tlsCtx.get(), sslOptions);
-    libssl_set_min_tls_version(d_tlsCtx, fe.d_minTLSVersion);
+    if (!libssl_set_min_tls_version(d_tlsCtx, fe.d_minTLSVersion)) {
+      throw std::runtime_error("Failed to set the minimum version to '" + libssl_tls_version_to_string(fe.d_minTLSVersion) + "' for ths TLS context on " + fe.d_addr.toStringWithPort());
+    }
+
 #if defined(SSL_CTX_set_ecdh_auto)
     SSL_CTX_set_ecdh_auto(d_tlsCtx.get(), 1);
 #endif
