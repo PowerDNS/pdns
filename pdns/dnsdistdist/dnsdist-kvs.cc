@@ -72,13 +72,13 @@ std::vector<std::string> KeyValueLookupKeySuffix::getKeys(const DNSName& qname)
 
 bool LMDBKVStore::getValue(const std::string& key, std::string& value)
 {
-  string_view result;
   try {
     auto transaction = d_env.getROTransaction();
     auto dbi = transaction.openDB(d_dbName, 0);
+    MDBOutVal result;
     int rc = transaction.get(dbi, MDBInVal(key), result);
     if (rc == 0) {
-      value = result.to_string();
+      value = result.get<std::string>();
       return true;
     }
     else if (rc == MDB_NOTFOUND) {
@@ -93,10 +93,10 @@ bool LMDBKVStore::getValue(const std::string& key, std::string& value)
 
 bool LMDBKVStore::keyExists(const std::string& key)
 {
-  string_view result;
   try {
     auto transaction = d_env.getROTransaction();
     auto dbi = transaction.openDB(d_dbName, 0);
+    MDBOutVal result;
     int rc = transaction.get(dbi, MDBInVal(key), result);
     if (rc == 0) {
       return true;
