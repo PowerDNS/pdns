@@ -897,7 +897,9 @@ static std::unique_ptr<SSL_CTX, void(*)(SSL_CTX*)> getTLSContext(const std::vect
     SSL_OP_SINGLE_ECDH_USE;
 
   SSL_CTX_set_options(ctx.get(), sslOptions);
-  libssl_set_min_tls_version(ctx, minTLSVersion);
+  if (!libssl_set_min_tls_version(ctx, minTLSVersion)) {
+    throw std::runtime_error("Failed to set the minimum version to '" + libssl_tls_version_to_string(minTLSVersion) + "' for DoH listener");
+  }
 
 #ifdef SSL_CTX_set_ecdh_auto
   SSL_CTX_set_ecdh_auto(ctx.get(), 1);

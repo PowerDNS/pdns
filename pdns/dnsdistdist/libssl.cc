@@ -281,6 +281,22 @@ LibsslTLSVersion libssl_tls_version_from_string(const std::string& str)
   throw std::runtime_error("Unknown TLS version '" + str);
 }
 
+const std::string& libssl_tls_version_to_string(LibsslTLSVersion version)
+{
+  static const std::map<LibsslTLSVersion, std::string> versions = {
+    { LibsslTLSVersion::TLS10, "tls1.0" },
+    { LibsslTLSVersion::TLS11, "tls1.1" },
+    { LibsslTLSVersion::TLS12, "tls1.2" },
+    { LibsslTLSVersion::TLS13, "tls1.3" }
+  };
+
+  const auto& it = versions.find(version);
+  if (it == versions.end()) {
+    throw std::runtime_error("Unknown TLS version (" + std::to_string((int)version) + ")");
+  }
+  return it->second;
+}
+
 bool libssl_set_min_tls_version(std::unique_ptr<SSL_CTX, void(*)(SSL_CTX*)>& ctx, LibsslTLSVersion version)
 {
 #if (OPENSSL_VERSION_NUMBER >= 0x1010000fL && !defined LIBRESSL_VERSION_NUMBER)
@@ -297,7 +313,11 @@ bool libssl_set_min_tls_version(std::unique_ptr<SSL_CTX, void(*)(SSL_CTX*)>& ctx
     vers = TLS1_2_VERSION;
     break;
   case LibsslTLSVersion::TLS13:
+#ifdef TLS1_3_VERSION
     vers = TLS1_3_VERSION;
+#else
+    return false;
+#endif /* TLS1_3_VERSION */
     break;
   default:
     return false;

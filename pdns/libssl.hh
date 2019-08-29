@@ -25,6 +25,7 @@ bool libssl_generate_ocsp_response(const std::string& certFile, const std::strin
 #endif
 
 LibsslTLSVersion libssl_tls_version_from_string(const std::string& str);
+const std::string& libssl_tls_version_to_string(LibsslTLSVersion version);
 bool libssl_set_min_tls_version(std::unique_ptr<SSL_CTX, void(*)(SSL_CTX*)>& ctx, LibsslTLSVersion version);
 
 #endif /* HAVE_LIBSSL */
