@@ -2880,7 +2880,7 @@ bool SyncRes::processRecords(const std::string& prefix, const DNSName& qname, co
       if (state == Secure && needWildcardProof) {
         /* We have a positive answer synthetized from a wildcard, we need to check that we have
            proof that the exact name doesn't exist so the wildcard can be used,
-           as described in section 5.3.4 of RFC 4035 and 5.3 of FRC 7129.
+           as described in section 5.3.4 of RFC 4035 and 5.3 of RFC 7129.
         */
         NegCache::NegCacheEntry ne;
 
