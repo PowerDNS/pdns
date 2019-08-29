@@ -745,5 +745,6 @@ void setupLuaInspection()
   g_lua.registerFunction<void(std::shared_ptr<DynBlockRulesGroup>::*)()>("apply", [](std::shared_ptr<DynBlockRulesGroup>& group) {
     group->apply();
   });
+  g_lua.registerFunction("setQuiet", &DynBlockRulesGroup::setQuiet);
   g_lua.registerFunction("toString", &DynBlockRulesGroup::toString);
 }
