@@ -373,8 +373,10 @@ install_dnsdist() {
   run "sudo apt-get -qq update"
   run "sudo apt-get -qq --no-install-recommends install \
     snmpd \
-    libsnmp-dev \
-    libfstrm-dev"
+    libcdb-dev \
+    libfstrm-dev \
+    liblmdb-dev \
+    libsnmp-dev"
   run "sudo sed -i \"s/agentxperms 0700 0755 dnsdist/agentxperms 0700 0755 ${USER}/g\" regression-tests.dnsdist/snmpd.conf"
   run "sudo cp -f regression-tests.dnsdist/snmpd.conf /etc/snmp/snmpd.conf"
   run "sudo service snmpd restart"
@@ -464,6 +466,7 @@ build_dnsdist(){
     --enable-dnscrypt \
     --enable-dns-over-tls \
     --enable-dnstap \
+    --with-lmdb=/usr \
     --prefix=$HOME/dnsdist \
     --disable-silent-rules"
   run "make -k -j3"

@@ -1,1 +1,1 @@
-tinydnsbackend.lo cdb.lo
+tinydnsbackend.lo ../../pdns/cdb.lo

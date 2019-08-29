@@ -597,6 +597,19 @@ These ``DNSRule``\ s be one of the following items:
 
   :param str path: The exact HTTP path to match on
 
+.. function:: KeyValueStoreLookupRule(kvs, lookupKey)
+  .. versionadded:: 1.4.0
+
+  As of 1.4.0, this code is considered experimental.
+
+  Return true if the key returned by 'lookupKey' exists in the key value store referenced by 'kvs'.
+  The store can be a CDB (:func:`newCDBKVStore`) or a LMDB database (:func:`newLMDBKVStore`).
+  The key can be based on the qname (:func:`KeyValueLookupKeyQName` and :func:`KeyValueLookupKeySuffix`),
+  source IP (:func:`KeyValueLookupKeySourceIP`) or the value of an existing tag (:func:`KeyValueLookupKeyTag`).
+
+  :param KeyValueStore kvs: The key value store to query
+  :param KeyValueLookupKey lookupKey: The key to use for the lookup
+
 .. function:: MaxQPSIPRule(qps[, v4Mask[, v6Mask[, burst[, expiration[, cleanupDelay[, scanFraction]]]]]])
   .. versionchanged:: 1.3.1
     Added the optional parameters ``expiration``, ``cleanupDelay`` and ``scanFraction``.
@@ -956,6 +969,22 @@ The following actions exist.
   :param int status: The HTTP status code to return.
   :param string body: The body of the HTTP response, or a URL if the status code is a redirect (3xx).
   :param string contentType: The HTTP Content-Type header to return for a 200 response, ignored otherwise. Default is ''application/dns-message''.
+
+.. function:: KeyValueStoreLookupAction(kvs, lookupKey, destinationTag)
+
+  .. versionadded:: 1.4.0
+
+  As of 1.4.0, this code is considered experimental.
+
+  Does a lookup into the key value store referenced by 'kvs' using the key returned by 'lookupKey',
+  and storing the result if any into the tag named 'destinationTag'.
+  The store can be a CDB (:func:`newCDBKVStore`) or a LMDB database (:func:`newLMDBKVStore`).
+  The key can be based on the qname (:func:`KeyValueLookupKeyQName` and :func:`KeyValueLookupKeySuffix`),
+  source IP (:func:`KeyValueLookupKeySourceIP`) or the value of an existing tag (:func:`KeyValueLookupKeyTag`).
+
+  :param KeyValueStore kvs: The key value store to query
+  :param KeyValueLookupKey lookupKey: The key to use for the lookup
+  :param string destinationTag: The name of the tag to store the result into
 
 .. function:: LogAction([filename[, binary[, append[, buffered]]]])
 

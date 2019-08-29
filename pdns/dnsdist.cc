@@ -2510,6 +2510,9 @@ try
       cout<<"dnsdist "<<VERSION<<" ("<<LUA_RELEASE<<")"<<endl;
 #endif
       cout<<"Enabled features: ";
+#ifdef HAVE_CDB
+      cout<<"cdb ";
+#endif
 #ifdef HAVE_DNS_OVER_TLS
       cout<<"dns-over-tls(";
 #ifdef HAVE_GNUTLS
@@ -2540,6 +2543,9 @@ try
 #endif
 #ifdef HAVE_LIBSODIUM
       cout<<"libsodium ";
+#endif
+#ifdef HAVE_LMDB
+      cout<<"lmdb ";
 #endif
 #ifdef HAVE_PROTOBUF
       cout<<"protobuf ";

@@ -26,11 +26,10 @@
 #include "pdns/logger.hh"
 #include "pdns/iputils.hh"
 #include "pdns/dnspacket.hh"
-#include <cdb.h>
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <fcntl.h>
-#include "cdb.hh"
+#include "pdns/cdb.hh"
 #include "pdns/lock.hh"
 #include <boost/multi_index_container.hpp>
 #include <boost/multi_index/hashed_index.hpp>

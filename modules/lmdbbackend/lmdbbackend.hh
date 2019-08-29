@@ -1,6 +1,6 @@
 #pragma once
 #include "pdns/dnsbackend.hh"
-#include "lmdb-typed.hh"
+#include "ext/lmdb-safe/lmdb-typed.hh"
 
 template<class T, typename std::enable_if<std::is_same<T, DNSName>::value,T>::type* = nullptr>
 std::string keyConv(const T& t)

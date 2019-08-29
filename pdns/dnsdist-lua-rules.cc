@@ -482,4 +482,8 @@ void setupLuaRules()
   g_lua.writeFunction("QNameSetRule", [](const DNSNameSet& names) {
       return std::shared_ptr<DNSRule>(new QNameSetRule(names));
     });
+
+  g_lua.writeFunction("KeyValueStoreLookupRule", [](std::shared_ptr<KeyValueStore>& kvs, std::shared_ptr<KeyValueLookupKey>& lookupKey) {
+      return std::shared_ptr<DNSRule>(new KeyValueStoreLookupRule(kvs, lookupKey));
+    });
 }

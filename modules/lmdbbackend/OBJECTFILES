@@ -1,1 +1,1 @@
-lmdbbackend.lo lmdb-safe.lo lmdb-typed.lo
+lmdbbackend.lo ../../ext/lmdb-safe/lmdb-typed.lo ../../ext/lmdb-safe/lmdb-safe.lo
