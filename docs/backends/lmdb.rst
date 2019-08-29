@@ -14,7 +14,7 @@ LMDB backend
 
 
 .. warning::
-  The LMDB backend is EXPERIMENTAL. Be prepared for incompatible changes between minor releases in the 4.2.x branch, and while tracking our git master.
+  The LMDB backend is EXPERIMENTAL, and as of 4.2.0, it has `known <https://github.com/PowerDNS/pdns/issues/8012>`__ `bugs <https://github.com/PowerDNS/pdns/issues/8134>`__. Be prepared for incompatible changes between minor releases in the 4.2.x branch, and while tracking our git master.
 
 Enabling the backend
 --------------------
