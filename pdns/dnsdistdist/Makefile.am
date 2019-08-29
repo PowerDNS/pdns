@@ -125,7 +125,11 @@ dnsdist_SOURCES = \
 	dnsdist-lua.hh dnsdist-lua.cc \
 	dnsdist-lua-actions.cc \
 	dnsdist-lua-bindings.cc \
+	dnsdist-lua-bindings-dnscrypt.cc \
 	dnsdist-lua-bindings-dnsquestion.cc \
+	dnsdist-lua-bindings-kvs.cc \
+	dnsdist-lua-bindings-packetcache.cc \
+	dnsdist-lua-bindings-protobuf.cc \
 	dnsdist-lua-inspection.cc \
 	dnsdist-lua-inspection-ffi.cc dnsdist-lua-inspection-ffi.hh \
 	dnsdist-lua-rules.cc \

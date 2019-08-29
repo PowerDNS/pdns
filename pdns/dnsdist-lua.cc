@@ -2067,7 +2067,11 @@ vector<std::function<void(void)>> setupLua(bool client, const std::string& confi
   setupLuaActions();
   setupLuaConfig(client);
   setupLuaBindings(client);
+  setupLuaBindingsDNSCrypt();
   setupLuaBindingsDNSQuestion();
+  setupLuaBindingsKVS(client);
+  setupLuaBindingsPacketCache();
+  setupLuaBindingsProtoBuf(client);
   setupLuaInspection();
   setupLuaRules();
   setupLuaVars();
