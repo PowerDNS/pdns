@@ -86,7 +86,11 @@ typedef NetmaskTree<DynBlock> nmts_t;
 
 void setupLuaActions();
 void setupLuaBindings(bool client);
+void setupLuaBindingsDNSCrypt();
 void setupLuaBindingsDNSQuestion();
+void setupLuaBindingsKVS(bool client);
+void setupLuaBindingsPacketCache();
+void setupLuaBindingsProtoBuf(bool client);
 void setupLuaRules();
 void setupLuaInspection();
 void setupLuaVars();
