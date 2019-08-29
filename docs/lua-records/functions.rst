@@ -49,6 +49,7 @@ Record creation functions
   - ``selector``: used to pick the IP address from list of viable candidates. Choices include 'pickclosest', 'random', 'hashed', 'all' (default to 'random').
   - ``backupSelector``: used to pick the IP address from list of all candidates if all addresses are down. Choices include 'pickclosest', 'random', 'hashed', 'all' (default to 'random').
   - ``source``: Source IP address to check from
+  - ``timeout``: Maximum time in seconds that you allow the check to take (default 2)
 
 
 .. function:: ifurlup(url, addresses[, options])
@@ -68,6 +69,7 @@ Record creation functions
   - ``selector``: used to pick the IP address from list of viable candidates. Choices include 'pickclosest', 'random', 'hashed', 'all' (default to 'random').
   - ``backupSelector``: used to pick the IP address from list of all candidates if all addresses are down. Choices include 'pickclosest', 'random', 'hashed', 'all' (default to 'random').
   - ``source``: Source IP address to check from
+  - ``timeout``: Maximum time in seconds that you allow the check to take (default 2)
   - ``stringmatch``: check ``url`` for this string, only declare 'up' if found
   - ``useragent``: Set the HTTP "User-Agent" header in the requests. By default it is set to "PowerDNS Authoritative Server"
 

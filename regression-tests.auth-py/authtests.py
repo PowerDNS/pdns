@@ -180,8 +180,8 @@ options {
         authcmd.append('--local-port=%s' % cls._authPort)
         authcmd.append('--loglevel=9')
         authcmd.append('--enable-lua-records')
+        authcmd.append('--lua-health-checks-interval=1')
         print(' '.join(authcmd))
-
         logFile = os.path.join(confdir, 'pdns.log')
         with open(logFile, 'w') as fdLog:
             cls._auths[ipaddress] = subprocess.Popen(authcmd, close_fds=True,

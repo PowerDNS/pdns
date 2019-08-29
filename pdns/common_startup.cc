@@ -43,6 +43,8 @@ bool g_8bitDNS;
 #ifdef HAVE_LUA_RECORDS
 bool g_doLuaRecord;
 int g_luaRecordExecLimit;
+time_t g_luaHealthChecksInterval{5};
+time_t g_luaHealthChecksExpireDelay{3600};
 #endif
 typedef Distributor<DNSPacket,DNSPacket,PacketHandler> DNSDistributor;
 
@@ -217,6 +219,9 @@ void declareArguments()
 #ifdef HAVE_LUA_RECORDS
   ::arg().setSwitch("enable-lua-records", "Process LUA records for all zones (metadata overrides this)")="no";
   ::arg().set("lua-records-exec-limit", "LUA records scripts execution limit (instructions count). Values <= 0 mean no limit")="1000";
+  ::arg().set("lua-health-checks-expire-delay", "Stops doing health checks after the record hasn't been unused for that delay (in seconds)")="3600";
+  ::arg().set("lua-health-checks-interval", "LUA records health checks monitoring interval in seconds")="5";
+  ::arg().set("lua-health-checks-timeout", "Maximum time in milliseconds that you allow the LUA monitoring health checks to take")="500";
 #endif
   ::arg().setSwitch("axfr-lower-serial", "Also AXFR a zone from a master with a lower serial")="no";
 
@@ -519,6 +524,8 @@ void mainthread()
    g_doLuaRecord = ::arg().mustDo("enable-lua-records");
    g_LuaRecordSharedState = (::arg()["enable-lua-records"] == "shared");
    g_luaRecordExecLimit = ::arg().asNum("lua-records-exec-limit");
+   g_luaHealthChecksInterval = ::arg().asNum("lua-health-checks-interval");
+   g_luaHealthChecksExpireDelay = ::arg().asNum("lua-health-checks-expire-delay");
 #endif
 
    DNSPacket::s_udpTruncationThreshold = std::max(512, ::arg().asNum("udp-truncation-threshold"));
