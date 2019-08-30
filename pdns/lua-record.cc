@@ -468,48 +468,25 @@ static vector<pair<int, ComboAddress> > convWIplist(std::unordered_map<int, wipl
 static thread_local unique_ptr<AuthLua4> s_LUA;
 bool g_LuaRecordSharedState;
 
-std::vector<shared_ptr<DNSRecordContent>> luaSynth(const std::string& code, const DNSName& query, const DNSName& zone, int zoneid, const DNSPacket& dnsp, uint16_t qtype)
+void setupLuaRecords()
 {
-  if(!s_LUA ||                  // we don't have a Lua state yet
-     !g_LuaRecordSharedState) { // or we want a new one even if we had one
-    s_LUA = make_unique<AuthLua4>();
-  }
-
-  std::vector<shared_ptr<DNSRecordContent>> ret;
-
   LuaContext& lua = *s_LUA->getLua();
-  lua.writeVariable("qname", query);
-  lua.writeVariable("who", dnsp.getRemote());
-  lua.writeVariable("dh", (dnsheader*)&dnsp.d);
-  lua.writeVariable("dnssecOK", dnsp.d_dnssecOk);
-  lua.writeVariable("tcp", dnsp.d_tcp);
-  lua.writeVariable("ednsPKTSize", dnsp.d_ednsRawPacketSizeLimit);
-  ComboAddress bestwho;
-  if(dnsp.hasEDNSSubnet()) {
-    lua.writeVariable("ecswho", dnsp.getRealRemote());
-    bestwho=dnsp.getRealRemote().getNetwork();
-  }
-  else {
-    lua.writeVariable("ecswho", nullptr);
-    bestwho=dnsp.getRemote();
-  }
 
-  lua.writeVariable("bestwho", bestwho);
-
-  lua.writeFunction("latlon", [&bestwho]() {
+  lua.writeFunction("latlon", [&lua]() {
       double lat, lon;
+      ComboAddress bestwho = lua.readVariable<ComboAddress>("bestwho");
       getLatLon(bestwho.toString(), lat, lon);
       return std::to_string(lat)+" "+std::to_string(lon);
     });
-
-  lua.writeFunction("latlonloc", [&bestwho]() {
+  lua.writeFunction("latlonloc", [&lua]() {
+      ComboAddress bestwho = lua.readVariable<ComboAddress>("bestwho");
       string loc;
       getLatLon(bestwho.toString(), loc);
       return loc;
   });
-
-
-  lua.writeFunction("closestMagic", [&bestwho,&query]() {
+  lua.writeFunction("closestMagic", [&lua]() {
+      ComboAddress bestwho = lua.readVariable<ComboAddress>("bestwho");
+      DNSName query = lua.readVariable<DNSName>("qname");
       vector<ComboAddress> candidates;
       // Getting something like 192-0-2-1.192-0-2-2.198-51-100-1.example.org
       for(auto l : query.getRawLabels()) {
@@ -523,8 +500,8 @@ std::vector<shared_ptr<DNSRecordContent>> luaSynth(const std::string& code, cons
       }
       return pickclosest(bestwho, candidates).toString();
     });
-
-  lua.writeFunction("latlonMagic", [&query](){
+  lua.writeFunction("latlonMagic", [&lua](){
+      DNSName query = lua.readVariable<DNSName>("qname");
       auto labels= query.getRawLabels();
       if(labels.size()<4)
         return std::string("unknown");
@@ -534,7 +511,8 @@ std::vector<shared_ptr<DNSRecordContent>> luaSynth(const std::string& code, cons
     });
 
 
-  lua.writeFunction("createReverse", [&query](string suffix, boost::optional<std::unordered_map<string,string>> e){
+  lua.writeFunction("createReverse", [&lua](string suffix, boost::optional<std::unordered_map<string,string>> e){
+      DNSName query = lua.readVariable<DNSName>("qname");
       try {
       auto labels= query.getRawLabels();
       if(labels.size()<4)
@@ -574,8 +552,9 @@ std::vector<shared_ptr<DNSRecordContent>> luaSynth(const std::string& code, cons
       }
       return std::string("error");
     });
-
-  lua.writeFunction("createForward", [&zone, &query]() {
+  lua.writeFunction("createForward", [&lua]() {
+      DNSName query = lua.readVariable<DNSName>("qname");
+      DNSName zone = lua.readVariable<DNSName>("zone");
       DNSName rel=query.makeRelative(zone);
       auto parts = rel.getRawLabels();
       if(parts.size()==4)
@@ -593,7 +572,9 @@ std::vector<shared_ptr<DNSRecordContent>> luaSynth(const std::string& code, cons
       return std::string("0.0.0.0");
     });
 
-  lua.writeFunction("createForward6", [&query,&zone]() {
+  lua.writeFunction("createForward6", [&lua]() {
+      DNSName query = lua.readVariable<DNSName>("qname");
+      DNSName zone = lua.readVariable<DNSName>("zone");
       DNSName rel=query.makeRelative(zone);
       auto parts = rel.getRawLabels();
       if(parts.size()==8) {
@@ -614,9 +595,8 @@ std::vector<shared_ptr<DNSRecordContent>> luaSynth(const std::string& code, cons
 
       return std::string("::");
     });
-
-
-  lua.writeFunction("createReverse6", [&query](string suffix, boost::optional<std::unordered_map<string,string>> e){
+  lua.writeFunction("createReverse6", [&lua](string suffix, boost::optional<std::unordered_map<string,string>> e){
+      DNSName query = lua.readVariable<DNSName>("qname");
       vector<ComboAddress> candidates;
 
       try {
@@ -671,7 +651,6 @@ std::vector<shared_ptr<DNSRecordContent>> luaSynth(const std::string& code, cons
       return std::string("unknown");
     });
 
-
   /*
    * Simplistic test to see if an IP address listens on a certain port
    * Will return a single IP address from the set of available IP addresses. If
@@ -680,7 +659,8 @@ std::vector<shared_ptr<DNSRecordContent>> luaSynth(const std::string& code, cons
    *
    * @example ifportup(443, { '1.2.3.4', '5.4.3.2' })"
    */
-  lua.writeFunction("ifportup", [&bestwho](int port, const vector<pair<int, string> >& ips, const boost::optional<std::unordered_map<string,string>> options) {
+  lua.writeFunction("ifportup", [&lua](int port, const vector<pair<int, string> >& ips, const boost::optional<std::unordered_map<string,string>> options) {
+      ComboAddress bestwho = lua.readVariable<ComboAddress>("bestwho");
       vector<ComboAddress> candidates, unavailables;
       opts_t opts;
       vector<ComboAddress > conv;
@@ -710,10 +690,10 @@ std::vector<shared_ptr<DNSRecordContent>> luaSynth(const std::string& code, cons
       return convIpListToString(res);
     });
 
-  lua.writeFunction("ifurlup", [&bestwho](const std::string& url,
+  lua.writeFunction("ifurlup", [&lua](const std::string& url,
                                           const boost::variant<iplist_t, ipunitlist_t>& ips,
                                           boost::optional<opts_t> options) {
-
+      ComboAddress bestwho = lua.readVariable<ComboAddress>("bestwho");
       vector<vector<ComboAddress> > candidates;
       opts_t opts;
       if(options)
@@ -751,12 +731,6 @@ std::vector<shared_ptr<DNSRecordContent>> luaSynth(const std::string& code, cons
       vector<ComboAddress> res = useSelector(getOptionValue(options, "backupSelector", "random"), bestwho, ret);
       return convIpListToString(res);
     });
-
-
-  /* idea: we have policies on vectors of ComboAddresses, like
-     random, pickwrandom, pickwhashed, pickclosest. In C++ this is ComboAddress in,
-     ComboAddress out. In Lua, vector string in, string out */
-
   /*
    * Returns a random IP address from the supplied list
    * @example pickrandom({ '1.2.3.4', '5.4.3.2' })"
@@ -784,7 +758,8 @@ std::vector<shared_ptr<DNSRecordContent>> luaSynth(const std::string& code, cons
    * supplied, as weighted by the various `weight` parameters
    * @example pickwhashed({ {15, '1.2.3.4'}, {50, '5.4.3.2'} })
    */
-  lua.writeFunction("pickwhashed", [&bestwho](std::unordered_map<int, wiplist_t > ips) {
+  lua.writeFunction("pickwhashed", [&lua](std::unordered_map<int, wiplist_t > ips) {
+      ComboAddress bestwho = lua.readVariable<ComboAddress>("bestwho");
       vector<pair<int,ComboAddress> > conv;
 
       for(auto& i : ips)
@@ -794,50 +769,51 @@ std::vector<shared_ptr<DNSRecordContent>> luaSynth(const std::string& code, cons
     });
 
 
-  lua.writeFunction("pickclosest", [&bestwho](const iplist_t& ips) {
+  lua.writeFunction("pickclosest", [&lua](const iplist_t& ips) {
+      ComboAddress bestwho = lua.readVariable<ComboAddress>("bestwho");
       vector<ComboAddress > conv = convIplist(ips);
 
       return pickclosest(bestwho, conv).toString();
 
     });
 
-
-  lua.writeFunction("report", [](string event, boost::optional<string> line){
-      throw std::runtime_error("Script took too long");
-    });
   if (g_luaRecordExecLimit > 0) {
       lua.executeCode(boost::str(boost::format("debug.sethook(report, '', %d)") % g_luaRecordExecLimit));
   }
 
-  // TODO: make this better. Accept netmask/CA objects; provide names for the attr constants
+  lua.writeFunction("report", [](string event, boost::optional<string> line){
+      throw std::runtime_error("Script took too long");
+    });
+
   lua.writeFunction("geoiplookup", [](const string &ip, const GeoIPInterface::GeoIPQueryAttribute attr) {
     return getGeo(ip, attr);
   });
 
   typedef const boost::variant<string,vector<pair<int,string> > > combovar_t;
-  lua.writeFunction("continent", [&bestwho](const combovar_t& continent) {
-      string res=getGeo(bestwho.toString(), GeoIPInterface::Continent);
+  lua.writeFunction("continent", [&lua](const combovar_t& continent) {
+      ComboAddress bestwho = lua.readVariable<ComboAddress>("bestwho");
+     string res=getGeo(bestwho.toString(), GeoIPInterface::Continent);
       return doCompare(continent, res, [](const std::string& a, const std::string& b) {
           return !strcasecmp(a.c_str(), b.c_str());
         });
     });
-
-  lua.writeFunction("asnum", [&bestwho](const combovar_t& asns) {
+  lua.writeFunction("asnum", [&lua](const combovar_t& asns) {
+      ComboAddress bestwho = lua.readVariable<ComboAddress>("bestwho");
       string res=getGeo(bestwho.toString(), GeoIPInterface::ASn);
       return doCompare(asns, res, [](const std::string& a, const std::string& b) {
           return !strcasecmp(a.c_str(), b.c_str());
         });
     });
-
-  lua.writeFunction("country", [&bestwho](const combovar_t& var) {
+  lua.writeFunction("country", [&lua](const combovar_t& var) {
+      ComboAddress bestwho = lua.readVariable<ComboAddress>("bestwho");
       string res = getGeo(bestwho.toString(), GeoIPInterface::Country2);
       return doCompare(var, res, [](const std::string& a, const std::string& b) {
           return !strcasecmp(a.c_str(), b.c_str());
         });
 
     });
-
-  lua.writeFunction("netmask", [bestwho](const iplist_t& ips) {
+  lua.writeFunction("netmask", [&lua](const iplist_t& ips) {
+      ComboAddress bestwho = lua.readVariable<ComboAddress>("bestwho");
       for(const auto& i :ips) {
         Netmask nm(i.second);
         if(nm.match(bestwho))
@@ -845,7 +821,6 @@ std::vector<shared_ptr<DNSRecordContent>> luaSynth(const std::string& code, cons
       }
       return false;
     });
-
   /* {
        {
         {'192.168.0.0/16', '10.0.0.0/8'},
@@ -856,7 +831,8 @@ std::vector<shared_ptr<DNSRecordContent>> luaSynth(const std::string& code, cons
        }
      }
   */
-  lua.writeFunction("view", [bestwho](const vector<pair<int, vector<pair<int, iplist_t> > > >& in) {
+  lua.writeFunction("view", [&lua](const vector<pair<int, vector<pair<int, iplist_t> > > >& in) {
+      ComboAddress bestwho = lua.readVariable<ComboAddress>("bestwho");
       for(const auto& rule : in) {
         const auto& netmasks=rule.second[0].second;
         const auto& destinations=rule.second[1].second;
@@ -872,9 +848,11 @@ std::vector<shared_ptr<DNSRecordContent>> luaSynth(const std::string& code, cons
     );
 
 
-  lua.writeFunction("include", [&lua,zone,zoneid](string record) {
+  lua.writeFunction("include", [&lua](string record) {
+      DNSName zone = lua.readVariable<DNSName>("zone");
+      int zoneid = lua.readVariable<int>("zoneid");
       try {
-        vector<DNSZoneRecord> drs = lookup(DNSName(record) +zone, QType::LUA, zoneid);
+        vector<DNSZoneRecord> drs = lookup(DNSName(record) + zone, QType::LUA, zoneid);
         for(const auto& dr : drs) {
           auto lr = getRR<LUARecordContent>(dr.dr);
           lua.executeCode(lr->getCode());
@@ -884,6 +862,38 @@ std::vector<shared_ptr<DNSRecordContent>> luaSynth(const std::string& code, cons
         g_log<<Logger::Error<<"Failed to load include record for LUArecord "<<(DNSName(record)+zone)<<": "<<e.what()<<endl;
       }
     });
+}
+
+std::vector<shared_ptr<DNSRecordContent>> luaSynth(const std::string& code, const DNSName& query, const DNSName& zone, int zoneid, const DNSPacket& dnsp, uint16_t qtype)
+{
+  if(!s_LUA ||                  // we don't have a Lua state yet
+     !g_LuaRecordSharedState) { // or we want a new one even if we had one
+    s_LUA = make_unique<AuthLua4>();
+    setupLuaRecords();
+  }
+
+  std::vector<shared_ptr<DNSRecordContent>> ret;
+
+  LuaContext& lua = *s_LUA->getLua();
+
+  lua.writeVariable("qname", query);
+  lua.writeVariable("zone", zone);
+  lua.writeVariable("zoneid", zoneid);
+  lua.writeVariable("who", dnsp.getRemote());
+  lua.writeVariable("dh", (dnsheader*)&dnsp.d);
+  lua.writeVariable("dnssecOK", dnsp.d_dnssecOk);
+  lua.writeVariable("tcp", dnsp.d_tcp);
+  lua.writeVariable("ednsPKTSize", dnsp.d_ednsRawPacketSizeLimit);
+  ComboAddress bestwho;
+  if(dnsp.hasEDNSSubnet()) {
+    lua.writeVariable("ecswho", dnsp.getRealRemote());
+    bestwho=dnsp.getRealRemote().getNetwork();
+  }
+  else {
+    lua.writeVariable("ecswho", nullptr);
+    bestwho=dnsp.getRemote();
+  }
+  lua.writeVariable("bestwho", bestwho);
 
   try {
     string actual;
