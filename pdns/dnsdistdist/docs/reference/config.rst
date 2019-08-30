@@ -1043,6 +1043,14 @@ faster than the existing rules.
 
     Walk the in-memory query and response ring buffers and apply the configured rate-limiting rules, adding dynamic blocks when the limits have been exceeded.
 
+  .. method:: DynBlockRulesGroup:setQuiet(quiet)
+
+    .. versionadded:: 1.4.0
+
+    Set whether newly blocked clients or domains should be logged.
+
+    :param bool quiet: True means that insertions will not be logged, false that they will. Default is false.
+
   .. method:: DynBlockRulesGroup:excludeRange(netmasks)
 
     .. versionadded:: 1.3.1
