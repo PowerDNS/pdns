@@ -1237,7 +1237,7 @@ definitions:
         type: string
         description: 'set to "Cryptokey"'
       id:
-        type: string
+        type: integer
         description: 'The internal identifier, read only'
       keytype:
         type: string
