@@ -587,6 +587,7 @@ These ``DNSRule``\ s be one of the following items:
   .. versionadded:: 1.4.0
 
   Matches DNS over HTTPS queries with a HTTP path matching the regular expression supplied in ``regex``. For example, if the query has been sent to the https://192.0.2.1:443/PowerDNS?dns=... URL, the path would be '/PowerDNS'.
+  Only valid DNS over HTTPS queries are matched. If you want to match all HTTP queries, see :meth:`DOHFrontend.setResponsesMap` instead.
 
   :param str regex: The regex to match on
 
@@ -594,6 +595,7 @@ These ``DNSRule``\ s be one of the following items:
   .. versionadded:: 1.4.0
 
   Matches DNS over HTTPS queries with a HTTP path of ``path``. For example, if the query has been sent to the https://192.0.2.1:443/PowerDNS?dns=... URL, the path would be '/PowerDNS'.
+  Only valid DNS over HTTPS queries are matched. If you want to match all HTTP queries, see :meth:`DOHFrontend.setResponsesMap` instead.
 
   :param str path: The exact HTTP path to match on
 

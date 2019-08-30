@@ -1153,6 +1153,25 @@ DOHFrontend
 
      Reload the current TLS certificate and key pairs.
 
+  .. method:: DOHFrontend:setResponsesMap(rules)
+
+     Set a list of HTTP response rules allowing to intercept HTTP queries very early, before the DNS payload has been processed, and send custom responses including error pages, redirects and static content.
+
+     :param list of DOHResponseMapEntry objects rules: A list of DOHResponseMapEntry objects, obtained with :func:`newDOHResponseMapEntry`.
+
+
+.. function:: newDOHResponseMapEntry(regex, status, content [, headers]) -> DOHResponseMapEntry
+
+  .. versionadded:: 1.4.0
+
+  Return a DOHResponseMapEntry that can be used with :meth:`DOHFrontend.setResponsesMap`. Every query whose path matches the regular expression supplied in ``regex`` will be immediately answered with a HTTP response.
+  The status of the HTTP response will be the one supplied by ``status``, and the content set to the one supplied by ``content``, except if the status is a redirection (3xx) in which case the content is expected to be the URL to redirect to.
+
+  :param str regex: A regular expression to match the path against.
+  :param int status: The HTTP code to answer with.
+  :param str content: The content of the HTTP response, or a URL if the status is a redirection (3xx).
+  :param table of headers: The custom headers to set for the HTTP response, if any. The default is to use the value of the ``customResponseHeaders`` parameter passed to :func:`addDOHLocal`.
+
 TLSContext
 ~~~~~~~~~~
 
