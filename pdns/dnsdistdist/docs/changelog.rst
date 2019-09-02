@@ -15,7 +15,7 @@ Changelog
     :tags: Security
     :pullreq: 8200
 
-    Update h2o to 2.2.6, fixing CVE-2019-9512, CVE-2019-9514 and CVE-2019-9515
+    Update h2o to 2.2.6, fixing CVE-2019-9512, CVE-2019-9514 and CVE-2019-9515 for repo.powerdns.com packages
 
   .. change::
     :tags: New Features, DNS over HTTPS
