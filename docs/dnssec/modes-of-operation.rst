@@ -180,7 +180,7 @@ DNSSEC-related :doc:`domain metadata <../domainmetadata>` in an SQLite3
 database without launching a separate gsqlite3 backend.
 
 To use this mode, run
-``pdnsutil create-bind-db /var/db/bind-dnssec-db.sqlite3`` and set
+``pdnsutil create-bind-db /var/lib/powerdns/bind-dnssec-db.sqlite3`` and set
 :ref:`setting-bind-dnssec-db` in pdns.conf to the path of the created
 database. Then, restart PowerDNS.
 
