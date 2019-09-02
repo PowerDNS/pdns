@@ -320,7 +320,7 @@ static int processDOHQuery(DOHUnit* du)
     if (sni != nullptr) {
       dq.sni = sni;
     }
-#endif /* HAVE_H2O_SOCKET_BET_SSL_SERVER_NAME */
+#endif /* HAVE_H2O_SOCKET_GET_SSL_SERVER_NAME */
 
     std::shared_ptr<DownstreamState> ss{nullptr};
     auto result = processQuery(dq, cs, holders, ss);
@@ -973,7 +973,7 @@ static void setupAcceptContext(DOHAcceptContext& ctx, DOHServerConfig& dsc, bool
   auto nativeCtx = ctx.get();
   nativeCtx->ctx = &dsc.h2o_ctx;
   nativeCtx->hosts = dsc.h2o_config.hosts;
-  if (setupTLS) {
+  if (setupTLS && !dsc.df->d_certKeyPairs.empty()) {
     auto tlsCtx = getTLSContext(dsc.df->d_certKeyPairs,
                                 dsc.df->d_ciphers,
                                 dsc.df->d_ciphers13,
@@ -1002,16 +1002,18 @@ void DOHFrontend::setup()
 
   d_dsc = std::make_shared<DOHServerConfig>(d_idleTimeout);
 
-  auto tlsCtx = getTLSContext(d_certKeyPairs,
-                              d_ciphers,
-                              d_ciphers13,
-                              d_minTLSVersion,
-                              d_ocspFiles,
-                              d_dsc->accept_ctx->d_ocspResponses);
+  if  (!d_certKeyPairs.empty()) {
+    auto tlsCtx = getTLSContext(d_certKeyPairs,
+                                d_ciphers,
+                                d_ciphers13,
+                                d_minTLSVersion,
+                                d_ocspFiles,
+                                d_dsc->accept_ctx->d_ocspResponses);
 
-  auto accept_ctx = d_dsc->accept_ctx->get();
-  accept_ctx->ssl_ctx = tlsCtx.release();
-  d_dsc->accept_ctx->release();
+    auto accept_ctx = d_dsc->accept_ctx->get();
+    accept_ctx->ssl_ctx = tlsCtx.release();
+    d_dsc->accept_ctx->release();
+  }
 }
 
 // this is the entrypoint from dnsdist.cc

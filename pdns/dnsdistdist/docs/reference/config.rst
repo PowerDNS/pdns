@@ -103,11 +103,12 @@ Listen Sockets
                                   higher than 0 to enable TCP Fast Open when available.
                                   Default is 0.
 
-.. function:: addDOHLocal(address, certFile(s), keyFile(s) [, urls [, options]])
+.. function:: addDOHLocal(address, [certFile(s) [, keyFile(s) [, urls [, options]]]])
 
   .. versionadded:: 1.4.0
 
   Listen on the specified address and TCP port for incoming DNS over HTTPS connections, presenting the specified X.509 certificate.
+  If no certificate (or key) files are specified, listen for incoming DNS over HTTP connections instead.
 
   :param str address: The IP Address with an optional port to listen on.
                       The default port is 443.

@@ -30,19 +30,21 @@ class DNSDistDOHTest(DNSDistTest):
         return conn
 
     @classmethod
-    def sendDOHQuery(cls, port, servername, baseurl, query, response=None, timeout=2.0, caFile=None, useQueue=True, rawQuery=False, rawResponse=False, customHeaders=[]):
+    def sendDOHQuery(cls, port, servername, baseurl, query, response=None, timeout=2.0, caFile=None, useQueue=True, rawQuery=False, rawResponse=False, customHeaders=[], useHTTPS=True):
         url = cls.getDOHGetURL(baseurl, query, rawQuery)
         conn = cls.openDOHConnection(port, caFile=caFile, timeout=timeout)
         response_headers = BytesIO()
         #conn.setopt(pycurl.VERBOSE, True)
         conn.setopt(pycurl.URL, url)
         conn.setopt(pycurl.RESOLVE, ["%s:%d:127.0.0.1" % (servername, port)])
-        conn.setopt(pycurl.SSL_VERIFYPEER, 1)
-        conn.setopt(pycurl.SSL_VERIFYHOST, 2)
+        if useHTTPS:
+            conn.setopt(pycurl.SSL_VERIFYPEER, 1)
+            conn.setopt(pycurl.SSL_VERIFYHOST, 2)
+            if caFile:
+                conn.setopt(pycurl.CAINFO, caFile)
+
         conn.setopt(pycurl.HTTPHEADER, customHeaders)
         conn.setopt(pycurl.HEADERFUNCTION, response_headers.write)
-        if caFile:
-            conn.setopt(pycurl.CAINFO, caFile)
 
         if response:
             cls._toResponderQueue.put(response, True, timeout)
@@ -64,15 +66,19 @@ class DNSDistDOHTest(DNSDistTest):
         return (receivedQuery, message)
 
     @classmethod
-    def sendDOHPostQuery(cls, port, servername, baseurl, query, response=None, timeout=2.0, caFile=None, useQueue=True, rawQuery=False, rawResponse=False, customHeaders=[]):
+    def sendDOHPostQuery(cls, port, servername, baseurl, query, response=None, timeout=2.0, caFile=None, useQueue=True, rawQuery=False, rawResponse=False, customHeaders=[], useHTTPS=True):
         url = baseurl
         conn = cls.openDOHConnection(port, caFile=caFile, timeout=timeout)
         response_headers = BytesIO()
         #conn.setopt(pycurl.VERBOSE, True)
         conn.setopt(pycurl.URL, url)
         conn.setopt(pycurl.RESOLVE, ["%s:%d:127.0.0.1" % (servername, port)])
-        conn.setopt(pycurl.SSL_VERIFYPEER, 1)
-        conn.setopt(pycurl.SSL_VERIFYHOST, 2)
+        if useHTTPS:
+            conn.setopt(pycurl.SSL_VERIFYPEER, 1)
+            conn.setopt(pycurl.SSL_VERIFYHOST, 2)
+            if caFile:
+                conn.setopt(pycurl.CAINFO, caFile)
+
         conn.setopt(pycurl.HTTPHEADER, customHeaders)
         conn.setopt(pycurl.HEADERFUNCTION, response_headers.write)
         conn.setopt(pycurl.POST, True)
@@ -81,9 +87,6 @@ class DNSDistDOHTest(DNSDistTest):
             data = data.to_wire()
 
         conn.setopt(pycurl.POSTFIELDS, data)
-
-        if caFile:
-            conn.setopt(pycurl.CAINFO, caFile)
 
         if response:
             cls._toResponderQueue.put(response, True, timeout)
@@ -613,7 +616,6 @@ class TestDOHAddingECS(DNSDistDOHTest):
     _serverName = 'tls.tests.dnsdist.org'
     _caCert = 'ca.pem'
     _dohServerPort = 8443
-    _serverName = 'tls.tests.dnsdist.org'
     _dohBaseURL = ("https://%s:%d/" % (_serverName, _dohServerPort))
     _config_template = """
     newServer{address="127.0.0.1:%s", useClientSubnet=true}
@@ -701,3 +703,65 @@ class TestDOHAddingECS(DNSDistDOHTest):
         self.assertEquals(response, receivedResponse)
         self.checkQueryEDNSWithECS(expectedQuery, receivedQuery)
         self.checkResponseEDNSWithECS(response, receivedResponse)
+
+class TestDOHOverHTTP(DNSDistDOHTest):
+
+    _dohServerPort = 8480
+    _serverName = 'tls.tests.dnsdist.org'
+    _dohBaseURL = ("http://%s:%d/" % (_serverName, _dohServerPort))
+    _config_template = """
+    newServer{address="127.0.0.1:%s"}
+    addDOHLocal("127.0.0.1:%s")
+    """
+    _config_params = ['_testServerPort', '_dohServerPort']
+
+    def testDOHSimple(self):
+        """
+        DOH over HTTP: Simple query
+        """
+        name = 'simple.doh-over-http.tests.powerdns.com.'
+        query = dns.message.make_query(name, 'A', 'IN', use_edns=False)
+        query.id = 0
+        expectedQuery = dns.message.make_query(name, 'A', 'IN', use_edns=True, payload=4096)
+        response = dns.message.make_response(query)
+        rrset = dns.rrset.from_text(name,
+                                    3600,
+                                    dns.rdataclass.IN,
+                                    dns.rdatatype.A,
+                                    '127.0.0.1')
+        response.answer.append(rrset)
+
+        (receivedQuery, receivedResponse) = self.sendDOHQuery(self._dohServerPort, self._serverName, self._dohBaseURL, query, response=response, useHTTPS=False)
+        self.assertTrue(receivedQuery)
+        self.assertTrue(receivedResponse)
+        expectedQuery.id = receivedQuery.id
+        self.assertEquals(expectedQuery, receivedQuery)
+        self.checkQueryEDNSWithoutECS(expectedQuery, receivedQuery)
+        self.assertEquals(response, receivedResponse)
+        self.checkResponseNoEDNS(response, receivedResponse)
+
+    def testDOHSimplePOST(self):
+        """
+        DOH over HTTP: Simple POST query
+        """
+        name = 'simple-post.doh-over-http.tests.powerdns.com.'
+        query = dns.message.make_query(name, 'A', 'IN', use_edns=False)
+        query.id = 0
+        expectedQuery = dns.message.make_query(name, 'A', 'IN', use_edns=True, payload=4096)
+        expectedQuery.id = 0
+        response = dns.message.make_response(query)
+        rrset = dns.rrset.from_text(name,
+                                    3600,
+                                    dns.rdataclass.IN,
+                                    dns.rdatatype.A,
+                                    '127.0.0.1')
+        response.answer.append(rrset)
+
+        (receivedQuery, receivedResponse) = self.sendDOHPostQuery(self._dohServerPort, self._serverName, self._dohBaseURL, query, response=response, useHTTPS=False)
+        self.assertTrue(receivedQuery)
+        self.assertTrue(receivedResponse)
+        receivedQuery.id = expectedQuery.id
+        self.assertEquals(expectedQuery, receivedQuery)
+        self.checkQueryEDNSWithoutECS(expectedQuery, receivedQuery)
+        self.assertEquals(response, receivedResponse)
+        self.checkResponseNoEDNS(response, receivedResponse)
