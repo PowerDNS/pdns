@@ -2,6 +2,47 @@ Changelog
 =========
 
 .. changelog::
+  :version: 1.4.0-rc2
+  :released: 2nd of September 2019
+
+  .. change::
+    :tags: New Features
+    :pullreq: 8139
+
+    Add a KeyValueStoreLookup action based on CDB or LMDB
+
+  .. change::
+    :tags: Security
+    :pullreq: 8200
+
+    Update h2o to 2.2.6, fixing CVE-2019-9512, CVE-2019-9514 and CVE-2019-9515 for repo.powerdns.com packages
+
+  .. change::
+    :tags: New Features, DNS over HTTPS
+    :pullreq: 8206
+
+    Add support for early DoH HTTP responses
+
+  .. change::
+    :tags: Improvements, DNS over HTTPS, DNS over TLS
+    :pullreq: 8207
+    :tickets: 8202
+
+    Add minTLSVersion for DoH and DoT
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 8250
+
+    Split dnsdist-lua-bindings.cc to reduce memory consumption during compilation
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 8252
+
+    Add a Lua binding for `dynBlockRulesGroup:setQuiet(quiet)`
+
+.. changelog::
   :version: 1.4.0-rc1
   :released: 12th of August 2019
 
