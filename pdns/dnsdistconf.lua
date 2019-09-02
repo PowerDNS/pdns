@@ -58,7 +58,7 @@ function luarule(dq)
 end
 -- send only queries from the selected subnet to
 -- the luarule function
-addLuaAction("192.168.1.0/24", luarule)
+addAction("192.168.1.0/24", LuaAction(luarule))
 
 -- drop queries exceeding 5 qps, grouped by /24 for IPv4
 -- and /64 for IPv6
@@ -186,8 +186,8 @@ end
     function spoof2rule(dq)
         return DNSAction.Spoof, "spoofed.powerdns.com."
     end
-    addLuaAction("luaspoof1.powerdns.com.", spoof1rule)
-    addLuaAction("luaspoof2.powerdns.com.", spoof2rule)
+    addAction("luaspoof1.powerdns.com.", LuaAction(spoof1rule))
+    addAction("luaspoof2.powerdns.com.", LuaAction(spoof2rule))
 
 --]]
 
