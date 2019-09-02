@@ -495,3 +495,33 @@ class PDNSRandomTest(RecursorTest):
         ans.add(ret.answer[0])
 
         self.assertEqual(len(ans), 2)
+
+
+class PDNSFeaturesTest(RecursorTest):
+    """Tests if pdns_features works"""
+
+    _confdir = 'pdnsfeatures'
+    _config_template = """
+    """
+    _lua_dns_script_file = """
+    function preresolve (dq)
+      dq.rcode = pdns.NOERROR
+      -- test pdns_features
+      if pdns_features['nonexistent'] ~= nil then
+        print('PDNSFeaturesTest: case 1')
+        dq.rcode = pdns.SERVFAIL
+      end
+      if not pdns_features['PR8001_devicename']  then
+        print('PDNSFeaturesTest: case 2')
+        dq.rcode = pdns.SERVFAIL
+      end
+      return true
+    end
+    """
+
+    def testFeatures(self):
+        query = dns.message.make_query('whatever.example.', 'TXT')
+        res = self.sendUDPQuery(query)
+
+        self.assertRcodeEqual(res, dns.rcode.NOERROR)
+

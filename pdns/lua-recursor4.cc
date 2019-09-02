@@ -460,6 +460,14 @@ void RecursorLua4::postLoad() {
   d_gettag_ffi = d_lw->readVariable<boost::optional<gettag_ffi_t>>("gettag_ffi").get_value_or(0);
 }
 
+void RecursorLua4::getFeatures(Features & features) {
+  // Add key-values pairs below.
+  // Make sure you add string values explicity converted to string.
+  // e.g. features.push_back(make_pair("somekey", string("stringvalue"));
+  // Both int and double end up as a lua number type.
+   features.push_back(make_pair("PR8001_devicename", true));
+}
+
 void RecursorLua4::maintenance() const
 {
   if (d_maintenance) {

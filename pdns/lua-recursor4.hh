@@ -141,6 +141,7 @@ public:
 protected:
   virtual void postPrepareContext() override;
   virtual void postLoad() override;
+  virtual void getFeatures(Features& features) override;
 private:
   typedef std::function<void()> luamaintenance_t;
   luamaintenance_t d_maintenance;

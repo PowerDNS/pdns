@@ -26,3 +26,5 @@ For extra performance, a Just In Time compiled version of Lua called `LuaJIT <ht
     logging
     hooks
     functions
+    features
+    

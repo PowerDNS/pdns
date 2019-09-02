@@ -29,6 +29,9 @@ void BaseLua4::loadString(const std::string &script) {
   loadStream(iss);
 };
 
+//  By default no features
+void BaseLua4::getFeatures(Features &) { }
+
 #if !defined(HAVE_LUA)
 
 void BaseLua4::prepareContext() { return; }
@@ -42,6 +45,11 @@ BaseLua4::~BaseLua4() { }
 void BaseLua4::prepareContext() {
   d_lw = std::unique_ptr<LuaContext>(new LuaContext);
 
+  // lua features available
+  Features features;
+  getFeatures(features);
+  d_lw->writeVariable("pdns_features", features);
+  
   // dnsheader
   d_lw->registerFunction<int(dnsheader::*)()>("getID", [](dnsheader& dh) { return ntohs(dh.id); });
   d_lw->registerFunction<bool(dnsheader::*)()>("getCD", [](dnsheader& dh) { return dh.cd; });
