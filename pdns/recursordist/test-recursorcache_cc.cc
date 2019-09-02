@@ -292,7 +292,7 @@ BOOST_AUTO_TEST_CASE(test_RecursorCacheSimple) {
     dr4.d_ttl = static_cast<uint32_t>(ttd);
     dr4.d_place = DNSResourceRecord::AUTHORITY;
 
-    // insert an other entry but for 192.168.0.1/31
+    // insert another entry but for 192.168.0.1/31
     records.clear();
     records.push_back(dr4);
     MRC.replace(now, power, QType(QType::A), records, signatures, authRecords, true, boost::optional<Netmask>("192.168.0.1/31"));
