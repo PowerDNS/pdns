@@ -1414,6 +1414,8 @@ This setting will make PowerDNS renotify the slaves after an AXFR is
 *received* from a master. This is useful when using when running a
 signing-slave.
 
+See :ref:`metadata-slave-renotify` to set this per-zone.
+
 .. _setting-soa-expire-default:
 
 ``soa-expire-default``
