@@ -160,6 +160,18 @@ Static pre-shared authentication key for access to the REST API.
 
 Disallow data modification through the REST API when set.
 
+.. _setting-axfr-fetch-timeout:
+
+``axfr-fetch-timeout``
+----------------------
+
+- Integer
+- Default: 10
+
+.. versionadded:: 4.3.0
+
+Maximum time in seconds for inbound AXFR to start or be idle after starting.
+
 .. _setting-axfr-lower-serial:
 
 ``axfr-lower-serial``
