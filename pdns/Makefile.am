@@ -40,10 +40,6 @@ if LIBSODIUM
 AM_CPPFLAGS +=$(LIBSODIUM_CFLAGS)
 endif
 
-if LMDB
-AM_CPPFLAGS +=$(LMDB_CFLAGS)
-endif
-
 EXTRA_DIST = \
 	dnslabeltext.rl \
 	dnslabeltext.cc \
@@ -265,10 +261,6 @@ endif
 if LIBDECAF
 pdns_server_SOURCES += decafsigners.cc
 pdns_server_LDADD += $(LIBDECAF_LIBS)
-endif
-
-if LMDB
-pdns_server_LDADD += $(LMDB_LIBS)
 endif
 
 if SQLITE3
