@@ -530,7 +530,7 @@ static void connectionThread(int sock, ComboAddress remote)
         output << "# TYPE " << frontsbase << "tcpdiedreadingquery " << "counter" << "\n";
         output << "# HELP " << frontsbase << "tcpdiedsendingresponse " << "Amount of TCP connections terminated while sending a response to the client" << "\n";
         output << "# TYPE " << frontsbase << "tcpdiedsendingresponse " << "counter" << "\n";
-        output << "# HELP " << frontsbase << "tcpgaveup " << "Amount of TCP connections terminated after too many attemps to get a connection to the backend" << "\n";
+        output << "# HELP " << frontsbase << "tcpgaveup " << "Amount of TCP connections terminated after too many attempts to get a connection to the backend" << "\n";
         output << "# TYPE " << frontsbase << "tcpgaveup " << "counter" << "\n";
         output << "# HELP " << frontsbase << "tcpclientimeouts " << "Amount of TCP connections terminated by a timeout while reading from the client" << "\n";
         output << "# TYPE " << frontsbase << "tcpclientimeouts " << "counter" << "\n";
@@ -607,7 +607,7 @@ static void connectionThread(int sock, ComboAddress remote)
         output << "# TYPE " << dohfrontsbase << "http1_nb500responses " << "counter" << "\n";
         output << "# HELP " << dohfrontsbase << "http1_nb502responses " << "Number of responses with a 502 status code sent over HTTP/1.x" << "\n";
         output << "# TYPE " << dohfrontsbase << "http1_nb502responses " << "counter" << "\n";
-        output << "# HELP " << dohfrontsbase << "http1_nbotherresponses " << "Number of responses with an other status code sent over HTTP/1.x" << "\n";
+        output << "# HELP " << dohfrontsbase << "http1_nbotherresponses " << "Number of responses with another status code sent over HTTP/1.x" << "\n";
         output << "# TYPE " << dohfrontsbase << "http1_nbotherresponses " << "counter" << "\n";
         output << "# HELP " << dohfrontsbase << "http2_queries " << "Number of queries received over HTTP/2.x" << "\n";
         output << "# TYPE " << dohfrontsbase << "http2_queries " << "counter" << "\n";
@@ -621,7 +621,7 @@ static void connectionThread(int sock, ComboAddress remote)
         output << "# TYPE " << dohfrontsbase << "http2_nb500responses " << "counter" << "\n";
         output << "# HELP " << dohfrontsbase << "http2_nb502responses " << "Number of responses with a 502 status code sent over HTTP/2.x" << "\n";
         output << "# TYPE " << dohfrontsbase << "http2_nb502responses " << "counter" << "\n";
-        output << "# HELP " << dohfrontsbase << "http2_nbotherresponses " << "Number of responses with an other status code sent over HTTP/2.x" << "\n";
+        output << "# HELP " << dohfrontsbase << "http2_nbotherresponses " << "Number of responses with another status code sent over HTTP/2.x" << "\n";
         output << "# TYPE " << dohfrontsbase << "http2_nbotherresponses " << "counter" << "\n";
 
 #ifdef HAVE_DNS_OVER_HTTPS
