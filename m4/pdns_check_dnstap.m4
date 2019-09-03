@@ -1,9 +1,9 @@
 AC_DEFUN([PDNS_CHECK_DNSTAP], [
   AC_MSG_CHECKING([whether we will have dnstap])
   AC_ARG_ENABLE([dnstap],
-    AS_HELP_STRING([--enable-dnstap],[enable dnstap support @<:@default=auto@:>@]),
+    AS_HELP_STRING([--enable-dnstap],[enable dnstap support @<:@default=$1@:>@]),
     [enable_dnstap=$enableval],
-    [enable_dnstap=auto],
+    [enable_dnstap=$1],
   )
   AC_MSG_RESULT([$enable_dnstap])
 
