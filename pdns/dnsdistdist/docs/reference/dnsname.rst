@@ -35,7 +35,7 @@ Functions and methods of a ``DNSName``
   A ``DNSName`` object represents a name in the DNS.
   It is returned by several functions and has several functions to programmatically interact with it.
 
-  .. method:: DNSName:chopoff() -> bool
+  .. method:: DNSName:chopOff() -> bool
 
     .. versionadded:: 1.2.0
 
