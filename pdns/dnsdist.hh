@@ -842,6 +842,9 @@ struct DownstreamState
   std::atomic<uint64_t> idOffset{0};
   std::atomic<uint64_t> sendErrors{0};
   std::atomic<uint64_t> outstanding{0};
+  std::atomic<uint64_t> udpOutstanding{0};
+  std::atomic<uint64_t> tcpOutstanding{0};
+  std::atomic<uint64_t> dohOutstanding{0};
   std::atomic<uint64_t> reuseds{0};
   std::atomic<uint64_t> queries{0};
   struct {

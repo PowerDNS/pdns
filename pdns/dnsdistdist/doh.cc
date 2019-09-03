@@ -367,6 +367,7 @@ static int processDOHQuery(DOHUnit* du)
          we reset 'oldDU' because it might have still been in use when we read it. */
       oldDU = nullptr;
       ++ss->outstanding;
+      ++ss->dohOutstanding;
     }
     else {
       ids->du = nullptr;
@@ -374,6 +375,10 @@ static int processDOHQuery(DOHUnit* du)
          to handle it because it's about to be overwritten. */
       ++ss->reuseds;
       ++g_stats.downstreamTimeouts;
+      if (!oldDU) {
+        --ss->udpOutstanding;
+        ++ss->dohOutstanding;
+      }
       handleDOHTimeout(oldDU);
     }
 
@@ -412,6 +417,7 @@ static int processDOHQuery(DOHUnit* du)
       if (ids->tryMarkUnused(generation)) {
         ids->du = nullptr;
         --ss->outstanding;
+        --ss->dohOutstanding;
       }
       ++ss->sendErrors;
       ++g_stats.downstreamSendErrors;

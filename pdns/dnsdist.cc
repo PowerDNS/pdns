@@ -582,6 +582,12 @@ try {
              and the other thread has not incremented the outstanding counter, so we don't
              want it to be decremented twice. */
           --dss->outstanding;  // you'd think an attacker could game this, but we're using connected socket
+          if (isDoH) {
+            --dss->dohOutstanding;
+          }
+          else {
+            --dss->udpOutstanding;
+          }
         } else {
           /* someone updated the state in the meantime, we can't touch the existing pointer */
           du = nullptr;
@@ -1615,6 +1621,7 @@ static void processUDPQuery(ClientState& cs, LocalHolders& holders, const struct
          we reset 'du' because it might have still been in use when we read it. */
       du = nullptr;
       ++ss->outstanding;
+      --ss->udpOutstanding;
     }
     else {
       /* we are reusing a state, no change in outstanding but if there was an existing DOHUnit we need
@@ -1622,6 +1629,10 @@ static void processUDPQuery(ClientState& cs, LocalHolders& holders, const struct
       ids->du = nullptr;
       ++ss->reuseds;
       ++g_stats.downstreamTimeouts;
+      if (du) {
+        ++ss->udpOutstanding;
+        --ss->dohOutstanding;
+      }
       handleDOHTimeout(du);
     }
 
@@ -2121,6 +2132,12 @@ static void healthChecksThread()
           handleDOHTimeout(oldDU);
           ids.age = 0;
           dss->reuseds++;
+          if (oldDU) {
+            --dss->dohOutstanding;
+          }
+          else {
+            --dss->udpOutstanding;
+          }
           --dss->outstanding;
           ++g_stats.downstreamTimeouts; // this is an 'actively' discovered timeout
           vinfolog("Had a downstream timeout from %s (%s) for query for %s|%s from %s",

@@ -648,6 +648,27 @@ void setupLuaConfig(bool client)
       }
     });
 
+    g_lua.writeFunction("showOutstandings", []() {
+      setLuaNoSideEffect();
+      try {
+        ostringstream ret;
+        size_t counter = 0;
+        boost::format fmt = boost::format("%1$-3d %2$-20.20s %|25t|%3% %|55t|%4$5s %|51t|%5$7.1f %|66t|%6$7d %|69t|%7$3d %|78t|%8$2d %|80t|%9$10d %|86t|%10$7d %|91t|%11$5.1f %|109t|%12$5.1f %|115t|%13$11d %14%" );
+        ret << (fmt % "#" % "Name" % "Address" % "Outstanding" % "UDP Outstanding" % "TCP Outstanding" % "DoHOutstanding") << endl;
+        auto states = g_dstates.getLocal();
+        for(const auto& s : *states) {
+          ret << (fmt % counter % s->name % s->remote.toStringWithPort() %
+                  s->outstanding.load() % s->udpOutstanding.load() % s->tcpOutstanding.load() % s->dohOutstanding.load()) << endl;
+          ++counter;
+        }
+
+        g_outputBuffer=ret.str();
+      } catch(std::exception& e) {
+        g_outputBuffer=e.what();
+        throw;
+      }
+    });
+
   g_lua.writeFunction("getServers", []() {
       setLuaNoSideEffect();
       vector<pair<int, std::shared_ptr<DownstreamState> > > ret;
