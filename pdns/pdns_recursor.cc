@@ -342,7 +342,7 @@ struct DNSComboWriter {
   bool d_ecsParsed{false};
   bool d_followCNAMERecords{false};
   bool d_logResponse{false};
-  bool d_tcp;
+  bool d_tcp{false};
 };
 
 MT_t* getMT()
