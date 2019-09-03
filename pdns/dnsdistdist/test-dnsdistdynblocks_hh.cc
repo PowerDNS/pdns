@@ -259,6 +259,123 @@ BOOST_AUTO_TEST_CASE(test_DynBlockRulesGroup_RCodeRate) {
 
 }
 
+BOOST_AUTO_TEST_CASE(test_DynBlockRulesGroup_RCodeRatio) {
+  dnsheader dh;
+  DNSName qname("rings.powerdns.com.");
+  ComboAddress requestor1("192.0.2.1");
+  ComboAddress requestor2("192.0.2.2");
+  ComboAddress backend("192.0.2.42");
+  uint16_t qtype = QType::AAAA;
+  uint16_t size = 42;
+  unsigned int responseTime = 100 * 1000; /* 100ms */
+  struct timespec now;
+  gettime(&now);
+  NetmaskTree<DynBlock> emptyNMG;
+
+  size_t numberOfSeconds = 10;
+  size_t blockDuration = 60;
+  const auto action = DNSAction::Action::Drop;
+  const std::string reason = "Exceeded query ratio";
+  const uint16_t rcode = RCode::ServFail;
+
+  DynBlockRulesGroup dbrg;
+  dbrg.setQuiet(true);
+
+  /* block above 0.2 ServFail/Total ratio over numberOfSeconds seconds, no warning, minimum number of queries should be at least 51 */
+  dbrg.setRCodeRatio(rcode, 0.2, 0, numberOfSeconds, reason, blockDuration, action, 51);
+
+  {
+    /* insert 20 ServFail and 80 NoErrors from a given client in the last 10s
+       this should not trigger the rule */
+    g_rings.clear();
+    BOOST_CHECK_EQUAL(g_rings.getNumberOfResponseEntries(), 0);
+    g_dynblockNMG.setState(emptyNMG);
+
+    dh.rcode = rcode;
+    for (size_t idx = 0; idx < 20; idx++) {
+      g_rings.insertResponse(now, requestor1, qname, qtype, responseTime, size, dh, backend);
+    }
+    dh.rcode = RCode::NoError;
+    for (size_t idx = 0; idx < 80; idx++) {
+      g_rings.insertResponse(now, requestor1, qname, qtype, responseTime, size, dh, backend);
+    }
+    BOOST_CHECK_EQUAL(g_rings.getNumberOfResponseEntries(), 100);
+
+    dbrg.apply(now);
+    BOOST_CHECK_EQUAL(g_dynblockNMG.getLocal()->size(), 0);
+    BOOST_CHECK(g_dynblockNMG.getLocal()->lookup(requestor1) == nullptr);
+  }
+
+  {
+    /* insert just 50 FormErrs and nothing else, from a given client in the last 10s */
+    g_rings.clear();
+    BOOST_CHECK_EQUAL(g_rings.getNumberOfResponseEntries(), 0);
+    g_dynblockNMG.setState(emptyNMG);
+
+    dh.rcode = RCode::FormErr;
+    for (size_t idx = 0; idx < 50; idx++) {
+      g_rings.insertResponse(now, requestor1, qname, qtype, responseTime, size, dh, backend);
+    }
+    BOOST_CHECK_EQUAL(g_rings.getNumberOfResponseEntries(), 50);
+
+    dbrg.apply(now);
+    BOOST_CHECK_EQUAL(g_dynblockNMG.getLocal()->size(), 0);
+    BOOST_CHECK(g_dynblockNMG.getLocal()->lookup(requestor1) == nullptr);
+  }
+
+  {
+    /* insert 21 ServFails and 79 NoErrors from a given client in the last 10s
+       this should trigger the rule this time */
+    g_rings.clear();
+    BOOST_CHECK_EQUAL(g_rings.getNumberOfResponseEntries(), 0);
+    g_dynblockNMG.setState(emptyNMG);
+
+    dh.rcode = rcode;
+    for (size_t idx = 0; idx < 21; idx++) {
+      g_rings.insertResponse(now, requestor1, qname, qtype, responseTime, size, dh, backend);
+    }
+    dh.rcode = RCode::NoError;
+    for (size_t idx = 0; idx < 79; idx++) {
+      g_rings.insertResponse(now, requestor1, qname, qtype, responseTime, size, dh, backend);
+    }
+    BOOST_CHECK_EQUAL(g_rings.getNumberOfResponseEntries(), 100);
+
+    dbrg.apply(now);
+    BOOST_CHECK_EQUAL(g_dynblockNMG.getLocal()->size(), 1);
+    BOOST_CHECK(g_dynblockNMG.getLocal()->lookup(requestor1) != nullptr);
+    BOOST_CHECK(g_dynblockNMG.getLocal()->lookup(requestor2) == nullptr);
+    const auto& block = g_dynblockNMG.getLocal()->lookup(requestor1)->second;
+    BOOST_CHECK_EQUAL(block.reason, reason);
+    BOOST_CHECK_EQUAL(block.until.tv_sec, now.tv_sec + blockDuration);
+    BOOST_CHECK(block.domain.empty());
+    BOOST_CHECK(block.action == action);
+    BOOST_CHECK_EQUAL(block.blocks, 0);
+    BOOST_CHECK_EQUAL(block.warning, false);
+  }
+
+  {
+    /* insert 11 ServFails and 39 NoErrors from a given client in the last 10s
+       this should NOT trigger the rule since we don't have more than 50 queries */
+    g_rings.clear();
+    BOOST_CHECK_EQUAL(g_rings.getNumberOfResponseEntries(), 0);
+    g_dynblockNMG.setState(emptyNMG);
+
+    dh.rcode = rcode;
+    for (size_t idx = 0; idx < 11; idx++) {
+      g_rings.insertResponse(now, requestor1, qname, qtype, responseTime, size, dh, backend);
+    }
+    dh.rcode = RCode::NoError;
+    for (size_t idx = 0; idx < 39; idx++) {
+      g_rings.insertResponse(now, requestor1, qname, qtype, responseTime, size, dh, backend);
+    }
+    BOOST_CHECK_EQUAL(g_rings.getNumberOfResponseEntries(), 50);
+
+    dbrg.apply(now);
+    BOOST_CHECK_EQUAL(g_dynblockNMG.getLocal()->size(), 0);
+    BOOST_CHECK(g_dynblockNMG.getLocal()->lookup(requestor1) == nullptr);
+  }
+}
+
 BOOST_AUTO_TEST_CASE(test_DynBlockRulesGroup_ResponseByteRate) {
   dnsheader dh;
   DNSName qname("rings.powerdns.com.");

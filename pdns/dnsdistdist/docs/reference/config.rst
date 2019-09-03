@@ -1020,6 +1020,21 @@ faster than the existing rules.
     :param int action: The action to take when the dynamic block matches, see :ref:`here <DNSAction>`. (default to the one set with :func:`setDynBlocksAction`)
     :param int warningRate: If set to a non-zero value, the rate above which a warning message will be issued and a no-op block inserted
 
+  .. method:: DynBlockRulesGroup:setRCodeRatio(rcode, ratio, seconds, reason, blockingTime, minimumNumberOfResponses [, action [, warningRate]])
+
+    .. versionadded:: 1.5.0
+
+    Adds a rate-limiting rule for the ratio of responses of code ``rcode`` over the total number of responses for a given client.
+
+    :param int rcode: The response code
+    :param int ratio: Ratio of responses per second of the given rcode over the total number of responses for this client to exceed
+    :param int seconds: Number of seconds the ratio has been exceeded
+    :param string reason: The message to show next to the blocks
+    :param int blockingTime: The number of seconds this block to expire
+    :param int minimumNumberOfResponses: How many total responses is required for this rule to apply
+    :param int action: The action to take when the dynamic block matches, see :ref:`here <DNSAction>`. (default to the one set with :func:`setDynBlocksAction`)
+    :param int warningRatio: If set to a non-zero value, the ratio above which a warning message will be issued and a no-op block inserted
+
   .. method:: DynBlockRulesGroup:setQTypeRate(qtype, rate, seconds, reason, blockingTime [, action [, warningRate]])
 
     .. versionchanged:: 1.3.3
