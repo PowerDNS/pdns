@@ -18,6 +18,18 @@ documentation.
 Apart from raw SQL statements, setting domain metadata can be done with
 ``pdnsutil set-meta`` and retrieving metadata is done with ``pdnsutil get-meta``.
 
+The following options can only be read (not written to) via the HTTP API metadata endpoint.
+
+* API-RECTIFY
+* AXFR-MASTER-TSIG
+* LUA-AXFR-SCRIPT
+* NSEC3NARROW
+* NSEC3PARAM
+* PRESIGNED
+* TSIG-ALLOW-AXFR
+
+The option SOA-EDIT-API can not be written or read via the HTTP API metadata endpoint.
+
 .. _metadata-allow-axfr-from:
 
 ALLOW-AXFR-FROM
