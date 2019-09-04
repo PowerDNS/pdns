@@ -1,4 +1,4 @@
-@       86400   IN  SOA pdns-public-ns1.powerdns.com. pieter\.lexis.powerdns.com. 2019090201 10800 3600 604800 10800
+@       86400   IN  SOA pdns-public-ns1.powerdns.com. pieter\.lexis.powerdns.com. 2019090501 10800 3600 604800 10800
 @       3600    IN  NS  pdns-public-ns1.powerdns.com.
 @       3600    IN  NS  pdns-public-ns2.powerdns.com.
 
@@ -198,6 +198,7 @@ recursor-4.2.0-beta1.security-status                    60 IN TXT "2 Unsupported
 recursor-4.2.0-rc1.security-status                      60 IN TXT "2 Unsupported pre-release (no known vulnerabilities)"
 recursor-4.2.0-rc2.security-status                      60 IN TXT "2 Unsupported pre-release (no known vulnerabilities)"
 recursor-4.2.0.security-status                          60 IN TXT "1 OK"
+recursor-4.3.0-alpha1.security-status                   60 IN TXT "1 OK"
 
 ; Recursor Debian
 recursor-3.6.2-2.debian.security-status                 60 IN TXT "3 Upgrade now, see https://doc.powerdns.com/3/security/powerdns-advisory-2015-01/ and https://doc.powerdns.com/3/security/powerdns-advisory-2016-02/"
