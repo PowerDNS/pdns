@@ -21,17 +21,17 @@ Prometheus Data Endpoint
     Content-Type: text/plain
     Server: PowerDNS/0.0.16480.0.g876dd46192
 
-    # HELP pdnsrecursor_all_outqueries Number of outgoing UDP queries since starting
-    # TYPE pdnsrecursor_all_outqueries counter
-    pdnsrecursor_all_outqueries 20
-    # HELP pdnsrecursor_answers_slow Number of queries answered after 1 second
-    # TYPE pdnsrecursor_answers_slow counter
-    pdnsrecursor_answers_slow 0
-    # HELP pdnsrecursor_answers0_1 Number of queries answered within 1 millisecond
-    # TYPE pdnsrecursor_answers0_1 counter
-    pdnsrecursor_answers0_1 0
-    # HELP pdnsrecursor_answers1_10 Number of queries answered within 10 milliseconds
-    # TYPE pdnsrecursor_answers1_10 counter
+    # HELP pdns_recursor_all_outqueries Number of outgoing UDP queries since starting
+    # TYPE pdns_recursor_all_outqueries counter
+    pdns_recursor_all_outqueries 20
+    # HELP pdns_recursor_answers_slow Number of queries answered after 1 second
+    # TYPE pdns_recursor_answers_slow counter
+    pdns_recursor_answers_slow 0
+    # HELP pdns_recursor_answers0_1 Number of queries answered within 1 millisecond
+    # TYPE pdns_recursor_answers0_1 counter
+    pdns_recursor_answers0_1 0
+    # HELP pdns_recursor_answers1_10 Number of queries answered within 10 milliseconds
+    # TYPE pdns_recursor_answers1_10 counter
 
     ...
 

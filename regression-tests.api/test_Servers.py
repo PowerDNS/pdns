@@ -80,9 +80,9 @@ class Servers(ApiTestCase):
             for line in res.text.splitlines():
                 if line[0] == "#":
                     continue
-                if line.split(" ")[0] == "pdnsrecursor_uptime":
+                if line.split(" ")[0] == "pdns_recursor_uptime":
                     found = True
-            self.assertTrue(found,"pdnsrecursor_uptime is missing")
+            self.assertTrue(found,"pdns_recursor_uptime is missing")
             
     @unittest.skipIf(is_auth(), "Not applicable")
     def test_read_statistics_using_password(self):

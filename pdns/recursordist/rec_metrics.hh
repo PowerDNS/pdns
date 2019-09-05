@@ -37,7 +37,7 @@ enum class PrometheusMetricType: int {
 
 // Keeps additional information about metrics
 struct MetricDefinition {
-    MetricDefinition(PrometheusMetricType prometheusType, const std::string& description) {
+    MetricDefinition(const PrometheusMetricType& prometheusType, const std::string& description) {
       this->prometheusType = prometheusType;
       this->description = description;
     }
@@ -50,9 +50,10 @@ struct MetricDefinition {
     PrometheusMetricType prometheusType;
 };
 
-struct MetricDefinitionStorage {
+class MetricDefinitionStorage {
+public:
     // Return metric definition by name
-    bool getMetricDetails(std::string metricName, MetricDefinition& metric) {
+    bool getMetricDetails(const std::string& metricName, MetricDefinition& metric) {
       auto metricDetailsIter = metrics.find(metricName);
 
       if (metricDetailsIter == metrics.end()) {
@@ -64,7 +65,7 @@ struct MetricDefinitionStorage {
     };
 
     // Return string representation of Prometheus metric type
-    std::string getPrometheusStringMetricType(PrometheusMetricType metricType) {
+    std::string getPrometheusStringMetricType(const PrometheusMetricType& metricType) {
       switch (metricType) {
         case PrometheusMetricType::counter:
           return "counter";
@@ -78,6 +79,7 @@ struct MetricDefinitionStorage {
       }
     };
 
+private:
     // Description and types for prometheus output of stats
     std::map<std::string, MetricDefinition> metrics = {
             { "all-outqueries",              MetricDefinition(PrometheusMetricType::counter, "Number of outgoing UDP queries since starting") },
@@ -88,17 +90,17 @@ struct MetricDefinitionStorage {
             { "answers10-100",              MetricDefinition(PrometheusMetricType::counter, "Number of queries answered within 100 milliseconds") },
             { "answers100-1000",              MetricDefinition(PrometheusMetricType::counter, "Number of queries answered within 1 second") },
 
-            { "auth4-answers-slow",              MetricDefinition(PrometheusMetricType::counter, "Number of queries answered by auth4s after 1 second") },
-            { "auth4-answers0-1",              MetricDefinition(PrometheusMetricType::counter, "Number of queries answered by auth4s within 1 millisecond") },
-            { "auth4-answers1-10",              MetricDefinition(PrometheusMetricType::counter, "Number of queries answered by auth4s within 10 milliseconds") },
-            { "auth4-answers10-100",              MetricDefinition(PrometheusMetricType::counter, "Number of queries answered by auth4s within 100 milliseconds") },
-            { "auth4-answers100-1000",              MetricDefinition(PrometheusMetricType::counter, "Number of queries answered by auth4s within 1 second") },
+            { "auth4-answers-slow",              MetricDefinition(PrometheusMetricType::counter, "Number of queries answered by authoritatives over IPv4 after 1 second") },
+            { "auth4-answers0-1",              MetricDefinition(PrometheusMetricType::counter, "Number of queries answered by authoritatives over IPv4within 1 millisecond") },
+            { "auth4-answers1-10",              MetricDefinition(PrometheusMetricType::counter, "Number of queries answered by authoritatives over IPv4 within 10 milliseconds") },
+            { "auth4-answers10-100",              MetricDefinition(PrometheusMetricType::counter, "Number of queries answered by authoritatives over IPv4 within 100 milliseconds") },
+            { "auth4-answers100-1000",              MetricDefinition(PrometheusMetricType::counter, "Number of queries answered by authoritatives over IPv4 within 1 second") },
 
-            { "auth6-answers-slow",              MetricDefinition(PrometheusMetricType::counter, "Number of queries answered by auth6s after 1 second") },
-            { "auth6-answers0-1",              MetricDefinition(PrometheusMetricType::counter, "Number of queries answered by auth6s within 1 millisecond") },
-            { "auth6-answers1-10",              MetricDefinition(PrometheusMetricType::counter, "Number of queries answered by auth6s within 10 milliseconds") },
-            { "auth6-answers10-100",              MetricDefinition(PrometheusMetricType::counter, "Number of queries answered by auth6s within 100 milliseconds") },
-            { "auth6-answers100-1000",              MetricDefinition(PrometheusMetricType::counter, "Number of queries answered by auth6s within 1 second") },
+            { "auth6-answers-slow",              MetricDefinition(PrometheusMetricType::counter, "Number of queries answered by authoritatives over IPv6 after 1 second") },
+            { "auth6-answers0-1",              MetricDefinition(PrometheusMetricType::counter, "Number of queries answered by authoritatives over IPv6 within 1 millisecond") },
+            { "auth6-answers1-10",              MetricDefinition(PrometheusMetricType::counter, "Number of queries answered by authoritatives over IPv6 within 10 milliseconds") },
+            { "auth6-answers10-100",              MetricDefinition(PrometheusMetricType::counter, "Number of queries answered by authoritatives over IPv6 within 100 milliseconds") },
+            { "auth6-answers100-1000",              MetricDefinition(PrometheusMetricType::counter, "Number of queries answered by authoritatives over IPv6 within 1 second") },
 
 
 
@@ -108,7 +110,7 @@ struct MetricDefinitionStorage {
             { "cache-hits",              MetricDefinition(PrometheusMetricType::counter, "Number of of cache hits since starting, this does **not** include hits that got answered from the packet-cache") },
             { "cache-misses",              MetricDefinition(PrometheusMetricType::counter, "Number of cache misses since starting") },
             { "case-mismatches",              MetricDefinition(PrometheusMetricType::counter, "Number of mismatches in character case since starting") },
-            { "chain-resends",              MetricDefinition(PrometheusMetricType::gauge, "Number of queries chained to existing outstanding") },
+            { "chain-resends",              MetricDefinition(PrometheusMetricType::counter, "Number of queries chained to existing outstanding") },
             { "client-parse-errors",              MetricDefinition(PrometheusMetricType::counter, "Number of client packets that could not be parsed") },
             { "concurrent-queries",              MetricDefinition(PrometheusMetricType::gauge, "Number of MThreads currently running") },
             { "cpu-msec-thread-0",              MetricDefinition(PrometheusMetricType::counter, "Number of milliseconds spent in thread n") },
@@ -135,8 +137,8 @@ struct MetricDefinitionStorage {
             { "ipv6-questions",              MetricDefinition(PrometheusMetricType::counter, "Number of end-user initiated queries with the RD bit set, received over IPv6 UDP") },
             { "malloc-bytes",              MetricDefinition(PrometheusMetricType::counter, "Number of bytes allocated by the process (broken, always returns 0)") },
             { "max-cache-entries",              MetricDefinition(PrometheusMetricType::gauge, "Currently configured maximum number of cache entries") },
-            { "max-packetcache-entries",              MetricDefinition(PrometheusMetricType::counter, "Currently configured maximum number of packet cache entries") },
-            { "max-mthread-stack",              MetricDefinition(PrometheusMetricType::counter, "Maximum amount of thread stack ever used") },
+            { "max-packetcache-entries",              MetricDefinition(PrometheusMetricType::gauge, "Currently configured maximum number of packet cache entries") },
+            { "max-mthread-stack",              MetricDefinition(PrometheusMetricType::gauge, "Maximum amount of thread stack ever used") },
 
 
             { "negcache-entries",              MetricDefinition(PrometheusMetricType::gauge, "Number of entries in the negative answer cache") },
@@ -169,7 +171,7 @@ struct MetricDefinitionStorage {
             { "questions",              MetricDefinition(PrometheusMetricType::counter, "Counts all end-user initiated queries with the RD bit set") },
             { "rebalanced-queries",              MetricDefinition(PrometheusMetricType::counter, "Number of queries balanced to a different worker thread because the first selected one was above the target load configured with 'distribution-load-factor'") },
             { "resource-limits",              MetricDefinition(PrometheusMetricType::counter, "Number of queries that could not be performed because of resource limits") },
-            { "security-status",              MetricDefinition(PrometheusMetricType::counter, "security status based on `securitypolling`") },
+            { "security-status",              MetricDefinition(PrometheusMetricType::gauge, "security status based on `securitypolling`") },
             { "server-parse-errors",              MetricDefinition(PrometheusMetricType::counter, "Number of server replied packets that could not be parsed") },
             { "servfail-answers",              MetricDefinition(PrometheusMetricType::counter, "Number of SERVFAIL answers since starting") },
             { "spoof-prevents",              MetricDefinition(PrometheusMetricType::counter, "Number of times PowerDNS considered itself spoofed, and dropped the data") },
@@ -202,7 +204,7 @@ struct MetricDefinitionStorage {
             { "x-ourtime-slow",              MetricDefinition(PrometheusMetricType::counter, "Counts responses where more than 32 milliseconds was spent within the Recursor") },
 
             { "fd-usage",              MetricDefinition(PrometheusMetricType::gauge, "Number of open file descriptors") },
-            { "real-memory-usage",              MetricDefinition(PrometheusMetricType::counter, "Number of bytes real process memory usage") },
+            { "real-memory-usage",              MetricDefinition(PrometheusMetricType::gauge, "Number of bytes real process memory usage") },
             { "udp-in-errors",              MetricDefinition(PrometheusMetricType::counter, "From /proc/net/snmp InErrors") },
             { "udp-noport-errors",              MetricDefinition(PrometheusMetricType::counter, "From /proc/net/snmp NoPorts") },
             { "udp-recvbuf-errors",              MetricDefinition(PrometheusMetricType::counter, "From /proc/net/snmp RcvbufErrors") },

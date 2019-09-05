@@ -435,11 +435,11 @@ static void prometheusMetrics(HttpRequest *req, HttpResponse *resp) {
     typedef map <string, string> varmap_t;
     varmap_t varmap = getAllStatsMap(
             StatComponent::API); // Argument controls blacklisting of any stats. So stats-api-blacklist will be used to block returned stats.
-    for (const varmap_t::value_type &tup :  varmap) {
+    for (const auto &tup :  varmap) {
         std::string metricName = tup.first;
 
         // Prometheus suggest using '_' instead of '-'
-        std::string prometheusMetricName = "pdnsrecursor_" + boost::replace_all_copy(metricName, "-", "_");
+        std::string prometheusMetricName = "pdns_recursor_" + boost::replace_all_copy(metricName, "-", "_");
 
         MetricDefinition metricDetails;
 
@@ -447,7 +447,7 @@ static void prometheusMetrics(HttpRequest *req, HttpResponse *resp) {
           std::string prometheusTypeName = g_metricDefinitions.getPrometheusStringMetricType(
                   metricDetails.prometheusType);
 
-          if (prometheusTypeName == "") {
+          if (prometheusTypeName.empty()) {
             continue;
           }
 
