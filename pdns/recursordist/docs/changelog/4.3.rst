@@ -206,7 +206,7 @@ Changelogs for 4.3.x
     :tags: Bug fixes
     :pullreq: 7886
 
-     suffixmatchtree: fix root removal, partial match of non-leaf nodes
+    suffixmatchtree: fix root removal, partial match of non-leaf nodes
 
   .. change::
     :tags: Internals, Improvements
@@ -224,7 +224,7 @@ Changelogs for 4.3.x
     :tags: Internals, Improvements
     :pullreq: 7904
 
-     rec: optimize for large number of filtering policies, empty sections
+    rec: optimize for large number of filtering policies, empty sections
 
   .. change::
     :tags: Internals, Improvements
