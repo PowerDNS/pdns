@@ -437,7 +437,7 @@ const std::vector<ConsoleKeyword> g_consoleKeywords{
   { "NetmaskGroupRule", true, "nmg[, src]", "Matches traffic from/to the network range specified in nmg. Set the src parameter to false to match nmg against destination address instead of source address. This can be used to differentiate between clients" },
   { "newBPFFilter", true, "maxV4, maxV6, maxQNames", "Return a new eBPF socket filter with a maximum of maxV4 IPv4, maxV6 IPv6 and maxQNames qname entries in the block table" },
   { "newCA", true, "address", "Returns a ComboAddress based on `address`" },
-#ifdef HAVE_LMDB
+#ifdef HAVE_CDB
   { "newCDBKVStore", true, "fname, refreshDelay", "Return a new KeyValueStore object associated to the corresponding CDB database" },
 #endif
   { "newDNSName", true, "name", "make a DNSName based on this .-terminated name" },
