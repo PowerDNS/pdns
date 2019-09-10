@@ -1,0 +1,38 @@
+#!/usr/bin/env bash
+
+NOW=$(date +%s)
+
+[ -z "$GMYSQLDB" ] && GMYSQLDB=pdnstest
+[ -z "$GMYSQLUSER" ] && GMYSQLUSER=root
+[ -z "$GMYSQLHOST" ] && GMYSQLHOST=localhost
+[ -z "$GMYSQLPASSWD" ] && GMYSQLPASSWD=''
+
+# lower SOA so that the test makes sense
+mysql --user="$GMYSQLUSER" --password="$GMYSQLPASSWD" --host="$GMYSQLHOST" \
+		"$GMYSQLDB" \
+		-e "UPDATE records SET content='ns1.test.dyndns ahu.example.dyndns 10 28800 7200 604800 86400' WHERE name='test.dyndns' AND type='SOA'"
+
+$PDNSUTIL --config-dir=. --config-name=gmysql list-zone test.dyndns | grep SOA
+
+$PDNSUTIL --config-dir=. --config-name=gmysql set-meta test.dyndns SOA-EDIT INCEPTION-EPOCH
+
+$PDNSUTIL --config-dir=. --config-name=gmysql increase-serial test.dyndns > /dev/null
+
+NEWSERIAL=$($PDNSUTIL --config-dir=. --config-name=gmysql list-zone test.dyndns | grep SOA | awk '{print $7}')
+
+NOWPLUSTEN=$((NOW + 10))
+
+if [ $NOW -le $NEWSERIAL ] && [ $NOW -le $NOWPLUSTEN ]
+then
+	echo New serial is within range
+else
+	echo New serial is NOT within range
+fi
+
+# remove meta
+$PDNSUTIL --config-dir=. --config-name=gmysql set-meta test.dyndns SOA-EDIT
+
+# restore old SOA
+mysql --user="$GMYSQLUSER" --password="$GMYSQLPASSWD" --host="$GMYSQLHOST" \
+		"$GMYSQLDB" \
+		-e "UPDATE records SET content='ns1.test.dyndns ahu.example.dyndns 2012060701 28800 7200 604800 86400' WHERE name='test.dyndns' AND type='SOA'"
