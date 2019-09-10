@@ -4646,7 +4646,20 @@ int main(int argc, char **argv)
     cleanSlashes(configname);
 
     if(!::arg().getCommands().empty()) {
-      cerr<<"Fatal: non-option on the command line, perhaps a '--setting=123' statement missed the '='?"<<endl;
+      cerr<<"Fatal: non-option";
+      if (::arg().getCommands().size() > 1) {
+        cerr<<"s";
+      }
+      cerr<<" (";
+      bool first = true;
+      for (auto const c : ::arg().getCommands()) {
+        if (!first) {
+          cerr<<", ";
+        }
+        first = false;
+        cerr<<c;
+      }
+      cerr<<") on the command line, perhaps a '--setting=123' statement missed the '='?"<<endl;
       exit(99);
     }
 
