@@ -1,0 +1,4 @@
+test.dyndns	3600	IN	SOA	ns1.test.dyndns ahu.example.dyndns 10 28800 7200 604800 86400
+Set 'test.dyndns' meta SOA-EDIT = INCEPTION-EPOCH
+New serial is within range
+Set 'test.dyndns' meta SOA-EDIT = 
