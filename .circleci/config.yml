@@ -993,7 +993,7 @@ jobs:
     steps:
       - install-auth-dev-deps
       - install-coverity-tools
-      - get-workspace
+      - checkout-shallow
       - run:
           name: autoconf
           command: BUILDER_VERSION=0.0.0-git1 autoreconf -vfi
@@ -1063,7 +1063,7 @@ jobs:
             ragel \
             virtualenv
       - install-coverity-tools
-      - get-workspace
+      - checkout-shallow
       - run:
           name: autoconf
           command: BUILDER_VERSION=0.0.0-git1 autoreconf -vfi
@@ -1135,7 +1135,7 @@ jobs:
             ragel \
             virtualenv
       - install-coverity-tools
-      - get-workspace
+      - checkout-shallow
       - run:
           name: autoconf
           command: BUILDER_VERSION=0.0.0-git1 autoreconf -vfi
