@@ -26,18 +26,18 @@ For example, to do a suffix-based lookup into a LMDB KVS database, the following
   > kvs = newLMDBKVStore('/path/to/lmdb/database', 'database name')
   > addAction(AllRule(), KeyValueStoreLookupAction(kvs, KeyValueLookupKeySuffix(), 'kvs-suffix-result'))
 
-For a query whose qname is "sub.domain.powerdns.com.", and for which only the "\8powerdns\3com\0" key exists in the database,
+For a query whose qname is "sub.domain.powerdns.com.", and for which only the "\\8powerdns\\3com\\0" key exists in the database,
 this would result in the following lookups:
 
- * \3sub\6domain\8powerdns\3com\0
- * \6domain\8powerdns\3com\0
- * \8powerdns\3com\0
+ * \\3sub\\6domain\\8powerdns\\3com\\0
+ * \\6domain\\8powerdns\\3com\\0
+ * \\8powerdns\\3com\\0
 
 Then a match is found for the last key, and the corresponding value is stored into the 'kvs-suffix-result' tag. This tag can now be used in subsequent rules to take an action based on the result of the lookup.
 
  > addAction(TagRule('kvs-suffix-result', 'this is the value obtained from the lookup'), SpoofAction('2001:db8::1'))
 
-If the value found in the LMDB database for the key '\8powerdns\3com\0' was 'this is the value obtained from the lookup', then the query is immediately answered with a AAAA record.
+If the value found in the LMDB database for the key '\\8powerdns\\3com\\0' was 'this is the value obtained from the lookup', then the query is immediately answered with a AAAA record.
 
 
 .. class:: KeyValueStore
@@ -90,17 +90,17 @@ If the value found in the LMDB database for the key '\8powerdns\3com\0' was 'thi
   Return a new KeyValueLookupKey object that, when passed to :func:`KeyValueStoreLookupAction` or :func:`KeyValueStoreLookupRule`, will return a vector of keys based on the labels of the qname in DNS wire format or plain text.
   For example if the qname is sub.domain.powerdns.com. the following keys will be returned:
 
-   * \3sub\6domain\8powerdns\3com\0
-   * \6domain\8powerdns\3com\0
-   * \8powerdns\3com\0
-   * \3com\0
-   * \0
+   * \\3sub\\6domain\\8powerdns\\3com\\0
+   * \\6domain\\8powerdns\\3com\\0
+   * \\8powerdns\\3com\\0
+   * \\3com\\0
+   * \\0
 
   If ``minLabels`` is set to a value larger than 0 the lookup will only be done as long as there is at least ``minLabels`` remaining. Taking back our previous example, it means only the following keys will be returned if ``minLabels`` is set to 2;
 
-   * \3sub\6domain\8powerdns\3com\0
-   * \6domain\8powerdns\3com\0
-   * \8powerdns\3com\0
+   * \\3sub\\6domain\\8powerdns\\3com\\0
+   * \\6domain\\8powerdns\\3com\\0
+   * \\8powerdns\\3com\\0
 
   :param int minLabels: The minimum number of labels to do a lookup for. Default is 0 which means unlimited
   :param bool wireFormat: Whether to do the lookup in wire format (default) or in plain text
