@@ -241,13 +241,14 @@ static bool processRecordForZS(const DNSName& domain, bool& firstNSEC3, DNSResou
 
 static vector<DNSResourceRecord> doAxfr(const ComboAddress& raddr, const DNSName& domain, const TSIGTriplet& tt, const ComboAddress& laddr,  scoped_ptr<AuthLua4>& pdl, ZoneStatus& zs)
 {
+  uint16_t axfr_timeout=::arg().asNum("axfr-fetch-timeout");
   vector<DNSResourceRecord> rrs;
-  AXFRRetriever retriever(raddr, domain, tt, (laddr.sin4.sin_family == 0) ? NULL : &laddr, ((size_t) ::arg().asNum("xfr-max-received-mbytes")) * 1024 * 1024);
+  AXFRRetriever retriever(raddr, domain, tt, (laddr.sin4.sin_family == 0) ? NULL : &laddr, ((size_t) ::arg().asNum("xfr-max-received-mbytes")) * 1024 * 1024, axfr_timeout);
   Resolver::res_t recs;
   bool first=true;
   bool firstNSEC3{true};
   bool soa_received {false};
-  while(retriever.getChunk(recs)) {
+  while(retriever.getChunk(recs, nullptr, axfr_timeout)) {
     if(first) {
       g_log<<Logger::Error<<"AXFR started for '"<<domain<<"'"<<endl;
       first=false;
