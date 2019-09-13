@@ -202,7 +202,18 @@ void WebServer::registerWebHandler(const string& url, HandlerFunction handler) {
 
 static void *WebServerConnectionThreadStart(const WebServer* webServer, std::shared_ptr<Socket> client) {
   setThreadName("pdns-r/webhndlr");
-  webServer->serveConnection(client);
+  try {
+    webServer->serveConnection(client);
+  }
+  catch(PDNSException &e) {
+    g_log<<Logger::Error<<"PDNSException while serving a connection in main webserver thread: "<<e.reason<<endl;
+  }
+  catch(std::exception &e) {
+    g_log<<Logger::Error<<"STL Exception while serving a connection in main webserver thread: "<<e.what()<<endl;
+  }
+  catch(...) {
+    g_log<<Logger::Error<<"Unknown exception while serving a connection in main webserver thread"<<endl;
+  }
   return nullptr;
 }
 
