@@ -23,6 +23,8 @@ Then the key used for the lookup can be selected via one of the following functi
 
 For example, to do a suffix-based lookup into a LMDB KVS database, the following rule can be used:
 
+.. code-block:: lua
+
   > kvs = newLMDBKVStore('/path/to/lmdb/database', 'database name')
   > addAction(AllRule(), KeyValueStoreLookupAction(kvs, KeyValueLookupKeySuffix(), 'kvs-suffix-result'))
 
@@ -34,6 +36,8 @@ this would result in the following lookups:
  * \\8powerdns\\3com\\0
 
 Then a match is found for the last key, and the corresponding value is stored into the 'kvs-suffix-result' tag. This tag can now be used in subsequent rules to take an action based on the result of the lookup.
+
+.. code-block:: lua
 
  > addAction(TagRule('kvs-suffix-result', 'this is the value obtained from the lookup'), SpoofAction('2001:db8::1'))
 
