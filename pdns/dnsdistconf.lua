@@ -49,7 +49,7 @@ addAction("com.", QPSPoolAction(100, "abuse"))
 -- declare a Lua action function, routing NAPTR queries
 -- to the abuse pool
 function luarule(dq)
-	if(dq.qtype==dnsdist.NAPTR)
+	if(dq.qtype==DNSQType.NAPTR)
 	then
 		return DNSAction.Pool, "abuse" -- send to abuse pool
 	else
@@ -126,18 +126,18 @@ end
 -- addAction(AllRule(), DelayAction(1000))
 
 -- truncate ANY queries over UDP only
--- addAction(AndRule{QTypeRule(dnsdist.ANY), TCPRule(false)}, TCAction())
+-- addAction(AndRule{QTypeRule(DNSQType.ANY), TCPRule(false)}, TCAction())
 
 -- truncate ANY queries over TCP only
--- addAction(AndRule({QTypeRule(dnsdist.ANY), TCPRule(true)}), TCAction())
+-- addAction(AndRule({QTypeRule(DNSQType.ANY), TCPRule(true)}), TCAction())
 -- can also be written as:
 -- addAction(AndRule({QTypeRule("ANY"), TCPRule(true)}), TCAction())
 
 -- return 'not implemented' for qtype != A over UDP
--- addAction(AndRule({NotRule(QTypeRule("A")), TCPRule(false)}), RCodeAction(dnsdist.NOTIMP))
+-- addAction(AndRule({NotRule(QTypeRule("A")), TCPRule(false)}), RCodeAction(DNSRCode.NOTIMP))
 
 -- return 'not implemented' for qtype == A OR received over UDP
--- addAction(OrRule({QTypeRule("A"), TCPRule(false)}), RCodeAction(dnsdist.NOTIMP))
+-- addAction(OrRule({QTypeRule("A"), TCPRule(false)}), RCodeAction(DNSRCode.NOTIMP))
 
 -- log all queries to a 'dndist.log' file, in text-mode (not binary) appending and unbuffered
 -- addAction(AllRule(), LogAction("dnsdist.log", false, true, false))
@@ -153,10 +153,10 @@ end
 -- addAction(OpcodeRule(DNSOpcode.Update), DropAction())
 
 -- refuse all queries not having exactly one question
--- addAction(NotRule(RecordsCountRule(DNSSection.Question, 1, 1)), RCodeAction(dnsdist.REFUSED))
+-- addAction(NotRule(RecordsCountRule(DNSSection.Question, 1, 1)), RCodeAction(DNSRCode.REFUSED))
 
 -- return 'refused' for domains matching the regex evil[0-9]{4,}.powerdns.com$
--- addAction(RegexRule("evil[0-9]{4,}\\.powerdns\\.com$"), RCodeAction(dnsdist.REFUSED))
+-- addAction(RegexRule("evil[0-9]{4,}\\.powerdns\\.com$"), RCodeAction(DNSRCode.REFUSED))
 
 -- spoof responses for A, AAAA and ANY for spoof.powerdns.com.
 -- A queries will get 192.0.2.1, AAAA 2001:DB8::1 and ANY both
