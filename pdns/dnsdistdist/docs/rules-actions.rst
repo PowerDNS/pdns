@@ -988,9 +988,9 @@ The following actions exist.
   :param KeyValueLookupKey lookupKey: The key to use for the lookup
   :param string destinationTag: The name of the tag to store the result into
 
-.. function:: LogAction([filename[, binary[, append[, buffered]]]])
+.. function:: LogAction(filename[, binary[, append[, buffered]]])
 
-  Log a line for each query, to the specified ``file`` if any, to the console (require verbose) otherwise.
+  Log a line for each query, to the specified ``file`` if any, to the console (require verbose) if the empty string is given as filename.
   When logging to a file, the ``binary`` optional parameter specifies whether we log in binary form (default) or in textual form.
   The ``append`` optional parameter specifies whether we open the file for appending or truncate each time (default).
   The ``buffered`` optional parameter specifies whether writes to the file are buffered (default) or not.
