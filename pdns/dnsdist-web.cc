@@ -860,15 +860,16 @@ static void connectionThread(int sock, ComboAddress remote)
         if(!acl.empty()) acl += ", ";
         acl+=s;
       }
-      string localaddresses;
+      string localaddressesStr;
+      std::set<std::string> localaddresses;
       for(const auto& front : g_frontends) {
-        if (front->tcp) {
-          continue;
+        localaddresses.insert(front->local.toStringWithPort());
+      }
+      for (const auto& addr : localaddresses) {
+        if (!localaddressesStr.empty()) {
+          localaddressesStr += ", ";
         }
-        if (!localaddresses.empty()) {
-          localaddresses += ", ";
-        }
-        localaddresses += front->local.toStringWithPort();
+        localaddressesStr += addr;
       }
 
       Json my_json = Json::object {
@@ -882,7 +883,7 @@ static void connectionThread(int sock, ComboAddress remote)
         { "cache-hit-response-rules", cacheHitResponseRules},
         { "self-answered-response-rules", selfAnsweredResponseRules},
         { "acl", acl},
-        { "local", localaddresses},
+        { "local", localaddressesStr},
         { "dohFrontends", dohs }
       };
       resp.headers["Content-Type"] = "application/json";
