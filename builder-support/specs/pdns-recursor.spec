@@ -35,6 +35,7 @@ BuildRequires: libatomic
 %if 0%{?rhel} >= 7
 BuildRequires: protobuf-compiler
 BuildRequires: protobuf-devel
+BuildRequires: fstrm-devel
 %endif
 
 BuildRequires: openssl-devel

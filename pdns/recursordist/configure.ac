@@ -119,7 +119,7 @@ AC_ARG_WITH([nod-cache-dir],
   [nodcachedir="$withval"]
 )
 
-PDNS_CHECK_DNSTAP([no])
+PDNS_CHECK_DNSTAP([auto])
 
 AC_MSG_CHECKING([whether we will enable compiler security checks])
 AC_ARG_ENABLE([hardening],
