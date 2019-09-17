@@ -28,14 +28,6 @@
 #include "pdns/logger.hh"
 #include "pdns/arguments.hh"
 
-/*
-  //! determine if ip is a supermaster for a domain
-  virtual bool superMasterBackend(const string &ip, const string &domain, const vector<DNSResourceRecord>&nsset, string *nameserver, string *account, DNSBackend **db)
-
-  //! called by PowerDNS to create a slave record for a superMaster
-  virtual bool createSlaveDomain(const string &ip, const string &domain, const string &nameserver, const string &account)
-
-*/
 
 bool LUABackend::superMasterBackend(const string &ip, const DNSName &domain, const vector<DNSResourceRecord>&nsset, string *nameserver, string *account, DNSBackend **db) {
 	

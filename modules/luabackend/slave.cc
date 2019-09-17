@@ -28,17 +28,6 @@
 #include "pdns/logger.hh"
 #include "pdns/arguments.hh"
 
-/* 
-    
-   virtual bool startTransaction(const string &qname, int id);
-   virtual bool commitTransaction();
-   virtual bool abortTransaction();
-   virtual bool feedRecord(const DNSResourceRecord &rr, DNSName &ordername, bool ordernameIsNSEC3);
-
-   virtual bool getDomainInfo(const string &domain, DomainInfo &di);
-   virtual void getUnfreshSlaveInfos(vector<DomainInfo>* domains);
-   virtual void setFresh(uint32_t id);
-*/
 
 bool LUABackend::startTransaction(const DNSName& qname, int id) {
 

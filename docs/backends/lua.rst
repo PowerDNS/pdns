@@ -137,9 +137,9 @@ Parameters
 
 Path to your lua script, 'powerdns-luabackend.lua' by default.
 
-.. _setting-lua-logging-query:
+.. _setting-lua-query-logging:
 
-``lua-logging-query``
+``lua-query-logging``
 ~~~~~~~~~~~~~~~~~~~~~
 
 Log queries. default is 'no'.
@@ -195,7 +195,7 @@ called from the beginning.
 Information for logging
 -----------------------
 
-If you have the parameter ``query-logging`` or ``lua-logging-query`` set
+If you have the parameter ``query-logging`` or ``lua-query-logging`` set
 to true/yes/on, then you will see what is happening in each function
 when PowerDNS calls them.
 

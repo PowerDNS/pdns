@@ -50,13 +50,15 @@ const luaL_Reg lualibs[] = {
     {LUA_STRLIBNAME, luaopen_string},
     {LUA_MATHLIBNAME, luaopen_math},
     {LUA_DBLIBNAME, luaopen_debug},
+#if LUA_VERSION_NUM >= 502
+    //{LUA_COLIBNAME, luaopen_coroutine},
+#endif
 #if LUA_VERSION_NUM == 502 || defined(LUA_COMPAT_BITLIB)
     {LUA_BITLIBNAME, luaopen_bit32},
 #endif
 #if LUA_VERSION_NUM == 503
     {LUA_UTF8LIBNAME, luaopen_utf8},
 #endif
-//    {LUA_COLIBNAME, luaopen_coroutine},
 #ifdef USE_LUAJIT
     {"bit",     luaopen_bit},
     {"jit",     luaopen_jit},
@@ -89,7 +91,7 @@ int l_arg_get (lua_State *lua) {
 
     string a = lua_tostring(lua, 1);
 
-    if (::arg().isEmpty(a))
+    if (lb->my_isEmpty(a))
 	lua_pushnil(lua);
     else
         lua_pushstring(lua, lb->my_getArg(a).c_str());
@@ -107,7 +109,7 @@ int l_arg_mustdo (lua_State *lua) {
 
     string a = lua_tostring(lua, 1);
 
-    if (::arg().isEmpty(a))
+    if (lb->my_isEmpty(a))
 	lua_pushnil(lua);
     else
         lua_pushboolean(lua, lb->my_mustDo(a));
@@ -134,7 +136,6 @@ int l_dnspacket (lua_State *lua) {
 }
 
 int l_logger (lua_State *lua) {
-//    assert(lua == lb->lua);
 
     int i = lua_gettop(lua);
     if (i < 1)

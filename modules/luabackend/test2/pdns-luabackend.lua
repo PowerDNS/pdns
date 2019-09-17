@@ -141,6 +141,7 @@ end
 
 
 function lookup(qtype, qname, domain_id)
+	qtype = tostring(qtype)
 	logger(log_debug, "(l_lookup)", "qtype:", qtype, " qname:", qname, " domain_id:", domain_id )
 
 	rrset = {}

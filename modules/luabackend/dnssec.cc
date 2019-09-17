@@ -312,6 +312,7 @@ bool LUABackend::removeDomainKey(const DNSName& name, unsigned int id) {
     return ok;
 }
 
+// TODO: tcely: Find out about the logging situation and remove cerr if possible.
 bool LUABackend::addDomainKey(const DNSName& name, const KeyData& key, int64_t& id) {
 // there is no logging function in pdnsutil when running this routine?
 

@@ -128,7 +128,7 @@ OPTIONS IN THE CONFIGURE FILE
 The default values is:
 
 lua-filename = powerdns-luabackend.lua
-lua-logging-query = no
+lua-query-logging = no
 
 You can also override all the default functionsnames for the luafunctions if you
 want. The prefix is lua-f_<functionname>=mynewfunction. For example:
@@ -173,7 +173,7 @@ depending on which function that was called from the beginning.
 INFORMATION FOR LOGGING
 =======================
 
-If you have the parameter 'query-logging' or 'lua-logging-query' set to 
+If you have the parameter 'query-logging' or 'lua-query-logging' set to 
 true/yes/on, then you will see what is happening in each function when PowerDNS 
 calls them. 
 

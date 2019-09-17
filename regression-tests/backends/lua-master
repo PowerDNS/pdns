@@ -1,0 +1,14 @@
+case $context in
+	lua-minimal)
+		$RUNWRAPPER $PDNS --daemon=no --local-port=$port --socket-dir=./ \
+                    --no-config --no-shuffle --launch=lua --cache-ttl=$cachettl \
+                    --lua-filename=../modules/luabackend/test/powerdns-luabackend.lua \
+                    --module-dir=./modules &
+		#skipreasons="nodnssec noent nodyndns nometa noaxfr noalias"
+		skipreasons="dyndns ldap-strict narrow noalias noaxfr nodnssec nodyndns noent nometa nsec3 oracle-slave-nsec presigned"
+		;;
+
+	*)
+		nocontext=yes
+		;;
+esac
