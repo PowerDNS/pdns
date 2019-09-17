@@ -996,9 +996,11 @@ jobs:
       - checkout-shallow
       - run:
           name: autoconf
+          working_directory: /opt/project/
           command: BUILDER_VERSION=0.0.0-git1 autoreconf -vfi
       - run:
           name: configure
+          working_directory: /opt/project/
           command: |
             CFLAGS="-O1 -Werror=vla -Wformat=2 -Werror=format-security" \
             CXXFLAGS="-O1 -Werror=vla -Wformat=2 -Werror=format-security -Wp,-D_GLIBCXX_ASSERTIONS" \
@@ -1012,12 +1014,15 @@ jobs:
               --prefix=/opt/pdns-auth
       - run:
           name: build
+          working_directory: /opt/project/
           command: /usr/local/bin/cov-build --dir cov-int make -j2 -k
       - run:
           name: Create Coverity tarball
+          working_directory: /opt/project/
           command: tar caf auth.tar.bz2 cov-int
       - run:
           name: Upload tarball to coverity
+          working_directory: /opt/project/
           command: |
             curl --form token=${COVERITY_TOKEN} \
             --form email="${COVERITY_EMAIL}" \
@@ -1067,7 +1072,7 @@ jobs:
       - run:
           name: autoconf
           command: BUILDER_VERSION=0.0.0-git1 autoreconf -vfi
-          working_directory: ~/project/pdns/dnsdistdist
+          working_directory: /opt/project/pdns/dnsdistdist
       - run:
           name: configure
           command: |
@@ -1085,15 +1090,15 @@ jobs:
             --with-libcap \
             --with-protobuf=yes \
             --with-re2
-          working_directory: ~/project/pdns/dnsdistdist
+          working_directory: /opt/project/pdns/dnsdistdist
       - run:
           name: build
           command: /usr/local/bin/cov-build --dir cov-int make -j2 -k
-          working_directory: ~/project/pdns/dnsdistdist
+          working_directory: /opt/project/pdns/dnsdistdist
       - run:
           name: Create Coverity tarball
           command: tar caf dnsdist.tar.bz2 cov-int
-          working_directory: ~/project/pdns/dnsdistdist
+          working_directory: /opt/project/pdns/dnsdistdist
       - run:
           name: Upload tarball to coverity
           command: |
@@ -1139,7 +1144,7 @@ jobs:
       - run:
           name: autoconf
           command: BUILDER_VERSION=0.0.0-git1 autoreconf -vfi
-          working_directory: ~/project/pdns/recursordist
+          working_directory: /opt/project/pdns/recursordist
       - run:
           name: configure
           command: |
@@ -1154,15 +1159,15 @@ jobs:
             --with-libcap \
             --with-protobuf=yes \
             --without-net-snmp
-          working_directory: ~/project/pdns/recursordist
+          working_directory: /opt/project/pdns/recursordist
       - run:
           name: build
           command: /usr/local/bin/cov-build --dir cov-int make -j2 -k
-          working_directory: ~/project/pdns/recursordist
+          working_directory: /opt/project/pdns/recursordist
       - run:
           name: Create Coverity tarball
           command: tar caf recursor.tar.bz2 cov-int
-          working_directory: ~/project/pdns/recursordist
+          working_directory: /opt/project/pdns/recursordist
       - run:
           name: Upload tarball to coverity
           command: |
