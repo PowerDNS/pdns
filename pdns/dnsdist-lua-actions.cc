@@ -1330,11 +1330,13 @@ void setupLuaActions()
     });
 
   g_lua.writeFunction("RemoteLogAction", [](std::shared_ptr<RemoteLoggerInterface> logger, boost::optional<std::function<void(DNSQuestion*, DNSDistProtoBufMessage*)> > alterFunc, boost::optional<std::unordered_map<std::string, std::string>> vars) {
-      // avoids potentially-evaluated-expression warning with clang.
-      RemoteLoggerInterface& rl = *logger.get();
-      if (typeid(rl) != typeid(RemoteLogger)) {
-        // We could let the user do what he wants, but wrapping PowerDNS Protobuf inside a FrameStream tagged as dnstap is logically wrong.
-        throw std::runtime_error(std::string("RemoteLogAction only takes RemoteLogger. For other types, please look at DnstapLogAction."));
+      if (logger) {
+        // avoids potentially-evaluated-expression warning with clang.
+        RemoteLoggerInterface& rl = *logger.get();
+        if (typeid(rl) != typeid(RemoteLogger)) {
+          // We could let the user do what he wants, but wrapping PowerDNS Protobuf inside a FrameStream tagged as dnstap is logically wrong.
+          throw std::runtime_error(std::string("RemoteLogAction only takes RemoteLogger. For other types, please look at DnstapLogAction."));
+        }
       }
 
       std::string serverID;
@@ -1356,11 +1358,13 @@ void setupLuaActions()
     });
 
   g_lua.writeFunction("RemoteLogResponseAction", [](std::shared_ptr<RemoteLoggerInterface> logger, boost::optional<std::function<void(DNSResponse*, DNSDistProtoBufMessage*)> > alterFunc, boost::optional<bool> includeCNAME, boost::optional<std::unordered_map<std::string, std::string>> vars) {
-      // avoids potentially-evaluated-expression warning with clang.
-      RemoteLoggerInterface& rl = *logger.get();
-      if (typeid(rl) != typeid(RemoteLogger)) {
-        // We could let the user do what he wants, but wrapping PowerDNS Protobuf inside a FrameStream tagged as dnstap is logically wrong.
-        throw std::runtime_error("RemoteLogResponseAction only takes RemoteLogger. For other types, please look at DnstapLogResponseAction.");
+      if (logger) {
+        // avoids potentially-evaluated-expression warning with clang.
+        RemoteLoggerInterface& rl = *logger.get();
+        if (typeid(rl) != typeid(RemoteLogger)) {
+          // We could let the user do what he wants, but wrapping PowerDNS Protobuf inside a FrameStream tagged as dnstap is logically wrong.
+          throw std::runtime_error("RemoteLogResponseAction only takes RemoteLogger. For other types, please look at DnstapLogResponseAction.");
+        }
       }
 
       std::string serverID;
