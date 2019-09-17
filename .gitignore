@@ -53,3 +53,4 @@ built_pkgs
 *-wal
 *-shm
 __pycache__
+.circleci/config.yml-local
