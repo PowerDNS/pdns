@@ -359,6 +359,7 @@ commands:
             make \
             pkg-config \
             ragel \
+            rsync \
             virtualenv
             if [ "${CIRCLE_PROJECT_USERNAME}" = "PowerDNS" -a "${CIRCLE_PROJECT_REPONAME}" = "pdns" -a "${CIRCLE_BRANCH}" = "master" ]; then
               apt-get update && apt-get -qq -y install \
