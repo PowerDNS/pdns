@@ -454,7 +454,7 @@ each record at a time and you can approve or reject any or all.
 The object has following methods available:
 
 - ``DNSName getQName()`` - name to update
-- ``DNSName getZonename()`` - zone name
+- ``DNSName getZoneName()`` - zone name
 - ``int getQType()`` - record type, it can be 255(ANY) for delete.
 - ``ComboAddress getLocal()`` - local socket address
 - ``ComboAddress getRemote()`` - remote socket address
