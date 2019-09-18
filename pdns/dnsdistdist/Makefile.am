@@ -49,6 +49,14 @@ if HAVE_LIBCRYPTO
 AM_CPPFLAGS += $(LIBCRYPTO_INCLUDES)
 endif
 
+if HAVE_CDB
+AM_CPPFLAGS += $(CDB_CFLAGS)
+endif
+
+if HAVE_LMDB
+AM_CPPFLAGS += $(LMDB_CFLAGS)
+endif
+
 if HAVE_DNS_OVER_HTTPS
 if HAVE_LIBSSL
 AM_CPPFLAGS += $(LIBSSL_CFLAGS)
@@ -81,6 +89,8 @@ EXTRA_DIST=COPYING \
 	   epollmplexer.cc \
 	   kqueuemplexer.cc \
 	   portsmplexer.cc \
+	   cdb.cc cdb.hh \
+	   ext/lmdb-safe/lmdb-safe.cc ext/lmdb-safe/lmdb-safe.hh \
 	   builder-support/gen-version
 
 bin_PROGRAMS = dnsdist
@@ -115,10 +125,15 @@ dnsdist_SOURCES = \
 	dnsdist-dynblocks.hh \
 	dnsdist-ecs.cc dnsdist-ecs.hh \
 	dnsdist-idstate.cc \
+	dnsdist-kvs.hh dnsdist-kvs.cc \
 	dnsdist-lua.hh dnsdist-lua.cc \
 	dnsdist-lua-actions.cc \
 	dnsdist-lua-bindings.cc \
+	dnsdist-lua-bindings-dnscrypt.cc \
 	dnsdist-lua-bindings-dnsquestion.cc \
+	dnsdist-lua-bindings-kvs.cc \
+	dnsdist-lua-bindings-packetcache.cc \
+	dnsdist-lua-bindings-protobuf.cc \
 	dnsdist-lua-inspection.cc \
 	dnsdist-lua-inspection-ffi.cc dnsdist-lua-inspection-ffi.hh \
 	dnsdist-lua-rules.cc \
@@ -135,7 +150,7 @@ dnsdist_SOURCES = \
 	dnsname.cc dnsname.hh \
 	dnsparser.hh dnsparser.cc \
 	dnswriter.cc dnswriter.hh \
-	doh.hh \
+	doh.hh doh.cc \
 	dolog.hh \
 	ednsoptions.cc ednsoptions.hh \
 	ednscookies.cc ednscookies.hh \
@@ -170,6 +185,53 @@ dnsdist_SOURCES = \
 	ext/incbin/incbin.h \
 	ext/libbpf/libbpf.h
 
+testrunner_SOURCES = \
+	base64.hh \
+	dns.hh \
+	test-base64_cc.cc \
+	test-delaypipe_hh.cc \
+	test-dnscrypt_cc.cc \
+	test-dnsdist_cc.cc \
+	test-dnsdistdynblocks_hh.cc \
+	test-dnsdistkvs_cc.cc \
+	test-dnsdistpacketcache_cc.cc \
+	test-dnsdistrings_cc.cc \
+	test-dnsdistrules_cc.cc \
+	test-dnsparser_cc.cc \
+	test-iputils_hh.cc \
+	test-mplexer.cc \
+	cachecleaner.hh \
+	circular_buffer.hh \
+	dnsdist.hh \
+	dnsdist-cache.cc dnsdist-cache.hh \
+	dnsdist-ecs.cc dnsdist-ecs.hh \
+	dnsdist-kvs.cc dnsdist-kvs.hh \
+	dnsdist-rings.hh \
+	dnsdist-xpf.cc dnsdist-xpf.hh \
+	dnscrypt.cc dnscrypt.hh \
+	dnslabeltext.cc \
+	dnsname.cc dnsname.hh \
+	dnsparser.hh dnsparser.cc \
+	dnswriter.cc dnswriter.hh \
+	dolog.hh \
+	ednsoptions.cc ednsoptions.hh \
+	ednscookies.cc ednscookies.hh \
+	ednssubnet.cc ednssubnet.hh \
+	gettime.cc gettime.hh \
+	iputils.cc iputils.hh \
+	misc.cc misc.hh \
+	namespaces.hh \
+	pdnsexception.hh \
+	pollmplexer.cc \
+	qtype.cc qtype.hh \
+	sholder.hh \
+	sodcrypto.cc \
+	sstuff.hh \
+	statnode.cc statnode.hh \
+	threadname.hh threadname.cc \
+	testrunner.cc \
+	xpf.cc xpf.hh
+
 dnsdist_LDFLAGS = \
 	$(AM_LDFLAGS) \
 	$(PROGRAM_LDFLAGS) \
@@ -188,6 +250,27 @@ dnsdist_LDADD = \
 	$(LIBCAP_LIBS) \
 	$(IPCRYPT_LIBS)
 
+testrunner_LDFLAGS = \
+	$(AM_LDFLAGS) \
+	$(PROGRAM_LDFLAGS) \
+	$(BOOST_UNIT_TEST_FRAMEWORK_LDFLAGS) \
+	-pthread
+
+testrunner_LDADD = \
+	$(BOOST_UNIT_TEST_FRAMEWORK_LIBS) \
+	$(LIBSODIUM_LIBS) \
+	$(FSTRM_LIBS) \
+	$(RT_LIBS) \
+	$(SANITIZER_FLAGS) \
+	$(LIBCAP_LIBS)
+
+if HAVE_CDB
+dnsdist_LDADD += $(CDB_LDFLAGS) $(CDB_LIBS)
+testrunner_LDADD += $(CDB_LDFLAGS) $(CDB_LIBS)
+dnsdist_SOURCES += cdb.cc cdb.hh
+testrunner_SOURCES += cdb.cc cdb.hh
+endif
+
 if HAVE_RE2
 dnsdist_LDADD += $(RE2_LIBS)
 endif
@@ -201,6 +284,13 @@ dnsdist_LDADD += $(LIBCRYPTO_LDFLAGS) $(LIBCRYPTO_LIBS)
 dnsdist_SOURCES += ipcipher.cc ipcipher.hh
 endif
 
+if HAVE_LMDB
+dnsdist_LDADD += $(LMDB_LDFLAGS) $(LMDB_LIBS)
+testrunner_LDADD += $(LMDB_LDFLAGS) $(LMDB_LIBS)
+dnsdist_SOURCES += ext/lmdb-safe/lmdb-safe.cc ext/lmdb-safe/lmdb-safe.hh
+testrunner_SOURCES += ext/lmdb-safe/lmdb-safe.cc ext/lmdb-safe/lmdb-safe.hh
+endif
+
 if HAVE_DNS_OVER_TLS
 if HAVE_GNUTLS
 dnsdist_LDADD += -lgnutls
@@ -208,7 +298,6 @@ endif
 endif
 
 if HAVE_DNS_OVER_HTTPS
-dnsdist_SOURCES += doh.cc
 
 if HAVE_LIBH2OEVLOOP
 dnsdist_LDADD += $(LIBH2OEVLOOP_LIBS)
@@ -239,51 +328,6 @@ dnsdist.$(OBJEXT): dnsmessage.pb.cc dnstap.pb.cc
 endif
 endif
 
-testrunner_SOURCES = \
-	base64.hh \
-	dns.hh \
-	test-base64_cc.cc \
-	test-delaypipe_hh.cc \
-	test-dnscrypt_cc.cc \
-	test-dnsdist_cc.cc \
-	test-dnsdistdynblocks_hh.cc \
-	test-dnsdistpacketcache_cc.cc \
-	test-dnsdistrings_cc.cc \
-	test-dnsdistrules_cc.cc \
-	test-dnsparser_cc.cc \
-	test-iputils_hh.cc \
-	test-mplexer.cc \
-	cachecleaner.hh \
-	circular_buffer.hh \
-	dnsdist.hh \
-	dnsdist-cache.cc dnsdist-cache.hh \
-	dnsdist-ecs.cc dnsdist-ecs.hh \
-	dnsdist-rings.hh \
-	dnsdist-xpf.cc dnsdist-xpf.hh \
-	dnscrypt.cc dnscrypt.hh \
-	dnslabeltext.cc \
-	dnsname.cc dnsname.hh \
-	dnsparser.hh dnsparser.cc \
-	dnswriter.cc dnswriter.hh \
-	dolog.hh \
-	ednsoptions.cc ednsoptions.hh \
-	ednscookies.cc ednscookies.hh \
-	ednssubnet.cc ednssubnet.hh \
-	gettime.cc gettime.hh \
-	iputils.cc iputils.hh \
-	misc.cc misc.hh \
-	namespaces.hh \
-	pdnsexception.hh \
-	pollmplexer.cc \
-	qtype.cc qtype.hh \
-	sholder.hh \
-	sodcrypto.cc \
-	sstuff.hh \
-	statnode.cc statnode.hh \
-	threadname.hh threadname.cc \
-	testrunner.cc \
-	xpf.cc xpf.hh
-
 if HAVE_FREEBSD
 dnsdist_SOURCES += kqueuemplexer.cc
 testrunner_SOURCES += kqueuemplexer.cc
@@ -302,20 +346,6 @@ testrunner_SOURCES += \
         devpollmplexer.cc \
         portsmplexer.cc
 endif
-
-testrunner_LDFLAGS = \
-	$(AM_LDFLAGS) \
-	$(PROGRAM_LDFLAGS) \
-	$(BOOST_UNIT_TEST_FRAMEWORK_LDFLAGS) \
-	-pthread
-
-testrunner_LDADD = \
-	$(BOOST_UNIT_TEST_FRAMEWORK_LIBS) \
-	$(LIBSODIUM_LIBS) \
-	$(FSTRM_LIBS) \
-	$(RT_LIBS) \
-	$(SANITIZER_FLAGS) \
-	$(LIBCAP_LIBS)
 
 MANPAGES=dnsdist.1
 

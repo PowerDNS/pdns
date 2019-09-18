@@ -567,7 +567,7 @@ void setupLuaInspection()
 
       ret << "Frontends:" << endl;
       fmt = boost::format("%-3d %-20.20s %-20d %-20d %-25d %-20d %-20d %-20d %-20f %-20f");
-      ret << (fmt % "#" % "Address" % "Connnections" % "Died reading query" % "Died sending response" % "Gave up" % "Client timeouts" % "Downstream timeouts" % "Avg queries/conn" % "Avg duration") << endl;
+      ret << (fmt % "#" % "Address" % "Connections" % "Died reading query" % "Died sending response" % "Gave up" % "Client timeouts" % "Downstream timeouts" % "Avg queries/conn" % "Avg duration") << endl;
 
       size_t counter = 0;
       for(const auto& f : g_frontends) {
@@ -745,5 +745,6 @@ void setupLuaInspection()
   g_lua.registerFunction<void(std::shared_ptr<DynBlockRulesGroup>::*)()>("apply", [](std::shared_ptr<DynBlockRulesGroup>& group) {
     group->apply();
   });
+  g_lua.registerFunction("setQuiet", &DynBlockRulesGroup::setQuiet);
   g_lua.registerFunction("toString", &DynBlockRulesGroup::toString);
 }

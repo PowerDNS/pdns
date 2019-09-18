@@ -13,18 +13,32 @@ commands:
       - run:
           name: Clone the repo
           command: |
+            mkdir -p /opt/project
             if [ -n "$CIRCLE_PR_NUMBER" ]
             then
               echo === Checking out PR "$CIRCLE_PR_NUMBER" from "$CIRCLE_REPOSITORY_URL"
-              git clone --depth 1 $CIRCLE_REPOSITORY_URL ~/project
-              cd ~/project
+              git clone --depth 1 $CIRCLE_REPOSITORY_URL /opt/project
+              cd /opt/project
               git fetch --depth 1 origin +refs/pull/${CIRCLE_PR_NUMBER}/merge
               git checkout -qf FETCH_HEAD
             else
               echo === Checking out branch "${CIRCLE_BRANCH}" from "$CIRCLE_REPOSITORY_URL"
-              git clone --depth 1 --branch $CIRCLE_BRANCH $CIRCLE_REPOSITORY_URL ~/project
+              git clone --depth 1 --branch $CIRCLE_BRANCH $CIRCLE_REPOSITORY_URL /opt/project
             fi
+            cd /opt/project
             git show -s
+
+  get-workspace:
+    description: "Attach workspace to /opt and symlink checkout into home"
+    steps:
+      - run:
+          name: ensure ca-certificates is installed
+          command: apt-get update && apt-get -qq -y install ca-certificates
+      - attach_workspace:
+          at: /opt
+      - run:
+          name: symlink checkout into home
+          command: rmdir ~/project && ln -s /opt/project ~/project
 
   install-coverity-tools:
     description: Install the coverity tools to /usr/local
@@ -45,11 +59,7 @@ commands:
   auth-regress-setup:
     description: Prepare the environment for auth regression tests
     steps:
-      - run:
-          name: ensure ca-certificates is installed
-          command: apt-get update && apt-get -qq -y install ca-certificates
-      - attach_workspace:
-          at: /opt
+      - get-workspace
       - install-auth-deps
       - run:
           name: Install test dependencies
@@ -71,7 +81,6 @@ commands:
               tar xfz jdnssec-tools-0.14.tar.gz --strip-components=1 -C /
               rm jdnssec-tools-0.14.tar.gz
             fi
-      - checkout-shallow
       - run:
           name: Allow missing tools in verify-dnssec-zone
           command: touch regression-tests/tests/verify-dnssec-zone/allow-missing
@@ -183,14 +192,16 @@ commands:
               libluajit-5.1 \
               libboost-all-dev \
               libcap2 \
+              libcdb1 \
               libcurl4-openssl-dev \
               libfstrm0 \
               libh2o-evloop0.13 \
+              liblmdb0 \
+              libprotobuf17 \
               libre2-5 \
               libssl-dev \
               libsystemd0 \
               libsodium23 \
-              libprotobuf17 \
               protobuf-compiler \
               virtualenv
 
@@ -201,6 +212,7 @@ commands:
       - run:
           command: |
             apt-get install -qq -y \
+              git \
               libboost-all-dev \
               libsystemd0 \
               libyaml-cpp0.5v5 \
@@ -231,12 +243,14 @@ commands:
               libsodium-dev \
               libsqlite3-dev \
               libssl-dev \
+              libsystemd-dev \
               libtool \
               libyaml-cpp-dev \
               make \
               pkg-config \
               ragel \
               sqlite3 \
+              systemd \
               unixodbc-dev \
               virtualenv \
               wget
@@ -452,12 +466,23 @@ commands:
             fi
 
 jobs:
+  checkout:
+    docker:
+      - image: debian:buster
+
+    steps:
+      - checkout-shallow
+      - persist_to_workspace:
+          root: /opt
+          paths:
+            - project
+
   build-auth:
     docker:
       - image: debian:stretch
 
     steps:
-      - checkout-shallow
+      - get-workspace
       - install-auth-dev-deps
       - restore-cache-ccache:
           product: auth
@@ -472,6 +497,7 @@ jobs:
             ./configure \
               --disable-lua-records \
               --with-modules='bind lmdb ldap gmysql gsqlite3 gpgsql godbc mydns random tinydns' \
+              --enable-systemd \
               --enable-tools \
               --with-lmdb=/usr \
               --with-libsodium \
@@ -803,8 +829,9 @@ jobs:
             pkg-config \
             protobuf-compiler \
             ragel \
+            systemd \
             virtualenv
-      - checkout-shallow
+      - get-workspace
       - run:
           name: autoconf
           command: BUILDER_VERSION=0.0.0-git1 autoreconf -vfi
@@ -817,6 +844,7 @@ jobs:
             ./configure \
             --enable-unit-tests \
             --enable-nod \
+            --enable-systemd \
             --prefix=/opt/pdns-recursor \
             --with-libsodium \
             --with-lua=luajit \
@@ -855,9 +883,7 @@ jobs:
           command: |
             touch /etc/authbind/byport/53
             chmod 755 /etc/authbind/byport/53
-      - checkout-shallow
-      - attach_workspace:
-          at: /opt
+      - get-workspace
       - run:
           name: Run regression tests
           workdir: ~/project
@@ -873,9 +899,7 @@ jobs:
       - add-auth-repo
       - run: apt-get --no-install-recommends install -qq -y pdns-tools moreutils time
       - install-recursor-deps
-      - checkout-shallow
-      - attach_workspace:
-          at: /opt
+      - get-workspace
       - run:
           name: Get the majestic million list
           workdir: ~/project/regression-tests
@@ -901,9 +925,7 @@ jobs:
       - add-auth-repo
       - run: apt-get --no-install-recommends install -qq -y virtualenv pdns-tools
       - install-recursor-deps
-      - checkout-shallow
-      - attach_workspace:
-          at: /opt
+      - get-workspace
       - run:
           name: Run API tests
           workdir: ~/project/regression-tests.api
@@ -915,7 +937,7 @@ jobs:
     docker:
       - image: debian:stretch
     steps:
-      - checkout-shallow
+      - get-workspace
       - install-doc-deps
       - build-auth-docs
 
@@ -923,7 +945,7 @@ jobs:
     docker:
       - image: debian:stretch
     steps:
-      - checkout-shallow
+      - get-workspace
       - install-doc-deps
       - build-auth-docs
       - add-docs-upload-ssh
@@ -933,7 +955,7 @@ jobs:
     docker:
       - image: debian:stretch
     steps:
-      - checkout-shallow
+      - get-workspace
       - install-doc-deps
       - build-recursor-docs
 
@@ -941,7 +963,7 @@ jobs:
     docker:
       - image: debian:stretch
     steps:
-      - checkout-shallow
+      - get-workspace
       - install-doc-deps
       - build-recursor-docs
       - add-docs-upload-ssh
@@ -951,7 +973,7 @@ jobs:
     docker:
       - image: debian:stretch
     steps:
-      - checkout-shallow
+      - get-workspace
       - install-doc-deps
       - build-dnsdist-docs
 
@@ -959,7 +981,7 @@ jobs:
     docker:
       - image: debian:stretch
     steps:
-      - checkout-shallow
+      - get-workspace
       - install-doc-deps
       - build-dnsdist-docs
       - add-docs-upload-ssh
@@ -974,14 +996,17 @@ jobs:
       - checkout-shallow
       - run:
           name: autoconf
+          working_directory: /opt/project/
           command: BUILDER_VERSION=0.0.0-git1 autoreconf -vfi
       - run:
           name: configure
+          working_directory: /opt/project/
           command: |
             CFLAGS="-O1 -Werror=vla -Wformat=2 -Werror=format-security" \
             CXXFLAGS="-O1 -Werror=vla -Wformat=2 -Werror=format-security -Wp,-D_GLIBCXX_ASSERTIONS" \
             ./configure \
               --disable-lua-records \
+              --disable-systemd \
               --with-modules='bind lmdb ldap gmysql gsqlite3 gpgsql godbc mydns random tinydns' \
               --enable-tools \
               --with-lmdb=/usr \
@@ -989,12 +1014,15 @@ jobs:
               --prefix=/opt/pdns-auth
       - run:
           name: build
+          working_directory: /opt/project/
           command: /usr/local/bin/cov-build --dir cov-int make -j2 -k
       - run:
           name: Create Coverity tarball
+          working_directory: /opt/project/
           command: tar caf auth.tar.bz2 cov-int
       - run:
           name: Upload tarball to coverity
+          working_directory: /opt/project/
           command: |
             curl --form token=${COVERITY_TOKEN} \
             --form email="${COVERITY_EMAIL}" \
@@ -1022,8 +1050,10 @@ jobs:
             git \
             libboost-all-dev \
             libcap-dev \
+            libcdb-dev \
             libedit-dev \
             libfstrm-dev \
+            liblmdb-dev \
             libluajit-5.1-dev \
             libprotobuf-dev \
             libre2-dev \
@@ -1042,7 +1072,7 @@ jobs:
       - run:
           name: autoconf
           command: BUILDER_VERSION=0.0.0-git1 autoreconf -vfi
-          working_directory: ~/project/pdns/dnsdistdist
+          working_directory: /opt/project/pdns/dnsdistdist
       - run:
           name: configure
           command: |
@@ -1060,15 +1090,15 @@ jobs:
             --with-libcap \
             --with-protobuf=yes \
             --with-re2
-          working_directory: ~/project/pdns/dnsdistdist
+          working_directory: /opt/project/pdns/dnsdistdist
       - run:
           name: build
           command: /usr/local/bin/cov-build --dir cov-int make -j2 -k
-          working_directory: ~/project/pdns/dnsdistdist
+          working_directory: /opt/project/pdns/dnsdistdist
       - run:
           name: Create Coverity tarball
           command: tar caf dnsdist.tar.bz2 cov-int
-          working_directory: ~/project/pdns/dnsdistdist
+          working_directory: /opt/project/pdns/dnsdistdist
       - run:
           name: Upload tarball to coverity
           command: |
@@ -1114,7 +1144,7 @@ jobs:
       - run:
           name: autoconf
           command: BUILDER_VERSION=0.0.0-git1 autoreconf -vfi
-          working_directory: ~/project/pdns/recursordist
+          working_directory: /opt/project/pdns/recursordist
       - run:
           name: configure
           command: |
@@ -1129,15 +1159,15 @@ jobs:
             --with-libcap \
             --with-protobuf=yes \
             --without-net-snmp
-          working_directory: ~/project/pdns/recursordist
+          working_directory: /opt/project/pdns/recursordist
       - run:
           name: build
           command: /usr/local/bin/cov-build --dir cov-int make -j2 -k
-          working_directory: ~/project/pdns/recursordist
+          working_directory: /opt/project/pdns/recursordist
       - run:
           name: Create Coverity tarball
           command: tar caf recursor.tar.bz2 cov-int
-          working_directory: ~/project/pdns/recursordist
+          working_directory: /opt/project/pdns/recursordist
       - run:
           name: Upload tarball to coverity
           command: |
@@ -1166,9 +1196,11 @@ jobs:
             git \
             libboost-all-dev \
             libcap-dev \
+            libcdb-dev \
             libedit-dev \
             libfstrm-dev \
             libh2o-evloop-dev \
+            liblmdb-dev \
             libluajit-5.1-dev \
             libprotobuf-dev \
             libre2-dev \
@@ -1181,8 +1213,9 @@ jobs:
             pkg-config \
             protobuf-compiler \
             ragel \
+            systemd \
             virtualenv
-      - checkout-shallow
+      - get-workspace
       - run:
           name: autoconf
           command: BUILDER_VERSION=0.0.0-git1 autoreconf -vfi
@@ -1198,6 +1231,7 @@ jobs:
             --enable-dnscrypt \
             --enable-dns-over-tls \
             --enable-dns-over-https \
+            --enable-systemd \
             --prefix=/opt/dnsdist \
             --with-libsodium \
             --with-lua=luajit \
@@ -1233,15 +1267,13 @@ jobs:
           UBSAN_OPTIONS: 'print_stacktrace=1:halt_on_error=1'
     steps:
       - install-dnsdist-deps
-      - checkout-shallow
+      - get-workspace
       - run:
           name: setup snmp
           command: |
             apt-get -qq --no-install-recommends install snmpd
             sed "s/agentxperms 0700 0755 dnsdist/agentxperms 0700 0755/g" regression-tests.dnsdist/snmpd.conf > /etc/snmp/snmpd.conf
             /etc/init.d/snmpd start
-      - attach_workspace:
-          at: /opt
       - run:
           name: Run dnsdist tests
           workdir: ~/project/regression-tests.dnsdist
@@ -1256,9 +1288,7 @@ jobs:
           UBSAN_OPTIONS: 'print_stacktrace=1:halt_on_error=1'
     steps:
       - install-ixfrdist-deps
-      - checkout-shallow
-      - attach_workspace:
-          at: /opt
+      - get-workspace
       - run:
           name: Run ixfrdist tests
           workdir: ~/project/regression-tests.ixfrdist
@@ -1285,7 +1315,10 @@ workflows:
 
   build-and-test-all:
     jobs:
-      - build-auth
+      - checkout
+      - build-auth:
+          requires:
+            - checkout
       - test-auth-api:
           requires:
             - build-auth
@@ -1322,7 +1355,9 @@ workflows:
       - test-auth-regress-tinydns:
           requires:
             - build-auth
-      - build-recursor
+      - build-recursor:
+          requires:
+            - checkout
       - test-recursor-regression:
           requires:
             - build-recursor
@@ -1332,7 +1367,9 @@ workflows:
       - test-recursor-api:
           requires:
             - build-recursor
-      - build-dnsdist
+      - build-dnsdist:
+          requires:
+            - checkout
       - test-dnsdist-regression:
           requires:
             - build-dnsdist
@@ -1342,18 +1379,25 @@ workflows:
 
   build-docs:
     jobs:
+      - checkout
       - build-auth-docs:
           filters:
             branches:
               ignore: master
+          requires:
+            - checkout
       - build-recursor-docs:
           filters:
             branches:
               ignore: master
+          requires:
+            - checkout
       - build-dnsdist-docs:
           filters:
             branches:
               ignore: master
+          requires:
+            - checkout
 
       # These actually deploy
       - deploy-auth-docs:
@@ -1361,13 +1405,19 @@ workflows:
           filters:
             branches:
               only: master
+          requires:
+            - checkout
       - deploy-recursor-docs:
           context: docs
           filters:
             branches:
               only: master
+          requires:
+            - checkout
       - deploy-dnsdist-docs:
           context: docs
           filters:
             branches:
               only: master
+          requires:
+            - checkout

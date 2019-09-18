@@ -373,7 +373,11 @@ void Bind2Backend::getAllDomains(vector<DomainInfo> *domains, bool include_disab
     // do not corrupt di if domain supplied by another backend.
     if (di.backend != this)
       continue;
-    this->getSOA(di.zone, soadata);
+    try {
+      this->getSOA(di.zone, soadata);
+    } catch(...) {
+      continue;
+    }
     di.serial=soadata.serial;
   }
 }
@@ -443,6 +447,13 @@ void Bind2Backend::alsoNotifies(const DNSName& domain, set<string> *ips)
   // combine global list with local list
   for(set<string>::iterator i = this->alsoNotify.begin(); i != this->alsoNotify.end(); i++) {
     (*ips).insert(*i);
+  }
+  // check metadata too if available
+  vector<string> meta;
+  if (getDomainMetadata(domain, "ALSO-NOTIFY", meta)) {
+    for(const auto& str: meta) {
+      (*ips).insert(str);
+    }
   }
   ReadLock rl(&s_state_lock);  
   for(state_t::const_iterator i = s_state.begin(); i != s_state.end() ; ++i) {

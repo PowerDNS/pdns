@@ -460,43 +460,35 @@ bool ArgvMap::file(const char *fname, bool lax, bool included)
 
 void ArgvMap::gatherIncludes(std::vector<std::string> &extraConfigs) {
   extraConfigs.clear();
-  if (params["include-dir"].empty()) return; // nothing to do
-    struct stat st;
-    DIR *dir;
-    struct dirent *ent;
+  if (params["include-dir"].empty())
+    return; // nothing to do
 
-    // stat
-    if (stat(params["include-dir"].c_str(), &st)) {
-       g_log << Logger::Error << params["include-dir"] << " does not exist!" << std::endl;
-       throw ArgException(params["include-dir"] + " does not exist!");
-    }
+  DIR *dir;
+  if (!(dir = opendir(params["include-dir"].c_str()))) {
+    int err = errno;
+    string msg = params["include-dir"] + " is not accessible: " + strerror(err);
+    g_log << Logger::Error << msg << std::endl;
+    throw ArgException(msg);
+  }
 
-    // wonder if it's accessible directory
-    if (!S_ISDIR(st.st_mode)) {
-       g_log << Logger::Error << params["include-dir"] << " is not a directory" << std::endl;
-       throw ArgException(params["include-dir"] + " is not a directory");
-    }
-
-    if (!(dir = opendir(params["include-dir"].c_str()))) {
-       g_log << Logger::Error << params["include-dir"] << " is not accessible" << std::endl;
-       throw ArgException(params["include-dir"] + " is not accessible");
-    }
-
-    while((ent = readdir(dir)) != NULL) {
-      if (ent->d_name[0] == '.') continue; // skip any dots
-      if (boost::ends_with(ent->d_name, ".conf")) {
-        // build name
-        std::ostringstream namebuf;
-        namebuf << params["include-dir"].c_str() << "/" << ent->d_name; // FIXME: Use some path separator
-        // ensure it's readable file
-        if (stat(namebuf.str().c_str(), &st) || !S_ISREG(st.st_mode)) {
-          g_log << Logger::Error << namebuf.str() << " is not a file" << std::endl;
-          closedir(dir);
-          throw ArgException(namebuf.str() + " does not exist!");
-        }
-        extraConfigs.push_back(namebuf.str());
+  struct dirent *ent;
+  while ((ent = readdir(dir)) != NULL) {
+    if (ent->d_name[0] == '.')
+      continue; // skip any dots
+    if (boost::ends_with(ent->d_name, ".conf")) {
+      // build name
+      string name = params["include-dir"] + "/" + ent->d_name; // FIXME: Use some path separator
+      // ensure it's readable file
+      struct stat st;
+      if (stat(name.c_str(), &st) || !S_ISREG(st.st_mode)) {
+        string msg = name + " is not a regular file";
+        g_log << Logger::Error << msg << std::endl;
+        closedir(dir);
+        throw ArgException(msg);
       }
+      extraConfigs.push_back(name);
     }
-    std::sort(extraConfigs.begin(), extraConfigs.end(), CIStringComparePOSIX()); 
-    closedir(dir);
+  }
+  std::sort(extraConfigs.begin(), extraConfigs.end(), CIStringComparePOSIX());
+  closedir(dir);
 }

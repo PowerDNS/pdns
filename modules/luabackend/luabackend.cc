@@ -37,7 +37,50 @@ public:
   {
   
     declare(suffix,"filename","Filename of the script for lua backend","powerdns-luabackend.lua");
-    declare(suffix,"logging-query","Logging of the LUA Backend","no");
+    declare(suffix,"query-logging","Logging of the LUA Backend","no");
+
+    // Allow overriding lua function names.
+    declare(suffix,"f_exec_error","lua function name","");
+    declare(suffix,"f_rediscover","lua function name","");
+
+    // minimal
+    declare(suffix,"f_list","lua function name","");
+    declare(suffix,"f_lookup","lua function name","");
+    declare(suffix,"f_get","lua function name","");
+    declare(suffix,"f_getsoa","lua function name","");
+
+    // master
+    declare(suffix,"f_getupdatedmasters","lua function name","");
+    declare(suffix,"f_setnotified","lua function name","");
+
+    // slave
+    declare(suffix,"f_getdomaininfo","lua function name","");
+    declare(suffix,"f_ismaster","lua function name","");
+    declare(suffix,"f_getunfreshslaveinfos","lua function name","");
+    declare(suffix,"f_setfresh","lua function name","");
+    declare(suffix,"f_starttransaction","lua function name","");
+    declare(suffix,"f_committransaction","lua function name","");
+    declare(suffix,"f_aborttransaction","lua function name","");
+    declare(suffix,"f_feedrecord","lua function name","");
+
+    // supermaster
+    declare(suffix,"f_supermasterbackend","lua function name","");
+    declare(suffix,"f_createslavedomain","lua function name","");
+
+    // dnssec
+    declare(suffix,"f_alsonotifies","lua function name","");
+    declare(suffix,"f_getdomainmetadata","lua function name","");
+    declare(suffix,"f_setdomainmetadata","lua function name","");
+    declare(suffix,"f_getdomainkeys","lua function name","");
+    declare(suffix,"f_removedomainkey","lua function name","");
+    declare(suffix,"f_activatedomainkey","lua function name","");
+    declare(suffix,"f_deactivatedomainkey","lua function name","");
+    declare(suffix,"f_updatedomainkey","lua function name","");
+    declare(suffix,"f_adddomainkey","lua function name","");
+    declare(suffix,"f_gettsigkey","lua function name","");
+    declare(suffix,"f_getbeforeandafternamesabsolute","lua function name","");
+    declare(suffix,"f_updatednssecorderandauthabsolute","lua function name","");
+    declare(suffix,"f_updatednssecorderandauth","lua function name","");
 
   }
   

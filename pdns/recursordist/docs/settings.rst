@@ -818,7 +818,7 @@ Path to a lua file to manipulate the Recursor's answers. See :doc:`lua-scripting
 
 ``lua-maintenance-interval``
 ----------------------------
-.. versionadded:: 4.1.4
+.. versionadded:: 4.2.0
 
 -  Integer
 -  Default: 1
@@ -1427,7 +1427,7 @@ Use 0 to disable.
 .. versionadded:: 4.2.0
 
 -  String
--  Default: "cache-bytes, packetcache-bytes, ecs-v4-response-bits-*, ecs-v6-response-bits-*"
+-  Default: "cache-bytes, packetcache-bytes, special-memory-usage, ecs-v4-response-bits-*, ecs-v6-response-bits-*"
 
 A list of comma-separated statistic names, that are disabled when retrieving the complete list of statistics via the API for performance reasons.
 These statistics can still be retrieved individually by specifically asking for it.
@@ -1439,7 +1439,7 @@ These statistics can still be retrieved individually by specifically asking for 
 .. versionadded:: 4.2.0
 
 -  String
--  Default: "cache-bytes, packetcache-bytes, ecs-v4-response-bits-*, ecs-v6-response-bits-*"
+-  Default: "cache-bytes, packetcache-bytes, special-memory-usage, ecs-v4-response-bits-*, ecs-v6-response-bits-*"
 
 A list of comma-separated statistic names, that are prevented from being exported via carbon for performance reasons.
 
@@ -1450,7 +1450,7 @@ A list of comma-separated statistic names, that are prevented from being exporte
 .. versionadded:: 4.2.0
 
 -  String
--  Default: "cache-bytes, packetcache-bytes, ecs-v4-response-bits-*, ecs-v6-response-bits-*"
+-  Default: "cache-bytes, packetcache-bytes, special-memory-usage, ecs-v4-response-bits-*, ecs-v6-response-bits-*"
 
 A list of comma-separated statistic names, that are disabled when retrieving the complete list of statistics via `rec_control get-all`, for performance reasons.
 These statistics can still be retrieved individually.
@@ -1472,7 +1472,7 @@ Can be read out using ``rec_control top-remotes``.
 .. versionadded:: 4.2.0
 
 -  String
--  Default: "cache-bytes, packetcache-bytes, ecs-v4-response-bits-*, ecs-v6-response-bits-*"
+-  Default: "cache-bytes, packetcache-bytes, special-memory-usage, ecs-v4-response-bits-*, ecs-v6-response-bits-*"
 
 A list of comma-separated statistic names, that are prevented from being exported via SNMP, for performance reasons.
 

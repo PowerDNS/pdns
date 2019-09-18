@@ -181,21 +181,21 @@ public:
       float diff= makeFloat(d_last - now);
 
       d_last=now;
-      double factor=exp(diff)/2.0; // might be '0.5', or 0.0001
-      d_val=(float)((1-factor)*val+ (float)factor*d_val);
+      float factor=expf(diff)/2.0f; // might be '0.5', or 0.0001
+      d_val=(1-factor)*val + factor*d_val;
     }
   }
 
-  double get(const struct timeval* tv)
+  float get(const struct timeval* tv)
   {
     struct timeval now=*tv;
     float diff=makeFloat(d_lastget-now);
     d_lastget=now;
-    float factor=exp(diff/60.0f); // is 1.0 or less
+    float factor=expf(diff/60.0f); // is 1.0 or less
     return d_val*=factor;
   }
 
-  double peek(void) const
+  float peek(void) const
   {
     return d_val;
   }
@@ -1052,6 +1052,7 @@ void broadcastFunction(const pipefunc_t& func);
 void distributeAsyncFunction(const std::string& question, const pipefunc_t& func);
 
 int directResolve(const DNSName& qname, const QType& qtype, int qclass, vector<DNSRecord>& ret);
+int followCNAMERecords(std::vector<DNSRecord>& ret, const QType& qtype);
 
 template<class T> T broadcastAccFunction(const boost::function<T*()>& func);
 

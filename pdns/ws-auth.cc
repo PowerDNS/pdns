@@ -298,7 +298,7 @@ void AuthWebServer::indexfunction(HttpRequest* req, HttpResponse* resp)
     printtable(ret,req->getvars["ring"],S.getRingTitle(req->getvars["ring"]),100);
 
   ret<<"</div></div>"<<endl;
-  ret<<"<footer class=\"row\">"<<fullVersionString()<<"<br>&copy; 2013 - 2019 <a href=\"http://www.powerdns.com/\">PowerDNS.COM BV</a>.</footer>"<<endl;
+  ret<<"<footer class=\"row\">"<<fullVersionString()<<"<br>&copy; 2013 - 2019 <a href=\"https://www.powerdns.com/\">PowerDNS.COM BV</a>.</footer>"<<endl;
   ret<<"</body></html>"<<endl;
 
   resp->body = ret.str();
@@ -825,6 +825,7 @@ static bool isValidMetadataKind(const string& kind, bool readonly) {
     "PRESIGNED",
     "PUBLISH-CDNSKEY",
     "PUBLISH-CDS",
+    "SLAVE-RENOTIFY",
     "SOA-EDIT",
     "TSIG-ALLOW-AXFR",
     "TSIG-ALLOW-DNSUPDATE"

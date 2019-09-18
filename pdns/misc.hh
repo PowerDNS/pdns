@@ -111,7 +111,9 @@ stringtok (Container &container, string const &in,
 
 template<typename T> bool rfc1982LessThan(T a, T b)
 {
-  return ((signed)(a - b)) < 0;
+  static_assert(std::is_unsigned<T>::value, "rfc1982LessThan only works for unsigned types");
+  typedef typename std::make_signed<T>::type signed_t;
+  return static_cast<signed_t>(a - b) < 0;
 }
 
 // fills container with ranges, so {posbegin,posend}

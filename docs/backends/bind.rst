@@ -92,7 +92,7 @@ SQLite3 journal mode to set. The default is WAL. Set to empty to leave the journ
 ``bind-hybrid``
 ~~~~~~~~~~~~~~~
 
-Store DNSSEC keys and metadata storage in an other backend. See the
+Store DNSSEC keys and metadata storage in another backend. See the
 :ref:`dnssec-modes-hybrid-bind` documentation.
 
 .. _setting-bind-ignore-broken-records:

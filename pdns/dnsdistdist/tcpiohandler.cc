@@ -409,6 +409,10 @@ public:
     SSL_CTX_set_tlsext_ticket_key_cb(d_tlsCtx.get(), &OpenSSLTLSIOCtx::ticketKeyCb);
     SSL_CTX_set_ex_data(d_tlsCtx.get(), s_ticketsKeyIndex, this);
     SSL_CTX_set_options(d_tlsCtx.get(), sslOptions);
+    if (!libssl_set_min_tls_version(d_tlsCtx, fe.d_minTLSVersion)) {
+      throw std::runtime_error("Failed to set the minimum version to '" + libssl_tls_version_to_string(fe.d_minTLSVersion) + "' for ths TLS context on " + fe.d_addr.toStringWithPort());
+    }
+
 #if defined(SSL_CTX_set_ecdh_auto)
     SSL_CTX_set_ecdh_auto(d_tlsCtx.get(), 1);
 #endif
@@ -422,6 +426,7 @@ public:
       SSL_CTX_sess_set_cache_size(d_tlsCtx.get(), fe.d_maxStoredSessions);
     }
 
+    std::vector<int> keyTypes;
     for (const auto& pair : fe.d_certKeyPairs) {
       if (SSL_CTX_use_certificate_chain_file(d_tlsCtx.get(), pair.first.c_str()) != 1) {
         ERR_print_errors_fp(stderr);
@@ -431,6 +436,29 @@ public:
         ERR_print_errors_fp(stderr);
         throw std::runtime_error("Error loading key from " + pair.second + " for the TLS context on " + fe.d_addr.toStringWithPort());
       }
+      if (SSL_CTX_check_private_key(d_tlsCtx.get()) != 1) {
+        ERR_print_errors_fp(stderr);
+        throw std::runtime_error("Key from '" + pair.second + "' does not match the certificate from '" + pair.first + "' for the TLS context on " + fe.d_addr.toStringWithPort());
+      }
+
+      /* store the type of the new key, we might need it later to select the right OCSP stapling response */
+      auto keyType = libssl_get_last_key_type(d_tlsCtx);
+      if (keyType < 0) {
+        throw std::runtime_error("Key from '" + pair.second + "' has an unknown type");
+      }
+      keyTypes.push_back(keyType);
+    }
+
+    if (!fe.d_ocspFiles.empty()) {
+      try {
+        d_ocspResponses = libssl_load_ocsp_responses(fe.d_ocspFiles, keyTypes);
+      }
+      catch(const std::exception& e) {
+        throw std::runtime_error("Error loading responses for the TLS context on " + fe.d_addr.toStringWithPort() + ": " + e.what());
+      }
+
+      SSL_CTX_set_tlsext_status_cb(d_tlsCtx.get(), &OpenSSLTLSIOCtx::ocspStaplingCb);
+      SSL_CTX_set_tlsext_status_arg(d_tlsCtx.get(), &d_ocspResponses);
     }
 
     if (!fe.d_ciphers.empty()) {
@@ -512,6 +540,15 @@ public:
     return 1;
   }
 
+  static int ocspStaplingCb(SSL* ssl, void* arg)
+  {
+    if (ssl == nullptr || arg == nullptr) {
+      return SSL_TLSEXT_ERR_NOACK;
+    }
+    const auto ocspMap = reinterpret_cast<std::map<int, std::string>*>(arg);
+    return libssl_ocsp_stapling_callback(ssl, *ocspMap);
+  }
+
   std::unique_ptr<TLSConnection> getConnection(int socket, unsigned int timeout, time_t now) override
   {
     handleTicketsKeyRotation(now);
@@ -562,6 +599,7 @@ public:
 
 private:
   OpenSSLTLSTicketKeysRing d_ticketKeys;
+  std::map<int, std::string> d_ocspResponses;
   std::unique_ptr<SSL_CTX, void(*)(SSL_CTX*)> d_tlsCtx;
   static std::atomic<uint64_t> s_users;
 };
@@ -916,6 +954,15 @@ public:
       if (rc != GNUTLS_E_SUCCESS) {
         throw std::runtime_error("Error loading certificate ('" + pair.first + "') and key ('" + pair.second + "') for TLS context on " + fe.d_addr.toStringWithPort() + ": " + gnutls_strerror(rc));
       }
+    }
+
+    size_t count = 0;
+    for (const auto& file : fe.d_ocspFiles) {
+      rc = gnutls_certificate_set_ocsp_status_request_file(d_creds.get(), file.c_str(), count);
+      if (rc != GNUTLS_E_SUCCESS) {
+        throw std::runtime_error("Error loading OCSP response from file '" + file + "' for certificate ('" + fe.d_certKeyPairs.at(count).first + "') and key ('" + fe.d_certKeyPairs.at(count).second + "') for TLS context on " + fe.d_addr.toStringWithPort() + ": " + gnutls_strerror(rc));
+      }
+      ++count;
     }
 
 #if GNUTLS_VERSION_NUMBER >= 0x030600

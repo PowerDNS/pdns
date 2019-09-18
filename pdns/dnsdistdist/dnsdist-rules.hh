@@ -24,6 +24,7 @@
 #include "cachecleaner.hh"
 #include "dnsdist.hh"
 #include "dnsdist-ecs.hh"
+#include "dnsdist-kvs.hh"
 #include "dnsparser.hh"
 
 class MaxQPSIPRule : public DNSRule
@@ -528,6 +529,17 @@ public:
   string toString() const override;
 private:
   string d_path;
+};
+
+class HTTPPathRegexRule : public DNSRule
+{
+public:
+  HTTPPathRegexRule(const std::string& regex);
+  bool matches(const DNSQuestion* dq) const override;
+  string toString() const override;
+private:
+  Regex d_regex;
+  std::string d_visual;
 };
 #endif
 
@@ -1077,4 +1089,33 @@ public:
 private:
   mutable LocalStateHolder<pools_t> d_pools;
   std::string d_poolname;
+};
+
+class KeyValueStoreLookupRule: public DNSRule
+{
+public:
+  KeyValueStoreLookupRule(std::shared_ptr<KeyValueStore>& kvs, std::shared_ptr<KeyValueLookupKey>& lookupKey): d_kvs(kvs), d_key(lookupKey)
+  {
+  }
+
+  bool matches(const DNSQuestion* dq) const override
+  {
+    std::vector<std::string> keys = d_key->getKeys(*dq);
+    for (const auto& key : keys) {
+      if (d_kvs->keyExists(key) == true) {
+        return true;
+      }
+    }
+
+    return false;
+  }
+
+  string toString() const override
+  {
+    return "lookup key-value store based on '" + d_key->toString() + "'";
+  }
+
+private:
+  std::shared_ptr<KeyValueStore> d_kvs;
+  std::shared_ptr<KeyValueLookupKey> d_key;
 };

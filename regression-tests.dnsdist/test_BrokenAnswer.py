@@ -25,7 +25,7 @@ def responseCallback(request):
     raw = response.to_wire()
     # first label length of this rrset is at 12 (dnsheader) + length(qname) + 2 (leading label length + trailing 0) + 2 (qtype) + 2 (qclass)
     offset = 12 + len(str(request.question[0].name)) + 2 + 2 + 2
-    altered = raw[:offset] + chr(255).encode() + raw[offset+1:]
+    altered = raw[:offset] + b'\xff' + raw[offset+1:]
     return altered
 
 class TestBrokenAnswerECS(DNSDistTest):

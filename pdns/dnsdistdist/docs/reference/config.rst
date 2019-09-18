@@ -126,6 +126,9 @@ Listen Sockets
   * ``ciphers``: str - The TLS ciphers to use, in OpenSSL format. Ciphers for TLS 1.3 must be specified via ``ciphersTLS13``.
   * ``ciphersTLS13``: str - The TLS ciphers to use for TLS 1.3, in OpenSSL format.
   * ``serverTokens``: str - The content of the Server: HTTP header returned by dnsdist. The default is "h2o/dnsdist".
+  * ``customResponseHeaders={}``: table - Set custom HTTP header(s) returned by dnsdist.
+  * ``ocspResponses``: list - List of files containing OCSP responses, in the same order than the certificates and keys, that will be used to provide OCSP stapling responses.
+  * ``minTLSVersion``: str - Minimum version of the TLS protocol to support. Possible values are 'tls1.0', 'tls1.1', 'tls1.2' and 'tls1.3'. Default is to require at least TLS 1.0.
 
 .. function:: addTLSLocal(address, certFile(s), keyFile(s) [, options])
 
@@ -136,7 +139,7 @@ Listen Sockets
   .. versionchanged:: 1.3.3
     ``numberOfStoredSessions`` option added.
   .. versionchanged:: 1.4.0
-    ``ciphersTLS13`` option added.
+    ``ciphersTLS13``, ``minTLSVersion`` and ``ocspResponses`` options added.
 
   Listen on the specified address and TCP port for incoming DNS over TLS connections, presenting the specified X.509 certificate.
 
@@ -160,6 +163,8 @@ Listen Sockets
   * ``ticketsKeysRotationDelay``: int - Set the delay before the TLS tickets key is rotated, in seconds. Default is 43200 (12h).
   * ``sessionTickets``: bool - Whether session resumption via session tickets is enabled. Default is true, meaning tickets are enabled.
   * ``numberOfStoredSessions``: int - The maximum number of sessions kept in memory at the same time. At this time this is only supported by the OpenSSL provider, as stored sessions are not supported with the GnuTLS one. Default is 20480. Setting this value to 0 disables stored session entirely.
+  * ``ocspResponses``: list - List of files containing OCSP responses, in the same order than the certificates and keys, that will be used to provide OCSP stapling responses.
+  * ``minTLSVersion``: str - Minimum version of the TLS protocol to support. Possible values are 'tls1.0', 'tls1.1', 'tls1.2' and 'tls1.3'. Default is to require at least TLS 1.0. Note that this value is ignored when the GnuTLS provider is in use, and the ``ciphers`` option should be set accordingly instead. For example, 'NORMAL:!VERS-TLS1.0:!VERS-TLS1.1' will disable TLS 1.0 and 1.1.
 
 .. function:: setLocal(address[, options])
 
@@ -1038,6 +1043,14 @@ faster than the existing rules.
 
     Walk the in-memory query and response ring buffers and apply the configured rate-limiting rules, adding dynamic blocks when the limits have been exceeded.
 
+  .. method:: DynBlockRulesGroup:setQuiet(quiet)
+
+    .. versionadded:: 1.4.0
+
+    Set whether newly blocked clients or domains should be logged.
+
+    :param bool quiet: True means that insertions will not be logged, false that they will. Default is false.
+
   .. method:: DynBlockRulesGroup:excludeRange(netmasks)
 
     .. versionadded:: 1.3.1
@@ -1113,6 +1126,20 @@ Other functions
 
   Hashes the password to generate a 16-byte key that can be used to pseudonymize IP addresses with IP cipher.
 
+.. function:: generateOCSPResponse(pathToServerCertificate, pathToCACertificate, pathToCAPrivateKey, outputFile, numberOfDaysOfValidity, numberOfMinutesOfValidity)
+
+  .. versionadded:: 1.4.0
+
+  When a local PKI is used to issue the certificate, or for testing purposes, :func:`generateOCSPResponse` can be used to generate an OCSP response file for a certificate, using the certificate and private key of the certification authority that signed that certificate.
+  The resulting file can be directly used with the :func:`addDOHLocal` or the :func:`addTLSLocal` functions.
+
+  :param string pathToServerCertificate: Path to a file containing the certificate used by the server.
+  :param string pathToCACertificate: Path to a file containing the certificate of the certification authority that was used to sign the server certificate.
+  :param string pathToCAPrivateKey: Path to a file containing the private key corresponding to the certification authority certificate.
+  :param string outputFile: Path to a file where the resulting OCSP response will be written to.
+  :param int numberOfDaysOfValidity: Number of days this OCSP response should be valid.
+  :param int numberOfMinutesOfValidity: Number of minutes this OCSP response should be valid, in addition to the number of days.
+
 DOHFrontend
 ~~~~~~~~~~~
 
@@ -1125,6 +1152,25 @@ DOHFrontend
   .. method:: DOHFrontend:reloadCertificates()
 
      Reload the current TLS certificate and key pairs.
+
+  .. method:: DOHFrontend:setResponsesMap(rules)
+
+     Set a list of HTTP response rules allowing to intercept HTTP queries very early, before the DNS payload has been processed, and send custom responses including error pages, redirects and static content.
+
+     :param list of DOHResponseMapEntry objects rules: A list of DOHResponseMapEntry objects, obtained with :func:`newDOHResponseMapEntry`.
+
+
+.. function:: newDOHResponseMapEntry(regex, status, content [, headers]) -> DOHResponseMapEntry
+
+  .. versionadded:: 1.4.0
+
+  Return a DOHResponseMapEntry that can be used with :meth:`DOHFrontend.setResponsesMap`. Every query whose path matches the regular expression supplied in ``regex`` will be immediately answered with a HTTP response.
+  The status of the HTTP response will be the one supplied by ``status``, and the content set to the one supplied by ``content``, except if the status is a redirection (3xx) in which case the content is expected to be the URL to redirect to.
+
+  :param str regex: A regular expression to match the path against.
+  :param int status: The HTTP code to answer with.
+  :param str content: The content of the HTTP response, or a URL if the status is a redirection (3xx).
+  :param table of headers: The custom headers to set for the HTTP response, if any. The default is to use the value of the ``customResponseHeaders`` parameter passed to :func:`addDOHLocal`.
 
 TLSContext
 ~~~~~~~~~~

@@ -1,3 +1,7 @@
+#include "config.h"
+#include "doh.hh"
+
+#ifdef HAVE_DNS_OVER_HTTPS
 #define H2O_USE_EPOLL 1
 
 #include <errno.h>
@@ -78,6 +82,8 @@ public:
     }
   }
 
+  std::map<int, std::string> d_ocspResponses;
+
 private:
   h2o_accept_ctx_t d_h2o_accept_ctx;
   std::atomic<uint64_t> d_refcnt{1};
@@ -122,13 +128,140 @@ struct DOHServerConfig
   int dohresponsepair[2]{-1,-1};
 };
 
+void handleDOHTimeout(DOHUnit* oldDU)
+{
+  if (oldDU == nullptr) {
+    return;
+  }
+
+/* we are about to erase an existing DU */
+  oldDU->status_code = 502;
+
+  if (send(oldDU->rsock, &oldDU, sizeof(oldDU), 0) != sizeof(oldDU)) {
+    delete oldDU;
+    oldDU = nullptr;
+  }
+}
+
 static void on_socketclose(void *data)
 {
   DOHAcceptContext* ctx = reinterpret_cast<DOHAcceptContext*>(data);
   ctx->release();
 }
 
-/* this duplicates way too much from the UDP handler. Sorry.
+
+static const std::string& getReasonFromStatusCode(uint16_t statusCode)
+{
+  /* no need to care too much about this, HTTP/2 has no 'reason' anyway */
+  static const std::unordered_map<uint16_t, std::string> reasons = {
+    { 200, "OK" },
+    { 301, "Moved Permanently" },
+    { 302, "Found" },
+    { 303, "See Other" },
+    { 304, "Not Modified" },
+    { 305, "Use Proxy" },
+    { 306, "Switch Proxy" },
+    { 307, "Temporary Redirect" },
+    { 308, "Permanent Redirect" },
+    { 400, "Bad Request" },
+    { 401, "Unauthorized" },
+    { 402, "Payment Required" },
+    { 403, "Forbidden" },
+    { 404, "Not Found" },
+    { 405, "Method Not Allowed" },
+    { 406, "Not Acceptable" },
+    { 407, "Proxy Authentication Required" },
+    { 408, "Request Timeout" },
+    { 409, "Conflict" },
+    { 410, "Gone" },
+    { 411, "Length Required" },
+    { 412, "Precondition Failed" },
+    { 413, "Payload Too Large" },
+    { 414, "URI Too Long" },
+    { 415, "Unsupported Media Type" },
+    { 416, "Range Not Satisfiable" },
+    { 417, "Expectation Failed" },
+    { 418, "I'm a teapot" },
+    { 451, "Unavailable For Legal Reasons" },
+    { 500, "Internal Server Error" },
+    { 501, "Not Implemented" },
+    { 502, "Bad Gateway" },
+    { 503, "Service Unavailable" },
+    { 504, "Gateway Timeout" },
+    { 505, "HTTP Version Not Supported" }
+  };
+  static const std::string unknown = "Unknown";
+
+  const auto it = reasons.find(statusCode);
+  if (it == reasons.end()) {
+    return unknown;
+  }
+  else {
+    return it->second;
+  }
+}
+
+static void handleResponse(DOHFrontend& df, st_h2o_req_t* req, uint16_t statusCode, const std::string& response, const std::vector<std::pair<std::string, std::string>>& customResponseHeaders, const std::string& contentType, bool addContentType)
+{
+  constexpr int overwrite_if_exists = 1;
+  constexpr int maybe_token = 1;
+  for (auto const& headerPair : customResponseHeaders) {
+    h2o_set_header_by_str(&req->pool, &req->res.headers, headerPair.first.c_str(), headerPair.first.size(), maybe_token, headerPair.second.c_str(), headerPair.second.size(), overwrite_if_exists);
+  }
+
+  if (statusCode == 200) {
+    ++df.d_validresponses;
+    req->res.status = 200;
+
+    if (addContentType) {
+      if (contentType.empty()) {
+        h2o_add_header(&req->pool, &req->res.headers, H2O_TOKEN_CONTENT_TYPE, nullptr, H2O_STRLIT("application/dns-message"));
+      }
+      else {
+        /* we need to duplicate the header content because h2o keeps a pointer and we will be deleted before the response has been sent */
+        h2o_iovec_t ct = h2o_strdup(&req->pool, contentType.c_str(), contentType.size());
+        h2o_add_header(&req->pool, &req->res.headers, H2O_TOKEN_CONTENT_TYPE, nullptr, ct.base, ct.len);
+      }
+    }
+
+    req->res.content_length = response.size();
+    h2o_send_inline(req, response.c_str(), response.size());
+  }
+  else if (statusCode >= 300 && statusCode < 400) {
+    /* in that case the response is actually a URL */
+    /* we need to duplicate the URL because h2o uses it for the location header, keeping a pointer, and we will be deleted before the response has been sent */
+    h2o_iovec_t url = h2o_strdup(&req->pool, response.c_str(), response.size());
+    h2o_send_redirect(req, statusCode, getReasonFromStatusCode(statusCode).c_str(), url.base, url.len);
+    ++df.d_redirectresponses;
+  }
+  else {
+    if (!response.empty()) {
+      h2o_send_error_generic(req, statusCode, getReasonFromStatusCode(statusCode).c_str(), response.c_str(), H2O_SEND_ERROR_KEEP_HEADERS);
+    }
+    else {
+      switch(statusCode) {
+      case 400:
+        h2o_send_error_400(req, getReasonFromStatusCode(statusCode).c_str(), "invalid DNS query" , 0);
+        break;
+      case 403:
+        h2o_send_error_403(req, getReasonFromStatusCode(statusCode).c_str(), "dns query not allowed", 0);
+        break;
+      case 502:
+        h2o_send_error_502(req, getReasonFromStatusCode(statusCode).c_str(), "no downstream server available", 0);
+        break;
+      case 500:
+        /* fall-through */
+      default:
+        h2o_send_error_500(req, getReasonFromStatusCode(statusCode).c_str(), "Internal Server Error", 0);
+        break;
+      }
+    }
+
+    ++df.d_errorresponses;
+  }
+}
+
+/*
    this function calls 'return -1' to drop a query without sending it
    caller should make sure HTTPS thread hears of that
 */
@@ -198,7 +331,9 @@ static int processDOHQuery(DOHUnit* du)
     }
 
     if (result == ProcessQueryResult::SendAnswer) {
-      du->query = std::string(reinterpret_cast<char*>(dq.dh), dq.len);
+      if (du->response.empty()) {
+        du->response = std::string(reinterpret_cast<char*>(dq.dh), dq.len);
+      }
       send(du->rsock, &du, sizeof(du), 0);
       return 0;
     }
@@ -213,20 +348,37 @@ static int processDOHQuery(DOHUnit* du)
       return -1;
     }
 
+    ComboAddress dest = du->dest;
     unsigned int idOffset = (ss->idOffset++) % ss->idStates.size();
     IDState* ids = &ss->idStates[idOffset];
     ids->age = 0;
-    ids->du = du;
+    DOHUnit* oldDU = nullptr;
+    if (ids->isInUse()) {
+      /* that means that the state was in use, possibly with an allocated
+         DOHUnit that we will need to handle, but we can't touch it before
+         confirming that we now own this state */
+      oldDU = ids->du;
+    }
 
-    int oldFD = ids->origFD.exchange(cs.udpFD);
-    if(oldFD < 0) {
-      // if we are reusing, no change in outstanding
+    /* we atomically replace the value, we now own this state */
+    int64_t generation = ids->generation++;
+    if (!ids->markAsUsed(generation)) {
+      /* the state was not in use.
+         we reset 'oldDU' because it might have still been in use when we read it. */
+      oldDU = nullptr;
       ++ss->outstanding;
     }
     else {
+      ids->du = nullptr;
+      /* we are reusing a state, no change in outstanding but if there was an existing DOHUnit we need
+         to handle it because it's about to be overwritten. */
       ++ss->reuseds;
       ++g_stats.downstreamTimeouts;
+      handleDOHTimeout(oldDU);
     }
+
+    ids->origFD = 0;
+    ids->du = du;
 
     ids->cs = &cs;
     ids->origID = dh->id;
@@ -238,8 +390,8 @@ static int processDOHQuery(DOHUnit* du)
        We need to keep track of which one it is since we may
        want to use the real but not the listening addr to reply.
     */
-    if (du->dest.sin4.sin_family != 0) {
-      ids->origDest = du->dest;
+    if (dest.sin4.sin_family != 0) {
+      ids->origDest = dest;
       ids->destHarvested = true;
     }
     else {
@@ -253,14 +405,21 @@ static int processDOHQuery(DOHUnit* du)
     /* you can't touch du after this line, because it might already have been freed */
     ssize_t ret = udpClientSendRequestToBackend(ss, fd, query, dq.len);
 
-    vinfolog("Got query for %s|%s from %s (https), relayed to %s", ids->qname.toString(), QType(ids->qtype).getName(), remote.toStringWithPort(), ss->getName());
-
     if(ret < 0) {
+      /* we are about to handle the error, make sure that
+         this pointer is not accessed when the state is cleaned,
+         but first check that it still belongs to us */
+      if (ids->tryMarkUnused(generation)) {
+        ids->du = nullptr;
+        --ss->outstanding;
+      }
       ++ss->sendErrors;
       ++g_stats.downstreamSendErrors;
       du->status_code = 502;
       return -1;
     }
+
+    vinfolog("Got query for %s|%s from %s (https), relayed to %s", ids->qname.toString(), QType(ids->qtype).getName(), remote.toStringWithPort(), ss->getName());
   }
   catch(const std::exception& e) {
     vinfolog("Got an error in DOH question thread while parsing a query from %s, id %d: %s", remote.toStringWithPort(), queryId, e.what());
@@ -417,6 +576,14 @@ try
 
   string path(req->path.base, req->path.len);
 
+  for (const auto& entry : dsc->df->d_responsesMap) {
+    if (entry->matches(path)) {
+      const auto& customHeaders = entry->getHeaders();
+      handleResponse(*dsc->df, req, entry->getStatusCode(), entry->getContent(), customHeaders ? *customHeaders : dsc->df->d_customResponseHeaders, std::string(), false);
+      return 0;
+    }
+  }
+
   if (h2o_memis(req->method.base, req->method.len, H2O_STRLIT("POST"))) {
     ++dsc->df->d_postqueries;
     if(req->version >= 0x0200)
@@ -493,13 +660,14 @@ HTTPHeaderRule::HTTPHeaderRule(const std::string& header, const std::string& reg
   d_visual = "http[" + header+ "] ~ " + regex;
 
 }
+
 bool HTTPHeaderRule::matches(const DNSQuestion* dq) const
 {
-  if(!dq->du) {
+  if (!dq->du) {
     return false;
   }
 
-  for (unsigned int i = 0; i != dq->du->req->headers.size; ++i) {
+  for (size_t i = 0; i < dq->du->req->headers.size; ++i) {
     if(std::string(dq->du->req->headers.entries[i].name->base, dq->du->req->headers.entries[i].name->len) == d_header &&
        d_regex.match(std::string(dq->du->req->headers.entries[i].value.base, dq->du->req->headers.entries[i].value.len))) {
       return true;
@@ -538,6 +706,78 @@ string HTTPPathRule::toString() const
   return "url path == " + d_path;
 }
 
+HTTPPathRegexRule::HTTPPathRegexRule(const std::string& regex): d_regex(regex), d_visual("http path ~ " + regex)
+{
+}
+
+bool HTTPPathRegexRule::matches(const DNSQuestion* dq) const
+{
+  if (!dq->du) {
+    return false;
+  }
+
+  return d_regex.match(dq->du->getHTTPPath());
+}
+
+string HTTPPathRegexRule::toString() const
+{
+  return d_visual;
+}
+
+std::unordered_map<std::string, std::string> DOHUnit::getHTTPHeaders() const
+{
+  std::unordered_map<std::string, std::string> results;
+  results.reserve(req->headers.size);
+
+  for (size_t i = 0; i < req->headers.size; ++i) {
+    results.insert({std::string(req->headers.entries[i].name->base, req->headers.entries[i].name->len),
+                    std::string(req->headers.entries[i].value.base, req->headers.entries[i].value.len)});
+  }
+
+  return results;
+}
+
+std::string DOHUnit::getHTTPPath() const
+{
+  if (req->query_at == SIZE_MAX) {
+    return std::string(req->path.base, req->path.len);
+  }
+  else {
+    return std::string(req->path.base, req->query_at);
+  }
+}
+
+std::string DOHUnit::getHTTPHost() const
+{
+  return std::string(req->authority.base, req->authority.len);
+}
+
+std::string DOHUnit::getHTTPScheme() const
+{
+  if (req->scheme == nullptr) {
+    return std::string();
+  }
+
+  return std::string(req->scheme->name.base, req->scheme->name.len);
+}
+
+std::string DOHUnit::getHTTPQueryString() const
+{
+  if (req->query_at == SIZE_MAX) {
+    return std::string();
+  }
+  else {
+    return std::string(req->path.base + req->query_at, req->path.len - req->query_at);
+  }
+}
+
+void DOHUnit::setHTTPResponse(uint16_t statusCode, const std::string& body_, const std::string& contentType_)
+{
+  status_code = statusCode;
+  response = body_;
+  contentType = contentType_;
+}
+
 void dnsdistclient(int qsock, int rsock)
 {
   setThreadName("dnsdist/doh-cli");
@@ -547,7 +787,7 @@ void dnsdistclient(int qsock, int rsock)
       DOHUnit* du = nullptr;
       ssize_t got = recv(qsock, &du, sizeof(du), 0);
       if (got < 0) {
-        warnlog("Error receving internal DoH query: %s", strerror(errno));
+        warnlog("Error receiving internal DoH query: %s", strerror(errno));
         continue;
       }
       else if (static_cast<size_t>(got) < sizeof(du)) {
@@ -572,7 +812,7 @@ void dnsdistclient(int qsock, int rsock)
       }
 
       if(processDOHQuery(du) < 0) {
-        du->error = true; // turns our drop into a 500
+        du->status_code = 500;
         if(send(du->rsock, &du, sizeof(du), 0) != sizeof(du))
           delete du;     // XXX but now what - will h2o time this out for us?
       }
@@ -608,39 +848,9 @@ static void on_dnsdist(h2o_socket_t *listener, const char *err)
   }
 
   *du->self = nullptr; // so we don't clean up again in on_generator_dispose
-  if (!du->error) {
-    ++dsc->df->d_validresponses;
-    du->req->res.status = 200;
-    du->req->res.reason = "OK";
 
-    h2o_add_header(&du->req->pool, &du->req->res.headers, H2O_TOKEN_CONTENT_TYPE, nullptr, H2O_STRLIT("application/dns-message"));
+  handleResponse(*dsc->df, du->req, du->status_code, du->response, dsc->df->d_customResponseHeaders, du->contentType, true);
 
-    //    struct dnsheader* dh = (struct dnsheader*)du->query.c_str();
-    //    cout<<"Attempt to send out "<<du->query.size()<<" bytes over https, TC="<<dh->tc<<", RCODE="<<dh->rcode<<", qtype="<<du->qtype<<", req="<<(void*)du->req<<endl;
-
-    du->req->res.content_length = du->query.size();
-    h2o_send_inline(du->req, du->query.c_str(), du->query.size());
-  }
-  else {
-    switch(du->status_code) {
-    case 400:
-      h2o_send_error_400(du->req, "Bad Request", "invalid DNS query", 0);
-      break;
-    case 403:
-      h2o_send_error_403(du->req, "Forbidden", "dns query not allowed", 0);
-      break;
-    case 502:
-      h2o_send_error_502(du->req, "Bad Gateway", "no downstream server available", 0);
-      break;
-    case 500:
-      /* fall-through */
-    default:
-      h2o_send_error_500(du->req, "Internal Server Error", "Internal Server Error", 0);
-      break;
-    }
-
-    ++dsc->df->d_errorresponses;
-  }
   delete du;
 }
 
@@ -678,7 +888,16 @@ static int create_listener(const ComboAddress& addr, std::shared_ptr<DOHServerCo
   return 0;
 }
 
-static std::unique_ptr<SSL_CTX, void(*)(SSL_CTX*)> getTLSContext(const std::vector<std::pair<std::string, std::string>>& pairs, const std::string& ciphers, const std::string& ciphers13)
+static int ocsp_stapling_callback(SSL* ssl, void* arg)
+{
+  if (ssl == nullptr || arg == nullptr) {
+    return SSL_TLSEXT_ERR_NOACK;
+  }
+  const auto ocspMap = reinterpret_cast<std::map<int, std::string>*>(arg);
+  return libssl_ocsp_stapling_callback(ssl, *ocspMap);
+}
+
+static std::unique_ptr<SSL_CTX, void(*)(SSL_CTX*)> getTLSContext(const std::vector<std::pair<std::string, std::string>>& pairs, const std::string& ciphers, const std::string& ciphers13, LibsslTLSVersion minTLSVersion, const std::vector<std::string>& ocspFiles, std::map<int, std::string>& ocspResponses)
 {
   auto ctx = std::unique_ptr<SSL_CTX, void(*)(SSL_CTX*)>(SSL_CTX_new(SSLv23_server_method()), SSL_CTX_free);
 
@@ -691,11 +910,15 @@ static std::unique_ptr<SSL_CTX, void(*)(SSL_CTX*)> getTLSContext(const std::vect
     SSL_OP_SINGLE_ECDH_USE;
 
   SSL_CTX_set_options(ctx.get(), sslOptions);
+  if (!libssl_set_min_tls_version(ctx, minTLSVersion)) {
+    throw std::runtime_error("Failed to set the minimum version to '" + libssl_tls_version_to_string(minTLSVersion) + "' for DoH listener");
+  }
 
 #ifdef SSL_CTX_set_ecdh_auto
   SSL_CTX_set_ecdh_auto(ctx.get(), 1);
 #endif
 
+  std::vector<int> keyTypes;
   /* load certificate and private key */
   for (const auto& pair : pairs) {
     if (SSL_CTX_use_certificate_chain_file(ctx.get(), pair.first.c_str()) != 1) {
@@ -705,6 +928,28 @@ static std::unique_ptr<SSL_CTX, void(*)(SSL_CTX*)> getTLSContext(const std::vect
     if (SSL_CTX_use_PrivateKey_file(ctx.get(), pair.second.c_str(), SSL_FILETYPE_PEM) != 1) {
       ERR_print_errors_fp(stderr);
       throw std::runtime_error("Failed to setup SSL/TLS for DoH listener, an error occurred while trying to load the DOH server private key file: " + pair.second);
+    }
+    if (SSL_CTX_check_private_key(ctx.get()) != 1) {
+      ERR_print_errors_fp(stderr);
+      throw std::runtime_error("Failed to setup SSL/TLS for DoH listener, the key from '" + pair.second + "' does not match the certificate from '" + pair.first + "'");
+    }
+    /* store the type of the new key, we might need it later to select the right OCSP stapling response */
+    auto keyType = libssl_get_last_key_type(ctx);
+    if (keyType < 0) {
+      throw std::runtime_error("Failed to setup SSL/TLS for DoH listener, the key from '" + pair.second + "' has an unknown type");
+    }
+    keyTypes.push_back(keyType);
+  }
+
+  if (!ocspFiles.empty()) {
+    try {
+      ocspResponses = libssl_load_ocsp_responses(ocspFiles, keyTypes);
+
+      SSL_CTX_set_tlsext_status_cb(ctx.get(), &ocsp_stapling_callback);
+      SSL_CTX_set_tlsext_status_arg(ctx.get(), &ocspResponses);
+    }
+    catch(const std::exception& e) {
+      throw std::runtime_error("Unable to load OCSP responses for the SSL/TLS DoH listener: " + std::string(e.what()));
     }
   }
 
@@ -731,7 +976,10 @@ static void setupAcceptContext(DOHAcceptContext& ctx, DOHServerConfig& dsc, bool
   if (setupTLS) {
     auto tlsCtx = getTLSContext(dsc.df->d_certKeyPairs,
                                 dsc.df->d_ciphers,
-                                dsc.df->d_ciphers13);
+                                dsc.df->d_ciphers13,
+                                dsc.df->d_minTLSVersion,
+                                dsc.df->d_ocspFiles,
+                                ctx.d_ocspResponses);
 
     nativeCtx->ssl_ctx = tlsCtx.release();
   }
@@ -756,7 +1004,10 @@ void DOHFrontend::setup()
 
   auto tlsCtx = getTLSContext(d_certKeyPairs,
                               d_ciphers,
-                              d_ciphers13);
+                              d_ciphers13,
+                              d_minTLSVersion,
+                              d_ocspFiles,
+                              d_dsc->accept_ctx->d_ocspResponses);
 
   auto accept_ctx = d_dsc->accept_ctx->get();
   accept_ctx->ssl_ctx = tlsCtx.release();
@@ -824,3 +1075,11 @@ catch(const std::exception& e) {
 catch(...) {
   throw runtime_error("DOH thread failed to launch");
 }
+
+#else /* HAVE_DNS_OVER_HTTPS */
+
+void handleDOHTimeout(DOHUnit* oldDU)
+{
+}
+
+#endif /* HAVE_DNS_OVER_HTTPS */

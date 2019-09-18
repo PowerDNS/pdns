@@ -28,6 +28,60 @@ MAKE=${MAKE:-make}
 export ALGORITHM
 export KEY
 
+_show_help=0
+for arg; do
+    case "$arg" in
+        (--help|help)
+            _show_help=1
+            ;;
+    esac
+done; unset -v arg
+if [ "$_show_help" -eq 1 ]; then
+	grep -v '^#' << '__EOF__'
+
+Usage: ./start-test-stop <port> [<context>] [wait|nowait] [<cachettl>] [<specifictest>]
+
+context is one of:
+bind bind-dnssec bind-dnssec-nsec3 bind-dnssec-nsec3-optout bind-dnssec-nsec3-narrow
+geoip geoip-nsec3-narrow
+gmysql-nodnssec gmysql gmysql-nsec3 gmysql-nsec3-optout gmysql-nsec3-narrow
+godbc_mssql-nodnssec godbc_mssql godbc_mssql-nsec3 godbc_mssql-nsec3-optout godbc_mssql-nsec3-narrow
+goracle-nodnssec goracle goracle-nsec3 goracle-nsec3-optout goracle-nsec3-narrow
+godbc_sqlite3-nodnssec godbc_sqlite3 godbc_sqlite3-nsec3 godbc_sqlite3-nsec3-optout godbc_sqlite3-narrow
+gpgsql-nodnssec gpgsql gpgsql-nsec3 gpgsql-nsec3-optout gpgsql-nsec3-narrow
+gsqlite3-nodnssec gsqlite3 gsqlite3-nsec3 gsqlite3-nsec3-optout gsqlite3-nsec3-narrow
+lmdb-nodnssec lmdb
+mydns
+opendbx-sqlite3
+oracle-nodnssec oracle oracle-nsec3
+remotebackend-pipe remotebackend-unix remotebackend-http remotebackend-zeromq
+remotebackend-pipe-dnssec remotebackend-unix-dnssec remotebackend-http-dnssec remotebackend-zeromq-dnssec
+#remotebackend-pipe-nsec3 remotebackend-unix-nsec3 remotebackend-http-nsec3
+#remotebackend-pipe-nsec3-narrow remotebackend-unix-nsec3-narrow remotebackend-http-nsec3-narrow
+tinydns
+ldap-tree ldap-simple ldap-strict
+lua2 lua2-dnssec lua2-nsec3 lua2-nsec3-narrow
+lua-minimal
+#ext-nsd ext-nsd-nsec ext-nsd-nsec3 ext-bind ext-bind-nsec ext-bind-nsec3
+
+* Add -presigned to any ext-nsd, ext-bind, bind, gmysql or gsqlite3 test (except narrow)
+  to test presigned operation.
+
+* Add -both to any bind or gmysql test (except narrow) to
+  test normal and presigned operation.
+
+* Add 'wait' (literally) after the context to not kill
+  pdns_server immediately after testing. 'nowait' will kill it.
+
+* A cachettl can be supplied if you want to run tests with a
+  ttl setting set. The default cachettl is 0.
+
+* Specifictest can be used to run only one single test.
+__EOF__
+	exit
+fi
+unset -v _show_help
+
 trap "kill_process 2" EXIT INT TERM
 
 source ../regression-tests/common
@@ -165,52 +219,6 @@ cachettl=$4
 spectest=$5
 
 testsdir=./tests
-
-if [ "$port" = help ] || [ "$context" = help ] || [ "$port" = "--help" ] || [ "$context" = "--help" ]
-then
-	set +x
-	grep -v '^#' << '__EOF__'
-
-Usage: ./start-test-stop <port> [<context>] [wait|nowait] [<cachettl>] [<specifictest>]
-
-context is one of:
-bind bind-dnssec bind-dnssec-nsec3 bind-dnssec-nsec3-optout bind-dnssec-nsec3-narrow
-geoip geoip-nsec3-narrow
-gmysql-nodnssec gmysql gmysql-nsec3 gmysql-nsec3-optout gmysql-nsec3-narrow
-godbc_mssql-nodnssec godbc_mssql godbc_mssql-nsec3 godbc_mssql-nsec3-optout godbc_mssql-nsec3-narrow
-goracle-nodnssec goracle goracle-nsec3 goracle-nsec3-optout goracle-nsec3-narrow
-godbc_sqlite3-nodnssec godbc_sqlite3 godbc_sqlite3-nsec3 godbc_sqlite3-nsec3-optout godbc_sqlite3-narrow
-gpgsql-nodnssec gpgsql gpgsql-nsec3 gpgsql-nsec3-optout gpgsql-nsec3-narrow
-gsqlite3-nodnssec gsqlite3 gsqlite3-nsec3 gsqlite3-nsec3-optout gsqlite3-nsec3-narrow
-lmdb-nodnssec lmdb
-mydns
-opendbx-sqlite3
-oracle-nodnssec oracle oracle-nsec3
-remotebackend-pipe remotebackend-unix remotebackend-http remotebackend-zeromq
-remotebackend-pipe-dnssec remotebackend-unix-dnssec remotebackend-http-dnssec remotebackend-zeromq-dnssec
-#remotebackend-pipe-nsec3 remotebackend-unix-nsec3 remotebackend-http-nsec3
-#remotebackend-pipe-nsec3-narrow remotebackend-unix-nsec3-narrow remotebackend-http-nsec3-narrow
-tinydns
-ldap-tree ldap-simple ldap-strict
-lua2 lua2-dnssec lua2-nsec3 lua2-nsec3-narrow
-#ext-nsd ext-nsd-nsec ext-nsd-nsec3 ext-bind ext-bind-nsec ext-bind-nsec3
-
-* Add -presigned to any ext-nsd, ext-bind, bind, gmysql or gsqlite3 test (except narrow)
-  to test presigned operation.
-
-* Add -both to any bind or gmysql test (except narrow) to
-  test normal and presigned operation.
-
-* Add 'wait' (literally) after the context to not kill
-  pdns_server immediately after testing. 'nowait' will kill it.
-
-* A cachettl can be supplied if you want to run tests with a
-  ttl setting set. The default cachettl is 0.
-
-* Specifictest can be used to run only one single test.
-__EOF__
-	exit
-fi
 
 for prog in $SDIG $SAXFR $NOTIFY $NSEC3DIG; do
   if `echo $prog | grep -q '\.\./pdns'`; then

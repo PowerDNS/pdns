@@ -679,9 +679,9 @@ int increaseSerial(const DNSName& zone, DNSSECKeeper &dk)
     DNSName ordername;
     if(haveNSEC3) {
       if(!narrow)
-        ordername=DNSName(toBase32Hex(hashQNameWithSalt(ns3pr, zone))) + zone;
+        ordername=DNSName(toBase32Hex(hashQNameWithSalt(ns3pr, zone)));
     } else
-      ordername=zone;
+      ordername=DNSName("");
     if(g_verbose)
       cerr<<"'"<<rr.qname<<"' -> '"<< ordername <<"'"<<endl;
     sd.db->updateDNSSECOrderNameAndAuth(sd.domain_id, rr.qname, ordername, true);
@@ -977,12 +977,52 @@ int editZone(const DNSName &zone) {
     str<<"\033[0;32m+"<< d.d_name <<" "<<d.d_ttl<<" IN "<<DNSRecordContent::NumberToType(d.d_type)<<" "<<d.d_content->getZoneRepresentation(true)<<"\033[0m"<<endl;
     changed[{d.d_name,d.d_type}]+=str.str();
   }
-  if (changed.size() > 0)
-    cout<<"Detected the following changes:"<<endl;
+  cout<<"Detected the following changes:"<<endl;
   for(const auto& c : changed) {
     cout<<c.second;
   }
- reAsk2:;
+  if (changed.size() > 0) {
+    if (changed.find({zone, QType::SOA}) == changed.end()) {
+      cout<<endl<<"You have not updated the SOA record! Would you like to increase-serial?"<<endl;
+      cout<<"(y)es - increase serial, (n)o - leave SOA record as is, (e)dit your changes, (q)uit:"<<endl;
+      int c = read1char();
+      switch(c) {
+        case 'y':
+          {
+            DNSRecord oldSoaDR = grouped[{zone, QType::SOA}].at(0); // there should be only one SOA record, so we can use .at(0);
+            ostringstream str;
+            str<<"\033[0;31m-"<< oldSoaDR.d_name <<" "<<oldSoaDR.d_ttl<<" IN "<<DNSRecordContent::NumberToType(oldSoaDR.d_type)<<" "<<oldSoaDR.d_content->getZoneRepresentation(true)<<"\033[0m"<<endl;
+
+            SOAData sd;
+            B.getSOAUncached(zone, sd);
+            // TODO: do we need to check for presigned? here or maybe even all the way before edit-zone starts?
+
+            string soaEditKind;
+            dk.getSoaEdit(zone, soaEditKind);
+
+            DNSResourceRecord rr;
+            makeIncreasedSOARecord(sd, "SOA-EDIT-INCREASE", soaEditKind, rr);
+            DNSRecord dr(rr);
+            str<<"\033[0;32m+"<< dr.d_name <<" "<<dr.d_ttl<<" IN "<<DNSRecordContent::NumberToType(dr.d_type)<<" "<<dr.d_content->getZoneRepresentation(true)<<"\033[0m"<<endl;
+
+            changed[{dr.d_name, dr.d_type}]+=str.str();
+            grouped[{dr.d_name, dr.d_type}].at(0) = dr;
+          }
+        break;
+        case 'q':
+          return EXIT_FAILURE;
+          break;
+        case 'e':
+          goto editAgain;
+          break;
+        case 'n':
+        default:
+          goto reAsk2;
+          break;
+      }
+    }
+  }
+  reAsk2:;
   if(changed.empty()) {
     cout<<endl<<"No changes to apply."<<endl;
     return(EXIT_SUCCESS);
@@ -1776,6 +1816,7 @@ void testSchema(DNSSECKeeper& dk, const DNSName& zone)
   cout<<"Note: test-schema will try to create the zone, but it will not remove it."<<endl;
   cout<<"Please clean up after this."<<endl;
   cout<<endl;
+  cout<<"If this test reports an error and aborts, please check your database schema."<<endl;
   cout<<"Constructing UeberBackend"<<endl;
   UeberBackend B("default");
   cout<<"Picking first backend - if this is not what you want, edit launch line!"<<endl;
@@ -1817,13 +1858,13 @@ void testSchema(DNSSECKeeper& dk, const DNSName& zone)
     if(db->get(rrthrowaway)) // should not touch rr but don't assume anything
     {
       cout<<"Expected one record, got multiple, aborting"<<endl;
-      return;
+      exit(EXIT_FAILURE);
     }
     int size=rrget.content.size();
     if(size != 302)
     {
       cout<<"Expected 302 bytes, got "<<size<<", aborting"<<endl;
-      return;
+      exit(EXIT_FAILURE);
     }
   }
   cout<<"[+] content field is over 255 bytes"<<endl;
@@ -1860,14 +1901,36 @@ void testSchema(DNSSECKeeper& dk, const DNSName& zone)
   if(before != DNSName("_underscore")+zone)
   {
     cout<<"before is wrong, got '"<<before.toString()<<"', expected '_underscore."<<zone.toString()<<"', aborting"<<endl;
-    return;
+    exit(EXIT_FAILURE);
   }
   if(after != zone)
   {
     cout<<"after is wrong, got '"<<after.toString()<<"', expected '"<<zone.toString()<<"', aborting"<<endl;
-    return;
+    exit(EXIT_FAILURE);
   }
   cout<<"[+] ordername sorting is correct for names starting with _"<<endl;
+  cout<<"Setting low notified serial"<<endl;
+  db->setNotified(di.id, 500);
+  db->getDomainInfo(zone, di);
+  if(di.notified_serial != 500) {
+    cout<<"[-] Set serial 500, got back "<<di.notified_serial<<", aborting"<<endl;
+    exit(EXIT_FAILURE);
+  }
+  cout<<"Setting serial that needs 32 bits"<<endl;
+  try {
+    db->setNotified(di.id, 2147484148);
+  } catch(const PDNSException &pe) {
+    cout<<"While setting serial, got error: "<<pe.reason<<endl;
+    cout<<"aborting"<<endl;
+    exit(EXIT_FAILURE);
+  }
+  db->getDomainInfo(zone, di);
+  if(di.notified_serial != 2147484148) {
+    cout<<"[-] Set serial 2147484148, got back "<<di.notified_serial<<", aborting"<<endl;
+    exit(EXIT_FAILURE);
+  } else {
+    cout<<"[+] Big serials work correctly"<<endl;
+  }
   cout<<endl;
   cout<<"End of tests, please remove "<<zone<<" from domains+records"<<endl;
 }

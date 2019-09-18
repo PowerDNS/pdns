@@ -25,6 +25,7 @@
 #include "dnsdist-ecs.hh"
 #include "dnsdist-lua.hh"
 #include "dnsdist-protobuf.hh"
+#include "dnsdist-kvs.hh"
 
 #include "dolog.hh"
 #include "dnstap.hh"
@@ -1041,6 +1042,108 @@ private:
   std::string d_value;
 };
 
+class ContinueAction : public DNSAction
+{
+public:
+  ContinueAction(std::shared_ptr<DNSAction>& action): d_action(action)
+  {
+  }
+
+  DNSAction::Action operator()(DNSQuestion* dq, std::string* ruleresult) const override
+  {
+    if (d_action) {
+      /* call the action */
+      auto action = (*d_action)(dq, ruleresult);
+      bool drop = false;
+      /* apply the changes if needed (pool selection, flags, etc */
+      processRulesResult(action, *dq, *ruleresult, drop);
+    }
+
+    /* but ignore the resulting action no matter what */
+    return Action::None;
+  }
+
+  std::string toString() const override
+  {
+    if (d_action) {
+      return "continue after: " + (d_action ? d_action->toString() : "");
+    }
+    else {
+      return "no op";
+    }
+  }
+
+private:
+  std::shared_ptr<DNSAction> d_action;
+};
+
+#ifdef HAVE_DNS_OVER_HTTPS
+class HTTPStatusAction: public DNSAction
+{
+public:
+  HTTPStatusAction(int code, const std::string& body, const std::string& contentType): d_body(body), d_contentType(contentType), d_code(code)
+  {
+  }
+
+  DNSAction::Action operator()(DNSQuestion* dq, std::string* ruleresult) const override
+  {
+    if (!dq->du) {
+      return Action::None;
+    }
+
+    dq->du->setHTTPResponse(d_code, d_body, d_contentType);
+    dq->dh->qr = true; // for good measure
+    return Action::HeaderModify;
+  }
+
+  std::string toString() const override
+  {
+    return "return an HTTP status of " + std::to_string(d_code);
+  }
+private:
+  std::string d_body;
+  std::string d_contentType;
+  int d_code;
+};
+#endif /* HAVE_DNS_OVER_HTTPS */
+
+class KeyValueStoreLookupAction : public DNSAction
+{
+public:
+  KeyValueStoreLookupAction(std::shared_ptr<KeyValueStore>& kvs, std::shared_ptr<KeyValueLookupKey>& lookupKey, const std::string& destinationTag): d_kvs(kvs), d_key(lookupKey), d_tag(destinationTag)
+  {
+  }
+
+  DNSAction::Action operator()(DNSQuestion* dq, std::string* ruleresult) const override
+  {
+    std::vector<std::string> keys = d_key->getKeys(*dq);
+    std::string result;
+    for (const auto& key : keys) {
+      if (d_kvs->getValue(key, result) == true) {
+        break;
+      }
+    }
+
+    if (!dq->qTag) {
+      dq->qTag = std::make_shared<QTag>();
+    }
+
+    dq->qTag->insert({d_tag, std::move(result)});
+
+    return Action::None;
+  }
+
+  std::string toString() const override
+  {
+    return "lookup key-value store based on '" + d_key->toString() + "' and set the result in tag '" + d_tag + "'";
+  }
+
+private:
+  std::shared_ptr<KeyValueStore> d_kvs;
+  std::shared_ptr<KeyValueLookupKey> d_key;
+  std::string d_tag;
+};
+
 template<typename T, typename ActionT>
 static void addAction(GlobalStateHolder<vector<T> > *someRulActions, luadnsrule_t var, std::shared_ptr<ActionT> action, boost::optional<luaruleparams_t> params) {
   setLuaSideEffect();
@@ -1339,5 +1442,19 @@ void setupLuaActions()
 
   g_lua.writeFunction("TagResponseAction", [](std::string tag, std::string value) {
       return std::shared_ptr<DNSResponseAction>(new TagResponseAction(tag, value));
+    });
+
+  g_lua.writeFunction("ContinueAction", [](std::shared_ptr<DNSAction> action) {
+      return std::shared_ptr<DNSAction>(new ContinueAction(action));
+    });
+
+#ifdef HAVE_DNS_OVER_HTTPS
+  g_lua.writeFunction("HTTPStatusAction", [](uint16_t status, std::string body, boost::optional<std::string> contentType) {
+      return std::shared_ptr<DNSAction>(new HTTPStatusAction(status, body, contentType ? *contentType : ""));
+    });
+#endif /* HAVE_DNS_OVER_HTTPS */
+
+  g_lua.writeFunction("KeyValueStoreLookupAction", [](std::shared_ptr<KeyValueStore>& kvs, std::shared_ptr<KeyValueLookupKey>& lookupKey, const std::string& destinationTag) {
+      return std::shared_ptr<DNSAction>(new KeyValueStoreLookupAction(kvs, lookupKey, destinationTag));
     });
 }

@@ -1,0 +1,308 @@
+Changelogs for 4.3.x
+====================
+
+.. changelog::
+  :version: 4.3.0-alpha1
+  :released: 5th of September 2019
+
+  .. change::
+    :tags: Bug fixes
+    :pullreq: 8256
+
+    Rec: fix two coverity issues
+
+  .. change::
+    :tags: New Features
+    :pullreq: 8210
+
+    Rec: lua pdns_features table
+
+  .. change::
+    :tags: Bug fixes
+    :pullreq: 8236
+
+    Add missing inc in rpz findclientpolicy loop.
+
+  .. change::
+    :tags: Bug fixes
+    :pullreq: 8227
+
+    Fix inverse handler registration logic for snmp.
+
+  .. change::
+    :tags: Internals, Improvements
+    :pullreq: 8122
+
+    Bail out when no context library is available
+
+  .. change::
+    :tags: Internals, Improvements
+    :pullreq: 8091
+
+    Some unneeded float<->double conversions.
+
+  .. change::
+    :tags: Internals, Improvements
+    :pullreq: 8140
+
+    Rec: document that the special-memory-usage stat is excluded by default
+
+  .. change::
+    :tags: Bug fixes
+    :pullreq: 8142
+
+    Restore the lua binding for dnsname::wirelength()
+
+  .. change::
+    :tags: Bug fixes
+    :pullreq: 8152
+
+    Rec docs: fix versionadded for maintenance()
+
+  .. change::
+    :tags: Internals, Improvements
+    :pullreq: 7951
+    :tickets: 6942, 8084
+
+    Update boost.m4
+
+  .. change::
+    :tags: Bug fixes
+    :pullreq: 8089
+
+    Fix the rfc1982lessthan template.
+
+  .. change::
+    :tags: Bug fixes
+    :pullreq: 8034
+
+    Ensure debian sysv users get set{g,u}id
+
+  .. change::
+    :tags: New Features
+    :pullreq: 8075
+
+    Builder: add raspbian-buster target
+
+  .. change::
+    :tags: Bug fixes
+    :pullreq: 8067
+
+    Make sure we always compile with boost_cb_enable_debug set to 0
+
+  .. change::
+    :tags: Bug fixes
+    :pullreq: 8028
+
+    Limit compression pointers to 14 bits
+
+  .. change::
+    :tags: Bug fixes
+    :pullreq: 8047
+    :tickets: 8008
+
+    Another time sensistive test fixed with a fixednow construct.
+
+  .. change::
+    :tags: New Features
+    :pullreq: 8000
+
+    Rec: export a protobuf incoming response message for timeouts
+
+  .. change::
+    :tags: Internals, Improvements
+    :pullreq: 8010
+
+    Rec: small speed improvements in the syncres
+
+  .. change::
+    :tags: Internals, Improvements
+    :pullreq: 8013
+
+    Don't create temporary strings to escape dnsname labels
+
+  .. change::
+    :tags: New Features
+    :pullreq: 8001
+
+    Recursor: add devicename field to protobuf messages
+
+  .. change::
+    :tags: Bug fixes
+    :pullreq: 8008
+
+    Rec: don't go bogus if the auth zone delegation test takes too long
+
+  .. change::
+    :tags: Internals, Improvements
+    :pullreq: 8007
+
+    Add static assertions for the size of the src address control buffer
+
+  .. change::
+    :tags: Internals, Improvements
+    :pullreq: 7996
+    :tickets: 7981
+
+    Clear cmsg_space(sizeof(data)) in cmsghdr to appease valgrind.
+
+  .. change::
+    :tags: Bug fixes
+    :pullreq: 7997
+
+    Rec: fix the export of only outgoing queries or incoming responses
+
+  .. change::
+    :tags: Internals, Improvements
+    :pullreq: 7990
+    :tickets: 7981
+
+    Explicitly align the buffer used for cmsgs
+
+  .. change::
+    :tags: Bug fixes
+    :pullreq: 7946
+
+    Fix a few markup issues in our documentation
+
+  .. change::
+    :tags: Internals, Improvements
+    :pullreq: 7967
+    :tickets: 7949
+
+    Silence unused lambda warning (retry) (None)
+
+  .. change::
+    :tags: New Features
+    :pullreq: 7879
+
+    Recursor: don't start as root in systemd
+
+  .. change::
+    :tags: Internals, Improvements
+    :pullreq: 7945
+
+    Rec: clean ups in the syncres::docnamecachelookup code
+
+  .. change::
+    :tags: New Features
+    :pullreq: 7757
+
+    Rec experimental qname minimization
+
+  .. change::
+    :tags: Bug fixes
+    :pullreq: 7871
+
+    Adapt calidns for openbsd and other systems without rcvmmsg(2)
+
+  .. change::
+    :tags: Bug fixes
+    :pullreq: 7928
+
+    Rec: better detection of bogus zone cuts for dnssec validation
+
+  .. change::
+    :tags: Bug fixes
+    :pullreq: 7886
+
+    suffixmatchtree: fix root removal, partial match of non-leaf nodes
+
+  .. change::
+    :tags: Internals, Improvements
+    :pullreq: 7699
+
+    All: dnsname, speeds up tostring() conversion
+
+  .. change::
+    :tags: New Features
+    :pullreq: 7877
+
+    Rec: set the query-zone field in the dnstap messages. 
+
+  .. change::
+    :tags: Internals, Improvements
+    :pullreq: 7904
+
+    rec: optimize for large number of filtering policies, empty sections
+
+  .. change::
+    :tags: Internals, Improvements
+    :pullreq: 7901
+
+    Rec: reuse the outgoing query protobuf for the incoming response
+
+  .. change::
+    :tags: Bug fixes
+    :pullreq: 7884
+    :tickets: 6160, 7235, 7883
+
+    Rec: don't mix time() and gettimeofday() in our unit tests (again)
+
+  .. change::
+    :tags: Internals, Improvements
+    :pullreq: 7905
+
+    Rec: compare the cachekey type and place first then the name
+
+  .. change::
+    :tags: Internals, Improvements
+    :pullreq: 7862
+
+    Update boost.m4 to the latest version
+
+  .. change::
+    :tags: New Features
+    :pullreq: 7868
+
+    Allow unix domains sockets for dnstap destinations
+
+  .. change::
+    :tags: Bug fixes
+    :pullreq: 7870
+
+    Stubquery: fix handling of optional type arg.
+
+  .. change::
+    :tags: Bug fixes
+    :pullreq: 7864
+
+    Fix warnings reported by coverity
+
+  .. change::
+    :tags: Internals, Improvements
+    :pullreq: 7861
+
+    Check if -latomic is needed instead of hardcoding (Rosen Penev)
+
+  .. change::
+    :tags: New Features
+    :pullreq: 7538
+
+    Rec dnstap
+
+  .. change::
+    :tags: Internals, Improvements
+    :pullreq: 7843
+
+    Rec: small speedups in the recursion 'slow' path
+
+  .. change::
+    :tags: Internals, Improvements
+    :pullreq: 7857
+
+    Add latomic to arc platform (Rosen Penev)
+
+  .. change::
+    :tags: Internals, Improvements
+    :pullreq: 7548
+
+    Eliminate the loop in syncres::getaddrs()
+
+  .. change::
+    :tags: Bug fixes
+    :pullreq: 7841
+
+    Recursor: log udp tc bits during trace
+
+

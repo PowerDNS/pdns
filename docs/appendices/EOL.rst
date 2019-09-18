@@ -1,9 +1,12 @@
 End of life statements
 ======================
 
-The currently supported release train of PowerDNS Authoritative Server is 4.1.
+The currently supported release train of PowerDNS Authoritative Server is 4.2.
 
-PowerDNS Authoritative Server 4.0 will only receive correctness, stability and security updates.
+PowerDNS Authoritative Server 4.1 will only receive correctness, stability and security updates and will be receiving security updates only after PowerDNS Authoritative Server 4.3 is released.
+It wil be end of life after PowerDNS Authoritative Server 4.4 is released.
+
+PowerDNS Authoritative Server 4.0 will only receive security updates and will be end of life after PowerDNS Authoritative Server 4.3 is released.
 
 PowerDNS Authoritative Server 3.x and 2.x are end of life, and will not
 receive any updates, not even security fixes.

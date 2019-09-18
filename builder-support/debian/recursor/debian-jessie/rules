@@ -44,6 +44,8 @@ override_dh_auto_install:
 		-e 's!# config-dir=.*!config-dir=/etc/powerdns!' \
 		-e 's!# local-address=.*!local-address=127.0.0.1!' \
 		-e 's!# quiet=.*!quiet=yes!' \
+		-e 's!# setgid=.*!setgid=pdns!' \
+		-e 's!# setuid=.*!setuid=pdns!' \
 		-e 's!# hint-file=.*!&\nhint-file=/usr/share/dns/root.hints!' \
 		> debian/tmp/etc/powerdns/recursor.conf
 

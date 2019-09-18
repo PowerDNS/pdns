@@ -466,7 +466,7 @@ static void connectionThread(int sock, ComboAddress remote)
         output << "# TYPE " << statesbase << "queries "                << "counter"                                                           << "\n";
         output << "# HELP " << statesbase << "drops "                  << "Amount of queries not answered by server"                          << "\n";
         output << "# TYPE " << statesbase << "drops "                  << "counter"                                                           << "\n";
-        output << "# HELP " << statesbase << "latency "                << "Server's latency when answering questions in miliseconds"          << "\n";
+        output << "# HELP " << statesbase << "latency "                << "Server's latency when answering questions in milliseconds"         << "\n";
         output << "# TYPE " << statesbase << "latency "                << "gauge"                                                             << "\n";
         output << "# HELP " << statesbase << "senderrors "             << "Total number of OS snd errors while relaying queries"              << "\n";
         output << "# TYPE " << statesbase << "senderrors "             << "counter"                                                           << "\n";
@@ -530,7 +530,7 @@ static void connectionThread(int sock, ComboAddress remote)
         output << "# TYPE " << frontsbase << "tcpdiedreadingquery " << "counter" << "\n";
         output << "# HELP " << frontsbase << "tcpdiedsendingresponse " << "Amount of TCP connections terminated while sending a response to the client" << "\n";
         output << "# TYPE " << frontsbase << "tcpdiedsendingresponse " << "counter" << "\n";
-        output << "# HELP " << frontsbase << "tcpgaveup " << "Amount of TCP connections terminated after too many attemps to get a connection to the backend" << "\n";
+        output << "# HELP " << frontsbase << "tcpgaveup " << "Amount of TCP connections terminated after too many attempts to get a connection to the backend" << "\n";
         output << "# TYPE " << frontsbase << "tcpgaveup " << "counter" << "\n";
         output << "# HELP " << frontsbase << "tcpclientimeouts " << "Amount of TCP connections terminated by a timeout while reading from the client" << "\n";
         output << "# TYPE " << frontsbase << "tcpclientimeouts " << "counter" << "\n";
@@ -591,6 +591,8 @@ static void connectionThread(int sock, ComboAddress remote)
         output << "# TYPE " << dohfrontsbase << "bad_requests " << "counter" << "\n";
         output << "# HELP " << dohfrontsbase << "error_responses " << "Number of responses sent by dnsdist indicating an error" << "\n";
         output << "# TYPE " << dohfrontsbase << "error_responses " << "counter" << "\n";
+        output << "# HELP " << dohfrontsbase << "redirect_responses " << "Number of responses sent by dnsdist indicating a redirect" << "\n";
+        output << "# TYPE " << dohfrontsbase << "redirect_responses " << "counter" << "\n";
         output << "# HELP " << dohfrontsbase << "valid_responses " << "Number of valid responses sent by dnsdist" << "\n";
         output << "# TYPE " << dohfrontsbase << "valid_responses " << "counter" << "\n";
         output << "# HELP " << dohfrontsbase << "http1_queries " << "Number of queries received over HTTP/1.x" << "\n";
@@ -605,7 +607,7 @@ static void connectionThread(int sock, ComboAddress remote)
         output << "# TYPE " << dohfrontsbase << "http1_nb500responses " << "counter" << "\n";
         output << "# HELP " << dohfrontsbase << "http1_nb502responses " << "Number of responses with a 502 status code sent over HTTP/1.x" << "\n";
         output << "# TYPE " << dohfrontsbase << "http1_nb502responses " << "counter" << "\n";
-        output << "# HELP " << dohfrontsbase << "http1_nbotherresponses " << "Number of responses with an other status code sent over HTTP/1.x" << "\n";
+        output << "# HELP " << dohfrontsbase << "http1_nbotherresponses " << "Number of responses with another status code sent over HTTP/1.x" << "\n";
         output << "# TYPE " << dohfrontsbase << "http1_nbotherresponses " << "counter" << "\n";
         output << "# HELP " << dohfrontsbase << "http2_queries " << "Number of queries received over HTTP/2.x" << "\n";
         output << "# TYPE " << dohfrontsbase << "http2_queries " << "counter" << "\n";
@@ -619,7 +621,7 @@ static void connectionThread(int sock, ComboAddress remote)
         output << "# TYPE " << dohfrontsbase << "http2_nb500responses " << "counter" << "\n";
         output << "# HELP " << dohfrontsbase << "http2_nb502responses " << "Number of responses with a 502 status code sent over HTTP/2.x" << "\n";
         output << "# TYPE " << dohfrontsbase << "http2_nb502responses " << "counter" << "\n";
-        output << "# HELP " << dohfrontsbase << "http2_nbotherresponses " << "Number of responses with an other status code sent over HTTP/2.x" << "\n";
+        output << "# HELP " << dohfrontsbase << "http2_nbotherresponses " << "Number of responses with another status code sent over HTTP/2.x" << "\n";
         output << "# TYPE " << dohfrontsbase << "http2_nbotherresponses " << "counter" << "\n";
 
 #ifdef HAVE_DNS_OVER_HTTPS
@@ -636,6 +638,7 @@ static void connectionThread(int sock, ComboAddress remote)
           output << dohfrontsbase << "post_queries" << label << doh->d_postqueries << "\n";
           output << dohfrontsbase << "bad_requests" << label << doh->d_badrequests << "\n";
           output << dohfrontsbase << "error_responses" << label << doh->d_errorresponses << "\n";
+          output << dohfrontsbase << "redirect_responses" << label << doh->d_redirectresponses << "\n";
           output << dohfrontsbase << "valid_responses" << label << doh->d_validresponses << "\n";
 
           output << dohfrontsbase << "http1_queries" << label << doh->d_http1Stats.d_nbQueries << "\n";
@@ -798,6 +801,7 @@ static void connectionThread(int sock, ComboAddress remote)
             { "post-queries", (double) doh->d_postqueries },
             { "bad-requests", (double) doh->d_badrequests },
             { "error-responses", (double) doh->d_errorresponses },
+            { "redirect-responses", (double) doh->d_redirectresponses },
             { "valid-responses", (double) doh->d_validresponses }
           };
           dohs.push_back(obj);
@@ -856,15 +860,16 @@ static void connectionThread(int sock, ComboAddress remote)
         if(!acl.empty()) acl += ", ";
         acl+=s;
       }
-      string localaddresses;
+      string localaddressesStr;
+      std::set<std::string> localaddresses;
       for(const auto& front : g_frontends) {
-        if (front->tcp) {
-          continue;
+        localaddresses.insert(front->local.toStringWithPort());
+      }
+      for (const auto& addr : localaddresses) {
+        if (!localaddressesStr.empty()) {
+          localaddressesStr += ", ";
         }
-        if (!localaddresses.empty()) {
-          localaddresses += ", ";
-        }
-        localaddresses += front->local.toStringWithPort();
+        localaddressesStr += addr;
       }
 
       Json my_json = Json::object {
@@ -878,7 +883,7 @@ static void connectionThread(int sock, ComboAddress remote)
         { "cache-hit-response-rules", cacheHitResponseRules},
         { "self-answered-response-rules", selfAnsweredResponseRules},
         { "acl", acl},
-        { "local", localaddresses},
+        { "local", localaddressesStr},
         { "dohFrontends", dohs }
       };
       resp.headers["Content-Type"] = "application/json";

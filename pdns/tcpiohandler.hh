@@ -2,6 +2,7 @@
 #pragma once
 #include <memory>
 
+#include "libssl.hh"
 #include "misc.hh"
 
 enum class IOState { Done, NeedRead, NeedWrite };
@@ -139,6 +140,7 @@ public:
   }
 
   std::vector<std::pair<std::string, std::string>> d_certKeyPairs;
+  std::vector<std::string> d_ocspFiles;
   ComboAddress d_addr;
   std::string d_ciphers;
   std::string d_ciphers13;
@@ -148,6 +150,8 @@ public:
   size_t d_maxStoredSessions{20480};
   time_t d_ticketsKeyRotationDelay{43200};
   uint8_t d_numberOfTicketsKeys{5};
+  LibsslTLSVersion d_minTLSVersion{LibsslTLSVersion::TLS10};
+
   bool d_enableTickets{true};
 
 private:
@@ -214,7 +218,7 @@ public:
         throw runtime_error("EOF while reading message");
       }
       if (res < 0) {
-        if (errno == EAGAIN || errno == EWOULDBLOCK) {
+        if (errno == EAGAIN || errno == EWOULDBLOCK || errno == ENOTCONN) {
           return IOState::NeedRead;
         }
         else {
@@ -250,7 +254,7 @@ public:
         throw runtime_error("EOF while sending message");
       }
       if (res < 0) {
-        if (errno == EAGAIN || errno == EWOULDBLOCK) {
+        if (errno == EAGAIN || errno == EWOULDBLOCK || errno == ENOTCONN) {
           return IOState::NeedWrite;
         }
         else {

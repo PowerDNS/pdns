@@ -14,16 +14,15 @@ extraction:
       command:
       - "pushd pdns/dnsdistdist"
       - "sed -i '/^dist_man_MANS/d' Makefile.am"
-      - "autoreconf -vi && ./configure --enable-option-checking=fatal --enable-unit-tests --enable-dnscrypt --enable-dns-over-tls --enable-dns-over-https LIBS=-lwslay"
+      - "autoreconf -vi && ./configure"
       - "popd"
       - "pushd pdns/recursordist/"
       - "sed -i '/^dist_man_MANS/d' Makefile.am"
-      - "autoreconf -vi && ./configure --enable-option-checking=fatal --enable-unit-tests --enable-nod --enable-dnstap"
+      - "autoreconf -vi && ./configure"
       - "popd"
       - "sed -i 's/codedocs docs//' Makefile.am"
       - "autoreconf -vi"
-      - "./configure --enable-option-checking=fatal --with-modules='bind geoip gmysql godbc gpgsql gsqlite3 ldap lmdb lua lua2 mydns opendbx pipe random remote tinydns
-' --enable-fuzz-targets --enable-experimental-pkcs11 --enable-experimental-gss-tsig --enable-remotebackend-zeromq --enable-tools --enable-ixfrdist"
+      - "./configure --with-modules='bind gsqlite3 gmysql gpgsql ldap'"
     index:
       build_command:
       - "pushd pdns/dnsdistdist"

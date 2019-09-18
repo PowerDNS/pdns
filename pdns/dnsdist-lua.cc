@@ -45,6 +45,10 @@
 #include "protobuf.hh"
 #include "sodcrypto.hh"
 
+#ifdef HAVE_LIBSSL
+#include "libssl.hh"
+#endif
+
 #include <boost/logic/tribool.hpp>
 #include <boost/lexical_cast.hpp>
 
@@ -87,7 +91,7 @@ void resetLuaSideEffect()
   g_noLuaSideEffect = boost::logic::indeterminate;
 }
 
-typedef std::unordered_map<std::string, boost::variant<bool, int, std::string, std::vector<std::pair<int,int> > > > localbind_t;
+typedef std::unordered_map<std::string, boost::variant<bool, int, std::string, std::vector<std::pair<int,int> >, std::vector<std::pair<int, std::string> >, std::map<std::string,std::string>  > > localbind_t;
 
 static void parseLocalBindVars(boost::optional<localbind_t> vars, bool& reusePort, int& tcpFastOpenQueueSize, std::string& interface, std::set<int>& cpus)
 {
@@ -1723,8 +1727,23 @@ void setupLuaConfig(bool client)
       if (vars->count("ciphersTLS13")) {
         frontend->d_ciphers13 = boost::get<const string>((*vars)["ciphersTLS13"]);
       }
+      if (vars->count("minTLSVersion")) {
+        frontend->d_minTLSVersion = libssl_tls_version_from_string(boost::get<const string>((*vars)["minTLSVersion"]));
+      }
       if (vars->count("serverTokens")) {
         frontend->d_serverTokens = boost::get<const string>((*vars)["serverTokens"]);
+      }
+      if (vars->count("customResponseHeaders")) {
+        for (auto const& headerMap : boost::get<std::map<std::string,std::string>>((*vars)["customResponseHeaders"])) {
+          std::pair<std::string,std::string> headerResponse = std::make_pair(headerMap.first, headerMap.second);
+          frontend->d_customResponseHeaders.push_back(headerResponse);
+        }
+      }
+      if (vars->count("ocspResponses")) {
+        auto files = boost::get<std::vector<std::pair<int, std::string>>>((*vars)["ocspResponses"]);
+        for (const auto& file : files) {
+          frontend->d_ocspFiles.push_back(file.second);
+        }
       }
     }
     g_dohlocals.push_back(frontend);
@@ -1741,11 +1760,11 @@ void setupLuaConfig(bool client)
         setLuaNoSideEffect();
         try {
           ostringstream ret;
-          boost::format fmt("%-3d %-20.20s %-15d %-15d %-15d %-15d %-15d %-15d %-15d %-15d %-15d %-15d %-15d %-15d %-15d");
-          ret << (fmt % "#" % "Address" % "HTTP" % "HTTP/1" % "HTTP/2" % "TLS 1.0" % "TLS 1.1" % "TLS 1.2" % "TLS 1.3" % "TLS other" % "GET" % "POST" % "Bad" % "Errors" % "Valid") << endl;
+          boost::format fmt("%-3d %-20.20s %-15d %-15d %-15d %-15d %-15d %-15d %-15d %-15d %-15d %-15d %-15d %-15d %-15d %-15d");
+          ret << (fmt % "#" % "Address" % "HTTP" % "HTTP/1" % "HTTP/2" % "TLS 1.0" % "TLS 1.1" % "TLS 1.2" % "TLS 1.3" % "TLS other" % "GET" % "POST" % "Bad" % "Errors" % "Redirects" % "Valid") << endl;
           size_t counter = 0;
           for (const auto& ctx : g_dohlocals) {
-            ret << (fmt % counter % ctx->d_local.toStringWithPort() % ctx->d_httpconnects % ctx->d_http1Stats.d_nbQueries % ctx->d_http1Stats.d_nbQueries % ctx->d_tls10queries % ctx->d_tls11queries % ctx->d_tls12queries % ctx->d_tls13queries % ctx->d_tlsUnknownqueries % ctx->d_getqueries % ctx->d_postqueries % ctx->d_badrequests % ctx->d_errorresponses % ctx->d_validresponses) << endl;
+            ret << (fmt % counter % ctx->d_local.toStringWithPort() % ctx->d_httpconnects % ctx->d_http1Stats.d_nbQueries % ctx->d_http1Stats.d_nbQueries % ctx->d_tls10queries % ctx->d_tls11queries % ctx->d_tls12queries % ctx->d_tls13queries % ctx->d_tlsUnknownqueries % ctx->d_getqueries % ctx->d_postqueries % ctx->d_badrequests % ctx->d_errorresponses % ctx->d_redirectresponses %ctx->d_validresponses) << endl;
             counter++;
           }
           g_outputBuffer = ret.str();
@@ -1793,8 +1812,11 @@ void setupLuaConfig(bool client)
 #endif
       });
 
-    g_lua.writeFunction("getDOHFrontend", [](size_t index) {
+    g_lua.writeFunction("getDOHFrontend", [client](size_t index) {
         std::shared_ptr<DOHFrontend> result = nullptr;
+        if (client) {
+          return result;
+        }
 #ifdef HAVE_DNS_OVER_HTTPS
         setLuaNoSideEffect();
         try {
@@ -1819,6 +1841,19 @@ void setupLuaConfig(bool client)
     g_lua.registerFunction<void(std::shared_ptr<DOHFrontend>::*)()>("reloadCertificates", [](std::shared_ptr<DOHFrontend> frontend) {
         if (frontend != nullptr) {
           frontend->reloadCertificates();
+        }
+      });
+
+    g_lua.registerFunction<void(std::shared_ptr<DOHFrontend>::*)(const std::map<int, std::shared_ptr<DOHResponseMapEntry>>&)>("setResponsesMap", [](std::shared_ptr<DOHFrontend> frontend, const std::map<int, std::shared_ptr<DOHResponseMapEntry>>& map) {
+        if (frontend != nullptr) {
+          std::vector<std::shared_ptr<DOHResponseMapEntry>> newMap;
+          newMap.reserve(map.size());
+
+          for (const auto& entry : map) {
+            newMap.push_back(entry.second);
+          }
+
+          frontend->d_responsesMap = std::move(newMap);
         }
       });
 
@@ -1857,6 +1892,12 @@ void setupLuaConfig(bool client)
             frontend->d_ciphers13 = boost::get<const string>((*vars)["ciphersTLS13"]);
           }
 
+#ifdef HAVE_LIBSSL
+          if (vars->count("minTLSVersion")) {
+            frontend->d_minTLSVersion = libssl_tls_version_from_string(boost::get<const string>((*vars)["minTLSVersion"]));
+          }
+#endif /* HAVE_LIBSSL */
+
           if (vars->count("ticketKeyFile")) {
             frontend->d_ticketKeyFile = boost::get<const string>((*vars)["ticketKeyFile"]);
           }
@@ -1881,6 +1922,13 @@ void setupLuaConfig(bool client)
               return;
             }
             frontend->d_maxStoredSessions = value;
+          }
+
+          if (vars->count("ocspResponses")) {
+            auto files = boost::get<std::vector<std::pair<int, std::string>>>((*vars)["ocspResponses"]);
+            for (const auto& file : files) {
+              frontend->d_ocspFiles.push_back(file.second);
+            }
           }
         }
 
@@ -2020,6 +2068,12 @@ void setupLuaConfig(bool client)
       });
 
     g_lua.writeFunction("setAllowEmptyResponse", [](bool allow) { g_allowEmptyResponse=allow; });
+
+#if defined(HAVE_LIBSSL) && defined(HAVE_OCSP_BASIC_SIGN)
+    g_lua.writeFunction("generateOCSPResponse", [](const std::string& certFile, const std::string& caCert, const std::string& caKey, const std::string& outFile, int ndays, int nmin) {
+      return libssl_generate_ocsp_response(certFile, caCert, caKey, outFile, ndays, nmin);
+    });
+#endif /* HAVE_LIBSSL && HAVE_OCSP_BASIC_SIGN*/
 }
 
 vector<std::function<void(void)>> setupLua(bool client, const std::string& config)
@@ -2029,7 +2083,11 @@ vector<std::function<void(void)>> setupLua(bool client, const std::string& confi
   setupLuaActions();
   setupLuaConfig(client);
   setupLuaBindings(client);
+  setupLuaBindingsDNSCrypt();
   setupLuaBindingsDNSQuestion();
+  setupLuaBindingsKVS(client);
+  setupLuaBindingsPacketCache();
+  setupLuaBindingsProtoBuf(client);
   setupLuaInspection();
   setupLuaRules();
   setupLuaVars();

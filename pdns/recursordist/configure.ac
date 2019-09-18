@@ -40,46 +40,6 @@ PDNS_CHECK_OS
 PDNS_CHECK_NETWORK_LIBS
 PTHREAD_SET_NAME
 
-# Boost Context was introduced in 1.51 (Aug 2012), but there was an immediate
-# API break in 1.52 (Nov 2012), so we only support that, and later.
-pdns_context_library="System V ucontexts"
-
-AC_DEFUN([PDNS_SELECT_CONTEXT_IMPL], [
-  AC_MSG_CHECKING([whether Boost is new enough to use the context library...])
-  if test $boost_major_version -ge 152; then
-    AC_MSG_RESULT([yes])
-    if test $boost_major_version -ge 157; then
-      BOOST_THREAD([$1])
-      m4_pattern_allow([^BOOST_THREAD_(LIBS|LDFLAGS)$])dnl
-      LIBS="$LIBS $BOOST_THREAD_LIBS"
-      LDFLAGS="$LDFLAGS $BOOST_THREAD_LDFLAGS"
-    fi
-    AC_MSG_NOTICE([checking whether the Boost context library actually links...])
-    if test $boost_major_version -ge 161; then
-      BOOST_FIND_HEADER([boost/context/detail/fcontext.hpp], [ : ], [
-        BOOST_FIND_LIB([context], [$1], [boost/context/detail/fcontext.hpp], [[]])
-      ])
-    else
-      BOOST_FIND_HEADER([boost/context/fcontext.hpp], [ : ], [
-        BOOST_FIND_LIB([context], [$1], [boost/context/fcontext.hpp], [[]])
-      ])
-    fi
-    case $boost_cv_lib_context in
-      (yes)
-        pdns_context_library="Boost context"
-        AC_MSG_NOTICE([MTasker will use the Boost context library for context switching])
-        ;;
-      *)
-        AC_MSG_NOTICE([Boost context library is missing])
-        AC_MSG_NOTICE([MTasker will use System V ucontexts for context switching])
-        ;;
-    esac
-  else
-    AC_MSG_RESULT([no])
-    AC_MSG_NOTICE([MTasker will use System V ucontexts for context switching])
-  fi
-])
-
 PDNS_CHECK_CLOCK_GETTIME
 
 PDNS_WITH_PROTOBUF
@@ -89,7 +49,17 @@ BOOST_REQUIRE([1.42])
 # Check against flat_set header that requires boost >= 1.48
 BOOST_FIND_HEADER([boost/container/flat_set.hpp], [AC_MSG_NOTICE([boost::container::flat_set not available, will fallback to std::set])])
 
-PDNS_SELECT_CONTEXT_IMPL
+# Boost Context was introduced in 1.51 (Aug 2012), but there was an immediate
+# API break in 1.52 (Nov 2012), so we only support that, and later.
+pdns_context_library=""
+AS_IF([test $boost_major_version -ge 152], [BOOST_CONTEXT([], [no])])
+AS_IF([test x"$boost_cv_lib_context" = "xyes"], [
+  pdns_context_library="Boost Context"
+], [
+  AC_CHECK_FUNCS([getcontext makecontext swapcontext], [pdns_context_library="System V ucontexts"])
+])
+AC_MSG_CHECKING([what context library to use for MTasker])
+AS_IF([test -n "$pdns_context_library"], [AC_MSG_RESULT([$pdns_context_library])], [AC_MSG_ERROR([neither boost::context nor System V ucontexts available])])
 
 PDNS_ENABLE_UNIT_TESTS
 PDNS_ENABLE_REPRODUCIBLE
@@ -149,7 +119,7 @@ AC_ARG_WITH([nod-cache-dir],
   [nodcachedir="$withval"]
 )
 
-PDNS_CHECK_DNSTAP
+PDNS_CHECK_DNSTAP([no])
 
 AC_MSG_CHECKING([whether we will enable compiler security checks])
 AC_ARG_ENABLE([hardening],

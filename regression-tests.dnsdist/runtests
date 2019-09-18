@@ -46,7 +46,7 @@ if [ "${PDNS_DEBUG}" = "YES" ]; then
   set -x
 fi
 
-rm -f ca.key ca.pem ca.srl server.csr server.key server.pem server.chain
+rm -f ca.key ca.pem ca.srl server.csr server.key server.pem server.chain server.ocsp
 rm -rf configs/*
 
 # Generate a new CA
@@ -66,4 +66,4 @@ if ! nosetests --with-xunit $@; then
     false
 fi
 
-rm ca.key ca.pem ca.srl server.csr server.key server.pem server.chain
+rm -f ca.key ca.pem ca.srl server.csr server.key server.pem server.chain server.ocsp

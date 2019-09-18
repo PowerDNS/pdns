@@ -25,19 +25,12 @@
 
 #include "lua.hpp"
 
-//extern "C" {
-//#include "lua.h"
-//#include "lualib.h"
-//#include "lauxlib.h"
-//}
-
 #include "pdns/dnsbackend.hh"
 
 #include <string>
 using std::string;
 
-
-
+#define LUABACKEND_PREFIX "lua"
 
 class LUAException {
 public:
@@ -101,6 +94,8 @@ public:
     bool getBeforeAndAfterNamesAbsolute(uint32_t id, const DNSName& qname, DNSName& unhashed, DNSName& before, DNSName& after) override;
     bool updateDNSSECOrderNameAndAuth(uint32_t domain_id, const DNSName& qname, const DNSName& ordername, bool auth, const uint16_t qtype=QType::ANY) override;
     bool updateDNSSECOrderAndAuth(uint32_t domain_id, const DNSName& zonename, const DNSName& qname, bool auth);
+
+
 //  OTHER
     void reload() override ;
     void rediscover(string* status=0) override ;
@@ -113,6 +108,7 @@ public:
     //private.cc
     string my_getArg(string a);
     bool my_mustDo(string a);
+    bool my_isEmpty(string a);
 
 private:
 
@@ -167,8 +163,6 @@ private:
     int f_lua_updatednssecorderandauth;
 
 
-//    int my_lua_panic (lua_State *lua);
-
 //  FUNCTIONS TO THIS BACKEND
     bool getValueFromTable(lua_State *lua, const std::string& key, string& value);
     bool getValueFromTable(lua_State *lua, const std::string& key, DNSName& value);
@@ -186,6 +180,7 @@ private:
     bool domaininfo_from_table(DomainInfo *di);
     void domains_from_table(vector<DomainInfo>* domains, const char *f_name);
     void dnsrr_to_table(lua_State *lua, const DNSResourceRecord *rr);
+    bool dnsrr_from_table(lua_State *lua, DNSResourceRecord &rr);
 
     //reload.cc
     void get_lua_function(lua_State *lua, const char *name, int *function);
@@ -196,55 +191,6 @@ private:
 
     //dnssec.cc
     bool updateDomainKey(const DNSName& name, unsigned int &id, bool toowhat);
-
-
-/*
-    //minimal.cc
-    bool content(DNSResourceRecord* rr);
-
-    void getTheFreshOnes(vector<DomainInfo>* domains, string *type, string *f_name);
-    bool checkDomainInfo(const string *domain, mongo::BSONObj *mongo_r, string *f_name, string *mongo_q, DomainInfo *di, SOAData *soadata = NULL);
-
-
-    //crc32.cc
-    int generateCRC32(const string& my_string);
-
-    string mongo_db;
-    string collection_domains;
-    string collection_records;
-
-    string collection_domainmetadata;
-    string collection_cryptokeys;
-    string collection_tsigkeys;
-
-    mongo::DBClientConnection m_db;
-
-    auto_ptr<mongo::DBClientCursor> cursor;
-
-    string q_name;
-
-//    long long unsigned int count;
-    mongo::Query mongo_query;
-    mongo::BSONObj mongo_record;
-    bool elements;
-    DNSResourceRecord rr_record;
-    string type;
-    mongo::BSONObjIterator* contents;
-
-
-
-    unsigned int default_ttl;
-
-    bool logging_cerr;
-    bool logging_content;
-
-    bool checkindex;
-
-    bool use_default_ttl;
-
-    bool axfr_soa;
-    SOAData last_soadata;
-*/
 };
 
 #endif

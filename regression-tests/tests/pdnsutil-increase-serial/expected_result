@@ -1,0 +1,6 @@
+SOA serial for zone test.dyndns set to 2012060702
+Check that test.dyndns. still has a valid ordername
+--- Start: diff start step.1 ---
+no difference
+--- End: diff start step.1 ---
+

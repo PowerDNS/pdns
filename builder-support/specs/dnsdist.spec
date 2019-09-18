@@ -28,6 +28,7 @@ BuildRequires: systemd-devel
 BuildRequires: boost-devel
 BuildRequires: gnutls-devel
 BuildRequires: libcap-devel
+BuildRequires: lmdb-devel
 BuildRequires: libsodium-devel
 %ifarch aarch64
 BuildRequires: lua-devel
@@ -43,6 +44,7 @@ BuildRequires: re2-devel
 BuildRequires: systemd
 BuildRequires: systemd-devel
 BuildRequires: systemd-units
+BuildRequires: tinycdb-devel
 %endif
 
 %if 0%{?el6}

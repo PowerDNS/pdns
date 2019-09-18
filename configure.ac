@@ -203,6 +203,7 @@ for a in $modules $dynmodules; do
       have_remotebackend=yes
       ;;
     tinydns)
+      needcdb=yes
       PDNS_CHECK_CDB
       ;;
     geoip)
@@ -217,6 +218,7 @@ for a in $modules $dynmodules; do
       )
       ;;
     lmdb)
+      needlmdb=yes
       PDNS_CHECK_LMDB
       BOOST_SERIALIZATION
       ;;
@@ -238,6 +240,27 @@ AM_CONDITIONAL([LDAP], [test "x$needldap" = "xyes"])
 
 PDNS_CHECK_SQLITE3
 AM_CONDITIONAL([SQLITE3], [test "x$needsqlite3" = "xyes"])
+
+AM_CONDITIONAL([LMDB], [test "x$needlmdb" != "x"])
+AM_CONDITIONAL([HAVE_LMDB], [test "x$LMDB_LIBS" != "x"])
+
+AS_IF([test "x$needlmdb" = "xyes"], [
+  AS_IF([test "$with_lmdb" = "no"], [
+    AC_MSG_ERROR([--with-lmdb is set to 'no', but lmdb support is required])
+  ])
+  AS_IF([test "x$HAVE_LMDB" != "x1"], [
+    AC_MSG_ERROR([lmdb not found via pkg-config, please install lmdb or set --with-lmdb to your lmdb installation directory])
+  ])
+])
+
+AM_CONDITIONAL([CDB], [test "x$needcdb" != "x"])
+AM_CONDITIONAL([HAVE_CDB], [test "x$CDB_LIBS" != "x"])
+
+AS_IF([test "x$needcdb" = "xyes"], [
+  AS_IF([test "x$HAVE_CDB" != "x1"], [
+    AC_MSG_ERROR([cdb not found via pkg-config, please install cdb])
+  ])
+])
 
 for a in $modules; do
   AC_MSG_CHECKING([whether we can build module "${a}"])

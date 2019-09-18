@@ -61,7 +61,7 @@ From tarball
 
 Release tarballs are available `from the downloads site <https://downloads.powerdns.com/releases>`_, snapshot and pre-release tarballs `can be found as well <https://downloads.powerdns.com/autobuilt_browser/#/dnsdist>`__.
 
-The release tarballs have detached PGP signatures, signed by on these PGP keys:
+The release tarballs have detached PGP signatures, signed by one of these PGP keys:
 
 * `D630 0CAB CBF4 69BB E392 E503 A208 ED4F 8AF5 8446 <https://pgp.mit.edu/pks/lookup?op=get&search=0xA208ED4F8AF58446>`__
 * `FBAE 0323 821C 7706 A5CA 151B DCF5 13FA 7EED 19F3 <https://pgp.mit.edu/pks/lookup?op=get&search=0xDCF513FA7EED19F3>`__

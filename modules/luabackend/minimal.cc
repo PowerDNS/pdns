@@ -28,13 +28,11 @@
 #include "pdns/logger.hh"
 #include "pdns/arguments.hh"
 
-//#include "lua_functions.hh"
-
 /* FIRST PART */
 
 LUABackend::LUABackend(const string &suffix) {
 
-    setArgPrefix("lua"+suffix);
+    setArgPrefix(LUABACKEND_PREFIX+suffix);
 
     try {
 
@@ -45,7 +43,6 @@ LUABackend::LUABackend(const string &suffix) {
     	    backend_pid = pthread_self();
 	}
 
-//	lb = NULL;
 	lua = NULL;
 	dnspacket = NULL;
 	dnssec = false;
@@ -108,9 +105,21 @@ void LUABackend::lookup(const QType &qtype, const DNSName &qname, DNSPacket *p, 
 
     lua_rawgeti(lua, LUA_REGISTRYINDEX, f_lua_lookup);
 
-//    lua_pushnumber(lua, qtype.getCode());
+    lua_newtable(lua);
+    lua_pushliteral(lua, "name");
     lua_pushstring(lua, qtype.getName().c_str());
-    lua_pushstring(lua, qname.toString().       c_str());
+    lua_settable(lua, -3);
+    lua_pushliteral(lua, "code");
+    lua_pushinteger(lua, qtype.getCode());
+    lua_settable(lua, -3);
+    lua_newtable(lua);
+    if(0 == luaL_loadstring(lua, "return function (t) return t.name end")) {
+	lua_call(lua, 0, 1);
+	lua_setfield(lua, -2, "__tostring");
+    }
+    lua_setmetatable(lua, -2);
+
+    lua_pushstring(lua, qname.toString().c_str());
     lua_pushinteger(lua, domain_id);
 
     if(lua_pcall(lua, 3, 0, f_lua_exec_error) != 0) {
@@ -150,30 +159,16 @@ bool LUABackend::get(DNSResourceRecord &rr) {
     }
 
     rr.content.clear();
+    bool got_content = false;
+    got_content = dnsrr_from_table(lua, rr);
 
-//    uint16_t qt;
-    string qt;
-
-    if (getValueFromTable(lua, "type", qt) )
-	rr.qtype = qt;
-    getValueFromTable(lua, "name", rr.qname);
-    getValueFromTable(lua, "domain_id", rr.domain_id);
-    getValueFromTable(lua, "auth", rr.auth);
-    getValueFromTable(lua, "last_modified", rr.last_modified);
-
-    getValueFromTable(lua, "ttl", rr.ttl);
     if (rr.ttl == 0)
         rr.ttl = ::arg().asNum( "default-ttl" );
 
-    getValueFromTable(lua, "content", rr.content);
-    getValueFromTable(lua, "scopeMask", rr.scopeMask);
-
-    lua_pop(lua, 1 );
-
     if (logging)
-	g_log << Logger::Info << backend_name << "(get) END" << endl;
+	g_log << Logger::Info << backend_name << "(get) END " << got_content << endl;
 
-    return !rr.content.empty();
+    return got_content;
 }
 
 bool LUABackend::getSOA(const DNSName &name, SOAData &soadata) {
@@ -199,6 +194,7 @@ bool LUABackend::getSOA(const DNSName &name, SOAData &soadata) {
     }
 
     soadata.db = this;
+    soadata.qname = name;
     soadata.serial = 0;
     soadata.qname = name;
     getValueFromTable(lua, "serial", soadata.serial);
@@ -223,7 +219,7 @@ bool LUABackend::getSOA(const DNSName &name, SOAData &soadata) {
     }
 
     if (!getValueFromTable(lua, "nameserver", soadata.nameserver)) {
-        soadata.nameserver = DNSName(arg()["default-soa-name"]);
+        soadata.nameserver = DNSName(::arg()["default-soa-name"]);
         if (soadata.nameserver.empty()) {
     	    g_log<<Logger::Error << backend_name << "(getSOA)" << " Error: SOA Record is missing nameserver for the domain '" << name << "'" << endl;
 	    lua_pop(lua, 1 );

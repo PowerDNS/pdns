@@ -76,6 +76,7 @@ struct DNSQuestion
   Netmask ecs;
   boost::optional<Netmask> subnet;
   std::string sni; /* Server Name Indication, if any (DoT or DoH) */
+  std::string poolname;
   const DNSName* qname{nullptr};
   const ComboAddress* local{nullptr};
   const ComboAddress* remote{nullptr};
@@ -541,17 +542,84 @@ struct ClientState;
 
 struct IDState
 {
-  IDState() : origFD(-1), sentTime(true), delayMsec(0), tempFailureTTL(boost::none) { origDest.sin4.sin_family = 0;}
+  IDState(): sentTime(true), delayMsec(0), tempFailureTTL(boost::none) { origDest.sin4.sin_family = 0;}
   IDState(const IDState& orig): origRemote(orig.origRemote), origDest(orig.origDest), age(orig.age)
   {
-    origFD.store(orig.origFD.load());
+    usageIndicator.store(orig.usageIndicator.load());
+    origFD = orig.origFD;
     origID = orig.origID;
     delayMsec = orig.delayMsec;
     tempFailureTTL = orig.tempFailureTTL;
   }
 
-  std::atomic<int> origFD;  // set to <0 to indicate this state is empty   // 4
+  static const int64_t unusedIndicator = -1;
 
+  static bool isInUse(int64_t usageIndicator)
+  {
+    return usageIndicator != unusedIndicator;
+  }
+
+  bool isInUse() const
+  {
+    return usageIndicator != unusedIndicator;
+  }
+
+  /* return true if the value has been successfully replaced meaning that
+     no-one updated the usage indicator in the meantime */
+  bool tryMarkUnused(int64_t expectedUsageIndicator)
+  {
+    return usageIndicator.compare_exchange_strong(expectedUsageIndicator, unusedIndicator);
+  }
+
+  /* mark as unused no matter what, return true if the state was in use before */
+  bool markAsUsed()
+  {
+    auto currentGeneration = generation++;
+    return markAsUsed(currentGeneration);
+  }
+
+  /* mark as unused no matter what, return true if the state was in use before */
+  bool markAsUsed(int64_t currentGeneration)
+  {
+    int64_t oldUsage = usageIndicator.exchange(currentGeneration);
+    return oldUsage != unusedIndicator;
+  }
+
+  /* We use this value to detect whether this state is in use.
+     For performance reasons we don't want to use a lock here, but that means
+     we need to be very careful when modifying this value. Modifications happen
+     from:
+     - one of the UDP or DoH 'client' threads receiving a query, selecting a backend
+       then picking one of the states associated to this backend (via the idOffset).
+       Most of the time this state should not be in use and usageIndicator is -1, but we
+       might not yet have received a response for the query previously associated to this
+       state, meaning that we will 'reuse' this state and erase the existing state.
+       If we ever receive a response for this state, it will be discarded. This is
+       mostly fine for UDP except that we still need to be careful in order to miss
+       the 'outstanding' counters, which should only be increased when we are picking
+       an empty state, and not when reusing ;
+       For DoH, though, we have dynamically allocated a DOHUnit object that needs to
+       be freed, as well as internal objects internals to libh2o.
+     - one of the UDP receiver threads receiving a response from a backend, picking
+       the corresponding state and sending the response to the client ;
+     - the 'healthcheck' thread scanning the states to actively discover timeouts,
+       mostly to keep some counters like the 'outstanding' one sane.
+     We previously based that logic on the origFD (FD on which the query was received,
+     and therefore from where the response should be sent) but this suffered from an
+     ABA problem since it was quite likely that a UDP 'client thread' would reset it to the
+     same value since we only have so much incoming sockets:
+     - 1/ 'client' thread gets a query and set origFD to its FD, say 5 ;
+     - 2/ 'receiver' thread gets a response, read the value of origFD to 5, check that the qname,
+       qtype and qclass match
+     - 3/ during that time the 'client' thread reuses the state, setting again origFD to 5 ;
+     - 4/ the 'receiver' thread uses compare_exchange_strong() to only replace the value if it's still
+       5, except it's not the same 5 anymore and it overrides a fresh state.
+     We now use a 32-bit unsigned counter instead, which is incremented every time the state is set,
+     wrapping around if necessary, and we set an atomic signed 64-bit value, so that we still have -1
+     when the state is unused and the value of our counter otherwise.
+  */
+  std::atomic<int64_t> usageIndicator{unusedIndicator};  // set to unusedIndicator to indicate this state is empty   // 8
+  std::atomic<uint32_t> generation{0}; // increased every time a state is used, to be able to detect an ABA issue    // 4
   ComboAddress origRemote;                                    // 28
   ComboAddress origDest;                                      // 28
   StopWatch sentTime;                                         // 16
@@ -572,6 +640,7 @@ struct IDState
   uint16_t qclass;                                            // 2
   uint16_t origID;                                            // 2
   uint16_t origFlags;                                         // 2
+  int origFD{-1};
   int delayMsec;
   boost::optional<uint32_t> tempFailureTTL;
   bool ednsAdded{false};
@@ -1132,6 +1201,7 @@ void resetLuaSideEffect(); // reset to indeterminate state
 
 bool responseContentMatches(const char* response, const uint16_t responseLen, const DNSName& qname, const uint16_t qtype, const uint16_t qclass, const ComboAddress& remote, unsigned int& consumed);
 bool processResponse(char** response, uint16_t* responseLen, size_t* responseSize, LocalStateHolder<vector<DNSDistResponseRuleAction> >& localRespRulactions, DNSResponse& dr, size_t addRoom, std::vector<uint8_t>& rewrittenResponse, bool muted);
+bool processRulesResult(const DNSAction::Action& action, DNSQuestion& dq, std::string& ruleresult, bool& drop);
 
 bool checkQueryHeaders(const struct dnsheader* dh);
 

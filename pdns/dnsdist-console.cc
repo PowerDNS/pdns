@@ -299,7 +299,7 @@ void doConsole()
           }
         }
         else 
-          cout << g_outputBuffer;
+          cout << g_outputBuffer << std::flush;
         if(!getLuaNoSideEffect())
           feedConfigDelta(line);
       }
@@ -364,6 +364,7 @@ const std::vector<ConsoleKeyword> g_consoleKeywords{
   { "clearDynBlocks", true, "", "clear all dynamic blocks" },
   { "clearQueryCounters", true, "", "clears the query counter buffer" },
   { "clearRules", true, "", "remove all current rules" },
+  { "ContinueAction", true, "action", "execute the specified action and continue the processing of the remaining rules, regardless of the return of the action" },
   { "DelayAction", true, "milliseconds", "delay the response by the specified amount of milliseconds (UDP-only)" },
   { "DelayResponseAction", true, "milliseconds", "delay the response by the specified amount of milliseconds (UDP-only)" },
   { "delta", true, "", "shows all commands entered that changed the configuration" },
@@ -406,11 +407,19 @@ const std::vector<ConsoleKeyword> g_consoleKeywords{
   { "getStatisticsCounters", true, "", "returns a map of statistic counters" },
   { "getTLSContext", true, "n", "returns the TLS context with index n" },
   { "getTLSFrontend", true, "n", "returns the TLS frontend with index n" },
-  { "HTTPHeaderRule", true, "name, regex", "matches DoH queries with a HTTP header 'name' whose content matches the regular expression 'regex'"},
-  { "HTTPPathRule", true, "path", "matches DoH queries whose HTTP path is an exact match to 'path'"},
-  { "inClientStartup", true, "", "returns true during console client parsing of configuration" },
-  { "includeDirectory", true, "path", "nclude configuration files from `path`" },
   { "grepq", true, "Netmask|DNS Name|100ms|{\"::1\", \"powerdns.com\", \"100ms\"} [, n]", "shows the last n queries and responses matching the specified client address or range (Netmask), or the specified DNS Name, or slower than 100ms" },
+  { "HTTPHeaderRule", true, "name, regex", "matches DoH queries with a HTTP header 'name' whose content matches the regular expression 'regex'"},
+  { "HTTPPathRegexRule", true, "regex", "matches DoH queries whose HTTP path matches 'regex'"},
+  { "HTTPPathRule", true, "path", "matches DoH queries whose HTTP path is an exact match to 'path'"},
+  { "HTTPStatusAction", true, "status, reason, body", "return an HTTP response"},
+  { "inClientStartup", true, "", "returns true during console client parsing of configuration" },
+  { "includeDirectory", true, "path", "include configuration files from `path`" },
+  { "KeyValueLookupKeyQName", true, "[wireFormat]", "Return a new KeyValueLookupKey object that, when passed to KeyValueStoreLookupAction or KeyValueStoreLookupRule, will return the qname of the query, either in wire format (default) or in plain text if 'wireFormat' is false" },
+  { "KeyValueLookupKeySourceIP", true, "", "Return a new KeyValueLookupKey object that, when passed to KeyValueStoreLookupAction or KeyValueStoreLookupRule, will return the source IP of the client in network byte-order." },
+  { "KeyValueLookupKeySuffix", true, "[minLabels [,wireFormat]]", "Return a new KeyValueLookupKey object that, when passed to KeyValueStoreLookupAction or KeyValueStoreLookupRule, will return a vector of keys based on the labels of the qname in DNS wire format or plain text" },
+  { "KeyValueLookupKeyTag", true, "tag", "Return a new KeyValueLookupKey object that, when passed to KeyValueStoreLookupAction or KeyValueStoreLookupRule, will return the value of the corresponding tag for this query, if it exists" },
+  { "KeyValueStoreLookupAction", true, "kvs, lookupKey, destinationTag", "does a lookup into the key value store referenced by 'kvs' using the key returned by 'lookupKey', and storing the result if any into the tag named 'destinationTag'" },
+  { "KeyValueStoreLookupRule", true, "kvs, lookupKey", "matches queries if the key is found in the specified Key Value store" },
   { "leastOutstanding", false, "", "Send traffic to downstream server with least outstanding queries, with the lowest 'order', and within that the lowest recent latency"},
   { "LogAction", true, "[filename], [binary], [append], [buffered]", "Log a line for each query, to the specified file if any, to the console (require verbose) otherwise. When logging to a file, the `binary` optional parameter specifies whether we log in binary form (default) or in textual form, the `append` optional parameter specifies whether we open the file for appending or truncate each time (default), and the `buffered` optional parameter specifies whether writes to the file are buffered (default) or not." },
   { "LuaAction", true, "function", "Invoke a Lua function that accepts a DNSQuestion" },
@@ -428,11 +437,17 @@ const std::vector<ConsoleKeyword> g_consoleKeywords{
   { "NetmaskGroupRule", true, "nmg[, src]", "Matches traffic from/to the network range specified in nmg. Set the src parameter to false to match nmg against destination address instead of source address. This can be used to differentiate between clients" },
   { "newBPFFilter", true, "maxV4, maxV6, maxQNames", "Return a new eBPF socket filter with a maximum of maxV4 IPv4, maxV6 IPv6 and maxQNames qname entries in the block table" },
   { "newCA", true, "address", "Returns a ComboAddress based on `address`" },
+#ifdef HAVE_CDB
+  { "newCDBKVStore", true, "fname, refreshDelay", "Return a new KeyValueStore object associated to the corresponding CDB database" },
+#endif
   { "newDNSName", true, "name", "make a DNSName based on this .-terminated name" },
   { "newDNSNameSet", true, "", "returns a new DNSNameSet" },
   { "newDynBPFFilter", true, "bpf", "Return a new dynamic eBPF filter associated to a given BPF Filter" },
   { "newFrameStreamTcpLogger", true, "addr", "create a FrameStream logger object writing to a TCP address (addr should be ip:port), to use with `DnstapLogAction()` and `DnstapLogResponseAction()`" },
   { "newFrameStreamUnixLogger", true, "socket", "create a FrameStream logger object writing to a local unix socket, to use with `DnstapLogAction()` and `DnstapLogResponseAction()`" },
+#ifdef HAVE_LMDB
+  { "newLMDBKVStore", true, "fname, dbName", "Return a new KeyValueStore object associated to the corresponding LMDB database" },
+#endif
   { "newNMG", true, "", "Returns a NetmaskGroup" },
   { "newPacketCache", true, "maxEntries[, maxTTL=86400, minTTL=0, temporaryFailureTTL=60, staleTTL=60, dontAge=false, numberOfShards=1, deferrableInsertLock=true, options={}]", "return a new Packet Cache" },
   { "newQPSLimiter", true, "rate, burst", "configure a QPS limiter with that rate and that burst capacity" },

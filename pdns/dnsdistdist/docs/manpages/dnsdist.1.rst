@@ -87,4 +87,4 @@ Right now, the TCP support has some rather arbitrary limits.
 Resources
 ---------
 
-Website: http://dnsdist.org
+Website: https://dnsdist.org

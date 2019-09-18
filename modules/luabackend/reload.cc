@@ -34,11 +34,6 @@ using namespace std;
 
 #include "lua_functions.hh"
 
-/* 
-    virtual void reload();
-    virtual void rediscover(string* status=0);
-*/
-
 void LUABackend::get_lua_function(lua_State *lua, const char *name, int *function) {
     *function = 0;
     
@@ -46,7 +41,7 @@ void LUABackend::get_lua_function(lua_State *lua, const char *name, int *functio
     f.append(name);
     
     string arg = "";
-    if (!::arg().isEmpty(f))
+    if (!::arg().isEmpty(string(LUABACKEND_PREFIX)+"-"+f))
         arg = getArg(f);
 
     lua_getglobal(lua, arg == "" ? name : arg.c_str());
@@ -61,13 +56,12 @@ void LUABackend::reload() {
     
     backend_name.clear();
 
-//	backend_name = "[LUABackend: " + uitoa(backend_pid) + " (" + uitoa(backend_count) +")] ";
-    backend_name = "[LUABackend: (" + uitoa(backend_count) +")] ";
+    backend_name = "[LUABackend: " + uitoa(backend_pid) + " (" + uitoa(backend_count) +")] ";
     
     if (lua)
 	lua_close(lua);
 	
-    logging = ::arg().mustDo("query-logging") || mustDo("logging-query");
+    logging = ::arg().mustDo("query-logging") || mustDo("query-logging");
 
 #if LUA_VERSION_NUM >= 502
     lua = luaL_newstate();

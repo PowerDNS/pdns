@@ -32,7 +32,7 @@ For example::
 
   addAction(MaxQPSIPRule(5, 32, 48), DelayAction(100))
 
-This measures traffic per IPv4 address and per /48 of IPv6, and if traffic for such an address (range) exceeds 5 qps, it gets delayed by 100ms.
+This measures traffic per IPv4 address and per /48 of IPv6, and if traffic for such an address (range) exceeds 5 qps, it gets delayed by 100ms. (Please note: :func:`DelayAction` can only delay UDP traffic). 
 
 As another example::
 
@@ -583,12 +583,34 @@ These ``DNSRule``\ s be one of the following items:
   :param str name: The case-insensitive name of the HTTP header to match on
   :param str regex: A regular expression to match the content of the specified header
 
+.. function:: HTTPPathRegexRule(regex)
+  .. versionadded:: 1.4.0
+
+  Matches DNS over HTTPS queries with a HTTP path matching the regular expression supplied in ``regex``. For example, if the query has been sent to the https://192.0.2.1:443/PowerDNS?dns=... URL, the path would be '/PowerDNS'.
+  Only valid DNS over HTTPS queries are matched. If you want to match all HTTP queries, see :meth:`DOHFrontend.setResponsesMap` instead.
+
+  :param str regex: The regex to match on
+
 .. function:: HTTPPathRule(path)
   .. versionadded:: 1.4.0
 
   Matches DNS over HTTPS queries with a HTTP path of ``path``. For example, if the query has been sent to the https://192.0.2.1:443/PowerDNS?dns=... URL, the path would be '/PowerDNS'.
+  Only valid DNS over HTTPS queries are matched. If you want to match all HTTP queries, see :meth:`DOHFrontend.setResponsesMap` instead.
 
   :param str path: The exact HTTP path to match on
+
+.. function:: KeyValueStoreLookupRule(kvs, lookupKey)
+  .. versionadded:: 1.4.0
+
+  As of 1.4.0, this code is considered experimental.
+
+  Return true if the key returned by 'lookupKey' exists in the key value store referenced by 'kvs'.
+  The store can be a CDB (:func:`newCDBKVStore`) or a LMDB database (:func:`newLMDBKVStore`).
+  The key can be based on the qname (:func:`KeyValueLookupKeyQName` and :func:`KeyValueLookupKeySuffix`),
+  source IP (:func:`KeyValueLookupKeySourceIP`) or the value of an existing tag (:func:`KeyValueLookupKeyTag`).
+
+  :param KeyValueStore kvs: The key value store to query
+  :param KeyValueLookupKey lookupKey: The key to use for the lookup
 
 .. function:: MaxQPSIPRule(qps[, v4Mask[, v6Mask[, burst[, expiration[, cleanupDelay[, scanFraction]]]]]])
   .. versionchanged:: 1.3.1
@@ -852,6 +874,15 @@ The following actions exist.
 
   Let these packets go through.
 
+.. function:: ContinueAction(action)
+
+  .. versionadded:: 1.4.0
+
+  Execute the specified action and override its return with None, making it possible to continue the processing.
+  Subsequent rules are processed after this action.
+
+  :param int action: Any other action
+
 .. function:: DelayAction(milliseconds)
 
   Delay the response by the specified amount of milliseconds (UDP-only).
@@ -881,6 +912,7 @@ The following actions exist.
 
   Send the the current query to a remote logger as a :doc:`dnstap <reference/dnstap>` message.
   ``alterFunction`` is a callback, receiving a :class:`DNSQuestion` and a :class:`DnstapMessage`, that can be used to modify the message.
+  Subsequent rules are processed after this action.
 
   :param string identity: Server identity to store in the dnstap message
   :param logger: The :func:`FrameStreamLogger <newFrameStreamUnixLogger>` or :func:`RemoteLogger <newRemoteLogger>` object to write to
@@ -892,6 +924,7 @@ The following actions exist.
 
   Send the the current response to a remote logger as a :doc:`dnstap <reference/dnstap>` message.
   ``alterFunction`` is a callback, receiving a :class:`DNSQuestion` and a :class:`DnstapMessage`, that can be used to modify the message.
+  Subsequent rules are processed after this action.
 
   :param string identity: Server identity to store in the dnstap message
   :param logger: The :func:`FrameStreamLogger <newFrameStreamUnixLogger>` or :func:`RemoteLogger <newRemoteLogger>` object to write to
@@ -930,9 +963,34 @@ The following actions exist.
 
   :param int rcode: The extended RCODE to respond with.
 
-.. function:: LogAction([filename[, binary[, append[, buffered]]]])
+.. function:: HTTPStatusAction(status, body, contentType="")
+  .. versionadded:: 1.4.0
 
-  Log a line for each query, to the specified ``file`` if any, to the console (require verbose) otherwise.
+  Return an HTTP response with a status code of ''status''. For HTTP redirects, ''body'' should be the redirect URL.
+
+  :param int status: The HTTP status code to return.
+  :param string body: The body of the HTTP response, or a URL if the status code is a redirect (3xx).
+  :param string contentType: The HTTP Content-Type header to return for a 200 response, ignored otherwise. Default is ''application/dns-message''.
+
+.. function:: KeyValueStoreLookupAction(kvs, lookupKey, destinationTag)
+
+  .. versionadded:: 1.4.0
+
+  As of 1.4.0, this code is considered experimental.
+
+  Does a lookup into the key value store referenced by 'kvs' using the key returned by 'lookupKey',
+  and storing the result if any into the tag named 'destinationTag'.
+  The store can be a CDB (:func:`newCDBKVStore`) or a LMDB database (:func:`newLMDBKVStore`).
+  The key can be based on the qname (:func:`KeyValueLookupKeyQName` and :func:`KeyValueLookupKeySuffix`),
+  source IP (:func:`KeyValueLookupKeySourceIP`) or the value of an existing tag (:func:`KeyValueLookupKeyTag`).
+
+  :param KeyValueStore kvs: The key value store to query
+  :param KeyValueLookupKey lookupKey: The key to use for the lookup
+  :param string destinationTag: The name of the tag to store the result into
+
+.. function:: LogAction(filename[, binary[, append[, buffered]]])
+
+  Log a line for each query, to the specified ``file`` if any, to the console (require verbose) if the empty string is given as filename.
   When logging to a file, the ``binary`` optional parameter specifies whether we log in binary form (default) or in textual form.
   The ``append`` optional parameter specifies whether we open the file for appending or truncate each time (default).
   The ``buffered`` optional parameter specifies whether writes to the file are buffered (default) or not.
@@ -1014,7 +1072,8 @@ The following actions exist.
     ``ipEncryptKey`` optional key added to the options table.
 
   Send the content of this query to a remote logger via Protocol Buffer.
-  ``alterFunction`` is a callback, receiving a :class:`DNSQuestion` and a :class:`DNSDistProtoBufMessage`, that can be used to modify the Protocol Buffer content, for example for anonymization purposes
+  ``alterFunction`` is a callback, receiving a :class:`DNSQuestion` and a :class:`DNSDistProtoBufMessage`, that can be used to modify the Protocol Buffer content, for example for anonymization purposes.
+  Subsequent rules are processed after this action.
 
   :param string remoteLogger: The :func:`remoteLogger <newRemoteLogger>` object to write to
   :param string alterFunction: Name of a function to modify the contents of the logs before sending
@@ -1034,9 +1093,10 @@ The following actions exist.
     ``ipEncryptKey`` optional key added to the options table.
 
   Send the content of this response to a remote logger via Protocol Buffer.
-  ``alterFunction`` is the same callback that receiving a :class:`DNSQuestion` and a :class:`DNSDistProtoBufMessage`, that can be used to modify the Protocol Buffer content, for example for anonymization purposes
+  ``alterFunction`` is the same callback that receiving a :class:`DNSQuestion` and a :class:`DNSDistProtoBufMessage`, that can be used to modify the Protocol Buffer content, for example for anonymization purposes.
   ``includeCNAME`` indicates whether CNAME records inside the response should be parsed and exported.
-  The default is to only exports A and AAAA records
+  The default is to only exports A and AAAA records.
+  Subsequent rules are processed after this action.
 
   :param string remoteLogger: The :func:`remoteLogger <newRemoteLogger>` object to write to
   :param string alterFunction: Name of a function to modify the contents of the logs before sending
@@ -1099,18 +1159,20 @@ The following actions exist.
   .. versionadded:: 1.3.0
 
   Associate a tag named ``name`` with a value of ``value`` to this query, that will be passed on to the response.
+  Subsequent rules are processed after this action.
 
   :param string name: The name of the tag to set
-  :param string cname: The value of the tag
+  :param string value: The value of the tag
 
 .. function:: TagResponseAction(name, value)
 
   .. versionadded:: 1.3.0
 
   Associate a tag named ``name`` with a value of ``value`` to this response.
+  Subsequent rules are processed after this action.
 
   :param string name: The name of the tag to set
-  :param string cname: The value of the tag
+  :param string value: The value of the tag
 
 .. function:: TCAction()
 

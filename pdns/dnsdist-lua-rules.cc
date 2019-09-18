@@ -287,6 +287,9 @@ void setupLuaRules()
   g_lua.writeFunction("HTTPPathRule", [](const std::string& path) {
       return std::shared_ptr<DNSRule>(new HTTPPathRule(path));
     });
+  g_lua.writeFunction("HTTPPathRegexRule", [](const std::string& regex) {
+      return std::shared_ptr<DNSRule>(new HTTPPathRegexRule(regex));
+    });
 #endif
 
 #ifdef HAVE_RE2
@@ -478,5 +481,9 @@ void setupLuaRules()
 
   g_lua.writeFunction("QNameSetRule", [](const DNSNameSet& names) {
       return std::shared_ptr<DNSRule>(new QNameSetRule(names));
+    });
+
+  g_lua.writeFunction("KeyValueStoreLookupRule", [](std::shared_ptr<KeyValueStore>& kvs, std::shared_ptr<KeyValueLookupKey>& lookupKey) {
+      return std::shared_ptr<DNSRule>(new KeyValueStoreLookupRule(kvs, lookupKey));
     });
 }

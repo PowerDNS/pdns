@@ -7,6 +7,7 @@ Build-Depends: debhelper (>= 9~),
                dh-systemd,
                libboost-dev,
                libcap-dev,
+               libcdb-dev,
                libedit-dev,
                libluajit-5.1-dev,
                libprotobuf-dev,
@@ -19,7 +20,7 @@ Build-Depends: debhelper (>= 9~),
                ragel,
                systemd [linux-any]
 Standards-Version: 4.1.0
-Homepage: http://dnsdist.org
+Homepage: https://dnsdist.org
 Vcs-Git: https://anonscm.debian.org/git/pkg-dns/dnsdist.git
 Vcs-Browser: https://anonscm.debian.org/cgit/pkg-dns/dnsdist.git
 

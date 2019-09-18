@@ -5,7 +5,7 @@ import clientsubnetoption
 from dnsdisttests import DNSDistTest
 
 import pycurl
-
+from io import BytesIO
 #from hyper import HTTP20Connection
 #from hyper.ssl_compat import SSLContext, PROTOCOL_TLSv1_2
 
@@ -30,15 +30,17 @@ class DNSDistDOHTest(DNSDistTest):
         return conn
 
     @classmethod
-    def sendDOHQuery(cls, port, servername, baseurl, query, response=None, timeout=2.0, caFile=None, useQueue=True, rawQuery=False, customHeaders=[]):
+    def sendDOHQuery(cls, port, servername, baseurl, query, response=None, timeout=2.0, caFile=None, useQueue=True, rawQuery=False, rawResponse=False, customHeaders=[]):
         url = cls.getDOHGetURL(baseurl, query, rawQuery)
         conn = cls.openDOHConnection(port, caFile=caFile, timeout=timeout)
+        response_headers = BytesIO()
         #conn.setopt(pycurl.VERBOSE, True)
         conn.setopt(pycurl.URL, url)
         conn.setopt(pycurl.RESOLVE, ["%s:%d:127.0.0.1" % (servername, port)])
         conn.setopt(pycurl.SSL_VERIFYPEER, 1)
         conn.setopt(pycurl.SSL_VERIFYHOST, 2)
         conn.setopt(pycurl.HTTPHEADER, customHeaders)
+        conn.setopt(pycurl.HEADERFUNCTION, response_headers.write)
         if caFile:
             conn.setopt(pycurl.CAINFO, caFile)
 
@@ -47,25 +49,32 @@ class DNSDistDOHTest(DNSDistTest):
 
         receivedQuery = None
         message = None
+        cls._response_headers = ''
         data = conn.perform_rb()
-        rcode = conn.getinfo(pycurl.RESPONSE_CODE)
-        if rcode == 200:
+        cls._rcode = conn.getinfo(pycurl.RESPONSE_CODE)
+        if cls._rcode == 200 and not rawResponse:
             message = dns.message.from_wire(data)
+        elif rawResponse:
+            message = data
 
         if useQueue and not cls._fromResponderQueue.empty():
             receivedQuery = cls._fromResponderQueue.get(True, timeout)
 
+        cls._response_headers = response_headers.getvalue()
         return (receivedQuery, message)
 
     @classmethod
-    def sendDOHPostQuery(cls, port, servername, baseurl, query, response=None, timeout=2.0, caFile=None, useQueue=True, rawQuery=False):
+    def sendDOHPostQuery(cls, port, servername, baseurl, query, response=None, timeout=2.0, caFile=None, useQueue=True, rawQuery=False, rawResponse=False, customHeaders=[]):
         url = baseurl
         conn = cls.openDOHConnection(port, caFile=caFile, timeout=timeout)
+        response_headers = BytesIO()
         #conn.setopt(pycurl.VERBOSE, True)
         conn.setopt(pycurl.URL, url)
         conn.setopt(pycurl.RESOLVE, ["%s:%d:127.0.0.1" % (servername, port)])
         conn.setopt(pycurl.SSL_VERIFYPEER, 1)
         conn.setopt(pycurl.SSL_VERIFYHOST, 2)
+        conn.setopt(pycurl.HTTPHEADER, customHeaders)
+        conn.setopt(pycurl.HEADERFUNCTION, response_headers.write)
         conn.setopt(pycurl.POST, True)
         data = query
         if not rawQuery:
@@ -81,14 +90,18 @@ class DNSDistDOHTest(DNSDistTest):
 
         receivedQuery = None
         message = None
+        cls._response_headers = ''
         data = conn.perform_rb()
-        rcode = conn.getinfo(pycurl.RESPONSE_CODE)
-        if rcode == 200:
+        cls._rcode = conn.getinfo(pycurl.RESPONSE_CODE)
+        if cls._rcode == 200 and not rawResponse:
             message = dns.message.from_wire(data)
+        elif rawResponse:
+            message = data
 
         if useQueue and not cls._fromResponderQueue.empty():
             receivedQuery = cls._fromResponderQueue.get(True, timeout)
 
+        cls._response_headers = response_headers.getvalue()
         return (receivedQuery, message)
 
 #     @classmethod
@@ -128,19 +141,45 @@ class TestDOH(DNSDistDOHTest):
     _serverName = 'tls.tests.dnsdist.org'
     _caCert = 'ca.pem'
     _dohServerPort = 8443
-    _serverName = 'tls.tests.dnsdist.org'
+    _customResponseHeader1 = 'access-control-allow-origin: *'
+    _customResponseHeader2 = 'user-agent: derp'
     _dohBaseURL = ("https://%s:%d/" % (_serverName, _dohServerPort))
     _config_template = """
     newServer{address="127.0.0.1:%s"}
-    addDOHLocal("127.0.0.1:%s", "%s", "%s", { "/" })
+
+    addDOHLocal("127.0.0.1:%s", "%s", "%s", { "/" }, {customResponseHeaders={["access-control-allow-origin"]="*",["user-agent"]="derp"}})
+    dohFE = getDOHFrontend(0)
+    dohFE:setResponsesMap({newDOHResponseMapEntry('^/coffee$', 418, 'C0FFEE', {['foo']='bar'})})
 
     addAction("drop.doh.tests.powerdns.com.", DropAction())
     addAction("refused.doh.tests.powerdns.com.", RCodeAction(DNSRCode.REFUSED))
     addAction("spoof.doh.tests.powerdns.com.", SpoofAction("1.2.3.4"))
     addAction(HTTPHeaderRule("X-PowerDNS", "^[a]{5}$"), SpoofAction("2.3.4.5"))
     addAction(HTTPPathRule("/PowerDNS"), SpoofAction("3.4.5.6"))
+    addAction(HTTPPathRegexRule("^/PowerDNS-[0-9]"), SpoofAction("6.7.8.9"))
+    addAction("http-status-action.doh.tests.powerdns.com.", HTTPStatusAction(200, "Plaintext answer", "text/plain"))
+    addAction("http-status-action-redirect.doh.tests.powerdns.com.", HTTPStatusAction(307, "https://doh.powerdns.org"))
+
+    function dohHandler(dq)
+      if dq:getHTTPScheme() == 'https' and dq:getHTTPHost() == '%s:%d' and dq:getHTTPPath() == '/' and dq:getHTTPQueryString() == '' then
+        local foundct = false
+        for key,value in pairs(dq:getHTTPHeaders()) do
+          if key == 'content-type' and value == 'application/dns-message' then
+            foundct = true
+            break
+          end
+        end
+        if foundct then
+          dq:setHTTPResponse(200, 'It works!', 'text/plain')
+          dq.dh:setQR(true)
+          return DNSAction.HeaderModify
+        end
+      end
+      return DNSAction.None
+    end
+    addAction("http-lua.doh.tests.powerdns.com.", LuaAction(dohHandler))
     """
-    _config_params = ['_testServerPort', '_dohServerPort', '_serverCert', '_serverKey']
+    _config_params = ['_testServerPort', '_dohServerPort', '_serverCert', '_serverKey', '_serverName', '_dohServerPort']
 
     def testDOHSimple(self):
         """
@@ -164,6 +203,8 @@ class TestDOH(DNSDistDOHTest):
         self.assertTrue(receivedResponse)
         receivedQuery.id = expectedQuery.id
         self.assertEquals(expectedQuery, receivedQuery)
+        self.assertTrue((self._customResponseHeader1) in self._response_headers.decode())
+        self.assertTrue((self._customResponseHeader2) in self._response_headers.decode())
         self.checkQueryEDNSWithoutECS(expectedQuery, receivedQuery)
         self.assertEquals(response, receivedResponse)
 
@@ -441,6 +482,129 @@ class TestDOH(DNSDistDOHTest):
         self.assertEquals(expectedQuery, receivedQuery)
         self.checkQueryEDNSWithoutECS(expectedQuery, receivedQuery)
         self.assertEquals(response, receivedResponse)
+
+    def testHTTPPathRegex(self):
+        """
+        DOH: HTTPPathRegex
+        """
+        name = 'http-path-regex.doh.tests.powerdns.com.'
+        query = dns.message.make_query(name, 'A', 'IN')
+        query.id = 0
+        query.flags &= ~dns.flags.RD
+        expectedResponse = dns.message.make_response(query)
+        rrset = dns.rrset.from_text(name,
+                                    3600,
+                                    dns.rdataclass.IN,
+                                    dns.rdatatype.A,
+                                    '6.7.8.9')
+        expectedResponse.answer.append(rrset)
+
+        # this path should match
+        (_, receivedResponse) = self.sendDOHQuery(self._dohServerPort, self._serverName, self._dohBaseURL + 'PowerDNS-999', caFile=self._caCert, query=query, response=None, useQueue=False)
+        self.assertEquals(receivedResponse, expectedResponse)
+
+        expectedQuery = dns.message.make_query(name, 'A', 'IN', use_edns=True, payload=4096)
+        expectedQuery.id = 0
+        expectedQuery.flags &= ~dns.flags.RD
+        response = dns.message.make_response(query)
+        rrset = dns.rrset.from_text(name,
+                                    3600,
+                                    dns.rdataclass.IN,
+                                    dns.rdatatype.A,
+                                    '127.0.0.1')
+        response.answer.append(rrset)
+
+        # this path should NOT match
+        (receivedQuery, receivedResponse) = self.sendDOHQuery(self._dohServerPort, self._serverName, self._dohBaseURL + "PowerDNS2", query, response=response, caFile=self._caCert)
+        self.assertTrue(receivedQuery)
+        self.assertTrue(receivedResponse)
+        receivedQuery.id = expectedQuery.id
+        self.assertEquals(expectedQuery, receivedQuery)
+        self.checkQueryEDNSWithoutECS(expectedQuery, receivedQuery)
+        self.assertEquals(response, receivedResponse)
+
+    def testHTTPStatusAction200(self):
+        """
+        DOH: HTTPStatusAction 200 OK
+        """
+        name = 'http-status-action.doh.tests.powerdns.com.'
+        query = dns.message.make_query(name, 'A', 'IN', use_edns=False)
+        query.id = 0
+
+        (_, receivedResponse) = self.sendDOHQuery(self._dohServerPort, self._serverName, self._dohBaseURL, query, caFile=self._caCert, useQueue=False, rawResponse=True)
+        self.assertTrue(receivedResponse)
+        self.assertEquals(receivedResponse, b'Plaintext answer')
+        self.assertEquals(self._rcode, 200)
+        self.assertTrue('content-type: text/plain' in self._response_headers.decode())
+
+    def testHTTPStatusAction307(self):
+        """
+        DOH: HTTPStatusAction 307
+        """
+        name = 'http-status-action-redirect.doh.tests.powerdns.com.'
+        query = dns.message.make_query(name, 'A', 'IN', use_edns=False)
+        query.id = 0
+
+        (_, receivedResponse) = self.sendDOHQuery(self._dohServerPort, self._serverName, self._dohBaseURL, query, caFile=self._caCert, useQueue=False, rawResponse=True)
+        self.assertTrue(receivedResponse)
+        self.assertEquals(self._rcode, 307)
+        self.assertTrue('location: https://doh.powerdns.org' in self._response_headers.decode())
+
+    def testHTTPLuaResponse(self):
+        """
+        DOH: Lua HTTP Response
+        """
+        name = 'http-lua.doh.tests.powerdns.com.'
+        query = dns.message.make_query(name, 'A', 'IN', use_edns=False)
+        query.id = 0
+
+        (_, receivedResponse) = self.sendDOHPostQuery(self._dohServerPort, self._serverName, self._dohBaseURL, query, caFile=self._caCert, useQueue=False, rawResponse=True)
+        self.assertTrue(receivedResponse)
+        self.assertEquals(receivedResponse, b'It works!')
+        self.assertEquals(self._rcode, 200)
+        self.assertTrue('content-type: text/plain' in self._response_headers.decode())
+
+    def testHTTPEarlyResponse(self):
+        """
+        DOH: HTTP Early Response
+        """
+        response_headers = BytesIO()
+        url = self._dohBaseURL + 'coffee'
+        conn = self.openDOHConnection(self._dohServerPort, caFile=self._caCert, timeout=2.0)
+        conn.setopt(pycurl.URL, url)
+        conn.setopt(pycurl.RESOLVE, ["%s:%d:127.0.0.1" % (self._serverName, self._dohServerPort)])
+        conn.setopt(pycurl.SSL_VERIFYPEER, 1)
+        conn.setopt(pycurl.SSL_VERIFYHOST, 2)
+        conn.setopt(pycurl.CAINFO, self._caCert)
+        conn.setopt(pycurl.HEADERFUNCTION, response_headers.write)
+        data = conn.perform_rb()
+        rcode = conn.getinfo(pycurl.RESPONSE_CODE)
+        headers = response_headers.getvalue().decode()
+
+        self.assertEquals(rcode, 418)
+        self.assertEquals(data, b'C0FFEE')
+        self.assertIn('foo: bar', headers)
+        self.assertNotIn(self._customResponseHeader2, headers)
+
+        response_headers = BytesIO()
+        conn = self.openDOHConnection(self._dohServerPort, caFile=self._caCert, timeout=2.0)
+        conn.setopt(pycurl.URL, url)
+        conn.setopt(pycurl.RESOLVE, ["%s:%d:127.0.0.1" % (self._serverName, self._dohServerPort)])
+        conn.setopt(pycurl.SSL_VERIFYPEER, 1)
+        conn.setopt(pycurl.SSL_VERIFYHOST, 2)
+        conn.setopt(pycurl.CAINFO, self._caCert)
+        conn.setopt(pycurl.HEADERFUNCTION, response_headers.write)
+        conn.setopt(pycurl.POST, True)
+        data = ''
+        conn.setopt(pycurl.POSTFIELDS, data)
+
+        data = conn.perform_rb()
+        rcode = conn.getinfo(pycurl.RESPONSE_CODE)
+        headers = response_headers.getvalue().decode()
+        self.assertEquals(rcode, 418)
+        self.assertEquals(data, b'C0FFEE')
+        self.assertIn('foo: bar', headers)
+        self.assertNotIn(self._customResponseHeader2, headers)
 
 class TestDOHAddingECS(DNSDistDOHTest):
 

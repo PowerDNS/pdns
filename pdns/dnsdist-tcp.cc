@@ -374,7 +374,7 @@ IOState tryRead(int fd, std::vector<uint8_t>& buffer, size_t& pos, size_t toRead
       throw runtime_error("EOF while reading message");
     }
     if (res < 0) {
-      if (errno == EAGAIN || errno == EWOULDBLOCK) {
+      if (errno == EAGAIN || errno == EWOULDBLOCK || errno == ENOTCONN) {
         return IOState::NeedRead;
       }
       else {
@@ -706,7 +706,7 @@ static void sendResponse(std::shared_ptr<IncomingTCPConnectionState>& state, str
 
 static void handleResponse(std::shared_ptr<IncomingTCPConnectionState>& state, struct timeval& now)
 {
-  if (state->d_responseSize < sizeof(dnsheader)) {
+  if (state->d_responseSize < sizeof(dnsheader) || !state->d_ds) {
     return;
   }
 
@@ -787,7 +787,7 @@ static void sendQueryToBackend(std::shared_ptr<IncomingTCPConnectionState>& stat
     return;
   }
 
-  vinfolog("Got query for %s|%s from %s (%s), relayed to %s", state->d_ids.qname.toString(), QType(state->d_ids.qtype).getName(), state->d_ci.remote.toStringWithPort(), (state->d_ci.cs->tlsFrontend ? "DoT" : "TCP"), ds->getName());
+  vinfolog("Got query for %s|%s from %s (%s), relayed to %s", state->d_ids.qname.toLogString(), QType(state->d_ids.qtype).getName(), state->d_ci.remote.toStringWithPort(), (state->d_ci.cs->tlsFrontend ? "DoT" : "TCP"), ds->getName());
 
   handleDownstreamIO(state, now);
   return;
@@ -938,7 +938,7 @@ static void handleDownstreamIO(std::shared_ptr<IncomingTCPConnectionState>& stat
         state->d_currentPos = 0;
         state->d_querySentTime = now;
         iostate = IOState::NeedRead;
-        if (!state->d_isXFR) {
+        if (!state->d_isXFR && !state->d_outstanding) {
           /* don't bother with the outstanding count for XFR queries */
           ++state->d_ds->outstanding;
           state->d_outstanding = true;
@@ -1014,9 +1014,13 @@ static void handleDownstreamIO(std::shared_ptr<IncomingTCPConnectionState>& stat
     if (state->d_downstreamConnection && state->d_downstreamConnection->isFresh()) {
       ++state->d_downstreamFailures;
     }
-    if (state->d_outstanding && state->d_ds != nullptr) {
-      --state->d_ds->outstanding;
+
+    if (state->d_outstanding) {
       state->d_outstanding = false;
+
+      if (state->d_ds != nullptr) {
+        --state->d_ds->outstanding;
+      }
     }
     /* remove this FD from the IO multiplexer */
     iostate = IOState::Done;

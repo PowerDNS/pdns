@@ -87,7 +87,7 @@ void PipeConnector::launch() {
     if(!(d_fp=std::unique_ptr<FILE, int(*)(FILE*)>(fdopen(d_fd2[0],"r"), fclose)))
       throw PDNSException("Unable to associate a file pointer with pipe: "+stringerror());
     if (d_timeout)
-      setbuf(d_fp.get(),0); // no buffering please, confuses select
+      setbuf(d_fp.get(),0); // no buffering please, confuses poll
   }
   else if(!d_pid) { // child
     signal(SIGCHLD, SIG_DFL); // silence a warning from perl
@@ -157,13 +157,7 @@ int PipeConnector::recv_message(Json& output)
    while(1) {
      receive.clear();
      if(d_timeout) {
-       struct timeval tv;
-       tv.tv_sec = d_timeout/1000;
-       tv.tv_usec = (d_timeout % 1000) * 1000;
-       fd_set rds;
-       FD_ZERO(&rds);
-       FD_SET(fileno(d_fp.get()),&rds);
-       int ret=select(fileno(d_fp.get())+1,&rds,0,0,&tv);
+       int ret=waitForData(fileno(d_fp.get()), 0, d_timeout * 1000);
        if(ret<0) 
          throw PDNSException("Error waiting on data from coprocess: "+stringerror());
        if(!ret)

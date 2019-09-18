@@ -18,6 +18,18 @@ documentation.
 Apart from raw SQL statements, setting domain metadata can be done with
 ``pdnsutil set-meta`` and retrieving metadata is done with ``pdnsutil get-meta``.
 
+The following options can only be read (not written to) via the HTTP API metadata endpoint.
+
+* API-RECTIFY
+* AXFR-MASTER-TSIG
+* LUA-AXFR-SCRIPT
+* NSEC3NARROW
+* NSEC3PARAM
+* PRESIGNED
+* TSIG-ALLOW-AXFR
+
+The option SOA-EDIT-API can not be written or read via the HTTP API metadata endpoint.
+
 .. _metadata-allow-axfr-from:
 
 ALLOW-AXFR-FROM
@@ -171,6 +183,16 @@ This metadata can also be set using the
 :doc:`pdnsutil <dnssec/pdnsutil>` commands ``set-publish-cdnskey``
 and ``set-publish-cds``. For an example for an :rfc:`7344` key rollover,
 see the :doc:`guides/kskrollcdnskey`.
+
+.. _metadata-slave-renotify:
+
+SLAVE-RENOTIFY
+--------------
+.. versionadded:: 4.3.0
+
+If set to 1, will make PowerDNS renotify the slaves after an AXFR is received from a master.
+Any other value means that no renotifies are done. If not set at all, action will depend on
+the :ref:`setting-slave-renotify` setting.
 
 .. _metadata-soa-edit:
 

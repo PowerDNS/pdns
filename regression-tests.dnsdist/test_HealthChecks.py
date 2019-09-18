@@ -57,8 +57,6 @@ class TestDefaultHealthCheck(HealthCheckTest):
         self.sendConsoleCommand("getServer(0):setDown()")
         self.assertEquals(self.getBackendStatus(), 'down')
         self.sendConsoleCommand("getServer(0):setAuto(false)")
-        # we specified that the new state should be up until the next health check
-        self.assertEquals(self.getBackendStatus(), 'down')
 
         before = TestDefaultHealthCheck._healthCheckCounter
         time.sleep(1)

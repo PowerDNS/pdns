@@ -160,6 +160,18 @@ Static pre-shared authentication key for access to the REST API.
 
 Disallow data modification through the REST API when set.
 
+.. _setting-axfr-fetch-timeout:
+
+``axfr-fetch-timeout``
+----------------------
+
+- Integer
+- Default: 10
+
+.. versionadded:: 4.3.0
+
+Maximum time in seconds for inbound AXFR to start or be idle after starting.
+
 .. _setting-axfr-lower-serial:
 
 ``axfr-lower-serial``
@@ -599,10 +611,14 @@ Enables EDNS subnet processing, for backends that support it.
 ``enable-lua-records``
 ----------------------
 
--  Boolean
+-  One of ``no``, ``yes`` (or empty), or ``shared``, String
 -  Default: no
 
-Enable globally the LUA records feature
+.. versionadded:: 4.2.0
+
+Globally enable the :doc:`LUA records <lua-records/index>` feature.
+
+To use shared LUA states, set this to ``shared``, see :ref:`lua-records-shared-state`.
 
 .. _setting-entropy-source:
 
@@ -1410,6 +1426,8 @@ This setting will make PowerDNS renotify the slaves after an AXFR is
 *received* from a master. This is useful when using when running a
 signing-slave.
 
+See :ref:`metadata-slave-renotify` to set this per-zone.
+
 .. _setting-soa-expire-default:
 
 ``soa-expire-default``
@@ -1609,7 +1627,7 @@ When queried for its version over DNS
 responds truthfully. With this setting you can overrule what will be
 returned. Set the ``version-string`` to ``full`` to get the default
 behaviour, to ``powerdns`` to just make it state
-``served by PowerDNS - http://www.powerdns.com``. The ``anonymous``
+``Served by PowerDNS - https://www.powerdns.com/``. The ``anonymous``
 setting will return a ServFail, much like Microsoft nameservers do. You
 can set this response to a custom value as well.
 
