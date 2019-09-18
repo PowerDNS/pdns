@@ -746,7 +746,7 @@ static void writePid(void)
   }
 }
 
-TCPConnection::TCPConnection(int fd, const ComboAddress& addr) : data(2, 0), d_remote(addr), d_fd(fd)
+TCPConnection::TCPConnection(int fd, const ComboAddress& addr) : data(2, 0), d_remote(addr), d_requestsInFlight(0), d_fd(fd)
 {
   ++s_currentConnections;
   (*t_tcpClientCounts)[d_remote]++;
@@ -766,6 +766,8 @@ TCPConnection::~TCPConnection()
     t_tcpClientCounts->erase(d_remote);
   --s_currentConnections;
 }
+
+int TCPConnection::s_maxInFlight = 10;
 
 AtomicCounter TCPConnection::s_currentConnections;
 
@@ -1760,12 +1762,16 @@ static void startDoResolve(void *p)
           dc->d_socket = -1;
         }
         else {
-          dc->d_tcpConnection->state=TCPConnection::BYTE0;
           Utility::gettimeofday(&g_now, 0); // needs to be updated
           struct timeval ttd = g_now;
-          ttd.tv_sec += g_tcpTimeout;
-
-          t_fdm->addReadFD(dc->d_socket, handleRunningTCPQuestion, dc->d_tcpConnection, &ttd);
+          dc->d_tcpConnection->d_requestsInFlight--;
+          if (dc->d_tcpConnection->d_requestsInFlight == TCPConnection::s_maxInFlight - 1) {
+            //cerr << "Reenabling... " << dc->d_tcpConnection->d_requestsInFlight << ' ' << dc->d_socket << endl;
+            ttd.tv_sec += g_tcpTimeout;
+            t_fdm->addReadFD(dc->d_socket, handleRunningTCPQuestion, dc->d_tcpConnection, &ttd);
+          } else {
+            t_fdm->setReadTTD(dc->d_socket, ttd,  g_tcpTimeout);
+          }
         }
       }
     }
@@ -2002,7 +2008,11 @@ static void handleRunningTCPQuestion(int fd, FDMultiplexer::funcparam_t& var)
     }
     conn->bytesread+=(uint16_t)bytes;
     if(conn->bytesread==conn->qlen) {
-      t_fdm->removeReadFD(fd); // should no longer awake ourselves when there is data to read
+      conn->d_requestsInFlight++;
+      if (conn->d_requestsInFlight >= TCPConnection::s_maxInFlight) {
+        //cerr << "Disabling... " << conn->d_requestsInFlight << ' ' << fd << endl;
+        t_fdm->removeReadFD(fd); // should no longer awake ourselves when there is data to read
+      }
 
       std::unique_ptr<DNSComboWriter> dc;
       try {
@@ -2137,7 +2147,8 @@ static void handleRunningTCPQuestion(int fd, FDMultiplexer::funcparam_t& var)
       else {
         ++g_stats.qcounter;
         ++g_stats.tcpqcounter;
-        MT->makeThread(startDoResolve, dc.release()); // deletes dc, will set state to BYTE0 again
+        MT->makeThread(startDoResolve, dc.release()); // deletes dc
+        conn->state = TCPConnection::BYTE0;
         return;
       }
     }
