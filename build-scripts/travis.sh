@@ -444,6 +444,7 @@ build_recursor() {
     --with-libsodium \
     --enable-unit-tests \
     --enable-nod \
+    --disable-dnstap \
     --disable-silent-rules"
   run "make -k -j3"
   run "make install"

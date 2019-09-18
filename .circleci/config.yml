@@ -39,6 +39,9 @@ commands:
       - run:
           name: symlink checkout into home
           command: rmdir ~/project && ln -s /opt/project ~/project
+      - run:
+          name: include $BASH_ENV for both interactive and non-interactive shells
+          command: echo '. $BASH_ENV' >> $HOME/.bashrc
 
   install-coverity-tools:
     description: Install the coverity tools to /usr/local
@@ -75,12 +78,13 @@ commands:
       - run:
           name: Install jdnssectools
           command: |
-            if [ ! -e /usr/bin/jdnssec-verifyzone ]; then
+            if [ ! -e $HOME/bin/jdnssec-verifyzone ]; then
               apt-get install -qq -y wget
               wget https://github.com/dblacka/jdnssec-tools/releases/download/0.14/jdnssec-tools-0.14.tar.gz
-              tar xfz jdnssec-tools-0.14.tar.gz --strip-components=1 -C /
+              tar xfz jdnssec-tools-0.14.tar.gz -C $HOME
               rm jdnssec-tools-0.14.tar.gz
             fi
+            echo 'export PATH=$HOME/jdnssec-tools-0.14/bin:$PATH' >> $BASH_ENV
       - run:
           name: Allow missing tools in verify-dnssec-zone
           command: touch regression-tests/tests/verify-dnssec-zone/allow-missing
@@ -109,6 +113,7 @@ commands:
           name: Run << parameters.context >> tests
           command: |
             [ -e ./vars ] && . ./vars
+            export
             rm -rf tests/*/skip
             for t in << parameters.skip >>
             do
@@ -162,8 +167,9 @@ commands:
               libcap2 \
               libssl1.1 \
               libsystemd0 \
-              libsodium18 \
-              libprotobuf10
+              libsodium23 \
+              libfstrm0 \
+              libprotobuf17
 
   install-auth-deps:
     description: Install all libraries needed to run the auth
@@ -177,7 +183,7 @@ commands:
             liblmdb0 \
             libpq5 \
             libssl1.1 \
-            libsodium18 \
+            libsodium23 \
             libsystemd0 \
             default-libmysqlclient-dev \
             unixodbc
@@ -215,7 +221,7 @@ commands:
               git \
               libboost-all-dev \
               libsystemd0 \
-              libyaml-cpp0.5v5 \
+              libyaml-cpp0.6 \
               virtualenv
 
   install-auth-dev-deps:
@@ -266,7 +272,7 @@ commands:
         default: "debian"
       release:
         type: string
-        default: "stretch"
+        default: "buster"
     steps:
       - run:
           name: "Install dependencies"
@@ -479,7 +485,7 @@ jobs:
 
   build-auth:
     docker:
-      - image: debian:stretch
+      - image: debian:buster
 
     steps:
       - get-workspace
@@ -518,7 +524,7 @@ jobs:
 
   test-auth-regress-odbc-sqlite3:
     docker:
-      - image: debian:stretch
+      - image: debian:buster
     steps:
       - auth-regress-setup
       - run:
@@ -549,7 +555,7 @@ jobs:
 
   test-auth-regress-odbc-mssql:
     docker:
-      - image: debian:stretch
+      - image: debian:buster
       - image: mcr.microsoft.com/mssql/server:2017-GA-ubuntu
         environment:
           - ACCEPT_EULA: Y
@@ -608,7 +614,7 @@ jobs:
 
   test-auth-regress-gsqlite3:
     docker:
-      - image: debian:stretch
+      - image: debian:buster
     steps:
       - auth-regress-setup
       - run:
@@ -626,7 +632,7 @@ jobs:
 
   test-auth-regress-bind:
     docker:
-      - image: debian:stretch
+      - image: debian:buster
       - image: circleci/mysql:5      # for the hybrid test
     steps:
       - auth-regress-setup
@@ -650,12 +656,16 @@ jobs:
              [client]
              protocol=TCP
             __EOF__
+      - run:
+          name: Set up mysql client lib to force TCP
+          command: echo 'export GMYSQLHOST=127.0.0.1 MYDNSHOST=127.0.0.1' > ./vars
+          workdir: ~/project/regression-tests            
       - auth-regress:
           context: bind-hybrid-nsec3
 
   test-auth-regress-mydns:
     docker:
-      - image: debian:stretch
+      - image: debian:buster
       - image: circleci/mysql:5
     steps:
       - auth-regress-setup
@@ -667,13 +677,17 @@ jobs:
              [client]
              protocol=TCP
             __EOF__
+      - run:
+          name: Set up mysql client lib to force TCP
+          command: echo 'export GMYSQLHOST=127.0.0.1 MYDNSHOST=127.0.0.1' > ./vars
+          workdir: ~/project/regression-tests
       - auth-regress:
           context: mydns
           doroot: false
 
   test-auth-regress-gmysql:
     docker:
-      - image: debian:stretch
+      - image: debian:buster
       - image: circleci/mysql:5
     steps:
       - auth-regress-setup
@@ -682,9 +696,14 @@ jobs:
       - run:
           command: |
             cat >> ~/.my.cnf \<<- __EOF__
-             [client]
-             protocol=TCP
+            [client]
+            protocol=TCP
+            default-character-set=latin1
             __EOF__
+      - run:
+          name: Set up mysql client lib to force TCP
+          command: echo 'export GMYSQLHOST=127.0.0.1 MYDNSHOST=127.0.0.1 export GMYSQL2HOST=127.0.0.1 MYDNS2HOST=127.0.0.1 ' > ./vars
+          workdir: ~/project/regression-tests
       - auth-regress:
           context: gmysql-nodnssec-both
       - auth-regress:
@@ -698,7 +717,7 @@ jobs:
 
   test-auth-regress-gpgsql:
     docker:
-      - image: debian:stretch
+      - image: debian:buster
       - image: circleci/postgres:9
         environment:
           POSTGRES_USER: root
@@ -727,7 +746,7 @@ jobs:
 
   test-auth-regress-ldap:
     docker:
-      - image: debian:stretch
+      - image: debian:buster
         environment:
           LDAPHOST: ldap://ldapserver/
       - image: powerdns/ldap-regress:1.2.4-0 # OpenLDAP 2.4.47
@@ -750,7 +769,7 @@ jobs:
 
   test-auth-regress-tinydns:
     docker:
-      - image: debian:stretch
+      - image: debian:buster
     steps:
       - auth-regress-setup
       - auth-regress:
@@ -759,7 +778,7 @@ jobs:
 
   test-auth-regress-lmdb:
     docker:
-      - image: debian:stretch
+      - image: debian:buster
     steps:
       - auth-regress-setup
       - run: apt-get install -y -qq jq curl
@@ -776,7 +795,7 @@ jobs:
 
   test-auth-algorithms:
     docker:
-      - image: debian:stretch
+      - image: debian:buster
     steps:
       - auth-regress-setup
       - run:
@@ -785,7 +804,7 @@ jobs:
 
   test-auth-api:
     docker:
-      - image: debian:stretch
+      - image: debian:buster
     steps:
       - auth-regress-setup
       - run: apt-get -y -qq install virtualenv sqlite3
@@ -801,7 +820,7 @@ jobs:
 
   build-recursor:
     docker:
-      - image: debian:stretch
+      - image: debian:buster
     steps:
       - restore-cache-ccache:
           product: recursor
@@ -820,6 +839,7 @@ jobs:
             libboost-all-dev \
             libcap-dev \
             libluajit-5.1-dev \
+            libfstrm-dev \
             libprotobuf-dev \
             libsodium-dev \
             libssl-dev \
@@ -873,7 +893,7 @@ jobs:
 
   test-recursor-regression:
     docker:
-      - image: debian:stretch
+      - image: debian:buster
     steps:
       - add-auth-repo
       - run: apt-get --no-install-recommends install -qq -y pdns-server pdns-backend-bind pdns-tools daemontools authbind jq libfaketime lua-posix moreutils bc virtualenv protobuf-compiler
@@ -894,7 +914,7 @@ jobs:
 
   test-recursor-bulk:
     docker:
-      - image: debian:stretch
+      - image: debian:buster
     steps:
       - add-auth-repo
       - run: apt-get --no-install-recommends install -qq -y pdns-tools moreutils time
@@ -920,7 +940,7 @@ jobs:
 
   test-recursor-api:
     docker:
-      - image: debian:stretch
+      - image: debian:buster
     steps:
       - add-auth-repo
       - run: apt-get --no-install-recommends install -qq -y virtualenv pdns-tools
@@ -935,7 +955,7 @@ jobs:
 
   build-auth-docs:
     docker:
-      - image: debian:stretch
+      - image: debian:buster
     steps:
       - get-workspace
       - install-doc-deps
@@ -943,7 +963,7 @@ jobs:
 
   deploy-auth-docs:
     docker:
-      - image: debian:stretch
+      - image: debian:buster
     steps:
       - get-workspace
       - install-doc-deps
@@ -953,7 +973,7 @@ jobs:
 
   build-recursor-docs:
     docker:
-      - image: debian:stretch
+      - image: debian:buster
     steps:
       - get-workspace
       - install-doc-deps
@@ -961,7 +981,7 @@ jobs:
 
   deploy-recursor-docs:
     docker:
-      - image: debian:stretch
+      - image: debian:buster
     steps:
       - get-workspace
       - install-doc-deps
@@ -971,7 +991,7 @@ jobs:
 
   build-dnsdist-docs:
     docker:
-      - image: debian:stretch
+      - image: debian:buster
     steps:
       - get-workspace
       - install-doc-deps
@@ -979,7 +999,7 @@ jobs:
 
   deploy-dnsdist-docs:
     docker:
-      - image: debian:stretch
+      - image: debian:buster
     steps:
       - get-workspace
       - install-doc-deps
@@ -989,7 +1009,7 @@ jobs:
 
   coverity-auth:
     docker:
-      - image: debian:stretch
+      - image: debian:buster
     steps:
       - install-auth-dev-deps
       - install-coverity-tools
@@ -1033,7 +1053,7 @@ jobs:
 
   coverity-dnsdist:
     docker:
-      - image: debian:stretch
+      - image: debian:buster
     steps:
       - run:
           name: Install dependencies
@@ -1111,7 +1131,7 @@ jobs:
 
   coverity-recursor:
     docker:
-      - image: debian:stretch
+      - image: debian:buster
     steps:
       - run:
           name: Install dependencies
@@ -1129,6 +1149,7 @@ jobs:
             libboost-all-dev \
             libcap-dev \
             libluajit-5.1-dev \
+            libfstrm-dev \
             libprotobuf-dev \
             libsodium-dev \
             libssl-dev \
@@ -1283,7 +1304,7 @@ jobs:
 
   test-ixfrdist-regression:
     docker:
-      - image: debian:stretch
+      - image: debian:buster
         environment:
           UBSAN_OPTIONS: 'print_stacktrace=1:halt_on_error=1'
     steps:

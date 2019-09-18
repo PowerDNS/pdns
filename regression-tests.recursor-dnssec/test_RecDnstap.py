@@ -1,14 +1,12 @@
-import dns
-import dnsmessage_pb2
 import os
 import socket
 import struct
 import sys
 import threading
-import time
-
 import dns
 import dnstap_pb2
+from nose import SkipTest
+from recursortests import RecursorTest
 
 FSTRM_CONTROL_ACCEPT = 0x01
 FSTRM_CONTROL_START = 0x02
@@ -18,17 +16,15 @@ FSTRM_CONTROL_FINISH = 0x05
 
 # Python2/3 compatibility hacks
 try:
-  from queue import Queue
+    from queue import Queue
 except ImportError:
-  from Queue import Queue
+    from Queue import Queue
 
 try:
-  range = xrange
+    range = xrange
 except NameError:
-  pass
+    pass
 
-from nose import SkipTest
-from recursortests import RecursorTest
 
 def checkDnstapBase(testinstance, dnstap, protocol, initiator):
     testinstance.assertTrue(dnstap)
@@ -54,7 +50,7 @@ def checkDnstapBase(testinstance, dnstap, protocol, initiator):
     testinstance.assertEquals(dnstap.message.response_port, 53)
 
 
-def checkDnstapQuery(testinstance, dnstap, protocol, query, initiator='127.0.0.1'):
+def checkDnstapQuery(testinstance, dnstap, protocol, initiator='127.0.0.1'):
     testinstance.assertEquals(dnstap.message.type, dnstap_pb2.Message.RESOLVER_QUERY)
     checkDnstapBase(testinstance, dnstap, protocol, initiator)
 
@@ -66,7 +62,7 @@ def checkDnstapQuery(testinstance, dnstap, protocol, query, initiator='127.0.0.1
     # We cannot compare the incoming query with the outgoing one
     # The IDs and some other fields will be different
     #
-    wire_message = dns.message.from_wire(dnstap.message.query_message)
+    #wire_message = dns.message.from_wire(dnstap.message.query_message)
     #testinstance.assertEqual(wire_message, query)
 
 
@@ -101,7 +97,7 @@ def fstrm_get_control_frame_type(data):
     return t
 
 
-def fstrm_make_control_frame_reply(cft, data):
+def fstrm_make_control_frame_reply(cft):
     if cft == FSTRM_CONTROL_READY:
         # Reply with ACCEPT frame and content-type
         contenttype = b'protobuf:dnstap.Dnstap'
@@ -122,7 +118,7 @@ def fstrm_read_and_dispatch_control_frame(conn):
     (datalen,) = struct.unpack("!L", data)
     data = conn.recv(datalen)
     cft = fstrm_get_control_frame_type(data)
-    reply = fstrm_make_control_frame_reply(cft, data)
+    reply = fstrm_make_control_frame_reply(cft)
     if reply:
         conn.send(reply)
     return cft
@@ -150,13 +146,13 @@ def fstrm_handle_bidir_connection(conn, on_data):
 
 
 
-class DNSTapServerParams:
-  def __init__(self, port):
-    self.queue = Queue()
-    self.port = port
+class DNSTapServerParams(object):
+    def __init__(self, path):
+        self.queue = Queue()
+        self.path = path
 
 
-DNSTapServerParameters = DNSTapServerParams(4243)
+DNSTapServerParameters = DNSTapServerParams("/tmp/dnstap.sock")
 DNSTapListeners = []
 
 class TestRecursorDNSTap(RecursorTest):
@@ -169,35 +165,44 @@ class TestRecursorDNSTap(RecursorTest):
             except socket.error as e:
                 if e.errno == 9:
                     break
-                printf("Unexpected socket error %d", e)
+                sys.stderr.write("Unexpected socket error %s\n" % str(e))
                 sys.exit(1)
-            conn.close()
+            except exception as e:
+                sys.stderr.write("Unexpected socket error %s\n" % str(e))
+                sys.exit(1)                
+        conn.close()
 
     @classmethod
     def FrameStreamUnixListenerMain(cls, param):
-        sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEPORT, 1)
+        sock = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
         try:
-            sock.bind(("127.0.0.1", param.port))
+            try:
+                os.remove(param.path)
+            except:
+                pass
+            sock.bind(param.path)
+            sock.listen(100)
         except socket.error as e:
-            print("Error binding in the framestream listener: %s" % str(e))
+            sys.stderr.write("Error binding/listening in the framestream listener: %s\n" % str(e))
             sys.exit(1)
         DNSTapListeners.append(sock)
-        sock.listen(100)
         while True:
-            (conn, _) = sock.accept()
-            print("Accepting connection")
-            listener = threading.Thread(name='DNSTap Worker', target=cls.FrameStreamUnixListener, args=[conn, param])
-            listener.setDaemon(True)
-            listener.start()
-
+            try:
+                (conn, addr) = sock.accept()
+                listener = threading.Thread(name='DNSTap Worker', target=cls.FrameStreamUnixListener, args=[conn, param])
+                listener.setDaemon(True)
+                listener.start()
+            except socket.error as e:
+                if e.errno != 9:
+                    sys.stderr.write("Socket error on accept: %s\n" % str(e))
+                else:
+                    break
         sock.close()
 
     @classmethod
     def setUpClass(cls):
-	
-	if os.environ.get("NODNSTAPTESTS") == "1":
-		raise SkipTest("Not Yet Supported")
+        if os.environ.get("NODNSTAPTESTS") == "1":
+            raise SkipTest("Not Yet Supported")
 
         cls.setUpSockets()
 
@@ -206,7 +211,6 @@ class TestRecursorDNSTap(RecursorTest):
         listener = threading.Thread(name='DNSTap Listener', target=cls.FrameStreamUnixListenerMain, args=[DNSTapServerParameters])
         listener.setDaemon(True)
         listener.start()
-
 
         confdir = os.path.join('configs', cls._confdir)
         cls.createConfigDir(confdir)
@@ -258,28 +262,30 @@ class DNSTapDefaultTest(TestRecursorDNSTap):
     _config_template = """
 auth-zones=example=configs/%s/example.zone""" % _confdir
     _lua_config_file = """
-    dnstapFrameStreamServer({"127.0.0.1:%d"})
-    """ % (DNSTapServerParameters.port)
+dnstapFrameStreamServer({"%s"})
+    """ % DNSTapServerParameters.path
 
     def getFirstDnstap(self):
-        data = DNSTapServerParameters.queue.get(True, timeout=2.0)
+        try:
+            data = DNSTapServerParameters.queue.get(True, timeout=2.0)
+        except:
+            data = False
         self.assertTrue(data)
         dnstap = dnstap_pb2.Dnstap()
         dnstap.ParseFromString(data)
         return dnstap
 
     def testA(self):
-
         name = 'www.example.org.'
         query = dns.message.make_query(name, 'A', want_dnssec=True)
         query.flags |= dns.flags.RD
         res = self.sendUDPQuery(query)
-
-        # check the DNSTap messages corresponding to the UDP query and answer
+        self.assertNotEquals(res, None)
+        
         # check the dnstap message corresponding to the UDP query
         dnstap = self.getFirstDnstap()
 
-        checkDnstapQuery(self, dnstap, dnstap_pb2.UDP, query, '127.0.0.8')
+        checkDnstapQuery(self, dnstap, dnstap_pb2.UDP, '127.0.0.8')
         # We don't expect a response
         checkDnstapNoExtra(self, dnstap)
 
@@ -294,15 +300,15 @@ class DNSTapLogNoQueriesTest(TestRecursorDNSTap):
     _config_template = """
 auth-zones=example=configs/%s/example.zone""" % _confdir
     _lua_config_file = """
-    dnstapFrameStreamServer({"127.0.0.1:%d"}, {logQueries=false})
-    """ % (DNSTapServerParameters.port)
+dnstapFrameStreamServer({"%s"}, {logQueries=false})
+    """ % (DNSTapServerParameters.path)
 
     def testA(self):
         name = 'www.example.org.'
         query = dns.message.make_query(name, 'A', want_dnssec=True)
         query.flags |= dns.flags.RD
         res = self.sendUDPQuery(query)
+        self.assertNotEquals(res, None)
 
         # We don't expect anything
         self.assertTrue(DNSTapServerParameters.queue.empty())
-
