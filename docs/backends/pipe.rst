@@ -17,6 +17,11 @@ The PipeBackend allows for easy dynamic resolution based on a
 'Coprocess' which can be written in any programming language that can
 read a question on standard input and answer on standard output.
 
+The number of distributor (backend) threads (``distributor-threads``) to start
+per receiver thread is low by default. This can impact the performance if
+you have latency-bound application as backend. You should increase the
+number of ``distributor-threads`` in such cases. See :doc:`performance`.
+
 The PipeBackend is primarily meant for allowing rapid development of new
 backends without tight integration with PowerDNS. It allows end-users to
 write PowerDNS backends in any language, a perl sample is provided. The
