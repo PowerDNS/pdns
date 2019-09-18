@@ -50,7 +50,7 @@
 
 StatBag S;
 
-enum dbmode_t {MYSQL, GORACLE, POSTGRES, SQLITE, MYDNS, ORACLE};
+enum dbmode_t {MYSQL, POSTGRES, SQLITE, MYDNS};
 static dbmode_t g_mode;
 static bool g_intransaction;
 static int g_numRecords;
@@ -71,7 +71,7 @@ static string stripDotContent(const string& content)
 
 static string sqlstr(const string &name)
 {
-  if(g_mode == SQLITE || g_mode==GORACLE || g_mode==ORACLE)
+  if(g_mode == SQLITE)
     return "'"+boost::replace_all_copy(name, "'", "''")+"'";
   
   string a;
@@ -107,7 +107,7 @@ static void startNewTransaction()
   
   if(g_mode == MYSQL || g_mode == MYDNS)
     cout<<"BEGIN;"<<endl;
-  else if (g_mode!=GORACLE && g_mode!=ORACLE)
+  else
     cout<<"BEGIN TRANSACTION;"<<endl;
 }
 
@@ -116,12 +116,6 @@ static void emitDomain(const DNSName& domain, const vector<ComboAddress> *master
   if(!::arg().mustDo("slave")) {
     if(g_mode==POSTGRES || g_mode==MYSQL || g_mode==SQLITE) {
       cout<<"insert into domains (name,type) values ("<<toLower(sqlstr(iDomain))<<",'NATIVE');"<<endl;
-    }
-    else if(g_mode==GORACLE) {
-      cout<<"insert into domains (id,name,type) values (domains_id_sequence.nextval,"<<toLower(sqlstr(iDomain))<<",'NATIVE');"<<endl;
-    }
-    else if(g_mode==ORACLE) {
-      cout<<"INSERT INTO Zones (id, name, type) VALUES (zones_id_seq.nextval, "<<sqlstr(toLower(iDomain))<<", 'NATIVE');"<<endl;
     }
   }
   else 
@@ -139,9 +133,6 @@ static void emitDomain(const DNSName& domain, const vector<ComboAddress> *master
         cout<<"insert into domains (name,type) values ("<<sqlstr(iDomain)<<",'NATIVE');"<<endl;
       else
         cout<<"insert into domains (name,type,master) values ("<<sqlstr(iDomain)<<",'SLAVE'"<<", '"<<mstrs<<"');"<<endl;
-    }
-    else if (g_mode == GORACLE || g_mode==ORACLE) {
-      cerr<<"Slave import mode not supported with oracle."<<endl;
     }
   }
 }
@@ -175,7 +166,7 @@ static void emitRecord(const DNSName& zoneName, const DNSName &DNSqname, const s
   if(qtype == "NSEC" || qtype == "NSEC3")
     return; // NSECs do not go in the database
 
-  if((qtype == "MX" || qtype == "SRV") && g_mode!=ORACLE) {
+  if((qtype == "MX" || qtype == "SRV")) {
     prio=pdns_stou(content);
     
     string::size_type pos = content.find_first_not_of("0123456789");
@@ -208,20 +199,6 @@ static void emitRecord(const DNSName& zoneName, const DNSName &DNSqname, const s
       sqlstr(stripDotContent(content))<<", "<<ttl<<", "<<prio<<", '"<<(disabled ? 't': 'f') <<
       "' from domains where name="<<toLower(sqlstr(zname))<<";\n";
   }
-  else if(g_mode==GORACLE) {
-    cout<<"insert into Records (id, domain_id, name, type, content, ttl, prio, disabled) select RECORDS_ID_SEQUENCE.nextval,id ,"<<
-      sqlstr(toLower(qname))<<", "<<
-      sqlstr(qtype)<<", "<<
-      sqlstr(stripDotContent(content))<<", "<<ttl<<", "<<prio<<", "<<disabled<<
-      " from Domains where name="<<toLower(sqlstr(zname))<<";\n";
-  }
-  else if(g_mode==ORACLE) {
-    cout<<"INSERT INTO Records (id, zone_id, fqdn, ttl, type, content) SELECT records_id_seq.nextval, id, "<<
-      sqlstr(toLower(qname))<<", "<<
-      ttl<<", "<<sqlstr(qtype)<<", "<<
-      sqlstr(stripDotContent(content))<<
-      " FROM Zones WHERE name="<<toLower(sqlstr(zname))<<";"<<endl;
-  }
   else if (g_mode == MYDNS) {
     string zoneNameDot = zname + ".";
     if (qtype == "A" || qtype == "AAAA" || qtype == "CNAME" || qtype == "HINFO" || qtype == "MX" || qtype == "NAPTR" || 
@@ -253,7 +230,7 @@ static void emitRecord(const DNSName& zoneName, const DNSName &DNSqname, const s
 
 
 /* 2 modes of operation, either --named or --zone (the latter needs $ORIGIN) 
-   2 further modes: --mysql, --goracle or --oracle
+   1 further mode: --mysql
 */
 
 ArgvMap &arg()
@@ -272,8 +249,6 @@ try
     ::arg().setSwitch("gpgsql","Output in format suitable for default gpgsqlbackend")="no";
     ::arg().setSwitch("gmysql","Output in format suitable for default gmysqlbackend")="no";
     ::arg().setSwitch("mydns","Output in format suitable for default mydnsbackend")="no";
-    ::arg().setSwitch("goracle","Output in format suitable for the goraclebackend")="no";
-    ::arg().setSwitch("oracle","Output in format suitable for the oraclebackend")="no";
     ::arg().setSwitch("gsqlite","Output in format suitable for default gsqlitebackend")="no";
     ::arg().setSwitch("verbose","Verbose comments on operation")="no";
     ::arg().setSwitch("slave","Keep BIND slaves as slaves. Only works with named-conf.")="no";
@@ -327,10 +302,6 @@ try
       g_mode=POSTGRES;
     else if(::arg().mustDo("gsqlite"))
       g_mode=SQLITE;
-    else if(::arg().mustDo("goracle"))
-      g_mode=GORACLE;
-    else if(::arg().mustDo("oracle"))
-      g_mode=ORACLE;
     else if(::arg().mustDo("mydns"))
       g_mode=MYDNS;
     else {
@@ -339,9 +310,6 @@ try
       cerr<<::arg().helpstring()<<endl;
       exit(1);
     }
-
-    if((g_mode==GORACLE || g_mode==ORACLE) && !::arg().mustDo("transactions"))
-      cout<<"set autocommit on;"<<endl;
 
     namedfile=::arg()["named-conf"];
     zonefile=::arg()["zone"];

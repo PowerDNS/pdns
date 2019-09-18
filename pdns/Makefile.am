@@ -268,10 +268,6 @@ pdns_server_SOURCES += ssqlite3.cc ssqlite3.hh
 pdns_server_LDADD += $(SQLITE3_LIBS)
 endif
 
-if ORACLE
-pdns_server_LDADD += $(ORACLE_LIBS)
-endif
-
 if PKCS11
 pdns_server_SOURCES += pkcs11signers.cc pkcs11signers.hh
 pdns_server_LDADD += $(P11KIT1_LIBS)
@@ -368,10 +364,6 @@ endif
 if SQLITE3
 pdnsutil_SOURCES += ssqlite3.cc ssqlite3.hh
 pdnsutil_LDADD += $(SQLITE3_LIBS)
-endif
-
-if ORACLE
-pdnsutil_LDADD += $(ORACLE_LIBS)
 endif
 
 if PKCS11

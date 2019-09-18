@@ -7,7 +7,7 @@ zone files or be more dynamic in nature.
 
 PowerDNS has the concepts of 'backends'. A backend is a datastore that
 the server will consult that contains DNS records (and some metadata).
-The backends range from database backends (:doc:`MySQL <backends/generic-mysql>`, :doc:`PostgreSQL <backends/generic-postgresql>`, :doc:`Oracle <backends/oracle>`)
+The backends range from database backends (:doc:`MySQL <backends/generic-mysql>`, :doc:`PostgreSQL <backends/generic-postgresql>`)
 and :doc:`BIND zone files <backends/bind>` to :doc:`co-processes <backends/pipe>` and :doc:`JSON API's <backends/remote>`.
 
 Multiple backends can be enabled in the configuration by using the

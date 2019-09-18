@@ -19,7 +19,7 @@ For backends supporting slave operation there is also an option to keep
 slave zones as slaves, and not convert them to native operation.
 
 :program:`zone2sql` can generate SQL for the Generic MySQL, Generic PostgreSQL,
-Generic SQLite3 and Generic Oracle backends.
+Generic SQLite3 backend.
 
 Options
 -------
@@ -44,14 +44,8 @@ BACKENDS
 --gsqlite
     Output in format suitable for the default configuration of the
     Generic SQLite3 backend.
---goracle
-    Output in format suitable for the default configuration of the
-    Generic Oracle backend.
 --mydns
     Output in a format suitable for the MyDNS backend.
---oracle
-    Output in format suitable for the default configuration of the
-    Oracle backend.
 
 OUTPUT Options
 --------------

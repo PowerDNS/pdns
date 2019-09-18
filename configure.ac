@@ -173,10 +173,6 @@ AS_IF([test x"$dynmodules" = "xno"], [dynmodules=""])
 
 for a in $modules $dynmodules; do
   case "$a" in
-    oracle|goracle)
-      PDNS_WITH_ORACLE
-      needoracle=yes
-      ;;
     godbc)
       PDNS_WITH_UNIXODBC
       ;;
@@ -233,8 +229,6 @@ PDNS_ENABLE_IXFRDIST
 PDNS_WITH_PROTOBUF
 
 PDNS_WITH_LUA_RECORDS
-
-AM_CONDITIONAL([ORACLE], [test "x$needoracle" = "xyes"])
 
 AM_CONDITIONAL([LDAP], [test "x$needldap" = "xyes"])
 
@@ -340,7 +334,6 @@ AC_CONFIG_FILES([
   modules/geoipbackend/Makefile
   modules/gmysqlbackend/Makefile
   modules/godbcbackend/Makefile
-  modules/goraclebackend/Makefile
   modules/gpgsqlbackend/Makefile
   modules/gsqlite3backend/Makefile
   modules/ldapbackend/Makefile
@@ -349,7 +342,6 @@ AC_CONFIG_FILES([
   modules/lua2backend/Makefile
   modules/mydnsbackend/Makefile
   modules/opendbxbackend/Makefile
-  modules/oraclebackend/Makefile
   modules/pipebackend/Makefile
   modules/randombackend/Makefile
   modules/remotebackend/Makefile
