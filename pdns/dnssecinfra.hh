@@ -82,7 +82,7 @@ class DNSCryptoKeyEngine
     typedef shared_ptr<DNSCryptoKeyEngine> maker_t(unsigned int algorithm);
     
     static void report(unsigned int algorithm, maker_t* maker, bool fallback=false);
-    static std::pair<unsigned int, unsigned int> testMakers(unsigned int algorithm, maker_t* creator, maker_t* signer, maker_t* verifier);
+    static void testMakers(unsigned int algorithm, maker_t* creator, maker_t* signer, maker_t* verifier);
     static vector<pair<uint8_t, string>> listAllAlgosWithBackend();
     static bool testAll();
     static bool testOne(int algo);
