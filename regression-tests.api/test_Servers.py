@@ -71,6 +71,19 @@ class Servers(ApiTestCase):
         self.assertEquals(r.status_code, 422)
         self.assertIn("Unknown statistic name", r.json()['error'])
 
+    def test_read_metrics(self):
+        if is_recursor():
+            res = self.session.get(self.url("/metrics"), auth=('whatever', self.webServerBasicAuthPassword), timeout=2.0)
+            self.assertEqual(res.status_code, 200)
+            # print(res.text)
+            found = False
+            for line in res.text.splitlines():
+                if line[0] == "#":
+                    continue
+                if line.split(" ")[0] == "pdns_recursor_uptime":
+                    found = True
+            self.assertTrue(found,"pdns_recursor_uptime is missing")
+            
     @unittest.skipIf(is_auth(), "Not applicable")
     def test_read_statistics_using_password(self):
         r = requests.get(self.url("/api/v1/servers/localhost/statistics"), auth=('admin', self.server_web_password))

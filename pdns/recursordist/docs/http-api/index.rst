@@ -55,6 +55,7 @@ All API endpoints for the PowerDNS Recursor are documented here:
 .. toctree::
   :maxdepth: 1
 
+  prometheus
   ../common/api/endpoint-api
   ../common/api/endpoint-servers
   endpoint-servers-config

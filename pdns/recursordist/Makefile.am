@@ -150,7 +150,7 @@ pdns_recursor_SOURCES = \
 	rec-lua-conf.hh rec-lua-conf.cc \
 	rec-protobuf.cc rec-protobuf.hh \
 	rec-snmp.hh rec-snmp.cc \
-	rec_channel.cc rec_channel.hh \
+	rec_channel.cc rec_channel.hh rec_metrics.hh \
 	rec_channel_rec.cc \
 	recpacketcache.cc recpacketcache.hh \
 	recursor_cache.cc recursor_cache.hh \

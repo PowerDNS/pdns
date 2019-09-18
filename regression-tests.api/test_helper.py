@@ -23,6 +23,7 @@ class ApiTestCase(unittest.TestCase):
     def setUp(self):
         # TODO: config
         self.server_address = '127.0.0.1'
+        self.webServerBasicAuthPassword = 'something'
         self.server_port = int(os.environ.get('WEBPORT', '5580'))
         self.server_url = 'http://%s:%s/' % (self.server_address, self.server_port)
         self.server_web_password = os.environ.get('WEBPASSWORD', 'MISSING')
