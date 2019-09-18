@@ -159,7 +159,7 @@ static std::string getSecPollStatus(const std::string& queriedName, int timeout=
 
     if (ntohs(d.qdcount) != 1 || ntohs(d.ancount) != 1) {
       if (g_verbose) {
-        warnlog("Invalid answer (qdcount %d / ancount %d) received from the secpoll stub resolver %s", dest.toString());
+        warnlog("Invalid answer (qdcount %d / ancount %d) received from the secpoll stub resolver %s", ntohs(d.qdcount), ntohs(d.ancount), dest.toString());
       }
       continue;
     }
