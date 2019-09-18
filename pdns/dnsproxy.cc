@@ -77,7 +77,7 @@ DNSProxy::DNSProxy(const string &remote)
     throw PDNSException("Unable to UDP connect to remote nameserver "+d_remote.toStringWithPort()+": "+stringerror());
   }
 
-  d_xor=dns_random(0xffff);
+  d_xor=dns_random_uint16();
   g_log<<Logger::Error<<"DNS Proxy launched, local port "<<ntohs(local.sin4.sin_port)<<", remote "<<d_remote.toStringWithPort()<<endl;
 } 
 

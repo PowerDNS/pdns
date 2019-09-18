@@ -394,7 +394,7 @@ try
 
     DNSPacketWriter pw(packet, DNSName(qname), DNSRecordContent::TypeToNumber(qtype));
     pw.getHeader()->rd=wantRecursion;
-    pw.getHeader()->id=dns_random(UINT16_MAX);
+    pw.getHeader()->id=dns_random_uint16();
 
     if(!subnet.empty() || !ecsRange.empty()) {
       EDNSSubnetOpts opt;

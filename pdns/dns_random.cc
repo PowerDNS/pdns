@@ -320,3 +320,8 @@ uint32_t dns_random(uint32_t upper_bound) {
     throw std::runtime_error("Unreachable at " __FILE__ ":" + boost::lexical_cast<std::string>(__LINE__)); // cannot be reached
   };
 }
+
+uint16_t dns_random_uint16()
+{
+  return dns_random(0x10000);
+}

@@ -121,7 +121,7 @@ int stubDoResolve(const DNSName& qname, uint16_t qtype, vector<DNSZoneRecord>& r
   vector<uint8_t> packet;
 
   DNSPacketWriter pw(packet, qname, qtype);
-  pw.getHeader()->id=dns_random(0xffff);
+  pw.getHeader()->id=dns_random_uint16();
   pw.getHeader()->rd=1;
 
   string msg ="Doing stub resolving, using resolvers: ";

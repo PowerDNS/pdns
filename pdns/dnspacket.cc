@@ -386,7 +386,7 @@ void DNSPacket::wrapup()
 void DNSPacket::setQuestion(int op, const DNSName &qd, int newqtype)
 {
   memset(&d,0,sizeof(d));
-  d.id=dns_random(0xffff);
+  d.id=dns_random_uint16();
   d.rd=d.tc=d.aa=false;
   d.qr=false;
   d.qdcount=1; // is htons'ed later on

@@ -614,7 +614,7 @@ int PacketHandler::forwardPacket(const string &msgPrefix, DNSPacket *p, DomainIn
     }
 
     DNSPacket forwardPacket(*p);
-    forwardPacket.setID(dns_random(0xffff));
+    forwardPacket.setID(dns_random_uint16());
     forwardPacket.setRemote(&remote);
     uint16_t len=htons(forwardPacket.getString().length());
     string buffer((const char*)&len, 2);

@@ -25,5 +25,6 @@
 
 void dns_random_init(const std::string& data = "", bool force_reinit = false);
 uint32_t dns_random(uint32_t n);
+uint16_t dns_random_uint16();
 
 #endif

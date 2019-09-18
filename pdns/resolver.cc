@@ -130,7 +130,7 @@ uint16_t Resolver::sendResolve(const ComboAddress& remote, const ComboAddress& l
   uint16_t randomid;
   vector<uint8_t> packet;
   DNSPacketWriter pw(packet, domain, type);
-  pw.getHeader()->id = randomid = dns_random(0xffff);
+  pw.getHeader()->id = randomid = dns_random_uint16();
 
   if(dnssecOK) {
     pw.addOpt(2800, 0, EDNSOpts::DNSSECOK);
@@ -392,7 +392,7 @@ AXFRRetriever::AXFRRetriever(const ComboAddress& remote,
   
     vector<uint8_t> packet;
     DNSPacketWriter pw(packet, domain, QType::AXFR);
-    pw.getHeader()->id = dns_random(0xffff);
+    pw.getHeader()->id = dns_random_uint16();
   
     if(!tt.name.empty()) {
       if (tt.algo == DNSName("hmac-md5"))

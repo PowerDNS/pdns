@@ -16,8 +16,8 @@ These are some functions that don't really have a place in one of the other cate
 
   returns an unsigned integer identifying the thread handling the current request.
 
-.. function:: pdnsrandom([maximum])
+.. function:: pdnsrandom([upper_bound])
 
   Get a random number.
 
-  :param int maximum: The largest number to return. This is 2^32 by default.
+  :param int upper_bound: The upper bound. You will get a random number below this upper bound.

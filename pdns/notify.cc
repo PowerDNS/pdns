@@ -115,7 +115,7 @@ try
     }
     vector<uint8_t> outpacket;
     DNSPacketWriter pw(outpacket, DNSName(argv[2]), QType::SOA, 1, Opcode::Notify);
-    pw.getHeader()->id = dns_random(UINT16_MAX);
+    pw.getHeader()->id = dns_random_uint16();
 
     if(send(sock, &outpacket[0], outpacket.size(), 0) < 0) {
       cerr<<"Unable to send notify to "<<addr.toStringWithPort()<<": "+stringerror()<<endl;

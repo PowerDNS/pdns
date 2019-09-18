@@ -78,6 +78,30 @@ BOOST_AUTO_TEST_CASE(test_dns_random_garbage) {
   BOOST_CHECK_THROW(dns_random_init("", true), std::runtime_error);
 }
 
+BOOST_AUTO_TEST_CASE(test_dns_random_upper_bound) {
+  ::arg().set("rng")="auto";
+  ::arg().set("entropy-source")="/dev/urandom";
+
+  dns_random_init("", true);
+
+  map<int, bool> seen;
+  for(unsigned int n=0; n < 100000; ++n) {
+    seen[dns_random(10)] = true;
+  }
+
+  BOOST_CHECK_EQUAL(seen[0], true);
+  BOOST_CHECK_EQUAL(seen[1], true);
+  BOOST_CHECK_EQUAL(seen[2], true);
+  BOOST_CHECK_EQUAL(seen[3], true);
+  BOOST_CHECK_EQUAL(seen[4], true);
+  BOOST_CHECK_EQUAL(seen[5], true);
+  BOOST_CHECK_EQUAL(seen[6], true);
+  BOOST_CHECK_EQUAL(seen[7], true);
+  BOOST_CHECK_EQUAL(seen[8], true);
+  BOOST_CHECK_EQUAL(seen[9], true);
+  BOOST_CHECK_EQUAL(seen[10], false);
+}
+
 #if defined(HAVE_GETRANDOM)
 BOOST_AUTO_TEST_CASE(test_dns_random_getrandom_average) {
 
