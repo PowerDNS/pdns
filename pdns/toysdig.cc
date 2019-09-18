@@ -51,7 +51,7 @@ public:
     
     int bread=d_rsock.read((char *) &len, 2);
     if( bread <0)
-      throw PDNSException("tcp read failed: "+std::string(strerror(errno)));
+      throw PDNSException("tcp read failed: "+stringerror());
     if(bread != 2) 
       throw PDNSException("EOF on TCP read");
 
@@ -63,7 +63,7 @@ public:
       numread=d_rsock.read(creply+n, len-n);
       if(numread<0) {
         delete[] creply;
-        throw PDNSException("tcp read failed: "+std::string(strerror(errno)));
+        throw PDNSException("tcp read failed: "+stringerror());
       }
       n+=numread;
     }

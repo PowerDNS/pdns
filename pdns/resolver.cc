@@ -558,7 +558,7 @@ void AXFRRetriever::connect(uint16_t timeout)
     throw ResolverException("Timeout connecting to server");
   }
   else if(err < 0) {
-    throw ResolverException("Error connecting: "+string(strerror(errno)));
+    throw ResolverException("Error connecting: "+stringerror());
   }
   else {
     Utility::socklen_t len=sizeof(err);

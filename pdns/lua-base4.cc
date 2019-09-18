@@ -18,7 +18,7 @@ BaseLua4::BaseLua4() {
 void BaseLua4::loadFile(const std::string &fname) {
   std::ifstream ifs(fname);
   if(!ifs) {
-    g_log<<Logger::Error<<"Unable to read configuration file from '"<<fname<<"': "<<strerror(errno)<<endl;
+    g_log<<Logger::Error<<"Unable to read configuration file from '"<<fname<<"': "<<stringerror()<<endl;
     return;
   }
   loadStream(ifs);

@@ -223,7 +223,7 @@ try
 
         int ret = waitForRWData(s.getHandle(), false, 1 , 0);
         if(ret <= 0 ) {
-          vinfolog("Unable to write data to carbon server on %s: %s", server.toStringWithPort(), (ret<0 ? strerror(errno) : "Timeout"));
+          vinfolog("Unable to write data to carbon server on %s: %s", server.toStringWithPort(), (ret<0 ? stringerror() : "Timeout"));
           continue;
         }
         s.setBlocking();

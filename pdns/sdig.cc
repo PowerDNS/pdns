@@ -208,7 +208,7 @@ try
     sock.sendTo(question, dest);
     int result=waitForData(sock.getHandle(), 10);
     if(result < 0) 
-      throw std::runtime_error("Error waiting for data: "+string(strerror(errno)));
+      throw std::runtime_error("Error waiting for data: "+stringerror());
     if(!result)
       throw std::runtime_error("Timeout waiting for data");
     sock.recvFrom(reply, dest);

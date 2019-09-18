@@ -142,11 +142,12 @@ int DevPollFDMultiplexer::run(struct timeval* now, int timeout)
   dvp.dp_fds = new pollfd[dvp.dp_nfds];
   dvp.dp_timeout = timeout;
   int ret=ioctl(d_devpollfd, DP_POLL, &dvp);
+  int err = errno;
   gettimeofday(now,0); // MANDATORY!
 
-  if(ret < 0 && errno!=EINTR) {
+  if(ret < 0 && err!=EINTR) {
     delete[] dvp.dp_fds;
-    throw FDMultiplexerException("/dev/poll returned error: "+stringerror());
+    throw FDMultiplexerException("/dev/poll returned error: "+stringerror(err));
   }
 
   if(ret < 1) { // thanks AB!

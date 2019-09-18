@@ -322,22 +322,22 @@ static bool dumpZoneToDisk(const DNSName& zoneName, const std::shared_ptr<DNSFil
   }
 
   if (fflush(fp.get()) != 0) {
-    g_log<<Logger::Warning<<"Error while flushing the content of the RPZ zone "<<zoneName.toLogString()<<" to the dump file: "<<strerror(errno)<<endl;
+    g_log<<Logger::Warning<<"Error while flushing the content of the RPZ zone "<<zoneName.toLogString()<<" to the dump file: "<<stringerror()<<endl;
     return false;
   }
 
   if (fsync(fileno(fp.get())) != 0) {
-    g_log<<Logger::Warning<<"Error while syncing the content of the RPZ zone "<<zoneName.toLogString()<<" to the dump file: "<<strerror(errno)<<endl;
+    g_log<<Logger::Warning<<"Error while syncing the content of the RPZ zone "<<zoneName.toLogString()<<" to the dump file: "<<stringerror()<<endl;
     return false;
   }
 
   if (fclose(fp.release()) != 0) {
-    g_log<<Logger::Warning<<"Error while writing the content of the RPZ zone "<<zoneName.toLogString()<<" to the dump file: "<<strerror(errno)<<endl;
+    g_log<<Logger::Warning<<"Error while writing the content of the RPZ zone "<<zoneName.toLogString()<<" to the dump file: "<<stringerror()<<endl;
     return false;
   }
 
   if (rename(temp.c_str(), dumpZoneFileName.c_str()) != 0) {
-    g_log<<Logger::Warning<<"Error while moving the content of the RPZ zone "<<zoneName.toLogString()<<" to the dump file: "<<strerror(errno)<<endl;
+    g_log<<Logger::Warning<<"Error while moving the content of the RPZ zone "<<zoneName.toLogString()<<" to the dump file: "<<stringerror()<<endl;
     return false;
   }
 

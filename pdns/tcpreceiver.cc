@@ -1231,7 +1231,7 @@ TCPNameserver::TCPNameserver()
 #ifdef TCP_FASTOPEN
       int fastOpenQueueSize = ::arg().asNum("tcp-fast-open");
       if (setsockopt(s, IPPROTO_TCP, TCP_FASTOPEN, &fastOpenQueueSize, sizeof fastOpenQueueSize) < 0) {
-        g_log<<Logger::Error<<"Failed to enable TCP Fast Open for listening socket: "<<strerror(errno)<<endl;
+        g_log<<Logger::Error<<"Failed to enable TCP Fast Open for listening socket: "<<stringerror()<<endl;
       }
 #else
       g_log<<Logger::Warning<<"TCP Fast Open configured but not supported for listening socket"<<endl;
@@ -1242,12 +1242,13 @@ TCPNameserver::TCPNameserver()
 	Utility::setBindAny(AF_INET, s);
 
     if(::bind(s, (sockaddr*)&local, local.getSocklen())<0) {
+      int err = errno;
       close(s);
-      if( errno == EADDRNOTAVAIL && ! ::arg().mustDo("local-address-nonexist-fail") ) {
+      if( err == EADDRNOTAVAIL && ! ::arg().mustDo("local-address-nonexist-fail") ) {
         g_log<<Logger::Error<<"IPv4 Address " << *laddr << " does not exist on this server - skipping TCP bind" << endl;
         continue;
       } else {
-        g_log<<Logger::Error<<"Unable to bind to TCP socket " << *laddr << ": "<<strerror(errno)<<endl;
+        g_log<<Logger::Error<<"Unable to bind to TCP socket " << *laddr << ": "<<stringerror(err)<<endl;
         throw PDNSException("Unable to bind to TCP socket");
       }
     }
@@ -1283,7 +1284,7 @@ TCPNameserver::TCPNameserver()
 #ifdef TCP_FASTOPEN
       int fastOpenQueueSize = ::arg().asNum("tcp-fast-open");
       if (setsockopt(s, IPPROTO_TCP, TCP_FASTOPEN, &fastOpenQueueSize, sizeof fastOpenQueueSize) < 0) {
-        g_log<<Logger::Error<<"Failed to enable TCP Fast Open for listening socket: "<<strerror(errno)<<endl;
+        g_log<<Logger::Error<<"Failed to enable TCP Fast Open for listening socket: "<<stringerror()<<endl;
       }
 #else
       g_log<<Logger::Warning<<"TCP Fast Open configured but not supported for listening socket"<<endl;
@@ -1293,15 +1294,16 @@ TCPNameserver::TCPNameserver()
     if( ::arg().mustDo("non-local-bind") )
 	Utility::setBindAny(AF_INET6, s);
     if(setsockopt(s, IPPROTO_IPV6, IPV6_V6ONLY, &tmp, sizeof(tmp)) < 0) {
-      g_log<<Logger::Error<<"Failed to set IPv6 socket to IPv6 only, continuing anyhow: "<<strerror(errno)<<endl;
+      g_log<<Logger::Error<<"Failed to set IPv6 socket to IPv6 only, continuing anyhow: "<<stringerror()<<endl;
     }
     if(bind(s, (const sockaddr*)&local, local.getSocklen())<0) {
+      int err = errno;
       close(s);
-      if( errno == EADDRNOTAVAIL && ! ::arg().mustDo("local-ipv6-nonexist-fail") ) {
+      if( err == EADDRNOTAVAIL && ! ::arg().mustDo("local-ipv6-nonexist-fail") ) {
         g_log<<Logger::Error<<"IPv6 Address " << *laddr << " does not exist on this server - skipping TCP bind" << endl;
         continue;
       } else {
-        g_log<<Logger::Error<<"Unable to bind to TCPv6 socket" << *laddr << ": "<<strerror(errno)<<endl;
+        g_log<<Logger::Error<<"Unable to bind to TCPv6 socket" << *laddr << ": "<<stringerror(err)<<endl;
         throw PDNSException("Unable to bind to TCPv6 socket");
       }
     }
@@ -1342,9 +1344,10 @@ void TCPNameserver::thread()
           addrlen=remote.getSocklen();
 
           if((fd=accept(sock, (sockaddr*)&remote, &addrlen))<0) {
-            g_log<<Logger::Error<<"TCP question accept error: "<<strerror(errno)<<endl;
+            int err = errno;
+            g_log<<Logger::Error<<"TCP question accept error: "<<stringerror(err)<<endl;
             
-            if(errno==EMFILE) {
+            if(err==EMFILE) {
               g_log<<Logger::Error<<"TCP handler out of filedescriptors, exiting, won't recover from this"<<endl;
               _exit(1);
             }
@@ -1368,8 +1371,9 @@ void TCPNameserver::thread()
             if(room<1)
               g_log<<Logger::Warning<<"Limit of simultaneous TCP connections reached - raise max-tcp-connections"<<endl;
 
-            if(pthread_create(&tid, 0, &doConnection, reinterpret_cast<void*>(fd))) {
-              g_log<<Logger::Error<<"Error creating thread: "<<stringerror()<<endl;
+            int err;
+            if((err = pthread_create(&tid, 0, &doConnection, reinterpret_cast<void*>(fd)))) {
+              g_log<<Logger::Error<<"Error creating thread: "<<stringerror(err)<<endl;
               d_connectionroom_sem->post();
               close(fd);
               decrementClientCount(remote);

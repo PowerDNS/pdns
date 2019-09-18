@@ -175,7 +175,7 @@ void setSocketBuffer(int fd, int optname, uint32_t size)
   }
 
   if (setsockopt(fd, SOL_SOCKET, optname, (char*)&size, sizeof(size)) < 0 )
-    cerr<<"Warning: unable to raise socket buffer size to "<<size<<": "<<strerror(errno)<<endl;
+    cerr<<"Warning: unable to raise socket buffer size to "<<size<<": "<<stringerror()<<endl;
 }
 
 static void setSocketReceiveBuffer(int fd, uint32_t size)

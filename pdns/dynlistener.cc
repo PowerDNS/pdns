@@ -34,7 +34,6 @@
 
 #include <sys/socket.h>
 #include <netinet/in.h>
-#include <errno.h>
 #include <iostream>
 #include <sstream>
 #include <sys/types.h>
@@ -72,21 +71,21 @@ void DynListener::createSocketAndBind(int family, struct sockaddr*local, size_t 
 
   if(d_s < 0) {
     if (family == AF_UNIX)
-      g_log<<Logger::Error<<"Unable to create control socket at '"<<((struct sockaddr_un*)local)->sun_path<<"', reason: "<<strerror(errno)<<endl;
+      g_log<<Logger::Error<<"Unable to create control socket at '"<<((struct sockaddr_un*)local)->sun_path<<"', reason: "<<stringerror()<<endl;
     else
-      g_log<<Logger::Error<<"Unable to create control socket on '"<<((ComboAddress *)local)->toStringWithPort()<<"', reason: "<<strerror(errno)<<endl;
+      g_log<<Logger::Error<<"Unable to create control socket on '"<<((ComboAddress *)local)->toStringWithPort()<<"', reason: "<<stringerror()<<endl;
     exit(1);
   }
   
   int tmp=1;
   if(setsockopt(d_s,SOL_SOCKET,SO_REUSEADDR,(char*)&tmp,sizeof tmp)<0)
-    throw PDNSException(string("Setsockopt failed on control socket: ")+strerror(errno));
+    throw PDNSException(string("Setsockopt failed on control socket: ")+stringerror());
     
   if(bind(d_s, local, len) < 0) {
     if (family == AF_UNIX)
-      g_log<<Logger::Critical<<"Unable to bind to control socket at '"<<((struct sockaddr_un*)local)->sun_path<<"', reason: "<<strerror(errno)<<endl;
+      g_log<<Logger::Critical<<"Unable to bind to control socket at '"<<((struct sockaddr_un*)local)->sun_path<<"', reason: "<<stringerror()<<endl;
     else
-      g_log<<Logger::Critical<<"Unable to bind to control socket on '"<<((ComboAddress *)local)->toStringWithPort()<<"', reason: "<<strerror(errno)<<endl;
+      g_log<<Logger::Critical<<"Unable to bind to control socket on '"<<((ComboAddress *)local)->toStringWithPort()<<"', reason: "<<stringerror()<<endl;
     exit(1);
   }
 }
@@ -120,7 +119,7 @@ void DynListener::listenOnUnixDomain(const string& fname)
   }
   int err=unlink(fname.c_str());
   if(err < 0 && errno!=ENOENT) {
-    g_log<<Logger::Critical<<"Unable to remove (previous) controlsocket at '"<<fname<<"': "<<strerror(errno)<<endl;
+    g_log<<Logger::Critical<<"Unable to remove (previous) controlsocket at '"<<fname<<"': "<<stringerror()<<endl;
     exit(1);
   }
 
@@ -134,9 +133,9 @@ void DynListener::listenOnUnixDomain(const string& fname)
   d_socketname=fname;
   if(!arg()["setgid"].empty()) {
     if(chmod(fname.c_str(),0660)<0)
-      g_log<<Logger::Error<<"Unable to change group access mode of controlsocket at '"<<fname<<"', reason: "<<strerror(errno)<<endl;
+      g_log<<Logger::Error<<"Unable to change group access mode of controlsocket at '"<<fname<<"', reason: "<<stringerror()<<endl;
     if(chown(fname.c_str(),static_cast<uid_t>(-1), strToGID(arg()["setgid"]))<0)
-      g_log<<Logger::Error<<"Unable to change group ownership of controlsocket at '"<<fname<<"', reason: "<<strerror(errno)<<endl;
+      g_log<<Logger::Error<<"Unable to change group ownership of controlsocket at '"<<fname<<"', reason: "<<stringerror()<<endl;
   }
   
   listen(d_s, 10);
@@ -231,7 +230,7 @@ string DynListener::getLine()
       d_client=accept(d_s,(sockaddr*)&remote,&remlen);
       if(d_client<0) {
         if(errno!=EINTR)
-          g_log<<Logger::Error<<"Unable to accept controlsocket connection ("<<d_s<<"): "<<strerror(errno)<<endl;
+          g_log<<Logger::Error<<"Unable to accept controlsocket connection ("<<d_s<<"): "<<stringerror()<<endl;
         continue;
       }
 
@@ -245,7 +244,7 @@ string DynListener::getLine()
       std::shared_ptr<FILE> fp=std::shared_ptr<FILE>(fdopen(dup(d_client), "r"), fclose);
       if(d_tcp) {
         if(!fgets(&mesg[0], mesg.size(), fp.get())) {
-          g_log<<Logger::Error<<"Unable to receive password from controlsocket ("<<d_client<<"): "<<strerror(errno)<<endl;
+          g_log<<Logger::Error<<"Unable to receive password from controlsocket ("<<d_client<<"): "<<stringerror()<<endl;
           close(d_client);
           continue;
         }
@@ -262,7 +261,7 @@ string DynListener::getLine()
       errno=0;
       if(!fgets(&mesg[0], mesg.size(), fp.get())) {
         if(errno)
-          g_log<<Logger::Error<<"Unable to receive line from controlsocket ("<<d_client<<"): "<<strerror(errno)<<endl;
+          g_log<<Logger::Error<<"Unable to receive line from controlsocket ("<<d_client<<"): "<<stringerror()<<endl;
         close(d_client);
         continue;
       }

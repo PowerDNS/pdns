@@ -242,7 +242,7 @@ static string doDumpNSSpeeds(T begin, T end)
 
   int fd=open(fname.c_str(), O_CREAT | O_EXCL | O_WRONLY, 0660);
   if(fd < 0)
-    return "Error opening dump file for writing: "+string(strerror(errno))+"\n";
+    return "Error opening dump file for writing: "+stringerror()+"\n";
   uint64_t total = 0;
   try {
     total = broadcastAccFunction<uint64_t>(boost::bind(pleaseDumpNSSpeeds, fd));
@@ -273,7 +273,7 @@ static string doDumpCache(T begin, T end)
 
   int fd=open(fname.c_str(), O_CREAT | O_EXCL | O_WRONLY, 0660);
   if(fd < 0) 
-    return "Error opening dump file for writing: "+string(strerror(errno))+"\n";
+    return "Error opening dump file for writing: "+stringerror()+"\n";
   uint64_t total = 0;
   try {
     total = broadcastAccFunction<uint64_t>(boost::bind(pleaseDump, fd));
@@ -295,7 +295,7 @@ static string doDumpEDNSStatus(T begin, T end)
 
   int fd=open(fname.c_str(), O_CREAT | O_EXCL | O_WRONLY, 0660);
   if(fd < 0) 
-    return "Error opening dump file for writing: "+string(strerror(errno))+"\n";
+    return "Error opening dump file for writing: "+stringerror()+"\n";
   uint64_t total = 0;
   try {
     total = broadcastAccFunction<uint64_t>(boost::bind(pleaseDumpEDNSMap, fd));
@@ -331,13 +331,13 @@ static string doDumpRPZ(T begin, T end)
   int fd = open(fname.c_str(), O_CREAT | O_EXCL | O_WRONLY, 0660);
 
   if(fd < 0) {
-    return "Error opening dump file for writing: "+string(strerror(errno))+"\n";
+    return "Error opening dump file for writing: "+stringerror()+"\n";
   }
 
   auto fp = std::unique_ptr<FILE, int(*)(FILE*)>(fdopen(fd, "w"), fclose);
   if (!fp) {
     close(fd);
-    return "Error converting file descriptor: "+string(strerror(errno))+"\n";
+    return "Error converting file descriptor: "+stringerror()+"\n";
   }
 
   zone->dump(fp.get());
@@ -356,7 +356,7 @@ static string doDumpThrottleMap(T begin, T end)
 
   int fd=open(fname.c_str(), O_CREAT | O_EXCL | O_WRONLY, 0660);
   if(fd < 0)
-    return "Error opening dump file for writing: "+string(strerror(errno))+"\n";
+    return "Error opening dump file for writing: "+stringerror()+"\n";
   uint64_t total = 0;
   try {
     total = broadcastAccFunction<uint64_t>(boost::bind(pleaseDumpThrottleMap, fd));

@@ -28,7 +28,6 @@
 #include <sys/types.h>
 #include <iostream>  
 #include <string>
-#include <errno.h>
 #include <boost/tokenizer.hpp>
 #include <boost/functional/hash.hpp>
 #include <boost/algorithm/string.hpp>

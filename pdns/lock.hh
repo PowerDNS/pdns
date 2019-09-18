@@ -68,8 +68,7 @@ public:
 
     int err;
     if((err = pthread_rwlock_wrlock(d_lock))) {
-      errno = err;
-      throw PDNSException("error acquiring rwlock wrlock: "+stringerror());
+      throw PDNSException("error acquiring rwlock wrlock: "+stringerror(err));
     }
   }
   ~WriteLock()
@@ -109,8 +108,7 @@ public:
     d_havelock=false;
     int err;
     if((err = pthread_rwlock_trywrlock(d_lock)) && err!=EBUSY) {
-      errno = err;
-      throw PDNSException("error acquiring rwlock tryrwlock: "+stringerror());
+      throw PDNSException("error acquiring rwlock tryrwlock: "+stringerror(err));
     }
     d_havelock=(err==0);
   }
@@ -158,8 +156,7 @@ public:
 
     int err;
     if((err = pthread_rwlock_tryrdlock(d_lock)) && err!=EBUSY) {
-      errno = err;
-      throw PDNSException("error acquiring rwlock tryrdlock: "+stringerror());
+      throw PDNSException("error acquiring rwlock tryrdlock: "+stringerror(err));
     }
     d_havelock=(err==0);
   }
@@ -201,8 +198,7 @@ public:
 
     int err;
     if((err = pthread_rwlock_rdlock(d_lock))) {
-      errno = err;
-      throw PDNSException("error acquiring rwlock readlock: "+stringerror());
+      throw PDNSException("error acquiring rwlock readlock: "+stringerror(err));
     }
   }
   ~ReadLock()

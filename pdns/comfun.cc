@@ -227,7 +227,7 @@ struct SendReceiveRes
     pw.getHeader()->qr = 0;
     
     if(::send(d_socket, &*packet.begin(), packet.size(), 0) < 0) {
-      cout<<"Error sending: "<<strerror(errno)<<endl;
+      cout<<"Error sending: "<<stringerror()<<endl;
       d_senderrors++;
     }
     
@@ -387,7 +387,7 @@ void readRESNames(const std::string& fname, map<DNSName, vector<ComboAddress>>& 
 {
   ifstream ifs(fname);
   if(!ifs)
-    unixDie("Reading resolved names from "+fname+": "+string(strerror(errno)));
+    unixDie("Reading resolved names from "+fname+": "+stringerror());
   vector<string> parts;
   string line;
   addrs.clear();

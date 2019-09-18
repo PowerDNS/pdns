@@ -28,6 +28,8 @@
 
 #include "ext/libbpf/libbpf.h"
 
+#include "misc.hh"
+
 static __u64 ptr_to_u64(void *ptr)
 {
   return (__u64) (unsigned long) ptr;
@@ -116,7 +118,7 @@ int bpf_prog_load(enum bpf_prog_type prog_type,
         return res;
       }
     }
-    throw std::runtime_error("Error loading BPF program: (" + std::string(strerror(errno)) + "):\n" + std::string(log_buf));
+    throw std::runtime_error("Error loading BPF program: (" + stringerror() + "):\n" + std::string(log_buf));
   }
   return res;
 }
@@ -141,22 +143,22 @@ BPFFilter::BPFFilter(uint32_t maxV4Addresses, uint32_t maxV6Addresses, uint32_t 
 {
   d_v4map.fd = bpf_create_map(BPF_MAP_TYPE_HASH, sizeof(uint32_t), sizeof(uint64_t), (int) maxV4Addresses);
   if (d_v4map.fd == -1) {
-    throw std::runtime_error("Error creating a BPF v4 map of size " + std::to_string(maxV4Addresses) + ": " + std::string(strerror(errno)));
+    throw std::runtime_error("Error creating a BPF v4 map of size " + std::to_string(maxV4Addresses) + ": " + stringerror());
   }
 
   d_v6map.fd = bpf_create_map(BPF_MAP_TYPE_HASH, sizeof(struct KeyV6), sizeof(uint64_t), (int) maxV6Addresses);
   if (d_v6map.fd == -1) {
-    throw std::runtime_error("Error creating a BPF v6 map of size " + std::to_string(maxV6Addresses) + ": " + std::string(strerror(errno)));
+    throw std::runtime_error("Error creating a BPF v6 map of size " + std::to_string(maxV6Addresses) + ": " + stringerror());
   }
 
   d_qnamemap.fd = bpf_create_map(BPF_MAP_TYPE_HASH, sizeof(struct QNameKey), sizeof(struct QNameValue), (int) maxQNames);
   if (d_qnamemap.fd == -1) {
-    throw std::runtime_error("Error creating a BPF qname map of size " + std::to_string(maxQNames) + ": " + std::string(strerror(errno)));
+    throw std::runtime_error("Error creating a BPF qname map of size " + std::to_string(maxQNames) + ": " + stringerror());
   }
 
   d_filtermap.fd = bpf_create_map(BPF_MAP_TYPE_PROG_ARRAY, sizeof(uint32_t), sizeof(uint32_t), 1);
   if (d_filtermap.fd == -1) {
-    throw std::runtime_error("Error creating a BPF program map of size 1: " + std::string(strerror(errno)));
+    throw std::runtime_error("Error creating a BPF program map of size 1: " + stringerror());
   }
 
   struct bpf_insn main_filter[] = {
@@ -169,7 +171,7 @@ BPFFilter::BPFFilter(uint32_t maxV4Addresses, uint32_t maxV6Addresses, uint32_t 
                                   "GPL",
                                   0);
   if (d_mainfilter.fd == -1) {
-    throw std::runtime_error("Error loading BPF main filter: " + std::string(strerror(errno)));
+    throw std::runtime_error("Error loading BPF main filter: " + stringerror());
   }
 
   struct bpf_insn qname_filter[] = {
@@ -182,13 +184,13 @@ BPFFilter::BPFFilter(uint32_t maxV4Addresses, uint32_t maxV6Addresses, uint32_t 
                                    "GPL",
                                    0);
   if (d_qnamefilter.fd == -1) {
-    throw std::runtime_error("Error loading BPF qname filter: " + std::string(strerror(errno)));
+    throw std::runtime_error("Error loading BPF qname filter: " + stringerror());
   }
 
   uint32_t key = 0;
   int res = bpf_update_elem(d_filtermap.fd, &key, &d_qnamefilter.fd, BPF_ANY);
   if (res != 0) {
-    throw std::runtime_error("Error updating BPF filters map: " + std::string(strerror(errno)));
+    throw std::runtime_error("Error updating BPF filters map: " + stringerror());
   }
 }
 
@@ -197,7 +199,7 @@ void BPFFilter::addSocket(int sock)
   int res = setsockopt(sock, SOL_SOCKET, SO_ATTACH_BPF, &d_mainfilter.fd, sizeof(d_mainfilter.fd));
 
   if (res != 0) {
-    throw std::runtime_error("Error attaching BPF filter to this socket: " + std::string(strerror(errno)));
+    throw std::runtime_error("Error attaching BPF filter to this socket: " + stringerror());
   }
 }
 
@@ -206,7 +208,7 @@ void BPFFilter::removeSocket(int sock)
   int res = setsockopt(sock, SOL_SOCKET, SO_DETACH_BPF, &d_mainfilter.fd, sizeof(d_mainfilter.fd));
 
   if (res != 0) {
-    throw std::runtime_error("Error detaching BPF filter from this socket: " + std::string(strerror(errno)));
+    throw std::runtime_error("Error detaching BPF filter from this socket: " + stringerror());
   }
 }
 
@@ -255,7 +257,7 @@ void BPFFilter::block(const ComboAddress& addr)
   }
 
   if (res != 0) {
-    throw std::runtime_error("Error adding blocked address " + addr.toString() + ": " + std::string(strerror(errno)));
+    throw std::runtime_error("Error adding blocked address " + addr.toString() + ": " + stringerror());
   }
 }
 
@@ -285,7 +287,7 @@ void BPFFilter::unblock(const ComboAddress& addr)
   }
 
   if (res != 0) {
-    throw std::runtime_error("Error removing blocked address " + addr.toString() + ": " + std::string(strerror(errno)));
+    throw std::runtime_error("Error removing blocked address " + addr.toString() + ": " + stringerror());
   }
 }
 
@@ -321,7 +323,7 @@ void BPFFilter::block(const DNSName& qname, uint16_t qtype)
     }
 
     if (res != 0) {
-      throw std::runtime_error("Error adding blocked qname " + qname.toLogString() + ": " + std::string(strerror(errno)));
+      throw std::runtime_error("Error adding blocked qname " + qname.toLogString() + ": " + stringerror());
     }
   }
 }
@@ -345,7 +347,7 @@ void BPFFilter::unblock(const DNSName& qname, uint16_t qtype)
       d_qNamesCount--;
     }
     else {
-      throw std::runtime_error("Error removing qname address " + qname.toLogString() + ": " + std::string(strerror(errno)));
+      throw std::runtime_error("Error removing qname address " + qname.toLogString() + ": " + stringerror());
     }
   }
 }

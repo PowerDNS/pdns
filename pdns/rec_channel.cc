@@ -95,7 +95,7 @@ void RecursorControlChannel::connect(const string& path, const string& fname)
   setCloseOnExec(d_fd);
 
   if(d_fd < 0) 
-    throw PDNSException("Creating UNIX domain socket: "+string(strerror(errno)));
+    throw PDNSException("Creating UNIX domain socket: "+stringerror());
 
   try {
     int tmp=1;
@@ -149,7 +149,7 @@ void RecursorControlChannel::send(const std::string& msg, const std::string* rem
     throw PDNSException("Timeout sending message over control channel");
   }
   else if(ret < 0) {
-    throw PDNSException("Error sending message over control channel:" + string(strerror(errno)));
+    throw PDNSException("Error sending message over control channel:" + stringerror());
   }
 
   if(remote) {
@@ -161,10 +161,10 @@ void RecursorControlChannel::send(const std::string& msg, const std::string* rem
     remoteaddr.sun_path[sizeof(remoteaddr.sun_path)-1] = '\0';
 
     if(::sendto(d_fd, msg.c_str(), msg.length(), 0, (struct sockaddr*) &remoteaddr, sizeof(remoteaddr) ) < 0)
-      throw PDNSException("Unable to send message over control channel '"+string(remoteaddr.sun_path)+"': "+string(strerror(errno)));
+      throw PDNSException("Unable to send message over control channel '"+string(remoteaddr.sun_path)+"': "+stringerror());
   }
   else if(::send(d_fd, msg.c_str(), msg.length(), 0) < 0)
-    throw PDNSException("Unable to send message over control channel: "+string(strerror(errno)));
+    throw PDNSException("Unable to send message over control channel: "+stringerror());
 }
 
 string RecursorControlChannel::recv(std::string* remote, unsigned int timeout)
@@ -179,7 +179,7 @@ string RecursorControlChannel::recv(std::string* remote, unsigned int timeout)
     throw PDNSException("Timeout waiting for answer from control channel");
   
   if( ret < 0 || (len=::recvfrom(d_fd, buffer, sizeof(buffer), 0, (struct sockaddr*)&remoteaddr, &addrlen)) < 0)
-    throw PDNSException("Unable to receive message over control channel: "+string(strerror(errno)));
+    throw PDNSException("Unable to receive message over control channel: "+stringerror());
 
   if(remote)
     *remote=remoteaddr.sun_path;

@@ -763,21 +763,22 @@ public:
 
     if (d_useSinglePipe) {
       if (pipe(d_singlePipe) < 0) {
-        throw std::runtime_error("Error creating the TCP single communication pipe: " + string(strerror(errno)));
+        int err = errno;
+        throw std::runtime_error("Error creating the TCP single communication pipe: " + stringerror(err));
       }
 
       if (!setNonBlocking(d_singlePipe[0])) {
         int err = errno;
         close(d_singlePipe[0]);
         close(d_singlePipe[1]);
-        throw std::runtime_error("Error setting the TCP single communication pipe non-blocking: " + string(strerror(err)));
+        throw std::runtime_error("Error setting the TCP single communication pipe non-blocking: " + stringerror(err));
       }
 
       if (!setNonBlocking(d_singlePipe[1])) {
         int err = errno;
         close(d_singlePipe[0]);
         close(d_singlePipe[1]);
-        throw std::runtime_error("Error setting the TCP single communication pipe non-blocking: " + string(strerror(err)));
+        throw std::runtime_error("Error setting the TCP single communication pipe non-blocking: " + stringerror(err));
       }
     }
   }

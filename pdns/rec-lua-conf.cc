@@ -191,7 +191,7 @@ void loadRecursorLuaConfig(const std::string& fname, luaConfigDelayedThreads& de
     return;
   ifstream ifs(fname);
   if(!ifs)
-    throw PDNSException("Cannot open file '"+fname+"': "+strerror(errno));
+    throw PDNSException("Cannot open file '"+fname+"': "+stringerror());
 
   auto luaconfsLocal = g_luaconfs.getLocal();
   lci.generation = luaconfsLocal->generation + 1;
