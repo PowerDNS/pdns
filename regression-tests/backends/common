@@ -23,10 +23,6 @@ start_master ()
 				source ./backends/godbc_sqlite3-master
 				;;
 
-			goracle*)
-				source ./backends/goracle-master
-				;;
-
 			gpgsql*)
 				source ./backends/gpgsql-master
 				;;
@@ -45,10 +41,6 @@ start_master ()
 
 			opendbx*)
 				source ./backends/opendbx-master
-				;;
-
-			oracle*)
-				source ./backends/oracle-master
 				;;
 
 			remote*)

@@ -20,7 +20,7 @@ to the databases supported by said drivers.
 
 .. warning::
   When there is a more specific generic sql backend (like
-  goracle or gmysql), it is highly recommended to use that backend
+  gmysql or gsqlite3), it is highly recommended to use that backend
   instead!
 
 Enabling the backend

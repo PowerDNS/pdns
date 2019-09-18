@@ -12,8 +12,6 @@ The following table describes the supported backends and some of their capabilit
 +------------------------------------------------+--------+--------+-------+--------------+---------------------------------+--------------+
 | :doc:`Generic ODBC <generic-odbc>`             | Yes    | Yes    | Yes   | Yes          | Yes                             | ``godbc``    |
 +------------------------------------------------+--------+--------+-------+--------------+---------------------------------+--------------+
-| :doc:`Generic Oracle <generic-oracle>`         | Yes    | Yes    | Yes   | Yes          | Yes                             | ``goracle``  |
-+------------------------------------------------+--------+--------+-------+--------------+---------------------------------+--------------+
 | :doc:`Generic Postgresql <generic-postgresql>` | Yes    | Yes    | Yes   | Yes          | Yes                             | ``gpgsql``   |
 +------------------------------------------------+--------+--------+-------+--------------+---------------------------------+--------------+
 | :doc:`Generic SQLite3 <generic-sqlite3>`       | Yes    | Yes    | Yes   | Yes          | Yes                             | ``gsqlite3`` |
@@ -31,8 +29,6 @@ The following table describes the supported backends and some of their capabilit
 | :doc:`MyDNS <mydns>`                           | Yes    | No     | No    | No           | No                              | ``mydns``    |
 +------------------------------------------------+--------+--------+-------+--------------+---------------------------------+--------------+
 | :doc:`OpenDBX <opendbx>`                       | Yes    | Yes    | Yes   | Yes          | No                              | ``opendbx``  |
-+------------------------------------------------+--------+--------+-------+--------------+---------------------------------+--------------+
-| :doc:`Oracle <oracle>`                         | Yes    | Yes    | Yes   | Yes          | Yes                             | ``oracle``   |
 +------------------------------------------------+--------+--------+-------+--------------+---------------------------------+--------------+
 | :doc:`Pipe <pipe>`                             | Yes    | No     | No    | No           | Partial                         | ``pipe``     |
 +------------------------------------------------+--------+--------+-------+--------------+---------------------------------+--------------+
@@ -54,7 +50,6 @@ These backends have :doc:`features unique <generic-sql>` to the generic SQL back
   generic-sql
   generic-mysql
   generic-odbc
-  generic-oracle
   generic-postgresql
   generic-sqlite3
   geoip
@@ -64,7 +59,6 @@ These backends have :doc:`features unique <generic-sql>` to the generic SQL back
   lua2
   mydns
   opendbx
-  oracle
   pipe
   random
   remote

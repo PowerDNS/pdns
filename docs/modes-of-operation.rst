@@ -17,8 +17,7 @@ them. PowerDNS assumes that the backend is taking care of replication
 unaided.
 
 MySQL replication has proven to be very robust and well suited, even
-over transatlantic connections between badly peering ISPs. Other
-PowerDNS users employ Oracle replication which also works very well.
+over transatlantic connections between badly peering ISPs.
 
 To use native replication, configure your backend storage to do the
 replication and do not configure PowerDNS to do so.
@@ -132,7 +131,7 @@ updated and if so, retransfering it.
 All backends which implement this feature must make sure that they can
 handle transactions so as to not leave the zone in a half updated state.
 MySQL configured with either BerkeleyDB or InnoDB meets this
-requirement, as do PostgreSQL and Oracle. The BIND backend implements
+requirement, as do PostgreSQL. The BIND backend implements
 transaction semantics by renaming files if and only if they have been
 retrieved completely and parsed correctly.
 

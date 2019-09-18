@@ -65,12 +65,6 @@ Files: modules/luabackend/*
 Copyright: 2011 Fredrik Danerklint
 License: GPL-2 with OpenSSL Exception
 
-Files: modules/oraclebackend/*
-Copyright: 2010 - 2011 Maik Zumstrull
- Steinbuch Centre for Computing,
- Karlsruhe Institute of Technology
-License: Expat
-
 Files: modules/opendbxbackend/*
 Copyright: 2005-2007 Norbert Sendetzky <norbert@linuxnetworks.de>
 License: GPL-2 with OpenSSL Exception

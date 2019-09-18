@@ -80,7 +80,7 @@ static Json::object emitRecord(const string& zoneName, const DNSName &DNSqname, 
 }
 
 /* 2 modes of operation, either --named or --zone (the latter needs $ORIGIN) 
-   2 further modes: --mysql or --oracle 
+   1 further mode: --mysql
 */
 
 ArgvMap &arg()

@@ -89,7 +89,7 @@ Which backend should I use? There are so many!
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 If you have no external constraints, the :doc:`../backends/generic-mysql`, :doc:`../backends/generic-postgresql` and :doc:`../backends/generic-sqlite3` ones are probably the most used and complete.
 
-The Oracle backend also has happy users, the BIND backend is pretty capable too in fact, but many prefer a relational database.
+The bindbackend is also pretty capable too in fact, but many prefer a relational database.
 
 Can I launch multiple backends simultaneously?
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
