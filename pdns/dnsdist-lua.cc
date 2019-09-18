@@ -1678,7 +1678,7 @@ void setupLuaConfig(bool client)
     setSyslogFacility(facility);
   });
 
-  g_lua.writeFunction("addDOHLocal", [client](const std::string& addr, boost::variant<std::string, std::vector<std::pair<int,std::string>>> certFiles, boost::variant<std::string, std::vector<std::pair<int,std::string>>> keyFiles, boost::optional<boost::variant<std::string, vector<pair<int, std::string> > > > urls, boost::optional<localbind_t> vars) {
+  g_lua.writeFunction("addDOHLocal", [client](const std::string& addr, boost::optional<boost::variant<std::string, std::vector<std::pair<int,std::string>>>> certFiles, boost::optional<boost::variant<std::string, std::vector<std::pair<int,std::string>>>> keyFiles, boost::optional<boost::variant<std::string, vector<pair<int, std::string> > > > urls, boost::optional<localbind_t> vars) {
 #ifdef HAVE_DNS_OVER_HTTPS
     if (client) {
       return;
@@ -1690,11 +1690,18 @@ void setupLuaConfig(bool client)
     }
     auto frontend = std::make_shared<DOHFrontend>();
 
-    if (!loadTLSCertificateAndKeys("addDOHLocal", frontend->d_certKeyPairs, certFiles, keyFiles)) {
-      return;
+    if (certFiles && !certFiles->empty() && keyFiles && !keyFiles->empty()) {
+      if (!loadTLSCertificateAndKeys("addDOHLocal", frontend->d_certKeyPairs, *certFiles, *keyFiles)) {
+        return;
+      }
+
+      frontend->d_local = ComboAddress(addr, 443);
+    }
+    else {
+      frontend->d_local = ComboAddress(addr, 80);
+      infolog("No certificate provided for DoH endpoint %s, running in DNS over HTTP mode instead of DNS over HTTPS", frontend->d_local.toStringWithPort());
     }
 
-    frontend->d_local = ComboAddress(addr, 443);
     if (urls) {
       if (urls->type() == typeid(std::string)) {
         frontend->d_urls.push_back(boost::get<std::string>(*urls));
