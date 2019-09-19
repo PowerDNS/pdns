@@ -27,7 +27,7 @@ class TestDefaultHealthCheck(HealthCheckTest):
         HealthChecks: Default
         """
         before = TestDefaultHealthCheck._healthCheckCounter
-        time.sleep(1)
+        time.sleep(1.5)
         self.assertGreater(TestDefaultHealthCheck._healthCheckCounter, before)
         self.assertEquals(self.getBackendStatus(), 'up')
 
@@ -35,14 +35,14 @@ class TestDefaultHealthCheck(HealthCheckTest):
         self.assertEquals(self.getBackendStatus(), 'up')
 
         before = TestDefaultHealthCheck._healthCheckCounter
-        time.sleep(1)
+        time.sleep(1.5)
         self.assertEquals(TestDefaultHealthCheck._healthCheckCounter, before)
 
         self.sendConsoleCommand("getServer(0):setDown()")
         self.assertEquals(self.getBackendStatus(), 'down')
 
         before = TestDefaultHealthCheck._healthCheckCounter
-        time.sleep(1)
+        time.sleep(1.5)
         self.assertEquals(TestDefaultHealthCheck._healthCheckCounter, before)
 
         self.sendConsoleCommand("getServer(0):setAuto()")
@@ -50,7 +50,7 @@ class TestDefaultHealthCheck(HealthCheckTest):
         self.assertEquals(self.getBackendStatus(), 'up')
 
         before = TestDefaultHealthCheck._healthCheckCounter
-        time.sleep(1)
+        time.sleep(1.5)
         self.assertGreater(TestDefaultHealthCheck._healthCheckCounter, before)
         self.assertEquals(self.getBackendStatus(), 'up')
 
@@ -59,7 +59,7 @@ class TestDefaultHealthCheck(HealthCheckTest):
         self.sendConsoleCommand("getServer(0):setAuto(false)")
 
         before = TestDefaultHealthCheck._healthCheckCounter
-        time.sleep(1)
+        time.sleep(1.5)
         self.assertGreater(TestDefaultHealthCheck._healthCheckCounter, before)
         self.assertEquals(self.getBackendStatus(), 'up')
 
@@ -80,7 +80,7 @@ class TestHealthCheckForcedUP(HealthCheckTest):
         HealthChecks: Forced UP
         """
         before = TestHealthCheckForcedUP._healthCheckCounter
-        time.sleep(1)
+        time.sleep(1.5)
         self.assertEquals(TestHealthCheckForcedUP._healthCheckCounter, before)
         self.assertEquals(self.getBackendStatus(), 'up')
 
@@ -101,7 +101,7 @@ class TestHealthCheckForcedDown(HealthCheckTest):
         HealthChecks: Forced Down
         """
         before = TestHealthCheckForcedDown._healthCheckCounter
-        time.sleep(1)
+        time.sleep(1.5)
         self.assertEquals(TestHealthCheckForcedDown._healthCheckCounter, before)
 
 class TestHealthCheckCustomName(HealthCheckTest):
@@ -122,7 +122,7 @@ class TestHealthCheckCustomName(HealthCheckTest):
         HealthChecks: Custom name
         """
         before = TestHealthCheckCustomName._healthCheckCounter
-        time.sleep(1)
+        time.sleep(1.5)
         self.assertGreater(TestHealthCheckCustomName._healthCheckCounter, before)
         self.assertEquals(self.getBackendStatus(), 'up')
 
@@ -143,7 +143,7 @@ class TestHealthCheckCustomNameNoAnswer(HealthCheckTest):
         HealthChecks: Custom name not expected by the responder
         """
         before = TestHealthCheckCustomNameNoAnswer._healthCheckCounter
-        time.sleep(1)
+        time.sleep(1.5)
         self.assertEquals(TestHealthCheckCustomNameNoAnswer._healthCheckCounter, before)
         self.assertEquals(self.getBackendStatus(), 'down')
 
@@ -172,6 +172,6 @@ class TestHealthCheckCustomFunction(HealthCheckTest):
         HealthChecks: Custom function
         """
         before = TestHealthCheckCustomFunction._healthCheckCounter
-        time.sleep(1)
+        time.sleep(1.5)
         self.assertGreater(TestHealthCheckCustomFunction._healthCheckCounter, before)
         self.assertEquals(self.getBackendStatus(), 'up')
