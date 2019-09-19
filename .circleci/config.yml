@@ -1122,6 +1122,7 @@ jobs:
           working_directory: /opt/project/pdns/dnsdistdist
       - run:
           name: Upload tarball to coverity
+          working_directory: /opt/project/
           command: |
             curl --form token=${COVERITY_TOKEN} \
             --form email="${COVERITY_EMAIL}" \
@@ -1192,6 +1193,7 @@ jobs:
           working_directory: /opt/project/pdns/recursordist
       - run:
           name: Upload tarball to coverity
+          working_directory: /opt/project/
           command: |
             curl --form token=${COVERITY_TOKEN} \
             --form email="${COVERITY_EMAIL}" \
