@@ -219,9 +219,8 @@ void declareArguments()
 #ifdef HAVE_LUA_RECORDS
   ::arg().setSwitch("enable-lua-records", "Process LUA records for all zones (metadata overrides this)")="no";
   ::arg().set("lua-records-exec-limit", "LUA records scripts execution limit (instructions count). Values <= 0 mean no limit")="1000";
-  ::arg().set("lua-health-checks-expire-delay", "Stops doing health checks after the record hasn't been unused for that delay (in seconds)")="3600";
+  ::arg().set("lua-health-checks-expire-delay", "Stops doing health checks after the record hasn't been used for that delay (in seconds)")="3600";
   ::arg().set("lua-health-checks-interval", "LUA records health checks monitoring interval in seconds")="5";
-  ::arg().set("lua-health-checks-timeout", "Maximum time in milliseconds that you allow the LUA monitoring health checks to take")="500";
 #endif
   ::arg().setSwitch("axfr-lower-serial", "Also AXFR a zone from a master with a lower serial")="no";
 

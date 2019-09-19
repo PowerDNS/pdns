@@ -111,13 +111,13 @@ private:
         throw std::runtime_error(boost::str(boost::format("unable to match content with `%s`") % cd.opts.at("stringmatch")));
       }
       if(!status) {
-        g_log<<Logger::Warning<<"LUA record monitoring declaring "<<cd.rem.toString()<<" UP for URL "<<cd.url<<"!"<<endl;
+        g_log<<Logger::Info<<"LUA record monitoring declaring "<<cd.rem.toString()<<" UP for URL "<<cd.url<<"!"<<endl;
       }
       setUp(cd);
     }
     catch(std::exception& ne) {
       if(status || first)
-        g_log<<Logger::Warning<<"LUA record monitoring declaring "<<cd.rem.toString()<<" DOWN for URL "<<cd.url<<", error: "<<ne.what()<<endl;
+        g_log<<Logger::Info<<"LUA record monitoring declaring "<<cd.rem.toString()<<" DOWN for URL "<<cd.url<<", error: "<<ne.what()<<endl;
       setDown(cd);
     }
   }
@@ -136,7 +136,7 @@ private:
       }
       s.connect(cd.rem, timeout);
       if (!status) {
-        g_log<<Logger::Warning<<"Lua record monitoring declaring TCP/IP "<<cd.rem.toStringWithPort()<<" ";
+        g_log<<Logger::Info<<"Lua record monitoring declaring TCP/IP "<<cd.rem.toStringWithPort()<<" ";
         if(cd.opts.count("source"))
           g_log<<"(source "<<src.toString()<<") ";
         g_log<<"UP!"<<endl;
@@ -145,7 +145,7 @@ private:
     }
     catch (const NetworkError& ne) {
       if(status || first) {
-        g_log<<Logger::Warning<<"Lua record monitoring declaring TCP/IP "<<cd.rem.toStringWithPort()<<" DOWN: "<<ne.what()<<endl;
+        g_log<<Logger::Info<<"Lua record monitoring declaring TCP/IP "<<cd.rem.toStringWithPort()<<" DOWN: "<<ne.what()<<endl;
       }
       setDown(cd);
     }
@@ -194,6 +194,7 @@ private:
 
   void setStatus(const CheckDesc& cd, bool status)
   {
+    ReadLock lock{&d_lock};
     auto& state = d_statuses[cd];
     state->status = status;
     if (state->first) {
@@ -238,6 +239,13 @@ bool IsUpOracle::isUp(const CheckDesc& cd)
       iter->second->lastAccess = now;
       return iter->second->status;
     }
+  }
+  // try to parse options so we don't insert any malformed content
+  if (cd.opts.count("source")) {
+    ComboAddress src(cd.opts.at("source"));
+  }
+  if (cd.opts.count("timeout")) {
+    int timeout = std::atoi(cd.opts.at("timeout").c_str());
   }
   {
     WriteLock lock{&d_lock};
@@ -955,7 +963,7 @@ std::vector<shared_ptr<DNSRecordContent>> luaSynth(const std::string& code, cons
         ret.push_back(DNSRecordContent::mastermake(qtype, QClass::IN, content_it ));
     }
   } catch(std::exception &e) {
-    g_log<<Logger::Error<<"Lua record reported: "<<e.what();
+    g_log << Logger::Info << "Lua record reported: " << e.what();
     try {
       std::rethrow_if_nested(e);
       g_log<<endl;

@@ -880,7 +880,7 @@ Script to be used to edit incoming AXFRs, see :ref:`modes-of-operation-axfrfilte
 .. _setting-lua-health-checks-expire-delay:
 
 ``lua-health-checks-expire-delay``
------------------------------
+----------------------------------
 
 -  Integer
 -  Default: 3600
@@ -893,7 +893,7 @@ isn't used any more (either deleted or modified).
 .. _setting-lua-health-checks-interval:
 
 ``lua-health-checks-interval``
------------------------------
+------------------------------
 
 -  Integer
 -  Default: 5
