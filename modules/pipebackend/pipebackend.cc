@@ -69,10 +69,14 @@ void CoWrapper::launch()
    if(d_command.empty())
      throw ArgException("pipe-command is not specified");
 
-   if(isUnixSocket(d_command))
+   if(isUnixSocket(d_command)) {
      d_cp = new UnixRemote(d_command, d_timeout);
-   else
-     d_cp = new CoProcess(d_command, d_timeout);
+   }
+   else {
+     auto coprocess = new CoProcess(d_command, d_timeout);
+     coprocess->launch();
+     d_cp = coprocess;
+   }
 
    d_cp->send("HELO\t"+std::to_string(d_abiVersion));
    string banner;
