@@ -137,7 +137,7 @@ static void writePid(void)
   string fname=::arg()["socket-dir"];
   if (::arg()["socket-dir"].empty()) {
     if (::arg()["chroot"].empty())
-      fname = LOCALSTATEDIR;
+      fname = std::string(LOCALSTATEDIR) + "/pdns";
     else
       fname = ::arg()["chroot"] + "/";
   } else if (!::arg()["socket-dir"].empty() && !::arg()["chroot"].empty()) {

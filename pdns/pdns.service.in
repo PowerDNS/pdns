@@ -7,13 +7,17 @@ After=network-online.target mysqld.service postgresql.service slapd.service mari
 
 [Service]
 ExecStart=@sbindir@/pdns_server --guardian=no --daemon=no --disable-syslog --log-timestamp=no --write-pid=no
+User=@service_user@
+Group=@service_group@
 Type=notify
 Restart=on-failure
 RestartSec=1
 StartLimitInterval=0
+RuntimeDirectory=pdns
 
 # Sandboxing
-CapabilityBoundingSet=CAP_NET_BIND_SERVICE CAP_SETGID CAP_SETUID CAP_CHOWN CAP_SYS_CHROOT
+CapabilityBoundingSet=CAP_NET_BIND_SERVICE CAP_CHOWN
+AmbientCapabilities=CAP_NET_BIND_SERVICE CAP_CHOWN
 LockPersonality=true
 ProtectControlGroups=true
 ProtectHome=true
