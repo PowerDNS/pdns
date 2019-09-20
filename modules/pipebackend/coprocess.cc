@@ -50,6 +50,7 @@ CoProcess::CoProcess(const string &command,int timeout, int infd, int outfd): d_
   for (size_t n = 0; n < d_params.size(); n++) {
     d_argv[n]=d_params[n].c_str();
   }
+  d_pid = 0;
 }
 
 void CoProcess::launch()
@@ -103,9 +104,11 @@ void CoProcess::launch()
 CoProcess::~CoProcess()
 {
   int status;
-  if(!waitpid(d_pid, &status, WNOHANG)) {
-    kill(d_pid, 9);
-    waitpid(d_pid, &status, 0);
+  if(d_pid){
+    if(!waitpid(d_pid, &status, WNOHANG)) {
+      kill(d_pid, 9);
+      waitpid(d_pid, &status, 0);
+    }
   }
   
   close(d_fd1[1]);
