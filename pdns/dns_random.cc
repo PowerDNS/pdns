@@ -151,7 +151,7 @@ static void dns_random_setup(bool force=false)
     char buf[1];
     // some systems define getrandom but it does not really work, e.g. because it's
     // not present in kernel.
-    if (getrandom(buf, sizeof(buf), 0) == -1) {
+    if (getrandom(buf, sizeof(buf), 0) == -1 && errno != EINTR) {
        g_log<<Logger::Warning<<"getrandom() failed: "<<stringerror()<<", falling back to " + rdev<<std::endl;
        chosen_rng = RNG_URANDOM;
     }
@@ -263,8 +263,13 @@ uint32_t dns_random(uint32_t upper_bound) {
 #if defined(HAVE_GETRANDOM) && !defined(USE_URANDOM_ONLY)
       uint32_t num = 0;
       do {
-        if (getrandom(&num, sizeof(num), 0) != sizeof(num))
+        auto got = getrandom(&num, sizeof(num), 0);
+        if (got == -1 && errno == EINTR) {
+          continue;
+        }
+        if (got != sizeof(num)) {
           throw std::runtime_error("getrandom() failed: " + stringerror());
+        }
       }
       while(num < min);
 
