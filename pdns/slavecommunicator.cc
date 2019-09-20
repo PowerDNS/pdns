@@ -598,22 +598,20 @@ void CommunicatorClass::suck(const DNSName &domain, const ComboAddress& remote)
     di.backend->setFresh(zs.domain_id);
     purgeAuthCaches(domain.toString()+"$");
 
-
     g_log<<Logger::Error<<"AXFR done for '"<<domain<<"', zone committed with serial number "<<zs.soa_serial<<endl;
 
-    bool renotify = false;
-    if(::arg().mustDo("slave-renotify"))
-      renotify = true;
+    // Send slave re-notifications
+    bool notify;
     vector<string> meta;
-    if (B.getDomainMetadata(domain, "SLAVE-RENOTIFY", meta) && meta.size() > 0) {
-      if (meta[0] == "1") {
-        renotify = true;
-      } else {
-        renotify = false;
-      }
+    if(B.getDomainMetadata(domain, "SLAVE-RENOTIFY", meta ) && !meta.empty()) {
+      notify=(meta.front() == "1");
+    } else {
+      notify=(::arg().mustDo("slave-renotify"));
     }
-    if(renotify)
+    if(notify) {
       notifyDomain(domain, &B);
+    }
+
   }
   catch(DBException &re) {
     g_log<<Logger::Error<<"Unable to feed record during incoming AXFR of '" << domain<<"': "<<re.reason<<endl;
