@@ -99,7 +99,7 @@ public:
   std::string toString() const override
   {
     if (d_minLabels > 0) {
-      return "suffix " + std::string(d_wireFormat ? "in wire format " : "") + "at least " + std::to_string(d_minLabels) + " labels)";
+      return "suffix " + std::string(d_wireFormat ? "in wire format " : "") + "with at least " + std::to_string(d_minLabels) + " label(s)";
     }
     return "suffix" + std::string(d_wireFormat ? " in wire format" : "");
   }
