@@ -75,7 +75,7 @@ override_dh_auto_build-arch:
 
 override_dh_fixperms:
 	dh_fixperms
-	# these files often contain passwords. 660 as it is chowned to root:pdns
+	# these files often contain passwords. 660 as it is chowned to pdns:root
 	chmod 0660 debian/pdns-server/etc/powerdns/pdns.conf
 
 # restore moved files
