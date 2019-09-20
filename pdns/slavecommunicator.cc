@@ -613,7 +613,7 @@ void CommunicatorClass::suck(const DNSName &domain, const ComboAddress& remote)
       }
     }
     if(renotify)
-      notifyDomain(domain);
+      notifyDomain(domain, &B);
   }
   catch(DBException &re) {
     g_log<<Logger::Error<<"Unable to feed record during incoming AXFR of '" << domain<<"': "<<re.reason<<endl;

@@ -1820,7 +1820,7 @@ static void apiServerZoneNotify(HttpRequest* req, HttpResponse* resp) {
     throw HttpNotFoundException();
   }
 
-  if(!Communicator.notifyDomain(zonename))
+  if(!Communicator.notifyDomain(zonename, &B))
     throw ApiException("Failed to add to the queue - see server log");
 
   resp->setSuccessResult("Notification queued");
