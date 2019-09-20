@@ -20,7 +20,7 @@ case "$1" in
       echo -n "Creating user and group pdns..."
       adduser --quiet --system --home /var/spool/powerdns --shell /bin/false --ingroup pdns --disabled-password --disabled-login --gecos "PowerDNS" pdns
       echo "done"
-      chown pdns:root /etc/powerdns/pdns.conf
+      chown root:pdns /etc/powerdns/pdns.conf
     fi
     chown pdns:pdns /var/lib/powerdns || :
   ;;
