@@ -47,7 +47,7 @@ public:
     LUABackend(const string &suffix="");
     ~LUABackend();
     bool list(const DNSName &target, int domain_id, bool include_disabled=false) override;
-    void lookup(const QType &qtype, const DNSName &qname, DNSPacket *p, int domain_id) override;
+    void lookup(const QType &qtype, const DNSName &qname, int domain_id, DNSPacket *p=nullptr) override;
     bool get(DNSResourceRecord &rr) override;
     //! fills the soadata struct with the SOA details. Returns false if there is no SOA.
     bool getSOA(const DNSName &name, SOAData &soadata) override;

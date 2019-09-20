@@ -117,7 +117,7 @@ bool LdapBackend::list_strict( const DNSName& target, int domain_id )
 
 
 
-void LdapBackend::lookup( const QType &qtype, const DNSName &qname, DNSPacket *dnspkt, int zoneid )
+void LdapBackend::lookup( const QType &qtype, const DNSName &qname, int zoneid, DNSPacket *dnspkt )
 {
   try
   {
@@ -138,7 +138,7 @@ void LdapBackend::lookup( const QType &qtype, const DNSName &qname, DNSPacket *d
   {
     g_log << Logger::Warning << d_myname << " Connection to LDAP lost, trying to reconnect" << endl;
     if ( reconnect() )
-      this->lookup( qtype, qname, dnspkt, zoneid );
+      this->lookup( qtype, qname, zoneid, dnspkt );
     else
       throw PDNSException( "Failed to reconnect to LDAP server" );
   }

@@ -193,11 +193,11 @@ void dbBench(const std::string& fname)
   unsigned int hits=0, misses=0;
   for(; n < 10000; ++n) {
     DNSName domain(domains[dns_random(domains.size())]);
-    B.lookup(QType(QType::NS), domain);
+    B.lookup(QType(QType::NS), domain, -1);
     while(B.get(rr)) {
       hits++;
     }
-    B.lookup(QType(QType::A), DNSName(std::to_string(random()))+domain);
+    B.lookup(QType(QType::A), DNSName(std::to_string(random()))+domain, -1);
     while(B.get(rr)) {
     }
     misses++;
@@ -299,7 +299,7 @@ int checkZone(DNSSECKeeper &dk, UeberBackend &B, const DNSName& zone, const vect
     if(B.getSOAUncached(parent, sd_p)) {
       bool ns=false;
       DNSZoneRecord zr;
-      B.lookup(QType(QType::ANY), zone, NULL, sd_p.domain_id);
+      B.lookup(QType(QType::ANY), zone, sd_p.domain_id);
       while(B.get(zr))
         ns |= (zr.dr.d_type == QType::NS);
       if (!ns) {
@@ -1232,7 +1232,7 @@ int addOrReplaceRecord(bool addOrReplace, const vector<string>& cmds) {
   di.backend->startTransaction(zone, -1);
 
   if(addOrReplace) { // the 'add' case
-    di.backend->lookup(rr.qtype, rr.qname, 0, di.id);
+    di.backend->lookup(rr.qtype, rr.qname, di.id);
 
     while(di.backend->get(oldrr))
       newrrs.push_back(oldrr);
@@ -1249,7 +1249,7 @@ int addOrReplaceRecord(bool addOrReplace, const vector<string>& cmds) {
     }
   }
 
-  di.backend->lookup(QType(QType::ANY), rr.qname, 0, di.id);
+  di.backend->lookup(QType(QType::ANY), rr.qname, di.id);
   bool found=false;
   if(rr.qtype.getCode() == QType::CNAME) { // this will save us SO many questions
 
@@ -1285,7 +1285,7 @@ int addOrReplaceRecord(bool addOrReplace, const vector<string>& cmds) {
 
   di.backend->replaceRRSet(di.id, name, rr.qtype, newrrs);
   // need to be explicit to bypass the ueberbackend cache!
-  di.backend->lookup(rr.qtype, name, 0, di.id);
+  di.backend->lookup(rr.qtype, name, di.id);
   di.backend->commitTransaction();
   cout<<"New rrset:"<<endl;
   while(di.backend->get(rr)) {
@@ -1611,9 +1611,8 @@ bool showZone(DNSSECKeeper& dk, const DNSName& zone, bool exportDS = false)
     vector<DNSKEYRecordContent> keys;
     DNSZoneRecord zr;
 
-    B.lookup(QType(QType::DNSKEY), zone);
-    while(B.get(zr)) {
-      if (zr.dr.d_type != QType::DNSKEY) continue;
+    di.backend->lookup(QType(QType::DNSKEY), zone, di.id );
+    while(di.backend->get(zr)) {
       keys.push_back(*getRR<DNSKEYRecordContent>(zr.dr));
     }
 
@@ -1851,7 +1850,7 @@ void testSchema(DNSSECKeeper& dk, const DNSName& zone)
   cout<<"Committing"<<endl;
   db->commitTransaction();
   cout<<"Querying TXT"<<endl;
-  db->lookup(QType(QType::TXT), zone, NULL, di.id);
+  db->lookup(QType(QType::TXT), zone, di.id);
   if(db->get(rrget))
   {
     DNSResourceRecord rrthrowaway;

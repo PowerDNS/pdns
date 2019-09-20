@@ -196,7 +196,7 @@ bool TinyDNSBackend::list(const DNSName &target, int domain_id, bool include_dis
   return d_cdbReader->searchSuffix(key);
 }
 
-void TinyDNSBackend::lookup(const QType &qtype, const DNSName &qdomain, DNSPacket *pkt_p, int zoneId) {
+void TinyDNSBackend::lookup(const QType &qtype, const DNSName &qdomain, int zoneId, DNSPacket *pkt_p) {
   d_isAxfr = false;
   string queryDomain = toLowerCanonic(qdomain.toString());
 

@@ -97,7 +97,7 @@ bool LUABackend::list(const DNSName &target, int domain_id, bool include_disable
     return ok;
 }
 
-void LUABackend::lookup(const QType &qtype, const DNSName &qname, DNSPacket *p, int domain_id) {
+void LUABackend::lookup(const QType &qtype, const DNSName &qname, int domain_id, DNSPacket *p) {
     if (logging)
 	g_log << Logger::Info << backend_name << "(lookup) BEGIN" << endl;
 

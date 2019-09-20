@@ -540,7 +540,7 @@ UeberBackend::~UeberBackend()
 }
 
 // this handle is more magic than most
-void UeberBackend::lookup(const QType &qtype,const DNSName &qname, DNSPacket *pkt_p, int zoneId)
+void UeberBackend::lookup(const QType &qtype,const DNSName &qname, int zoneId, DNSPacket *pkt_p)
 {
   if(d_stale) {
     g_log<<Logger::Error<<"Stale ueberbackend received question, signalling that we want to be recycled"<<endl;
@@ -580,7 +580,7 @@ void UeberBackend::lookup(const QType &qtype,const DNSName &qname, DNSPacket *pk
       //      cout<<"UeberBackend::lookup("<<qname<<"|"<<DNSRecordContent::NumberToType(qtype.getCode())<<"): uncached"<<endl;
       d_negcached=d_cached=false;
       d_answers.clear(); 
-      (d_handle.d_hinterBackend=backends[d_handle.i++])->lookup(qtype, qname,pkt_p,zoneId);
+      (d_handle.d_hinterBackend=backends[d_handle.i++])->lookup(qtype, qname,zoneId,pkt_p);
     } 
     else if(cstat==0) {
       //      cout<<"UeberBackend::lookup("<<qname<<"|"<<DNSRecordContent::NumberToType(qtype.getCode())<<"): NEGcached"<<endl;
@@ -681,7 +681,7 @@ bool UeberBackend::handle::get(DNSZoneRecord &r)
            <<" out of answers, taking next"<<endl);
       
       d_hinterBackend=parent->backends[i++];
-      d_hinterBackend->lookup(qtype,qname,pkt_p,parent->d_domain_id);
+      d_hinterBackend->lookup(qtype,qname,parent->d_domain_id,pkt_p);
     }
     else 
       break;

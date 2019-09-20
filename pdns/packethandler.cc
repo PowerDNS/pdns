@@ -127,7 +127,7 @@ bool PacketHandler::addCDNSKEY(DNSPacket *p, DNSPacket *r, const SOAData& sd)
   }
 
   if(::arg().mustDo("direct-dnskey")) {
-    B.lookup(QType(QType::CDNSKEY), p->qdomain, p, sd.domain_id);
+    B.lookup(QType(QType::CDNSKEY), p->qdomain, sd.domain_id, p);
 
     while(B.get(rr)) {
       rr.dr.d_ttl=sd.default_ttl;
@@ -163,7 +163,7 @@ bool PacketHandler::addDNSKEY(DNSPacket *p, DNSPacket *r, const SOAData& sd)
   }
 
   if(::arg().mustDo("direct-dnskey")) {
-    B.lookup(QType(QType::DNSKEY), p->qdomain, p, sd.domain_id);
+    B.lookup(QType(QType::DNSKEY), p->qdomain, sd.domain_id, p);
 
     while(B.get(rr)) {
       rr.dr.d_ttl=sd.default_ttl;
@@ -213,7 +213,7 @@ bool PacketHandler::addCDS(DNSPacket *p, DNSPacket *r, const SOAData& sd)
   }
 
   if(::arg().mustDo("direct-dnskey")) {
-    B.lookup(QType(QType::CDS), p->qdomain, p, sd.domain_id);
+    B.lookup(QType(QType::CDS), p->qdomain, sd.domain_id, p);
 
     while(B.get(rr)) {
       rr.dr.d_ttl=sd.default_ttl;
@@ -307,7 +307,7 @@ vector<DNSZoneRecord> PacketHandler::getBestReferralNS(DNSPacket *p, SOAData& sd
   do {
     if(subdomain == sd.qname) // stop at SOA
       break;
-    B.lookup(QType(QType::NS), subdomain, p, sd.domain_id);
+    B.lookup(QType(QType::NS), subdomain, sd.domain_id, p);
     while(B.get(rr)) {
       ret.push_back(rr); // this used to exclude auth NS records for some reason
     }
@@ -326,7 +326,7 @@ vector<DNSZoneRecord> PacketHandler::getBestDNAMESynth(DNSPacket *p, SOAData& sd
   do {
     DLOG(g_log<<"Attempting DNAME lookup for "<<subdomain<<", sd.qname="<<sd.qname<<endl);
 
-    B.lookup(QType(QType::DNAME), subdomain, p, sd.domain_id);
+    B.lookup(QType(QType::DNAME), subdomain, sd.domain_id, p);
     while(B.get(rr)) {
       ret.push_back(rr);  // put in the original
       rr.dr.d_type = QType::CNAME;
@@ -368,9 +368,9 @@ bool PacketHandler::getBestWildcard(DNSPacket *p, SOAData& sd, const DNSName &ta
   wildcard=subdomain;
   while( subdomain.chopOff() && !haveSomething )  {
     if (subdomain.empty()) {
-      B.lookup(QType(QType::ANY), g_wildcarddnsname, p, sd.domain_id); 
+      B.lookup(QType(QType::ANY), g_wildcarddnsname, sd.domain_id, p); 
     } else {
-      B.lookup(QType(QType::ANY), g_wildcarddnsname+subdomain, p, sd.domain_id);
+      B.lookup(QType(QType::ANY), g_wildcarddnsname+subdomain, sd.domain_id, p);
     }
     while(B.get(rr)) {
 #ifdef HAVE_LUA_RECORDS
@@ -411,7 +411,7 @@ bool PacketHandler::getBestWildcard(DNSPacket *p, SOAData& sd, const DNSName &ta
     if ( subdomain == sd.qname || haveSomething ) // stop at SOA or result
       break;
 
-    B.lookup(QType(QType::ANY), subdomain, p, sd.domain_id);
+    B.lookup(QType(QType::ANY), subdomain, sd.domain_id, p);
     if (B.get(rr)) {
       DLOG(g_log<<"No wildcard match, ancestor exists"<<endl);
       while (B.get(rr)) ;
@@ -456,7 +456,7 @@ int PacketHandler::doAdditionalProcessingAndDropAA(DNSPacket *p, DNSPacket *r, c
       else
         continue;
 
-      B.lookup(QType(d_doIPv6AdditionalProcessing ? QType::ANY : QType::A), lookup, p, soadata.domain_id);
+      B.lookup(QType(d_doIPv6AdditionalProcessing ? QType::ANY : QType::A), lookup, soadata.domain_id, p);
 
       while(B.get(rr)) {
         if(rr.dr.d_type != QType::A && rr.dr.d_type!=QType::AAAA)
@@ -501,7 +501,7 @@ void PacketHandler::emitNSEC(DNSPacket *r, const SOAData& sd, const DNSName& nam
 
   DNSZoneRecord rr;
 
-  B.lookup(QType(QType::ANY), name, NULL, sd.domain_id);
+  B.lookup(QType(QType::ANY), name, sd.domain_id);
   while(B.get(rr)) {
 #ifdef HAVE_LUA_RECORDS   
     if(rr.dr.d_type == QType::LUA)
@@ -548,7 +548,7 @@ void PacketHandler::emitNSEC3(DNSPacket *r, const SOAData& sd, const NSEC3PARAMR
         n3rc.set(QType::CDS);
     }
 
-    B.lookup(QType(QType::ANY), name, NULL, sd.domain_id);
+    B.lookup(QType(QType::ANY), name, sd.domain_id);
     while(B.get(rr)) {
 #ifdef HAVE_LUA_RECORDS
       if(rr.dr.d_type == QType::LUA)
@@ -655,7 +655,7 @@ void PacketHandler::addNSEC3(DNSPacket *p, DNSPacket *r, const DNSName& target, 
       bool doBreak = false;
       DNSZoneRecord rr;
       while( closest.chopOff() && (closest != sd.qname))  { // stop at SOA
-        B.lookup(QType(QType::ANY), closest, p, sd.domain_id);
+        B.lookup(QType(QType::ANY), closest, sd.domain_id, p);
         while(B.get(rr))
           if (rr.auth)
             doBreak = true;
@@ -996,7 +996,7 @@ void PacketHandler::makeNOError(DNSPacket* p, DNSPacket* r, const DNSName& targe
 bool PacketHandler::addDSforNS(DNSPacket* p, DNSPacket* r, SOAData& sd, const DNSName& dsname)
 {
   //cerr<<"Trying to find a DS for '"<<dsname<<"', domain_id = "<<sd.domain_id<<endl;
-  B.lookup(QType(QType::DS), dsname, p, sd.domain_id);
+  B.lookup(QType(QType::DS), dsname, sd.domain_id, p);
   DNSZoneRecord rr;
   bool gotOne=false;
   while(B.get(rr)) {
@@ -1327,7 +1327,7 @@ DNSPacket *PacketHandler::doQuestion(DNSPacket *p)
 #endif
 
     // see what we get..
-    B.lookup(QType(QType::ANY), target, p, sd.domain_id);
+    B.lookup(QType(QType::ANY), target, sd.domain_id, p);
     rrset.clear();
     haveAlias.trimToLabels(0);
     aliasScopeMask = 0;

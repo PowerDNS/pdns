@@ -289,7 +289,7 @@ bool OdbxBackend::list( const DNSName& target, int zoneid, bool include_disabled
 
 
 
-void OdbxBackend::lookup( const QType& qtype, const DNSName& qname, DNSPacket* dnspkt, int zoneid )
+void OdbxBackend::lookup( const QType& qtype, const DNSName& qname, int zoneid, DNSPacket* dnspkt )
 {
         try
         {

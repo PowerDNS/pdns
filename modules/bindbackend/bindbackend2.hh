@@ -195,7 +195,7 @@ public:
   time_t getCtime(const string &fname);
    // DNSSEC
   bool getBeforeAndAfterNamesAbsolute(uint32_t id, const DNSName& qname, DNSName& unhashed, DNSName& before, DNSName& after) override;
-  void lookup(const QType &, const DNSName &qdomain, DNSPacket *p=0, int zoneId=-1) override;
+  void lookup(const QType &, const DNSName &qdomain, int zoneId, DNSPacket *p=nullptr) override;
   bool list(const DNSName &target, int id, bool include_disabled=false) override;
   bool get(DNSResourceRecord &) override;
   void getAllDomains(vector<DomainInfo> *domains, bool include_disabled=false) override;

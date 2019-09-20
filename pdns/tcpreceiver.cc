@@ -491,7 +491,7 @@ bool TCPNameserver::canDoAXFR(shared_ptr<DNSPacket> q)
         DNSResourceRecord rr;
         set<DNSName> nsset;
 
-        B->lookup(QType(QType::NS),q->qdomain);
+        B->lookup(QType(QType::NS),q->qdomain,sd.domain_id);
         while(B->get(rr)) 
           nsset.insert(DNSName(rr.content));
         for(const auto & j: nsset) {
@@ -715,7 +715,7 @@ int TCPNameserver::doAXFR(const DNSName &target, shared_ptr<DNSPacket> q, int ou
   }
   
   if(::arg().mustDo("direct-dnskey")) {
-    sd.db->lookup(QType(QType::DNSKEY), target, NULL, sd.domain_id);
+    sd.db->lookup(QType(QType::DNSKEY), target, sd.domain_id);
     while(sd.db->get(zrr)) {
       zrr.dr.d_ttl = sd.default_ttl;
       csp.submit(zrr);

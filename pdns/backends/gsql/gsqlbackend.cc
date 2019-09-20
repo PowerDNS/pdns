@@ -1038,7 +1038,7 @@ bool GSQLBackend::setDomainMetadata(const DNSName& name, const std::string& kind
   return true;
 }
 
-void GSQLBackend::lookup(const QType &qtype,const DNSName &qname, DNSPacket *pkt_p, int domain_id)
+void GSQLBackend::lookup(const QType &qtype,const DNSName &qname, int domain_id, DNSPacket *pkt_p)
 {
   try {
     reconnectIfNeeded();

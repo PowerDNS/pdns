@@ -121,7 +121,7 @@ class DNSBackend
 {
 public:
   //! lookup() initiates a lookup. A lookup without results should not throw!
-  virtual void lookup(const QType &qtype, const DNSName &qdomain, DNSPacket *pkt_p=0, int zoneId=-1)=0; 
+  virtual void lookup(const QType &qtype, const DNSName &qdomain, int zoneId=-1, DNSPacket *pkt_p=nullptr)=0;
   virtual bool get(DNSResourceRecord &)=0; //!< retrieves one DNSResource record, returns false if no more were available
   virtual bool get(DNSZoneRecord &r);
 

@@ -141,7 +141,7 @@ void CommunicatorClass::ixfrSuck(const DNSName &domain, const TSIGTriplet& tt, c
         vector<DNSRecord> rrset;
         {
           DNSZoneRecord zrr;
-          B.lookup(QType(g.first.second), g.first.first+domain, 0, di.id);
+          B.lookup(QType(g.first.second), g.first.first+domain, di.id);
           while(B.get(zrr)) {
             zrr.dr.d_name.makeUsRelative(domain);
             rrset.push_back(zrr.dr);
@@ -598,22 +598,20 @@ void CommunicatorClass::suck(const DNSName &domain, const ComboAddress& remote)
     di.backend->setFresh(zs.domain_id);
     purgeAuthCaches(domain.toString()+"$");
 
-
     g_log<<Logger::Error<<"AXFR done for '"<<domain<<"', zone committed with serial number "<<zs.soa_serial<<endl;
 
-    bool renotify = false;
-    if(::arg().mustDo("slave-renotify"))
-      renotify = true;
+    // Send slave re-notifications
+    bool notify;
     vector<string> meta;
-    if (B.getDomainMetadata(domain, "SLAVE-RENOTIFY", meta) && meta.size() > 0) {
-      if (meta[0] == "1") {
-        renotify = true;
-      } else {
-        renotify = false;
-      }
+    if(B.getDomainMetadata(domain, "SLAVE-RENOTIFY", meta ) && !meta.empty()) {
+      notify=(meta.front() == "1");
+    } else {
+      notify=(::arg().mustDo("slave-renotify"));
     }
-    if(renotify)
-      notifyDomain(domain);
+    if(notify) {
+      notifyDomain(domain, &B);
+    }
+
   }
   catch(DBException &re) {
     g_log<<Logger::Error<<"Unable to feed record during incoming AXFR of '" << domain<<"': "<<re.reason<<endl;
@@ -960,7 +958,7 @@ void CommunicatorClass::slaveRefresh(PacketHandler *P)
     else if(hasSOA && theirserial == ourserial) {
       uint32_t maxExpire=0, maxInception=0;
       if(dk.isPresigned(di.zone)) {
-        B->lookup(QType(QType::RRSIG), di.zone); // can't use DK before we are done with this lookup!
+        B->lookup(QType(QType::RRSIG), di.zone, di.id); // can't use DK before we are done with this lookup!
         DNSZoneRecord zr;
         while(B->get(zr)) {
           auto rrsig = getRR<RRSIGRecordContent>(zr.dr);

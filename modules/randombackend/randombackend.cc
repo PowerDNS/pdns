@@ -48,7 +48,7 @@ public:
     return false; // we don't support AXFR
   }
 
-  void lookup(const QType &type, const DNSName &qdomain, DNSPacket *p, int zoneId) override
+  void lookup(const QType &type, const DNSName &qdomain, int zoneId, DNSPacket *p) override
   {
     if(qdomain == d_ourdomain){
       if(type.getCode() == QType::SOA || type.getCode() == QType::ANY) {

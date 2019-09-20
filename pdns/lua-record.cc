@@ -393,7 +393,7 @@ static std::vector<DNSZoneRecord> lookup(const DNSName& name, uint16_t qtype, in
   static UeberBackend ub;
   static std::mutex mut;
   std::lock_guard<std::mutex> lock(mut);
-  ub.lookup(QType(qtype), name, nullptr, zoneid);
+  ub.lookup(QType(qtype), name, zoneid);
   DNSZoneRecord dr;
   vector<DNSZoneRecord> ret;
   while(ub.get(dr)) {

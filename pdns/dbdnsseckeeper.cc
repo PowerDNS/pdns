@@ -546,7 +546,7 @@ bool DNSSECKeeper::getPreRRSIGs(UeberBackend& db, const DNSName& signer, const D
                 DLOG(g_log<<"Could not get SOA for domain"<<endl);
                 return false;
         }
-        db.lookup(QType(QType::RRSIG), wildcardname.countLabels() ? wildcardname : qname, NULL, sd.domain_id);
+        db.lookup(QType(QType::RRSIG), wildcardname.countLabels() ? wildcardname : qname, sd.domain_id);
         DNSZoneRecord rr;
         while(db.get(rr)) {
           auto rrsig = getRR<RRSIGRecordContent>(rr.dr);
