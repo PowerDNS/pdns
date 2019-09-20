@@ -537,7 +537,10 @@ static void gatherRecords(const string& logprefix, const Json container, const D
   const auto& items = container["records"].array_items();
   for(const auto& record : items) {
     string content = stringFromJson(record, "content");
-    rr.disabled = boolFromJson(record, "disabled");
+    rr.disabled = false;
+    if(!record["disabled"].is_null()) {
+      rr.disabled = boolFromJson(record, "disabled");
+    }
 
     // validate that the client sent something we can actually parse, and require that data to be dotted.
     try {
