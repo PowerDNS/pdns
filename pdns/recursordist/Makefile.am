@@ -253,6 +253,8 @@ testrunner_SOURCES = \
 	recpacketcache.cc recpacketcache.hh \
 	recursor_cache.cc recursor_cache.hh \
 	responsestats.cc \
+	rpzloader.cc rpzloader.hh \
+	resolver.hh resolver.cc \
 	root-dnssec.hh \
 	secpoll.cc \
 	sillyrecords.cc \
@@ -281,6 +283,7 @@ testrunner_SOURCES = \
 	test-rcpgenerator_cc.cc \
 	test-recpacketcache_cc.cc \
 	test-recursorcache_cc.cc \
+	test-rpzloader_cc.cc \
 	test-secpoll_cc.cc \
 	test-signers.cc \
 	test-syncres_cc.hh \
