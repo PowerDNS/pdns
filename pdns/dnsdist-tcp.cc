@@ -1067,6 +1067,15 @@ static void handleIO(std::shared_ptr<IncomingTCPConnectionState>& state, struct 
     if (state->d_state == IncomingTCPConnectionState::State::doingHandshake) {
       iostate = state->d_handler.tryHandshake();
       if (iostate == IOState::Done) {
+        if (state->d_handler.isTLS()) {
+          if (!state->d_handler.hasTLSSessionBeenResumed()) {
+            ++state->d_ci.cs->tlsNewSessions;
+          }
+          else {
+            ++state->d_ci.cs->tlsResumptions;
+          }
+        }
+
         state->d_handshakeDoneTime = now;
         state->d_state = IncomingTCPConnectionState::State::readingQuerySize;
       }

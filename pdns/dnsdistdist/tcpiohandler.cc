@@ -364,6 +364,15 @@ public:
     return std::string();
   }
 
+  bool hasSessionBeenResumed() const override
+  {
+    if (d_conn) {
+      return SSL_session_reused(d_conn.get()) != 0;
+    }
+    return false;
+  }
+
+
 private:
   std::unique_ptr<SSL, void(*)(SSL*)> d_conn;
   unsigned int d_timeout;
@@ -918,6 +927,14 @@ public:
       }
     }
     return std::string();
+  }
+
+  bool hasSessionBeenResumed() const override
+  {
+    if (d_conn) {
+      return gnutls_session_is_resumed(d_conn.get()) != 0;
+    }
+    return false;
   }
 
   void close() override

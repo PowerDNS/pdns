@@ -561,6 +561,13 @@ try
     return 0;
   }
 
+  if (h2o_socket_get_ssl_session_reused(sock) == 0) {
+    ++dsc->cs->tlsNewSessions;
+  }
+  else {
+    ++dsc->cs->tlsResumptions;
+  }
+
   if(auto tlsversion = h2o_socket_get_ssl_protocol_version(sock)) {
     if(!strcmp(tlsversion, "TLSv1.0"))
       ++dsc->df->d_tls10queries;

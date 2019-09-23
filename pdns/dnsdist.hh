@@ -685,6 +685,9 @@ struct ClientState
   std::atomic<uint64_t> tcpClientTimeouts{0};
   std::atomic<uint64_t> tcpDownstreamTimeouts{0};
   std::atomic<uint64_t> tcpCurrentConnections{0};
+  std::atomic<uint64_t> tlsNewSessions{0}; // A new TLS session has been negotiated, no resumption
+  std::atomic<uint64_t> tlsResumptions{0}; // A TLS session has been resumed, either via session id or via a TLS ticket
+
   std::atomic<double> tcpAvgQueriesPerConnection{0.0};
   /* in ms */
   std::atomic<double> tcpAvgConnectionDuration{0.0};
