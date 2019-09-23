@@ -673,6 +673,19 @@ static void handleResponseSent(std::shared_ptr<IncomingTCPConnectionState>& stat
     vinfolog("Got answer from %s, relayed to %s (%s), took %f usec", state->d_ds->remote.toStringWithPort(), state->d_ids.origRemote.toStringWithPort(), (state->d_ci.cs->tlsFrontend ? "DoT" : "TCP"), udiff);
   }
 
+  switch (state->d_cleartextDH.rcode) {
+  case RCode::NXDomain:
+    ++g_stats.frontendNXDomain;
+    break;
+  case RCode::ServFail:
+    ++g_stats.servfailResponses;
+    ++g_stats.frontendServFail;
+    break;
+  case RCode::NoError:
+    ++g_stats.frontendNoError;
+    break;
+  }
+
   if (g_maxTCPQueriesPerConn && state->d_queriesCount > g_maxTCPQueriesPerConn) {
     vinfolog("Terminating TCP connection from %s because it reached the maximum number of queries per conn (%d / %d)", state->d_ci.remote.toStringWithPort(), state->d_queriesCount, g_maxTCPQueriesPerConn);
     return;
