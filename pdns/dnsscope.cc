@@ -212,7 +212,7 @@ try
   typedef map<uint16_t,uint32_t> rcodes_t;
   rcodes_t rcodes;
   
-  time_t lowestTime=2000000000, highestTime=0;
+  time_t lowestTime=0, highestTime=0;
   time_t lastsec=0;
   LiveCounts lastcounts;
   std::unordered_set<ComboAddress, ComboAddress::addressOnlyHash> requestors, recipients, rdnonra;
@@ -290,7 +290,8 @@ try
 	    lastcounts = lc;
 	  }
 
-	  lowestTime=min((time_t)lowestTime,  (time_t)pr.d_pheader.ts.tv_sec);
+    if(lowestTime) { lowestTime = min((time_t)lowestTime,  (time_t)pr.d_pheader.ts.tv_sec); }
+    else { lowestTime = pr.d_pheader.ts.tv_sec; }
 	  highestTime=max((time_t)highestTime, (time_t)pr.d_pheader.ts.tv_sec);
 
 	  QuestionIdentifier qi=QuestionIdentifier::create(pr.getSource(), pr.getDest(), header, qname, qtype);
