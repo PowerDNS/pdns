@@ -639,7 +639,7 @@ try {
         gettime(&ts);
         g_rings.insertResponse(ts, *dr.remote, *dr.qname, dr.qtype, static_cast<unsigned int>(udiff), static_cast<unsigned int>(got), cleartextDH, dss->remote);
 
-        switch (dh->rcode) {
+        switch (cleartextDH.rcode) {
         case RCode::NXDomain:
           ++g_stats.frontendNXDomain;
           break;
