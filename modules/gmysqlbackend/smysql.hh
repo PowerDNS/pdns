@@ -33,7 +33,7 @@ public:
          const string &msocket="",const string &user="",
          const string &password="", const string &group="",
          bool setIsolation=false, unsigned int timeout=10,
-         bool threadCleanup=false);
+         bool threadCleanup=false, bool clientSSL=false);
 
   ~SMySQL();
 
@@ -63,6 +63,7 @@ private:
   uint16_t d_port;
   bool d_setIsolation;
   bool d_threadCleanup;
+  bool d_clientSSL;
 };
 
 #endif /* SSMYSQL_HH */
