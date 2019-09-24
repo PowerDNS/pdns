@@ -17,12 +17,11 @@
  *  Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
  */
 
+#pragma once
+
 #include <exception>
 #include <stdexcept>
 #include <string>
-
-#ifndef LDAPEXCEPTIONS_HH
-#define LDAPEXCEPTIONS_HH
 
 class LDAPException : public std::runtime_error
 {
@@ -48,4 +47,3 @@ class LDAPNoSuchObject : public LDAPException
     explicit LDAPNoSuchObject() : LDAPException( "No such object" ) {}
 };
 
-#endif // LDAPEXCEPTIONS_HH

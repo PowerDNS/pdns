@@ -197,10 +197,11 @@ size_t writen2WithTimeout(int fd, const void * buffer, size_t len, int timeout)
 string nowTime()
 {
   time_t now = time(nullptr);
-  struct tm* tm = localtime(&now);
+  struct tm tm;
+  localtime_r(&now, &tm);
   char buffer[30];
   // YYYY-mm-dd HH:MM:SS TZOFF
-  strftime(buffer, sizeof(buffer), "%F %T %z", tm);
+  strftime(buffer, sizeof(buffer), "%F %T %z", &tm);
   buffer[sizeof(buffer)-1] = '\0';
   return string(buffer);
 }

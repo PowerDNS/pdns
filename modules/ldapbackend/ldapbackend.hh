@@ -20,6 +20,9 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
+
+#pragma once
+
 #include <algorithm>
 #include <sstream>
 #include <utility>
@@ -38,10 +41,6 @@
 #include "powerldap.hh"
 #include "utils.hh"
 
-
-
-#ifndef LDAPBACKEND_HH
-#define LDAPBACKEND_HH
 
 using std::string;
 using std::vector;
@@ -184,4 +183,3 @@ class LdapBackend : public DNSBackend
     void setNotified( uint32_t id, uint32_t serial ) override;
 };
 
-#endif /* LDAPBACKEND_HH */

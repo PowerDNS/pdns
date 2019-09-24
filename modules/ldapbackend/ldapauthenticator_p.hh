@@ -16,11 +16,10 @@
  *  Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
  */
 
+#pragma once
+
 #include <krb5.h>
 #include "ldapauthenticator.hh"
-
-#ifndef LDAPAUTHENTICATOR_P_HH
-#define LDAPAUTHENTICATOR_P_HH
 
 #ifndef HAVE_KRB5_GET_INIT_CREDS_OPT_SET_DEFAULT_FLAGS
 #define krb5_get_init_creds_opt_set_default_flags( a, b, c, d ) /* This does not exist with MIT Kerberos */
@@ -69,4 +68,3 @@ class LdapGssapiAuthenticator : public LdapAuthenticator
     virtual std::string getError() const;
 };
 
-#endif // LDAPAUTHENTICATOR_P_HH
