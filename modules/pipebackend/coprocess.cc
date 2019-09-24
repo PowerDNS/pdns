@@ -160,7 +160,6 @@ void CoProcess::send(const string &snd)
 
 void CoProcess::receive(string &receive)
 {
-  bool first = true;
   receive.clear();
 
   // we might still have some remaining data from our last read
