@@ -124,6 +124,14 @@ Enable DNSSEC processing for this backend. Default: no.
 
 Use the InnoDB READ-COMMITTED transaction isolation level. Default: yes.
 
+.. _setting-gmysql-ssl:
+
+``gmysql-ssl``
+^^^^^^^^^^^^^^^^^^
+.. versionadded:: 4.2.1
+
+Send the CLIENT_SSL capabily flag to the server. SSL suppport is announced by the server via CLIENT_SSL and is enabled if the client returns the same capability. Default: no.
+
 .. _setting-gmysql-timeout:
 
 ``gmysql-timeout``

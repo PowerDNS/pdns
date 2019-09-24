@@ -481,7 +481,7 @@ void SMySQL::connect()
                             d_database.empty() ? NULL : d_database.c_str(),
                             d_port,
                             d_msocket.empty() ? NULL : d_msocket.c_str(),
-                            CLIENT_MULTI_RESULTS)) {
+                            (d_clientSSL ? CLIENT_SSL : 0) | CLIENT_MULTI_RESULTS)) {
 
       if (retry == 0)
         throw sPerrorException("Unable to connect to database");
@@ -497,8 +497,8 @@ void SMySQL::connect()
 }
 
 SMySQL::SMySQL(const string &database, const string &host, uint16_t port, const string &msocket, const string &user,
-               const string &password, const string &group, bool setIsolation, unsigned int timeout, bool threadCleanup):
-  d_database(database), d_host(host), d_msocket(msocket), d_user(user), d_password(password), d_group(group), d_timeout(timeout), d_port(port), d_setIsolation(setIsolation), d_threadCleanup(threadCleanup)
+               const string &password, const string &group, bool setIsolation, unsigned int timeout, bool threadCleanup, bool clientSSL):
+  d_database(database), d_host(host), d_msocket(msocket), d_user(user), d_password(password), d_group(group), d_timeout(timeout), d_port(port), d_setIsolation(setIsolation), d_threadCleanup(threadCleanup), d_clientSSL(clientSSL)
 {
   connect();
 }
