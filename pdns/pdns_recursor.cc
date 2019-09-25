@@ -2786,6 +2786,11 @@ static void daemonize(void)
   }
 }
 
+static void termIntHandler(int)
+{
+  doExitNicely();
+}
+
 static void usr1Handler(int)
 {
   statsWanted=true;
@@ -4075,6 +4080,8 @@ static int serviceMain(int argc, char*argv[])
     g_log.toConsole(Logger::Critical);
     daemonize();
   }
+  signal(SIGTERM,termIntHandler);
+  signal(SIGINT,termIntHandler);
   signal(SIGUSR1,usr1Handler);
   signal(SIGUSR2,usr2Handler);
   signal(SIGPIPE,SIG_IGN);

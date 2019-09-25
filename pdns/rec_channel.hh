@@ -89,3 +89,6 @@ void blacklistStats(StatComponent component, const string& stats);
 
 void registerAllStats();
 
+void doExitGeneric(bool nicely);
+void doExit();
+void doExitNicely();

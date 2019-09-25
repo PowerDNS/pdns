@@ -1161,7 +1161,7 @@ void registerAllStats()
   }
 }
 
-static void doExitGeneric(bool nicely)
+void doExitGeneric(bool nicely)
 {
   g_log<<Logger::Error<<"Exiting on user request"<<endl;
   extern RecursorControlChannel s_rcc;
@@ -1176,12 +1176,12 @@ static void doExitGeneric(bool nicely)
     _exit(1);
 }
 
-static void doExit()
+void doExit()
 {
   doExitGeneric(false);
 }
 
-static void doExitNicely()
+void doExitNicely()
 {
   doExitGeneric(true);
 }
