@@ -56,8 +56,8 @@ void AuthLua4::postPrepareContext() {
   });
 
 /* DNSPacket */
-  d_lw->writeFunction("newDNSPacket", [](bool isQuery) { return make_unique<DNSPacket>(isQuery); });
-  d_lw->writeFunction("dupDNSPacket", [](const std::unique_ptr<DNSPacket> &orig) { return make_unique<DNSPacket>(*orig); });
+  d_lw->writeFunction("newDNSPacket", [](bool isQuery) { return std::make_shared<DNSPacket>(isQuery); });
+  d_lw->writeFunction("dupDNSPacket", [](const std::shared_ptr<DNSPacket> &orig) { return std::make_shared<DNSPacket>(*orig); });
   d_lw->registerFunction<DNSPacket, int(const char *, size_t)>("noparse", [](DNSPacket &p, const char *mesg, size_t len){ return p.noparse(mesg, len); });
   d_lw->registerFunction<DNSPacket, int(const char *, size_t)>("parse", [](DNSPacket &p, const char *mesg, size_t len){ return p.parse(mesg, len); });
   d_lw->registerFunction<DNSPacket, const std::string()>("getString", [](DNSPacket &p) { return p.getString(); });
@@ -79,7 +79,7 @@ void AuthLua4::postPrepareContext() {
   d_lw->registerFunction<DNSPacket, void(const vector<pair<unsigned int, DNSRecord> >&)>("addRecords", [](DNSPacket &p, const vector<pair<unsigned int, DNSRecord> >& records){ for(const auto &dr: records){ DNSZoneRecord dzr; dzr.dr = std::get<1>(dr); dzr.auth = true; p.addRecord(dzr); }});
   d_lw->registerFunction<DNSPacket, void(unsigned int, const DNSName&, const std::string&)>("setQuestion", [](DNSPacket &p, unsigned int opcode, const DNSName &name, const string &type){ QType qtype; qtype = type; p.setQuestion(static_cast<int>(opcode), name, static_cast<int>(qtype.getCode())); });
   d_lw->registerFunction<DNSPacket, bool()>("isEmpty", [](DNSPacket &p){return p.isEmpty();});
-  d_lw->registerFunction<DNSPacket, std::unique_ptr<DNSPacket>()>("replyPacket",[](DNSPacket& p){ return p.replyPacket();});
+  d_lw->registerFunction<DNSPacket, std::shared_ptr<DNSPacket>()>("replyPacket",[](DNSPacket& p){ return p.replyPacket();});
   d_lw->registerFunction<DNSPacket, bool()>("hasEDNSSubnet", [](DNSPacket &p){return p.hasEDNSSubnet();});
   d_lw->registerFunction<DNSPacket, bool()>("hasEDNS",[](DNSPacket &p){return p.hasEDNS();});
   d_lw->registerFunction<DNSPacket, unsigned int()>("getEDNSVersion",[](DNSPacket &p){return p.getEDNSVersion();});
