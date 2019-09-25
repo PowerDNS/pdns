@@ -1,0 +1,30 @@
+#!/bin/sh
+
+#
+# Reformat code, but do not touch if no changes.
+# Report if a files was changed.
+#
+
+if [ "$0" != "./build-scripts/format-code" ]; then
+    echo "Please run me from the root checkout dir"
+    exit 1
+fi
+
+if [ ! -e .clang-format ]; then
+    echo "No .clang-format file found in .";
+    exit 1
+fi
+
+for file in "${@}"; do
+    if ! clang-format -style=file "$file" > "$file.xxx"; then
+        rm "$file.xxx"
+    else
+        if ! cmp -s "$file" "$file.xxx"; then
+            echo "$file reformatted"
+            mv "$file.xxx" "$file"
+        else
+            rm "$file.xxx"
+        fi
+    fi
+done
+
