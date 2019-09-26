@@ -227,7 +227,7 @@ void DNSPacket::setCompress(bool compress)
   d_rrs.reserve(200);
 }
 
-bool DNSPacket::couldBeCached()
+bool DNSPacket::couldBeCached() const
 {
   return !d_wantsnsid && qclass==QClass::IN && !d_havetsig;
 }
@@ -396,10 +396,10 @@ void DNSPacket::setQuestion(int op, const DNSName &qd, int newqtype)
   qtype=newqtype;
 }
 
-/** convenience function for creating a reply packet from a question packet. Do not forget to delete it after use! */
-DNSPacket *DNSPacket::replyPacket() const
+/** convenience function for creating a reply packet from a question packet. */
+std::unique_ptr<DNSPacket> DNSPacket::replyPacket() const
 {
-  DNSPacket *r=new DNSPacket(false);
+  auto r=make_unique<DNSPacket>(false);
   r->setSocket(d_socket);
   r->d_anyLocal=d_anyLocal;
   r->setRemote(&d_remote);
@@ -436,7 +436,7 @@ DNSPacket *DNSPacket::replyPacket() const
   return r;
 }
 
-void DNSPacket::spoofQuestion(const DNSPacket *qd)
+void DNSPacket::spoofQuestion(const DNSPacket& qd)
 {
   d_wrapped=true; // if we do this, don't later on wrapup
   
@@ -444,10 +444,10 @@ void DNSPacket::spoofQuestion(const DNSPacket *qd)
   string::size_type i=sizeof(d);
 
   for(;;) {
-    labellen = qd->d_rawpacket[i];
+    labellen = qd.d_rawpacket[i];
     if(!labellen) break;
     i++;
-    d_rawpacket.replace(i, labellen, qd->d_rawpacket, i, labellen);
+    d_rawpacket.replace(i, labellen, qd.d_rawpacket, i, labellen);
     i = i + labellen;
   }
 }
@@ -639,7 +639,7 @@ bool DNSPacket::hasEDNSSubnet() const
   return d_haveednssubnet;
 }
 
-bool DNSPacket::hasEDNS() 
+bool DNSPacket::hasEDNS() const
 {
   return d_haveednssection;
 }

@@ -125,11 +125,6 @@ void Bind2Backend::setupStatements()
   d_getTSIGKeysQuery_stmt = d_dnssecdb->prepare("select name,algorithm,secret from tsigkeys", 0);
 }
 
-void Bind2Backend::release(SSqlStatement** stmt) {
-  delete *stmt;
-  *stmt = NULL;
-}
-
 void Bind2Backend::freeStatements()
 {
   d_getAllDomainMetadataQuery_stmt.reset();

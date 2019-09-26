@@ -132,18 +132,17 @@ try
     throw PDNSException("tcp read failed");
   
   len=ntohs(len);
-  char *creply = new char[len];
+  std::unique_ptr<char[]> creply(new char[len]);
   int n=0;
   int numread;
   while(n<len) {
-    numread=sock.read(creply+n, len-n);
+    numread=sock.read(creply.get()+n, len-n);
     if(numread<0)
       throw PDNSException("tcp read failed");
     n+=numread;
   }
   
-  reply=string(creply, len);
-  delete[] creply;
+  reply=string(creply.get(), len);
   
   gettimeofday(&now, 0);
   q->tcpUsec = makeUsec(now - tv);

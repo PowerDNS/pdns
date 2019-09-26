@@ -70,11 +70,10 @@ private:
   CK_ULONG ckLong;
   std::string ckString;
   CkaValueType ckType;
-  unsigned char *buffer;
+  std::unique_ptr<unsigned char[]> buffer;
   CK_ULONG buflen;
 protected:
   void Init() {
-    buffer = NULL;
     buflen = 0;
   };
 public:
@@ -141,18 +140,17 @@ public:
 // this bit is used for getting attribute from object
 // we provide a pointer for GetAttributeValue to write to
   CK_BYTE_PTR allocate(CK_ULONG amount) {
-    buffer = new unsigned char[amount];
+    buffer = std::unique_ptr<unsigned char[]>(new unsigned char[amount]);
     buflen = amount;
-    return buffer;
+    return buffer.get();
   }
 
 // and here we copy the results back and delete buffer
   void commit(CK_ULONG amount) {
     if (buffer) {
-      this->ckString.assign((char*)buffer, amount);
-      delete [] buffer;
+      this->ckString.assign((char*)buffer.get(), amount);
     }
-    buffer = NULL;
+    buffer.reset();
     buflen = 0;
   }
 
@@ -171,7 +169,7 @@ public:
         break;
       }
       case Attribute_String: {
-        attr->pValue = buffer;
+        attr->pValue = buffer.get();
         attr->ulValueLen = buflen;
       }
     };
@@ -218,10 +216,10 @@ class Pkcs11Slot {
 
   public:
   Pkcs11Slot(CK_FUNCTION_LIST* functions, const CK_SLOT_ID& slot) :
-      d_slot(slot),
-      d_functions(functions),
-      d_err(0),
-      d_logged_in(false)
+    d_logged_in(false),
+    d_functions(functions),
+    d_slot(slot),
+    d_err(0)
   {
       CK_TOKEN_INFO tokenInfo;
       pthread_mutex_init(&(this->d_m), NULL);
@@ -243,11 +241,10 @@ class Pkcs11Slot {
     bool Login(const std::string& pin) {
       if (d_logged_in) return true;
 
-      unsigned char *uPin = new unsigned char[pin.size()];
-      memcpy(uPin, pin.c_str(), pin.size());
-      d_err = d_functions->C_Login(this->d_session, CKU_USER, uPin, pin.size());
-      memset(uPin, 0, pin.size());
-      delete [] uPin;
+      std::unique_ptr<unsigned char[]> uPin(new unsigned char[pin.size()]);
+      memcpy(uPin.get(), pin.c_str(), pin.size());
+      d_err = d_functions->C_Login(this->d_session, CKU_USER, uPin.get(), pin.size());
+      memset(uPin.get(), 0, pin.size());
       logError("C_Login");
 
       if (d_err == 0) {
@@ -300,19 +297,17 @@ class Pkcs11Token {
       // if we can use some library to parse the EC parameters, better use it.
       // otherwise fall back to using hardcoded primev256 and secp384r1
 #ifdef HAVE_LIBCRYPTO_ECDSA
-      EC_KEY *key = NULL;
-      BIGNUM *order;
       unsigned int bits = 0;
       const unsigned char *in = reinterpret_cast<const unsigned char*>(obj.c_str());
-      order = BN_new();
-      if ((key = d2i_ECParameters(NULL, &in, obj.size())) != NULL &&
-          EC_GROUP_get_order(EC_KEY_get0_group(key), order, NULL) == 1) {
-         bits = BN_num_bits(order);
+      auto order = std::unique_ptr<BIGNUM, void(*)(BIGNUM*)>(BN_new(), BN_clear_free);
+      auto tempKey = d2i_ECParameters(nullptr, &in, obj.size());
+      if (tempKey != nullptr) {
+        auto key = std::unique_ptr<EC_KEY, void(*)(EC_KEY*)>(tempKey, EC_KEY_free);
+        tempKey = nullptr;
+        if (EC_GROUP_get_order(EC_KEY_get0_group(key.get()), order.get(), nullptr) == 1) {
+          bits = BN_num_bits(order.get());
+        }
       }
-
-      BN_free(order);
-      if (key != NULL)
-        EC_KEY_free(key);
 
       if (bits == 0)
         throw PDNSException("Unsupported EC key");
@@ -414,26 +409,23 @@ class Pkcs11Token {
       Lock l(d_slot->m());
 
       size_t k;
-      CK_ATTRIBUTE_PTR pubAttr, privAttr;
-      pubAttr = new CK_ATTRIBUTE[pubAttributes.size()];
-      privAttr = new CK_ATTRIBUTE[privAttributes.size()];
+      std::unique_ptr<CK_ATTRIBUTE[]> pubAttr(new CK_ATTRIBUTE[pubAttributes.size()]);
+      std::unique_ptr<CK_ATTRIBUTE[]> privAttr(new CK_ATTRIBUTE[privAttributes.size()]);
 
       k = 0;
       for(P11KitAttribute& attribute :  pubAttributes) {
-        attribute.rattr(pubAttr+k);
+        attribute.rattr(pubAttr.get()+k);
         k++;
       }
 
       k = 0;
       for(P11KitAttribute& attribute :  privAttributes) {
-        attribute.rattr(privAttr+k);
+        attribute.rattr(privAttr.get()+k);
         k++;
       }
 
-      d_err = this->d_slot->f()->C_GenerateKeyPair(d_slot->Session(), mechanism, pubAttr, pubAttributes.size(), privAttr, privAttributes.size(), pubKey, privKey);
+      d_err = this->d_slot->f()->C_GenerateKeyPair(d_slot->Session(), mechanism, pubAttr.get(), pubAttributes.size(), privAttr.get(), privAttributes.size(), pubKey, privKey);
       logError("C_GenerateKeyPair");
-      delete [] pubAttr;
-      delete [] privAttr;
       }
 
       if (d_err == 0) LoadAttributes();
@@ -537,40 +529,34 @@ class Pkcs11Token {
       size_t k;
       unsigned long count;
 
-      CK_ATTRIBUTE_PTR attr;
-      CK_OBJECT_HANDLE_PTR handles = new CK_OBJECT_HANDLE[maxobjects];
-      attr = new CK_ATTRIBUTE[attributes.size()];
+      std::unique_ptr<CK_OBJECT_HANDLE[]> handles(new CK_OBJECT_HANDLE[maxobjects]);
+      std::unique_ptr<CK_ATTRIBUTE[]> attr(new CK_ATTRIBUTE[attributes.size()]);
 
       k = 0;
       for(const P11KitAttribute& attribute :  attributes) {
-        attribute.rattr(attr+k);
+        attribute.rattr(attr.get()+k);
         k++;
       }
 
       // perform search
-      d_err = this->d_slot->f()->C_FindObjectsInit(d_slot->Session(), attr, k);
+      d_err = this->d_slot->f()->C_FindObjectsInit(d_slot->Session(), attr.get(), k);
 
       if (d_err) {
-        delete [] attr;
-        delete [] handles;
         logError("C_FindObjectsInit");
         return d_err;
       }
 
       count = maxobjects;
-      rv = d_err = this->d_slot->f()->C_FindObjects(d_slot->Session(), handles, maxobjects, &count);
+      rv = d_err = this->d_slot->f()->C_FindObjects(d_slot->Session(), handles.get(), maxobjects, &count);
       objects.clear();
 
       if (!rv) {
         for(k=0;k<count;k++) {
-          objects.push_back(handles[k]);
+          objects.push_back((handles.get())[k]);
         }
       }
 
       logError("C_FindObjects");
-
-      delete [] attr;
-      delete [] handles;
 
       d_err = this->d_slot->f()->C_FindObjectsFinal(d_slot->Session());
       logError("C_FindObjectsFinal");
@@ -587,42 +573,38 @@ class Pkcs11Token {
     int GetAttributeValue2(const CK_OBJECT_HANDLE& object, std::vector<P11KitAttribute>& attributes)
     {
       size_t k;
-      CK_ATTRIBUTE_PTR attr;
-      attr = new CK_ATTRIBUTE[attributes.size()];
+      std::unique_ptr<CK_ATTRIBUTE[]> attr(new CK_ATTRIBUTE[attributes.size()]);
 
       k = 0;
       for(P11KitAttribute &attribute :  attributes) {
-        attribute.wattr(attr+k);
+        attribute.wattr(attr.get()+k);
         k++;
       }
 
       // round 1 - get attribute sizes
-      d_err = d_slot->f()->C_GetAttributeValue(d_slot->Session(), object, attr, attributes.size());
+      d_err = d_slot->f()->C_GetAttributeValue(d_slot->Session(), object, attr.get(), attributes.size());
       logError("C_GetAttributeValue");
       if (d_err) {
-        delete [] attr;
         return d_err;
       }
 
       // then allocate memory
       for(size_t idx=0; idx < attributes.size(); idx++) {
         if (attributes[idx].valueType() == Attribute_String) {
-          attr[idx].pValue = attributes[idx].allocate(attr[idx].ulValueLen);
+          (attr.get())[idx].pValue = attributes[idx].allocate((attr.get())[idx].ulValueLen);
         }
       }
 
       // round 2 - get actual values
-      d_err = d_slot->f()->C_GetAttributeValue(d_slot->Session(), object, attr, attributes.size());
+      d_err = d_slot->f()->C_GetAttributeValue(d_slot->Session(), object, attr.get(), attributes.size());
       logError("C_GetAttributeValue");
 
       // copy values to map and release allocated memory
       for(size_t idx=0; idx < attributes.size(); idx++) {
         if (attributes[idx].valueType() == Attribute_String) {
-          attributes[idx].commit(attr[idx].ulValueLen);
+          attributes[idx].commit((attr.get())[idx].ulValueLen);
         }
       }
-
-      delete [] attr;
 
       return d_err;
     };
@@ -770,12 +752,12 @@ std::shared_ptr<Pkcs11Token> Pkcs11Token::GetToken(const std::string& module, co
 }
 
 Pkcs11Token::Pkcs11Token(const std::shared_ptr<Pkcs11Slot>& slot, const std::string& label, const std::string& pub_label) :
-  d_bits(0),
   d_slot(slot),
+  d_bits(0),
   d_label(label),
   d_pub_label(pub_label),
-  d_err(0),
-  d_loaded(false)
+  d_loaded(false),
+  d_err(0)
 {
   // open a session
   if (this->d_slot->LoggedIn()) LoadAttributes();

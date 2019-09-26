@@ -99,8 +99,8 @@ string StatBag::getDescrip(const string &item)
 
 void StatBag::declare(const string &key, const string &descrip)
 {
-  AtomicCounter *i=new AtomicCounter(0);
-  d_stats[key]=i;
+  auto i=make_unique<AtomicCounter>(0);
+  d_stats[key]=std::move(i);
   d_keyDescrips[key]=descrip;
 }
 
@@ -153,15 +153,11 @@ string StatBag::getValueStrZero(const string &key)
 AtomicCounter *StatBag::getPointer(const string &key)
 {
   exists(key);
-  return d_stats[key];
+  return d_stats[key].get();
 }
 
 StatBag::~StatBag()
 {
-  for(const auto& i: d_stats) {
-    delete i.second;
-  }
-  
 }
 
 template<typename T, typename Comp>

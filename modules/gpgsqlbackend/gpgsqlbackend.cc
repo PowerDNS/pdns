@@ -67,7 +67,7 @@ void gPgSQLBackend::reconnect()
 
 bool gPgSQLBackend::inTransaction()
 {
-  const auto* db = dynamic_cast<SPgSQL*>(d_db);
+  const auto* db = dynamic_cast<SPgSQL*>(d_db.get());
   if (db) {
     return db->in_trx();
   }

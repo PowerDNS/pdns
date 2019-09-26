@@ -56,20 +56,18 @@ public:
       throw PDNSException("EOF on TCP read");
 
     len=ntohs(len);
-    char *creply = new char[len];
+    std::unique_ptr<char[]> creply(new char[len]);
     int n=0;
     int numread;
     while(n<len) {
-      numread=d_rsock.read(creply+n, len-n);
+      numread=d_rsock.read(creply.get()+n, len-n);
       if(numread<0) {
-        delete[] creply;
         throw PDNSException("tcp read failed: "+stringerror());
       }
       n+=numread;
     }
 
-    string reply(creply, len);
-    delete[] creply;
+    string reply(creply.get(), len);
 
     return reply;
   }

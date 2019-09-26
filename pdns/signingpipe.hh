@@ -57,7 +57,7 @@ private:
   void flushToSign();	
   void dedupRRSet();
   void sendRRSetToWorker(); // dispatch RRSET to worker
-  void addSignedToChunks(chunk_t* signedChunk);
+  void addSignedToChunks(std::unique_ptr<chunk_t>& signedChunk);
   pair<vector<int>, vector<int> > waitForRW(bool rd, bool wr, int seconds);
 
   static void* helperWorker(ChunkedSigningPipe* csp, int fd);
@@ -66,7 +66,7 @@ private:
   unsigned int d_numworkers;
   unsigned int d_submitted;
 
-  rrset_t* d_rrsetToSign;
+  std::unique_ptr<rrset_t> d_rrsetToSign;
   std::deque< std::vector<DNSZoneRecord> > d_chunks;
   DNSName d_signer;
   

@@ -46,7 +46,6 @@ static const char *kBackendId = "[PIPEBackend]";
 
 CoWrapper::CoWrapper(const string &command, int timeout, int abiVersion)
 {
-   d_cp=0;
    d_command=command;
    d_timeout=timeout;
    d_abiVersion = abiVersion;
@@ -56,10 +55,7 @@ CoWrapper::CoWrapper(const string &command, int timeout, int abiVersion)
 
 CoWrapper::~CoWrapper()
 {
-  if(d_cp)
-    delete d_cp;
 }
-
 
 void CoWrapper::launch()
 {
@@ -70,12 +66,12 @@ void CoWrapper::launch()
      throw ArgException("pipe-command is not specified");
 
    if(isUnixSocket(d_command)) {
-     d_cp = new UnixRemote(d_command, d_timeout);
+     d_cp = std::unique_ptr<CoRemote>(new UnixRemote(d_command, d_timeout));
    }
    else {
-     auto coprocess = new CoProcess(d_command, d_timeout);
+     auto coprocess = std::unique_ptr<CoProcess>(new CoProcess(d_command, d_timeout));
      coprocess->launch();
-     d_cp = coprocess;
+     d_cp = std::move(coprocess);
    }
 
    d_cp->send("HELO\t"+std::to_string(d_abiVersion));
@@ -92,8 +88,7 @@ void CoWrapper::send(const string &line)
       return;
    }
    catch(PDNSException &ae) {
-      delete d_cp;
-      d_cp=0;
+      d_cp.reset();
       throw;
    }
 }
@@ -106,8 +101,7 @@ void CoWrapper::receive(string &line)
    }
    catch(PDNSException &ae) {
       g_log<<Logger::Warning<<kBackendId<<" Unable to receive data from coprocess. "<<ae.reason<<endl;
-      delete d_cp;
-      d_cp=0;
+      d_cp.reset();
       throw;
    }
 }
@@ -115,7 +109,6 @@ void CoWrapper::receive(string &line)
 PipeBackend::PipeBackend(const string &suffix)
 {
    d_disavow=false;
-   d_regex=nullptr;
    signal(SIGCHLD, SIG_IGN);
    setArgPrefix("pipe"+suffix);
    try {
@@ -136,7 +129,9 @@ void PipeBackend::launch()
     return;
 
   try {
-    d_regex=getArg("regex").empty() ? 0 : new Regex(getArg("regex"));
+    if (!getArg("regex").empty()) {
+      d_regex = std::unique_ptr<Regex>(new Regex(getArg("regex")));
+    }
     d_regexstr=getArg("regex");
     d_abiVersion = getArgAsNum("abi-version");
     d_coproc=unique_ptr<CoWrapper> (new CoWrapper(getArg("command"), getArgAsNum("timeout"), getArgAsNum("abi-version")));
@@ -154,7 +149,7 @@ void PipeBackend::launch()
 void PipeBackend::cleanup()
 {
   d_coproc.reset(0);
-  delete d_regex;
+  d_regex.reset();
   d_regexstr = string();
   d_abiVersion = 0;
 }

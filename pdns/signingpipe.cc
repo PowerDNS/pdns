@@ -59,7 +59,7 @@ ChunkedSigningPipe::ChunkedSigningPipe(const DNSName& signerName, bool mustSign,
   : d_signed(0), d_queued(0), d_outstanding(0), d_numworkers(workers), d_submitted(0), d_signer(signerName),
     d_maxchunkrecords(100), d_threads(d_numworkers), d_mustSign(mustSign), d_final(false)
 {
-  d_rrsetToSign = new rrset_t;
+  d_rrsetToSign = make_unique<rrset_t>();
   d_chunks.push_back(vector<DNSZoneRecord>()); // load an empty chunk
   
   if(!d_mustSign)
@@ -81,8 +81,6 @@ ChunkedSigningPipe::ChunkedSigningPipe(const DNSName& signerName, bool mustSign,
 
 ChunkedSigningPipe::~ChunkedSigningPipe()
 {
-  delete d_rrsetToSign;
-
   if(!d_mustSign)
     return;
 
@@ -159,20 +157,19 @@ pair<vector<int>, vector<int> > ChunkedSigningPipe::waitForRW(bool rd, bool wr, 
   return vects;
 }
 
-void ChunkedSigningPipe::addSignedToChunks(chunk_t* signedChunk)
+void ChunkedSigningPipe::addSignedToChunks(std::unique_ptr<chunk_t>& signedChunk)
 {
   chunk_t::const_iterator from = signedChunk->begin();
   
   while(from != signedChunk->end()) {
     chunk_t& fillChunk = d_chunks.back();
-    
     chunk_t::size_type room = d_maxchunkrecords - fillChunk.size();
     
     unsigned int fit = std::min(room, (chunk_t::size_type)(signedChunk->end() - from));
   
     d_chunks.back().insert(fillChunk.end(), from , from + fit);
     from+=fit;
-    
+
     if(from != signedChunk->end()) // it didn't fit, so add a new chunk
       d_chunks.push_back(chunk_t());
   }
@@ -200,8 +197,9 @@ void ChunkedSigningPipe::sendRRSetToWorker() // it sounds so socialist!
   
   if(wantWrite && !rwVect.second.empty()) {
     random_shuffle(rwVect.second.begin(), rwVect.second.end()); // pick random available worker
-    writen2(*rwVect.second.begin(), &d_rrsetToSign, sizeof(d_rrsetToSign));
-    d_rrsetToSign = new rrset_t;
+    auto ptr = d_rrsetToSign.release();
+    writen2(*rwVect.second.begin(), &ptr, sizeof(ptr));
+    d_rrsetToSign = make_unique<rrset_t>();
     d_outstandings[*rwVect.second.begin()]++;
     d_outstanding++;
     d_queued++;
@@ -210,13 +208,12 @@ void ChunkedSigningPipe::sendRRSetToWorker() // it sounds so socialist!
   
   if(wantRead) {
     while(d_outstanding) {
-      chunk_t* chunk;
-      
       for(int fd :  rwVect.first) {
         if(d_eof.count(fd))
           continue;
         
         while(d_outstanding) {
+          chunk_t* chunk = nullptr;
           int res = readn(fd, &chunk, sizeof(chunk));
           if(!res) {
             if (d_outstandings[fd] > 0) {
@@ -231,13 +228,13 @@ void ChunkedSigningPipe::sendRRSetToWorker() // it sounds so socialist!
             else
               break;
           }
-          
+
+          std::unique_ptr<rrset_t> chunkPtr(chunk);
+          chunk = nullptr;
           --d_outstanding;
           d_outstandings[fd]--;
           
-          addSignedToChunks(chunk);
-          
-          delete chunk;
+          addSignedToChunks(chunkPtr);
         }
       }
       if(!d_outstanding || !d_final)
@@ -249,8 +246,9 @@ void ChunkedSigningPipe::sendRRSetToWorker() // it sounds so socialist!
   if(wantWrite) {  // our optimization above failed, we now wait synchronously
     rwVect = waitForRW(false, wantWrite, -1); // wait for something to happen
     random_shuffle(rwVect.second.begin(), rwVect.second.end()); // pick random available worker
-    writen2(*rwVect.second.begin(), &d_rrsetToSign, sizeof(d_rrsetToSign));
-    d_rrsetToSign = new rrset_t;
+    auto ptr = d_rrsetToSign.release();
+    writen2(*rwVect.second.begin(), &ptr, sizeof(ptr));
+    d_rrsetToSign = make_unique<rrset_t>();
     d_outstandings[*rwVect.second.begin()]++;
     d_outstanding++;
     d_queued++;

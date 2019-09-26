@@ -31,7 +31,6 @@
 #include <boost/multi_index_container.hpp>
 #include <boost/multi_index/identity.hpp>
 #include <boost/multi_index/sequenced_index.hpp>
-#include <boost/scoped_ptr.hpp>
 using namespace boost::multi_index;
 
 #include <unistd.h>
@@ -169,7 +168,7 @@ public:
   bool justNotified(const DNSName &domain, const string &ip);
   void addSuckRequest(const DNSName &domain, const ComboAddress& master);
   void addSlaveCheckRequest(const DomainInfo& di, const ComboAddress& remote);
-  void addTrySuperMasterRequest(DNSPacket *p);
+  void addTrySuperMasterRequest(const DNSPacket& p);
   void notify(const DNSName &domain, const string &ip);
   void mainloop();
   void retrievalLoopThread();
@@ -194,7 +193,7 @@ private:
   map<pair<DNSName,string>,time_t>d_holes;
   pthread_mutex_t d_holelock;
   void suck(const DNSName &domain, const ComboAddress& remote);
-  void ixfrSuck(const DNSName &domain, const TSIGTriplet& tt, const ComboAddress& laddr, const ComboAddress& remote, boost::scoped_ptr<AuthLua4>& pdl,
+  void ixfrSuck(const DNSName &domain, const TSIGTriplet& tt, const ComboAddress& laddr, const ComboAddress& remote, std::unique_ptr<AuthLua4>& pdl,
                 ZoneStatus& zs, vector<DNSRecord>* axfr);
 
   void slaveRefresh(PacketHandler *P);

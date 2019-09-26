@@ -41,15 +41,13 @@ public:
   virtual ~GSQLBackend()
   {
     freeStatements();
-    if(d_db)
-      delete d_db;    
+    d_db.reset();
   }
   
   void setDB(SSql *db)
   {
     freeStatements();
-    delete d_db;
-    d_db=db;
+    d_db=std::unique_ptr<SSql>(db);
     if (d_db) {
       d_db->setLog(::arg().mustDo("query-logging"));
       allocateStatements();
@@ -399,7 +397,7 @@ private:
   unique_ptr<SSqlStatement> d_SearchCommentsQuery_stmt;
 
 protected:
-  SSql *d_db{nullptr};
+  std::unique_ptr<SSql> d_db{nullptr};
   bool d_dnssecQueries;
   bool d_inTransaction{false};
 };

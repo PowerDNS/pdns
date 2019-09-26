@@ -27,12 +27,13 @@ BOOST_AUTO_TEST_CASE(test_prequery) {
 "  return false\n"
 "end";
   AuthLua4 lua;
-  DNSPacket *p = new DNSPacket(true);
-  p->qdomain = DNSName("mod.unit.test.");
+  DNSPacket p(true);
+  p.qdomain = DNSName("mod.unit.test.");
   lua.loadString(script);
-  DNSPacket *r = nullptr;
+  std::unique_ptr<DNSPacket> r{nullptr};
   try {
     r = lua.prequery(p);
+    BOOST_REQUIRE(r != nullptr);
     BOOST_CHECK_EQUAL(r->qdomain.toString(), "mod.unit.test.");
   } catch (const LuaContext::ExecutionErrorException& e) {
     try {
@@ -41,8 +42,6 @@ BOOST_AUTO_TEST_CASE(test_prequery) {
      g_log<<"Extra info: "<<exp.what();
     }
   }
-  delete r;
-  delete p;
 }
 
 BOOST_AUTO_TEST_CASE(test_updatePolicy) {
@@ -56,18 +55,17 @@ BOOST_AUTO_TEST_CASE(test_updatePolicy) {
 "  return false\n"
 "end";
   AuthLua4 lua;
-  DNSPacket *p = new DNSPacket(true);
+  DNSPacket p(true);
   ComboAddress ca(std::string("192.168.1.1"));
   lua.loadString(script);
-  p->setRemote(&ca);
-  p->d_peer_principal = "admin@DOMAIN";
+  p.setRemote(&ca);
+  p.d_peer_principal = "admin@DOMAIN";
   BOOST_CHECK_EQUAL(lua.updatePolicy(DNSName("mod.example.com."), QType(QType::A), DNSName("example.com."), p), true);
-  p->d_peer_principal = "";
+  p.d_peer_principal = "";
   BOOST_CHECK_EQUAL(lua.updatePolicy(DNSName("mod.example.com."), QType(QType::A), DNSName("example.com."), p), true);
   ca = ComboAddress(std::string("192.168.1.2"));
-  p->setRemote(&ca);
+  p.setRemote(&ca);
   BOOST_CHECK_EQUAL(lua.updatePolicy(DNSName("mod.example.com."), QType(QType::A), DNSName("example.com."), p), false);
-  delete p;
 }
 
 BOOST_AUTO_TEST_SUITE_END()

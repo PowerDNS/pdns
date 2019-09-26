@@ -62,7 +62,7 @@ private:
 //! use this to gather and query statistics
 class StatBag
 {
-  map<string, AtomicCounter *> d_stats;
+  map<string, std::unique_ptr<AtomicCounter>> d_stats;
   map<string, string> d_keyDescrips;
   map<string,StatRing<string, CIStringCompare> >d_rings;
   map<string,StatRing<SComboAddress> >d_comborings;

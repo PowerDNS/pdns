@@ -32,7 +32,7 @@
 
 #include "namespaces.hh"
 
-void* carbonDumpThread(void*)
+void carbonDumpThread()
 try
 {
   setThreadName("pdns/carbonDump");
@@ -85,20 +85,16 @@ try
     }
     sleep(arg().asNum("carbon-interval"));
   }
-  return 0;
 }
 catch(std::exception& e)
 {
   g_log<<Logger::Error<<"Carbon thread died: "<<e.what()<<endl;
-  return 0;
 }
 catch(PDNSException& e)
 {
   g_log<<Logger::Error<<"Carbon thread died, PDNSException: "<<e.reason<<endl;
-  return 0;
 }
 catch(...)
 {
   g_log<<Logger::Error<<"Carbon thread died"<<endl;
-  return 0;
 }

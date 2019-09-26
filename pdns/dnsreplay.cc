@@ -404,7 +404,7 @@ void measureResultAndClean(qids_t::const_iterator iter)
 }
 
 
-Socket *s_socket;
+std::unique_ptr<Socket> s_socket = nullptr;
 
 void receiveFromReference()
 try
@@ -772,7 +772,7 @@ try
   g_timeoutMsec=g_vm["timeout-msec"].as<uint32_t>();
 
   PcapPacketReader pr(g_vm["pcap-source"].as<string>());
-  s_socket= new Socket(AF_INET, SOCK_DGRAM);
+  s_socket= make_unique<Socket>(AF_INET, SOCK_DGRAM);
 
   s_socket->setNonBlocking();
 

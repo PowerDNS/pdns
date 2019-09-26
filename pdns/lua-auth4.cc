@@ -20,10 +20,10 @@ AuthLua4::AuthLua4() { prepareContext(); }
 
 #if !defined(HAVE_LUA)
 
-bool AuthLua4::updatePolicy(const DNSName &qname, QType qtype, const DNSName &zonename, DNSPacket *packet) { return false; }
+bool AuthLua4::updatePolicy(const DNSName &qname, QType qtype, const DNSName &zonename, const DNSPacket& packet) { return false; }
 bool AuthLua4::axfrfilter(const ComboAddress& remote, const DNSName& zone, const DNSResourceRecord& in, vector<DNSResourceRecord>& out) { return false; }
-LuaContext* AuthLua4::getLua() { return 0; }
-DNSPacket *AuthLua4::prequery(DNSPacket *q) { return NULL; }
+LuaContext* AuthLua4::getLua() { return nullptr; }
+std::unique_ptr<DNSPacket> AuthLua4::prequery(const DNSPacket& q) { return nullptr; }
 
 AuthLua4::~AuthLua4() { }
 
@@ -56,8 +56,8 @@ void AuthLua4::postPrepareContext() {
   });
 
 /* DNSPacket */
-  d_lw->writeFunction("newDNSPacket", [](bool isQuery) { return new DNSPacket(isQuery); });
-  d_lw->writeFunction("dupDNSPacket", [](const DNSPacket &orig) { return new DNSPacket(orig); });
+  d_lw->writeFunction("newDNSPacket", [](bool isQuery) { return std::make_shared<DNSPacket>(isQuery); });
+  d_lw->writeFunction("dupDNSPacket", [](const std::shared_ptr<DNSPacket> &orig) { return std::make_shared<DNSPacket>(*orig); });
   d_lw->registerFunction<DNSPacket, int(const char *, size_t)>("noparse", [](DNSPacket &p, const char *mesg, size_t len){ return p.noparse(mesg, len); });
   d_lw->registerFunction<DNSPacket, int(const char *, size_t)>("parse", [](DNSPacket &p, const char *mesg, size_t len){ return p.parse(mesg, len); });
   d_lw->registerFunction<DNSPacket, const std::string()>("getString", [](DNSPacket &p) { return p.getString(); });
@@ -79,7 +79,7 @@ void AuthLua4::postPrepareContext() {
   d_lw->registerFunction<DNSPacket, void(const vector<pair<unsigned int, DNSRecord> >&)>("addRecords", [](DNSPacket &p, const vector<pair<unsigned int, DNSRecord> >& records){ for(const auto &dr: records){ DNSZoneRecord dzr; dzr.dr = std::get<1>(dr); dzr.auth = true; p.addRecord(dzr); }});
   d_lw->registerFunction<DNSPacket, void(unsigned int, const DNSName&, const std::string&)>("setQuestion", [](DNSPacket &p, unsigned int opcode, const DNSName &name, const string &type){ QType qtype; qtype = type; p.setQuestion(static_cast<int>(opcode), name, static_cast<int>(qtype.getCode())); });
   d_lw->registerFunction<DNSPacket, bool()>("isEmpty", [](DNSPacket &p){return p.isEmpty();});
-  d_lw->registerFunction<DNSPacket, DNSPacket*()>("replyPacket",[](DNSPacket& p){ return p.replyPacket();});
+  d_lw->registerFunction<DNSPacket, std::shared_ptr<DNSPacket>()>("replyPacket",[](DNSPacket& p){ return p.replyPacket();});
   d_lw->registerFunction<DNSPacket, bool()>("hasEDNSSubnet", [](DNSPacket &p){return p.hasEDNSSubnet();});
   d_lw->registerFunction<DNSPacket, bool()>("hasEDNS",[](DNSPacket &p){return p.hasEDNS();});
   d_lw->registerFunction<DNSPacket, unsigned int()>("getEDNSVersion",[](DNSPacket &p){return p.getEDNSVersion();});
@@ -159,31 +159,31 @@ bool AuthLua4::axfrfilter(const ComboAddress& remote, const DNSName& zone, const
 }
 
 
-bool AuthLua4::updatePolicy(const DNSName &qname, QType qtype, const DNSName &zonename, DNSPacket *packet) {
+bool AuthLua4::updatePolicy(const DNSName &qname, QType qtype, const DNSName &zonename, const DNSPacket& packet) {
   // default decision is all goes
-  if (d_update_policy == NULL) return true;
+  if (d_update_policy == nullptr) return true;
 
   UpdatePolicyQuery upq;
   upq.qname = qname;
   upq.qtype = qtype.getCode();
   upq.zonename = zonename;
-  upq.local = packet->getLocal();
-  upq.remote = packet->getRemote();
-  upq.realRemote = packet->getRealRemote();
-  upq.tsigName = packet->getTSIGKeyname();
-  upq.peerPrincipal = packet->d_peer_principal;
+  upq.local = packet.getLocal();
+  upq.remote = packet.getRemote();
+  upq.realRemote = packet.getRealRemote();
+  upq.tsigName = packet.getTSIGKeyname();
+  upq.peerPrincipal = packet.d_peer_principal;
 
   return d_update_policy(upq);
 }
 
-DNSPacket *AuthLua4::prequery(DNSPacket *q) {
-  if (d_prequery == NULL) return NULL;
+std::unique_ptr<DNSPacket> AuthLua4::prequery(const DNSPacket& q) {
+  if (d_prequery == nullptr) return nullptr;
 
-  DNSPacket *r = q->replyPacket();
-  if (d_prequery(r))
+  auto r = q.replyPacket();
+  if (d_prequery(r.get()))
     return r;
-  delete r;
-  return NULL;
+
+  return nullptr;
 }
 
 AuthLua4::~AuthLua4() { }
