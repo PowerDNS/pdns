@@ -704,6 +704,16 @@ struct ClientState
     return udpFD != -1 ? udpFD : tcpFD;
   }
 
+  bool isUDP() const
+  {
+    return udpFD != -1;
+  }
+
+  bool isTCP() const
+  {
+    return udpFD == -1;
+  }
+
   std::string getType() const
   {
     std::string result = udpFD != -1 ? "UDP" : "TCP";

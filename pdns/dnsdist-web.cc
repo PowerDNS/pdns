@@ -564,16 +564,18 @@ static void connectionThread(int sock, ComboAddress remote)
             % frontName % proto);
 
           output << frontsbase << "queries" << label << front->queries.load() << "\n";
-          output << frontsbase << "tcpdiedreadingquery" << label << front->tcpDiedReadingQuery.load() << "\n";
-          output << frontsbase << "tcpdiedsendingresponse" << label << front->tcpDiedSendingResponse.load() << "\n";
-          output << frontsbase << "tcpgaveup" << label << front->tcpGaveUp.load() << "\n";
-          output << frontsbase << "tcpclientimeouts" << label << front->tcpClientTimeouts.load() << "\n";
-          output << frontsbase << "tcpdownstreamtimeouts" << label << front->tcpDownstreamTimeouts.load() << "\n";
-          output << frontsbase << "tcpcurrentconnections" << label << front->tcpCurrentConnections.load() << "\n";
-          output << frontsbase << "tcpavgqueriesperconnection" << label << front->tcpAvgQueriesPerConnection.load() << "\n";
-          output << frontsbase << "tcpavgconnectionduration" << label << front->tcpAvgConnectionDuration.load() << "\n";
-          output << frontsbase << "tlsnewsessions" << label << front->tlsNewSessions.load() << "\n";
-          output << frontsbase << "tlsresumptions" << label << front->tlsResumptions.load() << "\n";
+          if (front->isTCP()) {
+            output << frontsbase << "tcpdiedreadingquery" << label << front->tcpDiedReadingQuery.load() << "\n";
+            output << frontsbase << "tcpdiedsendingresponse" << label << front->tcpDiedSendingResponse.load() << "\n";
+            output << frontsbase << "tcpgaveup" << label << front->tcpGaveUp.load() << "\n";
+            output << frontsbase << "tcpclientimeouts" << label << front->tcpClientTimeouts.load() << "\n";
+            output << frontsbase << "tcpdownstreamtimeouts" << label << front->tcpDownstreamTimeouts.load() << "\n";
+            output << frontsbase << "tcpcurrentconnections" << label << front->tcpCurrentConnections.load() << "\n";
+            output << frontsbase << "tcpavgqueriesperconnection" << label << front->tcpAvgQueriesPerConnection.load() << "\n";
+            output << frontsbase << "tcpavgconnectionduration" << label << front->tcpAvgConnectionDuration.load() << "\n";
+            output << frontsbase << "tlsnewsessions" << label << front->tlsNewSessions.load() << "\n";
+            output << frontsbase << "tlsresumptions" << label << front->tlsResumptions.load() << "\n";
+          }
         }
 
         output << "# HELP " << frontsbase << "http_connects " << "Number of DoH TCP connections established to this frontend" << "\n";
