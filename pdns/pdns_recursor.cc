@@ -4081,7 +4081,19 @@ static int serviceMain(int argc, char*argv[])
     daemonize();
   }
   if(Utility::getpid() == 1) {
-    /* We are running as pid 1, register sigterm and sigint handler */
+    /* We are running as pid 1, register sigterm and sigint handler
+     
+      The Linux kernel will handle SIGTERM and SIGINT for all processes, except PID 1.
+      It assumes that the processes running as pid 1 is an "init" like system.
+      For years, this was a safe assumption, but containers change that: in
+      most (all?) container implementations, the application itself is running
+      as pid 1. This means that sending signals to those applications, will not
+      be handled by default. Results might be "you container not responsing
+      when asking it to stop", or "ctrl-c" not working even when the app is
+      running in the foreground inside a container.
+
+      So TL;DR: If we're running pid 1 (container), we should handle SIGTERM and SIGINT ourselves */
+
     signal(SIGTERM,termIntHandler);
     signal(SIGINT,termIntHandler);
   } 
