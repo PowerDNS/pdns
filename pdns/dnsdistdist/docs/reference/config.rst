@@ -1150,9 +1150,19 @@ DOHFrontend
 
   This object represents an address and port dnsdist is listening on for DNS over HTTPS queries.
 
+  .. method:: DOHFrontend:loadTicketsKeys(ticketsKeysFile)
+
+     Load new tickets keys from the selected file, replacing the existing ones. These keys should be rotated often and never written to persistent storage to preserve forward secrecy. The default is to generate a random key. dnsdist supports several tickets keys to be able to decrypt existing sessions after the rotation.
+
+    :param str ticketsKeysFile: The path to a file from where TLS tickets keys should be loaded.
+
   .. method:: DOHFrontend:reloadCertificates()
 
      Reload the current TLS certificate and key pairs.
+
+  .. method:: DOHFrontend:rotateTicketsKey()
+
+     Replace the current TLS tickets key by a new random one.
 
   .. method:: DOHFrontend:setResponsesMap(rules)
 

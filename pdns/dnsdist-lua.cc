@@ -1746,6 +1746,33 @@ void setupLuaConfig(bool client)
           frontend->d_customResponseHeaders.push_back(headerResponse);
         }
       }
+
+      if (vars->count("ticketKeyFile")) {
+        frontend->d_ticketKeyFile = boost::get<const string>((*vars)["ticketKeyFile"]);
+      }
+
+      if (vars->count("ticketsKeysRotationDelay")) {
+        frontend->d_ticketsKeyRotationDelay = boost::get<int>((*vars)["ticketsKeysRotationDelay"]);
+      }
+
+      if (vars->count("numberOfTicketsKeys")) {
+        frontend->d_numberOfTicketsKeys = boost::get<int>((*vars)["numberOfTicketsKeys"]);
+      }
+
+      if (vars->count("sessionTickets")) {
+        frontend->d_enableTickets = boost::get<bool>((*vars)["sessionTickets"]);
+      }
+
+      if (vars->count("numberOfStoredSessions")) {
+        auto value = boost::get<int>((*vars)["numberOfStoredSessions"]);
+        if (value < 0) {
+          errlog("Invalid value '%d' for addDOHLocal() parameter 'numberOfStoredSessions', should be >= 0, dismissing", value);
+          g_outputBuffer="Invalid value '" +  std::to_string(value) + "' for addDOHLocal() parameter 'numberOfStoredSessions', should be >= 0, dimissing";
+          return;
+        }
+        frontend->d_maxStoredSessions = value;
+      }
+
       if (vars->count("ocspResponses")) {
         auto files = boost::get<std::vector<std::pair<int, std::string>>>((*vars)["ocspResponses"]);
         for (const auto& file : files) {
@@ -1848,6 +1875,18 @@ void setupLuaConfig(bool client)
     g_lua.registerFunction<void(std::shared_ptr<DOHFrontend>::*)()>("reloadCertificates", [](std::shared_ptr<DOHFrontend> frontend) {
         if (frontend != nullptr) {
           frontend->reloadCertificates();
+        }
+      });
+
+    g_lua.registerFunction<void(std::shared_ptr<DOHFrontend>::*)()>("rotateTicketsKey", [](std::shared_ptr<DOHFrontend> frontend) {
+        if (frontend != nullptr) {
+          frontend->rotateTicketsKey(time(nullptr));
+        }
+      });
+
+    g_lua.registerFunction<void(std::shared_ptr<DOHFrontend>::*)(const std::string&)>("loadTicketsKeys", [](std::shared_ptr<DOHFrontend> frontend, const std::string& file) {
+        if (frontend != nullptr) {
+          frontend->loadTicketsKeys(file);
         }
       });
 
