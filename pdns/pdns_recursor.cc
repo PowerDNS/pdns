@@ -2788,7 +2788,7 @@ static void daemonize(void)
 
 static void termIntHandler(int)
 {
-  doExitNicely();
+  doExit();
 }
 
 static void usr1Handler(int)
@@ -4080,8 +4080,12 @@ static int serviceMain(int argc, char*argv[])
     g_log.toConsole(Logger::Critical);
     daemonize();
   }
-  signal(SIGTERM,termIntHandler);
-  signal(SIGINT,termIntHandler);
+  if(Utility::getpid() == 1) {
+    /* We are running as pid 1, register sigterm and sigint handler */
+    signal(SIGTERM,termIntHandler);
+    signal(SIGINT,termIntHandler);
+  } 
+
   signal(SIGUSR1,usr1Handler);
   signal(SIGUSR2,usr2Handler);
   signal(SIGPIPE,SIG_IGN);
