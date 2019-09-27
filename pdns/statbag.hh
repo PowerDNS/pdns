@@ -23,6 +23,7 @@
 #define STATBAG_HH
 #include <pthread.h>
 #include <map>
+#include <mutex>
 #include <functional>
 #include <string>
 #include <vector>
@@ -54,7 +55,7 @@ private:
   }
 
   boost::circular_buffer<T> d_items;
-  mutable pthread_mutex_t d_lock;
+  mutable std::mutex d_lock;
   string d_help;
 };
 
