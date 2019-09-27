@@ -29,6 +29,7 @@
 #include <pthread.h>
 #include <time.h>
 #include <fstream>
+#include <mutex>
 #include <boost/utility.hpp>
 
 #include <boost/tuple/tuple.hpp>
@@ -103,22 +104,18 @@ template <typename T>
 class LookButDontTouch //  : public boost::noncopyable
 {
 public:
-  LookButDontTouch() 
+  LookButDontTouch()
   {
-    pthread_mutex_init(&d_lock, 0);
-    pthread_mutex_init(&d_swaplock, 0);
   }
   LookButDontTouch(shared_ptr<T> records) : d_records(records)
   {
-    pthread_mutex_init(&d_lock, 0);
-    pthread_mutex_init(&d_swaplock, 0);
   }
 
   shared_ptr<const T> get()
   {
     shared_ptr<const T> ret;
     {
-      Lock l(&d_lock);
+      std::lock_guard<std::mutex> lock(s_lock);
       ret = d_records;
     }
     return ret;
@@ -128,22 +125,14 @@ public:
   {
     shared_ptr<T> ret;
     {
-      Lock l(&d_lock);
+      std::lock_guard<std::mutex> lock(s_lock);
       ret = d_records;
     }
     return ret;
   }
 
-
-  void swap(shared_ptr<T> records)
-  {
-    Lock l(&d_lock);
-    Lock l2(&d_swaplock);
-    d_records.swap(records);
-  }
-  pthread_mutex_t d_lock;
-  pthread_mutex_t d_swaplock;
 private:
+  static std::mutex s_lock;
   shared_ptr<T> d_records;
 };
 
