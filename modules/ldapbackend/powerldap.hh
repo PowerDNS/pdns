@@ -20,6 +20,8 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
+#pragma once
+
 #include <list>
 #include <map>
 #include <memory>
@@ -30,12 +32,6 @@
 #include <errno.h>
 #include <lber.h>
 #include <ldap.h>
-
-
-
-
-#ifndef POWERLDAP_HH
-#define POWERLDAP_HH
 
 using std::list;
 using std::map;
@@ -100,6 +96,3 @@ class PowerLDAP
     static const string escape( const string& tobe );
 };
 
-
-
-#endif

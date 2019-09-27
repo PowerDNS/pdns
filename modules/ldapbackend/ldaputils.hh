@@ -17,13 +17,12 @@
  *  Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
  */
 
+#pragma once
+
 #include "exceptions.hh"
 
 #include <ldap.h>
 #include <string>
-
-#ifndef LDAPUTILS_HH
-#define LDAPUTILS_HH
 
 void ldapSetOption( LDAP *conn, int option, void *value );
 
@@ -33,4 +32,3 @@ std::string ldapGetError( LDAP *conn, int code );
 
 int ldapWaitResult( LDAP *conn, int msgid, int timeout, LDAPMessage** result = NULL );
 
-#endif // LDAPUTILS_HH

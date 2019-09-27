@@ -16,15 +16,14 @@
  *  Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
  */
 
+#pragma once
+
 #include <ldap.h>
 #include <string>
 
 #ifdef HAVE_CONFIG_H
 #include <config.h>
 #endif
-
-#ifndef LDAPAUTHENTICATOR_HH
-#define LDAPAUTHENTICATOR_HH
 
 class LdapAuthenticator
 {
@@ -34,4 +33,3 @@ class LdapAuthenticator
     virtual std::string getError() const = 0;
 };
 
-#endif // LDAPAUTHENTICATOR_HH
