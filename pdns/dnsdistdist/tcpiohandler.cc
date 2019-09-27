@@ -226,10 +226,6 @@ public:
       SSL_OP_SINGLE_ECDH_USE |
       SSL_OP_CIPHER_SERVER_PREFERENCE;
 
-    if (!fe.d_enableTickets) {
-      sslOptions |= SSL_OP_NO_TICKET;
-    }
-
     registerOpenSSLUser();
 
     d_tlsCtx = std::unique_ptr<SSL_CTX, void(*)(SSL_CTX*)>(SSL_CTX_new(SSLv23_server_method()), SSL_CTX_free);
@@ -238,9 +234,14 @@ public:
       throw std::runtime_error("Error creating TLS context on " + fe.d_addr.toStringWithPort());
     }
 
-    /* use our own ticket keys handler so we can rotate them */
-    SSL_CTX_set_tlsext_ticket_key_cb(d_tlsCtx.get(), &OpenSSLTLSIOCtx::ticketKeyCb);
-    libssl_set_ticket_key_callback_data(d_tlsCtx.get(), this);
+    if (!fe.d_enableTickets || fe.d_numberOfTicketsKeys == 0) {
+      sslOptions |= SSL_OP_NO_TICKET;
+    }
+    else {
+      /* use our own ticket keys handler so we can rotate them */
+      SSL_CTX_set_tlsext_ticket_key_cb(d_tlsCtx.get(), &OpenSSLTLSIOCtx::ticketKeyCb);
+      libssl_set_ticket_key_callback_data(d_tlsCtx.get(), this);
+    }
 
     SSL_CTX_set_options(d_tlsCtx.get(), sslOptions);
     if (!libssl_set_min_tls_version(d_tlsCtx, fe.d_minTLSVersion)) {

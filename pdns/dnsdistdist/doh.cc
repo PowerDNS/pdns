@@ -923,7 +923,7 @@ static std::unique_ptr<SSL_CTX, void(*)(SSL_CTX*)> getTLSContext(DOHFrontend& df
     SSL_OP_SINGLE_ECDH_USE |
     SSL_OP_CIPHER_SERVER_PREFERENCE;
 
-  if (!df.d_enableTickets) {
+  if (!df.d_enableTickets || df.d_numberOfTicketsKeys == 0) {
     sslOptions |= SSL_OP_NO_TICKET;
   }
   else {
