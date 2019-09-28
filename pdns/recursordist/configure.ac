@@ -93,7 +93,9 @@ PDNS_WITH_NET_SNMP
 PDNS_CHECK_RAGEL([pdns/dnslabeltext.cc], [www.powerdns.com])
 PDNS_CHECK_CURL
 
-AC_CHECK_FUNCS_ONCE([strcasestr getrandom arc4random])
+dnl the *_r functions are in posix so we can use them unconditionally, but the ext/yahttp code is
+dnl using the defines.
+AC_CHECK_FUNCS_ONCE([localtime_r gmtime_r strcasestr getrandom arc4random])
 
 PDNS_CHECK_PTHREAD_NP
 

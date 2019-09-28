@@ -19,16 +19,15 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
+
+#pragma once
+
 #include <string>
 #include <vector>
 #include <time.h>
 #include <stdlib.h>
 #include "pdns/misc.hh"
 #include "pdns/utility.hh"
-
-
-#ifndef LDAPBACKEND_UTILS_HH
-#define LDAPBACKEND_UTILS_HH
 
 using std::string;
 using std::vector;
@@ -174,4 +173,3 @@ inline time_t str2tstamp( const string& str )
   return 0;
 }
 
-#endif

@@ -59,7 +59,7 @@ void Logger::log(const string &msg, Urgency u)
       struct tm tm;
       time_t t;
       time(&t);
-      tm=*localtime(&t);
+      localtime_r(&t, &tm);
       strftime(buffer,sizeof(buffer),"%b %d %H:%M:%S ", &tm);
     }
 

@@ -80,6 +80,9 @@ pthread_mutex_t Bind2Backend::s_supermaster_config_lock=PTHREAD_MUTEX_INITIALIZE
 pthread_mutex_t Bind2Backend::s_startup_lock=PTHREAD_MUTEX_INITIALIZER;
 string Bind2Backend::s_binddirectory;  
 
+template <typename T>
+std::mutex LookButDontTouch<T>::s_lock;
+
 BB2DomainInfo::BB2DomainInfo()
 {
   d_loaded=false;
