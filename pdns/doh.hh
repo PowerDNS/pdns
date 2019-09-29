@@ -48,11 +48,22 @@ struct DOHFrontend
   std::string d_ciphers13;
   std::string d_serverTokens{"h2o/dnsdist"};
   LibsslTLSVersion d_minTLSVersion{LibsslTLSVersion::TLS10};
+#ifdef HAVE_DNS_OVER_HTTPS
+  std::unique_ptr<OpenSSLTLSTicketKeysRing> d_ticketKeys{nullptr};
+#endif
   std::vector<std::pair<std::string, std::string>> d_customResponseHeaders;
   ComboAddress d_local;
 
   uint32_t d_idleTimeout{30};             // HTTP idle timeout in seconds
   std::vector<std::string> d_urls;
+  std::string d_ticketKeyFile;
+
+  std::atomic_flag d_rotatingTicketsKey;
+  time_t d_ticketsKeyRotationDelay{43200};
+  time_t d_ticketsKeyNextRotation{0};
+  size_t d_maxStoredSessions{20480};
+  uint8_t d_numberOfTicketsKeys{5};
+  bool d_enableTickets{true};
 
   std::atomic<uint64_t> d_httpconnects;   // number of TCP/IP connections established
   std::atomic<uint64_t> d_tls10queries;   // valid DNS queries received via TLSv1.0
@@ -82,6 +93,7 @@ struct DOHFrontend
   HTTPVersionStats d_http1Stats;
   HTTPVersionStats d_http2Stats;
 
+
 #ifndef HAVE_DNS_OVER_HTTPS
   void setup()
   {
@@ -90,9 +102,27 @@ struct DOHFrontend
   void reloadCertificates()
   {
   }
+
+  void rotateTicketsKey(time_t now)
+  {
+  }
+
+  void loadTicketsKeys(const std::string& keyFile)
+  {
+  }
+
+  void handleTicketsKeyRotation()
+  {
+  }
+
 #else
   void setup();
   void reloadCertificates();
+
+  void rotateTicketsKey(time_t now);
+  void loadTicketsKeys(const std::string& keyFile);
+  void handleTicketsKeyRotation();
+
 #endif /* HAVE_DNS_OVER_HTTPS */
 };
 

@@ -1,7 +1,5 @@
-#include <fstream>
 
 #include "config.h"
-#include "circular_buffer.hh"
 #include "dolog.hh"
 #include "iputils.hh"
 #include "lock.hh"
@@ -19,163 +17,6 @@
 #include <openssl/ssl.h>
 
 #include "libssl.hh"
-
-/* From rfc5077 Section 4. Recommended Ticket Construction */
-#define TLS_TICKETS_KEY_NAME_SIZE (16)
-
-/* AES-256 */
-#define TLS_TICKETS_CIPHER_KEY_SIZE (32)
-#define TLS_TICKETS_CIPHER_ALGO (EVP_aes_256_cbc)
-
-/* HMAC SHA-256 */
-#define TLS_TICKETS_MAC_KEY_SIZE (32)
-#define TLS_TICKETS_MAC_ALGO (EVP_sha256)
-
-static int s_ticketsKeyIndex{-1};
-
-class OpenSSLTLSTicketKey
-{
-public:
-  OpenSSLTLSTicketKey()
-  {
-    if (RAND_bytes(d_name, sizeof(d_name)) != 1) {
-      throw std::runtime_error("Error while generating the name of the OpenSSL TLS ticket key");
-    }
-
-    if (RAND_bytes(d_cipherKey, sizeof(d_cipherKey)) != 1) {
-      throw std::runtime_error("Error while generating the cipher key of the OpenSSL TLS ticket key");
-    }
-
-    if (RAND_bytes(d_hmacKey, sizeof(d_hmacKey)) != 1) {
-      throw std::runtime_error("Error while generating the HMAC key of the OpenSSL TLS ticket key");
-    }
-#ifdef HAVE_LIBSODIUM
-    sodium_mlock(d_name, sizeof(d_name));
-    sodium_mlock(d_cipherKey, sizeof(d_cipherKey));
-    sodium_mlock(d_hmacKey, sizeof(d_hmacKey));
-#endif /* HAVE_LIBSODIUM */
-  }
-
-  OpenSSLTLSTicketKey(ifstream& file)
-  {
-    file.read(reinterpret_cast<char*>(d_name), sizeof(d_name));
-    file.read(reinterpret_cast<char*>(d_cipherKey), sizeof(d_cipherKey));
-    file.read(reinterpret_cast<char*>(d_hmacKey), sizeof(d_hmacKey));
-
-    if (file.fail()) {
-      throw std::runtime_error("Unable to load a ticket key from the OpenSSL tickets key file");
-    }
-#ifdef HAVE_LIBSODIUM
-    sodium_mlock(d_name, sizeof(d_name));
-    sodium_mlock(d_cipherKey, sizeof(d_cipherKey));
-    sodium_mlock(d_hmacKey, sizeof(d_hmacKey));
-#endif /* HAVE_LIBSODIUM */
-  }
-
-  ~OpenSSLTLSTicketKey()
-  {
-#ifdef HAVE_LIBSODIUM
-    sodium_munlock(d_name, sizeof(d_name));
-    sodium_munlock(d_cipherKey, sizeof(d_cipherKey));
-    sodium_munlock(d_hmacKey, sizeof(d_hmacKey));
-#else
-    OPENSSL_cleanse(d_name, sizeof(d_name));
-    OPENSSL_cleanse(d_cipherKey, sizeof(d_cipherKey));
-    OPENSSL_cleanse(d_hmacKey, sizeof(d_hmacKey));
-#endif /* HAVE_LIBSODIUM */
-  }
-
-  bool nameMatches(const unsigned char name[TLS_TICKETS_KEY_NAME_SIZE]) const
-  {
-    return (memcmp(d_name, name, sizeof(d_name)) == 0);
-  }
-
-  int encrypt(unsigned char keyName[TLS_TICKETS_KEY_NAME_SIZE], unsigned char *iv, EVP_CIPHER_CTX *ectx, HMAC_CTX *hctx) const
-  {
-    memcpy(keyName, d_name, sizeof(d_name));
-
-    if (RAND_bytes(iv, EVP_MAX_IV_LENGTH) != 1) {
-      return -1;
-    }
-
-    if (EVP_EncryptInit_ex(ectx, TLS_TICKETS_CIPHER_ALGO(), nullptr, d_cipherKey, iv) != 1) {
-      return -1;
-    }
-
-    if (HMAC_Init_ex(hctx, d_hmacKey, sizeof(d_hmacKey), TLS_TICKETS_MAC_ALGO(), nullptr) != 1) {
-      return -1;
-    }
-
-    return 1;
-  }
-
-  bool decrypt(const unsigned char* iv, EVP_CIPHER_CTX *ectx, HMAC_CTX *hctx) const
-  {
-    if (HMAC_Init_ex(hctx, d_hmacKey, sizeof(d_hmacKey), TLS_TICKETS_MAC_ALGO(), nullptr) != 1) {
-      return false;
-    }
-
-    if (EVP_DecryptInit_ex(ectx, TLS_TICKETS_CIPHER_ALGO(), nullptr, d_cipherKey, iv) != 1) {
-      return false;
-    }
-
-    return true;
-  }
-
-private:
-  unsigned char d_name[TLS_TICKETS_KEY_NAME_SIZE];
-  unsigned char d_cipherKey[TLS_TICKETS_CIPHER_KEY_SIZE];
-  unsigned char d_hmacKey[TLS_TICKETS_MAC_KEY_SIZE];
-};
-
-class OpenSSLTLSTicketKeysRing
-{
-public:
-  OpenSSLTLSTicketKeysRing(size_t capacity)
-  {
-    pthread_rwlock_init(&d_lock, nullptr);
-    d_ticketKeys.set_capacity(capacity);
-  }
-
-  ~OpenSSLTLSTicketKeysRing()
-  {
-    pthread_rwlock_destroy(&d_lock);
-  }
-
-  void addKey(std::shared_ptr<OpenSSLTLSTicketKey> newKey)
-  {
-    WriteLock wl(&d_lock);
-    d_ticketKeys.push_back(newKey);
-  }
-
-  std::shared_ptr<OpenSSLTLSTicketKey> getEncryptionKey()
-  {
-    ReadLock rl(&d_lock);
-    return d_ticketKeys.front();
-  }
-
-  std::shared_ptr<OpenSSLTLSTicketKey> getDecryptionKey(unsigned char name[TLS_TICKETS_KEY_NAME_SIZE], bool& activeKey)
-  {
-    ReadLock rl(&d_lock);
-    for (auto& key : d_ticketKeys) {
-      if (key->nameMatches(name)) {
-        activeKey = (key == d_ticketKeys.front());
-        return key;
-      }
-    }
-    return nullptr;
-  }
-
-  size_t getKeysCount()
-  {
-    ReadLock rl(&d_lock);
-    return d_ticketKeys.size();
-  }
-
-private:
-  boost::circular_buffer<std::shared_ptr<OpenSSLTLSTicketKey> > d_ticketKeys;
-  pthread_rwlock_t d_lock;
-};
 
 class OpenSSLTLSConnection: public TLSConnection
 {
@@ -385,19 +226,7 @@ public:
       SSL_OP_SINGLE_ECDH_USE |
       SSL_OP_CIPHER_SERVER_PREFERENCE;
 
-    if (!fe.d_enableTickets) {
-      sslOptions |= SSL_OP_NO_TICKET;
-    }
-
-    if (s_users.fetch_add(1) == 0) {
-      registerOpenSSLUser();
-
-      s_ticketsKeyIndex = SSL_CTX_get_ex_new_index(0, nullptr, nullptr, nullptr, nullptr);
-
-      if (s_ticketsKeyIndex == -1) {
-        throw std::runtime_error("Error getting an index for tickets key");
-      }
-    }
+    registerOpenSSLUser();
 
     d_tlsCtx = std::unique_ptr<SSL_CTX, void(*)(SSL_CTX*)>(SSL_CTX_new(SSLv23_server_method()), SSL_CTX_free);
     if (!d_tlsCtx) {
@@ -405,9 +234,15 @@ public:
       throw std::runtime_error("Error creating TLS context on " + fe.d_addr.toStringWithPort());
     }
 
-    /* use our own ticket keys handler so we can rotate them */
-    SSL_CTX_set_tlsext_ticket_key_cb(d_tlsCtx.get(), &OpenSSLTLSIOCtx::ticketKeyCb);
-    SSL_CTX_set_ex_data(d_tlsCtx.get(), s_ticketsKeyIndex, this);
+    if (!fe.d_enableTickets || fe.d_numberOfTicketsKeys == 0) {
+      sslOptions |= SSL_OP_NO_TICKET;
+    }
+    else {
+      /* use our own ticket keys handler so we can rotate them */
+      SSL_CTX_set_tlsext_ticket_key_cb(d_tlsCtx.get(), &OpenSSLTLSIOCtx::ticketKeyCb);
+      libssl_set_ticket_key_callback_data(d_tlsCtx.get(), this);
+    }
+
     SSL_CTX_set_options(d_tlsCtx.get(), sslOptions);
     if (!libssl_set_min_tls_version(d_tlsCtx, fe.d_minTLSVersion)) {
       throw std::runtime_error("Failed to set the minimum version to '" + libssl_tls_version_to_string(fe.d_minTLSVersion) + "' for ths TLS context on " + fe.d_addr.toStringWithPort());
@@ -494,50 +329,17 @@ public:
   {
     d_tlsCtx.reset();
 
-    if (s_users.fetch_sub(1) == 1) {
-      unregisterOpenSSLUser();
-    }
+    unregisterOpenSSLUser();
   }
 
   static int ticketKeyCb(SSL *s, unsigned char keyName[TLS_TICKETS_KEY_NAME_SIZE], unsigned char *iv, EVP_CIPHER_CTX *ectx, HMAC_CTX *hctx, int enc)
   {
-    SSL_CTX* sslCtx = SSL_get_SSL_CTX(s);
-    if (sslCtx == nullptr) {
-      return -1;
-    }
-
-    OpenSSLTLSIOCtx* ctx = reinterpret_cast<OpenSSLTLSIOCtx*>(SSL_CTX_get_ex_data(sslCtx, s_ticketsKeyIndex));
+    OpenSSLTLSIOCtx* ctx = reinterpret_cast<OpenSSLTLSIOCtx*>(libssl_get_ticket_key_callback_data(s));
     if (ctx == nullptr) {
       return -1;
     }
 
-    if (enc) {
-      const auto key = ctx->d_ticketKeys.getEncryptionKey();
-      if (key == nullptr) {
-        return -1;
-      }
-
-      return key->encrypt(keyName, iv, ectx, hctx);
-    }
-
-    bool activeEncryptionKey = false;
-
-    const auto key = ctx->d_ticketKeys.getDecryptionKey(keyName, activeEncryptionKey);
-    if (key == nullptr) {
-      /* we don't know this key, just create a new ticket */
-      return 0;
-    }
-
-    if (key->decrypt(iv, ectx, hctx) == false) {
-      return -1;
-    }
-
-    if (!activeEncryptionKey) {
-      /* this key is not active, please encrypt the ticket content with the currently active one */
-      return 2;
-    }
-
-    return 1;
+    return libssl_ticket_key_callback(s, ctx->d_ticketKeys, keyName, iv, ectx, hctx, enc);
   }
 
   static int ocspStaplingCb(SSL* ssl, void* arg)
@@ -558,8 +360,7 @@ public:
 
   void rotateTicketsKey(time_t now) override
   {
-    auto newKey = std::make_shared<OpenSSLTLSTicketKey>();
-    d_ticketKeys.addKey(newKey);
+    d_ticketKeys.rotateTicketsKey(now);
 
     if (d_ticketsKeyRotationDelay > 0) {
       d_ticketsKeyNextRotation = now + d_ticketsKeyRotationDelay;
@@ -568,28 +369,11 @@ public:
 
   void loadTicketsKeys(const std::string& keyFile) override
   {
-    bool keyLoaded = false;
-    ifstream file(keyFile);
-    try {
-      do {
-        auto newKey = std::make_shared<OpenSSLTLSTicketKey>(file);
-        d_ticketKeys.addKey(newKey);
-        keyLoaded = true;
-      }
-      while (!file.fail());
-    }
-    catch (const std::exception& e) {
-      /* if we haven't been able to load at least one key, fail */
-      if (!keyLoaded) {
-        throw;
-      }
-    }
+    d_ticketKeys.loadTicketsKeys(keyFile);
 
     if (d_ticketsKeyRotationDelay > 0) {
       d_ticketsKeyNextRotation = time(nullptr) + d_ticketsKeyRotationDelay;
     }
-
-    file.close();
   }
 
   size_t getTicketsKeysCount() override
@@ -601,10 +385,7 @@ private:
   OpenSSLTLSTicketKeysRing d_ticketKeys;
   std::map<int, std::string> d_ocspResponses;
   std::unique_ptr<SSL_CTX, void(*)(SSL_CTX*)> d_tlsCtx;
-  static std::atomic<uint64_t> s_users;
 };
-
-std::atomic<uint64_t> OpenSSLTLSIOCtx::s_users(0);
 
 #endif /* HAVE_LIBSSL */
 

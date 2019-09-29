@@ -15,6 +15,10 @@
 #include <openssl/rand.h>
 #include <openssl/ssl.h>
 
+#ifdef HAVE_LIBSODIUM
+#include <sodium.h>
+#endif /* HAVE_LIBSODIUM */
+
 #if (OPENSSL_VERSION_NUMBER < 0x1010000fL || defined LIBRESSL_VERSION_NUMBER)
 /* OpenSSL < 1.1.0 needs support for threading/locking in the calling application. */
 static pthread_mutex_t *openssllocks{nullptr};
@@ -58,24 +62,31 @@ static void openssl_thread_cleanup()
   OPENSSL_free(openssllocks);
 }
 
-static std::atomic<uint64_t> s_users;
 #endif /* (OPENSSL_VERSION_NUMBER < 0x1010000fL || defined LIBRESSL_VERSION_NUMBER) */
+
+static std::atomic<uint64_t> s_users;
+static int s_ticketsKeyIndex{-1};
 
 void registerOpenSSLUser()
 {
-#if (OPENSSL_VERSION_NUMBER < 0x1010000fL || defined LIBRESSL_VERSION_NUMBER)
   if (s_users.fetch_add(1) == 0) {
+    s_ticketsKeyIndex = SSL_CTX_get_ex_new_index(0, nullptr, nullptr, nullptr, nullptr);
+
+    if (s_ticketsKeyIndex == -1) {
+      throw std::runtime_error("Error getting an index for tickets key");
+    }
+#if (OPENSSL_VERSION_NUMBER < 0x1010000fL || defined LIBRESSL_VERSION_NUMBER)
     SSL_load_error_strings();
     OpenSSL_add_ssl_algorithms();
     openssl_thread_setup();
-  }
 #endif
+  }
 }
 
 void unregisterOpenSSLUser()
 {
-#if (OPENSSL_VERSION_NUMBER < 0x1010000fL || defined LIBRESSL_VERSION_NUMBER)
   if (s_users.fetch_sub(1) == 1) {
+#if (OPENSSL_VERSION_NUMBER < 0x1010000fL || defined LIBRESSL_VERSION_NUMBER)
     ERR_free_strings();
 
     EVP_cleanup();
@@ -86,8 +97,54 @@ void unregisterOpenSSLUser()
 
     CRYPTO_cleanup_all_ex_data();
     openssl_thread_cleanup();
-  }
 #endif
+  }
+}
+
+void* libssl_get_ticket_key_callback_data(SSL* s)
+{
+  SSL_CTX* sslCtx = SSL_get_SSL_CTX(s);
+  if (sslCtx == nullptr) {
+    return nullptr;
+  }
+
+  return SSL_CTX_get_ex_data(sslCtx, s_ticketsKeyIndex);
+}
+
+void libssl_set_ticket_key_callback_data(SSL_CTX* ctx, void* data)
+{
+  SSL_CTX_set_ex_data(ctx, s_ticketsKeyIndex, data);
+}
+
+int libssl_ticket_key_callback(SSL *s, OpenSSLTLSTicketKeysRing& keyring, unsigned char keyName[TLS_TICKETS_KEY_NAME_SIZE], unsigned char *iv, EVP_CIPHER_CTX *ectx, HMAC_CTX *hctx, int enc)
+{
+  if (enc) {
+    const auto key = keyring.getEncryptionKey();
+    if (key == nullptr) {
+      return -1;
+    }
+
+    return key->encrypt(keyName, iv, ectx, hctx);
+  }
+
+  bool activeEncryptionKey = false;
+
+  const auto key = keyring.getDecryptionKey(keyName, activeEncryptionKey);
+  if (key == nullptr) {
+    /* we don't know this key, just create a new ticket */
+    return 0;
+  }
+
+  if (key->decrypt(iv, ectx, hctx) == false) {
+    return -1;
+  }
+
+  if (!activeEncryptionKey) {
+    /* this key is not active, please encrypt the ticket content with the currently active one */
+    return 2;
+  }
+
+  return 1;
 }
 
 int libssl_ocsp_stapling_callback(SSL* ssl, const std::map<int, std::string>& ocspMap)
@@ -349,6 +406,161 @@ bool libssl_set_min_tls_version(std::unique_ptr<SSL_CTX, void(*)(SSL_CTX*)>& ctx
   SSL_CTX_set_options(ctx.get(), options | vers);
   return true;
 #endif
+}
+
+OpenSSLTLSTicketKeysRing::OpenSSLTLSTicketKeysRing(size_t capacity)
+{
+  pthread_rwlock_init(&d_lock, nullptr);
+  d_ticketKeys.set_capacity(capacity);
+}
+
+OpenSSLTLSTicketKeysRing::~OpenSSLTLSTicketKeysRing()
+{
+  pthread_rwlock_destroy(&d_lock);
+}
+
+void OpenSSLTLSTicketKeysRing::addKey(std::shared_ptr<OpenSSLTLSTicketKey> newKey)
+{
+  WriteLock wl(&d_lock);
+  d_ticketKeys.push_front(newKey);
+}
+
+std::shared_ptr<OpenSSLTLSTicketKey> OpenSSLTLSTicketKeysRing::getEncryptionKey()
+{
+  ReadLock rl(&d_lock);
+  return d_ticketKeys.front();
+}
+
+std::shared_ptr<OpenSSLTLSTicketKey> OpenSSLTLSTicketKeysRing::getDecryptionKey(unsigned char name[TLS_TICKETS_KEY_NAME_SIZE], bool& activeKey)
+{
+  ReadLock rl(&d_lock);
+  for (auto& key : d_ticketKeys) {
+    if (key->nameMatches(name)) {
+      activeKey = (key == d_ticketKeys.front());
+      return key;
+    }
+  }
+  return nullptr;
+}
+
+size_t OpenSSLTLSTicketKeysRing::getKeysCount()
+{
+  ReadLock rl(&d_lock);
+  return d_ticketKeys.size();
+}
+
+void OpenSSLTLSTicketKeysRing::loadTicketsKeys(const std::string& keyFile)
+{
+  bool keyLoaded = false;
+  std::ifstream file(keyFile);
+  try {
+    do {
+      auto newKey = std::make_shared<OpenSSLTLSTicketKey>(file);
+      addKey(newKey);
+      keyLoaded = true;
+    }
+    while (!file.fail());
+  }
+  catch (const std::exception& e) {
+    /* if we haven't been able to load at least one key, fail */
+    if (!keyLoaded) {
+      throw;
+    }
+  }
+
+  file.close();
+}
+
+void OpenSSLTLSTicketKeysRing::rotateTicketsKey(time_t now)
+{
+  auto newKey = std::make_shared<OpenSSLTLSTicketKey>();
+  addKey(newKey);
+}
+
+OpenSSLTLSTicketKey::OpenSSLTLSTicketKey()
+{
+  if (RAND_bytes(d_name, sizeof(d_name)) != 1) {
+    throw std::runtime_error("Error while generating the name of the OpenSSL TLS ticket key");
+  }
+
+  if (RAND_bytes(d_cipherKey, sizeof(d_cipherKey)) != 1) {
+    throw std::runtime_error("Error while generating the cipher key of the OpenSSL TLS ticket key");
+  }
+
+  if (RAND_bytes(d_hmacKey, sizeof(d_hmacKey)) != 1) {
+    throw std::runtime_error("Error while generating the HMAC key of the OpenSSL TLS ticket key");
+  }
+#ifdef HAVE_LIBSODIUM
+  sodium_mlock(d_name, sizeof(d_name));
+  sodium_mlock(d_cipherKey, sizeof(d_cipherKey));
+  sodium_mlock(d_hmacKey, sizeof(d_hmacKey));
+#endif /* HAVE_LIBSODIUM */
+}
+
+OpenSSLTLSTicketKey::OpenSSLTLSTicketKey(ifstream& file)
+{
+  file.read(reinterpret_cast<char*>(d_name), sizeof(d_name));
+  file.read(reinterpret_cast<char*>(d_cipherKey), sizeof(d_cipherKey));
+  file.read(reinterpret_cast<char*>(d_hmacKey), sizeof(d_hmacKey));
+
+  if (file.fail()) {
+    throw std::runtime_error("Unable to load a ticket key from the OpenSSL tickets key file");
+  }
+#ifdef HAVE_LIBSODIUM
+  sodium_mlock(d_name, sizeof(d_name));
+  sodium_mlock(d_cipherKey, sizeof(d_cipherKey));
+  sodium_mlock(d_hmacKey, sizeof(d_hmacKey));
+#endif /* HAVE_LIBSODIUM */
+}
+
+OpenSSLTLSTicketKey::~OpenSSLTLSTicketKey()
+{
+#ifdef HAVE_LIBSODIUM
+  sodium_munlock(d_name, sizeof(d_name));
+  sodium_munlock(d_cipherKey, sizeof(d_cipherKey));
+  sodium_munlock(d_hmacKey, sizeof(d_hmacKey));
+#else
+  OPENSSL_cleanse(d_name, sizeof(d_name));
+  OPENSSL_cleanse(d_cipherKey, sizeof(d_cipherKey));
+  OPENSSL_cleanse(d_hmacKey, sizeof(d_hmacKey));
+#endif /* HAVE_LIBSODIUM */
+}
+
+bool OpenSSLTLSTicketKey::nameMatches(const unsigned char name[TLS_TICKETS_KEY_NAME_SIZE]) const
+{
+  return (memcmp(d_name, name, sizeof(d_name)) == 0);
+}
+
+int OpenSSLTLSTicketKey::encrypt(unsigned char keyName[TLS_TICKETS_KEY_NAME_SIZE], unsigned char *iv, EVP_CIPHER_CTX *ectx, HMAC_CTX *hctx) const
+{
+  memcpy(keyName, d_name, sizeof(d_name));
+
+  if (RAND_bytes(iv, EVP_MAX_IV_LENGTH) != 1) {
+    return -1;
+  }
+
+  if (EVP_EncryptInit_ex(ectx, TLS_TICKETS_CIPHER_ALGO(), nullptr, d_cipherKey, iv) != 1) {
+    return -1;
+  }
+
+  if (HMAC_Init_ex(hctx, d_hmacKey, sizeof(d_hmacKey), TLS_TICKETS_MAC_ALGO(), nullptr) != 1) {
+    return -1;
+  }
+
+  return 1;
+}
+
+bool OpenSSLTLSTicketKey::decrypt(const unsigned char* iv, EVP_CIPHER_CTX *ectx, HMAC_CTX *hctx) const
+{
+  if (HMAC_Init_ex(hctx, d_hmacKey, sizeof(d_hmacKey), TLS_TICKETS_MAC_ALGO(), nullptr) != 1) {
+    return false;
+  }
+
+  if (EVP_DecryptInit_ex(ectx, TLS_TICKETS_CIPHER_ALGO(), nullptr, d_cipherKey, iv) != 1) {
+    return false;
+  }
+
+  return true;
 }
 
 #endif /* HAVE_LIBSSL */

@@ -897,7 +897,20 @@ static int ocsp_stapling_callback(SSL* ssl, void* arg)
   return libssl_ocsp_stapling_callback(ssl, *ocspMap);
 }
 
-static std::unique_ptr<SSL_CTX, void(*)(SSL_CTX*)> getTLSContext(const std::vector<std::pair<std::string, std::string>>& pairs, const std::string& ciphers, const std::string& ciphers13, LibsslTLSVersion minTLSVersion, const std::vector<std::string>& ocspFiles, std::map<int, std::string>& ocspResponses)
+static int ticket_key_callback(SSL *s, unsigned char keyName[TLS_TICKETS_KEY_NAME_SIZE], unsigned char *iv, EVP_CIPHER_CTX *ectx, HMAC_CTX *hctx, int enc)
+{
+  DOHFrontend* df = reinterpret_cast<DOHFrontend*>(libssl_get_ticket_key_callback_data(s));
+  if (df == nullptr || !df->d_ticketKeys) {
+    return -1;
+  }
+
+  df->handleTicketsKeyRotation();
+
+  return libssl_ticket_key_callback(s, *df->d_ticketKeys, keyName, iv, ectx, hctx, enc);
+}
+
+static std::unique_ptr<SSL_CTX, void(*)(SSL_CTX*)> getTLSContext(DOHFrontend& df,
+                                                                 std::map<int, std::string>& ocspResponses)
 {
   auto ctx = std::unique_ptr<SSL_CTX, void(*)(SSL_CTX*)>(SSL_CTX_new(SSLv23_server_method()), SSL_CTX_free);
 
@@ -907,20 +920,40 @@ static std::unique_ptr<SSL_CTX, void(*)(SSL_CTX*)> getTLSContext(const std::vect
     SSL_OP_NO_COMPRESSION |
     SSL_OP_NO_SESSION_RESUMPTION_ON_RENEGOTIATION |
     SSL_OP_SINGLE_DH_USE |
-    SSL_OP_SINGLE_ECDH_USE;
+    SSL_OP_SINGLE_ECDH_USE |
+    SSL_OP_CIPHER_SERVER_PREFERENCE;
+
+  if (!df.d_enableTickets || df.d_numberOfTicketsKeys == 0) {
+    sslOptions |= SSL_OP_NO_TICKET;
+  }
+  else {
+    df.d_ticketKeys = std::unique_ptr<OpenSSLTLSTicketKeysRing>(new OpenSSLTLSTicketKeysRing(df.d_numberOfTicketsKeys));
+    SSL_CTX_set_tlsext_ticket_key_cb(ctx.get(), &ticket_key_callback);
+    libssl_set_ticket_key_callback_data(ctx.get(), &df);
+  }
 
   SSL_CTX_set_options(ctx.get(), sslOptions);
-  if (!libssl_set_min_tls_version(ctx, minTLSVersion)) {
-    throw std::runtime_error("Failed to set the minimum version to '" + libssl_tls_version_to_string(minTLSVersion) + "' for DoH listener");
+  if (!libssl_set_min_tls_version(ctx, df.d_minTLSVersion)) {
+    throw std::runtime_error("Failed to set the minimum version to '" + libssl_tls_version_to_string(df.d_minTLSVersion) + "' for DoH listener");
   }
 
 #ifdef SSL_CTX_set_ecdh_auto
   SSL_CTX_set_ecdh_auto(ctx.get(), 1);
 #endif
 
+  if (df.d_maxStoredSessions == 0) {
+    /* disable stored sessions entirely */
+    SSL_CTX_set_session_cache_mode(ctx.get(), SSL_SESS_CACHE_OFF);
+  }
+  else {
+    /* use the internal built-in cache to store sessions */
+    SSL_CTX_set_session_cache_mode(ctx.get(), SSL_SESS_CACHE_SERVER);
+    SSL_CTX_sess_set_cache_size(ctx.get(), df.d_maxStoredSessions);
+  }
+
   std::vector<int> keyTypes;
   /* load certificate and private key */
-  for (const auto& pair : pairs) {
+  for (const auto& pair : df.d_certKeyPairs) {
     if (SSL_CTX_use_certificate_chain_file(ctx.get(), pair.first.c_str()) != 1) {
       ERR_print_errors_fp(stderr);
       throw std::runtime_error("Failed to setup SSL/TLS for DoH listener, an error occurred while trying to load the DOH server certificate file: " + pair.first);
@@ -941,9 +974,9 @@ static std::unique_ptr<SSL_CTX, void(*)(SSL_CTX*)> getTLSContext(const std::vect
     keyTypes.push_back(keyType);
   }
 
-  if (!ocspFiles.empty()) {
+  if (!df.d_ocspFiles.empty()) {
     try {
-      ocspResponses = libssl_load_ocsp_responses(ocspFiles, keyTypes);
+      ocspResponses = libssl_load_ocsp_responses(df.d_ocspFiles, keyTypes);
 
       SSL_CTX_set_tlsext_status_cb(ctx.get(), &ocsp_stapling_callback);
       SSL_CTX_set_tlsext_status_arg(ctx.get(), &ocspResponses);
@@ -953,17 +986,29 @@ static std::unique_ptr<SSL_CTX, void(*)(SSL_CTX*)> getTLSContext(const std::vect
     }
   }
 
-  if (SSL_CTX_set_cipher_list(ctx.get(), ciphers.empty() == false ? ciphers.c_str() : DOH_DEFAULT_CIPHERS) != 1) {
-    throw std::runtime_error("Failed to setup SSL/TLS for DoH listener, DOH ciphers could not be set: " + ciphers);
+  if (SSL_CTX_set_cipher_list(ctx.get(), df.d_ciphers.empty() == false ? df.d_ciphers.c_str() : DOH_DEFAULT_CIPHERS) != 1) {
+    throw std::runtime_error("Failed to setup SSL/TLS for DoH listener, DOH ciphers could not be set: " + df.d_ciphers);
   }
 
 #ifdef HAVE_SSL_CTX_SET_CIPHERSUITES
-  if (!ciphers13.empty() && SSL_CTX_set_ciphersuites(ctx.get(), ciphers13.c_str()) != 1) {
-    throw std::runtime_error("Failed to setup SSL/TLS for DoH listener, DOH TLS 1.3 ciphers could not be set: " + ciphers13);
+  if (!df.d_ciphers13.empty() && SSL_CTX_set_ciphersuites(ctx.get(), df.d_ciphers13.c_str()) != 1) {
+    throw std::runtime_error("Failed to setup SSL/TLS for DoH listener, DOH TLS 1.3 ciphers could not be set: " + df.d_ciphers13);
   }
 #endif /* HAVE_SSL_CTX_SET_CIPHERSUITES */
 
   h2o_ssl_register_alpn_protocols(ctx.get(), h2o_http2_alpn_protocols);
+
+  try {
+    if (df.d_ticketKeyFile.empty()) {
+      df.handleTicketsKeyRotation();
+    }
+    else {
+      df.loadTicketsKeys(df.d_ticketKeyFile);
+    }
+  }
+  catch (const std::exception& e) {
+    throw;
+  }
 
   return ctx;
 }
@@ -974,17 +1019,66 @@ static void setupAcceptContext(DOHAcceptContext& ctx, DOHServerConfig& dsc, bool
   nativeCtx->ctx = &dsc.h2o_ctx;
   nativeCtx->hosts = dsc.h2o_config.hosts;
   if (setupTLS && !dsc.df->d_certKeyPairs.empty()) {
-    auto tlsCtx = getTLSContext(dsc.df->d_certKeyPairs,
-                                dsc.df->d_ciphers,
-                                dsc.df->d_ciphers13,
-                                dsc.df->d_minTLSVersion,
-                                dsc.df->d_ocspFiles,
+    auto tlsCtx = getTLSContext(*dsc.df,
                                 ctx.d_ocspResponses);
 
     nativeCtx->ssl_ctx = tlsCtx.release();
   }
 
   ctx.release();
+}
+
+void DOHFrontend::rotateTicketsKey(time_t now)
+{
+  if (!d_ticketKeys) {
+    return;
+  }
+
+  d_ticketKeys->rotateTicketsKey(now);
+
+  if (d_ticketsKeyRotationDelay > 0) {
+    d_ticketsKeyNextRotation = now + d_ticketsKeyRotationDelay;
+  }
+}
+
+void DOHFrontend::loadTicketsKeys(const std::string& keyFile)
+{
+  if (!d_ticketKeys) {
+    return;
+  }
+  d_ticketKeys->loadTicketsKeys(keyFile);
+
+  if (d_ticketsKeyRotationDelay > 0) {
+    d_ticketsKeyNextRotation = time(nullptr) + d_ticketsKeyRotationDelay;
+  }
+}
+
+void DOHFrontend::handleTicketsKeyRotation()
+{
+  if (d_ticketsKeyRotationDelay == 0) {
+    return;
+  }
+
+  time_t now = time(nullptr);
+  if (now > d_ticketsKeyNextRotation) {
+    if (d_rotatingTicketsKey.test_and_set()) {
+      /* someone is already rotating */
+      return;
+    }
+    try {
+      rotateTicketsKey(now);
+
+      d_rotatingTicketsKey.clear();
+    }
+    catch(const std::runtime_error& e) {
+      d_rotatingTicketsKey.clear();
+      throw std::runtime_error(std::string("Error generating a new tickets key for TLS context:") + e.what());
+    }
+    catch(...) {
+      d_rotatingTicketsKey.clear();
+      throw;
+    }
+  }
 }
 
 void DOHFrontend::reloadCertificates()
@@ -1003,11 +1097,7 @@ void DOHFrontend::setup()
   d_dsc = std::make_shared<DOHServerConfig>(d_idleTimeout);
 
   if  (!d_certKeyPairs.empty()) {
-    auto tlsCtx = getTLSContext(d_certKeyPairs,
-                                d_ciphers,
-                                d_ciphers13,
-                                d_minTLSVersion,
-                                d_ocspFiles,
+    auto tlsCtx = getTLSContext(*this,
                                 d_dsc->accept_ctx->d_ocspResponses);
 
     auto accept_ctx = d_dsc->accept_ctx->get();
