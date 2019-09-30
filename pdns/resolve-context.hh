@@ -10,15 +10,10 @@ struct ResolveContext {
   ResolveContext()
   {
   }
-  ResolveContext(const ResolveContext& ctx)
-  {
-#ifdef HAVE_PROTOBUF
-    this->d_initialRequestId = ctx.d_initialRequestId;
-#endif
-#ifdef HAVE_FSTRM
-    this->d_auth = ctx.d_auth;
-#endif
-  }
+
+  ResolveContext(const ResolveContext& ctx) = delete;
+  ResolveContext & operator=(const ResolveContext&) = delete;
+  
 #ifdef HAVE_PROTOBUF
   boost::optional<const boost::uuids::uuid&> d_initialRequestId;
 #endif
