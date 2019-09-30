@@ -326,6 +326,42 @@ union ComboAddress {
       return 128;
     return 0;
   }
+  /** Get the value of the bit at the provided bit index. When the index >= 0,
+      the index is relative to the LSB starting at index zero. When the index < 0,
+      the index is relative to the MSB starting at index -1 and counting down.
+   */
+  bool getBit(int index) const
+  {
+    if(isIPv4()) {
+      if (index >= 32)
+        return false;
+      if (index < 0) {
+        if (index < -32)
+          return false;
+        index = 32 + index;
+      }
+
+      uint32_t s_addr = ntohl(sin4.sin_addr.s_addr);
+
+      return ((s_addr & (1<<index)) != 0x00000000);
+    }
+    if(isIPv6()) {
+      if (index >= 128)
+        return false;
+      if (index < 0) {
+        if (index < -128)
+          return false;
+        index = 128 + index;
+      }
+
+      uint8_t *s_addr = (uint8_t*)sin6.sin6_addr.s6_addr;
+      uint8_t byte_idx = index / 8;
+      uint8_t bit_idx = index % 8;
+
+      return ((s_addr[15-byte_idx] & (1 << bit_idx)) != 0x00);
+    }
+    return false;
+  }
 };
 
 /** This exception is thrown by the Netmask class and by extension by the NetmaskGroup class */
