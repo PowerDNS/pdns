@@ -738,8 +738,8 @@ public:
   //<! Creates new value-pair in tree and returns it.
   node_type& insert(const key_type& key) {
     // lazily initialize tree on first insert.
-    if (!root) root = unique_ptr<TreeNode>(new TreeNode(0));
-    TreeNode* node = root.get();
+    if (!d_root) d_root = unique_ptr<TreeNode>(new TreeNode(0));
+    TreeNode* node = d_root.get();
     node_type* value = nullptr;
 
     if (key.getNetwork().sin4.sin_family == AF_INET) {
@@ -804,9 +804,9 @@ public:
 
   //<! Perform best match lookup for value, using at most max_bits
   const node_type* lookup(const ComboAddress& value, int max_bits = 128) const {
-    if (!root) return nullptr;
+    if (!d_root) return nullptr;
 
-    TreeNode *node = root.get();
+    TreeNode *node = d_root.get();
     node_type *ret = nullptr;
 
     // exact same thing as above, except
@@ -853,7 +853,7 @@ public:
 
   //<! Removes key from TreeMap.
   void erase(const key_type& key) {
-    TreeNode *node = root.get();
+    TreeNode *node = d_root.get();
 
     // no tree, no value
     if ( node == nullptr ) return;
@@ -924,17 +924,17 @@ public:
   //<! Clean out the tree
   void clear() {
     _nodes.clear();
-    root.reset(nullptr);
+    d_root.reset(nullptr);
   }
 
   //<! swaps the contents with another NetmaskTree
   void swap(NetmaskTree& rhs) {
-    root.swap(rhs.root);
+    std::swap(d_root, rhs.d_root);
     _nodes.swap(rhs._nodes);
   }
 
 private:
-  unique_ptr<TreeNode> root; //<! Root of our tree
+  unique_ptr<TreeNode> d_root; //<! Root of our tree
   std::set<node_type*> _nodes; //<! Container for actual values
   bool d_cleanup_tree; //<! Whether or not to cleanup the tree on erase
 };
