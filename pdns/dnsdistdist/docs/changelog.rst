@@ -2,6 +2,85 @@ Changelog
 =========
 
 .. changelog::
+  :version: 1.4.0-rc3
+  :released: 30th of September 2019
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 8083
+    :tickets: 7845
+
+    Clean up our interactions with errno
+
+  .. change::
+    :tags: Improvements, DNS over HTTPS, DNS over TLS
+    :pullreq: 8264
+
+    Display the DoH and DoT binds in the web view
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 8265
+    :tickets: 5514
+
+    Remove the 'blockfilter' stat from the web view
+
+  .. change::
+    :tags: Improvements, DNS over HTTPS
+    :pullreq: 8267
+
+    Allow accepting DoH queries over HTTP instead of HTTPS
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 8268
+
+    Fix some spelling mistakes noticed by lintian (Chris Hofstaedtler)
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 8281
+
+    Fix the newCDBKVStore console completion when LMDB is not enabled (phonedph1)
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 8283
+
+    Allow configure CDB_CFLAGS to work (phonedph1)
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 8285
+
+    dnsdistconf.lua use non-deprecated versions for 1.4.0 (phonedph1)
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 8303
+
+    Fix the warning message on an invalid secpoll answer
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 8304
+    :tickets: 8300
+
+    Don't connect to remote logger in client/command mode
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 8318
+
+    Better use of labels in our DoH prometheus export
+
+  .. change::
+    :tags: Improvements, DNS over HTTPS
+    :pullreq: 8349
+
+    Implement TLS session ticket keys management for DoH
+
+.. changelog::
   :version: 1.4.0-rc2
   :released: 2nd of September 2019
 
