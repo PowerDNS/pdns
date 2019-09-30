@@ -523,4 +523,269 @@ BOOST_AUTO_TEST_CASE(test_removal) {
   BOOST_CHECK(nmt.empty());
 }
 
+BOOST_AUTO_TEST_CASE(test_iterator) {
+  NetmaskTree<int> masks_set1;
+  std::set<Netmask> masks_set2;
+
+  // create sets. the std::set entries are normalized to match internal behavior
+  // of NetmaskTree
+  for(int i=0; i < 256; ++i) {
+    std::stringstream ss;
+    Netmask mask;
+
+    ss << i << "." << i << "." << i << "." << i;
+    mask = Netmask(ss.str());
+    masks_set1.insert(mask).second=i;
+    masks_set2.insert(mask.getNormalized());
+
+    ss.str("");
+    ss << (255-i) << "." << (i/2) << "." << (i/3) << "." << (i/5);
+    mask = Netmask(ss.str());
+    masks_set1.insert(mask).second=i;
+    masks_set2.insert(mask.getNormalized());
+
+    ss.str("");
+    ss << (i/5) << "." << (i/3) << "." << (i/2) << "." << (255-i);
+    mask = Netmask(ss.str());
+    masks_set1.insert(mask).second=i;
+    masks_set2.insert(mask.getNormalized());
+
+    ss.str("");
+    ss << (i/2) << "." << (i/4) << "." << (255-i) << ".0/" << (i%24);
+    mask = Netmask(ss.str());
+    masks_set1.insert(mask).second=i;
+    masks_set2.insert(mask.getNormalized());
+
+    ss.str("");
+    ss << std::hex << "2001:" << i << i << ":" << i << i << "::/64";
+    mask = Netmask(ss.str());
+    masks_set1.insert(mask).second=i;
+    masks_set2.insert(mask.getNormalized());
+
+    ss.str("");
+    ss << std::hex << "2001:" << (i/5) << (i/3) << ":" << (i/2) << (255-i) << "::/64";
+    mask = Netmask(ss.str());
+    masks_set1.insert(mask).second=i;
+    masks_set2.insert(mask.getNormalized());
+
+    ss.str("");
+    ss << std::hex << "2001:" << (255-i) << (i/2) << ":" << (i/3) << (i/5) << "::/64";
+    mask = Netmask(ss.str());
+    masks_set1.insert(mask).second=i;
+    masks_set2.insert(mask.getNormalized());
+
+    ss.str("");
+    ss << std::hex << "20" << i/2 << ":" << i/3 << i/7 << "::" << i << (i > 0 ? i-1 : i + 1);
+    mask = Netmask(ss.str());
+    masks_set1.insert(mask).second=i;
+    masks_set2.insert(mask.getNormalized());
+
+    ss.str("");
+    ss << std::hex << "20" << i << ":" << i << i << "::/" << std::dec << (i%48);
+    mask = Netmask(ss.str());
+    masks_set1.insert(mask).second=i;
+    masks_set2.insert(mask.getNormalized());
+  }
+  for(int i=0; i <= 32; ++i) {
+    std::stringstream ss;
+    Netmask mask;
+
+    ss << "85.85.85.85/" << i;
+    mask = Netmask(ss.str());
+    masks_set1.insert(mask).second=i;
+    masks_set2.insert(mask.getNormalized());
+
+    ss.str("");
+    ss << "170.170.170.170/" << i;
+    mask = Netmask(ss.str());
+    masks_set1.insert(mask).second=i;
+    masks_set2.insert(mask.getNormalized());
+  }
+  for(int i=0; i <= 128; ++i) {
+    std::stringstream ss;
+    Netmask mask;
+
+    ss << "5555:5555:5555:5555:5555:5555:5555:5555/" << i;
+    mask = Netmask(ss.str());
+    masks_set1.insert(mask).second=i;
+    masks_set2.insert(mask.getNormalized());
+
+    ss.str("");
+    ss << "aaaa:aaaa:aaaa:aaaa:aaaa:aaaa:aaaa:aaaa/" << i;
+    mask = Netmask(ss.str());
+    masks_set1.insert(mask).second=i;
+    masks_set2.insert(mask.getNormalized());
+  }
+
+
+  // check set equality using iterators
+  BOOST_CHECK_EQUAL(masks_set1.size(), masks_set2.size());
+  BOOST_CHECK_EQUAL(std::distance(masks_set1.begin(), masks_set1.end()),
+                    std::distance(masks_set2.begin(), masks_set2.end()));
+  for (auto entry: masks_set1) {
+    Netmask mask = entry->first.getNormalized();
+
+    BOOST_CHECK(masks_set2.find(mask) != masks_set2.end());
+  }
+  for (const Netmask& mask: masks_set2) {
+    BOOST_CHECK(masks_set1.lookup(mask) != nullptr);
+  }
+
+  // create a copy of the NetmaskTree (check copy by assignment)
+  NetmaskTree<int> masks_set1_cp1 = masks_set1;
+
+  // taint the old version
+  masks_set1.insert("1.2.3.4");
+  masks_set1.erase("1.1.1.1");
+
+  // check set equality using iterators
+  BOOST_CHECK_EQUAL(masks_set1_cp1.size(), masks_set2.size());
+  BOOST_CHECK_EQUAL(std::distance(masks_set1_cp1.begin(), masks_set1_cp1.end()),
+                    std::distance(masks_set2.begin(), masks_set2.end()));
+  for (auto entry: masks_set1_cp1) {
+    Netmask mask = entry->first.getNormalized();
+
+    BOOST_CHECK(masks_set2.find(mask) != masks_set2.end());
+  }
+  for (const Netmask& mask: masks_set2) {
+    BOOST_CHECK(masks_set1_cp1.lookup(mask) != nullptr);
+  }
+
+  // create a copy of the NetmaskTree (check copy constructor)
+  NetmaskTree<int> masks_set1_cp2(masks_set1_cp1);
+
+  // taint the old version
+  masks_set1_cp1.insert("2.3.4.5");
+  masks_set1_cp1.erase("2.2.2.2");
+
+  // check set equality using iterators
+  BOOST_CHECK_EQUAL(masks_set1_cp2.size(), masks_set2.size());
+  BOOST_CHECK_EQUAL(std::distance(masks_set1_cp2.begin(), masks_set1_cp2.end()),
+                    std::distance(masks_set2.begin(), masks_set2.end()));
+  for (auto entry: masks_set1_cp2) {
+    Netmask mask = entry->first.getNormalized();
+
+    BOOST_CHECK(masks_set2.find(mask) != masks_set2.end());
+  }
+  for (const Netmask& mask: masks_set2) {
+    BOOST_CHECK(masks_set1_cp2.lookup(mask) != nullptr);
+  }
+
+  // swap contents of the NetmaskTree
+  NetmaskTree<int> masks_set1_cp3;
+  masks_set1_cp3.swap(masks_set1_cp2);
+
+  // taint the old version
+  masks_set1_cp2.insert("3.4.5.6");
+  masks_set1_cp2.erase("3.3.3.3");
+
+  // check set equality using iterators
+  BOOST_CHECK_EQUAL(masks_set1_cp3.size(), masks_set2.size());
+  BOOST_CHECK_EQUAL(std::distance(masks_set1_cp3.begin(), masks_set1_cp3.end()),
+                    std::distance(masks_set2.begin(), masks_set2.end()));
+  for (auto entry: masks_set1_cp3) {
+    Netmask mask = entry->first.getNormalized();
+
+    BOOST_CHECK(masks_set2.find(mask) != masks_set2.end());
+  }
+  for (const Netmask& mask: masks_set2) {
+    BOOST_CHECK(masks_set1_cp3.lookup(mask) != nullptr);
+  }
+
+  // copy contents to an std::set
+  std::set<NetmaskTree<int>::node_type *> masks_set1_cp4(masks_set1_cp3.begin(), masks_set1_cp3.end());
+
+  // check set equality
+  BOOST_CHECK_EQUAL(masks_set1_cp4.size(), masks_set2.size());
+  for (auto entry: masks_set1_cp4) {
+    Netmask mask = entry->first.getNormalized();
+
+    BOOST_CHECK(masks_set2.find(mask) != masks_set2.end());
+  }
+  for (const Netmask& mask: masks_set2) {
+    Netmask maskl = mask.getNormalized();
+    bool found = false;
+    for (auto entry: masks_set1_cp4) {
+      Netmask maskr = entry->first.getNormalized();
+
+      if (maskl == maskr)
+        found = true;
+    }
+    BOOST_CHECK(found);
+  }
+
+  // create a copy of the NetmaskTree
+  NetmaskTree<int> masks_set1_cp5(masks_set1_cp3);
+
+  // erase select values
+  {
+    Netmask mask;
+
+    mask = Netmask("16.16.16.16");
+    masks_set1_cp5.erase(mask);
+    masks_set2.erase(mask.getNormalized());
+
+    mask = Netmask("223.16.10.6");
+    masks_set1_cp5.erase(mask);
+    masks_set2.erase(mask.getNormalized());
+
+    mask = Netmask("12.21.32.191");
+    masks_set1_cp5.erase(mask);
+    masks_set2.erase(mask.getNormalized());
+
+    mask = Netmask("64.32.127.0/8");
+    masks_set1_cp5.erase(mask);
+    masks_set2.erase(mask.getNormalized());
+
+    mask = Netmask("2001:ffff:ffff::/64");
+    masks_set1_cp5.erase(mask);
+    masks_set2.erase(mask.getNormalized());
+
+    mask = Netmask("2001:192a:407f::/64");
+    masks_set1_cp5.erase(mask);
+    masks_set2.erase(mask.getNormalized());
+
+    mask = Netmask("2001:bf20:15c::/64");
+    masks_set1_cp5.erase(mask);
+    masks_set2.erase(mask.getNormalized());
+
+    mask = Netmask("2010:a4::201f");
+    masks_set1_cp5.erase(mask);
+    masks_set2.erase(mask.getNormalized());
+
+    mask = Netmask("2010:1010::/16");
+    masks_set1_cp5.erase(mask);
+    masks_set2.erase(mask.getNormalized());
+
+    mask = Netmask("85.85.85.85");
+    masks_set1_cp5.erase(mask);
+    masks_set2.erase(mask.getNormalized());
+
+    mask = Netmask("170.170.170.170");
+    masks_set1_cp5.erase(mask);
+    masks_set2.erase(mask.getNormalized());
+
+    mask = Netmask("5555:5555:5555:5555:5555:5555:5555:5555");
+    masks_set1_cp5.erase(mask);
+    masks_set2.erase(mask.getNormalized());
+
+    mask = Netmask("aaaa:aaaa:aaaa:aaaa:aaaa:aaaa:aaaa:aaaa");
+    masks_set1_cp5.erase(mask);
+    masks_set2.erase(mask.getNormalized());
+  }
+
+  // check set equality using iterators
+  BOOST_CHECK_EQUAL(masks_set1_cp5.size(), masks_set2.size());
+  BOOST_CHECK_EQUAL(std::distance(masks_set1_cp5.begin(), masks_set1_cp5.end()),
+                    std::distance(masks_set2.begin(), masks_set2.end()));
+  for (auto entry: masks_set1_cp5) {
+    Netmask mask = entry->first.getNormalized();
+
+    BOOST_CHECK(masks_set2.find(mask) != masks_set2.end());
+  }
+  for (const Netmask& mask: masks_set2) {
+    BOOST_CHECK(masks_set1_cp5.lookup(mask) != nullptr);
+  }
+}
+
 BOOST_AUTO_TEST_SUITE_END()
