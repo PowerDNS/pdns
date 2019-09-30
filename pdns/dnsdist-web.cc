@@ -580,8 +580,24 @@ static void connectionThread(int sock, ComboAddress remote)
 
         output << "# HELP " << frontsbase << "http_connects " << "Number of DoH TCP connections established to this frontend" << "\n";
         output << "# TYPE " << frontsbase << "http_connects " << "counter" << "\n";
-        output << "# HELP " << frontsbase << "doh_responses " << "Number of DoH responses sent by dnsdist" << "\n";
+
+        output << "# HELP " << frontsbase << "doh_tls_queries " << "Number of DoH queries received by dnsdist, by TLS version" << "\n";
+        output << "# TYPE " << frontsbase << "doh_tls_queries " << "counter" << "\n";
+
+        output << "# HELP " << frontsbase << "doh_http_method_queries " << "Number of DoH queries received by dnsdist, by HTTP method" << "\n";
+        output << "# TYPE " << frontsbase << "doh_http_method_queries " << "counter" << "\n";
+
+        output << "# HELP " << frontsbase << "doh_http_version_queries " << "Number of DoH queries received by dnsdist, by HTTP version" << "\n";
+        output << "# TYPE " << frontsbase << "doh_http_version_queries " << "counter" << "\n";
+
+        output << "# HELP " << frontsbase << "doh_bad_requests " << "Number of requests that could not be converted to a DNS query" << "\n";
+        output << "# TYPE " << frontsbase << "doh_bad_requests " << "counter" << "\n";
+
+        output << "# HELP " << frontsbase << "doh_responses " << "Number of responses sent, by type" << "\n";
         output << "# TYPE " << frontsbase << "doh_responses " << "counter" << "\n";
+
+        output << "# HELP " << frontsbase << "doh_version_status_responses " << "Number of requests that could not be converted to a DNS query" << "\n";
+        output << "# TYPE " << frontsbase << "doh_version_status_responses " << "counter" << "\n";
 
 #ifdef HAVE_DNS_OVER_HTTPS
         for(const auto& doh : g_dohlocals) {
@@ -589,35 +605,37 @@ static void connectionThread(int sock, ComboAddress remote)
           const std::string label = "{" + addrlabel + "} ";
 
           output << frontsbase << "http_connects" << label << doh->d_httpconnects << "\n";
-          output << frontsbase << "queries{tls=\"tls10\"," << addrlabel << "} " << doh->d_tls10queries << "\n";
-          output << frontsbase << "queries{tls=\"tls11\"," << addrlabel << "} " << doh->d_tls11queries << "\n";
-          output << frontsbase << "queries{tls=\"tls12\"," << addrlabel << "} " << doh->d_tls12queries << "\n";
-          output << frontsbase << "queries{tls=\"tls13\"," << addrlabel << "} " << doh->d_tls13queries << "\n";
-          output << frontsbase << "queries{tls=\"unknown\"," << addrlabel << "} " << doh->d_tlsUnknownqueries << "\n";
-          output << frontsbase << "queries{httpmethod=\"get\"," << addrlabel << "} " << doh->d_getqueries << "\n";
-          output << frontsbase << "queries{httpmethod=\"post\"," << addrlabel << "} " << doh->d_postqueries << "\n";
-          output << frontsbase << "queries{httpversion=\"1\"," << addrlabel << "} " << doh->d_http1Stats.d_nbQueries << "\n";
-          output << frontsbase << "queries{httpversion=\"2\"," << addrlabel << "} " << doh->d_http2Stats.d_nbQueries << "\n";
 
-          output << frontsbase << "queries{type=\"bad\"," << addrlabel << "} " << doh->d_badrequests << "\n";
+          output << frontsbase << "doh_tls_queries{tls=\"tls10\"," << addrlabel << "} " << doh->d_tls10queries << "\n";
+          output << frontsbase << "doh_tls_queries{tls=\"tls11\"," << addrlabel << "} " << doh->d_tls11queries << "\n";
+          output << frontsbase << "doh_tls_queries{tls=\"tls12\"," << addrlabel << "} " << doh->d_tls12queries << "\n";
+          output << frontsbase << "doh_tls_queries{tls=\"tls13\"," << addrlabel << "} " << doh->d_tls13queries << "\n";
+          output << frontsbase << "doh_tls_queries{tls=\"unknown\"," << addrlabel << "} " << doh->d_tlsUnknownqueries << "\n";
+
+          output << frontsbase << "doh_http_method_queries{method=\"get\"," << addrlabel << "} " << doh->d_getqueries << "\n";
+          output << frontsbase << "doh_http_method_queries{method=\"post\"," << addrlabel << "} " << doh->d_postqueries << "\n";
+
+          output << frontsbase << "doh_http_version_queries{version=\"1\"," << addrlabel << "} " << doh->d_http1Stats.d_nbQueries << "\n";
+          output << frontsbase << "doh_http_version_queries{version=\"2\"," << addrlabel << "} " << doh->d_http2Stats.d_nbQueries << "\n";
+
+          output << frontsbase << "doh_bad_requests{" << addrlabel << "} " << doh->d_badrequests << "\n";
 
           output << frontsbase << "doh_responses{type=\"error\"," << addrlabel << "} " << doh->d_errorresponses << "\n";
           output << frontsbase << "doh_responses{type=\"redirect\"," << addrlabel << "} " << doh->d_redirectresponses << "\n";
           output << frontsbase << "doh_responses{type=\"valid\"," << addrlabel << "} " << doh->d_validresponses << "\n";
 
-          output << frontsbase << "doh_responses{httpversion=\"1\",status=\"200\"," << addrlabel << "} " << doh->d_http1Stats.d_nb200Responses << "\n";
-          output << frontsbase << "doh_responses{httpversion=\"1\",status=\"400\"," << addrlabel << "} " << doh->d_http1Stats.d_nb400Responses << "\n";
-          output << frontsbase << "doh_responses{httpversion=\"1\",status=\"403\"," << addrlabel << "} " << doh->d_http1Stats.d_nb403Responses << "\n";
-          output << frontsbase << "doh_responses{httpversion=\"1\",status=\"500\"," << addrlabel << "} " << doh->d_http1Stats.d_nb500Responses << "\n";
-          output << frontsbase << "doh_responses{httpversion=\"1\",status=\"502\"," << addrlabel << "} " << doh->d_http1Stats.d_nb502Responses << "\n";
-          output << frontsbase << "doh_responses{httpversion=\"1\",status=\"other\"," << addrlabel << "} " << doh->d_http1Stats.d_nbOtherResponses << "\n";
-
-          output << frontsbase << "doh_responses{httpversion=\"2\",status=\"200\"," << addrlabel << "} " << doh->d_http2Stats.d_nb200Responses << "\n";
-          output << frontsbase << "doh_responses{httpversion=\"2\",status=\"400\"," << addrlabel << "} " << doh->d_http2Stats.d_nb400Responses << "\n";
-          output << frontsbase << "doh_responses{httpversion=\"2\",status=\"403\"," << addrlabel << "} " << doh->d_http2Stats.d_nb403Responses << "\n";
-          output << frontsbase << "doh_responses{httpversion=\"2\",status=\"500\"," << addrlabel << "} " << doh->d_http2Stats.d_nb500Responses << "\n";
-          output << frontsbase << "doh_responses{httpversion=\"2\",status=\"502\"," << addrlabel << "} " << doh->d_http2Stats.d_nb502Responses << "\n";
-          output << frontsbase << "doh_responses{httpversion=\"2\",status=\"other\"," << addrlabel << "} " << doh->d_http2Stats.d_nbOtherResponses << "\n";
+          output << frontsbase << "doh_version_status_responses{httpversion=\"1\",status=\"200\"," << addrlabel << "} " << doh->d_http1Stats.d_nb200Responses << "\n";
+          output << frontsbase << "doh_version_status_responses{httpversion=\"1\",status=\"400\"," << addrlabel << "} " << doh->d_http1Stats.d_nb400Responses << "\n";
+          output << frontsbase << "doh_version_status_responses{httpversion=\"1\",status=\"403\"," << addrlabel << "} " << doh->d_http1Stats.d_nb403Responses << "\n";
+          output << frontsbase << "doh_version_status_responses{httpversion=\"1\",status=\"500\"," << addrlabel << "} " << doh->d_http1Stats.d_nb500Responses << "\n";
+          output << frontsbase << "doh_version_status_responses{httpversion=\"1\",status=\"502\"," << addrlabel << "} " << doh->d_http1Stats.d_nb502Responses << "\n";
+          output << frontsbase << "doh_version_status_responses{httpversion=\"1\",status=\"other\"," << addrlabel << "} " << doh->d_http1Stats.d_nbOtherResponses << "\n";
+          output << frontsbase << "doh_version_status_responses{httpversion=\"2\",status=\"200\"," << addrlabel << "} " << doh->d_http2Stats.d_nb200Responses << "\n";
+          output << frontsbase << "doh_version_status_responses{httpversion=\"2\",status=\"400\"," << addrlabel << "} " << doh->d_http2Stats.d_nb400Responses << "\n";
+          output << frontsbase << "doh_version_status_responses{httpversion=\"2\",status=\"403\"," << addrlabel << "} " << doh->d_http2Stats.d_nb403Responses << "\n";
+          output << frontsbase << "doh_version_status_responses{httpversion=\"2\",status=\"500\"," << addrlabel << "} " << doh->d_http2Stats.d_nb500Responses << "\n";
+          output << frontsbase << "doh_version_status_responses{httpversion=\"2\",status=\"502\"," << addrlabel << "} " << doh->d_http2Stats.d_nb502Responses << "\n";
+          output << frontsbase << "doh_version_status_responses{httpversion=\"2\",status=\"other\"," << addrlabel << "} " << doh->d_http2Stats.d_nbOtherResponses << "\n";
         }
 #endif /* HAVE_DNS_OVER_HTTPS */
 
