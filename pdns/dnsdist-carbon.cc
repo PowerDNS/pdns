@@ -128,6 +128,8 @@ try
           str<<base<<"tcpcurrentconnections" << ' '<< front->tcpCurrentConnections.load() << " " << now << "\r\n";
           str<<base<<"tcpavgqueriesperconnection" << ' '<< front->tcpAvgQueriesPerConnection.load() << " " << now << "\r\n";
           str<<base<<"tcpavgconnectionduration" << ' '<< front->tcpAvgConnectionDuration.load() << " " << now << "\r\n";
+          str<<base<<"tlsnewsessions" << ' ' << front->tlsNewSessions.load() << " " << now << "\r\n";
+          str<<base<<"tlsresumptions" << ' ' << front->tlsResumptions.load() << " " << now << "\r\n";
         }
 
         auto localPools = g_pools.getLocal();

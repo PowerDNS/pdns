@@ -542,6 +542,10 @@ static void connectionThread(int sock, ComboAddress remote)
         output << "# TYPE " << frontsbase << "tcpavgqueriesperconnection " << "gauge" << "\n";
         output << "# HELP " << frontsbase << "tcpavgconnectionduration " << "The average duration of a TCP connection (ms)" << "\n";
         output << "# TYPE " << frontsbase << "tcpavgconnectionduration " << "gauge" << "\n";
+        output << "# HELP " << frontsbase << "tlsnewsessions " << "Amount of new TLS sessions negotiated" << "\n";
+        output << "# TYPE " << frontsbase << "tlsnewsessions " << "counter" << "\n";
+        output << "# HELP " << frontsbase << "tlsresumptions " << "Amount of TLS sessions resumed" << "\n";
+        output << "# TYPE " << frontsbase << "tlsresumptions " << "counter" << "\n";
 
         std::map<std::string,uint64_t> frontendDuplicates;
         for (const auto& front : g_frontends) {
@@ -560,101 +564,60 @@ static void connectionThread(int sock, ComboAddress remote)
             % frontName % proto);
 
           output << frontsbase << "queries" << label << front->queries.load() << "\n";
-          output << frontsbase << "tcpdiedreadingquery" << label << front->tcpDiedReadingQuery.load() << "\n";
-          output << frontsbase << "tcpdiedsendingresponse" << label << front->tcpDiedSendingResponse.load() << "\n";
-          output << frontsbase << "tcpgaveup" << label << front->tcpGaveUp.load() << "\n";
-          output << frontsbase << "tcpclientimeouts" << label << front->tcpClientTimeouts.load() << "\n";
-          output << frontsbase << "tcpdownstreamtimeouts" << label << front->tcpDownstreamTimeouts.load() << "\n";
-          output << frontsbase << "tcpcurrentconnections" << label << front->tcpCurrentConnections.load() << "\n";
-          output << frontsbase << "tcpavgqueriesperconnection" << label << front->tcpAvgQueriesPerConnection.load() << "\n";
-          output << frontsbase << "tcpavgconnectionduration" << label << front->tcpAvgConnectionDuration.load() << "\n";
+          if (front->isTCP()) {
+            output << frontsbase << "tcpdiedreadingquery" << label << front->tcpDiedReadingQuery.load() << "\n";
+            output << frontsbase << "tcpdiedsendingresponse" << label << front->tcpDiedSendingResponse.load() << "\n";
+            output << frontsbase << "tcpgaveup" << label << front->tcpGaveUp.load() << "\n";
+            output << frontsbase << "tcpclientimeouts" << label << front->tcpClientTimeouts.load() << "\n";
+            output << frontsbase << "tcpdownstreamtimeouts" << label << front->tcpDownstreamTimeouts.load() << "\n";
+            output << frontsbase << "tcpcurrentconnections" << label << front->tcpCurrentConnections.load() << "\n";
+            output << frontsbase << "tcpavgqueriesperconnection" << label << front->tcpAvgQueriesPerConnection.load() << "\n";
+            output << frontsbase << "tcpavgconnectionduration" << label << front->tcpAvgConnectionDuration.load() << "\n";
+            output << frontsbase << "tlsnewsessions" << label << front->tlsNewSessions.load() << "\n";
+            output << frontsbase << "tlsresumptions" << label << front->tlsResumptions.load() << "\n";
+          }
         }
 
-        const string dohfrontsbase = "dnsdist_doh_frontend_";
-        output << "# HELP " << dohfrontsbase << "http_connects " << "Number of TCP connections establoshed to this frontend" << "\n";
-        output << "# TYPE " << dohfrontsbase << "queries " << "counter" << "\n";
-        output << "# HELP " << dohfrontsbase << "tls10_queries " << "Number of valid DNS queries received via TLS 1.0" << "\n";
-        output << "# TYPE " << dohfrontsbase << "tls10_queries " << "counter" << "\n";
-        output << "# HELP " << dohfrontsbase << "tls11_queries " << "Number of valid DNS queries received via TLS 1.1" << "\n";
-        output << "# TYPE " << dohfrontsbase << "tls11_queries " << "counter" << "\n";
-        output << "# HELP " << dohfrontsbase << "tls12_queries " << "Number of valid DNS queries received via TLS 1.2" << "\n";
-        output << "# TYPE " << dohfrontsbase << "tls12_queries " << "counter" << "\n";
-        output << "# HELP " << dohfrontsbase << "tls13_queries " << "Number of valid DNS queries received via TLS 1.3" << "\n";
-        output << "# TYPE " << dohfrontsbase << "tls13_queries " << "counter" << "\n";
-        output << "# HELP " << dohfrontsbase << "tlsunknown_queries " << "Number of valid DNS queries received via an unknown TLS version" << "\n";
-        output << "# TYPE " << dohfrontsbase << "tlsunknown_queries " << "counter" << "\n";
-        output << "# HELP " << dohfrontsbase << "get_queries " << "Number of valid DNS queries received via GET" << "\n";
-        output << "# TYPE " << dohfrontsbase << "get_queries " << "counter" << "\n";
-        output << "# HELP " << dohfrontsbase << "post_queries " << "Number of valid DNS queries received via POST" << "\n";
-        output << "# TYPE " << dohfrontsbase << "post_queries " << "counter" << "\n";
-        output << "# HELP " << dohfrontsbase << "bad_requests " << "Number of requests that could not be converted to a DNS query" << "\n";
-        output << "# TYPE " << dohfrontsbase << "bad_requests " << "counter" << "\n";
-        output << "# HELP " << dohfrontsbase << "error_responses " << "Number of responses sent by dnsdist indicating an error" << "\n";
-        output << "# TYPE " << dohfrontsbase << "error_responses " << "counter" << "\n";
-        output << "# HELP " << dohfrontsbase << "redirect_responses " << "Number of responses sent by dnsdist indicating a redirect" << "\n";
-        output << "# TYPE " << dohfrontsbase << "redirect_responses " << "counter" << "\n";
-        output << "# HELP " << dohfrontsbase << "valid_responses " << "Number of valid responses sent by dnsdist" << "\n";
-        output << "# TYPE " << dohfrontsbase << "valid_responses " << "counter" << "\n";
-        output << "# HELP " << dohfrontsbase << "http1_queries " << "Number of queries received over HTTP/1.x" << "\n";
-        output << "# TYPE " << dohfrontsbase << "http1_queries " << "counter" << "\n";
-        output << "# HELP " << dohfrontsbase << "http1_nb200responses " << "Number of responses with a 200 status code sent over HTTP/1.x" << "\n";
-        output << "# TYPE " << dohfrontsbase << "http1_nb200responses " << "counter" << "\n";
-        output << "# HELP " << dohfrontsbase << "http1_nb400responses " << "Number of responses with a 400 status code sent over HTTP/1.x" << "\n";
-        output << "# TYPE " << dohfrontsbase << "http1_nb400responses " << "counter" << "\n";
-        output << "# HELP " << dohfrontsbase << "http1_nb403responses " << "Number of responses with a 403 status code sent over HTTP/1.x" << "\n";
-        output << "# TYPE " << dohfrontsbase << "http1_nb403responses " << "counter" << "\n";
-        output << "# HELP " << dohfrontsbase << "http1_nb500responses " << "Number of responses with a 500 status code sent over HTTP/1.x" << "\n";
-        output << "# TYPE " << dohfrontsbase << "http1_nb500responses " << "counter" << "\n";
-        output << "# HELP " << dohfrontsbase << "http1_nb502responses " << "Number of responses with a 502 status code sent over HTTP/1.x" << "\n";
-        output << "# TYPE " << dohfrontsbase << "http1_nb502responses " << "counter" << "\n";
-        output << "# HELP " << dohfrontsbase << "http1_nbotherresponses " << "Number of responses with another status code sent over HTTP/1.x" << "\n";
-        output << "# TYPE " << dohfrontsbase << "http1_nbotherresponses " << "counter" << "\n";
-        output << "# HELP " << dohfrontsbase << "http2_queries " << "Number of queries received over HTTP/2.x" << "\n";
-        output << "# TYPE " << dohfrontsbase << "http2_queries " << "counter" << "\n";
-        output << "# HELP " << dohfrontsbase << "http2_nb200responses " << "Number of responses with a 200 status code sent over HTTP/2.x" << "\n";
-        output << "# TYPE " << dohfrontsbase << "http2_nb200responses " << "counter" << "\n";
-        output << "# HELP " << dohfrontsbase << "http2_nb400responses " << "Number of responses with a 400 status code sent over HTTP/2.x" << "\n";
-        output << "# TYPE " << dohfrontsbase << "http2_nb400responses " << "counter" << "\n";
-        output << "# HELP " << dohfrontsbase << "http2_nb403responses " << "Number of responses with a 403 status code sent over HTTP/2.x" << "\n";
-        output << "# TYPE " << dohfrontsbase << "http2_nb403responses " << "counter" << "\n";
-        output << "# HELP " << dohfrontsbase << "http2_nb500responses " << "Number of responses with a 500 status code sent over HTTP/2.x" << "\n";
-        output << "# TYPE " << dohfrontsbase << "http2_nb500responses " << "counter" << "\n";
-        output << "# HELP " << dohfrontsbase << "http2_nb502responses " << "Number of responses with a 502 status code sent over HTTP/2.x" << "\n";
-        output << "# TYPE " << dohfrontsbase << "http2_nb502responses " << "counter" << "\n";
-        output << "# HELP " << dohfrontsbase << "http2_nbotherresponses " << "Number of responses with another status code sent over HTTP/2.x" << "\n";
-        output << "# TYPE " << dohfrontsbase << "http2_nbotherresponses " << "counter" << "\n";
+        output << "# HELP " << frontsbase << "http_connects " << "Number of DoH TCP connections established to this frontend" << "\n";
+        output << "# TYPE " << frontsbase << "http_connects " << "counter" << "\n";
+        output << "# HELP " << frontsbase << "doh_responses " << "Number of DoH responses sent by dnsdist" << "\n";
+        output << "# TYPE " << frontsbase << "doh_responses " << "counter" << "\n";
 
 #ifdef HAVE_DNS_OVER_HTTPS
         for(const auto& doh : g_dohlocals) {
-          const std::string label = boost::str(boost::format("{address=\"%1%\"} ") % doh->d_local.toStringWithPort());
+          const std::string addrlabel = boost::str(boost::format("address=\"%1%\" ") % doh->d_local.toStringWithPort());
+          const std::string label = "{" + addrlabel + "} ";
 
-          output << dohfrontsbase << "http_connects" << label << doh->d_httpconnects << "\n";
-          output << dohfrontsbase << "tls10_queries" << label << doh->d_tls10queries << "\n";
-          output << dohfrontsbase << "tls11_queries" << label << doh->d_tls11queries << "\n";
-          output << dohfrontsbase << "tls12_queries" << label << doh->d_tls12queries << "\n";
-          output << dohfrontsbase << "tls13_queries" << label << doh->d_tls13queries << "\n";
-          output << dohfrontsbase << "tlsunknown_queries" << label << doh->d_tlsUnknownqueries << "\n";
-          output << dohfrontsbase << "get_queries" << label << doh->d_getqueries << "\n";
-          output << dohfrontsbase << "post_queries" << label << doh->d_postqueries << "\n";
-          output << dohfrontsbase << "bad_requests" << label << doh->d_badrequests << "\n";
-          output << dohfrontsbase << "error_responses" << label << doh->d_errorresponses << "\n";
-          output << dohfrontsbase << "redirect_responses" << label << doh->d_redirectresponses << "\n";
-          output << dohfrontsbase << "valid_responses" << label << doh->d_validresponses << "\n";
+          output << frontsbase << "http_connects" << label << doh->d_httpconnects << "\n";
+          output << frontsbase << "queries{tls=\"tls10\"," << addrlabel << "} " << doh->d_tls10queries << "\n";
+          output << frontsbase << "queries{tls=\"tls11\"," << addrlabel << "} " << doh->d_tls11queries << "\n";
+          output << frontsbase << "queries{tls=\"tls12\"," << addrlabel << "} " << doh->d_tls12queries << "\n";
+          output << frontsbase << "queries{tls=\"tls13\"," << addrlabel << "} " << doh->d_tls13queries << "\n";
+          output << frontsbase << "queries{tls=\"unknown\"," << addrlabel << "} " << doh->d_tlsUnknownqueries << "\n";
+          output << frontsbase << "queries{httpmethod=\"get\"," << addrlabel << "} " << doh->d_getqueries << "\n";
+          output << frontsbase << "queries{httpmethod=\"post\"," << addrlabel << "} " << doh->d_postqueries << "\n";
+          output << frontsbase << "queries{httpversion=\"1\"," << addrlabel << "} " << doh->d_http1Stats.d_nbQueries << "\n";
+          output << frontsbase << "queries{httpversion=\"2\"," << addrlabel << "} " << doh->d_http2Stats.d_nbQueries << "\n";
 
-          output << dohfrontsbase << "http1_queries" << label << doh->d_http1Stats.d_nbQueries << "\n";
-          output << dohfrontsbase << "http1_nb200responses" << label << doh->d_http1Stats.d_nb200Responses << "\n";
-          output << dohfrontsbase << "http1_nb400responses" << label << doh->d_http1Stats.d_nb400Responses << "\n";
-          output << dohfrontsbase << "http1_nb403responses" << label << doh->d_http1Stats.d_nb403Responses << "\n";
-          output << dohfrontsbase << "http1_nb500responses" << label << doh->d_http1Stats.d_nb500Responses << "\n";
-          output << dohfrontsbase << "http1_nb502responses" << label << doh->d_http1Stats.d_nb502Responses << "\n";
-          output << dohfrontsbase << "http1_nbotherresponses" << label << doh->d_http1Stats.d_nbOtherResponses << "\n";
-          output << dohfrontsbase << "http2_queries" << label << doh->d_http2Stats.d_nbQueries << "\n";
-          output << dohfrontsbase << "http2_nb200responses" << label << doh->d_http2Stats.d_nb200Responses << "\n";
-          output << dohfrontsbase << "http2_nb400responses" << label << doh->d_http2Stats.d_nb400Responses << "\n";
-          output << dohfrontsbase << "http2_nb403responses" << label << doh->d_http2Stats.d_nb403Responses << "\n";
-          output << dohfrontsbase << "http2_nb500responses" << label << doh->d_http2Stats.d_nb500Responses << "\n";
-          output << dohfrontsbase << "http2_nb502responses" << label << doh->d_http2Stats.d_nb502Responses << "\n";
-          output << dohfrontsbase << "http2_nbotherresponses" << label << doh->d_http2Stats.d_nbOtherResponses << "\n";
+          output << frontsbase << "queries{type=\"bad\"," << addrlabel << "} " << doh->d_badrequests << "\n";
+
+          output << frontsbase << "doh_responses{type=\"error\"," << addrlabel << "} " << doh->d_errorresponses << "\n";
+          output << frontsbase << "doh_responses{type=\"redirect\"," << addrlabel << "} " << doh->d_redirectresponses << "\n";
+          output << frontsbase << "doh_responses{type=\"valid\"," << addrlabel << "} " << doh->d_validresponses << "\n";
+
+          output << frontsbase << "doh_responses{httpversion=\"1\",status=\"200\"," << addrlabel << "} " << doh->d_http1Stats.d_nb200Responses << "\n";
+          output << frontsbase << "doh_responses{httpversion=\"1\",status=\"400\"," << addrlabel << "} " << doh->d_http1Stats.d_nb400Responses << "\n";
+          output << frontsbase << "doh_responses{httpversion=\"1\",status=\"403\"," << addrlabel << "} " << doh->d_http1Stats.d_nb403Responses << "\n";
+          output << frontsbase << "doh_responses{httpversion=\"1\",status=\"500\"," << addrlabel << "} " << doh->d_http1Stats.d_nb500Responses << "\n";
+          output << frontsbase << "doh_responses{httpversion=\"1\",status=\"502\"," << addrlabel << "} " << doh->d_http1Stats.d_nb502Responses << "\n";
+          output << frontsbase << "doh_responses{httpversion=\"1\",status=\"other\"," << addrlabel << "} " << doh->d_http1Stats.d_nbOtherResponses << "\n";
+
+          output << frontsbase << "doh_responses{httpversion=\"2\",status=\"200\"," << addrlabel << "} " << doh->d_http2Stats.d_nb200Responses << "\n";
+          output << frontsbase << "doh_responses{httpversion=\"2\",status=\"400\"," << addrlabel << "} " << doh->d_http2Stats.d_nb400Responses << "\n";
+          output << frontsbase << "doh_responses{httpversion=\"2\",status=\"403\"," << addrlabel << "} " << doh->d_http2Stats.d_nb403Responses << "\n";
+          output << frontsbase << "doh_responses{httpversion=\"2\",status=\"500\"," << addrlabel << "} " << doh->d_http2Stats.d_nb500Responses << "\n";
+          output << frontsbase << "doh_responses{httpversion=\"2\",status=\"502\"," << addrlabel << "} " << doh->d_http2Stats.d_nb502Responses << "\n";
+          output << frontsbase << "doh_responses{httpversion=\"2\",status=\"other\"," << addrlabel << "} " << doh->d_http2Stats.d_nbOtherResponses << "\n";
         }
 #endif /* HAVE_DNS_OVER_HTTPS */
 
@@ -765,6 +728,8 @@ static void connectionThread(int sock, ComboAddress remote)
           { "tcpCurrentConnections", (double) front->tcpCurrentConnections },
           { "tcpAvgQueriesPerConnection", (double) front->tcpAvgQueriesPerConnection },
           { "tcpAvgConnectionDuration", (double) front->tcpAvgConnectionDuration },
+          { "tlsNewSessions", (double) front->tlsNewSessions },
+          { "tlsResumptions", (double) front->tlsResumptions },
         };
         frontends.push_back(frontend);
       }
