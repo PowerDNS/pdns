@@ -646,10 +646,13 @@ private:
 template <typename T>
 class NetmaskTree {
 public:
+  class Iterator;
+
   typedef Netmask key_type;
   typedef T value_type;
   typedef std::pair<key_type,value_type> node_type;
   typedef size_t size_type;
+  typedef class Iterator iterator;
 
 private:
   /** Single node in tree, internal use only.
@@ -849,6 +852,62 @@ private:
   }
 
 public:
+  class Iterator {
+  public:
+    typedef node_type* value_type;
+    typedef node_type* reference;
+    typedef void pointer;
+    typedef std::forward_iterator_tag iterator_category;
+    typedef size_type difference_type;
+
+  private:
+    friend class NetmaskTree;
+
+    const NetmaskTree* d_tree;
+    TreeNode* d_node;
+
+    Iterator(const NetmaskTree* tree, TreeNode* node): d_tree(tree), d_node(node) {
+    }
+
+  public:
+    Iterator(): d_tree(nullptr), d_node(nullptr) {}
+
+    Iterator& operator++() // prefix
+    {
+      if (d_node == nullptr) {
+        throw std::logic_error(
+          "NetmaskTree::Iterator::operator++: iterator is invalid");
+      }
+      d_node = d_node->traverse_lnr_assigned();
+      return *this;
+    }
+    Iterator operator++(int) // postfix
+    {
+      Iterator tmp(*this);
+      operator++();
+      return tmp;
+    }
+
+    reference operator*()
+    {
+      if (d_node == nullptr) {
+        throw std::logic_error(
+          "NetmaskTree::Iterator::operator*: iterator is invalid");
+      }
+      return d_node->node.get();
+    }
+
+    bool operator==(const Iterator& rhs)
+    {
+      return (d_tree == rhs.d_tree && d_node == rhs.d_node);
+    }
+    bool operator!=(const Iterator& rhs)
+    {
+      return !(*this == rhs);
+    }
+  };
+
+public:
   NetmaskTree() noexcept: d_root(new TreeNode()), d_left(nullptr) {
   }
 
@@ -862,11 +921,18 @@ public:
     return *this;
   }
 
-  const typename std::set<node_type*>::const_iterator begin() const { return _nodes.begin(); }
-  const typename std::set<node_type*>::const_iterator end() const { return _nodes.end(); }
-
-  typename std::set<node_type*>::iterator begin() { return _nodes.begin(); }
-  typename std::set<node_type*>::iterator end() { return _nodes.end(); }
+  const iterator begin() const {
+    return Iterator(this, d_left);
+  }
+  const iterator end() const {
+    return Iterator(this, nullptr);
+  }
+  iterator begin() {
+    return Iterator(this, d_left);
+  }
+  iterator end() {
+    return Iterator(this, nullptr);
+  }
 
   node_type& insert(const string &mask) {
     return insert(key_type(mask));
