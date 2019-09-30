@@ -622,7 +622,7 @@ private:
   uint8_t d_bits;
 };
 
-/** Per-bit binary tree map implementation with <Netmask,T> pair.
+/** Binary tree map implementation with <Netmask,T> pair.
  *
  * This is an binary tree implementation for storing attributes for IPv4 and IPv6 prefixes.
  * The most simple use case is simple NetmaskTree<bool> used by NetmaskGroup, which only
@@ -653,26 +653,109 @@ private:
     */
   class TreeNode : boost::noncopyable {
   public:
-    explicit TreeNode(int bits) noexcept :
-      parent(nullptr), node(new node_type()), assigned(false), d_bits(bits) {
+    explicit TreeNode() noexcept :
+      parent(nullptr), node(new node_type()), assigned(false), d_bits(0) {
+    }
+    explicit TreeNode(const key_type& key) noexcept :
+      parent(nullptr), node(new node_type({key, value_type()})),
+      assigned(false), d_bits(key.getAddressBits()) {
     }
 
-    //<! Makes a left node with one more bit than parent
-    TreeNode* make_left() {
-      if (!left) {
-        left = unique_ptr<TreeNode>(new TreeNode(d_bits+1));
-        left->parent = this;
-      }
+    //<! Makes a left leaf node with specified key.
+    TreeNode* make_left(const key_type& key) {
+      d_bits = node->first.getBits();
+      left = make_unique<TreeNode>(key);
+      left->parent = this;
       return left.get();
     }
 
-    //<! Makes a right node with one more bit than parent
-    TreeNode* make_right() {
-      if (!right) {
-        right = unique_ptr<TreeNode>(new TreeNode(d_bits+1));
-        right->parent = this;
-      }
+    //<! Makes a right leaf node with specified key.
+    TreeNode* make_right(const key_type& key) {
+      d_bits = node->first.getBits();
+      right = make_unique<TreeNode>(key);
+      right->parent = this;
       return right.get();
+    }
+
+    //<! Splits branch at indicated bit position by inserting key
+    TreeNode* split(const key_type& key, int bits) {
+      if (parent == nullptr) {
+        // not to be called on the root node
+        throw std::logic_error(
+          "NetmaskTree::TreeNode::split(): must not be called on root node");
+      }
+
+      // determine reference from parent
+      unique_ptr<TreeNode>& parent_ref =
+        (parent->left.get() == this ? parent->left : parent->right);
+      if (parent_ref.get() != this) {
+        throw std::logic_error(
+          "NetmaskTree::TreeNode::split(): parent node reference is invalid");
+      }
+
+      // create new tree node for the new key
+      TreeNode* new_node = new TreeNode(key);
+      new_node->d_bits = bits;
+
+      // attach the new node under our former parent
+      unique_ptr<TreeNode> new_child(new_node);
+      std::swap(parent_ref, new_child); // hereafter new_child points to "this"
+      new_node->parent = parent;
+
+      // attach "this" node below the new node
+      // (left or right depending on bit)
+      new_child->parent = new_node;
+      if (new_child->node->first.getBit(-1-bits)) {
+        std::swap(new_node->right, new_child);
+      } else {
+        std::swap(new_node->left, new_child);
+      }
+
+      return new_node;
+    }
+
+    //<! Forks branch for new key at indicated bit position
+    TreeNode* fork(const key_type& key, int bits) {
+      if (parent == nullptr) {
+        // not to be called on the root node
+        throw std::logic_error(
+          "NetmaskTree::TreeNode::fork(): must not be called on root node");
+      }
+
+      // determine reference from parent
+      unique_ptr<TreeNode>& parent_ref =
+        (parent->left.get() == this ? parent->left : parent->right);
+      if (parent_ref.get() != this) {
+        throw std::logic_error(
+          "NetmaskTree::TreeNode::fork(): parent node reference is invalid");
+      }
+
+      // create new tree node for the branch point
+      TreeNode* branch_node = new TreeNode(node->first.getSuper(bits));
+      branch_node->d_bits = bits;
+
+      // attach the branch node under our former parent
+      unique_ptr<TreeNode> new_child1(branch_node);
+      std::swap(parent_ref, new_child1); // hereafter new_child1 points to "this"
+      branch_node->parent = parent;
+
+      // create second new leaf node for the new key
+      TreeNode* new_node = new TreeNode(key);
+      unique_ptr<TreeNode> new_child2(new_node);
+
+      // attach the new child nodes below the branch node
+      // (left or right depending on bit)
+      new_child1->parent = branch_node;
+      new_child2->parent = branch_node;
+      if (new_child1->node->first.getBit(-1-bits)) {
+        std::swap(branch_node->right, new_child1);
+        std::swap(branch_node->left, new_child2);
+      } else {
+        std::swap(branch_node->right, new_child2);
+        std::swap(branch_node->left, new_child1);
+      }
+
+      return new_node;
     }
 
     unique_ptr<TreeNode> left;
@@ -707,10 +790,10 @@ public:
   NetmaskTree() noexcept : NetmaskTree(false) {
   }
 
-  NetmaskTree(bool cleanup) noexcept : d_root(new TreeNode(0)), d_cleanup_tree(cleanup) {
+  NetmaskTree(bool cleanup) noexcept : d_root(new TreeNode()), d_cleanup_tree(cleanup) {
   }
 
-  NetmaskTree(const NetmaskTree& rhs): d_root(new TreeNode(0)), d_cleanup_tree(rhs.d_cleanup_tree) {
+  NetmaskTree(const NetmaskTree& rhs): d_root(new TreeNode()), d_cleanup_tree(rhs.d_cleanup_tree) {
     // it is easier to copy the nodes than tree.
     // also acts as handy compactor
     for(auto const& node: rhs._nodes)
@@ -742,24 +825,77 @@ public:
 
     // we turn left on IPv4 and right on IPv6
     if (key.isIPv4()) {
-      if (!d_root->left)
-        d_root->left = unique_ptr<TreeNode>(new TreeNode(0));
       node = d_root->left.get();
+      if (node == nullptr) {
+        node = new TreeNode(key);
+        node->assigned = true;
+        node->parent = d_root.get();
+
+        d_root->left = unique_ptr<TreeNode>(node);
+        _nodes.insert(node->node.get());
+        return *node->node;
+      }
     } else if (key.isIPv6()) {
-      if (!d_root->right)
-        d_root->right = unique_ptr<TreeNode>(new TreeNode(0));
       node = d_root->right.get();
+      if (node == nullptr) {
+        node = new TreeNode(key);
+        node->assigned = true;
+        node->parent = d_root.get();
+
+        d_root->right = unique_ptr<TreeNode>(node);
+        _nodes.insert(node->node.get());
+        return *node->node;
+      }
     } else
       throw NetmaskException("invalid address family");
 
     // we turn left on 0 and right on 1
     int bits = 0;
-    for(; bits < key.getBits(); bits++) {
-      bool val = key.getBit(-1-bits);
-      if (val)
-        node = node->make_right();
-      else
-        node = node->make_left();
+    for(; node && bits < key.getBits(); bits++) {
+      bool vall = key.getBit(-1-bits);
+
+      if (bits >= node->d_bits) {
+        // the end of the current node is reached; continue with the next
+        if (vall) {
+          if (!node->right) {
+            // the right branch doesn't exist yet; attach our key here
+            node = node->make_right(key);
+            break;
+          }
+          node = node->right.get();
+        } else {
+          if (!node->left) {
+            // the left branch doesn't exist yet; attach our key here
+            node = node->make_left(key);
+            break;
+          }
+          node = node->left.get();
+        }
+        continue;
+      }
+      if (bits >= node->node->first.getBits()) {
+        // the matching branch ends here, yet the key netmask has more bits; add a
+        // child node below the existing branch leaf.
+        if (vall) {
+          node = node->make_right(key);
+        } else {
+          node = node->make_left(key);
+        }
+        break;
+      }
+      bool valr = node->node->first.getBit(-1-bits);
+      if (vall != valr) {
+        // the branch matches just upto this point, yet continues in a different
+        // direction; fork the branch.
+        node = node->fork(key, bits);
+        break;
+      }
+    }
+
+    if (node->node->first.getBits() > key.getBits()) {
+      // key is a super-network of the matching node; split the branch and
+      // insert a node for the key above the matching node.
+      node = node->split(key, key.getBits());
     }
 
     node_type* value = node->node.get();
@@ -799,6 +935,10 @@ public:
   const node_type* lookup(const ComboAddress& value, int max_bits = 128) const {
     TreeNode *node = nullptr;
 
+    uint8_t addr_bits = value.getBits();
+    if (max_bits < 0 || max_bits > addr_bits)
+      max_bits = addr_bits;
+
     if (value.isIPv4())
       node = d_root->left.get();
     else if (value.isIPv6())
@@ -811,21 +951,37 @@ public:
 
     int bits = 0;
     for(; bits < max_bits; bits++) {
-      // ...we keep track of last non-empty node
-      if (node->assigned) ret = node->node.get();
-      bool val = value.getBit(-1-bits);
-      // ...and we don't create left/right hand
-      if (val) {
-        if (node->right) node = node->right.get();
-        // ..and we break when road ends
-        else break;
-      } else {
-        if (node->left) node = node->left.get();
-        else break;
+      bool vall = value.getBit(-1-bits);
+      if (bits >= node->d_bits) {
+        // the end of the current node is reached; continue with the next
+        // (we keep track of last assigned node)
+        if (node->assigned && bits == node->node->first.getBits())
+          ret = node->node.get();
+        if (vall) {
+          if (!node->right)
+            break;
+          node = node->right.get();
+        } else {
+          if (!node->left)
+            break;
+          node = node->left.get();
+        }
+        continue;
+      }
+      if (bits >= node->node->first.getBits()) {
+        // the matching branch ends here
+        break;
+      }
+      bool valr = node->node->first.getBit(-1-bits);
+      if (vall != valr) {
+        // the branch matches just upto this point, yet continues in a different
+        // direction
+        break;
       }
     }
     // needed if we did not find one in loop
-    if (node->assigned) ret = node->node.get();
+    if (node->assigned && bits == node->node->first.getBits())
+      ret = node->node.get();
 
     // this can be nullptr.
     return ret;
@@ -846,11 +1002,28 @@ public:
 
     int bits = 0;
     for(; node && bits < key.getBits(); bits++) {
-      bool val = key.getBit(-1-bits);
-      if (val) {
-        node = node->right.get();
-      } else {
-        node = node->left.get();
+      bool vall = key.getBit(-1-bits);
+      if (bits >= node->d_bits) {
+        // the end of the current node is reached; continue with the next
+        if (vall) {
+          node = node->right.get();
+        } else {
+          node = node->left.get();
+        }
+        continue;
+      }
+      if (bits >= node->node->first.getBits()) {
+        // the matching branch ends here
+        if (key.getBits() != node->node->first.getBits())
+          node = nullptr;
+        break;
+      }
+      bool valr = node->node->first.getBit(-1-bits);
+      if (vall != valr) {
+        // the branch matches just upto this point, yet continues in a different
+        // direction
+        node = nullptr;
+        break;
       }
     }
     if (node) {
@@ -889,7 +1062,7 @@ public:
   //<! Clean out the tree
   void clear() {
     _nodes.clear();
-    d_root.reset(new TreeNode(0));
+    d_root.reset(new TreeNode());
   }
 
   //<! swaps the contents with another NetmaskTree
