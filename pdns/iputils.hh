@@ -423,10 +423,8 @@ public:
   Netmask(const ComboAddress& network, uint8_t bits=0xff): d_network(network)
   {
     d_network.sin4.sin_port=0;
-    if(bits > 128)
-      bits = (network.sin4.sin_family == AF_INET) ? 32 : 128;
+    d_bits = (network.isIPv4() ? std::min(bits, (uint8_t)32) : std::min(bits, (uint8_t)128));
 
-    d_bits = bits;
     if(d_bits<32)
       d_mask=~(0xFFFFFFFF>>d_bits);
     else
