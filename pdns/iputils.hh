@@ -653,7 +653,8 @@ private:
     */
   class TreeNode : boost::noncopyable {
   public:
-    explicit TreeNode(int bits) noexcept : parent(nullptr),d_bits(bits) {
+    explicit TreeNode(int bits) noexcept :
+      parent(nullptr), node(new node_type()), assigned(false), d_bits(bits) {
     }
 
     //<! Makes a left node with one more bit than parent
@@ -679,14 +680,15 @@ private:
     TreeNode* parent;
 
     unique_ptr<node_type> node;
+    bool assigned; //<! Whether this node is assigned-to by the application
 
     int d_bits; //<! How many bits have been used so far
   };
 
   void cleanup_tree(TreeNode* node)
   {
-    // only cleanup this node if it has no children and node is empty
-    if (!(node->left || node->right || node->node)) {
+    // only cleanup this node if it has no children and node not assigned
+    if (!(node->left || node->right || node->assigned)) {
       // get parent node ptr
       TreeNode* pparent = node->parent;
       // delete this node
@@ -736,8 +738,7 @@ public:
 
   //<! Creates new value-pair in tree and returns it.
   node_type& insert(const key_type& key) {
-    node_type* value = nullptr;
-    TreeNode* node = nullptr;
+    TreeNode* node;
 
     // we turn left on IPv4 and right on IPv6
     if (key.isIPv4()) {
@@ -761,12 +762,13 @@ public:
         node = node->make_left();
     }
 
-    // only create node if not yet assigned
-    if (!node->node) {
-      node->node = unique_ptr<node_type>(new node_type());
-      _nodes.insert(node->node.get());
+    node_type* value = node->node.get();
+
+    // only insert value into set if not assigned before
+    if (!node->assigned) {
+      _nodes.insert(value);
+      node->assigned = true;
     }
-    value = node->node.get();
 
     // assign key
     value->first = key;
@@ -810,7 +812,7 @@ public:
     int bits = 0;
     for(; bits < max_bits; bits++) {
       // ...we keep track of last non-empty node
-      if (node->node) ret = node->node.get();
+      if (node->assigned) ret = node->node.get();
       bool val = value.getBit(-1-bits);
       // ...and we don't create left/right hand
       if (val) {
@@ -823,7 +825,7 @@ public:
       }
     }
     // needed if we did not find one in loop
-    if (node->node) ret = node->node.get();
+    if (node->assigned) ret = node->node.get();
 
     // this can be nullptr.
     return ret;
@@ -853,7 +855,8 @@ public:
     }
     if (node) {
       _nodes.erase(node->node.get());
-      node->node.reset();
+      node->assigned = false;
+      node->node->second = value_type();
 
       if (d_cleanup_tree)
         cleanup_tree(node);
