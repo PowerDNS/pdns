@@ -5,6 +5,11 @@ case "$1" in
   configure)
     addgroup --system pdns
     adduser --system --home /var/spool/powerdns --shell /bin/false --ingroup pdns --disabled-password --disabled-login --gecos "PowerDNS" pdns
+    if [ "`stat -c '%U:%G' /etc/powerdns/recursor.conf`" = "root:root" ]; then
+      chown root:pdns /etc/powerdns/recursor.conf
+      # Make sure that pdns can read it; the default used to be 0600
+      chmod g+r /etc/powerdns/recursor.conf
+    fi
   ;;
 
   *)

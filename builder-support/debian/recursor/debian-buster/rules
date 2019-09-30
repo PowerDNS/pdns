@@ -57,3 +57,8 @@ override_dh_installinit:
 
 override_dh_gencontrol:
 	dh_gencontrol -- $(SUBSTVARS)
+
+override_dh_fixperms:
+	dh_fixperms
+        # these files often contain passwords. 640 as it is chowned to root:pdns
+	chmod 0640 debian/pdns-server/etc/powerdns/recursor.conf
