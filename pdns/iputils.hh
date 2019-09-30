@@ -761,6 +761,51 @@ private:
       return new_node;
     }
 
+    //<! Traverse left branch depth-first
+    TreeNode *traverse_l()
+    {
+      TreeNode *tnode = this;
+
+      while (tnode->left)
+        tnode = tnode->left.get();
+      return tnode;
+    }
+
+    //<! Traverse tree depth-first and in-order (L-N-R)
+    TreeNode *traverse_lnr()
+    {
+      TreeNode *tnode = this;
+
+      // precondition: descended left as deep as possible
+      if (tnode->right) {
+        // descend right
+        tnode = tnode->right.get();
+        // descend left as deep as possible and return next node
+        return tnode->traverse_l();
+      }
+
+      // ascend to parent
+      while (tnode->parent != nullptr) {
+        TreeNode *prev_child = tnode;
+        tnode = tnode->parent;
+
+        // return this node, but only when we come from the left child branch
+        if (tnode->left && tnode->left.get() == prev_child)
+          return tnode;
+      }
+      return nullptr;
+    }
+
+    //<! Traverse only assigned nodes
+    TreeNode *traverse_lnr_assigned()
+    {
+      TreeNode *tnode = traverse_lnr();
+
+      while (tnode != nullptr && !tnode->assigned)
+        tnode = tnode->traverse_lnr();
+      return tnode;
+    }
+
     unique_ptr<TreeNode> left;
     unique_ptr<TreeNode> right;
     TreeNode* parent;
