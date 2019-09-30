@@ -74,3 +74,7 @@ override_dh_installexamples:
 override_dh_installinit:
 	# do nothing here. avoids referencing a non-existant init script.
 
+override_dh_fixperms:
+	dh_fixperms
+        # these files often contain passwords. 640 as it is chowned to root:_dnsdist
+	chmod 0640 debian/pdns-server/etc/powerdns/dnsdist.conf
