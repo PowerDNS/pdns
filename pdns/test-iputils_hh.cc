@@ -391,6 +391,16 @@ BOOST_AUTO_TEST_CASE(test_NetmaskTree) {
   BOOST_CHECK(found);
   BOOST_CHECK_EQUAL(found->second, 2);
 
+  nmt.insert(Netmask("0.0.0.0/0")).second=3;
+  BOOST_CHECK_EQUAL(nmt.size(), 4);
+  nmt.insert(Netmask("0.0.0.0/7")).second=4;
+  BOOST_CHECK_EQUAL(nmt.size(), 5);
+  nmt.insert(Netmask("0.0.0.0/15")).second=5;
+  BOOST_CHECK_EQUAL(nmt.size(), 6);
+  BOOST_CHECK_EQUAL(nmt.lookup(Netmask("0.0.0.0/0"))->second, 3);
+  BOOST_CHECK_EQUAL(nmt.lookup(Netmask("0.0.0.0/7"))->second, 4);
+  BOOST_CHECK_EQUAL(nmt.lookup(Netmask("0.0.0.0/15"))->second, 5);
+
   nmt.clear();
   BOOST_CHECK_EQUAL(nmt.empty(), true);
   BOOST_CHECK_EQUAL(nmt.size(), 0);
