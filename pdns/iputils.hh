@@ -678,16 +678,15 @@ private:
     unique_ptr<TreeNode> right;
     TreeNode* parent;
 
-    unique_ptr<node_type> node4; //<! IPv4 value-pair
-    unique_ptr<node_type> node6; //<! IPv6 value-pair
+    unique_ptr<node_type> node;
 
     int d_bits; //<! How many bits have been used so far
   };
 
   void cleanup_tree(TreeNode* node)
   {
-    // only cleanup this node if it has no children and node4 and node6 are both empty
-    if (!(node->left || node->right || node->node6 || node->node4)) {
+    // only cleanup this node if it has no children and node is empty
+    if (!(node->left || node->right || node->node)) {
       // get parent node ptr
       TreeNode* pparent = node->parent;
       // delete this node
@@ -706,10 +705,10 @@ public:
   NetmaskTree() noexcept : NetmaskTree(false) {
   }
 
-  NetmaskTree(bool cleanup) noexcept : d_cleanup_tree(cleanup) {
+  NetmaskTree(bool cleanup) noexcept : d_root(new TreeNode(0)), d_cleanup_tree(cleanup) {
   }
 
-  NetmaskTree(const NetmaskTree& rhs): d_cleanup_tree(rhs.d_cleanup_tree) {
+  NetmaskTree(const NetmaskTree& rhs): d_root(new TreeNode(0)), d_cleanup_tree(rhs.d_cleanup_tree) {
     // it is easier to copy the nodes than tree.
     // also acts as handy compactor
     for(auto const& node: rhs._nodes)
@@ -737,46 +736,39 @@ public:
 
   //<! Creates new value-pair in tree and returns it.
   node_type& insert(const key_type& key) {
-    // lazily initialize tree on first insert.
-    if (!d_root) d_root = unique_ptr<TreeNode>(new TreeNode(0));
-    TreeNode* node = d_root.get();
     node_type* value = nullptr;
+    TreeNode* node = nullptr;
 
-    if (key.getNetwork().sin4.sin_family == AF_INET) {
-      int bits = 0;
-      // we turn left on 0 and right on 1
-      while(bits < key.getBits()) {
-        bool val = key.getBit(-1-bits);
-        if (val)
-          node = node->make_right();
-        else
-          node = node->make_left();
-        bits++;
-      }
-      // only create node if not yet assigned
-      if (!node->node4) {
-        node->node4 = unique_ptr<node_type>(new node_type());
-        _nodes.insert(node->node4.get());
-      }
-      value = node->node4.get();
-    } else {
-      int bits = 0;
-      while(bits < key.getBits()) {
-        bool val = key.getBit(-1-bits);
-        // we turn left on 0 and right on 1
-        if (val)
-          node = node->make_right();
-        else
-          node = node->make_left();
-        bits++;
-      }
-      // only create node if not yet assigned
-      if (!node->node6) {
-        node->node6 = unique_ptr<node_type>(new node_type());
-        _nodes.insert(node->node6.get());
-      }
-      value = node->node6.get();
+    // we turn left on IPv4 and right on IPv6
+    if (key.isIPv4()) {
+      if (!d_root->left)
+        d_root->left = unique_ptr<TreeNode>(new TreeNode(0));
+      node = d_root->left.get();
+    } else if (key.isIPv6()) {
+      if (!d_root->right)
+        d_root->right = unique_ptr<TreeNode>(new TreeNode(0));
+      node = d_root->right.get();
+    } else
+      throw NetmaskException("invalid address family");
+
+    int bits = 0;
+    // we turn left on 0 and right on 1
+    while(bits < key.getBits()) {
+      bool val = key.getBit(-1-bits);
+      if (val)
+        node = node->make_right();
+      else
+        node = node->make_left();
+      bits++;
     }
+
+    // only create node if not yet assigned
+    if (!node->node) {
+      node->node = unique_ptr<node_type>(new node_type());
+      _nodes.insert(node->node.get());
+    }
+    value = node->node.get();
+
     // assign key
     value->first = key;
     return *value;
@@ -804,48 +796,36 @@ public:
 
   //<! Perform best match lookup for value, using at most max_bits
   const node_type* lookup(const ComboAddress& value, int max_bits = 128) const {
-    if (!d_root) return nullptr;
+    TreeNode *node = nullptr;
 
-    TreeNode *node = d_root.get();
+    if (value.isIPv4())
+      node = d_root->left.get();
+    else if (value.isIPv6())
+      node = d_root->right.get();
+    else 
+      throw NetmaskException("invalid address family");
+    if (node == nullptr) return nullptr;
+
     node_type *ret = nullptr;
 
-    // exact same thing as above, except
-    if (value.sin4.sin_family == AF_INET) {
-      int bits = 0;
-      while(bits < max_bits) {
-        // ...we keep track of last non-empty node
-        if (node->node4) ret = node->node4.get();
-        bool val = value.getBit(-1-bits);
-        // ...and we don't create left/right hand
-        if (val) {
-          if (node->right) node = node->right.get();
-          // ..and we break when road ends
-          else break;
-        } else {
-          if (node->left) node = node->left.get();
-          else break;
-        }
-        bits++;
+    int bits = 0;
+    while(bits < max_bits) {
+      // ...we keep track of last non-empty node
+      if (node->node) ret = node->node.get();
+      bool val = value.getBit(-1-bits);
+      // ...and we don't create left/right hand
+      if (val) {
+        if (node->right) node = node->right.get();
+        // ..and we break when road ends
+        else break;
+      } else {
+        if (node->left) node = node->left.get();
+        else break;
       }
-      // needed if we did not find one in loop
-      if (node->node4) ret = node->node4.get();
-    } else {
-      max_bits = std::max(0,std::min(max_bits,128));
-      int bits = 0;
-      while(bits < max_bits) {
-        if (node->node6) ret = node->node6.get();
-        bool val = value.getBit(-1-bits);
-        if (val) {
-          if (node->right) node = node->right.get();
-          else break;
-        } else {
-          if (node->left) node = node->left.get();
-          else break;
-        }
-        bits++;
-      }
-      if (node->node6) ret = node->node6.get();
+      bits++;
     }
+    // needed if we did not find one in loop
+    if (node->node) ret = node->node.get();
 
     // this can be nullptr.
     return ret;
@@ -853,48 +833,33 @@ public:
 
   //<! Removes key from TreeMap.
   void erase(const key_type& key) {
-    TreeNode *node = d_root.get();
+    TreeNode *node = nullptr;
 
+    if (key.isIPv4())
+      node = d_root->left.get();
+    else if (key.isIPv6())
+      node = d_root->right.get();
+    else 
+      throw NetmaskException("invalid address family");
     // no tree, no value
-    if ( node == nullptr ) return;
+    if (node == nullptr) return;
 
-    // exact same thing as above, except
-    if (key.getNetwork().sin4.sin_family == AF_INET) {
-      int bits = 0;
-      while(node && bits < key.getBits()) {
-        bool val = key.getBit(-1-bits);
-        if (val) {
-          node = node->right.get();
-        } else {
-          node = node->left.get();
-        }
-        bits++;
+    int bits = 0;
+    while(node && bits < key.getBits()) {
+      bool val = key.getBit(-1-bits);
+      if (val) {
+        node = node->right.get();
+      } else {
+        node = node->left.get();
       }
-      if (node) {
-        _nodes.erase(node->node4.get());
-        node->node4.reset();
+      bits++;
+    }
+    if (node) {
+      _nodes.erase(node->node.get());
+      node->node.reset();
 
-        if (d_cleanup_tree)
-          cleanup_tree(node);
-      }
-    } else {
-      int bits = 0;
-      while(node && bits < key.getBits()) {
-        bool val = key.getBit(-1-bits);
-        if (val) {
-          node = node->right.get();
-        } else {
-          node = node->left.get();
-        }
-        bits++;
-      }
-      if (node) {
-        _nodes.erase(node->node6.get());
-        node->node6.reset();
-
-        if (d_cleanup_tree)
-          cleanup_tree(node);
-      }
+      if (d_cleanup_tree)
+        cleanup_tree(node);
     }
   }
 
@@ -924,7 +889,7 @@ public:
   //<! Clean out the tree
   void clear() {
     _nodes.clear();
-    d_root.reset(nullptr);
+    d_root.reset(new TreeNode(0));
   }
 
   //<! swaps the contents with another NetmaskTree
