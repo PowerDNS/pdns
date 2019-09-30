@@ -13,7 +13,7 @@ int SortList::getMaxOrder(const Netmask& formask) const
   auto place = d_sortlist.lookup(formask);
   if(place && place->first == formask) {
     for(const auto& o : place->second.d_orders) 
-      order = std::max(order, o->second); // aki, shouldn't this be o.second?
+      order = std::max(order, o.second);
   }
   
   return order;

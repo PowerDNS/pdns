@@ -623,7 +623,7 @@ BOOST_AUTO_TEST_CASE(test_iterator) {
   BOOST_CHECK_EQUAL(std::distance(masks_set1.begin(), masks_set1.end()),
                     std::distance(masks_set2.begin(), masks_set2.end()));
   for (auto entry: masks_set1) {
-    Netmask mask = entry->first.getNormalized();
+    Netmask mask = entry.first.getNormalized();
 
     BOOST_CHECK(masks_set2.find(mask) != masks_set2.end());
   }
@@ -643,7 +643,7 @@ BOOST_AUTO_TEST_CASE(test_iterator) {
   BOOST_CHECK_EQUAL(std::distance(masks_set1_cp1.begin(), masks_set1_cp1.end()),
                     std::distance(masks_set2.begin(), masks_set2.end()));
   for (auto entry: masks_set1_cp1) {
-    Netmask mask = entry->first.getNormalized();
+    Netmask mask = entry.first.getNormalized();
 
     BOOST_CHECK(masks_set2.find(mask) != masks_set2.end());
   }
@@ -663,7 +663,7 @@ BOOST_AUTO_TEST_CASE(test_iterator) {
   BOOST_CHECK_EQUAL(std::distance(masks_set1_cp2.begin(), masks_set1_cp2.end()),
                     std::distance(masks_set2.begin(), masks_set2.end()));
   for (auto entry: masks_set1_cp2) {
-    Netmask mask = entry->first.getNormalized();
+    Netmask mask = entry.first.getNormalized();
 
     BOOST_CHECK(masks_set2.find(mask) != masks_set2.end());
   }
@@ -684,7 +684,7 @@ BOOST_AUTO_TEST_CASE(test_iterator) {
   BOOST_CHECK_EQUAL(std::distance(masks_set1_cp3.begin(), masks_set1_cp3.end()),
                     std::distance(masks_set2.begin(), masks_set2.end()));
   for (auto entry: masks_set1_cp3) {
-    Netmask mask = entry->first.getNormalized();
+    Netmask mask = entry.first.getNormalized();
 
     BOOST_CHECK(masks_set2.find(mask) != masks_set2.end());
   }
@@ -693,12 +693,12 @@ BOOST_AUTO_TEST_CASE(test_iterator) {
   }
 
   // copy contents to an std::set
-  std::set<NetmaskTree<int>::node_type *> masks_set1_cp4(masks_set1_cp3.begin(), masks_set1_cp3.end());
+  std::set<NetmaskTree<int>::node_type> masks_set1_cp4(masks_set1_cp3.begin(), masks_set1_cp3.end());
 
   // check set equality
   BOOST_CHECK_EQUAL(masks_set1_cp4.size(), masks_set2.size());
   for (auto entry: masks_set1_cp4) {
-    Netmask mask = entry->first.getNormalized();
+    Netmask mask = entry.first.getNormalized();
 
     BOOST_CHECK(masks_set2.find(mask) != masks_set2.end());
   }
@@ -706,7 +706,7 @@ BOOST_AUTO_TEST_CASE(test_iterator) {
     Netmask maskl = mask.getNormalized();
     bool found = false;
     for (auto entry: masks_set1_cp4) {
-      Netmask maskr = entry->first.getNormalized();
+      Netmask maskr = entry.first.getNormalized();
 
       if (maskl == maskr)
         found = true;
@@ -779,7 +779,7 @@ BOOST_AUTO_TEST_CASE(test_iterator) {
   BOOST_CHECK_EQUAL(std::distance(masks_set1_cp5.begin(), masks_set1_cp5.end()),
                     std::distance(masks_set2.begin(), masks_set2.end()));
   for (auto entry: masks_set1_cp5) {
-    Netmask mask = entry->first.getNormalized();
+    Netmask mask = entry.first.getNormalized();
 
     BOOST_CHECK(masks_set2.find(mask) != masks_set2.end());
   }

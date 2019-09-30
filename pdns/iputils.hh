@@ -854,9 +854,9 @@ private:
 public:
   class Iterator {
   public:
-    typedef node_type* value_type;
-    typedef node_type* reference;
-    typedef void pointer;
+    typedef node_type value_type;
+    typedef node_type& reference;
+    typedef node_type* pointer;
     typedef std::forward_iterator_tag iterator_category;
     typedef size_type difference_type;
 
@@ -893,6 +893,15 @@ public:
       if (d_node == nullptr) {
         throw std::logic_error(
           "NetmaskTree::Iterator::operator*: iterator is invalid");
+      }
+      return d_node->node;
+    }
+
+    pointer operator->()
+    {
+      if (d_node == nullptr) {
+        throw std::logic_error(
+          "NetmaskTree::Iterator::operator->: iterator is invalid");
       }
       return &d_node->node;
     }
@@ -1315,9 +1324,9 @@ public:
     for(auto iter = tree.begin(); iter != tree.end(); ++iter) {
       if(iter != tree.begin())
         str <<", ";
-      if(!((*iter)->second))
+      if(!(iter->second))
         str<<"!";
-      str<<(*iter)->first.toString();
+      str<<iter->first.toString();
     }
     return str.str();
   }
@@ -1325,7 +1334,7 @@ public:
   void toStringVector(vector<string>* vec) const
   {
     for(auto iter = tree.begin(); iter != tree.end(); ++iter) {
-      vec->push_back(((*iter)->second ? "" : "!") + (*iter)->first.toString());
+      vec->push_back((iter->second ? "" : "!") + iter->first.toString());
     }
   }
 
