@@ -162,7 +162,6 @@ BOOST_AUTO_TEST_CASE(test_ComboAddressTruncate) {
   }
 }
 
-
 BOOST_AUTO_TEST_CASE(test_Mapping)
 {
   ComboAddress lh("::1");
@@ -339,7 +338,6 @@ BOOST_AUTO_TEST_CASE(test_NetmaskGroup) {
     BOOST_CHECK_EQUAL(NMGOutputToSorted(ng.toString()), NMGOutputToSorted("10.0.1.0/32, 127.0.0.0/8, 10.0.0.0/24, ::1/128, fe80::/16, 172.16.0.0/16, !172.16.4.0/24, !fe80::/24"));
   }
 }
-
 
 BOOST_AUTO_TEST_CASE(test_NetmaskTree) {
   NetmaskTree<int> nmt;
