@@ -258,9 +258,14 @@ BOOST_AUTO_TEST_CASE(test_NetmaskGroup) {
 
   {
     NetmaskGroup ng;
+    BOOST_CHECK_EQUAL(ng.empty(), true);
+    BOOST_CHECK_EQUAL(ng.size(), 0);
     ng.addMask("10.0.1.0");
+    BOOST_CHECK_EQUAL(ng.empty(), false);
+    BOOST_CHECK_EQUAL(ng.size(), 1);
     BOOST_CHECK(ng.match(ComboAddress("10.0.1.0")));
     ng.toMasks("127.0.0.0/8, 10.0.0.0/24");
+    BOOST_CHECK_EQUAL(ng.size(), 3);
     BOOST_CHECK(ng.match(ComboAddress("127.0.0.1")));
     BOOST_CHECK(ng.match(ComboAddress("10.0.0.3")));
     BOOST_CHECK(ng.match(ComboAddress("10.0.1.0")));
@@ -268,21 +273,26 @@ BOOST_AUTO_TEST_CASE(test_NetmaskGroup) {
     BOOST_CHECK(!ng.match(ComboAddress("10.0.1.1")));
     BOOST_CHECK(!ng.match(ComboAddress("::1")));
     ng.addMask("::1");
+    BOOST_CHECK_EQUAL(ng.size(), 4);
     BOOST_CHECK(ng.match(ComboAddress("::1")));
     BOOST_CHECK(!ng.match(ComboAddress("::2")));
     ng.addMask("fe80::/16");
+    BOOST_CHECK_EQUAL(ng.size(), 5);
     BOOST_CHECK(ng.match(ComboAddress("fe80::1")));
     BOOST_CHECK(!ng.match(ComboAddress("fe81::1")));
     BOOST_CHECK_EQUAL(NMGOutputToSorted(ng.toString()), NMGOutputToSorted("10.0.1.0/32, 127.0.0.0/8, 10.0.0.0/24, ::1/128, fe80::/16"));
 
     /* negative entries using the explicit flag */
     ng.addMask("172.16.0.0/16", true);
+    BOOST_CHECK_EQUAL(ng.size(), 6);
     BOOST_CHECK(ng.match(ComboAddress("172.16.1.1")));
     BOOST_CHECK(ng.match(ComboAddress("172.16.4.50")));
     ng.addMask("172.16.4.0/24", false);
+    BOOST_CHECK_EQUAL(ng.size(), 7);
     BOOST_CHECK(ng.match(ComboAddress("172.16.1.1")));
     BOOST_CHECK(!ng.match(ComboAddress("172.16.4.50")));
     ng.addMask("fe80::/24", false);
+    BOOST_CHECK_EQUAL(ng.size(), 8);
     BOOST_CHECK(!ng.match(ComboAddress("fe80::1")));
     BOOST_CHECK(!ng.match(ComboAddress("fe81::1")));
     /* not in fe80::/24 but in fe80::/16, should match */
@@ -291,9 +301,12 @@ BOOST_AUTO_TEST_CASE(test_NetmaskGroup) {
     /* negative entries using '!' */
     BOOST_CHECK(ng.match(ComboAddress("172.16.10.80")));
     ng.addMask("!172.16.10.0/24");
+    BOOST_CHECK_EQUAL(ng.size(), 9);
     BOOST_CHECK(!ng.match(ComboAddress("172.16.10.80")));
     ng.addMask("2001:db8::/32");
+    BOOST_CHECK_EQUAL(ng.size(), 10);
     ng.addMask("!2001:db8::/64");
+    BOOST_CHECK_EQUAL(ng.size(), 11);
     BOOST_CHECK(!ng.match(ComboAddress("2001:db8::1")));
     /* not in 2001:db8::/64 but in 2001:db8::/32, should match */
     BOOST_CHECK(ng.match(ComboAddress("2001:db8:1::1")));
@@ -304,10 +317,16 @@ BOOST_AUTO_TEST_CASE(test_NetmaskGroup) {
   {
     /* this time using Netmask objects instead of strings */
     NetmaskGroup ng;
+    BOOST_CHECK_EQUAL(ng.empty(), true);
+    BOOST_CHECK_EQUAL(ng.size(), 0);
     ng.addMask(Netmask("10.0.1.0"));
+    BOOST_CHECK_EQUAL(ng.empty(), false);
+    BOOST_CHECK_EQUAL(ng.size(), 1);
     BOOST_CHECK(ng.match(ComboAddress("10.0.1.0")));
     ng.addMask(Netmask("127.0.0.0/8"));
+    BOOST_CHECK_EQUAL(ng.size(), 2);
     ng.addMask(Netmask("10.0.0.0/24"));
+    BOOST_CHECK_EQUAL(ng.size(), 3);
     BOOST_CHECK(ng.match(ComboAddress("127.0.0.1")));
     BOOST_CHECK(ng.match(ComboAddress("10.0.0.3")));
     BOOST_CHECK(ng.match(ComboAddress("10.0.1.0")));
@@ -315,21 +334,26 @@ BOOST_AUTO_TEST_CASE(test_NetmaskGroup) {
     BOOST_CHECK(!ng.match(ComboAddress("10.0.1.1")));
     BOOST_CHECK(!ng.match(ComboAddress("::1")));
     ng.addMask(Netmask("::1"));
+    BOOST_CHECK_EQUAL(ng.size(), 4);
     BOOST_CHECK(ng.match(ComboAddress("::1")));
     BOOST_CHECK(!ng.match(ComboAddress("::2")));
     ng.addMask(Netmask("fe80::/16"));
+    BOOST_CHECK_EQUAL(ng.size(), 5);
     BOOST_CHECK(ng.match(ComboAddress("fe80::1")));
     BOOST_CHECK(!ng.match(ComboAddress("fe81::1")));
     BOOST_CHECK_EQUAL(NMGOutputToSorted(ng.toString()), NMGOutputToSorted("10.0.1.0/32, 127.0.0.0/8, 10.0.0.0/24, ::1/128, fe80::/16"));
 
     /* negative entries using the explicit flag */
     ng.addMask(Netmask("172.16.0.0/16"), true);
+    BOOST_CHECK_EQUAL(ng.size(), 6);
     BOOST_CHECK(ng.match(ComboAddress("172.16.1.1")));
     BOOST_CHECK(ng.match(ComboAddress("172.16.4.50")));
     ng.addMask(Netmask("172.16.4.0/24"), false);
+    BOOST_CHECK_EQUAL(ng.size(), 7);
     BOOST_CHECK(ng.match(ComboAddress("172.16.1.1")));
     BOOST_CHECK(!ng.match(ComboAddress("172.16.4.50")));
     ng.addMask("fe80::/24", false);
+    BOOST_CHECK_EQUAL(ng.size(), 8);
     BOOST_CHECK(!ng.match(ComboAddress("fe80::1")));
     BOOST_CHECK(!ng.match(ComboAddress("fe81::1")));
     /* not in fe80::/24 but in fe80::/16, should match */
@@ -341,9 +365,15 @@ BOOST_AUTO_TEST_CASE(test_NetmaskGroup) {
 
 BOOST_AUTO_TEST_CASE(test_NetmaskTree) {
   NetmaskTree<int> nmt;
+  BOOST_CHECK_EQUAL(nmt.empty(), true);
+  BOOST_CHECK_EQUAL(nmt.size(), 0);
   nmt.insert(Netmask("130.161.252.0/24")).second=0;
+  BOOST_CHECK_EQUAL(nmt.empty(), false);
+  BOOST_CHECK_EQUAL(nmt.size(), 1);
   nmt.insert(Netmask("130.161.0.0/16")).second=1;
+  BOOST_CHECK_EQUAL(nmt.size(), 2);
   nmt.insert(Netmask("130.0.0.0/8")).second=2;
+  BOOST_CHECK_EQUAL(nmt.size(), 3);
 
   BOOST_CHECK_EQUAL(nmt.lookup(ComboAddress("213.244.168.210")), (void*)0);
   auto found=nmt.lookup(ComboAddress("130.161.252.29"));
@@ -362,11 +392,17 @@ BOOST_AUTO_TEST_CASE(test_NetmaskTree) {
   BOOST_CHECK_EQUAL(found->second, 2);
 
   nmt.clear();
+  BOOST_CHECK_EQUAL(nmt.empty(), true);
+  BOOST_CHECK_EQUAL(nmt.size(), 0);
   BOOST_CHECK(!nmt.lookup(ComboAddress("130.161.180.1")));
 
   nmt.insert(Netmask("::1")).second=1;
+  BOOST_CHECK_EQUAL(nmt.empty(), false);
+  BOOST_CHECK_EQUAL(nmt.size(), 1);
   nmt.insert(Netmask("::/0")).second=0;
+  BOOST_CHECK_EQUAL(nmt.size(), 2);
   nmt.insert(Netmask("fe80::/16")).second=2;
+  BOOST_CHECK_EQUAL(nmt.size(), 3);
   BOOST_CHECK_EQUAL(nmt.lookup(ComboAddress("130.161.253.255")), (void*)0);
   BOOST_CHECK_EQUAL(nmt.lookup(ComboAddress("::2"))->second, 0);
   BOOST_CHECK_EQUAL(nmt.lookup(ComboAddress("::ffff"))->second, 0);
@@ -376,16 +412,22 @@ BOOST_AUTO_TEST_CASE(test_NetmaskTree) {
 
 BOOST_AUTO_TEST_CASE(test_single) {
   NetmaskTree<bool> nmt;
+  BOOST_CHECK_EQUAL(nmt.empty(), true);
+  BOOST_CHECK_EQUAL(nmt.size(), 0);
   nmt.insert(Netmask("127.0.0.0/8")).second=1;
+  BOOST_CHECK_EQUAL(nmt.empty(), false);
+  BOOST_CHECK_EQUAL(nmt.size(), 1);
   BOOST_CHECK_EQUAL(nmt.lookup(ComboAddress("127.0.0.1"))->second, 1);
 }
 
 BOOST_AUTO_TEST_CASE(test_scale) {
   string start="192.168.";
   NetmaskTree<int> works;
+  BOOST_CHECK_EQUAL(works.size(), 0);
   for(int i=0; i < 256; ++i) {
     for(int j=0; j < 256; ++j) {
       works.insert(Netmask(start+std::to_string(i)+"."+std::to_string(j))).second=i*j;
+      BOOST_CHECK_EQUAL(works.size(), i*256 + j + 1);
     }
   }
 
@@ -406,6 +448,7 @@ BOOST_AUTO_TEST_CASE(test_scale) {
   for(int i=0; i < 256; ++i) {
     for(int j=0; j < 256; ++j) {
       works.insert(Netmask(start+std::to_string(i)+":"+std::to_string(j)+"::/64")).second=i*j;
+      BOOST_CHECK_EQUAL(works.size(), (256*256) + i*256 + j + 1);
     }
   }
 
@@ -426,16 +469,17 @@ BOOST_AUTO_TEST_CASE(test_scale) {
 BOOST_AUTO_TEST_CASE(test_removal) {
   std::string prefix = "192.";
   NetmaskTree<int> nmt(true);
+  BOOST_CHECK(nmt.empty());
+  BOOST_CHECK_EQUAL(nmt.size(), 0);
 
   size_t count = 0;
   for(unsigned int i = 0; i < 256; ++i) {
     for(unsigned int j = 16; j <= 32; ++j) {
       nmt.insert(Netmask(prefix + std::to_string(i) +".127.255/"+std::to_string(j))).second = j;
       count++;
+      BOOST_CHECK_EQUAL(nmt.size(), count);
     }
   }
-
-  BOOST_CHECK_EQUAL(nmt.size(), count);
 
   for(unsigned int i = 0; i < 256; ++i) {
     ComboAddress key(prefix + std::to_string(i) + ".127.255");
@@ -449,6 +493,8 @@ BOOST_AUTO_TEST_CASE(test_removal) {
     for(int j = 32; j >= 16; --j) {
       ComboAddress key(prefix + std::to_string(i) + ".127.255");
       nmt.erase(Netmask(key, j));
+      count--;
+      BOOST_CHECK_EQUAL(nmt.size(), count);
       const auto result = nmt.lookup(key);
 
       if (j > 16) {
