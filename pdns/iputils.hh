@@ -596,6 +596,28 @@ public:
   {
     return d_network.getBits();
   }
+
+  /** Get the value of the bit at the provided bit index. When the index >= 0,
+      the index is relative to the LSB starting at index zero. When the index < 0,
+      the index is relative to the MSB starting at index -1 and counting down.
+      When the index points outside the network bits, it always yields zero.
+   */
+  bool getBit(int bit) const
+  {
+    if (bit < -d_bits)
+      return false;
+    if (bit >= 0) {
+      if(isIPv4()) {
+        if (bit >= 32 || bit < (32 - d_bits))
+          return false;
+      }
+      if(isIPv6()) {
+        if (bit >= 128 || bit < (128 - d_bits))
+          return false;
+      }
+    }
+    return d_network.getBit(bit);
+  }
 private:
   ComboAddress d_network;
   uint32_t d_mask;
