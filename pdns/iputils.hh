@@ -590,6 +590,12 @@ public:
   Netmask getSuper(uint8_t bits) const {
     return Netmask(d_network, std::min(d_bits, bits));
   }
+
+  //! Get the total number of address bits for this netmask (either 32 or 128 depending on IP version)
+  uint8_t getAddressBits() const
+  {
+    return d_network.getBits();
+  }
 private:
   ComboAddress d_network;
   uint32_t d_mask;
