@@ -743,11 +743,10 @@ public:
     node_type* value = nullptr;
 
     if (key.getNetwork().sin4.sin_family == AF_INET) {
-      std::bitset<32> addr(be32toh(key.getNetwork().sin4.sin_addr.s_addr));
       int bits = 0;
       // we turn left on 0 and right on 1
       while(bits < key.getBits()) {
-        uint8_t val = addr[31-bits];
+        bool val = key.getBit(-1-bits);
         if (val)
           node = node->make_right();
         else
@@ -761,18 +760,9 @@ public:
       }
       value = node->node4.get();
     } else {
-      uint64_t addr[2];
-      memcpy(addr, key.getNetwork().sin6.sin6_addr.s6_addr, sizeof(addr));
-      std::bitset<64> addr_low(be64toh(addr[1]));
-      std::bitset<64> addr_high(be64toh(addr[0]));
       int bits = 0;
       while(bits < key.getBits()) {
-        uint8_t val;
-        // we use high address until we are
-        if (bits < 64) val = addr_high[63-bits];
-        // past 64 bits, and start using low address
-        else val = addr_low[127-bits];
-
+        bool val = key.getBit(-1-bits);
         // we turn left on 0 and right on 1
         if (val)
           node = node->make_right();
@@ -821,14 +811,11 @@ public:
 
     // exact same thing as above, except
     if (value.sin4.sin_family == AF_INET) {
-      max_bits = std::max(0,std::min(max_bits,32));
-      std::bitset<32> addr(be32toh(value.sin4.sin_addr.s_addr));
       int bits = 0;
-
       while(bits < max_bits) {
         // ...we keep track of last non-empty node
         if (node->node4) ret = node->node4.get();
-        uint8_t val = addr[31-bits];
+        bool val = value.getBit(-1-bits);
         // ...and we don't create left/right hand
         if (val) {
           if (node->right) node = node->right.get();
@@ -843,17 +830,11 @@ public:
       // needed if we did not find one in loop
       if (node->node4) ret = node->node4.get();
     } else {
-      uint64_t addr[2];
-      memcpy(addr, value.sin6.sin6_addr.s6_addr, sizeof(addr));
       max_bits = std::max(0,std::min(max_bits,128));
-      std::bitset<64> addr_low(be64toh(addr[1]));
-      std::bitset<64> addr_high(be64toh(addr[0]));
       int bits = 0;
       while(bits < max_bits) {
         if (node->node6) ret = node->node6.get();
-        uint8_t val;
-        if (bits < 64) val = addr_high[63-bits];
-        else val = addr_low[127-bits];
+        bool val = value.getBit(-1-bits);
         if (val) {
           if (node->right) node = node->right.get();
           else break;
@@ -879,10 +860,9 @@ public:
 
     // exact same thing as above, except
     if (key.getNetwork().sin4.sin_family == AF_INET) {
-      std::bitset<32> addr(be32toh(key.getNetwork().sin4.sin_addr.s_addr));
       int bits = 0;
       while(node && bits < key.getBits()) {
-        uint8_t val = addr[31-bits];
+        bool val = key.getBit(-1-bits);
         if (val) {
           node = node->right.get();
         } else {
@@ -898,15 +878,9 @@ public:
           cleanup_tree(node);
       }
     } else {
-      uint64_t addr[2];
-      memcpy(addr, key.getNetwork().sin6.sin6_addr.s6_addr, sizeof(addr));
-      std::bitset<64> addr_low(be64toh(addr[1]));
-      std::bitset<64> addr_high(be64toh(addr[0]));
       int bits = 0;
       while(node && bits < key.getBits()) {
-        uint8_t val;
-        if (bits < 64) val = addr_high[63-bits];
-        else val = addr_low[127-bits];
+        bool val = key.getBit(-1-bits);
         if (val) {
           node = node->right.get();
         } else {
