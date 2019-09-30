@@ -478,7 +478,7 @@ BOOST_AUTO_TEST_CASE(test_scale) {
 
 BOOST_AUTO_TEST_CASE(test_removal) {
   std::string prefix = "192.";
-  NetmaskTree<int> nmt(true);
+  NetmaskTree<int> nmt;
   BOOST_CHECK(nmt.empty());
   BOOST_CHECK_EQUAL(nmt.size(), 0);
 

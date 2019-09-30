@@ -790,13 +790,10 @@ private:
   }
 
 public:
-  NetmaskTree() noexcept : NetmaskTree(false) {
+  NetmaskTree() noexcept : d_root(new TreeNode()) {
   }
 
-  NetmaskTree(bool cleanup) noexcept : d_root(new TreeNode()), d_cleanup_tree(cleanup) {
-  }
-
-  NetmaskTree(const NetmaskTree& rhs): d_root(new TreeNode()), d_cleanup_tree(rhs.d_cleanup_tree) {
+  NetmaskTree(const NetmaskTree& rhs): d_root(new TreeNode()) {
     // it is easier to copy the nodes than tree.
     // also acts as handy compactor
     for(auto const& node: rhs._nodes)
@@ -808,7 +805,6 @@ public:
     // see above.
     for(auto const& node: rhs._nodes)
       insert(node->first).second = node->second;
-    d_cleanup_tree = rhs.d_cleanup_tree;
     return *this;
   }
 
@@ -1031,9 +1027,7 @@ public:
       _nodes.erase(node->node.get());
       node->assigned = false;
       node->node->second = value_type();
-
-      if (d_cleanup_tree)
-        cleanup_tree(node);
+      cleanup_tree(node);
     }
   }
 
@@ -1075,7 +1069,6 @@ public:
 private:
   unique_ptr<TreeNode> d_root; //<! Root of our tree
   std::set<node_type*> _nodes; //<! Container for actual values
-  bool d_cleanup_tree; //<! Whether or not to cleanup the tree on erase
 };
 
 /** This class represents a group of supplemental Netmask classes. An IP address matchs
@@ -1084,12 +1077,7 @@ private:
 class NetmaskGroup
 {
 public:
-  //! By default, initialise the tree to cleanup
-  NetmaskGroup() noexcept : NetmaskGroup(true) {
-  }
-
-  //! This allows control over whether to cleanup or not
-  NetmaskGroup(bool cleanup) noexcept : tree(cleanup) {
+  NetmaskGroup() noexcept {
   }
 
   //! If this IP address is matched by any of the classes within
