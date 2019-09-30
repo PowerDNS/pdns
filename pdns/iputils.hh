@@ -751,15 +751,14 @@ public:
     } else
       throw NetmaskException("invalid address family");
 
-    int bits = 0;
     // we turn left on 0 and right on 1
-    while(bits < key.getBits()) {
+    int bits = 0;
+    for(; bits < key.getBits(); bits++) {
       bool val = key.getBit(-1-bits);
       if (val)
         node = node->make_right();
       else
         node = node->make_left();
-      bits++;
     }
 
     // only create node if not yet assigned
@@ -809,7 +808,7 @@ public:
     node_type *ret = nullptr;
 
     int bits = 0;
-    while(bits < max_bits) {
+    for(; bits < max_bits; bits++) {
       // ...we keep track of last non-empty node
       if (node->node) ret = node->node.get();
       bool val = value.getBit(-1-bits);
@@ -822,7 +821,6 @@ public:
         if (node->left) node = node->left.get();
         else break;
       }
-      bits++;
     }
     // needed if we did not find one in loop
     if (node->node) ret = node->node.get();
@@ -845,14 +843,13 @@ public:
     if (node == nullptr) return;
 
     int bits = 0;
-    while(node && bits < key.getBits()) {
+    for(; node && bits < key.getBits(); bits++) {
       bool val = key.getBit(-1-bits);
       if (val) {
         node = node->right.get();
       } else {
         node = node->left.get();
       }
-      bits++;
     }
     if (node) {
       _nodes.erase(node->node.get());
