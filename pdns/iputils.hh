@@ -834,22 +834,31 @@ private:
     }
   }
 
+  void copyTree(const NetmaskTree& rhs)
+  {
+    TreeNode *node;
+
+    node = rhs.d_root.get();
+    if (node != nullptr)
+      node = node->traverse_l();
+    while (node != nullptr) {
+      if (node->assigned)
+        insert(node->node->first).second = node->node->second;
+      node = node->traverse_lnr();
+    }
+  }
+
 public:
   NetmaskTree() noexcept : d_root(new TreeNode()) {
   }
 
   NetmaskTree(const NetmaskTree& rhs): d_root(new TreeNode()) {
-    // it is easier to copy the nodes than tree.
-    // also acts as handy compactor
-    for(auto const& node: rhs._nodes)
-      insert(node->first).second = node->second;
+    copyTree(rhs);
   }
 
   NetmaskTree& operator=(const NetmaskTree& rhs) {
     clear();
-    // see above.
-    for(auto const& node: rhs._nodes)
-      insert(node->first).second = node->second;
+    copyTree(rhs);
     return *this;
   }
 
