@@ -908,10 +908,10 @@ public:
   };
 
 public:
-  NetmaskTree() noexcept: d_root(new TreeNode()), d_left(nullptr) {
+  NetmaskTree() noexcept: d_root(new TreeNode()), d_left(nullptr), d_size(0) {
   }
 
-  NetmaskTree(const NetmaskTree& rhs): d_root(new TreeNode()), d_left(nullptr) {
+  NetmaskTree(const NetmaskTree& rhs): d_root(new TreeNode()), d_left(nullptr), d_size(0) {
     copyTree(rhs);
   }
 
@@ -952,7 +952,7 @@ public:
         node->parent = d_root.get();
 
         d_root->left = unique_ptr<TreeNode>(node);
-        _nodes.insert(node->node.get());
+        d_size++;
         d_left = node;
         return *node->node;
       }
@@ -964,7 +964,7 @@ public:
         node->parent = d_root.get();
 
         d_root->right = unique_ptr<TreeNode>(node);
-        _nodes.insert(node->node.get());
+        d_size++;
         if (!d_root->left)
           d_left = node;
         return *node->node;
@@ -1035,8 +1035,8 @@ public:
     node_type* value = node->node.get();
 
     if (!node->assigned) {
-      // only insert value into set if not assigned before
-      _nodes.insert(value);
+      // only increment size if not assigned before
+      d_size++;
       // update the pointer to the left-most tree node
       if (is_left)
         d_left = node;
@@ -1168,7 +1168,11 @@ public:
       }
     }
     if (node) {
-      _nodes.erase(node->node.get());
+      if (d_size == 0) {
+        throw std::logic_error(
+          "NetmaskTree::erase(): size of tree is zero before erase");
+      }
+      d_size--;
       node->assigned = false;
       node->node->second = value_type();
 
@@ -1185,12 +1189,12 @@ public:
 
   //<! checks whether the container is empty.
   bool empty() const {
-    return _nodes.empty();
+    return (d_size == 0);
   }
 
   //<! returns the number of elements
   size_type size() const {
-    return _nodes.size();
+    return d_size;
   }
 
   //<! See if given ComboAddress matches any prefix
@@ -1204,22 +1208,22 @@ public:
 
   //<! Clean out the tree
   void clear() {
-    _nodes.clear();
     d_root.reset(new TreeNode());
     d_left = nullptr;
+    d_size = 0;
   }
 
   //<! swaps the contents with another NetmaskTree
   void swap(NetmaskTree& rhs) {
     std::swap(d_root, rhs.d_root);
     std::swap(d_left, rhs.d_left);
-    _nodes.swap(rhs._nodes);
+    std::swap(d_size, rhs.d_size);
   }
 
 private:
   unique_ptr<TreeNode> d_root; //<! Root of our tree
   TreeNode *d_left;
-  std::set<node_type*> _nodes; //<! Container for actual values
+  size_type d_size;
 };
 
 /** This class represents a group of supplemental Netmask classes. An IP address matchs
