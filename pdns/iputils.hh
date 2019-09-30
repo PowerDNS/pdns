@@ -660,16 +660,16 @@ private:
   class TreeNode : boost::noncopyable {
   public:
     explicit TreeNode() noexcept :
-      parent(nullptr), node(new node_type()), assigned(false), d_bits(0) {
+      parent(nullptr), node(), assigned(false), d_bits(0) {
     }
     explicit TreeNode(const key_type& key) noexcept :
-      parent(nullptr), node(new node_type({key.getNormalized(), value_type()})),
+      parent(nullptr), node({key.getNormalized(), value_type()}),
       assigned(false), d_bits(key.getAddressBits()) {
     }
 
     //<! Makes a left leaf node with specified key.
     TreeNode* make_left(const key_type& key) {
-      d_bits = node->first.getBits();
+      d_bits = node.first.getBits();
       left = make_unique<TreeNode>(key);
       left->parent = this;
       return left.get();
@@ -677,7 +677,7 @@ private:
 
     //<! Makes a right leaf node with specified key.
     TreeNode* make_right(const key_type& key) {
-      d_bits = node->first.getBits();
+      d_bits = node.first.getBits();
       right = make_unique<TreeNode>(key);
       right->parent = this;
       return right.get();
@@ -711,7 +711,7 @@ private:
       // attach "this" node below the new node
       // (left or right depending on bit)
       new_child->parent = new_node;
-      if (new_child->node->first.getBit(-1-bits)) {
+      if (new_child->node.first.getBit(-1-bits)) {
         std::swap(new_node->right, new_child);
       } else {
         std::swap(new_node->left, new_child);
@@ -737,7 +737,7 @@ private:
       }
 
       // create new tree node for the branch point
-      TreeNode* branch_node = new TreeNode(node->first.getSuper(bits));
+      TreeNode* branch_node = new TreeNode(node.first.getSuper(bits));
       branch_node->d_bits = bits;
 
       // attach the branch node under our former parent
@@ -753,7 +753,7 @@ private:
       // (left or right depending on bit)
       new_child1->parent = branch_node;
       new_child2->parent = branch_node;
-      if (new_child1->node->first.getBit(-1-bits)) {
+      if (new_child1->node.first.getBit(-1-bits)) {
         std::swap(branch_node->right, new_child1);
         std::swap(branch_node->left, new_child2);
       } else {
@@ -813,7 +813,7 @@ private:
     unique_ptr<TreeNode> right;
     TreeNode* parent;
 
-    unique_ptr<node_type> node;
+    node_type node;
     bool assigned; //<! Whether this node is assigned-to by the application
 
     int d_bits; //<! How many bits have been used so far
@@ -846,7 +846,7 @@ private:
       node = node->traverse_l();
     while (node != nullptr) {
       if (node->assigned)
-        insert(node->node->first).second = node->node->second;
+        insert(node->node.first).second = node->node.second;
       node = node->traverse_lnr();
     }
   }
@@ -894,7 +894,7 @@ public:
         throw std::logic_error(
           "NetmaskTree::Iterator::operator*: iterator is invalid");
       }
-      return d_node->node.get();
+      return &d_node->node;
     }
 
     bool operator==(const Iterator& rhs)
@@ -954,7 +954,7 @@ public:
         d_root->left = unique_ptr<TreeNode>(node);
         d_size++;
         d_left = node;
-        return *node->node;
+        return node->node;
       }
     } else if (key.isIPv6()) {
       node = d_root->right.get();
@@ -967,7 +967,7 @@ public:
         d_size++;
         if (!d_root->left)
           d_left = node;
-        return *node->node;
+        return node->node;
       }
       if (d_root->left)
         is_left = false;
@@ -1000,7 +1000,7 @@ public:
         }
         continue;
       }
-      if (bits >= node->node->first.getBits()) {
+      if (bits >= node->node.first.getBits()) {
         // the matching branch ends here, yet the key netmask has more bits; add a
         // child node below the existing branch leaf.
         if (vall) {
@@ -1012,7 +1012,7 @@ public:
         }
         break;
       }
-      bool valr = node->node->first.getBit(-1-bits);
+      bool valr = node->node.first.getBit(-1-bits);
       if (vall != valr) {
         if (vall)
           is_left = false;
@@ -1023,7 +1023,7 @@ public:
       }
     }
 
-    if (node->node->first.getBits() > key.getBits()) {
+    if (node->node.first.getBits() > key.getBits()) {
       // key is a super-network of the matching node; split the branch and
       // insert a node for the key above the matching node.
       node = node->split(key, key.getBits());
@@ -1032,7 +1032,7 @@ public:
     if (node->left)
       is_left = false;
 
-    node_type* value = node->node.get();
+    node_type& value = node->node;
 
     if (!node->assigned) {
       // only increment size if not assigned before
@@ -1049,7 +1049,7 @@ public:
       }
     }
 
-    return *value;
+    return value;
   }
 
   //<! Creates or updates value
@@ -1096,8 +1096,8 @@ public:
       if (bits >= node->d_bits) {
         // the end of the current node is reached; continue with the next
         // (we keep track of last assigned node)
-        if (node->assigned && bits == node->node->first.getBits())
-          ret = node->node.get();
+        if (node->assigned && bits == node->node.first.getBits())
+          ret = &node->node;
         if (vall) {
           if (!node->right)
             break;
@@ -1109,11 +1109,11 @@ public:
         }
         continue;
       }
-      if (bits >= node->node->first.getBits()) {
+      if (bits >= node->node.first.getBits()) {
         // the matching branch ends here
         break;
       }
-      bool valr = node->node->first.getBit(-1-bits);
+      bool valr = node->node.first.getBit(-1-bits);
       if (vall != valr) {
         // the branch matches just upto this point, yet continues in a different
         // direction
@@ -1121,8 +1121,8 @@ public:
       }
     }
     // needed if we did not find one in loop
-    if (node->assigned && bits == node->node->first.getBits())
-      ret = node->node.get();
+    if (node->assigned && bits == node->node.first.getBits())
+      ret = &node->node;
 
     // this can be nullptr.
     return ret;
@@ -1153,13 +1153,13 @@ public:
         }
         continue;
       }
-      if (bits >= node->node->first.getBits()) {
+      if (bits >= node->node.first.getBits()) {
         // the matching branch ends here
-        if (key.getBits() != node->node->first.getBits())
+        if (key.getBits() != node->node.first.getBits())
           node = nullptr;
         break;
       }
-      bool valr = node->node->first.getBit(-1-bits);
+      bool valr = node->node.first.getBit(-1-bits);
       if (vall != valr) {
         // the branch matches just upto this point, yet continues in a different
         // direction
@@ -1174,7 +1174,7 @@ public:
       }
       d_size--;
       node->assigned = false;
-      node->node->second = value_type();
+      node->node.second = value_type();
 
       if (node == d_left)
         d_left = d_left->traverse_lnr_assigned();
