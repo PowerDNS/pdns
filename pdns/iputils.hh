@@ -317,6 +317,15 @@ union ComboAddress {
     memset(&sin6, 0, sizeof(sin6));
   }
 
+  //! Get the total number of address bits (either 32 or 128 depending on IP version)
+  uint8_t getBits() const
+  {
+    if (isIPv4())
+      return 32;
+    if (isIPv6())
+      return 128;
+    return 0;
+  }
 };
 
 /** This exception is thrown by the Netmask class and by extension by the NetmaskGroup class */
