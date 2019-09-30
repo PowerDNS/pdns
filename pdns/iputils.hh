@@ -849,10 +849,10 @@ private:
   }
 
 public:
-  NetmaskTree() noexcept : d_root(new TreeNode()) {
+  NetmaskTree() noexcept: d_root(new TreeNode()), d_left(nullptr) {
   }
 
-  NetmaskTree(const NetmaskTree& rhs): d_root(new TreeNode()) {
+  NetmaskTree(const NetmaskTree& rhs): d_root(new TreeNode()), d_left(nullptr) {
     copyTree(rhs);
   }
 
@@ -875,6 +875,7 @@ public:
   //<! Creates new value-pair in tree and returns it.
   node_type& insert(const key_type& key) {
     TreeNode* node;
+    bool is_left = true;
 
     // we turn left on IPv4 and right on IPv6
     if (key.isIPv4()) {
@@ -886,6 +887,7 @@ public:
 
         d_root->left = unique_ptr<TreeNode>(node);
         _nodes.insert(node->node.get());
+        d_left = node;
         return *node->node;
       }
     } else if (key.isIPv6()) {
@@ -897,8 +899,12 @@ public:
 
         d_root->right = unique_ptr<TreeNode>(node);
         _nodes.insert(node->node.get());
+        if (!d_root->left)
+          d_left = node;
         return *node->node;
       }
+      if (d_root->left)
+        is_left = false;
     } else
       throw NetmaskException("invalid address family");
 
@@ -910,6 +916,8 @@ public:
       if (bits >= node->d_bits) {
         // the end of the current node is reached; continue with the next
         if (vall) {
+          if (node->left || node->assigned)
+            is_left = false;
           if (!node->right) {
             // the right branch doesn't exist yet; attach our key here
             node = node->make_right(key);
@@ -930,6 +938,8 @@ public:
         // the matching branch ends here, yet the key netmask has more bits; add a
         // child node below the existing branch leaf.
         if (vall) {
+          if (node->assigned)
+            is_left = false;
           node = node->make_right(key);
         } else {
           node = node->make_left(key);
@@ -938,6 +948,8 @@ public:
       }
       bool valr = node->node->first.getBit(-1-bits);
       if (vall != valr) {
+        if (vall)
+          is_left = false;
         // the branch matches just upto this point, yet continues in a different
         // direction; fork the branch.
         node = node->fork(key, bits);
@@ -951,12 +963,24 @@ public:
       node = node->split(key, key.getBits());
     }
 
+    if (node->left)
+      is_left = false;
+
     node_type* value = node->node.get();
 
-    // only insert value into set if not assigned before
     if (!node->assigned) {
+      // only insert value into set if not assigned before
       _nodes.insert(value);
+      // update the pointer to the left-most tree node
+      if (is_left)
+        d_left = node;
       node->assigned = true;
+    } else {
+      // tree node exists for this value
+      if (is_left && d_left != node) {
+        throw std::logic_error(
+          "NetmaskTree::insert(): lost track of left-most node in tree");
+      }
     }
 
     return *value;
@@ -1081,6 +1105,10 @@ public:
       _nodes.erase(node->node.get());
       node->assigned = false;
       node->node->second = value_type();
+
+      if (node == d_left)
+        d_left = d_left->traverse_lnr_assigned();
+
       cleanup_tree(node);
     }
   }
@@ -1112,16 +1140,19 @@ public:
   void clear() {
     _nodes.clear();
     d_root.reset(new TreeNode());
+    d_left = nullptr;
   }
 
   //<! swaps the contents with another NetmaskTree
   void swap(NetmaskTree& rhs) {
     std::swap(d_root, rhs.d_root);
+    std::swap(d_left, rhs.d_left);
     _nodes.swap(rhs._nodes);
   }
 
 private:
   unique_ptr<TreeNode> d_root; //<! Root of our tree
+  TreeNode *d_left;
   std::set<node_type*> _nodes; //<! Container for actual values
 };
 
