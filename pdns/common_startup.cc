@@ -388,7 +388,6 @@ try
 
   g_distributors[num] = DNSDistributor::Create(::arg().asNum("distributor-threads", 1));
   DNSDistributor* distributor = g_distributors[num]; // the big dispatcher!
-  DNSPacket question(true);
   DNSPacket cached(false);
 
   AtomicCounter &numreceived=*S.getPointer("udp-queries");
@@ -417,52 +416,53 @@ try
   }
 
   for(;;) {
-    if(!NS->receive(question, buffer)) { // receive a packet         inline
+    unique_ptr<DNSPacket> question = make_unique<DNSPacket>(true);
+    if(!NS->receive(*question, buffer)) { // receive a packet         inline
       continue;                    // packet was broken, try again
     }
 
     numreceived++;
 
-    if(question.d_remote.getSocklen()==sizeof(sockaddr_in))
+    if(question->d_remote.getSocklen()==sizeof(sockaddr_in))
       numreceived4++;
     else
       numreceived6++;
 
-    if(question.d_dnssecOk)
+    if(question->d_dnssecOk)
       numreceiveddo++;
 
-     if(question.d.qr)
+     if(question->d.qr)
        continue;
 
-    S.ringAccount("queries", question.qdomain, question.qtype);
-    S.ringAccount("remotes", question.d_remote);
+    S.ringAccount("queries", question->qdomain, question->qtype);
+    S.ringAccount("remotes", question->d_remote);
     if(logDNSQueries) {
       string remote;
-      if(question.hasEDNSSubnet()) 
-        remote = question.getRemote().toString() + "<-" + question.getRealRemote().toString();
+      if(question->hasEDNSSubnet()) 
+        remote = question->getRemote().toString() + "<-" + question->getRealRemote().toString();
       else
-        remote = question.getRemote().toString();
-      g_log << Logger::Notice<<"Remote "<< remote <<" wants '" << question.qdomain<<"|"<<question.qtype.getName() << 
-        "', do = " <<question.d_dnssecOk <<", bufsize = "<< question.getMaxReplyLen();
-      if(question.d_ednsRawPacketSizeLimit > 0 && question.getMaxReplyLen() != (unsigned int)question.d_ednsRawPacketSizeLimit)
-        g_log<<" ("<<question.d_ednsRawPacketSizeLimit<<")";
+        remote = question->getRemote().toString();
+      g_log << Logger::Notice<<"Remote "<< remote <<" wants '" << question->qdomain<<"|"<<question->qtype.getName() << 
+        "', do = " <<question->d_dnssecOk <<", bufsize = "<< question->getMaxReplyLen();
+      if(question->d_ednsRawPacketSizeLimit > 0 && question->getMaxReplyLen() != (unsigned int)question->d_ednsRawPacketSizeLimit)
+        g_log<<" ("<<question->d_ednsRawPacketSizeLimit<<")";
       g_log<<": ";
     }
 
-    if(PC.enabled() && (question.d.opcode != Opcode::Notify && question.d.opcode != Opcode::Update) && question.couldBeCached()) {
-      bool haveSomething=PC.get(question, cached); // does the PacketCache recognize this question?
+    if(PC.enabled() && (question->d.opcode != Opcode::Notify && question->d.opcode != Opcode::Update) && question->couldBeCached()) {
+      bool haveSomething=PC.get(*question, cached); // does the PacketCache recognize this question?
       if (haveSomething) {
         if(logDNSQueries)
           g_log<<"packetcache HIT"<<endl;
-        cached.setRemote(&question.d_remote);  // inlined
-        cached.setSocket(question.getSocket());                               // inlined
-        cached.d_anyLocal = question.d_anyLocal;
-        cached.setMaxReplyLen(question.getMaxReplyLen());
-        cached.d.rd=question.d.rd; // copy in recursion desired bit
-        cached.d.id=question.d.id;
+        cached.setRemote(&question->d_remote);  // inlined
+        cached.setSocket(question->getSocket());                               // inlined
+        cached.d_anyLocal = question->d_anyLocal;
+        cached.setMaxReplyLen(question->getMaxReplyLen());
+        cached.d.rd=question->d.rd; // copy in recursion desired bit
+        cached.d.id=question->d.id;
         cached.commitD(); // commit d to the packet                        inlined
         NS->send(cached); // answer it then                              inlined
-        diff=question.d_dt.udiff();
+        diff=question->d_dt.udiff();
         avg_latency=(int)(0.999*avg_latency+0.001*diff); // 'EWMA'
         continue;
       }
@@ -479,7 +479,7 @@ try
       g_log<<"packetcache MISS"<<endl;
 
     try {
-      distributor->question(question, &sendout); // otherwise, give to the distributor
+      distributor->question(std::move(question), &sendout); // otherwise, give to the distributor
     }
     catch(DistributorFatal& df) { // when this happens, we have leaked loads of memory. Bailing out time.
       _exit(1);
