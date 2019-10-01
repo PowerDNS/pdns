@@ -150,7 +150,7 @@ class TestDOH(DNSDistDOHTest):
     _config_template = """
     newServer{address="127.0.0.1:%s"}
 
-    addDOHLocal("127.0.0.1:%s", "%s", "%s", { "/" }, {customResponseHeaders={["access-control-allow-origin"]="*",["user-agent"]="derp"}})
+    addDOHLocal("127.0.0.1:%s", "%s", "%s", { "/" }, {customResponseHeaders={["access-control-allow-origin"]="*",["user-agent"]="derp",["UPPERCASE"]="VaLuE"}})
     dohFE = getDOHFrontend(0)
     dohFE:setResponsesMap({newDOHResponseMapEntry('^/coffee$', 418, 'C0FFEE', {['foo']='bar'})})
 
@@ -208,6 +208,8 @@ class TestDOH(DNSDistDOHTest):
         self.assertEquals(expectedQuery, receivedQuery)
         self.assertTrue((self._customResponseHeader1) in self._response_headers.decode())
         self.assertTrue((self._customResponseHeader2) in self._response_headers.decode())
+        self.assertFalse(('UPPERCASE: VaLuE' in self._response_headers.decode()))
+        self.assertTrue(('uppercase: VaLuE' in self._response_headers.decode()))
         self.checkQueryEDNSWithoutECS(expectedQuery, receivedQuery)
         self.assertEquals(response, receivedResponse)
 
