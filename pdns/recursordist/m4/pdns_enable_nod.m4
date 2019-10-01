@@ -3,10 +3,10 @@ AC_DEFUN([PDNS_ENABLE_NOD],[
 
   AC_ARG_ENABLE([nod],
     AS_HELP_STRING([--enable-nod],
-      [enable newly observed domains @<:@default=no@:>@]
+      [enable newly observed domains @<:@default=yes@:>@]
     ),
     [enable_nod=$enableval],
-    [enable_nod=no]
+    [enable_nod=yes]
   )
 
   AS_IF([test "x$enable_nod" != "xno"],
