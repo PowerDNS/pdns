@@ -447,10 +447,6 @@ DTime::DTime()
   d_set.tv_sec=d_set.tv_usec=0;
 }
 
-DTime::DTime(const DTime &dt) : d_set(dt.d_set)
-{
-}
-
 time_t DTime::time()
 {
   return d_set.tv_sec;

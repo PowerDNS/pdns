@@ -242,6 +242,17 @@ struct SuffixMatchTree
       d_value = rhs.d_value;
     }
   }
+  SuffixMatchTree & operator=(const SuffixMatchTree &rhs)
+  {
+    d_name = rhs.d_name;
+    children = rhs.children;
+    endNode = rhs.endNode;
+    if (endNode) {
+      d_value = rhs.d_value;
+    }
+    return *this;
+  }
+  
   std::string d_name;
   mutable std::set<SuffixMatchTree> children;
   mutable bool endNode;

@@ -331,7 +331,7 @@ struct DNSComboWriter {
   EDNSSubnetOpts d_ednssubnet;
   shared_ptr<TCPConnection> d_tcpConnection;
   boost::optional<int> d_rcode{boost::none};
-  int d_socket;
+  int d_socket{-1};
   unsigned int d_tag{0};
   uint32_t d_qhash{0};
   uint32_t d_ttlCap{std::numeric_limits<uint32_t>::max()};

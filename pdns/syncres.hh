@@ -163,10 +163,9 @@ public:
     d_lastget=d_last;
   }
 
-  DecayingEwma(const DecayingEwma& orig) : d_last(orig.d_last),  d_lastget(orig.d_lastget), d_val(orig.d_val), d_needinit(orig.d_needinit)
-  {
-  }
-
+  DecayingEwma(const DecayingEwma& orig) = delete;
+  DecayingEwma & operator=(const DecayingEwma& orig) = delete;
+  
   void submit(int val, const struct timeval* tv)
   {
     struct timeval now=*tv;
