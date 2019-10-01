@@ -752,6 +752,7 @@ public:
   static bool s_rootNXTrust;
   static bool s_nopacketcache;
   static bool s_qnameminimization;
+  static bool s_hardenNXD;
 
   std::unordered_map<std::string,bool> d_discardedPolicies;
   DNSFilterEngine::Policy d_appliedPolicy;

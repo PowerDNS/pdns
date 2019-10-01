@@ -88,6 +88,7 @@ bool SyncRes::s_nopacketcache;
 bool SyncRes::s_rootNXTrust;
 bool SyncRes::s_noEDNS;
 bool SyncRes::s_qnameminimization;
+bool SyncRes::s_hardenNXD;
 
 #define LOG(x) if(d_lm == Log) { g_log <<Logger::Warning << x; } else if(d_lm == Store) { d_trace << x; }
 
@@ -1387,7 +1388,7 @@ bool SyncRes::doCacheCheck(const DNSName &qname, const DNSName& authname, bool w
   const NegCache::NegCacheEntry* ne = nullptr;
 
   if(s_rootNXTrust &&
-     t_sstorage.negcache.getRootNXTrust(qname, d_now, &ne) &&
+      t_sstorage.negcache.getRootNXTrust(qname, d_now, &ne) &&
       ne->d_auth.isRoot() &&
       !(wasForwardedOrAuthZone && !authname.isRoot())) { // when forwarding, the root may only neg-cache if it was forwarded to.
     sttl = ne->d_ttd - d_now.tv_sec;
@@ -1395,25 +1396,39 @@ bool SyncRes::doCacheCheck(const DNSName &qname, const DNSName& authname, bool w
     res = RCode::NXDomain;
     giveNegative = true;
     cachedState = ne->d_validationState;
-  }
-  else if (t_sstorage.negcache.get(qname, qtype, d_now, &ne)) {
+  } else if (t_sstorage.negcache.get(qname, qtype, d_now, &ne)) {
     /* If we are looking for a DS, discard NXD if auth == qname
        and ask for a specific denial instead */
     if (qtype != QType::DS || ne->d_qtype.getCode() || ne->d_auth != qname ||
         t_sstorage.negcache.get(qname, qtype, d_now, &ne, true))
     {
-      res = 0;
+      res = RCode::NXDomain;
       sttl = ne->d_ttd - d_now.tv_sec;
       giveNegative = true;
       cachedState = ne->d_validationState;
-      if(ne->d_qtype.getCode()) {
+      if (ne->d_qtype.getCode()) {
         LOG(prefix<<qname<<": "<<qtype.getName()<<" is negatively cached via '"<<ne->d_auth<<"' for another "<<sttl<<" seconds"<<endl);
         res = RCode::NoError;
+      } else {
+        LOG(prefix<<qname<<": Entire name '"<<qname<<" is negatively cached via '"<<ne->d_auth<<"' for another "<<sttl<<" seconds"<<endl);
       }
-      else {
-        LOG(prefix<<qname<<": Entire name '"<<qname<<"', is negatively cached via '"<<ne->d_auth<<"' for another "<<sttl<<" seconds"<<endl);
+    }
+  } else if (s_hardenNXD && !qname.isRoot() && !wasForwardedOrAuthZone) {
+    auto labels = qname.getRawLabels();
+    DNSName negCacheName(g_rootdnsname);
+    negCacheName.prependRawLabel(labels.back());
+    labels.pop_back();
+    while(!labels.empty()) {
+      if (t_sstorage.negcache.get(negCacheName, QType(0), d_now, &ne, true)) {
         res = RCode::NXDomain;
+        sttl = ne->d_ttd - d_now.tv_sec;
+        giveNegative = true;
+        cachedState = ne->d_validationState;
+        LOG(prefix<<qname<<": Name '"<<negCacheName<<"' and below, is negatively cached via '"<<ne->d_auth<<"' for another "<<sttl<<" seconds"<<endl);
+        break;
       }
+      negCacheName.prependRawLabel(labels.back());
+      labels.pop_back();
     }
   }
 

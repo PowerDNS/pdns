@@ -415,6 +415,245 @@ BOOST_AUTO_TEST_CASE(test_root_nx_dont_trust) {
   BOOST_CHECK_EQUAL(queriesCount, 3U);
 }
 
+BOOST_AUTO_TEST_CASE(test_rfc8020_nothing_underneath) {
+  std::unique_ptr<SyncRes> sr;
+  initSR(sr);
+
+  primeHints();
+
+  const DNSName target1("www.powerdns.com."); // will be denied
+  const DNSName target2("foo.www.powerdns.com.");
+  const DNSName target3("bar.www.powerdns.com.");
+  const DNSName target4("quux.bar.www.powerdns.com.");
+  const ComboAddress ns("192.0.2.1:53");
+  size_t queriesCount = 0;
+
+  sr->setAsyncCallback([ns, &queriesCount](const ComboAddress& ip, const DNSName& domain, int type, bool doTCP, bool sendRDQuery, int EDNS0Level, struct timeval* now, boost::optional<Netmask>& srcmask, boost::optional<const ResolveContext&> context, LWResult* res, bool* chained) {
+
+      queriesCount++;
+
+      if (isRootServer(ip)) {
+        setLWResult(res, 0, false, false, true);
+        addRecordToLW(res, "powerdns.com.", QType::NS, "ns1.powerdns.com.", DNSResourceRecord::AUTHORITY, 172800);
+        addRecordToLW(res, "ns1.powerdns.com.", QType::A, ns.toString(), DNSResourceRecord::ADDITIONAL, 3600);
+        return 1;
+      } else if (ip == ns) {
+        setLWResult(res, RCode::NXDomain, true, false, false);
+        addRecordToLW(res, "powerdns.com.", QType::SOA, "ns1.powerdns.com. hostmaster.powerdns.com. 2017032800 1800 900 604800 86400", DNSResourceRecord::AUTHORITY, 86400);
+        return 1;
+      }
+      return 0;
+    });
+
+  vector<DNSRecord> ret;
+  int res = sr->beginResolve(target1, QType(QType::A), QClass::IN, ret);
+  BOOST_CHECK_EQUAL(res, RCode::NXDomain);
+  BOOST_CHECK_EQUAL(ret.size(), 1);
+  BOOST_CHECK_EQUAL(queriesCount, 2);
+  BOOST_CHECK_EQUAL(SyncRes::getNegCacheSize(), 1);
+
+  ret.clear();
+  res = sr->beginResolve(target2, QType(QType::A), QClass::IN, ret);
+  BOOST_CHECK_EQUAL(res, RCode::NXDomain);
+  BOOST_CHECK_EQUAL(ret.size(), 1);
+  BOOST_CHECK_EQUAL(queriesCount, 2);
+  BOOST_CHECK_EQUAL(SyncRes::getNegCacheSize(), 1);
+
+  ret.clear();
+  res = sr->beginResolve(target3, QType(QType::A), QClass::IN, ret);
+  BOOST_CHECK_EQUAL(res, RCode::NXDomain);
+  BOOST_CHECK_EQUAL(ret.size(), 1);
+  BOOST_CHECK_EQUAL(queriesCount, 2);
+  BOOST_CHECK_EQUAL(SyncRes::getNegCacheSize(), 1);
+
+  ret.clear();
+  res = sr->beginResolve(target4, QType(QType::A), QClass::IN, ret);
+  BOOST_CHECK_EQUAL(res, RCode::NXDomain);
+  BOOST_CHECK_EQUAL(ret.size(), 1);
+  BOOST_CHECK_EQUAL(queriesCount, 2);
+  BOOST_CHECK_EQUAL(SyncRes::getNegCacheSize(), 1);
+
+  // Now test without RFC 8020 to see the cache and query count grow
+  SyncRes::s_hardenNXD = false;
+
+  // Already cached
+  ret.clear();
+  res = sr->beginResolve(target1, QType(QType::A), QClass::IN, ret);
+  BOOST_CHECK_EQUAL(res, RCode::NXDomain);
+  BOOST_CHECK_EQUAL(ret.size(), 1);
+  BOOST_CHECK_EQUAL(queriesCount, 2);
+  BOOST_CHECK_EQUAL(SyncRes::getNegCacheSize(), 1);
+
+  // New query
+  ret.clear();
+  res = sr->beginResolve(target2, QType(QType::A), QClass::IN, ret);
+  BOOST_CHECK_EQUAL(res, RCode::NXDomain);
+  BOOST_CHECK_EQUAL(ret.size(), 1);
+  BOOST_CHECK_EQUAL(queriesCount, 3);
+  BOOST_CHECK_EQUAL(SyncRes::getNegCacheSize(), 2);
+
+  ret.clear();
+  res = sr->beginResolve(target3, QType(QType::A), QClass::IN, ret);
+  BOOST_CHECK_EQUAL(res, RCode::NXDomain);
+  BOOST_CHECK_EQUAL(ret.size(), 1);
+  BOOST_CHECK_EQUAL(queriesCount, 4);
+  BOOST_CHECK_EQUAL(SyncRes::getNegCacheSize(), 3);
+
+  ret.clear();
+  res = sr->beginResolve(target4, QType(QType::A), QClass::IN, ret);
+  BOOST_CHECK_EQUAL(res, RCode::NXDomain);
+  BOOST_CHECK_EQUAL(ret.size(), 1);
+  BOOST_CHECK_EQUAL(queriesCount, 5);
+  BOOST_CHECK_EQUAL(SyncRes::getNegCacheSize(), 4);
+
+  // reset
+  SyncRes::s_hardenNXD = true;
+}
+
+BOOST_AUTO_TEST_CASE(test_rfc8020_nodata) {
+  std::unique_ptr<SyncRes> sr;
+  initSR(sr);
+
+  primeHints();
+
+  const DNSName target1("www.powerdns.com."); // TXT record will be denied
+  const DNSName target2("bar.www.powerdns.com."); // will be NXD, but the www. NODATA should not interfere with 8020 processing
+  const DNSName target3("quux.bar.www.powerdns.com."); // will be NXD, but will not yield a query
+  const ComboAddress ns("192.0.2.1:53");
+  size_t queriesCount = 0;
+
+  sr->setAsyncCallback([ns, target1, target2, target3, &queriesCount](const ComboAddress& ip, const DNSName& domain, int type, bool doTCP, bool sendRDQuery, int EDNS0Level, struct timeval* now, boost::optional<Netmask>& srcmask, boost::optional<const ResolveContext&> context, LWResult* res, bool* chained) {
+
+      queriesCount++;
+
+      if (isRootServer(ip)) {
+        setLWResult(res, 0, false, false, true);
+        addRecordToLW(res, "powerdns.com.", QType::NS, "ns1.powerdns.com.", DNSResourceRecord::AUTHORITY, 172800);
+        addRecordToLW(res, "ns1.powerdns.com.", QType::A, ns.toString(), DNSResourceRecord::ADDITIONAL, 3600);
+        return 1;
+      } else if (ip == ns) {
+        if (domain == target1) { // NODATA for TXT, NOERROR for A
+          if (type == QType::TXT) {
+            setLWResult(res, RCode::NoError, true);
+            addRecordToLW(res, "powerdns.com.", QType::SOA, "ns1.powerdns.com. hostmaster.powerdns.com. 2017032800 1800 900 604800 86400", DNSResourceRecord::AUTHORITY, 86400);
+            return 1;
+          }
+          if (type == QType::A) {
+            setLWResult(res, RCode::NoError, true);
+            addRecordToLW(res, domain, QType::A, "192.0.2.1", DNSResourceRecord::ANSWER, 86400);
+            return 1;
+          }
+        }
+        if (domain == target2 || domain == target3) {
+          setLWResult(res, RCode::NXDomain, true);
+          addRecordToLW(res, "powerdns.com.", QType::SOA, "ns1.powerdns.com. hostmaster.powerdns.com. 2017032800 1800 900 604800 86400", DNSResourceRecord::AUTHORITY, 86400);
+          return 1;
+        }
+      }
+      return 0;
+    });
+
+  vector<DNSRecord> ret;
+  int res = sr->beginResolve(target1, QType(QType::TXT), QClass::IN, ret);
+  BOOST_CHECK_EQUAL(res, RCode::NoError);
+  BOOST_CHECK_EQUAL(ret.size(), 1);
+  BOOST_CHECK_EQUAL(queriesCount, 2);
+  BOOST_CHECK_EQUAL(SyncRes::getNegCacheSize(), 1);
+
+  ret.clear();
+  res = sr->beginResolve(target1, QType(QType::A), QClass::IN, ret);
+  BOOST_CHECK_EQUAL(res, RCode::NoError);
+  BOOST_CHECK_EQUAL(ret.size(), 1);
+  BOOST_CHECK_EQUAL(queriesCount, 3);
+  BOOST_CHECK_EQUAL(SyncRes::getNegCacheSize(), 1);
+
+  ret.clear();
+  res = sr->beginResolve(target2, QType(QType::A), QClass::IN, ret);
+  BOOST_CHECK_EQUAL(res, RCode::NXDomain);
+  BOOST_CHECK_EQUAL(ret.size(), 1);
+  BOOST_CHECK_EQUAL(queriesCount, 4);
+  BOOST_CHECK_EQUAL(SyncRes::getNegCacheSize(), 2);
+
+  ret.clear();
+  res = sr->beginResolve(target3, QType(QType::A), QClass::IN, ret);
+  BOOST_CHECK_EQUAL(res, RCode::NXDomain);
+  BOOST_CHECK_EQUAL(ret.size(), 1);
+  BOOST_CHECK_EQUAL(queriesCount, 4);
+  BOOST_CHECK_EQUAL(SyncRes::getNegCacheSize(), 2);
+}
+
+BOOST_AUTO_TEST_CASE(test_rfc8020_nodata_bis) {
+  std::unique_ptr<SyncRes> sr;
+  initSR(sr);
+
+  primeHints();
+
+  const DNSName target1("www.powerdns.com."); // TXT record will be denied
+  const DNSName target2("bar.www.powerdns.com."); // will be NXD, but the www. NODATA should not interfere with 8020 processing
+  const DNSName target3("quux.bar.www.powerdns.com."); // will be NXD, but will not yield a query
+  const ComboAddress ns("192.0.2.1:53");
+  size_t queriesCount = 0;
+
+  sr->setAsyncCallback([ns, target1, target2, target3, &queriesCount](const ComboAddress& ip, const DNSName& domain, int type, bool doTCP, bool sendRDQuery, int EDNS0Level, struct timeval* now, boost::optional<Netmask>& srcmask, boost::optional<const ResolveContext&> context, LWResult* res, bool* chained) {
+
+      queriesCount++;
+
+      if (isRootServer(ip)) {
+        setLWResult(res, 0, false, false, true);
+        addRecordToLW(res, "powerdns.com.", QType::NS, "ns1.powerdns.com.", DNSResourceRecord::AUTHORITY, 172800);
+        addRecordToLW(res, "ns1.powerdns.com.", QType::A, ns.toString(), DNSResourceRecord::ADDITIONAL, 3600);
+        return 1;
+      } else if (ip == ns) {
+        if (domain == target1) { // NODATA for TXT, NOERROR for A
+          if (type == QType::TXT) {
+            setLWResult(res, RCode::NoError, true);
+            addRecordToLW(res, "powerdns.com.", QType::SOA, "ns1.powerdns.com. hostmaster.powerdns.com. 2017032800 1800 900 604800 86400", DNSResourceRecord::AUTHORITY, 86400);
+            return 1;
+          }
+          if (type == QType::A) {
+            setLWResult(res, RCode::NoError, true);
+            addRecordToLW(res, domain, QType::A, "192.0.2.1", DNSResourceRecord::ANSWER, 86400);
+            return 1;
+          }
+        }
+        if (domain == target2 || domain == target3) {
+          setLWResult(res, RCode::NXDomain, true);
+          addRecordToLW(res, "powerdns.com.", QType::SOA, "ns1.powerdns.com. hostmaster.powerdns.com. 2017032800 1800 900 604800 86400", DNSResourceRecord::AUTHORITY, 86400);
+          return 1;
+        }
+      }
+      return 0;
+    });
+
+  vector<DNSRecord> ret;
+  int res = sr->beginResolve(target1, QType(QType::TXT), QClass::IN, ret);
+  BOOST_CHECK_EQUAL(res, RCode::NoError);
+  BOOST_CHECK_EQUAL(ret.size(), 1);
+  BOOST_CHECK_EQUAL(queriesCount, 2);
+  BOOST_CHECK_EQUAL(SyncRes::getNegCacheSize(), 1);
+
+  ret.clear();
+  res = sr->beginResolve(target1, QType(QType::A), QClass::IN, ret);
+  BOOST_CHECK_EQUAL(res, RCode::NoError);
+  BOOST_CHECK_EQUAL(ret.size(), 1);
+  BOOST_CHECK_EQUAL(queriesCount, 3);
+  BOOST_CHECK_EQUAL(SyncRes::getNegCacheSize(), 1);
+
+  ret.clear();
+  res = sr->beginResolve(target2, QType(QType::TXT), QClass::IN, ret);
+  BOOST_CHECK_EQUAL(res, RCode::NXDomain);
+  BOOST_CHECK_EQUAL(ret.size(), 1);
+  BOOST_CHECK_EQUAL(queriesCount, 4);
+  BOOST_CHECK_EQUAL(SyncRes::getNegCacheSize(), 2);
+
+  ret.clear();
+  res = sr->beginResolve(target3, QType(QType::TXT), QClass::IN, ret);
+  BOOST_CHECK_EQUAL(res, RCode::NXDomain);
+  BOOST_CHECK_EQUAL(ret.size(), 1);
+  BOOST_CHECK_EQUAL(queriesCount, 4);
+  BOOST_CHECK_EQUAL(SyncRes::getNegCacheSize(), 2);
+}
+
 BOOST_AUTO_TEST_CASE(test_skip_negcache_for_variable_response) {
   std::unique_ptr<SyncRes> sr;
   initSR(sr);

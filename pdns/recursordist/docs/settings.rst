@@ -1106,6 +1106,21 @@ a new domain is observed.
 
 Number of milliseconds to wait for a remote authoritative server to respond.
 
+.. _setting-nothing-below-nxdomain:
+
+``nothing-below-nxdomain``
+--------------------------
+.. versionadded:: 4.3.0
+
+- Boolean
+- Default: true
+
+Enables :rfc:`8020` handling of cached NXDOMAIN responses.
+This RFC specifies that NXDOMAIN means that the DNS tree under the denied name MUST be empty.
+When an NXDOMAIN exists in the cache for a shorter name than the qname, no lookup is done and an NXDOMAIN is sent to the client.
+
+For instance, when ``foo.example.net`` is negatively cached, any query matching ``*.foo.example.net`` will be answered with NXDOMAIN directly without consulting authoritative servers.
+
 .. _setting-nsec3-max-iterations:
 
 ``nsec3-max-iterations``
