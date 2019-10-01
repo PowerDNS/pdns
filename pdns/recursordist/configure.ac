@@ -108,12 +108,6 @@ AC_ARG_WITH([socketdir],
 
 PDNS_ENABLE_NOD
 
-AM_COND_IF([NOD_ENABLED],
-  [
-  BOOST_FILESYSTEM
-  AS_IF([test -z "$BOOST_FILESYSTEM_LIBS"], [ AC_MSG_ERROR([Boost filesystem library is not installed])])],
-  [])
-
 AC_SUBST([nodcachedir])
 nodcachedir='${localstatedir}/lib/pdns-recursor'
 AC_ARG_WITH([nod-cache-dir],
