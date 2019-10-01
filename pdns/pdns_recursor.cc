@@ -4088,9 +4088,9 @@ static int serviceMain(int argc, char*argv[])
       For years, this was a safe assumption, but containers change that: in
       most (all?) container implementations, the application itself is running
       as pid 1. This means that sending signals to those applications, will not
-      be handled by default. Results might be "you container not responsing
-      when asking it to stop", or "ctrl-c" not working even when the app is
-      running in the foreground inside a container.
+      be handled by default. Results might be "your container not responsing
+      when asking it to stop", or "ctrl-c not working even when the app is
+      running in the foreground inside a container".
 
       So TL;DR: If we're running pid 1 (container), we should handle SIGTERM and SIGINT ourselves */
 
