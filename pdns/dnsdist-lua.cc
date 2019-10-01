@@ -685,9 +685,18 @@ void setupLuaConfig(bool client)
 
   g_lua.writeFunction("webserver", [client](const std::string& address, const std::string& password, const boost::optional<std::string> apiKey, const boost::optional<std::map<std::string, std::string> > customHeaders) {
       setLuaSideEffect();
-      if(client)
-	return;
-      ComboAddress local(address);
+      ComboAddress local;
+      try {
+        local = ComboAddress(address);
+      }
+      catch (const PDNSException& e) {
+        throw std::runtime_error(std::string("Error parsing the bind address for the webserver: ") + e.reason);
+      }
+
+      if (client) {
+        return;
+      }
+
       try {
 	int sock = SSocket(local.sin4.sin_family, SOCK_STREAM, 0);
 	SSetsockopt(sock, SOL_SOCKET, SO_REUSEADDR, 1);
