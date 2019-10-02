@@ -406,6 +406,7 @@ static void connectionThread(int sock, ComboAddress remote)
         resp.status = 200;
 
         std::ostringstream output;
+        static const std::set<std::string> metricBlacklist = { "latency-count", "latency-sum" };
         for (const auto& e : g_stats.entries) {
           if (e.first == "special-memory-usage")
             continue; // Too expensive for get-all
@@ -413,9 +414,11 @@ static void connectionThread(int sock, ComboAddress remote)
 
           // Prometheus suggest using '_' instead of '-'
           std::string prometheusMetricName = "dnsdist_" + boost::replace_all_copy(metricName, "-", "_");
+          if (metricBlacklist.count(metricName) != 0) {
+            continue;
+          }
 
           MetricDefinition metricDetails;
-
           if (!g_metricDefinitions.getMetricDetails(metricName, metricDetails)) {
               vinfolog("Do not have metric details for %s", metricName);
               continue;
@@ -458,6 +461,8 @@ static void connectionThread(int sock, ComboAddress remote)
         output << "dnsdist_latency_bucket{le=\"1000\"} " << latency_amounts << "\n";
         latency_amounts += g_stats.latencySlow; // Should be the same as latency_count
         output << "dnsdist_latency_bucket{le=\"+Inf\"} " << latency_amounts << "\n";
+        output << "dnsdist_latency_sum " << g_stats.latencySum << "\n";
+        output << "dnsdist_latency_count " << getLatencyCount(std::string()) << "\n";
 
         auto states = g_dstates.getLocal();
         const string statesbase = "dnsdist_server_";
