@@ -374,7 +374,7 @@ void setupLuaBindings(bool client)
     if (customHeaders) {
       headers = std::vector<std::pair<std::string, std::string>>();
       for (const auto& header : *customHeaders) {
-        headers->push_back({ header.first, header.second });
+        headers->push_back({ boost::to_lower_copy(header.first), header.second });
       }
     }
     return std::make_shared<DOHResponseMapEntry>(regex, status, content, headers);
