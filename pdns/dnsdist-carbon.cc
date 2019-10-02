@@ -91,6 +91,7 @@ try
           boost::replace_all(serverName, ".", "_");
           const string base = namespace_name + "." + hostname + "." + instance_name + ".servers." + serverName + ".";
           str<<base<<"queries" << ' ' << state->queries.load() << " " << now << "\r\n";
+          str<<base<<"responses" << ' ' << state->responses.load() << " " << now << "\r\n";
           str<<base<<"drops" << ' ' << state->reuseds.load() << " " << now << "\r\n";
           str<<base<<"latency" << ' ' << (state->availability != DownstreamState::Availability::Down ? state->latencyUsec/1000.0 : 0) << " " << now << "\r\n";
           str<<base<<"senderrors" << ' ' << state->sendErrors.load() << " " << now << "\r\n";
@@ -120,6 +121,7 @@ try
 
           const string base = namespace_name + "." + hostname + "." + instance_name + ".frontends." + frontName + ".";
           str<<base<<"queries" << ' ' << front->queries.load() << " " << now << "\r\n";
+          str<<base<<"responses" << ' ' << front->responses.load() << " " << now << "\r\n";
           str<<base<<"tcpdiedreadingquery" << ' '<< front->tcpDiedReadingQuery.load() << " " << now << "\r\n";
           str<<base<<"tcpdiedsendingresponse" << ' '<< front->tcpDiedSendingResponse.load() << " " << now << "\r\n";
           str<<base<<"tcpgaveup" << ' '<< front->tcpGaveUp.load() << " " << now << "\r\n";

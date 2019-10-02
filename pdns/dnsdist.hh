@@ -679,6 +679,7 @@ struct ClientState
   std::shared_ptr<DOHFrontend> dohFrontend{nullptr};
   std::string interface;
   std::atomic<uint64_t> queries{0};
+  mutable std::atomic<uint64_t> responses{0};
   std::atomic<uint64_t> tcpDiedReadingQuery{0};
   std::atomic<uint64_t> tcpDiedSendingResponse{0};
   std::atomic<uint64_t> tcpGaveUp{0};
@@ -858,6 +859,7 @@ struct DownstreamState
   std::atomic<uint64_t> outstanding{0};
   std::atomic<uint64_t> reuseds{0};
   std::atomic<uint64_t> queries{0};
+  std::atomic<uint64_t> responses{0};
   struct {
     std::atomic<uint64_t> sendErrors{0};
     std::atomic<uint64_t> reuseds{0};
