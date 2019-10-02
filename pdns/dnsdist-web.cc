@@ -406,6 +406,7 @@ static void connectionThread(int sock, ComboAddress remote)
         resp.status = 200;
 
         std::ostringstream output;
+        static const std::set<std::string> metricBlacklist = { "latency-count", "latency-sum" };
         for (const auto& e : g_stats.entries) {
           if (e.first == "special-memory-usage")
             continue; // Too expensive for get-all
@@ -413,9 +414,11 @@ static void connectionThread(int sock, ComboAddress remote)
 
           // Prometheus suggest using '_' instead of '-'
           std::string prometheusMetricName = "dnsdist_" + boost::replace_all_copy(metricName, "-", "_");
+          if (metricBlacklist.count(metricName) != 0) {
+            continue;
+          }
 
           MetricDefinition metricDetails;
-
           if (!g_metricDefinitions.getMetricDetails(metricName, metricDetails)) {
               vinfolog("Do not have metric details for %s", metricName);
               continue;
@@ -458,12 +461,16 @@ static void connectionThread(int sock, ComboAddress remote)
         output << "dnsdist_latency_bucket{le=\"1000\"} " << latency_amounts << "\n";
         latency_amounts += g_stats.latencySlow; // Should be the same as latency_count
         output << "dnsdist_latency_bucket{le=\"+Inf\"} " << latency_amounts << "\n";
+        output << "dnsdist_latency_sum " << g_stats.latencySum << "\n";
+        output << "dnsdist_latency_count " << getLatencyCount(std::string()) << "\n";
 
         auto states = g_dstates.getLocal();
         const string statesbase = "dnsdist_server_";
 
         output << "# HELP " << statesbase << "queries "                << "Amount of queries relayed to server"                               << "\n";
         output << "# TYPE " << statesbase << "queries "                << "counter"                                                           << "\n";
+        output << "# HELP " << statesbase << "responses "              << "Amount of responses received from this server"                     << "\n";
+        output << "# TYPE " << statesbase << "responses "              << "counter"                                                           << "\n";
         output << "# HELP " << statesbase << "drops "                  << "Amount of queries not answered by server"                          << "\n";
         output << "# TYPE " << statesbase << "drops "                  << "counter"                                                           << "\n";
         output << "# HELP " << statesbase << "latency "                << "Server's latency when answering questions in milliseconds"         << "\n";
@@ -507,6 +514,7 @@ static void connectionThread(int sock, ComboAddress remote)
             % serverName % state->remote.toStringWithPort());
 
           output << statesbase << "queries"                << label << " " << state->queries.load()             << "\n";
+          output << statesbase << "responses"              << label << " " << state->responses.load()           << "\n";
           output << statesbase << "drops"                  << label << " " << state->reuseds.load()             << "\n";
           output << statesbase << "latency"                << label << " " << state->latencyUsec/1000.0         << "\n";
           output << statesbase << "senderrors"             << label << " " << state->sendErrors.load()          << "\n";
@@ -526,6 +534,8 @@ static void connectionThread(int sock, ComboAddress remote)
         const string frontsbase = "dnsdist_frontend_";
         output << "# HELP " << frontsbase << "queries " << "Amount of queries received by this frontend" << "\n";
         output << "# TYPE " << frontsbase << "queries " << "counter" << "\n";
+        output << "# HELP " << frontsbase << "responses " << "Amount of responses sent by this frontend" << "\n";
+        output << "# TYPE " << frontsbase << "responses " << "counter" << "\n";
         output << "# HELP " << frontsbase << "tcpdiedreadingquery " << "Amount of TCP connections terminated while reading the query from the client" << "\n";
         output << "# TYPE " << frontsbase << "tcpdiedreadingquery " << "counter" << "\n";
         output << "# HELP " << frontsbase << "tcpdiedsendingresponse " << "Amount of TCP connections terminated while sending a response to the client" << "\n";
@@ -534,8 +544,8 @@ static void connectionThread(int sock, ComboAddress remote)
         output << "# TYPE " << frontsbase << "tcpgaveup " << "counter" << "\n";
         output << "# HELP " << frontsbase << "tcpclientimeouts " << "Amount of TCP connections terminated by a timeout while reading from the client" << "\n";
         output << "# TYPE " << frontsbase << "tcpclientimeouts " << "counter" << "\n";
-        output << "# HELP " << frontsbase << "tcpdownstreamimeouts " << "Amount of TCP connections terminated by a timeout while reading from the backend" << "\n";
-        output << "# TYPE " << frontsbase << "tcpdownstreamimeouts " << "counter" << "\n";
+        output << "# HELP " << frontsbase << "tcpdownstreamtimeouts " << "Amount of TCP connections terminated by a timeout while reading from the backend" << "\n";
+        output << "# TYPE " << frontsbase << "tcpdownstreamtimeouts " << "counter" << "\n";
         output << "# HELP " << frontsbase << "tcpcurrentconnections " << "Amount of current incoming TCP connections from clients" << "\n";
         output << "# TYPE " << frontsbase << "tcpcurrentconnections " << "gauge" << "\n";
         output << "# HELP " << frontsbase << "tcpavgqueriesperconnection " << "The average number of queries per TCP connection" << "\n";
@@ -564,6 +574,7 @@ static void connectionThread(int sock, ComboAddress remote)
             % frontName % proto);
 
           output << frontsbase << "queries" << label << front->queries.load() << "\n";
+          output << frontsbase << "responses" << label << front->responses.load() << "\n";
           if (front->isTCP()) {
             output << frontsbase << "tcpdiedreadingquery" << label << front->tcpDiedReadingQuery.load() << "\n";
             output << frontsbase << "tcpdiedsendingresponse" << label << front->tcpDiedSendingResponse.load() << "\n";
@@ -600,8 +611,15 @@ static void connectionThread(int sock, ComboAddress remote)
         output << "# TYPE " << frontsbase << "doh_version_status_responses " << "counter" << "\n";
 
 #ifdef HAVE_DNS_OVER_HTTPS
+        std::map<std::string,uint64_t> dohFrontendDuplicates;
         for(const auto& doh : g_dohlocals) {
-          const std::string addrlabel = boost::str(boost::format("address=\"%1%\" ") % doh->d_local.toStringWithPort());
+          string frontName = doh->d_local.toStringWithPort();
+          auto dupPair = frontendDuplicates.insert({frontName, 1});
+          if (!dupPair.second) {
+            frontName = frontName + "_" + std::to_string(dupPair.first->second);
+            ++(dupPair.first->second);
+          }
+          const std::string addrlabel = boost::str(boost::format("address=\"%1%\"") % frontName);
           const std::string label = "{" + addrlabel + "} ";
 
           output << frontsbase << "http_connects" << label << doh->d_httpconnects << "\n";
@@ -641,6 +659,10 @@ static void connectionThread(int sock, ComboAddress remote)
 
         auto localPools = g_pools.getLocal();
         const string cachebase = "dnsdist_pool_";
+        output << "# HELP dnsdist_pool_servers " << "Number of servers in that pool" << "\n";
+        output << "# TYPE dnsdist_pool_servers " << "gauge" << "\n";
+        output << "# HELP dnsdist_pool_active_servers " << "Number of available servers in that pool" << "\n";
+        output << "# TYPE dnsdist_pool_active_servers " << "gauge" << "\n";
 
         for (const auto& entry : *localPools) {
           string poolName = entry.first;
@@ -706,6 +728,7 @@ static void connectionThread(int sock, ComboAddress remote)
           {"pools", pools},
           {"latency", (double)(a->latencyUsec/1000.0)},
           {"queries", (double)a->queries},
+          {"responses", (double)a->responses},
           {"sendErrors", (double)a->sendErrors},
           {"tcpDiedSendingQuery", (double)a->tcpDiedSendingQuery},
           {"tcpDiedReadingResponse", (double)a->tcpDiedReadingResponse},
@@ -738,6 +761,7 @@ static void connectionThread(int sock, ComboAddress remote)
           { "tcp", front->tcpFD >= 0 },
           { "type", front->getType() },
           { "queries", (double) front->queries.load() },
+          { "responses", (double) front->responses.load() },
           { "tcpDiedReadingQuery", (double) front->tcpDiedReadingQuery.load() },
           { "tcpDiedSendingResponse", (double) front->tcpDiedSendingResponse.load() },
           { "tcpGaveUp", (double) front->tcpGaveUp.load() },

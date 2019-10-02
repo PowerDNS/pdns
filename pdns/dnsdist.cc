@@ -630,6 +630,8 @@ try {
         }
 
         ++g_stats.responses;
+        ++ids->cs->responses;
+        ++dss->responses;
 
         double udiff = ids->sentTime.udiff();
         vinfolog("Got answer from %s, relayed to %s%s, took %f usec", dss->remote.toStringWithPort(), ids->origRemote.toStringWithPort(),
@@ -1442,6 +1444,7 @@ ProcessQueryResult processQuery(DNSQuestion& dq, ClientState& cs, LocalHolders& 
       }
 
       ++g_stats.selfAnswered;
+      ++cs.responses;
       return ProcessQueryResult::SendAnswer;
     }
 

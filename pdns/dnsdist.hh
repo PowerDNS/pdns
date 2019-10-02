@@ -396,9 +396,6 @@ struct MetricDefinitionStorage {
     { "dyn-blocked",            MetricDefinition(PrometheusMetricType::counter, "Number of queries dropped because of a dynamic block")},
     { "dyn-block-nmg-size",     MetricDefinition(PrometheusMetricType::gauge,   "Number of dynamic blocks entries") },
     { "security-status",        MetricDefinition(PrometheusMetricType::gauge,   "Security status of this software. 0=unknown, 1=OK, 2=upgrade recommended, 3=upgrade mandatory") },
-    // Latency histogram
-    { "latency-sum",            MetricDefinition(PrometheusMetricType::counter, "Total response time in milliseconds")},
-    { "latency-count",          MetricDefinition(PrometheusMetricType::counter, "Number of queries contributing to response time histogram")},
   };
 };
 
@@ -679,6 +676,7 @@ struct ClientState
   std::shared_ptr<DOHFrontend> dohFrontend{nullptr};
   std::string interface;
   std::atomic<uint64_t> queries{0};
+  mutable std::atomic<uint64_t> responses{0};
   std::atomic<uint64_t> tcpDiedReadingQuery{0};
   std::atomic<uint64_t> tcpDiedSendingResponse{0};
   std::atomic<uint64_t> tcpGaveUp{0};
@@ -858,6 +856,7 @@ struct DownstreamState
   std::atomic<uint64_t> outstanding{0};
   std::atomic<uint64_t> reuseds{0};
   std::atomic<uint64_t> queries{0};
+  std::atomic<uint64_t> responses{0};
   struct {
     std::atomic<uint64_t> sendErrors{0};
     std::atomic<uint64_t> reuseds{0};

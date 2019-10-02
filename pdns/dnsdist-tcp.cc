@@ -763,9 +763,16 @@ static void handleResponse(std::shared_ptr<IncomingTCPConnectionState>& state, s
   if (state->d_isXFR && !state->d_xfrStarted) {
     /* don't bother parsing the content of the response for now */
     state->d_xfrStarted = true;
+    ++g_stats.responses;
+    ++state->d_ci.cs->responses;
+    ++state->d_ds->responses;
   }
 
-  ++g_stats.responses;
+  if (!state->d_isXFR) {
+    ++g_stats.responses;
+    ++state->d_ci.cs->responses;
+    ++state->d_ds->responses;
+  }
 
   sendResponse(state, now);
 }
