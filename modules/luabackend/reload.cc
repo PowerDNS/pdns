@@ -56,7 +56,7 @@ void LUABackend::reload() {
     
     backend_name.clear();
 
-    backend_name = "[LUABackend: " + uitoa(backend_pid) + " (" + uitoa(backend_count) +")] ";
+    backend_name = "[LUABackend: " + uitoa((uintptr_t)backend_pid) + " (" + uitoa(backend_count) +")] ";
     
     if (lua)
 	lua_close(lua);
