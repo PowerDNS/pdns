@@ -3,17 +3,27 @@ AC_DEFUN([PDNS_ENABLE_NOD],[
 
   AC_ARG_ENABLE([nod],
     AS_HELP_STRING([--enable-nod],
-      [enable newly observed domains @<:@default=no@:>@]
+      [enable newly observed domains @<:@default=auto@:>@]
     ),
     [enable_nod=$enableval],
-    [enable_nod=no]
+    [enable_nod=auto]
   )
 
-  AS_IF([test "x$enable_nod" != "xno"],
-    [AC_DEFINE([NOD_ENABLED], [1], [Define to 1 if nod is enabled])]
-  )
+  BOOST_FILESYSTEM([], [no])
 
-  AM_CONDITIONAL([NOD_ENABLED], [test "x$enable_nod" != "xno"])
+  AS_IF([test "x$enable_nod" = "xyes"], [
+    AS_IF([test "x$BOOST_FILESYSTEM_LIBS" = "x"],
+      [AC_MSG_ERROR([Boost filesystem library required by NOD is not installed])])
+  ]
+  )
+  AS_IF([test "x$enable_nod" = "xauto"], [
+    AS_IF([test "x$BOOST_FILESYSTEM_LIBS" != "x"],
+       [enable_nod="yes"], [enable_nod="no"])
+  ])
+
+  AM_CONDITIONAL([NOD_ENABLED], [test "x$enable_nod" = "xyes"])
+  AS_IF([test "x$enable_nod" = "xyes"], [AC_DEFINE([NOD_ENABLED],
+             [1], [Define to 1 if nod is enabled])])
 
   AC_MSG_RESULT([$enable_nod])
 ])

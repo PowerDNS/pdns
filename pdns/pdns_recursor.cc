@@ -1077,17 +1077,6 @@ static bool nodCheckNewDomain(const DNSName& dname)
   return ret;
 }
 
-static void nodAddDomain(const DNSName& dname)
-{
-  // Don't bother adding domains on the nod whitelist
-  if (!g_nodDomainWL.check(dname)) {  
-    if (t_nodDBp) {
-      // This keeps the nod info up to date
-      t_nodDBp->addDomain(dname);
-    }
-  }
-}
-
 static bool udrCheckUniqueDNSRecord(const DNSName& dname, uint16_t qtype, const DNSRecord& record)
 {
   bool ret = false;
