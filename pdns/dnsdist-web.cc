@@ -652,6 +652,10 @@ static void connectionThread(int sock, ComboAddress remote)
 
         auto localPools = g_pools.getLocal();
         const string cachebase = "dnsdist_pool_";
+        output << "# HELP dnsdist_pool_servers " << "Number of servers in that pool" << "\n";
+        output << "# TYPE dnsdist_pool_servers " << "gauge" << "\n";
+        output << "# HELP dnsdist_pool_active_servers " << "Number of available servers in that pool" << "\n";
+        output << "# TYPE dnsdist_pool_active_servers " << "gauge" << "\n";
 
         for (const auto& entry : *localPools) {
           string poolName = entry.first;
