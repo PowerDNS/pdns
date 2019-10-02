@@ -61,4 +61,4 @@ override_dh_gencontrol:
 override_dh_fixperms:
 	dh_fixperms
         # these files often contain passwords. 640 as it is chowned to root:pdns
-	chmod 0640 debian/pdns-server/etc/powerdns/recursor.conf
+	chmod 0640 debian/tmp/etc/powerdns/recursor.conf
