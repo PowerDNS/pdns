@@ -611,8 +611,15 @@ static void connectionThread(int sock, ComboAddress remote)
         output << "# TYPE " << frontsbase << "doh_version_status_responses " << "counter" << "\n";
 
 #ifdef HAVE_DNS_OVER_HTTPS
+        std::map<std::string,uint64_t> dohFrontendDuplicates;
         for(const auto& doh : g_dohlocals) {
-          const std::string addrlabel = boost::str(boost::format("address=\"%1%\" ") % doh->d_local.toStringWithPort());
+          string frontName = doh->d_local.toStringWithPort();
+          auto dupPair = frontendDuplicates.insert({frontName, 1});
+          if (!dupPair.second) {
+            frontName = frontName + "_" + std::to_string(dupPair.first->second);
+            ++(dupPair.first->second);
+          }
+          const std::string addrlabel = boost::str(boost::format("address=\"%1%\"") % frontName);
           const std::string label = "{" + addrlabel + "} ";
 
           output << frontsbase << "http_connects" << label << doh->d_httpconnects << "\n";
