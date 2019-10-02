@@ -415,8 +415,12 @@ try
     NS = N;
   }
 
+  unique_ptr<DNSPacket> question;
   for(;;) {
-    unique_ptr<DNSPacket> question = make_unique<DNSPacket>(true);
+    // On first iteration and whenever the object was moved to the distributor, reallocate
+    if (!question) {
+      question = make_unique<DNSPacket>(true);
+    }
     if(!NS->receive(*question, buffer)) { // receive a packet         inline
       continue;                    // packet was broken, try again
     }
