@@ -544,8 +544,8 @@ static void connectionThread(int sock, ComboAddress remote)
         output << "# TYPE " << frontsbase << "tcpgaveup " << "counter" << "\n";
         output << "# HELP " << frontsbase << "tcpclientimeouts " << "Amount of TCP connections terminated by a timeout while reading from the client" << "\n";
         output << "# TYPE " << frontsbase << "tcpclientimeouts " << "counter" << "\n";
-        output << "# HELP " << frontsbase << "tcpdownstreamimeouts " << "Amount of TCP connections terminated by a timeout while reading from the backend" << "\n";
-        output << "# TYPE " << frontsbase << "tcpdownstreamimeouts " << "counter" << "\n";
+        output << "# HELP " << frontsbase << "tcpdownstreamtimeouts " << "Amount of TCP connections terminated by a timeout while reading from the backend" << "\n";
+        output << "# TYPE " << frontsbase << "tcpdownstreamtimeouts " << "counter" << "\n";
         output << "# HELP " << frontsbase << "tcpcurrentconnections " << "Amount of current incoming TCP connections from clients" << "\n";
         output << "# TYPE " << frontsbase << "tcpcurrentconnections " << "gauge" << "\n";
         output << "# HELP " << frontsbase << "tcpavgqueriesperconnection " << "The average number of queries per TCP connection" << "\n";
