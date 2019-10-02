@@ -824,8 +824,8 @@ struct DownstreamState
 {
    typedef std::function<std::tuple<DNSName, uint16_t, uint16_t>(const DNSName&, uint16_t, uint16_t, dnsheader*)> checkfunc_t;
 
-  DownstreamState(const ComboAddress& remote_, const ComboAddress& sourceAddr_, unsigned int sourceItf, size_t numberOfSockets);
-  DownstreamState(const ComboAddress& remote_): DownstreamState(remote_, ComboAddress(), 0, 1) {}
+  DownstreamState(const ComboAddress& remote_, const ComboAddress& sourceAddr_, unsigned int sourceItf, const std::string& sourceItfName, size_t numberOfSockets);
+  DownstreamState(const ComboAddress& remote_): DownstreamState(remote_, ComboAddress(), 0, std::string(), 1) {}
   ~DownstreamState()
   {
     for (auto& fd : sockets) {
@@ -839,6 +839,7 @@ struct DownstreamState
   std::set<unsigned int> hashes;
   mutable pthread_rwlock_t d_lock;
   std::vector<int> sockets;
+  const std::string sourceItfName;
   std::mutex socketsLock;
   std::mutex connectLock;
   std::unique_ptr<FDMultiplexer> mplexer{nullptr};

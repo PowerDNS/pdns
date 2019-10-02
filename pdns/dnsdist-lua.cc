@@ -195,6 +195,7 @@ void setupLuaConfig(bool client)
       }
 
       ComboAddress sourceAddr;
+      std::string sourceItfName;
       unsigned int sourceItf = 0;
       size_t numberOfSockets = 1;
       std::set<int> cpus;
@@ -224,8 +225,8 @@ void setupLuaConfig(bool client)
 			  if (parsed == false)
 			  {
 			    /* try to parse as interface name, or v4/v6@itf */
-			    string itfName = source.substr(pos == std::string::npos ? 0 : pos + 1);
-			    unsigned int itfIdx = if_nametoindex(itfName.c_str());
+			    string sourceItfName = source.substr(pos == std::string::npos ? 0 : pos + 1);
+			    unsigned int itfIdx = if_nametoindex(sourceItfName.c_str());
 
 			    if (itfIdx != 0) {
 			      if (pos == 0 || pos == std::string::npos) {
@@ -240,7 +241,7 @@ void setupLuaConfig(bool client)
 			    }
 			    else
 			    {
-			      warnlog("Dismissing source %s because '%s' is not a valid interface name", source, itfName);
+			      warnlog("Dismissing source %s because '%s' is not a valid interface name", source, sourceItfName);
 			    }
 			  }
 			}
@@ -257,7 +258,7 @@ void setupLuaConfig(bool client)
         // do not construct DownstreamState now, it would try binding sockets.
         return ret;
       }
-      ret=std::make_shared<DownstreamState>(serverAddr, sourceAddr, sourceItf, numberOfSockets);
+      ret=std::make_shared<DownstreamState>(serverAddr, sourceAddr, sourceItf, sourceItfName, numberOfSockets);
 
 			if(vars.count("qps")) {
 			  int qpsVal=std::stoi(boost::get<string>(vars["qps"]));
