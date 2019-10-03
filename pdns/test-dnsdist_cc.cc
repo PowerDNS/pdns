@@ -42,15 +42,15 @@ BOOST_AUTO_TEST_SUITE(test_dnsdist_cc)
 static const uint16_t ECSSourcePrefixV4 = 24;
 static const uint16_t ECSSourcePrefixV6 = 56;
 
-static void validateQuery(const char * packet, size_t packetSize, bool hasEdns=true, bool hasXPF=false, uint16_t additionals=0)
+static void validateQuery(const char * packet, size_t packetSize, bool hasEdns=true, bool hasXPF=false, uint16_t additionals=0, uint16_t answers=0, uint16_t authorities=0)
 {
   MOADNSParser mdp(true, packet, packetSize);
 
   BOOST_CHECK_EQUAL(mdp.d_qname.toString(), "www.powerdns.com.");
 
   BOOST_CHECK_EQUAL(mdp.d_header.qdcount, 1U);
-  BOOST_CHECK_EQUAL(mdp.d_header.ancount, 0U);
-  BOOST_CHECK_EQUAL(mdp.d_header.nscount, 0U);
+  BOOST_CHECK_EQUAL(mdp.d_header.ancount, answers);
+  BOOST_CHECK_EQUAL(mdp.d_header.nscount, authorities);
   uint16_t expectedARCount = additionals + (hasEdns ? 1U : 0U) + (hasXPF ? 1U : 0U);
   BOOST_CHECK_EQUAL(mdp.d_header.arcount, expectedARCount);
 }
@@ -692,6 +692,118 @@ BOOST_AUTO_TEST_CASE(replaceECSFollowedByTSIG) {
   validateQuery(reinterpret_cast<char*>(query.data()), len, true, false, 1);
 }
 
+BOOST_AUTO_TEST_CASE(replaceECSAfterAN) {
+  bool ednsAdded = false;
+  bool ecsAdded = false;
+  ComboAddress remote("192.168.1.25");
+  DNSName name("www.powerdns.com.");
+  ComboAddress origRemote("127.0.0.1");
+  string newECSOption;
+  generateECSOption(remote, newECSOption, remote.sin4.sin_family == AF_INET ? ECSSourcePrefixV4 : ECSSourcePrefixV6);
+
+  vector<uint8_t> query;
+  DNSPacketWriter pw(query, name, QType::A, QClass::IN, 0);
+  pw.getHeader()->rd = 1;
+  pw.startRecord(DNSName("powerdns.com."), QType::A, 0, QClass::IN, DNSResourceRecord::ANSWER, true);
+  pw.commit();
+  EDNSSubnetOpts ecsOpts;
+  ecsOpts.source = Netmask(origRemote, 8);
+  string origECSOption = makeEDNSSubnetOptsString(ecsOpts);
+  DNSPacketWriter::optvect_t opts;
+  opts.push_back(make_pair(EDNSOptionCode::ECS, origECSOption));
+  pw.addOpt(512, 0, 0, opts);
+  pw.commit();
+  uint16_t len = query.size();
+
+  /* large enough packet */
+  char packet[1500];
+  memcpy(packet, query.data(), query.size());
+
+  unsigned int consumed = 0;
+  uint16_t qtype;
+  DNSName qname(packet, len, sizeof(dnsheader), false, &qtype, NULL, &consumed);
+  BOOST_CHECK_EQUAL(qname, name);
+  BOOST_CHECK(qtype == QType::A);
+
+  BOOST_CHECK(handleEDNSClientSubnet(packet, sizeof packet, consumed, &len, ednsAdded, ecsAdded, true, newECSOption, false));
+  BOOST_CHECK((size_t) len > query.size());
+  BOOST_CHECK_EQUAL(ednsAdded, false);
+  BOOST_CHECK_EQUAL(ecsAdded, false);
+  validateQuery(packet, len, true, false, 0, 1, 0);
+  validateECS(packet, len, remote);
+
+  /* not large enough packet */
+  ednsAdded = false;
+  ecsAdded = false;
+  consumed = 0;
+  len = query.size();
+  qname = DNSName(reinterpret_cast<char*>(query.data()), len, sizeof(dnsheader), false, &qtype, NULL, &consumed);
+  BOOST_CHECK_EQUAL(qname, name);
+  BOOST_CHECK(qtype == QType::A);
+
+  BOOST_CHECK(!handleEDNSClientSubnet(reinterpret_cast<char*>(query.data()), query.size(), consumed, &len, ednsAdded, ecsAdded, true, newECSOption, false));
+  BOOST_CHECK_EQUAL((size_t) len, query.size());
+  BOOST_CHECK_EQUAL(ednsAdded, false);
+  BOOST_CHECK_EQUAL(ecsAdded, false);
+  validateQuery(reinterpret_cast<char*>(query.data()), len, true, false, 0, 1, 0);
+}
+
+BOOST_AUTO_TEST_CASE(replaceECSAfterAuth) {
+  bool ednsAdded = false;
+  bool ecsAdded = false;
+  ComboAddress remote("192.168.1.25");
+  DNSName name("www.powerdns.com.");
+  ComboAddress origRemote("127.0.0.1");
+  string newECSOption;
+  generateECSOption(remote, newECSOption, remote.sin4.sin_family == AF_INET ? ECSSourcePrefixV4 : ECSSourcePrefixV6);
+
+  vector<uint8_t> query;
+  DNSPacketWriter pw(query, name, QType::A, QClass::IN, 0);
+  pw.getHeader()->rd = 1;
+  pw.startRecord(DNSName("powerdns.com."), QType::A, 0, QClass::IN, DNSResourceRecord::AUTHORITY, true);
+  pw.commit();
+  EDNSSubnetOpts ecsOpts;
+  ecsOpts.source = Netmask(origRemote, 8);
+  string origECSOption = makeEDNSSubnetOptsString(ecsOpts);
+  DNSPacketWriter::optvect_t opts;
+  opts.push_back(make_pair(EDNSOptionCode::ECS, origECSOption));
+  pw.addOpt(512, 0, 0, opts);
+  pw.commit();
+  uint16_t len = query.size();
+
+  /* large enough packet */
+  char packet[1500];
+  memcpy(packet, query.data(), query.size());
+
+  unsigned int consumed = 0;
+  uint16_t qtype;
+  DNSName qname(packet, len, sizeof(dnsheader), false, &qtype, NULL, &consumed);
+  BOOST_CHECK_EQUAL(qname, name);
+  BOOST_CHECK(qtype == QType::A);
+
+  BOOST_CHECK(handleEDNSClientSubnet(packet, sizeof packet, consumed, &len, ednsAdded, ecsAdded, true, newECSOption, false));
+  BOOST_CHECK((size_t) len > query.size());
+  BOOST_CHECK_EQUAL(ednsAdded, false);
+  BOOST_CHECK_EQUAL(ecsAdded, false);
+  validateQuery(packet, len, true, false, 0, 0, 1);
+  validateECS(packet, len, remote);
+
+  /* not large enough packet */
+  ednsAdded = false;
+  ecsAdded = false;
+  consumed = 0;
+  len = query.size();
+  qname = DNSName(reinterpret_cast<char*>(query.data()), len, sizeof(dnsheader), false, &qtype, NULL, &consumed);
+  BOOST_CHECK_EQUAL(qname, name);
+  BOOST_CHECK(qtype == QType::A);
+
+  BOOST_CHECK(!handleEDNSClientSubnet(reinterpret_cast<char*>(query.data()), query.size(), consumed, &len, ednsAdded, ecsAdded, true, newECSOption, false));
+  BOOST_CHECK_EQUAL((size_t) len, query.size());
+  BOOST_CHECK_EQUAL(ednsAdded, false);
+  BOOST_CHECK_EQUAL(ecsAdded, false);
+  validateQuery(reinterpret_cast<char*>(query.data()), len, true, false, 0, 0, 1);
+}
+
 BOOST_AUTO_TEST_CASE(replaceECSBetweenTwoRecords) {
   bool ednsAdded = false;
   bool ecsAdded = false;
@@ -850,6 +962,7 @@ BOOST_AUTO_TEST_CASE(insertECSAfterTSIG) {
   BOOST_CHECK_EQUAL(ecsAdded, false);
   validateQuery(reinterpret_cast<char*>(query.data()), len, true, false);
 }
+
 
 BOOST_AUTO_TEST_CASE(removeEDNSWhenFirst) {
   DNSName name("www.powerdns.com.");

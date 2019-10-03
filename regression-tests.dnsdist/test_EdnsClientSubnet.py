@@ -531,6 +531,90 @@ class TestEdnsClientSubnetOverride(DNSDistTest):
             self.checkQueryEDNSWithECS(expectedQuery, receivedQuery, 2)
             self.checkResponseEDNSWithECS(expectedResponse, receivedResponse, 2)
 
+    def testWithAnswerThenECS(self):
+        """
+        ECS: Record in answer followed by an existing EDNS with ECS
+
+        Send a query with a record in the answer section, EDNS and an existing ECS value.
+        Check that the query received by the responder
+        has a valid ECS value and that the response
+        received from dnsdist contains an EDNS pseudo-RR.
+        """
+        name = 'record-in-an-withecs.ecs.tests.powerdns.com.'
+        ecso = clientsubnetoption.ClientSubnetOption('192.0.2.1', 24)
+        eco = cookiesoption.CookiesOption(b'deadbeef', b'deadbeef')
+        rewrittenEcso = clientsubnetoption.ClientSubnetOption('127.0.0.1', 24)
+        rrset = dns.rrset.from_text(name,
+                                    3600,
+                                    dns.rdataclass.IN,
+                                    dns.rdatatype.A,
+                                    '127.0.0.1')
+
+        query = dns.message.make_query(name, 'A', 'IN', use_edns=True, payload=4096, options=[eco,ecso,eco])
+        query.answer.append(rrset)
+        expectedQuery = dns.message.make_query(name, 'A', 'IN', use_edns=True, payload=4096, options=[eco,eco,rewrittenEcso])
+        expectedQuery.answer.append(rrset)
+
+        response = dns.message.make_response(expectedQuery)
+        response.use_edns(edns=True, payload=4096, options=[eco, ecso, eco])
+        expectedResponse = dns.message.make_response(query)
+        expectedResponse.use_edns(edns=True, payload=4096, options=[eco, ecso, eco])
+        response.answer.append(rrset)
+        response.additional.append(rrset)
+        expectedResponse.answer.append(rrset)
+        expectedResponse.additional.append(rrset)
+
+        for method in ("sendUDPQuery", "sendTCPQuery"):
+            sender = getattr(self, method)
+            (receivedQuery, receivedResponse) = sender(query, response)
+            self.assertTrue(receivedQuery)
+            self.assertTrue(receivedResponse)
+            receivedQuery.id = expectedQuery.id
+            self.checkQueryEDNSWithECS(expectedQuery, receivedQuery, 2)
+            self.checkResponseEDNSWithECS(expectedResponse, receivedResponse, 2)
+
+    def testWithAuthThenECS(self):
+        """
+        ECS: Record in authority followed by an existing EDNS with ECS
+
+        Send a query with a record in the authority section, EDNS and an existing ECS value.
+        Check that the query received by the responder
+        has a valid ECS value and that the response
+        received from dnsdist contains an EDNS pseudo-RR.
+        """
+        name = 'record-in-an-withecs.ecs.tests.powerdns.com.'
+        ecso = clientsubnetoption.ClientSubnetOption('192.0.2.1', 24)
+        eco = cookiesoption.CookiesOption(b'deadbeef', b'deadbeef')
+        rewrittenEcso = clientsubnetoption.ClientSubnetOption('127.0.0.1', 24)
+        rrset = dns.rrset.from_text(name,
+                                    3600,
+                                    dns.rdataclass.IN,
+                                    dns.rdatatype.A,
+                                    '127.0.0.1')
+
+        query = dns.message.make_query(name, 'A', 'IN', use_edns=True, payload=4096, options=[eco,ecso,eco])
+        query.authority.append(rrset)
+        expectedQuery = dns.message.make_query(name, 'A', 'IN', use_edns=True, payload=4096, options=[eco,eco,rewrittenEcso])
+        expectedQuery.authority.append(rrset)
+
+        response = dns.message.make_response(expectedQuery)
+        response.use_edns(edns=True, payload=4096, options=[eco, ecso, eco])
+        expectedResponse = dns.message.make_response(query)
+        expectedResponse.use_edns(edns=True, payload=4096, options=[eco, ecso, eco])
+        response.answer.append(rrset)
+        response.additional.append(rrset)
+        expectedResponse.answer.append(rrset)
+        expectedResponse.additional.append(rrset)
+
+        for method in ("sendUDPQuery", "sendTCPQuery"):
+            sender = getattr(self, method)
+            (receivedQuery, receivedResponse) = sender(query, response)
+            self.assertTrue(receivedQuery)
+            self.assertTrue(receivedResponse)
+            receivedQuery.id = expectedQuery.id
+            self.checkQueryEDNSWithECS(expectedQuery, receivedQuery, 2)
+            self.checkResponseEDNSWithECS(expectedResponse, receivedResponse, 2)
+
     def testWithEDNSNoECSFollowedByAnother(self):
         """
         ECS: Existing EDNS without ECS, followed by another record

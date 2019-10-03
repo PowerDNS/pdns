@@ -503,7 +503,7 @@ bool parseEDNSOptions(DNSQuestion& dq)
 
   dq.ednsOptions = std::make_shared<std::map<uint16_t, EDNSOptionView> >();
 
-  if (ntohs(dq.dh->arcount) != 0 && ntohs(dq.dh->arcount) != 1) {
+  if (ntohs(dq.dh->ancount) != 0 || ntohs(dq.dh->nscount) != 0 || (ntohs(dq.dh->arcount) != 0 && ntohs(dq.dh->arcount) != 1)) {
     return slowParseEDNSOptions(reinterpret_cast<const char*>(dq.dh), dq.len, dq.ednsOptions);
   }
 
@@ -586,7 +586,7 @@ bool handleEDNSClientSubnet(char* const packet, const size_t packetSize, const u
 
   const struct dnsheader* dh = reinterpret_cast<const struct dnsheader*>(packet);
 
-  if (ntohs(dh->arcount) != 0 && ntohs(dh->arcount) != 1) {
+  if (ntohs(dh->ancount) != 0 || ntohs(dh->nscount) != 0 || (ntohs(dh->arcount) != 0 && ntohs(dh->arcount) != 1)) {
     vector<uint8_t> newContent;
     newContent.reserve(packetSize);
 
