@@ -16,6 +16,8 @@ import dns.message
 import libnacl
 import libnacl.utils
 
+from eqdnsmessage import AssertEqualDNSMessageMixin
+
 # Python2/3 compatibility hacks
 try:
   from queue import Queue
@@ -28,7 +30,7 @@ except NameError:
   pass
 
 
-class DNSDistTest(unittest.TestCase):
+class DNSDistTest(AssertEqualDNSMessageMixin, unittest.TestCase):
     """
     Set up a dnsdist instance and responder threads.
     Queries sent to dnsdist are relayed to the responder threads,
@@ -440,8 +442,6 @@ class DNSDistTest(unittest.TestCase):
     def setUp(self):
         # This function is called before every tests
 
-        self.addTypeEqualityFunc(dns.message.Message, self.assertEqualDNSMessage)
-
         # Clear the responses counters
         for key in self._responsesCounter:
             self._responsesCounter[key] = 0
@@ -455,6 +455,8 @@ class DNSDistTest(unittest.TestCase):
 
         while not self._fromResponderQueue.empty():
             self._fromResponderQueue.get(False)
+
+        super(DNSDistTest, self).setUp()
 
     @classmethod
     def clearToResponderQueue(cls):
@@ -580,25 +582,3 @@ class DNSDistTest(unittest.TestCase):
     def checkResponseNoEDNS(self, expected, received):
         self.checkMessageNoEDNS(expected, received)
 
-    def assertEqualDNSMessage(self, first, second, msg=None):
-        if not first == second:
-            a = str(first).split('\n')
-            b = str(second).split('\n')
-
-            import difflib
-
-            diff = '\n'.join(
-                difflib.unified_diff(
-                    a,
-                    b,
-                    fromfile='first',
-                    tofile='second',
-                    n=max(len(a), len(b)),
-                    lineterm=""
-                )
-            )
-
-            standardMsg = "%s != %s:\n%s" % (repr(first), repr(second), diff)
-            msg = self._formatMessage(msg, standardMsg)
-
-            raise self.failureException(msg)
