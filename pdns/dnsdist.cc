@@ -1855,7 +1855,6 @@ try
   sock.setNonBlocking();
   if (!IsAnyAddress(ds->sourceAddr)) {
     sock.setReuseAddr();
-    sock.bind(ds->sourceAddr);
     if (!ds->sourceItfName.empty()) {
 #ifdef SO_BINDTODEVICE
       int res = setsockopt(sock.getHandle(), SOL_SOCKET, SO_BINDTODEVICE, ds->sourceItfName.c_str(), ds->sourceItfName.length());
@@ -1864,6 +1863,7 @@ try
       }
 #endif
     }
+    sock.bind(ds->sourceAddr);
   }
   sock.connect(ds->remote);
   ssize_t sent = udpClientSendRequestToBackend(ds, sock.getHandle(), reinterpret_cast<char*>(&packet[0]), packet.size(), true);
