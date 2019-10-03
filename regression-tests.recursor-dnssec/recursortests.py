@@ -13,7 +13,9 @@ import unittest
 import dns
 import dns.message
 
-class RecursorTest(unittest.TestCase):
+from eqdnsmessage import AssertEqualDNSMessageMixin
+
+class RecursorTest(AssertEqualDNSMessageMixin, unittest.TestCase):
     """
     Setup all recursors and auths required for the tests
     """
@@ -659,7 +661,7 @@ distributor-threads=1""".format(confdir=confdir,
 
     def setUp(self):
         # This function is called before every tests
-        return
+        super(RecursorTest, self).setUp()
 
     ## Functions for comparisons
     def assertMessageHasFlags(self, msg, flags, ednsflags=[]):
