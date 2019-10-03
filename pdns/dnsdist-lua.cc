@@ -225,7 +225,7 @@ void setupLuaConfig(bool client)
 			  if (parsed == false)
 			  {
 			    /* try to parse as interface name, or v4/v6@itf */
-			    string sourceItfName = source.substr(pos == std::string::npos ? 0 : pos + 1);
+			    sourceItfName = source.substr(pos == std::string::npos ? 0 : pos + 1);
 			    unsigned int itfIdx = if_nametoindex(sourceItfName.c_str());
 
 			    if (itfIdx != 0) {
