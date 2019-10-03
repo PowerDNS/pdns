@@ -189,6 +189,9 @@ class ClientSubnetOption(dns.edns.Option):
             self.scope
         )
 
+    def to_text(self):
+        return self.__repr__()
+
     def __eq__(self, other):
         """Rich comparison method for equality.
 
