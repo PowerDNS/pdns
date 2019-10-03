@@ -144,6 +144,8 @@ bool g_fixupCase{false};
 bool g_preserveTrailingData{false};
 bool g_roundrobinFailOnNoServer{false};
 
+std::set<std::string> g_capabilitiesToRetain;
+
 static void truncateTC(char* packet, uint16_t* len, size_t responseSize, unsigned int consumed)
 try
 {
@@ -2744,7 +2746,7 @@ try
        or as an unprivileged user with ambient
        capabilities like CAP_NET_BIND_SERVICE.
     */
-    dropCapabilities();
+    dropCapabilities(g_capabilitiesToRetain);
   }
   catch(const std::exception& e) {
     warnlog("%s", e.what());

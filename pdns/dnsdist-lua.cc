@@ -238,6 +238,10 @@ void setupLuaConfig(bool client)
 			        sourceAddr = ComboAddress(source.substr(0, pos));
 			        sourceItf = itfIdx;
 			      }
+#ifdef SO_BINDTODEVICE
+                              /* we need to retain CAP_NET_RAW to be able to set SO_BINDTODEVICE in the health checks */
+                              g_capabilitiesToRetain.insert("CAP_NET_RAW");
+#endif
 			    }
 			    else
 			    {

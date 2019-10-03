@@ -21,4 +21,6 @@
  */
 #pragma once
 
-void dropCapabilities();
+#include <set>
+
+void dropCapabilities(std::set<std::string> capabilitiesToKeep = {});

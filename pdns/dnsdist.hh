@@ -1233,6 +1233,8 @@ extern bool g_snmpTrapsEnabled;
 extern DNSDistSNMPAgent* g_snmpAgent;
 extern bool g_addEDNSToSelfGeneratedResponses;
 
+extern std::set<std::string> g_capabilitiesToRetain;
+
 static const size_t s_udpIncomingBufferSize{1500};
 
 enum class ProcessQueryResult { Drop, SendAnswer, PassToBackend };
