@@ -1856,6 +1856,14 @@ try
   if (!IsAnyAddress(ds->sourceAddr)) {
     sock.setReuseAddr();
     sock.bind(ds->sourceAddr);
+    if (!ds->sourceItfName.empty()) {
+#ifdef SO_BINDTODEVICE
+      int res = setsockopt(sock.getHandle(), SOL_SOCKET, SO_BINDTODEVICE, ds->sourceItfName.c_str(), ds->sourceItfName.length());
+      if (res != 0 && g_verboseHealthChecks) {
+        infolog("Error settting SO_BINDTODEVICE on the health check socket for backend '%s': %s", ds->getNameWithAddr(), stringerror());
+      }
+#endif
+    }
   }
   sock.connect(ds->remote);
   ssize_t sent = udpClientSendRequestToBackend(ds, sock.getHandle(), reinterpret_cast<char*>(&packet[0]), packet.size(), true);
