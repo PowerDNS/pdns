@@ -615,9 +615,9 @@ BOOST_AUTO_TEST_CASE(test_suffixmatch_tree) {
   smt.remove(net);
 
   size_t count = 0;
-  smt.visit([apowerdnscom, &count](const SuffixMatchTree<DNSName>& smt) {
+  smt.visit([apowerdnscom, &count](const SuffixMatchTree<DNSName>& smtarg) {
       count++;
-      BOOST_CHECK_EQUAL(smt.d_value, apowerdnscom);
+      BOOST_CHECK_EQUAL(smtarg.d_value, apowerdnscom);
     });
   BOOST_CHECK_EQUAL(count, 1U);
 
@@ -626,7 +626,7 @@ BOOST_AUTO_TEST_CASE(test_suffixmatch_tree) {
   BOOST_CHECK(smt.lookup(apowerdnscom) == nullptr);
 
   count = 0;
-  smt.visit([&count](const SuffixMatchTree<DNSName>& smt) {
+  smt.visit([&count](const SuffixMatchTree<DNSName>&) {
       count++;
     });
   BOOST_CHECK_EQUAL(count, 0U);

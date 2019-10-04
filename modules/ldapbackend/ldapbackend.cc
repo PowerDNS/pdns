@@ -208,13 +208,13 @@ void LdapBackend::extract_entry_results( const DNSName& domain, const DNSResult&
         // TTL
         if ( d_result.count( "PdnsRecordTTL" ) && !d_result["PdnsRecordTTL"].empty() ) {
           for ( const auto& rdata : d_result["PdnsRecordTTL"] ) {
-            std::string qtype;
+            std::string qtype2;
             std::size_t pos = rdata.find_first_of( '|', 0 );
             if ( pos == std::string::npos )
               continue;
 
-            qtype = rdata.substr( 0, pos );
-            if ( qtype != QType( local_result.qtype ).getName() )
+            qtype2 = rdata.substr( 0, pos );
+            if ( qtype2 != QType( local_result.qtype ).getName() )
               continue;
 
             local_result.ttl = pdns_stou( rdata.substr( pos + 1 ) );
@@ -234,7 +234,7 @@ void LdapBackend::extract_entry_results( const DNSName& domain, const DNSResult&
           std::string defaultOrdername;
 
           for ( const auto& rdata : d_result["PdnsRecordOrdername"] ) {
-            std::string qtype;
+            std::string qtype2;
             std::size_t pos = rdata.find_first_of( '|', 0 );
             if ( pos == std::string::npos ) {
               // This is the default ordername for all records in this entry
@@ -242,8 +242,8 @@ void LdapBackend::extract_entry_results( const DNSName& domain, const DNSResult&
               continue;
             }
 
-            qtype = rdata.substr( 0, pos );
-            if ( qtype != QType( local_result.qtype ).getName() )
+            qtype2 = rdata.substr( 0, pos );
+            if ( qtype2 != QType( local_result.qtype ).getName() )
               continue;
 
             local_result.ordername = rdata.substr( pos + 1 );

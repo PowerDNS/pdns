@@ -450,15 +450,15 @@ void loadRecursorLuaConfig(const std::string& fname, luaConfigDelayedThreads& de
         lci.negAnchors.clear();
     });
 
-  Lua.writeFunction("readTrustAnchorsFromFile", [&lci](const std::string& fname, const boost::optional<uint32_t> interval) {
+  Lua.writeFunction("readTrustAnchorsFromFile", [&lci](const std::string& fnamearg, const boost::optional<uint32_t> interval) {
       uint32_t realInterval = 24;
       if (interval) {
         realInterval = static_cast<uint32_t>(*interval);
       }
       warnIfDNSSECDisabled("Warning: reading Trust Anchors from file (readTrustAnchorsFromFile), but dnssec is set to 'off'!");
-      lci.trustAnchorFileInfo.fname = fname;
+      lci.trustAnchorFileInfo.fname = fnamearg;
       lci.trustAnchorFileInfo.interval = realInterval;
-      updateTrustAnchorsFromFile(fname, lci.dsAnchors);
+      updateTrustAnchorsFromFile(fnamearg, lci.dsAnchors);
     });
 
 #if HAVE_PROTOBUF

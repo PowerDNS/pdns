@@ -428,27 +428,27 @@ void updateThread(const string& workdir, const uint16_t& keep, const uint16_t& a
         g_log<<Logger::Notice<<"Wrote zonedata for "<<domain<<" with serial "<<soa->d_st.serial<<" to "<<dir<<endl;
 
         const auto oldZoneInfo = getCurrentZoneInfo(domain);
-        auto zoneInfo = std::make_shared<ixfrinfo_t>();
+        auto ixfrInfo = std::make_shared<ixfrinfo_t>();
 
         if (oldZoneInfo && !oldZoneInfo->latestAXFR.empty()) {
           auto diff = std::make_shared<ixfrdiff_t>();
-          zoneInfo->ixfrDiffs = oldZoneInfo->ixfrDiffs;
+          ixfrInfo->ixfrDiffs = oldZoneInfo->ixfrDiffs;
           g_log<<Logger::Debug<<"Calculating diff for "<<domain<<endl;
           makeIXFRDiff(oldZoneInfo->latestAXFR, records, diff, oldZoneInfo->soa, oldZoneInfo->soaTTL, soa, soaTTL);
           g_log<<Logger::Debug<<"Calculated diff for "<<domain<<", we had "<<diff->removals.size()<<" removals and "<<diff->additions.size()<<" additions"<<endl;
-          zoneInfo->ixfrDiffs.push_back(std::move(diff));
+          ixfrInfo->ixfrDiffs.push_back(std::move(diff));
         }
 
         // Clean up the diffs
-        while (zoneInfo->ixfrDiffs.size() > keep) {
-          zoneInfo->ixfrDiffs.erase(zoneInfo->ixfrDiffs.begin());
+        while (ixfrInfo->ixfrDiffs.size() > keep) {
+          ixfrInfo->ixfrDiffs.erase(ixfrInfo->ixfrDiffs.begin());
         }
 
         g_log<<Logger::Debug<<"Zone "<<domain<<" previously contained "<<(oldZoneInfo ? oldZoneInfo->latestAXFR.size() : 0)<<" entries, "<<records.size()<<" now"<<endl;
-        zoneInfo->latestAXFR = std::move(records);
-        zoneInfo->soa = soa;
-        zoneInfo->soaTTL = soaTTL;
-        updateCurrentZoneInfo(domain, zoneInfo);
+        ixfrInfo->latestAXFR = std::move(records);
+        ixfrInfo->soa = soa;
+        ixfrInfo->soaTTL = soaTTL;
+        updateCurrentZoneInfo(domain, ixfrInfo);
       } catch (PDNSException &e) {
         g_stats.incrementAXFRFailures(domain);
         g_log<<Logger::Warning<<"Could not save zone '"<<domain<<"' to disk: "<<e.reason<<endl;
