@@ -66,6 +66,7 @@ namespace YaHTTP {
     CookieJar(const CookieJar & rhs) {
       this->cookies = rhs.cookies;
     } //<! copy cookies from another cookie jar
+    CookieJar& operator=(const CookieJar & rhs) = default;
   
     void clear() {
       this->cookies.clear();

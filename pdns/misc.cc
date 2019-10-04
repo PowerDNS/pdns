@@ -996,16 +996,26 @@ uint32_t burtle(const unsigned char* k, uint32_t length, uint32_t initval)
   c += length;
   switch(len) {             /* all the case statements fall through */
   case 11: c+=((uint32_t)k[10]<<24);
+    /* fall-through */
   case 10: c+=((uint32_t)k[9]<<16);
+    /* fall-through */
   case 9 : c+=((uint32_t)k[8]<<8);
     /* the first byte of c is reserved for the length */
+    /* fall-through */
   case 8 : b+=((uint32_t)k[7]<<24);
+    /* fall-through */
   case 7 : b+=((uint32_t)k[6]<<16);
+    /* fall-through */
   case 6 : b+=((uint32_t)k[5]<<8);
+    /* fall-through */
   case 5 : b+=k[4];
+    /* fall-through */
   case 4 : a+=((uint32_t)k[3]<<24);
+    /* fall-through */
   case 3 : a+=((uint32_t)k[2]<<16);
+    /* fall-through */
   case 2 : a+=((uint32_t)k[1]<<8);
+    /* fall-through */
   case 1 : a+=k[0];
     /* case 0: nothing left to add */
   }
@@ -1036,16 +1046,26 @@ uint32_t burtleCI(const unsigned char* k, uint32_t length, uint32_t initval)
   c += length;
   switch(len) {             /* all the case statements fall through */
   case 11: c+=((uint32_t)dns_tolower(k[10])<<24);
+    /* fall-through */
   case 10: c+=((uint32_t)dns_tolower(k[9])<<16);
+    /* fall-through */
   case 9 : c+=((uint32_t)dns_tolower(k[8])<<8);
     /* the first byte of c is reserved for the length */
+    /* fall-through */
   case 8 : b+=((uint32_t)dns_tolower(k[7])<<24);
+    /* fall-through */
   case 7 : b+=((uint32_t)dns_tolower(k[6])<<16);
+    /* fall-through */
   case 6 : b+=((uint32_t)dns_tolower(k[5])<<8);
+    /* fall-through */
   case 5 : b+=dns_tolower(k[4]);
+    /* fall-through */
   case 4 : a+=((uint32_t)dns_tolower(k[3])<<24);
+    /* fall-through */
   case 3 : a+=((uint32_t)dns_tolower(k[2])<<16);
+    /* fall-through */
   case 2 : a+=((uint32_t)dns_tolower(k[1])<<8);
+    /* fall-through */
   case 1 : a+=dns_tolower(k[0]);
     /* case 0: nothing left to add */
   }

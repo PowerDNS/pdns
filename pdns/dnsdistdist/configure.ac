@@ -17,8 +17,8 @@ AC_DEFINE([DNSDIST], [1],
 LT_PREREQ([2.2.2])
 LT_INIT([disable-static])
 
-CFLAGS="-Wall -g -O3 $CFLAGS"
-CXXFLAGS="-Wall -g -O3 $CXXFLAGS"
+CFLAGS="-Wall -g -O3 $CFLAGS -Wall -Wextra -Wshadow -Wno-unused-parameter"
+CXXFLAGS="-Wall -g -O3 $CXXFLAGS -Wall -Wextra -Wshadow -Wno-unused-parameter"
 
 PDNS_WITH_LIBSODIUM
 PDNS_CHECK_DNSTAP([auto])

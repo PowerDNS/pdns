@@ -295,7 +295,7 @@ BOOST_AUTO_TEST_CASE(test_PacketCacheNXDomainTTL) {
   }
 }
 
-static DNSDistPacketCache PC(500000);
+static DNSDistPacketCache g_PC(500000);
 
 static void *threadMangler(void* off)
 {
@@ -328,9 +328,9 @@ static void *threadMangler(void* off)
       boost::optional<Netmask> subnet;
       auto dh = reinterpret_cast<dnsheader*>(query.data());
       DNSQuestion dq(&a, QType::A, QClass::IN, 0, &remote, &remote, dh, query.size(), query.size(), false, &queryTime);
-      PC.get(dq, a.wirelength(), 0, responseBuf, &responseBufSize, &key, subnet, dnssecOK);
+      g_PC.get(dq, a.wirelength(), 0, responseBuf, &responseBufSize, &key, subnet, dnssecOK);
 
-      PC.insert(key, subnet, *(getFlagsFromDNSHeader(dh)), dnssecOK, a, QType::A, QClass::IN, (const char*) response.data(), responseLen, false, 0, boost::none);
+      g_PC.insert(key, subnet, *(getFlagsFromDNSHeader(dh)), dnssecOK, a, QType::A, QClass::IN, (const char*) response.data(), responseLen, false, 0, boost::none);
     }
   }
   catch(PDNSException& e) {
@@ -363,7 +363,7 @@ static void *threadReader(void* off)
       uint32_t key = 0;
       boost::optional<Netmask> subnet;
       DNSQuestion dq(&a, QType::A, QClass::IN, 0, &remote, &remote, (struct dnsheader*) query.data(), query.size(), query.size(), false, &queryTime);
-      bool found = PC.get(dq, a.wirelength(), 0, responseBuf, &responseBufSize, &key, subnet, dnssecOK);
+      bool found = g_PC.get(dq, a.wirelength(), 0, responseBuf, &responseBufSize, &key, subnet, dnssecOK);
       if (!found) {
 	g_missing++;
       }
@@ -385,15 +385,15 @@ BOOST_AUTO_TEST_CASE(test_PacketCacheThreaded) {
     for(int i=0; i < 4 ; ++i)
       pthread_join(tid[i], &res);
 
-    BOOST_CHECK_EQUAL(PC.getSize() + PC.getDeferredInserts() + PC.getInsertCollisions(), 400000);
-    BOOST_CHECK_SMALL(1.0*PC.getInsertCollisions(), 10000.0);
+    BOOST_CHECK_EQUAL(g_PC.getSize() + g_PC.getDeferredInserts() + g_PC.getInsertCollisions(), 400000);
+    BOOST_CHECK_SMALL(1.0*g_PC.getInsertCollisions(), 10000.0);
 
     for(int i=0; i < 4; ++i)
       pthread_create(&tid[i], 0, threadReader, (void*)(i*1000000UL));
     for(int i=0; i < 4 ; ++i)
       pthread_join(tid[i], &res);
 
-    BOOST_CHECK((PC.getDeferredInserts() + PC.getDeferredLookups() + PC.getInsertCollisions()) >= g_missing);
+    BOOST_CHECK((g_PC.getDeferredInserts() + g_PC.getDeferredLookups() + g_PC.getInsertCollisions()) >= g_missing);
   }
   catch(PDNSException& e) {
     cerr<<"Had error: "<<e.reason<<endl;
