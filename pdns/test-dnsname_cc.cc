@@ -24,7 +24,7 @@ BOOST_AUTO_TEST_CASE(test_basic) {
 
   string before("www.ds9a.nl.");
   DNSName b(before);
-  BOOST_CHECK_EQUAL(b.getRawLabels().size(), 3);
+  BOOST_CHECK_EQUAL(b.getRawLabels().size(), 3U);
   string after(b.toString());
   BOOST_CHECK_EQUAL(before, after);
 
@@ -145,7 +145,7 @@ BOOST_AUTO_TEST_CASE(test_basic) {
   auto labels=rfc4343_2_2.getRawLabels();
   BOOST_CHECK_EQUAL(*labels.begin(), "Donald E. Eastlake 3rd");
   BOOST_CHECK_EQUAL(*labels.rbegin(), "example");
-  BOOST_CHECK_EQUAL(labels.size(), 2);
+  BOOST_CHECK_EQUAL(labels.size(), 2U);
 
   DNSName build;
   build.appendRawLabel("Donald E. Eastlake 3rd");
@@ -174,14 +174,14 @@ BOOST_AUTO_TEST_CASE(test_basic) {
 
 BOOST_AUTO_TEST_CASE(test_trim) {
   DNSName w("www.powerdns.com.");
-  BOOST_CHECK_EQUAL(w.countLabels(), 3);
+  BOOST_CHECK_EQUAL(w.countLabels(), 3U);
   w.trimToLabels(2);
   BOOST_CHECK_EQUAL(w.toString(), "powerdns.com.");
   DNSName w2("powerdns.com.");
   BOOST_CHECK(w==w2);
 
   DNSName root(".");
-  BOOST_CHECK_EQUAL(root.countLabels(), 0);
+  BOOST_CHECK_EQUAL(root.countLabels(), 0U);
 }
 
 BOOST_AUTO_TEST_CASE(test_toolong) {
@@ -370,11 +370,11 @@ BOOST_AUTO_TEST_CASE(test_hashContainer) {
   std::unordered_set<DNSName> s;
   s.insert(DNSName("www.powerdns.com"));
   BOOST_CHECK(s.count(DNSName("WwW.PoWerDNS.CoM")));
-  BOOST_CHECK_EQUAL(s.size(), 1);
+  BOOST_CHECK_EQUAL(s.size(), 1U);
   s.insert(DNSName("www.POWERDNS.com"));
-  BOOST_CHECK_EQUAL(s.size(), 1);
+  BOOST_CHECK_EQUAL(s.size(), 1U);
   s.insert(DNSName("www2.POWERDNS.com"));
-  BOOST_CHECK_EQUAL(s.size(), 2);
+  BOOST_CHECK_EQUAL(s.size(), 2U);
 
   s.clear();
   unsigned int n=0;
@@ -619,7 +619,7 @@ BOOST_AUTO_TEST_CASE(test_suffixmatch_tree) {
       count++;
       BOOST_CHECK_EQUAL(smt.d_value, apowerdnscom);
     });
-  BOOST_CHECK_EQUAL(count, 1);
+  BOOST_CHECK_EQUAL(count, 1U);
 
   BOOST_CHECK_EQUAL(*smt.lookup(apowerdnscom), apowerdnscom);
   smt.remove(apowerdnscom);
@@ -629,7 +629,7 @@ BOOST_AUTO_TEST_CASE(test_suffixmatch_tree) {
   smt.visit([&count](const SuffixMatchTree<DNSName>& smt) {
       count++;
     });
-  BOOST_CHECK_EQUAL(count, 0);
+  BOOST_CHECK_EQUAL(count, 0U);
 }
 
 
@@ -758,20 +758,20 @@ BOOST_AUTO_TEST_CASE(test_name_length_max) { // 255 char name
   { // append
     DNSName dn(name);
     dn.appendRawLabel(label);
-    BOOST_CHECK_EQUAL(dn.toString().size(), 254);
+    BOOST_CHECK_EQUAL(dn.toString().size(), 254U);
   }
 
   { // prepend
     DNSName dn(name);
     dn.prependRawLabel(label);
-    BOOST_CHECK_EQUAL(dn.toString().size(), 254);
+    BOOST_CHECK_EQUAL(dn.toString().size(), 254U);
   }
 
   { // concat
     DNSName dn(name);
 
     dn += DNSName(label + ".");
-    BOOST_CHECK_EQUAL(dn.toString().size(), 254);
+    BOOST_CHECK_EQUAL(dn.toString().size(), 254U);
   }
 }
 
@@ -919,15 +919,15 @@ BOOST_AUTO_TEST_CASE(test_compression_loop2) { // Compression loop (deep recursi
 
 BOOST_AUTO_TEST_CASE(test_wirelength) { // Testing if we get the correct value from the wirelength function
   DNSName name("www.powerdns.com");
-  BOOST_CHECK_EQUAL(name.wirelength(), 18);
+  BOOST_CHECK_EQUAL(name.wirelength(), 18U);
 
   DNSName sname("powerdns.com");
   sname.prependRawLabel(string("ww\x00""w", 4));
-  BOOST_CHECK_EQUAL(sname.wirelength(), 19);
+  BOOST_CHECK_EQUAL(sname.wirelength(), 19U);
 
   sname = DNSName("powerdns.com");
   sname.prependRawLabel(string("www\x00", 4));
-  BOOST_CHECK_EQUAL(sname.wirelength(), 19);
+  BOOST_CHECK_EQUAL(sname.wirelength(), 19U);
 }
 
 BOOST_AUTO_TEST_CASE(test_getrawlabel) {

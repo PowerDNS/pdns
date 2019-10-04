@@ -67,7 +67,7 @@ include                 BEGIN(incl);
         else {
             ret = snprintf(filename, sizeof(filename), "%s/%s", bind_directory, yytext+1);
         }
-        if (ret == -1 || ret >= sizeof(filename)) {
+        if (ret == -1 || ret >= (int)sizeof(filename)) {
             fprintf( stderr, "Filename '%s' is too long\n",yytext+1);
             exit( 1 );
         }

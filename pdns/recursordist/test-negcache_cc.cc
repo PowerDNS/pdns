@@ -55,7 +55,7 @@ BOOST_AUTO_TEST_CASE(test_get_entry) {
   NegCache cache;
   cache.add(genNegCacheEntry(qname, auth, now));
 
-  BOOST_CHECK_EQUAL(cache.size(), 1);
+  BOOST_CHECK_EQUAL(cache.size(), 1U);
 
   const NegCache::NegCacheEntry* ne = nullptr;
   bool ret = cache.get(qname, QType(1), now, &ne);
@@ -79,7 +79,7 @@ BOOST_AUTO_TEST_CASE(test_get_entry_exact_type) {
   NegCache cache;
   cache.add(genNegCacheEntry(qname, auth, now));
 
-  BOOST_CHECK_EQUAL(cache.size(), 1);
+  BOOST_CHECK_EQUAL(cache.size(), 1U);
 
   const NegCache::NegCacheEntry* ne = nullptr;
   bool ret = cache.get(qname, QType(1), now, &ne, true);
@@ -98,7 +98,7 @@ BOOST_AUTO_TEST_CASE(test_get_NODATA_entry) {
   NegCache cache;
   cache.add(genNegCacheEntry(qname, auth, now, 1));
 
-  BOOST_CHECK_EQUAL(cache.size(), 1);
+  BOOST_CHECK_EQUAL(cache.size(), 1U);
 
   const NegCache::NegCacheEntry* ne = nullptr;
   bool ret = cache.get(qname, QType(1), now, &ne);
@@ -124,7 +124,7 @@ BOOST_AUTO_TEST_CASE(test_getRootNXTrust_entry) {
   NegCache cache;
   cache.add(genNegCacheEntry(qname, auth, now));
 
-  BOOST_CHECK_EQUAL(cache.size(), 1);
+  BOOST_CHECK_EQUAL(cache.size(), 1U);
 
   const NegCache::NegCacheEntry* ne = nullptr;
   bool ret = cache.getRootNXTrust(qname, now, &ne);
@@ -146,7 +146,7 @@ BOOST_AUTO_TEST_CASE(test_add_and_get_expired_entry) {
   NegCache cache;
   cache.add(genNegCacheEntry(qname, auth, now));
 
-  BOOST_CHECK_EQUAL(cache.size(), 1);
+  BOOST_CHECK_EQUAL(cache.size(), 1U);
 
   const NegCache::NegCacheEntry* ne = nullptr;
 
@@ -168,7 +168,7 @@ BOOST_AUTO_TEST_CASE(test_getRootNXTrust_expired_entry) {
   NegCache cache;
   cache.add(genNegCacheEntry(qname, auth, now));
 
-  BOOST_CHECK_EQUAL(cache.size(), 1);
+  BOOST_CHECK_EQUAL(cache.size(), 1U);
 
   const NegCache::NegCacheEntry* ne = nullptr;
 
@@ -192,7 +192,7 @@ BOOST_AUTO_TEST_CASE(test_add_updated_entry) {
   // Should override the existing entry for www2.powerdns.com
   cache.add(genNegCacheEntry(qname, auth2, now));
 
-  BOOST_CHECK_EQUAL(cache.size(), 1);
+  BOOST_CHECK_EQUAL(cache.size(), 1U);
 
   const NegCache::NegCacheEntry* ne = nullptr;
   bool ret = cache.get(qname, QType(1), now, &ne);
@@ -257,11 +257,11 @@ BOOST_AUTO_TEST_CASE(test_prune) {
     cache.add(ne);
   }
 
-  BOOST_CHECK_EQUAL(cache.size(), 400);
+  BOOST_CHECK_EQUAL(cache.size(), 400U);
 
   cache.prune(100);
 
-  BOOST_CHECK_EQUAL(cache.size(), 100);
+  BOOST_CHECK_EQUAL(cache.size(), 100U);
 }
 
 BOOST_AUTO_TEST_CASE(test_prune_valid_entries) {
@@ -281,12 +281,12 @@ BOOST_AUTO_TEST_CASE(test_prune_valid_entries) {
   ne = genNegCacheEntry(power2, auth, now);
   cache.add(ne);
 
-  BOOST_CHECK_EQUAL(cache.size(), 2);
+  BOOST_CHECK_EQUAL(cache.size(), 2U);
 
   /* power2 has been inserted more recently, so it should be
      removed last */
   cache.prune(1);
-  BOOST_CHECK_EQUAL(cache.size(), 1);
+  BOOST_CHECK_EQUAL(cache.size(), 1U);
 
   const NegCache::NegCacheEntry* got = nullptr;
   bool ret = cache.get(power2, QType(1), now, &got);
@@ -297,19 +297,19 @@ BOOST_AUTO_TEST_CASE(test_prune_valid_entries) {
   /* insert power1 back */
   ne = genNegCacheEntry(power1, auth, now);
   cache.add(ne);
-  BOOST_CHECK_EQUAL(cache.size(), 2);
+  BOOST_CHECK_EQUAL(cache.size(), 2U);
 
   /* replace the entry for power2 */
   ne = genNegCacheEntry(power2, auth, now);
   cache.add(ne);
 
-  BOOST_CHECK_EQUAL(cache.size(), 2);
+  BOOST_CHECK_EQUAL(cache.size(), 2U);
 
   /* power2 has been updated more recently, so it should be
      removed last */
   cache.prune(1);
 
-  BOOST_CHECK_EQUAL(cache.size(), 1);
+  BOOST_CHECK_EQUAL(cache.size(), 1U);
   got = nullptr;
   ret = cache.get(power2, QType(1), now, &got);
   BOOST_REQUIRE(ret);
@@ -334,11 +334,11 @@ BOOST_AUTO_TEST_CASE(test_wipe_single) {
     cache.add(ne);
   }
 
-  BOOST_CHECK_EQUAL(cache.size(), 401);
+  BOOST_CHECK_EQUAL(cache.size(), 401U);
 
   // Should only wipe the powerdns.com entry
   cache.wipe(auth);
-  BOOST_CHECK_EQUAL(cache.size(), 400);
+  BOOST_CHECK_EQUAL(cache.size(), 400U);
 
   const NegCache::NegCacheEntry* ne2 = nullptr;
   bool ret = cache.get(auth, QType(1), now, &ne2);
@@ -347,7 +347,7 @@ BOOST_AUTO_TEST_CASE(test_wipe_single) {
   BOOST_CHECK(ne2 == nullptr);
 
   cache.wipe(DNSName("1.powerdns.com"));
-  BOOST_CHECK_EQUAL(cache.size(), 399);
+  BOOST_CHECK_EQUAL(cache.size(), 399U);
 
   const NegCache::NegCacheEntry* ne3 = nullptr;
   ret = cache.get(auth, QType(1), now, &ne3);
@@ -376,11 +376,11 @@ BOOST_AUTO_TEST_CASE(test_wipe_subtree) {
     cache.add(ne);
   }
 
-  BOOST_CHECK_EQUAL(cache.size(), 801);
+  BOOST_CHECK_EQUAL(cache.size(), 801U);
 
   // Should wipe all the *.powerdns.com and powerdns.com entries
   cache.wipe(auth, true);
-  BOOST_CHECK_EQUAL(cache.size(), 400);
+  BOOST_CHECK_EQUAL(cache.size(), 400U);
 }
 
 BOOST_AUTO_TEST_CASE(test_clear) {
@@ -398,9 +398,9 @@ BOOST_AUTO_TEST_CASE(test_clear) {
     cache.add(ne);
   }
 
-  BOOST_CHECK_EQUAL(cache.size(), 400);
+  BOOST_CHECK_EQUAL(cache.size(), 400U);
   cache.clear();
-  BOOST_CHECK_EQUAL(cache.size(), 0);
+  BOOST_CHECK_EQUAL(cache.size(), 0U);
 }
 
 BOOST_AUTO_TEST_CASE(test_dumpToFile) {
@@ -469,9 +469,9 @@ BOOST_AUTO_TEST_CASE(test_count) {
 
   uint64_t count;
   count = cache.count(auth);
-  BOOST_CHECK_EQUAL(count, 1);
+  BOOST_CHECK_EQUAL(count, 1U);
   count = cache.count(auth, QType(1));
-  BOOST_CHECK_EQUAL(count, 0);
+  BOOST_CHECK_EQUAL(count, 0U);
 }
 
 BOOST_AUTO_TEST_SUITE_END()

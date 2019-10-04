@@ -354,7 +354,7 @@ BOOST_AUTO_TEST_CASE(test_opt_record_in) {
   BOOST_CHECK_EQUAL(eo.d_packetsize, 1280);
 
   // it should contain NSID option with value 'powerdns', and nothing else
-  BOOST_CHECK_EQUAL(eo.d_options.size(), 1);
+  BOOST_CHECK_EQUAL(eo.d_options.size(), 1U);
   BOOST_CHECK_EQUAL(eo.d_options[0].first, 3); // nsid
   BOOST_CHECK_EQUAL(eo.d_options[0].second, "powerdns");
 }
@@ -469,19 +469,19 @@ BOOST_AUTO_TEST_CASE(test_nsec_records_types) {
       BOOST_CHECK(nsecContent->isSet(type));
     }
     BOOST_CHECK_EQUAL(nsecContent->isSet(QType::NSEC3), false);
-    BOOST_CHECK_EQUAL(nsecContent->numberOfTypesSet(), 5);
+    BOOST_CHECK_EQUAL(nsecContent->numberOfTypesSet(), 5U);
   }
 
   {
     auto nsecContent = std::make_shared<NSECRecordContent>();
-    BOOST_CHECK_EQUAL(nsecContent->numberOfTypesSet(), 0);
+    BOOST_CHECK_EQUAL(nsecContent->numberOfTypesSet(), 0U);
     BOOST_CHECK_EQUAL(nsecContent->isSet(QType::NSEC3), false);
 
     for (size_t idx = 0; idx < 65536; idx++) {
       nsecContent->set(idx);
     }
     BOOST_CHECK_EQUAL(nsecContent->isSet(QType::NSEC3), true);
-    BOOST_CHECK_EQUAL(nsecContent->numberOfTypesSet(), 65536);
+    BOOST_CHECK_EQUAL(nsecContent->numberOfTypesSet(), 65536U);
     for (size_t idx = 0; idx < 65536; idx++) {
       BOOST_CHECK(nsecContent->isSet(idx));
     }
@@ -500,7 +500,7 @@ BOOST_AUTO_TEST_CASE(test_nsec3_records_types) {
       BOOST_CHECK(nsec3Content->isSet(type));
     }
     BOOST_CHECK_EQUAL(nsec3Content->isSet(QType::NSEC), false);
-    BOOST_CHECK_EQUAL(nsec3Content->numberOfTypesSet(), 6);
+    BOOST_CHECK_EQUAL(nsec3Content->numberOfTypesSet(), 6U);
     auto str2 = nsec3Content->getZoneRepresentation();
     boost::to_lower(str2);
     BOOST_CHECK_EQUAL(str2, str);
@@ -509,7 +509,7 @@ BOOST_AUTO_TEST_CASE(test_nsec3_records_types) {
   {
     std::string str = "1 1 12 aabbccdd 2vptu5timamqttgl4luu9kg21e0aor3s";
     auto nsec3Content = std::make_shared<NSEC3RecordContent>(str);
-    BOOST_CHECK_EQUAL(nsec3Content->numberOfTypesSet(), 0);
+    BOOST_CHECK_EQUAL(nsec3Content->numberOfTypesSet(), 0U);
     BOOST_CHECK_EQUAL(nsec3Content->isSet(QType::NSEC), false);
 
     for (size_t idx = 0; idx < 65536; idx++) {
@@ -517,7 +517,7 @@ BOOST_AUTO_TEST_CASE(test_nsec3_records_types) {
       str += " " + toLower(DNSRecordContent::NumberToType(idx));
     }
     BOOST_CHECK_EQUAL(nsec3Content->isSet(QType::NSEC), true);
-    BOOST_CHECK_EQUAL(nsec3Content->numberOfTypesSet(), 65536);
+    BOOST_CHECK_EQUAL(nsec3Content->numberOfTypesSet(), 65536U);
     for (size_t idx = 0; idx < 65536; idx++) {
       BOOST_CHECK(nsec3Content->isSet(idx));
     }
@@ -548,13 +548,13 @@ BOOST_AUTO_TEST_CASE(test_nsec3_records_types) {
     BOOST_CHECK_EQUAL(packet.size(), expectedSize);
 
     MOADNSParser parser(false, reinterpret_cast<const char*>(packet.data()), packet.size());
-    BOOST_REQUIRE_EQUAL(parser.d_answers.size(), 1);
+    BOOST_REQUIRE_EQUAL(parser.d_answers.size(), 1U);
     const auto& record = parser.d_answers.at(0).first;
     BOOST_REQUIRE(record.d_type == QType::NSEC3);
     BOOST_REQUIRE(record.d_class == QClass::IN);
     auto content = std::dynamic_pointer_cast<NSEC3RecordContent>(record.d_content);
     BOOST_REQUIRE(content);
-    BOOST_CHECK_EQUAL(content->numberOfTypesSet(), 0);
+    BOOST_CHECK_EQUAL(content->numberOfTypesSet(), 0U);
     for (size_t idx = 0; idx < 65536; idx++) {
       BOOST_CHECK_EQUAL(content->isSet(idx), false);
     }

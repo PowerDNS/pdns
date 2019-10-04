@@ -354,21 +354,21 @@ bool DNSFilterEngine::Zone::rmResponseTrigger(const Netmask& nm, const Policy& p
 
 bool DNSFilterEngine::Zone::rmQNameTrigger(const DNSName& n, const Policy& pol)
 {
-  auto it = d_qpolName.find(n);
-  if (it == d_qpolName.end()) {
+  auto found = d_qpolName.find(n);
+  if (found == d_qpolName.end()) {
     return false;
   }
 
-  auto& existing = it->second;
+  auto& existing = found->second;
   if (existing.d_kind != DNSFilterEngine::PolicyKind::Custom) {
-    d_qpolName.erase(it);
+    d_qpolName.erase(found);
     return true;
   }
 
   /* for custom types, we might have more than one type,
      and then we need to remove only the right ones. */
   if (existing.d_custom.size() <= 1) {
-    d_qpolName.erase(it);
+    d_qpolName.erase(found);
     return true;
   }
 

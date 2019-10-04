@@ -1059,7 +1059,7 @@ static void apiZoneCryptokeysGET(DNSName zonename, int inquireKeyId, HttpRespons
 
     if (value.second.keyType == DNSSECKeeper::KSK || value.second.keyType == DNSSECKeeper::CSK) {
       Json::array dses;
-      for(const uint8_t keyid : { DNSSECKeeper::SHA1, DNSSECKeeper::SHA256, DNSSECKeeper::GOST, DNSSECKeeper::SHA384 })
+      for(const uint8_t keyid : { DNSSECKeeper::DIGEST_SHA1, DNSSECKeeper::DIGEST_SHA256, DNSSECKeeper::DIGEST_GOST, DNSSECKeeper::DIGEST_SHA384 })
         try {
           dses.push_back(makeDSFromDNSKey(zonename, value.first.getDNSKEY(), keyid).getZoneRepresentation());
         } catch (...) {}

@@ -39,12 +39,12 @@ BOOST_AUTO_TEST_CASE(test_MaxQPSIPRule) {
     /* let's use different source ports, it shouldn't matter */
     rem = ComboAddress("192.0.2.1:" + std::to_string(idx));
     BOOST_CHECK_EQUAL(rule.matches(&dq), false);
-    BOOST_CHECK_EQUAL(rule.getEntriesCount(), 1);
+    BOOST_CHECK_EQUAL(rule.getEntriesCount(), 1U);
   }
 
   /* maxQPS + 1, we should be blocked */
   BOOST_CHECK_EQUAL(rule.matches(&dq), true);
-  BOOST_CHECK_EQUAL(rule.getEntriesCount(), 1);
+  BOOST_CHECK_EQUAL(rule.getEntriesCount(), 1U);
 
   /* remove all entries that have not been updated since 'now' + 1,
      so all of them */
@@ -52,14 +52,14 @@ BOOST_AUTO_TEST_CASE(test_MaxQPSIPRule) {
   rule.cleanup(expiredTime);
 
   /* we should have been cleaned up */
-  BOOST_CHECK_EQUAL(rule.getEntriesCount(), 0);
+  BOOST_CHECK_EQUAL(rule.getEntriesCount(), 0U);
 
   struct timespec beginInsertionTime;
   gettime(&beginInsertionTime);
   /* we should not be blocked anymore */
   BOOST_CHECK_EQUAL(rule.matches(&dq), false);
   /* and we be back */
-  BOOST_CHECK_EQUAL(rule.getEntriesCount(), 1);
+  BOOST_CHECK_EQUAL(rule.getEntriesCount(), 1U);
 
 
   /* Let's insert a lot of different sources now */
@@ -82,9 +82,9 @@ BOOST_AUTO_TEST_CASE(test_MaxQPSIPRule) {
 
   size_t scanned = 0;
   auto removed = rule.cleanup(notExpiredTime, &scanned);
-  BOOST_CHECK_EQUAL(removed, 0);
+  BOOST_CHECK_EQUAL(removed, 0U);
   /* the first entry should still have been valid, we should not have scanned more */
-  BOOST_CHECK_EQUAL(scanned, 1);
+  BOOST_CHECK_EQUAL(scanned, 1U);
   BOOST_CHECK_EQUAL(rule.getEntriesCount(), total);
 
   /* make sure all entries are _not_ valid anymore */
@@ -98,10 +98,10 @@ BOOST_AUTO_TEST_CASE(test_MaxQPSIPRule) {
   BOOST_CHECK_EQUAL(rule.getEntriesCount(), total - removed);
 
   rule.clear();
-  BOOST_CHECK_EQUAL(rule.getEntriesCount(), 0);
+  BOOST_CHECK_EQUAL(rule.getEntriesCount(), 0U);
   removed = rule.cleanup(expiredTime, &scanned);
-  BOOST_CHECK_EQUAL(removed, 0);
-  BOOST_CHECK_EQUAL(scanned, 0);
+  BOOST_CHECK_EQUAL(removed, 0U);
+  BOOST_CHECK_EQUAL(scanned, 0U);
 }
 
 

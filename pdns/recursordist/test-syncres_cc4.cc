@@ -46,9 +46,9 @@ BOOST_AUTO_TEST_CASE(test_auth_zone_nodata) {
   vector<DNSRecord> ret;
   int res = sr->beginResolve(target, QType(QType::AAAA), QClass::IN, ret);
   BOOST_CHECK_EQUAL(res, RCode::NoError);
-  BOOST_REQUIRE_EQUAL(ret.size(), 1);
+  BOOST_REQUIRE_EQUAL(ret.size(), 1U);
   BOOST_CHECK(ret[0].d_type == QType::SOA);
-  BOOST_CHECK_EQUAL(queriesCount, 0);
+  BOOST_CHECK_EQUAL(queriesCount, 0U);
 }
 
 BOOST_AUTO_TEST_CASE(test_auth_zone_nx) {
@@ -85,9 +85,9 @@ BOOST_AUTO_TEST_CASE(test_auth_zone_nx) {
   vector<DNSRecord> ret;
   int res = sr->beginResolve(target, QType(QType::A), QClass::IN, ret);
   BOOST_CHECK_EQUAL(res, RCode::NXDomain);
-  BOOST_REQUIRE_EQUAL(ret.size(), 1);
+  BOOST_REQUIRE_EQUAL(ret.size(), 1U);
   BOOST_CHECK(ret[0].d_type == QType::SOA);
-  BOOST_CHECK_EQUAL(queriesCount, 0);
+  BOOST_CHECK_EQUAL(queriesCount, 0U);
 }
 
 BOOST_AUTO_TEST_CASE(test_auth_zone_delegation) {
@@ -134,7 +134,7 @@ BOOST_AUTO_TEST_CASE(test_auth_zone_delegation) {
   testkeysset_t keys;
   auto luaconfsCopy = g_luaconfs.getCopy();
   luaconfsCopy.dsAnchors.clear();
-  generateKeyMaterial(g_rootdnsname, DNSSECKeeper::RSASHA512, DNSSECKeeper::SHA384, keys, luaconfsCopy.dsAnchors);
+  generateKeyMaterial(g_rootdnsname, DNSSECKeeper::RSASHA512, DNSSECKeeper::DIGEST_SHA384, keys, luaconfsCopy.dsAnchors);
   g_luaconfs.setState(luaconfsCopy);
 
   /* make sure that the signature inception and validity times are computed
@@ -162,9 +162,9 @@ BOOST_AUTO_TEST_CASE(test_auth_zone_delegation) {
   vector<DNSRecord> ret;
   int res = sr->beginResolve(target, QType(QType::A), QClass::IN, ret);
   BOOST_CHECK_EQUAL(res, RCode::NoError);
-  BOOST_REQUIRE_EQUAL(ret.size(), 1);
+  BOOST_REQUIRE_EQUAL(ret.size(), 1U);
   BOOST_CHECK(ret[0].d_type == QType::A);
-  BOOST_CHECK_EQUAL(queriesCount, 4);
+  BOOST_CHECK_EQUAL(queriesCount, 4U);
   BOOST_CHECK_EQUAL(sr->getValidationState(), Indeterminate);
 }
 
@@ -225,9 +225,9 @@ BOOST_AUTO_TEST_CASE(test_auth_zone_delegation_point) {
   vector<DNSRecord> ret;
   int res = sr->beginResolve(target, QType(QType::A), QClass::IN, ret);
   BOOST_CHECK_EQUAL(res, RCode::NoError);
-  BOOST_REQUIRE_EQUAL(ret.size(), 1);
+  BOOST_REQUIRE_EQUAL(ret.size(), 1U);
   BOOST_CHECK(ret[0].d_type == QType::A);
-  BOOST_CHECK_EQUAL(queriesCount, 1);
+  BOOST_CHECK_EQUAL(queriesCount, 1U);
 }
 
 BOOST_AUTO_TEST_CASE(test_auth_zone_wildcard) {
@@ -272,9 +272,9 @@ BOOST_AUTO_TEST_CASE(test_auth_zone_wildcard) {
   vector<DNSRecord> ret;
   int res = sr->beginResolve(target, QType(QType::A), QClass::IN, ret);
   BOOST_CHECK_EQUAL(res, RCode::NoError);
-  BOOST_REQUIRE_EQUAL(ret.size(), 1);
+  BOOST_REQUIRE_EQUAL(ret.size(), 1U);
   BOOST_CHECK(ret[0].d_type == QType::A);
-  BOOST_CHECK_EQUAL(queriesCount, 0);
+  BOOST_CHECK_EQUAL(queriesCount, 0U);
 }
 
 BOOST_AUTO_TEST_CASE(test_auth_zone_wildcard_with_ent) {
@@ -327,12 +327,12 @@ BOOST_AUTO_TEST_CASE(test_auth_zone_wildcard_with_ent) {
   vector<DNSRecord> ret;
   int res = sr->beginResolve(target, QType(QType::A), QClass::IN, ret);
   BOOST_CHECK_EQUAL(res, RCode::NoError);
-  BOOST_REQUIRE_EQUAL(ret.size(), 1);
+  BOOST_REQUIRE_EQUAL(ret.size(), 1U);
   
   // WARN below should be changed to CHECK once the issue is fixed.
   const string m("Please fix issue #8312");
   BOOST_WARN_MESSAGE(ret[0].d_type == QType::SOA, m);
-  BOOST_CHECK_EQUAL(queriesCount, 0);
+  BOOST_CHECK_EQUAL(queriesCount, 0U);
 }
 
 BOOST_AUTO_TEST_CASE(test_auth_zone_wildcard_nodata) {
@@ -377,9 +377,9 @@ BOOST_AUTO_TEST_CASE(test_auth_zone_wildcard_nodata) {
   vector<DNSRecord> ret;
   int res = sr->beginResolve(target, QType(QType::AAAA), QClass::IN, ret);
   BOOST_CHECK_EQUAL(res, RCode::NoError);
-  BOOST_REQUIRE_EQUAL(ret.size(), 1);
+  BOOST_REQUIRE_EQUAL(ret.size(), 1U);
   BOOST_CHECK(ret[0].d_type == QType::SOA);
-  BOOST_CHECK_EQUAL(queriesCount, 0);
+  BOOST_CHECK_EQUAL(queriesCount, 0U);
 }
 
 BOOST_AUTO_TEST_CASE(test_auth_zone_cache_only) {
@@ -427,10 +427,10 @@ BOOST_AUTO_TEST_CASE(test_auth_zone_cache_only) {
   vector<DNSRecord> ret;
   int res = sr->beginResolve(target, QType(QType::A), QClass::IN, ret);
   BOOST_CHECK_EQUAL(res, RCode::NoError);
-  BOOST_CHECK_EQUAL(ret.size(), 1);
+  BOOST_CHECK_EQUAL(ret.size(), 1U);
   BOOST_CHECK(ret[0].d_type == QType::A);
   BOOST_CHECK_EQUAL(getRR<ARecordContent>(ret[0])->getCA().toString(), addr.toString());
-  BOOST_CHECK_EQUAL(queriesCount, 0);
+  BOOST_CHECK_EQUAL(queriesCount, 0U);
 }
 
 BOOST_AUTO_TEST_CASE(test_dnssec_rrsig) {
@@ -474,7 +474,7 @@ BOOST_AUTO_TEST_CASE(test_dnssec_root_validation_csk) {
 
   auto luaconfsCopy = g_luaconfs.getCopy();
   luaconfsCopy.dsAnchors.clear();
-  generateKeyMaterial(target, DNSSECKeeper::ECDSA256, DNSSECKeeper::SHA256, keys, luaconfsCopy.dsAnchors);
+  generateKeyMaterial(target, DNSSECKeeper::ECDSA256, DNSSECKeeper::DIGEST_SHA256, keys, luaconfsCopy.dsAnchors);
   g_luaconfs.setState(luaconfsCopy);
 
   size_t queriesCount = 0;
@@ -515,16 +515,16 @@ BOOST_AUTO_TEST_CASE(test_dnssec_root_validation_csk) {
   BOOST_CHECK_EQUAL(res, RCode::NoError);
   BOOST_CHECK_EQUAL(sr->getValidationState(), Secure);
   /* 13 NS + 1 RRSIG */
-  BOOST_REQUIRE_EQUAL(ret.size(), 14);
-  BOOST_CHECK_EQUAL(queriesCount, 2);
+  BOOST_REQUIRE_EQUAL(ret.size(), 14U);
+  BOOST_CHECK_EQUAL(queriesCount, 2U);
 
   /* again, to test the cache */
   ret.clear();
   res = sr->beginResolve(target, QType(QType::NS), QClass::IN, ret);
   BOOST_CHECK_EQUAL(res, RCode::NoError);
   BOOST_CHECK_EQUAL(sr->getValidationState(), Secure);
-  BOOST_REQUIRE_EQUAL(ret.size(), 14);
-  BOOST_CHECK_EQUAL(queriesCount, 2);
+  BOOST_REQUIRE_EQUAL(ret.size(), 14U);
+  BOOST_CHECK_EQUAL(queriesCount, 2U);
 }
 
 BOOST_AUTO_TEST_CASE(test_dnssec_root_validation_ksk_zsk) {
@@ -544,14 +544,14 @@ BOOST_AUTO_TEST_CASE(test_dnssec_root_validation_ksk_zsk) {
   DNSSECPrivateKey ksk;
   ksk.d_flags = 257;
   ksk.setKey(dckeZ);
-  DSRecordContent kskds = makeDSFromDNSKey(target, ksk.getDNSKEY(), DNSSECKeeper::SHA256);
+  DSRecordContent kskds = makeDSFromDNSKey(target, ksk.getDNSKEY(), DNSSECKeeper::DIGEST_SHA256);
 
   auto dckeK = std::shared_ptr<DNSCryptoKeyEngine>(DNSCryptoKeyEngine::make(DNSSECKeeper::ECDSA256));
   dckeK->create(dckeK->getBits());
   DNSSECPrivateKey zsk;
   zsk.d_flags = 256;
   zsk.setKey(dckeK);
-  DSRecordContent zskds = makeDSFromDNSKey(target, zsk.getDNSKEY(), DNSSECKeeper::SHA256);
+  DSRecordContent zskds = makeDSFromDNSKey(target, zsk.getDNSKEY(), DNSSECKeeper::DIGEST_SHA256);
 
   kskeys[target] = std::pair<DNSSECPrivateKey,DSRecordContent>(ksk, kskds);
   zskeys[target] = std::pair<DNSSECPrivateKey,DSRecordContent>(zsk, zskds);
@@ -601,16 +601,16 @@ BOOST_AUTO_TEST_CASE(test_dnssec_root_validation_ksk_zsk) {
   BOOST_CHECK_EQUAL(res, RCode::NoError);
   BOOST_CHECK_EQUAL(sr->getValidationState(), Secure);
   /* 13 NS + 1 RRSIG */
-  BOOST_REQUIRE_EQUAL(ret.size(), 14);
-  BOOST_CHECK_EQUAL(queriesCount, 2);
+  BOOST_REQUIRE_EQUAL(ret.size(), 14U);
+  BOOST_CHECK_EQUAL(queriesCount, 2U);
 
   /* again, to test the cache */
   ret.clear();
   res = sr->beginResolve(target, QType(QType::NS), QClass::IN, ret);
   BOOST_CHECK_EQUAL(res, RCode::NoError);
   BOOST_CHECK_EQUAL(sr->getValidationState(), Secure);
-  BOOST_REQUIRE_EQUAL(ret.size(), 14);
-  BOOST_CHECK_EQUAL(queriesCount, 2);
+  BOOST_REQUIRE_EQUAL(ret.size(), 14U);
+  BOOST_CHECK_EQUAL(queriesCount, 2U);
 }
 
 BOOST_AUTO_TEST_CASE(test_dnssec_bogus_no_dnskey) {
@@ -625,7 +625,7 @@ BOOST_AUTO_TEST_CASE(test_dnssec_bogus_no_dnskey) {
 
   auto luaconfsCopy = g_luaconfs.getCopy();
   luaconfsCopy.dsAnchors.clear();
-  generateKeyMaterial(target, DNSSECKeeper::ECDSA256, DNSSECKeeper::SHA256, keys, luaconfsCopy.dsAnchors);
+  generateKeyMaterial(target, DNSSECKeeper::ECDSA256, DNSSECKeeper::DIGEST_SHA256, keys, luaconfsCopy.dsAnchors);
   g_luaconfs.setState(luaconfsCopy);
 
   size_t queriesCount = 0;
@@ -665,16 +665,16 @@ BOOST_AUTO_TEST_CASE(test_dnssec_bogus_no_dnskey) {
   BOOST_CHECK_EQUAL(res, RCode::NoError);
   BOOST_CHECK_EQUAL(sr->getValidationState(), Bogus);
   /* 13 NS + 1 RRSIG */
-  BOOST_REQUIRE_EQUAL(ret.size(), 14);
-  BOOST_CHECK_EQUAL(queriesCount, 2);
+  BOOST_REQUIRE_EQUAL(ret.size(), 14U);
+  BOOST_CHECK_EQUAL(queriesCount, 2U);
 
   /* again, to test the cache */
   ret.clear();
   res = sr->beginResolve(target, QType(QType::NS), QClass::IN, ret);
   BOOST_CHECK_EQUAL(res, RCode::NoError);
   BOOST_CHECK_EQUAL(sr->getValidationState(), Bogus);
-  BOOST_REQUIRE_EQUAL(ret.size(), 14);
-  BOOST_CHECK_EQUAL(queriesCount, 2);
+  BOOST_REQUIRE_EQUAL(ret.size(), 14U);
+  BOOST_CHECK_EQUAL(queriesCount, 2U);
 }
 
 BOOST_AUTO_TEST_CASE(test_dnssec_bogus_dnskey_doesnt_match_ds) {
@@ -694,14 +694,14 @@ BOOST_AUTO_TEST_CASE(test_dnssec_bogus_dnskey_doesnt_match_ds) {
   DNSSECPrivateKey dskey;
   dskey.d_flags = 257;
   dskey.setKey(dckeDS);
-  DSRecordContent drc = makeDSFromDNSKey(target, dskey.getDNSKEY(), DNSSECKeeper::SHA256);
+  DSRecordContent drc = makeDSFromDNSKey(target, dskey.getDNSKEY(), DNSSECKeeper::DIGEST_SHA256);
 
   auto dcke = std::shared_ptr<DNSCryptoKeyEngine>(DNSCryptoKeyEngine::make(DNSSECKeeper::ECDSA256));
   dcke->create(dcke->getBits());
   DNSSECPrivateKey dpk;
   dpk.d_flags = 256;
   dpk.setKey(dcke);
-  DSRecordContent uselessdrc = makeDSFromDNSKey(target, dpk.getDNSKEY(), DNSSECKeeper::SHA256);
+  DSRecordContent uselessdrc = makeDSFromDNSKey(target, dpk.getDNSKEY(), DNSSECKeeper::DIGEST_SHA256);
 
   dskeys[target] = std::pair<DNSSECPrivateKey,DSRecordContent>(dskey, drc);
   keys[target] = std::pair<DNSSECPrivateKey,DSRecordContent>(dpk, uselessdrc);
@@ -750,16 +750,16 @@ BOOST_AUTO_TEST_CASE(test_dnssec_bogus_dnskey_doesnt_match_ds) {
   BOOST_CHECK_EQUAL(res, RCode::NoError);
   BOOST_CHECK_EQUAL(sr->getValidationState(), Bogus);
   /* 13 NS + 1 RRSIG */
-  BOOST_REQUIRE_EQUAL(ret.size(), 14);
-  BOOST_CHECK_EQUAL(queriesCount, 2);
+  BOOST_REQUIRE_EQUAL(ret.size(), 14U);
+  BOOST_CHECK_EQUAL(queriesCount, 2U);
 
   /* again, to test the cache */
   ret.clear();
   res = sr->beginResolve(target, QType(QType::NS), QClass::IN, ret);
   BOOST_CHECK_EQUAL(res, RCode::NoError);
   BOOST_CHECK_EQUAL(sr->getValidationState(), Bogus);
-  BOOST_REQUIRE_EQUAL(ret.size(), 14);
-  BOOST_CHECK_EQUAL(queriesCount, 2);
+  BOOST_REQUIRE_EQUAL(ret.size(), 14U);
+  BOOST_CHECK_EQUAL(queriesCount, 2U);
 }
 
 BOOST_AUTO_TEST_CASE(test_dnssec_bogus_rrsig_signed_with_unknown_dnskey) {
@@ -775,7 +775,7 @@ BOOST_AUTO_TEST_CASE(test_dnssec_bogus_rrsig_signed_with_unknown_dnskey) {
 
   auto luaconfsCopy = g_luaconfs.getCopy();
   luaconfsCopy.dsAnchors.clear();
-  generateKeyMaterial(target, DNSSECKeeper::ECDSA256, DNSSECKeeper::SHA256, keys, luaconfsCopy.dsAnchors);
+  generateKeyMaterial(target, DNSSECKeeper::ECDSA256, DNSSECKeeper::DIGEST_SHA256, keys, luaconfsCopy.dsAnchors);
   g_luaconfs.setState(luaconfsCopy);
 
   auto dckeRRSIG = std::shared_ptr<DNSCryptoKeyEngine>(DNSCryptoKeyEngine::make(DNSSECKeeper::ECDSA256));
@@ -783,7 +783,7 @@ BOOST_AUTO_TEST_CASE(test_dnssec_bogus_rrsig_signed_with_unknown_dnskey) {
   DNSSECPrivateKey rrsigkey;
   rrsigkey.d_flags = 257;
   rrsigkey.setKey(dckeRRSIG);
-  DSRecordContent rrsigds = makeDSFromDNSKey(target, rrsigkey.getDNSKEY(), DNSSECKeeper::SHA256);
+  DSRecordContent rrsigds = makeDSFromDNSKey(target, rrsigkey.getDNSKEY(), DNSSECKeeper::DIGEST_SHA256);
 
   rrsigkeys[target] = std::pair<DNSSECPrivateKey,DSRecordContent>(rrsigkey, rrsigds);
 
@@ -825,16 +825,16 @@ BOOST_AUTO_TEST_CASE(test_dnssec_bogus_rrsig_signed_with_unknown_dnskey) {
   BOOST_CHECK_EQUAL(res, RCode::NoError);
   BOOST_CHECK_EQUAL(sr->getValidationState(), Bogus);
   /* 13 NS + 1 RRSIG */
-  BOOST_REQUIRE_EQUAL(ret.size(), 14);
-  BOOST_CHECK_EQUAL(queriesCount, 2);
+  BOOST_REQUIRE_EQUAL(ret.size(), 14U);
+  BOOST_CHECK_EQUAL(queriesCount, 2U);
 
   /* again, to test the cache */
   ret.clear();
   res = sr->beginResolve(target, QType(QType::NS), QClass::IN, ret);
   BOOST_CHECK_EQUAL(res, RCode::NoError);
   BOOST_CHECK_EQUAL(sr->getValidationState(), Bogus);
-  BOOST_REQUIRE_EQUAL(ret.size(), 14);
-  BOOST_CHECK_EQUAL(queriesCount, 2);
+  BOOST_REQUIRE_EQUAL(ret.size(), 14U);
+  BOOST_CHECK_EQUAL(queriesCount, 2U);
 }
 
 BOOST_AUTO_TEST_CASE(test_dnssec_bogus_no_rrsig) {
@@ -849,7 +849,7 @@ BOOST_AUTO_TEST_CASE(test_dnssec_bogus_no_rrsig) {
 
   auto luaconfsCopy = g_luaconfs.getCopy();
   luaconfsCopy.dsAnchors.clear();
-  generateKeyMaterial(target, DNSSECKeeper::ECDSA256, DNSSECKeeper::SHA256, keys, luaconfsCopy.dsAnchors);
+  generateKeyMaterial(target, DNSSECKeeper::ECDSA256, DNSSECKeeper::DIGEST_SHA256, keys, luaconfsCopy.dsAnchors);
   g_luaconfs.setState(luaconfsCopy);
 
   size_t queriesCount = 0;
@@ -893,21 +893,21 @@ BOOST_AUTO_TEST_CASE(test_dnssec_bogus_no_rrsig) {
   BOOST_CHECK_EQUAL(res, RCode::NoError);
   BOOST_CHECK_EQUAL(sr->getValidationState(), Bogus);
   /* 13 NS + 0 RRSIG */
-  BOOST_REQUIRE_EQUAL(ret.size(), 13);
+  BOOST_REQUIRE_EQUAL(ret.size(), 13U);
   /* no RRSIG so no query for DNSKEYs */
-  BOOST_CHECK_EQUAL(queriesCount, 1);
+  BOOST_CHECK_EQUAL(queriesCount, 1U);
 
   /* again, to test the cache */
   ret.clear();
   res = sr->beginResolve(target, QType(QType::NS), QClass::IN, ret);
   BOOST_CHECK_EQUAL(res, RCode::NoError);
   BOOST_CHECK_EQUAL(sr->getValidationState(), Bogus);
-  BOOST_REQUIRE_EQUAL(ret.size(), 13);
+  BOOST_REQUIRE_EQUAL(ret.size(), 13U);
   /* check that we capped the TTL to max-cache-bogus-ttl */
   for (const auto& record : ret) {
     BOOST_CHECK_LE(record.d_ttl, SyncRes::s_maxbogusttl);
   }
-  BOOST_CHECK_EQUAL(queriesCount, 1);
+  BOOST_CHECK_EQUAL(queriesCount, 1U);
 }
 
 BOOST_AUTO_TEST_CASE(test_dnssec_insecure_unknown_ds_algorithm) {
@@ -929,7 +929,7 @@ BOOST_AUTO_TEST_CASE(test_dnssec_insecure_unknown_ds_algorithm) {
   /* Fake algorithm number (private) */
   dpk.d_algorithm = 253;
 
-  DSRecordContent drc = makeDSFromDNSKey(target, dpk.getDNSKEY(), DNSSECKeeper::SHA256);
+  DSRecordContent drc = makeDSFromDNSKey(target, dpk.getDNSKEY(), DNSSECKeeper::DIGEST_SHA256);
   keys[target] = std::pair<DNSSECPrivateKey,DSRecordContent>(dpk, drc);
   /* Fake algorithm number (private) */
   drc.d_algorithm = 253;
@@ -978,17 +978,17 @@ BOOST_AUTO_TEST_CASE(test_dnssec_insecure_unknown_ds_algorithm) {
   BOOST_CHECK_EQUAL(res, RCode::NoError);
   BOOST_CHECK_EQUAL(sr->getValidationState(), Insecure);
   /* 13 NS + 1 RRSIG */
-  BOOST_REQUIRE_EQUAL(ret.size(), 14);
+  BOOST_REQUIRE_EQUAL(ret.size(), 14U);
   /* no supported DS so no query for DNSKEYs */
-  BOOST_CHECK_EQUAL(queriesCount, 1);
+  BOOST_CHECK_EQUAL(queriesCount, 1U);
 
   /* again, to test the cache */
   ret.clear();
   res = sr->beginResolve(target, QType(QType::NS), QClass::IN, ret);
   BOOST_CHECK_EQUAL(res, RCode::NoError);
   BOOST_CHECK_EQUAL(sr->getValidationState(), Insecure);
-  BOOST_REQUIRE_EQUAL(ret.size(), 14);
-  BOOST_CHECK_EQUAL(queriesCount, 1);
+  BOOST_REQUIRE_EQUAL(ret.size(), 14U);
+  BOOST_CHECK_EQUAL(queriesCount, 1U);
 }
 
 BOOST_AUTO_TEST_CASE(test_dnssec_insecure_unknown_ds_digest) {
@@ -1007,7 +1007,7 @@ BOOST_AUTO_TEST_CASE(test_dnssec_insecure_unknown_ds_digest) {
   DNSSECPrivateKey dpk;
   dpk.d_flags = 256;
   dpk.setKey(dcke);
-  DSRecordContent drc = makeDSFromDNSKey(target, dpk.getDNSKEY(), DNSSECKeeper::SHA256);
+  DSRecordContent drc = makeDSFromDNSKey(target, dpk.getDNSKEY(), DNSSECKeeper::DIGEST_SHA256);
   /* Fake digest number (reserved) */
   drc.d_digesttype = 0;
 
@@ -1057,17 +1057,17 @@ BOOST_AUTO_TEST_CASE(test_dnssec_insecure_unknown_ds_digest) {
   BOOST_CHECK_EQUAL(res, RCode::NoError);
   BOOST_CHECK_EQUAL(sr->getValidationState(), Insecure);
   /* 13 NS + 1 RRSIG */
-  BOOST_REQUIRE_EQUAL(ret.size(), 14);
+  BOOST_REQUIRE_EQUAL(ret.size(), 14U);
   /* no supported DS so no query for DNSKEYs */
-  BOOST_CHECK_EQUAL(queriesCount, 1);
+  BOOST_CHECK_EQUAL(queriesCount, 1U);
 
   /* again, to test the cache */
   ret.clear();
   res = sr->beginResolve(target, QType(QType::NS), QClass::IN, ret);
   BOOST_CHECK_EQUAL(res, RCode::NoError);
   BOOST_CHECK_EQUAL(sr->getValidationState(), Insecure);
-  BOOST_REQUIRE_EQUAL(ret.size(), 14);
-  BOOST_CHECK_EQUAL(queriesCount, 1);
+  BOOST_REQUIRE_EQUAL(ret.size(), 14U);
+  BOOST_CHECK_EQUAL(queriesCount, 1U);
 }
 
 BOOST_AUTO_TEST_CASE(test_dnssec_bogus_bad_sig) {
@@ -1082,7 +1082,7 @@ BOOST_AUTO_TEST_CASE(test_dnssec_bogus_bad_sig) {
 
   auto luaconfsCopy = g_luaconfs.getCopy();
   luaconfsCopy.dsAnchors.clear();
-  generateKeyMaterial(g_rootdnsname, DNSSECKeeper::RSASHA512, DNSSECKeeper::SHA384, keys, luaconfsCopy.dsAnchors);
+  generateKeyMaterial(g_rootdnsname, DNSSECKeeper::RSASHA512, DNSSECKeeper::DIGEST_SHA384, keys, luaconfsCopy.dsAnchors);
 
   g_luaconfs.setState(luaconfsCopy);
 
@@ -1124,16 +1124,16 @@ BOOST_AUTO_TEST_CASE(test_dnssec_bogus_bad_sig) {
   BOOST_CHECK_EQUAL(res, RCode::NoError);
   BOOST_CHECK_EQUAL(sr->getValidationState(), Bogus);
   /* 13 NS + 1 RRSIG */
-  BOOST_REQUIRE_EQUAL(ret.size(), 14);
-  BOOST_CHECK_EQUAL(queriesCount, 2);
+  BOOST_REQUIRE_EQUAL(ret.size(), 14U);
+  BOOST_CHECK_EQUAL(queriesCount, 2U);
 
   /* again, to test the cache */
   ret.clear();
   res = sr->beginResolve(target, QType(QType::NS), QClass::IN, ret);
   BOOST_CHECK_EQUAL(res, RCode::NoError);
   BOOST_CHECK_EQUAL(sr->getValidationState(), Bogus);
-  BOOST_REQUIRE_EQUAL(ret.size(), 14);
-  BOOST_CHECK_EQUAL(queriesCount, 2);
+  BOOST_REQUIRE_EQUAL(ret.size(), 14U);
+  BOOST_CHECK_EQUAL(queriesCount, 2U);
 }
 
 BOOST_AUTO_TEST_CASE(test_dnssec_bogus_bad_algo) {
@@ -1148,7 +1148,7 @@ BOOST_AUTO_TEST_CASE(test_dnssec_bogus_bad_algo) {
 
   auto luaconfsCopy = g_luaconfs.getCopy();
   luaconfsCopy.dsAnchors.clear();
-  generateKeyMaterial(g_rootdnsname, DNSSECKeeper::RSASHA512, DNSSECKeeper::SHA384, keys, luaconfsCopy.dsAnchors);
+  generateKeyMaterial(g_rootdnsname, DNSSECKeeper::RSASHA512, DNSSECKeeper::DIGEST_SHA384, keys, luaconfsCopy.dsAnchors);
 
   g_luaconfs.setState(luaconfsCopy);
 
@@ -1191,16 +1191,16 @@ BOOST_AUTO_TEST_CASE(test_dnssec_bogus_bad_algo) {
   BOOST_CHECK_EQUAL(res, RCode::NoError);
   BOOST_CHECK_EQUAL(sr->getValidationState(), Bogus);
   /* 13 NS + 1 RRSIG */
-  BOOST_REQUIRE_EQUAL(ret.size(), 14);
-  BOOST_CHECK_EQUAL(queriesCount, 2);
+  BOOST_REQUIRE_EQUAL(ret.size(), 14U);
+  BOOST_CHECK_EQUAL(queriesCount, 2U);
 
   /* again, to test the cache */
   ret.clear();
   res = sr->beginResolve(target, QType(QType::NS), QClass::IN, ret);
   BOOST_CHECK_EQUAL(res, RCode::NoError);
   BOOST_CHECK_EQUAL(sr->getValidationState(), Bogus);
-  BOOST_REQUIRE_EQUAL(ret.size(), 14);
-  BOOST_CHECK_EQUAL(queriesCount, 2);
+  BOOST_REQUIRE_EQUAL(ret.size(), 14U);
+  BOOST_CHECK_EQUAL(queriesCount, 2U);
 }
 
 BOOST_AUTO_TEST_CASE(test_dnssec_bogus_unsigned_ds) {
@@ -1216,8 +1216,8 @@ BOOST_AUTO_TEST_CASE(test_dnssec_bogus_unsigned_ds) {
 
   auto luaconfsCopy = g_luaconfs.getCopy();
   luaconfsCopy.dsAnchors.clear();
-  generateKeyMaterial(g_rootdnsname, DNSSECKeeper::RSASHA512, DNSSECKeeper::SHA384, keys, luaconfsCopy.dsAnchors);
-  generateKeyMaterial(DNSName("com."), DNSSECKeeper::ECDSA256, DNSSECKeeper::SHA256, keys);
+  generateKeyMaterial(g_rootdnsname, DNSSECKeeper::RSASHA512, DNSSECKeeper::DIGEST_SHA384, keys, luaconfsCopy.dsAnchors);
+  generateKeyMaterial(DNSName("com."), DNSSECKeeper::ECDSA256, DNSSECKeeper::DIGEST_SHA256, keys);
 
   g_luaconfs.setState(luaconfsCopy);
 
@@ -1264,24 +1264,24 @@ BOOST_AUTO_TEST_CASE(test_dnssec_bogus_unsigned_ds) {
   int res = sr->beginResolve(target, QType(QType::A), QClass::IN, ret);
   BOOST_CHECK_EQUAL(res, RCode::NoError);
   BOOST_CHECK_EQUAL(sr->getValidationState(), Bogus);
-  BOOST_REQUIRE_EQUAL(ret.size(), 2);
-  BOOST_CHECK_EQUAL(queriesCount, 3);
+  BOOST_REQUIRE_EQUAL(ret.size(), 2U);
+  BOOST_CHECK_EQUAL(queriesCount, 3U);
 
   /* again, to test the cache */
   ret.clear();
   res = sr->beginResolve(target, QType(QType::A), QClass::IN, ret);
   BOOST_CHECK_EQUAL(res, RCode::NoError);
   BOOST_CHECK_EQUAL(sr->getValidationState(), Bogus);
-  BOOST_REQUIRE_EQUAL(ret.size(), 2);
-  BOOST_CHECK_EQUAL(queriesCount, 3);
+  BOOST_REQUIRE_EQUAL(ret.size(), 2U);
+  BOOST_CHECK_EQUAL(queriesCount, 3U);
 
   /* now we ask directly for the DS */
   ret.clear();
   res = sr->beginResolve(DNSName("com."), QType(QType::DS), QClass::IN, ret);
   BOOST_CHECK_EQUAL(res, RCode::NoError);
   BOOST_CHECK_EQUAL(sr->getValidationState(), Bogus);
-  BOOST_REQUIRE_EQUAL(ret.size(), 1);
-  BOOST_CHECK_EQUAL(queriesCount, 3);
+  BOOST_REQUIRE_EQUAL(ret.size(), 1U);
+  BOOST_CHECK_EQUAL(queriesCount, 3U);
 }
 
 BOOST_AUTO_TEST_CASE(test_dnssec_bogus_unsigned_ds_direct) {
@@ -1296,8 +1296,8 @@ BOOST_AUTO_TEST_CASE(test_dnssec_bogus_unsigned_ds_direct) {
 
   auto luaconfsCopy = g_luaconfs.getCopy();
   luaconfsCopy.dsAnchors.clear();
-  generateKeyMaterial(g_rootdnsname, DNSSECKeeper::RSASHA512, DNSSECKeeper::SHA384, keys, luaconfsCopy.dsAnchors);
-  generateKeyMaterial(DNSName("com."), DNSSECKeeper::ECDSA256, DNSSECKeeper::SHA256, keys);
+  generateKeyMaterial(g_rootdnsname, DNSSECKeeper::RSASHA512, DNSSECKeeper::DIGEST_SHA384, keys, luaconfsCopy.dsAnchors);
+  generateKeyMaterial(DNSName("com."), DNSSECKeeper::ECDSA256, DNSSECKeeper::DIGEST_SHA256, keys);
 
   g_luaconfs.setState(luaconfsCopy);
 
@@ -1337,8 +1337,8 @@ BOOST_AUTO_TEST_CASE(test_dnssec_bogus_unsigned_ds_direct) {
   int res = sr->beginResolve(DNSName("com."), QType(QType::DS), QClass::IN, ret);
   BOOST_CHECK_EQUAL(res, RCode::NoError);
   BOOST_CHECK_EQUAL(sr->getValidationState(), Bogus);
-  BOOST_REQUIRE_EQUAL(ret.size(), 1);
-  BOOST_CHECK_EQUAL(queriesCount, 1);
+  BOOST_REQUIRE_EQUAL(ret.size(), 1U);
+  BOOST_CHECK_EQUAL(queriesCount, 1U);
 }
 
 BOOST_AUTO_TEST_SUITE_END()

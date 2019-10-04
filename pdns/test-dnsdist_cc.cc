@@ -48,9 +48,9 @@ static void validateQuery(const char * packet, size_t packetSize, bool hasEdns=t
 
   BOOST_CHECK_EQUAL(mdp.d_qname.toString(), "www.powerdns.com.");
 
-  BOOST_CHECK_EQUAL(mdp.d_header.qdcount, 1);
-  BOOST_CHECK_EQUAL(mdp.d_header.ancount, 0);
-  BOOST_CHECK_EQUAL(mdp.d_header.nscount, 0);
+  BOOST_CHECK_EQUAL(mdp.d_header.qdcount, 1U);
+  BOOST_CHECK_EQUAL(mdp.d_header.ancount, 0U);
+  BOOST_CHECK_EQUAL(mdp.d_header.nscount, 0U);
   uint16_t expectedARCount = 0 + (hasEdns ? 1 : 0) + (hasXPF ? 1 : 0);
   BOOST_CHECK_EQUAL(mdp.d_header.arcount, expectedARCount);
 }
@@ -65,14 +65,14 @@ static void validateECS(const char* packet, size_t packetSize, const ComboAddres
   DNSQuestion dq(&qname, qtype, qclass, consumed, nullptr, &rem, const_cast<dnsheader*>(reinterpret_cast<const dnsheader*>(packet)), packetSize, packetSize, false, nullptr);
   BOOST_CHECK(parseEDNSOptions(dq));
   BOOST_REQUIRE(dq.ednsOptions != nullptr);
-  BOOST_CHECK_EQUAL(dq.ednsOptions->size(), 1);
+  BOOST_CHECK_EQUAL(dq.ednsOptions->size(), 1U);
   const auto& ecsOption = dq.ednsOptions->find(EDNSOptionCode::ECS);
   BOOST_REQUIRE(ecsOption != dq.ednsOptions->cend());
 
   string expectedOption;
   generateECSOption(expected, expectedOption, expected.sin4.sin_family == AF_INET ? ECSSourcePrefixV4 : ECSSourcePrefixV6);
   /* we need to skip the option code and length, which are not included */
-  BOOST_REQUIRE_EQUAL(ecsOption->second.values.size(), 1);
+  BOOST_REQUIRE_EQUAL(ecsOption->second.values.size(), 1U);
   BOOST_CHECK_EQUAL(expectedOption.substr(EDNS_OPTION_CODE_SIZE + EDNS_OPTION_LENGTH_SIZE), std::string(ecsOption->second.values.at(0).content, ecsOption->second.values.at(0).size));
 }
 
@@ -82,11 +82,11 @@ static void validateResponse(const char * packet, size_t packetSize, bool hasEdn
 
   BOOST_CHECK_EQUAL(mdp.d_qname.toString(), "www.powerdns.com.");
 
-  BOOST_CHECK_EQUAL(mdp.d_header.qr, 1);
-  BOOST_CHECK_EQUAL(mdp.d_header.qdcount, 1);
-  BOOST_CHECK_EQUAL(mdp.d_header.ancount, 1);
-  BOOST_CHECK_EQUAL(mdp.d_header.nscount, 0);
-  BOOST_CHECK_EQUAL(mdp.d_header.arcount, (hasEdns ? 1 : 0) + additionalCount);
+  BOOST_CHECK_EQUAL(mdp.d_header.qr, 1U);
+  BOOST_CHECK_EQUAL(mdp.d_header.qdcount, 1U);
+  BOOST_CHECK_EQUAL(mdp.d_header.ancount, 1U);
+  BOOST_CHECK_EQUAL(mdp.d_header.nscount, 0U);
+  BOOST_CHECK_EQUAL(mdp.d_header.arcount, (hasEdns ? 1U : 0U) + additionalCount);
 }
 
 BOOST_AUTO_TEST_CASE(test_addXPF)

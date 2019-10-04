@@ -34,7 +34,7 @@ using namespace std;
 
 #include "lua_functions.hh"
 
-void LUABackend::get_lua_function(lua_State *lua, const char *name, int *function) {
+void LUABackend::get_lua_function(lua_State *lua_state, const char *name, int *function) {
     *function = 0;
     
     string f = "f_";
@@ -44,10 +44,10 @@ void LUABackend::get_lua_function(lua_State *lua, const char *name, int *functio
     if (!::arg().isEmpty(string(LUABACKEND_PREFIX)+"-"+f))
         arg = getArg(f);
 
-    lua_getglobal(lua, arg == "" ? name : arg.c_str());
-    if (!lua_isnil(lua, -1)) {
-	lua_pushvalue(lua, -1);     
-        *function = luaL_ref(lua, LUA_REGISTRYINDEX);
+    lua_getglobal(lua_state, arg == "" ? name : arg.c_str());
+    if (!lua_isnil(lua_state, -1)) {
+	lua_pushvalue(lua_state, -1);     
+        *function = luaL_ref(lua_state, LUA_REGISTRYINDEX);
     }
 }
 

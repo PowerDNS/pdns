@@ -423,13 +423,13 @@ bool DNSCryptoKeyEngine::isAlgorithmSupported(unsigned int algo)
 static unsigned int digestToAlgorithmNumber(uint8_t digest)
 {
   switch(digest) {
-  case DNSSECKeeper::SHA1:
+  case DNSSECKeeper::DIGEST_SHA1:
     return DNSSECKeeper::RSASHA1;
-  case DNSSECKeeper::SHA256:
+  case DNSSECKeeper::DIGEST_SHA256:
     return DNSSECKeeper::RSASHA256;
-  case DNSSECKeeper::GOST:
+  case DNSSECKeeper::DIGEST_GOST:
     return DNSSECKeeper::ECCGOST;
-  case DNSSECKeeper::SHA384:
+  case DNSSECKeeper::DIGEST_SHA384:
     return DNSSECKeeper::ECDSA384;
   default:
     throw std::runtime_error("Unknown digest type " + std::to_string(digest));

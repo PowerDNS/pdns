@@ -230,148 +230,148 @@ void register_lua_functions(lua_State *lua) {
     lua_setglobal(lua, "QTypes");
 }
 
-bool LUABackend::getValueFromTable(lua_State *lua, const std::string& key, string& value) {
-  lua_pushstring(lua, key.c_str());
-  lua_gettable(lua, -2);
+bool LUABackend::getValueFromTable(lua_State *lua_state, const std::string& key, string& value) {
+  lua_pushstring(lua_state, key.c_str());
+  lua_gettable(lua_state, -2);
 
   bool ret = false;
 
-  if(!lua_isnil(lua, -1)) {
-    value = lua_tostring(lua, -1);
+  if(!lua_isnil(lua_state, -1)) {
+    value = lua_tostring(lua_state, -1);
     ret = true;
   }
 
-  lua_pop(lua, 1);
+  lua_pop(lua_state, 1);
 
   return ret;
 }
 
-bool LUABackend::getValueFromTable(lua_State *lua, const std::string& key, DNSName& value) {
-  lua_pushstring(lua, key.c_str());
-  lua_gettable(lua, -2);
+bool LUABackend::getValueFromTable(lua_State *lua_state, const std::string& key, DNSName& value) {
+  lua_pushstring(lua_state, key.c_str());
+  lua_gettable(lua_state, -2);
 
   bool ret = false;
 
-  if(!lua_isnil(lua, -1)) {
-    value = DNSName(lua_tostring(lua, -1));
+  if(!lua_isnil(lua_state, -1)) {
+    value = DNSName(lua_tostring(lua_state, -1));
     ret = true;
   }
 
-  lua_pop(lua, 1);
+  lua_pop(lua_state, 1);
 
   return ret;
 }
 
-bool LUABackend::getValueFromTable(lua_State *lua, uint32_t key, string& value) {
-  lua_pushinteger(lua, key);
-  lua_gettable(lua, -2);
+bool LUABackend::getValueFromTable(lua_State *lua_state, uint32_t key, string& value) {
+  lua_pushinteger(lua_state, key);
+  lua_gettable(lua_state, -2);
 
   bool ret = false;
 
-  if(!lua_isnil(lua, -1)) {
-    value = lua_tostring(lua, -1);
+  if(!lua_isnil(lua_state, -1)) {
+    value = lua_tostring(lua_state, -1);
     ret = true;
   }
 
-  lua_pop(lua, 1);
+  lua_pop(lua_state, 1);
 
   return ret;
 }
 
 #if !(defined(__i386__) && defined(__FreeBSD__))
-bool LUABackend::getValueFromTable(lua_State *lua, const std::string& key, time_t& value) {
-  lua_pushstring(lua, key.c_str());
-  lua_gettable(lua, -2);
+bool LUABackend::getValueFromTable(lua_State *lua_state, const std::string& key, time_t& value) {
+  lua_pushstring(lua_state, key.c_str());
+  lua_gettable(lua_state, -2);
 
   bool ret = false;
 
-  if(!lua_isnil(lua, -1)) {
-    value = (time_t)lua_tonumber(lua, -1);
+  if(!lua_isnil(lua_state, -1)) {
+    value = (time_t)lua_tonumber(lua_state, -1);
     ret = true;
   }
 
-  lua_pop(lua, 1);
+  lua_pop(lua_state, 1);
 
   return ret;
 }
 #endif
 
-bool LUABackend::getValueFromTable(lua_State *lua, const std::string& key, uint32_t& value) {
-  lua_pushstring(lua, key.c_str());
-  lua_gettable(lua, -2);
+bool LUABackend::getValueFromTable(lua_State *lua_state, const std::string& key, uint32_t& value) {
+  lua_pushstring(lua_state, key.c_str());
+  lua_gettable(lua_state, -2);
 
   bool ret = false;
 
-  if(!lua_isnil(lua, -1)) {
-    value = (uint32_t)lua_tointeger(lua, -1);
+  if(!lua_isnil(lua_state, -1)) {
+    value = (uint32_t)lua_tointeger(lua_state, -1);
     ret = true;
   }
 
-  lua_pop(lua, 1);
+  lua_pop(lua_state, 1);
 
   return ret;
 }
 
-bool LUABackend::getValueFromTable(lua_State *lua, const std::string& key, uint16_t& value) {
-  lua_pushstring(lua, key.c_str());
-  lua_gettable(lua, -2);
+bool LUABackend::getValueFromTable(lua_State *lua_state, const std::string& key, uint16_t& value) {
+  lua_pushstring(lua_state, key.c_str());
+  lua_gettable(lua_state, -2);
 
   bool ret = false;
 
-  if(!lua_isnil(lua, -1)) {
-    value = (uint16_t)lua_tointeger(lua, -1);
+  if(!lua_isnil(lua_state, -1)) {
+    value = (uint16_t)lua_tointeger(lua_state, -1);
     ret = true;
   }
 
-  lua_pop(lua, 1);
+  lua_pop(lua_state, 1);
 
   return ret;
 }
 
-bool LUABackend::getValueFromTable(lua_State *lua, const std::string& key, uint8_t& value) {
-  lua_pushstring(lua, key.c_str()); 
-  lua_gettable(lua, -2);  
+bool LUABackend::getValueFromTable(lua_State *lua_state, const std::string& key, uint8_t& value) {
+  lua_pushstring(lua_state, key.c_str()); 
+  lua_gettable(lua_state, -2);  
 
   bool ret = false;
   
-  if(!lua_isnil(lua, -1)) {
-    value = (uint8_t)lua_tointeger(lua, -1);
+  if(!lua_isnil(lua_state, -1)) {
+    value = (uint8_t)lua_tointeger(lua_state, -1);
     ret = true;
   }
   
-  lua_pop(lua, 1);
+  lua_pop(lua_state, 1);
   
   return ret;
 }
 
-bool LUABackend::getValueFromTable(lua_State *lua, const std::string& key, int& value) {
-  lua_pushstring(lua, key.c_str());
-  lua_gettable(lua, -2);
+bool LUABackend::getValueFromTable(lua_State *lua_state, const std::string& key, int& value) {
+  lua_pushstring(lua_state, key.c_str());
+  lua_gettable(lua_state, -2);
 
   bool ret = false;
 
-  if(!lua_isnil(lua, -1)) {
-    value = (int)lua_tointeger(lua, -1);
+  if(!lua_isnil(lua_state, -1)) {
+    value = (int)lua_tointeger(lua_state, -1);
     ret = true;
   }
 
-  lua_pop(lua, 1);
+  lua_pop(lua_state, 1);
 
   return ret;
 }
 
-bool LUABackend::getValueFromTable(lua_State *lua, const std::string& key, bool& value) {
-  lua_pushstring(lua, key.c_str());
-  lua_gettable(lua, -2);
+bool LUABackend::getValueFromTable(lua_State *lua_state, const std::string& key, bool& value) {
+  lua_pushstring(lua_state, key.c_str());
+  lua_gettable(lua_state, -2);
 
   bool ret = false;
 
-  if(!lua_isnil(lua, -1)) {
-    value = lua_toboolean(lua, -1);
+  if(!lua_isnil(lua_state, -1)) {
+    value = lua_toboolean(lua_state, -1);
     ret = true;
   }
 
-  lua_pop(lua, 1);
+  lua_pop(lua_state, 1);
 
   return ret;
 }

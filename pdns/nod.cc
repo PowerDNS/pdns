@@ -127,15 +127,15 @@ bool PersistentSBF::snapshotCurrent(std::thread::id tid)
     if (exists(p) && is_directory(p)) {
       try {
         std::ofstream ofile;
-        std::stringstream ss;
+        std::stringstream iss;
         ofile.open(f.string(), std::ios::out | std::ios::binary);
         {
           // only lock while dumping to a stringstream
           std::lock_guard<std::mutex> lock(d_sbf_mutex);
-          d_sbf.dump(ss);
+          d_sbf.dump(iss);
         }
         // Now write it out to the file
-        ofile << ss.str();
+        ofile << iss.str();
 
         if (ofile.fail())
           throw std::runtime_error("Failed to write to file:" + f.string());

@@ -1345,9 +1345,9 @@ std::unique_ptr<DNSPacket> PacketHandler::doQuestion(DNSPacket& p)
           try {
             auto recvec=luaSynth(rec->getCode(), target, sd.qname, sd.domain_id, p, rec->d_type);
             if(!recvec.empty()) {
-              for(const auto& r : recvec) {
+              for(const auto& r_it : recvec) {
                 rr.dr.d_type = rec->d_type; // might be CNAME
-                rr.dr.d_content = r;
+                rr.dr.d_content = r_it;
                 rr.scopeMask = p.getRealRemote().getBits(); // this makes sure answer is a specific as your question
                 rrset.push_back(rr);
               }

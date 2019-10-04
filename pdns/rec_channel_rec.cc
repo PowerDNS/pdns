@@ -780,7 +780,7 @@ static ThreadTimes* pleaseGetThreadCPUMsec()
   ret = (ru.ru_utime.tv_sec*1000ULL + ru.ru_utime.tv_usec/1000);
   ret += (ru.ru_stime.tv_sec*1000ULL + ru.ru_stime.tv_usec/1000);
 #endif
-  return new ThreadTimes{ret};
+  return new ThreadTimes{ret, vector<uint64_t>()};
 }
 
 /* Next up, when you want msec data for a specific thread, we check

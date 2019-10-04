@@ -26,8 +26,8 @@ BOOST_AUTO_TEST_CASE(test_ixfr_rfc1995_axfr) {
   addRecordToList(records, DNSName("JAIN.AD.JP."), QType::SOA, "ns.jain.ad.jp. mohta.jain.ad.jp. 3 600 600 3600000 604800");
 
   auto ret = processIXFRRecords(master, zone, records, std::dynamic_pointer_cast<SOARecordContent>(masterSOA));
-  BOOST_CHECK_EQUAL(ret.size(), 1);
-  BOOST_CHECK_EQUAL(ret.at(0).first.size(), 0);
+  BOOST_CHECK_EQUAL(ret.size(), 1U);
+  BOOST_CHECK_EQUAL(ret.at(0).first.size(), 0U);
   BOOST_REQUIRE_EQUAL(ret.at(0).second.size(), records.size());
   for (size_t idx = 0; idx < records.size(); idx++) {
     BOOST_CHECK(ret.at(0).second.at(idx) == records.at(idx));
@@ -54,10 +54,10 @@ BOOST_AUTO_TEST_CASE(test_ixfr_rfc1995_incremental) {
 
   auto ret = processIXFRRecords(master, zone, records, std::dynamic_pointer_cast<SOARecordContent>(masterSOA));
   // two sequences
-  BOOST_CHECK_EQUAL(ret.size(), 2);
+  BOOST_CHECK_EQUAL(ret.size(), 2U);
   // the first one has one removal, two additions (plus the corresponding SOA removal/addition)
-  BOOST_CHECK_EQUAL(ret.at(0).first.size(), 1 + 1);
-  BOOST_CHECK_EQUAL(ret.at(0).second.size(), 2 + 1);
+  BOOST_CHECK_EQUAL(ret.at(0).first.size(), 1U + 1U);
+  BOOST_CHECK_EQUAL(ret.at(0).second.size(), 2U + 1U);
 
   // check removals
   BOOST_CHECK_EQUAL(ret.at(0).first.at(0).d_type, QType(QType::SOA).getCode());
@@ -69,8 +69,8 @@ BOOST_AUTO_TEST_CASE(test_ixfr_rfc1995_incremental) {
   BOOST_CHECK_EQUAL(ret.at(0).second.at(2).d_type, QType(QType::A).getCode());
 
   // the second one has one removal, one addition
-  BOOST_CHECK_EQUAL(ret.at(1).first.size(), 1 + 1);
-  BOOST_CHECK_EQUAL(ret.at(1).second.size(), 1 + 1);
+  BOOST_CHECK_EQUAL(ret.at(1).first.size(), 1U + 1U);
+  BOOST_CHECK_EQUAL(ret.at(1).second.size(), 1U + 1U);
 
   // check removals
   BOOST_CHECK_EQUAL(ret.at(1).first.at(0).d_type, QType(QType::SOA).getCode());
@@ -97,10 +97,10 @@ BOOST_AUTO_TEST_CASE(test_ixfr_rfc1995_condensed_incremental) {
 
   auto ret = processIXFRRecords(master, zone, records, std::dynamic_pointer_cast<SOARecordContent>(masterSOA));
   // one sequence
-  BOOST_CHECK_EQUAL(ret.size(), 1);
+  BOOST_CHECK_EQUAL(ret.size(), 1U);
   // it has one removal, two additions (plus the corresponding SOA removal/addition)
-  BOOST_CHECK_EQUAL(ret.at(0).first.size(), 1 + 1);
-  BOOST_CHECK_EQUAL(ret.at(0).second.size(), 2 + 1);
+  BOOST_CHECK_EQUAL(ret.at(0).first.size(), 1U + 1U);
+  BOOST_CHECK_EQUAL(ret.at(0).second.size(), 2U + 1U);
 
   // check removals
   BOOST_CHECK_EQUAL(ret.at(0).first.at(0).d_type, QType(QType::SOA).getCode());
@@ -130,10 +130,10 @@ BOOST_AUTO_TEST_CASE(test_ixfr_no_additions_in_first_sequence) {
 
   auto ret = processIXFRRecords(master, zone, records, std::dynamic_pointer_cast<SOARecordContent>(masterSOA));
   // two sequences
-  BOOST_CHECK_EQUAL(ret.size(), 2);
+  BOOST_CHECK_EQUAL(ret.size(), 2U);
   // the first one has one removal, no additions (plus the corresponding SOA removal/addition)
-  BOOST_CHECK_EQUAL(ret.at(0).first.size(), 1 + 1);
-  BOOST_CHECK_EQUAL(ret.at(0).second.size(), 0 + 1);
+  BOOST_CHECK_EQUAL(ret.at(0).first.size(), 1U + 1U);
+  BOOST_CHECK_EQUAL(ret.at(0).second.size(), 0U + 1U);
 
   // check removals
   BOOST_CHECK_EQUAL(ret.at(0).first.at(0).d_type, QType(QType::SOA).getCode());
@@ -143,8 +143,8 @@ BOOST_AUTO_TEST_CASE(test_ixfr_no_additions_in_first_sequence) {
   BOOST_CHECK_EQUAL(ret.at(0).second.at(0).d_type, QType(QType::SOA).getCode());
 
   // the second one has one removal, one addition
-  BOOST_CHECK_EQUAL(ret.at(1).first.size(), 1 + 1);
-  BOOST_CHECK_EQUAL(ret.at(1).second.size(), 1 + 1);
+  BOOST_CHECK_EQUAL(ret.at(1).first.size(), 1U + 1U);
+  BOOST_CHECK_EQUAL(ret.at(1).second.size(), 1U + 1U);
 
   // check removals
   BOOST_CHECK_EQUAL(ret.at(1).first.at(0).d_type, QType(QType::SOA).getCode());
@@ -174,10 +174,10 @@ BOOST_AUTO_TEST_CASE(test_ixfr_no_removals_in_first_sequence) {
 
   auto ret = processIXFRRecords(master, zone, records, std::dynamic_pointer_cast<SOARecordContent>(masterSOA));
   // two sequences
-  BOOST_CHECK_EQUAL(ret.size(), 2);
+  BOOST_CHECK_EQUAL(ret.size(), 2U);
   // the first one has no removal, two additions (plus the corresponding SOA removal/addition)
-  BOOST_CHECK_EQUAL(ret.at(0).first.size(), 0 + 1);
-  BOOST_CHECK_EQUAL(ret.at(0).second.size(), 2 + 1);
+  BOOST_CHECK_EQUAL(ret.at(0).first.size(), 0U + 1U);
+  BOOST_CHECK_EQUAL(ret.at(0).second.size(), 2U + 1U);
 
   // check removals
   BOOST_CHECK_EQUAL(ret.at(0).first.at(0).d_type, QType(QType::SOA).getCode());
@@ -188,8 +188,8 @@ BOOST_AUTO_TEST_CASE(test_ixfr_no_removals_in_first_sequence) {
   BOOST_CHECK_EQUAL(ret.at(0).second.at(1).d_type, QType(QType::A).getCode());
 
   // the second one has one removal, one addition
-  BOOST_CHECK_EQUAL(ret.at(1).first.size(), 1 + 1);
-  BOOST_CHECK_EQUAL(ret.at(1).second.size(), 1 + 1);
+  BOOST_CHECK_EQUAL(ret.at(1).first.size(), 1U + 1U);
+  BOOST_CHECK_EQUAL(ret.at(1).second.size(), 1U + 1U);
 
   // check removals
   BOOST_CHECK_EQUAL(ret.at(1).first.at(0).d_type, QType(QType::SOA).getCode());
@@ -212,11 +212,11 @@ BOOST_AUTO_TEST_CASE(test_ixfr_same_serial) {
   auto ret = processIXFRRecords(master, zone, records, std::dynamic_pointer_cast<SOARecordContent>(masterSOA));
 
   // this is actually an empty AXFR
-  BOOST_CHECK_EQUAL(ret.size(), 1);
+  BOOST_CHECK_EQUAL(ret.size(), 1U);
   // nothing in the deletion part then
-  BOOST_CHECK_EQUAL(ret.at(0).first.size(), 0);
+  BOOST_CHECK_EQUAL(ret.at(0).first.size(), 0U);
   // and the two SOAs in the addition part
-  BOOST_CHECK_EQUAL(ret.at(0).second.size(), 2);
+  BOOST_CHECK_EQUAL(ret.at(0).second.size(), 2U);
   BOOST_CHECK_EQUAL(ret.at(0).second.at(0).d_type, QType(QType::SOA).getCode());
   BOOST_CHECK_EQUAL(ret.at(0).second.at(1).d_type, QType(QType::SOA).getCode());
 }
@@ -229,7 +229,7 @@ BOOST_AUTO_TEST_CASE(test_ixfr_invalid_no_records) {
   vector<DNSRecord> records;
 
   auto ret = processIXFRRecords(master, zone, records, std::dynamic_pointer_cast<SOARecordContent>(masterSOA));
-  BOOST_CHECK_EQUAL(ret.size(), 0);
+  BOOST_CHECK_EQUAL(ret.size(), 0U);
 }
 
 BOOST_AUTO_TEST_CASE(test_ixfr_invalid_no_master_soa) {
@@ -240,7 +240,7 @@ BOOST_AUTO_TEST_CASE(test_ixfr_invalid_no_master_soa) {
   addRecordToList(records, DNSName("JAIN.AD.JP."), QType::SOA, "ns.jain.ad.jp. mohta.jain.ad.jp. 3 600 600 3600000 604800");
 
   auto ret = processIXFRRecords(master, zone, records, nullptr);
-  BOOST_CHECK_EQUAL(ret.size(), 0);
+  BOOST_CHECK_EQUAL(ret.size(), 0U);
 }
 
 BOOST_AUTO_TEST_CASE(test_ixfr_invalid_no_trailing_soa) {

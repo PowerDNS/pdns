@@ -17,7 +17,7 @@ BOOST_AUTO_TEST_CASE(test_root_primed) {
   vector<DNSRecord> ret;
   int res = sr->beginResolve(target, QType(QType::A), QClass::IN, ret);
   BOOST_CHECK_EQUAL(res, RCode::NoError);
-  BOOST_REQUIRE_EQUAL(ret.size(), 1);
+  BOOST_REQUIRE_EQUAL(ret.size(), 1U);
   BOOST_CHECK(ret[0].d_type == QType::A);
   BOOST_CHECK_EQUAL(ret[0].d_name, target);
 
@@ -25,7 +25,7 @@ BOOST_AUTO_TEST_CASE(test_root_primed) {
   res = sr->beginResolve(target, QType(QType::AAAA), QClass::IN, ret);
   BOOST_CHECK_EQUAL(res, RCode::NoError);
   BOOST_CHECK_EQUAL(sr->getValidationState(), Indeterminate);
-  BOOST_REQUIRE_EQUAL(ret.size(), 1);
+  BOOST_REQUIRE_EQUAL(ret.size(), 1U);
   BOOST_CHECK(ret[0].d_type == QType::AAAA);
   BOOST_CHECK_EQUAL(ret[0].d_name, target);
 }
@@ -66,8 +66,8 @@ BOOST_AUTO_TEST_CASE(test_root_primed_ns) {
   vector<DNSRecord> ret;
   int res = sr->beginResolve(target, QType(QType::NS), QClass::IN, ret);
   BOOST_CHECK_EQUAL(res, RCode::NoError);
-  BOOST_REQUIRE_EQUAL(ret.size(), 13);
-  BOOST_CHECK_EQUAL(queriesCount, 1);
+  BOOST_REQUIRE_EQUAL(ret.size(), 13U);
+  BOOST_CHECK_EQUAL(queriesCount, 1U);
 }
 
 BOOST_AUTO_TEST_CASE(test_root_not_primed) {
@@ -96,8 +96,8 @@ BOOST_AUTO_TEST_CASE(test_root_not_primed) {
   vector<DNSRecord> ret;
   int res = sr->beginResolve(DNSName("."), QType(QType::NS), QClass::IN, ret);
   BOOST_CHECK_EQUAL(res, RCode::NoError);
-  BOOST_CHECK_EQUAL(ret.size(), 1);
-  BOOST_CHECK_EQUAL(queriesCount, 2);
+  BOOST_CHECK_EQUAL(ret.size(), 1U);
+  BOOST_CHECK_EQUAL(queriesCount, 2U);
 }
 
 BOOST_AUTO_TEST_CASE(test_root_not_primed_and_no_response) {
@@ -118,11 +118,11 @@ BOOST_AUTO_TEST_CASE(test_root_not_primed_and_no_response) {
   vector<DNSRecord> ret;
   int res = sr->beginResolve(DNSName("."), QType(QType::NS), QClass::IN, ret);
   BOOST_CHECK_EQUAL(res, RCode::ServFail);
-  BOOST_CHECK_EQUAL(ret.size(), 0);
+  BOOST_CHECK_EQUAL(ret.size(), 0U);
   BOOST_CHECK(downServers.size() > 0);
   /* we explicitly refuse to mark the root servers down */
   for (const auto& server : downServers) {
-    BOOST_CHECK_EQUAL(SyncRes::getServerFailsCount(server), 0);
+    BOOST_CHECK_EQUAL(SyncRes::getServerFailsCount(server), 0U);
   }
 }
 
@@ -162,10 +162,10 @@ static void test_edns_formerr_fallback_f(bool sample) {
   vector<DNSRecord> ret;
   int res = sr->beginResolve(DNSName("powerdns.com."), QType(QType::A), QClass::IN, ret);
   BOOST_CHECK_EQUAL(res, RCode::NoError);
-  BOOST_CHECK_EQUAL(ret.size(), 1);
-  BOOST_CHECK_EQUAL(queriesWithEDNS, sample ? 3 : 1);
-  BOOST_CHECK_EQUAL(queriesWithoutEDNS, sample ? 4 : 1);
-  BOOST_CHECK_EQUAL(SyncRes::getEDNSStatusesSize(), sample ? 3 : 1);
+  BOOST_CHECK_EQUAL(ret.size(), 1U);
+  BOOST_CHECK_EQUAL(queriesWithEDNS, sample ? 3U : 1U);
+  BOOST_CHECK_EQUAL(queriesWithoutEDNS, sample ? 4U : 1U);
+  BOOST_CHECK_EQUAL(SyncRes::getEDNSStatusesSize(), sample ? 3U : 1U);
   BOOST_CHECK_EQUAL(SyncRes::getEDNSStatus(noEDNSServer), SyncRes::EDNSStatus::NOEDNS);
 }
 
@@ -217,11 +217,11 @@ BOOST_AUTO_TEST_CASE(test_edns_formerr_but_edns_enabled) {
   vector<DNSRecord> ret;
   int res = sr->beginResolve(DNSName("powerdns.com."), QType(QType::DNAME), QClass::IN, ret);
   BOOST_CHECK_EQUAL(res, RCode::ServFail);
-  BOOST_CHECK_EQUAL(ret.size(), 0);
-  BOOST_CHECK_EQUAL(queriesWithEDNS, 26);
-  BOOST_CHECK_EQUAL(queriesWithoutEDNS, 0);
-  BOOST_CHECK_EQUAL(SyncRes::getEDNSStatusesSize(), 26);
-  BOOST_CHECK_EQUAL(usedServers.size(), 26);
+  BOOST_CHECK_EQUAL(ret.size(), 0U);
+  BOOST_CHECK_EQUAL(queriesWithEDNS, 26U);
+  BOOST_CHECK_EQUAL(queriesWithoutEDNS, 0U);
+  BOOST_CHECK_EQUAL(SyncRes::getEDNSStatusesSize(), 26U);
+  BOOST_CHECK_EQUAL(usedServers.size(), 26U);
   for (const auto& server : usedServers) {
     BOOST_CHECK_EQUAL(SyncRes::getEDNSStatus(server), SyncRes::EDNSStatus::EDNSOK);
   }
@@ -247,8 +247,8 @@ BOOST_AUTO_TEST_CASE(test_meta_types) {
     vector<DNSRecord> ret;
     int res = sr->beginResolve(DNSName("powerdns.com."), QType(qtype), QClass::IN, ret);
     BOOST_CHECK_EQUAL(res, -1);
-    BOOST_CHECK_EQUAL(ret.size(), 0);
-    BOOST_CHECK_EQUAL(queriesCount, 0);
+    BOOST_CHECK_EQUAL(ret.size(), 0U);
+    BOOST_CHECK_EQUAL(queriesCount, 0U);
   }
 }
 
@@ -308,7 +308,7 @@ BOOST_AUTO_TEST_CASE(test_tc_over_tcp) {
   vector<DNSRecord> ret;
   int res = sr->beginResolve(DNSName("powerdns.com."), QType(QType::A), QClass::IN, ret);
   BOOST_CHECK_EQUAL(res, RCode::NoError);
-  BOOST_CHECK_EQUAL(tcpQueriesCount, 2);
+  BOOST_CHECK_EQUAL(tcpQueriesCount, 2U);
 }
 
 BOOST_AUTO_TEST_CASE(test_all_nss_down) {
@@ -348,12 +348,12 @@ BOOST_AUTO_TEST_CASE(test_all_nss_down) {
   vector<DNSRecord> ret;
   int res = sr->beginResolve(target, QType(QType::A), QClass::IN, ret);
   BOOST_CHECK_EQUAL(res, RCode::ServFail);
-  BOOST_CHECK_EQUAL(ret.size(), 0);
-  BOOST_CHECK_EQUAL(downServers.size(), 4);
+  BOOST_CHECK_EQUAL(ret.size(), 0U);
+  BOOST_CHECK_EQUAL(downServers.size(), 4U);
 
   time_t now = sr->getNow().tv_sec;
   for (const auto& server : downServers) {
-    BOOST_CHECK_EQUAL(SyncRes::getServerFailsCount(server), 1);
+    BOOST_CHECK_EQUAL(SyncRes::getServerFailsCount(server), 1U);
     BOOST_CHECK(SyncRes::isThrottled(now, server, target, QType::A));
   }
 }
@@ -396,12 +396,12 @@ BOOST_AUTO_TEST_CASE(test_all_nss_network_error) {
   vector<DNSRecord> ret;
   int res = sr->beginResolve(target, QType(QType::A), QClass::IN, ret);
   BOOST_CHECK_EQUAL(res, RCode::ServFail);
-  BOOST_CHECK_EQUAL(ret.size(), 0);
-  BOOST_CHECK_EQUAL(downServers.size(), 4);
+  BOOST_CHECK_EQUAL(ret.size(), 0U);
+  BOOST_CHECK_EQUAL(downServers.size(), 4U);
 
   time_t now = sr->getNow().tv_sec;
   for (const auto& server : downServers) {
-    BOOST_CHECK_EQUAL(SyncRes::getServerFailsCount(server), 1);
+    BOOST_CHECK_EQUAL(SyncRes::getServerFailsCount(server), 1U);
     BOOST_CHECK(SyncRes::isThrottled(now, server, target, QType::A));
   }
 }
@@ -458,7 +458,7 @@ BOOST_AUTO_TEST_CASE(test_only_one_ns_up_resolving_itself_with_glue) {
   vector<DNSRecord> ret;
   int res = sr->beginResolve(target, QType(QType::A), QClass::IN, ret);
   BOOST_CHECK_EQUAL(res, RCode::NoError);
-  BOOST_CHECK_EQUAL(ret.size(), 1);
+  BOOST_CHECK_EQUAL(ret.size(), 1U);
 }
 
 BOOST_AUTO_TEST_CASE(test_os_limit_errors) {
@@ -506,13 +506,13 @@ BOOST_AUTO_TEST_CASE(test_os_limit_errors) {
   vector<DNSRecord> ret;
   int res = sr->beginResolve(target, QType(QType::A), QClass::IN, ret);
   BOOST_CHECK_EQUAL(res, RCode::NoError);
-  BOOST_CHECK_EQUAL(ret.size(), 1);
-  BOOST_CHECK_EQUAL(downServers.size(), 3);
+  BOOST_CHECK_EQUAL(ret.size(), 1U);
+  BOOST_CHECK_EQUAL(downServers.size(), 3U);
 
   /* Error is reported as "OS limit error" (-2) so the servers should _NOT_ be marked down */
   time_t now = sr->getNow().tv_sec;
   for (const auto& server : downServers) {
-    BOOST_CHECK_EQUAL(SyncRes::getServerFailsCount(server), 0);
+    BOOST_CHECK_EQUAL(SyncRes::getServerFailsCount(server), 0U);
     BOOST_CHECK(!SyncRes::isThrottled(now, server, target, QType::A));
   }
 }
@@ -561,7 +561,7 @@ BOOST_AUTO_TEST_CASE(test_glued_referral) {
   vector<DNSRecord> ret;
   int res = sr->beginResolve(target, QType(QType::A), QClass::IN, ret);
   BOOST_CHECK_EQUAL(res, RCode::NoError);
-  BOOST_REQUIRE_EQUAL(ret.size(), 1);
+  BOOST_REQUIRE_EQUAL(ret.size(), 1U);
   BOOST_CHECK(ret[0].d_type == QType::A);
   BOOST_CHECK_EQUAL(ret[0].d_name, target);
 }
@@ -629,7 +629,7 @@ BOOST_AUTO_TEST_CASE(test_glueless_referral) {
   vector<DNSRecord> ret;
   int res = sr->beginResolve(target, QType(QType::A), QClass::IN, ret);
   BOOST_CHECK_EQUAL(res, RCode::NoError);
-  BOOST_REQUIRE_EQUAL(ret.size(), 1);
+  BOOST_REQUIRE_EQUAL(ret.size(), 1U);
   BOOST_CHECK(ret[0].d_type == QType::A);
   BOOST_CHECK_EQUAL(ret[0].d_name, target);
 }
@@ -680,16 +680,16 @@ BOOST_AUTO_TEST_CASE(test_edns_subnet_by_domain) {
   vector<DNSRecord> ret;
   int res = sr->beginResolve(target, QType(QType::A), QClass::IN, ret);
   BOOST_CHECK_EQUAL(res, RCode::NoError);
-  BOOST_REQUIRE_EQUAL(ret.size(), 1);
+  BOOST_REQUIRE_EQUAL(ret.size(), 1U);
   BOOST_CHECK(ret[0].d_type == QType::A);
   BOOST_CHECK_EQUAL(ret[0].d_name, target);
-  BOOST_CHECK_EQUAL(SyncRes::s_ecsqueries, 2);
-  BOOST_CHECK_EQUAL(SyncRes::s_ecsresponses, 1);
+  BOOST_CHECK_EQUAL(SyncRes::s_ecsqueries, 2U);
+  BOOST_CHECK_EQUAL(SyncRes::s_ecsresponses, 1U);
   for (const auto& entry : SyncRes::s_ecsResponsesBySubnetSize4) {
-    BOOST_CHECK_EQUAL(entry.second, entry.first == 15 ? 1 : 0);
+    BOOST_CHECK_EQUAL(entry.second, entry.first == 15 ? 1U : 0U);
   }
   for (const auto& entry : SyncRes::s_ecsResponsesBySubnetSize6) {
-    BOOST_CHECK_EQUAL(entry.second, 0);
+    BOOST_CHECK_EQUAL(entry.second, 0U);
   }
 }
 
@@ -733,16 +733,16 @@ BOOST_AUTO_TEST_CASE(test_edns_subnet_by_addr) {
   vector<DNSRecord> ret;
   int res = sr->beginResolve(target, QType(QType::A), QClass::IN, ret);
   BOOST_CHECK_EQUAL(res, RCode::NoError);
-  BOOST_REQUIRE_EQUAL(ret.size(), 1);
+  BOOST_REQUIRE_EQUAL(ret.size(), 1U);
   BOOST_CHECK(ret[0].d_type == QType::A);
   BOOST_CHECK_EQUAL(ret[0].d_name, target);
-  BOOST_CHECK_EQUAL(SyncRes::s_ecsqueries, 1);
-  BOOST_CHECK_EQUAL(SyncRes::s_ecsresponses, 1);
+  BOOST_CHECK_EQUAL(SyncRes::s_ecsqueries, 1U);
+  BOOST_CHECK_EQUAL(SyncRes::s_ecsresponses, 1U);
   for (const auto& entry : SyncRes::s_ecsResponsesBySubnetSize4) {
-    BOOST_CHECK_EQUAL(entry.second, 0);
+    BOOST_CHECK_EQUAL(entry.second, 0u);
   }
   for (const auto& entry : SyncRes::s_ecsResponsesBySubnetSize6) {
-    BOOST_CHECK_EQUAL(entry.second, entry.first == 55 ? 1 : 0);
+    BOOST_CHECK_EQUAL(entry.second, entry.first == 55 ? 1U : 0U);
   }
 }
 
@@ -782,7 +782,7 @@ BOOST_AUTO_TEST_CASE(test_ecs_use_requestor) {
   vector<DNSRecord> ret;
   int res = sr->beginResolve(target, QType(QType::A), QClass::IN, ret);
   BOOST_CHECK_EQUAL(res, RCode::NoError);
-  BOOST_REQUIRE_EQUAL(ret.size(), 1);
+  BOOST_REQUIRE_EQUAL(ret.size(), 1U);
   BOOST_CHECK(ret[0].d_type == QType::A);
   BOOST_CHECK_EQUAL(ret[0].d_name, target);
 }
@@ -825,7 +825,7 @@ BOOST_AUTO_TEST_CASE(test_ecs_use_scope_zero) {
   vector<DNSRecord> ret;
   int res = sr->beginResolve(target, QType(QType::A), QClass::IN, ret);
   BOOST_CHECK_EQUAL(res, RCode::NoError);
-  BOOST_REQUIRE_EQUAL(ret.size(), 1);
+  BOOST_REQUIRE_EQUAL(ret.size(), 1U);
   BOOST_CHECK(ret[0].d_type == QType::A);
   BOOST_CHECK_EQUAL(ret[0].d_name, target);
 }
@@ -869,7 +869,7 @@ BOOST_AUTO_TEST_CASE(test_ecs_honor_incoming_mask) {
   vector<DNSRecord> ret;
   int res = sr->beginResolve(target, QType(QType::A), QClass::IN, ret);
   BOOST_CHECK_EQUAL(res, RCode::NoError);
-  BOOST_REQUIRE_EQUAL(ret.size(), 1);
+  BOOST_REQUIRE_EQUAL(ret.size(), 1U);
   BOOST_CHECK(ret[0].d_type == QType::A);
   BOOST_CHECK_EQUAL(ret[0].d_name, target);
 }
@@ -913,7 +913,7 @@ BOOST_AUTO_TEST_CASE(test_ecs_honor_incoming_mask_zero) {
   vector<DNSRecord> ret;
   int res = sr->beginResolve(target, QType(QType::A), QClass::IN, ret);
   BOOST_CHECK_EQUAL(res, RCode::NoError);
-  BOOST_REQUIRE_EQUAL(ret.size(), 1);
+  BOOST_REQUIRE_EQUAL(ret.size(), 1U);
   BOOST_CHECK(ret[0].d_type == QType::A);
   BOOST_CHECK_EQUAL(ret[0].d_name, target);
 }
@@ -955,7 +955,7 @@ BOOST_AUTO_TEST_CASE(test_following_cname) {
   vector<DNSRecord> ret;
   int res = sr->beginResolve(target, QType(QType::A), QClass::IN, ret);
   BOOST_CHECK_EQUAL(res, RCode::NoError);
-  BOOST_REQUIRE_EQUAL(ret.size(), 2);
+  BOOST_REQUIRE_EQUAL(ret.size(), 2U);
   BOOST_CHECK(ret[0].d_type == QType::CNAME);
   BOOST_CHECK_EQUAL(ret[0].d_name, target);
   BOOST_CHECK(ret[1].d_type == QType::A);
@@ -999,7 +999,7 @@ BOOST_AUTO_TEST_CASE(test_cname_nxdomain) {
   vector<DNSRecord> ret;
   int res = sr->beginResolve(target, QType(QType::A), QClass::IN, ret);
   BOOST_CHECK_EQUAL(res, RCode::NXDomain);
-  BOOST_REQUIRE_EQUAL(ret.size(), 2);
+  BOOST_REQUIRE_EQUAL(ret.size(), 2U);
   BOOST_CHECK(ret[0].d_type == QType::CNAME);
   BOOST_CHECK_EQUAL(ret[0].d_name, target);
   BOOST_CHECK(ret[1].d_type == QType::SOA);
@@ -1008,7 +1008,7 @@ BOOST_AUTO_TEST_CASE(test_cname_nxdomain) {
   ret.clear();
   res = sr->beginResolve(target, QType(QType::A), QClass::IN, ret);
   BOOST_CHECK_EQUAL(res, RCode::NXDomain);
-  BOOST_REQUIRE_EQUAL(ret.size(), 2);
+  BOOST_REQUIRE_EQUAL(ret.size(), 2U);
   BOOST_CHECK(ret[0].d_type == QType::CNAME);
   BOOST_CHECK_EQUAL(ret[0].d_name, target);
   BOOST_CHECK(ret[1].d_type == QType::SOA);
@@ -1058,7 +1058,7 @@ BOOST_AUTO_TEST_CASE(test_included_poisonous_cname) {
   vector<DNSRecord> ret;
   int res = sr->beginResolve(target, QType(QType::A), QClass::IN, ret);
   BOOST_CHECK_EQUAL(res, RCode::NoError);
-  BOOST_REQUIRE_EQUAL(ret.size(), 2);
+  BOOST_REQUIRE_EQUAL(ret.size(), 2U);
   BOOST_REQUIRE(ret[0].d_type == QType::CNAME);
   BOOST_CHECK_EQUAL(ret[0].d_name, target);
   BOOST_CHECK_EQUAL(getRR<CNAMERecordContent>(ret[0])->getTarget(), cnameTarget);
@@ -1103,8 +1103,8 @@ BOOST_AUTO_TEST_CASE(test_cname_loop) {
   vector<DNSRecord> ret;
   int res = sr->beginResolve(target, QType(QType::A), QClass::IN, ret);
   BOOST_CHECK_EQUAL(res, RCode::ServFail);
-  BOOST_CHECK_GT(ret.size(), 0);
-  BOOST_CHECK_EQUAL(count, 2);
+  BOOST_CHECK_GT(ret.size(), 0U);
+  BOOST_CHECK_EQUAL(count, 2U);
 }
 
 BOOST_AUTO_TEST_CASE(test_cname_depth) {
@@ -1140,7 +1140,7 @@ BOOST_AUTO_TEST_CASE(test_cname_depth) {
   BOOST_CHECK_EQUAL(res, RCode::ServFail);
   BOOST_CHECK_EQUAL(ret.size(), depth);
   /* we have an arbitrary limit at 10 when following a CNAME chain */
-  BOOST_CHECK_EQUAL(depth, 10 + 2);
+  BOOST_CHECK_EQUAL(depth, 10U + 2U);
 }
 
 BOOST_AUTO_TEST_CASE(test_time_limit) {
@@ -1184,7 +1184,7 @@ BOOST_AUTO_TEST_CASE(test_time_limit) {
   }
   catch(const ImmediateServFailException& e) {
   }
-  BOOST_CHECK_EQUAL(queries, 1);
+  BOOST_CHECK_EQUAL(queries, 1U);
 }
 
 BOOST_AUTO_TEST_CASE(test_dname_processing) {
@@ -1248,9 +1248,9 @@ BOOST_AUTO_TEST_CASE(test_dname_processing) {
   int res = sr->beginResolve(target, QType(QType::A), QClass::IN, ret);
 
   BOOST_CHECK_EQUAL(res, RCode::NoError);
-  BOOST_REQUIRE_EQUAL(ret.size(), 3);
+  BOOST_REQUIRE_EQUAL(ret.size(), 3U);
 
-  BOOST_CHECK_EQUAL(queries, 4);
+  BOOST_CHECK_EQUAL(queries, 4u);
 
   BOOST_REQUIRE(ret[0].d_type == QType::DNAME);
   BOOST_CHECK(ret[0].d_name == dnameOwner);
@@ -1267,9 +1267,9 @@ BOOST_AUTO_TEST_CASE(test_dname_processing) {
   res = sr->beginResolve(target, QType(QType::A), QClass::IN, ret);
 
   BOOST_CHECK_EQUAL(res, RCode::NoError);
-  BOOST_REQUIRE_EQUAL(ret.size(), 3);
+  BOOST_REQUIRE_EQUAL(ret.size(), 3U);
 
-  BOOST_CHECK_EQUAL(queries, 4);
+  BOOST_CHECK_EQUAL(queries, 4U);
 
   BOOST_REQUIRE(ret[0].d_type == QType::DNAME);
   BOOST_CHECK(ret[0].d_name == dnameOwner);
@@ -1286,7 +1286,7 @@ BOOST_AUTO_TEST_CASE(test_dname_processing) {
   res = sr->beginResolve(uncachedTarget, QType(QType::A), QClass::IN, ret);
 
   BOOST_CHECK_EQUAL(res, RCode::NoError);
-  BOOST_CHECK_EQUAL(queries, 5);
+  BOOST_CHECK_EQUAL(queries, 5U);
 
   BOOST_REQUIRE(ret[0].d_type == QType::DNAME);
   BOOST_CHECK(ret[0].d_name == dnameOwner);
@@ -1303,7 +1303,7 @@ BOOST_AUTO_TEST_CASE(test_dname_processing) {
   ret.clear();
   res = sr->beginResolve(dnameOwner, QType(QType::DNAME), QClass::IN, ret);
   BOOST_CHECK_EQUAL(res, RCode::NoError);
-  BOOST_CHECK_EQUAL(queries, 5);
+  BOOST_CHECK_EQUAL(queries, 5U);
 
   BOOST_REQUIRE(ret[0].d_type == QType::DNAME);
   BOOST_CHECK(ret[0].d_name == dnameOwner);
@@ -1313,7 +1313,7 @@ BOOST_AUTO_TEST_CASE(test_dname_processing) {
   ret.clear();
   res = sr->beginResolve(synthCNAME, QType(QType::CNAME), QClass::IN, ret);
   BOOST_CHECK_EQUAL(res, RCode::NoError);
-  BOOST_CHECK_EQUAL(queries, 5);
+  BOOST_CHECK_EQUAL(queries, 5U);
 
   BOOST_REQUIRE(ret[0].d_type == QType::DNAME);
   BOOST_CHECK(ret[0].d_name == dnameOwner);
@@ -1341,9 +1341,9 @@ BOOST_AUTO_TEST_CASE(test_dname_dnssec_secure) {
 
   auto luaconfsCopy = g_luaconfs.getCopy();
   luaconfsCopy.dsAnchors.clear();
-  generateKeyMaterial(g_rootdnsname, DNSSECKeeper::ECDSA256, DNSSECKeeper::SHA256, keys, luaconfsCopy.dsAnchors);
-  generateKeyMaterial(dnameOwner, DNSSECKeeper::ECDSA256, DNSSECKeeper::SHA256, keys);
-  generateKeyMaterial(dnameTarget, DNSSECKeeper::ECDSA256, DNSSECKeeper::SHA256, keys);
+  generateKeyMaterial(g_rootdnsname, DNSSECKeeper::ECDSA256, DNSSECKeeper::DIGEST_SHA256, keys, luaconfsCopy.dsAnchors);
+  generateKeyMaterial(dnameOwner, DNSSECKeeper::ECDSA256, DNSSECKeeper::DIGEST_SHA256, keys);
+  generateKeyMaterial(dnameTarget, DNSSECKeeper::ECDSA256, DNSSECKeeper::DIGEST_SHA256, keys);
   g_luaconfs.setState(luaconfsCopy);
 
   size_t queries = 0;
@@ -1426,9 +1426,9 @@ BOOST_AUTO_TEST_CASE(test_dname_dnssec_secure) {
 
   BOOST_CHECK_EQUAL(res, RCode::NoError);
   BOOST_CHECK_EQUAL(sr->getValidationState(), Secure);
-  BOOST_REQUIRE_EQUAL(ret.size(), 5); /* DNAME + RRSIG(DNAME) + CNAME + A + RRSIG(A) */
+  BOOST_REQUIRE_EQUAL(ret.size(), 5U); /* DNAME + RRSIG(DNAME) + CNAME + A + RRSIG(A) */
 
-  BOOST_CHECK_EQUAL(queries, 11);
+  BOOST_CHECK_EQUAL(queries, 11U);
 
   BOOST_REQUIRE(ret[0].d_type == QType::DNAME);
   BOOST_CHECK(ret[0].d_name == dnameOwner);
@@ -1452,9 +1452,9 @@ BOOST_AUTO_TEST_CASE(test_dname_dnssec_secure) {
 
   BOOST_CHECK_EQUAL(res, RCode::NoError);
   BOOST_CHECK_EQUAL(sr->getValidationState(), Secure);
-  BOOST_REQUIRE_EQUAL(ret.size(), 5); /* DNAME + RRSIG(DNAME) + CNAME + A + RRSIG(A) */
+  BOOST_REQUIRE_EQUAL(ret.size(), 5U); /* DNAME + RRSIG(DNAME) + CNAME + A + RRSIG(A) */
 
-  BOOST_CHECK_EQUAL(queries, 11);
+  BOOST_CHECK_EQUAL(queries, 11U);
 
   BOOST_REQUIRE(ret[0].d_type == QType::DNAME);
   BOOST_CHECK(ret[0].d_name == dnameOwner);
@@ -1494,8 +1494,8 @@ BOOST_AUTO_TEST_CASE(test_dname_dnssec_insecure) {
 
   auto luaconfsCopy = g_luaconfs.getCopy();
   luaconfsCopy.dsAnchors.clear();
-  generateKeyMaterial(g_rootdnsname, DNSSECKeeper::ECDSA256, DNSSECKeeper::SHA256, keys, luaconfsCopy.dsAnchors);
-  generateKeyMaterial(dnameOwner, DNSSECKeeper::ECDSA256, DNSSECKeeper::SHA256, keys);
+  generateKeyMaterial(g_rootdnsname, DNSSECKeeper::ECDSA256, DNSSECKeeper::DIGEST_SHA256, keys, luaconfsCopy.dsAnchors);
+  generateKeyMaterial(dnameOwner, DNSSECKeeper::ECDSA256, DNSSECKeeper::DIGEST_SHA256, keys);
   g_luaconfs.setState(luaconfsCopy);
 
   size_t queries = 0;
@@ -1571,9 +1571,9 @@ BOOST_AUTO_TEST_CASE(test_dname_dnssec_insecure) {
 
   BOOST_CHECK_EQUAL(res, RCode::NoError);
   BOOST_CHECK_EQUAL(sr->getValidationState(), Insecure);
-  BOOST_REQUIRE_EQUAL(ret.size(), 4); /* DNAME + RRSIG(DNAME) + CNAME + A */
+  BOOST_REQUIRE_EQUAL(ret.size(), 4U); /* DNAME + RRSIG(DNAME) + CNAME + A */
 
-  BOOST_CHECK_EQUAL(queries, 9);
+  BOOST_CHECK_EQUAL(queries, 9U);
 
   BOOST_REQUIRE(ret[0].d_type == QType::DNAME);
   BOOST_CHECK(ret[0].d_name == dnameOwner);
@@ -1594,9 +1594,9 @@ BOOST_AUTO_TEST_CASE(test_dname_dnssec_insecure) {
 
   BOOST_CHECK_EQUAL(res, RCode::NoError);
   BOOST_CHECK_EQUAL(sr->getValidationState(), Insecure);
-  BOOST_REQUIRE_EQUAL(ret.size(), 4); /* DNAME + RRSIG(DNAME) + CNAME + A */
+  BOOST_REQUIRE_EQUAL(ret.size(), 4U); /* DNAME + RRSIG(DNAME) + CNAME + A */
 
-  BOOST_CHECK_EQUAL(queries, 9);
+  BOOST_CHECK_EQUAL(queries, 9U);
 
   BOOST_REQUIRE(ret[0].d_type == QType::DNAME);
   BOOST_CHECK(ret[0].d_name == dnameOwner);
@@ -1663,9 +1663,9 @@ BOOST_AUTO_TEST_CASE(test_dname_processing_no_CNAME) {
   int res = sr->beginResolve(target, QType(QType::A), QClass::IN, ret);
 
   BOOST_CHECK_EQUAL(res, RCode::NoError);
-  BOOST_REQUIRE_EQUAL(ret.size(), 3);
+  BOOST_REQUIRE_EQUAL(ret.size(), 3U);
 
-  BOOST_CHECK_EQUAL(queries, 4);
+  BOOST_CHECK_EQUAL(queries, 4U);
 
   BOOST_REQUIRE(ret[0].d_type == QType::DNAME);
   BOOST_CHECK(ret[0].d_name == dnameOwner);
@@ -1682,9 +1682,9 @@ BOOST_AUTO_TEST_CASE(test_dname_processing_no_CNAME) {
   res = sr->beginResolve(target, QType(QType::A), QClass::IN, ret);
 
   BOOST_CHECK_EQUAL(res, RCode::NoError);
-  BOOST_REQUIRE_EQUAL(ret.size(), 3);
+  BOOST_REQUIRE_EQUAL(ret.size(), 3U);
 
-  BOOST_CHECK_EQUAL(queries, 4);
+  BOOST_CHECK_EQUAL(queries, 4U);
 
   BOOST_REQUIRE(ret[0].d_type == QType::DNAME);
   BOOST_CHECK(ret[0].d_name == dnameOwner);

@@ -22,7 +22,7 @@ BOOST_AUTO_TEST_CASE(test_generateXPFPayload) {
     ComboAddress destination("192.0.2.2:65535");
 
     auto payload = generateXPFPayload(false, source, destination);
-    BOOST_CHECK_EQUAL(payload.size(), 14);
+    BOOST_CHECK_EQUAL(payload.size(), 14U);
     BOOST_CHECK_EQUAL(payload.at(0), 4);
     BOOST_CHECK_EQUAL(payload.at(1), 17);
 
@@ -39,7 +39,7 @@ BOOST_AUTO_TEST_CASE(test_generateXPFPayload) {
     ComboAddress destination("192.0.2.2:65535");
 
     auto payload = generateXPFPayload(true, source, destination);
-    BOOST_CHECK_EQUAL(payload.size(), 14);
+    BOOST_CHECK_EQUAL(payload.size(), 14U);
     BOOST_CHECK_EQUAL(payload.at(0), 4);
     BOOST_CHECK_EQUAL(payload.at(1), 6);
 
@@ -56,7 +56,7 @@ BOOST_AUTO_TEST_CASE(test_generateXPFPayload) {
     ComboAddress destination("[::1]:65535");
 
     auto payload = generateXPFPayload(false, source, destination);
-    BOOST_CHECK_EQUAL(payload.size(), 38);
+    BOOST_CHECK_EQUAL(payload.size(), 38U);
     BOOST_CHECK_EQUAL(payload.at(0), 6);
     BOOST_CHECK_EQUAL(payload.at(1), 17);
 
@@ -73,7 +73,7 @@ BOOST_AUTO_TEST_CASE(test_generateXPFPayload) {
     ComboAddress destination("[::1]:65535");
 
     auto payload = generateXPFPayload(true, source, destination);
-    BOOST_CHECK_EQUAL(payload.size(), 38);
+    BOOST_CHECK_EQUAL(payload.size(), 38U);
     BOOST_CHECK_EQUAL(payload.at(0), 6);
     BOOST_CHECK_EQUAL(payload.at(1), 6);
 
@@ -165,7 +165,7 @@ BOOST_AUTO_TEST_CASE(test_parseXPFPayload) {
     ComboAddress destination("192.0.2.2:65535");
 
     auto payload = generateXPFPayload(false, source, destination);
-    BOOST_CHECK_EQUAL(payload.size(), 14);
+    BOOST_CHECK_EQUAL(payload.size(), 14U);
     BOOST_CHECK_EQUAL(payload.at(0), 4);
     BOOST_CHECK_EQUAL(payload.at(1), 17);
 

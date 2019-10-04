@@ -18,7 +18,7 @@ static void doKVSChecks(std::unique_ptr<KeyValueStore>& kvs, const ComboAddress&
     BOOST_CHECK(kvs->keyExists(std::string(reinterpret_cast<const char*>(&dq.remote->sin4.sin_addr.s_addr), sizeof(dq.remote->sin4.sin_addr.s_addr))));
 
     auto keys = lookupKey->getKeys(dq);
-    BOOST_CHECK_EQUAL(keys.size(), 1);
+    BOOST_CHECK_EQUAL(keys.size(), 1U);
     for (const auto& key : keys) {
       value.clear();
       BOOST_CHECK_EQUAL(kvs->getValue(key, value), true);
@@ -34,7 +34,7 @@ static void doKVSChecks(std::unique_ptr<KeyValueStore>& kvs, const ComboAddress&
     std::string value;
     auto lookupKey = make_unique<KeyValueLookupKeyQName>(true);
     auto keys = lookupKey->getKeys(dq);
-    BOOST_CHECK_EQUAL(keys.size(), 1);
+    BOOST_CHECK_EQUAL(keys.size(), 1U);
     for (const auto& key : keys) {
       value.clear();
       BOOST_CHECK_EQUAL(kvs->getValue(key, value), true);
@@ -43,7 +43,7 @@ static void doKVSChecks(std::unique_ptr<KeyValueStore>& kvs, const ComboAddress&
 
     /* other domain, should not match */
     keys = lookupKey->getKeys(notPDNS);
-    BOOST_CHECK_EQUAL(keys.size(), 1);
+    BOOST_CHECK_EQUAL(keys.size(), 1U);
     for (const auto& key : keys) {
       value.clear();
       BOOST_CHECK_EQUAL(kvs->getValue(key, value), false);
@@ -51,7 +51,7 @@ static void doKVSChecks(std::unique_ptr<KeyValueStore>& kvs, const ComboAddress&
 
     /* subdomain, should not match */
     keys = lookupKey->getKeys(subdomain);
-    BOOST_CHECK_EQUAL(keys.size(), 1);
+    BOOST_CHECK_EQUAL(keys.size(), 1U);
     for (const auto& key : keys) {
       value.clear();
       BOOST_CHECK_EQUAL(kvs->getValue(key, value), false);
@@ -59,7 +59,7 @@ static void doKVSChecks(std::unique_ptr<KeyValueStore>& kvs, const ComboAddress&
 
     /* this domain was inserted in plaintext, the wire format lookup should not match */
     keys = lookupKey->getKeys(plaintextDomain);
-    BOOST_CHECK_EQUAL(keys.size(), 1);
+    BOOST_CHECK_EQUAL(keys.size(), 1U);
     for (const auto& key : keys) {
       value.clear();
       BOOST_CHECK_EQUAL(kvs->getValue(key, value), false);
@@ -71,7 +71,7 @@ static void doKVSChecks(std::unique_ptr<KeyValueStore>& kvs, const ComboAddress&
     std::string value;
     auto lookupKey = make_unique<KeyValueLookupKeyQName>(false);
     auto keys = lookupKey->getKeys(dq);
-    BOOST_CHECK_EQUAL(keys.size(), 1);
+    BOOST_CHECK_EQUAL(keys.size(), 1U);
     for (const auto& key : keys) {
       value.clear();
       BOOST_CHECK_EQUAL(kvs->getValue(key, value), false);
@@ -79,7 +79,7 @@ static void doKVSChecks(std::unique_ptr<KeyValueStore>& kvs, const ComboAddress&
 
     /* other domain, should not match */
     keys = lookupKey->getKeys(notPDNS);
-    BOOST_CHECK_EQUAL(keys.size(), 1);
+    BOOST_CHECK_EQUAL(keys.size(), 1U);
     for (const auto& key : keys) {
       value.clear();
       BOOST_CHECK_EQUAL(kvs->getValue(key, value), false);
@@ -87,7 +87,7 @@ static void doKVSChecks(std::unique_ptr<KeyValueStore>& kvs, const ComboAddress&
 
     /* subdomain, should not match */
     keys = lookupKey->getKeys(subdomain);
-    BOOST_CHECK_EQUAL(keys.size(), 1);
+    BOOST_CHECK_EQUAL(keys.size(), 1U);
     for (const auto& key : keys) {
       value.clear();
       BOOST_CHECK_EQUAL(kvs->getValue(key, value), false);
@@ -95,7 +95,7 @@ static void doKVSChecks(std::unique_ptr<KeyValueStore>& kvs, const ComboAddress&
 
     /* this domain was inserted in plaintext, so it should match */
     keys = lookupKey->getKeys(plaintextDomain);
-    BOOST_CHECK_EQUAL(keys.size(), 1);
+    BOOST_CHECK_EQUAL(keys.size(), 1U);
     for (const auto& key : keys) {
       value.clear();
       BOOST_CHECK_EQUAL(kvs->getValue(key, value), true);
@@ -179,7 +179,7 @@ static void doKVSChecks(std::unique_ptr<KeyValueStore>& kvs, const ComboAddress&
   {
     auto lookupKey = make_unique<KeyValueLookupKeySuffix>(2, true);
     auto keys = lookupKey->getKeys(dq);
-    BOOST_CHECK_EQUAL(keys.size(), 1);
+    BOOST_CHECK_EQUAL(keys.size(), 1U);
     BOOST_REQUIRE(!keys.empty());
     BOOST_CHECK_EQUAL(keys.at(0), dq.qname->toDNSStringLC());
     std::string value;
@@ -189,7 +189,7 @@ static void doKVSChecks(std::unique_ptr<KeyValueStore>& kvs, const ComboAddress&
 
     /* subdomain */
     keys = lookupKey->getKeys(subdomain);
-    BOOST_REQUIRE_EQUAL(keys.size(), 2);
+    BOOST_REQUIRE_EQUAL(keys.size(), 2U);
     BOOST_CHECK_EQUAL(kvs->getValue(keys.at(0), value), false);
     BOOST_CHECK_EQUAL(kvs->getValue(keys.at(1), value), true);
     BOOST_CHECK_EQUAL(value, "this is the value for the qname");
