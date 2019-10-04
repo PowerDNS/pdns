@@ -1772,6 +1772,10 @@ void setupLuaConfig(bool client)
         frontend->d_enableTickets = boost::get<bool>((*vars)["sessionTickets"]);
       }
 
+      if (vars->count("preferServerCiphers")) {
+        frontend->d_preferServerCiphers = boost::get<bool>((*vars)["preferServerCiphers"]);
+      }
+
       if (vars->count("numberOfStoredSessions")) {
         auto value = boost::get<int>((*vars)["numberOfStoredSessions"]);
         if (value < 0) {
@@ -1967,6 +1971,10 @@ void setupLuaConfig(bool client)
 
           if (vars->count("sessionTickets")) {
             frontend->d_enableTickets = boost::get<bool>((*vars)["sessionTickets"]);
+          }
+
+          if (vars->count("preferServerCiphers")) {
+            frontend->d_preferServerCiphers = boost::get<bool>((*vars)["preferServerCiphers"]);
           }
 
           if (vars->count("numberOfStoredSessions")) {

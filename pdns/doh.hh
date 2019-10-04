@@ -64,6 +64,7 @@ struct DOHFrontend
   size_t d_maxStoredSessions{20480};
   uint8_t d_numberOfTicketsKeys{5};
   bool d_enableTickets{true};
+  bool d_preferServerCiphers{false};
 
   std::atomic<uint64_t> d_httpconnects;   // number of TCP/IP connections established
   std::atomic<uint64_t> d_tls10queries;   // valid DNS queries received via TLSv1.0
