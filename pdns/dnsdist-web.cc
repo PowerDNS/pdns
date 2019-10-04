@@ -562,16 +562,17 @@ static void connectionThread(int sock, ComboAddress remote)
           if (front->udpFD == -1 && front->tcpFD == -1)
             continue;
 
-          string frontName = front->local.toString() + ":" + std::to_string(front->local.getPort());
+          const string frontName = front->local.toString() + ":" + std::to_string(front->local.getPort());
           const string proto = front->getType();
-          string fullName = frontName + "_" + proto;
+          const string fullName = frontName + "_" + proto;
+          uint64_t threadNumber = 0;
           auto dupPair = frontendDuplicates.insert({fullName, 1});
           if (!dupPair.second) {
-            frontName = frontName + "_" + std::to_string(dupPair.first->second);
+            threadNumber = dupPair.first->second;
             ++(dupPair.first->second);
           }
-          const std::string label = boost::str(boost::format("{frontend=\"%1%\",proto=\"%2%\"} ")
-            % frontName % proto);
+          const std::string label = boost::str(boost::format("{frontend=\"%1%\",proto=\"%2%\",thread=\"%3%\"} ")
+            % frontName % proto % threadNumber);
 
           output << frontsbase << "queries" << label << front->queries.load() << "\n";
           output << frontsbase << "responses" << label << front->responses.load() << "\n";
@@ -613,13 +614,14 @@ static void connectionThread(int sock, ComboAddress remote)
 #ifdef HAVE_DNS_OVER_HTTPS
         std::map<std::string,uint64_t> dohFrontendDuplicates;
         for(const auto& doh : g_dohlocals) {
-          string frontName = doh->d_local.toStringWithPort();
+          const string frontName = doh->d_local.toStringWithPort();
+          uint64_t threadNumber = 0;
           auto dupPair = frontendDuplicates.insert({frontName, 1});
           if (!dupPair.second) {
-            frontName = frontName + "_" + std::to_string(dupPair.first->second);
+            threadNumber = dupPair.first->second;
             ++(dupPair.first->second);
           }
-          const std::string addrlabel = boost::str(boost::format("address=\"%1%\"") % frontName);
+          const std::string addrlabel = boost::str(boost::format("address=\"%1%\",thread=\"%2%\"") % frontName % threadNumber);
           const std::string label = "{" + addrlabel + "} ";
 
           output << frontsbase << "http_connects" << label << doh->d_httpconnects << "\n";
