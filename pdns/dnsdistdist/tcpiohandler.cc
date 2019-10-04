@@ -241,120 +241,34 @@ private:
 class OpenSSLTLSIOCtx: public TLSCtx
 {
 public:
-  OpenSSLTLSIOCtx(const TLSFrontend& fe): d_ticketKeys(fe.d_numberOfTicketsKeys), d_tlsCtx(std::unique_ptr<SSL_CTX, void(*)(SSL_CTX*)>(nullptr, SSL_CTX_free))
+  OpenSSLTLSIOCtx(const TLSFrontend& fe): d_ticketKeys(fe.d_tlsConfig.d_numberOfTicketsKeys)
   {
-    d_ticketsKeyRotationDelay = fe.d_ticketsKeyRotationDelay;
-
-    int sslOptions =
-      SSL_OP_NO_SSLv2 |
-      SSL_OP_NO_SSLv3 |
-      SSL_OP_NO_COMPRESSION |
-      SSL_OP_NO_SESSION_RESUMPTION_ON_RENEGOTIATION |
-      SSL_OP_SINGLE_DH_USE |
-      SSL_OP_SINGLE_ECDH_USE;
-
     registerOpenSSLUser();
+    d_ticketsKeyRotationDelay = fe.d_tlsConfig.d_ticketsKeyRotationDelay;
 
-    d_tlsCtx = std::unique_ptr<SSL_CTX, void(*)(SSL_CTX*)>(SSL_CTX_new(SSLv23_server_method()), SSL_CTX_free);
+    d_tlsCtx = libssl_init_server_context(fe.d_tlsConfig, d_ocspResponses);
     if (!d_tlsCtx) {
       ERR_print_errors_fp(stderr);
       throw std::runtime_error("Error creating TLS context on " + fe.d_addr.toStringWithPort());
     }
 
-    if (!fe.d_enableTickets || fe.d_numberOfTicketsKeys == 0) {
-      /* for TLS 1.3 this means no stateless tickets, but stateful tickets might still be issued,
-         which is something we don't want. */
-      sslOptions |= SSL_OP_NO_TICKET;
-      /* really disable all tickets */
-#ifdef HAVE_SSL_CTX_SET_NUM_TICKETS
-      SSL_CTX_set_num_tickets(d_tlsCtx.get(), 0);
-#endif /* HAVE_SSL_CTX_SET_NUM_TICKETS */
-    }
-    else {
+    if (fe.d_tlsConfig.d_enableTickets && fe.d_tlsConfig.d_numberOfTicketsKeys > 0) {
       /* use our own ticket keys handler so we can rotate them */
       SSL_CTX_set_tlsext_ticket_key_cb(d_tlsCtx.get(), &OpenSSLTLSIOCtx::ticketKeyCb);
       libssl_set_ticket_key_callback_data(d_tlsCtx.get(), this);
     }
 
-    if (fe.d_preferServerCiphers) {
-      sslOptions |= SSL_OP_CIPHER_SERVER_PREFERENCE;
-    }
-
-    SSL_CTX_set_options(d_tlsCtx.get(), sslOptions);
-    if (!libssl_set_min_tls_version(d_tlsCtx, fe.d_minTLSVersion)) {
-      throw std::runtime_error("Failed to set the minimum version to '" + libssl_tls_version_to_string(fe.d_minTLSVersion) + "' for ths TLS context on " + fe.d_addr.toStringWithPort());
-    }
-
-#if defined(SSL_CTX_set_ecdh_auto)
-    SSL_CTX_set_ecdh_auto(d_tlsCtx.get(), 1);
-#endif
-    if (fe.d_maxStoredSessions == 0) {
-      /* disable stored sessions entirely */
-      SSL_CTX_set_session_cache_mode(d_tlsCtx.get(), SSL_SESS_CACHE_OFF);
-    }
-    else {
-      /* use the internal built-in cache to store sessions */
-      SSL_CTX_set_session_cache_mode(d_tlsCtx.get(), SSL_SESS_CACHE_SERVER);
-      SSL_CTX_sess_set_cache_size(d_tlsCtx.get(), fe.d_maxStoredSessions);
-    }
-
-    std::vector<int> keyTypes;
-    for (const auto& pair : fe.d_certKeyPairs) {
-      if (SSL_CTX_use_certificate_chain_file(d_tlsCtx.get(), pair.first.c_str()) != 1) {
-        ERR_print_errors_fp(stderr);
-        throw std::runtime_error("Error loading certificate from " + pair.first + " for the TLS context on " + fe.d_addr.toStringWithPort());
-      }
-      if (SSL_CTX_use_PrivateKey_file(d_tlsCtx.get(), pair.second.c_str(), SSL_FILETYPE_PEM) != 1) {
-        ERR_print_errors_fp(stderr);
-        throw std::runtime_error("Error loading key from " + pair.second + " for the TLS context on " + fe.d_addr.toStringWithPort());
-      }
-      if (SSL_CTX_check_private_key(d_tlsCtx.get()) != 1) {
-        ERR_print_errors_fp(stderr);
-        throw std::runtime_error("Key from '" + pair.second + "' does not match the certificate from '" + pair.first + "' for the TLS context on " + fe.d_addr.toStringWithPort());
-      }
-
-      /* store the type of the new key, we might need it later to select the right OCSP stapling response */
-      auto keyType = libssl_get_last_key_type(d_tlsCtx);
-      if (keyType < 0) {
-        throw std::runtime_error("Key from '" + pair.second + "' has an unknown type");
-      }
-      keyTypes.push_back(keyType);
-    }
-
-    if (!fe.d_ocspFiles.empty()) {
-      try {
-        d_ocspResponses = libssl_load_ocsp_responses(fe.d_ocspFiles, keyTypes);
-      }
-      catch(const std::exception& e) {
-        throw std::runtime_error("Error loading responses for the TLS context on " + fe.d_addr.toStringWithPort() + ": " + e.what());
-      }
-
+    if (!d_ocspResponses.empty()) {
       SSL_CTX_set_tlsext_status_cb(d_tlsCtx.get(), &OpenSSLTLSIOCtx::ocspStaplingCb);
       SSL_CTX_set_tlsext_status_arg(d_tlsCtx.get(), &d_ocspResponses);
     }
 
-    if (!fe.d_ciphers.empty()) {
-      if (SSL_CTX_set_cipher_list(d_tlsCtx.get(), fe.d_ciphers.c_str()) != 1) {
-        ERR_print_errors_fp(stderr);
-        throw std::runtime_error("Error setting the cipher list to '" + fe.d_ciphers + "' for the TLS context on " + fe.d_addr.toStringWithPort());
-      }
-    }
-
-#ifdef HAVE_SSL_CTX_SET_CIPHERSUITES
-    if (!fe.d_ciphers13.empty()) {
-      if (SSL_CTX_set_ciphersuites(d_tlsCtx.get(), fe.d_ciphers13.c_str()) != 1) {
-        ERR_print_errors_fp(stderr);
-        throw std::runtime_error("Error setting the TLS 1.3 cipher list to '" + fe.d_ciphers13 + "' for the TLS context on " + fe.d_addr.toStringWithPort());
-      }
-    }
-#endif /* HAVE_SSL_CTX_SET_CIPHERSUITES */
-
     try {
-      if (fe.d_ticketKeyFile.empty()) {
+      if (fe.d_tlsConfig.d_ticketKeyFile.empty()) {
         handleTicketsKeyRotation(time(nullptr));
       }
       else {
-        loadTicketsKeys(fe.d_ticketKeyFile);
+        loadTicketsKeys(fe.d_tlsConfig.d_ticketKeyFile);
       }
     }
     catch (const std::exception& e) {
@@ -421,7 +335,7 @@ public:
 private:
   OpenSSLTLSTicketKeysRing d_ticketKeys;
   std::map<int, std::string> d_ocspResponses;
-  std::unique_ptr<SSL_CTX, void(*)(SSL_CTX*)> d_tlsCtx;
+  std::unique_ptr<SSL_CTX, void(*)(SSL_CTX*)> d_tlsCtx{nullptr, SSL_CTX_free};
 };
 
 #endif /* HAVE_LIBSSL */
@@ -780,10 +694,10 @@ private:
 class GnuTLSIOCtx: public TLSCtx
 {
 public:
-  GnuTLSIOCtx(const TLSFrontend& fe): d_creds(std::unique_ptr<gnutls_certificate_credentials_st, void(*)(gnutls_certificate_credentials_t)>(nullptr, gnutls_certificate_free_credentials)), d_enableTickets(fe.d_enableTickets)
+  GnuTLSIOCtx(const TLSFrontend& fe): d_creds(std::unique_ptr<gnutls_certificate_credentials_st, void(*)(gnutls_certificate_credentials_t)>(nullptr, gnutls_certificate_free_credentials)), d_enableTickets(fe.d_tlsConfig.d_enableTickets)
   {
     int rc = 0;
-    d_ticketsKeyRotationDelay = fe.d_ticketsKeyRotationDelay;
+    d_ticketsKeyRotationDelay = fe.d_tlsConfig.d_ticketsKeyRotationDelay;
 
     gnutls_certificate_credentials_t creds;
     rc = gnutls_certificate_allocate_credentials(&creds);
@@ -794,7 +708,7 @@ public:
     d_creds = std::unique_ptr<gnutls_certificate_credentials_st, void(*)(gnutls_certificate_credentials_t)>(creds, gnutls_certificate_free_credentials);
     creds = nullptr;
 
-    for (const auto& pair : fe.d_certKeyPairs) {
+    for (const auto& pair : fe.d_tlsConfig.d_certKeyPairs) {
       rc = gnutls_certificate_set_x509_key_file(d_creds.get(), pair.first.c_str(), pair.second.c_str(), GNUTLS_X509_FMT_PEM);
       if (rc != GNUTLS_E_SUCCESS) {
         throw std::runtime_error("Error loading certificate ('" + pair.first + "') and key ('" + pair.second + "') for TLS context on " + fe.d_addr.toStringWithPort() + ": " + gnutls_strerror(rc));
@@ -802,10 +716,10 @@ public:
     }
 
     size_t count = 0;
-    for (const auto& file : fe.d_ocspFiles) {
+    for (const auto& file : fe.d_tlsConfig.d_ocspFiles) {
       rc = gnutls_certificate_set_ocsp_status_request_file(d_creds.get(), file.c_str(), count);
       if (rc != GNUTLS_E_SUCCESS) {
-        throw std::runtime_error("Error loading OCSP response from file '" + file + "' for certificate ('" + fe.d_certKeyPairs.at(count).first + "') and key ('" + fe.d_certKeyPairs.at(count).second + "') for TLS context on " + fe.d_addr.toStringWithPort() + ": " + gnutls_strerror(rc));
+        throw std::runtime_error("Error loading OCSP response from file '" + file + "' for certificate ('" + fe.d_tlsConfig.d_certKeyPairs.at(count).first + "') and key ('" + fe.d_tlsConfig.d_certKeyPairs.at(count).second + "') for TLS context on " + fe.d_addr.toStringWithPort() + ": " + gnutls_strerror(rc));
       }
       ++count;
     }
@@ -817,19 +731,19 @@ public:
     }
 #endif
 
-    rc = gnutls_priority_init(&d_priorityCache, fe.d_ciphers.empty() ? "NORMAL" : fe.d_ciphers.c_str(), nullptr);
+    rc = gnutls_priority_init(&d_priorityCache, fe.d_tlsConfig.d_ciphers.empty() ? "NORMAL" : fe.d_tlsConfig.d_ciphers.c_str(), nullptr);
     if (rc != GNUTLS_E_SUCCESS) {
-      throw std::runtime_error("Error setting up TLS cipher preferences to '" + fe.d_ciphers + "' (" + gnutls_strerror(rc) + ") on " + fe.d_addr.toStringWithPort());
+      throw std::runtime_error("Error setting up TLS cipher preferences to '" + fe.d_tlsConfig.d_ciphers + "' (" + gnutls_strerror(rc) + ") on " + fe.d_addr.toStringWithPort());
     }
 
     pthread_rwlock_init(&d_lock, nullptr);
 
     try {
-      if (fe.d_ticketKeyFile.empty()) {
+      if (fe.d_tlsConfig.d_ticketKeyFile.empty()) {
         handleTicketsKeyRotation(time(nullptr));
       }
       else {
-        loadTicketsKeys(fe.d_ticketKeyFile);
+        loadTicketsKeys(fe.d_tlsConfig.d_ticketKeyFile);
       }
     }
     catch(const std::runtime_error& e) {

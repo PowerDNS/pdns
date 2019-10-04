@@ -46,13 +46,9 @@ struct DOHFrontend
   }
 
   std::shared_ptr<DOHServerConfig> d_dsc{nullptr};
-  std::vector<std::pair<std::string, std::string>> d_certKeyPairs;
-  std::vector<std::string> d_ocspFiles;
   std::vector<std::shared_ptr<DOHResponseMapEntry>> d_responsesMap;
-  std::string d_ciphers;
-  std::string d_ciphers13;
+  TLSConfig d_tlsConfig;
   std::string d_serverTokens{"h2o/dnsdist"};
-  LibsslTLSVersion d_minTLSVersion{LibsslTLSVersion::TLS10};
 #ifdef HAVE_DNS_OVER_HTTPS
   std::unique_ptr<OpenSSLTLSTicketKeysRing> d_ticketKeys{nullptr};
 #endif
@@ -61,13 +57,6 @@ struct DOHFrontend
 
   uint32_t d_idleTimeout{30};             // HTTP idle timeout in seconds
   std::vector<std::string> d_urls;
-  std::string d_ticketKeyFile;
-
-  time_t d_ticketsKeyRotationDelay{43200};
-  size_t d_maxStoredSessions{20480};
-  uint8_t d_numberOfTicketsKeys{5};
-  bool d_enableTickets{true};
-  bool d_preferServerCiphers{false};
 
   std::atomic<uint64_t> d_httpconnects{0};   // number of TCP/IP connections established
   std::atomic<uint64_t> d_getqueries{0};     // valid DNS queries received via GET

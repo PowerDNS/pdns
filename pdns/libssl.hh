@@ -12,6 +12,25 @@
 
 enum class LibsslTLSVersion { Unknown, TLS10, TLS11, TLS12, TLS13 };
 
+class TLSConfig
+{
+public:
+  std::vector<std::pair<std::string, std::string>> d_certKeyPairs;
+  std::vector<std::string> d_ocspFiles;
+
+  std::string d_ciphers;
+  std::string d_ciphers13;
+  std::string d_ticketKeyFile;
+
+  size_t d_maxStoredSessions{20480};
+  time_t d_ticketsKeyRotationDelay{43200};
+  uint8_t d_numberOfTicketsKeys{5};
+  LibsslTLSVersion d_minTLSVersion{LibsslTLSVersion::TLS10};
+
+  bool d_preferServerCiphers{false};
+  bool d_enableTickets{true};
+};
+
 #ifdef HAVE_LIBSSL
 #include <openssl/ssl.h>
 
@@ -79,5 +98,8 @@ bool libssl_generate_ocsp_response(const std::string& certFile, const std::strin
 LibsslTLSVersion libssl_tls_version_from_string(const std::string& str);
 const std::string& libssl_tls_version_to_string(LibsslTLSVersion version);
 bool libssl_set_min_tls_version(std::unique_ptr<SSL_CTX, void(*)(SSL_CTX*)>& ctx, LibsslTLSVersion version);
+
+std::unique_ptr<SSL_CTX, void(*)(SSL_CTX*)> libssl_init_server_context(const TLSConfig& config,
+                                                                       std::map<int, std::string>& ocspResponses);
 
 #endif /* HAVE_LIBSSL */

@@ -146,6 +146,60 @@ static bool loadTLSCertificateAndKeys(const std::string& context, std::vector<st
 
   return true;
 }
+
+static void parseTLSConfig(TLSConfig& config, const std::string& context, boost::optional<localbind_t> vars)
+{
+  if (vars->count("ciphers")) {
+    config.d_ciphers = boost::get<const string>((*vars)["ciphers"]);
+  }
+
+  if (vars->count("ciphersTLS13")) {
+    config.d_ciphers13 = boost::get<const string>((*vars)["ciphersTLS13"]);
+  }
+
+#ifdef HAVE_LIBSSL
+  if (vars->count("minTLSVersion")) {
+    config.d_minTLSVersion = libssl_tls_version_from_string(boost::get<const string>((*vars)["minTLSVersion"]));
+  }
+#endif /* HAVE_LIBSSL */
+
+  if (vars->count("ticketKeyFile")) {
+    config.d_ticketKeyFile = boost::get<const string>((*vars)["ticketKeyFile"]);
+  }
+
+  if (vars->count("ticketsKeysRotationDelay")) {
+    config.d_ticketsKeyRotationDelay = boost::get<int>((*vars)["ticketsKeysRotationDelay"]);
+  }
+
+  if (vars->count("numberOfTicketsKeys")) {
+    config.d_numberOfTicketsKeys = boost::get<int>((*vars)["numberOfTicketsKeys"]);
+  }
+
+  if (vars->count("preferServerCiphers")) {
+    config.d_preferServerCiphers = boost::get<bool>((*vars)["preferServerCiphers"]);
+  }
+
+  if (vars->count("sessionTickets")) {
+    config.d_enableTickets = boost::get<bool>((*vars)["sessionTickets"]);
+  }
+
+  if (vars->count("numberOfStoredSessions")) {
+    auto value = boost::get<int>((*vars)["numberOfStoredSessions"]);
+    if (value < 0) {
+      errlog("Invalid value '%d' for %s() parameter 'numberOfStoredSessions', should be >= 0, dismissing", value, context);
+      g_outputBuffer="Invalid value '" +  std::to_string(value) + "' for " + context + "() parameter 'numberOfStoredSessions', should be >= 0, dimissing";
+    }
+    config.d_maxStoredSessions = value;
+  }
+
+  if (vars->count("ocspResponses")) {
+    auto files = boost::get<std::vector<std::pair<int, std::string>>>((*vars)["ocspResponses"]);
+    for (const auto& file : files) {
+      config.d_ocspFiles.push_back(file.second);
+    }
+  }
+}
+
 #endif // defined(HAVE_DNS_OVER_TLS) || defined(HAVE_DNS_OVER_HTTPS)
 
 void setupLuaConfig(bool client)
@@ -1700,7 +1754,7 @@ void setupLuaConfig(bool client)
     auto frontend = std::make_shared<DOHFrontend>();
 
     if (certFiles && !certFiles->empty() && keyFiles && !keyFiles->empty()) {
-      if (!loadTLSCertificateAndKeys("addDOHLocal", frontend->d_certKeyPairs, *certFiles, *keyFiles)) {
+      if (!loadTLSCertificateAndKeys("addDOHLocal", frontend->d_tlsConfig.d_certKeyPairs, *certFiles, *keyFiles)) {
         return;
       }
 
@@ -1737,18 +1791,11 @@ void setupLuaConfig(bool client)
       if (vars->count("idleTimeout")) {
         frontend->d_idleTimeout = boost::get<int>((*vars)["idleTimeout"]);
       }
-      if (vars->count("ciphers")) {
-        frontend->d_ciphers = boost::get<const string>((*vars)["ciphers"]);
-      }
-      if (vars->count("ciphersTLS13")) {
-        frontend->d_ciphers13 = boost::get<const string>((*vars)["ciphersTLS13"]);
-      }
-      if (vars->count("minTLSVersion")) {
-        frontend->d_minTLSVersion = libssl_tls_version_from_string(boost::get<const string>((*vars)["minTLSVersion"]));
-      }
+
       if (vars->count("serverTokens")) {
         frontend->d_serverTokens = boost::get<const string>((*vars)["serverTokens"]);
       }
+
       if (vars->count("customResponseHeaders")) {
         for (auto const& headerMap : boost::get<std::map<std::string,std::string>>((*vars)["customResponseHeaders"])) {
           std::pair<std::string,std::string> headerResponse = std::make_pair(boost::to_lower_copy(headerMap.first), headerMap.second);
@@ -1756,42 +1803,7 @@ void setupLuaConfig(bool client)
         }
       }
 
-      if (vars->count("ticketKeyFile")) {
-        frontend->d_ticketKeyFile = boost::get<const string>((*vars)["ticketKeyFile"]);
-      }
-
-      if (vars->count("ticketsKeysRotationDelay")) {
-        frontend->d_ticketsKeyRotationDelay = boost::get<int>((*vars)["ticketsKeysRotationDelay"]);
-      }
-
-      if (vars->count("numberOfTicketsKeys")) {
-        frontend->d_numberOfTicketsKeys = boost::get<int>((*vars)["numberOfTicketsKeys"]);
-      }
-
-      if (vars->count("sessionTickets")) {
-        frontend->d_enableTickets = boost::get<bool>((*vars)["sessionTickets"]);
-      }
-
-      if (vars->count("preferServerCiphers")) {
-        frontend->d_preferServerCiphers = boost::get<bool>((*vars)["preferServerCiphers"]);
-      }
-
-      if (vars->count("numberOfStoredSessions")) {
-        auto value = boost::get<int>((*vars)["numberOfStoredSessions"]);
-        if (value < 0) {
-          errlog("Invalid value '%d' for addDOHLocal() parameter 'numberOfStoredSessions', should be >= 0, dismissing", value);
-          g_outputBuffer="Invalid value '" +  std::to_string(value) + "' for addDOHLocal() parameter 'numberOfStoredSessions', should be >= 0, dimissing";
-          return;
-        }
-        frontend->d_maxStoredSessions = value;
-      }
-
-      if (vars->count("ocspResponses")) {
-        auto files = boost::get<std::vector<std::pair<int, std::string>>>((*vars)["ocspResponses"]);
-        for (const auto& file : files) {
-          frontend->d_ocspFiles.push_back(file.second);
-        }
-      }
+      parseTLSConfig(frontend->d_tlsConfig, "addDOHLocal", vars);
     }
     g_dohlocals.push_back(frontend);
     auto cs = std::unique_ptr<ClientState>(new ClientState(frontend->d_local, true, reusePort, tcpFastOpenQueueSize, interface, cpus));
@@ -1927,7 +1939,7 @@ void setupLuaConfig(bool client)
         }
         shared_ptr<TLSFrontend> frontend = std::make_shared<TLSFrontend>();
 
-        if (!loadTLSCertificateAndKeys("addTLSLocal", frontend->d_certKeyPairs, certFiles, keyFiles)) {
+        if (!loadTLSCertificateAndKeys("addTLSLocal", frontend->d_tlsConfig.d_certKeyPairs, certFiles, keyFiles)) {
           return;
         }
 
@@ -1943,56 +1955,7 @@ void setupLuaConfig(bool client)
             frontend->d_provider = boost::get<const string>((*vars)["provider"]);
           }
 
-          if (vars->count("ciphers")) {
-            frontend->d_ciphers = boost::get<const string>((*vars)["ciphers"]);
-          }
-
-          if (vars->count("ciphersTLS13")) {
-            frontend->d_ciphers13 = boost::get<const string>((*vars)["ciphersTLS13"]);
-          }
-
-#ifdef HAVE_LIBSSL
-          if (vars->count("minTLSVersion")) {
-            frontend->d_minTLSVersion = libssl_tls_version_from_string(boost::get<const string>((*vars)["minTLSVersion"]));
-          }
-#endif /* HAVE_LIBSSL */
-
-          if (vars->count("ticketKeyFile")) {
-            frontend->d_ticketKeyFile = boost::get<const string>((*vars)["ticketKeyFile"]);
-          }
-
-          if (vars->count("ticketsKeysRotationDelay")) {
-            frontend->d_ticketsKeyRotationDelay = boost::get<int>((*vars)["ticketsKeysRotationDelay"]);
-          }
-
-          if (vars->count("numberOfTicketsKeys")) {
-            frontend->d_numberOfTicketsKeys = boost::get<int>((*vars)["numberOfTicketsKeys"]);
-          }
-
-          if (vars->count("sessionTickets")) {
-            frontend->d_enableTickets = boost::get<bool>((*vars)["sessionTickets"]);
-          }
-
-          if (vars->count("preferServerCiphers")) {
-            frontend->d_preferServerCiphers = boost::get<bool>((*vars)["preferServerCiphers"]);
-          }
-
-          if (vars->count("numberOfStoredSessions")) {
-            auto value = boost::get<int>((*vars)["numberOfStoredSessions"]);
-            if (value < 0) {
-              errlog("Invalid value '%d' for addTLSLocal() parameter 'numberOfStoredSessions', should be >= 0, dismissing", value);
-              g_outputBuffer="Invalid value '" +  std::to_string(value) + "' for addTLSLocal() parameter 'numberOfStoredSessions', should be >= 0, dimissing";
-              return;
-            }
-            frontend->d_maxStoredSessions = value;
-          }
-
-          if (vars->count("ocspResponses")) {
-            auto files = boost::get<std::vector<std::pair<int, std::string>>>((*vars)["ocspResponses"]);
-            for (const auto& file : files) {
-              frontend->d_ocspFiles.push_back(file.second);
-            }
-          }
+          parseTLSConfig(frontend->d_tlsConfig, "addTLSLocal", vars);
         }
 
         try {
@@ -2096,7 +2059,7 @@ void setupLuaConfig(bool client)
 
     g_lua.registerFunction<void(std::shared_ptr<TLSFrontend>::*)(boost::variant<std::string, std::vector<std::pair<int,std::string>>> certFiles, boost::variant<std::string, std::vector<std::pair<int,std::string>>> keyFiles)>("loadNewCertificatesAndKeys", [](std::shared_ptr<TLSFrontend>& frontend, boost::variant<std::string, std::vector<std::pair<int,std::string>>> certFiles, boost::variant<std::string, std::vector<std::pair<int,std::string>>> keyFiles) {
 #ifdef HAVE_DNS_OVER_TLS
-        if (loadTLSCertificateAndKeys("loadNewCertificatesAndKeys", frontend->d_certKeyPairs, certFiles, keyFiles)) {
+        if (loadTLSCertificateAndKeys("loadNewCertificatesAndKeys", frontend->d_tlsConfig.d_certKeyPairs, certFiles, keyFiles)) {
           frontend->setupTLS();
         }
 #endif

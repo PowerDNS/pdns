@@ -563,4 +563,95 @@ bool OpenSSLTLSTicketKey::decrypt(const unsigned char* iv, EVP_CIPHER_CTX *ectx,
   return true;
 }
 
+std::unique_ptr<SSL_CTX, void(*)(SSL_CTX*)> libssl_init_server_context(const TLSConfig& config,
+                                                                       std::map<int, std::string>& ocspResponses)
+{
+  auto ctx = std::unique_ptr<SSL_CTX, void(*)(SSL_CTX*)>(SSL_CTX_new(SSLv23_server_method()), SSL_CTX_free);
+
+  int sslOptions =
+    SSL_OP_NO_SSLv2 |
+    SSL_OP_NO_SSLv3 |
+    SSL_OP_NO_COMPRESSION |
+    SSL_OP_NO_SESSION_RESUMPTION_ON_RENEGOTIATION |
+    SSL_OP_SINGLE_DH_USE |
+    SSL_OP_SINGLE_ECDH_USE;
+
+  if (!config.d_enableTickets || config.d_numberOfTicketsKeys == 0) {
+    /* for TLS 1.3 this means no stateless tickets, but stateful tickets might still be issued,
+       which is something we don't want. */
+    sslOptions |= SSL_OP_NO_TICKET;
+    /* really disable all tickets */
+#ifdef HAVE_SSL_CTX_SET_NUM_TICKETS
+    SSL_CTX_set_num_tickets(ctx.get(), 0);
+#endif /* HAVE_SSL_CTX_SET_NUM_TICKETS */
+  }
+
+  if (config.d_preferServerCiphers) {
+    sslOptions |= SSL_OP_CIPHER_SERVER_PREFERENCE;
+  }
+
+  SSL_CTX_set_options(ctx.get(), sslOptions);
+  if (!libssl_set_min_tls_version(ctx, config.d_minTLSVersion)) {
+    throw std::runtime_error("Failed to set the minimum version to '" + libssl_tls_version_to_string(config.d_minTLSVersion));
+  }
+
+#ifdef SSL_CTX_set_ecdh_auto
+  SSL_CTX_set_ecdh_auto(ctx.get(), 1);
+#endif
+
+  if (config.d_maxStoredSessions == 0) {
+    /* disable stored sessions entirely */
+    SSL_CTX_set_session_cache_mode(ctx.get(), SSL_SESS_CACHE_OFF);
+  }
+  else {
+    /* use the internal built-in cache to store sessions */
+    SSL_CTX_set_session_cache_mode(ctx.get(), SSL_SESS_CACHE_SERVER);
+    SSL_CTX_sess_set_cache_size(ctx.get(), config.d_maxStoredSessions);
+  }
+
+  std::vector<int> keyTypes;
+  /* load certificate and private key */
+  for (const auto& pair : config.d_certKeyPairs) {
+    if (SSL_CTX_use_certificate_chain_file(ctx.get(), pair.first.c_str()) != 1) {
+      ERR_print_errors_fp(stderr);
+      throw std::runtime_error("An error occurred while trying to load the TLS server certificate file: " + pair.first);
+    }
+    if (SSL_CTX_use_PrivateKey_file(ctx.get(), pair.second.c_str(), SSL_FILETYPE_PEM) != 1) {
+      ERR_print_errors_fp(stderr);
+      throw std::runtime_error("An error occurred while trying to load the TLS server private key file: " + pair.second);
+    }
+    if (SSL_CTX_check_private_key(ctx.get()) != 1) {
+      ERR_print_errors_fp(stderr);
+      throw std::runtime_error("The key from '" + pair.second + "' does not match the certificate from '" + pair.first + "'");
+    }
+    /* store the type of the new key, we might need it later to select the right OCSP stapling response */
+    auto keyType = libssl_get_last_key_type(ctx);
+    if (keyType < 0) {
+      throw std::runtime_error("The key from '" + pair.second + "' has an unknown type");
+    }
+    keyTypes.push_back(keyType);
+  }
+
+  if (!config.d_ocspFiles.empty()) {
+    try {
+      ocspResponses = libssl_load_ocsp_responses(config.d_ocspFiles, keyTypes);
+    }
+    catch(const std::exception& e) {
+      throw std::runtime_error("Unable to load OCSP responses: " + std::string(e.what()));
+    }
+  }
+
+  if (!config.d_ciphers.empty() && SSL_CTX_set_cipher_list(ctx.get(), config.d_ciphers.c_str()) != 1) {
+    throw std::runtime_error("The TLS ciphers could not be set: " + config.d_ciphers);
+  }
+
+#ifdef HAVE_SSL_CTX_SET_CIPHERSUITES
+  if (!config.d_ciphers13.empty() && SSL_CTX_set_ciphersuites(ctx.get(), config.d_ciphers13.c_str()) != 1) {
+    throw std::runtime_error("The TLS 1.3 ciphers could not be set: " + config.d_ciphers13);
+  }
+#endif /* HAVE_SSL_CTX_SET_CIPHERSUITES */
+
+  return ctx;
+}
+
 #endif /* HAVE_LIBSSL */
