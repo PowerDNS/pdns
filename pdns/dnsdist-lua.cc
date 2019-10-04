@@ -1989,7 +1989,12 @@ void setupLuaConfig(bool client)
 
         try {
           frontend->d_addr = ComboAddress(addr, 853);
-          vinfolog("Loading TLS provider %s", frontend->d_provider);
+          if (!frontend->d_provider.empty()) {
+            vinfolog("Loading TLS provider '%s'", frontend->d_provider);
+          }
+          else {
+            vinfolog("Loading default TLS provider 'openssl'");
+          }
           // only works pre-startup, so no sync necessary
           auto cs = std::unique_ptr<ClientState>(new ClientState(frontend->d_addr, true, reusePort, tcpFastOpenQueueSize, interface, cpus));
           cs->tlsFrontend = frontend;
