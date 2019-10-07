@@ -57,6 +57,9 @@ class CookiesOption(dns.edns.Option):
             self.server
         )
 
+    def to_text(self):
+        return self.__repr__()
+
     def __eq__(self, other):
         if not isinstance(other, CookiesOption):
             return False
