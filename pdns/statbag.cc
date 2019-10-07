@@ -167,6 +167,16 @@ StatRing<T,Comp>::StatRing(unsigned int size)
 }
 
 template<typename T, typename Comp>
+StatRing<T,Comp>::StatRing(const StatRing<T,Comp> &arg)
+{
+  std::lock_guard<std::mutex> thislock(d_lock);
+  std::lock_guard<std::mutex> arglock(arg.d_lock);
+  
+  d_items = arg.d_items;
+  d_help = arg.d_help;
+}
+
+template<typename T, typename Comp>
 void StatRing<T,Comp>::account(const T& t)
 {
   std::lock_guard<std::mutex> l(d_lock);
