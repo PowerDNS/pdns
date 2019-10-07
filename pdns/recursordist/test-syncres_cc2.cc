@@ -144,9 +144,9 @@ BOOST_AUTO_TEST_CASE(test_throttled_server) {
   vector<DNSRecord> ret;
   int res = sr->beginResolve(target, QType(QType::A), QClass::IN, ret);
   BOOST_CHECK_EQUAL(res, RCode::ServFail);
-  BOOST_CHECK_EQUAL(ret.size(), 0);
+  BOOST_CHECK_EQUAL(ret.size(), 0U);
   /* we should not have sent any queries to ns */
-  BOOST_CHECK_EQUAL(queriesToNS, 0);
+  BOOST_CHECK_EQUAL(queriesToNS, 0U);
 }
 
 BOOST_AUTO_TEST_CASE(test_throttled_server_count) {
@@ -226,9 +226,9 @@ BOOST_AUTO_TEST_CASE(test_dont_query_server) {
   vector<DNSRecord> ret;
   int res = sr->beginResolve(target, QType(QType::A), QClass::IN, ret);
   BOOST_CHECK_EQUAL(res, RCode::ServFail);
-  BOOST_CHECK_EQUAL(ret.size(), 0);
+  BOOST_CHECK_EQUAL(ret.size(), 0U);
   /* we should not have sent any queries to ns */
-  BOOST_CHECK_EQUAL(queriesToNS, 0);
+  BOOST_CHECK_EQUAL(queriesToNS, 0U);
 }
 
 BOOST_AUTO_TEST_CASE(test_root_nx_trust) {
@@ -275,20 +275,20 @@ BOOST_AUTO_TEST_CASE(test_root_nx_trust) {
   vector<DNSRecord> ret;
   int res = sr->beginResolve(target1, QType(QType::A), QClass::IN, ret);
   BOOST_CHECK_EQUAL(res, RCode::NXDomain);
-  BOOST_CHECK_EQUAL(ret.size(), 1);
+  BOOST_CHECK_EQUAL(ret.size(), 1U);
   /* one for target1 and one for the entire TLD */
-  BOOST_CHECK_EQUAL(SyncRes::getNegCacheSize(), 2);
+  BOOST_CHECK_EQUAL(SyncRes::getNegCacheSize(), 2U);
 
   ret.clear();
   res = sr->beginResolve(target2, QType(QType::A), QClass::IN, ret);
   BOOST_CHECK_EQUAL(res, RCode::NXDomain);
-  BOOST_REQUIRE_EQUAL(ret.size(), 1);
+  BOOST_REQUIRE_EQUAL(ret.size(), 1U);
   BOOST_CHECK_LE(ret[0].d_ttl, SyncRes::s_maxnegttl);
   /* one for target1 and one for the entire TLD */
-  BOOST_CHECK_EQUAL(SyncRes::getNegCacheSize(), 2);
+  BOOST_CHECK_EQUAL(SyncRes::getNegCacheSize(), 2U);
 
   /* we should have sent only one query */
-  BOOST_CHECK_EQUAL(queriesCount, 1);
+  BOOST_CHECK_EQUAL(queriesCount, 1U);
 }
 
 BOOST_AUTO_TEST_CASE(test_root_nx_trust_specific) {
@@ -337,23 +337,23 @@ BOOST_AUTO_TEST_CASE(test_root_nx_trust_specific) {
   vector<DNSRecord> ret;
   int res = sr->beginResolve(target1, QType(QType::A), QClass::IN, ret);
   BOOST_CHECK_EQUAL(res, RCode::NXDomain);
-  BOOST_CHECK_EQUAL(ret.size(), 1);
+  BOOST_CHECK_EQUAL(ret.size(), 1U);
 
   /* even with root-nx-trust on and a NX answer from the root,
      we should not have cached the entire TLD this time. */
-  BOOST_CHECK_EQUAL(SyncRes::t_sstorage.negcache.size(), 1);
+  BOOST_CHECK_EQUAL(SyncRes::t_sstorage.negcache.size(), 1U);
 
   ret.clear();
   res = sr->beginResolve(target2, QType(QType::A), QClass::IN, ret);
   BOOST_CHECK_EQUAL(res, RCode::NoError);
-  BOOST_REQUIRE_EQUAL(ret.size(), 1);
+  BOOST_REQUIRE_EQUAL(ret.size(), 1U);
   BOOST_CHECK_EQUAL(ret[0].d_name, target2);
   BOOST_REQUIRE(ret[0].d_type == QType::A);
   BOOST_CHECK(getRR<ARecordContent>(ret[0])->getCA() == ComboAddress("192.0.2.2"));
 
-  BOOST_CHECK_EQUAL(SyncRes::t_sstorage.negcache.size(), 1);
+  BOOST_CHECK_EQUAL(SyncRes::t_sstorage.negcache.size(), 1U);
 
-  BOOST_CHECK_EQUAL(queriesCount, 3);
+  BOOST_CHECK_EQUAL(queriesCount, 3U);
 }
 
 BOOST_AUTO_TEST_CASE(test_root_nx_dont_trust) {
@@ -400,19 +400,19 @@ BOOST_AUTO_TEST_CASE(test_root_nx_dont_trust) {
   vector<DNSRecord> ret;
   int res = sr->beginResolve(target1, QType(QType::A), QClass::IN, ret);
   BOOST_CHECK_EQUAL(res, RCode::NXDomain);
-  BOOST_CHECK_EQUAL(ret.size(), 1);
+  BOOST_CHECK_EQUAL(ret.size(), 1U);
   /* one for target1 */
-  BOOST_CHECK_EQUAL(SyncRes::getNegCacheSize(), 1);
+  BOOST_CHECK_EQUAL(SyncRes::getNegCacheSize(), 1U);
 
   ret.clear();
   res = sr->beginResolve(target2, QType(QType::A), QClass::IN, ret);
   BOOST_CHECK_EQUAL(res, RCode::NoError);
-  BOOST_CHECK_EQUAL(ret.size(), 1);
+  BOOST_CHECK_EQUAL(ret.size(), 1U);
   /* one for target1 */
-  BOOST_CHECK_EQUAL(SyncRes::getNegCacheSize(), 1);
+  BOOST_CHECK_EQUAL(SyncRes::getNegCacheSize(), 1U);
 
   /* we should have sent three queries */
-  BOOST_CHECK_EQUAL(queriesCount, 3);
+  BOOST_CHECK_EQUAL(queriesCount, 3U);
 }
 
 BOOST_AUTO_TEST_CASE(test_skip_negcache_for_variable_response) {
@@ -466,9 +466,9 @@ BOOST_AUTO_TEST_CASE(test_skip_negcache_for_variable_response) {
   vector<DNSRecord> ret;
   int res = sr->beginResolve(target, QType(QType::A), QClass::IN, ret);
   BOOST_CHECK_EQUAL(res, RCode::NXDomain);
-  BOOST_CHECK_EQUAL(ret.size(), 2);
+  BOOST_CHECK_EQUAL(ret.size(), 2U);
   /* no negative cache entry because the response was variable */
-  BOOST_CHECK_EQUAL(SyncRes::getNegCacheSize(), 0);
+  BOOST_CHECK_EQUAL(SyncRes::getNegCacheSize(), 0U);
 }
 
 BOOST_AUTO_TEST_CASE(test_ecs_cache_limit_allowed) {
@@ -501,13 +501,13 @@ BOOST_AUTO_TEST_CASE(test_ecs_cache_limit_allowed) {
   vector<DNSRecord> ret;
   int res = sr->beginResolve(target, QType(QType::A), QClass::IN, ret);
   BOOST_CHECK_EQUAL(res, RCode::NoError);
-  BOOST_CHECK_EQUAL(ret.size(), 1);
+  BOOST_CHECK_EQUAL(ret.size(), 1U);
 
   /* should have been cached */
   const ComboAddress who("192.0.2.128");
   vector<DNSRecord> cached;
   BOOST_REQUIRE_GT(t_RC->get(now, target, QType(QType::A), true, &cached, who), 0);
-  BOOST_REQUIRE_EQUAL(cached.size(), 1);
+  BOOST_REQUIRE_EQUAL(cached.size(), 1U);
 }
 
 BOOST_AUTO_TEST_CASE(test_ecs_cache_limit_no_ttl_limit_allowed) {
@@ -540,13 +540,13 @@ BOOST_AUTO_TEST_CASE(test_ecs_cache_limit_no_ttl_limit_allowed) {
   vector<DNSRecord> ret;
   int res = sr->beginResolve(target, QType(QType::A), QClass::IN, ret);
   BOOST_CHECK_EQUAL(res, RCode::NoError);
-  BOOST_CHECK_EQUAL(ret.size(), 1);
+  BOOST_CHECK_EQUAL(ret.size(), 1U);
 
   /* should have been cached because /24 is more specific than /16 but TTL limit is nof effective */
   const ComboAddress who("192.0.2.128");
   vector<DNSRecord> cached;
   BOOST_REQUIRE_GT(t_RC->get(now, target, QType(QType::A), true, &cached, who), 0);
-  BOOST_REQUIRE_EQUAL(cached.size(), 1);
+  BOOST_REQUIRE_EQUAL(cached.size(), 1U);
 }
 
 BOOST_AUTO_TEST_CASE(test_ecs_cache_ttllimit_allowed) {
@@ -579,13 +579,13 @@ BOOST_AUTO_TEST_CASE(test_ecs_cache_ttllimit_allowed) {
     vector<DNSRecord> ret;
     int res = sr->beginResolve(target, QType(QType::A), QClass::IN, ret);
     BOOST_CHECK_EQUAL(res, RCode::NoError);
-    BOOST_CHECK_EQUAL(ret.size(), 1);
+    BOOST_CHECK_EQUAL(ret.size(), 1U);
 
     /* should have been cached */
     const ComboAddress who("192.0.2.128");
     vector<DNSRecord> cached;
     BOOST_REQUIRE_GT(t_RC->get(now, target, QType(QType::A), true, &cached, who), 0);
-    BOOST_REQUIRE_EQUAL(cached.size(), 1);
+    BOOST_REQUIRE_EQUAL(cached.size(), 1U);
 }
 
 BOOST_AUTO_TEST_CASE(test_ecs_cache_ttllimit_and_scope_allowed) {
@@ -619,13 +619,13 @@ BOOST_AUTO_TEST_CASE(test_ecs_cache_ttllimit_and_scope_allowed) {
     vector<DNSRecord> ret;
     int res = sr->beginResolve(target, QType(QType::A), QClass::IN, ret);
     BOOST_CHECK_EQUAL(res, RCode::NoError);
-    BOOST_CHECK_EQUAL(ret.size(), 1);
+    BOOST_CHECK_EQUAL(ret.size(), 1U);
 
     /* should have been cached */
     const ComboAddress who("192.0.2.128");
     vector<DNSRecord> cached;
     BOOST_REQUIRE_GT(t_RC->get(now, target, QType(QType::A), true, &cached, who), 0);
-    BOOST_REQUIRE_EQUAL(cached.size(), 1);
+    BOOST_REQUIRE_EQUAL(cached.size(), 1U);
 }
 
 BOOST_AUTO_TEST_CASE(test_ecs_cache_ttllimit_notallowed) {
@@ -659,13 +659,13 @@ BOOST_AUTO_TEST_CASE(test_ecs_cache_ttllimit_notallowed) {
     vector<DNSRecord> ret;
     int res = sr->beginResolve(target, QType(QType::A), QClass::IN, ret);
     BOOST_CHECK_EQUAL(res, RCode::NoError);
-    BOOST_CHECK_EQUAL(ret.size(), 1);
+    BOOST_CHECK_EQUAL(ret.size(), 1U);
 
     /* should have NOT been cached because TTL of 60 is too small and /24 is more specific than /16 */
     const ComboAddress who("192.0.2.128");
     vector<DNSRecord> cached;
     BOOST_REQUIRE_LT(t_RC->get(now, target, QType(QType::A), true, &cached, who), 0);
-    BOOST_REQUIRE_EQUAL(cached.size(), 0);
+    BOOST_REQUIRE_EQUAL(cached.size(), 0U);
 }
 
 
@@ -699,13 +699,13 @@ BOOST_AUTO_TEST_CASE(test_ns_speed) {
         nsCounts[ip]++;
 
         if (ip == ComboAddress("[2001:DB8::2]:53") || ip == ComboAddress("192.0.2.2:53")) {
-          BOOST_CHECK_LT(nsCounts.size(), 3);
+          BOOST_CHECK_LT(nsCounts.size(), 3U);
 
           /* let's time out on pdns-public-ns2.powerdns.com. */
           return 0;
         }
         else if (ip == ComboAddress("192.0.2.1:53")) {
-          BOOST_CHECK_EQUAL(nsCounts.size(), 3);
+          BOOST_CHECK_EQUAL(nsCounts.size(), 3U);
 
           setLWResult(res, 0, true, false, true);
           addRecordToLW(res, domain, QType::A, "192.0.2.254");
@@ -732,11 +732,11 @@ BOOST_AUTO_TEST_CASE(test_ns_speed) {
   vector<DNSRecord> ret;
   int res = sr->beginResolve(target, QType(QType::A), QClass::IN, ret);
   BOOST_CHECK_EQUAL(res, RCode::NoError);
-  BOOST_CHECK_EQUAL(ret.size(), 1);
-  BOOST_CHECK_EQUAL(nsCounts.size(), 3);
-  BOOST_CHECK_EQUAL(nsCounts[ComboAddress("192.0.2.1:53")], 1);
-  BOOST_CHECK_EQUAL(nsCounts[ComboAddress("192.0.2.2:53")], 1);
-  BOOST_CHECK_EQUAL(nsCounts[ComboAddress("[2001:DB8::2]:53")], 1);
+  BOOST_CHECK_EQUAL(ret.size(), 1U);
+  BOOST_CHECK_EQUAL(nsCounts.size(), 3U);
+  BOOST_CHECK_EQUAL(nsCounts[ComboAddress("192.0.2.1:53")], 1U);
+  BOOST_CHECK_EQUAL(nsCounts[ComboAddress("192.0.2.2:53")], 1U);
+  BOOST_CHECK_EQUAL(nsCounts[ComboAddress("[2001:DB8::2]:53")], 1U);
 }
 
 BOOST_AUTO_TEST_CASE(test_flawed_nsset) {
@@ -776,7 +776,7 @@ BOOST_AUTO_TEST_CASE(test_flawed_nsset) {
   vector<DNSRecord> ret;
   int res = sr->beginResolve(target, QType(QType::A), QClass::IN, ret);
   BOOST_CHECK_EQUAL(res, RCode::NoError);
-  BOOST_CHECK_EQUAL(ret.size(), 1);
+  BOOST_CHECK_EQUAL(ret.size(), 1U);
 }
 
 BOOST_AUTO_TEST_CASE(test_completely_flawed_nsset) {
@@ -809,9 +809,9 @@ BOOST_AUTO_TEST_CASE(test_completely_flawed_nsset) {
   vector<DNSRecord> ret;
   int res = sr->beginResolve(target, QType(QType::A), QClass::IN, ret);
   BOOST_CHECK_EQUAL(res, RCode::ServFail);
-  BOOST_CHECK_EQUAL(ret.size(), 0);
+  BOOST_CHECK_EQUAL(ret.size(), 0U);
   /* one query to get NSs, then A and AAAA for each NS */
-  BOOST_CHECK_EQUAL(queriesCount, 5);
+  BOOST_CHECK_EQUAL(queriesCount, 5U);
 }
 
 BOOST_AUTO_TEST_CASE(test_cache_hit) {
@@ -838,7 +838,7 @@ BOOST_AUTO_TEST_CASE(test_cache_hit) {
   vector<DNSRecord> ret;
   int res = sr->beginResolve(target, QType(QType::A), QClass::IN, ret);
   BOOST_CHECK_EQUAL(res, RCode::NoError);
-  BOOST_CHECK_EQUAL(ret.size(), 1);
+  BOOST_CHECK_EQUAL(ret.size(), 1U);
 }
 
 BOOST_AUTO_TEST_CASE(test_no_rd) {
@@ -861,8 +861,8 @@ BOOST_AUTO_TEST_CASE(test_no_rd) {
   vector<DNSRecord> ret;
   int res = sr->beginResolve(target, QType(QType::A), QClass::IN, ret);
   BOOST_CHECK_EQUAL(res, RCode::NoError);
-  BOOST_CHECK_EQUAL(ret.size(), 0);
-  BOOST_CHECK_EQUAL(queriesCount, 0);
+  BOOST_CHECK_EQUAL(ret.size(), 0U);
+  BOOST_CHECK_EQUAL(queriesCount, 0U);
 }
 
 BOOST_AUTO_TEST_CASE(test_cache_min_max_ttl) {
@@ -900,19 +900,19 @@ BOOST_AUTO_TEST_CASE(test_cache_min_max_ttl) {
   vector<DNSRecord> ret;
   int res = sr->beginResolve(target, QType(QType::A), QClass::IN, ret);
   BOOST_CHECK_EQUAL(res, RCode::NoError);
-  BOOST_REQUIRE_EQUAL(ret.size(), 1);
+  BOOST_REQUIRE_EQUAL(ret.size(), 1U);
   BOOST_CHECK_EQUAL(ret[0].d_ttl, SyncRes::s_minimumTTL);
 
   const ComboAddress who;
   vector<DNSRecord> cached;
   BOOST_REQUIRE_GT(t_RC->get(now, target, QType(QType::A), true, &cached, who), 0);
-  BOOST_REQUIRE_EQUAL(cached.size(), 1);
+  BOOST_REQUIRE_EQUAL(cached.size(), 1U);
   BOOST_REQUIRE_GT(cached[0].d_ttl, now);
   BOOST_CHECK_EQUAL((cached[0].d_ttl - now), SyncRes::s_minimumTTL);
 
   cached.clear();
   BOOST_REQUIRE_GT(t_RC->get(now, target, QType(QType::NS), false, &cached, who), 0);
-  BOOST_REQUIRE_EQUAL(cached.size(), 1);
+  BOOST_REQUIRE_EQUAL(cached.size(), 1U);
   BOOST_REQUIRE_GT(cached[0].d_ttl, now);
   BOOST_CHECK_LE((cached[0].d_ttl - now), SyncRes::s_maxcachettl);
 }
@@ -963,25 +963,25 @@ BOOST_AUTO_TEST_CASE(test_cache_min_max_ecs_ttl) {
   vector<DNSRecord> ret;
   int res = sr->beginResolve(target, QType(QType::A), QClass::IN, ret);
   BOOST_CHECK_EQUAL(res, RCode::NoError);
-  BOOST_REQUIRE_EQUAL(ret.size(), 1);
+  BOOST_REQUIRE_EQUAL(ret.size(), 1U);
   BOOST_CHECK_EQUAL(ret[0].d_ttl, SyncRes::s_minimumECSTTL);
 
   const ComboAddress who("192.0.2.128");
   vector<DNSRecord> cached;
   BOOST_REQUIRE_GT(t_RC->get(now, target, QType(QType::A), true, &cached, who), 0);
-  BOOST_REQUIRE_EQUAL(cached.size(), 1);
+  BOOST_REQUIRE_EQUAL(cached.size(), 1U);
   BOOST_REQUIRE_GT(cached[0].d_ttl, now);
   BOOST_CHECK_EQUAL((cached[0].d_ttl - now), SyncRes::s_minimumECSTTL);
 
   cached.clear();
   BOOST_REQUIRE_GT(t_RC->get(now, target, QType(QType::NS), false, &cached, who), 0);
-  BOOST_REQUIRE_EQUAL(cached.size(), 1);
+  BOOST_REQUIRE_EQUAL(cached.size(), 1U);
   BOOST_REQUIRE_GT(cached[0].d_ttl, now);
   BOOST_CHECK_LE((cached[0].d_ttl - now), SyncRes::s_maxcachettl);
 
   cached.clear();
   BOOST_REQUIRE_GT(t_RC->get(now, DNSName("a.gtld-servers.net."), QType(QType::A), false, &cached, who), 0);
-  BOOST_REQUIRE_EQUAL(cached.size(), 1);
+  BOOST_REQUIRE_EQUAL(cached.size(), 1U);
   BOOST_REQUIRE_GT(cached[0].d_ttl, now);
   BOOST_CHECK_LE((cached[0].d_ttl - now), SyncRes::s_minimumTTL);
 }
@@ -1024,7 +1024,7 @@ BOOST_AUTO_TEST_CASE(test_cache_expired_ttl) {
   vector<DNSRecord> ret;
   int res = sr->beginResolve(target, QType(QType::A), QClass::IN, ret);
   BOOST_CHECK_EQUAL(res, RCode::NoError);
-  BOOST_REQUIRE_EQUAL(ret.size(), 1);
+  BOOST_REQUIRE_EQUAL(ret.size(), 1U);
   BOOST_REQUIRE(ret[0].d_type == QType::A);
   BOOST_CHECK_EQUAL(getRR<ARecordContent>(ret[0])->getCA().toStringWithPort(), ComboAddress("192.0.2.2").toStringWithPort());
 }

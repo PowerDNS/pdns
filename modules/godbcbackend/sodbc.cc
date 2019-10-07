@@ -344,13 +344,13 @@ SSqlStatement* SODBCStatement::nextRow(row_t& row)
     d_result = SQLFetch(d_statement);
     // cerr<<"subsequent SQLFetch done, d_result="<<d_result<<endl;
     if(d_result == SQL_NO_DATA) {
-      SQLRETURN result = SQLMoreResults(d_statement);
-      // cerr<<"SQLMoreResults done, result="<<d_result<<endl;
-      if (result == SQL_NO_DATA) {
-        d_result = result;
+      SQLRETURN result2 = SQLMoreResults(d_statement);
+      // cerr<<"SQLMoreResults done, result="<<d_result2<<endl;
+      if (result2 == SQL_NO_DATA) {
+        d_result = result2;
       }
       else {
-        testResult( result, SQL_HANDLE_STMT, d_statement, "Could not fetch next result set for ("+d_query+").");
+        testResult( result2, SQL_HANDLE_STMT, d_statement, "Could not fetch next result set for ("+d_query+").");
       d_result = SQLFetch(d_statement);
       }
     }

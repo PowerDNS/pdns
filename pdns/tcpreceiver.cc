@@ -941,7 +941,7 @@ int TCPNameserver::doAXFR(const DNSName &target, std::unique_ptr<DNSPacket>& q, 
           n3rc.d_salt = ns3pr.d_salt;
           n3rc.d_flags = ns3pr.d_flags;
           n3rc.d_iterations = ns3pr.d_iterations;
-          n3rc.d_algorithm = DNSSECKeeper::SHA1; // SHA1, fixed in PowerDNS for now
+          n3rc.d_algorithm = DNSSECKeeper::DIGEST_SHA1; // SHA1, fixed in PowerDNS for now
           nsecxrepo_t::const_iterator inext = iter;
           ++inext;
           if(inext == nsecxrepo.end())

@@ -68,10 +68,10 @@ BOOST_AUTO_TEST_CASE(DNSCryptPlaintextQuery) {
 
   MOADNSParser mdp(false, (char*) response.data(), response.size());
 
-  BOOST_CHECK_EQUAL(mdp.d_header.qdcount, 1);
-  BOOST_CHECK_EQUAL(mdp.d_header.ancount, 1);
-  BOOST_CHECK_EQUAL(mdp.d_header.nscount, 0);
-  BOOST_CHECK_EQUAL(mdp.d_header.arcount, 0);
+  BOOST_CHECK_EQUAL(mdp.d_header.qdcount, 1U);
+  BOOST_CHECK_EQUAL(mdp.d_header.ancount, 1U);
+  BOOST_CHECK_EQUAL(mdp.d_header.nscount, 0U);
+  BOOST_CHECK_EQUAL(mdp.d_header.arcount, 0U);
 
   BOOST_CHECK_EQUAL(mdp.d_qname.toString(), "2.name.");
   BOOST_CHECK(mdp.d_qclass == QClass::IN);
@@ -176,10 +176,10 @@ BOOST_AUTO_TEST_CASE(DNSCryptEncryptedQueryValid) {
 
   MOADNSParser mdp(true, (char*) plainQuery.data(), decryptedLen);
 
-  BOOST_CHECK_EQUAL(mdp.d_header.qdcount, 1);
-  BOOST_CHECK_EQUAL(mdp.d_header.ancount, 0);
-  BOOST_CHECK_EQUAL(mdp.d_header.nscount, 0);
-  BOOST_CHECK_EQUAL(mdp.d_header.arcount, 0);
+  BOOST_CHECK_EQUAL(mdp.d_header.qdcount, 1U);
+  BOOST_CHECK_EQUAL(mdp.d_header.ancount, 0U);
+  BOOST_CHECK_EQUAL(mdp.d_header.nscount, 0U);
+  BOOST_CHECK_EQUAL(mdp.d_header.arcount, 0U);
 
   BOOST_CHECK_EQUAL(mdp.d_qname, name);
   BOOST_CHECK(mdp.d_qclass == QClass::IN);
@@ -270,10 +270,10 @@ BOOST_AUTO_TEST_CASE(DNSCryptEncryptedQueryValidWithOldKey) {
 
   MOADNSParser mdp(true, (char*) plainQuery.data(), decryptedLen);
 
-  BOOST_CHECK_EQUAL(mdp.d_header.qdcount, 1);
-  BOOST_CHECK_EQUAL(mdp.d_header.ancount, 0);
-  BOOST_CHECK_EQUAL(mdp.d_header.nscount, 0);
-  BOOST_CHECK_EQUAL(mdp.d_header.arcount, 0);
+  BOOST_CHECK_EQUAL(mdp.d_header.qdcount, 1U);
+  BOOST_CHECK_EQUAL(mdp.d_header.ancount, 0U);
+  BOOST_CHECK_EQUAL(mdp.d_header.nscount, 0U);
+  BOOST_CHECK_EQUAL(mdp.d_header.arcount, 0U);
 
   BOOST_CHECK_EQUAL(mdp.d_qname, name);
   BOOST_CHECK(mdp.d_qclass == QClass::IN);

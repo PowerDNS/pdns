@@ -20,9 +20,9 @@ BOOST_AUTO_TEST_CASE(test_filter_policies_basic) {
   zone->setDomain(DNSName("powerdns.com."));
   BOOST_CHECK_EQUAL(zone->getDomain(), DNSName("powerdns.com."));
   zone->setSerial(42);
-  BOOST_CHECK_EQUAL(zone->getSerial(), 42);
+  BOOST_CHECK_EQUAL(zone->getSerial(), 42U);
   zone->setRefresh(99);
-  BOOST_CHECK_EQUAL(zone->getRefresh(), 99);
+  BOOST_CHECK_EQUAL(zone->getRefresh(), 99U);
 
   const ComboAddress nsIP("192.0.2.1");
   const DNSName nsName("ns.bad.wolf.");
@@ -31,31 +31,31 @@ BOOST_AUTO_TEST_CASE(test_filter_policies_basic) {
   const DNSName blockedName("blocked.");
   const DNSName blockedWildcardName("*.wildcard-blocked.");
   const ComboAddress responseIP("192.0.2.254");
-  BOOST_CHECK_EQUAL(zone->size(), 0);
+  BOOST_CHECK_EQUAL(zone->size(), 0U);
   zone->addClientTrigger(Netmask(clientIP, 32), DNSFilterEngine::Policy(DNSFilterEngine::PolicyKind::Drop, DNSFilterEngine::PolicyType::ClientIP));
-  BOOST_CHECK_EQUAL(zone->size(), 1);
+  BOOST_CHECK_EQUAL(zone->size(), 1U);
   zone->addQNameTrigger(blockedName, DNSFilterEngine::Policy(DNSFilterEngine::PolicyKind::Drop, DNSFilterEngine::PolicyType::QName));
-  BOOST_CHECK_EQUAL(zone->size(), 2);
+  BOOST_CHECK_EQUAL(zone->size(), 2U);
   zone->addQNameTrigger(blockedWildcardName, DNSFilterEngine::Policy(DNSFilterEngine::PolicyKind::Drop, DNSFilterEngine::PolicyType::QName));
-  BOOST_CHECK_EQUAL(zone->size(), 3);
+  BOOST_CHECK_EQUAL(zone->size(), 3U);
   zone->addNSIPTrigger(Netmask(nsIP, 32), DNSFilterEngine::Policy(DNSFilterEngine::PolicyKind::Drop, DNSFilterEngine::PolicyType::NSIP));
-  BOOST_CHECK_EQUAL(zone->size(), 4);
+  BOOST_CHECK_EQUAL(zone->size(), 4U);
   zone->addNSTrigger(nsName, DNSFilterEngine::Policy(DNSFilterEngine::PolicyKind::Drop, DNSFilterEngine::PolicyType::NSDName));
-  BOOST_CHECK_EQUAL(zone->size(), 5);
+  BOOST_CHECK_EQUAL(zone->size(), 5U);
   zone->addNSTrigger(nsWildcardName, DNSFilterEngine::Policy(DNSFilterEngine::PolicyKind::Drop, DNSFilterEngine::PolicyType::NSDName));
-  BOOST_CHECK_EQUAL(zone->size(), 6);
+  BOOST_CHECK_EQUAL(zone->size(), 6U);
   zone->addResponseTrigger(Netmask(responseIP, 32), DNSFilterEngine::Policy(DNSFilterEngine::PolicyKind::Drop, DNSFilterEngine::PolicyType::ResponseIP));
-  BOOST_CHECK_EQUAL(zone->size(), 7);
+  BOOST_CHECK_EQUAL(zone->size(), 7U);
 
   size_t zoneIdx = dfe.addZone(zone);
 
-  BOOST_CHECK_EQUAL(dfe.size(), 1);
+  BOOST_CHECK_EQUAL(dfe.size(), 1U);
   BOOST_CHECK(dfe.getZone(zoneName) == zone);
   BOOST_CHECK(dfe.getZone(zoneIdx) == zone);
 
   dfe.setZone(zoneIdx, zone);
 
-  BOOST_CHECK_EQUAL(dfe.size(), 1);
+  BOOST_CHECK_EQUAL(dfe.size(), 1U);
   BOOST_CHECK(dfe.getZone(zoneName) == zone);
   BOOST_CHECK(dfe.getZone(zoneIdx) == zone);
 
@@ -195,25 +195,25 @@ BOOST_AUTO_TEST_CASE(test_filter_policies_basic) {
     BOOST_CHECK(zone->findResponsePolicy(ComboAddress("192.0.2.142"), zonePolicy) == false);
   }
 
-  BOOST_CHECK_EQUAL(zone->size(), 7);
+  BOOST_CHECK_EQUAL(zone->size(), 7U);
   zone->rmClientTrigger(Netmask(clientIP, 32), DNSFilterEngine::Policy(DNSFilterEngine::PolicyKind::Drop, DNSFilterEngine::PolicyType::ClientIP));
-  BOOST_CHECK_EQUAL(zone->size(), 6);
+  BOOST_CHECK_EQUAL(zone->size(), 6U);
   zone->rmQNameTrigger(blockedName, DNSFilterEngine::Policy(DNSFilterEngine::PolicyKind::Drop, DNSFilterEngine::PolicyType::QName));
-  BOOST_CHECK_EQUAL(zone->size(), 5);
+  BOOST_CHECK_EQUAL(zone->size(), 5U);
   zone->rmQNameTrigger(blockedWildcardName, DNSFilterEngine::Policy(DNSFilterEngine::PolicyKind::Drop, DNSFilterEngine::PolicyType::QName));
-  BOOST_CHECK_EQUAL(zone->size(), 4);
+  BOOST_CHECK_EQUAL(zone->size(), 4U);
   zone->rmNSIPTrigger(Netmask(nsIP, 32), DNSFilterEngine::Policy(DNSFilterEngine::PolicyKind::Drop, DNSFilterEngine::PolicyType::NSIP));
-  BOOST_CHECK_EQUAL(zone->size(), 3);
+  BOOST_CHECK_EQUAL(zone->size(), 3U);
   zone->rmNSTrigger(nsName, DNSFilterEngine::Policy(DNSFilterEngine::PolicyKind::Drop, DNSFilterEngine::PolicyType::NSDName));
-  BOOST_CHECK_EQUAL(zone->size(), 2);
+  BOOST_CHECK_EQUAL(zone->size(), 2U);
   zone->rmNSTrigger(nsWildcardName, DNSFilterEngine::Policy(DNSFilterEngine::PolicyKind::Drop, DNSFilterEngine::PolicyType::NSDName));
-  BOOST_CHECK_EQUAL(zone->size(), 1);
+  BOOST_CHECK_EQUAL(zone->size(), 1U);
   zone->rmResponseTrigger(Netmask(responseIP, 32), DNSFilterEngine::Policy(DNSFilterEngine::PolicyKind::Drop, DNSFilterEngine::PolicyType::ResponseIP));
-  BOOST_CHECK_EQUAL(zone->size(), 0);
+  BOOST_CHECK_EQUAL(zone->size(), 0U);
 
   /* DNSFilterEngine::clear() calls clear() on all zones, but keeps the zones */
   dfe.clear();
-  BOOST_CHECK_EQUAL(dfe.size(), 1);
+  BOOST_CHECK_EQUAL(dfe.size(), 1U);
   BOOST_CHECK(dfe.getZone(zoneName) == zone);
   BOOST_CHECK(dfe.getZone(zoneIdx) == zone);
 }
@@ -300,16 +300,16 @@ BOOST_AUTO_TEST_CASE(test_filter_policies_local_data) {
   const DNSName bad2("bad2.example.com.");
 
   zone->addQNameTrigger(bad1, DNSFilterEngine::Policy(DNSFilterEngine::PolicyKind::Custom, DNSFilterEngine::PolicyType::QName, 0, nullptr, { DNSRecordContent::mastermake(QType::CNAME, QClass::IN, "garden.example.net.") } ));
-  BOOST_CHECK_EQUAL(zone->size(), 1);
+  BOOST_CHECK_EQUAL(zone->size(), 1U);
 
   zone->addQNameTrigger(bad2, DNSFilterEngine::Policy(DNSFilterEngine::PolicyKind::Custom, DNSFilterEngine::PolicyType::QName, 0, nullptr, { DNSRecordContent::mastermake(QType::A, QClass::IN, "192.0.2.1") } ));
-  BOOST_CHECK_EQUAL(zone->size(), 2);
+  BOOST_CHECK_EQUAL(zone->size(), 2U);
 
   zone->addQNameTrigger(bad2, DNSFilterEngine::Policy(DNSFilterEngine::PolicyKind::Custom, DNSFilterEngine::PolicyType::QName, 0, nullptr, { DNSRecordContent::mastermake(QType::A, QClass::IN, "192.0.2.2") } ));
-  BOOST_CHECK_EQUAL(zone->size(), 2);
+  BOOST_CHECK_EQUAL(zone->size(), 2U);
 
   zone->addQNameTrigger(bad2, DNSFilterEngine::Policy(DNSFilterEngine::PolicyKind::Custom, DNSFilterEngine::PolicyType::QName, 0, nullptr, { DNSRecordContent::mastermake(QType::MX, QClass::IN, "10 garden-mail.example.net.") } ));
-  BOOST_CHECK_EQUAL(zone->size(), 2);
+  BOOST_CHECK_EQUAL(zone->size(), 2U);
 
   dfe.addZone(zone);
 
@@ -319,7 +319,7 @@ BOOST_AUTO_TEST_CASE(test_filter_policies_local_data) {
     BOOST_CHECK(matchingPolicy.d_type == DNSFilterEngine::PolicyType::QName);
     BOOST_CHECK(matchingPolicy.d_kind == DNSFilterEngine::PolicyKind::Custom);
     auto records = matchingPolicy.getCustomRecords(bad1, QType::A);
-    BOOST_CHECK_EQUAL(records.size(), 1);
+    BOOST_CHECK_EQUAL(records.size(), 1U);
     const auto& record = records.at(0);
     BOOST_CHECK(record.d_type == QType::CNAME);
     BOOST_CHECK(record.d_class == QClass::IN);
@@ -336,7 +336,7 @@ BOOST_AUTO_TEST_CASE(test_filter_policies_local_data) {
 
     {
       auto records = matchingPolicy.getCustomRecords(bad2, QType::A);
-      BOOST_REQUIRE_EQUAL(records.size(), 2);
+      BOOST_REQUIRE_EQUAL(records.size(), 2U);
       {
         const auto& record = records.at(0);
         BOOST_CHECK(record.d_type == QType::A);
@@ -357,7 +357,7 @@ BOOST_AUTO_TEST_CASE(test_filter_policies_local_data) {
 
     {
       auto records = matchingPolicy.getCustomRecords(bad2, QType::MX);
-      BOOST_CHECK_EQUAL(records.size(), 1);
+      BOOST_CHECK_EQUAL(records.size(), 1U);
       const auto& record = records.at(0);
       BOOST_CHECK(record.d_type == QType::MX);
       BOOST_CHECK(record.d_class == QClass::IN);
@@ -369,13 +369,13 @@ BOOST_AUTO_TEST_CASE(test_filter_policies_local_data) {
     {
       /* the name exists but there is no CNAME nor matching type, so NODATA */
       auto records = matchingPolicy.getCustomRecords(bad2, QType::AAAA);
-      BOOST_CHECK_EQUAL(records.size(), 0);
+      BOOST_CHECK_EQUAL(records.size(), 0U);
     }
   }
 
   /* remove only one entry, one of the A local records */
   zone->rmQNameTrigger(bad2, DNSFilterEngine::Policy(DNSFilterEngine::PolicyKind::Custom, DNSFilterEngine::PolicyType::QName, 0, nullptr, { DNSRecordContent::mastermake(QType::A, QClass::IN, "192.0.2.1") } ));
-  BOOST_CHECK_EQUAL(zone->size(), 2);
+  BOOST_CHECK_EQUAL(zone->size(), 2U);
 
   {
     /* exact type exists */
@@ -385,7 +385,7 @@ BOOST_AUTO_TEST_CASE(test_filter_policies_local_data) {
 
     {
       auto records = matchingPolicy.getCustomRecords(bad2, QType::A);
-      BOOST_REQUIRE_EQUAL(records.size(), 1);
+      BOOST_REQUIRE_EQUAL(records.size(), 1U);
       {
         const auto& record = records.at(0);
         BOOST_CHECK(record.d_type == QType::A);
@@ -398,7 +398,7 @@ BOOST_AUTO_TEST_CASE(test_filter_policies_local_data) {
 
     {
       auto records = matchingPolicy.getCustomRecords(bad2, QType::MX);
-      BOOST_CHECK_EQUAL(records.size(), 1);
+      BOOST_CHECK_EQUAL(records.size(), 1U);
       const auto& record = records.at(0);
       BOOST_CHECK(record.d_type == QType::MX);
       BOOST_CHECK(record.d_class == QClass::IN);
@@ -410,7 +410,7 @@ BOOST_AUTO_TEST_CASE(test_filter_policies_local_data) {
     {
       /* the name exists but there is no CNAME nor matching type, so NODATA */
       auto records = matchingPolicy.getCustomRecords(bad2, QType::AAAA);
-      BOOST_CHECK_EQUAL(records.size(), 0);
+      BOOST_CHECK_EQUAL(records.size(), 0U);
     }
   }
 }
@@ -438,7 +438,7 @@ BOOST_AUTO_TEST_CASE(test_multiple_filter_policies) {
     BOOST_CHECK(matchingPolicy.d_type == DNSFilterEngine::PolicyType::QName);
     BOOST_CHECK(matchingPolicy.d_kind == DNSFilterEngine::PolicyKind::Custom);
     auto records = matchingPolicy.getCustomRecords(bad, QType::A);
-    BOOST_CHECK_EQUAL(records.size(), 1);
+    BOOST_CHECK_EQUAL(records.size(), 1U);
     const auto& record = records.at(0);
     BOOST_CHECK(record.d_type == QType::CNAME);
     BOOST_CHECK(record.d_class == QClass::IN);
@@ -453,7 +453,7 @@ BOOST_AUTO_TEST_CASE(test_multiple_filter_policies) {
     BOOST_CHECK(matchingPolicy.d_type == DNSFilterEngine::PolicyType::QName);
     BOOST_CHECK(matchingPolicy.d_kind == DNSFilterEngine::PolicyKind::Custom);
     auto records = matchingPolicy.getCustomRecords(bad, QType::A);
-    BOOST_CHECK_EQUAL(records.size(), 1);
+    BOOST_CHECK_EQUAL(records.size(), 1U);
     const auto& record = records.at(0);
     BOOST_CHECK(record.d_type == QType::CNAME);
     BOOST_CHECK(record.d_class == QClass::IN);
@@ -468,7 +468,7 @@ BOOST_AUTO_TEST_CASE(test_multiple_filter_policies) {
     BOOST_CHECK(matchingPolicy.d_type == DNSFilterEngine::PolicyType::QName);
     BOOST_CHECK(matchingPolicy.d_kind == DNSFilterEngine::PolicyKind::Custom);
     auto records = matchingPolicy.getCustomRecords(bad, QType::A);
-    BOOST_CHECK_EQUAL(records.size(), 1);
+    BOOST_CHECK_EQUAL(records.size(), 1U);
     const auto& record = records.at(0);
     BOOST_CHECK(record.d_type == QType::CNAME);
     BOOST_CHECK(record.d_class == QClass::IN);

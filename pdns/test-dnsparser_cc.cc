@@ -65,7 +65,7 @@ BOOST_AUTO_TEST_CASE(test_editDNSPacketTTL) {
     });
 
   /* check that we have been for all records */
-  BOOST_CHECK_EQUAL(called, 5);
+  BOOST_CHECK_EQUAL(called, 5U);
 
   BOOST_REQUIRE_EQUAL(firstPacket.size(), expectedAlteredPacket.size());
   for (size_t idx = 0; idx < firstPacket.size(); idx++) {
@@ -88,7 +88,7 @@ BOOST_AUTO_TEST_CASE(test_editDNSPacketTTL) {
     });
 
   /* check that we have been for all records */
-  BOOST_CHECK_EQUAL(called, 4);
+  BOOST_CHECK_EQUAL(called, 4U);
   BOOST_CHECK(firstPacket == expectedAlteredPacket);
 }
 
@@ -214,7 +214,7 @@ BOOST_AUTO_TEST_CASE(test_getDNSPacketMinTTL) {
     pwR.commit();
 
     auto result = getDNSPacketMinTTL(reinterpret_cast<char*>(packet.data()), packet.size(), nullptr);
-    BOOST_CHECK_EQUAL(result, 255);
+    BOOST_CHECK_EQUAL(result, 255U);
   }
 
   {
@@ -237,7 +237,7 @@ BOOST_AUTO_TEST_CASE(test_getDNSPacketMinTTL) {
 
     bool seenAuthSOA = false;
     auto result = getDNSPacketMinTTL(reinterpret_cast<char*>(packet.data()), packet.size(), &seenAuthSOA);
-    BOOST_CHECK_EQUAL(result, 255);
+    BOOST_CHECK_EQUAL(result, 255U);
     BOOST_CHECK_EQUAL(seenAuthSOA, false);
   }
 
@@ -261,7 +261,7 @@ BOOST_AUTO_TEST_CASE(test_getDNSPacketMinTTL) {
 
     bool seenAuthSOA = false;
     auto result = getDNSPacketMinTTL(reinterpret_cast<char*>(packet.data()), packet.size(), &seenAuthSOA);
-    BOOST_CHECK_EQUAL(result, 255);
+    BOOST_CHECK_EQUAL(result, 255U);
     BOOST_CHECK_EQUAL(seenAuthSOA, true);
   }
 
@@ -285,7 +285,7 @@ BOOST_AUTO_TEST_CASE(test_getDNSPacketMinTTL) {
 
     bool seenAuthSOA = false;
     auto result = getDNSPacketMinTTL(reinterpret_cast<char*>(packet.data()), packet.size(), &seenAuthSOA);
-    BOOST_CHECK_EQUAL(result, 255);
+    BOOST_CHECK_EQUAL(result, 255U);
     BOOST_CHECK_EQUAL(seenAuthSOA, false);
   }
 
@@ -302,7 +302,7 @@ BOOST_AUTO_TEST_CASE(test_getDNSPacketMinTTL) {
 
     bool seenAuthSOA = false;
     auto result = getDNSPacketMinTTL(reinterpret_cast<char*>(packet.data()), packet.size(), &seenAuthSOA);
-    BOOST_CHECK_EQUAL(result, 257);
+    BOOST_CHECK_EQUAL(result, 257U);
     BOOST_CHECK_EQUAL(seenAuthSOA, false);
   }
 
@@ -318,7 +318,7 @@ BOOST_AUTO_TEST_CASE(test_getDNSPacketMinTTL) {
 
     bool seenAuthSOA = false;
     auto result = getDNSPacketMinTTL(reinterpret_cast<char*>(packet.data()), packet.size(), &seenAuthSOA);
-    BOOST_CHECK_EQUAL(result, 255);
+    BOOST_CHECK_EQUAL(result, 255U);
     BOOST_CHECK_EQUAL(seenAuthSOA, false);
   }
 
@@ -343,7 +343,7 @@ BOOST_AUTO_TEST_CASE(test_getDNSPacketMinTTL) {
 
     bool seenAuthSOA = false;
     auto result = getDNSPacketMinTTL(reinterpret_cast<char*>(packet.data()), packet.size() - sizeof(uint32_t) - /* rdata length */ sizeof (uint16_t) - /* IPv4 payload in rdata */ 4, &seenAuthSOA);
-    BOOST_CHECK_EQUAL(result, 255);
+    BOOST_CHECK_EQUAL(result, 255U);
     BOOST_CHECK_EQUAL(seenAuthSOA, true);
   }
 }

@@ -23,11 +23,11 @@ BOOST_AUTO_TEST_CASE(test_AuthQueryCacheSimple) {
 
   vector<DNSZoneRecord> records;
 
-  BOOST_CHECK_EQUAL(QC.size(), 0);
+  BOOST_CHECK_EQUAL(QC.size(), 0U);
   QC.insert(DNSName("hello"), QType(QType::A), records, 3600, 1);
-  BOOST_CHECK_EQUAL(QC.size(), 1);
-  BOOST_CHECK_EQUAL(QC.purge(), 1);
-  BOOST_CHECK_EQUAL(QC.size(), 0);
+  BOOST_CHECK_EQUAL(QC.size(), 1U);
+  BOOST_CHECK_EQUAL(QC.purge(), 1U);
+  BOOST_CHECK_EQUAL(QC.size(), 0U);
 
   uint64_t counter=0;
   try {
@@ -46,12 +46,12 @@ BOOST_AUTO_TEST_CASE(test_AuthQueryCacheSimple) {
     uint64_t delcounter=0;
     for(delcounter=0; delcounter < counter/100; ++delcounter) {
       DNSName a=DNSName("hello ")+DNSName(std::to_string(delcounter));
-      BOOST_CHECK_EQUAL(QC.purge(a.toString()), 1);
+      BOOST_CHECK_EQUAL(QC.purge(a.toString()), 1U);
     }
 
     BOOST_CHECK_EQUAL(QC.size(), counter-delcounter);
 
-    uint64_t matches=0;
+    int64_t matches=0;
     vector<DNSZoneRecord> entry;
     int64_t expected=counter-delcounter;
     for(; delcounter < counter; ++delcounter) {
@@ -115,7 +115,7 @@ BOOST_AUTO_TEST_CASE(test_QueryCacheThreaded) {
     for(int i=0; i < 4 ; ++i)
       pthread_join(tid[i], &res);
 
-    BOOST_CHECK_EQUAL(QC.size() + S.read("deferred-cache-inserts"), 400000);
+    BOOST_CHECK_EQUAL(QC.size() + S.read("deferred-cache-inserts"), 400000U);
     BOOST_CHECK_SMALL(1.0*S.read("deferred-cache-inserts"), 10000.0);
 
     for(int i=0; i < 4; ++i)
@@ -215,8 +215,8 @@ BOOST_AUTO_TEST_CASE(test_PacketCacheThreaded) {
     for(int i=0; i < 4 ; ++i)
       pthread_join(tid[i], &res);
 
-    BOOST_CHECK_EQUAL(PC.size() + S.read("deferred-packetcache-inserts"), 400000);
-    BOOST_CHECK_EQUAL(S.read("deferred-packetcache-lookup"), 0);
+    BOOST_CHECK_EQUAL(PC.size() + S.read("deferred-packetcache-inserts"), 400000UL);
+    BOOST_CHECK_EQUAL(S.read("deferred-packetcache-lookup"), 0UL);
     BOOST_CHECK_SMALL(1.0*S.read("deferred-packetcache-inserts"), 10000.0);
 
     for(int i=0; i < 4; ++i)
@@ -233,7 +233,7 @@ BOOST_AUTO_TEST_CASE(test_PacketCacheThreaded) {
     cerr<<PC.size()<<endl;
 */
 
-    BOOST_CHECK_EQUAL(g_PCmissing + S.read("packetcache-hit"), 400000);
+    BOOST_CHECK_EQUAL(g_PCmissing + S.read("packetcache-hit"), 400000UL);
     BOOST_CHECK_EQUAL(S.read("deferred-packetcache-inserts") + S.read("deferred-packetcache-lookup"), g_PCmissing);
   }
   catch(PDNSException& e) {
@@ -381,7 +381,7 @@ BOOST_AUTO_TEST_CASE(test_AuthPacketCache) {
     BOOST_CHECK_EQUAL(PC.get(q, r2), false);
 
     PC.insert(q, r, 3600);
-    BOOST_CHECK_EQUAL(PC.size(), 1);
+    BOOST_CHECK_EQUAL(PC.size(), 1U);
 
     BOOST_CHECK_EQUAL(PC.get(q, r2), true);
     BOOST_CHECK_EQUAL(r2.qdomain, r.qdomain);
@@ -394,7 +394,7 @@ BOOST_AUTO_TEST_CASE(test_AuthPacketCache) {
     BOOST_CHECK_EQUAL(PC.get(ednsQ, r2), false);
     /* inserting the EDNS-enabled one too */
     PC.insert(ednsQ, r, 3600);
-    BOOST_CHECK_EQUAL(PC.size(), 2);
+    BOOST_CHECK_EQUAL(PC.size(), 2U);
 
     /* different EDNS versions, should not match */
     BOOST_CHECK_EQUAL(PC.get(ednsVersion42, r2), false);
@@ -410,7 +410,7 @@ BOOST_AUTO_TEST_CASE(test_AuthPacketCache) {
     /* inserting the version with ECS Client Subnet set,
      it should NOT replace the existing EDNS one. */
     PC.insert(ecs1, r, 3600);
-    BOOST_CHECK_EQUAL(PC.size(), 3);
+    BOOST_CHECK_EQUAL(PC.size(), 3U);
 
     /* different subnet of same size, should NOT match
      since we don't skip the option */
@@ -420,48 +420,48 @@ BOOST_AUTO_TEST_CASE(test_AuthPacketCache) {
     /* different subnet of different size, should NOT match. */
     BOOST_CHECK_EQUAL(PC.get(ecs3, r2), false);
 
-    BOOST_CHECK_EQUAL(PC.purge("www.powerdns.com"), 3);
+    BOOST_CHECK_EQUAL(PC.purge("www.powerdns.com"), 3U);
     BOOST_CHECK_EQUAL(PC.get(q, r2), false);
-    BOOST_CHECK_EQUAL(PC.size(), 0);
+    BOOST_CHECK_EQUAL(PC.size(), 0U);
 
     PC.insert(q, r, 3600);
-    BOOST_CHECK_EQUAL(PC.size(), 1);
+    BOOST_CHECK_EQUAL(PC.size(), 1U);
     BOOST_CHECK_EQUAL(PC.get(q, r2), true);
     BOOST_CHECK_EQUAL(r2.qdomain, r.qdomain);
-    BOOST_CHECK_EQUAL(PC.purge("com$"), 1);
+    BOOST_CHECK_EQUAL(PC.purge("com$"), 1U);
     BOOST_CHECK_EQUAL(PC.get(q, r2), false);
-    BOOST_CHECK_EQUAL(PC.size(), 0);
+    BOOST_CHECK_EQUAL(PC.size(), 0U);
 
     PC.insert(q, r, 3600);
-    BOOST_CHECK_EQUAL(PC.size(), 1);
+    BOOST_CHECK_EQUAL(PC.size(), 1U);
     BOOST_CHECK_EQUAL(PC.get(q, r2), true);
     BOOST_CHECK_EQUAL(r2.qdomain, r.qdomain);
-    BOOST_CHECK_EQUAL(PC.purge("powerdns.com$"), 1);
+    BOOST_CHECK_EQUAL(PC.purge("powerdns.com$"), 1U);
     BOOST_CHECK_EQUAL(PC.get(q, r2), false);
-    BOOST_CHECK_EQUAL(PC.size(), 0);
+    BOOST_CHECK_EQUAL(PC.size(), 0U);
 
     PC.insert(q, r, 3600);
-    BOOST_CHECK_EQUAL(PC.size(), 1);
+    BOOST_CHECK_EQUAL(PC.size(), 1U);
     BOOST_CHECK_EQUAL(PC.get(q, r2), true);
     BOOST_CHECK_EQUAL(r2.qdomain, r.qdomain);
-    BOOST_CHECK_EQUAL(PC.purge("www.powerdns.com$"), 1);
+    BOOST_CHECK_EQUAL(PC.purge("www.powerdns.com$"), 1U);
     BOOST_CHECK_EQUAL(PC.get(q, r2), false);
-    BOOST_CHECK_EQUAL(PC.size(), 0);
+    BOOST_CHECK_EQUAL(PC.size(), 0U);
 
     PC.insert(q, r, 3600);
-    BOOST_CHECK_EQUAL(PC.size(), 1);
-    BOOST_CHECK_EQUAL(PC.purge("www.powerdns.net"), 0);
+    BOOST_CHECK_EQUAL(PC.size(), 1U);
+    BOOST_CHECK_EQUAL(PC.purge("www.powerdns.net"), 0U);
     BOOST_CHECK_EQUAL(PC.get(q, r2), true);
     BOOST_CHECK_EQUAL(r2.qdomain, r.qdomain);
-    BOOST_CHECK_EQUAL(PC.size(), 1);
+    BOOST_CHECK_EQUAL(PC.size(), 1U);
 
-    BOOST_CHECK_EQUAL(PC.purge("net$"), 0);
+    BOOST_CHECK_EQUAL(PC.purge("net$"), 0U);
     BOOST_CHECK_EQUAL(PC.get(q, r2), true);
     BOOST_CHECK_EQUAL(r2.qdomain, r.qdomain);
-    BOOST_CHECK_EQUAL(PC.size(), 1);
+    BOOST_CHECK_EQUAL(PC.size(), 1U);
 
-    BOOST_CHECK_EQUAL(PC.purge("www.powerdns.com$"), 1);
-    BOOST_CHECK_EQUAL(PC.size(), 0);
+    BOOST_CHECK_EQUAL(PC.purge("www.powerdns.com$"), 1U);
+    BOOST_CHECK_EQUAL(PC.size(), 0U);
   }
   catch(PDNSException& e) {
     cerr<<"Had error in AuthPacketCache: "<<e.reason<<endl;

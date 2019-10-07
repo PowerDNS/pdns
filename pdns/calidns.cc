@@ -108,7 +108,7 @@ static void* recvThread(const vector<std::unique_ptr<Socket>>* sockets)
           continue;
         }
         g_recvcounter++;
-        for (int i = 0; i < buf.msg_iovlen; i++)
+        for (unsigned int i = 0; i < buf.msg_iovlen; i++)
           g_recvbytes += buf.msg_iov[i].iov_len;
 #endif
       }

@@ -26,7 +26,7 @@ BOOST_AUTO_TEST_CASE(test_CIStringCompare) {
         nsset.insert("def");
         nsset.insert("aBc");
         nsset.insert("ns.example.com");
-        BOOST_CHECK_EQUAL(nsset.size(), 4);
+        BOOST_CHECK_EQUAL(nsset.size(), 4U);
 
         ostringstream s;
         for(set<std::string, CIStringCompare>::const_iterator i=nsset.begin();i!=nsset.end();++i) {
@@ -46,7 +46,7 @@ BOOST_AUTO_TEST_CASE(test_CIStringPairCompare) {
         nsset2.insert(make_pair("ns.example.com", 0));
         nsset2.insert(make_pair("abc", 2));
         nsset2.insert(make_pair("ABC", 2));
-        BOOST_CHECK_EQUAL(nsset2.size(), 6);
+        BOOST_CHECK_EQUAL(nsset2.size(), 6U);
 
         ostringstream s;
         for(set<typedns_t, CIStringPairCompare>::const_iterator i=nsset2.begin();i!=nsset2.end();++i) {
@@ -117,7 +117,7 @@ BOOST_AUTO_TEST_CASE(test_AtomicCounter) {
     AtomicCounter ac(0);
     ++ac;
     ++ac;
-    BOOST_CHECK_EQUAL(ac, 2);
+    BOOST_CHECK_EQUAL(ac, 2U);
 }
 
 BOOST_AUTO_TEST_CASE(test_endianness) {

@@ -55,7 +55,7 @@ BOOST_AUTO_TEST_CASE(test_compressionBoundary) {
   auto txt = string("\"")+string(16262, 'A')+string("\"");
   pwR.xfrText(txt);
   pwR.commit();
-  BOOST_CHECK_EQUAL(pwR.size(), 16368);
+  BOOST_CHECK_EQUAL(pwR.size(), 16368U);
 
   pwR.startRecord(DNSName("mediumsizedlabel.example.net"), QType::A, 3600, QClass::IN, DNSResourceRecord::ANSWER);
   pwR.xfrIP('P'<<24 |
@@ -63,7 +63,7 @@ BOOST_AUTO_TEST_CASE(test_compressionBoundary) {
             'R'<<8  |
             'S');
   pwR.commit();
-  BOOST_CHECK_EQUAL(pwR.size(), 16412); // 16412 (0x401c) puts '7example3net' at 0x4001
+  BOOST_CHECK_EQUAL(pwR.size(), 16412U); // 16412 (0x401c) puts '7example3net' at 0x4001
 
   pwR.startRecord(DNSName("adifferentlabel.example.net"), QType::A, 3600, QClass::IN, DNSResourceRecord::ANSWER);
   pwR.xfrIP('D'<<24 |
@@ -71,7 +71,7 @@ BOOST_AUTO_TEST_CASE(test_compressionBoundary) {
             'F'<<8  |
             'G');
   pwR.commit();
-  BOOST_CHECK_EQUAL(pwR.size(), 16455);
+  BOOST_CHECK_EQUAL(pwR.size(), 16455U);
 
   string spacket(packet.begin(), packet.end());
 

@@ -56,10 +56,10 @@ public:
   };
 
   enum dsdigestalgorithm_t : uint8_t {
-    SHA1=1,
-    SHA256=2,
-    GOST=3,
-    SHA384=4
+    DIGEST_SHA1=1,
+    DIGEST_SHA256=2,
+    DIGEST_GOST=3,
+    DIGEST_SHA384=4
   };
 
   struct KeyMetaData

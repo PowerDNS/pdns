@@ -16,8 +16,8 @@ static void test_ring(size_t maxEntries, size_t numberOfShards, size_t nbLockTri
   size_t entriesPerShard = maxEntries / numberOfShards;
 
   BOOST_CHECK_EQUAL(rings.getNumberOfShards(), numberOfShards);
-  BOOST_CHECK_EQUAL(rings.getNumberOfQueryEntries(), 0);
-  BOOST_CHECK_EQUAL(rings.getNumberOfResponseEntries(), 0);
+  BOOST_CHECK_EQUAL(rings.getNumberOfQueryEntries(), 0U);
+  BOOST_CHECK_EQUAL(rings.getNumberOfResponseEntries(), 0U);
   BOOST_CHECK_EQUAL(rings.d_shards.size(), rings.getNumberOfShards());
   for (const auto& shard : rings.d_shards) {
     BOOST_CHECK(shard != nullptr);
@@ -37,7 +37,7 @@ static void test_ring(size_t maxEntries, size_t numberOfShards, size_t nbLockTri
     rings.insertQuery(now, requestor1, qname, qtype, size, dh);
   }
   BOOST_CHECK_EQUAL(rings.getNumberOfQueryEntries(), maxEntries);
-  BOOST_CHECK_EQUAL(rings.getNumberOfResponseEntries(), 0);
+  BOOST_CHECK_EQUAL(rings.getNumberOfResponseEntries(), 0U);
   for (const auto& shard : rings.d_shards) {
     BOOST_CHECK_EQUAL(shard->queryRing.size(), entriesPerShard);
     for (const auto& entry : shard->queryRing) {
@@ -54,7 +54,7 @@ static void test_ring(size_t maxEntries, size_t numberOfShards, size_t nbLockTri
     rings.insertQuery(now, requestor2, qname, qtype, size, dh);
   }
   BOOST_CHECK_EQUAL(rings.getNumberOfQueryEntries(), maxEntries);
-  BOOST_CHECK_EQUAL(rings.getNumberOfResponseEntries(), 0);
+  BOOST_CHECK_EQUAL(rings.getNumberOfResponseEntries(), 0U);
   for (const auto& shard : rings.d_shards) {
     BOOST_CHECK_EQUAL(shard->queryRing.size(), entriesPerShard);
     for (const auto& entry : shard->queryRing) {
@@ -157,7 +157,7 @@ static void ringReaderThread(Rings& rings, std::atomic<bool>& done, size_t numbe
     usleep(10000);
   }
 
-  BOOST_CHECK_GT(iterationsDone, 1);
+  BOOST_CHECK_GT(iterationsDone, 1U);
 #if 0
   cerr<<"Done "<<iterationsDone<<" reading iterations"<<endl;
 #endif

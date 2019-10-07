@@ -32,7 +32,7 @@
 
 class HttpRequest : public YaHTTP::Request {
 public:
-  HttpRequest(const string& logprefix="") : YaHTTP::Request(), accept_json(false), accept_html(false), complete(false), logprefix(logprefix) { };
+  HttpRequest(const string& logprefix_="") : YaHTTP::Request(), accept_json(false), accept_html(false), complete(false), logprefix(logprefix_) { };
 
   bool accept_json;
   bool accept_html;

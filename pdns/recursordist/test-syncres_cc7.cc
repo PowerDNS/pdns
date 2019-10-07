@@ -18,10 +18,10 @@ BOOST_AUTO_TEST_CASE(test_dnssec_insecure_to_ta_skipped_cut) {
 
   auto luaconfsCopy = g_luaconfs.getCopy();
   luaconfsCopy.dsAnchors.clear();
-  generateKeyMaterial(g_rootdnsname, DNSSECKeeper::ECDSA256, DNSSECKeeper::SHA256, keys, luaconfsCopy.dsAnchors);
+  generateKeyMaterial(g_rootdnsname, DNSSECKeeper::ECDSA256, DNSSECKeeper::DIGEST_SHA256, keys, luaconfsCopy.dsAnchors);
   /* No key material for .com */
   /* But TA for sub.powerdns.com. */
-  generateKeyMaterial(DNSName("sub.powerdns.com."), DNSSECKeeper::ECDSA256, DNSSECKeeper::SHA256, keys);
+  generateKeyMaterial(DNSName("sub.powerdns.com."), DNSSECKeeper::ECDSA256, DNSSECKeeper::DIGEST_SHA256, keys);
   luaconfsCopy.dsAnchors[DNSName("sub.powerdns.com.")].insert(keys[DNSName("sub.powerdns.com.")].second);
   g_luaconfs.setState(luaconfsCopy);
 
@@ -118,18 +118,18 @@ BOOST_AUTO_TEST_CASE(test_dnssec_insecure_to_ta_skipped_cut) {
   int res = sr->beginResolve(target, QType(QType::A), QClass::IN, ret);
   BOOST_CHECK_EQUAL(res, RCode::NoError);
   BOOST_CHECK_EQUAL(sr->getValidationState(), Secure);
-  BOOST_REQUIRE_EQUAL(ret.size(), 2);
+  BOOST_REQUIRE_EQUAL(ret.size(), 2U);
   BOOST_CHECK(ret[0].d_type == QType::A);
-  BOOST_CHECK_EQUAL(queriesCount, 7);
+  BOOST_CHECK_EQUAL(queriesCount, 7U);
 
   /* again, to test the cache */
   ret.clear();
   res = sr->beginResolve(target, QType(QType::A), QClass::IN, ret);
   BOOST_CHECK_EQUAL(res, RCode::NoError);
   BOOST_CHECK_EQUAL(sr->getValidationState(), Secure);
-  BOOST_REQUIRE_EQUAL(ret.size(), 2);
+  BOOST_REQUIRE_EQUAL(ret.size(), 2U);
   BOOST_CHECK(ret[0].d_type == QType::A);
-  BOOST_CHECK_EQUAL(queriesCount, 7);
+  BOOST_CHECK_EQUAL(queriesCount, 7U);
 }
 
 BOOST_AUTO_TEST_CASE(test_dnssec_secure_to_insecure_nodata) {
@@ -144,8 +144,8 @@ BOOST_AUTO_TEST_CASE(test_dnssec_secure_to_insecure_nodata) {
 
   auto luaconfsCopy = g_luaconfs.getCopy();
   luaconfsCopy.dsAnchors.clear();
-  generateKeyMaterial(g_rootdnsname, DNSSECKeeper::ECDSA256, DNSSECKeeper::SHA256, keys, luaconfsCopy.dsAnchors);
-  generateKeyMaterial(DNSName("com."), DNSSECKeeper::ECDSA256, DNSSECKeeper::SHA256, keys);
+  generateKeyMaterial(g_rootdnsname, DNSSECKeeper::ECDSA256, DNSSECKeeper::DIGEST_SHA256, keys, luaconfsCopy.dsAnchors);
+  generateKeyMaterial(DNSName("com."), DNSSECKeeper::ECDSA256, DNSSECKeeper::DIGEST_SHA256, keys);
 
   g_luaconfs.setState(luaconfsCopy);
 
@@ -227,21 +227,21 @@ BOOST_AUTO_TEST_CASE(test_dnssec_secure_to_insecure_nodata) {
   int res = sr->beginResolve(target, QType(QType::A), QClass::IN, ret);
   BOOST_CHECK_EQUAL(res, RCode::NoError);
   BOOST_CHECK_EQUAL(sr->getValidationState(), Insecure);
-  BOOST_REQUIRE_EQUAL(ret.size(), 1);
+  BOOST_REQUIRE_EQUAL(ret.size(), 1U);
   /* 4 NS (com from root, com from com, powerdns.com from com,
      powerdns.com from powerdns.com)
      2 DNSKEY (. and com., none for powerdns.com because no DS)
      1 query for A
   */
-  BOOST_CHECK_EQUAL(queriesCount, 7);
+  BOOST_CHECK_EQUAL(queriesCount, 7U);
 
   /* again, to test the cache */
   ret.clear();
   res = sr->beginResolve(target, QType(QType::A), QClass::IN, ret);
   BOOST_CHECK_EQUAL(res, RCode::NoError);
   BOOST_CHECK_EQUAL(sr->getValidationState(), Insecure);
-  BOOST_REQUIRE_EQUAL(ret.size(), 1);
-  BOOST_CHECK_EQUAL(queriesCount, 7);
+  BOOST_REQUIRE_EQUAL(ret.size(), 1U);
+  BOOST_CHECK_EQUAL(queriesCount, 7U);
 }
 
 BOOST_AUTO_TEST_CASE(test_dnssec_secure_to_insecure_cname) {
@@ -258,9 +258,9 @@ BOOST_AUTO_TEST_CASE(test_dnssec_secure_to_insecure_cname) {
 
   auto luaconfsCopy = g_luaconfs.getCopy();
   luaconfsCopy.dsAnchors.clear();
-  generateKeyMaterial(g_rootdnsname, DNSSECKeeper::ECDSA256, DNSSECKeeper::SHA256, keys, luaconfsCopy.dsAnchors);
-  generateKeyMaterial(DNSName("com."), DNSSECKeeper::ECDSA256, DNSSECKeeper::SHA256, keys);
-  generateKeyMaterial(DNSName("powerdns.com."), DNSSECKeeper::ECDSA256, DNSSECKeeper::SHA256, keys);
+  generateKeyMaterial(g_rootdnsname, DNSSECKeeper::ECDSA256, DNSSECKeeper::DIGEST_SHA256, keys, luaconfsCopy.dsAnchors);
+  generateKeyMaterial(DNSName("com."), DNSSECKeeper::ECDSA256, DNSSECKeeper::DIGEST_SHA256, keys);
+  generateKeyMaterial(DNSName("powerdns.com."), DNSSECKeeper::ECDSA256, DNSSECKeeper::DIGEST_SHA256, keys);
   g_luaconfs.setState(luaconfsCopy);
 
   size_t queriesCount = 0;
@@ -360,16 +360,16 @@ BOOST_AUTO_TEST_CASE(test_dnssec_secure_to_insecure_cname) {
   int res = sr->beginResolve(target, QType(QType::A), QClass::IN, ret);
   BOOST_CHECK_EQUAL(res, RCode::NoError);
   BOOST_CHECK_EQUAL(sr->getValidationState(), Insecure);
-  BOOST_REQUIRE_EQUAL(ret.size(), 3);
-  BOOST_CHECK_EQUAL(queriesCount, 11);
+  BOOST_REQUIRE_EQUAL(ret.size(), 3U);
+  BOOST_CHECK_EQUAL(queriesCount, 11U);
 
   /* again, to test the cache */
   ret.clear();
   res = sr->beginResolve(target, QType(QType::A), QClass::IN, ret);
   BOOST_CHECK_EQUAL(res, RCode::NoError);
   BOOST_CHECK_EQUAL(sr->getValidationState(), Insecure);
-  BOOST_REQUIRE_EQUAL(ret.size(), 3);
-  BOOST_CHECK_EQUAL(queriesCount, 11);
+  BOOST_REQUIRE_EQUAL(ret.size(), 3U);
+  BOOST_CHECK_EQUAL(queriesCount, 11U);
 }
 
 BOOST_AUTO_TEST_CASE(test_dnssec_secure_to_insecure_cname_glue) {
@@ -387,9 +387,9 @@ BOOST_AUTO_TEST_CASE(test_dnssec_secure_to_insecure_cname_glue) {
 
   auto luaconfsCopy = g_luaconfs.getCopy();
   luaconfsCopy.dsAnchors.clear();
-  generateKeyMaterial(g_rootdnsname, DNSSECKeeper::ECDSA256, DNSSECKeeper::SHA256, keys, luaconfsCopy.dsAnchors);
-  generateKeyMaterial(DNSName("com."), DNSSECKeeper::ECDSA256, DNSSECKeeper::SHA256, keys);
-  generateKeyMaterial(DNSName("powerdns.com."), DNSSECKeeper::ECDSA256, DNSSECKeeper::SHA256, keys);
+  generateKeyMaterial(g_rootdnsname, DNSSECKeeper::ECDSA256, DNSSECKeeper::DIGEST_SHA256, keys, luaconfsCopy.dsAnchors);
+  generateKeyMaterial(DNSName("com."), DNSSECKeeper::ECDSA256, DNSSECKeeper::DIGEST_SHA256, keys);
+  generateKeyMaterial(DNSName("powerdns.com."), DNSSECKeeper::ECDSA256, DNSSECKeeper::DIGEST_SHA256, keys);
   g_luaconfs.setState(luaconfsCopy);
 
   size_t queriesCount = 0;
@@ -482,16 +482,16 @@ BOOST_AUTO_TEST_CASE(test_dnssec_secure_to_insecure_cname_glue) {
   int res = sr->beginResolve(target, QType(QType::A), QClass::IN, ret);
   BOOST_CHECK_EQUAL(res, RCode::NoError);
   BOOST_CHECK_EQUAL(sr->getValidationState(), Insecure);
-  BOOST_REQUIRE_EQUAL(ret.size(), 4);
-  BOOST_CHECK_EQUAL(queriesCount, 11);
+  BOOST_REQUIRE_EQUAL(ret.size(), 4U);
+  BOOST_CHECK_EQUAL(queriesCount, 11U);
 
   /* again, to test the cache */
   ret.clear();
   res = sr->beginResolve(target, QType(QType::A), QClass::IN, ret);
   BOOST_CHECK_EQUAL(res, RCode::NoError);
   BOOST_CHECK_EQUAL(sr->getValidationState(), Insecure);
-  BOOST_REQUIRE_EQUAL(ret.size(), 4);
-  BOOST_CHECK_EQUAL(queriesCount, 11);
+  BOOST_REQUIRE_EQUAL(ret.size(), 4U);
+  BOOST_CHECK_EQUAL(queriesCount, 11U);
 }
 
 BOOST_AUTO_TEST_CASE(test_dnssec_insecure_to_secure_cname) {
@@ -508,9 +508,9 @@ BOOST_AUTO_TEST_CASE(test_dnssec_insecure_to_secure_cname) {
 
   auto luaconfsCopy = g_luaconfs.getCopy();
   luaconfsCopy.dsAnchors.clear();
-  generateKeyMaterial(g_rootdnsname, DNSSECKeeper::ECDSA256, DNSSECKeeper::SHA256, keys, luaconfsCopy.dsAnchors);
-  generateKeyMaterial(DNSName("com."), DNSSECKeeper::ECDSA256, DNSSECKeeper::SHA256, keys);
-  generateKeyMaterial(DNSName("powerdns.com."), DNSSECKeeper::ECDSA256, DNSSECKeeper::SHA256, keys);
+  generateKeyMaterial(g_rootdnsname, DNSSECKeeper::ECDSA256, DNSSECKeeper::DIGEST_SHA256, keys, luaconfsCopy.dsAnchors);
+  generateKeyMaterial(DNSName("com."), DNSSECKeeper::ECDSA256, DNSSECKeeper::DIGEST_SHA256, keys);
+  generateKeyMaterial(DNSName("powerdns.com."), DNSSECKeeper::ECDSA256, DNSSECKeeper::DIGEST_SHA256, keys);
   g_luaconfs.setState(luaconfsCopy);
 
   size_t queriesCount = 0;
@@ -607,16 +607,16 @@ BOOST_AUTO_TEST_CASE(test_dnssec_insecure_to_secure_cname) {
   int res = sr->beginResolve(target, QType(QType::A), QClass::IN, ret);
   BOOST_CHECK_EQUAL(res, RCode::NoError);
   BOOST_CHECK_EQUAL(sr->getValidationState(), Insecure);
-  BOOST_REQUIRE_EQUAL(ret.size(), 3);
-  BOOST_CHECK_EQUAL(queriesCount, 11);
+  BOOST_REQUIRE_EQUAL(ret.size(), 3U);
+  BOOST_CHECK_EQUAL(queriesCount, 11U);
 
   /* again, to test the cache */
   ret.clear();
   res = sr->beginResolve(target, QType(QType::A), QClass::IN, ret);
   BOOST_CHECK_EQUAL(res, RCode::NoError);
   BOOST_CHECK_EQUAL(sr->getValidationState(), Insecure);
-  BOOST_REQUIRE_EQUAL(ret.size(), 3);
-  BOOST_CHECK_EQUAL(queriesCount, 11);
+  BOOST_REQUIRE_EQUAL(ret.size(), 3U);
+  BOOST_CHECK_EQUAL(queriesCount, 11U);
 }
 
 BOOST_AUTO_TEST_CASE(test_dnssec_bogus_to_secure_cname) {
@@ -633,10 +633,10 @@ BOOST_AUTO_TEST_CASE(test_dnssec_bogus_to_secure_cname) {
 
   auto luaconfsCopy = g_luaconfs.getCopy();
   luaconfsCopy.dsAnchors.clear();
-  generateKeyMaterial(g_rootdnsname, DNSSECKeeper::ECDSA256, DNSSECKeeper::SHA256, keys, luaconfsCopy.dsAnchors);
-  generateKeyMaterial(DNSName("com."), DNSSECKeeper::ECDSA256, DNSSECKeeper::SHA256, keys);
-  generateKeyMaterial(DNSName("powerdns.com."), DNSSECKeeper::ECDSA256, DNSSECKeeper::SHA256, keys);
-  generateKeyMaterial(DNSName("power-dns.com."), DNSSECKeeper::ECDSA256, DNSSECKeeper::SHA256, keys);
+  generateKeyMaterial(g_rootdnsname, DNSSECKeeper::ECDSA256, DNSSECKeeper::DIGEST_SHA256, keys, luaconfsCopy.dsAnchors);
+  generateKeyMaterial(DNSName("com."), DNSSECKeeper::ECDSA256, DNSSECKeeper::DIGEST_SHA256, keys);
+  generateKeyMaterial(DNSName("powerdns.com."), DNSSECKeeper::ECDSA256, DNSSECKeeper::DIGEST_SHA256, keys);
+  generateKeyMaterial(DNSName("power-dns.com."), DNSSECKeeper::ECDSA256, DNSSECKeeper::DIGEST_SHA256, keys);
   g_luaconfs.setState(luaconfsCopy);
 
   size_t queriesCount = 0;
@@ -702,16 +702,16 @@ BOOST_AUTO_TEST_CASE(test_dnssec_bogus_to_secure_cname) {
   int res = sr->beginResolve(target, QType(QType::A), QClass::IN, ret);
   BOOST_CHECK_EQUAL(res, RCode::NoError);
   BOOST_CHECK_EQUAL(sr->getValidationState(), Bogus);
-  BOOST_REQUIRE_EQUAL(ret.size(), 3);
-  BOOST_CHECK_EQUAL(queriesCount, 11);
+  BOOST_REQUIRE_EQUAL(ret.size(), 3U);
+  BOOST_CHECK_EQUAL(queriesCount, 11U);
 
   /* again, to test the cache */
   ret.clear();
   res = sr->beginResolve(target, QType(QType::A), QClass::IN, ret);
   BOOST_CHECK_EQUAL(res, RCode::NoError);
   BOOST_CHECK_EQUAL(sr->getValidationState(), Bogus);
-  BOOST_REQUIRE_EQUAL(ret.size(), 3);
-  BOOST_CHECK_EQUAL(queriesCount, 11);
+  BOOST_REQUIRE_EQUAL(ret.size(), 3U);
+  BOOST_CHECK_EQUAL(queriesCount, 11U);
 }
 
 BOOST_AUTO_TEST_CASE(test_dnssec_secure_to_bogus_cname) {
@@ -728,10 +728,10 @@ BOOST_AUTO_TEST_CASE(test_dnssec_secure_to_bogus_cname) {
 
   auto luaconfsCopy = g_luaconfs.getCopy();
   luaconfsCopy.dsAnchors.clear();
-  generateKeyMaterial(g_rootdnsname, DNSSECKeeper::ECDSA256, DNSSECKeeper::SHA256, keys, luaconfsCopy.dsAnchors);
-  generateKeyMaterial(DNSName("com."), DNSSECKeeper::ECDSA256, DNSSECKeeper::SHA256, keys);
-  generateKeyMaterial(DNSName("powerdns.com."), DNSSECKeeper::ECDSA256, DNSSECKeeper::SHA256, keys);
-  generateKeyMaterial(DNSName("power-dns.com."), DNSSECKeeper::ECDSA256, DNSSECKeeper::SHA256, keys);
+  generateKeyMaterial(g_rootdnsname, DNSSECKeeper::ECDSA256, DNSSECKeeper::DIGEST_SHA256, keys, luaconfsCopy.dsAnchors);
+  generateKeyMaterial(DNSName("com."), DNSSECKeeper::ECDSA256, DNSSECKeeper::DIGEST_SHA256, keys);
+  generateKeyMaterial(DNSName("powerdns.com."), DNSSECKeeper::ECDSA256, DNSSECKeeper::DIGEST_SHA256, keys);
+  generateKeyMaterial(DNSName("power-dns.com."), DNSSECKeeper::ECDSA256, DNSSECKeeper::DIGEST_SHA256, keys);
   g_luaconfs.setState(luaconfsCopy);
 
   size_t queriesCount = 0;
@@ -797,16 +797,16 @@ BOOST_AUTO_TEST_CASE(test_dnssec_secure_to_bogus_cname) {
   int res = sr->beginResolve(target, QType(QType::A), QClass::IN, ret);
   BOOST_CHECK_EQUAL(res, RCode::NoError);
   BOOST_CHECK_EQUAL(sr->getValidationState(), Bogus);
-  BOOST_REQUIRE_EQUAL(ret.size(), 3);
-  BOOST_CHECK_EQUAL(queriesCount, 11);
+  BOOST_REQUIRE_EQUAL(ret.size(), 3U);
+  BOOST_CHECK_EQUAL(queriesCount, 11U);
 
   /* again, to test the cache */
   ret.clear();
   res = sr->beginResolve(target, QType(QType::A), QClass::IN, ret);
   BOOST_CHECK_EQUAL(res, RCode::NoError);
   BOOST_CHECK_EQUAL(sr->getValidationState(), Bogus);
-  BOOST_REQUIRE_EQUAL(ret.size(), 3);
-  BOOST_CHECK_EQUAL(queriesCount, 11);
+  BOOST_REQUIRE_EQUAL(ret.size(), 3U);
+  BOOST_CHECK_EQUAL(queriesCount, 11U);
 }
 
 BOOST_AUTO_TEST_CASE(test_dnssec_secure_to_secure_cname) {
@@ -823,10 +823,10 @@ BOOST_AUTO_TEST_CASE(test_dnssec_secure_to_secure_cname) {
 
   auto luaconfsCopy = g_luaconfs.getCopy();
   luaconfsCopy.dsAnchors.clear();
-  generateKeyMaterial(g_rootdnsname, DNSSECKeeper::ECDSA256, DNSSECKeeper::SHA256, keys, luaconfsCopy.dsAnchors);
-  generateKeyMaterial(DNSName("com."), DNSSECKeeper::ECDSA256, DNSSECKeeper::SHA256, keys);
-  generateKeyMaterial(DNSName("powerdns.com."), DNSSECKeeper::ECDSA256, DNSSECKeeper::SHA256, keys);
-  generateKeyMaterial(DNSName("power-dns.com."), DNSSECKeeper::ECDSA256, DNSSECKeeper::SHA256, keys);
+  generateKeyMaterial(g_rootdnsname, DNSSECKeeper::ECDSA256, DNSSECKeeper::DIGEST_SHA256, keys, luaconfsCopy.dsAnchors);
+  generateKeyMaterial(DNSName("com."), DNSSECKeeper::ECDSA256, DNSSECKeeper::DIGEST_SHA256, keys);
+  generateKeyMaterial(DNSName("powerdns.com."), DNSSECKeeper::ECDSA256, DNSSECKeeper::DIGEST_SHA256, keys);
+  generateKeyMaterial(DNSName("power-dns.com."), DNSSECKeeper::ECDSA256, DNSSECKeeper::DIGEST_SHA256, keys);
   g_luaconfs.setState(luaconfsCopy);
 
   size_t queriesCount = 0;
@@ -892,16 +892,16 @@ BOOST_AUTO_TEST_CASE(test_dnssec_secure_to_secure_cname) {
   int res = sr->beginResolve(target, QType(QType::A), QClass::IN, ret);
   BOOST_CHECK_EQUAL(res, RCode::NoError);
   BOOST_CHECK_EQUAL(sr->getValidationState(), Secure);
-  BOOST_REQUIRE_EQUAL(ret.size(), 4);
-  BOOST_CHECK_EQUAL(queriesCount, 12);
+  BOOST_REQUIRE_EQUAL(ret.size(), 4U);
+  BOOST_CHECK_EQUAL(queriesCount, 12U);
 
   /* again, to test the cache */
   ret.clear();
   res = sr->beginResolve(target, QType(QType::A), QClass::IN, ret);
   BOOST_CHECK_EQUAL(res, RCode::NoError);
   BOOST_CHECK_EQUAL(sr->getValidationState(), Secure);
-  BOOST_REQUIRE_EQUAL(ret.size(), 4);
-  BOOST_CHECK_EQUAL(queriesCount, 12);
+  BOOST_REQUIRE_EQUAL(ret.size(), 4U);
+  BOOST_CHECK_EQUAL(queriesCount, 12U);
 }
 
 BOOST_AUTO_TEST_CASE(test_dnssec_bogus_to_insecure_cname) {
@@ -918,10 +918,10 @@ BOOST_AUTO_TEST_CASE(test_dnssec_bogus_to_insecure_cname) {
 
   auto luaconfsCopy = g_luaconfs.getCopy();
   luaconfsCopy.dsAnchors.clear();
-  generateKeyMaterial(g_rootdnsname, DNSSECKeeper::ECDSA256, DNSSECKeeper::SHA256, keys, luaconfsCopy.dsAnchors);
-  generateKeyMaterial(DNSName("com."), DNSSECKeeper::ECDSA256, DNSSECKeeper::SHA256, keys);
-  generateKeyMaterial(DNSName("powerdns.com."), DNSSECKeeper::ECDSA256, DNSSECKeeper::SHA256, keys);
-  generateKeyMaterial(DNSName("power-dns.com."), DNSSECKeeper::ECDSA256, DNSSECKeeper::SHA256, keys);
+  generateKeyMaterial(g_rootdnsname, DNSSECKeeper::ECDSA256, DNSSECKeeper::DIGEST_SHA256, keys, luaconfsCopy.dsAnchors);
+  generateKeyMaterial(DNSName("com."), DNSSECKeeper::ECDSA256, DNSSECKeeper::DIGEST_SHA256, keys);
+  generateKeyMaterial(DNSName("powerdns.com."), DNSSECKeeper::ECDSA256, DNSSECKeeper::DIGEST_SHA256, keys);
+  generateKeyMaterial(DNSName("power-dns.com."), DNSSECKeeper::ECDSA256, DNSSECKeeper::DIGEST_SHA256, keys);
   g_luaconfs.setState(luaconfsCopy);
 
   size_t queriesCount = 0;
@@ -1013,16 +1013,16 @@ BOOST_AUTO_TEST_CASE(test_dnssec_bogus_to_insecure_cname) {
   BOOST_CHECK_EQUAL(res, RCode::NoError);
   BOOST_CHECK_EQUAL(sr->getValidationState(), Bogus);
   /* no RRSIG to show */
-  BOOST_CHECK_EQUAL(ret.size(), 2);
-  BOOST_CHECK_EQUAL(queriesCount, 10);
+  BOOST_CHECK_EQUAL(ret.size(), 2U);
+  BOOST_CHECK_EQUAL(queriesCount, 10U);
 
   /* again, to test the cache */
   ret.clear();
   res = sr->beginResolve(target, QType(QType::A), QClass::IN, ret);
   BOOST_CHECK_EQUAL(res, RCode::NoError);
   BOOST_CHECK_EQUAL(sr->getValidationState(), Bogus);
-  BOOST_CHECK_EQUAL(ret.size(), 2);
-  BOOST_CHECK_EQUAL(queriesCount, 10);
+  BOOST_CHECK_EQUAL(ret.size(), 2U);
+  BOOST_CHECK_EQUAL(queriesCount, 10U);
 }
 
 BOOST_AUTO_TEST_CASE(test_dnssec_insecure_ta) {
@@ -1038,9 +1038,9 @@ BOOST_AUTO_TEST_CASE(test_dnssec_insecure_ta) {
 
   auto luaconfsCopy = g_luaconfs.getCopy();
   luaconfsCopy.dsAnchors.clear();
-  generateKeyMaterial(g_rootdnsname, DNSSECKeeper::ECDSA256, DNSSECKeeper::SHA256, keys, luaconfsCopy.dsAnchors);
+  generateKeyMaterial(g_rootdnsname, DNSSECKeeper::ECDSA256, DNSSECKeeper::DIGEST_SHA256, keys, luaconfsCopy.dsAnchors);
   /* No key material for .com */
-  generateKeyMaterial(target, DNSSECKeeper::ECDSA256, DNSSECKeeper::SHA256, keys);
+  generateKeyMaterial(target, DNSSECKeeper::ECDSA256, DNSSECKeeper::DIGEST_SHA256, keys);
   luaconfsCopy.dsAnchors[target].insert(keys[target].second);
   g_luaconfs.setState(luaconfsCopy);
 
@@ -1106,18 +1106,18 @@ BOOST_AUTO_TEST_CASE(test_dnssec_insecure_ta) {
   /* should be insecure but we have a TA for powerdns.com. */
   BOOST_CHECK_EQUAL(sr->getValidationState(), Secure);
   /* We got a RRSIG */
-  BOOST_REQUIRE_EQUAL(ret.size(), 2);
+  BOOST_REQUIRE_EQUAL(ret.size(), 2U);
   BOOST_CHECK(ret[0].d_type == QType::A);
-  BOOST_CHECK_EQUAL(queriesCount, 5);
+  BOOST_CHECK_EQUAL(queriesCount, 5U);
 
   /* again, to test the cache */
   ret.clear();
   res = sr->beginResolve(target, QType(QType::A), QClass::IN, ret);
   BOOST_CHECK_EQUAL(res, RCode::NoError);
   BOOST_CHECK_EQUAL(sr->getValidationState(), Secure);
-  BOOST_REQUIRE_EQUAL(ret.size(), 2);
+  BOOST_REQUIRE_EQUAL(ret.size(), 2U);
   BOOST_CHECK(ret[0].d_type == QType::A);
-  BOOST_CHECK_EQUAL(queriesCount, 5);
+  BOOST_CHECK_EQUAL(queriesCount, 5U);
 }
 
 BOOST_AUTO_TEST_CASE(test_dnssec_insecure_ta_norrsig) {
@@ -1133,9 +1133,9 @@ BOOST_AUTO_TEST_CASE(test_dnssec_insecure_ta_norrsig) {
 
   auto luaconfsCopy = g_luaconfs.getCopy();
   luaconfsCopy.dsAnchors.clear();
-  generateKeyMaterial(g_rootdnsname, DNSSECKeeper::ECDSA256, DNSSECKeeper::SHA256, keys, luaconfsCopy.dsAnchors);
+  generateKeyMaterial(g_rootdnsname, DNSSECKeeper::ECDSA256, DNSSECKeeper::DIGEST_SHA256, keys, luaconfsCopy.dsAnchors);
   /* No key material for .com */
-  generateKeyMaterial(target, DNSSECKeeper::ECDSA256, DNSSECKeeper::SHA256, keys);
+  generateKeyMaterial(target, DNSSECKeeper::ECDSA256, DNSSECKeeper::DIGEST_SHA256, keys);
   luaconfsCopy.dsAnchors[target].insert(keys[target].second);
   g_luaconfs.setState(luaconfsCopy);
 
@@ -1201,18 +1201,18 @@ BOOST_AUTO_TEST_CASE(test_dnssec_insecure_ta_norrsig) {
   /* should be insecure but we have a TA for powerdns.com., but no RRSIG so Bogus */
   BOOST_CHECK_EQUAL(sr->getValidationState(), Bogus);
   /* No RRSIG */
-  BOOST_REQUIRE_EQUAL(ret.size(), 1);
+  BOOST_REQUIRE_EQUAL(ret.size(), 1U);
   BOOST_CHECK(ret[0].d_type == QType::A);
-  BOOST_CHECK_EQUAL(queriesCount, 4);
+  BOOST_CHECK_EQUAL(queriesCount, 4U);
 
   /* again, to test the cache */
   ret.clear();
   res = sr->beginResolve(target, QType(QType::A), QClass::IN, ret);
   BOOST_CHECK_EQUAL(res, RCode::NoError);
   BOOST_CHECK_EQUAL(sr->getValidationState(), Bogus);
-  BOOST_REQUIRE_EQUAL(ret.size(), 1);
+  BOOST_REQUIRE_EQUAL(ret.size(), 1U);
   BOOST_CHECK(ret[0].d_type == QType::A);
-  BOOST_CHECK_EQUAL(queriesCount, 4);
+  BOOST_CHECK_EQUAL(queriesCount, 4U);
 }
 
 BOOST_AUTO_TEST_CASE(test_dnssec_nta) {
@@ -1227,7 +1227,7 @@ BOOST_AUTO_TEST_CASE(test_dnssec_nta) {
 
   auto luaconfsCopy = g_luaconfs.getCopy();
   luaconfsCopy.dsAnchors.clear();
-  generateKeyMaterial(g_rootdnsname, DNSSECKeeper::ECDSA256, DNSSECKeeper::SHA256, keys, luaconfsCopy.dsAnchors);
+  generateKeyMaterial(g_rootdnsname, DNSSECKeeper::ECDSA256, DNSSECKeeper::DIGEST_SHA256, keys, luaconfsCopy.dsAnchors);
   /* Add a NTA for "." */
   luaconfsCopy.negAnchors[g_rootdnsname] = "NTA for Root";
   g_luaconfs.setState(luaconfsCopy);
@@ -1269,16 +1269,16 @@ BOOST_AUTO_TEST_CASE(test_dnssec_nta) {
   BOOST_CHECK_EQUAL(res, RCode::NoError);
   BOOST_CHECK_EQUAL(sr->getValidationState(), Insecure);
   /* 13 NS + 1 RRSIG */
-  BOOST_REQUIRE_EQUAL(ret.size(), 14);
-  BOOST_CHECK_EQUAL(queriesCount, 1);
+  BOOST_REQUIRE_EQUAL(ret.size(), 14U);
+  BOOST_CHECK_EQUAL(queriesCount, 1U);
 
   /* again, to test the cache */
   ret.clear();
   res = sr->beginResolve(target, QType(QType::NS), QClass::IN, ret);
   BOOST_CHECK_EQUAL(res, RCode::NoError);
   BOOST_CHECK_EQUAL(sr->getValidationState(), Insecure);
-  BOOST_REQUIRE_EQUAL(ret.size(), 14);
-  BOOST_CHECK_EQUAL(queriesCount, 1);
+  BOOST_REQUIRE_EQUAL(ret.size(), 14U);
+  BOOST_CHECK_EQUAL(queriesCount, 1U);
 }
 
 BOOST_AUTO_TEST_CASE(test_dnssec_no_ta) {
@@ -1324,16 +1324,16 @@ BOOST_AUTO_TEST_CASE(test_dnssec_no_ta) {
   BOOST_CHECK_EQUAL(res, RCode::NoError);
   BOOST_CHECK_EQUAL(sr->getValidationState(), Insecure);
   /* 13 NS + 0 RRSIG */
-  BOOST_REQUIRE_EQUAL(ret.size(), 13);
-  BOOST_CHECK_EQUAL(queriesCount, 1);
+  BOOST_REQUIRE_EQUAL(ret.size(), 13U);
+  BOOST_CHECK_EQUAL(queriesCount, 1U);
 
   /* again, to test the cache */
   ret.clear();
   res = sr->beginResolve(target, QType(QType::NS), QClass::IN, ret);
   BOOST_CHECK_EQUAL(res, RCode::NoError);
   BOOST_CHECK_EQUAL(sr->getValidationState(), Insecure);
-  BOOST_REQUIRE_EQUAL(ret.size(), 13);
-  BOOST_CHECK_EQUAL(queriesCount, 1);
+  BOOST_REQUIRE_EQUAL(ret.size(), 13U);
+  BOOST_CHECK_EQUAL(queriesCount, 1U);
 }
 
 BOOST_AUTO_TEST_CASE(test_dnssec_bogus_nodata) {
@@ -1348,9 +1348,9 @@ BOOST_AUTO_TEST_CASE(test_dnssec_bogus_nodata) {
 
   auto luaconfsCopy = g_luaconfs.getCopy();
   luaconfsCopy.dsAnchors.clear();
-  generateKeyMaterial(DNSName("."), DNSSECKeeper::ECDSA256, DNSSECKeeper::SHA256, keys, luaconfsCopy.dsAnchors);
-  generateKeyMaterial(DNSName("com."), DNSSECKeeper::ECDSA256, DNSSECKeeper::SHA256, keys, luaconfsCopy.dsAnchors);
-  generateKeyMaterial(DNSName("powerdns.com."), DNSSECKeeper::ECDSA256, DNSSECKeeper::SHA256, keys);
+  generateKeyMaterial(DNSName("."), DNSSECKeeper::ECDSA256, DNSSECKeeper::DIGEST_SHA256, keys, luaconfsCopy.dsAnchors);
+  generateKeyMaterial(DNSName("com."), DNSSECKeeper::ECDSA256, DNSSECKeeper::DIGEST_SHA256, keys, luaconfsCopy.dsAnchors);
+  generateKeyMaterial(DNSName("powerdns.com."), DNSSECKeeper::ECDSA256, DNSSECKeeper::DIGEST_SHA256, keys);
   g_luaconfs.setState(luaconfsCopy);
 
   size_t queriesCount = 0;
@@ -1374,18 +1374,18 @@ BOOST_AUTO_TEST_CASE(test_dnssec_bogus_nodata) {
   int res = sr->beginResolve(target, QType(QType::A), QClass::IN, ret);
   BOOST_CHECK_EQUAL(res, RCode::NoError);
   BOOST_CHECK_EQUAL(sr->getValidationState(), Bogus);
-  BOOST_REQUIRE_EQUAL(ret.size(), 0);
+  BOOST_REQUIRE_EQUAL(ret.size(), 0U);
   /* com|NS, powerdns.com|NS, powerdns.com|A */
-  BOOST_CHECK_EQUAL(queriesCount, 3);
+  BOOST_CHECK_EQUAL(queriesCount, 3U);
 
   /* again, to test the cache */
   ret.clear();
   res = sr->beginResolve(target, QType(QType::A), QClass::IN, ret);
   BOOST_CHECK_EQUAL(res, RCode::NoError);
   BOOST_CHECK_EQUAL(sr->getValidationState(), Bogus);
-  BOOST_REQUIRE_EQUAL(ret.size(), 0);
+  BOOST_REQUIRE_EQUAL(ret.size(), 0U);
   /* we don't store empty results */
-  BOOST_CHECK_EQUAL(queriesCount, 4);
+  BOOST_CHECK_EQUAL(queriesCount, 4U);
 }
 
 BOOST_AUTO_TEST_SUITE_END()

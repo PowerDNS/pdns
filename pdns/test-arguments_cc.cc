@@ -26,9 +26,9 @@ fail=no
 success=on
 really=yes)";
 
-  int len=write(fd, config.c_str(), config.size());
+  ssize_t len=write(fd, config.c_str(), config.size());
 
-  BOOST_CHECK_EQUAL(len, config.size());
+  BOOST_CHECK_EQUAL(len, static_cast<ssize_t>(config.size()));
   if(!len)
     return;
   close(fd);

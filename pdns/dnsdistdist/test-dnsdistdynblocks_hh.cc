@@ -41,7 +41,7 @@ BOOST_AUTO_TEST_CASE(test_DynBlockRulesGroup_QueryRate) {
        this should not trigger the rule */
     size_t numberOfQueries = 45 * numberOfSeconds;
     g_rings.clear();
-    BOOST_CHECK_EQUAL(g_rings.getNumberOfQueryEntries(), 0);
+    BOOST_CHECK_EQUAL(g_rings.getNumberOfQueryEntries(), 0U);
     g_dynblockNMG.setState(emptyNMG);
 
     for (size_t idx = 0; idx < numberOfQueries; idx++) {
@@ -50,7 +50,7 @@ BOOST_AUTO_TEST_CASE(test_DynBlockRulesGroup_QueryRate) {
     BOOST_CHECK_EQUAL(g_rings.getNumberOfQueryEntries(), numberOfQueries);
 
     dbrg.apply(now);
-    BOOST_CHECK_EQUAL(g_dynblockNMG.getLocal()->size(), 0);
+    BOOST_CHECK_EQUAL(g_dynblockNMG.getLocal()->size(), 0U);
     BOOST_CHECK(g_dynblockNMG.getLocal()->lookup(requestor1) == nullptr);
   }
 
@@ -59,7 +59,7 @@ BOOST_AUTO_TEST_CASE(test_DynBlockRulesGroup_QueryRate) {
        this should trigger the rule this time */
     size_t numberOfQueries = 50 * numberOfSeconds + 1;
     g_rings.clear();
-    BOOST_CHECK_EQUAL(g_rings.getNumberOfQueryEntries(), 0);
+    BOOST_CHECK_EQUAL(g_rings.getNumberOfQueryEntries(), 0U);
     g_dynblockNMG.setState(emptyNMG);
 
     for (size_t idx = 0; idx < numberOfQueries; idx++) {
@@ -68,15 +68,15 @@ BOOST_AUTO_TEST_CASE(test_DynBlockRulesGroup_QueryRate) {
     BOOST_CHECK_EQUAL(g_rings.getNumberOfQueryEntries(), numberOfQueries);
 
     dbrg.apply(now);
-    BOOST_CHECK_EQUAL(g_dynblockNMG.getLocal()->size(), 1);
+    BOOST_CHECK_EQUAL(g_dynblockNMG.getLocal()->size(), 1U);
     BOOST_CHECK(g_dynblockNMG.getLocal()->lookup(requestor1) != nullptr);
     BOOST_CHECK(g_dynblockNMG.getLocal()->lookup(requestor2) == nullptr);
     const auto& block = g_dynblockNMG.getLocal()->lookup(requestor1)->second;
     BOOST_CHECK_EQUAL(block.reason, reason);
-    BOOST_CHECK_EQUAL(block.until.tv_sec, now.tv_sec + blockDuration);
+    BOOST_CHECK_EQUAL(static_cast<size_t>(block.until.tv_sec), now.tv_sec + blockDuration);
     BOOST_CHECK(block.domain.empty());
     BOOST_CHECK(block.action == action);
-    BOOST_CHECK_EQUAL(block.blocks, 0);
+    BOOST_CHECK_EQUAL(block.blocks, 0U);
     BOOST_CHECK_EQUAL(block.warning, false);
   }
 
@@ -109,7 +109,7 @@ BOOST_AUTO_TEST_CASE(test_DynBlockRulesGroup_QTypeRate) {
        this should not trigger the rule */
     size_t numberOfQueries = 45 * numberOfSeconds;
     g_rings.clear();
-    BOOST_CHECK_EQUAL(g_rings.getNumberOfQueryEntries(), 0);
+    BOOST_CHECK_EQUAL(g_rings.getNumberOfQueryEntries(), 0U);
     g_dynblockNMG.setState(emptyNMG);
 
     for (size_t idx = 0; idx < numberOfQueries; idx++) {
@@ -118,7 +118,7 @@ BOOST_AUTO_TEST_CASE(test_DynBlockRulesGroup_QTypeRate) {
     BOOST_CHECK_EQUAL(g_rings.getNumberOfQueryEntries(), numberOfQueries);
 
     dbrg.apply(now);
-    BOOST_CHECK_EQUAL(g_dynblockNMG.getLocal()->size(), 0);
+    BOOST_CHECK_EQUAL(g_dynblockNMG.getLocal()->size(), 0U);
     BOOST_CHECK(g_dynblockNMG.getLocal()->lookup(requestor1) == nullptr);
   }
 
@@ -127,7 +127,7 @@ BOOST_AUTO_TEST_CASE(test_DynBlockRulesGroup_QTypeRate) {
        but for the wrong QType */
     size_t numberOfQueries = 50 * numberOfSeconds + 1;
     g_rings.clear();
-    BOOST_CHECK_EQUAL(g_rings.getNumberOfQueryEntries(), 0);
+    BOOST_CHECK_EQUAL(g_rings.getNumberOfQueryEntries(), 0U);
     g_dynblockNMG.setState(emptyNMG);
 
     for (size_t idx = 0; idx < numberOfQueries; idx++) {
@@ -136,7 +136,7 @@ BOOST_AUTO_TEST_CASE(test_DynBlockRulesGroup_QTypeRate) {
     BOOST_CHECK_EQUAL(g_rings.getNumberOfQueryEntries(), numberOfQueries);
 
     dbrg.apply(now);
-    BOOST_CHECK_EQUAL(g_dynblockNMG.getLocal()->size(), 0);
+    BOOST_CHECK_EQUAL(g_dynblockNMG.getLocal()->size(), 0U);
     BOOST_CHECK(g_dynblockNMG.getLocal()->lookup(requestor1) == nullptr);
   }
 
@@ -145,7 +145,7 @@ BOOST_AUTO_TEST_CASE(test_DynBlockRulesGroup_QTypeRate) {
     // this should trigger the rule this time
     size_t numberOfQueries = 50 * numberOfSeconds + 1;
     g_rings.clear();
-    BOOST_CHECK_EQUAL(g_rings.getNumberOfQueryEntries(), 0);
+    BOOST_CHECK_EQUAL(g_rings.getNumberOfQueryEntries(), 0U);
     g_dynblockNMG.setState(emptyNMG);
 
     for (size_t idx = 0; idx < numberOfQueries; idx++) {
@@ -154,15 +154,15 @@ BOOST_AUTO_TEST_CASE(test_DynBlockRulesGroup_QTypeRate) {
     BOOST_CHECK_EQUAL(g_rings.getNumberOfQueryEntries(), numberOfQueries);
 
     dbrg.apply(now);
-    BOOST_CHECK_EQUAL(g_dynblockNMG.getLocal()->size(), 1);
+    BOOST_CHECK_EQUAL(g_dynblockNMG.getLocal()->size(), 1U);
     BOOST_CHECK(g_dynblockNMG.getLocal()->lookup(requestor1) != nullptr);
     BOOST_CHECK(g_dynblockNMG.getLocal()->lookup(requestor2) == nullptr);
     const auto& block = g_dynblockNMG.getLocal()->lookup(requestor1)->second;
     BOOST_CHECK_EQUAL(block.reason, reason);
-    BOOST_CHECK_EQUAL(block.until.tv_sec, now.tv_sec + blockDuration);
+    BOOST_CHECK_EQUAL(static_cast<size_t>(block.until.tv_sec), now.tv_sec + blockDuration);
     BOOST_CHECK(block.domain.empty());
     BOOST_CHECK(block.action == action);
-    BOOST_CHECK_EQUAL(block.blocks, 0);
+    BOOST_CHECK_EQUAL(block.blocks, 0U);
     BOOST_CHECK_EQUAL(block.warning, false);
   }
 
@@ -198,7 +198,7 @@ BOOST_AUTO_TEST_CASE(test_DynBlockRulesGroup_RCodeRate) {
        this should not trigger the rule */
     size_t numberOfResponses = 45 * numberOfSeconds;
     g_rings.clear();
-    BOOST_CHECK_EQUAL(g_rings.getNumberOfResponseEntries(), 0);
+    BOOST_CHECK_EQUAL(g_rings.getNumberOfResponseEntries(), 0U);
     g_dynblockNMG.setState(emptyNMG);
 
     dh.rcode = rcode;
@@ -208,7 +208,7 @@ BOOST_AUTO_TEST_CASE(test_DynBlockRulesGroup_RCodeRate) {
     BOOST_CHECK_EQUAL(g_rings.getNumberOfResponseEntries(), numberOfResponses);
 
     dbrg.apply(now);
-    BOOST_CHECK_EQUAL(g_dynblockNMG.getLocal()->size(), 0);
+    BOOST_CHECK_EQUAL(g_dynblockNMG.getLocal()->size(), 0U);
     BOOST_CHECK(g_dynblockNMG.getLocal()->lookup(requestor1) == nullptr);
   }
 
@@ -216,7 +216,7 @@ BOOST_AUTO_TEST_CASE(test_DynBlockRulesGroup_RCodeRate) {
     /* insert just above 50 FormErr/s from a given client in the last 10s */
     size_t numberOfResponses = 50 * numberOfSeconds + 1;
     g_rings.clear();
-    BOOST_CHECK_EQUAL(g_rings.getNumberOfResponseEntries(), 0);
+    BOOST_CHECK_EQUAL(g_rings.getNumberOfResponseEntries(), 0U);
     g_dynblockNMG.setState(emptyNMG);
 
     dh.rcode = RCode::FormErr;
@@ -226,7 +226,7 @@ BOOST_AUTO_TEST_CASE(test_DynBlockRulesGroup_RCodeRate) {
     BOOST_CHECK_EQUAL(g_rings.getNumberOfResponseEntries(), numberOfResponses);
 
     dbrg.apply(now);
-    BOOST_CHECK_EQUAL(g_dynblockNMG.getLocal()->size(), 0);
+    BOOST_CHECK_EQUAL(g_dynblockNMG.getLocal()->size(), 0U);
     BOOST_CHECK(g_dynblockNMG.getLocal()->lookup(requestor1) == nullptr);
   }
 
@@ -235,7 +235,7 @@ BOOST_AUTO_TEST_CASE(test_DynBlockRulesGroup_RCodeRate) {
        this should trigger the rule this time */
     size_t numberOfResponses = 50 * numberOfSeconds + 1;
     g_rings.clear();
-    BOOST_CHECK_EQUAL(g_rings.getNumberOfResponseEntries(), 0);
+    BOOST_CHECK_EQUAL(g_rings.getNumberOfResponseEntries(), 0U);
     g_dynblockNMG.setState(emptyNMG);
 
     dh.rcode = rcode;
@@ -245,15 +245,15 @@ BOOST_AUTO_TEST_CASE(test_DynBlockRulesGroup_RCodeRate) {
     BOOST_CHECK_EQUAL(g_rings.getNumberOfResponseEntries(), numberOfResponses);
 
     dbrg.apply(now);
-    BOOST_CHECK_EQUAL(g_dynblockNMG.getLocal()->size(), 1);
+    BOOST_CHECK_EQUAL(g_dynblockNMG.getLocal()->size(), 1U);
     BOOST_CHECK(g_dynblockNMG.getLocal()->lookup(requestor1) != nullptr);
     BOOST_CHECK(g_dynblockNMG.getLocal()->lookup(requestor2) == nullptr);
     const auto& block = g_dynblockNMG.getLocal()->lookup(requestor1)->second;
     BOOST_CHECK_EQUAL(block.reason, reason);
-    BOOST_CHECK_EQUAL(block.until.tv_sec, now.tv_sec + blockDuration);
+    BOOST_CHECK_EQUAL(static_cast<size_t>(block.until.tv_sec), now.tv_sec + blockDuration);
     BOOST_CHECK(block.domain.empty());
     BOOST_CHECK(block.action == action);
-    BOOST_CHECK_EQUAL(block.blocks, 0);
+    BOOST_CHECK_EQUAL(block.blocks, 0U);
     BOOST_CHECK_EQUAL(block.warning, false);
   }
 
@@ -289,7 +289,7 @@ BOOST_AUTO_TEST_CASE(test_DynBlockRulesGroup_ResponseByteRate) {
        this should not trigger the rule */
     size_t numberOfResponses = 99 * numberOfSeconds;
     g_rings.clear();
-    BOOST_CHECK_EQUAL(g_rings.getNumberOfResponseEntries(), 0);
+    BOOST_CHECK_EQUAL(g_rings.getNumberOfResponseEntries(), 0U);
     g_dynblockNMG.setState(emptyNMG);
 
     dh.rcode = rcode;
@@ -299,7 +299,7 @@ BOOST_AUTO_TEST_CASE(test_DynBlockRulesGroup_ResponseByteRate) {
     BOOST_CHECK_EQUAL(g_rings.getNumberOfResponseEntries(), numberOfResponses);
 
     dbrg.apply(now);
-    BOOST_CHECK_EQUAL(g_dynblockNMG.getLocal()->size(), 0);
+    BOOST_CHECK_EQUAL(g_dynblockNMG.getLocal()->size(), 0U);
     BOOST_CHECK(g_dynblockNMG.getLocal()->lookup(requestor1) == nullptr);
   }
 
@@ -307,7 +307,7 @@ BOOST_AUTO_TEST_CASE(test_DynBlockRulesGroup_ResponseByteRate) {
     /* insert just above 100 answers of 100 bytes per second from a given client in the last 10s */
     size_t numberOfResponses = 100 * numberOfSeconds + 1;
     g_rings.clear();
-    BOOST_CHECK_EQUAL(g_rings.getNumberOfResponseEntries(), 0);
+    BOOST_CHECK_EQUAL(g_rings.getNumberOfResponseEntries(), 0U);
     g_dynblockNMG.setState(emptyNMG);
 
     dh.rcode = rcode;
@@ -317,15 +317,15 @@ BOOST_AUTO_TEST_CASE(test_DynBlockRulesGroup_ResponseByteRate) {
     BOOST_CHECK_EQUAL(g_rings.getNumberOfResponseEntries(), numberOfResponses);
 
     dbrg.apply(now);
-    BOOST_CHECK_EQUAL(g_dynblockNMG.getLocal()->size(), 1);
+    BOOST_CHECK_EQUAL(g_dynblockNMG.getLocal()->size(), 1U);
     BOOST_CHECK(g_dynblockNMG.getLocal()->lookup(requestor1) != nullptr);
     BOOST_CHECK(g_dynblockNMG.getLocal()->lookup(requestor2) == nullptr);
     const auto& block = g_dynblockNMG.getLocal()->lookup(requestor1)->second;
     BOOST_CHECK_EQUAL(block.reason, reason);
-    BOOST_CHECK_EQUAL(block.until.tv_sec, now.tv_sec + blockDuration);
+    BOOST_CHECK_EQUAL(static_cast<size_t>(block.until.tv_sec), now.tv_sec + blockDuration);
     BOOST_CHECK(block.domain.empty());
     BOOST_CHECK(block.action == action);
-    BOOST_CHECK_EQUAL(block.blocks, 0);
+    BOOST_CHECK_EQUAL(block.blocks, 0U);
     BOOST_CHECK_EQUAL(block.warning, false);
   }
 
@@ -358,7 +358,7 @@ BOOST_AUTO_TEST_CASE(test_DynBlockRulesGroup_Warning) {
        this should not trigger the rule */
     size_t numberOfQueries = 20 * numberOfSeconds;
     g_rings.clear();
-    BOOST_CHECK_EQUAL(g_rings.getNumberOfQueryEntries(), 0);
+    BOOST_CHECK_EQUAL(g_rings.getNumberOfQueryEntries(), 0U);
     g_dynblockNMG.setState(emptyNMG);
 
     for (size_t idx = 0; idx < numberOfQueries; idx++) {
@@ -367,7 +367,7 @@ BOOST_AUTO_TEST_CASE(test_DynBlockRulesGroup_Warning) {
     BOOST_CHECK_EQUAL(g_rings.getNumberOfQueryEntries(), numberOfQueries);
 
     dbrg.apply(now);
-    BOOST_CHECK_EQUAL(g_dynblockNMG.getLocal()->size(), 0);
+    BOOST_CHECK_EQUAL(g_dynblockNMG.getLocal()->size(), 0U);
     BOOST_CHECK(g_dynblockNMG.getLocal()->lookup(requestor1) == nullptr);
   }
 
@@ -376,7 +376,7 @@ BOOST_AUTO_TEST_CASE(test_DynBlockRulesGroup_Warning) {
        this should trigger the warning rule this time */
     size_t numberOfQueries = 20 * numberOfSeconds + 1;
     g_rings.clear();
-    BOOST_CHECK_EQUAL(g_rings.getNumberOfQueryEntries(), 0);
+    BOOST_CHECK_EQUAL(g_rings.getNumberOfQueryEntries(), 0U);
     g_dynblockNMG.setState(emptyNMG);
 
     for (size_t idx = 0; idx < numberOfQueries; idx++) {
@@ -385,17 +385,17 @@ BOOST_AUTO_TEST_CASE(test_DynBlockRulesGroup_Warning) {
     BOOST_CHECK_EQUAL(g_rings.getNumberOfQueryEntries(), numberOfQueries);
 
     dbrg.apply(now);
-    BOOST_CHECK_EQUAL(g_dynblockNMG.getLocal()->size(), 1);
+    BOOST_CHECK_EQUAL(g_dynblockNMG.getLocal()->size(), 1U);
     BOOST_CHECK(g_dynblockNMG.getLocal()->lookup(requestor1) != nullptr);
     BOOST_CHECK(g_dynblockNMG.getLocal()->lookup(requestor2) == nullptr);
 
     {
       const auto& block = g_dynblockNMG.getLocal()->lookup(requestor1)->second;
       BOOST_CHECK_EQUAL(block.reason, reason);
-      BOOST_CHECK_EQUAL(block.until.tv_sec, now.tv_sec + blockDuration);
+      BOOST_CHECK_EQUAL(static_cast<size_t>(block.until.tv_sec), now.tv_sec + blockDuration);
       BOOST_CHECK(block.domain.empty());
       BOOST_CHECK(block.action == DNSAction::Action::NoOp);
-      BOOST_CHECK_EQUAL(block.blocks, 0);
+      BOOST_CHECK_EQUAL(block.blocks, 0U);
       BOOST_CHECK_EQUAL(block.warning, true);
       /* let's increment the number of blocks so we can check that the counter
          is preserved when the block is upgraded to a non-warning one */
@@ -405,7 +405,7 @@ BOOST_AUTO_TEST_CASE(test_DynBlockRulesGroup_Warning) {
     /* now inserts 50 qps for the same duration, we should reach the blocking threshold */
     numberOfQueries = 50 * numberOfSeconds + 1;
     g_rings.clear();
-    BOOST_CHECK_EQUAL(g_rings.getNumberOfQueryEntries(), 0);
+    BOOST_CHECK_EQUAL(g_rings.getNumberOfQueryEntries(), 0U);
 
     for (size_t idx = 0; idx < numberOfQueries; idx++) {
       g_rings.insertQuery(now, requestor1, qname, qtype, size, dh);
@@ -413,18 +413,18 @@ BOOST_AUTO_TEST_CASE(test_DynBlockRulesGroup_Warning) {
     BOOST_CHECK_EQUAL(g_rings.getNumberOfQueryEntries(), numberOfQueries);
 
     dbrg.apply(now);
-    BOOST_CHECK_EQUAL(g_dynblockNMG.getLocal()->size(), 1);
+    BOOST_CHECK_EQUAL(g_dynblockNMG.getLocal()->size(), 1U);
     BOOST_CHECK(g_dynblockNMG.getLocal()->lookup(requestor1) != nullptr);
     BOOST_CHECK(g_dynblockNMG.getLocal()->lookup(requestor2) == nullptr);
 
     {
       const auto& block = g_dynblockNMG.getLocal()->lookup(requestor1)->second;
       BOOST_CHECK_EQUAL(block.reason, reason);
-      BOOST_CHECK_EQUAL(block.until.tv_sec, now.tv_sec + blockDuration);
+      BOOST_CHECK_EQUAL(static_cast<size_t>(block.until.tv_sec), now.tv_sec + blockDuration);
       BOOST_CHECK(block.domain.empty());
       BOOST_CHECK(block.action == action);
       /* this hsould have been preserved */
-      BOOST_CHECK_EQUAL(block.blocks, 1);
+      BOOST_CHECK_EQUAL(block.blocks, 1U);
       BOOST_CHECK_EQUAL(block.warning, false);
       block.blocks++;
     }
@@ -434,7 +434,7 @@ BOOST_AUTO_TEST_CASE(test_DynBlockRulesGroup_Warning) {
     now.tv_sec += 30;
     numberOfQueries = 50 * numberOfSeconds + 1;
     g_rings.clear();
-    BOOST_CHECK_EQUAL(g_rings.getNumberOfQueryEntries(), 0);
+    BOOST_CHECK_EQUAL(g_rings.getNumberOfQueryEntries(), 0U);
 
     for (size_t idx = 0; idx < numberOfQueries; idx++) {
       g_rings.insertQuery(now, requestor1, qname, qtype, size, dh);
@@ -442,7 +442,7 @@ BOOST_AUTO_TEST_CASE(test_DynBlockRulesGroup_Warning) {
     BOOST_CHECK_EQUAL(g_rings.getNumberOfQueryEntries(), numberOfQueries);
 
     dbrg.apply(now);
-    BOOST_CHECK_EQUAL(g_dynblockNMG.getLocal()->size(), 1);
+    BOOST_CHECK_EQUAL(g_dynblockNMG.getLocal()->size(), 1U);
     BOOST_CHECK(g_dynblockNMG.getLocal()->lookup(requestor1) != nullptr);
     BOOST_CHECK(g_dynblockNMG.getLocal()->lookup(requestor2) == nullptr);
 
@@ -450,11 +450,11 @@ BOOST_AUTO_TEST_CASE(test_DynBlockRulesGroup_Warning) {
       const auto& block = g_dynblockNMG.getLocal()->lookup(requestor1)->second;
       BOOST_CHECK_EQUAL(block.reason, reason);
       /* should have been updated */
-      BOOST_CHECK_EQUAL(block.until.tv_sec, now.tv_sec + blockDuration);
+      BOOST_CHECK_EQUAL(static_cast<size_t>(block.until.tv_sec), now.tv_sec + blockDuration);
       BOOST_CHECK(block.domain.empty());
       BOOST_CHECK(block.action == action);
       /* this hsould have been preserved */
-      BOOST_CHECK_EQUAL(block.blocks, 2);
+      BOOST_CHECK_EQUAL(block.blocks, 2U);
       BOOST_CHECK_EQUAL(block.warning, false);
     }
   }
@@ -464,7 +464,7 @@ BOOST_AUTO_TEST_CASE(test_DynBlockRulesGroup_Warning) {
        this should trigger the blocking rule right away this time */
     size_t numberOfQueries = 50 * numberOfSeconds + 1;
     g_rings.clear();
-    BOOST_CHECK_EQUAL(g_rings.getNumberOfQueryEntries(), 0);
+    BOOST_CHECK_EQUAL(g_rings.getNumberOfQueryEntries(), 0U);
     g_dynblockNMG.setState(emptyNMG);
 
     for (size_t idx = 0; idx < numberOfQueries; idx++) {
@@ -473,17 +473,17 @@ BOOST_AUTO_TEST_CASE(test_DynBlockRulesGroup_Warning) {
     BOOST_CHECK_EQUAL(g_rings.getNumberOfQueryEntries(), numberOfQueries);
 
     dbrg.apply(now);
-    BOOST_CHECK_EQUAL(g_dynblockNMG.getLocal()->size(), 1);
+    BOOST_CHECK_EQUAL(g_dynblockNMG.getLocal()->size(), 1U);
     BOOST_CHECK(g_dynblockNMG.getLocal()->lookup(requestor1) != nullptr);
     BOOST_CHECK(g_dynblockNMG.getLocal()->lookup(requestor2) == nullptr);
 
     {
       const auto& block = g_dynblockNMG.getLocal()->lookup(requestor1)->second;
       BOOST_CHECK_EQUAL(block.reason, reason);
-      BOOST_CHECK_EQUAL(block.until.tv_sec, now.tv_sec + blockDuration);
+      BOOST_CHECK_EQUAL(static_cast<size_t>(block.until.tv_sec), now.tv_sec + blockDuration);
       BOOST_CHECK(block.domain.empty());
       BOOST_CHECK(block.action == action);
-      BOOST_CHECK_EQUAL(block.blocks, 0);
+      BOOST_CHECK_EQUAL(block.blocks, 0U);
       BOOST_CHECK_EQUAL(block.warning, false);
     }
   }
@@ -520,7 +520,7 @@ BOOST_AUTO_TEST_CASE(test_DynBlockRulesGroup_Ranges) {
        this should trigger the rule for the first one but not the second one */
     size_t numberOfQueries = 50 * numberOfSeconds + 1;
     g_rings.clear();
-    BOOST_CHECK_EQUAL(g_rings.getNumberOfQueryEntries(), 0);
+    BOOST_CHECK_EQUAL(g_rings.getNumberOfQueryEntries(), 0U);
     g_dynblockNMG.setState(emptyNMG);
 
     for (size_t idx = 0; idx < numberOfQueries; idx++) {
@@ -530,15 +530,15 @@ BOOST_AUTO_TEST_CASE(test_DynBlockRulesGroup_Ranges) {
     BOOST_CHECK_EQUAL(g_rings.getNumberOfQueryEntries(), numberOfQueries * 2);
 
     dbrg.apply(now);
-    BOOST_CHECK_EQUAL(g_dynblockNMG.getLocal()->size(), 1);
+    BOOST_CHECK_EQUAL(g_dynblockNMG.getLocal()->size(), 1U);
     BOOST_CHECK(g_dynblockNMG.getLocal()->lookup(requestor1) != nullptr);
     BOOST_CHECK(g_dynblockNMG.getLocal()->lookup(requestor2) == nullptr);
     const auto& block = g_dynblockNMG.getLocal()->lookup(requestor1)->second;
     BOOST_CHECK_EQUAL(block.reason, reason);
-    BOOST_CHECK_EQUAL(block.until.tv_sec, now.tv_sec + blockDuration);
+    BOOST_CHECK_EQUAL(static_cast<size_t>(block.until.tv_sec), now.tv_sec + blockDuration);
     BOOST_CHECK(block.domain.empty());
     BOOST_CHECK(block.action == action);
-    BOOST_CHECK_EQUAL(block.blocks, 0);
+    BOOST_CHECK_EQUAL(block.blocks, 0U);
     BOOST_CHECK_EQUAL(block.warning, false);
   }
 

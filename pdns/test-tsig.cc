@@ -82,7 +82,7 @@ static void checkTSIG(const DNSName& tsigName, const DNSName& tsigAlgo, const st
     if(answer.first.d_type == QType::TSIG) {
       BOOST_CHECK_EQUAL(answer.first.d_place, DNSResourceRecord::ADDITIONAL);
       BOOST_CHECK_EQUAL(answer.first.d_class, QClass::ANY);
-      BOOST_CHECK_EQUAL(answer.first.d_ttl, 0);
+      BOOST_CHECK_EQUAL(answer.first.d_ttl, 0U);
       BOOST_CHECK_EQUAL(tsigFound, false);
 
       shared_ptr<TSIGRecordContent> rectrc = getRR<TSIGRecordContent>(answer.first);

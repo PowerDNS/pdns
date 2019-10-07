@@ -138,13 +138,13 @@ void initSR(bool debug)
   SyncRes::setECSScopeZeroAddress(Netmask("127.0.0.1/32"));
 
   SyncRes::clearNSSpeeds();
-  BOOST_CHECK_EQUAL(SyncRes::getNSSpeedsSize(), 0);
+  BOOST_CHECK_EQUAL(SyncRes::getNSSpeedsSize(), 0U);
   SyncRes::clearEDNSStatuses();
-  BOOST_CHECK_EQUAL(SyncRes::getEDNSStatusesSize(), 0);
+  BOOST_CHECK_EQUAL(SyncRes::getEDNSStatusesSize(), 0U);
   SyncRes::clearThrottle();
-  BOOST_CHECK_EQUAL(SyncRes::getThrottledServersSize(), 0);
+  BOOST_CHECK_EQUAL(SyncRes::getThrottledServersSize(), 0U);
   SyncRes::clearFailedServers();
-  BOOST_CHECK_EQUAL(SyncRes::getFailedServersSize(), 0);
+  BOOST_CHECK_EQUAL(SyncRes::getFailedServersSize(), 0U);
 
   SyncRes::clearECSStats();
 

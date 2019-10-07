@@ -447,8 +447,8 @@ BOOST_AUTO_TEST_CASE(test_removal) {
     BOOST_CHECK_EQUAL(result->second, 32);
   }
 
-  for(unsigned int i = 0; i < 256; ++i) {
-    for(unsigned int j = 32; j >= 16; --j) {
+  for(int i = 0; i < 256; ++i) {
+    for(int j = 32; j >= 16; --j) {
       ComboAddress key(prefix + std::to_string(i) + ".127.255");
       nmt.erase(Netmask(key, j));
       const auto result = nmt.lookup(key);
@@ -465,7 +465,7 @@ BOOST_AUTO_TEST_CASE(test_removal) {
     }
   }
 
-  BOOST_CHECK_EQUAL(nmt.size(), 0);
+  BOOST_CHECK_EQUAL(nmt.size(), 0U);
   BOOST_CHECK(nmt.empty());
 }
 

@@ -423,7 +423,7 @@ static void apiServerRPZStats(HttpRequest* req, HttpResponse* resp) {
 
 
 static void prometheusMetrics(HttpRequest *req, HttpResponse *resp) {
-    static MetricDefinitionStorage g_metricDefinitions;
+    static MetricDefinitionStorage s_metricDefinitions;
 
     if (req->method != "GET")
         throw HttpMethodNotAllowedException();
@@ -443,8 +443,8 @@ static void prometheusMetrics(HttpRequest *req, HttpResponse *resp) {
 
         MetricDefinition metricDetails;
 
-        if (g_metricDefinitions.getMetricDetails(metricName, metricDetails)) {
-          std::string prometheusTypeName = g_metricDefinitions.getPrometheusStringMetricType(
+        if (s_metricDefinitions.getMetricDetails(metricName, metricDetails)) {
+          std::string prometheusTypeName = s_metricDefinitions.getPrometheusStringMetricType(
                   metricDetails.prometheusType);
 
           if (prometheusTypeName.empty()) {

@@ -20,10 +20,10 @@ BOOST_AUTO_TEST_CASE(test_MPlexer) {
 
   std::vector<int> readyFDs;
   mplexer->getAvailableFDs(readyFDs, 0);
-  BOOST_CHECK_EQUAL(readyFDs.size(), 0);
+  BOOST_CHECK_EQUAL(readyFDs.size(), 0U);
 
   auto timeouts = mplexer->getTimeouts(now);
-  BOOST_CHECK_EQUAL(timeouts.size(), 0);
+  BOOST_CHECK_EQUAL(timeouts.size(), 0U);
 
   int pipes[2];
   int res = pipe(pipes);
@@ -54,7 +54,7 @@ BOOST_AUTO_TEST_CASE(test_MPlexer) {
 
   readyFDs.clear();
   mplexer->getAvailableFDs(readyFDs, 0);
-  BOOST_REQUIRE_EQUAL(readyFDs.size(), 1);
+  BOOST_REQUIRE_EQUAL(readyFDs.size(), 1U);
   BOOST_CHECK_EQUAL(readyFDs.at(0), pipes[1]);
 
   ready = mplexer->run(&now, 100);
@@ -63,10 +63,10 @@ BOOST_AUTO_TEST_CASE(test_MPlexer) {
 
   /* no read timeouts */
   timeouts = mplexer->getTimeouts(now, false);
-  BOOST_CHECK_EQUAL(timeouts.size(), 0);
+  BOOST_CHECK_EQUAL(timeouts.size(), 0U);
   /* but we should have a write one */
   timeouts = mplexer->getTimeouts(now, true);
-  BOOST_REQUIRE_EQUAL(timeouts.size(), 1);
+  BOOST_REQUIRE_EQUAL(timeouts.size(), 1U);
   BOOST_CHECK_EQUAL(timeouts.at(0).first, pipes[1]);
 
   /* can't remove from the wrong type of FD */
@@ -78,7 +78,7 @@ BOOST_AUTO_TEST_CASE(test_MPlexer) {
 
   readyFDs.clear();
   mplexer->getAvailableFDs(readyFDs, 0);
-  BOOST_REQUIRE_EQUAL(readyFDs.size(), 0);
+  BOOST_REQUIRE_EQUAL(readyFDs.size(), 0U);
 
   ready = mplexer->run(&now, 100);
   BOOST_CHECK_EQUAL(ready, 0);
@@ -97,7 +97,7 @@ BOOST_AUTO_TEST_CASE(test_MPlexer) {
   /* not ready for reading yet */
   readyFDs.clear();
   mplexer->getAvailableFDs(readyFDs, 0);
-  BOOST_REQUIRE_EQUAL(readyFDs.size(), 0);
+  BOOST_REQUIRE_EQUAL(readyFDs.size(), 0U);
 
   ready = mplexer->run(&now, 100);
   BOOST_CHECK_EQUAL(ready, 0);
@@ -108,7 +108,7 @@ BOOST_AUTO_TEST_CASE(test_MPlexer) {
 
   readyFDs.clear();
   mplexer->getAvailableFDs(readyFDs, 0);
-  BOOST_REQUIRE_EQUAL(readyFDs.size(), 1);
+  BOOST_REQUIRE_EQUAL(readyFDs.size(), 1U);
   BOOST_CHECK_EQUAL(readyFDs.at(0), pipes[0]);
 
   ready = mplexer->run(&now, 100);
@@ -127,7 +127,7 @@ BOOST_AUTO_TEST_CASE(test_MPlexer) {
   readyFDs.clear();
 
   mplexer->getAvailableFDs(readyFDs, 0);
-  BOOST_REQUIRE_GT(readyFDs.size(), 0);
+  BOOST_REQUIRE_GT(readyFDs.size(), 0U);
   if (readyFDs.size() == 2) {
     ready = mplexer->run(&now, 100);
     BOOST_CHECK_EQUAL(ready, 2);
@@ -145,12 +145,12 @@ BOOST_AUTO_TEST_CASE(test_MPlexer) {
     BOOST_CHECK_EQUAL(writeCBCalled, false);
     char buffer[1];
     ssize_t got = read(pipes[0], &buffer[0], sizeof(buffer));
-    BOOST_CHECK_EQUAL(got, 1);
+    BOOST_CHECK_EQUAL(got, 1U);
 
     /* ok, the pipe should be writable now, but not readable */
     readyFDs.clear();
     mplexer->getAvailableFDs(readyFDs, 0);
-    BOOST_CHECK_EQUAL(readyFDs.size(), 1);
+    BOOST_CHECK_EQUAL(readyFDs.size(), 1U);
     BOOST_REQUIRE_EQUAL(readyFDs.at(0), pipes[1]);
 
     ready = mplexer->run(&now, 100);
@@ -162,10 +162,10 @@ BOOST_AUTO_TEST_CASE(test_MPlexer) {
 
   /* both the read and write FD should be reported */
   timeouts = mplexer->getTimeouts(now, false);
-  BOOST_REQUIRE_EQUAL(timeouts.size(), 1);
+  BOOST_REQUIRE_EQUAL(timeouts.size(), 1U);
   BOOST_CHECK_EQUAL(timeouts.at(0).first, pipes[0]);
   timeouts = mplexer->getTimeouts(now, true);
-  BOOST_REQUIRE_EQUAL(timeouts.size(), 1);
+  BOOST_REQUIRE_EQUAL(timeouts.size(), 1U);
   BOOST_CHECK_EQUAL(timeouts.at(0).first, pipes[1]);
 
   struct timeval past = ttd;
@@ -174,27 +174,27 @@ BOOST_AUTO_TEST_CASE(test_MPlexer) {
 
   /* no read timeouts */
   timeouts = mplexer->getTimeouts(past, false);
-  BOOST_CHECK_EQUAL(timeouts.size(), 0);
+  BOOST_CHECK_EQUAL(timeouts.size(), 0U);
   /* and we should not have a write one either */
   timeouts = mplexer->getTimeouts(past, true);
-  BOOST_CHECK_EQUAL(timeouts.size(), 0);
+  BOOST_CHECK_EQUAL(timeouts.size(), 0U);
 
   /* update the timeouts to now, they should not be reported anymore */
   mplexer->setReadTTD(pipes[0], now, 0);
   mplexer->setWriteTTD(pipes[1], now, 0);
   timeouts = mplexer->getTimeouts(now, false);
-  BOOST_REQUIRE_EQUAL(timeouts.size(), 0);
+  BOOST_REQUIRE_EQUAL(timeouts.size(), 0U);
   timeouts = mplexer->getTimeouts(now, true);
-  BOOST_REQUIRE_EQUAL(timeouts.size(), 0);
+  BOOST_REQUIRE_EQUAL(timeouts.size(), 0U);
 
   /* put it back into the past */
   mplexer->setReadTTD(pipes[0], now, -5);
   mplexer->setWriteTTD(pipes[1], now, -5);
   timeouts = mplexer->getTimeouts(now, false);
-  BOOST_REQUIRE_EQUAL(timeouts.size(), 1);
+  BOOST_REQUIRE_EQUAL(timeouts.size(), 1U);
   BOOST_CHECK_EQUAL(timeouts.at(0).first, pipes[0]);
   timeouts = mplexer->getTimeouts(now, true);
-  BOOST_REQUIRE_EQUAL(timeouts.size(), 1);
+  BOOST_REQUIRE_EQUAL(timeouts.size(), 1U);
   BOOST_CHECK_EQUAL(timeouts.at(0).first, pipes[1]);
 
   mplexer->removeReadFD(pipes[0]);

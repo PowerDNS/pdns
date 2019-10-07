@@ -50,7 +50,7 @@ bool updateTrustAnchorsFromFile(const std::string &fname, map<DNSName, dsmap_t> 
         if (dnskeyr == nullptr) {
           throw PDNSException("Unable to parse DNSKEY record '" + rr.qname.toString() + " " + rr.getZoneRepresentation() +"'");
         }
-        auto dsr = makeDSFromDNSKey(rr.qname, *dnskeyr, DNSSECKeeper::SHA256);
+        auto dsr = makeDSFromDNSKey(rr.qname, *dnskeyr, DNSSECKeeper::DIGEST_SHA256);
         newDSAnchors[rr.qname].insert(dsr);
       }
     }
