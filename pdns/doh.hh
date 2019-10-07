@@ -40,6 +40,11 @@ private:
 
 struct DOHFrontend
 {
+  DOHFrontend()
+  {
+    d_rotatingTicketsKey.clear();
+  }
+
   std::shared_ptr<DOHServerConfig> d_dsc{nullptr};
   std::vector<std::pair<std::string, std::string>> d_certKeyPairs;
   std::vector<std::string> d_ocspFiles;
@@ -58,9 +63,7 @@ struct DOHFrontend
   std::vector<std::string> d_urls;
   std::string d_ticketKeyFile;
 
-  std::atomic_flag d_rotatingTicketsKey;
   time_t d_ticketsKeyRotationDelay{43200};
-  time_t d_ticketsKeyNextRotation{0};
   size_t d_maxStoredSessions{20480};
   uint8_t d_numberOfTicketsKeys{5};
   bool d_enableTickets{true};
@@ -124,6 +127,10 @@ struct DOHFrontend
   void handleTicketsKeyRotation();
 
 #endif /* HAVE_DNS_OVER_HTTPS */
+
+private:
+  time_t d_ticketsKeyNextRotation{0};
+  std::atomic_flag d_rotatingTicketsKey;
 };
 
 #ifndef HAVE_DNS_OVER_HTTPS
