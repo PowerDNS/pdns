@@ -132,6 +132,11 @@ try
           str<<base<<"tcpavgconnectionduration" << ' '<< front->tcpAvgConnectionDuration.load() << " " << now << "\r\n";
           str<<base<<"tlsnewsessions" << ' ' << front->tlsNewSessions.load() << " " << now << "\r\n";
           str<<base<<"tlsresumptions" << ' ' << front->tlsResumptions.load() << " " << now << "\r\n";
+          str<<base<<"tls10-queries" << ' ' << front->tls10queries.load() << " " << now << "\r\n";
+          str<<base<<"tls11-queries" << ' ' << front->tls11queries.load() << " " << now << "\r\n";
+          str<<base<<"tls12-queries" << ' ' << front->tls12queries.load() << " " << now << "\r\n";
+          str<<base<<"tls13-queries" << ' ' << front->tls13queries.load() << " " << now << "\r\n";
+          str<<base<<"tls-unknown-queries" << ' ' << front->tlsUnknownqueries.load() << " " << now << "\r\n";
         }
 
         auto localPools = g_pools.getLocal();
@@ -192,11 +197,6 @@ try
               {"http2-502-responses", doh->d_http2Stats.d_nb502Responses},
               {"http1-other-responses", doh->d_http1Stats.d_nbOtherResponses},
               {"http2-other-responses", doh->d_http2Stats.d_nbOtherResponses},
-              {"tls10-queries", doh->d_tls10queries},
-              {"tls11-queries", doh->d_tls11queries},
-              {"tls12-queries", doh->d_tls12queries},
-              {"tls13-queries", doh->d_tls13queries},
-              {"tls-unknown-queries", doh->d_tlsUnknownqueries},
               {"get-queries", doh->d_getqueries},
               {"post-queries", doh->d_postqueries},
               {"bad-requests", doh->d_badrequests},

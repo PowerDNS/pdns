@@ -685,6 +685,11 @@ struct ClientState
   std::atomic<uint64_t> tcpCurrentConnections{0};
   std::atomic<uint64_t> tlsNewSessions{0}; // A new TLS session has been negotiated, no resumption
   std::atomic<uint64_t> tlsResumptions{0}; // A TLS session has been resumed, either via session id or via a TLS ticket
+  std::atomic<uint64_t> tls10queries{0};   // valid DNS queries received via TLSv1.0
+  std::atomic<uint64_t> tls11queries{0};   // valid DNS queries received via TLSv1.1
+  std::atomic<uint64_t> tls12queries{0};   // valid DNS queries received via TLSv1.2
+  std::atomic<uint64_t> tls13queries{0};   // valid DNS queries received via TLSv1.3
+  std::atomic<uint64_t> tlsUnknownqueries{0};   // valid DNS queries received via unknown TLS version
 
   std::atomic<double> tcpAvgQueriesPerConnection{0.0};
   /* in ms */

@@ -570,15 +570,15 @@ try
 
   if(auto tlsversion = h2o_socket_get_ssl_protocol_version(sock)) {
     if(!strcmp(tlsversion, "TLSv1.0"))
-      ++dsc->df->d_tls10queries;
+      ++dsc->cs->tls10queries;
     else if(!strcmp(tlsversion, "TLSv1.1"))
-      ++dsc->df->d_tls11queries;
+      ++dsc->cs->tls11queries;
     else if(!strcmp(tlsversion, "TLSv1.2"))
-      ++dsc->df->d_tls12queries;
+      ++dsc->cs->tls12queries;
     else if(!strcmp(tlsversion, "TLSv1.3"))
-      ++dsc->df->d_tls13queries;
+      ++dsc->cs->tls13queries;
     else
-      ++dsc->df->d_tlsUnknownqueries;
+      ++dsc->cs->tlsUnknownqueries;
   }
 
   string path(req->path.base, req->path.len);

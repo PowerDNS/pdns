@@ -825,6 +825,26 @@ static void handleQuery(std::shared_ptr<IncomingTCPConnectionState>& state, stru
   ++state->d_ci.cs->queries;
   ++g_stats.queries;
 
+  if (state->d_handler.isTLS()) {
+    auto tlsVersion = state->d_handler.getTLSVersion();
+    switch (tlsVersion) {
+    case LibsslTLSVersion::TLS10:
+      ++state->d_ci.cs->tls10queries;
+      break;
+    case LibsslTLSVersion::TLS11:
+      ++state->d_ci.cs->tls11queries;
+      break;
+    case LibsslTLSVersion::TLS12:
+      ++state->d_ci.cs->tls12queries;
+      break;
+    case LibsslTLSVersion::TLS13:
+      ++state->d_ci.cs->tls13queries;
+      break;
+    default:
+      ++state->d_ci.cs->tlsUnknownqueries;
+    }
+  }
+
   /* we need an accurate ("real") value for the response and
      to store into the IDS, but not for insertion into the
      rings for example */
