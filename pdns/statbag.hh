@@ -41,6 +41,7 @@ public:
   StatRing(unsigned int size=10000);
   // Some older C++ libs have trouble emplacing without a copy-contructor, so provide one
   StatRing(const StatRing &);
+  StatRing & operator=(const StatRing &) = delete;
   
   void account(const T &item);
 
