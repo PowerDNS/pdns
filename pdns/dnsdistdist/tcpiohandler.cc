@@ -232,8 +232,7 @@ public:
       SSL_OP_NO_COMPRESSION |
       SSL_OP_NO_SESSION_RESUMPTION_ON_RENEGOTIATION |
       SSL_OP_SINGLE_DH_USE |
-      SSL_OP_SINGLE_ECDH_USE |
-      SSL_OP_CIPHER_SERVER_PREFERENCE;
+      SSL_OP_SINGLE_ECDH_USE;
 
     registerOpenSSLUser();
 
@@ -250,6 +249,10 @@ public:
       /* use our own ticket keys handler so we can rotate them */
       SSL_CTX_set_tlsext_ticket_key_cb(d_tlsCtx.get(), &OpenSSLTLSIOCtx::ticketKeyCb);
       libssl_set_ticket_key_callback_data(d_tlsCtx.get(), this);
+    }
+
+    if (fe.d_preferServerCiphers) {
+      sslOptions |= SSL_OP_CIPHER_SERVER_PREFERENCE;
     }
 
     SSL_CTX_set_options(d_tlsCtx.get(), sslOptions);

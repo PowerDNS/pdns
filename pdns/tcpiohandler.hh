@@ -154,6 +154,7 @@ public:
   LibsslTLSVersion d_minTLSVersion{LibsslTLSVersion::TLS10};
 
   bool d_enableTickets{true};
+  bool d_preferServerCiphers{false};
 
 private:
   std::shared_ptr<TLSCtx> d_ctx{nullptr};

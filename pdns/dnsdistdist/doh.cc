@@ -927,8 +927,7 @@ static std::unique_ptr<SSL_CTX, void(*)(SSL_CTX*)> getTLSContext(DOHFrontend& df
     SSL_OP_NO_COMPRESSION |
     SSL_OP_NO_SESSION_RESUMPTION_ON_RENEGOTIATION |
     SSL_OP_SINGLE_DH_USE |
-    SSL_OP_SINGLE_ECDH_USE |
-    SSL_OP_CIPHER_SERVER_PREFERENCE;
+    SSL_OP_SINGLE_ECDH_USE;
 
   if (!df.d_enableTickets || df.d_numberOfTicketsKeys == 0) {
     sslOptions |= SSL_OP_NO_TICKET;
@@ -937,6 +936,10 @@ static std::unique_ptr<SSL_CTX, void(*)(SSL_CTX*)> getTLSContext(DOHFrontend& df
     df.d_ticketKeys = std::unique_ptr<OpenSSLTLSTicketKeysRing>(new OpenSSLTLSTicketKeysRing(df.d_numberOfTicketsKeys));
     SSL_CTX_set_tlsext_ticket_key_cb(ctx.get(), &ticket_key_callback);
     libssl_set_ticket_key_callback_data(ctx.get(), &df);
+  }
+
+  if (df.d_preferServerCiphers) {
+    sslOptions |= SSL_OP_CIPHER_SERVER_PREFERENCE;
   }
 
   SSL_CTX_set_options(ctx.get(), sslOptions);
