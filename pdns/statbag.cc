@@ -164,27 +164,36 @@ template<typename T, typename Comp>
 StatRing<T,Comp>::StatRing(unsigned int size)
 {
   d_items.set_capacity(size);
-  pthread_mutex_init(&d_lock, 0);
+}
+
+template<typename T, typename Comp>
+StatRing<T,Comp>::StatRing(const StatRing<T,Comp> &arg)
+{
+  std::lock_guard<std::mutex> thislock(d_lock);
+  std::lock_guard<std::mutex> arglock(arg.d_lock);
+  
+  d_items = arg.d_items;
+  d_help = arg.d_help;
 }
 
 template<typename T, typename Comp>
 void StatRing<T,Comp>::account(const T& t)
 {
-  Lock l(&d_lock);
+  std::lock_guard<std::mutex> l(d_lock);
   d_items.push_back(t);
 }
 
 template<typename T, typename Comp>
 unsigned int StatRing<T,Comp>::getSize()
 {
-  Lock l(&d_lock);
+  std::lock_guard<std::mutex> l(d_lock);
   return d_items.capacity();
 }
 
 template<typename T, typename Comp>
 void StatRing<T,Comp>::resize(unsigned int newsize)
 {
-  Lock l(&d_lock);
+  std::lock_guard<std::mutex> l(d_lock);
   d_items.set_capacity(newsize);
 }
 
@@ -205,7 +214,7 @@ string StatRing<T,Comp>::getHelp()
 template<typename T, typename Comp>
 vector<pair<T, unsigned int> >StatRing<T,Comp>::get() const
 {
-  Lock l(&d_lock);
+  std::lock_guard<std::mutex> l(d_lock);
   map<T,unsigned int, Comp> res;
   for(typename boost::circular_buffer<T>::const_iterator i=d_items.begin();i!=d_items.end();++i) {
     res[*i]++;
@@ -222,19 +231,19 @@ vector<pair<T, unsigned int> >StatRing<T,Comp>::get() const
 
 void StatBag::declareRing(const string &name, const string &help, unsigned int size)
 {
-  d_rings[name]=StatRing<string, CIStringCompare>(size);
+  d_rings.emplace(name, size);
   d_rings[name].setHelp(help);
 }
 
 void StatBag::declareComboRing(const string &name, const string &help, unsigned int size)
 {
-  d_comborings[name]=StatRing<SComboAddress>(size);
+  d_comborings.emplace(name, size);
   d_comborings[name].setHelp(help);
 }
 
 void StatBag::declareDNSNameQTypeRing(const string &name, const string &help, unsigned int size)
 {
-  d_dnsnameqtyperings[name] = StatRing<std::tuple<DNSName, QType> >(size);
+  d_dnsnameqtyperings.emplace(name, size);
   d_dnsnameqtyperings[name].setHelp(help);
 }
 
@@ -264,7 +273,7 @@ vector<pair<string, unsigned int> > StatBag::getRing(const string &name)
 template<typename T, typename Comp>
 void StatRing<T,Comp>::reset()
 {
-  Lock l(&d_lock);
+  std::lock_guard<std::mutex> l(d_lock);
   d_items.clear();
 }
 
