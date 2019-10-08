@@ -39,6 +39,7 @@ public:
   bool nameMatches(const unsigned char name[TLS_TICKETS_KEY_NAME_SIZE]) const;
   int encrypt(unsigned char keyName[TLS_TICKETS_KEY_NAME_SIZE], unsigned char *iv, EVP_CIPHER_CTX *ectx, HMAC_CTX *hctx) const;
   bool decrypt(const unsigned char* iv, EVP_CIPHER_CTX *ectx, HMAC_CTX *hctx) const;
+  std::string toString() const;
 
 private:
   unsigned char d_name[TLS_TICKETS_KEY_NAME_SIZE];

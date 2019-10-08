@@ -7,6 +7,7 @@
 #include <atomic>
 #include <fstream>
 #include <cstring>
+#include <iomanip>
 #include <pthread.h>
 
 #include <openssl/conf.h>
@@ -118,28 +119,41 @@ void libssl_set_ticket_key_callback_data(SSL_CTX* ctx, void* data)
 
 int libssl_ticket_key_callback(SSL *s, OpenSSLTLSTicketKeysRing& keyring, unsigned char keyName[TLS_TICKETS_KEY_NAME_SIZE], unsigned char *iv, EVP_CIPHER_CTX *ectx, HMAC_CTX *hctx, int enc)
 {
+  cerr<<"in "<<__func__<<" with enc "<<enc<<endl;
   if (enc) {
     const auto key = keyring.getEncryptionKey();
     if (key == nullptr) {
+      cerr<<"Could not find a STEK to encrypt"<<endl;
       return -1;
     }
 
-    return key->encrypt(keyName, iv, ectx, hctx);
+    cerr<<"Encrypting ticket with STEK "<<key->toString()<<endl;
+    auto got = key->encrypt(keyName, iv, ectx, hctx);
+    cerr<<"returning "<<got<<endl;
+    return got;
   }
 
   bool activeEncryptionKey = false;
 
   const auto key = keyring.getDecryptionKey(keyName, activeEncryptionKey);
   if (key == nullptr) {
+    cerr<<"Unknown key ";
+    for (size_t idx = 0; idx < TLS_TICKETS_KEY_NAME_SIZE; idx++) {
+      fprintf(stderr, "%02x", keyName[idx]);
+    }
+    cerr<<endl;
     /* we don't know this key, just create a new ticket */
     return 0;
   }
 
+  cerr<<"Decrypting ticket with STEK "<<key->toString()<<endl;
   if (key->decrypt(iv, ectx, hctx) == false) {
+    cerr<<"Error while decrypting!"<<endl;
     return -1;
   }
 
   if (!activeEncryptionKey) {
+    cerr<<"Key "<<key->toString()<<" is no longer the active one, please re-encrypt the ticket with the active one"<<endl;
     /* this key is not active, please encrypt the ticket content with the currently active one */
     return 2;
   }
@@ -423,6 +437,7 @@ void OpenSSLTLSTicketKeysRing::addKey(std::shared_ptr<OpenSSLTLSTicketKey> newKe
 {
   WriteLock wl(&d_lock);
   d_ticketKeys.push_front(newKey);
+  cerr<<"Added new key "<<newKey->toString()<<", we now have "<<d_ticketKeys.size()<<" keys"<<endl;
 }
 
 std::shared_ptr<OpenSSLTLSTicketKey> OpenSSLTLSTicketKeysRing::getEncryptionKey()
@@ -561,6 +576,15 @@ bool OpenSSLTLSTicketKey::decrypt(const unsigned char* iv, EVP_CIPHER_CTX *ectx,
   }
 
   return true;
+}
+
+std::string OpenSSLTLSTicketKey::toString() const
+{
+  std::stringstream res;
+  for (size_t idx = 0; idx < TLS_TICKETS_KEY_NAME_SIZE; idx++) {
+    res << std::hex << std::setw(2) << std::setfill('0') << static_cast<int>(d_name[idx]);
+  }
+  return res.str();
 }
 
 #endif /* HAVE_LIBSSL */
