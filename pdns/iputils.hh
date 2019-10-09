@@ -574,7 +574,7 @@ private:
     */
   class TreeNode : boost::noncopyable {
   public:
-    explicit TreeNode(int bits) noexcept : parent(NULL),d_bits(bits) {
+    explicit TreeNode(int bits) noexcept : parent(nullptr),d_bits(bits) {
     }
 
     //<! Makes a left node with one more bit than parent
