@@ -1,0 +1,1 @@
+../contrib/assert-equal-DNSMessage/eqdnsmessage.py

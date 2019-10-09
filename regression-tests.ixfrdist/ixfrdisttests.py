@@ -12,7 +12,9 @@ import unittest
 import dns
 import dns.message
 
-class IXFRDistTest(unittest.TestCase):
+from eqdnsmessage import AssertEqualDNSMessageMixin
+
+class IXFRDistTest(AssertEqualDNSMessageMixin, unittest.TestCase):
 
     _ixfrDistStartupDelay = 2.0
     _ixfrDistPort = 5342
@@ -196,5 +198,5 @@ failed-soa-retry: 3
 
     def setUp(self):
         # This function is called before every tests
-        return
+        super(IXFRDistTest, self).setUp()
 

@@ -16,6 +16,8 @@ import dns.message
 import libnacl
 import libnacl.utils
 
+from eqdnsmessage import AssertEqualDNSMessageMixin
+
 # Python2/3 compatibility hacks
 try:
   from queue import Queue
@@ -28,7 +30,7 @@ except NameError:
   pass
 
 
-class DNSDistTest(unittest.TestCase):
+class DNSDistTest(AssertEqualDNSMessageMixin, unittest.TestCase):
     """
     Set up a dnsdist instance and responder threads.
     Queries sent to dnsdist are relayed to the responder threads,
@@ -454,6 +456,8 @@ class DNSDistTest(unittest.TestCase):
         while not self._fromResponderQueue.empty():
             self._fromResponderQueue.get(False)
 
+        super(DNSDistTest, self).setUp()
+
     @classmethod
     def clearToResponderQueue(cls):
         while not cls._toResponderQueue.empty():
@@ -577,3 +581,4 @@ class DNSDistTest(unittest.TestCase):
 
     def checkResponseNoEDNS(self, expected, received):
         self.checkMessageNoEDNS(expected, received)
+

@@ -14,8 +14,9 @@ import dns
 import dns.message
 
 from pprint import pprint
+from eqdnsmessage import AssertEqualDNSMessageMixin
 
-class AuthTest(unittest.TestCase):
+class AuthTest(AssertEqualDNSMessageMixin, unittest.TestCase):
     """
     Setup auth required for the tests
     """
@@ -341,7 +342,7 @@ options {
 
     def setUp(self):
         # This function is called before every tests
-        return
+        super(AuthTest, self).setUp()
 
     ## Functions for comparisons
     def assertMessageHasFlags(self, msg, flags, ednsflags=[]):
