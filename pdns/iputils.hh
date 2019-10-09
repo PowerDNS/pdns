@@ -541,6 +541,10 @@ public:
   Netmask getNormalized() const {
     return Netmask(getMaskedNetwork(), d_bits);
   }
+  //! Get Netmask for super network of this one (i.e. with fewer network bits)
+  Netmask getSuper(uint8_t bits) const {
+    return Netmask(d_network, std::min(d_bits, bits));
+  }
 private:
   ComboAddress d_network;
   uint32_t d_mask;
