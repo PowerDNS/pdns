@@ -537,6 +537,10 @@ public:
     return d_network.sin4.sin_family==0;
   }
 
+  //! Get normalized version of the netmask. This means that all address bits below the network bits are zero.
+  Netmask getNormalized() const {
+    return Netmask(getMaskedNetwork(), d_bits);
+  }
 private:
   ComboAddress d_network;
   uint32_t d_mask;
