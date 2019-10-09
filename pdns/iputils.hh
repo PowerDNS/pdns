@@ -632,6 +632,9 @@ private:
  * to a *LIST* of *PREFIXES*. Not the other way round.
  *
  * You can store IPv4 and IPv6 addresses to same tree, separate payload storage is kept per AFI.
+ * Network prefixes (Netmasks) are always recorded in normalized fashion, meaning that only
+ * the network bits are set. This is what is returned in the insert() and lookup() return
+ * values.
  *
  * Use swap if you need to move the tree to another NetmaskTree instance, it is WAY faster
  * than using copy ctor or assignment operator, since it moves the nodes and tree root to
@@ -657,7 +660,7 @@ private:
       parent(nullptr), node(new node_type()), assigned(false), d_bits(0) {
     }
     explicit TreeNode(const key_type& key) noexcept :
-      parent(nullptr), node(new node_type({key, value_type()})),
+      parent(nullptr), node(new node_type({key.getNormalized(), value_type()})),
       assigned(false), d_bits(key.getAddressBits()) {
     }
 
@@ -906,8 +909,6 @@ public:
       node->assigned = true;
     }
 
-    // assign key
-    value->first = key;
     return *value;
   }
 

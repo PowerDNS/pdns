@@ -240,6 +240,9 @@ void MemRecursorCache::replace(time_t now, const DNSName &qname, const QType& qt
 {
   d_cachecachevalid = false;
   //  cerr<<"Replacing "<<qname<<" for "<< (ednsmask ? ednsmask->toString() : "everyone") << endl;
+  if (ednsmask) {
+    ednsmask = ednsmask->getNormalized();
+  }
   auto key = boost::make_tuple(qname, qt.getCode(), ednsmask ? *ednsmask : Netmask());
   bool isNew = false;
   cache_t::iterator stored = d_cache.find(key);
