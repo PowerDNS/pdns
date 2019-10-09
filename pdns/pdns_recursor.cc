@@ -1780,11 +1780,19 @@ static void startDoResolve(void *p)
           Utility::gettimeofday(&g_now, 0); // needs to be updated
           struct timeval ttd = g_now;
           if (dc->d_tcpConnection->d_requestsInFlight == TCPConnection::s_maxInFlight - 1) {
+            // A read error might have happened. If we add the fd back, it will most likely error again.
+            // This is not a big issue, the next handleTCPClientReadable() will see another read error
+            // and take action.
             //cerr << "Reenabling " << dc->d_socket << ' ' << dc->d_tcpConnection->d_requestsInFlight << endl;
             ttd.tv_sec += g_tcpTimeout;
             t_fdm->addReadFD(dc->d_socket, handleRunningTCPQuestion, dc->d_tcpConnection, &ttd);
           } else {
-            t_fdm->setReadTTD(dc->d_socket, ttd, g_tcpTimeout);
+            // fd might have been removed by read error code, so expect an exception
+            try {
+              t_fdm->setReadTTD(dc->d_socket, ttd, g_tcpTimeout);
+            }
+            catch (FDMultiplexerException &) {
+            }
           }
         }
       }
