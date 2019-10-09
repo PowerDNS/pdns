@@ -650,7 +650,7 @@ public:
 
   typedef Netmask key_type;
   typedef T value_type;
-  typedef std::pair<key_type,value_type> node_type;
+  typedef std::pair<const key_type,value_type> node_type;
   typedef size_t size_type;
   typedef class Iterator iterator;
 
