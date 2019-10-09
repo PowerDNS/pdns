@@ -684,6 +684,24 @@ private:
     int d_bits; //<! How many bits have been used so far
   };
 
+  void cleanup_tree(TreeNode* node)
+  {
+    // only cleanup this node if it has no children and node4 and node6 are both empty
+    if (!(node->left || node->right || node->node6 || node->node4)) {
+      // get parent node ptr
+      TreeNode* pparent = node->parent;
+      // delete this node
+      if (pparent) {
+        if (pparent->left.get() == node)
+          pparent->left.reset();
+        else
+          pparent->right.reset();
+        // now recurse up to the parent
+        cleanup_tree(pparent);
+      }
+    }
+  }
+
 public:
   NetmaskTree() noexcept : NetmaskTree(false) {
   }
@@ -850,24 +868,6 @@ public:
 
     // this can be nullptr.
     return ret;
-  }
-
-  void cleanup_tree(TreeNode* node)
-  {
-    // only cleanup this node if it has no children and node4 and node6 are both empty
-    if (!(node->left || node->right || node->node6 || node->node4)) {
-      // get parent node ptr
-      TreeNode* pparent = node->parent;
-      // delete this node
-      if (pparent) {
-        if (pparent->left.get() == node)
-          pparent->left.reset();
-        else
-          pparent->right.reset();
-        // now recurse up to the parent
-        cleanup_tree(pparent);
-      }
-    }
   }
 
   //<! Removes key from TreeMap.
