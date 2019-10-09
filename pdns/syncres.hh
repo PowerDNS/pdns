@@ -1012,10 +1012,10 @@ public:
   enum stateenum {BYTE0, BYTE1, GETQUESTION, DONE} state{BYTE0};
   uint16_t qlen{0};
   uint16_t bytesread{0};
-  std::atomic<int> d_requestsInFlight;
+  uint16_t d_requestsInFlight{0}; // number of mthreads spawned for this connection
   static unsigned int getCurrentConnections() { return s_currentConnections; }
   // The max number of concurent TCP queries we're willing to process
-  static int s_maxInFlight;
+  static uint16_t s_maxInFlight;
 private:
   const int d_fd;
   static AtomicCounter s_currentConnections; //!< total number of current TCP connections
