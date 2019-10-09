@@ -554,8 +554,6 @@ private:
  *
  * You can store IPv4 and IPv6 addresses to same tree, separate payload storage is kept per AFI.
  *
- * To erase something copy values to new tree sans the value you want to erase.
- *
  * Use swap if you need to move the tree to another NetmaskTree instance, it is WAY faster
  * than using copy ctor or assignment operator, since it moves the nodes and tree root to
  * new home instead of actually recreating the tree.
@@ -793,7 +791,7 @@ public:
     }
   }
 
-  //<! Removes key from TreeMap. This does not clean up the tree.
+  //<! Removes key from TreeMap.
   void erase(const key_type& key) {
     TreeNode *node = root.get();
 
@@ -876,7 +874,7 @@ public:
     root.reset(nullptr);
   }
 
-  //<! swaps the contents, rhs is left with nullptr.
+  //<! swaps the contents with another NetmaskTree
   void swap(NetmaskTree& rhs) {
     root.swap(rhs.root);
     _nodes.swap(rhs._nodes);
