@@ -262,7 +262,13 @@ public:
     }
 
     if (!fe.d_enableTickets || fe.d_numberOfTicketsKeys == 0) {
+      /* for TLS 1.3 this means no stateless tickets, but stateful tickets might still be issued,
+         which is something we don't want. */
       sslOptions |= SSL_OP_NO_TICKET;
+      /* really disable all tickets */
+#ifdef HAVE_SSL_CTX_SET_NUM_TICKETS
+      SSL_CTX_set_num_tickets(d_tlsCtx.get(), 0);
+#endif /* HAVE_SSL_CTX_SET_NUM_TICKETS */
     }
     else {
       /* use our own ticket keys handler so we can rotate them */

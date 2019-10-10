@@ -940,7 +940,13 @@ static std::unique_ptr<SSL_CTX, void(*)(SSL_CTX*)> getTLSContext(DOHFrontend& df
     SSL_OP_SINGLE_ECDH_USE;
 
   if (!df.d_enableTickets || df.d_numberOfTicketsKeys == 0) {
+    /* for TLS 1.3 this means no stateless tickets, but stateful tickets might still be issued,
+       which is something we don't want. */
     sslOptions |= SSL_OP_NO_TICKET;
+    /* really disable all tickets */
+#ifdef HAVE_SSL_CTX_SET_NUM_TICKETS
+    SSL_CTX_set_num_tickets(ctx.get(), 0);
+#endif /* HAVE_SSL_CTX_SET_NUM_TICKETS */
   }
   else {
     df.d_ticketKeys = std::unique_ptr<OpenSSLTLSTicketKeysRing>(new OpenSSLTLSTicketKeysRing(df.d_numberOfTicketsKeys));
