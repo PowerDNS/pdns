@@ -1099,6 +1099,7 @@ If you are looking for exact name matching, your might want to consider using a 
   Represent a set of DNS suffixes for quick matching.
 
   .. method:: SuffixMatchNode:add(name)
+
     .. versionchanged:: 1.4.0
       This method now accepts strings, lists of DNSNames and lists of strings.
 
