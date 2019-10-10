@@ -770,6 +770,11 @@ static void connectionThread(int sock, ComboAddress remote)
           { "tcpAvgConnectionDuration", (double) front->tcpAvgConnectionDuration },
           { "tlsNewSessions", (double) front->tlsNewSessions },
           { "tlsResumptions", (double) front->tlsResumptions },
+          { "tls10Queries", (double) front->tls10queries },
+          { "tls11Queries", (double) front->tls11queries },
+          { "tls12Queries", (double) front->tls12queries },
+          { "tls13Queries", (double) front->tls13queries },
+          { "tlsUnknownQueries", (double) front->tlsUnknownqueries },
         };
         frontends.push_back(frontend);
       }
