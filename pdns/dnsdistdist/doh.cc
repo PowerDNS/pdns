@@ -82,7 +82,15 @@ public:
     }
   }
 
+  void decrementConcurrentConnections()
+  {
+    if (d_cs != nullptr) {
+      --d_cs->tcpCurrentConnections;
+    }
+  }
+
   std::map<int, std::string> d_ocspResponses;
+  ClientState* d_cs{nullptr};
 
 private:
   h2o_accept_ctx_t d_h2o_accept_ctx;
@@ -146,6 +154,7 @@ void handleDOHTimeout(DOHUnit* oldDU)
 static void on_socketclose(void *data)
 {
   DOHAcceptContext* ctx = reinterpret_cast<DOHAcceptContext*>(data);
+  ctx->decrementConcurrentConnections();
   ctx->release();
 }
 
@@ -883,6 +892,7 @@ static void on_accept(h2o_socket_t *listener, const char *err)
   auto accept_ctx = dsc->accept_ctx->get();
   sock->on_close.data = dsc->accept_ctx;
   ++dsc->df->d_httpconnects;
+  ++dsc->cs->tcpCurrentConnections;
   h2o_accept(accept_ctx, sock);
 }
 
@@ -1034,7 +1044,7 @@ static void setupAcceptContext(DOHAcceptContext& ctx, DOHServerConfig& dsc, bool
 
     nativeCtx->ssl_ctx = tlsCtx.release();
   }
-
+  ctx.d_cs = dsc.cs;
   ctx.release();
 }
 
