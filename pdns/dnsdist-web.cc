@@ -556,6 +556,8 @@ static void connectionThread(int sock, ComboAddress remote)
         output << "# TYPE " << frontsbase << "tlsnewsessions " << "counter" << "\n";
         output << "# HELP " << frontsbase << "tlsresumptions " << "Amount of TLS sessions resumed" << "\n";
         output << "# TYPE " << frontsbase << "tlsresumptions " << "counter" << "\n";
+        output << "# HELP " << frontsbase << "tlsqueries " << "Number of queries received by dnsdist over TLS, by TLS version" << "\n";
+        output << "# TYPE " << frontsbase << "tlsqueries " << "counter" << "\n";
 
         std::map<std::string,uint64_t> frontendDuplicates;
         for (const auto& front : g_frontends) {
@@ -587,14 +589,17 @@ static void connectionThread(int sock, ComboAddress remote)
             output << frontsbase << "tcpavgconnectionduration" << label << front->tcpAvgConnectionDuration.load() << "\n";
             output << frontsbase << "tlsnewsessions" << label << front->tlsNewSessions.load() << "\n";
             output << frontsbase << "tlsresumptions" << label << front->tlsResumptions.load() << "\n";
+
+            output << frontsbase << "tlsqueries{frontend=\"" << frontName << "\",proto=\"" << proto << "\",tls=\"tls10\"} " << front->tls10queries.load() << "\n";
+            output << frontsbase << "tlsqueries{frontend=\"" << frontName << "\",proto=\"" << proto << "\",tls=\"tls11\"} " << front->tls11queries.load() << "\n";
+            output << frontsbase << "tlsqueries{frontend=\"" << frontName << "\",proto=\"" << proto << "\",tls=\"tls12\"} " << front->tls12queries.load() << "\n";
+            output << frontsbase << "tlsqueries{frontend=\"" << frontName << "\",proto=\"" << proto << "\",tls=\"tls13\"} " << front->tls13queries.load() << "\n";
+            output << frontsbase << "tlsqueries{frontend=\"" << frontName << "\",proto=\"" << proto << "\",tls=\"unknown\"} " << front->tlsUnknownqueries.load() << "\n";
           }
         }
 
         output << "# HELP " << frontsbase << "http_connects " << "Number of DoH TCP connections established to this frontend" << "\n";
         output << "# TYPE " << frontsbase << "http_connects " << "counter" << "\n";
-
-        output << "# HELP " << frontsbase << "doh_tls_queries " << "Number of DoH queries received by dnsdist, by TLS version" << "\n";
-        output << "# TYPE " << frontsbase << "doh_tls_queries " << "counter" << "\n";
 
         output << "# HELP " << frontsbase << "doh_http_method_queries " << "Number of DoH queries received by dnsdist, by HTTP method" << "\n";
         output << "# TYPE " << frontsbase << "doh_http_method_queries " << "counter" << "\n";
@@ -625,13 +630,6 @@ static void connectionThread(int sock, ComboAddress remote)
           const std::string label = "{" + addrlabel + "} ";
 
           output << frontsbase << "http_connects" << label << doh->d_httpconnects << "\n";
-
-          output << frontsbase << "doh_tls_queries{tls=\"tls10\"," << addrlabel << "} " << doh->d_tls10queries << "\n";
-          output << frontsbase << "doh_tls_queries{tls=\"tls11\"," << addrlabel << "} " << doh->d_tls11queries << "\n";
-          output << frontsbase << "doh_tls_queries{tls=\"tls12\"," << addrlabel << "} " << doh->d_tls12queries << "\n";
-          output << frontsbase << "doh_tls_queries{tls=\"tls13\"," << addrlabel << "} " << doh->d_tls13queries << "\n";
-          output << frontsbase << "doh_tls_queries{tls=\"unknown\"," << addrlabel << "} " << doh->d_tlsUnknownqueries << "\n";
-
           output << frontsbase << "doh_http_method_queries{method=\"get\"," << addrlabel << "} " << doh->d_getqueries << "\n";
           output << frontsbase << "doh_http_method_queries{method=\"post\"," << addrlabel << "} " << doh->d_postqueries << "\n";
 
@@ -774,6 +772,11 @@ static void connectionThread(int sock, ComboAddress remote)
           { "tcpAvgConnectionDuration", (double) front->tcpAvgConnectionDuration },
           { "tlsNewSessions", (double) front->tlsNewSessions },
           { "tlsResumptions", (double) front->tlsResumptions },
+          { "tls10Queries", (double) front->tls10queries },
+          { "tls11Queries", (double) front->tls11queries },
+          { "tls12Queries", (double) front->tls12queries },
+          { "tls13Queries", (double) front->tls13queries },
+          { "tlsUnknownQueries", (double) front->tlsUnknownqueries },
         };
         frontends.push_back(frontend);
       }
@@ -801,11 +804,6 @@ static void connectionThread(int sock, ComboAddress remote)
             { "http2-502-responses", (double) doh->d_http2Stats.d_nb502Responses },
             { "http1-other-responses", (double) doh->d_http1Stats.d_nbOtherResponses },
             { "http2-other-responses", (double) doh->d_http2Stats.d_nbOtherResponses },
-            { "tls10-queries", (double) doh->d_tls10queries },
-            { "tls11-queries", (double) doh->d_tls11queries },
-            { "tls12-queries", (double) doh->d_tls12queries },
-            { "tls13-queries", (double) doh->d_tls13queries },
-            { "tls-unknown-queries", (double) doh->d_tlsUnknownqueries },
             { "get-queries", (double) doh->d_getqueries },
             { "post-queries", (double) doh->d_postqueries },
             { "bad-requests", (double) doh->d_badrequests },

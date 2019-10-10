@@ -194,7 +194,7 @@ public:
     }
   }
 
-  std::string getServerNameIndication() override
+  std::string getServerNameIndication() const override
   {
     if (d_conn) {
       const char* value = SSL_get_servername(d_conn.get(), TLSEXT_NAMETYPE_host_name);
@@ -203,6 +203,25 @@ public:
       }
     }
     return std::string();
+  }
+
+  LibsslTLSVersion getTLSVersion() const override
+  {
+    auto proto = SSL_version(d_conn.get());
+    switch (proto) {
+    case TLS1_VERSION:
+      return LibsslTLSVersion::TLS10;
+    case TLS1_1_VERSION:
+      return LibsslTLSVersion::TLS11;
+    case TLS1_2_VERSION:
+      return LibsslTLSVersion::TLS12;
+#ifdef TLS1_3_VERSION
+    case TLS1_3_VERSION:
+      return LibsslTLSVersion::TLS13;
+#endif /* TLS1_3_VERSION */
+    default:
+      return LibsslTLSVersion::Unknown;
+    }
   }
 
   bool hasSessionBeenResumed() const override
@@ -696,7 +715,7 @@ public:
     return got;
   }
 
-  std::string getServerNameIndication() override
+  std::string getServerNameIndication() const override
   {
     if (d_conn) {
       unsigned int type;
@@ -711,6 +730,25 @@ public:
       }
     }
     return std::string();
+  }
+
+  LibsslTLSVersion getTLSVersion() const override
+  {
+    auto proto = gnutls_protocol_get_version(d_conn.get());
+    switch (proto) {
+    case GNUTLS_TLS1_0:
+      return LibsslTLSVersion::TLS10;
+    case GNUTLS_TLS1_1:
+      return LibsslTLSVersion::TLS11;
+    case GNUTLS_TLS1_2:
+      return LibsslTLSVersion::TLS12;
+#if GNUTLS_VERSION_NUMBER >= 0x030603
+    case GNUTLS_TLS1_3:
+      return LibsslTLSVersion::TLS13;
+#endif /* GNUTLS_VERSION_NUMBER >= 0x030603 */
+    default:
+      return LibsslTLSVersion::Unknown;
+    }
   }
 
   bool hasSessionBeenResumed() const override

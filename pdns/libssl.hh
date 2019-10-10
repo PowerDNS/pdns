@@ -10,7 +10,7 @@
 #include "circular_buffer.hh"
 #include "lock.hh"
 
-enum class LibsslTLSVersion { TLS10, TLS11, TLS12, TLS13 };
+enum class LibsslTLSVersion { Unknown, TLS10, TLS11, TLS12, TLS13 };
 
 #ifdef HAVE_LIBSSL
 #include <openssl/ssl.h>
