@@ -552,12 +552,16 @@ static void connectionThread(int sock, ComboAddress remote)
         output << "# TYPE " << frontsbase << "tcpavgqueriesperconnection " << "gauge" << "\n";
         output << "# HELP " << frontsbase << "tcpavgconnectionduration " << "The average duration of a TCP connection (ms)" << "\n";
         output << "# TYPE " << frontsbase << "tcpavgconnectionduration " << "gauge" << "\n";
+        output << "# HELP " << frontsbase << "tlsqueries " << "Number of queries received by dnsdist over TLS, by TLS version" << "\n";
+        output << "# TYPE " << frontsbase << "tlsqueries " << "counter" << "\n";
         output << "# HELP " << frontsbase << "tlsnewsessions " << "Amount of new TLS sessions negotiated" << "\n";
         output << "# TYPE " << frontsbase << "tlsnewsessions " << "counter" << "\n";
         output << "# HELP " << frontsbase << "tlsresumptions " << "Amount of TLS sessions resumed" << "\n";
         output << "# TYPE " << frontsbase << "tlsresumptions " << "counter" << "\n";
-        output << "# HELP " << frontsbase << "tlsqueries " << "Number of queries received by dnsdist over TLS, by TLS version" << "\n";
-        output << "# TYPE " << frontsbase << "tlsqueries " << "counter" << "\n";
+        output << "# HELP " << frontsbase << "tlsunknownticketkeys " << "Amount of attempts to resume TLS session from an unknown key (possibly expired)" << "\n";
+        output << "# TYPE " << frontsbase << "tlsunknownticketkeys " << "counter" << "\n";
+        output << "# HELP " << frontsbase << "tlsinactiveticketkeys " << "Amount of TLS sessions resumed from an inactive key" << "\n";
+        output << "# TYPE " << frontsbase << "tlsinactiveticketkeys " << "counter" << "\n";
 
         std::map<std::string,uint64_t> frontendDuplicates;
         for (const auto& front : g_frontends) {
@@ -589,6 +593,8 @@ static void connectionThread(int sock, ComboAddress remote)
             output << frontsbase << "tcpavgconnectionduration" << label << front->tcpAvgConnectionDuration.load() << "\n";
             output << frontsbase << "tlsnewsessions" << label << front->tlsNewSessions.load() << "\n";
             output << frontsbase << "tlsresumptions" << label << front->tlsResumptions.load() << "\n";
+            output << frontsbase << "tlsunknownticketkeys" << label << front->tlsUnknownTicketKey.load() << "\n";
+            output << frontsbase << "tlsinactiveticketkeys" << label << front->tlsInactiveTicketKey.load() << "\n";
 
             output << frontsbase << "tlsqueries{frontend=\"" << frontName << "\",proto=\"" << proto << "\",tls=\"tls10\"} " << front->tls10queries.load() << "\n";
             output << frontsbase << "tlsqueries{frontend=\"" << frontName << "\",proto=\"" << proto << "\",tls=\"tls11\"} " << front->tls11queries.load() << "\n";
@@ -772,6 +778,8 @@ static void connectionThread(int sock, ComboAddress remote)
           { "tcpAvgConnectionDuration", (double) front->tcpAvgConnectionDuration },
           { "tlsNewSessions", (double) front->tlsNewSessions },
           { "tlsResumptions", (double) front->tlsResumptions },
+          { "tlsUnknownTicketKey", (double) front->tlsUnknownTicketKey },
+          { "tlsInactiveTicketKey", (double) front->tlsInactiveTicketKey },
           { "tls10Queries", (double) front->tls10queries },
           { "tls11Queries", (double) front->tls11queries },
           { "tls12Queries", (double) front->tls12queries },

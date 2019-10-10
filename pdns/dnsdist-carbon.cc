@@ -130,13 +130,15 @@ try
           str<<base<<"tcpcurrentconnections" << ' '<< front->tcpCurrentConnections.load() << " " << now << "\r\n";
           str<<base<<"tcpavgqueriesperconnection" << ' '<< front->tcpAvgQueriesPerConnection.load() << " " << now << "\r\n";
           str<<base<<"tcpavgconnectionduration" << ' '<< front->tcpAvgConnectionDuration.load() << " " << now << "\r\n";
-          str<<base<<"tlsnewsessions" << ' ' << front->tlsNewSessions.load() << " " << now << "\r\n";
-          str<<base<<"tlsresumptions" << ' ' << front->tlsResumptions.load() << " " << now << "\r\n";
           str<<base<<"tls10-queries" << ' ' << front->tls10queries.load() << " " << now << "\r\n";
           str<<base<<"tls11-queries" << ' ' << front->tls11queries.load() << " " << now << "\r\n";
           str<<base<<"tls12-queries" << ' ' << front->tls12queries.load() << " " << now << "\r\n";
           str<<base<<"tls13-queries" << ' ' << front->tls13queries.load() << " " << now << "\r\n";
           str<<base<<"tls-unknown-queries" << ' ' << front->tlsUnknownqueries.load() << " " << now << "\r\n";
+          str<<base<<"tlsnewsessions" << ' ' << front->tlsNewSessions.load() << " " << now << "\r\n";
+          str<<base<<"tlsresumptions" << ' ' << front->tlsResumptions.load() << " " << now << "\r\n";
+          str<<base<<"tlsunknownticketkeys" << ' ' << front->tlsUnknownTicketKey.load() << " " << now << "\r\n";
+          str<<base<<"tlsinactiveticketkeys" << ' ' << front->tlsInactiveTicketKey.load() << " " << now << "\r\n";
         }
 
         auto localPools = g_pools.getLocal();

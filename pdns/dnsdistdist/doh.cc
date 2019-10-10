@@ -923,7 +923,17 @@ static int ticket_key_callback(SSL *s, unsigned char keyName[TLS_TICKETS_KEY_NAM
 
   df->handleTicketsKeyRotation();
 
-  return libssl_ticket_key_callback(s, *df->d_ticketKeys, keyName, iv, ectx, hctx, enc);
+  auto ret = libssl_ticket_key_callback(s, *df->d_ticketKeys, keyName, iv, ectx, hctx, enc);
+  if (enc == 0) {
+    if (ret == 0) {
+      ++df->d_dsc->cs->tlsUnknownTicketKey;
+    }
+    else if (ret == 2) {
+      ++df->d_dsc->cs->tlsInactiveTicketKey;
+    }
+  }
+
+  return ret;
 }
 
 static std::unique_ptr<SSL_CTX, void(*)(SSL_CTX*)> getTLSContext(DOHFrontend& df,
