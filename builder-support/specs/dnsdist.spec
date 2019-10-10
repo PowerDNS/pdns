@@ -54,7 +54,10 @@ Requires(pre): shadow
 %endif
 %if 0%{?rhel} >= 7
 Requires(pre): shadow-utils
+%if 0%{?rhel} == 7
+# No fstrm in EPEL 8 (yet) https://bugzilla.redhat.com/show_bug.cgi?id=1760298
 BuildRequires: fstrm-devel
+%endif
 %systemd_requires
 %endif
 
@@ -96,8 +99,10 @@ sed -i '/^ExecStart/ s/dnsdist/dnsdist -u dnsdist -g dnsdist/' dnsdist.service.i
   --without-protobuf \
   --without-net-snmp
 %endif
-%if 0%{?rhel} >= 7
+%if 0%{?rhel} == 7
   --enable-dnstap \
+%endif
+%if 0%{?rhel} >= 7
   --with-gnutls \
   --with-protobuf \
   --with-lua=%{lua_implementation} \
