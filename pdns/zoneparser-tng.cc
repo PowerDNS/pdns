@@ -193,11 +193,22 @@ bool ZoneParserTNG::getTemplateLine()
         char radix='d';
         sscanf(spec.c_str(), "%d,%d,%c", &offset, &width, &radix);  // parse format specifier
 
-        char sformat[12];
-        snprintf(sformat, sizeof(sformat), "%%0%d%c", width, radix); // make into printf-style format
-
         char tmp[80];
-        snprintf(tmp, sizeof(tmp), sformat, d_templatecounter + offset); // and do the actual printing
+        switch (radix) {
+        case 'o':
+          snprintf(tmp, sizeof(tmp), "%0*o", width, d_templatecounter + offset);
+          break;
+        case 'x':
+          snprintf(tmp, sizeof(tmp), "%0*x", width, d_templatecounter + offset);
+          break;
+        case 'X':
+          snprintf(tmp, sizeof(tmp), "%0*X", width, d_templatecounter + offset);
+          break;
+        case 'd':
+        default:
+          snprintf(tmp, sizeof(tmp), "%0*d", width, d_templatecounter + offset);
+          break;
+        }
         outpart+=tmp;
       }
       else
