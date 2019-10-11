@@ -280,7 +280,7 @@ static ComboAddress pickwrandom(const vector<pair<int,ComboAddress> >& wips)
     pick.push_back({sum, i.second});
   }
   int r = dns_random(sum);
-  auto p = upper_bound(pick.begin(), pick.end(),r, [](int r, const decltype(pick)::value_type& a) { return  r < a.first;});
+  auto p = upper_bound(pick.begin(), pick.end(), r, [](int rarg, const decltype(pick)::value_type& a) { return rarg < a.first; });
   return p->second;
 }
 
@@ -297,7 +297,7 @@ static ComboAddress pickwhashed(const ComboAddress& bestwho, vector<pair<int,Com
   }
   ComboAddress::addressOnlyHash aoh;
   int r = aoh(bestwho) % sum;
-  auto p = upper_bound(pick.begin(), pick.end(),r, [](int r, const decltype(pick)::value_type& a) { return  r < a.first;});
+  auto p = upper_bound(pick.begin(), pick.end(), r, [](int rarg, const decltype(pick)::value_type& a) { return rarg < a.first; });
   return p->second;
 }
 
@@ -549,8 +549,8 @@ void setupLuaRecords()
 
         return fmt.str();
       }
-      catch(std::exception& e) {
-        g_log<<Logger::Error<<"error: "<<e.what()<<endl;
+      catch(std::exception& ex) {
+        g_log<<Logger::Error<<"error: "<<ex.what()<<endl;
       }
       return std::string("error");
     });
@@ -639,11 +639,11 @@ void setupLuaRecords()
 
         return fmt.str();
       }
-      catch(std::exception& e) {
-        g_log<<Logger::Error<<"LUA Record xception: "<<e.what()<<endl;
+      catch(std::exception& ex) {
+        g_log<<Logger::Error<<"LUA Record xception: "<<ex.what()<<endl;
       }
-      catch(PDNSException& e) {
-        g_log<<Logger::Error<<"LUA Record exception: "<<e.reason<<endl;
+      catch(PDNSException& ex) {
+        g_log<<Logger::Error<<"LUA Record exception: "<<ex.reason<<endl;
       }
       return std::string("unknown");
     });
