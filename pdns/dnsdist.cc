@@ -439,7 +439,7 @@ bool processResponse(char** response, uint16_t* responseLen, size_t* responseSiz
     return false;
   }
 
-  if (dr.packetCache && !dr.skipCache) {
+  if (dr.packetCache && !dr.skipCache && *responseLen <= s_maxPacketCacheEntrySize) {
     if (!dr.useZeroScope) {
       /* if the query was not suitable for zero-scope, for
          example because it had an existing ECS entry so the hash is
