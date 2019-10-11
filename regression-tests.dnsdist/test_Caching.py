@@ -402,6 +402,71 @@ class TestCaching(DNSDistTest):
         (_, receivedResponse) = self.sendUDPQuery(differentCaseQuery, response=None, useQueue=False)
         self.assertEquals(receivedResponse, differentCaseResponse)
 
+    def testLargeAnswer(self):
+        """
+        Cache: Check that we can cache (and retrieve) large answers
+
+        We should be able to get answers as large as 4096 bytes
+        """
+        numberOfQueries = 10
+        name = 'large-answer.cache.tests.powerdns.com.'
+        query = dns.message.make_query(name, 'TXT', 'IN')
+        response = dns.message.make_response(query)
+        # we prepare a large answer
+        content = ""
+        for i in range(44):
+            if len(content) > 0:
+                content = content + ', '
+            content = content + (str(i)*50)
+        # pad up to 4096
+        content = content + 'A'*42
+
+        rrset = dns.rrset.from_text(name,
+                                    3600,
+                                    dns.rdataclass.IN,
+                                    dns.rdatatype.TXT,
+                                    content)
+        response.answer.append(rrset)
+        self.assertEquals(len(response.to_wire()), 4096)
+
+        # first query to fill the cache
+        (receivedQuery, receivedResponse) = self.sendUDPQuery(query, response)
+        self.assertTrue(receivedQuery)
+        self.assertTrue(receivedResponse)
+        receivedQuery.id = query.id
+        self.assertEquals(query, receivedQuery)
+        self.assertEquals(receivedResponse, response)
+
+        for _ in range(numberOfQueries):
+            (_, receivedResponse) = self.sendUDPQuery(query, response=None, useQueue=False)
+            self.assertEquals(receivedResponse, response)
+
+        total = 0
+        for key in self._responsesCounter:
+            total += self._responsesCounter[key]
+            TestCaching._responsesCounter[key] = 0
+
+        self.assertEquals(total, 1)
+
+        # TCP should not be cached
+        # first query to fill the cache
+        (receivedQuery, receivedResponse) = self.sendTCPQuery(query, response)
+        self.assertTrue(receivedQuery)
+        self.assertTrue(receivedResponse)
+        receivedQuery.id = query.id
+        self.assertEquals(query, receivedQuery)
+        self.assertEquals(receivedResponse, response)
+
+        for _ in range(numberOfQueries):
+            (_, receivedResponse) = self.sendTCPQuery(query, response=None, useQueue=False)
+            self.assertEquals(receivedResponse, response)
+
+        total = 0
+        for key in self._responsesCounter:
+            total += self._responsesCounter[key]
+            TestCaching._responsesCounter[key] = 0
+
+        self.assertEquals(total, 1)
 
 class TestTempFailureCacheTTLAction(DNSDistTest):
 
