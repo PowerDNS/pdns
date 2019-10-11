@@ -897,7 +897,7 @@ jobs:
       - image: debian:buster
     steps:
       - add-auth-repo
-      - run: apt-get --no-install-recommends install -qq -y pdns-server pdns-backend-bind pdns-tools daemontools authbind jq libfaketime lua-posix moreutils bc virtualenv protobuf-compiler
+      - run: apt-get --no-install-recommends install -qq -y pdns-server pdns-backend-bind pdns-tools daemontools authbind jq libfaketime lua-posix lua-socket moreutils bc virtualenv protobuf-compiler
       - install-recursor-deps
       - run:
           name: Set up authbind

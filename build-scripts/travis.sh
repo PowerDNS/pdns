@@ -343,6 +343,7 @@ install_recursor() {
     libfaketime \
     libsnmp-dev \
     lua-posix \
+    lua-socket \
     moreutils \
     snmpd"
   run "cd .."

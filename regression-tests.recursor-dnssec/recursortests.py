@@ -114,6 +114,9 @@ sort.example.                      3600 IN A     17.38.42.80
 sort.example.                      3600 IN A     192.168.0.1
 sort.example.                      3600 IN A     17.238.240.5
 sort.example.                      3600 IN MX    25 mx
+
+delay.example.                     3600 IN NS   ns1.delay.example.
+ns1.delay.example.                 3600 IN A    {prefix}.16
         """,
         'secure.example': """
 secure.example.          3600 IN SOA  {soa}
@@ -232,6 +235,13 @@ undelegated.insecure.example.        3600 IN NS   ns1.undelegated.insecure.examp
 
 node1.undelegated.insecure.example.  3600 IN A    192.0.2.22
         """,
+
+        'delay.example': """
+delay.example.                       3600 IN SOA  {soa}
+delay.example.                       3600 IN NS n1.delay.example.
+ns1.delay.example.                   3600 IN A    {prefix}.16
+*.delay.example.                     0    LUA TXT ";" "local socket=require('socket')" "socket.sleep(tonumber(qname:getRawLabels()[1])/10)" "return 'a'"
+        """
     }
 
     # The private keys for the zones (note that DS records should go into
@@ -296,14 +306,25 @@ PrivateKey: Ep9uo6+wwjb4MaOmqq7LHav2FLrjotVOeZg8JT1Qk04=
     # is a list of zones hosted on that IP. Note that delegations should
     # go into the _zones's zonecontent
     _auth_zones = {
-        '8': ['ROOT'],
-        '9': ['secure.example', 'islandofsecurity.example'],
-        '10': ['example'],
-        '11': ['example'],
-        '12': ['bogus.example', 'undelegated.secure.example', 'undelegated.insecure.example'],
-        '13': ['insecure.example', 'insecure.sub2.secure.example', 'dname-secure.example'],
-        '14': ['optout.example'],
-        '15': ['insecure.optout.example', 'secure.optout.example', 'cname-secure.example']
+        '8': {'threads': 1,
+              'zones': ['ROOT']},
+        '9': {'threads': 1,
+              'zones': ['secure.example', 'islandofsecurity.example']},
+        '10': {'threads': 1,
+               'zones': ['example']},
+        '11': {'threads': 1,
+               'zones': ['example']},
+        '12': {'threads': 1,
+               'zones': ['bogus.example', 'undelegated.secure.example', 'undelegated.insecure.example']},
+        '13': {'threads': 1,
+               'zones': ['insecure.example', 'insecure.sub2.secure.example', 'dname-secure.example']},
+        '14': {'threads': 1,
+               'zones': ['optout.example']},
+        '15': {'threads': 1,
+               'zones': ['insecure.optout.example', 'secure.optout.example', 'cname-secure.example']},
+        # This zone need more threads so that the lua delay code does not cause serialization
+        '16': {'threads': 2,
+               'zones': ['delay.example']}
     }
 
     _auth_cmd = ['authbind',
@@ -342,7 +363,7 @@ options {
         };""" % (zone, zonename))
 
     @classmethod
-    def generateAuthConfig(cls, confdir):
+    def generateAuthConfig(cls, confdir, threads):
         bind_dnssec_db = os.path.join(confdir, 'bind-dnssec.sqlite3')
 
         with open(os.path.join(confdir, 'pdns.conf'), 'w') as pdnsconf:
@@ -360,9 +381,11 @@ query-cache-ttl=0
 log-dns-queries=yes
 log-dns-details=yes
 loglevel=9
+enable-lua-records
 dname-processing=yes
-distributor-threads=1""".format(confdir=confdir,
-                                bind_dnssec_db=bind_dnssec_db))
+distributor-threads={threads}""".format(confdir=confdir,
+                                        bind_dnssec_db=bind_dnssec_db,
+                                        threads=threads))
 
         pdnsutilCmd = [os.environ['PDNSUTIL'],
                        '--config-dir=%s' % confdir,
@@ -405,12 +428,14 @@ distributor-threads=1""".format(confdir=confdir,
     @classmethod
     def generateAllAuthConfig(cls, confdir):
         if cls._auth_zones:
-            for auth_suffix, zones in cls._auth_zones.items():
+            for auth_suffix, zoneinfo in cls._auth_zones.items():
+                threads = zoneinfo['threads']
+                zones = zoneinfo['zones']
                 authconfdir = os.path.join(confdir, 'auth-%s' % auth_suffix)
 
                 os.mkdir(authconfdir)
 
-                cls.generateAuthConfig(authconfdir)
+                cls.generateAuthConfig(authconfdir, threads)
                 cls.generateAuthNamedConf(authconfdir, zones)
 
                 for zone in zones:
@@ -656,6 +681,38 @@ distributor-threads=1""".format(confdir=confdir,
         if data:
             message = dns.message.from_wire(data)
         return message
+
+    @classmethod
+    def sendTCPQueries(cls, queries, timeout=2.0):
+        sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        if timeout:
+            sock.settimeout(timeout)
+
+        sock.connect(("127.0.0.1", cls._recursorPort))
+        data = []
+        try:
+            for query in queries:
+                wire = query.to_wire()
+                sock.send(struct.pack("!H", len(wire)))
+                sock.send(wire)
+            for i in range(len(queries)):
+                try:
+                    datalen = sock.recv(2)
+                    if datalen:
+                        (datalen,) = struct.unpack("!H", datalen)
+                        data.append(sock.recv(datalen))
+                except socket.timeout as e:
+                    continue
+        except socket.error as e:
+            print("Network error: %s" % (str(e)))
+            data = None
+        finally:
+            sock.close()
+
+        messages = []
+        for d in data:
+            messages.append(dns.message.from_wire(d))
+        return messages
 
     def setUp(self):
         # This function is called before every tests
