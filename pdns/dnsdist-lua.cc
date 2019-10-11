@@ -200,63 +200,63 @@ void setupLuaConfig(bool client)
       size_t numberOfSockets = 1;
       std::set<int> cpus;
 
-			if(vars.count("source")) {
-			  /* handle source in the following forms:
-			     - v4 address ("192.0.2.1")
-			     - v6 address ("2001:DB8::1")
-			     - interface name ("eth0")
-			     - v4 address and interface name ("192.0.2.1@eth0")
-			     - v6 address and interface name ("2001:DB8::1@eth0")
-			  */
-			  const string source = boost::get<string>(vars["source"]);
-			  bool parsed = false;
-			  std::string::size_type pos = source.find("@");
-			  if (pos == std::string::npos) {
-			    /* no '@', try to parse that as a valid v4/v6 address */
-			    try {
-			      sourceAddr = ComboAddress(source);
-			      parsed = true;
-			    }
-			    catch(...)
-			    {
-			    }
-			  }
+      if(vars.count("source")) {
+        /* handle source in the following forms:
+           - v4 address ("192.0.2.1")
+           - v6 address ("2001:DB8::1")
+           - interface name ("eth0")
+           - v4 address and interface name ("192.0.2.1@eth0")
+           - v6 address and interface name ("2001:DB8::1@eth0")
+        */
+        const string source = boost::get<string>(vars["source"]);
+        bool parsed = false;
+        std::string::size_type pos = source.find("@");
+        if (pos == std::string::npos) {
+          /* no '@', try to parse that as a valid v4/v6 address */
+          try {
+            sourceAddr = ComboAddress(source);
+            parsed = true;
+          }
+          catch(...)
+          {
+          }
+        }
 
-			  if (parsed == false)
-			  {
-			    /* try to parse as interface name, or v4/v6@itf */
-			    sourceItfName = source.substr(pos == std::string::npos ? 0 : pos + 1);
-			    unsigned int itfIdx = if_nametoindex(sourceItfName.c_str());
+        if (parsed == false)
+        {
+          /* try to parse as interface name, or v4/v6@itf */
+          sourceItfName = source.substr(pos == std::string::npos ? 0 : pos + 1);
+          unsigned int itfIdx = if_nametoindex(sourceItfName.c_str());
 
-			    if (itfIdx != 0) {
-			      if (pos == 0 || pos == std::string::npos) {
-			        /* "eth0" or "@eth0" */
-			        sourceItf = itfIdx;
-			      }
-			      else {
-			        /* "192.0.2.1@eth0" */
-			        sourceAddr = ComboAddress(source.substr(0, pos));
-			        sourceItf = itfIdx;
-			      }
+          if (itfIdx != 0) {
+            if (pos == 0 || pos == std::string::npos) {
+              /* "eth0" or "@eth0" */
+              sourceItf = itfIdx;
+            }
+            else {
+              /* "192.0.2.1@eth0" */
+              sourceAddr = ComboAddress(source.substr(0, pos));
+              sourceItf = itfIdx;
+            }
 #ifdef SO_BINDTODEVICE
-                              /* we need to retain CAP_NET_RAW to be able to set SO_BINDTODEVICE in the health checks */
-                              g_capabilitiesToRetain.insert("CAP_NET_RAW");
+            /* we need to retain CAP_NET_RAW to be able to set SO_BINDTODEVICE in the health checks */
+            g_capabilitiesToRetain.insert("CAP_NET_RAW");
 #endif
-			    }
-			    else
-			    {
-			      warnlog("Dismissing source %s because '%s' is not a valid interface name", source, sourceItfName);
-			    }
-			  }
-			}
+          }
+          else
+          {
+            warnlog("Dismissing source %s because '%s' is not a valid interface name", source, sourceItfName);
+          }
+        }
+      }
 
-                        if (vars.count("sockets")) {
-                          numberOfSockets = std::stoul(boost::get<string>(vars["sockets"]));
-                          if (numberOfSockets == 0) {
-                            warnlog("Dismissing invalid number of sockets '%s', using 1 instead", boost::get<string>(vars["sockets"]));
-                            numberOfSockets = 1;
-                          }
-                        }
+      if (vars.count("sockets")) {
+        numberOfSockets = std::stoul(boost::get<string>(vars["sockets"]));
+        if (numberOfSockets == 0) {
+          warnlog("Dismissing invalid number of sockets '%s', using 1 instead", boost::get<string>(vars["sockets"]));
+          numberOfSockets = 1;
+        }
+      }
 
       if(client) {
         // do not construct DownstreamState now, it would try binding sockets.
@@ -264,183 +264,183 @@ void setupLuaConfig(bool client)
       }
       ret=std::make_shared<DownstreamState>(serverAddr, sourceAddr, sourceItf, sourceItfName, numberOfSockets);
 
-			if(vars.count("qps")) {
-			  int qpsVal=std::stoi(boost::get<string>(vars["qps"]));
-			  ret->qps=QPSLimiter(qpsVal, qpsVal);
-			}
+      if(vars.count("qps")) {
+        int qpsVal=std::stoi(boost::get<string>(vars["qps"]));
+        ret->qps=QPSLimiter(qpsVal, qpsVal);
+      }
 
-			if(vars.count("order")) {
-			  ret->order=std::stoi(boost::get<string>(vars["order"]));
-			}
+      if(vars.count("order")) {
+        ret->order=std::stoi(boost::get<string>(vars["order"]));
+      }
 
-			if(vars.count("weight")) {
-			  try {
-			    int weightVal=std::stoi(boost::get<string>(vars["weight"]));
+      if(vars.count("weight")) {
+        try {
+          int weightVal=std::stoi(boost::get<string>(vars["weight"]));
 
-			    if(weightVal < 1) {
-			      errlog("Error creating new server: downstream weight value must be greater than 0.");
-			      return ret;
-			    }
+          if(weightVal < 1) {
+            errlog("Error creating new server: downstream weight value must be greater than 0.");
+            return ret;
+          }
 
-			    ret->setWeight(weightVal);
-			  }
-			  catch(std::exception& e) {
-			    // std::stoi will throw an exception if the string isn't in a value int range
-			    errlog("Error creating new server: downstream weight value must be between %s and %s", 1, std::numeric_limits<int>::max());
-			    return ret;
-			  }
-			}
+          ret->setWeight(weightVal);
+        }
+        catch(std::exception& e) {
+          // std::stoi will throw an exception if the string isn't in a value int range
+          errlog("Error creating new server: downstream weight value must be between %s and %s", 1, std::numeric_limits<int>::max());
+          return ret;
+        }
+      }
 
-			if(vars.count("retries")) {
-			  ret->retries=std::stoi(boost::get<string>(vars["retries"]));
-			}
+      if(vars.count("retries")) {
+        ret->retries=std::stoi(boost::get<string>(vars["retries"]));
+      }
 
-			if(vars.count("checkInterval")) {
-			  ret->checkInterval=static_cast<unsigned int>(std::stoul(boost::get<string>(vars["checkInterval"])));
-			}
+      if(vars.count("checkInterval")) {
+        ret->checkInterval=static_cast<unsigned int>(std::stoul(boost::get<string>(vars["checkInterval"])));
+      }
 
-			if(vars.count("tcpConnectTimeout")) {
-			  ret->tcpConnectTimeout=std::stoi(boost::get<string>(vars["tcpConnectTimeout"]));
-			}
+      if(vars.count("tcpConnectTimeout")) {
+        ret->tcpConnectTimeout=std::stoi(boost::get<string>(vars["tcpConnectTimeout"]));
+      }
 
-			if(vars.count("tcpSendTimeout")) {
-			  ret->tcpSendTimeout=std::stoi(boost::get<string>(vars["tcpSendTimeout"]));
-			}
+      if(vars.count("tcpSendTimeout")) {
+        ret->tcpSendTimeout=std::stoi(boost::get<string>(vars["tcpSendTimeout"]));
+      }
 
-			if(vars.count("tcpRecvTimeout")) {
-			  ret->tcpRecvTimeout=std::stoi(boost::get<string>(vars["tcpRecvTimeout"]));
-			}
+      if(vars.count("tcpRecvTimeout")) {
+        ret->tcpRecvTimeout=std::stoi(boost::get<string>(vars["tcpRecvTimeout"]));
+      }
 
-			if(vars.count("tcpFastOpen")) {
-			  bool fastOpen = boost::get<bool>(vars["tcpFastOpen"]);
-			  if (fastOpen) {
+      if(vars.count("tcpFastOpen")) {
+        bool fastOpen = boost::get<bool>(vars["tcpFastOpen"]);
+        if (fastOpen) {
 #ifdef MSG_FASTOPEN
-			    ret->tcpFastOpen=true;
+          ret->tcpFastOpen=true;
 #else
-			    warnlog("TCP Fast Open has been configured on downstream server %s but is not supported", boost::get<string>(vars["address"]));
+          warnlog("TCP Fast Open has been configured on downstream server %s but is not supported", boost::get<string>(vars["address"]));
 #endif
-			  }
-			}
+        }
+      }
 
-			if(vars.count("name")) {
-			  ret->name=boost::get<string>(vars["name"]);
-			}
+      if(vars.count("name")) {
+        ret->name=boost::get<string>(vars["name"]);
+      }
 
-                        if (vars.count("id")) {
-                          ret->setId(boost::lexical_cast<boost::uuids::uuid>(boost::get<string>(vars["id"])));
-                        }
+      if (vars.count("id")) {
+        ret->setId(boost::lexical_cast<boost::uuids::uuid>(boost::get<string>(vars["id"])));
+      }
 
-			if(vars.count("checkName")) {
-			  ret->checkName=DNSName(boost::get<string>(vars["checkName"]));
-			}
+      if(vars.count("checkName")) {
+        ret->checkName=DNSName(boost::get<string>(vars["checkName"]));
+      }
 
-			if(vars.count("checkType")) {
-			  ret->checkType=boost::get<string>(vars["checkType"]);
-			}
+      if(vars.count("checkType")) {
+        ret->checkType=boost::get<string>(vars["checkType"]);
+      }
 
-			if(vars.count("checkClass")) {
-			  ret->checkClass=std::stoi(boost::get<string>(vars["checkClass"]));
-			}
+      if(vars.count("checkClass")) {
+        ret->checkClass=std::stoi(boost::get<string>(vars["checkClass"]));
+      }
 
-                        if(vars.count("checkFunction")) {
-			  ret->checkFunction= boost::get<DownstreamState::checkfunc_t>(vars["checkFunction"]);
-			}
+      if(vars.count("checkFunction")) {
+        ret->checkFunction= boost::get<DownstreamState::checkfunc_t>(vars["checkFunction"]);
+      }
 
-			if(vars.count("checkTimeout")) {
-			  ret->checkTimeout = std::stoi(boost::get<string>(vars["checkTimeout"]));
-			}
+      if(vars.count("checkTimeout")) {
+        ret->checkTimeout = std::stoi(boost::get<string>(vars["checkTimeout"]));
+      }
 
-			if(vars.count("setCD")) {
-			  ret->setCD=boost::get<bool>(vars["setCD"]);
-			}
+      if(vars.count("setCD")) {
+        ret->setCD=boost::get<bool>(vars["setCD"]);
+      }
 
-			if(vars.count("mustResolve")) {
-			  ret->mustResolve=boost::get<bool>(vars["mustResolve"]);
-			}
+      if(vars.count("mustResolve")) {
+        ret->mustResolve=boost::get<bool>(vars["mustResolve"]);
+      }
 
-			if(vars.count("useClientSubnet")) {
-			  ret->useECS=boost::get<bool>(vars["useClientSubnet"]);
-			}
+      if(vars.count("useClientSubnet")) {
+        ret->useECS=boost::get<bool>(vars["useClientSubnet"]);
+      }
 
-			if(vars.count("disableZeroScope")) {
-			  ret->disableZeroScope=boost::get<bool>(vars["disableZeroScope"]);
-			}
+      if(vars.count("disableZeroScope")) {
+        ret->disableZeroScope=boost::get<bool>(vars["disableZeroScope"]);
+      }
 
-			if(vars.count("ipBindAddrNoPort")) {
-			  ret->ipBindAddrNoPort=boost::get<bool>(vars["ipBindAddrNoPort"]);
-			}
+      if(vars.count("ipBindAddrNoPort")) {
+        ret->ipBindAddrNoPort=boost::get<bool>(vars["ipBindAddrNoPort"]);
+      }
 
-			if(vars.count("addXPF")) {
-                          ret->xpfRRCode=std::stoi(boost::get<string>(vars["addXPF"]));
-			}
+      if(vars.count("addXPF")) {
+        ret->xpfRRCode=std::stoi(boost::get<string>(vars["addXPF"]));
+      }
 
-			if(vars.count("maxCheckFailures")) {
-			  ret->maxCheckFailures=std::stoi(boost::get<string>(vars["maxCheckFailures"]));
-			}
+      if(vars.count("maxCheckFailures")) {
+        ret->maxCheckFailures=std::stoi(boost::get<string>(vars["maxCheckFailures"]));
+      }
 
-                        if(vars.count("rise")) {
-                          ret->minRiseSuccesses=std::stoi(boost::get<string>(vars["rise"]));
-                        }
+      if(vars.count("rise")) {
+        ret->minRiseSuccesses=std::stoi(boost::get<string>(vars["rise"]));
+      }
 
-                        if(vars.count("cpus")) {
-                          for (const auto cpu : boost::get<vector<pair<int,string>>>(vars["cpus"])) {
-                            cpus.insert(std::stoi(cpu.second));
-                          }
-			}
+      if(vars.count("cpus")) {
+        for (const auto cpu : boost::get<vector<pair<int,string>>>(vars["cpus"])) {
+          cpus.insert(std::stoi(cpu.second));
+        }
+      }
 
-                        /* this needs to be done _AFTER_ the order has been set,
-                           since the server are kept ordered inside the pool */
-                        auto localPools = g_pools.getCopy();
-                        if(vars.count("pool")) {
-                          if(auto* pool = boost::get<string>(&vars["pool"])) {
-                            ret->pools.insert(*pool);
-                          }
-                          else {
-                            auto pools = boost::get<vector<pair<int, string> > >(vars["pool"]);
-                            for(auto& p : pools) {
-			      ret->pools.insert(p.second);
-                            }
-                          }
-                          for(const auto& poolName: ret->pools) {
-                            addServerToPool(localPools, poolName, ret);
-                          }
-                        }
-                        else {
-                          addServerToPool(localPools, "", ret);
-                        }
-                        g_pools.setState(localPools);
+      /* this needs to be done _AFTER_ the order has been set,
+         since the server are kept ordered inside the pool */
+      auto localPools = g_pools.getCopy();
+      if(vars.count("pool")) {
+        if(auto* pool = boost::get<string>(&vars["pool"])) {
+          ret->pools.insert(*pool);
+        }
+        else {
+          auto pools = boost::get<vector<pair<int, string> > >(vars["pool"]);
+          for(auto& p : pools) {
+            ret->pools.insert(p.second);
+          }
+        }
+        for(const auto& poolName: ret->pools) {
+          addServerToPool(localPools, poolName, ret);
+        }
+      }
+      else {
+        addServerToPool(localPools, "", ret);
+      }
+      g_pools.setState(localPools);
 
-			if (ret->connected) {
-			  ret->threadStarted.test_and_set();
+      if (ret->connected) {
+        ret->threadStarted.test_and_set();
 
-			  if(g_launchWork) {
-			    g_launchWork->push_back([ret,cpus]() {
-                              ret->tid = thread(responderThread, ret);
-                              if (!cpus.empty()) {
-                                mapThreadToCPUList(ret->tid.native_handle(), cpus);
-                              }
-			    });
-			  }
-			  else {
-                            ret->tid = thread(responderThread, ret);
-                            if (!cpus.empty()) {
-                              mapThreadToCPUList(ret->tid.native_handle(), cpus);
-                            }
-			  }
-			}
+        if(g_launchWork) {
+          g_launchWork->push_back([ret,cpus]() {
+                                    ret->tid = thread(responderThread, ret);
+                                    if (!cpus.empty()) {
+                                      mapThreadToCPUList(ret->tid.native_handle(), cpus);
+                                    }
+                                  });
+        }
+        else {
+          ret->tid = thread(responderThread, ret);
+          if (!cpus.empty()) {
+            mapThreadToCPUList(ret->tid.native_handle(), cpus);
+          }
+        }
+      }
 
-			auto states = g_dstates.getCopy();
-			states.push_back(ret);
-			std::stable_sort(states.begin(), states.end(), [](const decltype(ret)& a, const decltype(ret)& b) {
-			    return a->order < b->order;
-			  });
-			g_dstates.setState(states);
-			return ret;
-		      } );
+      auto states = g_dstates.getCopy();
+      states.push_back(ret);
+      std::stable_sort(states.begin(), states.end(), [](const decltype(ret)& a, const decltype(ret)& b) {
+                                                       return a->order < b->order;
+                                                     });
+      g_dstates.setState(states);
+      return ret;
+      } );
 
   g_lua.writeFunction("rmServer",
-		      [](boost::variant<std::shared_ptr<DownstreamState>, int> var)
-		      {
+                      [](boost::variant<std::shared_ptr<DownstreamState>, int> var)
+                      {
                         setLuaSideEffect();
                         shared_ptr<DownstreamState> server;
                         auto* rem = boost::get<shared_ptr<DownstreamState>>(&var);
@@ -461,7 +461,7 @@ void setupLuaConfig(bool client)
                         g_pools.setState(localPools);
                         states.erase(remove(states.begin(), states.end(), server), states.end());
                         g_dstates.setState(states);
-		      } );
+                      } );
 
   g_lua.writeFunction("setServerPolicy", [](ServerPolicy policy)  {
       setLuaSideEffect();
