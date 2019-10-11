@@ -22,8 +22,30 @@ public:
   virtual bool hasSessionBeenResumed() const = 0;
   virtual void close() = 0;
 
+  void setUnknownTicketKey()
+  {
+    d_unknownTicketKey = true;
+  }
+
+  bool getUnknownTicketKey() const
+  {
+    return d_unknownTicketKey;
+  }
+
+  void setResumedFromInactiveTicketKey()
+  {
+    d_resumedFromInactiveTicketKey = true;
+  }
+
+  bool getResumedFromInactiveTicketKey() const
+  {
+    return d_resumedFromInactiveTicketKey;
+  }
+
 protected:
   int d_socket{-1};
+  bool d_unknownTicketKey{false};
+  bool d_resumedFromInactiveTicketKey{false};
 };
 
 class TLSCtx
@@ -306,6 +328,16 @@ public:
   bool hasTLSSessionBeenResumed() const
   {
     return d_conn && d_conn->hasSessionBeenResumed();
+  }
+
+  bool getResumedFromInactiveTicketKey() const
+  {
+    return d_conn && d_conn->getResumedFromInactiveTicketKey();
+  }
+
+    bool getUnknownTicketKey() const
+  {
+    return d_conn && d_conn->getUnknownTicketKey();
   }
 
 private:

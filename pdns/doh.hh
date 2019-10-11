@@ -123,6 +123,22 @@ struct DOHFrontend
 
 #endif /* HAVE_DNS_OVER_HTTPS */
 
+  time_t getNextTicketsKeyRotation() const
+  {
+    return d_ticketsKeyNextRotation;
+  }
+
+  size_t getTicketsKeysCount() const
+  {
+    size_t res = 0;
+#ifdef HAVE_DNS_OVER_HTTPS
+    if (d_ticketKeys) {
+      res = d_ticketKeys->getKeysCount();
+    }
+#endif /* HAVE_DNS_OVER_HTTPS */
+    return res;
+  }
+
 private:
   time_t d_ticketsKeyNextRotation{0};
   std::atomic_flag d_rotatingTicketsKey;

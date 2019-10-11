@@ -1116,6 +1116,12 @@ static void handleIO(std::shared_ptr<IncomingTCPConnectionState>& state, struct 
           else {
             ++state->d_ci.cs->tlsResumptions;
           }
+          if (state->d_handler.getResumedFromInactiveTicketKey()) {
+            ++state->d_ci.cs->tlsInactiveTicketKey;
+          }
+          if (state->d_handler.getUnknownTicketKey()) {
+            ++state->d_ci.cs->tlsUnknownTicketKey;
+          }
         }
 
         state->d_handshakeDoneTime = now;

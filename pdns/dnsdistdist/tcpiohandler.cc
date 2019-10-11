@@ -25,6 +25,14 @@ public:
   {
     d_socket = socket;
 
+    if (!s_initTLSConnIndex.test_and_set()) {
+      /* not initialized yet */
+      s_tlsConnIndex = SSL_get_ex_new_index(0, nullptr, nullptr, nullptr, nullptr);
+      if (s_tlsConnIndex == -1) {
+        throw std::runtime_error("Error getting an index for TLS connection data");
+      }
+    }
+
     if (!d_conn) {
       vinfolog("Error creating TLS object");
       if (g_verbose) {
@@ -36,6 +44,8 @@ public:
     if (!SSL_set_fd(d_conn.get(), d_socket)) {
       throw std::runtime_error("Error assigning socket");
     }
+
+    SSL_set_ex_data(d_conn.get(), s_tlsConnIndex, this);
   }
 
   IOState convertIORequestToIOState(int res) const
@@ -232,11 +242,17 @@ public:
     return false;
   }
 
+  static int s_tlsConnIndex;
 
 private:
+  static std::atomic_flag s_initTLSConnIndex;
+
   std::unique_ptr<SSL, void(*)(SSL*)> d_conn;
   unsigned int d_timeout;
 };
+
+std::atomic_flag OpenSSLTLSConnection::s_initTLSConnIndex = ATOMIC_FLAG_INIT;
+int OpenSSLTLSConnection::s_tlsConnIndex = -1;
 
 class OpenSSLTLSIOCtx: public TLSCtx
 {
@@ -376,7 +392,22 @@ public:
       return -1;
     }
 
-    return libssl_ticket_key_callback(s, ctx->d_ticketKeys, keyName, iv, ectx, hctx, enc);
+    int ret = libssl_ticket_key_callback(s, ctx->d_ticketKeys, keyName, iv, ectx, hctx, enc);
+    if (enc == 0) {
+      if (ret == 0 || ret == 2) {
+        OpenSSLTLSConnection* conn = reinterpret_cast<OpenSSLTLSConnection*>(SSL_get_ex_data(s, OpenSSLTLSConnection::s_tlsConnIndex));
+        if (conn) {
+          if (ret == 0) {
+            conn->setUnknownTicketKey();
+          }
+          else if (ret == 2) {
+            conn->setResumedFromInactiveTicketKey();
+          }
+        }
+      }
+    }
+
+    return ret;
   }
 
   static int ocspStaplingCb(SSL* ssl, void* arg)
