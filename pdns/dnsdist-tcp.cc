@@ -81,9 +81,11 @@ static std::unique_ptr<Socket> setupTCPDownstream(shared_ptr<DownstreamState>& d
         }
 #endif
 #ifdef SO_BINDTODEVICE
-        int res = setsockopt(result->getHandle(), SOL_SOCKET, SO_BINDTODEVICE, ds->sourceItfName.c_str(), ds->sourceItfName.length());
-        if (res != 0) {
-          vinfolog("Error setting up the interface on backend TCP socket '%s': %s", ds->getNameWithAddr(), stringerror());
+        if (!ds->sourceItfName.empty()) {
+          int res = setsockopt(result->getHandle(), SOL_SOCKET, SO_BINDTODEVICE, ds->sourceItfName.c_str(), ds->sourceItfName.length());
+          if (res != 0) {
+            vinfolog("Error setting up the interface on backend TCP socket '%s': %s", ds->getNameWithAddr(), stringerror());
+          }
         }
 #endif
         result->bind(ds->sourceAddr, false);
