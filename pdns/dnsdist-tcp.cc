@@ -1154,7 +1154,7 @@ static void handleIO(std::shared_ptr<IncomingTCPConnectionState>& state, struct 
 
         /* allocate a bit more memory to be able to spoof the content, get an answer from the cache
            or to add ECS without allocating a new buffer */
-        state->d_buffer.resize((state->d_querySize + static_cast<size_t>(512)) < s_maxPacketCacheEntrySize ? s_maxPacketCacheEntrySize : (state->d_querySize + static_cast<size_t>(512)));
+        state->d_buffer.resize(std::max(state->d_querySize + static_cast<size_t>(512), s_maxPacketCacheEntrySize));
         state->d_currentPos = 0;
       }
     }
