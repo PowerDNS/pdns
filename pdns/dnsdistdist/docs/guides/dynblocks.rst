@@ -81,6 +81,7 @@ action is applied.
 .. code-block:: lua
 
   local dbr = dynBlockRulesGroup()
-  -- generate a warning above 100 qps for 10s, and start dropping incoming queries above 300 qps for 60s
+  -- Generate a warning if we detect a query rate above 100 qps for at least 10s.
+  -- If the query rate raises above 300 qps for 10 seconds, we'll block the client for 60s.
   dbr:setQueryRate(300, 10, "Exceeded query rate", 60, DNSAction.Drop, 100)
 
