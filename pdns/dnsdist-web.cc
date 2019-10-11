@@ -670,6 +670,25 @@ static void connectionThread(int sock, ComboAddress remote)
         output << "# HELP dnsdist_pool_active_servers " << "Number of available servers in that pool" << "\n";
         output << "# TYPE dnsdist_pool_active_servers " << "gauge" << "\n";
 
+        output << "# HELP dnsdist_pool_cache_size " << "Maximum number of entries that this cache can hold" << "\n";
+        output << "# TYPE dnsdist_pool_cache_size " << "gauge" << "\n";
+        output << "# HELP dnsdist_pool_cache_entries " << "Number of entries currently present in that cache" << "\n";
+        output << "# TYPE dnsdist_pool_cache_entries " << "gauge" << "\n";
+        output << "# HELP dnsdist_pool_cache_hits " << "Number of hits from that cache" << "\n";
+        output << "# TYPE dnsdist_pool_cache_hits " << "counter" << "\n";
+        output << "# HELP dnsdist_pool_cache_misses " << "Number of misses from that cache" << "\n";
+        output << "# TYPE dnsdist_pool_cache_misses " << "counter" << "\n";
+        output << "# HELP dnsdist_pool_cache_deferred_inserts " << "Number of insertions into that cache skipped because it was already locked" << "\n";
+        output << "# TYPE dnsdist_pool_cache_deferred_inserts " << "counter" << "\n";
+        output << "# HELP dnsdist_pool_cache_deferred_lookups " << "Number of lookups into that cache skipped because it was already locked" << "\n";
+        output << "# TYPE dnsdist_pool_cache_deferred_lookups " << "counter" << "\n";
+        output << "# HELP dnsdist_pool_cache_lookup_collisions " << "Number of lookups into that cache that triggered a collision (same hash but different entry)" << "\n";
+        output << "# TYPE dnsdist_pool_cache_lookup_collisions " << "counter" << "\n";
+        output << "# HELP dnsdist_pool_cache_insert_collisions " << "Number of insertions into that cache that triggered a collision (same hash but different entry)" << "\n";
+        output << "# TYPE dnsdist_pool_cache_insert_collisions " << "counter" << "\n";
+        output << "# HELP dnsdist_pool_cache_ttl_too_shorts " << "Number of insertions into that cache skipped because the TTL of the answer was not long enough" << "\n";
+        output << "# TYPE dnsdist_pool_cache_ttl_too_shorts " << "counter" << "\n";
+
         for (const auto& entry : *localPools) {
           string poolName = entry.first;
 
