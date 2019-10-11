@@ -748,12 +748,14 @@ static void writePid(void)
 
 TCPConnection::TCPConnection(int fd, const ComboAddress& addr) : data(2, 0), d_remote(addr), d_fd(fd)
 {
+  d_maxInFlight = ::arg().asNum("max-concurrent-requests-per-tcp-connection");
   ++s_currentConnections;
   (*t_tcpClientCounts)[d_remote]++;
 }
 
 TCPConnection::~TCPConnection()
 {
+  g_log<<Logger::Warning<<"closing socket for TCPConnection " <<d_fd <<endl;
   try {
     if(closesocket(d_fd) < 0)
       g_log<<Logger::Error<<"Error closing socket for TCPConnection"<<endl;
@@ -766,8 +768,6 @@ TCPConnection::~TCPConnection()
     t_tcpClientCounts->erase(d_remote);
   --s_currentConnections;
 }
-
-uint16_t TCPConnection::s_maxInFlight = 10;
 
 AtomicCounter TCPConnection::s_currentConnections;
 
@@ -1779,11 +1779,11 @@ static void startDoResolve(void *p)
         else {
           Utility::gettimeofday(&g_now, 0); // needs to be updated
           struct timeval ttd = g_now;
-          if (dc->d_tcpConnection->d_requestsInFlight == TCPConnection::s_maxInFlight - 1) {
+          if (dc->d_tcpConnection->d_requestsInFlight == dc->d_tcpConnection->d_maxInFlight - 1) {
             // A read error might have happened. If we add the fd back, it will most likely error again.
             // This is not a big issue, the next handleTCPClientReadable() will see another read error
             // and take action.
-            //cerr << "Reenabling " << dc->d_socket << ' ' << dc->d_tcpConnection->d_requestsInFlight << endl;
+            cerr << "Reenabling " << dc->d_socket << ' ' << dc->d_tcpConnection->d_requestsInFlight << endl;
             ttd.tv_sec += g_tcpTimeout;
             t_fdm->addReadFD(dc->d_socket, handleRunningTCPQuestion, dc->d_tcpConnection, &ttd);
           } else {
@@ -2030,16 +2030,7 @@ static void handleRunningTCPQuestion(int fd, FDMultiplexer::funcparam_t& var)
     }
     conn->bytesread+=(uint16_t)bytes;
     if(conn->bytesread==conn->qlen) {
-      conn->d_requestsInFlight++;
-      if (conn->d_requestsInFlight >= TCPConnection::s_maxInFlight) {
-        //cerr << "Disabling " << fd << ' ' << conn->d_requestsInFlight << endl;
-        t_fdm->removeReadFD(fd); // should no longer awake ourselves when there is data to read
-      } else {
-        Utility::gettimeofday(&g_now, 0); // needed?
-        struct timeval ttd = g_now;
-        t_fdm->setReadTTD(fd, ttd, g_tcpTimeout);
-      }
-
+      conn->state = TCPConnection::BYTE0;
       std::unique_ptr<DNSComboWriter> dc;
       try {
         dc=std::unique_ptr<DNSComboWriter>(new DNSComboWriter(conn->data, g_now));
@@ -2173,8 +2164,16 @@ static void handleRunningTCPQuestion(int fd, FDMultiplexer::funcparam_t& var)
       else {
         ++g_stats.qcounter;
         ++g_stats.tcpqcounter;
+        ++conn->d_requestsInFlight;
+        if (conn->d_requestsInFlight >= conn->d_maxInFlight) {
+          cerr << "Disabling " << fd << ' ' << conn->d_requestsInFlight << endl;
+          t_fdm->removeReadFD(fd); // should no longer awake ourselves when there is data to read
+        } else {
+          Utility::gettimeofday(&g_now, 0); // needed?
+          struct timeval ttd = g_now;
+          t_fdm->setReadTTD(fd, ttd, g_tcpTimeout);
+        }
         MT->makeThread(startDoResolve, dc.release()); // deletes dc
-        conn->state = TCPConnection::BYTE0;
         return;
       }
     }
@@ -4584,6 +4583,7 @@ int main(int argc, char **argv)
     ::arg().set("client-tcp-timeout","Timeout in seconds when talking to TCP clients")="2";
     ::arg().set("max-mthreads", "Maximum number of simultaneous Mtasker threads")="2048";
     ::arg().set("max-tcp-clients","Maximum number of simultaneous TCP clients")="128";
+    ::arg().set("max-concurrent-requests-per-tcp-connection", "Maximum number of requests handled concurrently per TCP connection") = "10";
     ::arg().set("server-down-max-fails","Maximum number of consecutive timeouts (and unreachables) to mark a server as down ( 0 => disabled )")="64";
     ::arg().set("server-down-throttle-time","Number of seconds to throttle all queries to a server after being marked as down")="60";
     ::arg().set("dont-throttle-names", "Do not throttle nameservers with this name or suffix")="";

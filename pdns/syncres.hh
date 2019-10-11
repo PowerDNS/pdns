@@ -1013,9 +1013,9 @@ public:
   uint16_t qlen{0};
   uint16_t bytesread{0};
   uint16_t d_requestsInFlight{0}; // number of mthreads spawned for this connection
+  // The max number of concurrent TCP requests we're willing to process
+  uint16_t d_maxInFlight;
   static unsigned int getCurrentConnections() { return s_currentConnections; }
-  // The max number of concurent TCP queries we're willing to process
-  static uint16_t s_maxInFlight;
 private:
   const int d_fd;
   static AtomicCounter s_currentConnections; //!< total number of current TCP connections

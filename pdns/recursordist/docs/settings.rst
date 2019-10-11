@@ -861,6 +861,15 @@ Maximum number of seconds to cache an item in the DNS cache, no matter what the 
 
     The minimum value of this setting is 15. i.e. setting this to lower than 15 will make this value 15.
 
+.. _setting max-concurrent-requests-per-tcp-connection:
+
+``max-concurrent-requests-per-tcp-connection``
+------------------------------------------
+-  Integer
+-  Default: 10
+
+Maximum number of requests handled concurrently per tcp connection.
+
 .. _setting-max-mthreads:
 
 ``max-mthreads``

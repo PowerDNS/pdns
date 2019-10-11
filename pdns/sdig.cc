@@ -302,7 +302,7 @@ try {
       string question(packet.begin(), packet.end());
       sock.writen(question);
     }
-    for (const auto& it : questions) {
+    for (size_t i = 0; i < questions.size(); i++) {
       uint16_t len;
       if (sock.read((char *)&len, 2) != 2)
         throw PDNSException("tcp read failed");
