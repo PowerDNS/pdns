@@ -304,9 +304,9 @@ static int processDOHQuery(DOHUnit* du)
     struct timespec queryRealTime;
     gettime(&queryRealTime, true);
     uint16_t len = du->query.length();
-    /* allocate a bit more memory to be able to spoof the content,
-       or to add ECS without allocating a new buffer */
-    du->query.resize(du->query.size() + 512);
+    /* We reserve at least 512 additional bytes to be able to add EDNS, but we also want
+       at least s_maxPacketCacheEntrySize bytes to be able to spoof the content or fill the answer from the packet cache */
+    du->query.resize((du->query.size() + 512 < s_maxPacketCacheEntrySize) ? s_maxPacketCacheEntrySize : (du->query.size() + 512));
     size_t bufferSize = du->query.size();
     auto query = const_cast<char*>(du->query.c_str());
     struct dnsheader* dh = reinterpret_cast<struct dnsheader*>(query);
@@ -608,7 +608,9 @@ try
       ++dsc->df->d_http1Stats.d_nbQueries;
 
     std::string query;
-    query.reserve(req->entity.len + 512);
+    /* We reserve at least 512 additional bytes to be able to add EDNS, but we also want
+       at least s_maxPacketCacheEntrySize bytes to be able to fill the answer from the packet cache */
+    query.reserve(((req->entity.len + 512) < s_maxPacketCacheEntrySize) ? s_maxPacketCacheEntrySize : (req->entity.len + 512));
     query.assign(req->entity.base, req->entity.len);
     doh_dispatch_query(dsc, self, req, std::move(query), local, remote);
   }
@@ -633,7 +635,10 @@ try
 
       string decoded;
       /* rough estimate so we hopefully don't need a need allocation later */
-      decoded.reserve(((sdns.size() * 3) / 4) + 512);
+      /* We reserve at least 512 additional bytes to be able to add EDNS, but we also want
+         at least s_maxPacketCacheEntrySize bytes to be able to fill the answer from the packet cache */
+      size_t estimate = ((sdns.size() * 3) / 4);
+      decoded.reserve(((estimate + 512) < s_maxPacketCacheEntrySize) ? s_maxPacketCacheEntrySize : (estimate + 512));
       if(B64Decode(sdns, decoded) < 0) {
         h2o_send_error_400(req, "Bad Request", "Unable to decode BASE64-URL", 0);
         ++dsc->df->d_badrequests;

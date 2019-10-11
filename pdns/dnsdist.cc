@@ -515,7 +515,7 @@ void responderThread(std::shared_ptr<DownstreamState> dss)
 try {
   setThreadName("dnsdist/respond");
   auto localRespRulactions = g_resprulactions.getLocal();
-  char packet[4096 + DNSCRYPT_MAX_RESPONSE_PADDING_AND_MAC_SIZE];
+  char packet[s_maxPacketCacheEntrySize + DNSCRYPT_MAX_RESPONSE_PADDING_AND_MAC_SIZE];
   static_assert(sizeof(packet) <= UINT16_MAX, "Packet size should fit in a uint16_t");
   /* when the answer is encrypted in place, we need to get a copy
      of the original header before encryption to fill the ring buffer */
@@ -1681,7 +1681,7 @@ static void MultipleMessagesUDPClientThread(ClientState* cs, LocalHolders& holde
 {
   struct MMReceiver
   {
-    char packet[4096];
+    char packet[s_maxPacketCacheEntrySize];
     ComboAddress remote;
     ComboAddress dest;
     struct iovec iov;
@@ -1772,7 +1772,7 @@ try
   else
 #endif /* defined(HAVE_RECVMMSG) && defined(HAVE_SENDMMSG) && defined(MSG_WAITFORONE) */
   {
-    char packet[4096];
+    char packet[s_maxPacketCacheEntrySize];
     /* the actual buffer is larger because:
        - we may have to add EDNS and/or ECS
        - we use it for self-generated responses (from rule or cache)
