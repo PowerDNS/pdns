@@ -31,7 +31,7 @@ class DNSDistTLSSessionResumptionTest(DNSDistTest):
         try:
             process = subprocess.Popen(testcmd, stdout=subprocess.PIPE, stdin=subprocess.PIPE, stderr=subprocess.STDOUT, close_fds=True)
             # we need to wait just a bit so that the Post-Handshake New Session Ticket has the time to arrive..
-            time.sleep(0.1)
+            time.sleep(0.5)
             output = process.communicate(input=b'')
         except subprocess.CalledProcessError as exc:
             raise AssertionError('%s failed (%d): %s' % (testcmd, process.returncode, process.output))
