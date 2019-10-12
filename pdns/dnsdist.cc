@@ -144,6 +144,8 @@ bool g_fixupCase{false};
 bool g_preserveTrailingData{false};
 bool g_roundrobinFailOnNoServer{false};
 
+std::set<std::string> g_capabilitiesToRetain;
+
 static void truncateTC(char* packet, uint16_t* len, size_t responseSize, unsigned int consumed)
 try
 {
@@ -702,6 +704,15 @@ bool DownstreamState::reconnect()
       fd = SSocket(remote.sin4.sin_family, SOCK_DGRAM, 0);
       if (!IsAnyAddress(sourceAddr)) {
         SSetsockopt(fd, SOL_SOCKET, SO_REUSEADDR, 1);
+        if (!sourceItfName.empty()) {
+#ifdef SO_BINDTODEVICE
+          int res = setsockopt(fd, SOL_SOCKET, SO_BINDTODEVICE, sourceItfName.c_str(), sourceItfName.length());
+          if (res != 0) {
+            infolog("Error setting up the interface on backend socket '%s': %s", remote.toStringWithPort(), stringerror());
+          }
+#endif
+        }
+
         SBind(fd, sourceAddr);
       }
       try {
@@ -773,7 +784,7 @@ void DownstreamState::setWeight(int newWeight)
   }
 }
 
-DownstreamState::DownstreamState(const ComboAddress& remote_, const ComboAddress& sourceAddr_, unsigned int sourceItf_, size_t numberOfSockets): remote(remote_), sourceAddr(sourceAddr_), sourceItf(sourceItf_)
+DownstreamState::DownstreamState(const ComboAddress& remote_, const ComboAddress& sourceAddr_, unsigned int sourceItf_, const std::string& sourceItfName_, size_t numberOfSockets): sourceItfName(sourceItfName_), remote(remote_), sourceAddr(sourceAddr_), sourceItf(sourceItf_)
 {
   pthread_rwlock_init(&d_lock, nullptr);
   id = getUniqueID();
@@ -1846,6 +1857,14 @@ try
   sock.setNonBlocking();
   if (!IsAnyAddress(ds->sourceAddr)) {
     sock.setReuseAddr();
+    if (!ds->sourceItfName.empty()) {
+#ifdef SO_BINDTODEVICE
+      int res = setsockopt(sock.getHandle(), SOL_SOCKET, SO_BINDTODEVICE, ds->sourceItfName.c_str(), ds->sourceItfName.length());
+      if (res != 0 && g_verboseHealthChecks) {
+        infolog("Error settting SO_BINDTODEVICE on the health check socket for backend '%s': %s", ds->getNameWithAddr(), stringerror());
+      }
+#endif
+    }
     sock.bind(ds->sourceAddr);
   }
   sock.connect(ds->remote);
@@ -2727,7 +2746,7 @@ try
        or as an unprivileged user with ambient
        capabilities like CAP_NET_BIND_SERVICE.
     */
-    dropCapabilities();
+    dropCapabilities(g_capabilitiesToRetain);
   }
   catch(const std::exception& e) {
     warnlog("%s", e.what());
