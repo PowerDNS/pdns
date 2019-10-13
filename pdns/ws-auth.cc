@@ -322,13 +322,13 @@ static inline string makeBackendRecordContent(const QType& qtype, const string& 
   return makeRecordContent(qtype, content, true);
 }
 
-static Json::object getZoneInfo(const DomainInfo& di) {
+static Json::object getZoneInfo(const DomainInfo& di, DNSSECKeeper* dk) {
   string zoneId = apiZoneNameToId(di.zone);
   vector<string> masters;
   for(const auto& m : di.masters)
     masters.push_back(m.toStringWithPortExcept(53));
 
-  return Json::object {
+  auto obj = Json::object {
     // id is the canonical lookup key, which doesn't actually match the name (in some cases)
     { "id", zoneId },
     { "url", "/api/v1/servers/localhost/zones/" + zoneId },
@@ -337,10 +337,14 @@ static Json::object getZoneInfo(const DomainInfo& di) {
     { "account", di.account },
     { "masters", masters },
     { "serial", (double)di.serial },
-    { "edited_serial", (double)calculateEditSOA(di.serial, *dk, di.zone) },
     { "notified_serial", (double)di.notified_serial },
     { "last_check", (double)di.last_check }
   };
+  if (dk) {
+    obj["dnssec"] = dk->isSecuredZone(di.zone);
+    obj["edited_serial"] = (double)calculateEditSOA(di.serial, *dk, di.zone);
+  }
+  return obj;
 }
 
 static bool shouldDoRRSets(HttpRequest* req) {
@@ -359,7 +363,7 @@ static void fillZone(const DNSName& zonename, HttpResponse* resp, bool doRRSets)
   }
 
   DNSSECKeeper dk(&B);
-  Json::object doc = getZoneInfo(di);
+  Json::object doc = getZoneInfo(di, &dk);
   // extra stuff getZoneInfo doesn't do for us (more expensive)
   string soa_edit_api;
   di.backend->getDomainMetadataOne(zonename, "SOA-EDIT-API", soa_edit_api);
@@ -1694,9 +1698,18 @@ static void apiServerZones(HttpRequest* req, HttpResponse* resp) {
     }
   }
 
+  bool with_dnssec = true;
+  if (req->getvars.count("dnssec")) {
+    // can send ?dnssec=false to improve performance.
+    string dnssec_flag = req->getvars["dnssec"];
+    if (dnssec_flag == "false") {
+      with_dnssec = false;
+    }
+  }
+
   Json::array doc;
   for(const DomainInfo& di : domains) {
-    doc.push_back(getZoneInfo(di));
+    doc.push_back(getZoneInfo(di, with_dnssec ? &dk : nullptr));
   }
   resp->setBody(doc);
 }
