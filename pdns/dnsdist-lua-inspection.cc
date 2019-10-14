@@ -557,16 +557,16 @@ void setupLuaInspection()
   g_lua.writeFunction("showTCPStats", [] {
       setLuaNoSideEffect();
       ostringstream ret;
-      boost::format fmt("%-10d %-10d %-10d %-10d\n");
-      ret << (fmt % "Clients" % "MaxClients" % "Queued" % "MaxQueued") << endl;
+      boost::format fmt("%-12d %-12d %-12d %-12d");
+      ret << (fmt % "Workers" % "Max Workers" % "Queued" % "Max Queued") << endl;
       ret << (fmt % g_tcpclientthreads->getThreadsCount() % g_maxTCPClientThreads % g_tcpclientthreads->getQueuedCount() % g_maxTCPQueuedConnections) << endl;
-      ret <<endl;
+      ret << endl;
 
       ret << "Query distribution mode is: " << std::string(g_useTCPSinglePipe ? "single queue" : "per-thread queues") << endl;
       ret << endl;
 
       ret << "Frontends:" << endl;
-      fmt = boost::format("%-3d %-20.20s %-20d %-20d %-25d %-20d %-20d %-20d %-20f %-20f %-15d %-15d %-15d %-15d %-15d %-15d %-15d %-15d %-15d");
+      fmt = boost::format("%-3d %-20.20s %-20d %-20d %-25d %-20d %-20d %-20d %-20f %-20f %-20d %-20d %-25d %-25d %-15d %-15d %-15d %-15d %-15d");
       ret << (fmt % "#" % "Address" % "Connections" % "Died reading query" % "Died sending response" % "Gave up" % "Client timeouts" % "Downstream timeouts" % "Avg queries/conn" % "Avg duration" % "TLS new sessions" % "TLS Resumptions" % "TLS unknown ticket keys" % "TLS inactive ticket keys" % "TLS 1.0" % "TLS 1.1" % "TLS 1.2" % "TLS 1.3" % "TLS other") << endl;
 
       size_t counter = 0;
