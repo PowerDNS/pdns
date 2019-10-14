@@ -890,7 +890,14 @@ void addCMsgSrcAddr(struct msghdr* msgh, cmsgbuf_aligned* cmsgbuf, const ComboAd
     struct in6_pktinfo *pkt;
 
     msgh->msg_control = cmsgbuf;
+#if !defined( __APPLE__ )
+    /* CMSG_SPACE is not a constexpr on macOS */
     static_assert(CMSG_SPACE(sizeof(*pkt)) <= sizeof(*cmsgbuf), "Buffer is too small for in6_pktinfo");
+#else /* __APPLE__ */
+    if (CMSG_SPACE(sizeof(*pkt)) > sizeof(*cmsgbuf)) {
+      throw std::runtime_error("Buffer is too small for in6_pktinfo");
+    }
+#endif /* __APPLE__ */
     msgh->msg_controllen = CMSG_SPACE(sizeof(*pkt));
 
     cmsg = CMSG_FIRSTHDR(msgh);
@@ -909,7 +916,14 @@ void addCMsgSrcAddr(struct msghdr* msgh, cmsgbuf_aligned* cmsgbuf, const ComboAd
     struct in_pktinfo *pkt;
 
     msgh->msg_control = cmsgbuf;
+#if !defined( __APPLE__ )
+    /* CMSG_SPACE is not a constexpr on macOS */
     static_assert(CMSG_SPACE(sizeof(*pkt)) <= sizeof(*cmsgbuf), "Buffer is too small for in_pktinfo");
+#else /* __APPLE__ */
+    if (CMSG_SPACE(sizeof(*pkt)) > sizeof(*cmsgbuf)) {
+      throw std::runtime_error("Buffer is too small for in_pktinfo");
+    }
+#endif /* __APPLE__ */
     msgh->msg_controllen = CMSG_SPACE(sizeof(*pkt));
 
     cmsg = CMSG_FIRSTHDR(msgh);
@@ -926,7 +940,13 @@ void addCMsgSrcAddr(struct msghdr* msgh, cmsgbuf_aligned* cmsgbuf, const ComboAd
     struct in_addr *in;
 
     msgh->msg_control = cmsgbuf;
+#if !defined( __APPLE__ )
     static_assert(CMSG_SPACE(sizeof(*in)) <= sizeof(*cmsgbuf), "Buffer is too small for in_addr");
+#else /* __APPLE__ */
+    if (CMSG_SPACE(sizeof(*in)) > sizeof(*cmsgbuf)) {
+      throw std::runtime_error("Buffer is too small for in_addr");
+    }
+#endif /* __APPLE__ */
     msgh->msg_controllen = CMSG_SPACE(sizeof(*in));
 
     cmsg = CMSG_FIRSTHDR(msgh);
