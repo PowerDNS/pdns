@@ -63,7 +63,7 @@ BOOST_AUTO_TEST_CASE(test_tng_record_generate) {
   pathbuf << p << "/../regression-tests/zones/unit2.test";
   ZoneParserTNG zp(pathbuf.str(), DNSName("unit2.test"));
 
-  string expected[] = {
+  vector<string> expected = {
     "0.01.0003.000005.00000007.unit2.test.",
     "1.02.0004.000006.00000008.unit2.test.",
     "2.03.0005.000007.00000009.unit2.test.",
@@ -83,10 +83,10 @@ BOOST_AUTO_TEST_CASE(test_tng_record_generate) {
     "16.21.0019.000015.00000017.unit2.test."
   };
 
-  for (size_t i = 0; i < sizeof(expected) / sizeof(expected[0]); i++) {
+  for (auto const & exp : expected) {
     DNSResourceRecord rr;
     zp.get(rr);
-    BOOST_CHECK_EQUAL(rr.qname.toString(), expected[i]);
+    BOOST_CHECK_EQUAL(rr.qname.toString(), exp);
     BOOST_CHECK_EQUAL(rr.ttl, 86400U);
     BOOST_CHECK_EQUAL(rr.qclass, 1U);
     BOOST_CHECK_EQUAL(rr.qtype.getName(), "A");
