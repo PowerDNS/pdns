@@ -149,7 +149,7 @@ public:
 
   time_t getTicketsKeyRotationDelay() const
   {
-    return d_ticketsKeyRotationDelay;
+    return d_tlsConfig.d_ticketsKeyRotationDelay;
   }
 
   std::string getNextTicketsKeyRotation() const
@@ -163,21 +163,9 @@ public:
     return res;
   }
 
-  std::vector<std::pair<std::string, std::string>> d_certKeyPairs;
-  std::vector<std::string> d_ocspFiles;
+  TLSConfig d_tlsConfig;
   ComboAddress d_addr;
-  std::string d_ciphers;
-  std::string d_ciphers13;
   std::string d_provider;
-  std::string d_ticketKeyFile;
-
-  size_t d_maxStoredSessions{20480};
-  time_t d_ticketsKeyRotationDelay{43200};
-  uint8_t d_numberOfTicketsKeys{5};
-  LibsslTLSVersion d_minTLSVersion{LibsslTLSVersion::TLS10};
-
-  bool d_enableTickets{true};
-  bool d_preferServerCiphers{false};
 
 private:
   std::shared_ptr<TLSCtx> d_ctx{nullptr};
