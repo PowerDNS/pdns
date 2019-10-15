@@ -38,6 +38,7 @@ of these commands require an *ALGORITHM* to be set. The following
 algorithms are supported:
 
 -  rsasha1
+-  rsasha1-nsec3-sha1
 -  rsasha256
 -  rsasha512
 -  ecdsa256
