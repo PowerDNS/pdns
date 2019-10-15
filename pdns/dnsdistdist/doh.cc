@@ -62,6 +62,7 @@ public:
   DOHAcceptContext()
   {
     memset(&d_h2o_accept_ctx, 0, sizeof(d_h2o_accept_ctx));
+    d_rotatingTicketsKey.clear();
   }
   DOHAcceptContext(const DOHAcceptContext&) = delete;
   DOHAcceptContext& operator=(const DOHAcceptContext&) = delete;
@@ -89,12 +90,83 @@ public:
     }
   }
 
+  time_t getNextTicketsKeyRotation() const
+  {
+    return d_ticketsKeyNextRotation;
+  }
+
+  size_t getTicketsKeysCount() const
+  {
+    size_t res = 0;
+    if (d_ticketKeys) {
+      res = d_ticketKeys->getKeysCount();
+    }
+    return res;
+  }
+
+  void rotateTicketsKey(time_t now)
+  {
+    if (!d_ticketKeys) {
+      return;
+    }
+
+    d_ticketKeys->rotateTicketsKey(now);
+
+    if (d_ticketsKeyRotationDelay > 0) {
+      d_ticketsKeyNextRotation = now + d_ticketsKeyRotationDelay;
+    }
+  }
+
+  void loadTicketsKeys(const std::string& keyFile)
+  {
+    if (!d_ticketKeys) {
+      return;
+    }
+    d_ticketKeys->loadTicketsKeys(keyFile);
+
+    if (d_ticketsKeyRotationDelay > 0) {
+      d_ticketsKeyNextRotation = time(nullptr) + d_ticketsKeyRotationDelay;
+    }
+  }
+
+  void handleTicketsKeyRotation()
+  {
+    if (d_ticketsKeyRotationDelay == 0) {
+      return;
+    }
+
+    time_t now = time(nullptr);
+    if (now > d_ticketsKeyNextRotation) {
+      if (d_rotatingTicketsKey.test_and_set()) {
+        /* someone is already rotating */
+        return;
+      }
+      try {
+        rotateTicketsKey(now);
+
+        d_rotatingTicketsKey.clear();
+      }
+      catch(const std::runtime_error& e) {
+        d_rotatingTicketsKey.clear();
+        throw std::runtime_error(std::string("Error generating a new tickets key for TLS context:") + e.what());
+      }
+      catch(...) {
+        d_rotatingTicketsKey.clear();
+        throw;
+      }
+    }
+  }
+
   std::map<int, std::string> d_ocspResponses;
+  std::unique_ptr<OpenSSLTLSTicketKeysRing> d_ticketKeys{nullptr};
   ClientState* d_cs{nullptr};
+  time_t d_ticketsKeyRotationDelay{0};
 
 private:
   h2o_accept_ctx_t d_h2o_accept_ctx;
   std::atomic<uint64_t> d_refcnt{1};
+  time_t d_ticketsKeyNextRotation{0};
+  std::atomic_flag d_rotatingTicketsKey;
 };
 
 // we create one of these per thread, and pass around a pointer to it
@@ -940,63 +1012,61 @@ static int ocsp_stapling_callback(SSL* ssl, void* arg)
 
 static int ticket_key_callback(SSL *s, unsigned char keyName[TLS_TICKETS_KEY_NAME_SIZE], unsigned char *iv, EVP_CIPHER_CTX *ectx, HMAC_CTX *hctx, int enc)
 {
-  DOHFrontend* df = reinterpret_cast<DOHFrontend*>(libssl_get_ticket_key_callback_data(s));
-  if (df == nullptr || !df->d_ticketKeys) {
+  DOHAcceptContext* ctx = reinterpret_cast<DOHAcceptContext*>(libssl_get_ticket_key_callback_data(s));
+  if (ctx == nullptr || !ctx->d_ticketKeys) {
     return -1;
   }
 
-  df->handleTicketsKeyRotation();
+  ctx->handleTicketsKeyRotation();
 
-  auto ret = libssl_ticket_key_callback(s, *df->d_ticketKeys, keyName, iv, ectx, hctx, enc);
+  auto ret = libssl_ticket_key_callback(s, *ctx->d_ticketKeys, keyName, iv, ectx, hctx, enc);
   if (enc == 0) {
     if (ret == 0) {
-      ++df->d_dsc->cs->tlsUnknownTicketKey;
+      ++ctx->d_cs->tlsUnknownTicketKey;
     }
     else if (ret == 2) {
-      ++df->d_dsc->cs->tlsInactiveTicketKey;
+      ++ctx->d_cs->tlsInactiveTicketKey;
     }
   }
 
   return ret;
 }
 
-static std::unique_ptr<SSL_CTX, void(*)(SSL_CTX*)> getTLSContext(DOHFrontend& df,
-                                                                 std::map<int, std::string>& ocspResponses)
+static void setupTLSContext(DOHAcceptContext& acceptCtx,
+                            TLSConfig& tlsConfig,
+                            TLSErrorCounters& counters)
 {
-  try {
-    if (df.d_tlsConfig.d_ciphers.empty()) {
-      df.d_tlsConfig.d_ciphers = DOH_DEFAULT_CIPHERS;
-    }
-
-    auto ctx = libssl_init_server_context(df.d_tlsConfig, ocspResponses);
-
-    if (df.d_tlsConfig.d_enableTickets && df.d_tlsConfig.d_numberOfTicketsKeys > 0) {
-      df.d_ticketKeys = std::unique_ptr<OpenSSLTLSTicketKeysRing>(new OpenSSLTLSTicketKeysRing(df.d_tlsConfig.d_numberOfTicketsKeys));
-      SSL_CTX_set_tlsext_ticket_key_cb(ctx.get(), &ticket_key_callback);
-      libssl_set_ticket_key_callback_data(ctx.get(), &df);
-    }
-
-    if (!ocspResponses.empty()) {
-      SSL_CTX_set_tlsext_status_cb(ctx.get(), &ocsp_stapling_callback);
-      SSL_CTX_set_tlsext_status_arg(ctx.get(), &ocspResponses);
-    }
-
-    libssl_set_error_counters_callback(ctx, &df.d_tlsCounters);
-
-    h2o_ssl_register_alpn_protocols(ctx.get(), h2o_http2_alpn_protocols);
-
-    if (df.d_tlsConfig.d_ticketKeyFile.empty()) {
-      df.handleTicketsKeyRotation();
-    }
-    else {
-      df.loadTicketsKeys(df.d_tlsConfig.d_ticketKeyFile);
-    }
-
-    return ctx;
+  if (tlsConfig.d_ciphers.empty()) {
+    tlsConfig.d_ciphers = DOH_DEFAULT_CIPHERS;
   }
-  catch (const std::runtime_error& e) {
-    throw std::runtime_error("Error setting up TLS context for DoH listener on '" + df.d_local.toStringWithPort() + "': " + e.what());
+
+  auto ctx = libssl_init_server_context(tlsConfig, acceptCtx.d_ocspResponses);
+
+  if (tlsConfig.d_enableTickets && tlsConfig.d_numberOfTicketsKeys > 0) {
+    acceptCtx.d_ticketKeys = std::unique_ptr<OpenSSLTLSTicketKeysRing>(new OpenSSLTLSTicketKeysRing(tlsConfig.d_numberOfTicketsKeys));
+    SSL_CTX_set_tlsext_ticket_key_cb(ctx.get(), &ticket_key_callback);
+    libssl_set_ticket_key_callback_data(ctx.get(), &acceptCtx);
   }
+
+  if (!acceptCtx.d_ocspResponses.empty()) {
+    SSL_CTX_set_tlsext_status_cb(ctx.get(), &ocsp_stapling_callback);
+    SSL_CTX_set_tlsext_status_arg(ctx.get(), &acceptCtx.d_ocspResponses);
+  }
+
+  libssl_set_error_counters_callback(ctx, &counters);
+
+  h2o_ssl_register_alpn_protocols(ctx.get(), h2o_http2_alpn_protocols);
+
+  if (tlsConfig.d_ticketKeyFile.empty()) {
+    acceptCtx.handleTicketsKeyRotation();
+  }
+  else {
+    acceptCtx.loadTicketsKeys(tlsConfig.d_ticketKeyFile);
+  }
+
+  auto nativeCtx = acceptCtx.get();
+  nativeCtx->ssl_ctx = ctx.release();
+  acceptCtx.release();
 }
 
 static void setupAcceptContext(DOHAcceptContext& ctx, DOHServerConfig& dsc, bool setupTLS)
@@ -1004,11 +1074,17 @@ static void setupAcceptContext(DOHAcceptContext& ctx, DOHServerConfig& dsc, bool
   auto nativeCtx = ctx.get();
   nativeCtx->ctx = &dsc.h2o_ctx;
   nativeCtx->hosts = dsc.h2o_config.hosts;
-  if (setupTLS && !dsc.df->d_tlsConfig.d_certKeyPairs.empty()) {
-    auto tlsCtx = getTLSContext(*dsc.df,
-                                ctx.d_ocspResponses);
+  ctx.d_ticketsKeyRotationDelay = dsc.df->d_tlsConfig.d_ticketsKeyRotationDelay;
 
-    nativeCtx->ssl_ctx = tlsCtx.release();
+  if (setupTLS && !dsc.df->d_tlsConfig.d_certKeyPairs.empty()) {
+    try {
+      setupTLSContext(ctx,
+                      dsc.df->d_tlsConfig,
+                      dsc.df->d_tlsCounters);
+    }
+    catch (const std::runtime_error& e) {
+      throw std::runtime_error("Error setting up TLS context for DoH listener on '" + dsc.df->d_local.toStringWithPort() + "': " + e.what());
+    }
   }
   ctx.d_cs = dsc.cs;
   ctx.release();
@@ -1016,55 +1092,40 @@ static void setupAcceptContext(DOHAcceptContext& ctx, DOHServerConfig& dsc, bool
 
 void DOHFrontend::rotateTicketsKey(time_t now)
 {
-  if (!d_ticketKeys) {
-    return;
-  }
-
-  d_ticketKeys->rotateTicketsKey(now);
-
-  if (d_tlsConfig.d_ticketsKeyRotationDelay > 0) {
-    d_ticketsKeyNextRotation = now + d_tlsConfig.d_ticketsKeyRotationDelay;
+  if (d_dsc && d_dsc->accept_ctx) {
+    d_dsc->accept_ctx->rotateTicketsKey(now);
   }
 }
 
 void DOHFrontend::loadTicketsKeys(const std::string& keyFile)
 {
-  if (!d_ticketKeys) {
-    return;
-  }
-  d_ticketKeys->loadTicketsKeys(keyFile);
-
-  if (d_tlsConfig.d_ticketsKeyRotationDelay > 0) {
-    d_ticketsKeyNextRotation = time(nullptr) + d_tlsConfig.d_ticketsKeyRotationDelay;
+  if (d_dsc && d_dsc->accept_ctx) {
+    d_dsc->accept_ctx->loadTicketsKeys(keyFile);
   }
 }
 
 void DOHFrontend::handleTicketsKeyRotation()
 {
-  if (d_tlsConfig.d_ticketsKeyRotationDelay == 0) {
-    return;
+  if (d_dsc && d_dsc->accept_ctx) {
+    d_dsc->accept_ctx->handleTicketsKeyRotation();
   }
+}
 
-  time_t now = time(nullptr);
-  if (now > d_ticketsKeyNextRotation) {
-    if (d_rotatingTicketsKey.test_and_set()) {
-      /* someone is already rotating */
-      return;
-    }
-    try {
-      rotateTicketsKey(now);
-
-      d_rotatingTicketsKey.clear();
-    }
-    catch(const std::runtime_error& e) {
-      d_rotatingTicketsKey.clear();
-      throw std::runtime_error(std::string("Error generating a new tickets key for TLS context:") + e.what());
-    }
-    catch(...) {
-      d_rotatingTicketsKey.clear();
-      throw;
-    }
+time_t DOHFrontend::getNextTicketsKeyRotation() const
+{
+  if (d_dsc && d_dsc->accept_ctx) {
+    return d_dsc->accept_ctx->getNextTicketsKeyRotation();
   }
+  return 0;
+}
+
+size_t DOHFrontend::getTicketsKeysCount() const
+{
+  size_t res = 0;
+  if (d_dsc && d_dsc->accept_ctx) {
+    res = d_dsc->accept_ctx->getTicketsKeysCount();
+  }
+  return res;
 }
 
 void DOHFrontend::reloadCertificates()
@@ -1083,12 +1144,14 @@ void DOHFrontend::setup()
   d_dsc = std::make_shared<DOHServerConfig>(d_idleTimeout);
 
   if  (!d_tlsConfig.d_certKeyPairs.empty()) {
-    auto tlsCtx = getTLSContext(*this,
-                                d_dsc->accept_ctx->d_ocspResponses);
-
-    auto accept_ctx = d_dsc->accept_ctx->get();
-    accept_ctx->ssl_ctx = tlsCtx.release();
-    d_dsc->accept_ctx->release();
+    try {
+      setupTLSContext(*d_dsc->accept_ctx,
+                      d_tlsConfig,
+                      d_tlsCounters);
+    }
+    catch (const std::runtime_error& e) {
+      throw std::runtime_error("Error setting up TLS context for DoH listener on '" + d_local.toStringWithPort() + "': " + e.what());
+    }
   }
 }
 

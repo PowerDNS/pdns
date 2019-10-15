@@ -42,7 +42,6 @@ struct DOHFrontend
 {
   DOHFrontend()
   {
-    d_rotatingTicketsKey.clear();
   }
 
   std::shared_ptr<DOHServerConfig> d_dsc{nullptr};
@@ -50,9 +49,6 @@ struct DOHFrontend
   TLSConfig d_tlsConfig;
   TLSErrorCounters d_tlsCounters;
   std::string d_serverTokens{"h2o/dnsdist"};
-#ifdef HAVE_DNS_OVER_HTTPS
-  std::unique_ptr<OpenSSLTLSTicketKeysRing> d_ticketKeys{nullptr};
-#endif
   std::vector<std::pair<std::string, std::string>> d_customResponseHeaders;
   ComboAddress d_local;
 
@@ -81,6 +77,10 @@ struct DOHFrontend
   HTTPVersionStats d_http1Stats;
   HTTPVersionStats d_http2Stats;
 
+  time_t getTicketsKeyRotationDelay() const
+  {
+    return d_tlsConfig.d_ticketsKeyRotationDelay;
+  }
 
 #ifndef HAVE_DNS_OVER_HTTPS
   void setup()
@@ -103,6 +103,17 @@ struct DOHFrontend
   {
   }
 
+  time_t getNextTicketsKeyRotation() const
+  {
+    return 0;
+  }
+
+  size_t getTicketsKeysCount() const
+  {
+    size_t res = 0;
+    return res;
+  }
+
 #else
   void setup();
   void reloadCertificates();
@@ -110,28 +121,9 @@ struct DOHFrontend
   void rotateTicketsKey(time_t now);
   void loadTicketsKeys(const std::string& keyFile);
   void handleTicketsKeyRotation();
-
+  time_t getNextTicketsKeyRotation() const;
+  size_t getTicketsKeysCount() const;
 #endif /* HAVE_DNS_OVER_HTTPS */
-
-  time_t getNextTicketsKeyRotation() const
-  {
-    return d_ticketsKeyNextRotation;
-  }
-
-  size_t getTicketsKeysCount() const
-  {
-    size_t res = 0;
-#ifdef HAVE_DNS_OVER_HTTPS
-    if (d_ticketKeys) {
-      res = d_ticketKeys->getKeysCount();
-    }
-#endif /* HAVE_DNS_OVER_HTTPS */
-    return res;
-  }
-
-private:
-  time_t d_ticketsKeyNextRotation{0};
-  std::atomic_flag d_rotatingTicketsKey;
 };
 
 #ifndef HAVE_DNS_OVER_HTTPS
