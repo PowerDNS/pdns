@@ -1240,8 +1240,8 @@ extern DNSDistSNMPAgent* g_snmpAgent;
 extern bool g_addEDNSToSelfGeneratedResponses;
 
 extern std::set<std::string> g_capabilitiesToRetain;
-
-static const size_t s_udpIncomingBufferSize{1500};
+static const uint16_t s_udpIncomingBufferSize{1500}; // don't accept UDP queries larger than this value
+static const size_t s_maxPacketCacheEntrySize{4096}; // don't cache responses larger than this value
 
 enum class ProcessQueryResult { Drop, SendAnswer, PassToBackend };
 ProcessQueryResult processQuery(DNSQuestion& dq, ClientState& cs, LocalHolders& holders, std::shared_ptr<DownstreamState>& selectedBackend);
