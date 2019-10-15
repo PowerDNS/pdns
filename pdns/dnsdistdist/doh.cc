@@ -159,6 +159,7 @@ public:
 
   std::map<int, std::string> d_ocspResponses;
   std::unique_ptr<OpenSSLTLSTicketKeysRing> d_ticketKeys{nullptr};
+  std::unique_ptr<FILE, int(*)(FILE*)> d_keyLogFile{nullptr, fclose};
   ClientState* d_cs{nullptr};
   time_t d_ticketsKeyRotationDelay{0};
 
@@ -1054,6 +1055,10 @@ static void setupTLSContext(DOHAcceptContext& acceptCtx,
   }
 
   libssl_set_error_counters_callback(ctx, &counters);
+
+  if (!tlsConfig.d_keyLogFile.empty()) {
+    acceptCtx.d_keyLogFile = libssl_set_key_log_file(ctx, tlsConfig.d_keyLogFile);
+  }
 
   h2o_ssl_register_alpn_protocols(ctx.get(), h2o_http2_alpn_protocols);
 

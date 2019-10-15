@@ -198,6 +198,10 @@ static void parseTLSConfig(TLSConfig& config, const std::string& context, boost:
       config.d_ocspFiles.push_back(file.second);
     }
   }
+
+  if (vars->count("keyLogFile")) {
+    config.d_keyLogFile = boost::get<const string>((*vars)["keyLogFile"]);
+  }
 }
 
 #endif // defined(HAVE_DNS_OVER_TLS) || defined(HAVE_DNS_OVER_HTTPS)
