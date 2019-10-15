@@ -988,18 +988,28 @@ The following actions exist.
   :param KeyValueLookupKey lookupKey: The key to use for the lookup
   :param string destinationTag: The name of the tag to store the result into
 
-.. function:: LogAction(filename[, binary[, append[, buffered]]])
+.. function:: LogAction([filename[, binary[, append[, buffered[, verboseOnly[, includeTimestamp]]]]]])
+
+  .. versionchanged:: 1.4.0
+    Added the optional parameters ``verboseOnly`` and ``includeTimestamp``, made ``filename`` optional.
 
   Log a line for each query, to the specified ``file`` if any, to the console (require verbose) if the empty string is given as filename.
-  When logging to a file, the ``binary`` optional parameter specifies whether we log in binary form (default) or in textual form.
+
+  If an empty string is supplied in the file name, the logging is done to stdout, and only in verbose mode by default. This can be changed by setting ``verboseOnly`` to true.
+
+  When logging to a file, the ``binary`` optional parameter specifies whether we log in binary form (default) or in textual form. Before 1.4.0 the binary log format only included the qname and qtype. Since 1.4.0 it includes an optional timestamp, the query ID, qname, qtype, remote address and port.
+
   The ``append`` optional parameter specifies whether we open the file for appending or truncate each time (default).
   The ``buffered`` optional parameter specifies whether writes to the file are buffered (default) or not.
+
   Subsequent rules are processed after this action.
 
   :param string filename: File to log to. Set to an empty string to log to the normal stdout log, this only works when ``-v`` is set on the command line.
   :param bool binary: Do binary logging. Default true
   :param bool append: Append to the log. Default false
-  :param bool buffered: Use buffered I/O. default true
+  :param bool buffered: Use buffered I/O. Default true
+  :param bool verboseOnly: Whether to log only in verbose mode when logging to stdout. Default is true
+  :param bool includeTimestamp: Whether to include a timestamp for every entry. Default is false
 
 .. function:: LuaAction(function)
 
