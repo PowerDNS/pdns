@@ -39,10 +39,15 @@ override_dh_auto_configure:
 
 override_dh_auto_install:
 	dh_auto_install
+	install -d debian/pdns-recursor/usr/share/pdns-recursor/lua-config
+	install -m 644 -t debian/pdns-recursor/usr/share/pdns-recursor/lua-config debian/lua-config/rootkeys.lua
+	install -m 644 -t debian/pdns-recursor/etc/powerdns debian/recursor.lua
 	rm -f debian/pdns-recursor/etc/powerdns/recursor.conf-dist
 	./pdns_recursor --no-config --config | sed \
 		-e 's!# config-dir=.*!config-dir=/etc/powerdns!' \
+		-e 's!# include-dir=.*!&\ninclude-dir=/etc/powerdns/recursor.d!' \
 		-e 's!# local-address=.*!local-address=127.0.0.1!' \
+		-e 's!# lua-config-file=.*!lua-config-file=/etc/powerdns/recursor.lua!' \
 		-e 's!# quiet=.*!quiet=yes!' \
 		-e 's!# setgid=.*!setgid=pdns!' \
 		-e 's!# setuid=.*!setuid=pdns!' \
@@ -60,5 +65,5 @@ override_dh_gencontrol:
 
 override_dh_fixperms:
 	dh_fixperms
-        # these files often contain passwords. 640 as it is chowned to root:pdns
+# these files often contain passwords. 640 as it is chowned to root:pdns
 	chmod 0640 debian/pdns-recursor/etc/powerdns/recursor.conf
