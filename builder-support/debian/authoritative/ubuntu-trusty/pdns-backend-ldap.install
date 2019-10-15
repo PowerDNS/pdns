@@ -1,3 +1,0 @@
-modules/ldapbackend/dnsdomain2.schema etc/ldap/schema/
-usr/bin/zone2ldap usr/bin/
-usr/lib/*/pdns/libldapbackend.so*

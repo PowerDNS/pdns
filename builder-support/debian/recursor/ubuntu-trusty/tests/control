@@ -1,3 +1,0 @@
-Tests: smoke
-Depends: @, dnsutils
-Restrictions: needs-root
