@@ -920,7 +920,7 @@ public:
   }
 
   string getName() const override { return "OpenSSL EDDSA"; }
-  int getBits() const override { return d_len; }
+  int getBits() const override { return d_len << 3; }
 
   void create(unsigned int bits) override;
   storvector_t convertToISCVector() const override;
