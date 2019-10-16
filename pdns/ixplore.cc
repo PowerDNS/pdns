@@ -113,7 +113,7 @@ int main(int argc, char** argv) {
     string directory(argv[5]);
     records_t records;
 
-    uint32_t ourSerial = getSerialsFromDir(directory);
+    uint32_t ourSerial = getSerialFromDir(directory);
 
     cout<<"Loading zone, our highest available serial is "<< ourSerial<<endl;
 

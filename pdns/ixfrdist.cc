@@ -282,7 +282,7 @@ void updateThread(const string& workdir, const uint16_t& keep, const uint16_t& a
     string dir = workdir + "/" + domain.toString();
     try {
       g_log<<Logger::Info<<"Trying to initially load domain "<<domain<<" from disk"<<endl;
-      auto serial = getSerialsFromDir(dir);
+      auto serial = getSerialFromDir(dir);
       shared_ptr<SOARecordContent> soa;
       uint32_t soaTTL;
       {

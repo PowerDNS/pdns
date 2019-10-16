@@ -50,7 +50,7 @@ typedef multi_index_container <
 > /* multi_index_container */ records_t;
 
 uint32_t getSerialFromMaster(const ComboAddress& master, const DNSName& zone, shared_ptr<SOARecordContent>& sr, const TSIGTriplet& tt = TSIGTriplet(), const uint16_t timeout = 2);
-uint32_t getSerialsFromDir(const std::string& dir);
+uint32_t getSerialFromDir(const std::string& dir);
 uint32_t getSerialFromRecords(const records_t& records, DNSRecord& soaret);
 void writeZoneToDisk(const records_t& records, const DNSName& zone, const std::string& directory);
 void loadZoneFromDisk(records_t& records, const string& fname, const DNSName& zone);

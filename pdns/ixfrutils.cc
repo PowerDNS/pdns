@@ -73,7 +73,7 @@ uint32_t getSerialFromMaster(const ComboAddress& master, const DNSName& zone, sh
   return 0;
 }
 
-uint32_t getSerialsFromDir(const std::string& dir)
+uint32_t getSerialFromDir(const std::string& dir)
 {
   uint32_t ret=0;
   DIR* dirhdl=opendir(dir.c_str());
