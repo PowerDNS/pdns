@@ -35,7 +35,11 @@ BuildRequires: libatomic
 %if 0%{?rhel} >= 7
 BuildRequires: protobuf-compiler
 BuildRequires: protobuf-devel
+
+%if 0%{?rhel} == 7
+# No fstrm in EPEL 8 yet
 BuildRequires: fstrm-devel
+%endif
 %endif
 
 BuildRequires: openssl-devel
