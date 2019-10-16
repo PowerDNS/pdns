@@ -256,6 +256,7 @@ void DNSCryptoKeyEngine::testMakers(unsigned int algo, maker_t* creator, maker_t
   DTime dt; dt.set();
   for(unsigned int n = 0; n < 100; ++n)
     dckeCreate->create(bits);
+  cerr<<"("<<dckeCreate->getBits()<<" bits) ";
   unsigned int udiffCreate = dt.udiff() / 100;
 
   { // FIXME: this block copy/pasted from makeFromISCString
