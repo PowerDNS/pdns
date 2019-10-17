@@ -1,0 +1,27 @@
+# First do the source builds
+@INCLUDE Dockerfile.target.sdist
+
+FROM ubuntu:eoan as dist-base
+ARG BUILDER_CACHE_BUSTER=
+ARG APT_URL
+RUN apt-get update && apt-get -y dist-upgrade
+
+@INCLUDE Dockerfile.debbuild-prepare
+
+@IF [ ! -z "$M_authoritative" ]
+ADD builder-support/debian/authoritative/debian-buster/ pdns-${BUILDER_VERSION}/debian/
+@ENDIF
+
+@IF [ ! -z "$M_recursor" ]
+ADD builder-support/debian/recursor/debian-buster/ pdns-recursor-${BUILDER_VERSION}/debian/
+@ENDIF
+
+@IF [ ! -z "$M_dnsdist" ]
+ADD builder-support/debian/dnsdist/debian-buster/ dnsdist-${BUILDER_VERSION}/debian/
+@ENDIF
+
+@INCLUDE Dockerfile.debbuild
+
+# Do a test install and verify
+# Can be skipped with skiptests=1 in the environment
+# @EXEC [ "$skiptests" = "" ] && include Dockerfile.debtest
