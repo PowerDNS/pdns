@@ -90,8 +90,6 @@ if [ -z "$context" ]; then
 	./timestamp ./start-test-stop 5300 gsqlite3-nsec3-optout-both || EXITCODE=1
 	./timestamp ./start-test-stop 5300 gsqlite3-nsec3-narrow || EXITCODE=1
 
-	./timestamp ./start-test-stop 5300 mydns || EXITCODE=1
-
 	./timestamp ./start-test-stop 5300 opendbx-sqlite3 || EXITCODE=1
 
 	./timestamp timeout 120s ./start-test-stop 5300 remotebackend-pipe || EXITCODE=1

@@ -503,7 +503,7 @@ jobs:
             CXXFLAGS="-O1 -Werror=vla -Werror=shadow -Wformat=2 -Werror=format-security -Wp,-D_GLIBCXX_ASSERTIONS" \
             ./configure \
               --disable-lua-records \
-              --with-modules='bind lmdb ldap gmysql gsqlite3 gpgsql godbc mydns random tinydns' \
+              --with-modules='bind lmdb ldap gmysql gsqlite3 gpgsql godbc random tinydns' \
               --enable-systemd \
               --enable-tools \
               --with-lmdb=/usr \
@@ -659,32 +659,10 @@ jobs:
             __EOF__
       - run:
           name: Set up mysql client lib to force TCP
-          command: echo 'export GMYSQLHOST=127.0.0.1 MYDNSHOST=127.0.0.1' > ./vars
+          command: echo 'export GMYSQLHOST=127.0.0.1' > ./vars
           workdir: ~/project/regression-tests            
       - auth-regress:
           context: bind-hybrid-nsec3
-
-  test-auth-regress-mydns:
-    docker:
-      - image: debian:buster
-      - image: circleci/mysql:5
-    steps:
-      - auth-regress-setup
-      - run:
-          command: apt-get install -qq -y default-mysql-client
-      - run:
-          command: |
-            cat >> ~/.my.cnf \<<- __EOF__
-             [client]
-             protocol=TCP
-            __EOF__
-      - run:
-          name: Set up mysql client lib to force TCP
-          command: echo 'export GMYSQLHOST=127.0.0.1 MYDNSHOST=127.0.0.1' > ./vars
-          workdir: ~/project/regression-tests
-      - auth-regress:
-          context: mydns
-          doroot: false
 
   test-auth-regress-gmysql:
     docker:
@@ -703,7 +681,7 @@ jobs:
             __EOF__
       - run:
           name: Set up mysql client lib to force TCP
-          command: echo 'export GMYSQLHOST=127.0.0.1 MYDNSHOST=127.0.0.1 export GMYSQL2HOST=127.0.0.1 MYDNS2HOST=127.0.0.1 ' > ./vars
+          command: echo 'export GMYSQLHOST=127.0.0.1 export GMYSQL2HOST=127.0.0.1 ' > ./vars
           workdir: ~/project/regression-tests
       - auth-regress:
           context: gmysql-nodnssec-both
@@ -1028,7 +1006,7 @@ jobs:
             ./configure \
               --disable-lua-records \
               --disable-systemd \
-              --with-modules='bind lmdb ldap gmysql gsqlite3 gpgsql godbc mydns random tinydns' \
+              --with-modules='bind lmdb ldap gmysql gsqlite3 gpgsql godbc random tinydns' \
               --enable-tools \
               --with-lmdb=/usr \
               --with-libsodium \
@@ -1356,9 +1334,6 @@ workflows:
           requires:
             - build-auth
       - test-auth-regress-gmysql:
-          requires:
-            - build-auth
-      - test-auth-regress-mydns:
           requires:
             - build-auth
       - test-auth-regress-bind:

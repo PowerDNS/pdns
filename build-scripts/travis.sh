@@ -392,7 +392,7 @@ build_auth() {
   run "autoreconf -vi"
   run "./configure \
     ${sanitizerflags} \
-    --with-dynmodules='bind gmysql geoip gpgsql gsqlite3 lmdb lua mydns opendbx pipe random remote tinydns godbc lua2' \
+    --with-dynmodules='bind gmysql geoip gpgsql gsqlite3 lmdb lua opendbx pipe random remote tinydns godbc lua2' \
     --with-modules='' \
     --with-sqlite3 \
     --with-libsodium \
@@ -531,8 +531,6 @@ test_auth() {
   run "./timestamp ./start-test-stop 5300 gsqlite3-nsec3-both"
   # run "./timestamp ./start-test-stop 5300 gsqlite3-nsec3-optout-both"
   run "./timestamp ./start-test-stop 5300 gsqlite3-nsec3-narrow"
-
-  run "./timestamp ./start-test-stop 5300 mydns"
 
   run "./timestamp ./start-test-stop 5300 opendbx-sqlite3"
 

@@ -178,7 +178,7 @@ for a in $modules $dynmodules; do
     godbc)
       PDNS_WITH_UNIXODBC
       ;;
-    mydns|gmysql)
+    gmysql)
       PDNS_WITH_MYSQL
       ;;
     gpgsql)
@@ -343,7 +343,6 @@ AC_CONFIG_FILES([
   modules/lmdbbackend/Makefile
   modules/luabackend/Makefile
   modules/lua2backend/Makefile
-  modules/mydnsbackend/Makefile
   modules/opendbxbackend/Makefile
   modules/pipebackend/Makefile
   modules/randombackend/Makefile

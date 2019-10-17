@@ -149,7 +149,7 @@ Syntax: ``pdnsutil b2b-migrate OLD NEW``
 This tool lets you migrate data from one backend to another, it moves
 all data, including zones, metadata and crypto keys (if present). Some
 example use cases are moving from BIND-style zonefiles to SQL based, or
-other way around, or moving from MyDNS to gMySQL.
+other way around.
 
 Prerequisites
 ~~~~~~~~~~~~~
