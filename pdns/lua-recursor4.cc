@@ -111,13 +111,14 @@ static int getFakePTRRecords(const DNSName& qname, const std::string& prefix, ve
   newquery += "in-addr.arpa.";
 
 
+  DNSRecord rr;
+  rr.d_name = qname;
+  rr.d_type = QType::CNAME;
+  rr.d_content = std::make_shared<CNAMERecordContent>(newquery);
+  ret.push_back(rr);
+
   int rcode = directResolve(DNSName(newquery), QType(QType::PTR), 1, ret);
-  for(DNSRecord& rr :  ret)
-  {
-    if(rr.d_type == QType::PTR && rr.d_place==DNSResourceRecord::ANSWER) {
-      rr.d_name = qname;
-    }
-  }
+
   return rcode;
 
 }
