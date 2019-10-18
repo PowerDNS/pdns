@@ -52,10 +52,6 @@ Files: modules/ldapbackend/* pdns/zone2ldap.cc
 Copyright: 2003-2007 Norbert Sendetzky <norbert@linuxnetworks.de>
 License: GPL-2 with OpenSSL Exception
 
-Files: modules/opendbxbackend/*
-Copyright: 2005-2007 Norbert Sendetzky <norbert@linuxnetworks.de>
-License: GPL-2 with OpenSSL Exception
-
 Files: ext/yahttp/*
 Copyright: 2014 Aki Tuomi
 License: Expat

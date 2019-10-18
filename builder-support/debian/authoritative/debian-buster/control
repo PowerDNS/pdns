@@ -27,7 +27,6 @@ Build-Depends: autoconf,
                liblmdb-dev,
                libluajit-5.1-dev,
                libmaxminddb-dev,
-               libopendbx1-dev,
                libp11-kit-dev,
                libpq-dev,
                libprotobuf-dev,
@@ -256,22 +255,6 @@ Description: remote backend for PowerDNS
  .
  This package contains the remote backend for PowerDNS. It is suitable
  for serving data acquired from an AF_UNIX, pipe, or HTTP connector.
-
-Package: pdns-backend-opendbx
-Architecture: any
-Depends: pdns-server (= ${binary:Version}),
-         ${misc:Depends},
-         ${shlibs:Depends}
-Provides: pdns-backend
-Description: OpenDBX backend for PowerDNS
- PowerDNS is a versatile nameserver which supports a large number
- of different backends ranging from simple zonefiles to relational
- databases and load balancing/failover algorithms.
- PowerDNS tries to emphasize speed and security.
- .
- This package contains the OpenDBX backend for PowerDNS. Please install
- the libopendbx1-DATABASE package to allow OpenDBX to connect to
- the chosen database.
 
 Package: pdns-backend-tinydns
 Architecture: any
