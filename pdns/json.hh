@@ -36,6 +36,6 @@ bool boolFromJson(const json11::Json container, const std::string& key, const bo
 class JsonException : public std::runtime_error
 {
 public:
-  JsonException(const std::string& what) : std::runtime_error(what) {
+  JsonException(const std::string& what_arg) : std::runtime_error(what_arg) {
   }
 };
