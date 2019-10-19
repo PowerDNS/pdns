@@ -924,7 +924,7 @@ public:
 
   void create(unsigned int bits) override;
   storvector_t convertToISCVector() const override;
-  std::string sign(const std::string& hash) const override;
+  std::string sign(const std::string& msg) const override;
   bool verify(const std::string& msg, const std::string& signature) const override;
   std::string getPubKeyHash() const override;
   std::string getPublicKeyString() const override;
