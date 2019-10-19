@@ -310,19 +310,19 @@ DNSCryptoKeyEngine::storvector_t OpenSSLRSADNSCryptoKeyEngine::convertToISCVecto
 std::string OpenSSLRSADNSCryptoKeyEngine::hash(const std::string& orig) const
 {
   if (d_algorithm == DNSSECKeeper::RSASHA1 || d_algorithm == DNSSECKeeper::RSASHA1NSEC3SHA1) {
-    unsigned char hash[SHA_DIGEST_LENGTH];
-    SHA1((unsigned char*) orig.c_str(), orig.length(), hash);
-    return string((char*) hash, sizeof(hash));
+    unsigned char l_hash[SHA_DIGEST_LENGTH];
+    SHA1((unsigned char*) orig.c_str(), orig.length(), l_hash);
+    return string((char*) l_hash, sizeof(l_hash));
   }
   else if (d_algorithm == DNSSECKeeper::RSASHA256) {
-    unsigned char hash[SHA256_DIGEST_LENGTH];
-    SHA256((unsigned char*) orig.c_str(), orig.length(), hash);
-    return string((char*) hash, sizeof(hash));
+    unsigned char l_hash[SHA256_DIGEST_LENGTH];
+    SHA256((unsigned char*) orig.c_str(), orig.length(), l_hash);
+    return string((char*) l_hash, sizeof(l_hash));
   }
   else if (d_algorithm == DNSSECKeeper::RSASHA512) {
-    unsigned char hash[SHA512_DIGEST_LENGTH];
-    SHA512((unsigned char*) orig.c_str(), orig.length(), hash);
-    return string((char*) hash, sizeof(hash));
+    unsigned char l_hash[SHA512_DIGEST_LENGTH];
+    SHA512((unsigned char*) orig.c_str(), orig.length(), l_hash);
+    return string((char*) l_hash, sizeof(l_hash));
   }
 
   throw runtime_error(getName()+" does not support hash operation for algorithm "+std::to_string(d_algorithm));
@@ -346,13 +346,13 @@ int OpenSSLRSADNSCryptoKeyEngine::hashSizeToKind(const size_t hashSize)
 
 std::string OpenSSLRSADNSCryptoKeyEngine::sign(const std::string& msg) const
 {
-  string hash = this->hash(msg);
-  int hashKind = hashSizeToKind(hash.size());
+  string l_hash = this->hash(msg);
+  int hashKind = hashSizeToKind(l_hash.size());
   std::string signature;
   signature.resize(RSA_size(d_key.get()));
   unsigned int signatureLen = 0;
 
-  int res = RSA_sign(hashKind, reinterpret_cast<unsigned char*>(&hash.at(0)), hash.length(), reinterpret_cast<unsigned char*>(&signature.at(0)), &signatureLen, d_key.get());
+  int res = RSA_sign(hashKind, reinterpret_cast<unsigned char*>(&l_hash.at(0)), l_hash.length(), reinterpret_cast<unsigned char*>(&signature.at(0)), &signatureLen, d_key.get());
   if (res != 1) {
     throw runtime_error(getName()+" failed to generate signature");
   }
@@ -364,10 +364,10 @@ std::string OpenSSLRSADNSCryptoKeyEngine::sign(const std::string& msg) const
 
 bool OpenSSLRSADNSCryptoKeyEngine::verify(const std::string& msg, const std::string& signature) const
 {
-  string hash = this->hash(msg);
-  int hashKind = hashSizeToKind(hash.size());
+  string l_hash = this->hash(msg);
+  int hashKind = hashSizeToKind(l_hash.size());
 
-  int ret = RSA_verify(hashKind, (const unsigned char*) hash.c_str(), hash.length(), (unsigned char*) signature.c_str(), signature.length(), d_key.get());
+  int ret = RSA_verify(hashKind, (const unsigned char*)l_hash.c_str(), l_hash.length(), (unsigned char*)signature.c_str(), signature.length(), d_key.get());
 
   return (ret == 1);
 }
@@ -379,7 +379,7 @@ std::string OpenSSLRSADNSCryptoKeyEngine::getPubKeyHash() const
   RSA_get0_key(d_key.get(), &n, &e, &d);
   std::vector<unsigned char> tmp;
   tmp.resize(std::max(BN_num_bytes(e), BN_num_bytes(n)));
-  unsigned char hash[SHA_DIGEST_LENGTH];
+  unsigned char l_hash[SHA_DIGEST_LENGTH];
   SHA_CTX ctx;
 
   int res = SHA1_Init(&ctx);
@@ -400,12 +400,12 @@ std::string OpenSSLRSADNSCryptoKeyEngine::getPubKeyHash() const
     throw runtime_error(getName()+" failed to update hash context for generating the public key hash");
   }
 
-  res = SHA1_Final(hash, &ctx);
+  res = SHA1_Final(l_hash, &ctx);
   if (res != 1) {
     throw runtime_error(getName()+" failed to finish hash context for generating the public key hash");
   }
 
-  return string((char*) hash, sizeof(hash));
+  return string((char*)l_hash, sizeof(l_hash));
 }
 
 
@@ -709,14 +709,14 @@ DNSCryptoKeyEngine::storvector_t OpenSSLECDSADNSCryptoKeyEngine::convertToISCVec
 std::string OpenSSLECDSADNSCryptoKeyEngine::hash(const std::string& orig) const
 {
   if(getBits() == 256) {
-    unsigned char hash[SHA256_DIGEST_LENGTH];
-    SHA256((unsigned char*) orig.c_str(), orig.length(), hash);
-    return string((char*) hash, sizeof(hash));
+    unsigned char l_hash[SHA256_DIGEST_LENGTH];
+    SHA256((unsigned char*) orig.c_str(), orig.length(), l_hash);
+    return string((char*)l_hash, sizeof(l_hash));
   }
   else if(getBits() == 384) {
-    unsigned char hash[SHA384_DIGEST_LENGTH];
-    SHA384((unsigned char*) orig.c_str(), orig.length(), hash);
-    return string((char*) hash, sizeof(hash));
+    unsigned char l_hash[SHA384_DIGEST_LENGTH];
+    SHA384((unsigned char*) orig.c_str(), orig.length(), l_hash);
+    return string((char*)l_hash, sizeof(l_hash));
   }
 
   throw runtime_error(getName()+" does not support a hash size of "+std::to_string(getBits())+" bits");
@@ -725,9 +725,9 @@ std::string OpenSSLECDSADNSCryptoKeyEngine::hash(const std::string& orig) const
 
 std::string OpenSSLECDSADNSCryptoKeyEngine::sign(const std::string& msg) const
 {
-  string hash = this->hash(msg);
+  string l_hash = this->hash(msg);
 
-  auto signature = std::unique_ptr<ECDSA_SIG, void(*)(ECDSA_SIG*)>(ECDSA_do_sign((unsigned char*) hash.c_str(), hash.length(), d_eckey.get()), ECDSA_SIG_free);
+  auto signature = std::unique_ptr<ECDSA_SIG, void(*)(ECDSA_SIG*)>(ECDSA_do_sign((unsigned char*) l_hash.c_str(), l_hash.length(), d_eckey.get()), ECDSA_SIG_free);
   if (!signature) {
     throw runtime_error(getName()+" failed to generate signature");
   }
@@ -758,7 +758,7 @@ bool OpenSSLECDSADNSCryptoKeyEngine::verify(const std::string& msg, const std::s
     throw runtime_error(getName()+" invalid signature size "+std::to_string(signature.length()));
   }
 
-  string hash = this->hash(msg);
+  string l_hash = this->hash(msg);
 
   auto sig = std::unique_ptr<ECDSA_SIG, void(*)(ECDSA_SIG*)>(ECDSA_SIG_new(), ECDSA_SIG_free);
   if (!sig) {
@@ -772,7 +772,7 @@ bool OpenSSLECDSADNSCryptoKeyEngine::verify(const std::string& msg, const std::s
   }
 
   ECDSA_SIG_set0(sig.get(), r.release(), s.release());
-  int ret = ECDSA_do_verify((unsigned char*) hash.c_str(), hash.length(), sig.get(), d_eckey.get());
+  int ret = ECDSA_do_verify((unsigned char*) l_hash.c_str(), l_hash.length(), sig.get(), d_eckey.get());
 
   if (ret == -1){
     throw runtime_error(getName()+" verify error");
@@ -785,9 +785,9 @@ bool OpenSSLECDSADNSCryptoKeyEngine::verify(const std::string& msg, const std::s
 std::string OpenSSLECDSADNSCryptoKeyEngine::getPubKeyHash() const
 {
   string pubKey = getPublicKeyString();
-  unsigned char hash[SHA_DIGEST_LENGTH];
-  SHA1((unsigned char*) pubKey.c_str(), pubKey.length(), hash);
-  return string((char*) hash, sizeof(hash));
+  unsigned char l_hash[SHA_DIGEST_LENGTH];
+  SHA1((unsigned char*) pubKey.c_str(), pubKey.length(), l_hash);
+  return string((char*) l_hash, sizeof(l_hash));
 }
 
 
