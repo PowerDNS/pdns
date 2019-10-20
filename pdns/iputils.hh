@@ -478,7 +478,7 @@ public:
     if(isIpv4()) {
       result.sin4.sin_addr.s_addr = htonl(ntohl(result.sin4.sin_addr.s_addr) & d_mask);
     }
-    else if(isIpv6()) {
+    else if(isIPv6()) {
       size_t idx;
       uint8_t bytes=d_bits/8;
       uint8_t *us=(uint8_t*) &result.sin6.sin6_addr.s6_addr;
@@ -499,7 +499,7 @@ public:
   {
     return d_bits;
   }
-  bool isIpv6() const 
+  bool isIPv6() const
   {
     return d_network.sin6.sin6_family == AF_INET6;
   }

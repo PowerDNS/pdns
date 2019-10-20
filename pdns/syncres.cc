@@ -2785,7 +2785,7 @@ RCode::rcodes_ SyncRes::updateCacheFromRecords(unsigned int depth, LWResult& lwr
         // If ednsmask is relevant, we do not want to cache if the scope prefix length is large and TTL is small
         if (SyncRes::s_ecscachelimitttl > 0) {
           bool manyMaskBits = (ednsmask->isIpv4() && ednsmask->getBits() > SyncRes::s_ecsipv4cachelimit) ||
-            (ednsmask->isIpv6() && ednsmask->getBits() > SyncRes::s_ecsipv6cachelimit);
+            (ednsmask->isIPv6() && ednsmask->getBits() > SyncRes::s_ecsipv6cachelimit);
 
           if (manyMaskBits) {
             uint32_t minttl = UINT32_MAX;
