@@ -158,27 +158,27 @@ void CoProcess::send(const string &snd)
   }
 }
 
-void CoProcess::receive(string &receive)
+void CoProcess::receive(string &received)
 {
-  receive.clear();
+  received.clear();
 
   // we might still have some remaining data from our last read
   if (!d_remaining.empty()) {
-    receive = std::move(d_remaining);
+    received = std::move(d_remaining);
   }
 
   size_t lastPos = 0;
   size_t eolPos;
-  while ((eolPos = receive.find('\n', lastPos)) == std::string::npos) {
-    size_t existingSize = receive.size();
+  while ((eolPos = received.find('\n', lastPos)) == std::string::npos) {
+    size_t existingSize = received.size();
     lastPos = existingSize;
-    receive.resize(existingSize + 4096);
-    ssize_t got = read(d_fd2[0], &receive.at(existingSize), 4096);
+    received.resize(existingSize + 4096);
+    ssize_t got = read(d_fd2[0], &received.at(existingSize), 4096);
     if (got == 0) {
       throw PDNSException("Child closed pipe");
     }
     else if (got < 0) {
-      receive.resize(existingSize);
+      received.resize(existingSize);
       int saved = errno;
       if (saved == EINTR) {
         continue;
@@ -196,17 +196,17 @@ void CoProcess::receive(string &receive)
         throw PDNSException("Error reading from child's pipe:" + string(strerror(saved)));
       }
     } else {
-      receive.resize(existingSize + static_cast<size_t>(got));
+      received.resize(existingSize + static_cast<size_t>(got));
     }
   }
 
-  if (eolPos != receive.size() - 1) {
+  if (eolPos != received.size() - 1) {
     /* we have some data remaining after the first '\n', let's keep it for later */
-    d_remaining.append(receive, eolPos + 1, receive.size() - eolPos - 1);
+    d_remaining.append(received, eolPos + 1, received.size() - eolPos - 1);
   }
 
-  receive.resize(eolPos);
-  trim_right(receive);
+  received.resize(eolPos);
+  trim_right(received);
 }
 
 void CoProcess::sendReceive(const string &snd, string &rcv)
