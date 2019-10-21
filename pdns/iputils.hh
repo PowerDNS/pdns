@@ -782,15 +782,15 @@ public:
     // only cleanup this node if it has no children and node4 and node6 are both empty
     if (!(node->left || node->right || node->node6 || node->node4)) {
       // get parent node ptr
-      TreeNode* parent = node->parent;
+      TreeNode* pparent = node->parent;
       // delete this node
-      if (parent) {
-	if (parent->left.get() == node)
-	  parent->left.reset();
+      if (pparent) {
+	if (pparent->left.get() == node)
+	  pparent->left.reset();
 	else
-	  parent->right.reset();
+	  pparent->right.reset();
 	// now recurse up to the parent
-	cleanup_tree(parent);
+	cleanup_tree(pparent);
       }
     }
   }
