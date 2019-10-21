@@ -613,12 +613,12 @@ int PacketHandler::forwardPacket(const string &msgPrefix, const DNSPacket& p, co
       continue;
     }
 
-    DNSPacket forwardPacket(p);
-    forwardPacket.setID(dns_random_uint16());
-    forwardPacket.setRemote(&remote);
-    uint16_t len=htons(forwardPacket.getString().length());
+    DNSPacket l_forwardPacket(p);
+    l_forwardPacket.setID(dns_random_uint16());
+    l_forwardPacket.setRemote(&remote);
+    uint16_t len=htons(l_forwardPacket.getString().length());
     string buffer((const char*)&len, 2);
-    buffer.append(forwardPacket.getString());
+    buffer.append(l_forwardPacket.getString());
     if(write(sock, buffer.c_str(), buffer.length()) < 0) {
       g_log<<Logger::Error<<msgPrefix<<"Unable to forward update message to "<<remote.toStringWithPort()<<", error:"<<stringerror()<<endl;
       try {
