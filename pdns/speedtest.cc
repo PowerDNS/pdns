@@ -598,7 +598,6 @@ struct ParsePacketTest
             bool d_aabit;
             int d_rcode;
     } lwr;
-    DNSResourceRecord rr;
     for(MOADNSParser::answers_t::const_iterator i=mdp.d_answers.begin(); i!=mdp.d_answers.end(); ++i) {          
       DNSResourceRecord rr;
       rr.qtype=i->first.d_type;
