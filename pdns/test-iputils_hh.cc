@@ -177,14 +177,14 @@ BOOST_AUTO_TEST_CASE(test_Netmask) {
   BOOST_CHECK(nm.getBits() == 24);
   BOOST_CHECK(nm.match(local));
   BOOST_CHECK(!nm.match(remote));
-  BOOST_CHECK(nm.isIpv4());
+  BOOST_CHECK(nm.isIPv4());
   BOOST_CHECK(!nm.isIPv6());
 
   Netmask nm6("fe80::92fb:a6ff:fe4a:51da/64");
   BOOST_CHECK(nm6.getBits() == 64);
   BOOST_CHECK(nm6.match("fe80::92fb:a6ff:fe4a:51db"));
   BOOST_CHECK(!nm6.match("fe81::92fb:a6ff:fe4a:51db"));
-  BOOST_CHECK(!nm6.isIpv4());
+  BOOST_CHECK(!nm6.isIPv4());
   BOOST_CHECK(nm6.isIPv6());
 
   Netmask nmp("130.161.252.29/32");

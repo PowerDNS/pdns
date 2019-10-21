@@ -475,7 +475,7 @@ public:
   const ComboAddress getMaskedNetwork() const
   {
     ComboAddress result(d_network);
-    if(isIpv4()) {
+    if(isIPv4()) {
       result.sin4.sin_addr.s_addr = htonl(ntohl(result.sin4.sin_addr.s_addr) & d_mask);
     }
     else if(isIPv6()) {
@@ -503,7 +503,7 @@ public:
   {
     return d_network.sin6.sin6_family == AF_INET6;
   }
-  bool isIpv4() const
+  bool isIPv4() const
   {
     return d_network.sin4.sin_family == AF_INET;
   }

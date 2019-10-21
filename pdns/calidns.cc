@@ -335,7 +335,7 @@ try
       ecsRange = Netmask(g_vm["ecs"].as<string>());
       if (!ecsRange.empty()) {
 
-        if (!ecsRange.isIpv4()) {
+        if (!ecsRange.isIPv4()) {
           cerr<<"Only IPv4 ranges are supported for ECS at the moment!"<<endl;
           return EXIT_FAILURE;
         }

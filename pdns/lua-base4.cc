@@ -165,7 +165,8 @@ void BaseLua4::prepareContext() {
   d_lw->writeFunction("newNetmask", [](const string& s) { return Netmask(s); });
   d_lw->registerFunction<ComboAddress(Netmask::*)()>("getNetwork", [](const Netmask& nm) { return nm.getNetwork(); } ); // const reference makes this necessary
   d_lw->registerFunction<ComboAddress(Netmask::*)()>("getMaskedNetwork", [](const Netmask& nm) { return nm.getMaskedNetwork(); } );
-  d_lw->registerFunction("isIpv4", &Netmask::isIpv4);
+  d_lw->registerFunction("isIpv4", &Netmask::isIPv4);
+  d_lw->registerFunction("isIPv4", &Netmask::isIPv4);
   d_lw->registerFunction("isIpv6", &Netmask::isIPv6);
   d_lw->registerFunction("isIPv6", &Netmask::isIPv6);
   d_lw->registerFunction("getBits", &Netmask::getBits);

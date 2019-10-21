@@ -817,7 +817,7 @@ static void protobufLogQuery(uint8_t maskV4, uint8_t maskV6, const boost::uuids:
   const ComboAddress& requestor = requestorNM.getMaskedNetwork();
   RecProtoBufMessage message(DNSProtoBufMessage::Query, uniqueId, &requestor, &local, qname, qtype, qclass, id, tcp, len);
   message.setServerIdentity(SyncRes::s_serverID);
-  message.setEDNSSubnet(ednssubnet, ednssubnet.isIpv4() ? maskV4 : maskV6);
+  message.setEDNSSubnet(ednssubnet, ednssubnet.isIPv4() ? maskV4 : maskV6);
   message.setRequestorId(requestorId);
   message.setDeviceId(deviceId);
   message.setDeviceName(deviceName);
@@ -1187,7 +1187,7 @@ static void startDoResolve(void *p)
       const ComboAddress& requestor = requestorNM.getMaskedNetwork();
       pbMessage = RecProtoBufMessage(RecProtoBufMessage::Response, dc->d_uuid, &requestor, &dc->d_destination, dc->d_mdp.d_qname, dc->d_mdp.d_qtype, dc->d_mdp.d_qclass, dc->d_mdp.d_header.id, dc->d_tcp, 0);
       pbMessage->setServerIdentity(SyncRes::s_serverID);
-      pbMessage->setEDNSSubnet(dc->d_ednssubnet.source, dc->d_ednssubnet.source.isIpv4() ? luaconfsLocal->protobufMaskV4 : luaconfsLocal->protobufMaskV6);
+      pbMessage->setEDNSSubnet(dc->d_ednssubnet.source, dc->d_ednssubnet.source.isIPv4() ? luaconfsLocal->protobufMaskV4 : luaconfsLocal->protobufMaskV6);
     }
 #endif /* HAVE_PROTOBUF */
 
@@ -2383,7 +2383,7 @@ static string* doProcessUDPQuestion(const std::string& question, const ComboAddr
         Netmask requestorNM(source, source.sin4.sin_family == AF_INET ? luaconfsLocal->protobufMaskV4 : luaconfsLocal->protobufMaskV6);
         const ComboAddress& requestor = requestorNM.getMaskedNetwork();
         pbMessage->update(uniqueId, &requestor, &destination, false, dh->id);
-        pbMessage->setEDNSSubnet(ednssubnet.source, ednssubnet.source.isIpv4() ? luaconfsLocal->protobufMaskV4 : luaconfsLocal->protobufMaskV6);
+        pbMessage->setEDNSSubnet(ednssubnet.source, ednssubnet.source.isIPv4() ? luaconfsLocal->protobufMaskV4 : luaconfsLocal->protobufMaskV6);
         if (g_useKernelTimestamp && tv.tv_sec) {
           pbMessage->setQueryTime(tv.tv_sec, tv.tv_usec);
         }

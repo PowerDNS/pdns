@@ -273,7 +273,7 @@ void DNSPacket::wrapup()
   {
     // this is an upper bound
     optsize += EDNS_OPTION_CODE_SIZE + EDNS_OPTION_LENGTH_SIZE + 2 + 1 + 1; // code+len+family+src len+scope len
-    optsize += d_eso.source.isIpv4() ? 4 : 16;
+    optsize += d_eso.source.isIPv4() ? 4 : 16;
   }
 
   if (d_trc.d_algoName.countLabels())
