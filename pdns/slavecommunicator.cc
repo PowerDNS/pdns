@@ -599,14 +599,14 @@ void CommunicatorClass::suck(const DNSName &domain, const ComboAddress& remote)
     g_log<<Logger::Error<<"AXFR done for '"<<domain<<"', zone committed with serial number "<<zs.soa_serial<<endl;
 
     // Send slave re-notifications
-    bool notify;
+    bool doNotify;
     vector<string> meta;
     if(B.getDomainMetadata(domain, "SLAVE-RENOTIFY", meta ) && !meta.empty()) {
-      notify=(meta.front() == "1");
+      doNotify=(meta.front() == "1");
     } else {
-      notify=(::arg().mustDo("slave-renotify"));
+      doNotify=(::arg().mustDo("slave-renotify"));
     }
-    if(notify) {
+    if(doNotify) {
       notifyDomain(domain, &B);
     }
 
