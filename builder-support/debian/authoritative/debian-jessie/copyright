@@ -48,15 +48,6 @@ Copyright: 2003 Michel Stol <michel@powerdns.com>
  2011 PowerDNS.COM BV
 License: GPL-2 with OpenSSL Exception
 
-Files: modules/mydnsbackend/*
-Copyright: 2011 Jonathan Oddy (Hostway UK) <jonathan@woaf.net>
-License: GPL-2 with OpenSSL Exception
-
-Files: modules/mydnsbackend/schema.mydns.sql
-Copyright: 2002-2005 Don Moore
- 2007-2008 Howard Wilkinson
-License: GPL-2+
-
 Files: modules/ldapbackend/* pdns/zone2ldap.cc
 Copyright: 2003-2007 Norbert Sendetzky <norbert@linuxnetworks.de>
 License: GPL-2 with OpenSSL Exception

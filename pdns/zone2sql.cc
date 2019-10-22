@@ -50,7 +50,7 @@
 
 StatBag S;
 
-enum dbmode_t {MYSQL, POSTGRES, SQLITE, MYDNS};
+enum dbmode_t {MYSQL, POSTGRES, SQLITE};
 static dbmode_t g_mode;
 static bool g_intransaction;
 static int g_numRecords;
@@ -99,13 +99,13 @@ static void startNewTransaction()
     if(g_mode==POSTGRES) {
       cout<<"COMMIT WORK;"<<endl;
     }
-    else if(g_mode == MYSQL || g_mode == SQLITE || g_mode == MYDNS) {
+    else if(g_mode == MYSQL || g_mode == SQLITE) {
       cout<<"COMMIT;"<<endl;
     }
   }
   g_intransaction=1;
   
-  if(g_mode == MYSQL || g_mode == MYDNS)
+  if(g_mode == MYSQL)
     cout<<"BEGIN;"<<endl;
   else
     cout<<"BEGIN TRANSACTION;"<<endl;
@@ -199,33 +199,6 @@ static void emitRecord(const DNSName& zoneName, const DNSName &DNSqname, const s
       sqlstr(stripDotContent(content))<<", "<<ttl<<", "<<prio<<", '"<<(disabled ? 't': 'f') <<
       "' from domains where name="<<toLower(sqlstr(zname))<<";\n";
   }
-  else if (g_mode == MYDNS) {
-    string zoneNameDot = zname + ".";
-    if (qtype == "A" || qtype == "AAAA" || qtype == "CNAME" || qtype == "HINFO" || qtype == "MX" || qtype == "NAPTR" || 
-        qtype == "NS" || qtype == "PTR" || qtype == "RP" || qtype == "SRV" || qtype == "TXT")
-    {
-      if ((qtype == "MX" || qtype == "NS" || qtype == "SRV" || qtype == "CNAME") && content[content.size()-1] != '.')
-        content.append(".");
-      cout<<"INSERT INTO rr(zone, name, type, data, aux, ttl) VALUES("<<
-      "(SELECT id FROM soa WHERE origin = "<< 
-      sqlstr(toLower(zoneNameDot))<<"), "<<
-      sqlstr(toLower(DNSqname.toString()))<<", "<<
-      sqlstr(qtype)<<", "<<sqlstr(content)<<", "<<prio<<", "<<ttl<<");\n";
-    }
-    else if (qtype == "SOA") {
-      //pdns CONTENT = ns1.wtest.com. ahu.example.com. 2005092501 28800 7200 604800 86400 
-      vector<string> parts;
-      stringtok(parts, content);
- 
-      cout<<"INSERT INTO soa(origin, ns, mbox, serial, refresh, retry, expire, minimum, ttl) VALUES("<<
-      sqlstr(toLower(zoneNameDot))<<", "<<sqlstr(parts[0])<<", "<<sqlstr(parts[1])<<", "<<pdns_stou(parts[2])<<", "<<
-      pdns_stou(parts[3])<<", "<<pdns_stou(parts[4])<<", "<<pdns_stou(parts[5])<<", "<<pdns_stou(parts[6])<<", "<<ttl<<");\n";
-    }
-    else
-    {
-      cerr<<"Record type "<<qtype<<" is not supported."<<endl;
-    }
-  }
 }
 
 
@@ -248,7 +221,6 @@ try
   
     ::arg().setSwitch("gpgsql","Output in format suitable for default gpgsqlbackend")="no";
     ::arg().setSwitch("gmysql","Output in format suitable for default gmysqlbackend")="no";
-    ::arg().setSwitch("mydns","Output in format suitable for default mydnsbackend")="no";
     ::arg().setSwitch("gsqlite","Output in format suitable for default gsqlitebackend")="no";
     ::arg().setSwitch("verbose","Verbose comments on operation")="no";
     ::arg().setSwitch("slave","Keep BIND slaves as slaves. Only works with named-conf.")="no";
@@ -302,8 +274,6 @@ try
       g_mode=POSTGRES;
     else if(::arg().mustDo("gsqlite"))
       g_mode=SQLITE;
-    else if(::arg().mustDo("mydns"))
-      g_mode=MYDNS;
     else {
       cerr<<"Unknown SQL mode!\n\n";
       cerr<<"syntax:"<<endl<<endl;

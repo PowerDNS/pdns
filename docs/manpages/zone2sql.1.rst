@@ -44,8 +44,6 @@ BACKENDS
 --gsqlite
     Output in format suitable for the default configuration of the
     Generic SQLite3 backend.
---mydns
-    Output in a format suitable for the MyDNS backend.
 
 OUTPUT Options
 --------------

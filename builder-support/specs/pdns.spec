@@ -141,15 +141,6 @@ BuildRequires: sqlite-devel
 %description backend-sqlite
 This package contains the SQLite backend for %{name}
 
-%package backend-mydns
-Summary: MyDNS backend for %{name}
-Group: System Environment/Daemons
-Requires: %{name}%{?_isa} = %{version}-%{release}
-%global backends %{backends} mydns
-
-%description backend-mydns
-This package contains the MyDNS backend for %{name}
-
 %if 0%{?rhel} >= 7
 %package backend-odbc
 Summary: UnixODBC backend for %{name}
@@ -407,10 +398,6 @@ fi
 %doc modules/gsqlite3backend/dnssec-3.x_to_3.4.0_schema.sqlite3.sql
 %doc modules/gsqlite3backend/nodnssec-3.x_to_3.4.0_schema.sqlite3.sql
 %{_libdir}/%{name}/libgsqlite3backend.so
-
-%files backend-mydns
-%doc modules/mydnsbackend/schema.mydns.sql
-%{_libdir}/%{name}/libmydnsbackend.so
 
 %if 0%{?rhel} >= 7
 %files backend-odbc

@@ -4,7 +4,7 @@ DEB_HOST_ARCH_BITS ?= $(shell dpkg-architecture -qDEB_HOST_ARCH_BITS)
 DEB_HOST_MULTIARCH ?= $(shell dpkg-architecture -qDEB_HOST_MULTIARCH)
 
 # Backends
-backends := bind ldap pipe gmysql godbc gpgsql gsqlite3 geoip lua lua2 mydns remote random opendbx tinydns
+backends := bind ldap pipe gmysql godbc gpgsql gsqlite3 geoip lua lua2 remote random opendbx tinydns
 
 
 # Use new build system

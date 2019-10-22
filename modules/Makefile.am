@@ -11,7 +11,6 @@ DIST_SUBDIRS = \
 	lmdbbackend \
 	luabackend \
 	lua2backend \
-	mydnsbackend \
 	opendbxbackend \
 	pipebackend \
 	randombackend \
