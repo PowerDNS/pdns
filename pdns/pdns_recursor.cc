@@ -3918,6 +3918,7 @@ static int serviceMain(int argc, char*argv[])
   SyncRes::s_ecscachelimitttl = ::arg().asNum("ecs-cache-limit-ttl");
 
   SyncRes::s_qnameminimization = ::arg().mustDo("qname-minimization");
+  SyncRes::s_hardenNXD = ::arg().mustDo("nothing-below-nxdomain");
 
   if (!::arg().isEmpty("ecs-scope-zero-address")) {
     ComboAddress scopeZero(::arg()["ecs-scope-zero-address"]);
@@ -4647,6 +4648,7 @@ int main(int argc, char **argv)
     ::arg().set("public-suffix-list-file", "Path to the Public Suffix List file, if any")="";
     ::arg().set("distribution-load-factor", "The load factor used when PowerDNS is distributing queries to worker threads")="0.0";
     ::arg().setSwitch("qname-minimization", "Use Query Name Minimization")="no";
+    ::arg().setSwitch("nothing-below-nxdomain", "When an NXDOMAIN exists in cache for a name with fewer labels than the qname, send NXDOMAIN without doing a lookup (see RFC 8020)")="yes";
 #ifdef NOD_ENABLED
     ::arg().set("new-domain-tracking", "Track newly observed domains (i.e. never seen before).")="no";
     ::arg().set("new-domain-log", "Log newly observed domains.")="yes";
