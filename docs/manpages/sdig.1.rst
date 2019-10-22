@@ -29,6 +29,8 @@ hidesoadetails
     Don't show the SOA serial in the response.
 hidettl
     Replace TTLs with `[ttl]` in the response.
+proxy *TCP?* *SRC* *DST*
+    Wrap query in PROXYv2 protocol with these parameters.
 recurse
     Set the RD bit in the question.
 showflags
