@@ -222,20 +222,6 @@ Description: sqlite 3 backend for PowerDNS
  .
  This package contains a generic SQLite 3 backend for PowerDNS.
 
-Package: pdns-backend-lua
-Architecture: any
-Depends: pdns-server (= ${binary:Version}),
-         ${misc:Depends},
-         ${shlibs:Depends}
-Provides: pdns-backend
-Description: Lua backend for PowerDNS
- PowerDNS is a versatile nameserver which supports a large number
- of different backends ranging from simple zonefiles to relational
- databases and load balancing/failover algorithms.
- PowerDNS tries to emphasize speed and security.
- .
- This package contains the Lua backend for PowerDNS.
-
 Package: pdns-backend-lua2
 Architecture: any
 Depends: pdns-server (= ${binary:Version}),

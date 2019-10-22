@@ -392,7 +392,7 @@ build_auth() {
   run "autoreconf -vi"
   run "./configure \
     ${sanitizerflags} \
-    --with-dynmodules='bind gmysql geoip gpgsql gsqlite3 lmdb lua opendbx pipe random remote tinydns godbc lua2' \
+    --with-dynmodules='bind gmysql geoip gpgsql gsqlite3 lmdb opendbx pipe random remote tinydns godbc lua2' \
     --with-modules='' \
     --with-sqlite3 \
     --with-libsodium \
@@ -496,8 +496,6 @@ test_auth() {
   #travis unbound is too old for this test (unbound 1.6.0 required)
   run "touch tests/ent-asterisk/fail.nsec"
 
-  run "./timestamp ./start-test-stop 5300 lua-minimal nowait 0 apex-level-a-but-no-a"
-
   run "./timestamp ./start-test-stop 5300 bind-both"
   run "./timestamp ./start-test-stop 5300 bind-dnssec-both"
   run "./timestamp ./start-test-stop 5300 bind-dnssec-nsec3-both"
@@ -552,12 +550,7 @@ test_auth() {
 
   run "rm tests/ent-asterisk/fail.nsec"
 
-  run "cd ../modules/luabackend/test2"
-  run "../../../regression-tests/timestamp ./runtest"
-
-  run "cd ../../.."
-
-  run "cd regression-tests.rootzone"
+  run "cd ../regression-tests.rootzone"
   run "./timestamp ./start-test-stop 5300 bind-both"
   run "./timestamp ./start-test-stop 5300 bind-dnssec-both"
   run "./timestamp ./start-test-stop 5300 bind-dnssec-nsec3-both"

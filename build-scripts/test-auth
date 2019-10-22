@@ -108,10 +108,7 @@ if [ -z "$context" ]; then
 
 	./timestamp ./start-test-stop 5300 tinydns || EXITCODE=1
 
-	cd ../modules/luabackend/test2/
-	../../../regression-tests/timestamp ./runtest || EXITCODE=1
-
-	cd ../../../regression-tests.nobackend/
+	cd ../regression-tests.nobackend/
 
 	./runtests || EXITCODE=1
 elif [ "$context" = "odbc" ]; then

@@ -113,15 +113,6 @@ BuildRequires: openldap-devel
 %description backend-ldap
 This package contains the LDAP backend for %{name}
 
-%package backend-lua
-Summary: Lua backend for %{name}
-Group: System Environment/Daemons
-Requires: %{name}%{?_isa} = %{version}-%{release}
-%global backends %{backends} lua
-
-%description backend-lua
-This package contains the lua backend for %{name}
-
 %package backend-lua2
 Summary: Lua backend for %{name}
 Group: System Environment/Daemons
@@ -386,9 +377,6 @@ fi
 
 %doc modules/ldapbackend/dnsdomain2.schema
 %doc modules/ldapbackend/pdns-domaininfo.schema
-
-%files backend-lua
-%{_libdir}/%{name}/libluabackend.so
 
 %files backend-lua2
 %{_libdir}/%{name}/liblua2backend.so

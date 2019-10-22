@@ -1,3 +1,0 @@
-#!/usr/bin/env bash
-
-dnsperf -d one -p5300 -H10 -T1 -l60
