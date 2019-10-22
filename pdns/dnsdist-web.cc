@@ -600,11 +600,11 @@ static void connectionThread(int sock, ComboAddress remote)
               output << frontsbase << "tlsunknownticketkeys" << label << front->tlsUnknownTicketKey.load() << "\n";
               output << frontsbase << "tlsinactiveticketkeys" << label << front->tlsInactiveTicketKey.load() << "\n";
 
-              output << frontsbase << "tlsqueries{frontend=\"" << frontName << "\",proto=\"" << proto << "\",tls=\"tls10\"} " << front->tls10queries.load() << "\n";
-              output << frontsbase << "tlsqueries{frontend=\"" << frontName << "\",proto=\"" << proto << "\",tls=\"tls11\"} " << front->tls11queries.load() << "\n";
-              output << frontsbase << "tlsqueries{frontend=\"" << frontName << "\",proto=\"" << proto << "\",tls=\"tls12\"} " << front->tls12queries.load() << "\n";
-              output << frontsbase << "tlsqueries{frontend=\"" << frontName << "\",proto=\"" << proto << "\",tls=\"tls13\"} " << front->tls13queries.load() << "\n";
-              output << frontsbase << "tlsqueries{frontend=\"" << frontName << "\",proto=\"" << proto << "\",tls=\"unknown\"} " << front->tlsUnknownqueries.load() << "\n";
+              output << frontsbase << "tlsqueries{frontend=\"" << frontName << "\",proto=\"" << proto << "\",thread=\"" << threadNumber << "\",tls=\"tls10\"} " << front->tls10queries.load() << "\n";
+              output << frontsbase << "tlsqueries{frontend=\"" << frontName << "\",proto=\"" << proto << "\",thread=\"" << threadNumber << "\",tls=\"tls11\"} " << front->tls11queries.load() << "\n";
+              output << frontsbase << "tlsqueries{frontend=\"" << frontName << "\",proto=\"" << proto << "\",thread=\"" << threadNumber << "\",tls=\"tls12\"} " << front->tls12queries.load() << "\n";
+              output << frontsbase << "tlsqueries{frontend=\"" << frontName << "\",proto=\"" << proto << "\",thread=\"" << threadNumber << "\",tls=\"tls13\"} " << front->tls13queries.load() << "\n";
+              output << frontsbase << "tlsqueries{frontend=\"" << frontName << "\",proto=\"" << proto << "\",thread=\"" << threadNumber << "\",tls=\"unknown\"} " << front->tlsUnknownqueries.load() << "\n";
 
               const TLSErrorCounters* errorCounters = nullptr;
               if (front->tlsFrontend != nullptr) {
@@ -615,14 +615,14 @@ static void connectionThread(int sock, ComboAddress remote)
               }
 
               if (errorCounters != nullptr) {
-                output << frontsbase << "tlshandshakefailures{frontend=\"" << frontName << "\",proto=\"" << proto << "\",error=\"dhKeyTooSmall\"} " << errorCounters->d_dhKeyTooSmall << "\n";
-                output << frontsbase << "tlshandshakefailures{frontend=\"" << frontName << "\",proto=\"" << proto << "\",error=\"inappropriateFallBack\"} " << errorCounters->d_inappropriateFallBack << "\n";
-                output << frontsbase << "tlshandshakefailures{frontend=\"" << frontName << "\",proto=\"" << proto << "\",error=\"noSharedCipher\"} " << errorCounters->d_noSharedCipher << "\n";
-                output << frontsbase << "tlshandshakefailures{frontend=\"" << frontName << "\",proto=\"" << proto << "\",error=\"unknownCipherType\"} " << errorCounters->d_unknownCipherType << "\n";
-                output << frontsbase << "tlshandshakefailures{frontend=\"" << frontName << "\",proto=\"" << proto << "\",error=\"unknownKeyExchangeType\"} " << errorCounters->d_unknownKeyExchangeType << "\n";
-                output << frontsbase << "tlshandshakefailures{frontend=\"" << frontName << "\",proto=\"" << proto << "\",error=\"unknownProtocol\"} " << errorCounters->d_unknownProtocol << "\n";
-                output << frontsbase << "tlshandshakefailures{frontend=\"" << frontName << "\",proto=\"" << proto << "\",error=\"unsupportedEC\"} " << errorCounters->d_unsupportedEC << "\n";
-                output << frontsbase << "tlshandshakefailures{frontend=\"" << frontName << "\",proto=\"" << proto << "\",error=\"unsupportedProtocol{\"} " << errorCounters->d_unsupportedProtocol << "\n";
+                output << frontsbase << "tlshandshakefailures{frontend=\"" << frontName << "\",proto=\"" << proto << "\",thread=\"" << threadNumber << "\",error=\"dhKeyTooSmall\"} " << errorCounters->d_dhKeyTooSmall << "\n";
+                output << frontsbase << "tlshandshakefailures{frontend=\"" << frontName << "\",proto=\"" << proto << "\",thread=\"" << threadNumber << "\",error=\"inappropriateFallBack\"} " << errorCounters->d_inappropriateFallBack << "\n";
+                output << frontsbase << "tlshandshakefailures{frontend=\"" << frontName << "\",proto=\"" << proto << "\",thread=\"" << threadNumber << "\",error=\"noSharedCipher\"} " << errorCounters->d_noSharedCipher << "\n";
+                output << frontsbase << "tlshandshakefailures{frontend=\"" << frontName << "\",proto=\"" << proto << "\",thread=\"" << threadNumber << "\",error=\"unknownCipherType\"} " << errorCounters->d_unknownCipherType << "\n";
+                output << frontsbase << "tlshandshakefailures{frontend=\"" << frontName << "\",proto=\"" << proto << "\",thread=\"" << threadNumber << "\",error=\"unknownKeyExchangeType\"} " << errorCounters->d_unknownKeyExchangeType << "\n";
+                output << frontsbase << "tlshandshakefailures{frontend=\"" << frontName << "\",proto=\"" << proto << "\",thread=\"" << threadNumber << "\",error=\"unknownProtocol\"} " << errorCounters->d_unknownProtocol << "\n";
+                output << frontsbase << "tlshandshakefailures{frontend=\"" << frontName << "\",proto=\"" << proto << "\",thread=\"" << threadNumber << "\",error=\"unsupportedEC\"} " << errorCounters->d_unsupportedEC << "\n";
+                output << frontsbase << "tlshandshakefailures{frontend=\"" << frontName << "\",proto=\"" << proto << "\",thread=\"" << threadNumber << "\",error=\"unsupportedProtocol{\"} " << errorCounters->d_unsupportedProtocol << "\n";
               }
             }
           }
