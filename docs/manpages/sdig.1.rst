@@ -37,7 +37,7 @@ showflags
     Show the NSEC3 flags in the response (they are hidden by default).
 tcp
     Use TCP instead of UDP to send the query.
-xpf *XPFCODE* *XPFVERSION* *XPFPROTO* *XPFSRC* *XPFSRC*
+xpf *XPFCODE* *XPFVERSION* *XPFPROTO* *XPFSRC* *XPFDST*
 	Send an *XPF* additional with these parameters.
 
 Examples
@@ -49,5 +49,4 @@ Simple queries to local resolvers
 
 Query to a DNS-over-HTTPS server requesting dnssec and recursion
     sdig https://dns.somesample.net/dns-query 443 example.com A dnssec recurse
-
 
