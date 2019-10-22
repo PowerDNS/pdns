@@ -718,6 +718,11 @@ struct ClientState
     return udpFD == -1;
   }
 
+  bool hasTLS() const
+  {
+    return tlsFrontend != nullptr || dohFrontend != nullptr;
+  }
+
   std::string getType() const
   {
     std::string result = udpFD != -1 ? "UDP" : "TCP";

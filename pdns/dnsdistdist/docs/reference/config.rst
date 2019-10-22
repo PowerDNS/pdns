@@ -839,6 +839,12 @@ Status, Statistics and More
 
   Print the list of all availables DNS over TLS contexts.
 
+.. function:: showTLSErrorCounters()
+
+  .. versionadded:: 1.4.0
+
+  Display metrics about TLS handshake failures.
+
 .. function:: showVersion()
 
   Print the version of dnsdist

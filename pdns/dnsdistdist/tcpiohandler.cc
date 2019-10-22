@@ -257,7 +257,7 @@ int OpenSSLTLSConnection::s_tlsConnIndex = -1;
 class OpenSSLTLSIOCtx: public TLSCtx
 {
 public:
-  OpenSSLTLSIOCtx(const TLSFrontend& fe): d_ticketKeys(fe.d_tlsConfig.d_numberOfTicketsKeys)
+  OpenSSLTLSIOCtx(TLSFrontend& fe): d_ticketKeys(fe.d_tlsConfig.d_numberOfTicketsKeys)
   {
     registerOpenSSLUser();
     d_ticketsKeyRotationDelay = fe.d_tlsConfig.d_ticketsKeyRotationDelay;
@@ -278,6 +278,8 @@ public:
       SSL_CTX_set_tlsext_status_cb(d_tlsCtx.get(), &OpenSSLTLSIOCtx::ocspStaplingCb);
       SSL_CTX_set_tlsext_status_arg(d_tlsCtx.get(), &d_ocspResponses);
     }
+
+    libssl_set_error_counters_callback(d_tlsCtx, &fe.d_tlsCounters);
 
     try {
       if (fe.d_tlsConfig.d_ticketKeyFile.empty()) {
@@ -725,7 +727,7 @@ private:
 class GnuTLSIOCtx: public TLSCtx
 {
 public:
-  GnuTLSIOCtx(const TLSFrontend& fe): d_creds(std::unique_ptr<gnutls_certificate_credentials_st, void(*)(gnutls_certificate_credentials_t)>(nullptr, gnutls_certificate_free_credentials)), d_enableTickets(fe.d_tlsConfig.d_enableTickets)
+  GnuTLSIOCtx(TLSFrontend& fe): d_creds(std::unique_ptr<gnutls_certificate_credentials_st, void(*)(gnutls_certificate_credentials_t)>(nullptr, gnutls_certificate_free_credentials)), d_enableTickets(fe.d_tlsConfig.d_enableTickets)
   {
     int rc = 0;
     d_ticketsKeyRotationDelay = fe.d_tlsConfig.d_ticketsKeyRotationDelay;

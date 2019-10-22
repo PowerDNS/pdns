@@ -31,6 +31,19 @@ public:
   bool d_enableTickets{true};
 };
 
+struct TLSErrorCounters
+{
+  std::atomic<uint64_t> d_dhKeyTooSmall{0}; /* the other side sent a DH value that is not large enough */
+  std::atomic<uint64_t> d_inappropriateFallBack{0}; /* SCSV indicates that the client previously tried a higher version,
+                                                       something bad is happening */
+  std::atomic<uint64_t> d_noSharedCipher{0}; /* we could not agree on a cipher to use */
+  std::atomic<uint64_t> d_unknownCipherType{0}; /* unknown cipher type */
+  std::atomic<uint64_t> d_unknownKeyExchangeType{0}; /* * unknown exchange type, weird */
+  std::atomic<uint64_t> d_unknownProtocol{0}; /* unknown protocol (SSLv2 or TLS 1.4, who knows? */
+  std::atomic<uint64_t> d_unsupportedEC{0}; /* unsupported elliptic curve */
+  std::atomic<uint64_t> d_unsupportedProtocol{0}; /* we don't accept this TLS version, sorry */
+};
+
 #ifdef HAVE_LIBSSL
 #include <openssl/ssl.h>
 
@@ -94,6 +107,8 @@ int libssl_get_last_key_type(std::unique_ptr<SSL_CTX, void(*)(SSL_CTX*)>& ctx);
 #ifdef HAVE_OCSP_BASIC_SIGN
 bool libssl_generate_ocsp_response(const std::string& certFile, const std::string& caCert, const std::string& caKey, const std::string& outFile, int ndays, int nmin);
 #endif
+
+void libssl_set_error_counters_callback(std::unique_ptr<SSL_CTX, void(*)(SSL_CTX*)>& ctx, TLSErrorCounters* counters);
 
 LibsslTLSVersion libssl_tls_version_from_string(const std::string& str);
 const std::string& libssl_tls_version_to_string(LibsslTLSVersion version);

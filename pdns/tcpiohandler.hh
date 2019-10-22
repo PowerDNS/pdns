@@ -164,6 +164,7 @@ public:
   }
 
   TLSConfig d_tlsConfig;
+  TLSErrorCounters d_tlsCounters;
   ComboAddress d_addr;
   std::string d_provider;
 
