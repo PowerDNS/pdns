@@ -590,6 +590,37 @@ void setupLuaInspection()
       g_outputBuffer=ret.str();
     });
 
+  g_lua.writeFunction("showTLSErrorCounters", [] {
+      setLuaNoSideEffect();
+      ostringstream ret;
+      boost::format fmt("%-3d %-20.20s %-23d %-23d %-23d %-23d %-23d %-23d %-23d %-23d");
+
+      ret << (fmt % "#" % "Address" % "DH key too small" % "Inappropriate fallback" % "No shared cipher" % "Unknown cipher type" % "Unknown exchange type" % "Unknown protocol" % "Unsupported EC" % "Unsupported protocol") << endl;
+
+      size_t counter = 0;
+      for(const auto& f : g_frontends) {
+        if (!f->hasTLS()) {
+          continue;
+        }
+        const TLSErrorCounters* errorCounters = nullptr;
+        if (f->tlsFrontend != nullptr) {
+          errorCounters = &f->tlsFrontend->d_tlsCounters;
+        }
+        else if (f->dohFrontend != nullptr) {
+          errorCounters = &f->dohFrontend->d_tlsCounters;
+        }
+        if (errorCounters == nullptr) {
+          continue;
+        }
+
+        ret << (fmt % counter % f->local.toStringWithPort() % errorCounters->d_dhKeyTooSmall % errorCounters->d_inappropriateFallBack % errorCounters->d_noSharedCipher % errorCounters->d_unknownCipherType % errorCounters->d_unknownKeyExchangeType % errorCounters->d_unknownProtocol % errorCounters->d_unsupportedEC % errorCounters->d_unsupportedProtocol) << endl;
+        ++counter;
+      }
+      ret << endl;
+
+      g_outputBuffer=ret.str();
+    });
+
   g_lua.writeFunction("dumpStats", [] {
       setLuaNoSideEffect();
       vector<string> leftcolumn, rightcolumn;

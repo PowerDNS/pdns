@@ -66,6 +66,7 @@ static void openssl_thread_cleanup()
 
 static std::atomic<uint64_t> s_users;
 static int s_ticketsKeyIndex{-1};
+static int s_countersIndex{-1};
 
 void registerOpenSSLUser()
 {
@@ -74,6 +75,12 @@ void registerOpenSSLUser()
 
     if (s_ticketsKeyIndex == -1) {
       throw std::runtime_error("Error getting an index for tickets key");
+    }
+
+    s_countersIndex = SSL_CTX_get_ex_new_index(0, nullptr, nullptr, nullptr, nullptr);
+
+    if (s_countersIndex == -1) {
+      throw std::runtime_error("Error getting an index for counters");
     }
 #if (OPENSSL_VERSION_NUMBER < 0x1010000fL || defined LIBRESSL_VERSION_NUMBER)
     SSL_load_error_strings();
@@ -145,6 +152,62 @@ int libssl_ticket_key_callback(SSL *s, OpenSSLTLSTicketKeysRing& keyring, unsign
   }
 
   return 1;
+}
+
+static void libssl_info_callback(const SSL *ssl, int where, int ret)
+{
+  SSL_CTX* sslCtx = SSL_get_SSL_CTX(ssl);
+  if (sslCtx == nullptr) {
+    return;
+  }
+
+  TLSErrorCounters* counters = reinterpret_cast<TLSErrorCounters*>(SSL_CTX_get_ex_data(sslCtx, s_countersIndex));
+  if (counters == nullptr) {
+    return;
+  }
+
+  if (where & SSL_CB_ALERT) {
+    const long lastError = ERR_peek_last_error();
+    switch (ERR_GET_REASON(lastError)) {
+#ifdef SSL_R_DH_KEY_TOO_SMALL
+    case SSL_R_DH_KEY_TOO_SMALL:
+      ++counters->d_dhKeyTooSmall;
+      break;
+#endif /* SSL_R_DH_KEY_TOO_SMALL */
+    case SSL_R_NO_SHARED_CIPHER:
+      ++counters->d_noSharedCipher;
+      break;
+    case SSL_R_UNKNOWN_PROTOCOL:
+      ++counters->d_unknownProtocol;
+      break;
+    case SSL_R_UNSUPPORTED_PROTOCOL:
+#ifdef SSL_R_VERSION_TOO_LOW
+    case SSL_R_VERSION_TOO_LOW:
+#endif /* SSL_R_VERSION_TOO_LOW */
+      ++counters->d_unsupportedProtocol;
+      break;
+    case SSL_R_INAPPROPRIATE_FALLBACK:
+      ++counters->d_inappropriateFallBack;
+      break;
+    case SSL_R_UNKNOWN_CIPHER_TYPE:
+      ++counters->d_unknownCipherType;
+      break;
+    case SSL_R_UNKNOWN_KEY_EXCHANGE_TYPE:
+      ++counters->d_unknownKeyExchangeType;
+      break;
+    case SSL_R_UNSUPPORTED_ELLIPTIC_CURVE:
+      ++counters->d_unsupportedEC;
+      break;
+    default:
+      break;
+    }
+  }
+}
+
+void libssl_set_error_counters_callback(std::unique_ptr<SSL_CTX, void(*)(SSL_CTX*)>& ctx, TLSErrorCounters* counters)
+{
+  SSL_CTX_set_ex_data(ctx.get(), s_countersIndex, counters);
+  SSL_CTX_set_info_callback(ctx.get(), libssl_info_callback);
 }
 
 int libssl_ocsp_stapling_callback(SSL* ssl, const std::map<int, std::string>& ocspMap)

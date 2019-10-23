@@ -962,6 +962,8 @@ static std::unique_ptr<SSL_CTX, void(*)(SSL_CTX*)> getTLSContext(DOHFrontend& df
       SSL_CTX_set_tlsext_status_arg(ctx.get(), &ocspResponses);
     }
 
+    libssl_set_error_counters_callback(ctx, &df.d_tlsCounters);
+
     h2o_ssl_register_alpn_protocols(ctx.get(), h2o_http2_alpn_protocols);
 
     if (df.d_tlsConfig.d_ticketKeyFile.empty()) {

@@ -559,6 +559,7 @@ const std::vector<ConsoleKeyword> g_consoleKeywords{
   { "showServers", true, "[{showUUIDs=false}]", "output all servers, optionally with their UUIDs" },
   { "showTCPStats", true, "", "show some statistics regarding TCP" },
   { "showTLSContexts", true, "", "list all the available TLS contexts" },
+  { "showTLSErrorCounters", true, "", "show metrics about TLS handshake failures" },
   { "showVersion", true, "", "show the current version" },
   { "shutdown", true, "", "shut down `dnsdist`" },
   { "SkipCacheAction", true, "", "Don’t lookup the cache for this query, don’t store the answer" },

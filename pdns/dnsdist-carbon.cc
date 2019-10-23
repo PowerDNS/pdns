@@ -139,6 +139,23 @@ try
           str<<base<<"tlsresumptions" << ' ' << front->tlsResumptions.load() << " " << now << "\r\n";
           str<<base<<"tlsunknownticketkeys" << ' ' << front->tlsUnknownTicketKey.load() << " " << now << "\r\n";
           str<<base<<"tlsinactiveticketkeys" << ' ' << front->tlsInactiveTicketKey.load() << " " << now << "\r\n";
+          const TLSErrorCounters* errorCounters = nullptr;
+          if (front->tlsFrontend != nullptr) {
+            errorCounters = &front->tlsFrontend->d_tlsCounters;
+          }
+          else if (front->dohFrontend != nullptr) {
+            errorCounters = &front->dohFrontend->d_tlsCounters;
+          }
+          if (errorCounters != nullptr) {
+            str<<base<<"tlsdhkeytoosmall" << ' ' << errorCounters->d_dhKeyTooSmall << " " << now << "\r\n";
+            str<<base<<"tlsinappropriatefallback" << ' ' << errorCounters->d_inappropriateFallBack << " " << now << "\r\n";
+            str<<base<<"tlsnosharedcipher" << ' ' << errorCounters->d_noSharedCipher << " " << now << "\r\n";
+            str<<base<<"tlsunknownciphertype" << ' ' << errorCounters->d_unknownCipherType << " " << now << "\r\n";
+            str<<base<<"tlsunknownkeyexchangetype" << ' ' << errorCounters->d_unknownKeyExchangeType << " " << now << "\r\n";
+            str<<base<<"tlsunknownprotocol" << ' ' << errorCounters->d_unknownProtocol << " " << now << "\r\n";
+            str<<base<<"tlsunsupportedec" << ' ' << errorCounters->d_unsupportedEC << " " << now << "\r\n";
+            str<<base<<"tlsunsupportedprotocol" << ' ' << errorCounters->d_unsupportedProtocol << " " << now << "\r\n";
+          }
         }
 
         auto localPools = g_pools.getLocal();
