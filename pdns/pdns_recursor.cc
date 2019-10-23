@@ -2238,8 +2238,10 @@ static void houseKeeping(void *)
 
     if(now.tv_sec - last_rootupdate > 7200) {
       int res = SyncRes::getRootNS(g_now, nullptr);
-      if (!res)
+      if (!res) {
         last_rootupdate=now.tv_sec;
+        primeRootNSZones(g_dnssecmode != DNSSECMode::Off);
+      }
     }
 
     if(t_id == s_distributorThreadID) {
