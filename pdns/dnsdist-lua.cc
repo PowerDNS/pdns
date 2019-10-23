@@ -1263,9 +1263,12 @@ void setupLuaConfig(bool client)
 #endif
     });
 
-  g_lua.writeFunction("generateDNSCryptProviderKeys", [](const std::string& publicKeyFile, const std::string privateKeyFile) {
+  g_lua.writeFunction("generateDNSCryptProviderKeys", [client](const std::string& publicKeyFile, const std::string privateKeyFile) {
       setLuaNoSideEffect();
 #ifdef HAVE_DNSCRYPT
+      if (client) {
+        return;
+      }
       unsigned char publicKey[DNSCRYPT_PROVIDER_PUBLIC_KEY_SIZE];
       unsigned char privateKey[DNSCRYPT_PROVIDER_PRIVATE_KEY_SIZE];
       sodium_mlock(privateKey, sizeof(privateKey));
@@ -1320,8 +1323,11 @@ void setupLuaConfig(bool client)
     });
 
 #ifdef HAVE_DNSCRYPT
-  g_lua.writeFunction("generateDNSCryptCertificate", [](const std::string& providerPrivateKeyFile, const std::string& certificateFile, const std::string privateKeyFile, uint32_t serial, time_t begin, time_t end, boost::optional<DNSCryptExchangeVersion> version) {
+  g_lua.writeFunction("generateDNSCryptCertificate", [client](const std::string& providerPrivateKeyFile, const std::string& certificateFile, const std::string privateKeyFile, uint32_t serial, time_t begin, time_t end, boost::optional<DNSCryptExchangeVersion> version) {
       setLuaNoSideEffect();
+      if (client) {
+        return;
+      }
       DNSCryptPrivateKey privateKey;
       DNSCryptCert cert;
 
@@ -2101,8 +2107,12 @@ void setupLuaConfig(bool client)
     g_lua.writeFunction("setAllowEmptyResponse", [](bool allow) { g_allowEmptyResponse=allow; });
 
 #if defined(HAVE_LIBSSL) && defined(HAVE_OCSP_BASIC_SIGN)
-    g_lua.writeFunction("generateOCSPResponse", [](const std::string& certFile, const std::string& caCert, const std::string& caKey, const std::string& outFile, int ndays, int nmin) {
-      return libssl_generate_ocsp_response(certFile, caCert, caKey, outFile, ndays, nmin);
+    g_lua.writeFunction("generateOCSPResponse", [client](const std::string& certFile, const std::string& caCert, const std::string& caKey, const std::string& outFile, int ndays, int nmin) {
+      if (client) {
+        return;
+      }
+
+      libssl_generate_ocsp_response(certFile, caCert, caKey, outFile, ndays, nmin);
     });
 #endif /* HAVE_LIBSSL && HAVE_OCSP_BASIC_SIGN*/
 }
