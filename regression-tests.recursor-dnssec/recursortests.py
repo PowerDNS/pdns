@@ -115,8 +115,10 @@ sort.example.                      3600 IN A     192.168.0.1
 sort.example.                      3600 IN A     17.238.240.5
 sort.example.                      3600 IN MX    25 mx
 
-delay.example.                     3600 IN NS   ns1.delay.example.
-ns1.delay.example.                 3600 IN A    {prefix}.16
+delay1.example.                     3600 IN NS   ns1.delay1.example.
+ns1.delay1.example.                 3600 IN A    {prefix}.16
+delay2.example.                     3600 IN NS   ns1.delay2.example.
+ns1.delay2.example.                 3600 IN A    {prefix}.17
         """,
         'secure.example': """
 secure.example.          3600 IN SOA  {soa}
@@ -236,11 +238,18 @@ undelegated.insecure.example.        3600 IN NS   ns1.undelegated.insecure.examp
 node1.undelegated.insecure.example.  3600 IN A    192.0.2.22
         """,
 
-        'delay.example': """
-delay.example.                       3600 IN SOA  {soa}
-delay.example.                       3600 IN NS n1.delay.example.
-ns1.delay.example.                   3600 IN A    {prefix}.16
-*.delay.example.                     0    LUA TXT ";" "local socket=require('socket')" "socket.sleep(tonumber(qname:getRawLabels()[1])/10)" "return 'a'"
+        'delay1.example': """
+delay1.example.                       3600 IN SOA  {soa}
+delay1.example.                       3600 IN NS n1.delay1.example.
+ns1.delay1.example.                   3600 IN A    {prefix}.16
+*.delay1.example.                     0    LUA TXT ";" "local socket=require('socket')" "socket.sleep(tonumber(qname:getRawLabels()[1])/10)" "return 'a'"
+        """,
+        
+        'delay2.example': """
+delay2.example.                       3600 IN SOA  {soa}
+delay2.example.                       3600 IN NS n1.delay2.example.
+ns1.delay2.example.                   3600 IN A    {prefix}.17
+*.delay2.example.                     0    LUA TXT ";" "local socket=require('socket')" "socket.sleep(tonumber(qname:getRawLabels()[1])/10)" "return 'a'"
         """
     }
 
@@ -322,9 +331,10 @@ PrivateKey: Ep9uo6+wwjb4MaOmqq7LHav2FLrjotVOeZg8JT1Qk04=
                'zones': ['optout.example']},
         '15': {'threads': 1,
                'zones': ['insecure.optout.example', 'secure.optout.example', 'cname-secure.example']},
-        # This zone need more threads so that the lua delay code does not cause serialization
-        '16': {'threads': 4,
-               'zones': ['delay.example']}
+        '16': {'threads': 2,
+               'zones': ['delay1.example']},
+        '17': {'threads': 2,
+               'zones': ['delay2.example']}
     }
 
     _auth_cmd = ['authbind',
