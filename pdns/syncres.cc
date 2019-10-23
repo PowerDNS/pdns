@@ -840,6 +840,7 @@ void SyncRes::getBestNSFromCache(const DNSName &qname, const QType& qtype, vecto
     if(subdomain.isRoot() && !brokeloop) {
       // We lost the root NS records
       primeHints();
+      primeRootNSZones(g_dnssecmode != DNSSECMode::Off);
       LOG(prefix<<qname<<": reprimed the root"<<endl);
       /* let's prevent an infinite loop */
       if (!d_updatingRootNS) {
