@@ -323,7 +323,7 @@ PrivateKey: Ep9uo6+wwjb4MaOmqq7LHav2FLrjotVOeZg8JT1Qk04=
         '15': {'threads': 1,
                'zones': ['insecure.optout.example', 'secure.optout.example', 'cname-secure.example']},
         # This zone need more threads so that the lua delay code does not cause serialization
-        '16': {'threads': 2,
+        '16': {'threads': 4,
                'zones': ['delay.example']}
     }
 

@@ -13,7 +13,12 @@ class testOOOTCP(RecursorTest):
     def generateRecursorConfig(cls, confdir):
         super(testOOOTCP, cls).generateRecursorConfig(confdir)
 
+    def primeNS(self):
+        query = dns.message.make_query('delay.example.', 'NS', want_dnssec=False)
+        self.sendUDPQuery(query)
+        
     def testOOOVeryBasic(self):
+        self.primeNS()
         expected = {}
         queries = []
         for zone in ['5.delay.example.', '0.delay.example.']:
@@ -38,6 +43,7 @@ class testOOOTCP(RecursorTest):
             i = i + 1
 
     def testOOOTimeout(self):
+        self.primeNS()
         expected = {}
         queries = []
         for zone in ['25.delay.example.', '1.delay.example.']:
@@ -46,6 +52,7 @@ class testOOOTCP(RecursorTest):
             queries.append(query)
 
         ress = self.sendTCPQueries(queries)
+        
         self.assertEqual(len(ress), 2)
         exp = dns.rrset.from_text(zone, 0, dns.rdataclass.IN, 'TXT', 'a')
         self.assertRRsetInAnswer(ress[0], exp)
