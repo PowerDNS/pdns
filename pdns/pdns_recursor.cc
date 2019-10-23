@@ -746,6 +746,8 @@ static void writePid(void)
   }
 }
 
+uint16_t TCPConnection::s_maxInFlight;
+
 TCPConnection::TCPConnection(int fd, const ComboAddress& addr) : data(2, 0), d_remote(addr), d_fd(fd)
 {
   ++s_currentConnections;
@@ -1748,24 +1750,51 @@ static void startDoResolve(void *p)
       else
         hadError=false;
 
-      // update tcp connection status, either by closing or moving to 'BYTE0'
+      // update tcp connection status, closing if needed and doing the fd multiplexer accounting
+      if  (dc->d_tcpConnection->d_requestsInFlight > 0) {
+        dc->d_tcpConnection->d_requestsInFlight--;
+      }
 
+      // In the code below, we try to remove the fd from the set, but
+      // we don't know if another mthread already did the remove, so we can get a
+      // "Tried to remove unlisted fd" exception.  Not that an inflight < limit test
+      // will not work since we do not know if the other mthread got an error or not.
       if(hadError) {
-        // no need to remove us from FDM, we weren't there
+        try {
+          t_fdm->removeReadFD(dc->d_socket);
+        }
+        catch (FDMultiplexerException &) {
+        }
         dc->d_socket = -1;
       }
       else {
         dc->d_tcpConnection->queriesCount++;
         if (g_tcpMaxQueriesPerConn && dc->d_tcpConnection->queriesCount >= g_tcpMaxQueriesPerConn) {
+          try {
+            t_fdm->removeReadFD(dc->d_socket);
+          }
+          catch (FDMultiplexerException &) {
+          }
           dc->d_socket = -1;
         }
         else {
-          dc->d_tcpConnection->state=TCPConnection::BYTE0;
           Utility::gettimeofday(&g_now, 0); // needs to be updated
           struct timeval ttd = g_now;
-          ttd.tv_sec += g_tcpTimeout;
-
-          t_fdm->addReadFD(dc->d_socket, handleRunningTCPQuestion, dc->d_tcpConnection, &ttd);
+          // If we cross from max to max-1 in flight requests, the fd was not listened to, add it back
+          if (dc->d_tcpConnection->d_requestsInFlight == TCPConnection::s_maxInFlight - 1) {
+            // A read error might have happened. If we add the fd back, it will most likely error again.
+            // This is not a big issue, the next handleTCPClientReadable() will see another read error
+            // and take action.
+            ttd.tv_sec += g_tcpTimeout;
+            t_fdm->addReadFD(dc->d_socket, handleRunningTCPQuestion, dc->d_tcpConnection, &ttd);
+          } else {
+            // fd might have been removed by read error code, so expect an exception
+            try {
+              t_fdm->setReadTTD(dc->d_socket, ttd, g_tcpTimeout);
+            }
+            catch (FDMultiplexerException &) {
+            }
+          }
         }
       }
     }
@@ -2002,8 +2031,7 @@ static void handleRunningTCPQuestion(int fd, FDMultiplexer::funcparam_t& var)
     }
     conn->bytesread+=(uint16_t)bytes;
     if(conn->bytesread==conn->qlen) {
-      t_fdm->removeReadFD(fd); // should no longer awake ourselves when there is data to read
-
+      conn->state = TCPConnection::BYTE0;
       std::unique_ptr<DNSComboWriter> dc;
       try {
         dc=std::unique_ptr<DNSComboWriter>(new DNSComboWriter(conn->data, g_now));
@@ -2137,7 +2165,15 @@ static void handleRunningTCPQuestion(int fd, FDMultiplexer::funcparam_t& var)
       else {
         ++g_stats.qcounter;
         ++g_stats.tcpqcounter;
-        MT->makeThread(startDoResolve, dc.release()); // deletes dc, will set state to BYTE0 again
+        ++conn->d_requestsInFlight;
+        if (conn->d_requestsInFlight >= TCPConnection::s_maxInFlight) {
+          t_fdm->removeReadFD(fd); // should no longer awake ourselves when there is data to read
+        } else {
+          Utility::gettimeofday(&g_now, 0); // needed?
+          struct timeval ttd = g_now;
+          t_fdm->setReadTTD(fd, ttd, g_tcpTimeout);
+        }
+        MT->makeThread(startDoResolve, dc.release()); // deletes dc
         return;
       }
     }
@@ -3978,6 +4014,16 @@ static int serviceMain(int argc, char*argv[])
   g_numThreads = g_numDistributorThreads + g_numWorkerThreads;
   g_maxMThreads = ::arg().asNum("max-mthreads");
 
+
+  int64_t maxInFlight = ::arg().asNum("max-concurrent-requests-per-tcp-connection");
+  if (maxInFlight < 1 || maxInFlight > USHRT_MAX || maxInFlight >= g_maxMThreads) {
+    g_log<<Logger::Warning<<"Asked to run with illegal max-concurrent-requests-per-tcp-connection, setting to default (10)"<<endl;
+    TCPConnection::s_maxInFlight = 10;
+  } else {
+    TCPConnection::s_maxInFlight = maxInFlight;
+  }
+    
+
   g_gettagNeedsEDNSOptions = ::arg().mustDo("gettag-needs-edns-options");
 
   g_statisticsInterval = ::arg().asNum("statistics-interval");
@@ -4548,6 +4594,7 @@ int main(int argc, char **argv)
     ::arg().set("client-tcp-timeout","Timeout in seconds when talking to TCP clients")="2";
     ::arg().set("max-mthreads", "Maximum number of simultaneous Mtasker threads")="2048";
     ::arg().set("max-tcp-clients","Maximum number of simultaneous TCP clients")="128";
+    ::arg().set("max-concurrent-requests-per-tcp-connection", "Maximum number of requests handled concurrently per TCP connection") = "10";
     ::arg().set("server-down-max-fails","Maximum number of consecutive timeouts (and unreachables) to mark a server as down ( 0 => disabled )")="64";
     ::arg().set("server-down-throttle-time","Number of seconds to throttle all queries to a server after being marked as down")="60";
     ::arg().set("dont-throttle-names", "Do not throttle nameservers with this name or suffix")="";

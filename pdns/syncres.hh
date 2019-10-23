@@ -1013,7 +1013,9 @@ public:
   enum stateenum {BYTE0, BYTE1, GETQUESTION, DONE} state{BYTE0};
   uint16_t qlen{0};
   uint16_t bytesread{0};
-
+  uint16_t d_requestsInFlight{0}; // number of mthreads spawned for this connection
+  // The max number of concurrent TCP requests we're willing to process
+  static uint16_t s_maxInFlight;
   static unsigned int getCurrentConnections() { return s_currentConnections; }
 private:
   const int d_fd;
