@@ -67,10 +67,16 @@ static void openssl_thread_cleanup()
 static std::atomic<uint64_t> s_users;
 static int s_ticketsKeyIndex{-1};
 static int s_countersIndex{-1};
+static int s_keyLogIndex{-1};
 
 void registerOpenSSLUser()
 {
   if (s_users.fetch_add(1) == 0) {
+#if (OPENSSL_VERSION_NUMBER < 0x1010000fL || defined LIBRESSL_VERSION_NUMBER)
+    SSL_load_error_strings();
+    OpenSSL_add_ssl_algorithms();
+    openssl_thread_setup();
+#endif
     s_ticketsKeyIndex = SSL_CTX_get_ex_new_index(0, nullptr, nullptr, nullptr, nullptr);
 
     if (s_ticketsKeyIndex == -1) {
@@ -82,11 +88,12 @@ void registerOpenSSLUser()
     if (s_countersIndex == -1) {
       throw std::runtime_error("Error getting an index for counters");
     }
-#if (OPENSSL_VERSION_NUMBER < 0x1010000fL || defined LIBRESSL_VERSION_NUMBER)
-    SSL_load_error_strings();
-    OpenSSL_add_ssl_algorithms();
-    openssl_thread_setup();
-#endif
+
+    s_keyLogIndex = SSL_CTX_get_ex_new_index(0, nullptr, nullptr, nullptr, nullptr);
+
+    if (s_keyLogIndex == -1) {
+      throw std::runtime_error("Error getting an index for TLS key logging");
+    }
   }
 }
 
@@ -715,6 +722,40 @@ std::unique_ptr<SSL_CTX, void(*)(SSL_CTX*)> libssl_init_server_context(const TLS
 #endif /* HAVE_SSL_CTX_SET_CIPHERSUITES */
 
   return ctx;
+}
+
+#ifdef HAVE_SSL_CTX_SET_KEYLOG_CALLBACK
+static void libssl_key_log_file_callback(const SSL* ssl, const char* line)
+{
+  SSL_CTX* sslCtx = SSL_get_SSL_CTX(ssl);
+  if (sslCtx == nullptr) {
+    return;
+  }
+
+  auto fp = reinterpret_cast<FILE*>(SSL_CTX_get_ex_data(sslCtx, s_keyLogIndex));
+  if (fp == nullptr) {
+    return;
+  }
+
+  fprintf(fp, "%s\n", line);
+}
+#endif /* HAVE_SSL_CTX_SET_KEYLOG_CALLBACK */
+
+std::unique_ptr<FILE, int(*)(FILE*)> libssl_set_key_log_file(std::unique_ptr<SSL_CTX, void(*)(SSL_CTX*)>& ctx, const std::string& logFile)
+{
+#ifdef HAVE_SSL_CTX_SET_KEYLOG_CALLBACK
+  auto fp = std::unique_ptr<FILE, int(*)(FILE*)>(fopen(logFile.c_str(), "a"), fclose);
+  if (!fp) {
+    throw std::runtime_error("Error opening TLS log file '" + logFile + "'");
+  }
+
+  SSL_CTX_set_ex_data(ctx.get(), s_keyLogIndex, fp.get());
+  SSL_CTX_set_keylog_callback(ctx.get(), &libssl_key_log_file_callback);
+
+  return fp;
+#else
+  return std::unique_ptr<FILE, int(*)(FILE*)>(nullptr, fclose);
+#endif /* HAVE_SSL_CTX_SET_KEYLOG_CALLBACK */
 }
 
 #endif /* HAVE_LIBSSL */

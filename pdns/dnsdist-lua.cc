@@ -198,6 +198,10 @@ static void parseTLSConfig(TLSConfig& config, const std::string& context, boost:
       config.d_ocspFiles.push_back(file.second);
     }
   }
+
+  if (vars->count("keyLogFile")) {
+    config.d_keyLogFile = boost::get<const string>((*vars)["keyLogFile"]);
+  }
 }
 
 #endif // defined(HAVE_DNS_OVER_TLS) || defined(HAVE_DNS_OVER_HTTPS)
@@ -1828,7 +1832,7 @@ void setupLuaConfig(bool client)
           ret << (fmt % "#" % "Address" % "HTTP" % "HTTP/1" % "HTTP/2" % "GET" % "POST" % "Bad" % "Errors" % "Redirects" % "Valid" % "# ticket keys" % "Rotation delay" % "Next rotation") << endl;
           size_t counter = 0;
           for (const auto& ctx : g_dohlocals) {
-            ret << (fmt % counter % ctx->d_local.toStringWithPort() % ctx->d_httpconnects % ctx->d_http1Stats.d_nbQueries % ctx->d_http1Stats.d_nbQueries % ctx->d_getqueries % ctx->d_postqueries % ctx->d_badrequests % ctx->d_errorresponses % ctx->d_redirectresponses % ctx->d_validresponses % ctx->getTicketsKeysCount() % ctx->d_tlsConfig.d_ticketsKeyRotationDelay % ctx->getNextTicketsKeyRotation()) << endl;
+            ret << (fmt % counter % ctx->d_local.toStringWithPort() % ctx->d_httpconnects % ctx->d_http1Stats.d_nbQueries % ctx->d_http1Stats.d_nbQueries % ctx->d_getqueries % ctx->d_postqueries % ctx->d_badrequests % ctx->d_errorresponses % ctx->d_redirectresponses % ctx->d_validresponses % ctx->getTicketsKeysCount() % ctx->getTicketsKeyRotationDelay() % ctx->getNextTicketsKeyRotation()) << endl;
             counter++;
           }
           g_outputBuffer = ret.str();

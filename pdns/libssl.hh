@@ -21,6 +21,7 @@ public:
   std::string d_ciphers;
   std::string d_ciphers13;
   std::string d_ticketKeyFile;
+  std::string d_keyLogFile;
 
   size_t d_maxStoredSessions{20480};
   time_t d_ticketsKeyRotationDelay{43200};
@@ -117,4 +118,5 @@ bool libssl_set_min_tls_version(std::unique_ptr<SSL_CTX, void(*)(SSL_CTX*)>& ctx
 std::unique_ptr<SSL_CTX, void(*)(SSL_CTX*)> libssl_init_server_context(const TLSConfig& config,
                                                                        std::map<int, std::string>& ocspResponses);
 
+std::unique_ptr<FILE, int(*)(FILE*)> libssl_set_key_log_file(std::unique_ptr<SSL_CTX, void(*)(SSL_CTX*)>& ctx, const std::string& logFile);
 #endif /* HAVE_LIBSSL */
