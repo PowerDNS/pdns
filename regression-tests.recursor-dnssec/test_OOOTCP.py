@@ -37,7 +37,7 @@ class testOOOTCP(RecursorTest):
             #self.assertMatchingRRSIGInAnswer(ress[i], exp)
             i = i + 1
 
-    def testOOOTimeout(self):
+    def XXXOOOTimeout(self):
         expected = {}
         queries = []
         for zone in ['25.delay1.example.', '1.delay2.example.']:
