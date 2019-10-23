@@ -206,15 +206,19 @@ static void parseTLSConfig(TLSConfig& config, const std::string& context, boost:
 
 #endif // defined(HAVE_DNS_OVER_TLS) || defined(HAVE_DNS_OVER_HTTPS)
 
-void setupLuaConfig(bool client)
+void setupLuaConfig(bool client, bool configCheck)
 {
   typedef std::unordered_map<std::string, boost::variant<bool, std::string, vector<pair<int, std::string> >, DownstreamState::checkfunc_t > > newserver_t;
   g_lua.writeFunction("inClientStartup", [client]() {
         return client && !g_configurationDone;
   });
 
+  g_lua.writeFunction("inConfigCheck", [client, configCheck]() {
+        return !configCheck;
+  });
+
   g_lua.writeFunction("newServer",
-      [client](boost::variant<string,newserver_t> pvars, boost::optional<int> qps) {
+                      [client, configCheck](boost::variant<string,newserver_t> pvars, boost::optional<int> qps) {
       setLuaSideEffect();
 
       std::shared_ptr<DownstreamState> ret = std::make_shared<DownstreamState>(ComboAddress());
@@ -316,11 +320,8 @@ void setupLuaConfig(bool client)
         }
       }
 
-      if(client) {
-        // do not construct DownstreamState now, it would try binding sockets.
-        return ret;
-      }
-      ret=std::make_shared<DownstreamState>(serverAddr, sourceAddr, sourceItf, sourceItfName, numberOfSockets);
+      // create but don't connect the socket in client or check-config modes
+      ret=std::make_shared<DownstreamState>(serverAddr, sourceAddr, sourceItf, sourceItfName, numberOfSockets, !(client || configCheck));
 
       if(vars.count("qps")) {
         int qpsVal=std::stoi(boost::get<string>(vars["qps"]));
@@ -746,7 +747,7 @@ void setupLuaConfig(bool client)
       g_carbon.setState(ours);
   });
 
-  g_lua.writeFunction("webserver", [client](const std::string& address, const std::string& password, const boost::optional<std::string> apiKey, const boost::optional<std::map<std::string, std::string> > customHeaders) {
+  g_lua.writeFunction("webserver", [client,configCheck](const std::string& address, const std::string& password, const boost::optional<std::string> apiKey, const boost::optional<std::map<std::string, std::string> > customHeaders) {
       setLuaSideEffect();
       ComboAddress local;
       try {
@@ -756,7 +757,7 @@ void setupLuaConfig(bool client)
         throw std::runtime_error(std::string("Error parsing the bind address for the webserver: ") + e.reason);
       }
 
-      if (client) {
+      if (client || configCheck) {
         return;
       }
 
@@ -809,11 +810,11 @@ void setupLuaConfig(bool client)
       }
     });
 
-  g_lua.writeFunction("controlSocket", [client](const std::string& str) {
+  g_lua.writeFunction("controlSocket", [client,configCheck](const std::string& str) {
       setLuaSideEffect();
       ComboAddress local(str, 5199);
 
-      if(client) {
+      if(client || configCheck) {
 	g_serverControl = local;
 	return;
       }
@@ -1267,9 +1268,12 @@ void setupLuaConfig(bool client)
 #endif
     });
 
-  g_lua.writeFunction("generateDNSCryptProviderKeys", [](const std::string& publicKeyFile, const std::string privateKeyFile) {
+  g_lua.writeFunction("generateDNSCryptProviderKeys", [client](const std::string& publicKeyFile, const std::string privateKeyFile) {
       setLuaNoSideEffect();
 #ifdef HAVE_DNSCRYPT
+      if (client) {
+        return;
+      }
       unsigned char publicKey[DNSCRYPT_PROVIDER_PUBLIC_KEY_SIZE];
       unsigned char privateKey[DNSCRYPT_PROVIDER_PRIVATE_KEY_SIZE];
       sodium_mlock(privateKey, sizeof(privateKey));
@@ -1324,8 +1328,11 @@ void setupLuaConfig(bool client)
     });
 
 #ifdef HAVE_DNSCRYPT
-  g_lua.writeFunction("generateDNSCryptCertificate", [](const std::string& providerPrivateKeyFile, const std::string& certificateFile, const std::string privateKeyFile, uint32_t serial, time_t begin, time_t end, boost::optional<DNSCryptExchangeVersion> version) {
+  g_lua.writeFunction("generateDNSCryptCertificate", [client](const std::string& providerPrivateKeyFile, const std::string& certificateFile, const std::string privateKeyFile, uint32_t serial, time_t begin, time_t end, boost::optional<DNSCryptExchangeVersion> version) {
       setLuaNoSideEffect();
+      if (client) {
+        return;
+      }
       DNSCryptPrivateKey privateKey;
       DNSCryptCert cert;
 
@@ -1619,8 +1626,8 @@ void setupLuaConfig(bool client)
       g_useTCPSinglePipe = flag;
     });
 
-  g_lua.writeFunction("snmpAgent", [client](bool enableTraps, boost::optional<std::string> masterSocket) {
-      if(client)
+  g_lua.writeFunction("snmpAgent", [client,configCheck](bool enableTraps, boost::optional<std::string> masterSocket) {
+      if(client || configCheck)
         return;
 #ifdef HAVE_NET_SNMP
       if (g_configurationDone) {
@@ -2105,24 +2112,28 @@ void setupLuaConfig(bool client)
     g_lua.writeFunction("setAllowEmptyResponse", [](bool allow) { g_allowEmptyResponse=allow; });
 
 #if defined(HAVE_LIBSSL) && defined(HAVE_OCSP_BASIC_SIGN)
-    g_lua.writeFunction("generateOCSPResponse", [](const std::string& certFile, const std::string& caCert, const std::string& caKey, const std::string& outFile, int ndays, int nmin) {
-      return libssl_generate_ocsp_response(certFile, caCert, caKey, outFile, ndays, nmin);
+    g_lua.writeFunction("generateOCSPResponse", [client](const std::string& certFile, const std::string& caCert, const std::string& caKey, const std::string& outFile, int ndays, int nmin) {
+      if (client) {
+        return;
+      }
+
+      libssl_generate_ocsp_response(certFile, caCert, caKey, outFile, ndays, nmin);
     });
 #endif /* HAVE_LIBSSL && HAVE_OCSP_BASIC_SIGN*/
 }
 
-vector<std::function<void(void)>> setupLua(bool client, const std::string& config)
+vector<std::function<void(void)>> setupLua(bool client, bool configCheck, const std::string& config)
 {
   g_launchWork= new vector<std::function<void(void)>>();
 
   setupLuaActions();
-  setupLuaConfig(client);
+  setupLuaConfig(client, configCheck);
   setupLuaBindings(client);
   setupLuaBindingsDNSCrypt();
   setupLuaBindingsDNSQuestion();
   setupLuaBindingsKVS(client);
   setupLuaBindingsPacketCache();
-  setupLuaBindingsProtoBuf(client);
+  setupLuaBindingsProtoBuf(client, configCheck);
   setupLuaInspection();
   setupLuaRules();
   setupLuaVars();

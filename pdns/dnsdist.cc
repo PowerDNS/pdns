@@ -788,7 +788,7 @@ void DownstreamState::setWeight(int newWeight)
   }
 }
 
-DownstreamState::DownstreamState(const ComboAddress& remote_, const ComboAddress& sourceAddr_, unsigned int sourceItf_, const std::string& sourceItfName_, size_t numberOfSockets): sourceItfName(sourceItfName_), remote(remote_), sourceAddr(sourceAddr_), sourceItf(sourceItf_)
+DownstreamState::DownstreamState(const ComboAddress& remote_, const ComboAddress& sourceAddr_, unsigned int sourceItf_, const std::string& sourceItfName_, size_t numberOfSockets, bool connect=true): sourceItfName(sourceItfName_), remote(remote_), sourceAddr(sourceAddr_), sourceItf(sourceItf_)
 {
   pthread_rwlock_init(&d_lock, nullptr);
   id = getUniqueID();
@@ -801,7 +801,7 @@ DownstreamState::DownstreamState(const ComboAddress& remote_, const ComboAddress
     fd = -1;
   }
 
-  if (!IsAnyAddress(remote)) {
+  if (connect && !IsAnyAddress(remote)) {
     reconnect();
     idStates.resize(g_maxOutstanding);
     sw.start();
@@ -2613,7 +2613,7 @@ try
 
   g_policy.setState(leastOutstandingPol);
   if(g_cmdLine.beClient || !g_cmdLine.command.empty()) {
-    setupLua(true, g_cmdLine.config);
+    setupLua(true, false, g_cmdLine.config);
     if (clientAddress != ComboAddress())
       g_serverControl = clientAddress;
     doClient(g_serverControl, g_cmdLine.command);
@@ -2634,13 +2634,13 @@ try
   g_consoleACL.setState(consoleACL);
 
   if (g_cmdLine.checkConfig) {
-    setupLua(true, g_cmdLine.config);
+    setupLua(false, true, g_cmdLine.config);
     // No exception was thrown
     infolog("Configuration '%s' OK!", g_cmdLine.config);
     _exit(EXIT_SUCCESS);
   }
 
-  auto todo=setupLua(false, g_cmdLine.config);
+  auto todo=setupLua(false, false, g_cmdLine.config);
 
   auto localPools = g_pools.getCopy();
   {

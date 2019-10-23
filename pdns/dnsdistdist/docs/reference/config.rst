@@ -227,6 +227,12 @@ Control Socket, Console and Webserver
 
   Returns true while the console client is parsing the configuration.
 
+.. function:: inConfigCheck()
+
+  .. versionadded:: 1.5.0
+
+  Returns true while the configuration is being checked, ie when run with ``--check-config``.
+
 .. function:: makeKey()
 
   Generate and print an encryption key.

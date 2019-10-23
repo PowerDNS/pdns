@@ -32,7 +32,7 @@
 #include "ipcipher.hh"
 #endif /* HAVE_LIBCRYPTO */
 
-void setupLuaBindingsProtoBuf(bool client)
+void setupLuaBindingsProtoBuf(bool client, bool configCheck)
 {
 #ifdef HAVE_LIBCRYPTO
   g_lua.registerFunction<ComboAddress(ComboAddress::*)(const std::string& key)>("ipencrypt", [](const ComboAddress& ca, const std::string& key) {
@@ -94,16 +94,16 @@ void setupLuaBindingsProtoBuf(bool client)
     });
 
   /* RemoteLogger */
-  g_lua.writeFunction("newRemoteLogger", [client](const std::string& remote, boost::optional<uint16_t> timeout, boost::optional<uint64_t> maxQueuedEntries, boost::optional<uint8_t> reconnectWaitTime) {
-      if (client) {
+  g_lua.writeFunction("newRemoteLogger", [client,configCheck](const std::string& remote, boost::optional<uint16_t> timeout, boost::optional<uint64_t> maxQueuedEntries, boost::optional<uint8_t> reconnectWaitTime) {
+      if (client || configCheck) {
         return std::shared_ptr<RemoteLoggerInterface>(nullptr);
       }
       return std::shared_ptr<RemoteLoggerInterface>(new RemoteLogger(ComboAddress(remote), timeout ? *timeout : 2, maxQueuedEntries ? (*maxQueuedEntries*100) : 10000, reconnectWaitTime ? *reconnectWaitTime : 1, client));
     });
 
-  g_lua.writeFunction("newFrameStreamUnixLogger", [client](const std::string& address) {
+  g_lua.writeFunction("newFrameStreamUnixLogger", [client,configCheck](const std::string& address) {
 #ifdef HAVE_FSTRM
-      if (client) {
+      if (client || configCheck) {
         return std::shared_ptr<RemoteLoggerInterface>(nullptr);
       }
       return std::shared_ptr<RemoteLoggerInterface>(new FrameStreamLogger(AF_UNIX, address, !client));
@@ -112,9 +112,9 @@ void setupLuaBindingsProtoBuf(bool client)
 #endif /* HAVE_FSTRM */
     });
 
-  g_lua.writeFunction("newFrameStreamTcpLogger", [client](const std::string& address) {
+  g_lua.writeFunction("newFrameStreamTcpLogger", [client,configCheck](const std::string& address) {
 #if defined(HAVE_FSTRM) && defined(HAVE_FSTRM_TCP_WRITER_INIT)
-      if (client) {
+      if (client || configCheck) {
         return std::shared_ptr<RemoteLoggerInterface>(nullptr);
       }
       return std::shared_ptr<RemoteLoggerInterface>(new FrameStreamLogger(AF_INET, address, !client));
