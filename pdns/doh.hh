@@ -146,6 +146,25 @@ struct st_h2o_req_t;
 
 struct DOHUnit
 {
+  DOHUnit()
+  {
+  }
+  DOHUnit(const DOHUnit&) = delete;
+  DOHUnit& operator=(const DOHUnit&) = delete;
+
+  void get()
+  {
+    ++d_refcnt;
+  }
+
+  void release()
+  {
+    --d_refcnt;
+    if (d_refcnt == 0) {
+      delete this;
+    }
+  }
+
   std::string query;
   std::string response;
   ComboAddress remote;
@@ -153,6 +172,7 @@ struct DOHUnit
   st_h2o_req_t* req{nullptr};
   DOHUnit** self{nullptr};
   std::string contentType;
+  std::atomic<uint64_t> d_refcnt{1};
   int rsock;
   uint16_t qtype;
   /* the status_code is set from
