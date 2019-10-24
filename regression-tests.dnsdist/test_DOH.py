@@ -716,6 +716,9 @@ class TestDOHOverHTTP(DNSDistDOHTest):
     addDOHLocal("127.0.0.1:%s")
     """
     _config_params = ['_testServerPort', '_dohServerPort']
+    _checkConfigExpectedOutput = b"""No certificate provided for DoH endpoint 127.0.0.1:8480, running in DNS over HTTP mode instead of DNS over HTTPS
+Configuration 'configs/dnsdist_TestDOHOverHTTP.conf' OK!
+"""
 
     def testDOHSimple(self):
         """
