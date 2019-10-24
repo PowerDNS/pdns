@@ -1,4 +1,4 @@
-@       86400   IN  SOA pdns-public-ns1.powerdns.com. pieter\.lexis.powerdns.com. 2019093001 10800 3600 604800 10800
+@       86400   IN  SOA pdns-public-ns1.powerdns.com. pieter\.lexis.powerdns.com. 2019102501 10800 3600 604800 10800
 @       3600    IN  NS  pdns-public-ns1.powerdns.com.
 @       3600    IN  NS  pdns-public-ns2.powerdns.com.
 
@@ -323,3 +323,4 @@ dnsdist-1.4.0-beta1.security-status                        60 IN TXT "1 OK"
 dnsdist-1.4.0-rc1.security-status                          60 IN TXT "1 OK"
 dnsdist-1.4.0-rc2.security-status                          60 IN TXT "1 OK"
 dnsdist-1.4.0-rc3.security-status                          60 IN TXT "1 OK"
+dnsdist-1.4.0-rc4.security-status                          60 IN TXT "1 OK"
