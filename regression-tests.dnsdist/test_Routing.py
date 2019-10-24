@@ -513,6 +513,10 @@ class TestRoutingBadWeightWRandom(DNSDistTest):
     s1 = newServer{address="127.0.0.1:%s", weight=-1}
     s2 = newServer{address="127.0.0.1:%s", weight=2147483648}
     """
+    _checkConfigExpectedOutput = b"""Error creating new server: downstream weight value must be greater than 0.
+Error creating new server: downstream weight value must be between 1 and 2147483647
+Configuration 'configs/dnsdist_TestRoutingBadWeightWRandom.conf' OK!
+"""
 
     def testBadWeightWRandom(self):
         """
