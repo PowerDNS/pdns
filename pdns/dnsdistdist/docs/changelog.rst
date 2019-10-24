@@ -6,6 +6,12 @@ Changelog
   :released: 25th of October 2019
 
   .. change::
+    :tags: New Features, DNS over HTTPS, DNS over TLS
+    :pullreq: 8442
+
+    Add support dumping TLS keys via keyLogFile
+
+  .. change::
     :tags: Improvements, DNS over HTTPS
     :pullreq: 8416
 
