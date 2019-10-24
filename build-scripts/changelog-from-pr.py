@@ -65,7 +65,8 @@ for pr in arguments.pullrequest:
 
     if pr_info['user']['login'].lower() not in ['ahupowerdns', 'habbie',
                                                 'pieterlexis', 'rgacogne',
-                                                'aerique', 'chbruyand']:
+                                                'aerique', 'chbruyand',
+                                                'omoerbeek']:
         try:
             if access_token:
                 user_info = requests.get(pr_info['user']['url'] + '?access_token=' + access_token, auth=httpAuth).json()
