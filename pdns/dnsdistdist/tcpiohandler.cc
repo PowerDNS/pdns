@@ -286,7 +286,7 @@ public:
         handleTicketsKeyRotation(time(nullptr));
       }
       else {
-        loadTicketsKeys(fe.d_tlsConfig.d_ticketKeyFile);
+        OpenSSLTLSIOCtx::loadTicketsKeys(fe.d_tlsConfig.d_ticketKeyFile);
       }
     }
     catch (const std::exception& e) {
@@ -351,7 +351,7 @@ public:
     }
   }
 
-  void loadTicketsKeys(const std::string& keyFile) override
+  void loadTicketsKeys(const std::string& keyFile) override final
   {
     d_ticketKeys.loadTicketsKeys(keyFile);
 
@@ -776,7 +776,7 @@ public:
         handleTicketsKeyRotation(time(nullptr));
       }
       else {
-        loadTicketsKeys(fe.d_tlsConfig.d_ticketKeyFile);
+        GnuTLSIOCtx::loadTicketsKeys(fe.d_tlsConfig.d_ticketKeyFile);
       }
     }
     catch(const std::runtime_error& e) {
@@ -827,7 +827,7 @@ public:
     }
   }
 
-  void loadTicketsKeys(const std::string& file) override
+  void loadTicketsKeys(const std::string& file) override final
   {
     if (!d_enableTickets) {
       return;
