@@ -938,7 +938,8 @@ int PacketHandler::processUpdate(DNSPacket& p) {
         if (this->d_update_policy_lua != NULL) {
           if (this->d_update_policy_lua->updatePolicy(rr->d_name, QType(rr->d_type), di.zone, p) == false) {
             g_log<<Logger::Warning<<msgPrefix<<"Refusing update for " << rr->d_name << "/" << QType(rr->d_type).getName() << ": Not permitted by policy"<<endl;
-            continue;
+            di.backend->abortTransaction();
+            return RCode::Refused;
           } else {
             g_log<<Logger::Debug<<msgPrefix<<"Accepting update for " << rr->d_name << "/" << QType(rr->d_type).getName() << ": Permitted by policy"<<endl;
           }
