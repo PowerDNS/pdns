@@ -20,6 +20,8 @@ Options
 
 These options can be added to the commandline in any order.
 
+class *CLASSNUM*
+    Send the query in the numbered class (like 3 for CHAOS) instead of the default 1 (for IN).
 dnssec
     Set the DO bit to request DNSSEC information.
 ednssubnet *SUBNET*

@@ -32,7 +32,7 @@ void usage()
   cerr << "sdig" << endl;
   cerr << "Syntax: sdig IP-ADDRESS-OR-DOH-URL PORT QUESTION QUESTION-TYPE "
           "[dnssec] [ednssubnet SUBNET/MASK] [hidesoadetails] [hidettl] "
-          "[recurse] [showflags] [tcp] [xpf XPFDATA]"
+          "[recurse] [showflags] [tcp] [xpf XPFDATA] [class CLASSNUM]"
        << endl;
 }
 
@@ -58,9 +58,10 @@ const string nameForClass(uint16_t qclass, uint16_t qtype)
 void fillPacket(vector<uint8_t>& packet, const string& q, const string& t,
   bool dnssec, const boost::optional<Netmask> ednsnm,
   bool recurse, uint16_t xpfcode, uint16_t xpfversion,
-  uint64_t xpfproto, char* xpfsrc, char* xpfdst)
+  uint64_t xpfproto, char* xpfsrc, char* xpfdst,
+  uint16_t qclass)
 {
-  DNSPacketWriter pw(packet, DNSName(q), DNSRecordContent::TypeToNumber(t));
+  DNSPacketWriter pw(packet, DNSName(q), DNSRecordContent::TypeToNumber(t), qclass);
 
   if (dnssec || ednsnm || getenv("SDIGBUFSIZE")) {
     char* sbuf = getenv("SDIGBUFSIZE");
@@ -83,7 +84,7 @@ void fillPacket(vector<uint8_t>& packet, const string& q, const string& t,
 
   if (xpfcode) {
     ComboAddress src(xpfsrc), dst(xpfdst);
-    pw.startRecord(DNSName("."), xpfcode, 0, 1, DNSResourceRecord::ADDITIONAL);
+    pw.startRecord(DNSName("."), xpfcode, 0, QClass::IN, DNSResourceRecord::ADDITIONAL);
     // xpf->toPacket(pw);
     pw.xfr8BitInt(xpfversion);
     pw.xfr8BitInt(xpfproto);
@@ -192,6 +193,7 @@ try {
   boost::optional<Netmask> ednsnm;
   uint16_t xpfcode = 0, xpfversion = 0, xpfproto = 0;
   char *xpfsrc = NULL, *xpfdst = NULL;
+  uint16_t qclass = QClass::IN;
 
   for (int i = 1; i < argc; i++) {
     if ((string)argv[i] == "--help") {
@@ -244,6 +246,13 @@ try {
         xpfsrc = argv[++i];
         xpfdst = argv[++i];
       }
+      if (strcmp(argv[i], "class") == 0) {
+        if (argc < i+2) {
+          cerr << "class needs an argument"<<endl;
+          exit(EXIT_FAILURE);
+        }
+        qclass = atoi(argv[++i]);
+      }
     }
   }
 
@@ -277,7 +286,7 @@ try {
 #ifdef HAVE_LIBCURL
     vector<uint8_t> packet;
     fillPacket(packet, name, type, dnssec, ednsnm, recurse, xpfcode, xpfversion,
-      xpfproto, xpfsrc, xpfdst);
+      xpfproto, xpfsrc, xpfdst, qclass);
     MiniCurl mc;
     MiniCurl::MiniCurlHeaders mch;
     mch.insert(std::make_pair("Content-Type", "application/dns-message"));
@@ -294,7 +303,7 @@ try {
     for (const auto& it : questions) {
       vector<uint8_t> packet;
       fillPacket(packet, it.first, it.second, dnssec, ednsnm, recurse, xpfcode,
-        xpfversion, xpfproto, xpfsrc, xpfdst);
+        xpfversion, xpfproto, xpfsrc, xpfdst, qclass);
 
       uint16_t len = htons(packet.size());
       if (sock.write((const char *)&len, 2) != 2)
@@ -326,7 +335,7 @@ try {
   {
     vector<uint8_t> packet;
     fillPacket(packet, name, type, dnssec, ednsnm, recurse, xpfcode, xpfversion,
-      xpfproto, xpfsrc, xpfdst);
+      xpfproto, xpfsrc, xpfdst, qclass);
     string question(packet.begin(), packet.end());
     Socket sock(dest.sin4.sin_family, SOCK_DGRAM);
     sock.sendTo(question, dest);
