@@ -74,7 +74,10 @@ for pr in arguments.pullrequest:
         except (requests.exceptions.HTTPError, ValueError) as e:
             print(e)
             sys.exit(1)
-        out += ' ({})'.format(user_info['name'])
+        if 'name'in user_info:
+            out += ' ({})'.format(user_info['name'])
+        else:
+            out += ' (@{})'.format(user_info['login'])
     out += '\n'
 
     if not arguments.oneline:
