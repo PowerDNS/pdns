@@ -632,7 +632,9 @@ try {
         }
 
         ++g_stats.responses;
-        ++ids->cs->responses;
+        if (ids->cs) {
+          ++ids->cs->responses;
+        }
         ++dss->responses;
 
         double udiff = ids->sentTime.udiff();

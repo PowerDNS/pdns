@@ -763,11 +763,8 @@ catch(const exception& e)
 }
 
 HTTPHeaderRule::HTTPHeaderRule(const std::string& header, const std::string& regex)
-  :  d_regex(regex)
+  : d_header(toLower(header)), d_regex(regex), d_visual("http[" + header+ "] ~ " + regex)
 {
-  d_header = toLower(header);
-  d_visual = "http[" + header+ "] ~ " + regex;
-
 }
 
 bool HTTPHeaderRule::matches(const DNSQuestion* dq) const

@@ -43,9 +43,8 @@ The error strategy. Anything that "should never happen" turns into an exception.
 class MDBDbi
 {
 public:
-  MDBDbi()
+  MDBDbi(): d_dbi(-1)
   {
-    d_dbi = -1;
   }
   explicit MDBDbi(MDB_env* env, MDB_txn* txn, string_view dbname, int flags);  
 
@@ -151,9 +150,8 @@ template<> inline string_view MDBOutVal::get<string_view>() const
 class MDBInVal
 {
 public:
-  MDBInVal(const MDBOutVal& rhs)
+  MDBInVal(const MDBOutVal& rhs): d_mdbval(rhs.d_mdbval)
   {
-    d_mdbval = rhs.d_mdbval;
   }
 
   template <class T,
