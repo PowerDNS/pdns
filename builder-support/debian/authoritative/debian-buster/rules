@@ -76,8 +76,8 @@ endif
 
 override_dh_fixperms:
 	dh_fixperms
-	# these files often contain passwords. 660 as it is chowned to root:pdns
-	chmod 0660 debian/pdns-server/etc/powerdns/pdns.conf
+	# these files often contain passwords. 640 as it is chowned to root:pdns
+	chmod 0640 debian/pdns-server/etc/powerdns/pdns.conf
 
 # restore moved files
 override_dh_clean:
