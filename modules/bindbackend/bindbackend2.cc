@@ -481,11 +481,11 @@ void Bind2Backend::parseZoneFile(BB2DomainInfo *bbd)
     nsec3zone=getNSEC3PARAM(bbd->d_name, &ns3pr);
 
   bbd->d_records = shared_ptr<recordstorage_t>(new recordstorage_t());
-        
   ZoneParserTNG zpt(bbd->d_filename, bbd->d_name, s_binddirectory);
+  zpt.setMaxGenerateSteps(::arg().asNum("max-generate-steps"));
   DNSResourceRecord rr;
   string hashed;
-  while(zpt.get(rr)) { 
+  while(zpt.get(rr)) {
     if(rr.qtype.getCode() == QType::NSEC || rr.qtype.getCode() == QType::NSEC3 || rr.qtype.getCode() == QType::NSEC3PARAM)
       continue; // we synthesise NSECs on demand
 

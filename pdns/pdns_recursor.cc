@@ -4698,6 +4698,7 @@ int main(int argc, char **argv)
     ::arg().set("distribution-load-factor", "The load factor used when PowerDNS is distributing queries to worker threads")="0.0";
     ::arg().setSwitch("qname-minimization", "Use Query Name Minimization")="no";
     ::arg().setSwitch("nothing-below-nxdomain", "When an NXDOMAIN exists in cache for a name with fewer labels than the qname, send NXDOMAIN without doing a lookup (see RFC 8020)")="yes";
+    ::arg().set("max-generate-steps", "Maximum number of $GENERATE steps when loading a zone from a file")="0";
 #ifdef NOD_ENABLED
     ::arg().set("new-domain-tracking", "Track newly observed domains (i.e. never seen before).")="no";
     ::arg().set("new-domain-log", "Log newly observed domains.")="yes";

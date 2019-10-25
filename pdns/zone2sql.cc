@@ -236,6 +236,7 @@ try
     ::arg().set("soa-refresh-default","Do not change")="0";
     ::arg().set("soa-retry-default","Do not change")="0";
     ::arg().set("soa-expire-default","Do not change")="0";
+    ::arg().set("max-generate-steps", "Maximum number of $GENERATE steps when loading a zone from a file")="0";
 
     ::arg().setCmd("help","Provide a helpful message");
     ::arg().setCmd("version","Print the version");
@@ -319,6 +320,7 @@ try
             emitDomain(i->name, &(i->masters));
             
             ZoneParserTNG zpt(i->filename, i->name, BP.getDirectory());
+            zpt.setMaxGenerateSteps(::arg().asNum("max-generate-steps"));
             DNSResourceRecord rr;
             bool seenSOA=false;
             string comment;
@@ -357,6 +359,7 @@ try
         zonename = DNSName(::arg()["zone-name"]);
 
       ZoneParserTNG zpt(zonefile, zonename);
+      zpt.setMaxGenerateSteps(::arg().asNum("max-generate-steps"));
       DNSResourceRecord rr;
       startNewTransaction();
       string comment;

@@ -90,6 +90,7 @@ void loadMainConfig(const std::string& configdir)
   ::arg().set("max-nsec3-iterations","Limit the number of NSEC3 hash iterations")="500"; // RFC5155 10.3
   ::arg().set("max-signature-cache-entries", "Maximum number of signatures cache entries")="";
   ::arg().set("rng", "Specify random number generator to use. Valid values are auto,sodium,openssl,getrandom,arc4random,urandom.")="auto";
+  ::arg().set("max-generate-steps", "Maximum number of $GENERATE steps when loading a zone from a file")="0";
   ::arg().laxFile(configname.c_str());
 
   if(!::arg()["load-modules"].empty()) {
@@ -917,6 +918,7 @@ int editZone(const DNSName &zone) {
   }
   cmdline.clear();
   ZoneParserTNG zpt(tmpnam, g_rootdnsname);
+  zpt.setMaxGenerateSteps(::arg().asNum("max-generate-steps"));
   DNSResourceRecord zrr;
   map<pair<DNSName,uint16_t>, vector<DNSRecord> > grouped;
   try {
@@ -1088,6 +1090,7 @@ int loadZone(DNSName zone, const string& fname) {
   }
   DNSBackend* db = di.backend;
   ZoneParserTNG zpt(fname, zone);
+  zpt.setMaxGenerateSteps(::arg().asNum("max-generate-steps"));
 
   DNSResourceRecord rr;
   if(!db->startTransaction(zone, di.id)) {
@@ -1416,6 +1419,7 @@ void testSpeed(DNSSECKeeper& dk, const DNSName& zone, const string& remote, int 
 void verifyCrypto(const string& zone)
 {
   ZoneParserTNG zpt(zone);
+  zpt.setMaxGenerateSteps(::arg().asNum("max-generate-steps"));
   DNSResourceRecord rr;
   DNSKEYRecordContent drc;
   RRSIGRecordContent rrc;

@@ -328,6 +328,12 @@ bool ZoneParserTNG::get(DNSResourceRecord& rr, std::string* comment)
           d_templatestop < d_templatecounter) {
         throw exception("Invalid $GENERATE parameters");
       }
+      if (d_maxGenerateSteps != 0) {
+        size_t numberOfSteps = (d_templatestop - d_templatecounter) / d_templatestep;
+        if (numberOfSteps > d_maxGenerateSteps) {
+          throw exception("The number of $GENERATE steps (" + std::to_string(numberOfSteps) + ") is too high, the maximum is set to " + std::to_string(d_maxGenerateSteps));
+        }
+      }
       d_templateline=d_line;
       parts.pop_front();
       parts.pop_front();
