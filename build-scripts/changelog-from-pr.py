@@ -61,11 +61,12 @@ for pr in arguments.pullrequest:
             tickets = re.findall(ticket_regex, body)
             if len(tickets):
                 out += '    :tickets: {}\n'.format(', '.join(tickets))
-        out += '\n    {}'.format(pr_info['title'].capitalize())
+        out += '\n    {}'.format(pr_info['title'][0].capitalize() + pr_info['title'][1:])
 
     if pr_info['user']['login'].lower() not in ['ahupowerdns', 'habbie',
                                                 'pieterlexis', 'rgacogne',
-                                                'aerique', 'chbruyand']:
+                                                'aerique', 'chbruyand',
+                                                'omoerbeek']:
         try:
             if access_token:
                 user_info = requests.get(pr_info['user']['url'] + '?access_token=' + access_token, auth=httpAuth).json()
@@ -74,7 +75,10 @@ for pr in arguments.pullrequest:
         except (requests.exceptions.HTTPError, ValueError) as e:
             print(e)
             sys.exit(1)
-        out += ' ({})'.format(user_info['name'])
+        if 'name'in user_info:
+            out += ' ({})'.format(user_info['name'])
+        else:
+            out += ' (@{})'.format(user_info['login'])
     out += '\n'
 
     if not arguments.oneline:
