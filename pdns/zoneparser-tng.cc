@@ -326,7 +326,7 @@ bool ZoneParserTNG::get(DNSResourceRecord& rr, std::string* comment)
       sscanf(range.c_str(),"%u-%u/%u", &d_templatecounter, &d_templatestop, &d_templatestep);
       if (d_templatestep < 1 ||
           d_templatestop < d_templatecounter) {
-        throw exception("Illegal $GENERATE parameters");
+        throw exception("Invalid $GENERATE parameters");
       }
       d_templateline=d_line;
       parts.pop_front();
