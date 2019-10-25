@@ -97,11 +97,17 @@ void primeHints(void)
   }
   t_RC->doWipeCache(g_rootdnsname, false, QType::NS);
   t_RC->replace(time(0), g_rootdnsname, QType(QType::NS), nsset, vector<std::shared_ptr<RRSIGRecordContent>>(), vector<std::shared_ptr<DNSRecord>>(), false, boost::none, validationState); // and stuff in the cache
-
-  
-
 }
 
+
+// Do not only put the root hints into the cache, but also make sure
+// the NS records of the top level domains of the names of the root
+// servers are in the cache. We need these to correctly determine the
+// security status of that specific domain (normally
+// root-servers.net). This is caused by the accident that the root
+// servers are authoritative for root-servers.net, and some
+// implementations reply not with a delegation on a root-servers.net
+// DS query, but with a NODATA response (the domain is unsigned).
 void primeRootNSZones(bool dnssecmode)
 {
   struct timeval now;
