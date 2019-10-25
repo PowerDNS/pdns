@@ -282,16 +282,18 @@ void updateThread(const string& workdir, const uint16_t& keep, const uint16_t& a
     string dir = workdir + "/" + domain.toString();
     try {
       g_log<<Logger::Info<<"Trying to initially load domain "<<domain<<" from disk"<<endl;
-      auto serial = getSerialsFromDir(dir);
+      auto serial = getSerialFromDir(dir);
       shared_ptr<SOARecordContent> soa;
       uint32_t soaTTL;
       {
         string fname = workdir + "/" + domain.toString() + "/" + std::to_string(serial);
         loadSOAFromDisk(domain, fname, soa, soaTTL);
         records_t records;
-        if (soa != nullptr) {
-          loadZoneFromDisk(records, fname, domain);
+        if (soa == nullptr) {
+          g_log<<Logger::Error<<"Could not load SOA from disk for zone "<<domain<<", removing file '"<<fname<<"'"<<endl;
+          unlink(fname.c_str());
         }
+        loadZoneFromDisk(records, fname, domain);
         auto zoneInfo = std::make_shared<ixfrinfo_t>();
         zoneInfo->latestAXFR = std::move(records);
         zoneInfo->soa = soa;
