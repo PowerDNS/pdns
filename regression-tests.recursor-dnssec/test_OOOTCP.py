@@ -13,7 +13,7 @@ class testOOOTCP(RecursorTest):
     def generateRecursorConfig(cls, confdir):
         super(testOOOTCP, cls).generateRecursorConfig(confdir)
 
-    def testOOOVeryBasic(self):
+    def XXXOOOVeryBasic(self):
         expected = {}
         queries = []
         for zone in ['5.delay1.example.', '0.delay2.example.']:
