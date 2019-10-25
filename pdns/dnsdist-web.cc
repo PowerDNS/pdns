@@ -656,7 +656,7 @@ static void connectionThread(int sock, ComboAddress remote)
             threadNumber = dupPair.first->second;
             ++(dupPair.first->second);
           }
-          const std::string addrlabel = boost::str(boost::format("address=\"%1%\",thread=\"%2%\"") % frontName % threadNumber);
+          const std::string addrlabel = boost::str(boost::format("frontend=\"%1%\",thread=\"%2%\"") % frontName % threadNumber);
           const std::string label = "{" + addrlabel + "} ";
 
           output << frontsbase << "http_connects" << label << doh->d_httpconnects << "\n";
