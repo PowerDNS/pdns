@@ -9,7 +9,7 @@
 # description:  PowerDNS Recursor is a non authoritative/recursing DNS server
 # processname:  pdns-recursor
 # config: /etc/pdns-recursor/recursor.conf
-# pidfile: /var/run/pdns_recursor.pid
+# pidfile: /var/run/pdns-recursor/pdns_recursor.pid
 #
 
 # . function library
@@ -18,7 +18,7 @@
 RETVAL=0
 
 PIDDIR=$(awk -F= '/^socket-dir=/ {print $2}' /etc/pdns-recursor/recursor.conf)
-if [ -z "$PIDDIR" ]; then PIDDIR=/var/run; mkdir -p $PIDDIR; fi
+if [ -z "$PIDDIR" ]; then PIDDIR=/var/run/pdns-recursor; mkdir -p $PIDDIR; fi
 
 start() {
 	echo -n $"Starting pdns-recursor: "
