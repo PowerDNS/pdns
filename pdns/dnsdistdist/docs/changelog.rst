@@ -2,6 +2,146 @@ Changelog
 =========
 
 .. changelog::
+  :version: 1.4.0-rc4
+  :released: 25th of October 2019
+
+  .. change::
+    :tags: New Features, DNS over HTTPS, DNS over TLS
+    :pullreq: 8442
+
+    Add support dumping TLS keys via keyLogFile
+
+  .. change::
+    :tags: Improvements, DNS over HTTPS
+    :pullreq: 8416
+
+    Implement reference counting for the DOHUnit object
+
+  .. change::
+    :tags: Improvements, DNS over HTTPS, DNS over TLS, Metrics
+    :pullreq: 8447
+
+    Add metrics about TLS handshake failures for DoH and DoT
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 8411
+    :tickets: 8390
+
+    Add more options to LogAction (non-verbose mode, timestamps)
+
+  .. change::
+    :tags: Improvements, DNS over HTTPS, DNS over TLS
+    :pullreq: 8383
+
+    Merge the setup of TLS contexts in DoH and DoT
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 8408
+
+    Fix the caching of large entries
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 8415
+
+    Fix formatting in showTCPStats()
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 8413
+    :tickets: 8412
+
+    Work around cmsg_space somehow not being a constexpr on macOS
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 8372
+
+    Use SO_BINDTODEVICE when available for newServer's source interface
+
+  .. change::
+    :tags: Bug Fixes, Metrics
+    :pullreq: 8409
+
+    Add missing prometheus descriptions for cache-related metrics
+
+  .. change::
+    :tags: Improvements, DNS over HTTPS, DNS over TLS, Metrics
+    :pullreq: 8406
+
+    Add metrics about unknown/inactive TLS ticket keys
+
+  .. change::
+    :tags: Improvements, DNS over TLS, Metrics
+    :pullreq: 8387
+
+    Add metrics about TLS versions with DNS over TLS
+
+  .. change::
+    :tags: Improvements, DNS over HTTPS, Metrics
+    :pullreq: 8395
+
+    Count the number of concurrent connections for DoH as well
+
+  .. change::
+    :tags: Bug Fixes, DNS over HTTPS
+    :pullreq: 8388
+
+    Clear the DoH session ticket encryption key in the ctor
+
+  .. change::
+    :tags: Improvements, DNS over HTTPS, DNS over TLS
+    :pullreq: 8382
+
+    Add a 'preferServerCiphers' option for DoH and DoT
+
+  .. change::
+    :tags: Bug Fixes, Metrics
+    :pullreq: 8381
+
+    Add a prometheus 'thread' label to distinguish identical frontends
+
+  .. change::
+    :tags: Bug Fixes, Metrics
+    :pullreq: 8378
+
+    Fix a typo in the prometheus description of 'senderrors'
+
+  .. change::
+    :tags: Bug Fixes, Metrics
+    :pullreq: 8368
+
+    More prometheus fixes
+
+  .. change::
+    :tags: Improvements, DNS over HTTPS
+    :pullreq: 8365
+    :tickets: 8353
+
+    Lowercase custom DoH header names
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 8364
+    :tickets: 8362
+
+    Check the address supplied to 'webserver' in check-config
+
+  .. change::
+    :tags: Improvements, DNS over HTTPS, Metrics
+    :pullreq: 8361
+
+    Refactor DoH prometheus metrics again
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 8359
+
+    Fix the creation order of rules when inserted via setRules()
+
+.. changelog::
   :version: 1.4.0-rc3
   :released: 30th of September 2019
 
