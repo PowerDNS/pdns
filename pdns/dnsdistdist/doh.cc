@@ -75,8 +75,7 @@ public:
 
   void release()
   {
-    --d_refcnt;
-    if (d_refcnt == 0) {
+    if (--d_refcnt == 0) {
       SSL_CTX_free(d_h2o_accept_ctx.ssl_ctx);
       d_h2o_accept_ctx.ssl_ctx = nullptr;
       delete this;
