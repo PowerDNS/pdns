@@ -616,8 +616,10 @@ try {
             du->response = std::string(response, responseLen);
             if (send(du->rsock, &du, sizeof(du), 0) != sizeof(du)) {
               /* at this point we have the only remaining pointer on this
-                 DOHUnit object since we did set ids->du to nullptr earlier */
-              delete du;
+                 DOHUnit object since we did set ids->du to nullptr earlier,
+                 except if we got the response before the pointer could be
+                 released by the frontend */
+              du->release();
             }
 #endif /* HAVE_DNS_OVER_HTTPS */
             du = nullptr;

@@ -75,8 +75,7 @@ public:
 
   void release()
   {
-    --d_refcnt;
-    if (d_refcnt == 0) {
+    if (--d_refcnt == 0) {
       SSL_CTX_free(d_h2o_accept_ctx.ssl_ctx);
       d_h2o_accept_ctx.ssl_ctx = nullptr;
       delete this;
@@ -349,11 +348,11 @@ static void handleResponse(DOHFrontend& df, st_h2o_req_t* req, uint16_t statusCo
    this function calls 'return -1' to drop a query without sending it
    caller should make sure HTTPS thread hears of that
 */
-
 static int processDOHQuery(DOHUnit* du)
 {
   uint16_t queryId = 0;
   ComboAddress remote;
+  bool duRefCountIncremented = false;
   try {
     if(!du->req) {
       // we got closed meanwhile. XXX small race condition here
@@ -466,6 +465,9 @@ static int processDOHQuery(DOHUnit* du)
     }
 
     ids->origFD = 0;
+    /* increase the ref count since we are about to store the pointer */
+    du->get();
+    duRefCountIncremented = true;
     ids->du = du;
 
     ids->cs = &cs;
@@ -491,18 +493,17 @@ static int processDOHQuery(DOHUnit* du)
 
     int fd = pickBackendSocketForSending(ss);
     try {
-      /* increase the ref count since we are about to send the pointer */
-         du->get();
       /* you can't touch du after this line, because it might already have been freed */
       ssize_t ret = udpClientSendRequestToBackend(ss, fd, query, dq.len);
 
       if(ret < 0) {
-        du->release();
         /* we are about to handle the error, make sure that
            this pointer is not accessed when the state is cleaned,
            but first check that it still belongs to us */
         if (ids->tryMarkUnused(generation)) {
           ids->du = nullptr;
+          du->release();
+          duRefCountIncremented = false;
           --ss->outstanding;
         }
         ++ss->sendErrors;
@@ -512,7 +513,9 @@ static int processDOHQuery(DOHUnit* du)
       }
     }
     catch (const std::exception& e) {
-      du->release();
+      if (duRefCountIncremented) {
+        du->release();
+      }
       throw;
     }
 
@@ -527,6 +530,7 @@ static int processDOHQuery(DOHUnit* du)
   return 0;
 }
 
+/* called when a HTTP response is about to be sent */
 static void on_response_ready_cb(struct st_h2o_filter_t *self, h2o_req_t *req, h2o_ostream_t **slot)
 {
   if (req == nullptr) {
@@ -599,6 +603,8 @@ static void on_generator_dispose(void *_self)
   }
 }
 
+/* We allocate a DOHUnit and send it to dnsdistclient() function in the doh client thread
+   via a pipe */
 static void doh_dispatch_query(DOHServerConfig* dsc, h2o_handler_t* self, h2o_req_t* req, std::string&& query, const ComboAddress& local, const ComboAddress& remote)
 {
   try {
@@ -633,8 +639,9 @@ static void doh_dispatch_query(DOHServerConfig* dsc, h2o_handler_t* self, h2o_re
 }
 
 /*
-   For GET, the base64url-encoded payload is in the 'dns' parameter, which might be the first parameter, or not.
-   For POST, the payload is the payload.
+  A query has been parsed by h2o.
+  For GET, the base64url-encoded payload is in the 'dns' parameter, which might be the first parameter, or not.
+  For POST, the payload is the payload.
  */
 static int doh_handler(h2o_handler_t *self, h2o_req_t *req)
 try
@@ -884,7 +891,10 @@ void DOHUnit::setHTTPResponse(uint16_t statusCode, const std::string& body_, con
   contentType = contentType_;
 }
 
-void dnsdistclient(int qsock, int rsock)
+/* query has been parsed by h2o, which called doh_handler() in the main DoH thread.
+   In order not to blockfor long, doh_handler() called doh_dispatch_query() which allocated
+   a DOHUnit object and passed it to us */
+static void dnsdistclient(int qsock, int rsock)
 {
   setThreadName("dnsdist/doh-cli");
 
@@ -936,7 +946,13 @@ void dnsdistclient(int qsock, int rsock)
   }
 }
 
-// called if h2o finds that dnsdist gave us an answer
+/* called if h2o finds that dnsdist gave us an answer by writing into
+   the dohresponsepair[0] side of the pipe so from:
+   - handleDOHTimeout() when we did not get a response fast enough (called
+     either from the health check thread (active) or from the frontend ones (reused))
+   - dnsdistclient (error 500 because processDOHQuery() returned a negative value)
+   - processDOHQuery (self-answered queries)
+   */
 static void on_dnsdist(h2o_socket_t *listener, const char *err)
 {
   DOHUnit *du = nullptr;
@@ -964,6 +980,7 @@ static void on_dnsdist(h2o_socket_t *listener, const char *err)
   du->release();
 }
 
+/* called when a TCP connection has been accepted, the TLS session has not been established */
 static void on_accept(h2o_socket_t *listener, const char *err)
 {
   DOHServerConfig* dsc = reinterpret_cast<DOHServerConfig*>(listener->data);
