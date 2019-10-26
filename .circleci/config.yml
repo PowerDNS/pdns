@@ -1277,6 +1277,10 @@ jobs:
             sed "s/agentxperms 0700 0755 dnsdist/agentxperms 0700 0755/g" regression-tests.dnsdist/snmpd.conf > /etc/snmp/snmpd.conf
             /etc/init.d/snmpd start
       - run:
+          name: install prometheus tools
+          command: |
+            apt-get -qq --no-install-recommends install prometheus
+      - run:
           name: Run dnsdist tests
           workdir: ~/project/regression-tests.dnsdist
           command: |
