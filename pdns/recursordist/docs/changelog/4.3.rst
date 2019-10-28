@@ -2,7 +2,7 @@ Changelogs for 4.3.x
 ====================
 
 .. changelog::
-  :version: 4.3.0-alpha2
+  :version: 4.3.0-alpha3
   :released: 29th of October 2019
 
   .. change::
@@ -11,13 +11,11 @@ Changelogs for 4.3.x
 
     Rec: prime NS records of root-servers.net parent (.net)
 
-
   .. change::
     :tags: Improvements
     :pullreq: 8463
 
     Rec: Update CentOS 6 init script (None)
-
 
   .. change::
     :tags: Improvements
@@ -25,13 +23,11 @@ Changelogs for 4.3.x
 
     Basic validation of $GENERATE parameters
 
-
   .. change::
     :tags: Bug fixes
     :pullreq: 8433
 
     Dns64: stop hiding PTR indirection
-
 
   .. change::
     :tags: New features
@@ -40,13 +36,11 @@ Changelogs for 4.3.x
 
     Rec: Allow multiple simultaneous incoming TCP queries over a connection
 
-
   .. change::
     :tags: Improvements
     :pullreq: 8344
 
     Add signal handling for SIGTERM and SIGINT in pdns_recursor, if we are PID1 (Frank Louwers)
-
 
   .. change::
     :tags: New Features
@@ -54,13 +48,11 @@ Changelogs for 4.3.x
 
     Implement RFC 8020 "NXDOMAIN: There Really Is Nothing Underneath"
 
-
   .. change::
     :tags: New features
     :pullreq: 8400
 
     Add CentOS 8 as builder target
-
 
   .. change::
     :tags: Bug fixes
@@ -68,13 +60,11 @@ Changelogs for 4.3.x
 
     Fix chmod paths in rules files
 
-
   .. change::
     :tags: New features
     :pullreq: 8366
 
     Rec: Build Newly Observed Domain (NOD) support by default.
-
 
   .. change::
     :tags: Bug fixes
@@ -82,8 +72,7 @@ Changelogs for 4.3.x
     :tickets: 8352
 
     Rec: chmod/own recursor.conf for the systemd case
-
-
+    
   .. change::
     :tags: Bug fixes
     :pullreq: 8340
@@ -91,13 +80,11 @@ Changelogs for 4.3.x
 
     Fix #8338: Issue with "zz" abbreviation for IPv6 RPZ triggers
 
-
   .. change::
     :tags: Bug fixes
     :pullreq: 8317
 
     Retry getrandom() on EINTR
-
 
   .. change::
     :tags: Improvements
@@ -105,19 +92,21 @@ Changelogs for 4.3.x
 
     Docs: Add small description for pipe backend about distributor-threads (Donatas Abraitis)
 
-
   .. change::
     :tags: Improvements
     :pullreq: 8290
 
     Improve commandline error reporting for non-opts
 
-
   .. change::
     :tags: New features
     :pullreq: 7758
 
     Recursor webhandler for prometheus metrics (Greg Cockroft)
+
+.. changelog::
+  :version: 4.3.0-alpha2
+  :released: Never released
 
 .. changelog::
   :version: 4.3.0-alpha1
