@@ -465,14 +465,19 @@ try
     }
 
     if(distributor->isOverloaded()) {
-      if(logDNSQueries) 
+      if(logDNSQueries)
         g_log<<"Dropped query, backends are overloaded"<<endl;
       overloadDrops++;
       continue;
     }
-        
-    if(PC.enabled() && logDNSQueries)
-      g_log<<"packetcache MISS"<<endl;
+
+    if (logDNSQueries) {
+      if (PC.enabled()) {
+        g_log<<"packetcache MISS"<<endl;
+      } else {
+        g_log<<"packetcache SKIP"<<endl;
+      }
+    }
 
     try {
       distributor->question(question, &sendout); // otherwise, give to the distributor

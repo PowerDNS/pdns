@@ -373,6 +373,10 @@ void *TCPNameserver::doConnection(void *data)
         }
         if(logDNSQueries)
             g_log<<"packetcache MISS"<<endl;
+      } else {
+        if (logDNSQueries) {
+          g_log<<"packetcache SKIP"<<endl;
+        }
       }
       {
         Lock l(&s_plock);
