@@ -34,6 +34,14 @@ extern char** g_argv;
 
 static thread_local set<DNSName> t_rootNSZones;
 
+static void insertIntoRootNSZones(const DNSName &name) {
+  // do not insert dot, wiping dot's NS records from the cache in primeRootNSZones()
+  // will cause infinite recursion
+  if (!name.isRoot()) {
+    t_rootNSZones.insert(name);
+  }
+}
+
 void primeHints(void)
 {
   // prime root cache
@@ -57,7 +65,7 @@ void primeHints(void)
       templ[sizeof(templ)-1] = '\0';
       *templ=c;
       aaaarr.d_name=arr.d_name=DNSName(templ);
-      t_rootNSZones.insert(arr.d_name.getLastLabel());
+      insertIntoRootNSZones(arr.d_name.getLastLabel());
       nsrr.d_content=std::make_shared<NSRecordContent>(DNSName(templ));
       arr.d_content=std::make_shared<ARecordContent>(ComboAddress(rootIps4[c-'a']));
       vector<DNSRecord> aset;
@@ -92,7 +100,7 @@ void primeHints(void)
         rr.content=toLower(rr.content);
         nsset.push_back(DNSRecord(rr));
       }
-      t_rootNSZones.insert(rr.qname.getLastLabel());
+      insertIntoRootNSZones(rr.qname.getLastLabel());
     }
   }
   t_RC->doWipeCache(g_rootdnsname, false, QType::NS);
