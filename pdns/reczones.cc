@@ -119,6 +119,7 @@ void primeRootNSZones(bool dnssecmode)
     sr.setDNSSECValidationRequested(true);
   }
   for (const auto & qname: t_rootNSZones) {
+    t_RC->doWipeCache(qname, false, QType::NS);
     vector<DNSRecord> ret;
     sr.beginResolve(qname, QType(QType::NS), QClass::IN, ret);
   }
