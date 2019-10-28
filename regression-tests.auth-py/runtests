@@ -9,7 +9,7 @@ fi
 
 . .venv/bin/activate
 python -V
-pip install -q -r requirements.txt
+pip install -q -r requirements.txt | cat
 
 mkdir -p configs
 

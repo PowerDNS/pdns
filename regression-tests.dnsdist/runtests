@@ -29,7 +29,7 @@ then
     export CPPFLAGS=-I/usr/local/opt/openssl/include
   fi
 fi
-pip install -r requirements.txt
+pip install -r requirements.txt | cat
 
 protoc -I=../pdns/ --python_out=. ../pdns/dnsmessage.proto
 protoc -I=../pdns/ --python_out=. ../pdns/dnstap.proto
