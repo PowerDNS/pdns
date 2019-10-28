@@ -401,7 +401,6 @@ options {
 module-dir=../regression-tests/modules
 launch=bind
 daemon=no
-local-ipv6=
 bind-config={confdir}/named.conf
 bind-dnssec-db={bind_dnssec_db}
 socket-dir={confdir}
@@ -489,6 +488,7 @@ distributor-threads={threads}""".format(confdir=confdir,
         authcmd = list(cls._auth_cmd)
         authcmd.append('--config-dir=%s' % confdir)
         authcmd.append('--local-address=%s' % ipaddress)
+        authcmd.append('--local-ipv6=')
         print(' '.join(authcmd))
 
         logFile = os.path.join(confdir, 'pdns.log')

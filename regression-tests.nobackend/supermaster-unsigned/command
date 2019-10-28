@@ -75,7 +75,7 @@ start_master()
 {
         $RUNWRAPPER $PDNS --daemon=no --local-port=$port --config-dir=. --module-dir=../regression-tests/modules \
                 --config-name=gsqlite3-master --socket-dir=./ --no-shuffle \
-                --master=yes --local-address=127.0.0.1 --local-ipv6= \
+                --master=yes --local-address=127.0.0.1 \
                 --query-local-address=127.0.0.1 --cache-ttl=$cachettl --dname-processing --allow-axfr-ips= &
 }
 
@@ -84,7 +84,7 @@ start_slave()
         slaveport=53
 
         $RUNWRAPPER $PDNS2 --daemon=no --local-port=$slaveport --config-dir=. --module-dir=../regression-tests/modules \
-                --config-name=gsqlite3-slave --socket-dir=./ --no-shuffle --local-address=127.0.0.2 --local-ipv6= \
+                --config-name=gsqlite3-slave --socket-dir=./ --no-shuffle --local-address=127.0.0.2 \
                 --slave --retrieval-threads=4 --slave=yes --superslave=yes --query-local-address=127.0.0.2 \
                 --slave-cycle-interval=300 --dname-processing &
 }

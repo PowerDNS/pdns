@@ -52,7 +52,6 @@ and port 5300 change the following in ``pdns.conf``:
 
 .. code-block:: ini
 
-    local-ipv6=
     local-address=127.0.0.1
     local-port=5300
 
@@ -135,7 +134,6 @@ and port 5300 change the following in ``pdns.conf``:
 
 .. code-block:: ini
 
-    local-ipv6=
     local-address=127.0.0.1
     local-port=5300
 

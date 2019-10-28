@@ -86,7 +86,7 @@ extern StatBag S;
 
 vector<ComboAddress> g_localaddresses; // not static, our unit tests need to poke this
 
-void UDPNameserver::bindIPv4()
+void UDPNameserver::bindAddresses()
 {
   vector<string>locals;
   stringtok(locals,::arg()["local-address"]," ,");
@@ -96,33 +96,36 @@ void UDPNameserver::bindIPv4()
     throw PDNSException("No local address specified");
 
   int s;
-  for(vector<string>::const_iterator i=locals.begin();i!=locals.end();++i) {
-    string localname(*i);
-    ComboAddress locala;
+  // for(vector<string>::const_iterator i=locals.begin();i!=locals.end();++i) {
+  for (const auto &local : locals) {
+    ComboAddress locala(local, ::arg().asNum("local-port"));
 
-    s=socket(AF_INET,SOCK_DGRAM,0);
+    s = socket(locala.sin4.sin_family, SOCK_DGRAM, 0);
 
-    if(s<0) {
-      int err = errno;
-      g_log<<Logger::Error<<"Unable to acquire UDP socket: "+stringerror(err) << endl;
-      throw PDNSException("Unable to acquire a UDP socket: "+stringerror(err));
+    if(s < 0) {
+      if(errno == EAFNOSUPPORT) {
+        g_log<<Logger::Error<<"Binding "<<locala.toStringWithPort()<<": Address Family is not supported - skipping bind" << endl;
+        return;
+      }
+      throw PDNSException("Unable to acquire a UDP socket: "+stringerror());
     }
-  
+
     setCloseOnExec(s);
-  
     if(!setNonBlocking(s))
-      throw PDNSException("Unable to set UDP socket to non-blocking: "+stringerror());
+      throw PDNSException("Unable to set UDP socket " + locala.toStringWithPort() + " to non-blocking: "+stringerror());
 
-    locala=ComboAddress(localname, ::arg().asNum("local-port"));
-
-    if(locala.sin4.sin_family != AF_INET)
-      throw PDNSException("Attempting to bind IPv4 socket to IPv6 address");
-
-    if(IsAnyAddress(locala))
+    if(IsAnyAddress(locala)) {
       setsockopt(s, IPPROTO_IP, GEN_IP_PKTINFO, &one, sizeof(one));
+      if (locala.isIPv6()) {
+        setsockopt(s, IPPROTO_IPV6, IPV6_V6ONLY, &one, sizeof(one));      // if this fails, we report an error in tcpreceiver too
+#ifdef IPV6_RECVPKTINFO
+        setsockopt(s, IPPROTO_IPV6, IPV6_RECVPKTINFO, &one, sizeof(one));
+#endif
+      }
+    }
 
     if (!setSocketTimestamps(s))
-      g_log<<Logger::Warning<<"Unable to enable timestamp reporting for socket"<<endl;
+      g_log<<Logger::Warning<<"Unable to enable timestamp reporting for socket "<<locala.toStringWithPort()<<endl;
 
     if (locala.isIPv4()) {
       try {
@@ -140,8 +143,7 @@ void UDPNameserver::bindIPv4()
 #endif
 
     if( ::arg().mustDo("non-local-bind") )
-	Utility::setBindAny(AF_INET, s);
-
+      Utility::setBindAny(locala.sin4.sin_family, s);
 
     if( !d_additional_socket )
         g_localaddresses.push_back(locala);
@@ -150,7 +152,7 @@ void UDPNameserver::bindIPv4()
       string binderror = stringerror();
       close(s);
       if( errno == EADDRNOTAVAIL && ! ::arg().mustDo("local-address-nonexist-fail") ) {
-        g_log<<Logger::Error<<"IPv4 Address " << localname << " does not exist on this server - skipping UDP bind" << endl;
+        g_log<<Logger::Error<<"Address " << locala << " does not exist on this server - skipping UDP bind" << endl;
         continue;
       } else {
         g_log<<Logger::Error<<"Unable to bind UDP socket to '"+locala.toStringWithPort()+"': "<<binderror<<endl;
@@ -158,12 +160,12 @@ void UDPNameserver::bindIPv4()
       }
     }
     d_sockets.push_back(s);
-    g_log<<Logger::Error<<"UDP server bound to "<<locala.toStringWithPort()<<endl;
     struct pollfd pfd;
     pfd.fd = s;
     pfd.events = POLLIN;
     pfd.revents = 0;
     d_rfds.push_back(pfd);
+    g_log<<Logger::Error<<"UDP server bound to "<<locala.toStringWithPort()<<endl;
   }
 }
 
@@ -199,79 +201,6 @@ bool AddressIsUs(const ComboAddress& remote)
   return false;
 }
 
-
-void UDPNameserver::bindIPv6()
-{
-  vector<string> locals;
-  stringtok(locals,::arg()["local-ipv6"]," ,");
-  int one=1;
-
-  if(locals.empty())
-    return;
-
-  int s;
-  for(vector<string>::const_iterator i=locals.begin();i!=locals.end();++i) {
-    string localname(*i);
-
-    s=socket(AF_INET6,SOCK_DGRAM,0);
-    if(s<0) {
-      if( errno == EAFNOSUPPORT ) {
-        g_log<<Logger::Error<<"IPv6 Address Family is not supported - skipping UDPv6 bind" << endl;
-        return;
-      } else {
-        g_log<<Logger::Error<<"Unable to acquire a UDPv6 socket: "+stringerror() << endl;
-        throw PDNSException("Unable to acquire a UDPv6 socket: "+stringerror());
-      }
-    }
-
-    setCloseOnExec(s);
-    if(!setNonBlocking(s))
-      throw PDNSException("Unable to set UDPv6 socket to non-blocking: "+stringerror());
-
-    ComboAddress locala(localname, ::arg().asNum("local-port"));
-    
-    if(IsAnyAddress(locala)) {
-      setsockopt(s, IPPROTO_IP, GEN_IP_PKTINFO, &one, sizeof(one));     // linux supports this, so why not - might fail on other systems
-#ifdef IPV6_RECVPKTINFO
-      setsockopt(s, IPPROTO_IPV6, IPV6_RECVPKTINFO, &one, sizeof(one)); 
-#endif
-      setsockopt(s, IPPROTO_IPV6, IPV6_V6ONLY, &one, sizeof(one));      // if this fails, we report an error in tcpreceiver too
-    }
-
-    if (!setSocketTimestamps(s))
-      g_log<<Logger::Warning<<"Unable to enable timestamp reporting for socket"<<endl;
-
-#ifdef SO_REUSEPORT
-    if( d_can_reuseport )
-        if( setsockopt(s, SOL_SOCKET, SO_REUSEPORT, &one, sizeof(one)) )
-          d_can_reuseport = false;
-#endif
-
-    if( ::arg().mustDo("non-local-bind") )
-	Utility::setBindAny(AF_INET6, s);
-
-    if( !d_additional_socket )
-        g_localaddresses.push_back(locala);
-    if(::bind(s, (sockaddr*)&locala, locala.getSocklen())<0) {
-      close(s);
-      if( errno == EADDRNOTAVAIL && ! ::arg().mustDo("local-ipv6-nonexist-fail") ) {
-        g_log<<Logger::Error<<"IPv6 Address " << localname << " does not exist on this server - skipping UDP bind" << endl;
-        continue;
-      } else {
-        g_log<<Logger::Error<<"Unable to bind to UDPv6 socket "<< localname <<": "<<stringerror()<<endl;
-        throw PDNSException("Unable to bind to UDPv6 socket");
-      }
-    }
-    d_sockets.push_back(s);
-    struct pollfd pfd;
-    pfd.fd = s;
-    pfd.events = POLLIN;
-    pfd.revents = 0;
-    d_rfds.push_back(pfd);
-    g_log<<Logger::Error<<"UDPv6 server bound to "<<locala.toStringWithPort()<<endl;
-  }
-}
-
 UDPNameserver::UDPNameserver( bool additional_socket )
 {
 #ifdef SO_REUSEPORT
@@ -280,13 +209,10 @@ UDPNameserver::UDPNameserver( bool additional_socket )
   // Are we the main socket (false) or a rebinding using SO_REUSEPORT ?
   d_additional_socket = additional_socket;
 
-  if(!::arg()["local-address"].empty())
-    bindIPv4();
-  if(!::arg()["local-ipv6"].empty())
-    bindIPv6();
-
-  if(::arg()["local-address"].empty() && ::arg()["local-ipv6"].empty()) 
+  if(::arg()["local-address"].empty())
     g_log<<Logger::Critical<<"PDNS is deaf and mute! Not listening on any interfaces"<<endl;    
+
+  bindAddresses();
 }
 
 void UDPNameserver::send(DNSPacket& p)
