@@ -1239,7 +1239,7 @@ Path to the Public Suffix List file, if any. If set, PowerDNS will try to load t
 .. versionadded:: 4.3.0
 
 -  Boolean
--  Default: no
+-  Default: yes
 
 Enable Query Name Minimization. This is a experimental feature, implementing a relaxed form of Query Name Mimimization as
 described in :rfc:`7816`.

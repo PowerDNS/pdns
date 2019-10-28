@@ -28,6 +28,7 @@ class testRootNXTrustDisabled(RootNXTrustRecursorTest):
 
     _config_template = """
 root-nx-trust=no
+qname-minimization=no
 webserver=yes
 webserver-port=%d
 webserver-address=127.0.0.1

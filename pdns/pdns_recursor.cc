@@ -4706,7 +4706,8 @@ int main(int argc, char **argv)
     ::arg().set("rng", "Specify random number generator to use. Valid values are auto,sodium,openssl,getrandom,arc4random,urandom.")="auto";
     ::arg().set("public-suffix-list-file", "Path to the Public Suffix List file, if any")="";
     ::arg().set("distribution-load-factor", "The load factor used when PowerDNS is distributing queries to worker threads")="0.0";
-    ::arg().setSwitch("qname-minimization", "Use Query Name Minimization")="no";
+
+    ::arg().setSwitch("qname-minimization", "Use Query Name Minimization")="yes";
     ::arg().setSwitch("nothing-below-nxdomain", "When an NXDOMAIN exists in cache for a name with fewer labels than the qname, send NXDOMAIN without doing a lookup (see RFC 8020)")="dnssec";
     ::arg().set("max-generate-steps", "Maximum number of $GENERATE steps when loading a zone from a file")="0";
 

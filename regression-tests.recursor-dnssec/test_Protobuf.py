@@ -129,7 +129,7 @@ class TestRecursorProtobuf(RecursorTest):
         self.assertEquals(msg.id, query.id)
         self.assertTrue(msg.HasField('inBytes'))
         if normalQueryResponse:
-            # compare inBytes with length of query/response
+            # compare inBytes with length off query/response
             # Note that for responses, the size we received might differ
             # because dnspython might compress labels differently from
             # the recursor
@@ -158,7 +158,7 @@ class TestRecursorProtobuf(RecursorTest):
         if length is not None:
           self.assertEquals(msg.inBytes, length)
         else:
-          # compare inBytes with length of query/response
+          # compare inBytes with length off query/response
           self.assertEquals(msg.inBytes, len(query.to_wire()))
 
     def checkProtobufQuery(self, msg, protocol, query, qclass, qtype, qname, initiator='127.0.0.1'):
@@ -351,7 +351,10 @@ class OutgoingProtobufDefaultTest(TestRecursorProtobuf):
 
     _confdir = 'OutgoingProtobufDefault'
     _config_template = """
-auth-zones=example=configs/%s/example.zone""" % _confdir
+    # Switch of QName Minimization, it generates much more protobuf messages
+    # (or make the test much more smart!)
+    qname-minimization=no
+    auth-zones=example=configs/%s/example.zone""" % _confdir
     _lua_config_file = """
     outgoingProtobufServer({"127.0.0.1:%d", "127.0.0.1:%d"})
     """ % (protobufServersParameters[0].port, protobufServersParameters[1].port)
@@ -380,7 +383,10 @@ class OutgoingProtobufNoQueriesTest(TestRecursorProtobuf):
 
     _confdir = 'OutgoingProtobufNoQueries'
     _config_template = """
-auth-zones=example=configs/%s/example.zone""" % _confdir
+    # Switch of QName Minimization, it generates much more protobuf messages
+    # (or make the test much more smart!)
+    qname-minimization=no
+    auth-zones=example=configs/%s/example.zone""" % _confdir
     _lua_config_file = """
     outgoingProtobufServer({"127.0.0.1:%d", "127.0.0.1:%d"}, { logQueries=false, logResponses=true })
     """ % (protobufServersParameters[0].port, protobufServersParameters[1].port)

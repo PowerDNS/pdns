@@ -47,6 +47,7 @@ class EDNSBufferTest(RecursorTest):
     _qnameSuffix = '.edns-tests.example.'
 
     _config_template = """
+qname-minimization=no
 forward-zones=edns-tests.example=%s.22
 udp-truncation-threshold=%d
 edns-outgoing-bufsize=%d
@@ -173,6 +174,7 @@ class EDNSBufferTest16801681(EDNSBufferTest):
     _qnameSuffix = '.edns-tests.example.'
 
     _config_template = """
+qname-minimization=no
 forward-zones=edns-tests.example=%s.22
 udp-truncation-threshold=%d
 edns-outgoing-bufsize=%d
@@ -196,6 +198,7 @@ class EDNSBufferTest16801679(EDNSBufferTest):
     _qnameSuffix = '.edns-tests.example.'
 
     _config_template = """
+qname-minimization=no
 forward-zones=edns-tests.example=%s.22
 udp-truncation-threshold=%d
 edns-outgoing-bufsize=%d
