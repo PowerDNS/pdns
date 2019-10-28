@@ -864,7 +864,7 @@ Maximum number of seconds to cache an item in the DNS cache, no matter what the 
 .. _setting max-concurrent-requests-per-tcp-connection:
 
 ``max-concurrent-requests-per-tcp-connection``
-------------------------------------------
+----------------------------------------------
 -  Integer
 -  Default: 10
 
