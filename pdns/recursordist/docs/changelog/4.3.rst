@@ -2,6 +2,113 @@ Changelogs for 4.3.x
 ====================
 
 .. changelog::
+  :version: 4.3.0-alpha3
+  :released: 29th of October 2019
+
+  .. change::
+    :tags: Bug fixes
+    :pullreq: 8470
+
+    Prime NS records of root-servers.net parent (.net)
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 8463
+
+    Update CentOS 6 init script (None)
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 8451
+
+    Basic validation of $GENERATE parameters
+
+  .. change::
+    :tags: Bug fixes
+    :pullreq: 8433
+
+    Dns64: stop hiding PTR indirection
+
+  .. change::
+    :tags: New features
+    :pullreq: 8391
+    :tickets: 8358
+
+    Allow multiple simultaneous incoming TCP queries over a connection
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 8344
+
+    Add signal handling for SIGTERM and SIGINT in pdns_recursor, if we are PID1 (Frank Louwers)
+
+  .. change::
+    :tags: New Features
+    :pullreq: 8367
+
+    Implement RFC 8020 "NXDOMAIN: There Really Is Nothing Underneath"
+
+  .. change::
+    :tags: New features
+    :pullreq: 8400
+
+    Add CentOS 8 as builder target
+
+  .. change::
+    :tags: Bug fixes
+    :pullreq: 8371
+
+    Fix chmod paths in rules files
+
+  .. change::
+    :tags: New features
+    :pullreq: 8366
+
+    Build Newly Observed Domain (NOD) support by default.
+
+  .. change::
+    :tags: Bug fixes
+    :pullreq: 8360
+    :tickets: 8352
+
+    Rec: chmod/own recursor.conf for the systemd case
+    
+  .. change::
+    :tags: Bug fixes
+    :pullreq: 8340
+    :tickets: 8338
+
+    Fix #8338: Issue with "zz" abbreviation for IPv6 RPZ triggers
+
+  .. change::
+    :tags: Bug fixes
+    :pullreq: 8317
+
+    Retry getrandom() on EINTR
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 8287
+
+    Docs: Add small description for pipe backend about distributor-threads (Donatas Abraitis)
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 8290
+
+    Improve commandline error reporting for non-opts
+
+  .. change::
+    :tags: New features
+    :pullreq: 7758
+
+    Recursor webhandler for prometheus metrics (Greg Cockroft)
+
+.. changelog::
+  :version: 4.3.0-alpha2
+  :released: Never released
+
+.. changelog::
   :version: 4.3.0-alpha1
   :released: 5th of September 2019
 
@@ -170,7 +277,7 @@ Changelogs for 4.3.x
     :pullreq: 7967
     :tickets: 7949
 
-    Silence unused lambda warning (retry) (None)
+    Silence unused lambda warning (retry) (fwSmit)
 
   .. change::
     :tags: New Features
