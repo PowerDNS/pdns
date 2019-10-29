@@ -9,13 +9,13 @@ Changelogs for 4.3.x
     :tags: Bug fixes
     :pullreq: 8470
 
-    Rec: prime NS records of root-servers.net parent (.net)
+    Prime NS records of root-servers.net parent (.net)
 
   .. change::
     :tags: Improvements
     :pullreq: 8463
 
-    Rec: Update CentOS 6 init script (None)
+    Update CentOS 6 init script (None)
 
   .. change::
     :tags: Improvements
@@ -34,7 +34,7 @@ Changelogs for 4.3.x
     :pullreq: 8391
     :tickets: 8358
 
-    Rec: Allow multiple simultaneous incoming TCP queries over a connection
+    Allow multiple simultaneous incoming TCP queries over a connection
 
   .. change::
     :tags: Improvements
@@ -64,7 +64,7 @@ Changelogs for 4.3.x
     :tags: New features
     :pullreq: 8366
 
-    Rec: Build Newly Observed Domain (NOD) support by default.
+    Build Newly Observed Domain (NOD) support by default.
 
   .. change::
     :tags: Bug fixes
@@ -277,7 +277,7 @@ Changelogs for 4.3.x
     :pullreq: 7967
     :tickets: 7949
 
-    Silence unused lambda warning (retry) (None)
+    Silence unused lambda warning (retry) (fwSmit)
 
   .. change::
     :tags: New Features
