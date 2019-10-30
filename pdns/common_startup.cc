@@ -442,14 +442,13 @@ try
         "', do = " <<question.d_dnssecOk <<", bufsize = "<< question.getMaxReplyLen();
       if(question.d_ednsRawPacketSizeLimit > 0 && question.getMaxReplyLen() != (unsigned int)question.d_ednsRawPacketSizeLimit)
         g_log<<" ("<<question.d_ednsRawPacketSizeLimit<<")";
-      g_log<<": ";
     }
 
     if(PC.enabled() && (question.d.opcode != Opcode::Notify && question.d.opcode != Opcode::Update) && question.couldBeCached()) {
       bool haveSomething=PC.get(question, cached); // does the PacketCache recognize this question?
       if (haveSomething) {
         if(logDNSQueries)
-          g_log<<"packetcache HIT"<<endl;
+          g_log<<": packetcache HIT"<<endl;
         cached.setRemote(&question.d_remote);  // inlined
         cached.setSocket(question.getSocket());                               // inlined
         cached.d_anyLocal = question.d_anyLocal;
@@ -466,16 +465,16 @@ try
 
     if(distributor->isOverloaded()) {
       if(logDNSQueries)
-        g_log<<"Dropped query, backends are overloaded"<<endl;
+        g_log<<": Dropped query, backends are overloaded"<<endl;
       overloadDrops++;
       continue;
     }
 
     if (logDNSQueries) {
       if (PC.enabled()) {
-        g_log<<"packetcache MISS"<<endl;
+        g_log<<": packetcache MISS"<<endl;
       } else {
-        g_log<<"packetcache SKIP"<<endl;
+        g_log<<endl;
       }
     }
 
@@ -532,6 +531,10 @@ void mainthread()
    PC.setTTL(::arg().asNum("cache-ttl"));
    PC.setMaxEntries(::arg().asNum("max-packet-cache-entries"));
    QC.setMaxEntries(::arg().asNum("max-cache-entries"));
+
+   if (!PC.enabled() && ::arg().mustDo("log-dns-queries")) {
+     g_log<<Logger::Warning<<"Packet cache disabled, logging queries without HIT/MISS"<<endl;
+   }
 
    stubParseResolveConf();
 

@@ -356,13 +356,13 @@ void *TCPNameserver::doConnection(void *data)
         else
           remote_text = packet->getRemote().toString();
         g_log << Logger::Notice<<"TCP Remote "<< remote_text <<" wants '" << packet->qdomain<<"|"<<packet->qtype.getName() <<
-        "', do = " <<packet->d_dnssecOk <<", bufsize = "<< packet->getMaxReplyLen()<<": ";
+        "', do = " <<packet->d_dnssecOk <<", bufsize = "<< packet->getMaxReplyLen();
       }
 
       if(PC.enabled()) {
         if(packet->couldBeCached() && PC.get(*packet, *cached)) { // short circuit - does the PacketCache recognize this question?
           if(logDNSQueries)
-            g_log<<"packetcache HIT"<<endl;
+            g_log<<": packetcache HIT"<<endl;
           cached->setRemote(&packet->d_remote);
           cached->d.id=packet->d.id;
           cached->d.rd=packet->d.rd; // copy in recursion desired bit
@@ -372,10 +372,10 @@ void *TCPNameserver::doConnection(void *data)
           continue;
         }
         if(logDNSQueries)
-            g_log<<"packetcache MISS"<<endl;
+            g_log<<": packetcache MISS"<<endl;
       } else {
         if (logDNSQueries) {
-          g_log<<"packetcache SKIP"<<endl;
+          g_log<<endl;
         }
       }
       {
