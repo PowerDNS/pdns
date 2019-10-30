@@ -78,9 +78,11 @@ public:
   
   /* tv will be updated to 'now' before run returns */
   /* timeout is in ms */
+  /* returns 0 on timeout, -1 in case of error (but all implementations
+     actually throw in that case) and the number of ready events otherwise */
   virtual int run(struct timeval* tv, int timeout=500) = 0;
 
-  /* timeout is in ms, 0 will return immediatly, -1 will block until at least one FD is ready */
+  /* timeout is in ms, 0 will return immediately, -1 will block until at least one FD is ready */
   virtual void getAvailableFDs(std::vector<int>& fds, int timeout) = 0;
 
   //! Add an fd to the read watch list - currently an fd can only be on one list at a time!

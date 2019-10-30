@@ -1149,7 +1149,6 @@ extern size_t g_maxTCPConnectionDuration;
 extern size_t g_maxTCPConnectionsPerClient;
 extern std::atomic<uint16_t> g_cacheCleaningDelay;
 extern std::atomic<uint16_t> g_cacheCleaningPercentage;
-extern bool g_verboseHealthChecks;
 extern uint32_t g_staleCacheEntriesTTL;
 extern bool g_apiReadWrite;
 extern std::string g_apiConfigDirectory;
