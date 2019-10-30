@@ -5,7 +5,6 @@
 #include "config.h"
 #endif
 #include <boost/test/unit_test.hpp>
-#include <boost/test/floating_point_comparison.hpp>
 
 #include "iputils.hh"
 #include "recursor_cache.hh"

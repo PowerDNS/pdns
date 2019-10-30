@@ -5,7 +5,6 @@
 #include "config.h"
 #endif
 #include <boost/test/unit_test.hpp>
-#include <boost/test/floating_point_comparison.hpp>
 #include "mtasker.hh"
 
 BOOST_AUTO_TEST_SUITE(mtasker_cc)
