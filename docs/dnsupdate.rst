@@ -236,6 +236,8 @@ These are the settings available for **SOA-EDIT-DNSUPDATE**.
 -  SOA-EDIT-INCREASE: Change the serial to whatever SOA-EDIT would
    provide. If what SOA-EDIT provides is lower than the current serial,
    increase the current serial by 1.
+   Exception: with SOA-EDIT=INCEPTION-EPOCH, the serial is bumped to at
+   least the current EPOCH time.
 
 DNS update How-to: Setup dyndns/rfc2136 with dhcpd
 --------------------------------------------------
