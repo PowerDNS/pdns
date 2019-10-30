@@ -311,6 +311,7 @@ void printStats()
 int parseZone(const std::string& str, unsigned int limit)
 {
   ZoneParserTNG zpt(str);
+  zpt.disableGenerate();
   DNSResourceRecord rr;
 
   std::thread stats(printStats);
@@ -517,6 +518,7 @@ try
     }
     cerr<<"Have "<<powerdns.size()<<" known NS names that are PowerDNS"<<endl;
     ZoneParserTNG zpt(argv[2]);
+    zpt.disableGenerate();
     DNSResourceRecord rr;
     
     set<DNSName> seen, pdnsdomains;
