@@ -474,6 +474,8 @@ commands:
 
 jobs:
   checkout:
+    resource_class: small
+
     docker:
       - image: debian:buster
 
@@ -524,6 +526,8 @@ jobs:
             - pdns-auth
 
   test-auth-regress-odbc-sqlite3:
+    resource_class: small
+
     docker:
       - image: debian:buster
     steps:
@@ -614,6 +618,8 @@ jobs:
           skip: 8bit-txt-unescaped
 
   test-auth-regress-gsqlite3:
+    resource_class: small
+
     docker:
       - image: debian:buster
     steps:
@@ -632,6 +638,8 @@ jobs:
           context: gsqlite3-nsec3-narrow
 
   test-auth-regress-bind:
+    resource_class: small
+
     docker:
       - image: debian:buster
       - image: circleci/mysql:5      # for the hybrid test
@@ -665,6 +673,8 @@ jobs:
           context: bind-hybrid-nsec3
 
   test-auth-regress-gmysql:
+    resource_class: small
+
     docker:
       - image: debian:buster
       - image: circleci/mysql:5
@@ -695,6 +705,8 @@ jobs:
           context: gmysql-nsec3-narrow
 
   test-auth-regress-gpgsql:
+    resource_class: small
+
     docker:
       - image: debian:buster
       - image: circleci/postgres:9
@@ -724,6 +736,8 @@ jobs:
           context: gpgsql-nsec3-narrow
 
   test-auth-regress-ldap:
+    resource_class: small
+
     docker:
       - image: debian:buster
         environment:
@@ -747,6 +761,8 @@ jobs:
           doroot: false
 
   test-auth-regress-tinydns:
+    resource_class: small
+
     docker:
       - image: debian:buster
     steps:
@@ -756,6 +772,8 @@ jobs:
           doroot: false
 
   test-auth-regress-lmdb:
+    resource_class: small
+
     docker:
       - image: debian:buster
     steps:
@@ -773,6 +791,8 @@ jobs:
           context: lmdb-nsec3-narrow
 
   test-auth-algorithms:
+    resource_class: small
+
     docker:
       - image: debian:buster
     steps:
@@ -782,6 +802,8 @@ jobs:
           command: /opt/pdns-auth/bin/pdnsutil test-algorithms
 
   test-auth-api:
+    resource_class: small
+
     docker:
       - image: debian:buster
     steps:
@@ -871,6 +893,8 @@ jobs:
             - pdns-recursor
 
   test-recursor-regression:
+    resource_class: small
+
     docker:
       - image: debian:buster
     steps:
@@ -892,6 +916,8 @@ jobs:
             ./build-scripts/test-recursor
 
   test-recursor-bulk:
+    resource_class: small
+
     docker:
       - image: debian:buster
     steps:
@@ -918,6 +944,8 @@ jobs:
           workdir: ~/project/regression-tests
 
   test-recursor-api:
+    resource_class: small
+
     docker:
       - image: debian:buster
     steps:
@@ -933,6 +961,8 @@ jobs:
             ./runtests recursor
 
   build-auth-docs:
+    resource_class: small
+
     docker:
       - image: debian:buster
     steps:
@@ -941,6 +971,8 @@ jobs:
       - build-auth-docs
 
   deploy-auth-docs:
+    resource_class: small
+
     docker:
       - image: debian:buster
     steps:
@@ -951,6 +983,8 @@ jobs:
       - upload-auth-docs
 
   build-recursor-docs:
+    resource_class: small
+
     docker:
       - image: debian:buster
     steps:
@@ -959,6 +993,8 @@ jobs:
       - build-recursor-docs
 
   deploy-recursor-docs:
+    resource_class: small
+
     docker:
       - image: debian:buster
     steps:
@@ -969,6 +1005,8 @@ jobs:
       - upload-recursor-docs
 
   build-dnsdist-docs:
+    resource_class: small
+
     docker:
       - image: debian:buster
     steps:
@@ -977,6 +1015,8 @@ jobs:
       - build-dnsdist-docs
 
   deploy-dnsdist-docs:
+    resource_class: small
+
     docker:
       - image: debian:buster
     steps:
@@ -1263,6 +1303,8 @@ jobs:
             - dnsdist
 
   test-dnsdist-regression:
+    resource_class: small
+
     docker:
       - image: debian:buster
         environment:
@@ -1288,6 +1330,8 @@ jobs:
             ./runtests
 
   test-ixfrdist-regression:
+    resource_class: small
+
     docker:
       - image: debian:buster
         environment:
