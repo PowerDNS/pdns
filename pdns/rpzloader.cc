@@ -1,3 +1,4 @@
+#include "arguments.hh"
 #include "dnsparser.hh"
 #include "dnsrecords.hh"
 #include "ixfr.hh"
@@ -235,6 +236,7 @@ std::shared_ptr<SOARecordContent> loadRPZFromFile(const std::string& fname, std:
 {
   shared_ptr<SOARecordContent> sr = nullptr;
   ZoneParserTNG zpt(fname);
+  zpt.setMaxGenerateSteps(::arg().asNum("max-generate-steps"));
   DNSResourceRecord drr;
   DNSName domain;
   while(zpt.get(drr)) {
