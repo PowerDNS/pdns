@@ -1,5 +1,4 @@
 == Verify RRset absence
-1	test.dyndns.	IN	SOA	3600	ns1.test.dyndns. ahu.example.dyndns. 2019082709 28800 7200 604800 86400
 Rcode: 3 (Non-Existent domain), RD: 0, QR: 1, TC: 0, AA: 1, opcode: 0
 Reply to question for qname='ptr1.test.dyndns.', qtype=PTR
 
@@ -38,6 +37,5 @@ Answer:
 
 
 == Verify RRset absence
-1	test.dyndns.	IN	SOA	3600	ns1.test.dyndns. ahu.example.dyndns. 2019082711 28800 7200 604800 86400
 Rcode: 3 (Non-Existent domain), RD: 0, QR: 1, TC: 0, AA: 1, opcode: 0
 Reply to question for qname='ptr1.test.dyndns.', qtype=PTR

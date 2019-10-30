@@ -1,6 +1,6 @@
 #!/bin/sh
 echo == Verify RRset absence
-cleandig ptr1.test.dyndns PTR
+cleandig ptr1.test.dyndns PTR | grep -v SOA
 
 echo
 echo == Add PTR
@@ -14,7 +14,7 @@ answer
 
 echo
 echo == Verify PTR presence
-cleandig ptr1.test.dyndns PTR
+cleandig ptr1.test.dyndns PTR | grep -v SOA
 
 echo
 echo == Add the PTR again
@@ -42,4 +42,4 @@ answer
 
 echo
 echo == Verify RRset absence
-cleandig ptr1.test.dyndns PTR
+cleandig ptr1.test.dyndns PTR | grep -v SOA
