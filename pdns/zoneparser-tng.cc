@@ -319,6 +319,9 @@ bool ZoneParserTNG::get(DNSResourceRecord& rr, std::string* comment)
       d_zonename = DNSName(makeString(d_line, parts[1]));
     }
     else if(pdns_iequals(command, "$GENERATE") && parts.size() > 2) {
+      if (!d_generateEnabled) {
+        throw exception("$GENERATE is not allowed in this zone");
+      }
       // $GENERATE 1-127 $ CNAME $.0
       string range=makeString(d_line, parts[1]);
       d_templatestep=1;
