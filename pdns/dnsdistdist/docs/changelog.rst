@@ -2,6 +2,22 @@ Changelog
 =========
 
 .. changelog::
+  :version: 1.4.0-rc5
+  :released: 30th of October 2019
+
+  .. change::
+    :tags: Improvements, DNS over HTTPS, Metrics
+    :pullreq: 8465
+
+    Rename the 'address' label to 'frontend' for DoH metrics
+
+  .. change::
+    :tags: Bug Fixes, DNS over HTTPS
+    :pullreq: 8471
+
+    Increment the DOHUnit ref count when it's set in the IDState
+
+.. changelog::
   :version: 1.4.0-rc4
   :released: 25th of October 2019
 
