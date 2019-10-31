@@ -2084,7 +2084,7 @@ static void patchZone(UeberBackend& B, HttpRequest* req, HttpResponse* resp) {
 
   di.backend->commitTransaction();
 
-  purgeAuthCachesExact(zonename);
+  purgeAuthCaches(zonename.toString() + "$");
 
   // now the PTRs
   storeChangedPTRs(B, new_ptrs);
