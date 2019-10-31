@@ -2082,14 +2082,20 @@ static void patchZone(UeberBackend& B, HttpRequest* req, HttpResponse* resp) {
     throw;
   }
 
+  // Rectify
   DNSSECKeeper dk(&B);
-  string api_rectify;
-  di.backend->getDomainMetadataOne(zonename, "API-RECTIFY", api_rectify);
-  if (dk.isSecuredZone(zonename) && !dk.isPresigned(zonename) && api_rectify == "1") {
-    string error_msg = "";
-    string info;
-    if (!dk.rectifyZone(zonename, error_msg, info, false))
-      throw ApiException("Failed to rectify '" + zonename.toString() + "' " + error_msg);
+  if (!dk.isPresigned(zonename)) {
+    string api_rectify;
+    if (!di.backend->getDomainMetadataOne(zonename, "API-RECTIFY", api_rectify) && ::arg().mustDo("default-api-rectify")) {
+      api_rectify = "1";
+    }
+    if (api_rectify == "1") {
+      string info;
+      string error_msg;
+      if (!dk.rectifyZone(zonename, error_msg, info, false)) {
+        throw ApiException("Failed to rectify '" + zonename.toString() + "' " + error_msg);
+      }
+    }
   }
 
   di.backend->commitTransaction();
