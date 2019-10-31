@@ -34,6 +34,7 @@ bool updateTrustAnchorsFromFile(const std::string &fname, map<DNSName, dsmap_t> 
   map<DNSName,dsmap_t> newDSAnchors;
   try {
     auto zp = ZoneParserTNG(fname);
+    zp.disableGenerate();
     DNSResourceRecord rr;
     DNSRecord dr;
     while(zp.get(rr)) {
