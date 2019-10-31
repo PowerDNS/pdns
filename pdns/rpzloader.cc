@@ -9,7 +9,7 @@
 #include "zoneparser-tng.hh"
 #include "threadname.hh"
 
-static Netmask makeNetmaskFromRPZ(const DNSName& name)
+Netmask makeNetmaskFromRPZ(const DNSName& name)
 {
   auto parts = name.getRawLabels();
   /*
@@ -46,14 +46,14 @@ static Netmask makeNetmaskFromRPZ(const DNSName& name)
 
   string v6;
 
+  if (parts[parts.size()-1] == "") {
+    v6 += ":";
+  }
   for (uint8_t i = parts.size()-1 ; i > 0; i--) {
     v6 += parts[i];
-    if (parts[i] == "" && i == 1 && i == parts.size()-1)
-        v6+= "::";
-    if (parts[i] == "" && i != parts.size()-1)
-        v6+= ":";
-    if (parts[i] != "" && i != 1)
+    if (i > 1 || (i == 1 && parts[i] == "")) {
       v6 += ":";
+    }
   }
   v6 += "/" + parts[0];
 
