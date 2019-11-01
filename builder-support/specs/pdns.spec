@@ -166,7 +166,9 @@ Summary: Geo backend for %{name}
 Group: System Environment/Daemons
 Requires: %{name}%{?_isa} = %{version}-%{release}
 BuildRequires: yaml-cpp-devel
+%if 0%{?rhel} <= 7
 BuildRequires: geoip-devel
+%endif
 BuildRequires: libmaxminddb-devel
 %global backends %{backends} geoip
 
