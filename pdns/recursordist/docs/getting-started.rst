@@ -15,7 +15,7 @@ On Debian, Ubuntu, Linux Mint and related distributions, running ``apt-get insta
 
 Enterprise Linux
 ^^^^^^^^^^^^^^^^
-On RedHat, CentOS and related distributions, ensure that `EPEL <https://fedoraproject.org/wiki/EPEL>`_ is available.
+On Red Hat, CentOS and related distributions, ensure that `EPEL <https://fedoraproject.org/wiki/EPEL>`_ is available.
 To install the PowerDNS Recursor, run ``yum install pdns-recursor`` as root.
 
 FreeBSD

@@ -77,7 +77,7 @@ Sample Linux command lines would be::
     ip6tables -I OUTPUT -p udp --dport 53 -j ACCEPT
     ip6tables -I OUTPUT -p udp --sport 53 -j ACCEPT
 
-When using FirewallD (Centos 7+ / RedHat 7+ / Fedora 21+), connection tracking can be disabled via direct rules.
+When using FirewallD (Centos 7+ / Red Hat 7+ / Fedora 21+), connection tracking can be disabled via direct rules.
 The settings can be made permanent by using the ``--permanent`` flag::
 
     ## IPv4
