@@ -24,6 +24,7 @@
 #include "dnsdist.hh"
 #include "dnsdist-ecs.hh"
 #include "dnsdist-lua.hh"
+#include "dnsdist-lua-ffi.hh"
 #include "dnsdist-protobuf.hh"
 #include "dnsdist-kvs.hh"
 
@@ -354,51 +355,170 @@ public:
   }
 };
 
-DNSAction::Action LuaAction::operator()(DNSQuestion* dq, std::string* ruleresult) const
+class LuaAction : public DNSAction
 {
-  std::lock_guard<std::mutex> lock(g_luamutex);
-  try {
-    auto ret = d_func(dq);
-    if (ruleresult) {
-      if (boost::optional<std::string> rule = std::get<1>(ret)) {
-        *ruleresult = *rule;
-      }
-      else {
-        // default to empty string
-        ruleresult->clear();
-      }
-    }
-    return (Action)std::get<0>(ret);
-  } catch (std::exception &e) {
-    warnlog("LuaAction failed inside lua, returning ServFail: %s", e.what());
-  } catch (...) {
-    warnlog("LuaAction failed inside lua, returning ServFail: [unknown exception]");
-  }
-  return DNSAction::Action::ServFail;
-}
+public:
+  typedef std::function<std::tuple<int, boost::optional<string> >(DNSQuestion* dq)> func_t;
+  LuaAction(const LuaAction::func_t& func) : d_func(func)
+  {}
 
-DNSResponseAction::Action LuaResponseAction::operator()(DNSResponse* dr, std::string* ruleresult) const
-{
-  std::lock_guard<std::mutex> lock(g_luamutex);
-  try {
-    auto ret = d_func(dr);
-    if(ruleresult) {
-      if (boost::optional<std::string> rule = std::get<1>(ret)) {
-        *ruleresult = *rule;
+  DNSAction::Action operator()(DNSQuestion* dq, std::string* ruleresult) const override
+  {
+    std::lock_guard<std::mutex> lock(g_luamutex);
+    try {
+      auto ret = d_func(dq);
+      if (ruleresult) {
+        if (boost::optional<std::string> rule = std::get<1>(ret)) {
+          *ruleresult = *rule;
+        }
+        else {
+          // default to empty string
+          ruleresult->clear();
+        }
       }
-      else {
-        // default to empty string
-        ruleresult->clear();
-      }
+      return static_cast<Action>(std::get<0>(ret));
+    } catch (const std::exception &e) {
+      warnlog("LuaAction failed inside Lua, returning ServFail: %s", e.what());
+    } catch (...) {
+      warnlog("LuaAction failed inside Lua, returning ServFail: [unknown exception]");
     }
-    return (Action)std::get<0>(ret);
-  } catch (std::exception &e) {
-    warnlog("LuaResponseAction failed inside lua, returning ServFail: %s", e.what());
-  } catch (...) {
-    warnlog("LuaResponseAction failed inside lua, returning ServFail: [unknown exception]");
+    return DNSAction::Action::ServFail;
   }
-  return DNSResponseAction::Action::ServFail;
-}
+
+  string toString() const override
+  {
+    return "Lua script";
+  }
+private:
+  func_t d_func;
+};
+
+class LuaResponseAction : public DNSResponseAction
+{
+public:
+  typedef std::function<std::tuple<int, boost::optional<string> >(DNSResponse* dr)> func_t;
+  LuaResponseAction(const LuaResponseAction::func_t& func) : d_func(func)
+  {}
+  DNSResponseAction::Action operator()(DNSResponse* dr, std::string* ruleresult) const override
+  {
+    std::lock_guard<std::mutex> lock(g_luamutex);
+    try {
+      auto ret = d_func(dr);
+      if(ruleresult) {
+        if (boost::optional<std::string> rule = std::get<1>(ret)) {
+          *ruleresult = *rule;
+        }
+        else {
+          // default to empty string
+          ruleresult->clear();
+        }
+      }
+      return static_cast<Action>(std::get<0>(ret));
+    } catch (const std::exception &e) {
+      warnlog("LuaResponseAction failed inside Lua, returning ServFail: %s", e.what());
+    } catch (...) {
+      warnlog("LuaResponseAction failed inside Lua, returning ServFail: [unknown exception]");
+    }
+    return DNSResponseAction::Action::ServFail;
+  }
+
+  string toString() const override
+  {
+    return "Lua response script";
+  }
+private:
+  func_t d_func;
+};
+
+class LuaFFIAction: public DNSAction
+{
+public:
+  typedef std::function<int(dnsdist_ffi_dnsquestion_t* dq)> func_t;
+
+  LuaFFIAction(const LuaFFIAction::func_t& func): d_func(func)
+  {
+  }
+
+  DNSAction::Action operator()(DNSQuestion* dq, std::string* ruleresult) const override
+  {
+    dnsdist_ffi_dnsquestion_t dqffi(dq);
+    try {
+      std::lock_guard<std::mutex> lock(g_luamutex);
+
+      auto ret = d_func(&dqffi);
+      if (ruleresult) {
+        if (dqffi.result) {
+          *ruleresult = *dqffi.result;
+        }
+        else {
+          // default to empty string
+          ruleresult->clear();
+        }
+      }
+      return static_cast<DNSAction::Action>(ret);
+    } catch (const std::exception &e) {
+      warnlog("LuaFFIAction failed inside Lua, returning ServFail: %s", e.what());
+    } catch (...) {
+      warnlog("LuaFFIAction failed inside Lua, returning ServFail: [unknown exception]");
+    }
+    return DNSAction::Action::ServFail;
+  }
+
+  string toString() const override
+  {
+    return "Lua FFI script";
+  }
+private:
+  func_t d_func;
+};
+
+
+class LuaFFIResponseAction: public DNSResponseAction
+{
+public:
+  typedef std::function<int(dnsdist_ffi_dnsquestion_t* dq)> func_t;
+
+  LuaFFIResponseAction(const LuaFFIResponseAction::func_t& func): d_func(func)
+  {
+  }
+
+  DNSResponseAction::Action operator()(DNSResponse* dr, std::string* ruleresult) const override
+  {
+    DNSQuestion* dq = dynamic_cast<DNSQuestion*>(dr);
+    if (dq == nullptr) {
+      return DNSResponseAction::Action::ServFail;
+    }
+
+    dnsdist_ffi_dnsquestion_t dqffi(dq);
+    try {
+      std::lock_guard<std::mutex> lock(g_luamutex);
+
+      auto ret = d_func(&dqffi);
+      if (ruleresult) {
+        if (dqffi.result) {
+          *ruleresult = *dqffi.result;
+        }
+        else {
+          // default to empty string
+          ruleresult->clear();
+        }
+      }
+      return static_cast<DNSResponseAction::Action>(ret);
+    } catch (const std::exception &e) {
+      warnlog("LuaFFIResponseAction failed inside Lua, returning ServFail: %s", e.what());
+    } catch (...) {
+      warnlog("LuaFFIResponseAction failed inside Lua, returning ServFail: [unknown exception]");
+    }
+    return DNSResponseAction::Action::ServFail;
+  }
+
+  string toString() const override
+  {
+    return "Lua FFI script";
+  }
+private:
+  func_t d_func;
+};
 
 DNSAction::Action SpoofAction::operator()(DNSQuestion* dq, std::string* ruleresult) const
 {
@@ -1423,6 +1543,11 @@ void setupLuaActions()
       return std::shared_ptr<DNSAction>(new LuaAction(func));
     });
 
+  g_lua.writeFunction("LuaFFIAction", [](LuaFFIAction::func_t func) {
+      setLuaSideEffect();
+      return std::shared_ptr<DNSAction>(new LuaFFIAction(func));
+    });
+
   g_lua.writeFunction("NoRecurseAction", []() {
       return std::shared_ptr<DNSAction>(new NoRecurseAction);
     });
@@ -1545,6 +1670,11 @@ void setupLuaActions()
   g_lua.writeFunction("LuaResponseAction", [](LuaResponseAction::func_t func) {
       setLuaSideEffect();
       return std::shared_ptr<DNSResponseAction>(new LuaResponseAction(func));
+    });
+
+  g_lua.writeFunction("LuaFFIResponseAction", [](LuaFFIResponseAction::func_t func) {
+      setLuaSideEffect();
+      return std::shared_ptr<DNSResponseAction>(new LuaFFIResponseAction(func));
     });
 
   g_lua.writeFunction("RemoteLogAction", [](std::shared_ptr<RemoteLoggerInterface> logger, boost::optional<std::function<void(DNSQuestion*, DNSDistProtoBufMessage*)> > alterFunc, boost::optional<std::unordered_map<std::string, std::string>> vars) {

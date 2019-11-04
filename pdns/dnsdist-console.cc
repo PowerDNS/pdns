@@ -424,6 +424,8 @@ const std::vector<ConsoleKeyword> g_consoleKeywords{
   { "LogAction", true, "[filename], [binary], [append], [buffered]", "Log a line for each query, to the specified file if any, to the console (require verbose) otherwise. When logging to a file, the `binary` optional parameter specifies whether we log in binary form (default) or in textual form, the `append` optional parameter specifies whether we open the file for appending or truncate each time (default), and the `buffered` optional parameter specifies whether writes to the file are buffered (default) or not." },
   { "LogResponseAction", true, "[filename], [append], [buffered]", "Log a line for each response, to the specified file if any, to the console (require verbose) otherwise. The `append` optional parameter specifies whether we open the file for appending or truncate each time (default), and the `buffered` optional parameter specifies whether writes to the file are buffered (default) or not." },
   { "LuaAction", true, "function", "Invoke a Lua function that accepts a DNSQuestion" },
+  { "LuaFFIAction", true, "function", "Invoke a Lua FFI function that accepts a DNSQuestion" },
+  { "LuaFFIResponseAction", true, "function", "Invoke a Lua FFI function that accepts a DNSResponse" },
   { "LuaResponseAction", true, "function", "Invoke a Lua function that accepts a DNSResponse" },
   { "MacAddrAction", true, "option", "Add the source MAC address to the query as EDNS0 option option. This action is currently only supported on Linux. Subsequent rules are processed after this action" },
   { "makeIPCipherKey", true, "password", "generates a 16-byte key that can be used to pseudonymize IP addresses with IP cipher" },

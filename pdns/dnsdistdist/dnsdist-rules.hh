@@ -25,6 +25,8 @@
 #include "dnsdist.hh"
 #include "dnsdist-ecs.hh"
 #include "dnsdist-kvs.hh"
+#include "dnsdist-lua-ffi.hh"
+#include "dolog.hh"
 #include "dnsparser.hh"
 
 class MaxQPSIPRule : public DNSRule
@@ -1123,4 +1125,33 @@ public:
 private:
   std::shared_ptr<KeyValueStore> d_kvs;
   std::shared_ptr<KeyValueLookupKey> d_key;
+};
+
+class LuaFFIRule : public DNSRule
+{
+public:
+  typedef std::function<bool(dnsdist_ffi_dnsquestion_t* dq)> func_t;
+  LuaFFIRule(const func_t& func): d_func(func)
+  {}
+
+  bool matches(const DNSQuestion* dq) const override
+  {
+    dnsdist_ffi_dnsquestion_t dqffi(const_cast<DNSQuestion*>(dq));
+    try {
+      std::lock_guard<std::mutex> lock(g_luamutex);
+      return d_func(&dqffi);
+    } catch (const std::exception &e) {
+      warnlog("LuaRule failed inside Lua: %s", e.what());
+    } catch (...) {
+      warnlog("LuaRule failed inside Lua: [unknown exception]");
+    }
+    return false;
+  }
+
+  string toString() const override
+  {
+    return "Lua script";
+  }
+private:
+  func_t d_func;
 };
