@@ -285,7 +285,9 @@ public:
     time_t modeSetAt;
   };
 
-    //! This represents a number of decaying Ewmas, used to store performance per nameserver-name.
+  enum class HardenNXD { No, DNSSEC, Yes };
+  
+  //! This represents a number of decaying Ewmas, used to store performance per nameserver-name.
   /** Modelled to work mostly like the underlying DecayingEwma. After you've called get,
       d_best is filled out with the best address for this collection */
   struct DecayingEwmaCollection
@@ -752,7 +754,7 @@ public:
   static bool s_rootNXTrust;
   static bool s_nopacketcache;
   static bool s_qnameminimization;
-  static bool s_hardenNXD;
+  static HardenNXD s_hardenNXD;
 
   std::unordered_map<std::string,bool> d_discardedPolicies;
   DNSFilterEngine::Policy d_appliedPolicy;

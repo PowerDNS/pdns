@@ -88,7 +88,7 @@ bool SyncRes::s_nopacketcache;
 bool SyncRes::s_rootNXTrust;
 bool SyncRes::s_noEDNS;
 bool SyncRes::s_qnameminimization;
-bool SyncRes::s_hardenNXD;
+SyncRes::HardenNXD SyncRes::s_hardenNXD;
 
 #define LOG(x) if(d_lm == Log) { g_log <<Logger::Warning << x; } else if(d_lm == Store) { d_trace << x; }
 
@@ -1414,19 +1414,27 @@ bool SyncRes::doCacheCheck(const DNSName &qname, const DNSName& authname, bool w
         LOG(prefix<<qname<<": Entire name '"<<qname<<" is negatively cached via '"<<ne->d_auth<<"' for another "<<sttl<<" seconds"<<endl);
       }
     }
-  } else if (s_hardenNXD && !qname.isRoot() && !wasForwardedOrAuthZone) {
+  } else if (s_hardenNXD != HardenNXD::No && !qname.isRoot() && !wasForwardedOrAuthZone) {
     auto labels = qname.getRawLabels();
     DNSName negCacheName(g_rootdnsname);
     negCacheName.prependRawLabel(labels.back());
     labels.pop_back();
     while(!labels.empty()) {
       if (t_sstorage.negcache.get(negCacheName, QType(0), d_now, &ne, true)) {
-        res = RCode::NXDomain;
-        sttl = ne->d_ttd - d_now.tv_sec;
-        giveNegative = true;
-        cachedState = ne->d_validationState;
-        LOG(prefix<<qname<<": Name '"<<negCacheName<<"' and below, is negatively cached via '"<<ne->d_auth<<"' for another "<<sttl<<" seconds"<<endl);
-        break;
+        if (ne->d_validationState == Indeterminate && validationEnabled()) {
+          // LOG(prefix << negCacheName <<  " negatively cached and Indeterminate, trying to validate NXDOMAIN" << endl);
+          // ...
+          // And get the updated ne struct
+          //t_sstorage.negcache.get(negCacheName, QType(0), d_now, &ne, true);
+        }
+        if (s_hardenNXD == HardenNXD::Yes || ne->d_validationState == Secure) {
+          res = RCode::NXDomain;
+          sttl = ne->d_ttd - d_now.tv_sec;
+          giveNegative = true;
+          cachedState = ne->d_validationState;
+          LOG(prefix<<qname<<": Name '"<<negCacheName<<"' and below, is negatively cached via '"<<ne->d_auth<<"' for another "<<sttl<<" seconds"<<endl);
+          break;
+        }
       }
       negCacheName.prependRawLabel(labels.back());
       labels.pop_back();

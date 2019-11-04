@@ -418,6 +418,7 @@ BOOST_AUTO_TEST_CASE(test_root_nx_dont_trust) {
 BOOST_AUTO_TEST_CASE(test_rfc8020_nothing_underneath) {
   std::unique_ptr<SyncRes> sr;
   initSR(sr);
+  SyncRes::s_hardenNXD = SyncRes::HardenNXD::Yes;
 
   primeHints();
 
@@ -448,71 +449,72 @@ BOOST_AUTO_TEST_CASE(test_rfc8020_nothing_underneath) {
   vector<DNSRecord> ret;
   int res = sr->beginResolve(target1, QType(QType::A), QClass::IN, ret);
   BOOST_CHECK_EQUAL(res, RCode::NXDomain);
-  BOOST_CHECK_EQUAL(ret.size(), 1);
-  BOOST_CHECK_EQUAL(queriesCount, 2);
-  BOOST_CHECK_EQUAL(SyncRes::getNegCacheSize(), 1);
+  BOOST_CHECK_EQUAL(ret.size(), 1U);
+  BOOST_CHECK_EQUAL(queriesCount, 2U);
+  BOOST_CHECK_EQUAL(SyncRes::getNegCacheSize(), 1U);
 
   ret.clear();
   res = sr->beginResolve(target2, QType(QType::A), QClass::IN, ret);
   BOOST_CHECK_EQUAL(res, RCode::NXDomain);
-  BOOST_CHECK_EQUAL(ret.size(), 1);
-  BOOST_CHECK_EQUAL(queriesCount, 2);
-  BOOST_CHECK_EQUAL(SyncRes::getNegCacheSize(), 1);
+  BOOST_CHECK_EQUAL(ret.size(), 1U);
+  BOOST_CHECK_EQUAL(queriesCount, 2U);
+  BOOST_CHECK_EQUAL(SyncRes::getNegCacheSize(), 1U);
 
   ret.clear();
   res = sr->beginResolve(target3, QType(QType::A), QClass::IN, ret);
   BOOST_CHECK_EQUAL(res, RCode::NXDomain);
-  BOOST_CHECK_EQUAL(ret.size(), 1);
-  BOOST_CHECK_EQUAL(queriesCount, 2);
-  BOOST_CHECK_EQUAL(SyncRes::getNegCacheSize(), 1);
+  BOOST_CHECK_EQUAL(ret.size(), 1U);
+  BOOST_CHECK_EQUAL(queriesCount, 2U);
+  BOOST_CHECK_EQUAL(SyncRes::getNegCacheSize(), 1U);
 
   ret.clear();
   res = sr->beginResolve(target4, QType(QType::A), QClass::IN, ret);
   BOOST_CHECK_EQUAL(res, RCode::NXDomain);
-  BOOST_CHECK_EQUAL(ret.size(), 1);
-  BOOST_CHECK_EQUAL(queriesCount, 2);
-  BOOST_CHECK_EQUAL(SyncRes::getNegCacheSize(), 1);
+  BOOST_CHECK_EQUAL(ret.size(), 1U);
+  BOOST_CHECK_EQUAL(queriesCount, 2U);
+  BOOST_CHECK_EQUAL(SyncRes::getNegCacheSize(), 1U);
 
   // Now test without RFC 8020 to see the cache and query count grow
-  SyncRes::s_hardenNXD = false;
+  SyncRes::s_hardenNXD = SyncRes::HardenNXD::No;
 
   // Already cached
   ret.clear();
   res = sr->beginResolve(target1, QType(QType::A), QClass::IN, ret);
   BOOST_CHECK_EQUAL(res, RCode::NXDomain);
-  BOOST_CHECK_EQUAL(ret.size(), 1);
-  BOOST_CHECK_EQUAL(queriesCount, 2);
-  BOOST_CHECK_EQUAL(SyncRes::getNegCacheSize(), 1);
+  BOOST_CHECK_EQUAL(ret.size(), 1U);
+  BOOST_CHECK_EQUAL(queriesCount, 2U);
+  BOOST_CHECK_EQUAL(SyncRes::getNegCacheSize(), 1U);
 
   // New query
   ret.clear();
   res = sr->beginResolve(target2, QType(QType::A), QClass::IN, ret);
   BOOST_CHECK_EQUAL(res, RCode::NXDomain);
-  BOOST_CHECK_EQUAL(ret.size(), 1);
-  BOOST_CHECK_EQUAL(queriesCount, 3);
-  BOOST_CHECK_EQUAL(SyncRes::getNegCacheSize(), 2);
+  BOOST_CHECK_EQUAL(ret.size(), 1U);
+  BOOST_CHECK_EQUAL(queriesCount, 3U);
+  BOOST_CHECK_EQUAL(SyncRes::getNegCacheSize(), 2U);
 
   ret.clear();
   res = sr->beginResolve(target3, QType(QType::A), QClass::IN, ret);
   BOOST_CHECK_EQUAL(res, RCode::NXDomain);
-  BOOST_CHECK_EQUAL(ret.size(), 1);
-  BOOST_CHECK_EQUAL(queriesCount, 4);
-  BOOST_CHECK_EQUAL(SyncRes::getNegCacheSize(), 3);
+  BOOST_CHECK_EQUAL(ret.size(), 1U);
+  BOOST_CHECK_EQUAL(queriesCount, 4U);
+  BOOST_CHECK_EQUAL(SyncRes::getNegCacheSize(), 3U);
 
   ret.clear();
   res = sr->beginResolve(target4, QType(QType::A), QClass::IN, ret);
   BOOST_CHECK_EQUAL(res, RCode::NXDomain);
-  BOOST_CHECK_EQUAL(ret.size(), 1);
-  BOOST_CHECK_EQUAL(queriesCount, 5);
-  BOOST_CHECK_EQUAL(SyncRes::getNegCacheSize(), 4);
+  BOOST_CHECK_EQUAL(ret.size(), 1U);
+  BOOST_CHECK_EQUAL(queriesCount, 5U);
+  BOOST_CHECK_EQUAL(SyncRes::getNegCacheSize(), 4U);
 
   // reset
-  SyncRes::s_hardenNXD = true;
+  SyncRes::s_hardenNXD = SyncRes::HardenNXD::DNSSEC;
 }
 
 BOOST_AUTO_TEST_CASE(test_rfc8020_nodata) {
   std::unique_ptr<SyncRes> sr;
   initSR(sr);
+  SyncRes::s_hardenNXD = SyncRes::HardenNXD::Yes;
 
   primeHints();
 
@@ -556,35 +558,36 @@ BOOST_AUTO_TEST_CASE(test_rfc8020_nodata) {
   vector<DNSRecord> ret;
   int res = sr->beginResolve(target1, QType(QType::TXT), QClass::IN, ret);
   BOOST_CHECK_EQUAL(res, RCode::NoError);
-  BOOST_CHECK_EQUAL(ret.size(), 1);
-  BOOST_CHECK_EQUAL(queriesCount, 2);
-  BOOST_CHECK_EQUAL(SyncRes::getNegCacheSize(), 1);
+  BOOST_CHECK_EQUAL(ret.size(), 1U);
+  BOOST_CHECK_EQUAL(queriesCount, 2U);
+  BOOST_CHECK_EQUAL(SyncRes::getNegCacheSize(), 1U);
 
   ret.clear();
   res = sr->beginResolve(target1, QType(QType::A), QClass::IN, ret);
   BOOST_CHECK_EQUAL(res, RCode::NoError);
-  BOOST_CHECK_EQUAL(ret.size(), 1);
-  BOOST_CHECK_EQUAL(queriesCount, 3);
-  BOOST_CHECK_EQUAL(SyncRes::getNegCacheSize(), 1);
+  BOOST_CHECK_EQUAL(ret.size(), 1U);
+  BOOST_CHECK_EQUAL(queriesCount, 3U);
+  BOOST_CHECK_EQUAL(SyncRes::getNegCacheSize(), 1U);
 
   ret.clear();
   res = sr->beginResolve(target2, QType(QType::A), QClass::IN, ret);
   BOOST_CHECK_EQUAL(res, RCode::NXDomain);
-  BOOST_CHECK_EQUAL(ret.size(), 1);
-  BOOST_CHECK_EQUAL(queriesCount, 4);
-  BOOST_CHECK_EQUAL(SyncRes::getNegCacheSize(), 2);
+  BOOST_CHECK_EQUAL(ret.size(), 1U);
+  BOOST_CHECK_EQUAL(queriesCount, 4U);
+  BOOST_CHECK_EQUAL(SyncRes::getNegCacheSize(), 2U);
 
   ret.clear();
   res = sr->beginResolve(target3, QType(QType::A), QClass::IN, ret);
   BOOST_CHECK_EQUAL(res, RCode::NXDomain);
-  BOOST_CHECK_EQUAL(ret.size(), 1);
-  BOOST_CHECK_EQUAL(queriesCount, 4);
-  BOOST_CHECK_EQUAL(SyncRes::getNegCacheSize(), 2);
+  BOOST_CHECK_EQUAL(ret.size(), 1U);
+  BOOST_CHECK_EQUAL(queriesCount, 4U);
+  BOOST_CHECK_EQUAL(SyncRes::getNegCacheSize(), 2U);
 }
 
 BOOST_AUTO_TEST_CASE(test_rfc8020_nodata_bis) {
   std::unique_ptr<SyncRes> sr;
   initSR(sr);
+  SyncRes::s_hardenNXD = SyncRes::HardenNXD::Yes;
 
   primeHints();
 
@@ -628,30 +631,30 @@ BOOST_AUTO_TEST_CASE(test_rfc8020_nodata_bis) {
   vector<DNSRecord> ret;
   int res = sr->beginResolve(target1, QType(QType::TXT), QClass::IN, ret);
   BOOST_CHECK_EQUAL(res, RCode::NoError);
-  BOOST_CHECK_EQUAL(ret.size(), 1);
-  BOOST_CHECK_EQUAL(queriesCount, 2);
-  BOOST_CHECK_EQUAL(SyncRes::getNegCacheSize(), 1);
+  BOOST_CHECK_EQUAL(ret.size(), 1U);
+  BOOST_CHECK_EQUAL(queriesCount, 2U);
+  BOOST_CHECK_EQUAL(SyncRes::getNegCacheSize(), 1U);
 
   ret.clear();
   res = sr->beginResolve(target1, QType(QType::A), QClass::IN, ret);
   BOOST_CHECK_EQUAL(res, RCode::NoError);
-  BOOST_CHECK_EQUAL(ret.size(), 1);
-  BOOST_CHECK_EQUAL(queriesCount, 3);
-  BOOST_CHECK_EQUAL(SyncRes::getNegCacheSize(), 1);
+  BOOST_CHECK_EQUAL(ret.size(), 1U);
+  BOOST_CHECK_EQUAL(queriesCount, 3U);
+  BOOST_CHECK_EQUAL(SyncRes::getNegCacheSize(), 1U);
 
   ret.clear();
   res = sr->beginResolve(target2, QType(QType::TXT), QClass::IN, ret);
   BOOST_CHECK_EQUAL(res, RCode::NXDomain);
-  BOOST_CHECK_EQUAL(ret.size(), 1);
-  BOOST_CHECK_EQUAL(queriesCount, 4);
-  BOOST_CHECK_EQUAL(SyncRes::getNegCacheSize(), 2);
+  BOOST_CHECK_EQUAL(ret.size(), 1U);
+  BOOST_CHECK_EQUAL(queriesCount, 4U);
+  BOOST_CHECK_EQUAL(SyncRes::getNegCacheSize(), 2U);
 
   ret.clear();
   res = sr->beginResolve(target3, QType(QType::TXT), QClass::IN, ret);
   BOOST_CHECK_EQUAL(res, RCode::NXDomain);
-  BOOST_CHECK_EQUAL(ret.size(), 1);
-  BOOST_CHECK_EQUAL(queriesCount, 4);
-  BOOST_CHECK_EQUAL(SyncRes::getNegCacheSize(), 2);
+  BOOST_CHECK_EQUAL(ret.size(), 1U);
+  BOOST_CHECK_EQUAL(queriesCount, 4U);
+  BOOST_CHECK_EQUAL(SyncRes::getNegCacheSize(), 2U);
 }
 
 BOOST_AUTO_TEST_CASE(test_skip_negcache_for_variable_response) {

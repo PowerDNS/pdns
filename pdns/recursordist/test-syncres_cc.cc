@@ -129,7 +129,7 @@ void initSR(bool debug)
   SyncRes::s_ecsipv6cachelimit = 56;
   SyncRes::s_ecscachelimitttl = 0;
   SyncRes::s_rootNXTrust = true;
-  SyncRes::s_hardenNXD = true;
+  SyncRes::s_hardenNXD = SyncRes::HardenNXD::DNSSEC;
   SyncRes::s_minimumTTL = 0;
   SyncRes::s_minimumECSTTL = 0;
   SyncRes::s_serverID = "PowerDNS Unit Tests Server ID";
