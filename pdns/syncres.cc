@@ -1427,7 +1427,7 @@ bool SyncRes::doCacheCheck(const DNSName &qname, const DNSName& authname, bool w
           // And get the updated ne struct
           //t_sstorage.negcache.get(negCacheName, QType(0), d_now, &ne, true);
         }
-        if (s_hardenNXD == HardenNXD::Yes || ne->d_validationState == Secure) {
+        if ((s_hardenNXD == HardenNXD::Yes && ne->d_validationState != Bogus) || ne->d_validationState == Secure) {
           res = RCode::NXDomain;
           sttl = ne->d_ttd - d_now.tv_sec;
           giveNegative = true;
