@@ -66,15 +66,16 @@ class Zones(ApiTestCase):
             if dnssec:
                 required_fields = required_fields = ['dnssec', 'edited_serial']
             self.assertNotEquals(example_com['serial'], 0)
+            if not dnssec:
+                self.assertNotIn('dnssec', example_com)
         elif is_recursor():
             required_fields = required_fields + ['recursion_desired', 'servers']
         for field in required_fields:
             self.assertIn(field, example_com)
-        if not dnssec:
-            self.assertNotIn('dnssec', example_com)
 
     def test_list_zones_with_dnssec(self):
-        self._test_list_zones(True)
+        if is_auth():
+            self._test_list_zones(True)
 
     def test_list_zones_without_dnssec(self):
         self._test_list_zones(False)
