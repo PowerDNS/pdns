@@ -927,6 +927,21 @@ will generally suffice for most installations.
 Maximum number of empty non-terminals to add to a zone. This is a
 protection measure to avoid database explosion due to long names.
 
+.. _setting-max-generate-steps:
+
+``max-generate-steps``
+----------------------
+
+.. versionadded:: 4.3.0
+
+-  Integer
+-  Default: 0
+
+Maximum number of steps for a '$GENERATE' directive when parsing a
+zone file. This is a protection measure to prevent consuming a lot of
+CPU and memory when untrusted zones are loaded. Default to 0 which
+means unlimited.
+
 .. _setting-max-nsec3-iterations:
 
 ``max-nsec3-iterations``

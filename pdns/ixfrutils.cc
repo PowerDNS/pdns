@@ -163,6 +163,7 @@ void loadZoneFromDisk(records_t& records, const string& fname, const DNSName& zo
 {
   ZoneParserTNG zpt(fname, zone);
 
+  zpt.disableGenerate();
   DNSResourceRecord rr;
   bool seenSOA=false;
   while(zpt.get(rr)) {
@@ -189,6 +190,7 @@ void loadZoneFromDisk(records_t& records, const string& fname, const DNSName& zo
 void loadSOAFromDisk(const DNSName& zone, const string& fname, shared_ptr<SOARecordContent>& soa, uint32_t& soaTTL)
 {
   ZoneParserTNG zpt(fname, zone);
+  zpt.disableGenerate();
   DNSResourceRecord rr;
 
   while(zpt.get(rr)) {

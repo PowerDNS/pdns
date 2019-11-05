@@ -248,6 +248,7 @@ int main( int argc, char* argv[] )
                 args.set( "layout", "How to arrange entries in the directory (simple or as tree)" ) = "simple";
                 args.set( "domainid", "Domain ID of the first domain found (incremented afterwards)" ) = "1";
                 args.set( "metadata-dn", "DN under which to store the domain metadata" ) = "";
+                args.set( "max-generate-steps", "Maximum number of $GENERATE steps when loading a zone from a file")="0";
 
                 args.parse( argc, argv );
 
@@ -316,6 +317,7 @@ int main( int argc, char* argv[] )
                                                 cerr << "Parsing file: " << i.filename << ", domain: " << i.name << endl;
                                                 g_zonename = i.name;
                                                 ZoneParserTNG zpt(i.filename, i.name, BP.getDirectory());
+                                                zpt.setMaxGenerateSteps(args.asNum("max-generate-steps"));
                                                 DNSResourceRecord rr;
                                                 while(zpt.get(rr)) {
                                                         callback(g_domainid, rr.qname, rr.qtype.getName(), encode_non_ascii(rr.content), rr.ttl);
@@ -344,6 +346,7 @@ int main( int argc, char* argv[] )
 
                         g_zonename = DNSName(args["zone-name"]);
                         ZoneParserTNG zpt(args["zone-file"], g_zonename);
+                        zpt.setMaxGenerateSteps(args.asNum("max-generate-steps"));
                         DNSResourceRecord rr;
                         while(zpt.get(rr)) {
                                 callback(g_domainid, rr.qname, rr.qtype.getName(), encode_non_ascii(rr.content), rr.ttl);

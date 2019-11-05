@@ -872,6 +872,20 @@ Maximum number of incoming requests handled concurrently per tcp
 connection. This number must be larger than 0 and smaller than 65536
 and also smaller than `max-mthreads`.
 
+.. _setting-max-generate-steps:
+
+``max-generate-steps``
+----------------------
+
+.. versionadded:: 4.3.0
+
+-  Integer
+-  Default: 0
+
+Maximum number of steps for a '$GENERATE' directive when parsing a
+zone file. This is a protection measure to prevent consuming a lot of
+CPU and memory when untrusted zones are loaded. Default to 0 which
+means unlimited.
 
 .. _setting-max-mthreads:
 

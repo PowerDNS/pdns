@@ -41,6 +41,14 @@ public:
   DNSName getZoneName();
   string getLineOfFile(); // for error reporting purposes
   pair<string,int> getLineNumAndFile(); // idem
+  void disableGenerate()
+  {
+    d_generateEnabled = false;
+  }
+  void setMaxGenerateSteps(size_t max)
+  {
+    d_maxGenerateSteps = max;
+  }
 private:
   bool getLine();
   bool getTemplateLine();
@@ -63,10 +71,12 @@ private:
   vector<string>::iterator d_zonedataline;
   std::stack<filestate> d_filestates;
   parts_t d_templateparts;
+  size_t d_maxGenerateSteps{0};
   int d_defaultttl;
   uint32_t d_templatecounter, d_templatestop, d_templatestep;
   bool d_havedollarttl;
   bool d_fromfile;
+  bool d_generateEnabled{true};
 };
 
 #endif

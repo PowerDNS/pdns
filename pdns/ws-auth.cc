@@ -1304,6 +1304,7 @@ static void gatherRecordsFromZone(const std::string& zonestring, vector<DNSResou
   stringtok(zonedata, zonestring, "\r\n");
 
   ZoneParserTNG zpt(zonedata, zonename);
+  zpt.setMaxGenerateSteps(::arg().asNum("max-generate-steps"));
 
   bool seenSOA=false;
 
