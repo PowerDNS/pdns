@@ -1865,7 +1865,7 @@ try
 #ifdef SO_BINDTODEVICE
       int res = setsockopt(sock.getHandle(), SOL_SOCKET, SO_BINDTODEVICE, ds->sourceItfName.c_str(), ds->sourceItfName.length());
       if (res != 0 && g_verboseHealthChecks) {
-        infolog("Error settting SO_BINDTODEVICE on the health check socket for backend '%s': %s", ds->getNameWithAddr(), stringerror());
+        infolog("Error setting SO_BINDTODEVICE on the health check socket for backend '%s': %s", ds->getNameWithAddr(), stringerror());
       }
 #endif
     }
