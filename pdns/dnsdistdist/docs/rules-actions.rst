@@ -173,7 +173,7 @@ Rule Generators
 
   ::
 
-    function luarule(dq)
+    function luaaction(dq)
       if(dq.qtype==DNSQType.NAPTR)
       then
         return DNSAction.Pool, "abuse" -- send to abuse pool
@@ -183,7 +183,7 @@ Rule Generators
       end
     end
 
-    addLuaAction(AllRule(), luarule)
+    addLuaAction(AllRule(), luaaction)
 
 .. function:: addLuaResponseAction(DNSrule, function [, options])
 
@@ -615,6 +615,16 @@ These ``DNSRule``\ s be one of the following items:
 
   :param KeyValueStore kvs: The key value store to query
   :param KeyValueLookupKey lookupKey: The key to use for the lookup
+
+.. function:: LuaFFIRule(function)
+
+  .. versionadded:: 1.5.0
+
+  Invoke a Lua FFI function that accepts a pointer to a ``dnsdist_ffi_dnsquestion_t`` object, whose bindings are defined in ``dnsdist-lua-ffi.hh``.
+
+  The ``function`` should return true if the query matches, or false otherwise. If the Lua code fails, false is returned.
+
+  :param string function: the name of a Lua function
 
 .. function:: MaxQPSIPRule(qps[, v4Mask[, v6Mask[, burst[, expiration[, cleanupDelay[, scanFraction]]]]]])
 
@@ -1062,6 +1072,26 @@ The following actions exist.
   Invoke a Lua function that accepts a :class:`DNSQuestion`.
 
   The ``function`` should return a :ref:`DNSAction`. If the Lua code fails, ServFail is returned.
+
+  :param string function: the name of a Lua function
+
+.. function:: LuaFFIAction(function)
+
+  .. versionadded:: 1.5.0
+
+  Invoke a Lua FFI function that accepts a pointer to a ``dnsdist_ffi_dnsquestion_t`` object, whose bindings are defined in ``dnsdist-lua-ffi.hh``.
+
+  The ``function`` should return a :ref:`DNSAction`. If the Lua code fails, ServFail is returned.
+
+  :param string function: the name of a Lua function
+
+.. function:: LuaFFIResponseAction(function)
+
+  .. versionadded:: 1.5.0
+
+  Invoke a Lua FFI function that accepts a pointer to a ``dnsdist_ffi_dnsquestion_t`` object, whose bindings are defined in ``dnsdist-lua-ffi.hh``.
+
+  The ``function`` should return a :ref:`DNSResponseAction`. If the Lua code fails, ServFail is returned.
 
   :param string function: the name of a Lua function
 

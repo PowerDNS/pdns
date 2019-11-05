@@ -1892,3 +1892,192 @@ class TestAdvancedSetNegativeAndSOA(DNSDistTest):
             sender = getattr(self, method)
             (_, receivedResponse) = sender(query, response=None, useQueue=False)
             self.assertEquals(receivedResponse, expectedResponse)
+
+class TestAdvancedLuaFFI(DNSDistTest):
+
+    _config_template = """
+    local ffi = require("ffi")
+
+    ffi.cdef[[
+  typedef struct dnsdist_ffi_dnsquestion_t dnsdist_ffi_dnsquestion_t;
+
+  typedef struct dnsdist_ednsoption {
+    uint16_t    optionCode;
+    uint16_t    len;
+    const void* data;
+  } dnsdist_ednsoption_t;
+
+  typedef struct dnsdist_http_header {
+    const char* name;
+    const char* value;
+  } dnsdist_http_header_t;
+
+  void dnsdist_ffi_dnsquestion_get_localaddr(const dnsdist_ffi_dnsquestion_t* dq, const void** addr, size_t* addrSize) __attribute__ ((visibility ("default")));
+  void dnsdist_ffi_dnsquestion_get_remoteaddr(const dnsdist_ffi_dnsquestion_t* dq, const void** addr, size_t* addrSize) __attribute__ ((visibility ("default")));
+  void dnsdist_ffi_dnsquestion_get_qname_raw(const dnsdist_ffi_dnsquestion_t* dq, const char** qname, size_t* qnameSize) __attribute__ ((visibility ("default")));
+  uint16_t dnsdist_ffi_dnsquestion_get_qtype(const dnsdist_ffi_dnsquestion_t* dq) __attribute__ ((visibility ("default")));
+  uint16_t dnsdist_ffi_dnsquestion_get_qclass(const dnsdist_ffi_dnsquestion_t* dq) __attribute__ ((visibility ("default")));
+  int dnsdist_ffi_dnsquestion_get_rcode(const dnsdist_ffi_dnsquestion_t* dq) __attribute__ ((visibility ("default")));
+  void* dnsdist_ffi_dnsquestion_get_header(const dnsdist_ffi_dnsquestion_t* dq) __attribute__ ((visibility ("default")));
+  uint16_t dnsdist_ffi_dnsquestion_get_len(const dnsdist_ffi_dnsquestion_t* dq) __attribute__ ((visibility ("default")));
+  size_t dnsdist_ffi_dnsquestion_get_size(const dnsdist_ffi_dnsquestion_t* dq) __attribute__ ((visibility ("default")));
+  uint8_t dnsdist_ffi_dnsquestion_get_opcode(const dnsdist_ffi_dnsquestion_t* dq) __attribute__ ((visibility ("default")));
+  bool dnsdist_ffi_dnsquestion_get_tcp(const dnsdist_ffi_dnsquestion_t* dq) __attribute__ ((visibility ("default")));
+  bool dnsdist_ffi_dnsquestion_get_skip_cache(const dnsdist_ffi_dnsquestion_t* dq) __attribute__ ((visibility ("default")));
+  bool dnsdist_ffi_dnsquestion_get_use_ecs(const dnsdist_ffi_dnsquestion_t* dq) __attribute__ ((visibility ("default")));
+  bool dnsdist_ffi_dnsquestion_get_ecs_override(const dnsdist_ffi_dnsquestion_t* dq) __attribute__ ((visibility ("default")));
+  uint16_t dnsdist_ffi_dnsquestion_get_ecs_prefix_length(const dnsdist_ffi_dnsquestion_t* dq) __attribute__ ((visibility ("default")));
+  bool dnsdist_ffi_dnsquestion_is_temp_failure_ttl_set(const dnsdist_ffi_dnsquestion_t* dq) __attribute__ ((visibility ("default")));
+  uint32_t dnsdist_ffi_dnsquestion_get_temp_failure_ttl(const dnsdist_ffi_dnsquestion_t* dq) __attribute__ ((visibility ("default")));
+  bool dnsdist_ffi_dnsquestion_get_do(const dnsdist_ffi_dnsquestion_t* dq) __attribute__ ((visibility ("default")));
+  void dnsdist_ffi_dnsquestion_get_sni(const dnsdist_ffi_dnsquestion_t* dq, const char** sni, size_t* sniSize) __attribute__ ((visibility ("default")));
+  const char* dnsdist_ffi_dnsquestion_get_tag(const dnsdist_ffi_dnsquestion_t* dq, const char* label) __attribute__ ((visibility ("default")));
+  const char* dnsdist_ffi_dnsquestion_get_http_path(const dnsdist_ffi_dnsquestion_t* dq) __attribute__ ((visibility ("default")));
+  const char* dnsdist_ffi_dnsquestion_get_http_query_string(const dnsdist_ffi_dnsquestion_t* dq) __attribute__ ((visibility ("default")));
+  const char* dnsdist_ffi_dnsquestion_get_http_host(const dnsdist_ffi_dnsquestion_t* dq) __attribute__ ((visibility ("default")));
+  const char* dnsdist_ffi_dnsquestion_get_http_scheme(const dnsdist_ffi_dnsquestion_t* dq) __attribute__ ((visibility ("default")));
+
+  // returns the length of the resulting 'out' array. 'out' is not set if the length is 0
+  size_t dnsdist_ffi_dnsquestion_get_edns_options(dnsdist_ffi_dnsquestion_t* ref, const dnsdist_ednsoption_t** out) __attribute__ ((visibility ("default")));
+  size_t dnsdist_ffi_dnsquestion_get_http_headers(dnsdist_ffi_dnsquestion_t* ref, const dnsdist_http_header_t** out) __attribute__ ((visibility ("default")));
+
+  void dnsdist_ffi_dnsquestion_set_result(dnsdist_ffi_dnsquestion_t* dq, const char* str, size_t strSize) __attribute__ ((visibility ("default")));
+  void dnsdist_ffi_dnsquestion_set_rcode(dnsdist_ffi_dnsquestion_t* dq, int rcode) __attribute__ ((visibility ("default")));
+  void dnsdist_ffi_dnsquestion_set_len(dnsdist_ffi_dnsquestion_t* dq, int len) __attribute__ ((visibility ("default")));
+  void dnsdist_ffi_dnsquestion_set_skip_cache(dnsdist_ffi_dnsquestion_t* dq, bool skipCache) __attribute__ ((visibility ("default")));
+  void dnsdist_ffi_dnsquestion_set_use_ecs(dnsdist_ffi_dnsquestion_t* dq, bool useECS) __attribute__ ((visibility ("default")));
+  void dnsdist_ffi_dnsquestion_set_ecs_override(dnsdist_ffi_dnsquestion_t* dq, bool ecsOverride) __attribute__ ((visibility ("default")));
+  void dnsdist_ffi_dnsquestion_set_ecs_prefix_length(dnsdist_ffi_dnsquestion_t* dq, uint16_t ecsPrefixLength) __attribute__ ((visibility ("default")));
+  void dnsdist_ffi_dnsquestion_set_temp_failure_ttl(dnsdist_ffi_dnsquestion_t* dq, uint32_t tempFailureTTL) __attribute__ ((visibility ("default")));
+  void dnsdist_ffi_dnsquestion_set_tag(dnsdist_ffi_dnsquestion_t* dq, const char* label, const char* value) __attribute__ ((visibility ("default")));
+
+  void dnsdist_ffi_dnsquestion_set_http_response(dnsdist_ffi_dnsquestion_t* dq, uint16_t statusCode, const char* body, const char* contentType) __attribute__ ((visibility ("default")));
+  ]]
+    local expectingUDP = true
+
+    function luaffirulefunction(dq)
+      local qtype = ffi.C.dnsdist_ffi_dnsquestion_get_qtype(dq)
+      if qtype ~= DNSQType.A and qtype ~= DNSQType.SOA then
+        print('invalid qtype')
+        return false
+      end
+
+      local qclass = ffi.C.dnsdist_ffi_dnsquestion_get_qclass(dq)
+      if qclass ~= DNSClass.IN then
+        print('invalid qclass')
+        return false
+      end
+
+      local ret_ptr = ffi.new("char *[1]")
+      local ret_ptr_param = ffi.cast("const char **", ret_ptr)
+      local ret_size = ffi.new("size_t[1]")
+      local ret_size_param = ffi.cast("size_t*", ret_size)
+      ffi.C.dnsdist_ffi_dnsquestion_get_qname_raw(dq, ret_ptr_param, ret_size_param)
+      if ret_size[0] ~= 36 then
+        print('invalid length for the qname ')
+        print(ret_size[0])
+        return false
+      end
+
+      local expectedQname = string.char(6)..'luaffi'..string.char(8)..'advanced'..string.char(5)..'tests'..string.char(8)..'powerdns'..string.char(3)..'com'
+      if ffi.string(ret_ptr[0]) ~= expectedQname then
+        print('invalid qname')
+        print(ffi.string(ret_ptr[0]))
+        return false
+      end
+
+      local rcode = ffi.C.dnsdist_ffi_dnsquestion_get_rcode(dq)
+      if rcode ~= 0 then
+        print('invalid rcode')
+        return false
+      end
+
+      local opcode = ffi.C.dnsdist_ffi_dnsquestion_get_opcode(dq)
+      if qtype == DNSQType.A and opcode ~= DNSOpcode.Query then
+        print('invalid opcode')
+        return false
+      elseif qtype == DNSQType.SOA and opcode ~= DNSOpcode.Update then
+        print('invalid opcode')
+        return false
+      end
+
+      local tcp = ffi.C.dnsdist_ffi_dnsquestion_get_tcp(dq)
+      if expectingUDP == tcp then
+        print('invalid tcp')
+        return false
+      end
+      expectingUDP = expectingUDP == false
+
+      local dnssecok = ffi.C.dnsdist_ffi_dnsquestion_get_do(dq)
+      if dnssecok ~= false then
+        print('invalid DNSSEC OK')
+        return false
+      end
+
+      local len = ffi.C.dnsdist_ffi_dnsquestion_get_len(dq)
+      if len ~= 52 then
+        print('invalid length')
+        print(len)
+        return false
+      end
+
+      return true
+    end
+
+    function luaffiactionfunction(dq)
+      local qtype = ffi.C.dnsdist_ffi_dnsquestion_get_qtype(dq)
+      if qtype == DNSQType.A then
+        local str = "192.0.2.1"
+        local buf = ffi.new("char[?]", #str + 1)
+        ffi.copy(buf, str)
+        ffi.C.dnsdist_ffi_dnsquestion_set_result(dq, buf, #str)
+        return DNSAction.Spoof
+      elseif qtype == DNSQType.SOA then
+        ffi.C.dnsdist_ffi_dnsquestion_set_rcode(dq, DNSRCode.REFUSED)
+        return DNSAction.Refused
+      end
+    end
+
+    addAction(LuaFFIRule(luaffirulefunction), LuaFFIAction(luaffiactionfunction))
+    -- newServer{address="127.0.0.1:%s"}
+    """
+
+    def testAdvancedLuaFFI(self):
+        """
+        Advanced: Test the Lua FFI interface
+        """
+        name = 'luaffi.advanced.tests.powerdns.com.'
+        query = dns.message.make_query(name, 'A', 'IN')
+        # dnsdist set RA = RD for spoofed responses
+        query.flags &= ~dns.flags.RD
+
+        response = dns.message.make_response(query)
+        rrset = dns.rrset.from_text(name,
+                                    60,
+                                    dns.rdataclass.IN,
+                                    dns.rdatatype.A,
+                                    '192.0.2.1')
+        response.answer.append(rrset)
+
+        for method in ("sendUDPQuery", "sendTCPQuery"):
+            sender = getattr(self, method)
+            (_, receivedResponse) = sender(query, response=None, useQueue=False)
+            self.assertEquals(receivedResponse, response)
+
+    def testAdvancedLuaFFIUpdate(self):
+        """
+        Advanced: Test the Lua FFI interface via an update
+        """
+        name = 'luaffi.advanced.tests.powerdns.com.'
+        query = dns.message.make_query(name, 'SOA', 'IN')
+        query.set_opcode(dns.opcode.UPDATE)
+        # dnsdist set RA = RD for spoofed responses
+        query.flags &= ~dns.flags.RD
+
+        response = dns.message.make_response(query)
+        response.set_rcode(dns.rcode.REFUSED)
+
+        for method in ("sendUDPQuery", "sendTCPQuery"):
+            sender = getattr(self, method)
+            (_, receivedResponse) = sender(query, response=None, useQueue=False)
+            self.assertEquals(receivedResponse, response)

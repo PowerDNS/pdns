@@ -286,6 +286,11 @@ size_t dnsdist_ffi_dnsquestion_get_http_headers(dnsdist_ffi_dnsquestion_t* dq, c
 #endif
 }
 
+void dnsdist_ffi_dnsquestion_set_result(dnsdist_ffi_dnsquestion_t* dq, const char* str, size_t strSize)
+{
+  dq->result = std::string(str, strSize);
+}
+
 void dnsdist_ffi_dnsquestion_set_http_response(dnsdist_ffi_dnsquestion_t* dq, uint16_t statusCode, const char* body, const char* contentType)
 {
   if (dq->dq->du == nullptr) {
