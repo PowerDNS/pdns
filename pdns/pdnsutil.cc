@@ -392,12 +392,16 @@ int checkZone(DNSSECKeeper &dk, UeberBackend &B, const DNSName& zone, const vect
 
     content.str("");
     content<<rr.qname<<" "<<rr.qtype.getName()<<" "<<rr.content;
-    if (recordcontents.count(toLower(content.str()))) {
+    string contentstr = content.str();
+    if (rr.qtype.getCode() != QType::TXT) {
+      contentstr=toLower(contentstr);
+    }
+    if (recordcontents.count(contentstr)) {
       cout<<"[Error] Duplicate record found in rrset: '"<<rr.qname<<" IN "<<rr.qtype.getName()<<" "<<rr.content<<"'"<<endl;
       numerrors++;
       continue;
     } else
-      recordcontents.insert(toLower(content.str()));
+      recordcontents.insert(contentstr);
 
     content.str("");
     content<<rr.qname<<" "<<rr.qtype.getName();
