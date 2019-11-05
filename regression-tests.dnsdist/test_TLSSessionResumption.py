@@ -6,6 +6,7 @@ import shutil
 import subprocess
 import tempfile
 import time
+import unittest
 from dnsdisttests import DNSDistTest
 try:
   range = xrange
@@ -57,6 +58,7 @@ class DNSDistTLSSessionResumptionTest(DNSDistTest):
         with open(outputFile, 'wb') as fp:
             fp.write(os.urandom(numberOfTickets * 80))
 
+@unittest.skipIf('SKIP_DOH_TESTS' in os.environ, 'DNS over HTTPS tests are disabled')
 class TestNoTLSSessionResumptionDOH(DNSDistTLSSessionResumptionTest):
 
     _serverKey = 'server.key'
@@ -79,6 +81,7 @@ class TestNoTLSSessionResumptionDOH(DNSDistTLSSessionResumptionTest):
         self.assertFalse(self.checkSessionResumed('127.0.0.1', self._dohServerPort, self._serverName, self._caCert, '/tmp/no-session.out.doh', None, allowNoTicket=True))
         self.assertFalse(self.checkSessionResumed('127.0.0.1', self._dohServerPort, self._serverName, self._caCert, '/tmp/no-session.out.doh', '/tmp/no-session.out.doh', allowNoTicket=True))
 
+@unittest.skipIf('SKIP_DOH_TESTS' in os.environ, 'DNS over HTTPS tests are disabled')
 class TestTLSSessionResumptionDOH(DNSDistTLSSessionResumptionTest):
 
     _serverKey = 'server.key'

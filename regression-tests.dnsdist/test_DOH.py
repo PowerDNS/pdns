@@ -1,6 +1,8 @@
 #!/usr/bin/env python
 import base64
 import dns
+import os
+import unittest
 import clientsubnetoption
 from dnsdisttests import DNSDistTest
 
@@ -9,6 +11,7 @@ from io import BytesIO
 #from hyper import HTTP20Connection
 #from hyper.ssl_compat import SSLContext, PROTOCOL_TLSv1_2
 
+@unittest.skipIf('SKIP_DOH_TESTS' in os.environ, 'DNS over HTTPS tests are disabled')
 class DNSDistDOHTest(DNSDistTest):
 
     @classmethod
@@ -106,6 +109,19 @@ class DNSDistDOHTest(DNSDistTest):
 
         cls._response_headers = response_headers.getvalue()
         return (receivedQuery, message)
+
+    @classmethod
+    def setUpClass(cls):
+
+        # for some reason, @unittest.skipIf() is not applied to derived classes with some versions of Python
+        if 'SKIP_DOH_TESTS' in os.environ:
+            raise unittest.SkipTest('DNS over HTTPS tests are disabled')
+
+        cls.startResponders()
+        cls.startDNSDist()
+        cls.setUpSockets()
+
+        print("Launching tests..")
 
 #     @classmethod
 #     def openDOHConnection(cls, port, caFile, timeout=2.0):

@@ -1,11 +1,13 @@
 #!/usr/bin/env python
 import unittest
 import dns
+import os
 import shutil
 import socket
 import time
 from dnsdisttests import DNSDistTest
 
+@unittest.skipIf('SKIP_CDB_TESTS' in os.environ, 'CDB tests are disabled')
 class CDBTest(DNSDistTest):
 
     _cdbFileName = '/tmp/test-cdb-db'
