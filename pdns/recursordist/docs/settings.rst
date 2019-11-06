@@ -1141,7 +1141,7 @@ Number of milliseconds to wait for a remote authoritative server to respond.
 - One of ``no``, ``dnssec``, ``yes``, String
 - Default: ``dnssec``
 
-The type of :rfc:`8020` handling of cached NXDOMAIN responses.
+The type of :rfc:`8020` handling using cached NXDOMAIN responses.
 This RFC specifies that NXDOMAIN means that the DNS tree under the denied name MUST be empty.
 When an NXDOMAIN exists in the cache for a shorter name than the qname, no lookup is done and an NXDOMAIN is sent to the client.
 
@@ -1155,12 +1155,12 @@ No :rfc:`8020` processing is done.
 
 dnssec
 ~~~~~~
-:rfc:`8020` processing is only done for NXDOMAIN records that are
+:rfc:`8020` processing is only done using cached NXDOMAIN records that are
 DNSSEC validated.
 
 yes
 ~~~
-:rfc:`8020` procssing is done for any non-Bogus NXDOMAIN record
+:rfc:`8020` processing is done using any non-Bogus NXDOMAIN record
 available in the cache.
 
 .. _setting-nsec3-max-iterations:
