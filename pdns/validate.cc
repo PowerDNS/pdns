@@ -733,7 +733,7 @@ static bool checkSignatureWithKey(time_t now, const shared_ptr<RRSIGRecordConten
   return result;
 }
 
-bool validateWithKeySet(time_t now, const DNSName& name, const vector<shared_ptr<DNSRecordContent> >& records, const vector<shared_ptr<RRSIGRecordContent> >& signatures, const skeyset_t& keys, bool validateAllSigs)
+bool validateWithKeySet(time_t now, const DNSName& name, const sortedRecords_t& toSign, const vector<shared_ptr<RRSIGRecordContent> >& signatures, const skeyset_t& keys, bool validateAllSigs)
 {
   bool isValid = false;
 
@@ -742,8 +742,6 @@ bool validateWithKeySet(time_t now, const DNSName& name, const vector<shared_ptr
     if (signature->d_labels > labelCount) {
       LOG(name<<": Discarding invalid RRSIG whose label count is "<<signature->d_labels<<" while the RRset owner name has only "<<labelCount<<endl);
     }
-
-    vector<shared_ptr<DNSRecordContent> > toSign = records;
 
     auto r = getByTag(keys, signature->d_tag, signature->d_algorithm);
 
@@ -810,7 +808,7 @@ cspmap_t harvestCSPFromRecs(const vector<DNSRecord>& recs)
       }
     }
     else {
-      cspmap[{rec.d_name, rec.d_type}].records.push_back(rec.d_content);
+      cspmap[{rec.d_name, rec.d_type}].records.insert(rec.d_content);
     }
   }
   return cspmap;
@@ -840,7 +838,7 @@ bool haveNegativeTrustAnchor(const map<DNSName,std::string>& negAnchors, const D
   return true;
 }
 
-void validateDNSKeysAgainstDS(time_t now, const DNSName& zone, const dsmap_t& dsmap, const skeyset_t& tkeys, vector<shared_ptr<DNSRecordContent> >& toSign, const vector<shared_ptr<RRSIGRecordContent> >& sigs, skeyset_t& validkeys)
+void validateDNSKeysAgainstDS(time_t now, const DNSName& zone, const dsmap_t& dsmap, const skeyset_t& tkeys, const sortedRecords_t& toSign, const vector<shared_ptr<RRSIGRecordContent> >& sigs, skeyset_t& validkeys)
 {
   /*
    * Check all DNSKEY records against all DS records and place all DNSKEY records
@@ -978,7 +976,7 @@ vState getKeysFor(DNSRecordOracle& dro, const DNSName& zone, skeyset_t& keyset)
   for(auto zoneCutIter = zoneCuts.cbegin(); zoneCutIter != zoneCuts.cend(); ++zoneCutIter)
   {
     vector<shared_ptr<RRSIGRecordContent> > sigs;
-    vector<shared_ptr<DNSRecordContent> > toSign;
+    sortedRecords_t toSign;
 
     skeyset_t tkeys; // tentative keys
     validkeys.clear();
@@ -1007,7 +1005,7 @@ vState getKeysFor(DNSRecordOracle& dro, const DNSName& zone, skeyset_t& keyset)
           tkeys.insert(drc);
           LOG("Inserting key with tag "<<drc->getTag()<<" and algorithm "<<DNSSECKeeper::algorithm2name(drc->d_algorithm)<<": "<<drc->getZoneRepresentation()<<endl);
 
-          toSign.push_back(rec.d_content);
+          toSign.insert(rec.d_content);
         }
       }
     }
