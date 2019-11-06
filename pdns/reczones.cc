@@ -127,7 +127,11 @@ void primeRootNSZones(bool dnssecmode)
     sr.setDoDNSSEC(true);
     sr.setDNSSECValidationRequested(true);
   }
-  for (const auto & qname: t_rootNSZones) {
+
+  // beginResolve() can yield to another mthread that could trigger t_rootNSZones updates,
+  // so make a local copy
+  set<DNSName> copy(t_rootNSZones);  
+  for (const auto & qname: copy) {
     t_RC->doWipeCache(qname, false, QType::NS);
     vector<DNSRecord> ret;
     sr.beginResolve(qname, QType(QType::NS), QClass::IN, ret);
