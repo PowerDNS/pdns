@@ -592,12 +592,6 @@ BOOST_AUTO_TEST_CASE(test_rfc8020_nothing_underneath_dnssec) {
             addRecordToLW(res, "ns1.powerdns.com.", QType::A, "192.0.2.2", DNSResourceRecord::ADDITIONAL, 3600);
             addRRSIG(keys, res->d_records, DNSName("powerdns.com"), 300);
           }
-          else {
-            addRecordToLW(res, domain, QType::SOA, "pdns-public-ns1.powerdns.com. pieter\\.lexis.powerdns.com. 2017032301 10800 3600 604800 3600", DNSResourceRecord::AUTHORITY, 3600);
-            addRRSIG(keys, res->d_records, DNSName("powerdns.com"), 300);
-            addNSECRecordToLW(DNSName("nx.powerdns.com."), DNSName("nz.powerdns.com."), { QType::A, QType::NSEC, QType::RRSIG }, 600, res->d_records);
-            addRRSIG(keys, res->d_records, DNSName("powerdns.com"), 300);
-          }
         }
         else {
           setLWResult(res, RCode::NXDomain, true, false, true);
