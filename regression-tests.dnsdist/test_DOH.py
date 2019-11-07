@@ -10,8 +10,6 @@ from dnsdisttests import DNSDistTest
 
 import pycurl
 from io import BytesIO
-#from hyper import HTTP20Connection
-#from hyper.ssl_compat import SSLContext, PROTOCOL_TLSv1_2
 
 @unittest.skipIf('SKIP_DOH_TESTS' in os.environ, 'DNS over HTTPS tests are disabled')
 class DNSDistDOHTest(DNSDistTest):
@@ -139,36 +137,6 @@ class DNSDistDOHTest(DNSDistTest):
         cls.setUpSockets()
 
         print("Launching tests..")
-
-#     @classmethod
-#     def openDOHConnection(cls, port, caFile, timeout=2.0):
-#         sslctx = SSLContext(PROTOCOL_TLSv1_2)
-#         sslctx.load_verify_locations(caFile)
-#         return HTTP20Connection('127.0.0.1', port=port, secure=True, timeout=timeout, ssl_context=sslctx, force_proto='h2')
-
-#     @classmethod
-#     def sendDOHQueryOverConnection(cls, conn, baseurl, query, response=None, timeout=2.0):
-#         url = cls.getDOHGetURL(baseurl, query)
-
-#         if response:
-#             cls._toResponderQueue.put(response, True, timeout)
-
-#         conn.request('GET', url)
-
-#     @classmethod
-#     def recvDOHResponseOverConnection(cls, conn, useQueue=False, timeout=2.0):
-#         message = None
-#         data = conn.get_response()
-#         if data:
-#             data = data.read()
-#             if data:
-#                 message = dns.message.from_wire(data)
-
-#         if useQueue and not cls._fromResponderQueue.empty():
-#             receivedQuery = cls._fromResponderQueue.get(True, timeout)
-#             return (receivedQuery, message)
-#         else:
-#             return message
 
 class TestDOH(DNSDistDOHTest):
 
@@ -914,3 +882,85 @@ class TestDOHWithoutCacheControl(DNSDistDOHTest):
         self.checkNoHeader('cache-control')
         self.checkQueryEDNSWithoutECS(expectedQuery, receivedQuery)
         self.assertEquals(response, receivedResponse)
+
+class TestDOHFFI(DNSDistDOHTest):
+
+    _serverKey = 'server.key'
+    _serverCert = 'server.chain'
+    _serverName = 'tls.tests.dnsdist.org'
+    _caCert = 'ca.pem'
+    _dohServerPort = 8443
+    _customResponseHeader1 = 'access-control-allow-origin: *'
+    _customResponseHeader2 = 'user-agent: derp'
+    _dohBaseURL = ("https://%s:%d/" % (_serverName, _dohServerPort))
+    _config_template = """
+    newServer{address="127.0.0.1:%s"}
+
+    addDOHLocal("127.0.0.1:%s", "%s", "%s", { "/" }, {customResponseHeaders={["access-control-allow-origin"]="*",["user-agent"]="derp",["UPPERCASE"]="VaLuE"}})
+
+    local ffi = require("ffi")
+
+    ffi.cdef[[
+  typedef struct dnsdist_ffi_dnsquestion_t dnsdist_ffi_dnsquestion_t;
+
+  typedef struct dnsdist_http_header {
+    const char* name;
+    const char* value;
+  } dnsdist_http_header_t;
+
+  void dnsdist_ffi_dnsquestion_get_sni(const dnsdist_ffi_dnsquestion_t* dq, const char** sni, size_t* sniSize) __attribute__ ((visibility ("default")));
+
+  const char* dnsdist_ffi_dnsquestion_get_http_path(dnsdist_ffi_dnsquestion_t* dq) __attribute__ ((visibility ("default")));
+  const char* dnsdist_ffi_dnsquestion_get_http_query_string(dnsdist_ffi_dnsquestion_t* dq) __attribute__ ((visibility ("default")));
+  const char* dnsdist_ffi_dnsquestion_get_http_host(dnsdist_ffi_dnsquestion_t* dq) __attribute__ ((visibility ("default")));
+  const char* dnsdist_ffi_dnsquestion_get_http_scheme(dnsdist_ffi_dnsquestion_t* dq) __attribute__ ((visibility ("default")));
+
+  size_t dnsdist_ffi_dnsquestion_get_http_headers(dnsdist_ffi_dnsquestion_t* ref, const dnsdist_http_header_t** out) __attribute__ ((visibility ("default")));
+
+  void dnsdist_ffi_dnsquestion_set_http_response(dnsdist_ffi_dnsquestion_t* dq, uint16_t statusCode, const char* body, const char* contentType) __attribute__ ((visibility ("default")));
+  ]]
+
+    function dohHandler(dq)
+      local scheme = ffi.string(ffi.C.dnsdist_ffi_dnsquestion_get_http_scheme(dq))
+      local host = ffi.string(ffi.C.dnsdist_ffi_dnsquestion_get_http_host(dq))
+      local path = ffi.string(ffi.C.dnsdist_ffi_dnsquestion_get_http_path(dq))
+      local query_string = ffi.string(ffi.C.dnsdist_ffi_dnsquestion_get_http_query_string(dq))
+      if scheme == 'https' and host == '%s:%d' and path == '/' and query_string == '' then
+        local foundct = false
+        local headers_ptr = ffi.new("const dnsdist_http_header_t *[1]")
+        local headers_ptr_param = ffi.cast("const dnsdist_http_header_t **", headers_ptr)
+
+        local headers_count = tonumber(ffi.C.dnsdist_ffi_dnsquestion_get_http_headers(dq, headers_ptr_param))
+        if headers_count > 0 then
+          for idx = 0, headers_count-1 do
+            if ffi.string(headers_ptr[0][idx].name) == 'content-type' and ffi.string(headers_ptr[0][idx].value) == 'application/dns-message' then
+              foundct = true
+              break
+            end
+          end
+        end
+        if foundct then
+          ffi.C.dnsdist_ffi_dnsquestion_set_http_response(dq, 200, 'It works!', 'text/plain')
+          return DNSAction.HeaderModify
+        end
+      end
+      return DNSAction.None
+    end
+    addAction("http-lua-ffi.doh.tests.powerdns.com.", LuaFFIAction(dohHandler))
+    """
+    _config_params = ['_testServerPort', '_dohServerPort', '_serverCert', '_serverKey', '_serverName', '_dohServerPort']
+
+    def testHTTPLuaFFIResponse(self):
+        """
+        DOH: Lua FFI HTTP Response
+        """
+        name = 'http-lua-ffi.doh.tests.powerdns.com.'
+        query = dns.message.make_query(name, 'A', 'IN', use_edns=False)
+        query.id = 0
+
+        (_, receivedResponse) = self.sendDOHPostQuery(self._dohServerPort, self._serverName, self._dohBaseURL, query, caFile=self._caCert, useQueue=False, rawResponse=True)
+        self.assertTrue(receivedResponse)
+        self.assertEquals(receivedResponse, b'It works!')
+        self.assertEquals(self._rcode, 200)
+        self.assertTrue('content-type: text/plain' in self._response_headers.decode())
+

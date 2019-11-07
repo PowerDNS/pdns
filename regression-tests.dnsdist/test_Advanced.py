@@ -1901,17 +1901,6 @@ class TestAdvancedLuaFFI(DNSDistTest):
     ffi.cdef[[
   typedef struct dnsdist_ffi_dnsquestion_t dnsdist_ffi_dnsquestion_t;
 
-  typedef struct dnsdist_ednsoption {
-    uint16_t    optionCode;
-    uint16_t    len;
-    const void* data;
-  } dnsdist_ednsoption_t;
-
-  typedef struct dnsdist_http_header {
-    const char* name;
-    const char* value;
-  } dnsdist_http_header_t;
-
   void dnsdist_ffi_dnsquestion_get_localaddr(const dnsdist_ffi_dnsquestion_t* dq, const void** addr, size_t* addrSize) __attribute__ ((visibility ("default")));
   void dnsdist_ffi_dnsquestion_get_remoteaddr(const dnsdist_ffi_dnsquestion_t* dq, const void** addr, size_t* addrSize) __attribute__ ((visibility ("default")));
   void dnsdist_ffi_dnsquestion_get_qname_raw(const dnsdist_ffi_dnsquestion_t* dq, const char** qname, size_t* qnameSize) __attribute__ ((visibility ("default")));
@@ -1923,35 +1912,13 @@ class TestAdvancedLuaFFI(DNSDistTest):
   size_t dnsdist_ffi_dnsquestion_get_size(const dnsdist_ffi_dnsquestion_t* dq) __attribute__ ((visibility ("default")));
   uint8_t dnsdist_ffi_dnsquestion_get_opcode(const dnsdist_ffi_dnsquestion_t* dq) __attribute__ ((visibility ("default")));
   bool dnsdist_ffi_dnsquestion_get_tcp(const dnsdist_ffi_dnsquestion_t* dq) __attribute__ ((visibility ("default")));
-  bool dnsdist_ffi_dnsquestion_get_skip_cache(const dnsdist_ffi_dnsquestion_t* dq) __attribute__ ((visibility ("default")));
-  bool dnsdist_ffi_dnsquestion_get_use_ecs(const dnsdist_ffi_dnsquestion_t* dq) __attribute__ ((visibility ("default")));
-  bool dnsdist_ffi_dnsquestion_get_ecs_override(const dnsdist_ffi_dnsquestion_t* dq) __attribute__ ((visibility ("default")));
-  uint16_t dnsdist_ffi_dnsquestion_get_ecs_prefix_length(const dnsdist_ffi_dnsquestion_t* dq) __attribute__ ((visibility ("default")));
-  bool dnsdist_ffi_dnsquestion_is_temp_failure_ttl_set(const dnsdist_ffi_dnsquestion_t* dq) __attribute__ ((visibility ("default")));
-  uint32_t dnsdist_ffi_dnsquestion_get_temp_failure_ttl(const dnsdist_ffi_dnsquestion_t* dq) __attribute__ ((visibility ("default")));
   bool dnsdist_ffi_dnsquestion_get_do(const dnsdist_ffi_dnsquestion_t* dq) __attribute__ ((visibility ("default")));
-  void dnsdist_ffi_dnsquestion_get_sni(const dnsdist_ffi_dnsquestion_t* dq, const char** sni, size_t* sniSize) __attribute__ ((visibility ("default")));
   const char* dnsdist_ffi_dnsquestion_get_tag(const dnsdist_ffi_dnsquestion_t* dq, const char* label) __attribute__ ((visibility ("default")));
-  const char* dnsdist_ffi_dnsquestion_get_http_path(const dnsdist_ffi_dnsquestion_t* dq) __attribute__ ((visibility ("default")));
-  const char* dnsdist_ffi_dnsquestion_get_http_query_string(const dnsdist_ffi_dnsquestion_t* dq) __attribute__ ((visibility ("default")));
-  const char* dnsdist_ffi_dnsquestion_get_http_host(const dnsdist_ffi_dnsquestion_t* dq) __attribute__ ((visibility ("default")));
-  const char* dnsdist_ffi_dnsquestion_get_http_scheme(const dnsdist_ffi_dnsquestion_t* dq) __attribute__ ((visibility ("default")));
-
-  // returns the length of the resulting 'out' array. 'out' is not set if the length is 0
-  size_t dnsdist_ffi_dnsquestion_get_edns_options(dnsdist_ffi_dnsquestion_t* ref, const dnsdist_ednsoption_t** out) __attribute__ ((visibility ("default")));
-  size_t dnsdist_ffi_dnsquestion_get_http_headers(dnsdist_ffi_dnsquestion_t* ref, const dnsdist_http_header_t** out) __attribute__ ((visibility ("default")));
 
   void dnsdist_ffi_dnsquestion_set_result(dnsdist_ffi_dnsquestion_t* dq, const char* str, size_t strSize) __attribute__ ((visibility ("default")));
   void dnsdist_ffi_dnsquestion_set_rcode(dnsdist_ffi_dnsquestion_t* dq, int rcode) __attribute__ ((visibility ("default")));
-  void dnsdist_ffi_dnsquestion_set_len(dnsdist_ffi_dnsquestion_t* dq, int len) __attribute__ ((visibility ("default")));
-  void dnsdist_ffi_dnsquestion_set_skip_cache(dnsdist_ffi_dnsquestion_t* dq, bool skipCache) __attribute__ ((visibility ("default")));
-  void dnsdist_ffi_dnsquestion_set_use_ecs(dnsdist_ffi_dnsquestion_t* dq, bool useECS) __attribute__ ((visibility ("default")));
-  void dnsdist_ffi_dnsquestion_set_ecs_override(dnsdist_ffi_dnsquestion_t* dq, bool ecsOverride) __attribute__ ((visibility ("default")));
-  void dnsdist_ffi_dnsquestion_set_ecs_prefix_length(dnsdist_ffi_dnsquestion_t* dq, uint16_t ecsPrefixLength) __attribute__ ((visibility ("default")));
-  void dnsdist_ffi_dnsquestion_set_temp_failure_ttl(dnsdist_ffi_dnsquestion_t* dq, uint32_t tempFailureTTL) __attribute__ ((visibility ("default")));
   void dnsdist_ffi_dnsquestion_set_tag(dnsdist_ffi_dnsquestion_t* dq, const char* label, const char* value) __attribute__ ((visibility ("default")));
 
-  void dnsdist_ffi_dnsquestion_set_http_response(dnsdist_ffi_dnsquestion_t* dq, uint16_t statusCode, const char* body, const char* contentType) __attribute__ ((visibility ("default")));
   ]]
     local expectingUDP = true
 
@@ -2021,6 +1988,12 @@ class TestAdvancedLuaFFI(DNSDistTest):
         return false
       end
 
+      local tag = ffi.C.dnsdist_ffi_dnsquestion_get_tag(dq, 'a-tag')
+      if ffi.string(tag) ~= 'a-value' then
+        print('invalid tag value')
+        print(ffi.string(tag))
+        return false
+      end
       return true
     end
 
@@ -2038,6 +2011,12 @@ class TestAdvancedLuaFFI(DNSDistTest):
       end
     end
 
+    function luaffiactionsettag(dq)
+      ffi.C.dnsdist_ffi_dnsquestion_set_tag(dq, 'a-tag', 'a-value')
+      return DNSAction.None
+    end
+
+    addAction(AllRule(), LuaFFIAction(luaffiactionsettag))
     addAction(LuaFFIRule(luaffirulefunction), LuaFFIAction(luaffiactionfunction))
     -- newServer{address="127.0.0.1:%s"}
     """
