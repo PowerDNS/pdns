@@ -4,8 +4,13 @@ Upgrade Guide
 Before upgrading, it is advised to read the :doc:`changelog/index`.
 When upgrading several versions, please read **all** notes applying to the upgrade.
 
-4.1.x to 4.2.0 or master
+4.2.x to 4.3.0 or master
 ------------------------
+
+- Netmask class methods ``isIpv4`` and ``isIpv6`` have been deprecated in Lua, use :func:`Netmask.isIPv4` and :func:`Netmask.isIPv6` instead. In C++ API these methods have been removed.
+
+4.1.x to 4.2.0
+--------------
 
 Two new settings have been added:
 
