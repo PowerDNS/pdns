@@ -4279,6 +4279,8 @@ static int serviceMain(int argc, char*argv[])
     infos.isListener = true;
     infos.isWorker = true;
     recursorThread(currentThreadId++, "worker");
+    
+    handlerInfos.thread.join();
   }
   else {
 
