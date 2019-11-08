@@ -418,6 +418,7 @@ BOOST_AUTO_TEST_CASE(test_root_nx_dont_trust) {
 BOOST_AUTO_TEST_CASE(test_rfc8020_nothing_underneath) {
   std::unique_ptr<SyncRes> sr;
   initSR(sr);
+  SyncRes::s_hardenNXD = SyncRes::HardenNXD::Yes;
 
   primeHints();
 
@@ -448,71 +449,244 @@ BOOST_AUTO_TEST_CASE(test_rfc8020_nothing_underneath) {
   vector<DNSRecord> ret;
   int res = sr->beginResolve(target1, QType(QType::A), QClass::IN, ret);
   BOOST_CHECK_EQUAL(res, RCode::NXDomain);
-  BOOST_CHECK_EQUAL(ret.size(), 1);
-  BOOST_CHECK_EQUAL(queriesCount, 2);
-  BOOST_CHECK_EQUAL(SyncRes::getNegCacheSize(), 1);
+  BOOST_CHECK_EQUAL(ret.size(), 1U);
+  BOOST_CHECK_EQUAL(queriesCount, 2U);
+  BOOST_CHECK_EQUAL(SyncRes::getNegCacheSize(), 1U);
 
   ret.clear();
   res = sr->beginResolve(target2, QType(QType::A), QClass::IN, ret);
   BOOST_CHECK_EQUAL(res, RCode::NXDomain);
-  BOOST_CHECK_EQUAL(ret.size(), 1);
-  BOOST_CHECK_EQUAL(queriesCount, 2);
-  BOOST_CHECK_EQUAL(SyncRes::getNegCacheSize(), 1);
+  BOOST_CHECK_EQUAL(ret.size(), 1U);
+  BOOST_CHECK_EQUAL(queriesCount, 2U);
+  BOOST_CHECK_EQUAL(SyncRes::getNegCacheSize(), 1U);
 
   ret.clear();
   res = sr->beginResolve(target3, QType(QType::A), QClass::IN, ret);
   BOOST_CHECK_EQUAL(res, RCode::NXDomain);
-  BOOST_CHECK_EQUAL(ret.size(), 1);
-  BOOST_CHECK_EQUAL(queriesCount, 2);
-  BOOST_CHECK_EQUAL(SyncRes::getNegCacheSize(), 1);
+  BOOST_CHECK_EQUAL(ret.size(), 1U);
+  BOOST_CHECK_EQUAL(queriesCount, 2U);
+  BOOST_CHECK_EQUAL(SyncRes::getNegCacheSize(), 1U);
 
   ret.clear();
   res = sr->beginResolve(target4, QType(QType::A), QClass::IN, ret);
   BOOST_CHECK_EQUAL(res, RCode::NXDomain);
-  BOOST_CHECK_EQUAL(ret.size(), 1);
-  BOOST_CHECK_EQUAL(queriesCount, 2);
-  BOOST_CHECK_EQUAL(SyncRes::getNegCacheSize(), 1);
+  BOOST_CHECK_EQUAL(ret.size(), 1U);
+  BOOST_CHECK_EQUAL(queriesCount, 2U);
+  BOOST_CHECK_EQUAL(SyncRes::getNegCacheSize(), 1U);
 
   // Now test without RFC 8020 to see the cache and query count grow
-  SyncRes::s_hardenNXD = false;
+  SyncRes::s_hardenNXD = SyncRes::HardenNXD::No;
 
   // Already cached
   ret.clear();
   res = sr->beginResolve(target1, QType(QType::A), QClass::IN, ret);
   BOOST_CHECK_EQUAL(res, RCode::NXDomain);
-  BOOST_CHECK_EQUAL(ret.size(), 1);
-  BOOST_CHECK_EQUAL(queriesCount, 2);
-  BOOST_CHECK_EQUAL(SyncRes::getNegCacheSize(), 1);
+  BOOST_CHECK_EQUAL(ret.size(), 1U);
+  BOOST_CHECK_EQUAL(queriesCount, 2U);
+  BOOST_CHECK_EQUAL(SyncRes::getNegCacheSize(), 1U);
 
   // New query
   ret.clear();
   res = sr->beginResolve(target2, QType(QType::A), QClass::IN, ret);
   BOOST_CHECK_EQUAL(res, RCode::NXDomain);
-  BOOST_CHECK_EQUAL(ret.size(), 1);
-  BOOST_CHECK_EQUAL(queriesCount, 3);
-  BOOST_CHECK_EQUAL(SyncRes::getNegCacheSize(), 2);
+  BOOST_CHECK_EQUAL(ret.size(), 1U);
+  BOOST_CHECK_EQUAL(queriesCount, 3U);
+  BOOST_CHECK_EQUAL(SyncRes::getNegCacheSize(), 2U);
 
   ret.clear();
   res = sr->beginResolve(target3, QType(QType::A), QClass::IN, ret);
   BOOST_CHECK_EQUAL(res, RCode::NXDomain);
-  BOOST_CHECK_EQUAL(ret.size(), 1);
-  BOOST_CHECK_EQUAL(queriesCount, 4);
-  BOOST_CHECK_EQUAL(SyncRes::getNegCacheSize(), 3);
+  BOOST_CHECK_EQUAL(ret.size(), 1U);
+  BOOST_CHECK_EQUAL(queriesCount, 4U);
+  BOOST_CHECK_EQUAL(SyncRes::getNegCacheSize(), 3U);
 
   ret.clear();
   res = sr->beginResolve(target4, QType(QType::A), QClass::IN, ret);
   BOOST_CHECK_EQUAL(res, RCode::NXDomain);
-  BOOST_CHECK_EQUAL(ret.size(), 1);
-  BOOST_CHECK_EQUAL(queriesCount, 5);
-  BOOST_CHECK_EQUAL(SyncRes::getNegCacheSize(), 4);
+  BOOST_CHECK_EQUAL(ret.size(), 1U);
+  BOOST_CHECK_EQUAL(queriesCount, 5U);
+  BOOST_CHECK_EQUAL(SyncRes::getNegCacheSize(), 4U);
 
   // reset
-  SyncRes::s_hardenNXD = true;
+  SyncRes::s_hardenNXD = SyncRes::HardenNXD::DNSSEC;
+}
+  
+BOOST_AUTO_TEST_CASE(test_rfc8020_nothing_underneath_dnssec) {
+  std::unique_ptr<SyncRes> sr;
+  initSR(sr, true);
+  setDNSSECValidation(sr, DNSSECMode::ValidateAll);
+
+  primeHints();
+
+  const DNSName parent1("com.");
+  const DNSName parent2("powerdns.com.");
+  const DNSName target1("www.powerdns.com."); // will be denied
+  const DNSName target2("foo.www.powerdns.com.");
+  const DNSName target3("bar.www.powerdns.com.");
+  const DNSName target4("quux.bar.www.powerdns.com.");
+  const ComboAddress ns("192.0.2.1:53");
+
+  testkeysset_t keys;
+
+  auto luaconfsCopy = g_luaconfs.getCopy();
+  luaconfsCopy.dsAnchors.clear();
+  generateKeyMaterial(g_rootdnsname, DNSSECKeeper::ECDSA256, DNSSECKeeper::DIGEST_SHA256, keys, luaconfsCopy.dsAnchors);
+  generateKeyMaterial(parent1, DNSSECKeeper::ECDSA256, DNSSECKeeper::DIGEST_SHA256, keys);
+  generateKeyMaterial(parent2, DNSSECKeeper::ECDSA256, DNSSECKeeper::DIGEST_SHA256, keys);
+  g_luaconfs.setState(luaconfsCopy);
+
+  size_t queriesCount = 0;
+
+  sr->setAsyncCallback([target1,target2,target3,target4,&queriesCount,keys](const ComboAddress& ip, const DNSName& domain, int type, bool doTCP, bool sendRDQuery, int EDNS0Level, struct timeval* now, boost::optional<Netmask>& srcmask, boost::optional<const ResolveContext&> context, LWResult* res, bool* chained) {
+    queriesCount++;
+
+    DNSName auth = domain;
+    if (domain == target1 || domain == target2 || domain == target3 || domain == target4) {
+      auth = DNSName("powerdns.com.");
+    }
+    if (type == QType::DS || type == QType::DNSKEY) {
+      if (type == QType::DS && (domain == target1 || domain == target2 || domain == target3 || domain == target4)) {
+        setLWResult(res, RCode::NXDomain, true, false, true);
+        addRecordToLW(res, DNSName("powerdns.com."), QType::SOA, "pdns-public-ns1.powerdns.com. pieter\\.lexis.powerdns.com. 2017032301 10800 3600 604800 3600", DNSResourceRecord::AUTHORITY, 3600);
+        addRRSIG(keys, res->d_records, auth, 300);
+        addNSECRecordToLW(DNSName("wwa.powerdns.com."), DNSName("wwz.powerdns.com."), { QType::RRSIG, QType::NSEC }, 600, res->d_records);
+        addRRSIG(keys, res->d_records, auth, 300);
+        return 1;
+      }
+      else {
+        return genericDSAndDNSKEYHandler(res, domain, auth, type, keys);
+      }
+    }
+    else {
+      if (isRootServer(ip)) {
+        setLWResult(res, 0, false, false, true);
+        addRecordToLW(res, "com.", QType::NS, "a.gtld-servers.com.", DNSResourceRecord::AUTHORITY, 3600);
+        addDS(DNSName("com."), 300, res->d_records, keys);
+        addRRSIG(keys, res->d_records, DNSName("."), 300);
+        addRecordToLW(res, "a.gtld-servers.com.", QType::A, "192.0.2.1", DNSResourceRecord::ADDITIONAL, 3600);
+        return 1;
+      }
+      else if (ip == ComboAddress("192.0.2.1:53")) {
+        if (domain == DNSName("com.")) {
+          setLWResult(res, 0, true, false, true);
+          addRecordToLW(res, domain, QType::NS, "a.gtld-servers.com.");
+          addRRSIG(keys, res->d_records, domain, 300);
+          addRecordToLW(res, "a.gtld-servers.com.", QType::A, "192.0.2.1", DNSResourceRecord::ADDITIONAL, 3600);
+          addRRSIG(keys, res->d_records, domain, 300);
+        }
+        else {
+          setLWResult(res, 0, false, false, true);
+          addRecordToLW(res, auth, QType::NS, "ns1.powerdns.com.", DNSResourceRecord::AUTHORITY, 3600);
+          addDS(auth, 300, res->d_records, keys);
+          addRRSIG(keys, res->d_records, DNSName("com."), 300);
+          addRecordToLW(res, "ns1.powerdns.com.", QType::A, "192.0.2.2", DNSResourceRecord::ADDITIONAL, 3600);
+        }
+        return 1;
+      }
+      else if (ip == ComboAddress("192.0.2.2:53")) {
+        if (type == QType::NS) {
+          setLWResult(res, 0, true, false, true);
+          if (domain == DNSName("powerdns.com.")) {
+            addRecordToLW(res, domain, QType::NS, "ns1.powerdns.com.");
+            addRRSIG(keys, res->d_records, DNSName("powerdns.com"), 300);
+            addRecordToLW(res, "ns1.powerdns.com.", QType::A, "192.0.2.2", DNSResourceRecord::ADDITIONAL, 3600);
+            addRRSIG(keys, res->d_records, DNSName("powerdns.com"), 300);
+          }
+        }
+        else {
+          setLWResult(res, RCode::NXDomain, true, false, true);
+          addRecordToLW(res, DNSName("powerdns.com."), QType::SOA, "pdns-public-ns1.powerdns.com. pieter\\.lexis.powerdns.com. 2017032301 10800 3600 604800 3600", DNSResourceRecord::AUTHORITY, 3600);
+          addRRSIG(keys, res->d_records, auth, 300);
+          addNSECRecordToLW(DNSName("wwa.powerdns.com."), DNSName("wwz.powerdns.com."), { QType::RRSIG, QType::NSEC }, 600, res->d_records);
+          addRRSIG(keys, res->d_records, auth, 300);
+          /* add wildcard denial */
+          addNSECRecordToLW(DNSName("powerdns.com."), DNSName("a.powerdns.com."), { QType::RRSIG, QType::NSEC }, 600, res->d_records);
+          addRRSIG(keys, res->d_records, auth, 300);
+        }
+        return 1;
+      }
+    }
+
+    return 0;
+  });
+
+  vector<DNSRecord> ret;
+  int res = sr->beginResolve(target1, QType(QType::A), QClass::IN, ret);
+  BOOST_CHECK_EQUAL(res, RCode::NXDomain);
+  BOOST_CHECK_EQUAL(sr->getValidationState(), Secure);
+  BOOST_CHECK_EQUAL(ret.size(), 6U);
+  BOOST_CHECK_EQUAL(queriesCount, 9U);
+  BOOST_CHECK_EQUAL(SyncRes::getNegCacheSize(), 1U);
+
+  ret.clear();
+  res = sr->beginResolve(target2, QType(QType::A), QClass::IN, ret);
+  BOOST_CHECK_EQUAL(res, RCode::NXDomain);
+  BOOST_CHECK_EQUAL(sr->getValidationState(), Secure);
+  BOOST_CHECK_EQUAL(ret.size(), 6U);
+  BOOST_CHECK_EQUAL(queriesCount, 9U);
+  BOOST_CHECK_EQUAL(SyncRes::getNegCacheSize(), 1U);
+
+  ret.clear();
+  res = sr->beginResolve(target3, QType(QType::A), QClass::IN, ret);
+  BOOST_CHECK_EQUAL(res, RCode::NXDomain);
+  BOOST_CHECK_EQUAL(sr->getValidationState(), Secure);
+  BOOST_CHECK_EQUAL(ret.size(), 6U);
+  BOOST_CHECK_EQUAL(queriesCount, 9U);
+  BOOST_CHECK_EQUAL(SyncRes::getNegCacheSize(), 1U);
+
+  ret.clear();
+  res = sr->beginResolve(target4, QType(QType::A), QClass::IN, ret);
+  BOOST_CHECK_EQUAL(res, RCode::NXDomain);
+  BOOST_CHECK_EQUAL(sr->getValidationState(), Secure);
+  BOOST_CHECK_EQUAL(ret.size(), 6U);
+  BOOST_CHECK_EQUAL(queriesCount, 9U);
+  BOOST_CHECK_EQUAL(SyncRes::getNegCacheSize(), 1U);
+
+  // Now test without RFC 8020 to see the cache and query count grow
+  SyncRes::s_hardenNXD = SyncRes::HardenNXD::No;
+
+  // Already cached
+  ret.clear();
+  res = sr->beginResolve(target1, QType(QType::A), QClass::IN, ret);
+  BOOST_CHECK_EQUAL(res, RCode::NXDomain);
+  BOOST_CHECK_EQUAL(sr->getValidationState(), Secure);
+  BOOST_CHECK_EQUAL(ret.size(), 6U);
+  BOOST_CHECK_EQUAL(queriesCount, 9U);
+  BOOST_CHECK_EQUAL(SyncRes::getNegCacheSize(), 1U);
+
+  // New query
+  ret.clear();
+  res = sr->beginResolve(target2, QType(QType::A), QClass::IN, ret);
+  BOOST_CHECK_EQUAL(res, RCode::NXDomain);
+  BOOST_CHECK_EQUAL(sr->getValidationState(), Secure);
+  BOOST_CHECK_EQUAL(ret.size(), 6U);
+  BOOST_CHECK_EQUAL(queriesCount, 11U);
+  BOOST_CHECK_EQUAL(SyncRes::getNegCacheSize(), 2U);
+
+  ret.clear();
+  res = sr->beginResolve(target3, QType(QType::A), QClass::IN, ret);
+  BOOST_CHECK_EQUAL(res, RCode::NXDomain);
+  BOOST_CHECK_EQUAL(sr->getValidationState(), Secure);
+  BOOST_CHECK_EQUAL(ret.size(), 6U);
+  BOOST_CHECK_EQUAL(queriesCount, 13U);
+  BOOST_CHECK_EQUAL(SyncRes::getNegCacheSize(), 3U);
+
+  ret.clear();
+  res = sr->beginResolve(target4, QType(QType::A), QClass::IN, ret);
+  BOOST_CHECK_EQUAL(res, RCode::NXDomain);
+  BOOST_CHECK_EQUAL(sr->getValidationState(), Secure);
+  BOOST_CHECK_EQUAL(ret.size(), 6U);
+  BOOST_CHECK_EQUAL(queriesCount, 15U);
+  BOOST_CHECK_EQUAL(SyncRes::getNegCacheSize(), 4U);
+
+  // reset
+  SyncRes::s_hardenNXD = SyncRes::HardenNXD::DNSSEC;
 }
 
 BOOST_AUTO_TEST_CASE(test_rfc8020_nodata) {
   std::unique_ptr<SyncRes> sr;
   initSR(sr);
+  SyncRes::s_hardenNXD = SyncRes::HardenNXD::Yes;
 
   primeHints();
 
@@ -556,35 +730,36 @@ BOOST_AUTO_TEST_CASE(test_rfc8020_nodata) {
   vector<DNSRecord> ret;
   int res = sr->beginResolve(target1, QType(QType::TXT), QClass::IN, ret);
   BOOST_CHECK_EQUAL(res, RCode::NoError);
-  BOOST_CHECK_EQUAL(ret.size(), 1);
-  BOOST_CHECK_EQUAL(queriesCount, 2);
-  BOOST_CHECK_EQUAL(SyncRes::getNegCacheSize(), 1);
+  BOOST_CHECK_EQUAL(ret.size(), 1U);
+  BOOST_CHECK_EQUAL(queriesCount, 2U);
+  BOOST_CHECK_EQUAL(SyncRes::getNegCacheSize(), 1U);
 
   ret.clear();
   res = sr->beginResolve(target1, QType(QType::A), QClass::IN, ret);
   BOOST_CHECK_EQUAL(res, RCode::NoError);
-  BOOST_CHECK_EQUAL(ret.size(), 1);
-  BOOST_CHECK_EQUAL(queriesCount, 3);
-  BOOST_CHECK_EQUAL(SyncRes::getNegCacheSize(), 1);
+  BOOST_CHECK_EQUAL(ret.size(), 1U);
+  BOOST_CHECK_EQUAL(queriesCount, 3U);
+  BOOST_CHECK_EQUAL(SyncRes::getNegCacheSize(), 1U);
 
   ret.clear();
   res = sr->beginResolve(target2, QType(QType::A), QClass::IN, ret);
   BOOST_CHECK_EQUAL(res, RCode::NXDomain);
-  BOOST_CHECK_EQUAL(ret.size(), 1);
-  BOOST_CHECK_EQUAL(queriesCount, 4);
-  BOOST_CHECK_EQUAL(SyncRes::getNegCacheSize(), 2);
+  BOOST_CHECK_EQUAL(ret.size(), 1U);
+  BOOST_CHECK_EQUAL(queriesCount, 4U);
+  BOOST_CHECK_EQUAL(SyncRes::getNegCacheSize(), 2U);
 
   ret.clear();
   res = sr->beginResolve(target3, QType(QType::A), QClass::IN, ret);
   BOOST_CHECK_EQUAL(res, RCode::NXDomain);
-  BOOST_CHECK_EQUAL(ret.size(), 1);
-  BOOST_CHECK_EQUAL(queriesCount, 4);
-  BOOST_CHECK_EQUAL(SyncRes::getNegCacheSize(), 2);
+  BOOST_CHECK_EQUAL(ret.size(), 1U);
+  BOOST_CHECK_EQUAL(queriesCount, 4U);
+  BOOST_CHECK_EQUAL(SyncRes::getNegCacheSize(), 2U);
 }
 
 BOOST_AUTO_TEST_CASE(test_rfc8020_nodata_bis) {
   std::unique_ptr<SyncRes> sr;
   initSR(sr);
+  SyncRes::s_hardenNXD = SyncRes::HardenNXD::Yes;
 
   primeHints();
 
@@ -628,30 +803,30 @@ BOOST_AUTO_TEST_CASE(test_rfc8020_nodata_bis) {
   vector<DNSRecord> ret;
   int res = sr->beginResolve(target1, QType(QType::TXT), QClass::IN, ret);
   BOOST_CHECK_EQUAL(res, RCode::NoError);
-  BOOST_CHECK_EQUAL(ret.size(), 1);
-  BOOST_CHECK_EQUAL(queriesCount, 2);
-  BOOST_CHECK_EQUAL(SyncRes::getNegCacheSize(), 1);
+  BOOST_CHECK_EQUAL(ret.size(), 1U);
+  BOOST_CHECK_EQUAL(queriesCount, 2U);
+  BOOST_CHECK_EQUAL(SyncRes::getNegCacheSize(), 1U);
 
   ret.clear();
   res = sr->beginResolve(target1, QType(QType::A), QClass::IN, ret);
   BOOST_CHECK_EQUAL(res, RCode::NoError);
-  BOOST_CHECK_EQUAL(ret.size(), 1);
-  BOOST_CHECK_EQUAL(queriesCount, 3);
-  BOOST_CHECK_EQUAL(SyncRes::getNegCacheSize(), 1);
+  BOOST_CHECK_EQUAL(ret.size(), 1U);
+  BOOST_CHECK_EQUAL(queriesCount, 3U);
+  BOOST_CHECK_EQUAL(SyncRes::getNegCacheSize(), 1U);
 
   ret.clear();
   res = sr->beginResolve(target2, QType(QType::TXT), QClass::IN, ret);
   BOOST_CHECK_EQUAL(res, RCode::NXDomain);
-  BOOST_CHECK_EQUAL(ret.size(), 1);
-  BOOST_CHECK_EQUAL(queriesCount, 4);
-  BOOST_CHECK_EQUAL(SyncRes::getNegCacheSize(), 2);
+  BOOST_CHECK_EQUAL(ret.size(), 1U);
+  BOOST_CHECK_EQUAL(queriesCount, 4U);
+  BOOST_CHECK_EQUAL(SyncRes::getNegCacheSize(), 2U);
 
   ret.clear();
   res = sr->beginResolve(target3, QType(QType::TXT), QClass::IN, ret);
   BOOST_CHECK_EQUAL(res, RCode::NXDomain);
-  BOOST_CHECK_EQUAL(ret.size(), 1);
-  BOOST_CHECK_EQUAL(queriesCount, 4);
-  BOOST_CHECK_EQUAL(SyncRes::getNegCacheSize(), 2);
+  BOOST_CHECK_EQUAL(ret.size(), 1U);
+  BOOST_CHECK_EQUAL(queriesCount, 4U);
+  BOOST_CHECK_EQUAL(SyncRes::getNegCacheSize(), 2U);
 }
 
 BOOST_AUTO_TEST_CASE(test_skip_negcache_for_variable_response) {
