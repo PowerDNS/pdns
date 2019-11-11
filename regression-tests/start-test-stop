@@ -58,7 +58,6 @@ remotebackend-pipe-dnssec remotebackend-unix-dnssec remotebackend-http-dnssec re
 tinydns
 ldap-tree ldap-simple ldap-strict
 lua2 lua2-dnssec lua2-nsec3 lua2-nsec3-narrow
-lua-minimal
 #ext-nsd ext-nsd-nsec ext-nsd-nsec3 ext-bind ext-bind-nsec ext-bind-nsec3
 
 * Add -presigned to any ext-nsd, ext-bind, bind, gmysql or gsqlite3 test (except narrow)

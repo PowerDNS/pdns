@@ -341,7 +341,6 @@ AC_CONFIG_FILES([
   modules/gsqlite3backend/Makefile
   modules/ldapbackend/Makefile
   modules/lmdbbackend/Makefile
-  modules/luabackend/Makefile
   modules/lua2backend/Makefile
   modules/opendbxbackend/Makefile
   modules/pipebackend/Makefile
