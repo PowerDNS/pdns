@@ -4319,6 +4319,10 @@ static int serviceMain(int argc, char*argv[])
       ti.thread.join();
     }
   }
+
+#ifdef HAVE_PROTOBUF
+  google::protobuf::ShutdownProtobufLibrary();
+#endif /* HAVE_PROTOBUF */
   return 0;
 }
 
@@ -4403,11 +4407,13 @@ try
 
   t_fdm=getMultiplexer();
 
+  RecursorWebServer *rws = nullptr;
+  
   if(threadInfo.isHandler) {
     if(::arg().mustDo("webserver")) {
       g_log<<Logger::Warning << "Enabling web server" << endl;
       try {
-        new RecursorWebServer(t_fdm);
+        rws = new RecursorWebServer(t_fdm);
       }
       catch(PDNSException &e) {
         g_log<<Logger::Error<<"Exception: "<<e.reason<<endl;
@@ -4521,6 +4527,8 @@ try
       }
     }
   }
+  delete rws;
+  delete t_fdm;
   return 0;
 }
 catch(PDNSException &ae) {
