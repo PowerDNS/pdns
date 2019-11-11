@@ -187,7 +187,7 @@ string OdbxBackend::escape( const string& str, QueryType type )
 
 
 
-bool OdbxBackend::getDomainList( const string& stmt, vector<DomainInfo>* list, bool (*check_fcn)(uint32_t,uint32_t,SOAData*,DomainInfo*) )
+bool OdbxBackend::getDomainList( const string& stmt, vector<DomainInfo>* domains, bool (*check_fcn)(uint32_t,uint32_t,SOAData*,DomainInfo*) )
 {
         const char* tmp;
         uint32_t nlast, nserial;
@@ -254,7 +254,7 @@ bool OdbxBackend::getDomainList( const string& stmt, vector<DomainInfo>* list, b
         		di.serial = sd.serial;
         		di.backend = this;
 
-        		list->push_back( di );
+        		domains->push_back( di );
         	}
         }
         while( getRecord( READ ) );

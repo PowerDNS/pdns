@@ -455,8 +455,8 @@ void SMySQL::connect()
   do {
 
 #if MYSQL_VERSION_ID >= 50013
-    my_bool reconnect = 0;
-    mysql_options(&d_db, MYSQL_OPT_RECONNECT, &reconnect);
+    my_bool set_reconnect = 0;
+    mysql_options(&d_db, MYSQL_OPT_RECONNECT, &set_reconnect);
 #endif
 
 #if MYSQL_VERSION_ID >= 50100

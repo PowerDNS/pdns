@@ -125,7 +125,7 @@ public:
 class ApiException : public runtime_error
 {
 public:
-  ApiException(const string& what) : runtime_error(what) {
+  ApiException(const string& what_arg) : runtime_error(what_arg) {
   }
 };
 
