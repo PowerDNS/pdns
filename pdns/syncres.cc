@@ -404,6 +404,12 @@ bool SyncRes::doOOBResolve(const DNSName &qname, const QType &qtype, vector<DNSR
   return doOOBResolve(iter->second, qname, qtype, ret, res);
 }
 
+bool SyncRes::isForwardOrAuth(const DNSName &qname) const {
+  DNSName authname(qname);
+  domainmap_t::const_iterator iter = getBestAuthZone(&authname);
+  return iter != t_sstorage.domainmap->end();
+}
+
 uint64_t SyncRes::doEDNSDump(int fd)
 {
   auto fp = std::unique_ptr<FILE, int(*)(FILE*)>(fdopen(dup(fd), "w"), fclose);
@@ -587,7 +593,7 @@ int SyncRes::asyncresolveWrapper(const ComboAddress& ip, bool ednsMANDATORY, con
 
 int SyncRes::doResolve(const DNSName &qname, const QType &qtype, vector<DNSRecord>&ret, unsigned int depth, set<GetBestNSAnswer>& beenthere, vState& state) {
 
-  if (!getQNameMinimization()) {
+  if (!getQNameMinimization() || isForwardOrAuth(qname)) {
     return doResolveNoQNameMinimization(qname, qtype, ret, depth, beenthere, state);
   }
 

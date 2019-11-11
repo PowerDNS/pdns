@@ -289,8 +289,8 @@ if not newDN then
 end
 function prequery ( dnspacket )
     qname, qtype = dnspacket:getQuestion()
-    if (string.sub(tostring(qname), -21) == ".1.ghost.example.net." and posix.stat('drop-1')) or
-       (string.sub(tostring(qname), -21) == ".2.ghost.example.net." and posix.stat('drop-2'))
+    if (string.sub(tostring(qname), -20) == "1.ghost.example.net." and posix.stat('drop-1')) or
+       (string.sub(tostring(qname), -20) == "2.ghost.example.net." and posix.stat('drop-2'))
     then
         dnspacket:setRcode(pdns.NXDOMAIN)
         ret = {}
@@ -322,7 +322,7 @@ end
 function prequery ( dnspacket )
     i = i + 1
     qname, qtype = dnspacket:getQuestion()
-    if qtype == pdns.A and string.sub(tostring(qname), -25) == ".www.1.ghost.example.net."
+    if qtype == pdns.A and string.sub(tostring(qname), -24) == "www.1.ghost.example.net."
     then
         dnspacket:setRcode(pdns.NOERROR)
         ret = {}

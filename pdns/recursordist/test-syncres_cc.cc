@@ -170,7 +170,7 @@ void initSR(bool debug)
   ::arg().set("version-string", "string reported on version.pdns or version.bind")="PowerDNS Unit Tests";
   ::arg().set("rng")="auto";
   ::arg().set("entropy-source")="/dev/urandom";
-  ::arg().setSwitch("qname-minimization", "Use Query Name Minimization") = "no";
+  ::arg().setSwitch("qname-minimization", "Use Query Name Minimization") = "yes";
 }
 
 void initSR(std::unique_ptr<SyncRes>& sr, bool dnssec, bool debug, time_t fakeNow)

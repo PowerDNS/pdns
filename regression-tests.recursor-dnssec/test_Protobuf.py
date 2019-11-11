@@ -351,7 +351,10 @@ class OutgoingProtobufDefaultTest(TestRecursorProtobuf):
 
     _confdir = 'OutgoingProtobufDefault'
     _config_template = """
-auth-zones=example=configs/%s/example.zone""" % _confdir
+    # Switch off QName Minimization, it generates much more protobuf messages
+    # (or make the test much more smart!)
+    qname-minimization=no
+    auth-zones=example=configs/%s/example.zone""" % _confdir
     _lua_config_file = """
     outgoingProtobufServer({"127.0.0.1:%d", "127.0.0.1:%d"})
     """ % (protobufServersParameters[0].port, protobufServersParameters[1].port)
@@ -380,7 +383,10 @@ class OutgoingProtobufNoQueriesTest(TestRecursorProtobuf):
 
     _confdir = 'OutgoingProtobufNoQueries'
     _config_template = """
-auth-zones=example=configs/%s/example.zone""" % _confdir
+    # Switch off QName Minimization, it generates much more protobuf messages
+    # (or make the test much more smart!)
+    qname-minimization=no
+    auth-zones=example=configs/%s/example.zone""" % _confdir
     _lua_config_file = """
     outgoingProtobufServer({"127.0.0.1:%d", "127.0.0.1:%d"}, { logQueries=false, logResponses=true })
     """ % (protobufServersParameters[0].port, protobufServersParameters[1].port)
