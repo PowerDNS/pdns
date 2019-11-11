@@ -1165,16 +1165,15 @@ void doExitGeneric(bool nicely)
 {
   g_log<<Logger::Error<<"Exiting on user request"<<endl;
   extern RecursorControlChannel s_rcc;
-  s_rcc.~RecursorControlChannel();
+  s_rcc.~RecursorControlChannel(); 
 
   extern string s_pidfname;
-  if(!s_pidfname.empty())
+  if(!s_pidfname.empty()) 
     unlink(s_pidfname.c_str()); // we can at least try..
-  if(nicely) {
-    RecursorControlChannel::stop = 1;
-  } else {
+  if(nicely)
+    exit(1);
+  else
     _exit(1);
-  }
 }
 
 void doExit()

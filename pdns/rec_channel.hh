@@ -27,7 +27,6 @@
 #include <vector>
 #include <inttypes.h>
 #include <sys/un.h>
-#include <signal.h>
 #include <pthread.h>
 #include "iputils.hh"
 #include "dnsname.hh"
@@ -54,7 +53,6 @@ public:
   std::string recv(std::string* remote=0, unsigned int timeout=5);
 
   int d_fd;
-  static volatile sig_atomic_t stop;
 private:
   struct sockaddr_un d_local;
 };
