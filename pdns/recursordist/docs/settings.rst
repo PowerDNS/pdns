@@ -1150,16 +1150,16 @@ matching ``*.foo.example.net`` will be answered with NXDOMAIN directly
 without consulting authoritative servers.
 
 no
-~~
+^^
 No :rfc:`8020` processing is done.
 
 dnssec
-~~~~~~
+^^^^^^
 :rfc:`8020` processing is only done using cached NXDOMAIN records that are
 DNSSEC validated.
 
 yes
-~~~
+^^^
 :rfc:`8020` processing is done using any non-Bogus NXDOMAIN record
 available in the cache.
 
