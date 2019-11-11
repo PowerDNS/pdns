@@ -4279,6 +4279,8 @@ static int serviceMain(int argc, char*argv[])
     infos.isListener = true;
     infos.isWorker = true;
     recursorThread(currentThreadId++, "worker");
+    
+    handlerInfos.thread.join();
   }
   else {
 
@@ -4313,7 +4315,9 @@ static int serviceMain(int argc, char*argv[])
     infos.isHandler = true;
     infos.thread = std::thread(recursorThread, 0, "web+stat");
 
-    s_threadInfos.at(0).thread.join();
+    for (auto & ti : s_threadInfos) {
+      ti.thread.join();
+    }
   }
   return 0;
 }
@@ -4448,7 +4452,8 @@ try
   time_t carbonInterval=::arg().asNum("carbon-interval");
   time_t luaMaintenanceInterval=::arg().asNum("lua-maintenance-interval");
   counter.store(0); // used to periodically execute certain tasks
-  for(;;) {
+
+  while (!RecursorControlChannel::stop) {
     while(MT->schedule(&g_now)); // MTasker letting the mthreads do their thing
 
     if(!(counter%500)) {
@@ -4516,6 +4521,7 @@ try
       }
     }
   }
+  return 0;
 }
 catch(PDNSException &ae) {
   g_log<<Logger::Error<<"Exception: "<<ae.reason<<endl;

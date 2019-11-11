@@ -17,6 +17,8 @@
 
 #include "namespaces.hh"
 
+volatile sig_atomic_t RecursorControlChannel::stop;
+
 RecursorControlChannel::RecursorControlChannel()
 {
   d_fd=-1;
