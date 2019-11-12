@@ -20124,6 +20124,8 @@
 :text1.example.com:16:\014k\075rsa\073\040p\075one:120
 :text2.example.com:16:\015k\075rsa\134\073\040p\075one:120
 :text3.example.com:16:\015k\075rsa\134\073\040p\075one:120
+:text4.example.com:16:\014k\075rsa\073\040p\075one\003foo\010bar\040fred:120
+:text5.example.com:16:\005k\075rsa:120
 @example.com::smtp-servers.example.com.:10:120
 @example.com::smtp-servers.test.com.:15:120
 @external-mail.example.com::server1.test.com.:25:120

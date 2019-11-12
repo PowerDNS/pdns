@@ -95,6 +95,8 @@ text0			IN	TXT	"k=rsa; p=one"
 text1			IN	TXT	"k=rsa\; p=one"
 text2			IN	TXT	"k=rsa\\; p=one"
 text3			IN	TXT	"k=rsa\\\; p=one"
+text4			IN	TXT	"k=rsa; p=one" foo	"bar fred"
+text5			IN	TXT	k\=rsa
 ;
 host.*.sub		IN	A	192.168.6.1
 ;
