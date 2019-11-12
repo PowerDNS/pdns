@@ -2845,7 +2845,8 @@ static void doStats(void)
     g_log<<Logger::Notice<<"stats: throttle map: "
       << broadcastAccFunction<uint64_t>(pleaseGetThrottleSize) <<", ns speeds: "
       << broadcastAccFunction<uint64_t>(pleaseGetNsSpeedsSize)<<", failed ns: "
-      << broadcastAccFunction<uint64_t>(pleaseGetFailedServersSize)<<endl;
+      << broadcastAccFunction<uint64_t>(pleaseGetFailedServersSize)<<", ednsmap: "
+      <<broadcastAccFunction<uint64_t>(pleaseGetEDNSStatusesSize)<<endl;
     g_log<<Logger::Notice<<"stats: outpacket/query ratio "<<(int)(SyncRes::s_outqueries*100.0/SyncRes::s_queries)<<"%";
     g_log<<Logger::Notice<<", "<<(int)(SyncRes::s_throttledqueries*100.0/(SyncRes::s_outqueries+SyncRes::s_throttledqueries))<<"% throttled, "
      <<SyncRes::s_nodelegated<<" no-delegation drops"<<endl;
@@ -2911,6 +2912,8 @@ static void houseKeeping(void *)
         SyncRes::pruneNSSpeeds(limit);
         limit = now.tv_sec - SyncRes::s_serverdownthrottletime * 10;
         SyncRes::pruneFailedServers(limit);
+        limit = now.tv_sec - 2*3600;
+        SyncRes::pruneEDNSStatuses(limit);
       }
       last_prune=time(0);
     }

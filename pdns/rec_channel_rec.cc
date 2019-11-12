@@ -917,6 +917,11 @@ uint64_t* pleaseGetFailedServersSize()
   return new uint64_t(SyncRes::getFailedServersSize());
 }
 
+uint64_t* pleaseGetEDNSStatusesSize()
+{
+  return new uint64_t(SyncRes::getEDNSStatusesSize());
+}
+
 uint64_t* pleaseGetConcurrentQueries()
 {
   return new uint64_t(getMT() ? getMT()->numProcesses() : 0);
