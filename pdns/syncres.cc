@@ -472,6 +472,27 @@ uint64_t SyncRes::doDumpThrottleMap(int fd)
   return count;
 }
 
+uint64_t SyncRes::doDumpFailedServers(int fd)
+{
+  auto fp = std::unique_ptr<FILE, int(*)(FILE*)>(fdopen(dup(fd), "w"), fclose);
+  if(!fp)
+    return 0;
+  fprintf(fp.get(), "; failed servers dump follows\n");
+  fprintf(fp.get(), "; remote IP\tcount\ttimestamp\n");
+  uint64_t count=0;
+
+  for(const auto& i : t_sstorage.fails.getMap())
+  {
+    count++;
+    char tmp[26];
+    ctime_r(&i.second.last, tmp);
+    fprintf(fp.get(), "%s\t%lld\t%s", i.first.toString().c_str(),
+            static_cast<long long>(i.second.value), tmp);
+  }
+
+  return count;
+}
+
 /* so here is the story. First we complete the full resolution process for a domain name. And only THEN do we decide
    to also do DNSSEC validation, which leads to new queries. To make this simple, we *always* ask for DNSSEC records
    so that if there are RRSIGs for a name, we'll have them.
@@ -3150,7 +3171,7 @@ bool SyncRes::doResolveAtThisIP(const std::string& prefix, const DNSName& qname,
       t_sstorage.nsSpeeds[nsName.empty()? DNSName(remoteIP.toStringWithPort()) : nsName].submit(remoteIP, 1000000, &d_now); // 1 sec
 
       // code below makes sure we don't filter COM or the root
-      if (s_serverdownmaxfails > 0 && (auth != g_rootdnsname) && t_sstorage.fails.incr(remoteIP) >= s_serverdownmaxfails) {
+      if (s_serverdownmaxfails > 0 && (auth != g_rootdnsname) && t_sstorage.fails.incr(remoteIP, d_now) >= s_serverdownmaxfails) {
         LOG(prefix<<qname<<": Max fails reached resolving on "<< remoteIP.toString() <<". Going full throttle for "<< s_serverdownthrottletime <<" seconds" <<endl);
         // mark server as down
         t_sstorage.throttle.throttle(d_now.tv_sec, boost::make_tuple(remoteIP, "", 0), s_serverdownthrottletime, 10000);
