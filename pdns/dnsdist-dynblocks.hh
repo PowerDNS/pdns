@@ -444,6 +444,7 @@ private:
     unsigned int count = 0;
     const auto& got = blocks.lookup(name);
     bool expired = false;
+    DNSName domain(name.makeLowerCase());
 
     if (got) {
       if (until < got->until) {
@@ -460,13 +461,13 @@ private:
       }
     }
 
-    DynBlock db{rule.d_blockReason, until, name, rule.d_action};
+    DynBlock db{rule.d_blockReason, until, domain, rule.d_action};
     db.blocks = count;
 
     if (!d_beQuiet && (!got || expired)) {
-      warnlog("Inserting dynamic block for %s for %d seconds: %s", name, rule.d_blockDuration, rule.d_blockReason);
+      warnlog("Inserting dynamic block for %s for %d seconds: %s", domain, rule.d_blockDuration, rule.d_blockReason);
     }
-    blocks.add(name, db);
+    blocks.add(domain, db);
     updated = true;
   }
 

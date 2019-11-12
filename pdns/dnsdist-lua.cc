@@ -1132,6 +1132,7 @@ void setupLuaConfig(bool client)
 			   for(const auto& capair : names) {
 			     unsigned int count = 0;
                              DNSName domain(capair.second);
+                             domain.makeUsLowerCase();
                              auto got = slow.lookup(domain);
                              bool expired=false;
 			     if(got) {
