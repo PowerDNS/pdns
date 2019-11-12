@@ -512,7 +512,7 @@ public:
   static void pruneEDNSStatuses(time_t cutoff)
   {
     for (auto it = t_sstorage.ednsstatus.begin(); it != t_sstorage.ednsstatus.end(); ) {
-      if (it->second.modeSetAt && it->second.modeSetAt <= cutoff) {
+      if (it->second.modeSetAt <= cutoff) {
         it = t_sstorage.ednsstatus.erase(it);
       } else {
         ++it;
