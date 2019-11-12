@@ -509,6 +509,16 @@ public:
   {
     t_sstorage.ednsstatus.clear();
   }
+  static void pruneEDNSStatuses(time_t cutoff)
+  {
+    for (auto it = t_sstorage.ednsstatus.begin(); it != t_sstorage.ednsstatus.end(); ) {
+      if (it->second.modeSetAt && it->second.modeSetAt <= cutoff) {
+        it = t_sstorage.ednsstatus.erase(it);
+      } else {
+        ++it;
+      }
+    }
+  }
   static uint64_t getThrottledServersSize()
   {
     return t_sstorage.throttle.size();
@@ -1050,6 +1060,7 @@ template<class T> T broadcastAccFunction(const boost::function<T*()>& func);
 std::shared_ptr<SyncRes::domainmap_t> parseAuthAndForwards();
 uint64_t* pleaseGetNsSpeedsSize();
 uint64_t* pleaseGetFailedServersSize();
+uint64_t* pleaseGetEDNSStatusesSize();
 uint64_t* pleaseGetCacheSize();
 uint64_t* pleaseGetNegCacheSize();
 uint64_t* pleaseGetCacheHits();
