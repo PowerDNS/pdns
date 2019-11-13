@@ -4279,6 +4279,8 @@ static int serviceMain(int argc, char*argv[])
     infos.isListener = true;
     infos.isWorker = true;
     recursorThread(currentThreadId++, "worker");
+    
+    handlerInfos.thread.join();
   }
   else {
 
@@ -4313,8 +4315,14 @@ static int serviceMain(int argc, char*argv[])
     infos.isHandler = true;
     infos.thread = std::thread(recursorThread, 0, "web+stat");
 
-    s_threadInfos.at(0).thread.join();
+    for (auto & ti : s_threadInfos) {
+      ti.thread.join();
+    }
   }
+
+#ifdef HAVE_PROTOBUF
+  google::protobuf::ShutdownProtobufLibrary();
+#endif /* HAVE_PROTOBUF */
   return 0;
 }
 
@@ -4399,11 +4407,13 @@ try
 
   t_fdm=getMultiplexer();
 
+  RecursorWebServer *rws = nullptr;
+  
   if(threadInfo.isHandler) {
     if(::arg().mustDo("webserver")) {
       g_log<<Logger::Warning << "Enabling web server" << endl;
       try {
-        new RecursorWebServer(t_fdm);
+        rws = new RecursorWebServer(t_fdm);
       }
       catch(PDNSException &e) {
         g_log<<Logger::Error<<"Exception: "<<e.reason<<endl;
@@ -4448,7 +4458,8 @@ try
   time_t carbonInterval=::arg().asNum("carbon-interval");
   time_t luaMaintenanceInterval=::arg().asNum("lua-maintenance-interval");
   counter.store(0); // used to periodically execute certain tasks
-  for(;;) {
+
+  while (!RecursorControlChannel::stop) {
     while(MT->schedule(&g_now)); // MTasker letting the mthreads do their thing
 
     if(!(counter%500)) {
@@ -4516,6 +4527,9 @@ try
       }
     }
   }
+  delete rws;
+  delete t_fdm;
+  return 0;
 }
 catch(PDNSException &ae) {
   g_log<<Logger::Error<<"Exception: "<<ae.reason<<endl;
