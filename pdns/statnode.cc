@@ -12,6 +12,8 @@ StatNode::Stat StatNode::print(unsigned int depth, Stat newstat, bool silent) co
   childstat.nxdomains += s.nxdomains;
   childstat.servfails += s.servfails;
   childstat.drops += s.drops;
+  childstat.bytes += s.bytes;
+
   if(children.size()>1024 && !silent) {
     cout<<string(depth, ' ')<<name<<": too many to print"<<endl;
   }
@@ -23,7 +25,8 @@ StatNode::Stat StatNode::print(unsigned int depth, Stat newstat, bool silent) co
       childstat.noerrors<<" noerrors, "<< 
       childstat.nxdomains<<" nxdomains, "<< 
       childstat.servfails<<" servfails, "<< 
-      childstat.drops<<" drops"<<endl;
+      childstat.drops<<" drops, "<<
+      childstat.bytes<<" bytes"<<endl;
 
   newstat+=childstat;
 
@@ -39,6 +42,7 @@ void  StatNode::visit(visitor_t visitor, Stat &newstat, unsigned int depth) cons
   childstat.nxdomains += s.nxdomains;
   childstat.servfails += s.servfails;
   childstat.drops += s.drops;
+  childstat.bytes += s.bytes;
   childstat.remotes = s.remotes;
   
   Stat selfstat(childstat);
@@ -53,7 +57,7 @@ void  StatNode::visit(visitor_t visitor, Stat &newstat, unsigned int depth) cons
 }
 
 
-void StatNode::submit(const DNSName& domain, int rcode, boost::optional<const ComboAddress&> remote)
+void StatNode::submit(const DNSName& domain, int rcode, unsigned int bytes, boost::optional<const ComboAddress&> remote)
 {
   //  cerr<<"FIRST submit called on '"<<domain<<"'"<<endl;
   std::vector<string> tmp = domain.getRawLabels();
@@ -61,7 +65,7 @@ void StatNode::submit(const DNSName& domain, int rcode, boost::optional<const Co
     return;
 
   auto last = tmp.end() - 1;
-  children[*last].submit(last, tmp.begin(), "", rcode, remote, 1);
+  children[*last].submit(last, tmp.begin(), "", rcode, bytes, remote, 1);
 }
 
 /* www.powerdns.com. -> 
@@ -71,7 +75,7 @@ void StatNode::submit(const DNSName& domain, int rcode, boost::optional<const Co
    www.powerdns.com. 
 */
 
-void StatNode::submit(std::vector<string>::const_iterator end, std::vector<string>::const_iterator begin, const std::string& domain, int rcode, boost::optional<const ComboAddress&> remote, unsigned int count)
+void StatNode::submit(std::vector<string>::const_iterator end, std::vector<string>::const_iterator begin, const std::string& domain, int rcode, unsigned int bytes, boost::optional<const ComboAddress&> remote, unsigned int count)
 {
   //  cerr<<"Submit called for domain='"<<domain<<"': ";
   //  for(const std::string& n :  labels) 
@@ -93,6 +97,7 @@ void StatNode::submit(std::vector<string>::const_iterator end, std::vector<strin
     }
     //    cerr<<"Hit the end, set our fullname to '"<<fullname<<"'"<<endl<<endl;
     s.queries++;
+    s.bytes += bytes;
     if(rcode<0)
       s.drops++;
     else if(rcode==0)
@@ -113,7 +118,7 @@ void StatNode::submit(std::vector<string>::const_iterator end, std::vector<strin
     }
     //    cerr<<"Not yet end, set our fullname to '"<<fullname<<"', recursing"<<endl;
     --end;
-    children[*end].submit(end, begin, fullname, rcode, remote, count+1);
+    children[*end].submit(end, begin, fullname, rcode, bytes, remote, count+1);
   }
 }
 

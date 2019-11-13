@@ -31,8 +31,10 @@ public:
 
   struct Stat
   {
-    Stat() : queries(0), noerrors(0), nxdomains(0), servfails(0), drops(0){}
-    uint64_t queries, noerrors, nxdomains, servfails, drops;
+    Stat(): queries(0), noerrors(0), nxdomains(0), servfails(0), drops(0), bytes(0)
+    {
+    }
+    uint64_t queries, noerrors, nxdomains, servfails, drops, bytes;
 
     Stat& operator+=(const Stat& rhs) {
       queries+=rhs.queries;
@@ -40,6 +42,7 @@ public:
       nxdomains+=rhs.nxdomains;
       servfails+=rhs.servfails;
       drops+=rhs.drops;
+      bytes+=rhs.bytes;
 
       for(const remotes_t::value_type& rem : rhs.remotes) {
         remotes[rem.first]+=rem.second;
@@ -55,7 +58,7 @@ public:
   std::string fullname;
   unsigned int labelsCount{0};
 
-  void submit(const DNSName& domain, int rcode, boost::optional<const ComboAddress&> remote);
+  void submit(const DNSName& domain, int rcode, unsigned int bytes, boost::optional<const ComboAddress&> remote);
 
   Stat print(unsigned int depth=0, Stat newstat=Stat(), bool silent=false) const;
   typedef boost::function<void(const StatNode*, const Stat& selfstat, const Stat& childstat)> visitor_t;
@@ -68,5 +71,5 @@ public:
   children_t children;
 
 private:
-  void submit(std::vector<string>::const_iterator end, std::vector<string>::const_iterator begin, const std::string& domain, int rcode, boost::optional<const ComboAddress&> remote, unsigned int count);
+  void submit(std::vector<string>::const_iterator end, std::vector<string>::const_iterator begin, const std::string& domain, int rcode, unsigned int bytes, boost::optional<const ComboAddress&> remote, unsigned int count);
 };
