@@ -117,7 +117,7 @@ static void statNodeRespRing(statvisitor_t visitor, unsigned int seconds)
       if (seconds && c.when < cutoff)
         continue;
 
-      root.submit(c.name, c.dh.rcode, boost::none);
+      root.submit(c.name, ((c.dh.rcode == 0 && c.usec == std::numeric_limits<unsigned int>::max()) ? -1 : c.dh.rcode), boost::none);
     }
   }
 
@@ -706,6 +706,8 @@ void setupLuaInspection()
   g_lua.registerMember("servfails", &StatNode::Stat::servfails);
   g_lua.registerMember("nxdomains", &StatNode::Stat::nxdomains);
   g_lua.registerMember("queries", &StatNode::Stat::queries);
+  g_lua.registerMember("noerrors", &StatNode::Stat::noerrors);
+  g_lua.registerMember("drops", &StatNode::Stat::drops);
 
   g_lua.writeFunction("statNodeRespRing", [](statvisitor_t visitor, boost::optional<unsigned int> seconds) {
       statNodeRespRing(visitor, seconds ? *seconds : 0);
