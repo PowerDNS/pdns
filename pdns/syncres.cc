@@ -461,16 +461,15 @@ int SyncRes::asyncresolveWrapper(const ComboAddress& ip, bool ednsMANDATORY, con
      If '3', send bare queries
   */
 
-  SyncRes::EDNSStatus* ednsstatus;
-  ednsstatus = &t_sstorage.ednsstatus[ip]; // does this include port? YES
+  SyncRes::EDNSStatus* ednsstatus = &t_sstorage.ednsstatus[ip]; // does this include port? YES
 
-  if(ednsstatus->modeSetAt && ednsstatus->modeSetAt + 3600 < d_now.tv_sec) {
-    *ednsstatus=SyncRes::EDNSStatus();
+  if (ednsstatus->modeSetAt && ednsstatus->modeSetAt + 3600 < d_now.tv_sec) {
+    *ednsstatus = SyncRes::EDNSStatus();
     //    cerr<<"Resetting EDNS Status for "<<ip.toString()<<endl);
   }
 
-  SyncRes::EDNSStatus::EDNSMode& mode=ednsstatus->mode;
-  SyncRes::EDNSStatus::EDNSMode oldmode = mode;
+  SyncRes::EDNSStatus::EDNSMode *mode = &ednsstatus->mode;
+  SyncRes::EDNSStatus::EDNSMode oldmode = *mode;
   int EDNSLevel = 0;
   auto luaconfsLocal = g_luaconfs.getLocal();
   ResolveContext ctx;
@@ -482,11 +481,11 @@ int SyncRes::asyncresolveWrapper(const ComboAddress& ip, bool ednsMANDATORY, con
   for(int tries = 0; tries < 3; ++tries) {
     //    cerr<<"Remote '"<<ip.toString()<<"' currently in mode "<<mode<<endl;
     
-    if(mode==EDNSStatus::NOEDNS) {
+    if (*mode == EDNSStatus::NOEDNS) {
       g_stats.noEdnsOutQueries++;
       EDNSLevel = 0; // level != mode
     }
-    else if(ednsMANDATORY || mode==EDNSStatus::UNKNOWN || mode==EDNSStatus::EDNSOK || mode==EDNSStatus::EDNSIGNORANT)
+    else if (ednsMANDATORY || *mode == EDNSStatus::UNKNOWN || *mode == EDNSStatus::EDNSOK || *mode == EDNSStatus::EDNSIGNORANT)
       EDNSLevel = 1;
 
     DNSName sendQname(domain);
@@ -499,6 +498,9 @@ int SyncRes::asyncresolveWrapper(const ComboAddress& ip, bool ednsMANDATORY, con
     else {
       ret=asyncresolve(ip, sendQname, type, doTCP, sendRDQuery, EDNSLevel, now, srcmask, ctx, luaconfsLocal->outgoingProtobufServer, res, chained);
     }
+    // ednsstatus might be cleared, so do a new lookup
+    ednsstatus = &t_sstorage.ednsstatus[ip]; // does this include port? YES
+    mode = &ednsstatus->mode;
     if(ret < 0) {
       return ret; // transport error, nothing to learn here
     }
@@ -506,7 +508,7 @@ int SyncRes::asyncresolveWrapper(const ComboAddress& ip, bool ednsMANDATORY, con
     if(ret == 0) { // timeout, not doing anything with it now
       return ret;
     }
-    else if(mode==EDNSStatus::UNKNOWN || mode==EDNSStatus::EDNSOK || mode == EDNSStatus::EDNSIGNORANT ) {
+    else if(*mode==EDNSStatus::UNKNOWN || *mode==EDNSStatus::EDNSOK || *mode == EDNSStatus::EDNSIGNORANT ) {
       /* So, you might be tempted to treat the presence of EDNS in a response as meaning that the
          server does understand EDNS, and thus prevent a downgrade to no EDNS.
          It turns out that you can't because there are a lot of crappy servers out there,
@@ -514,22 +516,22 @@ int SyncRes::asyncresolveWrapper(const ComboAddress& ip, bool ednsMANDATORY, con
       */
       if(res->d_rcode == RCode::FormErr || res->d_rcode == RCode::NotImp) {
 	//	cerr<<"Downgrading to NOEDNS because of "<<RCode::to_s(res->d_rcode)<<" for query to "<<ip.toString()<<" for '"<<domain<<"'"<<endl;
-        mode = EDNSStatus::NOEDNS;
+        *mode = EDNSStatus::NOEDNS;
         continue;
       }
       else if(!res->d_haveEDNS) {
-        if(mode != EDNSStatus::EDNSIGNORANT) {
-          mode = EDNSStatus::EDNSIGNORANT;
-	  //	  cerr<<"We find that "<<ip.toString()<<" is an EDNS-ignorer for '"<<domain<<"', moving to mode 3"<<endl;
+        if (*mode != EDNSStatus::EDNSIGNORANT) {
+          *mode = EDNSStatus::EDNSIGNORANT;
+	  //	  cerr<<"We find that "<<ip.toString()<<" is an EDNS-ignorer for '"<<domain<<"', moving to mode 2"<<endl;
 	}
       }
       else {
-	mode = EDNSStatus::EDNSOK;
+	*mode = EDNSStatus::EDNSOK;
 	//	cerr<<"We find that "<<ip.toString()<<" is EDNS OK!"<<endl;
       }
       
     }
-    if(oldmode != mode || !ednsstatus->modeSetAt)
+    if (oldmode != *mode || !ednsstatus->modeSetAt)
       ednsstatus->modeSetAt=d_now.tv_sec;
     //    cerr<<"Result: ret="<<ret<<", EDNS-level: "<<EDNSLevel<<", haveEDNS: "<<res->d_haveEDNS<<", new mode: "<<mode<<endl;  
     return ret;
