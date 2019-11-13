@@ -28,7 +28,7 @@ public:
   uint8_t d_numberOfTicketsKeys{5};
   LibsslTLSVersion d_minTLSVersion{LibsslTLSVersion::TLS10};
 
-  bool d_preferServerCiphers{false};
+  bool d_preferServerCiphers{true};
   bool d_enableTickets{true};
 };
 
