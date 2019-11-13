@@ -294,9 +294,8 @@ public:
 
   struct EDNSStatus
   {
-    EDNSStatus() : mode(UNKNOWN), modeSetAt(0) {}
-    enum EDNSMode { UNKNOWN=0, EDNSOK=1, EDNSIGNORANT=2, NOEDNS=3 } mode;
-    time_t modeSetAt;
+    time_t modeSetAt{0};
+    enum EDNSMode { UNKNOWN=0, EDNSOK=1, EDNSIGNORANT=2, NOEDNS=3 } mode{UNKNOWN};
   };
 
   enum class HardenNXD { No, DNSSEC, Yes };
