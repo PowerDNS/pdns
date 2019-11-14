@@ -115,6 +115,7 @@ static const oid dnssecCheckDisabledQueriesOID[] = { RECURSOR_STATS_OID, 96 };
 static const oid variableResponsesOID[] = { RECURSOR_STATS_OID, 97 };
 static const oid specialMemoryUsageOID[] = { RECURSOR_STATS_OID, 98 };
 static const oid rebalancedQueriesOID[] = { RECURSOR_STATS_OID, 99 };
+static const oid qnameMinFallbackSuccessOID[] = { RECURSOR_STATS_OID, 100 };
 
 static std::unordered_map<oid, std::string> s_statsMap;
 
@@ -288,6 +289,7 @@ RecursorSNMPAgent::RecursorSNMPAgent(const std::string& name, const std::string&
   registerCounter64Stat("ipv6-outqueries", ipv6OutqueriesOID, OID_LENGTH(ipv6OutqueriesOID));
   registerCounter64Stat("throttled-outqueries", throttledOutqueriesOID, OID_LENGTH(throttledOutqueriesOID));
   registerCounter64Stat("dont-outqueries", dontOutqueriesOID, OID_LENGTH(dontOutqueriesOID));
+  registerCounter64Stat("qname-min-fallback-success", qnameMinFallbackSuccessOID, OID_LENGTH(qnameMinFallbackSuccessOID));
   registerCounter64Stat("unreachables", unreachablesOID, OID_LENGTH(unreachablesOID));
   registerCounter64Stat("chain-resends", chainResendsOID, OID_LENGTH(chainResendsOID));
   registerCounter64Stat("tcp-clients", tcpClientsOID, OID_LENGTH(tcpClientsOID));

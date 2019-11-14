@@ -15,7 +15,7 @@ IMPORTS
         FROM SNMPv2-CONF;
 
 rec MODULE-IDENTITY
-    LAST-UPDATED "201812240000Z"
+    LAST-UPDATED "201911140000Z"
     ORGANIZATION "PowerDNS BV"
     CONTACT-INFO "support@powerdns.com"
     DESCRIPTION
@@ -26,6 +26,9 @@ rec MODULE-IDENTITY
 
     REVISION "201812240000Z"
     DESCRIPTION "Added the dnssecAuthenticDataQueries and dnssecCheckDisabledQueries stats."
+
+    REVISION "201911140000Z"
+    DESCRIPTION "Added qnameMinFallbackSuccess stats."
 
     ::= { powerdns 2 }
 
@@ -825,6 +828,14 @@ rebalancedQueries OBJECT-TYPE
         "Number of queries re-distributed because the first selected worker thread was above the target load"
     ::= { stats 99 }
 
+qnameMinFallbackSuccess OBJECT-TYPE
+    SYNTAX Counter64
+    MAX-ACCESS read-only
+    STATUS current
+    DESCRIPTION
+        "Number of successful queries due to fallback mechanism within 'qname-minimisation' setting"
+    ::= { stats 100 }
+
 ---
 --- Traps / Notifications
 ---
@@ -967,7 +978,8 @@ recGroup OBJECT-GROUP
         variableResponses,
         specialMemoryUsage,
         rebalancedQueries,
-        trapReason
+        trapReason,
+        qnameMinFallbackSuccess
     }
     STATUS current
     DESCRIPTION "Objects conformance group for PowerDNS Recursor"

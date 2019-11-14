@@ -720,6 +720,7 @@ public:
   static std::atomic<uint64_t> s_outgoing6timeouts;
   static std::atomic<uint64_t> s_throttledqueries;
   static std::atomic<uint64_t> s_dontqueries;
+  static std::atomic<uint64_t> s_qnameminfallbacksuccess;
   static std::atomic<uint64_t> s_authzonequeries;
   static std::atomic<uint64_t> s_outqueries;
   static std::atomic<uint64_t> s_tcpoutqueries;

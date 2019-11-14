@@ -127,6 +127,7 @@ private:
 
             { "dnssec-validations",              MetricDefinition(PrometheusMetricType::counter, "Number of DNSSEC validations performed") },
             { "dont-outqueries",              MetricDefinition(PrometheusMetricType::counter, "Number of outgoing queries dropped because of `setting-dont-query` setting") },
+            { "qname-min-fallback-success",   MetricDefinition(PrometheusMetricType::counter, "Number of successful queries due to fallback mechanism within 'qname-minimisation' setting") },
             { "ecs-queries",              MetricDefinition(PrometheusMetricType::counter, "Number of outgoing queries adorned with an EDNS Client Subnet option") },
             { "ecs-responses",              MetricDefinition(PrometheusMetricType::counter, "Number of responses received from authoritative servers with an EDNS Client Subnet option we used") },
             { "edns-ping-matches",              MetricDefinition(PrometheusMetricType::counter, "Number of servers that sent a valid EDNS PING response") },
