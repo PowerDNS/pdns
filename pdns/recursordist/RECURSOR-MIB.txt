@@ -833,7 +833,7 @@ qnameMinFallbackSuccess OBJECT-TYPE
     MAX-ACCESS read-only
     STATUS current
     DESCRIPTION
-        "Number of successful queries due to fallback mechanism within 'qname-minimisation' setting"
+        "Number of successful queries due to fallback mechanism within 'qname-minimization' setting"
     ::= { stats 100 }
 
 ---
