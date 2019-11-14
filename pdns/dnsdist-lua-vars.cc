@@ -31,6 +31,7 @@ void setupLuaVars()
       {"Nxdomain", (int)DNSAction::Action::Nxdomain},
       {"Refused", (int)DNSAction::Action::Refused},
       {"Spoof", (int)DNSAction::Action::Spoof},
+      {"SpoofRaw", (int)DNSAction::Action::SpoofRaw},
       {"Allow", (int)DNSAction::Action::Allow},
       {"HeaderModify", (int)DNSAction::Action::HeaderModify},
       {"Pool", (int)DNSAction::Action::Pool},

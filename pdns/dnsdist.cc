@@ -1031,34 +1031,41 @@ NumberedServerVector getDownstreamCandidates(const pools_t& pools, const std::st
   return pool->getServers();
 }
 
-static void spoofResponseFromString(DNSQuestion& dq, const string& spoofContent)
+static void spoofResponseFromString(DNSQuestion& dq, const string& spoofContent, bool raw)
 {
   string result;
 
-  std::vector<std::string> addrs;
-  stringtok(addrs, spoofContent, " ,");
-
-  if (addrs.size() == 1) {
-    try {
-      ComboAddress spoofAddr(spoofContent);
-      SpoofAction sa({spoofAddr});
-      sa(&dq, &result);
-    }
-    catch(const PDNSException &e) {
-      SpoofAction sa(spoofContent); // CNAME then
-      sa(&dq, &result);
-    }
-  } else {
-    std::vector<ComboAddress> cas;
-    for (const auto& addr : addrs) {
-      try {
-        cas.push_back(ComboAddress(addr));
-      }
-      catch (...) {
-      }
-    }
-    SpoofAction sa(cas);
+  if (raw) {
+    SpoofAction sa(spoofContent);
     sa(&dq, &result);
+  }
+  else {
+    std::vector<std::string> addrs;
+    stringtok(addrs, spoofContent, " ,");
+
+    if (addrs.size() == 1) {
+      try {
+        ComboAddress spoofAddr(spoofContent);
+        SpoofAction sa({spoofAddr});
+        sa(&dq, &result);
+      }
+      catch(const PDNSException &e) {
+        DNSName cname(spoofContent);
+        SpoofAction sa(cname); // CNAME then
+        sa(&dq, &result);
+      }
+    } else {
+      std::vector<ComboAddress> cas;
+      for (const auto& addr : addrs) {
+        try {
+          cas.push_back(ComboAddress(addr));
+        }
+        catch (...) {
+        }
+      }
+      SpoofAction sa(cas);
+      sa(&dq, &result);
+    }
   }
 }
 
@@ -1092,7 +1099,11 @@ bool processRulesResult(const DNSAction::Action& action, DNSQuestion& dq, std::s
     return true;
     break;
   case DNSAction::Action::Spoof:
-    spoofResponseFromString(dq, ruleresult);
+    spoofResponseFromString(dq, ruleresult, false);
+    return true;
+    break;
+  case DNSAction::Action::SpoofRaw:
+    spoofResponseFromString(dq, ruleresult, true);
     return true;
     break;
   case DNSAction::Action::Truncate:

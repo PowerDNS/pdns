@@ -132,7 +132,7 @@ struct DNSResponse : DNSQuestion
 class DNSAction
 {
 public:
-  enum class Action { Drop, Nxdomain, Refused, Spoof, Allow, HeaderModify, Pool, Delay, Truncate, ServFail, None, NoOp, NoRecurse };
+  enum class Action { Drop, Nxdomain, Refused, Spoof, Allow, HeaderModify, Pool, Delay, Truncate, ServFail, None, NoOp, NoRecurse, SpoofRaw };
   static std::string typeToString(const Action& action)
   {
     switch(action) {
@@ -144,6 +144,8 @@ public:
       return "Send Refused";
     case Action::Spoof:
       return "Spoof an answer";
+    case Action::SpoofRaw:
+      return "Spoof an answer from raw bytes";
     case Action::Allow:
       return "Allow";
     case Action::HeaderModify:

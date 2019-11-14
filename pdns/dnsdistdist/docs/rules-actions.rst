@@ -1223,6 +1223,7 @@ The following actions exist.
   * ``aa``: bool - Set the AA bit to this value (true means the bit is set, false means it's cleared). Default is to clear it.
   * ``ad``: bool - Set the AD bit to this value (true means the bit is set, false means it's cleared). Default is to clear it.
   * ``ra``: bool - Set the RA bit to this value (true means the bit is set, false means it's cleared). Default is to copy the value of the RD bit from the incoming query.
+  * ``ttl``: int - The TTL of the record.
 
 .. function:: SpoofCNAMEAction(cname [, options])
 
@@ -1239,6 +1240,24 @@ The following actions exist.
   * ``aa``: bool - Set the AA bit to this value (true means the bit is set, false means it's cleared). Default is to clear it.
   * ``ad``: bool - Set the AD bit to this value (true means the bit is set, false means it's cleared). Default is to clear it.
   * ``ra``: bool - Set the RA bit to this value (true means the bit is set, false means it's cleared). Default is to copy the value of the RD bit from the incoming query.
+  * ``ttl``: int - The TTL of the record.
+
+.. function:: SpoofRawAction(rawAnswer [, options])
+
+  .. versionadded:: 1.5.0
+
+  Forge a response with the specified raw bytes as record data.
+  For example, for a TXT record of "aaa" "bbbb": SpoofRawAction("\003aaa\004bbbb")
+
+  :param string rawAnswer: The raw record data
+  :param table options: A table with key: value pairs with options.
+
+  Options:
+
+  * ``aa``: bool - Set the AA bit to this value (true means the bit is set, false means it's cleared). Default is to clear it.
+  * ``ad``: bool - Set the AD bit to this value (true means the bit is set, false means it's cleared). Default is to clear it.
+  * ``ra``: bool - Set the RA bit to this value (true means the bit is set, false means it's cleared). Default is to copy the value of the RD bit from the incoming query.
+  * ``ttl``: int - The TTL of the record.
 
 .. function:: TagAction(name, value)
 

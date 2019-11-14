@@ -147,7 +147,7 @@ void setupLuaBindings(bool client)
 
   g_lua.registerFunction<void(dnsheader::*)(bool)>("setAA", [](dnsheader& dh, bool v) {
       dh.aa=v;
-     });
+    });
 
   g_lua.registerFunction<bool(dnsheader::*)()>("getAA", [](dnsheader& dh) {
       return (bool)dh.aa;
