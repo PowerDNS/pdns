@@ -101,12 +101,12 @@ struct LMDBIndexOps
   explicit LMDBIndexOps(Parent* parent) : d_parent(parent){}
   void put(MDBRWTransaction& txn, const Class& t, uint32_t id, int flags=0)
   {
-    txn.put(d_idx, keyConv(d_parent->getMember(t)), id, flags);
+    txn->put(d_idx, keyConv(d_parent->getMember(t)), id, flags);
   }
 
   void del(MDBRWTransaction& txn, const Class& t, uint32_t id)
   {
-    if(int rc = txn.del(d_idx, keyConv(d_parent->getMember(t)), id)) {
+    if(int rc = txn->del(d_idx, keyConv(d_parent->getMember(t)), id)) {
       throw std::runtime_error("Error deleting from index: " + std::string(mdb_strerror(rc)));
     }
   }
@@ -205,7 +205,7 @@ public:
     uint32_t size()
     {
       MDB_stat stat;
-      mdb_stat(*d_parent.d_txn, d_parent.d_parent->d_main, &stat);
+      mdb_stat(**d_parent.d_txn, d_parent.d_parent->d_main, &stat);
       return stat.ms_entries;
     }
 
@@ -214,7 +214,7 @@ public:
     uint32_t size()
     {
       MDB_stat stat;
-      mdb_stat(*d_parent.d_txn, std::get<N>(d_parent.d_parent->d_tuple).d_idx, &stat);
+      mdb_stat(**d_parent.d_txn, std::get<N>(d_parent.d_parent->d_tuple).d_idx, &stat);
       return stat.ms_entries;
     }
 
@@ -222,7 +222,7 @@ public:
     bool get(uint32_t id, T& t)
     {
       MDBOutVal data;
-      if(d_parent.d_txn->get(d_parent.d_parent->d_main, id, data))
+      if((*d_parent.d_txn)->get(d_parent.d_parent->d_main, id, data))
         return false;
       
       serFromString(data.get<std::string>(), t);
@@ -234,7 +234,7 @@ public:
     uint32_t get(const typename std::tuple_element<N, tuple_t>::type::type& key, T& out)
     {
       MDBOutVal id;
-      if(!d_parent.d_txn->get(std::get<N>(d_parent.d_parent->d_tuple).d_idx, keyConv(key), id)) {
+      if(!(*d_parent.d_txn)->get(std::get<N>(d_parent.d_parent->d_tuple).d_idx, keyConv(key), id)) {
         if(get(id.get<uint32_t>(), out))
           return id.get<uint32_t>();
       }
@@ -245,7 +245,7 @@ public:
     template<int N>
     uint32_t cardinality()
     {
-      auto cursor = d_parent.d_txn->getCursor(std::get<N>(d_parent.d_parent->d_tuple).d_idx);
+      auto cursor = (*d_parent.d_txn)->getCursor(std::get<N>(d_parent.d_parent->d_tuple).d_idx);
       bool first = true;
       MDBOutVal key, data;
       uint32_t count = 0;
@@ -256,7 +256,7 @@ public:
       return count;
     }
 
-    //! End iterator type
+    //! End iderator type
     struct eiter_t
     {};
 
@@ -284,7 +284,7 @@ public:
         }
 
         if(d_on_index) {
-          if(d_parent->d_txn->get(d_parent->d_parent->d_main, d_id, d_data))
+          if((*d_parent->d_txn)->get(d_parent->d_parent->d_main, d_id, d_data))
             throw std::runtime_error("Missing id in constructor");
           serFromString(d_data.get<std::string>(), d_t);
         }
@@ -309,7 +309,7 @@ public:
         }
 
         if(d_on_index) {
-          if(d_parent->d_txn->get(d_parent->d_parent->d_main, d_id, d_data))
+          if((*d_parent->d_txn)->get(d_parent->d_parent->d_main, d_id, d_data))
             throw std::runtime_error("Missing id in constructor");
           serFromString(d_data.get<std::string>(), d_t);
         }
@@ -362,7 +362,7 @@ public:
         }
         else {
           if(d_on_index) {
-            if(d_parent->d_txn->get(d_parent->d_parent->d_main, d_id, data))
+            if((*d_parent->d_txn)->get(d_parent->d_parent->d_main, d_id, data))
               throw std::runtime_error("Missing id field");
             if(filter && !filter(data))
               goto next;
@@ -419,7 +419,7 @@ public:
     template<int N>
     iter_t genbegin(MDB_cursor_op op)
     {
-      typename Parent::cursor_t cursor = d_parent.d_txn->getCursor(std::get<N>(d_parent.d_parent->d_tuple).d_idx);
+      typename Parent::cursor_t cursor = (*d_parent.d_txn)->getCursor(std::get<N>(d_parent.d_parent->d_tuple).d_idx);
       
       MDBOutVal out, id;
       
@@ -445,7 +445,7 @@ public:
 
     iter_t begin()
     {
-      typename Parent::cursor_t cursor = d_parent.d_txn->getCursor(d_parent.d_parent->d_main);
+      typename Parent::cursor_t cursor = (*d_parent.d_txn)->getCursor(d_parent.d_parent->d_main);
       
       MDBOutVal out, id;
       
@@ -466,7 +466,7 @@ public:
     template<int N>
     iter_t genfind(const typename std::tuple_element<N, tuple_t>::type::type& key, MDB_cursor_op op)
     {
-      typename Parent::cursor_t cursor = d_parent.d_txn->getCursor(std::get<N>(d_parent.d_parent->d_tuple).d_idx);
+      typename Parent::cursor_t cursor = (*d_parent.d_txn)->getCursor(std::get<N>(d_parent.d_parent->d_tuple).d_idx);
 
       std::string keystr = keyConv(key);
       MDBInVal in(keystr);
@@ -498,7 +498,7 @@ public:
     template<int N>
     std::pair<iter_t,eiter_t> equal_range(const typename std::tuple_element<N, tuple_t>::type::type& key)
     {
-      typename Parent::cursor_t cursor = d_parent.d_txn->getCursor(std::get<N>(d_parent.d_parent->d_tuple).d_idx);
+      typename Parent::cursor_t cursor = (*d_parent.d_txn)->getCursor(std::get<N>(d_parent.d_parent->d_tuple).d_idx);
 
       std::string keyString=keyConv(key);
       MDBInVal in(keyString);
@@ -517,7 +517,7 @@ public:
     template<int N>
     std::pair<iter_t,eiter_t> prefix_range(const typename std::tuple_element<N, tuple_t>::type::type& key)
     {
-      typename Parent::cursor_t cursor = d_parent.d_txn->getCursor(std::get<N>(d_parent.d_parent->d_tuple).d_idx);
+      typename Parent::cursor_t cursor = (*d_parent.d_txn)->getCursor(std::get<N>(d_parent.d_parent->d_tuple).d_idx);
 
       std::string keyString=keyConv(key);
       MDBInVal in(keyString);
@@ -595,7 +595,7 @@ public:
         id = MDBGetMaxID(*d_txn, d_parent->d_main) + 1;
         flags = MDB_APPEND;
       }
-      d_txn->put(d_parent->d_main, id, serToString(t), flags);
+      (*d_txn)->put(d_parent->d_main, id, serToString(t), flags);
 
 #define insertMacro(N) std::get<N>(d_parent->d_tuple).put(*d_txn, t, id);
       insertMacro(0);
@@ -626,14 +626,14 @@ public:
       if(!this->get(id, t)) 
         return;
       
-      d_txn->del(d_parent->d_main, id);
+      (*d_txn)->del(d_parent->d_main, id);
       clearIndex(id, t);
     }
 
     //! clear database & indexes (by hand!)
     void clear()
     {
-      auto cursor = d_txn->getCursor(d_parent->d_main);
+      auto cursor = (*d_txn)->getRWCursor(d_parent->d_main);
       bool first = true;
       MDBOutVal key, data;
       while(!cursor.get(key, data, first ? MDB_FIRST : MDB_NEXT)) {
@@ -648,13 +648,13 @@ public:
     //! commit this transaction
     void commit()
     {
-      d_txn->commit();
+      (*d_txn)->commit();
     }
 
     //! abort this transaction
     void abort()
     {
-      d_txn->abort();
+      (*d_txn)->abort();
     }
 
     typedef MDBRWCursor cursor_t;
