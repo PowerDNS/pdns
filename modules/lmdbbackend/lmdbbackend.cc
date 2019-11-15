@@ -450,18 +450,27 @@ std::shared_ptr<LMDBBackend::RecordsRWTransaction> LMDBBackend::getRecordsRWTran
   return ret;
 }
 
-std::shared_ptr<LMDBBackend::RecordsROTransaction> LMDBBackend::getRecordsROTransaction(uint32_t id)
+std::shared_ptr<LMDBBackend::RecordsROTransaction> LMDBBackend::getRecordsROTransaction(uint32_t id, std::shared_ptr<LMDBBackend::RecordsRWTransaction> rwtxn)
 {
   auto& shard =d_trecords[id % d_shards];
   if(!shard.env) {
+    if (rwtxn) {
+      throw DBException("attempting to start nested transaction without open parent env");
+    }
     shard.env = getMDBEnv( (getArg("filename")+"-"+std::to_string(id % d_shards)).c_str(),
                            MDB_NOSUBDIR | d_asyncFlag, 0600);
     shard.dbi = shard.env->openDB("records", MDB_CREATE | MDB_DUPSORT);
   }
   
-  auto ret = std::make_shared<RecordsROTransaction>(shard.env->getROTransaction());
-  ret->db = std::make_shared<RecordsDB>(shard);
-  return ret;
+  if (rwtxn) {
+    auto ret = std::make_shared<RecordsROTransaction>(rwtxn->txn->getROTransaction());
+    ret->db = std::make_shared<RecordsDB>(shard);
+    return ret;
+  } else {
+    auto ret = std::make_shared<RecordsROTransaction>(shard.env->getROTransaction());
+    ret->db = std::make_shared<RecordsDB>(shard);
+    return ret;
+  }
 }
 
 
@@ -571,7 +580,7 @@ void LMDBBackend::lookup(const QType &type, const DNSName &qdomain, int zoneId, 
     
   DNSName relqname = qdomain.makeRelative(hunt);
   //  cout<<"get will look for "<<relqname<< " in zone "<<hunt<<" with id "<<zoneId<<endl;
-  d_rotxn = getRecordsROTransaction(zoneId);
+  d_rotxn = getRecordsROTransaction(zoneId, d_rwtxn);
 
   compoundOrdername co;
   d_getcursor = std::make_shared<MDBROCursor>(d_rotxn->txn->getCursor(d_rotxn->db->dbi));
