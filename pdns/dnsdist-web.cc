@@ -245,6 +245,22 @@ static json11::Json::array someResponseRulesToJson(GlobalStateHolder<vector<T>>*
   return responseRules;
 }
 
+template<typename T>
+static string someResponseRulesToPrometheus(const string basename, GlobalStateHolder<vector<T>>* someResponseRules)
+{
+  int num = 0;
+  auto localResponseRules = someResponseRules->getLocal();
+  ostringstream output;
+  for(const auto& a : *localResponseRules) {
+    const std::string rule_info = boost::str(boost::format("{id=\"%1%\",creationOrder=\"%2%\",uuid=\"%3%\",rule=\"%4%\",action=\"%5%\"}")
+      % num % (double)a.d_creationOrder % boost::uuids::to_string(a.d_id) % a.d_rule->toString() % a.d_action->toString());
+    output << basename << rule_info << " " << a.d_rule->d_matches << "\n";
+    num++;
+  }
+  return output.str();
+}
+
+
 static void connectionThread(int sock, ComboAddress remote)
 {
   setThreadName("dnsdist/webConn");
@@ -530,6 +546,22 @@ static void connectionThread(int sock, ComboAddress remote)
           output << statesbase << "tcpavgqueriesperconn"   << label << " " << state->tcpAvgQueriesPerConnection << "\n";
           output << statesbase << "tcpavgconnduration"     << label << " " << state->tcpAvgConnectionDuration   << "\n";
         }
+
+        const string rule_action = "dnsdist_rule_action";
+        auto actionRules = someResponseRulesToPrometheus(rule_action, &g_rulactions);
+        output << actionRules;
+
+        const string rule_response = "dnsdist_rule_response";
+        auto responseRules = someResponseRulesToPrometheus(rule_response, &g_resprulactions);
+        output << responseRules;
+
+        const string rule_cacheHit = "dnsdist_rule_cacheHit";
+        auto cacheHitResponseRules = someResponseRulesToPrometheus(rule_cacheHit, &g_cachehitresprulactions);
+        output << cacheHitResponseRules;
+
+        const string rule_selfAnsweredResponse = "dnsdist_rule_selfAnsweredResponse";
+        auto selfAnsweredResponseRules = someResponseRulesToPrometheus(rule_selfAnsweredResponse, &g_selfansweredresprulactions);
+        output << selfAnsweredResponseRules;
 
         const string frontsbase = "dnsdist_frontend_";
         output << "# HELP " << frontsbase << "queries " << "Amount of queries received by this frontend" << "\n";
