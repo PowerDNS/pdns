@@ -531,7 +531,7 @@ bool LMDBBackend::list(const DNSName &target, int id, bool include_disabled)
     }
   }
   
-  d_rotxn = getRecordsROTransaction(di.id);
+  d_rotxn = getRecordsROTransaction(di.id, d_rwtxn);
   compoundOrdername co;
   d_matchkey = co(di.id);
   d_getcursor = std::make_shared<MDBROCursor>(d_rotxn->txn->getCursor(d_rotxn->db->dbi));
