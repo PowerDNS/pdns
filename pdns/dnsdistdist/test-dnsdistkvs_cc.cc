@@ -224,11 +224,11 @@ BOOST_AUTO_TEST_CASE(test_LMDB) {
   {
     MDBEnv env(dbPath.c_str(), MDB_NOSUBDIR, 0600);
     auto transaction = env.getRWTransaction();
-    auto dbi = transaction.openDB("db-name", MDB_CREATE);
-    transaction.put(dbi, MDBInVal(std::string(reinterpret_cast<const char*>(&rem.sin4.sin_addr.s_addr), sizeof(rem.sin4.sin_addr.s_addr))), MDBInVal("this is the value for the remote addr"));
-    transaction.put(dbi, MDBInVal(qname.toDNSStringLC()), MDBInVal("this is the value for the qname"));
-    transaction.put(dbi, MDBInVal(plaintextDomain.toStringRootDot()), MDBInVal("this is the value for the plaintext domain"));
-    transaction.commit();
+    auto dbi = transaction->openDB("db-name", MDB_CREATE);
+    transaction->put(dbi, MDBInVal(std::string(reinterpret_cast<const char*>(&rem.sin4.sin_addr.s_addr), sizeof(rem.sin4.sin_addr.s_addr))), MDBInVal("this is the value for the remote addr"));
+    transaction->put(dbi, MDBInVal(qname.toDNSStringLC()), MDBInVal("this is the value for the qname"));
+    transaction->put(dbi, MDBInVal(plaintextDomain.toStringRootDot()), MDBInVal("this is the value for the plaintext domain"));
+    transaction->commit();
   }
 
   auto lmdb = std::unique_ptr<KeyValueStore>(new LMDBKVStore(dbPath, "db-name"));
