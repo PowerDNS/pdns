@@ -1250,11 +1250,11 @@ int addOrReplaceRecord(bool addOrReplace, const vector<string>& cmds) {
   di.backend->replaceRRSet(di.id, name, rr.qtype, newrrs);
   // need to be explicit to bypass the ueberbackend cache!
   di.backend->lookup(rr.qtype, name, 0, di.id);
-  di.backend->commitTransaction();
   cout<<"New rrset:"<<endl;
   while(di.backend->get(rr)) {
     cout<<rr.qname.toString()<<" "<<rr.ttl<<" IN "<<rr.qtype.getName()<<" "<<rr.content<<endl;
   }
+  di.backend->commitTransaction();
   return EXIT_SUCCESS;
 }
 
