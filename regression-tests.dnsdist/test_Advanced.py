@@ -426,6 +426,8 @@ class TestAdvancedTruncateAnyAndTCP(DNSDistTest):
         """
         name = 'anytruncatetcp.advanced.tests.powerdns.com.'
         query = dns.message.make_query(name, 'ANY', 'IN')
+        # dnsdist sets RA = RD for TC responses
+        query.flags &= ~dns.flags.RD
 
         response = dns.message.make_response(query)
         rrset = dns.rrset.from_text(name,
@@ -1239,6 +1241,8 @@ class TestAdvancedLuaTruncated(DNSDistTest):
         """
         name = 'tc.advanced.tests.powerdns.com.'
         query = dns.message.make_query(name, 'A', 'IN')
+        # dnsdist sets RA = RD for TC responses
+        query.flags &= ~dns.flags.RD
         response = dns.message.make_response(query)
         rrset = dns.rrset.from_text(name,
                                     3600,

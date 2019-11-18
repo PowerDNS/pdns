@@ -72,9 +72,27 @@ public:
     }
     return ret;
   }
+
+  void setAA(bool aa)
+  {
+    d_setAA = aa;
+  }
+
+  void setAD(bool ad)
+  {
+    d_setAD = ad;
+  }
+
+  void setRA(bool ra)
+  {
+    d_setRA = ra;
+  }
 private:
   std::vector<ComboAddress> d_addrs;
   DNSName d_cname;
+  boost::optional<bool> d_setAA{boost::none};
+  boost::optional<bool> d_setAD{boost::none};
+  boost::optional<bool> d_setRA{boost::none};
 };
 
 typedef boost::variant<string, vector<pair<int, string>>, std::shared_ptr<DNSRule>, DNSName, vector<pair<int, DNSName> > > luadnsrule_t;

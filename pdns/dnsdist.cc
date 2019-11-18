@@ -1098,6 +1098,9 @@ bool processRulesResult(const DNSAction::Action& action, DNSQuestion& dq, std::s
   case DNSAction::Action::Truncate:
     dq.dh->tc = true;
     dq.dh->qr = true;
+    dq.dh->ra = dq.dh->rd;
+    dq.dh->aa = false;
+    dq.dh->ad = false;
     return true;
     break;
   case DNSAction::Action::HeaderModify:
@@ -1185,6 +1188,9 @@ static bool applyRulesToQuery(LocalHolders& holders, DNSQuestion& dq, const stru
           vinfolog("Query from %s truncated because of dynamic block", dq.remote->toStringWithPort());
           dq.dh->tc = true;
           dq.dh->qr = true;
+          dq.dh->ra = dq.dh->rd;
+          dq.dh->aa = false;
+          dq.dh->ad = false;
           return true;
         }
         else {
@@ -1240,6 +1246,9 @@ static bool applyRulesToQuery(LocalHolders& holders, DNSQuestion& dq, const stru
           vinfolog("Query from %s for %s truncated because of dynamic block", dq.remote->toStringWithPort(), dq.qname->toLogString());
           dq.dh->tc = true;
           dq.dh->qr = true;
+          dq.dh->ra = dq.dh->rd;
+          dq.dh->aa = false;
+          dq.dh->ad = false;
           return true;
         }
         else {

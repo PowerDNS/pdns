@@ -43,6 +43,8 @@ class TestEDNSSelfGenerated(DNSDistTest):
 
         name = 'no-edns.tc.edns-self.tests.powerdns.com.'
         query = dns.message.make_query(name, 'A', 'IN')
+        # dnsdist sets RA = RD for TC responses
+        query.flags &= ~dns.flags.RD
         expectedResponse = dns.message.make_response(query)
         expectedResponse.flags |= dns.flags.TC
 
@@ -95,6 +97,8 @@ class TestEDNSSelfGenerated(DNSDistTest):
 
         name = 'edns-no-do.tc.edns-self.tests.powerdns.com.'
         query = dns.message.make_query(name, 'A', 'IN', use_edns=True, payload=4096, want_dnssec=False)
+        # dnsdist sets RA = RD for TC responses
+        query.flags &= ~dns.flags.RD
         expectedResponse = dns.message.make_response(query, our_payload=1042)
         expectedResponse.flags |= dns.flags.TC
 
@@ -153,6 +157,8 @@ class TestEDNSSelfGenerated(DNSDistTest):
 
         name = 'edns-do.tc.edns-self.tests.powerdns.com.'
         query = dns.message.make_query(name, 'A', 'IN', use_edns=True, payload=4096, want_dnssec=True)
+        # dnsdist sets RA = RD for TC responses
+        query.flags &= ~dns.flags.RD
         expectedResponse = dns.message.make_response(query, our_payload=1042)
         expectedResponse.flags |= dns.flags.TC
 
@@ -212,6 +218,8 @@ class TestEDNSSelfGenerated(DNSDistTest):
 
         name = 'edns-options.tc.edns-self.tests.powerdns.com.'
         query = dns.message.make_query(name, 'A', 'IN', use_edns=True, options=[ecso], payload=512, want_dnssec=True)
+        # dnsdist sets RA = RD for TC responses
+        query.flags &= ~dns.flags.RD
         expectedResponse = dns.message.make_response(query, our_payload=1042)
         expectedResponse.flags |= dns.flags.TC
 
@@ -294,6 +302,8 @@ class TestEDNSSelfGeneratedDisabled(DNSDistTest):
 
         name = 'edns-no-do.tc.edns-self-disabled.tests.powerdns.com.'
         query = dns.message.make_query(name, 'A', 'IN', use_edns=True, payload=4096, want_dnssec=False)
+        # dnsdist sets RA = RD for TC responses
+        query.flags &= ~dns.flags.RD
         expectedResponse = dns.message.make_response(query)
         expectedResponse.flags |= dns.flags.TC
 

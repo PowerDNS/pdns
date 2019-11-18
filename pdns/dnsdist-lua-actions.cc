@@ -444,8 +444,21 @@ DNSAction::Action SpoofAction::operator()(DNSQuestion* dq, std::string* ruleresu
   char* dest = ((char*)dq->dh) + dq->len;
 
   dq->dh->qr = true; // for good measure
-  dq->dh->ra = dq->dh->rd; // for good measure
-  dq->dh->ad = false;
+  if (d_setAA) {
+    dq->dh->aa = *d_setAA;
+  }
+  if (d_setAD) {
+    dq->dh->ad = *d_setAD;
+  }
+  else {
+    dq->dh->ad = false;
+  }
+  if (d_setRA) {
+    dq->dh->ra = *d_setRA;
+  }
+  else {
+    dq->dh->ra = dq->dh->rd; // for good measure
+  }
   dq->dh->ancount = 0;
   dq->dh->arcount = 0; // for now, forget about your EDNS, we're marching over it
 
@@ -1244,6 +1257,23 @@ static void addAction(GlobalStateHolder<vector<T> > *someRulActions, const luadn
     });
 }
 
+typedef std::unordered_map<std::string, boost::variant<bool> > spoofparams_t;
+
+static void parseSpoofConfig(boost::optional<spoofparams_t> vars, boost::optional<bool>& setAA, boost::optional<bool>& setAD, boost::optional<bool>& setRA)
+{
+  if (vars) {
+    if (vars->count("aa")) {
+      setAA = boost::get<bool>((*vars)["aa"]);
+    }
+    if (vars->count("ad")) {
+      setAD = boost::get<bool>((*vars)["ad"]);
+    }
+    if (vars->count("ra")) {
+      setRA = boost::get<bool>((*vars)["ra"]);
+    }
+  }
+}
+
 void setupLuaActions()
 {
   g_lua.writeFunction("newRuleAction", [](luadnsrule_t dnsrule, std::shared_ptr<DNSAction> action, boost::optional<luaruleparams_t> params) {
@@ -1336,7 +1366,7 @@ void setupLuaActions()
       return std::shared_ptr<DNSAction>(new QPSPoolAction(limit, a));
     });
 
-  g_lua.writeFunction("SpoofAction", [](boost::variant<std::string,vector<pair<int, std::string>>> inp, boost::optional<std::string> b ) {
+  g_lua.writeFunction("SpoofAction", [](boost::variant<std::string,vector<pair<int, std::string>>> inp, boost::optional<std::string> b, boost::optional<spoofparams_t> vars ) {
       vector<ComboAddress> addrs;
       if(auto s = boost::get<std::string>(&inp))
         addrs.push_back(ComboAddress(*s));
@@ -1345,13 +1375,46 @@ void setupLuaActions()
         for(const auto& a: v)
           addrs.push_back(ComboAddress(a.second));
       }
-      if(b)
+      if(b) {
         addrs.push_back(ComboAddress(*b));
-      return std::shared_ptr<DNSAction>(new SpoofAction(addrs));
+      }
+
+      auto ret = std::shared_ptr<DNSAction>(new SpoofAction(addrs));
+      boost::optional<bool> setAA = boost::none;
+      boost::optional<bool> setAD = boost::none;
+      boost::optional<bool> setRA = boost::none;
+      parseSpoofConfig(vars, setAA, setAD, setRA);
+      auto sa = std::dynamic_pointer_cast<SpoofAction>(ret);
+      if (setAA) {
+        sa->setAA(*setAA);
+      }
+      if (setAD) {
+        sa->setAD(*setAD);
+      }
+      if (setRA) {
+        sa->setRA(*setRA);
+      }
+      return ret;
     });
 
-  g_lua.writeFunction("SpoofCNAMEAction", [](const std::string& a) {
-      return std::shared_ptr<DNSAction>(new SpoofAction(a));
+  g_lua.writeFunction("SpoofCNAMEAction", [](const std::string& a, boost::optional<spoofparams_t> vars) {
+      auto ret = std::shared_ptr<DNSAction>(new SpoofAction(a));
+      boost::optional<bool> setAA = boost::none;
+      boost::optional<bool> setAD = boost::none;
+      boost::optional<bool> setRA = boost::none;
+      parseSpoofConfig(vars, setAA, setAD, setRA);
+      auto sa = std::dynamic_pointer_cast<SpoofAction>(ret);
+      if (setAA) {
+        sa->setAA(*setAA);
+      }
+      if (setAD) {
+        sa->setAD(*setAD);
+      }
+      if (setRA) {
+        sa->setRA(*setRA);
+      }
+      return ret;
+
     });
 
   g_lua.writeFunction("DropAction", []() {

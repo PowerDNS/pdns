@@ -90,6 +90,8 @@ class TestBasics(DNSDistTest):
         """
         name = 'any.tests.powerdns.com.'
         query = dns.message.make_query(name, 'ANY', 'IN')
+        # dnsdist sets RA = RD for TC responses
+        query.flags &= ~dns.flags.RD
         expectedResponse = dns.message.make_response(query)
         expectedResponse.flags |= dns.flags.TC
 

@@ -1175,20 +1175,40 @@ The following actions exist.
 
   :param string message: The message to include
 
-.. function:: SpoofAction(ip[, ip[...]])
-              SpoofAction(ips)
+.. function:: SpoofAction(ip [, options])
+              SpoofAction(ips [, options])
+
+  .. versionchanged:: 1.5.0
+    Added the optional parameter ``options``.
 
   Forge a response with the specified IPv4 (for an A query) or IPv6 (for an AAAA) addresses.
   If you specify multiple addresses, all that match the query type (A, AAAA or ANY) will get spoofed in.
 
   :param string ip: An IPv4 and/or IPv6 address to spoof
   :param {string} ips: A table of IPv4 and/or IPv6 addresses to spoof
+  :param table options: A table with key: value pairs with options.
 
-.. function:: SpoofCNAMEAction(cname)
+  Options:
+
+  * ``aa``: bool - Set the AA bit to this value (true means the bit is set, false means it's cleared). Default is to clear it.
+  * ``ad``: bool - Set the AD bit to this value (true means the bit is set, false means it's cleared). Default is to clear it.
+  * ``ra``: bool - Set the RA bit to this value (true means the bit is set, false means it's cleared). Default is to copy the value of the RD bit from the incoming query.
+
+.. function:: SpoofCNAMEAction(cname [, options])
+
+  .. versionchanged:: 1.5.0
+    Added the optional parameter ``options``.
 
   Forge a response with the specified CNAME value.
 
   :param string cname: The name to respond with
+  :param table options: A table with key: value pairs with options.
+
+  Options:
+
+  * ``aa``: bool - Set the AA bit to this value (true means the bit is set, false means it's cleared). Default is to clear it.
+  * ``ad``: bool - Set the AD bit to this value (true means the bit is set, false means it's cleared). Default is to clear it.
+  * ``ra``: bool - Set the RA bit to this value (true means the bit is set, false means it's cleared). Default is to copy the value of the RD bit from the incoming query.
 
 .. function:: TagAction(name, value)
 
