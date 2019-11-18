@@ -260,7 +260,6 @@ static string someResponseRulesToPrometheus(const string basename, GlobalStateHo
   return output.str();
 }
 
-
 static void connectionThread(int sock, ComboAddress remote)
 {
   setThreadName("dnsdist/webConn");
@@ -548,18 +547,26 @@ static void connectionThread(int sock, ComboAddress remote)
         }
 
         const string rule_action = "dnsdist_rule_action";
+        output << "# HELP " << rule_action << " Number of queries matching the specified action rule" << "\n";
+        output << "# TYPE " << rule_action << " counter" << "\n";
         auto actionRules = someResponseRulesToPrometheus(rule_action, &g_rulactions);
         output << actionRules;
 
         const string rule_response = "dnsdist_rule_response";
+        output << "# HELP " << rule_response << " Number of queries matching the specified response rule" << "\n";
+        output << "# TYPE " << rule_response << " counter" << "\n";
         auto responseRules = someResponseRulesToPrometheus(rule_response, &g_resprulactions);
         output << responseRules;
 
-        const string rule_cacheHit = "dnsdist_rule_cacheHit";
+        const string rule_cacheHit = "dnsdist_rule_cachehit";
+        output << "# HELP " << rule_cacheHit << " Number of queries matching the specified cache hit rule" << "\n";
+        output << "# TYPE " << rule_cacheHit << " counter" << "\n";
         auto cacheHitResponseRules = someResponseRulesToPrometheus(rule_cacheHit, &g_cachehitresprulactions);
         output << cacheHitResponseRules;
 
-        const string rule_selfAnsweredResponse = "dnsdist_rule_selfAnsweredResponse";
+        const string rule_selfAnsweredResponse = "dnsdist_rule_selfansweredresponse";
+        output << "# HELP " << rule_selfAnsweredResponse << " Number of queries matching the specified self answered response rule" << "\n";
+        output << "# TYPE " << rule_selfAnsweredResponse << " counter" << "\n";
         auto selfAnsweredResponseRules = someResponseRulesToPrometheus(rule_selfAnsweredResponse, &g_selfansweredresprulactions);
         output << selfAnsweredResponseRules;
 
