@@ -42,4 +42,5 @@ struct rpzStats
   std::atomic<uint32_t> d_serial;
 };
 
+Netmask makeNetmaskFromRPZ(const DNSName& name);
 shared_ptr<rpzStats> getRPZZoneStats(const std::string& zone);
