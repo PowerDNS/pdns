@@ -3,7 +3,7 @@ DNS-over-HTTPS (DoH)
 
 :program:`dnsdist` supports DNS-over-HTTPS (DoH, standardized in RFC 8484).
 To see if the installation supports this, run ``dnsdist --version``.
-If the output shows ``dns-over-https`` with one or more TLS libraries in brackets, DNS-over-HTTPS is supported.
+If the output shows ``dns-over-https(DOH)``, DNS-over-HTTPS is supported.
 
 Adding a listen port for DNS-over-HTTPS can be done with the :func:`addDOHLocal` function, e.g.::
 
@@ -27,6 +27,7 @@ instance, you use it to indicate custom HTTP headers. An example is:
 
   addDOHLocal('2001:db8:1:f00::1', '/etc/ssl/certs/example.com.pem', '/etc/ssl/private/example.com.key', "/dns", {customResponseHeaders={["x-foo"]="bar"}}
 
-A more complicated (and more realistic) example is when you want to indicate metainformation about the server, scuh as the stated policy (privacy statement and so on). We use the link types of RFC 8631:
+A more complicated (and more realistic) example is when you want to indicate metainformation about the server, such as the stated policy (privacy statement and so on). We use the link types of RFC 8631:
 
   addDOHLocal('2001:db8:1:f00::1', '/etc/ssl/certs/example.com.pem', '/etc/ssl/private/example.com.key', "/", {customResponseHeaders={["link"]="<https://example.com/policy.html> rel=\\"service-meta\\"; type=\\"text/html\\""}})
+
