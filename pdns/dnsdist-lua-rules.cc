@@ -143,7 +143,7 @@ static void rmRule(GlobalStateHolder<vector<T> > *someRulActions, boost::variant
     }
     rules.erase(rules.begin()+*pos);
   }
-  someRulActions->setState(rules);
+  someRulActions->setState(std::move(rules));
 }
 
 template<typename T>
@@ -155,7 +155,7 @@ static void topRule(GlobalStateHolder<vector<T> > *someRulActions) {
   auto subject = *rules.rbegin();
   rules.erase(std::prev(rules.end()));
   rules.insert(rules.begin(), subject);
-  someRulActions->setState(rules);
+  someRulActions->setState(std::move(rules));
 }
 
 template<typename T>
@@ -175,7 +175,7 @@ static void mvRule(GlobalStateHolder<vector<T> > *someRespRulActions, unsigned i
       --to;
     rules.insert(rules.begin()+to, subject);
   }
-  someRespRulActions->setState(rules);
+  someRespRulActions->setState(std::move(rules));
 }
 
 void setupLuaRules()
@@ -259,7 +259,7 @@ void setupLuaRules()
             const auto& newruleaction = pair.second;
             if (newruleaction->d_action) {
               auto rule=makeRule(newruleaction->d_rule);
-              gruleactions.push_back({rule, newruleaction->d_action, newruleaction->d_id, newruleaction->d_creationOrder});
+              gruleactions.push_back({std::move(rule), newruleaction->d_action, newruleaction->d_id, newruleaction->d_creationOrder});
             }
           }
         });
