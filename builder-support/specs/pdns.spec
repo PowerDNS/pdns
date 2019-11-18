@@ -262,6 +262,15 @@ getent passwd pdns >/dev/null || \
 	-c "PowerDNS user" pdns
 exit 0
 
+%if 0%{?rhel} >= 7
+if [ "`stat -c '%U:%G' %{_sysconfdir}/%{name}`" = "root:root" ]; then
+  chown -R root:pdns /etc/powerdns
+  # Make sure that pdns can read it; the default used to be 0600
+  chmod g+r /etc/powerdns/pdns.conf
+fi
+chown -R pdns:pdns /var/lib/powerdns || :
+%endif
+
 %post
 %if 0%{?rhel} >= 7
 %systemd_post pdns.service
