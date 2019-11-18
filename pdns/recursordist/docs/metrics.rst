@@ -240,7 +240,7 @@ number of outgoing queries dropped because of   :ref:`setting-dont-query` settin
 qname-min-fallback-success
 ^^^^^^^^^^^^^^^^^^^^^^^^^^
 .. versionadded:: 4.3.0
-number of successful queries due to fallback mechanism within :ref:`setting-dont-query` setting (since 4.3)
+number of successful queries due to fallback mechanism within :ref:`qname-minimization` setting.
 
 ecs-queries
 ^^^^^^^^^^^
