@@ -32,11 +32,22 @@
 extern int g_argc;
 extern char** g_argv;
 
+static thread_local set<DNSName> t_rootNSZones;
+
+static void insertIntoRootNSZones(const DNSName &name) {
+  // do not insert dot, wiping dot's NS records from the cache in primeRootNSZones()
+  // will cause infinite recursion
+  if (!name.isRoot()) {
+    t_rootNSZones.insert(name);
+  }
+}
+
 void primeHints(void)
 {
   // prime root cache
   const vState validationState = Insecure;
   vector<DNSRecord> nsset;
+  t_rootNSZones.clear();
   if(!t_RC)
     t_RC = std::unique_ptr<MemRecursorCache>(new MemRecursorCache());
 
@@ -54,6 +65,7 @@ void primeHints(void)
       templ[sizeof(templ)-1] = '\0';
       *templ=c;
       aaaarr.d_name=arr.d_name=DNSName(templ);
+      insertIntoRootNSZones(arr.d_name.getLastLabel());
       nsrr.d_content=std::make_shared<NSRecordContent>(DNSName(templ));
       arr.d_content=std::make_shared<ARecordContent>(ComboAddress(rootIps4[c-'a']));
       vector<DNSRecord> aset;
@@ -88,10 +100,41 @@ void primeHints(void)
         rr.content=toLower(rr.content);
         nsset.push_back(DNSRecord(rr));
       }
+      insertIntoRootNSZones(rr.qname.getLastLabel());
     }
   }
   t_RC->doWipeCache(g_rootdnsname, false, QType::NS);
   t_RC->replace(time(0), g_rootdnsname, QType(QType::NS), nsset, vector<std::shared_ptr<RRSIGRecordContent>>(), vector<std::shared_ptr<DNSRecord>>(), false, boost::none, validationState); // and stuff in the cache
+}
+
+
+// Do not only put the root hints into the cache, but also make sure
+// the NS records of the top level domains of the names of the root
+// servers are in the cache. We need these to correctly determine the
+// security status of that specific domain (normally
+// root-servers.net). This is caused by the accident that the root
+// servers are authoritative for root-servers.net, and some
+// implementations reply not with a delegation on a root-servers.net
+// DS query, but with a NODATA response (the domain is unsigned).
+void primeRootNSZones(bool dnssecmode)
+{
+  struct timeval now;
+  gettimeofday(&now, 0);
+  SyncRes sr(now);
+
+  if (dnssecmode) {
+    sr.setDoDNSSEC(true);
+    sr.setDNSSECValidationRequested(true);
+  }
+
+  // beginResolve() can yield to another mthread that could trigger t_rootNSZones updates,
+  // so make a local copy
+  set<DNSName> copy(t_rootNSZones);  
+  for (const auto & qname: copy) {
+    t_RC->doWipeCache(qname, false, QType::NS);
+    vector<DNSRecord> ret;
+    sr.beginResolve(qname, QType(QType::NS), QClass::IN, ret);
+  }
 }
 
 static void makeNameToIPZone(std::shared_ptr<SyncRes::domainmap_t> newMap, const DNSName& hostname, const string& ip)
@@ -482,4 +525,3 @@ std::shared_ptr<SyncRes::domainmap_t> parseAuthAndForwards()
   }
   return newMap;
 }
-
