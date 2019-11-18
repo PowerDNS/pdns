@@ -570,7 +570,7 @@ void loadRecursorLuaConfig(const std::string& fname, luaConfigDelayedThreads& de
 
   try {
     Lua.executeCode(ifs);
-    g_luaconfs.setState(lci);
+    g_luaconfs.setState(std::move(lci));
   }
   catch(const LuaContext::ExecutionErrorException& e) {
     g_log<<Logger::Error<<"Unable to load Lua script from '"+fname+"': ";

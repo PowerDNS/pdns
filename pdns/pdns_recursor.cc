@@ -4047,14 +4047,14 @@ static int serviceMain(int argc, char*argv[])
     for (const auto &p : parts) {
       dontThrottleNames.add(DNSName(p));
     }
-    g_dontThrottleNames.setState(dontThrottleNames);
+    g_dontThrottleNames.setState(std::move(dontThrottleNames));
 
     NetmaskGroup dontThrottleNetmasks;
     stringtok(parts, ::arg()["dont-throttle-netmasks"]);
     for (const auto &p : parts) {
       dontThrottleNetmasks.addMask(Netmask(p));
     }
-    g_dontThrottleNetmasks.setState(dontThrottleNetmasks);
+    g_dontThrottleNetmasks.setState(std::move(dontThrottleNetmasks));
   }
 
   s_balancingFactor = ::arg().asDouble("distribution-load-factor");

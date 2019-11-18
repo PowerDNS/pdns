@@ -1438,7 +1438,7 @@ static string addDontThrottleNames(T begin, T end) {
     dnt.add(d);
   }
 
-  g_dontThrottleNames.setState(dnt);
+  g_dontThrottleNames.setState(std::move(dnt));
 
   ret += " to the list of nameservers that may not be throttled";
   g_log<<Logger::Info<<ret<<", requested via control channel"<<endl;
@@ -1477,7 +1477,7 @@ static string addDontThrottleNetmasks(T begin, T end) {
     dnt.addMask(t);
   }
 
-  g_dontThrottleNetmasks.setState(dnt);
+  g_dontThrottleNetmasks.setState(std::move(dnt));
 
   ret += " to the list of nameserver netmasks that may not be throttled";
   g_log<<Logger::Info<<ret<<", requested via control channel"<<endl;
@@ -1491,7 +1491,7 @@ static string clearDontThrottleNames(T begin, T end) {
 
   if (begin + 1 == end && *begin == "*"){
     SuffixMatchNode smn;
-    g_dontThrottleNames.setState(smn);
+    g_dontThrottleNames.setState(std::move(smn));
     string ret = "Cleared list of nameserver names that may not be throttled";
     g_log<<Logger::Warning<<ret<<", requested via control channel"<<endl;
     return ret + "\n";
@@ -1523,7 +1523,7 @@ static string clearDontThrottleNames(T begin, T end) {
     dnt.remove(name);
   }
 
-  g_dontThrottleNames.setState(dnt);
+  g_dontThrottleNames.setState(std::move(dnt));
 
   ret += " from the list of nameservers that may not be throttled";
   g_log<<Logger::Info<<ret<<", requested via control channel"<<endl;
@@ -1538,7 +1538,7 @@ static string clearDontThrottleNetmasks(T begin, T end) {
   if (begin + 1 == end && *begin == "*"){
     auto nmg = g_dontThrottleNetmasks.getCopy();
     nmg.clear();
-    g_dontThrottleNetmasks.setState(nmg);
+    g_dontThrottleNetmasks.setState(std::move(nmg));
 
     string ret = "Cleared list of nameserver addresses that may not be throttled";
     g_log<<Logger::Warning<<ret<<", requested via control channel"<<endl;
@@ -1575,7 +1575,7 @@ static string clearDontThrottleNetmasks(T begin, T end) {
     dnt.deleteMask(mask);
   }
 
-  g_dontThrottleNetmasks.setState(dnt);
+  g_dontThrottleNetmasks.setState(std::move(dnt));
 
   ret += " from the list of nameservers that may not be throttled";
   g_log<<Logger::Info<<ret<<", requested via control channel"<<endl;
