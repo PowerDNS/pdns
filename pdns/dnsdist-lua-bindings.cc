@@ -129,6 +129,30 @@ void setupLuaBindings(bool client)
       return (bool)dh.rd;
     });
 
+  g_lua.registerFunction<void(dnsheader::*)(bool)>("setRA", [](dnsheader& dh, bool v) {
+      dh.ra=v;
+    });
+
+  g_lua.registerFunction<bool(dnsheader::*)()>("getRA", [](dnsheader& dh) {
+      return (bool)dh.ra;
+    });
+
+  g_lua.registerFunction<void(dnsheader::*)(bool)>("setAD", [](dnsheader& dh, bool v) {
+      dh.ad=v;
+    });
+
+  g_lua.registerFunction<bool(dnsheader::*)()>("getAD", [](dnsheader& dh) {
+      return (bool)dh.ad;
+    });
+
+  g_lua.registerFunction<void(dnsheader::*)(bool)>("setAA", [](dnsheader& dh, bool v) {
+      dh.aa=v;
+     });
+
+  g_lua.registerFunction<bool(dnsheader::*)()>("getAA", [](dnsheader& dh) {
+      return (bool)dh.aa;
+    });
+
   g_lua.registerFunction<void(dnsheader::*)(bool)>("setCD", [](dnsheader& dh, bool v) {
       dh.cd=v;
     });
