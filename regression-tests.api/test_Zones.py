@@ -49,8 +49,11 @@ def eq_zone_rrsets(rrsets, expected):
 
 class Zones(ApiTestCase):
 
-    def test_list_zones(self):
-        r = self.session.get(self.url("/api/v1/servers/localhost/zones"))
+    def _test_list_zones(self, dnssec=True):
+        path = "/api/v1/servers/localhost/zones"
+        if not dnssec:
+            path = path + "?dnssec=false"
+        r = self.session.get(self.url(path))
         self.assert_success_json(r)
         domains = r.json()
         example_com = [domain for domain in domains if domain['name'] in ('example.com', 'example.com.')]
@@ -59,13 +62,23 @@ class Zones(ApiTestCase):
         print(example_com)
         required_fields = ['id', 'url', 'name', 'kind']
         if is_auth():
-            required_fields = required_fields + ['masters', 'last_check', 'notified_serial', 'edited_serial', 'serial', 'account']
+            required_fields = required_fields + ['masters', 'last_check', 'notified_serial', 'serial', 'account']
+            if dnssec:
+                required_fields = required_fields = ['dnssec', 'edited_serial']
             self.assertNotEquals(example_com['serial'], 0)
+            if not dnssec:
+                self.assertNotIn('dnssec', example_com)
         elif is_recursor():
             required_fields = required_fields + ['recursion_desired', 'servers']
         for field in required_fields:
             self.assertIn(field, example_com)
 
+    def test_list_zones_with_dnssec(self):
+        if is_auth():
+            self._test_list_zones(True)
+
+    def test_list_zones_without_dnssec(self):
+        self._test_list_zones(False)
 
 class AuthZonesHelperMixin(object):
     def create_zone(self, name=None, **kwargs):
