@@ -92,12 +92,22 @@ public:
     return LocalStateHolder<T>(this);
   }
 
-  void setState(T state) //!< Safely & slowly change the global state
+  void setState(const T& state) //!< Safely & slowly change the global state
   {
     std::shared_ptr<T> newState = std::make_shared<T>(state);
     {
       std::lock_guard<std::mutex> l(d_lock);
-      d_state = newState;
+      d_state = std::move(newState);
+      d_generation++;
+    }
+  }
+
+  void setState(T&& state) //!< Safely & slowly change the global state
+  {
+    std::shared_ptr<T> newState = std::make_shared<T>(std::move(state));
+    {
+      std::lock_guard<std::mutex> l(d_lock);
+      d_state = std::move(newState);
       d_generation++;
     }
   }
@@ -111,10 +121,10 @@ public:
   //! Safely & slowly modify the global state
   template<typename F>
   void modify(F act) {
-    std::lock_guard<std::mutex> l(d_lock); 
+    std::lock_guard<std::mutex> l(d_lock);
     auto state=*d_state; // and yes, these three steps are necessary, can't ever modify state in place, even when locked!
     act(state);
-    d_state = std::make_shared<T>(state);
+    d_state = std::make_shared<T>(std::move(state));
     ++d_generation;
   }
 
