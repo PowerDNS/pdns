@@ -71,6 +71,7 @@ std::atomic<uint64_t> SyncRes::s_outqueries;
 std::atomic<uint64_t> SyncRes::s_tcpoutqueries;
 std::atomic<uint64_t> SyncRes::s_throttledqueries;
 std::atomic<uint64_t> SyncRes::s_dontqueries;
+std::atomic<uint64_t> SyncRes::s_qnameminfallbacksuccess;
 std::atomic<uint64_t> SyncRes::s_nodelegated;
 std::atomic<uint64_t> SyncRes::s_unreachables;
 std::atomic<uint64_t> SyncRes::s_ecsqueries;
@@ -691,6 +692,11 @@ int SyncRes::doResolve(const DNSName &qname, const QType &qtype, vector<DNSRecor
         QLOG("Step5: other rcode, last effort final resolve");
         setQNameMinimization(false);
         res = doResolveNoQNameMinimization(qname, qtype, ret, depth + 1, beenthere, state);
+
+        if(res == RCode::NoError) {
+          s_qnameminfallbacksuccess++;
+        }
+
         QLOG("Step5 End resolve: " << RCode::to_s(res) << "/" << ret.size());
         return res;
       }

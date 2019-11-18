@@ -1089,6 +1089,7 @@ void registerAllStats()
   addGetStat("ipv6-outqueries", &g_stats.ipv6queries);
   addGetStat("throttled-outqueries", &SyncRes::s_throttledqueries);
   addGetStat("dont-outqueries", &SyncRes::s_dontqueries);
+  addGetStat("qname-min-fallback-success", &SyncRes::s_qnameminfallbacksuccess);
   addGetStat("throttled-out", &SyncRes::s_throttledqueries);
   addGetStat("unreachables", &SyncRes::s_unreachables);
   addGetStat("ecs-queries", &SyncRes::s_ecsqueries);

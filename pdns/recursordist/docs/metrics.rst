@@ -237,6 +237,11 @@ dont-outqueries
 ^^^^^^^^^^^^^^^
 number of outgoing queries dropped because of   :ref:`setting-dont-query` setting (since 3.3)
 
+qname-min-fallback-success
+^^^^^^^^^^^^^^^^^^^^^^^^^^
+.. versionadded:: 4.3.0
+number of successful queries due to fallback mechanism within :ref:`qname-minimization` setting.
+
 ecs-queries
 ^^^^^^^^^^^
 number of outgoing queries adorned with an EDNS Client Subnet option (since 4.1)
