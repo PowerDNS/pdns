@@ -496,6 +496,8 @@ class TestAdvancedAndNot(DNSDistTest):
         """
         name = 'andnot.advanced.tests.powerdns.com.'
         query = dns.message.make_query(name, 'TXT', 'IN')
+        # dnsdist sets RA = RD for TC responses
+        query.flags &= ~dns.flags.RD
 
         expectedResponse = dns.message.make_response(query)
         expectedResponse.set_rcode(dns.rcode.NOTIMP)
@@ -535,6 +537,7 @@ class TestAdvancedOr(DNSDistTest):
         """
         name = 'aorudp.advanced.tests.powerdns.com.'
         query = dns.message.make_query(name, 'AAAA', 'IN')
+        query.flags &= ~dns.flags.RD
         response = dns.message.make_response(query)
         rrset = dns.rrset.from_text(name,
                                     3600,
@@ -567,6 +570,7 @@ class TestAdvancedOr(DNSDistTest):
         """
         name = 'aorudp.advanced.tests.powerdns.com.'
         query = dns.message.make_query(name, 'A', 'IN')
+        query.flags &= ~dns.flags.RD
 
         expectedResponse = dns.message.make_response(query)
         expectedResponse.set_rcode(dns.rcode.NOTIMP)
@@ -901,6 +905,7 @@ class TestAdvancedQPSNone(DNSDistTest):
         """
         name = 'qpsnone.advanced.tests.powerdns.com.'
         query = dns.message.make_query(name, 'A', 'IN')
+        query.flags &= ~dns.flags.RD
         expectedResponse = dns.message.make_response(query)
         expectedResponse.set_rcode(dns.rcode.REFUSED)
 
@@ -927,6 +932,7 @@ class TestAdvancedNMGRule(DNSDistTest):
         """
         name = 'nmgrule.advanced.tests.powerdns.com.'
         query = dns.message.make_query(name, 'A', 'IN')
+        query.flags &= ~dns.flags.RD
         expectedResponse = dns.message.make_response(query)
         expectedResponse.set_rcode(dns.rcode.REFUSED)
 
@@ -953,6 +959,7 @@ class TestDSTPortRule(DNSDistTest):
 
         name = 'dstportrule.advanced.tests.powerdns.com.'
         query = dns.message.make_query(name, 'A', 'IN')
+        query.flags &= ~dns.flags.RD
         expectedResponse = dns.message.make_response(query)
         expectedResponse.set_rcode(dns.rcode.REFUSED)
 
@@ -995,6 +1002,7 @@ class TestAdvancedLabelsCountRule(DNSDistTest):
         # more than 6 labels, the query should be refused
         name = 'not.ok.labelscount.advanced.tests.powerdns.com.'
         query = dns.message.make_query(name, 'A', 'IN')
+        query.flags &= ~dns.flags.RD
         expectedResponse = dns.message.make_response(query)
         expectedResponse.set_rcode(dns.rcode.REFUSED)
 
@@ -1006,6 +1014,7 @@ class TestAdvancedLabelsCountRule(DNSDistTest):
         # less than 5 labels, the query should be refused
         name = 'labelscountadvanced.tests.powerdns.com.'
         query = dns.message.make_query(name, 'A', 'IN')
+        query.flags &= ~dns.flags.RD
         expectedResponse = dns.message.make_response(query)
         expectedResponse.set_rcode(dns.rcode.REFUSED)
 
@@ -1047,6 +1056,7 @@ class TestAdvancedWireLengthRule(DNSDistTest):
         # too short, the query should be refused
         name = 'short.qnamewirelength.advanced.tests.powerdns.com.'
         query = dns.message.make_query(name, 'A', 'IN')
+        query.flags &= ~dns.flags.RD
         expectedResponse = dns.message.make_response(query)
         expectedResponse.set_rcode(dns.rcode.REFUSED)
 
@@ -1058,6 +1068,7 @@ class TestAdvancedWireLengthRule(DNSDistTest):
         # too long, the query should be refused
         name = 'toolongtobevalid.qnamewirelength.advanced.tests.powerdns.com.'
         query = dns.message.make_query(name, 'A', 'IN')
+        query.flags &= ~dns.flags.RD
         expectedResponse = dns.message.make_response(query)
         expectedResponse.set_rcode(dns.rcode.REFUSED)
 
@@ -1100,6 +1111,7 @@ class TestAdvancedIncludeDir(DNSDistTest):
         # this one should be refused
         name = 'notincludedir.advanced.tests.powerdns.com.'
         query = dns.message.make_query(name, 'A', 'IN')
+        query.flags &= ~dns.flags.RD
         expectedResponse = dns.message.make_response(query)
         expectedResponse.set_rcode(dns.rcode.REFUSED)
 
@@ -1367,6 +1379,7 @@ class TestAdvancedRD(DNSDistTest):
         query = dns.message.make_query(name, 'A', 'IN')
         expectedResponse = dns.message.make_response(query)
         expectedResponse.set_rcode(dns.rcode.REFUSED)
+        expectedResponse.flags |= dns.flags.RA
 
         for method in ("sendUDPQuery", "sendTCPQuery"):
             sender = getattr(self, method)
@@ -1661,14 +1674,15 @@ class TestAdvancedEDNSVersionRule(DNSDistTest):
     addAction(EDNSVersionRule(0), ERCodeAction(DNSRCode.BADVERS))
     """
 
-    def testDropped(self):
+    def testBadVers(self):
         """
-        Advanced: A question with ECS version larger than 0 is dropped
+        Advanced: A question with ECS version larger than 0 yields BADVERS
         """
 
         name = 'ednsversionrule.advanced.tests.powerdns.com.'
 
         query = dns.message.make_query(name, 'A', 'IN', use_edns=1)
+        query.flags &= ~dns.flags.RD
         expectedResponse = dns.message.make_response(query)
         expectedResponse.set_rcode(dns.rcode.BADVERS)
 

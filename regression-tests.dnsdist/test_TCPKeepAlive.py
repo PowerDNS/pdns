@@ -45,6 +45,7 @@ class TestTCPKeepAlive(DNSDistTest):
         """
         name = 'refused.tcpka.tests.powerdns.com.'
         query = dns.message.make_query(name, 'A', 'IN')
+        query.flags &= ~dns.flags.RD
         expectedResponse = dns.message.make_response(query)
         expectedResponse.set_rcode(dns.rcode.REFUSED)
 
