@@ -31,3 +31,8 @@ A more complicated (and more realistic) example is when you want to indicate met
 
   addDOHLocal('2001:db8:1:f00::1', '/etc/ssl/certs/example.com.pem', '/etc/ssl/private/example.com.key', "/", {customResponseHeaders={["link"]="<https://example.com/policy.html> rel=\\"service-meta\\"; type=\\"text/html\\""}})
 
+In case you want to run DNS-over-HTTPS behind a reverse proxy you probably don't want to encrypt your traffic between reverse proxy and dnsdist.
+To let dnsdist listen for DoH queries over HTTP on localhost at port 8053 add one of the following to your config::
+
+  addDOHLocal("127.0.0.1:8053")
+  addDOHLocal("127.0.0.1:8053", nil, nil, "/", { reusePort=true })
