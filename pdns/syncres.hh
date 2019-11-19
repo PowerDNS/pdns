@@ -73,6 +73,12 @@ typedef map<
 template<class Thing> class Throttle : public boost::noncopyable
 {
 public:
+  struct entry
+  {
+    time_t ttd;
+    unsigned int count;
+  };
+  typedef map<Thing,entry> cont_t;
   Throttle()
   {
     d_limit=3;
@@ -121,6 +127,11 @@ public:
     return (unsigned int)d_cont.size();
   }
 
+  const cont_t& getThrottleMap() const
+  {
+    return d_cont;
+  }
+
   void clear()
   {
     d_cont.clear();
@@ -129,12 +140,6 @@ private:
   unsigned int d_limit;
   time_t d_ttl;
   time_t d_last_clean;
-  struct entry
-  {
-    time_t ttd;
-    unsigned int count;
-  };
-  typedef map<Thing,entry> cont_t;
   cont_t d_cont;
 };
 

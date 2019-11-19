@@ -1433,6 +1433,9 @@ string RecursorControlParser::getAnswer(const string& question, RecursorControlP
   if(cmd=="dump-failedservers")
     return doDumpFailedServers(begin, end);
 
+  if(cmd=="dump-throttlemap")
+    return doDumpThrottleMap(begin, end);
+
   if(cmd=="dump-rpz") {
     return doDumpRPZ(begin, end);
   }

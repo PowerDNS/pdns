@@ -397,6 +397,27 @@ uint64_t SyncRes::doDumpNSSpeeds(int fd)
   return count;
 }
 
+uint64_t SyncRes::doDumpThrottleMap(int fd)
+{
+  auto fp = std::unique_ptr<FILE, int(*)(FILE*)>(fdopen(dup(fd), "w"), fclose);
+  if(!fp)
+    return 0;
+  fprintf(fp.get(), "; throttle map dump follows\n");
+  fprintf(fp.get(), "; remote IP\tqname\tqtype\tcount\tttd\n");
+  uint64_t count=0;
+
+  const auto& throttleMap = t_sstorage.throttle.getThrottleMap();
+  for(const auto& i : throttleMap)
+  {
+    count++;
+    char tmp[26];
+    // remote IP, dns name, qtype, count, ttd
+    fprintf(fp.get(), "%s\t%s\t%d\t%u\t%s", i.first.get<0>().toString().c_str(), i.first.get<1>().toLogString().c_str(), i.first.get<2>(), i.second.count, ctime_r(&i.second.ttd, tmp));
+  }
+
+  return count;
+}
+
 uint64_t SyncRes::doDumpFailedServers(int fd)
 {
   auto fp = std::unique_ptr<FILE, int(*)(FILE*)>(fdopen(dup(fd), "w"), fclose);
