@@ -1173,7 +1173,7 @@ private:
 };
 
 template<typename T, typename ActionT>
-static void addAction(GlobalStateHolder<vector<T> > *someRulActions, luadnsrule_t& var, std::shared_ptr<ActionT>& action, boost::optional<luaruleparams_t>& params) {
+static void addAction(GlobalStateHolder<vector<T> > *someRulActions, const luadnsrule_t& var, const std::shared_ptr<ActionT>& action, boost::optional<luaruleparams_t>& params) {
   setLuaSideEffect();
 
   boost::uuids::uuid uuid;
