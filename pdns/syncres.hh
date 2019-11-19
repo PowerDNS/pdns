@@ -239,8 +239,9 @@ public:
     typename cont_t::iterator i = d_cont.find(t);
 
     if (i == d_cont.end()) {
-      d_cont[t].value = 1;
-      d_cont[t].last = now.tv_sec;
+      auto &r = d_cont[t];
+      r.value = 1;
+      r.last = now.tv_sec;
       return 1;
     }
     else {
