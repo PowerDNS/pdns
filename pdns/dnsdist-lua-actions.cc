@@ -306,6 +306,7 @@ public:
   {
     dq->dh->rcode = d_rcode;
     dq->dh->qr = true; // for good measure
+    setResponseHeadersFromConfig(*dq->dh, d_responseConfig);
     return Action::HeaderModify;
   }
   std::string toString() const override
@@ -313,6 +314,7 @@ public:
     return "set rcode "+std::to_string(d_rcode);
   }
 
+  ResponseConfig d_responseConfig;
 private:
   uint8_t d_rcode;
 };
@@ -326,6 +328,7 @@ public:
     dq->dh->rcode = (d_rcode & 0xF);
     dq->ednsRCode = ((d_rcode & 0xFFF0) >> 4);
     dq->dh->qr = true; // for good measure
+    setResponseHeadersFromConfig(*dq->dh, d_responseConfig);
     return Action::HeaderModify;
   }
   std::string toString() const override
@@ -333,6 +336,7 @@ public:
     return "set ercode "+ERCode::to_s(d_rcode);
   }
 
+  ResponseConfig d_responseConfig;
 private:
   uint8_t d_rcode;
 };
@@ -444,21 +448,7 @@ DNSAction::Action SpoofAction::operator()(DNSQuestion* dq, std::string* ruleresu
   char* dest = ((char*)dq->dh) + dq->len;
 
   dq->dh->qr = true; // for good measure
-  if (d_setAA) {
-    dq->dh->aa = *d_setAA;
-  }
-  if (d_setAD) {
-    dq->dh->ad = *d_setAD;
-  }
-  else {
-    dq->dh->ad = false;
-  }
-  if (d_setRA) {
-    dq->dh->ra = *d_setRA;
-  }
-  else {
-    dq->dh->ra = dq->dh->rd; // for good measure
-  }
+  setResponseHeadersFromConfig(*dq->dh, d_responseConfig);
   dq->dh->ancount = 0;
   dq->dh->arcount = 0; // for now, forget about your EDNS, we're marching over it
 
@@ -1192,6 +1182,7 @@ public:
 
     dq->du->setHTTPResponse(d_code, d_body, d_contentType);
     dq->dh->qr = true; // for good measure
+    setResponseHeadersFromConfig(*dq->dh, d_responseConfig);
     return Action::HeaderModify;
   }
 
@@ -1199,6 +1190,8 @@ public:
   {
     return "return an HTTP status of " + std::to_string(d_code);
   }
+
+  ResponseConfig d_responseConfig;
 private:
   std::string d_body;
   std::string d_contentType;
@@ -1257,20 +1250,39 @@ static void addAction(GlobalStateHolder<vector<T> > *someRulActions, const luadn
     });
 }
 
-typedef std::unordered_map<std::string, boost::variant<bool> > spoofparams_t;
+typedef std::unordered_map<std::string, boost::variant<bool> > responseParams_t;
 
-static void parseSpoofConfig(boost::optional<spoofparams_t> vars, boost::optional<bool>& setAA, boost::optional<bool>& setAD, boost::optional<bool>& setRA)
+static void parseResponseConfig(boost::optional<responseParams_t> vars, ResponseConfig& config)
 {
   if (vars) {
     if (vars->count("aa")) {
-      setAA = boost::get<bool>((*vars)["aa"]);
+      config.setAA = boost::get<bool>((*vars)["aa"]);
     }
     if (vars->count("ad")) {
-      setAD = boost::get<bool>((*vars)["ad"]);
+      config.setAD = boost::get<bool>((*vars)["ad"]);
     }
     if (vars->count("ra")) {
-      setRA = boost::get<bool>((*vars)["ra"]);
+      config.setRA = boost::get<bool>((*vars)["ra"]);
     }
+  }
+}
+
+void setResponseHeadersFromConfig(dnsheader& dh, const ResponseConfig& config)
+{
+  if (config.setAA) {
+    dh.aa = *config.setAA;
+  }
+  if (config.setAD) {
+    dh.ad = *config.setAD;
+  }
+  else {
+    dh.ad = false;
+  }
+  if (config.setRA) {
+    dh.ra = *config.setRA;
+  }
+  else {
+    dh.ra = dh.rd; // for good measure
   }
 }
 
@@ -1366,7 +1378,7 @@ void setupLuaActions()
       return std::shared_ptr<DNSAction>(new QPSPoolAction(limit, a));
     });
 
-  g_lua.writeFunction("SpoofAction", [](boost::variant<std::string,vector<pair<int, std::string>>> inp, boost::optional<std::string> b, boost::optional<spoofparams_t> vars ) {
+  g_lua.writeFunction("SpoofAction", [](boost::variant<std::string,vector<pair<int, std::string>>> inp, boost::optional<std::string> b, boost::optional<responseParams_t> vars ) {
       vector<ComboAddress> addrs;
       if(auto s = boost::get<std::string>(&inp))
         addrs.push_back(ComboAddress(*s));
@@ -1380,41 +1392,18 @@ void setupLuaActions()
       }
 
       auto ret = std::shared_ptr<DNSAction>(new SpoofAction(addrs));
-      boost::optional<bool> setAA = boost::none;
-      boost::optional<bool> setAD = boost::none;
-      boost::optional<bool> setRA = boost::none;
-      parseSpoofConfig(vars, setAA, setAD, setRA);
       auto sa = std::dynamic_pointer_cast<SpoofAction>(ret);
-      if (setAA) {
-        sa->setAA(*setAA);
-      }
-      if (setAD) {
-        sa->setAD(*setAD);
-      }
-      if (setRA) {
-        sa->setRA(*setRA);
-      }
+      parseResponseConfig(vars, sa->d_responseConfig);
       return ret;
     });
 
-  g_lua.writeFunction("SpoofCNAMEAction", [](const std::string& a, boost::optional<spoofparams_t> vars) {
+  g_lua.writeFunction("SpoofCNAMEAction", [](const std::string& a, boost::optional<responseParams_t> vars) {
       auto ret = std::shared_ptr<DNSAction>(new SpoofAction(a));
-      boost::optional<bool> setAA = boost::none;
-      boost::optional<bool> setAD = boost::none;
-      boost::optional<bool> setRA = boost::none;
-      parseSpoofConfig(vars, setAA, setAD, setRA);
+      ResponseConfig responseConfig;
+      parseResponseConfig(vars, responseConfig);
       auto sa = std::dynamic_pointer_cast<SpoofAction>(ret);
-      if (setAA) {
-        sa->setAA(*setAA);
-      }
-      if (setAD) {
-        sa->setAD(*setAD);
-      }
-      if (setRA) {
-        sa->setRA(*setRA);
-      }
+      sa->d_responseConfig = responseConfig;
       return ret;
-
     });
 
   g_lua.writeFunction("DropAction", []() {
@@ -1449,12 +1438,18 @@ void setupLuaActions()
       return std::shared_ptr<DNSResponseAction>(new LogResponseAction(fname ? *fname : "", append ? *append : false, buffered ? *buffered : false, verboseOnly ? *verboseOnly : true, includeTimestamp ? *includeTimestamp : false));
     });
 
-  g_lua.writeFunction("RCodeAction", [](uint8_t rcode) {
-      return std::shared_ptr<DNSAction>(new RCodeAction(rcode));
+  g_lua.writeFunction("RCodeAction", [](uint8_t rcode, boost::optional<responseParams_t> vars) {
+      auto ret = std::shared_ptr<DNSAction>(new RCodeAction(rcode));
+      auto rca = std::dynamic_pointer_cast<RCodeAction>(ret);
+      parseResponseConfig(vars, rca->d_responseConfig);
+      return ret;
     });
 
-  g_lua.writeFunction("ERCodeAction", [](uint8_t rcode) {
-      return std::shared_ptr<DNSAction>(new ERCodeAction(rcode));
+  g_lua.writeFunction("ERCodeAction", [](uint8_t rcode, boost::optional<responseParams_t> vars) {
+      auto ret = std::shared_ptr<DNSAction>(new ERCodeAction(rcode));
+      auto erca = std::dynamic_pointer_cast<ERCodeAction>(ret);
+      parseResponseConfig(vars, erca->d_responseConfig);
+      return ret;
     });
 
   g_lua.writeFunction("SkipCacheAction", []() {
@@ -1606,8 +1601,11 @@ void setupLuaActions()
     });
 
 #ifdef HAVE_DNS_OVER_HTTPS
-  g_lua.writeFunction("HTTPStatusAction", [](uint16_t status, std::string body, boost::optional<std::string> contentType) {
-      return std::shared_ptr<DNSAction>(new HTTPStatusAction(status, body, contentType ? *contentType : ""));
+  g_lua.writeFunction("HTTPStatusAction", [](uint16_t status, std::string body, boost::optional<std::string> contentType, boost::optional<responseParams_t> vars) {
+      auto ret = std::shared_ptr<DNSAction>(new HTTPStatusAction(status, body, contentType ? *contentType : ""));
+      auto hsa = std::dynamic_pointer_cast<HTTPStatusAction>(ret);
+      parseResponseConfig(vars, hsa->d_responseConfig);
+      return ret;
     });
 #endif /* HAVE_DNS_OVER_HTTPS */
 

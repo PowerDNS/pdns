@@ -960,24 +960,44 @@ The following actions exist.
   :param int v6: The IPv6 netmask length
 
 
-.. function:: ERCodeAction(rcode)
+.. function:: ERCodeAction(rcode [, options])
 
   .. versionadded:: 1.4.0
+
+  .. versionchanged:: 1.5.0
+    Added the optional parameter ``options``.
 
   Reply immediately by turning the query into a response with the specified EDNS extended ``rcode``.
   ``rcode`` can be specified as an integer or as one of the built-in :ref:`DNSRCode`.
 
   :param int rcode: The extended RCODE to respond with.
+  :param table options: A table with key: value pairs with options.
 
-.. function:: HTTPStatusAction(status, body, contentType="")
+  Options:
+
+  * ``aa``: bool - Set the AA bit to this value (true means the bit is set, false means it's cleared). Default is to clear it.
+  * ``ad``: bool - Set the AD bit to this value (true means the bit is set, false means it's cleared). Default is to clear it.
+  * ``ra``: bool - Set the RA bit to this value (true means the bit is set, false means it's cleared). Default is to copy the value of the RD bit from the incoming query.
+
+.. function:: HTTPStatusAction(status, body, contentType="" [, options])
 
   .. versionadded:: 1.4.0
+
+  .. versionchanged:: 1.5.0
+    Added the optional parameter ``options``.
 
   Return an HTTP response with a status code of ''status''. For HTTP redirects, ''body'' should be the redirect URL.
 
   :param int status: The HTTP status code to return.
   :param string body: The body of the HTTP response, or a URL if the status code is a redirect (3xx).
   :param string contentType: The HTTP Content-Type header to return for a 200 response, ignored otherwise. Default is ''application/dns-message''.
+  :param table options: A table with key: value pairs with options.
+
+  Options:
+
+  * ``aa``: bool - Set the AA bit to this value (true means the bit is set, false means it's cleared). Default is to clear it.
+  * ``ad``: bool - Set the AD bit to this value (true means the bit is set, false means it's cleared). Default is to clear it.
+  * ``ra``: bool - Set the RA bit to this value (true means the bit is set, false means it's cleared). Default is to copy the value of the RD bit from the incoming query.
 
 .. function:: KeyValueStoreLookupAction(kvs, lookupKey, destinationTag)
 
@@ -1092,12 +1112,22 @@ The following actions exist.
   :param int maxqps: The QPS limit for that pool
   :param string poolname: The name of the pool
 
-.. function:: RCodeAction(rcode)
+.. function:: RCodeAction(rcode [, options])
+
+  .. versionchanged:: 1.5.0
+    Added the optional parameter ``options``.
 
   Reply immediately by turning the query into a response with the specified ``rcode``.
   ``rcode`` can be specified as an integer or as one of the built-in :ref:`DNSRCode`.
 
   :param int rcode: The RCODE to respond with.
+  :param table options: A table with key: value pairs with options.
+
+  Options:
+
+  * ``aa``: bool - Set the AA bit to this value (true means the bit is set, false means it's cleared). Default is to clear it.
+  * ``ad``: bool - Set the AD bit to this value (true means the bit is set, false means it's cleared). Default is to clear it.
+  * ``ra``: bool - Set the RA bit to this value (true means the bit is set, false means it's cleared). Default is to copy the value of the RD bit from the incoming query.
 
 .. function:: RemoteLogAction(remoteLogger[, alterFunction [, options]])
 
