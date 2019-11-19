@@ -101,6 +101,12 @@ paths:
             When set to the name of a zone, only this zone is returned.
             If no zone with that name exists, the response is an empty array.
             This can e.g. be used to check if a zone exists in the database without having to guess/encode the zone's id or to check if a zone exists.
+        - name: dnssec
+          in: query
+          required: false
+          type: boolean
+          default: true
+          description: '“true” (default) or “false”, whether to include the “dnssec” and ”edited_serial” fields in the Zone objects. Setting this to ”false” will make the query a lot faster.'
       responses:
         '200':
           description: An array of Zones
