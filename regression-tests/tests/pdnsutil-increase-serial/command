@@ -6,6 +6,7 @@ $PDNSUTIL --config-dir=. --config-name=gmysql increase-serial test.dyndns
 
 mysqldiff 1 "Check that test.dyndns. still has a valid ordername"
 
+# restore old SOA
 [ -z "$GMYSQLDB" ] && GMYSQLDB=pdnstest
 [ -z "$GMYSQLUSER" ] && GMYSQLUSER=root
 [ -z "$GMYSQLHOST" ] && GMYSQLHOST=localhost
