@@ -314,7 +314,7 @@ class MDBGenCursor
 {
 private:
   std::vector<T*> *d_registry;
-  MDB_cursor* d_cursor;
+  MDB_cursor* d_cursor{nullptr};
 
 public:
   MDBGenCursor():
