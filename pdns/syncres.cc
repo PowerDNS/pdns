@@ -413,8 +413,13 @@ bool SyncRes::isForwardOrAuth(const DNSName &qname) const {
 
 uint64_t SyncRes::doEDNSDump(int fd)
 {
-  auto fp = std::unique_ptr<FILE, int(*)(FILE*)>(fdopen(dup(fd), "w"), fclose);
+  int newfd = dup(fd);
+  if (newfd == -1) {
+    return 0;
+  }
+  auto fp = std::unique_ptr<FILE, int(*)(FILE*)>(fdopen(newfd, "w"), fclose);
   if (!fp) {
+    close(newfd);
     return 0;
   }
   uint64_t count = 0;
@@ -430,9 +435,15 @@ uint64_t SyncRes::doEDNSDump(int fd)
 
 uint64_t SyncRes::doDumpNSSpeeds(int fd)
 {
-  auto fp = std::unique_ptr<FILE, int(*)(FILE*)>(fdopen(dup(fd), "w"), fclose);
-  if(!fp)
+  int newfd = dup(fd);
+  if (newfd == -1) {
     return 0;
+  }
+  auto fp = std::unique_ptr<FILE, int(*)(FILE*)>(fdopen(newfd, "w"), fclose);
+  if (!fp) {
+    close(newfd);
+    return 0;
+  }
   fprintf(fp.get(), "; nsspeed dump from thread follows\n;\n");
   uint64_t count=0;
 
@@ -454,9 +465,15 @@ uint64_t SyncRes::doDumpNSSpeeds(int fd)
 
 uint64_t SyncRes::doDumpThrottleMap(int fd)
 {
-  auto fp = std::unique_ptr<FILE, int(*)(FILE*)>(fdopen(dup(fd), "w"), fclose);
-  if(!fp)
+  int newfd = dup(fd);
+  if (newfd == -1) {
     return 0;
+  }
+  auto fp = std::unique_ptr<FILE, int(*)(FILE*)>(fdopen(newfd, "w"), fclose);
+  if (!fp) {
+    close(newfd);
+    return 0;
+  }
   fprintf(fp.get(), "; throttle map dump follows\n");
   fprintf(fp.get(), "; remote IP\tqname\tqtype\tcount\tttd\n");
   uint64_t count=0;
@@ -475,9 +492,15 @@ uint64_t SyncRes::doDumpThrottleMap(int fd)
 
 uint64_t SyncRes::doDumpFailedServers(int fd)
 {
-  auto fp = std::unique_ptr<FILE, int(*)(FILE*)>(fdopen(dup(fd), "w"), fclose);
-  if(!fp)
+  int newfd = dup(fd);
+  if (newfd == -1) {
     return 0;
+  }
+  auto fp = std::unique_ptr<FILE, int(*)(FILE*)>(fdopen(newfd, "w"), fclose);
+  if (!fp) {
+    close(newfd);
+    return 0;
+  }
   fprintf(fp.get(), "; failed servers dump follows\n");
   fprintf(fp.get(), "; remote IP\tcount\ttimestamp\n");
   uint64_t count=0;
