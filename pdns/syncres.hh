@@ -78,60 +78,53 @@ typedef std::unordered_map<
 template<class Thing> class Throttle : public boost::noncopyable
 {
 public:
-  Throttle() : d_limit(3), d_ttl(60), d_last_clean(time(nullptr))
-  {
-  }
 
-  struct entry
+  struct entry_t
   {
+    Thing thing;
     time_t ttd;
-    unsigned int count;
+    mutable unsigned int count;
   };
-  typedef map<Thing,entry> cont_t;
+  typedef multi_index_container<entry_t,
+                                indexed_by<
+                                  ordered_unique<tag<Thing>, member<entry_t, Thing, &entry_t::thing>>,
+                                  ordered_non_unique<tag<time_t>, member<entry_t, time_t, &entry_t::ttd>>
+                                  >> cont_t;
 
-  bool shouldThrottle(time_t now, const Thing& t)
+  bool shouldThrottle(time_t now, const Thing &t)
   {
-    if(now > d_last_clean + 300 ) {
-
-      d_last_clean=now;
-      for(typename cont_t::iterator i=d_cont.begin();i!=d_cont.end();) {
-        if( i->second.ttd < now) {
-          d_cont.erase(i++);
-        }
-        else
-          ++i;
-      }
-    }
-
-    typename cont_t::iterator i=d_cont.find(t);
-    if(i==d_cont.end())
+    auto i = d_cont.find(t);
+    if (i == d_cont.end()) {
       return false;
-    if(now > i->second.ttd || i->second.count == 0) {
+    }
+    if (now > i->ttd || i->count == 0) {
       d_cont.erase(i);
       return false;
     }
-    i->second.count--;
+    i->count--;
 
     return true; // still listed, still blocked
   }
-  void throttle(time_t now, const Thing& t, time_t ttl=0, unsigned int tries=0)
-  {
-    typename cont_t::iterator i=d_cont.find(t);
-    entry e={ now+(ttl ? ttl : d_ttl), tries ? tries : d_limit};
 
-    if(i==d_cont.end()) {
-      d_cont[t]=e;
+  void throttle(time_t now, const Thing &t, time_t ttl, unsigned int count)
+  {
+    auto i = d_cont.find(t);
+    time_t ttd = now + ttl;
+    if (i == d_cont.end()) {
+      entry_t e = { t, ttd, count };
+      d_cont.insert(e);
+    } else if (i->ttd > ttd || i->count < count) { // ????
+      auto &ind = d_cont.template get<Thing>();
+      ind.modify(i, [ttd,count](entry_t &e) { e.ttd = ttd; e.count = count; });
     }
-    else if(i->second.ttd > e.ttd || (i->second.count) < e.count)
-      d_cont[t]=e;
   }
 
-  unsigned int size() const
+  size_t size() const
   {
-    return (unsigned int)d_cont.size();
+    return d_cont.size();
   }
 
-  const cont_t& getThrottleMap() const
+  const cont_t &getThrottleMap() const
   {
     return d_cont;
   }
@@ -141,10 +134,13 @@ public:
     d_cont.clear();
   }
 
+  void prune() {
+    time_t now = time(NULL);
+    auto &ind = d_cont.template get<time_t>();
+    ind.erase(ind.begin(), ind.upper_bound(now));
+  }
+
 private:
-  unsigned int d_limit;
-  time_t d_ttl;
-  time_t d_last_clean;
   cont_t d_cont;
 };
 
@@ -166,10 +162,8 @@ public:
   DecayingEwma(const DecayingEwma& orig) = delete;
   DecayingEwma & operator=(const DecayingEwma& orig) = delete;
   
-  void submit(int val, const struct timeval* tv)
+  void submit(int val, const struct timeval& now)
   {
-    struct timeval now=*tv;
-
     if(d_needinit) {
       d_last=now;
       d_lastget=now;
@@ -185,9 +179,8 @@ public:
     }
   }
 
-  float get(const struct timeval* tv)
+  float get(const struct timeval &now)
   {
-    struct timeval now=*tv;
     float diff=makeFloat(d_lastget-now);
     d_lastget=now;
     float factor=expf(diff/60.0f); // is 1.0 or less
@@ -211,55 +204,51 @@ private:
   bool d_needinit;
 };
 
-template<class Thing> class Counters : public boost::noncopyable
+class fails_t : public boost::noncopyable
 {
 public:
   typedef unsigned long counter_t;
   struct value_t {
-    counter_t value;
-    time_t last;
+    value_t(const ComboAddress &a) : address(a) {}
+    ComboAddress address;
+    mutable counter_t value{0};
+    time_t last{0};
   };
-  typedef std::map<Thing, value_t> cont_t;
+
+  typedef multi_index_container<value_t,
+                                indexed_by<
+                                  ordered_unique<tag<ComboAddress>, member<value_t, ComboAddress, &value_t::address>>,
+                                  ordered_non_unique<tag<time_t>, member<value_t, time_t, &value_t::last>>
+                                  >> cont_t;
 
   cont_t getMap() const {
     return d_cont;
   }
-  counter_t value(const Thing& t) const
+  counter_t value(const ComboAddress& t) const
   {
-    typename cont_t::const_iterator i = d_cont.find(t);
+    auto i = d_cont.find(t);
 
     if (i == d_cont.end()) {
       return 0;
     }
-    return i->second.value;
+    return i->value;
   }
 
-  counter_t incr(const Thing& t, const struct timeval & now)
+  counter_t incr(const ComboAddress& t, const struct timeval & now)
   {
-    typename cont_t::iterator i = d_cont.find(t);
+    auto i = d_cont.insert(t).first;
 
-    if (i == d_cont.end()) {
-      auto &r = d_cont[t];
-      r.value = 1;
-      r.last = now.tv_sec;
-      return 1;
+    if (i->value < std::numeric_limits<counter_t>::max()) {
+      i->value++;
     }
-    else {
-      if (i->second.value < std::numeric_limits<counter_t>::max()) {
-        i->second.value++;
-      }
-      i->second.last = now.tv_sec;
-      return i->second.value;
-    }
+    auto &ind = d_cont.get<ComboAddress>();
+    ind.modify(i, [t = now.tv_sec](value_t &val) { val.last = t;});
+    return i->value;
   }
 
-  void clear(const Thing& t)
+  void clear(const ComboAddress& a)
   {
-    typename cont_t::iterator i = d_cont.find(t);
-
-    if (i != d_cont.end()) {
-      d_cont.erase(i);
-    }
+    d_cont.erase(a);
   }
 
   void clear()
@@ -273,31 +262,19 @@ public:
   }
 
   void prune(time_t cutoff) {
-    for (auto it = d_cont.begin(); it != d_cont.end(); ) {
-      if (it->second.last <= cutoff) {
-        it = d_cont.erase(it);
-      } else {
-        ++it;
-      }
-    }
+    auto &ind = d_cont.get<time_t>();
+    ind.erase(ind.begin(), ind.upper_bound(cutoff));
   }
 
 private:
   cont_t d_cont;
 };
 
-
 class SyncRes : public boost::noncopyable
 {
 public:
   enum LogMode { LogNone, Log, Store};
   typedef std::function<int(const ComboAddress& ip, const DNSName& qdomain, int qtype, bool doTCP, bool sendRDQuery, int EDNS0Level, struct timeval* now, boost::optional<Netmask>& srcmask, boost::optional<const ResolveContext&> context, LWResult *lwr, bool* chained)> asyncresolve_t;
-
-  struct EDNSStatus
-  {
-    time_t modeSetAt{0};
-    enum EDNSMode { UNKNOWN=0, EDNSOK=1, EDNSIGNORANT=2, NOEDNS=3 } mode{UNKNOWN};
-  };
 
   enum class HardenNXD { No, DNSSEC, Yes };
   
@@ -306,17 +283,17 @@ public:
       d_best is filled out with the best address for this collection */
   struct DecayingEwmaCollection
   {
-    void submit(const ComboAddress& remote, int usecs, const struct timeval* now)
+    void submit(const ComboAddress& remote, int usecs, const struct timeval& now)
     {
       d_collection[remote].submit(usecs, now);
     }
 
-    double get(const struct timeval* now)
+    float get(const struct timeval& now)
     {
       if(d_collection.empty())
         return 0;
-      double ret=std::numeric_limits<double>::max();
-      double tmp;
+      float ret=std::numeric_limits<float>::max();
+      float tmp;
       for (auto& entry : d_collection) {
         if((tmp = entry.second.get(now)) < ret) {
           ret=tmp;
@@ -335,7 +312,7 @@ public:
       return true;
     }
 
-    void purge(const std::map<ComboAddress, double>& keep)
+    void purge(const std::map<ComboAddress, float>& keep)
     {
       for (auto iter = d_collection.begin(); iter != d_collection.end(); ) {
         if (keep.find(iter->first) != keep.end()) {
@@ -348,12 +325,11 @@ public:
     }
 
     typedef std::map<ComboAddress, DecayingEwma> collection_t;
-    collection_t d_collection;
     ComboAddress d_best;
+    collection_t d_collection;
   };
 
   typedef std::unordered_map<DNSName, DecayingEwmaCollection> nsspeeds_t;
-  typedef map<ComboAddress, EDNSStatus> ednsstatus_t;
 
   vState getDSRecords(const DNSName& zone, dsmap_t& ds, bool onlyTA, unsigned int depth, bool bogusOnNXD=true, bool* foundCut=nullptr);
 
@@ -402,7 +378,35 @@ public:
 
   typedef std::unordered_map<DNSName, AuthDomain> domainmap_t;
   typedef Throttle<boost::tuple<ComboAddress,DNSName,uint16_t> > throttle_t;
-  typedef Counters<ComboAddress> fails_t;
+
+  struct EDNSStatus {
+    EDNSStatus(const ComboAddress &arg) : address(arg) {}
+    ComboAddress address;
+    time_t modeSetAt{0};
+    mutable enum EDNSMode { UNKNOWN=0, EDNSOK=1, EDNSIGNORANT=2, NOEDNS=3 } mode{UNKNOWN};
+  };
+
+  struct ednsstatus_t : public multi_index_container<EDNSStatus,
+                                                     indexed_by<
+                                                       ordered_unique<tag<ComboAddress>, member<EDNSStatus, ComboAddress, &EDNSStatus::address>>,
+                                                       ordered_non_unique<tag<time_t>, member<EDNSStatus, time_t, &EDNSStatus::modeSetAt>>
+                                  >> {
+    void reset(index<ComboAddress>::type &ind, iterator it) {
+      ind.modify(it, [](EDNSStatus &s) { s.mode = EDNSStatus::EDNSMode::UNKNOWN; s.modeSetAt = 0; }); 
+    }
+    void setMode(index<ComboAddress>::type &ind, iterator it, EDNSStatus::EDNSMode mode) {
+      it->mode = mode;
+    }
+    void setTS(index<ComboAddress>::type &ind, iterator it, time_t ts) {
+      ind.modify(it, [ts](EDNSStatus &s) { s.modeSetAt = ts; });
+    }
+
+    void prune(time_t cutoff) {
+      auto &ind = get<time_t>();
+      ind.erase(ind.begin(), ind.upper_bound(cutoff));
+    }
+
+  };
 
   struct ThreadLocalStorage {
     NegCache negcache;
@@ -489,7 +493,7 @@ public:
   {
     return t_sstorage.nsSpeeds.size();
   }
-  static void submitNSSpeed(const DNSName& server, const ComboAddress& ca, uint32_t usec, const struct timeval* now)
+  static void submitNSSpeed(const DNSName& server, const ComboAddress& ca, uint32_t usec, const struct timeval& now)
   {
     t_sstorage.nsSpeeds[server].submit(ca, usec, now);
   }
@@ -503,7 +507,7 @@ public:
     if (it == t_sstorage.ednsstatus.end())
       return EDNSStatus::UNKNOWN;
 
-    return it->second.mode;
+    return it->mode;
   }
   static uint64_t getEDNSStatusesSize()
   {
@@ -515,17 +519,15 @@ public:
   }
   static void pruneEDNSStatuses(time_t cutoff)
   {
-    for (auto it = t_sstorage.ednsstatus.begin(); it != t_sstorage.ednsstatus.end(); ) {
-      if (it->second.modeSetAt <= cutoff) {
-        it = t_sstorage.ednsstatus.erase(it);
-      } else {
-        ++it;
-      }
-    }
+    t_sstorage.ednsstatus.prune(cutoff);
   }
   static uint64_t getThrottledServersSize()
   {
     return t_sstorage.throttle.size();
+  }
+  static void pruneThrottledServers()
+  {
+    t_sstorage.throttle.prune();
   }
   static void clearThrottle()
   {
@@ -840,7 +842,7 @@ private:
   void getBestNSFromCache(const DNSName &qname, const QType &qtype, vector<DNSRecord>&bestns, bool* flawedNSSet, unsigned int depth, set<GetBestNSAnswer>& beenthere);
   DNSName getBestNSNamesFromCache(const DNSName &qname, const QType &qtype, NsSet& nsset, bool* flawedNSSet, unsigned int depth, set<GetBestNSAnswer>&beenthere);
 
-  inline vector<std::pair<DNSName, double>> shuffleInSpeedOrder(NsSet &nameservers, const string &prefix);
+  inline vector<std::pair<DNSName, float>> shuffleInSpeedOrder(NsSet &nameservers, const string &prefix);
   inline vector<ComboAddress> shuffleForwardSpeed(const vector<ComboAddress> &rnameservers, const string &prefix, const bool wasRd);
   bool moreSpecificThan(const DNSName& a, const DNSName &b) const;
   vector<ComboAddress> getAddrs(const DNSName &qname, unsigned int depth, set<GetBestNSAnswer>& beenthere, bool cacheOnly);
@@ -849,7 +851,7 @@ private:
   bool nameserverIPBlockedByRPZ(const DNSFilterEngine& dfe, const ComboAddress&);
   bool throttledOrBlocked(const std::string& prefix, const ComboAddress& remoteIP, const DNSName& qname, const QType& qtype, bool pierceDontQuery);
 
-  vector<ComboAddress> retrieveAddressesForNS(const std::string& prefix, const DNSName& qname, vector<std::pair<DNSName, double>>::const_iterator& tns, const unsigned int depth, set<GetBestNSAnswer>& beenthere, const vector<std::pair<DNSName, double>>& rnameservers, NsSet& nameservers, bool& sendRDQuery, bool& pierceDontQuery, bool& flawedNSSet, bool cacheOnly);
+  vector<ComboAddress> retrieveAddressesForNS(const std::string& prefix, const DNSName& qname, vector<std::pair<DNSName, float>>::const_iterator& tns, const unsigned int depth, set<GetBestNSAnswer>& beenthere, const vector<std::pair<DNSName, float>>& rnameservers, NsSet& nameservers, bool& sendRDQuery, bool& pierceDontQuery, bool& flawedNSSet, bool cacheOnly);
 
   void sanitizeRecords(const std::string& prefix, LWResult& lwr, const DNSName& qname, const QType& qtype, const DNSName& auth, bool wasForwarded, bool rdQuery);
   RCode::rcodes_ updateCacheFromRecords(unsigned int depth, LWResult& lwr, const DNSName& qname, const QType& qtype, const DNSName& auth, bool wasForwarded, const boost::optional<Netmask>, vState& state, bool& needWildcardProof, bool& gatherWildcardProof, unsigned int& wildcardLabelsCount, bool sendRDQuery);
