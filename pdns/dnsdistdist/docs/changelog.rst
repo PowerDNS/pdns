@@ -2,6 +2,46 @@ Changelog
 =========
 
 .. changelog::
+  :version: 1.4.0
+  :released: 20th of November 2019
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 8524
+
+    Lowercase the name blocked by a SMT dynamic block
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 8531
+
+    Fix the default value of ``setMaxUDPOutstanding`` in the console's help (phonedph1)
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 8522
+
+    Add bindings for the noerrors and drops members of StatNode
+
+  .. change::
+    :tags: DNS over HTTPS, DNS over TLS
+    :pullreq: 8526
+
+    Prefer the cipher suite from the server by default (DoH, DoT)
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 8440
+
+    Fix -WShadow warnings (Aki Tuomi)
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 8509
+
+    Fix typo: settting to setting (Chris Hofstaedtler)
+
+.. changelog::
   :version: 1.4.0-rc5
   :released: 30th of October 2019
 
