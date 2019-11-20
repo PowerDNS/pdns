@@ -4290,13 +4290,24 @@ static int serviceMain(int argc, char*argv[])
   }
   else {
 
+    
+    if (g_weDistributeQueries) {
+      for(unsigned int n=0; n < g_numDistributorThreads; ++n) {
+        auto& infos = s_threadInfos.at(currentThreadId + n);
+        infos.isListener = true;
+      }
+    }
+    for(unsigned int n=0; n < g_numWorkerThreads; ++n) {
+      auto& infos = s_threadInfos.at(currentThreadId + (g_weDistributeQueries ? g_numDistributorThreads : 0) + n);
+      infos.isListener = !g_weDistributeQueries;
+      infos.isWorker = true;
+    }
+
     if (g_weDistributeQueries) {
       g_log<<Logger::Warning<<"Launching "<< g_numDistributorThreads <<" distributor threads"<<endl;
       for(unsigned int n=0; n < g_numDistributorThreads; ++n) {
         auto& infos = s_threadInfos.at(currentThreadId);
-        infos.isListener = true;
         infos.thread = std::thread(recursorThread, currentThreadId++, "distr");
-
         setCPUMap(cpusMap, currentThreadId, infos.thread.native_handle());
       }
     }
@@ -4305,10 +4316,7 @@ static int serviceMain(int argc, char*argv[])
 
     for(unsigned int n=0; n < g_numWorkerThreads; ++n) {
       auto& infos = s_threadInfos.at(currentThreadId);
-      infos.isListener = g_weDistributeQueries ? false : true;
-      infos.isWorker = true;
       infos.thread = std::thread(recursorThread, currentThreadId++, "worker");
-
       setCPUMap(cpusMap, currentThreadId, infos.thread.native_handle());
     }
 
