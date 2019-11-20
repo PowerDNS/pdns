@@ -101,10 +101,11 @@ namespace YaHTTP {
           break;
         }
         // split headers
-        if ((pos1 = line.find(": ")) == std::string::npos)
+        if ((pos1 = line.find(":")) == std::string::npos) {
           throw ParseError("Malformed header line");
+        }
         key = line.substr(0, pos1);
-        value = line.substr(pos1+2);
+        value = line.substr(pos1 + 1);
         for(std::string::iterator it=key.begin(); it != key.end(); it++)
           if (YaHTTP::isspace(*it))
             throw ParseError("Header key contains whitespace which is not allowed by RFC");
