@@ -252,7 +252,7 @@ private:
   shared_ptr<RecordsROTransaction> d_rotxn; // for lookup and list
   shared_ptr<RecordsRWTransaction> d_rwtxn; // for feedrecord within begin/aborttransaction
   std::shared_ptr<RecordsRWTransaction> getRecordsRWTransaction(uint32_t id);
-  std::shared_ptr<RecordsROTransaction> getRecordsROTransaction(uint32_t id);
+  std::shared_ptr<RecordsROTransaction> getRecordsROTransaction(uint32_t id, std::shared_ptr<LMDBBackend::RecordsRWTransaction> rwtxn = nullptr);
   int genChangeDomain(const DNSName& domain, std::function<void(DomainInfo&)> func);
   int genChangeDomain(uint32_t id, std::function<void(DomainInfo&)> func);
   void deleteDomainRecords(RecordsRWTransaction& txn, uint32_t domain_id, uint16_t qtype=QType::ANY);
