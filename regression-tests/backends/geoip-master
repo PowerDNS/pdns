@@ -51,11 +51,31 @@ domains:
       - a: $geoipregionip
     unknown.service.geo.example.com:
       - a: 127.0.0.1
+    earth.map.geo.example.com:
+      - txt: "custom mapping"
   services:
     geo.example.com: '%cn.service.geo.example.com'
     www.geo.example.com: '%cn.service.geo.example.com'
     indirect.geo.example.com: '%cn.elsewhere.example.com'
     city.geo.example.com: '%ci.%re.%cc.city.geo.example.com'
+    map.geo.example.com: '%mp.map.geo.example.com'
+- domain: geo2.example.com
+  ttl: 30
+  records:
+    geo2.example.com:
+      - soa: ns1.example.com hostmaster.example.com 2014090125 7200 3600 1209600 3600
+      - ns: ns1.example.com
+      - ns: ns2.example.com
+      - mx: 10 mx.example.com
+    moon.map.geo2.example.com:
+      - txt: "overridden moon mapping"
+  services:
+    map.geo2.example.com: '%mp.map.geo2.example.com'
+  custom_mapping:
+    $geoipregion: moon
+mapping_lookup_formats: ['%cn']
+custom_mapping:
+  $geoipregion: earth
 EOF
 		cat > $testsdir/region-a-resolution/expected_result <<EOF
 0	www.geo.example.com.	IN	A	30	$geoipregionip

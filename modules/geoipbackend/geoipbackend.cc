@@ -51,6 +51,8 @@ struct GeoIPDomain {
   int ttl;
   map<DNSName, GeoIPService> services;
   map<DNSName, vector<GeoIPDNSResourceRecord> > records;
+  vector<string> mapping_lookup_formats;
+  map<std::string, std::string> custom_mapping;
 };
 
 static vector<GeoIPDomain> s_domains;
@@ -91,6 +93,25 @@ static vector<std::unique_ptr<GeoIPInterface> > s_geoip_files;
 string getGeoForLua(const std::string& ip, int qaint);
 static string queryGeoIP(const Netmask& addr, GeoIPInterface::GeoIPQueryAttribute attribute, GeoIPNetmask& gl);
 
+// validateMappingLookupFormats validates any custom format provided by the
+// user does not use the custom mapping placeholder again, else it would do an
+// infinite recursion.
+bool validateMappingLookupFormats(const vector<string>& formats) {
+  string::size_type cur,last;
+  for (const auto& lookupFormat : formats) {
+    last=0;
+    while((cur = lookupFormat.find("%", last)) != string::npos) {
+      if (!lookupFormat.compare(cur,3,"%mp")) {
+        return false;
+      } else if (!lookupFormat.compare(cur,2,"%%")) { // Ensure escaped % is also accepted
+        last = cur + 2; continue;
+      }
+      last = cur + 1; // move to next attribute
+    }
+  }
+  return true;
+}
+
 void GeoIPBackend::initialize() {
   YAML::Node config;
   vector<GeoIPDomain> tmp_domains;
@@ -114,6 +135,19 @@ void GeoIPBackend::initialize() {
     } catch (YAML::Exception &ex) {
        throw PDNSException(string("Cannot read config file ") + ex.msg);
     }
+  }
+
+  // Global lookup formats and mapping will be used
+  // if none defined at the domain level.
+  vector<string> global_mapping_lookup_formats;
+  map<std::string, std::string> global_custom_mapping;
+  if (YAML::Node formats = config["mapping_lookup_formats"]) {
+    global_mapping_lookup_formats = formats.as<vector<string>>();
+    if (!validateMappingLookupFormats(global_mapping_lookup_formats))
+      throw PDNSException(string("%mp is not allowed in mapping lookup"));
+  }
+  if (YAML::Node mapping = config["custom_mapping"]) {
+    global_custom_mapping = mapping.as<map<std::string, std::string>>();
   }
 
   for(YAML::Node domain :  config["domains"]) {
@@ -208,6 +242,23 @@ void GeoIPBackend::initialize() {
         }
         nmt.insert(Netmask("0.0.0.0/0")).second.assign(value.begin(),value.end());
         nmt.insert(Netmask("::/0")).second.swap(value);
+      }
+
+      // Allow per domain override of mapping_lookup_formats and custom_mapping.
+      // If not defined, the global values will be used.
+      if (YAML::Node formats = domain["mapping_lookup_formats"]) {
+        vector<string> mapping_lookup_formats = formats.as<vector<string>>();
+        if (!validateMappingLookupFormats(mapping_lookup_formats))
+          throw PDNSException(string("%mp is not allowed in mapping lookup formats of domain ") + dom.domain.toLogString());
+
+        dom.mapping_lookup_formats = mapping_lookup_formats;
+      } else {
+        dom.mapping_lookup_formats = global_mapping_lookup_formats;
+      }
+      if (YAML::Node mapping = domain["custom_mapping"]) {
+        dom.custom_mapping = mapping.as<map<std::string,std::string>>();
+      } else {
+        dom.custom_mapping = global_custom_mapping;
       }
 
       dom.services[srvName].netmask4 = netmask4;
@@ -329,7 +380,7 @@ bool GeoIPBackend::lookup_static(const GeoIPDomain &dom, const DNSName &search, 
         if (rr.weight == 0 || probability_rnd < comp || probability_rnd > (comp + rr.weight))
           continue;
       }
-      const string& content = format2str(rr.content, addr, gl);
+      const string& content = format2str(rr.content, addr, gl, dom);
       if (rr.qtype != QType::ENT && rr.qtype != QType::TXT && content.empty()) continue;
       d_result.push_back(rr);
       d_result.back().content = content;
@@ -409,7 +460,7 @@ void GeoIPBackend::lookup(const QType &qtype, const DNSName& qdomain, int zoneId
 
   // note that this means the array format won't work with indirect
   for(auto it = node->second.begin(); it != node->second.end(); it++) {
-    sformat = DNSName(format2str(*it, addr, gl));
+    sformat = DNSName(format2str(*it, addr, gl, *dom));
 
     // see if the record can be found
     if (this->lookup_static((*dom), sformat, qtype, qdomain, addr, gl))
@@ -539,7 +590,7 @@ static bool queryGeoLocation(const Netmask& addr, GeoIPNetmask& gl, double& lat,
   return false;
 }
 
-string GeoIPBackend::format2str(string sformat, const Netmask& addr, GeoIPNetmask& gl) {
+string GeoIPBackend::format2str(string sformat, const Netmask& addr, GeoIPNetmask& gl, const GeoIPDomain &dom) {
   string::size_type cur,last;
   boost::optional<int> alt, prec;
   double lat, lon;
@@ -553,7 +604,16 @@ string GeoIPBackend::format2str(string sformat, const Netmask& addr, GeoIPNetmas
     string rep;
     int nrep=3;
     tmp_gl.netmask = 0;
-    if (!sformat.compare(cur,3,"%cn")) {
+    if (!sformat.compare(cur,3,"%mp")) {
+      rep = "unknown";
+      for (const auto& lookupFormat : dom.mapping_lookup_formats) {
+        auto it = dom.custom_mapping.find(format2str(lookupFormat, addr, gl, dom));
+        if (it != dom.custom_mapping.end()) {
+          rep = it->second;
+          break;
+        }
+      }
+    } else if (!sformat.compare(cur,3,"%cn")) {
       rep = queryGeoIP(addr, GeoIPInterface::Continent, tmp_gl);
     } else if (!sformat.compare(cur,3,"%co")) {
       rep = queryGeoIP(addr, GeoIPInterface::Country, tmp_gl);

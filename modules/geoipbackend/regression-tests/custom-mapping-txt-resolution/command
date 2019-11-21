@@ -1,0 +1,3 @@
+#!/bin/sh
+cleandig map.geo.example.com TXT ednssubnet $geoipregionip
+cleandig map.geo2.example.com TXT ednssubnet $geoipregionip

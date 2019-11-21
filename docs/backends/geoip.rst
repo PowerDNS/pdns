@@ -145,6 +145,14 @@ that the ``‐`` before certain keys is part of the syntax.
         service.geo.example.com:
           default: [ '%co.%cn.service.geo.example.com', '%cn.service.geo.example.com' ]
           10.0.0.0/8: 'internal.service.geo.example.com'
+    mapping_lookup_formats: ['%cc-%re', '%cc']
+    custom_mapping:
+      fr: eu-central
+      be: eu-central
+      es: eu-south
+      pt: eu-south
+      us-tx: us-south
+      us-ca: us-south
 
 Keys explained
 ~~~~~~~~~~~~~~
@@ -165,6 +173,16 @@ Keys explained
 
   :services: Defines one or more services for querying.
              Each service name may have one or more placeholders.
+  :mapping_lookup_formats: Defines which format to interpolate when using the ``%mp`` placeholder. Each entry
+                           is looked up in the given order and stops at first match.
+                           This allows using a fine granularity, (e.g. per country), while limiting the number
+                           of records to create.
+                           You can use any placeholder, except ``%mp`` to avoid recursion, within the given
+                           format (e.g. %cc).
+  :custom_mapping: Defines the mapping between the lookup format and a custom value to replace ``%mp`` placeholder.
+
+:mapping_lookup_formats: Same as per domain, but used as default value if not defined at the domain level.
+:custom_mapping: Same as per domain, but used as default value if not defined at the domain level.
 
 .. note::
 
@@ -203,6 +221,16 @@ These placeholders disable caching for the record completely:
 :%ip: Client IP address
 :%ip4: Client IPv4 address
 :%ip6: Client IPv6 address
+
+Following placeholder allows custom mapping:
+
+:%mp: Use formats in ``mapping_lookup_formats`` and use user defined ``custom_mapping``
+
+.. versionadded:: 4.4.0
+
+  These placeholders have been added in version 4.4.0:
+
+  - %mp to expand user defined custom formats.
 
 .. versionadded:: 4.2.0
 

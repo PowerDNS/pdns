@@ -1,0 +1,8 @@
+0	map.geo.example.com.	IN	TXT	30	"custom mapping"
+2	.	IN	OPT	0	AAgACAABIBgBAQEB
+Rcode: 0 (No Error), RD: 0, QR: 1, TC: 0, AA: 1, opcode: 0
+Reply to question for qname='map.geo.example.com.', qtype=TXT
+0	map.geo2.example.com.	IN	TXT	30	"overridden moon mapping"
+2	.	IN	OPT	0	AAgACAABIBgBAQEB
+Rcode: 0 (No Error), RD: 0, QR: 1, TC: 0, AA: 1, opcode: 0
+Reply to question for qname='map.geo2.example.com.', qtype=TXT
