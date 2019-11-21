@@ -1,0 +1,45 @@
+#!/bin/sh
+echo == Verify RRset absence
+cleandig ptr1.test.dyndns PTR | grep -v SOA
+
+echo
+echo == Add PTR
+cleannsupdate <<!
+server $nameserver $port
+zone test.dyndns
+update add ptr1.test.dyndns. 3600 PTR host-2.test.dyndns.
+send
+answer
+!
+
+echo
+echo == Verify PTR presence
+cleandig ptr1.test.dyndns PTR | grep -v SOA
+
+echo
+echo == Add the PTR again
+cleannsupdate <<!
+server $nameserver $port
+zone test.dyndns
+update add ptr1.test.dyndns. 3600 PTR HOST-2.test.dyndns.
+send
+answer
+!
+
+echo
+echo == Verify that we have one PTR
+cleandig ptr1.test.dyndns PTR
+
+echo
+echo == Clean up
+cleannsupdate <<!
+server $nameserver $port
+zone test.dyndns
+update delete ptr1.test.dyndns. PTR
+send
+answer
+!
+
+echo
+echo == Verify RRset absence
+cleandig ptr1.test.dyndns PTR | grep -v SOA
