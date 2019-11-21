@@ -389,12 +389,19 @@ bool PacketHandler::getBestWildcard(DNSPacket& p, const SOAData& sd, const DNSNa
         if(rec->d_type == QType::CNAME || rec->d_type == p.qtype.getCode() || (p.qtype.getCode() == QType::ANY && rec->d_type != QType::RRSIG)) {
           //    noCache=true;
           DLOG(g_log<<"Executing Lua: '"<<rec->getCode()<<"'"<<endl);
-          auto recvec=luaSynth(rec->getCode(), target, sd.qname, sd.domain_id, p, rec->d_type);
-          for(const auto& r : recvec) {
-            rr.dr.d_type = rec->d_type; // might be CNAME
-            rr.dr.d_content = r;
-            rr.scopeMask = p.getRealRemote().getBits(); // this makes sure answer is a specific as your question
-            ret->push_back(rr);
+          try {
+            auto recvec=luaSynth(rec->getCode(), target, sd.qname, sd.domain_id, p, rec->d_type);
+            for(const auto& r : recvec) {
+              rr.dr.d_type = rec->d_type; // might be CNAME
+              rr.dr.d_content = r;
+              rr.scopeMask = p.getRealRemote().getBits(); // this makes sure answer is a specific as your question
+              ret->push_back(rr);
+            }
+          }
+          catch (std::exception &e) {
+            while (B.get(rr)) ;                 // don't leave DB handle in bad state
+
+            throw;
           }
         }
       }
@@ -1358,6 +1365,8 @@ std::unique_ptr<DNSPacket> PacketHandler::doQuestion(DNSPacket& p)
             }
           }
           catch(std::exception &e) {
+            while (B.get(rr)) ;              // don't leave DB handle in bad state
+
             r=p.replyPacket();
             r->setRcode(RCode::ServFail);
 
