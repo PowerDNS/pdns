@@ -829,6 +829,7 @@ static bool isValidMetadataKind(const string& kind, bool readonly) {
     "PRESIGNED",
     "PUBLISH-CDNSKEY",
     "PUBLISH-CDS",
+    "SLAVE-RENOTIFY",
     "SOA-EDIT",
     "TSIG-ALLOW-AXFR",
     "TSIG-ALLOW-DNSUPDATE"

@@ -600,7 +600,19 @@ void CommunicatorClass::suck(const DNSName &domain, const ComboAddress& remote)
 
 
     g_log<<Logger::Error<<"AXFR done for '"<<domain<<"', zone committed with serial number "<<zs.soa_serial<<endl;
+
+    bool renotify = false;
     if(::arg().mustDo("slave-renotify"))
+      renotify = true;
+    vector<string> meta;
+    if (B.getDomainMetadata(domain, "SLAVE-RENOTIFY", meta) && meta.size() > 0) {
+      if (meta[0] == "1") {
+        renotify = true;
+      } else {
+        renotify = false;
+      }
+    }
+    if(renotify)
       notifyDomain(domain, &B);
   }
   catch(DBException &re) {
