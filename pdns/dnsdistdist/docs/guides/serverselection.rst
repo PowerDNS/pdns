@@ -46,9 +46,18 @@ The current hash algorithm is based on the qname of the query.
 ``chashed``
 ~~~~~~~~~~~
 
+.. versionadded: 1.3.3
+
 ``chashed`` is a consistent hashing distribution policy. Identical questions with identical hashes will be distributed to the same servers. But unlike the ``whashed`` policy, this distribution will keep consistent over time. Adding or removing servers will only remap a small part of the queries.
 
+Increasing the weight of servers to a value larger than the default is required to get a good distribution of queries. Small values like 100 or 1000 should be enough to get a correct distribution.
+This is a side-effect of the internal implementation of the consistent hashing algorithm, which assigns as many points on a circle to a server than its weight, and distributes a query to the server who has the closest point on the circle from the hash of the query's qname. Therefore having very few points, as is the case with the default weight of 1, leads to a poor distribution of queries.
+
 You can also set the hash perturbation value, see :func:`setWHashedPertubation`. To achieve consistent distribution over :program:`dnsdist` restarts, you will also need to explicitly set the backend's UUIDs with the ``id`` option of :func:`newServer`. You can get the current UUIDs of your backends by calling :func:`showServers` with the ``showUUIDs=true`` option.
+
+Since 1.5.0, a bounded-load version is also supported, preventing one server from receiving much more queries than the others, even if the distribution of queries is not perfect. This "consistent hashing with bounded loads" algorithm is enabled by setting func:`setConsistentHashingBalancingFactor` to a value other than 0, which is the default. This value is the maximum number of outstanding queries that a given server can have at a given time, as a ratio of the average number of outstanding queries for all the active servers in the pool.
+For example, setting func:`setConsistentHashingBalancingFactor` to 1.5 means that no server will be allowed to have more outstanding queries than 1.5 times the average of all outstanding queries in the pool. The algorithm will try to select a server based on the hash of the qname, as is done when no bounded-load is set, but will disqualify all servers that have more outstanding queries than the average times the factor, until a suitable server is found.
+The higher the factor, the more imbalance between the servers is allowed.
 
 ``roundrobin``
 ~~~~~~~~~~~~~~
@@ -114,6 +123,14 @@ Functions
 
   :param string name: Name of the policy
   :param string function: The function to call for this policy
+
+.. function:: setConsistentHashingBalancingFactor(factor)
+
+  .. versionadded: 1.5.0
+
+  Set the maximum imbalance between the number of outstanding queries for a given server relative to the average number of outstanding queries for all servers in the pool,
+  when using the ``chashed`` consistent hashing load-balancing policy.
+  Default is 0, which disables the bounded-load algorithm.
 
 .. function:: setServerPolicy(policy)
 

@@ -496,6 +496,7 @@ const std::vector<ConsoleKeyword> g_consoleKeywords{
   { "setAPIWritable", true, "bool, dir", "allow modifications via the API. if `dir` is set, it must be a valid directory where the configuration files will be written by the API" },
   { "setCacheCleaningDelay", true, "num", "Set the interval in seconds between two runs of the cache cleaning algorithm, removing expired entries" },
   { "setCacheCleaningPercentage", true, "num", "Set the percentage of the cache that the cache cleaning algorithm will try to free by removing expired entries. By default (100), all expired entries are remove" },
+  { "setConsistentHashingBalancingFactor", true, "factor", "Set the balancing factor for bounded-load consistent hashing" },
   { "setConsoleACL", true, "{netmask, netmask}", "replace the console ACL set with these netmasks" },
   { "setConsoleConnectionsLogging", true, "enabled", "whether to log the opening and closing of console connections" },
   { "setConsoleOutputMaxMsgSize", true, "messageSize", "set console message maximum size in bytes, default is 10 MB" },

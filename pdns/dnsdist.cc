@@ -882,6 +882,7 @@ shared_ptr<DownstreamState> wrandom(const NumberedServerVector& servers, const D
 }
 
 uint32_t g_hashperturb;
+double g_consistentHashBalancingFactor = 0;
 shared_ptr<DownstreamState> whashed(const NumberedServerVector& servers, const DNSQuestion* dq)
 {
   return valrandom(dq->qname->hash(g_hashperturb), servers, dq);
@@ -894,8 +895,18 @@ shared_ptr<DownstreamState> chashed(const NumberedServerVector& servers, const D
   unsigned int min = std::numeric_limits<unsigned int>::max();
   shared_ptr<DownstreamState> ret = nullptr, first = nullptr;
 
+  double targetLoad = std::numeric_limits<double>::max();
+  if (g_consistentHashBalancingFactor != 0) {
+    /* we start with one, representing the query we are currently handling */
+    double currentLoad = 1;
+    for (const auto& pair : servers) {
+      currentLoad += pair.second->outstanding;
+    }
+    targetLoad = (currentLoad / servers.size()) * g_consistentHashBalancingFactor;
+  }
+
   for (const auto& d: servers) {
-    if (d.second->isUp()) {
+    if (d.second->isUp() && d.second->outstanding <= targetLoad) {
       // make sure hashes have been computed
       if (d.second->hashes.empty()) {
         d.second->hash();

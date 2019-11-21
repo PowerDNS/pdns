@@ -1591,6 +1591,11 @@ void setupLuaConfig(bool client)
       g_roundrobinFailOnNoServer = fail;
     });
 
+  g_lua.writeFunction("setConsistentHashingBalancingFactor", [](double factor) {
+      setLuaSideEffect();
+      g_consistentHashBalancingFactor = factor;
+    });
+
   g_lua.writeFunction("setRingBuffersSize", [](size_t capacity, boost::optional<size_t> numberOfShards) {
       setLuaSideEffect();
       if (g_configurationDone) {
