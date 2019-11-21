@@ -619,6 +619,7 @@ void reportOtherTypes()
    ALIASRecordContent::report();
    SPFRecordContent::report();
    NAPTRRecordContent::report();
+   KXRecordContent::report();
    LOCRecordContent::report();
    ENTRecordContent::report();
    HINFORecordContent::report();
