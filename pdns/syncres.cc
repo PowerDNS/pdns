@@ -950,9 +950,10 @@ vector<ComboAddress> SyncRes::getAddrs(const DNSName &qname, unsigned int depth,
      is only one or none at all in the current set.
   */
   map<ComboAddress, float> speeds;
-  auto& collection = t_sstorage.nsSpeeds[qname].d_collection;
+  auto& collection = t_sstorage.nsSpeeds[qname];
+  float factor = collection.getFactor(d_now);
   for(const auto& val: ret) {
-    speeds[val] = collection[val].get(d_now);
+    speeds[val] = collection.d_collection[val].get(factor);
   }
 
   t_sstorage.nsSpeeds[qname].purge(speeds);
