@@ -880,13 +880,13 @@ bool TLSFrontend::setupTLS()
     }
 #endif /* HAVE_LIBSSL */
   }
-#ifdef HAVE_GNUTLS
-  d_ctx = std::make_shared<GnuTLSIOCtx>(*this);
-#else /* HAVE_GNUTLS */
 #ifdef HAVE_LIBSSL
   d_ctx = std::make_shared<OpenSSLTLSIOCtx>(*this);
-#endif /* HAVE_LIBSSL */
+#else /* HAVE_LIBSSL */
+#ifdef HAVE_GNUTLS
+  d_ctx = std::make_shared<GnuTLSIOCtx>(*this);
 #endif /* HAVE_GNUTLS */
+#endif /* HAVE_LIBSSL */
 
 #endif /* HAVE_DNS_OVER_TLS */
   return true;
