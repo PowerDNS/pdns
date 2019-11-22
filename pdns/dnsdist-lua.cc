@@ -1593,7 +1593,14 @@ void setupLuaConfig(bool client)
 
   g_lua.writeFunction("setConsistentHashingBalancingFactor", [](double factor) {
       setLuaSideEffect();
-      g_consistentHashBalancingFactor = factor;
+      if (factor >= 0) {
+        g_consistentHashBalancingFactor = factor;
+      }
+      else {
+        errlog("Invalid value passed to setConsistentHashingBalancingFactor()!");
+        g_outputBuffer="Invalid value passed to setConsistentHashingBalancingFactor()!\n";
+        return;
+      }
     });
 
   g_lua.writeFunction("setRingBuffersSize", [](size_t capacity, boost::optional<size_t> numberOfShards) {

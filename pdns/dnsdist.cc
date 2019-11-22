@@ -896,7 +896,7 @@ shared_ptr<DownstreamState> chashed(const NumberedServerVector& servers, const D
   shared_ptr<DownstreamState> ret = nullptr, first = nullptr;
 
   double targetLoad = std::numeric_limits<double>::max();
-  if (g_consistentHashBalancingFactor != 0) {
+  if (g_consistentHashBalancingFactor > 0) {
     /* we start with one, representing the query we are currently handling */
     double currentLoad = 1;
     for (const auto& pair : servers) {
