@@ -141,53 +141,107 @@ MDBDbi MDBEnv::openDB(const string_view dbname, int flags)
   
   if(!(envflags & MDB_RDONLY)) {
     auto rwt = getRWTransaction();
-    MDBDbi ret = rwt.openDB(dbname, flags);
-    rwt.commit();
+    MDBDbi ret = rwt->openDB(dbname, flags);
+    rwt->commit();
     return ret;
   }
 
   MDBDbi ret;
   {
     auto rwt = getROTransaction(); 
-    ret = rwt.openDB(dbname, flags);
+    ret = rwt->openDB(dbname, flags);
   }
   return ret;
 }
 
-MDBRWTransaction::MDBRWTransaction(MDBEnv* parent, int flags) : d_parent(parent)
+MDBRWTransactionImpl::MDBRWTransactionImpl(MDBEnv *parent, MDB_txn *txn):
+  MDBROTransactionImpl(parent, txn)
+
 {
-  if(d_parent->getROTX() || d_parent->getRWTX())
+
+}
+
+MDB_txn *MDBRWTransactionImpl::openRWTransaction(MDBEnv *env, MDB_txn *parent, int flags)
+{
+  MDB_txn *result;
+  if(env->getROTX() || env->getRWTX())
     throw std::runtime_error("Duplicate RW transaction");
 
   for(int tries =0 ; tries < 3; ++tries) { // it might happen twice, who knows
-    if(int rc=mdb_txn_begin(d_parent->d_env, 0, flags, &d_txn)) {
+    if(int rc=mdb_txn_begin(env->d_env, parent, flags, &result)) {
       if(rc == MDB_MAP_RESIZED && tries < 2) {
         // "If the mapsize is increased by another process (..) mdb_txn_begin() will return MDB_MAP_RESIZED.
         // call mdb_env_set_mapsize with a size of zero to adopt the new size."
-        mdb_env_set_mapsize(d_parent->d_env, 0);
+        mdb_env_set_mapsize(env->d_env, 0);
         continue;
       }
       throw std::runtime_error("Unable to start RW transaction: "+std::string(mdb_strerror(rc)));
     }
     break;
   }
-  d_parent->incRWTX();
+  env->incRWTX();
+  return result;
 }
 
-MDBROTransaction::MDBROTransaction(MDBEnv* parent, int flags) : d_parent(parent)
+MDBRWTransactionImpl::MDBRWTransactionImpl(MDBEnv* parent, int flags):
+  MDBRWTransactionImpl(parent, openRWTransaction(parent, nullptr, flags))
 {
-  if(d_parent->getRWTX())
+}
+
+MDBRWTransactionImpl::~MDBRWTransactionImpl()
+{
+  abort();
+}
+
+void MDBRWTransactionImpl::commit()
+{
+  closeRORWCursors();
+  if (!d_txn) {
+    return;
+  }
+
+  if(int rc = mdb_txn_commit(d_txn)) {
+    throw std::runtime_error("committing: " + std::string(mdb_strerror(rc)));
+  }
+  environment().decRWTX();
+  d_txn = nullptr;
+}
+
+void MDBRWTransactionImpl::abort()
+{
+  closeRORWCursors();
+  if (!d_txn) {
+    return;
+  }
+
+  mdb_txn_abort(d_txn);
+  // prevent the RO destructor from cleaning up the transaction itself
+  environment().decRWTX();
+  d_txn = nullptr;
+}
+
+MDBROTransactionImpl::MDBROTransactionImpl(MDBEnv *parent, MDB_txn *txn):
+  d_parent(parent),
+  d_cursors(),
+  d_txn(txn)
+{
+
+}
+
+MDB_txn *MDBROTransactionImpl::openROTransaction(MDBEnv *env, MDB_txn *parent, int flags)
+{
+  if(env->getRWTX())
     throw std::runtime_error("Duplicate RO transaction");
   
   /*
     A transaction and its cursors must only be used by a single thread, and a thread may only have a single transaction at a time. If MDB_NOTLS is in use, this does not apply to read-only transactions. */
-  
+  MDB_txn *result = nullptr;
   for(int tries =0 ; tries < 3; ++tries) { // it might happen twice, who knows
-    if(int rc=mdb_txn_begin(d_parent->d_env, 0, MDB_RDONLY | flags, &d_txn)) {
+    if(int rc=mdb_txn_begin(env->d_env, parent, MDB_RDONLY | flags, &result)) {
       if(rc == MDB_MAP_RESIZED && tries < 2) {
         // "If the mapsize is increased by another process (..) mdb_txn_begin() will return MDB_MAP_RESIZED.
         // call mdb_env_set_mapsize with a size of zero to adopt the new size."
-        mdb_env_set_mapsize(d_parent->d_env, 0);
+        mdb_env_set_mapsize(env->d_env, 0);
         continue;
       }
 
@@ -195,43 +249,125 @@ MDBROTransaction::MDBROTransaction(MDBEnv* parent, int flags) : d_parent(parent)
     }
     break;
   }
-  d_parent->incROTX();
+  env->incROTX();
+
+  return result;
+}
+
+void MDBROTransactionImpl::closeROCursors()
+{
+  // we need to move the vector away to ensure that the cursors don’t mess with our iteration.
+  std::vector<MDBROCursor*> buf;
+  std::swap(d_cursors, buf);
+  for (auto &cursor: buf) {
+    cursor->close();
+  }
+}
+
+MDBROTransactionImpl::MDBROTransactionImpl(MDBEnv *parent, int flags):
+    MDBROTransactionImpl(parent, openROTransaction(parent, nullptr, flags))
+{
+
+}
+
+MDBROTransactionImpl::~MDBROTransactionImpl()
+{
+  // this is safe because C++ will not call overrides of virtual methods in destructors.
+  commit();
+}
+
+void MDBROTransactionImpl::abort()
+{
+  closeROCursors();
+  // if d_txn is non-nullptr here, either the transaction object was invalidated earlier (e.g. by moving from it), or it is an RW transaction which has already cleaned up the d_txn pointer (with an abort).
+  if (d_txn) {
+    d_parent->decROTX();
+    mdb_txn_abort(d_txn); // this appears to work better than abort for r/o database opening
+    d_txn = nullptr;
+  }
+}
+
+void MDBROTransactionImpl::commit()
+{
+  closeROCursors();
+  // if d_txn is non-nullptr here, either the transaction object was invalidated earlier (e.g. by moving from it), or it is an RW transaction which has already cleaned up the d_txn pointer (with an abort).
+  if (d_txn) {
+    d_parent->decROTX();
+    mdb_txn_commit(d_txn); // this appears to work better than abort for r/o database opening
+    d_txn = nullptr;
+  }
 }
 
 
 
-void MDBRWTransaction::clear(MDB_dbi dbi)
+void MDBRWTransactionImpl::clear(MDB_dbi dbi)
 {
   if(int rc = mdb_drop(d_txn, dbi, 0)) {
     throw runtime_error("Error clearing database: " + MDBError(rc));
   }
 }
 
-MDBRWCursor MDBRWTransaction::getCursor(const MDBDbi& dbi)
+MDBRWCursor MDBRWTransactionImpl::getRWCursor(const MDBDbi& dbi)
 {
-  return MDBRWCursor(this, dbi);
+  MDB_cursor *cursor;
+  int rc= mdb_cursor_open(d_txn, dbi, &cursor);
+  if(rc) {
+    throw std::runtime_error("Error creating RO cursor: "+std::string(mdb_strerror(rc)));
+  }
+  return MDBRWCursor(d_rw_cursors, cursor);
+}
+
+MDBRWCursor MDBRWTransactionImpl::getCursor(const MDBDbi &dbi)
+{
+  return getRWCursor(dbi);
+}
+
+MDBRWTransaction MDBRWTransactionImpl::getRWTransaction()
+{
+  MDB_txn *txn;
+  if (int rc = mdb_txn_begin(environment(), *this, 0, &txn)) {
+    throw std::runtime_error(std::string("failed to start child transaction: ")+mdb_strerror(rc));
+  }
+  // we need to increase the counter here because commit/abort on the child transaction will decrease it
+  environment().incRWTX();
+  return MDBRWTransaction(new MDBRWTransactionImpl(&environment(), txn));
+}
+
+MDBROTransaction MDBRWTransactionImpl::getROTransaction()
+{
+  return std::move(getRWTransaction());
 }
 
 MDBROTransaction MDBEnv::getROTransaction()
 {
-  return MDBROTransaction(this);
+  return MDBROTransaction(new MDBROTransactionImpl(this));
 }
 MDBRWTransaction MDBEnv::getRWTransaction()
 {
-  return MDBRWTransaction(this);
+  return MDBRWTransaction(new MDBRWTransactionImpl(this));
 }
 
 
-void MDBRWTransaction::closeCursors()
+void MDBRWTransactionImpl::closeRWCursors()
 {
-  for(auto& c : d_cursors)
-    c->close();
-  d_cursors.clear();
+  decltype(d_rw_cursors) buf;
+  std::swap(d_rw_cursors, buf);
+  for (auto &cursor: buf) {
+    cursor->close();
+  }
 }
 
-MDBROCursor MDBROTransaction::getCursor(const MDBDbi& dbi)
+MDBROCursor MDBROTransactionImpl::getCursor(const MDBDbi& dbi)
 {
-  return MDBROCursor(this, dbi);
+  return getROCursor(dbi);
 }
 
-
+MDBROCursor MDBROTransactionImpl::getROCursor(const MDBDbi &dbi)
+{
+  MDB_cursor *cursor;
+  int rc= mdb_cursor_open(d_txn, dbi, &cursor);
+  if(rc) {
+    throw std::runtime_error("Error creating RO cursor: "+std::string(mdb_strerror(rc)));
+  }
+  return MDBROCursor(d_cursors, cursor);
+}

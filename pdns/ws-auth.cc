@@ -2036,6 +2036,11 @@ static void patchZone(UeberBackend& B, HttpRequest* req, HttpResponse* resp) {
             if (qtype.getCode() != rr.qtype.getCode()
               && (exclusiveEntryTypes.count(qtype.getCode()) != 0
                 || exclusiveEntryTypes.count(rr.qtype.getCode()) != 0)) {
+
+              // leave database handle in a consistent state
+              while (di.backend->get(rr))
+                ;
+
               throw ApiException("RRset "+qname.toString()+" IN "+qtype.getName()+": Conflicts with pre-existing RRset");
             }
           }
