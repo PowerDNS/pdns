@@ -1,6 +1,8 @@
 #!/usr/bin/env python
 import dns
+import os
 import subprocess
+import unittest
 from dnsdisttests import DNSDistTest
 
 class DNSDistOCSPStaplingTest(DNSDistTest):
@@ -17,6 +19,7 @@ class DNSDistOCSPStaplingTest(DNSDistTest):
 
         return output[0].decode()
 
+@unittest.skipIf('SKIP_DOH_TESTS' in os.environ, 'DNS over HTTPS tests are disabled')
 class TestOCSPStaplingDOH(DNSDistOCSPStaplingTest):
 
     _serverKey = 'server.key'
@@ -34,6 +37,19 @@ class TestOCSPStaplingDOH(DNSDistOCSPStaplingTest):
     addDOHLocal("127.0.0.1:%s", "%s", "%s", { "/" }, { ocspResponses={"%s"}})
     """
     _config_params = ['_testServerPort', '_serverCert', '_caCert', '_caKey', '_ocspFile', '_dohServerPort', '_serverCert', '_serverKey', '_ocspFile']
+
+    @classmethod
+    def setUpClass(cls):
+
+        # for some reason, @unittest.skipIf() is not applied to derived classes with some versions of Python
+        if 'SKIP_DOH_TESTS' in os.environ:
+            raise unittest.SkipTest('DNS over HTTPS tests are disabled')
+
+        cls.startResponders()
+        cls.startDNSDist()
+        cls.setUpSockets()
+
+        print("Launching tests..")
 
     def testOCSPStapling(self):
         """

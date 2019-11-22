@@ -2,9 +2,11 @@
 import unittest
 import dns
 import lmdb
+import os
 import socket
 from dnsdisttests import DNSDistTest
 
+@unittest.skipIf('SKIP_LMDB_TESTS' in os.environ, 'LMDB tests are disabled')
 class TestLMDB(DNSDistTest):
 
     _lmdbFileName = '/tmp/test-lmdb-db'

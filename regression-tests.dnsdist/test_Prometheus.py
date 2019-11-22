@@ -1,8 +1,11 @@
 #!/usr/bin/env python
+import os
 import requests
 import subprocess
+import unittest
 from dnsdisttests import DNSDistTest
 
+@unittest.skipIf('SKIP_PROMETHEUS_TESTS' in os.environ, 'Prometheus tests are disabled')
 class TestPrometheus(DNSDistTest):
 
     _webTimeout = 2.0
