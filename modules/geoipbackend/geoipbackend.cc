@@ -314,11 +314,13 @@ GeoIPBackend::~GeoIPBackend() {
 bool GeoIPBackend::lookup_static(const GeoIPDomain &dom, const DNSName &search, const QType &qtype, const DNSName& qdomain, const Netmask& addr, GeoIPNetmask &gl) {
   const auto& i = dom.records.find(search);
   map<uint16_t,int> cumul_probabilities;
+  map<uint16_t,bool> weighted_match;
   int probability_rnd = 1+(dns_random(1000)); // setting probability=0 means it never is used
 
   if (i != dom.records.end()) { // return static value
     for(const auto& rr : i->second) {
-      if (qtype != QType::ANY && rr.qtype != qtype) continue;
+      if ((qtype != QType::ANY && rr.qtype != qtype) || weighted_match[rr.qtype.getCode()])
+        continue;
 
       if (rr.has_weight) {
         gl.netmask = (addr.isIpv6()?128:32);
@@ -332,6 +334,10 @@ bool GeoIPBackend::lookup_static(const GeoIPDomain &dom, const DNSName &search, 
       d_result.push_back(rr);
       d_result.back().content = content;
       d_result.back().qname = qdomain;
+      // If we are weighted we only return one resource and we found a matching resource,
+      // so no need to check the other ones.
+      if (rr.has_weight)
+        weighted_match[rr.qtype.getCode()] = true;
     }
     // ensure we get most strict netmask
     for(DNSResourceRecord& rr: d_result) {
