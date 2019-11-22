@@ -152,39 +152,27 @@ private:
 class DecayingEwma
 {
 public:
-  DecayingEwma() :  d_val(0.0)
-  {
-    d_needinit=true;
-    d_last.tv_sec = d_last.tv_usec = 0;
-    d_lastget=d_last;
-  }
-
+  DecayingEwma() {}
   DecayingEwma(const DecayingEwma& orig) = delete;
   DecayingEwma & operator=(const DecayingEwma& orig) = delete;
   
   void submit(int val, const struct timeval& now)
   {
-    if(d_needinit) {
-      d_last=now;
-      d_lastget=now;
-      d_needinit=false;
+    if (d_last.tv_sec == 0 && d_last.tv_usec == 0) {
+      d_last = now;
       d_val = val;
     }
     else {
-      float diff= makeFloat(d_last - now);
-
-      d_last=now;
-      float factor=expf(diff)/2.0f; // might be '0.5', or 0.0001
-      d_val=(1-factor)*val + factor*d_val;
+      float diff = makeFloat(d_last - now);
+      d_last = now;
+      float factor = expf(diff)/2.0f; // might be '0.5', or 0.0001
+      d_val = (1-factor)*val + factor*d_val;
     }
   }
 
-  float get(const struct timeval &now)
+  float get(float factor)
   {
-    float diff=makeFloat(d_lastget-now);
-    d_lastget=now;
-    float factor=expf(diff/60.0f); // is 1.0 or less
-    return d_val*=factor;
+    return d_val *= factor;
   }
 
   float peek(void) const
@@ -192,16 +180,9 @@ public:
     return d_val;
   }
 
-  bool stale(time_t limit) const
-  {
-    return limit > d_lastget.tv_sec;
-  }
-
 private:
-  struct timeval d_last;          // stores time
-  struct timeval d_lastget;       // stores time
-  float d_val;
-  bool d_needinit;
+  struct timeval d_last{0, 0};          // stores time
+  float d_val{0};
 };
 
 class fails_t : public boost::noncopyable
@@ -279,8 +260,7 @@ public:
   enum class HardenNXD { No, DNSSEC, Yes };
   
   //! This represents a number of decaying Ewmas, used to store performance per nameserver-name.
-  /** Modelled to work mostly like the underlying DecayingEwma. After you've called get,
-      d_best is filled out with the best address for this collection */
+  /** Modelled to work mostly like the underlying DecayingEwma */
   struct DecayingEwmaCollection
   {
     void submit(const ComboAddress& remote, int usecs, const struct timeval& now)
@@ -288,28 +268,35 @@ public:
       d_collection[remote].submit(usecs, now);
     }
 
+    float getFactor(const struct timeval &now) {
+      float diff = makeFloat(d_lastget - now);
+      return expf(diff / 60.0f); // is 1.0 or less
+    }
+    
     float get(const struct timeval& now)
     {
-      if(d_collection.empty())
+      if (d_collection.empty()) {
         return 0;
-      float ret=std::numeric_limits<float>::max();
-      float tmp;
-      for (auto& entry : d_collection) {
-        if((tmp = entry.second.get(now)) < ret) {
-          ret=tmp;
-          d_best=entry.first;
-        }
+      }
+      if (d_lastget.tv_sec == 0 && d_lastget.tv_usec == 0) {
+        d_lastget = now;
       }
 
+      float ret = std::numeric_limits<float>::max();
+      float factor = getFactor(now);
+      float tmp;
+      for (auto& entry : d_collection) {
+        if ((tmp = entry.second.get(factor)) < ret) {
+          ret = tmp;
+        }
+      }
+      d_lastget = now;
       return ret;
     }
 
     bool stale(time_t limit) const
     {
-      for(const auto& entry : d_collection)
-        if(!entry.second.stale(limit))
-          return false;
-      return true;
+      return limit > d_lastget.tv_sec;
     }
 
     void purge(const std::map<ComboAddress, float>& keep)
@@ -325,8 +312,8 @@ public:
     }
 
     typedef std::map<ComboAddress, DecayingEwma> collection_t;
-    ComboAddress d_best;
     collection_t d_collection;
+    struct timeval d_lastget{0, 0};       // stores time
   };
 
   typedef std::unordered_map<DNSName, DecayingEwmaCollection> nsspeeds_t;
