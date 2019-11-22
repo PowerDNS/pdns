@@ -359,7 +359,7 @@ try
 	      rem.sin4.sin_port=0;
 
 	      if(doServFailTree)
-		root.submit(qname, header.rcode, rem);
+		root.submit(qname, header.rcode, pr.d_len, rem);
 	    }
 
 	    if(!qd.d_qcount || qd.d_qcount == qd.d_answercount) {

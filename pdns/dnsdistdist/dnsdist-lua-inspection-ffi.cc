@@ -48,6 +48,11 @@ uint64_t dnsdist_ffi_stat_node_get_drops_count(const dnsdist_ffi_stat_node_t* no
   return node->self.drops;
 }
 
+uint64_t dnsdist_ffi_stat_node_get_bytes(const dnsdist_ffi_stat_node_t* node)
+{
+  return node->self.bytes;
+}
+
 unsigned int dnsdist_ffi_stat_node_get_labels_count(const dnsdist_ffi_stat_node_t* node)
 {
   return node->node.labelsCount;
@@ -88,4 +93,9 @@ uint64_t dnsdist_ffi_stat_node_get_children_servfails_count(const dnsdist_ffi_st
 uint64_t dnsdist_ffi_stat_node_get_children_drops_count(const dnsdist_ffi_stat_node_t* node)
 {
   return node->children.drops;
+}
+
+uint64_t dnsdist_ffi_stat_node_get_children_bytes_count(const dnsdist_ffi_stat_node_t* node)
+{
+  return node->children.bytes;
 }
