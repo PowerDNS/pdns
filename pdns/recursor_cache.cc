@@ -78,7 +78,7 @@ int32_t MemRecursorCache::handleHit(MemRecursorCache::OrderedTagIterator_t& entr
     *wasAuth = entry->d_auth;
   }
 
-  moveCacheItemToBack(d_cache, entry);
+  moveCacheItemToBack<SequencedTag>(d_cache, entry);
 
   return ttd;
 }
@@ -116,7 +116,7 @@ MemRecursorCache::cache_t::const_iterator MemRecursorCache::getEntryUsingECSInde
       }
       else {
         /* this netmask-specific entry has expired */
-        moveCacheItemToFront(d_cache, entry);
+        moveCacheItemToFront<SequencedTag>(d_cache, entry);
         ecsIndex->removeNetmask(best);
         if (ecsIndex->isEmpty()) {
           d_ecsIndex.erase(ecsIndex);
@@ -136,7 +136,7 @@ MemRecursorCache::cache_t::const_iterator MemRecursorCache::getEntryUsingECSInde
       }
     }
     else {
-      moveCacheItemToFront(d_cache, entry);
+      moveCacheItemToFront<SequencedTag>(d_cache, entry);
     }
   }
 
@@ -217,7 +217,7 @@ int32_t MemRecursorCache::get(time_t now, const DNSName &qname, const QType& qt,
 
       auto firstIndexIterator = d_cache.project<OrderedTag>(i);
       if (i->d_ttd <= now) {
-        moveCacheItemToFront(d_cache, firstIndexIterator);
+        moveCacheItemToFront<SequencedTag>(d_cache, firstIndexIterator);
         continue;
       }
 
@@ -311,7 +311,7 @@ void MemRecursorCache::replace(time_t now, const DNSName &qname, const QType& qt
   }
 
   if (!isNew) {
-    moveCacheItemToBack(d_cache, stored);
+    moveCacheItemToBack<SequencedTag>(d_cache, stored);
   }
   d_cache.replace(stored, ce);
 }
@@ -480,6 +480,6 @@ void MemRecursorCache::doPrune(unsigned int keep)
 {
   d_cachecachevalid=false;
 
-  pruneCollection(*this, d_cache, keep);
+  pruneCollection<SequencedTag>(*this, d_cache, keep);
 }
 

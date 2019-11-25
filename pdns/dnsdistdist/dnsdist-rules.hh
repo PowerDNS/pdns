@@ -103,7 +103,7 @@ public:
         iter = d_limits.insert(e).first;
       }
 
-      moveCacheItemToBack(d_limits, iter);
+      moveCacheItemToBack<SequencedTag>(d_limits, iter);
       return !iter->d_limiter.check(d_qps, d_burst);
     }
   }

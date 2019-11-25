@@ -98,11 +98,12 @@ private:
     }
   };
 
+  struct SequencedTag{};
   typedef multi_index_container<
     Entry,
     indexed_by  <
       hashed_non_unique<tag<HashTag>, composite_key<Entry, member<Entry,uint32_t,&Entry::d_tag>, member<Entry,uint32_t,&Entry::d_qhash> > >,
-      sequenced<> ,
+      sequenced<tag<SequencedTag>> ,
       ordered_non_unique<tag<NameTag>, member<Entry,DNSName,&Entry::d_name>, CanonDNSNameCompare >
       >
   > packetCache_t;
