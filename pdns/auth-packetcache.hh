@@ -92,13 +92,13 @@ private:
 
   struct HashTag{};
   struct NameTag{};
-  struct SequenceTag{};
+  struct SequencedTag{};
   typedef multi_index_container<
     CacheEntry,
     indexed_by <
       hashed_non_unique<tag<HashTag>, member<CacheEntry,uint32_t,&CacheEntry::hash> >,
       ordered_non_unique<tag<NameTag>, member<CacheEntry,DNSName,&CacheEntry::qname>, CanonDNSNameCompare >,
-      sequenced<tag<SequenceTag>>
+      sequenced<tag<SequencedTag>>
       >
     > cmap_t;
 
