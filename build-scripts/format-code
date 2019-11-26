@@ -25,7 +25,7 @@ for file in "${@}"; do
         echo "$file: skipped, not a regular file or unreadable"
         continue
     fi
-    tmp=$(mktemp $file.XXXXXXXX)
+    tmp=$(mktemp "$file.XXXXXXXX")
     if ! clang-format -style=file "$file" > "$tmp"; then
         rm "$tmp"
     else
