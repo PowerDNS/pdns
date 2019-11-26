@@ -92,13 +92,15 @@ private:
   public:
     CacheShard(): d_entriesCount(0)
     {
-      pthread_rwlock_init(&d_lock, 0);
+      pthread_rwlock_init(&d_lock, nullptr);
     }
     CacheShard(const CacheShard& old): d_entriesCount(0)
     {
-      pthread_rwlock_init(&d_lock, 0);
+      pthread_rwlock_init(&d_lock, nullptr);
     }
-
+    ~CacheShard() {
+      pthread_rwlock_destroy(&d_lock);
+    }
     void setSize(size_t maxSize)
     {
       d_map.reserve(maxSize);

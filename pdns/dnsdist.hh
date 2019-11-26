@@ -655,6 +655,10 @@ struct QueryCount {
   {
     pthread_rwlock_init(&queryLock, nullptr);
   }
+  ~QueryCount()
+  {
+    pthread_rwlock_destroy(&queryLock);
+  }
   QueryCountRecords records;
   QueryCountFilter filter;
   pthread_rwlock_t queryLock;
@@ -845,6 +849,7 @@ struct DownstreamState
         fd = -1;
       }
     }
+    pthread_rwlock_destroy(&d_lock);
   }
   boost::uuids::uuid id;
   std::set<unsigned int> hashes;
@@ -999,6 +1004,10 @@ struct ServerPool
   ServerPool()
   {
     pthread_rwlock_init(&d_lock, nullptr);
+  }
+  ~ServerPool()
+  {
+    pthread_rwlock_destroy(&d_lock);
   }
 
   const std::shared_ptr<DNSDistPacketCache> getCache() const { return packetCache; };

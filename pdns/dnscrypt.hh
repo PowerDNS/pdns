@@ -262,7 +262,8 @@ public:
 
   DNSCryptContext(const std::string& pName, const std::vector<CertKeyPaths>& certKeys);
   DNSCryptContext(const std::string& pName, const DNSCryptCert& certificate, const DNSCryptPrivateKey& pKey);
-
+  ~DNSCryptContext();
+  
   void reloadCertificates();
   void loadNewCertificate(const std::string& certFile, const std::string& keyFile, bool active=true, bool reload=false);
   void addNewCertificate(const DNSCryptCert& newCert, const DNSCryptPrivateKey& newKey, bool active=true, bool reload=false);

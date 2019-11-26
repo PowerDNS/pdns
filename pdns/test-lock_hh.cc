@@ -57,7 +57,9 @@ BOOST_AUTO_TEST_CASE(test_pdns_lock)
   TryReadLock trl2(&*g_locks[0]);
   BOOST_CHECK(trl2.gotIt());
   
-  
+  for(auto& pp : g_locks) {
+    pthread_rwlock_destroy(pp.get());
+  }  
 }
 
 BOOST_AUTO_TEST_SUITE_END()
