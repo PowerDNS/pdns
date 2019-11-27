@@ -73,6 +73,12 @@ typedef map<
 template<class Thing> class Throttle : public boost::noncopyable
 {
 public:
+  struct entry
+  {
+    time_t ttd;
+    unsigned int count;
+  };
+  typedef map<Thing,entry> cont_t;
   Throttle()
   {
     d_limit=3;
@@ -121,6 +127,11 @@ public:
     return (unsigned int)d_cont.size();
   }
 
+  const cont_t& getThrottleMap() const
+  {
+    return d_cont;
+  }
+
   void clear()
   {
     d_cont.clear();
@@ -129,12 +140,6 @@ private:
   unsigned int d_limit;
   time_t d_ttl;
   time_t d_last_clean;
-  struct entry
-  {
-    time_t ttd;
-    unsigned int count;
-  };
-  typedef map<Thing,entry> cont_t;
   cont_t d_cont;
 };
 
@@ -205,60 +210,75 @@ private:
 template<class Thing> class Counters : public boost::noncopyable
 {
 public:
-  Counters()
-  {
-  }
-  unsigned long value(const Thing& t) const
-  {
-    typename cont_t::const_iterator i=d_cont.find(t);
+  typedef unsigned long counter_t;
+  struct value_t {
+    counter_t value;
+    time_t last;
+  };
+  typedef std::map<Thing, value_t> cont_t;
 
-    if(i==d_cont.end()) {
+  cont_t getMap() const {
+    return d_cont;
+  }
+  counter_t value(const Thing& t) const
+  {
+    typename cont_t::const_iterator i = d_cont.find(t);
+
+    if (i == d_cont.end()) {
       return 0;
     }
-    return (unsigned long)i->second;
+    return i->second.value;
   }
-  unsigned long incr(const Thing& t)
-  {
-    typename cont_t::iterator i=d_cont.find(t);
 
-    if(i==d_cont.end()) {
-      d_cont[t]=1;
+  counter_t incr(const Thing& t, const struct timeval & now)
+  {
+    typename cont_t::iterator i = d_cont.find(t);
+
+    if (i == d_cont.end()) {
+      auto &r = d_cont[t];
+      r.value = 1;
+      r.last = now.tv_sec;
       return 1;
     }
     else {
-      if (i->second < std::numeric_limits<unsigned long>::max())
-        i->second++;
-      return (unsigned long)i->second;
-   }
+      if (i->second.value < std::numeric_limits<counter_t>::max()) {
+        i->second.value++;
+      }
+      i->second.last = now.tv_sec;
+      return i->second.value;
+    }
   }
-  unsigned long decr(const Thing& t)
-  {
-    typename cont_t::iterator i=d_cont.find(t);
 
-    if(i!=d_cont.end() && --i->second == 0) {
-      d_cont.erase(i);
-      return 0;
-    } else
-      return (unsigned long)i->second;
-  }
   void clear(const Thing& t)
   {
-    typename cont_t::iterator i=d_cont.find(t);
+    typename cont_t::iterator i = d_cont.find(t);
 
-    if(i!=d_cont.end()) {
+    if (i != d_cont.end()) {
       d_cont.erase(i);
     }
   }
+
   void clear()
   {
     d_cont.clear();
   }
+
   size_t size() const
   {
     return d_cont.size();
   }
+
+  void prune(time_t cutoff) {
+    for (auto it = d_cont.begin(); it != d_cont.end(); ) {
+      if (it->second.last <= cutoff) {
+        it = d_cont.erase(it);
+      } else {
+        ++it;
+      }
+    }
+  }
+
 private:
-  typedef map<Thing,unsigned long> cont_t;
   cont_t d_cont;
 };
 
@@ -271,9 +291,8 @@ public:
 
   struct EDNSStatus
   {
-    EDNSStatus() : mode(UNKNOWN), modeSetAt(0) {}
-    enum EDNSMode { UNKNOWN=0, EDNSOK=1, EDNSIGNORANT=2, NOEDNS=3 } mode;
-    time_t modeSetAt;
+    time_t modeSetAt{0};
+    enum EDNSMode { UNKNOWN=0, EDNSOK=1, EDNSIGNORANT=2, NOEDNS=3 } mode{UNKNOWN};
   };
 
     //! This represents a number of decaying Ewmas, used to store performance per nameserver-name.
@@ -394,6 +413,8 @@ public:
   }
   static uint64_t doEDNSDump(int fd);
   static uint64_t doDumpNSSpeeds(int fd);
+  static uint64_t doDumpThrottleMap(int fd);
+  static uint64_t doDumpFailedServers(int fd);
   static int getRootNS(struct timeval now, asyncresolve_t asyncCallback);
   static void clearDelegationOnly()
   {
@@ -477,6 +498,16 @@ public:
   {
     t_sstorage.ednsstatus.clear();
   }
+  static void pruneEDNSStatuses(time_t cutoff)
+  {
+    for (auto it = t_sstorage.ednsstatus.begin(); it != t_sstorage.ednsstatus.end(); ) {
+      if (it->second.modeSetAt <= cutoff) {
+        it = t_sstorage.ednsstatus.erase(it);
+      } else {
+        ++it;
+      }
+    }
+  }
   static uint64_t getThrottledServersSize()
   {
     return t_sstorage.throttle.size();
@@ -504,6 +535,10 @@ public:
   static void clearFailedServers()
   {
     t_sstorage.fails.clear();
+  }
+  static void pruneFailedServers(time_t cutoff)
+  {
+    t_sstorage.fails.prune(cutoff);
   }
   static unsigned long getServerFailsCount(const ComboAddress& server)
   {
@@ -985,6 +1020,8 @@ template<class T> T broadcastAccFunction(const boost::function<T*()>& func);
 
 std::shared_ptr<SyncRes::domainmap_t> parseAuthAndForwards();
 uint64_t* pleaseGetNsSpeedsSize();
+uint64_t* pleaseGetFailedServersSize();
+uint64_t* pleaseGetEDNSStatusesSize();
 uint64_t* pleaseGetCacheSize();
 uint64_t* pleaseGetNegCacheSize();
 uint64_t* pleaseGetCacheHits();

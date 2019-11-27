@@ -397,6 +397,48 @@ uint64_t SyncRes::doDumpNSSpeeds(int fd)
   return count;
 }
 
+uint64_t SyncRes::doDumpThrottleMap(int fd)
+{
+  auto fp = std::unique_ptr<FILE, int(*)(FILE*)>(fdopen(dup(fd), "w"), fclose);
+  if(!fp)
+    return 0;
+  fprintf(fp.get(), "; throttle map dump follows\n");
+  fprintf(fp.get(), "; remote IP\tqname\tqtype\tcount\tttd\n");
+  uint64_t count=0;
+
+  const auto& throttleMap = t_sstorage.throttle.getThrottleMap();
+  for(const auto& i : throttleMap)
+  {
+    count++;
+    char tmp[26];
+    // remote IP, dns name, qtype, count, ttd
+    fprintf(fp.get(), "%s\t%s\t%d\t%u\t%s", i.first.get<0>().toString().c_str(), i.first.get<1>().toLogString().c_str(), i.first.get<2>(), i.second.count, ctime_r(&i.second.ttd, tmp));
+  }
+
+  return count;
+}
+
+uint64_t SyncRes::doDumpFailedServers(int fd)
+{
+  auto fp = std::unique_ptr<FILE, int(*)(FILE*)>(fdopen(dup(fd), "w"), fclose);
+  if(!fp)
+    return 0;
+  fprintf(fp.get(), "; failed servers dump follows\n");
+  fprintf(fp.get(), "; remote IP\tcount\ttimestamp\n");
+  uint64_t count=0;
+
+  for(const auto& i : t_sstorage.fails.getMap())
+  {
+    count++;
+    char tmp[26];
+    ctime_r(&i.second.last, tmp);
+    fprintf(fp.get(), "%s\t%lld\t%s", i.first.toString().c_str(),
+            static_cast<long long>(i.second.value), tmp);
+  }
+
+  return count;
+}
+
 /* so here is the story. First we complete the full resolution process for a domain name. And only THEN do we decide
    to also do DNSSEC validation, which leads to new queries. To make this simple, we *always* ask for DNSSEC records
    so that if there are RRSIGs for a name, we'll have them.
@@ -440,16 +482,15 @@ int SyncRes::asyncresolveWrapper(const ComboAddress& ip, bool ednsMANDATORY, con
      If '3', send bare queries
   */
 
-  SyncRes::EDNSStatus* ednsstatus;
-  ednsstatus = &t_sstorage.ednsstatus[ip]; // does this include port? YES
+  SyncRes::EDNSStatus* ednsstatus = &t_sstorage.ednsstatus[ip]; // does this include port? YES
 
-  if(ednsstatus->modeSetAt && ednsstatus->modeSetAt + 3600 < d_now.tv_sec) {
-    *ednsstatus=SyncRes::EDNSStatus();
+  if (ednsstatus->modeSetAt && ednsstatus->modeSetAt + 3600 < d_now.tv_sec) {
+    *ednsstatus = SyncRes::EDNSStatus();
     //    cerr<<"Resetting EDNS Status for "<<ip.toString()<<endl);
   }
 
-  SyncRes::EDNSStatus::EDNSMode& mode=ednsstatus->mode;
-  SyncRes::EDNSStatus::EDNSMode oldmode = mode;
+  SyncRes::EDNSStatus::EDNSMode *mode = &ednsstatus->mode;
+  SyncRes::EDNSStatus::EDNSMode oldmode = *mode;
   int EDNSLevel = 0;
   auto luaconfsLocal = g_luaconfs.getLocal();
   ResolveContext ctx;
@@ -461,11 +502,11 @@ int SyncRes::asyncresolveWrapper(const ComboAddress& ip, bool ednsMANDATORY, con
   for(int tries = 0; tries < 3; ++tries) {
     //    cerr<<"Remote '"<<ip.toString()<<"' currently in mode "<<mode<<endl;
     
-    if(mode==EDNSStatus::NOEDNS) {
+    if (*mode == EDNSStatus::NOEDNS) {
       g_stats.noEdnsOutQueries++;
       EDNSLevel = 0; // level != mode
     }
-    else if(ednsMANDATORY || mode==EDNSStatus::UNKNOWN || mode==EDNSStatus::EDNSOK || mode==EDNSStatus::EDNSIGNORANT)
+    else if (ednsMANDATORY || *mode == EDNSStatus::UNKNOWN || *mode == EDNSStatus::EDNSOK || *mode == EDNSStatus::EDNSIGNORANT)
       EDNSLevel = 1;
 
     DNSName sendQname(domain);
@@ -478,6 +519,9 @@ int SyncRes::asyncresolveWrapper(const ComboAddress& ip, bool ednsMANDATORY, con
     else {
       ret=asyncresolve(ip, sendQname, type, doTCP, sendRDQuery, EDNSLevel, now, srcmask, ctx, luaconfsLocal->outgoingProtobufServer, res, chained);
     }
+    // ednsstatus might be cleared, so do a new lookup
+    ednsstatus = &t_sstorage.ednsstatus[ip]; // does this include port? YES
+    mode = &ednsstatus->mode;
     if(ret < 0) {
       return ret; // transport error, nothing to learn here
     }
@@ -485,7 +529,7 @@ int SyncRes::asyncresolveWrapper(const ComboAddress& ip, bool ednsMANDATORY, con
     if(ret == 0) { // timeout, not doing anything with it now
       return ret;
     }
-    else if(mode==EDNSStatus::UNKNOWN || mode==EDNSStatus::EDNSOK || mode == EDNSStatus::EDNSIGNORANT ) {
+    else if(*mode==EDNSStatus::UNKNOWN || *mode==EDNSStatus::EDNSOK || *mode == EDNSStatus::EDNSIGNORANT ) {
       /* So, you might be tempted to treat the presence of EDNS in a response as meaning that the
          server does understand EDNS, and thus prevent a downgrade to no EDNS.
          It turns out that you can't because there are a lot of crappy servers out there,
@@ -493,22 +537,22 @@ int SyncRes::asyncresolveWrapper(const ComboAddress& ip, bool ednsMANDATORY, con
       */
       if(res->d_rcode == RCode::FormErr || res->d_rcode == RCode::NotImp) {
 	//	cerr<<"Downgrading to NOEDNS because of "<<RCode::to_s(res->d_rcode)<<" for query to "<<ip.toString()<<" for '"<<domain<<"'"<<endl;
-        mode = EDNSStatus::NOEDNS;
+        *mode = EDNSStatus::NOEDNS;
         continue;
       }
       else if(!res->d_haveEDNS) {
-        if(mode != EDNSStatus::EDNSIGNORANT) {
-          mode = EDNSStatus::EDNSIGNORANT;
-	  //	  cerr<<"We find that "<<ip.toString()<<" is an EDNS-ignorer for '"<<domain<<"', moving to mode 3"<<endl;
+        if (*mode != EDNSStatus::EDNSIGNORANT) {
+          *mode = EDNSStatus::EDNSIGNORANT;
+	  //	  cerr<<"We find that "<<ip.toString()<<" is an EDNS-ignorer for '"<<domain<<"', moving to mode 2"<<endl;
 	}
       }
       else {
-	mode = EDNSStatus::EDNSOK;
+	*mode = EDNSStatus::EDNSOK;
 	//	cerr<<"We find that "<<ip.toString()<<" is EDNS OK!"<<endl;
       }
       
     }
-    if(oldmode != mode || !ednsstatus->modeSetAt)
+    if (oldmode != *mode || !ednsstatus->modeSetAt)
       ednsstatus->modeSetAt=d_now.tv_sec;
     //    cerr<<"Result: ret="<<ret<<", EDNS-level: "<<EDNSLevel<<", haveEDNS: "<<res->d_haveEDNS<<", new mode: "<<mode<<endl;  
     return ret;
@@ -2490,7 +2534,7 @@ bool SyncRes::doResolveAtThisIP(const std::string& prefix, const DNSName& qname,
       t_sstorage.nsSpeeds[nsName].submit(remoteIP, 1000000, &d_now); // 1 sec
 
       // code below makes sure we don't filter COM or the root
-      if (s_serverdownmaxfails > 0 && (auth != g_rootdnsname) && t_sstorage.fails.incr(remoteIP) >= s_serverdownmaxfails) {
+      if (s_serverdownmaxfails > 0 && (auth != g_rootdnsname) && t_sstorage.fails.incr(remoteIP, d_now) >= s_serverdownmaxfails) {
         LOG(prefix<<qname<<": Max fails reached resolving on "<< remoteIP.toString() <<". Going full throttle for "<< s_serverdownthrottletime <<" seconds" <<endl);
         // mark server as down
         t_sstorage.throttle.throttle(d_now.tv_sec, boost::make_tuple(remoteIP, "", 0), s_serverdownthrottletime, 10000);
