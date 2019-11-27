@@ -35,7 +35,8 @@
  * \param ne       A NegCacheEntry that is filled when there is a cache entry
  * \return         true if ne was filled out, false otherwise
  */
-bool NegCache::getRootNXTrust(const DNSName& qname, const struct timeval& now, const NegCacheEntry** ne) {
+bool NegCache::getRootNXTrust(const DNSName& qname, const struct timeval& now, const NegCacheEntry** ne)
+{
   // Never deny the root.
   if (qname.isRoot())
     return false;
@@ -45,10 +46,7 @@ bool NegCache::getRootNXTrust(const DNSName& qname, const struct timeval& now, c
   DNSName lastLabel = qname.getLastLabel();
   negcache_t::const_iterator ni = d_negcache.find(tie(lastLabel, qtnull));
 
-  while (ni != d_negcache.end() &&
-         ni->d_name == lastLabel &&
-         ni->d_auth.isRoot() &&
-         ni->d_qtype == qtnull) {
+  while (ni != d_negcache.end() && ni->d_name == lastLabel && ni->d_auth.isRoot() && ni->d_qtype == qtnull) {
     // We have something
     if ((uint32_t)now.tv_sec < ni->d_ttd) {
       *ne = &(*ni);
@@ -70,7 +68,8 @@ bool NegCache::getRootNXTrust(const DNSName& qname, const struct timeval& now, c
  * \param ne       A NegCacheEntry that is filled when there is a cache entry
  * \return         true if ne was filled out, false otherwise
  */
-bool NegCache::get(const DNSName& qname, const QType& qtype, const struct timeval& now, const NegCacheEntry** ne, bool typeMustMatch) {
+bool NegCache::get(const DNSName& qname, const QType& qtype, const struct timeval& now, const NegCacheEntry** ne, bool typeMustMatch)
+{
   const auto& idx = d_negcache.get<2>();
   auto range = idx.equal_range(qname);
   auto ni = range.first;
@@ -81,7 +80,7 @@ bool NegCache::get(const DNSName& qname, const QType& qtype, const struct timeva
       // We match the QType or the whole name is denied
       auto firstIndexIterator = d_negcache.project<0>(ni);
 
-      if((uint32_t) now.tv_sec < ni->d_ttd) {
+      if ((uint32_t)now.tv_sec < ni->d_ttd) {
         // Not expired
         *ne = &(*ni);
         moveCacheItemToBack(d_negcache, firstIndexIterator);
@@ -100,7 +99,8 @@ bool NegCache::get(const DNSName& qname, const QType& qtype, const struct timeva
  *
  * \param ne The NegCacheEntry to add to the cache
  */
-void NegCache::add(const NegCacheEntry& ne) {
+void NegCache::add(const NegCacheEntry& ne)
+{
   lruReplacingInsert(d_negcache, ne);
 }
 
@@ -111,7 +111,8 @@ void NegCache::add(const NegCacheEntry& ne) {
  * \param qtype The type of the entry to replace
  * \param newState The new validation state
  */
-void NegCache::updateValidationStatus(const DNSName& qname, const QType& qtype, const vState newState, boost::optional<uint32_t> capTTD) {
+void NegCache::updateValidationStatus(const DNSName& qname, const QType& qtype, const vState newState, boost::optional<uint32_t> capTTD)
+{
   auto range = d_negcache.equal_range(tie(qname, qtype));
 
   if (range.first != range.second) {
@@ -127,7 +128,8 @@ void NegCache::updateValidationStatus(const DNSName& qname, const QType& qtype, 
  *
  * \param qname The name of the entries to be counted
  */
-uint64_t NegCache::count(const DNSName& qname) const {
+uint64_t NegCache::count(const DNSName& qname) const
+{
   return d_negcache.count(tie(qname));
 }
 
@@ -137,7 +139,8 @@ uint64_t NegCache::count(const DNSName& qname) const {
  * \param qname The name of the entries to be counted
  * \param qtype The type of the entries to be counted
  */
-uint64_t NegCache::count(const DNSName& qname, const QType qtype) const {
+uint64_t NegCache::count(const DNSName& qname, const QType qtype) const
+{
   return d_negcache.count(tie(qname, qtype));
 }
 
@@ -148,11 +151,12 @@ uint64_t NegCache::count(const DNSName& qname, const QType qtype) const {
  * \param name    The DNSName of the entries to wipe
  * \param subtree Should all entries under name be removed?
  */
-uint64_t NegCache::wipe(const DNSName& name, bool subtree) {
+uint64_t NegCache::wipe(const DNSName& name, bool subtree)
+{
   uint64_t ret(0);
   if (subtree) {
     for (auto i = d_negcache.lower_bound(tie(name)); i != d_negcache.end();) {
-      if(!i->d_name.isPartOf(name))
+      if (!i->d_name.isPartOf(name))
         break;
       i = d_negcache.erase(i);
       ret++;
@@ -169,7 +173,8 @@ uint64_t NegCache::wipe(const DNSName& name, bool subtree) {
 /*!
  * Clear the negative cache
  */
-void NegCache::clear() {
+void NegCache::clear()
+{
   d_negcache.clear();
 }
 
@@ -178,7 +183,8 @@ void NegCache::clear() {
  *
  * \param maxEntries The maximum number of entries that may exist in the cache.
  */
-void NegCache::prune(unsigned int maxEntries) {
+void NegCache::prune(unsigned int maxEntries)
+{
   pruneCollection(*this, d_negcache, maxEntries, 200);
 }
 
@@ -187,13 +193,14 @@ void NegCache::prune(unsigned int maxEntries) {
  *
  * \param fp A pointer to an open FILE object
  */
-uint64_t NegCache::dumpToFile(FILE* fp) {
+uint64_t NegCache::dumpToFile(FILE* fp)
+{
   uint64_t ret(0);
   struct timeval now;
   Utility::gettimeofday(&now, nullptr);
 
   negcache_sequence_t& sidx = d_negcache.get<1>();
-  for(const NegCacheEntry& ne : sidx) {
+  for (const NegCacheEntry& ne : sidx) {
     ret++;
     fprintf(fp, "%s %" PRId64 " IN %s VIA %s ; (%s)\n", ne.d_name.toString().c_str(), static_cast<int64_t>(ne.d_ttd - now.tv_sec), ne.d_qtype.getName().c_str(), ne.d_auth.toString().c_str(), vStates[ne.d_validationState]);
     for (const auto& rec : ne.DNSSECRecords.records) {

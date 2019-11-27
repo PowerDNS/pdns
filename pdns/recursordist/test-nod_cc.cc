@@ -9,18 +9,19 @@ using namespace nod;
 
 BOOST_AUTO_TEST_SUITE(nod_cc)
 
-bool pdns_exception( PDNSException const& ex ) { return true; }
+bool pdns_exception(PDNSException const& ex) { return true; }
 
-BOOST_AUTO_TEST_CASE(test_basic) {
+BOOST_AUTO_TEST_CASE(test_basic)
+{
   DNSName new_domain1("abc.com."), new_domain2("xyz.com.");
 
   {
     NODDB noddb;
 
-    BOOST_CHECK_EXCEPTION( noddb.setCacheDir("/xyz/abc"), PDNSException, pdns_exception);
+    BOOST_CHECK_EXCEPTION(noddb.setCacheDir("/xyz/abc"), PDNSException, pdns_exception);
 
     noddb.setCacheDir("/tmp");
-  
+
     BOOST_CHECK_EQUAL(noddb.init(), true);
 
     BOOST_CHECK_EQUAL(noddb.isNewDomain(new_domain1), true);
@@ -28,9 +29,9 @@ BOOST_AUTO_TEST_CASE(test_basic) {
     BOOST_CHECK_EQUAL(noddb.isNewDomain(new_domain2), true);
     BOOST_CHECK_EQUAL(noddb.isNewDomain(new_domain1), false);
 
-    for (int i=0; i<1000000; ++i) {
+    for (int i = 0; i < 1000000; ++i) {
       noddb.isNewDomain("foo.com.");
-      }
+    }
 
     noddb.addDomain("abc.com.");
     DNSName new_subdomain("foo.abc.com.");
