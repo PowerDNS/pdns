@@ -33,9 +33,6 @@ const unsigned int AuthPacketCache::s_mincleaninterval, AuthPacketCache::s_maxcl
 AuthPacketCache::AuthPacketCache(size_t mapsCount): d_lastclean(time(nullptr))
 {
   d_maps.resize(mapsCount);
-  for(auto& mc : d_maps) {
-    pthread_rwlock_init(&mc.d_mut, 0);
-  }
 
   S.declare("packetcache-hit", "Number of hits on the packet cache");
   S.declare("packetcache-miss", "Number of misses on the packet cache");

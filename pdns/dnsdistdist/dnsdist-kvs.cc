@@ -128,6 +128,10 @@ CDBKVStore::CDBKVStore(const std::string& fname, time_t refreshDelay): d_fname(f
   refreshDBIfNeeded(now);
 }
 
+CDBKVStore::~CDBKVStore() {
+  pthread_rwlock_destroy(&d_lock);
+}
+
 bool CDBKVStore::reload(const struct stat& st)
 {
   auto newCDB = std::unique_ptr<CDB>(new CDB(d_fname));

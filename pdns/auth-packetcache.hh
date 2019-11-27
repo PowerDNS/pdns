@@ -104,7 +104,13 @@ private:
 
   struct MapCombo
   {
-    pthread_rwlock_t d_mut;    
+    MapCombo() {
+      pthread_rwlock_init(&d_mut, nullptr);
+    }
+    ~MapCombo() {
+      pthread_rwlock_destroy(&d_mut);
+    }
+    pthread_rwlock_t d_mut;
     cmap_t d_map;
   };
 

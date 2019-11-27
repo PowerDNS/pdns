@@ -181,6 +181,7 @@ class CDBKVStore: public KeyValueStore
 {
 public:
   CDBKVStore(const std::string& fname, time_t refreshDelay);
+  ~CDBKVStore();
 
   bool keyExists(const std::string& key) override;
   bool getValue(const std::string& key, std::string& value) override;

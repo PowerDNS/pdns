@@ -123,6 +123,11 @@ DNSCryptQuery::~DNSCryptQuery()
 }
 #endif /* HAVE_CRYPTO_BOX_EASY_AFTERNM */
 
+
+DNSCryptContext::~DNSCryptContext() {
+  pthread_rwlock_destroy(&d_lock);
+}
+
 DNSCryptContext::DNSCryptContext(const std::string& pName, const std::vector<CertKeyPaths>& certKeys): d_certKeyPaths(certKeys), providerName(pName)
 {
   pthread_rwlock_init(&d_lock, 0);

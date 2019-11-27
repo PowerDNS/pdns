@@ -34,9 +34,6 @@ const unsigned int AuthQueryCache::s_mincleaninterval, AuthQueryCache::s_maxclea
 AuthQueryCache::AuthQueryCache(size_t mapsCount): d_lastclean(time(nullptr))
 {
   d_maps.resize(mapsCount);
-  for(auto& mc : d_maps) {
-    pthread_rwlock_init(&mc.d_mut, 0);
-  }
 
   S.declare("query-cache-hit","Number of hits on the query cache");
   S.declare("query-cache-miss","Number of misses on the query cache");
