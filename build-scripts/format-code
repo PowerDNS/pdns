@@ -20,9 +20,19 @@ if [ ! -e .clang-format ]; then
     exit 1
 fi
 
+verbose=0
+if tty > /dev/null; then
+    verbose=1
+fi
+if [ x$CIRCLECI = xtrue ]; then
+    verbose=0
+fi
+
 for file in "${@}"; do
     if [ -h "$file" -o ! -f "$file" ]; then
-        echo "$file: skipped, not a regular file or unreadable"
+        if [ $verbose = 1 ]; then
+            echo "$file: skipped, not a regular file or unreadable"
+        fi
         continue
     fi
     tmp=$(mktemp "$file.XXXXXXXX")
@@ -33,7 +43,9 @@ for file in "${@}"; do
             echo "$file: reformatted"
             mv "$tmp" "$file"
         else
-            echo "$file: already formatted to perfection"
+            if [ $verbose = 1 ]; then
+                echo "$file: already formatted to perfection"
+            fi
             rm "$tmp"
         fi
     fi
