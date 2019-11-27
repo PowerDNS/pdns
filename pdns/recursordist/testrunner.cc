@@ -29,7 +29,8 @@
 #include <iostream>
 #include <dnsrecords.hh>
 
-bool init_unit_test() {
+bool init_unit_test()
+{
   reportAllTypes();
   return true;
 }
@@ -37,5 +38,5 @@ bool init_unit_test() {
 // entry point:
 int main(int argc, char* argv[])
 {
-  return boost::unit_test::unit_test_main( &init_unit_test, argc, argv );
+  return boost::unit_test::unit_test_main(&init_unit_test, argc, argv);
 }

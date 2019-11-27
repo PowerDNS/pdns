@@ -34,7 +34,7 @@ std::vector<std::vector<std::string>> g_pubs;
 void initPublicSuffixList(const std::string& file)
 {
   std::vector<std::vector<std::string>> pbList;
-  
+
   bool loaded = false;
   if (!file.empty()) {
     try {
@@ -61,24 +61,24 @@ void initPublicSuffixList(const std::string& file)
           }
           pbList.push_back(name.labelReverse().getRawLabels());
         }
-        catch(...) {
+        catch (...) {
           /* not a DNS name, ignoring */
         }
       }
 
-      g_log<<Logger::Info<<"Loaded the Public Suffix List from '"<<file<<"'"<<endl;
+      g_log << Logger::Info << "Loaded the Public Suffix List from '" << file << "'" << endl;
       loaded = true;
     }
     catch (const std::exception& e) {
-      g_log<<Logger::Warning<<"Error while loading the Public Suffix List from '"<<file<<"', falling back to the built-in list: "<<e.what()<<endl;
+      g_log << Logger::Warning << "Error while loading the Public Suffix List from '" << file << "', falling back to the built-in list: " << e.what() << endl;
     }
   }
 
   if (!loaded) {
     pbList.clear();
 
-    for(const char** p = g_pubsuffix; *p; ++p) {
-      string low=toLower(*p);
+    for (const char** p = g_pubsuffix; *p; ++p) {
+      string low = toLower(*p);
 
       vector<string> parts;
       stringtok(parts, low, ".");

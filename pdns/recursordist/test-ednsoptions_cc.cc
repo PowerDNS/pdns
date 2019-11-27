@@ -36,7 +36,8 @@ static void getRawQueryWithECSAndCookie(const DNSName& name, const Netmask& ecs,
   pw.commit();
 }
 
-BOOST_AUTO_TEST_CASE(test_getEDNSOption) {
+BOOST_AUTO_TEST_CASE(test_getEDNSOption)
+{
   DNSName name("www.powerdns.com.");
   Netmask ecs("127.0.0.1/32");
   vector<uint8_t> query;
@@ -54,11 +55,11 @@ BOOST_AUTO_TEST_CASE(test_getEDNSOption) {
   BOOST_REQUIRE(questionLen > pos + 11);
   /* OPT root label (1) followed by type (2) */
   BOOST_REQUIRE_EQUAL(query.at(pos), 0);
-  BOOST_REQUIRE(query.at(pos+2) == QType::OPT);
+  BOOST_REQUIRE(query.at(pos + 2) == QType::OPT);
 
   char* ecsStart = nullptr;
   size_t ecsLen = 0;
-  int res = getEDNSOption(reinterpret_cast<char*>(query.data())+pos+9, questionLen - pos - 9, EDNSOptionCode::ECS, &ecsStart, &ecsLen);
+  int res = getEDNSOption(reinterpret_cast<char*>(query.data()) + pos + 9, questionLen - pos - 9, EDNSOptionCode::ECS, &ecsStart, &ecsLen);
   BOOST_CHECK_EQUAL(res, 0);
 
   EDNSSubnetOpts eso;
@@ -67,7 +68,8 @@ BOOST_AUTO_TEST_CASE(test_getEDNSOption) {
   BOOST_CHECK(eso.source == ecs);
 }
 
-BOOST_AUTO_TEST_CASE(test_getEDNSOptions) {
+BOOST_AUTO_TEST_CASE(test_getEDNSOptions)
+{
   DNSName name("www.powerdns.com.");
   Netmask ecs("127.0.0.1/32");
   vector<uint8_t> query;
@@ -85,10 +87,10 @@ BOOST_AUTO_TEST_CASE(test_getEDNSOptions) {
   BOOST_REQUIRE(questionLen > pos + 11);
   /* OPT root label (1) followed by type (2) */
   BOOST_REQUIRE_EQUAL(query.at(pos), 0);
-  BOOST_REQUIRE(query.at(pos+2) == QType::OPT);
+  BOOST_REQUIRE(query.at(pos + 2) == QType::OPT);
 
   EDNSOptionViewMap options;
-  int res = getEDNSOptions(reinterpret_cast<char*>(query.data())+pos+9, questionLen - pos - 9, options);
+  int res = getEDNSOptions(reinterpret_cast<char*>(query.data()) + pos + 9, questionLen - pos - 9, options);
   BOOST_REQUIRE_EQUAL(res, 0);
 
   /* 3 EDNS options but two of them are EDNS Cookie, so we only have two entries in the map */
@@ -158,7 +160,8 @@ static void checkECSOptionValidity(const std::string& sourceStr, uint8_t sourceM
   BOOST_REQUIRE_EQUAL(ecsOpts.scope.getBits(), parsed.scope.getBits());
 }
 
-BOOST_AUTO_TEST_CASE(test_makeEDNSSubnetOptsString) {
+BOOST_AUTO_TEST_CASE(test_makeEDNSSubnetOptsString)
+{
 
   checkECSOptionValidity("192.0.2.255", 0, 0);
   checkECSOptionValidity("192.0.2.255", 8, 0);
