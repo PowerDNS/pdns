@@ -486,6 +486,24 @@ jobs:
           paths:
             - project
 
+  check-formatting:
+    docker:
+      - image: debian:buster
+    steps:
+      - run:
+          name: Install dependencies
+          command: |
+            apt-get update && apt-get -qq --no-install-recommends install \
+            clang-format git
+      - get-workspace
+      - run:
+          name: Check formatting
+          command: |
+            ./build-scripts/format-code pdns/recursordist/*.[ch][ch]
+            git diff
+            exit $(git diff | wc -l)
+          working_directory: ~/project
+
   build-auth:
     docker:
       - image: debian:buster
@@ -1402,6 +1420,9 @@ workflows:
       - test-auth-regress-tinydns:
           requires:
             - build-auth
+      - check-formatting:
+          requires:
+            - checkout
       - build-recursor:
           requires:
             - checkout
